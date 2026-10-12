@@ -22462,6 +22462,23 @@ function bseEprimaEstado(esep, elat, edad, sexo) {
 }
 window.bseEprimaEstado = bseEprimaEstado;
 
+/* Los DETALLES que van entre paréntesis en la frase del informe: las tres variables principales
+   que se midieron y, sólo si la rama del strain llegó a correr, los parámetros que ahí votaron.
+   El S/D se nombra por su token y no por un número: el campo es un <select> de «<1 / >1». */
+function _bseDetalles(d, st) {
+  const out = [];
+  if (d.eeVal !== null) out.push("E/e' " + d.eeSitio + ' ' + d.eeVal.toFixed(1));
+  if (d.trv  !== null) out.push('velocidad de la IT ' + d.trv.toFixed(1) + ' m/s');
+  if (d.lavi !== null) out.push('Vol AI ' + d.lavi.toFixed(1) + ' ml/m²');
+  if (st) {
+    if (st.lars !== null && st.lars !== undefined) out.push('LARS ' + st.lars.toFixed(1) + ' %');
+    if (st.arA  !== null && st.arA  !== undefined) out.push('Ar−A ' + st.arA.toFixed(0) + ' ms');
+    if (st.sd) out.push('S/D venoso pulmonar ' + (st.sd === 'menor1' ? '<1' : '>1'));
+    if (st.tde !== null && st.tde !== undefined) out.push('TDE ' + st.tde.toFixed(0) + ' ms');
+  }
+  return out;
+}
+
 function diastBSE2024Evaluar() {
   const e = v('onda_e'), a = v('onda_a'), esep = v('e_sep'), elat = v('e_lat');
   const aiVol = v('ai_vol'), bsa = getBSA();
@@ -22578,7 +22595,8 @@ function diastBSE2024Evaluar() {
       }
     }
     R.presion = presion;
-    R.res = window.calcularBSE2024_FEVIreducida(presion, { eeVal: eeVal, eeSitio: eeSitio, trv: trv, lavi: lavi });
+    R.detalles = _bseDetalles({ eeVal: eeVal, eeSitio: eeSitio, trv: trv, lavi: lavi }, R.strain);
+    R.res = window.calcularBSE2024_FEVIreducida(presion, R.detalles);
   } else {
     /* ══ LAS TRES VARIABLES PRINCIPALES DE LA FIGURA 17 (pág. 36, prosa de la pág. 35) ═════
        ⚠️ LA APP VOTABA LA E/A Y NO VOTABA LA IT, Y LAS DOS COSAS ERAN DEFECTOS. La banda de la
@@ -22699,7 +22717,11 @@ function diastBSE2024Evaluar() {
                      val: null, u: '', ok: false });
     }
 
-    R.res = window.calcularBSE2024(eprimaE, presion, { eeVal: eeVal, eeSitio: eeSitio, trv: trv, lavi: lavi });
+    /* DETALLES = los parámetros que VOTARON, con su valor. Los arma el dueño y no la fábrica de
+       texto, porque es el único que sabe si la rama del strain llegó a correr: con la lista
+       armada «desde afuera», un LARS que decidió el veredicto no salía nombrado en el informe. */
+    R.detalles = _bseDetalles({ eeVal: eeVal, eeSitio: eeSitio, trv: trv, lavi: lavi }, R.strain);
+    R.res = window.calcularBSE2024(eprimaE, presion, R.detalles);
   }
 
   R.clave     = R.res.categoria;
@@ -24638,102 +24660,99 @@ function diastAlgoCerrarSesion() {
 }
 window.diastAlgoCerrarSesion = diastAlgoCerrarSesion;
 
-function calcularBSE2024(eprima, presion, d) {
-  /* La presión ya viene resuelta por `diastBSE2024Evaluar` con la regla de la Figura 17 y el
-     paso del e' viene resuelto con la Tabla 2; acá sólo se arma la palabra y el texto. */
-  if (presion === 'insuficiente') {
-    /* ⚠️ `texto: null` A PROPÓSITO. Con menos de dos variables principales evaluadas la Figura
-       17 no tiene rama, así que la app NO afirma presión normal ni elevada. Con `texto` en null
-       el informe firmado cae en su respaldo de datos insuficientes, que es exactamente lo que
-       hacía HEAD. El rótulo nombra QUÉ falta, porque un «datos insuficientes» pelado no deja
-       salir del estado. */
-    const t = "Datos insuficientes — faltan variables de presión (E/e', IT o Vol AI)";
-    return { categoria: 'presion_insuficiente', badge: badge('gray', t), badgeTxt: t,
-             texto: null, textoSuma: null };
+/* ══ LAS FRASES DE LA BSE 2024 ═══════════════════════════════════════════════
+   Las categorías son las de la guía, y su nombre sale de las casillas de las Figuras 17 y 18:
+   «Normal diastolic function», «Impaired diastolic function with normal filling pressures» e
+   «Impaired diastolic function with elevated filling pressures». La indeterminada NO tiene
+   casilla dibujada: sale de la prosa del folio 36.
+   ⚠️ LA BSE ABANDONÓ LOS GRADOS I-III y esta guía no los menciona, así que ninguna frase de acá
+   escribe un grado —a diferencia de la ASE 2025 y de la ASE/EACVI 2016, que sí los tienen—.
+   ⚠️ LAS DOS VÍAS COMPARTEN LAS CASILLAS 2 Y 3, así que comparten la frase: en la vía reducida la
+   relajación se da por alterada y la casilla a la que llega es LA MISMA de la Figura 17. Lo que
+   se pierde respecto de HEAD es la coletilla «en contexto de función sistólica
+   deprimida/cardiopatía conocida», que repetía un dato que el informe ya trae en su línea de
+   FEVI; queda declarado.
+   Las de FA y las de las otras dos guías NO se tocan: viven en sus propias funciones. */
+const BSE_FRASE = {
+  normal: {
+    inf: 'Función diastólica normal para la edad, con presión de llenado del VI normal',
+    suma: 'Función diastólica normal para la edad.',
+    cls: 'green', badge: 'Normal para la edad — BSE 2024'
+  },
+  deteriorada_normal: {
+    inf: 'Función diastólica deteriorada con presión de llenado del VI normal',
+    suma: 'Función diastólica deteriorada, presión de llenado normal.',
+    cls: 'yellow', badge: 'Deteriorada, presión normal — BSE 2024'
+  },
+  deteriorada_elevada: {
+    inf: 'Función diastólica deteriorada con presión de llenado del VI elevada',
+    suma: 'Función diastólica deteriorada, presión de llenado elevada.',
+    cls: 'red', badge: 'Deteriorada, presión elevada — BSE 2024'
   }
+};
+const BSE_SIN_DATOS_TXT = "Datos insuficientes — faltan variables de presión (E/e', IT o Vol AI)";
 
-  /* DETALLES: las variables que VOTARON, con su valor. */
-  const detalles = [];
-  if (d.eeVal !== null) detalles.push("E/e' " + d.eeSitio + ' ' + d.eeVal.toFixed(1));
-  if (d.trv  !== null) detalles.push('velocidad de la IT ' + d.trv.toFixed(1) + ' m/s');
-  if (d.lavi !== null) detalles.push('Vol AI ' + d.lavi.toFixed(1) + ' ml/m²');
-  const det = detalles.join(', ');
+function _bseFrase(k, det) {
+  const f = BSE_FRASE[k];
+  const par = det && det.length ? det.join(', ') : 'parámetros disponibles';
+  return { texto: f.inf + ' (' + par + ').', textoSuma: f.suma,
+           badge: badge(f.cls, f.badge), badgeTxt: f.badge };
+}
+function _bseIndeterminada(det) {
+  const par = det && det.length ? det.join(', ') : 'hallazgos discordantes';
+  const b = 'Presión indeterminada — BSE 2024';
+  return { texto: 'Presión de llenado del VI indeterminada por discordancia entre los parámetros ('
+                  + par + '); considerar el strain de la AI u otros parámetros.',
+           textoSuma: 'Presión de llenado del VI indeterminada.',
+           badge: badge('orange', b), badgeTxt: b };
+}
+function _bseSinDatos() {
+  /* ⚠️ `texto: null` A PROPÓSITO, y es el texto de datos insuficientes de HEAD el que se
+     conserva: con `texto` en null el informe firmado cae en su propio respaldo, que es lo que ya
+     hacía. El rótulo de pantalla nombra QUÉ falta, porque un «datos insuficientes» pelado no
+     deja salir del estado. */
+  return { categoria: 'presion_insuficiente', badge: badge('gray', BSE_SIN_DATOS_TXT),
+           badgeTxt: BSE_SIN_DATOS_TXT, texto: null, textoSuma: null };
+}
 
-  /* ⚠️ CON PRESIÓN ELEVADA LA FIGURA 17 NO CONSULTA EL e', Y ESO CONTESTA LA PREGUNTA DE QUÉ
-     HACER CON «presión elevada y e' normal para la edad»: la guía no tiene esa combinación. Sus
-     dos ramas rojas —«2 or 3 criteria positive» y las dos salidas de la rama del strain— van
-     DIRECTO a la casilla «Impaired diastolic function with elevated filling pressures» sin pasar
-     por «Assess relaxation by age-specific e'». El e' sólo decide del lado de la presión normal.
-     Lo respalda además la prosa de la pág. 13: «a value greater than the age-specific cut-off
-     does not confirm normal LV relaxation». */
-  let categoria;
-  if (presion === 'elevada') categoria = 'elevada';
-  else if (presion === 'indeterminada') categoria = 'indeterminado';
-  else if (!eprima.evaluable) categoria = 'normal_sin_eprima';
-  else if (eprima.alterada) categoria = 'alterada_normal';
-  else categoria = 'normal';
+function calcularBSE2024(eprima, presion, det) {
+  if (presion === 'insuficiente') return _bseSinDatos();
 
-  let texto, textoSuma, badgeC, badgeTxtC;
-  if (categoria === 'normal') {
-    texto = `Función diastólica normal, con presión de llenado del VI dentro de límites normales (${det || 'parámetros disponibles dentro de rango'}).`;
-    textoSuma = 'Función diastólica normal.';
-    badgeTxtC = 'Normal — BSE 2024'; badgeC = badge('green', badgeTxtC);
-  } else if (categoria === 'alterada_normal') {
-    texto = `Patrón de relajación alterada, con presión de llenado del VI normal (${det || 'sin marcadores de presión elevada'}).`;
-    textoSuma = 'Relajación alterada, presión de llenado normal.';
-    badgeTxtC = 'Relajación alterada — BSE 2024'; badgeC = badge('yellow', badgeTxtC);
-  } else if (categoria === 'normal_sin_eprima') {
-    /* ESTADO NUEVO. La presión SÍ está establecida y se publica; lo que no se puede es decidir la
-       relajación, porque la Tabla 2 necesita la edad (y el sexo en 18-40). No se extrapola
-       ningún corte: el aviso ámbar de al lado dice qué completar. */
-    texto = `Presión de llenado del VI normal (${det || 'parámetros disponibles dentro de rango'}). No se valoró la relajación: ${eprima.motivo === 'rango' ? eprima.que : 'falta ' + eprima.que}.`;
-    textoSuma = 'Presión de llenado del VI normal.';
-    badgeTxtC = 'Presión de llenado normal, relajación no valorada — BSE 2024';
-    badgeC = badge('gray', badgeTxtC);
-  } else if (categoria === 'elevada') {
-    texto = `Presión de llenado del VI elevada (${det || 'múltiples marcadores positivos'}), compatible con disfunción diastólica significativa.`;
-    textoSuma = 'Presión de llenado del VI elevada.';
-    badgeTxtC = 'Presión de llenado elevada — BSE 2024'; badgeC = badge('red', badgeTxtC);
-  } else {
-    texto = `Evaluación de la presión de llenado del VI indeterminada por discordancia entre parámetros (${det || 'hallazgos discordantes'}). Sugerido correlacionar con clínica o considerar parámetros adicionales (strain de AI).`;
-    textoSuma = 'Función diastólica indeterminada.';
-    badgeTxtC = 'Indeterminado — BSE 2024'; badgeC = badge('orange', badgeTxtC);
+  /* ⚠️ CON PRESIÓN ELEVADA LA FIGURA 17 NO CONSULTA EL e', Y ESO CONTESTA QUÉ HACER CON
+     «presión elevada y e' normal para la edad»: la guía no tiene esa combinación. Sus dos ramas
+     rojas van DIRECTO a la casilla «Impaired diastolic function with elevated filling pressures»
+     sin pasar por «Assess relaxation by age-specific e'». El e' sólo decide del lado de la
+     presión normal. Lo respalda la prosa de la pág. 13: «a value greater than the age-specific
+     cut-off does not confirm normal LV relaxation». */
+  if (presion === 'elevada')        return Object.assign({ categoria: 'elevada' }, _bseFrase('deteriorada_elevada', det));
+  if (presion === 'indeterminada')  return Object.assign({ categoria: 'indeterminado' }, _bseIndeterminada(det));
+
+  if (!eprima.evaluable) {
+    /* La presión SÍ está establecida y se publica; lo que no se puede es decidir la relajación,
+       porque la Tabla 2 necesita la edad (y el sexo en 18-40). No se extrapola ningún corte: el
+       aviso ámbar de al lado dice qué completar. */
+    const par = det && det.length ? det.join(', ') : 'parámetros disponibles';
+    const b = 'Presión normal, relajación no valorada — BSE 2024';
+    return { categoria: 'normal_sin_eprima', badge: badge('gray', b), badgeTxt: b,
+             texto: 'Presión de llenado del VI normal (' + par + '). No se valoró la relajación: '
+                    + (eprima.motivo === 'rango' ? eprima.que : 'falta ' + eprima.que) + '.',
+             textoSuma: 'Presión de llenado del VI normal.' };
   }
-  return { categoria, badge: badgeC, badgeTxt: badgeTxtC, texto, textoSuma };
+  if (eprima.alterada) return Object.assign({ categoria: 'alterada_normal' }, _bseFrase('deteriorada_normal', det));
+  return Object.assign({ categoria: 'normal' }, _bseFrase('normal', det));
 }
 window.calcularBSE2024 = calcularBSE2024;
 
-function calcularBSE2024_FEVIreducida(presion, d) {
-  if (presion === 'insuficiente') {
-    const t = "Datos insuficientes — faltan variables de presión (E/e', IT o Vol AI)";
-    return { categoria: 'presion_insuficiente', badge: badge('gray', t), badgeTxt: t,
-             texto: null, textoSuma: null };
-  }
-  const detalles = [];
-  if (d.eeVal !== null) detalles.push("E/e' " + d.eeSitio + ' ' + d.eeVal.toFixed(1));
-  if (d.trv  !== null) detalles.push('velocidad de la IT ' + d.trv.toFixed(1) + ' m/s');
-  if (d.lavi !== null) detalles.push('Vol AI ' + d.lavi.toFixed(1) + ' ml/m²');
-  const det = detalles.join(', ');
-
+function calcularBSE2024_FEVIreducida(presion, det) {
   /* En esta vía la relajación ya está dada por alterada (pág. 37), así que el e' NO se consulta y
-     las dos salidas afirmativas de la Figura 18 son «deteriorada con presión normal» y
-     «deteriorada con presión elevada». La tercera es la indeterminada de su prosa. */
-  let texto, textoSuma, badgeC, badgeTxtC;
-  if (presion === 'normal') {
-    texto = `Disfunción diastólica con presión de llenado del VI normal, en contexto de función sistólica deprimida/cardiopatía conocida (${det || 'marcadores disponibles dentro de rango'}).`;
-    textoSuma = 'Disfunción diastólica, presión de llenado normal.';
-    badgeTxtC = 'Presión de llenado normal — BSE 2024'; badgeC = badge('yellow', badgeTxtC);
-  } else if (presion === 'elevada') {
-    texto = `Disfunción diastólica con presión de llenado del VI elevada, en contexto de función sistólica deprimida/cardiopatía conocida (${det || 'mayoría de marcadores positivos'}).`;
-    textoSuma = 'Disfunción diastólica, presión de llenado elevada.';
-    badgeTxtC = 'Presión de llenado elevada — BSE 2024'; badgeC = badge('red', badgeTxtC);
-  } else {
-    texto = `Estimación de la presión de llenado del VI indeterminada por discordancia entre marcadores (${det || 'hallazgos discordantes'}). Sugerido correlacionar con clínica o considerar parámetros adicionales (strain de AI).`;
-    textoSuma = 'Presión de llenado indeterminada.';
-    badgeTxtC = 'Indeterminado — BSE 2024'; badgeC = badge('orange', badgeTxtC);
-  }
-  return { categoria: presion === 'normal' ? 'fr_normal' : presion === 'elevada' ? 'fr_elevada' : 'indeterminado',
-           badge: badgeC, badgeTxt: badgeTxtC, texto, textoSuma };
+     las dos salidas afirmativas son las MISMAS dos casillas de la Figura 17. Comparten frase.
+     La indeterminada de esta vía, en la prosa, es «LV relaxation is impaired but with
+     indeterminate LVFP»: la frase publicada es la de presión indeterminada y NO afirma la
+     relajación deteriorada, porque esa plantilla no existe. Queda declarado. */
+  if (presion === 'insuficiente')  return _bseSinDatos();
+  if (presion === 'elevada')       return Object.assign({ categoria: 'fr_elevada' }, _bseFrase('deteriorada_elevada', det));
+  if (presion === 'normal')        return Object.assign({ categoria: 'fr_normal' },  _bseFrase('deteriorada_normal', det));
+  return Object.assign({ categoria: 'indeterminado' }, _bseIndeterminada(det));
 }
 window.calcularBSE2024_FEVIreducida = calcularBSE2024_FEVIreducida;
 
