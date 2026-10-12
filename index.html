@@ -24899,11 +24899,19 @@ function diastASE2016Evaluar() {
           'Patrón de relajación alterada con presiones de llenado normales (Disfunción diastólica Grado I).',
           'Disfunción diastólica Grado I (relajación alterada).',
           '1 de 3 criterios positivos, o sea 2 de 3 negativos' + sufFevi);
+  /* ⚠️ LAS DOS RAMAS DE «CANNOT DETERMINE» COMPARTEN LA FRASE CORTA, Y LA LARGA SE DEJÓ DE
+     EMITIR A PROPÓSITO. La app tenía «Función diastólica indeterminada (1/3 criterios de presión
+     de llenado positivos).», y ese «1/3» era cierto mientras un positivo sobre TRES salía
+     indeterminado. Desde que esa combinación es grado I —folio 286—, la frase larga sólo puede
+     aparecer con DOS o UN criterio disponible, donde el «/3» afirma un denominador que el estudio
+     no tiene: un informe FIRMADO diciendo «1/3» sobre un paciente con dos criterios medidos. Se
+     publica la corta, que es la otra frase que la app ya tenía para el mismo estado y no afirma
+     ningún conteo. El EN SUMA de las dos ya era el mismo texto, así que ahí no cambia nada. El
+     conteo real sigue en la ventana, que es donde se explica. */
   } else if (R.pos === 1) {
-    poner('indet1', 'gray', 'Indeterminado — ASE 2016',
-          'Función diastólica indeterminada (1/3 criterios de presión de llenado positivos).',
-          'Función diastólica indeterminada.',
-          '1 positivo y 1 negativo con sólo 2 criterios disponibles' + sufFevi);
+    poner('indet', 'gray', 'Indeterminado — ASE 2016',
+          'Función diastólica indeterminada.', 'Función diastólica indeterminada.',
+          '1 positivo y 1 negativo con sólo ' + R.total + ' criterios disponibles' + sufFevi);
   } else if (R.total === 1) {
     poner('indet', 'gray', 'Indeterminado — ASE 2016',
           'Función diastólica indeterminada.', 'Función diastólica indeterminada.',
