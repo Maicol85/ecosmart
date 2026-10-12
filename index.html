@@ -23160,29 +23160,54 @@ function diastASE2025Evaluar() {
   /* `(ep && el)` y no `!== null`: es la condición de HEAD y se conserva a propósito. Un e' de 0
      queda leído como «no medido», que es lo conservador — con `!== null`, un 0 tipeado por error
      daría un E/e' infinito y un criterio POSITIVO sobre un dato que no existe. Declarado. */
-  const ee = (ep && el) ? ((ep + el) / 2) : (ep || el || null);
+  /* ⚠️ `prom` ES EL PROMEDIO DE VERDAD Y `ee` ES EL e' QUE SE MUESTRA. No son lo mismo, y
+     confundirlos era el defecto: con un anillo solo, `ee` vale ESE anillo y la cascada del Paso 1
+     lo comparaba contra el corte del PROMEDIO (≤6,5) — el corte de un promedio que no existe.
+     Medido: un e' septal de 6,3 sin lateral salía «relajación reducida» cuando su corte es ≤6
+     (Figura 3, folio 554), y con eso el umbral de marcadores bajaba de 2 a 1 y el estudio
+     terminaba publicando «DD Grado II» en el informe firmado.
+     Con los DOS anillos el ≤6,5 nunca decide solo, y es álgebra, no una observación: para que
+     (ep+el)/2 ≤ 6,5 con ep > 6 y el > 7 haría falta una suma ≥ 13,02, o sea un promedio ≥ 6,51.
+     Siempre que el promedio cumple, ya cumplió el septal o el lateral. */
+  const dosAnillos = !!(ep && el);
+  const prom = dosAnillos ? ((ep + el) / 2) : null;
+  const ee = dosAnillos ? prom : (ep || el || null);
   const tr = v('vmax_it');            // velocidad TR en m/s
   const aiVol = v('ai_vol');
   const lars = v('lars');             // opcional
   const bsa = getBSA();
   const lavi = (aiVol && bsa) ? aiVol / bsa : null;
-  /* El E/e' se CUENTA con `ee !== null && E !== null`, que es el predicado de HEAD, y no con la
-     truthiness del cociente: con E = 0 el parámetro está evaluado y da negativo, no ausente. */
-  const eeEval = (ee !== null && E !== null);
-  const eeRatio = eeEval ? (E / ee) : null;
+  /* ⚠️ LOS TRES CORTES DEL E/e' SON ALTERNATIVAS, COMO LA FIGURA 3 LAS PRESENTA (folio 554):
+     «septal ≥ 15 o lateral ≥ 13 o promedio ≥ 14». HEAD usaba UN solo corte —14— contra el e' que
+     hubiera, así que con un anillo solo comparaba un cociente SEPTAL contra el corte del
+     PROMEDIO: un E/e' septal de 14,29 salía positivo cuando su corte es 15. Cada alternativa se
+     evalúa SÓLO si su propio e' está medido, y el criterio es el OR de las disponibles.
+     CONSECUENCIA DECLARADA: con los dos anillos cargados valen las TRES, así que un cociente
+     septal de 15 con un promedio de 13 ahora es positivo y antes no — es lo que dice la figura.
+     Cada cociente se CUENTA con `E !== null` y el e' de su sitio, no con la truthiness del
+     cociente: con E = 0 el parámetro está evaluado y da negativo, no ausente. */
+  const eeSep  = (E !== null && ep) ? (E / ep) : null;
+  const eeLat  = (E !== null && el) ? (E / el) : null;
+  const eeProm = (E !== null && prom !== null) ? (E / prom) : null;
+  const cEeSep  = eeSep  !== null && eeSep  >= 15;
+  const cEeLat  = eeLat  !== null && eeLat  >= 13;
+  const cEeProm = eeProm !== null && eeProm >= 14;
+  const eeEval  = (eeSep !== null || eeLat !== null || eeProm !== null);
+  const cEe     = cEeSep || cEeLat || cEeProm;
+  const eeRatio = (E !== null && ee !== null) ? (E / ee) : null;   // el que se muestra en la celda
   const ea = (E !== null && A !== null && A > 0) ? E / A : null;
 
-  const R = { ep, el, ee, E, A, ea, eeRatio, tr, lavi, lars,
+  const R = { ep, el, ee, prom, E, A, ea, eeRatio, eeSep, eeLat, eeProm, tr, lavi, lars,
               filas: [], pos: 0, total: 0, ePrimReducida: false };
 
   // ── PASO 1: e' reducida? (promedio ≤6.5 | septal ≤6 | lateral ≤7) — Figura 3, folio 554
   const cSep  = ep !== null && ep <= 6;
   const cLat  = el !== null && el <= 7;
-  const cProm = ee !== null && ee <= 6.5;
+  const cProm = prom !== null && prom <= 6.5;
   R.ePrimReducida = cProm || cSep || cLat;
   R.filas.push({ g: 'Paso 1 — Relajación (e\')', crit: 'e\' septal ≤ 6 cm/s', val: ep, u: 'cm/s', ok: cSep });
   R.filas.push({ crit: 'e\' lateral ≤ 7 cm/s',    val: el, u: 'cm/s', ok: cLat });
-  R.filas.push({ crit: 'e\' promedio ≤ 6,5 cm/s', val: ee, u: 'cm/s', ok: cProm });
+  R.filas.push({ crit: 'e\' promedio ≤ 6,5 cm/s (sólo con los dos anillos)', val: prom, u: 'cm/s', ok: cProm });
 
   if (ee === null && ep === null && el === null) {
     R.clave = 'incompleto';
@@ -23195,18 +23220,33 @@ function diastASE2025Evaluar() {
     return R;
   }
 
-  // ── PASO 2: parámetros de presión elevada (E/e'>14, Vol AI>34, TR>2.8, LARS≤18)
-  const P2 = [
-    { g: 'Paso 2 — Presión de llenado', crit: 'E/e\' promedio > 14', val: eeRatio, u: '',
-      ok: eeEval && eeRatio > 14, ev: eeEval, dec: 1 },
-    { crit: 'Vol AI > ' + UMBRAL_LAVI_DILATADO + ' ml/m²', val: lavi, u: 'ml/m²',
-      ok: lavi !== null && lavi > UMBRAL_LAVI_DILATADO, ev: lavi !== null },
-    { crit: 'Velocidad IT > 2.8 m/s', val: tr, u: 'm/s',
-      ok: tr !== null && tr > 2.8, ev: tr !== null },
-    { crit: 'LARS ≤ 18 %', val: lars, u: '%',
-      ok: lars !== null && lars <= 18, ev: lars !== null }
-  ];
-  P2.forEach(f => { if (f.ev) { R.total++; if (f.ok) R.pos++; } R.filas.push(f); });
+  /* ── PASO 2: parámetros de presión elevada (E/e', Vol AI>34, TR≥2.8, LARS≤18)
+     ⚠️ LOS BORDES SON LOS DE LA FIGURA 3 (folio 554) Y NO LOS DEL TEXTO. La ASE 2025 se
+     contradice consigo misma en dos cortes: las Figuras 2 y 3 escriben «≤6 / ≤7 / ≤6,5» para el
+     e' y «≤18 %» para el LARS, y el Key Point del folio 553 y la Tabla 6 escriben los mismos
+     cuatro con «<»; y la Figura 3 escribe «E/e' ≥ 14» y «TR ≥ 2,8» donde la Figura 2, la prosa
+     del folio 553 y la Tabla 7 del folio 557 escriben «> 14» y «> 2,8». Gana LA FIGURA DEL
+     ALGORITMO, que es la Figura 3, porque lo que esta función publica es presión de llenado y
+     grado — el producto de la Figura 3, no el de la Figura 2. El signo descartado queda escrito
+     acá a propósito: un borde no se entiende sin el que no se eligió.
+     No es un borde teórico: un E/e' de 14,00 exacto se alcanza con enteros (E 98, e' 7,0) y una
+     IT de 2,80 es el valor que más se tipea. */
+  const cLavi = lavi !== null && lavi > UMBRAL_LAVI_DILATADO;
+  const cTr   = tr !== null && tr >= 2.8;
+  const cLars = lars !== null && lars <= 18;
+  [ { ev: eeEval,        ok: cEe },
+    { ev: lavi !== null, ok: cLavi },
+    { ev: tr !== null,   ok: cTr },
+    { ev: lars !== null, ok: cLars }
+  ].forEach(c => { if (c.ev) { R.total++; if (c.ok) R.pos++; } });
+  /* El E/e' ocupa UNA posición en el conteo y TRES filas en la ventana: es un criterio con tres
+     alternativas, no tres criterios. Contarlo tres veces le daría triple peso al mismo dato. */
+  R.filas.push({ g: 'Paso 2 — Presión de llenado', crit: 'E/e\' septal ≥ 15', val: eeSep, u: '', ok: cEeSep, dec: 1 });
+  R.filas.push({ crit: 'E/e\' lateral ≥ 13',  val: eeLat,  u: '', ok: cEeLat,  dec: 1 });
+  R.filas.push({ crit: 'E/e\' promedio ≥ 14', val: eeProm, u: '', ok: cEeProm, dec: 1 });
+  R.filas.push({ crit: 'Vol AI > ' + UMBRAL_LAVI_DILATADO + ' ml/m²', val: lavi, u: 'ml/m²', ok: cLavi });
+  R.filas.push({ crit: 'Velocidad IT ≥ 2.8 m/s', val: tr, u: 'm/s', ok: cTr });
+  R.filas.push({ crit: 'LARS ≤ 18 %', val: lars, u: '%', ok: cLars });
 
   // ── PASO 3: umbral según e' (reducida → ≥1 positivo de al menos 2 EVALUADOS; conservada → ≥2)
   const nPar = ' (' + R.pos + '/' + R.total + ' parámetros positivos)';
@@ -101643,8 +101683,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261012-0027';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791775636417;                 /* eco-build-ms */
+const ECO_BUILD    = '20261012-0036';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791776194206;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -101730,7 +101770,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261012-0027</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261012-0036</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

@@ -383,7 +383,12 @@ const ESCENAS = [
    el ultimo del mapa; los demas fijan la escena. Cada triplete trae su CONTROL NEGATIVO implicito
    (el valor de abajo), que es lo que distingue un corte de una sonda que dice si a todo. */
 const BORDES = [
-  { id: 'B1-eeProm', que: "E/e' promedio (corte ≥14 por la Figura 3)", fijo: { e_sep: '7', e_lat: '7', onda_a: '70', ai_vol: '40', vmax_it: '2.0' }, campo: 'onda_e', vals: ['97', '98', '99'], nota: '13,857 / 14,000 / 14,143' },
+  /* ⚠️ EL PROMEDIO ≥14 NUNCA DECIDE SOLO CON LOS DOS ANILLOS, Y ES ALGEBRA: para que E/prom ≥ 14
+     con E/ep < 15 y E/el < 13 haria falta ep+el = E/7 siendo ep+el > E/15 + E/13 = 28E/195, y
+     1/7 = 195/1365 < 196/1365 = 28/195. Imposible por 1/1365. Asi que el triplete mide el ESTADO
+     DE LA FILA —que ahi si cruza en 14,00— y el veredicto lo decide la alternativa LATERAL, que
+     con los dos anillos es siempre la mas permisiva. Es el analogo exacto del ≤6,5 del Paso 1. */
+  { id: 'B1-eeProm', que: "E/e' promedio con los dos anillos (corte ≥14; la fila cruza, el veredicto lo decide el lateral)", fijo: { e_sep: '7', e_lat: '7', onda_a: '70', ai_vol: '40', vmax_it: '2.0' }, campo: 'onda_e', vals: ['97', '98', '99'], nota: '13,857 / 14,000 / 14,143' },
   { id: 'B2-eeSeptal', que: "E/e' SEPTAL con un solo anillo (corte ≥15)", fijo: { e_sep: '6', onda_a: '70', ai_vol: '40', vmax_it: '2.0' }, campo: 'onda_e', vals: ['89', '90', '91'], nota: '14,83 / 15,00 / 15,17' },
   { id: 'B3-eeLateral', que: "E/e' LATERAL con un solo anillo (corte ≥13)", fijo: { e_lat: '10', onda_a: '70', ai_vol: '40', vmax_it: '2.0' }, campo: 'onda_e', vals: ['129', '130', '131'], nota: '12,90 / 13,00 / 13,10' },
   { id: 'B4-esepSolo', que: "e' SEPTAL con un solo anillo (corte ≤6)", fijo: { onda_e: '60', onda_a: '70', ai_vol: '40', vmax_it: '2.0' }, campo: 'e_sep', vals: ['5.9', '6', '6.1'], nota: 'el promedio ≤6,5 NO aplica con un anillo' },
@@ -393,7 +398,18 @@ const BORDES = [
   { id: 'B8-lavi', que: 'Vol AI indexado del segundo paso (corte >34)', fijo: { e_sep: '10', e_lat: '13', onda_e: '180', onda_a: '90', vmax_it: '2.0' }, campo: 'ai_vol', vals: ['61', '62', '63'], nota: 'con ASC 1,81: 33,7 / 34,2 / 34,8' },
   { id: 'B9-lars', que: 'LARS del segundo paso (corte ≤18)', fijo: { e_sep: '10', e_lat: '13', onda_e: '180', onda_a: '90', ai_vol: '40', vmax_it: '2.0' }, campo: 'lars', vals: ['17.9', '18', '18.1'], nota: '' },
   { id: 'B10-triv', que: 'TRIV, alternativa del segundo paso (corte ≤70)', fijo: { e_sep: '10', onda_e: '70' }, campo: 'triv', vals: ['69', '70', '71'], nota: 'sin ninguno de los tres del segundo paso' },
-  { id: 'B11-eaG1', que: 'E/A del grado 1 (corte ≤0,80)', fijo: { e_sep: '5', e_lat: '6', onda_e: '80', ai_vol: '40', vmax_it: '2.0' }, campo: 'onda_a', vals: ['99', '100', '101'], nota: '0,808 / 0,800 / 0,792 — el corte se cruza AL BAJAR la onda A' },
+  /* ⚠️ LA PRIMERA FIXTURE DE ESTE BORDE MEDIA OTRA COSA: con e' septal 5 y onda E 80, el E/e'
+     SEPTAL da 16 y cruza su propio corte de ≥15, asi que la escena tenia presion ELEVADA y el
+     triplete separaba grado 2 de indeterminado en vez de medir el corte del grado 1. Con e' 6/7
+     y onda E 60 las tres alternativas del E/e' quedan negativas (10,0 / 8,6 / 9,2) y la rama es
+     la corta de la figura: e' reducida sola, graduada por la E/A. */
+  { id: 'B11-eaG1', que: 'E/A del grado 1 (corte ≤0,80)', fijo: { e_sep: '6', e_lat: '7', onda_e: '60', ai_vol: '40', vmax_it: '2.0' }, campo: 'onda_a', vals: ['74', '75', '76'], nota: '0,811 / 0,800 / 0,789 — el corte se cruza AL SUBIR la onda A' },
+/* P6: el borde de la PSAP, con la IT NEGATIVA en los tres. PmAD 8 (VCI 15 mm con colapso <50),
+     asi que la PSAP sale 33 / 34 / 35 mmHg con IT 2,50 / 2,55 / 2,60 — todas por debajo de 2,8.
+     Con la PSAP positiva las TRES principales quedan positivas (e' 5,5 reducido y E/e' septal 18)
+     y la presion es elevada; con la PSAP negativa son dos, el segundo paso tiene el Vol AI en 22
+     y da negativo, y el veredicto es el estado (a). El flip lo produce SOLO la PSAP. */
+  { id: 'B13-psap', que: 'PSAP ≥35 mmHg como alternativa de la IT (la IT queda negativa en los tres)', fijo: { e_sep: '5', e_lat: '6', onda_e: '90', onda_a: '60', ai_vol: '40' }, sel: { vci_col: '<50' }, teclas: { vci_diam: '15' }, campo: 'vmax_it', vals: ['2.5', '2.55', '2.6'], nota: 'PSAP 33 / 34 / 35 mmHg' },
   { id: 'B12-eaG3', que: 'E/A del grado 3 (corte ≥2,00)', fijo: { e_sep: '5', e_lat: '6', onda_e: '200', ai_vol: '80', vmax_it: '3.0' }, campo: 'onda_a', vals: ['99', '100', '101'], nota: '2,020 / 2,000 / 1,980' }
 ];
 
@@ -589,7 +605,7 @@ async function main() {
       const tri = [];
       for (const val of b.vals) {
         const c = Object.assign({}, b.fijo); c[b.campo] = val;
-        const carga = await cargar(c);
+        const carga = await cargar(c, b.sel, b.teclas);
         const cuadro = await ev(`window.__P.cuadro()`);
         const ven = await verVentana();
         tri.push({ [b.campo]: val, carga: carga.todosOk ? 'OK' : carga.tecleos,
