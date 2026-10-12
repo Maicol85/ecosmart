@@ -211,6 +211,13 @@ impecable.
 
 ## Estado vigente
 
+- **Línea base al cierre de la tanda de la AÓRTICA (2026-10-11): suite 463/467 con el pendrive
+  `DISK_IMG` MONTADO, Semgrep 127 / 0 ERROR, Excel 434 columnas, celular 43 a 360 px y 52 a
+  390 px con 1 ALTA cada uno.** Los cuatro rojos son los de entrada y NO son regresiones:
+  **TC-223**, **TC-376**, **TC-390** y **TC-406**. El denominador subió a 467: esta tanda agregó
+  **TC-452** y adaptó **TC-418**. Los **dos** commits (`6fd4f09` y `e053b0a`) quedan locales; el
+  push lo corre Maicol.
+
 - Al **empezar** la tanda del BOTÓN y el GLOSARIO del panel de Evidencia (2026-10-12), `main` local
   y `origin/main` estaban los dos en **`43d52f9`**, sin nada sin pushear —confirmado con un
   `git fetch` de verdad—. Los **tres** commits de esa tanda (`469c157`, `cfc39ce` y este) quedan
