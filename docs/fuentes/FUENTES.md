@@ -788,6 +788,132 @@ considered normal», que con cuatro criterios es la condición contraria a la qu
 decir; la figura escribe **«≥3 criteria negative»**. Gana la figura. La misma prosa escribe la
 onda E con `>` donde el encabezado de su propia sección y la figura escriben `≥ 100 cm/s`.
 
+### `aseDiast2016` — ASE/EACVI 2016, RITMO SINUSAL · Figura 8 del folio 290 (verificada 2026-10-12)
+
+**Documento.** Nagueh SF y cols., «Recommendations for the Evaluation of Left Ventricular Diastolic
+Function by Echocardiography: An Update from the ASE and the EACVI», *J Am Soc Echocardiogr*
+2016;29:277-314. Ruta en disco:
+`~/Desktop/EcoSmart_Biblioteca_Fuentes/02_Diastolica/LV-Diastolic-Function-ASE-EACVI-2016.pdf`
+(38 páginas). **Regla de folio: folio = página 1-based del PDF + 276.** Comprobada en el pie
+impreso de cinco páginas (PDF 1 → 277, PDF 2 → 278, PDF 14 → 290, PDF 15 → 291, PDF 16 → 292), no
+por aritmética.
+
+⚠️ **SON DOS ALGORITMOS Y ESTÁN EN LA MISMA FIGURA.** El pie de la Figura 8 (folio 290) los separa
+con todas las letras: «(A) Algorithm for diagnosis of LV diastolic dysfunction in subjects with
+normal LVEF. (B) Algorithm for estimation of LV filling pressures and grading LV diastolic function
+in patients with depressed LVEFs and patients with myocardial disease and normal LVEF after
+consideration of clinical and other 2D data.» La figura se leyó **renderizada a 230 dpi**, no sólo
+por texto extraído: el orden de lectura del PDF mezcla las cajas de las dos mitades.
+
+#### El corte entre FEVI normal y deprimida — folio 285
+
+La guía lo escribe una sola vez y con número: «patients with normal LVEF (**≥50%**)». Verificado en
+la imagen de esa línea, porque el extractor de texto convierte el `≥` en `$`. En la app es
+`UMBRAL_FEVI_NORMAL`, que ya valía 50 y gobierna la banda de la FEVI en toda la suite.
+
+#### Figura 8A — FEVI normal · diagnóstico de disfunción diastólica
+
+| Variable | Corte | Operador |
+|---|---|---|
+| E/e′ promedio | > 14 | `>` |
+| e′ anular | septal < 7 cm/s **o** lateral < 10 cm/s | `<` los dos |
+| Velocidad de la IT | > 2,8 m/s | `>` |
+| Volumen indexado de la AI | > 34 ml/m² | `>` |
+
+**Regla de conteo, con el denominador que importa (folio 281, repetido en su Key Point 2):** «LV
+diastolic function is normal if more than half of the **available** variables do not meet the cutoff
+values. LV diastolic dysfunction is present if more than half of the available parameters meet these
+cutoff values. The study is inconclusive if half of the parameters do not meet the cutoff values.»
+
+**Las tres casillas de la figura, con su nombre exacto:** `Normal Diastolic function`,
+`Indeterminate` y `Diastolic Dysfunction`. **Ninguna lleva grado**, y no hay flecha de la tercera
+hacia la 8B.
+
+⚠️ **EL DENOMINADOR ES «LAS DISPONIBLES» Y LA GUÍA LO EJEMPLIFICA CON TRES.** Folio 281: «a
+60-year-old patient with a septal e′ velocity of 6 cm/sec, septal E/e′ ratio of 10, LA maximum volume
+index of 30 mL/m², but no recorded TR signal has normal diastolic function». Tres disponibles, una
+positiva → menos de la mitad → normal.
+
+⚠️ **LA 8A NO TIENE ATAJOS DE FLUJO MITRAL.** La E/A y la onda E no son insumos suyos por ninguna
+puerta: son el primer paso de la 8B.
+
+#### Figura 8B — FEVI deprimida (o enfermedad miocárdica) · presión de llenado y grado
+
+**Paso 1, flujo mitral.** `E/A ≤ 0.8 + E ≤ 50 cm/s` → LAP normal, grado I · `E/A ≤ 0.8 + E > 50 cm/s`
+**o** `E/A > 0.8 - <2` → al paso 2 · `E/A ≥ 2` → ↑LAP, grado III.
+⚠️ **Los dos operadores del atajo son INCLUSIVOS (`≤` y `≥`)**, a diferencia de los cuatro criterios,
+que son estrictos. No es teórico: un E/A de 0,800 se alcanza con enteros (E 40 / A 50) y una E de
+50,0 clavada es el valor que más se tipea.
+
+**Paso 2, tres criterios:** `Average E/e' > 14` · `TR velocity > 2.8 m/s` · `LA Vol. index > 34 ml/m²`.
+
+**Las cuatro salidas de la caja, textuales:**
+
+| Situación | Casilla de la figura |
+|---|---|
+| 2 de 3 o 3 de 3 positivos | `↑ LAP · Grade II Diastolic Dysfunction` |
+| 2 de 3 o 3 de 3 negativos | `Normal LAP · Grade I Diastolic Dysfunction` |
+| Sólo 2 disponibles: 1 positivo y 1 negativo | `Cannot determine LAP and Diastolic Dysfunction Grade` |
+| Sólo 1 de 3 disponible | el pie: `LAP indeterminate if only 1 of 3 parameters available` |
+
+⚠️ **«1 POSITIVO SOBRE TRES» ES LA RAMA DE «2 DE 3 NEGATIVOS», Y LA PROSA LO ESCRIBE DOS VECES.**
+Folio 286: «If all three parameters are available for interpretation and only one of three meets the
+cutoff value, then LAP is normal and there is grade I diastolic dysfunction.» Key Point 5 del folio
+287: «If only one of three available variables meets the cutoff value, then LAP is normal and grade I
+diastolic dysfunction is present. In case of 50% discordance or with only one available variable,
+findings are inconclusive to estimate LAP.»
+
+⚠️ **EL MISMO NUMERADOR CON OTRO DENOMINADOR CAMBIA DE CASILLA:** 1 y 1 sobre DOS disponibles es
+«cannot determine»; 1 sobre TRES es grado I.
+
+⚠️ **LA 8B NO MIRA EL e′ POR NINGUNA PUERTA.** Sus insumos son el flujo mitral y los tres criterios.
+
+⚠️ **NO HAY NINGÚN CORTE DE «e′ PROMEDIO».** El folio 281 da septal < 7 y lateral < 10, y nada más.
+El `e' promedio < 8` que la app usaba de desempate no está en este documento.
+
+#### El S/D venoso pulmonar — tres compuertas, no una
+
+Pie de la Figura 8 (folio 290): «Pulmonary vein S/D ratio <1 applicable to conclude elevated LAP in
+patients with **depressed LV EF**». Folio 286: «In patients in whom **one of the three main criteria
+is not available**, the ratio of pulmonary vein peak systolic to peak diastolic velocity ... **< 1**
+supports the presence of elevated LV filling pressures». Key Point 6 del folio 287 repite las dos.
+Y el folio 287 dice por qué no con FEVI normal: «Because the pulmonary venous S/D ratio often is <1
+in healthy young individuals, this index is of little value in patients with normal LVEF».
+
+⚠️ **SÓLO HABLA DEL LADO POSITIVO.** «A ratio < 1 is consistent with increased LAP»; del ≥ 1 no dice
+nada, así que un «>1» no es un criterio negativo.
+
+#### El E/e′ por sitio — folio 281, REGISTRADO Y NO APLICADO
+
+«It is recognized that at times only the lateral e′ or septal e′ velocity is available and clinically
+valid and in these circumstances a **lateral E/e′ ratio > 13** or a **septal E/e′ > 15** is
+considered abnormal.» La app compara el cociente de un anillo solo contra el corte del promedio
+(> 14). Está declarado en `docs/PENDIENTES.md` → A1 y **no se tocó**: es un umbral clínico.
+
+#### El TDE y el TRIV — NO ENTRAN EN NINGUNO DE LOS DOS ALGORITMOS
+
+Censo de los dos PDF completos: en la página de la Figura 8 (folio 290) **no aparece ni una vez** la
+palabra `DT`, `IVRT` ni `deceleration`. Todas las menciones de IVRT del documento caen en poblaciones
+especiales —FA, estenosis mitral, IM, miocardiopatía restrictiva, taquicardia sinusal— y en la
+Tabla 6 del folio 296, que es otra cosa. Del TDE, el folio 286 dice lo contrario de usarlo como paso:
+con E/A ≥ 2 y DT > 160 ms por una E > 120 cm/s, «the writing group recommends using **only the E/A
+ratio** in the classification scheme».
+
+#### Lo que la guía NO dice, y la orden preguntaba
+
+- **Un paciente con FEVI normal y disfunción diagnosticada por la 8A NO se gradúa con la 8B.** No
+  hay flecha entre las dos casillas ni frase que lo mande. La condición de entrada a la 8B es la
+  **enfermedad miocárdica**, que es un juicio clínico sobre datos 2D, no el resultado de la 8A.
+- **El algoritmo no está validado**, y lo declara: folio 286, «The proposed algorithm is based on
+  expert consensus and has not been validated.»
+
+#### La comparativa, como fuente secundaria
+
+`~/Desktop/EcoSmart_Biblioteca_Fuentes/COMPARATIVA_funcion_diastolica_2016_2024_2025.md` **coincide
+con el original en todo lo verificado acá**: los dos algoritmos y su población, los cuatro cortes de
+la 8A, los tres de la 8B, los dos atajos con sus operadores, la regla de conteo de las dos figuras,
+el e′ que no vota en la 8B y el S/D sólo con FEVI deprimida. **Cero discrepancias.**
+
 ### `aseDiast2016` — ASE/EACVI 2016, FIBRILACIÓN AURICULAR · folio 295 (verificada 2026-10-12)
 
 **Documento.** Nagueh SF y cols., *J Am Soc Echocardiogr* 2016;29:277-314. Ruta en disco:

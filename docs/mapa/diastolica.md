@@ -21,9 +21,15 @@ veredicto.** Esa función **lee el DOM y no escribe nada**; devuelve el veredict
 `badgeTxt`, `texto`, `textoSuma`), el conteo (`pos`/`total`), la rama que decidió (`via`) y las
 **filas** que dibuja la ventana. Un criterio nuevo entra en un solo lugar y aparece en los dos.
 
-⚠️ **Las otras dos ramas de la ventana —BSE 2024 y ASE/EACVI 2016— SIGUEN calculando por su cuenta**
-con `_daCriteriosLAP` y `_daContar`, y difieren de sus cuadros. Está censado en
-`docs/PENDIENTES.md`; es otro trabajo.
+✅ **Y desde el 2026-10-12 las TRES guías tienen su dueño único**: la BSE 2024 lee
+`diastBSE2024Evaluar` y la ASE/EACVI 2016 lee `diastASE2016Evaluar`. `_daCriteriosLAP` y `_daContar`
+quedaron **definidos y sin consumidores**. El renglón que decía que las otras dos ramas calculaban
+por su cuenta ya no vale.
+
+📄 **La ASE/EACVI 2016 en ritmo sinusal tiene mapa propio: `docs/mapa/diastolica-ase2016.md`** (los
+dos algoritmos de la Figura 8, el corte de FEVI, el S/D, las frases y las trampas). Se sacó a
+archivo aparte porque este mapa ya pesaba 32,7 KB y el techo son ~35 KB. La **fibrilación auricular**
+de esa misma guía sigue acá, en «La FIBRILACIÓN AURICULAR».
 
 ---
 

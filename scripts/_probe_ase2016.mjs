@@ -512,33 +512,42 @@ const FEVI_VALS = [ { id: 'normal', v: '60' }, { id: 'deprimida', v: '35' }, { i
    E/A <= 0,8 con E <= 50, y E/A >= 2. Los dos atajos van con el borde INCLUIDO y los cuatro
    criterios con el borde EXCLUIDO: es lo que escribe la figura y no son el mismo signo. */
 const BORDES = [
+  /* ⚠️ CADA TRIPLETE DEJA UN CRITERIO YA POSITIVO, Y LA PRIMERA VERSION NO LO HACIA: con FEVI
+     deprimida, 0 y 1 criterios positivos dan los DOS grado I, asi que los tripletes de E/e-prima,
+     IT y Vol AI salian identicos en los tres valores y la tabla decia «ningun corte funciona»
+     sobre cortes que funcionan. Con un criterio ya positivo, cruzar el corte mueve 1 -> 2, o sea
+     grado I -> grado II. Los dos cortes del e-prima son de la 8A y van con FEVI 60, con la IT y el
+     Vol AI positivos: ahi cruzar mueve 2 de 4 (la mitad) -> 3 de 4.
+     ⚠️ Y LOS DOS ATAJOS SE MIDEN POR EL TEXTO, NO POR EL BADGE: «relajacion prolongada» y
+     «relajacion alterada» publican el MISMO badge («Grado I») y son dos ramas distintas. */
   { id: 'B1-ee', que: "E/e' promedio > 14 (8A y 8B)", campo: 'onda_e',
-    fijo: { fevi: '35', onda_a: '90', e_sep: '6', e_lat: '8', vmax_it: '2.0', ai_vol: '50' },
+    fijo: { fevi: '35', onda_a: '90', e_sep: '6', e_lat: '8', vmax_it: '2.0', ai_vol: '70' },
     vals: ['97', '98', '99'],
-    nota: "e' promedio 7,0 -> E/e' 13,86 / 14,00 / 14,14; el 14,00 exacto es NEGATIVO (>)" },
+    nota: "e' promedio 7,0 -> E/e' 13,86 / 14,00 / 14,14; el 14,00 exacto es NEGATIVO (>). El Vol AI 38,7 ya es positivo, asi que cruzar mueve grado I -> grado II" },
   { id: 'B2-it', que: 'velocidad de la IT > 2,8 m/s (8A y 8B)', campo: 'vmax_it',
-    fijo: { fevi: '35', onda_e: '70', onda_a: '70', e_sep: '10', e_lat: '13', ai_vol: '50' },
-    vals: ['2.79', '2.8', '2.81'], nota: 'el 2,80 exacto es NEGATIVO (>)' },
+    fijo: { fevi: '35', onda_e: '70', onda_a: '70', e_sep: '10', e_lat: '13', ai_vol: '70' },
+    vals: ['2.79', '2.8', '2.81'],
+    nota: 'el 2,80 exacto es NEGATIVO (>). El Vol AI 38,7 ya es positivo' },
   { id: 'B3-lavi', que: 'LAVi > 34 ml/m2 (8A y 8B)', campo: 'ai_vol',
-    fijo: { fevi: '35', onda_e: '70', onda_a: '70', e_sep: '10', e_lat: '13', vmax_it: '2.0' },
+    fijo: { fevi: '35', onda_e: '120', onda_a: '70', e_sep: '5', e_lat: '7', vmax_it: '2.0' },
     vals: ['61', '61.5', '62'],
-    nota: 'con ASC 1,81: LAVi 33,7 / 34,0 / 34,3; el 34,0 es NEGATIVO (>)' },
+    nota: "con ASC 1,81: LAVi 33,7 / 34,0 / 34,3; el 34,0 es NEGATIVO (>). El E/e' 20,0 ya es positivo" },
   { id: 'B4-eprimaSep', que: "e' septal < 7 cm/s (8A, folios 281 y 290)", campo: 'e_sep',
-    fijo: { fevi: '60', onda_e: '60', onda_a: '70', e_lat: '13', vmax_it: '2.0', ai_vol: '50' },
+    fijo: { fevi: '60', onda_e: '60', onda_a: '70', e_lat: '13', vmax_it: '3.2', ai_vol: '70' },
     vals: ['6.9', '7', '7.1'],
-    nota: "el 7,0 exacto es NORMAL (<); el lateral 13 deja el OR del lado negativo" },
+    nota: "el 7,0 exacto es NORMAL (<); el lateral 13 deja el OR del lado negativo. Con IT y Vol AI positivos, cruzar mueve 2 de 4 -> 3 de 4" },
   { id: 'B5-eprimaLat', que: "e' lateral < 10 cm/s (8A, folios 281 y 290)", campo: 'e_lat',
-    fijo: { fevi: '60', onda_e: '60', onda_a: '70', e_sep: '10', vmax_it: '2.0', ai_vol: '50' },
+    fijo: { fevi: '60', onda_e: '60', onda_a: '70', e_sep: '10', vmax_it: '3.2', ai_vol: '70' },
     vals: ['9.9', '10', '10.1'],
     nota: "el 10,0 exacto es NORMAL (<); el septal 10 deja el OR del lado negativo" },
   { id: 'B6-ea08', que: 'E/A <= 0,8 (atajo de la 8B, con E <= 50)', campo: 'onda_a',
     fijo: { fevi: '35', onda_e: '40', e_sep: '10', e_lat: '13', vmax_it: '2.0', ai_vol: '50' },
     vals: ['51', '50', '49'],
-    nota: 'E 40 fijo -> E/A 0,784 / 0,800 / 0,816; el 0,800 exacto SI entra en el atajo (<=)' },
+    nota: 'E 40 fijo -> E/A 0,784 / 0,800 / 0,816; el 0,800 exacto SI entra en el atajo (<=). Se mide por el TEXTO: el badge es grado I de los dos lados' },
   { id: 'B7-e50', que: 'E <= 50 cm/s (segundo insumo del mismo atajo)', campo: 'onda_e',
     fijo: { fevi: '35', onda_a: '70', e_sep: '10', e_lat: '13', vmax_it: '2.0', ai_vol: '50' },
     vals: ['49', '50', '51'],
-    nota: 'A 70 fijo deja la E/A <= 0,8 en los tres; el 50 exacto SI entra en el atajo (<=)' },
+    nota: 'A 70 fijo deja la E/A <= 0,8 en los tres; el 50 exacto SI entra en el atajo (<=). Se mide por el TEXTO' },
   { id: 'B8-ea2', que: 'E/A >= 2 (atajo de grado III de la 8B)', campo: 'onda_a',
     fijo: { fevi: '35', onda_e: '100', e_sep: '10', e_lat: '13', vmax_it: '2.0', ai_vol: '50' },
     vals: ['51', '50', '49'],

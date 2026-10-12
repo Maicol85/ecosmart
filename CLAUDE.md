@@ -24,6 +24,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | Qué falta hacer / próximo paso | `docs/PENDIENTES.md` |
 | **Ubicar un cálculo de severidad, un corte o una banda** | `docs/mapa/valvulas.md` |
 | **Tocar la función diastólica del VI**: el cuadro, la ventana 🧭 o los tres algoritmos | `docs/mapa/diastolica.md` |
+| **Tocar la ASE/EACVI 2016 en ritmo sinusal**: la Figura 8A, la 8B o el corte de FEVI | `docs/mapa/diastolica-ase2016.md` |
 | **Tocar el VENTRÍCULO DERECHO**: sus campos, el cuadro de referencias, la disfunción sistólica, la pared o el Tei | `docs/mapa/vd-derecho.md` |
 | **Tocar el panel de Evidencia: agregar una cita, una sección o un sub-bloque** | `docs/mapa/panel-evidencia.md` |
 | **Agregar un TÉRMINO al glosario del panel (el ⓘ con tarjeta)** | `docs/mapa/panel-evidencia-terminos.md` |
@@ -215,6 +216,134 @@ impecable.
 ---
 
 ## Estado vigente
+
+### Función diastólica ASE/EACVI 2016 en ritmo sinusal — los DOS algoritmos de la Figura 8 (2026-10-12)
+
+- Al **empezar** esta tanda, `main` local y `origin/main` estaban los dos en **`9998223`**, sin nada
+  sin pushear —confirmado con un `git fetch` de verdad, no con el ref en caché—, con los **seis**
+  commits de la tanda de la pared del VD y el Tei ya incluidos **y pusheados**. Los **seis** commits
+  de esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 6 → 5 → 4 → 3 → 2 → 1.**
+  El 1 crea `diastASE2016Evaluar`, que es el dueño único; **del 2 al 4 cuelgan todos de él** —cada
+  uno reescribe una parte de esa función—, así que revertir el 1 sin revertir antes los otros tres
+  deja el cuadro y la ventana llamando a una función que no existe, y un `ReferenceError` en la
+  evaluación de un `<script>` **aborta el bloque COMPLETO**: la app con cero pestañas con geometría.
+  **El 4 depende del 3**, porque el `sufFevi` y la rama de FEVI deprimida que reescribe nacen ahí.
+  **El 5 (TC-458) y el 6 (documentación) se revierten solos**, y revertir cualquiera de los cuatro
+  primeros sin el 5 deja TC-458 en rojo.
+  ⚠️ **SON SEIS COMMITS Y LA TAREA PEDÍA SEIS, PERO NO SON LOS SEIS DE LA TAREA.** El commit 4 de la
+  orden —TDE y TRIV— **no existe**: la guía no los asigna a ningún paso de sus algoritmos de ritmo
+  sinusal (ver abajo), así que se omitió. El cuarto commit real es la corrección de la frase
+  «(1/3 criterios positivos)», que **la destapó TC-458** y no estaba en la orden.
+
+- **Línea base al cierre: suite 469/473 con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0 ERROR,
+  Excel 435 columnas.** Los cuatro rojos son los de entrada y NO son regresiones: **TC-223** (el
+  documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**. **El denominador subió a
+  473**: esta tanda agregó **TC-458**. La de ENTRADA, medida en HEAD limpio el 2026-10-12, fue
+  **468/472** con el pendrive montado y los mismos cuatro rojos, con el `md5` de `index.html` sin
+  moverse durante las dos corridas.
+  ⚠️ **TC-260 ES UN TERCER INESTABLE POR ORDEN DE CORRIDA, junto a TC-246 y TC-252.** Sale rojo en
+  un `--solo` de nueve casos y verde solo, y **falla IGUAL en un worktree de HEAD con el mismo
+  `--solo`**: es inestabilidad del conjunto, no una regresión. En la suite completa está verde.
+- **Dónde está todo:** `docs/mapa/diastolica-ase2016.md` (**mapa NUEVO**: el dueño, los dos
+  algoritmos, el corte de FEVI, el S/D, las frases, el Laboratorio y las trampas),
+  `docs/fuentes/FUENTES.md` → `### aseDiast2016 — ASE/EACVI 2016, RITMO SINUSAL` (los folios, las
+  dos figuras leídas a 230 dpi, las cuatro salidas de la caja y lo que la guía NO dice),
+  `docs/PENDIENTES.md` → **ocho** cosas declaradas y no tocadas (A1 a A8).
+
+- ⚠️ **EL CUADRO Y LA VENTANA CORRÍAN DOS ALGORITMOS DISTINTOS DE LA MISMA GUÍA, Y ACORDABAN EN 9 DE
+  31 ESCENAS.** El cuadro gris votaba los TRES criterios de presión de llenado —la **Figura 8B**— y
+  la ventana del 🧭 votaba CUATRO variables con la regla de la mitad —la **Figura 8A**—, a un clic de
+  distancia sobre el mismo paciente. Hoy las dos leen `diastASE2016Evaluar` y acuerdan en **32 de 32**; en HEAD, 9 de 32. Es el tercer caso idéntico de este archivo, después de la ASE 2025 y la BSE 2024.
+- ⚠️ **CON TRES CRITERIOS DISPONIBLES Y UNO POSITIVO LA APP DECÍA «INDETERMINADA» Y LA GUÍA DICE LAP
+  NORMAL, GRADO I.** No sale de leer la figura: el folio 286 lo escribe en prosa —«If all three
+  parameters are available for interpretation and only one of three meets the cutoff value, then LAP
+  is normal and there is grade I diastolic dysfunction»— y el Key Point 5 del folio 287 lo repite.
+  Un positivo sobre tres es la rama «2 de 3 negativos» mirada del otro lado.
+- ⚠️ **EL MISMO NUMERADOR CON OTRO DENOMINADOR CAMBIA DE CASILLA.** 1 y 1 sobre DOS disponibles es la
+  sub-caja «When only 2 criteria are available», que va a «Cannot determine»; 1 sobre TRES es grado I.
+- ⚠️ **EL `e' PROMEDIO < 8` NO EXISTE EN ESTA GUÍA Y LA APP LO USABA.** El folio 281 da septal < 7 y
+  lateral < 10, y ningún corte de promedio. Y el e′ **no vota en la 8B** por ninguna puerta: la app
+  lo usaba de desempate con 0 criterios positivos. **El `eprom < 8` sólo podía disparar SOLO con un
+  anillo septal entre 7 y 8 y sin lateral** —con los dos anillos es imposible, septal ≥ 7 y lateral
+  ≥ 10 dan promedio ≥ 8,5—, así que cualquier otra escena lo confunde con el corte del lateral. El
+  mensaje del commit 2 atribuyó mal una escena por esto; la medición (7 escenas movidas) está bien.
+- **LA FEVI ELIGE EL ALGORITMO Y EL NÚMERO ES DE LA GUÍA: folio 285, «normal LVEF (≥50%)».** Se
+  reusa `UMBRAL_FEVI_NORMAL`, que ya valía 50: declarar una constante nueva con el mismo número es el
+  defecto que este archivo ya pagó tres veces. Medido con el borde 49/50/51: el **50 exacto es FEVI
+  normal**, o sea 8A.
+- ⚠️ **SIN FEVI CARGADA LA APP NO INVENTA.** Corre la 8B —lo que ya hacía— y lo dice en la ventana, y
+  **no** la trata como deprimida: ni el S/D ni la rama de «0 positivos → grado I» entran ahí.
+- ⚠️ **LA 8A NO TIENE ATAJOS DE FLUJO MITRAL, Y ESO MUEVE INFORMES.** Medido: con FEVI 60 y E/A 2,33
+  el paciente pasa de «Grado III» a «Disfunción diastólica» sin grado, porque el grado III es una
+  casilla de la **8B**. La E/A y la onda E se dibujan en la ventana bajo «No son insumos de la 8A»,
+  para que su ausencia no se lea como un dato sin cargar.
+- **UNA SOLA FRASE NUEVA, y existe porque la guía no manda graduar al que la 8A diagnosticó:** no hay
+  flecha entre la casilla «Diastolic Dysfunction» y la 8B, y la condición de entrada a la 8B es la
+  enfermedad miocárdica. Informe: «Disfunción diastólica (N de M criterios positivos, ASE/EACVI
+  2016); el algoritmo para FEVI normal no gradúa.» EN SUMA: «Disfunción diastólica.»
+- ⚠️ **Y UNA FRASE QUE DEJÓ DE EMITIRSE, QUE LA DESTAPÓ TC-458 Y NO LA LECTURA.** «Función diastólica
+  indeterminada (1/3 criterios de presión de llenado positivos).» era cierta mientras un positivo
+  sobre TRES salía indeterminado; desde que esa combinación es grado I, sólo podía aparecer con DOS o
+  UN criterio disponible, o sea afirmando un denominador que el estudio no tiene **en un informe
+  firmado**. Se publica la corta, que es la otra frase que la app ya tenía para el mismo estado.
+- ⚠️ **CON UNA SOLA VARIABLE LA 8A NO AFIRMA, Y ES UNA DECISIÓN MÍA DECLARADA.** La regla de la mitad
+  sobre un denominador de 1 convierte un único parámetro en «hay disfunción» o en «es normal», y la
+  guía no tiene rama para eso —su ejemplo del folio 281 usa tres—. `PENDIENTES.md` → A3.
+- **EL S/D VENOSO PULMONAR TIENE TRES COMPUERTAS, NO UNA:** FEVI deprimida (pie de la Figura 8 y Key
+  Point 6 del folio 287), **falta uno** de los tres principales (folio 286) y valor «< 1». Y **sólo
+  suma del lado positivo**: la guía no dice nada del ≥ 1. Los tres controles negativos están medidos.
+- **EL TDE Y EL TRIV NO ENTRAN EN NINGUNO DE LOS DOS ALGORITMOS, y por eso el commit 4 no existe.**
+  Censo: en la página de la Figura 8 (folio 290) **no aparece ni una vez** `DT`, `IVRT` ni
+  `deceleration`; todas las menciones de IVRT del documento caen en poblaciones especiales y en la
+  Tabla 6 del folio 296. Del TDE el folio 286 dice lo contrario de usarlo como paso: con E/A ≥ 2 y
+  DT > 160 ms, «the writing group recommends using **only the E/A ratio** in the classification
+  scheme». Medido además con control negativo: cargar TDE 140 y TRIV 60 no mueve nada.
+- **EXCEL: 435 COLUMNAS, SIN UNA SOLA NUEVA**, con el mismo juego de claves y **cero campos del
+  estudio distintos** en las cinco escenas del grupo `excelab`. Lo único que se mueve son las celdas
+  que derivan del TEXTO: `Grado disfunción diastólica` y los cuatro `DD_*`.
+- ⚠️ **EL LABORATORIO CUENTA LA FRASE NUEVA COMO «SIN DISFUNCIÓN», Y ES PREEXISTENTE.**
+  `_labDiastGrado` devuelve `null` para «Disfunción diastólica.», y `DD_Sin` vale
+  `(gd === 'sin' || (gd === null && eeDoc)) ? 1 : 0`: con el E/e′ documentado, ese estudio **suma en
+  la columna de «Sin disfunción»** aunque su propio texto afirme lo contrario. Le pasaba igual a la
+  «indeterminada» que la app ya publicaba. **No se tocó el Laboratorio** (orden expresa);
+  `PENDIENTES.md` → A4 y A5.
+- **NO SE APLICÓ LA REGLA DE SALIDA:** separar por FEVI no necesitó campos nuevos, no movió las 435
+  columnas y no tocó código compartido con otras guías ni con la fibrilación auricular.
+- **CONTROL NEGATIVO MAYOR: la ASE 2025 y la BSE 2024 en sinusal y las TRES guías en fibrilación
+  auricular, 30 escenas, 0 diferencias contra HEAD** en badge, frase del informe, frase del EN SUMA,
+  las tres celdas compartidas y el resultado de la ventana.
+- **Las seis superficies, enumeradas una por una** (informe en tres estilos, EN SUMA en tres, Excel
+  con sus 435 columnas, franja del PPT, Laboratorio y el hash de los campos guardados) sobre 32
+  escenas: **15 salen idénticas a HEAD** y las **17** que cambian son todas de la ASE 2016 en
+  sinusal. La medición de las seis superficies se corrió en el commit 3 y dio 15 escenas movidas;
+  el commit de la frase «(1/3 criterios positivos)» movió **dos** más —las dos de «cannot
+  determine»— y el A/B final del cuadro las cuenta: 17. **Dos mediciones de dos commits distintos no
+  se restan**, que es la misma clase de falso que este archivo ya documenta para el pendrive y para
+  las fechas.
+- **Arnés: `scripts/_probe_ase2016.mjs`** (A/B de solo lectura con `--file`), ocho grupos (`cuadro`,
+  `ventana`, `conteo`, `fevi`, `bordes`, `superficies`, `excelab`, `lab`, `otras`), 32 escenas y
+  **9 tripletes de borde que separan los dos lados, 9 de 9**, cargados con teclas reales.
+  **Cobertura: TC-458**, 52 condiciones con cinco denominadores y nueve controles negativos.
+  **Verificado que sabe fallar contra HEAD en un worktree aparte: 28 de las 52 en rojo**; las 24 que
+  pasan son los controles negativos y lo que esta tanda no mueve.
+- ⚠️ **LA PRIMERA TABLA DE BORDES DE MI PROPIA SONDA NO SEPARABA NADA, Y PARECÍA UNA MEDICIÓN BUENA.**
+  Con FEVI deprimida, 0 y 1 criterios positivos dan los DOS grado I, así que los tripletes de E/e′,
+  IT y Vol AI salían idénticos en los tres valores y la tabla decía «ningún corte funciona» sobre
+  cortes que funcionan. Cada triplete tiene que dejar **un criterio ya positivo** para que cruzar el
+  corte mueva grado I → grado II. Y **los dos atajos se miden por el TEXTO, no por el badge**:
+  «relajación prolongada» y «relajación alterada» publican el mismo «Grado I». TC-458 ya lo hacía
+  bien; la sonda no.
+- ⚠️ **TC-27, TC-28 Y TC-29 NO SON CASOS DE LA ASE 2016, aunque la orden los daba por tales.** No
+  fijan `diast_algoritmo`, así que corren el protocolo por defecto, que es la **ASE 2025**; sus
+  frases son las de esa guía. Antes de esta tanda la zona **no tenía NINGUNA cobertura automática
+  del veredicto**: TC-454 y TC-456 la usan sólo como control negativo y TC-421 mide el desplegable.
+- ⚠️ **Me comí el acento grave DOS veces**, las dos en comentarios míos dentro del cuerpo de TC-458,
+  con el archivo que documenta la trampa abierto delante. `scripts/check_backticks.py` dio la línea
+  exacta las dos veces (2112 y 2270) mientras `node --check` apuntaba a la 2009, que es la apertura
+  del template. **Y una tercera trampa, nueva:** un regex `/1\/3/` dentro de un template literal se
+  cocina a `/1/3/` —la barra escapada deja de estarlo— y revienta con «Invalid regular expression
+  flags» en tiempo de EJECUCIÓN, no de parseo, así que `node --check` pasa limpio. Va por `indexOf`.
 
 ### Pared del VD e índice de Tei (DTI) — dos campos, dos cortes de la ASE 2025 y la sigla HVD (2026-10-12)
 

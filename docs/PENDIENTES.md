@@ -1,5 +1,72 @@
 # EcoSmart — pendientes vivos
 
+## Función diastólica ASE/EACVI 2016 en ritmo sinusal (2026-10-12) — DECLARADO y NO arreglado
+
+Fuente: `docs/fuentes/FUENTES.md` → `### aseDiast2016 — ASE/EACVI 2016, RITMO SINUSAL`.
+Mapa: `docs/mapa/diastolica-ase2016.md`.
+
+### A1 · El E/e′ con un solo anillo se compara contra el corte del PROMEDIO
+
+El folio 281 lo dice: «at times only the lateral e′ or septal e′ velocity is available ... a
+**lateral E/e′ ratio > 13** or a **septal E/e′ > 15** is considered abnormal». La app calcula
+`eprom` cayendo al anillo que haya y compara ese cociente contra `> 14`, que es el corte del
+promedio. Con un septal solo, un E/e′ de 14,5 cuenta como positivo cuando su corte es 15; con un
+lateral solo, un 13,5 cuenta como negativo cuando su corte es 13.
+
+**No se tocó porque es un umbral clínico que esta orden no autoriza.** Es el mismo defecto que la
+ASE 2025 ya cerró con sus tres cortes por sitio, y la BSE 2024 también. Afecta a las DOS figuras.
+
+### A2 · «Enfermedad miocárdica con FEVI normal» no se detecta
+
+El pie de la Figura 8 manda a la 8B a los pacientes con «myocardial disease and normal LVEF after
+consideration of clinical and other 2D data». Eso es un juicio clínico sobre datos 2D que no tienen
+campo en la app. Hoy esos pacientes corren por la 8A. Para detectarlo haría falta un campo nuevo
+—un tilde de «cardiopatía conocida», o derivarlo de la geometría del VI y los trastornos
+sectoriales— y esta orden prohíbe agregar campos.
+
+### A3 · Con UNA sola variable disponible la 8A no afirma, y eso es una decisión de la app
+
+La regla de la mitad sobre un denominador de 1 convierte un único parámetro en «hay disfunción» o
+en «es normal». La guía no tiene rama para eso y su propio ejemplo usa tres variables. La app
+informa indeterminada. Si Maicol prefiere seguir la regla al pie de la letra, es cambiar una sola
+condición.
+
+### A4 · Un `null` del Laboratorio cuenta como «Sin disfunción» en el Excel — PREEXISTENTE
+
+`DD_Sin (Sin disfunción)` vale `(gd === 'sin' || (gd === null && eeDoc)) ? 1 : 0`. La frase nueva de
+la 8A («Disfunción diastólica.») y la «Función diastólica indeterminada.» que la app ya publicaba
+clasifican las dos en `null`, así que un estudio con el E/e′ documentado **cuenta como «Sin
+disfunción»** aunque su propio texto afirme lo contrario.
+
+**Es preexistente** —le pasaba igual a la indeterminada antes de esta tanda— y el Laboratorio no se
+tocó por orden expresa. La salida limpia es un token propio en `_labDiastGrado`, como los cuatro que
+la tanda de la BSE agregó.
+
+### A5 · La frase de la 8A no tiene token en el Laboratorio
+
+Consecuencia de A4: «Disfunción diastólica.» no activa ningún `DD_*`, queda fuera de la distribución
+diastólica del panel, del PPT estadístico y del filtro de cohorte por grado. Es coherente con que la
+figura no gradúe, pero hoy no se distingue de «no se pudo clasificar».
+
+### A6 · El TDE y el TRIV no entran, y la app los tiene cargados
+
+Censado en los dos PDF: ninguno aparece en la Figura 8 ni en su prosa como paso de los algoritmos de
+ritmo sinusal. La app los guarda y los muestra, y la ASE 2016 no los consulta. No hay nada que
+arreglar; queda escrito para que nadie lo reabra.
+
+### A7 · El paciente con E/A ≤ 0,8 y E > 50 sale «grado I» por criterio EcoSmart, no por la figura
+
+Con 0 criterios positivos y FEVI normal o sin cargar, la app fuerza grado I si el E/A es ≤ 0,8.
+La Figura 8A diría «normal» (ese paciente tendría 0 de 4) y la 8B lo manda a la caja de los tres
+criterios sin más. Es una decisión heredada de HEAD y conservada a propósito —afirmar normalidad
+sobre una relajación prolongada es peor que omitir—, pero no sale de la guía.
+
+### A8 · La 8A no distingue su badge del de la 8B
+
+El badge dice «Normal — ASE 2016» o «Indeterminado — ASE 2016» corra la figura que corra; sólo la
+ventana del 🧭 nombra cuál se aplicó. Se dejó así para no mover el texto que lee la franja del PPT.
+Si conviene que el papel diga por cuál vía se graduó, es agregar el sufijo en un solo lugar.
+
 ## Pared del VD e índice de Tei (2026-10-12) — DECLARADO y NO arreglado
 
 Lo que la tanda de la pared del VD y del índice de Tei **midió y dejó como está**, con el motivo
