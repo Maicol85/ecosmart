@@ -491,6 +491,75 @@ conducta, el comentario de `CIV_QPQS_CIERRE` y los tres `crit` de `CIV_CONDUCTAS
 Congénitas, el PDF y el PPT) y es decisión de Maicol. Hasta resolverlo, **el nivel de evidencia no
 se publica** y la referencia no se unifica con sus hermanas.
 
+### `aseDiast2025` — ASE 2025, función diastólica del VI y diagnóstico de HFpEF (verificada 2026-10-12)
+
+**Documento.** Nagueh SF, Sanborn DY, Oh JK y cols. *Recommendations for the Evaluation of Left
+Ventricular Diastolic Function by Echocardiography and for Heart Failure With Preserved Ejection
+Fraction Diagnosis: An Update From the American Society of Echocardiography.*
+**J Am Soc Echocardiogr 2025;38:537-69.** Ruta en disco:
+`~/Desktop/EcoSmart_Biblioteca_Fuentes/02_Diastolica/Left-Ventricular-Diastolic-Function.pdf`
+(33 páginas; `Nagueh_2025_Diastolica.pdf`, en la misma carpeta, es **el mismo archivo**, byte por
+byte el mismo tamaño).
+
+**Regla de folio: folio = página 1-based del PDF + 536.** Comprobado contra el pie impreso: PDF 1 →
+537 (primera del artículo, que va de 537 a 569), PDF 16 → 552, PDF 17 → 553, PDF 18 → 554, PDF 19 →
+555, PDF 21 → 557, PDF 27 → 563.
+
+**Las figuras salen como TEXTO VECTORIAL**, así que las Figuras 2, 3, 4, 5, 6 y 8 se leyeron en su
+contenido y no por lo que el cuerpo dice de ellas. (Las Figuras 17, 18 y 19 de la **BSE 2024** son
+imágenes: de ahí sólo se leyó la prosa que las describe, y está anotado donde se las cita.)
+
+#### Lo verificado, por folio
+
+| Folio | Qué | Literal del corte |
+|---|---|---|
+| **553** · Figura 2 | **Diagnóstico de disfunción diastólica**, dos pasos. Paso 1: e' septal **≤6** o lateral **≤7** o promedio **≤6,5** cm/s. Paso 2, cuatro marcadores: E/e' promedio **>14**, LARS **≤18 %**, **E/A ≤0,8 o ≥2**, LAVi **>34** ml/m². Regla: e' reducida + **≥1** marcador, o e' conservada + **≥2** | el LAVi lleva nota: se excluye primero la AI grande del atleta, la de la anemia, la de la FA o el flutter y la de la valvulopatía mitral; y agrega que un índice de masa del VI > 95 g/m² en mujeres o > 115 en hombres también es compatible con disfunción diastólica |
+| **553** · Tabla 6 | **e' por edad** para relajación alterada, los nueve con **`<`**: septal 20-39 <7 · 40-65 <6 · >65 <6; lateral <10 · <8 · <7; promedio <9 · <7 · <6,5 | es **opcional**: la Figura 3 remite a ella «en lugar de» sus propios valores |
+| **553** · Key Point 2 | los mismos tres cortes de e' escritos con **`<`**: septal <6, lateral <7, promedio <6,5 | **contradice a las Figuras 2 y 3, que escriben `≤`** |
+| **553** · prosa | E/A ≥2, E/e' promedio **>14** y LARS **<18 %** son compatibles con PAI elevada | el `<18 %` del LARS **contradice** el `≤18 %` de las dos figuras y el del folio 554 |
+| **554** · Figura 3 | **ALGORITMO DE LA PAI EN RITMO SINUSAL.** Tres variables principales: (1) e' reducida septal ≤6 / lateral ≤7 / promedio ≤6,5; (2) **E/e' septal ≥15 o lateral ≥13 o promedio ≥14**; (3) **IT ≥2,8 m/s o PSAP ≥35 mmHg**. Ramas: las tres → PAI elevada → **E/A <2 grado 2 · E/A ≥2 grado 3**; todas normales → función diastólica normal y PAI normal; **e' reducida sola** → E/A ≤0,8 grado 1, E/A >0,8 al segundo paso; **IT sola, E/e' sola, o dos cualesquiera** → segundo paso | **los cortes de la figura son `≥`** donde la Figura 2, la prosa del 553 y la Tabla 7 del 557 usan `>` |
+| **554** · Figura 3, segundo paso | **S/D venoso pulmonar ≤0,67 o LARS ≤18 % o LAVi >34 ml/m²**; **como alternativa, TRIV ≤70 ms**; si no hay ninguno disponible o fiable, métodos suplementarios. ≥1 presente → PAI elevada (y se gradúa por E/A); ninguno → PAI normal, y eco de esfuerzo diastólico si hay síntomas | la figura escribe «Alternatively» sobre el TRIV: **es alternativa, no par** |
+| **554** · pie de la Figura 3 | **NO se aplica** con FA, asistencia ventricular, HP no cardíaca, trasplante, constricción pericárdica, **IM primaria grave**, **estenosis mitral de cualquier grado** ni **calcificación del anillo moderada o grave**; y por nota al pie, tampoco con **plástica, recambio ni TEER mitral** | el recuadro interno de la figura abrevia «MAC, MR, MS» |
+| **554** · prosa | el S/D ≤0,67 equivale a una fracción de llenado sistólico ≤40 %; el LARS ≤18 % es muy específico y poco sensible; el TRIV ≤70 ms es compatible con PAI elevada; y el LAVi entra **en la segunda etapa** —a diferencia de las guías de 2016— porque correlaciona flojo con la PAI y tiene otras causas de agrandamiento | |
+| **555** · Parámetros suplementarios | IP telediastólica ≥2 m/s o PAP diastólica ≥16 mmHg; **onda L ≥50 cm/s**; IM diastólica y terminación precoz del llenado; Ar pulmonar de amplitud >35 cm/s con Ar-A >30 ms; caída de E/A ≥50 % con Valsalva | |
+| **555** · §12, Informe | todo informe debe traer el **grado** y el estado de la **presión de llenado**; y **si el que informa no puede determinar el grado, igual tiene que decir si la PAI es normal o elevada** | es el respaldo del estado (a) de la app |
+| **557** · Tabla 7 | **Indicadores en poblaciones especiales.** FA: TDE <160 ms con FEVI deprimida, aceleración de la E ≥1.900 cm/s², TRIV ≤65 ms, TDE de la D venosa ≤220 ms, E/Vp ≥1,4, **E/e' septal ≥11**, IT >2,8. Taquicardia sinusal: TRIV ≤70 ms, fracción sistólica ≤40 %, E/e' promedio >14. MCH: E/e' >14, Ar-A ≥30 ms, IT >2,8, LAVi >34 **sin regla de conteo**. Miocardiopatía restrictiva: E/e' >14, TDE <140 ms, E/A >2,5, TRIV <50 ms. HP: E/A ≥2 poscapilar, ≤0,8 precapilar. **Estenosis mitral: TRIV <60 ms, A mitral >1,5 m/s, TRIV/T E-e' <4,2.** IM: TRIV <60 ms, Ar-A ≥30 ms, TRIV/T E-e' <5,6, E/e' >14 **sólo con FE deprimida**. CAM moderada/grave: E/A <0,8 normal, >1,8 elevada, 0,8-1,8 por TRIV. Asistencia ventricular y trasplante, con sus propios cortes | la regla de conteo de la MCH **NO LA DA LA GUÍA**: lo que hay es la lista de parámetros |
+| **558** · Figura 4 | **CAM moderada o grave**: E/A <0,8 → PAI normal; >1,8 → elevada; 0,8-1,8 → TRIV ≥80 ms normal, <80 ms elevada | |
+| **559** · Figura 5 | **Trasplante en ritmo sinusal**: E/e' promedio <7 normal, >14 elevada; entre 7 y 14, E/SR IVR ≤200 cm normal y >200 elevada; sin SR IVR, IT ≤2,8 normal y >2,8 elevada | |
+| **560** · Figura 6 | **HP no cardíaca**: E/A ≤0,8 con E ≤50 cm/s → PAI normal; E/A ≥2 con e' reducido → elevada; en el medio, **E/e' LATERAL** <8 normal, >13 elevada y **8-13 indeterminado**, con el LARS (≤18 % elevada, >18 % normal) como desempate | **acá sí hay casilla «indeterminado»** |
+| **563** · Figura 8 | **FA**: paso 1 con E ≥100 cm/s, **E/e' septal >11**, IT >2,8 o PSAP >35, TDE ≤160 ms. ≥3 → elevada; ninguno o 1 → normal; 2 → paso 2 con LARS <18 %, S/D <1, IMC >30: 2 o 3 → elevada, ninguno → normal, **1 solo o no disponibles → indeterminado** | **acá también hay «indeterminado»**; y el LARS del paso 2 es **<18 %**, no el <16 % de la BSE |
+
+#### Las contradicciones internas, declaradas
+
+La ASE 2025 **se contradice consigo misma en cuatro cortes**, y no es una lectura: los dos signos
+están impresos en el mismo documento.
+
+| Corte | Figura del algoritmo | Texto / tabla | Qué usa la app |
+|---|---|---|---|
+| e' septal / lateral / promedio | Fig 2 y 3 (553-554): **≤6 / ≤7 / ≤6,5** | Key Point 2 (553) y Tabla 6 (553): `<` | **la figura** |
+| LARS | Fig 2 y 3: **≤18 %** | prosa del 553: `<18 %` (el 554 vuelve a escribir `≤18 %` dos veces) | **la figura** |
+| E/e' | Fig 3 (554): **≥14** (y ≥15 / ≥13 por sitio) | Fig 2 (553), prosa del 553 y Tabla 7 (557): `>14` | **la Figura 3** |
+| Velocidad de la IT | Fig 3 (554): **≥2,8** | Fig 2, Tabla 7 (557) y Fig 8 (563): `>2,8` | **la Figura 3** |
+
+**Criterio de la app, escrito en el comentario de cada constante:** gana **la figura del algoritmo
+que la app ejecuta**, que es la **Figura 3** — lo que la app publica es presión de llenado y grado,
+que es el producto de la Figura 3 y no el de la Figura 2.
+
+#### Dos subsunciones que son álgebra, no observaciones
+
+1. **El e' promedio ≤6,5 nunca decide solo con los dos anillos.** Para que (ep+el)/2 ≤ 6,5 con
+   ep > 6 y el > 7 haría falta una suma ≥ 13,02, o sea un promedio ≥ 6,51. Imposible.
+2. **El E/e' promedio ≥14 tampoco, usando los tres cortes como alternativas.** Para cruzarlo con
+   el septal < 15 y el lateral < 13 haría falta ep+el = E/7 siendo ep+el > E/15 + E/13 = 28E/195;
+   y 1/7 = 195/1365 < 196/1365 = 28/195. **Imposible por 1/1365.**
+
+Las dos están medidas en `scripts/_probe_diast2025.mjs` y quedan declaradas en el código.
+
+#### Lo que NO se usó de este documento
+
+El **estudio de validación** `New-algorithm-for-estimating-left-ventricular-filling-pressure.
+Circ-2025.pdf` de la misma carpeta **no se abrió ni se citó**: es un estudio, no una guía.
+
 ### Registradas SIN folio → NO verificadas al estándar del repo
 
 Están en `IND_REFS`, pero su `full` **no tiene tabla ni página**. Sirven como referencia general;

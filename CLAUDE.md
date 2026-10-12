@@ -23,6 +23,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 |---|---|
 | Qué falta hacer / próximo paso | `docs/PENDIENTES.md` |
 | **Ubicar un cálculo de severidad, un corte o una banda** | `docs/mapa/valvulas.md` |
+| **Tocar la función diastólica del VI**: el cuadro, la ventana 🧭 o los tres algoritmos | `docs/mapa/diastolica.md` |
 | **Tocar el panel de Evidencia: agregar una cita, una sección o un sub-bloque** | `docs/mapa/panel-evidencia.md` |
 | **Agregar un TÉRMINO al glosario del panel (el ⓘ con tarjeta)** | `docs/mapa/panel-evidencia-terminos.md` |
 | **Ver por dónde sale un dato** (informe narrativo, EN SUMA, PDF, Excel) | `docs/mapa/informe-pdf-excel.md` |
@@ -210,6 +211,141 @@ impecable.
 ---
 
 ## Estado vigente
+
+- Al **empezar** la tanda de la FUNCIÓN DIASTÓLICA ASE 2025 (2026-10-12), `main` local y
+  `origin/main` estaban los dos en **`916764d`**, sin nada sin pushear. Los **cinco** commits de
+  esa tanda (`fcc8725`, `7629b03`, `51b0316`, `33f9ddb` y este) quedan locales; el push
+  lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 5 → 4 → 3 → 2 → 1.** No se
+  revierten solos y en cualquier orden, y conviene saber por qué: los commits 2 y 3 editan la
+  MISMA función (`diastASE2025Evaluar`, que nace en el 1), así que revertir el 1 sin revertir
+  antes el 2 y el 3 deja el archivo sin la función que los dos consumidores llaman — o sea la app
+  sin pestañas. El 4 (el aviso ámbar) **sí** se revierte solo: no toca el veredicto. El 5 es
+  documentación más **TC-453**, que afirma el comportamiento del 3: revertir el 3 sin el 5 deja
+  TC-453 en rojo.
+
+### Función diastólica del VI — la Figura 3 de la ASE 2025 en ritmo sinusal (2026-10-12)
+
+- **Línea base al cierre: suite 464/468 con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0 ERROR,
+  Excel 434 columnas.** Los cuatro rojos son los de entrada y NO son regresiones: **TC-223** (el
+  documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**. **El denominador subió a
+  468**: esta tanda agregó **TC-453**. La de ENTRADA, medida en HEAD limpio el 2026-10-12, fue
+  **463/467** con el pendrive montado y los mismos cuatro rojos.
+- **Dónde está todo:** `docs/mapa/diastolica.md` (la zona entera: las dos superficies, el dueño
+  único, los tres pasos y las trampas), `docs/fuentes/FUENTES.md` → `### aseDiast2025` (los folios
+  537-569, la regla de folio **+536**, las cuatro contradicciones internas de la guía y los cortes
+  de las Figuras 2, 3, 4, 5, 6 y 8 y de las Tablas 6 y 7), `docs/PENDIENTES.md` (ocho cosas
+  declaradas y no tocadas).
+- **LA VENTANA DEL 🧭 Y EL CUADRO GRIS CALCULABAN POR SEPARADO, Y EN HEAD ACORDABAN EN 2 DE 20
+  ESCENAS.** La ventana tenía su propio Paso 1 —`e' septal < 7`, y `< 5` con edad ≥ 75—, no miraba
+  el lateral ni el promedio, dibujaba el LARS sin contarlo, se conformaba con UN parámetro
+  evaluado, separaba el grado 3 por el TDE y daba el grado 1 sin mirar la E/A. **Ninguno de esos
+  números existe en la ASE 2025**: la Tabla 6 del folio 553 corta en 40 y 65 años y para > 65 el
+  septal es < 6, y el 5,0 es el septal de 41-65 de la **BSE** (Tabla 2, pág. 13). Hoy las dos leen
+  `diastASE2025Evaluar()`, que es el dueño único, y acuerdan en **19 de 20** —la que queda es el
+  formulario vacío, donde el cuadro nunca se pintó (`—`, igual que en HEAD)—.
+- ⚠️ **EL DEFECTO DE FONDO ERA MEZCLAR DOS FIGURAS.** La app tenía la FORMA de la **Figura 2**
+  (folio 553: cuatro marcadores de igual peso con umbral 1 ó 2 según el e', que contesta «¿hay
+  disfunción diastólica?») y publicaba el PRODUCTO de la **Figura 3** (folio 554: presión de
+  llenado y grado). Y encima cambiaba un marcador por otro: la Figura 2 vota «E/A ≤0,8 o ≥2» y
+  **no** vota la IT; la app votaba la IT y no la E/A. Hoy corre la Figura 3: **tres variables
+  principales** con compuertas asimétricas —e' reducida · E/e' aumentado · IT ≥2,8 **o PSAP
+  ≥35**— y un **segundo paso** (Vol AI >34 · LARS ≤18 % · S/D ≤0,67 · y como ALTERNATIVA
+  TRIV ≤70 ms), que es donde la guía puso el Vol AI y el LARS.
+- ⚠️ **LA ASE 2025 SE CONTRADICE CONSIGO MISMA EN CUATRO CORTES, Y LOS DOS SIGNOS ESTÁN IMPRESOS.**
+  Las Figuras 2 y 3 escriben `≤6 / ≤7 / ≤6,5` para el e' y `≤18 %` para el LARS; el Key Point 2 y
+  la Tabla 6 del folio 553 escriben esos cuatro con `<`. Y la Figura 3 escribe `E/e' ≥14` y
+  `TR ≥2,8` donde la Figura 2, la prosa del 553 y la Tabla 7 del 557 escriben `>14` y `>2,8`.
+  **Gana la figura del algoritmo que la app ejecuta, que es la Figura 3**, y el signo descartado
+  queda escrito en el comentario de cada constante: un borde no se entiende sin el que no se
+  eligió. No es teórico: un E/e' de 14,00 se alcanza con enteros (E 98, e' 7,0) y una IT de 2,80
+  es el valor que más se tipea.
+- ⚠️ **DOS CRITERIOS DE LA GUÍA NO PUEDEN DECIDIR SOLOS, Y ES ÁLGEBRA, NO UNA OBSERVACIÓN.**
+  (1) El **e' promedio ≤6,5** con los dos anillos: para cruzarlo con el septal > 6 y el lateral > 7
+  haría falta una suma ≥ 13,02, o sea un promedio ≥ 6,51. (2) El **E/e' promedio ≥14** usando los
+  tres cortes como alternativas: haría falta `ep+el = E/7` siendo `ep+el > E/15 + E/13 = 28E/195`,
+  y 1/7 = 195/1365 < 196/1365. **Imposible por 1/1365.** Las dos filas igual se dibujan y cruzan
+  su corte; lo que no pueden es decidir. Está medido y declarado en el código.
+- ⚠️ **EL CORTE DEL PROMEDIO SE ESTABA APLICANDO A UN ANILLO SOLO, Y ESO CAMBIABA EL INFORME
+  FIRMADO.** `ee` (el e' que se muestra) y `prom` (el promedio de verdad, `null` con un anillo)
+  eran la misma variable. Medido: un e' septal de **6,3** sin lateral salía «relajación reducida»
+  —6,3 ≤ 6,5— cuando su corte es ≤6; eso bajaba el umbral de marcadores de 2 a 1 y el estudio
+  terminaba publicando **«DD Grado II»**. Hoy ese paciente sale **«Función diastólica normal»**.
+- ⚠️ **EL E/e' TENÍA UN SOLO CORTE Y LA FIGURA 3 TIENE TRES, COMO ALTERNATIVAS.** Septal **≥15** ·
+  lateral **≥13** · promedio **≥14**, cada una evaluada sólo si su propio e' está medido, en OR y
+  contando **una** vez. Con un anillo solo la app comparaba un cociente SEPTAL contra el corte del
+  PROMEDIO: un 14,29 septal salía positivo cuando su corte es 15 — ese paciente pasó de
+  «DD Grado II» a **normal**. **Consecuencia declarada:** con los dos anillos valen las tres, así
+  que un cociente septal de 15 con un promedio de 13 ahora es positivo y antes no. Es lo que dice
+  la figura, y la orden pedía usarlos como alternativas si así las presenta.
+- **«Todas normales» exige las tres EVALUADAS; «e' reducida sola» admite que falten.** La primera
+  es la única rama que **afirma normalidad** y afirmarla sobre dos variables sin medir es lo que la
+  guarda vieja de «≥2 de 4 evaluados» existía para evitar; la segunda afirma relajación alterada
+  con presión normal —el lado conservador— y es la que deja que un paciente **sin chorro de IT**,
+  que es entre el 40 y el 60 % según la BSE, siga saliendo grado 1.
+- **DOS ESTADOS NUEVOS, con el texto que aprobó Maicol y nada más.** (a) segundo paso negativo →
+  «Presión de llenado del VI normal (N/M parámetros positivos). No se puede graduar la disfunción
+  diastólica con los datos disponibles.» / EN SUMA «Presión de llenado del VI normal.»; (b) segundo
+  paso sin ningún parámetro → «No se puede estimar la presión de llenado del VI con los datos
+  disponibles; completar los parámetros del segundo paso (Vol AI, LARS, S/D o TRIV).» / EN SUMA
+  «Presión de llenado del VI no estimable con los datos disponibles.» El respaldo es el **folio
+  555, §12**: si el que informa no puede determinar el grado, igual tiene que decir si la PAI es
+  normal o elevada. **Se fueron tres estados** —la guarda de «≥2 de 4», el umbral 1/2 y el
+  «indeterminado» del grado 1— porque no eran de la guía; el de **datos insuficientes** se
+  conserva **textual** para el paciente que sólo tiene el e' cargado.
+- **El grado 3 SIGUE exigiendo e' reducida** (P8 no se hizo, decisión de Maicol): un E/A ≥2 con e'
+  conservada es el patrón del corazón joven y sano. Y **el grado 2 perdió su piso de E/A**: la
+  figura dice «E/A < 2 → grado 2», sin cota inferior, y un paciente con presión elevada y E/A 0,75
+  caía en el cajón de «Indeterminado».
+- ⚠️ **EL CUADRO GRIS SE ATRASA Y NO SE TOCÓ: `calcDiastol` NO ESTÁ CABLEADO A TODO LO QUE LEE.**
+  Sus `oninput` están sólo en los cuatro campos del Doppler mitral, el LARS y los dos selectores;
+  el **Vol AI**, la **velocidad de la IT**, el **TRIV** y los **campos de VCI** no lo llaman.
+  Medido igual en HEAD y en el árbol nuevo: tipeando el paciente de TC-29 en el orden natural el
+  cuadro queda en «Indeterminado» y el informe, un segundo después, dice «DD Grado II». La
+  **ventana no se atrasa** (oyente de documento) y el **informe firmado tampoco**
+  (`generarInforme` llama a `calcDiastol`). **Al medir esta zona: tipear primero lo NO cableado y
+  los campos mitrales al final**, o llamar `calcDiastol()` a mano — sin eso una sonda informa el
+  veredicto del paciente ANTERIOR, y así se perdieron las dos primeras corridas de esta tanda.
+- ⚠️ **Y LA SONDA SE COMIÓ ESE MISMO DESFASE UNA SEGUNDA VEZ, POR LOS `<select>`.** `vci_col`
+  dispara `calcPmAD` → `calcPSAP`, que escribe `psap_calc` y **no** llama a `calcDiastol`:
+  poniéndolo después del tecleo, la sonda informó «Presión de llenado normal» en el cuadro con la
+  ventana diciendo «DD Grado II · 3 de 3» sobre el MISMO paciente. Los selects van **primero**.
+- ⚠️ **DOS FIXTURES DE BORDE DE MI PROPIA SONDA MEDÍAN OTRA COSA, Y PARECÍAN MEDICIONES BUENAS.**
+  La del grado 1 tenía el E/e' septal en 16 —positivo— así que separaba grado 2 de indeterminado en
+  vez de medir el corte de la E/A; y la del promedio no podía aislar su alternativa, que es
+  justamente la subsunción de arriba. **Informar qué criterio cruzó al lado del veredicto**: sin el
+  estado de la FILA, un badge que no cambia se lee como un corte que no funciona.
+- **El S/D venoso pulmonar quedó declarado NO EVALUABLE.** Su corte es ≤0,67 y el campo `venp_sd`
+  es un `<select>` de «<1 / >1»: un S/D de 0,9 es «<1» y no cumple. Se dibuja en **gris** con el
+  motivo en su propio rótulo —para que su ausencia no se lea como un negativo— y no se agregó
+  ningún campo: el Excel sigue en **434 columnas**.
+- **El aviso ámbar de exclusiones no cambia ni un veredicto.** El pie de la Figura 3 (folio 554)
+  excluye estenosis mitral de cualquier grado, IM primaria grave, CAM moderada o grave, prótesis,
+  plástica y TEER mitral, y la app lo venía corriendo igual **sin decir nada**. Texto:
+  «ASE 2025: algoritmo no aplicable con {motivos} (Figura 3, folio 554).» Detecta cuatro motivos
+  con campos que ya existen; **lo que no puede detectar está en `docs/PENDIENTES.md`**, y la CAM
+  del anillo es uno de ellos —`vm_morf = 'Calcificada'` describe la valva, no el anillo—. Lleva
+  **las tres columnas**: el oyente de documento, `RECALC_MODULOS` y `limpiarCampos`.
+- **Las SEIS superficies, enumeradas una por una** (informe en tres estilos, EN SUMA en tres,
+  Excel con sus 434 columnas, franja del PPT, el grado que deriva el Laboratorio del TEXTO y el
+  hash de los campos guardados) sobre las 20 escenas, más los dos controles negativos: **FA con
+  los tres protocolos, 6 casos, 0 diferencias**, y **BSE 2024 y ASE/EACVI 2016 en ritmo sinusal,
+  12 casos, 0 diferencias**.
+- ⚠️ **CINCO COLUMNAS DEL EXCEL Y TODO EL LABORATORIO SALEN DEL TEXTO DEL RESUMEN**, vía
+  `_labDiastGrado`: «Grado disfunción diastólica», `DD_I`, `DD_II`, `DD_III` y `DD_Sin`, más la
+  distribución del panel, el PPT estadístico y los filtros de cohorte. **Cambiar una palabra del
+  EN SUMA mueve eso.** El estado (a) entra como «Sin disfunción» porque su EN SUMA dice «llenado
+  del VI normal» — y **pasaba igual en HEAD**, porque la frase que reemplaza también lo decía.
+- **Arnés: `scripts/_probe_diast2025.mjs`** (A/B de solo lectura con `--file`), siete grupos
+  (`cuadro`, `ventana`, `desfase`, `bordes`, `superficies`, `fa`, `otros`), 20 escenas y 13
+  tripletes de borde cargados con **teclas reales**. **Cobertura: TC-453**, 44 condiciones con tres
+  denominadores y cuatro controles negativos. **Verificado que sabe fallar contra HEAD en un
+  worktree aparte: 34 de las 44 en rojo**, y las diez que pasan son las que esta tanda no mueve
+  (los denominadores, el lado del cuadro de la escena 3.1, el corte del grado 3 por E/A y el
+  control negativo del grado III).
+- ⚠️ **Me comí el acento grave UNA vez**, en un comentario mío dentro del cuerpo de TC-453, con el
+  archivo que documenta la trampa abierto delante. `scripts/check_backticks.py` dio la línea exacta
+  (737) mientras `node --check` apuntaba a la 716, que es la apertura del template.
 
 - **Línea base al cierre de la tanda de la AÓRTICA (2026-10-11): suite 463/467 con el pendrive
   `DISK_IMG` MONTADO, Semgrep 127 / 0 ERROR, Excel 434 columnas, celular 43 a 360 px y 52 a
@@ -925,6 +1061,7 @@ Cada bloque de arriba sale de una sección del historial. Títulos exactos para 
 | El informe firmado no lleva citas | `### Sobre agregar una línea al informe: la recomendación es NO` |
 | Scripts, suite, umbral por los dos lados, mutación | `## Antes de cada push — dos scripts` · `#### Un suite que no sabe fallar no sirve` |
 | Qué no tiene cobertura automática | `#### Qué queda sin cobertura` |
+| Función diastólica: las dos superficies, la Figura 3 y el desfase del cuadro | `docs/mapa/diastolica.md` |
 | Backticks en el cuerpo de un caso | `### ⚠️ Y EL ACENTO GRAVE ME LO COMÍ DOS VECES EN LA MISMA SESIÓN` |
 | Scorer de mutaciones y el `RESULTADO` | `### ⚠️ MI PROPIO ARNÉS DE MUTACIONES TENÍA EL DENOMINADOR MAL, Y REPORTÓ 7 FALSOS «SOBREVIVIÓ»` |
 | Pendrive `DISK_IMG` | `### [CERRADO 2026-09-30] Cobertura: las catorce mutaciones mueren` (salvedad del denominador) |

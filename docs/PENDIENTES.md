@@ -1,5 +1,114 @@
 # EcoSmart — pendientes vivos
 
+## Función diastólica ASE 2025 (2026-10-12) — DECLARADO y NO arreglado
+
+Lo que la tanda del 2026-10-12 **midió y dejó como está**, con el motivo de cada uno. La zona
+entera está mapeada en `docs/mapa/diastolica.md` y las fuentes en `docs/fuentes/FUENTES.md` →
+`### aseDiast2025`.
+
+### 1 · El cuadro gris se atrasa: `calcDiastol` no está cableado a todo lo que lee
+
+**Qué se encontró.** `calcDiastol()` vive en el `oninput` de los cuatro campos del Doppler mitral,
+del LARS y de los dos selectores, y **en ningún otro**. El **Vol AI**, la **velocidad de la IT**,
+el **TRIV** y los **campos de VCI** —que alimentan la PSAP— no lo llaman.
+
+**Qué puede causar.** Cargar uno de esos cinco deja el cuadro gris con el veredicto del **paciente
+anterior** hasta que se toque un campo mitral. Medido en HEAD y en el árbol nuevo, con el mismo
+resultado: tipeando el paciente de TC-29 en el orden natural —los cuatro mitrales y después el
+Vol AI y la IT— el cuadro queda en «Indeterminado — ASE 2025» y el informe, generado un segundo
+después, dice «DD Grado II». **La ventana del 🧭 no se atrasa**: cuelga de un oyente de
+`input`/`change` a nivel documento. Y el **informe firmado nunca se atrasa**, porque
+`generarInforme` llama a `calcDiastol`.
+
+**Cómo se corrige.** Agregar `calcDiastol()` al `oninput` de `ai_vol`, `vmax_it`, `triv`,
+`vci_diam` y `vci_col`, o colgar un `diastSync` del mismo oyente de documento que ya repinta la
+ventana.
+
+**Por qué NO se tocó.** Es wiring de cinco manejadores que no está en la lista autorizada, y
+`calcDiastol` tiene una rama de **FA** — llamarla más seguido cambia cuándo se repinta el cuadro
+de un estudio en FA, y la FA es otro trabajo con orden de PARAR si algo la altera. Con P6 el
+agujero se **amplía**: ahora el veredicto depende de `psap_calc`, que sale de los campos de VCI.
+La alternativa por PSAP se honra en todo lo que lee `_diastResult` —informe, EN SUMA, PDF, PPT,
+Excel, Laboratorio— y en la ventana; lo único que se atrasa es el cartel de la pantalla.
+
+### 2 · El rojo del E/e' no sigue los tres cortes por sitio
+
+`calcVenaPulm` pinta el E/e' en rojo con `UMBRAL_EE_ELEVADA` (14) y `>`, y `eeCorteEs14()` lo apaga
+en la rama de BSE + FA. Con la ASE 2025 los cortes pasaron a ser **septal ≥15 · lateral ≥13 ·
+promedio ≥14**, así que con **un solo anillo** el color y el veredicto pueden discrepar: un E/e'
+septal de 14,5 se pinta **rojo** y el criterio es **negativo** (su corte es 15). No se tocó porque
+el comentario de `UMBRAL_EE_ELEVADA` ya declara que ese número lo comparten **cuatro** lugares más
+—los dos BSE, el ASE 2016 y el Laboratorio— y unificarlo toca tres algoritmos y el Laboratorio.
+
+### 3 · Dos rótulos del cuadro mienten con un solo anillo
+
+`#eprom-val` dice **«e' promedio»** y muestra el valor del único anillo medido, y `#ee-val` dice
+**«E/e' promedio»** con el cociente de ese único sitio. Pre-existente, sólo de pantalla, y el
+cálculo ya no se confunde (`prom` vale `null` con un anillo). Corregir el rótulo es tocar el
+marcado de dos celdas del cuadro gris.
+
+### 4 · El S/D venoso pulmonar no es evaluable, y por eso el segundo paso tiene tres patas y no cuatro
+
+El corte de la Figura 3 es **≤0,67** (equivale a una fracción de llenado sistólico ≤40 %) y el
+campo `venp_sd` es un `<select>` de **«<1 / >1»**: un S/D de 0,9 es «<1» y **no** cumple el
+criterio. El criterio quedó dibujado en **gris** con el motivo en su rótulo. Para habilitarlo hace
+falta **un campo numérico nuevo** —el S/D, o la fracción de llenado sistólico— y esta tanda tenía
+orden expresa de no agregar ninguno (el Excel sigue en **434 columnas**).
+
+### 5 · El estado (a) entra al Laboratorio como «Sin disfunción»
+
+`_labDiastGrado` clasifica por TEXTO, y el EN SUMA del estado (a) —«Presión de llenado del VI
+normal.»— matchea su cuarta expresión (`llenado (del VI) normal`), así que ese estudio sale con
+**«Sin disfunción»** en la columna «Grado disfunción diastólica» y con **`DD_Sin = 1`**. Medido:
+pasa igual en HEAD, porque la frase que el estado (a) reemplaza —«e' reducida con presión de
+llenado normal (…), pero el cociente E/A…»— **también** matcheaba esa expresión. O sea que no es
+una regresión; es una imprecisión que ya existía y que ahora se ve mejor. Cambiarlo es cambiar
+una frase del informe o la heurística del Laboratorio, las dos decisiones de Maicol.
+
+### 6 · Las exclusiones que la app NO puede detectar
+
+El aviso ámbar nombra **estenosis mitral de cualquier grado**, **insuficiencia mitral grave**,
+**prótesis mitral** y **válvula mitral calcificada**. El pie de la Figura 3 excluye además:
+
+| Exclusión de la guía | Por qué no se detecta |
+|---|---|
+| **Calcificación del ANILLO moderada o grave** | no hay campo. `vm_morf = 'Calcificada'` describe la **valva**, no el anillo, y por eso el motivo del aviso lo dice con esas palabras |
+| **Plástica mitral** y **TEER ya realizado** | no hay campo que diga «ya operado»; el módulo de TEER evalúa **candidatura**, no antecedente |
+| **IM primaria grave** (el mecanismo) | el aviso nombra la IM grave sin pedir el mecanismo: sobre un cartel que no cambia ningún veredicto, avisar de más es el lado seguro |
+| **Asistencia ventricular**, **HP no cardíaca**, **trasplante**, **constricción pericárdica** | la app tiene módulos de constricción y de HP, pero ninguno expone un campo binario «este paciente es de ese grupo» |
+
+Y la guía trae **algoritmos propios** para cinco de esos grupos —CAM (Figura 4, folio 558),
+trasplante (Figura 5, folio 559), HP no cardíaca (Figura 6, folio 560), FA (Figura 8, folio 563) y
+la Tabla 7 del folio 557 para los demás— que la app **no implementa**. Son cinco algoritmos
+nuevos, no un parche.
+
+### 7 · Con «ASE 2025» y FA se gradúa con la vía SINUSAL de la BSE
+
+`calcDiastol` sale por el `return` de `ase2025` **antes** del bloque de FA, y
+`calcDiastolASE2025` deriva a `calcDiastolBSE2024`, que es el algoritmo de **ritmo sinusal** de la
+BSE y no sabe nada de FA. El algoritmo de FA de la ASE 2025 (**Figura 8, folio 563**) no está
+implementado en ningún lado. **Otro trabajo, con orden expresa de no tocarlo**: esta tanda lo
+verificó como control negativo (6 casos, 0 diferencias).
+
+### 8 · Las diferencias B1 a B7 de la BSE 2024 y la ASE/EACVI 2016
+
+Del reporte de la Fase 1, **sin corregir por orden expresa**, y verificadas como control negativo
+en esta tanda (12 casos, 0 diferencias):
+
+| # | Qué |
+|---|---|
+| B1 | **BSE: los cortes de e' son los de la ASE 2025, no los de la BSE.** La BSE los da por edad **y sexo** (Tabla 2, pág. 13: septal 18-40 varón <7,0 / mujer <8,0; 41-65 <5,0; >65 <4,0; lateral <9,0 / <11,0 / <6,0 / <5,0) y **no tiene corte de promedio** |
+| B2 | **BSE: el juego de variables está cambiado.** Sus tres claves son E/e' >14, **IT >2,8** y LAVi >34 (págs. 35, 37); la app usa la **E/A** donde va la IT, y arranca por la relajación donde la BSE arranca por las presiones |
+| B3 | **BSE: falta la sustitución por strain de AI** en el caso 1 positiva / 1 negativa, y con **una sola** variable evaluada la app afirma «elevada» |
+| B4 | **ASE 2016: `pos === 1` sobre 3 disponibles debería ser grado I con PAI normal**, no «Indeterminado» (Figura 8B, folio 290) |
+| B5 | **ASE 2016: el e' no vota** en el juego de cuatro variables de la 8A, y el `eprom < 8` que usa la app no existe en la guía |
+| B6 | **Ventana ASE 2016: `<0,8` y `<50`** donde el original dice **≤0,8 y ≤50**. El cuadro ya está corregido; la ventana quedó atrás |
+| B7 | **Ventana BSE: exige 3 de 3** para «LAP elevada»; la BSE dice **2 o 3** (pág. 35) |
+
+⚠️ **Y las dos ramas no-2025 de la ventana siguen calculando por su cuenta**, con
+`_daCriteriosLAP` y `_daContar`: para la ASE 2025 el cuadro y la ventana tienen un dueño único,
+para la BSE y la 2016 **no**.
+
 ## Frases largas visibles en el panel de Evidencia (2026-10-11) — REPORTADO y NO tocado
 
 Censo pedido al cerrar la tanda del marco del panel: las frases de **más de 25 palabras que

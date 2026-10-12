@@ -695,6 +695,208 @@ caso('TC-29', 'Disfuncion diastolica grado II (pseudonormal) con presion de llen
     debeSuma: ['Disfunción diastólica grado II — presión de llenado elevada.'] };
 `);
 
+
+/* ═══ TC-453 — FUNCION DIASTOLICA ASE 2025 EN RITMO SINUSAL ═══════════════════════════════════
+   La cobertura de la tanda del 2026-10-12: la estructura de la Figura 3 (folio 554), los cortes
+   del E/e' por sitio, los bordes de cada criterio por sus DOS lados, los dos estados nuevos con
+   su literal exacto, y CUATRO controles negativos.
+
+   Por que `__t.set` y no teclas reales: `set` despacha input Y change, que es la convencion de
+   los 467 casos de esta suite. La verificacion con teclas reales —una por caracter, con el foco
+   comprobado antes de cada tecla— vive en `scripts/_probe_diast2025.mjs`, que es la sonda A/B de
+   esta tanda. Aca lo que se fija es el VEREDICTO, no el gesto.
+
+   ⚠️ `calcDiastol()` SE LLAMA A MANO, y no es un adorno: esa funcion esta cableada SOLO a los
+   cuatro campos del Doppler mitral, al LARS y a los dos selects. NO esta en el `oninput` del
+   Vol AI, de la velocidad de la IT, del TRIV ni de los campos de VCI, asi que una escena que
+   termine de cargar por uno de esos deja el cuadro gris con el veredicto ANTERIOR. Es
+   pre-existente —`generarInforme` la llama, asi que el informe firmado nunca se atrasa— y esta
+   declarado en docs/PENDIENTES.md. Sin esta llamada, la mitad de las escenas de este caso
+   medirian el veredicto del paciente anterior y pasarian en verde por la razon equivocada. */
+caso('TC-453', 'Diastolica ASE 2025: las tres variables de la Figura 3 con su segundo paso, los cortes del E/e por sitio, los bordes de cada criterio por los dos lados, los dos estados nuevos y cuatro controles negativos', `
+  const faltan = [];
+  const S = (k, v) => { const r = __t.set(k, v); if (r !== 1) faltan.push(k + '=' + r) };
+
+  /* La ventana del boton 🧭, por las MISMAS funciones que llama su onclick. Devuelve el estado de
+     cada fila por su CLASE: da-bad = criterio positivo, da-ok = negativo, da-na = sin dato. */
+  const V = () => {
+    diastAlgoAbrir();
+    const cu = document.getElementById('diast-algo-cuerpo');
+    if (!cu) { diastAlgoCerrar(); return { filas: [], res: 'NO EXISTE EL CUERPO', n: 0 } }
+    const filas = Array.prototype.slice.call(cu.querySelectorAll('.da-row')).map(f => ({
+      crit: ((f.querySelector('.da-crit') || {}).textContent || '').replace(/\\s+/g, ' ').trim(),
+      est: /da-bad/.test(f.className) ? 'POS' : (/da-ok/.test(f.className) ? 'neg' : 'na') }));
+    const res = ((cu.querySelector('.da-res') || {}).textContent || '').replace(/\\s+/g, ' ').trim();
+    diastAlgoCerrar();
+    return { filas: filas, res: res, n: filas.length };
+  };
+  const fila = (v, sub) => { const f = v.filas.filter(x => x.crit.indexOf(sub) > -1)[0];
+                             return f ? f.est : 'NO EXISTE' };
+
+  /* Una escena. Los selects y los campos NO cableados van primero y los mitrales al final, que es
+     el orden que deja el cuadro al dia; calcDiastol() lo garantiza igual de todos modos. */
+  const esc = (m) => {
+    __t.limpiar();
+    S('peso', '80'); S('talla', '180');            // ASC exactamente 2,00 -> Vol AI indexado = ml/2
+    const orden = ['vci_col','vci_diam','venp_sd','triv','ai_vol','vmax_it','lars',
+                   'e_sep','e_lat','onda_e','onda_a'];
+    orden.forEach(k => { if (m[k] !== undefined) S(k, m[k]) });
+    Object.keys(m).forEach(k => { if (orden.indexOf(k) < 0) S(k, m[k]) });
+    calcDiastol();
+    const r = __t.informe();
+    const d = window._diastResult || {};
+    return { inf: r.inf, suma: r.suma, badge: __t.txt('dd-interp') || '',
+             texto: d.texto || '', tsuma: d.textoSuma || '', ven: V(), psap: __t.val('psap_calc') };
+  };
+
+  // ── A · LA ESCENA 3.1 DEL REPORTE DE LA FASE 1. En HEAD el cuadro decia «Función diastólica
+  //      normal» y la ventana «Grado 1 — e' reducida» sobre el MISMO paciente: la ventana usaba
+  //      «e' septal < 7», un corte que no existe en la ASE 2025.
+  const a31 = esc({ e_sep:'6.5', e_lat:'12', onda_e:'90', onda_a:'60', ai_vol:'60', vmax_it:'2.0' });
+
+  // ── B · e' SEPTAL CON UN ANILLO SOLO: el corte es ≤6, NO el ≤6,5 del promedio (P2).
+  const b59 = esc({ e_sep:'5.9', onda_e:'60', onda_a:'70', ai_vol:'60', vmax_it:'2.0' });
+  const b60 = esc({ e_sep:'6',   onda_e:'60', onda_a:'70', ai_vol:'60', vmax_it:'2.0' });
+  const b61 = esc({ e_sep:'6.1', onda_e:'60', onda_a:'70', ai_vol:'60', vmax_it:'2.0' });
+
+  // ── C · E/e' SEPTAL con un anillo solo: corte ≥15 (P1). 14,83 / 15,00 / 15,17.
+  const c89 = esc({ e_sep:'6', onda_e:'89', onda_a:'70', ai_vol:'60', vmax_it:'2.0' });
+  const c90 = esc({ e_sep:'6', onda_e:'90', onda_a:'70', ai_vol:'60', vmax_it:'2.0' });
+  const c91 = esc({ e_sep:'6', onda_e:'91', onda_a:'70', ai_vol:'60', vmax_it:'2.0' });
+
+  // ── D · E/e' LATERAL con un anillo solo: corte ≥13 (P1). 12,90 / 13,00 / 13,10.
+  const d129 = esc({ e_lat:'10', onda_e:'129', onda_a:'70', ai_vol:'60', vmax_it:'2.0' });
+  const d130 = esc({ e_lat:'10', onda_e:'130', onda_a:'70', ai_vol:'60', vmax_it:'2.0' });
+  const d131 = esc({ e_lat:'10', onda_e:'131', onda_a:'70', ai_vol:'60', vmax_it:'2.0' });
+
+  // ── E · E/e' PROMEDIO: corte ≥14 y no >14 (P3). 13,857 / 14,000 / 14,143.
+  const e97 = esc({ e_sep:'7', e_lat:'7', onda_e:'97', onda_a:'70', ai_vol:'60', vmax_it:'2.0' });
+  const e98 = esc({ e_sep:'7', e_lat:'7', onda_e:'98', onda_a:'70', ai_vol:'60', vmax_it:'2.0' });
+  const e99 = esc({ e_sep:'7', e_lat:'7', onda_e:'99', onda_a:'70', ai_vol:'60', vmax_it:'2.0' });
+
+  // ── F · VELOCIDAD DE LA IT: corte ≥2,8 y no >2,8 (P3).
+  const f279 = esc({ e_sep:'10', e_lat:'13', onda_e:'70', onda_a:'70', ai_vol:'60', vmax_it:'2.79' });
+  const f280 = esc({ e_sep:'10', e_lat:'13', onda_e:'70', onda_a:'70', ai_vol:'60', vmax_it:'2.8' });
+  const f281 = esc({ e_sep:'10', e_lat:'13', onda_e:'70', onda_a:'70', ai_vol:'60', vmax_it:'2.81' });
+
+  // ── G · PSAP ≥35 COMO ALTERNATIVA DE LA IT (P6), con la IT NEGATIVA en las dos escenas.
+  //      VCI 15 mm con colapso <50 % -> PmAD 8. IT 2,55 -> PSAP 34; IT 2,60 -> PSAP 35.
+  const g34 = esc({ e_sep:'5', e_lat:'6', onda_e:'90', onda_a:'60', ai_vol:'60',
+                    vci_diam:'15', vci_col:'<50', vmax_it:'2.55' });
+  const g35 = esc({ e_sep:'5', e_lat:'6', onda_e:'90', onda_a:'60', ai_vol:'60',
+                    vci_diam:'15', vci_col:'<50', vmax_it:'2.6' });
+
+  // ── H · EL GRADO 2 NO LLEVA PISO DE E/A (P4): presion elevada con E/A 0,75.
+  const h = esc({ e_sep:'5', onda_e:'60', onda_a:'80', ai_vol:'70', vmax_it:'3.0' });
+
+  // ── I · ESTADO (a): e' reducida sola, E/A 1,20 y segundo paso NEGATIVO.
+  const i = esc({ e_sep:'5', e_lat:'6', onda_e:'60', onda_a:'50', ai_vol:'60', vmax_it:'2.0', lars:'30' });
+
+  // ── J · ESTADO (b): el segundo paso no tiene NINGUN parametro.
+  const j = esc({ e_sep:'10', onda_e:'70' });
+
+  // ── K · CONTROL NEGATIVO 1: con SOLO el e' cargado se conserva la frase de HEAD.
+  const k = esc({ e_sep:'10' });
+
+  // ── L · CONTROL NEGATIVO 2: el grado III SIGUE exigiendo e' reducida (P8 NO se hizo).
+  //      Presion elevada por el segundo paso, E/A 2,00 y e' conservada -> indeterminado, no III.
+  const l = esc({ e_sep:'10', e_lat:'13', onda_e:'180', onda_a:'90', ai_vol:'70', vmax_it:'3.0' });
+
+  // ── M y N · CONTROL NEGATIVO 3 y 4: con las TRES principales negativas el segundo paso NO se
+  //      entra, asi que un Vol AI de 35 y un LARS de 10 —los dos POSITIVOS— no pueden levantar la
+  //      presion; y el S/D sigue en gris aunque el selector diga «<1», porque su corte es ≤0,67 y
+  //      «<1» no lo prueba.
+  const m = esc({ e_sep:'10', e_lat:'13', onda_e:'70', onda_a:'70', ai_vol:'70', vmax_it:'2.0',
+                  lars:'10', venp_sd:'menor1' });
+
+  const EST_A = 'Presión de llenado del VI normal (1/3 parámetros positivos). No se puede graduar la disfunción diastólica con los datos disponibles.';
+  const EST_B = 'No se puede estimar la presión de llenado del VI con los datos disponibles; completar los parámetros del segundo paso (Vol AI, LARS, S/D o TRIV).';
+
+  return { extra: [
+    // ── DENOMINADORES. Sin esto, un cero cuenta como acuerdo y una fila ausente como negativa.
+    ['todos los campos de todas las escenas existen', faltan.length === 0, faltan.join(' | ')],
+    ['la ventana dibuja sus 12 filas', a31.ven.n === 12, 'n=' + a31.ven.n + ' | ' + JSON.stringify(a31.ven.filas.map(f => f.crit))],
+    ['el informe trae la linea de la diastolica', a31.inf.indexOf('diastólica') > -1, a31.inf.slice(0, 200)],
+
+    // ── A · escena 3.1: el cuadro y la ventana dicen LO MISMO
+    ['3.1 el cuadro dice normal', a31.badge.indexOf('Función diastólica normal') === 0, a31.badge],
+    ['3.1 la ventana dice LO MISMO que el cuadro', a31.ven.res.indexOf('Función diastólica normal') === 0, a31.ven.res],
+    ['3.1 y ninguna de las dos dice grado 1', a31.badge.indexOf('Grado I') < 0 && a31.ven.res.indexOf('Grado 1') < 0, a31.badge + ' | ' + a31.ven.res],
+
+    // ── B · e' septal con un anillo: 5,9 y 6,0 reducido, 6,1 NO
+    ["e' septal 5,9 es reducido", fila(b59.ven, "e' septal ≤ 6") === 'POS', fila(b59.ven, "e' septal ≤ 6")],
+    ["e' septal 6,0 es reducido (el corte entra)", fila(b60.ven, "e' septal ≤ 6") === 'POS', fila(b60.ven, "e' septal ≤ 6")],
+    ["e' septal 6,1 NO es reducido con un anillo solo", fila(b61.ven, "e' septal ≤ 6") === 'neg', fila(b61.ven, "e' septal ≤ 6")],
+    ["y con un anillo solo la fila del promedio queda SIN DATO", fila(b61.ven, "e' promedio ≤ 6,5") === 'na', fila(b61.ven, "e' promedio ≤ 6,5")],
+
+    // ── C · E/e' septal ≥15
+    ["E/e' septal 14,83 negativo", fila(c89.ven, "E/e' septal ≥ 15") === 'neg', fila(c89.ven, "E/e' septal ≥ 15")],
+    ["E/e' septal 15,00 POSITIVO", fila(c90.ven, "E/e' septal ≥ 15") === 'POS', fila(c90.ven, "E/e' septal ≥ 15")],
+    ["E/e' septal 15,17 POSITIVO", fila(c91.ven, "E/e' septal ≥ 15") === 'POS', fila(c91.ven, "E/e' septal ≥ 15")],
+
+    // ── D · E/e' lateral ≥13
+    ["E/e' lateral 12,90 negativo", fila(d129.ven, "E/e' lateral ≥ 13") === 'neg', fila(d129.ven, "E/e' lateral ≥ 13")],
+    ["E/e' lateral 13,00 POSITIVO", fila(d130.ven, "E/e' lateral ≥ 13") === 'POS', fila(d130.ven, "E/e' lateral ≥ 13")],
+    ["E/e' lateral 13,10 POSITIVO", fila(d131.ven, "E/e' lateral ≥ 13") === 'POS', fila(d131.ven, "E/e' lateral ≥ 13")],
+
+    // ── E · E/e' promedio ≥14
+    ["E/e' promedio 13,86 negativo", fila(e97.ven, "E/e' promedio ≥ 14") === 'neg', fila(e97.ven, "E/e' promedio ≥ 14")],
+    ["E/e' promedio 14,00 POSITIVO (es ≥ y no >)", fila(e98.ven, "E/e' promedio ≥ 14") === 'POS', fila(e98.ven, "E/e' promedio ≥ 14")],
+    ["E/e' promedio 14,14 POSITIVO", fila(e99.ven, "E/e' promedio ≥ 14") === 'POS', fila(e99.ven, "E/e' promedio ≥ 14")],
+
+    // ── F · IT ≥2,8
+    ['IT 2,79 negativa', fila(f279.ven, 'Velocidad IT ≥ 2.8') === 'neg', fila(f279.ven, 'Velocidad IT ≥ 2.8')],
+    ['IT 2,80 POSITIVA (es ≥ y no >)', fila(f280.ven, 'Velocidad IT ≥ 2.8') === 'POS', fila(f280.ven, 'Velocidad IT ≥ 2.8')],
+    ['IT 2,81 POSITIVA', fila(f281.ven, 'Velocidad IT ≥ 2.8') === 'POS', fila(f281.ven, 'Velocidad IT ≥ 2.8')],
+
+    // ── G · PSAP ≥35 con la IT negativa
+    ['la PSAP de la escena de 34 es 34', String(g34.psap) === '34', 'psap=' + g34.psap],
+    ['la PSAP de la escena de 35 es 35', String(g35.psap) === '35', 'psap=' + g35.psap],
+    ['PSAP 34 negativa', fila(g34.ven, 'PSAP ≥ 35') === 'neg', fila(g34.ven, 'PSAP ≥ 35')],
+    ['PSAP 35 POSITIVA', fila(g35.ven, 'PSAP ≥ 35') === 'POS', fila(g35.ven, 'PSAP ≥ 35')],
+    ['con las dos la IT sigue NEGATIVA (el flip es solo de la PSAP)',
+      fila(g34.ven, 'Velocidad IT ≥ 2.8') === 'neg' && fila(g35.ven, 'Velocidad IT ≥ 2.8') === 'neg',
+      fila(g34.ven, 'Velocidad IT ≥ 2.8') + ' | ' + fila(g35.ven, 'Velocidad IT ≥ 2.8')],
+    ['PSAP 34 -> presion normal', g34.badge.indexOf('Presión de llenado normal') === 0, g34.badge],
+    ['PSAP 35 -> grado II', g35.badge.indexOf('DD Grado II') === 0, g35.badge],
+
+    // ── H · el grado 2 sin piso de E/A
+    ['E/A 0,75 con presion elevada es grado II', h.badge.indexOf('DD Grado II') === 0, h.badge],
+    ['y el texto declara el rango <2,00', h.texto.indexOf('(<2,00)') > -1, h.texto],
+    ['y no queda indeterminado', h.badge.indexOf('Indeterminado') < 0, h.badge],
+
+    // ── I · estado (a), literal exacto
+    ['estado (a) en el informe, literal', i.inf.indexOf(EST_A) > -1, i.texto],
+    ['estado (a) en el EN SUMA, literal', i.suma.indexOf('Presión de llenado del VI normal.') > -1, i.suma],
+    ['estado (a) NO dice funcion diastolica normal', i.texto.indexOf('Función diastólica normal') < 0, i.texto],
+
+    // ── J · estado (b), literal exacto
+    ['estado (b) en el informe, literal', j.inf.indexOf(EST_B) > -1, j.texto],
+    ['estado (b) en el EN SUMA, literal',
+      j.suma.indexOf('Presión de llenado del VI no estimable con los datos disponibles.') > -1, j.suma],
+
+    // ── K · CONTROL NEGATIVO 1
+    ['CN1 con solo el e. se conserva la frase de datos insuficientes',
+      k.texto.indexOf('Datos insuficientes para clasificar presión de llenado') === 0, k.texto],
+
+    // ── L · CONTROL NEGATIVO 2: el grado III exige e' reducida
+    ["CN2 E/A 2,00 con e' conservada NO es grado III", l.inf.indexOf('grado III') < 0, l.texto],
+    ['CN2 y queda indeterminado, nombrando la combinacion',
+      l.texto.indexOf('no cumple criterios de grado I, II ni III') > -1, l.texto],
+
+    // ── M y N · CONTROL NEGATIVO 3 y 4
+    ['CN3 con las tres principales negativas el veredicto es normal',
+      m.badge.indexOf('Función diastólica normal') === 0, m.badge],
+    ['CN3 y el Vol AI y el LARS del segundo paso estan POSITIVOS y no deciden',
+      fila(m.ven, 'Vol AI') === 'POS' && fila(m.ven, 'LARS ≤ 18') === 'POS',
+      fila(m.ven, 'Vol AI') + ' | ' + fila(m.ven, 'LARS ≤ 18')],
+    ['CN3 la ventana lo dice con la rama que decidio',
+      m.ven.res.indexOf('las tres principales negativas') > -1, m.ven.res],
+    ['CN4 el S/D sigue SIN DATO con el selector en <1',
+      fila(m.ven, 'S/D venoso pulmonar') === 'na', fila(m.ven, 'S/D venoso pulmonar')]
+  ] };
+`);
+
 // ═══ GRUPO 12 — Auriculas ═══════════════════════════════════════════════════════════════════
 /* UMBRAL_LAVI_DILATADO = 34, y despues 41 y 48. Con BSA 2,00 el volumen en ml es el doble del
    indexado, asi que 68 ml es exactamente 34,0 ml/m². */
