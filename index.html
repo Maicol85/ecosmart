@@ -22332,6 +22332,22 @@ function calcPSAP() {
    el texto sale de las MISMAS `calcularBSE2024` / `calcularBSE2024_FEVIreducida`. Lo único que
    cambia es la VENTANA, que pasa a mostrar lo que de verdad decidió. */
 
+/* ══ CORTES DE LA BSE 2024 EN RITMO SINUSAL ══════════════════════════════════════
+   Las tres variables principales salen de la banda de la Figura 17 (pág. 36) y de la prosa de la
+   pág. 35, que las escribe con los MISMOS números. El LAVi reusa `UMBRAL_LAVI_DILATADO` (34), que
+   ya es el dueño de ese corte en toda la app.
+   ⚠️ LOS OPERADORES SON «>» EN LAS TRES Y LA GUÍA NO SE CONTRADICE ACÁ —a diferencia de la ASE
+   2025, donde la Figura 3 escribe «≥» y la Tabla 7 «>»—: la figura, la prosa de la pág. 35 y la
+   de la pág. 14 usan «>» las tres veces. O sea que una IT de 2,80 exacto es NEGATIVA, y un
+   E/e' de 14,00 exacto también. No es teórico: el 2,80 es el valor que más se tipea.
+   ⚠️ Y NO SON LOS DE LA FA DE ESTA MISMA GUÍA. La Figura 19 usa el E/e' SEPTAL con corte > 11;
+   estos son los de ritmo sinusal y las dos ramas no comparten constantes a propósito. */
+const BSE_IT_SIGNIF    = 2.8;   // m/s — velocidad de la IT, borde `>` (Figura 17, pág. 36)
+const BSE_EE_PROM      = 14;    // E/e' promedio con los dos anillos, borde `>` (pág. 14)
+const BSE_EE_SEPTAL    = 15;    // E/e' septal, SÓLO con un anillo, borde `>` (pág. 14)
+const BSE_EE_LATERAL   = 13;    // E/e' lateral, SÓLO con un anillo, borde `>` (pág. 14)
+window.BSE_IT_SIGNIF = BSE_IT_SIGNIF;
+
 function diastBSE2024Evaluar() {
   const e = v('onda_e'), a = v('onda_a'), esep = v('e_sep'), elat = v('e_lat');
   const aiVol = v('ai_vol'), bsa = getBSA();
@@ -22370,26 +22386,62 @@ function diastBSE2024Evaluar() {
     R.filas.push({ crit: 'LAVI > ' + UMBRAL_LAVI_DILATADO + ' ml/m²', val: lavi, u: 'ml/m²', ok: cLavi });
     R.res = window.calcularBSE2024_FEVIreducida(m, t, ee, trv, lavi);
   } else {
-    const cEe   = ee   !== null && ee   > 14;
-    const cEa   = ea   !== null && (ea <= 0.8 || ea >= 2.0);
-    const cLavi = lavi !== null && lavi > UMBRAL_LAVI_DILATADO;
-    let m = 0, t = 0;
-    if (ee   !== null) { t++; if (cEe)   m++; }
-    if (ea   !== null) { t++; if (cEa)   m++; }
-    if (lavi !== null) { t++; if (cLavi) m++; }
-    R.pos = m; R.total = t;
+    /* ══ LAS TRES VARIABLES PRINCIPALES DE LA FIGURA 17 (pág. 36, prosa de la pág. 35) ═════
+       ⚠️ LA APP VOTABA LA E/A Y NO VOTABA LA IT, Y LAS DOS COSAS ERAN DEFECTOS. La banda de la
+       Figura 17 dice, literal, «Avg E/e' >14 — LA volume >34 mL/m² — TR velocity >2.8 m/s», y la
+       prosa del folio 35 las llama «three key variables». La E/A NO forma parte de ningún
+       algoritmo de ritmo sinusal de esta guía. Medido en HEAD: un paciente con las tres
+       principales negativas y E/A 0,70 publicaba «Indeterminado», y uno con e' bajo y E/A 0,50
+       publicaba «Presión de llenado elevada» — las dos veces por un voto que la guía no tiene—.
+       La E/A se sigue MOSTRANDO en su celda del cuadro; lo que se fue es su voto.
+
+       ⚠️ EL E/e' TIENE UN CORTE POR SITIO Y NO ES UN OR. El folio 14 dice «an average of septal
+       and lateral E/e' > 14» y, aparte, «Where only a single site measure is possible or valid, a
+       lateral ratio > 13 or septal ratio > 15 may be used»: los cortes por sitio son un REEMPLAZO
+       de cuando falta un anillo, no tres alternativas en OR como en la Figura 3 de la ASE 2025.
+       Con los dos anillos manda el promedio y nada más. En HEAD, con un anillo solo el E/e' no se
+       calculaba y el criterio quedaba SIN EVALUAR: un E/e' septal de 15,0 no contaba. */
+    let eeVal = null, eeCorte = null, eeSitio = null;
+    if (eprom !== null && e !== null)   { eeVal = e / eprom; eeCorte = BSE_EE_PROM;    eeSitio = 'promedio'; }
+    else if (esep && e !== null)        { eeVal = e / esep;  eeCorte = BSE_EE_SEPTAL;  eeSitio = 'septal';   }
+    else if (elat && e !== null)        { eeVal = e / elat;  eeCorte = BSE_EE_LATERAL; eeSitio = 'lateral';  }
+    const cEe   = eeVal !== null && eeVal > eeCorte;
+    const cIt   = trv   !== null && trv  > BSE_IT_SIGNIF;
+    const cLavi = lavi  !== null && lavi > UMBRAL_LAVI_DILATADO;
+
+    /* ⚠️ LA REGLA DE CONTEO ES «2 O 3» POR CADA LADO, Y CON UNA SOLA VARIABLE NO SE AFIRMA NADA.
+       Folio 35: «When two or three of these parameters are negative […] LVFP are considered
+       normal. If two or three parameters are positive […] LVFP are elevated». La Figura 17 no
+       tiene rama para una variable sola. En HEAD, con relajación alterada bastaba UN marcador
+       positivo para publicar «Presión de llenado elevada» en un informe firmado —medido: un
+       paciente con sólo el Vol AI cargado salía elevado—, y con cero marcadores evaluados salía
+       «Función diastólica normal» sobre un formulario con el e' como único dato. */
+    let pos = 0, neg = 0, evalN = 0;
+    [[eeVal !== null, cEe], [trv !== null, cIt], [lavi !== null, cLavi]].forEach(function (x) {
+      if (x[0]) { evalN++; if (x[1]) pos++; else neg++; }
+    });
+    R.pos = pos; R.total = evalN;
     R.via = 'A — FEVI normal';
-    /* El Paso 1 se dibuja con la condición que DECIDIÓ, que es la cascada de `alterada`: con los
-       dos anillos manda el promedio y con uno solo manda ese anillo. Dibujar las tres filas
-       siempre daría a entender un OR que esta versíon no hace. */
+    R.eeVal = eeVal; R.eeSitio = eeSitio; R.eeCorte = eeCorte;
+
+    let presion;
+    if (pos >= 2)      presion = 'elevada';
+    else if (neg >= 2) presion = 'normal';
+    else if (evalN === 2 && pos === 1 && neg === 1) presion = 'discordancia';
+    else               presion = 'insuficiente';
+    R.presion = presion;
+
     R.filas.push({ g: 'Paso 1 — Relajación (e\')',
                    crit: (esep && elat) ? "e' promedio ≤ 6,5 cm/s"
                        : (esep ? "e' septal ≤ 6 cm/s" : (elat ? "e' lateral ≤ 7 cm/s" : "e' septal y/o lateral")),
                    val: (esep && elat) ? eprom : (esep || elat || null), u: 'cm/s', ok: alterada === true });
-    R.filas.push({ g: 'Paso 2 — Marcadores de presión', crit: "E/e' promedio > 14", val: ee, u: '', ok: cEe });
-    R.filas.push({ crit: 'E/A ≤ 0,8 o ≥ 2,0', val: ea, u: '', ok: cEa });
-    R.filas.push({ crit: 'LAVI > ' + UMBRAL_LAVI_DILATADO + ' ml/m²', val: lavi, u: 'ml/m²', ok: cLavi });
-    R.res = window.calcularBSE2024(alterada, m, t, ee, ea, lavi);
+    R.filas.push({ g: 'Paso 2 — Presión de llenado (Figura 17)',
+                   crit: "E/e' " + (eeSitio || 'promedio') + ' > ' + (eeCorte === null ? BSE_EE_PROM : eeCorte),
+                   val: eeVal, u: '', ok: cEe });
+    R.filas.push({ crit: 'Velocidad de la IT > ' + String(BSE_IT_SIGNIF).replace('.', ',') + ' m/s', val: trv, u: 'm/s', ok: cIt });
+    R.filas.push({ crit: 'LAVi > ' + UMBRAL_LAVI_DILATADO + ' ml/m²', val: lavi, u: 'ml/m²', ok: cLavi });
+
+    R.res = window.calcularBSE2024(alterada, presion, { eeVal: eeVal, eeSitio: eeSitio, trv: trv, lavi: lavi });
   }
 
   R.clave     = R.res.categoria;
@@ -24261,7 +24313,15 @@ function diastAlgoCerrarSesion() {
 }
 window.diastAlgoCerrarSesion = diastAlgoCerrarSesion;
 
-function calcularBSE2024(alterada, marcadores, totalEvaluables, ee, ea, lavi) {
+function calcularBSE2024(alterada, presion, d) {
+  /* La presión ya viene resuelta por `diastBSE2024Evaluar` con la regla de la Figura 17; acá
+     sólo se arma la palabra y el texto. Los cuatro estados de `presion` son
+     `elevada` / `normal` / `discordancia` / `insuficiente`. */
+  /* ⚠️ ESTA GUARDA VA PRIMERO, COMO EN HEAD, Y ES A PROPÓSITO. Sin e' el formulario vacío
+     publicaba «Datos insuficientes — falta e' septal y/o lateral», que dice QUÉ completar;
+     ponerla después de la de presión lo degradaba a un «Datos insuficientes» pelado. El orden
+     correcto de la guía —la presión PRIMERO y el e' al final (pág. 35)— lo arma el commit del
+     paso del e'; este commit sólo cambia qué variables cuentan y cómo se cuentan. */
   if (alterada === null) {
     return {
       categoria: 'insuficiente',
@@ -24270,16 +24330,29 @@ function calcularBSE2024(alterada, marcadores, totalEvaluables, ee, ea, lavi) {
       texto: null, textoSuma: null
     };
   }
+  if (presion === 'insuficiente') {
+    /* ⚠️ ESTADO NUEVO Y `texto: null` A PROPÓSITO. Con menos de dos variables principales
+       evaluadas la Figura 17 no tiene rama, así que la app NO afirma presión normal ni elevada.
+       Con `texto` en null el informe firmado cae en su respaldo de datos insuficientes, que es
+       exactamente lo que hacía HEAD con el estado `insuficiente` de al lado. */
+    return {
+      categoria: 'presion_insuficiente',
+      badge: badge('gray', 'Datos insuficientes — BSE 2024'),
+      badgeTxt: 'Datos insuficientes — BSE 2024',
+      texto: null, textoSuma: null
+    };
+  }
   let categoria;
-  if (alterada && marcadores >= 1) categoria = 'elevada';
-  else if (alterada && marcadores === 0) categoria = 'alterada_normal';
-  else if (!alterada && marcadores >= 2) categoria = 'elevada';
-  else if (!alterada && marcadores === 0) categoria = 'normal';
+  if (presion === 'elevada') categoria = 'elevada';
+  else if (presion === 'normal') categoria = alterada ? 'alterada_normal' : 'normal';
   else categoria = 'indeterminado';
 
+  /* DETALLES: las variables que VOTARON, con su valor. La E/A salió de la lista porque salió del
+     conteo, y entró la velocidad de la IT, que es la tercera variable principal de la figura. */
   const detalles = [];
-  if (ee !== null) detalles.push(`E/e' promedio ${ee.toFixed(1)}`);
-  if (lavi !== null) detalles.push(`AI ${lavi > UMBRAL_LAVI_DILATADO ? 'dilatada' : 'de dimensiones normales'} (Vol AI ${lavi.toFixed(1)} ml/m²)`);
+  if (d.eeVal !== null) detalles.push("E/e' " + d.eeSitio + ' ' + d.eeVal.toFixed(1));
+  if (d.trv  !== null) detalles.push('velocidad de la IT ' + d.trv.toFixed(1) + ' m/s');
+  if (d.lavi !== null) detalles.push('Vol AI ' + d.lavi.toFixed(1) + ' ml/m²');
 
   let texto, textoSuma, badgeC, badgeTxtC;
   if (categoria === 'normal') {
