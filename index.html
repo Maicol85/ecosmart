@@ -35554,7 +35554,15 @@ function generarInforme(opts) {
     if (dRes && dRes.texto) {
       diastStr = dRes.texto;
       if (dRes.textoSuma) suma.push(dRes.textoSuma);
-    } else if (fevi !== null) {
+    } else if (fevi !== null && !(dRes && dRes.faSinFrase)) {
+      /* ⚠️ EN FIBRILACIÓN AURICULAR EL RESPALDO SE APAGA, Y NO ES UN DETALLE. La decisión de
+         Maicol (2026-10-12) es que con FA el informe firmado lleva UNA SOLA frase de función
+         diastólica y SÓLO si el protocolo de la guía elegida marca presión de llenado ELEVADA;
+         con presión normal, indeterminada o sin regla de conteo no escribe NINGUNA. Y
+         «Función diastólica no valorada por datos insuficientes.» es una frase de función
+         diastólica: sin esta guarda, todo paciente en FA con la FEVI cargada y presión normal
+         la publicaba. `faSinFrase` lo pone `diastFAPintar`, que es el único camino de la FA.
+         En ritmo sinusal el respaldo queda EXACTAMENTE como estaba. */
       diastStr = 'Función diastólica no valorada por datos insuficientes.';
     }
     // Geometría + diastólica en la misma oración/fila
