@@ -22430,17 +22430,21 @@ function calcPSAP() {
    suplementarios «when LARs falls within a range of 19–29%», o sea que deja sin rama el tramo
    18,0-19,0. La figura no tiene bandas: pregunta «LARs <18 %» y, si la respuesta es no, va a los
    suplementarios. Se implementa la figura, así que un LARS de 18,5 entra a los suplementarios.
-   ⚠️ EL LAPs Y LA ONDA L NO TIENEN CAMPO EN ESTA APP: esos dos pasos quedan NO EVALUABLES y no
-   cuentan, que es la regla de la casa. No se agregó ningún campo. El Ar−A sí existe, calculado
+   ✅ EL LAPs Y LA ONDA L YA TIENEN CAMPO (2026-10-12) y los dos pasos VOTAN. El LAPs es
+   `ai_strain_ct` —«strain de contracción de la AI» en pantalla— y entra por `diastStrainAbs`,
+   en VALOR ABSOLUTO, porque los ecógrafos lo dan negativo y la figura escribe su corte sobre la
+   magnitud. La onda L es `onda_l` y entra cruda: es una velocidad. El Ar−A ya existía, calculado
    por `venpArA()` desde las duraciones de la vena pulmonar y de la onda A mitral.
+   ⚠️ LA ONDA L TIENE DOS CORTES Y SON DE LA FUENTE: » 20 cm/s« acá (Figuras 17 y 18) y
+   »≥ 50 cm/s« en la ASE 2025 (folio 555). No se unifican, igual que el LARS (18 % contra 16 %).
    ⚠️ EL CORTE DEL Ar−A DE LA BSE ES «> 30» Y LA APP YA TENÍA UN «>= 30» (`VENP_AR_A_MS`), que
    es el criterio de la ASE/EACVI 2016 y lo usan otras pantallas. No se tocó: esta rama lleva su
    propia constante, como ya pasa con la FA de esta misma guía. */
 const BSE_LARS_NORMAL  = 30;    // % — reservorio, borde `>=` (Figura 17; la prosa escribe `> 30`)
-const BSE_LAPS_NORMAL  = 14;    // % — bomba, borde `>=` (Figura 17; SIN CAMPO en esta app)
+const BSE_LAPS_NORMAL  = 14;    // % — bomba (contracción), borde `>=` (Figura 17). Campo: `ai_strain_ct`, en VALOR ABSOLUTO
 const BSE_LARS_ELEVADA = 18;    // % — reservorio, borde `<` (Figura 17)
 const BSE_ARA_SUPL     = 30;    // ms — Ar−A, borde `>` (Figura 17)
-const BSE_ONDAL_SUPL   = 20;    // cm/s — onda L, borde `>` (Figura 17; SIN CAMPO en esta app)
+const BSE_ONDAL_SUPL   = 20;    // cm/s — onda L, borde `>` (Figura 17). Campo: `onda_l`. ⚠️ NO es el ≥ 50 de la ASE 2025
 
 /* ══ LA VÍA DE FEVI REDUCIDA — Figura 18 (pág. 38) y prosa de la pág. 37 ════════════════
    Las tres variables principales son LAS MISMAS que en ritmo sinusal con FEVI normal; lo que
@@ -22537,7 +22541,12 @@ function _bseDetalles(d, st) {
   if (d.lavi !== null) out.push('Vol AI ' + d.lavi.toFixed(1) + ' ml/m²');
   if (st) {
     if (st.lars !== null && st.lars !== undefined) out.push('LARS ' + st.lars.toFixed(1) + ' %');
+    /* ⚠️ EL STRAIN DE CONTRACCIÓN SE NOMBRA CON SU VALOR ABSOLUTO, que es el que votó. El campo
+       guarda lo que el médico tipea —−13,5 si el ecógrafo lo dio negativo— y la cuenta usa 13,5;
+       imprimir el crudo en un informe firmado diría que el algoritmo comparó −13,5 contra 14. */
+    if (st.laps !== null && st.laps !== undefined) out.push('strain de contracción de la AI ' + st.laps.toFixed(1) + ' %');
     if (st.arA  !== null && st.arA  !== undefined) out.push('Ar−A ' + st.arA.toFixed(0) + ' ms');
+    if (st.ondaL !== null && st.ondaL !== undefined) out.push('onda L ' + st.ondaL.toFixed(1) + ' cm/s');
     if (st.sd) out.push('S/D venoso pulmonar ' + (st.sd === 'menor1' ? '<1' : '>1'));
     if (st.tde !== null && st.tde !== undefined) out.push('TDE ' + st.tde.toFixed(0) + ' ms');
   }
@@ -22715,16 +22724,22 @@ function diastBSE2024Evaluar() {
        evaluables y la rama cae a indeterminado cuando no queda nada que mirar. */
     if (presion === 'discordancia') {
       const lars = v('lars');
-      const laps = null;   // SIN CAMPO en esta app — declarado, no inventado
-      const ondaL = null;  // SIN CAMPO en esta app — declarado, no inventado
+      /* ⚠️ EL LAPs ES EL STRAIN DE CONTRACCIÓN Y DESDE EL 2026-10-12 TIENE CAMPO (`ai_strain_ct`).
+         Entra por `diastStrainAbs`, que es la ÚNICA puerta del valor absoluto: los ecógrafos lo dan
+         negativo y la figura escribe «pump strain ≥14%» sobre la magnitud. Una segunda llamada a
+         `Math.abs` repartida por el archivo es cómo se llega a que un −12 vote en una figura y no
+         en la otra. El LARS NO pasa por ahí: se espera positivo y un negativo se marca, no se
+         corrige —decisión de Maicol—. */
+      const laps = diastStrainAbs('ai_strain_ct');
+      const ondaL = v('onda_l');
       const arA = (typeof venpArA === 'function') ? venpArA() : null;
       R.strain = { lars: lars, laps: laps, arA: arA, ondaL: ondaL };
 
       R.filas.push({ g: 'Sustitución por strain de la AI (Figura 17)',
                      crit: 'LARS ≥ ' + BSE_LARS_NORMAL + ' % → presión normal', val: lars, u: '%',
                      ok: lars !== null && lars >= BSE_LARS_NORMAL });
-      R.filas.push({ crit: 'LAPs ≥ ' + BSE_LAPS_NORMAL + ' % → presión normal (sin campo en la app)',
-                     val: null, u: '%', ok: false });
+      R.filas.push({ crit: 'Strain de contracción de la AI ≥ ' + BSE_LAPS_NORMAL + ' % → presión normal',
+                     val: laps, u: '%', ok: laps !== null && laps >= BSE_LAPS_NORMAL });
       R.filas.push({ crit: 'LARS < ' + BSE_LARS_ELEVADA + ' % → presión elevada', val: lars, u: '%',
                      ok: lars !== null && lars < BSE_LARS_ELEVADA });
 
@@ -22746,7 +22761,7 @@ function diastBSE2024Evaluar() {
         const suplEval = (arA !== null ? 1 : 0) + (ondaL !== null ? 1 : 0);
         R.filas.push({ g: 'Parámetros suplementarios (Figura 17)',
                        crit: 'Ar−A > ' + BSE_ARA_SUPL + ' ms', val: arA, u: 'ms', ok: cArA, dec: 0 });
-        R.filas.push({ crit: 'Onda L > ' + BSE_ONDAL_SUPL + ' cm/s (sin campo en la app)', val: null, u: 'cm/s', ok: false });
+        R.filas.push({ crit: 'Onda L > ' + BSE_ONDAL_SUPL + ' cm/s', val: ondaL, u: 'cm/s', ok: cOndaL, dec: 1 });
         if (suplEval === 0) {
           presion = 'indeterminada';
           R.via = 'A — FEVI normal · LARS en zona intermedia, sin suplementarios evaluables';
@@ -103041,8 +103056,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261012-1405';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791824752489;                 /* eco-build-ms */
+const ECO_BUILD    = '20261012-1410';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791825023595;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -103128,7 +103143,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261012-1405</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261012-1410</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
