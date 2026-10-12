@@ -1991,6 +1991,296 @@ caso('TC-457', 'Pared del VD e indice de Tei (DTI): los dos cortes por sus dos l
       'n=' + colsConDatos.length]
   ] };
 `);
+
+/* TC-458 — FUNCION DIASTOLICA ASE/EACVI 2016 EN RITMO SINUSAL, tanda del 2026-10-12.
+   Fuente: Nagueh et al., J Am Soc Echocardiogr 2016;29:277-314. Folio = pagina del PDF + 276.
+   La Figura 8 del folio 290 trae DOS algoritmos: la 8A (FEVI normal, cuatro variables y la regla
+   de la mitad sobre las DISPONIBLES, folio 281) y la 8B (FEVI deprimida, flujo mitral primero y
+   tres criterios despues). El corte entre las dos es el del folio 285: «normal LVEF (>= 50%)».
+
+   Por que `__t.set` y no teclas reales: es la convencion de los casos de esta suite. La
+   verificacion con teclas reales vive en scripts/_probe_ase2016.mjs, que es la sonda A/B.
+
+   ⚠️ `calcDiastol()` SE LLAMA A MANO en cada escena: no esta en el oninput del Vol AI ni de la
+   velocidad de la IT, asi que una escena que termine de cargar por uno de esos deja el cuadro
+   gris con el veredicto ANTERIOR.
+   ⚠️ SIN ACENTOS GRAVES EN ESTE CUERPO: es un template literal y uno solo cierra la cadena
+   (scripts/check_backticks.py da la linea exacta; node --check apunta decenas de lineas antes). */
+caso('TC-458', 'Diastolica ASE/EACVI 2016 en RITMO SINUSAL: los DOS algoritmos de la Figura 8 separados por la FEVI, la regla de la mitad de la 8A con 0 a 4 positivas, la caja de los tres criterios de la 8B con su rama de 1 de 3, los dos atajos del flujo mitral y los cortes de cada criterio por sus dos lados, el S/D con sus tres compuertas, y las otras dos guias y la fibrilacion auricular sin moverse', `
+  const S = (k, v) => __t.set(k, v);
+
+  const V = () => {
+    diastAlgoAbrir();
+    const cu = document.getElementById('diast-algo-cuerpo');
+    if (!cu) { diastAlgoCerrar(); return { filas: [], res: 'NO EXISTE EL CUERPO', n: 0, pasos: [] } }
+    const filas = Array.prototype.slice.call(cu.querySelectorAll('.da-row')).map(f => ({
+      crit: ((f.querySelector('.da-crit') || {}).textContent || '').replace(/\\s+/g, ' ').trim(),
+      est: /da-bad/.test(f.className) ? 'POS' : (/da-ok/.test(f.className) ? 'neg' : 'na') }));
+    const res = ((cu.querySelector('.da-res') || {}).textContent || '').replace(/\\s+/g, ' ').trim();
+    const pasos = Array.prototype.slice.call(cu.querySelectorAll('.da-paso'))
+      .map(p => (p.textContent || '').replace(/\\s+/g, ' ').trim());
+    diastAlgoCerrar();
+    return { filas: filas, res: res, n: filas.length, pasos: pasos };
+  };
+
+  /* Peso 70 / talla 170 dan ASC 1,81: un Vol AI de 70 ml da LAVi 38,7 (POSITIVO, > 34) y uno de
+     50 da 27,6 (negativo). Ninguna escena carga edad ni sexo: la ASE 2016 no los usa. */
+  const esc = (m, guia, ritmo) => {
+    __t.limpiar();
+    S('diast_algoritmo', guia || 'ase2016');
+    S('diast_ritmo', ritmo || 'sinusal');
+    if (m.peso === undefined) S('peso', '70');
+    if (m.talla === undefined) S('talla', '170');
+    const orden = ['peso','talla','fevi','venp_sd','tde','triv','ai_vol','vmax_it',
+                   'e_sep','e_lat','onda_e','onda_a'];
+    orden.forEach(k => { if (m[k] !== undefined) S(k, m[k]) });
+    Object.keys(m).forEach(k => { if (orden.indexOf(k) < 0) S(k, m[k]) });
+    calcDiastol();
+    const r = __t.informe();
+    const d = window._diastResult || {};
+    return { inf: r.inf, suma: r.suma, badge: (__t.txt('dd-interp') || '').replace(/\\s+/g, ' ').trim(),
+             texto: d.texto || '', tsuma: d.textoSuma || '', ven: V(),
+             lab: (typeof _labDiastGrado === 'function')
+                  ? _labDiastGrado({ campos: { en_suma: r.suma, informe_texto: r.inf } }) : 'SIN FUNCION' };
+  };
+
+  /* ── DENOMINADORES. Sin estos, media docena de condiciones de abajo comparan null contra null
+     y el caso sale verde sobre una app que no separo nada. ── */
+  const hayDuena = (typeof diastASE2016Evaluar === 'function');
+  const corteFevi = (typeof UMBRAL_FEVI_NORMAL === 'number') ? UMBRAL_FEVI_NORMAL : 'SIN CONSTANTE';
+  const opciones = Array.prototype.slice.call(
+    (document.getElementById('diast_algoritmo') || { options: [] }).options).map(o => o.value);
+
+  // ── A · LA REGLA DE LA MITAD DE LA 8A: las CUATRO variables disponibles en las cinco ──
+  const A4 = { fevi: '60', onda_e: '70', onda_a: '70', e_sep: '10', e_lat: '13', vmax_it: '2.0', ai_vol: '50' };
+  const n0 = esc(A4);
+  const n1 = esc(Object.assign({}, A4, { ai_vol: '70' }));
+  const n2 = esc(Object.assign({}, A4, { ai_vol: '70', vmax_it: '3.2' }));
+  const n3 = esc(Object.assign({}, A4, { ai_vol: '70', vmax_it: '3.2', e_sep: '5', e_lat: '7' }));
+  const n4 = esc(Object.assign({}, A4, { ai_vol: '70', vmax_it: '3.2', e_sep: '5', e_lat: '7', onda_e: '120' }));
+
+  // ── B · LA CAJA DE LOS TRES CRITERIOS DE LA 8B (FEVI 35) ──
+  const B3 = { fevi: '35', onda_e: '70', onda_a: '70', e_sep: '10', e_lat: '13', vmax_it: '2.0', ai_vol: '50' };
+  const p0 = esc(B3);
+  const p1 = esc(Object.assign({}, B3, { ai_vol: '70' }));
+  const p2 = esc(Object.assign({}, B3, { ai_vol: '70', vmax_it: '3.2' }));
+  const p3 = esc(Object.assign({}, B3, { ai_vol: '70', vmax_it: '3.2', onda_e: '120', e_sep: '5', e_lat: '7' }));
+  /* Dos disponibles (sin IT), uno positivo y uno negativo: la sub-caja «When only 2 criteria are
+     available» de la figura, que va a «Cannot determine». */
+  const dos11 = esc({ fevi: '35', onda_e: '120', onda_a: '70', e_sep: '5', e_lat: '7', ai_vol: '50' });
+  const uno = esc({ fevi: '35', onda_e: '70', onda_a: '70', ai_vol: '70' });
+
+  // ── C · LOS DOS ATAJOS DEL FLUJO MITRAL, POR SUS DOS LADOS ──
+  const ATJ = { fevi: '35', e_sep: '10', e_lat: '13', vmax_it: '2.0', ai_vol: '50' };
+  const ea080 = esc(Object.assign({}, ATJ, { onda_e: '40', onda_a: '50' }));   // E/A 0,800 exacto
+  const ea082 = esc(Object.assign({}, ATJ, { onda_e: '40', onda_a: '49' }));   // E/A 0,816
+  const e50   = esc(Object.assign({}, ATJ, { onda_e: '50', onda_a: '70' }));   // E 50,0 exacto
+  const e51   = esc(Object.assign({}, ATJ, { onda_e: '51', onda_a: '70' }));   // E 51
+  const ea200 = esc(Object.assign({}, ATJ, { onda_e: '100', onda_a: '50' }));  // E/A 2,00 exacto
+  const ea196 = esc(Object.assign({}, ATJ, { onda_e: '100', onda_a: '51' }));  // E/A 1,96
+
+  // ── D · LOS CORTES DE LOS CUATRO CRITERIOS, POR SUS DOS LADOS ──
+  /* Cada triplete deja UN criterio ya positivo (el Vol AI o el E/e-prima), asi que cruzar el
+     corte mueve el conteo de 1 a 2 y el veredicto de grado I a grado II: un borde que no cambia
+     ningun veredicto no prueba que el corte exista. */
+  const EEB = { fevi: '35', onda_a: '90', e_sep: '6', e_lat: '8', vmax_it: '2.0', ai_vol: '70' };
+  const bEe = ['97', '98', '99'].map(x => esc(Object.assign({}, EEB, { onda_e: x })).badge);
+  const ITB = { fevi: '35', onda_e: '70', onda_a: '70', e_sep: '10', e_lat: '13', ai_vol: '70' };
+  const bIt = ['2.79', '2.8', '2.81'].map(x => esc(Object.assign({}, ITB, { vmax_it: x })).badge);
+  const LAB = { fevi: '35', onda_e: '120', onda_a: '70', e_sep: '5', e_lat: '7', vmax_it: '2.0' };
+  const bLavi = ['61', '61.5', '62'].map(x => esc(Object.assign({}, LAB, { ai_vol: x })).badge);
+  /* Los dos cortes del e-prima son de la 8A, asi que sus tripletes van con FEVI 60. Con la IT y
+     el Vol AI positivos y el E/e-prima negativo, cruzar el corte mueve 2 de 4 (la mitad) a 3 de 4. */
+  const SEPB = { fevi: '60', onda_e: '60', onda_a: '70', e_lat: '13', vmax_it: '3.2', ai_vol: '70' };
+  const bSep = ['6.9', '7', '7.1'].map(x => esc(Object.assign({}, SEPB, { e_sep: x })).badge);
+  const LATB = { fevi: '60', onda_e: '60', onda_a: '70', e_sep: '10', vmax_it: '3.2', ai_vol: '70' };
+  const bLat = ['9.9', '10', '10.1'].map(x => esc(Object.assign({}, LATB, { e_lat: x })).badge);
+
+  // ── E · LA FEVI ELIGE EL ALGORITMO ──
+  const FEV = { onda_e: '70', onda_a: '70', e_sep: '10', e_lat: '13', vmax_it: '2.0', ai_vol: '70' };
+  const f49 = esc(Object.assign({}, FEV, { fevi: '49' }));
+  const f50 = esc(Object.assign({}, FEV, { fevi: '50' }));
+  const f51 = esc(Object.assign({}, FEV, { fevi: '51' }));
+  const fSin = esc(FEV);
+
+  // ── F · EL e-PRIMA NO VOTA EN LA 8B, Y EL CORTE «promedio < 8» SE FUE ──
+  /* Sin FEVI se corre la 8B. Con 0 de 3 criterios, el e-prima bajo y el e-prima normal tienen que
+     dar el MISMO veredicto: en HEAD el bajo daba grado I. */
+  const SIN0 = { onda_e: '70', onda_a: '70', vmax_it: '2.0', ai_vol: '50' };
+  const epBajo = esc(Object.assign({}, SIN0, { e_sep: '5', e_lat: '7' }));
+  const epNorm = esc(Object.assign({}, SIN0, { e_sep: '10', e_lat: '13' }));
+  /* El unico escenario en que el corte «e' promedio < 8» podia disparar SOLO: un anillo septal
+     entre 7 y 8, sin
+     lateral. Con los dos anillos es imposible (septal >= 7 y lateral >= 10 dan promedio >= 8,5). */
+  const epSolo75 = esc(Object.assign({}, SIN0, { e_sep: '7.5' }));
+
+  // ── G · EL S/D VENOSO PULMONAR Y SUS TRES COMPUERTAS ──
+  const SDB = { fevi: '35', onda_e: '120', onda_a: '70', e_sep: '5', e_lat: '7', ai_vol: '50' };
+  const sdSin = esc(SDB);
+  const sdMenor = esc(Object.assign({}, SDB, { venp_sd: 'menor1' }));
+  const sdMayor = esc(Object.assign({}, SDB, { venp_sd: 'mayor1' }));
+  const sdTres = esc(Object.assign({}, SDB, { vmax_it: '2.0', venp_sd: 'menor1' }));
+  const sdSinFevi = esc(Object.assign({}, SDB, { fevi: undefined, venp_sd: 'menor1' }));
+
+  // ── H · EL TDE Y EL TRIV NO ESTAN EN NINGUNA DE LAS DOS FIGURAS ──
+  const sinTde = esc(Object.assign({}, B3, { ai_vol: '70', vmax_it: '3.2' }));
+  const conTde = esc(Object.assign({}, B3, { ai_vol: '70', vmax_it: '3.2', tde: '140', triv: '60' }));
+
+  // ── I · CONTROLES: LAS OTRAS DOS GUIAS Y LA FIBRILACION AURICULAR ──
+  const OTR = { fevi: '35', onda_e: '70', onda_a: '70', e_sep: '10', e_lat: '13', vmax_it: '3.2', ai_vol: '70' };
+  const c25 = esc(OTR, 'ase2025');
+  const cBs = esc(OTR, 'bse2024');
+  const FAC = { fevi: '60', onda_e: '120', onda_a: '70', e_sep: '5', e_lat: '7', vmax_it: '3.2', ai_vol: '70' };
+  const fa25 = esc(FAC, 'ase2025', 'fa');
+  const faBs = esc(FAC, 'bse2024', 'fa');
+  const fa16 = esc(FAC, 'ase2016', 'fa');
+
+  const G1ALT = 'Patrón de relajación alterada con presiones de llenado normales (Disfunción diastólica Grado I).';
+  const G1PRO = 'Llenado diastólico con patrón de relajación prolongada (Disfunción diastólica Grado I).';
+  const G2    = 'Llenado diastólico pseudonormal con presiones de llenado elevadas (Disfunción diastólica Grado II).';
+  const G3    = 'Llenado diastólico restrictivo (Disfunción diastólica Grado III).';
+  const NORM  = 'Función diastólica normal.';
+  const INDET = 'Función diastólica indeterminada.';
+
+  return { extra: [
+    // ── DENOMINADORES ────────────────────────────────────────────────────────────────────────
+    ['DENOMINADOR: existe la funcion duena del veredicto de la ASE 2016', hayDuena, String(hayDuena)],
+    ['DENOMINADOR: el desplegable de protocolo ofrece ase2016',
+      opciones.indexOf('ase2016') > -1, opciones.join(',')],
+    ['DENOMINADOR: el corte entre FEVI normal y deprimida es 50 (folio 285)',
+      corteFevi === 50, String(corteFevi)],
+    ['DENOMINADOR: la ventana dibuja filas en las dos vias y nombra la figura de cada una',
+      n3.ven.n > 0 && p2.ven.n > 0 &&
+      n3.ven.pasos.some(p => /Figura 8A/.test(p)) && p2.ven.pasos.some(p => /Figura 8B/.test(p)),
+      'n(8A)=' + n3.ven.n + ' pasos=' + n3.ven.pasos.join(' | ') + ' // n(8B)=' + p2.ven.n + ' pasos=' + p2.ven.pasos.join(' | ')],
+    ['DENOMINADOR: cuadro y ventana dan el MISMO veredicto en las diez escenas base',
+      [n0, n1, n2, n3, n4, p0, p1, p2, dos11, uno]
+        .every(x => x.ven.res.indexOf(x.badge.replace(' — ASE 2016', '')) === 0),
+      [n0, n1, n2, n3, n4, p0, p1, p2, dos11, uno].map(x => x.badge + ' // ' + x.ven.res).join('\\n')],
+
+    // ── A · LA REGLA DE LA MITAD DE LA 8A (folios 281 y 290) ──────────────────────────────────
+    ['8A · 0 de 4 positivas -> funcion diastolica normal', n0.texto === NORM, n0.badge + ' // ' + n0.texto],
+    ['8A · 1 de 4 (25 %, menos de la mitad) -> normal', n1.texto === NORM, n1.badge + ' // ' + n1.texto],
+    ['8A · 2 de 4 (la mitad EXACTA) -> indeterminada, que es la casilla «Indeterminate»',
+      n2.texto === INDET, n2.badge + ' // ' + n2.texto],
+    ['8A · 3 de 4 (mas de la mitad) -> disfuncion diastolica SIN grado, con su literal',
+      n3.texto === 'Disfunción diastólica (3 de 4 criterios positivos, ASE/EACVI 2016); el algoritmo para FEVI normal no gradúa.',
+      n3.badge + ' // ' + n3.texto],
+    ['8A · 4 de 4 -> la misma frase con su conteo',
+      n4.texto === 'Disfunción diastólica (4 de 4 criterios positivos, ASE/EACVI 2016); el algoritmo para FEVI normal no gradúa.',
+      n4.texto],
+    ['8A · el EN SUMA de la disfuncion sin grado es la frase corta',
+      n3.tsuma === 'Disfunción diastólica.' && n4.tsuma === 'Disfunción diastólica.',
+      n3.tsuma + ' / ' + n4.tsuma],
+    ['8A · la frase sin grado NO escribe ningun grado romano',
+      !/Grado\\s*(I|II|III)\\b/.test(n3.texto) && !/Grado\\s*(I|II|III)\\b/.test(n3.tsuma), n3.texto],
+    ['8A · y la frase viaja al informe firmado y al EN SUMA',
+      n3.inf.indexOf(n3.texto) > -1 && n3.suma.indexOf('Disfunción diastólica.') > -1,
+      __t.lineas ? '' : n3.suma],
+
+    // ── B · LA CAJA DE LOS TRES CRITERIOS DE LA 8B (folios 286, 287 y 290) ────────────────────
+    ['8B · 1 de 3 positivos -> LAP normal, GRADO I (folio 286), donde HEAD decia indeterminada',
+      p1.texto === G1ALT, p1.badge + ' // ' + p1.texto],
+    ['8B · 0 de 3 positivos (3 de 3 negativos) -> tambien grado I, no «normal»',
+      p0.texto === G1ALT, p0.badge + ' // ' + p0.texto],
+    ['8B · 2 de 3 positivos -> grado II', p2.texto === G2, p2.badge + ' // ' + p2.texto],
+    ['8B · 3 de 3 positivos -> grado II', p3.texto === G2, p3.badge + ' // ' + p3.texto],
+    ['8B · 1 positivo y 1 negativo con SOLO 2 disponibles -> no se informa el grado',
+      dos11.texto === INDET, dos11.badge + ' // ' + dos11.texto],
+    ['  y la frase ya no afirma «1/3 criterios positivos» sobre un estudio con DOS medidos',
+      dos11.texto.indexOf('1/3') < 0 && uno.texto.indexOf('1/3') < 0, dos11.texto + ' // ' + uno.texto],
+    ['  CONTROL NEGATIVO del mismo numerador: 1 positivo sobre TRES disponibles SI concluye',
+      p1.texto === G1ALT && dos11.texto !== p1.texto, p1.texto + ' // ' + dos11.texto],
+    ['8B · un solo criterio disponible -> no se informa (pie de la Figura 8)',
+      uno.texto === INDET, uno.badge + ' // ' + uno.texto],
+
+    // ── C · LOS DOS ATAJOS DEL FLUJO MITRAL, POR SUS DOS LADOS ────────────────────────────────
+    ['atajo E/A <= 0,8: el 0,800 EXACTO entra (la figura escribe <=)',
+      ea080.texto === G1PRO, ea080.texto],
+    ['  y 0,816 no entra: cae en la caja de los tres criterios',
+      ea082.texto !== G1PRO, ea082.texto],
+    ['atajo E <= 50: la E de 50,0 EXACTA entra', e50.texto === G1PRO, e50.texto],
+    ['  y una E de 51 no entra, con la misma E/A <= 0,8', e51.texto !== G1PRO, e51.texto],
+    ['atajo E/A >= 2: el 2,00 EXACTO es grado III (la figura escribe >=)',
+      ea200.texto === G3, ea200.texto],
+    ['  y 1,96 no es grado III', ea196.texto !== G3, ea196.texto],
+
+    // ── D · LOS CORTES DE LOS CUATRO CRITERIOS ────────────────────────────────────────────────
+    ["E/e' > 14: 13,86 y el 14,00 EXACTO son negativos, 14,14 es positivo",
+      bEe[0] === bEe[1] && bEe[1] !== bEe[2], JSON.stringify(bEe)],
+    ['IT > 2,8: 2,79 y el 2,80 EXACTO son negativos, 2,81 es positivo',
+      bIt[0] === bIt[1] && bIt[1] !== bIt[2], JSON.stringify(bIt)],
+    ['Vol AI > 34: 33,7 y el 34,0 EXACTO son negativos, 34,3 es positivo',
+      bLavi[0] === bLavi[1] && bLavi[1] !== bLavi[2], JSON.stringify(bLavi)],
+    ["8A · e' septal < 7: 6,9 es positivo y el 7,0 EXACTO ya no lo es",
+      bSep[0] !== bSep[1] && bSep[1] === bSep[2], JSON.stringify(bSep)],
+    ["8A · e' lateral < 10: 9,9 es positivo y el 10,0 EXACTO ya no lo es",
+      bLat[0] !== bLat[1] && bLat[1] === bLat[2], JSON.stringify(bLat)],
+
+    // ── E · LA FEVI ELIGE EL ALGORITMO (folio 285) ────────────────────────────────────────────
+    ['la FEVI decide: los MISMOS valores dan grado I con 49 % y normal con 51 %',
+      f49.texto === G1ALT && f51.texto === NORM, f49.texto + ' // ' + f51.texto],
+    ['  el 50 EXACTO es FEVI normal, o sea 8A', f50.texto === f51.texto, f50.texto],
+    ['  y el 49 va por la 8B', f49.texto === G1ALT && f49.ven.pasos.some(p => /Figura 8B/.test(p)),
+      f49.ven.pasos.join(' | ')],
+    ['sin FEVI cargada se corre la 8B y la ventana lo dice, sin inventar un algoritmo',
+      fSin.texto === G1ALT && /FEVI sin cargar/.test(fSin.ven.res), fSin.ven.res],
+
+    // ── F · EL e-PRIMA NO VOTA EN LA 8B, Y EL «promedio < 8» SE FUE ───────────────────────────
+    ["8B · con 0 de 3 criterios, el e' bajo y el e' normal dan el MISMO veredicto",
+      epBajo.texto === epNorm.texto && epNorm.texto === NORM,
+      epBajo.texto + ' // ' + epNorm.texto],
+    ["  CONTROL NEGATIVO: en la 8A el e' SI vota y mueve el conteo",
+      n3.texto !== n2.texto, n2.texto + ' // ' + n3.texto],
+    ["el corte «e' promedio < 8», que no existe en esta guia, ya no marca nada",
+      epSolo75.texto === NORM, epSolo75.texto],
+
+    // ── G · EL S/D VENOSO PULMONAR Y SUS TRES COMPUERTAS ──────────────────────────────────────
+    ['S/D < 1 con FEVI deprimida y UN criterio faltante entra como tercero y da grado II',
+      sdSin.texto !== G2 && sdMenor.texto === G2, sdSin.texto + ' // ' + sdMenor.texto],
+    ['  CONTROL NEGATIVO: con S/D > 1 no suma nada', sdMayor.texto === sdSin.texto,
+      sdMayor.texto + ' // ' + sdSin.texto],
+    ['  CONTROL NEGATIVO: con los TRES criterios medidos el S/D no se invoca',
+      sdTres.texto === G1ALT, sdTres.texto],
+    ['  CONTROL NEGATIVO: sin FEVI cargada el S/D no entra',
+      sdSinFevi.texto !== G2, sdSinFevi.texto],
+
+    // ── H · EL TDE Y EL TRIV NO ESTAN EN NINGUNA DE LAS DOS FIGURAS ───────────────────────────
+    ['CONTROL NEGATIVO: cargar TDE 140 y TRIV 60 no mueve nada de la ASE 2016',
+      sinTde.texto === conTde.texto && sinTde.badge === conTde.badge,
+      sinTde.texto + ' // ' + conTde.texto],
+
+    // ── I · CONTROLES DE LAS OTRAS GUIAS Y DE LA FIBRILACION AURICULAR ────────────────────────
+    ['CONTROL: la ASE 2025 en sinusal publica lo suyo y nombra su guia',
+      c25.badge.indexOf('ASE 2025') > -1 && /grado II/.test(c25.texto), c25.badge + ' // ' + c25.texto],
+    ['CONTROL: la BSE 2024 en sinusal publica lo suyo y nombra su guia',
+      cBs.badge.indexOf('BSE 2024') > -1 && /deteriorada/.test(cBs.texto), cBs.badge + ' // ' + cBs.texto],
+    ['CONTROL: la FA de la ASE 2025 sigue con su frase unica',
+      fa25.badge.indexOf('FA —') === 0 &&
+      fa25.texto === 'Disfunción diastólica con presión de llenado elevada (con FA).',
+      fa25.badge + ' // ' + fa25.texto],
+    ['CONTROL: la FA de la BSE 2024, idem',
+      faBs.badge.indexOf('FA —') === 0 &&
+      faBs.texto === 'Disfunción diastólica con presión de llenado elevada (con FA).',
+      faBs.badge + ' // ' + faBs.texto],
+    ['CONTROL: la FA de la ASE 2016 sigue declarando que la guia no da regla de conteo, sin frase',
+      faBs.badge.indexOf('FA —') === 0 && /sin regla de conteo/.test(fa16.badge) && fa16.texto === '',
+      fa16.badge + ' // ' + fa16.texto],
+
+    // ── J · EL LABORATORIO, REPORTADO Y NO TOCADO ─────────────────────────────────────────────
+    /* _labDiastGrado deriva el grado del TEXTO del resumen, y de ahi salen cinco columnas del
+       Excel y la distribucion del panel. Estas tres condiciones NO piden que clasifique bien:
+       fijan lo que clasifica HOY, para que un cambio futuro del Laboratorio se vea. La frase
+       nueva de la 8A cae en null, igual que la «indeterminada» que la app ya publicaba. */
+    ['Laboratorio: las frases de grado de la ASE 2016 siguen clasificando I, II y III',
+      p1.lab === 'I' && p2.lab === 'II' && ea200.lab === 'III',
+      [p1.lab, p2.lab, ea200.lab].join(',')],
+    ['Laboratorio: «Funcion diastolica normal.» sigue clasificando «sin»', n0.lab === 'sin', String(n0.lab)],
+    ['Laboratorio REPORTADO: la frase nueva de la 8A no la clasifica, igual que la indeterminada',
+      n3.lab === null && n2.lab === null, String(n3.lab) + ' / ' + String(n2.lab)]
+  ] };
+`);
+
 caso('TC-30', 'AI por volumen indexado: las cuatro bandas en sus cortes exactos', `
   function ai(vol) { __t.limpiar(); ${BSA2} __t.set('ai_vol', String(vol)); return __t.informe(); }
   const r = [68, 70, 84, 98].map(ai);
