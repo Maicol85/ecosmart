@@ -22351,6 +22351,28 @@ function calcPSAP() {
    E/e' de 14,00 exacto también. No es teórico: el 2,80 es el valor que más se tipea.
    ⚠️ Y NO SON LOS DE LA FA DE ESTA MISMA GUÍA. La Figura 19 usa el E/e' SEPTAL con corte > 11;
    estos son los de ritmo sinusal y las dos ramas no comparten constantes a propósito. */
+/* ══ LA RAMA DEL STRAIN DE LA AI (Figura 17, pág. 36) ════════════════════════════
+   ⚠️ LA FIGURA Y LA PROSA NO DICEN LO MISMO, Y LOS DOS TEXTOS ESTÁN IMPRESOS. La caja de la
+   figura dice «Assess LA strain: pump strain ≥14% OR reservoir strain ≥30%» —con «≥» y con
+   «OR»—; la prosa de la pág. 35 dice «high-normal values of LARs (> 30%) and LAPs (> 14%)»
+   —con «>» y con «and»—. GANA LA FIGURA, que es el algoritmo que la app ejecuta, y el signo
+   descartado queda escrito acá: un borde no se entiende sin el que no se eligió.
+   ⚠️ Y LA BANDA GRIS DE LA PROSA TIENE UN HUECO QUE LA FIGURA CIERRA: la prosa manda a los
+   suplementarios «when LARs falls within a range of 19–29%», o sea que deja sin rama el tramo
+   18,0-19,0. La figura no tiene bandas: pregunta «LARs <18 %» y, si la respuesta es no, va a los
+   suplementarios. Se implementa la figura, así que un LARS de 18,5 entra a los suplementarios.
+   ⚠️ EL LAPs Y LA ONDA L NO TIENEN CAMPO EN ESTA APP: esos dos pasos quedan NO EVALUABLES y no
+   cuentan, que es la regla de la casa. No se agregó ningún campo. El Ar−A sí existe, calculado
+   por `venpArA()` desde las duraciones de la vena pulmonar y de la onda A mitral.
+   ⚠️ EL CORTE DEL Ar−A DE LA BSE ES «> 30» Y LA APP YA TENÍA UN «>= 30» (`VENP_AR_A_MS`), que
+   es el criterio de la ASE/EACVI 2016 y lo usan otras pantallas. No se tocó: esta rama lleva su
+   propia constante, como ya pasa con la FA de esta misma guía. */
+const BSE_LARS_NORMAL  = 30;    // % — reservorio, borde `>=` (Figura 17; la prosa escribe `> 30`)
+const BSE_LAPS_NORMAL  = 14;    // % — bomba, borde `>=` (Figura 17; SIN CAMPO en esta app)
+const BSE_LARS_ELEVADA = 18;    // % — reservorio, borde `<` (Figura 17)
+const BSE_ARA_SUPL     = 30;    // ms — Ar−A, borde `>` (Figura 17)
+const BSE_ONDAL_SUPL   = 20;    // cm/s — onda L, borde `>` (Figura 17; SIN CAMPO en esta app)
+
 const BSE_IT_SIGNIF    = 2.8;   // m/s — velocidad de la IT, borde `>` (Figura 17, pág. 36)
 const BSE_EE_PROM      = 14;    // E/e' promedio con los dos anillos, borde `>` (pág. 14)
 const BSE_EE_SEPTAL    = 15;    // E/e' septal, SÓLO con un anillo, borde `>` (pág. 14)
@@ -22490,6 +22512,59 @@ function diastBSE2024Evaluar() {
     else if (neg >= 2) presion = 'normal';
     else if (evalN === 2 && pos === 1 && neg === 1) presion = 'discordancia';
     else               presion = 'insuficiente';
+
+    /* ══ SUSTITUCIÓN POR STRAIN DE LA AI — la rama del medio de la Figura 17 ═══════════════
+       Folio 36: «in those with one positive and one negative key variable and where LA strain
+       analysis is not possible, the assessment of LVFP is indeterminate». O sea que el estado
+       por defecto de esta rama es INDETERMINADO, y el strain es lo que lo resuelve —no al revés—.
+       La app no inventa los dos parámetros que no mide: el LAPs y la onda L quedan declarados no
+       evaluables y la rama cae a indeterminado cuando no queda nada que mirar. */
+    if (presion === 'discordancia') {
+      const lars = v('lars');
+      const laps = null;   // SIN CAMPO en esta app — declarado, no inventado
+      const ondaL = null;  // SIN CAMPO en esta app — declarado, no inventado
+      const arA = (typeof venpArA === 'function') ? venpArA() : null;
+      R.strain = { lars: lars, laps: laps, arA: arA, ondaL: ondaL };
+
+      R.filas.push({ g: 'Sustitución por strain de la AI (Figura 17)',
+                     crit: 'LARS ≥ ' + BSE_LARS_NORMAL + ' % → presión normal', val: lars, u: '%',
+                     ok: lars !== null && lars >= BSE_LARS_NORMAL });
+      R.filas.push({ crit: 'LAPs ≥ ' + BSE_LAPS_NORMAL + ' % → presión normal (sin campo en la app)',
+                     val: null, u: '%', ok: false });
+      R.filas.push({ crit: 'LARS < ' + BSE_LARS_ELEVADA + ' % → presión elevada', val: lars, u: '%',
+                     ok: lars !== null && lars < BSE_LARS_ELEVADA });
+
+      if (lars === null && laps === null) {
+        presion = 'indeterminada';
+        R.via = 'A — FEVI normal · discordancia sin strain de la AI';
+      } else if ((laps !== null && laps >= BSE_LAPS_NORMAL) || (lars !== null && lars >= BSE_LARS_NORMAL)) {
+        presion = 'normal';
+        R.via = 'A — FEVI normal · strain de la AI alto-normal';
+      } else if (lars !== null && lars < BSE_LARS_ELEVADA) {
+        presion = 'elevada';
+        R.via = 'A — FEVI normal · LARS < ' + BSE_LARS_ELEVADA + ' %';
+      } else {
+        /* Zona entre los dos cortes: los suplementarios. Con UNO positivo alcanza para elevada
+           («≥1 positive» en la figura); con todos negativos la presión es normal. Si NINGUNO se
+           puede evaluar no se contesta «no» a una pregunta que no se hizo: queda indeterminada. */
+        const cArA = arA !== null && arA > BSE_ARA_SUPL;
+        const cOndaL = ondaL !== null && ondaL > BSE_ONDAL_SUPL;
+        const suplEval = (arA !== null ? 1 : 0) + (ondaL !== null ? 1 : 0);
+        R.filas.push({ g: 'Parámetros suplementarios (Figura 17)',
+                       crit: 'Ar−A > ' + BSE_ARA_SUPL + ' ms', val: arA, u: 'ms', ok: cArA, dec: 0 });
+        R.filas.push({ crit: 'Onda L > ' + BSE_ONDAL_SUPL + ' cm/s (sin campo en la app)', val: null, u: 'cm/s', ok: false });
+        if (suplEval === 0) {
+          presion = 'indeterminada';
+          R.via = 'A — FEVI normal · LARS en zona intermedia, sin suplementarios evaluables';
+        } else if (cArA || cOndaL) {
+          presion = 'elevada';
+          R.via = 'A — FEVI normal · LARS en zona intermedia con suplementario positivo';
+        } else {
+          presion = 'normal';
+          R.via = 'A — FEVI normal · LARS en zona intermedia con suplementarios negativos';
+        }
+      }
+    }
     R.presion = presion;
 
     R.filas.push({ g: 'Paso 1 — Presión de llenado (Figura 17)',
@@ -24453,7 +24528,7 @@ function calcularBSE2024(eprima, presion, d) {
      does not confirm normal LV relaxation». */
   let categoria;
   if (presion === 'elevada') categoria = 'elevada';
-  else if (presion === 'discordancia') categoria = 'indeterminado';
+  else if (presion === 'indeterminada') categoria = 'indeterminado';
   else if (!eprima.evaluable) categoria = 'normal_sin_eprima';
   else if (eprima.alterada) categoria = 'alterada_normal';
   else categoria = 'normal';
