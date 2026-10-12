@@ -1737,6 +1737,260 @@ caso('TC-456', 'Strain de la AI y onda L: los campos y su sincronia en los dos s
       mismo(faBse, faDop), faBse.badge + ' | ' + faDop.badge]
   ] };
 `);
+/* TC-457 — PARED DEL VD E INDICE DE TEI (DTI), tanda del 2026-10-12.
+   Fuente: ASE 2025 cavidades derechas (Mukherjee), folio = pagina del PDF + 140.
+   Cortes: pared >= 5 mm (Tabla 1 folio 145 · Key Point folio 144) y Tei por DTI >= 0,55
+   (Tabla 1 folio 145 · texto folio 158). El corte del Doppler PULSADO es 0,40 y NO se aplica.
+   ⚠️ SIN ACENTOS GRAVES EN ESTE CUERPO: es un template literal y uno solo cierra la cadena
+   (scripts/check_backticks.py da la linea exacta; node --check apunta decenas de lineas antes). */
+caso('TC-457', 'Pared del VD e indice de Tei (DTI): los dos cortes por sus dos lados, el Tei como cuarto parametro de la disfuncion sistolica del VD, la hipertrofia en la oracion y las ocho frases del EN SUMA con la sigla HVD, la marca «(revisar)» del Tei tipeado como porcentaje, y un paciente sin los campos nuevos IDENTICO a HEAD', `
+  const S = (k, v) => __t.set(k, v);
+  const R = (id) => (__t.txt(id) || '').replace(/\\s+/g, ' ').trim();
+  const M = (id) => (__t.txt(id + '-marca') || '').trim();
+
+  /* ── DENOMINADORES. Sin estos, cada condicion de abajo compara null contra null y el caso
+     sale verde sobre una app que no tiene ni un campo nuevo. ── */
+  const existen = ['vd_pared', 'vd_tei'].filter(id => !document.getElementById(id));
+  const filasNuevas = ['vd-pared-interp', 'vd-tei-interp'].filter(id => !document.getElementById(id));
+  const cortes = (typeof VD_PARED_HVD_MIN !== 'undefined' && typeof VD_TEI_DTI_ALT_MIN !== 'undefined')
+    ? { pared: VD_PARED_HVD_MIN, tei: VD_TEI_DTI_ALT_MIN,
+        pw: (typeof VD_TEI_PW_ALT_MIN !== 'undefined') ? VD_TEI_PW_ALT_MIN : 'SIN CONSTANTE' }
+    : 'SIN CONSTANTES';
+  /* El cuadro del VD tiene que seguir teniendo SIETE filas: cinco de HEAD mas las dos nuevas.
+     Un conteo es lo unico que caza una fila que se duplico o que se fue. */
+  const cajaVD = (() => { const e = document.getElementById('vd-tam');
+    const c = e ? e.closest('.calc-box') : null;
+    return c ? c.querySelectorAll('.calc-row').length : 'NO EXISTE' })();
+
+  /* Un paciente: el objeto c son los campos, y el informe sale en estilo estandar. */
+  const esc = (c, sel) => {
+    __t.limpiar();
+    Object.keys(sel || {}).forEach(k => S(k, sel[k]));
+    /* El orden importa poco aca porque calcVD esta cableado a todo lo que lee, pero los dos
+       campos nuevos van al final igual: es el gesto natural. */
+    ['vd_bas','vd_mid','vd_long','vd_area_d','vd_area_s','dt_onda_e','dt_onda_a','dt_eprime_lat',
+     'tapse','s_prime','vd_pared','vd_tei'].forEach(k => { if (c[k] !== undefined) S(k, c[k]) });
+    Object.keys(c).forEach(k => { if (['vd_bas','vd_mid','vd_long','vd_area_d','vd_area_s',
+      'dt_onda_e','dt_onda_a','dt_eprime_lat','tapse','s_prime','vd_pared','vd_tei'].indexOf(k) < 0) S(k, c[k]) });
+    const r = __t.informe();
+    const vd = r.inf.split('\\n').filter(l => /[Vv]entriculo derecho|[Vv]entrículo derecho|HVD/.test(l))
+                  .map(l => l.replace(/\\s+/g, ' ').trim());
+    const sm = r.suma.split('\\n').filter(l => /\\bVD\\b|HVD/.test(l)).map(l => l.replace(/\\s+/g, ' ').trim());
+    return { vd: vd.join(' // '), suma: sm.join(' // '),
+             fPared: R('vd-pared-interp'), fTei: R('vd-tei-interp'), aviso: R('vd-tei-aviso'),
+             mPared: M('vd_pared'), mTei: M('vd_tei'),
+             qPared: __t.val('vd_pared'), qTei: __t.val('vd_tei') };
+  };
+  const BAS = { vd_bas: '35' };                                   // basal NORMAL
+  const DIL = { vd_bas: '48' };                                   // basal DILATADO (>45)
+  const DIA = { dt_onda_e: '90', dt_onda_a: '30', dt_eprime_lat: '10' };   // E/A 3,0: restrictivo CON grado
+  const DIAsg = { dt_onda_e: '40', dt_onda_a: '60' };             // E/A 0,67 sin e-prima: SIN grado
+  const mas = (...o) => Object.assign({}, ...o);
+
+  // ── A · BORDES DE LA PARED, con el valor EXACTO del corte. El operador es >=.
+  const p49 = esc(mas(BAS, { tapse: '22', vd_pared: '4.9' }));
+  const p50 = esc(mas(BAS, { tapse: '22', vd_pared: '5' }));
+  const p51 = esc(mas(BAS, { tapse: '22', vd_pared: '5.1' }));
+
+  // ── B · BORDES DEL TEI. Tambien >=, y con TAPSE normal el Tei es el UNICO que puede votar.
+  const t54 = esc(mas(BAS, { tapse: '22', vd_tei: '0.54' }));
+  const t55 = esc(mas(BAS, { tapse: '22', vd_tei: '0.55' }));
+  const t56 = esc(mas(BAS, { tapse: '22', vd_tei: '0.56' }));
+
+  // ── C · EL TEI COMO CUARTO PARAMETRO: con y sin Tei, por los tres de siempre.
+  const sinTei   = esc(mas(BAS, { tapse: '22', s_prime: '12', vd_area_d: '20', vd_area_s: '12' }));
+  const teiNorm  = esc(mas(BAS, { tapse: '22', s_prime: '12', vd_area_d: '20', vd_area_s: '12', vd_tei: '0.45' }));
+  const teiAlto  = esc(mas(BAS, { tapse: '22', s_prime: '12', vd_area_d: '20', vd_area_s: '12', vd_tei: '0.62' }));
+  /* Con un parametro de siempre YA alterado, el Tei no puede cambiar el veredicto: es un OR. */
+  const tapseBajoSinTei = esc(mas(BAS, { tapse: '14', s_prime: '12', vd_area_d: '20', vd_area_s: '12' }));
+  const tapseBajoConTei = esc(mas(BAS, { tapse: '14', s_prime: '12', vd_area_d: '20', vd_area_s: '12', vd_tei: '0.62' }));
+  /* El Tei como UNICO dato del VD: sin el en \`hayFunc\`, este paciente perdia la oracion entera. */
+  const soloTei = esc({ vd_tei: '0.62' });
+
+  // ── D · LA HIPERTROFIA EN LA ORACION, y la pared como UNICO dato (rama sin clausula previa).
+  const soloParedHvd = esc({ vd_pared: '7' });
+  const soloParedNorm = esc({ vd_pared: '4' });
+  const hvdConPrevia = esc(mas(BAS, { tapse: '14', vd_pared: '7' }));
+
+  // ── E · LAS OCHO FRASES DEL EN SUMA, con la sigla HVD.
+  const E = {
+    solo:        esc(mas(BAS, { vd_pared: '7' })),
+    dil:         esc(mas(DIL, { vd_pared: '7' })),
+    sist:        esc(mas(BAS, { vd_pared: '7', tapse: '14' })),
+    diast:       esc(mas(BAS, { vd_pared: '7' }, DIA)),
+    sistDiast:   esc(mas(BAS, { vd_pared: '7', tapse: '14' }, DIA)),
+    dilSist:     esc(mas(DIL, { vd_pared: '7', tapse: '14' })),
+    dilSistDi:   esc(mas(DIL, { vd_pared: '7', tapse: '14' }, DIA)),
+    dilDiast:    esc(mas(DIL, { vd_pared: '7' }, DIA)),
+    dilConserv:  esc(mas(DIL, { vd_pared: '7', tapse: '22' })),
+    sinGrado:    esc(mas(BAS, { vd_pared: '7', tapse: '14' }, DIAsg))
+  };
+  /* CONTROLES NEGATIVOS del EN SUMA: las MISMAS escenas sin la pared tienen que escribir lo que
+     escribe HEAD, letra por letra. Los literales estan tomados de la salida real de la app. */
+  const N = {
+    dil:       esc(mas(DIL, {})),
+    dilSist:   esc(mas(DIL, { tapse: '14' })),
+    dilSistDi: esc(mas(DIL, { tapse: '14' }, DIA)),
+    dilConserv: esc(mas(DIL, { tapse: '22' })),
+    sist:      esc(mas(BAS, { tapse: '14' })),
+    nada:      esc(mas(BAS, {}))
+  };
+
+  // ── F · LA MARCA «(revisar)» Y SU BANDA. El valor NO se corrige.
+  const banda = (typeof VD_NUEVOS_BANDA !== 'undefined') ? JSON.stringify(VD_NUEVOS_BANDA) : 'SIN BANDA';
+  const mTeiPct = esc(mas(BAS, { tapse: '22', vd_tei: '55' }));      // tipeado como PORCENTAJE
+  const mParedCm = esc(mas(BAS, { tapse: '22', vd_pared: '0.7' }));  // tipeada en CENTIMETROS
+  const mDentro = esc(mas(BAS, { tapse: '22', vd_pared: '7', vd_tei: '0.62' }));
+
+  // ── G · EL VACIADO de las dos filas, con el paso del medio medido.
+  const antesDeBorrar = esc(mas(BAS, { tapse: '22', vd_pared: '7', vd_tei: '0.62' }));
+  S('vd_pared', ''); S('vd_tei', '');
+  const trasBorrar = { fPared: R('vd-pared-interp'), fTei: R('vd-tei-interp'),
+                       mPared: M('vd_pared'), mTei: M('vd_tei') };
+
+  // ── H · EL AVISO AMBAR del Tei.
+  const avIt   = esc(mas(BAS, { tapse: '22', vd_tei: '0.62' }), { it_grado: '4' });
+  const avFa   = esc(mas(BAS, { tapse: '22', vd_tei: '0.62' }), { diast_ritmo: 'fa' });
+  const avMod  = esc(mas(BAS, { tapse: '22', vd_tei: '0.62' }), { it_grado: '2' });
+  const avSinTei = esc(mas(BAS, { tapse: '22' }), { it_grado: '4', diast_ritmo: 'fa' });
+
+  // ── I · EXCEL: ninguna columna nueva.
+  const cols = Object.keys(_labExcelRow({ id: 0, campos: {} }));
+  const colsConDatos = Object.keys(_labExcelRow({ id: 0, campos: { vd_pared: '7', vd_tei: '0.62' } }));
+
+  __t.limpiar();
+  return { extra: [
+    // ── DENOMINADORES ────────────────────────────────────────────────────────────────────────
+    ['DENOMINADOR: los dos campos nuevos existen en el DOM', existen.length === 0, 'faltan: ' + existen.join(',')],
+    ['DENOMINADOR: las dos filas nuevas del cuadro existen', filasNuevas.length === 0, 'faltan: ' + filasNuevas.join(',')],
+    ['DENOMINADOR: el cuadro del VD tiene SIETE filas (5 de HEAD + 2)', cajaVD === 7, 'filas=' + cajaVD],
+    ['DENOMINADOR: los cortes son los de la guia, y el del Doppler PULSADO esta declarado aparte',
+      cortes !== 'SIN CONSTANTES' && cortes.pared === 5 && cortes.tei === 0.55 && cortes.pw === 0.40,
+      JSON.stringify(cortes)],
+
+    // ── A · PARED: el borde por sus DOS lados, y el 5,0 EXACTO del lado anormal ──────────────
+    ['pared 4,9 mm: la fila dice normal', /normal/.test(p49.fPared) && !/hipertrofia/.test(p49.fPared), p49.fPared],
+    ['pared 5,0 mm EXACTOS: YA es hipertrofia — el operador es >= y no >',
+      /hipertrofia/.test(p50.fPared), p50.fPared],
+    ['pared 5,1 mm: hipertrofia', /hipertrofia/.test(p51.fPared), p51.fPared],
+    ['y la fila imprime el valor al lado del veredicto',
+      p50.fPared.indexOf('5 mm') === 0 && p49.fPared.indexOf('4.9 mm') === 0, p50.fPared + ' | ' + p49.fPared],
+    ['la pared 4,9 NO nombra hipertrofia en el informe', !/hipertrofia/.test(p49.vd), p49.vd],
+    ['la pared 5,0 SI la nombra, CON el valor', /hipertrofia del ventr.culo derecho \\(pared de 5 mm\\)/.test(p50.vd), p50.vd],
+
+    // ── B · TEI: el borde por sus dos lados, y que es el corte de DTI ────────────────────────
+    ['Tei 0,54: la fila dice normal y el corte que nombra es el de DTI',
+      /normal/.test(t54.fTei) && /0\\.55 por DTI/.test(t54.fTei), t54.fTei],
+    ['Tei 0,55 EXACTO: YA esta alterado — el operador es >=', /alterado/.test(t55.fTei), t55.fTei],
+    ['Tei 0,56: alterado', /alterado/.test(t56.fTei), t56.fTei],
+    ['Tei 0,54 con TAPSE normal: funcion sistolica CONSERVADA',
+      /funci.n sist.lica conservada/.test(t54.vd), t54.vd],
+    ['Tei 0,55 con TAPSE normal: DISFUNCION sistolica — el Tei vota solo',
+      /con disfunci.n sist.lica/.test(t55.vd), t55.vd],
+    ['y el informe nombra el Tei con su metodo, porque el metodo decide el corte',
+      /Tei 0\\.55 \\(DTI\\)/.test(t55.vd), t55.vd],
+
+    // ── C · EL CUARTO PARAMETRO, con su control negativo ─────────────────────────────────────
+    ['CONTROL NEGATIVO: con TAPSE, S-prima y FAC normales y SIN Tei, funcion conservada',
+      /funci.n sist.lica conservada/.test(sinTei.vd) && sinTei.suma === '', sinTei.vd + ' // ' + sinTei.suma],
+    ['CONTROL NEGATIVO: un Tei NORMAL no mueve nada — solo se nombra',
+      /funci.n sist.lica conservada/.test(teiNorm.vd) && teiNorm.suma === sinTei.suma &&
+      /Tei 0\\.45 \\(DTI\\)/.test(teiNorm.vd), teiNorm.vd],
+    ['un Tei ALTERADO da vuelta la combinacion «ninguno alterado»',
+      /con disfunci.n sist.lica/.test(teiAlto.vd) &&
+      teiAlto.suma === 'VD de dimensiones normales con disfunción sistólica.', teiAlto.vd + ' // ' + teiAlto.suma],
+    ['CONTROL NEGATIVO: con el TAPSE ya bajo, el Tei no puede cambiar el veredicto (es un OR)',
+      tapseBajoSinTei.suma === tapseBajoConTei.suma &&
+      /con disfunci.n sist.lica/.test(tapseBajoConTei.vd),
+      tapseBajoSinTei.suma + ' | ' + tapseBajoConTei.suma],
+    ['el Tei como UNICO dato del VD no desaparece del informe (entro en la compuerta)',
+      /Ventr.culo derecho/.test(soloTei.vd) && /Tei 0\\.62 \\(DTI\\)/.test(soloTei.vd), soloTei.vd],
+
+    // ── D · LA HIPERTROFIA EN LA ORACION, las dos ramas de la clausula ───────────────────────
+    ['la pared como UNICO dato se informa (Recomendacion 3, folio 144) y SIN repetir el sujeto',
+      soloParedHvd.vd === 'Ventrículo derecho con hipertrofia (pared de 7 mm).', soloParedHvd.vd],
+    ['CONTROL NEGATIVO: una pared NORMAL sola no publica oracion', soloParedNorm.vd === '', soloParedNorm.vd],
+    ['con clausula previa, la hipertrofia nombra el organo y se cuelga con coma',
+      hvdConPrevia.vd.indexOf(', con hipertrofia del ventrículo derecho (pared de 7 mm).') > -1,
+      hvdConPrevia.vd],
+    ['y NO reescribe la oracion: el tramo de HEAD queda intacto delante',
+      hvdConPrevia.vd.indexOf('Ventrículo derecho de dimensiones normales con disfunción sistólica (TAPSE 14 mm)') === 0,
+      hvdConPrevia.vd],
+
+    // ── E · LAS OCHO FRASES DEL EN SUMA ──────────────────────────────────────────────────────
+    ['EN SUMA solo hipertrofia: «HVD.»', E.solo.suma === 'HVD.', E.solo.suma],
+    ['EN SUMA dilatado e hipertrofico', E.dil.suma === 'VD dilatado e hipertrófico.', E.dil.suma],
+    ['EN SUMA hipertrofia + sistolica', E.sist.suma === 'HVD con disfunción sistólica.', E.sist.suma],
+    ['EN SUMA hipertrofia + diastolica (con el GRADO, que la app ya publicaba)',
+      E.diast.suma === 'HVD con disfunción diastólica severa.', E.diast.suma],
+    ['EN SUMA hipertrofia + sistolica y diastolica, sin repetir la palabra',
+      E.sistDiast.suma === 'HVD con disfunción sistólica y diastólica severa.', E.sistDiast.suma],
+    ['EN SUMA dilatado e hipertrofico + sistolica',
+      E.dilSist.suma === 'VD dilatado e hipertrófico, con disfunción sistólica.', E.dilSist.suma],
+    ['EN SUMA dilatado e hipertrofico + sistolica y diastolica',
+      E.dilSistDi.suma === 'VD dilatado e hipertrófico, con disfunción sistólica y diastólica severa.', E.dilSistDi.suma],
+    ['EN SUMA dilatado e hipertrofico + solo diastolica',
+      E.dilDiast.suma === 'VD dilatado e hipertrófico, con disfunción diastólica severa.', E.dilDiast.suma],
+    ['la combinacion que la orden NO nombra conserva «funcion sistolica conservada», que es la regla de HEAD',
+      E.dilConserv.suma === 'VD dilatado e hipertrófico, con función sistólica conservada.', E.dilConserv.suma],
+    ['con la diastolica SIN grado se usa el texto de la app y NO se afirma la disfuncion',
+      E.sinGrado.suma === 'HVD con disfunción sistólica y patrón sugestivo de disfunción diastólica.', E.sinGrado.suma],
+
+    // ── E-bis · CONTROLES NEGATIVOS: sin pared, el EN SUMA es el de HEAD letra por letra ─────
+    ['CONTROL NEGATIVO sin pared: «VD dilatado.»', N.dil.suma === 'VD dilatado.', N.dil.suma],
+    ['CONTROL NEGATIVO sin pared: «VD dilatado con disfunción sistólica.»',
+      N.dilSist.suma === 'VD dilatado con disfunción sistólica.', N.dilSist.suma],
+    ['CONTROL NEGATIVO sin pared: la diastolica va con COMA, no con «y»',
+      N.dilSistDi.suma === 'VD dilatado con disfunción sistólica, disfunción diastólica severa.', N.dilSistDi.suma],
+    ['CONTROL NEGATIVO sin pared: «VD dilatado con función sistólica conservada.»',
+      N.dilConserv.suma === 'VD dilatado con función sistólica conservada.', N.dilConserv.suma],
+    ['CONTROL NEGATIVO sin pared: «VD de dimensiones normales con disfunción sistólica.»',
+      N.sist.suma === 'VD de dimensiones normales con disfunción sistólica.', N.sist.suma],
+    ['CONTROL NEGATIVO: un VD normal sin los campos nuevos no sube nada al EN SUMA y su oracion es la de HEAD',
+      N.nada.suma === '' && N.nada.vd === 'Ventrículo derecho de dimensiones normales.',
+      N.nada.vd + ' // ' + N.nada.suma],
+
+    // ── F · LA MARCA «(revisar)» ─────────────────────────────────────────────────────────────
+    ['la banda tiene un dueño unico y es la declarada', banda === '{"vd_pared":[1,30],"vd_tei":[0,3]}', banda],
+    ['el Tei tipeado como PORCENTAJE (55) queda MARCADO «(revisar)»', mTeiPct.mTei === '(revisar)', 'marca=' + mTeiPct.mTei],
+    ['  y NO se corrige: el campo conserva el 55 que se tipeo', mTeiPct.qTei === '55', 'quedo=' + mTeiPct.qTei],
+    ['  y NO cambia la cuenta: el 55 sigue votando como alterado',
+      /con disfunci.n sist.lica/.test(mTeiPct.vd), mTeiPct.vd],
+    ['la pared tipeada en CENTIMETROS (0,7) queda MARCADA y conserva el valor',
+      mParedCm.mPared === '(revisar)' && mParedCm.qPared === '0.7', mParedCm.mPared + ' / ' + mParedCm.qPared],
+    ['CONTROL NEGATIVO: pared 7 y Tei 0,62 estan DENTRO de banda y no se marcan',
+      mDentro.mPared === '' && mDentro.mTei === '', JSON.stringify([mDentro.mPared, mDentro.mTei])],
+
+    // ── G · EL VACIADO ───────────────────────────────────────────────────────────────────────
+    ['DENOMINADOR del vaciado: las dos filas habian pintado',
+      /hipertrofia/.test(antesDeBorrar.fPared) && /alterado/.test(antesDeBorrar.fTei),
+      antesDeBorrar.fPared + ' | ' + antesDeBorrar.fTei],
+    ['al borrar el dato las dos filas vuelven a «—» y las dos marcas se van',
+      trasBorrar.fPared === '\\u2014' && trasBorrar.fTei === '\\u2014' &&
+      trasBorrar.mPared === '' && trasBorrar.mTei === '', JSON.stringify(trasBorrar)],
+
+    // ── H · EL AVISO AMBAR ───────────────────────────────────────────────────────────────────
+    ['el aviso sale con IT SEVERA y nombra el folio 159',
+      /insuficiencia tricusp.dea severa/.test(avIt.aviso) && /folio 159/.test(avIt.aviso), avIt.aviso],
+    ['  y la salvedad llega al informe sin mover el veredicto',
+      /El .ndice de Tei puede no ser v.lido con insuficiencia tricusp.dea severa \\(ASE\\)/.test(avIt.vd) &&
+      /con disfunci.n sist.lica/.test(avIt.vd), avIt.vd],
+    ['el aviso sale en FA, con «ritmo irregular»', /ritmo irregular/.test(avFa.aviso), avFa.aviso],
+    ['CONTROL NEGATIVO: con IT MODERADA no sale — la guia dice SEVERA, no «significativa»',
+      avMod.aviso === '' && !/puede no ser v.lido/.test(avMod.vd), avMod.aviso + ' // ' + avMod.vd],
+    ['CONTROL NEGATIVO: sin Tei cargado no hay nada que advertir, con IT severa y FA puestas',
+      avSinTei.aviso === '' && !/puede no ser v.lido/.test(avSinTei.vd), avSinTei.aviso + ' // ' + avSinTei.vd],
+
+    // ── I · EXCEL ────────────────────────────────────────────────────────────────────────────
+    ['el Excel sigue en 435 columnas y no gano ninguna', cols.length === 435, 'n=' + cols.length],
+    ['  ninguna columna nombra la pared del VD ni el Tei',
+      !cols.some(k => /[Pp]ared del VD/.test(k)) && !cols.some(k => /Tei/.test(k)),
+      cols.filter(k => /[Pp]ared del VD|Tei/.test(k)).join(',') || '(ninguna)'],
+    ['  y con los dos campos CARGADOS el juego de columnas es el mismo',
+      colsConDatos.length === cols.length && JSON.stringify(colsConDatos) === JSON.stringify(cols),
+      'n=' + colsConDatos.length]
+  ] };
+`);
 caso('TC-30', 'AI por volumen indexado: las cuatro bandas en sus cortes exactos', `
   function ai(vol) { __t.limpiar(); ${BSA2} __t.set('ai_vol', String(vol)); return __t.informe(); }
   const r = [68, 70, 84, 98].map(ai);
