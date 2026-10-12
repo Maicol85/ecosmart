@@ -22453,8 +22453,8 @@ const BSE_ONDAL_SUPL   = 20;    // cm/s — onda L, borde `>` (Figura 17). Campo
    ⚠️ LOS CORTES DEL STRAIN NO SON LOS DE LA FIGURA 17, Y POR ESO NO COMPARTEN CONSTANTE: acá el
    lado elevado es «LARs <18 % OR LAPs <8 %» y el normal «LARs ≥24 % OR LAPs ≥14 %». El 18 del
    lado elevado coincide con el de la Figura 17 por casualidad; el 24 y el 8 no existen allá.
-   ⚠️ Y LOS SUPLEMENTARIOS SON CUATRO, NO DOS: la Figura 18 suma el S/D venoso pulmonar < 1 y el
-   TDE < 150 ms a los dos de la Figura 17. El S/D SÍ VOTA acá —al revés que en la ASE 2025, donde
+   ✅ Y LOS SUPLEMENTARIOS SON CUATRO, NO DOS, Y DESDE EL 2026-10-12 LOS CUATRO TIENEN DATO: la
+   Figura 18 suma el S/D venoso pulmonar < 1 y el TDE < 150 ms a los dos de la Figura 17. El S/D SÍ VOTA acá —al revés que en la ASE 2025, donde
    el corte es ≤ 0,67 y el <select> de «<1 / >1» no puede expresarlo—: el corte de esta figura es
    exactamente «< 1», que es lo que dice la opción. El TDE de la Figura 18 es «< 150» y NO es el
    «≤ 160» de la Figura 19 de la FA de esta misma guía: dos figuras, dos constantes.
@@ -22462,9 +22462,9 @@ const BSE_ONDAL_SUPL   = 20;    // cm/s — onda L, borde `>` (Figura 17). Campo
    disease» (cardiopatía isquémica con alteraciones sectoriales, miocardiopatía, HVI patológica).
    No hay campo que lo declare, así que la vía se abre sólo por FEVI o GLS, y queda declarado. */
 const BSE_FR_LARS_ELEV = 18;    // % — reservorio, borde `<`  (Figura 18)
-const BSE_FR_LAPS_ELEV = 8;     // % — bomba,      borde `<`  (Figura 18; SIN CAMPO en esta app)
+const BSE_FR_LAPS_ELEV = 8;     // % — bomba (contracción), borde `<`  (Figura 18). Campo: `ai_strain_ct`, en VALOR ABSOLUTO
 const BSE_FR_LARS_NORM = 24;    // % — reservorio, borde `>=` (Figura 18)
-const BSE_FR_LAPS_NORM = 14;    // % — bomba,      borde `>=` (Figura 18; SIN CAMPO en esta app)
+const BSE_FR_LAPS_NORM = 14;    // % — bomba (contracción), borde `>=` (Figura 18). Coincide con el de la 17 por CASUALIDAD: el 8 y el 24 no existen allá
 const BSE_FR_TDE_SUPL  = 150;   // ms — TDE, borde `<` (Figura 18). NO es el ≤160 de la Figura 19.
 
 /* ══ LA ZONA GRIS DE FEVI Y GLS (pág. 35) ════════════════════════════════════════
@@ -22618,8 +22618,11 @@ function diastBSE2024Evaluar() {
 
     if (presion === 'discordancia') {
       const lars = v('lars');
-      const laps = null;   // SIN CAMPO en esta app — declarado, no inventado
-      const ondaL = null;  // SIN CAMPO en esta app — declarado, no inventado
+      /* Mismo campo y misma puerta que en la Figura 17 (`ai_strain_ct` por `diastStrainAbs`, en
+         VALOR ABSOLUTO), con los cortes de ESTA figura, que son otros: acá el lado elevado es
+         `< 8` y el normal `>= 14`, y el 24 del LARS no existe en la 17. */
+      const laps = diastStrainAbs('ai_strain_ct');
+      const ondaL = v('onda_l');
       const arA = (typeof venpArA === 'function') ? venpArA() : null;
       const sd = sv('venp_sd');
       const tde = v('tde');
@@ -22628,10 +22631,12 @@ function diastBSE2024Evaluar() {
       R.filas.push({ g: 'Sustitución por strain de la AI (Figura 18)',
                      crit: 'LARS < ' + BSE_FR_LARS_ELEV + ' % → presión elevada', val: lars, u: '%',
                      ok: lars !== null && lars < BSE_FR_LARS_ELEV });
-      R.filas.push({ crit: 'LAPs < ' + BSE_FR_LAPS_ELEV + ' % → presión elevada (sin campo en la app)',
-                     val: null, u: '%', ok: false });
+      R.filas.push({ crit: 'Strain de contracción de la AI < ' + BSE_FR_LAPS_ELEV + ' % → presión elevada',
+                     val: laps, u: '%', ok: laps !== null && laps < BSE_FR_LAPS_ELEV });
       R.filas.push({ crit: 'LARS ≥ ' + BSE_FR_LARS_NORM + ' % → presión normal', val: lars, u: '%',
                      ok: lars !== null && lars >= BSE_FR_LARS_NORM });
+      R.filas.push({ crit: 'Strain de contracción de la AI ≥ ' + BSE_FR_LAPS_NORM + ' % → presión normal',
+                     val: laps, u: '%', ok: laps !== null && laps >= BSE_FR_LAPS_NORM });
 
       if (lars === null && laps === null) {
         presion = 'indeterminada';
@@ -22643,8 +22648,10 @@ function diastBSE2024Evaluar() {
         presion = 'normal';
         R.via += ' · strain de la AI alto-normal';
       } else {
-        /* Los CUATRO suplementarios de la Figura 18. El S/D vota acá porque su corte es
-           exactamente «< 1» y es lo que dice la opción del <select>; la onda L sigue sin campo. */
+        /* Los CUATRO suplementarios de la Figura 18, y desde el 2026-10-12 los cuatro con dato.
+           El S/D vota acá porque su corte es exactamente «< 1» y es lo que dice la opción del
+           <select> —al revés que en la ASE 2025, cuyo ≤ 0,67 ese control no puede expresar—, y
+           la onda L entra por `onda_l`, con el MISMO corte que la Figura 17 (> 20 cm/s). */
         const cArA   = arA !== null && arA > BSE_ARA_SUPL;
         const cOndaL = ondaL !== null && ondaL > BSE_ONDAL_SUPL;
         const cSd    = sd === 'menor1';
@@ -22653,7 +22660,7 @@ function diastBSE2024Evaluar() {
                        + (sd ? 1 : 0) + (tde !== null ? 1 : 0);
         R.filas.push({ g: 'Parámetros suplementarios (Figura 18)',
                        crit: 'Ar−A > ' + BSE_ARA_SUPL + ' ms', val: arA, u: 'ms', ok: cArA, dec: 0 });
-        R.filas.push({ crit: 'Onda L > ' + BSE_ONDAL_SUPL + ' cm/s (sin campo en la app)', val: null, u: 'cm/s', ok: false });
+        R.filas.push({ crit: 'Onda L > ' + BSE_ONDAL_SUPL + ' cm/s', val: ondaL, u: 'cm/s', ok: cOndaL, dec: 1 });
         R.filas.push({ crit: 'S/D venoso pulmonar < 1', val: sd ? (sd === 'menor1' ? '<1' : '>1') : null, u: '', ok: cSd });
         R.filas.push({ crit: 'TDE < ' + BSE_FR_TDE_SUPL + ' ms', val: tde, u: 'ms', ok: cTde, dec: 0 });
         if (suplEval === 0) {
@@ -103056,8 +103063,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261012-1410';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791825023595;                 /* eco-build-ms */
+const ECO_BUILD    = '20261012-1413';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791825180419;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -103143,7 +103150,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261012-1410</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261012-1413</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
