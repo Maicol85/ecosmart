@@ -47695,9 +47695,16 @@ caso('TC-432', 'El Diam. del TSVI se coordina en los DOS sentidos entre AI/VI, D
   base();
   const sinDiametro = foto();
 
-  /* ── CONTROL NEGATIVO 2: los otros CUATRO campos del bloque NO se coordinan (su defecto esta
-     REPORTADO y no corregido), asi que tocar el G. medio de Valvulas no mueve el O TSVI. Es lo que
-     prueba que se engancho el oninput del Diam. TSVI y no la funcion compartida. ── */
+  /* ── CONTROL NEGATIVO 2: tocar el G. medio de Valvulas no mueve el O TSVI. Es lo que prueba
+     que se engancho el oninput del Diam. TSVI y no la funcion compartida.
+     ⚠️ EL PARENTESIS DE ESTE COMENTARIO ESTABA VENCIDO (corregido el 2026-10-11). Decia «los
+     otros CUATRO campos del bloque NO se coordinan (su defecto esta REPORTADO y no corregido)»,
+     y eso dejo de ser cierto el 2026-10-08: _EA_PARES / eaParSync coordinan Vmax, G. medio, VTI
+     TSVI y VTI Ao en los dos sentidos, borrado incluido. La ASERCION no cambia —y de hecho ya
+     comprobaba gmedioDop === '45', o sea que el G. medio SI viaja—: lo que cambia es que el
+     comentario ya no afirma un defecto cerrado. Quien lo lea buscando trabajo pendiente iba a
+     reabrir algo que esta hecho, que es la trampa que CLAUDE.md documenta para los hallazgos
+     por numero de linea. La cobertura de esos cuatro campos es TC-452. ── */
   base(); __t.set('diam_tsvi_ao','22'); __t.set('ea_gmedio','45');
   /* El G. medio se lee ACA, dentro de la escena: las escenas siguientes limpian el formulario y
      leerlo al final daba '' — la primera version de este caso fallaba por eso, no por el codigo. */
@@ -57777,6 +57784,192 @@ caso('TC-451', 'Evidencia: los dos ⓘ de termino abren su tarjeta completa y an
       try { limpiarCampos(true); } catch (e) {}
     }
   })();
+`);
+
+/* TC-452 — LOS CUATRO CAMPOS HERMANOS DE LA AORTICA: BORRAR QUEDA BORRADO.
+   ⚠️ ESTE CASO NO ACOMPANA UN ARREGLO: cubre uno que YA ESTABA HECHO Y NO TENIA COBERTURA.
+   La coordinacion de Vmax, G. medio, VTI TSVI y VTI Ao entre Valvulas y Doppler entro el
+   2026-10-08 con _EA_PARES / eaParSync / eaParEditado, y el vaciado del G. maximo con la rama
+   else de calcAo. Medido el 2026-10-11 con teclas reales del navegador en 25 escenas
+   (scripts/_probe_eaapaga.mjs, bloque B: las dos puertas de cada dato, a 1200 px, y a 390 px con
+   el bloque de datos abierto y cerrado): CERO filas donde algo sobreviviera al borrado. O sea
+   que la conducta es correcta hoy.
+   Lo que faltaba es lo que este caso agrega. TC-445 vigila los NOMBRES de la lista de
+   recalculos, TC-432 cubre el O TSVI y TC-435 el G. maximo en sus tres superficies; ninguno
+   afirma que borrar un hermano en una puerta lo borra en la OTRA. Es exactamente la situacion
+   que CLAUDE.md documenta para TC-143 —«estaban cerrados pero SIN cobertura automatica, que es
+   como un arreglo se deshace sin que nadie se entere»—, y la unica prueba era un procedimiento
+   manual.
+   ⚠️ SE USA __t.set Y NO TECLAS REALES, y la diferencia esta medida: __t.set despacha input y
+   change, que es por donde entra eaParEditado, el mismo camino que un Backspace. Lo que las
+   teclas reales aportan —el caret, el foco y el race con sincronizarEADesdeGlobal— lo midio la
+   sonda; lo que este caso fija es el CABLEADO, que es lo que un refactor rompe en silencio.
+   ⚠️ SIN ACENTOS GRAVES. */
+caso('TC-452', 'Aortica: Vmax, G. medio, VTI TSVI y VTI Ao son UN dato con DOS puertas — cargar en una llega a la otra, borrar en una borra en la otra y NO se repone, el G. maximo se vacia con su insumo, y borrar NO retira el grado', `
+  const abrir = function () {
+    try { showTab('valvulas'); } catch (e) {}
+    ['valv-aortica'].forEach(function (tok) {
+      const sec = document.getElementById('ete-seccion-' + tok);
+      if (sec && sec.style.display === 'none') { try { toggleEteSeccion(tok); } catch (e) {} } });
+    ['aortica'].forEach(function (v) { ['esten','insuf'].forEach(function (t) {
+      const b = document.getElementById('pill-' + t + '-' + v);
+      if (b && !b.classList.contains('btn-primary')) toggleValvPill(v, t); }); });
+    ['caja-esten-aortica','caja-insuf-aortica'].forEach(function (c) {
+      const b = document.getElementById(c);
+      if (b && !b.classList.contains('valv-datos-abierto')) { try { valvDatosTog(c); } catch (e) {} } }); };
+
+  const T = function (id) { const e = document.getElementById(id);
+    return e ? (e.textContent || '').trim() : null; };
+  const V = function (id) { return String(__t.val(id) || ''); };
+
+  /* Los CUATRO datos, cada uno con su par [Doppler, Valvulas] y un valor de prueba. El O TSVI
+     NO entra: es un dato con CINCO campos y lo cubre TC-432. */
+  const DATOS = [
+    { dato: 'Vmax',     dop: 'vmax_ao',   valv: 'ea_vmax',    val: '4.5' },
+    { dato: 'G. medio', dop: 'gmedio_ao', valv: 'ea_gmedio',  val: '45'  },
+    { dato: 'VTI TSVI', dop: 'itv_tsvi',  valv: 'ea_vtitsvi', val: '20'  },
+    { dato: 'VTI Ao',   dop: 'itv_ao',    valv: 'ea_vtiao',   val: '60'  }
+  ];
+
+  const foto = function () { return {
+    vmax_ao: V('vmax_ao'), ea_vmax: V('ea_vmax'),
+    gmedio_ao: V('gmedio_ao'), ea_gmedio: V('ea_gmedio'),
+    itv_tsvi: V('itv_tsvi'), ea_vtitsvi: V('ea_vtitsvi'),
+    itv_ao: V('itv_ao'), ea_vtiao: V('ea_vtiao'),
+    gmax: V('gmax_calc'), eaGmax: V('ea_gmax_display'), detGmax: T('ea-det-gmax'),
+    grado: V('ea_grado') }; };
+
+  const base = function () {
+    __t.limpiar(); abrir();
+    __t.set('nombre','TC452'); __t.set('peso','70'); __t.set('talla','170'); };
+
+  /* ── (1) CARGAR por cada puerta llega a la otra. Las OCHO escenas. ── */
+  const cargar = {};
+  DATOS.forEach(function (d) {
+    ['dop','valv'].forEach(function (lado) {
+      base(); __t.set(d[lado], d.val);
+      cargar[d.dato + ' por ' + lado] = { dop: V(d.dop), valv: V(d.valv) }; }); });
+
+  /* ── (2) BORRAR por cada puerta, cargando SIEMPRE por la otra. Las OCHO escenas que importan:
+         si la carga y el borrado entraran por el mismo campo, el caso no distinguiria «se
+         coordino» de «nunca salio de ahi». ── */
+  const borrar = {};
+  DATOS.forEach(function (d) {
+    base(); __t.set(d.valv, d.val); __t.set(d.dop, '');
+    borrar[d.dato + ' borrado en Doppler (cargado por Valvulas)'] = { dop: V(d.dop), valv: V(d.valv) };
+    base(); __t.set(d.dop, d.val); __t.set(d.valv, '');
+    borrar[d.dato + ' borrado en Valvulas (cargado por Doppler)'] = { dop: V(d.dop), valv: V(d.valv) }; });
+
+  /* ── (3) EL G. MAXIMO SE VACIA CON SU INSUMO, por las DOS puertas. Las tres superficies las
+         cubre TC-435; aca se fija el enganche con el borrado coordinado. ── */
+  base(); __t.set('vmax_ao','4.5');  const gmaxCon = foto();
+  __t.set('ea_vmax','');             const gmaxSinPorValv = foto();
+  base(); __t.set('ea_vmax','4.5');  const gmaxCon2 = foto();
+  __t.set('vmax_ao','');             const gmaxSinPorDop = foto();
+
+  /* ── (4) CONTROL NEGATIVO 1 · DENOMINADOR: sin cargar nada los ocho campos estan vacios. Sin
+         esto, comparar dos fotos vacias dice «coordinado» y no prueba nada. ── */
+  base(); const sinNada = foto();
+
+  /* ── (5) CONTROL NEGATIVO 2: la coordinacion es POR DATO y no un barrido. Con los cuatro
+         cargados, borrar la Vmax deja los otros TRES en pie. Es lo que distingue «cada dato
+         viaja con su par» de «cualquier borrado limpia el bloque». ── */
+  base();
+  __t.set('vmax_ao','4.5'); __t.set('gmedio_ao','45');
+  __t.set('itv_tsvi','20'); __t.set('itv_ao','60');
+  const losCuatro = foto();
+  __t.set('vmax_ao','');
+  const soloVmaxFuera = foto();
+
+  /* ── (6) CONTROL NEGATIVO 3: borrar un insumo NO retira el grado consignado (regla 12 de la
+         casa, «borrar un dato no retira una afirmacion»). Con Vmax 4,5 el grado queda en severa
+         y al vaciarla sigue en severa: lo que se vacia es el DERIVADO, no la afirmacion. ── */
+  const gradoConDato = losCuatro.grado;
+  const gradoSinDato = soloVmaxFuera.grado;
+
+  /* ── (7) EL CABLEADO, leido del codigo VIVO. Dos mitades:
+         · las ocho puertas nombran eaParEditado con SU id;
+         · y en las cuatro de Valvulas eaParEditado va ANTES de syncEADesdeValvulas, que es lo
+           que hace que el borrado no se reponga en el mismo tecleo (cuando la sincronia
+           compartida corre, los dos campos ya estan vacios y su guarda no escribe nada). ── */
+  const onin = function (id) { const e = document.getElementById(id);
+    return e ? (e.getAttribute('oninput') || '') : ''; };
+  const puertas = {};
+  DATOS.forEach(function (d) {
+    ['dop','valv'].forEach(function (lado) {
+      puertas[d[lado]] = onin(d[lado]).indexOf("eaParEditado('" + d[lado] + "')") > -1; }); });
+  const puertasOk = Object.keys(puertas).every(function (k) { return puertas[k] === true; });
+  const ordenValv = DATOS.every(function (d) {
+    const a = onin(d.valv);
+    const i = a.indexOf('eaParEditado'), j = a.indexOf('syncEADesdeValvulas');
+    return i > -1 && j > -1 && i < j; });
+  /* Y la lista es UNA sola: las dos entradas de un dato se apuntan entre si. */
+  const paresSimetricos = (typeof window._EA_PARES === 'object') && DATOS.every(function (d) {
+    const a = window._EA_PARES[d.dop], b = window._EA_PARES[d.valv];
+    return !!a && !!b && a.par === d.valv && b.par === d.dop; });
+
+  const vacioPar = function (f) { return f.dop === '' && f.valv === ''; };
+
+  const ex = [];
+  // ── (1) CARGAR ──────────────────────────────────────────────────────────────────────────────
+  DATOS.forEach(function (d) {
+    ex.push(['cargar ' + d.dato + ' por el DOPPLER llega a Valvulas',
+      cargar[d.dato + ' por dop'].dop === d.val && cargar[d.dato + ' por dop'].valv === d.val,
+      JSON.stringify(cargar[d.dato + ' por dop'])]);
+    ex.push(['cargar ' + d.dato + ' por VALVULAS llega al Doppler',
+      cargar[d.dato + ' por valv'].dop === d.val && cargar[d.dato + ' por valv'].valv === d.val,
+      JSON.stringify(cargar[d.dato + ' por valv'])]);
+  });
+  // ── (2) BORRAR ──────────────────────────────────────────────────────────────────────────────
+  DATOS.forEach(function (d) {
+    const k1 = d.dato + ' borrado en Doppler (cargado por Valvulas)';
+    const k2 = d.dato + ' borrado en Valvulas (cargado por Doppler)';
+    ex.push([k1 + ' → los DOS vacios', vacioPar(borrar[k1]), JSON.stringify(borrar[k1])]);
+    ex.push([k2 + ' → los DOS vacios', vacioPar(borrar[k2]), JSON.stringify(borrar[k2])]);
+  });
+  // ── (3) G. MAXIMO ───────────────────────────────────────────────────────────────────────────
+  ex.push(['DENOMINADOR: con Vmax 4,5 el G. maximo esta escrito en sus tres casillas',
+    gmaxCon.gmax === '81.0' && gmaxCon.eaGmax !== '' && gmaxCon.detGmax !== '—' &&
+    gmaxCon2.gmax === '81.0',
+    'dop=' + JSON.stringify(gmaxCon) + ' valv=' + JSON.stringify(gmaxCon2)]);
+  ex.push(['borrar la Vmax en VALVULAS vacia el G. maximo',
+    gmaxSinPorValv.gmax === '' && gmaxSinPorValv.eaGmax === '' && gmaxSinPorValv.detGmax === '—',
+    JSON.stringify(gmaxSinPorValv)]);
+  ex.push(['borrar la Vmax en el DOPPLER vacia el G. maximo',
+    gmaxSinPorDop.gmax === '' && gmaxSinPorDop.eaGmax === '' && gmaxSinPorDop.detGmax === '—',
+    JSON.stringify(gmaxSinPorDop)]);
+  // ── (4) CONTROL NEGATIVO 1 ──────────────────────────────────────────────────────────────────
+  ex.push(['CONTROL NEGATIVO · DENOMINADOR: sin cargar nada, los OCHO campos estan vacios',
+    sinNada.vmax_ao === '' && sinNada.ea_vmax === '' && sinNada.gmedio_ao === '' &&
+    sinNada.ea_gmedio === '' && sinNada.itv_tsvi === '' && sinNada.ea_vtitsvi === '' &&
+    sinNada.itv_ao === '' && sinNada.ea_vtiao === '' && sinNada.gmax === '',
+    JSON.stringify(sinNada)]);
+  // ── (5) CONTROL NEGATIVO 2 ──────────────────────────────────────────────────────────────────
+  ex.push(['CONTROL NEGATIVO · DENOMINADOR: los cuatro datos entraron en sus ocho campos',
+    losCuatro.vmax_ao === '4.5' && losCuatro.ea_vmax === '4.5' &&
+    losCuatro.gmedio_ao === '45' && losCuatro.ea_gmedio === '45' &&
+    losCuatro.itv_tsvi === '20' && losCuatro.ea_vtitsvi === '20' &&
+    losCuatro.itv_ao === '60' && losCuatro.ea_vtiao === '60',
+    JSON.stringify(losCuatro)]);
+  ex.push(['CONTROL NEGATIVO: borrar la Vmax NO toca el G. medio, el VTI TSVI ni el VTI Ao — la coordinacion es por DATO, no un barrido del bloque',
+    soloVmaxFuera.vmax_ao === '' && soloVmaxFuera.ea_vmax === '' &&
+    soloVmaxFuera.gmedio_ao === '45' && soloVmaxFuera.ea_gmedio === '45' &&
+    soloVmaxFuera.itv_tsvi === '20' && soloVmaxFuera.ea_vtitsvi === '20' &&
+    soloVmaxFuera.itv_ao === '60' && soloVmaxFuera.ea_vtiao === '60',
+    JSON.stringify(soloVmaxFuera)]);
+  // ── (6) CONTROL NEGATIVO 3 ──────────────────────────────────────────────────────────────────
+  ex.push(['CONTROL NEGATIVO: borrar el insumo vacia el DERIVADO pero NO retira el grado consignado (regla 12)',
+    gradoConDato === 'severa' && gradoSinDato === 'severa' && soloVmaxFuera.gmax === '',
+    'conDato=' + gradoConDato + ' sinDato=' + gradoSinDato + ' gmax=' + JSON.stringify(soloVmaxFuera.gmax)]);
+  // ── (7) CABLEADO ────────────────────────────────────────────────────────────────────────────
+  ex.push(['las OCHO puertas nombran eaParEditado con SU propio id',
+    puertasOk, JSON.stringify(puertas)]);
+  ex.push(['en las CUATRO puertas de Valvulas eaParEditado va ANTES de syncEADesdeValvulas — es lo que impide que el borrado se reponga en el mismo tecleo',
+    ordenValv, 'ordenValv=' + ordenValv]);
+  ex.push(['_EA_PARES es UNA lista y las dos entradas de cada dato se apuntan entre si',
+    paresSimetricos, 'simetricos=' + paresSimetricos]);
+
+  return { extra: ex };
 `);
 
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
