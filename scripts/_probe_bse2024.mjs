@@ -573,6 +573,66 @@ const BORDES = [
 ];
 
 const GUIAS_OTRAS = ['ase2025', 'ase2016'];
+
+/* ══ FRASES QUE EL LABORATORIO TIENE QUE CLASIFICAR ══════════════════════════════════════════
+   `_labDiastGrado` lee el TEXTO del informe y del EN SUMA, asi que la tabla se arma con las
+   frases literales de cada guia — las nuevas, las de FA, las de la ASE 2025 y las que esta app
+   publico HASTA HOY, que son las que viajan en los estudios ya guardados y NO se migran.
+   Las ultimas dos son controles negativos: una negacion y un texto vacio. */
+const FRASES_LAB = [
+  { id: 'L01-bse-normal-edad', g: 'BSE nueva',
+    suma: 'Funcion diastolica normal para la edad.',
+    inf: 'Funcion diastolica normal para la edad, con presion de llenado del VI normal (E/e\' promedio 6.4).' },
+  { id: 'L02-bse-det-normal', g: 'BSE nueva',
+    suma: 'Funcion diastolica deteriorada, presion de llenado normal.',
+    inf: 'Funcion diastolica deteriorada con presion de llenado del VI normal (E/e\' promedio 6.0).' },
+  { id: 'L03-bse-det-elevada', g: 'BSE nueva',
+    suma: 'Funcion diastolica deteriorada, presion de llenado elevada.',
+    inf: 'Funcion diastolica deteriorada con presion de llenado del VI elevada (E/e\' promedio 18.5).' },
+  { id: 'L04-bse-indeterminada', g: 'BSE nueva',
+    suma: 'Presion de llenado del VI indeterminada.',
+    inf: 'Presion de llenado del VI indeterminada por discordancia entre los parametros (E/e\' promedio 18.5); considerar el strain de la AI u otros parametros.' },
+  { id: 'L05-bse-normal-sin-eprima', g: 'BSE nueva',
+    suma: 'Presion de llenado del VI normal.',
+    inf: 'Presion de llenado del VI normal (E/e\' promedio 6.4). No se valoro la relajacion: falta la edad.' },
+  { id: 'L06-fa-elevada', g: 'FA (las tres guias)',
+    suma: 'Disfuncion diastolica con presion de llenado elevada (con FA).',
+    inf: 'Disfuncion diastolica con presion de llenado elevada (con FA).' },
+  { id: 'L07-ase2025-presion-normal', g: 'ASE 2025',
+    suma: 'Presion de llenado del VI normal.',
+    inf: 'Presion de llenado del VI normal (2 parametros). No se puede graduar la disfuncion diastolica con los datos disponibles.' },
+  { id: 'L08-ase2025-grado2', g: 'ASE 2025',
+    suma: 'Disfuncion diastolica grado II — presion de llenado elevada.',
+    inf: 'Disfuncion diastolica grado II (patron pseudonormal), con presion de llenado elevada.' },
+  { id: 'L09-ase2025-grado1', g: 'ASE 2025',
+    suma: 'Disfuncion diastolica grado I — relajacion alterada con presion de llenado normal.',
+    inf: 'Disfuncion diastolica grado I (relajacion alterada).' },
+  { id: 'L10-ase2025-grado3', g: 'ASE 2025',
+    suma: 'Disfuncion diastolica grado III.', inf: 'Disfuncion diastolica grado III (patron restrictivo).' },
+  { id: 'L11-head-bse-normal', g: 'BSE de HEAD (estudios guardados)',
+    suma: 'Funcion diastolica normal.',
+    inf: 'Funcion diastolica normal, con presion de llenado del VI dentro de limites normales (E/e\' promedio 6.4).' },
+  { id: 'L12-head-bse-relaj', g: 'BSE de HEAD (estudios guardados)',
+    suma: 'Relajacion alterada, presion de llenado normal.',
+    inf: 'Patron de relajacion alterada, con presion de llenado del VI normal (E/e\' promedio 6.0).' },
+  { id: 'L13-head-bse-elevada', g: 'BSE de HEAD (estudios guardados)',
+    suma: 'Presion de llenado del VI elevada.',
+    inf: 'Presion de llenado del VI elevada (E/e\' promedio 18.5), compatible con disfuncion diastolica significativa.' },
+  { id: 'L14-head-fr-normal', g: 'BSE de HEAD (estudios guardados)',
+    suma: 'Disfuncion diastolica, presion de llenado normal.',
+    inf: 'Disfuncion diastolica con presion de llenado del VI normal, en contexto de funcion sistolica deprimida/cardiopatia conocida (E/e\' promedio 6.0).' },
+  { id: 'L15-head-fr-elevada', g: 'BSE de HEAD (estudios guardados)',
+    suma: 'Disfuncion diastolica, presion de llenado elevada.',
+    inf: 'Disfuncion diastolica con presion de llenado del VI elevada, en contexto de funcion sistolica deprimida/cardiopatia conocida (E/e\' promedio 18.5).' },
+  { id: 'L16-head-indeterminado', g: 'BSE de HEAD (estudios guardados)',
+    suma: 'Funcion diastolica indeterminada.',
+    inf: 'Evaluacion de la presion de llenado del VI indeterminada por discordancia entre parametros (E/e\' promedio 18.5).' },
+  { id: 'L17-respaldo', g: 'respaldo del informe',
+    suma: '', inf: 'Funcion diastolica no valorada por datos insuficientes.' },
+  { id: 'L18-negacion', g: 'CONTROL NEGATIVO',
+    suma: '', inf: 'Se descarta patron restrictivo y se descarta disfuncion diastolica grado III.' },
+  { id: 'L19-vacio', g: 'CONTROL NEGATIVO', suma: '', inf: '' }
+];
 async function main() {
   const md5Ini = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
   const { srv, port } = await servir();
@@ -824,6 +884,16 @@ async function main() {
       s.ppt = await ev(`window.__P.pptDiast()`);
       s.camposHash = await ev(`window.__P.hash(JSON.stringify(window.__P.campos()))`);
       out.superficies.push(s);
+    }
+  }
+
+  if (hacer('lab')) {
+    /* Solo-lectura y sin tocar el formulario: se le pasa a `_labDiastGrado` el texto literal de
+       cada frase, que es exactamente lo que ese clasificador recibe desde un estudio guardado. */
+    out.lab = [];
+    for (const f of FRASES_LAB) {
+      out.lab.push({ id: f.id, grupo: f.g, suma: f.suma, inf: f.inf,
+        grado: await ev(`window.__P.labGrado(${JSON.stringify(f.inf)}, ${JSON.stringify(f.suma)})`) });
     }
   }
 

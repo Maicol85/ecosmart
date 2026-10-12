@@ -85986,13 +85986,47 @@ function _labHeart(infs) {
   ];
   metrics.forEach(m => { const t = prom(m[1], m[2], m[3]); set('hb-' + m[0] + '-val', t); set('ht-' + m[0], t); });
 }
+/* ══ EL GRADO QUE EL LABORATORIO DERIVA DEL TEXTO ════════════════════════════════
+   De acá salen cinco columnas del Excel, la distribución del panel, el PPT estadístico y el
+   filtro de cohorte. Devolvía `'I' | 'II' | 'III' | 'sin' | null` y ahora devuelve CUATRO tokens
+   más, para los estados que ninguna de esas cuatro palabras describe.
+
+   ⚠️ TRES FAMILIAS DE INFORMES QUEDABAN MAL CLASIFICADAS, Y DOS DE LAS TRES CONTABAN COMO
+   «SIN DISFUNCIÓN»:
+     · «Función diastólica deteriorada con presión de llenado del VI normal» caía en la regla de
+       «llenado normal» y se contaba como SIN disfunción —la frase dice lo contrario—;
+     · «Presión de llenado del VI normal.» (el estado sin grado de la ASE 2025) también caía ahí,
+       y eso es presión normal SIN graduar, que no es lo mismo que función normal;
+     · las dos frases de presión ELEVADA sin grado —la de la BSE y la de la FA— no matcheaban
+       nada y quedaban en `null`, o sea fuera de toda estadística.
+
+   ⚠️ LOS CUATRO TOKENS NUEVOS NO ACTIVAN NINGÚN `DD_*` Y NO ENTRAN EN LA DISTRIBUCIÓN, Y ESO
+   ES A PROPÓSITO: la BSE abandonó los grados I-III (pág. 48) y a la FA la guía le dice
+   explícitamente que la relajación no se puede valorar, así que inventarles un grado sería
+   publicar un número que ninguna guía escribió. `_labDiastDist` los descarta por su guarda de
+   `hasOwnProperty` —no rompe ningún gráfico, salen del denominador— y el `<select>` de cohorte
+   sigue con sus cuatro opciones, así que esos estudios quedan fuera del filtro por grado, que
+   es lo que su propio texto de ayuda ya advierte. Sí ganan la columna de TEXTO del Excel.
+
+   ⚠️ EL ANCLAJE DE «Presión de llenado del VI normal» ES A PRINCIPIO DE ORACIÓN, Y NO ES
+   COSMETICO. Sin él, el «Disfunción diastólica con presión de llenado del VI normal, en
+   contexto de función sistólica deprimida» que esta app publicó hasta hoy —y que viaja en los
+   estudios ya guardados— cambiaría de clasificación, y la orden pide que lo que no tiene estas
+   frases quede idéntico. Con el ancla sigue clasificando como hasta hoy. */
 function _labDiastGrado(inf) {   // grado desde el texto del resumen (misma heurística que la distribución)
   const t = _labTxt(inf);
   if (!t.trim()) return null;
   if (_labMenciona(t, /grado\s*III|restrictivo/i)) return 'III';
   if (_labMenciona(t, /grado\s*II\b|pseudonormal/i)) return 'II';
   if (_labMenciona(t, /grado\s*I\b|relajaci[oó]n\s+(alterada|prolongada)/i)) return 'I';
-  if (_labMenciona(t, /diast[oó]lica\s+normal|llenado\s+(del\s+vi\s+)?normal/i)) return 'sin';
+  /* Las dos de la BSE van ANTES de la regla de «llenado normal»: la de presión normal la
+     contiene, y sin este orden volvería a contarse como «sin disfunción». */
+  if (_labMenciona(t, /funci[oó]n\s+diast[oó]lica\s+deteriorada[^.]{0,40}elevada/i)) return 'bse_det_elevada';
+  if (_labMenciona(t, /funci[oó]n\s+diast[oó]lica\s+deteriorada[^.]{0,40}normal/i))  return 'bse_det_normal';
+  if (_labMenciona(t, /presi[oó]n\s+de\s+llenado\s+elevada\s*\(con\s+FA\)/i)) return 'fa_elevada';
+  if (_labMenciona(t, /diast[oó]lica\s+normal/i)) return 'sin';
+  if (_labMenciona(t, /(^|[.;\n]\s*)presi[oó]n\s+de\s+llenado\s+del\s+VI\s+normal/i)) return 'pres_normal_sin_grado';
+  if (_labMenciona(t, /llenado\s+(del\s+vi\s+)?normal/i)) return 'sin';
   return null;
 }
 
@@ -87377,7 +87411,14 @@ function _labExcelRow(inf) {
   const ava = (dts && itvT && itvA) ? (Math.PI*Math.pow(dts/20,2))*itvT/itvA : null;
   const vit = num('vmax_it','vrt'); const gradVDAD = vit ? 4*vit*vit : null;
   const gd = _labDiastGrado(inf);
-  const gdTxt = { III:'Grado III', II:'Grado II', I:'Grado I', sin:'Sin disfunción' }[gd] || '';
+  /* Los cuatro tokens sin grado SÍ tienen rótulo de texto: lo que no tienen es `DD_*`, porque la
+     BSE abandonó los grados y a la FA la guía le niega la valoración de la relajación. Es una
+     ADICIÓN PURA: estos cuatro valían `''` hasta hoy, así que ninguna fila ya existente se mueve. */
+  const gdTxt = { III:'Grado III', II:'Grado II', I:'Grado I', sin:'Sin disfunción',
+                  bse_det_normal:'Deteriorada, presión normal (BSE)',
+                  bse_det_elevada:'Deteriorada, presión elevada (BSE)',
+                  fa_elevada:'Presión elevada (FA)',
+                  pres_normal_sin_grado:'Presión normal, sin grado' }[gd] || '';
   // Grados valvulares (texto) + binarizador — se conserva el texto y se agregan columnas 0/1
   const gIM = _labGradoTxt(inf,'im_grado'), gIA = _labGradoTxt(inf,'ia_grado'), gIT = _labGradoTxt(inf,'it_grado');
   /* ⚠️ CON PRÓTESIS AÓRTICA EL GRADO NO SE EXPORTA. `ea_grado` conserva la lectura con cortes
