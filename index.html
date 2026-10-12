@@ -23603,6 +23603,86 @@ function diastFAEvaluarASE2025() {
 }
 window.diastFAEvaluarASE2025 = diastFAEvaluarASE2025;
 
+/* ── BSE 2024 · Figura 19, pág. 39 (y el texto de las págs. 37-40) ───────────────────────────
+   Paso 1, cuatro variables clave, en el orden de la figura:
+     E/e' SEPTAL > 11 · onda E ≥ 100 cm/s · TDE ≤ 160 ms · IT > 2,8 m/s
+   Regla: «≥3 criteria positive» → presión elevada · «≥3 criteria negative» → normal ·
+   «Insufficient STEP 1 criteria for decision» → paso 2.
+   Paso 2: LARS < 16 % · IMC > 30 kg/m² · S/D venoso pulmonar < 1.
+   Regla: «≥2 STEP 2 criteria positive» → elevada · «≥2 negative» → normal ·
+   «Insufficient STEP 2 criteria» → indeterminada.
+
+   ⚠️ ESTE ALGORITMO NO TIENE LAVi NI E/e' PROMEDIO, Y LA APP VENÍA USANDO LOS DOS. La rama de FA
+   de HEAD votaba «E/e' promedio > 11, IT > 2,8, Vol AI > 40 ml/m² y TDE < 160» con un umbral
+   propio de «≥2 positivos»: el Vol AI no está en la Figura 19, el corte de 40 no es de ninguna
+   de las dos guías, el TDE iba con `<` donde la figura escribe `≤`, y el cociente era el
+   PROMEDIO donde la figura pide el SEPTAL. La BSE lo justifica en la pág. 37: en FA la
+   variabilidad R-R mueve mucho más el e' lateral que el septal, así que el cociente se calcula
+   con el septal solo.
+   ⚠️ Y LA REGLA ERA OTRA: «≥2 de los disponibles» afirma presión elevada con dos parámetros
+   sobre dos, donde la figura pide tres positivos sobre cuatro.
+
+   ⚠️ EL CORTE DEL LARS ES < 16 % Y NO < 18 %, y la diferencia con la ASE 2025 es deliberada en
+   la fuente: la pág. 40 dice que en FA, sin contracción auricular, el strain de reservorio es
+   sistemáticamente menor que en ritmo sinusal, así que el corte baja. Un LARS de 17 % es
+   POSITIVO para la ASE 2025 y NEGATIVO para la BSE sobre el mismo paciente. No se unifican.
+
+   ⚠️ LA BSE NO ADMITE LA PSAP COMO ALTERNATIVA DE LA IT: su Figura 19 nombra sólo la velocidad
+   de la IT (y la pág. 38 agrega el cuidado de no medirla tras un R-R corto). La Figura 8 de la
+   ASE sí la admite. Por eso acá no hay fila de PSAP: dibujarla sería agregarle un criterio a una
+   guía que no lo tiene.
+
+   ⚠️ LA REGLA DE LA BSE SE BASTA SOLA CON LOS PARÁMETROS QUE FALTAN, y por eso acá no hace falta
+   la guarda conservadora de la ASE: la figura cuenta NEGATIVOS explícitamente para afirmar
+   normalidad («≥3 criteria negative»), así que un parámetro sin medir no puede empujar a normal
+   — simplemente no cuenta, y lo que queda es «insufficient», que es la casilla del paso 2. */
+function diastFAEvaluarBSE2024() {
+  const D = _diastFADatos();
+  const R = { filas: [], guia: 'BSE 2024', algoritmo: 'bse2024-fa' };
+
+  const cEe  = D.eeSep !== null && D.eeSep >  11;     // Figura 19: «Septal E/e' >11»
+  const cE   = D.E     !== null && D.E     >= 100;    // «Mitral E velocity ≥100 cm/sec»
+  const cTde = D.tde   !== null && D.tde   <= 160;    // «E decel time ≤160 ms»
+  const cTr  = D.tr    !== null && D.tr    >  2.8;    // «TR velocity >2.8 m/s»
+
+  const s = [ _diastFAEstado(D.eeSep !== null, cEe),
+              _diastFAEstado(D.E   !== null, cE),
+              _diastFAEstado(D.tde !== null, cTde),
+              _diastFAEstado(D.tr  !== null, cTr) ];
+  const c1 = _diastFAContar(s);
+
+  R.filas.push({ g: 'Paso 1 — BSE 2024, Figura 19 (pág. 39)', crit: 'E/e\' septal > 11', val: D.eeSep, u: '', ok: cEe, dec: 1 });
+  R.filas.push({ crit: 'Onda E ≥ 100 cm/s', val: D.E, u: 'cm/s', ok: cE, dec: 0 });
+  R.filas.push({ crit: 'TDE ≤ 160 ms', val: D.tde, u: 'ms', ok: cTde, dec: 0 });
+  R.filas.push({ crit: 'Velocidad IT > 2,8 m/s', val: D.tr, u: 'm/s', ok: cTr });
+
+  const sLars = _diastFAEstado(D.lars !== null, D.lars < 16);   // Figura 19: «LA reservoir strain <16%»
+  const sImc  = _diastFAEstado(D.imc  !== null, D.imc  > 30);   // «BMI >30 kg/m²»
+  const sSd   = (D.sd === 'menor1') ? true : (D.sd === 'mayor1' ? false : null);
+  const c2 = _diastFAContar([sLars, sImc, sSd]);
+
+  R.filas.push({ g: 'Paso 2 — si el paso 1 no alcanza', crit: 'LARS < 16 % (en FA el corte baja; pág. 40)', val: D.lars, u: '%', ok: sLars === true });
+  R.filas.push({ crit: 'IMC > 30 kg/m² (de peso y talla)', val: D.imc, u: 'kg/m²', ok: sImc === true });
+  R.filas.push({ crit: 'S/D venoso pulmonar < 1', val: (sSd === null ? null : (sSd ? '< 1' : '> 1')), u: '', ok: sSd === true });
+
+  /* La regla de la BSE cuenta los NEGATIVOS tanto como los positivos, así que el renglón de la
+     ventana informa los dos: con sólo los positivos, «2 de 4» no distingue «dos negativos» de
+     «dos sin medir», que en esta guía llevan a casillas distintas. */
+  const pl = (n, s, p) => n + ' ' + (n === 1 ? s : p);
+  const det1 = pl(c1.pos, 'positivo', 'positivos') + ' y ' + pl(c1.neg, 'negativo', 'negativos') + ' de 4 en el paso 1'
+             + (c1.sin ? ' · ' + c1.sin + ' sin medir' : '');
+  const det2 = pl(c2.pos, 'positivo', 'positivos') + ' y ' + pl(c2.neg, 'negativo', 'negativos') + ' de 3 en el paso 2'
+             + (c2.sin ? ' · ' + c2.sin + ' sin medir' : '');
+
+  if      (c1.pos >= 3) _diastFAElevada(R, det1);
+  else if (c1.neg >= 3) _diastFANormal(R, det1);
+  else if (c2.pos >= 2) _diastFAElevada(R, det1 + ' · ' + det2);
+  else if (c2.neg >= 2) _diastFANormal(R, det1 + ' · ' + det2);
+  else                  _diastFAIndet(R, det1 + ' · ' + det2);
+  return R;
+}
+window.diastFAEvaluarBSE2024 = diastFAEvaluarBSE2024;
+
 /* Los cuatro desenlaces, en un solo lugar para las tres guías.
    ⚠️ EL INFORME FIRMADO LLEVA **UNA SOLA FRASE** Y **SÓLO** CON PRESIÓN ELEVADA (decisión de
    Maicol, 2026-10-12). Con presión normal, indeterminada o no concluyente, `texto` y `textoSuma`
@@ -23643,6 +23723,7 @@ function _diastFANoConcluye(R, det) {
    tiene su protocolo de FA implementado —y entonces cada consumidor sigue haciendo lo de HEAD—. */
 function diastFAEvaluar(algo) {
   if (algo === 'ase2025') return diastFAEvaluarASE2025();
+  if (algo === 'bse2024') return diastFAEvaluarBSE2024();
   return null;
 }
 window.diastFAEvaluar = diastFAEvaluar;
@@ -23776,47 +23857,11 @@ window.calcDiastol = function() {
   }
   if (algo === 'ase2025') { calcDiastolASE2025(); return; }
   if (algo === 'ase2016') { calcDiastolASE2016(); return; }
-  if (ritmo === 'fa') {
-    const e = v('onda_e');
-    const esep = v('e_sep'), elat = v('e_lat');
-    const tde = v('tde');
-    const trv = v('vmax_it');
-    const aiVol = v('ai_vol'), bsa = getBSA();
-    let eprom = null;
-    if (esep && elat) eprom = (esep + elat) / 2;
-    else if (esep) eprom = esep;
-    else if (elat) eprom = elat;
-    let ee = null;
-    if (e && eprom) {
-      ee = e / eprom;
-      document.getElementById('ee-val').textContent = ee.toFixed(1);
-    }
-    const lavi = (aiVol && bsa) ? aiVol / bsa : null;
-    let pos = 0, disp = 0;
-    if (ee !== null)   { disp++; if (ee > 11) pos++; }
-    if (trv !== null)  { disp++; if (trv > 2.8) pos++; }
-    if (lavi !== null) { disp++; if (lavi > 40) pos++; }
-    if (tde !== null)  { disp++; if (tde < 160) pos++; }
-    let cls, badgeTxt, texto, textoSuma;
-    if (disp < 2) {
-      cls = 'gray'; badgeTxt = 'FA — datos insuficientes (BSE 2024)';
-      texto = 'Datos insuficientes para clasificar la funcion diastolica en FA (Algoritmo 3, BSE 2024). Se requieren al menos 2 parametros evaluables.';
-      textoSuma = null;
-    } else if (pos >= 2) {
-      cls = 'red'; badgeTxt = 'FA — Presion de llenado elevada (BSE 2024)';
-      texto = 'En contexto de fibrilacion auricular, los parametros disponibles sugieren presion de llenado del VI elevada (>= 2 criterios positivos: E/e\' >11, TR Vmax >2.8 m/s, Vol AI >40 ml/m2 o TDE <160 ms). Algoritmo 3, BSE 2024.';
-      textoSuma = 'FA: presion de llenado del VI elevada (BSE 2024).';
-    } else {
-      cls = 'green'; badgeTxt = 'FA — Presion de llenado normal (BSE 2024)';
-      texto = 'En contexto de fibrilacion auricular, los parametros disponibles no sugieren elevacion de la presion de llenado del VI (< 2 criterios positivos). Algoritmo 3, BSE 2024.';
-      textoSuma = 'FA: presion de llenado del VI normal (BSE 2024).';
-    }
-    const res = { texto, textoSuma, badge: badge(cls, badgeTxt), algoritmo: 'bse2024-fa', criterios: { pos, disp } };
-    const dd = document.getElementById('dd-interp');
-    if (dd) dd.innerHTML = res.badge;
-    window._diastResult = res; window._bse2024 = res;
-    return;
-  }
+  /* La rama de FA de HEAD vivia aca y se fue entera con esta tanda: votaba «E/e' PROMEDIO >11,
+     IT >2,8, Vol AI >40 ml/m2 y TDE <160» con un umbral propio de «>=2 positivos» y frases sin
+     tildes. Ni el Vol AI ni el corte de 40 estan en la Figura 19, el cociente que esa figura
+     pide es el SEPTAL y su regla es «>=3 de 4». Hoy la FA se decide arriba, antes que la guia,
+     en `diastFAEvaluar`. */
   calcDiastolBSE2024();
 };
 
