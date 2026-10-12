@@ -3465,6 +3465,32 @@ window.cerrarSesionReal = cerrarSesionReal;
           <label>VD/VI ratio</label>
           <input type="number" id="vd_vi" placeholder="ratio" step="0.01">
         </div>
+        <!-- ⚠️ ESTOS DOS CAMPOS OCUPAN LOS DOS HUECOS QUE DEJA `vd_vi` EN LA SEGUNDA FILA DEL
+             `grid-3`, y la posición es decisión de Maicol: la pared debajo de «Diám. TSVD» y el
+             Tei debajo de «FEVD (%)». El `grid-3` tiene CUATRO hijos desde antes de esta tanda,
+             así que `vd_vi` arrancaba la fila 2 y las columnas 2 y 3 quedaban vacías; con estos
+             dos la fila se completa y no se agrega ninguna fila nueva a 1200 px.
+             El rótulo, el `placeholder` y la ausencia de `for`/`aria-label` son los de los
+             vecinos (`fevd`, `vd_vi`): el barrido de accesibilidad de esta app no cablea
+             `label[for]` en ningún `.fg`, así que un par distinto acá sería el único del bloque.
+             `calcVD()` en el `oninput` de los dos — es lo que llaman `tapse`, `s_prime` y los
+             tres diámetros— y `vdMarcaSync()` ANTES, con el mismo orden que `diastStrainEditado`:
+             la marca «(revisar)» y el badge tienen que salir del mismo gesto. -->
+        <div class="fg">
+          <label>Pared del VD (mm)</label>
+          <input type="number" id="vd_pared" placeholder="mm" step="0.1" oninput="vdMarcaSync();calcVD()">
+          <div id="vd_pared-marca" style="font-size:10px;color:var(--yellow);margin-top:3px;min-height:14px;"></div>
+        </div>
+        <div class="fg">
+          <!-- ⚠️ SE TIPEA COMO COCIENTE Y NO EN PORCENTAJE: el RV MPI es ADIMENSIONAL (nota de
+               la Tabla 3 de la ASE 2025, folio 156) y su corte por DTI es 0,55. De ahí el
+               `placeholder` «0,55»: es el valor del corte, puesto a la vista justamente para que
+               un 55 tipeado se vea raro antes de mandarlo. Un 55 igual queda MARCADO
+               «(revisar)» por su banda, y no se corrige ni cambia ninguna cuenta. -->
+          <label>Índice de Tei (DTI)</label>
+          <input type="number" id="vd_tei" placeholder="0,55" step="0.01" oninput="vdMarcaSync();calcVD()">
+          <div id="vd_tei-marca" style="font-size:10px;color:var(--yellow);margin-top:3px;min-height:14px;"></div>
+        </div>
       </div>
       <!-- FAC — fracción de acortamiento de área del VD (apical 4C). Se CALCULA desde las dos
            áreas y no se tipea: así el informe firma un número que la app puede rehacer y
@@ -20552,6 +20578,94 @@ const UMBRAL_FAC_VD_SEVERA = 25;   // %
    distintas del mismo número. Lo cazó la condición de TC-285 que lo mide. */
 window.UMBRAL_FAC_VD_NORMAL = UMBRAL_FAC_VD_NORMAL;
 window.UMBRAL_FAC_VD_SEVERA = UMBRAL_FAC_VD_SEVERA;
+/* ══ PARED DEL VD E ÍNDICE DE TEI (DTI) — ASE 2025, cavidades derechas (2026-10-12) ══════════
+   FUENTE ÚNICA: Mukherjee M, et al. «Echocardiographic Assessment of the Right Heart».
+   J Am Soc Echocardiogr 2025;38(3):141-186. **Folio = página del PDF + 140** (verificado en los
+   pies impresos: PDF 5 → 145, PDF 8 → 148, PDF 18 → 158).
+
+   · PARED DEL VD (RVWT). La guía da el NORMAL y no el patológico: «The normal value for RVWT is
+     <5 mm» (Key Point, folio 144), así que el hallazgo es `>= 5`. Está escrito dos veces más: la
+     Tabla 1 del folio 145 gradúa `<0,5 cm · >=0,5 a <=0,7 · >0,7 a <=0,9 · >0,9` y la Tabla 6 del
+     folio 169 lo repite como `<0,5 / >=0,5` entre los datos morfológicos.
+     ⚠️ EL OPERADOR ES `>=` Y NO `>`: a 5,0 mm exactos la guía YA está del lado anormal. El
+     recuerdo de «> 5 mm» deja el 5,0 del lado normal y es el valor que más se tipea.
+     Cómo se mide, para que el corte se entienda (folios 144 y 148): vista SUBCOSTAL, en
+     TELEDIÁSTOLE, cara anteromedial de la pared libre, a mitad de camino entre el anillo
+     tricuspídeo y los músculos papilares, excluyendo trabéculas, músculo papilar y grasa
+     pericárdica; por 2D y/o modo M —el modo M se confunde con el ángulo de insonación—. Si la
+     subcostal no se logra, la guía admite la paraesternal eje largo.
+     La guía advierte además que el engrosamiento es INESPECÍFICO (también en miocardiopatías
+     infiltrativas y hereditarias), y su Recomendación 3 del folio 144 pide informarlo si es
+     anormal — que es la razón por la que la hipertrofia tiene que poder entrar al informe aunque
+     sea el ÚNICO dato del VD cargado.
+
+   · ÍNDICE DE TEI / RV MPI. **La guía da DOS cortes y son de DOS métodos distintos**: «A normal
+     RV MPI is <0.40 by the PW Doppler method and <0.55 by the TDI method» (texto del folio 158,
+     repetido en el Key Point del 159, y graduado en la Tabla 1 del folio 145: TDI `<0,55 ·
+     >=0,55 a <0,62 · >=0,62 a <0,70 · >=0,70`; pulsado `<0,40 · >=0,40 a <0,49 · >=0,49 a <0,57 ·
+     >=0,57`). El campo de esta app es el de **DTI**, así que el corte que se aplica es 0,55 con
+     borde `>=`. El del pulsado queda escrito al lado y NO se usa: un borde no se entiende sin el
+     que no se eligió, y confundir los dos métodos mueve el corte un 27 %.
+     Es ADIMENSIONAL (nota de la Tabla 3, folio 156): se tipea como cociente.
+
+   ⚠️ LAS ADVERTENCIAS DEL TEI, Y UNA QUE LA GUÍA NO HACE (folio 159). Lo que dice: el MPI es
+   dependiente de la CARGA —precarga aumentada y congestión derecha alargan IVCT e IVRT y lo
+   SUBEN «regardless of RV systolic function», la precarga reducida los acorta, y la HTP con
+   poscarga aumentada también lo sube—; la **IT severa acorta el IVRT sin tocar el IVCT**; y los
+   **intervalos R-R variables, como en la FA**, dan ET y TCO variables. Su Recomendación 1 es que
+   NO sea el único método cuantitativo para evaluar el VD.
+   Lo que la guía NO dice es que el Tei se «seudonormalice» con la presión de la AD elevada: para
+   el MPI describe lo contrario —la congestión lo sube—, así que la app no lo afirma. El aviso de
+   esta zona nombra sólo las dos advertencias que la guía escribe Y la app puede detectar: IT
+   severa y ritmo irregular. */
+const VD_PARED_HVD_MIN   = 5;     // mm — hipertrofia del VD, borde `>=` (Tabla 1 folio 145 · Key Point folio 144)
+const VD_TEI_DTI_ALT_MIN = 0.55;  // cociente — Tei por DTI alterado, borde `>=` (Tabla 1 folio 145 · texto folio 158)
+const VD_TEI_PW_ALT_MIN  = 0.40;  // cociente — el corte del Doppler PULSADO. Declarado y NO aplicado: el campo es DTI.
+window.VD_PARED_HVD_MIN   = VD_PARED_HVD_MIN;
+window.VD_TEI_DTI_ALT_MIN = VD_TEI_DTI_ALT_MIN;
+window.VD_TEI_PW_ALT_MIN  = VD_TEI_PW_ALT_MIN;
+
+/* ══ LAS BANDAS DE PLAUSIBILIDAD DE LOS DOS CAMPOS NUEVOS ════════════════════════════════════
+   Mismo criterio que `DIAST_STRAIN_BANDA`: son AMPLIAS a propósito —no clasifican, sólo cazan
+   el dedazo de un orden de magnitud— y tienen UN SOLO dueño, esta tabla. Ninguno de los dos
+   campos tiene columna de Excel, así que `LAB_XLS_RANGO_PROPIO` no los consume y no hay un
+   segundo número que se pueda desincronizar.
+   · `vd_pared` [1, 30] mm. El piso en 1 es lo que caza la pared tipeada en CENTÍMETROS, que es
+     como la escribe la guía (`0,5 cm`): un 0,5 queda marcado en vez de pasar por una pared de
+     medio milímetro. Una pared real va de 2 a 15 mm; 30 es holgado.
+   · `vd_tei` [0, 3] cociente. El 0 es piso porque el MPI es una razón de tiempos y no puede ser
+     negativo. **El techo en 3 es lo que marca el 55 tipeado por 0,55**, que es el dedazo que esta
+     zona tiene que cazar; un MPI real no pasa de ~1,5. */
+const VD_NUEVOS_BANDA = Object.freeze({
+  vd_pared: [1, 30],   // mm
+  vd_tei:   [0, 3]     // cociente (adimensional)
+});
+window.VD_NUEVOS_BANDA = VD_NUEVOS_BANDA;
+
+/* La marca «(revisar)» al lado de CADA campo, con el mecanismo y el motivo de
+   `diastStrainMarcaSync`: la marca NO bloquea, NO corrige y NO cambia ninguna cuenta —es la
+   decisión de «MARCAR SIN BORRAR»—, y la escribe una sola función leyendo una sola banda.
+   Tiene que estar en `RECALC_MODULOS` y al final de `limpiarCampos` porque los `div` de marca no
+   son `.calc-box .calc-row span[id]` ni `[id$="-aviso"]`: no los alcanza NINGUNO de los barridos
+   genéricos, que es exactamente lo que el trabajo del strain de la AI ya documentó.
+   `MARCA_REVISAR.trim()` y no un literal: la constante trae un espacio adelante porque nació
+   para ir pegada a un número, y acá el aviso es un renglón propio. */
+function vdMarcaSync() {
+  const fuera = {};
+  Object.keys(VD_NUEVOS_BANDA).forEach((id) => {
+    const el = document.getElementById(id);
+    const hay = !!(el && String(el.value).trim() !== '');
+    const b = VD_NUEVOS_BANDA[id];
+    const x = v(id);
+    const mal = hay && x !== null && (x < b[0] || x > b[1]);
+    fuera[id] = !!mal;
+    const n = document.getElementById(id + '-marca');
+    if (n) n.textContent = mal ? MARCA_REVISAR.trim() : '';
+  });
+  return fuera;
+}
+window.vdMarcaSync = vdMarcaSync;
+
 /* Área de la AD en 4 cámaras: ≤18 cm² normal (ASE). Estaba como literal en `calcAD` y otro
    literal igual en el informe narrativo — dos copias del mismo corte, que es como la cápsula
    de pantalla y el informe firmado terminan discrepando. */
@@ -40894,7 +41008,7 @@ function RECALC_MODULOS() {
      `emAvmPdfVal` para la fila del PDF, `dataset` protege esa decision, y `disabled` no lo
      persiste ni lo lee nadie. Los dos primeros siguen intocados — que es exactamente la objecion
      que este archivo dejo escrita para IM: «pisaria la decision que la reimpresion respalda». */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -41552,6 +41666,11 @@ function limpiarCampos(silencioso) {
      lado de un campo ya vacío. La función ya se protege sola —sin dato no marca—, así que con
      los campos vaciados lo que hace es borrar los seis. */
   if (typeof diastStrainMarcaSync === 'function') { try { diastStrainMarcaSync(); } catch (e) {} }
+  /* Y la marca de la pared del VD y del Tei por lo mismo: sus dos `div` no son
+     `.calc-box .calc-row span[id]` ni terminan en `-aviso`, así que ningún barrido de arriba las
+     alcanza y la marca del paciente anterior sobrevivía a «Nuevo estudio» sobre los dos campos
+     ya vacíos. `vdMarcaSync` entró además a `RECALC_MODULOS`, que es la otra columna. */
+  if (typeof vdMarcaSync === 'function') { try { vdMarcaSync(); } catch (e) {} }
   /* ⚠️ VENA PULMONAR, POR EL MISMO MOTIVO QUE `ccSegSync` Y AL FINAL COMO ÉL. El barrido de
      arriba vacía los cuatro `value`, pero las dos filas del cuadro gris se esconden por `display`
      y el color va en `style` en línea: sin esto el paciente siguiente arrancaba con los renglones
@@ -103131,8 +103250,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261012-1417';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791825422079;                 /* eco-build-ms */
+const ECO_BUILD    = '20261012-1511';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791828691511;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -103218,7 +103337,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261012-1417</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261012-1511</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
