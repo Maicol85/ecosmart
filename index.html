@@ -23022,6 +23022,32 @@ function diastAlgoRender() {
   const tda = _daNum('tde');
   let h = '';
 
+  /* ⚠️ LA FA VA PRIMERO Y LEE EL MISMO DUEÑO QUE EL CUADRO GRIS. Las tres ramas de abajo son
+     de RITMO SINUSAL: con FA, la de la BSE se limitaba a imprimir «Vía aplicada: C — fibrilación
+     auricular» sobre los criterios SINUSALES, y las otras dos ni eso. Si la guía elegida todavía
+     no tiene su protocolo de FA, `diastFAEvaluar` devuelve `null` y se sigue como en HEAD. */
+  const ritmoDA = (document.getElementById('diast_ritmo') || {}).value || 'sinusal';
+  if (ritmoDA === 'fa') {
+    const RFA = (typeof diastFAEvaluar === 'function') ? diastFAEvaluar(algo) : null;
+    if (RFA) {
+      if (tEl) tEl.textContent = tit + ' · fibrilación auricular';
+      let gFA = null;
+      RFA.filas.forEach(f => {
+        if (f.g && f.g !== gFA) { h += '<div class="da-paso">' + escHtml(f.g) + '</div>'; gFA = f.g; }
+        h += _daFila(f.crit, f.val, f.u, f.ok, f.dec);
+      });
+      h += '<div class="da-res"><b>' + escHtml(RFA.ventanaTit) + '</b>'
+         + (RFA.ventanaDet ? ' · ' + escHtml(RFA.ventanaDet) + '.' : '') + '</div>';
+      /* La frase es LA DEL INFORME, leída del mismo objeto. En FA sólo existe con presión
+         elevada: cuando no hay, acá no se imprime nada y el papel tampoco escribe nada. */
+      if (RFA.texto) h += '<p class="da-nota">' + escHtml(RFA.texto) + '</p>';
+      if (RFA.ventanaNota) h += '<p class="da-nota">' + escHtml(RFA.ventanaNota) + '</p>';
+      h += '<p class="da-nota">Resultado parcial calculado con los datos disponibles. Los criterios en gris no se ingresaron y no se cuentan.</p>';
+      host.innerHTML = h;
+      return;
+    }
+  }
+
   if (algo === 'ase2025') {
     /* ⚠️ LA VENTANA YA NO CALCULA: PREGUNTA. Tenía su propia cuenta y daba veredictos distintos
        del cuadro gris sobre el mismo paciente (ver la nota larga de `diastASE2025Evaluar`).
@@ -23442,22 +23468,225 @@ function diastASE2025Evaluar() {
 }
 window.diastASE2025Evaluar = diastASE2025Evaluar;
 
-function calcDiastolASE2025() {
-  const ritmo = sv('diast_ritmo');
+/* ══ FIBRILACIÓN AURICULAR — UN ALGORITMO POR GUÍA, SIN MEZCLAR ══════════════════════════════
+   ⚠️ EL RITMO SE DECIDE ANTES QUE LA GUÍA, Y HASTA HOY NO ERA ASÍ. `calcDiastol` salía por el
+   `return` de `ase2025` ANTES de mirar la FA, y `calcDiastolASE2025` derivaba a
+   `calcDiastolBSE2024`, que es el algoritmo de RITMO SINUSAL de la BSE: un estudio en FA
+   graduado con «ASE 2025» se publicaba con la vía sinusal de OTRA guía, y el badge decía
+   «BSE 2024». Hoy cada guía corre su propio protocolo de FA y lo nombra.
+
+   Las tres funciones de abajo son DUEÑOS ÚNICOS, con la misma forma que `diastASE2025Evaluar`:
+   LEEN EL DOM Y NO ESCRIBEN NADA, y devuelven el veredicto (`cls`, `badgeTxt`, `texto`,
+   `textoSuma`), las FILAS que dibuja la ventana 🧭 y el renglón de resultado. El cuadro gris y la
+   ventana leen la MISMA función, que es lo que impide que vuelvan a decir cosas distintas sobre
+   el mismo paciente.
+
+   ⚠️ LO QUE UNA GUÍA NO DICE, ACÁ NO SE INVENTA. Un parámetro sin campo que lo mida queda «no
+   evaluable», se dibuja en gris CON EL MOTIVO EN SU PROPIO RÓTULO —para que su ausencia no se lea
+   como un negativo— y no entra en ningún conteo. No se agregó ni un campo: el Excel sigue en 434
+   columnas. */
+
+/* Los insumos de las tres, leídos una sola vez. `venp_sd` guarda TOKENS (`menor1`/`mayor1`), no
+   «<1»: la etiqueta legible vive en `VENP_SD_TXT`.
+   ⚠️ EN FA EL S/D SÍ ES EVALUABLE, al revés que en ritmo sinusal. El corte de la Figura 3 (folio
+   554) es ≤0,67 y ese `<select>` no puede expresarlo; el de la FA es **<1** en las dos guías que
+   lo usan —Figura 8 de la ASE 2025 y Figura 19 de la BSE—, que es exactamente lo que la opción
+   dice. Es el mismo campo con dos cortes distintos, y uno cae justo en el borde de la opción. */
+function _diastFADatos() {
+  const ep = v('e_sep'), el = v('e_lat');
+  const E = v('onda_e');
+  /* El cociente se cuenta con `E !== null` y la truthiness del e', igual que en el dueño del
+     ritmo sinusal: un e' de 0 se lee como «no medido» —con `!== null` daría un cociente infinito
+     y un criterio POSITIVO sobre un dato que no existe—, y una onda E de 0 está evaluada. */
+  const eeSep  = (E !== null && ep) ? (E / ep) : null;
+  const eePromA = (ep && el) ? ((ep + el) / 2) : (ep || el || null);
+  const eeProm = (E !== null && eePromA) ? (E / eePromA) : null;
+  return {
+    E, ep, el, eeSep, eeProm,
+    tr:   v('vmax_it'),
+    psap: v('psap_calc'),
+    tde:  v('tde'),
+    triv: v('triv'),
+    lars: v('lars'),
+    sd:   sv('venp_sd'),
+    imc:  (typeof getIMC === 'function') ? getIMC() : null,
+    fevi: v('fevi'),
+    fc:   v('ao_fc')
+  };
+}
+
+/* Un criterio con tres estados: positivo, negativo y SIN EVALUAR. Devolver `null` en vez de
+   `false` es lo que evita que «no se midió» se cuente como «no cumple», que es la forma en que un
+   conteo de votos afirma normalidad sobre datos que nadie cargó. */
+function _diastFAEstado(evaluado, cumple) { return evaluado ? !!cumple : null; }
+function _diastFAContar(estados) {
+  let ev = 0, pos = 0;
+  estados.forEach(s => { if (s !== null) { ev++; if (s) pos++; } });
+  return { ev, pos, neg: ev - pos, sin: estados.length - ev };
+}
+
+/* ── ASE 2025 · Figura 8, folio 563 ──────────────────────────────────────────────────────────
+   Paso 1, cuatro parámetros, con el operador que imprime la figura:
+     onda E ≥ 100 cm/s · E/e' SEPTAL > 11 · IT > 2,8 m/s o PSAP > 35 mmHg · TDE ≤ 160 ms
+   Regla: «3 or more of above» → PAI elevada · «None or 1 of above» → PAI normal · «2 of above» →
+   segundo paso.
+   Paso 2: LARS < 18 % · S/D venoso pulmonar < 1 · IMC > 30 kg/m².
+   Regla: «2/3 or 3/3» → elevada · «None» → normal · «1 only or not available or not reliable» →
+   INDETERMINADO, que es una casilla de la propia figura y no un invento de la app.
+
+   ⚠️ EL E/e' ES EL **SEPTAL** Y NO EL PROMEDIO, y la figura lo escribe con todas las letras
+   («Septal E/e' ratio > 11»). La Tabla 7 del folio 557 repite el septal para la FA. En esta rama
+   NO valen los tres cortes por sitio de la Figura 3 (≥15 / ≥13 / ≥14): ésos son del ritmo
+   sinusal y mezclarlos sería correr dos figuras a la vez, que es el defecto que esta zona ya
+   pagó una vez.
+   ⚠️ Y LOS OPERADORES SON LOS DE LA FIGURA 8, QUE NO SON LOS DE LA FIGURA 3. Acá la IT y la PSAP
+   van con `>` —la Figura 3 las escribe con `≥`— y el E/e' con `>` donde aquélla usa `≥`. El signo
+   descartado queda escrito al lado a propósito: un borde no se entiende sin el que no se eligió.
+   Y no es teórico: una IT de 2,80 es el valor que más se tipea de todos, y con `>` es NEGATIVA.
+
+   ⚠️ CON PARÁMETROS SIN MEDIR, LA APP SÓLO CONCLUYE LO QUE LOS QUE FALTAN NO PUEDEN DAR VUELTA.
+   La figura cuenta «of above» sobre los cuatro y no dice qué hacer cuando alguno no se midió: a
+   la letra, un formulario vacío tiene «none of above» y saldría PAI NORMAL. Así que la rama que
+   AFIRMA normalidad exige que, aun si todos los que faltan fueran positivos, el conteo siguiera
+   en 0 ó 1; y la que afirma presión elevada se alcanza con 3 positivos, que ningún faltante puede
+   deshacer. Lo que queda en el medio no se decide: se dice que no alcanza, nombrando qué falta.
+   Es una decisión conservadora de la app sobre un hueco de la guía, no un corte nuevo. */
+function diastFAEvaluarASE2025() {
+  const D = _diastFADatos();
+  const R = { filas: [], guia: 'ASE 2025', algoritmo: 'ase2025-fa' };
+
+  const cE    = D.E     !== null && D.E     >= 100;          // Figura 8: «≥ 100 cm/s»
+  const cEe   = D.eeSep !== null && D.eeSep >  11;           // Figura 8: «> 11» (septal)
+  const cTr   = D.tr    !== null && D.tr    >  2.8;          // Figura 8: «> 2,8 m/s» (la Figura 3 usa ≥)
+  const cPsap = D.psap  !== null && D.psap  >  UMBRAL_PSAP_ELEVADA;   // «> 35 mmHg»
+  const cTde  = D.tde   !== null && D.tde   <= 160;          // Figura 8: «≤ 160 ms»
+  const v3Ev  = (D.tr !== null || D.psap !== null);
+
+  const s = [ _diastFAEstado(D.E !== null, cE),
+              _diastFAEstado(D.eeSep !== null, cEe),
+              _diastFAEstado(v3Ev, cTr || cPsap),
+              _diastFAEstado(D.tde !== null, cTde) ];
+  const c1 = _diastFAContar(s);
+
+  R.filas.push({ g: 'Paso 1 — ASE 2025, Figura 8 (folio 563)', crit: 'Onda E ≥ 100 cm/s', val: D.E, u: 'cm/s', ok: cE, dec: 0 });
+  R.filas.push({ crit: 'E/e\' septal > 11', val: D.eeSep, u: '', ok: cEe, dec: 1 });
+  R.filas.push({ crit: 'Velocidad IT > 2,8 m/s', val: D.tr, u: 'm/s', ok: cTr });
+  R.filas.push({ crit: 'PSAP > ' + UMBRAL_PSAP_ELEVADA + ' mmHg (alternativa de la IT)', val: D.psap, u: 'mmHg', ok: cPsap, dec: 0 });
+  R.filas.push({ crit: 'TDE ≤ 160 ms', val: D.tde, u: 'ms', ok: cTde, dec: 0 });
+
+  const sLars = _diastFAEstado(D.lars !== null, D.lars < 18);          // Figura 8: «< 18 %»
+  const sSd   = (D.sd === 'menor1') ? true : (D.sd === 'mayor1' ? false : null);
+  const sImc  = _diastFAEstado(D.imc !== null, D.imc > 30);            // Figura 8: «> 30 kg/m²»
+  const c2 = _diastFAContar([sLars, sSd, sImc]);
+
+  R.filas.push({ g: 'Paso 2 — sólo con 2 del paso 1', crit: 'LARS < 18 %', val: D.lars, u: '%', ok: sLars === true });
+  R.filas.push({ crit: 'S/D venoso pulmonar < 1', val: (sSd === null ? null : (sSd ? '< 1' : '> 1')), u: '', ok: sSd === true });
+  R.filas.push({ crit: 'IMC > 30 kg/m² (de peso y talla)', val: D.imc, u: 'kg/m²', ok: sImc === true });
+
+  const det1 = c1.pos + ' de ' + c1.ev + ' del paso 1 positivos'
+             + (c1.sin ? ' · ' + c1.sin + ' sin medir' : '');
+  const det2 = c2.pos + ' de ' + c2.ev + ' del paso 2 positivos'
+             + (c2.sin ? ' · ' + c2.sin + ' sin medir' : '');
+
+  if (c1.pos >= 3) {
+    _diastFAElevada(R, det1);
+  } else if (c1.pos + c1.sin <= 1) {
+    _diastFANormal(R, det1);
+  } else if (c1.pos === 2 && c1.sin === 0) {
+    if (c2.pos >= 2)                      _diastFAElevada(R, det1 + ' · ' + det2);
+    else if (c2.pos === 0 && c2.ev === 3) _diastFANormal(R, det1 + ' · ' + det2);
+    else                                  _diastFAIndet(R, det1 + ' · ' + det2);
+  } else {
+    _diastFANoConcluye(R, det1);
+  }
+  return R;
+}
+window.diastFAEvaluarASE2025 = diastFAEvaluarASE2025;
+
+/* Los cuatro desenlaces, en un solo lugar para las tres guías.
+   ⚠️ EL INFORME FIRMADO LLEVA **UNA SOLA FRASE** Y **SÓLO** CON PRESIÓN ELEVADA (decisión de
+   Maicol, 2026-10-12). Con presión normal, indeterminada o no concluyente, `texto` y `textoSuma`
+   quedan VACÍOS y el informe no escribe ni una línea de función diastólica — la pantalla sí
+   muestra el protocolo y el veredicto completo. Por eso el conteo va en `ventanaDet` y no en la
+   frase: lo que explica es el panel, lo que afirma es el papel. */
+function _diastFAElevada(R, det) {
+  R.clave = 'elevada'; R.cls = 'red';
+  R.badgeTxt = 'FA — Presión de llenado elevada (' + R.guia + ')';
+  R.ventanaTit = 'FA — Presión de llenado elevada';
+  R.texto = 'Disfunción diastólica con presión de llenado elevada (con FA).';
+  R.textoSuma = 'Disfunción diastólica con presión de llenado elevada (con FA).';
+  R.ventanaDet = det;
+}
+function _diastFANormal(R, det) {
+  R.clave = 'normal'; R.cls = 'green';
+  R.badgeTxt = 'FA — Presión de llenado normal (' + R.guia + ')';
+  R.ventanaTit = 'FA — Presión de llenado normal';
+  R.texto = ''; R.textoSuma = '';
+  R.ventanaDet = det;
+}
+function _diastFAIndet(R, det) {
+  R.clave = 'indeterminada'; R.cls = 'gray';
+  R.badgeTxt = 'FA — Presión de llenado indeterminada (' + R.guia + ')';
+  R.ventanaTit = 'FA — Presión de llenado indeterminada';
+  R.texto = ''; R.textoSuma = '';
+  R.ventanaDet = det;
+}
+function _diastFANoConcluye(R, det) {
+  R.clave = 'noConcluye'; R.cls = 'gray';
+  R.badgeTxt = 'FA — Datos insuficientes (' + R.guia + ')';
+  R.ventanaTit = 'FA — Datos insuficientes';
+  R.texto = ''; R.textoSuma = '';
+  R.ventanaDet = det + ' · con los parámetros cargados el algoritmo no llega a un veredicto';
+}
+
+/* El despachador de la FA: devuelve el dueño de la guía elegida, o `null` si esa guía todavía no
+   tiene su protocolo de FA implementado —y entonces cada consumidor sigue haciendo lo de HEAD—. */
+function diastFAEvaluar(algo) {
+  if (algo === 'ase2025') return diastFAEvaluarASE2025();
+  return null;
+}
+window.diastFAEvaluar = diastFAEvaluar;
+
+/* Las tres celdas compartidas del cuadro (`ea-val`, `eprom-val`, `ee-val`). Estaban INLINE en
+   `calcDiastolASE2025`, escritas ANTES de su `return` de FA justamente para que un estudio en FA
+   con UN SOLO anillo no quedara con el e' promedio en blanco (`calcDiastolBSE2024` sólo lo
+   escribe con los dos). Al mudarse la FA a su propio camino, esa escritura tenía que venirse con
+   ella: vive acá y la llaman los dos lados, byte por byte la misma cuenta que en HEAD. */
+function diastCeldasBasicas() {
   const ep = v('e_sep'), el = v('e_lat');
   const E = v('onda_e'), A = v('onda_a');
   const ee = (ep && el) ? ((ep + el) / 2) : (ep || el || null);
-
-  /* ⚠️ LAS TRES CELDAS SE ESCRIBEN ANTES DEL `return` DE FA, IGUAL QUE EN HEAD, y no dentro del
-     dueño. `calcDiastolBSE2024` escribe `eprom-val` SÓLO con los dos anillos, así que mover
-     esta escritura detrás del return dejaría en blanco el e' promedio de un estudio en FA con un
-     solo anillo cargado. La FA es otro trabajo y no se le cambia nada. */
   if (E && A) document.getElementById('ea-val').textContent = (E / A).toFixed(2);
   if (ee !== null) document.getElementById('eprom-val').textContent = ee.toFixed(1) + ' cm/s';
   if (E && ee) document.getElementById('ee-val').textContent = (E / ee).toFixed(1);
+}
 
-  // FA — algoritmo simplificado
-  if (ritmo === 'fa') { calcDiastolBSE2024(); return; }
+/* El cuadro gris de la FA. `faSinFrase` es lo que apaga el respaldo de `generarInforme` —«Función
+   diastólica no valorada por datos insuficientes.»—: en FA, sin presión elevada el informe no
+   escribe NINGUNA frase de función diastólica, y ese respaldo es una frase de función diastólica. */
+function diastFAPintar(R) {
+  diastCeldasBasicas();
+  const b = badge(R.cls, R.badgeTxt);
+  const dd = document.getElementById('dd-interp');
+  if (dd) dd.innerHTML = b;
+  window._diastResult = { texto: R.texto || null, textoSuma: R.textoSuma || null,
+                          badge: b, algoritmo: R.algoritmo, faSinFrase: true };
+  return R;
+}
+window.diastFAPintar = diastFAPintar;
+
+function calcDiastolASE2025() {
+  const ritmo = sv('diast_ritmo');
+  /* Las tres celdas compartidas siguen escribiéndose ANTES de cualquier `return`, igual que en
+     HEAD; lo que cambió es que la cuenta vive en `diastCeldasBasicas` y la comparte la FA. */
+  diastCeldasBasicas();
+
+  /* ⚠️ FA: SU PROPIO PROTOCOLO, NO EL DE OTRA GUÍA. Acá HEAD llamaba a `calcDiastolBSE2024`,
+     que es el algoritmo de RITMO SINUSAL de la BSE: un estudio en FA elegido con «ASE 2025» se
+     graduaba con la vía sinusal de otra guía y el badge decía «BSE 2024». Hoy corre la Figura 8
+     del folio 563. El despachador ya decide el ritmo antes; esta guarda cubre a quien llame a
+     esta función directamente. */
+  if (ritmo === 'fa') { diastFAPintar(diastFAEvaluarASE2025()); return; }
 
   const R = diastASE2025Evaluar();
   window._diastResult = { texto: R.texto, textoSuma: R.textoSuma,
@@ -23536,6 +23765,15 @@ window.calcDiastol = function() {
   if (typeof calcHemo === 'function') calcHemo();
   const algo = sv('diast_algoritmo') || 'ase2025';
   const ritmo = sv('diast_ritmo') || 'sinusal';
+  /* ⚠️ EL RITMO SE DECIDE ANTES QUE LA GUÍA, Y HASTA HOY ERA AL REVÉS. Los dos `return` de
+     arriba se comían la FA: con «ASE 2025» salía por el primero y terminaba en
+     `calcDiastolBSE2024` —la vía SINUSAL de la BSE—, y con «ASE 2016» salía por el segundo y
+     caía siempre en «Datos insuficientes», porque en FA no hay onda A y esa cascada arranca por
+     el cociente E/A. Cada guía corre su propio protocolo de FA y lo nombra en el badge. */
+  if (ritmo === 'fa') {
+    const RFA = diastFAEvaluar(algo);
+    if (RFA) { diastFAPintar(RFA); return; }
+  }
   if (algo === 'ase2025') { calcDiastolASE2025(); return; }
   if (algo === 'ase2016') { calcDiastolASE2016(); return; }
   if (ritmo === 'fa') {
