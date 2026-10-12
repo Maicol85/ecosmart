@@ -3515,6 +3515,12 @@ window.cerrarSesionReal = cerrarSesionReal;
           <span class="calc-lbl">VD basal — tamaño</span>
           <span id="vd-tam">—</span>
         </div>
+        <!-- La PARED va pegada al tamaño porque las dos son estructura; el Tei va DESPUÉS de los
+             tres parámetros sistólicos, que es el grupo al que se suma. -->
+        <div class="calc-row">
+          <span class="calc-lbl">Pared del VD — hipertrofia</span>
+          <span id="vd-pared-interp">—</span>
+        </div>
         <div class="calc-row">
           <span class="calc-lbl">FAC — función sistólica VD</span>
           <span id="fac-interp">—</span>
@@ -3526,6 +3532,10 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="calc-row">
           <span class="calc-lbl">S' — función sistólica VD</span>
           <span id="sprime-interp">—</span>
+        </div>
+        <div class="calc-row">
+          <span class="calc-lbl">Índice de Tei (DTI) — función VD</span>
+          <span id="vd-tei-interp">—</span>
         </div>
         <div class="calc-row">
           <span class="calc-lbl">TAP — aceleración pulmonar</span>
@@ -20791,6 +20801,36 @@ function calcVD() {
             : badge('orange', `${fac}% — disfunción (<${UMBRAL_FAC_VD_NORMAL}%)`));
     }
   }
+  /* ── PARED DEL VD — hipertrofia (ASE 2025, Tabla 1 folio 145: normal < 5 mm) ──
+     Las dos filas nuevas VUELVEN A «—» al borrar el dato, como `vd-tam`, `fac-interp` y
+     `tap-interp`. TAPSE y S' no lo hacen —su `if` sólo pinta, así que la fila del paciente
+     anterior se queda— y no se tocaron: arreglarlas es otro cambio y afectaría dos filas que
+     esta orden no nombra. Queda declarado en `docs/PENDIENTES.md`.
+     El valor se imprime al lado del veredicto, como en la FAC y el TAP: es el número que
+     sostiene la palabra, y sin él la afirmación no se puede auditar.
+     ⚠️ LA APP NO GRADÚA LA PARED, y es deliberado. La Tabla 1 la gradúa en leve / moderada /
+     severa (`>=0,5 a <=0,7` · `>0,7 a <=0,9` · `>0,9`); lo que esta orden pide es informar
+     hipertrofia SÍ o NO, así que se dice eso y no se inventa una banda intermedia. */
+  const _vdPared = v('vd_pared');
+  const _parEl = document.getElementById('vd-pared-interp');
+  if (_parEl) {
+    if (_vdPared === null) _parEl.textContent = '—';
+    else _parEl.innerHTML = _vdPared >= VD_PARED_HVD_MIN
+      ? badge('red',   `${_vdPared} mm — hipertrofia del VD (≥${VD_PARED_HVD_MIN} mm)`)
+      : badge('green', `${_vdPared} mm — normal (<${VD_PARED_HVD_MIN} mm)`);
+  }
+  /* ── ÍNDICE DE TEI por DTI (ASE 2025, Tabla 1 folio 145 y texto folio 158: normal < 0,55) ──
+     ⚠️ EL CORTE QUE SE APLICA ES EL DE DTI, Y EL CAMPO LO DICE EN SU RÓTULO. El del Doppler
+     pulsado es 0,40 (`VD_TEI_PW_ALT_MIN`) y vive declarado al lado de la constante sin usarse:
+     aplicar el método equivocado mueve el corte un 27 % sobre un informe firmado. */
+  const _vdTei = v('vd_tei');
+  const _teiEl = document.getElementById('vd-tei-interp');
+  if (_teiEl) {
+    if (_vdTei === null) _teiEl.textContent = '—';
+    else _teiEl.innerHTML = _vdTei >= VD_TEI_DTI_ALT_MIN
+      ? badge('red',   `${_vdTei} — alterado (≥${VD_TEI_DTI_ALT_MIN} por DTI)`)
+      : badge('green', `${_vdTei} — normal (<${VD_TEI_DTI_ALT_MIN} por DTI)`);
+  }
   // TAP — aceleración pulmonar (elemento indirecto de HTP si < 105 ms)
   const tap = v('tvia');
   const tapEl = document.getElementById('tap-interp');
@@ -36732,7 +36772,14 @@ function generarInforme(opts) {
     /* Un diámetro fuera de rango NO habilita a afirmar normalidad: si no hay ningún otro
        medido y dilatado, el tamaño queda sin enunciar y se pide verificar la medición. */
     const hayTam  = vdDs.length > 0 && !(vdFuera.length && !vdDils.length);
-    const hayFunc = tapse !== null || sp !== null || facVD !== null;
+    /* ⚠️ EL TEI ENTRA EN LA COMPUERTA, Y SIN ESO DESAPARECERÍA EN SILENCIO. `hayFunc` es
+       además una de las cinco condiciones del `if` que envuelve todo el bloque: con el Tei
+       afuera, un estudio cuyo ÚNICO dato del VD sea el índice de Tei perdía la oración entera
+       —el médico lo tipeó y no aparecía en ningún lado—, que es exactamente el defecto que el
+       comentario de `tapse || sp` de más arriba describe y el que la diastólica tricuspídea
+       reintrodujo por la puerta de al lado. */
+    const teiVD = v('vd_tei');
+    const hayFunc = tapse !== null || sp !== null || facVD !== null || teiVD !== null;
     /* LA DIASTÓLICA ENTRA EN LA COMPUERTA, y cierra un agujero preexistente.
        `dopTricFrase()` se empuja DENTRO de este bloque, así que hasta hoy un estudio con el
        Doppler tricuspídeo cargado y ningún diámetro ni TAPSE ni S' ni FAC perdía la línea entera
@@ -36759,7 +36806,13 @@ function generarInforme(opts) {
       const tapseBajo = tapse !== null ? tapse < UMBRAL_TAPSE_NORMAL : false;
       const spBajo    = sp    !== null ? sp    < 9.5 : false;
       const facBajo   = facVD !== null ? facVD < UMBRAL_FAC_VD_NORMAL : false;
-      const vdDisf = tapseBajo || spBajo || facBajo;
+      /* EL ÍNDICE DE TEI ES EL CUARTO PARÁMETRO, con la MISMA regla que los otros tres: la del
+         VD no es «N alterados» sino un OR —cada uno cuenta sólo si está medido y uno alcanza—,
+         así que el Tei se suma al OR y nada más. Un paciente SIN Tei cargado da exactamente lo
+         mismo que antes, porque `teiAlt` queda en `false` igual que los otros tres.
+         El corte es el de DTI (`>= 0,55`); el del Doppler pulsado NO se usa — ver la constante. */
+      const teiAlt    = teiVD !== null ? teiVD >= VD_TEI_DTI_ALT_MIN : false;
+      const vdDisf = tapseBajo || spBajo || facBajo || teiAlt;
 
       const tamTxt  = hayTam  ? (vdSoloLeve ? 'levemente dilatado'
                                  : (vdDilat ? 'dilatado' : 'de dimensiones normales')) : null;
@@ -36799,6 +36852,14 @@ function generarInforme(opts) {
       if (tapse !== null) medVD.push(`TAPSE ${tapse} mm`);
       if (sp    !== null) medVD.push(`S' ${sp} cm/s`);
       if (facVD !== null) medVD.push(`FAC ${facVD}%`);
+      /* ⚠️ Y EL TEI SE NOMBRA CUANDO ESTÁ MEDIDO, por lo mismo que los diámetros dilatados se
+         nombran uno por uno. Sin esto, un paciente con TAPSE, S' y FAC NORMALES y el Tei
+         alterado publicaba «con disfunción sistólica (TAPSE 22 mm, S' 12 cm/s, FAC 40%)»: la
+         afirmación quedaba al lado de tres números que la niegan y sin el que la sostiene.
+         Lleva «(DTI)» porque el método decide el corte —0,55 por DTI contra 0,40 por Doppler
+         pulsado—, y un cociente suelto en un informe firmado no dice con cuál se graduó.
+         Es ADIMENSIONAL, así que no lleva unidad (nota de la Tabla 3, folio 156). */
+      if (teiVD !== null) medVD.push(`Tei ${teiVD} (DTI)`);
       const datosVDp = medVD.length ? ` (${medVD.join(', ')})` : '';
       const _vdFueraTxt = vdFuera.length
         ? ` Verificar la medición: ${vdFuera.map(d => d.lblC + ' ' + d.val + ' mm').join(', ')} fuera de rango plausible.` : '';
@@ -103250,8 +103311,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261012-1511';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791828691511;                 /* eco-build-ms */
+const ECO_BUILD    = '20261012-1516';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791828998112;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -103337,7 +103398,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261012-1511</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261012-1516</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
