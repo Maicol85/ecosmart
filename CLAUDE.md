@@ -224,6 +224,103 @@ impecable.
   documentación más **TC-453**, que afirma el comportamiento del 3: revertir el 3 sin el 5 deja
   TC-453 en rojo.
 
+### Fibrilación auricular — un algoritmo por guía, sin mezclar (2026-10-12)
+
+- Al **empezar** esta tanda, `main` local y `origin/main` estaban los dos en **`55422ae`**, sin
+  nada sin pushear —confirmado con un `git fetch` de verdad—. Los **siete** commits quedan
+  locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 7 → 6 → 5 → 4 → 3 → 2 → 1.**
+  El 1 crea el despacho por ritmo y las piezas compartidas (`_diastFADatos`, los desenlaces,
+  `diastFAPintar`, `diastCeldasBasicas`); el 2 y el 3 **cuelgan de él** —agregan su guía a
+  `diastFAEvaluar` y usan sus desenlaces—, así que revertir el 1 sin revertir antes el 2 y el 3
+  deja el archivo sin las funciones que esos dos consumen, o sea la app sin pestañas. El 4 toca
+  `generarInforme` y depende del `faSinFrase` que pone el 1. **El 5 (el cableado del cuadro) y el
+  6 (el aviso de FC) se revierten solos**: ninguno toca un veredicto. El 7 es documentación más
+  **TC-454**, que afirma el comportamiento de los seis: revertir cualquiera sin el 7 deja TC-454
+  en rojo.
+
+- **Línea base al cierre: suite 465/469 con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0 ERROR,
+  Excel 434 columnas.** Los cuatro rojos son los de entrada y NO son regresiones: **TC-223**
+  (el documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**. **El denominador subió
+  a 469**: esta tanda agregó **TC-454**. La de ENTRADA, medida en HEAD limpio el 2026-10-12, fue
+  **464/468** con el pendrive montado y los mismos cuatro rojos.
+- **Dónde está todo:** `docs/mapa/diastolica.md` → «La FIBRILACIÓN AURICULAR» (los tres dueños, los
+  cortes lado a lado, las tres reglas y las trampas), `docs/fuentes/FUENTES.md` → la Figura 8 de
+  `aseDiast2025` y las dos entradas nuevas `bseDiast2024` y `aseDiast2016`,
+  `docs/PENDIENTES.md` → los puntos 1 y 7, los dos **cerrados**, con seis cosas declaradas y no
+  tocadas.
+
+- ⚠️ **CON «ASE 2025» Y FA, LA APP GRADUABA CON LA VÍA DE RITMO SINUSAL DE LA BSE, Y EL BADGE LO
+  DECÍA.** `calcDiastol` salía por el `return` de `ase2025` ANTES de mirar la FA y
+  `calcDiastolASE2025` derivaba a `calcDiastolBSE2024`. Medido en HEAD con un paciente de cuatro
+  criterios positivos: el cuadro decía **«Normal — BSE 2024»**. Hoy dice «FA — Presión de llenado
+  elevada (ASE 2025)» y corre la **Figura 8 del folio 563**. Hoy el **ritmo se decide antes que la
+  guía**.
+- ⚠️ **Y CON «ASE 2016» Y FA EL RESULTADO ERA SIEMPRE «DATOS INSUFICIENTES», CON EL FORMULARIO
+  LLENO.** `calcDiastolASE2016` arranca por el cociente E/A y en FA **no hay onda A**: `ea === null`
+  y la primera guarda se llevaba a todos los pacientes. Esa guía **no tiene algoritmo de FA** —su
+  sección E del folio 295 enumera parámetros y no los combina—, así que hoy la app los muestra con
+  su estado, **dice que la guía no da una regla de conteo y no publica veredicto ni frase**.
+- ⚠️ **LA RAMA DE FA DE LA BSE NO ERA EL ALGORITMO DE LA BSE.** Votaba «E/e' **promedio** >11, IT
+  >2,8, **Vol AI >40** y TDE **<**160» con un umbral propio de «≥2 positivos» y frases **sin
+  tildes**. Ni el Vol AI ni el 40 están en la Figura 19; el cociente que esa figura pide es el
+  **SEPTAL** —la pág. 37 lo justifica: en FA la variabilidad R-R mueve mucho más el e' lateral—; el
+  TDE va con `≤`; y la regla es **«≥3 de 4»**, no «≥2 de los disponibles», que afirma presión
+  elevada con dos parámetros sobre dos.
+- ⚠️ **LOS OPERADORES DE LA FA NO SON LOS DEL RITMO SINUSAL, Y LAS DOS COSAS SON CORRECTAS.** La
+  Figura 3 escribe la IT y el E/e' con **≥**; las Figuras 8 y 19 los escriben con **>**. Una IT de
+  **2,80 es POSITIVA en sinusal y NEGATIVA en FA**. Por eso las ramas **no comparten constantes**.
+  Y el E/e' de la FA es **uno solo y septal**, no los tres cortes por sitio de la Figura 3.
+- ⚠️ **EL LARS TIENE DOS CORTES Y ES DE LA FUENTE: 18 % en la ASE y 16 % en la BSE** (pág. 40: sin
+  contracción auricular el strain de reservorio es sistemáticamente menor). Medido: un LARS de
+  **17 %** sobre el mismo paciente da **indeterminada por la ASE y normal por la BSE**. No se
+  unifican. Lo mismo con la **PSAP**: la Figura 8 la admite como alternativa de la IT y la Figura 19
+  **no la nombra** — con PSAP 36 e IT 2,65 la ASE dice elevada y la BSE indeterminada.
+- **EL S/D VENOSO PULMONAR CAMBIA DE ESTADO SEGÚN EL RITMO, y es el mismo campo.** En sinusal el
+  corte es ≤0,67 y el `<select>` de «<1 / >1» no puede expresarlo —está declarado **no
+  evaluable**—; en FA el corte es **< 1**, que es exactamente lo que dice la opción, así que **sí
+  vota**. Un corte cae justo en el borde de la opción y el otro no.
+- **EL TERCER PARÁMETRO DEL SEGUNDO PASO ES EL IMC, y el reporte anterior tenía razón**: la
+  Figura 8 escribe `BMI > 30 kg/m2`, verificado en el original. Sale de **`getIMC()`**, que ya
+  existía. **No se agregó ningún campo: el Excel sigue en 434 columnas en las 27 escenas medidas.**
+  ⚠️ **Y EL 30,00 EXACTO DEPENDE DE LA TALLA, POR PUNTO FLOTANTE**: `(170/100)**2` vale
+  `2.8899999999999997`, así que **86,7 kg con 170 cm da 30.000000000000004 y cruza un corte que es
+  `> 30`**. Con talla 100 el IMC es exacto y el 30 es negativo, que es lo que fija TC-454. No se
+  tocó `getIMC`: es el dueño único y lo comparten `calcBSA`, el PDF y el PPM mitral.
+- **EL INFORME FIRMADO LLEVA UNA SOLA FRASE Y SÓLO CON PRESIÓN ELEVADA** (decisión de Maicol):
+  «Disfunción diastólica con presión de llenado elevada (con FA).», idéntica en el informe y en el
+  EN SUMA y en los tres estilos. Con presión normal, indeterminada o sin regla de conteo **no
+  escribe nada** — y eso obligó a apagar el RESPALDO de `generarInforme` («Función diastólica no
+  valorada por datos insuficientes.»), que también es una frase de función diastólica y la
+  publicaba todo paciente en FA con la FEVI cargada.
+  **Laboratorio, REPORTADO Y NO TOCADO:** esa frase no coincide con ninguna de las cuatro
+  expresiones de `_labDiastGrado`, así que esos estudios clasifican como **`null`** y quedan fuera
+  de la distribución diastólica y de las cinco columnas `DD_*`. Verificado en las 27 escenas.
+- ✅ **EL DESFASE DEL CUADRO GRIS, CERRADO**: once campos cableados a `calcDiastol` —`peso`,
+  `talla`, `fevi`, `ai_vol`, `vmax_it`, `it_vmax_cw`, `tde`, `triv`, `venp_sd`, `vci_diam` y
+  `vci_col`—. El TDE y el TRIV no tenían manejador **ninguno**. En A/B contra HEAD el **veredicto
+  final del ritmo sinusal es idéntico** —es una función pura de los campos— y lo único que cambia
+  es cuándo se repinta: HEAD se ponía al día recién en el LARS, que es el último campo.
+- **EL AVISO DE FC ES DE LA BSE Y TIENE DOS TRAMOS**, porque la Figura 19 dice dos cosas: su
+  encabezado pide **< 100 lpm** y su pie excluye el algoritmo con **> 120 lpm** en reposo. No cambia
+  ningún veredicto (medido con el mismo paciente y FC sin cargar, 99, 100, 120 y 121: el badge es el
+  mismo en los cinco) y lleva las **dos columnas** —el oyente de documento con `RECALC_MODULOS` y
+  `limpiarCampos`—, así que «Nuevo estudio» lo apaga. La Figura 8 de la ASE **no pone ningún
+  límite**, así que ahí no sale.
+- **El ritmo sinusal de las tres guías es IDÉNTICO a HEAD**, con las escenas del trabajo anterior:
+  `scripts/_probe_diast2025.mjs` en sus grupos `cuadro,ventana`, `superficies` y `otros`, A/B contra
+  una copia de HEAD, **0 diferencias en los tres** (20 escenas con sus seis superficies y los 12
+  casos de BSE y 2016 en sinusal).
+- **Arnés: `scripts/_probe_diastfa.mjs`** (A/B de solo lectura con `--file`), siete grupos
+  (`cuadro`, `ventana`, `bordes`, `superficies`, `sinusal`, `desfase`, `fc`), 16 escenas por las
+  tres guías y 9 tripletes de borde cargados con **teclas reales**. **Cobertura: TC-454**, 68
+  condiciones con cuatro denominadores y seis controles negativos. **Verificado que sabe fallar
+  contra HEAD en un worktree aparte: 47 de las 68 en rojo.**
+- ⚠️ **ME COMÍ EL ACENTO GRAVE UNA VEZ**, en un comentario mío dentro del cuerpo de la sonda
+  —`\`display\`` dentro de un template literal—, con el archivo que documenta la trampa abierto
+  delante. `node --check` dio la línea exacta esta vez; `scripts/check_backticks.py` corrió limpio
+  antes de cada commit.
+
 ### Función diastólica del VI — la Figura 3 de la ASE 2025 en ritmo sinusal (2026-10-12)
 
 - **Línea base al cierre: suite 464/468 con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0 ERROR,

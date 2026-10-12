@@ -6,30 +6,20 @@ Lo que la tanda del 2026-10-12 **midió y dejó como está**, con el motivo de c
 entera está mapeada en `docs/mapa/diastolica.md` y las fuentes en `docs/fuentes/FUENTES.md` →
 `### aseDiast2025`.
 
-### 1 · El cuadro gris se atrasa: `calcDiastol` no está cableado a todo lo que lee
+### 1 · [CERRADO 2026-10-12] El cuadro gris se atrasaba: `calcDiastol` no estaba cableado
 
-**Qué se encontró.** `calcDiastol()` vive en el `oninput` de los cuatro campos del Doppler mitral,
-del LARS y de los dos selectores, y **en ningún otro**. El **Vol AI**, la **velocidad de la IT**,
-el **TRIV** y los **campos de VCI** —que alimentan la PSAP— no lo llaman.
+**Cerrado en la tanda de la fibrilación auricular.** Se cablearon **once** campos al `oninput` de
+siempre: `peso`, `talla`, `fevi`, `ai_vol`, `vmax_it`, `it_vmax_cw`, `tde`, `triv`, `venp_sd`,
+`vci_diam` y `vci_col`. El TDE y el TRIV no tenían manejador **ninguno**.
 
-**Qué puede causar.** Cargar uno de esos cinco deja el cuadro gris con el veredicto del **paciente
-anterior** hasta que se toque un campo mitral. Medido en HEAD y en el árbol nuevo, con el mismo
-resultado: tipeando el paciente de TC-29 en el orden natural —los cuatro mitrales y después el
-Vol AI y la IT— el cuadro queda en «Indeterminado — ASE 2025» y el informe, generado un segundo
-después, dice «DD Grado II». **La ventana del 🧭 no se atrasa**: cuelga de un oyente de
-`input`/`change` a nivel documento. Y el **informe firmado nunca se atrasa**, porque
-`generarInforme` llama a `calcDiastol`.
+Medido en A/B contra HEAD, tipeando en el orden natural: en ritmo sinusal con la ASE 2025, HEAD
+decía «No estimable» en los cuatro campos que siguen al Vol AI y sólo se ponía al día al tipear
+el LARS, que es el último; el árbol nuevo cambia en el Vol AI mismo. Con la BSE, lo mismo entre
+«Normal» e «Indeterminado». **El veredicto final es idéntico en los dos** —es una función pura de
+los campos— y lo único que cambió es cuándo se repinta.
 
-**Cómo se corrige.** Agregar `calcDiastol()` al `oninput` de `ai_vol`, `vmax_it`, `triv`,
-`vci_diam` y `vci_col`, o colgar un `diastSync` del mismo oyente de documento que ya repinta la
-ventana.
-
-**Por qué NO se tocó.** Es wiring de cinco manejadores que no está en la lista autorizada, y
-`calcDiastol` tiene una rama de **FA** — llamarla más seguido cambia cuándo se repinta el cuadro
-de un estudio en FA, y la FA es otro trabajo con orden de PARAR si algo la altera. Con P6 el
-agujero se **amplía**: ahora el veredicto depende de `psap_calc`, que sale de los campos de VCI.
-La alternativa por PSAP se honra en todo lo que lee `_diastResult` —informe, EN SUMA, PDF, PPT,
-Excel, Laboratorio— y en la ventana; lo único que se atrasa es el cartel de la pantalla.
+No se usó un oyente global: `calcDiastol` arrastra `calcHemo`, `calcVenaPulm`, `imOndaEPintar` y
+el aviso de protocolo, y colgarla de cada tecla de la app entera se paga en todas las pestañas.
 
 ### 2 · El rojo del E/e' no sigue los tres cortes por sitio
 
@@ -54,6 +44,11 @@ campo `venp_sd` es un `<select>` de **«<1 / >1»**: un S/D de 0,9 es «<1» y *
 criterio. El criterio quedó dibujado en **gris** con el motivo en su rótulo. Para habilitarlo hace
 falta **un campo numérico nuevo** —el S/D, o la fracción de llenado sistólico— y esta tanda tenía
 orden expresa de no agregar ninguno (el Excel sigue en **434 columnas**).
+
+⚠️ **EN FIBRILACIÓN AURICULAR EL MISMO CAMPO SÍ ES EVALUABLE** (2026-10-12): el corte de la
+Figura 8 de la ASE 2025 y el de la Figura 19 de la BSE es **< 1**, que es exactamente lo que dice
+la opción del `<select>`. Es el mismo campo con dos cortes distintos, y el de ritmo sinusal cae
+justo en el borde de la opción. Lo que sigue faltando es el campo numérico para el ≤0,67.
 
 ### 5 · El estado (a) entra al Laboratorio como «Sin disfunción»
 
@@ -82,13 +77,39 @@ trasplante (Figura 5, folio 559), HP no cardíaca (Figura 6, folio 560), FA (Fig
 la Tabla 7 del folio 557 para los demás— que la app **no implementa**. Son cinco algoritmos
 nuevos, no un parche.
 
-### 7 · Con «ASE 2025» y FA se gradúa con la vía SINUSAL de la BSE
+### 7 · [CERRADO 2026-10-12] Con «ASE 2025» y FA se graduaba con la vía SINUSAL de la BSE
 
-`calcDiastol` sale por el `return` de `ase2025` **antes** del bloque de FA, y
-`calcDiastolASE2025` deriva a `calcDiastolBSE2024`, que es el algoritmo de **ritmo sinusal** de la
-BSE y no sabe nada de FA. El algoritmo de FA de la ASE 2025 (**Figura 8, folio 563**) no está
-implementado en ningún lado. **Otro trabajo, con orden expresa de no tocarlo**: esta tanda lo
-verificó como control negativo (6 casos, 0 diferencias).
+**Cerrado en la tanda de la fibrilación auricular**, junto con los otros cinco defectos de esa
+zona. Hoy `calcDiastol` decide el ritmo **antes** que la guía y cada una corre su propio
+protocolo: Figura 8 (folio 563) para la ASE 2025, Figura 19 (pág. 39) para la BSE y la sección E
+del folio 295 para la ASE/EACVI 2016, que **no tiene regla de conteo** y por eso no da veredicto.
+La zona entera está en `docs/mapa/diastolica.md` y las fuentes en `docs/fuentes/FUENTES.md`.
+
+#### Lo que esa tanda dejó declarado y NO tocó
+
+1. **El Laboratorio no cuenta los estudios en FA.** La frase nueva —«Disfunción diastólica con
+   presión de llenado elevada (con FA).»— no coincide con ninguna de las cuatro expresiones de
+   `_labDiastGrado`, así que esos estudios clasifican como `null` y quedan fuera de la
+   distribución diastólica y de las cinco columnas `DD_*` del Excel. Verificado en 27 escenas.
+   Cambiarlo es cambiar la heurística del Laboratorio o la frase del informe: decisión de Maicol.
+2. **El IMC de 30,00 exacto depende de la talla, por punto flotante.** El corte es `> 30` y un 30
+   exacto es negativo —verificado con talla 100 y peso 30—, pero `(170/100)**2` vale
+   `2.8899999999999997`, así que **86,7 kg con 170 cm da 30.000000000000004 y cruza el corte**. No
+   se tocó `getIMC`: es el dueño único y lo comparten `calcBSA`, el encabezado del PDF y el PPM
+   mitral, y redondear ahí movería tres superficies por un borde de una.
+3. **Tres parámetros de la ASE/EACVI 2016 no son evaluables**: la aceleración pico de la onda E
+   (≥1.900 cm/s²), el TD de la onda D de la vena pulmonar (≤220 ms) y el E/Vp (≥1,4) no tienen
+   campo. Se dibujan en gris con el motivo en su rótulo. Habilitarlos son **tres campos nuevos** y
+   esta tanda tenía orden expresa de no agregar ninguno.
+4. **La ventana de la BSE y la de la ASE 2016 siguen calculando por su cuenta EN RITMO SINUSAL.**
+   En FA las tres leen el dueño único; en sinusal, sólo la ASE 2025. Medido al cerrar: con la BSE
+   en sinusal el cuadro dice «Indeterminado» y su ventana no coincide. Es el punto 8 de abajo.
+5. **El rojo del E/e' no sigue los cortes de la FA.** `eeCorteEs14()` apaga el color con BSE + FA
+   y lo deja con `>14` en todo lo demás; el corte de la FA es el septal `>11` en las dos guías que
+   lo tienen. Es el mismo nudo del punto 2 de este archivo y se arregla con él.
+6. **El aviso de FC no mira el ritmo del ECG, mira el selector.** Si el médico carga una FC alta y
+   deja `diast_ritmo` en sinusal, el aviso no sale —es correcto: es un límite del algoritmo de FA
+   de la BSE—, pero tampoco hay nada que compruebe que el ritmo declarado y la FC son coherentes.
 
 ### 8 · Las diferencias B1 a B7 de la BSE 2024 y la ASE/EACVI 2016
 

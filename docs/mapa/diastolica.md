@@ -13,7 +13,7 @@ Fuentes verificadas de la ASE 2025, con folio y corte: `docs/fuentes/FUENTES.md`
 
 | Superficie | Nodo | Quién la escribe |
 |---|---|---|
-| **El cuadro gris** — fila «Función diastólica» del `.calc-box` del Doppler mitral | `#dd-interp` | `calcDiastolASE2025`, `calcDiastolASE2016`, la rama de FA de `calcDiastol` y `calcDiastolBSE2024` |
+| **El cuadro gris** — fila «Función diastólica» del `.calc-box` del Doppler mitral | `#dd-interp` | en ritmo sinusal `calcDiastolASE2025`, `calcDiastolASE2016` y `calcDiastolBSE2024`; en **FA**, `diastFAPintar` |
 | **La ventana** — overlay del botón «🧭 Algoritmo» | `#diast-algo-overlay` / `#diast-algo-cuerpo` | `diastAlgoRender`, que abre `diastAlgoAbrir` y cierra `diastAlgoCerrar` |
 
 **Para la ASE 2025 en ritmo sinusal las dos leen `diastASE2025Evaluar()`, que es el dueño único del
@@ -33,13 +33,14 @@ con `_daCriteriosLAP` y `_daContar`, y difieren de sus cuadros. Está censado en
   `diastAlgoCambio`, que recuerda el protocolo en `sessionStorage` (`diastAlgoSesGuardar`), repinta
   el aviso ámbar (`diastAlgoAvisoSync`) y recalcula. `DIAST_ALGO_RECOMENDADO` = `'ase2025'`.
 - `#diast_ritmo` — `sinusal` · `fa`.
-- `window.calcDiastol` es el despachador y tiene **cuatro salidas**: ASE 2025, ASE 2016, la rama de
-  FA (sólo alcanzable con la BSE elegida) y `calcDiastolBSE2024`. Está **envuelto** para que
-  `calcVenaPulm` corra siempre después, que es donde se pinta el rojo del E/e'.
-- ⚠️ **Con «ASE 2025» + FA se gradúa con la vía de RITMO SINUSAL de la BSE.** `calcDiastol` sale por
-  el `return` de `ase2025` antes del bloque de FA, y `calcDiastolASE2025` deriva a
-  `calcDiastolBSE2024`, que no sabe nada de FA. El algoritmo de FA de la ASE 2025 (Figura 8, folio
-  563) **no está implementado**. Censado en `docs/PENDIENTES.md`; es otro trabajo.
+- `window.calcDiastol` es el despachador y **decide el RITMO antes que la guía**: con
+  `diast_ritmo = fa` llama a `diastFAEvaluar(algo)` y pinta con `diastFAPintar`; en ritmo sinusal
+  sigue a `calcDiastolASE2025`, `calcDiastolASE2016` o `calcDiastolBSE2024`. Está **envuelto**
+  para que `calcVenaPulm` corra siempre después, que es donde se pinta el rojo del E/e'.
+  ⚠️ **Hasta el 2026-10-12 era al revés y se comía la FA**: con «ASE 2025» salía por el
+  `return` de `ase2025` y terminaba en `calcDiastolBSE2024` —la vía SINUSAL de la BSE, con el
+  badge diciendo «BSE 2024»—, y con «ASE 2016» salía por el suyo y caía siempre en «Datos
+  insuficientes», porque esa cascada arranca por el cociente E/A y en FA no hay onda A.
 
 ---
 
@@ -114,6 +115,101 @@ la guía: un E/A ≥2 con e' conservada es el patrón del corazón joven y sano.
 
 ---
 
+## La FIBRILACIÓN AURICULAR — un algoritmo por guía (2026-10-12)
+
+`diast_ritmo = fa` manda **antes** que la guía. El despachador llama a `diastFAEvaluar(algo)`, que
+devuelve el dueño de esa guía, y `diastFAPintar` escribe el cuadro y `window._diastResult`. La
+ventana 🧭 tiene su **propia rama de FA al principio de `diastAlgoRender`**, que lee el MISMO
+dueño: para la FA las dos superficies no pueden separarse, en las tres guías.
+
+Los tres dueños tienen la forma de `diastASE2025Evaluar`: **leen el DOM y no escriben nada**, y
+devuelven `cls`, `badgeTxt`, `ventanaTit`, `ventanaDet`, `texto`, `textoSuma` y las `filas`.
+
+| Guía | Función | Fuente |
+|---|---|---|
+| ASE 2025 | `diastFAEvaluarASE2025` | Figura 8, folio 563 |
+| BSE 2024 | `diastFAEvaluarBSE2024` | Figura 19, pág. 39 |
+| ASE/EACVI 2016 | `diastFAEvaluarASE2016` | sección E, folio 295 |
+
+### Entradas
+`_diastFADatos()` las lee una vez: `onda_e`, `e_sep`, `e_lat`, `vmax_it`, `psap_calc`, `tde`,
+`triv`, `lars`, `venp_sd`, `fevi`, `ao_fc` y el **IMC por `getIMC()`** (de `peso` y `talla`).
+**Ningún campo nuevo**: el Excel sigue en 434 columnas.
+
+### Los cortes, por guía
+
+| Parámetro | ASE 2025 (Fig. 8) | BSE 2024 (Fig. 19) | ASE 2016 (folio 295) |
+|---|---|---|---|
+| Onda E | **≥ 100 cm/s** | **≥ 100 cm/s** | — |
+| E/e' | **septal > 11** | **septal > 11** | **≥ 11**, sitio sin especificar |
+| IT | **> 2,8 m/s** | **> 2,8 m/s** | **> 2,8 m/s** |
+| PSAP | **> 35 mmHg**, alternativa de la IT | **no existe** | — |
+| TDE | **≤ 160 ms** | **≤ 160 ms** | **≤ 160 ms**, sólo con FEVI deprimida |
+| TRIV | — | — | **≤ 65 ms** |
+| LARS (paso 2) | **< 18 %** | **< 16 %** | — |
+| S/D venoso (paso 2) | **< 1** | **< 1** | — |
+| IMC (paso 2) | **> 30 kg/m²** | **> 30 kg/m²** | — |
+
+### Las reglas, que NO son la misma
+
+- **ASE 2025** — paso 1: ≥3 positivos → elevada · 0 ó 1 → normal · 2 → paso 2. Paso 2: ≥2 de 3 →
+  elevada · 0 con los **tres evaluados** → normal · 1 solo, o sin los tres → **indeterminada**.
+- **BSE 2024** — paso 1: ≥3 **positivos** → elevada · ≥3 **negativos** → normal · si no → paso 2.
+  Paso 2: ≥2 positivos → elevada · ≥2 negativos → normal · si no → **indeterminada**.
+- **ASE/EACVI 2016** — **no hay regla**: se muestran los parámetros con su estado y se dice que la
+  guía no los combina. **No hay veredicto y no hay frase.**
+
+⚠️ **CON PARÁMETROS SIN MEDIR, LA ASE 2025 SÓLO CONCLUYE LO ROBUSTO.** Su figura cuenta «of
+above» sobre los cuatro y no dice qué hacer con los que faltan: a la letra, un formulario vacío
+tiene «none of above» y saldría **normal**. Así que la app afirma normalidad sólo si, aun con
+todos los faltantes positivos, el conteo siguiera en 0 ó 1; y presión elevada con 3 positivos,
+que ningún faltante deshace. Lo demás es `FA — Datos insuficientes`, con el motivo. **La BSE no
+necesita esa guarda**: cuenta negativos explícitamente.
+
+### Los cinco desenlaces, y su frase
+`_diastFAElevada` · `_diastFANormal` · `_diastFAIndet` · `_diastFANoConcluye` (sólo ASE 2025) ·
+`_diastFASinRegla` (sólo ASE 2016). El `badgeTxt` lleva la guía entre paréntesis y el
+`ventanaTit` es el mismo texto **sin** ese sufijo: si los dos se escriben distinto, deja de poder
+comprobarse que el cuadro y la ventana dicen lo mismo comparando sus textos.
+
+**Sólo `_diastFAElevada` escribe `texto` y `textoSuma`**, y los dos son la misma frase:
+
+> «Disfunción diastólica con presión de llenado elevada (con FA).»
+
+Los otros cuatro los dejan vacíos, y `diastFAPintar` marca `faSinFrase: true` para apagar el
+respaldo de `generarInforme` —«Función diastólica no valorada por datos insuficientes.»—, que
+también es una frase de función diastólica. **En FA el informe firmado no escribe nada salvo con
+presión elevada** (decisión de Maicol, 2026-10-12).
+
+### El aviso de frecuencia cardíaca
+`diastFcAvisoSync` es su único dueño, pinta `#diast-fc-aviso` y **sólo con BSE + FA**: la Figura 8
+de la ASE no pone ningún límite. Dos tramos, porque la Figura 19 dice dos cosas distintas:
+**> 120 lpm** «no se recomienda» (su pie) y **100 a 120** «pide < 100 lpm» (su encabezado).
+**No cambia ningún veredicto.** Lleva las **dos columnas**: el oyente de documento que ya repinta
+la ventana (con `RECALC_MODULOS`) y `limpiarCampos`.
+
+### Trampas propias de esta zona
+
+- ⚠️ **EL S/D VENOSO PULMONAR CAMBIA DE ESTADO SEGÚN EL RITMO.** En sinusal el corte es ≤0,67 y el
+  `<select>` de «<1 / >1» no puede expresarlo: está declarado **no evaluable**. En FA el corte es
+  **< 1**, que es exactamente lo que dice la opción, así que **sí vota**. Es el mismo campo con
+  dos cortes, y uno cae justo en el borde de la opción.
+- ⚠️ **UNA IT DE 2,80 ES POSITIVA EN SINUSAL Y NEGATIVA EN FA.** La Figura 3 la escribe con `≥` y
+  las Figuras 8 y 19 con `>`. Las dos cosas son correctas y por eso las ramas **no comparten
+  constantes**. Lo mismo con el E/e'.
+- ⚠️ **EL IMC DE 30,00 EXACTO DEPENDE DE LA TALLA, POR PUNTO FLOTANTE.** El corte es `> 30` y un
+  30 exacto es negativo —verificado con talla 100 y peso 30—, pero `(170/100)**2` vale
+  `2.8899999999999997`, así que **86,7 kg con 170 cm da 30.000000000000004 y cruza el corte**. No
+  se tocó `getIMC`, que es el dueño único y lo comparten `calcBSA`, el encabezado del PDF y el PPM
+  mitral. Al fijar un caso de borde del IMC, usar talla 100 (el peso en kilos **es** el IMC).
+- ⚠️ **EL LARS TIENE DOS CORTES Y NO ES UN DESCUIDO**: 18 % en la ASE y 16 % en la BSE, que lo baja
+  porque en FA no hay contracción auricular (pág. 40). Un 17 % da indeterminada por una guía y
+  normal por la otra sobre el **mismo** paciente.
+- ⚠️ **`calcDiastolASE2025` CONSERVA SU GUARDA DE FA** aunque el despachador ya decida el ritmo:
+  cubre a quien la llame directamente, y hay casos de la suite que lo hacen.
+
+---
+
 ## Por dónde sale cada dato
 
 | Superficie | Cómo llega |
@@ -134,14 +230,15 @@ la guía: un E/A ≥2 con e' conservada es el patrón del corazón joven y sano.
 
 ## Trampas de esta zona
 
-- ⚠️ **`calcDiastol` NO está cableado a todos los campos que lee.** Sus `oninput` están sólo en los
-  cuatro del Doppler mitral, el LARS y los dos selectores. **El Vol AI, la velocidad de la IT, el
-  TRIV y los campos de VCI no lo llaman**, así que cargar uno de esos deja **el cuadro gris con el
-  veredicto del paciente anterior**. La ventana **no** se atrasa: `diastAlgoRender` cuelga de un
-  oyente de `input`/`change` a nivel documento. `generarInforme` llama a `calcDiastol`, así que el
-  **informe firmado nunca se atrasa**. Es pre-existente y está en `docs/PENDIENTES.md`.
-  **Al medir: tipear primero lo no cableado y los campos mitrales al final**, o llamar
-  `calcDiastol()` a mano. Sin eso, una sonda informa el veredicto del paciente anterior.
+- ✅ **EL DESFASE DEL CUADRO ESTÁ CERRADO (2026-10-12).** `calcDiastol` vivía sólo en los `oninput`
+  de los cuatro campos mitrales, del LARS y de los dos selectores; el TDE y el TRIV no tenían
+  manejador ninguno y el Vol AI, la IT (sus dos campos), el peso, la talla, la FEVI, el S/D y los
+  dos de VCI llamaban a lo suyo y no a la diastólica, así que el cuadro se quedaba con el
+  veredicto del paciente anterior. Hoy esos **once** campos la llaman. Medido en A/B: en ritmo
+  sinusal el **veredicto final es idéntico** —es una función pura de los campos— y lo único que
+  cambia es cuándo se repinta.
+  **Al medir sigue conviniendo tipear los selectores primero**: `vci_col` entra por `calcPmAD`, y
+  el orden de una escena se lee mejor si el último gesto es un campo del propio módulo.
 - ⚠️ **Las tres celdas compartidas (`ea-val`, `eprom-val`, `ee-val`) se escriben ANTES del `return`
   de FA**, en `calcDiastolASE2025` y no en el dueño. `calcDiastolBSE2024` escribe `eprom-val` sólo
   con los dos anillos, así que mover esa escritura detrás del `return` dejaría en blanco el e'
@@ -161,6 +258,9 @@ la guía: un E/A ≥2 con e' conservada es el patrón del corazón joven y sano.
 ## Cómo medir esta zona
 
 ```bash
+node scripts/_probe_diastfa.mjs --solo cuadro,ventana      # la FA: grupos de a uno
+node scripts/_probe_diastfa.mjs --solo bordes
+node scripts/_probe_diastfa.mjs --file /tmp/index.HEAD.html --solo desfase
 node scripts/_probe_diast2025.mjs --solo cuadro,ventana,bordes,superficies,fa,otros
 node scripts/_probe_diast2025.mjs --file /tmp/index.HEAD.html   # el otro lado del A/B
 node scripts/test_clinico.mjs --solo TC-27,TC-28,TC-29,TC-453
@@ -171,5 +271,15 @@ La sonda es **A/B de solo lectura** y carga cada escena con **teclas reales**. G
 BSE y 2016). **Informa el denominador de cada escena** —qué quedó en cada campo y cuántas filas vio
 la ventana—, porque un conteo sobre una ventana que no abrió da cero y parece acuerdo perfecto.
 
-**TC-453** es la cobertura: los bordes de cada corte por sus dos lados, la escena 3.1, los dos
-estados nuevos con su literal exacto y cuatro controles negativos.
+**TC-453** es la cobertura del ritmo sinusal: los bordes de cada corte por sus dos lados, la
+escena 3.1, los dos estados nuevos con su literal exacto y cuatro controles negativos.
+
+**TC-454 es la de la FA**: 68 condiciones —el conteo del paso 1 de 0 a 4 en las dos guías que lo
+tienen, los bordes de cada corte por los dos lados, el segundo paso, los dos cortes del LARS, el
+IMC, la PSAP con su control negativo en la BSE, la frase única del informe y seis controles
+negativos—. Verificado que sabe fallar **contra HEAD en un worktree aparte: 47 de las 68 en
+rojo**; las que pasan son las que esta tanda no mueve.
+
+**`scripts/_probe_diastfa.mjs`** es el arnés de la FA, A/B de solo lectura con `--file`, con siete
+grupos: `cuadro`, `ventana`, `bordes`, `superficies`, `sinusal` (control negativo), `desfase` y
+`fc`. **Correr los grupos de a uno.**

@@ -897,6 +897,257 @@ caso('TC-453', 'Diastolica ASE 2025: las tres variables de la Figura 3 con su se
   ] };
 `);
 
+caso('TC-454', 'Diastolica en FIBRILACION AURICULAR: cada guia con SU protocolo —Figura 8 de la ASE 2025, Figura 19 de la BSE y la seccion sin regla de conteo de la ASE/EACVI 2016—, los bordes de cada corte por los dos lados, el segundo paso, la frase unica del informe y seis controles negativos', `
+  const faltan = [];
+  const S = (k, v) => { const r = __t.set(k, v); if (r !== 1) faltan.push(k + '=' + r) };
+
+  /* La ventana del boton 🧭, por las MISMAS funciones que llama su onclick. El estado de cada
+     fila sale de su CLASE: da-bad = criterio positivo, da-ok = negativo, da-na = sin dato. */
+  const V = () => {
+    diastAlgoAbrir();
+    const cu = document.getElementById('diast-algo-cuerpo');
+    if (!cu) { diastAlgoCerrar(); return { filas: [], res: 'NO EXISTE EL CUERPO', n: 0, tit: '' } }
+    const filas = Array.prototype.slice.call(cu.querySelectorAll('.da-row')).map(f => ({
+      crit: ((f.querySelector('.da-crit') || {}).textContent || '').replace(/\\s+/g, ' ').trim(),
+      est: /da-bad/.test(f.className) ? 'POS' : (/da-ok/.test(f.className) ? 'neg' : 'na') }));
+    const res = ((cu.querySelector('.da-res') || {}).textContent || '').replace(/\\s+/g, ' ').trim();
+    const tit = (__t.txt('diast-algo-titulo') || '').replace(/\\s+/g, ' ').trim();
+    diastAlgoCerrar();
+    return { filas: filas, res: res, n: filas.length, tit: tit };
+  };
+  const fila = (v, sub) => { const f = v.filas.filter(x => x.crit.indexOf(sub) > -1)[0];
+                             return f ? f.est : 'NO EXISTE' };
+
+  /* Una escena: guia y ritmo PRIMERO —son selects de escenario y mandan el algoritmo entero—,
+     despues peso y talla, despues los campos. Peso 80 / talla 180 dan IMC 24,69, o sea el tercer
+     parametro del segundo paso NEGATIVO salvo que la escena lo pise. */
+  const esc = (guia, m, ritmo) => {
+    __t.limpiar();
+    S('diast_algoritmo', guia);
+    S('diast_ritmo', ritmo || 'fa');
+    if (m.peso === undefined) S('peso', '80');
+    if (m.talla === undefined) S('talla', '180');
+    const orden = ['peso','talla','fevi','vci_col','vci_diam','venp_sd','triv','tde','ai_vol',
+                   'vmax_it','lars','ao_fc','e_sep','e_lat','onda_e','onda_a'];
+    orden.forEach(k => { if (m[k] !== undefined) S(k, m[k]) });
+    Object.keys(m).forEach(k => { if (orden.indexOf(k) < 0) S(k, m[k]) });
+    calcDiastol();
+    const r = __t.informe();
+    const d = window._diastResult || {};
+    const fcEl = document.getElementById('diast-fc-aviso');
+    return { inf: r.inf, suma: r.suma, badge: (__t.txt('dd-interp') || '').replace(/\\s+/g, ' ').trim(),
+             texto: d.texto || '', tsuma: d.textoSuma || '', ven: V(), psap: __t.val('psap_calc'),
+             fcTxt: fcEl ? (fcEl.textContent || '').replace(/\\s+/g, ' ').trim() : 'NO EXISTE',
+             fcDisp: fcEl ? getComputedStyle(fcEl).display : 'NO EXISTE' };
+  };
+
+  /* La linea del informe que habla de la diastolica. Por linea y no por oracion: el informe se
+     une por salto de linea y la diastolica comparte oracion con la geometria del VI. */
+  const lineaD = (txt) => String(txt || '').split('\\n').filter(l =>
+    /diast[oó]lic|presi[oó]n de llenado|relajaci[oó]n/i.test(l)).join(' | ').replace(/\\s+/g, ' ').trim();
+
+  const FRASE = 'Disfunción diastólica con presión de llenado elevada (con FA).';
+  /* Los cuatro del paso 1: onda E, E/e septal, IT o PSAP, y TDE. Con e septal 10 y onda E 120 el
+     cociente da 12,0 —positivo en las dos guias— asi que la escena base tiene DOS positivos y la
+     decision cae en el segundo paso. */
+  const P2 = { onda_e: '120', e_sep: '10', vmax_it: '2.0', tde: '200' };
+  const mas = (o) => Object.assign({}, P2, o);
+
+  // ── A · CONTEO DEL PASO 1: 0, 1, 2, 3 y 4 positivos, en las DOS guias que lo tienen.
+  const a0 = esc('ase2025', { onda_e: '70', e_sep: '10', vmax_it: '2.0', tde: '200' });
+  const a1 = esc('ase2025', { onda_e: '120', e_sep: '12', vmax_it: '2.0', tde: '200' });
+  const a2 = esc('ase2025', P2);
+  const a3 = esc('ase2025', mas({ vmax_it: '3.2' }));
+  const a4 = esc('ase2025', mas({ vmax_it: '3.2', tde: '140' }));
+  const b0 = esc('bse2024', { onda_e: '70', e_sep: '10', vmax_it: '2.0', tde: '200' });
+  const b1 = esc('bse2024', { onda_e: '120', e_sep: '12', vmax_it: '2.0', tde: '200' });
+  const b2 = esc('bse2024', P2);
+  const b3 = esc('bse2024', mas({ vmax_it: '3.2' }));
+  const b4 = esc('bse2024', mas({ vmax_it: '3.2', tde: '140' }));
+
+  // ── B · BORDES DEL PASO 1, por los dos lados. Los cortes son los mismos en las dos figuras.
+  const e99  = esc('ase2025', { onda_e: '99',  e_sep: '8', vmax_it: '3.2', tde: '200' });
+  const e100 = esc('ase2025', { onda_e: '100', e_sep: '8', vmax_it: '3.2', tde: '200' });
+  const ee110 = esc('ase2025', { onda_e: '110', e_sep: '10', vmax_it: '2.0', tde: '200' });
+  const ee111 = esc('ase2025', { onda_e: '111', e_sep: '10', vmax_it: '2.0', tde: '200' });
+  const it280 = esc('ase2025', mas({ vmax_it: '2.8' }));
+  const it281 = esc('ase2025', mas({ vmax_it: '2.81' }));
+  const tde160 = esc('ase2025', mas({ tde: '160' }));
+  const tde161 = esc('ase2025', mas({ tde: '161' }));
+  const bit280 = esc('bse2024', mas({ vmax_it: '2.8' }));
+  const bit281 = esc('bse2024', mas({ vmax_it: '2.81' }));
+
+  // ── C · LA PSAP ES ALTERNATIVA DE LA IT SOLO EN LA ASE 2025. VCI 15 mm con colapso <50 da
+  //      PmAD 8; con IT 2,60 la PSAP es 35 (NEGATIVA, el corte es >35) y con 2,65 es 36.
+  const ps35 = esc('ase2025', mas({ vmax_it: '2.6',  vci_diam: '15', vci_col: '<50' }));
+  const ps36 = esc('ase2025', mas({ vmax_it: '2.65', vci_diam: '15', vci_col: '<50' }));
+  const bps36 = esc('bse2024', mas({ vmax_it: '2.65', vci_diam: '15', vci_col: '<50' }));
+
+  // ── D · EL SEGUNDO PASO. Con dos positivos del paso 1, los tres parametros deciden.
+  const d2pos = esc('ase2025', mas({ lars: '15', venp_sd: 'menor1' }));
+  const d0pos = esc('ase2025', mas({ lars: '25', venp_sd: 'mayor1' }));
+  const d1pos = esc('ase2025', mas({ lars: '15', venp_sd: 'mayor1' }));
+  const dSin  = esc('ase2025', mas({ lars: '15' }));
+
+  // ── E · EL LARS TIENE CORTES DISTINTOS EN LAS DOS GUIAS, Y ES DE LA FUENTE: <18 % en la
+  //      Figura 8 y <16 % en la Figura 19, porque en FA no hay contraccion auricular.
+  const l17a = esc('ase2025', mas({ lars: '17', venp_sd: 'mayor1' }));
+  const l17b = esc('bse2024', mas({ lars: '17', venp_sd: 'mayor1' }));
+  const l179 = esc('ase2025', mas({ lars: '17.9', venp_sd: 'menor1' }));
+  const l180 = esc('ase2025', mas({ lars: '18',   venp_sd: 'menor1' }));
+  const l159 = esc('bse2024', mas({ lars: '15.9', venp_sd: 'menor1' }));
+  const l160 = esc('bse2024', mas({ lars: '16',   venp_sd: 'menor1' }));
+
+  // ── F · EL IMC, con el corte > 30 por los dos lados. La talla 100 da un IMC EXACTO —el peso
+  //      en kilos es el IMC— y es la unica forma de probar el 30,00 sin que la aritmetica de
+  //      punto flotante decida por el borde (ver la nota del caso).
+  const i30  = esc('ase2025', mas({ peso: '30', talla: '100', lars: '25', venp_sd: 'menor1' }));
+  const i301 = esc('ase2025', mas({ peso: '87', talla: '170', lars: '25', venp_sd: 'menor1' }));
+  const i299 = esc('ase2025', mas({ peso: '86.4', talla: '170', lars: '25', venp_sd: 'menor1' }));
+
+  // ── G · LA ASE/EACVI 2016 NO DA UNA REGLA DE CONTEO: muestra y no concluye.
+  const g16 = esc('ase2016', mas({ vmax_it: '3.2', triv: '60', fevi: '35', tde: '140' }));
+  const g16v = esc('ase2016', { onda_e: '70', e_sep: '10' });
+
+  // ── H · EL AVISO DE FRECUENCIA CARDIACA DE LA BSE: dos tramos, y NO cambia el veredicto.
+  const h99  = esc('bse2024', mas({ ao_fc: '99' }));
+  const h100 = esc('bse2024', mas({ ao_fc: '100' }));
+  const h121 = esc('bse2024', mas({ ao_fc: '121' }));
+  const hAse = esc('ase2025', mas({ ao_fc: '130' }));
+  const hSin = esc('bse2024', mas({ ao_fc: '130' }), 'sinusal');
+
+  // ── I · CONTROL NEGATIVO DEL RITMO: en SINUSAL ninguna de las tres pasa por el camino de FA.
+  const s25 = esc('ase2025', mas({ vmax_it: '3.2', tde: '140' }), 'sinusal');
+  const s24 = esc('bse2024', mas({ vmax_it: '3.2', tde: '140' }), 'sinusal');
+  const s16 = esc('ase2016', mas({ vmax_it: '3.2', tde: '140' }), 'sinusal');
+
+  return { extra: [
+    // ── DENOMINADORES. Sin esto, un cero cuenta como acuerdo y una fila ausente como negativa.
+    ['todos los campos de todas las escenas existen', faltan.length === 0, faltan.join(' | ')],
+    ['la ventana de la ASE 2025 en FA dibuja sus 8 filas', a4.ven.n === 8,
+      'n=' + a4.ven.n + ' | ' + JSON.stringify(a4.ven.filas.map(f => f.crit))],
+    ['la ventana de la BSE en FA dibuja sus 7 filas', b4.ven.n === 7,
+      'n=' + b4.ven.n + ' | ' + JSON.stringify(b4.ven.filas.map(f => f.crit))],
+    ['la ventana de la ASE 2016 en FA dibuja sus 7 filas', g16.ven.n === 7,
+      'n=' + g16.ven.n + ' | ' + JSON.stringify(g16.ven.filas.map(f => f.crit))],
+    ['el titulo de la ventana nombra la FA', a4.ven.tit.indexOf('fibrilación auricular') > -1, a4.ven.tit],
+
+    // ── EL DEFECTO QUE ABRIO LA TANDA: con ASE 2025 y FA, el badge decia «BSE 2024».
+    ['ASE 2025 en FA nombra a la ASE 2025 y NO a la BSE',
+      a4.badge.indexOf('ASE 2025') > -1 && a4.badge.indexOf('BSE') < 0, a4.badge],
+    ['BSE 2024 en FA nombra a la BSE', b4.badge.indexOf('BSE 2024') > -1, b4.badge],
+    ['ASE 2016 en FA nombra a la ASE/EACVI 2016', g16.badge.indexOf('ASE/EACVI 2016') > -1, g16.badge],
+
+    // ── A · el conteo del paso 1, en las dos guias
+    ['ASE 0 de 4 -> presion normal', a0.badge.indexOf('normal') > -1, a0.badge],
+    ['ASE 1 de 4 -> presion normal', a1.badge.indexOf('normal') > -1, a1.badge],
+    ['ASE 2 de 4 -> NO decide el paso 1 (va al paso 2)', a2.badge.indexOf('indeterminada') > -1, a2.badge],
+    ['ASE 3 de 4 -> presion elevada', a3.badge.indexOf('elevada') > -1, a3.badge],
+    ['ASE 4 de 4 -> presion elevada', a4.badge.indexOf('elevada') > -1, a4.badge],
+    ['BSE 0 de 4 -> presion normal', b0.badge.indexOf('normal') > -1, b0.badge],
+    ['BSE 1 de 4 -> presion normal (3 negativos)', b1.badge.indexOf('normal') > -1, b1.badge],
+    ['BSE 2 de 4 -> NO decide el paso 1', b2.badge.indexOf('indeterminada') > -1, b2.badge],
+    ['BSE 3 de 4 -> presion elevada', b3.badge.indexOf('elevada') > -1, b3.badge],
+    ['BSE 4 de 4 -> presion elevada', b4.badge.indexOf('elevada') > -1, b4.badge],
+
+    // ── B · los bordes del paso 1, por los dos lados
+    ['onda E 99 NO llega al corte', fila(e99.ven, 'Onda E') === 'neg', fila(e99.ven, 'Onda E')],
+    ['onda E 100 POSITIVA (el corte es >= y entra)', fila(e100.ven, 'Onda E') === 'POS', fila(e100.ven, 'Onda E')],
+    ['y el veredicto cambia con ese solo criterio',
+      e99.badge.indexOf('elevada') < 0 && e100.badge.indexOf('elevada') > -1, e99.badge + ' | ' + e100.badge],
+    ["E/e septal 11,00 NEGATIVO (el corte es > y no >=)", fila(ee110.ven, "E/e' septal > 11") === 'neg', fila(ee110.ven, "E/e' septal > 11")],
+    ["E/e septal 11,10 POSITIVO", fila(ee111.ven, "E/e' septal > 11") === 'POS', fila(ee111.ven, "E/e' septal > 11")],
+    ['IT 2,80 NEGATIVA en FA (la Figura 3 del ritmo sinusal usa >=, la 8 y la 19 usan >)',
+      fila(it280.ven, 'Velocidad IT') === 'neg', fila(it280.ven, 'Velocidad IT')],
+    ['IT 2,81 POSITIVA', fila(it281.ven, 'Velocidad IT') === 'POS', fila(it281.ven, 'Velocidad IT')],
+    ['y en la BSE el borde de la IT es el mismo',
+      fila(bit280.ven, 'Velocidad IT') === 'neg' && fila(bit281.ven, 'Velocidad IT') === 'POS',
+      fila(bit280.ven, 'Velocidad IT') + ' | ' + fila(bit281.ven, 'Velocidad IT')],
+    ['TDE 160 POSITIVO (el corte es <= y entra)', fila(tde160.ven, 'TDE') === 'POS', fila(tde160.ven, 'TDE')],
+    ['TDE 161 negativo', fila(tde161.ven, 'TDE') === 'neg', fila(tde161.ven, 'TDE')],
+
+    // ── C · la PSAP, con su control negativo en la BSE
+    ['la PSAP de la escena de 35 es 35', String(ps35.psap) === '35', 'psap=' + ps35.psap],
+    ['la PSAP de la escena de 36 es 36', String(ps36.psap) === '36', 'psap=' + ps36.psap],
+    ['PSAP 35 NEGATIVA (el corte es > 35)', fila(ps35.ven, 'PSAP') === 'neg', fila(ps35.ven, 'PSAP')],
+    ['PSAP 36 POSITIVA y decide con la IT negativa',
+      fila(ps36.ven, 'PSAP') === 'POS' && fila(ps36.ven, 'Velocidad IT') === 'neg' && ps36.badge.indexOf('elevada') > -1,
+      fila(ps36.ven, 'PSAP') + ' | ' + fila(ps36.ven, 'Velocidad IT') + ' | ' + ps36.badge],
+    ['CN1 la BSE NO tiene fila de PSAP: su Figura 19 no la nombra',
+      fila(bps36.ven, 'PSAP') === 'NO EXISTE', fila(bps36.ven, 'PSAP')],
+    ['CN1 y con la MISMA PSAP de 36 la BSE no da presion elevada',
+      bps36.badge.indexOf('elevada') < 0, bps36.badge + ' | psap=' + bps36.psap],
+
+    // ── D · el segundo paso
+    ['ASE paso 2 con 2 de 3 -> elevada', d2pos.badge.indexOf('elevada') > -1, d2pos.badge],
+    ['ASE paso 2 con 0 de 3 EVALUADOS -> normal', d0pos.badge.indexOf('normal') > -1, d0pos.badge],
+    ['ASE paso 2 con 1 de 3 -> indeterminada', d1pos.badge.indexOf('indeterminada') > -1, d1pos.badge],
+    ['ASE paso 2 sin los tres evaluados NO afirma normalidad',
+      dSin.badge.indexOf('normal') < 0, dSin.badge],
+
+    // ── E · el LARS, con el corte propio de cada guia
+    ['LARS 17 % es POSITIVO para la ASE 2025', fila(l17a.ven, 'LARS') === 'POS', fila(l17a.ven, 'LARS')],
+    ['LARS 17 % es NEGATIVO para la BSE (su corte es < 16)', fila(l17b.ven, 'LARS') === 'neg', fila(l17b.ven, 'LARS')],
+    ['y el MISMO paciente sale indeterminado por ASE y normal por BSE',
+      l17a.badge.indexOf('indeterminada') > -1 && l17b.badge.indexOf('normal') > -1,
+      l17a.badge + ' | ' + l17b.badge],
+    ['LARS 17,9 POSITIVO y 18,0 NEGATIVO en la ASE 2025',
+      fila(l179.ven, 'LARS') === 'POS' && fila(l180.ven, 'LARS') === 'neg',
+      fila(l179.ven, 'LARS') + ' | ' + fila(l180.ven, 'LARS')],
+    ['LARS 15,9 POSITIVO y 16,0 NEGATIVO en la BSE',
+      fila(l159.ven, 'LARS') === 'POS' && fila(l160.ven, 'LARS') === 'neg',
+      fila(l159.ven, 'LARS') + ' | ' + fila(l160.ven, 'LARS')],
+
+    // ── F · el IMC
+    ['IMC 30,00 exacto es NEGATIVO (el corte es > 30)', fila(i30.ven, 'IMC') === 'neg', fila(i30.ven, 'IMC')],
+    ['IMC 30,10 POSITIVO', fila(i301.ven, 'IMC') === 'POS', fila(i301.ven, 'IMC')],
+    ['IMC 29,90 negativo', fila(i299.ven, 'IMC') === 'neg', fila(i299.ven, 'IMC')],
+
+    // ── G · la ASE/EACVI 2016 no concluye, y ya no dice «Datos insuficientes» con el formulario lleno
+    ['ASE 2016 en FA declara que la guia no da regla de conteo',
+      g16.badge.indexOf('sin regla de conteo') > -1, g16.badge],
+    ['ASE 2016 en FA ya NO dice «Datos insuficientes» con los parametros cargados',
+      g16.badge.indexOf('insuficiente') < 0, g16.badge],
+    ['ASE 2016 en FA evalua los que puede y lo informa',
+      fila(g16.ven, 'Velocidad IT') === 'POS' && fila(g16.ven, 'TRIV') === 'POS', g16.ven.res],
+    ['ASE 2016 en FA deja en gris los tres que esta app no mide, CON el motivo',
+      fila(g16.ven, 'Aceleración de la onda E') === 'na' && fila(g16.ven, 'E/Vp') === 'na'
+      && g16.ven.filas.filter(f => f.crit.indexOf('no evaluable') > -1).length === 3,
+      JSON.stringify(g16.ven.filas.map(f => f.crit + '=' + f.est))],
+    ['ASE 2016 en FA no escribe NINGUNA frase de diastolica en el informe',
+      lineaD(g16.inf) === '' && lineaD(g16.suma) === '', lineaD(g16.inf) + ' || ' + lineaD(g16.suma)],
+    ['ASE 2016 en FA tampoco con el formulario casi vacio', lineaD(g16v.inf) === '', lineaD(g16v.inf)],
+
+    // ── LA FRASE DEL INFORME: una sola, y solo con presion elevada
+    ['con presion elevada el informe lleva la frase exacta', lineaD(a4.inf) === FRASE, lineaD(a4.inf)],
+    ['y el EN SUMA lleva la misma', lineaD(a4.suma) === FRASE, lineaD(a4.suma)],
+    ['con presion NORMAL el informe no escribe ninguna frase de diastolica',
+      lineaD(a0.inf) === '' && lineaD(a0.suma) === '', lineaD(a0.inf) + ' || ' + lineaD(a0.suma)],
+    ['con presion INDETERMINADA tampoco',
+      lineaD(a2.inf) === '' && lineaD(a2.suma) === '', lineaD(a2.inf) + ' || ' + lineaD(a2.suma)],
+    ['CN2 y el respaldo de «no valorada por datos insuficientes» tampoco sale en FA',
+      a2.inf.indexOf('no valorada por datos insuficientes') < 0, lineaD(a2.inf)],
+    ['la frase de la BSE es la MISMA: una sola para las tres guias', lineaD(b4.inf) === FRASE, lineaD(b4.inf)],
+
+    // ── H · el aviso de frecuencia cardiaca
+    ['FC 99 no muestra aviso', h99.fcDisp === 'none', h99.fcDisp + ' | ' + h99.fcTxt],
+    ['FC 100 avisa que la BSE pide < 100 lpm',
+      h100.fcDisp === 'block' && h100.fcTxt.indexOf('pide frecuencia cardíaca < 100 lpm') > -1, h100.fcTxt],
+    ['FC 121 avisa que la BSE no lo recomienda por encima de 120',
+      h121.fcDisp === 'block' && h121.fcTxt.indexOf('no se recomienda') > -1, h121.fcTxt],
+    ['CN3 el aviso NO cambia el veredicto', h99.badge === h121.badge, h99.badge + ' | ' + h121.badge],
+    ['CN4 el aviso es de la BSE: con la ASE 2025 y FC 130 no aparece', hAse.fcDisp === 'none', hAse.fcTxt],
+    ['CN5 y en ritmo sinusal tampoco', hSin.fcDisp === 'none', hSin.fcTxt],
+
+    // ── I · CONTROL NEGATIVO DEL RITMO: en sinusal no entra el camino de FA
+    ['CN6 ASE 2025 en sinusal no pasa por el camino de FA', s25.badge.indexOf('FA —') < 0, s25.badge],
+    ['CN6 BSE 2024 en sinusal tampoco', s24.badge.indexOf('FA —') < 0, s24.badge],
+    ['CN6 ASE 2016 en sinusal tampoco', s16.badge.indexOf('FA —') < 0, s16.badge],
+    ['CN6 y la ventana de sinusal no dibuja las filas de la FA',
+      s25.ven.filas.filter(f => f.crit.indexOf('IMC') > -1).length === 0, s25.ven.tit + ' | n=' + s25.ven.n]
+  ] };
+`);
+
 // ═══ GRUPO 12 — Auriculas ═══════════════════════════════════════════════════════════════════
 /* UMBRAL_LAVI_DILATADO = 34, y despues 41 y 48. Con BSA 2,00 el volumen en ml es el doble del
    indexado, asi que 68 ml es exactamente 34,0 ml/m². */

@@ -529,6 +529,115 @@ imágenes: de ahí sólo se leyó la prosa que las describe, y está anotado don
 | **560** · Figura 6 | **HP no cardíaca**: E/A ≤0,8 con E ≤50 cm/s → PAI normal; E/A ≥2 con e' reducido → elevada; en el medio, **E/e' LATERAL** <8 normal, >13 elevada y **8-13 indeterminado**, con el LARS (≤18 % elevada, >18 % normal) como desempate | **acá sí hay casilla «indeterminado»** |
 | **563** · Figura 8 | **FA**: paso 1 con E ≥100 cm/s, **E/e' septal >11**, IT >2,8 o PSAP >35, TDE ≤160 ms. ≥3 → elevada; ninguno o 1 → normal; 2 → paso 2 con LARS <18 %, S/D <1, IMC >30: 2 o 3 → elevada, ninguno → normal, **1 solo o no disponibles → indeterminado** | **acá también hay «indeterminado»**; y el LARS del paso 2 es **<18 %**, no el <16 % de la BSE |
 
+#### La FIBRILACIÓN AURICULAR — Figura 8, folio 563 (verificada 2026-10-12)
+
+Leída en el ORIGINAL (PDF página 27 de `Left-Ventricular-Diastolic-Function.pdf`, folio 563), con
+la figura como texto vectorial. **El tercer parámetro del segundo paso ES el IMC** —el reporte
+anterior lo marcaba como posible error de lectura y no lo era—: la figura escribe
+`BMI > 30 kg/m2` y el cuerpo del artículo lo explica en el mismo folio, al listar la obesidad
+entre las comorbilidades que elevan la probabilidad pretest de HFpEF.
+
+| Paso | Parámetros, con el operador impreso | Regla |
+|---|---|---|
+| **1** | Onda E **≥ 100 cm/s** · E/e' **SEPTAL > 11** · IT **> 2,8 m/s** o PSAP **> 35 mmHg** · TDE **≤ 160 ms** | «3 or more of above» → PAI **elevada** · «None or 1 of above» → **normal** · «2 of above» → paso 2 |
+| **2** | LARS **< 18 %** · S/D venoso pulmonar **< 1** · IMC **> 30 kg/m²** | «2/3 or 3/3» → **elevada** · «None» → **normal** · «1 only or not available or not reliable» → **indeterminado** |
+
+**La figura NO da límite de frecuencia cardíaca ni exclusiones propias.** Lo único que el texto
+del folio 563 pide es promediar varios ciclos y elegir latidos representativos de la frecuencia
+media; menciona además que el registro simultáneo de E y e' con sonda de doble Doppler es más
+exacto que promediar ciclos distintos, y que la menor variabilidad latido a latido del llenado
+mitral acompaña a la presión elevada. Ninguna de esas tres cosas es un corte.
+
+⚠️ **LOS OPERADORES DE LA FIGURA 8 NO SON LOS DE LA FIGURA 3.** La Figura 3 (ritmo sinusal,
+folio 554) escribe la IT y el E/e' con **≥**; la Figura 8 los escribe con **>**. No es una
+contradicción interna de la guía —son dos algoritmos distintos para dos poblaciones distintas—,
+pero sí el motivo por el que la app NO comparte constantes entre las dos ramas: una IT de 2,80
+es POSITIVA en ritmo sinusal y NEGATIVA en FA, y las dos cosas son correctas.
+
+⚠️ **EL E/e' DE LA FA ES EL SEPTAL, Y UNO SOLO.** En ritmo sinusal la Figura 3 ofrece tres cortes
+por sitio como alternativas (septal ≥15, lateral ≥13, promedio ≥14); en FA la Figura 8 da **un**
+corte y lo califica de septal. La **Tabla 7 del folio 557** —indicadores en poblaciones
+especiales— repite «E/e' septal ≥ 11» para la FA, con `≥` donde la figura escribe `>`: gana la
+figura del algoritmo que la app ejecuta, que es la Figura 8.
+
+⚠️ **EL S/D VENOSO PULMONAR SÍ ES EVALUABLE EN FA.** El corte de la Figura 3 es **≤ 0,67** y el
+campo `venp_sd` es un `<select>` de «<1 / >1», así que en ritmo sinusal queda declarado no
+evaluable; el corte de la Figura 8 es **< 1**, que es exactamente lo que esa opción dice. Es el
+mismo campo con dos cortes distintos, y uno cae justo en el borde de la opción.
+
+### `bseDiast2024` — BSE 2024, FIBRILACIÓN AURICULAR · Figura 19, pág. 39 (verificada 2026-10-12)
+
+**Documento.** Robinson S y cols., *Echo Research & Practice* 2024;11:16. Ruta en disco:
+`~/Desktop/EcoSmart_Biblioteca_Fuentes/02_Diastolica/Robinson_2024_Diastolica_BSE.pdf`
+(55 páginas; **se pagina por «Page N of 55», no por folio de revista**).
+
+⚠️ **LA FIGURA 19 ES UNA IMAGEN DENTRO DEL PDF**: el texto extraído sólo trae el pie. Se leyó
+renderizando la página 39 y mirando las cajas, y cada corte se cruzó contra la prosa de las
+págs. 37-40, que los nombra uno por uno con su justificación.
+
+| Paso | Parámetros, con el operador impreso | Regla |
+|---|---|---|
+| **1** | E/e' **septal > 11** · onda E **≥ 100 cm/s** · TDE **≤ 160 ms** · IT **> 2,8 m/s** | **≥3 positivos** → presión elevada · **≥3 negativos** → normal · «Insufficient STEP 1 criteria for decision» → paso 2 |
+| **2** | LARS **< 16 %** · IMC **> 30 kg/m²** · S/D venoso pulmonar **< 1** | **≥2 positivos** → elevada · **≥2 negativos** → normal · «Insufficient STEP 2 criteria» → **indeterminada** |
+
+**Frecuencia cardíaca, y son DOS cosas.** El encabezado de la figura dice «Heart rate <100 bpm;
+ideally use index beat method», y la pág. 37 lo explica: con menos de 100 lpm —idealmente menos
+de 90— se pueden tomar los parámetros de un solo latido si los dos R-R previos difieren menos de
+60 ms. El **pie de la figura** es otra cosa: excluye el algoritmo con «atrial fibrillation with
+rapid average ventricular rate at rest (> 120 bpm)». Una es una condición de MEDICIÓN y la otra
+una EXCLUSIÓN; la app las distingue en su aviso ámbar.
+
+**Las otras exclusiones del pie:** cardiopatía congénita compleja, trasplante cardíaco,
+hepatopatía terminal, estenosis mitral —o calcificación anular que la produzca—, prótesis mitral,
+estenosis aórtica grave e insuficiencia mitral o tricuspídea graves.
+
+**El algoritmo se usa en TODO paciente en FA, con la FEVI que sea** («For use in all AF patients,
+irrespective of LV systolic function»), y la pág. 37 agrega que en FA **la relajación del VI no
+se puede evaluar con exactitud**: por eso este algoritmo contesta sólo por la presión de llenado
+y no gradúa.
+
+⚠️ **EL LARS BAJA A 16 % EN FA, Y LA GUÍA DICE POR QUÉ** (pág. 40): sin contracción auricular el
+strain de reservorio es sistemáticamente menor que en ritmo sinusal, así que el corte de 18 % no
+sirve. Un LARS de 17 % es **positivo para la ASE 2025 y negativo para la BSE** sobre el mismo
+paciente. No se unifican.
+
+⚠️ **LA FIGURA 19 NO TIENE PSAP NI LAVi.** Su tercer criterio es la velocidad de la IT a secas
+(la pág. 38 agrega el cuidado de no medirla tras un R-R corto, que la subestima). El volumen
+auricular no aparece en ninguno de los dos pasos.
+
+⚠️ **UNA ERRATA DE LA PROSA, DECLARADA.** La pág. 37 escribe «When ≤ 3 are negative, LVFP are
+considered normal», que con cuatro criterios es la condición contraria a la que puede querer
+decir; la figura escribe **«≥3 criteria negative»**. Gana la figura. La misma prosa escribe la
+onda E con `>` donde el encabezado de su propia sección y la figura escriben `≥ 100 cm/s`.
+
+### `aseDiast2016` — ASE/EACVI 2016, FIBRILACIÓN AURICULAR · folio 295 (verificada 2026-10-12)
+
+**Documento.** Nagueh SF y cols., *J Am Soc Echocardiogr* 2016;29:277-314. Ruta en disco:
+`~/Desktop/EcoSmart_Biblioteca_Fuentes/02_Diastolica/LV-Diastolic-Function-ASE-EACVI-2016.pdf`
+(38 páginas). **Regla de folio: folio = página 1-based del PDF + 276** (PDF 7 → 283, PDF 19 →
+295).
+
+⚠️ **ESTA GUÍA NO TIENE ALGORITMO DE FA, Y ESO ES EL HALLAZGO.** Su sección E del folio 295
+enumera parámetros «sugestivos» de presión de llenado elevada y **no da ninguna regla de conteo**
+ni figura de decisión para la fibrilación auricular. Las Figuras 24-27 que cita son ejemplos de
+registros, no algoritmos.
+
+| Parámetro | Corte | Condición que la guía le pone |
+|---|---|---|
+| Velocidad de la IT | **> 2,8 m/s** | Key Point 1, sin condición |
+| TDE mitral | **≤ 160 ms** | Key Point 2: **con FEVI deprimida** |
+| Aceleración pico de la onda E | ≥ 1.900 cm/s² | Key Point 3: «en pacientes con chorro de IT incompleto» |
+| TRIV | ≤ 65 ms | ídem |
+| TD de la onda D de la vena pulmonar | ≤ 220 ms | ídem |
+| E/Vp | ≥ 1,4 | ídem |
+| E/e' | **≥ 11** | ídem. **No especifica el sitio** |
+
+Cierra pidiendo promediar varios ciclos con intervalos R-R apareados para la E y la e', y anota
+que la menor variabilidad del llenado mitral con el ciclo acompaña a la presión elevada.
+
+**Tres de esos siete no tienen campo en esta app** —la aceleración de la onda E, el TD de la onda
+D venosa y el E/Vp— y quedan declarados no evaluables, con el motivo en su propio rótulo.
+
 #### Las contradicciones internas, declaradas
 
 La ASE 2025 **se contradice consigo misma en cuatro cortes**, y no es una lectura: los dos signos
