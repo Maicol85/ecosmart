@@ -212,6 +212,139 @@ impecable.
 
 ## Estado vigente
 
+### Strain de la AI y onda L — los campos, su sincronía y lo que las guías hacen con ellos (2026-10-12)
+
+- Al **empezar** esta tanda, `main` local y `origin/main` estaban los dos en **`14e3c0c`**, sin nada
+  sin pushear —confirmado con un `git fetch` de verdad—, con los **ocho** commits de la BSE 2024 en
+  ritmo sinusal ya incluidos y pusheados. Los **seis** commits de esta tanda quedan locales; el push
+  lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 6 → 5 → 4 → 3 → 2 → 1.** El 1 crea
+  los campos, las dos sincronías, `DIAST_STRAIN_BANDA`, `diastStrainAbs` y `diastStrainMarcaSync`;
+  **del 2 al 5 cuelgan todos de él**, así que revertir el 1 sin revertir antes los otros cuatro deja
+  el archivo sin las funciones que el Excel, las dos figuras de la BSE y la etapa suplementaria de
+  la ASE consumen —o sea la app sin pestañas—. **El 3, el 4 y el 5 se revierten entre sí en
+  cualquier orden**: el 3 toca la Figura 17, el 4 la Figura 18 y el 5 la ASE 2025, y ninguno llama a
+  otro. El 2 (Excel y guardado) **también se revierte solo**, con la salvedad de que deja TC-135 y
+  los otros doce casos del Excel en rojo hasta revertir su adaptación. El 6 es documentación más
+  **TC-456**, que afirma el comportamiento de los cinco: revertir cualquiera sin el 6 deja TC-456 en
+  rojo.
+
+- **Línea base al cierre: suite 467/471 con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0 ERROR,
+  Excel 435 columnas, celular 43 a 360 px y 52 a 390 px con 1 ALTA cada uno —IDÉNTICO a la línea
+  base documentada: los seis campos nuevos no agregaron un solo hallazgo—.** Los cuatro rojos son
+  los de entrada y NO son regresiones: **TC-223** (el
+  documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**. **El denominador subió a
+  471**: esta tanda agregó **TC-456**. La de ENTRADA, medida en HEAD limpio el 2026-10-12, fue
+  **466/470** con el pendrive montado y los mismos cuatro rojos, con el `md5` de `index.html` sin
+  moverse durante las dos corridas.
+- ⚠️ **EL EXCEL PASÓ DE 434 A 435 COLUMNAS, Y ES EL PRIMER CAMBIO DE ESE NÚMERO EN MUCHAS TANDAS.**
+  Una sola columna nueva —«Strain contracción AI (%)»— porque **el LARS ya tenía la suya**. Va
+  PEGADA a «LARS (%)» (índices 20 y 21) en el bloque «3 · AURÍCULA IZQUIERDA», y se puede poner ahí
+  porque **ningún consumidor lee por posición**: el export arma la fila como objeto y
+  `_labOrdenarCols` la ordena por `LAB_XLS_MAP`, el importador lee por nombre de encabezado, y
+  **CeiboAnalytics no lee este Excel** —no tiene un solo `XLSX.read` ni `sheet_to_json` ni la palabra
+  «LARS»—. Trece casos de la suite adaptados con el motivo escrito, más los mapas, `PENDIENTES.md` y
+  las sondas archivadas. **Lo que NO se reescribió** son las siete frases de `index.html` que
+  registran una MEDICIÓN pasada («verificado en el A/B de 434»): cambiarlas diría que aquellas
+  corridas compararon 435 columnas, y no fue así. Está en `docs/PENDIENTES.md` → S6.
+- **Dónde está todo:** `docs/mapa/diastolica.md` → «Los campos de strain de la AI y la onda L» (el
+  censo de los cuatro campos, el dueño del valor absoluto, las bandas, dónde entra cada uno y las
+  trampas), `docs/fuentes/FUENTES.md` → «Strain de la AI y onda L — RE-VERIFICADO» y «Strain de
+  CONDUCTO — NO ENTRA EN NINGÚN ALGORITMO», `docs/PENDIENTES.md` → **B1 CERRADO** y seis cosas
+  nuevas declaradas y no tocadas (S1 a S6).
+
+- **CUATRO CAMPOS, Y NO SON CUATRO DATOS IGUALES.** `lars` ↔ `lars_dop` (reservorio) y
+  `ai_strain_ct` ↔ `ai_strain_ct_dop` (contracción, el **LAPs** de la guía) son **un solo valor cada
+  uno**, editable y sincronizado en los dos sentidos con el patrón de los otros cinco grupos;
+  `ai_strain_cd` (conducto) vive sólo en AI/VI y `onda_l` sólo en el Doppler mitral.
+- ⚠️ **EL STRAIN DE CONDUCTO NO ENTRA EN NINGÚN ALGORITMO DE NINGUNA DE LAS TRES GUÍAS, Y ESTÁ
+  CENSADO EN LOS DOS PDF COMPLETOS.** La BSE 2024 sólo habla del **volumen** de conducto, en la
+  fisiología de la pág. 7; la ASE 2025 lo nombra en el protocolo de adquisición y en la tabla de
+  abreviaturas del folio 546, y en ningún algoritmo. El campo es de registro: se guarda, no vota y
+  no tiene columna de Excel.
+- **EL VALOR ABSOLUTO TIENE UN SOLO DUEÑO, `diastStrainAbs`.** Los ecógrafos dan el strain de
+  contracción y el de conducto negativos y las figuras escriben sus cortes sobre la magnitud: el
+  campo guarda lo que el médico tipea y la cuenta usa `|x|`. **El LARS NO pasa por ahí**: se espera
+  positivo y un negativo se MARCA «(revisar)» sin corregirse. Medido en tres pares: **+16/−16,
+  +6/−6 y +12/−12 dan badge, frase del informe, frase del EN SUMA y resultado de la ventana
+  IDÉNTICOS**, con el campo conservando el signo tipeado.
+- **LAS FIGURAS 17 Y 18 SE RE-LEYERON DE LA IMAGEN, a 200 dpi, antes de cablear nada**, y **no se
+  movió ni un corte ni un operador**: las cajas dicen exactamente lo que la tanda anterior
+  registró. Lo que cambió es que los cuatro pasos que estaban en gris —«sin campo en la app»— ahora
+  votan. Eso **cierra el punto B1 de `docs/PENDIENTES.md`**.
+- ⚠️ **LA PRIMERA CAJA DE LA FIGURA 17 ES UN «OR» Y AHORA SE PUEDE COMPROBAR.** `pump strain ≥14%
+  OR reservoir strain ≥30%`: medido, un LARS de 25 (que no cumple) con contracción 16 publica
+  presión normal, y con contracción 10 no. En la Figura 18 el OR va en los DOS sentidos
+  (`LARs <18 OR LAPs <8` y `LARs ≥24 OR LAPs ≥14`), y su ventana pasó de tres filas de strain a
+  cuatro.
+- ⚠️ **EL 14 DE LA FIGURA 18 COINCIDE CON EL DE LA 17 POR CASUALIDAD**, igual que el 18 del lado
+  elevado: el 8 y el 24 no existen en la Figura 17. **Y LA ONDA L TIENE DOS CORTES**: `> 20 cm/s` en
+  las dos figuras de la BSE y **`≥ 50 cm/s`** en la ASE 2025 (folio 555, verificado en el inciso b
+  del texto **y** en la nota ‡ de la Figura 3, los dos con `≥`). No se unifican, igual que el LARS.
+- **LA ASE 2025 USA LA ONDA L EN UN SOLO CASO, Y ES EL QUE ESCRIBE LA FIGURA.** La caja del segundo
+  paso dice `If none available or reliable use Supplemental methods‡`, y la prosa del folio 554 lo
+  repite: «these can be relied on in the absence of the three parameters in the section above». O
+  sea `seg2Eval === 0`. Medido: con el segundo paso vacío, una onda L de 55 pasa de «No estimable» a
+  «DD Grado III»; con Vol AI o con LARS cargados, el suplementario **no se consulta**.
+- ⚠️ **CON EL SUPLEMENTARIO NEGATIVO NO SE AFIRMA PRESIÓN NORMAL, Y ES UNA DECISIÓN.** La flecha
+  «None» de la figura sale de la caja entera, o sea de haber preguntado sus **cinco** parámetros; la
+  app puede preguntar uno. Con la onda L negativa el estado se queda en el «No estimable» de HEAD,
+  cuyo texto sigue siendo cierto palabra por palabra — **no cambia ni una letra del informe
+  firmado** — y lo único que se agrega es que la `via` de la ventana dice que el suplementario se
+  evaluó. La etapa quedó armada como **LISTA** (`ASE_SUPLEMENTARIOS`) para que el trabajo que agregue
+  los otros cuatro sume una entrada y nada más.
+- **EL INFORME FIRMADO NOMBRA LOS DOS PARÁMETROS NUEVOS CUANDO VOTARON**, por `_bseDetalles`, que es
+  para lo que esa función existe. El strain de contracción se imprime con su **valor absoluto**, que
+  es el que votó; el campo y el Excel conservan el signo. Está declarado en `PENDIENTES.md` → S5.
+- **GUARDADO Y BORRADO, MEDIDO EN EL REGISTRO EN DISCO:** los seis campos viajan con el estudio,
+  vuelven al reabrirlo, y «Nuevo estudio» vacía los seis **y apaga las seis marcas**.
+  ⚠️ **LAS DOS SINCRONÍAS NO ENTRAN EN `RECALC_MODULOS`**, a diferencia de `dtTapSync` y
+  `etTsvdSync`, y es una decisión: un estudio anterior a esta tanda trae `lars` y no `lars_dop`, y
+  copiarlo al abrir sería migrar el registro en silencio. Medido: un registro al que se le quitan
+  las cinco claves nuevas reabre con `lars = 27` y **las cinco vacías**. Lo que sí entra —y además al
+  final de `limpiarCampos`, que no pasa por ese embudo— es `diastStrainMarcaSync`, que sólo pinta.
+- **LA MARCA «(revisar)» NO MUEVE NINGÚN VEREDICTO** y sale al lado de **CADA** campo, en los seis
+  renglones. Bandas: `[0,60]` para el LARS —la que **ya tenía dueño** en `LAB_XLS_RANGO_PROPIO`, con
+  su motivo escrito—, `[-60,60]` para los dos strain —**simétricas**: es la banda del valor absoluto
+  escrita sobre el valor crudo, así que un −16 no se marca y un −160 sí— y `[0,200]` para la onda L,
+  que arranca en 0 porque es una velocidad. La del strain de contracción la reusa el importador
+  **por referencia**, no por un literal repetido.
+- ⚠️ **UN LARS NEGATIVO YA DABA VUELTA EL VEREDICTO EN HEAD, Y NADIE LO DECÍA.** `lars` entra crudo
+  a las dos figuras, así que un −32 cumple `< 18` y publica «presión elevada». No es una regresión
+  —es el comportamiento de HEAD— y lo que esta tanda agrega es que ahora se ve: el campo sale
+  marcado «(revisar)» en los dos lugares.
+- ⚠️ **TIPEAR EN UN CAMPO QUE NO EXISTE NO ES UNA MEDICIÓN, Y LA SONDA LO HIZO UNA VEZ.** Contra el
+  árbol de HEAD estos campos no están; `clicEn` devolvía «NO SE PUDO», el foco quedaba en el campo
+  anterior y los caracteres se le concatenaban. **Medido: tipear «15» en `lars_dop` sobre HEAD dejó
+  el E/e′ en 1848,5 en vez de 18,5**, y la sonda informó ese paciente inventado como una diferencia
+  del commit. Hoy `tipear()` aborta si el nodo falta.
+- ⚠️ **Y LOS DOS HASHES DEL A/B HAY QUE DESCONTARLOS.** El de «campos» tiene que excluir los seis ids
+  nuevos además de `informe_texto` y `en_suma`, y el del Excel tiene que compararse **sin la columna
+  nueva** (`hashSinNueva`). Sin eso el A/B dice «distinto» en TODAS las escenas por el solo hecho de
+  que los campos y la columna existen, y deja de distinguir «se agregó algo» de «cambió otra cosa».
+- **CONTROL NEGATIVO MAYOR, 13 de 15 escenas con 0 diferencias:** con los campos nuevos VACÍOS, las
+  tres guías en ritmo sinusal y en FA dan cuadro, informe en tres estilos, EN SUMA, grado del
+  Laboratorio, franja del PPT, **las 434 columnas preexistentes del Excel** y los **1084 campos
+  preexistentes** idénticos a HEAD. Las dos restantes cargan el LARS desde `lars_dop`, que HEAD no
+  tiene — y en el árbol nuevo dan el **mismo** veredicto de FA que cargándolo desde AI/VI.
+- **La ASE/EACVI 2016 no se tocó, y está verificado en el original**: barrido del PDF entero
+  buscando `L-wave`, `reservoir/pump/conduit strain`, `LARs` y `LAPs` → 13 coincidencias y **todas**
+  son referencias bibliográficas o el «optimal waveform» de la tabla de adquisición.
+- **MAQUETA:** los tres campos de cada fila miden lo mismo y ninguno desborda su grilla, a **1200,
+  390 y 360 px** y en los **dos temas**, sin scroll horizontal. En AI/VI los tres strain quedan en
+  la misma fila; en el Doppler la onda L, el LARS y el strain de contracción ocupan los tres lugares
+  libres de la fila del VTI mitral de entrada.
+- **Arnés: `scripts/_probe_strainai.mjs`** (A/B de solo lectura con `--file`), once grupos
+  (`sinc`, `marca`, `vacio`, `bse17`, `bse18`, `ase`, `bordes`, `signo`, `excel`, `ancho`,
+  `guardado`), **10 tripletes de borde** cargados con teclas reales y los seis campos leídos con su
+  marca al lado. **Cobertura: TC-456**, 46 condiciones con cuatro denominadores y seis controles
+  negativos. **Verificado que sabe fallar contra HEAD en un worktree aparte: 27 de las 46 en rojo**;
+  las 19 que pasan son los controles negativos y lo que esta tanda no mueve.
+- ⚠️ **Me comí el acento grave UNA vez**, en un comentario mío dentro del cuerpo de TC-456, con el
+  archivo que documenta la trampa abierto delante. `scripts/check_backticks.py` dio la línea exacta
+  (1546) mientras `node --check` apuntaba a la 1466, que es la apertura del template.
+
+
 - Al **empezar** la tanda de la FUNCIÓN DIASTÓLICA ASE 2025 (2026-10-12), `main` local y
   `origin/main` estaban los dos en **`916764d`**, sin nada sin pushear. Los **cinco** commits de
   esa tanda (`fcc8725`, `7629b03`, `51b0316`, `33f9ddb` y este) quedan locales; el push

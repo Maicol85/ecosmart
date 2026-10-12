@@ -522,6 +522,8 @@ imágenes: de ahí sólo se leyó la prosa que las describe, y está anotado don
 | **554** · pie de la Figura 3 | **NO se aplica** con FA, asistencia ventricular, HP no cardíaca, trasplante, constricción pericárdica, **IM primaria grave**, **estenosis mitral de cualquier grado** ni **calcificación del anillo moderada o grave**; y por nota al pie, tampoco con **plástica, recambio ni TEER mitral** | el recuadro interno de la figura abrevia «MAC, MR, MS» |
 | **554** · prosa | el S/D ≤0,67 equivale a una fracción de llenado sistólico ≤40 %; el LARS ≤18 % es muy específico y poco sensible; el TRIV ≤70 ms es compatible con PAI elevada; y el LAVi entra **en la segunda etapa** —a diferencia de las guías de 2016— porque correlaciona flojo con la PAI y tiene otras causas de agrandamiento | |
 | **555** · Parámetros suplementarios | IP telediastólica ≥2 m/s o PAP diastólica ≥16 mmHg; **onda L ≥50 cm/s**; IM diastólica y terminación precoz del llenado; Ar pulmonar de amplitud >35 cm/s con Ar-A >30 ms; caída de E/A ≥50 % con Valsalva | |
+| **555** · Parámetros suplementarios, literal del inciso b | «the presence of an L-wave velocity **$50 cm/s** is an indicator of both impaired LV relaxation and elevated LAP» (el `$` es el glifo de `≥` en la fuente del PDF). La nota ‡ de la Figura 3 lo escribe igual: `mitral inflow L-wave velocity $ 50 cm/s` | **operador `>=`, verificado en los DOS lugares**; es `ASE_ONDAL_SUPL` |
+| **554** · Figura 3, caja del segundo paso | `If none available or reliable use Supplemental methods‡` — y la prosa del mismo folio: «Supplemental Parameters: these can be relied on in the absence of the three parameters in the section above» | **ésa es la ÚNICA puerta** a los suplementarios: segundo paso sin NINGUNO de sus parámetros |
 | **555** · §12, Informe | todo informe debe traer el **grado** y el estado de la **presión de llenado**; y **si el que informa no puede determinar el grado, igual tiene que decir si la PAI es normal o elevada** | es el respaldo del estado (a) de la app |
 | **557** · Tabla 7 | **Indicadores en poblaciones especiales.** FA: TDE <160 ms con FEVI deprimida, aceleración de la E ≥1.900 cm/s², TRIV ≤65 ms, TDE de la D venosa ≤220 ms, E/Vp ≥1,4, **E/e' septal ≥11**, IT >2,8. Taquicardia sinusal: TRIV ≤70 ms, fracción sistólica ≤40 %, E/e' promedio >14. MCH: E/e' >14, Ar-A ≥30 ms, IT >2,8, LAVi >34 **sin regla de conteo**. Miocardiopatía restrictiva: E/e' >14, TDE <140 ms, E/A >2,5, TRIV <50 ms. HP: E/A ≥2 poscapilar, ≤0,8 precapilar. **Estenosis mitral: TRIV <60 ms, A mitral >1,5 m/s, TRIV/T E-e' <4,2.** IM: TRIV <60 ms, Ar-A ≥30 ms, TRIV/T E-e' <5,6, E/e' >14 **sólo con FE deprimida**. CAM moderada/grave: E/A <0,8 normal, >1,8 elevada, 0,8-1,8 por TRIV. Asistencia ventricular y trasplante, con sus propios cortes | la regla de conteo de la MCH **NO LA DA LA GUÍA**: lo que hay es la lista de parámetros |
 | **558** · Figura 4 | **CAM moderada o grave**: E/A <0,8 → PAI normal; >1,8 → elevada; 0,8-1,8 → TRIV ≥80 ms normal, <80 ms elevada | |
@@ -707,6 +709,39 @@ número**: «LVEF and GLS cannot provide binary normal/abnormal cut-offs for sys
 
 La BSE **abandonó los grados I-III** (pág. 48, recogido también por la comparativa). Ninguna de
 sus cuatro categorías lleva número.
+
+#### Strain de la AI y onda L — RE-VERIFICADO el 2026-10-12 renderizando las dos páginas
+
+La tanda que les dio campo volvió a leer las Figuras 17 y 18 **de la imagen**, a 200 dpi, antes de
+cablear nada. **No se movió ni un corte ni un operador** respecto de lo registrado arriba: las
+cajas dicen literalmente lo que esa lectura anotó. Queda la tabla junta, que es como se usa:
+
+| Figura | Caja | Literal impreso | En la app |
+|---|---|---|---|
+| **17** (pág. 36) | strain, lado normal | `Assess LA strain: pump strain ≥14% OR reservoir strain ≥30%` | `BSE_LAPS_NORMAL` 14 (`>=`) **OR** `BSE_LARS_NORMAL` 30 (`>=`) |
+| **17** | strain, lado elevado | `LARs <18%` | `BSE_LARS_ELEVADA` 18 (`<`) |
+| **17** | suplementarios | `Assess supplementary parameters: Ar-A duration >30 ms · L-wave >20 cm/s` → `≥1 positive` | `BSE_ARA_SUPL` 30 (`>`) · `BSE_ONDAL_SUPL` 20 (`>`) |
+| **18** (pág. 38) | strain, lado elevado | `LARs <18% OR LAPs <8%` | `BSE_FR_LARS_ELEV` 18 (`<`) **OR** `BSE_FR_LAPS_ELEV` 8 (`<`) |
+| **18** | strain, lado normal | `LARs ≥24% OR LAPs ≥14%` | `BSE_FR_LARS_NORM` 24 (`>=`) **OR** `BSE_FR_LAPS_NORM` 14 (`>=`) |
+| **18** | suplementarios | `Ar-A duration >30 ms · L-wave >20 cm/s · PV S/D ratio <1 · DT_E <150 ms` → `≥1 positive` | los cuatro, con `BSE_FR_TDE_SUPL` 150 (`<`) |
+
+**«LAPs» es el strain de CONTRACCIÓN** (*pump strain*), que en la app es `ai_strain_ct`. Las dos
+figuras escriben sus cortes sobre la MAGNITUD, así que la app usa el **valor absoluto**
+(`diastStrainAbs`): los ecógrafos dan ese strain negativo. El LARS no pasa por ahí.
+
+⚠️ **El 14 de la Figura 18 coincide con el de la 17 por casualidad**, igual que el 18 del lado
+elevado: el 8 y el 24 no existen en la Figura 17. Las dos figuras **no comparten ni una
+constante**, y la Figura 19 de la FA tampoco (LARS < 16).
+
+#### Strain de CONDUCTO — NO ENTRA EN NINGÚN ALGORITMO (censado 2026-10-12)
+
+Barrido de los dos PDF completos buscando `conduit`. En la **BSE 2024**, 13 apariciones y
+**todas** son el *volumen* de conducto en la sección de fisiología de la pág. 7 («LA conduit
+volume = LVSV − LA reservoir volume»); el strain de conducto no aparece. En la **ASE 2025**, 3
+apariciones y las tres están en la **pág. 10 del PDF (folio 546)**: el protocolo de adquisición
+(«Use R-R gating method to provide reservoir, conduit, and contractile LA strain values») y la
+tabla de abreviaturas (`LAScd = S_CD, LA conduit strain`). **Ningún algoritmo lo usa**, así que el
+campo `ai_strain_cd` es de registro: se guarda con el estudio, no vota y no tiene columna de Excel.
 
 ### `bseDiast2024` — BSE 2024, FIBRILACIÓN AURICULAR · Figura 19, pág. 39 (verificada 2026-10-12)
 

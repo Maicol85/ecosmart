@@ -6,6 +6,18 @@ Lo que la tanda de la BSE 2024 **midió y dejó como está**, con el motivo de c
 está mapeada en `docs/mapa/diastolica.md` → «`diastBSE2024Evaluar`» y las fuentes en
 `docs/fuentes/FUENTES.md` → `### bseDiast2024 — RITMO SINUSAL`.
 
+### ✅ B1 — CERRADO el 2026-10-12. El LAPs y la onda L YA tienen campo
+
+La tanda del strain de la AI agregó `ai_strain_ct` («strain de contracción de la AI», que es el
+LAPs) y `onda_l`, y los **cuatro** pasos que quedaban en gris votan: las dos cajas de strain de la
+Figura 17, las dos de la Figura 18 y la onda L en los suplementarios de las dos. La consecuencia
+medida que este punto declaraba —«un paciente con discordancia 1 y 1 y sin LARS queda
+indeterminado»— ya no se alcanza por falta de campo: con el strain de contracción cargado la rama
+decide. El Excel pasó de 434 a **435 columnas**. Ver `docs/mapa/diastolica.md` → «Los campos de
+strain de la AI y la onda L» y la sección nueva de `docs/fuentes/FUENTES.md`.
+
+El texto original, que es lo que se cerró:
+
 ### B1 · El LAPs (strain de bomba de la AI) y la onda L no tienen campo
 
 Las Figuras 17 y 18 los usan en la rama del strain: el LAPs como alternativa del LARS en los dos
@@ -885,3 +897,62 @@ Sale de `/sharp-edges` sobre el diff de esa tanda. Está medido, no supuesto.
 - Calibración automática por DICOM.
 - VI en 3D interactivo a partir de los trazados A4C/A2C/A3C.
 - Mitral esquemática animada.
+
+---
+
+## Strain de la AI y onda L (2026-10-12) — DECLARADO y NO arreglado
+
+### S1 · El strain de CONDUCTO no entra en ningún algoritmo, y es de la fuente
+
+Censado en los dos PDF completos: la **BSE 2024** sólo habla del *volumen* de conducto, en la
+fisiología de la pág. 7; la **ASE 2025** lo nombra en el protocolo de adquisición y en la tabla de
+abreviaturas del folio 546, y en ningún algoritmo. El campo `ai_strain_cd` existe porque Maicol lo
+pidió, **se guarda con el estudio, no vota y no tiene columna de Excel**. No es un hueco: es lo que
+dicen las guías.
+
+### S2 · La ASE 2025 tiene CINCO parámetros suplementarios y la app implementa UNO
+
+La nota ‡ de la Figura 3 (folio 554) lista: velocidad telediastólica de la IP ≥ 2 m/s, PAP
+diastólica ≥ 16 mmHg, **onda L ≥ 50 cm/s**, Ar−A > 30 ms y caída de la E/A ≥ 50 % con Valsalva; el
+folio 555b suma la IM diastólica, la terminación precoz del llenado y la amplitud de la Ar > 35 cm/s.
+Esta tanda implementa la onda L, que es la única con campo. **Los demás los agrega otro trabajo**, y
+la etapa quedó armada como una LISTA (`ASE_SUPLEMENTARIOS`) para que entren sin reestructurar nada.
+
+**Consecuencia declarada:** con la onda L negativa la app **no afirma presión normal** y se queda en
+el «No estimable» de HEAD. La flecha «None» de la figura sale de haber preguntado los cinco; la app
+puede preguntar uno. Cuando entren los otros cuatro habrá que decidir si con todos evaluados y
+negativos se afirma presión normal — y eso es cambiar un texto del informe, o sea decisión de Maicol.
+
+### S3 · El Ar−A de la ASE 2025 no entra en la lista de suplementarios
+
+Existe `venpArA()` y la BSE ya lo usa con su propio corte (`> 30`, `BSE_ARA_SUPL`), y la nota ‡ de
+la ASE escribe `Ar-A duration > 30 ms`. **No se agregó** porque la orden lo asignó explícitamente a
+otro trabajo, junto con la velocidad de Ar, la IP telediastólica y la PAP diastólica.
+
+### S4 · El `soloE` de la ASE 2025 no mira la onda L
+
+Un paciente con el e′ y la onda L como únicos datos sale «Datos insuficientes para clasificar
+presión de llenado» —el texto de HEAD, sin cambios—, porque para llegar a los suplementarios hay que
+pasar por las tres principales y por el segundo paso. Es lo conservador y es lo que hace la figura,
+pero queda dicho: el dato está cargado y no se usa en esa escena.
+
+### S5 · El informe nombra el strain de contracción con su VALOR ABSOLUTO
+
+`_bseDetalles` escribe «strain de contracción de la AI 13,5 %» aunque el médico haya tipeado −13,5,
+porque 13,5 es lo que votó. El campo y el Excel conservan el signo. Si alguna vez se prefiere
+imprimir el crudo, es cambiar una frase del informe firmado.
+
+### S6 · Siete comentarios de `index.html` siguen diciendo «434»
+
+Son frases que registran una MEDICIÓN pasada —«verificado en el A/B de 434», «la fila de 434
+columnas no se mueve», «las 434 columnas quedan idénticas»— de tandas anteriores. **No se
+reescribieron a propósito**: cambiarlas diría que aquellas corridas compararon 435 columnas, y no
+fue así. Las frases en presente sí se actualizaron.
+
+### S7 · El conducto y la onda L NO sobreviven a un round-trip por Excel
+
+Los dos viajan con el estudio guardado (el barrido de `guardarInforme` los toma por su `id`) pero
+**no tienen columna de Excel**, por orden expresa. Consecuencia: exportar una cohorte a Excel y
+volver a importarla deja esos dos campos vacíos, mientras el LARS y el strain de contracción sí
+vuelven. No es un defecto del round-trip —ninguna columna se desalinea—, es que esos dos datos no
+están en la planilla. Si alguna vez se quieren para análisis, son dos columnas más.

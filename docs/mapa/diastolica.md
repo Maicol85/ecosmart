@@ -134,7 +134,9 @@ HEAD — el e′ promedio y el E/e′ **sólo con los DOS anillos**, que NO es l
 | e′ septal, e′ lateral | `e_sep`, `e_lat` | Doppler |
 | Vmax IT (m/s) | `vmax_it` (espejado con `it_vmax_cw`) | Doppler / Válvulas |
 | Vol AI | `ai_vol` (÷ `getBSA()` → LAVi) | 2D |
-| LARS | `lars` | Doppler |
+| LARS | `lars` (espejado con `lars_dop`) | **AI/VI** / Doppler |
+| Strain de **contracción** de la AI (el LAPs de la guía) | `ai_strain_ct` (espejado con `ai_strain_ct_dop`), en **valor absoluto** por `diastStrainAbs` | **AI/VI** / Doppler |
+| Onda L | `onda_l` | Doppler |
 | Ar−A | `venpArA()`, de `venp_dur_ar` y `venp_dur_a` | Doppler (vena pulmonar) |
 | S/D venoso pulmonar | `venp_sd` (`<select>`: `menor1` / `mayor1`) | Doppler |
 | TDE | `tde` | Doppler |
@@ -394,3 +396,103 @@ rojo**; las que pasan son las que esta tanda no mueve.
 **`scripts/_probe_diastfa.mjs`** es el arnés de la FA, A/B de solo lectura con `--file`, con siete
 grupos: `cuadro`, `ventana`, `bordes`, `superficies`, `sinusal` (control negativo), `desfase` y
 `fc`. **Correr los grupos de a uno.**
+
+---
+
+## Los campos de strain de la AI y la onda L (2026-10-12)
+
+**Cuatro campos, y NO son cuatro datos iguales.** El censo, que es lo primero que hay que mirar
+antes de tocar esta zona:
+
+| Campo | id | Dónde vive | Qué es | Quién lo usa |
+|---|---|---|---|---|
+| LARS | `lars` ↔ `lars_dop` | AI/VI y Doppler mitral | strain de **reservorio** | BSE Fig. 17 y 18, ASE 2025 (2.º paso), las tres ramas de FA, la ventana 🧭, el Excel |
+| Strain de contracción | `ai_strain_ct` ↔ `ai_strain_ct_dop` | AI/VI y Doppler mitral | el **LAPs** (*pump strain*) de la guía | **sólo** BSE Fig. 17 y 18 |
+| Strain de conducto | `ai_strain_cd` | **sólo** AI/VI | *conduit strain* | **NADIE** — es registro |
+| Onda L | `onda_l` | **sólo** Doppler mitral | velocidad mesodiastólica del llenado mitral | BSE Fig. 17 y 18 (`> 20`), ASE 2025 suplementarios (`>= 50`) |
+
+**El dueño del valor absoluto es `diastStrainAbs`, y es uno solo.** Los ecógrafos dan el strain de
+contracción y el de conducto negativos; las figuras escriben sus cortes sobre la magnitud. El campo
+guarda lo que el médico tipea y la cuenta usa `|x|`. **El LARS NO pasa por ahí**: se espera
+positivo y un negativo se marca «(revisar)» sin corregirse. Una segunda llamada a `Math.abs`
+repartida por el archivo es cómo se llega a que un −12 vote en una figura y no en la otra.
+
+**La sincronía** la hacen `larsSync` y `laContrSync`, con el patrón de los otros cinco grupos
+(`tsviDiamSync`, `itvTsviSync`, `aiAreaSync`, `thpSync`, `vtiMitralSync`): guarda de reentrada,
+salida temprana por **texto** igual —así el vacío se copia igual que un número y borrar en un lugar
+borra en el otro— y copia siempre, con el bloque visible o plegado. Las puertas son `larsEditado`,
+`laContrEditado` y `diastStrainEditado`, que además repintan la marca y llaman a `calcDiastol`.
+
+⚠️ **Ninguno de los cuatro es destino registrado en `_ESPEJOS_TODOS`**, así que `_coordMarcarEspejo`
+NO se llama: marcarlos metería en `im_espejos` ids que `imEspejosRestaurar` rechaza por su guarda.
+
+⚠️ **Las dos sincronías NO están en `RECALC_MODULOS`**, a diferencia de `dtTapSync` y `etTsvdSync`.
+Es una decisión: un estudio anterior al 2026-10-12 trae `lars` y no `lars_dop`, y copiarlo al abrir
+sería migrar el registro en silencio. **Medido**: un registro al que se le quitan las cinco claves
+nuevas reabre con `lars = 27` y las cinco vacías. Lo que SÍ está en `RECALC_MODULOS` —y además al
+final de `limpiarCampos`, que no pasa por ese embudo— es `diastStrainMarcaSync`, que sólo pinta.
+
+### Las bandas y la marca «(revisar)»
+
+| Campo | Banda | Dueño |
+|---|---|---|
+| `lars` | `[0, 60]` | `LAB_XLS_RANGO_PROPIO.lars` (ya existía, con su motivo escrito) |
+| `ai_strain_ct` | `[-60, 60]` | `DIAST_STRAIN_BANDA`, y `LAB_XLS_RANGO_PROPIO` la reusa **por referencia** |
+| `ai_strain_cd` | `[-60, 60]` | `DIAST_STRAIN_BANDA` |
+| `onda_l` | `[0, 200]` | `DIAST_STRAIN_BANDA` |
+
+Las dos del strain son **simétricas**: es la banda del valor absoluto escrita sobre el valor crudo,
+así que un −16 no se marca y un −160 sí. La de la onda L arranca en 0 porque es una velocidad.
+La marca la escribe `diastStrainMarcaSync` en los **seis** renglones, **no bloquea ni cambia ninguna
+cuenta** (decisión de «MARCAR SIN BORRAR», 2026-09-27) y se apaga sola sin dato.
+
+### Dónde entra cada uno, y por qué no se comparten cortes
+
+- **Figura 17 (FEVI normal).** Primera caja: `LARS ≥ 30` **OR** `contracción ≥ 14` → presión normal.
+  Segunda: `LARS < 18` → elevada. Suplementarios: `Ar−A > 30 ms` · `onda L > 20 cm/s`, ≥1 positivo
+  → elevada; todos negativos → normal; **ninguno evaluable → indeterminada**.
+- **Figura 18 (FEVI reducida).** `LARS < 18` **OR** `contracción < 8` → elevada; `LARS ≥ 24` **OR**
+  `contracción ≥ 14` → normal; y **cuatro** suplementarios (Ar−A, onda L, S/D `< 1`, TDE `< 150`).
+- **ASE 2025.** No usa ninguno de los dos strain nuevos. Usa la **onda L `≥ 50 cm/s`** y SÓLO en el
+  caso que escribe la Figura 3: `If none available or reliable use Supplemental methods` dentro de
+  la caja del segundo paso, o sea con el segundo paso **sin ninguno** de sus parámetros
+  (`seg2Eval === 0`). La etapa es una **LISTA** (`ASE_SUPLEMENTARIOS`), con la onda L como único
+  elemento: los otros cuatro de la nota ‡ se agregan ahí y nada más.
+- **ASE/EACVI 2016 y las tres ramas de FA: no cambian.** Barrido del PDF de 2016: cero usos de
+  L-wave y de strain de la AI fuera de la bibliografía.
+
+⚠️ **LA ONDA L TIENE DOS CORTES Y EL LARS TAMBIÉN.** `> 20 cm/s` en la BSE y `≥ 50 cm/s` en la ASE;
+`≤ 18 %` en la ASE y `< 16 %` en la FA de la BSE. **No se unifican**: cada corte es de su fuente.
+
+⚠️ **CON EL SUPLEMENTARIO DE LA ASE NEGATIVO NO SE AFIRMA PRESIÓN NORMAL.** La flecha «None» de la
+figura sale de la caja entera, o sea de haber preguntado sus cinco parámetros; la app puede
+preguntar uno. El estado se queda en el «No estimable» de HEAD, cuyo texto sigue siendo cierto, y
+lo único que se agrega es que la `via` de la ventana dice que el suplementario se evaluó.
+
+### Excel
+
+**Una sola columna nueva: «Strain contracción AI (%)»**, pegada a «LARS (%)» (índices 20 y 21) en el
+bloque «3 · AURÍCULA IZQUIERDA». **El Excel pasa de 434 a 435 columnas.** Lleva el valor **crudo**,
+no el absoluto: es lo que el campo guarda y lo que tiene que volver por el importador. El strain de
+**conducto** y la **onda L** no llevan columna, por orden expresa.
+
+### Trampas de esta zona
+
+- ⚠️ **Tipear en un campo que no existe no es una medición.** Contra el árbol de HEAD estos campos
+  no están; una sonda que igual manda las teclas se las concatena al campo anterior. Medido: tipear
+  `15` en `lars_dop` sobre HEAD dejó el E/e′ en **1848,5** en vez de 18,5, y la sonda informó esa
+  diferencia como si fuera del commit. `tipear()` de `_probe_strainai.mjs` aborta si el nodo falta.
+- ⚠️ **El hash de «campos» tiene que excluir los seis ids nuevos** además de `informe_texto` y
+  `en_suma`. Si no, el A/B dice «distinto» en TODAS las escenas por el solo hecho de que los campos
+  existen, y deja de distinguir «se agregó un campo» de «cambió otro».
+- ⚠️ **El hash del Excel, igual**: hay que comparar la fila **sin** la columna nueva
+  (`hashSinNueva`), que es lo único que separa «se agregó una columna» de «cambió el valor de otra».
+- ⚠️ **La rama del strain tiene UNA sola puerta**: dos criterios disponibles, uno positivo y uno
+  negativo (`evalN === 2 && pos === 1 && neg === 1`). Cualquier escena que no la cumpla mide otra
+  cosa, y el badge que no se mueve se lee como un corte que no funciona.
+
+**Cobertura: TC-456**, 46 condiciones con cuatro denominadores y seis controles negativos.
+Verificado que sabe fallar contra HEAD en un worktree aparte: **27 de las 46 en rojo**; las 19 que
+pasan son los controles negativos y lo que esta tanda no mueve.
+**Arnés: `scripts/_probe_strainai.mjs`** (A/B de solo lectura con `--file`), once grupos
+(`sinc`, `marca`, `vacio`, `bse17`, `bse18`, `ase`, `bordes`, `signo`, `excel`, `ancho`, `guardado`).

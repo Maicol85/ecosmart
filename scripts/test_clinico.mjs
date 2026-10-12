@@ -1456,6 +1456,287 @@ caso('TC-455', 'Diastolica BSE 2024 en RITMO SINUSAL: la Tabla 2 por edad y sexo
 // ═══ GRUPO 12 — Auriculas ═══════════════════════════════════════════════════════════════════
 /* UMBRAL_LAVI_DILATADO = 34, y despues 41 y 48. Con BSA 2,00 el volumen en ml es el doble del
    indexado, asi que 68 ml es exactamente 34,0 ml/m². */
+
+/* STRAIN DE LA AURICULA IZQUIERDA Y ONDA L (2026-10-12).
+   Cubre las SEIS cosas de la tanda: los campos y su sincronia en los dos sentidos, el guardado
+   y el borrado, el valor absoluto, los dos pasos de la Figura 17 de la BSE, los dos de la
+   Figura 18 y el suplementario de la ASE 2025 (folio 555), con los bordes de cada corte por sus
+   dos lados y los controles negativos de la ASE 2016 y de la fibrilacion auricular.
+   ⚠️ CUERPO DE TEMPLATE LITERAL: ni un acento grave adentro, tampoco en los comentarios. */
+caso('TC-456', 'Strain de la AI y onda L: los campos y su sincronia en los dos sentidos, el valor absoluto del signo, los dos cortes de strain de la Figura 17 y los dos de la Figura 18 con sus suplementarios, la onda L de la ASE 2025 (folio 555) y los bordes de cada corte, con seis controles negativos', `
+  const faltan = [];
+  const S = (k, v) => { const r = __t.set(k, v); if (r !== 1) faltan.push(k + '=' + r) };
+  const V = (id) => __t.val(id);
+  const M = (id) => (__t.txt(id + '-marca') || '').trim();
+
+  const SEIS = ['lars', 'lars_dop', 'ai_strain_ct', 'ai_strain_ct_dop', 'ai_strain_cd', 'onda_l'];
+  /* DENOMINADOR: los seis campos existen. Sin esto, cada asercion de abajo compara null contra
+     null y el caso sale verde sobre una app que no tiene ni un campo nuevo. */
+  const noExisten = SEIS.filter(id => !document.getElementById(id));
+
+  const ven = () => {
+    diastAlgoAbrir();
+    const cu = document.getElementById('diast-algo-cuerpo');
+    if (!cu) { diastAlgoCerrar(); return { filas: [], res: 'NO EXISTE EL CUERPO', n: 0 } }
+    const filas = Array.prototype.slice.call(cu.querySelectorAll('.da-row')).map(f => ({
+      crit: ((f.querySelector('.da-crit') || {}).textContent || '').replace(/\\s+/g, ' ').trim(),
+      est: /da-bad/.test(f.className) ? 'POS' : (/da-ok/.test(f.className) ? 'neg' : 'na') }));
+    const res = ((cu.querySelector('.da-res') || {}).textContent || '').replace(/\\s+/g, ' ').trim();
+    diastAlgoCerrar();
+    return { filas: filas, res: res, n: filas.length };
+  };
+  const fila = (v, sub) => { const f = v.filas.filter(x => x.crit.indexOf(sub) > -1)[0];
+                             return f ? f.est : 'NO EXISTE' };
+
+  /* Peso 70 / talla 170 dan ASC 1,81: un Vol AI de 50 ml da LAVi 27,6 (negativo, < 34).
+     La escena base de la rama del strain es la UNICA puerta que la abre: DOS criterios
+     disponibles, uno positivo (E/e-prima 18,5) y uno negativo (LAVi 27,6), SIN velocidad de IT.
+     Cualquier escena que no la cumpla mide otra cosa. */
+  const esc = (m, guia) => {
+    __t.limpiar();
+    S('diast_algoritmo', guia || 'bse2024');
+    S('diast_ritmo', (m && m.__ritmo) || 'sinusal');
+    if (!m || m.peso === undefined) S('peso', '70');
+    if (!m || m.talla === undefined) S('talla', '170');
+    if (!m || m.edad === undefined) S('edad', '50');
+    if (!m || m.sexo === undefined) S('sexo', 'M');
+    const orden = ['peso','talla','edad','sexo','fevi','sgl','venp_sd','tde','triv','venp_dur_ar',
+                   'venp_dur_a','ai_vol','vmax_it','ai_strain_cd','onda_l','ai_strain_ct',
+                   'ai_strain_ct_dop','lars','lars_dop','e_sep','e_lat','onda_e','onda_a'];
+    const mm = Object.assign({}, m || {}); delete mm.__ritmo;
+    orden.forEach(k => { if (mm[k] !== undefined) S(k, mm[k]) });
+    Object.keys(mm).forEach(k => { if (orden.indexOf(k) < 0) S(k, mm[k]) });
+    calcDiastol();
+    const r = __t.informe();
+    const d = window._diastResult || {};
+    return { inf: r.inf, suma: r.suma, badge: (__t.txt('dd-interp') || '').replace(/\\s+/g, ' ').trim(),
+             texto: d.texto || '', tsuma: d.textoSuma || '', ven: ven() };
+  };
+  const DOS = { onda_e: '120', onda_a: '60', e_sep: '6', e_lat: '7', ai_vol: '50' };
+  const con = (o) => Object.assign({}, DOS, o);
+  const DOSFR = Object.assign({}, DOS, { fevi: '40' });
+  const conFR = (o) => Object.assign({}, DOSFR, o);
+  /* El segundo paso de la Figura 3 de la ASE 2025 VACIO es la unica puerta a sus suplementarios:
+     sin Vol AI, sin LARS y sin TRIV. */
+  const ASE2 = { onda_e: '120', onda_a: '60', e_sep: '6', e_lat: '7' };
+
+  // ── A · LA SINCRONIA EN LOS DOS SENTIDOS, escribir y BORRAR, por los dos campos.
+  const sinc = [];
+  [['lars', 'lars_dop', '27'], ['lars_dop', 'lars', '27'],
+   ['ai_strain_ct', 'ai_strain_ct_dop', '-13.5'], ['ai_strain_ct_dop', 'ai_strain_ct', '-13.5']]
+    .forEach(p => {
+      __t.limpiar();
+      S(p[0], p[2]);
+      const copio = V(p[1]) === p[2];
+      S(p[0], '');                       // borrar en el ORIGEN
+      const borroElEspejo = String(V(p[1]) || '') === '';
+      __t.limpiar();
+      S(p[0], p[2]);
+      S(p[1], '');                       // y borrar en el ESPEJO borra el origen
+      const borroAlReves = String(V(p[0]) || '') === '';
+      sinc.push({ de: p[0], a: p[1], copio: copio, borroElEspejo: borroElEspejo, borroAlReves: borroAlReves });
+    });
+  /* CONTROL NEGATIVO de la sincronia: los dos que viven en UN solo lugar no espejan nada. */
+  __t.limpiar(); S('ai_strain_cd', '21');
+  const cdSolo = SEIS.filter(id => id !== 'ai_strain_cd').every(id => String(V(id) || '') === '');
+  __t.limpiar(); S('onda_l', '34');
+  const lSolo = SEIS.filter(id => id !== 'onda_l').every(id => String(V(id) || '') === '');
+
+  // ── B · LA MARCA «(revisar)» Y SU BANDA, con su control negativo, y que NO mueve el veredicto.
+  /* ⚠️ EL VALOR SE LEE ADENTRO, no al final. Cada escena arranca limpiando el formulario, asi que
+     preguntar por el campo despues de la ultima deja leyendo un formulario vacio — y la condicion
+     de «no se corrige» saldria verde sobre un campo que nadie cargo. */
+  const mk = (id, val) => { __t.limpiar(); S(id, val); calcDiastol();
+                            return { marca: M(id), quedo: V(id),
+                                     badge: (__t.txt('dd-interp') || '').trim() } };
+  const mDentro = mk('lars', '32');
+  const mNeg = mk('lars', '-32');
+  const mCtDentro = mk('ai_strain_ct', '-16');   // la banda del strain es SIMETRICA: no se marca
+  const mCtFuera = mk('ai_strain_ct', '-160');
+  const mLNeg = mk('onda_l', '-55');
+  const bandas = (typeof diastStrainBanda === 'function')
+    ? JSON.stringify({ lars: diastStrainBanda('lars'), ct: diastStrainBanda('ai_strain_ct'),
+                       cd: diastStrainBanda('ai_strain_cd'), l: diastStrainBanda('onda_l') })
+    : 'SIN diastStrainBanda';
+
+  // ── C · «Nuevo estudio» apaga la marca y vacia los seis.
+  __t.limpiar(); S('lars', '-32'); calcDiastol();
+  const marcaEstaba = M('lars') !== '' && M('lars_dop') !== '';
+  __t.limpiar();
+  const marcaSeFue = SEIS.every(id => M(id) === '');
+  const camposVacios = SEIS.every(id => String(V(id) || '') === '');
+
+  // ── D · EL SIGNO: el mismo paciente con el strain en los dos signos tiene que dar IGUAL.
+  const g17pos = esc(con({ ai_strain_ct: '16' }));
+  const g17neg = esc(con({ ai_strain_ct: '-16' }));
+  const g18pos = esc(conFR({ ai_strain_ct: '6' }));
+  const g18neg = esc(conFR({ ai_strain_ct: '-6' }));
+  const g12pos = esc(con({ lars: '25', ai_strain_ct: '12' }));
+  const g12neg = esc(con({ lars: '25', ai_strain_ct: '-12' }));
+
+  // ── E · FIGURA 17: la primera caja es un OR, el LARS bajo manda, y los suplementarios.
+  const f17sin = esc(DOS);
+  const f17or = esc(con({ lars: '25', ai_strain_ct: '16' }));   // LARS no cumple, contraccion SI
+  const f17orNo = esc(con({ lars: '25', ai_strain_ct: '10' }));
+  const f17lPos = esc(con({ lars: '25', onda_l: '25' }));
+  const f17lNeg = esc(con({ lars: '25', onda_l: '15' }));
+  /* CONTROL NEGATIVO: el strain de CONDUCTO no entra en ningun algoritmo de ninguna guia. */
+  const f17cd = esc(con({ ai_strain_cd: '25' }));
+
+  // ── F · FIGURA 18: sus DOS cortes propios y la onda L entre sus cuatro suplementarios.
+  const f18sin = esc(DOSFR);
+  const f18elev = esc(conFR({ ai_strain_ct: '6' }));
+  const f18norm = esc(conFR({ ai_strain_ct: '16' }));
+  const f18lPos = esc(conFR({ lars: '20', ai_strain_ct: '10', onda_l: '25' }));
+  const f18lNeg = esc(conFR({ lars: '20', ai_strain_ct: '10', onda_l: '15' }));
+  const f18cd = esc(conFR({ ai_strain_cd: '25' }));
+
+  // ── G · ASE 2025: la onda L SOLO con el segundo paso sin ningun parametro.
+  const aSin = esc(ASE2, 'ase2025');
+  const aPos = esc(Object.assign({}, ASE2, { onda_l: '55' }), 'ase2025');
+  const aNeg = esc(Object.assign({}, ASE2, { onda_l: '45' }), 'ase2025');
+  /* CONTROLES NEGATIVOS: con el segundo paso POBLADO el suplementario no se consulta, y la
+     ASE 2025 no usa ninguno de los dos strain nuevos. */
+  const aConVolAI = esc(Object.assign({}, ASE2, { ai_vol: '50', onda_l: '55' }), 'ase2025');
+  const aConVolAISin = esc(Object.assign({}, ASE2, { ai_vol: '50' }), 'ase2025');
+  const aCt = esc(Object.assign({}, ASE2, { ai_strain_ct: '6' }), 'ase2025');
+  const aCd = esc(Object.assign({}, ASE2, { ai_strain_cd: '6' }), 'ase2025');
+
+  // ── H · BORDES: apenas abajo, JUSTO en el corte, apenas arriba.
+  const b = (m, campo, val, guia) => { const o = Object.assign({}, m); o[campo] = val;
+                                       return esc(o, guia).badge };
+  const B17ct = ['13.9', '14', '14.1'].map(x => b(DOS, 'ai_strain_ct', x));
+  const B17l = ['19.9', '20', '20.1'].map(x => b(con({ lars: '25' }), 'onda_l', x));
+  const B18ctE = ['7.9', '8', '8.1'].map(x => b(DOSFR, 'ai_strain_ct', x));
+  const B18ctN = ['13.9', '14', '14.1'].map(x => b(DOSFR, 'ai_strain_ct', x));
+  const B18l = ['19.9', '20', '20.1'].map(x => b(conFR({ lars: '20', ai_strain_ct: '10' }), 'onda_l', x));
+  const BaseL = ['49.9', '50', '50.1'].map(x => b(ASE2, 'onda_l', x, 'ase2025'));
+
+  // ── I · CONTROLES: la ASE 2016 y la FIBRILACION AURICULAR de las tres guias.
+  const g16sin = esc(con({ vmax_it: '3.2', ai_vol: '70' }), 'ase2016');
+  const g16con = esc(con({ vmax_it: '3.2', ai_vol: '70', ai_strain_ct: '6', ai_strain_cd: '21', onda_l: '55' }), 'ase2016');
+  const FA = { __ritmo: 'fa', onda_e: '120', e_sep: '6', e_lat: '7', vmax_it: '3.2', tde: '150', lars: '15' };
+  const faBse = esc(FA, 'bse2024');
+  const faBseCon = esc(Object.assign({}, FA, { ai_strain_ct: '6', ai_strain_cd: '21', onda_l: '55' }), 'bse2024');
+  const faAse = esc(FA, 'ase2025');
+  const faAseCon = esc(Object.assign({}, FA, { ai_strain_ct: '6', ai_strain_cd: '21', onda_l: '55' }), 'ase2025');
+  /* Y el LARS cargado desde la OTRA pestaña tiene que dar el MISMO veredicto de FA. */
+  const faDop = esc(Object.assign({}, FA, { lars: undefined, lars_dop: '15' }), 'bse2024');
+
+  const mismo = (a, z) => a.badge === z.badge && a.texto === z.texto && a.tsuma === z.tsuma &&
+                          a.ven.res === z.ven.res;
+
+  return { extra: [
+    // ── DENOMINADORES
+    ['DENOMINADOR: los seis campos nuevos existen', noExisten.length === 0, noExisten.join(',') || 'los seis'],
+    ['DENOMINADOR: ningun set fallo', faltan.length === 0, faltan.join(' | ')],
+    ['DENOMINADOR: la ventana de la BSE dibuja sus filas', f17sin.ven.n > 0, 'n=' + f17sin.ven.n],
+    ['DENOMINADOR: la ventana de la ASE 2025 dibuja sus filas', aSin.ven.n > 0, 'n=' + aSin.ven.n],
+
+    // ── A · SINCRONIA
+    ['el LARS se copia de AI/VI al Doppler y al reves', sinc[0].copio && sinc[1].copio, JSON.stringify(sinc.slice(0, 2))],
+    ['y BORRAR en cualquiera de los dos borra el otro',
+      sinc[0].borroElEspejo && sinc[0].borroAlReves && sinc[1].borroElEspejo && sinc[1].borroAlReves,
+      JSON.stringify(sinc.slice(0, 2))],
+    ['el strain de contraccion igual, con el signo incluido', sinc[2].copio && sinc[3].copio, JSON.stringify(sinc.slice(2))],
+    ['y borrar en cualquiera de los dos borra el otro',
+      sinc[2].borroElEspejo && sinc[2].borroAlReves && sinc[3].borroElEspejo && sinc[3].borroAlReves,
+      JSON.stringify(sinc.slice(2))],
+    ['CONTROL NEGATIVO: el conducto y la onda L viven en UN solo lugar y no espejan nada',
+      cdSolo && lSolo, 'conducto=' + cdSolo + ' ondaL=' + lSolo],
+
+    // ── B · LA MARCA
+    ['las bandas son las declaradas y el LARS reusa la suya',
+      bandas === JSON.stringify({ lars: [0, 60], ct: [-60, 60], cd: [-60, 60], l: [0, 200] }), bandas],
+    ['un LARS NEGATIVO se marca «(revisar)» y no se corrige',
+      mNeg.marca === '(revisar)' && mNeg.quedo === '-32', mNeg.marca + ' | quedo=' + mNeg.quedo],
+    ['CONTROL NEGATIVO: dentro de banda no se marca', mDentro.marca === '', mDentro.marca],
+    ['la banda del strain es SIMETRICA: un -16 NO se marca y un -160 SI',
+      mCtDentro.marca === '' && mCtFuera.marca === '(revisar)',
+      mCtDentro.marca + ' | ' + mCtFuera.marca],
+    ['una onda L negativa se marca: una velocidad negativa no existe', mLNeg.marca === '(revisar)', mLNeg.marca],
+
+    // ── C · «Nuevo estudio»
+    ['DENOMINADOR: la marca estaba puesta en los dos campos del LARS', marcaEstaba, String(marcaEstaba)],
+    ['«Nuevo estudio» vacia los seis campos y apaga las seis marcas',
+      camposVacios && marcaSeFue, 'campos=' + camposVacios + ' marcas=' + marcaSeFue],
+
+    // ── D · EL SIGNO
+    ['Figura 17: +16 y -16 de contraccion dan EXACTAMENTE lo mismo', mismo(g17pos, g17neg),
+      g17pos.badge + ' | ' + g17neg.badge],
+    ['Figura 18: +6 y -6 idem', mismo(g18pos, g18neg), g18pos.badge + ' | ' + g18neg.badge],
+    ['y +12 y -12 tambien, que es el caso que pide la orden', mismo(g12pos, g12neg),
+      g12pos.badge + ' | ' + g12neg.badge],
+    ['el campo CONSERVA el signo que se tipeo: la cuenta usa el absoluto, el campo no',
+      g17neg.ven.filas.some(f => f.crit.indexOf('contraccion') > -1 || f.crit.indexOf('contracción') > -1),
+      JSON.stringify(g17neg.ven.filas.map(f => f.crit).filter(c => /contracci/.test(c)))],
+
+    // ── E · FIGURA 17
+    ['Figura 17: la primera caja es un OR — LARS 25 (no) con contraccion 16 (si) da presion NORMAL',
+      f17or.badge.indexOf('Normal') === 0, f17or.badge],
+    ['CONTROL NEGATIVO del OR: con contraccion 10 el mismo paciente NO sale normal',
+      f17orNo.badge.indexOf('Normal') !== 0, f17orNo.badge],
+    ['la fila del strain de contraccion existe y marca su estado',
+      fila(f17or.ven, 'contracción de la AI ≥ 14') === 'POS' && fila(f17orNo.ven, 'contracción de la AI ≥ 14') === 'neg',
+      fila(f17or.ven, 'contracción de la AI ≥ 14') + ' | ' + fila(f17orNo.ven, 'contracción de la AI ≥ 14')],
+    ['Figura 17: la onda L > 20 como suplementario, por sus dos lados',
+      f17lPos.badge.indexOf('elevada') > -1 && f17lNeg.badge.indexOf('Normal') === 0,
+      f17lPos.badge + ' | ' + f17lNeg.badge],
+    ['y su fila lo dice', fila(f17lPos.ven, 'Onda L > 20') === 'POS' && fila(f17lNeg.ven, 'Onda L > 20') === 'neg',
+      fila(f17lPos.ven, 'Onda L > 20') + ' | ' + fila(f17lNeg.ven, 'Onda L > 20')],
+    ['CONTROL NEGATIVO: el strain de CONDUCTO no mueve el veredicto de la Figura 17',
+      f17cd.badge === f17sin.badge && f17cd.texto === f17sin.texto, f17cd.badge + ' | ' + f17sin.badge],
+
+    // ── F · FIGURA 18
+    ['Figura 18: contraccion < 8 da presion ELEVADA', f18elev.badge.indexOf('elevada') > -1, f18elev.badge],
+    ['Figura 18: contraccion >= 14 da presion NORMAL', f18norm.badge.indexOf('normal') > -1, f18norm.badge],
+    ['los cortes de la 18 NO son los de la 17: una contraccion de 10 no decide en ninguna de las dos, y 16 decide distinto',
+      f18norm.badge !== g17pos.badge, f18norm.badge + ' | ' + g17pos.badge],
+    ['Figura 18: la onda L entre sus cuatro suplementarios, por sus dos lados',
+      f18lPos.badge.indexOf('elevada') > -1 && f18lNeg.badge.indexOf('normal') > -1,
+      f18lPos.badge + ' | ' + f18lNeg.badge],
+    ['CONTROL NEGATIVO: el conducto tampoco mueve la via reducida',
+      f18cd.badge === f18sin.badge && f18cd.texto === f18sin.texto, f18cd.badge + ' | ' + f18sin.badge],
+
+    // ── G · ASE 2025
+    ['ASE 2025: con el segundo paso VACIO, una onda L >= 50 pasa de «No estimable» a presion elevada',
+      aSin.badge.indexOf('No estimable') > -1 && aPos.badge.indexOf('No estimable') < 0,
+      aSin.badge + ' | ' + aPos.badge],
+    ['y con 45 cm/s NO se afirma nada: queda el estado de HEAD',
+      aNeg.badge === aSin.badge && aNeg.texto === aSin.texto, aNeg.badge + ' | ' + aSin.badge],
+    ['la via de la ventana declara que el suplementario se evaluo y dio negativo',
+      aNeg.ven.res.indexOf('suplementario') > -1, aNeg.ven.res],
+    ['CONTROL NEGATIVO: con el segundo paso POBLADO el suplementario no se consulta',
+      aConVolAI.badge === aConVolAISin.badge && aConVolAI.texto === aConVolAISin.texto,
+      aConVolAI.badge + ' | ' + aConVolAISin.badge],
+    ['CONTROL NEGATIVO: la ASE 2025 no usa el strain de contraccion ni el de conducto',
+      aCt.badge === aSin.badge && aCd.badge === aSin.badge, aCt.badge + ' | ' + aCd.badge + ' | ' + aSin.badge],
+
+    // ── H · BORDES, cada uno con el valor EXACTO del corte
+    ['borde contraccion >= 14 (Figura 17): el 14,0 exacto SI cumple',
+      B17ct[0] !== B17ct[1] && B17ct[1] === B17ct[2], JSON.stringify(B17ct)],
+    ['borde onda L > 20 (Figura 17): el 20,0 exacto es NEGATIVO',
+      B17l[0] === B17l[1] && B17l[1] !== B17l[2], JSON.stringify(B17l)],
+    ['borde contraccion < 8 (Figura 18): el 8,0 exacto NO cumple',
+      B18ctE[0] !== B18ctE[1] && B18ctE[1] === B18ctE[2], JSON.stringify(B18ctE)],
+    ['borde contraccion >= 14 (Figura 18): el 14,0 exacto SI cumple',
+      B18ctN[0] !== B18ctN[1] && B18ctN[1] === B18ctN[2], JSON.stringify(B18ctN)],
+    ['borde onda L > 20 (Figura 18): el 20,0 exacto es NEGATIVO',
+      B18l[0] === B18l[1] && B18l[1] !== B18l[2], JSON.stringify(B18l)],
+    ['borde onda L >= 50 (ASE 2025, folio 555): el 50,0 exacto SI cumple',
+      BaseL[0] !== BaseL[1] && BaseL[1] === BaseL[2], JSON.stringify(BaseL)],
+
+    // ── I · CONTROLES DE LAS OTRAS GUIAS Y DE LA FA
+    ['CONTROL NEGATIVO: la ASE/EACVI 2016 es IDENTICA con y sin los datos nuevos',
+      mismo(g16sin, g16con), g16sin.badge + ' | ' + g16con.badge],
+    ['CONTROL NEGATIVO: la FA de la BSE es IDENTICA con y sin los datos nuevos',
+      mismo(faBse, faBseCon), faBse.badge + ' | ' + faBseCon.badge],
+    ['CONTROL NEGATIVO: la FA de la ASE 2025, idem', mismo(faAse, faAseCon),
+      faAse.badge + ' | ' + faAseCon.badge],
+    ['en FA, el LARS cargado desde el DOPPLER da el MISMO veredicto que desde AI/VI',
+      mismo(faBse, faDop), faBse.badge + ' | ' + faDop.badge]
+  ] };
+`);
 caso('TC-30', 'AI por volumen indexado: las cuatro bandas en sus cortes exactos', `
   function ai(vol) { __t.limpiar(); ${BSA2} __t.set('ai_vol', String(vol)); return __t.informe(); }
   const r = [68, 70, 84, 98].map(ai);
