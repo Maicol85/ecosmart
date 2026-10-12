@@ -2986,11 +2986,11 @@ window.cerrarSesionReal = cerrarSesionReal;
       <div class="grid-2" style="margin-top:8px;">
         <div class="fg">
           <label>Peso (kg)</label>
-          <input type="number" id="peso" placeholder="kg" oninput="calcBSA()">
+          <input type="number" id="peso" placeholder="kg" oninput="calcBSA();calcDiastol()">
         </div>
         <div class="fg">
           <label>Talla (cm)</label>
-          <input type="number" id="talla" placeholder="cm" oninput="calcBSA()">
+          <input type="number" id="talla" placeholder="cm" oninput="calcBSA();calcDiastol()">
         </div>
       </div>
       <div class="calc-box" style="margin-top:10px;">
@@ -3189,7 +3189,7 @@ window.cerrarSesionReal = cerrarSesionReal;
           </div>
           <div class="fg">
             <label>Volumen AI (ml)</label>
-            <input type="number" id="ai_vol" placeholder="ml" oninput="calcAI()">
+            <input type="number" id="ai_vol" placeholder="ml" oninput="calcAI();calcDiastol()">
           </div>
           <div class="fg">
             <label>LARS — strain AI (%) <span style="font-weight:400;color:var(--text2);font-size:10px;">opcional — normal &gt;18%</span></label>
@@ -3247,7 +3247,7 @@ window.cerrarSesionReal = cerrarSesionReal;
           <label>FEVI (Simpson, %)</label>
           <!-- `aoRefPintar` se agrega para que la fila FEVI del cuadro de referencias del Doppler
                aórtico se entere al tipear; NO cambia nada de AI/VI ni de `calcVI`. -->
-          <input type="number" id="fevi" placeholder="%" oninput="calcVI();if(typeof aoRefPintar==='function')aoRefPintar()">
+          <input type="number" id="fevi" placeholder="%" oninput="calcVI();if(typeof aoRefPintar==='function')aoRefPintar();calcDiastol()">
         </div>
         <div class="fg">
           <label>FEVI método</label>
@@ -3483,11 +3483,11 @@ window.cerrarSesionReal = cerrarSesionReal;
         </div>
         <div class="fg">
           <label>VCI diámetro (mm)</label>
-          <input type="number" id="vci_diam" placeholder="mm" oninput="calcPmAD();dptSync();cvrSync();" onchange="dptSync();cvrSync();vexusRefrescarInforme()">
+          <input type="number" id="vci_diam" placeholder="mm" oninput="calcPmAD();dptSync();cvrSync();calcDiastol()" onchange="dptSync();cvrSync();vexusRefrescarInforme()">
         </div>
         <div class="fg">
           <label>Colapso VCI</label>
-          <select id="vci_col" onchange="calcPmAD();dptSync();cvrSync();vexusRefrescarInforme()">
+          <select id="vci_col" onchange="calcPmAD();dptSync();cvrSync();vexusRefrescarInforme();calcDiastol()">
             <option value="">—</option>
             <option value=">50">&gt;50%</option>
             <option value="<50">&lt;50%</option>
@@ -3608,12 +3608,29 @@ window.cerrarSesionReal = cerrarSesionReal;
           <input type="number" id="e_lat" placeholder="cm/s" oninput="calcDiastol();cvrSync();" onchange="cvrCambio()">
         </div>
         <div class="fg">
+          <!-- ⚠️ EL CUADRO GRIS SE ATRASABA, Y ERA PORQUE `calcDiastol` NO ESTABA CABLEADO A TODO
+               LO QUE LEE. Vivia en el `oninput` de los cuatro campos del Doppler mitral, del LARS
+               y de los dos selectores, y en ningun otro: el TDE y el TRIV no tenian manejador
+               NINGUNO, y el Vol AI, la velocidad de la IT, el peso, la talla, la FEVI, el S/D y
+               los campos de VCI —de donde sale la PSAP— llamaban a lo suyo y no a la diastolica.
+               Medido en HEAD: tipeando el paciente en el orden natural, el cuadro se quedaba con
+               el veredicto del PACIENTE ANTERIOR hasta tocar un campo mitral. La ventana del 🧭
+               no se atrasaba (cuelga de un oyente de documento) y el informe firmado tampoco
+               (`generarInforme` llama a `calcDiastol`): lo que mentia era el cartel de pantalla,
+               que es el que el medico mira mientras carga.
+               Se cablearon ONCE campos con el mismo enganche que ya usaban los mitrales —una
+               llamada mas en su `oninput`— y no con un oyente global: `calcDiastol` arrastra
+               `calcHemo`, `calcVenaPulm`, `imOndaEPintar` y el aviso de protocolo, y colgarla de
+               cada tecla de la app entera se paga en todas las pestanas.
+               El veredicto NO cambia por esto: es una funcion pura de los campos, asi que lo
+               unico que cambia es CUANDO se repinta. Verificado en ritmo sinusal con las mismas
+               escenas de la tanda anterior. -->
           <label>TDE (ms)</label>
-          <input type="number" id="tde" placeholder="ms">
+          <input type="number" id="tde" placeholder="ms" oninput="calcDiastol()">
         </div>
         <div class="fg">
           <label>TRIV (ms)</label>
-          <input type="number" id="triv" placeholder="ms">
+          <input type="number" id="triv" placeholder="ms" oninput="calcDiastol()">
         </div>
         <div class="fg">
           <!-- ⚠️ EL THP ES UN DATO CON DOS CAMPOS DESDE EL 2026-10-09. Este es el PORTADOR: lo
@@ -3669,7 +3686,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                primer CSV— lo toca sin que nadie se acuerde, y el historial de XSS de esta suite
                está en CLAUDE.md. La etiqueta legible sale de `VENP_SD_TXT`. -->
           <label>S/D pulmonar</label>
-          <select id="venp_sd" onchange="calcVenaPulm()">
+          <select id="venp_sd" onchange="calcVenaPulm();calcDiastol()">
             <option value="">—</option>
             <option value="menor1">&lt;1</option>
             <option value="mayor1">&gt;1</option>
@@ -3983,7 +4000,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                El orden importa: `itVmaxSync` primero, porque los dos calculos de atras leen el
                campo YA espejado. Este campo NO cambio de unidad ni de id: la PSAP, el PDF, el PPT,
                el Excel y el export FHIR siguen leyendo exactamente lo que leian. -->
-          <input type="number" id="vmax_it" placeholder="m/s" step="0.1" oninput="itVmaxSync('vmax_it');calcPSAP();calcIT_ESC()">
+          <input type="number" id="vmax_it" placeholder="m/s" step="0.1" oninput="itVmaxSync('vmax_it');calcPSAP();calcIT_ESC();calcDiastol()">
         </div>
         <div class="fg">
           <label>Grad VD-AD — auto (mmHg)</label>
@@ -5607,7 +5624,7 @@ window.cerrarSesionReal = cerrarSesionReal;
              la EROA de esta pestania y `calcPSAP` para el gradiente VD-AD y la PSAP de la otra,
              que es tambien lo que PRENDE el boton Insuficiencia. Ver `itVmaxSync`.
              ⚠️ El Valiasing IT de al lado se queda en cm/s: es Doppler COLOR, no continuo. -->
-        <div class="fg"><label>Vmax IT CW (m/s)</label><input type="number" id="it_vmax_cw" placeholder="m/s" step="0.1" oninput="itVmaxSync('it_vmax_cw');calcIT_ESC();calcPSAP()"></div>
+        <div class="fg"><label>Vmax IT CW (m/s)</label><input type="number" id="it_vmax_cw" placeholder="m/s" step="0.1" oninput="itVmaxSync('it_vmax_cw');calcIT_ESC();calcPSAP();calcDiastol()"></div>
         <div class="fg"><label>VTI IT (cm)</label><input type="number" id="it_vti" placeholder="cm" oninput="calcIT_ESC()"></div>
         <div class="fg"><label>Densidad jet CW</label>
           <select id="it_densidad" onchange="calcIT_ESC()">
