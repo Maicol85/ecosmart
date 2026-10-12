@@ -26,6 +26,14 @@
  * ⚠️ DENOMINADOR. Un conteo de filas sobre una ventana que no abrio da cero y parece acuerdo
  * perfecto; una escena tipeada sobre un campo sin geometria deja el campo vacio y todo sale
  * «sin cambios». Cada escena informa que tipeo, que quedo en el campo y cuantas filas vio.
+ *
+ * ⚠️ LOS SEIS GRUPOS EN UNA SOLA SESION DE PAGINA SE CUELGAN SOBRE EL ARBOL DE HEAD. Medido el
+ * 2026-10-12: la corrida se quedo 16 minutos con Chrome al ~90 % de CPU y node en 0,16 s — o sea
+ * la pagina girando y la sonda esperando un despacho que no vuelve. Corridos DE A UNO (o de a
+ * dos) los mismos seis grupos terminan en 2-5 minutos cada uno. Son ~100 cargas de escena en una
+ * sola pagina y la app no se recicla entre ellas. NO se diagnostico mas alla de eso.
+ * PARA EL A/B: correr por grupo, no todo junto. Y si algo se cuelga, mirar el CPU del node
+ * contra el del Chrome: node idle con Chrome al 90 % no es lentitud de la sonda.
  */
 
 import { createServer } from 'node:http';
@@ -541,11 +549,18 @@ async function main() {
   async function cargar(c, sel, teclas) {
     await ev(`window.__P.limpiar()`);
     await pausa(120);
+    /* ⚠️ LOS <select> VAN PRIMERO, Y ESTO TAMBIEN SE MIDIO. `vci_col` dispara `calcPmAD` ->
+       `calcPSAP`, que escribe `psap_calc` y NO llama a `calcDiastol`: poniendolo despues del
+       tecleo, el cuadro gris quedaba con el veredicto anterior y la sonda informo «Presión de
+       llenado normal» en el cuadro con la ventana diciendo «DD Grado II · 3 de 3» sobre el MISMO
+       paciente — una medicion falsa con pinta de hallazgo. Con los selects primero, el ultimo
+       gesto de la escena es siempre un campo cableado a `calcDiastol`. El desfase en si es
+       pre-existente y se mide aparte, en el grupo `desfase`. */
+    const sels = {};
+    for (const id of Object.keys(sel || {})) sels[id] = await ev(`window.__P.set(${JSON.stringify(id)}, ${JSON.stringify(sel[id])})`);
     const tecleos = {};
     const todo = Object.assign({}, (Object.keys(c).length ? BASE : {}), c, teclas || {});
     for (const id of enOrden(todo)) tecleos[id] = await tipear(id, todo[id]);
-    const sels = {};
-    for (const id of Object.keys(sel || {})) sels[id] = await ev(`window.__P.set(${JSON.stringify(id)}, ${JSON.stringify(sel[id])})`);
     await pausa(120);
     return { tecleos, sels, todosOk: Object.keys(tecleos).every((k) => tecleos[k].ok) };
   }
