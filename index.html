@@ -23003,7 +23003,7 @@ function diastAlgoRender() {
   const host = document.getElementById('diast-algo-cuerpo'); if (!host) return;
 
   const L = _daCriteriosLAP();
-  const lars = _daNum('lars'), edad = _daNum('edad');
+  const lars = _daNum('lars');
   const esep = _daNum('e_sep'), elat = _daNum('e_lat');
   const e = _daNum('onda_e'), a = _daNum('onda_a');
   const ea = (e && a) ? e / a : null;
@@ -23011,43 +23011,20 @@ function diastAlgoRender() {
   let h = '';
 
   if (algo === 'ase2025') {
-    // Paso 1: umbral de e' septal según edad
-    const umbral = (edad !== null && edad >= 75) ? 5 : 7;
-    const reducida = esep !== null && esep < umbral;
-    h += '<div class="da-paso">Paso 1 — Relajación (e\' septal)</div>';
-    h += _daFila('e\' septal < ' + umbral + ' cm/s' + (edad !== null && edad >= 75 ? ' (edad ≥ 75)' : ''), esep, 'cm/s', reducida);
-    h += '<p class="da-nota">' + (esep === null ? 'Sin e\' septal no se puede iniciar el algoritmo.'
-      : reducida ? 'Relajación reducida: alcanza <b>1</b> criterio adicional para diagnosticar disfunción diastólica.'
-                 : 'Relajación conservada: hacen falta <b>2</b> criterios adicionales.') + '</p>';
-
-    h += '<div class="da-paso">Criterios de presión de llenado</div>';
-    h += _daFila('E/e\' promedio > 14', L.ee.val, '', L.ee.cumple);
-    h += _daFila('Velocidad IT > 2.8 m/s (PSAP > ' + UMBRAL_PSAP_ELEVADA + ' mmHg)', L.it.val, 'm/s', L.it.cumple);
-    h += _daFila('LAVI > ' + UMBRAL_LAVI_DILATADO + ' ml/m²', L.lavi.val, 'ml/m²', L.lavi.cumple);
-    const c = _daContar([L.ee, L.it, L.lavi]);
-    h += '<div class="da-paso">Criterio secundario</div>';
-    h += _daFila('LARS < 18 % (usar si hay 2 criterios primarios)', lars, '%', lars !== null && lars < 18);
-
-    let res;
-    if (esep === null || c.eval === 0) res = 'Datos insuficientes para clasificar.';
-    else {
-      const need = reducida ? 1 : 2;
-      const dd = c.pos >= need;
-      let grado = 'Normal';
-      if (dd) {
-        // Lo que separa Grado 2 de Grado 3 es la presión de llenado, no el paso 1.
-        // La asignación de Grado 2 estaba anidada dentro de `reducida`, así que con
-        // relajación CONSERVADA y los criterios de presión positivos no entraba por
-        // ninguna rama y el resultado salía como "Normal · 3 de 3 criterios
-        // positivos" — contradictorio en la misma frase.
-        grado = (ea !== null && ea >= 2 && (tda === null || tda <= 160))
-          ? 'Grado 3 — LAP muy elevada'
-          : 'Grado 2 — LAP elevada';
-      } else if (reducida) grado = 'Grado 1 — e\' reducida, LAP normal';
-      res = '<b>' + grado + '</b> · ' + c.pos + ' de ' + c.eval + ' criterios positivos'
-          + (reducida ? ' (relajación reducida, se exige 1)' : ' (relajación conservada, se exigen 2)') + '.';
-    }
-    h += '<div class="da-res">' + res + '</div>';
+    /* ⚠️ LA VENTANA YA NO CALCULA: PREGUNTA. Tenía su propia cuenta y daba veredictos distintos
+       del cuadro gris sobre el mismo paciente (ver la nota larga de `diastASE2025Evaluar`).
+       Hoy las filas, el conteo y el rótulo salen todos de ese único dueño. */
+    const R = diastASE2025Evaluar();
+    let gAct = null;
+    R.filas.forEach(f => {
+      if (f.g && f.g !== gAct) { h += '<div class="da-paso">' + escHtml(f.g) + '</div>'; gAct = f.g; }
+      h += _daFila(f.crit, f.val, f.u, f.ok, f.dec);
+    });
+    h += '<div class="da-res"><b>' + escHtml(R.ventanaTit) + '</b>'
+       + (R.ventanaDet ? ' · ' + escHtml(R.ventanaDet) + '.' : '') + '</div>';
+    /* La frase es LA DEL INFORME, leída del mismo objeto. Si alguna vez volvieran a divergir, se
+       vería acá al lado del conteo en vez de aparecer en un papel firmado. */
+    if (R.texto) h += '<p class="da-nota">' + escHtml(R.texto) + '</p>';
 
   } else if (algo === 'bse2024') {
     h += '<div class="da-paso">Criterios principales</div>';
@@ -23159,66 +23136,87 @@ function feviRangoUI() {
 window.feviRangoUI = feviRangoUI;
 
 // ══ Algoritmo ASE 2025 (recomendado) ══
-// (mismos umbrales que la función provista; cableado a los ids reales de EcoSmart
-//  onda_e/onda_a/e_sep/e_lat/ai_vol→Vol AI/vmax_it/lars y al render vía #dd-interp)
-function calcDiastolASE2025() {
-  const ritmo = sv('diast_ritmo');
+// Cableado a los ids reales de EcoSmart: onda_e/onda_a/e_sep/e_lat/ai_vol→Vol AI/vmax_it/lars.
+// El cuadro gris lo pinta `calcDiastolASE2025` en #dd-interp; la ventana 🧭 la pinta
+// `diastAlgoRender`. LAS DOS LEEN `diastASE2025Evaluar`, que es el ÚNICO dueño del veredicto.
+
+/* ══ EL DUEÑO ÚNICO DEL VEREDICTO ASE 2025 ═══════════════════════════════════════════════════
+   ⚠️ HABÍA DOS CUENTAS PARA EL MISMO PACIENTE Y SE CONTRADECÍAN EN LA MISMA PANTALLA. El cuadro
+   gris calculaba acá y la ventana del botón 🧭 calculaba por su cuenta en `diastAlgoRender`, con
+   un Paso 1 distinto (`e' septal < 7`, y `< 5` con edad ≥ 75), sin mirar el lateral ni el
+   promedio, dibujando el LARS sin contarlo, conformándose con UN parámetro evaluado, separando
+   el grado 3 por el TDE y dando el grado 1 sin mirar la E/A. Medido en HEAD: con e' septal 6,5 y
+   lateral 12 el cuadro decía «Función diastólica normal» y la ventana «Grado 1 — e' reducida»
+   sobre el MISMO paciente, a un clic de distancia. Ninguno de esos números está en la ASE 2025:
+   la Tabla 6 (folio 553) corta en 40 y en 65 años y para > 65 el septal es < 6; el 5,0 es el
+   septal de 41-65 de la BSE (Tabla 2, pág. 13).
+   Esta función LEE EL DOM Y NO ESCRIBE NADA —cada consumidor escribe lo suyo— y devuelve las
+   tres cosas que hacían falta para que no vuelvan a separarse: el veredicto (`clave`, `cls`,
+   `badgeTxt`, `texto`, `textoSuma`), el conteo (`pos`/`total`) y las FILAS que dibuja la
+   ventana. Un criterio nuevo entra en un solo lugar y aparece en los dos lados. */
+function diastASE2025Evaluar() {
   const ep = v('e_sep'), el = v('e_lat');
   const E = v('onda_e'), A = v('onda_a');
+  /* `(ep && el)` y no `!== null`: es la condición de HEAD y se conserva a propósito. Un e' de 0
+     queda leído como «no medido», que es lo conservador — con `!== null`, un 0 tipeado por error
+     daría un E/e' infinito y un criterio POSITIVO sobre un dato que no existe. Declarado. */
   const ee = (ep && el) ? ((ep + el) / 2) : (ep || el || null);
   const tr = v('vmax_it');            // velocidad TR en m/s
   const aiVol = v('ai_vol');
   const lars = v('lars');             // opcional
   const bsa = getBSA();
-  const laviI = (aiVol && bsa) ? aiVol / bsa : null;
+  const lavi = (aiVol && bsa) ? aiVol / bsa : null;
+  /* El E/e' se CUENTA con `ee !== null && E !== null`, que es el predicado de HEAD, y no con la
+     truthiness del cociente: con E = 0 el parámetro está evaluado y da negativo, no ausente. */
+  const eeEval = (ee !== null && E !== null);
+  const eeRatio = eeEval ? (E / ee) : null;
+  const ea = (E !== null && A !== null && A > 0) ? E / A : null;
 
-  // Celdas de lectura compartidas del panel diastólico
-  if (E && A) document.getElementById('ea-val').textContent = (E / A).toFixed(2);
-  if (ee !== null) document.getElementById('eprom-val').textContent = ee.toFixed(1) + ' cm/s';
-  if (E && ee) document.getElementById('ee-val').textContent = (E / ee).toFixed(1);
+  const R = { ep, el, ee, E, A, ea, eeRatio, tr, lavi, lars,
+              filas: [], pos: 0, total: 0, ePrimReducida: false };
 
-  const renderDiast = () => {
-    const dd = document.getElementById('dd-interp');
-    if (dd && window._diastResult) dd.innerHTML = window._diastResult.badge;
-  };
-
-  // FA — algoritmo simplificado
-  if (ritmo === 'fa') { calcDiastolBSE2024(); return; }
-
-  // ── PASO 1: e' reducida? (promedio ≤6.5 | septal ≤6 | lateral ≤7)
-  let ePrimReducida = false;
-  if (ee !== null && ee <= 6.5) ePrimReducida = true;
-  else if (ep !== null && ep <= 6) ePrimReducida = true;
-  else if (el !== null && el <= 7) ePrimReducida = true;
+  // ── PASO 1: e' reducida? (promedio ≤6.5 | septal ≤6 | lateral ≤7) — Figura 3, folio 554
+  const cSep  = ep !== null && ep <= 6;
+  const cLat  = el !== null && el <= 7;
+  const cProm = ee !== null && ee <= 6.5;
+  R.ePrimReducida = cProm || cSep || cLat;
+  R.filas.push({ g: 'Paso 1 — Relajación (e\')', crit: 'e\' septal ≤ 6 cm/s', val: ep, u: 'cm/s', ok: cSep });
+  R.filas.push({ crit: 'e\' lateral ≤ 7 cm/s',    val: el, u: 'cm/s', ok: cLat });
+  R.filas.push({ crit: 'e\' promedio ≤ 6,5 cm/s', val: ee, u: 'cm/s', ok: cProm });
 
   if (ee === null && ep === null && el === null) {
-    window._diastResult = {
-      texto: 'Completar e\' septal y/o lateral para clasificar.',
-      textoSuma: '',
-      badge: badge('gray', 'Incompleto — ASE 2025'),
-      algoritmo: 'ase2025'
-    };
-    renderDiast();
-    return;
+    R.clave = 'incompleto';
+    R.cls = 'gray';
+    R.badgeTxt = 'Incompleto — ASE 2025';
+    R.texto = 'Completar e\' septal y/o lateral para clasificar.';
+    R.textoSuma = '';
+    R.ventanaTit = 'Datos insuficientes';
+    R.ventanaDet = 'sin e\' septal ni lateral no se puede iniciar el algoritmo';
+    return R;
   }
 
   // ── PASO 2: parámetros de presión elevada (E/e'>14, Vol AI>34, TR>2.8, LARS≤18)
-  let presionElevada = 0, totalParam = 0;
-  if (ee !== null && E !== null) { totalParam++; if ((E / ee) > 14) presionElevada++; }
-  if (laviI !== null)           { totalParam++; if (laviI > UMBRAL_LAVI_DILATADO) presionElevada++; }
-  if (tr !== null)              { totalParam++; if (tr > 2.8) presionElevada++; }
-  if (lars !== null)            { totalParam++; if (lars <= 18) presionElevada++; }
+  const P2 = [
+    { g: 'Paso 2 — Presión de llenado', crit: 'E/e\' promedio > 14', val: eeRatio, u: '',
+      ok: eeEval && eeRatio > 14, ev: eeEval, dec: 1 },
+    { crit: 'Vol AI > ' + UMBRAL_LAVI_DILATADO + ' ml/m²', val: lavi, u: 'ml/m²',
+      ok: lavi !== null && lavi > UMBRAL_LAVI_DILATADO, ev: lavi !== null },
+    { crit: 'Velocidad IT > 2.8 m/s', val: tr, u: 'm/s',
+      ok: tr !== null && tr > 2.8, ev: tr !== null },
+    { crit: 'LARS ≤ 18 %', val: lars, u: '%',
+      ok: lars !== null && lars <= 18, ev: lars !== null }
+  ];
+  P2.forEach(f => { if (f.ev) { R.total++; if (f.ok) R.pos++; } R.filas.push(f); });
 
   // ── PASO 3: umbral según e' (reducida → ≥1 positivo de al menos 2 EVALUADOS; conservada → ≥2)
-  let cls, badgeTxt, texto, textoSuma;
-  const ea = (E !== null && A !== null && A > 0) ? E / A : null;
-  const nPar = ' (' + presionElevada + '/' + totalParam + ' parámetros positivos)';
-  if (totalParam === 0) {
-    cls = 'gray';
-    badgeTxt = 'Datos insuficientes — ASE 2025';
-    texto = 'Datos insuficientes para clasificar presión de llenado. Completar E/e\', Vol AI y/o TR.';
-    textoSuma = '';
-  } else if (totalParam < 2) {
+  const nPar = ' (' + R.pos + '/' + R.total + ' parámetros positivos)';
+  if (R.total === 0) {
+    R.clave = 'insuf';
+    R.cls = 'gray';
+    R.badgeTxt = 'Datos insuficientes — ASE 2025';
+    R.texto = 'Datos insuficientes para clasificar presión de llenado. Completar E/e\', Vol AI y/o TR.';
+    R.textoSuma = '';
+  } else if (R.total < 2) {
     /* ECOS-03 (B): ASE 2025 pide al menos DOS parámetros evaluados. Con uno solo, ese único
        dato decidía por sí mismo la presión de llenado —y de ahí salía un grado al informe
        firmado— sin ninguna segunda medición que lo respaldara.
@@ -23227,15 +23225,17 @@ function calcDiastolASE2025() {
        cumple y el estudio salía «Función diastólica normal» en verde aunque ese único
        parámetro fuera POSITIVO: el texto llegaba a decir «presión de llenado normal (1/1
        parámetros positivos)», que se contradice dentro de la misma línea. */
-    cls = 'gray';
-    badgeTxt = 'Indeterminado — ASE 2025';
-    texto = 'Presión de llenado no clasificable: el algoritmo requiere al menos 2 de los 4 ' +
+    R.clave = 'unico';
+    R.cls = 'gray';
+    R.badgeTxt = 'Indeterminado — ASE 2025';
+    R.texto = 'Presión de llenado no clasificable: el algoritmo requiere al menos 2 de los 4 ' +
       'parámetros evaluados (E/e\', Vol AI indexado, TR, LARS) y aquí sólo hay 1' + nPar +
       '. Completar otro parámetro para clasificar.';
-    textoSuma = '';
+    R.textoSuma = '';
   } else {
-    const umbral = ePrimReducida ? 1 : 2;
-    const presionAlta = presionElevada >= umbral;
+    const umbral = R.ePrimReducida ? 1 : 2;
+    const presionAlta = R.pos >= umbral;
+    const ePrimReducida = R.ePrimReducida;
     /* ECOS-03 (C): la graduación pasa a exigir E/A, que antes no se miraba en la rama de
        presión normal. Dos consecuencias del código viejo:
          · e' CONSERVADA con presión normal salía «DD Grado I». Eso no es una disfunción:
@@ -23245,75 +23245,115 @@ function calcDiastolASE2025() {
        Lo que no cumple los criterios de ninguno de los tres grados queda INDETERMINADO, que
        es un resultado legítimo del algoritmo y no un agujero. */
     if (!presionAlta) {
-      if (presionElevada > 0) {
+      if (R.pos > 0) {
         /* «Normal» sólo con CERO parámetros positivos. Con e' conservada el umbral es 2, así
            que 1 de 2 o 1 de 3 quedaba por debajo del umbral y salía rotulado normal en verde
            mientras el texto imprimía el positivo al lado. Un parámetro de presión elevada
            colgando no es una función diastólica normal: es un estudio no concluyente. */
-        cls = 'gray';
-        badgeTxt = 'Indeterminado — ASE 2025';
-        texto = 'Presión de llenado no concluyente: ' + (ePrimReducida ? 'e\' reducida' : 'e\' conservada') +
+        R.clave = 'indetBajoUmbral';
+        R.cls = 'gray';
+        R.badgeTxt = 'Indeterminado — ASE 2025';
+        R.texto = 'Presión de llenado no concluyente: ' + (ePrimReducida ? 'e\' reducida' : 'e\' conservada') +
           ' con ' + nPar.trim().replace(/^\(|\)$/g, '') + ', por debajo del umbral de ' + umbral +
           ' para afirmar presión elevada pero sin ser todos negativos. Grado indeterminado.';
-        textoSuma = '';
+        R.textoSuma = '';
       } else if (!ePrimReducida) {
-        cls = 'green';
-        badgeTxt = 'Función diastólica normal — ASE 2025';
-        texto = 'Función diastólica normal: e\' conservada con presión de llenado normal' + nPar + '.';
-        textoSuma = '';
+        R.clave = 'normal';
+        R.cls = 'green';
+        R.badgeTxt = 'Función diastólica normal — ASE 2025';
+        R.texto = 'Función diastólica normal: e\' conservada con presión de llenado normal' + nPar + '.';
+        R.textoSuma = '';
       } else if (ea !== null && ea <= 0.8) {
-        cls = 'yellow';
-        badgeTxt = 'DD Grado I — ASE 2025';
-        texto = 'Disfunción diastólica grado I (relajación alterada). e\' reducida, E/A ' + ea.toFixed(2) +
+        R.clave = 'g1';
+        R.cls = 'yellow';
+        R.badgeTxt = 'DD Grado I — ASE 2025';
+        R.texto = 'Disfunción diastólica grado I (relajación alterada). e\' reducida, E/A ' + ea.toFixed(2) +
           ' (≤0,80) y presión de llenado normal' + nPar + '.';
-        textoSuma = 'Disfunción diastólica grado I — relajación alterada con presión de llenado normal.';
+        R.textoSuma = 'Disfunción diastólica grado I — relajación alterada con presión de llenado normal.';
       } else {
-        cls = 'gray';
-        badgeTxt = 'Indeterminado — ASE 2025';
-        texto = 'e\' reducida con presión de llenado normal' + nPar + ', pero ' +
+        R.clave = 'indetG1';
+        R.cls = 'gray';
+        R.badgeTxt = 'Indeterminado — ASE 2025';
+        R.texto = 'e\' reducida con presión de llenado normal' + nPar + ', pero ' +
           (ea === null ? 'sin cociente E/A no se puede confirmar el grado I, que requiere E/A ≤0,80'
                        : 'el cociente E/A (' + ea.toFixed(2) + ') es mayor a 0,80, así que no cumple criterio de grado I') +
           '. Grado indeterminado.';
-        textoSuma = '';
+        R.textoSuma = '';
       }
     } else if (ea === null) {
-      cls = 'orange';
-      badgeTxt = 'DD — Presión elevada (ASE 2025)';
-      texto = 'Presión de llenado elevada' + nPar +
+      R.clave = 'altaSinEa';
+      R.cls = 'orange';
+      R.badgeTxt = 'DD — Presión elevada (ASE 2025)';
+      R.texto = 'Presión de llenado elevada' + nPar +
         '. Completar cociente E/A para determinar grado.';
-      textoSuma = 'Disfunción diastólica — presión de llenado elevada.';
+      R.textoSuma = 'Disfunción diastólica — presión de llenado elevada.';
     } else if (ea >= 2 && ePrimReducida) {
-      cls = 'red';
-      badgeTxt = 'DD Grado III — ASE 2025';
+      R.clave = 'g3';
+      R.cls = 'red';
+      R.badgeTxt = 'DD Grado III — ASE 2025';
       /* Sin campo de Valsalva en la app no se puede separar IIIa (revierte) de IIIb (no
          revierte), así que se informa el grado III y se nombra el dato que falta en vez de
          elegir un subtipo al azar. */
-      texto = 'Disfunción diastólica grado III (patrón restrictivo). e\' reducida, E/A ' + ea.toFixed(2) +
+      R.texto = 'Disfunción diastólica grado III (patrón restrictivo). e\' reducida, E/A ' + ea.toFixed(2) +
         ' (≥2,00) y presión de llenado elevada' + nPar +
         '. La distinción entre IIIa (reversible con Valsalva) y IIIb (fija) requiere la maniobra de Valsalva, no registrada.';
-      textoSuma = 'Disfunción diastólica grado III — patrón restrictivo, presión de llenado elevada.';
+      R.textoSuma = 'Disfunción diastólica grado III — patrón restrictivo, presión de llenado elevada.';
     } else if (ea >= 0.8 && ea < 2) {
-      cls = 'orange';
-      badgeTxt = 'DD Grado II — ASE 2025';
-      texto = 'Disfunción diastólica grado II (patrón pseudonormal). E/A ' + ea.toFixed(2) +
+      R.clave = 'g2';
+      R.cls = 'orange';
+      R.badgeTxt = 'DD Grado II — ASE 2025';
+      R.texto = 'Disfunción diastólica grado II (patrón pseudonormal). E/A ' + ea.toFixed(2) +
         ' (0,80–2,00) con presión de llenado elevada' + nPar + '.';
-      textoSuma = 'Disfunción diastólica grado II — presión de llenado elevada.';
+      R.textoSuma = 'Disfunción diastólica grado II — presión de llenado elevada.';
     } else {
       /* E/A ≥2 con e' CONSERVADA no es grado III: es el patrón del corazón joven y sano, donde
          un llenado precoz dominante convive con relajación normal. Rotularlo restrictivo sería
          el error más grave de esta rama. Y E/A <0,8 con presión elevada es una combinación
          internamente contradictoria que tampoco se fuerza a un grado. */
-      cls = 'gray';
-      badgeTxt = 'Indeterminado — ASE 2025';
-      texto = 'Presión de llenado elevada' + nPar + ' con E/A ' + ea.toFixed(2) + ' y ' +
+      R.clave = 'indetComb';
+      R.cls = 'gray';
+      R.badgeTxt = 'Indeterminado — ASE 2025';
+      R.texto = 'Presión de llenado elevada' + nPar + ' con E/A ' + ea.toFixed(2) + ' y ' +
         (ePrimReducida ? 'e\' reducida' : 'e\' conservada') +
         ': la combinación no cumple criterios de grado I, II ni III. Grado indeterminado — correlacionar con clínica.';
-      textoSuma = '';
+      R.textoSuma = '';
     }
   }
 
-  window._diastResult = { texto, textoSuma, badge: badge(cls, badgeTxt), algoritmo: 'ase2025' };
-  renderDiast();
+  /* El rótulo de la ventana sale del MISMO badge que el cuadro, sin el sufijo del protocolo —que
+     la ventana ya lleva en su título—. Derivarlo en vez de escribirlo dos veces es lo que
+     garantiza que no puedan decir cosas distintas. */
+  if (R.ventanaTit === undefined) R.ventanaTit = R.badgeTxt.replace(' — ASE 2025', '').replace(' (ASE 2025)', '');
+  if (R.ventanaDet === undefined) {
+    R.ventanaDet = R.pos + ' de ' + R.total + ' parámetros positivos'
+      + (R.total >= 2 ? (R.ePrimReducida ? ' (e\' reducida, se exige 1)' : ' (e\' conservada, se exigen 2)') : '');
+  }
+  return R;
+}
+window.diastASE2025Evaluar = diastASE2025Evaluar;
+
+function calcDiastolASE2025() {
+  const ritmo = sv('diast_ritmo');
+  const ep = v('e_sep'), el = v('e_lat');
+  const E = v('onda_e'), A = v('onda_a');
+  const ee = (ep && el) ? ((ep + el) / 2) : (ep || el || null);
+
+  /* ⚠️ LAS TRES CELDAS SE ESCRIBEN ANTES DEL `return` DE FA, IGUAL QUE EN HEAD, y no dentro del
+     dueño. `calcDiastolBSE2024` escribe `eprom-val` SÓLO con los dos anillos, así que mover
+     esta escritura detrás del return dejaría en blanco el e' promedio de un estudio en FA con un
+     solo anillo cargado. La FA es otro trabajo y no se le cambia nada. */
+  if (E && A) document.getElementById('ea-val').textContent = (E / A).toFixed(2);
+  if (ee !== null) document.getElementById('eprom-val').textContent = ee.toFixed(1) + ' cm/s';
+  if (E && ee) document.getElementById('ee-val').textContent = (E / ee).toFixed(1);
+
+  // FA — algoritmo simplificado
+  if (ritmo === 'fa') { calcDiastolBSE2024(); return; }
+
+  const R = diastASE2025Evaluar();
+  window._diastResult = { texto: R.texto, textoSuma: R.textoSuma,
+                          badge: badge(R.cls, R.badgeTxt), algoritmo: 'ase2025' };
+  const dd = document.getElementById('dd-interp');
+  if (dd) dd.innerHTML = window._diastResult.badge;
 }
 window.calcDiastolASE2025 = calcDiastolASE2025;
 
@@ -101603,8 +101643,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261011-2229';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791768574466;                 /* eco-build-ms */
+const ECO_BUILD    = '20261012-0027';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791775636417;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -101690,7 +101730,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261011-2229</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261012-0027</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
