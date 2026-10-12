@@ -23703,6 +23703,44 @@ window.feviRangoUI = feviRangoUI;
    tres cosas que hacían falta para que no vuelvan a separarse: el veredicto (`clave`, `cls`,
    `badgeTxt`, `texto`, `textoSuma`), el conteo (`pos`/`total`) y las FILAS que dibuja la
    ventana. Un criterio nuevo entra en un solo lugar y aparece en los dos lados. */
+
+/* ══ PARÁMETROS SUPLEMENTARIOS DE LA ASE 2025 — folio 555 ═══════════════════════
+   DÓNDE ENTRAN, Y ES UN SOLO LUGAR. La Figura 3 (folio 554) los nombra DENTRO de la caja del
+   segundo paso, literal: «Pulmonary Vein S/D ≤0.67 or LARS ≤ 18% or LAVi > 34 mL/m2 /
+   Alternatively IVRT ≤ 70 ms / **If none available or reliable use Supplemental methods**‡», y la
+   prosa del mismo folio lo repite: «Supplemental Parameters: these can be relied on in the absence
+   of the three parameters in the section above». O sea: **sólo cuando el segundo paso no tiene
+   NINGUNO de sus parámetros**, que en esta app es `seg2Eval === 0`.
+
+   LA NOTA ‡ DE LA FIGURA 3 LISTA CINCO: velocidad telediastólica de la IP ≥ 2 m/s, PAP diastólica
+   ≥ 16 mmHg, **onda L del llenado mitral ≥ 50 cm/s**, Ar−A > 30 ms y caída de la E/A ≥ 50 % con
+   Valsalva. El folio 555b agrega la IM diastólica, la terminación precoz del llenado y la amplitud
+   de la Ar > 35 cm/s. **Esta tanda implementa UNO**: la onda L, que es el único que tiene campo.
+   Por eso esto es una LISTA y no un `if`: los otros los agrega otro trabajo, agregando una entrada
+   acá y nada más —la etapa que los evalúa, las filas de la ventana y la rama del veredicto ya
+   están escritas contra la lista—.
+
+   ⚠️ CON LOS SUPLEMENTARIOS NEGATIVOS **NO SE AFIRMA PRESIÓN NORMAL**, Y ES UNA DECISIÓN MEDIDA.
+   La flecha «None» de la figura sale de la caja ENTERA, o sea de haber preguntado sus cinco
+   parámetros; la app puede preguntar uno. Contestar «no» a cuatro preguntas que no se hicieron es
+   exactamente la forma en que un conteo afirma normalidad sobre datos que nadie cargó —la regla de
+   la casa, y lo que la rama del strain de la BSE ya hace con `suplEval === 0`—. Así que con la onda
+   L negativa el estado se queda en el «no estimable» de HEAD, cuyo texto sigue siendo cierto. Lo
+   que la onda L SÍ puede hacer es lo del lado positivo, que es afirmación de presión ELEVADA y le
+   alcanza con un parámetro: «≥1 present».
+
+   ⚠️ EL CORTE ES ≥ 50 cm/s Y NO ES EL > 20 DE LA BSE. Son la misma medición y dos guías, igual
+   que el LARS (≤ 18 % acá, < 16 % en la FA de la BSE). No se unifican. El operador es `>=`: el
+   folio 555 escribe «the presence of an L-wave velocity ≥ 50 cm/s is an indicator of both impaired
+   LV relaxation and elevated LAP», y la nota ‡ de la Figura 3 lo escribe igual. */
+const ASE_ONDAL_SUPL = 50;   // cm/s — onda L, borde `>=` (folio 555 y nota ‡ de la Figura 3)
+const ASE_SUPLEMENTARIOS = [
+  { clave: 'ondaL', rot: 'Onda L ≥ ' + ASE_ONDAL_SUPL + ' cm/s (folio 555)', u: 'cm/s', dec: 1,
+    leer: function () { return v('onda_l'); },
+    cumple: function (x) { return x !== null && x >= ASE_ONDAL_SUPL; } }
+];
+window.ASE_SUPLEMENTARIOS = ASE_SUPLEMENTARIOS;
+
 function diastASE2025Evaluar() {
   const ep = v('e_sep'), el = v('e_lat');
   const E = v('onda_e'), A = v('onda_a');
@@ -23846,6 +23884,22 @@ function diastASE2025Evaluar() {
   R.filas.push({ crit: 'S/D venoso pulmonar ≤ 0,67 — no evaluable: el campo es «<1 / >1»', val: null, u: '', ok: false });
   R.filas.push({ crit: 'TRIV ≤ 70 ms (alternativa, sólo si no hay ninguno de los de arriba)', val: triv, u: 'ms', ok: cTriv });
 
+  /* ── PARÁMETROS SUPLEMENTARIOS (folio 555) ────────────────────────────────────────────────
+     La etapa está armada como una LISTA (ver `ASE_SUPLEMENTARIOS` arriba) para que el trabajo que
+     agregue los otros cuatro no tenga que tocar nada de acá. Se EVALÚA siempre —es barato y puro—
+     y se CONSULTA sólo con el segundo paso vacío, que es la condición que escribe la figura. */
+  const supl = ASE_SUPLEMENTARIOS.map(function (q) {
+    const val = q.leer();
+    return { q: q, val: val, ev: val !== null, ok: q.cumple(val) };
+  });
+  const suplEval = supl.filter(function (x) { return x.ev; }).length;
+  const suplPos  = supl.filter(function (x) { return x.ev && x.ok; });
+  R.filas.push({ g: 'Parámetros suplementarios (folio 555) — sólo si el segundo paso no tiene ninguno',
+                 crit: supl[0].q.rot, val: supl[0].val, u: supl[0].q.u, ok: supl[0].ok, dec: supl[0].q.dec });
+  supl.slice(1).forEach(function (x) {
+    R.filas.push({ crit: x.q.rot, val: x.val, u: x.q.u, ok: x.ok, dec: x.q.dec });
+  });
+
   /* ── PASO 3 — LAS COMPUERTAS DE LA FIGURA 3, EN SU ORDEN ────────────────────────────────────
      «Todas normales» exige las tres EVALUADAS y negativas: es la única rama que AFIRMA
      normalidad, y afirmarla sobre dos variables sin medir es lo que la guarda vieja de HEAD
@@ -23931,17 +23985,31 @@ function diastASE2025Evaluar() {
       ' (≤0,80) y presión de llenado normal' + nPar + '.';
     R.textoSuma = 'Disfunción diastólica grado I — relajación alterada con presión de llenado normal.';
     R.via = 'e\' reducida sola con E/A ≤ 0,80';
+  } else if (seg2Eval === 0 && suplPos.length >= 1) {
+    /* LA RAMA SUPLEMENTARIA, Y SÓLO LA POSITIVA (folio 554: «If none available or reliable use
+       Supplemental methods» dentro de la caja del segundo paso; folio 555 para el corte). Le
+       alcanza UN parámetro —la flecha de la figura dice «≥1 present»— y de ahí se gradúa por la
+       E/A como cualquier otra rama de presión elevada. Lo que NO hace es el lado negativo: ver el
+       comentario largo de `ASE_SUPLEMENTARIOS`. */
+    R.via = 'segundo paso sin ningún parámetro · suplementario positivo ('
+      + suplPos.map(function (x) { return x.q.clave; }).join(', ') + ', folio 555)';
+    graduarElevada();
   } else if (seg2Eval === 0) {
     /* ESTADO (b) — texto aprobado por Maicol el 2026-10-12. La figura manda al segundo paso y el
        segundo paso no tiene con qué: no se afirma presión normal ni elevada, y se nombra qué
-       completar. El S/D no entra en esa lista como medible porque el campo no lo mide. */
+       completar. El S/D no entra en esa lista como medible porque el campo no lo mide.
+       ⚠️ Y TAMPOCO SE AFIRMA NADA CON UN SUPLEMENTARIO NEGATIVO: la app implementa UNO de los
+       cinco de la nota ‡, así que «ninguno positivo» no es «ninguno presente». El texto de este
+       estado sigue siendo cierto palabra por palabra, así que no cambia; lo que cambia es la
+       `via`, que ahora dice si el suplementario se evaluó. */
     R.clave = 'noEstimable';
     R.cls = 'gray';
     R.badgeTxt = 'No estimable — ASE 2025';
     R.texto = 'No se puede estimar la presión de llenado del VI con los datos disponibles; ' +
       'completar los parámetros del segundo paso (Vol AI, LARS, S/D o TRIV).';
     R.textoSuma = 'Presión de llenado del VI no estimable con los datos disponibles.';
-    R.via = 'segundo paso sin ningún parámetro';
+    R.via = 'segundo paso sin ningún parámetro'
+      + (suplEval ? ' · ' + suplEval + ' suplementario(s) evaluado(s) y negativo(s)' : '');
   } else if (seg2Pos >= 1) {
     R.via = 'segundo paso ' + seg2Pos + ' de ' + seg2Eval + (seg2Via === 'TRIV' ? ' (por TRIV)' : '');
     graduarElevada();
@@ -103063,8 +103131,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261012-1413';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791825180419;                 /* eco-build-ms */
+const ECO_BUILD    = '20261012-1417';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791825422079;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -103150,7 +103218,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261012-1413</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261012-1417</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
