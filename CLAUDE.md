@@ -24,6 +24,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | Qué falta hacer / próximo paso | `docs/PENDIENTES.md` |
 | **Ubicar un cálculo de severidad, un corte o una banda** | `docs/mapa/valvulas.md` |
 | **Tocar la función diastólica del VI**: el cuadro, la ventana 🧭 o los tres algoritmos | `docs/mapa/diastolica.md` |
+| **Tocar el VENTRÍCULO DERECHO**: sus campos, el cuadro de referencias, la disfunción sistólica, la pared o el Tei | `docs/mapa/vd-derecho.md` |
 | **Tocar el panel de Evidencia: agregar una cita, una sección o un sub-bloque** | `docs/mapa/panel-evidencia.md` |
 | **Agregar un TÉRMINO al glosario del panel (el ⓘ con tarjeta)** | `docs/mapa/panel-evidencia-terminos.md` |
 | **Ver por dónde sale un dato** (informe narrativo, EN SUMA, PDF, Excel) | `docs/mapa/informe-pdf-excel.md` |
@@ -46,6 +47,9 @@ edición, el nombre de la función no.
 medido el 2026-10-11:** `panel-evidencia.md` 33 KB y `valvulas.md` 33 KB; los otros cuatro van de 18
 a 25 KB. Los mapas crecen con cada tanda. **Medí el que vas a abrir antes de presupuestar contexto**
 (`wc -c docs/mapa/*.md`), y si uno pasa de ~35 KB conviene partirlo en vez de seguir estirándolo.
+⚠️ **Al 2026-10-12 hay SIETE mapas y el nuevo nació chico:** `vd-derecho.md` pesa 15,4 KB. Se
+sacó a archivo propio en vez de colgarlo de `congenitas-otros.md` por la misma razón que el
+glosario del panel: un mapa que crece con cada tanda termina siendo imposible de presupuestar.
 ⚠️ **Y al 2026-10-12 `panel-evidencia.md` está en 35,3 KB, o sea YA pasó ese techo.** La tanda del
 glosario respetó la regla sacando su mapa a un archivo propio
 (`panel-evidencia-terminos.md`, 15 KB) en vez de agregarle una sección; lo que le entró fueron tres
@@ -211,6 +215,163 @@ impecable.
 ---
 
 ## Estado vigente
+
+### Pared del VD e índice de Tei (DTI) — dos campos, dos cortes de la ASE 2025 y la sigla HVD (2026-10-12)
+
+- Al **empezar** esta tanda, `main` local y `origin/main` estaban los dos en **`257f1ee`**, sin nada
+  sin pushear —confirmado con un `git fetch` de verdad, no con el ref en caché—, con los **seis**
+  commits de la tanda del strain de la AI y la onda L ya incluidos **y pusheados**. Los **seis**
+  commits de esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 6 → 5 → 4 → 3 → 2 → 1.**
+  El 1 crea los dos campos, los tres cortes, `VD_NUEVOS_BANDA` y `vdMarcaSync`; **del 2 al 4
+  cuelgan todos de él**, así que revertir el 1 sin revertir antes los otros tres deja `calcVD` y
+  `generarInforme` nombrando constantes que ya no existen, y un `ReferenceError` en la evaluación
+  de un `<script>` **aborta el bloque COMPLETO** — o sea la app con cero pestañas con geometría.
+  **El 4 depende del 3**, y no al revés: el `_hvdInf` que la cadena del EN SUMA consulta nace en el
+  3. **Y el 2 tiene que revertirse DESPUÉS del 3**, porque el 3 reescribe las mismas líneas del
+  cuadro que el 2 creó. **El 5 (TC-457) y el 6 (documentación) se revierten solos**, y revertir
+  cualquiera de los cuatro primeros sin el 5 deja TC-457 en rojo.
+
+- **Línea base al cierre: suite 468/472 con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0 ERROR,
+  Excel 435 columnas, celular 43 a 360 px y 52 a 390 px con 1 ALTA cada uno —IDÉNTICO a la línea
+  base—.** Los cuatro rojos son los de entrada y NO son regresiones: **TC-223** (el documentado,
+  falla por la fecha), **TC-376**, **TC-390** y **TC-406**. **El denominador subió a 472**: esta
+  tanda agregó **TC-457**. La de ENTRADA, medida en HEAD limpio el 2026-10-12, fue **467/471** con
+  el pendrive montado y los mismos cuatro rojos, con el `md5` de `index.html` sin moverse durante
+  la corrida.
+  ⚠️ **TC-246 Y TC-252 SALIERON ROJOS EN LA CORRIDA DE ENTRADA Y VERDES CORRIDOS SOLOS**, que es lo
+  que la orden avisaba. Son inestables conocidos: la cifra de entrada es 467/471 y no 465/471.
+  **Repetir antes de sospechar.**
+- ⚠️ **EL CHEQUEO DE CELULAR SUBIÓ +2 EN LA CUENTA COMPLETA, Y HAY QUE MEDIR HEAD EL MISMO DÍA PARA
+  SABERLO.** `--todo` da **374 a 360 px y 383 a 390 px** contra **372 y 381 en HEAD medido hoy**;
+  los dos hallazgos nuevos son `input-chico` (BAJA), los dos campos nuevos contados igual que los
+  otros 329 `input` de la app. El renglón viejo de este archivo decía 367/376 y es de **otro día**:
+  restarle da «+7», que es la clase de falso que este archivo ya documenta para el pendrive.
+  La cuenta VISIBLE —la que compara la línea base— no se movió: 43 y 52, con la misma única ALTA
+  (`#caso_interes`, preexistente y ajena).
+- **Dónde está todo:** `docs/mapa/vd-derecho.md` (**mapa NUEVO**: los campos, las siete filas del
+  cuadro, los dueños del estado, el OR de la disfunción sistólica, las dos superficies y las
+  trampas), `docs/fuentes/FUENTES.md` → `### aseVd2025` (los folios, los dos cortes del Tei, cómo
+  se mide la pared y las advertencias), `docs/PENDIENTES.md` → **diez** cosas declaradas y no
+  tocadas (V1 a V10).
+
+- **LOS DOS CORTES SALEN DE LA ASE 2025 DE CAVIDADES DERECHAS, Y EL FOLIO ES LA PÁGINA DEL PDF + 140**
+  (comprobado en el pie impreso de tres páginas, no por aritmética). Pared del VD: normal
+  **< 5 mm**, o sea hipertrofia con borde **`>=`** (Key Point folio 144 + Tabla 1 folio 145 + Tabla 6
+  folio 169, las tres coinciden). Tei por **DTI**: normal **< 0,55**, alterado con borde **`>=`**
+  (Tabla 1 folio 145 + texto folio 158).
+- ⚠️ **LOS DOS OPERADORES SON `>=`, ASÍ QUE EL VALOR DEL CORTE CAE DEL LADO ANORMAL.** El recuerdo de
+  «> 5 mm» deja los 5,0 mm exactos del lado NORMAL, y 5 es un número que se tipea entero. Lo mismo
+  con el 0,55. TC-457 lo fija con el valor exacto por sus dos lados.
+- ⚠️ **EL TEI TIENE DOS CORTES Y SON DE DOS MÉTODOS: 0,55 por DTI y 0,40 por Doppler PULSADO.** La
+  guía declara que la correlación entre métodos es sólo **moderada** (folio 158), así que no se
+  unifican. `VD_TEI_PW_ALT_MIN` existe **declarado y sin aplicar**, para que un borde se entienda al
+  lado del que no se eligió: aplicar el del pulsado a un valor de DTI mueve el corte un **27 %**.
+  El rótulo del campo dice «(DTI)» y el informe imprime «Tei 0.62 (DTI)» por lo mismo.
+- ⚠️ **LA GUÍA NO DICE QUE EL TEI SE SEUDONORMALICE CON LA PRESIÓN DE LA AD ELEVADA, Y LA ORDEN LO
+  PROPONÍA COMO HIPÓTESIS.** Barrido del PDF completo (`Tei`, `MPI`, `myocardial performance`,
+  `wall thickness`, `RVWT`, `RVH`, `hypertroph`): para la congestión derecha describe lo
+  **CONTRARIO** —alarga IVCT e IVRT y **SUBE** el índice «regardless of RV systolic function»—. Lo
+  que sí dice, en el folio 159, es que la **IT severa acorta el IVRT** sin tocar el IVCT y que los
+  **R-R variables, como en la FA**, dan ET y TCO variables. El cartel ámbar nombra sólo esas dos,
+  que además son las que la app puede detectar. Las otras tres advertencias están en
+  `docs/PENDIENTES.md` → V8, con el motivo de por qué no se detectan.
+- ⚠️ **EL CARTEL SALE TAMBIÉN CON UN TEI NORMAL, Y ES CORRECTO.** Lo que se advierte es la validez de
+  la medición, no la dirección del veredicto: la IT severa acorta el IVRT, o sea empuja el índice
+  hacia el lado **tranquilizador**. Medido: Tei 0,45 con IT severa publica el cartel y el veredicto
+  sigue siendo «función sistólica conservada».
+- ⚠️ **EL MOTIVO DE LA IT ES «SEVERA» Y NO «SIGNIFICATIVA».** `DT_IT_SIGNIF` vale **2** (moderada) y
+  es el corte de la salvedad DIASTÓLICA, que sale de la ASE 2010 sobre otros parámetros. Acá la guía
+  escribe «Severe TR», o sea `it_grado === '4'`: reusar el 2 habría ampliado el alcance de una
+  advertencia a pacientes que su fuente no nombra. Control negativo medido: con IT moderada el
+  cartel NO sale.
+- **LA DISFUNCIÓN SISTÓLICA DEL VD NO ES «N PARÁMETROS ALTERADOS»: ES UN OR, Y UNO ALCANZA.** La
+  regla de HEAD es `tapseBajo || spBajo || facBajo`, cada uno contando sólo si está medido. El Tei
+  entra como **cuarto término del mismo OR** y nada más. Medido en 21 escenas: **las 7 combinaciones
+  SIN Tei dan 0 diferencias contra HEAD**, un Tei normal nunca mueve el veredicto y sólo se nombra,
+  y un Tei alterado da vuelta la única combinación que podía darlo vuelta («ninguno alterado»).
+- ⚠️ **EL TEI Y LA HIPERTROFIA TUVIERON QUE ENTRAR EN LA COMPUERTA DEL BLOQUE, Y SIN ESO DESAPARECÍAN
+  EN SILENCIO.** El `if` que envuelve el bloque 5 de `generarInforme` tenía cuatro condiciones y
+  ahora tiene seis: `teiVD !== null` entra por `hayFunc` y la hipertrofia es una condición propia.
+  Sin eso, un estudio cuyo ÚNICO dato del VD fuera el Tei —o la pared— perdía la oración completa:
+  el médico lo tipeó y no aparecía en ningún lado. Es el mismo agujero que el comentario de
+  `tapse || sp` documenta y el que la diastólica tricuspídea reintrodujo por la puerta de al lado.
+  **La pared NORMAL no entra**: la app no dice «sin hipertrofia» en ninguna parte, así que dejaría
+  la oración en «Ventrículo derecho.» pelado. Está en `PENDIENTES.md` → V2.
+- **EL TEI SE NOMBRA EN EL PARÉNTESIS CUANDO ESTÁ MEDIDO.** Sin eso, un paciente con TAPSE, S′ y FAC
+  NORMALES y el Tei alterado publicaba «con disfunción sistólica (TAPSE 22 mm, S′ 12 cm/s, FAC 40%)»:
+  la afirmación al lado de tres números que la niegan y sin el que la sostiene.
+- **LA CLÁUSULA DE HIPERTROFIA TIENE DOS FORMAS, Y NO ES CAPRICHO.** Con cláusula previa el sujeto ya
+  quedó dicho y nombra el órgano —«, con hipertrofia del ventrículo derecho (pared de 7 mm)», el
+  texto aprobado—; sin cláusula previa el sujeto ES la oración entera y ese mismo texto diría dos
+  veces «ventrículo derecho» en cinco palabras, así que queda «Ventrículo derecho con hipertrofia
+  (pared de 7 mm).». Las dos ramas están medidas y las fija TC-457.
+- **EL EN SUMA: la cadena de la hipertrofia es NUEVA y la de HEAD queda INTACTA en el `else`.**
+  Medido en la tabla completa de 24 escenas: **las 12 sin hipertrofia escriben lo de HEAD letra por
+  letra**. Las ocho frases que pidió Maicol salen con su forma exacta.
+  ⚠️ **TRES DESVÍOS DE LA LETRA DE LA ORDEN, los tres para no PERDER información:** el **grado** de
+  la diastólica se conserva («y diastólica severa» en vez de «y diastólica»), porque borrarlo sacaría
+  del resumen firmado un dato que hoy sale; con la clasificación diastólica **incompleta** se usa
+  «patrón sugestivo de disfunción diastólica» y no «disfunción diastólica», porque afirmarla sería
+  afirmar lo que la app no estableció; y «con función sistólica conservada» sobrevive **cuando hay
+  dilatación**, que es la regla que la cadena de HEAD ya tiene.
+  ⚠️ **Y UNA PÉRDIDA, que es la decisión de la orden:** con el VD **no** dilatado se pierde «de
+  dimensiones normales» —el texto pedido es «HVD con disfunción sistólica.»—. `PENDIENTES.md` → V3.
+- **EL LABORATORIO NO SE TOCÓ, Y ESTÁ MEDIDO CON SUS PROPIAS FUNCIONES.** «HVD» **no matchea**
+  `/hipertrofia\s+ventricular\s+izq|HVI/i` y «hipertrofia del ventrículo derecho» tampoco;
+  `_labGeomCat` devuelve `null` en las cinco familias de frase nueva, y el filtro de cohorte
+  `filtroGeom` busca `concéntrica`/`excéntrica`/`remodelado`/`sin hipertrofia`, ninguno presente.
+  ⚠️ **«Disfunción sistólica VI» y «Disfunción diastólica» YA contaban las frases del VD antes de
+  esta tanda** —su regex no distingue el ventrículo—, así que el recuento no se mueve por este
+  trabajo. Es una imprecisión PREEXISTENTE y queda en `PENDIENTES.md` → V4.
+- **EXCEL: 435 COLUMNAS, SIN UNA SOLA NUEVA** (decisión de la orden), con el **mismo juego de claves
+  con los dos campos cargados**. Los dos campos viajan con el estudio y se restauran, pero **no
+  viajan al Excel**: un backup a Excel + reimportación los pierde. `PENDIENTES.md` → V6.
+- **GUARDADO Y BORRADO, MEDIDO EN EL REGISTRO EN DISCO:** los dos campos viajan, vuelven al
+  reabrirlo, «Nuevo estudio» los vacía **y apaga las dos marcas**, y un registro al que se le quitan
+  las dos claves —o sea un estudio anterior a esta tanda— reabre con los dos campos **VACÍOS**: no se
+  migra nada.
+- **LAS DOS BANDAS DE PLAUSIBILIDAD, con un dueño único (`VD_NUEVOS_BANDA`) y amplias a propósito:**
+  `vd_pared [1,30]` mm —el piso caza la pared tipeada en **CENTÍMETROS**, que es como la escribe la
+  guía (`0,5 cm`)— y `vd_tei [0,3]` —el techo caza el **55 tipeado por 0,55**, que es el dedazo que
+  esta zona tiene que cazar—. Medido: los dos quedan marcados «(revisar)», **el valor no se corrige**
+  y **la cuenta no cambia** (el 55 sigue votando como alterado). Ninguno tiene columna de Excel, así
+  que `LAB_XLS_RANGO_PROPIO` no los consume y no hay un segundo número que se desincronice.
+- ⚠️ **LAS FILAS DE TAPSE Y S′ DEL CUADRO NO VUELVEN A «—» AL BORRAR EL DATO, Y ESTÁ MEDIDO.** Su
+  `if` dentro de `calcVD` sólo PINTA: borrando TAPSE 14 y S′ 9 con teclas reales las dos filas
+  siguen diciendo «Disfunción» sobre campos vacíos, mientras las cinco que resetean —las dos nuevas
+  incluidas— ya están en «—». **No se tocaron**: son dos filas que esta orden no nombra.
+  `PENDIENTES.md` → V1.
+- **EL CUADRO PASÓ DE CINCO FILAS A SIETE, y el conteo es lo único que caza una fila duplicada o
+  perdida** (TC-457 lo fija en 7). La pared va pegada al tamaño —las dos son estructura— y el Tei
+  **después** de los tres parámetros sistólicos, que es el grupo al que se suma. El `div` del cartel
+  ámbar **no** es un `.calc-row`, así que no entra en ese conteo.
+- **`vdMarcaSync` Y `vdTeiAvisoSync` LLEVAN LAS DOS/TRES COLUMNAS.** Los dos `div` de marca no son
+  `.calc-box .calc-row span[id]` ni terminan en `-aviso`: **no los alcanza ningún barrido genérico**,
+  así que la marca del paciente anterior sobrevivía a «Nuevo estudio». El cartel sí termina en
+  `-aviso` y el barrido le vacía el TEXTO **pero le deja el `display:block` puesto**: un renglón
+  ámbar vacío sobre un formulario recién limpiado. Los dos están en `RECALC_MODULOS` y al final de
+  `limpiarCampos`; el cartel además lo llama `calcVD`.
+- ⚠️ **EL CARTEL NECESITÓ UN OYENTE DE DOCUMENTO, porque sus dos insumos viven en otras pestañas.**
+  `it_grado` es el `<select>` del grado de la IT (Válvulas) y su `onchange` va a `valvSev.aplicar`;
+  `diast_ritmo` vive en el cuadro de la diastólica del VI y llama a `calcDiastol`. **Ninguno de los
+  dos pasa por `calcVD`**, así que sin el oyente el cartel se quedaba con el estado del gesto
+  ANTERIOR. Es un oyente de documento y no dos llamadas sueltas en los `onchange` ajenos, para no
+  tocar la cadena de `valvSev` ni `calcDiastol`.
+- **MAQUETA:** el tercer `grid-3` del bloque pasó de **cuatro hijos a seis**, o sea que la segunda
+  fila ya no tiene huecos. A **1200, 390 y 360 px** y en los **dos temas** los seis campos miden lo
+  mismo (318 / 328 / 298 px), ninguno desborda su grilla y no hay scroll horizontal.
+- **Arnés: `scripts/_probe_vdhvd.mjs`** (A/B de solo lectura con `--file`), nueve grupos (`vacio`,
+  `marca`, `refs`, `bordes`, `conteo`, `suma`, `aviso`, `ancho`, `guardado`). **CONTROL NEGATIVO
+  MAYOR: 11 escenas del VD con los campos nuevos VACÍOS → 0 diferencias** en informe (3 estilos),
+  EN SUMA (3), Excel 435, franja del PPT, token del Laboratorio y los **1090 campos preexistentes**.
+  **Cobertura: TC-457**, 58 condiciones con cuatro denominadores y nueve controles negativos.
+  **Verificado que sabe fallar contra HEAD en un worktree aparte: 39 de las 58 en rojo**; las 19 que
+  pasan son los controles negativos y lo que esta tanda no mueve.
+- ⚠️ **Me comí el acento grave TRES veces**, una en el cuerpo de la sonda y dos en comentarios míos
+  dentro de TC-457, con el aviso escrito tres líneas más arriba del propio caso.
+  `scripts/check_backticks.py` dio la línea exacta las tres veces (383 en la sonda; 1765 y 1769 en el
+  caso) mientras `node --check` apuntaba a la 1746, que es la apertura del template.
 
 ### Strain de la AI y onda L — los campos, su sincronía y lo que las guías hacen con ellos (2026-10-12)
 

@@ -638,6 +638,16 @@ async function main() {
     await borrar('vd_pared'); await borrar('vd_tei');
     await pausa(150);
     r.trasBorrar = await ev(`window.__P.refs()`);
+    /* ⚠️ LAS FILAS DE TAPSE Y S-PRIMA NO VUELVEN A «—», y esto lo mide: su `if` dentro de
+       `calcVD` solo PINTA, asi que la fila del paciente anterior se queda hasta que
+       `limpiarCampos` barra el calc-box. Las otras cinco si resetean, y las dos nuevas siguen a
+       esas cinco. Es el pendiente V1 de `docs/PENDIENTES.md`: se declara MEDIDO, no leido. */
+    await cargar(Object.assign({}, BASE_VD, { tapse: '14', s_prime: '9', vd_pared: '7', vd_tei: '0.62' }));
+    r.antesDeBorrarVecinas = await ev(`window.__P.refs()`);
+    await borrar('tapse'); await borrar('s_prime');
+    await borrar('vd_pared'); await borrar('vd_tei');
+    await pausa(150);
+    r.trasBorrarVecinas = await ev(`window.__P.refs()`);
     OUT.refs = r;
   }
 

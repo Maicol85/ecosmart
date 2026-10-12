@@ -1,5 +1,110 @@
 # EcoSmart — pendientes vivos
 
+## Pared del VD e índice de Tei (2026-10-12) — DECLARADO y NO arreglado
+
+Lo que la tanda de la pared del VD y del índice de Tei **midió y dejó como está**, con el motivo
+de cada uno. La zona está mapeada en `docs/mapa/vd-derecho.md` y la fuente en
+`docs/fuentes/FUENTES.md` → `### aseVd2025`.
+
+### V1 · Las filas de TAPSE y S′ del cuadro no vuelven a «—» al borrar el dato
+
+Su `if (tapse)` / `if (sp)` dentro de `calcVD` **sólo pinta**, así que la fila del paciente
+anterior se queda en pantalla hasta que `limpiarCampos` barra el `.calc-box`. Las otras cinco
+filas —`vd-tam`, `vd-pared-interp`, `fac-interp`, `vd-tei-interp`, `tap-interp`— sí resetean, y
+las **dos nuevas siguen a las que resetean**.
+**Medido** con teclas reales en la sonda (grupo `refs`, escena `trasBorrarVecinas`): cargar
+TAPSE 14 y S′ 9, borrarlos y las dos filas siguen diciendo «Disfunción» sobre campos vacíos,
+mientras las cinco que resetean —las dos nuevas incluidas— ya están en «—».
+**Por qué no se tocó:** son dos filas que esta orden no nombra, y cambiarlas toca el
+comportamiento de pantalla de dos parámetros que la app ya publica. Es un arreglo de dos líneas
+cuando se autorice.
+
+### V2 · La pared NORMAL sola no publica oración en el informe
+
+La compuerta del bloque 5 entra con `_hvdInf.hvd`, o sea **sólo con hipertrofia**. Un estudio cuyo
+único dato del VD sea una pared de 4 mm no se nombra.
+**Por qué así:** la app no dice «sin hipertrofia» en ninguna parte, y sin una frase de normalidad
+la oración quedaría en «Ventrículo derecho.» pelado, que es peor que no decir nada. Es además el
+mismo trato que ya reciben `fevd` y `vd_vi`, que tampoco llegan al narrativo. Y la guía pide
+informarla **si es anormal** (Recomendación 3, folio 144).
+**Qué habría que decidir:** si se quiere una frase de pared normal, es texto del informe firmado y
+lo decide Maicol.
+
+### V3 · Con el VD no dilatado, el EN SUMA pierde «de dimensiones normales»
+
+Los textos de la orden para la hipertrofia sin dilatación arrancan en «HVD …», así que
+`HVD con disfunción sistólica.` reemplaza al `VD de dimensiones normales con disfunción
+sistólica.` que HEAD escribía. **Es la decisión de la orden** y está medido en la tabla de 24
+escenas: es la única pérdida de la tanda.
+**Alternativa, si se quiere recuperar:** `VD de dimensiones normales e hipertrófico, con …`, que
+suena contradictorio para un lector no técnico y se aparta del texto aprobado.
+
+### V4 · El Laboratorio cuenta las frases del VD como «Disfunción sistólica VI» — PREEXISTENTE
+
+`_LAB_HALLAZGOS` usa `/disfunci[oó]n\s+sist[oó]lica/i`, que **no distingue el ventrículo**: una
+frase del VD («VD dilatado con disfunción sistólica.») cuenta en la fila rotulada «Disfunción
+sistólica VI» del dashboard y de la sección 3 del PDF de auditoría. Lo mismo con «Disfunción
+diastólica», que no distingue VI de VD.
+**No es de esta tanda:** pasa igual en HEAD y está medido con las propias funciones del
+Laboratorio. Las frases nuevas no agregan ni quitan nada ahí —**«HVD» no matchea el patrón de
+HVI**, verificado—, así que el recuento no se mueve por este trabajo.
+**Qué habría que hacer:** anclar el patrón al ventrículo (`del VI` / `del VD` / sigla) o separar
+las dos filas. Toca el Laboratorio y la orden lo prohíbe explícitamente.
+
+### V5 · La app no gradúa la pared del VD, y la guía sí
+
+La Tabla 1 del folio 145 la gradúa `≥0,5 a ≤0,7` leve · `>0,7 a ≤0,9` moderada · `>0,9` severa.
+La app informa **hipertrofia sí o no**, que es lo que pidió la orden.
+**Por qué no se agregó:** una banda intermedia es contenido clínico y decide Maicol. Si se
+autoriza, las tres bandas salen de la misma Tabla 1 y los operadores están transcriptos en
+`FUENTES.md`.
+
+### V6 · El Tei no tiene columna de Excel, ni la pared
+
+Decisión de la orden («EXCEL: SIN columnas nuevas; queda en 435»). Los dos campos viajan con el
+estudio y se restauran, pero **no viajan al Excel**, así que no entran en el Laboratorio ni en
+ningún análisis de cohorte, y un backup a Excel + reimportación los PIERDE.
+**Lo que habría que hacer si se autoriza:** dos entradas en `LAB_XLS_MAP` en el bloque del VD más
+sus bandas en `LAB_XLS_RANGO_PROPIO` —que pueden consumir `VD_NUEVOS_BANDA` por referencia, como
+hizo el strain de contracción— y adaptar los casos que afirman 435.
+
+### V7 · El corte del Doppler PULSADO del Tei existe y no se usa
+
+`VD_TEI_PW_ALT_MIN` (0,40) está declarado y **ningún camino lo aplica**: el campo de la app es de
+DTI y su corte es 0,55. Está escrito para que un borde se entienda al lado del que no se eligió, y
+porque confundir los dos métodos mueve el corte un 27 % sobre un informe firmado.
+**Qué haría falta para usarlo:** un campo propio del Tei por Doppler pulsado, o un selector de
+método. Es un campo nuevo y no se pidió.
+
+### V8 · Las tres advertencias del Tei que la app NO puede detectar
+
+La guía nombra cuatro condiciones de carga (folio 159) y el cartel ámbar sólo cubre dos:
+
+| Advertencia de la guía | ¿Detectable? | Por qué |
+|---|---|---|
+| IT severa acorta el IVRT | **sí** | `it_grado === '4'` |
+| R-R variables (FA) | **sí** | `diast_ritmo === 'fa'` |
+| Precarga aumentada / congestión derecha | **no** | la app no tiene un campo de estado de volumen; la VCI y la PAD estimada son proxies y usarlas sería inventar un criterio |
+| HTP / poscarga aumentada | **no decidido** | la PSAP estimada existe (`psap_calc`), pero el cartel diría «puede no ser válido» en casi todo paciente con HTP, que es justamente la población donde la guía más lo recomienda. **Un gate que grita de más se deja de leer.** |
+| «No es el único método cuantitativo» (Recomendación 1) | **no se afirma** | es una recomendación de conducta, no un hallazgo del estudio |
+
+### V9 · Los cortes de TAPSE, S′ y FAC no se compararon contra la ASE 2025
+
+La Tabla 1 del folio 145 trae TAPSE `>1,7 cm`, S′ `>9,5 cm/s` y FAC `>35 %`, que **coinciden** con
+los que la app aplica desde la ASE 2015 (17 mm, 9,5 cm/s, 35 %) — pero la guía nueva agrega bandas
+de severidad para los tres y **la app no las usa**. No se tocó ni un corte: esta orden pedía la
+pared y el Tei.
+⚠️ Y el **S′ sigue siendo un literal `9.5` dentro de `calcVD` y de `generarInforme`**, no una
+constante: son dos copias del mismo número y este archivo ya documenta lo que pasa con eso.
+
+### V10 · La Tabla 6 del folio 169 (función diastólica del VD) no se usó
+
+Trae los cortes diastólicos del VD —E/A, e′/a′, E/e′, TDE— y la app los toma de la **ASE 2010**
+(`DT_EA_RELAJ`, `DT_EA_RESTR`, `DT_EEP_ELEV`). **No se compararon.** Cambiarlos es mover umbrales
+clínicos de una zona que esta orden no nombra.
+
+---
+
 ## Función diastólica BSE 2024 en ritmo sinusal (2026-10-12) — DECLARADO y NO arreglado
 
 Lo que la tanda de la BSE 2024 **midió y dejó como está**, con el motivo de cada uno. La zona

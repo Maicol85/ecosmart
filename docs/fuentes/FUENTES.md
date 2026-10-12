@@ -847,6 +847,113 @@ Las dos están medidas en `scripts/_probe_diast2025.mjs` y quedan declaradas en 
 El **estudio de validación** `New-algorithm-for-estimating-left-ventricular-filling-pressure.
 Circ-2025.pdf` de la misma carpeta **no se abrió ni se citó**: es un estudio, no una guía.
 
+### `aseVd2025` — ASE 2025, cavidades derechas (verificada 2026-10-12)
+
+**Mukherjee M, et al. «Echocardiographic Assessment of the Right Heart: Guidelines and Standards
+from the American Society of Echocardiography». J Am Soc Echocardiogr 2025;38(3):141-186.**
+Ruta en disco, **abierta y leída**: `~/Desktop/EcoSmart_Biblioteca_Fuentes/03_VD_y_corazon_derecho/
+Echocardiographic-assessment-of-Right-Heart.-JASE-2025.pdf` (46 páginas).
+
+**Regla de folio: folio = página del PDF + 140.** Comprobada en el pie impreso de tres páginas
+distintas, no por aritmética: PDF 5 → «Mukherjee, M et al 145», PDF 8 → «148 Mukherjee, M et al»,
+PDF 18 → «158 Mukherjee, M et al».
+
+> ⚠️ **No está en `IND_REFS`.** La clave `aseVd2025` es el nombre con el que este registro la
+> identifica; el panel de Evidencia no la cita porque esta tanda no toca el panel. Si algún día se
+> le cuelga una fila del panel, hay que registrarla ahí también.
+
+#### Pared del VD (RVWT) — el corte y cómo se mide
+
+| Dato | Valor | Dónde, literal |
+|---|---|---|
+| Normal | **< 5 mm** | Key Point del **folio 144**: «The normal value for RVWT is <5 mm» |
+| Graduación | `< 0,5 cm` normal · `≥ 0,5 a ≤ 0,7` leve · `> 0,7 a ≤ 0,9` moderada · `> 0,9` severa | **Tabla 1, folio 145** («Summary of reference limits…»), fila `RVWT, cm` |
+| Repetido | `< 0,5` normal / `≥ 0,5` anormal | **Tabla 6, folio 169** («RV diastolic function assessment»), bloque «Morphologic assessment» |
+
+⚠️ **EL OPERADOR DEL HALLAZGO ES `≥` Y NO `>`.** La guía da el NORMAL (`< 5 mm`), así que a **5,0 mm
+exactos ya está del lado anormal**. El recuerdo corriente de «> 5 mm» deja el 5,0 del lado normal, y
+5 es un valor que se tipea entero.
+
+**Cómo se mide** (folios 144 y 148, los dos textos coinciden y se complementan): vista **subcostal**,
+en **telediástole**, cara **anteromedial de la pared libre**, a mitad de camino entre el anillo
+tricuspídeo y los músculos papilares —el folio 148 lo dice como «el tercio inicial del VD entre el
+anillo tricuspídeo y los papilares»—, **excluyendo trabéculas, músculo papilar y grasa pericárdica**.
+Por 2D y/o **modo M**, con la salvedad de que «M-mode images can be confounded by the angle of
+insonation». Si la subcostal es técnicamente difícil —pared libre fina y trabeculación prominente—,
+la guía admite la **paraesternal eje largo**.
+
+**Dos advertencias del documento, las dos en el folio 144:**
+- el engrosamiento es **inespecífico**: también aparece en miocardiopatías infiltrativas y
+  hereditarias, no sólo en HTP;
+- **Recomendación 3: «RVWT should be reported if abnormal.»** Es el respaldo de que la hipertrofia
+  entre al informe firmado aunque sea el único dato del VD cargado.
+
+⚠️ **LA GUÍA NO ESCRIBE «HIPERTROFIA DEL VD» AL LADO DEL CORTE.** Lo que escribe es «increased
+RVWT» / «abnormal». La equivalencia con RVH la hace el propio documento en otros lugares —la
+Figura 4 del folio 172 («the right ventricle initially responds to increased afterload by
+increasing RVWT») y el folio 173, que lista `RVH` entre los signos ecocardiográficos del grupo 1—,
+y la palabra «hipertrofia» en la app es **decisión de Maicol**. **La app NO gradúa la pared** aunque
+la Tabla 1 la gradúe: informa hipertrofia sí o no.
+
+#### Índice de Tei / RV MPI — DOS cortes, uno por método
+
+| Método | Normal | Graduación (Tabla 1, folio 145) |
+|---|---|---|
+| **DTI** (el campo de la app) | **< 0,55** → alterado `≥ 0,55` | `<0,55` · `≥0,55 a <0,62` · `≥0,62 a <0,70` · `≥0,70` |
+| **Doppler pulsado** | **< 0,40** → alterado `≥ 0,40` | `<0,40` · `≥0,40 a <0,49` · `≥0,49 a <0,57` · `≥0,57` |
+
+Literal del **folio 158**: «A normal RV MPI is <0.40 by the PW Doppler method and <0.55 by the TDI
+method», repetido en el Key Point del **folio 159**.
+
+⚠️ **LOS DOS CORTES NO SE UNIFICAN Y NO SE INTERCAMBIAN.** La propia guía explica por qué: «these
+two methods result in different reference values due to inherent differences in acquisition and
+time interval calculation, leading to only **moderate inter-method correlation**» (folio 158).
+Aplicar el 0,40 a un valor medido por DTI mueve el corte un 27 %.
+
+**Es ADIMENSIONAL** — nota al pie de la Tabla 3, **folio 156**: «RV MPI is a dimensionless index».
+Por eso se tipea como cociente. ⚠️ El Key Point del folio 159 lo escribe como «<0.40 **ms**» y
+«<0.55 **ms**»: es un error del documento, contradicho por su propia Tabla 3 y por la fórmula
+—`(IVRT + IVCT)/ET`, un cociente de tiempos—.
+
+**Fórmulas** (folio 158): `RV MPI = (IVRT + IVCT)/ET` o `RV MPI = (TCO − ET)/ET`, con TCO el
+intervalo de cierre-apertura tricuspídeo. Por Doppler pulsado el ET sale del TSVD y el TCO del
+llenado tricuspídeo o del jet de IT —**imágenes distintas, así que la guía pide latidos con R-R
+parecidos**—; por DTI los tres intervalos salen de **un solo latido** pulsando el anillo
+tricuspídeo lateral.
+
+#### Las advertencias del Tei — folio 159
+
+Todas en el mismo párrafo, y es el respaldo del cartel ámbar de la app:
+- **Dependencia de la carga.** Precarga aumentada y congestión derecha («such as fluid overload»)
+  **alargan** IVCT e IVRT y **SUBEN** el índice; la precarga reducida los acorta; la HTP y la
+  poscarga aumentada también lo suben **«regardless of RV systolic function»**.
+- **«Severe TR may decrease IVRT without affecting IVCT.»** O sea: con IT severa el índice se va
+  hacia el lado tranquilizador. Es por esto que el cartel de la app sale **también con un Tei
+  normal**: lo que se advierte es la validez de la medición, no la dirección del veredicto.
+- **«Varying R-R intervals, such as in patients with atrial fibrillation (AF), can lead to variable
+  ET and TCO measurements.»** El sujeto de la advertencia es el **R-R variable**; la FA es el
+  ejemplo que la guía da.
+- **Recomendación 1:** «Although RV MPI is a practical tool with prognostic value in PH, it is **not
+  recommended as the sole quantitative method** for evaluating RV function, because of load
+  dependency.»
+
+⚠️ **LO QUE LA GUÍA NO DICE: no habla de «seudonormalización del Tei con presión de la AD
+elevada».** Barrido del PDF completo buscando `Tei`, `MPI`, `myocardial performance`, `wall
+thickness`, `RVWT`, `RVH` y `hypertroph` → ninguna coincidencia dice eso. Para la congestión
+derecha describe lo **contrario** (el índice sube). La app no lo afirma, y el cartel nombra sólo
+las dos advertencias que la guía escribe Y la app puede detectar: **IT severa** (`it_grado === '4'`)
+y **ritmo irregular** (`diast_ritmo === 'fa'`).
+
+#### Lo que NO se usó de este documento
+
+La Tabla 1 trae los límites de **todo** el corazón derecho —dimensiones de AD, RVOT, áreas,
+volúmenes 3D, TAPSE, S′, FAC, FEVD 3D, strain, E/A, e′/a′, E/e′, TDE, TRV, PSVD, PAD, AccT— y
+**esta tanda no tocó ninguno**: los cortes que la app ya aplica para TAPSE (17 mm), S′ (9,5 cm/s) y
+FAC (35 %) vienen de la ASE 2015 y **no se compararon ni se movieron**. La **Tabla 6 del folio 169**
+(función diastólica del VD) tampoco se usó más allá de confirmar el corte de la pared: los cortes
+diastólicos de la app salen de la ASE 2010 y cambiarlos es otra tanda. Queda en
+`docs/PENDIENTES.md`.
+
 ### Registradas SIN folio → NO verificadas al estándar del repo
 
 Están en `IND_REFS`, pero su `full` **no tiene tabla ni página**. Sirven como referencia general;
