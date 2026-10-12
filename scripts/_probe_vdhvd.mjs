@@ -717,6 +717,23 @@ async function main() {
       }
       r.push(o);
     }
+    /* ⚠️ LA PARED COMO ÚNICO DATO DEL VD: es la rama `!hayPrevia` de la cláusula y la quinta
+       condición del `if` que envuelve el bloque. Sin las dos, la hipertrofia desaparecía del
+       informe firmado —la Recomendación 3 del folio 144 pide informarla si es anormal— o salía
+       diciendo dos veces «ventrículo derecho» en cinco palabras. */
+    const soloPared = [];
+    for (const vv of [{ k: 'solo pared HIPERTROFICA', c: { vd_pared: '7' } },
+                      { k: 'CONTROL NEGATIVO: solo pared NORMAL', c: { vd_pared: '4' } }]) {
+      await cargar(vv.c);
+      const o3 = { caso: vv.k };
+      for (const e of ['conciso', 'estandar', 'narrativo']) {
+        const inf = await ev(`window.__P.informe(${JSON.stringify(e)})`);
+        o3[e] = await ev(`window.__P.lineaVD(${JSON.stringify(inf.inf)})`);
+        if (e === 'estandar') o3.suma = await ev(`window.__P.lineaVD(${JSON.stringify(inf.suma)})`);
+      }
+      soloPared.push(o3);
+    }
+    OUT.soloPared = soloPared;
     OUT.suma = r;
   }
 
@@ -735,6 +752,7 @@ async function main() {
     r.itSevera = await esc('Tei alterado con IT severa', TEI, { it_grado: '4' });
     r.itModer  = await esc('CONTROL NEGATIVO: IT moderada (la guia dice SEVERA)', TEI, { it_grado: '2' });
     r.fa       = await esc('Tei alterado en FA', TEI, { diast_ritmo: 'fa' });
+    r.lasDos   = await esc('Tei alterado con IT severa Y en FA', TEI, { it_grado: '4', diast_ritmo: 'fa' });
     r.sinTei   = await esc('CONTROL NEGATIVO: IT severa y FA SIN Tei cargado',
                            Object.assign({}, BASE_VD, { tapse: '22' }), { it_grado: '4', diast_ritmo: 'fa' });
     r.teiNormalConIt = await esc('CONTROL NEGATIVO: Tei NORMAL con IT severa',

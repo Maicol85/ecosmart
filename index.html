@@ -3537,6 +3537,13 @@ window.cerrarSesionReal = cerrarSesionReal;
           <span class="calc-lbl">Índice de Tei (DTI) — función VD</span>
           <span id="vd-tei-interp">—</span>
         </div>
+        <!-- Aviso ambar de las advertencias del Tei (ASE 2025, folio 159). NO mueve ningun
+             veredicto: la app gradua igual y esto solo lo dice. Su unico dueno es
+             `vdTeiAvisoSync`, que lleva las TRES columnas —lo llama `calcVD`, esta en
+             `RECALC_MODULOS` y se repite al final de `limpiarCampos`—. Sin la tercera, el
+             barrido generico de `[id$="-aviso"]` le vacia el texto y le deja el `display:block`
+             puesto: un renglon ambar vacio sobre un formulario recien limpiado. -->
+        <div id="vd-tei-aviso" style="display:none;font-size:11px;font-weight:700;color:var(--amber);margin-top:4px;line-height:1.3;overflow-wrap:break-word;"></div>
         <div class="calc-row">
           <span class="calc-lbl">TAP — aceleración pulmonar</span>
           <span id="tap-interp">—</span>
@@ -20652,6 +20659,101 @@ const VD_NUEVOS_BANDA = Object.freeze({
 });
 window.VD_NUEVOS_BANDA = VD_NUEVOS_BANDA;
 
+/* ══ LOS DOS DUEÑOS DEL ESTADO ════════════════════════════════════════════════════════════════
+   Una sola comparación contra cada constante, consultada por el cuadro de referencias, el
+   informe narrativo y el EN SUMA. Este archivo ya pagó tres veces escribir el mismo umbral en
+   dos lugares: una segunda comparación es cómo se llega a que la pantalla diga hipertrofia y el
+   informe firmado no. Devuelven el VALOR además del veredicto porque los tres lectores lo
+   imprimen al lado. */
+function vdHvdEstado() {
+  const x = v('vd_pared');
+  return { val: x, hvd: (x !== null) ? x >= VD_PARED_HVD_MIN : false };
+}
+window.vdHvdEstado = vdHvdEstado;
+function vdTeiEstado() {
+  const x = v('vd_tei');
+  /* El corte es el de DTI. `VD_TEI_PW_ALT_MIN` (0,40) es el del Doppler PULSADO y no entra acá:
+     aplicar el método equivocado mueve el corte un 27 % sobre un informe firmado. */
+  return { val: x, alt: (x !== null) ? x >= VD_TEI_DTI_ALT_MIN : false };
+}
+window.vdTeiEstado = vdTeiEstado;
+
+/* La cláusula de HIPERTROFIA que se cuelga de la oración del VD, con el mecanismo de
+   `dtDiastClausula`: la oración NO se reescribe, se completa. `hayPrevia` dice si ya trae una
+   cláusula de tamaño o de función sistólica.
+   ⚠️ DOS FORMAS, Y NO ES CAPRICHO. Con cláusula previa el sujeto ya quedó dicho —«Ventrículo
+   derecho dilatado con disfunción sistólica (…)»— y la cláusula puede nombrar el órgano, que es
+   el texto que aprobó Maicol. Sin cláusula previa el sujeto ES la oración entera («Ventrículo
+   derecho»), y ahí ese mismo texto diría dos veces «ventrículo derecho» en cinco palabras.
+   El valor va SIEMPRE: es el número que sostiene la palabra y sin él no se puede auditar. */
+function vdHvdClausula(hayPrevia) {
+  const r = vdHvdEstado();
+  if (!r.hvd) return '';
+  return hayPrevia
+    ? `, con hipertrofia del ventrículo derecho (pared de ${r.val} mm)`
+    : ` con hipertrofia (pared de ${r.val} mm)`;
+}
+window.vdHvdClausula = vdHvdClausula;
+
+/* ══ LAS ADVERTENCIAS DEL TEI — ASE 2025, folio 159 ══════════════════════════════════════════
+   Devuelve los motivos que la guía escribe Y la app puede detectar. Lo que la guía dice, textual
+   en su sentido: el MPI es dependiente de la carga; la **IT severa acorta el IVRT** sin tocar el
+   IVCT; y los **intervalos R-R variables, como en la FA**, dan ET y TCO variables. Su
+   Recomendación 1 es que no sea el único método cuantitativo del VD.
+   ⚠️ LO QUE LA GUÍA NO DICE NO SE AFIRMA. No habla de «seudonormalización con presión de la AD
+   elevada» para el MPI: para la congestión derecha describe lo CONTRARIO —alarga IVCT e IVRT y
+   SUBE el índice—, así que ese motivo no está en la lista.
+   ⚠️ EL MOTIVO DE LA IT ES «SEVERA» Y NO «SIGNIFICATIVA». `DT_IT_SIGNIF` vale 2 (moderada) y es
+   el corte de la salvedad DIASTÓLICA, que sale de la ASE 2010 sobre otros parámetros. Acá la
+   guía escribe «Severe TR», o sea `it_grado === '4'`: reusar el 2 ampliaría el alcance de una
+   advertencia a pacientes que su fuente no nombra.
+   SIN TEI CARGADO NO HAY NADA QUE ADVERTIR: la lista vuelve vacía. */
+function vdTeiAdvertencias() {
+  if (vdTeiEstado().val === null) return [];
+  const m = [];
+  if (String(sv('it_grado')) === '4') m.push('insuficiencia tricuspídea severa');
+  /* «ritmo irregular» y no «fibrilación auricular»: lo que la guía nombra son los intervalos
+     R-R variables —«such as in patients with atrial fibrillation»—, así que la FA es el ejemplo
+     y la condición es el ritmo. Y el paréntesis sobraba: el texto del cartel y el del informe ya
+     cierran con uno, y dos seguidos es la forma que este archivo ya documenta haber corregido en
+     la frase de la estenosis mitral. */
+  if (String(sv('diast_ritmo')) === 'fa') m.push('ritmo irregular');
+  return m;
+}
+window.vdTeiAdvertencias = vdTeiAdvertencias;
+
+/* El cartel ámbar de la caja de referencias. NO cambia ningún veredicto — el Tei sigue votando
+   igual—, y lleva las TRES columnas: lo llama `calcVD`, está en `RECALC_MODULOS` y se repite al
+   final de `limpiarCampos`, porque el barrido genérico de `[id$="-aviso"]` le vacía el texto y
+   le deja el `display:block` puesto. */
+function vdTeiAvisoSync() {
+  const av = document.getElementById('vd-tei-aviso');
+  if (!av) return null;
+  const m = vdTeiAdvertencias();
+  const txt = m.length
+    ? 'ASE 2025 (folio 159): el índice de Tei es dependiente de la carga y puede no ser válido '
+      + 'con ' + m.join(' ni con ') + '.'
+    : '';
+  av.textContent = txt;
+  av.style.display = txt ? 'block' : 'none';
+  return txt || null;
+}
+window.vdTeiAvisoSync = vdTeiAvisoSync;
+
+/* ⚠️ LOS DOS INSUMOS DEL AVISO VIVEN EN OTRAS PESTAÑAS Y NINGUNO LLAMA A `calcVD`. `it_grado`
+   es el <select> del grado de la IT (Válvulas) y su `onchange` va a `valvSev.aplicar`;
+   `diast_ritmo` vive en el cuadro de la diastólica del VI y su `onchange` llama a
+   `calcDiastol`. Sin este oyente el cartel se quedaba con el estado del gesto ANTERIOR, que es
+   el mismo defecto que este archivo ya documenta para el cuadro gris de la diastólica cuando la
+   edad y el sexo viven en otra pestaña.
+   Es un oyente de DOCUMENTO y no dos llamadas sueltas dentro de los `onchange` ajenos: así no
+   se toca la cadena de `valvSev` ni `calcDiastol`, que esta orden no autoriza. */
+document.addEventListener('change', function (e) {
+  const id = e && e.target && e.target.id;
+  if (id !== 'it_grado' && id !== 'diast_ritmo') return;
+  try { vdTeiAvisoSync(); } catch (x) {}
+}, true);
+
 /* La marca «(revisar)» al lado de CADA campo, con el mecanismo y el motivo de
    `diastStrainMarcaSync`: la marca NO bloquea, NO corrige y NO cambia ninguna cuenta —es la
    decisión de «MARCAR SIN BORRAR»—, y la escribe una sola función leyendo una sola banda.
@@ -20811,26 +20913,27 @@ function calcVD() {
      ⚠️ LA APP NO GRADÚA LA PARED, y es deliberado. La Tabla 1 la gradúa en leve / moderada /
      severa (`>=0,5 a <=0,7` · `>0,7 a <=0,9` · `>0,9`); lo que esta orden pide es informar
      hipertrofia SÍ o NO, así que se dice eso y no se inventa una banda intermedia. */
-  const _vdPared = v('vd_pared');
+  const _hvdSt = vdHvdEstado();
   const _parEl = document.getElementById('vd-pared-interp');
   if (_parEl) {
-    if (_vdPared === null) _parEl.textContent = '—';
-    else _parEl.innerHTML = _vdPared >= VD_PARED_HVD_MIN
-      ? badge('red',   `${_vdPared} mm — hipertrofia del VD (≥${VD_PARED_HVD_MIN} mm)`)
-      : badge('green', `${_vdPared} mm — normal (<${VD_PARED_HVD_MIN} mm)`);
+    if (_hvdSt.val === null) _parEl.textContent = '—';
+    else _parEl.innerHTML = _hvdSt.hvd
+      ? badge('red',   `${_hvdSt.val} mm — hipertrofia del VD (≥${VD_PARED_HVD_MIN} mm)`)
+      : badge('green', `${_hvdSt.val} mm — normal (<${VD_PARED_HVD_MIN} mm)`);
   }
   /* ── ÍNDICE DE TEI por DTI (ASE 2025, Tabla 1 folio 145 y texto folio 158: normal < 0,55) ──
      ⚠️ EL CORTE QUE SE APLICA ES EL DE DTI, Y EL CAMPO LO DICE EN SU RÓTULO. El del Doppler
      pulsado es 0,40 (`VD_TEI_PW_ALT_MIN`) y vive declarado al lado de la constante sin usarse:
      aplicar el método equivocado mueve el corte un 27 % sobre un informe firmado. */
-  const _vdTei = v('vd_tei');
+  const _teiSt = vdTeiEstado();
   const _teiEl = document.getElementById('vd-tei-interp');
   if (_teiEl) {
-    if (_vdTei === null) _teiEl.textContent = '—';
-    else _teiEl.innerHTML = _vdTei >= VD_TEI_DTI_ALT_MIN
-      ? badge('red',   `${_vdTei} — alterado (≥${VD_TEI_DTI_ALT_MIN} por DTI)`)
-      : badge('green', `${_vdTei} — normal (<${VD_TEI_DTI_ALT_MIN} por DTI)`);
+    if (_teiSt.val === null) _teiEl.textContent = '—';
+    else _teiEl.innerHTML = _teiSt.alt
+      ? badge('red',   `${_teiSt.val} — alterado (≥${VD_TEI_DTI_ALT_MIN} por DTI)`)
+      : badge('green', `${_teiSt.val} — normal (<${VD_TEI_DTI_ALT_MIN} por DTI)`);
   }
+  if (typeof vdTeiAvisoSync === 'function') vdTeiAvisoSync();
   // TAP — aceleración pulmonar (elemento indirecto de HTP si < 105 ms)
   const tap = v('tvia');
   const tapEl = document.getElementById('tap-interp');
@@ -36780,6 +36883,15 @@ function generarInforme(opts) {
        reintrodujo por la puerta de al lado. */
     const teiVD = v('vd_tei');
     const hayFunc = tapse !== null || sp !== null || facVD !== null || teiVD !== null;
+    /* ⚠️ LA HIPERTROFIA ENTRA EN LA COMPUERTA DEL BLOQUE, y la guía lo pide: su Recomendación 3
+       del folio 144 dice que la pared se informa si es anormal. Sin esto, un estudio cuyo ÚNICO
+       dato del VD fuera la pared perdía la oración entera —el mismo agujero que el comentario de
+       `tapse || sp` describe—.
+       Entra sólo la hipertrofia y NO la pared normal: la app no dice «sin hipertrofia» en
+       ninguna parte, así que una pared normal sola no tendría nada que publicar y la oración
+       quedaría en «Ventrículo derecho.» pelado. Es el mismo trato que ya reciben `fevd` y
+       `vd_vi`, que tampoco llegan al narrativo. Declarado en `docs/PENDIENTES.md`. */
+    const _hvdInf = (typeof vdHvdEstado === 'function') ? vdHvdEstado() : { val: null, hvd: false };
     /* LA DIASTÓLICA ENTRA EN LA COMPUERTA, y cierra un agujero preexistente.
        `dopTricFrase()` se empuja DENTRO de este bloque, así que hasta hoy un estudio con el
        Doppler tricuspídeo cargado y ningún diámetro ni TAPSE ni S' ni FAC perdía la línea entera
@@ -36791,7 +36903,7 @@ function generarInforme(opts) {
     const _dd = (typeof dtDiastEstado === 'function') ? dtDiastEstado() : null;
     const _dtHay = (typeof dopTricFrase === 'function') && !!dopTricFrase();
     // `vdFuera` también entra: un valor ilegible no puede desaparecer del informe en silencio.
-    if (hayTam || hayFunc || vdFuera.length || _dd || _dtHay) {
+    if (hayTam || hayFunc || vdFuera.length || _dd || _dtHay || _hvdInf.hvd) {
       /* El GRADO sale de `vdBasCat`, la misma función que pinta la cápsula, en vez de un
          `> 41` propio. Con el umbral suelto, un VD basal de 43 mm daba «Leve (>41 y ≤45mm)» en
          pantalla y «Ventrículo derecho dilatado» en el informe firmado — dos respuestas a la
@@ -36865,14 +36977,31 @@ function generarInforme(opts) {
         ? ` Verificar la medición: ${vdFuera.map(d => d.lblC + ' ' + d.val + ' mm').join(', ')} fuera de rango plausible.` : '';
       /* La diastólica se cuelga al final de la oración, DESPUÉS de la función sistólica y de sus
          medidas entre paréntesis. El conector depende de que haya una cláusula previa. */
-      const _ddCl = (typeof dtDiastClausula === 'function') ? dtDiastClausula(!!(tamTxt || funcTxt)) : '';
+      /* La cláusula de hipertrofia va DESPUÉS de las medidas entre paréntesis y ANTES de la
+         diastólica, con el mecanismo de `dtDiastClausula`: la oración no se reescribe, se
+         completa. Y la diastólica tiene que enterarse de que ahora HAY cláusula previa —si no,
+         un VD sin tamaño ni función con hipertrofia y patrón restrictivo salía
+         «Ventrículo derecho con hipertrofia (pared de 7 mm): función diastólica…», con dos
+         puntos después de una cláusula que ya existía—. */
+      const _hvdCl = (typeof vdHvdClausula === 'function') ? vdHvdClausula(!!(tamTxt || funcTxt)) : '';
+      const _ddCl = (typeof dtDiastClausula === 'function') ? dtDiastClausula(!!(tamTxt || funcTxt || _hvdCl)) : '';
+      /* LA SALVEDAD DEL TEI, con la forma de la salvedad diastólica de al lado: una oración
+         corta al final, sin cambiar un solo veredicto.
+         La compuerta `medVD.length` es la condición de la orden —«en el informe sólo si la
+         oración de función sistólica ya menciona parámetros individuales»—: sin paréntesis de
+         medidas, la salvedad quedaría advirtiendo sobre un parámetro que la oración no nombra.
+         Con el Tei cargado el paréntesis existe siempre, porque el propio Tei va adentro; la
+         condición se escribe igual para que la regla se vea y no dependa de eso. */
+      const _teiAdv = (typeof vdTeiAdvertencias === 'function') ? vdTeiAdvertencias() : [];
+      const _teiAvTxt = (_teiAdv.length && medVD.length)
+        ? ` El índice de Tei puede no ser válido con ${_teiAdv.join(' ni con ')} (ASE).` : '';
       /* La salvedad sólo cuando se AFIRMA un patrón anormal: es cuando el sesgo de la IT puede
          engañar. Sobre un patrón normal no aporta y agrega ruido. */
       const _ddItTxt = (_dd && _dd.anormal && _dd.itSignif)
         ? ' La insuficiencia tricuspídea significativa puede invalidar estos parámetros de llenado (ASE).' : '';
-      inf.push(estiloPick(`${vdC}${datosVDp}${_ddCl}.${_vdFueraTxt}${_ddItTxt}`,
-                          `${vdE}${datosVDp}${_ddCl}.${_vdFueraTxt}${_ddItTxt}`,
-                          `${vdN}${datosVDp}${_ddCl}.${_vdFueraTxt}${_ddItTxt}`));
+      inf.push(estiloPick(`${vdC}${datosVDp}${_hvdCl}${_ddCl}.${_vdFueraTxt}${_ddItTxt}${_teiAvTxt}`,
+                          `${vdE}${datosVDp}${_hvdCl}${_ddCl}.${_vdFueraTxt}${_ddItTxt}${_teiAvTxt}`,
+                          `${vdN}${datosVDp}${_hvdCl}${_ddCl}.${_vdFueraTxt}${_ddItTxt}${_teiAvTxt}`));
 
       /* ── Doppler tricuspídeo: llenado y relajación del VD ──
          Va DESPUÉS del VD y su función sistólica y ANTES de la aurícula derecha y la aorta: es
@@ -41069,7 +41198,7 @@ function RECALC_MODULOS() {
      `emAvmPdfVal` para la fila del PDF, `dataset` protege esa decision, y `disabled` no lo
      persiste ni lo lee nadie. Los dos primeros siguen intocados — que es exactamente la objecion
      que este archivo dejo escrita para IM: «pisaria la decision que la reimpresion respalda». */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -41732,6 +41861,10 @@ function limpiarCampos(silencioso) {
      alcanza y la marca del paciente anterior sobrevivía a «Nuevo estudio» sobre los dos campos
      ya vacíos. `vdMarcaSync` entró además a `RECALC_MODULOS`, que es la otra columna. */
   if (typeof vdMarcaSync === 'function') { try { vdMarcaSync(); } catch (e) {} }
+  /* Y el cartel ambar del Tei, que es la TERCERA columna de `vdTeiAvisoSync`: el barrido
+     generico de `[id$="-aviso"]` le vacia el texto y le deja el `display:block` puesto, asi que
+     sin esta linea «Nuevo estudio» dejaba un renglon ambar vacio en el cuadro del VD. */
+  if (typeof vdTeiAvisoSync === 'function') { try { vdTeiAvisoSync(); } catch (e) {} }
   /* ⚠️ VENA PULMONAR, POR EL MISMO MOTIVO QUE `ccSegSync` Y AL FINAL COMO ÉL. El barrido de
      arriba vacía los cuatro `value`, pero las dos filas del cuadro gris se esconden por `display`
      y el color va en `style` en línea: sin esto el paciente siguiente arrancaba con los renglones
@@ -103311,8 +103444,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261012-1516';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791828998112;                 /* eco-build-ms */
+const ECO_BUILD    = '20261012-1524';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791829444054;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -103398,7 +103531,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261012-1516</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261012-1524</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
