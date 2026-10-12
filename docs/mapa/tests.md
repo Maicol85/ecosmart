@@ -246,6 +246,21 @@ prefijo `_` porque son temporales y no infraestructura:
   contra HEAD**: se guarda el `index.html` nuevo, se hace `git show <ref>:index.html > index.html`,
   se corre, se restaura y **se verifica el md5**.
 
+- **`scripts/_probe_evidbtn.mjs`** (2026-10-12) — sonda del **estado del botón «Evidencia»**, A/B de
+  solo lectura con `--file`. Grupos: `estados`, `temas`, `maqueta`, `rutas`, `abrir`. Lo que vale
+  copiar: el estado se lee de **las tres superficies a la vez** —la clase, el **fondo computado** y
+  el `aria-label`—, porque una clase que pierde contra otra regla se lee como un arreglo aplicado; y
+  el grupo `rutas` trae el **control negativo del enganche**: repone los 886 campos **sin**
+  `_recalcModulos` y exige que el botón NO se mueva, que es lo que prueba que el embudo es lo que lo
+  mueve.
+- **`scripts/_probe_evidterm.mjs`** (2026-10-12) — sonda del **glosario del panel** (los dos ⓘ de
+  término y su tarjeta), A/B de solo lectura con `--file`. Grupos: `texto`, `tarjetas`, `teclado`,
+  `aislamiento`, `convive`. Tres cosas que vale copiar: el hash por sección con **los glifos ⓘ y
+  todo el blanco descontados** (es el que responde «idéntico a HEAD» sin romperse por el
+  maquetado); `elementFromPoint` en **las cuatro esquinas y el centro**, que es lo único que
+  distingue «no recortada» de «no medí el recorte»; y medir **las dos rutas de repintado por
+  separado**, porque «el re-anclaje no sirve» y «el re-anclaje está tapado por el cierre» se ven
+  exactamente igual.
 - **`scripts/_probe_emevid.mjs`** (2026-10-11) — sonda de la **sección de estenosis mitral del
   panel de Evidencia**, A/B de solo lectura con `--file`. Cinco escenas y dos cosas que vale copiar:
   · **mide el OBJETO y el HTML pintado**. El objeto de `_indEM()` dice qué decidió la función; el
@@ -304,6 +319,32 @@ Estas son las que cuestan sesiones enteras.
   pelado: `amiloTextoTEER`, no entre acentos graves. *Confirmado en el código: el comentario de
   `caso()` lo advierte en mayúsculas y dice que ya se pagó cuatro veces; el historial registra 169
   backticks acumulados removidos de cuerpos de caso.*
+- ⚠️ **`\s` dentro del cuerpo de un caso o de una sonda se cocina a la LETRA `s`.** El cuerpo es un
+  template literal, que procesa las secuencias de escape **antes** de que el navegador vea el
+  código: `/\s+/g` llega como `/s+/g` y borra todas las eses del texto. Y el falso es plausible —
+  en la tanda del glosario la sonda informaba una diferencia de **2 caracteres** (el blanco real al
+  lado de un glifo) con el veredicto del lado equivocado. **Se vio al IMPRIMIR el texto**, que decía
+  «caracteritica» y «defavorable». `\u24d8` sobrevive de pura suerte, porque es un escape válido y
+  se cocina al carácter correcto. **En el cuerpo va `\\s`**, como lo escriben los `norm()` de las
+  sondas viejas. *Medido el 2026-10-12.*
+- ⚠️ **Los DOS overlays de pantalla completa se comen cualquier medición de oclusión, y el aviso
+  legal VUELVE a mitad de corrida.** `#modalAvisoEco` tapa con `z-index:9999` y `#login-overlay` con
+  `2147483000`: con cualquiera puesto, `elementFromPoint` devuelve **ese** nodo en todos los puntos y
+  la escena informa «tapado» sobre un árbol perfecto. TC-395 ya lo documenta para el overlay de
+  login; el 2026-10-12 volvió a pasar **dos veces** con el aviso legal, en TC-451 y en la sonda del
+  glosario, porque lo repone el arranque de sesión que corre tras `limpiarCampos`. **Despejarlos
+  DENTRO del medidor, no una vez al arranque**, y poner su estado al lado del veredicto.
+- ⚠️ **Una protección de la sonda puede esconder el defecto que la sonda busca.** El `clicSel` de
+  las sondas llama a `scrollIntoView` y **se niega** a clickear un nodo fuera del viewport —la
+  protección que se agregó tras una corrida colgada 75 s—, así que **todas** sus escenas tienen el
+  blanco a la vista. El acote vertical de la tarjeta del glosario lo encontró **TC-451**, que usa un
+  `.click()` sintético y no scrollea: con el botón fuera del área visible del panel, la tarjeta se
+  colocaba fuera de la pantalla. *Medido el 2026-10-12.*
+- ⚠️ **Comparar dos mediciones de DÍAS distintos da una diferencia que no existe.** El A/B de las
+  seis superficies de la tanda del glosario dio 6 diferencias en el hash de los campos guardados: la
+  medición de HEAD era del 11 y la nueva del 12 de octubre. Remedido HEAD el mismo día, **0
+  diferencias**. Misma clase de falso que el pendrive, con otra variable. **Mirar la fecha antes de
+  restar.**
 - **El scorer de mutaciones contaba «sin ✗» como "sobrevivió".** Si la suite no arranca, stdout
   queda vacío, no hay ningún `✗` y **todas** las mutaciones salen «sobrevivió» — indistinguible de
   «no hay cobertura». Reportó 7 falsos de una vez. **Exigir `RESULTADO` en la salida antes de

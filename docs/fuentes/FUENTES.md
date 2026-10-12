@@ -288,6 +288,104 @@ la biblioteca — ruta no registrada» y era falso: estaba, con otro nombre.
 - ⚠️ **Sus tablas son imágenes dentro del PDF.** Renderizar la página; el texto extraído no trae
   los valores.
 
+### `esc2025vc` · MATERIAL SUPLEMENTARIO — `ehaf194_supplementary_data.pdf` (verificado 2026-10-12)
+
+**Ruta en disco:**
+`~/Desktop/EcoSmart_Biblioteca_Fuentes/04_Valvulopatias/ehaf194_supplementary_data.pdf`
+— 7 páginas. Es el *Supplementary data online* al que la guía remite; **no tiene folio de revista**,
+así que se cita por **página del PDF**, que acá coincide con la impresa (el pie de la p. 5 dice
+«ESC Guidelines 5»).
+
+⚠️ **ESTE ARCHIVO SÍ ESTÁ EN LA BIBLIOTECA, Y EL PANEL AFIRMA DOS VECES QUE NO.** La nota de detalle
+de la estenosis mitral dice «La definición de esa escala vive en su material suplementario
+(Table S3), **que no está en el documento consultado**», y un comentario de `index.html` lo repite.
+Las dos frases quedaron del 2026-10-11, cuando era cierto. **Decisión de Maicol (2026-10-12): no se
+tocan en esta tanda** — son contenido clínico del panel y van a una tanda de textos. Anotado en
+`docs/PENDIENTES.md`.
+
+#### Tabla S3, p. 5 — los dos scores de la comisurotomía percutánea
+
+Título: *«Echocardiographic scores used for assessing the feasibility of percutaneous mitral
+commissurotomy: Wilkins score and Cormier score»*. Pie único de la tabla, debajo de las dos mitades
+y con la lista de abreviaturas de las dos: **«© ESC/EACTS 2025. Reproduced from⁶»**.
+
+| Mitad | Encabezado literal | Superíndice | Qué da |
+|---|---|---|---|
+| Wilkins | *«Assessment of **MVA** according to the Wilkins score⁴»* | **4** | 4 componentes (`Mobility`, `Thickening`, `Calcification`, `Subvalvular thickening`) × grados **1 a 4**, con su descriptor |
+| Cormier | *«Assessment of **MV anatomy** according to the Cormier score⁵»* | **5** | los grupos **1, 2 y 3** |
+
+**La frase del total, literal:** *«The total score is the sum of the four items and ranges between
+4 and 16.»*
+
+⚠️ **EL ENCABEZADO DE LA MITAD DE WILKINS DICE «MVA», QUE EN ESTE MISMO DOCUMENTO ES LA SIGLA DEL
+ÁREA** (`MVA, mitral valve area`, en el pie de la tabla y en la Tabla S2). La mitad de Cormier, dos
+renglones más abajo, dice `MV anatomy`. Es **probable error del documento**: el score puntúa
+ANATOMÍA, no área. **Por eso la tarjeta del panel titula «Score de Wilkins (Tabla S3)» y NO traduce
+ese encabezado** — traducirlo publicaría «valoración del área mitral según el score de Wilkins», que
+es falso. Decisión de Maicol (2026-10-12). Anotado en `docs/PENDIENTES.md`.
+
+⚠️ **LA TABLA S3 NO DA EL CORTE «> 8».** Ese corte lo ponen las dos notas ^c de la guía (abajo). La
+Tabla S3 sólo **define** las dos escalas.
+
+⚠️ **LOS GRADOS SON 1 A 4 Y EL TOTAL 4 A 16, Y ESO NO ES LO QUE DICE EL ARTÍCULO ORIGINAL.**
+`wilkins1988` (abajo) tiene verificado **0 a 4 por ítem y 0 a 16 el total** (Tabla 2, p. 300). Los
+dos son ciertos **de su propio documento**: la Tabla S3 reproduce la escala con otro origen. El panel
+muestra hoy los **dos** rangos —4 a 16 en la tarjeta del término, 0 a 16 en la nota de guías previas—
+y eso queda **declarado y sin corregir** por decisión de Maicol (2026-10-12).
+
+#### Lista de referencias, p. 7 — las tres que importan acá
+
+- **4** — Bonow RO, O'Gara PT, Adams DH, Badhwar V, Bavaria JE, Elmariah S, et al. *2019 AATS/ACC/SCAI/STS
+  expert consensus systems of care document: operator and institutional recommendations and
+  requirements for transcatheter mitral valve intervention…* **J Am Coll Cardiol 2020;76:96-117.**
+  doi:10.1016/j.jacc.2019.12.002 → la que la Tabla S3 asigna al **score de Wilkins**.
+- **5** — Bouleti C, Iung B, Himbert D, Brochet E, Messika-Zeitoun D, Detaint D, et al.
+  *Reinterventions after percutaneous mitral commissurotomy during long-term follow-up, up to 20
+  years: the role of repeat percutaneous mitral commissurotomy.* **Eur Heart J 2013;34:1923-30.**
+  doi:10.1093/eurheartj/eht097 → la que asigna a **Cormier**.
+- **6** — Vahanian A, Beyersdorf F, Praz F, Milojevic M, Baldus S, Bauersachs J, et al. *2021
+  ESC/EACTS Guidelines for the management of valvular heart disease.* **Eur Heart J
+  2022;43:561-632.** doi:10.1093/eurheartj/ehab395 → la guía **de la que la Tabla S3 declara estar
+  reproducida**. Ver la salvedad de la sección «ESC/EACTS 2021» de este archivo: **nombrarla acá no
+  la registra como fuente verificada**.
+
+#### Las dos notas ^c — los literales que sostienen el «> 8» y el «grupo 3»
+
+- **Figura 14, nota ^c, folio 4681** (PDF 47): *«Favourable = absence of unfavourable characteristics
+  for PMC defined by unfavourable anatomical characteristics [echocardiographic score >8, Cormier
+  score 3 (calcification of MV of any extent as assessed by fluoroscopy), severe TR] or unfavourable
+  clinical characteristics (old age, history of commissurotomy, NYHA class IV, permanent AF, severe
+  PH) (for the definition of scores see Supplementary data online, Table S3).»*
+- **Recommendation Table 8, nota ^c, folio 4682** (PDF 48): *«Unfavourable characteristics for PMC can
+  be defined by the presence of **several** of the following characteristics: clinical characteristics
+  (old age, history of commissurotomy, NYHA class IV, permanent AF, severe PH); anatomical
+  characteristics [echocardiographic score >8, Cormier score **group** 3 (calcification of MV of any
+  extent as assessed by fluoroscopy), severe TR] (for the definition of scores see Supplementary data
+  online, Table S3).»*
+
+⚠️ **LAS DOS NOTAS SE CONTRADICEN Y SÓLO UNA DICE «VARIAS».** La de la Tabla 8 dice *«several of the
+following»* **sin dar número**; la de la Figura 14 dice *«absence of unfavourable characteristics»*,
+o sea **ninguna**. Por eso las tarjetas de los dos términos atribuyen el «varias» **sólo a la nota
+^c de la Recommendation Table 8**, y no a «las notas c»: afirmar que las dos lo dicen sería falso.
+La sección de estenosis mitral ya declara esta contradicción en su detalle, con las dos citas.
+Diferencia menor entre las dos: la Figura 14 escribe `Cormier score 3` y la Tabla 8
+`Cormier score group 3`.
+
+#### Los DOS TÉRMINOS del glosario del panel — fuente, página y referencia
+
+| Término (`IND_TERMINOS`) | Fuente | Página | Referencia que la tabla le asigna |
+|---|---|---|---|
+| `cormier` — Clasificación de Cormier | ESC/EACTS 2025, material suplementario, **Tabla S3**; más las notas ^c de la Figura 14 (folio 4681) y de la Tabla 8 (folio 4682) | **p. 5** | **cita 5** del suplemento — Bouleti C, et al. *Eur Heart J* 2013;34:1923-30 |
+| `score_eco` — Score ecocardiográfico | igual | **p. 5** | **cita 4** — Bonow RO, et al. *J Am Coll Cardiol* 2020;76:96-117. Y la tabla declara estar **reproducida de la guía ESC/EACTS 2021** (cita 6) |
+
+**Los 16 descriptores y las frases de las dos tarjetas están en español con palabras propias**, sin
+copia literal ni traducción palabra por palabra: la guía es de la ESC, su contenido no se reproduce
+sin permiso y EcoSmart es comercial. Se verificaron uno por uno contra el original inglés de arriba
+y los **aprobó Maicol el 2026-10-11**, con cuatro ajustes suyos («valvas» en lugar de «velos»,
+«brillo ecográfico aumentado», la redacción del grupo 3, y la salvedad de «UNA de varias
+características desfavorables, y la guía no dice cuántas bastan»). Lo que impide que cambien sin
+volver a pasar por acá son las anclas literales de **TC-451**.
+
 ### `wilkins1988` — Wilkins 1988, score de la válvula mitral
 Wilkins GT, Weyman AE, Abascal VM, Block PC, Palacios IF. *Br Heart J* 1988;60(4):299-308.
 doi:10.1136/hrt.60.4.299.
@@ -303,6 +401,13 @@ Es un **escaneo de 1988**: las tablas son imágenes, hay que renderizar.
   óptimo y `> 11` subóptimo, con la banda **9-11 declarada no predictiva**. El «> 8» que usa la app
   es de la **ESC/EACTS 2025**, que lo publica **sin atribuírselo a Wilkins**.
 - ⚠️ **Los selectores de la app dicen «(1-4)» y la escala del original es 0-4.**
+- ⚠️ **Y LA TABLA S3 DE LA ESC/EACTS 2025 GRADÚA 1 A 4 CON TOTAL 4 A 16** (ver la entrada del
+  material suplementario, más arriba). O sea que los selectores coinciden con la Tabla S3 y no con
+  el original. **Los dos rangos son ciertos de su propio documento** y el panel muestra hoy los dos:
+  4 a 16 en la tarjeta del término `score_eco`, 0 a 16 en la nota de guías previas de la sección.
+  **Declarado y sin corregir** por decisión de Maicol (2026-10-12); anotado en
+  `docs/PENDIENTES.md`. Antes de «unificarlos», leer esto: unificar es elegir a qué documento
+  desmentir.
 
 ### `asePandian2023` — ASE 2023, cardiopatía reumática
 Pandian NG, Kim JK, Arias-Godinez JA, et al. *J Am Soc Echocardiogr* 2023;36(1):3-28.
@@ -402,6 +507,14 @@ Están en `IND_REFS`, pero su `full` **no tiene tabla ni página**. Sirven como 
 No está en `IND_REFS`, no tiene ruta en disco y nadie la leyó en texto completo. **No se le puede
 colgar ningún corte ni nombrarla en un encabezado**, igual que las de arriba.
 La guía valvular de la ESC que este repo SÍ verificó es la **ESC/EACTS 2025** (`esc2025vc`).
+
+⚠️ **LA TARJETA DEL `score_eco` LA NOMBRA, Y NO ES UNA CUARTA VIOLACIÓN DE ESTA REGLA.** Lo que esa
+tarjeta dice es que **la Tabla S3 declara estar reproducida** de la guía de 2021, y la referencia que
+da es la **cita 6 del propio suplemento**, copiada de su lista. No se le cuelga ningún corte, no
+encabeza nada y no entró a `IND_REFS`. La distinción es la misma que la casa ya aplica con la nota de
+guías previas: **un documento nombrado en prosa va con su referencia** —porque un documento sin su
+cita se lee como «hay una cita que no encontrás»— y eso no lo vuelve una fuente verificada. Al
+2026-10-12 la ESC/EACTS 2021 **sigue en cero entradas verificadas en texto completo**.
 
 Este archivo ya había retirado ese sello dos veces —el rótulo de la severidad integrada de IM
 pasó de «(ESC 2021)» a «(ASE 2017)», y el de la EM dejó de decir «Severidad EM integrada

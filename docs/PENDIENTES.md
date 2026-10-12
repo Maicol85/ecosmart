@@ -176,12 +176,83 @@ fila**. La alternativa sería preguntarlo como un control más.
 
 ### ⚠️ La definición del «score ecocardiográfico > 8» no se pudo leer
 
+> **✅ LA TABLA S3 YA ESTÁ EN LA BIBLIOTECA (2026-10-12).** Vive en
+> `.../04_Valvulopatias/ehaf194_supplementary_data.pdf`, p. 5, y está **verificada en texto
+> completo** en `docs/fuentes/FUENTES.md`. Define el score de **Wilkins** y el de **Cormier** —así
+> que «no se pudo leer qué escala es» dejó de ser cierto—, y **sigue sin dar el corte «> 8»**: ese
+> lo ponen las dos notas ^c. El párrafo de abajo es el estado de 2026-10-11 y lo que queda abierto
+> es sólo lo del bloque siguiente: **las dos frases del panel que todavía dicen que no se pudo
+> leer**.
+
 La nota ^c del folio 4682 escribe el corte y remite a su *Supplementary data online, Table S3*,
 que **no está en el archivo de la biblioteca**. El panel publica el corte **«según la guía»** y
 **no lo atribuye a Wilkins ni a ninguna escala concreta** — el artículo de Wilkins 1988 no menciona
 ningún 8, y atribuírselo (como hacía la versión anterior, con su corchete en la fila) era afirmar
 algo que ese documento no dice. Si alguna vez se consigue la Table S3, se verifica qué escala es y
 entonces la fila puede nombrarla.
+
+### ⚠️ Glosario del panel (2026-10-12) — TRES COSAS DECLARADAS Y NO TOCADAS
+
+Las tres salieron de la tanda del glosario (`IND_TERMINOS`, los ⓘ de Cormier y del score). **Decisión
+de Maicol del 2026-10-12: ninguna se toca en esa tanda**; van a una tanda de TEXTOS del panel.
+
+**1 · Dos frases del panel afirman que la Tabla S3 «no está en el documento consultado», y hoy sí
+está.** Son contenido clínico del panel, así que se reportan y se esperan:
+
+| Dónde | Qué dice hoy |
+|---|---|
+| Nota de detalle de la sección de estenosis mitral (la del corte del score) | «La definición de esa escala vive en su material suplementario (Table S3), **que no está en el documento consultado**: la aplicación usa el corte tal como la guía lo escribe y **no lo atribuye a ninguna escala concreta**.» |
+| Comentario de `index.html` sobre la fila del score | «…remite a su Supplementary data online, Table S3, **que no está en el material consultado** — o sea que la definición de la escala no se pudo leer.» |
+
+Lo que la Tabla S3 cambia: la escala **sí** se puede nombrar (es el score de Wilkins, y la tabla lo
+llama así). Lo que **no** cambia: el **«> 8» sigue siendo de la guía y no de Wilkins 1988**, que no
+menciona ningún 8. O sea que si esas frases se actualizan, hay que conservar esa mitad —es la que
+evita atribuirle a un artículo un corte que no publica— y el único cambio honesto es dejar de decir
+que no se pudo leer. **La tarjeta nueva del término ya dice lo correcto**, así que durante un rato
+el panel tiene las dos versiones.
+
+**2 · El panel muestra DOS rangos del score y los dos son ciertos.**
+
+| Dónde | Rango | Documento |
+|---|---|---|
+| Tarjeta del término `score_eco` | grados **1 a 4**, total **4 a 16** | ESC/EACTS 2025, Tabla S3, p. 5 (literal: «ranges between 4 and 16») |
+| Nota de guías previas de la sección, y `IND_REFS.wilkins1988` | **0 a 4** por ítem, total **0 a 16** | Wilkins 1988, Tabla 2, p. 300 |
+| Los `<select>` del módulo ETE y de Calculadoras | rotulados **«(1-4)»**, total **/16** | — |
+
+No es un error de ninguno de los tres: la Tabla S3 reproduce la escala con otro origen.
+⚠️ **Unificarlos es elegir a qué documento desmentir**, así que no se hace sin orden expresa. Si
+alguna vez se unifica, el camino honesto es declarar los dos rangos con su fuente —no borrar uno—.
+Y ojo con el tercero: los selectores de la app coinciden con la **Tabla S3** (1 a 4) y no con el
+original, cosa que `FUENTES.md` ya tenía anotada como discrepancia con el artículo.
+
+**3 · El encabezado de la mitad de Wilkins de la Tabla S3 dice «MVA» — probable error del
+documento.** Literal: *«Assessment of **MVA** according to the Wilkins score»*. En ese mismo
+documento `MVA` es la sigla de **mitral valve area** (está así en el pie de la propia Tabla S3 y en
+la Tabla S2), y la mitad de Cormier —dos renglones más abajo— dice *«Assessment of **MV anatomy**»*.
+El score de Wilkins puntúa **anatomía**, no área: los cuatro componentes son movilidad,
+engrosamiento, calcificación y engrosamiento subvalvular, y ninguno es una medida de superficie.
+**Por eso la tarjeta titula «Score de Wilkins (Tabla S3)» y NO traduce ese encabezado** — hacerlo
+publicaría «valoración del área mitral según el score de Wilkins», que es falso. Decisión de Maicol
+del 2026-10-12. No hay nada que corregir en la app; queda anotado para que nadie lo «arregle»
+traduciéndolo, y para el día en que haya una errata de la guía que confirmarlo.
+
+### Lo que QUEDA de la tanda del glosario, medido y no corregido
+
+- **La tarjeta puede superponerse a su propia fila** cuando no entra ni abajo ni arriba del botón: a
+  1200 × 900 la del score mide 611 y la caja permitida 844, con el botón al medio. Queda **entera,
+  dentro del panel y sin un pixel tapado** —medido con `elementFromPoint` en las cuatro esquinas y
+  el centro—; lo que se pierde es ver la fila mientras se lee la tarjeta. La alternativa era
+  recortarla y hacerla scrollear siempre, que es peor para una tabla de referencia.
+- **Contestar una pregunta clínica con la tarjeta abierta la CIERRA.** Es lo pedido —un control
+  clínico está «afuera»— y está medido como tal; el re-anclaje queda para los repintados que no
+  vienen de un clic. Si algún día se quiere que sobreviva al clic, lo que hay que cambiar es el
+  oyente de «tocar afuera», no el re-anclaje.
+- **Tab dentro de la tarjeta se gasta en cerrarla**, así que para seguir tabulando hace falta uno
+  más. Es la alternativa a una trampa de teclado sin salida anunciada.
+- **`docs/mapa/panel-evidencia.md` quedó en 35,3 KB**, apenas por encima del techo de ~35 KB que
+  `ecosmart/CLAUDE.md` fija. El glosario ya salió a su propio archivo
+  (`docs/mapa/panel-evidencia-terminos.md`, 15 KB) justamente por eso; **la próxima tanda que lo
+  toque conviene que lo parta**, no que lo estire.
 
 ### ⚠️ Las dos contradicciones internas de la ESC/EACTS 2025, declaradas y no corregidas
 

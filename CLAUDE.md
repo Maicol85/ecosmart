@@ -24,6 +24,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | Qué falta hacer / próximo paso | `docs/PENDIENTES.md` |
 | **Ubicar un cálculo de severidad, un corte o una banda** | `docs/mapa/valvulas.md` |
 | **Tocar el panel de Evidencia: agregar una cita, una sección o un sub-bloque** | `docs/mapa/panel-evidencia.md` |
+| **Agregar un TÉRMINO al glosario del panel (el ⓘ con tarjeta)** | `docs/mapa/panel-evidencia-terminos.md` |
 | **Ver por dónde sale un dato** (informe narrativo, EN SUMA, PDF, Excel) | `docs/mapa/informe-pdf-excel.md` |
 | **Agregar o correr un caso de prueba; A/B; mutación** | `docs/mapa/tests.md` |
 | **Visor de cineloop, medición, calibración, IndexedDB** | `docs/mapa/imagenes-visor.md` |
@@ -44,6 +45,10 @@ edición, el nombre de la función no.
 medido el 2026-10-11:** `panel-evidencia.md` 33 KB y `valvulas.md` 33 KB; los otros cuatro van de 18
 a 25 KB. Los mapas crecen con cada tanda. **Medí el que vas a abrir antes de presupuestar contexto**
 (`wc -c docs/mapa/*.md`), y si uno pasa de ~35 KB conviene partirlo en vez de seguir estirándolo.
+⚠️ **Y al 2026-10-12 `panel-evidencia.md` está en 35,3 KB, o sea YA pasó ese techo.** La tanda del
+glosario respetó la regla sacando su mapa a un archivo propio
+(`panel-evidencia-terminos.md`, 15 KB) en vez de agregarle una sección; lo que le entró fueron tres
+punteros. **La próxima tanda que lo toque conviene que lo parta.**
 
 Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la ventana.
 
@@ -205,6 +210,121 @@ impecable.
 ---
 
 ## Estado vigente
+
+- Al **empezar** la tanda del BOTÓN y el GLOSARIO del panel de Evidencia (2026-10-12), `main` local
+  y `origin/main` estaban los dos en **`43d52f9`**, sin nada sin pushear —confirmado con un
+  `git fetch` de verdad—. Los **tres** commits de esa tanda (`469c157`, `cfc39ce` y este) quedan
+  locales; el push lo corre Maicol.
+  **Los tres se revierten solos y en cualquier orden.** A toca `#indic-btn` y `indicSyncBoton`;
+  B agrega `IND_TERMINOS`, el componente y los dos `term:` de la mitral; C es sólo documentación.
+  La única dependencia es de TESTS y es blanda: **TC-274** se adaptó en A y **TC-451** entró en B.
+  Revertir sólo A deja TC-274 en rojo (mide el color, que ya no existiría); revertir sólo B deja
+  TC-451 en rojo por su propia guarda («falta `_indTermAbrir`»), que es la rama prevista.
+
+### Panel de Evidencia · el botón que se prende y el glosario de términos (2026-10-12)
+
+- **Línea base al cierre: suite 462/466 con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0 ERROR,
+  Excel 434 columnas, celular 43 a 360 px y 52 a 390 px con 1 ALTA cada uno.** Los cuatro rojos son
+  los de entrada y NO son regresiones: **TC-223** (el documentado, falla por la fecha), **TC-376**,
+  **TC-390** y **TC-406**. **El denominador subió a 466**: esta tanda agregó **TC-451** (el
+  glosario) y adaptó **TC-274** (el botón).
+  La línea base de ENTRADA, medida en HEAD limpio el 2026-10-11, fue **461/465** con el pendrive
+  montado y los mismos cuatro rojos.
+- **Dónde está todo:** `docs/mapa/panel-evidencia-terminos.md` (el glosario entero: los tres ⓘ, el
+  registro, la posición y las dos formas de la tabla), `docs/mapa/panel-evidencia.md` (el botón, en
+  «Entradas y ciclo de vida»), `docs/fuentes/FUENTES.md` (la entrada nueva del material
+  suplementario: Tabla S3 p. 5, las citas 4, 5 y 6, y los dos literales de las notas ^c),
+  `docs/PENDIENTES.md` (las tres cosas declaradas y no tocadas).
+- **A · El botón «Evidencia» ya no se esconde: está SIEMPRE y lo que sigue a los datos es su
+  COLOR** — `btn-ghost` gris sin criterios, `btn-primary` azul con al menos una sección, el mismo
+  par que las ocho pastillas de válvula, así que los dos temas salen gratis (`--accent` vale
+  `#4f8ef7` de noche y `#2f6fe0` de día). Lo decide `indicSyncBoton()` con `indicHayCriterios()`,
+  que es la **misma** función que corre el panel: no se duplicó ninguna compuerta. Sin numerito.
+  El estado va también en PALABRAS (`IND_BTN_ET`, en `aria-label` y `title`), y la del azul declara
+  que significa «hay guía aplicable para consultar», **no** indicación de tratamiento.
+  **Enganches: NINGUNO nuevo.** `indicSyncBoton` ya estaba en `RECALC_MODULOS` (índice 41, el
+  embudo de las cinco rutas de restauración) y se llama a mano al final de `limpiarCampos`.
+  **Los quince constructores de `IND_SECS` son PUROS**: barrido de sus 4.729 líneas por escrituras
+  de DOM y de estado → un solo hit, y es una lectura.
+- ⚠️ **EN HEAD EL BOTÓN NUNCA SE ESCONDÍA A LA VISTA, Y ES LA CUARTA VEZ QUE ESTE ARCHIVO PAGA LO
+  MISMO.** Medido con `getComputedStyle`: con `hidden === true` tenía `display:flex` y **104 × 44 px
+  reales**, porque la regla de autor `.btn, .tab-btn, .nav-tab, .chip { display:inline-flex }` le
+  gana al `[hidden]{display:none}` de la hoja del **NAVEGADOR** (autor > UA, sin importar la
+  especificidad). `hidden` sólo lo sacaba del árbol de accesibilidad. `index.html` ya lo documenta
+  para `.fg`, `.frases-panel` y el banner de versión, los tres arreglados con su propio
+  `X[hidden]{display:none}`; `#indic-btn` nunca recibió esa regla. **TC-274 estaba VERDE encima, por
+  medir la PROPIEDAD `hidden` y no el estilo computado** — que es textualmente la lección escrita al
+  lado de `.fg[hidden]`. Hoy está cerrado por construcción: ya no hay `hidden`, y las condiciones
+  nuevas miran la clase **y** el fondo computado.
+- **B · El ⓘ de un TÉRMINO es un TERCER componente y no reemplaza a ninguno.** `_indInfoHTML`
+  (`<details data-ind-info>`, la nota de una pregunta), `_indDetalleHTML`
+  (`<details data-ind-detalle>`, el «Ver detalle») y ahora `<button data-ind-term>`, que abre una
+  tarjeta FUERA del cuerpo. **Atributo propio y `<button>` en vez de `<details>` por un motivo
+  medido:** TC-293 cuenta los `details[data-ind-info]` y exige `aria-label` únicos por sección, y
+  TC-328/TC-329 llaman «hoja» a cualquier `<div>` sin divs adentro — un ⓘ nuevo en esos conjuntos
+  les mueve el denominador sin que nada lo delate. Verificado: `info` sigue en 11 y 33, `detalle` en
+  1 y 9, los tres casos verdes.
+- ⚠️ **LA TARJETA CUELGA DEL OVERLAY Y NO DE `#indic-card`, Y ESO EVITA DOS CAMINOS DE CÁLCULO.**
+  `#indic-cuerpo` tiene `overflow:auto` (recortaría una tarjeta de adentro) y **`#indic-card` lleva
+  `transform:translate(-50%,-50%)` en tamaño normal**, o sea que es **bloque contenedor** de
+  cualquier descendiente con `position:fixed`: desde adentro habría que restarle el rect del padre
+  en normal y no en maximizado, donde el CSS pone `transform:none`. Colgada del overlay —que no
+  lleva transform— el `position:fixed` vuelve a ser del viewport y el rect del botón se usa tal
+  cual. Y va en el **marcado estático**, porque el `MutationObserver` del bloque de accesibilidad
+  trata como modal a cualquier `<div>` **agregado** con `position:fixed` y `top:0`.
+  **`role="dialog"` SIN `aria-modal`**, a propósito: así no entra en el oyente genérico de Escape ni
+  en la trampa de Tab, y el panel sigue siendo el único modal.
+- ⚠️ **EL ACOTE VERTICAL FINAL LO ENCONTRÓ TC-451, NO LA SONDA, Y EL AYUDANTE DE CLIC DE LA SONDA
+  ERA LO QUE LO TAPABA.** `#indic-cuerpo` scrollea, así que un botón fuera del área visible del
+  panel sigue teniendo rect: el de su posición geométrica, cientos de px por debajo del viewport.
+  Con ese `r0`, la rama de «arriba» daba `arriba >= T` por ser un número grande y **positivo** y la
+  tarjeta se colocaba fuera de la pantalla (medido: `top` 132 con la caja terminando en 455 y los
+  cinco puntos devolviendo `null`). El `clicSel` de la sonda llama a `scrollIntoView` y **se niega**
+  a clickear un nodo fuera del viewport —la protección que este repo agregó tras una corrida
+  colgada—, así que todas sus escenas tenían el botón a la vista; el caso usa un `.click()`
+  sintético. **Una protección de la sonda puede esconder el defecto que la sonda busca.**
+- ⚠️ **`\s` DENTRO DE UN TEMPLATE LITERAL SE COCINA A LA LETRA `s`.** El regex de la sonda quedaba
+  en `/s+/g` y borraba **todas las eses** del texto, e igual informaba una diferencia de 2
+  caracteres —que eran el blanco real al lado del glifo—, o sea un falso con pinta de medición
+  buena. Se vio al **IMPRIMIR** el texto, que decía «caracteritica» y «defavorable». `\u24d8`
+  sobrevivió de pura suerte: es un escape válido y se cocina al carácter correcto. En el cuerpo de
+  una sonda va **`\\s`**, como ya lo escriben las otras.
+- ⚠️ **EL AVISO LEGAL VUELVE A MITAD DE CORRIDA Y SE COME TODAS LAS MEDICIONES DE OCLUSIÓN.**
+  `#modalAvisoEco` tapa con `z-index:9999` y `#login-overlay` con `2147483000`: con cualquiera de los
+  dos puesto, `elementFromPoint` devuelve **ese** nodo en los cinco puntos y la escena informa
+  «tapada» sobre una tarjeta perfecta. Pasó **dos veces** —en TC-451 y en la sonda, en las seis
+  escenas de 390 y 360 px, porque las de 1200 corren antes de que reaparezca—. Es la trampa que
+  TC-395 ya documenta. **Se despejan DENTRO del medidor, no una vez al arranque**, y su estado va al
+  lado del veredicto.
+- ⚠️ **COMPARAR DOS MEDICIONES DE DÍAS DISTINTOS DA UNA DIFERENCIA QUE NO EXISTE.** El A/B de las
+  seis superficies dio 6 diferencias en el hash de los campos guardados; la medición de HEAD era del
+  **11** y la nueva del **12** de octubre. Remedido HEAD el mismo día: **0 diferencias**. Es la misma
+  clase de falso que el pendrive `DISK_IMG`, con otra variable: **mirar la fecha antes de restar.**
+- **TEXTOS de las tarjetas: palabras propias, aprobadas por Maicol con cuatro ajustes suyos**
+  («valvas» en vez de «velos», «brillo ecográfico aumentado», la redacción del grupo 3, y la
+  salvedad de «UNA de varias características desfavorables, y la guía no dice cuántas bastan»). El
+  «varias» se atribuye **sólo** a la nota ^c de la Recommendation Table 8: la de la Figura 14 dice
+  «absence of unfavourable characteristics», o sea ninguna. **La tarjeta NO afirma que el «> 8» sea
+  de Wilkins.** El título de la tabla es «Score de Wilkins (Tabla S3)» y **no traduce** el encabezado
+  original, que dice «MVA» —la sigla del ÁREA en ese mismo documento—: probable error de la guía,
+  anotado en `docs/PENDIENTES.md`.
+- **Las SEIS superficies, enumeradas una por una** (informe en tres estilos, EN SUMA en tres, Excel
+  con sus 434 columnas, franja del PPT, Laboratorio y los 1087 campos guardados): **0 diferencias**
+  contra HEAD en los dos commits, en tres morfologías, con el panel cerrado y con el panel abierto y
+  doce preguntas contestadas con clics reales.
+- **El texto de CADA sección es idéntico a HEAD letra por letra** (hash con los glifos ⓘ y todo el
+  blanco descontados): **9/9** secciones, con un Δ de exactamente **+2 glifos**, los dos en la
+  estenosis mitral.
+- **Arneses: `scripts/_probe_evidbtn.mjs`** (el botón: estados, temas, maqueta, rutas de
+  restauración con su control negativo, y el clic en gris) y **`scripts/_probe_evidterm.mjs`** (el
+  glosario: texto, 16 escenas de tarjeta, teclado, aislamiento y convivencia). Los dos A/B de solo
+  lectura con `--file`.
+- **Cobertura: TC-451** (nueve condiciones, tres denominadores, dos controles negativos) y **TC-274
+  adaptado** con el motivo escrito en el caso.
+- ⚠️ **Me comí el acento grave DOS veces**, las dos en comentarios míos dentro del cuerpo de la
+  sonda, con el archivo que documenta la trampa abierto delante. `scripts/check_backticks.py` dio la
+  línea exacta las dos veces; en una, `node --check` apuntaba 15 líneas antes.
+
 
 - Al **empezar** la tanda del MARCO del panel de Evidencia (2026-10-11), `main` local y `origin/main`
   estaban los dos en **`84d9f1e`**, sin nada sin pushear. Los **tres** commits de esa tanda

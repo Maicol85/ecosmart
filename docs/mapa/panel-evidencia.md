@@ -4,6 +4,11 @@
 
 Panel «Evidencia según guías» (`#indic-overlay`).
 
+> **El GLOSARIO está en otro archivo: `docs/mapa/panel-evidencia-terminos.md`.** El ⓘ de un
+> TÉRMINO (`<button data-ind-term>`, registro `IND_TERMINOS`, la tarjeta flotante `#indic-term`) es
+> un **tercer** mecanismo de ⓘ y vive aparte porque este mapa ya estaba en 33 KB. Lo que sigue acá
+> es el marco, las preguntas, las citas y las secciones.
+
 Se llama **Evidencia** en pantalla pero los identificadores siguen siendo `indic-*` / `_ind*` /
 `IND_*`, deliberado según su cabecera. **No renombrar por substring:** `campos['indicaciones']`,
 `lab-acc-indicaciones` y `data-ppt="indicaciones"` son otras tres cosas. Y el panel **no sale del
@@ -21,9 +26,23 @@ informe**: ni el narrativo, ni el PDF, ni el PPT, ni el Excel lo leen.
   `#indic-cuerpo.innerHTML`. Una sección que lanza se cuenta en `fallos`, grita por `console.error`
   con su título y se declara al pie; no se lleva el panel. Sin ninguna, pinta «Sin criterios de
   intervención detectados…». **No recolecta claves de cita**: sería un segundo dueño de la numeración.
-- **`indicHayCriterios` / `indicSyncBoton` / `_indSyncDebounced`** — visibilidad de `#indic-btn`.
-  Corren las **mismas** `IND_SECS` y fallan hacia visible. Debounce de 400 ms sobre
-  `input`/`change` en captura.
+- **`indicHayCriterios` / `indicSyncBoton` / `_indSyncDebounced`** — **el COLOR** de `#indic-btn`,
+  no su visibilidad (cambió el 2026-10-11). El botón está **siempre**: `btn-ghost` (gris) sin
+  criterios y `btn-primary` (azul, el mismo par que las ocho pastillas de válvula) con al menos una
+  sección. Corren las **mismas** `IND_SECS` y **fallan hacia azul**. Debounce de 400 ms sobre
+  `input`/`change` en captura. Las dos etiquetas están en **`IND_BTN_ET`**, y la del azul dice «hay
+  guía aplicable para consultar, **no** que haya indicación de tratamiento»: la compuerta enciende
+  en cuanto UNA sección devuelve algo, y una sección puede abrir con recomendación `no` o `falta`.
+  Enganches: ninguno propio — `indicSyncBoton` ya estaba en `RECALC_MODULOS` (el embudo de las cinco
+  rutas de restauración) y se llama a mano al final de `limpiarCampos`.
+  ⚠️ **En HEAD el botón NUNCA se escondía a la vista.** Medido con `getComputedStyle`: con
+  `hidden === true` tenía `display:flex` y **104 × 44 px reales**, porque la regla de autor
+  `.btn, .tab-btn, .nav-tab, .chip { display:inline-flex }` le gana al `[hidden]{display:none}` de
+  la hoja del **navegador**. `hidden` sólo lo sacaba del árbol de accesibilidad. Es el mismo defecto
+  que `index.html` ya documenta tres veces —`.fg`, `.frases-panel` y el banner de versión, los tres
+  con su propio `X[hidden]{display:none}`— y `#indic-btn` nunca recibió esa regla. **TC-274 estaba
+  verde encima, por medir la PROPIEDAD y no el estilo computado.** Hoy está cerrado por
+  construcción: ya no hay `hidden`.
 - **`_indRepintarConservando`** — repinta conservando acordeones, scroll y foco. Indexa cada
   `<details>` por «summary del padre ▸ summary», no por rótulo.
 - **`_indClinVaciar`** — envoltorio global de `_indClinLimpiar` con guarda `typeof`, para los dos
@@ -111,7 +130,9 @@ de IM **no se pliega**: su pie declara «no se guarda con el estudio», la misma
 TC-272 existe para mantener pintada.
 
 **Las CUATRO marcas de `<details>`, y por qué son cuatro:** `data-ind-detalle` (el «Ver detalle» de
-la sección) · `data-ind-biblio` · `data-ind-bloque` · `data-ind-info`. Todas por **atributo** y
+la sección) · `data-ind-biblio` · `data-ind-bloque` · `data-ind-info`.
+⚠️ **`data-ind-term` NO es una quinta: no es un `<details>`.** Es un `<button>`, justamente para no
+entrar en ninguno de estos conteos — ver `docs/mapa/panel-evidencia-terminos.md`. Todas por **atributo** y
 ninguna por rótulo: el rótulo es prosa —o un glifo— y renombrarlo apagaría la distinción en
 silencio. TC-293 cuenta «un control de detalle por sección» sobre `details details` y excluye las
 otras tres; sin la de los ⓘ daba **37 donde hay 8**, y dos rótulos donde va uno.
