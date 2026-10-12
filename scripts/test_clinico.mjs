@@ -57448,6 +57448,325 @@ caso('TC-450', 'EM: los dos cortes del gradiente (5 y 10, borde >= y sin solape)
   })();
 `);
 
+/* ══ TC-451 — LOS DOS ⓘ DE TERMINO Y SU TARJETA ════════════════════════════════════════════════
+   Cobertura del commit B de la tanda del 2026-10-11 (el glosario del panel de Evidencia). Es un
+   TERCER componente al lado de los dos ⓘ que ya existian, y lo que hay que fijar es justamente
+   que no se confunda con ellos: TC-293 cuenta los details[data-ind-info] y exige aria-label
+   unicos por seccion, y TC-328/TC-329 llaman «hoja» a cualquier <div> sin divs adentro. Un ⓘ
+   nuevo metido en esos conjuntos les mueve el denominador sin que nada lo delate.
+
+   Seis cosas, y la sexta es el denominador de las otras cinco:
+     (a) el registro tiene las DOS entradas y cada ⓘ es un <button> con su propio aria-label;
+     (b) el rotulo de la fila NO cambio ni una letra (se compara con el glifo descontado);
+     (c) abrir uno CIERRA el otro y NO toca los ⓘ de nota de pregunta (con su denominador: se
+         abren dos a proposito antes de medir);
+     (d) la tarjeta se ve COMPLETA: dentro del viewport, dentro del panel, sin barra horizontal
+         en la pagina y sin un solo pixel tapado —medido con elementFromPoint en las cuatro
+         esquinas y el centro, que es lo unico que distingue «no recortada» de «no medi el
+         recorte»—, y lo mismo MAXIMIZADA;
+     (e) la tarjeta ancha trae la TABLA y la chica no, con el corte en el ancho de la TARJETA;
+     (f) DENOMINADOR: hubo dos ⓘ con geometria real y el panel estaba abierto.
+
+   ⚠️ LA SECCION NACE COLAPSADA Y HAY QUE ABRIRLA ANTES DE MEDIR. Una seccion sin ninguna fila
+   ok ni alarm arranca cerrada: sus botones existen en el DOM y miden 0 x 0, y la tarjeta no se
+   puede anclar a un rect de ceros —es la rama que _indTermColocar devuelve null a proposito—.
+   Es la misma trampa que CLAUDE.md documenta para check_mobile.js.
+   ⚠️ Y HAY QUE IR A LA PESTANA DEL INFORME: el panel se abre por codigo, pero #indic-card
+   hereda la geometria del documento y la tarjeta se coloca contra su rect. */
+caso('TC-451', 'Evidencia: los dos ⓘ de termino abren su tarjeta completa y anclada, sin tocar los otros dos mecanismos de ⓘ', `
+  return (async () => {
+    for (const f of ['_indTermAbrir','indicTermCerrar','_indTermAbierto','_indTermColocar'])
+      if (typeof window[f] !== 'function')
+        return { extra:[['existen las funciones del componente', false, 'falta ' + f]] };
+    if (!window.IND_TERMINOS)
+      return { extra:[['existe el registro IND_TERMINOS', false, 'no esta en window']] };
+
+    const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+    const cu = () => document.getElementById('indic-cuerpo');
+    const tj = () => document.getElementById('indic-term');
+    const N  = (s) => String(s || '').replace(/\\s+/g, ' ').trim();
+    /* El glifo descontado: es lo que permite comparar el rotulo con el de HEAD. */
+    const sinGlifo = (s) => N(String(s || '').replace(/\\u24d8/g, ''));
+
+    if (typeof showTab === 'function') showTab('informe');
+    await esperar(160);
+
+    /* ⚠️ EL AVISO LEGAL TAPA LA PANTALLA CON z-index 9999, Y ESTE CASO LO DESTAPO. Mientras
+       #modalAvisoEco este abierto, elementFromPoint devuelve ESE nodo en cualquier punto, asi que
+       la condicion «ni un pixel tapado» da rojo sobre una tarjeta perfecta: medido, los cinco
+       puntos devolvian div#modalAvisoEco[z=9999] con la tarjeta dentro del viewport y dentro del
+       panel. Se cierra ACA y se VERIFICA que se fue; la verificacion va al denominador, porque un
+       cierre que falle convertiria el resto del caso en cinco rojos sin causa visible. */
+    try { if (typeof cerrarAvisoEco === 'function') cerrarAvisoEco(); } catch (e) {}
+    /* ⚠️ Y EL OVERLAY DE LOGIN TAPA CON z-index 2147483000, QUE ES LA MISMA TRAMPA QUE TC-395 YA
+       DOCUMENTA PALABRA POR PALABRA: «elementFromPoint devuelve login-overlay en todos los
+       puntos, o sea cero alcanzables en todos los escenarios, control incluido». Aca dio cinco
+       de cinco tapados, otra vez con la tarjeta perfecta debajo. Mismo recurso que ese caso. */
+    try { document.getElementById('login-overlay').style.display = 'none'; } catch (e) {}
+    await esperar(120);
+    const tapadores = (function(){
+      const o = {};
+      ['modalAvisoEco','login-overlay'].forEach(id => { const m = document.getElementById(id);
+        o[id] = m ? getComputedStyle(m).display : 'NO EXISTE'; });
+      return o; })();
+    const avisoDisplay = tapadores.modalAvisoEco;
+
+    /* El paciente: estenosis mitral reumatica con los CUATRO componentes del score puntuados,
+       que es lo que hace que la fila del score lleve valor y no un centinela. */
+    const DATOS = { peso:'80', talla:'175', edad:'62', sexo:'M',
+      avm_plan:'1.2', em_grado:'severa', em_gmedio:'12', vm_morf:'Reumática',
+      wilkins_movilidad:'2', wilkins_engrosamiento:'2',
+      wilkins_calcificacion:'1', wilkins_subvalvular:'2' };
+    try { limpiarCampos(true); } catch (e) {}
+    Object.keys(DATOS).forEach(k => { const e = document.getElementById(k);
+      if (!e) return; e.value = DATOS[k];
+      e.dispatchEvent(new Event('input', { bubbles:true }));
+      e.dispatchEvent(new Event('change', { bubbles:true })); });
+    ['calcEM','calcWilkins','calcBSA'].forEach(f => { try { window[f] && window[f](); } catch (e) {} });
+    await esperar(240);
+
+    const ex = [];
+    try {
+      indicAbrir();
+      await esperar(300);
+      /* ── Abrir las secciones colapsadas con un clic REAL en el rotulo, que es el gesto. ── */
+      for (let i = 0; i < 16; i++) {
+        const c = cu(); if (!c) break;
+        const cerrada = Array.from(c.querySelectorAll(':scope > details')).find(d => !d.open);
+        if (!cerrada) break;
+        const su = cerrada.querySelector('summary'); if (!su) break;
+        su.click(); await esperar(90);
+      }
+
+      const btns = () => Array.from(cu().querySelectorAll('[data-ind-term]'));
+      const b0 = btns();
+
+      /* ── (f) DENOMINADOR, y va primero: sin geometria todo lo de abajo mide cero y parece
+             impecable. Se exige que los DOS ⓘ existan, que tengan ancho y alto, y que el panel
+             este realmente visible. ── */
+      const ov = document.getElementById('indic-overlay');
+      const geo = b0.map(b => { const r = b.getBoundingClientRect();
+        return Math.round(r.width) + 'x' + Math.round(r.height); });
+      ex.push(['DENOMINADOR: los dos ⓘ tienen geometria real, el panel esta abierto y los DOS overlays que tapan la pantalla se fueron',
+        b0.length === 2 && b0.every(b => { const r = b.getBoundingClientRect();
+          return r.width > 0 && r.height > 0; }) &&
+        !!ov && getComputedStyle(ov).display === 'block' &&
+        Object.keys(tapadores).every(k => tapadores[k] === 'none' || tapadores[k] === 'NO EXISTE'),
+        'ⓘ=' + b0.length + ' geo=' + JSON.stringify(geo) +
+        ' overlay=' + (ov ? getComputedStyle(ov).display : 'no existe') +
+        ' tapadores=' + JSON.stringify(tapadores)]);
+
+      /* ── (a) EL REGISTRO Y LAS ETIQUETAS. Las dos etiquetas tienen que ser DISTINTAS: es lo
+             que hace que abrir uno no abra el otro, por la clave del aria-label que la tanda
+             anterior agrego. Y <button> de verdad, no role=button: ahi Enter y Espacio son
+             gratis, que es lo que al corchete de una cita le costo una rama de teclado. ── */
+      const ids = Object.keys(window.IND_TERMINOS).sort();
+      const etqs = b0.map(b => b.getAttribute('aria-label'));
+      ex.push(['el registro tiene las DOS entradas y cada ⓘ es un <button> con aria-label PROPIO y distinto',
+        JSON.stringify(ids) === JSON.stringify(['cormier','score_eco']) &&
+        b0.every(b => b.tagName === 'BUTTON' && b.getAttribute('aria-haspopup') === 'dialog') &&
+        etqs.length === 2 && etqs[0] !== etqs[1] && etqs.every(e => e && e.trim()),
+        'ids=' + JSON.stringify(ids) + ' etiquetas=' + JSON.stringify(etqs) +
+        ' tags=' + JSON.stringify(b0.map(b => b.tagName))]);
+
+      /* ── (b) EL ROTULO NO CAMBIO. Se compara el texto de la celda del rotulo con el literal,
+             descontando el glifo: el ⓘ se concatena DESPUES del rotulo escapado, asi que si
+             alguna vez se metiera dentro, esta condicion se pone roja. ── */
+      const rot = {};
+      b0.forEach(b => { const td = b.closest('td');
+        rot[b.getAttribute('data-ind-term')] = td ? sinGlifo(td.textContent) : null; });
+      ex.push(['los dos rotulos siguen diciendo exactamente lo que decian, con el glifo descontado',
+        rot.score_eco === 'Score ecocardiográfico (anatomía)' &&
+        rot.cormier === 'Calcificación de Cormier 3 (por fluoroscopia)',
+        JSON.stringify(rot)]);
+
+      /* ── (c) AISLAMIENTO, CON SU DENOMINADOR. Se abren DOS ⓘ de nota de pregunta a proposito
+             antes de medir: sin eso, «no se cerraron» se cumple sobre cero. ── */
+      const infos = Array.from(cu().querySelectorAll('details[data-ind-info]'));
+      infos.slice(0, 2).forEach(d => { const su = d.querySelector('summary'); if (su) su.click(); });
+      await esperar(120);
+      const infoAbiertasAntes = cu().querySelectorAll('details[data-ind-info][open]').length;
+      const detAntes = cu().querySelectorAll('details[data-ind-detalle]').length;
+      const infoAntes = cu().querySelectorAll('details[data-ind-info]').length;
+
+      btns()[0].click(); await esperar(200);
+      const uno = { abierto: _indTermAbierto(),
+        exp: btns().map(b => b.getAttribute('aria-expanded')).join(','),
+        titulo: N((tj().querySelector('#indic-term-tit') || {}).textContent) };
+      btns()[1].click(); await esperar(200);
+      const dos = { abierto: _indTermAbierto(),
+        exp: btns().map(b => b.getAttribute('aria-expanded')).join(','),
+        titulo: N((tj().querySelector('#indic-term-tit') || {}).textContent) };
+      const infoAbiertasDesp = cu().querySelectorAll('details[data-ind-info][open]').length;
+
+      ex.push(['DENOMINADOR del aislamiento: habia dos ⓘ de nota ABIERTOS que se podian romper',
+        infoAbiertasAntes === 2, 'abiertos=' + infoAbiertasAntes + ' de ' + infoAntes]);
+      ex.push(['abrir uno CIERRA el otro: nunca hay dos tarjetas ni dos aria-expanded en true',
+        uno.abierto !== dos.abierto &&
+        uno.exp.split(',').filter(x => x === 'true').length === 1 &&
+        dos.exp.split(',').filter(x => x === 'true').length === 1 &&
+        uno.titulo !== dos.titulo && !!uno.titulo && !!dos.titulo,
+        JSON.stringify([uno, dos])]);
+      ex.push(['CONTROL NEGATIVO: los ⓘ de nota de pregunta y los «Ver detalle» quedan INTACTOS',
+        infoAbiertasDesp === infoAbiertasAntes &&
+        cu().querySelectorAll('details[data-ind-info]').length === infoAntes &&
+        cu().querySelectorAll('details[data-ind-detalle]').length === detAntes,
+        'nota abiertas antes=' + infoAbiertasAntes + ' despues=' + infoAbiertasDesp +
+        ' · nota total=' + infoAntes + '/' + cu().querySelectorAll('details[data-ind-info]').length +
+        ' · detalle=' + detAntes + '/' + cu().querySelectorAll('details[data-ind-detalle]').length]);
+
+      /* ── (d) LA TARJETA SE VE COMPLETA. Cuatro esquinas (metidas 3 px) y el centro: en los
+             cinco puntos el nodo que el navegador devuelve tiene que ser la tarjeta o un
+             descendiente. Un rect dentro del viewport NO prueba que se vea — si el scroll de
+             #indic-cuerpo la recortara, el rect seria el mismo. ── */
+      /* ⚠️ LOS DOS OVERLAYS DE PANTALLA COMPLETA SE DESPEJAN **JUSTO ANTES** DE MEDIR, Y NO UNA
+         VEZ AL ARRANQUE. El aviso legal VUELVE: lo repone el arranque de sesion que corre tras
+         limpiarCampos, asi que despejarlo arriba y medir abajo daba otra vez cinco de cinco
+         tapados con la tarjeta perfecta debajo — el mismo falso dos veces seguidas, por medir
+         lejos de donde se despeja. Se despeja dentro del propio medidor y se informa el estado
+         de los dos al lado del veredicto, que es lo que vuelve el denominador observable. */
+      const despejar = () => {
+        const o = {};
+        ['modalAvisoEco','login-overlay'].forEach(id => { const m = document.getElementById(id);
+          if (m) { m.style.display = 'none'; o[id] = getComputedStyle(m).display; }
+          else o[id] = 'NO EXISTE'; });
+        return o;
+      };
+      const verTarjeta = () => {
+        const despejados = despejar();
+        const c = tj(); if (!c || getComputedStyle(c).display === 'none') return null;
+        const r = c.getBoundingClientRect();
+        const card = document.getElementById('indic-card');
+        const pr = card.getBoundingClientRect();
+        const P = 3, tol = 1;
+        const pts = [[r.left+P, r.top+P], [r.right-P, r.top+P], [r.left+P, r.bottom-P],
+                     [r.right-P, r.bottom-P], [r.left+r.width/2, r.top+r.height/2]];
+        const quien = pts.map(q => { const e = document.elementFromPoint(Math.round(q[0]), Math.round(q[1]));
+          return { suyo: !!(e && (e === c || c.contains(e))),
+            nodo: e ? (e.tagName.toLowerCase() + (e.id ? '#' + e.id : '') +
+              '[z=' + getComputedStyle(e).zIndex + ']') : 'null' }; });
+        const tapada = quien.filter(q => !q.suyo);
+        return { w: Math.round(r.width), h: Math.round(r.height),
+          enVport: r.top >= -tol && r.left >= -tol &&
+            r.bottom <= innerHeight + tol && r.right <= innerWidth + tol,
+          enPanel: r.top >= pr.top - tol && r.left >= pr.left - tol &&
+            r.bottom <= pr.bottom + tol && r.right <= pr.right + tol,
+          scrollPagina: document.documentElement.scrollWidth - innerWidth,
+          tapada: tapada.length, puntos: pts.length, quien: quien.map(q => q.nodo),
+          despejados: despejados,
+          zTarjeta: getComputedStyle(c).zIndex, posTarjeta: getComputedStyle(c).position,
+          tablas: c.querySelectorAll('table').length,
+          celdas: c.querySelectorAll('table tbody td').length };
+      };
+      /* La ANCHA, que es la que trae tabla. */
+      const idx = btns().findIndex(b => b.getAttribute('data-ind-term') === 'score_eco');
+      if (_indTermAbierto() !== 'score_eco') { btns()[idx].click(); await esperar(220); }
+      const vNormal = verTarjeta();
+      /* MAXIMIZADO: la misma tarjeta, con el panel en inset:10px y sin transform. Es la escena
+         que distingue los dos bloques contenedores — en tamano normal #indic-card lleva
+         transform y en maximizado no, y la tarjeta cuelga del OVERLAY para que el calculo sea
+         uno solo. Si alguna vez se moviera adentro de #indic-card, esta condicion se pone roja. */
+      indicMaxPoner(true); await esperar(260);
+      const geoMax = _indTermColocar('score_eco');
+      await esperar(120);
+      const vMax = verTarjeta();
+      indicMaxPoner(false); await esperar(220);
+      _indTermColocar('score_eco'); await esperar(120);
+
+      const despejado = (v) => !!v && Object.keys(v.despejados)
+        .every(k => v.despejados[k] === 'none' || v.despejados[k] === 'NO EXISTE');
+      ex.push(['la tarjeta se ve COMPLETA en tamano normal: dentro del viewport y del panel, sin barra horizontal y sin un pixel tapado',
+        !!vNormal && vNormal.enVport && vNormal.enPanel &&
+        vNormal.scrollPagina <= 0 && vNormal.tapada === 0 && vNormal.puntos === 5 &&
+        despejado(vNormal),
+        JSON.stringify(vNormal)]);
+      ex.push(['y MAXIMIZADA tambien, con el panel en inset:10px y sin transform',
+        !!vMax && vMax.enVport && vMax.enPanel &&
+        vMax.scrollPagina <= 0 && vMax.tapada === 0 && !!geoMax && despejado(vMax),
+        JSON.stringify(vMax) + ' geo=' + JSON.stringify(geoMax)]);
+
+      /* ── (e) LA FORMA DE LA TABLA. La ancha trae una <table> de 4 filas x 5 celdas (el grado
+             mas los cuatro componentes); la chica no trae ninguna. El corte es el ancho de la
+             TARJETA y no el del viewport, y se informa al lado. ── */
+      const anchaTab = { w: vNormal.w, tablas: vNormal.tablas, celdas: vNormal.celdas };
+      btns()[btns().findIndex(b => b.getAttribute('data-ind-term') === 'cormier')].click();
+      await esperar(220);
+      const vChica = verTarjeta();
+      ex.push(['la ancha trae la tabla de 4 grados x 5 celdas y la chica no trae ninguna, cada una con su ancho',
+        anchaTab.tablas === 1 && anchaTab.celdas === 20 && anchaTab.w > vChica.w &&
+        vChica.tablas === 0 && vChica.w > 0,
+        'ancha=' + JSON.stringify(anchaTab) + ' chica=' + JSON.stringify({ w: vChica.w, tablas: vChica.tablas })]);
+
+      /* ── (g) LOS TEXTOS, POR ANCLAS LITERALES. Los 16 descriptores y las frases se
+             verificaron a mano contra el original ingles de la Tabla S3 y los aprobo Maicol el
+             2026-10-11; lo que esta condicion impide es que se cambien SIN volver a pasar por
+             ahi. Se fijan cinco anclas, elegidas porque cada una fue una DECISION y no una
+             redaccion: el rango 4 a 16 (que es el de la Tabla S3 y NO el 0 a 16 del articulo de
+             Wilkins 1988, que el panel sigue citando en su nota de guias previas); la salvedad
+             de «una de varias» con su «no dice cuantas», que es lo que impide leer un score de 9
+             como descalificante; la atribucion del corte a la GUIA y no a la Tabla S3; el titulo
+             de la tabla, que NO traduce el encabezado original («Assessment of MVA according to
+             the Wilkins score», donde MVA es la sigla del AREA en ese mismo documento: probable
+             error del documento, anotado en docs/PENDIENTES.md); y la palabra «valvas» en vez de
+             «velos», que es el termino que pidio Maicol.
+             Y el CONTROL NEGATIVO de la atribucion: la tarjeta NO puede decir que el > 8 sea de
+             Wilkins — la guia lo escribe sin atribuirselo y el articulo original no menciona
+             ningun 8. ── */
+      const textoDe = async (id) => { const b = btns().find(x => x.getAttribute('data-ind-term') === id);
+        if (_indTermAbierto() !== id) { b.click(); await esperar(200); }
+        return N(tj().textContent); };
+      const txScore = await textoDe('score_eco');
+      const txCorm  = await textoDe('cormier');
+      ex.push(['los textos aprobados siguen ahi: el rango 4 a 16, la salvedad de «una de varias», el corte atribuido a la guia, el titulo sin traducir y «valvas»',
+        txScore.indexOf('va de 4 a 16') > -1 &&
+        txScore.indexOf('Score de Wilkins (Tabla S3)') > -1 &&
+        txScore.indexOf('UNA de varias') > -1 && txScore.indexOf('no dice cuántas bastan') > -1 &&
+        txScore.indexOf('NO está en la Tabla S3') > -1 &&
+        txScore.indexOf('valvas') > -1 && txScore.indexOf('velos') === -1 &&
+        txCorm.indexOf('UNA de varias') > -1 && txCorm.indexOf('no dice cuántas bastan') > -1 &&
+        txCorm.indexOf('Valva mitral anterior') > -1 && txCorm.indexOf('velo') === -1,
+        'score=' + JSON.stringify(txScore.slice(0, 120)) + ' cormier=' + JSON.stringify(txCorm.slice(0, 120))]);
+      ex.push(['CONTROL NEGATIVO: ninguna tarjeta le atribuye el corte > 8 a Wilkins, y las dos traen su fuente con pagina y su referencia',
+        !/Wilkins[^.]{0,80}(mayor a 8|> ?8)/.test(txScore) &&
+        !/(mayor a 8|> ?8)[^.]{0,80}Wilkins/.test(txScore) &&
+        txScore.indexOf('Tabla S3, p. 5') > -1 && txCorm.indexOf('Tabla S3, p. 5') > -1 &&
+        txScore.indexOf('J Am Coll Cardiol 2020;76:96-117') > -1 &&
+        txCorm.indexOf('Eur Heart J 2013;34:1923-30') > -1,
+        'score=' + JSON.stringify(txScore.slice(-300)) + ' cormier=' + JSON.stringify(txCorm.slice(-200))]);
+
+      /* ── El MISMO boton cierra, y Escape tambien. Son dos de las tres formas de cierre. ── */
+      const cormierBtn = btns().find(b => b.getAttribute('data-ind-term') === 'cormier');
+      cormierBtn.click(); await esperar(200);
+      const trasMismoBoton = { abierto: _indTermAbierto(),
+        display: getComputedStyle(tj()).display,
+        exp: cormierBtn.getAttribute('aria-expanded') };
+      cormierBtn.click(); await esperar(200);
+      const abiertaOtraVez = _indTermAbierto();
+      document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+      await esperar(200);
+      const trasEscape = { abierto: _indTermAbierto(),
+        display: getComputedStyle(tj()).display,
+        /* ⚠️ EL PANEL SIGUE ABIERTO Y SIN RESTAURAR: el primer Escape se lleva SOLO la tarjeta.
+           Sin stopImmediatePropagation, el oyente generico de accesibilidad le clickea la «✕»
+           a #indic-card y el panel se iria en el mismo golpe — tres pasos en uno. */
+        overlay: getComputedStyle(document.getElementById('indic-overlay')).display };
+      ex.push(['el MISMO boton cierra, y el primer Escape se lleva SOLO la tarjeta: el panel sigue abierto',
+        trasMismoBoton.abierto === null && trasMismoBoton.display === 'none' &&
+        trasMismoBoton.exp === 'false' && abiertaOtraVez === 'cormier' &&
+        trasEscape.abierto === null && trasEscape.display === 'none' &&
+        trasEscape.overlay === 'block',
+        'mismoBoton=' + JSON.stringify(trasMismoBoton) + ' reabre=' + abiertaOtraVez +
+        ' trasEscape=' + JSON.stringify(trasEscape)]);
+
+      return { extra: ex };
+    } finally {
+      try { indicTermCerrar(true); } catch (e) {}
+      try { indicCerrar(); } catch (e) {}
+      try { limpiarCampos(true); } catch (e) {}
+    }
+  })();
+`);
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────

@@ -2030,8 +2030,14 @@ html.light-mode .amilo-root{
    en 7 px y el alto en 26 px por el relleno de la línea. Una regla que no gana se lee como un
    arreglo aplicado, que es peor que no tenerla. El redondeo y el relleno viven en el único dueño
    —el `style` en línea— y acá queda el mínimo táctil, que SÍ es de hoja de estilos. */
+/* ⚠️ EL ⓘ DE UN TÉRMINO ENTRA EN ESTA MISMA REGLA Y NO EN UNA PROPIA. Es un `<button>` de
+   verdad, así que la regla táctil global lo infla a 44 × 44: con el dedo eso es lo que se pide
+   —al menos 40 px de zona de toque— y con un mouse convertiría la celda del rótulo en una fila
+   de 44 px de alto por un glifo de 11 px. Mismo número, mismo corte y mismo dueño que la
+   botonera; una regla aparte sería un segundo lugar donde este piso puede divergir. */
 @media (pointer:fine){
-  #indic-cuerpo [data-ind-clin]{ min-height:0;min-width:0 }
+  #indic-cuerpo [data-ind-clin],
+  #indic-cuerpo [data-ind-term]{ min-height:0;min-width:0 }
 }
 /* ⚠️ MÁS DE TRES OPCIONES: ENVUELVEN Y NO DESBORDAN. El `flex-wrap:wrap` lo pone la botonera en
    línea; lo que hace falta acá es que un rótulo largo no fuerce el ancho de la fila — la prueba de
@@ -2590,6 +2596,43 @@ window.cerrarSesionReal = cerrarSesionReal;
       Requiere correlación con las guías.
     </div>
   </div>
+  <!-- ══ LA TARJETA DE UN TÉRMINO ══════════════════════════════════════════════════════════
+       Un solo nodo reusado por las dos entradas del registro (`IND_TERMINOS`), no uno por
+       término: el contenido lo escribe `_indTermAbrir` y cuál está abierto lo dice `_indTermId`.
+       Cuatro decisiones que NO son de estilo:
+
+       ⚠️ ES HERMANA DE `#indic-card`, NO SU HIJA, Y ESO RESUELVE DOS COSAS A LA VEZ.
+       (1) `#indic-cuerpo` tiene `overflow:auto`, así que una tarjeta dentro del cuerpo se
+       RECORTA al scrollear. (2) `#indic-card` lleva `transform:translate(-50%,-50%)` en tamaño
+       normal, y un `transform` convierte al nodo en BLOQUE CONTENEDOR de cualquier descendiente
+       con `position:fixed` — las coordenadas dejarían de ser del viewport y habría que restarle
+       el rect del padre, o sea DOS caminos de cálculo, uno normal y otro maximizado (donde el
+       CSS pone `transform:none`). Colgada del overlay —que es `position:fixed` y NO lleva
+       transform— el `position:fixed` vuelve a ser del viewport y el rect del botón se usa tal
+       cual, con UN solo camino para los dos tamaños.
+
+       ⚠️ VA EN EL MARCADO Y NO SE CREA AL VUELO, a propósito. El bloque de accesibilidad tiene
+       un `MutationObserver` sobre el `body` que trata como MODAL a cualquier `<div>` AGREGADO
+       con `position:fixed` y `top:0` o `inset:0` (`isDynamicModal`). Una tarjeta creada por
+       código que cayera en `top:0` entraría por ahí y quedaría dentro del alcance del oyente
+       genérico de Escape. Como nodo estático ese observador no la ve nunca.
+
+       ⚠️ `role="dialog"` **SIN** `aria-modal`, y la ausencia es lo importante. El oyente
+       genérico de Escape y la trampa de Tab del bloque de accesibilidad buscan
+       `[role="dialog"][aria-modal="true"]`: sin `aria-modal` esta tarjeta no entra en ninguno
+       de los dos, y el panel sigue siendo el único modal. Y no lo es: es un globo anclado a un
+       botón, y declararlo modal mentiría sobre lo que atrapa.
+
+       ⚠️ SIN TRANSICIÓN, igual que el maximizado y por el mismo motivo escrito allá: no hay
+       movimiento que animar —la tarjeta aparece ya colocada—, así que `prefers-reduced-motion`
+       queda satisfecho POR CONSTRUCCIÓN. Una media query que apagara algo que no existe sería
+       una promesa decorativa. Si alguna vez esto se animara, ahí sí hace falta.
+
+       El `overflow:auto` es el scroll INTERNO: si el contenido es más alto que la pantalla, la
+       tarjeta se queda en su caja y scrollea adentro. El alto máximo lo pone
+       `_indTermColocar`, que es el único dueño de la geometría. -->
+  <div id="indic-term" role="dialog" aria-labelledby="indic-term-tit" tabindex="-1"
+       style="display:none;position:fixed;z-index:310;box-sizing:border-box;overflow:auto;background:var(--bg2);border:1px solid var(--border);border-radius:10px;box-shadow:0 14px 40px rgba(0,0,0,.55);padding:11px 13px;"></div>
 </div>
 
 <div id="firma-panel" style="display:none;position:fixed;top:64px;left:16px;z-index:250;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;box-shadow:0 12px 40px rgba(0,0,0,0.5);width:330px;max-width:calc(100vw - 32px);">
@@ -50002,6 +50045,28 @@ document.addEventListener('keydown', function(e){
      independientes y pueden estar abiertos a la vez. Con el `return` del maximizado puesto antes,
      un Escape sobre un panel de Evidencia maximizado dejaba el panel de criterios abierto. */
   critCerrar();
+  /* ⚠️ LA TARJETA DE UN TÉRMINO SE LLEVA EL PRIMER ESCAPE, Y VA ANTES DEL MAXIMIZADO. La
+     secuencia pedida es: Escape cierra la tarjeta; el siguiente restaura si estaba maximizado;
+     el siguiente cierra el panel. Con esta rama después de la del maximizado, un Escape sobre
+     una tarjeta abierta en un panel maximizado habría hecho las DOS cosas en el mismo golpe.
+     `stopImmediatePropagation` NO ES DEFENSIVO acá, por el mismo motivo medido que en la rama
+     del maximizado: el oyente GENÉRICO de Escape del bloque de accesibilidad busca el
+     `[role="dialog"][aria-modal="true"]` visible más alto y le CLICKEA el primer botón cuyo
+     texto o cuyo `onclick` matchee /cerrar|✕|close|…/. La tarjeta no es uno de esos diálogos
+     —no lleva `aria-modal`, a propósito— pero `#indic-card` SÍ lo es y su «✕» llama a
+     `indicCerrar()`: sin parar la propagación, el Escape que cierra la tarjeta cerraría además
+     el panel entero, o sea tres pasos en uno.
+     PRECIO DECLARADO, el mismo que la rama del maximizado: ese Escape tampoco llega a los
+     oyentes posteriores del documento (las ventanas de imágenes, el encabezado y la ayuda). Con
+     el panel encima esas ventanas están detrás de un overlay modal; se cierran con el Escape
+     siguiente. Sólo ocurre con una tarjeta abierta.
+     NO se restaura ni se cierra nada más: la tarjeta es lo único que se va. */
+  if (typeof _indTermAbierto === 'function' && _indTermAbierto()) {
+    if (typeof indicTermCerrar === 'function') indicTermCerrar();
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    return;
+  }
   /* ⚠️ MAXIMIZADO, EL PRIMER ESCAPE RESTAURA Y NO CIERRA — y la compuerta exige que el panel esté
      ABIERTO. Sin esa segunda mitad, un atributo que hubiera quedado puesto por un camino nuevo
      haría que un Escape con el panel CERRADO se gastara en «restaurar» algo invisible y no
@@ -50717,6 +50782,14 @@ function _indClinCablear(){
     /* El NODO del corchete viaja como tercer argumento: es lo que le dice a `_indRefAbrir` de qué
        sección es la bibliografía que hay que abrir. Sin él cae al panel y abre la de la primera. */
     if (cita && c.contains(cita)) { _indRefAbrir(c, cita.getAttribute('data-ind-ref'), cita); return; }
+    /* Rama del ⓘ DE UN TÉRMINO, y va antes que la respuesta clínica con su propio `return` por
+       la misma razón que la del corchete: el ⓘ vive en la celda del RÓTULO, que hoy no está
+       dentro de ningún `[data-ind-clin]`, pero el `return` está para que siga siendo cierto si
+       alguna fila nueva envuelve su rótulo en un control. Un ⓘ no es una respuesta del médico.
+       No hace falta rama de teclado: es un `<button>` de verdad, así que Enter y Espacio ya
+       disparan `click` — que es justamente lo que el corchete, siendo `role="button"`, no tiene. */
+    const term = ev.target && ev.target.closest ? ev.target.closest('[data-ind-term]') : null;
+    if (term && c.contains(term)) { _indTermAbrir(term.getAttribute('data-ind-term')); return; }
     /* (la rama de teclado va en su propio listener, más abajo: ver el comentario de `keydown`) */
     const b = ev.target && ev.target.closest ? ev.target.closest('[data-ind-clin]') : null;
     if (!b || !c.contains(b)) return;
@@ -50811,6 +50884,18 @@ function _indRepintarConservando(claveFoco, valFoco){
     const mSum = mSec && mSec.querySelector('summary');
     marcada = { sec: mSum ? mSum.textContent : null, k: mSel.getAttribute('data-ind-refitem') };
   }
+  /* ⚠️ LA TARJETA DE UN TÉRMINO SE RE-ANCLA, NO SE CIERRA, y es la misma promesa que esta
+     función hace con el `open` de cada `<details>`, con la marca del corchete y con el scroll:
+     el médico tenía abierta la definición de Cormier, contesta un control y no tiene por qué
+     perderla. Lo que `indicRender` destruye es el BOTÓN, no la tarjeta —que cuelga del overlay—,
+     así que la tarjeta quedaría visible anclada a un nodo que ya no está en el documento: su
+     posición sería la del botón viejo, plausible y equivocada.
+     LA CLAVE ES EL `id` DEL TÉRMINO Y NO EL NODO, por la misma razón que `_indClaveSummary`
+     existe: el nodo no sobrevive al repintado y el id sí, y además es único por construcción.
+     `_indTermColocar` NO toca el foco, que es lo que permite llamarlo acá: el foco de este
+     repintado lo decide `claveFoco`, que es el control que el médico acaba de contestar. */
+  const termAbierto = (typeof _indTermAbierto === 'function') ? _indTermAbierto() : null;
+
   const y = c.scrollTop;
   indicRender();
   Array.prototype.forEach.call(c.querySelectorAll('details'), function(d){
@@ -50839,6 +50924,16 @@ function _indRepintarConservando(claveFoco, valFoco){
     if (it) { it.setAttribute('data-ind-refsel', '1'); it.style.background = 'rgba(167,139,250,.12)'; }
   }
   c.scrollTop = y;
+  /* Después del scroll: `_indTermColocar` lee el rect del botón, y moverle el scroll al
+     contenedor DESPUÉS de colocar la tarjeta la dejaría a la altura equivocada. */
+  if (termAbierto) {
+    /* Si el término ya no se pinta —su fila desapareció porque la sección dejó de aplicar— la
+       tarjeta se va: es la rama que `_indTermColocar` devuelve null y la única honesta. */
+    const geo = _indTermColocar(termAbierto);
+    const bt  = _indTermBtnDe(termAbierto);
+    if (geo && bt) bt.setAttribute('aria-expanded', 'true');
+    else if (typeof indicTermCerrar === 'function') indicTermCerrar(true);
+  }
   if (claveFoco == null) return;
   const bs = c.querySelectorAll('[data-ind-clin]');
   for (let i = 0; i < bs.length; i++) {
@@ -51059,6 +51154,266 @@ function _indMecanismoHTML(){
    DEJA PUESTO (`list-style:revert`). No es una inconsistencia: ahí el triángulo es la única
    afordancia junto a «Ver detalle»; acá la afordancia es el ⓘ, y un triángulo al lado del ❓ y del
    ⓘ en una celda de 11 px son tres glifos peleándose el mismo renglón. */
+/* ══════════════════════════════════════════════════════════════════════════════════════════
+   GLOSARIO DEL PANEL — UN REGISTRO DE TÉRMINOS Y UNA TARJETA REUSABLE
+   ══════════════════════════════════════════════════════════════════════════════════════════
+   Un ⓘ al lado de un término del panel abre una tarjeta anclada a él que dice QUÉ ES ese
+   término, con su fuente y su página. Hoy tiene DOS entradas: la clasificación de Cormier y el
+   score ecocardiográfico, los dos de la sección de estenosis mitral.
+
+   ⚠️ ES UN TERCER COMPONENTE Y NO REEMPLAZA A NINGUNO DE LOS DOS QUE YA EXISTEN. En el panel
+   hay tres cosas que se ven parecido y son mecanismos distintos:
+     · `_indInfoHTML`     → `<details data-ind-info>`     — la NOTA de una pregunta, en línea.
+     · `_indDetalleHTML`  → `<details data-ind-detalle>`  — el «ⓘ Ver detalle» de una sección.
+     · esto                → `<button data-ind-term>`      — la DEFINICIÓN de un término, en una
+                                                             tarjeta flotante.
+   Los dos primeros son `<details>` que despliegan hacia abajo DENTRO del cuerpo; éste es un
+   botón que abre un globo FUERA del cuerpo, porque una tabla de 4 × 4 no entra en una celda ni
+   sobrevive al `overflow:auto` de `#indic-cuerpo`. Se eligió un atributo propio y no reusar
+   `data-ind-info` por una razón medida: TC-293 cuenta los `details[data-ind-info]` y exige que
+   sus `aria-label` sean ÚNICOS dentro de la sección, y TC-328/TC-329 llaman «hoja» a cualquier
+   `<div>` sin divs adentro. Un ⓘ nuevo metido en esos conjuntos les mueve el denominador sin
+   que nada lo delate — que es exactamente cómo esta tanda habría repetido el defecto que
+   `_indRepintarConservando` ya pagó tres veces.
+
+   ⚠️ LA CLAVE ES EL `id` DEL TÉRMINO, NO EL GLIFO. Los tres componentes pintan el mismo ⓘ
+   (&#9432;), así que cualquier cosa que los indexe por lo que se ve los confunde: es el defecto
+   que `_indClaveSummary` existe para cerrar. Acá la identidad es `data-ind-term`, que es única
+   por construcción porque es la clave del registro.
+
+   ⚠️ CÓMO SE AGREGA UN TÉRMINO: una entrada más en `IND_TERMINOS` y un `term:` en la fila que
+   lo nombra. Nada más — ni HTML, ni CSS, ni un oyente. El tamaño de la tarjeta lo elige la
+   entrada con `tam:'chica'` (280 px, para una definición de pocas líneas) o `tam:'ancha'`
+   (hasta 560 px, para algo que trae tabla). Lo que la tarjeta NO hace es inventar: `fuente`,
+   `pagina` y `referencia` son obligatorias, y un término sin documento verificado no entra.
+   ══════════════════════════════════════════════════════════════════════════════════════════ */
+
+/* Los dos anchos, y el margen con el borde de la caja permitida. No son estilo: los lee
+   `_indTermColocar` para calcular la posición, así que vivir en el CSS los partiría en dos. */
+const IND_TERM_TAM = Object.freeze({ chica: 280, ancha: 560 });
+const IND_TERM_MARGEN = 8;
+/* ⚠️ EL CORTE DE LA TABLA ES EL ANCHO DE LA TARJETA, NO EL DEL VIEWPORT, y el número está
+   elegido contra el ancho máximo de la tarjeta ancha (560) y no al azar: por encima de 520 px la
+   tarjeta está en su ancho PLENO y la tabla de 4 componentes × 4 grados entra; por debajo es que
+   tuvo que encogerse —a 390 px de pantalla mide 359 y a 360 px mide 331— y ahí la misma tabla
+   daría columnas de 80 px con prosa adentro. Debajo del corte se APILA: un bloque por componente
+   con sus cuatro grados en filas, que es lo que se lee en un celular sin scroll horizontal.
+   El ancho de la tarjeta se calcula ANTES de pintar justamente para que esta decisión sea
+   observable y no dependa de una media query que mide otra cosa. */
+const IND_TERM_TABLA_MIN = 520;
+
+const IND_TERMINOS = Object.freeze({
+
+  /* ── CORMIER ─────────────────────────────────────────────────────────────────────────────
+     ⚠️ LO QUE LA GUÍA LLAMA «Cormier score group 3» ES UNA CARACTERÍSTICA ANATÓMICA
+     DESFAVORABLE, NO UNA CONTRAINDICACIÓN. Las contraindicaciones son la lista de la Tabla 8;
+     esto entra por las notas ^c, que es otra cosa y está dicho así en la tarjeta.
+     El texto es PROPIO: la guía es de la ESC y su contenido no se reproduce. Lo que se cita es
+     la fuente y la página. */
+  cormier: Object.freeze({
+    rotulo: 'Clasificación de Cormier',
+    tipo: 'clasificacion',
+    tam: 'chica',
+    etiqueta: 'Qué es la clasificación de Cormier',
+    que: 'Clasificación anatómica de la válvula mitral en tres grupos, usada para valorar si la '
+       + 'comisurotomía percutánea es factible.',
+    items: Object.freeze([
+      Object.freeze({ t:'Grupo 1',
+        d:'Valva mitral anterior flexible y sin calcio, con compromiso subvalvular leve: cuerdas '
+        + 'finas, de 10 mm o más de largo.' }),
+      Object.freeze({ t:'Grupo 2',
+        d:'La misma valva flexible y sin calcio, pero con compromiso subvalvular severo: cuerdas '
+        + 'engrosadas, de menos de 10 mm.' }),
+      Object.freeze({ t:'Grupo 3',
+        d:'Calcificación de la válvula mitral, de cualquier extensión, valorada por fluoroscopía, '
+        + 'cualquiera sea el estado del aparato subvalvular.' })
+    ]),
+    /* ⚠️ «UNA DE VARIAS» Y «LA GUÍA NO DICE CUÁNTAS» VAN JUNTAS, y la segunda mitad no es un
+       detalle: sin ella, «característica desfavorable» se lee como descalificante, y el grupo 3
+       solo no descalifica a nadie. La atribución es PRECISA: el «varias» lo dice la nota ^c de la
+       Recommendation Table 8 («the presence of several of the following»), y la nota ^c de la
+       Figura 14 dice otra cosa —«Favourable = absence of unfavourable characteristics», o sea
+       ninguna—. Por eso la frase nombra la nota de la Tabla 8 y NO «las notas c»: la sección ya
+       declara esa contradicción en su detalle, con las dos citas, y afirmar acá que las dos dicen
+       «varias» sería falso. */
+    guia: 'El grupo 3 cuenta como característica anatómica desfavorable para la comisurotomía '
+        + 'percutánea (notas c de la Figura 14 y de la Recommendation Table 8). Es UNA de varias '
+        + 'características desfavorables, y la guía no dice cuántas bastan: la nota c de la '
+        + 'Recommendation Table 8 habla de «varias» sin dar número.',
+    fuente: 'ESC/EACTS 2025, material suplementario, Tabla S3, p. 5; notas c de la Figura 14 '
+          + '(folio 4681) y de la Tabla 8 (folio 4682).',
+    referencia: 'Referencia que la tabla asigna a esta clasificación: Bouleti C, Iung B, Himbert D, '
+              + 'Brochet E, Messika-Zeitoun D, Detaint D, et al. Reinterventions after percutaneous '
+              + 'mitral commissurotomy during long-term follow-up, up to 20 years: the role of repeat '
+              + 'percutaneous mitral commissurotomy. Eur Heart J 2013;34:1923-30.'
+  }),
+
+  /* ── SCORE ECOCARDIOGRÁFICO ──────────────────────────────────────────────────────────────
+     ⚠️ LA TARJETA **NO** AFIRMA QUE EL «> 8» SEA DE WILKINS, y la distinción no es cosmética:
+     la guía escribe «echocardiographic score >8» sin atribuírselo, y el artículo original de
+     Wilkins 1988 no menciona ningún 8 (separa en < 9 óptimo y > 11 subóptimo, y declara que
+     entre 9 y 11 el score no predijo el resultado). Lo que la Tabla S3 SÍ hace es definir el
+     score de Wilkins y el de Cormier, y eso es lo que la tarjeta dice.
+     ⚠️ EL TÍTULO DE LA TABLA ES «Score de Wilkins (Tabla S3)» Y NO UNA TRADUCCIÓN DEL
+     ENCABEZADO ORIGINAL. El original dice «Assessment of MVA according to the Wilkins score»,
+     donde MVA es la sigla del ÁREA valvular mitral en ese mismo documento —la mitad de Cormier,
+     dos renglones más abajo, dice «Assessment of MV anatomy»—: traducirlo publicaría «valoración
+     del área mitral según el score de Wilkins», que es falso, porque el score puntúa ANATOMÍA.
+     Decisión de Maicol (2026-10-11): no se traduce ese encabezado. Queda reportado. */
+  score_eco: Object.freeze({
+    rotulo: 'Score ecocardiográfico',
+    tipo: 'corte',
+    tam: 'ancha',
+    etiqueta: 'Qué es el score ecocardiográfico',
+    que: 'Score ecocardiográfico de cuatro componentes, usado para valorar la anatomía de la '
+       + 'válvula mitral y si la comisurotomía percutánea es factible.',
+    tabla: Object.freeze({
+      titulo: 'Score de Wilkins (Tabla S3)',
+      componentes: Object.freeze(['Movilidad de las valvas', 'Engrosamiento valvar',
+                                  'Calcificación', 'Engrosamiento subvalvular']),
+      grados: Object.freeze(['1', '2', '3', '4']),
+      /* Una fila por GRADO, en el orden de las columnas de arriba. Cuatro por cuatro = los 16
+         descriptores, redactados con palabras propias y verificados uno por uno contra el
+         original inglés de la Tabla S3 antes de entrar acá. */
+      celdas: Object.freeze([
+        Object.freeze([
+          'Válvula muy móvil, con restricción limitada a los extremos de las valvas.',
+          'Grosor de las valvas casi normal (4 a 5 mm).',
+          'Una sola zona de brillo ecográfico aumentado.',
+          'Engrosamiento mínimo, apenas por debajo de las valvas mitrales.'
+        ]),
+        Object.freeze([
+          'La porción media y la base de las valvas conservan movilidad normal.',
+          'Parte media de las valvas normal, con engrosamiento marcado de los bordes (5 a 8 mm).',
+          'Zonas de brillo dispersas, limitadas a los bordes de las valvas.',
+          'Engrosamiento de las cuerdas que abarca un tercio de su longitud.'
+        ]),
+        Object.freeze([
+          'La válvula todavía se desplaza hacia adelante en diástole, sobre todo desde la base.',
+          'El engrosamiento abarca la valva entera (5 a 8 mm).',
+          'El brillo alcanza la parte media de las valvas.',
+          'El engrosamiento llega al tercio distal de las cuerdas.'
+        ]),
+        Object.freeze([
+          'Las valvas no se desplazan hacia adelante en diástole, o lo hacen apenas.',
+          'Engrosamiento marcado de todo el tejido valvar (más de 8 a 10 mm).',
+          'Brillo extenso en buena parte del tejido valvar.',
+          'Engrosamiento y acortamiento extensos de todas las cuerdas, hasta los músculos papilares.'
+        ])
+      ])
+    }),
+    total: 'El total es la suma de los cuatro componentes y va de 4 a 16, según la tabla.',
+    /* La misma salvedad que en Cormier, y con la misma atribución precisa — ver el comentario
+       de allá. Acá pesa más: un score de 9 es «desfavorable» y por sí solo no descalifica. */
+    guia: 'La guía considera desfavorable un score ecocardiográfico mayor a 8 (notas c de la '
+        + 'Figura 14 y de la Recommendation Table 8). Es UNA de varias características '
+        + 'desfavorables, y la guía no dice cuántas bastan: la nota c de la Recommendation '
+        + 'Table 8 habla de «varias» sin dar número. Ese corte NO está en la Tabla S3: lo ponen '
+        + 'esas notas. Lo que la Tabla S3 define es el score de Wilkins y el de Cormier.',
+    fuente: 'ESC/EACTS 2025, material suplementario, Tabla S3, p. 5; notas c de la Figura 14 '
+          + '(folio 4681) y de la Tabla 8 (folio 4682).',
+    referencia: 'Referencia que la tabla asigna al score de Wilkins: Bonow RO, O’Gara PT, '
+              + 'Adams DH, Badhwar V, Bavaria JE, Elmariah S, et al. 2019 AATS/ACC/SCAI/STS expert '
+              + 'consensus systems of care document: operator and institutional recommendations and '
+              + 'requirements for transcatheter mitral valve intervention. J Am Coll Cardiol '
+              + '2020;76:96-117. La Tabla S3 declara estar reproducida de la guía ESC/EACTS 2021 '
+              + '(Vahanian A, Beyersdorf F, Praz F, Milojevic M, Baldus S, Bauersachs J, et al. '
+              + 'Eur Heart J 2022;43:561-632).'
+  })
+});
+
+/* El ⓘ de un término. Va PEGADO al rótulo de su fila, sin tocar una letra del rótulo.
+   ⚠️ ES UN `<button>` DE VERDAD y no un `role="button"`, que es lo contrario de lo que se hizo
+   con el corchete de una cita. El motivo está escrito en `_indClinCablear`: un `role="button"`
+   no dispara `click` con Enter ni con Espacio y hubo que agregarle una rama de teclado a mano.
+   Acá el `<button>` es gratis porque el ⓘ NO vive dentro de la oración de un criterio —vive en
+   la celda del rótulo— así que el piso táctil global de 44 px no rompe ningún renglón: lo que
+   hace es darle al dedo su área, que es lo que se pide.
+   ⚠️ SIN `onclick` INLINE, por la regla que `_indClinCablear` declara: en un atributo de evento
+   el escape NO protege —el parser decodifica la entidad ANTES de compilar el handler— y
+   `indicRender` reescribe el `innerHTML` entero, así que enganchar por botón acumularía un
+   oyente por pintada. El gesto entra por el oyente DELEGADO que ya existe. */
+function _indTermBtnHTML(id){
+  const t = IND_TERMINOS[id];
+  /* Un `term:` mal tipeado NO se pinta en silencio: se avisa por consola y la fila sale como
+     siempre. Mismo criterio que `_indRefMarca` con una clave de cita sin registrar. */
+  if (!t) { if (id) console.error('[IND] término sin registrar en IND_TERMINOS: ' + id); return ''; }
+  return ' <button type="button" data-ind-term="' + _critEsc(id) + '"' +
+    ' aria-label="' + _critEsc(t.etiqueta) + '" aria-expanded="false"' +
+    ' aria-haspopup="dialog" aria-controls="indic-term"' +
+    ' style="display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;' +
+    'background:none;border:none;margin:0;padding:0 3px;font:inherit;font-weight:700;' +
+    'line-height:1;color:var(--accent2);cursor:pointer;">&#9432;</button>';
+}
+
+/* El contenido de la tarjeta. `ancho` lo decide `_indTermColocar` ANTES de llamar acá, que es
+   lo que permite elegir la forma de la tabla por el ancho REAL y no por una media query.
+   TODO el texto pasa por `_critEsc`: el registro es de este archivo, pero la regla de la casa
+   es que nada entra a `innerHTML` sin escapar — y el día que un término salga de un campo, esto
+   ya está cerrado. */
+function _indTermCardHTML(id, ancho){
+  const t = IND_TERMINOS[id]; if (!t) return '';
+  const C = 'color:var(--text2);font-size:10.5px;line-height:1.5;';
+  let h = '<div id="indic-term-tit" style="font-weight:700;font-size:11.5px;color:var(--accent2);' +
+          'margin-bottom:7px;">' + _critEsc(t.rotulo) + '</div>';
+  if (t.que) h += '<div style="' + C + 'margin-bottom:7px;">' + _critEsc(t.que) + '</div>';
+  if (t.items) h += t.items.map(function(x){
+    return '<div style="' + C + 'margin-bottom:5px;"><b style="color:var(--text);">' +
+      _critEsc(x.t) + '</b> — ' + _critEsc(x.d) + '</div>'; }).join('');
+  if (t.tabla) h += _indTermTablaHTML(t.tabla, ancho);
+  if (t.total) h += '<div style="' + C + 'margin-top:7px;"><b style="color:var(--text);">Total.</b> ' +
+    _critEsc(t.total) + '</div>';
+  if (t.guia) h += '<div style="' + C + 'margin-top:7px;"><b style="color:var(--text);">' +
+    'Qué dice la guía.</b> ' + _critEsc(t.guia) + '</div>';
+  /* La fuente y la referencia van SIEMPRE y al pie, separadas por un filete: son lo que
+     distingue esta tarjeta de una definición de memoria. */
+  h += '<div style="margin-top:9px;padding-top:7px;border-top:1px solid var(--border);' + C + '">' +
+    '<div><b style="color:var(--text);">Fuente.</b> ' + _critEsc(t.fuente) + '</div>' +
+    '<div style="margin-top:4px;">' + _critEsc(t.referencia) + '</div></div>';
+  return h;
+}
+
+/* La tabla del score, en sus DOS formas. La compuerta es el ancho de la TARJETA. */
+function _indTermTablaHTML(tb, ancho){
+  const apilada = !(ancho >= IND_TERM_TABLA_MIN);
+  let h = '<div style="font-weight:700;font-size:10.5px;color:var(--text);margin:9px 0 5px;">' +
+    _critEsc(tb.titulo) + '</div>';
+  if (!apilada) {
+    /* COMPONENTES POR GRADOS: una columna por componente, una fila por grado.
+       `table-layout:fixed` + `width:100%` es lo que impide el scroll horizontal: sin eso una
+       celda con una frase larga estira la tabla por encima del ancho de la tarjeta. */
+    h += '<table style="width:100%;table-layout:fixed;border-collapse:collapse;font-size:9.5px;' +
+         'line-height:1.4;"><thead><tr>' +
+      '<th style="width:26px;text-align:left;padding:3px 2px;color:var(--text2);font-weight:700;' +
+      'border-bottom:1px solid var(--border);">#</th>' +
+      tb.componentes.map(function(c){
+        return '<th style="text-align:left;padding:3px 4px;color:var(--accent2);font-weight:700;' +
+          'border-bottom:1px solid var(--border);">' + _critEsc(c) + '</th>'; }).join('') +
+      '</tr></thead><tbody>' +
+      tb.grados.map(function(g, i){
+        return '<tr><td style="padding:4px 2px;color:var(--text);font-weight:700;vertical-align:top;' +
+          'border-top:1px solid var(--border);">' + _critEsc(g) + '</td>' +
+          tb.celdas[i].map(function(d){
+            return '<td style="padding:4px 4px;color:var(--text2);vertical-align:top;' +
+              'border-top:1px solid var(--border);">' + _critEsc(d) + '</td>'; }).join('') + '</tr>'; }).join('') +
+      '</tbody></table>';
+    return h;
+  }
+  /* APILADA: un bloque por componente con sus cuatro grados en filas. Es la forma del celular,
+     y la que se ve de verdad cuando la tarjeta tuvo que encogerse. */
+  h += tb.componentes.map(function(c, j){
+    return '<div style="margin-bottom:7px;">' +
+      '<div style="font-size:10px;font-weight:700;color:var(--accent2);margin-bottom:2px;">' +
+        _critEsc(c) + '</div>' +
+      tb.grados.map(function(g, i){
+        return '<div style="display:flex;gap:6px;font-size:9.5px;line-height:1.4;padding:2px 0;' +
+          'border-top:1px solid var(--border);">' +
+          '<span style="flex:0 0 12px;color:var(--text);font-weight:700;">' + _critEsc(g) + '</span>' +
+          '<span style="flex:1;min-width:0;color:var(--text2);">' + _critEsc(tb.celdas[i][j]) +
+          '</span></div>'; }).join('') + '</div>'; }).join('');
+  return h;
+}
+
 function _indInfoHTML(lbl, htmlInterno){
   if (!htmlInterno) return '';
   return ' <details data-ind-info="1" style="display:inline-block;vertical-align:top;">' +
@@ -51090,7 +51445,14 @@ function _indFilaHTML(f){
      El ❓ / ✅ / 🔴 / ⚠️ / — SIEMPRE queda visible: lo que se pliega es la prosa, no el estado. */
   const plegar = !!f.ctrl && !!f.nota && f.marca !== 'alarm' && f.marca !== 'warn';
   return '<tr style="border-top:1px solid var(--border);">' +
-    '<td style="padding:5px 8px;font-size:11.5px;vertical-align:top;">' + _critEsc(f.lbl) + '</td>' +
+    /* ⚠️ EL ⓘ DEL TÉRMINO VA DESPUÉS DEL RÓTULO ESCAPADO Y **NO** DENTRO DE ÉL. El rótulo no
+       cambia ni una letra: `_critEsc(f.lbl)` sigue siendo exactamente lo que era, y el botón se
+       concatena al lado. Es la misma extensión aditiva que `refs` en la celda de la nota, y por
+       el mismo motivo: un marcado embebido en el string saldría LITERAL por el escape, y la
+       única alternativa sería no escapar, o sea un XSS por comodidad.
+       `term` es opcional: las ~130 filas que no lo traen se pintan exactamente igual. */
+    '<td style="padding:5px 8px;font-size:11.5px;vertical-align:top;">' + _critEsc(f.lbl) +
+      (f.term ? _indTermBtnHTML(f.term) : '') + '</td>' +
     '<td' + (f.ctrl ? ' class="ind-ctrl"' : '') +
       ' style="padding:5px 8px;font-size:11.5px;font-weight:700;vertical-align:top;' +
       (f.ctrl ? '' : 'white-space:nowrap;') + '">' +
@@ -51182,6 +51544,183 @@ function _indDetalleHTML(items){
   }).join('');
   return h + '</div></details>';
 }
+
+/* ══ ABRIR, COLOCAR Y CERRAR LA TARJETA DE UN TÉRMINO ═══════════════════════════════════════
+   UN SOLO DUEÑO del estado: `_indTermId`, el id del término abierto o `null`. Lo escriben
+   `_indTermAbrir` y `indicTermCerrar` y nadie más, por el mismo motivo que `indicMaxPoner` es
+   el único dueño de `data-ind-max`: con dos escritores la tarjeta puede quedar visible con el
+   botón diciendo `aria-expanded="false"`, y un lector de pantalla anunciaría lo contrario de lo
+   que pasó.
+
+   ⚠️ SE CIERRA EN LAS DOS PUERTAS DEL PANEL (`indicAbrir` e `indicCerrar`), igual que el
+   maximizado y `_indClinLimpiar`. Sin el cierre en la APERTURA, un camino de cierre nuevo —o un
+   cierre que no pase por `indicCerrar`— dejaría la tarjeta reabriendo pegada a un botón que ya
+   no existe.
+   ══════════════════════════════════════════════════════════════════════════════════════════ */
+var _indTermId = null;
+function _indTermAbierto(){ return _indTermId; }
+function _indTermBtnDe(id){
+  if (!id) return null;
+  const c = document.getElementById('indic-cuerpo'); if (!c) return null;
+  return c.querySelector('[data-ind-term="' + id.replace(/"/g, '') + '"]');
+}
+
+/* ⚠️ LA GEOMETRÍA LA PONE **SÓLO** ESTA FUNCIÓN, y por eso el `style` en línea de la tarjeta no
+   trae ni `width` ni `top` ni `left`: lo que el CSS no declara no puede ganarle a esto. Es la
+   lección de las tres declaraciones muertas de la regla del botón del panel —`padding`,
+   `border-radius` y `line-height` perdían contra el `style` en línea y el radio seguía en 7 px—,
+   aplicada al revés: acá el dueño es el JS y la hoja no opina.
+
+   LA CAJA PERMITIDA es la intersección del viewport (con su margen) y el rect de `#indic-card`.
+   Las dos mitades hacen falta: sólo el viewport dejaría la tarjeta saliéndose del panel en
+   tamaño normal —el panel mide 820 px centrados— y sólo el panel la dejaría saliéndose de la
+   pantalla si alguna vez el panel fuera más grande que ella. Maximizado el panel es casi el
+   viewport, así que la intersección es la misma caja y no hay un segundo camino.
+
+   ⚠️ EL ANCHO SE CALCULA ANTES DE PINTAR. No es un detalle de orden: `_indTermCardHTML` elige la
+   forma de la tabla por el ancho real de la tarjeta, así que pintar primero y medir después
+   habría obligado a repintar o a decidir por una media query, que mide el viewport y no la
+   tarjeta. Acá el número que decide la forma es el mismo que termina en el `style`. */
+function _indTermColocar(id){
+  const c = document.getElementById('indic-term'); if (!c) return null;
+  const btn = _indTermBtnDe(id);
+  /* ⚠️ DENOMINADOR: UN BOTÓN SIN GEOMETRÍA NO SE ANCLA. Dentro de una sección colapsada el
+     botón existe en el DOM y mide 0 × 0, y `getBoundingClientRect` devuelve ceros: colocar la
+     tarjeta contra ese rect la manda a la esquina de la pantalla, lejos del término que explica.
+     Se informa y no se abre, que es la rama que `_indTermAbrir` convierte en un aviso. */
+  if (!btn) return null;
+  const r0 = btn.getBoundingClientRect();
+  if (r0.width === 0 || r0.height === 0) return null;
+
+  const vw = innerWidth, vh = innerHeight, M = IND_TERM_MARGEN;
+  let L = M, T = M, R = vw - M, B = vh - M;
+  const card = document.getElementById('indic-card');
+  const pr = card ? card.getBoundingClientRect() : null;
+  if (pr && pr.width > 0 && pr.height > 0) {
+    L = Math.max(L, pr.left + 4); R = Math.min(R, pr.right - 4);
+    T = Math.max(T, pr.top + 4);  B = Math.min(B, pr.bottom - 4);
+  }
+  const t = IND_TERMINOS[id];
+  /* El 92 % de la ventana es el techo que el pedido fija para la tarjeta ancha; la chica no lo
+     necesita porque 280 px entran en cualquier pantalla de esta app, pero se acota igual a la
+     caja permitida para que no se salga del panel. */
+  const wTope = (t.tam === 'ancha')
+    ? Math.min(IND_TERM_TAM.ancha, Math.floor(vw * 0.92))
+    : IND_TERM_TAM.chica;
+  const w = Math.max(150, Math.min(wTope, Math.floor(R - L)));
+
+  c.style.width = w + 'px';
+  c.style.maxHeight = Math.max(80, Math.floor(B - T)) + 'px';
+  c.innerHTML = _indTermCardHTML(id, w);
+  /* Se pinta y se mide EN EL MISMO CUADRO: entre el `display:block` y la escritura de `top`/
+     `left` no hay ningún `await` ni ningún `setTimeout`, así que el navegador no alcanza a
+     pintarla en la posición provisoria y no hay salto visible. */
+  c.style.left = '0px'; c.style.top = '0px';
+  c.style.display = 'block';
+  const h = c.getBoundingClientRect().height;
+
+  /* DEBAJO del botón si entra; si no, ARRIBA; y si no entra de ningún lado, pegada al borde de
+     arriba de la caja — ahí el `overflow:auto` de la tarjeta hace el resto. */
+  let top = r0.bottom + 6;
+  if (top + h > B) {
+    const arriba = r0.top - 6 - h;
+    top = (arriba >= T) ? arriba : Math.max(T, B - h);
+  }
+  /* ⚠️ EL ACOTE FINAL NO ES REDUNDANTE, Y LO ENCONTRÓ TC-451 — NO LA SONDA. `#indic-cuerpo`
+     SCROLLEA, así que un botón que el médico dejó fuera del área visible del panel sigue
+     teniendo rect: el de su posición geométrica, que puede estar cientos de px por debajo del
+     viewport. Con ese `r0`, la rama de «arriba» daba `arriba >= T` por ser un número grande y
+     POSITIVO, y la tarjeta se colocaba fuera de la pantalla: medido, `top` 132 con la caja
+     terminando en 455 y los cinco puntos de control devolviendo `null`.
+     El acote de las DOS puntas vale para las tres ramas y hace que la promesa «no se sale de la
+     pantalla ni del panel» no dependa de por dónde entró el cálculo. Si la tarjeta no entra
+     entera en la caja, `maxHeight` ya la dejó del tamaño de la caja y scrollea por dentro.
+     ⚠️ POR QUÉ LA SONDA NO LO VIO: su `clicSel` llama a `scrollIntoView` y se NIEGA a clickear
+     un nodo fuera del viewport —la protección que este repo agregó tras una corrida colgada—,
+     así que todas sus escenas tenían el botón a la vista. El caso de la suite usa un `.click()`
+     sintético, que no scrollea nada. El ayudante de clic de la sonda TAPABA el defecto. */
+  top = Math.max(T, Math.min(top, B - h));
+  let left = Math.round(r0.left + r0.width / 2 - w / 2);
+  left = Math.max(L, Math.min(left, R - w));
+  c.style.left = Math.round(left) + 'px';
+  c.style.top  = Math.round(top) + 'px';
+  return { w: w, h: Math.round(h), left: Math.round(left), top: Math.round(top),
+           caja: { L: Math.round(L), T: Math.round(T), R: Math.round(R), B: Math.round(B) },
+           apilada: !(w >= IND_TERM_TABLA_MIN) };
+}
+
+function _indTermAbrir(id){
+  /* El MISMO botón cierra, que es la tercera forma de cierre que el pedido lista (las otras dos
+     son Escape y tocar afuera). Va primero: sin esto, el segundo toque repinta la misma tarjeta
+     y parece que el botón no hace nada. */
+  if (_indTermId === id) { indicTermCerrar(); return; }
+  if (!IND_TERMINOS[id]) return;
+  /* Abrir una tarjeta CIERRA la anterior, y es lo que hace que «abrir una no abra otra» sea
+     cierto por construcción y no por el tamaño del registro. */
+  if (_indTermId) indicTermCerrar(true);
+  const geo = _indTermColocar(id);
+  if (!geo) return;              /* botón sin geometría: ver el denominador de `_indTermColocar` */
+  _indTermId = id;
+  const btn = _indTermBtnDe(id);
+  if (btn) btn.setAttribute('aria-expanded', 'true');
+  /* ⚠️ EL FOCO PASA A LA TARJETA, y se enfoca LA TARJETA y no un control de adentro: su
+     contenido es texto, así que no hay «primer control», y dejar el foco en el botón haría que
+     un lector de pantalla no leyera nada de lo que se acaba de abrir. La tarjeta lleva
+     `tabindex="-1"` para eso. Es la misma decisión que `indicAbrir` tomó con `#indic-card`. */
+  const c = document.getElementById('indic-term');
+  if (c) { try { c.focus({ preventScroll:true }); } catch (e) { c.focus(); } }
+}
+
+/* `sinFoco` existe para los caminos en que el botón ya no está o el foco es de otro: cerrar el
+   panel, repintar el cuerpo, o abrir otra tarjeta. Devolverle el foco a un botón que
+   `indicRender` acaba de destruir lo tira al `body`, que es justo lo que `indicAbrir` arregló. */
+function indicTermCerrar(sinFoco){
+  const c = document.getElementById('indic-term');
+  const id = _indTermId;
+  _indTermId = null;
+  if (c) { c.style.display = 'none'; c.innerHTML = ''; }
+  const btn = _indTermBtnDe(id);
+  if (!btn) return;
+  btn.setAttribute('aria-expanded', 'false');
+  if (!sinFoco) { try { btn.focus({ preventScroll:true }); } catch (e) { btn.focus(); } }
+}
+
+/* Tocar AFUERA cierra. Oyente único sobre el documento y en BURBUJA, no uno que se registre al
+   abrir: el oyente delegado de `#indic-cuerpo` —que es el que abre— también es de burbuja y
+   está en un nodo de ADENTRO, así que corre primero; cuando este llega, el clic sobre el propio
+   ⓘ ya matchea `closest('[data-ind-term]')` y no se cierra lo que se acaba de abrir.
+   ⚠️ Un clic DENTRO de la tarjeta tampoco cierra: seleccionar texto de la tabla es un gesto
+   normal y cerrarle la tarjeta al médico mientras lee es el modo de falla que hay que evitar. */
+document.addEventListener('click', function(ev){
+  if (!_indTermId) return;
+  const t = ev.target;
+  if (!t || !t.closest) { indicTermCerrar(true); return; }
+  if (t.closest('#indic-term')) return;
+  if (t.closest('[data-ind-term]')) return;
+  indicTermCerrar(true);
+});
+
+/* ⚠️ TAB DENTRO DE LA TARJETA LA CIERRA Y DEVUELVE EL FOCO AL BOTÓN, y el precio está declarado.
+   La tarjeta no es modal —no lleva `aria-modal`, ver el comentario de su marcado— así que la
+   trampa de Tab del bloque de accesibilidad no la cubre, y su contenido es TEXTO: no hay nada
+   enfocable adentro. Sin esto, el Tab desde la tarjeta se iría al siguiente enfocable del
+   documento, que está DETRÁS del overlay — exactamente el defecto que `indicAbrir` cerró para el
+   panel. Las alternativas eran peores: atrapar el Tab sin salida convierte la tarjeta en una
+   trampa de teclado (y la única salida sería un Escape que la tarjeta no anuncia), y agregarle un
+   botón «cerrar» duplica las tres formas de cierre que ya tiene.
+   PRECIO: el Tab se gasta en cerrar, así que para seguir tabulando hace falta uno más. */
+document.addEventListener('keydown', function(ev){
+  if (!_indTermId || ev.key !== 'Tab') return;
+  const c = document.getElementById('indic-term');
+  if (!c || !c.contains(document.activeElement)) return;
+  ev.preventDefault();
+  indicTermCerrar();
+});
+
+window.IND_TERMINOS = IND_TERMINOS;
+window.indicTermCerrar = indicTermCerrar;
+window._indTermAbrir = _indTermAbrir; window._indTermAbierto = _indTermAbierto;
+window._indTermColocar = _indTermColocar;
 
 function _indRecomHTML(r){
   const col = IND_RECOM_COL[r.tipo] || IND_RECOM_COL.falta;
@@ -53322,7 +53861,15 @@ function _indEM(){
   const W = (_indFn('wilkinsScore') || function(){ return null; })();
   const scoreOrigen = (W && W.puntuados === 4) ? (W.total > EM_CRIT_2025.score_desfav ? 'desfav' : 'fav') : null;
   const oScore = _indOrigen(scoreOrigen, 'em.score');
-  fAnat.push(_indFilaOrigen('Score ecocardiográfico (anatomía)', oScore,
+  /* ⚠️ EL ⓘ SE AGREGA POR `Object.assign` SOBRE LA FILA YA ARMADA Y NO POR UN PARÁMETRO NUEVO.
+     Las cuatro fábricas de fila (`_indFila`, `_indFilaCtrl`, `_indFilaOrigen`, `_indSinUmbral`)
+     devuelven un objeto plano, así que esto no les cambia la firma ni toca las ~130 filas que no
+     llevan término. El rótulo no se toca: `term` es una propiedad al lado, y `_indFilaHTML`
+     concatena el botón DESPUÉS del rótulo escapado.
+     ⚠️ VA EN LA FILA PRINCIPAL DEL SCORE Y **NO** EN LA DE «Score — puntuación parcial»: esa
+     fila existe sólo cuando el score está incompleto, su rótulo no nombra el término, y el ⓘ
+     duplicado abriría la misma tarjeta desde dos lugares de la misma sección. Queda reportado. */
+  fAnat.push(Object.assign(_indFilaOrigen('Score ecocardiográfico (anatomía)', oScore,
     [{v:'fav',t:'≤ 8'},{v:'desfav',t:'> 8'}],
     function(val){
       const detalle = (W && W.puntuados === 4) ? ' (' + W.total + ' / 16)' : '';
@@ -53346,7 +53893,7 @@ function _indEM(){
           : val === 'fav' ? '≤ ' + EM_CRIT_2025.score_desfav + ' — no figura entre las características anatómicas desfavorables'
           : 'la guía lo llama «score ecocardiográfico»; se puntúa en la pestaña ETE',
         refs: val == null ? null : ['esc2025vc'] };
-    }));
+    }), { term: 'score_eco' }));
   if (W && W.puntuados && W.puntuados < 4)
     fAnat.push(_indFila('Score — puntuación parcial', W.puntuados + ' de 4 criterios', 'ask',
       'el score es la suma de los cuatro: incompleto queda sesgado hacia abajo, o sea hacia «favorable», y por eso no se interpreta'));
@@ -53425,10 +53972,14 @@ function _indEM(){
 
   /* ── Las tres características ANATÓMICAS desfavorables de la nota ^c ── */
   const _cormier = _indClinGet('em.cormier');
-  fAnat.push(_indFilaCtrl('Calcificación de Cormier 3 (por fluoroscopia)', 'em.cormier',
+  /* El ⓘ de Cormier, por la misma vía que el del score. «Cormier» aparece además en la NOTA de
+     la fila de insuficiencia tricuspídea severa, que no es un rótulo: el término se nombra en un
+     solo RÓTULO de la sección y el ⓘ va ahí, sin duplicarse. */
+  fAnat.push(Object.assign(_indFilaCtrl('Calcificación de Cormier 3 (por fluoroscopia)', 'em.cormier',
     [{v:'si',t:'Sí'},{v:'no',t:'No'}],
     _cormier === 'si' ? 'warn' : (_cormier === 'no' ? 'none' : 'ask'),
-    'la guía la define por FLUOROSCOPIA, que esta aplicación no recoge: es otra cosa que el componente de calcificación del score', ['esc2025vc']));
+    'la guía la define por FLUOROSCOPIA, que esta aplicación no recoge: es otra cosa que el componente de calcificación del score', ['esc2025vc']),
+    { term: 'cormier' }));
   const _itRaw = _indS('it_grado');
   const _itSev = (_itRaw === '4') ? 'si' : ((_itRaw === '1' || _itRaw === '2' || _itRaw === '3') ? 'no' : null);
   fAnat.push(_indFila('Insuficiencia tricuspídea severa', _itSev === 'si' ? 'Presente' : (_itSev === 'no' ? 'Ausente' : 'Desconocida'),
@@ -56413,6 +56964,9 @@ function indicAbrir(){
      única puerta por la que el panel se ve, así que acá la garantía es por construcción. */
   _indClinLimpiar();
   indicMaxPoner(false);
+  /* `sinFoco`: el botón al que habría que devolverle el foco lo acaba de destruir el
+     `indicRender` de abajo —o no existe todavía, si el panel estaba cerrado—. */
+  if (typeof indicTermCerrar === 'function') indicTermCerrar(true);
   indicRender();
   _indClinCablear();
   const ov = document.getElementById('indic-overlay'); if (ov) ov.style.display = 'block';
@@ -56434,6 +56988,7 @@ function indicAbrir(){
 function indicCerrar(){
   _indClinLimpiar();
   indicMaxPoner(false);
+  if (typeof indicTermCerrar === 'function') indicTermCerrar(true);
   const ov = document.getElementById('indic-overlay'); if (ov) ov.style.display = 'none';
 }
 
@@ -100971,8 +101526,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261011-1956';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791759404154;                 /* eco-build-ms */
+const ECO_BUILD    = '20261011-2111';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791763917692;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -101058,7 +101613,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261011-1956</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261011-2111</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
