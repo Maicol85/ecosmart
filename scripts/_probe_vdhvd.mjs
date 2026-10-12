@@ -734,6 +734,25 @@ async function main() {
       soloPared.push(o3);
     }
     OUT.soloPared = soloPared;
+    /* ⚠️ LA DIASTOLICA SIN GRADO: con el E/A en la banda externa y SIN e-prima, la app dice
+       «patron sugestivo de disfuncion diastolica» y no gradua. Es el caso donde el texto pedido
+       («con disfuncion diastolica») afirmaria MAS de lo que la app estableció, asi que se usa el
+       de la app. Se mide porque la tabla de arriba solo tiene el caso CON grado. */
+    const sinGrado = [];
+    const SG = { dt_onda_e: '40', dt_onda_a: '60' };   // E/A 0.67 < 0.8 y sin e-prima: sin grado
+    for (const vv of [
+      { k: 'hvd + diastolica SIN grado', c: Object.assign({}, BASE_VD, { vd_pared: '7' }, SG) },
+      { k: 'hvd + sistolica + diastolica SIN grado', c: Object.assign({}, BASE_VD, { vd_pared: '7', tapse: '14' }, SG) },
+      { k: 'dilatado + hvd + sistolica + diastolica SIN grado', c: Object.assign({}, DIL_VD, { vd_pared: '7', tapse: '14' }, SG) },
+      { k: 'CONTROL NEGATIVO: lo mismo SIN hipertrofia', c: Object.assign({}, DIL_VD, { tapse: '14' }, SG) }]) {
+      await cargar(vv.c);
+      const inf = await ev(`window.__P.informe('estandar')`);
+      sinGrado.push({ caso: vv.k,
+                      vd: await ev(`window.__P.lineaVD(${JSON.stringify(inf.inf)})`),
+                      suma: await ev(`window.__P.lineaVD(${JSON.stringify(inf.suma)})`),
+                      lab: await ev(`window.__P.labHallazgos(${JSON.stringify(inf.inf)}, ${JSON.stringify(inf.suma)})`) });
+    }
+    OUT.sinGrado = sinGrado;
     OUT.suma = r;
   }
 

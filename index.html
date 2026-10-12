@@ -37030,7 +37030,50 @@ function generarInforme(opts) {
         ? (_dd.grado ? `disfunción diastólica ${_dd.grado}` : 'patrón sugestivo de disfunción diastólica')
         : '';
       const _ddCola = _ddSuma ? `, ${_ddSuma}` : '';
-      if (vdDilat && vdDisf)                suma.push(`VD ${tamTxt} con disfunción sistólica${_ddCola}.`);
+      /* ══ LA HIPERTROFIA TIENE SU PROPIA CADENA, Y LA DE HEAD NO SE TOCA ═══════════════════
+         Las frases son las que decidió Maicol, con la sigla HVD. La cadena de HEAD queda
+         INTACTA en el `else`: un estudio sin hipertrofia escribe exactamente lo que escribía,
+         letra por letra, y eso está medido en 12 escenas.
+
+         LA BASE Y EL SEPARADOR SALEN DE LA DILATACIÓN, que es lo que distingue las dos familias
+         de la decisión: «HVD …» cuando el VD no está dilatado y «VD dilatado e hipertrófico, …»
+         cuando sí. El separador cambia con ella porque la segunda forma ya trae una coma en su
+         estructura y la primera no.
+
+         ⚠️ EL GRADO DE LA DIASTÓLICA SE CONSERVA, Y ES UNA DIFERENCIA DECLARADA CONTRA LA
+         LETRA DE LA ORDEN. Los textos pedidos dicen «con disfunción sistólica y diastólica»;
+         la app, desde la tanda del Doppler tricuspídeo, publica el GRADO («disfunción diastólica
+         severa»). Borrarlo acá sacaría del EN SUMA un dato que hoy sale, o sea una pérdida de
+         información en un resumen firmado por agregar una medición de la pared. Se conserva la
+         FORMA de la frase pedida y se le suma el grado: «con disfunción sistólica y diastólica
+         severa.» Con la clasificación INCOMPLETA no hay grado y la app dice «patrón sugestivo de
+         disfunción diastólica», que es más débil que «disfunción diastólica»: ahí se usa ese
+         texto y no el pedido, porque afirmar la disfunción sería afirmar lo que no se estableció.
+
+         ⚠️ «CON FUNCIÓN SISTÓLICA CONSERVADA» SÓLO CON DILATACIÓN, que es la regla que la cadena
+         de HEAD ya tiene: allá esa frase aparece únicamente en la rama `vdDilat && hayFunc`.
+         Sin esta rama, agregar una medición de pared a un VD dilatado con función normal borraba
+         esa cláusula del EN SUMA. Con el VD NO dilatado no hay nada que conservar: HEAD no
+         escribe línea en ese caso, así que «HVD.» no pierde nada.
+
+         ⚠️ CON EL VD NO DILATADO SE PIERDE «de dimensiones normales», y es la decisión de la
+         orden: su texto para hipertrofia + disfunción sistólica es «HVD con disfunción
+         sistólica.». Queda declarado en `docs/PENDIENTES.md`. */
+      if (_hvdInf.hvd) {
+        const _hvdBase = vdDilat ? `VD ${tamTxt} e hipertrófico` : 'HVD';
+        const _hvdSep  = vdDilat ? ', ' : ' ';
+        /* La forma CORTA de la diastólica, para que «con disfunción sistólica y diastólica
+           severa» no repita la palabra. Sólo se usa pegada a la sistólica. */
+        const _ddCorta = (_dd && _dd.grado) ? `diastólica ${_dd.grado}` : _ddSuma;
+        let _hvdCola = '';
+        if (vdDisf && _ddSuma)                  _hvdCola = `con disfunción sistólica y ${_ddCorta}`;
+        else if (vdDisf)                        _hvdCola = 'con disfunción sistólica';
+        else if (vdDilat && hayFunc && _ddSuma) _hvdCola = `con función sistólica conservada y ${_ddSuma}`;
+        else if (vdDilat && hayFunc)            _hvdCola = 'con función sistólica conservada';
+        else if (_ddSuma)                       _hvdCola = `con ${_ddSuma}`;
+        suma.push(_hvdCola ? `${_hvdBase}${_hvdSep}${_hvdCola}.` : `${_hvdBase}.`);
+      }
+      else if (vdDilat && vdDisf)           suma.push(`VD ${tamTxt} con disfunción sistólica${_ddCola}.`);
       else if (vdDilat && hayFunc)          suma.push(`VD ${tamTxt} con función sistólica conservada${_ddCola}.`);
       else if (vdDilat)                     suma.push(`VD ${tamTxt}${_ddCola}.`);
       else if (vdDisf && hayTam)            suma.push(`VD de dimensiones normales con disfunción sistólica${_ddCola}.`);
@@ -103444,8 +103487,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261012-1524';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791829444054;                 /* eco-build-ms */
+const ECO_BUILD    = '20261012-1527';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791829663214;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -103531,7 +103574,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261012-1524</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261012-1527</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
