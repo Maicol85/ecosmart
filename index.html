@@ -27870,6 +27870,73 @@ function _avmPorPHT(phtMs) {
 }
 window._avmPorPHT = _avmPorPHT;
 
+/* ══ EL APAGADO AUTOMÁTICO DE LA EA — RUTA PROPIA DE LA AÓRTICA (2026-10-11) ═══════════════════
+   Cierra en la AÓRTICA el último agujero de la familia: `_etApagarAuto` lo cerró en la
+   tricúspide, `_epApagarAuto` en la pulmonar y `_emApagarAuto` en la mitral, y el comentario de
+   `valvAutoApagarEsten` lo dejó declarado y sin corregir desde E5b-0 con estas palabras: «la
+   aórtica y la mitral NO se tocan —su mismo defecto latente […] queda REPORTADO, no corregido».
+   Medido en HEAD con teclas reales (`scripts/_probe_eaapaga.mjs`, escena 1-2-3):
+     Vmax 4,5 → `clasificarEA_Vmax` escribe «severa», `valvAutoPrenderEsten` PRENDE el botón,
+                clave en '1' y la aórtica queda registrada en `VALV_ESTEN_AUTO`
+     Vmax 1,4 → `eaGradoCalculado` devuelve 'sin' y `clasificarEA_Vmax` lo escribe con
+                `sel.value` A MANO, sin despachar `change`, así que ni `_gradoManoBorraMarca` ni
+                `sevSinApagaDesdeSelect` corren: **el botón queda PRENDIDO sin grado**, y el
+                informe FIRMADO dice «con estenosis» con el EN SUMA «EAo presente.» sobre una
+                válvula cuya única velocidad medida es de 1,4 m/s.
+   Restaura el invariante «botón prendido = hay valvulopatía»: apaga SÓLO si (a) la prendió la app
+   —está en `VALV_ESTEN_AUTO`, no la afirmó el médico— y (b) el grado quedó en el centinela.
+   ⚠️ POR QUÉ ES UNA FUNCIÓN PROPIA Y NO `valvAutoApagarEsten` NI UN PARÁMETRO SUYO: esa función
+   es GENÉRICA —su mapa cubre aórtica, mitral y pulmonar, y está exportada en `window`—, así que
+   tocarla le cambiaría la conducta a la MITRAL y a la PULMONAR, que esta tanda no toca, y además
+   le faltan las dos mitades de abajo. Es el mismo criterio con el que nacieron las otras tres
+   rutas, y el que esta tanda tiene por orden expresa.
+   ⚠️ LAS DOS MITADES QUE EL GENÉRICO NO TIENE, las dos ya pagadas por la tricúspide, la pulmonar
+   y la mitral:
+     (1) LA CLAVE DE `localStorage` SE BORRA. `toggleValvPill` escribe '0' al apagar y para
+         `valvAutoPrenderEsten` eso significa «el médico lo cerró a mano» (sale por su
+         `guardado !== null`), así que sin esto el auto-prendido se gasta en UN SOLO USO: 4,5
+         prende, 1,4 apaga, 4,5 ya no vuelve a prender, con el grado «severa» escrito y el botón
+         apagado. Acá no lo cerró el médico, lo cerró la app: borrar la clave devuelve el estado a
+         «nadie lo tocó», que es la verdad. Medido en HEAD, escena 9 del arnés.
+     (2) LA MARCA MANUAL Y SU FOTO SE BORRAN. `ea` está en `SEV_SINC`, así que la cadena
+         `toggleValvPill` → `valvApagarGrado` → `valvSev.aplicar(…, centinela)` pone
+         `esqSevManual.ea` TAMBIÉN cuando el que apaga es la app — y con la marca puesta
+         `clasificarEA_Vmax` y `sugerirSeveridadEA` dejan de escribir el grado por el resto del
+         estudio. Se borra junto con la foto, igual que hace `valvSev.limpiar`, porque dejarla
+         viva haría que el próximo grado manual se comparara contra el calculado de hace dos
+         gestos. Medido en HEAD, escena 7: el apagado a mano deja `manual = true`.
+   ⚠️ EL APAGADO DEL MÉDICO NO PASA POR ACÁ, y por eso sigue siendo durable: su clic entra directo
+   a `toggleValvPill`, la clave queda en '0' y la marca puesta. Medido: con la Vmax en 4,5 y
+   después en 5,0, el botón que el médico cerró NO se reprende.
+   ⚠️ Y VACIAR LA Vmax NO APAGA NADA, A PROPÓSITO: sin velocidad `eaGradoCalculado` devuelve
+   `grado: null` y `clasificarEA_Vmax` sale por su `if (R.grado)`, así que el grado NO vuelve al
+   centinela —se queda en «severa»— y esta función sale por su tercera guarda. Es la regla 12 de
+   la casa, «borrar un dato no retira una afirmación», y es lo que el A/B midió en HEAD. Lo mismo
+   con el gradiente medio de 45 mmHg sosteniendo el grado: ése es el control negativo del arnés.
+   ⚠️ SE LEE `window.VALV_ESTEN_AUTO` Y NO POR `typeof`: ese Set se declara ~31.800 líneas más
+   abajo y `typeof x === 'undefined'` NO protege contra la zona muerta de un `const` —lanza
+   `ReferenceError`—. Envuelto en este `try`, eso no sería un error visible: sería la pastilla
+   quedándose prendida con la consola muda, que es exactamente lo que le pasó a la tricúspide. */
+function _eaApagarAuto() {
+  try {
+    if (typeof pillOn !== 'function' || typeof toggleValvPill !== 'function') return null;
+    if (!pillOn('aortica', 'esten')) return { yaEstaba: true };
+    const _auto = window.VALV_ESTEN_AUTO;
+    if (!_auto || !_auto.has('aortica')) return { delMedico: true };   // la afirmó el médico: no se apaga
+    const sel = document.getElementById('ea_grado');
+    const g = sel ? String(sel.value || '') : '';
+    if (g !== '' && g.toLowerCase() !== 'sin') return { hayGrado: g };
+    toggleValvPill('aortica', 'esten');
+    _auto.delete('aortica');
+    try { localStorage.removeItem('valv-pill-esten-aortica'); } catch (e) {}
+    if (window.esqSevManual) delete window.esqSevManual.ea;
+    if (window._sevCalcAlFijar) delete window._sevCalcAlFijar.ea;
+    if (typeof _sevManualSync === 'function') { try { _sevManualSync(); } catch (e) {} }
+    return { apagada: !pillOn('aortica', 'esten') };
+  } catch (e) { return null; }
+}
+window._eaApagarAuto = _eaApagarAuto;
+
 function calcAo() {
   /* ⚠️ LOS CINCO INSUMOS PASAN POR BANDA DE PLAUSIBILIDAD (ver `AO_BANDA_PLAUS`). Cuatro ya
      estaban acotados en `DCM_RANGO` y el quinto —`itv_ao`— no estaba en ninguna tabla; lo que
@@ -28092,6 +28159,16 @@ function calcAo() {
   /* v2 (E5b-0 punto 2): el grado ya está final y sincronizado; si es graduable, prende el botón de
      estenosis aórtica (respetando el apagado manual). Ver `valvAutoPrenderEsten`. */
   if (typeof valvAutoPrenderEsten === 'function') valvAutoPrenderEsten('aortica');
+  /* …y su gemelo (2026-10-11): apaga la pastilla que la APP prendió cuando desapareció lo que la
+     prendió —la Vmax corregida de 4,5 a 1,4 deja `ea_grado` en el centinela—, para que el informe
+     firmado no siga diciendo «con estenosis» y el EN SUMA «EAo presente.» sobre una válvula sin
+     criterio. Los dos se auto-gatean por el grado, así que llamar a ambos es correcto: con grado
+     graduable prende y apaga sale por su tercera guarda; con el centinela apaga y prende sale por
+     `VALV_AUTO_GRADO`. Es el mismo par que `calcVP` y `calcEM` ya tienen.
+     ⚠️ VA DESPUÉS DE `_eaSincronizarPantalla` Y DEL RETIRO, no antes, y por el mismo motivo por el
+     que `valvAutoPrenderEsten` está acá: `_eaRetirarGradoSugerido` puede dejar `ea_grado` en 'sin'
+     unas líneas más arriba, así que leer el grado antes de eso sería leer el de hace un paso. */
+  if (typeof _eaApagarAuto === 'function') _eaApagarAuto();
   /* El cuadro de referencias se repinta AL FINAL de la cascada, por el mismo motivo que
      `_eaSincronizarPantalla`: lee `ava_cont`, `vs_calc`, el VLI y el grado, y todos los acaba de
      escribir esta función. Antes del retiro del grado sugerido mostraría uno que ya no está. */
@@ -101526,8 +101603,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261011-2111';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791763917692;                 /* eco-build-ms */
+const ECO_BUILD    = '20261011-2229';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791768574466;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -101613,7 +101690,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261011-2111</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261011-2229</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

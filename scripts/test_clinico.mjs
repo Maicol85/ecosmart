@@ -51896,9 +51896,19 @@ caso('TC-418', 'Estenosis pulmonar: el auto-prendido es REPETIBLE (4 -> 1,4 -> 4
   __t.set('vp_vmax','4.5'); const m3 = foto();
   __t.set('vp_vmax','4');   const m4 = foto();
 
-  /* ── CONTROL NEGATIVO DE ALCANCE: la AORTICA no se toca. Su hueco declarado es el OPUESTO —no
-     tiene auto-apagado y queda PRENDIDA con el grado en «sin»— y tiene que seguir igual, porque
-     tocar su informe firmado es decision de Maicol (docs/PENDIENTES.md). */
+  /* ── LA AORTICA: ADAPTADO EL 2026-10-11, Y ESTE ES EL MOTIVO ─────────────────────────────
+     Este bloque afirmaba el comportamiento VIEJO: «la AORTICA no se toca, su hueco declarado es
+     el OPUESTO —no tiene auto-apagado y queda PRENDIDA con el grado en sin— y tiene que seguir
+     igual». Ese hueco se CERRO en el commit A del 2026-10-11 con _eaApagarAuto, que es una
+     ruta PROPIA de la aortica (no un parametro de valvAutoApagarEsten ni una rama de
+     _epApagarAuto), asi que la aortica pasa a comportarse como la pulmonar: 4,5 prende, 1,5
+     apaga y borra la clave, y 4,5 vuelve a prender.
+     ⚠️ LO QUE ESTE CONTROL YA NO PRUEBA: dejo de ser un control de ALCANCE —«el cambio de la
+     pulmonar no se derramo a la aortica»— porque las dos valvulas tienen hoy la misma conducta.
+     Lo que sigue probando es que la conducta de la aortica es la correcta y que sale de su
+     propia funcion; el alcance de la PULMONAR lo cubren las lineas de arriba, que miden
+     VALV_ESTEN_AUTO y la clave de la pulmonar por separado. Se conserva en este caso en vez
+     de borrarlo porque el escenario ya esta armado y medirlo cuesta tres lineas. */
   __t.nuevoEstudio();
   try { localStorage.removeItem('valv-pill-esten-aortica'); } catch(e){}
   if (aOn('aortica','esten')) toggleValvPill('aortica','esten');
@@ -51953,8 +51963,10 @@ caso('TC-418', 'Estenosis pulmonar: el auto-prendido es REPETIBLE (4 -> 1,4 -> 4
       m3.grado === 'Severa' && m4.grado === 'Moderada', 'm3=' + m3.grado + ' m4=' + m4.grado],
 
     // ── CONTROL NEGATIVO DE ALCANCE: la aortica no cambio ────────────────────────────────────
-    ['CONTROL NEGATIVO: la AORTICA conserva su conducta (su hueco declarado sigue abierto)',
-      ao1.pill === true && ao2.pill === true && ao2.grado.toLowerCase() === 'sin' && ao3.pill === true,
+    ['ADAPTADO 2026-10-11: la AORTICA ya tiene su auto-apagado propio — 4,5 prende, 1,5 apaga con el grado en el centinela, y 4,5 vuelve a prender',
+      ao1.pill === true && ao1.grado.toLowerCase() === 'severa' &&
+      ao2.pill === false && ao2.grado.toLowerCase() === 'sin' &&
+      ao3.pill === true && ao3.grado.toLowerCase() === 'severa',
       JSON.stringify([ao1, ao2, ao3])],
   ] };
 `);
