@@ -16,6 +16,7 @@
  *                 renglon de resultado. Y la pregunta que motivo la tanda: cuadro y ventana
  *                 dicen LO MISMO? Se informa el denominador (cuantas filas vio).
  *   desfase     — el cuadro gris NO se repinta al cargar Vol AI, IT ni TRIV (pre-existente).
+ *   aviso       — P11: el aviso ambar de exclusiones aparece cuando debe y NO cambia veredictos.
  *   bordes      — tripletes por parametro: apenas abajo, justo en el corte, apenas arriba.
  *   superficies — informe en 3 estilos, EN SUMA en 3 estilos, columnas del Excel, el texto que
  *                 lee el PPT (#dd-interp), el grado que deriva el Laboratorio y el hash de los
@@ -300,6 +301,16 @@ window.__P = {
              filas: filas, nFilas: filas.length,
              res: window.__P.norm((cu.querySelector('.da-res') || {}).textContent),
              notas: Array.from(cu.querySelectorAll('.da-nota')).map(function(p){ return window.__P.norm(p.textContent) }) } },
+
+  /* El aviso de exclusiones: texto, display COMPUTADO y los motivos que devuelve su fuente. */
+  aviso() {
+    var e = document.getElementById('diast-excl-aviso');
+    if (!e) return { existe: false };
+    return { existe: true, txt: window.__P.norm(e.textContent),
+             disp: getComputedStyle(e).display,
+             motivos: (typeof diastExclMotivos === 'function') ? diastExclMotivos() : 'SIN FUNCION',
+             /* El aviso de PROTOCOLO, al lado, para probar que no se pisan. */
+             protocolo: window.__P.norm((document.getElementById('diast-algo-aviso') || {}).textContent) } },
 
   informe(estilo) {
     if (estilo) { try { setEstiloInforme(estilo) } catch(e){} }
@@ -629,6 +640,43 @@ async function main() {
       }
       out.bordes.push({ id: b.id, que: b.que, campo: b.campo, nota: b.nota, triplete: tri });
     }
+  }
+
+  if (hacer('aviso')) {
+    /* P11 · EL AVISO DE EXCLUSIONES. Dos preguntas: aparece cuando debe y con las palabras que
+       debe, y NO cambia ni un veredicto. Lo segundo se prueba con la MISMA diastolica en todas
+       las escenas: el badge y la frase del informe tienen que ser identicos al escenario sin
+       ningun motivo, que es el control negativo. */
+    const DIAST = ESCENAS.find((x) => x.id === 'S04-g2').c;
+    const CASOS = [
+      { id: 'A0-sin-motivo',    sel: {} },
+      { id: 'A1-estenosis',     sel: { em_grado: 'severa' } },
+      { id: 'A2-im-grave',      sel: { im_grado: '4' } },
+      { id: 'A3-protesis',      sel: { vm_morf: 'Prótesis mecánica' } },
+      { id: 'A4-calcificada',   sel: { vm_morf: 'Calcificada' } },
+      { id: 'A5-dos-motivos',   sel: { em_grado: 'severa', im_grado: '4' } },
+      { id: 'A6-fa',            sel: { em_grado: 'severa', diast_ritmo: 'fa' } },
+      { id: 'A7-bse',           sel: { em_grado: 'severa', diast_algoritmo: 'bse2024' } }
+    ];
+    out.aviso = [];
+    for (const c of CASOS) {
+      const carga = await cargar(DIAST, c.sel);
+      const r = await ev(`window.__P.informe('narrativo')`);
+      out.aviso.push({ id: c.id, carga: carga.todosOk ? 'OK' : carga.tecleos,
+                       sels: carga.sels, aviso: await ev(`window.__P.aviso()`),
+                       cuadro: await ev(`window.__P.cuadro()`),
+                       lineas: await ev(`window.__P.lineaDiast(${JSON.stringify(r.inf)})`) });
+      await ev(`window.__P.set('diast_ritmo', 'sinusal')`);
+      await ev(`window.__P.set('diast_algoritmo', 'ase2025')`);
+    }
+    /* LA TERCERA COLUMNA: «Nuevo estudio» tiene que apagar el cartel. Sin la linea de
+       `limpiarCampos`, el aviso del paciente anterior sobrevive sobre un formulario vacio. */
+    await cargar(DIAST, { em_grado: 'severa' });
+    const antes = await ev(`window.__P.aviso()`);
+    await ev(`window.__P.limpiar()`);
+    await pausa(200);
+    out.avisoTrasLimpiar = { antes: antes.txt, antesDisp: antes.disp,
+                             despues: await ev(`window.__P.aviso()`) };
   }
 
   if (hacer('superficies')) {

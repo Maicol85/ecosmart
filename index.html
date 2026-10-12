@@ -3564,6 +3564,18 @@ window.cerrarSesionReal = cerrarSesionReal;
                normal. El texto SÍ entra: a 360 px ocupa 298 px en una línea de 14 px, sin corte
                (`scrollWidth == clientWidth`), con el borde derecho en 329 y sin barra horizontal. -->
           <div id="diast-algo-aviso" style="display:none;font-size:11px;font-weight:700;color:var(--amber);margin-top:4px;line-height:1.3;overflow-wrap:break-word;"></div>
+          <!-- ⚠️ EL AVISO DE EXCLUSIONES. SÓLO AVISA: no cambia ni un veredicto, y eso es
+               deliberado. El pie de la Figura 3 de la ASE 2025 (folio 554) dice que ese
+               algoritmo NO se aplica con estenosis mitral de cualquier grado, insuficiencia
+               mitral primaria grave, calcificación del anillo moderada o grave, prótesis,
+               plástica ni TEER mitral — y la app lo venía corriendo igual, sin decir nada.
+               Callar el cálculo habría sido cambiar el informe firmado, que no está autorizado
+               en esta tanda; dejarlo sin aviso es peor todavía. Así que se declara.
+               Va DEBAJO del aviso de protocolo y en la MISMA celda, por lo mismo que aquél:
+               a 360 px el `.grid-2` se apila y un aviso al lado del rótulo compite por ancho.
+               `--amber` y no `--red`: no es un error del médico ni de la app, es el alcance de
+               la guía. Su único dueño es `diastExclSync`. -->
+          <div id="diast-excl-aviso" style="display:none;font-size:11px;font-weight:700;color:var(--amber);margin-top:4px;line-height:1.3;overflow-wrap:break-word;"></div>
         </div>
         <div class="fg"><label>Ritmo</label>
           <select id="diast_ritmo" onchange="calcDiastol();hfRitmoCambio()">
@@ -23106,6 +23118,10 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') diastAlgoCer
 ['input','change'].forEach(ev => document.addEventListener(ev, () => {
   const ov = document.getElementById('diast-algo-overlay');
   if (ov && ov.style.display !== 'none') diastAlgoRender();
+  /* El aviso de exclusiones lee CUATRO campos que viven en Válvulas y tienen sus propios
+     manejadores: colgarlo de cada uno son cuatro puertas que se separan en cuanto se toque una.
+     Acá queda una sola, y cubre además los caminos que no pasan por ningún `oninput`. */
+  if (typeof diastExclSync === 'function') diastExclSync();
   // La línea HFA-PEFF de la tabla del Doppler y la calculadora siguen al estudio.
   if (typeof hfapeffLineaEco === 'function') hfapeffLineaEco();
   const hs = document.getElementById('hfapeff-seccion');
@@ -23658,6 +23674,53 @@ function diastAlgoAvisoSync() {
   return distinto;
 }
 window.diastAlgoAvisoSync = diastAlgoAvisoSync;
+
+/* ── P11 · LAS EXCLUSIONES DE LA FIGURA 3 (pie de la figura, folio 554) ──────────────────────
+   ⚠️ ESTO NO GRADÚA NI CALLA NADA. Devuelve los motivos DETECTABLES con los campos que la app ya
+   tiene, y `diastExclSync` los escribe en un aviso ámbar. El veredicto, el informe, el EN SUMA,
+   el PDF, el PPT, el Excel y el Laboratorio salen exactamente igual que sin aviso: abstenerse
+   sería cambiar una frase del informe firmado, que esta tanda no autoriza.
+   LO QUE NO SE PUEDE DETECTAR, y queda declarado en docs/PENDIENTES.md: la calcificación del
+   ANILLO mitral moderada o grave —no hay campo; lo más cercano es la morfología «Calcificada»,
+   que describe la VALVA y no el anillo, y por eso su motivo lo dice con esas palabras—, la
+   plástica mitral y el TEER ya realizados. Un aviso que nombra de menos es mejor que uno que
+   afirma de más, y lo que falta está escrito. */
+function diastExclMotivos() {
+  const m = [];
+  try {
+    /* Estenosis mitral de CUALQUIER grado. El centinela del selector es 'sin'; cualquier otro
+       valor es una estenosis consignada por el médico. */
+    const emg = (sv('em_grado') || '').trim();
+    if (emg && emg !== 'sin') m.push('estenosis mitral');
+    /* IM grave. El pie de la figura excluye la primaria grave y el recuadro interno dice sólo
+       «MR»: el aviso nombra la IM grave sin pedir el mecanismo, que es el lado que avisa de más
+       sobre un cartel que no cambia nada. */
+    const img = v('im_grado');
+    if (img !== null && img >= 4) m.push('insuficiencia mitral grave');
+    const morf = (sv('vm_morf') || '').trim();
+    if (typeof valvEsProtesis === 'function' && valvEsProtesis(morf)) m.push('prótesis mitral');
+    if (morf === 'Calcificada') m.push('válvula mitral calcificada');
+  } catch (e) {}
+  return m;
+}
+window.diastExclMotivos = diastExclMotivos;
+
+/* Dueño ÚNICO del nodo. Sólo habla cuando el protocolo activo es el de 2025 EN RITMO SINUSAL:
+   las exclusiones son del algoritmo de la Figura 3, y en FA la app ya gradúa por otro lado — un
+   aviso ahí sería ruido sobre un algoritmo que no es el excluido. */
+function diastExclSync() {
+  const av = document.getElementById('diast-excl-aviso');
+  if (!av) return null;
+  const algo = sv('diast_algoritmo') || DIAST_ALGO_RECOMENDADO;
+  const ritmo = sv('diast_ritmo') || 'sinusal';
+  const m = (algo === 'ase2025' && ritmo === 'sinusal') ? diastExclMotivos() : [];
+  av.textContent = m.length
+    ? ('ASE 2025: algoritmo no aplicable con ' + m.join(', ') + ' (Figura 3, folio 554).')
+    : '';
+  av.style.display = m.length ? 'block' : 'none';
+  return m.length ? m : null;
+}
+window.diastExclSync = diastExclSync;
 
 /* EL MANEJADOR DEL SELECTOR. Único camino por el que el protocolo entra a la sesión: lo llama el
    `onchange` del `<select>` y lo vuelve a llamar `diastAlgoReponerDeSesion` despachando un
@@ -39582,7 +39645,7 @@ function RECALC_MODULOS() {
      `emAvmPdfVal` para la fila del PDF, `dataset` protege esa decision, y `disabled` no lo
      persiste ni lo lee nadie. Los dos primeros siguen intocados — que es exactamente la objecion
      que este archivo dejo escrita para IM: «pisaria la decision que la reimpresion respalda». */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -40220,6 +40283,11 @@ function limpiarCampos(silencioso) {
      pasa por ese embudo. Sin esta línea, «Nuevo estudio» vacía el textarea con el barrido
      genérico de textareas y el cuadro queda VISIBLE y vacío sobre el paciente siguiente. */
   if (typeof ccSegSync === 'function') { try { ccSegSync(); } catch (e) {} }
+  /* La TERCERA columna del aviso de exclusiones. `limpiarCampos` no pasa por `RECALC_MODULOS`,
+     así que sin esta línea «Nuevo estudio» dejaba el cartel del paciente anterior —«no aplicable
+     con estenosis mitral»— sobre un formulario vacío. Es el patrón de `indicSyncBoton` de arriba
+     y de `it-incongruencia`: la columna que falta es siempre ésta. */
+  if (typeof diastExclSync === 'function') { try { diastExclSync(); } catch (e) {} }
   /* ⚠️ VENA PULMONAR, POR EL MISMO MOTIVO QUE `ccSegSync` Y AL FINAL COMO ÉL. El barrido de
      arriba vacía los cuatro `value`, pero las dos filas del cuadro gris se esconden por `display`
      y el color va en `style` en línea: sin esto el paciente siguiente arrancaba con los renglones
@@ -101737,8 +101805,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261012-0110';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791778229444;                 /* eco-build-ms */
+const ECO_BUILD    = '20261012-0115';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791778511128;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -101824,7 +101892,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261012-0110</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261012-0115</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
