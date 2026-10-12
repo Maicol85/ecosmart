@@ -457,7 +457,15 @@ const ESCENAS = [
   { id: 'S26-ea-baja', que: 'E/A 0,70 con las tres principales negativas (la E/A NO vota)',
     c: Object.assign({}, EDAD50, { onda_e: '70', onda_a: '100', e_sep: '10', e_lat: '12', vmax_it: '2.0', ai_vol: '50' }), sel: { sexo: 'M' } },
   { id: 'S27-ea-alta', que: 'E/A 2,33 con las tres principales negativas (la E/A NO vota)',
-    c: Object.assign({}, EDAD50, { onda_e: '70', onda_a: '30', e_sep: '10', e_lat: '12', vmax_it: '2.0', ai_vol: '50' }), sel: { sexo: 'M' } }
+    c: Object.assign({}, EDAD50, { onda_e: '70', onda_a: '30', e_sep: '10', e_lat: '12', vmax_it: '2.0', ai_vol: '50' }), sel: { sexo: 'M' } },
+
+  /* La via REDUCIDA tenia el mismo defecto que la normal: `marcadores > totalEvaluables / 2`
+     afirmaba con UNA sola variable. Esta escena lo fija por el lado positivo y la siguiente por
+     el negativo, que es su control. */
+  { id: 'S28-fevi-red-una-pos', que: 'FEVI 40 % con UNA SOLA variable evaluada y POSITIVA (LAVi 38,7)',
+    c: Object.assign({}, EDAD50, { fevi: '40', e_sep: '6', e_lat: '7', ai_vol: '70' }), sel: { sexo: 'M' } },
+  { id: 'S29-fevi-red-una-neg', que: 'FEVI 40 % con UNA SOLA variable evaluada y negativa (LAVi 27,6)',
+    c: Object.assign({}, EDAD50, { fevi: '40', e_sep: '6', e_lat: '7', ai_vol: '50' }), sel: { sexo: 'M' } }
 ];
 
 /* ══ FRANJAS DE EDAD DE LA TABLA 2 (pag. 13) ═════════════════════════════════════════════════

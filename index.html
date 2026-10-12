@@ -3597,6 +3597,10 @@ window.cerrarSesionReal = cerrarSesionReal;
                en 18-40 anios, SEXO. Si faltan, el e' no se valora y se dice; la presion de
                llenado se muestra igual. Su unico dueno es `diastBseEprimaAvisoSync`. -->
           <div id="diast-bse-eprima-aviso" style="display:none;font-size:11px;font-weight:700;color:var(--amber);margin-top:4px;line-height:1.3;overflow-wrap:break-word;"></div>
+          <!-- Aviso ambar de la zona gris de FEVI/GLS de la BSE 2024 (pag. 35). NO mueve ningun
+               veredicto: la app conserva su regla de HEAD y esto solo lo dice.
+               Su unico dueno es `diastBseGrisAvisoSync`. -->
+          <div id="diast-bse-gris-aviso" style="display:none;font-size:11px;font-weight:700;color:var(--amber);margin-top:4px;line-height:1.3;overflow-wrap:break-word;"></div>
         </div>
         <div class="fg"><label>Ritmo</label>
           <select id="diast_ritmo" onchange="calcDiastol();hfRitmoCambio()">
@@ -22373,6 +22377,37 @@ const BSE_LARS_ELEVADA = 18;    // % — reservorio, borde `<` (Figura 17)
 const BSE_ARA_SUPL     = 30;    // ms — Ar−A, borde `>` (Figura 17)
 const BSE_ONDAL_SUPL   = 20;    // cm/s — onda L, borde `>` (Figura 17; SIN CAMPO en esta app)
 
+/* ══ LA VÍA DE FEVI REDUCIDA — Figura 18 (pág. 38) y prosa de la pág. 37 ════════════════
+   Las tres variables principales son LAS MISMAS que en ritmo sinusal con FEVI normal; lo que
+   cambia es que la relajación se DA POR ALTERADA —«as impaired relaxation has been established,
+   age-specific e' are not considered», pág. 37— y que los cortes del strain son otros.
+   ⚠️ LOS CORTES DEL STRAIN NO SON LOS DE LA FIGURA 17, Y POR ESO NO COMPARTEN CONSTANTE: acá el
+   lado elevado es «LARs <18 % OR LAPs <8 %» y el normal «LARs ≥24 % OR LAPs ≥14 %». El 18 del
+   lado elevado coincide con el de la Figura 17 por casualidad; el 24 y el 8 no existen allá.
+   ⚠️ Y LOS SUPLEMENTARIOS SON CUATRO, NO DOS: la Figura 18 suma el S/D venoso pulmonar < 1 y el
+   TDE < 150 ms a los dos de la Figura 17. El S/D SÍ VOTA acá —al revés que en la ASE 2025, donde
+   el corte es ≤ 0,67 y el <select> de «<1 / >1» no puede expresarlo—: el corte de esta figura es
+   exactamente «< 1», que es lo que dice la opción. El TDE de la Figura 18 es «< 150» y NO es el
+   «≤ 160» de la Figura 19 de la FA de esta misma guía: dos figuras, dos constantes.
+   ⚠️ LA ENTRADA DE LA FIGURA 18 TIENE UN TERCER MOTIVO QUE LA APP NO MIDE: «known myocardial
+   disease» (cardiopatía isquémica con alteraciones sectoriales, miocardiopatía, HVI patológica).
+   No hay campo que lo declare, así que la vía se abre sólo por FEVI o GLS, y queda declarado. */
+const BSE_FR_LARS_ELEV = 18;    // % — reservorio, borde `<`  (Figura 18)
+const BSE_FR_LAPS_ELEV = 8;     // % — bomba,      borde `<`  (Figura 18; SIN CAMPO en esta app)
+const BSE_FR_LARS_NORM = 24;    // % — reservorio, borde `>=` (Figura 18)
+const BSE_FR_LAPS_NORM = 14;    // % — bomba,      borde `>=` (Figura 18; SIN CAMPO en esta app)
+const BSE_FR_TDE_SUPL  = 150;   // ms — TDE, borde `<` (Figura 18). NO es el ≤160 de la Figura 19.
+
+/* ══ LA ZONA GRIS DE FEVI Y GLS (pág. 35) ════════════════════════════════════════
+   «Systolic function is considered impaired when either LVEF is < 50% or absolute GLS < 16%,
+   whereas LVEF ≥ 55% and GLS ≥ 18% are consistent with normal systolic function. There exists,
+   therefore, a grey-zone of LVEF (50-54%) and GLS (16.0-17.9%)», que la guía deja a juicio
+   clínico y NO resuelve con un número. La app mantiene su regla de HEAD —reducida sólo con
+   FEVI < 50 o |GLS| < 16— y lo ÚNICO que se agrega es decirlo: el aviso no mueve ni un
+   veredicto. */
+const BSE_GRIS_FEVI_MIN = 50, BSE_GRIS_FEVI_MAX = 55;   // [50, 55)
+const BSE_GRIS_GLS_MIN  = 16, BSE_GRIS_GLS_MAX  = 18;   // [16, 18) en valor absoluto
+
 const BSE_IT_SIGNIF    = 2.8;   // m/s — velocidad de la IT, borde `>` (Figura 17, pág. 36)
 const BSE_EE_PROM      = 14;    // E/e' promedio con los dos anillos, borde `>` (pág. 14)
 const BSE_EE_SEPTAL    = 15;    // E/e' septal, SÓLO con un anillo, borde `>` (pág. 14)
@@ -22455,19 +22490,95 @@ function diastBSE2024Evaluar() {
               feviReducida, alterada, eprima: eprimaE, filas: [], pos: 0, total: 0, via: null };
 
   if (feviReducida) {
-    const cEe   = ee   !== null && ee   > 14;
-    const cIt   = trv  !== null && trv  > 2.8;
-    const cLavi = lavi !== null && lavi > UMBRAL_LAVI_DILATADO;
-    let m = 0, t = 0;
-    if (ee   !== null) { t++; if (cEe)   m++; }
-    if (trv  !== null) { t++; if (cIt)   m++; }
-    if (lavi !== null) { t++; if (cLavi) m++; }
-    R.pos = m; R.total = t;
+    /* El E/e' usa la MISMA regla de sitio que la vía normal (pág. 14): con los dos anillos manda
+       el promedio; con uno solo, el corte propio de ese anillo. En HEAD esta vía compartía el
+       `ee` que sólo existía con los dos anillos, así que con uno solo el criterio no se evaluaba. */
+    let eeVal = null, eeCorte = null, eeSitio = null;
+    if (eprom !== null && e !== null)   { eeVal = e / eprom; eeCorte = BSE_EE_PROM;    eeSitio = 'promedio'; }
+    else if (esep && e !== null)        { eeVal = e / esep;  eeCorte = BSE_EE_SEPTAL;  eeSitio = 'septal';   }
+    else if (elat && e !== null)        { eeVal = e / elat;  eeCorte = BSE_EE_LATERAL; eeSitio = 'lateral';  }
+    const cEe   = eeVal !== null && eeVal > eeCorte;
+    const cIt   = trv   !== null && trv  > BSE_IT_SIGNIF;
+    const cLavi = lavi  !== null && lavi > UMBRAL_LAVI_DILATADO;
+
+    /* ⚠️ LA REGLA ERA UNA MAYORÍA Y LA GUÍA DICE «2 O 3». HEAD comparía `marcadores` contra
+       `totalEvaluables / 2`, así que con UNA sola variable evaluada afirmaba: 1 positiva sobre 1
+       daba «presión elevada» y 0 sobre 1 daba «presión normal», las dos en un informe firmado.
+       La Figura 18 no tiene rama para una variable sola, igual que la 17. */
+    let pos = 0, neg = 0, evalN = 0;
+    [[eeVal !== null, cEe], [trv !== null, cIt], [lavi !== null, cLavi]].forEach(function (x) {
+      if (x[0]) { evalN++; if (x[1]) pos++; else neg++; }
+    });
+    R.pos = pos; R.total = evalN;
     R.via = 'B — FEVI reducida o miocardiopatía';
-    R.filas.push({ g: 'Criterios de presión de llenado', crit: "E/e' promedio > 14", val: ee, u: '', ok: cEe });
-    R.filas.push({ crit: 'Velocidad IT > 2.8 m/s', val: trv, u: 'm/s', ok: cIt });
-    R.filas.push({ crit: 'LAVI > ' + UMBRAL_LAVI_DILATADO + ' ml/m²', val: lavi, u: 'ml/m²', ok: cLavi });
-    R.res = window.calcularBSE2024_FEVIreducida(m, t, ee, trv, lavi);
+    R.eeVal = eeVal; R.eeSitio = eeSitio; R.eeCorte = eeCorte;
+
+    let presion;
+    if (pos >= 2)      presion = 'elevada';
+    else if (neg >= 2) presion = 'normal';
+    else if (evalN === 2 && pos === 1 && neg === 1) presion = 'discordancia';
+    else               presion = 'insuficiente';
+
+    R.filas.push({ g: 'Presión de llenado (Figura 18 — relajación ya alterada)',
+                   crit: "E/e' " + (eeSitio || 'promedio') + ' > ' + (eeCorte === null ? BSE_EE_PROM : eeCorte),
+                   val: eeVal, u: '', ok: cEe });
+    R.filas.push({ crit: 'Velocidad de la IT > ' + String(BSE_IT_SIGNIF).replace('.', ',') + ' m/s', val: trv, u: 'm/s', ok: cIt });
+    R.filas.push({ crit: 'LAVi > ' + UMBRAL_LAVI_DILATADO + ' ml/m²', val: lavi, u: 'ml/m²', ok: cLavi });
+
+    if (presion === 'discordancia') {
+      const lars = v('lars');
+      const laps = null;   // SIN CAMPO en esta app — declarado, no inventado
+      const ondaL = null;  // SIN CAMPO en esta app — declarado, no inventado
+      const arA = (typeof venpArA === 'function') ? venpArA() : null;
+      const sd = sv('venp_sd');
+      const tde = v('tde');
+      R.strain = { lars: lars, laps: laps, arA: arA, ondaL: ondaL, sd: sd, tde: tde };
+
+      R.filas.push({ g: 'Sustitución por strain de la AI (Figura 18)',
+                     crit: 'LARS < ' + BSE_FR_LARS_ELEV + ' % → presión elevada', val: lars, u: '%',
+                     ok: lars !== null && lars < BSE_FR_LARS_ELEV });
+      R.filas.push({ crit: 'LAPs < ' + BSE_FR_LAPS_ELEV + ' % → presión elevada (sin campo en la app)',
+                     val: null, u: '%', ok: false });
+      R.filas.push({ crit: 'LARS ≥ ' + BSE_FR_LARS_NORM + ' % → presión normal', val: lars, u: '%',
+                     ok: lars !== null && lars >= BSE_FR_LARS_NORM });
+
+      if (lars === null && laps === null) {
+        presion = 'indeterminada';
+        R.via += ' · discordancia sin strain de la AI';
+      } else if ((lars !== null && lars < BSE_FR_LARS_ELEV) || (laps !== null && laps < BSE_FR_LAPS_ELEV)) {
+        presion = 'elevada';
+        R.via += ' · LARS < ' + BSE_FR_LARS_ELEV + ' %';
+      } else if ((lars !== null && lars >= BSE_FR_LARS_NORM) || (laps !== null && laps >= BSE_FR_LAPS_NORM)) {
+        presion = 'normal';
+        R.via += ' · strain de la AI alto-normal';
+      } else {
+        /* Los CUATRO suplementarios de la Figura 18. El S/D vota acá porque su corte es
+           exactamente «< 1» y es lo que dice la opción del <select>; la onda L sigue sin campo. */
+        const cArA   = arA !== null && arA > BSE_ARA_SUPL;
+        const cOndaL = ondaL !== null && ondaL > BSE_ONDAL_SUPL;
+        const cSd    = sd === 'menor1';
+        const cTde   = tde !== null && tde < BSE_FR_TDE_SUPL;
+        const suplEval = (arA !== null ? 1 : 0) + (ondaL !== null ? 1 : 0)
+                       + (sd ? 1 : 0) + (tde !== null ? 1 : 0);
+        R.filas.push({ g: 'Parámetros suplementarios (Figura 18)',
+                       crit: 'Ar−A > ' + BSE_ARA_SUPL + ' ms', val: arA, u: 'ms', ok: cArA, dec: 0 });
+        R.filas.push({ crit: 'Onda L > ' + BSE_ONDAL_SUPL + ' cm/s (sin campo en la app)', val: null, u: 'cm/s', ok: false });
+        R.filas.push({ crit: 'S/D venoso pulmonar < 1', val: sd ? (sd === 'menor1' ? '<1' : '>1') : null, u: '', ok: cSd });
+        R.filas.push({ crit: 'TDE < ' + BSE_FR_TDE_SUPL + ' ms', val: tde, u: 'ms', ok: cTde, dec: 0 });
+        if (suplEval === 0) {
+          presion = 'indeterminada';
+          R.via += ' · LARS en zona intermedia, sin suplementarios evaluables';
+        } else if (cArA || cOndaL || cSd || cTde) {
+          presion = 'elevada';
+          R.via += ' · LARS en zona intermedia con suplementario positivo';
+        } else {
+          presion = 'normal';
+          R.via += ' · LARS en zona intermedia con suplementarios negativos';
+        }
+      }
+    }
+    R.presion = presion;
+    R.res = window.calcularBSE2024_FEVIreducida(presion, { eeVal: eeVal, eeSitio: eeSitio, trv: trv, lavi: lavi });
   } else {
     /* ══ LAS TRES VARIABLES PRINCIPALES DE LA FIGURA 17 (pág. 36, prosa de la pág. 35) ═════
        ⚠️ LA APP VOTABA LA E/A Y NO VOTABA LA IT, Y LAS DOS COSAS ERAN DEFECTOS. La banda de la
@@ -22619,6 +22730,7 @@ function calcDiastolBSE2024() {
 
   const R = diastBSE2024Evaluar();
   if (typeof diastBseEprimaAvisoSync === 'function') diastBseEprimaAvisoSync();
+  if (typeof diastBseGrisAvisoSync === 'function') diastBseGrisAvisoSync();
   const dd = document.getElementById('dd-interp');
   if (dd) dd.innerHTML = R.badgeHtml;
 
@@ -23433,6 +23545,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') diastAlgoCer
   /* El aviso del paso del e' lee `edad` y `sexo`, que viven en la pestaña Paciente: mismo
      oyente y mismo argumento que los dos de arriba. */
   if (typeof diastBseEprimaAvisoSync === 'function') diastBseEprimaAvisoSync();
+  if (typeof diastBseGrisAvisoSync === 'function') diastBseGrisAvisoSync();
   // La línea HFA-PEFF de la tabla del Doppler y la calculadora siguen al estudio.
   if (typeof hfapeffLineaEco === 'function') hfapeffLineaEco();
   const hs = document.getElementById('hfapeff-seccion');
@@ -24436,6 +24549,33 @@ function diastBseEprimaAvisoSync() {
 }
 window.diastBseEprimaAvisoSync = diastBseEprimaAvisoSync;
 
+/* ══ AVISO ÁMBAR DE LA ZONA GRIS DE FEVI / GLS (pág. 35) ══════════════════════════
+   La guía abre la vía reducida con FEVI < 50 % o GLS absoluto < 16 %, y declara normal la
+   sistólica con FEVI ≥ 55 % Y GLS ≥ 18 %. Entre medio hay una franja que deja a juicio clínico
+   y que NO resuelve con un número: «LVEF and GLS cannot provide binary normal/abnormal
+   cut-offs». La app mantiene su regla —en la zona gris corre la vía de FEVI normal— y lo único
+   que se agrega es decirlo. NO cambia ningún veredicto, y eso está medido.
+   Su ÚNICO dueño es esta función, con las TRES columnas. */
+function diastBseGrisAvisoSync() {
+  const av = document.getElementById('diast-bse-gris-aviso');
+  if (!av) return null;
+  const algo  = sv('diast_algoritmo') || DIAST_ALGO_RECOMENDADO;
+  const ritmo = sv('diast_ritmo') || 'sinusal';
+  let txt = '';
+  if (algo === 'bse2024' && ritmo === 'sinusal') {
+    const fevi = v('fevi'), sgl = v('sgl');
+    const grisF = fevi !== null && fevi >= BSE_GRIS_FEVI_MIN && fevi < BSE_GRIS_FEVI_MAX;
+    const grisG = sgl  !== null && Math.abs(sgl) >= BSE_GRIS_GLS_MIN && Math.abs(sgl) < BSE_GRIS_GLS_MAX;
+    if (grisF || grisG) {
+      txt = 'BSE 2024: zona gris de FEVI/GLS; la guía deja la vía a juicio clínico (pág. 35).';
+    }
+  }
+  av.textContent = txt;
+  av.style.display = txt ? 'block' : 'none';
+  return txt || null;
+}
+window.diastBseGrisAvisoSync = diastBseGrisAvisoSync;
+
 /* EL MANEJADOR DEL SELECTOR. Único camino por el que el protocolo entra a la sesión: lo llama el
    `onchange` del `<select>` y lo vuelve a llamar `diastAlgoReponerDeSesion` despachando un
    `change`, así que las dos formas de que el protocolo cambie ejecutan exactamente las mismas tres
@@ -24563,40 +24703,37 @@ function calcularBSE2024(eprima, presion, d) {
 }
 window.calcularBSE2024 = calcularBSE2024;
 
-function calcularBSE2024_FEVIreducida(marcadores, totalEvaluables, ee, trv, lavi) {
-  if (totalEvaluables === 0) {
-    return {
-      categoria: 'insuficiente',
-      badge: badge('gray', 'Datos insuficientes para estimar presión de llenado'),
-      badgeTxt: 'Datos insuficientes para estimar presión de llenado',
-      texto: null, textoSuma: null
-    };
+function calcularBSE2024_FEVIreducida(presion, d) {
+  if (presion === 'insuficiente') {
+    const t = "Datos insuficientes — faltan variables de presión (E/e', IT o Vol AI)";
+    return { categoria: 'presion_insuficiente', badge: badge('gray', t), badgeTxt: t,
+             texto: null, textoSuma: null };
   }
-  let categoria;
-  if (marcadores > totalEvaluables / 2) categoria = 'elevada';
-  else if (marcadores < totalEvaluables / 2) categoria = 'normal';
-  else categoria = 'indeterminado';
-
   const detalles = [];
-  if (ee !== null) detalles.push(`E/e' promedio ${ee.toFixed(1)}`);
-  if (trv !== null) detalles.push(`Vmax IT ${trv.toFixed(1)} m/s`);
-  if (lavi !== null) detalles.push(`Vol AI ${lavi.toFixed(1)} ml/m²`);
+  if (d.eeVal !== null) detalles.push("E/e' " + d.eeSitio + ' ' + d.eeVal.toFixed(1));
+  if (d.trv  !== null) detalles.push('velocidad de la IT ' + d.trv.toFixed(1) + ' m/s');
+  if (d.lavi !== null) detalles.push('Vol AI ' + d.lavi.toFixed(1) + ' ml/m²');
+  const det = detalles.join(', ');
 
+  /* En esta vía la relajación ya está dada por alterada (pág. 37), así que el e' NO se consulta y
+     las dos salidas afirmativas de la Figura 18 son «deteriorada con presión normal» y
+     «deteriorada con presión elevada». La tercera es la indeterminada de su prosa. */
   let texto, textoSuma, badgeC, badgeTxtC;
-  if (categoria === 'normal') {
-    texto = `Disfunción diastólica con presión de llenado del VI normal, en contexto de función sistólica deprimida/cardiopatía conocida (${detalles.join(', ') || 'marcadores disponibles dentro de rango'}).`;
+  if (presion === 'normal') {
+    texto = `Disfunción diastólica con presión de llenado del VI normal, en contexto de función sistólica deprimida/cardiopatía conocida (${det || 'marcadores disponibles dentro de rango'}).`;
     textoSuma = 'Disfunción diastólica, presión de llenado normal.';
     badgeTxtC = 'Presión de llenado normal — BSE 2024'; badgeC = badge('yellow', badgeTxtC);
-  } else if (categoria === 'elevada') {
-    texto = `Disfunción diastólica con presión de llenado del VI elevada, en contexto de función sistólica deprimida/cardiopatía conocida (${detalles.join(', ') || 'mayoría de marcadores positivos'}).`;
+  } else if (presion === 'elevada') {
+    texto = `Disfunción diastólica con presión de llenado del VI elevada, en contexto de función sistólica deprimida/cardiopatía conocida (${det || 'mayoría de marcadores positivos'}).`;
     textoSuma = 'Disfunción diastólica, presión de llenado elevada.';
     badgeTxtC = 'Presión de llenado elevada — BSE 2024'; badgeC = badge('red', badgeTxtC);
   } else {
-    texto = `Estimación de la presión de llenado del VI indeterminada por discordancia entre marcadores (${detalles.join(', ') || 'hallazgos discordantes'}). Sugerido correlacionar con clínica o considerar parámetros adicionales (strain de AI).`;
+    texto = `Estimación de la presión de llenado del VI indeterminada por discordancia entre marcadores (${det || 'hallazgos discordantes'}). Sugerido correlacionar con clínica o considerar parámetros adicionales (strain de AI).`;
     textoSuma = 'Presión de llenado indeterminada.';
     badgeTxtC = 'Indeterminado — BSE 2024'; badgeC = badge('orange', badgeTxtC);
   }
-  return { categoria, badge: badgeC, badgeTxt: badgeTxtC, texto, textoSuma };
+  return { categoria: presion === 'normal' ? 'fr_normal' : presion === 'elevada' ? 'fr_elevada' : 'indeterminado',
+           badge: badgeC, badgeTxt: badgeTxtC, texto, textoSuma };
 }
 window.calcularBSE2024_FEVIreducida = calcularBSE2024_FEVIreducida;
 
@@ -40392,7 +40529,7 @@ function RECALC_MODULOS() {
      `emAvmPdfVal` para la fila del PDF, `dataset` protege esa decision, y `disabled` no lo
      persiste ni lo lee nadie. Los dos primeros siguen intocados — que es exactamente la objecion
      que este archivo dejo escrita para IM: «pisaria la decision que la reimpresion respalda». */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -41042,6 +41179,7 @@ function limpiarCampos(silencioso) {
   if (typeof diastFcAvisoSync === 'function') { try { diastFcAvisoSync(); } catch (e) {} }
   /* LA TERCERA COLUMNA del aviso del paso del e', por el mismo motivo que el de FC. */
   if (typeof diastBseEprimaAvisoSync === 'function') { try { diastBseEprimaAvisoSync(); } catch (e) {} }
+  if (typeof diastBseGrisAvisoSync === 'function') { try { diastBseGrisAvisoSync(); } catch (e) {} }
   /* ⚠️ VENA PULMONAR, POR EL MISMO MOTIVO QUE `ccSegSync` Y AL FINAL COMO ÉL. El barrido de
      arriba vacía los cuatro `value`, pero las dos filas del cuadro gris se esconden por `display`
      y el color va en `style` en línea: sin esto el paciente siguiente arrancaba con los renglones
