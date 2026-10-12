@@ -3197,8 +3197,39 @@ window.cerrarSesionReal = cerrarSesionReal;
             <input type="number" id="ai_vol" placeholder="ml" oninput="calcAI();calcDiastol()">
           </div>
           <div class="fg">
-            <label>LARS — strain AI (%) <span style="font-weight:400;color:var(--text2);font-size:10px;">opcional — normal &gt;18%</span></label>
-            <input type="number" id="lars" step="0.1" placeholder="%" oninput="calcDiastol()">
+            <!-- ⚠️ EL LARS ES UN DATO CON DOS CAMPOS DESDE EL 2026-10-12. Este es el PORTADOR: su
+                 id es el que leen `diastBSE2024Evaluar`, `diastASE2025Evaluar`, las tres ramas de
+                 fibrilacion auricular, la ventana del 🧭 y la columna «LARS (%)» del Excel. El otro
+                 campo vive en Doppler mitral — Funcion diastolica VI (`lars_dop`). Ver
+                 «EL STRAIN DE LA AI Y LA ONDA L» en el JS.
+                 `calcDiastol()` no se perdio: lo lleva `larsEditado`, que ademas copia el valor al
+                 otro campo y repinta la marca de los dos. -->
+            <label>LARS — strain AI (%) <span style="font-weight:400;color:var(--text2);font-size:10px;">opcional — normal &gt;18% &harr; Doppler mitral</span></label>
+            <input type="number" id="lars" step="0.1" placeholder="%" oninput="larsEditado('lars')">
+            <div id="lars-marca" style="font-size:10px;color:var(--yellow);margin-top:3px;min-height:14px;"></div>
+          </div>
+          <!-- ⚠️ LOS DOS CAMPOS NUEVOS VAN EN ESTE ORDEN A PROPOSITO (decision de Maicol): la
+               grilla es de tres columnas, asi que el conducto cae debajo de «Area AI» y la
+               contraccion debajo de «Volumen AI», y los TRES strain de la auricula quedan en la
+               misma fila, que es como se leen.
+               ⚠️ EL STRAIN DE CONDUCTO NO ENTRA EN NINGUN ALGORITMO, y esta verificado en el
+               original de las tres guias: la ASE 2025 lo nombra solo en la tabla de abreviaturas y
+               en el protocolo de adquisicion (folio 546) y la BSE 2024 habla del VOLUMEN de
+               conducto en su seccion de fisiologia (pag. 7), nunca del strain. Es un campo de
+               registro: se guarda con el estudio y no tiene columna de Excel. -->
+          <div class="fg">
+            <label>Strain de conducto de la AI (%) <span style="font-weight:400;color:var(--text2);font-size:10px;">opcional — se registra, no entra en los algoritmos</span></label>
+            <input type="number" id="ai_strain_cd" step="0.1" placeholder="%" oninput="diastStrainEditado('ai_strain_cd')">
+            <div id="ai_strain_cd-marca" style="font-size:10px;color:var(--yellow);margin-top:3px;min-height:14px;"></div>
+          </div>
+          <div class="fg">
+            <!-- ⚠️ TAMBIEN ES UN DATO CON DOS CAMPOS: su gemelo es `ai_strain_ct_dop`, en Doppler
+                 mitral. Es el LAPs de las Figuras 17 y 18 de la BSE 2024 (strain de bomba o de
+                 contraccion), y las cuentas usan su VALOR ABSOLUTO porque los ecografos lo dan
+                 negativo. El campo guarda lo que el medico tipea. -->
+            <label>Strain de contracción de la AI (%) <span style="font-weight:400;color:var(--text2);font-size:10px;">opcional — se usa su valor absoluto &harr; Doppler mitral</span></label>
+            <input type="number" id="ai_strain_ct" step="0.1" placeholder="%" oninput="laContrEditado('ai_strain_ct')">
+            <div id="ai_strain_ct-marca" style="font-size:10px;color:var(--yellow);margin-top:3px;min-height:14px;"></div>
           </div>
         </div>
         <div class="calc-box">
@@ -3735,6 +3766,40 @@ window.cerrarSesionReal = cerrarSesionReal;
                `vtiMitralEditado`, que además copia el valor a `vtim` y corre `calcContIM` y
                `calcIM_ESC` sin el gate de la pastilla. -->
           <input type="number" id="itv_mitral" placeholder="cm" oninput="vtiMitralEditado('itv_mitral')">
+        </div>
+        <!-- ⚠️ ESTA FILA YA NO ES SOLO DEL VTI, Y EL COMENTARIO DE ARRIBA DECIA QUE SI (2026-10-12,
+             decision de Maicol). Lo que aquel aislamiento protegia sigue en pie: el VTI mitral de
+             entrada es el unico campo de esta grilla que NO alimenta la funcion diastolica —lo
+             consume el metodo volumetrico de la IM via `vtim`— y por eso sigue PRIMERO en su fila,
+             separado de la onda E y la onda A. Lo que entra a su derecha son tres campos que SI la
+             alimentan, y caen debajo de «Dur. onda Ar pulmonar», «Veloc. Ar pulmonar» y «S/D
+             pulmonar», que es donde el medico los pidio.
+             ⚠️ DOS DE LOS TRES SON ESPEJOS DE AI/VI (`lars` y `ai_strain_ct`) y el tercero vive
+             SOLO aca: la onda L es una velocidad del llenado mitral, se mide en el mismo trazado
+             pulsado que la onda E y la onda A, y no tiene nada que hacer en la pestaña de la
+             auricula. -->
+        <div class="fg">
+          <!-- Onda L: velocidad mesodiastolica del llenado mitral, posterior a la onda E.
+               Es parametro SUPLEMENTARIO en las Figuras 17 y 18 de la BSE 2024 (> 20 cm/s) y en la
+               ASE 2025 (folio 555, >= 50 cm/s). Los dos cortes son de la fuente y NO se unifican:
+               cada guia lleva el suyo, como ya pasa con el LARS (18 % en la ASE, 16 % en la BSE).
+               En ESTE commit el campo no entra en ninguna cuenta: solo se guarda y se marca. -->
+          <label>Onda L (cm/s) <span style="font-weight:400;color:var(--text2);font-size:10px;">opcional — mesodiastólica</span></label>
+          <input type="number" id="onda_l" step="0.1" placeholder="cm/s" oninput="diastStrainEditado('onda_l')">
+          <div id="onda_l-marca" style="font-size:10px;color:var(--yellow);margin-top:3px;min-height:14px;"></div>
+        </div>
+        <div class="fg">
+          <!-- El MISMO dato que `lars`, en AI/VI. El portador es aquel: este copia hacia alla y
+               recibe de alla, en los dos sentidos, borrado incluido. -->
+          <label>LARS (%) <span style="font-weight:400;color:var(--text2);font-size:10px;">&harr; AI/VI</span></label>
+          <input type="number" id="lars_dop" step="0.1" placeholder="%" oninput="larsEditado('lars_dop')">
+          <div id="lars_dop-marca" style="font-size:10px;color:var(--yellow);margin-top:3px;min-height:14px;"></div>
+        </div>
+        <div class="fg">
+          <!-- El MISMO dato que `ai_strain_ct`, en AI/VI. -->
+          <label>Strain de contracción de la AI (%) <span style="font-weight:400;color:var(--text2);font-size:10px;">&harr; AI/VI</span></label>
+          <input type="number" id="ai_strain_ct_dop" step="0.1" placeholder="%" oninput="laContrEditado('ai_strain_ct_dop')">
+          <div id="ai_strain_ct_dop-marca" style="font-size:10px;color:var(--yellow);margin-top:3px;min-height:14px;"></div>
         </div>
       </div>
 
@@ -28233,6 +28298,186 @@ function aiAreaEditado(origenId) {
   if (typeof calcIM_ESC === 'function') calcIM_ESC();
 }
 window.aiAreaEditado = aiAreaEditado;
+
+/* ══ EL STRAIN DE LA AI Y LA ONDA L (2026-10-12) ════════════════════════════
+   Cuatro campos, y NO son cuatro datos iguales. Conviene tenerlo claro antes de tocar nada:
+
+     · `lars` (AI/VI, el PORTADOR) ↔ `lars_dop` (Doppler mitral). Strain de RESERVORIO. El
+       portador es el que leen `diastBSE2024Evaluar`, `diastASE2025Evaluar`, las tres ramas de
+       fibrilación auricular, la ventana del 🧭 y la columna «LARS (%)» del Excel —ninguno de esos
+       lectores cambia: el espejo escribe EN el portador—.
+     · `ai_strain_ct` (AI/VI) ↔ `ai_strain_ct_dop` (Doppler mitral). Strain de CONTRACCIÓN, que es
+       el LAPs («pump strain») de las Figuras 17 y 18 de la BSE 2024.
+     · `ai_strain_cd` (AI/VI, ÚNICO lugar). Strain de CONDUCTO. **No entra en ningún algoritmo de
+       ninguna de las tres guías** —verificado en el original: la ASE 2025 lo nombra sólo en la
+       tabla de abreviaturas y en el protocolo de adquisición del folio 546, y la BSE 2024 habla
+       del VOLUMEN de conducto en su fisiología de la pág. 7, nunca del strain—. Es registro.
+     · `onda_l` (Doppler mitral, ÚNICO lugar). Velocidad mesodiastólica del llenado mitral.
+
+   ⚠️ EL SIGNO ES LA TRAMPA DE ESTA ZONA, Y SE RESUELVE EN UN SOLO LUGAR. Los ecógrafos dan el
+   strain de contracción y el de conducto NEGATIVOS, y el de reservorio positivo. La regla
+   (decisión de Maicol) es que **el campo guarda lo que el médico tipea** y **las cuentas usan el
+   valor absoluto** de los dos primeros. Lo hace `diastStrainAbs`, que es la única puerta: una
+   segunda llamada a `Math.abs` repartida por el archivo es cómo se llega a que un −12 vote en una
+   figura y no en la otra. El LARS NO pasa por ahí: se espera positivo, y un negativo se MARCA
+   «(revisar)» sin corregirse —su banda `[0, 60]` ya vivía en `LAB_XLS_RANGO_PROPIO` con ese
+   motivo escrito—.
+
+   ⚠️ LAS BANDAS DE LOS TRES CAMPOS NUEVOS TIENEN UN SOLO DUEÑO, Y ES ESTA TABLA. La del
+   `ai_strain_ct` la vuelve a consumir `LAB_XLS_RANGO_PROPIO` POR REFERENCIA —no por un literal
+   repetido—, porque ese campo sí tiene columna de Excel y el importador tiene que rechazar lo
+   mismo que la pantalla marca. Este archivo ya pagó tres veces escribir el mismo número en dos
+   lugares. Son bandas AMPLIAS a propósito: no clasifican, sólo cazan el dedazo de un orden de
+   magnitud, y una banda estrecha sobre una medición real es cómo un hallazgo verdadero sale
+   marcado como dudoso. */
+const DIAST_STRAIN_BANDA = Object.freeze({
+  /* Strain de contracción y de conducto: SIMÉTRICA, o sea la banda del valor absoluto escrita
+     sobre el valor crudo. Así un −12 y un +12 se tratan igual, que es la regla del signo. */
+  ai_strain_ct: [-60, 60],   // %
+  ai_strain_cd: [-60, 60],   // %
+  /* La onda L es una velocidad: un negativo no existe, así que el 0 es el piso y marcarlo es
+     información. El techo es holgado —la guía la describe entre 40 y 50 cm/s—. */
+  onda_l:       [0, 200]     // cm/s
+});
+window.DIAST_STRAIN_BANDA = DIAST_STRAIN_BANDA;
+
+/* El LARS no está en la tabla de arriba a propósito: su banda ya tenía dueño. Preguntarle a
+   `_labRango` es lo que garantiza que la marca de pantalla y el rechazo del importador digan lo
+   mismo sobre el mismo número. */
+function diastStrainBanda(id) {
+  if (DIAST_STRAIN_BANDA[id]) return DIAST_STRAIN_BANDA[id];
+  try { return (typeof _labRango === 'function') ? _labRango(id) : null; } catch (e) { return null; }
+}
+window.diastStrainBanda = diastStrainBanda;
+
+/* La ÚNICA puerta del valor absoluto. Devuelve `null` con el campo vacío, igual que `v()`. */
+function diastStrainAbs(id) {
+  const x = v(id);
+  return (x === null) ? null : Math.abs(x);
+}
+window.diastStrainAbs = diastStrainAbs;
+
+/* ══ LAS DOS SINCRONÍAS, CON EL PATRÓN DE LOS OTROS CINCO GRUPOS ═════════════════════
+   Mismas tres propiedades que el Ø TSVI, el VTI TSVI, el área de la AI, el THP y el VTI mitral:
+   guarda de reentrada, salida temprana por TEXTO igual —no por número: así el vacío se copia
+   igual que un valor y borrar en un lugar borra en el otro— y copia SIEMPRE, con el bloque
+   visible o plegado.
+   ⚠️ NINGUNO DE ESTOS CUATRO CAMPOS ES DESTINO REGISTRADO en `_ESPEJOS_TODOS`, así que
+   `_coordMarcarEspejo` NO se llama: marcarlos metería en `im_espejos` ids que `imEspejosRestaurar`
+   rechaza por su propia guarda. Es la misma consulta al censo que esa función ya documenta. */
+let _larsSinc = false;
+const _LARS_CAMPOS = ['lars', 'lars_dop'];
+function larsSync(origenId) {
+  if (_larsSinc) return null;
+  _larsSinc = true;
+  try {
+    const src = document.getElementById(origenId);
+    if (!src) return null;
+    const val = src.value;
+    const copiados = [];
+    _LARS_CAMPOS.forEach((id) => {
+      if (id === origenId) return;
+      const dst = document.getElementById(id);
+      if (!dst || dst.value === val) return;
+      dst.value = val;
+      copiados.push(id);
+    });
+    return { origen: origenId, valor: val, copiados: copiados };
+  } finally { _larsSinc = false; }
+}
+window.larsSync = larsSync;
+window._LARS_CAMPOS = _LARS_CAMPOS;
+
+let _laContrSinc = false;
+const _LA_CONTR_CAMPOS = ['ai_strain_ct', 'ai_strain_ct_dop'];
+function laContrSync(origenId) {
+  if (_laContrSinc) return null;
+  _laContrSinc = true;
+  try {
+    const src = document.getElementById(origenId);
+    if (!src) return null;
+    const val = src.value;
+    const copiados = [];
+    _LA_CONTR_CAMPOS.forEach((id) => {
+      if (id === origenId) return;
+      const dst = document.getElementById(id);
+      if (!dst || dst.value === val) return;
+      dst.value = val;
+      copiados.push(id);
+    });
+    return { origen: origenId, valor: val, copiados: copiados };
+  } finally { _laContrSinc = false; }
+}
+window.laContrSync = laContrSync;
+window._LA_CONTR_CAMPOS = _LA_CONTR_CAMPOS;
+
+/* ══ LA MARCA «(revisar)» — UNA SOLA FUNCIÓN DUEÑA PARA LOS SEIS AVISOS ═══════════════
+   Mismo mecanismo y mismo motivo que `thpMarcaPintar`: la marca sale al lado de CADA campo, no en
+   la pestaña de al lado, y la escribe una sola función leyendo una sola banda. Un segundo lector
+   de la banda es cómo se llega a que la pantalla marque «(revisar)» sobre un número que sigue
+   votando, o al revés.
+   ⚠️ LA MARCA NO BLOQUEA NI CAMBIA NINGUNA CUENTA, y es deliberado —la decisión de «MARCAR SIN
+   BORRAR» del 2026-09-27, que este archivo documenta al lado de `MARCA_REVISAR`—: el dedazo queda
+   visible y la medición real no se pierde.
+   ⚠️ LA COMPARACIÓN ES SOBRE EL VALOR CRUDO y las bandas del strain son SIMÉTRICAS, así que un
+   −12 no se marca y un −80 sí. Hacerlo sobre el absoluto daría lo mismo; se deja crudo porque es
+   el número que el médico ve en el campo.
+   Se usa `MARCA_REVISAR.trim()` y no un literal: la constante trae un espacio adelante porque
+   nació para ir PEGADA a un número, y acá el aviso es un renglón propio. */
+const _DIAST_STRAIN_MARCA = Object.freeze({
+  lars:              ['lars-marca', 'lars_dop-marca'],
+  lars_dop:          [],
+  ai_strain_ct:      ['ai_strain_ct-marca', 'ai_strain_ct_dop-marca'],
+  ai_strain_ct_dop:  [],
+  ai_strain_cd:      ['ai_strain_cd-marca'],
+  onda_l:            ['onda_l-marca']
+});
+function diastStrainMarcaSync() {
+  const fuera = {};
+  Object.keys(_DIAST_STRAIN_MARCA).forEach((id) => {
+    const nodos = _DIAST_STRAIN_MARCA[id];
+    if (!nodos.length) return;
+    const el = document.getElementById(id);
+    /* Sin dato no hay nada que revisar: la marca del paciente anterior no se queda colgada. */
+    const hay = !!(el && String(el.value).trim() !== '');
+    const b = diastStrainBanda(id);
+    const x = v(id);
+    const mal = hay && x !== null && Array.isArray(b) && b.length === 2 && (x < b[0] || x > b[1]);
+    fuera[id] = !!mal;
+    const txt = mal ? MARCA_REVISAR.trim() : '';
+    nodos.forEach((n) => { const e = document.getElementById(n); if (e) e.textContent = txt; });
+  });
+  return fuera;
+}
+window.diastStrainMarcaSync = diastStrainMarcaSync;
+window._DIAST_STRAIN_MARCA = _DIAST_STRAIN_MARCA;
+
+/* ══ LAS PUERTAS — una por dato, llamadas desde los `oninput` de los dos lados ══════════
+   `calcDiastol()` va al final y SIN condición: es lo que el `oninput` de `lars` llamaba en HEAD,
+   y los campos nuevos tienen que repintar el cuadro gris por el mismo camino que los otros once
+   que esta zona ya cableó. La marca va ANTES del cálculo para que el renglón y el badge se vean
+   siempre del mismo gesto. */
+function larsEditado(origenId) {
+  larsSync(origenId);
+  diastStrainMarcaSync();
+  if (typeof calcDiastol === 'function') calcDiastol();
+}
+window.larsEditado = larsEditado;
+
+function laContrEditado(origenId) {
+  laContrSync(origenId);
+  diastStrainMarcaSync();
+  if (typeof calcDiastol === 'function') calcDiastol();
+}
+window.laContrEditado = laContrEditado;
+
+/* Los dos que viven en un solo lugar. No tienen sincronía que hacer; entran por acá para que la
+   marca y el repintado salgan del mismo gesto que los otros dos. */
+function diastStrainEditado(origenId) {
+  diastStrainMarcaSync();
+  if (typeof calcDiastol === 'function') calcDiastol();
+}
+window.diastStrainEditado = diastStrainEditado;
 
 /* ══ EL VTI DEL TSVI ES UN DATO CON CUATRO CAMPOS (2026-10-08) ═══════════════════════════════
    `itv_tsvi` (Doppler aórtico, el PORTADOR: lo leen `calcAo`, el PDF, el PPT y el Excel),
@@ -102757,8 +103002,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261012-0127';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791779275541;                 /* eco-build-ms */
+const ECO_BUILD    = '20261012-1343';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791823422198;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -102844,7 +103089,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261012-0127</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261012-1343</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
