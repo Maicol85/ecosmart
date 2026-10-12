@@ -23683,6 +23683,61 @@ function diastFAEvaluarBSE2024() {
 }
 window.diastFAEvaluarBSE2024 = diastFAEvaluarBSE2024;
 
+/* ── ASE/EACVI 2016 · sección E «Atrial Fibrillation», folio 295 ─────────────────────────────
+   ⚠️ ESTA GUÍA NO DA UNA REGLA DE CONTEO PARA LA FA, Y POR ESO ESTA FUNCIÓN NO DA UN VEREDICTO.
+   No hay figura ni algoritmo: la sección enumera parámetros «sugestivos» de presión de llenado
+   elevada y sus cortes, con dos condiciones propias escritas en sus Key Points —el TDE se
+   propone con FEVI DEPRIMIDA, y el resto «en pacientes con chorro de IT incompleto»—, y cierra
+   pidiendo promediar varios ciclos. Combinar esos parámetros en un conteo sería inventarle a la
+   guía un algoritmo que no tiene, que es exactamente lo que esta tanda vino a sacar.
+   Lo que la app hace, entonces, es MOSTRAR cada parámetro con su corte y su estado, decir que la
+   guía no los combina, y NO escribir ni una frase en el informe firmado.
+
+   ⚠️ EN HEAD ESTA COMBINACIÓN DABA SIEMPRE «DATOS INSUFICIENTES», Y NO POR FALTA DE DATOS.
+   `calcDiastolASE2016` arranca por el cociente E/A y en fibrilación auricular NO HAY ONDA A, así
+   que `ea === null` y la primera guarda se llevaba todos los pacientes, con el formulario
+   completo o vacío.
+
+   ⚠️ TRES PARÁMETROS DE LA LISTA NO SON EVALUABLES y se dibujan en gris CON EL MOTIVO EN SU
+   RÓTULO: la aceleración de la onda E, el tiempo de desaceleración de la onda D de la vena
+   pulmonar y el cociente E/Vp no tienen campo en esta app. Esta tanda no agrega ninguno. Su
+   ausencia no se lee como un negativo porque el rótulo dice por qué están en gris.
+
+   ⚠️ LA GUÍA NO ESPECIFICA EL SITIO DEL E/e' EN ESTA SECCIÓN —escribe «E/e' ratio ≥11» a secas—,
+   así que la app usa el cociente que ya muestra el cuadro (promedio con los dos anillos, el
+   anillo disponible si hay uno) y LO DICE en el rótulo. No se importa el «septal» de la Tabla 7
+   de la ASE 2025: es otra guía, y acá no se mezclan. */
+function diastFAEvaluarASE2016() {
+  const D = _diastFADatos();
+  const R = { filas: [], guia: 'ASE/EACVI 2016', algoritmo: 'ase2016-fa' };
+
+  const cIt   = D.tr   !== null && D.tr   >  2.8;    // Key Point 1: «> 2,8 m/s»
+  const cEe   = D.eeProm !== null && D.eeProm >= 11; // Key Point 3: «≥ 11»
+  const cTriv = D.triv !== null && D.triv <= 65;     // Key Point 3: «≤ 65 ms»
+  /* El TDE va con su condición: la guía lo propone «cuando la FEVI está deprimida». Sin FEVI
+     cargada, o con FEVI conservada, el criterio no aplica y se dibuja en gris con el motivo. */
+  const feviDep = D.fevi !== null && D.fevi < UMBRAL_FEVI_NORMAL;
+  const cTde  = feviDep && D.tde !== null && D.tde <= 160;   // Key Point 2: «≤ 160 ms»
+
+  R.filas.push({ g: 'Parámetros de la ASE/EACVI 2016 (folio 295)', crit: 'Velocidad IT > 2,8 m/s', val: D.tr, u: 'm/s', ok: cIt });
+  R.filas.push({ crit: 'TDE ≤ 160 ms' + (feviDep ? '' : ' — no aplica: la guía lo propone con FEVI deprimida'),
+                 val: feviDep ? D.tde : null, u: 'ms', ok: cTde, dec: 0 });
+  R.filas.push({ crit: 'E/e\' ≥ 11 (la guía no especifica el sitio; se usa el cociente del cuadro)', val: D.eeProm, u: '', ok: cEe, dec: 1 });
+  R.filas.push({ crit: 'TRIV ≤ 65 ms', val: D.triv, u: 'ms', ok: cTriv, dec: 0 });
+  R.filas.push({ g: 'De la misma lista, sin campo en esta app', crit: 'Aceleración de la onda E ≥ 1.900 cm/s² — no evaluable', val: null, u: '', ok: false });
+  R.filas.push({ crit: 'TD de la onda D de la vena pulmonar ≤ 220 ms — no evaluable', val: null, u: '', ok: false });
+  R.filas.push({ crit: 'E/Vp ≥ 1,4 — no evaluable', val: null, u: '', ok: false });
+
+  const c = _diastFAContar([ _diastFAEstado(D.tr !== null, cIt),
+                             _diastFAEstado(feviDep && D.tde !== null, cTde),
+                             _diastFAEstado(D.eeProm !== null, cEe),
+                             _diastFAEstado(D.triv !== null, cTriv) ]);
+  _diastFASinRegla(R, c.pos + ' de ' + c.ev + ' parámetros evaluables son sugestivos de presión de llenado elevada'
+                      + (c.sin ? ' · ' + c.sin + ' sin evaluar' : ''));
+  return R;
+}
+window.diastFAEvaluarASE2016 = diastFAEvaluarASE2016;
+
 /* Los cuatro desenlaces, en un solo lugar para las tres guías.
    ⚠️ EL INFORME FIRMADO LLEVA **UNA SOLA FRASE** Y **SÓLO** CON PRESIÓN ELEVADA (decisión de
    Maicol, 2026-10-12). Con presión normal, indeterminada o no concluyente, `texto` y `textoSuma`
@@ -23711,6 +23766,23 @@ function _diastFAIndet(R, det) {
   R.texto = ''; R.textoSuma = '';
   R.ventanaDet = det;
 }
+/* El quinto desenlace, y es de una sola guía: la ASE/EACVI 2016 no combina sus parámetros de FA
+   en ninguna regla, así que la app muestra el estado de cada uno y NO afirma nada. No es un
+   «indeterminado» —esa es una casilla que las otras dos guías SÍ tienen— sino la ausencia de
+   algoritmo, y decirlo con otras palabras sería hacerle decir a la guía algo que no dice. */
+function _diastFASinRegla(R, det) {
+  R.clave = 'sinRegla'; R.cls = 'gray';
+  R.badgeTxt = 'FA — sin regla de conteo (' + R.guia + ')';
+  /* El rótulo de la ventana es el del badge SIN el sufijo de la guía, igual que los otros
+     cuatro desenlaces: si los dos se escriben distinto, la comprobación de que el cuadro y la
+     ventana dicen lo mismo deja de poder hacerse comparando los textos. El porqué va en la nota. */
+  R.ventanaTit = 'FA — sin regla de conteo';
+  R.texto = ''; R.textoSuma = '';
+  R.ventanaDet = det;
+  R.ventanaNota = 'La ASE/EACVI 2016 enumera parámetros sugestivos de presión de llenado elevada en '
+                + 'fibrilación auricular (folio 295) y no los combina en un algoritmo: no hay veredicto que publicar.';
+}
+
 function _diastFANoConcluye(R, det) {
   R.clave = 'noConcluye'; R.cls = 'gray';
   R.badgeTxt = 'FA — Datos insuficientes (' + R.guia + ')';
@@ -23724,6 +23796,7 @@ function _diastFANoConcluye(R, det) {
 function diastFAEvaluar(algo) {
   if (algo === 'ase2025') return diastFAEvaluarASE2025();
   if (algo === 'bse2024') return diastFAEvaluarBSE2024();
+  if (algo === 'ase2016') return diastFAEvaluarASE2016();
   return null;
 }
 window.diastFAEvaluar = diastFAEvaluar;
