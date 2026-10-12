@@ -24675,9 +24675,10 @@ window.calcDiastolASE2025 = calcDiastolASE2025;
    Esta función LEE EL DOM Y NO ESCRIBE NADA —cada consumidor escribe lo suyo— y devuelve el
    veredicto (`clave`, `cls`, `badgeTxt`, `texto`, `textoSuma`), el conteo (`pos`/`total`) y las
    FILAS que dibuja la ventana. Misma forma que las otras dos dueñas, a propósito.
-   ⚠️ ESTE COMMIT NO MUEVE NI UN VEREDICTO DEL CUADRO: la cascada de abajo es la de HEAD, línea
-   por línea, incluido el `e' promedio < 8` que la guía 2016 no tiene. Lo que cambia es que la
-   VENTANA pasa a dar el veredicto del cuadro. Las correcciones de contenido entran después. */
+   ⚠️ Y SON DOS ALGORITMOS, NO UNO. La Figura 8 del folio 290 trae la 8A —diagnóstico de
+   disfunción con FEVI normal, cuatro variables y la regla de la mitad— y la 8B —presión de
+   llenado y grado con FEVI deprimida, flujo mitral primero y tres criterios después—. La app
+   tenía UNA sola cascada para toda FEVI. La FEVI elige, con el corte del folio 285. */
 function diastASE2016Evaluar() {
   const e = v('onda_e'), a = v('onda_a'), esep = v('e_sep'), elat = v('e_lat');
   const aiVol = v('ai_vol'), bsa = getBSA(), trv = v('vmax_it');
@@ -24692,16 +24693,123 @@ function diastASE2016Evaluar() {
   const cEe   = ee   !== null && ee   > 14;
   const cLavi = lavi !== null && lavi > UMBRAL_LAVI_DILATADO;
   const cTr   = trv  !== null && trv  > 2.8;
+  const ePrimeBajo = (esep !== null && esep < 7) || (elat !== null && elat < 10);
+  const ePrimVal = (esep !== null || elat !== null)
+    ? ('sep ' + (esep !== null ? esep : '—') + ' / lat ' + (elat !== null ? elat : '—')) : null;
+
+  /* ⚠️ LA FEVI ELIGE EL ALGORITMO, Y EL NÚMERO ES DE LA GUÍA. El folio 285 escribe, literal,
+     «patients with normal LVEF (≥50%)», así que normal es `>= 50` y deprimida `< 50`. Se reusa
+     `UMBRAL_FEVI_NORMAL`, que ya vale 50 y gobierna la banda de la FEVI en toda la app: declarar
+     una constante nueva con el mismo número sería el defecto que este archivo ya pagó tres veces.
+     ⚠️ «ENFERMEDAD MIOCÁRDICA CON FEVI NORMAL» TAMBIÉN VA A LA 8B Y LA APP NO PUEDE DETECTARLA.
+     El pie de la Figura 8 lo dice: la 8B es para «patients with depressed LVEFs and patients with
+     myocardial disease and normal LVEF after consideration of clinical and other 2D data» — un
+     juicio clínico sobre datos que esta app no tiene en ningún campo. Esos pacientes corren hoy
+     por la 8A. Queda declarado en docs/PENDIENTES.md y no se infiere de nada.
+     ⚠️ Y LA GUÍA NO MANDA GRADUAR CON LA 8B AL QUE LA 8A DIAGNOSTICÓ. No hay una flecha de la
+     casilla «Diastolic Dysfunction» de la 8A hacia la 8B, ni una frase que lo diga: la condición
+     de entrada a la 8B es la enfermedad miocárdica, no el resultado de la 8A. Por eso la 8A
+     termina en una afirmación SIN GRADO, que es lo que la figura publica. */
+  const fevi = v('fevi');
+  const feviNormal = fevi !== null && fevi >= UMBRAL_FEVI_NORMAL;
+  const feviDeprimida = fevi !== null && fevi < UMBRAL_FEVI_NORMAL;
 
   const R = { e: e, a: a, ea: ea, esep: esep, elat: elat, eprom: eprom, ee: ee,
-              lavi: lavi, trv: trv, filas: [], pos: 0, total: 0, via: '', sdUsado: false };
+              lavi: lavi, trv: trv, fevi: fevi, ePrimeBajo: ePrimeBajo,
+              filas: [], pos: 0, total: 0, via: '', sdUsado: false,
+              algoritmo: feviNormal ? '8A' : '8B' };
 
+  const poner = function (clave, cls, badgeTxt, texto, textoSuma, via) {
+    R.clave = clave; R.cls = cls; R.badgeTxt = badgeTxt;
+    R.texto = texto; R.textoSuma = textoSuma; R.via = via;
+  };
+  const cerrar = function (unidad) {
+    /* El rótulo de la ventana sale del MISMO badge que el cuadro, sin el sufijo del protocolo
+       —que la ventana ya lleva en su título—. Derivarlo en vez de escribirlo dos veces es lo que
+       garantiza que no puedan decir cosas distintas; es la lección que este archivo ya pagó con
+       el `BSE_VENT_TIT` de la tanda de la BSE. */
+    R.ventanaTit = R.badgeTxt.replace(' — ASE 2016', '');
+    R.ventanaDet = R.pos + ' de ' + R.total + ' ' + unidad + (R.via ? ' · ' + R.via : '');
+    return R;
+  };
+
+  /* ══ FIGURA 8A — DIAGNÓSTICO DE DISFUNCIÓN DIASTÓLICA CON FEVI NORMAL (folio 290) ═══════════
+     Cuatro variables de igual peso y la regla de la mitad SOBRE LAS DISPONIBLES, que es como la
+     escribe el folio 281: «LV diastolic function is normal if more than half of the AVAILABLE
+     variables do not meet the cutoff values... The study is inconclusive if half of the
+     parameters do not meet the cutoff values». El ejemplo del mismo folio lo confirma con un
+     denominador de 3: un paciente de 60 años con e' septal 6, E/e' septal 10, Vol AI 30 ml/m² y
+     SIN chorro de IT —o sea 3 disponibles y 1 positiva— tiene función diastólica normal.
+     Los cuatro operadores son estrictos y así los escribe la figura: `> 14`, `< 7`, `< 10`,
+     `> 2.8` y `> 34`. El e' es UNA variable con DOS cortes en OR, no dos variables.
+     ⚠️ LA 8A NO TIENE ATAJOS DE FLUJO MITRAL: la E/A y la onda E no son insumos suyos. Un E/A de
+     2,4 con las cuatro negativas sale «función diastólica normal» por esta vía, y es lo que la
+     figura dice — el grado III es una casilla de la 8B. */
+  if (feviNormal) {
+    [ { ev: ee !== null,                            ok: cEe },
+      { ev: (esep !== null || elat !== null),        ok: ePrimeBajo },
+      { ev: trv !== null,                            ok: cTr },
+      { ev: lavi !== null,                           ok: cLavi }
+    ].forEach(function (c) { if (c.ev) { R.total++; if (c.ok) R.pos++; } });
+
+    R.filas.push({ g: 'Figura 8A — FEVI ≥ ' + UMBRAL_FEVI_NORMAL + ' % · cuatro variables (folio 290)',
+                   crit: 'E/e\' promedio > 14', val: ee, u: '', ok: cEe, dec: 1 });
+    R.filas.push({ crit: 'e\' septal < 7 o lateral < 10 cm/s (una variable, dos cortes en OR)',
+                   val: ePrimVal, u: 'cm/s', ok: ePrimeBajo });
+    R.filas.push({ crit: 'Velocidad IT > 2,8 m/s', val: trv, u: 'm/s', ok: cTr });
+    R.filas.push({ crit: 'Vol AI > ' + UMBRAL_LAVI_DILATADO + ' ml/m²', val: lavi, u: 'ml/m²', ok: cLavi });
+    R.filas.push({ g: 'No son insumos de la 8A (la figura no los mira)',
+                   crit: 'Relación E/A', val: ea, u: '', ok: false, dec: 2 });
+    R.filas.push({ crit: 'Onda E', val: e, u: 'cm/s', ok: false });
+
+    if (R.total === 0) {
+      poner('insuf', 'gray', 'Datos insuficientes — ASE 2016',
+            'Completar los parámetros de función diastólica para clasificar.', null,
+            'ninguna de las cuatro variables de la 8A está medida');
+      return cerrar('variables de la 8A positivas');
+    }
+    if (R.total === 1) {
+      /* ⚠️ CON UNA SOLA VARIABLE NO SE AFIRMA NADA, Y ES UNA DECISIÓN DECLARADA. La regla de la
+         mitad sobre un denominador de 1 convierte un único parámetro en «hay disfunción» o en
+         «es normal», y la guía no tiene rama para eso: su propio ejemplo usa tres. Afirmar
+         cualquiera de las dos cosas sobre un dato solo es exactamente lo que la casa ya corrigió
+         en la ASE 2025 y en la BSE. Se informa indeterminada, que es omitir y no afirmar. */
+      poner('indet', 'gray', 'Indeterminado — ASE 2016',
+            'Función diastólica indeterminada.', 'Función diastólica indeterminada.',
+            'una sola de las cuatro variables está medida');
+      return cerrar('variables de la 8A positivas');
+    }
+    const frac = R.pos / R.total;
+    if (frac > 0.5) {
+      /* La casilla «Diastolic Dysfunction» de la 8A NO lleva grado, y la guía no manda seguir con
+         la 8B: su condición de entrada es la enfermedad miocárdica, no este resultado. La frase
+         lo dice con todas las letras para que nadie lea la ausencia de grado como un olvido. */
+      poner('dd8a', 'orange', 'Disfunción diastólica — ASE 2016',
+            'Disfunción diastólica (' + R.pos + ' de ' + R.total + ' criterios positivos, ASE/EACVI 2016); ' +
+            'el algoritmo para FEVI normal no gradúa.',
+            'Disfunción diastólica.',
+            'más de la mitad de las variables disponibles');
+    } else if (frac < 0.5) {
+      poner('normal', 'green', 'Normal — ASE 2016',
+            'Función diastólica normal.', 'Función diastólica normal.',
+            'menos de la mitad de las variables disponibles');
+    } else {
+      poner('indet', 'gray', 'Indeterminado — ASE 2016',
+            'Función diastólica indeterminada.', 'Función diastólica indeterminada.',
+            'exactamente la mitad de las variables disponibles');
+    }
+    return cerrar('variables de la 8A positivas');
+  }
+
+  /* ══ FIGURA 8B — PRESIÓN DE LLENADO Y GRADO (folio 290) ═════════════════════════════════════
+     Para FEVI deprimida, y —cuando la app pudiera detectarla— para enfermedad miocárdica con
+     FEVI normal. Arranca por el flujo mitral y sigue por los tres criterios de presión. */
   [ { ev: ee   !== null, ok: cEe },
     { ev: lavi !== null, ok: cLavi },
     { ev: trv  !== null, ok: cTr }
   ].forEach(function (c) { if (c.ev) { R.total++; if (c.ok) R.pos++; } });
 
-  /* ══ EL S/D VENOSO PULMONAR — SUSTITUTO DEL CRITERIO QUE FALTA, Y SOLO CON FEVI DEPRIMIDA ══
+  /* ══ EL S/D VENOSO PULMONAR — SUSTITUTO DEL CRITERIO QUE FALTA, Y SÓLO CON FEVI DEPRIMIDA ══
      El pie de la Figura 8 (folio 290) lo escribe entero: «Pulmonary vein S/D ratio <1 applicable
      to conclude elevated LAP in patients with depressed LV EF». El folio 286 pone la otra mitad
      de la condición —«In patients in whom one of the three main criteria is not available»— y
@@ -24716,104 +24824,100 @@ function diastASE2016Evaluar() {
        3. El valor es «< 1». El corte CAE JUSTO en el borde de la opción del <select>, que es lo
           que lo hace usable acá y no en la ASE 2025 —allá el corte es ≤ 0,67 y un S/D de 0,9 es
           «<1» sin cumplirlo—. Es la misma lectura que ya hace la Figura 18 de la BSE.
-     ⚠️ Y SOLO SUMA DEL LADO POSITIVO. La guía escribe «A ratio < 1 is consistent with increased
+     ⚠️ Y SÓLO SUMA DEL LADO POSITIVO. La guía escribe «A ratio < 1 is consistent with increased
      LAP» y no dice nada del ≥ 1, así que un «>1» NO cuenta como un tercer criterio negativo:
      contarlo convertiría un silencio de la fuente en un voto que empuja hacia «presión normal». */
   const sdTok = sv('venp_sd');
-  const feviA16 = v('fevi');
-  const feviDeprimida = feviA16 !== null && feviA16 < UMBRAL_FEVI_NORMAL;
   if (feviDeprimida && R.total === 2 && sdTok === 'menor1') {
     R.total++; R.pos++; R.sdUsado = true;
   }
 
   /* ⚠️ LOS DOS ATAJOS VAN CON `<=` Y CON `>=`, QUE ES LO QUE ESCRIBE LA FIGURA 8B (folio 290):
-     «E/A ≤ 0.8 + E ≤ 50 cm/s» y «E/A ≥ 2». La ventana los dibujaba con `<` estricto en los dos
-     —E/A < 0,8 con E < 50—, así que un E/A de 0,80 exacto (E 40 / A 50, enteros los dos) y una
-     E de 50,0 clavada caían del lado equivocado en la ventana y del correcto en el cuadro. */
+     «E/A ≤ 0.8 + E ≤ 50 cm/s» y «E/A ≥ 2». La ventana los dibujaba con `<` estricto en los dos,
+     así que un E/A de 0,80 exacto (E 40 / A 50, enteros los dos) y una E de 50,0 clavada caían
+     del lado equivocado en la ventana y del correcto en el cuadro. */
   const atajoG1 = ea !== null && ea <= 0.8 && e !== null && e <= 50;
   const atajoG3 = ea !== null && ea >= 2.0;
 
-  R.filas.push({ g: 'Paso 1 — Flujo mitral (Figura 8B, folio 290)',
+  R.filas.push({ g: 'Figura 8B — paso 1 · flujo mitral (folio 290)',
                  crit: 'E/A ≤ 0,8 con E ≤ 50 cm/s → grado I directo', val: ea, u: '', ok: atajoG1, dec: 2 });
   R.filas.push({ crit: 'E/A ≥ 2 → grado III directo', val: ea, u: '', ok: atajoG3, dec: 2 });
   R.filas.push({ crit: 'Onda E (insumo del primer atajo)', val: e, u: 'cm/s', ok: e !== null && e <= 50 });
 
-  R.filas.push({ g: 'Paso 2 — Los tres criterios de presión de llenado',
+  R.filas.push({ g: 'Figura 8B — paso 2 · los tres criterios de presión de llenado',
                  crit: 'E/e\' > 14', val: ee, u: '', ok: cEe, dec: 1 });
   R.filas.push({ crit: 'Velocidad IT > 2,8 m/s', val: trv, u: 'm/s', ok: cTr });
   R.filas.push({ crit: 'Vol AI > ' + UMBRAL_LAVI_DILATADO + ' ml/m²', val: lavi, u: 'ml/m²', ok: cLavi });
-
-  /* ⚠️ EL e' NO VOTA EN LA 8B, Y HASTA HOY DESEMPATABA. La Figura 8B (folio 290) no lo mira por
-     ninguna puerta: sus insumos son el flujo mitral y los tres criterios de arriba. HEAD lo
-     usaba con 0 criterios positivos para elegir entre «Grado I» y «Función diastólica normal»,
-     y con un tercer corte —`e' promedio < 8`— QUE NO EXISTE EN ESTA GUÍA: el folio 281 escribe
-     septal < 7 y lateral < 10, y ningún corte de promedio. Ese 8 se va con el voto.
-     La fila se sigue dibujando porque el e' SÍ es una de las cuatro variables de la 8A, con sus
-     dos cortes propios, y porque un criterio que desaparece de la ventana se lee como un dato
-     que no se cargó. Su rótulo dice a qué algoritmo pertenece. */
-  const ePrimeBajo = (esep !== null && esep < 7) || (elat !== null && elat < 10);
-  const ePrimVal = (esep !== null || elat !== null)
-    ? ('sep ' + (esep !== null ? esep : '—') + ' / lat ' + (elat !== null ? elat : '—')) : null;
-  R.ePrimeBajo = ePrimeBajo;
-  R.filas.push({ g: 'e\' anular — variable de la Figura 8A; la 8B no lo mira',
-                 crit: 'e\' septal < 7 o lateral < 10 cm/s (folios 281 y 290)', val: ePrimVal, u: 'cm/s', ok: ePrimeBajo });
   R.filas.push({ crit: 'S/D venoso pulmonar < 1 — sustituto del criterio que falta, sólo con FEVI < '
                        + UMBRAL_FEVI_NORMAL + ' % (folios 286, 287 y 290)',
-                 val: (sdTok ? (sdTok === 'menor1' ? '< 1' : '> 1') : null), u: '',
-                 ok: R.sdUsado });
+                 val: (sdTok ? (sdTok === 'menor1' ? '< 1' : '> 1') : null), u: '', ok: R.sdUsado });
 
-  const poner = function (clave, cls, badgeTxt, texto, textoSuma, via) {
-    R.clave = clave; R.cls = cls; R.badgeTxt = badgeTxt;
-    R.texto = texto; R.textoSuma = textoSuma; R.via = via;
-  };
+  /* ⚠️ EL e' NO VOTA EN LA 8B. La figura no lo mira por ninguna puerta: sus insumos son el flujo
+     mitral y los tres criterios de arriba. La fila se dibuja igual —el e' SÍ es una de las cuatro
+     variables de la 8A— porque un criterio que desaparece de la ventana se lee como un dato que
+     no se cargó. Su rótulo dice a qué algoritmo pertenece. */
+  R.filas.push({ g: 'e\' anular — variable de la Figura 8A; la 8B no lo mira',
+                 crit: 'e\' septal < 7 o lateral < 10 cm/s (folios 281 y 290)', val: ePrimVal, u: 'cm/s', ok: ePrimeBajo });
+
+  /* ⚠️ SIN FEVI CARGADA LA GUÍA NO PUEDE ELEGIR, Y LA APP NO INVENTA. Se corre la 8B, que es lo
+     que la app hacía hasta esta tanda, y se dice en la ventana. Lo que NO se hace es tratarlo
+     como FEVI deprimida: el S/D no entra, y la rama de «0 positivos» se queda en el «normal» de
+     siempre en vez del grado I que la 8B escribe para su población. */
+  const sufFevi = (fevi === null) ? ' · FEVI sin cargar: se aplica la 8B, que es lo que la app ya hacía' : '';
 
   if (ea === null || R.total < 1) {
     poner('insuf', 'gray', 'Datos insuficientes — ASE 2016', null, null,
-          'sin relación E/A o sin ningún criterio de presión de llenado');
+          'sin relación E/A o sin ningún criterio de presión de llenado' + sufFevi);
   } else if (atajoG1) {
     poner('g1prol', 'yellow', 'Grado I — ASE 2016',
           'Llenado diastólico con patrón de relajación prolongada (Disfunción diastólica Grado I).',
           'Disfunción diastólica Grado I (relajación prolongada).',
-          'atajo E/A ≤ 0,8 con E ≤ 50 cm/s');
+          'atajo E/A ≤ 0,8 con E ≤ 50 cm/s' + sufFevi);
   } else if (atajoG3) {
     poner('g3', 'red', 'Grado III — ASE 2016',
           'Llenado diastólico restrictivo (Disfunción diastólica Grado III).',
           'Disfunción diastólica Grado III (restrictivo).',
-          'atajo E/A ≥ 2');
-  /* ══ LA CAJA DE LOS TRES CRITERIOS DE LA FIGURA 8B (folio 290) ════════════════════════
-     La figura dibuja CUATRO salidas y HEAD implementaba tres, con una equivocada:
+          'atajo E/A ≥ 2' + sufFevi);
+
+  /* ══ LA CAJA DE LOS TRES CRITERIOS DE LA FIGURA 8B (folio 290) ═══════════════════════════════
+     La figura dibuja CUATRO salidas:
        «2 of 3 or 3 of 3 Positive»              → ↑LAP, grado II;
        «2 of 3 or 3 of 3 Negative»              → LAP normal, grado I;
        «1 positive and 1 negative» (2 disp.)    → no se informa;
        y el pie: «LAP indeterminate if only 1 of 3 parameters available».
-     ⚠️ CON TRES CRITERIOS DISPONIBLES Y UNO POSITIVO, HEAD DECÍA «INDETERMINADA» y la guía dice
-     LAP NORMAL, GRADO I. No es una lectura de la figura sola: el folio 286 lo escribe en prosa
-     —«If all three parameters are available for interpretation and only one of three meets the
-     cutoff value, then LAP is normal and there is grade I diastolic dysfunction»— y el Key Point
-     5 del folio 287 lo repite palabra por palabra. Un positivo sobre tres es la rama «2 de 3
-     negativos» mirada del otro lado. La frase es la que la app YA TENÍA para ese estado.
-     ⚠️ Y LA MISMA CUENTA CON DOS DISPONIBLES NO ES LA MISMA RAMA: ahí 1 y 1 es la sub-caja
-     «When only 2 criteria are available → 1 positive and 1 negative», que va a «Cannot determine».
-     El mismo numerador con otro denominador cambia de casilla, así que la condición mira los dos. */
+     ⚠️ EL MISMO NUMERADOR CON OTRO DENOMINADOR CAMBIA DE CASILLA: 1 y 1 sobre DOS disponibles es
+     la sub-caja «When only 2 criteria are available» y va a «Cannot determine»; 1 sobre TRES es
+     la rama «2 de 3 negativos» mirada del otro lado y va a grado I. Por eso las dos condiciones
+     miran el total y no sólo los positivos. */
   } else if (R.pos >= 2) {
     poner('g2', 'orange', 'Grado II — ASE 2016',
           'Llenado diastólico pseudonormal con presiones de llenado elevadas (Disfunción diastólica Grado II).',
           'Disfunción diastólica Grado II (pseudonormal, presiones elevadas).',
-          R.pos + ' de ' + R.total + ' criterios positivos' + (R.sdUsado ? ' (el tercero por S/D < 1)' : ''));
+          R.pos + ' de ' + R.total + ' criterios positivos' + (R.sdUsado ? ' (el tercero por S/D < 1)' : '') + sufFevi);
   } else if (R.pos === 1 && R.total >= 3) {
     poner('g1alt', 'yellow', 'Grado I — ASE 2016',
           'Patrón de relajación alterada con presiones de llenado normales (Disfunción diastólica Grado I).',
           'Disfunción diastólica Grado I (relajación alterada).',
-          '1 de 3 criterios positivos, o sea 2 de 3 negativos');
+          '1 de 3 criterios positivos, o sea 2 de 3 negativos' + sufFevi);
   } else if (R.pos === 1) {
     poner('indet1', 'gray', 'Indeterminado — ASE 2016',
           'Función diastólica indeterminada (1/3 criterios de presión de llenado positivos).',
           'Función diastólica indeterminada.',
-          '1 positivo y 1 negativo con sólo 2 criterios disponibles');
+          '1 positivo y 1 negativo con sólo 2 criterios disponibles' + sufFevi);
   } else if (R.total === 1) {
     poner('indet', 'gray', 'Indeterminado — ASE 2016',
           'Función diastólica indeterminada.', 'Función diastólica indeterminada.',
-          'un solo criterio disponible (pie de la Figura 8)');
+          'un solo criterio disponible (pie de la Figura 8)' + sufFevi);
+  } else if (feviDeprimida) {
+    /* ⚠️ CON 0 POSITIVOS Y FEVI DEPRIMIDA, LA FIGURA DICE «LAP normal, GRADO I» Y NO «normal».
+       Su caja «2 of 3 or 3 of 3 Negative» no desemboca en ninguna casilla de función normal: la
+       8B es el algoritmo de una población en la que la disfunción diastólica ya está dada por la
+       enfermedad de base, y por eso su salida más benigna es el grado I. La app decía «Función
+       diastólica normal» sobre un paciente con FEVI < 50 %. */
+    poner('g1alt', 'yellow', 'Grado I — ASE 2016',
+          'Patrón de relajación alterada con presiones de llenado normales (Disfunción diastólica Grado I).',
+          'Disfunción diastólica Grado I (relajación alterada).',
+          R.total + ' de ' + R.total + ' criterios NEGATIVOS, con FEVI < ' + UMBRAL_FEVI_NORMAL + ' %');
   } else if (ea !== null && ea <= 0.8) {
     /* Criterio EcoSmart, heredado de HEAD y CONSERVADO: un E/A ≤ 0,8 no puede salir «normal» por
        esta rama. El paciente con E/A ≤ 0,8 y E > 50 llega acá por la figura misma, y un cociente
@@ -24821,28 +24925,15 @@ function diastASE2016Evaluar() {
     poner('g1alt', 'yellow', 'Grado I — ASE 2016',
           'Patrón de relajación alterada con presiones de llenado normales (Disfunción diastólica Grado I).',
           'Disfunción diastólica Grado I (relajación alterada).',
-          '0 de ' + R.total + ' criterios positivos, con E/A ≤ 0,8');
+          '0 de ' + R.total + ' criterios positivos, con E/A ≤ 0,8' + sufFevi);
   } else {
-    /* ⚠️ CON 0 POSITIVOS LA FIGURA 8B DICE «LAP normal, grado I» Y ACÁ SIGUE DICIENDO «normal»,
-       A PROPÓSITO Y DECLARADO. La 8B es el algoritmo de la FEVI DEPRIMIDA y de la enfermedad
-       miocárdica con FEVI normal: en esa población «función diastólica normal» no es una salida
-       posible, y por eso su caja de «2 o 3 negativos» dice grado I. Pero esta cascada todavía
-       corre para TODA FEVI, así que aplicar acá esa rama pondría «Grado I» en el informe firmado
-       de cualquier paciente sano con el Doppler normal. La rama fiel entra con la separación por
-       FEVI, donde el paciente de la 8B ya está identificado. */
+    /* SIN FEVI CARGADA la rama fiel de arriba no se aplica: el «Grado I» de la 8B vale para su
+       población y acá no se sabe cuál es. Se conserva lo que la app publicaba. */
     poner('normal', 'green', 'Normal — ASE 2016',
           'Función diastólica normal.', 'Función diastólica normal.',
-          '0 de ' + R.total + ' criterios positivos');
+          '0 de ' + R.total + ' criterios positivos' + sufFevi);
   }
-
-  /* El rótulo de la ventana sale del MISMO badge que el cuadro, sin el sufijo del protocolo —que
-     la ventana ya lleva en su título—. Derivarlo en vez de escribirlo dos veces es lo que
-     garantiza que no puedan decir cosas distintas; es la lección que este archivo ya pagó con el
-     `BSE_VENT_TIT` de la tanda de la BSE. */
-  R.ventanaTit = R.badgeTxt.replace(' — ASE 2016', '');
-  R.ventanaDet = R.pos + ' de ' + R.total + ' criterios de presión de llenado positivos'
-               + (R.via ? ' · ' + R.via : '');
-  return R;
+  return cerrar('criterios de presión de llenado positivos');
 }
 window.diastASE2016Evaluar = diastASE2016Evaluar;
 
