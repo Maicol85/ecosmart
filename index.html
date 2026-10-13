@@ -24803,18 +24803,55 @@ window.calcDiastolASE2025 = calcDiastolASE2025;
    disfunción con FEVI normal, cuatro variables y la regla de la mitad— y la 8B —presión de
    llenado y grado con FEVI deprimida, flujo mitral primero y tres criterios después—. La app
    tenía UNA sola cascada para toda FEVI. La FEVI elige, con el corte del folio 285. */
+/* ⚠️ EL E/e' TIENE UN CORTE POR SITIO, Y ES UN REEMPLAZO Y NO UN OR. El folio 281 escribe las dos
+   mitades de la regla en la misma oración: «It is recognized that at times **only the lateral e' or
+   septal e' velocity is available** and clinically valid and in these circumstances a lateral E/e'
+   ratio > 13 or a septal E/e' > 15 is considered abnormal», y la cierra diciendo para quién es:
+   «The latter sentence applies to **laboratories that acquire only septal or lateral velocities**».
+   O sea: con UN anillo manda el corte de ESE sitio, y con los DOS manda el promedio y nada más.
+   ⚠️ NO ES EL «OR DE TRES ALTERNATIVAS» DE LA ASE 2025, y la diferencia está medida: la Figura 3
+   del folio 554 de la ASE 2025 escribe «Increased E/e': septal ≥ 15 **or** lateral ≥ 13 **or**
+   average ≥ 14» como tres caminos simultáneos, así que allá un cociente septal de 15 con un
+   promedio de 13 es POSITIVO. Acá no: esta guía ofrece los cortes por sitio para el laboratorio
+   que no mide los dos anillos. Tratarlos como alternativas ampliaría el criterio a pacientes que
+   la fuente no nombra, que es lo contrario de lo que esta casa hace con una discrepancia.
+   Es la MISMA lectura que la BSE 2024 ya tiene cableada en esta app, con su propia cita.
+   ⚠️ Y LOS TRES OPERADORES SON `>` ESTRICTO, no el `>=` de la ASE 2025: «average E/e' ratio > 14»
+   (folio 281, en el enunciado de las cuatro variables y en el Key Point 1), «> 13» y «> 15». Un
+   E/e' de 14,00 exacto es NEGATIVO acá. El valor se alcanza con enteros (E 98 y e' 7,0), así que
+   no es teórico.
+   EN HEAD EL CORTE ERA EL DEL PROMEDIO PARA LOS TRES CASOS: `eprom` valía el anillo único y `ee`
+   se comparaba contra 14. Medido: con el e' septal solo en 7,0, una onda E de 104 daba E/e' 14,86
+   y salía POSITIVO cuando su corte es 15; y con el lateral solo en 8,0, una E de 105 daba 13,13 y
+   salía negativo cuando su corte es 13. Los dos casos movían el conteo de la 8A y de la 8B. */
+const ASE16_EE_PROM    = 14;   // E/e' promedio, con los DOS anillos, borde `>` (folio 281)
+const ASE16_EE_SEPTAL  = 15;   // E/e' septal, SOLO cuando falta el lateral, borde `>` (folio 281)
+const ASE16_EE_LATERAL = 13;   // E/e' lateral, SOLO cuando falta el septal, borde `>` (folio 281)
+
 function diastASE2016Evaluar() {
   const e = v('onda_e'), a = v('onda_a'), esep = v('e_sep'), elat = v('e_lat');
   const aiVol = v('ai_vol'), bsa = getBSA(), trv = v('vmax_it');
   /* `(esep && elat)` y la cadena de `||` son las de HEAD y se conservan a propósito: un e' de 0
-     queda leído como «no medido», que es lo conservador. Con `!== null`, un 0 tipeado por error
-     daría un E/e' infinito y un criterio POSITIVO sobre un dato que no existe. */
+     queda leído como «no medido», que es lo conservador. Con `!== null`, un E/e' infinito daría
+     un criterio POSITIVO sobre un dato que no existe. */
   const eprom = (esep && elat) ? ((esep + elat) / 2) : (esep || elat || null);
   const ee = (e && eprom) ? (e / eprom) : null;
+  /* EL SITIO Y SU CORTE, derivados del MISMO `eprom` que ya se usaba: con los dos anillos `eprom`
+     es el promedio de verdad y el corte es 14; con uno solo, `eprom` ES ese anillo y el corte es
+     el suyo. Se informan los dos para que la fila de la ventana diga contra qué comparó — un
+     cociente sin su corte al lado no dice si el criterio se cumple por el dato o por el umbral. */
+  const eeSitio = (esep && elat) ? 'promedio' : (esep ? 'septal' : (elat ? 'lateral' : null));
+  const eeCorte = (eeSitio === 'promedio') ? ASE16_EE_PROM
+                : (eeSitio === 'septal')   ? ASE16_EE_SEPTAL
+                : (eeSitio === 'lateral')  ? ASE16_EE_LATERAL : null;
   const lavi = (aiVol && bsa) ? (aiVol / bsa) : null;
   const ea = (e && a) ? (e / a) : null;
 
-  const cEe   = ee   !== null && ee   > 14;
+  /* El sufijo declara por qué el corte es el del sitio y no el del promedio: sin él, la fila
+     muestra un umbral distinto del que el médico espera y no dice de dónde salió. */
+  const eeSufSitio = (eeSitio === 'promedio' || eeSitio === null) ? ''
+    : ' (sólo el ' + eeSitio + ' está medido; folio 281)';
+  const cEe   = ee   !== null && eeCorte !== null && ee > eeCorte;
   const cLavi = lavi !== null && lavi > UMBRAL_LAVI_DILATADO;
   const cTr   = trv  !== null && trv  > 2.8;
   const ePrimeBajo = (esep !== null && esep < 7) || (elat !== null && elat < 10);
@@ -24877,7 +24914,9 @@ function diastASE2016Evaluar() {
     ].forEach(function (c) { if (c.ev) { R.total++; if (c.ok) R.pos++; } });
 
     R.filas.push({ g: 'Figura 8A — FEVI ≥ ' + UMBRAL_FEVI_NORMAL + ' % · cuatro variables (folio 290)',
-                   crit: 'E/e\' promedio > 14', val: ee, u: '', ok: cEe, dec: 1 });
+                   crit: 'E/e\' ' + (eeSitio || 'promedio') + ' > '
+                         + (eeCorte === null ? ASE16_EE_PROM : eeCorte) + eeSufSitio,
+                   val: ee, u: '', ok: cEe, dec: 1 });
     R.filas.push({ crit: 'e\' septal < 7 o lateral < 10 cm/s (una variable, dos cortes en OR)',
                    val: ePrimVal, u: 'cm/s', ok: ePrimeBajo });
     R.filas.push({ crit: 'Velocidad IT > 2,8 m/s', val: trv, u: 'm/s', ok: cTr });
@@ -24972,7 +25011,9 @@ function diastASE2016Evaluar() {
   R.filas.push({ crit: 'Onda E (insumo del primer atajo)', val: e, u: 'cm/s', ok: e !== null && e <= 50 });
 
   R.filas.push({ g: 'Figura 8B — paso 2 · los tres criterios de presión de llenado',
-                 crit: 'E/e\' > 14', val: ee, u: '', ok: cEe, dec: 1 });
+                 crit: 'E/e\' ' + (eeSitio || 'promedio') + ' > '
+                       + (eeCorte === null ? ASE16_EE_PROM : eeCorte) + eeSufSitio,
+                 val: ee, u: '', ok: cEe, dec: 1 });
   R.filas.push({ crit: 'Velocidad IT > 2,8 m/s', val: trv, u: 'm/s', ok: cTr });
   R.filas.push({ crit: 'Vol AI > ' + UMBRAL_LAVI_DILATADO + ' ml/m²', val: lavi, u: 'ml/m²', ok: cLavi });
   R.filas.push({ crit: 'S/D venoso pulmonar < 1 — sustituto del criterio que falta, sólo con FEVI < '
