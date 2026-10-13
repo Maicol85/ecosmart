@@ -4138,7 +4138,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                aviso se repinte cuando el dato entra por esta puerta. -->
           <div class="fg">
             <label>AVA planimetría (cm²)</label>
-            <input type="number" id="ava_plan_dop" placeholder="cm²" step="0.01" oninput="avaPlanSync('ava_plan_dop');avaPlanPintar()">
+            <input type="number" id="ava_plan_dop" placeholder="cm²" step="0.01" oninput="avaPlanEditado('ava_plan_dop')">
           </div>
           <!-- ⚠️ VLI: OCULTO, NO BORRADO, y la primera versión de este bloque SÍ lo borró — lo
                cazó la sonda A/B, no una lectura: `campos` perdía la clave `vli_calc` en las cinco
@@ -4212,6 +4212,16 @@ window.cerrarSesionReal = cerrarSesionReal;
           <div class="calc-row"><span class="calc-lbl">V. máx</span><span id="ao-ref-vmax">—</span></div>
           <div class="calc-row"><span class="calc-lbl">G. medio</span><span id="ao-ref-gmed">—</span></div>
           <div class="calc-row"><span class="calc-lbl">AVA continuidad</span><span id="ao-ref-ava">—</span></div>
+          <!-- ⚠️ TRES FILAS NUEVAS (2026-10-13), y no son decorativas: son las tres variables que
+               esta tanda hizo VOTAR. Sin ellas, el médico carga el AVA por planimetría o los dos
+               VTI del DVI, el grado cambia, y el cuadro que él llama «las referencias» no dice por
+               qué — que es el síntoma (b) y (c) del reporte. Van PEGADAS al AVA por continuidad
+               porque las tres miden lo mismo que esa fila o derivan de ella.
+               Es SÓLO pantalla, igual que las ocho de al lado: ningún generador de informe, EN
+               SUMA, PDF, PPT ni Excel lee estos nodos. -->
+          <div class="calc-row"><span class="calc-lbl">AVA planimetría</span><span id="ao-ref-plan">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">AVA indexada</span><span id="ao-ref-avai">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">DVI</span><span id="ao-ref-dvi">—</span></div>
           <div class="calc-row"><span class="calc-lbl">Cociente TAC/TE</span><span id="ao-ref-tacte">—</span></div>
           <div class="calc-row"><span class="calc-lbl">AVA Tango</span><span class="calc-val" id="ao-ref-tango">—</span></div>
           <div class="calc-row"><span class="calc-lbl">Vol. sistólico</span><span class="calc-val" id="ao-ref-vs">—</span></div>
@@ -5697,7 +5707,7 @@ window.cerrarSesionReal = cerrarSesionReal;
             <!-- ⚠️ MISMO DATO QUE `ava_plan_dop` DEL DOPPLER AÓRTICO (2026-10-06). El espejo va
                     PRIMERO y `avaPlanPintar` —que es el dueño del aviso— despu&eacute;s, igual que el
                     `oninput` de la otra puerta. Ver `avaPlanSync`. -->
-            <input type="number" id="ava_plan" placeholder="cm&sup2;" step="0.01" oninput="avaPlanSync('ava_plan');avaPlanPintar()">
+            <input type="number" id="ava_plan" placeholder="cm&sup2;" step="0.01" oninput="avaPlanEditado('ava_plan')">
             <div id="ava-plan-aviso" style="font-size:10px;color:var(--yellow);margin-top:4px;min-height:0;"></div>
           </div>
             </div>
@@ -19845,11 +19855,23 @@ function calcBSA() {
        poder calcularse — el MISMO argumento que las tres líneas de abajo (el VLI, el espejo del
        TAVI y el PPM) y la misma lección que esta función ya escribe dos veces. Sin esto, borrar el
        peso dejaba «AVA indexada 1,81 cm²/m²» en el cuadro de Válvulas sobre un estudio sin ASC.
-       ⚠️ NO SE LLAMA A `calcAo()` ACÁ, aunque la rama con datos sí lo haga. `calcAo` escribe el
-       GRADO —`sugerirSeveridadEA`, `clasificarEA_Vmax`, `valvAutoPrenderEsten`—, y borrar el peso
-       no puede mover una afirmación de severidad: es la regla de esta tanda («nada de la cola de
-       calcAo, del grado ni del aviso»). Se escribe el estado vacío y nada más. */
+       ⚠️ ESTE PÁRRAFO DECÍA «NO SE LLAMA A `calcAo()` ACÁ» Y SE DIO VUELTA EL 2026-10-13. Decía,
+       textual: «`calcAo` escribe el GRADO —`sugerirSeveridadEA`, `clasificarEA_Vmax`,
+       `valvAutoPrenderEsten`—, y borrar el peso no puede mover una afirmación de severidad».
+       Era cierto mientras la ASC no fuera insumo del grado, y dejó de serlo cuando el **AVA
+       INDEXADA pasó a votar**: desde entonces el grado puede estar sostenido por `AVA/ASC`, y sin
+       recalcular acá, borrar el peso deja en el `<select>` —y de ahí en el informe FIRMADO, el
+       EN SUMA, el PDF, el Excel y el Laboratorio— una severidad apoyada en un peso que ya no
+       existe. Es exactamente el defecto que `_eaAvaiSinBSA`, dos líneas más abajo, vino a cerrar
+       del lado de la PANTALLA, con el grado quedándose corto por el otro lado.
+       ⚠️ Y SÓLO PUEDE BAJAR EL GRADO, nunca subirlo, así que no reabre lo que aquella regla
+       protegía: sin ASC, `_eaCritAvai` se ABSTIENE —devuelve `null`— y el peor de los criterios
+       restantes es, por construcción, igual o más leve. El retiro del grado que la app sugirió ya
+       tiene su mecanismo (`_eaRetirarGradoSugerido`, por `dataset.sugerido`), así que un grado que
+       el médico fijó a mano no se toca. */
     if (typeof _eaAvaiSinBSA === 'function') _eaAvaiSinBSA();
+    if (typeof calcAo === 'function') { try { calcAo(); } catch (e) {} }
+    if (typeof calcEADetalle === 'function') { try { calcEADetalle(); } catch (e) {} }
     /* El gemelo mitral, por el MISMO argumento y en la misma rama. Ver `_emAvmiSinBSA`. */
     if (typeof _emAvmiSinBSA === 'function') _emAvmiSinBSA();
     /* El AVAi del espejo del TAVI se deriva de la superficie corporal, así que esta salida temprana
@@ -31081,6 +31103,27 @@ function aoPlaus(id){ return _aoPlausDe(id, (typeof v === 'function') ? v(id) : 
    nada, no llama a ninguna cascada y no toca `ea_grado` — si lo hiciera estaría votando, que es
    exactamente lo que la decisión de Maicol excluye. El aviso se escribe con `textContent` y no con
    `innerHTML`: el texto lleva el valor CRUDO que tipeó el médico, o sea un dato de usuario. */
+/* ⚠️ EL GESTO DE EDITAR EL AVA POR PLANIMETRÍA TIENE UN SOLO DUEÑO DESDE EL 2026-10-13, y hacía
+   falta porque desde hoy ese campo VOTA. Sus dos puertas —`ava_plan` en Válvulas y
+   `ava_plan_dop` en el Doppler— llevaban `avaPlanSync(...);avaPlanPintar()` en el marcado, que
+   espeja y dice si el valor es plausible y NADA MÁS: ninguna de las dos corría la cadena que
+   escribe el grado. Sin esto, tipear 0,9 cm² dejaba el `<select>`, la pastilla, los dos recuadros
+   y el informe firmado exactamente como estaban — que es el síntoma (c) del reporte del médico,
+   reaparecido por el otro lado.
+   Es `calcAo()` + `calcEADetalle()` y en ese orden, que es el de la cadena de siempre
+   (`syncEADesdeValvulas → calcAo → clasificarEA_Vmax → calcEADetalle`): la última es la que gana,
+   y llamarla sola dejaría sin correr a `clasificarEA_Vmax`, que es la otra escritora del grado.
+   ⚠️ UN NOMBRE Y NO DOS COPIAS EN EL MARCADO: con la cadena escrita en cada `oninput`, el día que
+   se agregue un paso la puerta que se olvida publica un grado distinto del de la otra sobre el
+   mismo dato. Es el patrón de `eaParEditado`, que la aórtica ya usa para sus cinco campos. */
+function avaPlanEditado(origenId){
+  try { avaPlanSync(origenId); } catch (e) {}
+  try { avaPlanPintar(); } catch (e) {}
+  if (typeof calcAo === 'function') { try { calcAo(); } catch (e) {} }
+  if (typeof calcEADetalle === 'function') { try { calcEADetalle(); } catch (e) {} }
+}
+window.avaPlanEditado = avaPlanEditado;
+
 function avaPlanPintar(){
   const el = document.getElementById('ava-plan-aviso');
   if (!el) return;
@@ -31131,8 +31174,12 @@ function _aoFuera(p, rotulo, uni){
    «severa» y el médico CONFIRMA «severa» con la pastilla. Ahí `aplicar()` reescribe el mismo
    valor, así que la marca sigue coincidiendo y sin esta guarda se retiraría una severidad que el
    médico acaba de ratificar. Falla cerrado: ante cualquier señal de decisión humana, no se toca. */
+/* ⚠️ `ava_plan` ENTRA EL 2026-10-13, y es por lo mismo que los otros seis: desde que vota, un
+   valor suyo fuera de banda tiene que RETIRAR el grado que la app sugirió, no sólo dejar de
+   escribir uno nuevo. Su banda sale de `AO_BANDA_PLAUS.ava_plan [0.2, 8]`, que es la que la app ya
+   declaraba para ese campo cuando sólo servía para leer. */
 const EA_GRADO_INSUMOS = Object.freeze(
-  ['vmax_ao', 'gmedio_ao', 'itv_ao', 'itv_tsvi', 'diam_tsvi', 'ava_cont']);
+  ['vmax_ao', 'gmedio_ao', 'itv_ao', 'itv_tsvi', 'diam_tsvi', 'ava_cont', 'ava_plan']);
 /* `ava_cont` entra aunque sea DERIVADO, y es el que cierra el caso de los errores que se
    compensan: con el Ø TSVI en cm (2) y el VTI aórtico en metros (1) los dos errores se anulan y el
    AVA cae en 0,63 cm² —dentro de banda y falso—, de modo que `clasificarEA_Vmax` no ve ninguna
@@ -32039,6 +32086,101 @@ function _eaPeorGrado(a, b){
   if (!vb) return va;
   return (EA_GRADO_ORDEN[vb] > EA_GRADO_ORDEN[va]) ? vb : va;
 }
+/* ══ LOS TRES CRITERIOS QUE SE SUMAN EL 2026-10-13 ════════════════════════════════════════════
+   El DVI, el AVA por PLANIMETRÍA y el AVA INDEXADA estaban medidos, mostrados y SIN VOTAR. Los
+   tres cortes salen de la **Tabla 3 de la EAE/ASE 2009, p. 10** (folio verificado en el pie
+   impreso; tabla leída de la imagen a 230 dpi) y, donde la **ESC/EACTS 2025** publica el suyo —
+   folio 4663, también verificado en el pie—, gana el de la guía vigente, que es la primera de la
+   prioridad.
+
+   ⚠️ LAS TRES SÓLO PUEDEN AGRAVAR, Y ESO ES UNA DECISIÓN DECLARADA, NO UN OLVIDO. La banda más
+   leve de las tres en la Tabla 3 —`>0.50` para el DVI, `>1.5` para el AVA, `>0.85` para el AVA
+   indexada— NO tiene cota que la separe de lo NORMAL: un DVI de 0,9, un área de 3,5 cm² y un AVA
+   indexada de 1,8 son los de un corazón sano y caen todos en la columna «Mild». Votar 'leve' ahí
+   pondría «EAo leve.» en el informe FIRMADO de todo paciente al que se le mida el área, y la
+   propia guía dice en esa misma página que el AVA normal del adulto es de 3,0 a 4,0 cm². Por eso
+   devuelven `null` —«este criterio no se pronuncia»— en vez de 'leve' o de 'sin': es la misma
+   convención del gradiente medio y la de `IA_VMAX_TD_SEVERA` en la IAo. Queda en `PENDIENTES.md`.
+   ⚠️ Y NO DEVUELVEN `'sin'` TAMPOCO, que es la otra salida que parecía razonable. El AVA por
+   CONTINUIDAD sí emite `'sin'` con `>=1.5`, y se queda como está —es su comportamiento vigente—,
+   pero copiarlo a estos tres sería afirmar ausencia de estenosis desde un área ANATÓMICA, que es
+   sistemáticamente mayor que la efectiva (ver `_eaCritPlan`), o desde un cociente que la guía sólo
+   usa «cuando los otros parámetros son equívocos».
+
+   ⚠️ ESTAS TRES CONSULTAN SU BANDA DE PLAUSIBILIDAD Y LAS TRES VIEJAS NO, y la asimetría es a
+   propósito. `eaGradoCalculado` declara que no mira bandas porque sus tres llamadores ya tienen la
+   guarda puesta para `vmax_ao`, `gmedio_ao` y `ava_cont`. Para estos tres no la tiene NINGUNO, así
+   que sin consultarla acá no se consultaría en ningún lado y un área por planimetría de 50 cm²
+   —tipeada en mm²— votaría como si fuera legible. Se consulta sólo para los nuevos: lo viejo no se
+   mueve ni un byte. */
+/* DVI = VTI TSVI / VTI Ao. No es un campo: es el cociente que `calcAo` pinta en `dvi-val`, y acá
+   se recalcula de sus DOS insumos en vez de parsear ese nodo —el nodo publica texto («—  (revisar
+   la unidad…)») justamente para que nadie lo lea como número, que es la guarda que `calcAo`
+   documenta para el veredicto protésico—.
+   Cortes: severa `<0,25` (ESC/EACTS 2025, folio 4663: «<0.25 suggests that severe AS is highly
+   likely»; la Tabla 3 de 2009 escribe el mismo `<0.25`) · moderada `0,25-0,50` (Tabla 3, fila
+   «Velocity ratio»). El 0,25 exacto cae en MODERADA, que es lo que la tabla escribe y lo
+   conservador: el corte severo es estricto en las dos fuentes. */
+const EA_DVI_SEV_MAX = 0.25;   // < 0,25 severa  (ESC/EACTS 2025 f.4663 · EAE/ASE 2009 Tabla 3)
+const EA_DVI_MOD_MAX = 0.50;   // 0,25 a 0,50 moderada  (EAE/ASE 2009, Tabla 3, p. 10)
+function _eaCritDvi() {
+  const pT = aoPlaus('itv_tsvi'), pA = aoPlaus('itv_ao');
+  if (pT.fuera || pA.fuera) return { val: null, grado: null, motivo: 'fuera de banda' };
+  const t = pT.val, a = pA.val;
+  if (t === null || a === null || !(a > 0)) return { val: null, grado: null, motivo: null };
+  const d = t / a;
+  if (!isFinite(d) || !(d > 0)) return { val: null, grado: null, motivo: null };
+  return { val: d, motivo: null,
+           grado: (d < EA_DVI_SEV_MAX) ? 'severa'
+                : (d <= EA_DVI_MOD_MAX) ? 'moderada' : null };
+}
+/* AVA por PLANIMETRÍA. Usa los MISMOS predicados que el AVA por continuidad —`avaEsSevera` y
+   `avaEsModerada`— y no una segunda copia de los cortes: es la misma magnitud física medida por
+   otro método, y el día que `AVA_SEVERA_MAX` se mueva tiene que moverse con él. Es además lo que
+   la orden pide verificar, y la verificación da esto:
+   ⚠️ LA GUÍA NO APLICA LOS MISMOS CORTES A LAS TRES FORMAS DE MEDIR EL AVA, Y HAY QUE DECIRLO.
+   La Tabla 3 escribe «AVA (cm²)» sin calificar el método, pero el §B.2.3 de la p. 8 dice que la
+   planimetría mide el área ANATÓMICA y que «effective, rather than anatomic, orifice area is the
+   primary predictor of outcome», y la presenta como «an acceptable alternative when Doppler
+   estimation of flow velocities is unreliable» — o sea una alternativa, no un votante paralelo. Y
+   la ESC/EACTS 2025 publica un corte DISTINTO para la planimetría por TC o RM (1,2 cm²; nota f de
+   la Figura 6, folio 4664). El área anatómica es sistemáticamente MAYOR que la efectiva, así que
+   con los mismos cortes la planimetría tiende a subestimar la severidad — que es la dirección
+   conservadora para una variable que sólo puede agravar. Se aplican los de la Tabla 3 porque son
+   los ÚNICOS publicados para planimetría ECOCARDIOGRÁFICA; queda declarado en `PENDIENTES.md`. */
+function _eaCritPlan() {
+  const p = aoPlaus('ava_plan');
+  if (p.fuera) return { val: null, grado: null, motivo: 'fuera de banda' };
+  const n = _avaNum(p.val);
+  if (n === null) return { val: null, grado: null, motivo: null };
+  return { val: n, motivo: null,
+           grado: avaEsSevera(n) ? 'severa' : (avaEsModerada(n) ? 'moderada' : null) };
+}
+/* AVA INDEXADA = AVA por continuidad / ASC. Es un DERIVADO del AVA, no un campo, y por eso hereda
+   su validez: se calcula del mismo `ava_cont` que el criterio de área ya consulta.
+   Cortes: severa `<=0,6` (ESC/EACTS 2025, folio 4663: «AVA <=1 cm2 (or <=0.6 cm2/m2)» — gana sobre
+   el `<0.6` de la Tabla 3 por la prioridad) · moderada `0,60-0,85` (Tabla 3, p. 10). El 0,60
+   exacto cae del lado SEVERO, que es el de la guía vigente, y las dos bandas no se solapan porque
+   la de moderada arranca estrictamente por encima.
+   ⚠️ SIN PESO O SIN TALLA NO HAY ASC Y EL CRITERIO NO VOTA, en vez de votar con la ASC del
+   paciente anterior: `getBSA()` devuelve `null` y acá se sale. Es el mismo `else` que `calcAo` ya
+   tiene para no publicar un AVA indexada sostenido por otro peso. */
+const EA_AVAI_SEV_MAX = 0.6;    // <= 0,6 severa  (ESC/EACTS 2025, folio 4663)
+const EA_AVAI_MOD_MAX = 0.85;   // > 0,6 a 0,85 moderada  (EAE/ASE 2009, Tabla 3, p. 10)
+function _eaCritAvai(avaNum) {
+  if (avaNum === null || !(avaNum > 0)) return { val: null, grado: null, motivo: null };
+  const bsa = (typeof getBSA === 'function') ? getBSA() : null;
+  if (!bsa || !(bsa > 0)) return { val: null, grado: null, motivo: 'sin ASC' };
+  const i = avaNum / bsa;
+  if (!isFinite(i) || !(i > 0)) return { val: null, grado: null, motivo: null };
+  return { val: i, motivo: null,
+           grado: (i <= EA_AVAI_SEV_MAX) ? 'severa'
+                : (i <= EA_AVAI_MOD_MAX) ? 'moderada' : null };
+}
+window.EA_DVI_SEV_MAX = EA_DVI_SEV_MAX; window.EA_DVI_MOD_MAX = EA_DVI_MOD_MAX;
+window.EA_AVAI_SEV_MAX = EA_AVAI_SEV_MAX; window.EA_AVAI_MOD_MAX = EA_AVAI_MOD_MAX;
+window._eaCritDvi = _eaCritDvi; window._eaCritPlan = _eaCritPlan; window._eaCritAvai = _eaCritAvai;
+
 function eaGradoCalculado() {
   const vmax = v('vmax_ao'), gmedio = v('gmedio_ao'), avaCrudo = v('ava_cont');
   /* `avaEsValida` falla CERRADO ante vacío, NaN, 0 y negativos, que es el fail-open que la aórtica
@@ -32072,12 +32214,37 @@ function eaGradoCalculado() {
      discrepancia de R2 nombre el criterio que de verdad lo decidió y no «velocidad» por defecto. */
   const criterioVelGrad = (gGrad && gVelGrad === gGrad &&
       (gVel === null || EA_GRADO_ORDEN[gGrad] > EA_GRADO_ORDEN[gVel])) ? 'gradiente' : 'velocidad';
-  const grado = _eaPeorGrado(gVelGrad, gAva);
+  /* ⚠️ HASTA ACÁ TODO ES BYTE POR BYTE LO DE HEAD, Y ESO NO ES CASUALIDAD: ES EL DISEÑO. Los tres
+     criterios nuevos se aplican DESPUÉS, sobre el grado que los tres viejos ya dieron, y sólo
+     pueden empeorarlo. La consecuencia es un control negativo CONSTRUIDO y no medido a posteriori:
+     en toda escena donde ninguno de los tres se pronuncie, `grado`, `criterio`, `gVel`, `gGrad`,
+     `gAva`, `gVelGrad` y `criterioVelGrad` valen exactamente lo que valían antes del 2026-10-13.
+     Fundirlos en un solo `_eaPeorGrado` de seis habría dado el mismo número y habría hecho
+     imposible afirmar esa igualdad sin medirla escena por escena. */
+  const _gradoPrev = _eaPeorGrado(gVelGrad, gAva);
   let criterio = null;
-  if (grado) criterio = (gAva && grado === gAva && (!gVelGrad || EA_GRADO_ORDEN[gAva] > EA_GRADO_ORDEN[gVelGrad]))
+  if (_gradoPrev) criterio = (gAva && _gradoPrev === gAva && (!gVelGrad || EA_GRADO_ORDEN[gAva] > EA_GRADO_ORDEN[gVelGrad]))
     ? 'AVA' : criterioVelGrad;
+  /* Los tres de esta tanda, cada uno con su valor al lado del grado para que el badge pueda
+     nombrar el número que votó y no sólo el veredicto. */
+  const cDvi = _eaCritDvi(), cPlan = _eaCritPlan(), cAvai = _eaCritAvai(ava);
+  /* El orden de esta lista es el de la DESEMPATE, no el de la cuenta: con dos criterios nuevos
+     empatados en el mismo grado, el badge nombra el primero. Va el DVI primero porque es el único
+     de los tres que la ESC/EACTS 2025 publica por su cuenta (folio 4663). */
+  const _NUEVOS = [{ c: cDvi, n: 'DVI' }, { c: cPlan, n: 'AVA por planimetría' },
+                   { c: cAvai, n: 'AVA indexada' }];
+  let grado = _gradoPrev;
+  _NUEVOS.forEach(function (x) {
+    const g = _eaPeorGrado(grado, x.c.grado);
+    /* `!==` y no «es peor»: `_eaPeorGrado` ya eligió el peor, así que un cambio de valor sólo
+       puede ser hacia arriba. Preguntar por el cambio y no recomparar el orden evita una segunda
+       copia de la comparación, que es por donde se separan dos mitades del mismo criterio. */
+    if (g !== grado) { grado = g; criterio = x.n; }
+  });
   return { grado: grado, criterio: criterio, gVel: gVel, gGrad: gGrad, gAva: gAva,
            gVelGrad: gVelGrad, criterioVelGrad: criterioVelGrad,
+           gDvi: cDvi.grado, gPlan: cPlan.grado, gAvai: cAvai.grado,
+           dvi: cDvi.val, plan: cPlan.val, avai: cAvai.val,
            vmax: vmax, gmedio: gmedio, ava: ava };
 }
 window.eaGradoCalculado = eaGradoCalculado;
@@ -32089,7 +32256,8 @@ window.EA_GRADO_ORDEN = EA_GRADO_ORDEN;
    ahora sale del peor y un badge que nombra uno solo oculta cuál ganó. */
 function _eaBadgeAuto(R) {
   if (!R.grado) return 'No alcanza para graduar la estenosis aórtica automáticamente: cargá la Vmax, ' +
-    'el gradiente medio o los tres insumos del AVA por continuidad.';
+    'el gradiente medio, los tres insumos del AVA por continuidad, los dos VTI del DVI o el AVA ' +
+    'por planimetría.';
   const partes = [];
   if (R.vmax !== null)   partes.push('Vmax ' + R.vmax + ' m/s (' + EA_GRADO_TXT[R.gVel] + ')');
   /* El número sale de `EA_BANDAS` y no se tipea: el día que el corte se mueva, el badge se mueve
@@ -32098,6 +32266,16 @@ function _eaBadgeAuto(R) {
   if (R.gmedio !== null) partes.push('G. medio ' + R.gmedio + ' mmHg (' +
     (R.gGrad ? EA_GRADO_TXT[R.gGrad] : 'no gradúa por debajo de ' + EA_BANDAS.gmedModMin) + ')');
   if (R.ava !== null)    partes.push('AVA ' + R.ava.toFixed(2) + ' cm² (' + EA_GRADO_TXT[R.gAva] + ')');
+  /* ⚠️ LOS TRES NUEVOS DICEN «no gradúa» Y NO «sin estenosis» CUANDO SE ABSTIENEN, y es la misma
+     distinción que el gradiente: `EA_GRADO_TXT[null]` es `undefined` y habría impreso eso.
+     Nombran el corte que los hace abstenerse para que el médico vea por qué ese número no movió
+     nada — si no, un criterio cargado que no aparece en el badge se lee como un criterio perdido. */
+  if (R.dvi  != null)    partes.push('DVI ' + R.dvi.toFixed(2) + ' (' +
+    (R.gDvi ? EA_GRADO_TXT[R.gDvi] : 'no gradúa por encima de ' + EA_DVI_MOD_MAX.toFixed(2)) + ')');
+  if (R.plan != null)    partes.push('AVA planimetría ' + R.plan.toFixed(2) + ' cm² (' +
+    (R.gPlan ? EA_GRADO_TXT[R.gPlan] : 'no gradúa por encima de ' + EA_BANDAS.avaSinMin.toFixed(1)) + ')');
+  if (R.avai != null)    partes.push('AVA indexada ' + R.avai.toFixed(2) + ' cm²/m² (' +
+    (R.gAvai ? EA_GRADO_TXT[R.gAvai] : 'no gradúa por encima de ' + EA_AVAI_MOD_MAX.toFixed(2)) + ')');
   return 'Grado calculado: ' + _eaCap(EA_GRADO_TXT[R.grado]) + ' — el peor de los criterios cargados, por ' +
     R.criterio + '. ' + partes.join(' · ') + '. ESC/EACTS 2025. Editable manualmente.';
 }
@@ -35435,6 +35613,28 @@ function aoRefPintar() {
     set('ao-ref-ava', '<b>' + ava.toFixed(2) + ' cm²</b> ' +
       (g ? grado(g) + gris('(' + r + ')') : gris('no valuable')));
   }
+
+  /* ── Las TRES filas de esta tanda ── Ninguna recalcula: le preguntan a `eaGradoCalculado()`,
+     que es el dueño único, y formatean lo que devuelve. Recomputar los cortes acá sería la
+     segunda copia que separa la pantalla del informe, y es lo que este cuadro ya evita con las
+     tres de arriba.
+     ⚠️ LA ABSTENCIÓN SE DICE Y NO SE DEJA EN BLANCO: con el criterio cargado y sin grado, la fila
+     publica «no gradúa» con el corte al lado. Una fila que muestra el número y calla se lee como
+     un criterio que la app perdió. Es la convención que la fila del gradiente medio ya usa. */
+  const _Rref = (typeof eaGradoCalculado === 'function') ? eaGradoCalculado() : null;
+  const refCrit = function (id, val, uni, g, fueraTxt, dec) {
+    if (val == null) { set(id, '—'); return; }
+    set(id, '<b>' + val.toFixed(dec) + (uni ? ' ' + uni : '') + '</b>' +
+      (g ? ' ' + grado(g) : gris(fueraTxt)));
+  };
+  if (_Rref) {
+    refCrit('ao-ref-plan', _Rref.plan, 'cm²', _Rref.gPlan,
+      'no gradúa (>' + _eaNum(EA_BANDAS.avaSinMin) + ' cm²)', 2);
+    refCrit('ao-ref-avai', _Rref.avai, 'cm²/m²', _Rref.gAvai,
+      'no gradúa (>' + EA_AVAI_MOD_MAX.toFixed(2) + ' cm²/m²)', 2);
+    refCrit('ao-ref-dvi', _Rref.dvi, '', _Rref.gDvi,
+      'no gradúa (>' + EA_DVI_MOD_MAX.toFixed(2) + ')', 2);
+  } else { ['ao-ref-plan', 'ao-ref-avai', 'ao-ref-dvi'].forEach(function (i) { set(i, '—'); }); }
 
   // ── Vol. sistólico ── sólo el valor
   const vs = v('vs_calc');
@@ -106067,8 +106267,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261013-1514';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791915267771;                 /* eco-build-ms */
+const ECO_BUILD    = '20261013-1524';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791915891477;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -106154,7 +106354,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-1514</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-1524</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

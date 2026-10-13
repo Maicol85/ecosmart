@@ -930,6 +930,16 @@ async function main() {
       ['G.medio 25 moderada + DVI 0.20 severa',   [['gmedio_ao','25'], ['itv_tsvi','20'], ['itv_ao','100']]],
       ['G.medio 45 severa + DVI 0.80',            [['gmedio_ao','45'], ['itv_tsvi','20'], ['itv_ao','25']]],
       ['planimetria 1.2 moderada + DVI 0.20 severa', [['ava_plan','1.2'], ['itv_tsvi','20'], ['itv_ao','100']]],
+      /* ⚠️ CONTROL DE QUE LA FRASE DE DISCORDANCIA YA EXISTIA EN HEAD. `eaEscenario().esperado`
+         es una SEGUNDA lectura del veredicto —mira el AVA y la pareja Vmax/gradiente y nada
+         mas— asi que puede diferir del grado que el dueno unico escribe, y entonces el EN SUMA
+         publica «el grado consignado no coincide con las mediciones» sobre un grado que la
+         propia app acaba de calcular. Esta escena lo produce SIN NINGUNA variable de esta
+         tanda: AVA 1,60 (que para `esperado` es «leve») con Vmax 3,5 (que para el dueno unico
+         es «moderada»). Si sale igual en HEAD y en el arbol nuevo, la frase es PREEXISTENTE.
+         AVA = PI*(20/20)^2*18/35.34 = 1.60 */
+      ['CONTROL discordancia PREEXISTENTE: Vmax 3.5 + AVA 1.60',
+       [['vmax_ao','3.5'], ['diam_tsvi_ao','20'], ['itv_tsvi','18'], ['itv_ao','35.34']]],
     ];
     for (const [k, pares] of casos) {
       try { C[k] = await escena(pares, { textos: true }); }
@@ -1045,7 +1055,7 @@ async function main() {
       await pausa(400);
       N.otras  = await otras();
       N.textos = await textos();
-      N.diastolica = await ev(`(function(){ var e = document.getElementById('diast-badge');
+      N.diastolica = await ev(`(function(){ var e = document.getElementById('dd-interp');
         return e ? (e.textContent||'').trim() : 'NO EXISTE' })()`);
       N.excelCols = await ev(`(function(){ var f = window.__P.excel();
         return (f && typeof f === 'object') ? Object.keys(f).length : f })()`);
