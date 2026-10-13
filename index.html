@@ -498,6 +498,35 @@
   .col-span-2 { grid-column: span 2; }
   .col-span-3 { grid-column: span 3; }
   .col-span-4 { grid-column: span 4; }
+
+  /* ══ LA GRILLA DEL DOPPLER MITRAL — CUATRO COLUMNAS CON POSICION EXPLICITA (2026-10-13) ══════
+     El bloque «Doppler mitral — función diastólica VI» coloca sus dieciséis campos por columna y
+     fila, con dos clases por campo (`dm-cN` y `dm-rM`). Son OCHO reglas y no dieciséis.
+     ⚠️ POR QUE EXPLICITA Y NO DE FLUJO. Un `grid-auto-flow: column` sobre cuatro filas daría el
+     mismo dibujo con cero reglas, pero el flujo REACOMODA: esconder un campo hace subir a los que
+     tiene debajo. Medido en HEAD antes de esta tanda —esconder el S/D movía CUATRO campos—. La
+     casilla de un campo que este algoritmo o este ritmo no usa tiene que quedar VACIA: es la misma
+     razón por la que el diagrama de la BSE no dibuja la columna de un paso que el paciente no
+     recorrió, un hueco dice «no se preguntó» y un reacomodo dice «esto es otra grilla».
+     ⚠️ SOLO POR ENCIMA DE 768 px, Y EL CORTE NO ES NUEVO. Por debajo, `.grid-4` cae a UNA columna
+     (ver RESPONSIVE, 70 líneas más abajo) y una fila explícita apilaría cuatro campos en la misma
+     celda. `min-width: 769px` es el complemento EXACTO del `max-width: 768px` que ya existe, así
+     que no se agrega un breakpoint nuevo ni un segundo número que haya que mantener sincronizado
+     con `check_mobile.js`. Apilado en una columna el orden visual es el del marcado, que es por
+     columnas y es el mismo que recorre el Tab: a 360 y 390 px los dieciséis quedan en el orden
+     1 → 16 sin una sola regla de posición.
+     ⚠️ Y NO HAY NI UN `tabindex`: el Tab sale del orden del DOCUMENTO, y el marcado ya está por
+     columnas. Un `tabindex` positivo acá rompería eso y habría que mantenerlo a mano. */
+  @media (min-width: 769px) {
+    .dm-grid > .dm-c1 { grid-column: 1; }
+    .dm-grid > .dm-c2 { grid-column: 2; }
+    .dm-grid > .dm-c3 { grid-column: 3; }
+    .dm-grid > .dm-c4 { grid-column: 4; }
+    .dm-grid > .dm-r1 { grid-row: 1; }
+    .dm-grid > .dm-r2 { grid-row: 2; }
+    .dm-grid > .dm-r3 { grid-row: 3; }
+    .dm-grid > .dm-r4 { grid-row: 4; }
+  }
   /* ══ CARD ══ */
   .card {
     background: var(--bg2);
@@ -3760,93 +3789,67 @@ window.cerrarSesionReal = cerrarSesionReal;
            medición justifica. Hoy son cuatro campos más, siempre visibles, con el mismo estilo
            que TDE, TRIV y THP. Lo que se conserva de aquella ronda es todo lo que NO era diseño:
            el prefijo `venp_`, el token del S/D y la guarda del cero. -->
-      <div class="grid-4">
-        <div class="fg">
+      <div class="grid-4 dm-grid">
+        <!-- ⚠️ CUATRO COLUMNAS, Y EL ORDEN DEL MARCADO ES POR COLUMNAS (2026-10-13, orden del
+             médico). Los dieciséis campos van acá en el orden que él pidió, leído de ARRIBA HACIA
+             ABAJO EN CADA COLUMNA —la 1 entera, después la 2, la 3 y la 4—, y eso es lo único que
+             fija el Tab: sin un solo `tabindex` positivo, el navegador recorre el orden del
+             documento. Un `tabindex` acá sacaría los campos de ese orden y el Tab pasaría a
+             depender de un número que nadie mantiene sincronizado con el marcado.
+             ⚠️ LA POSICION ES EXPLICITA Y NO DE FLUJO, y no es cosmético. Con el flujo automático
+             (`grid-auto-flow: column` sobre cuatro filas) el dibujo sería el mismo, pero esconder
+             un campo haría SUBIR a los que tiene debajo. Medido en HEAD antes de esta tanda:
+             esconder el S/D movía CUATRO campos de lugar. La casilla de un campo oculto tiene que
+             quedar VACIA — un campo que este algoritmo o este ritmo no usa no debe reacomodar la
+             grilla que el médico ya aprendió de memoria.
+             Cada `.fg` lleva su columna y su fila como DOS clases (`dm-cN` y `dm-rM`), así que son
+             ocho reglas de CSS y no dieciséis. Viven en `.dm-grid` y SOLO por encima de 768 px:
+             ver «LA GRILLA DEL DOPPLER MITRAL» en la hoja de estilos.
+             ⚠️ LOS ROTULOS, LOS id, LAS UNIDADES, LOS PLACEHOLDER Y LOS MANEJADORES NO CAMBIARON.
+             Esto es un cambio de POSICION y de ORDEN DE TAB: los campos se guardan por `id` y no
+             por posición, así que el guardado y la restauración de un estudio no se enteran. -->
+        <div class="fg dm-c1 dm-r1">
           <label>Onda E (cm/s)</label>
           <input type="number" id="onda_e" placeholder="cm/s" oninput="calcDiastol();cvrSync();" onchange="cvrCambio()">
         </div>
-        <div class="fg">
+        <div class="fg dm-c1 dm-r2">
           <label>Onda A (cm/s)</label>
           <input type="number" id="onda_a" placeholder="cm/s" oninput="calcDiastol()">
         </div>
-        <div class="fg">
+        <div class="fg dm-c1 dm-r3">
           <label>e' septal (cm/s)</label>
           <input type="number" id="e_sep" placeholder="cm/s" oninput="calcDiastol();cvrSync();" onchange="cvrCambio()">
         </div>
-        <div class="fg">
+        <div class="fg dm-c1 dm-r4">
           <label>e' lateral (cm/s)</label>
           <input type="number" id="e_lat" placeholder="cm/s" oninput="calcDiastol();cvrSync();" onchange="cvrCambio()">
         </div>
-        <div class="fg">
-          <!-- ⚠️ EL CUADRO GRIS SE ATRASABA, Y ERA PORQUE `calcDiastol` NO ESTABA CABLEADO A TODO
-               LO QUE LEE. Vivia en el `oninput` de los cuatro campos del Doppler mitral, del LARS
-               y de los dos selectores, y en ningun otro: el TDE y el TRIV no tenian manejador
-               NINGUNO, y el Vol AI, la velocidad de la IT, el peso, la talla, la FEVI, el S/D y
-               los campos de VCI —de donde sale la PSAP— llamaban a lo suyo y no a la diastolica.
-               Medido en HEAD: tipeando el paciente en el orden natural, el cuadro se quedaba con
-               el veredicto del PACIENTE ANTERIOR hasta tocar un campo mitral. La ventana del 🧭
-               no se atrasaba (cuelga de un oyente de documento) y el informe firmado tampoco
-               (`generarInforme` llama a `calcDiastol`): lo que mentia era el cartel de pantalla,
-               que es el que el medico mira mientras carga.
-               Se cablearon ONCE campos con el mismo enganche que ya usaban los mitrales —una
-               llamada mas en su `oninput`— y no con un oyente global: `calcDiastol` arrastra
-               `calcHemo`, `calcVenaPulm`, `imOndaEPintar` y el aviso de protocolo, y colgarla de
-               cada tecla de la app entera se paga en todas las pestanas.
-               El veredicto NO cambia por esto: es una funcion pura de los campos, asi que lo
-               unico que cambia es CUANDO se repinta. Verificado en ritmo sinusal con las mismas
-               escenas de la tanda anterior. -->
-          <label>TDE (ms)</label>
-          <input type="number" id="tde" placeholder="ms" oninput="calcDiastol()">
-        </div>
-        <div class="fg">
-          <label>TRIV (ms)</label>
-          <input type="number" id="triv" placeholder="ms" oninput="calcDiastol()">
-        </div>
-        <div class="fg">
-          <!-- ⚠️ EL THP ES UN DATO CON DOS CAMPOS DESDE EL 2026-10-09. Este es el PORTADOR: lo
-               imprime el PDF firmado por vPdf('thp',' ms'), lo exporta el Excel y lo lee el panel
-               de Evidencia. El otro campo vive en Válvulas — Estenosis Mitral y era un display de
-               solo lectura. Ver «EL THP ES UN DATO CON DOS CAMPOS» en el JS.
-               `calcTHP()` no se perdió: lo lleva `thpEditado`, que además copia el valor al otro
-               campo y repinta la marca en los DOS avisos. -->
-          <label>THP mitral (ms) — EM</label>
-          <input type="number" id="thp" placeholder="ms" oninput="thpEditado('thp')">
-          <!-- ⚠️ ESTE AVISO ES NUEVO Y CIERRA UN AGUJERO MEDIDO: hasta hoy la marca «(revisar)»
-               del THP fuera de banda salía SÓLO en los displays del bloque de Estenosis Mitral, o
-               sea en otra pestaña. El médico que tipeaba 12 ms acá no veía una palabra. La escribe
-               `thpMarcaPintar`, la única dueña, con la misma constante `MARCA_REVISAR` y la misma
-               banda `EM_BANDA_PLAUS.thp` que decide el resto. -->
-          <div id="thp-marca" style="font-size:10px;color:var(--yellow);margin-top:3px;min-height:14px;"></div>
-        </div>
-        <div class="fg">
-          <label>AVm por THP (cm²)</label>
-          <input type="number" id="avm_thp" readonly>
-        </div>
-        <!-- ⚠️ VENA PULMONAR — `venp_`, NO `vp_`. `vp_vmax`, `vp_gmax` y `vp_morf` ya existen en
-             esta misma pestaña y son la VÁLVULA pulmonar, otra estructura y otro Doppler. Dos
-             prefijos a un carácter de distancia para dos cosas distintas es cómo un valor termina
-             impreso bajo el rótulo del otro; acá se separan desde el nombre.
+        <!-- ══ COLUMNA 2 ══ ⚠️ VENA PULMONAR — `venp_`, NO `vp_`. `vp_vmax`, `vp_gmax` y
+             `vp_morf` ya existen en esta misma pestaña y son la VÁLVULA pulmonar, otra estructura
+             y otro Doppler. Dos prefijos a un carácter de distancia para dos cosas distintas es
+             cómo un valor termina impreso bajo el rótulo del otro; acá se separan desde el nombre.
              Los cuatro llevan `id` a propósito: `guardarInforme` barre
              `input[id], select[id], textarea[id]`, así que viajan con el estudio y `limpiarCampos`
              los resetea por el mismo camino. Ninguno matchea `_noEsDelEstudio`.
-             ⚠️ LOS CUATRO VAN CONTIGUOS Y EN ESTE ORDEN (2026-09-29): las tres duraciones y
-             velocidades primero y el S/D al final. El S/D es el unico `select` del grupo y el
-             unico que no entra en ningun calculo —es informativo—, asi que cerrar con el deja la
-             fila leyendose de lo medido a lo descriptivo. Mover uno de los tres numericos fuera
-             de este bloque separa el comentario de arriba de los campos que describe. -->
-        <div class="fg">
+             ⚠️ LOS CUATRO VAN CONTIGUOS Y EN ESTE ORDEN, y desde el 2026-10-13 son la COLUMNA 2
+             entera: la duración de la onda A mitral, las dos de la onda Ar pulmonar y el S/D al
+             final. El S/D es el único `select` del grupo y el único que no se tipea, así que
+             cerrar con él deja la columna leyéndose de lo medido a lo descriptivo. Lo que antes
+             decía «la fila» hoy dice «la columna»: el orden de los cuatro es el mismo, lo que
+             cambió es el eje. -->
+        <div class="fg dm-c2 dm-r1">
           <label>Dur. onda A mitral (ms)</label>
           <input type="number" id="venp_dur_a" placeholder="ms" oninput="calcVenaPulm();calcDiastol()">
         </div>
-        <div class="fg">
+        <div class="fg dm-c2 dm-r2">
           <label>Dur. onda Ar pulmonar (ms)</label>
           <input type="number" id="venp_dur_ar" placeholder="ms" oninput="calcVenaPulm();calcDiastol()">
         </div>
-        <div class="fg">
+        <div class="fg dm-c2 dm-r3">
           <label>Veloc. Ar pulmonar (cm/s)</label>
           <input type="number" id="venp_vel_ar" placeholder="cm/s" oninput="calcVenaPulm();calcDiastol()">
         </div>
-        <div class="fg">
+        <div class="fg dm-c2 dm-r4">
           <!-- ⚠️ S/D ES UN SELECTOR, NO UN NÚMERO. Es informativo y no entra en ningún cálculo:
                con un campo numérico habría que decidir qué hacer con un 1,0 exacto, y eso sería
                inventar un umbral que nadie pidió.
@@ -3892,37 +3895,53 @@ window.cerrarSesionReal = cerrarSesionReal;
             <option value="ge1">&ge;1</option>
           </select>
         </div>
-        <!-- VTI mitral DE ENTRADA, y vive aca y no en Valvulas por lo que mide: es la envolvente
-             de LLENADO por Doppler PULSADO en el anillo, el mismo trazado del que salen la onda E y
-             la onda A que tiene al lado. En Valvulas quedaba rotulado «CW», que es el chorro de
-             regurgitacion y es OTRA envolvente: medido, cargar el VTI del chorro (130) donde iba el
-             de entrada daba un Vol mitral de 918,9 ml y una FR de 93 % con veredicto «Severa».
-             `vtim` pasa a ser su espejo. El id sigue la convencion de `itv_tsvi`: prefijo del
-             parametro + sitio de medicion.
-             ⚠️ VA ULTIMO Y SOLO EN SU FILA (2026-09-29), y el rotulo hace mas trabajo que la
-             posicion: es el unico campo de esta grilla que NO alimenta la funcion diastolica —lo
-             consume el metodo volumetrico de la IM via `vtim`— y el que mas se confunde con otra
-             envolvente. Aislarlo lo separa de la onda E y la onda A, que salen del mismo trazado
-             pero contestan otra pregunta. -->
-        <div class="fg">
-          <label>VTI mitral de entrada — Doppler pulsado (cm)</label>
-          <!-- `imSyncSiExiste()` hasta el 2026-10-08. Sigue corriendo, dentro de
-               `vtiMitralEditado`, que además copia el valor a `vtim` y corre `calcContIM` y
-               `calcIM_ESC` sin el gate de la pastilla. -->
-          <input type="number" id="itv_mitral" placeholder="cm" oninput="vtiMitralEditado('itv_mitral')">
+        <!-- ══ COLUMNA 3 ══ Los cuatro tiempos del llenado mitral, con el THP primero porque
+             es el único de la columna que alimenta OTRA cuenta además de la diastólica (el AVm de
+             la estenosis mitral, en la columna 4). La onda L cierra: es el único parámetro
+             SUPLEMENTARIO de la columna —vota sólo cuando el algoritmo llega a preguntarlo— y por
+             eso va después de los tres que son insumos directos. -->
+        <div class="fg dm-c3 dm-r1">
+          <!-- ⚠️ EL THP ES UN DATO CON DOS CAMPOS DESDE EL 2026-10-09. Este es el PORTADOR: lo
+               imprime el PDF firmado por vPdf('thp',' ms'), lo exporta el Excel y lo lee el panel
+               de Evidencia. El otro campo vive en Válvulas — Estenosis Mitral y era un display de
+               solo lectura. Ver «EL THP ES UN DATO CON DOS CAMPOS» en el JS.
+               `calcTHP()` no se perdió: lo lleva `thpEditado`, que además copia el valor al otro
+               campo y repinta la marca en los DOS avisos. -->
+          <label>THP mitral (ms) — EM</label>
+          <input type="number" id="thp" placeholder="ms" oninput="thpEditado('thp')">
+          <!-- ⚠️ ESTE AVISO ES NUEVO Y CIERRA UN AGUJERO MEDIDO: hasta hoy la marca «(revisar)»
+               del THP fuera de banda salía SÓLO en los displays del bloque de Estenosis Mitral, o
+               sea en otra pestaña. El médico que tipeaba 12 ms acá no veía una palabra. La escribe
+               `thpMarcaPintar`, la única dueña, con la misma constante `MARCA_REVISAR` y la misma
+               banda `EM_BANDA_PLAUS.thp` que decide el resto. -->
+          <div id="thp-marca" style="font-size:10px;color:var(--yellow);margin-top:3px;min-height:14px;"></div>
         </div>
-        <!-- ⚠️ ESTA FILA YA NO ES SOLO DEL VTI, Y EL COMENTARIO DE ARRIBA DECIA QUE SI (2026-10-12,
-             decision de Maicol). Lo que aquel aislamiento protegia sigue en pie: el VTI mitral de
-             entrada es el unico campo de esta grilla que NO alimenta la funcion diastolica —lo
-             consume el metodo volumetrico de la IM via `vtim`— y por eso sigue PRIMERO en su fila,
-             separado de la onda E y la onda A. Lo que entra a su derecha son tres campos que SI la
-             alimentan, y caen debajo de «Dur. onda Ar pulmonar», «Veloc. Ar pulmonar» y «S/D
-             pulmonar», que es donde el medico los pidio.
-             ⚠️ DOS DE LOS TRES SON ESPEJOS DE AI/VI (`lars` y `ai_strain_ct`) y el tercero vive
-             SOLO aca: la onda L es una velocidad del llenado mitral, se mide en el mismo trazado
-             pulsado que la onda E y la onda A, y no tiene nada que hacer en la pestaña de la
-             auricula. -->
-        <div class="fg">
+        <div class="fg dm-c3 dm-r2">
+          <!-- ⚠️ EL CUADRO GRIS SE ATRASABA, Y ERA PORQUE `calcDiastol` NO ESTABA CABLEADO A TODO
+               LO QUE LEE. Vivia en el `oninput` de los cuatro campos del Doppler mitral, del LARS
+               y de los dos selectores, y en ningun otro: el TDE y el TRIV no tenian manejador
+               NINGUNO, y el Vol AI, la velocidad de la IT, el peso, la talla, la FEVI, el S/D y
+               los campos de VCI —de donde sale la PSAP— llamaban a lo suyo y no a la diastolica.
+               Medido en HEAD: tipeando el paciente en el orden natural, el cuadro se quedaba con
+               el veredicto del PACIENTE ANTERIOR hasta tocar un campo mitral. La ventana del 🧭
+               no se atrasaba (cuelga de un oyente de documento) y el informe firmado tampoco
+               (`generarInforme` llama a `calcDiastol`): lo que mentia era el cartel de pantalla,
+               que es el que el medico mira mientras carga.
+               Se cablearon ONCE campos con el mismo enganche que ya usaban los mitrales —una
+               llamada mas en su `oninput`— y no con un oyente global: `calcDiastol` arrastra
+               `calcHemo`, `calcVenaPulm`, `imOndaEPintar` y el aviso de protocolo, y colgarla de
+               cada tecla de la app entera se paga en todas las pestanas.
+               El veredicto NO cambia por esto: es una funcion pura de los campos, asi que lo
+               unico que cambia es CUANDO se repinta. Verificado en ritmo sinusal con las mismas
+               escenas de la tanda anterior. -->
+          <label>TDE (ms)</label>
+          <input type="number" id="tde" placeholder="ms" oninput="calcDiastol()">
+        </div>
+        <div class="fg dm-c3 dm-r3">
+          <label>TRIV (ms)</label>
+          <input type="number" id="triv" placeholder="ms" oninput="calcDiastol()">
+        </div>
+        <div class="fg dm-c3 dm-r4">
           <!-- Onda L: velocidad mesodiastolica del llenado mitral, posterior a la onda E.
                Es parametro SUPLEMENTARIO en las Figuras 17 y 18 de la BSE 2024 (> 20 cm/s) y en la
                ASE 2025 (folio 555, >= 50 cm/s). Los dos cortes son de la fuente y NO se unifican:
@@ -3932,18 +3951,40 @@ window.cerrarSesionReal = cerrarSesionReal;
           <input type="number" id="onda_l" step="0.1" placeholder="cm/s" oninput="diastStrainEditado('onda_l')">
           <div id="onda_l-marca" style="font-size:10px;color:var(--yellow);margin-top:3px;min-height:14px;"></div>
         </div>
-        <div class="fg">
+        <!-- ══ COLUMNA 4 ══ Los dos strain de la aurícula izquierda, el VTI mitral de entrada
+             y el AVm derivado. Los dos primeros son ESPEJOS de AI/VI (`lars` y `ai_strain_ct`):
+             un dato con dos campos, sincronizado en los dos sentidos y borrado incluido.
+             ⚠️ EL VTI MITRAL DE ENTRADA SIGUE SEPARADO DE LA ONDA E Y LA ONDA A, que es lo que su
+             aislamiento de 2026-09-29 protegía: es el único campo de esta grilla que NO alimenta
+             la función diastólica —lo consume el método volumétrico de la IM vía `vtim`— y el que
+             más se confunde con otra envolvente. Hoy esa separación la da la columna: está en la
+             4 y la onda E y la onda A están en la 1.
+             ⚠️ Y EL AVm POR THP ES DE SOLO LECTURA Y VA ULTIMO. No se tipea: lo escribe `calcTHP`
+             desde el THP de la columna 3. Cerrar con él deja la grilla terminando en el único
+             valor derivado, y es el último campo del Tab. -->
+        <div class="fg dm-c4 dm-r1">
           <!-- El MISMO dato que `lars`, en AI/VI. El portador es aquel: este copia hacia alla y
                recibe de alla, en los dos sentidos, borrado incluido. -->
           <label>LARS (%) <span style="font-weight:400;color:var(--text2);font-size:10px;">&harr; AI/VI</span></label>
           <input type="number" id="lars_dop" step="0.1" placeholder="%" oninput="larsEditado('lars_dop')">
           <div id="lars_dop-marca" style="font-size:10px;color:var(--yellow);margin-top:3px;min-height:14px;"></div>
         </div>
-        <div class="fg">
+        <div class="fg dm-c4 dm-r2">
           <!-- El MISMO dato que `ai_strain_ct`, en AI/VI. -->
           <label>Strain de contracción de la AI (%) <span style="font-weight:400;color:var(--text2);font-size:10px;">&harr; AI/VI</span></label>
           <input type="number" id="ai_strain_ct_dop" step="0.1" placeholder="%" oninput="laContrEditado('ai_strain_ct_dop')">
           <div id="ai_strain_ct_dop-marca" style="font-size:10px;color:var(--yellow);margin-top:3px;min-height:14px;"></div>
+        </div>
+        <div class="fg dm-c4 dm-r3">
+          <label>VTI mitral de entrada — Doppler pulsado (cm)</label>
+          <!-- `imSyncSiExiste()` hasta el 2026-10-08. Sigue corriendo, dentro de
+               `vtiMitralEditado`, que además copia el valor a `vtim` y corre `calcContIM` y
+               `calcIM_ESC` sin el gate de la pastilla. -->
+          <input type="number" id="itv_mitral" placeholder="cm" oninput="vtiMitralEditado('itv_mitral')">
+        </div>
+        <div class="fg dm-c4 dm-r4">
+          <label>AVm por THP (cm²)</label>
+          <input type="number" id="avm_thp" readonly>
         </div>
       </div>
 
@@ -104861,8 +104902,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261013-0630';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791883830058;                 /* eco-build-ms */
+const ECO_BUILD    = '20261013-0642';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791884579439;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -104948,7 +104989,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-0630</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-0642</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

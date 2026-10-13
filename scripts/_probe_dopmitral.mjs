@@ -458,6 +458,39 @@ window.__P = {
     return { id: a.id || null, tag: a.tagName.toLowerCase(),
              enLaGrilla: !!(a.closest && a.closest('#dop-mitral .grid-4')) } },
 
+  /* ⚠️ EL CAMPO ESPEJO DEL VTI MITRAL VIVE EN VALVULAS, DENTRO DE UN CAJON, Y LA PRIMERA CORRIDA
+     DE ESTA SONDA NO LO ALCANZO: informo «NO SE PUDO» y midio la escena con los dos lados vacios,
+     o sea un «identico» sobre un tecleo que nunca ocurrio. Se abre como lo abre el medico —el
+     boton «Datos» de la tarjeta— y se COMPRUEBA que el campo tiene geometria antes de tipear.
+     Es la trampa del denominador aplicada a una pestania ajena. */
+  abrirValvMitral() {
+    try { showTab('valvulas') } catch(e) {}
+    /* ⚠️ Y LA SECCION DE LA VALVULA TAMBIEN ESTA PLEGADA. La primera version abria solo el cajon
+       «Datos» y seguia dando geometria CERO: la cadena de ancestros escondidos decia
+       #ete-seccion-valv-mitral, que es el plegable de la tarjeta de la mitral y se abre con
+       toggleEteSeccion. Son DOS puertas, no una. */
+    var sec = document.getElementById('ete-seccion-valv-mitral');
+    if (sec && getComputedStyle(sec).display === 'none') {
+      try { toggleEteSeccion('valv-mitral') } catch(e) {}
+    }
+    var b = document.getElementById('bloque-insuf-mitral');
+    if (b && getComputedStyle(b).display === 'none') {
+      try { valvDatosTog('caja-insuf-mitral') } catch(e) {}
+    }
+    var e = document.getElementById('vtim');
+    var r = e ? e.getBoundingClientRect() : null;
+    /* La CADENA de ancestros escondidos, para que «no tiene geometria» diga POR QUE. */
+    var cadena = [], n = e;
+    while (n && n.nodeType === 1) {
+      if (getComputedStyle(n).display === 'none')
+        cadena.push((n.id ? '#' + n.id : '.' + String(n.className || '?')));
+      n = n.parentNode;
+    }
+    return { bloque: b ? getComputedStyle(b).display : 'NO EXISTE',
+             vtimGeo: !!(r && r.width > 0 && r.height > 0),
+             w: r ? Math.round(r.width) : 0, escondidoPor: cadena,
+             revelar: window.__P.revelar('vtim') } },
+
   /* Las cinco sincronias de la orden, leidas de los DOS lados. */
   sinc() {
     return { lars_dop: window.__P.val('lars_dop'), lars: window.__P.val('lars'),
@@ -802,11 +835,14 @@ async function main() {
     for (const p of pares) {
       await ev(`window.__P.limpiar()`);
       await pausa(120);
+      /* El espejo del VTI mitral vive en Valvulas, dentro del cajon «Datos»: se abre con el gesto
+         del medico y se informa su estado AL LADO del resultado. */
+      const prep = (p.esc === 'vtim') ? await ev(`window.__P.abrirValvMitral()`) : null;
       const t = await tipear(p.esc, '16');
       const tras = await ev(`window.__P.sinc()`);
       const b = await borrar(p.esc);
       const trasBorrar = await ev(`window.__P.sinc()`);
-      out.sinc.push({ que: p.que, tecleo: t, borrado: b,
+      out.sinc.push({ que: p.que, prepara: prep, tecleo: t, borrado: b,
                       conValor: tras, trasBorrar: trasBorrar,
                       copio: tras[({ lars: 'lars', lars_dop: 'lars_dop', ai_strain_ct: 'ct',
                                      ai_strain_ct_dop: 'ct_dop', itv_mitral: 'itv_mitral',
