@@ -6,8 +6,17 @@ Lo parcial lleva `— ⚠️ no verificado: …`.
 
 Convenciones transversales: **el pintor no decide** (`etEstado`/`easvEstado`/`teerEstado` calculan,
 `calcET`/`easvSync`/`calcTEER` pintan); **marcar sin borrar** (la banda decide si **vota**, no si se
-**muestra**); **sobre prótesis no se auto-gradúa** salvo en la aórtica; y **un grado a mano gana**
-(`esqSevManual.<valv>`, `dataset.sugerido`).
+**muestra**); **sobre prótesis no se auto-gradúa** salvo en la aórtica; **un grado a mano gana**
+(`esqSevManual.<valv>`, `dataset.sugerido`); y desde el **2026-10-13**, **un campo vacío no vota ni
+deja grado**.
+
+> ⚠️ **El BORRADO tiene su propio mapa: `docs/mapa/valvulas-borrado.md`** (2026-10-13). Ahí viven
+> `sevRetirarSugerido` —el dueño único del retiro del grado en las cuatro lesiones—, la propiedad de
+> las pastillas (`VALV_ESTEN_AUTO` / `VALV_INSUF_AUTO`, las cuatro puertas que prenden y las siete
+> funciones de apagado), `_imIntegrar` y la regla del **peor de los dos métodos** de la IM, la regla
+> de que **gana la continuidad** en la IT, el grado de cada fila entre paréntesis y la fila de FR del
+> papel. Se sacó a archivo propio porque este mapa está en 32,7 KB y el techo de `CLAUDE.md` son
+> ~35 KB — la misma razón por la que `vd-derecho.md` y `doppler-mitral-grilla.md` nacieron aparte.
 
 ---
 

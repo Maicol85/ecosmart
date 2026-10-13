@@ -74861,6 +74861,29 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
        el grado elegidos A MANO por el medico sobreviven a la reimpresion; y la pastilla que el
        medico APAGO no se reprende (la clave queda en '0' y `_ipAutoPrender` sale por su guarda). */
     if (typeof calcIP === 'function') calcIP();
+    /* ⚠️ Y LOS TRES DE LAS INSUFICIENCIAS AL VOLVER, DESDE EL 2026-10-13, POR EL MISMO ARGUMENTO
+       QUE `calcIP` Y CON EL MISMO PRECEDENTE. La fase de CARGA de arriba corre `calcIM_ESC`,
+       `calcIA_ESC` y `calcIT_ESC` con los datos del estudio REIMPRESO, y desde la regla 2 esos tres
+       son los dueños de las pastillas de IM, IAo e IT (`_insufAutoPrender` / `_insufApagarAuto`).
+       Sin esta mitad, la ventana dejaba al paciente EN PANTALLA con la pastilla del estudio ajeno:
+       un formulario sin un solo dato de IM con el botón prendido, y el narrativo y el EN SUMA
+       publicando «con insuficiencia» / «IM presente.» — **dos superficies FIRMADAS afirmando la
+       valvulopatía de otro**, que es textualmente lo que la nota de `calcIP` describe.
+       Y al revés también: un paciente que SÍ tenía IM cargada perdía su pastilla al reimprimir un
+       estudio sin IM.
+       ⚠️ EL PÁRRAFO DE ~74343 DECÍA «la reimpresión no toca las pastillas —medido: ni
+       `toggleValvPill` ni ninguna `sincronizar*` aparecen en ese camino»: eso fue cierto hasta que
+       `calcAo` ganó `valvAutoPrenderEsten` (2026-10-03) y `_eaApagarAuto` (2026-10-11), y hoy lo es
+       menos todavía. Lo que protege no es que nadie las toque: es que las toquen las DOS veces, con
+       los datos de cada paciente.
+       NO van en `RECALC_MODULOS`: ese embudo lo comparten las cinco rutas de restauración, y la de
+       CARGA ya los corre por su propia lista —son las tres líneas de arriba—. Lo que faltaba es
+       sólo esta mitad, exactamente como con `calcIP`.
+       Van DESPUÉS de `calcAo` porque el grado de la IAo lo sincroniza esa cascada, y ANTES de
+       `_recalcModulos`, que es donde viven los repintados que leen `pillOn`. */
+    if (typeof calcIM_ESC === 'function') calcIM_ESC();
+    if (typeof calcIA_ESC === 'function') calcIA_ESC();
+    if (typeof calcIT_ESC === 'function') calcIT_ESC();
     _recalcModulos('restaurarTrasReimpresion');
     if (typeof updateHdrExtra === 'function') updateHdrExtra();
    } catch (e) {
@@ -105990,8 +106013,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261013-1341';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791909671382;                 /* eco-build-ms */
+const ECO_BUILD    = '20261013-1426';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791912376883;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -106077,7 +106100,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-1341</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-1426</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

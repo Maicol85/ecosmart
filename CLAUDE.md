@@ -28,6 +28,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar el S/D venoso pulmonar, el LARS, los suplementarios de la ASE 2025, el E/e′ por sitio de la ASE 2016, los rótulos del cuadro o el rojo del E/e′** | `docs/mapa/diastolica-complementarios.md` |
 | **Tocar un DIAGRAMA DE FLUJO de la ventana 🧭** (BSE 2024, ASE 2025 en ritmo sinusal o en FA, ASE/EACVI 2016 8A y 8B): los planos, el motor del SVG, el umbral de ancho o la tabla compacta | `docs/mapa/diastolica-diagrama.md` |
 | **Tocar la GRILLA del Doppler mitral**: el orden de los 16 campos, el Tab por columnas, los puntos de corte o el selector del S/D | `docs/mapa/doppler-mitral-grilla.md` |
+| **Tocar el BORRADO de una lesión valvular**: el retiro del grado, quién prendió una pastilla, los dos métodos de la IM, la continuidad de la IT o el grado de cada fila | `docs/mapa/valvulas-borrado.md` |
 | **Tocar el VENTRÍCULO DERECHO**: sus campos, el cuadro de referencias, la disfunción sistólica, la pared o el Tei | `docs/mapa/vd-derecho.md` |
 | **Tocar el panel de Evidencia: agregar una cita, una sección o un sub-bloque** | `docs/mapa/panel-evidencia.md` |
 | **Agregar un TÉRMINO al glosario del panel (el ⓘ con tarjeta)** | `docs/mapa/panel-evidencia-terminos.md` |
@@ -220,6 +221,244 @@ impecable.
 ---
 
 ## Estado vigente
+
+### El BORRADO en Válvulas — IM, IAo, EAo e IT, y las seis reglas del 13/10/2026 (2026-10-13)
+
+- Al **empezar** esta tanda, `main` local y `origin/main` estaban los dos en **`a3ccf99`**, sin nada
+  sin pushear —confirmado con un `git fetch` de verdad, no con el ref en caché—, con los **seis**
+  commits de la tanda de los diagramas de la ASE ya incluidos **y pusheados**. Los **siete** commits
+  de esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 7 → 6 → 5 → 4 → 3 → 2 → 1.**
+  El **1** crea `sevRetirarSugerido`, que es el dueño único del retiro, y **del 2 al 6 cuelgan todos
+  de él**. Revertirlo solo **no rompe la app** —las llamadas van con `typeof` y fallan silenciosas—
+  pero deja a las cuatro lesiones sin retirar el grado, o sea con el defecto entero reabierto.
+  **El 2, el 3 y el 4 se revierten entre sí en cualquier orden**: el 2 es la IAo, el 3 la EAo y el 4
+  la IT, y ninguno llama a otro.
+  ⚠️ **EL 5 DEPENDE DEL 4 EN LA FORMA, NO EN EL NOMBRE:** el 4 cambió `calcIT_ESC` para DERIVAR
+  `scores` de `params`, y el 5 hace lo mismo en `calcIM_ESC` — son dos funciones distintas, así que
+  se revierten solos; lo que comparten es el patrón.
+  ⚠️ **Y EL 6 LLEVA DOS COSAS QUE EL 5 NECESITA PARA NO PUBLICAR DE MENOS:** el `<span>` hermano del
+  grado de la fila y el vaciado en `limpiarCampos`. Revertir el 6 sin el 5 deja
+  `imGradoFilasPintar` llamándose sobre nueve nodos que no existen —inocuo, el pintor se protege
+  con `if (!el)`— pero deja la regla 5 sin superficie.
+  ⚠️ **EL 7 NO ES SÓLO DOCUMENTACIÓN, y conviene saberlo antes de revertir:** además de TC-463 y
+  los cuatro archivos de documentación lleva **tres líneas de `index.html`** que ese caso destapó
+  —los tres calculadores llamados también en el CIERRE de la ventana de reimpresión—. Revertirlo
+  reabre ese defecto, y además deja TC-463 en rojo, porque el caso afirma el comportamiento de los
+  seis anteriores. ⚠️ **Y EL 6 ADAPTÓ CUATRO CASOS** (TC-416, TC-442, TC-403 y TC-296): revertirlo
+  sin reponer esas afirmaciones los deja midiendo lo contrario, no en rojo.
+
+- **Línea base al cierre: suite 474/478 en la corrida completa con el pendrive `DISK_IMG` MONTADO,
+  Semgrep 127 / 0 ERROR, Excel 435 columnas, celular 43 a 360 px y 52 a 390 px con 1 ALTA cada uno
+  —IDÉNTICO a la línea base, y `--todo` da 374 y 383: los nueve span nuevos y la clase `.calc-grado`
+  no agregan un solo hallazgo—.** Los cuatro rojos son los de ENTRADA y NO
+  son regresiones: **TC-223** (el documentado, falla por la fecha), **TC-376**, **TC-390** y
+  **TC-406**. **El denominador subió a 478**: esta tanda agregó
+  **TC-463**. La de ENTRADA, medida en HEAD limpio el 2026-10-13, fue **473/477** con el pendrive
+  montado y los cuatro rojos de siempre, con el `md5` de `index.html` sin moverse durante la corrida
+  (`d0bd8055…`).
+  ⚠️ **TC-249 ES UN CUARTO INESTABLE POR ORDEN DE CORRIDA**, al lado de TC-246, TC-252 y TC-260:
+  sale rojo en un `--solo` de 72 casos de la zona aórtica y **verde corrido solo**. **Repetir antes
+  de sospechar.**
+- **Dónde está todo:** `docs/mapa/valvulas-borrado.md` (**mapa NUEVO**: el retiro del grado, la
+  propiedad de las pastillas, los dos métodos de la IM, la continuidad de la IT, el grado de cada
+  fila, la fila de FR del papel y las seis trampas medidas), `docs/mapa/valvulas.md` → el puntero al
+  mapa nuevo en las convenciones transversales, `docs/fuentes/FUENTES.md` → «Tabla 8 — IM, folio
+  332 — RE-LEÍDA el 2026-10-13», `docs/PENDIENTES.md` → **nueve** cosas declaradas y no tocadas
+  (B-1 a B-9).
+
+- **NO CAMBIA NINGÚN BADGE, NINGÚN GRADO, NINGUNA FILA NI NINGUNA FRASE CON EL DATO CARGADO, Y ESTÁ
+  MEDIDO.** A/B contra HEAD en las **56 escenas**: las únicas diferencias con el dato cargado son
+  las **PASTILLAS** de IM, IAo e IT —que es exactamente la regla 2— y la marca de dueño, que es un
+  `dataset` y no viaja con el estudio. Ni un badge, ni un grado, ni una fila de referencia, ni una
+  frase del informe narrativo, ni el EN SUMA se mueven.
+- **LA CAUSA ERA UNA Y LAS CUATRO ESCRITORAS LA COMPARTÍAN.** Escriben el grado **sólo cuando hay
+  dato** y, sin dato, se van por un `return` —o por un `if (R.grado)` sin `else`— sin retirar lo que
+  ya estaba. Medido con teclas reales en las **56 escenas** de `scripts/_probe_valvborra.mjs`, A/B
+  contra una copia de HEAD: **HEAD 14/56 vuelven al estado inicial · hoy 56/56.** O sea **42 escenas
+  no volvían**, repartidas en las cuatro lesiones (IM 8/21 · IAo 3/19 · EAo 0/4 · IT 3/12).
+  ⚠️ **ESE 14/56 ES EL NÚMERO BUENO Y NO EL PRIMERO QUE ESCRIBÍ.** La primera corrida informó
+  **10/56** y era INVÁLIDA —el borrado no había ocurrido en la mayoría de las escenas, ver abajo— y
+  la segunda, con la sonda ya arreglada pero con el denominador del estado inicial sin afinar,
+  volvió a dar 10/56. Con las dos correcciones del denominador puestas, HEAD da 14. **Medir y
+  después escribir**, que es lo que este archivo ya documenta como error propio dos tandas atrás.
+  **El control negativo del mismo barrido es la mitad que lo prueba:** la estenosis mitral, la
+  tricuspídea y la pulmonar **SÍ** devolvían su grado al centinela, así que no era una limitación
+  del diseño. Cargar las **nueve** lesiones y borrarlo todo dejaba el EN SUMA diciendo **«IM severa.
+  EAo severa. IAo severa. IT severa.»** sobre un formulario vacío; hoy dice **«Estudio sin
+  alteraciones estructurales ni funcionales significativas.»**
+- ⚠️ **LA HIPÓTESIS DEL «CAMPO VACÍO SE LEE COMO 0» ES FALSA, Y SE MIDIÓ.** `v()` devuelve `null` y
+  las cascadas no entran: ningún campo vacío vota «leve». La verdadera es la otra que el prompt
+  ofrecía: «la cuenta sólo pinta cuando hay dato y no limpia cuando no lo hay».
+- ⚠️ **TRES DE LOS SÍNTOMAS REPORTADOS NO REPRODUCEN, Y HAY QUE DECIRLO.** (a) El área del jet no
+  «queda leve sea cual sea el valor»: queda el grado que dio el valor. (b) El Ø del jet en el TSVI
+  con severa **no vuelve a leve**: queda severa. (c) El THP con 550 ms **no queda severa**: 550 es
+  *leve* por el corte `>500 ms` de la propia app, y queda leve. (d) En la IAo el informe **SÍ** dice
+  «con insuficiencia leve» y el EN SUMA «IAo leve.»: referencias e informe **coinciden**, los dos
+  rancios. **La contradicción entre referencias e informe estaba en la EAo**, y ahí sí: el recuadro
+  vuelve a «— sin Vmax ni gradiente medio cargados» y el grado seguía en leve/moderada/severa.
+  (e) Y en la IT la densidad severa contra una continuidad leve daba **severa en las dos**: lo que
+  la regla 4 pide no era un desacuerdo, era un cambio de criterio.
+- **LA MAQUINARIA DEL DUEÑO YA EXISTÍA Y ESTABA A MEDIAS.** `dataset.sugerido` estaba en **IAo y
+  EAo** (medido: `sug=1/2/4` y `sug=leve/…`) y **faltaba en IM y en IT** (`sug=null` en las 33
+  escenas de esas dos). Es lo que hace que **un estudio guardado abra como se guardó**: la marca no
+  se persiste y `limpiarCampos` la borra, así que un estudio archivado jamás coincide.
+- ⚠️ **DOS COSAS SE CERRARON DE REBOTE Y NINGUNA HUBO QUE ESCRIBIRLA.** `_eaApagarAuto()` existía
+  desde el 2026-10-11 y estaba **INERTE**: su segunda guarda pide que el grado haya quedado en el
+  centinela, y sin la rama negativa de `clasificarEA_Vmax` el grado nunca volvía ahí al **borrar**
+  —sólo al **corregir** la Vmax de 4,5 a 1,4—. Y la deuda que `PENDIENTES` declaraba para esa
+  función («Sin en el desplegable aórtico no es durable… pide una señal nueva que sobreviva al
+  recálculo sin ser `esqSevManual`») se cierra con la señal que ya existía: `dataset.sugerido`.
+
+- ⚠️ **CUATRO PUERTAS PRENDÍAN UNA PASTILLA SIN DEJAR DUEÑO, Y LA PEOR ERA LA REGLA J.**
+  `valvAutoAbrirCajones` corre en **cada** `showTab('valvulas')` y prende la pastilla cuando el
+  grado es graduable: basta entrar a Válvulas con un grado escrito, o sea el camino más frecuente de
+  todos. Era exactamente lo que `PENDIENTES` declaró para la aórtica en la tanda 6c —«el código que
+  la prende no registra dueño»—. Las otras tres: las tres insuficiencias, que **no se prendían desde
+  el cálculo por ningún camino**, y el bloque inline de `calcPSAP` por la velocidad del chorro de IT.
+  Las cuatro registran ahora, **después** del toggle y no antes, porque la cola de `toggleValvPill`
+  borra la entrada.
+- **MEDIDO EN LAS CUATRO LESIONES CON LOS DOS DUEÑOS:** prendida por la **APP** → con dato
+  `pill=true auto=true clave='1'`, y al borrar `pill=FALSE`, `auto=false`, `clave=null` y el grado en
+  el centinela; marcada a **MANO** → `auto=false` y al borrar `pill=TRUE`. **La EAo en sus TRES
+  grados** (Vmax 2, 3 y 4 m/s): se apaga en los tres, no sólo en severa.
+- ⚠️ **EL GATE `valvula === 'pulmonar'` DE LA COLA DE `toggleValvPill` SE FUE, y no es cosmético.**
+  Era correcto mientras `VALV_INSUF_AUTO` lo leyera sólo `_ipApagarAuto`; con cuatro rutas
+  leyéndolo, dejarlo habría hecho que un clic del médico en esos tres botones NO le quitara a la app
+  la propiedad, y el auto-apagado se llevaría puesta una afirmación suya.
+- ⚠️ **CONSECUENCIA DECLARADA: cerrar a mano una pastilla auto-prendida retira el grado, y reabrirla
+  no lo recupera.** Es la cadena de siempre —`toggleValvPill` → `valvApagarGrado` →
+  `valvSev.aplicar(…, centinela)`, que pone `esqSevManual` y por eso es durable— y es lo que este
+  archivo ya declara para la estenosis tricuspídea. Lo que cambió es que **alcanza a tres lesiones
+  más**, porque antes esas pastillas no se prendían. TC-463 lo fija como límite; `PENDIENTES` → B-3.
+
+- **LA IM INTEGRA LOS DOS MÉTODOS Y AL INFORME VA EL PEOR DE LOS MARCADOS.** Hasta hoy la casilla
+  «Incluir en el informe» **no movía ni un grado** —medido: «ambos marcados» y «ambos sin marcar»
+  daban los dos 4— y la continuidad **no votaba**: con sólo continuidad cargada (Vol-R 15,7 ml,
+  FR 19 %) el grado era **0** y el informe firmado decía «sin estenosis ni insuficiencia» sobre una
+  válvula cuantificada por el método volumétrico. Hoy ese paciente sale **«IM leve.»**
+  La regla de integración **no cambió una condición**: es `_imIntegrar`, la cascada de siempre
+  extraída a su propia función para poder correrla dos veces.
+- ⚠️ **«GANA EL PEOR» SE PRUEBA POR LOS DOS LADOS, Y CON UNA SOLA PAREJA NO SE PUEDE.** A/B contra
+  HEAD en las **siete** escenas del grupo `metodo`: solo-PISA 4→4 · solo-CONT **0→1** ·
+  ambos-marcados 4→4 · ambos-sin-marcar 4→4 · ninguno 1→1 (= HEAD) · **cont-PEOR-marcada 1→4** ·
+  cont-PEOR-sin-marcar 1→1 (control negativo). Un veredicto que se quedara **siempre** con PISA
+  pasa las cinco primeras.
+- ⚠️ **DOS DISPARADORES FALTABAN**, y sin ellos el grado se quedaba atrás: `diam_mit` tenía
+  `oninput="calcContIM()"` pelado —la única de las cinco puertas de la continuidad que no llamaba a
+  las dos funciones seguidas— y `im_pdf_cont` tenía `onchange="this.dataset.tocado='1'"` y ahora
+  decide si el método entra al **grado**, no sólo a la fila del PDF.
+- **LA FR LLEGA AL PAPEL, Y NO LLEGABA.** La tabla compacta tenía fila de EROA y de Vol-R y **no
+  tenía fila de FR**; `imFrPdfVal` **no existía**. Medido con el PDF **generado de verdad**
+  (interceptando el constructor de jsPDF): con los dos métodos el papel publica
+  `EROA «PISA: 50.3 mm² · Cont: 27.5 mm²»`, `Vol.R «PISA: 40.2 ml · Cont: 22.0 ml»` y
+  `FR «PISA: 39% · Cont: 26%»`. `freg-val` entró además al sellado (`_IM_PISA_SPANS`) y al respaldo
+  de la ventana de reimpresión. ⚠️ **El formato del sellado NO cambia de versión**:
+  `_imPisaPersistido` busca **por clave**, así que un informe anterior reimprime exactamente lo que
+  imprimía, sin la fila de FR. **No se deduce y no se migra.**
+- ⚠️ **LA FUENTE RESPALDA LA MITAD, Y LA OTRA MITAD ES CRITERIO ECOSMART.** ASE 2017 (Zoghbi,
+  **Tabla 8, folio 332**, leída en texto completo): las filas **«RVol (mL)»** y **«RF (%)»** NO
+  están calificadas por método, así que sus cortes valen para los dos. **La de la EROA SÍ: dice
+  literalmente «EROA, 2D PISA (cm²)».** El **folio 312** define `EROA = RVol/VTI_RegJet` como
+  fórmula general —la que usa la continuidad de la app— pero la guía **no publica una banda propia**
+  para esa EROA. Aplicarle la de PISA es criterio de la app, no se mueve ningún número, y queda
+  declarado en `PENDIENTES` → B-1.
+
+- **EN LA IT GANA LA CONTINUIDAD (regla 4).** Medido: densidad «denso» (severa) con EROA 18,1 mm²
+  (leve) daba grado **4** en pantalla, informe y EN SUMA; hoy da **1**, uno solo y el mismo en los
+  tres, y al borrar la continuidad vuelve al grado de la densidad. ⚠️ **LO QUE SE RETIRA DEL
+  VEREDICTO ES LA DENSIDAD DEL CHORRO Y NADA MÁS, Y ES MI LECTURA.** «Gana la continuidad» al pie de
+  la letra descartaría una **vena contracta severa** —el parámetro con más peso de la Tabla 14 de la
+  ASE 2017—, así que la VC sigue votando y el único que deja de decidir es el votante CUALITATIVO.
+  `PENDIENTES` → B-2, con la línea exacta que habría que cambiar para la versión literal.
+- ⚠️ **LA COMPUERTA ES QUE LA CADENA HAYA PRODUCIDO UN NÚMERO, no que los campos estén escritos.**
+  Sin uno de los tres insumos la continuidad no tiene nada que decir y la densidad vuelve a decidir.
+- **UNA FRASE NUEVA, DE PANTALLA Y NADA MÁS:** la fila `it-discordancia` agrega «Con datos de
+  continuidad cargados el grado final sale de la continuidad: la densidad del chorro se muestra y no
+  decide». `it-discordancia` **no tiene un solo lector** fuera de `calcIT_ESC` —verificado por grep:
+  ni informe, ni EN SUMA, ni PDF, ni PPT, ni Excel— y la cláusula **no aparece** en ninguna de las 56
+  escenas donde la continuidad no retira nada (0 diferencias en esa fila contra HEAD con dato).
+
+- **NUEVE FILAS GANAN SU GRADO ENTRE PARÉNTESIS (regla 5):** cinco de la IM y cuatro de la IAo.
+  ⚠️ **ES UN `<span>` HERMANO Y NO TEXTO DENTRO DEL `.calc-val`**, y eso NO es cosmético: el texto de
+  `eroa-val`, `volr-val` y `freg-val` **ES** lo que el PDF publica —`_imPdfPisaTxt` lo lee literal— y
+  lo que `_imPisaSellar` congela en el estudio. Un «(severa)» adentro habría entrado al papel
+  firmado. ⚠️ **Y SIN `id`**, para que el barrido de `limpiarCampos` no les escriba «—» donde la
+  regla pide blanco; se vacían con una llamada explícita, igual que las marcas «(revisar)» del VD.
+  **No se tocan las filas que ya publican su grado** —el THP, la Vmax telediastólica, el VTI de la
+  aorta descendente y las tres de la tricúspide—: la diferencia de formato queda en `PENDIENTES` →
+  B-5.
+
+- **CONTROL NEGATIVO MAYOR, medido en tres fases:** formulario vacío · las nueve lesiones cargadas ·
+  todo borrado. En las dos primeras, **Excel en 435 columnas con el hash IDÉNTICO a HEAD** y las
+  cinco lesiones ajenas (EM, ET, EP, IP y la función diastólica) **sin una sola diferencia**, con el
+  EN SUMA letra por letra. En la tercera, las tres estenosis ajenas y la IP vuelven a su centinela
+  igual que en HEAD. ⚠️ **El renglón de la diastólica queda en «Incompleto — ASE 2025» después de
+  que se le cargan y se le borran SUS campos, y eso es PREEXISTENTE** —medido igual en HEAD, en la
+  misma fase—: el control de la diastólica va con su propio gesto, cargando y borrando sólo los
+  campos de las cuatro lesiones.
+- **Arnés: `scripts/_probe_valvborra.mjs`** (A/B de solo lectura con `--file`), ocho grupos
+  (`repro`, `borrado`, `dos`, `metodo`, `tric`, `pastillas`, `controles`, `pdf`), **56 escenas** con
+  teclas y clics reales y el PDF generado de verdad.
+  **Cobertura: TC-463**, **33 condiciones** con **8 denominadores** y **11 controles**. **Verificado
+  que sabe fallar contra HEAD en un worktree aparte: 18 de las 33 en rojo**; las 15 que pasan son los
+  grados CON dato —que son idénticos a HEAD, y eso es el punto—, el recálculo con dos datos y uno
+  borrado, los controles de las lesiones ajenas, el Excel, la diastólica y los dos controles
+  negativos (la onda S sola y el grado fijado a mano).
+  ⚠️ **TC-463 CARGA CON `__t.set` Y NO CON TECLAS DE CDP**, y hay que decirlo: el cuerpo de un caso
+  corre DENTRO de la página, no tiene acceso al protocolo del navegador y un `KeyboardEvent`
+  construido a mano no es de confianza. Las mismas escenas van con **teclas y clics reales** en la
+  sonda, que es la que midió los síntomas contra HEAD. Mismo reparto que TC-460.
+  ⚠️ **Y UNA CONDICIÓN DE TC-463 NO MEDÍA NADA POR UN ID EQUIVOCADO:** `pdfDeInformeGuardado` busca
+  por `i.id` y no por `estudioId`, así que la primera versión informaba «el callback no volvió»
+  sobre un guardado perfecto. Un id que el consumidor no reconoce no es una medición.
+- ⚠️ **CASOS ADAPTADOS: SIETE**, con el motivo escrito en cada uno. **TC-316** y **TC-348** fijaban
+  el límite viejo con esas palabras —«LIMITE DECLARADO: en NATIVA el grado rancio se conserva» y «al
+  bajar 25 → 15 sin limpiar, el grado severo SOBREVIVE»— y estaban escritos justamente para que no
+  cambiara en silencio; **TC-435** afirmaba la regla 12 («el GRADO no cambia al borrar la Vmax»);
+  **TC-335** fijaba «la EROA por continuidad se publica pero NO vota» en el rótulo y en la ayuda;
+  **TC-416** decía «NO SE EXIGE QUE LAS PASTILLAS SE PRENDAN… está MEDIDO»; **TC-442** fijaba «la
+  TRICÚSPIDE no tiene auto-apagado»; y **TC-403** y **TC-296** usaban `toggleValvPill` como gesto que
+  ahora tiene consecuencia. **Seis de los siete afirmaban un hecho que estaba MEDIDO y que estas
+  reglas dieron vuelta** — no estaban mal escritos, estaban describiendo la app de ayer.
+- ⚠️ **EL TEXTO QUE AFIRMABA QUE LA CONTINUIDAD NO VOTA SE CORRIGIÓ EN LOS TRES LUGARES Y SÓLO EN
+  ESA FRASE:** el `title` del rótulo «EROA continuidad», la fila «IM — EROA por continuidad y Vol-R»
+  de la ayuda «Referencia clínica» y el comentario de `calcContIM`. **El reparo aritmético de los
+  150 cm se conserva palabra por palabra** —es aritmética de la fórmula y no depende de quién vote—
+  y la cápsula «Severidad (continuidad)» **no cambia**: sigue graduando por dos parámetros.
+
+- ⚠️ **EL AUTO-PRENDIDO ABRIÓ UN DEFECTO EN LA VENTANA DE REIMPRESIÓN, Y HUBO QUE CERRARLO EN EL
+  MISMO COMMIT.** La fase de **carga** de esa ventana corre `calcIM_ESC`, `calcIA_ESC` y
+  `calcIT_ESC` con los datos del estudio **reimpreso**, y el **cierre** no los volvía a correr.
+  Medido en un worktree del commit 6: la ventana dejaba las **tres** pastillas del paciente en
+  pantalla **prendidas** (`false → true`) sobre un formulario vacío, con el escalón listo para
+  publicar «con insuficiencia» y «IM presente.» en el informe firmado. Es **el mismo defecto y la
+  misma solución** que la decisión de Maicol del 2026-10-08 para la IP: los tres se llaman también
+  en el **cierre**, y ahí se auto-curan en las dos direcciones —la pastilla ajena se apaga y la
+  propia vuelve—. ⚠️ **Y el párrafo de esa zona que dice «la reimpresión no toca las pastillas
+  —medido»** era cierto cuando se escribió y dejó de serlo cuando `calcAo` ganó
+  `valvAutoPrenderEsten` (2026-10-03) y `_eaApagarAuto` (2026-10-11). Lo fija TC-463, y está
+  verificado que **sabe fallar** contra el árbol del commit 6.
+- ⚠️ **MI PROPIA SONDA MIDIÓ UN BORRADO QUE NO OCURRIÓ, EN LA MAYORÍA DE LAS 56 ESCENAS.**
+  `generarInforme()` **pelado salta a la pestaña Informe**, y al volver `showTab('valvulas')` corre
+  `valvCerrarTarjetas`: los campos quedan sin geometría, `focus()` sobre un nodo oculto falla **en
+  silencio** y los doce Backspace se los come el documento. El campo seguía con su valor y la sonda
+  informaba «el grado no vuelve» sobre un gesto que nunca pasó. Va con `{silencioso:true}`, y hoy
+  **aborta** si el tecleo o el borrado no quedan, o si el foco no llega al campo.
+- ⚠️ **Y TRES DENOMINADORES MÁS QUE DABAN FALSOS.** (a) `im_dtsvi`, `im_itv_tsvi` y `diam_tsvi` están
+  en `display:none` y **no son campos**: las puertas visibles del Ø y del VTI del TSVI son
+  `ea_dtsvi` e `itv_tsvi`. (b) Un **clic** sobre un nodo sin geometría tampoco es un gesto: la sonda
+  informó «ambos métodos marcados» con `im_pdf_cont.checked === false`. (c) El **estado inicial** se
+  mide con los cuatro calculadores ya corridos sobre el formulario vacío y volviendo a entrar a la
+  pestaña, para que `ea-sev` no se compare SIN PINTAR contra el mismo nodo pintado y para que la
+  **regla J** haya tenido las mismas oportunidades de prender la pastilla; sin esas dos, ocho escenas
+  salían «no volvió» con el grado, la pastilla y el informe perfectos.
+- ⚠️ **Me comí el acento grave DOCE veces**, todas en comentarios míos dentro del cuerpo de un caso
+  o del template de la sonda, con el archivo que documenta la trampa abierto delante.
+  `scripts/check_backticks.py` dio la línea exacta las doce veces; `node --check` apuntaba a la
+  apertura del template, cientos de líneas antes. Es el récord de esta serie — y el patrón es
+  siempre el mismo: nombrar una función o un atributo entre acentos graves, que es cómo se escribe
+  en prosa en todo el resto del archivo.
 
 ### Diagramas de flujo de la ASE en la ventana 🧭 — Figura 3, Figura 8, 8A y 8B (2026-10-13)
 

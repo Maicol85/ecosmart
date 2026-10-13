@@ -202,6 +202,45 @@ sistólico del TSVI **ya contiene** el regurgitante. **Reportado, no corregido.*
 ⚠️ **Esta tabla tiene CUATRO columnas**, no tres: existe la banda intermedia que el `select`
 `ia_sev_final` llama «Moderada-severa» y que `calcIA_ESC` nunca emite.
 
+#### Tabla 8 — IM, «Grading the severity of chronic MR», folio 332 — RE-LEÍDA el 2026-10-13
+
+Leída en texto completo para contestar UNA pregunta: **¿los cortes de EROA, Vol-R y FR son los
+mismos para PISA y para continuidad?** La respuesta es **a medias**, y la mitad que no lo es
+importa.
+
+| Fila de la tabla, LITERAL | ¿Califica el método? | Leve | Moderada | Severa |
+|---|---|---|---|---|
+| `EROA, 2D PISA (cm2)` | **SÍ — dice «2D PISA»** | `<0.20` | `0.20-0.29` · `0.30-0.39` | `$0.40` (≥0,40) |
+| `RVol (mL)` | **no** | `<30` | `30-44` · `45-59` | `$ 60` (≥60) |
+| `RF (%)` | **no** | `< 30` | `30-39` · `40-49` | `$50` (≥50) |
+
+- ⚠️ **El Vol-R y la FR no están calificados por método**, así que sus cortes valen para los dos
+  caminos sin ninguna salvedad.
+- ⚠️ **El de la EROA SÍ está calificado**: la fila dice textualmente «EROA, 2D PISA (cm²)». La guía
+  **no publica una banda propia** para una EROA obtenida por el método volumétrico.
+- **Folio 312** define la fórmula general, que es exactamente la que usa la continuidad de la app:
+  *«EROA can be calculated using the VTI of the regurgitant jet (VTI_RegJet) recorded by CWD as
+  EROA = RVol/VTI_RegJet»*, dentro del apartado **b. Quantitative volumetric method**. O sea: la
+  guía da la FÓRMULA para las dos y la BANDA sólo para una.
+- **Consecuencia, declarada en `docs/PENDIENTES.md`:** aplicar la banda de la EROA de PISA a la
+  EROA por continuidad es **criterio EcoSmart**, no una lectura de este documento. Es el lado
+  conservador —no mueve ningún número y usa la misma `IM_CORTES` que ya existía— y es lo que la
+  decisión de Maicol del 2026-10-13 pide («usando para continuidad el EROA, el Vol-R y la FR por
+  continuidad en lugar de los de PISA»).
+- ⚠️ **La tabla tiene CUATRO columnas de cuantitativos**, no tres: la moderada se subdivide
+  (`0.20-0.29` / `0.30-0.39`), y la nota ‡‡ lo dice —*«Quantitative parameters can help subclassify
+  the moderate regurgitation group»*—. `calcIM_ESC` tiene **tres** bandas y funde las dos del medio.
+  Pre-existente, no se tocó.
+- La nota ††: *«Discrepancies among EROA, RF, and RVol may arise in the setting of low or high flow
+  states»* — es la guía diciendo que los tres pueden discordar, que es lo que la fila
+  `im-discordancia` publica.
+- ⚠️ **La tabla NO publica una regla de recuento de votos.** El pie dice *«Bolded qualitative and
+  semiquantitative signs are considered specific for their MR grade»* y la nota * pide un
+  *«integrated approach that weighs the strength of each echocardiographic measurement»*. La
+  aritmética de `_imIntegrar` (`severa >= 1` basta, `moderada >= 2`) y la regla del **peor de los
+  dos métodos** son **criterio de la app**. Queda declarado, igual que ya está declarado para la
+  Tabla 14 de la IT.
+
 #### Tabla 14 — IT, «Grading the severity of chronic TR by echocardiography», folio 350
 
 Leída en texto completo el **2026-10-07** (PDF pág. 48; pie impreso «350 Zoghbi et al» como

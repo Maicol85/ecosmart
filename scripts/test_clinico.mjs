@@ -3392,6 +3392,438 @@ caso('TC-462', 'Diagramas de flujo de la ASE 2025 (ritmo sinusal y fibrilacion a
   return { extra: AF };
 `);
 
+/* TC-463 — EL BORRADO EN VALVULAS, LAS CUATRO LESIONES (2026-10-13).
+   Fija las SEIS reglas que Maicol autorizo: (1) un campo vacio no vota ni deja grado, (2) las
+   pastillas se prenden y se apagan solas solo si las prendio la app, (3) los dos metodos de la IM
+   con el peor al informe, (4) en la IT gana la continuidad, (5) el grado de cada fila entre
+   parentesis y (6) EROA, Vol-R y FR juntos por metodo en el papel.
+
+   ⚠️ CARGA CON __t.set Y NO CON TECLAS DE CDP, y hay que decirlo: el cuerpo de un caso corre
+   DENTRO de la pagina, no tiene acceso al protocolo del navegador, y un KeyboardEvent construido
+   a mano no es de confianza. Las mismas escenas SI se cargan con teclas reales y foco verificado
+   en scripts/_probe_valvborra.mjs, que es la que midio los sintomas contra HEAD. Es el mismo
+   reparto que TC-460 declara para el diagrama de la BSE. */
+caso('TC-463', 'Borrado en Valvulas: un campo vacio no vota ni deja grado en las CUATRO lesiones —IM, IAo, EAo e IT—, la pastilla se apaga sola solo si la prendio la app, la IM integra los DOS metodos con el peor al informe, en la IT gana la continuidad, cada fila publica su grado entre parentesis y el papel saca EROA, Vol-R y FR juntos por metodo', `
+  const R = {}, ex = [];
+  const G = id => __t.val(id);
+  const T = id => (__t.txt(id) || '').trim();
+  const GR = sid => { const e = document.querySelector('[data-grado-de="' + sid + '"]');
+    return e ? (e.textContent || '') : 'NO EXISTE'; };
+  const PILL = (v, t) => { try { return pillOn(v, t); } catch (e) { return 'EXC'; } };
+  const LS = k => { try { return localStorage.getItem(k); } catch (e) { return 'EXC'; } };
+  /* Estado de partida COMPLETO: limpiarCampos no apaga las pastillas vivas ni suelta las marcas,
+     asi que sin esto una escena mide el estado del paciente anterior. */
+  const base = () => {
+    __t.limpiar();
+    window.esqSevManual = {}; window._sevCalcAlFijar = {};
+    window._imGradoCalc = null; window._iaGradoCalc = null; window._itGradoCalc = null;
+    ['aortica','mitral','tricuspide','pulmonar'].forEach(v => ['esten','insuf'].forEach(t => {
+      try { if (PILL(v, t) === true) toggleValvPill(v, t); } catch (e) {}
+      try { localStorage.removeItem('valv-pill-' + t + '-' + v); } catch (e) {}
+    }));
+    try { if (window.VALV_ESTEN_AUTO) window.VALV_ESTEN_AUTO.clear(); } catch (e) {}
+    try { if (window.VALV_INSUF_AUTO) window.VALV_INSUF_AUTO.clear(); } catch (e) {}
+    ['im_grado','ia_grado','it_grado','ea_grado'].forEach(id => {
+      const e = document.getElementById(id); if (e) delete e.dataset.sugerido; });
+    try { if (typeof _sevManualSync === 'function') _sevManualSync(); } catch (e) {}
+    ['calcAo','calcContIM','calcIM_ESC','calcIA_ESC','calcIT_ESC'].forEach(f => {
+      try { if (typeof window[f] === 'function') window[f](); } catch (e) {} });
+  };
+
+  /* ── 0 · DENOMINADOR: los duenos nuevos existen ─────────────────────────────────────────────
+     Sin esto, todas las condiciones de abajo pasarian igual en un arbol donde el retiro no se
+     escribio: medirian «el grado no esta» sobre un formulario que nunca tuvo nada. */
+  R.duenos = ['sevRetirarSugerido','_imIntegrar','_imPeorIntegrado','_insufAutoPrender',
+              '_insufApagarAuto','imFrPdfVal','sevFilaGradoPintar','imGradoFilasPintar',
+              'iaGradoFilasPintar'].filter(n => typeof window[n] !== 'function');
+  ex.push(['DENOMINADOR: los nueve duenos nuevos estan definidos',
+    R.duenos.length === 0, 'faltan=' + JSON.stringify(R.duenos)]);
+
+  /* ── 1 · LA TABLA DE BORRADO, CAMPO POR CAMPO Y GRADO POR GRADO ─────────────────────────────
+     Cada entrada es un campo VOTANTE con un valor por grado y los prerrequisitos que hacen que la
+     fila que lo consume LLEGUE a calcularse. Una escena que no alcanza la compuerta devuelve «el
+     corte no funciona» sobre un corte que funciona, que es la trampa que este repo ya documenta
+     cuatro veces.
+     ⚠️ Las puertas VISIBLES del diametro y del VTI del TSVI son ea_dtsvi e itv_tsvi: im_dtsvi,
+     im_itv_tsvi y diam_tsvi estan en display:none desde el 2026-10-10 y no son campos. */
+  const ESC = [
+    { les:'im', id:'im_vc',       fila:'im-vc-ref',    pre:{}, v:{ leve:'2', moderada:'4', severa:'7' } },
+    { les:'im', id:'im_jet_area', fila:'im-jet-ratio', pre:{ im_ai_area:'20' }, v:{ leve:'3', moderada:'6', severa:'12' } },
+    { les:'im', id:'pisa_r',      fila:'eroa-val',     pre:{ pisa_val:'40', im_vmax:'5' }, v:{ leve:'6', moderada:'7', severa:'10' } },
+    { les:'im', id:'pisa_val',    fila:'eroa-val',     pre:{ pisa_r:'10', im_vmax:'5' }, v:{ leve:'14', moderada:'20', severa:'40' } },
+    { les:'im', id:'im_vmax',     fila:'eroa-val',     pre:{ pisa_r:'10', pisa_val:'40' }, v:{ severa:'5' } },
+    { les:'ia', id:'ia_vc',       fila:null,           pre:{}, v:{ leve:'2', moderada:'5', severa:'8' } },
+    { les:'ia', id:'ia_jet_diam', fila:'ia-jet-ratio', pre:{ ea_dtsvi:'20' }, v:{ leve:'4', moderada:'10', severa:'15' } },
+    { les:'ia', id:'ia_pht',      fila:null,           pre:{}, v:{ leve:'550', moderada:'300', severa:'150' } },
+    { les:'ia', id:'ia_vti_desc', fila:null,           pre:{}, v:{ leve:'10', moderada:'20', severa:'30' } },
+    { les:'ia', id:'ia_pisa_r',   fila:'ia-eroa',      pre:{ ia_pisa_val:'40', ia_vmax_cw:'5' }, v:{ leve:'4', moderada:'6', severa:'9' } },
+    { les:'ea', id:'vmax_ao',     fila:null,           pre:{}, v:{ leve:'2', moderada:'3', severa:'4' } },
+    { les:'ea', id:'gmedio_ao',   fila:null,           pre:{}, v:{ severa:'45' } },
+    { les:'it', id:'it_vc',       fila:'it-ref-vc',    pre:{}, v:{ leve:'2', moderada:'5', severa:'8' } },
+    { les:'it', id:'it_pisa_r',   fila:'it-eroa',      pre:{ it_pisa_val:'40', it_vmax_cw:'5' }, v:{ leve:'6', moderada:'7', severa:'10' } }
+  ];
+  const CAMPO_G = { im:'im_grado', ia:'ia_grado', ea:'ea_grado', it:'it_grado' };
+  const BADGE   = { im:'im-sev',   ia:'ia-sev',   ea:'ea-sev',   it:'it-sev' };
+  const VALV    = { im:'mitral',   ia:'aortica',  ea:'aortica',  it:'tricuspide' };
+  const TIPO    = { im:'insuf',    ia:'insuf',    ea:'esten',    it:'insuf' };
+  const SIN     = { im:'0', ia:'0', ea:'sin', it:'0' };
+  const ESPERA  = { im:{leve:'1',moderada:'2',severa:'4'}, ia:{leve:'1',moderada:'2',severa:'4'},
+                    it:{leve:'1',moderada:'2',severa:'4'},
+                    ea:{leve:'leve',moderada:'moderada',severa:'severa'} };
+  R.tabla = []; R.nEsc = 0; R.nOk = 0; R.malGrado = []; R.malVuelta = []; R.malFila = [];
+  ESC.forEach(e => {
+    Object.keys(e.v).forEach(gr => {
+      R.nEsc++;
+      base();
+      Object.keys(e.pre).forEach(k => __t.set(k, e.pre[k]));
+      const ini = { g: G(CAMPO_G[e.les]), b: T(BADGE[e.les]), p: PILL(VALV[e.les], TIPO[e.les]),
+                    f: e.fila ? T(e.fila) : null, gr: e.fila ? GR(e.fila) : null };
+      __t.set(e.id, e.v[gr]);
+      const con = { g: G(CAMPO_G[e.les]), b: T(BADGE[e.les]), p: PILL(VALV[e.les], TIPO[e.les]),
+                    f: e.fila ? T(e.fila) : null, gr: e.fila ? GR(e.fila) : null,
+                    suma: __t.informe().suma };
+      __t.set(e.id, '');
+      const tras = { g: G(CAMPO_G[e.les]), b: T(BADGE[e.les]), p: PILL(VALV[e.les], TIPO[e.les]),
+                     f: e.fila ? T(e.fila) : null, gr: e.fila ? GR(e.fila) : null,
+                     suma: __t.informe().suma };
+      /* El grado CON dato tiene que ser el que el valor manda: sin esto, «vuelve al inicial» se
+         cumple sobre un grado que nunca se escribio. */
+      if (String(con.g) !== String(ESPERA[e.les][gr])) R.malGrado.push(e.id + '/' + gr + '=' + con.g);
+      const volvio = String(tras.g) === String(ini.g) && String(tras.b) === String(ini.b) &&
+                     String(tras.p) === String(ini.p) && String(tras.f) === String(ini.f);
+      if (!volvio) R.malVuelta.push(e.id + '/' + gr); else R.nOk++;
+      /* Regla 5: con dato la fila publica su grado entre parentesis; sin dato, NADA.
+         ⚠️ DOS FAMILIAS Y DOS FORMATOS, y hay que medirlas por separado: las cinco de la IM y las
+         cuatro de la IAo lo traen en un span HERMANO —por eso el texto del .calc-val sigue siendo
+         el que publica el papel— y las tres de la IT lo traen DENTRO del .calc-val, con el formato
+         de itRefPintar, desde el 2026-10-07. La diferencia esta declarada en PENDIENTES. */
+      if (e.fila) {
+        const tieneSpan = GR(e.fila) !== 'NO EXISTE';
+        if (tieneSpan) {
+          if (con.gr !== '(' + gr + ')') R.malFila.push(e.id + '/' + gr + ' con=' + JSON.stringify(con.gr));
+          if (tras.gr !== '') R.malFila.push(e.id + '/' + gr + ' tras=' + JSON.stringify(tras.gr));
+        } else {
+          const cap = gr.charAt(0).toUpperCase() + gr.slice(1);
+          if (String(con.f).indexOf(cap) < 0) R.malFila.push(e.id + '/' + gr + ' conFila=' + JSON.stringify(con.f));
+          if (String(tras.f) !== '\u2014') R.malFila.push(e.id + '/' + gr + ' trasFila=' + JSON.stringify(tras.f));
+        }
+      }
+      R.tabla.push([e.les, e.id, gr, ini.g, con.g, tras.g, con.suma, tras.suma]);
+    });
+  });
+  ex.push(['DENOMINADOR: las 14 escenas cargaron el grado que su valor manda, en sus 3 grados',
+    R.malGrado.length === 0, 'n=' + R.nEsc + ' mal=' + JSON.stringify(R.malGrado)]);
+  ex.push(['BORRAR devuelve grado, badge, pastilla y fila al estado inicial en las ' + R.nEsc + ' escenas',
+    R.nOk === R.nEsc, R.nOk + '/' + R.nEsc + ' mal=' + JSON.stringify(R.malVuelta)]);
+  ex.push(['y el grado de la fila entre parentesis aparece con dato y desaparece sin dato',
+    R.malFila.length === 0, JSON.stringify(R.malFila.slice(0, 6))]);
+  /* El EN SUMA es la superficie firmada: con el ultimo votante borrado no puede nombrar la lesion
+     NI CON GRADO NI SIN EL.
+     ⚠️ CON UNA EXCEPCION MEDIDA Y DECLARADA: las escenas de it_pisa_r llevan it_vmax_cw como
+     prerrequisito, y la velocidad del chorro de IT es una CAUSA VIVA —es evidencia de que hay
+     insuficiencia, la app la usa para la PSAP, y es la que itIncongruenciaSync denuncia cuando el
+     boton esta apagado—. Con ella cargada la pastilla NO se apaga (guarda 4 de _insufApagarAuto) y
+     el escalon publica «IT presente.» SIN grado, que es lo correcto. Lo que no puede quedar es un
+     GRADO, y eso lo cubre la condicion de arriba. La excepcion se nombra en vez de aflojar el
+     regex, y se fija aparte dos lineas mas abajo para que no se lea como un agujero. */
+  R.sumasMal = R.tabla.filter(r => /\\bIM |\\bIAo |\\bEAo |\\bIT /.test(r[7]) && r[1] !== 'it_pisa_r');
+  ex.push(['el EN SUMA no nombra la lesion despues de borrar el ultimo votante, en las ' + R.nEsc,
+    R.sumasMal.length === 0, JSON.stringify(R.sumasMal.map(r => r[1] + ':' + r[7]).slice(0, 5))]);
+  R.sumasIT = R.tabla.filter(r => r[1] === 'it_pisa_r').map(r => r[7]);
+  ex.push(['  y con la velocidad del chorro de IT cargada el EN SUMA dice «IT presente.» SIN grado',
+    R.sumasIT.length > 0 && R.sumasIT.every(x => /IT presente\\./.test(x) && !/IT (leve|moderada|severa)/.test(x)),
+    JSON.stringify(R.sumasIT)]);
+
+  /* ── 2 · DOS DATOS Y UNO BORRADO: el grado vuelve al que da el que QUEDA ────────────────────
+     Es el control que separa «retira siempre» de «recalcula»: una implementacion que borrara el
+     grado en cuanto se toca un campo pasaria todo lo de arriba. */
+  const DOS = [
+    { les:'im', pre:{ im_ai_area:'20' }, a:['im_vc','7'],     b:['im_jet_area','3'] },
+    { les:'ia', pre:{},                  a:['ia_pht','150'],  b:['ia_vc','2'] },
+    { les:'ea', pre:{},                  a:['gmedio_ao','45'],b:['vmax_ao','2'] },
+    { les:'it', pre:{ it_pisa_val:'40', it_vmax_cw:'5' }, a:['it_vc','8'], b:['it_pisa_r','6'] }
+  ];
+  R.dos = []; R.dosMal = [];
+  DOS.forEach(c => {
+    base(); Object.keys(c.pre).forEach(k => __t.set(k, c.pre[k]));
+    __t.set(c.a[0], c.a[1]); const soloA = G(CAMPO_G[c.les]);
+    __t.set(c.b[0], c.b[1]); const ambos = G(CAMPO_G[c.les]);
+    __t.set(c.a[0], '');     const trasA = G(CAMPO_G[c.les]);
+    base(); Object.keys(c.pre).forEach(k => __t.set(k, c.pre[k]));
+    __t.set(c.b[0], c.b[1]); const control = G(CAMPO_G[c.les]);
+    R.dos.push([c.les, soloA, ambos, trasA, control]);
+    if (String(trasA) !== String(control) || String(soloA) === String(control)) R.dosMal.push(c.les);
+  });
+  ex.push(['DOS datos y uno borrado: el grado vuelve al del que QUEDA, en las cuatro lesiones',
+    R.dosMal.length === 0, JSON.stringify(R.dos)]);
+
+  /* ── 3 · LA REGLA DE METODO DE LA IM ────────────────────────────────────────────────────────
+     PISA calibrado severo (EROA 50,3 mm2) contra una continuidad leve, y la pareja INVERTIDA:
+     PISA leve (EROA 18,1 mm2) contra una continuidad severa (anillo 40 mm y VTI de entrada 12 cm
+     dan Vol mitral ~151 ml contra un VS del TSVI de ~63, o sea Vol-R ~88 ml y FR ~58 %).
+     ⚠️ CON UNA SOLA PAREJA ESTO NO SE PRUEBA: un veredicto que se quedara SIEMPRE con PISA pasa
+     las cuatro primeras escenas. La inversion es la que lo separa. */
+  const PISA_SEV = { pisa_r:'10', pisa_val:'40', im_vmax:'5', im_itv:'40' };
+  const CONT_LEV = { diam_mit:'30', vtim:'12', ea_dtsvi:'20', itv_tsvi:'22' };
+  const PISA_LEV = { pisa_r:'6', pisa_val:'40', im_vmax:'5', im_itv:'40', ea_dtsvi:'20', itv_tsvi:'20' };
+  const CONT_SEV = { diam_mit:'40', vtim:'12' };
+  const met = (campos, marcarCont) => {
+    base(); Object.keys(campos).forEach(k => __t.set(k, campos[k]));
+    const cb = document.getElementById('im_pdf_cont');
+    if (cb && !!cb.checked !== !!marcarCont) { cb.checked = !!marcarCont; cb.dataset.tocado = '1';
+      try { calcIM_ESC(); } catch (e) {} }
+    return { g: G('im_grado'), sev: T('im-sev'), chk: !!(cb && cb.checked),
+             contVolr: G('vr_cont'), eroa: T('eroa-val'),
+             pdf: { eroa: (typeof imEroaPdfVal === 'function') ? imEroaPdfVal() : 'NO EXISTE',
+                    volr: (typeof imVolrPdfVal === 'function') ? imVolrPdfVal() : 'NO EXISTE',
+                    fr:   (typeof imFrPdfVal   === 'function') ? imFrPdfVal()   : 'NO EXISTE' },
+             suma: __t.informe().suma };
+  };
+  R.mSoloPisa = met(PISA_SEV, false);
+  R.mSoloCont = met(CONT_LEV, true);
+  R.mAmbosMar = met(Object.assign({}, PISA_SEV, CONT_LEV), true);
+  R.mAmbosNo  = met(Object.assign({}, PISA_SEV, CONT_LEV), false);
+  R.mNinguno  = met({ im_vc:'2' }, false);
+  R.mContPeor = met(Object.assign({}, PISA_LEV, CONT_SEV), true);
+  R.mContPeorNo = met(Object.assign({}, PISA_LEV, CONT_SEV), false);
+  ex.push(['DENOMINADOR del metodo: las dos parejas dan grados DISTINTOS por PISA y por continuidad',
+    R.mSoloPisa.g === '4' && R.mSoloCont.g === '1' && R.mContPeorNo.g === '1'
+    && R.mContPeor.contVolr !== '' && R.mSoloCont.contVolr !== '',
+    'pisaSev=' + R.mSoloPisa.g + ' contLeve=' + R.mSoloCont.g + ' pisaLeve=' + R.mContPeorNo.g]);
+  ex.push(['solo PISA manda su grado, y solo continuidad MARCADA manda el suyo (antes no votaba)',
+    R.mSoloPisa.g === '4' && R.mSoloCont.g === '1' && /IM severa/.test(R.mSoloPisa.suma)
+    && /IM leve/.test(R.mSoloCont.suma),
+    'soloPisa=' + R.mSoloPisa.g + '/' + R.mSoloPisa.suma + ' soloCont=' + R.mSoloCont.g + '/' + R.mSoloCont.suma]);
+  ex.push(['con los DOS marcados gana el PEOR, y se prueba por los dos lados',
+    R.mAmbosMar.g === '4' && R.mContPeor.g === '4',
+    'pisaPeor=' + R.mAmbosMar.g + ' contPeor=' + R.mContPeor.g]);
+  ex.push(['CONTROL NEGATIVO: sin marcar la continuidad el grado es el de PISA, en las dos parejas',
+    R.mAmbosNo.g === '4' && R.mContPeorNo.g === '1' && R.mContPeorNo.chk === false,
+    'ambosNo=' + R.mAmbosNo.g + ' contPeorNo=' + R.mContPeorNo.g]);
+  ex.push(['CONTROL NEGATIVO: sin ningun metodo el grado sale de los votos comunes, como HEAD',
+    R.mNinguno.g === '1' && /IM leve/.test(R.mNinguno.suma),
+    'ninguno=' + R.mNinguno.g + ' suma=' + R.mNinguno.suma]);
+
+  /* ── 4 · EL PAPEL: EROA, Vol-R y FR JUNTOS POR METODO ───────────────────────────────────────
+     Las tres filas de la tabla compacta salen de sus emisores. La de FR no existia. */
+  const PDF_PISA = { pisa_r:'10', pisa_val:'40', im_vmax:'5', im_itv:'80', ea_dtsvi:'20', itv_tsvi:'20' };
+  R.pdf1 = met(PDF_PISA, false);
+  R.pdf2 = met(Object.assign({}, PDF_PISA, { diam_mit:'30', vtim:'12' }), true);
+  ex.push(['con UN metodo el papel saca los TRES, cada uno rotulado con su metodo',
+    /^PISA: /.test(String(R.pdf1.pdf.eroa)) && /^PISA: /.test(String(R.pdf1.pdf.volr))
+    && /^PISA: /.test(String(R.pdf1.pdf.fr)),
+    JSON.stringify(R.pdf1.pdf)]);
+  ex.push(['con los DOS metodos los TRES llevan las dos patas, la FR incluida',
+    / . Cont: /.test(String(R.pdf2.pdf.eroa)) && / . Cont: /.test(String(R.pdf2.pdf.volr))
+    && / . Cont: /.test(String(R.pdf2.pdf.fr)),
+    JSON.stringify(R.pdf2.pdf)]);
+  ex.push(['y la FR del papel sale del congelado tambien: freg-val entra al sellado',
+    (typeof _IM_PISA_SPANS !== 'undefined') && _IM_PISA_SPANS.indexOf('freg-val') > -1,
+    (typeof _IM_PISA_SPANS !== 'undefined') ? JSON.stringify(_IM_PISA_SPANS) : 'NO EXISTE']);
+
+  /* ── 5 · LA TRICUSPIDE: GANA LA CONTINUIDAD ─────────────────────────────────────────────────
+     Densidad del chorro en «denso» (severa) contra una EROA de 18,1 mm2 (leve). */
+  base();
+  __t.set('it_pisa_val','40'); __t.set('it_vmax_cw','5'); __t.set('it_pisa_r','6');
+  __t.set('it_densidad','denso');
+  R.itCon = { g: G('it_grado'), sev: T('it-sev'), eroa: T('it-eroa'),
+              dens: T('it-densidad-interp'), disc: T('it-discordancia'),
+              suma: __t.informe().suma, inf: __t.informe().inf };
+  __t.set('it_pisa_r','');
+  R.itSin = { g: G('it_grado'), sev: T('it-sev'), eroa: T('it-eroa'),
+              dens: T('it-densidad-interp'), suma: __t.informe().suma };
+  ex.push(['DENOMINADOR: la densidad vota severa y la continuidad leve, las dos a la vista',
+    /Severa/.test(R.itCon.dens) && /Leve/.test(R.itCon.eroa),
+    'dens=' + R.itCon.dens + ' eroa=' + R.itCon.eroa]);
+  ex.push(['IT: con continuidad cargada GANA la continuidad, y es UN grado en pantalla, pastilla e informe',
+    R.itCon.g === '1' && /Leve/.test(R.itCon.sev) && /insuficiencia leve/.test(R.itCon.inf)
+    && /IT leve/.test(R.itCon.suma),
+    'g=' + R.itCon.g + ' sev=' + R.itCon.sev + ' suma=' + R.itCon.suma]);
+  ex.push(['y la fila lo DECLARA: la densidad se muestra y no decide',
+    /no decide/.test(R.itCon.disc), 'disc=' + R.itCon.disc]);
+  ex.push(['CONTROL: al borrar la continuidad el grado vuelve al de la densidad (severa)',
+    R.itSin.g === '4' && /IT severa/.test(R.itSin.suma) && /Severa/.test(R.itSin.dens),
+    'g=' + R.itSin.g + ' suma=' + R.itSin.suma]);
+
+  /* ── 6 · LAS PASTILLAS: PRENDIDA POR LA APP Y MARCADA A MANO ────────────────────────────────
+     La EAo va con sus TRES grados: el apagado vale para cualquiera que haya puesto la app. */
+  const PAST = [
+    { les:'im', v:'mitral',     t:'insuf', c:'im_vc',   x:'7'   },
+    { les:'ia', v:'aortica',    t:'insuf', c:'ia_pht',  x:'150' },
+    { les:'it', v:'tricuspide', t:'insuf', c:'it_vc',   x:'8'   },
+    { les:'ea', v:'aortica',    t:'esten', c:'vmax_ao', x:'2'   },
+    { les:'ea', v:'aortica',    t:'esten', c:'vmax_ao', x:'3'   },
+    { les:'ea', v:'aortica',    t:'esten', c:'vmax_ao', x:'4'   }
+  ];
+  R.past = []; R.pastMal = [];
+  PAST.forEach(p => {
+    const k = 'valv-pill-' + p.t + '-' + p.v;
+    /* (a) la prende la APP */
+    base(); __t.set(p.c, p.x);
+    const aCon = { pill: PILL(p.v, p.t), ls: LS(k), g: G(CAMPO_G[p.les]) };
+    __t.set(p.c, '');
+    const aTras = { pill: PILL(p.v, p.t), ls: LS(k), g: G(CAMPO_G[p.les]) };
+    /* (b) la marca el MEDICO antes de cargar: el clic le quita a la app la propiedad */
+    base();
+    if (PILL(p.v, p.t) !== true) toggleValvPill(p.v, p.t);
+    __t.set(p.c, p.x);
+    const mCon = { pill: PILL(p.v, p.t) };
+    __t.set(p.c, '');
+    const mTras = { pill: PILL(p.v, p.t), ls: LS(k) };
+    R.past.push([p.les + '/' + p.t + '/' + p.x, aCon.pill, aTras.pill, mCon.pill, mTras.pill]);
+    if (!(aCon.pill === true && aTras.pill === false && aTras.ls === null
+          && String(aTras.g) === SIN[p.les] && mTras.pill === true)) R.pastMal.push(p.les + '/' + p.x);
+  });
+  ex.push(['la pastilla que prendio la APP se apaga al borrar y borra su clave; la marcada a MANO no se toca',
+    R.pastMal.length === 0, JSON.stringify(R.past)]);
+
+  /* ⚠️ CONSECUENCIA DECLARADA, Y SE FIJA ACA PARA QUE NO QUEDE ESCONDIDA: con la pastilla
+     prendida por la app, CERRARLA A MANO retira el grado y pone la marca manual —es la regla de
+     siempre, boton apagado = no hay valvulopatia— y reabrirla NO lo recupera. No es nuevo: es lo
+     que PENDIENTES ya declara para la estenosis tricuspidea. Lo que cambio es que ahora alcanza a
+     tres lesiones mas, porque antes esas pastillas no se prendian. */
+  base(); __t.set('im_vc','7');
+  R.cierreAntes = { pill: PILL('mitral','insuf'), g: G('im_grado') };
+  toggleValvPill('mitral','insuf');
+  R.cierre = { pill: PILL('mitral','insuf'), g: G('im_grado'),
+               man: !!(window.esqSevManual && window.esqSevManual.im) };
+  toggleValvPill('mitral','insuf');
+  try { calcIM_ESC(); } catch (e) {}
+  R.reabre = { pill: PILL('mitral','insuf'), g: G('im_grado') };
+  ex.push(['DECLARADO: cerrar a mano una pastilla auto-prendida retira el grado y reabrirla no lo recupera',
+    R.cierreAntes.pill === true && R.cierreAntes.g === '4' && R.cierre.g === '0'
+    && R.cierre.man === true && R.reabre.g === '0',
+    JSON.stringify({ antes: R.cierreAntes, cierre: R.cierre, reabre: R.reabre })]);
+
+  /* ── 7 · CONTROLES: LO QUE ESTA TANDA NO TOCA ───────────────────────────────────────────────
+     Las cinco lesiones ajenas y el Excel, en tres fases: vacio, las nueve cargadas, y todo
+     borrado. Las tres estenosis ajenas SI limpiaban en HEAD, asi que son el control de que el
+     mecanismo nuevo no se derramo sobre ellas. */
+  const PAC = { im_vc:'7', ia_pht:'150', it_vc:'8', vmax_ao:'4', em_gmedio:'12', avm_plan:'1.2',
+                et_gmedio:'8', ep_vmax:'4', ip_vmax:'2', tde:'180', onda_e:'90', onda_a:'60' };
+  /* ⚠️ El renglon dd-interp NO ENTRA EN LA COMPARACION, y esta medido por que: la funcion diastolica deja
+     «Incompleto — ASE 2025» despues de que se le cargan y se le borran SUS campos (tde, onda_e,
+     onda_a), y eso es PREEXISTENTE —se midio igual en HEAD, con la sonda, en la misma fase—. El
+     control de la diastolica va aparte, abajo, y con el gesto que le corresponde: cargar y borrar
+     SOLO los campos de las cuatro lesiones, sin tocar los suyos. */
+  const otras = () => ({ em: G('em_grado'), et: G('et_grado'), ep: G('ep_grado'), ip: G('ip_grado'),
+    pEM: PILL('mitral','esten'), pET: PILL('tricuspide','esten'), pEP: PILL('pulmonar','esten') });
+  const xls = () => { try {
+      const c = {};
+      document.querySelectorAll('input[id], select[id], textarea[id]').forEach(el => {
+        try { if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(el.id)) return; } catch (e) {}
+        c[el.id] = el.value; });
+      document.querySelectorAll('input[type=checkbox][id]').forEach(el => { c[el.id + '__chk'] = el.checked ? '1' : '0'; });
+      return Object.keys(_labExcelRow({ nombre:'P', ci:'1', fecha_estudio:'2026-10-13', campos:c })).length;
+    } catch (e) { return 'EXC'; } };
+  base(); R.ctrlVacio = otras(); R.xlsVacio = xls();
+  Object.keys(PAC).forEach(k => __t.set(k, PAC[k])); R.ctrlCargado = otras(); R.xlsCargado = xls();
+  Object.keys(PAC).forEach(k => __t.set(k, '')); R.ctrlBorrado = otras(); R.xlsBorrado = xls();
+  R.sumaBorrado = __t.informe().suma;
+  ex.push(['DENOMINADOR del control: con las nueve cargadas las cinco lesiones ajenas publican su grado',
+    R.ctrlCargado.em === 'severa' && R.ctrlCargado.et === 'Significativa'
+    && R.ctrlCargado.ep === 'Moderada' && R.ctrlCargado.pEM === true,
+    JSON.stringify(R.ctrlCargado)]);
+  ex.push(['CONTROL: las tres estenosis ajenas y la IP vuelven a su centinela, igual que en HEAD',
+    JSON.stringify(R.ctrlBorrado) === JSON.stringify(R.ctrlVacio),
+    'vacio=' + JSON.stringify(R.ctrlVacio) + ' borrado=' + JSON.stringify(R.ctrlBorrado)]);
+  ex.push(['CONTROL: el Excel sigue en 435 columnas en las tres fases',
+    R.xlsVacio === 435 && R.xlsCargado === 435 && R.xlsBorrado === 435,
+    R.xlsVacio + '/' + R.xlsCargado + '/' + R.xlsBorrado]);
+  ex.push(['y con las nueve lesiones borradas el EN SUMA no nombra NINGUNA',
+    !/\\bIM |\\bIAo |\\bEAo |\\bIT |\\bEM |\\bET |\\bEP |\\bIP /.test(R.sumaBorrado),
+    JSON.stringify(R.sumaBorrado)]);
+  /* CONTROL de la diastolica con su propio gesto: se cargan y se borran SOLO los campos de las
+     cuatro lesiones de la tanda, sin tocar los suyos, y su renglon tiene que quedar donde estaba. */
+  base(); const ddVacio = T('dd-interp');
+  ['im_vc','ia_pht','it_vc','vmax_ao'].forEach(k => __t.set(k, k === 'ia_pht' ? '150' : (k === 'vmax_ao' ? '4' : '7')));
+  const ddCargado = T('dd-interp');
+  ['im_vc','ia_pht','it_vc','vmax_ao'].forEach(k => __t.set(k, ''));
+  R.dd = [ddVacio, ddCargado, T('dd-interp')];
+  ex.push(['CONTROL: la funcion diastolica no se mueve con los campos de las cuatro lesiones',
+    R.dd[0] === R.dd[1] && R.dd[1] === R.dd[2], JSON.stringify(R.dd)]);
+
+  /* ── 8 · CONTROL NEGATIVO: lo que NO tiene que pasar ────────────────────────────────────────
+     (a) un campo que no vota por si solo no escribe grado: la onda S pulmonar vota pero no
+         cuantifica, y un estudio donde es lo UNICO cargado no recibe severidad;
+     (b) un grado fijado A MANO no se retira al borrar el dato que lo sugirio. */
+  base(); __t.set('im_onda_s','invertida');
+  R.ondaSola = { g: G('im_grado'), sev: T('im-sev'), suma: __t.informe().suma };
+  ex.push(['CONTROL NEGATIVO (a): la onda S sola no escribe grado — nadie cuantifico la valvula',
+    R.ondaSola.g === '0' && !/IM /.test(R.ondaSola.suma),
+    'g=' + R.ondaSola.g + ' suma=' + R.ondaSola.suma]);
+  base(); __t.set('im_vc','7');
+  window.esqSevManual = window.esqSevManual || {}; window.esqSevManual.im = true;
+  __t.set('im_vc','');
+  R.manual = { g: G('im_grado'), sev: T('im-sev'), suma: __t.informe().suma };
+  try { delete window.esqSevManual.im; } catch (e) {}
+  try { if (typeof _sevManualSync === 'function') _sevManualSync(); } catch (e) {}
+  ex.push(['CONTROL NEGATIVO (b): un grado fijado A MANO no se retira al borrar el dato',
+    R.manual.g === '4' && /IM severa/.test(R.manual.suma),
+    'g=' + R.manual.g + ' suma=' + R.manual.suma]);
+  /* Y el badge SI se repinta a la raya, porque es el veredicto AUTOMATICO: dejarlo en «Severa»
+     sobre cero parametros es falso aunque el grado lo haya elegido el medico. */
+  ex.push(['  y el badge automatico igual vuelve a la raya, aunque el grado manual se conserve',
+    R.manual.sev === '\\u2014', 'badge=' + JSON.stringify(R.manual.sev)]);
+
+  /* ── 9 · LA VENTANA DE REIMPRESION NO CONTAMINA AL PACIENTE EN PANTALLA ─────────────────────
+     La fase de CARGA de la reimpresion corre calcIM_ESC, calcIA_ESC y calcIT_ESC con los datos del
+     estudio REIMPRESO, y desde la regla 2 esos tres son los duenos de las pastillas de IM, IAo e
+     IT. Sin la mitad del CIERRE, la ventana dejaba al paciente en pantalla con la pastilla del
+     estudio ajeno y el narrativo y el EN SUMA publicando «con insuficiencia» / «IM presente.» sobre
+     un formulario vacio: dos superficies FIRMADAS afirmando la valvulopatia de otro.
+     Es el mismo defecto y la misma solucion que la decision de Maicol del 2026-10-08 para la IP.
+     ⚠️ SE MIDE EL ESTADO DEL PACIENTE EN PANTALLA ANTES Y DESPUES, y ademas se exige que el estudio
+     reimpreso SI tuviera grado: sin ese denominador, «la pastilla quedo apagada» se cumple sobre
+     una ventana que no cargo nada. */
+  return (async () => {
+    const foto = () => ({ pIM: PILL('mitral','insuf'), pIA: PILL('aortica','insuf'),
+      pIT: PILL('tricuspide','insuf'), im: G('im_grado'), ia: G('ia_grado'), it: G('it_grado'),
+      suma: (document.getElementById('en_suma') || {}).value || '' });
+    base();
+    __t.set('nombre','TC463re'); __t.set('fecha','2026-10-13');
+    __t.set('im_vc','7'); __t.set('ia_pht','150'); __t.set('it_vc','8');
+    R.reGuardado = { im: G('im_grado'), ia: G('ia_grado'), it: G('it_grado'),
+                     pIM: PILL('mitral','insuf') };
+    const gu = await __t.guardar();
+    /* ⚠️ pdfDeInformeGuardado BUSCA POR i.id Y NO POR estudioId, y la primera version de esta
+       condicion le pasaba el estudioId que devuelve __t.guardar: la ventana no encontraba el
+       estudio, el callback no volvia y la condicion informaba «el callback no volvio» sobre un
+       guardado perfecto. Un id que el consumidor no reconoce no es una medicion. */
+    const _reg = gu.estudioId
+      ? (getInformes() || []).find(i => i.estudioId === gu.estudioId) : null;
+    R.reId = _reg ? _reg.id : null;
+    R.reEstudioId = gu.estudioId;
+    if (!R.reId) {
+      ex.push(['DENOMINADOR de la reimpresion: el estudio con las tres insuficiencias se guardo',
+        false, JSON.stringify(gu)]);
+      base();
+      return { extra: ex };
+    }
+    base();
+    R.rePre = foto();
+    await new Promise(res => {
+      let listo = false;
+      try { pdfDeInformeGuardado(R.reId, () => { listo = true; setTimeout(res, 1800); }); }
+      catch (e) { R.reErr = String(e && e.message || e); setTimeout(res, 100); return; }
+      setTimeout(() => { if (!listo) { R.reErr = 'el callback no volvio'; res(); } }, 12000);
+    });
+    R.rePost = foto();
+    try { await __t.borrar(R.reEstudioId); } catch (e) {}
+    ex.push(['DENOMINADOR de la reimpresion: el estudio guardado tenia las tres con grado severo',
+      R.reGuardado.im === '4' && R.reGuardado.ia === '4' && R.reGuardado.it === '4'
+      && R.reGuardado.pIM === true && !R.reErr,
+      JSON.stringify(R.reGuardado) + ' err=' + R.reErr]);
+    ex.push(['la ventana de reimpresion devuelve al paciente en pantalla su propio estado, sin pastillas ajenas',
+      JSON.stringify(R.rePre) === JSON.stringify(R.rePost),
+      'pre=' + JSON.stringify(R.rePre) + ' post=' + JSON.stringify(R.rePost)]);
+    ex.push(['  y el EN SUMA del paciente en pantalla no nombra la valvulopatia del estudio reimpreso',
+      !/\\bIM |\\bIAo |\\bIT /.test(R.rePost.suma), JSON.stringify(R.rePost.suma)]);
+    base();
+    return { extra: ex };
+  })();
+`);
+
 caso('TC-461', 'Doppler mitral: los 16 campos en CUATRO columnas con el Tab por columnas y foco real campo por campo, la posicion EXPLICITA que deja vacia la casilla de un campo oculto, el orden visual igual al del Tab cuando la grilla cae a una columna, y el selector del S/D con sus CUATRO opciones y un token desconocido tratado como campo SIN CARGAR', `
   const AF = [];
   const ok = (c, t, d) => AF.push([t, !!c, String(d)]);

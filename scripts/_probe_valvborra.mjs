@@ -413,6 +413,74 @@ window.__P = {
                          catch(e) { return 'EXC: ' + e.message } };
     return { eroa: f('imEroaPdfVal'), volr: f('imVolrPdfVal'), fr: f('imFrPdfVal') } },
 
+  /* ⚠️ EL PDF, GENERADO DE VERDAD, interceptando el CONSTRUCTOR de jsPDF —no el prototipo: en
+     jsPDF 2.x los metodos del nucleo son propiedades PROPIAS de cada documento—. No descarga nada.
+     Se devuelven las llamadas a text() con su pagina y su posicion, que es LO QUE LLEGA AL
+     PAPEL: medir el valor que devuelve imFrPdfVal() dice que el emisor existe, no que la fila se
+     imprima. Calcado de scripts/_probe_pdfvcit.mjs. */
+  pdfReal() {
+    if (typeof window.jspdf === 'undefined') return 'SIN jsPDF';
+    var orig = window.jspdf.jsPDF;
+    var textos = [], bytes = null, err = null;
+    function Envuelto(){
+      var d = new orig(arguments[0]);
+      var oText = d.text;
+      d.text = function(t, x, y){
+        var str = (typeof t === 'string') ? t : (Array.isArray(t) ? t.join('\u0001') : String(t));
+        var pg = 0;
+        try { pg = d.internal.getCurrentPageInfo().pageNumber } catch(e) {}
+        textos.push(pg + '|' + (+x).toFixed(1) + '|' + (+y).toFixed(1) + '|' + str);
+        return oText.apply(d, arguments) };
+      d.save = function(){ try { bytes = d.output('datauristring') } catch(e) {} return d };
+      return d; }
+    Envuelto.API = orig.API; Envuelto.version = orig.version;
+    window.jspdf.jsPDF = Envuelto;
+    try { generarPDFReal() } catch(e) { err = String(e && e.message || e) }
+    finally { window.jspdf.jsPDF = orig }
+    /* Las filas de la tabla compacta que interesan: cualquier texto que lleve un rotulo de las
+       tres o un valor prefijado por su metodo. El filtro es ancho a proposito —se imprime lo que
+       encuentre— porque la forma exacta con que drawTablaCompacta compone la celda no se adivina:
+       se mira en la salida. */
+    var filas = textos.filter(function(t){
+      return /EROA|Vol\\.R|\\bFR\\b|PISA:|Cont:/.test(t); });
+    return { err: err, guardo: !!bytes, nTextos: textos.length, filas: filas } },
+
+  /* ⚠️ LA VENTANA DE REIMPRESION, DE VERDAD. La fase de CARGA corre calcIM_ESC, calcIA_ESC y
+     calcIT_ESC con los datos del estudio REIMPRESO, asi que desde que esos tres prenden pastilla
+     hay que medir si la del paciente EN PANTALLA queda contaminada. Es exactamente el defecto que
+     la decision de Maicol del 2026-10-08 cerro para la IP, y se cerro llamando a calcIP tambien en
+     el CIERRE. Devuelve el estado del paciente en pantalla ANTES y DESPUES de la ventana. */
+  async reimp(campos) {
+    var F = function(){ return {
+      pillIM: window.__P.pill('mitral','insuf'), pillIA: window.__P.pill('aortica','insuf'),
+      pillIT: window.__P.pill('tricuspide','insuf'), pillEA: window.__P.pill('aortica','esten'),
+      im: window.__P.val('im_grado'), ia: window.__P.val('ia_grado'),
+      it: window.__P.val('it_grado'), ea: window.__P.val('ea_grado'),
+      suma: (document.getElementById('en_suma')||{}).value || '' } };
+    window.__P.limpiar();
+    Object.keys(campos).forEach(function(k){ window.__P.set(k, campos[k]) });
+    window._ettEditandoId = null;
+    var antes = new Set(getInformes().map(function(i){ return i.estudioId }));
+    var g = await new Promise(function(res){
+      try { guardarInforme(function(ok){
+        var n = getInformes().find(function(i){ return !antes.has(i.estudioId) });
+        res({ ok: ok === true, id: n ? n.estudioId : null }) }) }
+      catch(e) { res({ ok:false, err:String(e) }); return }
+      var cf = document.getElementById('rev-confirm'); if (cf) cf.click();
+    });
+    if (!g.id) return { err: 'no se guardo', g: g };
+    window.__P.limpiar();
+    var pre = F();
+    await new Promise(function(res){
+      try { pdfDeInformeGuardado(g.id, function(){ setTimeout(res, 1200) }, 'PPT') }
+      catch(e) { setTimeout(res, 100) }
+    });
+    await new Promise(function(res){ setTimeout(res, 1500) });
+    var post = F();
+    try { CeiboStore.setLocal(getInformes().filter(function(i){ return i.estudioId !== g.id })) } catch(e) {}
+    return { id: g.id, pre: pre, post: post,
+             igual: JSON.stringify(pre) === JSON.stringify(post) } },
+
   campos() {
     var c = {};
     document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function(el){
@@ -495,7 +563,7 @@ const ESC_SEL = {
   it: [{ id:'it_densidad', val:{ leve:'debil', moderada:'moderado', severa:'denso' } }]
 };
 const LES = ['im','ia','ea','it'];
-const GRUPOS = ['repro','borrado','dos','metodo','tric','pastillas','controles','pdf'];
+const GRUPOS = ['repro','borrado','dos','metodo','tric','pastillas','controles','pdf','reimp'];
 
 async function main() {
   const md5Ini = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
@@ -924,11 +992,27 @@ async function main() {
       const tCont = e.cont ? await tildar('im_pdf_cont', true) : null;
       const f = await fotoDe('im');
       const pdf = await ev(`window.__P.pdfIM()`);
+      const pdfReal = await ev(`window.__P.pdfReal()`, 60000);
       g.push({ escena:e.n, limpio, pre:p, tildado:tCont, chk:{ pisa:f.chkPisa, cont:f.chkCont },
         filas:{ eroa:f.eroa, volr:f.volr, fr:f.fr, contEroa:f.contEroa, contVolr:f.contVolr, contFr:f.contFr },
-        pdf });
+        pdf, pdfReal });
     }
     out.grupos.pdf = g;
+  }
+
+  /* ══ GRUPO reimp — la ventana de reimpresion no contamina al paciente en pantalla ════════════ */
+  if (corre('reimp')) {
+    const g = [];
+    for (const c of [{ n:'IM severa', campos:{ nombre:'RE1', im_vc:'7' } },
+                     { n:'IAo severa', campos:{ nombre:'RE2', ia_pht:'150' } },
+                     { n:'IT severa', campos:{ nombre:'RE3', it_vc:'8' } },
+                     { n:'EAo severa', campos:{ nombre:'RE4', vmax_ao:'4.2' } }]) {
+      await ev(`window.__P.despejar()`);
+      await ev(`window.__P.abrirTodo()`);
+      const r = await ev(`window.__P.reimp(${JSON.stringify(c.campos)})`, 90000);
+      g.push({ escena: c.n, r });
+    }
+    out.grupos.reimp = g;
   }
 
   /* ══ GRUPO borrado — la tabla por campo y por grado, con el denominador declarado ════════════

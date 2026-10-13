@@ -1,5 +1,106 @@
 # EcoSmart — pendientes vivos
 
+## Borrado en Válvulas: las cuatro lesiones (2026-10-13) — DECLARADO y NO arreglado
+
+### B-1 · La banda de la EROA por continuidad es criterio EcoSmart, no de la guía
+
+La ASE 2017 (Zoghbi, **Tabla 8, folio 332**) califica esa fila: dice literalmente **«EROA, 2D PISA
+(cm²)»**. El **folio 312** da la fórmula general `EROA = RVol/VTI_RegJet` dentro del apartado
+«Quantitative volumetric method», que es exactamente la que usa `calcContIM`, pero **no publica una
+banda propia** para esa EROA. Las filas de **Vol-R y FR** no están calificadas por método, así que
+ésas sí valen para los dos.
+
+Desde la regla 3 del 2026-10-13 la EROA por continuidad **vota** con la banda de PISA
+(`IM_CORTES.eroa`). Es el lado conservador —no mueve ningún número, no declara una tabla nueva con
+los mismos valores— pero **es una decisión de la app**. Lo que falta decidir: si se le pone una
+banda propia (ninguna guía leída la da), si se la deja votando con la de PISA (lo de hoy) o si se
+la retira del voto y quedan sólo el Vol-R y la FR, que son los dos que la tabla no califica.
+**Decisión de Maicol.**
+
+### B-2 · «Gana la continuidad» en la IT se aplicó SÓLO sobre la densidad del chorro
+
+La regla 4 dice «si hay datos de continuidad cargados, GANA la continuidad». Al pie de la letra, el
+grado saldría **sólo** de la EROA y el Vol-R, y eso descartaría una **vena contracta severa** — el
+parámetro con más peso de la Tabla 14 de la ASE 2017, el único con columna propia en el Excel y en
+«Ver detalle».
+
+Lo implementado: con la cadena cuantitativa produciendo un número, **la densidad del chorro deja de
+decidir** (sigue mostrando su badge) y la **vena contracta sigue votando**. El síntoma que la regla
+contesta nombra la densidad, que es el único votante CUALITATIVO del cuadro. **Es mi lectura y
+queda a confirmar:** si Maicol quiere la versión literal, el cambio es una línea
+(`p.grupo !== 'cont'` en vez de `p.grupo === 'jet'` en el filtro de `_itDeciden`).
+
+### B-3 · Cerrar a mano una pastilla auto-prendida retira el grado, y reabrirla no lo recupera
+
+No es nuevo: es la cadena `toggleValvPill` → `valvApagarGrado` → `valvSev.aplicar(…, centinela)`,
+que pone `esqSevManual` y por eso es durable — y es lo que este archivo ya declara para la
+**estenosis tricuspídea** («cerrar y reabrir convierte una ET graduada en *Estenosis tricuspídea.*
+sin grado»). Lo que cambió el 2026-10-13 es que **alcanza a tres lesiones más** (IM, IAo e IT),
+porque hasta hoy esas pastillas no se prendían solas y `cerrar()` no encontraba nada que apagar.
+
+Medido y fijado como límite en **TC-463**: con la vena contracta en 7 mm el grado es 4; cerrando la
+pastilla a mano queda en `'0'` con `esqSevManual.im` puesta; reabriéndola **sigue en `'0'`**.
+Cerrarlo exige decidir qué pasa con un grado que la app calculó y el médico ocultó, que es decisión
+clínica.
+
+### B-4 · Un dato cargado pero FUERA DE BANDA no sostiene la pastilla
+
+Los calculadores llaman al apagado desde su salida «nadie votó», y a esa salida se llega también
+cuando **todo lo cargado quedó fuera de rango**. Ahí el grado ya se retiró por el mismo motivo, así
+que apagar el botón va en la misma dirección —la app no puede afirmar la valvulopatía— y el número
+sigue a la vista en su campo con el aviso que lo nombra. **Queda declarado**: si se decide que un
+número ilegible debe sostener el botón, la guarda va en `_insufApagarAuto`, al lado de
+`_INSUF_CAUSAS`.
+
+### B-5 · El formato del grado de la fila no es el mismo en las tres insuficiencias
+
+- **IM y IAo** (nueve filas): `«50.3 mm²»` + un span hermano `«(severa)»`.
+- **IT** (tres filas): `«18.1 mm² · Severa (≥40 mm²)»`, el formato de `itRefPintar` desde el
+  2026-10-07, con el **rango** del grado adentro.
+- **THP, Vmax telediastólica y VTI de la aorta descendente**: un `badge` de color con el grado y su
+  rango (`«Leve (>500ms)»`).
+
+Las tres formas dicen el grado, y por eso ninguna se tocó. Unificarlas es decidir cuál gana —y la
+de la IT y las de badge dan **más** información, el rango— así que no es un arreglo sino una
+elección de diseño. **Decisión de Maicol.**
+
+### B-6 · La vena contracta de la IAo sigue sin fila de referencia
+
+`ia_vc` vota (`<3` leve · `≤6` moderada · `>6` severa) y su valor sólo se ve **en su input**: no
+tiene `.calc-val` en el cuadro, así que la regla 5 no tiene dónde escribir su grado. Es el mismo
+estado que tenía la vena contracta de la IM hasta el 2026-10-09, cuando se le dio fila. La de la
+IAo está declarada desde entonces y sigue así: agregarle una fila es marcado nuevo en el cuadro de
+la IAo, que esta orden no pedía.
+
+### B-7 · Con sólo continuidad no hay fila de discordancia intra-método
+
+`_votosDisc` —la lista de la que sale «⚠️ Parámetros discordantes»— sigue siendo **PISA + comunes +
+onda S**, y se compone antes de que los votos de la continuidad entren a `params`. Se dejó así a
+propósito: tocarla habría cambiado el texto de `im-discordancia` en todas las escenas con los dos
+métodos, y con los nombres repetidos (`EROA:severa, EROA:moderada`) se vuelve ilegible. El costo:
+un paciente cuantificado **sólo** por continuidad con sus tres parámetros discordando no recibe esa
+fila. El aviso «El método volumétrico da X y el integrado Y» sí sale.
+
+### B-8 · `calcIM_ESC` funde las dos bandas intermedias de la Tabla 8
+
+La tabla de la ASE 2017 tiene **cuatro** columnas de cuantitativos: la moderada se subdivide
+(`EROA 0.20-0.29` / `0.30-0.39`, `RVol 30-44` / `45-59`, `RF 30-39` / `40-49`) y la nota ‡‡ lo
+declara —«Quantitative parameters can help subclassify the moderate regurgitation group»—.
+`IM_CORTES` tiene tres bandas. **Pre-existente**, no se tocó en esta tanda.
+
+### B-9 · El aviso «Severidad (continuidad)» sobrevive a «Nuevo estudio»
+
+Medido en la sonda: en la escena `ninguno` del grupo `metodo` —formulario recién limpiado— el
+renglón `im-cont-severidad` seguía diciendo «Severidad (continuidad): Leve · método volumétrico ·
+Vol-R 15.7 ml · FR 19%» del paciente anterior. Es un `div` sin `id` dentro de un `calc-row`, así
+que el barrido genérico de `limpiarCampos` no lo alcanza, igual que les pasaba a las marcas
+«(revisar)» del VD. **Pre-existente y de pantalla** —no lo lee el informe, el EN SUMA, el PDF ni el
+Excel, y su `dataset.gradoVolum` sí se borra en las ramas que corresponden—, pero es una afirmación
+sobre un paciente que ya no está. El arreglo es una línea en el final de `limpiarCampos`, al lado
+de las que entraron en esta tanda; se declara en vez de hacerse porque no es de esta orden.
+
+---
+
 ## Doppler mitral: el S/D sin legado y los 16 campos en cuatro columnas (2026-10-13) — DECLARADO y NO arreglado
 
 Mapa: `docs/mapa/doppler-mitral-grilla.md` y `docs/mapa/diastolica-complementarios.md`.
