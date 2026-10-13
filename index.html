@@ -24872,6 +24872,56 @@ const ASE_SUPLEMENTARIOS = [
 ];
 window.ASE_SUPLEMENTARIOS = ASE_SUPLEMENTARIOS;
 
+/* ══ EL CAMINO DE LAS CUATRO VIAS DE LA ASE ══════════════════════════════════════════════════
+   Mismo mecanismo que las tres figuras de la BSE, y por el mismo motivo: `R.camino` es la lista
+   de nodos que recorrio ESTE paciente, y el NODO FINAL NO SE EMPUJA EN NINGUNA RAMA — se DERIVA
+   de `R.clave`, que es la categoria que firman el cuadro gris, el informe y el EN SUMA.
+   Empujarlo a mano en cada salida seria una SEGUNDA copia del veredicto, y la copia que se
+   olvida de actualizarse es la que pinta el camino rojo terminando en una casilla que el badge
+   no dice.
+
+   ⚠️ CUATRO MAPAS Y NO UNO, PORQUE LAS CLAVES SE REPITEN ENTRE VIAS. `insuf`, `indet`, `normal`
+   y `g3` existen en la 8A Y en la 8B de la ASE/EACVI 2016 y significan casillas DISTINTAS; lo
+   mismo `normal` entre el ritmo sinusal y la FA de la ASE 2025. Por eso cada via tiene su mapa
+   y sus ids llevan el prefijo de la via (`a25.` ritmo sinusal, `a25fa.` fibrilacion auricular,
+   `a16a.` Figura 8A, `a16b.` Figura 8B).
+
+   ⚠️ UNA CLAVE SIN ENTRADA DEJA `nodoFinal` EN null Y EL DIBUJO NO INVENTA UNA CASILLA: el
+   diagrama no pinta resultado y el caso de la suite lo caza. Es a proposito. */
+const ASE25_NODO_FIN = {
+  incompleto:     'a25.fin-incompleto',   // estado de la APP: sin e' septal ni lateral
+  insuf:          'a25.fin-insuf',        // estado de la APP: ningun parametro de presion
+  normal:         'a25.fin-normal',       // Figura 3 · «Normal DF / Normal LAP»
+  g1:             'a25.fin-g1',           // Figura 3 · «Grade 1»
+  g2:             'a25.fin-g2',           // Figura 3 · «Grade 2»
+  g3:             'a25.fin-g3',           // Figura 3 · «Grade 3»
+  altaSinEa:      'a25.fin-sinea',        // estado de la APP: presion elevada sin E/A
+  indetComb:      'a25.fin-indet',        // estado de la APP: E/A >= 2 con e' conservada
+  normalSinGrado: 'a25.fin-pnormal',      // Figura 3 · «Normal LAP» del segundo paso negativo
+  noEstimable:    'a25.fin-noest'         // estado de la APP: segundo paso sin ningun parametro
+};
+const ASE25FA_NODO_FIN = {
+  elevada:       'a25fa.fin-elevada',     // Figura 8 · «Elevated LAP»
+  normal:        'a25fa.fin-normal',      // Figura 8 · «Normal LAP»
+  indeterminada: 'a25fa.fin-indet',       // Figura 8 · «Indeterminate»
+  noConcluye:    'a25fa.fin-noconc'       // estado de la APP: el algoritmo no llega
+};
+const ASE16A_NODO_FIN = {
+  dd8a:   'a16a.fin-dd',       // Figura 8A · «Diastolic Dysfunction»
+  normal: 'a16a.fin-normal',   // Figura 8A · «Normal Diastolic function»
+  indet:  'a16a.fin-indet',    // Figura 8A · «Indeterminate»
+  insuf:  'a16a.fin-insuf'     // estado de la APP: ninguna de las cuatro medida
+};
+const ASE16B_NODO_FIN = {
+  g1prol: 'a16b.fin-g1',       // Figura 8B · «Normal LAP / Grade I» por el atajo del flujo mitral
+  g1alt:  'a16b.fin-g1',       // Figura 8B · la misma casilla, por los tres criterios
+  g2:     'a16b.fin-g2',       // Figura 8B · «↑LAP / Grade II»
+  g3:     'a16b.fin-g3',       // Figura 8B · «↑LAP / Grade III»
+  indet:  'a16b.fin-indet',    // Figura 8B · «Cannot determine LAP and Diastolic Dysfunction Grade»
+  normal: 'a16b.fin-normal',   // estado de la APP: sin FEVI, 0 positivos (la 8B no tiene esta casilla)
+  insuf:  'a16b.fin-insuf'     // estado de la APP: sin E/A o sin ningun criterio
+};
+
 function diastASE2025Evaluar() {
   const ep = v('e_sep'), el = v('e_lat');
   const E = v('onda_e'), A = v('onda_a');
@@ -24916,17 +24966,25 @@ function diastASE2025Evaluar() {
   const eeRatio = (E !== null && ee !== null) ? (E / ee) : null;   // el que se muestra en la celda
   const ea = (E !== null && A !== null && A > 0) ? E / A : null;
 
+  /* `camino` arranca en la entrada y en la caja del paso 1: todo paciente que llega aca pasa
+     por las dos, incluido el que sale por la guarda de «sin e'» —el algoritmo SI arranco, lo
+     que no pudo es seguir—. Las ramas de abajo le van agregando su propio recorrido. */
   const R = { ep, el, ee, prom, E, A, ea, eeRatio, eeSep, eeLat, eeProm, tr, lavi, lars,
-              filas: [], pos: 0, total: 0, ePrimReducida: false };
+              filas: [], pos: 0, total: 0, ePrimReducida: false,
+              camino: ['a25.entrada', 'a25.paso1'] };
 
   // ── PASO 1: e' reducida? (promedio ≤6.5 | septal ≤6 | lateral ≤7) — Figura 3, folio 554
   const cSep  = ep !== null && ep <= 6;
   const cLat  = el !== null && el <= 7;
   const cProm = prom !== null && prom <= 6.5;
   R.ePrimReducida = cProm || cSep || cLat;
-  R.filas.push({ g: 'Paso 1 — Relajación (e\')', crit: 'e\' septal ≤ 6 cm/s', val: ep, u: 'cm/s', ok: cSep });
-  R.filas.push({ crit: 'e\' lateral ≤ 7 cm/s',    val: el, u: 'cm/s', ok: cLat });
-  R.filas.push({ crit: 'e\' promedio ≤ 6,5 cm/s (sólo con los dos anillos)', val: prom, u: 'cm/s', ok: cProm });
+  /* `nodo` es ADITIVO y lo lee el diagrama de la Figura 3: los valores que pone al lado de cada
+     caja salen de la MISMA fila que la lista muestra, asi que la caja y el renglon no pueden
+     contradecirse sobre el mismo numero. Las ocho filas de las tres variables principales van a
+     la misma caja porque la Figura 3 las dibuja en UNA sola, numeradas del 1 al 3. */
+  R.filas.push({ g: 'Paso 1 — Relajación (e\')', nodo: 'a25.paso1', crit: 'e\' septal ≤ 6 cm/s', val: ep, u: 'cm/s', ok: cSep });
+  R.filas.push({ nodo: 'a25.paso1', crit: 'e\' lateral ≤ 7 cm/s',    val: el, u: 'cm/s', ok: cLat });
+  R.filas.push({ nodo: 'a25.paso1', crit: 'e\' promedio ≤ 6,5 cm/s (sólo con los dos anillos)', val: prom, u: 'cm/s', ok: cProm });
 
   if (ee === null && ep === null && el === null) {
     R.clave = 'incompleto';
@@ -24936,6 +24994,8 @@ function diastASE2025Evaluar() {
     R.textoSuma = '';
     R.ventanaTit = 'Datos insuficientes';
     R.ventanaDet = 'sin e\' septal ni lateral no se puede iniciar el algoritmo';
+    R.camino.push(ASE25_NODO_FIN[R.clave]);
+    R.nodoFinal = ASE25_NODO_FIN[R.clave];
     return R;
   }
 
@@ -24988,11 +25048,11 @@ function diastASE2025Evaluar() {
     { ev: v3Eval,  ok: cV3 }
   ].forEach(c => { if (c.ev) { R.total++; if (c.ok) R.pos++; } });
 
-  R.filas.push({ g: 'Paso 2 — Presión de llenado (3 variables)', crit: 'E/e\' septal ≥ 15', val: eeSep, u: '', ok: cEeSep, dec: 1 });
-  R.filas.push({ crit: 'E/e\' lateral ≥ 13',  val: eeLat,  u: '', ok: cEeLat,  dec: 1 });
-  R.filas.push({ crit: 'E/e\' promedio ≥ 14', val: eeProm, u: '', ok: cEeProm, dec: 1 });
-  R.filas.push({ crit: 'Velocidad IT ≥ 2.8 m/s', val: tr, u: 'm/s', ok: cTr });
-  R.filas.push({ crit: 'PSAP ≥ ' + UMBRAL_PSAP_ELEVADA + ' mmHg (alternativa de la IT)', val: psap, u: 'mmHg', ok: cPsap, dec: 0 });
+  R.filas.push({ g: 'Paso 2 — Presión de llenado (3 variables)', nodo: 'a25.paso1', crit: 'E/e\' septal ≥ 15', val: eeSep, u: '', ok: cEeSep, dec: 1 });
+  R.filas.push({ nodo: 'a25.paso1', crit: 'E/e\' lateral ≥ 13',  val: eeLat,  u: '', ok: cEeLat,  dec: 1 });
+  R.filas.push({ nodo: 'a25.paso1', crit: 'E/e\' promedio ≥ 14', val: eeProm, u: '', ok: cEeProm, dec: 1 });
+  R.filas.push({ nodo: 'a25.paso1', crit: 'Velocidad IT ≥ 2.8 m/s', val: tr, u: 'm/s', ok: cTr });
+  R.filas.push({ nodo: 'a25.paso1', crit: 'PSAP ≥ ' + UMBRAL_PSAP_ELEVADA + ' mmHg (alternativa de la IT)', val: psap, u: 'mmHg', ok: cPsap, dec: 0 });
 
   /* ── SEGUNDO PASO (Figura 3, folio 554) ────────────────────────────────────────────────────
      «S/D venoso pulmonar ≤ 0,67 o LARS ≤ 18 % o LAVi > 34», y como ALTERNATIVA el TRIV ≤ 70 ms.
@@ -25019,10 +25079,10 @@ function diastASE2025Evaluar() {
   ].forEach(c => { if (c.ev) { seg2Eval++; if (c.ok) seg2Pos++; } });
   if (seg2Eval === 0 && triv !== null) { seg2Eval = 1; seg2Pos = cTriv ? 1 : 0; seg2Via = 'TRIV'; }
 
-  R.filas.push({ g: 'Segundo paso — si las principales no deciden', crit: 'Vol AI > ' + UMBRAL_LAVI_DILATADO + ' ml/m²', val: lavi, u: 'ml/m²', ok: cLavi });
-  R.filas.push({ crit: 'LARS ≤ 18 %', val: lars, u: '%', ok: cLars });
-  R.filas.push({ crit: 'S/D venoso pulmonar ≤ 0,67 (folio 554)', val: venpSdFilaVal('le067'), u: '', ok: sSd === true });
-  R.filas.push({ crit: 'TRIV ≤ 70 ms (alternativa, sólo si no hay ninguno de los de arriba)', val: triv, u: 'ms', ok: cTriv });
+  R.filas.push({ g: 'Segundo paso — si las principales no deciden', nodo: 'a25.paso2', crit: 'Vol AI > ' + UMBRAL_LAVI_DILATADO + ' ml/m²', val: lavi, u: 'ml/m²', ok: cLavi });
+  R.filas.push({ nodo: 'a25.paso2', crit: 'LARS ≤ 18 %', val: lars, u: '%', ok: cLars });
+  R.filas.push({ nodo: 'a25.paso2', crit: 'S/D venoso pulmonar ≤ 0,67 (folio 554)', val: venpSdFilaVal('le067'), u: '', ok: sSd === true });
+  R.filas.push({ nodo: 'a25.paso2', crit: 'TRIV ≤ 70 ms (alternativa, sólo si no hay ninguno de los de arriba)', val: triv, u: 'ms', ok: cTriv });
 
   /* ── PARÁMETROS SUPLEMENTARIOS (folio 555) ────────────────────────────────────────────────
      La etapa está armada como una LISTA (ver `ASE_SUPLEMENTARIOS` arriba) para que el trabajo que
@@ -25035,9 +25095,9 @@ function diastASE2025Evaluar() {
   const suplEval = supl.filter(function (x) { return x.ev; }).length;
   const suplPos  = supl.filter(function (x) { return x.ev && x.ok; });
   R.filas.push({ g: 'Parámetros suplementarios (folio 555) — sólo si el segundo paso no tiene ninguno',
-                 crit: supl[0].q.rot, val: supl[0].val, u: supl[0].q.u, ok: supl[0].ok, dec: supl[0].q.dec });
+                 nodo: 'a25.supl', crit: supl[0].q.rot, val: supl[0].val, u: supl[0].q.u, ok: supl[0].ok, dec: supl[0].q.dec });
   supl.slice(1).forEach(function (x) {
-    R.filas.push({ crit: x.q.rot, val: x.val, u: x.q.u, ok: x.ok, dec: x.q.dec });
+    R.filas.push({ nodo: 'a25.supl', crit: x.q.rot, val: x.val, u: x.q.u, ok: x.ok, dec: x.q.dec });
   });
 
   /* ── PASO 3 — LAS COMPUERTAS DE LA FIGURA 3, EN SU ORDEN ────────────────────────────────────
@@ -25060,6 +25120,10 @@ function diastASE2025Evaluar() {
      Maicol, 2026-10-12—: un E/A ≥ 2 con e' conservada es el patrón del corazón joven y sano, y
      rotularlo restrictivo sería el error más grave de esta rama. */
   const graduarElevada = () => {
+    /* La caja «Increased LAP» es UNA sola en la figura y de ella cuelgan los dos grados: se
+       empuja ACA, que es el unico lugar por el que pasan las cuatro ramas que la alcanzan, y no
+       en cada una de ellas — una copia por rama es la que se olvida de actualizarse. */
+    R.camino.push('a25.elevada');
     if (ea === null) {
       R.clave = 'altaSinEa';
       R.cls = 'orange';
@@ -25098,6 +25162,8 @@ function diastASE2025Evaluar() {
     }
   };
 
+  /* ⚠️ EL CAMINO SE EMPUJA EN CADA COMPUERTA DE ESTA CASCADA, Y EL ORDEN ES EL DE LA FIGURA.
+     Lo que NO se empuja en ninguna rama es el nodo FINAL: ese se deriva de `R.clave` al cerrar. */
   if (soloE) {
     /* Sólo el e' está medido: no hay NINGÚN parámetro de presión, ni principal ni del segundo
        paso. Es la misma frase de HEAD y nombra exactamente lo que falta. */
@@ -25114,10 +25180,13 @@ function diastASE2025Evaluar() {
     R.texto = 'Función diastólica normal: e\' conservada con presión de llenado normal' + nPar + '.';
     R.textoSuma = '';
     R.via = 'las tres principales negativas';
+    R.camino.push('a25.todasneg');
   } else if (todasPos) {
     R.via = 'las tres principales positivas';
+    R.camino.push('a25.todaspos');
     graduarElevada();
   } else if (soloEp && ea !== null && ea <= 0.8) {
+    R.camino.push('a25.soloep', 'a25.ea08');
     R.clave = 'g1';
     R.cls = 'yellow';
     R.badgeTxt = 'DD Grado I — ASE 2025';
@@ -25126,6 +25195,7 @@ function diastASE2025Evaluar() {
     R.textoSuma = 'Disfunción diastólica grado I — relajación alterada con presión de llenado normal.';
     R.via = 'e\' reducida sola con E/A ≤ 0,80';
   } else if (seg2Eval === 0 && suplPos.length >= 1) {
+    R.camino.push(soloEp ? 'a25.soloep' : 'a25.parcial', 'a25.paso2', 'a25.supl');
     /* LA RAMA SUPLEMENTARIA, Y SÓLO LA POSITIVA (folio 554: «If none available or reliable use
        Supplemental methods» dentro de la caja del segundo paso; folio 555 para el corte). Le
        alcanza UN parámetro —la flecha de la figura dice «≥1 present»— y de ahí se gradúa por la
@@ -25135,6 +25205,7 @@ function diastASE2025Evaluar() {
       + suplPos.map(function (x) { return x.q.clave; }).join(', ') + ', folio 555)';
     graduarElevada();
   } else if (seg2Eval === 0) {
+    R.camino.push(soloEp ? 'a25.soloep' : 'a25.parcial', 'a25.paso2', 'a25.supl');
     /* ESTADO (b) — texto aprobado por Maicol el 2026-10-12. La figura manda al segundo paso y el
        segundo paso no tiene con qué: no se afirma presión normal ni elevada, y se nombra qué
        completar. El S/D entra en esa lista desde el 2026-10-12: el selector de tres opciones lo
@@ -25153,8 +25224,10 @@ function diastASE2025Evaluar() {
       + (suplEval ? ' · ' + suplEval + ' suplementario(s) evaluado(s) y negativo(s)' : '');
   } else if (seg2Pos >= 1) {
     R.via = 'segundo paso ' + seg2Pos + ' de ' + seg2Eval + (seg2Via === 'TRIV' ? ' (por TRIV)' : '');
+    R.camino.push(soloEp ? 'a25.soloep' : 'a25.parcial', 'a25.paso2');
     graduarElevada();
   } else {
+    R.camino.push(soloEp ? 'a25.soloep' : 'a25.parcial', 'a25.paso2');
     /* ESTADO (a) — texto aprobado por Maicol el 2026-10-12. El segundo paso negativo AFIRMA
        presión de llenado normal (folio 554) y NO asigna grado: el grado 1 sale de la rama corta
        de la figura, que ya pasó. Decir «Función diastólica normal» acá sería afirmar algo que la
@@ -25168,6 +25241,13 @@ function diastASE2025Evaluar() {
     R.textoSuma = 'Presión de llenado del VI normal.';
     R.via = 'segundo paso 0 de ' + seg2Eval + (seg2Via === 'TRIV' ? ' (por TRIV)' : '');
   }
+
+  /* El nodo final se DERIVA de la clave que acaba de firmar la cascada. Si manana naciera una
+     categoria sin entrada en el mapa, `nodoFinal` queda en null y el camino no inventa una
+     casilla: el diagrama no pinta resultado y el caso de la suite lo caza. */
+  const _finA25 = ASE25_NODO_FIN[R.clave] || null;
+  if (_finA25) R.camino.push(_finA25);
+  R.nodoFinal = _finA25;
 
   /* El rótulo de la ventana sale del MISMO badge que el cuadro, sin el sufijo del protocolo —que
      la ventana ya lleva en su título—. Derivarlo en vez de escribirlo dos veces es lo que
@@ -25299,37 +25379,51 @@ function diastFAEvaluarASE2025() {
               _diastFAEstado(D.tde !== null, cTde) ];
   const c1 = _diastFAContar(s);
 
-  R.filas.push({ g: 'Paso 1 — ASE 2025, Figura 8 (folio 563)', crit: 'Onda E ≥ 100 cm/s', val: D.E, u: 'cm/s', ok: cE, dec: 0 });
-  R.filas.push({ crit: 'E/e\' septal > 11', val: D.eeSep, u: '', ok: cEe, dec: 1 });
-  R.filas.push({ crit: 'Velocidad IT > 2,8 m/s', val: D.tr, u: 'm/s', ok: cTr });
-  R.filas.push({ crit: 'PSAP > ' + UMBRAL_PSAP_ELEVADA + ' mmHg (alternativa de la IT)', val: D.psap, u: 'mmHg', ok: cPsap, dec: 0 });
-  R.filas.push({ crit: 'TDE ≤ 160 ms', val: D.tde, u: 'ms', ok: cTde, dec: 0 });
+  /* `nodo` es ADITIVO y lo lee el diagrama de la Figura 8: los valores de cada caja salen de la
+     MISMA fila que la lista muestra. */
+  R.filas.push({ g: 'Paso 1 — ASE 2025, Figura 8 (folio 563)', nodo: 'a25fa.paso1', crit: 'Onda E ≥ 100 cm/s', val: D.E, u: 'cm/s', ok: cE, dec: 0 });
+  R.filas.push({ nodo: 'a25fa.paso1', crit: 'E/e\' septal > 11', val: D.eeSep, u: '', ok: cEe, dec: 1 });
+  R.filas.push({ nodo: 'a25fa.paso1', crit: 'Velocidad IT > 2,8 m/s', val: D.tr, u: 'm/s', ok: cTr });
+  R.filas.push({ nodo: 'a25fa.paso1', crit: 'PSAP > ' + UMBRAL_PSAP_ELEVADA + ' mmHg (alternativa de la IT)', val: D.psap, u: 'mmHg', ok: cPsap, dec: 0 });
+  R.filas.push({ nodo: 'a25fa.paso1', crit: 'TDE ≤ 160 ms', val: D.tde, u: 'ms', ok: cTde, dec: 0 });
 
   const sLars = _diastFAEstado(D.lars !== null, D.lars < 18);          // Figura 8: «< 18 %»
   const sSd   = venpSdEstado('lt1');   // corte `< 1`, un solo dueño de la lectura
   const sImc  = _diastFAEstado(D.imc !== null, D.imc > 30);            // Figura 8: «> 30 kg/m²»
   const c2 = _diastFAContar([sLars, sSd, sImc]);
 
-  R.filas.push({ g: 'Paso 2 — sólo con 2 del paso 1', crit: 'LARS < 18 %', val: D.lars, u: '%', ok: sLars === true });
-  R.filas.push({ crit: 'S/D venoso pulmonar < 1', val: venpSdFilaVal('lt1'), u: '', ok: sSd === true });
-  R.filas.push({ crit: 'IMC > 30 kg/m² (de peso y talla)', val: D.imc, u: 'kg/m²', ok: sImc === true });
+  R.filas.push({ g: 'Paso 2 — sólo con 2 del paso 1', nodo: 'a25fa.paso2', crit: 'LARS < 18 %', val: D.lars, u: '%', ok: sLars === true });
+  R.filas.push({ nodo: 'a25fa.paso2', crit: 'S/D venoso pulmonar < 1', val: venpSdFilaVal('lt1'), u: '', ok: sSd === true });
+  R.filas.push({ nodo: 'a25fa.paso2', crit: 'IMC > 30 kg/m² (de peso y talla)', val: D.imc, u: 'kg/m²', ok: sImc === true });
 
   const det1 = c1.pos + ' de ' + c1.ev + ' del paso 1 positivos'
              + (c1.sin ? ' · ' + c1.sin + ' sin medir' : '');
   const det2 = c2.pos + ' de ' + c2.ev + ' del paso 2 positivos'
              + (c2.sin ? ' · ' + c2.sin + ' sin medir' : '');
 
+  /* El CAMINO por la Figura 8 (folio 563). Cada rama declara el suyo y el nodo final se DERIVA
+     de `R.clave` —la que firma el badge— y no se empuja a mano: dos copias del veredicto es como
+     el camino rojo termina en una casilla que el cuadro gris no dice.
+     ⚠️ LA ESTRUCTURA DEL `if` NO CAMBIA DE REGLA: los cuatro desenlaces y sus condiciones son
+     los mismos, en el mismo orden; lo unico que se agrega es el `push`. */
+  R.camino = ['a25fa.entrada', 'a25fa.paso1'];
   if (c1.pos >= 3) {
+    R.camino.push('a25fa.p1tres');
     _diastFAElevada(R, det1);
   } else if (c1.pos + c1.sin <= 1) {
+    R.camino.push('a25fa.p1cero');
     _diastFANormal(R, det1);
   } else if (c1.pos === 2 && c1.sin === 0) {
-    if (c2.pos >= 2)                      _diastFAElevada(R, det1 + ' · ' + det2);
-    else if (c2.pos === 0 && c2.ev === 3) _diastFANormal(R, det1 + ' · ' + det2);
-    else                                  _diastFAIndet(R, det1 + ' · ' + det2);
+    R.camino.push('a25fa.p1dos', 'a25fa.paso2');
+    if (c2.pos >= 2)                      { R.camino.push('a25fa.p2dos');  _diastFAElevada(R, det1 + ' · ' + det2); }
+    else if (c2.pos === 0 && c2.ev === 3) { R.camino.push('a25fa.p2cero'); _diastFANormal(R, det1 + ' · ' + det2); }
+    else                                  { R.camino.push('a25fa.p2uno');  _diastFAIndet(R, det1 + ' · ' + det2); }
   } else {
     _diastFANoConcluye(R, det1);
   }
+  const _finFA25 = ASE25FA_NODO_FIN[R.clave] || null;
+  if (_finFA25) R.camino.push(_finFA25);
+  R.nodoFinal = _finFA25;
   return R;
 }
 window.diastFAEvaluarASE2025 = diastFAEvaluarASE2025;
@@ -25685,16 +25779,26 @@ function diastASE2016Evaluar() {
   const feviNormal = fevi !== null && fevi >= UMBRAL_FEVI_NORMAL;
   const feviDeprimida = fevi !== null && fevi < UMBRAL_FEVI_NORMAL;
 
+  /* `camino` arranca en la caja de entrada de la via que la FEVI eligio. Las dos vias tienen
+     prefijo propio (`a16a.` y `a16b.`) porque sus claves de categoria SE REPITEN —`insuf`,
+     `indet`, `normal` y `g3` existen en las dos y nombran casillas distintas—. */
   const R = { e: e, a: a, ea: ea, esep: esep, elat: elat, eprom: eprom, ee: ee,
               lavi: lavi, trv: trv, fevi: fevi, ePrimeBajo: ePrimeBajo,
               filas: [], pos: 0, total: 0, via: '', sdUsado: false,
-              algoritmo: feviNormal ? '8A' : '8B' };
+              algoritmo: feviNormal ? '8A' : '8B',
+              camino: feviNormal ? ['a16a.entrada', 'a16a.cuatro'] : ['a16b.entrada', 'a16b.flujo'] };
 
   const poner = function (clave, cls, badgeTxt, texto, textoSuma, via) {
     R.clave = clave; R.cls = cls; R.badgeTxt = badgeTxt;
     R.texto = texto; R.textoSuma = textoSuma; R.via = via;
   };
+  /* El nodo final se DERIVA de la clave, con el mapa de la via que corrio. `cerrar` es el unico
+     punto por el que salen las diez ramas de las dos figuras, asi que es donde va. */
   const cerrar = function (unidad) {
+    const _mapa = (R.algoritmo === '8A') ? ASE16A_NODO_FIN : ASE16B_NODO_FIN;
+    const _fin = _mapa[R.clave] || null;
+    if (_fin) R.camino.push(_fin);
+    R.nodoFinal = _fin;
     /* El rótulo de la ventana sale del MISMO badge que el cuadro, sin el sufijo del protocolo
        —que la ventana ya lleva en su título—. Derivarlo en vez de escribirlo dos veces es lo que
        garantiza que no puedan decir cosas distintas; es la lección que este archivo ya pagó con
@@ -25723,14 +25827,18 @@ function diastASE2016Evaluar() {
       { ev: lavi !== null,                           ok: cLavi }
     ].forEach(function (c) { if (c.ev) { R.total++; if (c.ok) R.pos++; } });
 
+    /* `nodo` es ADITIVO y lo lee el diagrama de la 8A. Las dos filas de «no son insumos de la
+       8A» se quedan SIN nodo a proposito: la figura no las mira, asi que no pertenecen a
+       ninguna de sus cajas y no tienen que aparecer en el dibujo ni en la tabla compacta. */
     R.filas.push({ g: 'Figura 8A — FEVI ≥ ' + UMBRAL_FEVI_NORMAL + ' % · cuatro variables (folio 290)',
+                   nodo: 'a16a.cuatro',
                    crit: 'E/e\' ' + (eeSitio || 'promedio') + ' > '
                          + (eeCorte === null ? ASE16_EE_PROM : eeCorte) + eeSufSitio,
                    val: ee, u: '', ok: cEe, dec: 1 });
-    R.filas.push({ crit: 'e\' septal < 7 o lateral < 10 cm/s (una variable, dos cortes en OR)',
+    R.filas.push({ nodo: 'a16a.cuatro', crit: 'e\' septal < 7 o lateral < 10 cm/s (una variable, dos cortes en OR)',
                    val: ePrimVal, u: 'cm/s', ok: ePrimeBajo });
-    R.filas.push({ crit: 'Velocidad IT > 2,8 m/s', val: trv, u: 'm/s', ok: cTr });
-    R.filas.push({ crit: 'Vol AI > ' + UMBRAL_LAVI_DILATADO + ' ml/m²', val: lavi, u: 'ml/m²', ok: cLavi });
+    R.filas.push({ nodo: 'a16a.cuatro', crit: 'Velocidad IT > 2,8 m/s', val: trv, u: 'm/s', ok: cTr });
+    R.filas.push({ nodo: 'a16a.cuatro', crit: 'Vol AI > ' + UMBRAL_LAVI_DILATADO + ' ml/m²', val: lavi, u: 'ml/m²', ok: cLavi });
     R.filas.push({ g: 'No son insumos de la 8A (la figura no los mira)',
                    crit: 'Relación E/A', val: ea, u: '', ok: false, dec: 2 });
     R.filas.push({ crit: 'Onda E', val: e, u: 'cm/s', ok: false });
@@ -25750,9 +25858,11 @@ function diastASE2016Evaluar() {
       poner('indet', 'gray', 'Indeterminado — ASE 2016',
             'Función diastólica indeterminada.', 'Función diastólica indeterminada.',
             'una sola de las cuatro variables está medida');
+      R.camino.push('a16a.una');
       return cerrar('variables de la 8A positivas');
     }
     const frac = R.pos / R.total;
+    R.camino.push(frac > 0.5 ? 'a16a.mas' : (frac < 0.5 ? 'a16a.menos' : 'a16a.mitad'));
     if (frac > 0.5) {
       /* La casilla «Diastolic Dysfunction» de la 8A NO lleva grado, y la guía no manda seguir con
          la 8B: su condición de entrada es la enfermedad miocárdica, no este resultado. La frase
@@ -25813,18 +25923,21 @@ function diastASE2016Evaluar() {
   const atajoG1 = ea !== null && ea <= 0.8 && e !== null && e <= 50;
   const atajoG3 = ea !== null && ea >= 2.0;
 
-  R.filas.push({ g: 'Figura 8B — paso 1 · flujo mitral (folio 290)',
+  /* `nodo` es ADITIVO y lo lee el diagrama de la 8B. La fila del e' se queda SIN nodo: la 8B no
+     lo mira por ninguna puerta y se dibuja en la lista sólo para que su ausencia no se lea como
+     un dato que no se cargó — en el diagrama no tiene caja a la que pertenecer. */
+  R.filas.push({ g: 'Figura 8B — paso 1 · flujo mitral (folio 290)', nodo: 'a16b.flujo',
                  crit: 'E/A ≤ 0,8 con E ≤ 50 cm/s → grado I directo', val: ea, u: '', ok: atajoG1, dec: 2 });
-  R.filas.push({ crit: 'E/A ≥ 2 → grado III directo', val: ea, u: '', ok: atajoG3, dec: 2 });
-  R.filas.push({ crit: 'Onda E (insumo del primer atajo)', val: e, u: 'cm/s', ok: e !== null && e <= 50 });
+  R.filas.push({ nodo: 'a16b.flujo', crit: 'E/A ≥ 2 → grado III directo', val: ea, u: '', ok: atajoG3, dec: 2 });
+  R.filas.push({ nodo: 'a16b.flujo', crit: 'Onda E (insumo del primer atajo)', val: e, u: 'cm/s', ok: e !== null && e <= 50 });
 
-  R.filas.push({ g: 'Figura 8B — paso 2 · los tres criterios de presión de llenado',
+  R.filas.push({ g: 'Figura 8B — paso 2 · los tres criterios de presión de llenado', nodo: 'a16b.tres',
                  crit: 'E/e\' ' + (eeSitio || 'promedio') + ' > '
                        + (eeCorte === null ? ASE16_EE_PROM : eeCorte) + eeSufSitio,
                  val: ee, u: '', ok: cEe, dec: 1 });
-  R.filas.push({ crit: 'Velocidad IT > 2,8 m/s', val: trv, u: 'm/s', ok: cTr });
-  R.filas.push({ crit: 'Vol AI > ' + UMBRAL_LAVI_DILATADO + ' ml/m²', val: lavi, u: 'ml/m²', ok: cLavi });
-  R.filas.push({ crit: 'S/D venoso pulmonar < 1 — sustituto del criterio que falta, sólo con FEVI < '
+  R.filas.push({ nodo: 'a16b.tres', crit: 'Velocidad IT > 2,8 m/s', val: trv, u: 'm/s', ok: cTr });
+  R.filas.push({ nodo: 'a16b.tres', crit: 'Vol AI > ' + UMBRAL_LAVI_DILATADO + ' ml/m²', val: lavi, u: 'ml/m²', ok: cLavi });
+  R.filas.push({ nodo: 'a16b.tres', crit: 'S/D venoso pulmonar < 1 — sustituto del criterio que falta, sólo con FEVI < '
                        + UMBRAL_FEVI_NORMAL + ' % (folios 286, 287 y 290)',
                  val: venpSdFilaVal('lt1'), u: '', ok: R.sdUsado });
 
@@ -25841,15 +25954,19 @@ function diastASE2016Evaluar() {
      siempre en vez del grado I que la 8B escribe para su población. */
   const sufFevi = (fevi === null) ? ' · FEVI sin cargar: se aplica la 8B, que es lo que la app ya hacía' : '';
 
+  /* ⚠️ EL CAMINO SE EMPUJA EN CADA COMPUERTA, Y EL ORDEN ES EL DE LA FIGURA. El nodo FINAL no
+     se empuja en ninguna rama: lo deriva `cerrar` de `R.clave`. */
   if (ea === null || R.total < 1) {
     poner('insuf', 'gray', 'Datos insuficientes — ASE 2016', null, null,
           'sin relación E/A o sin ningún criterio de presión de llenado' + sufFevi);
   } else if (atajoG1) {
+    R.camino.push('a16b.atajo1');
     poner('g1prol', 'yellow', 'Grado I — ASE 2016',
           'Llenado diastólico con patrón de relajación prolongada (Disfunción diastólica Grado I).',
           'Disfunción diastólica Grado I (relajación prolongada).',
           'atajo E/A ≤ 0,8 con E ≤ 50 cm/s' + sufFevi);
   } else if (atajoG3) {
+    R.camino.push('a16b.atajo3');
     poner('g3', 'red', 'Grado III — ASE 2016',
           'Llenado diastólico restrictivo (Disfunción diastólica Grado III).',
           'Disfunción diastólica Grado III (restrictivo).',
@@ -25866,11 +25983,13 @@ function diastASE2016Evaluar() {
      la rama «2 de 3 negativos» mirada del otro lado y va a grado I. Por eso las dos condiciones
      miran el total y no sólo los positivos. */
   } else if (R.pos >= 2) {
+    R.camino.push('a16b.tres', 'a16b.pos2');
     poner('g2', 'orange', 'Grado II — ASE 2016',
           'Llenado diastólico pseudonormal con presiones de llenado elevadas (Disfunción diastólica Grado II).',
           'Disfunción diastólica Grado II (pseudonormal, presiones elevadas).',
           R.pos + ' de ' + R.total + ' criterios positivos' + (R.sdUsado ? ' (el tercero por S/D < 1)' : '') + sufFevi);
   } else if (R.pos === 1 && R.total >= 3) {
+    R.camino.push('a16b.tres', 'a16b.neg2');
     poner('g1alt', 'yellow', 'Grado I — ASE 2016',
           'Patrón de relajación alterada con presiones de llenado normales (Disfunción diastólica Grado I).',
           'Disfunción diastólica Grado I (relajación alterada).',
@@ -25885,14 +26004,17 @@ function diastASE2016Evaluar() {
      ningún conteo. El EN SUMA de las dos ya era el mismo texto, así que ahí no cambia nada. El
      conteo real sigue en la ventana, que es donde se explica. */
   } else if (R.pos === 1) {
+    R.camino.push('a16b.tres', 'a16b.unoyuno');
     poner('indet', 'gray', 'Indeterminado — ASE 2016',
           'Función diastólica indeterminada.', 'Función diastólica indeterminada.',
           '1 positivo y 1 negativo con sólo ' + R.total + ' criterios disponibles' + sufFevi);
   } else if (R.total === 1) {
+    R.camino.push('a16b.tres', 'a16b.unosolo');
     poner('indet', 'gray', 'Indeterminado — ASE 2016',
           'Función diastólica indeterminada.', 'Función diastólica indeterminada.',
           'un solo criterio disponible (pie de la Figura 8)' + sufFevi);
   } else if (feviDeprimida) {
+    R.camino.push('a16b.tres', 'a16b.neg2');
     /* ⚠️ CON 0 POSITIVOS Y FEVI DEPRIMIDA, LA FIGURA DICE «LAP normal, GRADO I» Y NO «normal».
        Su caja «2 of 3 or 3 of 3 Negative» no desemboca en ninguna casilla de función normal: la
        8B es el algoritmo de una población en la que la disfunción diastólica ya está dada por la
@@ -25903,6 +26025,7 @@ function diastASE2016Evaluar() {
           'Disfunción diastólica Grado I (relajación alterada).',
           R.total + ' de ' + R.total + ' criterios NEGATIVOS, con FEVI < ' + UMBRAL_FEVI_NORMAL + ' %');
   } else if (ea !== null && ea <= 0.8) {
+    R.camino.push('a16b.tres', 'a16b.neg2');
     /* Criterio EcoSmart, heredado de HEAD y CONSERVADO: un E/A ≤ 0,8 no puede salir «normal» por
        esta rama. El paciente con E/A ≤ 0,8 y E > 50 llega acá por la figura misma, y un cociente
        ≤ 0,8 es relajación prolongada por definición: omitir es aceptable, afirmar normalidad no. */
@@ -25911,6 +26034,7 @@ function diastASE2016Evaluar() {
           'Disfunción diastólica Grado I (relajación alterada).',
           '0 de ' + R.total + ' criterios positivos, con E/A ≤ 0,8' + sufFevi);
   } else {
+    R.camino.push('a16b.tres', 'a16b.neg2');
     /* SIN FEVI CARGADA la rama fiel de arriba no se aplica: el «Grado I» de la 8B vale para su
        población y acá no se sabe cuál es. Se conserva lo que la app publicaba. */
     poner('normal', 'green', 'Normal — ASE 2016',
