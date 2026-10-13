@@ -804,10 +804,16 @@ caso('TC-453', 'Diastolica ASE 2025: las tres variables de la Figura 3 con su se
 
   // ── M y N · CONTROL NEGATIVO 3 y 4: con las TRES principales negativas el segundo paso NO se
   //      entra, asi que un Vol AI de 35 y un LARS de 10 —los dos POSITIVOS— no pueden levantar la
-  //      presion; y el S/D sigue en gris aunque el selector diga «<1», porque su corte es ≤0,67 y
-  //      «<1» no lo prueba.
+  //      presion; y el S/D sigue en gris con el campo SIN CARGAR.
+  /* ADAPTADO 2026-10-13: esta escena fijaba venp_sd en 'menor1' —el token del selector viejo—
+     para probar que un valor que el corte <= 0,67 no puede leer deja la fila en GRIS. Las dos
+     opciones de legado se eliminaron (decision del medico: no hay estudios guardados con el S/D
+     cargado), asi que ese valor ya no existe y el tercer estado de venpSdEstado tiene un solo
+     origen: el campo SIN CARGAR, que es lo que esta escena fija ahora. Lo que el caso afirma no
+     cambia —la fila en gris no cuenta como negativo—; lo que cambia es de donde sale el gris.
+     Que un S/D en el tramo del medio NO cumpla el <= 0,67 lo mide TC-461. */
   const m = esc({ e_sep:'10', e_lat:'13', onda_e:'70', onda_a:'70', ai_vol:'70', vmax_it:'2.0',
-                  lars:'10', venp_sd:'menor1' });
+                  lars:'10', venp_sd:'' });
 
   const EST_A = 'Presión de llenado del VI normal (1/3 parámetros positivos). No se puede graduar la disfunción diastólica con los datos disponibles.';
   const EST_B = 'No se puede estimar la presión de llenado del VI con los datos disponibles; completar los parámetros del segundo paso (Vol AI, LARS, S/D o TRIV).';
@@ -901,7 +907,7 @@ caso('TC-453', 'Diastolica ASE 2025: las tres variables de la Figura 3 con su se
       fila(m.ven, 'Vol AI') + ' | ' + fila(m.ven, 'LARS ≤ 18')],
     ['CN3 la ventana lo dice con la rama que decidio',
       m.ven.res.indexOf('las tres principales negativas') > -1, m.ven.res],
-    ['CN4 el S/D sigue SIN DATO con el selector en <1',
+    ['CN4 el S/D sigue SIN DATO con el campo SIN CARGAR',
       fila(m.ven, 'S/D venoso pulmonar') === 'na', fila(m.ven, 'S/D venoso pulmonar')]
   ] };
 `);
@@ -993,26 +999,31 @@ caso('TC-454', 'Diastolica en FIBRILACION AURICULAR: cada guia con SU protocolo 
   const bps36 = esc('bse2024', mas({ vmax_it: '2.65', vci_diam: '15', vci_col: '<50' }));
 
   // ── D · EL SEGUNDO PASO. Con dos positivos del paso 1, los tres parametros deciden.
-  const d2pos = esc('ase2025', mas({ lars: '15', venp_sd: 'menor1' }));
-  const d0pos = esc('ase2025', mas({ lars: '25', venp_sd: 'mayor1' }));
-  const d1pos = esc('ase2025', mas({ lars: '15', venp_sd: 'mayor1' }));
+  /* ADAPTADO 2026-10-13: los dos tokens del selector viejo ('menor1' y 'mayor1') se eliminaron
+     con sus <option> —decision del medico: no hay ningun estudio guardado con el S/D cargado, y
+     Safari mostraba las dos opciones que estaban ocultas con hidden—. Se reemplazan por los VIVOS
+     equivalentes, y estas escenas usan el corte < 1: 'mid' («>0,67 y <1») lo cumple igual que el
+     viejo «<1», y 'ge1' («>=1») es negativo igual que el viejo «>1». El veredicto no cambia. */
+  const d2pos = esc('ase2025', mas({ lars: '15', venp_sd: 'mid' }));
+  const d0pos = esc('ase2025', mas({ lars: '25', venp_sd: 'ge1' }));
+  const d1pos = esc('ase2025', mas({ lars: '15', venp_sd: 'ge1' }));
   const dSin  = esc('ase2025', mas({ lars: '15' }));
 
   // ── E · EL LARS TIENE CORTES DISTINTOS EN LAS DOS GUIAS, Y ES DE LA FUENTE: <18 % en la
   //      Figura 8 y <16 % en la Figura 19, porque en FA no hay contraccion auricular.
-  const l17a = esc('ase2025', mas({ lars: '17', venp_sd: 'mayor1' }));
-  const l17b = esc('bse2024', mas({ lars: '17', venp_sd: 'mayor1' }));
-  const l179 = esc('ase2025', mas({ lars: '17.9', venp_sd: 'menor1' }));
-  const l180 = esc('ase2025', mas({ lars: '18',   venp_sd: 'menor1' }));
-  const l159 = esc('bse2024', mas({ lars: '15.9', venp_sd: 'menor1' }));
-  const l160 = esc('bse2024', mas({ lars: '16',   venp_sd: 'menor1' }));
+  const l17a = esc('ase2025', mas({ lars: '17', venp_sd: 'ge1' }));
+  const l17b = esc('bse2024', mas({ lars: '17', venp_sd: 'ge1' }));
+  const l179 = esc('ase2025', mas({ lars: '17.9', venp_sd: 'mid' }));
+  const l180 = esc('ase2025', mas({ lars: '18',   venp_sd: 'mid' }));
+  const l159 = esc('bse2024', mas({ lars: '15.9', venp_sd: 'mid' }));
+  const l160 = esc('bse2024', mas({ lars: '16',   venp_sd: 'mid' }));
 
   // ── F · EL IMC, con el corte > 30 por los dos lados. La talla 100 da un IMC EXACTO —el peso
   //      en kilos es el IMC— y es la unica forma de probar el 30,00 sin que la aritmetica de
   //      punto flotante decida por el borde (ver la nota del caso).
-  const i30  = esc('ase2025', mas({ peso: '30', talla: '100', lars: '25', venp_sd: 'menor1' }));
-  const i301 = esc('ase2025', mas({ peso: '87', talla: '170', lars: '25', venp_sd: 'menor1' }));
-  const i299 = esc('ase2025', mas({ peso: '86.4', talla: '170', lars: '25', venp_sd: 'menor1' }));
+  const i30  = esc('ase2025', mas({ peso: '30', talla: '100', lars: '25', venp_sd: 'mid' }));
+  const i301 = esc('ase2025', mas({ peso: '87', talla: '170', lars: '25', venp_sd: 'mid' }));
+  const i299 = esc('ase2025', mas({ peso: '86.4', talla: '170', lars: '25', venp_sd: 'mid' }));
 
   // ── G · LA ASE/EACVI 2016 NO DA UNA REGLA DE CONTEO: muestra y no concluye.
   const g16 = esc('ase2016', mas({ vmax_it: '3.2', triv: '60', fevi: '35', tde: '140' }));
@@ -1289,7 +1300,12 @@ caso('TC-455', 'Diastolica BSE 2024 en RITMO SINUSAL: la Tabla 2 por edad y sexo
   const frPos = esc(con({ fevi: '40', ai_vol: '70', vmax_it: '3.2', e_sep: '6', e_lat: '7', onda_e: '120' }));
   const frUna = esc({ edad: '50', fevi: '40', e_sep: '6', e_lat: '7', ai_vol: '70' });
   const frL26 = esc(Object.assign({}, D2, { fevi: '40', lars: '26' }));
-  const frSd  = esc(Object.assign({}, D2, { fevi: '40', lars: '20', venp_sd: 'menor1' }));
+  /* ADAPTADO 2026-10-13: los dos tokens del selector viejo ('menor1' y 'mayor1') se eliminaron
+     con sus <option> —decision del medico: no hay ningun estudio guardado con el S/D cargado, y
+     Safari mostraba las dos opciones que estaban ocultas con hidden—. Se reemplazan por los VIVOS
+     equivalentes, y estas escenas usan el corte < 1: 'mid' («>0,67 y <1») lo cumple igual que el
+     viejo «<1», y 'ge1' («>=1») es negativo igual que el viejo «>1». El veredicto no cambia. */
+  const frSd  = esc(Object.assign({}, D2, { fevi: '40', lars: '20', venp_sd: 'mid' }));
   const gris52 = esc(con({ fevi: '52' }));
   const gris17 = esc(con({ fevi: '60', sgl: '-17' }));
   const sinGris = esc(con({ fevi: '60', sgl: '-20' }));
@@ -2138,10 +2154,15 @@ caso('TC-458', 'Diastolica ASE/EACVI 2016 en RITMO SINUSAL: los DOS algoritmos d
   // ── G · EL S/D VENOSO PULMONAR Y SUS TRES COMPUERTAS ──
   const SDB = { fevi: '35', onda_e: '120', onda_a: '70', e_sep: '5', e_lat: '7', ai_vol: '50' };
   const sdSin = esc(SDB);
-  const sdMenor = esc(Object.assign({}, SDB, { venp_sd: 'menor1' }));
-  const sdMayor = esc(Object.assign({}, SDB, { venp_sd: 'mayor1' }));
-  const sdTres = esc(Object.assign({}, SDB, { vmax_it: '2.0', venp_sd: 'menor1' }));
-  const sdSinFevi = esc(Object.assign({}, SDB, { fevi: undefined, venp_sd: 'menor1' }));
+  /* ADAPTADO 2026-10-13: los dos tokens del selector viejo ('menor1' y 'mayor1') se eliminaron
+     con sus <option> —decision del medico: no hay ningun estudio guardado con el S/D cargado, y
+     Safari mostraba las dos opciones que estaban ocultas con hidden—. Se reemplazan por los VIVOS
+     equivalentes, y estas escenas usan el corte < 1: 'mid' («>0,67 y <1») lo cumple igual que el
+     viejo «<1», y 'ge1' («>=1») es negativo igual que el viejo «>1». El veredicto no cambia. */
+  const sdMenor = esc(Object.assign({}, SDB, { venp_sd: 'mid' }));
+  const sdMayor = esc(Object.assign({}, SDB, { venp_sd: 'ge1' }));
+  const sdTres = esc(Object.assign({}, SDB, { vmax_it: '2.0', venp_sd: 'mid' }));
+  const sdSinFevi = esc(Object.assign({}, SDB, { fevi: undefined, venp_sd: 'mid' }));
 
   // ── H · EL TDE Y EL TRIV NO ESTAN EN NINGUNA DE LAS DOS FIGURAS ──
   const sinTde = esc(Object.assign({}, B3, { ai_vol: '70', vmax_it: '3.2' }));
@@ -2313,7 +2334,7 @@ caso('TC-458', 'Diastolica ASE/EACVI 2016 en RITMO SINUSAL: los DOS algoritmos d
   ] };
 `);
 
-caso('TC-459', 'Parametros complementarios de la funcion diastolica: las TRES opciones del S/D con un corte por algoritmo y los dos valores de legado, el LARS en valor absoluto, los cuatro suplementarios de la ASE 2025 (folio 555) con el AND del inciso d, el E/e-prima por sitio de la ASE 2016 (folio 281), los dos rotulos y el borde del IMC, con nueve controles negativos', `
+caso('TC-459', 'Parametros complementarios de la funcion diastolica: las TRES opciones del S/D con un corte por algoritmo y el legado ya eliminado, el LARS en valor absoluto, los cuatro suplementarios de la ASE 2025 (folio 555) con el AND del inciso d, el E/e-prima por sitio de la ASE 2016 (folio 281), los dos rotulos y el borde del IMC, con nueve controles negativos', `
   const S = (k, v) => __t.set(k, v);
   /* ⚠️ EL FUENTE SE LEE DEL DOM Y NO CON fetch, Y NO ES UNA PREFERENCIA: el cuerpo de un caso
      se evalua dentro de un (function(){ ... })() que NO es async, asi que un await en su nivel
@@ -2411,22 +2432,37 @@ caso('TC-459', 'Parametros complementarios de la funcion diastolica: las TRES op
   const sfa25a = sdfa('le067', 'ase2025'), sfa25c = sdfa('ge1', 'ase2025');
   const sfabsa = sdfa('le067', 'bse2024'), sfabsc = sdfa('ge1', 'bse2024');
 
-  // ══ B · LOS DOS VALORES DE LEGADO: se abren como se guardaron y NO se migran ═══════════════
-  const leg25menor = sd25('menor1'), leg25mayor = sd25('mayor1');
-  const leg16menor = sd16('menor1'), leg16mayor = sd16('mayor1');
-  const legFaMenor = sdfa('menor1', 'ase2025'), legFaMayor = sdfa('mayor1', 'ase2025');
-  /* El <select> tiene que SEGUIR MOSTRANDO el valor viejo: sin su <option>, un estudio guardado
-     reabre con selectedIndex -1 y el dato desaparece de la pantalla. Es el defecto que et_grado
-     ya pago en esta app. */
-  const legSeMuestra = (() => {
+  // ══ B · EL LEGADO DEL S/D YA NO ESTA (ADAPTADO 2026-10-13) ══════════════════════════════
+  /* ADAPTADO 2026-10-13: este bloque afirmaba lo CONTRARIO —que las dos <option> de legado
+     seguian en el marcado para que un estudio guardado no perdiera su valor, y que «<1» quedaba
+     SIN EVALUAR para el corte <= 0,67—. Las dos se eliminaron por decision del medico: no hay
+     ningun estudio guardado con el S/D cargado (todos los estudios son suyos y no marco ninguno),
+     y el precio de tenerlas era que SAFARI LAS MOSTRABA: esconder una <option> con hidden termina
+     siendo un display:none, y un desplegable nativo no esta obligado a respetar el layout de sus
+     opciones. Lo que el caso afirma ahora es que no estan y que un token que el selector ya no
+     ofrece se lee como campo SIN CARGAR. El tercer estado de venpSdEstado NO se fue: hoy su unico
+     origen es el campo vacio, y eso lo mide el CONTROL NEGATIVO de la seccion A. */
+  const sdSinLegado = (() => {
     const e = document.getElementById('venp_sd');
     if (!e) return 'NO EXISTE';
-    e.value = 'menor1';
-    const a = e.selectedIndex >= 0 && e.value === 'menor1';
-    e.value = 'mayor1';
-    const b = e.selectedIndex >= 0 && e.value === 'mayor1';
+    const ops = Array.prototype.slice.call(e.options);
+    /* El display COMPUTADO y no la propiedad: este archivo ya pago cuatro veces que una regla de
+       autor le gana al [hidden] de la hoja del navegador. */
+    const tapadas = ops.filter(o => o.hidden || o.disabled ||
+                                    getComputedStyle(o).display === 'none').map(o => o.value);
+    return (ops.length === 4 && tapadas.length === 0)
+      ? true : ('n=' + ops.length + ' tapadas=' + tapadas.join(','));
+  })();
+  const sdDesconocido = (() => {
+    const e = document.getElementById('venp_sd');
+    if (!e) return { err: 'NO EXISTE' };
+    e.value = 'menor1';            // un token que el selector ya no ofrece
+    const r = { leido: e.value, idx: e.selectedIndex,
+                le067: (typeof venpSdEstado === 'function') ? venpSdEstado('le067') : 'SIN FUNCION',
+                lt1: (typeof venpSdEstado === 'function') ? venpSdEstado('lt1') : 'SIN FUNCION',
+                etiqueta: (typeof venpSDTxt === 'function') ? venpSDTxt() : 'SIN FUNCION' };
     e.value = '';
-    return a && b;
+    return r;
   })();
   const sdTokenSeguro = opcSd.every(o => o.indexOf('<') < 0 && o.indexOf('>') < 0);
 
@@ -2437,7 +2473,12 @@ caso('TC-459', 'Parametros complementarios de la funcion diastolica: las TRES op
   const larsEn = (v, g, r, base) => esc(Object.assign({}, base, { lars: v }), g, r);
   const l25p = larsEn('32', 'ase2025', 'sinusal', B25), l25n = larsEn('-32', 'ase2025', 'sinusal', B25);
   const l12p = larsEn('12', 'ase2025', 'sinusal', B25), l12n = larsEn('-12', 'ase2025', 'sinusal', B25);
-  const BFA2 = { fevi: '60', onda_e: '110', e_sep: '8', vmax_it: '2.0', tde: '200', venp_sd: 'menor1' };
+  /* ADAPTADO 2026-10-13: los dos tokens del selector viejo ('menor1' y 'mayor1') se eliminaron
+     con sus <option> —decision del medico: no hay ningun estudio guardado con el S/D cargado, y
+     Safari mostraba las dos opciones que estaban ocultas con hidden—. Se reemplazan por los VIVOS
+     equivalentes, y estas escenas usan el corte < 1: 'mid' («>0,67 y <1») lo cumple igual que el
+     viejo «<1», y 'ge1' («>=1») es negativo igual que el viejo «>1». El veredicto no cambia. */
+  const BFA2 = { fevi: '60', onda_e: '110', e_sep: '8', vmax_it: '2.0', tde: '200', venp_sd: 'mid' };
   const lfap = larsEn('32', 'ase2025', 'fa', BFA2), lfan = larsEn('-32', 'ase2025', 'fa', BFA2);
   const lbsp = larsEn('32', 'bse2024', 'fa', BFA2), lbsn = larsEn('-32', 'bse2024', 'fa', BFA2);
   /* Figura 18 de la BSE: 1 y 1 con los dos criterios disponibles es la puerta del strain. */
@@ -2510,8 +2551,11 @@ caso('TC-459', 'Parametros complementarios de la funcion diastolica: las TRES op
     ['DENOMINADOR: la ventana dibuja sus filas', s25a.ven.n > 0, 'n=' + s25a.ven.n],
 
     // ── A · EL S/D POR ALGORITMO
-    ['el <select> del S/D ofrece las TRES opciones nuevas MAS los dos valores de legado',
-      opcSd.join(',') === ',le067,mid,ge1,menor1,mayor1', opcSd.join(',')],
+    /* ADAPTADO 2026-10-13: eran CINCO opciones mas el vacio; los dos valores de legado se
+       eliminaron. El conteo es el DENOMINADOR de esta seccion: es lo unico que caza una opcion
+       nueva que entre sin su lectura, o una que se vaya con su corte todavia cableado. */
+    ['el <select> del S/D ofrece el vacio y las TRES opciones del corte, y nada mas',
+      opcSd.join(',') === ',le067,mid,ge1', opcSd.join(',')],
     ['y ningun value empieza con < o >: lo que se guarda es un TOKEN', sdTokenSeguro, opcSd.join(',')],
     ['ASE 2025 sinusal: «<=0,67» es POSITIVO (folio 554)', est(s25a.ven, /S\\/D/) === 'POS', est(s25a.ven, /S\\/D/)],
     ['  y «>0,67 y <1» es NEGATIVO: ese tramo es lo que el selector viejo no podia expresar',
@@ -2538,22 +2582,13 @@ caso('TC-459', 'Parametros complementarios de la funcion diastolica: las TRES op
       est(sfabsa.ven, /S\\/D/) === 'POS' && est(sfabsc.ven, /S\\/D/) === 'neg' && sfabsa.badge !== sfabsc.badge,
       sfabsa.badge + ' | ' + sfabsc.badge],
 
-    // ── B · LOS ESTUDIOS GUARDADOS CON EL SELECTOR VIEJO
-    ['un estudio guardado con «<1» o «>1» SIGUE MOSTRANDOSE: las dos <option> estan en el marcado',
-      legSeMuestra === true, String(legSeMuestra)],
-    ['legado «<1» con el corte <= 0,67: NO EVALUABLE, porque no distingue un 0,6 de un 0,9',
-      est(leg25menor.ven, /S\\/D/) === 'na', est(leg25menor.ven, /S\\/D/)],
-    ['  y el rotulo de la fila dice POR QUE, para que no se lea como un dato sin cargar',
-      /no distingue este corte/.test((fila(leg25menor.ven, /S\\/D/) || {}).crit || ''),
-      (fila(leg25menor.ven, /S\\/D/) || {}).crit || 'SIN FILA'],
-    ['legado «>1» con el corte <= 0,67: NEGATIVO, sin ambiguedad',
-      est(leg25mayor.ven, /S\\/D/) === 'neg', est(leg25mayor.ven, /S\\/D/)],
-    ['legado «<1» con el corte < 1: POSITIVO, porque ES exactamente ese corte',
-      est(leg16menor.ven, /S\\/D/) === 'POS' && est(legFaMenor.ven, /S\\/D/) === 'POS',
-      est(leg16menor.ven, /S\\/D/) + ' / ' + est(legFaMenor.ven, /S\\/D/)],
-    ['  y legado «>1» con el corte < 1: NEGATIVO',
-      est(leg16mayor.ven, /S\\/D/) === 'neg' && est(legFaMayor.ven, /S\\/D/) === 'neg',
-      est(leg16mayor.ven, /S\\/D/) + ' / ' + est(legFaMayor.ven, /S\\/D/)],
+    // ── B · EL LEGADO DEL S/D YA NO ESTA (ADAPTADO 2026-10-13)
+    ['el legado del S/D ya NO esta: cuatro <option>, ninguna oculta ni deshabilitada',
+      sdSinLegado === true, String(sdSinLegado)],
+    ['  y un token que el selector no ofrece se lee como campo SIN CARGAR, sin veredicto inventado',
+      sdDesconocido.leido === '' && sdDesconocido.idx === -1 &&
+      sdDesconocido.le067 === null && sdDesconocido.lt1 === null &&
+      sdDesconocido.etiqueta === null, JSON.stringify(sdDesconocido)],
 
     // ── C · EL LARS EN VALOR ABSOLUTO
     ['ASE 2025 sinusal: +32 y -32 dan EXACTAMENTE lo mismo', mismo(l25p, l25n), l25p.badge + ' | ' + l25n.badge],
@@ -2809,8 +2844,12 @@ caso('TC-460', 'Diagrama de flujo de la BSE 2024 en la ventana del Algoritmo: la
       m: Object.assign({}, mixR, { lars: '15' }) },
     { id: 'R17', fig: 'f18', que: 'FEVI reducida, lado normal del strain (LARS >= 24 %)', fin: 'f18.fin-normal',
       m: Object.assign({}, mixR, { lars: '26' }) },
+    /* ADAPTADO 2026-10-13: R18 y R23 fijaban el S/D en 'menor1', el token del selector viejo, que
+       se elimino con su <option> —decision del medico: no hay estudios guardados con el S/D
+       cargado, y Safari mostraba las dos opciones ocultas—. Hoy usan 'mid' («>0,67 y <1»), que
+       cumple el mismo corte < 1 de las Figuras 18 y 19. El nodo final de las dos ramas no cambia. */
     { id: 'R18', fig: 'f18', que: 'FEVI reducida, LARS intermedio y un suplementario POSITIVO (S/D < 1)', fin: 'f18.fin-elevada',
-      m: Object.assign({}, mixR, { lars: '20', venp_sd: 'menor1' }) },
+      m: Object.assign({}, mixR, { lars: '20', venp_sd: 'mid' }) },
     { id: 'R19', fig: 'f18', que: 'FEVI reducida, LARS intermedio y los CUATRO suplementarios negativos', fin: 'f18.fin-normal',
       m: Object.assign({}, mixR, { lars: '20', venp_sd: 'ge1', onda_l: '5', tde: '200', venp_dur_ar: '130', venp_dur_a: '120' }) },
     // ── Figura 19 ──
@@ -2821,7 +2860,7 @@ caso('TC-460', 'Diagrama de flujo de la BSE 2024 en la ventana del Algoritmo: la
     { id: 'R22', fig: 'f19', ritmo: 'fa', que: 'FA, paso 1 insuficiente y 2 o 3 negativos en el paso 2', fin: 'f19.fin-normal',
       m: Object.assign({}, fa4, { lars: '25', venp_sd: 'ge1' }) },
     { id: 'R23', fig: 'f19', ritmo: 'fa', que: 'FA, paso 1 insuficiente y 2 o 3 positivos en el paso 2', fin: 'f19.fin-elevada',
-      m: Object.assign({}, fa4, { lars: '15', venp_sd: 'menor1' }) },
+      m: Object.assign({}, fa4, { lars: '15', venp_sd: 'mid' }) },
     { id: 'R24', fig: 'f19', ritmo: 'fa', que: 'FA, paso 1 y paso 2 insuficientes', fin: 'f19.fin-indet', m: fa4 }
   ];
 
@@ -14676,9 +14715,16 @@ caso('TC-260', 'Vena pulmonar: los cuatro campos en la grilla, los tres cortes e
                            document.getElementById('venp-ara-row').style.display === 'none';
       set('venp_dur_a', 100.2); set('venp_dur_ar', 130.3); calcVenaPulm();
       const redondeo = leer('venp-ara').txt === '30.1 ms';
+      /* ADAPTADO 2026-10-13: esta condicion exigia ADEMAS que existiera la <option> de legado
+         value="menor1", para que un estudio guardado con el selector viejo no perdiera su valor.
+         Las dos de legado se eliminaron (decision del medico: no hay estudios guardados con el S/D
+         cargado, y Safari las mostraba aunque estuvieran con hidden), asi que lo que queda es la
+         mitad que sigue siendo cierta y es la que importa acá: ningun value del selector empieza
+         con < o con >, o sea que lo que se guarda es un TOKEN y no una cadena que un innerHTML
+         pueda interpretar. Que el selector tenga exactamente cuatro opciones lo miden TC-459 y
+         TC-461. */
       const tokenSD = Array.from(document.getElementById('venp_sd').options)
-        .every(o => o.value.indexOf('<') < 0 && o.value.indexOf('>') < 0) &&
-        !!document.querySelector('#venp_sd option[value="menor1"]');
+        .every(o => o.value.indexOf('<') < 0 && o.value.indexOf('>') < 0);
       const enElEmbudo = (typeof RECALC_MODULOS === 'function') &&
                          RECALC_MODULOS().indexOf('calcVenaPulm') >= 0;
       /* El envoltorio de 'calcDiastol' es lo que pinta E/e' por los CUATRO caminos de salida de
@@ -14718,7 +14764,9 @@ caso('TC-260', 'Vena pulmonar: los cuatro campos en la grilla, los tres cortes e
         limpiar();
         engancha('sin'); _pdfAjustarA4(); await new Promise(r => setTimeout(r, 2600));
         set('venp_dur_a', 120); set('venp_dur_ar', 160); set('venp_vel_ar', 40);
-        document.getElementById('venp_sd').value = 'mayor1';
+        /* ADAPTADO 2026-10-13: era 'mayor1', el token del selector viejo. 'ge1' («>=1») es su
+           equivalente vivo y imprime su etiqueta en el PDF por el mismo camino. */
+        document.getElementById('venp_sd').value = 'ge1';
         calcVenaPulm();
         engancha('con'); _pdfAjustarA4(); await new Promise(r => setTimeout(r, 2600));
       } finally { window.jspdf.jsPDF = Orig; }
