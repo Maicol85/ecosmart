@@ -819,7 +819,12 @@ caso('TC-453', 'Diastolica ASE 2025: las tres variables de la Figura 3 con su se
        PARAMETROS SUPLEMENTARIOS del folio 555, que hoy tiene un solo elemento (la onda L
        >= 50 cm/s) y se dibuja siempre, como la fila gris del S/D. Lo que este DENOMINADOR
        protege no cambia: que la ventana haya dibujado algo antes de contar sus estados. */
-    ['la ventana dibuja sus 13 filas', a31.ven.n === 13, 'n=' + a31.ven.n + ' | ' + JSON.stringify(a31.ven.filas.map(f => f.crit))],
+    /* ADAPTADO 2026-10-12: 13 -> 16. La etapa de suplementarios de la ASE 2025 (folio 555) paso
+       de UNO a CUATRO —la onda L ya estaba; entraron la velocidad telediastolica de la IP, la PAP
+       diastolica y el Ar-A con la amplitud de la Ar—, asi que la ventana dibuja tres filas mas.
+       El numero es el DENOMINADOR de este caso y es lo unico que caza una fila duplicada o
+       perdida: por eso se actualiza en vez de borrarse. */
+    ['la ventana dibuja sus 16 filas', a31.ven.n === 16, 'n=' + a31.ven.n + ' | ' + JSON.stringify(a31.ven.filas.map(f => f.crit))],
     ['el informe trae la linea de la diastolica', a31.inf.indexOf('diastólica') > -1, a31.inf.slice(0, 200)],
 
     // ── A · escena 3.1: el cuadro y la ventana dicen LO MISMO

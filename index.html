@@ -3765,15 +3765,15 @@ window.cerrarSesionReal = cerrarSesionReal;
              de este bloque separa el comentario de arriba de los campos que describe. -->
         <div class="fg">
           <label>Dur. onda A mitral (ms)</label>
-          <input type="number" id="venp_dur_a" placeholder="ms" oninput="calcVenaPulm()">
+          <input type="number" id="venp_dur_a" placeholder="ms" oninput="calcVenaPulm();calcDiastol()">
         </div>
         <div class="fg">
           <label>Dur. onda Ar pulmonar (ms)</label>
-          <input type="number" id="venp_dur_ar" placeholder="ms" oninput="calcVenaPulm()">
+          <input type="number" id="venp_dur_ar" placeholder="ms" oninput="calcVenaPulm();calcDiastol()">
         </div>
         <div class="fg">
           <label>Veloc. Ar pulmonar (cm/s)</label>
-          <input type="number" id="venp_vel_ar" placeholder="cm/s" oninput="calcVenaPulm()">
+          <input type="number" id="venp_vel_ar" placeholder="cm/s" oninput="calcVenaPulm();calcDiastol()">
         </div>
         <div class="fg">
           <!-- ⚠️ S/D ES UN SELECTOR, NO UN NÚMERO. Es informativo y no entra en ningún cálculo:
@@ -4298,8 +4298,16 @@ window.cerrarSesionReal = cerrarSesionReal;
           <input type="text" id="ip_pmad_display" readonly style="color:var(--accent2);" placeholder="— completar VCI">
         </div>
         <div class="fg">
+          <!-- ⚠️ LLAMA A `calcDiastol` DESDE EL 2026-10-12, Y NO ES COSMETICO. Esta velocidad es
+               insumo del veredicto diastólico: la nota ‡ de la Figura 3 de la ASE 2025 la lista
+               como parámetro suplementario (≥ 2 m/s, folio 555a) y de ella sale además la PAP
+               diastólica, que es el otro. Vive en OTRA pestaña que el cuadro gris, así que sin
+               esta llamada el cuadro se quedaba con el veredicto del paciente ANTERIOR hasta que
+               alguien tocara un campo mitral — el mismo desfase que `edad` y `sexo` tuvieron que
+               cerrar cuando la BSE los hizo insumo. La ventana del 🧭 no se atrasa: tiene su
+               propio oyente de documento. -->
           <label>Vmax telediastólica IP (m/s)</label>
-          <input type="number" id="ip_vtd" placeholder="m/s" step="0.1" oninput="calcIP()">
+          <input type="number" id="ip_vtd" placeholder="m/s" step="0.1" oninput="calcIP();calcDiastol()">
         </div>
         <div class="fg">
           <label>PAP diastólica — auto (mmHg)</label>
@@ -23995,30 +24003,96 @@ window.feviRangoUI = feviRangoUI;
 
    LA NOTA ‡ DE LA FIGURA 3 LISTA CINCO: velocidad telediastólica de la IP ≥ 2 m/s, PAP diastólica
    ≥ 16 mmHg, **onda L del llenado mitral ≥ 50 cm/s**, Ar−A > 30 ms y caída de la E/A ≥ 50 % con
-   Valsalva. El folio 555b agrega la IM diastólica, la terminación precoz del llenado y la amplitud
-   de la Ar > 35 cm/s. **Esta tanda implementa UNO**: la onda L, que es el único que tiene campo.
-   Por eso esto es una LISTA y no un `if`: los otros los agrega otro trabajo, agregando una entrada
-   acá y nada más —la etapa que los evalúa, las filas de la ventana y la rama del veredicto ya
-   están escritas contra la lista—.
+   Valsalva. El folio 555 los desarrolla en cinco incisos y agrega, en el (d), la amplitud de la Ar
+   > 35 cm/s; en el (c), la IM diastólica y la terminación precoz del llenado.
+   **Desde el 2026-10-12 están los CUATRO que tienen campo**, cada uno con su folio y su operador
+   escritos al lado. El que falta es la **caída de la E/A ≥ 50 % con Valsalva**: la app no registra
+   la maniobra por ningún campo, así que no entra —y los dos del inciso (c) tampoco, que son
+   hallazgos de forma de onda y no una medición—.
+   Por eso esto es una LISTA y no un `if`: la etapa que los evalúa, las filas de la ventana y la
+   rama del veredicto están escritas contra la lista, así que el trabajo que agregue el Valsalva
+   suma una entrada acá y nada más.
+
+   ⚠️ LOS CUATRO SON «≥» O «>» Y NO SON EL MISMO SIGNO, así que cada uno lleva el suyo escrito:
+   la onda L y los dos de presión pulmonar van con `>=` (los tres los escribe así la nota ‡) y los
+   dos del inciso (d) van con `>` estricto. Un borde no se entiende sin saber de qué lado cae su
+   valor exacto.
+
+   ⚠️ EL INCISO (a) SON DOS CAMINOS CON UN «or», NO UN PAR. Literal: «An end-diastolic velocity
+   ≥2 m/s **or** pulmonary artery (PA) diastolic pressure ≥16 mm Hg is consistent with elevated LAP
+   in the absence of pulmonary disease». Son dos entradas de la lista y cualquiera alcanza, que es
+   lo que ya hace la etapa: le basta un suplementario positivo.
+   ⚠️ Y LA PAP DIASTÓLICA NO SE RECALCULA ACÁ: se lee de la que publica `calcIP` (4 × V²_td + PmAD,
+   folio impreso en el propio formulario). Con la PmAD SIN CARGAR ese campo escribe «N mmHg (sin
+   PmAD)», que es una PAPd INCOMPLETA —le falta el sumando de la aurícula derecha— y en ese estado
+   **no vota**: el lector devuelve `null`. Afirmar presión de llenado elevada con un valor al que
+   le falta un término es exactamente lo que esta casa no acepta. Una segunda copia de la fórmula
+   acá sería el defecto de «fórmula duplicada: pantalla vs informe» que este archivo documenta.
+
+   ⚠️ EL INCISO (d) PIDE LAS DOS COSAS, Y ESO NO SALE DE LA FIGURA. La nota ‡ nombra sólo «Ar-A
+   duration > 30 ms»; el folio 555d escribe la condición entera: «This stage is diagnosed on the
+   basis of a high amplitude (>35 cm/s) **and** long duration of pulmonary vein Ar velocity, **along
+   with** an Ar-A duration >30 ms». Se exige el AND, que es lo que dice la prosa y es el lado
+   conservador —pide más evidencia para afirmar presión elevada, no menos—. La divergencia entre la
+   nota y el inciso queda declarada en docs/PENDIENTES.md.
+   ⚠️ Y EL INCISO (d) DESCRIBE UN ESTADIO CON LA PAI MEDIA **NORMAL**: «there is an early stage when
+   LVEDP is elevated but mean LAP is normal». O sea que como marcador es de LVEDP y no de PAI media,
+   que es lo que este algoritmo estima. Se implementa porque la nota ‡ de la Figura 3 lo lista como
+   suplementario de ESTE algoritmo, y porque el §12 del folio 555 manda informar el aumento aislado
+   de la LVEDP. Queda declarado, sin cambiar ninguna frase del informe.
 
    ⚠️ CON LOS SUPLEMENTARIOS NEGATIVOS **NO SE AFIRMA PRESIÓN NORMAL**, Y ES UNA DECISIÓN MEDIDA.
    La flecha «None» de la figura sale de la caja ENTERA, o sea de haber preguntado sus cinco
-   parámetros; la app puede preguntar uno. Contestar «no» a cuatro preguntas que no se hicieron es
+   parámetros; la app puede preguntar cuatro. Contestar «no» a una pregunta que no se hizo es
    exactamente la forma en que un conteo afirma normalidad sobre datos que nadie cargó —la regla de
-   la casa, y lo que la rama del strain de la BSE ya hace con `suplEval === 0`—. Así que con la onda
-   L negativa el estado se queda en el «no estimable» de HEAD, cuyo texto sigue siendo cierto. Lo
-   que la onda L SÍ puede hacer es lo del lado positivo, que es afirmación de presión ELEVADA y le
-   alcanza con un parámetro: «≥1 present».
+   la casa, y lo que la rama del strain de la BSE ya hace con `suplEval === 0`—. Así que con los
+   cuatro negativos el estado se queda en el «no estimable» de HEAD, cuyo texto sigue siendo cierto
+   palabra por palabra. Lo que SÍ pueden hacer es lo del lado positivo, que es afirmación de presión
+   ELEVADA y le alcanza con un parámetro: «≥1 present».
 
-   ⚠️ EL CORTE ES ≥ 50 cm/s Y NO ES EL > 20 DE LA BSE. Son la misma medición y dos guías, igual
-   que el LARS (≤ 18 % acá, < 16 % en la FA de la BSE). No se unifican. El operador es `>=`: el
-   folio 555 escribe «the presence of an L-wave velocity ≥ 50 cm/s is an indicator of both impaired
-   LV relaxation and elevated LAP», y la nota ‡ de la Figura 3 lo escribe igual. */
-const ASE_ONDAL_SUPL = 50;   // cm/s — onda L, borde `>=` (folio 555 y nota ‡ de la Figura 3)
+   ⚠️ EL CORTE DE LA ONDA L ES ≥ 50 cm/s Y NO ES EL > 20 DE LA BSE. Son la misma medición y dos
+   guías, igual que el LARS (≤ 18 % acá, < 16 % en la FA de la BSE). No se unifican. */
+const ASE_ONDAL_SUPL = 50;   // cm/s  — onda L, borde `>=` (folio 555b y nota ‡ de la Figura 3)
+const ASE_IPTD_SUPL  = 2;    // m/s   — IP telediastólica, borde `>=` (folio 555a y nota ‡)
+const ASE_PAPD_SUPL  = 16;   // mmHg  — PAP diastólica, borde `>=` (folio 555a y nota ‡)
+const ASE_ARA_SUPL   = 30;   // ms    — Ar−A, borde `>` ESTRICTO (folio 555d y nota ‡)
+const ASE_ARVEL_SUPL = 35;   // cm/s  — amplitud de la Ar, borde `>` ESTRICTO (folio 555d)
+
+/* La PAP diastólica que publica `calcIP`, leída de su campo y NO recalculada. Devuelve `null`
+   cuando falta la PmAD, porque ese texto trae el sufijo «(sin PmAD)» y es una PAPd a la que le
+   falta un sumando. El parseo es sobre el número que el médico tiene delante, que es el que se
+   clasificó. */
+function asePapdSupl() {
+  const el = document.getElementById('ip_papd');
+  if (!el) return null;
+  const t = String(el.value || '');
+  if (t === '' || t.indexOf('sin PmAD') > -1) return null;
+  const n = parseFloat(t.replace(',', '.'));
+  return isFinite(n) ? n : null;
+}
+window.asePapdSupl = asePapdSupl;
+
 const ASE_SUPLEMENTARIOS = [
-  { clave: 'ondaL', rot: 'Onda L ≥ ' + ASE_ONDAL_SUPL + ' cm/s (folio 555)', u: 'cm/s', dec: 1,
+  { clave: 'ondaL', rot: 'Onda L ≥ ' + ASE_ONDAL_SUPL + ' cm/s (folio 555b)', u: 'cm/s', dec: 1,
     leer: function () { return v('onda_l'); },
-    cumple: function (x) { return x !== null && x >= ASE_ONDAL_SUPL; } }
+    cumple: function (x) { return x !== null && x >= ASE_ONDAL_SUPL; } },
+  { clave: 'ipTd', rot: 'Veloc. telediastólica de la IP ≥ ' + ASE_IPTD_SUPL + ' m/s (folio 555a)', u: 'm/s', dec: 2,
+    leer: function () { return v('ip_vtd'); },
+    cumple: function (x) { return x !== null && x >= ASE_IPTD_SUPL; } },
+  { clave: 'papD', rot: 'PAP diastólica ≥ ' + ASE_PAPD_SUPL + ' mmHg (folio 555a, alternativa de la anterior)', u: 'mmHg', dec: 0,
+    leer: function () { return asePapdSupl(); },
+    cumple: function (x) { return x !== null && x >= ASE_PAPD_SUPL; } },
+  /* ⚠️ UNA SOLA ENTRADA PARA LOS DOS OPERANDOS DEL INCISO (d), y no dos. Son un AND: con dos
+     entradas, cada una votaría sola y el Ar−A positivo con una Ar de 20 cm/s afirmaría presión
+     elevada —la mitad de la condición que la guía escribe—. `leer` devuelve la DURACIÓN, que es el
+     número que la fila muestra, y `cumple` exige además la amplitud. Que la fila no pueda mostrar
+     los dos valores es el precio; el rótulo nombra los dos cortes. */
+  { clave: 'arA', rot: 'Ar−A > ' + ASE_ARA_SUPL + ' ms CON amplitud de la Ar > ' + ASE_ARVEL_SUPL + ' cm/s (folio 555d)', u: 'ms', dec: 0,
+    leer: function () { return (typeof venpArA === 'function') ? venpArA() : null; },
+    cumple: function (x) {
+      const vel = v('venp_vel_ar');
+      return x !== null && x > ASE_ARA_SUPL && vel !== null && vel > ASE_ARVEL_SUPL;
+    } }
 ];
 window.ASE_SUPLEMENTARIOS = ASE_SUPLEMENTARIOS;
 
