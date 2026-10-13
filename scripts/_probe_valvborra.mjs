@@ -280,6 +280,16 @@ window.__P = {
       return window.__P.pill(v,t) === true });
     return { pillsEncendidas: quedan, ok: quedan.length === 0 } },
 
+  /* Corre los cuatro calculadores sobre lo que haya en pantalla. NO es un gesto: fija el
+     denominador del «volvio al estado inicial». */
+  pintarVacio() {
+    var r = {};
+    ['calcAo','calcIM_ESC','calcIA_ESC','calcIT_ESC','calcContIM'].forEach(function(f){
+      try { if (typeof window[f] === 'function') { window[f](); r[f] = 1 } else r[f] = 'NO EXISTE' }
+      catch(e) { r[f] = 'EXC: ' + e.message }
+    });
+    return r },
+
   /* NO ES UN GESTO MEDIDO: solo para los <select> de escenario. Los numericos van con teclas. */
   set(id, valor) {
     var e = document.getElementById(id);
@@ -643,10 +653,18 @@ async function main() {
   /* ⚠️ SE DESPEJA Y SE LIMPIA ANTES DE CADA ESCENA, y se COMPRUEBA que la limpieza dejo las ocho
      pastillas apagadas: el estado vivo de una pastilla sobrevive al limpiarCampos de la app, asi
      que sin esto una escena mide el display inline del paciente anterior. */
+  /* ⚠️ EL ESTADO INICIAL SE MIDE CON LOS CUATRO CALCULADORES YA CORRIDOS SOBRE EL FORMULARIO
+     VACIO, y no recien salido de `limpiarCampos`. Sin eso, `ea-sev` arrancaba en el «—» con que
+     nace el marcado y terminaba en el «— — sin Vmax ni gradiente medio cargados» que escribe su
+     pintor, asi que las cuatro escenas de la EAo salian «no volvio» con el grado, la pastilla y el
+     informe perfectos: la sonda comparaba un nodo SIN PINTAR contra el mismo nodo pintado.
+     Correr los calculadores no es un gesto medido —los gestos van con teclas— es fijar el
+     denominador: la pregunta es si la app termina donde terminaria con el formulario vacio. */
   async function escenaCero() {
     await ev(`window.__P.despejar()`);
     const l = await ev(`window.__P.limpiar()`);
     await ev(`window.__P.abrirTodo()`);
+    await ev(`window.__P.pintarVacio()`);
     return l;
   }
   async function pre(mapa) {
@@ -666,6 +684,13 @@ async function main() {
         for (const grado of Object.keys(e.val)) {
           const limpio = await escenaCero();
           const p = await pre(e.pre);
+          /* ⚠️ SE VUELVE A ENTRAR A LA PESTANIA ANTES DE LA FOTO INICIAL, para que la REGLA J
+             —`valvAutoAbrirCajones`, que corre en cada showTab de valvulas y prende la pastilla
+             cuando el grado es graduable— haya tenido las MISMAS oportunidades de actuar que
+             despues del borrado. Sin esto, cuatro escenas salian «no volvio» por la pastilla: el
+             prerrequisito ya habia dejado un grado graduable y la regla J la prendia recien en el
+             abrirTodo que hace el borrado. La diferencia no era del borrado, era del denominador. */
+          await ev(`window.__P.abrirTodo()`);
           const f0 = await fotoDe(les);
           const t = await tipear(e.id, e.val[grado]);
           const f1 = await fotoDe(les);
@@ -898,6 +923,13 @@ async function main() {
           nEscenas++;
           await escenaCero();
           const p = await pre(e.pre);
+          /* ⚠️ SE VUELVE A ENTRAR A LA PESTANIA ANTES DE LA FOTO INICIAL, para que la REGLA J
+             —`valvAutoAbrirCajones`, que corre en cada showTab de valvulas y prende la pastilla
+             cuando el grado es graduable— haya tenido las MISMAS oportunidades de actuar que
+             despues del borrado. Sin esto, cuatro escenas salian «no volvio» por la pastilla: el
+             prerrequisito ya habia dejado un grado graduable y la regla J la prendia recien en el
+             abrirTodo que hace el borrado. La diferencia no era del borrado, era del denominador. */
+          await ev(`window.__P.abrirTodo()`);
           const f0 = await fotoDe(les);
           const t = await tipear(e.id, e.val[grado]);
           const f1 = await fotoDe(les);

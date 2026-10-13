@@ -36701,7 +36701,15 @@ function calcIT_ESC() {
   const pisaR = v('it_pisa_r'), pisaVal = v('it_pisa_val'), vmaxCW = v('it_vmax_cw'), vtiIT = v('it_vti');
   const densidad = sv('it_densidad');
 
-  let scores = { leve:0, moderada:0, severa:0 };
+  /* ⚠️ `params` ES LA LISTA COMPLETA DE VOTOS Y `scores` SE DERIVA DE ELLA DESDE EL 2026-10-13, y
+     antes se llenaban EN PARALELO (`scores[g]++` al lado de cada `params.push`). El cambio de forma
+     es lo que deja expresar la regla 4 de Maicol —«si hay datos de continuidad cargados, gana la
+     continuidad»— sin una segunda cuenta: la lista dice QUIÉN votó y QUÉ, y el conteo se arma al
+     final con los que deciden. Con las dos cuentas en paralelo, excluir un votante del grado
+     obligaba a acordarse de restarlo en los dos lugares.
+     Cada voto lleva su `grupo`, que es lo único nuevo en el dato: 'cont' para lo que sale de la
+     cadena cuantitativa (EROA y Vol-R), 'jet' para la densidad del chorro por CW y 'vc' para la
+     vena contracta. */
   let params = [];
   /* ⚠️ FUERA DEL `if` DE PISA A PROPÓSITO: el pintor de las filas corre SIEMPRE, también cuando no
      hay insumos, y para eso tiene que ver los dos valores desde el ámbito de la función. */
@@ -36712,13 +36720,13 @@ function calcIT_ESC() {
      escrito acá para la vena contracta. */
   if (vc) {
     const g = itGradoDe('vc', vc);
-    scores[g]++; params.push({p:'VC',sev:g});
+    params.push({p:'VC',sev:g,grupo:'vc'});
   }
 
   if (densidad) {
-    if (densidad === 'debil') { scores.leve++; params.push({p:'Jet',sev:'leve'}); document.getElementById('it-densidad-interp').innerHTML = badge('green','Leve — jet débil'); }
-    else if (densidad === 'moderado') { scores.moderada++; params.push({p:'Jet',sev:'moderada'}); document.getElementById('it-densidad-interp').innerHTML = badge('yellow','Moderada'); }
-    else { scores.severa++; params.push({p:'Jet',sev:'severa'}); document.getElementById('it-densidad-interp').innerHTML = badge('red','Severa — jet denso/triangular'); }
+    if (densidad === 'debil') { params.push({p:'Jet',sev:'leve',grupo:'jet'}); document.getElementById('it-densidad-interp').innerHTML = badge('green','Leve — jet débil'); }
+    else if (densidad === 'moderado') { params.push({p:'Jet',sev:'moderada',grupo:'jet'}); document.getElementById('it-densidad-interp').innerHTML = badge('yellow','Moderada'); }
+    else { params.push({p:'Jet',sev:'severa',grupo:'jet'}); document.getElementById('it-densidad-interp').innerHTML = badge('red','Severa — jet denso/triangular'); }
   }
 
   if (pisaR && pisaVal && vmaxCW) {
@@ -36740,11 +36748,11 @@ function calcIT_ESC() {
        la UNICA que escribia el nodo de la EROA, y por eso la fila quedaba rancia al borrar un
        insumo. */
     const gE = itGradoDe('eroa', eroa);
-    scores[gE]++; params.push({p:'EROA',sev:gE});
+    params.push({p:'EROA',sev:gE,grupo:'cont'});
     if (vtiIT) {
       volR = (PF(eroa)/100*vtiIT).toFixed(1);
       const gV = itGradoDe('volr', volR);
-      scores[gV]++; params.push({p:'Vol-R',sev:gV});
+      params.push({p:'Vol-R',sev:gV,grupo:'cont'});
     }
   }
 
@@ -36753,7 +36761,54 @@ function calcIT_ESC() {
      después no correría nunca y las filas se quedarían con el paciente anterior. Es la misma razón
      por la que `itIncongruenciaSync` está arriba de todo. */
   itRefPintar({ vc: vc, eroa: eroa, volr: volR });
-  if (params.length === 0) return;
+  if (params.length === 0) {
+    /* ⚠️ ESTA SALIDA ERA UN `return` PELADO Y ES LA CAUSA DEL SÍNTOMA DE LA IT. `it-sev` y
+       `it_grado` se escriben más abajo, así que al borrar el último votante los dos se quedaban
+       con lo de la medición anterior: medido con teclas reales, las 12 escenas de la IT conservaban
+       el grado, el badge, la pastilla y el informe («IT severa.» sobre un cuadro vacío).
+       La foto `window._itGradoCalc` ya se ponía en `null` arriba de todo, por su propio motivo. */
+    const _itSevEl = document.getElementById('it-sev');
+    if (_itSevEl) _itSevEl.innerHTML = '—';
+    const _itDisc0 = document.getElementById('it-discordancia');
+    if (_itDisc0) _itDisc0.textContent = '';
+    const _itRet = (typeof sevRetirarSugerido === 'function') ? sevRetirarSugerido('it') : null;
+    /* La pastilla y el aviso rojo se repintan también por esta salida: sin esto el sub-botón
+       quedaba anunciando el grado de la medición anterior. Es el mismo cableado que la salida
+       normal hace al final. */
+    if (typeof sevSincronizar === 'function') { try { sevSincronizar('it'); } catch (e) {} }
+    return _itRet;
+  }
+  /* ══ REGLA 4 DE MAICOL (2026-10-13): CON DATOS DE CONTINUIDAD CARGADOS, GANA LA CONTINUIDAD ═══
+     El médico reportó el estado y tomó la decisión: con la densidad del jet en severa y la cadena
+     cuantitativa en otro grado, el grado que vale es el de la cadena. Hasta hoy la densidad votaba
+     igual que los demás y, como un solo voto severo basta, se llevaba el veredicto: medido con
+     densidad «denso» y EROA 18,1 mm² (leve), el badge decía «Severa», el informe «insuficiencia
+     severa» y el EN SUMA «IT severa.», con la fila de discordancia diciendo «Jet:severa,
+     EROA:leve». Hoy ese paciente sale LEVE.
+
+     ⚠️ LO QUE SE RETIRA DEL VEREDICTO ES LA DENSIDAD DEL CHORRO Y NADA MÁS, Y ES LA LECTURA
+     CONSERVADORA DE LA REGLA — ES MÍA Y QUEDA DECLARADA. «Gana la continuidad» leído al pie de la
+     letra haría que el grado saliera SÓLO de la EROA y el Vol-R, y eso descartaría una vena
+     contracta severa, que es el parámetro con más peso de la Tabla 14 de la ASE 2017 —el único con
+     columna propia en el Excel y en «Ver detalle»—. El síntoma que la regla contesta nombra la
+     densidad del jet, que es el único votante CUALITATIVO del cuadro, así que es el que deja de
+     decidir. La vena contracta sigue votando. En `docs/PENDIENTES.md`.
+
+     ⚠️ LA COMPUERTA ES QUE LA CADENA HAYA PRODUCIDO UN NÚMERO, no que los campos estén escritos.
+     `eroa` sale en `null` si falta cualquiera de los tres insumos (radio PISA, Valiasing o Vmax
+     CW), y ahí la continuidad no tiene nada que decir: la densidad vuelve a decidir. Es la misma
+     distinción entre «el campo está» y «el criterio se pudo evaluar» que la fila gris del S/D
+     venoso pulmonar ya hace en la diastólica.
+
+     ⚠️ Y LA FILA DE DISCORDANCIA SIGUE LISTANDO LOS VOTOS COMPLETOS, la densidad incluida. Su
+     pregunta es «¿los votos coinciden?» y no «¿quién decidió?»: esconder el voto retirado dejaría
+     al médico viendo «Severa — jet denso/triangular» en su renglón, «Leve» en el grado final y
+     nada que explique la diferencia. Lo que se agrega es la cláusula que lo nombra. */
+  const _itHayCont = eroa !== null;
+  const _itDeciden = params.filter(function (p) { return !(_itHayCont && p.grupo === 'jet'); });
+  const _itRetirado = params.length - _itDeciden.length;
+  const scores = { leve:0, moderada:0, severa:0 };
+  _itDeciden.forEach(function (p) { scores[p.sev]++; });
   let sevBadge, gradoVal;
   /* ⚠️ MISMO FAIL-OPEN QUE `calcIA_ESC` Y MISMO ARREGLO: la aritmética de votos de esta función
      es la de aquélla, así que un voto severo con cero moderados caía en el `else` y publicaba
@@ -36775,9 +36830,25 @@ function calcIT_ESC() {
   }
   document.getElementById('it-sev').innerHTML = sevBadge;
   window._itGradoCalc = gradoVal;   // v2 (E2c): foto del grado calculado para el aviso de discrepancia (registro `it`)
-  if (!(window.esqSevManual && window.esqSevManual.it)) document.getElementById('it_grado').value = gradoVal;   // pill fijada → no pisar
-  const sevs = [...new Set(params.map(p=>p.sev))];
-  document.getElementById('it-discordancia').textContent = sevs.length > 1 ? '⚠️ Discordancia: ' + params.map(p=>`${p.p}:${p.sev}`).join(', ') : '';
+  /* ⚠️ `dataset.sugerido` ENTRA EL 2026-10-13, igual que en `autoCompletarSevIM` y por el mismo
+     motivo: es la marca que distingue este grado de uno tipeado a mano o traído de un estudio
+     reabierto, y sin ella `sevRetirarSugerido` sale por su tercera guarda. Medido en HEAD: las 12
+     escenas de la IT devolvían `sugerido: null`. */
+  if (!(window.esqSevManual && window.esqSevManual.it)) {   // pill fijada → no pisar
+    const _itSel = document.getElementById('it_grado');
+    if (_itSel) { _itSel.value = gradoVal; _itSel.dataset.sugerido = gradoVal; }
+  }
+  const sevs = [...new Set(_itDeciden.map(p=>p.sev))];
+  /* ⚠️ LA DISCORDANCIA SE MIDE ENTRE LOS QUE DECIDEN Y LA LISTA MUESTRA A TODOS. Con la densidad
+     retirada, un «Jet:severa» contra un «EROA:leve» ya no es una discordancia que el médico tenga
+     que resolver —la regla la resolvió— pero el renglón de la densidad sigue diciendo «Severa», así
+     que el dato se publica con su motivo en vez de desaparecer. */
+  const _itClausula = _itRetirado
+    ? '\u26a0\ufe0f Con datos de continuidad cargados el grado final sale de la continuidad: la densidad del chorro se muestra y no decide'
+    : '';
+  const _itDiscTxt = sevs.length > 1 ? '\u26a0\ufe0f Discordancia: ' + params.map(p=>`${p.p}:${p.sev}`).join(', ') : '';
+  document.getElementById('it-discordancia').textContent =
+    [_itDiscTxt, _itClausula].filter(Boolean).join(' \u00b7 ');
   if (typeof sevSincronizar === 'function') { try { sevSincronizar('it'); } catch (e) {} }   // v2 (E2c): repinta aviso/pastilla de la IT
 }
 
@@ -73911,7 +73982,7 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
      direcciones —la marca viva del paciente en pantalla entra a la ventana y puede disparar un
      retiro sobre el grado que se firmó, y el recálculo de la ventana la sobreescribe con el grado
      del OTRO estudio—. `autoCompletarSevIM` la escribe y `sevRetirarSugerido` la lee. */
-  const _MARCAS_DERIV = ['vp_gmax','ep_grado','ea_grado','ia_grado','im_grado'].concat(_ESPEJOS_TODOS.map(function (p) { return p[1]; }));
+  const _MARCAS_DERIV = ['vp_gmax','ep_grado','ea_grado','ia_grado','im_grado','it_grado'].concat(_ESPEJOS_TODOS.map(function (p) { return p[1]; }));
   /* Las dos filas de IM que la reimpresión pisa. Van aparte de `_MARCAS_DERIV` porque eso respalda
      `dataset` de INPUTS y esto es texto de `span`/`div` más dos atributos; meterlas ahí obligaría
      a que el respaldo supiera de dos formas distintas. */
@@ -105509,8 +105580,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261013-1240';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791906023232;                 /* eco-build-ms */
+const ECO_BUILD    = '20261013-1249';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791906550820;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -105596,7 +105667,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-1240</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-1249</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
