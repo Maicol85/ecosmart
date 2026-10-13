@@ -24070,7 +24070,13 @@ function _bseDiagSVG(plano, R) {
 
   const N = {};
   plano.nodos.forEach(function (n) {
-    const x = _bdX(n.col), w = _bdW(n.col, n.span);
+    /* ⚠️ LA FIGURA 19 NO ENTRA EN LA REJILLA DE CUATRO COLUMNAS, y por eso los nodos aceptan su
+       `px`/`pw` propios. Sus dos flechas largas —la de «>=3 negativos» y la de «>=3 positivos»—
+       bajan POR FUERA de la banda del paso 2, igual que en el original, asi que las cajas del
+       paso 2 tienen que estar corridas hacia adentro. Con la rejilla fija, esas dos lineas
+       cruzaban por encima de la banda y del cuadro de resultados del paso 2. */
+    const x = (n.px !== undefined) ? n.px : _bdX(n.col);
+    const w = (n.pw !== undefined) ? n.pw : _bdW(n.col, n.span);
     const crudos = n.vals ? n.vals(R) : _bdVals(R, n.id);
     /* Se envuelve ANTES de medir: la altura sale del numero de renglones que de verdad se van a
        dibujar, no del numero de valores. Con la altura calculada sobre los valores, un renglon
@@ -24106,7 +24112,12 @@ function _bseDiagSVG(plano, R) {
        mas mueve todas las filas de abajo, y una calle en coordenada fija quedaria cruzando una
        caja. Dos aristas que salen del MISMO nodo hacia lados distintos necesitan calles
        distintas: con la misma, sus rotulos se imprimen uno encima del otro. */
-    const ym = (a.calleRel !== undefined) ? (y1 + a.calleRel)
+    /* `calleAntes` pone la horizontal 12 px por encima de la caja que se nombra. Es lo que
+       necesita una flecha que SALTA filas: con una calle relativa al origen, la horizontal
+       quedaria cruzando las filas intermedias, y con una coordenada fija se desacomoda en
+       cuanto a una caja de arriba le entra un renglon mas. */
+    const ym = (a.calleAntes && N[a.calleAntes]) ? (N[a.calleAntes].y - 12)
+             : (a.calleRel !== undefined) ? (y1 + a.calleRel)
              : (y1 + Math.min(14, (y2 - y1) / 2));
     const d = (Math.abs(x1 - x2) < 0.5)
       ? ('M' + x1 + ' ' + y1 + ' L' + x2 + ' ' + y2)
@@ -24322,9 +24333,76 @@ const BSE_PLANO_F18 = {
   ]
 };
 
+
+/* La frecuencia cardiaca, que la Figura 19 pone en su propio encabezado («Heart rate <100 bpm»).
+   Es una condicion de MEDICION y no un criterio: no vota y no mueve ningun veredicto —el aviso
+   ambar de al lado es su unico duenio—, pero sin el numero a la vista la caja de entrada afirma
+   una condicion que nadie comprobo. */
+function _bdFc() {
+  const fc = (typeof v === 'function') ? v('ao_fc') : null;
+  return ['FC ' + ((fc === null || isNaN(fc)) ? 'sin dato' : (fc.toFixed(0) + ' lpm'))];
+}
+
+/* ══ PLANO DE LA FIGURA 19 — fibrilacion auricular (BSE 2024, pag. 39) ═══════════════════════
+   ⚠️ ESTA FIGURA NO ENTRA EN LA REJILLA DE CUATRO COLUMNAS y lleva geometria propia. Sus dos
+   flechas largas —la de «>=3 negativos» del paso 1 y la de «>=3 positivos»— bajan POR FUERA de
+   la banda del paso 2, que en el original es mas angosta que la del paso 1 justamente para
+   dejarles el carril. Con la rejilla fija, esas dos lineas cruzaban por encima de la banda.
+   ⚠️ Y NO COMPARTE CONSTANTES CON LAS OTRAS DOS FIGURAS DE SU PROPIA GUIA: el E/e' es el
+   SEPTAL, el TDE va con `<=` y el LARS corta en 16 % y no en 18 (pag. 40: sin contraccion
+   auricular el strain de reservorio es sistematicamente menor). No hay LAVi ni PSAP. */
+const BSE_PLANO_F19 = {
+  fig: 'f19',
+  aria: 'Diagrama de flujo de la BSE 2024 para fibrilacion auricular, con el camino de este paciente marcado en rojo.',
+  pie: 'Dibujo propio, basado en la Figura 19 de la BSE 2024 (Robinson S y cols., Echo Res Pract 2024;11:16, pág. 39). '
+     + 'Artículo de acceso abierto bajo licencia Creative Commons Attribution 4.0 (CC BY 4.0, creativecommons.org/licenses/by/4.0). '
+     + 'La disposición y los textos son propios y no reproducen los rótulos del original.',
+  nodos: [
+    { id: 'f19.entrada', px: 150, pw: 400, fila: 0, corto: 'fibrilación auricular, con cualquier FEVI',
+      tit: ['Fibrilación auricular', 'en todo paciente, con cualquier FEVI', 'y frecuencia < 100 lpm'], vals: _bdFc },
+    { id: 'f19.paso1', px: 8, pw: 684, fila: 1, corto: 'paso 1, los cuatro criterios',
+      tit: ['Paso 1 · cuatro criterios'] },
+    { id: 'f19.p1neg', px: 8, pw: 190, fila: 2, corto: '3 o 4 criterios negativos en el paso 1',
+      tit: ['≥ 3 criterios', 'negativos'], vals: function () { return []; } },
+    { id: 'f19.p1insuf', px: 238, pw: 214, fila: 2, corto: 'el paso 1 no alcanza para decidir',
+      tit: ['Criterios insuficientes', 'para decidir'], vals: function () { return []; } },
+    { id: 'f19.p1pos', px: 484, pw: 200, fila: 2, corto: '3 o 4 criterios positivos en el paso 1',
+      tit: ['≥ 3 criterios', 'positivos'], vals: function () { return []; } },
+    { id: 'f19.paso2', px: 104, pw: 540, fila: 3, corto: 'paso 2, los tres criterios',
+      tit: ['Paso 2 · tres criterios'] },
+    { id: 'f19.p2neg', px: 104, pw: 190, fila: 4, corto: '2 o 3 criterios negativos en el paso 2',
+      tit: ['≥ 2 criterios', 'negativos'], vals: function () { return []; } },
+    { id: 'f19.p2insuf', px: 320, pw: 180, fila: 4, corto: 'el paso 2 tampoco alcanza',
+      tit: ['Criterios', 'insuficientes'], vals: function () { return []; } },
+    { id: 'f19.p2pos', px: 516, pw: 128, fila: 4, corto: '2 o 3 criterios positivos en el paso 2',
+      tit: ['≥ 2 criterios', 'positivos'], vals: function () { return []; } },
+    { id: 'f19.fin-normal', px: 8, pw: 190, fila: 5, corto: 'presión de llenado normal',
+      tit: ['Presión de llenado', 'normal'], vals: function () { return []; } },
+    { id: 'f19.fin-indet', px: 238, pw: 214, fila: 5, corto: 'presión de llenado indeterminada',
+      tit: ['Presión de llenado', 'indeterminada'], vals: function () { return []; } },
+    { id: 'f19.fin-elevada', px: 484, pw: 200, fila: 5, corto: 'presión de llenado elevada',
+      tit: ['Función diastólica', 'deteriorada, presión', 'de llenado elevada'], vals: function () { return []; } }
+  ],
+  aristas: [
+    { de: 'f19.entrada', a: 'f19.paso1' },
+    { de: 'f19.paso1', a: 'f19.p1neg' },
+    { de: 'f19.paso1', a: 'f19.p1insuf' },
+    { de: 'f19.paso1', a: 'f19.p1pos' },
+    { de: 'f19.p1insuf', a: 'f19.paso2' },
+    { de: 'f19.paso2', a: 'f19.p2neg' },
+    { de: 'f19.paso2', a: 'f19.p2insuf' },
+    { de: 'f19.paso2', a: 'f19.p2pos' },
+    { de: 'f19.p1neg', a: 'f19.fin-normal', dx1: -53, calleAntes: 'f19.fin-normal' },
+    { de: 'f19.p1pos', a: 'f19.fin-elevada', dx1: 84, calleAntes: 'f19.fin-elevada' },
+    { de: 'f19.p2neg', a: 'f19.fin-normal' },
+    { de: 'f19.p2insuf', a: 'f19.fin-indet' },
+    { de: 'f19.p2pos', a: 'f19.fin-elevada' }
+  ]
+};
+
 function _bseDiagPlano(algo, ritmo, R) {
   if (algo !== 'bse2024' || !R || !R.camino || !R.camino.length) return null;
-  if (ritmo === 'fa') return null;
+  if (ritmo === 'fa') return BSE_PLANO_F19;
   return R.feviReducida ? BSE_PLANO_F18 : BSE_PLANO_F17;
 }
 /* La tarjeta se ensancha SOLO cuando hay diagrama, y el ensanche vive en una media query: sin
@@ -24357,6 +24435,10 @@ function diastAlgoRender() {
     const RFA = (typeof diastFAEvaluar === 'function') ? diastFAEvaluar(algo) : null;
     if (RFA) {
       if (tEl) tEl.textContent = tit + ' · fibrilación auricular';
+      /* Solo la BSE tiene diagrama en esta tanda: `_bseDiagPlano` devuelve null para la ASE 2025
+         y la ASE/EACVI 2016, asi que sus ventanas siguen siendo las de HEAD. */
+      const planoFA = _bseDiagPlano(algo, 'fa', RFA);
+      if (planoFA) { h += _bseDiagCaja(planoFA, RFA); _bseDiagAncho(true); }
       let gFA = null;
       RFA.filas.forEach(f => {
         if (f.g && f.g !== gFA) { h += '<div class="da-paso">' + escHtml(f.g) + '</div>'; gFA = f.g; }
@@ -104645,8 +104727,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261013-0010';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791861015650;                 /* eco-build-ms */
+const ECO_BUILD    = '20261013-0021';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791861675537;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -104732,7 +104814,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-0010</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-0021</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
