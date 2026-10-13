@@ -2973,21 +2973,27 @@ caso('TC-460', 'Diagrama de flujo de la BSE 2024 en la ventana del Algoritmo: la
   ok(tog.trasRepintar === true, 'El estado del plegable SOBREVIVE al repintado de la ventana', 'tras repintar: ' + tog.trasRepintar);
   ok(tog.foco === true, 'El control del plegable es un <summary> nativo: teclado y lector de pantalla de serie', 'foco: ' + tog.foco);
 
-  // ══ F · CONTROL NEGATIVO MAYOR: LAS OTRAS DOS GUIAS ══════════════════════════════════════
-  /* La ASE 2025 y la ASE/EACVI 2016 no entran en esta tanda: su ventana tiene que quedar sin
-     diagrama, sin tabla, sin envoltorio de lista y sin el ensanche de la tarjeta, en ritmo
-     sinusal y en fibrilacion auricular. */
+  // ══ F · CONTROL NEGATIVO MAYOR: LA VIA DE LA ASE QUE NO TIENE ALGORITMO ══════════════════
+  /* ⚠️ ADAPTADO EL 2026-10-13. Este bloque afirmaba que la ASE 2025 y la ASE/EACVI 2016 NO
+     dibujan diagrama «ni en sinusal ni en fibrilacion auricular», y era cierto mientras la BSE
+     era la unica guia con diagrama. La tanda de los diagramas de la ASE se lo da a TRES vias
+     mas —ASE 2025 en ritmo sinusal, ASE 2025 en FA, y las Figuras 8A y 8B de la ASE/EACVI
+     2016—, asi que esas tres afirmaciones pasaron a ser falsas por diseño y las fija TC-462.
+     Lo que queda aca es el unico control negativo que SIGUE siendo cierto, y es el que importa
+     para esta guia: la FIBRILACION AURICULAR de la ASE/EACVI 2016 no tiene algoritmo en la app
+     —la guia enumera parametros y no los combina en ninguna regla de conteo— asi que no tiene
+     diagrama, no tiene tabla compacta, no ensancha la tarjeta y conserva su lista larga. */
   const otras = [];
-  ['ase2025', 'ase2016'].forEach(g => ['sinusal', 'fa'].forEach(ri => {
-    const e = esc(RAMAS[4].m, g, ri);
-    otras.push({ g, ri, hay: e.dia.hay, caja: e.dia.caja, tabla: !!e.dia.tabla,
+  [{ g: 'ase2016', ri: 'fa' }].forEach(c => {
+    const e = esc(RAMAS[4].m, c.g, c.ri);
+    otras.push({ g: c.g, ri: c.ri, hay: e.dia.hay, caja: e.dia.caja, tabla: !!e.dia.tabla,
                  lista: e.dia.dispLista !== undefined ? e.dia.dispLista : null,
                  ancho: e.dia.ancho, filas: e.dia.filas });
-  }));
-  ok(otras.length === 4 && otras.every(o => o.hay === false && o.caja === false), 'CONTROL NEGATIVO: la ASE 2025 y la ASE/EACVI 2016 no dibujan diagrama, ni en sinusal ni en FA', JSON.stringify(otras));
-  ok(otras.every(o => o.tabla === false), 'CONTROL NEGATIVO: tampoco tienen tabla compacta', JSON.stringify(otras.map(o => o.g + '/' + o.ri + ':' + o.tabla)));
-  ok(otras.every(o => o.ancho === false), 'CONTROL NEGATIVO: la tarjeta NO se ensancha para las otras dos guias', JSON.stringify(otras.map(o => o.g + '/' + o.ri + ':' + o.ancho)));
-  ok(otras.every(o => o.filas > 0), 'DENOMINADOR: las otras dos guias siguen mostrando su lista larga', JSON.stringify(otras.map(o => o.g + '/' + o.ri + ':' + o.filas)));
+  });
+  ok(otras.length === 1 && otras.every(o => o.hay === false && o.caja === false), 'CONTROL NEGATIVO: la ASE/EACVI 2016 en fibrilacion auricular no dibuja diagrama', JSON.stringify(otras));
+  ok(otras.every(o => o.tabla === false), 'CONTROL NEGATIVO: tampoco tiene tabla compacta', JSON.stringify(otras.map(o => o.g + '/' + o.ri + ':' + o.tabla)));
+  ok(otras.every(o => o.ancho === false), 'CONTROL NEGATIVO: la tarjeta NO se ensancha para esa via', JSON.stringify(otras.map(o => o.g + '/' + o.ri + ':' + o.ancho)));
+  ok(otras.every(o => o.filas > 0), 'DENOMINADOR: esa via sigue mostrando su lista larga', JSON.stringify(otras.map(o => o.g + '/' + o.ri + ':' + o.filas)));
 
   // ══ G · LA FILA DE LA TABLA 2 EN EL NODO DE RELAJACION ═══════════════════════════════════
   /* Una escena por franja, los cuatro bordes de edad y los dos casos en que la guia no da fila. */

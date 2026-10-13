@@ -243,6 +243,22 @@ window.__P = {
 
   limpiar() { try { limpiarCampos(true) } catch(e) {} return 1 },
 
+  /* ⚠️ DESPEJE DEFENSIVO DEL AVISO LEGAL, Y SU DENOMINADOR. El modal #modalAvisoEco
+     (z-index 9999) y #login-overlay (2147483000) REAPARECEN a mitad de corrida, y con
+     cualquiera de los dos puesto todos los clics caen en el overlay: clicEn cae a su respaldo
+     por tecla, un input numerico no recibe nada y la escena informa un paciente que nunca se
+     cargo — una medicion falsa con pinta de buena. Se despeja antes de CADA escena y se
+     informa que habia. (Sin acentos graves: esto vive dentro del template literal SONDA.) */
+  despejar() {
+    var o = {};
+    ['modalAvisoEco', 'login-overlay'].forEach(function (id) {
+      var m = document.getElementById(id);
+      if (!m) { o[id] = 'NO EXISTE'; return }
+      o[id] = getComputedStyle(m).display;
+      if (o[id] !== 'none') { m.style.display = 'none'; o[id] = o[id] + ' -> despejado' }
+    });
+    return o },
+
   /* NO ES UN GESTO MEDIDO: solo para los <select> de escenario (ritmo, algoritmo, colapso de VCI).
      Los seis campos numericos de la diastolica se tipean SIEMPRE con teclas reales. */
   set(id, valor) {
@@ -390,8 +406,10 @@ window.__P = {
      objeto deja pasar un camino que el dibujo no pinta, y solo el dibujo no distingue «la caja
      no esta en el camino» de «la caja no existe». */
   diagrama() {
+    var ov = document.getElementById('diast-algo-overlay');
+    var abierta = !!ov && getComputedStyle(ov).display !== 'none';
     var svg = document.querySelector('#diast-algo-cuerpo svg[data-bse-diag]');
-    if (!svg) return { existe: false };
+    if (!svg) return { existe: false, ventanaAbierta: abierta };
     var disp = getComputedStyle(svg).display;
     var cont = svg.closest('[data-bse-diag-caja]');
     var dispCaja = cont ? getComputedStyle(cont).display : 'SIN CAJA';
@@ -421,7 +439,7 @@ window.__P = {
       fs = { font: getComputedStyle(tt).fontSize, alto: Math.round(r.height * 10) / 10,
              anchoDib: Math.round(anchoDib), escala: Math.round(escala * 1000) / 1000,
              px: Math.round(parseFloat(getComputedStyle(tt).fontSize) * escala * 100) / 100 } };
-    return { existe: true, disp: disp, dispCaja: dispCaja, fig: svg.getAttribute('data-bse-diag'),
+    return { existe: true, ventanaAbierta: abierta, disp: disp, dispCaja: dispCaja, fig: svg.getAttribute('data-bse-diag'),
              nodos: nodos, nNodos: nodos.length,
              enCamino: nodos.filter(function (n) { return n.enCamino }).map(function (n) { return n.id }),
              final: (nodos.find(function (n) { return n.esFinal }) || {}).id || null,
@@ -429,6 +447,25 @@ window.__P = {
              texto: fs,
              pie: window.__P.norm((document.querySelector('#diast-algo-cuerpo [data-bse-pie]') || {}).textContent),
              accesible: window.__P.norm((document.querySelector('#diast-algo-cuerpo [data-bse-alt]') || {}).textContent) } },
+
+  /* ══ GEOMETRIA CRUDA DEL SVG ══ la caja de cada nodo y la posicion de cada rotulo de arista,
+     en unidades del viewBox. Es la unica forma de ver una superposicion sin mirar el PNG a ojo:
+     dos rotulos a la misma y y a x cercanos se imprimen uno encima del otro y el dibujo parece
+     tener flechas sin nombre. */
+  geo() {
+    var svg = document.querySelector('#diast-algo-cuerpo svg[data-bse-diag]');
+    if (!svg) return { existe: false };
+    var nodos = Array.from(svg.querySelectorAll('g[data-nodo]')).map(function (g) {
+      var r = g.querySelector('rect');
+      return { id: g.getAttribute('data-nodo'),
+               x: +r.getAttribute('x'), y: +r.getAttribute('y'),
+               w: +r.getAttribute('width'), h: +r.getAttribute('height') } });
+    var rots = Array.from(svg.querySelectorAll('text.ar-et')).map(function (t) {
+      return { txt: window.__P.norm(t.textContent), x: +t.getAttribute('x'), y: +t.getAttribute('y'),
+               anchor: t.getAttribute('text-anchor') } });
+    var fin = Array.from(svg.querySelectorAll('text.rot-fin')).map(function (t) {
+      return { txt: window.__P.norm(t.textContent), x: +t.getAttribute('x'), y: +t.getAttribute('y') } });
+    return { existe: true, viewBox: svg.getAttribute('viewBox'), nodos: nodos, rots: rots, fin: fin } },
 
   /* ══ LA TABLA COMPACTA ══ el <details> plegado, su estado y sus columnas. */
   tabla() {
@@ -720,6 +757,7 @@ async function main() {
   }
   /* Carga una escena con TECLAS REALES y devuelve lo que quedo en cada campo. */
   async function cargar(c, sel, teclas) {
+    const despeje = await ev(`window.__P.despejar()`);
     await ev(`window.__P.limpiar()`);
     await pausa(120);
     /* ⚠️ LOS <select> VAN PRIMERO, Y ESTO TAMBIEN SE MIDIO. `vci_col` dispara `calcPmAD` ->
@@ -735,7 +773,7 @@ async function main() {
     const todo = Object.assign({}, (Object.keys(c).length ? BASE : {}), c, teclas || {});
     for (const id of enOrden(todo)) tecleos[id] = await tipear(id, todo[id]);
     await pausa(120);
-    return { tecleos, sels, todosOk: Object.keys(tecleos).every((k) => tecleos[k].ok) };
+    return { tecleos, sels, despeje, todosOk: Object.keys(tecleos).every((k) => tecleos[k].ok) };
   }
   /* Abre la ventana con un CLIC REAL en el boton 🧭, lee, y la cierra con un clic real en la ✕.
      Se abre y se cierra por escena: el overlay es inset:0 con z-index 300, asi que dejandolo
@@ -773,12 +811,13 @@ async function main() {
      sobre un dibujo perfecto — un denominador roto con pinta de hallazgo. */
   async function verDibujo() {
     if (btn.err) return { err: btn.err };
+    const despeje = await ev(`window.__P.despejar()`);
     const abrir = await clicEn(btn.sel);
     const dia = await ev(`window.__P.diagrama()`);
     const tabla = await ev(`window.__P.tabla()`);
     const lista = await ev(`window.__P.lista()`);
     const cerrar = btnX.err ? { via: 'SIN BOTON' } : await clicEn(btnX.sel);
-    return { viaAbrir: abrir.via, viaCerrar: cerrar.via, dia, tabla, lista };
+    return { viaAbrir: abrir.via, viaCerrar: cerrar.via, despeje, dia, tabla, lista };
   }
 
   async function medir(conVentana) {
@@ -832,6 +871,17 @@ async function main() {
     return await cargar(e.c, sel, e.teclas);
   }
   const porId = (ids) => TODAS.filter((e) => ids.indexOf(e.id) > -1);
+  /* ⚠️ UN TECLEO QUE NO OCURRIO NO ES UNA MEDICION. Sin esto, un campo que no se pudo enfocar
+     deja la escena describiendo OTRO paciente y el grupo informa su veredicto como si fuera el
+     pedido — la clase de falso que este repo documenta tres veces. Se aborta y se nombra el
+     campo, en vez de seguir midiendo. */
+  function exigirCarga(e, carga) {
+    if (carga.todosOk) return;
+    const malos = Object.keys(carga.tecleos).filter((k) => !carga.tecleos[k].ok)
+      .map((k) => k + ' (pedido ' + carga.tecleos[k].pedido + ', quedo "' + carga.tecleos[k].quedo + '", via ' + carga.tecleos[k].via + ')');
+    throw new Error('TECLEO FALLIDO en ' + e.id + ': ' + malos.join(' · ')
+      + ' | despeje: ' + JSON.stringify(carga.despeje));
+  }
 
   /* ══ CAMINO ══ lo que devuelve el DUENIO, contra el veredicto que publica el CUADRO GRIS.
      Comparar el camino contra el objeto del que sale no probaria nada: el cuadro es la OTRA
@@ -840,6 +890,7 @@ async function main() {
     out.camino = [];
     for (const e of TODAS) {
       const carga = await cargarEsc(e);
+      exigirCarga(e, carga);
       const cam = await ev(`window.__P.camino()`);
       const cuadro = await ev(`window.__P.cuadro()`);
       out.camino.push({ via: e._via, id: e.id, que: e.que,
@@ -860,12 +911,14 @@ async function main() {
     await ancho(1200);
     for (const e of porId(SUB_DIB)) {
       const carga = await cargarEsc(e);
+      exigirCarga(e, carga);
       const cam = await ev(`window.__P.camino()`);
       const cuadro = await ev(`window.__P.cuadro()`);
       const dib = await verDibujo();
       out.diagrama.push({ via: e._via, id: e.id, que: e.que,
         carga: carga.todosOk ? 'OK' : carga.tecleos,
         badge: cuadro.badge, clave: cam.clave, camino: cam.camino, nodoFinal: cam.nodoFinal,
+        viaAbrir: dib.viaAbrir, viaCerrar: dib.viaCerrar,
         dia: dib.dia, tabla: dib.tabla, lista: dib.lista,
         /* El dibujo tiene que pintar EXACTAMENTE los nodos del camino, ni uno mas ni uno menos. */
         pintaElCamino: !!dib.dia && dib.dia.existe
@@ -957,7 +1010,8 @@ async function main() {
     await ancho(1200);
     for (const e of TODAS) {
       const carga = await cargarEsc(e);
-      const s = { via: e._via, id: e.id, que: e.que, carga: carga.todosOk ? 'OK' : carga.tecleos, estilos: {} };
+      exigirCarga(e, carga);
+      const s = { via: e._via, id: e.id, que: e.que, carga: 'OK', estilos: {} };
       for (const est of ['narrativo', 'telegrafico', 'estructurado']) {
         const r = await ev(`window.__P.informe(${JSON.stringify(est)})`);
         s.estilos[est] = { lineas: await ev(`window.__P.lineaDiast(${JSON.stringify(r.inf)})`),
@@ -1018,6 +1072,45 @@ async function main() {
     await anchoLibre();
   }
 
+  /* ══ GEO ══ la geometria cruda del SVG: cajas y rotulos en unidades del viewBox. */
+  if (hacer('geo')) {
+    out.geo = [];
+    await ancho(1200);
+    /* Por defecto TODAS las escenas de la via que tiene diagrama: una superposicion depende del
+       nodo FINAL de cada paciente, asi que medir una sola escena no dice nada de las otras. */
+    const QUE = arg('--escenas') ? porId(arg('--escenas').split(',')) : TODAS;
+    for (const e of QUE) {
+      const carga = await cargarEsc(e);
+      exigirCarga(e, carga);
+      await clicEn(btn.sel);
+      const G = await ev(`window.__P.geo()`);
+      if (!G.existe) { out.geo.push({ via: e._via, id: e.id, geo: G, sinDiagrama: true });
+        if (!btnX.err) await clicEn(btnX.sel); continue; }
+      /* ⚠️ LA SUPERPOSICION DE ROTULOS SE MIDE, NO SE MIRA EN EL PNG. Dos rotulos a la misma
+         altura y con sus cajas de texto solapadas se imprimen uno encima del otro, y un rotulo
+         que cae dentro de una caja queda TAPADO —las cajas se dibujan despues de las lineas—:
+         ninguna de las dos cosas desaparece de una forma que se note. El ancho del texto se
+         estima en 5,2 px por caracter a 10 px, que es la fuente de `.ar-et`. */
+      const caja = (r) => { const w = r.txt.length * 5.2;
+        return { x0: r.anchor === 'start' ? r.x : r.x - w / 2, x1: r.anchor === 'start' ? r.x + w : r.x + w / 2,
+                 y0: r.y - 8, y1: r.y + 2, txt: r.txt }; };
+      const todos = (G.rots || []).map(caja).concat((G.fin || []).map((f) => caja({ txt: f.txt, x: f.x, y: f.y, anchor: 'middle' })));
+      const choques = [];
+      for (let i = 0; i < todos.length; i++) for (let j = i + 1; j < todos.length; j++) {
+        const a = todos[i], b = todos[j];
+        if (a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1) choques.push(a.txt + ' ✖ ' + b.txt);
+      }
+      const tapados = [];
+      todos.forEach((r) => (G.nodos || []).forEach((n) => {
+        if (r.x0 < n.x + n.w && n.x < r.x1 && r.y0 < n.y + n.h && n.y < r.y1) tapados.push(r.txt + ' tapado por ' + n.id);
+      }));
+      out.geo.push({ via: e._via, id: e.id, geo: G, choques, tapados,
+                     nRotulos: todos.length, limpio: choques.length === 0 && tapados.length === 0 });
+      if (!btnX.err) await clicEn(btnX.sel);
+    }
+    await anchoLibre();
+  }
+
   /* ══ CAPTURA ══ PNG del dibujo en los dos temas, para mirarlo con los ojos. */
   if (hacer('captura')) {
     out.captura = [];
@@ -1039,7 +1132,11 @@ async function main() {
         const r = await ev(`(function(){
           var n = document.querySelector('#diast-algo-cuerpo [data-bse-diag-caja]');
           if (!n) return null;
-          n.scrollIntoView({ block: 'start' });
+          /* ⚠️ scrollIntoView DEJA LA PRIMERA CAJA DEBAJO DEL ENCABEZADO FIJO de la tarjeta, y
+             el recorte sale sin ella: parece que el diagrama empieza en el paso 1. Se lleva el
+             cuerpo a su tope, que es lo que de verdad deja el dibujo entero a la vista. */
+          var cu = document.getElementById('diast-algo-cuerpo');
+          if (cu) cu.scrollTop = 0;
           var b = n.getBoundingClientRect();
           return { x: Math.max(0, Math.round(b.left)), y: Math.max(0, Math.round(b.top)),
                    w: Math.round(b.width), h: Math.round(b.height),

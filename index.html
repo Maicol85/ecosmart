@@ -24172,9 +24172,15 @@ function _bseDiagSVG(plano, R) {
   /* `y` por fila: alto de la fila = el de su caja mas alta. Las filas vacias no ocupan. */
   const filas = {};
   plano.nodos.forEach(function (n) { filas[n.fila] = Math.max(filas[n.fila] || 0, N[n.id].alto); });
+  /* ⚠️ EL HUECO ENTRE FILAS LO FIJA EL ROTULO DE LA ARISTA MAS BAJA, no el aire que se ve bien,
+     y por eso es POR PLANO. Un nodo del que salen cuatro aristas con rotulo necesita cuatro
+     calles escalonadas, y la cuarta cae DENTRO de la fila de abajo si el hueco es el de las
+     figuras de la BSE: el rotulo no desaparece de una forma que se note, simplemente lo tapa la
+     caja —que se dibuja despues— y el dibujo parece tener flechas sin nombre. */
+  const GAPF = plano.gap || BSE_DG.GAP;
   const ys = {}; let y = 6;
   Object.keys(filas).map(Number).sort(function (a, b) { return a - b; }).forEach(function (f) {
-    ys[f] = y; y += filas[f] + BSE_DG.GAP;
+    ys[f] = y; y += filas[f] + GAPF;
   });
   const H = y + 6;
   plano.nodos.forEach(function (n) { N[n.id].y = ys[n.fila]; });
@@ -24563,10 +24569,136 @@ const BSE_PLANO_F19 = {
   ]
 };
 
+/* ══ PLANO DE LA FIGURA 3 — ASE 2025, ritmo sinusal (folio 554) ══════════════════════════════
+   ⚠️ DERECHOS DE AUTOR: ESTA GUIA NO ES DE ACCESO ABIERTO, A DIFERENCIA DE LA BSE 2024. El pie
+   de su primera pagina dice, literal: «Copyright 2025 Published by Elsevier Inc. on behalf of
+   the American Society of Echocardiography.» — sin licencia Creative Commons, sin aviso de
+   acceso abierto y sin permiso de reproduccion. Barrido del PDF completo: cero menciones de
+   «Creative Commons», «open access» o «CC BY». Por eso el pie de este dibujo NO atribuye una
+   licencia que no existe: declara que la LOGICA es la del algoritmo de la figura —cortes y
+   operadores, que son datos clinicos— y que el DIBUJO ES PROPIO y no reproduce la figura.
+   Otra disposicion (cinco columnas verticales contra el reparto horizontal del original),
+   palabras propias en todas las cajas, y los valores de ESTE paciente adentro, que el original
+   no tiene.
+
+   ⚠️ LAS CUATRO SALIDAS DEL PASO 1 NO LLEVAN ROTULO DE ARISTA: lo que las distingue esta en el
+   TITULO de cada caja. Cinco rotulos saliendo del mismo borde se imprimen unos encima de otros
+   y el dibujo termina pareciendo tener flechas sin nombre — que es la trampa que este motor ya
+   documenta para los rotulos tapados por las cajas.
+
+   ⚠️ `incompleto` E `insuf` COMPARTEN CASILLA EN EL DIBUJO, y es a proposito: son dos claves de
+   categoria con dos frases distintas en el informe, pero una sola casilla de «el algoritmo no
+   puede estimar la presion con lo que hay». Igual que `g1prol` y `g1alt` en la Figura 8B. */
+const A25_C = [4, 143, 282, 421, 560];   // cinco columnas de 132 px, con 7 px de aire
+const A25_CW = 132;
+function _a25(c, n) { return { px: A25_C[c], pw: A25_CW * (n || 1) + 7 * ((n || 1) - 1) }; }
+
+const A25_PLANO_F3 = Object.assign({
+  fig: 'a25f3',
+  /* Hueco de 50 px y no los 34 de la BSE: de `a25.elevada` salen CUATRO aristas con rotulo y la
+     cuarta calle cae dentro de la fila de abajo con el hueco chico. Medido con el grupo `geo`
+     de la sonda, que compara la posicion de cada rotulo contra la caja de cada nodo. */
+  gap: 50,
+  aria: 'Diagrama de flujo de la ASE 2025 para ritmo sinusal, con el camino de este paciente marcado en rojo.',
+  pie: 'Lógica según el algoritmo de la Figura 3, ASE 2025, folio 554; dibujo propio, no es una reproducción de la figura. '
+     + 'Nagueh SF y cols., J Am Soc Echocardiogr 2025;38(7):537-69. © 2025 Elsevier Inc. en nombre de la American Society of '
+     + 'Echocardiography: artículo NO de acceso abierto, así que no se reproduce ninguna figura ni el texto de sus cajas. '
+     + 'Las cajas punteadas son estados de esta aplicación y no casillas de la figura.',
+  nodos: [
+    Object.assign({ id: 'a25.entrada', fila: 0, corto: 'ritmo sinusal, algoritmo de la Figura 3',
+      tit: ['Ritmo sinusal · estimación de la presión auricular izquierda media'] }, _a25(1, 3)),
+    Object.assign({ id: 'a25.paso1', fila: 1, corto: 'paso 1, las tres variables principales',
+      tit: ['Paso 1 · tres variables principales'] }, _a25(0, 5)),
+    Object.assign({ id: 'a25.fin-sindatos', fila: 2, app: true, corto: 'datos insuficientes para iniciar o para estimar',
+      tit: ['Datos insuficientes'] }, _a25(4)),
+    Object.assign({ id: 'a25.todasneg', fila: 3, corto: 'las tres variables normales',
+      tit: ['Las tres', 'normales'] }, _a25(0)),
+    Object.assign({ id: 'a25.soloep', fila: 3, corto: "sólo la e' reducida",
+      tit: ["Sólo la e'", 'reducida'] }, _a25(1)),
+    Object.assign({ id: 'a25.parcial', fila: 3, corto: 'una o dos variables alteradas',
+      tit: ['Una o dos', 'alteradas'] }, _a25(2)),
+    Object.assign({ id: 'a25.todaspos', fila: 3, corto: 'las tres variables alteradas',
+      tit: ['Las tres', 'alteradas'] }, _a25(3)),
+    Object.assign({ id: 'a25.fin-normal', fila: 4, corto: 'función diastólica normal',
+      tit: ['Función diastólica', 'normal'] }, _a25(0)),
+    Object.assign({ id: 'a25.ea08', fila: 4, corto: 'E/A menor o igual a 0,80',
+      tit: ['E/A ≤ 0,80'] }, _a25(1)),
+    Object.assign({ id: 'a25.paso2', fila: 4, corto: 'segundo paso',
+      tit: ['Segundo paso'] }, _a25(2, 2)),
+    Object.assign({ id: 'a25.fin-g1', fila: 5, corto: 'disfunción diastólica grado I',
+      tit: ['Grado I'] }, _a25(1)),
+    Object.assign({ id: 'a25.supl', fila: 5, corto: 'parámetros suplementarios',
+      tit: ['Parámetros suplementarios (folio 555)'] }, _a25(2, 2)),
+    Object.assign({ id: 'a25.fin-pnormal', fila: 6, corto: 'presión de llenado normal, sin grado',
+      tit: ['Presión de llenado', 'normal'] }, _a25(0)),
+    Object.assign({ id: 'a25.fin-noest', fila: 6, app: true, corto: 'presión de llenado no estimable',
+      tit: ['No estimable'] }, _a25(1)),
+    Object.assign({ id: 'a25.elevada', fila: 6, corto: 'presión de llenado elevada',
+      tit: ['Presión de llenado', 'elevada'] }, _a25(4)),
+    Object.assign({ id: 'a25.fin-indet', fila: 7, app: true, corto: 'grado indeterminado',
+      tit: ['Grado', 'indeterminado'] }, _a25(0)),
+    Object.assign({ id: 'a25.fin-g2', fila: 7, corto: 'disfunción diastólica grado II',
+      tit: ['Grado II'] }, _a25(2)),
+    Object.assign({ id: 'a25.fin-g3', fila: 7, corto: 'disfunción diastólica grado III',
+      tit: ['Grado III'] }, _a25(3)),
+    /* En la columna de `a25.elevada`, asi que su arista es VERTICAL y su rotulo se ancla a la
+       derecha, en el margen que queda libre: una calle menos que repartir. */
+    Object.assign({ id: 'a25.fin-sinea', fila: 7, app: true, corto: 'presión elevada, falta la E/A para graduar',
+      tit: ['Elevada, falta', 'la E/A'] }, _a25(4))
+  ],
+  aristas: [
+    { de: 'a25.entrada', a: 'a25.paso1' },
+    /* La de «datos insuficientes» sale primero y por la calle mas alta: su destino esta en la
+       fila 2 y las otras cuatro bajan hasta la 3, asi que no comparten carril. */
+    { de: 'a25.paso1', a: 'a25.fin-sindatos', et: "sin e' o sin parámetros de presión", dx1: 200, calleRel: 5 },
+    { de: 'a25.paso1', a: 'a25.todasneg',  dx1: -210, calleRel: 13 },
+    { de: 'a25.paso1', a: 'a25.soloep',    dx1: -90,  calleRel: 20 },
+    { de: 'a25.paso1', a: 'a25.parcial',   dx1: 20,   calleRel: 27 },
+    { de: 'a25.paso1', a: 'a25.todaspos',  dx1: 110,  calleRel: 13 },
+    { de: 'a25.todasneg', a: 'a25.fin-normal' },
+    { de: 'a25.soloep', a: 'a25.ea08', et: '≤ 0,80', dx1: -30 },
+    { de: 'a25.soloep', a: 'a25.paso2', et: 'E/A > 0,80', dx1: 30, dx2: -80, calleRel: 14 },
+    { de: 'a25.parcial', a: 'a25.paso2', dx2: 20 },
+    { de: 'a25.ea08', a: 'a25.fin-g1' },
+    { de: 'a25.paso2', a: 'a25.supl', et: 'ninguno medido', dx1: 60, dx2: 60 },
+    { de: 'a25.paso2', a: 'a25.fin-pnormal', et: 'ninguno positivo', dx1: -90, calleRel: 10 },
+    { de: 'a25.paso2', a: 'a25.elevada', et: '≥ 1 positivo', dx1: 120, calleAntes: 'a25.elevada', dx2: -40 },
+    /* «ninguno presente» y no «ninguno positivo»: es la flecha «None» de la figura y, con el
+       mismo texto que la de arriba, los dos renglones se leen como el mismo criterio repetido. */
+    { de: 'a25.supl', a: 'a25.fin-noest', et: 'ninguno presente', dx1: -60 },
+    { de: 'a25.supl', a: 'a25.elevada', et: '≥ 1 presente', dx1: 110, dx2: 40, calleRel: 10 },
+    { de: 'a25.todaspos', a: 'a25.elevada' },
+    /* Tres calles escalonadas para los tres codos, y la cuarta arista es VERTICAL: su rotulo va
+       anclado a la derecha de la linea, en el margen libre, sin pedir calle propia. */
+    { de: 'a25.elevada', a: 'a25.fin-g3', et: 'E/A ≥ 2', dx1: 10, calleRel: 8 },
+    /* dx1 -60 y no -20: con el punto de salida mas a la izquierda el rotulo se corre lo
+       suficiente como para que la VERTICAL de la arista de al lado —que cuando es la del camino
+       va en rojo y con 3 px de trazo— no le pase por encima. */
+    { de: 'a25.elevada', a: 'a25.fin-g2', et: 'E/A < 2', dx1: -60, calleRel: 18 },
+    { de: 'a25.elevada', a: 'a25.fin-indet', et: "E/A ≥ 2, e' normal", dx1: -45, calleRel: 24 },
+    { de: 'a25.elevada', a: 'a25.fin-sinea', et: 'sin E/A' }
+  ]
+}, {});
+
+/* Que plano le toca a este paciente, o `null` cuando esa via todavia no tiene diagrama —ahi la
+   ventana sigue siendo la de HEAD, sin una sola linea nueva—.
+   ⚠️ EL NOMBRE LLEVA EL PREFIJO `_bse` POR HISTORIA Y NO POR ALCANCE: el motor, el CSS, la
+   tabla compacta y el UMBRAL DE ANCHO nacieron con la BSE 2024 y hoy los comparten las cinco
+   guias-via. Renombrarlos obligaria a adaptar TC-460 y scripts/_probe_bsediag.mjs enteros sin
+   cambiar una sola linea de comportamiento, asi que se reusan tal cual. */
 function _bseDiagPlano(algo, ritmo, R) {
-  if (algo !== 'bse2024' || !R || !R.camino || !R.camino.length) return null;
-  if (ritmo === 'fa') return BSE_PLANO_F19;
-  return R.feviReducida ? BSE_PLANO_F18 : BSE_PLANO_F17;
+  if (!R || !R.camino || !R.camino.length) return null;
+  if (algo === 'bse2024') {
+    if (ritmo === 'fa') return BSE_PLANO_F19;
+    return R.feviReducida ? BSE_PLANO_F18 : BSE_PLANO_F17;
+  }
+  if (algo === 'ase2025') {
+    if (ritmo === 'fa') return null;   // entra en el commit siguiente
+    return A25_PLANO_F3;
+  }
+  /* La ASE/EACVI 2016 entra en su propio commit; su FIBRILACION AURICULAR no tiene algoritmo en
+     la app —la guia no da una regla de conteo— asi que no tiene diagrama y no lo tendra. */
+  return null;
 }
 /* La tarjeta se ensancha SOLO cuando hay diagrama, y el ensanche vive en una media query: sin
    esta clase la ventana de las otras dos guias cambiaria de ancho, y esta tanda las deja
@@ -24632,6 +24764,11 @@ function diastAlgoRender() {
        del cuadro gris sobre el mismo paciente (ver la nota larga de `diastASE2025Evaluar`).
        Hoy las filas, el conteo y el rótulo salen todos de ese único dueño. */
     const R = diastASE2025Evaluar();
+    /* El diagrama va ARRIBA de todo y SOLO si hay plano. Por debajo del umbral de ancho la caja
+       queda en `display:none` por CSS, asi que la ventana se ve exactamente como en HEAD; el
+       nodo igual se arma, que es lo que hace que un cambio de ancho no necesite repintar. */
+    const planoA = _bseDiagPlano('ase2025', 'sinusal', R);
+    if (planoA) { h += _bseDiagCaja(planoA, R); _bseDiagAncho(true); }
     let gAct = null;
     R.filas.forEach(f => {
       if (f.g && f.g !== gAct) { h += '<div class="da-paso">' + escHtml(f.g) + '</div>'; gAct = f.g; }
@@ -24889,8 +25026,13 @@ window.ASE_SUPLEMENTARIOS = ASE_SUPLEMENTARIOS;
    ⚠️ UNA CLAVE SIN ENTRADA DEJA `nodoFinal` EN null Y EL DIBUJO NO INVENTA UNA CASILLA: el
    diagrama no pinta resultado y el caso de la suite lo caza. Es a proposito. */
 const ASE25_NODO_FIN = {
-  incompleto:     'a25.fin-incompleto',   // estado de la APP: sin e' septal ni lateral
-  insuf:          'a25.fin-insuf',        // estado de la APP: ningun parametro de presion
+  /* ⚠️ LAS DOS CLAVES «SIN DATOS» COMPARTEN CASILLA, igual que `g1prol` y `g1alt` en la 8B: son
+     dos categorias con dos frases distintas en el informe —una dice «completar e'» y la otra
+     «completar E/e', Vol AI y/o TR»— pero una sola casilla de «el algoritmo no puede estimar la
+     presion con lo que hay». El dibujo no tiene por que partir en dos una caja que la logica
+     resuelve igual, y el motivo exacto se lee en el renglon de resultado de la ventana. */
+  incompleto:     'a25.fin-sindatos',     // estado de la APP: sin e' septal ni lateral
+  insuf:          'a25.fin-sindatos',     // estado de la APP: ningun parametro de presion
   normal:         'a25.fin-normal',       // Figura 3 · «Normal DF / Normal LAP»
   g1:             'a25.fin-g1',           // Figura 3 · «Grade 1»
   g2:             'a25.fin-g2',           // Figura 3 · «Grade 2»
