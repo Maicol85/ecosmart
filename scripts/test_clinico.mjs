@@ -1550,7 +1550,15 @@ caso('TC-456', 'Strain de la AI y onda L: los campos y su sincronia en los dos s
                             return { marca: M(id), quedo: V(id),
                                      badge: (__t.txt('dd-interp') || '').trim() } };
   const mDentro = mk('lars', '32');
+  /* ADAPTADO 2026-10-12: el LARS entro a la regla del valor absoluto, asi que la marca
+     «(revisar)» pasa a salir por MAGNITUD fuera de banda y ya no por el signo. Antes el -32 caia
+     bajo el piso 0 de su banda [0,60] y se marcaba, y eso era correcto mientras el signo daba
+     vuelta el veredicto —la marca avisaba de un dato que estaba decidiendo mal—; desde que la
+     cuenta usa |x|, un -32 vota como 32 y marcarlo diria que hay algo que revisar en una medicion
+     que la app ya interpreta bien. Las dos condiciones pasan a medir lo que la regla nueva dice:
+     el -32 NO se marca y el -80 SI, igual que los otros dos strain con su banda simetrica. */
   const mNeg = mk('lars', '-32');
+  const mNegFuera = mk('lars', '-80');
   const mCtDentro = mk('ai_strain_ct', '-16');   // la banda del strain es SIMETRICA: no se marca
   const mCtFuera = mk('ai_strain_ct', '-160');
   const mLNeg = mk('onda_l', '-55');
@@ -1560,7 +1568,11 @@ caso('TC-456', 'Strain de la AI y onda L: los campos y su sincronia en los dos s
     : 'SIN diastStrainBanda';
 
   // ── C · «Nuevo estudio» apaga la marca y vacia los seis.
-  __t.limpiar(); S('lars', '-32'); calcDiastol();
+  /* ADAPTADO 2026-10-12: la semilla pasa de -32 a -80. Con la marca por magnitud, un -32 ya no
+     se marca, asi que el DENOMINADOR de este bloque salia en false y «la marca se fue» habria
+     salido verde sobre una marca que nunca se puso. Es la trampa del denominador que este propio
+     caso documenta tres lineas mas arriba, movida de valor. */
+  __t.limpiar(); S('lars', '-80'); calcDiastol();
   const marcaEstaba = M('lars') !== '' && M('lars_dop') !== '';
   __t.limpiar();
   const marcaSeFue = SEIS.every(id => M(id) === '');
@@ -1648,8 +1660,12 @@ caso('TC-456', 'Strain de la AI y onda L: los campos y su sincronia en los dos s
     // ── B · LA MARCA
     ['las bandas son las declaradas y el LARS reusa la suya',
       bandas === JSON.stringify({ lars: [0, 60], ct: [-60, 60], cd: [-60, 60], l: [0, 200] }), bandas],
-    ['un LARS NEGATIVO se marca «(revisar)» y no se corrige',
-      mNeg.marca === '(revisar)' && mNeg.quedo === '-32', mNeg.marca + ' | quedo=' + mNeg.quedo],
+    /* ADAPTADO 2026-10-12 — ver el comentario de mNeg mas arriba. La marca del LARS es por MAGNITUD. */
+    ['un LARS negativo DENTRO de banda en magnitud NO se marca, y el campo conserva el signo',
+      mNeg.marca === '' && mNeg.quedo === '-32', mNeg.marca + ' | quedo=' + mNeg.quedo],
+    ['y uno FUERA de banda en magnitud SI se marca, sin corregirse',
+      mNegFuera.marca === '(revisar)' && mNegFuera.quedo === '-80',
+      mNegFuera.marca + ' | quedo=' + mNegFuera.quedo],
     ['CONTROL NEGATIVO: dentro de banda no se marca', mDentro.marca === '', mDentro.marca],
     ['la banda del strain es SIMETRICA: un -16 NO se marca y un -160 SI',
       mCtDentro.marca === '' && mCtFuera.marca === '(revisar)',

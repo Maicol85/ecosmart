@@ -22822,6 +22822,9 @@ function _bseDetalles(d, st) {
   if (d.trv  !== null) out.push('velocidad de la IT ' + d.trv.toFixed(1) + ' m/s');
   if (d.lavi !== null) out.push('Vol AI ' + d.lavi.toFixed(1) + ' ml/m²');
   if (st) {
+    /* ⚠️ EL LARS TAMBIÉN SE NOMBRA CON SU VALOR ABSOLUTO DESDE EL 2026-10-12, por el mismo
+       motivo que el de contracción: `R.strain.lars` ya viene de `diastStrainAbs`, así que éste es
+       el número que votó. El campo y el Excel conservan el signo tipeado. */
     if (st.lars !== null && st.lars !== undefined) out.push('LARS ' + st.lars.toFixed(1) + ' %');
     /* ⚠️ EL STRAIN DE CONTRACCIÓN SE NOMBRA CON SU VALOR ABSOLUTO, que es el que votó. El campo
        guarda lo que el médico tipea —−13,5 si el ecógrafo lo dio negativo— y la cuenta usa 13,5;
@@ -22905,7 +22908,11 @@ function diastBSE2024Evaluar() {
     R.filas.push({ crit: 'LAVi > ' + UMBRAL_LAVI_DILATADO + ' ml/m²', val: lavi, u: 'ml/m²', ok: cLavi });
 
     if (presion === 'discordancia') {
-      const lars = v('lars');
+      /* ⚠️ EL LARS ENTRA POR `diastStrainAbs` DESDE EL 2026-10-12, igual que los otros dos
+         strain. Hasta hoy entraba CRUDO y eso daba vuelta el veredicto sin que nada lo dijera:
+         un LARS de −32 cumple `< 18` y publicaba presión elevada sobre una aurícula cuyo strain
+         de reservorio es 32 %, o sea normal. El campo sigue guardando lo que el médico tipea. */
+      const lars = diastStrainAbs('lars');
       /* Mismo campo y misma puerta que en la Figura 17 (`ai_strain_ct` por `diastStrainAbs`, en
          VALOR ABSOLUTO), con los cortes de ESTA figura, que son otros: acá el lado elevado es
          `< 8` y el normal `>= 14`, y el 24 del LARS no existe en la 17. */
@@ -23022,7 +23029,7 @@ function diastBSE2024Evaluar() {
        La app no inventa los dos parámetros que no mide: el LAPs y la onda L quedan declarados no
        evaluables y la rama cae a indeterminado cuando no queda nada que mirar. */
     if (presion === 'discordancia') {
-      const lars = v('lars');
+      const lars = diastStrainAbs('lars');   // valor absoluto, igual que los otros dos strain (2026-10-12)
       /* ⚠️ EL LAPs ES EL STRAIN DE CONTRACCIÓN Y DESDE EL 2026-10-12 TIENE CAMPO (`ai_strain_ct`).
          Entra por `diastStrainAbs`, que es la ÚNICA puerta del valor absoluto: los ecógrafos lo dan
          negativo y la figura escribe «pump strain ≥14%» sobre la magnitud. Una segunda llamada a
@@ -24035,7 +24042,7 @@ function diastASE2025Evaluar() {
   const ee = dosAnillos ? prom : (ep || el || null);
   const tr = v('vmax_it');            // velocidad TR en m/s
   const aiVol = v('ai_vol');
-  const lars = v('lars');             // opcional
+  const lars = diastStrainAbs('lars'); // opcional, y en VALOR ABSOLUTO desde el 2026-10-12
   const triv = v('triv');             // alternativa del segundo paso (Figura 3, folio 554)
   const bsa = getBSA();
   const lavi = (aiVol && bsa) ? aiVol / bsa : null;
@@ -24364,7 +24371,7 @@ function _diastFADatos() {
     psap: v('psap_calc'),
     tde:  v('tde'),
     triv: v('triv'),
-    lars: v('lars'),
+    lars: diastStrainAbs('lars'),   // valor absoluto: lo leen la Figura 8 (< 18 %) y la 19 (< 16 %)
     sd:   sv('venp_sd'),
     imc:  (typeof getIMC === 'function') ? getIMC() : null,
     fevi: v('fevi'),
@@ -29002,11 +29009,17 @@ window.aiAreaEditado = aiAreaEditado;
    ⚠️ EL SIGNO ES LA TRAMPA DE ESTA ZONA, Y SE RESUELVE EN UN SOLO LUGAR. Los ecógrafos dan el
    strain de contracción y el de conducto NEGATIVOS, y el de reservorio positivo. La regla
    (decisión de Maicol) es que **el campo guarda lo que el médico tipea** y **las cuentas usan el
-   valor absoluto** de los dos primeros. Lo hace `diastStrainAbs`, que es la única puerta: una
-   segunda llamada a `Math.abs` repartida por el archivo es cómo se llega a que un −12 vote en una
-   figura y no en la otra. El LARS NO pasa por ahí: se espera positivo, y un negativo se MARCA
-   «(revisar)» sin corregirse —su banda `[0, 60]` ya vivía en `LAB_XLS_RANGO_PROPIO` con ese
-   motivo escrito—.
+   valor absoluto**. Lo hace `diastStrainAbs`, que es la única puerta: una segunda llamada a
+   `Math.abs` repartida por el archivo es cómo se llega a que un −12 vote en una figura y no en la
+   otra.
+   ⚠️ EL LARS ENTRÓ A ESA REGLA EL 2026-10-12, Y ANTES ERA LA EXCEPCIÓN. Hasta esa fecha pasaba
+   CRUDO a las cinco cuentas que lo leen —el segundo paso y la FA de la ASE 2025, las dos vías de
+   la BSE y su FA— y un negativo daba vuelta el veredicto en silencio: un −32 cumple `< 18` y
+   publicaba «presión de llenado elevada» sobre una aurícula cuyo strain de reservorio es 32 %, o
+   sea NORMAL. No era una regresión, era el comportamiento de HEAD, y la marca «(revisar)» por caer
+   bajo el piso 0 de su banda era lo único que lo señalaba. Hoy vota `|x|`, así que esa marca por
+   SIGNO se fue —marcaría una medición que la app interpreta bien— y queda la marca por MAGNITUD
+   fuera de banda, que es la que caza el dedazo de un orden de magnitud. Ver `diastStrainMarcaSync`.
 
    ⚠️ LAS BANDAS DE LOS TRES CAMPOS NUEVOS TIENEN UN SOLO DUEÑO, Y ES ESTA TABLA. La del
    `ai_strain_ct` la vuelve a consumir `LAB_XLS_RANGO_PROPIO` POR REFERENCIA —no por un literal
@@ -29026,9 +29039,14 @@ const DIAST_STRAIN_BANDA = Object.freeze({
 });
 window.DIAST_STRAIN_BANDA = DIAST_STRAIN_BANDA;
 
-/* El LARS no está en la tabla de arriba a propósito: su banda ya tenía dueño. Preguntarle a
-   `_labRango` es lo que garantiza que la marca de pantalla y el rechazo del importador digan lo
-   mismo sobre el mismo número. */
+/* El LARS no está en la tabla de arriba a propósito: su banda ya tenía dueño en
+   `LAB_XLS_RANGO_PROPIO` (`[0, 60]`), y preguntarle a `_labRango` es lo que evita escribir el
+   mismo número dos veces.
+   ⚠️ ES LA ÚNICA BANDA ASIMÉTRICA DEL GRUPO, y desde que el LARS vota en valor absoluto eso
+   importa: las tres de arriba son simétricas, así que comparar el crudo contra ellas equivale a
+   comparar la magnitud; con `[0, 60]` no. Por eso la comparación del LARS se hace sobre `|x|` en
+   `diastStrainMarcaSync` y no acá: cambiar la banda a `[-60, 60]` también cambiaría lo que el
+   IMPORTADOR acepta, que es otra superficie y necesita orden expresa. */
 function diastStrainBanda(id) {
   if (DIAST_STRAIN_BANDA[id]) return DIAST_STRAIN_BANDA[id];
   try { return (typeof _labRango === 'function') ? _labRango(id) : null; } catch (e) { return null; }
@@ -29117,6 +29135,23 @@ const _DIAST_STRAIN_MARCA = Object.freeze({
   ai_strain_cd:      ['ai_strain_cd-marca'],
   onda_l:            ['onda_l-marca']
 });
+/* ⚠️ LA COMPARACIÓN DEL LARS PASÓ A SER POR MAGNITUD EL 2026-10-12, Y ES CONSECUENCIA DIRECTA DE
+   QUE AHORA VOTA EN VALOR ABSOLUTO. Su banda es `[0, 60]` y vive en `LAB_XLS_RANGO_PROPIO`; con el
+   valor CRUDO, todo LARS negativo caía bajo el piso 0 y salía marcado «(revisar)» — y eso era
+   correcto mientras el signo daba vuelta el veredicto, porque la marca avisaba de un dato que
+   estaba decidiendo mal. Desde que la cuenta usa `|x|`, un −32 vota como 32 y marcarlo diría que
+   hay algo que revisar en una medición que la app ya interpretó bien: es «una banda estrecha sobre
+   una medición real es cómo un hallazgo verdadero sale marcado como dudoso», aplicado al signo.
+   Lo que SÍ se conserva es la marca por MAGNITUD fuera de banda: un −80 y un +80 se marcan los
+   dos, porque 80 no es un strain de reservorio posible.
+   Los otros tres campos siguen comparándose crudos y NO cambian: sus bandas ya son SIMÉTRICAS
+   (`[-60, 60]`), así que comparar el crudo contra una banda simétrica es exactamente comparar la
+   magnitud contra su mitad positiva. La asimetría del LARS es la que obliga a esta tabla.
+   ⚠️ Y EL IMPORTADOR NO SE TOCA. `LAB_XLS_RANGO_PROPIO` sigue con `lars:[0,60]` sobre el valor
+   crudo, así que una planilla con un LARS negativo se sigue rechazando por rango mientras la
+   pantalla no lo marca. Queda DECLARADO en docs/PENDIENTES.md y no se corrige acá: tocar el
+   importador cambia el round-trip de Excel, que necesita orden expresa. */
+const _DIAST_STRAIN_ABS_MARCA = Object.freeze({ lars: true });
 function diastStrainMarcaSync() {
   const fuera = {};
   Object.keys(_DIAST_STRAIN_MARCA).forEach((id) => {
@@ -29126,7 +29161,8 @@ function diastStrainMarcaSync() {
     /* Sin dato no hay nada que revisar: la marca del paciente anterior no se queda colgada. */
     const hay = !!(el && String(el.value).trim() !== '');
     const b = diastStrainBanda(id);
-    const x = v(id);
+    const crudo = v(id);
+    const x = (crudo !== null && _DIAST_STRAIN_ABS_MARCA[id]) ? Math.abs(crudo) : crudo;
     const mal = hay && x !== null && Array.isArray(b) && b.length === 2 && (x < b[0] || x > b[1]);
     fuera[id] = !!mal;
     const txt = mal ? MARCA_REVISAR.trim() : '';
