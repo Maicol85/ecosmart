@@ -42743,15 +42743,24 @@ caso('TC-316', 'Protesis mitral: el grado rancio se retira al pasar de nativa a 
     try { if (typeof _sevManualSync === 'function') _sevManualSync(); } catch (e) {}
   }
 
-  /* ── 5 · LIMITE DECLARADO: en NATIVA el grado rancio se conserva ──
-     Es preexistente y mas ancho, y retirarlo alcanza a todo estudio donde se borre el ultimo
-     parametro —donde «no queda nada cargado» y «esta valvula no se gradua» no son lo mismo—.
-     Se fija por el lado que NO se toco para que cambiarlo sea deliberado. */
+  /* ── 5 · ADAPTADO EL 2026-10-13: EN NATIVA EL GRADO RANCIO YA NO SE CONSERVA ──
+     Este bloque fijaba el LIMITE que la tanda del corte protesico declaro y dejo abierto: «en
+     NATIVA el grado rancio se conserva», con el motivo escrito —«retirarlo alcanza a todo estudio
+     donde se borre el ultimo parametro, y eso es una decision clinica»—. Maicol la tomo el
+     2026-10-13 (regla 1: «un campo vacio no vota ni deja grado; sin ningun votante el grado final
+     es sin dato, NUNCA leve por defecto»), asi que la afirmacion se da vuelta: la condicion ahora
+     exige que el grado VUELVA al centinela '0'.
+     El caso prueba MENOS que antes en un punto y MAS en otro, y conviene decirlo: deja de fijar el
+     limite —ya no existe— y pasa a fijar su reemplazo, que es el retiro por la marca de sugerido.
+     Lo que sigue intacto es la condicion 4: un grado que el medico fijo a mano NO se retira. */
   base();
   __t.set('vm_morf','Reumática'); __t.set('im_vc','8');
   R.natSevAntes = __t.val('im_grado');
+  R.natSug = (function(){ const e = document.getElementById('im_grado');
+    return e ? (e.dataset.sugerido || null) : null })();
   __t.set('im_vc','');
   R.natSevDespues = __t.val('im_grado');
+  R.natBadgeDespues = badge();
 
   /* ── 6 y 7 · El Excel exporta el DVI que decidio el informe ──
      VTI mitral CW 60 / VTI TSVI 20 = 3.00 calculado, contra 1.20 tipeado. Los dos dentro de sus
@@ -42844,9 +42853,12 @@ caso('TC-316', 'Protesis mitral: el grado rancio se retira al pasar de nativa a 
     ['la tarjeta de revision marca lo que el medico CAMBIO ahi',
       R.tarjetaGrado === '4' && R.tarjetaMarca && R.tarjetaGradoTrasRecalc === '4',
       'grado=' + R.tarjetaGrado + ' marca=' + R.tarjetaMarca + ' trasRecalc=' + R.tarjetaGradoTrasRecalc],
-    ['LIMITE DECLARADO: en NATIVA el grado rancio se conserva',
-      R.natSevAntes === '4' && R.natSevDespues === '4',
-      'antes=' + R.natSevAntes + ' despues=' + R.natSevDespues],
+    /* ADAPTADA el 2026-10-13: antes exigia que el grado rancio SE CONSERVARA en nativa. */
+    ['en NATIVA el grado rancio se RETIRA al borrar el ultimo votante (regla 1, 13/10/2026)',
+      R.natSevAntes === '4' && R.natSevDespues === '0' && R.natBadgeDespues === '\u2014',
+      'antes=' + R.natSevAntes + ' despues=' + R.natSevDespues + ' badge=' + R.natBadgeDespues],
+    ['DENOMINADOR: el grado automatico queda marcado como sugerido, que es lo que habilita el retiro',
+      R.natSug === '4', 'sugerido=' + R.natSug],
     ['DENOMINADOR: el DVI calculado difiere del tipeado',
       R.dviCalc === 3 && R.dviFuente === 'calculado' && R.dviTipeado === '1.20',
       'calculado=' + R.dviCalc + ' (' + R.dviFuente + ') tipeado=' + R.dviTipeado],
