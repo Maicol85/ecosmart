@@ -611,6 +611,31 @@
   .bse-diag path.ar.cam { stroke:var(--red); stroke-width:3; }
   .bse-diag .rot-fin { fill:var(--red); font-weight:700; font-size:10.5px; }
   .bse-diag .ar-et { font-size:10px; fill:var(--text2); }
+  /* La tabla compacta: una columna por paso. `auto-fit` + `minmax` para que las columnas bajen
+     solas en vez de pedir scroll horizontal, igual que la grilla del HFA-PEFF de mas arriba. */
+  .bse-tabla { margin:10px 0 0; }
+  .bse-tabla > summary { cursor:pointer; font-size:11.5px; font-weight:700; color:var(--accent2);
+                         padding:6px 8px; border:1px solid var(--border); border-radius:7px;
+                         background:var(--bg3); list-style:none; }
+  .bse-tabla > summary::-webkit-details-marker { display:none; }
+  .bse-tabla > summary::before { content:'▸ '; display:inline-block; width:12px; }
+  .bse-tabla[open] > summary::before { content:'▾ '; }
+  .bse-tabla > summary:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  .bse-tg   { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));
+              gap:8px; margin-top:8px; }
+  .bse-tc   { border:1px solid var(--border); border-radius:7px; padding:8px 9px;
+              background:var(--bg3); min-width:0; }
+  .bse-th   { font-size:10px; font-weight:700; color:var(--accent2); text-transform:uppercase;
+              letter-spacing:.4px; margin-bottom:6px; }
+  .bse-td   { font-size:11px; line-height:1.4; padding:2px 0; color:var(--text2);
+              display:flex; gap:6px; align-items:baseline; }
+  .bse-td i { flex:none; width:11px; text-align:center; font-style:normal; font-weight:700; }
+  /* El valor NO se parte: con el salto, un «15.0 %» quedaba como «15.0» y «%» en dos renglones
+     y el numero se leia mal justo donde importa. `margin-left:auto` lo manda al borde derecho. */
+  .bse-td b { color:var(--text); font-weight:600; white-space:nowrap; margin-left:auto; }
+  .bse-td.si i { color:var(--red); }
+  .bse-td.no i { color:var(--green); }
+  .bse-td.na   { opacity:.7; }
   .bse-pie { font-size:10.5px; color:var(--text2); line-height:1.45; margin:8px 0 0;
              border-top:1px solid var(--border); padding-top:6px; }
   .bse-alt { font-size:11px; color:var(--text2); line-height:1.5; margin:6px 0 0; }
@@ -622,6 +647,11 @@
        que es una leccion que este archivo ya pago tres veces. */
     #diast-algo-overlay.bse-ancho #diast-algo-card { width:760px !important; }
     .bse-diag-caja { display:block; }
+    /* Por encima del umbral la tabla compacta REEMPLAZA a la lista larga; por debajo la lista
+       es lo unico que se ve y la ventana queda exactamente como en HEAD. La lista se esconde
+       por CSS y no se deja de armar: asi un cambio de ancho no necesita repintar nada, y el
+       texto de cada fila sigue existiendo para quien lo lea del arbol. */
+    .bse-lista { display:none; }
   }
   .am-head { display:flex; align-items:center; justify-content:space-between; gap:10px; cursor:pointer; user-select:none; }
   .am-head .am-tit { display:flex; align-items:center; gap:6px; font-weight:600; }
@@ -24185,11 +24215,67 @@ function _bseDiagAlt(plano, R) {
   return 'Camino de este paciente: ' + pasos.join(' → ') + ' → resultado: ' + fin + '.';
 }
 
-/* Arma la caja entera: el dibujo, el pie con la fuente y la descripcion accesible. */
+
+/* ══ LA TABLA COMPACTA ══ una columna por paso, plegada y cerrada por defecto ════════════════
+   Por encima del umbral de ancho REEMPLAZA a la lista larga (lo hace el CSS, no el JS: asi un
+   cambio de ancho no necesita repintar). Las columnas salen del MISMO `R.filas` que la lista,
+   agrupadas por el `nodo` que el duenio ya les puso: no hay una segunda lectura que pueda
+   decir otra cosa que el renglon de al lado.
+
+   ⚠️ UNA COLUMNA DE PASO QUE EL PACIENTE NO RECORRIO NO SE DIBUJA, y no es cosmetico: la
+   columna del strain con sus cuatro criterios en gris se lee como «se evaluaron y dieron
+   negativo», cuando lo que paso es que el algoritmo nunca llego a preguntarlos. La compuerta
+   es el CAMINO, que es el unico que sabe por donde se paso. */
+function _bseTablaCol(R, col) {
+  const filas = (R.filas || []).filter(function (f) { return col.nodos.indexOf(f.nodo) > -1; });
+  return filas.map(function (f) {
+    const hay = (typeof f.val === 'number') ? !isNaN(f.val)
+              : (f.val !== null && f.val !== undefined && String(f.val).trim() !== '');
+    const cls = !hay ? 'na' : (f.ok ? 'si' : 'no');
+    const ico = !hay ? '–' : (f.ok ? '✗' : '✓');
+    const num = hay ? ((typeof f.val === 'number' ? f.val.toFixed(f.dec == null ? 1 : f.dec) : String(f.val))
+                       + (f.u ? ' ' + f.u : '')) : 'sin dato';
+    return '<div class="bse-td ' + cls + '" data-bse-celda><i>' + ico + '</i>'
+         + '<span>' + escHtml(f.crit) + '</span><b>' + escHtml(num) + '</b></div>';
+  }).join('');
+}
+/* El estado del plegable sobrevive al repintado. La ventana se vuelve a armar entera con cada
+   tecla que el medico toca, asi que sin esto la tabla se cerraria sola apenas se corrige un
+   valor — que es el defecto que el panel de Evidencia ya pago con sus `<details>`. */
+let _bseTablaAbierta = false;
+function _bseTablaRec(d) { _bseTablaAbierta = !!(d && d.open); }
+window._bseTablaRec = _bseTablaRec;
+
+function _bseTablaHTML(plano, R) {
+  const cam = (R && R.camino) ? R.camino : [];
+  let cols = '', n = 0;
+  (plano.tabla || []).forEach(function (col) {
+    if (col.puerta && cam.indexOf(col.puerta) < 0) return;
+    const cuerpo = col.res ? ('<div class="bse-td" data-bse-celda><i>→</i><b>'
+                              + escHtml(R.ventanaTit || '') + '</b></div>')
+                           : _bseTablaCol(R, col);
+    if (!cuerpo) return;
+    n++;
+    cols += '<div class="bse-tc" data-bse-col="' + escHtml(col.paso) + '">'
+          + '<div class="bse-th" data-bse-col-tit>' + escHtml(col.tit) + '</div>' + cuerpo + '</div>';
+  });
+  if (!n) return '';
+  /* `<details>`/`<summary>` nativos: el teclado y el lector de pantalla salen de serie —Enter y
+     Espacio lo abren y lo cierran, y el rol de divulgacion ya anuncia si esta expandido—. NO se
+     agrega un `aria-expanded` propio a proposito: habria que mantenerlo sincronizado a mano y un
+     atributo que se desincroniza miente con mas conviccion que no tenerlo. */
+  return '<details class="bse-tabla" data-bse-tabla ontoggle="_bseTablaRec(this)"'
+       + (_bseTablaAbierta ? ' open' : '') + '>'
+       + '<summary>Tabla de criterios por paso (' + n + (n === 1 ? ' columna)' : ' columnas)') + '</summary>'
+       + '<div class="bse-tg">' + cols + '</div></details>';
+}
+
+/* Arma la caja entera: el dibujo, la descripcion accesible, la tabla compacta y el pie. */
 function _bseDiagCaja(plano, R) {
   return '<div class="bse-diag-caja" data-bse-diag-caja="' + escHtml(plano.fig) + '">'
        + _bseDiagSVG(plano, R)
        + '<p class="bse-alt" data-bse-alt>' + escHtml(_bseDiagAlt(plano, R)) + '</p>'
+       + _bseTablaHTML(plano, R)
        + '<p class="bse-pie" data-bse-pie>' + escHtml(plano.pie) + '</p>'
        + '</div>';
 }
@@ -24262,6 +24348,12 @@ const BSE_PLANO_F17 = {
     { de: 'f17.eprima', a: 'f17.fin-sin-eprima', et: 'sin edad o sexo', dx1: -60 },
     { de: 'f17.rel-normal', a: 'f17.fin-normal' },
     { de: 'f17.rel-baja', a: 'f17.fin-pnormal' }
+  ],
+  tabla: [
+    { paso: '1', tit: 'Paso 1 · presión de llenado', nodos: ['f17.banda'] },
+    { paso: '2', tit: 'Paso 2 · strain y suplementarios', nodos: ['f17.strain', 'f17.lars18', 'f17.supl'], puerta: 'f17.strain' },
+    { paso: '3', tit: "Paso 3 · relajación por e'", nodos: ['f17.eprima'], puerta: 'f17.eprima' },
+    { paso: 'res', tit: 'Resultado', nodos: [], res: true }
   ]
 };
 
@@ -24330,6 +24422,12 @@ const BSE_PLANO_F18 = {
     { de: 'f18.supl', a: 'f18.fin-elevada', et: '≥1 positivo', dx1: -40, calleRel: 8 },
     { de: 'f18.supl', a: 'f18.fin-normal', et: 'ninguno', dx1: -60, dx2: 20, calleRel: 18 },
     { de: 'f18.pos', a: 'f18.fin-elevada', dx1: 40, dx2: 40 }
+  ],
+  /* Sin columna de relajacion: en esta via el e' no se consulta (pag. 37). */
+  tabla: [
+    { paso: '1', tit: 'Paso 1 · presión de llenado', nodos: ['f18.banda'] },
+    { paso: '2', tit: 'Paso 2 · strain y suplementarios', nodos: ['f18.lars-elev', 'f18.lars-norm', 'f18.supl'], puerta: 'f18.strain' },
+    { paso: 'res', tit: 'Resultado', nodos: [], res: true }
   ]
 };
 
@@ -24397,6 +24495,11 @@ const BSE_PLANO_F19 = {
     { de: 'f19.p2neg', a: 'f19.fin-normal' },
     { de: 'f19.p2insuf', a: 'f19.fin-indet' },
     { de: 'f19.p2pos', a: 'f19.fin-elevada' }
+  ],
+  tabla: [
+    { paso: '1', tit: 'Paso 1 · cuatro criterios', nodos: ['f19.paso1'] },
+    { paso: '2', tit: 'Paso 2 · tres criterios', nodos: ['f19.paso2'], puerta: 'f19.paso2' },
+    { paso: 'res', tit: 'Resultado', nodos: [], res: true }
   ]
 };
 
@@ -24439,11 +24542,16 @@ function diastAlgoRender() {
          y la ASE/EACVI 2016, asi que sus ventanas siguen siendo las de HEAD. */
       const planoFA = _bseDiagPlano(algo, 'fa', RFA);
       if (planoFA) { h += _bseDiagCaja(planoFA, RFA); _bseDiagAncho(true); }
+      /* La lista larga va envuelta SOLO cuando hay diagrama: el CSS la esconde por encima del
+         umbral de ancho, donde la reemplaza la tabla compacta. Sin diagrama no hay envoltorio y
+         la lista se ve a cualquier ancho, que es lo de HEAD. */
+      if (planoFA) h += '<div class="bse-lista" data-bse-lista>';
       let gFA = null;
       RFA.filas.forEach(f => {
         if (f.g && f.g !== gFA) { h += '<div class="da-paso">' + escHtml(f.g) + '</div>'; gFA = f.g; }
         h += _daFila(f.crit, f.val, f.u, f.ok, f.dec);
       });
+      if (planoFA) h += '</div>';
       h += '<div class="da-res"><b>' + escHtml(RFA.ventanaTit) + '</b>'
          + (RFA.ventanaDet ? ' · ' + escHtml(RFA.ventanaDet) + '.' : '') + '</div>';
       /* La frase es LA DEL INFORME, leída del mismo objeto. En FA sólo existe con presión
@@ -24483,11 +24591,14 @@ function diastAlgoRender() {
        nodo igual se arma, que es lo que hace que un cambio de ancho no necesite repintar. */
     const planoB = _bseDiagPlano('bse2024', 'sinusal', R);
     if (planoB) { h += _bseDiagCaja(planoB, R); _bseDiagAncho(true); }
+    /* Mismo envoltorio que en la rama de FA, y por el mismo motivo. */
+    if (planoB) h += '<div class="bse-lista" data-bse-lista>';
     let gB = null;
     R.filas.forEach(f => {
       if (f.g && f.g !== gB) { h += '<div class="da-paso">' + escHtml(f.g) + '</div>'; gB = f.g; }
       h += _daFila(f.crit, f.val, f.u, f.ok, f.dec);
     });
+    if (planoB) h += '</div>';
     h += '<p class="da-nota">Vía aplicada: <b>' + escHtml(R.via) + '</b>.</p>';
     h += '<div class="da-res"><b>' + escHtml(R.ventanaTit) + '</b>'
        + (R.ventanaDet ? ' · ' + escHtml(R.ventanaDet) + '.' : '') + '</div>';
@@ -104727,8 +104838,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261013-0021';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791861675537;                 /* eco-build-ms */
+const ECO_BUILD    = '20261013-0033';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791862394379;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -104814,7 +104925,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-0021</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-0033</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

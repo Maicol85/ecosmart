@@ -1126,8 +1126,23 @@ async function main() {
         const base = esFA ? Object.assign(esc('bse2024', e.sel), { diast_ritmo: 'fa' }) : esc('bse2024', e.sel);
         const carga = await cargar(e.c, base, e.teclas);
         if (!btn.err) await clicEn(btn.sel);
-        const caja = await ev(`(function(){ var c=document.querySelector('#diast-algo-cuerpo [data-bse-diag-caja]');
-          if(!c) return null; var r=c.getBoundingClientRect();
+        /* `--abrir-tabla` despliega el plegable antes de la foto: cerrado, la captura no muestra
+           lo que la tabla dice y no sirve para revisarla. */
+        if (process.argv.indexOf('--abrir-tabla') > -1) {
+          await ev(`(function(){ var d=document.querySelector('#diast-algo-cuerpo details[data-bse-tabla]');
+            if(d) d.open = true; return !!d })()`);
+          await pausa(120);
+        }
+        /* ⚠️ LA TARJETA SCROLLEA, ASI QUE UN RECORTE MAS ALTO QUE LA VENTANA SALE EN NEGRO.
+           `Page.captureScreenshot` con un `clip` que se va por debajo del viewport no dibuja lo
+           que no esta renderizado: la primera captura de la tabla salio con la mitad inferior en
+           negro y parecia que la tabla no se dibujaba. Se lleva el blanco a la vista con un
+           scroll real y se vuelve a medir el rect DESPUES. */
+        const selZona = (arg('--zona') === 'tabla')
+          ? '#diast-algo-cuerpo details[data-bse-tabla]' : '#diast-algo-cuerpo [data-bse-diag-caja]';
+        const caja = await ev(`(function(){ var c=document.querySelector(${JSON.stringify(selZona)});
+          if(!c) return null; c.scrollIntoView({ block: 'start' });
+          var r=c.getBoundingClientRect();
           return { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) } })()`);
         let f = null;
         if (caja && caja.w > 0 && caja.h > 0) {
