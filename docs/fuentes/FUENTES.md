@@ -1080,6 +1080,134 @@ FAC (35 %) vienen de la ASE 2015 y **no se compararon ni se movieron**. La **Tab
 diastólicos de la app salen de la ASE 2010 y cambiarlos es otra tanda. Queda en
 `docs/PENDIENTES.md`.
 
+### Parámetros complementarios de la función diastólica (verificados 2026-10-12)
+
+Esta entrada cubre lo que la tanda del 2026-10-12 leyó de los **tres** documentos a la vez: el
+**S/D venoso pulmonar**, los **parámetros suplementarios** de la ASE 2025 y el **E/e′ por sitio**
+de la ASE/EACVI 2016. Los folios y los offsets son los de las entradas de cada guía más arriba
+(ASE 2025 = página del PDF + 536 · ASE/EACVI 2016 = página + 276 · BSE 2024 = página).
+
+#### El S/D venoso pulmonar — CINCO lecturas y DOS cortes
+
+El mismo campo se lee con dos cortes distintos. Cada uno verificado en su original:
+
+| Dónde vota | Guía · folio/página | Corte | Operador | Frase verificada |
+|---|---|---|---|---|
+| Segundo paso, **ritmo sinusal** | ASE 2025 · folio 554 | **≤ 0,67** | `<=` | prosa: «The corresponding value for pulmonary vein systolic velocity–to–diastolic velocity ratio of ≤0.67 is equal to ≤40% systolic filling fraction and is therefore recommended»; caja de la Figura 3: «Pulmonary Vein S/D ≤0.67 or LARS ≤ 18% or LAVi > 34 mL/m2» |
+| **Fibrilación auricular** | ASE 2025 · folio 563, Figura 8 | **< 1** | `<` | caja del paso 2: «Pulm vein S/D ratio <1» |
+| **FEVI reducida** (Figura 18) | BSE 2024 · pág. 37 | **< 1** | `<` | «In addition to Ar-A duration > 30 ms and L-wave velocity > 20 cm/s, **a PV S/D ratio < 1** and MV E deceleration time < 150 ms are accurate indicators of elevated LVFP … when LV systolic function is impaired» |
+| **Fibrilación auricular** (Figura 19) | BSE 2024 · pág. 40 | **< 1** | `<` | «decreased LA compliance (common in AF) and increased LAP causes a reduction in PV D velocity, leading to **a reduction in the PV S/D ratio to below 1**» |
+| **FEVI deprimida** | ASE/EACVI 2016 · folios 286, 287 y 290 | **< 1** | `<` | folio 286: «In patients in whom one of the three main criteria is not available, the ratio of pulmonary vein peak systolic to peak diastolic velocity … **< 1** supports the presence of elevated LV filling pressures»; Key Point 6 del folio 287: «In patients with depressed LVEFs, pulmonary vein S/D ratio may be used if one of the three main parameters is not available. A ratio < 1 is consistent with increased LAP»; pie de la Figura 8 del folio 290: «Pulmonary vein S/D ratio <1 applicable to conclude elevated LAP in patients with depressed LV EF» |
+
+⚠️ **NINGUNO DE LOS CINCO CONTRADICE LO QUE PEDÍA LA ORDEN DE LA TANDA**, y el S/D de la FA de la
+ASE 2025 se verificó explícitamente porque la orden lo nombraba como dudoso: la Figura 8 del folio
+563 escribe `<1`, no `≤0,67`.
+
+⚠️ **EL ≤ 0,67 NO SALE DE UN ESTUDIO DE CORTE, SALE DE UNA EQUIVALENCIA.** El folio 554 lo deriva
+de la fracción de llenado sistólico: «a systolic filling fraction … of ≤40% has good accuracy in
+identifying patients with elevated mean LAP. The corresponding value for pulmonary vein systolic
+velocity–to–diastolic velocity ratio of ≤0.67 is equal to ≤40% systolic filling fraction».
+
+⚠️ **Y EL MISMO FOLIO LIMITA SU USO EN DOS DIRECCIONES**: «The ratio is most reliable in patients
+with LV systolic dysfunction and **should not be considered in normal subjects with normal
+echocardiographic results**, when the ratio can be ≤ 0.67. In patients with normal LVEF, the ratio
+can be >0.67 despite elevated LV filling pressures». La ASE/EACVI 2016 dice lo mismo en el folio
+287 («Because the pulmonary venous S/D ratio often is <1 in healthy young individuals, this index
+is of little value in patients with normal LVEF») y en el 286 («In healthy young people (<40 years
+of age), pulmonary venous S/D ratio can be <1»). Esas dos salvedades son las que sostienen que la
+Figura 8A de la ASE 2016 **no** mire el S/D, y no están implementadas como aviso: `docs/PENDIENTES.md`.
+
+#### Los parámetros suplementarios de la ASE 2025 — folio 555 y nota ‡ de la Figura 3
+
+**Dónde entran:** la caja del segundo paso de la Figura 3 (folio 554) dice «If none available or
+reliable use Supplemental methods‡», y la prosa del folio 555 lo repite: «Supplemental Parameters:
+these can be relied on **in the absence of the three parameters in the section above**».
+
+**La nota ‡ de la Figura 3 (folio 554), literal y completa:** «PR end-diastolic velocity ≥ 2 m/s,
+PA diastolic pressure ≥ 16 mm Hg, mitral inflow L-wave velocity ≥ 50 cm/s, Ar-A duration > 30 ms,
+and/or a decrease in mitral E/A ratio of ≥50% with Valsalva maneuver.» Son CINCO.
+
+| Suplementario | Folio | Corte | Operador | Estado en la app |
+|---|---|---|---|---|
+| Velocidad telediastólica de la IP | 555a y nota ‡ | **≥ 2 m/s** | `>=` | implementado (`ip_vtd`) |
+| PAP diastólica | 555a y nota ‡ | **≥ 16 mmHg** | `>=` | implementado (el campo que publica `calcIP`) |
+| Onda L del llenado mitral | 555b y nota ‡ | **≥ 50 cm/s** | `>=` | implementado (`onda_l`) |
+| Ar−A **con** amplitud de la Ar | 555d · nota ‡ (sólo el Ar−A) | **> 30 ms** y **> 35 cm/s** | `>` los dos | implementado con AND |
+| Caída de la E/A con Valsalva | 555e y nota ‡ | ≥ 50 % | `>=` | **NO**: la app no registra la maniobra |
+| IM diastólica · terminación precoz | 555c | — | — | **NO**: son hallazgos de forma de onda, sin corte |
+
+⚠️ **EL INCISO (a) SON DOS CAMINOS CON UN «or», NO UN PAR.** Literal: «An end-diastolic velocity
+≥2 m/s **or** pulmonary artery (PA) diastolic pressure ≥16 mm Hg is consistent with elevated LAP in
+the absence of pulmonary disease.»
+
+⚠️ **LA NOTA ‡ Y EL INCISO (d) NO DICEN LO MISMO, Y LOS DOS TEXTOS ESTÁN IMPRESOS.** La nota ‡
+nombra sólo «Ar-A duration > 30 ms»; el folio 555d escribe la condición entera: «This stage is
+diagnosed on the basis of **a high amplitude (>35 cm/s) and long duration** of pulmonary vein Ar
+velocity, **along with** an Ar-A duration >30 ms». La app exige el **AND**, que es lo que escribe la
+prosa y es el lado conservador: pide más evidencia para afirmar presión elevada, no menos. Con el
+criterio de la nota ‡ sola, un Ar−A de 31 ms con una Ar de 20 cm/s afirmaría presión elevada.
+
+⚠️ **Y EL INCISO (d) DESCRIBE UN ESTADIO CON LA PAI MEDIA NORMAL.** Literal: «there is an early
+stage when **LVEDP is elevated but mean LAP is normal**. This stage is diagnosed on the basis of…».
+O sea que como marcador es de **LVEDP** y no de la PAI media, que es lo que la Figura 3 estima. Se
+implementa igual porque la nota ‡ lo lista como suplementario de ESE algoritmo y porque el §12 del
+folio 555 manda informar el aumento aislado de la LVEDP («An isolated increase in LVEDP should be
+reported, as it predisposes patients to elevated mean LAP with exercise, faster heart rate, or
+increased afterload»). Queda declarado en `docs/PENDIENTES.md`.
+
+⚠️ **EL CORTE DE LA ONDA L ES ≥ 50 Y NO EL > 20 DE LA BSE.** El folio 555b lo escribe dos veces, y
+las dos con `≥`: «leading to blood flow into the left ventricle with peak velocity ≥ 50 cm/s» y
+«Therefore, the presence of an L-wave velocity ≥50 cm/s is an indicator of both impaired LV
+relaxation and elevated LAP». El mismo inciso aclara de dónde viene el 40: «It was initially
+described in normal healthy young individuals with bradycardia with peak velocity <40 cm/s».
+
+⚠️ **EL §12 DEL FOLIO 555 OBLIGA A NOMBRARLOS EN EL INFORME CUANDO DECIDEN**: «LARS, pulmonary vein
+S/D ratio or systolic filling fraction, mitral inflow A duration, pulmonary vein Ar duration, and/or
+IVRT **should be included in the report if relied on** to arrive at the conclusions pertaining to
+diastolic function grade and mean LAP». Lo que la app hace hoy es nombrarlos en la ventana del 🧭 y
+en la `via`; en el informe firmado el único que se nombra es el de la BSE por `_bseDetalles`. Está
+declarado en `docs/PENDIENTES.md`.
+
+#### El E/e′ por SITIO de la ASE/EACVI 2016 — folio 281
+
+**La oración entera, que es la que decide la lectura:** «It is recognized that **at times only the
+lateral e′ or septal e′ velocity is available** and clinically valid and in these circumstances a
+**lateral E/e′ ratio > 13 or a septal E/e′ > 15** is considered abnormal. **The latter sentence
+applies to laboratories that acquire only septal or lateral velocities.**»
+
+| Caso | Corte | Operador |
+|---|---|---|
+| Los **dos** anillos medidos | promedio **> 14** | `>` |
+| **Sólo** el septal | septal **> 15** | `>` |
+| **Sólo** el lateral | lateral **> 13** | `>` |
+
+⚠️ **ES UN REEMPLAZO Y NO UN «OR DE TRES ALTERNATIVAS».** Las dos mitades de la regla están en la
+misma oración —«at times only … is available»— y la frase que la cierra dice para quién es: el
+laboratorio que no mide los dos anillos. **Con los dos anillos manda el promedio y nada más.**
+La **ASE 2025 sí** los usa como alternativas simultáneas, y eso está impreso en su Figura 3 del
+folio 554: «Increased E/e': septal ≥ 15 **or** lateral ≥ 13 **or** average ≥ 14». Son dos guías y
+dos lecturas del mismo trío de números; no se unifican.
+
+⚠️ **Y LOS OPERADORES TAMPOCO SON LOS MISMOS.** La ASE 2016 escribe los tres con `>` estricto
+—«average E/e′ ratio > 14» en el enunciado de las cuatro variables y en el Key Point 1 del folio
+281— y la Figura 3 de la ASE 2025 los escribe con `≥`. Un E/e′ de **14,00 exacto es NEGATIVO en la
+ASE 2016 y POSITIVO en la ASE 2025**, y ese valor se alcanza con enteros (E 98 con e′ 7,0).
+
+#### El e′ anular de la ASE/EACVI 2016, para no confundirlo con el E/e′
+
+El mismo folio 281 da los cortes del **e′** (que es otra variable): «annular e′ velocity (septal
+e′ < 7 cm/sec, lateral e′ < 10 cm/sec)», en **OR** entre los dos anillos y **sin corte de
+promedio**. Ya estaba verificado en la entrada de `aseDiast2016`; se repite acá porque la cercanía
+de los dos tríos de números es la trampa de esta zona.
+
+#### El IMC en la fibrilación auricular — no es un corte nuevo
+
+El `BMI > 30 kg/m2` del paso 2 de la Figura 8 (folio 563) ya estaba verificado. Lo que esta tanda
+agrega no es un corte sino una lectura: **el operador es `>` estricto**, así que el 30 exacto es
+negativo, y por eso el redondeo del IMC a un decimal es lo que hace que el paciente de 86,7 kg con
+170 cm caiga del lado que la guía describe.
+
+---
 ### Registradas SIN folio → NO verificadas al estándar del repo
 
 Están en `IND_REFS`, pero su `full` **no tiene tabla ni página**. Sirven como referencia general;

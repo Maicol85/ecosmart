@@ -11,6 +11,11 @@ Fuentes verificadas, con folio y corte: `docs/fuentes/FUENTES.md` → `### aseDi
 2016, RITMO SINUSAL`. **Antes de abrir el PDF de la guía, mirá ahí.** La **fibrilación auricular** de
 esta misma guía es otra cosa y vive en `docs/mapa/diastolica.md` → «La FIBRILACIÓN AURICULAR».
 
+⚠️ **EL E/e′ POR SITIO Y EL S/D DE ESTA GUÍA SE MOVIERON EL 2026-10-12 Y VIVEN EN OTRO MAPA:**
+`docs/mapa/diastolica-complementarios.md`. El E/e′ pasó a tener **tres cortes** (promedio > 14,
+septal > 15, lateral > 13, folio 281) y el corte se elige por el sitio MEDIDO; el S/D pasó a leerse
+por `venpSdEstado('lt1')`, que es el dueño único de los cinco usos de ese campo.
+
 ---
 
 ## El dueño único y sus dos consumidores

@@ -7,6 +7,13 @@ función no. Todo lo de acá vive en el bloque grande de `<script>` de `index.ht
 Fuentes verificadas de la ASE 2025, con folio y corte: `docs/fuentes/FUENTES.md` →
 `### aseDiast2025`. **Antes de abrir el PDF de la guía, mirá ahí.**
 
+⚠️ **LOS PARÁMETROS COMPLEMENTARIOS TIENEN SU PROPIO MAPA DESDE EL 2026-10-12:**
+`docs/mapa/diastolica-complementarios.md` — el **S/D venoso pulmonar** con sus tres opciones y su
+corte por algoritmo, el **LARS en valor absoluto**, los **cuatro suplementarios** de la ASE 2025
+(folio 555), el **E/e′ por sitio** de la ASE/EACVI 2016, los **dos rótulos** del cuadro, el **rojo**
+de la celda del E/e′ y el **borde del IMC**. Nació aparte por la regla de la casa: este mapa pesaba
+33,2 KB y el techo son ~35 KB.
+
 ---
 
 ## Las dos superficies de pantalla, y quién manda

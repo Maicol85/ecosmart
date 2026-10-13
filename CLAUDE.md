@@ -25,6 +25,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Ubicar un cálculo de severidad, un corte o una banda** | `docs/mapa/valvulas.md` |
 | **Tocar la función diastólica del VI**: el cuadro, la ventana 🧭 o los tres algoritmos | `docs/mapa/diastolica.md` |
 | **Tocar la ASE/EACVI 2016 en ritmo sinusal**: la Figura 8A, la 8B o el corte de FEVI | `docs/mapa/diastolica-ase2016.md` |
+| **Tocar el S/D venoso pulmonar, el LARS, los suplementarios de la ASE 2025, el E/e′ por sitio de la ASE 2016, los rótulos del cuadro o el rojo del E/e′** | `docs/mapa/diastolica-complementarios.md` |
 | **Tocar el VENTRÍCULO DERECHO**: sus campos, el cuadro de referencias, la disfunción sistólica, la pared o el Tei | `docs/mapa/vd-derecho.md` |
 | **Tocar el panel de Evidencia: agregar una cita, una sección o un sub-bloque** | `docs/mapa/panel-evidencia.md` |
 | **Agregar un TÉRMINO al glosario del panel (el ⓘ con tarjeta)** | `docs/mapa/panel-evidencia-terminos.md` |
@@ -216,6 +217,211 @@ impecable.
 ---
 
 ## Estado vigente
+
+### Parámetros complementarios de la función diastólica — S/D, LARS, suplementarios, E/e′ por sitio (2026-10-12)
+
+- Al **empezar** esta tanda, `main` local y `origin/main` estaban los dos en **`1576306`**, sin nada
+  sin pushear —confirmado con un `git fetch` de verdad, no con el ref en caché—, con los **seis**
+  commits de la tanda de la ASE/EACVI 2016 ya incluidos **y pusheados**. Los **siete** commits de
+  esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 7 → 6 → 5 → 4 → 3 → 2 → 1.**
+  El 1 crea `venpSdEstado`, `VENP_SD_LECTURA`, `venpSdFilaVal` y `venpSdCritSuf`, y **las cinco
+  lecturas del S/D cuelgan de él**: revertir el 1 sin revertir antes el resto deja cinco funciones
+  llamando a una que no existe, y un `ReferenceError` en la evaluación de un `<script>` **aborta el
+  bloque COMPLETO** — o sea la app con cero pestañas con geometría.
+  **El 2, el 3 y el 4 se revierten entre sí en cualquier orden**: el 2 toca el LARS, el 3 la lista
+  de suplementarios y el 4 el E/e′ de la ASE 2016, y ninguno llama a otro. **El 5 depende del 1**
+  —`diastEeElevadaVigente` se inserta a continuación de `venpSdFilaVal`— y además **el 5 tiene que
+  revertirse ANTES que el 3**, porque el rojo consulta las filas que la lista de suplementarios
+  agrega. **El 6 (el Laboratorio) se revierte solo**: toca `_labDiastGrado` y el mapa de rótulos del
+  Excel, y nada de la diastólica lo llama. **El 7 es documentación más TC-459**, que afirma el
+  comportamiento de los seis: revertir cualquiera sin el 7 deja TC-459 en rojo.
+  ⚠️ **Y REVERTIR EL 5 SIN EL 7 DEJA TAMBIÉN TC-260 EN ROJO**, que se adaptó en el 5 en cuatro
+  bloques: ese caso escribía `#ee-val` a mano y hoy el color le pregunta al evaluador.
+
+- **Línea base al cierre: suite 453/474 con el pendrive `DISK_IMG` AFUERA, Semgrep 127 / 0 ERROR,
+  Excel 435 columnas, celular 43 a 360 px y 52 a 390 px con 1 ALTA cada uno —IDÉNTICO a la línea
+  base; los cambios de esta tanda no agregaron un solo hallazgo—.** Los 21 rojos son
+  los de entrada y NO son regresiones: **TC-223** (el documentado, falla por la fecha), **TC-376**,
+  **TC-390**, **TC-406** y los **diecisiete** de **TC-181…TC-197**, que son los del pendrive y son
+  ENTORNO: con el pendrive afuera no prueban nada. **El denominador subió a 474**: esta tanda
+  agregó **TC-459**. La de ENTRADA, medida en HEAD limpio el 2026-10-12, fue **452/473** con el
+  pendrive AFUERA y los mismos 21 rojos, con el `md5` de `index.html` sin moverse durante las dos
+  corridas (`f3f922f7…` a la entrada, `ea3ece73…` al cierre).
+- **Dónde está todo:** `docs/mapa/diastolica-complementarios.md` (**mapa NUEVO**: el S/D y su tabla
+  de lectura, el LARS, la lista de suplementarios, el E/e′ por sitio, los rótulos, el rojo, el IMC,
+  el Laboratorio, las trampas y cómo medir), `docs/fuentes/FUENTES.md` → «Parámetros
+  complementarios de la función diastólica» (las cinco lecturas del S/D con su frase verificada, los
+  cinco suplementarios de la nota ‡, el E/e′ por sitio del folio 281 y las dos salvedades que las
+  guías escriben), `docs/PENDIENTES.md` → **diez** cosas declaradas y no tocadas (C1 a C10), con
+  **A1, A4 y A5 marcados CERRADOS**.
+
+- **EL S/D ES UN CAMPO CON DOS CORTES, Y CON DOS OPCIONES EL MÁS ESTRICTO ERA INEXPRESABLE.** El
+  selector pasó a TRES opciones («≤0,67» / «>0,67 y <1» / «≥1») porque la ASE 2025 en ritmo sinusal
+  corta en **≤ 0,67** (folio 554) y las otras cuatro lecturas en **< 1** (folio 563, págs. 37 y 40,
+  folios 286-290). Los cinco cortes y sus cinco operadores están verificados en el original y
+  **ninguno contradice lo que pedía la orden** — incluido el de la FA de la ASE 2025, que la orden
+  nombraba como dudoso y escribe `<1`. El tramo del medio es exactamente lo que separa los dos
+  cortes: medido, un S/D en «>0,67 y <1» da presión NORMAL en ritmo sinusal y POSITIVO en las otras
+  cuatro.
+- ⚠️ **UN SOLO DUEÑO Y TRES ESTADOS, NO DOS.** `venpSdEstado(corte)` devuelve `null` cuando el campo
+  no permite decidir, que es lo que impide que «no se puede saber» se cuente como «no cumple». Pasa
+  en UN caso: un estudio GUARDADO trae «<1» y eso no distingue un 0,6 de un 0,9, así que para el
+  ≤ 0,67 queda SIN EVALUAR. Los estudios viejos **no se migran**: las dos `<option>` siguen en el
+  marcado con `hidden`, porque el recolector restaura por `el.value` y sin su option el `<select>`
+  queda en `selectedIndex -1` — el defecto que `et_grado` ya pagó.
+- ⚠️ **LA FILA DE UN CRITERIO SIN EVALUAR NO PUEDE LLEVAR SU VALOR CON EL MOTIVO PEGADO.** `_daFila`
+  deriva el estado del valor: con dato y negativo pinta ✓. La primera versión devolvía «<1 — no
+  distingue este corte» y la fila salía con el ✓ de NEGATIVO sobre un criterio que no se evaluó. El
+  valor va en `null` —la fila en gris— y el motivo en el rótulo, que es el patrón que HEAD ya usaba.
+- **SIN COLUMNAS NUEVAS Y SIN TOCAR EL IMPORTADOR:** los cuatro campos `venp_` no están en
+  `LAB_XLS_MAP`, así que el importador nunca les pregunta al rango. Excel en **435** columnas en las
+  12 escenas.
+- ⚠️ **EL INFORME FIRMADO IMPRIMÍA LA ETIQUETA DEL S/D CON UN TERNARIO.** `_bseDetalles` hacía
+  `st.sd === 'menor1' ? '<1' : '>1'`, que era correcto con dos tokens; con tres, un «≤0,67» elegido
+  por el médico salía **«>1»** en un informe firmado, o sea la etiqueta contraria. La traducción pasa
+  a tener un solo dueño, `VENP_SD_TXT`.
+
+- ⚠️ **EL LARS ENTRABA CRUDO A LAS CINCO CUENTAS Y UN NEGATIVO DABA VUELTA EL VEREDICTO EN
+  SILENCIO.** Un −32 cumple `< 18` y publicaba «presión de llenado elevada» sobre una aurícula cuyo
+  strain de reservorio es 32 %, o sea NORMAL. No era una regresión: era el comportamiento de HEAD, y
+  lo único que lo señalaba era la marca «(revisar)» por caer bajo el piso 0 de su banda. Hoy pasa
+  por `diastStrainAbs`, que ya era la única puerta de los otros dos strain.
+  **Medido: 20 pares (5 escenas × 4 magnitudes × 2 signos) dan badge, informe, EN SUMA y ventana
+  IDÉNTICOS con los dos signos, y el campo conserva el signo. En HEAD eran 9 de 20.** A/B contra
+  HEAD: **15 de 40 escenas cambian, las 15 con signo NEGATIVO y CERO con positivo**, que es la
+  comprobación de que el |x| de un positivo es el mismo número.
+- **LA MARCA DEL LARS PASÓ A SER POR MAGNITUD**, y es consecuencia directa: desde que un −32 vota
+  como 32, marcarlo diría que hay algo que revisar en una medición que la app ya interpreta bien. Un
+  −80 y un +80 se marcan los dos. Los otros tres campos no cambian —sus bandas ya son simétricas— y
+  la del LARS es **la única asimétrica**, por eso necesita su propia entrada (`_DIAST_STRAIN_ABS_MARCA`).
+  ⚠️ **EL IMPORTADOR NO SE TOCÓ** y sigue rechazando por rango un LARS negativo que la pantalla ya
+  no marca: `PENDIENTES.md` → C1.
+
+- **LOS SUPLEMENTARIOS DE LA ASE 2025 PASARON DE UNO A CUATRO, SIN UN SOLO CAMPO NUEVO.** Entraron
+  los tres que la app puede medir: IP telediastólica **≥ 2 m/s**, PAP diastólica **≥ 16 mmHg**
+  (folio 555a, las dos con un «or» entre ellas) y **Ar−A > 30 ms CON amplitud de la Ar > 35 cm/s**
+  (folio 555d). El que falta es la **caída de la E/A con Valsalva**, que no tiene campo.
+- ⚠️ **LA NOTA ‡ DE LA FIGURA 3 Y EL INCISO (d) NO DICEN LO MISMO, Y LOS DOS ESTÁN IMPRESOS.** La
+  nota nombra sólo «Ar-A duration > 30 ms»; el folio 555d escribe «a high amplitude (>35 cm/s) **and**
+  long duration … **along with** an Ar-A duration >30 ms». Se exige el **AND** —una sola entrada de
+  la lista, no dos—, que es la prosa y es el lado conservador: con dos entradas, un Ar−A de 31 ms con
+  una Ar de 20 cm/s afirmaría presión elevada con la mitad de la condición. Medido con control:
+  amplitud 34 neg · 35 NEG · 36 POS, con el Ar−A en 40 ms fijo.
+- ⚠️ **Y EL INCISO (d) DESCRIBE UN ESTADIO CON LA PAI MEDIA NORMAL** («LVEDP is elevated but mean LAP
+  is normal»), o sea que como marcador es de LVEDP y no de lo que la Figura 3 estima. Se implementa
+  porque la nota ‡ lo lista como suplementario de ESE algoritmo y porque el §12 del folio 555 manda
+  informar el aumento aislado de la LVEDP. `PENDIENTES.md` → C3.
+- **LA PAP DIASTÓLICA NO SE RECALCULA: SE LEE DEL CAMPO QUE PUBLICA `calcIP`.** Con la PmAD sin
+  cargar ese campo escribe «N mmHg (sin PmAD)», que es una PAPd a la que le FALTA el sumando de la
+  aurícula derecha, y en ese estado **no vota** — medido en los tres valores de un triplete donde el
+  campo muestra 9, 14 y 15 mmHg. ⚠️ **Y EL BORDE ES EL DEL CAMPO REDONDEADO**: el campo imprime con
+  `toFixed(0)`, así que un 15,64 real se lee 16 y cruza. Es la consecuencia de leer el número que el
+  médico tiene delante, y la alternativa era una segunda copia de la fórmula. `PENDIENTES.md` → C7.
+- **CUATRO CAMPOS PASARON A LLAMAR A `calcDiastol`** (`ip_vtd`, `venp_dur_ar`, `venp_dur_a`,
+  `venp_vel_ar`): desde hoy son insumos del veredicto y viven en OTRAS pestañas, así que sin eso el
+  cuadro gris se quedaba con el del paciente anterior — el mismo desfase que `edad` y `sexo`
+  cerraron cuando la BSE los hizo insumo. La ventana no se atrasa: tiene su oyente de documento.
+- **SE CONSULTAN EN UN SOLO LUGAR Y SÓLO DEL LADO POSITIVO.** Con el Vol AI o el TRIV cargados el
+  suplementario queda POSITIVO en su fila y **no se consulta**; con los cuatro negativos el estado se
+  queda en el «no estimable» de HEAD, porque la flecha «None» de la figura sale de haber preguntado
+  sus CINCO y la app pregunta cuatro.
+
+- ⚠️ **EL E/e′ DE LA ASE 2016 CON UN ANILLO SOLO SE COMPARABA CONTRA EL CORTE DEL PROMEDIO, Y ESO
+  MOVÍA INFORMES EN LAS DOS DIRECCIONES.** Medido: con el septal solo en 7,0, una onda E de 104 daba
+  E/e′ 14,86 y publicaba **«Grado II»** cuando su corte es 15; con el lateral solo en 8,0, una E de
+  105 daba 13,13 y publicaba **«Grado I»** cuando su corte es 13. Hoy el corte se elige por el sitio
+  MEDIDO: 14 el promedio, 15 el septal, 13 el lateral, **los tres con `>` estricto**.
+- ⚠️ **ES UN REEMPLAZO Y NO UN «OR», Y ESA PARTE DE LA ORDEN QUEDÓ SIN HACER.** La orden pedía
+  aplicarlos «como alternativas, igual que se hizo con la ASE 2025», y el original dice lo contrario
+  en la misma oración: «at times **only** the lateral e′ or septal e′ velocity is available … **The
+  latter sentence applies to laboratories that acquire only septal or lateral velocities**». Con los
+  dos anillos manda el promedio y nada más. Control negativo medido: con los dos anillos, un
+  promedio de 14,00 (negativo) y un septal de 18,7 que SÍ cruza su 15 sale **NEGATIVO**.
+  La **ASE 2025 sí** los usa como alternativas y eso está impreso en su Figura 3: son dos guías y
+  dos lecturas del mismo trío de números. **Y los operadores tampoco son los mismos** —la 2016 con
+  `>` y la 2025 con `≥`—, así que un E/e′ de 14,00 exacto es negativo en una y positivo en la otra.
+
+- **EL ROJO DE LA CELDA DEL E/e′ YA NO SALE DE UN 14 FIJO: LE PREGUNTA AL DUEÑO DE LA GUÍA EN
+  VIGOR.** Lo hace `diastEeElevadaVigente`, que lee el estado de las filas de E/e′ del evaluador. El
+  14 fijo no podía representar nada de lo que hay: la ASE 2025 corta el promedio en `≥ 14` y la 2016
+  en `> 14`, con un anillo solo los cortes son 15 y 13, y las tres ramas de FA cortan el septal en
+  11. ⚠️ **ESTO CIERRA LA DEUDA QUE EL COMENTARIO DE HEAD DECLARABA**: `eeCorteEs14()` excluía la FA
+  de la BSE por completo, así que un E/e′ septal de 18,3 que SÍ es criterio positivo de la Figura 19
+  quedaba en negro. Medido: el color se pinta en **9 de 18 escenas donde antes no** —las tres ramas
+  de FA incluidas— y en NINGUNA deja de pintarse. Con el criterio sin evaluar **no se pinta**: el
+  gris es «no se midió» y el rojo sería afirmar.
+- ⚠️ **VERIFICADO QUE LA CADENA DEL COLOR ES PURA ANTES DE LLAMARLA DESDE EL PINTADO:** los cuatro
+  evaluadores y las siete funciones que consumen dan **cero** escrituras de DOM. Un evaluador que
+  pintara, llamado desde el pintado, es un bucle.
+- **LOS DOS RÓTULOS DEL CUADRO DECÍAN «promedio» CON UN SOLO ANILLO MEDIDO**, o sea el cuadro
+  afirmando un promedio de dos valores sobre un dato que tenía uno. Los escribe
+  `diastRotulosSitioSync`, que **sólo cambia el TEXTO**: no lee ni escribe un valor. Medido en 12
+  escenas: cambian las 6 con un anillo solo y las 6 con los dos o con ninguno siguen en «promedio».
+  ⚠️ **Con la BSE y un anillo solo el renglón queda en «—» mientras el rótulo ya nombra el sitio.**
+  Es PREEXISTENTE —antes decía «promedio» sobre el mismo «—»— y lo que esta tanda hace es que se
+  vea. `PENDIENTES.md` → C9.
+- **EL IMC DE 86,7 kg CON 170 cm CRUZABA EL `> 30` POR PUNTO FLOTANTE.** `(170/100)**2` vale
+  `2.8899999999999997`, así que el IMC daba `30.000000000000004` y el criterio salía POSITIVO por un
+  error de representación de 4e-15, con la fila mostrando «30.0» al lado de un ✗. Se redondea a un
+  decimal en `_diastFADatos`, el dueño de los insumos, y **no** en cada comparación. `getIMC`,
+  `calcBSA` y el PDF **no se tocaron**. ⚠️ **El redondeo también deja negativo un IMC real de 30,03**,
+  que en HEAD era positivo: es el precio del decimal y es el lado conservador. `PENDIENTES.md` → C8.
+- **EL PDF DECÍA «TDA» Y EL CAMPO ES EL «TDE».** Un rótulo, no un valor: «TDA» se lee como la onda A,
+  que es la otra medición. Verificado en el armador: el único `lbl` de esa fila cambió.
+
+- **EL LABORATORIO GANA UN QUINTO TOKEN SIN GRADO, `ase2016_sin_grado`**, con el mecanismo de los
+  cuatro de la BSE: rótulo en la columna de TEXTO («Disfunción, sin grado (ASE 2016)»), ningún
+  `DD_*` y ninguna entrada en la distribución del panel. ⚠️ **EL MOTIVO DE FONDO ES `DD_Sin`**, que
+  vale `(gd === 'sin' || (gd === null && eeDoc)) ? 1 : 0`: con `null` y el E/e′ documentado, un
+  estudio que AFIRMA disfunción **sumaba en «Sin disfunción»**. Medido con un paciente real de la 8A:
+  **DD_Sin pasa de 1 a 0**, el informe y el EN SUMA salen **idénticos letra por letra** y el Excel
+  sigue en 435. Tabla de las 12 frases de las tres guías, antes y después: **cambia UNA**.
+  ⚠️ **El regex exige el punto o la cita de la guía, y está anclado a principio de oración**:
+  «Disfunción diastólica» es el arranque de DIEZ frases de esta app, censadas una por una, y las
+  otras nueve ya tienen su token. La «indeterminada» **sigue en `null`** a propósito: no afirma
+  disfunción. `PENDIENTES.md` → C10.
+
+- **CONTROL NEGATIVO MAYOR: con el S/D sin elegir, el LARS positivo y los suplementarios nuevos
+  vacíos, las SEIS superficies de 12 escenas —las tres guías en ritmo sinusal y en FA— dan 0
+  diferencias contra HEAD en los commits 1 a 5, y 1 en el 6** (la escena de la 8A, que es la que el
+  Laboratorio tenía que empezar a clasificar). Las seis, enumeradas una por una: informe en tres
+  estilos, EN SUMA en tres, Excel con sus 435 columnas, franja del PPT, grado del Laboratorio y el
+  hash de los campos guardados **descontando los dos `<textarea>`**.
+- **Arnés: `scripts/_probe_diastcompl.mjs`** (A/B de solo lectura con `--file`), once grupos (`sd`,
+  `sdlegado`, `lars`, `supl`, `ee2016`, `rotulos`, `imc`, `lab`, `vacio`, `superficies`, `otras`),
+  **36 escenas de S/D con acuerdo cuadro↔ventana 36 de 36**, 18 de legado, 20 pares de LARS, 7
+  tripletes de suplementarios (21 de 21 en acuerdo), 4 de E/e′ por sitio (12 de 12) y 10 de IMC.
+  **Cobertura: TC-459**, **60 condiciones** con tres denominadores y nueve controles negativos.
+  **Verificado que sabe fallar contra HEAD en un worktree aparte: 39 de las 60 en rojo**; las 21 que
+  pasan son los controles negativos y lo que esta tanda no mueve.
+- ⚠️ **CUATRO ESCENAS DE MI PROPIA SONDA NO MEDÍAN SU CORTE, Y PARECÍAN MEDICIONES BUENAS.** El S/D
+  vota en el segundo paso de la ASE 2025 sólo si el paciente llegó ahí, y en la Figura 18 de la BSE
+  sólo si el LARS cayó en la zona intermedia: con el paso 1 en tres positivos la figura cierra sin
+  consultarlo, y con los dos criterios negativos los dos lados dan grado I. Las tablas decían «el
+  corte no funciona» sobre cortes que funcionan. Es la misma lección que los tripletes de borde de
+  la tanda anterior: **cada escena tiene que dejar un criterio ya positivo**, y hay que **informar
+  el estado de la FILA al lado del veredicto**.
+- ⚠️ **Y UN A/B QUE USA UNA OPCIÓN QUE HEAD NO TIENE COMPARA DOS ESCENAS DISTINTAS.** Dos escenas del
+  grupo del LARS fijaban el S/D en «≤0,67», que nace en el commit 1: el A/B informó cuatro
+  diferencias **con el LARS POSITIVO**, donde el valor absoluto no puede cambiar nada. Para aislar un
+  commit hay que usar valores que existan en los DOS árboles.
+- ⚠️ **EL CUERPO DE UN CASO SE EVALÚA EN UNA FUNCIÓN QUE NO ES `async`.** Un `await` en su nivel
+  superior tira «SyntaxError: missing ) after argument list» y el caso **muere por excepción**, sin
+  decir qué condición fallaba. Los casos que usan `fetch` lo envuelven en un
+  `(async function(){…})()` propio; para leer el fuente alcanza `document.documentElement.innerHTML`,
+  que es sincrónico.
+- ⚠️ **SEMGREP CAZÓ UN ERROR DE SINTAXIS QUE `check_backticks.py` NO PODÍA VER.** Al recortar un
+  bloque para reemplazarlo me llevé la apertura `/*` del comentario de la función siguiente:
+  `PartialParsing — 2 líneas sin analizar`, donde HEAD daba 127 limpio. Es por qué el protocolo pide
+  **Semgrep sobre el propio diff** y no sólo sobre código ajeno.
+- ⚠️ **Me comí el acento grave CINCO veces**, todas en comentarios míos dentro del cuerpo de un caso
+  o del template de la sonda, con el archivo que documenta la trampa abierto delante.
+  `scripts/check_backticks.py` dio la línea exacta las cinco veces mientras `node --check` apuntaba a
+  la apertura del template, decenas de líneas antes.
+- ⚠️ **Y UN FALSO DE MI PROPIA ADAPTACIÓN DE TC-260:** el `limpiar()` de ese caso vacía sólo los
+  cuatro campos de vena pulmonar, así que la escena «sin ningún dato» heredaba el E/e′ de la escena
+  anterior y medía SU color. Es la trampa del denominador aplicada al estado de PARTIDA.
 
 ### Función diastólica ASE/EACVI 2016 en ritmo sinusal — los DOS algoritmos de la Figura 8 (2026-10-12)
 

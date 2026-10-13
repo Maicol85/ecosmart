@@ -2313,6 +2313,344 @@ caso('TC-458', 'Diastolica ASE/EACVI 2016 en RITMO SINUSAL: los DOS algoritmos d
   ] };
 `);
 
+caso('TC-459', 'Parametros complementarios de la funcion diastolica: las TRES opciones del S/D con un corte por algoritmo y los dos valores de legado, el LARS en valor absoluto, los cuatro suplementarios de la ASE 2025 (folio 555) con el AND del inciso d, el E/e-prima por sitio de la ASE 2016 (folio 281), los dos rotulos y el borde del IMC, con nueve controles negativos', `
+  const S = (k, v) => __t.set(k, v);
+  /* ⚠️ EL FUENTE SE LEE DEL DOM Y NO CON fetch, Y NO ES UNA PREFERENCIA: el cuerpo de un caso
+     se evalua dentro de un (function(){ ... })() que NO es async, asi que un await en su nivel
+     superior tira «SyntaxError: missing ) after argument list» y el caso entero muere por
+     excepcion, sin decir que condicion fallaba. Los otros casos que usan fetch lo hacen dentro
+     de un (async function(){ ... })() propio. documentElement.innerHTML trae el <script>
+     inline con sus literales y es sincronico, que es lo que hace falta para leer dos rotulos. */
+  const fuente = document.documentElement.innerHTML;
+
+  const V = () => {
+    diastAlgoAbrir();
+    const cu = document.getElementById('diast-algo-cuerpo');
+    if (!cu) { diastAlgoCerrar(); return { filas: [], res: 'NO EXISTE EL CUERPO', n: 0 } }
+    const filas = Array.prototype.slice.call(cu.querySelectorAll('.da-row')).map(f => ({
+      crit: ((f.querySelector('.da-crit') || {}).textContent || '').replace(/\\s+/g, ' ').trim(),
+      val: ((f.querySelector('.da-val') || {}).textContent || '').replace(/\\s+/g, ' ').trim(),
+      est: /da-bad/.test(f.className) ? 'POS' : (/da-ok/.test(f.className) ? 'neg' : 'na') }));
+    const res = ((cu.querySelector('.da-res') || {}).textContent || '').replace(/\\s+/g, ' ').trim();
+    diastAlgoCerrar();
+    return { filas: filas, res: res, n: filas.length };
+  };
+  /* La fila de un criterio por su rotulo. Devuelve el ESTADO y no un booleano: «na» (sin
+     evaluar) no es lo mismo que «neg», y esa distincion es la mitad de este caso. */
+  const fila = (ven, re) => { const f = ven.filas.filter(x => re.test(x.crit)); return f.length ? f[0] : null; };
+  const est = (ven, re) => { const f = fila(ven, re); return f ? f.est : 'SIN FILA'; };
+
+  /* Peso 70 / talla 170 dan ASC 1,81: un Vol AI de 70 ml da LAVi 38,7 (POSITIVO, > 34) y uno de
+     50 da 27,6 (negativo). El orden de tipeo pone los <select> y lo NO cableado a calcDiastol
+     primero, y los campos mitrales al final. */
+  const esc = (m, guia, ritmo) => {
+    __t.limpiar();
+    S('diast_algoritmo', guia || 'ase2025');
+    S('diast_ritmo', ritmo || 'sinusal');
+    if (m.peso === undefined) S('peso', '70');
+    if (m.talla === undefined) S('talla', '170');
+    const orden = ['peso','talla','fevi','vci_diam','vci_col','venp_sd','ip_vtd','tde','triv',
+                   'venp_dur_ar','venp_dur_a','venp_vel_ar','ai_vol','vmax_it','lars','onda_l',
+                   'e_sep','e_lat','onda_e','onda_a'];
+    orden.forEach(k => { if (m[k] !== undefined) S(k, m[k]) });
+    Object.keys(m).forEach(k => { if (orden.indexOf(k) < 0) S(k, m[k]) });
+    if (typeof calcIP === 'function') { try { calcIP() } catch (e) {} }
+    if (typeof calcVenaPulm === 'function') { try { calcVenaPulm() } catch (e) {} }
+    calcDiastol();
+    const r = __t.informe();
+    const d = window._diastResult || {};
+    return { inf: r.inf, suma: r.suma, badge: (__t.txt('dd-interp') || '').replace(/\\s+/g, ' ').trim(),
+             texto: d.texto || '', tsuma: d.textoSuma || '', ven: V(),
+             lars: __t.val('lars'),
+             larsMarca: ((document.getElementById('lars-marca') || {}).textContent || '').trim(),
+             rotEprom: ((document.getElementById('eprom-lbl') || {}).textContent || '').trim(),
+             rotEe: ((document.getElementById('ee-lbl') || {}).textContent || '').trim(),
+             eeRojo: (() => { const e = document.getElementById('ee-val');
+               return !!e && getComputedStyle(e).color === 'rgb(239, 68, 68)' })() };
+  };
+  const mismo = (a, z) => a.badge === z.badge && a.texto === z.texto && a.tsuma === z.tsuma &&
+                          a.ven.res === z.ven.res;
+
+  /* ── DENOMINADORES. Sin estos, media docena de condiciones de abajo comparan null contra null
+     y el caso sale verde sobre una app que no separo nada. ── */
+  const opcSd = Array.prototype.slice.call(
+    (document.getElementById('venp_sd') || { options: [] }).options).map(o => o.value);
+  const duenoSd = (typeof venpSdEstado === 'function');
+  const duenoAbs = (typeof diastStrainAbs === 'function');
+  const duenoRot = (typeof diastRotulosSitioSync === 'function');
+  const duenoRojo = (typeof diastEeElevadaVigente === 'function');
+  const clavesSupl = (typeof ASE_SUPLEMENTARIOS !== 'undefined')
+    ? ASE_SUPLEMENTARIOS.map(q => q.clave).join(',') : 'SIN LISTA';
+  const camposNuevos = ['ip_vtd','ip_papd','venp_vel_ar','onda_l','eprom-lbl','ee-lbl']
+    .filter(id => !document.getElementById(id));
+
+  // ══ A · EL S/D: LAS TRES OPCIONES EN CADA USO ══════════════════════════════════════════════
+  /* ASE 2025 en ritmo sinusal, corte <= 0,67 (folio 554): el paciente llega al segundo paso por
+     2 de 3 principales positivas y lo deja SIN Vol AI, SIN LARS y SIN TRIV, asi que el S/D es el
+     unico parametro que lo decide. */
+  const B25 = { fevi: '60', onda_e: '100', onda_a: '80', e_sep: '5', e_lat: '7', vmax_it: '2.0' };
+  const sd25 = o => esc(Object.assign({}, B25, { venp_sd: o }), 'ase2025', 'sinusal');
+  const s25a = sd25('le067'), s25b = sd25('mid'), s25c = sd25('ge1'), s25v = sd25('');
+  /* ASE 2016 con FEVI deprimida, corte < 1 (folios 286, 287 y 290): tres compuertas —FEVI
+     deprimida, FALTA uno de los tres (sin IT) y el valor—. El Vol AI positivo deja un criterio
+     ya cumplido, asi que el S/D mueve 1 de 2 -> 2 de 3, o sea grado I -> grado II. Sin eso los
+     dos lados dan grado I y la escena no separa nada. */
+  const B16 = { fevi: '35', onda_e: '70', onda_a: '70', e_sep: '10', e_lat: '13', ai_vol: '70' };
+  const sd16 = o => esc(Object.assign({}, B16, { venp_sd: o }), 'ase2016', 'sinusal');
+  const s16a = sd16('le067'), s16b = sd16('mid'), s16c = sd16('ge1');
+  /* BSE 2024 con FEVI reducida, Figura 18 (pag. 37): el LARS en la zona intermedia (18 a 23) con
+     1 positivo y 1 negativo es la puerta de los suplementarios, donde el S/D vota. */
+  const BFR = { fevi: '35', onda_e: '120', onda_a: '80', e_sep: '5', e_lat: '7', ai_vol: '50', lars: '20' };
+  const sdfr = o => esc(Object.assign({}, BFR, { venp_sd: o }), 'bse2024', 'sinusal');
+  const sfra = sdfr('le067'), sfrb = sdfr('mid'), sfrc = sdfr('ge1');
+  /* Las dos ramas de FA, corte < 1 (Figura 8 folio 563 y Figura 19 pag. 40). El paso 1 queda en
+     2 y 2 —tres positivos cierran la figura sin llegar al paso 2— y el LARS ya positivo deja al
+     S/D decidiendo. */
+  const BFA = { fevi: '60', onda_e: '110', e_sep: '8', vmax_it: '2.0', tde: '200', lars: '15' };
+  const sdfa = (o, g) => esc(Object.assign({}, BFA, { venp_sd: o }), g, 'fa');
+  const sfa25a = sdfa('le067', 'ase2025'), sfa25c = sdfa('ge1', 'ase2025');
+  const sfabsa = sdfa('le067', 'bse2024'), sfabsc = sdfa('ge1', 'bse2024');
+
+  // ══ B · LOS DOS VALORES DE LEGADO: se abren como se guardaron y NO se migran ═══════════════
+  const leg25menor = sd25('menor1'), leg25mayor = sd25('mayor1');
+  const leg16menor = sd16('menor1'), leg16mayor = sd16('mayor1');
+  const legFaMenor = sdfa('menor1', 'ase2025'), legFaMayor = sdfa('mayor1', 'ase2025');
+  /* El <select> tiene que SEGUIR MOSTRANDO el valor viejo: sin su <option>, un estudio guardado
+     reabre con selectedIndex -1 y el dato desaparece de la pantalla. Es el defecto que et_grado
+     ya pago en esta app. */
+  const legSeMuestra = (() => {
+    const e = document.getElementById('venp_sd');
+    if (!e) return 'NO EXISTE';
+    e.value = 'menor1';
+    const a = e.selectedIndex >= 0 && e.value === 'menor1';
+    e.value = 'mayor1';
+    const b = e.selectedIndex >= 0 && e.value === 'mayor1';
+    e.value = '';
+    return a && b;
+  })();
+  const sdTokenSeguro = opcSd.every(o => o.indexOf('<') < 0 && o.indexOf('>') < 0);
+
+  // ══ C · EL LARS EN VALOR ABSOLUTO ═════════════════════════════════════════════════════════
+  /* El MISMO valor con los dos signos tiene que dar el MISMO veredicto en los cinco lugares que
+     leen el LARS. El 32 es el que importa: en HEAD un -32 cumplia < 18 crudo y publicaba presion
+     elevada sobre una auricula cuyo strain de reservorio es 32 %, o sea NORMAL. */
+  const larsEn = (v, g, r, base) => esc(Object.assign({}, base, { lars: v }), g, r);
+  const l25p = larsEn('32', 'ase2025', 'sinusal', B25), l25n = larsEn('-32', 'ase2025', 'sinusal', B25);
+  const l12p = larsEn('12', 'ase2025', 'sinusal', B25), l12n = larsEn('-12', 'ase2025', 'sinusal', B25);
+  const BFA2 = { fevi: '60', onda_e: '110', e_sep: '8', vmax_it: '2.0', tde: '200', venp_sd: 'menor1' };
+  const lfap = larsEn('32', 'ase2025', 'fa', BFA2), lfan = larsEn('-32', 'ase2025', 'fa', BFA2);
+  const lbsp = larsEn('32', 'bse2024', 'fa', BFA2), lbsn = larsEn('-32', 'bse2024', 'fa', BFA2);
+  /* Figura 18 de la BSE: 1 y 1 con los dos criterios disponibles es la puerta del strain. */
+  const BF18 = { fevi: '35', onda_e: '120', onda_a: '80', e_sep: '5', e_lat: '7', ai_vol: '50' };
+  const l18p = larsEn('32', 'bse2024', 'sinusal', BF18), l18n = larsEn('-32', 'bse2024', 'sinusal', BF18);
+  /* LA MARCA «(revisar)» PASA A SER POR MAGNITUD: un -32 vota como 32 y no se marca; un -80 si. */
+  const m32 = larsEn('-32', 'ase2025', 'sinusal', B25);
+  const m80 = larsEn('-80', 'ase2025', 'sinusal', B25);
+
+  // ══ D · LOS CUATRO SUPLEMENTARIOS DE LA ASE 2025 (folio 555) ══════════════════════════════
+  /* Se consultan en UN solo caso: con el segundo paso SIN NINGUN parametro. El paciente base
+     llega ahi por 2 de 3 principales y lo deja vacio. */
+  const sup = m => esc(Object.assign({}, B25, m), 'ase2025', 'sinusal');
+  const xL49 = sup({ onda_l: '49' }), xL50 = sup({ onda_l: '50' });
+  const xI19 = sup({ ip_vtd: '1.9' }), xI20 = sup({ ip_vtd: '2' });
+  /* PmAD 15 (VCI >= 21 mm con colapso < 50 %): PAPd = 4 x V^2 + 15, y el CAMPO la redondea.
+     Con V 0,3 son 15 y con 0,4 son 16: cruza. Las dos velocidades estan muy por debajo de 2, asi
+     que lo que vota es la PAPd y no la velocidad. */
+  const xP15 = sup({ vci_diam: '25', vci_col: '<50', ip_vtd: '0.3' });
+  const xP16 = sup({ vci_diam: '25', vci_col: '<50', ip_vtd: '0.4' });
+  /* SIN PmAD el campo dice «N mmHg (sin PmAD)»: le falta el sumando de la auricula derecha y NO
+     vota, aunque el numero que muestra pase de 16. */
+  const xPsin = sup({ ip_vtd: '1.95' });
+  /* El inciso (d) pide las DOS cosas: Ar-A > 30 ms Y amplitud de la Ar > 35 cm/s. */
+  const xA30 = sup({ venp_dur_a: '100', venp_dur_ar: '130', venp_vel_ar: '40' });
+  const xA31 = sup({ venp_dur_a: '100', venp_dur_ar: '131', venp_vel_ar: '40' });
+  const xV35 = sup({ venp_dur_a: '100', venp_dur_ar: '140', venp_vel_ar: '35' });
+  const xV36 = sup({ venp_dur_a: '100', venp_dur_ar: '140', venp_vel_ar: '36' });
+  /* CONTROLES NEGATIVOS de la etapa. */
+  const xCNvol = sup({ ip_vtd: '2.5', ai_vol: '50' });
+  const xCNtriv = sup({ ip_vtd: '2.5', triv: '90' });
+  const xCNneg = sup({ ip_vtd: '1.5', onda_l: '30', venp_dur_a: '100', venp_dur_ar: '110', venp_vel_ar: '20' });
+  const xCNbse = esc(Object.assign({}, B25, { ip_vtd: '2.5', onda_l: '60' }), 'bse2024', 'sinusal');
+  const xCN16 = esc(Object.assign({}, B25, { ip_vtd: '2.5', onda_l: '60' }), 'ase2016', 'sinusal');
+
+  // ══ E · EL E/e-PRIMA POR SITIO DE LA ASE 2016 (folio 281) ═════════════════════════════════
+  const ee16 = (m) => esc(Object.assign({ fevi: '35', onda_a: '70', vmax_it: '2.0', ai_vol: '70' }, m), 'ase2016', 'sinusal');
+  const epSep14 = ee16({ e_sep: '7', onda_e: '104' });   // 14,86: NO cruza su 15
+  const epSep15 = ee16({ e_sep: '7', onda_e: '105' });   // 15,00 exacto: NEGATIVO (>)
+  const epSep16 = ee16({ e_sep: '7', onda_e: '106' });   // 15,14: POSITIVO
+  const epLat12 = ee16({ e_lat: '8', onda_e: '103' });   // 12,88
+  const epLat13 = ee16({ e_lat: '8', onda_e: '104' });   // 13,00 exacto: NEGATIVO
+  const epLat14 = ee16({ e_lat: '8', onda_e: '105' });   // 13,13: POSITIVO
+  const epDos14 = ee16({ e_sep: '6', e_lat: '8', onda_e: '98' });   // promedio 14,00: NEGATIVO
+  const epDos15 = ee16({ e_sep: '6', e_lat: '8', onda_e: '99' });   // 14,14: POSITIVO
+  /* CONTROL NEGATIVO del OR: con los DOS anillos manda el promedio. El septal cruza su 15
+     (112/6 = 18,7) y el promedio no cruza su 14 (112/8 = 14,00): el criterio es NEGATIVO. */
+  const epCN = ee16({ e_sep: '6', e_lat: '10', onda_e: '112' });
+
+  // ══ F · LOS DOS ROTULOS Y EL BORDE DEL IMC ════════════════════════════════════════════════
+  const rotBase = { fevi: '60', onda_e: '100', onda_a: '80' };
+  const rDos = esc(Object.assign({}, rotBase, { e_sep: '6', e_lat: '8' }), 'ase2016', 'sinusal');
+  const rSep = esc(Object.assign({}, rotBase, { e_sep: '6' }), 'ase2016', 'sinusal');
+  const rLat = esc(Object.assign({}, rotBase, { e_lat: '8' }), 'ase2016', 'sinusal');
+  const rNin = esc(rotBase, 'ase2016', 'sinusal');
+  /* EL IMC EN SU BORDE: 86,7 kg con 170 cm dan 30.000000000000004 por punto flotante y cruzaban
+     un corte que es > 30. El redondeo a un decimal es SOLO de la comparacion de la diastolica. */
+  const BIMC = { fevi: '60', onda_e: '110', e_sep: '8', vmax_it: '2.0', tde: '200' };
+  const imc = (p, t, g) => esc(Object.assign({}, BIMC, { peso: p, talla: t }), g || 'ase2025', 'fa');
+  const i867 = imc('86.7', '170'), i90 = imc('90', '170'), i30 = imc('30', '100');
+  const i867bse = imc('86.7', '170', 'bse2024');
+  const imcCrudo = (typeof getIMC === 'function') ? String(getIMC()) : 'SIN getIMC';
+
+  return { extra: [
+    // ── DENOMINADORES
+    ['DENOMINADOR: los seis nodos nuevos existen', camposNuevos.length === 0, camposNuevos.join(',') || 'los seis'],
+    ['DENOMINADOR: los cuatro dueños estan cargados',
+      duenoSd && duenoAbs && duenoRot && duenoRojo,
+      'sd=' + duenoSd + ' abs=' + duenoAbs + ' rot=' + duenoRot + ' rojo=' + duenoRojo],
+    ['DENOMINADOR: la ventana dibuja sus filas', s25a.ven.n > 0, 'n=' + s25a.ven.n],
+
+    // ── A · EL S/D POR ALGORITMO
+    ['el <select> del S/D ofrece las TRES opciones nuevas MAS los dos valores de legado',
+      opcSd.join(',') === ',le067,mid,ge1,menor1,mayor1', opcSd.join(',')],
+    ['y ningun value empieza con < o >: lo que se guarda es un TOKEN', sdTokenSeguro, opcSd.join(',')],
+    ['ASE 2025 sinusal: «<=0,67» es POSITIVO (folio 554)', est(s25a.ven, /S\\/D/) === 'POS', est(s25a.ven, /S\\/D/)],
+    ['  y «>0,67 y <1» es NEGATIVO: ese tramo es lo que el selector viejo no podia expresar',
+      est(s25b.ven, /S\\/D/) === 'neg', est(s25b.ven, /S\\/D/)],
+    ['  y «>=1» tambien', est(s25c.ven, /S\\/D/) === 'neg', est(s25c.ven, /S\\/D/)],
+    ['  y las tres mueven el veredicto, que es lo que prueba que el criterio esta cableado',
+      s25a.badge !== s25b.badge && s25b.badge === s25c.badge,
+      s25a.badge + ' | ' + s25b.badge + ' | ' + s25c.badge],
+    ['CONTROL NEGATIVO: sin elegir, el criterio queda SIN EVALUAR y no cuenta como negativo',
+      est(s25v.ven, /S\\/D/) === 'na', est(s25v.ven, /S\\/D/)],
+    ['ASE 2016 con FEVI deprimida: el corte es < 1, asi que «<=0,67» y «>0,67 y <1» votan los DOS',
+      est(s16a.ven, /S\\/D/) === 'POS' && est(s16b.ven, /S\\/D/) === 'POS',
+      est(s16a.ven, /S\\/D/) + ' / ' + est(s16b.ven, /S\\/D/)],
+    ['  y «>=1» no, y eso mueve el grado', est(s16c.ven, /S\\/D/) === 'neg' && s16a.badge !== s16c.badge,
+      s16a.badge + ' | ' + s16c.badge],
+    ['BSE Figura 18 (FEVI reducida): el corte es < 1 y los dos primeros votan',
+      est(sfra.ven, /S\\/D/) === 'POS' && est(sfrb.ven, /S\\/D/) === 'POS' && est(sfrc.ven, /S\\/D/) === 'neg',
+      est(sfra.ven, /S\\/D/) + ' / ' + est(sfrb.ven, /S\\/D/) + ' / ' + est(sfrc.ven, /S\\/D/)],
+    ['  y mueve el veredicto de esa figura', sfra.badge !== sfrc.badge, sfra.badge + ' | ' + sfrc.badge],
+    ['FA de la ASE 2025 (Figura 8, folio 563): corte < 1, y mueve el veredicto',
+      est(sfa25a.ven, /S\\/D/) === 'POS' && est(sfa25c.ven, /S\\/D/) === 'neg' && sfa25a.badge !== sfa25c.badge,
+      sfa25a.badge + ' | ' + sfa25c.badge],
+    ['FA de la BSE (Figura 19, pag. 40): corte < 1, y mueve el veredicto',
+      est(sfabsa.ven, /S\\/D/) === 'POS' && est(sfabsc.ven, /S\\/D/) === 'neg' && sfabsa.badge !== sfabsc.badge,
+      sfabsa.badge + ' | ' + sfabsc.badge],
+
+    // ── B · LOS ESTUDIOS GUARDADOS CON EL SELECTOR VIEJO
+    ['un estudio guardado con «<1» o «>1» SIGUE MOSTRANDOSE: las dos <option> estan en el marcado',
+      legSeMuestra === true, String(legSeMuestra)],
+    ['legado «<1» con el corte <= 0,67: NO EVALUABLE, porque no distingue un 0,6 de un 0,9',
+      est(leg25menor.ven, /S\\/D/) === 'na', est(leg25menor.ven, /S\\/D/)],
+    ['  y el rotulo de la fila dice POR QUE, para que no se lea como un dato sin cargar',
+      /no distingue este corte/.test((fila(leg25menor.ven, /S\\/D/) || {}).crit || ''),
+      (fila(leg25menor.ven, /S\\/D/) || {}).crit || 'SIN FILA'],
+    ['legado «>1» con el corte <= 0,67: NEGATIVO, sin ambiguedad',
+      est(leg25mayor.ven, /S\\/D/) === 'neg', est(leg25mayor.ven, /S\\/D/)],
+    ['legado «<1» con el corte < 1: POSITIVO, porque ES exactamente ese corte',
+      est(leg16menor.ven, /S\\/D/) === 'POS' && est(legFaMenor.ven, /S\\/D/) === 'POS',
+      est(leg16menor.ven, /S\\/D/) + ' / ' + est(legFaMenor.ven, /S\\/D/)],
+    ['  y legado «>1» con el corte < 1: NEGATIVO',
+      est(leg16mayor.ven, /S\\/D/) === 'neg' && est(legFaMayor.ven, /S\\/D/) === 'neg',
+      est(leg16mayor.ven, /S\\/D/) + ' / ' + est(legFaMayor.ven, /S\\/D/)],
+
+    // ── C · EL LARS EN VALOR ABSOLUTO
+    ['ASE 2025 sinusal: +32 y -32 dan EXACTAMENTE lo mismo', mismo(l25p, l25n), l25p.badge + ' | ' + l25n.badge],
+    ['  y +12 y -12 tambien, del otro lado del corte', mismo(l12p, l12n), l12p.badge + ' | ' + l12n.badge],
+    ['  y los dos lados del corte dan veredictos DISTINTOS (si no, la escena no mide el corte)',
+      l25p.badge !== l12p.badge, l25p.badge + ' | ' + l12p.badge],
+    ['FA de la ASE 2025: +32 y -32 idem', mismo(lfap, lfan), lfap.badge + ' | ' + lfan.badge],
+    ['FA de la BSE: idem', mismo(lbsp, lbsn), lbsp.badge + ' | ' + lbsn.badge],
+    ['BSE Figura 18: idem', mismo(l18p, l18n), l18p.badge + ' | ' + l18n.badge],
+    ['el campo CONSERVA el signo tipeado: la cuenta usa el absoluto, el campo no',
+      l25n.lars === '-32' && l18n.lars === '-32', l25n.lars + ' / ' + l18n.lars],
+    ['la marca «(revisar)» del LARS es por MAGNITUD: un -32 NO se marca',
+      m32.larsMarca === '', m32.larsMarca],
+    ['  y un -80 SI, sin corregirse', m80.larsMarca === '(revisar)' && m80.lars === '-80',
+      m80.larsMarca + ' | ' + m80.lars],
+
+    // ── D · LOS CUATRO SUPLEMENTARIOS
+    ['la lista tiene los CUATRO que tienen campo', clavesSupl === 'ondaL,ipTd,papD,arA', clavesSupl],
+    ['onda L: 49 cm/s no alcanza y 50 SI (el >= incluye el valor exacto)',
+      est(xL49.ven, /Onda L/) === 'neg' && est(xL50.ven, /Onda L/) === 'POS' && xL49.badge !== xL50.badge,
+      est(xL49.ven, /Onda L/) + ' / ' + est(xL50.ven, /Onda L/)],
+    ['IP telediastolica: 1,9 m/s no y 2,00 SI (folio 555a, borde >=)',
+      est(xI19.ven, /telediast/) === 'neg' && est(xI20.ven, /telediast/) === 'POS' && xI19.badge !== xI20.badge,
+      est(xI19.ven, /telediast/) + ' / ' + est(xI20.ven, /telediast/)],
+    ['PAP diastolica: 15 mmHg no y 16 SI (folio 555a, borde >=), con la velocidad por debajo de 2',
+      est(xP15.ven, /PAP diast/) === 'neg' && est(xP16.ven, /PAP diast/) === 'POS' &&
+      est(xP16.ven, /telediast/) === 'neg' && xP15.badge !== xP16.badge,
+      est(xP15.ven, /PAP diast/) + ' / ' + est(xP16.ven, /PAP diast/) + ' | vel=' + est(xP16.ven, /telediast/)],
+    ['CONTROL NEGATIVO: SIN PmAD la PAPd queda SIN EVALUAR, porque le falta un sumando',
+      est(xPsin.ven, /PAP diast/) === 'na', est(xPsin.ven, /PAP diast/)],
+    ['Ar-A: 30 ms NO alcanza y 31 SI (folio 555d, borde > ESTRICTO)',
+      est(xA30.ven, /Ar−A|Ar-A/) === 'neg' && est(xA31.ven, /Ar−A|Ar-A/) === 'POS' && xA30.badge !== xA31.badge,
+      est(xA30.ven, /Ar−A|Ar-A/) + ' / ' + est(xA31.ven, /Ar−A|Ar-A/)],
+    ['CONTROL DEL AND: con la amplitud de la Ar en 35 cm/s el Ar-A de 40 ms NO alcanza, y con 36 SI',
+      est(xV35.ven, /Ar−A|Ar-A/) === 'neg' && est(xV36.ven, /Ar−A|Ar-A/) === 'POS',
+      est(xV35.ven, /Ar−A|Ar-A/) + ' / ' + est(xV36.ven, /Ar−A|Ar-A/)],
+    ['CONTROL NEGATIVO: con el Vol AI cargado el suplementario POSITIVO no se consulta',
+      est(xCNvol.ven, /telediast/) === 'POS' && !/no estimable/i.test(xCNvol.badge),
+      est(xCNvol.ven, /telediast/) + ' | ' + xCNvol.badge],
+    ['  y con el TRIV cargado tampoco', !/no estimable/i.test(xCNtriv.badge), xCNtriv.badge],
+    ['CONTROL NEGATIVO: con los cuatro NEGATIVOS no se afirma presion normal, sigue «no estimable»',
+      /no estimable/i.test(xCNneg.badge), xCNneg.badge],
+    ['CONTROL NEGATIVO: en la BSE y en la ASE 2016 la etapa NO existe',
+      est(xCNbse.ven, /telediast/) === 'SIN FILA' && est(xCN16.ven, /telediast/) === 'SIN FILA',
+      est(xCNbse.ven, /telediast/) + ' / ' + est(xCN16.ven, /telediast/)],
+
+    // ── E · EL E/e-PRIMA POR SITIO DE LA ASE 2016
+    ['solo el septal: el corte es > 15, asi que 14,86 NO cruza',
+      est(epSep14.ven, /E\\/e/) === 'neg', est(epSep14.ven, /E\\/e/)],
+    ['  y el 15,00 exacto tampoco (el operador es > ESTRICTO)',
+      est(epSep15.ven, /E\\/e/) === 'neg', est(epSep15.ven, /E\\/e/)],
+    ['  y el 15,14 SI, y eso mueve el grado',
+      est(epSep16.ven, /E\\/e/) === 'POS' && epSep15.badge !== epSep16.badge,
+      epSep15.badge + ' | ' + epSep16.badge],
+    ['  y la fila nombra el SITIO y su corte, con el motivo',
+      /septal > 15/.test((fila(epSep16.ven, /E\\/e/) || {}).crit || '') &&
+      /s[oó]lo el septal/i.test((fila(epSep16.ven, /E\\/e/) || {}).crit || ''),
+      (fila(epSep16.ven, /E\\/e/) || {}).crit || 'SIN FILA'],
+    ['solo el lateral: el corte es > 13, con el 13,00 exacto NEGATIVO y el 13,13 POSITIVO',
+      est(epLat12.ven, /E\\/e/) === 'neg' && est(epLat13.ven, /E\\/e/) === 'neg' &&
+      est(epLat14.ven, /E\\/e/) === 'POS',
+      est(epLat12.ven, /E\\/e/) + ' / ' + est(epLat13.ven, /E\\/e/) + ' / ' + est(epLat14.ven, /E\\/e/)],
+    ['los DOS anillos: manda el promedio con su > 14, que es la conducta de siempre',
+      est(epDos14.ven, /E\\/e/) === 'neg' && est(epDos15.ven, /E\\/e/) === 'POS',
+      est(epDos14.ven, /E\\/e/) + ' / ' + est(epDos15.ven, /E\\/e/)],
+    ['CONTROL NEGATIVO: con los DOS anillos el septal cruzando SU corte no suma por separado',
+      est(epCN.ven, /E\\/e/) === 'neg', est(epCN.ven, /E\\/e/) + ' | ' + (fila(epCN.ven, /E\\/e/) || {}).val],
+
+    // ── F · LOS DOS ROTULOS, EL ROJO Y EL IMC
+    ['con los DOS anillos los rotulos dicen «promedio»',
+      rDos.rotEprom === "e' promedio" && rDos.rotEe === "E/e' promedio",
+      rDos.rotEprom + ' / ' + rDos.rotEe],
+    ['con SOLO el septal dicen «septal», y antes los dos decian «promedio» sobre un dato que tenia uno',
+      rSep.rotEprom === "e' septal" && rSep.rotEe === "E/e' septal",
+      rSep.rotEprom + ' / ' + rSep.rotEe],
+    ['con SOLO el lateral dicen «lateral»',
+      rLat.rotEprom === "e' lateral" && rLat.rotEe === "E/e' lateral",
+      rLat.rotEprom + ' / ' + rLat.rotEe],
+    ['CONTROL NEGATIVO: sin ningun anillo vuelven a «promedio», que es el estado de fabrica',
+      rNin.rotEprom === "e' promedio" && rNin.rotEe === "E/e' promedio",
+      rNin.rotEprom + ' / ' + rNin.rotEe],
+    ['el rojo de la celda del E/e-prima sigue al criterio del algoritmo: con el 14,14 de la ASE 2016 se pinta',
+      epDos15.eeRojo === true, String(epDos15.eeRojo)],
+    ['  y con el 14,00 exacto NO, porque el corte de esa guia es > 14',
+      epDos14.eeRojo === false, String(epDos14.eeRojo)],
+    ['el IMC de 86,7 kg con 170 cm es NEGATIVO: el 30.000000000000004 no cruza el > 30',
+      est(i867.ven, /IMC/) === 'neg', est(i867.ven, /IMC/) + ' | crudo=' + imcCrudo],
+    ['  y en la BSE tampoco, que es la otra guia que usa ese corte',
+      est(i867bse.ven, /IMC/) === 'neg', est(i867bse.ven, /IMC/)],
+    ['  y el 30 EXACTO (30 kg con 100 cm) tampoco', est(i30.ven, /IMC/) === 'neg', est(i30.ven, /IMC/)],
+    ['DENOMINADOR: un IMC de verdad por encima de 30 SI es POSITIVO (90 kg con 170 cm)',
+      est(i90.ven, /IMC/) === 'POS', est(i90.ven, /IMC/)],
+    ['el PDF rotula «TDE» y no «TDA»', /\\{lbl:'TDE'/.test(fuente) && !/\\{lbl:'TDA'/.test(fuente),
+      String(/\\{lbl:'TDE'/.test(fuente)) + ' / TDA=' + String(/\\{lbl:'TDA'/.test(fuente))]
+  ] };
+`);
+
 caso('TC-30', 'AI por volumen indexado: las cuatro bandas en sus cortes exactos', `
   function ai(vol) { __t.limpiar(); ${BSA2} __t.set('ai_vol', String(vol)); return __t.informe(); }
   const r = [68, 70, 84, 98].map(ai);

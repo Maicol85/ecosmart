@@ -1,11 +1,107 @@
 # EcoSmart — pendientes vivos
 
+## Parámetros complementarios de la función diastólica (2026-10-12) — DECLARADO y NO arreglado
+
+Fuente: `docs/fuentes/FUENTES.md` → «Parámetros complementarios de la función diastólica».
+Mapa: `docs/mapa/diastolica-complementarios.md`.
+
+### C1 · El importador sigue rechazando un LARS negativo que la pantalla ya no marca
+
+`LAB_XLS_RANGO_PROPIO` tiene `lars:[0,60]` y lo compara sobre el valor **crudo**, así que una
+planilla con un LARS de −32 se rechaza por rango. En pantalla ese mismo valor ya **no** se marca
+«(revisar)», porque la cuenta usa `|x|` y 32 está en banda. Las dos superficies dicen cosas
+distintas sobre el mismo número.
+
+**No se tocó** porque tocar el importador cambia el round-trip de Excel, que necesita orden
+expresa. La salida limpia es la misma que ya tienen los otros tres strain: banda simétrica
+(`[-60, 60]`), que es la banda del valor absoluto escrita sobre el valor crudo.
+
+### C2 · La nota ‡ de la Figura 3 y el inciso (d) del folio 555 no dicen lo mismo
+
+La nota ‡ nombra sólo «Ar-A duration > 30 ms»; el inciso (d) pide además «a high amplitude
+(>35 cm/s) … **along with** an Ar-A duration >30 ms». La app exige el **AND**, que es la prosa y es
+el lado conservador. Si Maicol prefiere el criterio de la figura —el Ar−A solo—, es una línea:
+sacar la segunda mitad de `cumple` en la entrada `arA` de `ASE_SUPLEMENTARIOS`.
+
+### C3 · El inciso (d) es un marcador de LVEDP, no de PAI media
+
+El folio 555d lo escribe: «there is an early stage when **LVEDP is elevated but mean LAP is
+normal**». La Figura 3 estima la **PAI media**, así que ese parámetro empuja hacia «presión elevada»
+un estado que su propia fuente describe con la PAI media normal. Se implementó porque la nota ‡ lo
+lista como suplementario de ese algoritmo y porque el §12 del folio 555 manda informar el aumento
+aislado de la LVEDP. **Decidirlo es de Maicol**: la alternativa es sacarlo de la lista, o publicar
+una frase propia para el aumento aislado de la LVEDP —que sería una frase nueva del informe
+firmado—.
+
+### C4 · El informe firmado no nombra los suplementarios que decidieron
+
+El §12 del folio 555 lo pide: «LARS, pulmonary vein S/D ratio or systolic filling fraction, mitral
+inflow A duration, pulmonary vein Ar duration, and/or IVRT **should be included in the report if
+relied on**». Hoy los suplementarios se nombran en la ventana del 🧭 y en la `via`, y el único que
+llega al informe es el de la BSE por `_bseDetalles`. La ASE 2025 no tiene su equivalente.
+**Es una frase nueva del informe firmado**, así que no se tocó.
+
+### C5 · El quinto suplementario no tiene campo
+
+La **caída de la E/A ≥ 50 % con Valsalva** (folio 555e y nota ‡). La app no registra la maniobra por
+ningún campo. Los dos del inciso (c) —IM diastólica y terminación precoz del llenado antes del QRS—
+tampoco, y además no son una medición con corte. La lista `ASE_SUPLEMENTARIOS` está armada para que
+agregarlo sea una entrada y nada más.
+
+⚠️ **Y MIENTRAS FALTE UNO, EL LADO NEGATIVO DE LA ETAPA NO PUEDE AFIRMAR NADA.** La flecha «None» de
+la figura sale de haber preguntado sus cinco; la app pregunta cuatro. Por eso con los cuatro
+negativos el estado se queda en «no estimable».
+
+### C6 · Las dos salvedades del S/D que las guías escriben y la app no avisa
+
+El folio 554 de la ASE 2025: «The ratio is most reliable in patients with LV systolic dysfunction
+and **should not be considered in normal subjects with normal echocardiographic results**, when the
+ratio can be ≤ 0.67. In patients with normal LVEF, the ratio can be >0.67 despite elevated LV
+filling pressures.» La ASE/EACVI 2016 dice lo mismo en los folios 286 y 287, y de ahí sale que su
+Figura 8A **no** mire el S/D.
+
+En la ASE 2025 en ritmo sinusal el S/D **sí vota con FEVI normal**, porque su Figura 3 lo pone en el
+segundo paso sin condicionarlo a la FEVI. Las dos cosas están impresas en el mismo folio. Un aviso
+ámbar —«el S/D es poco fiable con FEVI normal»— sería lo que esta casa hace con una salvedad de la
+fuente, pero es un cartel nuevo y no estaba en la orden.
+
+### C7 · El borde de la PAP diastólica es el del campo REDONDEADO
+
+`asePapdSupl()` parsea `ip_papd`, que `calcIP` escribe con `toFixed(0)`. Así un 15,64 real se lee
+**16** y cruza el corte. Es deliberado —el número que el médico tiene delante es el que se
+clasificó, y la alternativa es una segunda copia de la fórmula— pero significa que el corte efectivo
+es `>= 15,5` sobre el valor exacto. Declarado.
+
+### C8 · El redondeo del IMC mueve un borde real, no sólo el del punto flotante
+
+Redondear a un decimal deja NEGATIVO un IMC de **30,03** (86,8 kg con 170 cm), que en HEAD era
+positivo. Es el precio del decimal que la orden pide, y es el lado conservador. Si Maicol quiere
+cerrar sólo el error de representación, la alternativa es comparar con una épsilon
+(`imc > 30 + 1e-9`) en vez de redondear.
+
+### C9 · Con un anillo solo, la BSE deja el cuadro en «—» y el rótulo nombra el sitio
+
+`calcDiastolBSE2024` escribe `eprom-val` sólo con los DOS anillos, así que con uno solo el renglón
+queda en «—» mientras su rótulo ya dice «e′ septal». **Es preexistente** —antes decía «e′ promedio»
+sobre el mismo «—»— y lo que esta tanda hace es que se vea. La salida limpia es que esa rama llame a
+`diastCeldasBasicas`, que sí lo escribe con un anillo; no se tocó porque es la celda de otra guía.
+
+### C10 · La «indeterminada» sigue sumando en DD_Sin
+
+El token nuevo de esta tanda cierra el caso de «Disfunción diastólica.», pero «Función diastólica
+indeterminada.» sigue clasificando `null` y, con el E/e′ documentado, sigue contando en
+`DD_Sin (Sin disfunción)` por la misma regla. **No le corresponde el token nuevo**: esa frase no
+afirma disfunción. Darle uno propio —o cambiar la fórmula de la columna— es una decisión sobre otra
+frase. Es lo que queda abierto de **A4**.
+
+---
+
 ## Función diastólica ASE/EACVI 2016 en ritmo sinusal (2026-10-12) — DECLARADO y NO arreglado
 
 Fuente: `docs/fuentes/FUENTES.md` → `### aseDiast2016 — ASE/EACVI 2016, RITMO SINUSAL`.
 Mapa: `docs/mapa/diastolica-ase2016.md`.
 
-### A1 · El E/e′ con un solo anillo se compara contra el corte del PROMEDIO
+### A1 · ✅ **CERRADO 2026-10-12** — El E/e′ con un solo anillo se compara contra el corte del PROMEDIO
 
 El folio 281 lo dice: «at times only the lateral e′ or septal e′ velocity is available ... a
 **lateral E/e′ ratio > 13** or a **septal E/e′ > 15** is considered abnormal». La app calcula
@@ -13,8 +109,12 @@ El folio 281 lo dice: «at times only the lateral e′ or septal e′ velocity i
 promedio. Con un septal solo, un E/e′ de 14,5 cuenta como positivo cuando su corte es 15; con un
 lateral solo, un 13,5 cuenta como negativo cuando su corte es 13.
 
-**No se tocó porque es un umbral clínico que esta orden no autoriza.** Es el mismo defecto que la
-ASE 2025 ya cerró con sus tres cortes por sitio, y la BSE 2024 también. Afecta a las DOS figuras.
+~~**No se tocó porque es un umbral clínico que esta orden no autoriza.**~~ **CERRADO el 2026-10-12**
+con tres constantes y el corte elegido por el sitio MEDIDO (`ASE16_EE_PROM` 14, `ASE16_EE_SEPTAL` 15,
+`ASE16_EE_LATERAL` 13, las tres con `>` estricto). **Es un REEMPLAZO y no un OR**: con los dos
+anillos manda el promedio, que es lo que dice el folio 281 («applies to laboratories that acquire
+only septal or lateral velocities»). Medido: cambian 3 de 12 escenas, las tres con un anillo solo y
+en las dos direcciones. Ver `docs/mapa/diastolica-complementarios.md`.
 
 ### A2 · «Enfermedad miocárdica con FEVI normal» no se detecta
 
@@ -31,22 +131,25 @@ en «es normal». La guía no tiene rama para eso y su propio ejemplo usa tres v
 informa indeterminada. Si Maicol prefiere seguir la regla al pie de la letra, es cambiar una sola
 condición.
 
-### A4 · Un `null` del Laboratorio cuenta como «Sin disfunción» en el Excel — PREEXISTENTE
+### A4 · ✅ **CERRADO EN PARTE 2026-10-12** — Un `null` del Laboratorio cuenta como «Sin disfunción» en el Excel
 
 `DD_Sin (Sin disfunción)` vale `(gd === 'sin' || (gd === null && eeDoc)) ? 1 : 0`. La frase nueva de
 la 8A («Disfunción diastólica.») y la «Función diastólica indeterminada.» que la app ya publicaba
 clasifican las dos en `null`, así que un estudio con el E/e′ documentado **cuenta como «Sin
 disfunción»** aunque su propio texto afirme lo contrario.
 
-**Es preexistente** —le pasaba igual a la indeterminada antes de esta tanda— y el Laboratorio no se
-tocó por orden expresa. La salida limpia es un token propio en `_labDiastGrado`, como los cuatro que
-la tanda de la BSE agregó.
+**CERRADO para la frase de la 8A el 2026-10-12** con exactamente esa salida: el token
+`ase2016_sin_grado` en `_labDiastGrado`, con rótulo en la columna de texto y ningún `DD_*`. Medido
+antes y después: `DD_Sin` pasa de 1 a 0 y el Excel sigue en 435 columnas. **Sigue abierto para la
+«indeterminada»**, que no afirma disfunción y a la que no le corresponde este token — ver C10.
 
-### A5 · La frase de la 8A no tiene token en el Laboratorio
+### A5 · ✅ **CERRADO 2026-10-12** — La frase de la 8A no tiene token en el Laboratorio
 
-Consecuencia de A4: «Disfunción diastólica.» no activa ningún `DD_*`, queda fuera de la distribución
-diastólica del panel, del PPT estadístico y del filtro de cohorte por grado. Es coherente con que la
-figura no gradúe, pero hoy no se distingue de «no se pudo clasificar».
+Era consecuencia de A4. **CERRADO el 2026-10-12**: hoy clasifica `ase2016_sin_grado` y la columna de
+texto publica «Disfunción, sin grado (ASE 2016)», así que ya se distingue de «no se pudo
+clasificar». Sigue **sin** `DD_*` y fuera de la distribución del panel, del PPT estadístico y del
+filtro por grado, y eso es lo correcto: la figura no gradúa. Mismo mecanismo que los cuatro tokens
+de la BSE.
 
 ### A6 · El TDE y el TRIV no entran, y la app los tiene cargados
 
