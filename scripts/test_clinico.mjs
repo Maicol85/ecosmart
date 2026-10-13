@@ -3031,6 +3031,254 @@ caso('TC-460', 'Diagrama de flujo de la BSE 2024 en la ventana del Algoritmo: la
   return { extra: AF };
 `);
 
+caso('TC-461', 'Doppler mitral: los 16 campos en CUATRO columnas con el Tab por columnas y foco real campo por campo, la posicion EXPLICITA que deja vacia la casilla de un campo oculto, el orden visual igual al del Tab cuando la grilla cae a una columna, y el selector del S/D con sus CUATRO opciones y un token desconocido tratado como campo SIN CARGAR', `
+  const AF = [];
+  const ok = (c, t, d) => AF.push([t, !!c, String(d)]);
+  __t.limpiar();
+  showTab('doppler');
+
+  /* El orden que pidio el medico el 13/10/2026: columna 1 de arriba hacia abajo, despues la 2,
+     la 3 y la 4. Es el orden del MARCADO y por eso es el del Tab. */
+  const ESP = ['onda_e','onda_a','e_sep','e_lat',
+               'venp_dur_a','venp_dur_ar','venp_vel_ar','venp_sd',
+               'thp','tde','triv','onda_l',
+               'lars_dop','ai_strain_ct_dop','itv_mitral','avm_thp'];
+  const CEL = { onda_e:'1/1', onda_a:'1/2', e_sep:'1/3', e_lat:'1/4',
+                venp_dur_a:'2/1', venp_dur_ar:'2/2', venp_vel_ar:'2/3', venp_sd:'2/4',
+                thp:'3/1', tde:'3/2', triv:'3/3', onda_l:'3/4',
+                lars_dop:'4/1', ai_strain_ct_dop:'4/2', itv_mitral:'4/3', avm_thp:'4/4' };
+
+  const grid = document.querySelector('#dop-mitral .grid-4.dm-grid');
+
+  /* ── DENOMINADORES. Sin estos, media docena de condiciones comparan listas vacias y el caso
+     sale verde sobre una grilla que no se dibujo. ── */
+  const faltan = ESP.filter(id => !document.getElementById(id));
+  const nFg = grid ? grid.querySelectorAll(':scope > .fg').length : 0;
+  ok(!!grid, 'DENOMINADOR: la grilla del Doppler mitral existe y lleva la clase dm-grid',
+     grid ? 'si' : 'NO EXISTE #dop-mitral .grid-4.dm-grid');
+  ok(faltan.length === 0, 'DENOMINADOR: los 16 campos existen', faltan.join(',') || 'los 16');
+  ok(nFg === 16, 'DENOMINADOR: la grilla tiene 16 celdas, ni una duplicada ni una perdida', 'n=' + nFg);
+
+  /* ══ (i) EL ORDEN DEL TAB ══════════════════════════════════════════════════════════════════
+     ⚠️ ESTE CASO NO PUEDE MANDAR UN Tab DE VERDAD: su cuerpo corre DENTRO de la pagina y no
+     tiene el canal del navegador, y un KeyboardEvent construido a mano no mueve el foco. Lo que
+     se fija aca es la REGLA que produce el orden —el orden del DOCUMENTO sin un solo tabindex
+     positivo, que es lo que recorre el Tab— y el foco REAL de cada campo, uno por uno, con
+     el(). Las teclas Tab reales, en las seis combinaciones de algoritmo y ritmo, las manda
+     scripts/_probe_dopmitral.mjs --solo tab, que si tiene CDP. */
+  const focos = Array.prototype.slice.call(
+      grid ? grid.querySelectorAll('input[id], select[id], textarea[id]') : [])
+    .filter(e => {
+      const ti = e.getAttribute('tabindex');
+      return !e.disabled && !(ti !== null && parseInt(ti, 10) < 0);
+    }).map(e => e.id);
+  ok(focos.join(',') === ESP.join(','),
+     'el orden del MARCADO —el que recorre el Tab— es el de las cuatro columnas',
+     focos.join(','));
+
+  /* Foco REAL, campo por campo. Se informa la lista de los que NO lo tomaron, no un booleano
+     pelado: con un solo campo que no reciba foco, el Tab se lo saltea y el orden se corre. */
+  const sinFoco = ESP.filter(id => {
+    const e = document.getElementById(id);
+    if (!e) return true;
+    try { e.focus() } catch (x) { return true }
+    return document.activeElement !== e;
+  });
+  ok(sinFoco.length === 0, 'los 16 toman foco REAL de a uno, asi que el Tab no saltea ninguno',
+     sinFoco.join(',') || 'los 16');
+  ok(document.activeElement && document.activeElement.id === 'avm_thp',
+     '  y el AVm por THP, que es de SOLO LECTURA, tambien lo toma: va ultimo del Tab, no afuera',
+     document.activeElement ? document.activeElement.id : 'sin foco');
+
+  /* ⚠️ NI UN tabindex EN LA GRILLA. Con un tabindex positivo el Tab deja de seguir el orden del
+     documento y pasa a depender de un numero que nadie mantiene sincronizado con el marcado. */
+  const tis = Array.prototype.slice.call(grid ? grid.querySelectorAll('[tabindex]') : [])
+    .map(e => (e.id || e.tagName.toLowerCase()) + '=' + e.getAttribute('tabindex'));
+  ok(tis.length === 0, 'la grilla no tiene NI UN tabindex: el orden es el del documento',
+     tis.join(' ') || 'ninguno');
+
+  /* ══ (ii) LA CASILLA DE CADA CAMPO ═════════════════════════════════════════════════════════
+     La posicion la dan DOS clases por campo. Que las 16 casillas sean distintas es lo unico que
+     caza una posicion escrita dos veces, y es tambien lo que hace que esconder un campo deje su
+     casilla VACIA en vez de que otro se la tome. */
+  /* UN solo lector de la casilla, usado por esta seccion y por la del campo oculto: con dos
+     formatos distintos, «antes» y «despues» difieren por el texto y no por la posicion —una
+     diferencia falsa con pinta de hallazgo, que es como esta condicion salio roja contra HEAD la
+     primera vez por un artefacto de formato y no por el defecto que busca—. */
+  const par = (id) => {
+    const e = document.getElementById(id);
+    const fg = e ? e.closest('.fg') : null;
+    const cl = fg ? String(fg.className) : '';
+    const mc = cl.match(/dm-c(\\d)/), mr = cl.match(/dm-r(\\d)/);
+    return (mc && mr) ? (mc[1] + '/' + mr[1]) : 'SIN CLASES';
+  };
+  const celdas = {}, malas = [];
+  ESP.forEach(id => {
+    celdas[id] = par(id);
+    if (celdas[id] !== CEL[id]) malas.push(id + ': ' + celdas[id] + ' en vez de ' + CEL[id]);
+  });
+  ok(malas.length === 0, 'cada campo lleva la casilla que pidio el medico (columna/fila)',
+     malas.join(' | ') || JSON.stringify(celdas));
+  const distintas = Object.keys(celdas).map(k => celdas[k]);
+  ok(new Set(distintas).size === 16,
+     '  y las 16 casillas son DISTINTAS: ninguna posicion escrita dos veces',
+     distintas.join(','));
+
+  /* ══ (iii) LAS REGLAS DE LA HOJA ═══════════════════════════════════════════════════════════
+     ⚠️ ESTE ARNES MIDE EN 756 px, asi que la grilla de CUATRO columnas no esta renderizada aca:
+     por debajo de 769 px .grid-4 cae a UNA columna. La posicion de las cuatro columnas se fija
+     por su REGLA —que es lo que la produce— y se MIDE a 1200, 900, 390 y 360 px en los dos temas
+     en scripts/_probe_dopmitral.mjs --solo pos. Lo que si se mide aca es el ancho real y el
+     comportamiento a una columna, que es el de celular. */
+  const vw = window.innerWidth;
+  const esCelular = window.matchMedia('(max-width: 768px)').matches;
+  const fuente = document.documentElement.innerHTML;
+  const reglaPC = fuente.indexOf('@media (min-width: 769px)') > -1;
+  const reglasCol = [1,2,3,4].filter(n =>
+    fuente.indexOf('.dm-grid > .dm-c' + n + ' { grid-column: ' + n + '; }') > -1).length;
+  const reglasFila = [1,2,3,4].filter(n =>
+    fuente.indexOf('.dm-grid > .dm-r' + n + ' { grid-row: ' + n + '; }') > -1).length;
+  ok(reglaPC && reglasCol === 4 && reglasFila === 4,
+     'las OCHO reglas de posicion explicita existen, dentro del @media de 769 px',
+     'media=' + reglaPC + ' columnas=' + reglasCol + '/4 filas=' + reglasFila + '/4');
+  ok(fuente.indexOf('.grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }') > -1,
+     '  y el corte de abajo es el que YA existia: .grid-4 a una columna por debajo de 768 px',
+     'si');
+  /* La regla que hace que esconder una celda la saque del dibujo. Sin ella, [hidden] no alcanza:
+     una regla de autor le gana al [hidden] de la hoja del NAVEGADOR, y este archivo ya lo pago
+     cuatro veces. */
+  ok(fuente.indexOf('.fg[hidden] { display: none; }') > -1,
+     '  y .fg[hidden] tiene su propia regla de autor, que es la que gana',
+     'si');
+
+  /* ══ (iv) EL ORDEN VISUAL A UNA COLUMNA ════════════════════════════════════════════════════
+     Apilado, el orden visual tiene que ser el mismo que el del Tab. Se deriva de la geometria
+     —ordenando por top y despues por left— y no del marcado, que es justamente lo que se quiere
+     comprobar que coincide. */
+  const geo = ESP.map(id => {
+    const fg = document.getElementById(id).closest('.fg');
+    const r = fg.getBoundingClientRect();
+    return { id: id, top: Math.round(r.top), left: Math.round(r.left),
+             w: Math.round(r.width), h: Math.round(r.height) };
+  });
+  const conGeo = geo.filter(g => g.w > 0 && g.h > 0);
+  ok(conGeo.length === 16, 'DENOMINADOR: los 16 tienen geometria antes de ordenar por posicion',
+     'n=' + conGeo.length + ' vw=' + vw);
+  const visual = conGeo.slice().sort((a, b) => (a.top - b.top) || (a.left - b.left)).map(g => g.id);
+  ok(visual.join(',') === ESP.join(','),
+     'el orden VISUAL coincide con el del Tab (medido a ' + vw + ' px, una columna: ' + esCelular + ')',
+     visual.join(','));
+  const columnas = new Set(conGeo.map(g => g.left)).size;
+  ok(esCelular ? columnas === 1 : columnas === 4,
+     '  y a este ancho la grilla tiene ' + (esCelular ? 'UNA' : 'CUATRO') + ' columna/s',
+     'columnas=' + columnas + ' vw=' + vw);
+  /* Ningun campo desborda su celda ni se superpone con otro. */
+  const desb = geo.filter(g => {
+    const fg = document.getElementById(g.id).closest('.fg');
+    const r = fg.getBoundingClientRect();
+    return Array.prototype.slice.call(fg.children).some(c =>
+      c.getBoundingClientRect().right > r.right + 1);
+  }).map(g => g.id);
+  ok(desb.length === 0, '  y ningun campo desborda su celda', desb.join(',') || 'ninguno');
+
+  /* ══ (v) UN CAMPO OCULTO DEJA SU CASILLA VACIA ═════════════════════════════════════════════
+     A 756 px la grilla es de una columna, asi que esconder un campo SI cierra el hueco —y eso es
+     correcto: apilado no hay casilla que dejar—. Lo que se fija aca es que la celda escondida se
+     va del dibujo de verdad y que las clases de posicion de las otras quince NO cambian, que es
+     lo que mantiene su casilla en la grilla ancha. El hueco RENDERIZADO a 1200 px lo mide
+     scripts/_probe_dopmitral.mjs --solo hueco: alli esconder el S/D no mueve a ninguno de los
+     otros quince, y antes de esta tanda movia CUATRO. */
+  const fgSd = document.getElementById('venp_sd').closest('.fg');
+  const antes = ESP.map(par).join(',');
+  fgSd.setAttribute('hidden', '');
+  const dispOculto = getComputedStyle(fgSd).display;
+  const despues = ESP.map(par).join(',');
+  fgSd.removeAttribute('hidden');
+  const dispVuelta = getComputedStyle(fgSd).display;
+  ok(dispOculto === 'none' && dispVuelta !== 'none',
+     'esconder una celda con [hidden] la saca del dibujo, y quitarlo la devuelve',
+     'oculto=' + dispOculto + ' vuelta=' + dispVuelta);
+  ok(antes === despues,
+     '  y las casillas de las otras quince no cambian: su posicion no depende del vecino',
+     antes === despues ? 'identicas' : (antes + ' -> ' + despues));
+
+  /* ══ (vi) EL SELECTOR DEL S/D ══════════════════════════════════════════════════════════════ */
+  const sel = document.getElementById('venp_sd');
+  const ops = Array.prototype.slice.call(sel.options);
+  ok(ops.length === 4 && ops.map(o => o.value).join(',') === ',le067,mid,ge1',
+     'el S/D tiene EXACTAMENTE cuatro <option>: el vacio y los tres cortes',
+     'n=' + ops.length + ' [' + ops.map(o => o.value).join(',') + ']');
+  /* El display COMPUTADO y no la propiedad: una <option> con hidden se esconde por un
+     display:none, y un desplegable NATIVO no esta obligado a respetarlo —asi aparecian en
+     Safari las dos de legado—. */
+  const tapadas = ops.filter(o => o.hidden || o.disabled ||
+                                  getComputedStyle(o).display === 'none').map(o => o.value);
+  ok(tapadas.length === 0, '  y ninguna esta oculta ni deshabilitada (display COMPUTADO)',
+     tapadas.join(',') || 'ninguna');
+  ok(ops.every(o => o.value.indexOf('<') < 0 && o.value.indexOf('>') < 0),
+     '  y ningun value empieza con < o >: lo que se guarda es un TOKEN',
+     ops.map(o => o.value).join(','));
+
+  /* Un token que el selector ya no ofrece: campo SIN CARGAR, sin error y sin veredicto. */
+  sel.value = 'menor1';
+  const desc = { leido: sel.value, idx: sel.selectedIndex,
+                 le067: venpSdEstado('le067'), lt1: venpSdEstado('lt1'),
+                 etiqueta: venpSDTxt(), fila: venpSdFilaVal('le067') };
+  sel.value = '';
+  ok(desc.leido === '' && desc.idx === -1 && desc.le067 === null && desc.lt1 === null &&
+     desc.etiqueta === null && desc.fila === null,
+     'un token desconocido se lee como campo SIN CARGAR en los dos cortes',
+     JSON.stringify(desc));
+  ok(typeof venpSdCritSuf === 'undefined',
+     '  y el sufijo del rotulo del legado ya no existe: quedo muerto al irse los dos tokens',
+     typeof venpSdCritSuf);
+
+  /* Y el tramo del medio NO cumple el corte <= 0,67, que es lo que el selector viejo no podia
+     expresar. Se mide con el valor y no con el veredicto: el estado del criterio es lo que vota. */
+  sel.value = 'le067';
+  const sLe = venpSdEstado('le067') === true && venpSdEstado('lt1') === true;
+  sel.value = 'mid';
+  const sMid = venpSdEstado('le067') === false && venpSdEstado('lt1') === true;
+  sel.value = 'ge1';
+  const sGe = venpSdEstado('le067') === false && venpSdEstado('lt1') === false;
+  sel.value = '';
+  ok(sLe && sMid && sGe,
+     'los tres tokens vivos deciden en los DOS cortes, y el del medio los separa',
+     'le067=' + sLe + ' mid=' + sMid + ' ge1=' + sGe);
+
+  /* ══ CONTROLES NEGATIVOS ═══════════════════════════════════════════════════════════════════ */
+  /* 1 · Los otros tres bloques del Doppler NO se tocaron: ninguno lleva dm-grid ni dm-c*. */
+  const otros = ['dop-aortico','dop-tricusp','dop-pulmonar'].map(id => {
+    const c = document.getElementById(id);
+    return { id: id, existe: !!c,
+             dm: c ? c.querySelectorAll('.dm-grid, [class*="dm-c"], [class*="dm-r"]').length : -1 };
+  });
+  ok(otros.every(o => o.existe && o.dm === 0),
+     'CONTROL NEGATIVO: los otros tres bloques del Doppler no llevan una sola clase de esta tanda',
+     JSON.stringify(otros));
+  /* 2 · Los dos <select> de escenario siguen FUERA de la grilla, en su grid-2 de arriba. */
+  const fueraDeLaGrilla = ['diast_algoritmo','diast_ritmo'].filter(id => {
+    const e = document.getElementById(id);
+    return !!e && !!e.closest('.dm-grid');
+  });
+  ok(fueraDeLaGrilla.length === 0,
+     'CONTROL NEGATIVO: el selector de algoritmo y el de ritmo NO entraron en la grilla',
+     fueraDeLaGrilla.join(',') || 'los dos afuera');
+  /* 3 · El cuadro de resultados sigue teniendo sus filas: esta tanda no lo toca. */
+  const filasCuadro = document.querySelectorAll('#dop-mitral .calc-box .calc-row').length;
+  ok(filasCuadro >= 4,
+     'CONTROL NEGATIVO: el cuadro de resultados sigue dibujando sus filas',
+     'n=' + filasCuadro);
+  /* 4 · Y los campos se siguen guardando por id: ninguno de los 16 queda fuera del recolector. */
+  const noViajan = ESP.filter(id => (typeof _noEsDelEstudio === 'function') && _noEsDelEstudio(id));
+  ok(noViajan.length === 0,
+     'CONTROL NEGATIVO: los 16 siguen viajando con el estudio —se guardan por id, no por posicion—',
+     noViajan.join(',') || 'los 16');
+
+  __t.limpiar();
+  return { extra: AF };
+`);
+
 
 caso('TC-30', 'AI por volumen indexado: las cuatro bandas en sus cortes exactos', `
   function ai(vol) { __t.limpiar(); ${BSA2} __t.set('ai_vol', String(vol)); return __t.informe(); }

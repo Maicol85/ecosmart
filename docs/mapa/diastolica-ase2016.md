@@ -145,16 +145,18 @@ relajación prolongada por definición: omitir es aceptable, afirmar normalidad 
 ### El S/D venoso pulmonar — tres compuertas
 
 ```
-feviDeprimida  &&  R.total === 2  &&  sv('venp_sd') === 'menor1'   →  total++, pos++
+feviDeprimida  &&  R.total === 2  &&  venpSdEstado('lt1') === true   →  total++, pos++
 ```
 
 Las tres salen del folio 290 (pie de la figura), del folio 286 y del Key Point 6 del 287. **Sólo suma
 del lado positivo**: la guía no dice nada del ≥ 1, y contarlo como negativo convertiría un silencio
 de la fuente en un voto hacia «presión normal».
 
-⚠️ **El corte cae JUSTO en el borde de la opción del `<select>`**, que es lo que lo hace usable acá y
-no en la ASE 2025, donde el corte es ≤ 0,67 y un S/D de 0,9 es «<1» sin cumplirlo. Misma lectura que
-la Figura 18 de la BSE.
+⚠️ **La lectura la hace `venpSdEstado('lt1')`, el único dueño**, y no una comparación escrita acá: el
+corte `< 1` lo cumplen las dos opciones de abajo del 1 —«≤0,67» y «>0,67 y <1»—. El corte que las
+separa es el ≤ 0,67 de la ASE 2025 en ritmo sinusal. Misma lectura que la Figura 18 de la BSE.
+(El seudocódigo de arriba comparó el token a mano hasta el 2026-10-12; desde que el selector tiene
+tres opciones, hacerlo así dejaría un segundo lector de la misma tabla.)
 
 ---
 

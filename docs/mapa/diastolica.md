@@ -99,10 +99,13 @@ todas las frases.
 **Vol AI >34 ml/m²** · **LARS ≤18 %** · **S/D venoso pulmonar ≤0,67 → NO EVALUABLE** · y como
 **alternativa** (sólo si no hay ninguno de los de arriba) **TRIV ≤70 ms**.
 
-⚠️ **El S/D está declarado no evaluable a propósito.** `venp_sd` es un `<select>` de «<1 / >1» y el
-corte de la guía es ≤0,67: un S/D de 0,9 es «<1» y **no** cumple. Tomar «<1» por «≤0,67» inventaría
-un positivo. Se dibuja en **gris**, con el motivo en su propio rótulo, para que su ausencia no se lea
-como un negativo.
+⚠️ **El S/D VOTA ACÁ DESDE EL 2026-10-12** (este párrafo decía lo contrario hasta entonces, y era
+cierto mientras el `<select>` tenía dos opciones). El corte de la guía es ≤0,67, y con «<1 / >1» era
+inexpresable: un S/D de 0,9 es «<1» y **no** cumple. El selector pasó a tener TRES opciones
+—«≤0,67», «>0,67 y <1» y «≥1»— y el tramo del medio es lo que separa este corte del `< 1` de las
+otras cuatro lecturas. Lo lee `venpSdEstado('le067')`, el único dueño. Con el campo **sin cargar**
+se dibuja en **gris** y no entra en el conteo: un criterio que nadie midió no es un criterio
+negativo. Ver `docs/mapa/diastolica-complementarios.md`.
 
 ### Paso 3 — las compuertas, en su orden
 | Condición | Veredicto | `clave` |
@@ -157,7 +160,7 @@ HEAD — el e′ promedio y el E/e′ **sólo con los DOS anillos**, que NO es l
 | Strain de **contracción** de la AI (el LAPs de la guía) | `ai_strain_ct` (espejado con `ai_strain_ct_dop`), en **valor absoluto** por `diastStrainAbs` | **AI/VI** / Doppler |
 | Onda L | `onda_l` | Doppler |
 | Ar−A | `venpArA()`, de `venp_dur_ar` y `venp_dur_a` | Doppler (vena pulmonar) |
-| S/D venoso pulmonar | `venp_sd` (`<select>`: `menor1` / `mayor1`) | Doppler |
+| S/D venoso pulmonar | `venp_sd` (`<select>` de CUATRO opciones: `''` / `le067` / `mid` / `ge1`), leído por `venpSdEstado(corte)` | Doppler |
 | TDE | `tde` | Doppler |
 | FEVI, GLS | `fevi`, `sgl` | 2D / Strain |
 | **Edad, sexo** | `edad`, `sexo` | **Paciente** |
@@ -322,10 +325,11 @@ la ventana (con `RECALC_MODULOS`) y `limpiarCampos`.
 
 ### Trampas propias de esta zona
 
-- ⚠️ **EL S/D VENOSO PULMONAR CAMBIA DE ESTADO SEGÚN EL RITMO.** En sinusal el corte es ≤0,67 y el
-  `<select>` de «<1 / >1» no puede expresarlo: está declarado **no evaluable**. En FA el corte es
-  **< 1**, que es exactamente lo que dice la opción, así que **sí vota**. Es el mismo campo con
-  dos cortes, y uno cae justo en el borde de la opción.
+- ⚠️ **EL S/D VENOSO PULMONAR CAMBIA DE CORTE SEGÚN EL RITMO, Y VOTA EN LOS DOS.** En sinusal el
+  corte es ≤0,67 y en FA **< 1**: es el mismo campo con dos cortes, leídos por `venpSdEstado` con
+  `'le067'` y con `'lt1'`. Hasta el 2026-10-12 el de sinusal estaba declarado **no evaluable**,
+  porque el `<select>` sólo ofrecía «<1 / >1»; desde que tiene las tres opciones, el tramo del
+  medio es lo que separa un corte del otro.
 - ⚠️ **UNA IT DE 2,80 ES POSITIVA EN SINUSAL Y NEGATIVA EN FA.** La Figura 3 la escribe con `≥` y
   las Figuras 8 y 19 con `>`. Las dos cosas son correctas y por eso las ramas **no comparten
   constantes**. Lo mismo con el E/e'.

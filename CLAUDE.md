@@ -27,6 +27,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la ASE/EACVI 2016 en ritmo sinusal**: la Figura 8A, la 8B o el corte de FEVI | `docs/mapa/diastolica-ase2016.md` |
 | **Tocar el S/D venoso pulmonar, el LARS, los suplementarios de la ASE 2025, el E/e′ por sitio de la ASE 2016, los rótulos del cuadro o el rojo del E/e′** | `docs/mapa/diastolica-complementarios.md` |
 | **Tocar el DIAGRAMA DE FLUJO de la ventana 🧭 de la BSE 2024**: los planos, el motor del SVG, el umbral de ancho o la tabla compacta | `docs/mapa/diastolica-diagrama.md` |
+| **Tocar la GRILLA del Doppler mitral**: el orden de los 16 campos, el Tab por columnas, los puntos de corte o el selector del S/D | `docs/mapa/doppler-mitral-grilla.md` |
 | **Tocar el VENTRÍCULO DERECHO**: sus campos, el cuadro de referencias, la disfunción sistólica, la pared o el Tei | `docs/mapa/vd-derecho.md` |
 | **Tocar el panel de Evidencia: agregar una cita, una sección o un sub-bloque** | `docs/mapa/panel-evidencia.md` |
 | **Agregar un TÉRMINO al glosario del panel (el ⓘ con tarjeta)** | `docs/mapa/panel-evidencia-terminos.md` |
@@ -57,6 +58,7 @@ glosario del panel: un mapa que crece con cada tanda termina siendo imposible de
 glosario respetó la regla sacando su mapa a un archivo propio
 (`panel-evidencia-terminos.md`, 15 KB) en vez de agregarle una sección; lo que le entró fueron tres
 punteros. **La próxima tanda que lo toque conviene que lo parta.**
+⚠️ **Al 2026-10-13 hay OCHO mapas y el nuevo también nació chico:** `doppler-mitral-grilla.md` pesa 8,9 KB. Se sacó a archivo propio en vez de agregarle una sección a `diastolica.md`, que está en 34,6 KB y a 400 bytes del techo.
 
 Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la ventana.
 
@@ -218,6 +220,124 @@ impecable.
 ---
 
 ## Estado vigente
+
+### Doppler mitral: el S/D sin legado y los 16 campos en cuatro columnas (2026-10-13)
+
+- Al **empezar** esta tanda, `main` local y `origin/main` estaban los dos en **`bc17525`**, sin nada
+  sin pushear —confirmado con un `git fetch` de verdad, no con el ref en caché—, con los **seis**
+  commits de la tanda del diagrama de la BSE ya incluidos **y pusheados**. Los **tres** commits de
+  esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 3 → 2 → 1.**
+  El **1** (el S/D) y el **2** (la grilla) **no se llaman entre sí y se revierten en cualquier
+  orden**: el primero toca `venp_sd`, `VENP_SD_TXT`, `VENP_SD_LECTURA` y `venpSdCritSuf`, y el
+  segundo sólo mueve marcado y agrega ocho reglas de CSS. ⚠️ **PERO EL 1 LLEVA LA SONDA**
+  (`scripts/_probe_dopmitral.mjs`), que el 2 también usa, y la adaptación de **siete** casos de la
+  suite; revertirlo deja al 2 sin arnés. **El 3 es TC-461 más documentación** y afirma el
+  comportamiento de los dos: revertir cualquiera sin el 3 deja TC-461 en rojo —11 de sus 28
+  condiciones, verificado en un worktree aparte—.
+
+- **Línea base al cierre: suite 472/476 en la corrida completa con el pendrive `DISK_IMG` MONTADO,
+  Semgrep 127 / 0 ERROR, Excel 435 columnas, celular 43 a 360 px y 52 a 390 px con 1 ALTA cada uno
+  —IDÉNTICO a la línea base: ni un hallazgo nuevo—.** Los cuatro rojos son los de ENTRADA y NO son
+  regresiones: **TC-223** (el documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**.
+  **El denominador subió a 476**: esta tanda agregó **TC-461**. La de ENTRADA, medida en HEAD limpio
+  el 2026-10-13, fue **471/475** con el pendrive montado y los mismos cuatro rojos, con el `md5` de
+  `index.html` sin moverse durante la corrida de cierre (`9bb03dea…`) ni durante la de entrada
+  (`da74ada5…`). `--todo` da **374 a 360 px y 383 a 390 px**, el mismo par que la tanda del
+  2026-10-12 midió: los dieciséis campos no son nuevos, sólo cambiaron de lugar.
+  ⚠️ **ESTA CIFRA LA ESCRIBI ANTES DE MEDIRLA Y DESPUES LA CONFIRME.** Coincidió, pero el renglón
+  estuvo escrito sin medición durante media tanda, que es exactamente lo que este archivo ya
+  documenta como error propio dos secciones más abajo. **Medir y después escribir.**
+- **Dónde está todo:** `docs/mapa/doppler-mitral-grilla.md` (**mapa NUEVO**: las cuatro columnas, el
+  Tab, las ocho reglas, los puntos de corte, lo medido y las trampas),
+  `docs/mapa/diastolica-complementarios.md` → «El S/D venoso pulmonar» (la tabla de cuatro opciones
+  y el porqué del tercer estado), `docs/fuentes/FUENTES.md` → «El S/D venoso pulmonar — CINCO
+  lecturas y DOS cortes», `docs/PENDIENTES.md` → **cinco** cosas declaradas y no tocadas (G1 a G5).
+
+- **NO CAMBIA NINGUNA CUENTA, NINGUN CORTE, NINGUN VEREDICTO NI NINGUNA SUPERFICIE FIRMADA, Y ESTA
+  MEDIDO.** A/B contra HEAD: **16 escenas de veredicto** (las cuatro lecturas del S/D × los cuatro
+  valores del selector) con 0 diferencias en badge, texto del informe, texto del EN SUMA, resultado
+  de la ventana, número de filas y estado de la fila del S/D; y **8 escenas de superficies** con 0
+  diferencias en informe (3 estilos), EN SUMA (3), Excel con sus **435** columnas, franja del PPT,
+  grado del Laboratorio y hash de los campos guardados.
+- ⚠️ **LAS DOS OPCIONES DE LEGADO DEL S/D SE ESCONDIAN CON `hidden`, Y ESO ES UN `display:none`.**
+  Medido con `getComputedStyle` sobre cada `<option>` en HEAD: las dos tenían `display: none` en
+  Chrome. Un desplegable **NATIVO** no está obligado a respetar el layout de sus propias opciones, y
+  por eso **en Safari aparecían** las dos «(estudio anterior)» con el campo vacío. **El chequeo de
+  acá es ESTRUCTURAL** —Safari no se puede probar desde este entorno—: lo que se afirma es que las
+  dos no existen y que ninguna de las cuatro que quedan está oculta ni deshabilitada. Que en Safari
+  ya no salgan lo mira Maicol.
+- **DECISION DEL MEDICO (13/10): no hay ningún estudio guardado con el S/D cargado**, así que no hay
+  compatibilidad que sostener. Con las dos opciones se fueron sus entradas de `VENP_SD_TXT`, sus
+  cinco entradas de `VENP_SD_LECTURA` y **`venpSdCritSuf` con sus cinco sitios de llamada**: esa
+  función quedó devolviendo cadena vacía SIEMPRE, así que los cinco rótulos imprimen el mismo texto
+  que antes. **Los cinco cortes y sus operadores no se tocaron.**
+- ⚠️ **EL TERCER ESTADO DE `venpSdEstado` NO SE FUE, Y NO HAY QUE «LIMPIARLO».** Sigue devolviendo
+  `null` cuando no se puede decidir —hoy con un solo origen, el campo SIN CARGAR—, porque `_daFila`
+  deriva de ese `null` la fila GRIS y un `false` pondría el ✓ de NEGATIVO sobre un criterio que
+  nadie midió. Un token que el selector ya no ofrece entra por ese mismo camino: `selectedIndex -1`,
+  `value` vacío, `null` en los dos cortes y etiqueta `null`. **Medido en HEAD con un token inventado
+  ANTES de tocar nada: ese camino ya existía.**
+
+- **LOS 16 CAMPOS EN CUATRO COLUMNAS, Y EL ORDEN DEL MARCADO ES EL DEL TAB.** Sin un solo
+  `tabindex`: el navegador recorre el orden del documento, y el marcado está por columnas. **Medido
+  con teclas Tab REALES y foco real campo por campo: los dieciséis en orden de columnas, IDENTICO en
+  las seis combinaciones** de algoritmo (ASE 2025 / BSE 2024 / ASE/EACVI 2016) × ritmo (sinusal /
+  fibrilación auricular), con 0 campos sin geometría. **Ninguno de los dieciséis se oculta hoy por
+  algoritmo ni por ritmo**, y está medido en las seis.
+- ⚠️ **LA POSICION ES EXPLICITA Y NO DE FLUJO, Y ESO ES LO QUE DEJA EL HUECO.** Un
+  `grid-auto-flow: column` daría el mismo dibujo con cero reglas, pero el flujo REACOMODA. **Medido
+  en HEAD: esconder el S/D movía CUATRO campos; ahora no se mueve ninguno de los otros quince**
+  (denominador: 16 medidos) y al restaurarlo el mapa vuelve idéntico. Son **ocho** reglas y no
+  dieciséis: cada `.fg` lleva su columna y su fila como dos clases (`dm-cN` / `dm-rM`).
+- **EL CORTE NO ES NUEVO Y NO HAY ETAPA DE DOS COLUMNAS.** Las reglas viven en
+  `@media (min-width: 769px)`, el complemento exacto del `max-width: 768px` que ya colapsaba
+  `.grid-4` a una columna: no se agregó un breakpoint ni un segundo número que mantener sincronizado
+  con `check_mobile.js`. **Medido a 1200, 900, 390 y 360 px en los DOS temas: 4×4 arriba de 768 px y
+  16×1 abajo, cero superposiciones, cero desbordes, rótulo renderizado a 11 px, y el orden VISUAL
+  igual al del Tab en las ocho combinaciones.** A 900 px siguen siendo cuatro columnas, que es lo
+  conservador; `PENDIENTES.md` → G2.
+- **LAS SIETE SINCRONIAS, con teclas reales y BORRANDO en los dos sentidos** (LARS, strain de
+  contracción, VTI mitral y THP, más el AVm derivado): **0 diferencias**. El AVm por THP es de SOLO
+  LECTURA y la sonda se niega a mandarle una tecla.
+- ⚠️ **EL BLOQUE QUEDO 32 px MAS ALTO (286 contra 254 a 1200 px), Y HAY QUE DECIRLO.** Las cuatro
+  celdas que llevan un div de marca «(revisar)» reservan 17 px aunque esté vacío, y antes caían en
+  DOS filas mientras ahora caen en las CUATRO. Las dieciséis casillas están ocupadas y las filas son
+  contiguas: no hay celda vacía. **No se tocó la marca** porque la orden la congela;
+  `PENDIENTES.md` → G1.
+- **Arnés: `scripts/_probe_dopmitral.mjs`** (A/B de solo lectura con `--file`), siete grupos
+  (`opciones`, `veredictos`, `tab`, `pos`, `hueco`, `sinc`, `superficies`).
+  **Cobertura: TC-461**, **28 condiciones** con tres denominadores y cuatro controles negativos.
+  **Verificado que sabe fallar contra HEAD en un worktree aparte: 11 de las 28 en rojo**; las 17 que
+  pasan son el foco real de los campos (que ya eran enfocables), las dos reglas de CSS que ya
+  existían, las lecturas de los tres tokens vivos y los cuatro controles negativos — o sea lo que
+  esta tanda no mueve.
+- ⚠️ **CASOS ADAPTADOS, con el motivo escrito en cada uno: SIETE.** TC-453 (su control negativo 4
+  medía el legado; hoy el gris de la fila sale del campo SIN CARGAR), TC-454, TC-455, TC-458,
+  TC-460 y TC-260 (los tokens viejos por sus VIVOS equivalentes: `mid` cumple el corte `< 1` igual
+  que «<1», `ge1` es negativo igual que «>1») y TC-459, cuyo bloque B afirmaba que las dos opciones
+  SEGUIAN en el marcado y ahora afirma lo contrario. **Ningún caso afirmaba el orden ni la posición
+  de los campos**, así que la Parte 2 no obligó a adaptar ninguno.
+- ⚠️ **DOS ESCENAS DE MI PROPIA SONDA NO LLEGABAN A LA COMPUERTA DEL S/D, Y PARECIAN MEDICIONES
+  BUENAS.** Les faltaban `peso` y `talla`: el Vol AI vota INDEXADO, así que sin ASC ese criterio
+  queda sin evaluar y la escena no llega al paso donde el S/D decide. La de la BSE publicaba «Datos
+  insuficientes» y la de la ASE 2016 «0 de 1 criterios», o sea dos tablas diciendo «el corte no
+  funciona» sobre cortes que funcionan. Es la misma lección que este archivo ya tiene escrita tres
+  veces: **cada escena tiene que dejar un criterio ya positivo y llegar a la compuerta**.
+- ⚠️ **Y UNA ESCENA DE LA SONDA MEDIA CON LOS DOS LADOS VACIOS.** El campo espejo del VTI mitral
+  (`vtim`) vive en Válvulas detrás de **DOS** puertas —la sección plegable de la mitral y el cajón
+  «Datos»—: `clicEn` informaba «NO SE PUDO», el A/B decía «idéntico» y el tecleo nunca había
+  ocurrido. Se abre con `toggleEteSeccion('valv-mitral')` **más** `valvDatosTog`, y la sonda informa
+  el estado del cajón al lado del resultado.
+- ⚠️ **Y UNA CONDICION DE TC-461 SALIA ROJA CONTRA HEAD POR UN ARTEFACTO DE FORMATO**, no por el
+  defecto que busca: «antes» y «después» del campo oculto se calculaban con dos formateadores
+  distintos, así que diferían por el texto. Un solo lector (`par(id)`) para los dos. **Una condición
+  que sabe fallar por la razón equivocada no está probando nada.**
+- ⚠️ **Me comí el acento grave UNA vez**, en un comentario mío dentro del cuerpo de la sonda, con el
+  archivo que documenta la trampa abierto delante. Esta vez lo cazó `node --check` primero, con la
+  línea exacta; verificado por mutación que `scripts/check_backticks.py` también la da (471). El
+  orden del protocolo sigue siendo correrlo ANTES.
+
 
 ### Diagrama de flujo de la BSE 2024 en la ventana 🧭 — las Figuras 17, 18 y 19 (2026-10-13)
 

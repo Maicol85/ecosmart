@@ -562,10 +562,16 @@ corte y lo califica de septal. La **Tabla 7 del folio 557** —indicadores en po
 especiales— repite «E/e' septal ≥ 11» para la FA, con `≥` donde la figura escribe `>`: gana la
 figura del algoritmo que la app ejecuta, que es la Figura 8.
 
-⚠️ **EL S/D VENOSO PULMONAR SÍ ES EVALUABLE EN FA.** El corte de la Figura 3 es **≤ 0,67** y el
-campo `venp_sd` es un `<select>` de «<1 / >1», así que en ritmo sinusal queda declarado no
-evaluable; el corte de la Figura 8 es **< 1**, que es exactamente lo que esa opción dice. Es el
-mismo campo con dos cortes distintos, y uno cae justo en el borde de la opción.
+⚠️ **EL S/D VENOSO PULMONAR SÍ ES EVALUABLE EN FA, Y DESDE EL 2026-10-12 TAMBIÉN EN RITMO
+SINUSAL.** El corte de la Figura 3 es **≤ 0,67** y el de la Figura 8 es **< 1**: es el mismo campo
+con dos cortes distintos. El `<select>` tiene desde entonces tres opciones —«≤0,67», «>0,67 y <1» y
+«≥1»— precisamente porque con las dos de antes («<1» / «>1») el ≤ 0,67 era inexpresable: un S/D de
+0,9 es «<1» y no lo cumple. El tramo del medio es lo que separa los dos cortes.
+⚠️ **Y DESDE EL 2026-10-13 NO HAY OPCIONES DE LEGADO.** Las dos del selector viejo vivían ocultas
+para que un estudio guardado conservara su valor; se eliminaron por decisión del médico —no hay
+ningún estudio guardado con el S/D cargado— y porque **Safari las mostraba**: esconder una
+`<option>` con `hidden` termina siendo un `display:none`, y un desplegable nativo no está obligado
+a respetar el layout de sus propias opciones. Los cortes y sus operadores **no se tocaron**.
 
 ### `bseDiast2024` — BSE 2024, RITMO SINUSAL · Tabla 2 y Figuras 17 y 18 (verificadas 2026-10-12)
 

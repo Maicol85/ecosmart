@@ -1,5 +1,57 @@
 # EcoSmart — pendientes vivos
 
+## Doppler mitral: el S/D sin legado y los 16 campos en cuatro columnas (2026-10-13) — DECLARADO y NO arreglado
+
+Mapa: `docs/mapa/doppler-mitral-grilla.md` y `docs/mapa/diastolica-complementarios.md`.
+Fuente: `docs/fuentes/FUENTES.md` → «El S/D venoso pulmonar — CINCO lecturas y DOS cortes».
+
+### G1 · El bloque quedó 32 px más alto, y son los cuatro divs de marca «(revisar)»
+
+Medido a 1200 px: el alto de la grilla pasó de **254 a 286 px**. Cuatro celdas llevan un div de
+marca —THP, Onda L, LARS y strain de contracción de la AI— que reserva **17 px** (`min-height:14px`
++ `margin-top:3px`) aunque esté vacío, y antes caían en DOS filas mientras ahora caen en las
+CUATRO. Las dieciséis casillas están ocupadas y las filas son contiguas con el `gap: 12px` de la
+grilla: no hay celda vacía. **No se tocó la marca** porque la orden de esta tanda la congela
+explícitamente («las marcas «(revisar)» NO cambian»). Si se quisiera recuperar esos 32 px, el
+camino es que el div de marca no reserve alto cuando está vacío (`min-height:0` más un
+`:empty{display:none}`), y eso cambia la maqueta de los cuatro campos en todos los anchos.
+
+### G2 · No hay etapa de DOS columnas, y la orden la describía
+
+La orden pedía que, «en anchos menores donde la grilla se colapse (2 columnas o 1)», el orden visual
+coincidiera con el del Tab, y daba el ejemplo de dos columnas de ocho filas. **La app no tiene hoy
+una etapa de dos columnas** para `.grid-4`: el único corte es 768 px y por debajo cae a UNA. No se
+inventó un breakpoint nuevo —es la opción conservadora y la que la propia orden sugería («el orden
+del marcado en el HTML ya por columnas más posicionamiento explícito solo en la grilla ancha»)—, así
+que a 900 px siguen siendo cuatro columnas. Si algún día se agrega la etapa de dos, el orden visual
+sale gratis: el marcado ya está por columnas y lo único que hay que respetar es no sacar las
+posiciones explícitas de la grilla ancha.
+
+### G3 · Tres rótulos que el médico nombra distinto, y NO se renombraron
+
+La orden escribe «VTI mitral anterógrado», «Duración de la onda A mitral» y «THP mitral»; los
+rótulos dicen «VTI mitral de entrada — Doppler pulsado (cm)», «Dur. onda A mitral (ms)» y «THP
+mitral (ms) — EM». Los tres quedaron **como estaban**, y la propia orden lo pedía para el primero.
+Un rótulo es contenido del informe de pantalla y se reporta, no se cambia.
+
+### G4 · Cinco sondas archivadas siguen nombrando los tokens de legado del S/D
+
+`_probe_diastcompl.mjs`, `_probe_ase2016.mjs`, `_probe_bse2024.mjs`, `_probe_diastfa.mjs` y
+`_probe_strainai.mjs` fijan `venp_sd` en `'menor1'` o `'mayor1'` en algunas escenas. **No se
+tocaron**: son A/B contra árboles donde esas opciones existen, y reescribirlas cambiaría lo que
+aquellas tandas midieron. Consecuencia: corridas futuras de esas sondas contra el árbol de hoy
+dejarían el S/D **sin cargar** en esas escenas —sin error, pero midiendo otra cosa—. Si se reusa
+una, reemplazar `menor1` por `mid` y `mayor1` por `ge1`, que son los equivalentes vivos para el
+corte `< 1`.
+
+### G5 · Safari no se puede probar desde este entorno
+
+La causa del hallazgo del médico quedó verificada de forma **estructural**: las dos `<option>` se
+escondían con `hidden`, que Chrome aplica como `display:none` (medido, `getComputedStyle` sobre cada
+opción), y un desplegable **nativo** no está obligado a respetar el layout de sus propias opciones.
+Lo que este entorno puede afirmar es que las dos opciones ya no existen y que ninguna de las cuatro
+que quedan está oculta ni deshabilitada. **Que en Safari ya no aparezcan lo mira el médico.**
+
 ## Diagrama de flujo de la BSE 2024 en la ventana 🧭 (2026-10-13) — DECLARADO y NO arreglado
 
 Fuente: `docs/fuentes/FUENTES.md` → «Las tres figuras, caja por caja y flecha por flecha» y

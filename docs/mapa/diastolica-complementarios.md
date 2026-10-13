@@ -16,8 +16,8 @@ cortes, los operadores y lo que cada guía NO dice).
 
 ## El S/D venoso pulmonar — un campo, DOS cortes, un solo dueño
 
-El `<select id="venp_sd">` del Doppler mitral tiene **cinco** `<option>`: tres visibles y dos
-ocultas de legado.
+El `<select id="venp_sd">` del Doppler mitral tiene **cuatro** `<option>`, ninguna oculta y ninguna
+deshabilitada.
 
 | `value` | Etiqueta | Para qué está |
 |---|---|---|
@@ -25,8 +25,17 @@ ocultas de legado.
 | `le067` | `≤0,67` | el corte de la ASE 2025 en ritmo sinusal |
 | `mid` | `>0,67 y <1` | **el tramo que separa los dos cortes**, y lo que el selector viejo no podía expresar |
 | `ge1` | `≥1` | negativo para los dos |
-| `menor1` | `<1 (estudio anterior)` | **legado**, `hidden` |
-| `mayor1` | `>1 (estudio anterior)` | **legado**, `hidden` |
+
+⚠️ **LAS DOS OPCIONES DE LEGADO SE FUERON EL 2026-10-13** (`menor1` = «<1 (estudio anterior)» y
+`mayor1` = «>1»). Decisión del médico: no hay ningún estudio guardado con el S/D cargado, así que
+no hay compatibilidad que sostener. Vivían con `hidden` para que un estudio viejo las conservara
+como VALOR sin poder elegirlas, y el precio era que **Safari las mostraba**: esconder una
+`<option>` con `hidden` termina siendo un `display:none`, y un desplegable **nativo** no está
+obligado a respetar el layout de sus propias opciones. Con ellas se fueron sus entradas de
+`VENP_SD_TXT`, sus cinco entradas de `VENP_SD_LECTURA` y `venpSdCritSuf` con sus cinco sitios de
+llamada —esa función quedó devolviendo cadena vacía siempre—. **Un token que el selector ya no
+ofrece se lee como campo SIN CARGAR**: el `<select>` queda en `selectedIndex -1`, `venpSdEstado`
+sale por su guarda de `hasOwnProperty` y el S/D no vota en ningún algoritmo.
 
 **El dueño único de la lectura es `venpSdEstado(corte)`**, con `corte` en `'le067'` o `'lt1'`. La
 tabla vive en `VENP_SD_LECTURA` y devuelve **TRES estados**:
@@ -36,14 +45,13 @@ tabla vive en `VENP_SD_LECTURA` y devuelve **TRES estados**:
 | `le067` | **true** | **true** |
 | `mid` | false | **true** |
 | `ge1` | false | false |
-| `menor1` (legado) | **`null`** | **true** |
-| `mayor1` (legado) | false | false |
-| vacío | `null` | `null` |
+| vacío, o un token que el selector no ofrece | `null` | `null` |
 
-⚠️ **EL `null` ES LA MITAD DE ESTA TABLA.** Un estudio guardado con el selector viejo trae `<1`, y
-eso **no distingue un 0,6 de un 0,9**: para el corte ≤ 0,67 queda SIN EVALUAR, que no es lo mismo
-que negativo. Contarlo como negativo haría que un estudio viejo empujara hacia «presión normal» por
-un dato que no dice eso.
+⚠️ **EL `null` SIGUE SIENDO UN ESTADO Y NO UN «NEGATIVO»**, aunque desde el 2026-10-13 tenga un
+solo origen: el campo **sin cargar**. Un criterio que nadie midió no es un criterio que no se
+cumple, y `_daFila` deriva de ese `null` la fila GRIS; devolver `false` pondría el ✓ de NEGATIVO
+sobre algo que no se evaluó. Hasta esa fecha el `null` salía también de un estudio guardado con el
+selector viejo en «<1», que para el corte ≤ 0,67 no distinguía un 0,6 de un 0,9.
 
 **Quién lo consume** (cinco lugares, cada uno con su clave):
 
@@ -55,9 +63,9 @@ un dato que no dice eso.
 | `diastBSE2024Evaluar` (rama de FEVI reducida) | `lt1` | suplementarios de la Figura 18 |
 | `diastASE2016Evaluar` (rama 8B) | `lt1` | sustituto del criterio que falta, con sus **tres** compuertas |
 
-Dos ayudantes para la ventana, y ninguno decide: **`venpSdFilaVal(corte)`** da el valor de la fila
-y devuelve `null` cuando el estado es `null` —para que la fila salga en GRIS y no con el ✓ de
-«negativo»— y **`venpSdCritSuf(corte)`** da el sufijo del rótulo con el motivo.
+Un ayudante para la ventana, y no decide: **`venpSdFilaVal(corte)`** da el valor de la fila y
+devuelve `null` cuando el estado es `null` —para que la fila salga en GRIS y no con el ✓ de
+«negativo»—.
 
 **La etiqueta legible sale de `VENP_SD_TXT`, que es su único dueño.** Lo consumen el PDF
 (`venpSDTxt`), las filas de la ventana y **el informe firmado de la BSE** por `_bseDetalles`.
