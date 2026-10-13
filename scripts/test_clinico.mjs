@@ -40356,7 +40356,12 @@ caso('TC-306', 'EM NATIVA: las salidas de la regla de 2026-10-11 —significativ
         autoGrad.grado === 'sin' && autoGrad.cat === 'gradiente',
         'grado=' + autoGrad.grado + ' cat=' + autoGrad.cat],
       ['un grado elegido A MANO manda, aun con la regla diciendo severa',
-        manual.grado === 'moderada' && pl(manual.vm).indexOf('estenosis moderada') > -1,
+        /* ADAPTADO el 2026-10-13: el selector de la estenosis mitral es BINARIO (decision de
+         Maicol) y el informe publica el sintagma que el medico ELIGIO: «moderada» y «leve» se
+         escriben «no significativa», y «severa» se escribe «significativa». El token guardado NO
+         cambia —sigue siendo el mismo valor en el Excel y en el Laboratorio—; lo que cambia es la
+         palabra. */
+        manual.grado === 'moderada' && pl(manual.vm).indexOf('estenosis no significativa') > -1,
         'grado=' + manual.grado + ' · «' + manual.vm + '»'],
       ['⚠️ y un «sin» elegido A MANO tambien —lo que NO cuenta como respuesta es el «sin» de fabrica—',
         manualSin.grado === 'sin' && pl(manualSin.vm).indexOf('severa') === -1,
@@ -40627,7 +40632,12 @@ caso('TC-304', 'FASE A: la protesis mitral, tricuspide y pulmonar dejan de gradu
         lineaVM(prot.inf).indexOf('2') > -1 && lineaVM(prot.inf).indexOf('8 mmHg') > -1,
         '«' + lineaVM(prot.inf) + '»'],
       ['un grado elegido A MANO sobre la protesis SI se imprime: el bloqueo es para los calculadores, no para el medico',
-        manual.em === 'severa' && lineaVM(manual.inf).indexOf('estenosis severa') > -1,
+        /* ADAPTADO el 2026-10-13: el selector de la estenosis mitral es BINARIO (decision de
+         Maicol) y el informe publica el sintagma que el medico ELIGIO: «moderada» y «leve» se
+         escriben «no significativa», y «severa» se escribe «significativa». El token guardado NO
+         cambia —sigue siendo el mismo valor en el Excel y en el Laboratorio—; lo que cambia es la
+         palabra. */
+        manual.em === 'severa' && lineaVM(manual.inf).indexOf('estenosis significativa') > -1,
         'em_grado=«' + manual.em + '» · «' + lineaVM(manual.inf) + '»'],
       ['la INSUFICIENCIA se sigue graduando sobre protesis (ASE 2024: la regurgitacion protesica usa criterios nativos, igual que la aortica)',
         parseInt(insuf.im, 10) >= 2 && lineaVM(insuf.inf).indexOf('insuficiencia') > -1,
@@ -42181,14 +42191,24 @@ caso('TC-308', 'El escritor nuevo de em_grado no borra grados ajenos: la reimpre
       ['DENOMINADOR del mecanismo: SIN la marca, el recalculo pisa un «moderada» guardado y lo deja en «sin» —el papel pasa a decir que la valvula es normal—',
         sinMarca.grado === 'sin', 'grado=' + sinMarca.grado + ' · «' + sinMarca.vm + '»'],
       ['  y CON la marca repuesta lo respeta: el grado firmado sobrevive a la reimpresion',
-        conMarca.grado === 'moderada' && pl(conMarca.vm).indexOf('estenosis moderada') > -1,
+        /* ADAPTADO el 2026-10-13: el selector de la estenosis mitral es BINARIO (decision de
+         Maicol) y el informe publica el sintagma que el medico ELIGIO: «moderada» y «leve» se
+         escriben «no significativa», y «severa» se escribe «significativa». El token guardado NO
+         cambia —sigue siendo el mismo valor en el Excel y en el Laboratorio—; lo que cambia es la
+         palabra. */
+        conMarca.grado === 'moderada' && pl(conMarca.vm).indexOf('estenosis no significativa') > -1,
         'grado=' + conMarca.grado + ' · «' + conMarca.vm + '»'],
       // (2)
       ['DENOMINADOR: la tarjeta de revision abre y trae el clon del grado de EM',
         tarjeta.abrio === true, 'abrio=' + tarjeta.abrio],
       ['⚠️ lo que el medico elige EN LA TARJETA queda marcado y el recalculo no lo pisa —antes lo convertia en «sin» en el mismo gesto de confirmar, y la tarjeta promete por escrito que queda cargado—',
+        /* ADAPTADO el 2026-10-13: el selector de la estenosis mitral es BINARIO (decision de
+         Maicol) y el informe publica el sintagma que el medico ELIGIO: «moderada» y «leve» se
+         escriben «no significativa», y «severa» se escribe «significativa». El token guardado NO
+         cambia —sigue siendo el mismo valor en el Excel y en el Laboratorio—; lo que cambia es la
+         palabra. */
         tarjeta.grado === 'severa' && tarjeta.marca === true &&
-        pl(tarjeta.vm).indexOf('estenosis severa') > -1,
+        pl(tarjeta.vm).indexOf('estenosis significativa') > -1,
         'grado=' + tarjeta.grado + ' marca=' + tarjeta.marca + ' · «' + tarjeta.vm + '»'],
       ['  y un clon que NO se toca no queda marcado: mirar la tarjeta no es fijar todos los grados a mano',
         noTocado.marca === false, 'marca=' + noTocado.marca + (noTocado.err ? ' err=' + noTocado.err : '')],
@@ -42203,7 +42223,12 @@ caso('TC-308', 'El escritor nuevo de em_grado no borra grados ajenos: la reimpre
         pl(prot.pantalla).indexOf('estenosis mitral severa') === -1,
         '«' + prot.pantalla + '»'],
       ['  pero un grado que el MEDICO elige sobre la protesis SI se imprime: la Fase A lo fijo y esto no lo toca',
-        protManual.grado === 'severa' && pl(protManual.vm).indexOf('estenosis severa') > -1,
+        /* ADAPTADO el 2026-10-13: el selector de la estenosis mitral es BINARIO (decision de
+         Maicol) y el informe publica el sintagma que el medico ELIGIO: «moderada» y «leve» se
+         escriben «no significativa», y «severa» se escribe «significativa». El token guardado NO
+         cambia —sigue siendo el mismo valor en el Excel y en el Laboratorio—; lo que cambia es la
+         palabra. */
+        protManual.grado === 'severa' && pl(protManual.vm).indexOf('estenosis significativa') > -1,
         'grado=' + protManual.grado + ' · «' + protManual.vm + '»'],
       // (4)
       /* ADAPTADO el 2026-10-11: la categoria «probable» se elimino. Lo que este DENOMINADOR mide
@@ -52599,8 +52624,13 @@ caso('TC-384', 'El menu ▼ NO ofrece «Sin» en NINGUNA valvula (regla 2): aort
     ['mitral estenosis: solo grados, sin «Sin» (y sin «Esclerosis», que no es mitral)',
       /* ADAPTADO el 2026-10-11: la opcion «severa» de em_grado se MUESTRA «Significativa»
          (ASE 2023). Su «value» sigue siendo «severa» y la lista sigue teniendo tres grados y
-         NINGUN «Sin», que es lo que este caso cuida. */
-      miE.join('|') === 'Leve|Moderada|Significativa', dg],
+         NINGUN «Sin», que es lo que este caso cuida.
+         ADAPTADO el 2026-10-13: el selector de la estenosis mitral es BINARIO (decision de
+         Maicol). «Leve» y «Moderada» desaparecen de la PANTALLA y las dos pasan a mostrarse
+         «No significativa»; «moderada» queda como <option hidden> para que un estudio legado
+         reabra sin quedar en selectedIndex -1, y por eso no sale en el menu. Los cuatro «value»
+         siguen intactos. Lo que este caso cuida —que no haya ningun «Sin»— no cambia. */
+      miE.join('|') === 'No significativa|Significativa', dg],
     ['la tricuspide tampoco ofrece «Sin», igual que las demas',
       !tieneSin(trI) && !tieneSin(trE), dg],
     /* EL INVARIANTE DE LA REGLA 2: ninguno de los SEIS menús ofrece «Sin». Va como control de
@@ -52886,9 +52916,13 @@ caso('TC-388', 'Mitral: el grado manual se mantiene y vuelve solo a automatico c
     /* v2 (regla 2): el menú ▼ de la mitral tampoco ofrece «Sin» — sólo grados. Antes «Sin PRIMERO». */
     ['D: los dos menus de la mitral muestran SOLO grados, sin «Sin»',
       /* ADAPTADO el 2026-10-11: el menu de la ESTENOSIS mitral muestra «Significativa» donde
-         decia «Severa». El de la INSUFICIENCIA no cambia: la nomenclatura nueva es de la EM. */
+         decia «Severa». El de la INSUFICIENCIA no cambia: la nomenclatura nueva es de la EM.
+         ADAPTADO el 2026-10-13: ese menu es BINARIO — «No significativa» / «Significativa» — y
+         «Leve» y «Moderada» salieron de la PANTALLA. Sus «value» siguen existiendo, y «moderada»
+         ademas quedo como <option hidden> para que un legado reabra. El de la insuficiencia sigue
+         sin tocarse, que es lo que este par de condiciones separa. */
       menuIM.join('|') === 'Leve|Moderada|Severa' &&
-      menuEM.join('|') === 'Leve|Moderada|Significativa',
+      menuEM.join('|') === 'No significativa|Significativa',
       'IM=' + menuIM.join('/') + ' EM=' + menuEM.join('/')],
     ['D: «Sin» con grado calculado es un ajuste a la baja, con aviso rojo',
       sinCon.discrepa === true && /Sin insuficiencia/.test(sinCon.aviso) &&
@@ -53260,7 +53294,10 @@ caso('TC-391', 'Guardar y reabrir conserva el grado, la marca y el cajon de la M
         despues.avIM === antes.avIM && despues.avEM === antes.avEM &&
         /ajuste manual/.test(despues.avIM) && /ajuste manual/.test(despues.avEM), dg],
       ['y el informe reimpreso trae las DOS notas entre parentesis, como el que se firmo',
-        infDespues.inf === 'Válvula mitral de morfología normal, con estenosis moderada (AVm no planimetrable) e insuficiencia moderada (jet excentrico).',
+        /* ADAPTADO el 2026-10-13: el grado «moderada» de la estenosis mitral se escribe «no
+           significativa» desde que el selector es binario. La nota entre parentesis —que es lo que
+           este caso cuida— no cambia, ni la de la insuficiencia. */
+        infDespues.inf === 'Válvula mitral de morfología normal, con estenosis no significativa (AVm no planimetrable) e insuficiencia moderada (jet excentrico).',
         'inf=«' + infDespues.inf + '»'],
 
       ['DENOMINADOR del autosave: las dos notas estaban VACIAS antes de reponer',
@@ -54174,7 +54211,11 @@ caso('TC-400', 'Las OCHO valvulopatias consignadas figuran en el EN SUMA con su 
   const L8 = [
     ['EAo', { g:[['ea_grado','leve']], m:{ea:true}, p:[['aortica','esten',true]] },   'EAo leve.'],
     ['IAo', { g:[['ia_grado','1']],    m:{ia:true}, p:[['aortica','insuf',true]] },   'IAo leve.'],
-    ['EM',  { g:[['em_grado','leve']], m:{em:true}, p:[['mitral','esten',true]] },    'EM leve.'],
+    /* ADAPTADO el 2026-10-13: el selector de la estenosis mitral es BINARIO y el token «leve» se
+       escribe «no significativa». El token NO cambia —este caso lo sigue fijando igual— y lo que
+       cambia es la frase del EN SUMA. La regla que el caso defiende, que la valvulopatia
+       consignada FIGURE con su sigla, no se mueve. */
+    ['EM',  { g:[['em_grado','leve']], m:{em:true}, p:[['mitral','esten',true]] },    'EM no significativa.'],
     ['IM',  { g:[['im_grado','1']],    m:{im:true}, p:[['mitral','insuf',true]] },    'IM leve.'],
     /* v3 (2026-10-05): la ET NO TIENE «leve» —su grado es binario por la EAE/ASE 2009— asi que lo
        que este caso defiende en ella es que su valvulopatia consignada figure en el EN SUMA con su
@@ -54406,6 +54447,13 @@ caso('TC-402', 'El boton v2: elegir grado por el menu ▼ lo prende; un grado di
      «NO item "Severa" en [Leve,Moderada,Significativa]» y las cuatro escenas de la mitral median
      un gesto que NO ocurrio — el denominador de este caso fue lo que lo delato. */
   const TOPE = { ea:'Severa', ia:'Severa', em:'Significativa', im:'Severa' };
+  /* ADAPTADO el 2026-10-13, y por el MISMO motivo que la linea de arriba: el menu de la estenosis
+     mitral es BINARIO y ya no ofrece «Leve». El grado DISCREPANTE —el que esta por debajo del que
+     el calculo sugiere— se nombra por clave igual que el tope; en la mitral es «No significativa»,
+     cuyo «value» es 'leve' y que es exactamente el mismo gesto que antes. Con el literal unico, el
+     arnes informaba «NO item "Leve" en [No significativa,Significativa]» y las cuatro escenas (2) y
+     (3) de la mitral median un gesto que NO ocurrio — otra vez lo delato el denominador. */
+  const BAJO = { ea:'Leve', ia:'Leve', em:'No significativa', im:'Leve' };
   const todas = ['ea','ia','em','im'];
   const den = [], prende = {}, disc = {}, apagado = {}, coincide = {}, gestos = [];
   todas.forEach(function (k) {
@@ -54420,7 +54468,7 @@ caso('TC-402', 'El boton v2: elegir grado por el menu ▼ lo prende; un grado di
     den.push(aReset());
     MED[k].forEach(function (p) { __t.set(p[0], p[1]); });
     gestos.push(clickPill(C.valv, C.tipo));
-    gestos.push(clickMenu(C.valv, C.tipo, 'Leve'));
+    gestos.push(clickMenu(C.valv, C.tipo, BAJO[k]));
     disc[k] = aFoto(k);
     /* (3) APAGAR (click en la pastilla) BORRA grado y fundamento y NO deja aviso — aunque el
        calculo siga severo. Se parte del estado (2), que tenia aviso y cajon vivos. */
@@ -54447,8 +54495,14 @@ caso('TC-402', 'El boton v2: elegir grado por el menu ▼ lo prende; un grado di
     // (1) elegir grado prende el boton
     ['(1) elegir «Severa» por el menu ▼ PRENDE el boton en las cuatro claves',
       todas.every(function (k) { return prende[k].pill === true; }), dg(prende)],
+    /* ADAPTADO el 2026-10-13: el literal /Severa/ valia mientras el sub-boton de la estenosis
+       mitral derivara su rotulo de corto(), que lee el VALOR y escribia «Severa ▼» sobre el
+       token 'severa'. Desde esta tanda ese boton dice «Significativa ▼», que es lo que dicen
+       tambien la option, el PDF y la etiqueta. Se compara contra TOPE[k], que es EL MISMO grado
+       que la escena acaba de elegir en el menu: asi la condicion mide «la pastilla muestra lo
+       elegido» y no un literal que hay que acordarse de mover. */
     ['(1) y la pastilla muestra el grado elegido, no el neutro «Severidad»',
-      todas.every(function (k) { return /Severa/.test(prende[k].past); }), dg(prende)],
+      todas.every(function (k) { return prende[k].past.indexOf(TOPE[k]) > -1; }), dg(prende)],
 
     // (2) discrepancia con el boton prendido
     ['(2) un grado discrepante (Leve sobre calculo Severa) deja el boton PRENDIDO',
@@ -54688,8 +54742,11 @@ caso('TC-405', '(g) Tricuspide YA registrada en §5 (v3): su menu sigue sin ofre
        menús se poblaron con grados reales (Leve…) —prueba de que el menú funciona y no devuelve []
        vacío— y que la aórtica/mitral tampoco ofrecen «Sin», igual que la tricúspide. Antes esta
        condición exigía que ao/mi SÍ ofrecieran «Sin». */
+    /* ADAPTADO el 2026-10-13: el menu de la estenosis MITRAL es binario y ya no ofrece «Leve».
+       El denominador —que el menu se poblo con grados reales y no devolvio [] — se mide con el
+       grado que ESE menu si ofrece. La aortica no cambia. */
     ['CONTROL POSITIVO: los menus se poblaron con grados y NINGUNO (ni ao ni mi) ofrece «Sin»',
-      eaOpc.indexOf('Leve') > -1 && emOpc.indexOf('Leve') > -1 &&
+      eaOpc.indexOf('Leve') > -1 && emOpc.indexOf('No significativa') > -1 &&
       !eaOpc.some(function (t) { return /^Sin/i.test(t); }) && !emOpc.some(function (t) { return /^Sin/i.test(t); }),
       'ea=' + eaOpc.join('/') + ' em=' + emOpc.join('/')],
 
@@ -55608,10 +55665,18 @@ caso('TC-416', 'Estenosis tricuspidea BINARIA: se prende sola solo con criterio 
   base(); __t.set('et_vti_diast','90'); __t.set('tsvd_diametro','26'); __t.set('vti_tsvd','14');
   const aArea = leer();
 
-  /* (b) CONTROL NEGATIVO: datos cargados y ningun criterio. Area = 5,31*18/64 = 1,49 cm2. */
+  /* (b) CONTROL NEGATIVO: datos cargados y ningun criterio. Area = 5,31*18/60 = 1,59 cm2.
+     ⚠️ ADAPTADO el 2026-10-13: el VTI de entrada era 64 cm y desde esta tanda ES CRITERIO
+     —«Inflow time-velocity integral >60 cm», el cuarto hallazgo de la Tabla 10, p. 19 de la
+     EAE/ASE 2009—, asi que 64 CUMPLE y el «ningun criterio» de este control dejaba de ser cierto:
+     las tres escenas que cuelgan de el median una estenosis significativa creyendo medir su
+     ausencia, y lo delato el propio DENOMINADOR del caso («las escenas no dan todas lo mismo»).
+     Se baja a 60,0 EXACTOS, que ademas refuerza el control: el operador de la guia es «>»
+     estricto, asi que el valor del corte cae del lado que NO cumple. El area sube de 1,49 a 1,59
+     y sigue por encima de 1 cm2, o sea que el criterio del area tampoco vota. */
   const sinCrit = function () {
     base(); __t.set('et_gmedio','3'); __t.set('et_thp','150');
-    __t.set('et_vti_diast','64'); __t.set('tsvd_diametro','26'); __t.set('vti_tsvd','18'); };
+    __t.set('et_vti_diast','60'); __t.set('tsvd_diametro','26'); __t.set('vti_tsvd','18'); };
   sinCrit(); const bNada = leer(); const bSuma = suma();
 
   /* (c) Las dos discrepancias, por el camino REAL del menu (valvSev.aplicar). */
@@ -59024,9 +59089,20 @@ caso('TC-430', 'Tricuspide: la PASTILLA es la unica fuente del grado y el «grad
     ['(5) apagar el boton borra el grado y DEJA la marca manual — insuficiencia',
       e5i.insuf.pill === false && e5i.insuf.fijo === 'RAYA' && e5i.insuf.sel === '0'
       && e5i.insuf.manual === true && e5i.insuf.coincide === true, JSON.stringify(e5i.insuf)],
-    ['(5) y en la estenosis, con el centinela en el campo',
+    /* ⚠️ ADAPTADO el 2026-10-13 — ESTE CASO AFIRMABA EL COMPORTAMIENTO QUE LA REGLA DEL MODO
+       MANUAL CAMBIA A PROPOSITO, y por eso estaba escrito. La escena viene de «Nuevo estudio», o
+       sea SIN ningun dato cuantitativo cargado: apagar la pastilla ahi es exactamente el ESTADO
+       INICIAL de la regla (a) de Maicol —«sin marca de manual y sin ninguna advertencia»— asi que
+       la marca se limpia sola. El grado, la pastilla y el texto fijo NO cambian: siguen en el
+       centinela, apagada y en raya, que es lo que este caso cuida.
+       ⚠️ Y LA INSUFICIENCIA DE AL LADO SIGUE EN true, que no es una contradiccion sino un
+       efecto PREEXISTENTE medido: limpiarCampos pone _iaGradoCalc en null y NO toca
+       _imGradoCalc ni _itGradoCalc, asi que la foto de proceso de la IT sobrevive a «Nuevo
+       estudio» y el reinicio ve un calculo que ya no corresponde a este paciente. Queda declarado
+       en docs/PENDIENTES.md; arreglarlo es tocar limpiarCampos, que esta orden no autoriza. */
+    ['(5) y en la estenosis, con el centinela en el campo — y SIN marca, porque no hay ningun dato',
       e5e.esten.pill === false && e5e.esten.fijo === 'RAYA' && e5e.esten.sel === 'sin'
-      && e5e.esten.manual === true && e5e.esten.coincide === true, JSON.stringify(e5e.esten)],
+      && e5e.esten.manual === false && e5e.esten.coincide === true, JSON.stringify(e5e.esten)],
 
     // --- (6) nuevo estudio ------------------------------------------------------------------
     ['(6) «Nuevo estudio» devuelve los dos a la raya y borra las marcas',

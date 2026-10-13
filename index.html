@@ -6170,7 +6170,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                valor y el comentario entre paréntesis, y la fuente UNA vez debajo.
                ⚠️ LAS TRES FILAS SON FIJAS Y ESTÁN SIEMPRE, en «—» si falta el dato. Antes el cuadro
                tenía una sola fila de «Referencia» con los tres cortes en una frase y el resultado
-               abajo: el médico leía el veredicto sin ver cuál de los tres criterios lo sostenía, y
+               abajo: el médico leía el veredicto sin ver cuál de los criterios lo sostenía, y
                los valores que había cargado no aparecían en ninguna parte del cuadro.
                ⚠️ NINGUNA FILA ESCRIBE «no significativa», y es el punto (b) del pedido: esa
                afirmación la firma el médico en el grado, no la insinúa una fila de referencia. Con
@@ -6187,10 +6187,15 @@ window.cerrarSesionReal = cerrarSesionReal;
                archivo entero—: ninguna superficie firmada lo tocaba. Se van juntos por el
                precedente de la fila «HTP — clasificación ESC 2022» del 2026-10-07: un `if (el)`
                sobre un nodo inexistente es una escritura muerta que la próxima lectura cree que
-               gobierna algo. Lo que ese texto decía ahora lo dicen las tres filas, criterio por
+               gobierna algo. Lo que ese texto decía ahora lo dicen las filas del cuadro, criterio por
                criterio, en vez de en una frase que había que leer entera. -->
           <div class="calc-box">
             <div class="calc-row"><span class="calc-lbl">Gradiente medio</span><span id="et-ref-gmedio">—</span></div>
+            <!-- ⚠️ LA FILA DEL VTI DE ENTRADA ENTRÓ EL 2026-10-13 y va SEGUNDA, que es el orden de
+                 la Tabla 10 de la EAE/ASE 2009 (gradiente medio · VTI de entrada · T½ · área). El
+                 orden relativo de las tres que ya estaban NO cambia. El cuadro pasa de TRES filas
+                 a CUATRO, y ese conteo es lo único que caza una fila duplicada o perdida. -->
+            <div class="calc-row"><span class="calc-lbl">VTI de entrada</span><span id="et-ref-vti">—</span></div>
             <div class="calc-row"><span class="calc-lbl">THP</span><span id="et-ref-thp">—</span></div>
             <div class="calc-row"><span class="calc-lbl">Área valvular</span><span id="et-ref-avt">—</span></div>
             <div style="font-size:10px;color:var(--text2);line-height:1.45;margin:2px 0 4px;" id="et-ref-fuente"></div>
@@ -37156,12 +37161,41 @@ window.calcIP = calcIP;
 const ET_CRIT = Object.freeze({
   gmedio: Object.freeze({ signif: 5,   op: '>=', uni: 'mmHg', banda: Object.freeze([0, 40]),
                           nombre: 'gradiente medio tricuspídeo' }),
+  /* ⚠️ EL CUARTO CRITERIO DE LA TABLA, QUE LA APP NO VOTABA (2026-10-13, decisión de Maicol: «si
+     está en la guía, vota»). La **Tabla 10, p. 19** de la EAE/ASE 2009 lista CUATRO hallazgos
+     específicos y la app votaba tres; el campo `et_vti_diast` existía y se usaba SÓLO como
+     denominador del área por continuidad. Estaba declarado en `docs/PENDIENTES.md` → A-5.
+     ⚠️ EL OPERADOR ES `>` ESTRICTO Y NO `>=`, verificado en el ORIGINAL leído de la IMAGEN —la
+     tabla es un bitmap dentro del PDF y el texto extraído se come los glifos `≥`/`≤`— con el
+     folio comprobado en el pie impreso («Baumgartner et al 19»): *«Inflow time-velocity integral
+     >60 cm»*, al lado de un `≥5 mmHg`, un `≥190 ms` y un `≤1 cm²` que sí llevan el igual. O sea
+     que la guía escribe los cuatro con cuidado y éste es el único estricto.
+     ⚠️ LA ASE 2023 (Pandian, cardiopatía reumática, folio 16) ESCRIBE `≥60 cm` PARA EL MISMO
+     criterio, y es un documento MÁS NUEVO. Se conserva el `>` del original, que es la fuente de
+     los otros tres cortes de esta válvula y es el lado conservador —con 60,0 exactos no afirma—.
+     La diferencia alcanza a UN valor y queda declarada en `docs/fuentes/FUENTES.md`.
+     ⚠️ LA ESC/EACTS 2025 NO LO CONTRADICE: su §12.2 (folio 4688) publica un solo número para la
+     ET entera —*«A mean diastolic transvalvular gradient of >5 mmHg at a normal heart rate
+     indicates severe TS»*— y no nombra el VTI de entrada, igual que no nombra el T½ ni el área
+     que la app ya votaba. Silencio no es contradicción, así que esta parte no se detuvo.
+     ⚠️ LA BANDA NO HUBO QUE AMPLIARLA, y el motivo está escrito desde el 2026-10-07: el techo del
+     VTI de entrada es **100 cm y no 60** justamente para que un flujo de entrada largo —el de la
+     ET severa— siga votando. O sea que la banda ya cubría entera la zona del criterio. Lo que SÍ
+     queda declarado es que por encima de 100 cm el valor no vota: `PENDIENTES.md`.
+     La banda vive en `ET_BANDA_INSUMO` y NO se copia acá: el campo sigue siendo además el
+     denominador del área, así que su rango tiene un solo dueño y las dos lecturas no pueden
+     divergir. Por eso esta entrada declara `banda: null`, igual que el área. */
+  vtiEnt: Object.freeze({ signif: 60,  op: '>',  uni: 'cm',   banda: null,
+                          nombre: 'VTI de entrada tricuspídeo' }),
   thp:    Object.freeze({ signif: 190, op: '>=', uni: 'ms',   banda: Object.freeze([50, 400]),
                           nombre: 'THP tricuspídeo' }),
   avt:    Object.freeze({ signif: 1,   op: '<=', uni: 'cm²',  banda: null,
                           nombre: 'área valvular tricuspídea' })
 });
-/* Bandas de los insumos que NO son criterio pero alimentan el área por continuidad. */
+/* Bandas de los insumos que alimentan el área por continuidad. ⚠️ `et_vti_diast` ES ADEMÁS
+   CRITERIO desde el 2026-10-13, así que esta tabla dejó de ser «los que NO son criterio»: su
+   banda sigue acá y no en `ET_CRIT` porque el campo tiene los dos papeles y el rango tiene que
+   tener un solo dueño. */
 const ET_BANDA_INSUMO = Object.freeze({
   et_vti_diast:  Object.freeze([5, 100]),
   tsvd_diametro: Object.freeze([5, 60]),
@@ -37171,6 +37205,7 @@ const ET_CRIT_FUENTE = 'EAE/ASE 2009 · ESC/EACTS 2021. La estenosis tricuspíde
 const ET_GMEDIO_SIGNIF = ET_CRIT.gmedio.signif;  // 5 mmHg   — EAE/ASE 2009 · ESC/EACTS 2021
 const ET_THP_SIGNIF    = ET_CRIT.thp.signif;     // 190 ms   — EAE/ASE 2009
 const ET_AVT_SIGNIF    = ET_CRIT.avt.signif;     // 1 cm²    — EAE/ASE 2009
+const ET_VTIENT_SIGNIF = ET_CRIT.vtiEnt.signif;  // 60 cm    — EAE/ASE 2009, borde `>` estricto
 
 /* ══ ET: TRES CRITERIOS, UN SOLO VEREDICTO BINARIO ═══════════════════════════════════════════
    La guía NO gradúa la estenosis tricuspídea: no hay leve/moderada/severa validada. Es
@@ -37219,7 +37254,15 @@ function etEstado(){
   const cGm  = gmOk  && gm  >= ET_GMEDIO_SIGNIF;
   const cThp = thpOk && thp >= ET_THP_SIGNIF;
   const cAvt = avt != null && avt <= ET_AVT_SIGNIF;
-  const signif = cGm || cThp || cAvt;
+  /* ⚠️ EL CUARTO CRITERIO ENTRA EN EL MISMO `some` Y NO EN UNA CASCADA (2026-10-13). La regla de
+     esta válvula no cambia ni una condición: los criterios de la Tabla 10 tienen el MISMO peso y
+     basta con que se cumpla UNO —lo dice el comentario de arriba desde que la ET es binaria—, así
+     que lo único que se agrega es un término al OR. Y la compuerta es `vtiOk`, la misma banda que
+     ya decide si el VTI puede alimentar el área: un número ilegible no vota por ninguna puerta.
+     ⚠️ EL ÁREA NO SE TOCA Y NO PUEDE MOVERSE: este campo es su DENOMINADOR y sigue entrando ahí
+     por la misma línea de siempre. Medido en el A/B contra HEAD con los mismos datos. */
+  const cVti = vtiOk && vtiD > ET_VTIENT_SIGNIF;
+  const signif = cGm || cThp || cAvt || cVti;
   /* ⚠️ `dOk`/`vtOk` Y LOS DOS INSUMOS SE PUBLICAN DESDE EL 2026-10-07, y no deciden nada nuevo:
      ya se calculaban acá y se usaban para el área. Los necesita la FILA del área del cuadro de
      referencias, que tiene que distinguir «faltan datos» —va en «—»— de «un insumo está fuera de
@@ -37230,7 +37273,7 @@ function etEstado(){
   /* `hayDatos` incluye `fuera`: sin eso, un THP de 4000 ms —error de tipeo— salía por el return
      temprano y desaparecía del informe sin que nadie lo nombrara. */
   const hayDatos = !!(gmOk || thpOk || vtiOk || avt !== null || fuera.length);
-  return { gm, thp, vtiD, avt, gmOk, thpOk, vtiOk, cGm, cThp, cAvt, signif, hayDatos, fuera,
+  return { gm, thp, vtiD, avt, gmOk, thpOk, vtiOk, cGm, cThp, cAvt, cVti, signif, hayDatos, fuera,
            dTsvd, vtiTsvd, dOk, vtOk };
 }
 window.etEstado = etEstado;
@@ -37253,9 +37296,13 @@ window.ET_CRIT_FUENTE = ET_CRIT_FUENTE;
    bloqueo tiene que ser por INSUMO y no por válvula: con gradiente medio 8 (en banda) y THP 4000
    (fuera), el veredicto «Significativa» lo sostiene el gradiente y se publica — lo que se retira es
    el grado que saldría SÓLO de lo ilegible.
-   ⚠️ EL VTI DIASTÓLICO CUENTA COMO DATO aunque no sea uno de los tres criterios: es el cuarto campo
-   del bloque y la definición de «hay cálculo» es «hay al menos un dato cargado» (decisión de
-   Maicol). Solo, nunca puede dar «Significativa» —no es criterio—, así que da «No significativa». */
+   ⚠️ ESTE PÁRRAFO DECÍA LO CONTRARIO HASTA EL 2026-10-13 Y QUEDA COMO REGISTRO. Decía: «EL VTI
+   DIASTÓLICO CUENTA COMO DATO aunque no sea uno de los tres criterios: es el cuarto campo del
+   bloque y la definición de "hay cálculo" es "hay al menos un dato cargado" (decisión de Maicol).
+   Solo, nunca puede dar "Significativa" —no es criterio—, así que da "No significativa"». La
+   segunda mitad caducó: desde esta tanda el VTI de entrada ES el cuarto criterio de la Tabla 10,
+   así que SOLO y por encima de 60 cm da «Significativa». La primera sigue valiendo: un VTI de
+   30 cm, solo, sigue contando como dato y da «No significativa». */
 const ET_SIGNIF_TXT   = 'Significativa';
 const ET_NOSIGNIF_TXT = 'No significativa';
 function etGradoCalculado() {
@@ -37383,7 +37430,7 @@ function _etAutoGrado(r) {
 }
 window._etAutoGrado = _etAutoGrado;
 
-/* ══ LAS TRES FILAS DEL CUADRO DE REFERENCIAS (2026-10-07) ════════════════════════════════════
+/* ══ LAS CUATRO FILAS DEL CUADRO DE REFERENCIAS (2026-10-07 · la del VTI, 2026-10-13) ════════
    Son de PANTALLA y de pantalla nada más: ninguna entra en el informe, el EN SUMA, el PDF, el PPT
    ni el Excel. Y NO deciden nada — `etEstado` ya decidió; esto sólo lo muestra criterio por
    criterio. El pintor no decide, que es la convención de la casa.
@@ -37405,8 +37452,13 @@ window._etAutoGrado = _etAutoGrado;
    `etEstado` publica son lo que permite distinguirlos sin volver a escribir los rangos acá. */
 function etRefPintar(r) {
   const set = (id, t) => { const el = document.getElementById(id); if (el) el.textContent = t; };
-  /* `op` sale de la tabla, así que el símbolo y la comparación se mueven juntos. */
-  const crit = (c) => (c.op === '>=' ? '≥' : '≤') + c.signif + ' ' + c.uni;
+  /* `op` sale de la tabla, así que el símbolo y la comparación se mueven juntos.
+     ⚠️ ES UN MAPA Y YA NO UN TERNARIO: con el VTI de entrada, que es el único `>` ESTRICTO de los
+     cuatro, el ternario `(op === '>=' ? '≥' : '≤')` lo habría impreso como «≤60 cm» — o sea el
+     símbolo CONTRARIO al que la guía escribe, sobre un criterio que el cuadro usa para explicar
+     por qué el veredicto es el que es. Un rótulo que invierte el operador es peor que no tenerlo. */
+  const OP_TXT = { '>=': '≥', '<=': '≤', '>': '>', '<': '<' };
+  const crit = (c) => (OP_TXT[c.op] || c.op) + c.signif + ' ' + c.uni;
   const legend = (c, cumple) => cumple ? 'significativa (' + crit(c) + ')'
                                        : 'no alcanza el criterio (' + crit(c) + ')';
   const FUERA = 'fuera de rango (no gradúa)';
@@ -37417,6 +37469,10 @@ function etRefPintar(r) {
     return n + ' ' + c.uni + ' (' + (ok ? legend(c, cumple) : FUERA) + ')';
   };
   set('et-ref-gmedio', fila(r.gm,  r.gmOk,  ET_CRIT.gmedio, r.cGm));
+  /* El VTI de entrada tiene campo propio y banda propia, así que entra por `fila` como los otros
+     dos: valor + leyenda, y «fuera de rango (no gradúa)» cuando la banda lo rechaza. Sin decimal,
+     que es como se mide (`60 cm`, no `60.0 cm`). */
+  set('et-ref-vti',    fila(r.vtiD, r.vtiOk, ET_CRIT.vtiEnt, r.cVti));
   set('et-ref-thp',    fila(r.thp, r.thpOk, ET_CRIT.thp,    r.cThp));
   /* El área: su «fuera de banda» es el de sus insumos, porque ella no tiene banda propia. */
   if (r.avt != null) {
@@ -37441,7 +37497,7 @@ function calcET() {
   const avtEl = document.getElementById('et_avt');
   const _sev = h => { if (sevEl) sevEl.innerHTML = h; };
   if (avtEl) avtEl.value = r.avt !== null ? r.avt.toFixed(2) + ' cm²' : '';
-  /* Las tres filas se pintan SIEMPRE y antes de cualquier salida temprana: son fijas, y una fila
+  /* Las cuatro filas se pintan SIEMPRE y antes de cualquier salida temprana: son fijas, y una fila
      que desaparece con prótesis dejaría el cuadro con un hueco en vez de con el dato medido. */
   etRefPintar(r);
   /* Prótesis: los valores medidos siguen visibles —el área ya se escribió arriba— pero el grado no
@@ -37455,7 +37511,7 @@ function calcET() {
      grado, y ahí «No significativa» la firma el médico, no la app.
      ⚠️ EL `_msg` SE FUE CON EL TEXTO CELESTE (2026-10-07). Las tres ramas de abajo escribían
      `et-gmedio-badge`, que ya no existe; lo que decían —qué criterio sostiene el veredicto, y qué
-     valor quedó fuera de rango— ahora lo dicen las tres filas, cada una en la suya. Dejar los
+     valor quedó fuera de rango— ahora lo dicen las filas del cuadro, cada una en la suya. Dejar los
      `_msg` sobre un nodo borrado habría sido una escritura muerta, que es el precedente de la fila
      «HTP — clasificación ESC 2022». El informe y el PDF declaran el fuera de rango como en HEAD. */
   _sev(r.hayDatos && r.signif ? badge('red', 'Significativa') : '—');
@@ -41380,6 +41436,12 @@ function generarInforme(opts) {
     const _etParCumplen = [];
     if (_et && !_vtProt) {
       if (_et.cGm)  _etParCumplen.push(`gradiente medio ${_et.gm} mmHg`);
+      /* El cuarto criterio se nombra como los otros tres, y en el orden de la Tabla 10. No es una
+         frase nueva: es un ítem más de la lista que esta oración ya publica, y sólo entra cuando
+         CUMPLE —la lista lleva `cGm`/`cThp`/`cAvt`/`cVti`, los mismos booleanos con los que
+         `etEstado` decide—. Sin esto, un paciente cuya ET significativa la sostiene SÓLO el VTI
+         de entrada publicaba la afirmación con el paréntesis VACÍO. */
+      if (_et.cVti) _etParCumplen.push(`VTI de entrada ${_et.vtiD} cm`);
       if (_et.cThp) _etParCumplen.push(`THP ${_et.thp} ms`);
       if (_et.cAvt) _etParCumplen.push(`área valvular ${_et.avt.toFixed(2)} cm²`);
     }
@@ -106776,8 +106838,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261013-1929';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791930580267;                 /* eco-build-ms */
+const ECO_BUILD    = '20261013-1948';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791931713827;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -106863,7 +106925,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-1929</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-1948</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -108851,7 +108913,7 @@ const ECO_AYUDA = [
 <div class="mSub">🫀 Válvulas</div>
 <p class="mP">Seis válvulas con su grado y su morfología. La severidad de las regurgitaciones se integra con PISA, vena contracta y los criterios de soporte.</p>
 <div class="mBox mAviso"><b>Estenosis mitral: la app completa sólo «Significativa».</b> Con un área valvular válida ≤ 1,5 cm² escribe el grado en «Significativa» (ASE 2023 · AHA/ACC 2020; la ESC/EACTS 2021 usa el mismo corte y lo llama «clínicamente significativa»). El selector es <b>binario</b> — «No significativa» / «Significativa», sin leve ni moderada — y «No significativa» la elige el médico: la app no la autocompleta, porque la banda «leve» por área que tenía antes llegaba hasta 4 cm² y no la publica ninguna guía — una mitral sana mide 4-6 cm² (ASE 2023). Con área &gt; 1,5 y gradiente medio &gt; 4 mmHg el informe dice «EM con gradiente elevado»; si además hay insuficiencia mitral moderada o mayor dice «gradiente transmitral elevado», <b>sin</b> la palabra estenosis, porque ahí el gradiente sube por volumen y no por obstrucción. Si dos áreas válidas caen a los dos lados del corte se publican las dos con su método y prevalece el peor. El área por continuidad no vale con regurgitación mitral o aórtica significativa y el THP no vale con insuficiencia aórtica severa: ahí el número se muestra y se retira del cálculo, y la pantalla dice por qué.</div>
-<div class="mBox mAviso"><b>Estenosis tricuspídea: es binaria, no se gradúa.</b> No hay clasificación leve/moderada/severa validada. Basta con que se cumpla <b>uno</b> de los tres criterios —gradiente medio ≥ 5 mmHg, THP ≥ 190 ms, área ≤ 1 cm²— para hablar de estenosis significativa. Los tres pesan igual. Los dos insumos del área por continuidad (diámetro del TSVD y VTI del TSVD) se cargan en la pestaña VD.</div>
+<div class="mBox mAviso"><b>Estenosis tricuspídea: es binaria, no se gradúa.</b> No hay clasificación leve/moderada/severa validada. Basta con que se cumpla <b>uno</b> de los cuatro criterios —gradiente medio ≥ 5 mmHg, VTI de entrada &gt; 60 cm, THP ≥ 190 ms, área ≤ 1 cm²— para hablar de estenosis significativa. Los cuatro pesan igual. Los dos insumos del área por continuidad (diámetro del TSVD y VTI del TSVD) se cargan en la pestaña VD.</div>
 <div class="mBox mAviso"><b>Válvula pulmonar: morfología, estenosis e insuficiencia son tres campos separados.</b> Antes vivían en un solo desplegable y elegir una excluía las otras, cuando clínicamente coexisten. El auto-grado por gradiente pico produce sólo leve, moderada o severa; «moderada-severa» existe pero es <b>elección manual</b>, porque ninguna guía publica ese corte.</div>
 <div class="mBox mAviso"><b>La normalidad exige consignarla.</b> «No especificada» —el valor al que migran los estudios viejos— no produce «válvula pulmonar normal». Sin morfología consignada y sin mediciones, la válvula no se nombra en el informe.</div>
 
