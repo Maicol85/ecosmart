@@ -778,12 +778,24 @@ async function main() {
   if (corre('metodo')) {
     const PISA = { pisa_r:'10', pisa_val:'40', im_vmax:'5', im_itv:'40' };
     const CONT = { diam_mit:'30', vtim:'12', ea_dtsvi:'20', itv_tsvi:'22' };
+    /* ⚠️ «GANA EL PEOR» SE PRUEBA POR LOS DOS LADOS, y con una sola pareja no se puede. En las dos
+       primeras escenas de abajo PISA es el peor (EROA 50,3 mm² severa contra una continuidad leve),
+       asi que un veredicto que se quedara SIEMPRE con PISA pasaria igual. Las dos ultimas invierten
+       la pareja: PISA leve (EROA 18,1 mm²) contra una continuidad SEVERA —anillo de 40 mm y VTI de
+       entrada 12 cm dan un Vol mitral de ~151 ml contra un VS del TSVI de ~63, o sea Vol-R ~88 ml y
+       FR ~58 %, los dos por encima de su corte—. Y la ultima es su control negativo: la misma
+       pareja SIN marcar la casilla tiene que quedarse con el grado de PISA. */
+    const PISA_LEVE = { pisa_r:'6', pisa_val:'40', im_vmax:'5', im_itv:'40',
+                        ea_dtsvi:'20', itv_tsvi:'20' };
+    const CONT_SEV  = { diam_mit:'40', vtim:'12' };
     const escenas = [
       { n:'solo-PISA',  pre:PISA, cont:false },
       { n:'solo-CONT',  pre:CONT, cont:true  },
       { n:'ambos-marcados',   pre:Object.assign({}, PISA, CONT), cont:true  },
       { n:'ambos-sin-marcar', pre:Object.assign({}, PISA, CONT), cont:false },
-      { n:'ninguno',    pre:{ im_vc:'2' }, cont:false }
+      { n:'ninguno',    pre:{ im_vc:'2' }, cont:false },
+      { n:'cont-PEOR-marcada',    pre:Object.assign({}, PISA_LEVE, CONT_SEV), cont:true  },
+      { n:'cont-PEOR-sin-marcar', pre:Object.assign({}, PISA_LEVE, CONT_SEV), cont:false }
     ];
     const g = [];
     for (const e of escenas) {

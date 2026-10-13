@@ -4854,7 +4854,13 @@ window.cerrarSesionReal = cerrarSesionReal;
             </div>
             <div class="fg">
               <label>Ø anillo mitral (mm)</label>
-              <input type="number" id="diam_mit" placeholder="mm" oninput="calcContIM()">
+              <!-- ⚠️ `calcIM_ESC()` ENTRA EL 2026-10-13: desde la regla 3 el Vol-R por continuidad
+                   VOTA el grado final, y este campo lo mueve. Era la unica de las cinco puertas de
+                   la continuidad que no llamaba a las dos funciones seguidas —las otras cuatro
+                   (`vtiMitralEditado`, `aiAreaEditada`, `tsviDiamEditado`, `vtiTsviCoordinar`) y el
+                   `oninput` de `im_itv` ya lo hacian—. Es «un consumidor nuevo sin su disparador»,
+                   que esta serie ya pago tres rondas seguidas. -->
+              <input type="number" id="diam_mit" placeholder="mm" oninput="calcContIM();calcIM_ESC()">
             </div>
             <div class="fg">
               <!-- El rótulo decía «auto ← Doppler Mitral» y era FALSO desde el 2026-10-08. Hoy dice
@@ -4905,11 +4911,15 @@ window.cerrarSesionReal = cerrarSesionReal;
                    EROA de 60 mm², o sea severa con holgura; con 200 cm da 30 mm², o sea por debajo del
                    corte con el Vol-R ya severo. Publicar los dos números sin ese reparo invita a leer
                    una discordancia donde lo que hay es la fórmula.
-                   ⚠️ Y LA SEGUNDA MITAD DE LA FRASE ESTÁ VERIFICADA, no supuesta: esta EROA NO vota el
-                   grado. El único EROA que entra a `scores`/`params` en `calcIM_ESC` es el de PISA
-                   (`eroa-val`, 2πr²·Vali/Vmax); `im_eroa_cont` tiene tres lectores y los tres son del
-                   PDF —el mapa `_PDF_METODOS`, `_imMetodoPdfVal` y el gate de la casilla—. -->
-              <label title="EROA = Vol-R ÷ VTI del chorro de IM por CW. Los dos cortes de severidad de la guía —EROA ≥ 40 mm² y Vol-R ≥ 60 ml— sólo coinciden con un VTI de chorro de 150 cm, porque 60 ÷ 0,40 = 150. Con un VTI menor la EROA sale inflada respecto del Vol-R y con uno mayor sale reducida: es aritmética de la fórmula, no una discrepancia entre guías. Esta EROA NO vota. El grado integrado de IM sale de la vena contracta, el jet sobre área auricular, el EROA por PISA con sus derivados y la onda S pulmonar; el Vol-R y la fracción regurgitante por continuidad gradúan sólo la cápsula «Severidad (continuidad)» de este mismo cuadro, que tampoco vota. Ver «Referencia clínica» en la ayuda.">EROA continuidad (mm²) (auto) <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></label>
+                   ⚠️ LA SEGUNDA MITAD DE LA FRASE DECÍA «esta EROA NO vota el grado» Y SE CORRIGIÓ EL
+                   2026-10-13, porque dejó de ser cierta: la regla 3 de Maicol hace que el método de
+                   continuidad se integre igual que el de PISA. La frase estaba VERIFICADA cuando se
+                   escribió —el único EROA que entraba a `params` era el de PISA y `im_eroa_cont` tenía
+                   tres lectores, los tres del PDF—, así que lo que cambió es la app y no la lectura.
+                   Hoy `calcIM_ESC` es un cuarto lector. Se corrigió SÓLO esa frase: el reparo
+                   aritmético de arriba —por qué la EROA y el Vol-R parecen discordar— sigue vigente
+                   palabra por palabra, porque es aritmética de la fórmula y no depende de quién vote. -->
+              <label title="EROA = Vol-R ÷ VTI del chorro de IM por CW. Los dos cortes de severidad de la guía —EROA ≥ 40 mm² y Vol-R ≥ 60 ml— sólo coinciden con un VTI de chorro de 150 cm, porque 60 ÷ 0,40 = 150. Con un VTI menor la EROA sale inflada respecto del Vol-R y con uno mayor sale reducida: es aritmética de la fórmula, no una discrepancia entre guías. Desde el 13/10/2026 esta EROA SÍ vota, junto con el Vol-R y la fracción regurgitante por continuidad: el método de continuidad se integra como el de PISA y, con los dos marcados en «Incluir en el informe», al informe va el PEOR de los dos. Los votos comunes a los dos métodos son la vena contracta, el jet sobre área auricular y la onda S pulmonar. Ver «Referencia clínica» en la ayuda.">EROA continuidad (mm²) (auto) <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></label>
               <input type="text" id="im_eroa_cont" readonly style="font-weight:700;">
             </div>
             <div class="fg">
@@ -5083,7 +5093,12 @@ window.cerrarSesionReal = cerrarSesionReal;
           <span style="color:var(--text2);font-size:10px;">— se incluyen cuando estan calculados</span>
         </label>
         <label style="display:block;font-size:11px;cursor:pointer;">
-          <input type="checkbox" id="im_pdf_cont" onchange="this.dataset.tocado='1';"> EROA y Vol-R por continuidad
+          <!-- ⚠️ `calcIM_ESC()` ENTRA EL 2026-10-13. Esta casilla dejo de gobernar solo la fila del
+               PDF: desde la regla 3 decide si el metodo de continuidad entra al GRADO, asi que
+               tildarla tiene que recalcularlo. Sin esto el medico la tildaba y el grado se quedaba
+               con el de PISA hasta tocar otro campo. La bandera `tocado` se sigue poniendo PRIMERO,
+               porque `_pdfMetodoChk` la lee para no pisar la decision del medico. -->
+          <input type="checkbox" id="im_pdf_cont" onchange="this.dataset.tocado='1';calcIM_ESC();"> EROA y Vol-R por continuidad
           <span id="im-pdf-cont-val" style="color:var(--text2);"></span>
         </label>
       </div>
@@ -29405,7 +29420,15 @@ window.emAvmPdfVal = emAvmPdfVal;
    línea no da `undefined`: **lanza**, y en este archivo eso mata el bloque `<script>` entero. Hoy
    ningún llamador corre en tiempo de carga, pero es la misma disciplina por la que
    `PROT_SIN_GRADO_VALVS` se mudó arriba de `protNoGradua`. */
-const _IM_PISA_SPANS = ['eroa-val', 'volr-val'];
+/* ⚠️ `freg-val` ENTRA EL 2026-10-13, EL DÍA QUE LA FR EMPEZÓ A LLEGAR AL PAPEL. Es el mismo
+   argumento con el que están las otras dos: el sellado es lo que deja que `editarInforme` y el QR
+   impriman la MISMA fila que la reimpresión sin volver a calcular nada, y una fila del papel sin su
+   respaldo congelado sale vacía en esos dos caminos.
+   ⚠️ EL FORMATO NO CAMBIA DE VERSIÓN, y es a propósito: `_imPisaPersistido` busca POR CLAVE, así
+   que un estudio sellado con dos entradas sigue devolviendo las dos y `null` para la tercera — o
+   sea que un informe anterior a hoy reimprime EXACTAMENTE lo que imprimía, sin la fila de FR. No se
+   deduce y no se migra, que es lo que ese comentario ya declara. */
+const _IM_PISA_SPANS = ['eroa-val', 'volr-val', 'freg-val'];
 function _imPisaSellar() {
   const h = document.getElementById('im_pisa');
   if (!h) return;
@@ -29522,8 +29545,19 @@ function _imMetodoPdfVal(idSpanPisa, idCampoCont, uni, dec) {
 }
 function imEroaPdfVal() { return _imMetodoPdfVal('eroa-val', 'im_eroa_cont', ' mm²', 1); }
 function imVolrPdfVal() { return _imMetodoPdfVal('volr-val', 'vr_cont', ' ml', 1); }
+/* ⚠️ LA FR FALTABA, Y ES LA REGLA 6 DE MAICOL (2026-10-13): «para cada método incluido aparecen
+   JUNTOS el EROA, el Vol-R y la FR de ese método». La tabla del PDF tenía fila de EROA y fila de
+   Vol-R y NO tenía fila de FR; `imFrPdfVal` no existía. Medido con la sonda: con los dos métodos
+   marcados el papel publicaba «PISA: 50.3 mm² · Cont: 39.3 mm²» y «PISA: 20.1 ml · Cont: 15.7 ml»,
+   y la fracción regurgitante —que la ASE 2017 pone en la MISMA tabla que las otras dos, y que acá
+   vota— no salía por ninguna puerta.
+   ⚠️ CERO DECIMALES, que es lo que publica la fila de pantalla: `freg-val` escribe `toFixed(0)` y
+   `im_fr_cont` escribe «39 %». Un decimal acá daría dos notaciones del mismo número en el mismo
+   papel, que es el defecto que el corte de la Tabla 2 de la BSE ya pagó en el diagrama. */
+function imFrPdfVal() { return _imMetodoPdfVal('freg-val', 'im_fr_cont', '%', 0); }
 window.imEroaPdfVal = imEroaPdfVal;
 window.imVolrPdfVal = imVolrPdfVal;
+window.imFrPdfVal = imFrPdfVal;
 
 /* TEER: los cinco criterios de MitraClip/PASCAL que ya están medidos en otras secciones.
    DTSVI es el diámetro TELEsistólico (LVESD del COAPT, umbral ≤70 mm), o sea DSFVI — no
@@ -33586,6 +33620,60 @@ function imCortesPintar() {
 }
 window.imCortesPintar = imCortesPintar;
 
+/* ══ LA REGLA DE INTEGRACIÓN DE LA IM — UN SOLO DUEÑO (2026-10-13) ═════════════════════════════
+   NO SE MOVIÓ UNA CONDICIÓN. Es la cascada que vivía dentro de `calcIM_ESC`, con sus cuatro ramas
+   y sus mismos operadores, extraída para poder correrla DOS veces —una por método— cuando la regla
+   3 de Maicol pasó a pedir un grado por método. El conteo se arma acá de la lista de votos, que es
+   lo que antes se llenaba en paralelo.
+
+   ⚠️ UN SOLO PARÁMETRO EN SEVERA BASTA, y antes NO bastaba: caía en el `else` mudo del final y se
+   publicaba «Moderada». Medido con el caso del censo —prótesis mitral, vena contracta 8 mm y nada
+   más—: la VC votaba `severa`, `moderada` quedaba en 0, ninguna de las tres primeras ramas
+   matcheaba y el informe firmado y el EN SUMA salían «IM moderada» sobre una VC que la ASE 2024
+   (Tabla 13, JASE 2024;37(1):2-63, p. 30) clasifica como SEVERA a partir de 0,7 cm. Es el `else`
+   fail-open que este archivo ya documenta para `epGradoPorGmax` y para `avaEsSevera`: la última
+   rama de una cascada sin predicado se come lo que ninguna clasificó, y acá se lo comía hacia el
+   lado tranquilizador.
+   ⚠️ NO ES UN DEFECTO PROTÉSICO: reproducido byte a byte con `vm_morf = Reumática`. Ninguna función
+   de esta cascada lee la morfología, así que el arreglo vale para las dos — que es lo que
+   corresponde, porque los cortes de la Tabla 13 para vena contracta, EROA, volumen y fracción
+   regurgitante son IDÉNTICOS a los nativos.
+   ⚠️ Y LA SEGUNDA CLÁUSULA DEL `else if` ERA CÓDIGO MUERTO. `(moderada === 1 && severa === 1)` no
+   se alcanzaba nunca: ese estado ya matcheaba `severa === 1 && moderada >= 1` en la condición de
+   arriba. Se lee como si tratara un empate y lo que hacía era nada.
+   EL CAMBIO FUE EXACTAMENTE UN CASO, medido sobre las 64 combinaciones de los tres parámetros
+   independientes (VC, jet/AI y onda S pulmonar): sólo se mueve `severa >= 1 && moderada === 0`,
+   que pasa de «Moderada» a «Severa» — once de las 64.
+   ⚠️ `scores.severa === 0` ES REDUNDANTE desde que la primera rama se lleva todo `severa >= 1`, y
+   se conserva declarándolo: es lo que hace que esta banda siga fallando cerrada el día que alguien
+   afloje la condición de arriba. Ninguna mutación la distingue.
+
+   ⚠️ CON LA LISTA VACÍA DEVUELVE EL MISMO '2' AMARILLO QUE DEVOLVÍA LA CASCADA, y no `null`: el
+   único llamador que puede pasarle una lista vacía es la rama «sin ningún método incluido», y ahí
+   el gate `params.length === 0` de más arriba ya garantizó que haya al menos un voto común o que
+   la función no llegue hasta acá. Devolver `null` obligaría al llamador a una rama que no se
+   alcanza, que es código muerto que aparenta cubrir algo. */
+const IM_GRADO_ORDEN = Object.freeze({ '1':1, '2':2, '3':3, '4':4 });
+function _imIntegrar(votos) {
+  const sc = { leve:0, moderada:0, severa:0 };
+  (votos || []).forEach(function (x) { if (sc[x.sev] !== undefined) sc[x.sev]++; });
+  if (sc.severa >= 1) return { grado:'4', badge: badge('red','Severa'), sc: sc };
+  if (sc.moderada >= 2) return { grado:'2', badge: badge('orange','Moderada'), sc: sc };
+  if (sc.leve >= 1 && sc.moderada === 0 && sc.severa === 0)
+    return { grado:'1', badge: badge('green','Leve'), sc: sc };
+  return { grado:'2', badge: badge('yellow','Moderada — evaluar integrado'), sc: sc };
+}
+window._imIntegrar = _imIntegrar;
+/* El peor de dos integrados, o el único que haya, o `null` si no hay ninguno. Con empate manda el
+   PRIMERO, y los llamadores pasan PISA primero a propósito: es el método por defecto y el de la
+   casilla que no se puede destildar, así que un empate publica su badge. */
+function _imPeorIntegrado(a, b) {
+  if (!a) return b || null;
+  if (!b) return a;
+  return (IM_GRADO_ORDEN[b.grado] > IM_GRADO_ORDEN[a.grado]) ? b : a;
+}
+window._imPeorIntegrado = _imPeorIntegrado;
+
 function calcIM_ESC() {
   /* El aviso de mecanismo secundario, ARRIBA de todo: no depende de un solo parámetro medido y el
      `return` temprano de más abajo saldría antes de pintarlo. Ver `imSecAvisoPintar`. */
@@ -33613,7 +33701,14 @@ function calcIM_ESC() {
   const _itsviFuera = _imFueraBanda('itv_tsvi', itsvi);
   const _dtsviFuera = _imFueraBanda('diam_tsvi', dtsvi);
 
-  let scores = { leve:0, moderada:0, severa:0 };
+  /* ⚠️ `scores` SE DERIVA DE `params` DESDE EL 2026-10-13 Y YA NO SE LLENA EN PARALELO, que es el
+     cambio de forma que deja expresar la regla 3 de Maicol —«valen los DOS métodos, PISA y
+     continuidad»— sin una segunda cuenta. Cada voto lleva su `grupo`: 'comun' para los que valen
+     en los dos métodos (vena contracta, ratio jet/AI y onda S pulmonar), 'pisa' para los tres que
+     salen de la ecuación de PISA y 'cont' para los tres que salen de la continuidad.
+     Con las dos cuentas en paralelo, calcular un grado POR MÉTODO obligaba a mantener tres
+     acumuladores y a acordarse de en cuál sumar cada voto. Es el mismo cambio que `calcIT_ESC`
+     recibió en el commit anterior y por el mismo motivo. */
   let params = [];
 
   /* ⚠️ LA VC YA TIENE FILA PROPIA (2026-10-09, decisión de Maicol), y hasta ese día este párrafo
@@ -33638,9 +33733,9 @@ function calcIM_ESC() {
       ? (_pVc.crudo + ' mm' + (_pVc.fuera ? MARCA_REVISAR : ''))
       : '—'; }
   if (vc && !_pVc.fuera) {
-    if (vc < IM_CORTES.vc.leve_max) { scores.leve++; params.push({p:'VC',sev:'leve'}); }
-    else if (vc < IM_CORTES.vc.sev_min) { scores.moderada++; params.push({p:'VC',sev:'moderada'}); }
-    else { scores.severa++; params.push({p:'VC',sev:'severa'}); }
+    if (vc < IM_CORTES.vc.leve_max) { params.push({p:'VC',sev:'leve',grupo:'comun'}); }
+    else if (vc < IM_CORTES.vc.sev_min) { params.push({p:'VC',sev:'moderada',grupo:'comun'}); }
+    else { params.push({p:'VC',sev:'severa',grupo:'comun'}); }
   }
 
   /* ⚠️ EL JET/AI TIENE DOS REGÍMENES, y hasta hoy publicaba el nativo sobre una prótesis.
@@ -33686,14 +33781,14 @@ function calcIM_ESC() {
        regímenes se publican igual, en el `title` y el ⓘ de la fila, en la tarjeta de Referencias y
        en el manual: hasta hoy no estaban en ninguna de las tres. */
     if (_imVmProt()) {
-      if (_jetPct < IM_CORTES.jet_prot.leve_max) { scores.leve++; params.push({p:'Jet/AI',sev:'leve'}); _jetEl.textContent = ratio + '%  (prótesis: <20 % leve · >50 % severa)'; }
-      else if (_jetPct > IM_CORTES.jet_prot.sev_min_excl) { scores.severa++; params.push({p:'Jet/AI',sev:'severa'}); _jetEl.textContent = ratio + '%  (prótesis: <20 % leve · >50 % severa)'; }
+      if (_jetPct < IM_CORTES.jet_prot.leve_max) { params.push({p:'Jet/AI',sev:'leve',grupo:'comun'}); _jetEl.textContent = ratio + '%  (prótesis: <20 % leve · >50 % severa)'; }
+      else if (_jetPct > IM_CORTES.jet_prot.sev_min_excl) { params.push({p:'Jet/AI',sev:'severa',grupo:'comun'}); _jetEl.textContent = ratio + '%  (prótesis: <20 % leve · >50 % severa)'; }
       else _jetEl.textContent = ratio + '%  (Variable — no gradúa en prótesis)';
     } else {
       _jetEl.textContent = ratio + '%';
-      if (_jetPct < IM_CORTES.jet_nat.leve_max) { scores.leve++; params.push({p:'Jet/AI',sev:'leve'}); }
-      else if (_jetPct <= IM_CORTES.jet_nat.mod_max_incl) { scores.moderada++; params.push({p:'Jet/AI',sev:'moderada'}); }
-      else { scores.severa++; params.push({p:'Jet/AI',sev:'severa'}); }
+      if (_jetPct < IM_CORTES.jet_nat.leve_max) { params.push({p:'Jet/AI',sev:'leve',grupo:'comun'}); }
+      else if (_jetPct <= IM_CORTES.jet_nat.mod_max_incl) { params.push({p:'Jet/AI',sev:'moderada',grupo:'comun'}); }
+      else { params.push({p:'Jet/AI',sev:'severa',grupo:'comun'}); }
     }
     }
   } else {
@@ -33746,18 +33841,18 @@ function calcIM_ESC() {
     const _eroaDud = _pPr.fuera || _pPv.fuera || _pVm.fuera;
     document.getElementById('eroa-val').textContent = eroa + ' mm²' + (_eroaDud ? MARCA_REVISAR : '');
     if (!_eroaDud) {
-      if (eroa < IM_CORTES.eroa.leve_max) { scores.leve++; params.push({p:'EROA',sev:'leve'}); }
-      else if (eroa < IM_CORTES.eroa.sev_min) { scores.moderada++; params.push({p:'EROA',sev:'moderada'}); }
-      else { scores.severa++; params.push({p:'EROA',sev:'severa'}); }
+      if (eroa < IM_CORTES.eroa.leve_max) { params.push({p:'EROA',sev:'leve',grupo:'pisa'}); }
+      else if (eroa < IM_CORTES.eroa.sev_min) { params.push({p:'EROA',sev:'moderada',grupo:'pisa'}); }
+      else { params.push({p:'EROA',sev:'severa',grupo:'pisa'}); }
     }
     if (itvIM) {
       const volR = (PF(eroa)/100*itvIM).toFixed(1);
       const _volRDud = _eroaDud || _pIt.fuera;
       document.getElementById('volr-val').textContent = volR + ' ml' + (_volRDud ? MARCA_REVISAR : '');
       if (!_volRDud) {
-        if (volR < IM_CORTES.volr.leve_max) { scores.leve++; params.push({p:'Vol-R',sev:'leve'}); }
-        else if (volR < IM_CORTES.volr.sev_min) { scores.moderada++; params.push({p:'Vol-R',sev:'moderada'}); }
-        else { scores.severa++; params.push({p:'Vol-R',sev:'severa'}); }
+        if (volR < IM_CORTES.volr.leve_max) { params.push({p:'Vol-R',sev:'leve',grupo:'pisa'}); }
+        else if (volR < IM_CORTES.volr.sev_min) { params.push({p:'Vol-R',sev:'moderada',grupo:'pisa'}); }
+        else { params.push({p:'Vol-R',sev:'severa',grupo:'pisa'}); }
       }
       if (itsvi && dtsvi) {
         const atsvi = Math.PI*((dtsvi/20)**2);
@@ -33771,9 +33866,9 @@ function calcIM_ESC() {
         const _frDud = _volRDud || _vsvDud;
         document.getElementById('freg-val').textContent = fr + '%' + (_frDud ? MARCA_REVISAR : '');
         if (!_frDud) {
-          if (fr < IM_CORTES.fr.leve_max) { scores.leve++; params.push({p:'FR',sev:'leve'}); }
-          else if (fr < IM_CORTES.fr.sev_min) { scores.moderada++; params.push({p:'FR',sev:'moderada'}); }
-          else { scores.severa++; params.push({p:'FR',sev:'severa'}); }
+          if (fr < IM_CORTES.fr.leve_max) { params.push({p:'FR',sev:'leve',grupo:'pisa'}); }
+          else if (fr < IM_CORTES.fr.sev_min) { params.push({p:'FR',sev:'moderada',grupo:'pisa'}); }
+          else { params.push({p:'FR',sev:'severa',grupo:'pisa'}); }
         }
       } else _pisaLimpiar(2);
     } else _pisaLimpiar(1);
@@ -33799,9 +33894,9 @@ function calcIM_ESC() {
      y ahí sí tiene que estar. */
   let _ondaSVoto = null;
   if (ondaS) {
-    if (ondaS === 'positiva') { scores.leve++; _ondaSVoto = {p:'Onda S', sev:'leve'}; document.getElementById('im-onda-s-interp').innerHTML = badge('green','Normal'); }
-    else if (ondaS === 'embotada') { scores.moderada++; _ondaSVoto = {p:'Onda S', sev:'moderada'}; document.getElementById('im-onda-s-interp').innerHTML = badge('yellow','Embotada — moderada'); }
-    else { scores.severa++; _ondaSVoto = {p:'Onda S', sev:'severa'}; document.getElementById('im-onda-s-interp').innerHTML = badge('red','Invertida — severa'); }
+    if (ondaS === 'positiva') { _ondaSVoto = {p:'Onda S', sev:'leve', grupo:'comun'}; document.getElementById('im-onda-s-interp').innerHTML = badge('green','Normal'); }
+    else if (ondaS === 'embotada') { _ondaSVoto = {p:'Onda S', sev:'moderada', grupo:'comun'}; document.getElementById('im-onda-s-interp').innerHTML = badge('yellow','Embotada — moderada'); }
+    else { _ondaSVoto = {p:'Onda S', sev:'severa', grupo:'comun'}; document.getElementById('im-onda-s-interp').innerHTML = badge('red','Invertida — severa'); }
   } else {
     /* ⚠️ EL `else` VA ACÁ POR EL MISMO ARGUMENTO QUE EL DE `im-jet-ratio`, y se olvidó en la
        primera versión de este mismo bloque. Sin él, el médico RETIRA la onda S —devuelve el select
@@ -34031,6 +34126,67 @@ function calcIM_ESC() {
     }
   }
 
+  /* ══ LOS TRES VOTOS DE LA CONTINUIDAD — REGLA 3 DE MAICOL (2026-10-13) ════════════════════════
+     «Valen los DOS métodos, PISA y continuidad. Calculá la severidad integrada de cada método con
+     la regla de integración que la app ya usa, usando para continuidad el EROA, el Vol-R y la FR
+     por continuidad en lugar de los de PISA, y el resto de los parámetros en ambos.»
+     Esto REEMPLAZA la regla anterior, que está escrita a dos metros de acá en `calcContIM`: «⚠️
+     ESTA EROA NO VOTA. `calcContIM` sigue graduando SOLO por Vol-R y FR». Medido en HEAD: con sólo
+     continuidad cargada (Vol-R 15,7 ml, FR 19 %) el grado era **0** y el informe firmado decía
+     «sin estenosis ni insuficiencia» sobre una válvula cuantificada por el método volumétrico.
+
+     ⚠️ LOS TRES NÚMEROS SE LEEN DE LOS CAMPOS QUE EL MÉDICO TIENE DELANTE, no se recalculan. Los
+     escribe `calcContIM`, que es su dueño único; recalcularlos acá sería una SEGUNDA copia de tres
+     fórmulas —el defecto que este archivo documenta como «la copia que usa el PDF se pudre sin que
+     se vea desde la app»— y encima con sus propias bandas de plausibilidad, que `calcContIM` ya
+     aplica. Es el mismo criterio con el que la PAP diastólica entra a la diastólica: se lee el
+     número publicado.
+     ⚠️ Y POR ESO HACE FALTA QUE `calcIM_ESC` CORRA CUANDO CAMBIA UN INSUMO DE LA CONTINUIDAD. De
+     las cinco puertas, CUATRO ya llamaban a las dos funciones seguidas (`vtiMitralEditado`,
+     `aiAreaEditada`, `tsviDiamEditado`, `vtiTsviCoordinar` y el `oninput` de `im_itv`); la que
+     faltaba es `diam_mit`, que tenía `oninput="calcContIM()"` pelado y entra en este commit.
+     Sin eso, tipear el Ø del anillo movía el Vol-R por continuidad y el grado se quedaba atrás.
+
+     ⚠️ `> 0` Y NO `!= null`, que es la convención que `imPdfMetodosUI` ya usa para habilitar la
+     casilla: `v()` devuelve 0 para un «0» tipeado, y con criterios distintos una EROA de «0.0 mm²»
+     habilitaría la casilla y no votaría, o al revés. `calcContIM` ya vacía los tres campos en sus
+     ramas de Vol-R negativo y de Vol-R ≈ 0, que son las que no significan nada. */
+  const _imCont = [];
+  { const _ce = v('im_eroa_cont'), _cv = v('vr_cont'), _cf = v('im_fr_cont');
+    if (_ce > 0) _imCont.push({p:'EROA', sev: (_ce < IM_CORTES.eroa.leve_max) ? 'leve'
+      : (_ce < IM_CORTES.eroa.sev_min ? 'moderada' : 'severa'), grupo:'cont'});
+    if (_cv > 0) _imCont.push({p:'Vol-R', sev: (_cv < IM_CORTES.volr.leve_max) ? 'leve'
+      : (_cv < IM_CORTES.volr.sev_min ? 'moderada' : 'severa'), grupo:'cont'});
+    if (_cf > 0) _imCont.push({p:'FR', sev: (_cf < IM_CORTES.fr.leve_max) ? 'leve'
+      : (_cf < IM_CORTES.fr.sev_min ? 'moderada' : 'severa'), grupo:'cont'}); }
+
+  /* ⚠️ LOS CORTES SON LOS MISMOS PARA LOS DOS MÉTODOS, Y LA FUENTE LO RESPALDA A MEDIAS. ASE 2017
+     (Zoghbi, JASE 2017;30:303-371), **Tabla 8, folio 332**, leída en texto completo: las filas
+     «RVol (mL)» y «RF (%)» NO están calificadas por método, así que sus cortes valen para los dos.
+     La fila de la EROA SÍ: dice literalmente «EROA, 2D PISA (cm²)». El **folio 312** define
+     `EROA = RVol/VTI_RegJet` como fórmula general —exactamente la que usa la continuidad de esta
+     app— pero la guía NO publica una banda propia para esa EROA. Aplicarle la de PISA es CRITERIO
+     ECOSMART, queda declarado en `docs/PENDIENTES.md`, y es el lado conservador: no se mueve ni un
+     número. Por eso se reusa `IM_CORTES` y no se declara una tabla nueva con los mismos valores,
+     que es el defecto que este archivo ya pagó tres veces. */
+
+  /* ══ QUÉ MÉTODO VA AL INFORME ═════════════════════════════════════════════════════════════════
+     Lo elige el médico con las casillas «🖨️ Incluir en el informe», que es el mecanismo que ya
+     existía para el PDF. ⚠️ `im_pdf_pisa` ESTÁ SIEMPRE TILDADA Y NO SE PUEDE DESTILDAR
+     (`onchange="this.checked=true"`), así que «PISA incluido» equivale a «PISA tiene números», que
+     es además la compuerta que `_imMetodoPdfVal` usa para la fila del papel: la fila se gatea por
+     el NÚMERO y no por la casilla, y el comentario de esa función explica por qué —si se gateara
+     por la casilla, todo informe anterior a este selector se reimprimiría sin EROA ni Vol-R—.
+     La de continuidad sí es una elección, y se consulta con su número al lado por el mismo motivo.
+     ⚠️ SIN NINGUNO DE LOS DOS MÉTODOS, EL COMPORTAMIENTO ES EXACTAMENTE EL DE HEAD y no hace falta
+     una rama para eso: los votos comunes son los únicos que quedan, que es lo que HEAD contaba.
+     Medido: con sólo la vena contracta en 2 mm el grado es 1 en los dos árboles. */
+  const _imChkCont = (function(){ const c = document.getElementById('im_pdf_cont');
+    return !!(c && c.checked); })();
+  const _imPisaIncl = params.some(function (x) { return x.grupo === 'pisa'; });
+  const _imContIncl = _imChkCont && _imCont.length > 0;
+  if (_imContIncl) params = params.concat(_imCont);
+
   /* ══ EL LÍMITE QUE ESTE BLOQUE DECLARABA SE CERRÓ EL 2026-10-13 ═══════════════════════════════
      Acá vivía un párrafo de cuarenta líneas que empezaba «LÍMITE DECLARADO, NO ES EL
      COMPORTAMIENTO DESEADO» y describía exactamente el defecto que el médico reportó: «este
@@ -34074,39 +34230,31 @@ function calcIM_ESC() {
     _imSincronizarPantalla();
     return _imRet;
   }
-  let sevBadge, gradoVal;
-  /* ⚠️ UN SOLO PARÁMETRO EN SEVERA BASTA, y antes NO bastaba: caía en el `else` mudo del final y
-     se publicaba «Moderada». Medido con el caso del censo —prótesis mitral, vena contracta 8 mm y
-     nada más—: la VC votaba `severa`, `moderada` quedaba en 0, ninguna de las tres primeras ramas
-     matcheaba y el informe firmado y el EN SUMA salían «IM moderada» sobre una VC que la ASE 2024
-     (Tabla 13, JASE 2024;37(1):2-63, p. 30) clasifica como SEVERA a partir de 0,7 cm. Es el
-     `else` fail-open que este archivo ya documenta para `epGradoPorGmax` y para `avaEsSevera`:
-     la última rama de una cascada sin predicado se come lo que ninguna clasificó, y acá se lo
-     comía hacia el lado tranquilizador.
-     ⚠️ NO ES UN DEFECTO PROTÉSICO: reproducido byte a byte con `vm_morf = Reumática`. Ninguna
-     función de esta cascada lee la morfología, así que el arreglo vale para las dos — que es lo
-     que corresponde, porque los cortes de la Tabla 13 para vena contracta, EROA, volumen y
-     fracción regurgitante son IDÉNTICOS a los nativos.
-     ⚠️ Y LA SEGUNDA CLÁUSULA DEL `else if` ERA CÓDIGO MUERTO. `(moderada === 1 && severa === 1)`
-     no se alcanzaba nunca: ese estado ya matcheaba `severa === 1 && moderada >= 1` en la
-     condición de arriba. Se lee como si tratara un empate y lo que hacía era nada.
-     EL CAMBIO ES EXACTAMENTE UN CASO, y está medido sobre las 64 combinaciones de los tres
-     parámetros independientes (VC, jet/AI y onda S pulmonar): sólo se mueve
-     `severa >= 1 && moderada === 0`, que pasa de «Moderada» a «Severa» — once de las 64. Las
-     otras 53 salen idénticas, incluidas las tres bandas de «Leve» y el «Moderada — evaluar
-     integrado» de un único voto moderado, que conserva su texto y su color. */
-  if (scores.severa >= 1) {
-    sevBadge = badge('red','Severa'); gradoVal = '4';
-  } else if (scores.moderada >= 2) {
-    sevBadge = badge('orange','Moderada'); gradoVal = '2';
-  /* `scores.severa === 0` es REDUNDANTE desde que la primera rama se lleva todo `severa >= 1`, y
-     se conserva declarándolo: es lo que hace que esta banda siga fallando cerrada el día que
-     alguien afloje la condición de arriba. Ninguna mutación la distingue. */
-  } else if (scores.leve >= 1 && scores.moderada === 0 && scores.severa === 0) {
-    sevBadge = badge('green','Leve'); gradoVal = '1';
-  } else {
-    sevBadge = badge('yellow','Moderada — evaluar integrado'); gradoVal = '2';
-  }
+  /* ══ UN GRADO POR MÉTODO, Y AL INFORME VA EL PEOR DE LOS INCLUIDOS — REGLA 3 ══════════════════
+     La regla de integración NO cambia: es `_imIntegrar`, que es la cascada de siempre movida a su
+     propia función para poder llamarla DOS veces. Lo que cambia es sobre qué votos se corre.
+     Cada método integra los votos COMUNES (vena contracta, ratio jet/AI y onda S pulmonar) con los
+     TRES suyos, que es textualmente lo que pidió Maicol.
+     ⚠️ LA ONDA S ENTRA EN LOS DOS MÉTODOS Y NO EN `params`, y esa distinción es la que el censo de
+     `8b143e6` dejó escrita: `params` es el gate de «una válvula que nadie cuantificó no recibe
+     severidad», y la onda S no es una cuantificación de la regurgitación —es el flujo venoso
+     pulmonar—. Metida en `params`, una onda S invertida SOLA escribiría grado 4 sobre una mitral
+     sin un solo parámetro cuantitativo. Pero VOTA, así que entra en las dos integraciones.
+     ⚠️ GANA EL PEOR, QUE ES LA DECISIÓN DE MAICOL, y se compara por `IM_GRADO_ORDEN` y no por el
+     string: '4' > '2' > '1' no se cumple como texto. Con un solo método incluido el peor es ése, y
+     sin ninguno la lista queda sólo con los comunes — que es EXACTAMENTE el comportamiento de HEAD,
+     sin una rama propia.
+     ⚠️ EL BADGE QUE SE PUBLICA ES EL DEL MÉTODO QUE GANÓ, no uno fabricado aparte: el amarillo
+     «Moderada — evaluar integrado» y el naranja «Moderada» son el MISMO grado '2' con dos textos,
+     así que derivar el badge del grado habría perdido esa distinción. Con empate manda PISA, que
+     es el método por defecto y la casilla que no se puede destildar. */
+  const _imComunes = params.filter(function (x) { return x.grupo === 'comun'; })
+    .concat(_ondaSVoto ? [_ondaSVoto] : []);
+  const _imVotosPisa = params.filter(function (x) { return x.grupo === 'pisa'; });
+  const _gPisa = _imPisaIncl ? _imIntegrar(_imComunes.concat(_imVotosPisa)) : null;
+  const _gCont = _imContIncl ? _imIntegrar(_imComunes.concat(_imCont)) : null;
+  const _imR = _imPeorIntegrado(_gPisa, _gCont) || _imIntegrar(_imComunes);
+  const sevBadge = _imR.badge, gradoVal = _imR.grado;
   document.getElementById('im-sev').innerHTML = sevBadge;
   /* ⚠️ LA FOTO DEL GRADO CALCULADO SE GUARDA SIEMPRE, FUERA DE LA COMPUERTA DE MANUAL. Es la
      diferencia entre «qué publica la app» y «qué calculó la app», y mezclarlas rompe la regla del
@@ -38001,9 +38149,13 @@ function calcContIM() {
      Tres guardas, y ninguna es decorativa: sin Vol-R positivo el cociente no significa nada (ver
      la rama de abajo); con `im_itv` fuera de banda el numero seria una EROA fabricada con un VTI
      imposible; y con `im_itv` en 0 seria una division por cero que imprime «Infinity mm²».
-     ⚠️ ESTA EROA NO VOTA. `calcContIM` sigue graduando SOLO por Vol-R y FR, que es lo que el
-     comentario de arriba explica: la EROA entro como dato mostrado, no como parametro de
-     gradacion, y agregarla al OR de mas abajo repetiria el defecto que esa nota documenta. */
+     ⚠️ ESTA EROA NO VOTA LA CAPSULA «Severidad (continuidad)» DE ABAJO, y eso no cambio: esa
+     capsula sigue graduando SOLO por Vol-R y FR —la EROA entro como dato mostrado— y agregarla a
+     su OR repetiria el defecto que la nota de arriba documenta.
+     ⚠️ LO QUE SI CAMBIO EL 2026-10-13 ES QUE AHORA VOTA EL GRADO FINAL. `calcIM_ESC` lee este
+     campo, el Vol-R y la FR y los integra como un METODO, por la regla 3 de Maicol. Son dos cosas
+     distintas y conviene no confundirlas: la capsula es una lectura volumetrica de PANTALLA con dos
+     parametros, y el metodo del grado final integra los TRES junto con los votos comunes. */
   const _pJet = vPlaus('im_itv');
   if (eEl) {
     /* El umbral es el MISMO 0,05 de las ramas de abajo y no un `> 0`: con un Vol-R de 0,03 ml la
@@ -48243,6 +48395,12 @@ function generarPDFReal(_aj) {
       {lbl:'VC IM',         ref:'(<3 / 3–7 / ≥7) mm', val:vPdf('im_vc',' mm')},
       {lbl:'EROA',          ref:'(<20 / 20–40 / ≥40) mm²', val:imEroaPdfVal()},
       {lbl:'Vol.R',         ref:'(<30 / 30–60 / ≥60) ml', val:imVolrPdfVal()},
+      /* ⚠️ FILA NUEVA (regla 6, 2026-10-13): la FR va PEGADA al EROA y al Vol-R porque la regla
+         pide que los tres aparezcan JUNTOS por método, y porque los tres salen de la misma Tabla 8
+         de la ASE 2017 (folio 332). Los cortes de la columna `ref` son los de `IM_CORTES.fr`
+         —`<30` leve, `30` a `<50` moderada, `≥50` severa— escritos con la misma notación que sus
+         dos vecinas. Con `null` la fila se omite entera, igual que las otras. */
+      {lbl:'FR',            ref:'(<30 / 30–50 / ≥50) %', val:imFrPdfVal()},
       /* ⚠️ `emGradoVis` Y NO `_cap`: el valor guardado sigue siendo «severa» y lo que se imprime
          es «Significativa». Con `_cap` esta fila decía «Severa» al lado de una frase del cuerpo que
          dice «significativa» —dos palabras para el mismo dato en el MISMO papel firmado—. `_cap`
@@ -73998,6 +74156,11 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
        «PISA:» y con la escala de severidad al lado. */
     const er = document.getElementById('eroa-val');
     const vr = document.getElementById('volr-val');
+    /* ⚠️ `freg-val` ENTRA EL 2026-10-13 POR EL MISMO ARGUMENTO QUE SUS DOS VECINAS: desde la regla
+       6 la fracción regurgitante LLEGA AL PAPEL, y el cierre de la reimpresión no recalcula
+       `calcIM_ESC`. Sin respaldarla, el paciente en pantalla volvía con la FR del estudio
+       reimpreso y su propio PDF salía con el número del otro, ahora además rotulado «PISA:». */
+    const fg = document.getElementById('freg-val');
     /* ⚠️ EL OCULTO `im_pisa` NO VA ACÁ, Y ESO SE MIDIÓ. Durante la reimpresión `calcIM_ESC` corre
        con los datos del estudio reimpreso y sella `im_pisa` con SUS valores, así que parecía tener
        que respaldarse junto a los dos span. No hace falta: el respaldo genérico de unas líneas más
@@ -74025,6 +74188,7 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
     return { ondaE: oe ? oe.textContent : '',
              eroa:  er ? er.textContent : '',
              volr:  vr ? vr.textContent : '',
+             freg:  fg ? fg.textContent : '',
              jetRatio: jr ? jr.textContent : '',
              vcRef: vcr ? vcr.textContent : '',
              disc:  dd ? dd.textContent : '',
@@ -74331,6 +74495,7 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
       if (_oe) _oe.textContent = _imFilasBackup.ondaE;
       { const _er = document.getElementById('eroa-val'); if (_er) _er.textContent = _imFilasBackup.eroa;
         const _vr = document.getElementById('volr-val'); if (_vr) _vr.textContent = _imFilasBackup.volr;
+        const _fg = document.getElementById('freg-val'); if (_fg) _fg.textContent = _imFilasBackup.freg;
         const _jr = document.getElementById('im-jet-ratio'); if (_jr) _jr.textContent = _imFilasBackup.jetRatio;
         const _vcr = document.getElementById('im-vc-ref'); if (_vcr) _vcr.textContent = _imFilasBackup.vcRef; }
       const _dd = document.getElementById('im-discordancia');
@@ -105580,8 +105745,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261013-1249';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791906550820;                 /* eco-build-ms */
+const ECO_BUILD    = '20261013-1310';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791907815657;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -105667,7 +105832,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-1249</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-1310</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -107829,7 +107994,7 @@ const ECO_AYUDA = [
 <tr><td>IM — onda E como signo de soporte<br><span style="font-size:11px;color:var(--text2);">Sólo soporte: no gradúa. El signo <b>específico</b> es el opuesto — la onda A dominante prácticamente descarta IM severa. Válido sin estenosis mitral (la guía dice que incluso la leve altera la onda E), calcificación anular, anillo protésico ni fibrilación auricular; menos específico en IM secundaria; más aplicable en mayores de 50 años.</span></td><td>onda E ≥ 120 cm/s apoya severa · onda A dominante la descarta</td><td>ASE 2017 (Zoghbi, JASE 30:303-371, Tabla 8)</td></tr>
 <tr><td>IM — cociente VTI mitral / VTI TSVI<br><span style="font-size:11px;color:var(--text2);"><b>La guía lo da en ausencia de insuficiencia aórtica moderada o severa:</b> la IAo aumenta el VTI aórtico, que es el denominador, y el cociente deja de medir lo que dice medir.<br>⚠️ <b>Acá la app diverge de la guía a propósito, y lo dice en la fila.</b> En válvula <b>nativa</b> calcula el cociente igual con IAo <b>moderada</b> y <b>moderada-severa</b> —agregando en la fila la salvedad «la ASE 2023 lo excluye con IAo moderada o severa; criterio EcoSmart: se usa igual»— y lo retira sólo con IAo <b>severa</b>. Es criterio de la aplicación (decisión del 30/09/2026), no lo que dice el documento. Es la misma dirección que la app ya aplica al THP con IAo, donde la guía también dice «moderada o severa» y la app sólo se retira con la severa. Con <b>prótesis</b> la fila se retira desde la IAo moderada, sin cambios. Con un grado de IAo que no se puede interpretar se retira en los dos casos.<br>El corte sale de la <b>ASE 2023 de cardiopatía reumática</b> (Pandian et al., JASE 2023;36:3-28), Key Points de IM reumática: &gt; 1,4 sugiere IM severa y &lt; 1 leve. <b>La ESC/EACTS 2025 también lo publica</b>, con el mismo corte: Figura 10, pág. 4672, recuadro de criterios ecocardiográficos de IM severa, entre los <b>semicuantitativos</b> — «VTI mitral / VTI LVOT &gt; 1,4». <b>No figura en ASE 2017 ni en ESC/EACTS 2021.</b><br>⚠️ Ninguna de las dos guías dice <b>con qué modalidad</b> se mide ese VTI mitral. La app usa el de entrada por Doppler pulsado anterógrado —no el del chorro de la insuficiencia—, que es lo correcto, pero es criterio de la aplicación y no algo que las guías respalden.<br>⚠️ El estudio original que la guía cita (Tribouilloy, Eur Heart J 1994;15:1335-9) da ≥ <b>1,3</b> con sensibilidad 87 % y especificidad 91 %, y el 1,4 se rastrea además a un artículo del E-Journal de la ESC que cita esas mismas dos cifras. O sea que la guía publica 1,4 sobre un primario que dice 1,3, y eso no distingue entre haberlo validado y haber propagado el mismo error. Se conserva el 1,4 que la app venía usando y se declaran las dos cosas.<br>⚠️ <b>Con PRÓTESIS mitral el corte es otro: ≥ 2,5.</b> Sale de la <b>ASE 2024 de prótesis</b> (Zoghbi et al., JASE 2024;37(1):2-63), <b>Tabla 12, pág. 28</b> — «hallazgos de ETT que sugieren IM protésica significativa en válvulas mecánicas con THP normal»: VTI protésico / VTI TSVI ≥ 2,5, sensibilidad 89 %, especificidad 91 %. El 1,4 es de válvula <b>nativa</b> y aplicarlo a una prótesis daba «apoya IM severa» sobre cocientes muy por debajo de lo que la tabla protésica considera sugestivo. La app elige el corte por la morfología de la válvula mitral.<br>⚠️ Esa tabla define el corte <b>para válvulas mecánicas y con THP normal</b>, y la app <b>no verifica ninguna de las dos condiciones</b>: lo aplica a cualquier prótesis mitral y no cruza el tiempo de hemipresión.</span></td><td>nativa &gt; 1,4 · prótesis ≥ 2,5</td><td>nativa: ASE 2023 (Pandian, JASE 36:3-28) y ESC/EACTS 2025 (Figura 10, p. 4672) — el primario da 1,3 · prótesis: ASE 2024 (Zoghbi), Tabla 12 p. 28</td></tr>
 <tr><td>IM — cociente jet/AI (%)<br><span style="font-size:11px;color:var(--text2);">⚠️ <b>Dos cortes según la morfología.</b> En válvula <b>nativa</b>: &lt; 20 % leve, ≤ 40 % moderada, &gt; 40 % severa.<br>⚠️ <b>Con PRÓTESIS mitral el corte de severa es &gt; 50 %</b>, y entre 20 y 50 % la <b>ASE 2024 de prótesis</b> (Zoghbi et al., JASE 2024;37(1):2-63), <b>Tabla 13, pág. 30</b>, dice «<b>Variable</b>»: ahí el parámetro <b>no gradúa</b> y la app se abstiene en vez de inventar una banda moderada. La fila de pantalla lo declara en vez de descontar el parámetro en silencio.<br>⚠️ Los <b>cortes absolutos</b> de esa misma tabla (área del jet &lt; 4 cm² leve / &gt; 8 cm² severa) <b>no se implementan</b>: la guía los da como alternativa al porcentaje («usually … or …») y aplicarlos exigiría decidir qué manda cuando los dos discrepan.<br>⚠️ Y la nota al pie de la tabla exige un <b>Nyquist de 50-60 cm/s</b> para que el porcentaje valga; la app <b>no registra ese dato</b>, así que ninguno de los dos regímenes puede verificar la condición en la que su corte está definido.</span></td><td>nativa &lt; 20 / ≤ 40 / &gt; 40 % · prótesis &lt; 20 % leve · &gt; 50 % severa</td><td>nativa: ASE 2017 (Zoghbi, JASE 30:303-371) · prótesis: ASE 2024 (Zoghbi), Tabla 13 p. 30</td></tr>
-<tr><td>IM — EROA por continuidad y Vol-R<br><span style="font-size:11px;color:var(--text2);">La EROA por continuidad es <b>Vol-R ÷ VTI del chorro de IM por CW</b>. Los dos cortes de severidad de la guía —<b>EROA ≥ 40 mm²</b> y <b>Vol-R ≥ 60 ml</b>— describen al mismo paciente sólo cuando el VTI del chorro vale <b>150 cm</b>, porque 60 ÷ 0,40 = 150. Con un VTI de 100 cm, un Vol-R justo en el corte da una EROA de 60 mm², o sea severa con holgura; con 200 cm da 30 mm², por debajo del corte con el Vol-R ya severo.<br>⚠️ Eso es <b>aritmética de la fórmula, no una discrepancia entre guías</b>: los dos cortes son correctos y se refieren al mismo hallazgo medido por dos caminos con distinta sensibilidad a la duración del chorro. Por eso esta fila no lleva atribución de guía.<br>⚠️ <b>Esta EROA no vota.</b> El grado integrado de IM sale de la vena contracta, el jet sobre área auricular, el <b>EROA por PISA</b> con sus derivados y la onda S pulmonar. El volumen regurgitante y la fracción regurgitante <i>por continuidad</i> gradúan sólo la cápsula «Severidad (continuidad)» de ese mismo cuadro, que tampoco vota. El EROA de PISA es otra medición y aparece en la misma pantalla: conviene no confundirlas.</span></td><td>coinciden sólo con VTI del chorro = 150 cm</td><td>aritmética de la fórmula — no es una cita</td></tr>
+<tr><td>IM — EROA por continuidad y Vol-R<br><span style="font-size:11px;color:var(--text2);">La EROA por continuidad es <b>Vol-R ÷ VTI del chorro de IM por CW</b>. Los dos cortes de severidad de la guía —<b>EROA ≥ 40 mm²</b> y <b>Vol-R ≥ 60 ml</b>— describen al mismo paciente sólo cuando el VTI del chorro vale <b>150 cm</b>, porque 60 ÷ 0,40 = 150. Con un VTI de 100 cm, un Vol-R justo en el corte da una EROA de 60 mm², o sea severa con holgura; con 200 cm da 30 mm², por debajo del corte con el Vol-R ya severo.<br>⚠️ Eso es <b>aritmética de la fórmula, no una discrepancia entre guías</b>: los dos cortes son correctos y se refieren al mismo hallazgo medido por dos caminos con distinta sensibilidad a la duración del chorro. Por eso esta fila no lleva atribución de guía.<br>⚠️ <b>Desde el 13/10/2026 esta EROA SÍ vota</b>, junto con el volumen regurgitante y la fracción regurgitante <i>por continuidad</i>: la continuidad se integra como un MÉTODO, con la misma regla que PISA y con los mismos cortes, y los votos comunes a los dos son la vena contracta, el jet sobre área auricular y la onda S pulmonar. Con las dos casillas de «Incluir en el informe» marcadas, al informe va el <b>peor</b> de los dos métodos; con una sola, la de ese método; con ninguna, sólo los comunes. Lo que NO cambió es la cápsula «Severidad (continuidad)» de ese cuadro, que sigue graduando sólo por volumen regurgitante y fracción regurgitante: es una lectura volumétrica de pantalla de dos parámetros, no el método del grado final. El <b>EROA por PISA</b> es otra medición del mismo hallazgo y aparece en la misma pantalla: conviene no confundirlas.</span></td><td>coinciden sólo con VTI del chorro = 150 cm</td><td>aritmética de la fórmula — no es una cita</td></tr>
 <tr><td>Insuficiencia aórtica severa, asintomática</td><td>FEVI ≤ 50 % · DTSI &gt; 50 mm o &gt; 25 mm/m² (Clase I)</td><td>ESC/EACTS 2021</td></tr>
 <tr><td>Estenosis aórtica severa sintomática</td><td>intervención Clase I; modalidad por edad y riesgo (corte 75 años)</td><td>ESC/EACTS 2021</td></tr>
 <tr><td>TEER — inclusión COAPT</td><td>FEVI 20–50 % · DTSVI ≤ 70 mm</td><td>COAPT</td></tr></table>

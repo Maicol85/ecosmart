@@ -44240,7 +44240,7 @@ caso('TC-327', 'Evidencia EM: CINCO documentos verificados, las discrepancias co
      FR    = 35,3 / 91,89 = 38 %      (MODERADA: 30-50)
      EROA  = 35,3 / 50 * 100 = 70,7 mm2  (SEVERA por ese parametro: >= 40)
    Y el corte donde los dos coincidirian es un VTI de chorro de 150 cm: 60 / 0,40 = 150. ══════ */
-caso('TC-335', 'IM: la EROA por continuidad se publica pero NO vota, y el reparo declara que la relacion con el Vol-R es aritmetica', `
+caso('TC-335', 'IM: la EROA por continuidad VOTA como metodo desde el 13/10/2026, y el reparo declara que la relacion con el Vol-R es aritmetica', `
   return (async () => {
     const R = {}, ex = [];
     const pl = x => String(x == null ? '' : x).toLowerCase().normalize('NFD')
@@ -44316,11 +44316,17 @@ caso('TC-335', 'IM: la EROA por continuidad se publica pero NO vota, y el reparo
        HECHO —que el rotulo diga que esta EROA no vota y que nombre el EROA de PISA como el que si
        participa del grado— y no la oracion, que es lo que obliga a tocar el caso cada vez que el
        texto se corrige a proposito. */
-    R.tieneNoVota = /Esta EROA NO vota/.test(ti);
-    R.tienePisa = /EROA por PISA/.test(ti);
+    /* ⚠️ ADAPTADO EL 2026-10-13. Este par de condiciones fijaba el HECHO «esta EROA no vota» en el
+       rotulo y en la ayuda, y el hecho se dio vuelta: la regla 3 de Maicol hace que la continuidad
+       se integre como un METODO. Lo que se pina ahora es el hecho NUEVO —que el rotulo diga que SI
+       vota y que nombre la regla del peor— y la mitad que NO cambio: que la capsula «Severidad
+       (continuidad)» siga siendo una lectura de dos parametros. El reparo aritmetico de los 150 cm
+       se conserva intacto, porque no depende de quien vote. */
+    R.tieneNoVota = /SI vota|S\u00cd vota/.test(ti);
+    R.tienePisa = /PEOR de los dos|peor de los dos/.test(ti);
     R.tieneInfo = !!(lbls[0] && lbls[0].querySelector('[onclick]'));
 
-    ex.push(['el rotulo lleva su reparo: los 150 cm, que no vota, y que el que vota es el de PISA',
+    ex.push(['el rotulo lleva su reparo: los 150 cm, que SI vota, y la regla del peor de los dos metodos',
       R.nLabels === 1 && R.tiene150 && R.tieneNoVota && R.tienePisa && R.tieneInfo,
       'labels=' + R.nLabels + ' 150=' + R.tiene150 + ' noVota=' + R.tieneNoVota +
       ' pisa=' + R.tienePisa + ' info=' + R.tieneInfo]);
@@ -44337,13 +44343,17 @@ caso('TC-335', 'IM: la EROA por continuidad se publica pero NO vota, y el reparo
     /* ⚠️ EN MINUSCULAS: se aplica sobre pl(T), que ya bajo el texto. Con la mayuscula de EROA la
        condicion daba false sobre una ayuda correcta — un regex que no puede matchear nunca es una
        condicion que pasa a ser decorativa el dia que alguien la invierta. */
-    R.ayPisa = pl(T).indexOf('eroa por pisa') > -1 && pl(T).indexOf('esta eroa no vota') > -1;
+    /* ADAPTADA el 2026-10-13 por el mismo motivo que las dos de arriba: la ayuda decia «esta eroa
+       no vota» y hoy dice que si vota y con que regla. Se exige TAMBIEN la mitad que no cambio —la
+       capsula de dos parametros— para que el texto no pueda decir las dos cosas a la vez. */
+    R.ayPisa = pl(T).indexOf('eroa por pisa') > -1 && pl(T).indexOf('si vota') > -1
+      && pl(T).indexOf('peor') > -1 && pl(T).indexOf('capsula') > -1;
     /* ⚠️ Y ESTA ES LA CONDICION DEL PUNTO 4 DEL PEDIDO: la relacion es aritmetica, asi que la fila
        NO puede llevar atribucion de guia. Una cita ahi convertiria una consecuencia de la formula
        en una recomendacion, que es lo que este archivo persigue desde la nota del NT-proBNP. */
     R.aySinCita = /aritmetica de la formula . no es una cita/.test(pl(T));
 
-    ex.push(['la ayuda trae la fila, la aritmetica de los 150 cm y la distincion con PISA',
+    ex.push(['la ayuda trae la fila, la aritmetica de los 150 cm, que SI vota y la regla del peor',
       R.ayudaLargo > 500 && R.ayFila && R.ay150 && R.ayPisa,
       'largo=' + R.ayudaLargo + ' fila=' + R.ayFila + ' 150=' + R.ay150 + ' pisa=' + R.ayPisa]);
 
