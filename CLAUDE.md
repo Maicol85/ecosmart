@@ -33,6 +33,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar el VENTRÍCULO DERECHO**: sus campos, el cuadro de referencias, la disfunción sistólica, la pared o el Tei | `docs/mapa/vd-derecho.md` |
 | **Tocar el panel de Evidencia: agregar una cita, una sección o un sub-bloque** | `docs/mapa/panel-evidencia.md` |
 | **Agregar un TÉRMINO al glosario del panel (el ⓘ con tarjeta)** | `docs/mapa/panel-evidencia-terminos.md` |
+| **Tocar el CARTEL DE PÉPTIDOS del HFA-PEFF, su puntaje o el plan Básico/Avanzado**: el espejo del péptido, el ritmo que se lee, los cortes por tipo o por qué `showTab` no chequea el plan | `docs/mapa/hfapeff-peptidos.md` |
 | **Ver por dónde sale un dato** (informe narrativo, EN SUMA, PDF, Excel) | `docs/mapa/informe-pdf-excel.md` |
 | **Agregar o correr un caso de prueba; A/B; mutación** | `docs/mapa/tests.md` |
 | **Visor de cineloop, medición, calibración, IndexedDB** | `docs/mapa/imagenes-visor.md` |
@@ -227,6 +228,170 @@ impecable.
 ---
 
 ## Estado vigente
+
+### El cartel de PÉPTIDOS del HFA-PEFF y el plan del usuario (2026-10-13)
+
+- Al **empezar** esta tanda, `main` local y `origin/main` estaban los dos en **`ec7ac3d`**, sin nada
+  sin pushear —confirmado con un `git fetch` de verdad, no con el ref en caché—, con los **tres**
+  commits de la tanda de los cortes de la aórtica ya incluidos **y pusheados**. Los **tres** commits
+  de esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 3 → 2 → 1.**
+  El **1** crea el cartel entero —el marcado, `HFPEP_CAMPO`, `hfPepSync`, `hfPepPintar`,
+  `hfPepAbrir/Cerrar/Confirmar`, el prefijo `hfpep-` de `_noEsDelEstudio` y las dos entradas de
+  `RECALC_MODULOS`— y **el 2 cuelga entero de él**: reescribe `hfPepPintar` y agrega una llamada a
+  esa misma función en el oyente de documento. Revertir el 1 sin revertir antes el 2 deja el oyente
+  llamando a una función que no existe —inocuo, va con `typeof` y además en `try`— pero deja
+  `hfapeffLineaEco` publicando el score completo con un cartel que ya no se puede abrir, o sea el
+  botón volviendo a `showTab('hemodinamica')` y el defecto del plan **reabierto**.
+  **El 3 es TC-465 más documentación** y afirma el comportamiento de los dos: revertir cualquiera
+  sin el 3 deja TC-465 en rojo.
+  ⚠️ **Y EL 2 NO ES SÓLO «EL CÁLCULO»:** lleva el `id` del rótulo del renglón
+  (`hfapeff-eco-lbl`), sin el cual `hfapeffLineaEco` del commit 2 escribe sobre un nodo que no
+  existe —inocuo, va con `if (lbl)`— pero el rótulo se queda en «HFA-PEFF (eco)» con el péptido
+  cargado, que es justo la frase que deja de ser cierta.
+
+- **Línea base al cierre: suite 475/479 en la corrida completa con el pendrive `DISK_IMG`
+  MONTADO, Semgrep 127 / 0 ERROR, Excel 435 columnas con el HASH IDÉNTICO a HEAD, celular 43 a
+  360 px y 52 a 390 px con 1 ALTA cada uno —IDÉNTICO a la línea base, y `--todo` da 374 y 383—.**
+  Los cuatro rojos son los de ENTRADA y NO son regresiones: **TC-223** (el documentado, falla por
+  la fecha), **TC-376**, **TC-390** y **TC-406**. **El denominador subió a 479**: esta tanda agregó
+  **TC-465**. El `md5` de `index.html` no se movió durante la corrida (`59017ce6…`).
+  ⚠️ **ESE 479 NO ES EL TOTAL DE CASOS, QUE SON 480: TC-318 ESTÁ EXCLUIDO PORQUE **SE CUELGA EN
+  HEAD LIMPIO**.** Medido: el suite entero se detuvo ahí dos veces, con node al 0 % de CPU y el
+  log sin escribir durante ocho minutos, y corrido **solo** con `--solo TC-318` se colgó igual,
+  sobre el árbol de HEAD con su `md5` sin tocar. La causa es de ENTORNO y es la misma de TC-148
+  (abajo): ese caso llama a `pdfDeInformeGuardado`, que necesita **jsPDF por CDN**; sin la
+  librería, la promesa del caso no resuelve nunca y `Runtime.evaluate` con `awaitPromise` espera
+  para siempre. **El suite no tiene manejador de diálogos ni timeout por caso**, así que un caso
+  que no resuelve cuelga la corrida entera. La línea base de ENTRADA, medida en HEAD limpio el
+  2026-10-13 con la misma exclusión, fue **473/478**.
+  ⚠️ **TC-148 ES UN ROJO DE ENTORNO, NO UNA REGRESIÓN, Y SE LEE EN SU PROPIA CONDICIÓN:**
+  «PptxGenJS cargó por CDN (sin esto el caso no prueba nada)». Salió rojo en la corrida de entrada
+  y **verde en la de cierre**, con el mismo árbol. Los hashes SRI de los tres CDN se verificaron
+  contra el archivo real descargado y **coinciden**, así que no es el defecto del `integrity`
+  viejo que este archivo documenta: es la librería que unas veces llega y otras no.
+  ⚠️ **TC-GR-06 ES UN SEXTO CASO INESTABLE POR ORDEN DE CORRIDA**, al lado de TC-246, TC-249,
+  TC-252 y TC-260. Salió rojo en un `--solo` de 15 casos de la zona y **verde dos veces corrido
+  solo**, con el mismo árbol. **Me costó una conclusión falsa**: bisequé contra él, «confirmé» que
+  una línea nueva tiraba una excepción, y era mentira — la sonda lo desmintió midiendo el error
+  tragado (`null` en todas sus escenas). **Repetir antes de sospechar.**
+
+- **Dónde está todo:** `docs/mapa/hfapeff-peptidos.md` (**mapa NUEVO**, 14,2 KB: el defecto del
+  plan y por qué el plan no lo frenaba, las piezas nuevas, el espejo, el ritmo que se lee, el
+  puntaje, la accesibilidad y las seis trampas medidas), `docs/fuentes/FUENTES.md` →
+  `### hfaPeff2019` (⚠️ **el original NO está en la biblioteca**, el censo de los 89 archivos, la
+  fuente secundaria y la comparación criterio por criterio), `docs/PENDIENTES.md` → **ocho** cosas
+  declaradas y no tocadas (H1 a H8), y la fila nueva de la tabla de arriba.
+
+- ⚠️ **EL DEFECTO REPRODUCE, Y EL PLAN SÍ ESTABA APLICADO.** Medido contra HEAD con teclas y clics
+  reales, en los dos planes: con **plan BÁSICO** el botón del rail de Hemodinámica queda en
+  `display:none` y la fila `.tabs-special` entera también —o sea `applyViewMode()` hizo su
+  trabajo—, y un clic de mouse sobre «confirmar con péptidos →» mueve la pestaña activa de
+  `tab-doppler` a **`tab-hemodinamica`**, con la sección HFA-PEFF visible. Hoy, con los dos planes,
+  la pestaña activa sigue en `tab-doppler` y lo que se abre es el cartel.
+- ⚠️ **LA CAUSA NO ES ESE BOTÓN: ES QUE `showTab` NO CHEQUEA NADA.** Medido sobre su propia fuente:
+  no nombra `eeGetMode`, `eeModOn`, `applyViewMode` ni `ett_view_mode`. El plan se aplica
+  **escondiendo botones, no paneles** —`#tab-hemodinamica` sigue en el árbol con plan Básico—, así
+  que cualquier código que active uno entra sin pasar por ninguna compuerta. `PENDIENTES.md` → H8.
+- **CENSO DE LOS OTROS BOTONES (punto 6 de la orden, sólo reportado): NO HAY NINGUNO.** `hfapeffIr`
+  era el único control de toda la app que llamaba a `showTab` con una pestaña gateada desde fuera
+  del rail. Verificado por grep sobre los diez destinos con `data-mod` y por el grupo `X` de la
+  sonda, que censa los `[onclick]` del árbol vivo. Lo que queda abierto es que **nada lo impide
+  estructuralmente**.
+
+- **UN SOLO DATO Y DOS CONTROLES.** El dueño sigue siendo `hf_ntprobnp` / `hf_bnp`, que ya viajaban
+  con el estudio y **ya tenían columna de Excel**: no se agregó ni un campo ni una columna. El
+  espejo usa el mecanismo de `aoFcSync` y `avaPlanSync`, con la diferencia de que **el par no es
+  fijo** —lo elige el desplegable de tipo—. Medido con teclas reales en los dos tipos: escribir en
+  el cartel escribe el dueño, borrar borra, el valor que ya estaba en Avanzado se MUESTRA al abrir,
+  borrar en Avanzado lo borra del cartel, y con el cartel abierto y la pestaña de Avanzado debajo
+  el espejo va EN VIVO. **Control negativo: el OTRO péptido queda intacto en los cuatro gestos.**
+- ⚠️ **EL CARTEL NO ES DEL ESTUDIO, Y ES DELIBERADO.** Sus dos ids van con guión MEDIO y el prefijo
+  `hfpep-` los saca de `_noEsDelEstudio`: persistir el espejo dejaría una SEGUNDA copia del péptido
+  que al reabrir puede contradecir al dueño. **Medido**: el recolector guarda `hf_ntprobnp` y deja
+  los dos del cartel afuera; «Nuevo estudio» vacía dueño, espejo y los dos renglones de texto; y
+  reabrir el estudio repone el dueño y el cartel vuelve a mostrarlo.
+- **EL RITMO SE LEE Y NO SE PREGUNTA.** `hfRitmoEfectivo()` ya era el dueño único. Medido: el mismo
+  NT-proBNP de 450 es criterio **MAYOR** en ritmo sinusal (> 220) y **MENOR** en fibrilación
+  (375-660), así que el score pasa de 6/6 a 5/6 y vuelve al cambiar el selector del Doppler. Con un
+  valor que cayera del mismo lado en los dos ritmos, el paso no probaría nada.
+  ⚠️ **Y CON EL CARTEL ABIERTO SE QUEDABA DECLARANDO EL CORTE DEL RITMO ANTERIOR** —lo encontró la
+  sonda—: el cartel es un overlay y el médico puede mover el selector detrás. `hfPepPintar` entró
+  al oyente de documento, **en `try`**, porque ese oyente no envuelve sus llamadas.
+
+- **LOS CORTES NO SE TOCARON, Y CADA UNO SEPARA POR SUS DOS LADOS.** Tabla de **24 filas** con
+  teclas reales —tres valores por corte, por los cuatro cortes de cada ritmo—: el valor del corte
+  cae del lado **MENOR** y el entero siguiente ya es mayor, en NT-proBNP y en BNP, en los dos
+  ritmos. Los cortes de FA son el triple, que es lo que la fuente escribe.
+  ⚠️ **LA PRIMERA CORRIDA DE ESA TABLA NO MEDÍA NADA:** las 24 filas salieron con `humPts: 0` y el
+  renglón idéntico en los dos árboles — una tabla que decía «ningún corte funciona» sobre cortes
+  que funcionan. El tecleo había ABORTADO con «SIN GEOMETRIA hf_ntprobnp» en las 24, que es lo
+  correcto, y el lector no lo miraba: **los dos campos dueños viven en la pestaña Hemodinámica
+  DENTRO de una tarjeta plegada**. Pasó **tres veces** en esta tanda (grupos `B`, `R` y `N`).
+- ⚠️ **EL ORIGINAL DEL HFA-PEFF NO ESTÁ EN LA BIBLIOTECA.** Censados los **89 archivos**: tres
+  nombran el HFA-PEFF y **ninguno trae los cortes** —Nagueh 2025 lo describe en prosa, la ESC/ERS
+  2022 lo nombra, los dos lo citan bibliográficamente—. Por la regla de la casa, los ocho cortes
+  **no están verificados al estándar del repo**. La fuente SECUNDARIA que la orden admite —el Word
+  de Cowork, §13.3— los transcribe y **coincide exactamente con los que la app ya usaba**, así que
+  no hubo que mover ninguno y la tanda no se detuvo. `PENDIENTES.md` → H1.
+- ⚠️ **TRES DIFERENCIAS CONTRA LA FUENTE SECUNDARIA, EN LOS OTROS DOS DOMINIOS, REPORTADAS Y NO
+  TOCADAS** (son criterios ecocardiográficos y esta orden lo prohíbe): la **PSAP > 35 mmHg** es
+  criterio MAYOR del dominio funcional y la app **no la vota** —alcanza al paciente sin chorro de
+  IT medible, que es entre el 40 y el 60 %—, y los dos operadores del IMVI son `>` donde la fuente
+  escribe `≥`. `PENDIENTES.md` → H2 y H3.
+
+- **EL PUNTAJE SALE DE UNA SOLA FUNCIÓN, Y AHORA LAS DOS SUPERFICIES COINCIDEN.**
+  `hfapeffLineaEco` llamaba siempre a `hfapeffScore(true)` —techo 4—, así que con un péptido
+  cargado el cuadro del Doppler decía «4/4 en eco» mientras Avanzado decía 6/6 **sobre el mismo
+  paciente**. Hoy la rama se elige por `hum.hayDatos`, que lo dice el propio dueño. **Sin péptido
+  la rama de HEAD se conserva entera**, así que el punto (7) de la orden queda garantizado por
+  construcción: A/B con **0 diferencias** en 4 escenas.
+- **CONTROL NEGATIVO MAYOR, con el péptido CARGADO:** función diastólica, las **ocho** válvulas, el
+  **Excel en 435 columnas con el hash idéntico**, los **1082** campos guardados con su hash
+  idéntico, y el informe y el EN SUMA en los **tres** estilos, todos IDÉNTICOS a HEAD. El informe
+  no se mueve porque la hoja del HFA-PEFF es opt-in («Integrar al informe»).
+
+- ⚠️ **LA COMPUERTA DE FEVI Y EL RITMO AJENO SE MIDIERON Y NO SE TOCARON** (punto 8 de la orden).
+  FEVI **50 aplica y 49 no** —el corte es `>= 50`—, y del lado que no aplica el renglón se esconde
+  y la conclusión dice «score no aplicable» **sin nombrar el puntaje**. Y un ritmo que no es
+  ninguno de los dos **no es alcanzable con un gesto**: `diast_ritmo` ofrece exactamente dos
+  opciones; con un token ajeno el `<select>` queda en `selectedIndex -1` y `hfRitmoEfectivo()`
+  devuelve `'rs'`, o sea **los cortes de sinusal**, que es el lado que SOBRE-afirma porque los de
+  FA son el triple. `PENDIENTES.md` → H5.
+
+- **ACCESIBILIDAD, MEDIDA:** foco al campo del valor al abrir, Escape cierra —por el oyente
+  genérico, que clickea el botón que dice «Cerrar», así que no hay un segundo camino que se
+  desincronice—, clic en el fondo cierra, y **Tab CICLA dentro del cartel** sin escaparse a la
+  página de atrás.
+  ⚠️ **EL FOCO VUELVE POR POSICIÓN Y NO POR REFERENCIA, y lo encontró la sonda:**
+  `hfapeffLineaEco` reescribe el `innerHTML` del renglón, así que el `<button>` que abrió el cartel
+  queda DESCONECTADO y `document.contains` da false — el foco se caía al `<body>`.
+- **MAQUETA: 1200, 390 y 360 px en los DOS temas**, con captura real. No desborda, no hay scroll
+  horizontal, el texto va a 12 px y el campo del valor mide **27 px, exactamente lo que mide un
+  campo de formulario cualquiera de la app** al mismo ancho (`onda_e`) — que es el patrón contra el
+  que hay que medirlo, porque `check_mobile.js` abre pestañas y secciones pero **no modales**.
+  ⚠️ **Y EL BARRIDO DE DOS TEMAS MEDÍA UNO SOLO:** la sonda escribía `data-theme`, y el tema de
+  esta app es la clase **`light-mode`** sobre `documentElement`. Las capturas de claro y oscuro
+  salieron IDÉNTICAS byte por byte a 390 y 360 px, que es la firma de que el cambio nunca ocurrió.
+  Hoy la sonda **aborta** si la clase no quedó puesta.
+
+- **Arnés: `scripts/_probe_hfpep.mjs`** (A/B de solo lectura con `--file`, y `--captura`), once
+  grupos (`P`, `A`, `S`, `B`, `R`, `V`, `G`, `W`, `N`, `Q`, `X`).
+  **Cobertura: TC-465**, **39 condiciones** con tres denominadores y seis controles negativos.
+  **Verificado que sabe fallar contra HEAD en un worktree aparte: 21 de las 39 en rojo**; las 18
+  que pasan son lo que esta tanda no mueve —los ocho cortes de `hfUmbrales`, el ritmo que el score
+  ya leía, la compuerta de FEVI, las dos opciones del selector, los controles de diastólica,
+  válvulas y Excel, y el renglón «4/4 en eco» sin péptido—.
+  ⚠️ **TC-465 MORÍA POR EXCEPCIÓN CONTRA HEAD EN SU PRIMERA VERSIÓN**, por llamar a
+  `hfPepRitmoTxt` directo: un `ReferenceError` mata la corrida entera y entonces el caso prueba que
+  el árbol es distinto, no que sabe medir. Es la misma lección que TC-455 y TC-462 ya tienen
+  escrita.
+- ⚠️ **Me comí el acento grave TRES veces**, las tres en comentarios míos: dos dentro de un
+  template inline de la sonda y una en el cuerpo de TC-465.
+  ⚠️ **Y `scripts/check_backticks.py` NO ALCANZA A LOS TEMPLATES INLINE DE UNA SONDA:** cubre el
+  cuerpo de un `caso(...)` y el de la sonda inyectada, pero no un `` J(`…`) `` suelto. Las dos de
+  ese tipo pasaron su chequeo y las cazó `node --check`; la del caso la dio él con la línea exacta.
+  **Correr los dos, siempre.**
 
 ### Cortes de la estenosis AÓRTICA y revisión de la estenosis tricuspídea (2026-10-13)
 

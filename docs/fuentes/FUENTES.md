@@ -1426,6 +1426,79 @@ negativo, y por eso el redondeo del IMC a un decimal es lo que hace que el pacie
 170 cm caiga del lado que la guía describe.
 
 ---
+### `hfaPeff2019` — HFA-PEFF, Pieske et al. · ⚠️ EL ORIGINAL **NO ESTÁ EN LA BIBLIOTECA** (censado 2026-10-13)
+
+**Fuente primaria declarada:** Pieske B, Tschöpe C, de Boer RA, Fraser AG, Anker SD, Donal E et al.
+*How to diagnose heart failure with preserved ejection fraction: the HFA-PEFF diagnostic algorithm
+— a consensus recommendation from the Heart Failure Association (HFA) of the European Society of
+Cardiology (ESC).* **Eur Heart J 2019;40(40):3297-3317**, DOI 10.1093/eurheartj/ehz641.
+
+⚠️ **ESE PDF NO ESTÁ EN LA BIBLIOTECA, Y SE CENSÓ EL DISCO ENTERO.** Barrido de los **89 archivos**
+de `~/Desktop/EcoSmart_Biblioteca_Fuentes` buscando `HFA-PEFF`, `HFA–PEFF`, `HFAPEFF`, `HFA PEFF` y
+`Pieske` dentro del texto de cada PDF: **tres archivos lo nombran y ninguno trae los cortes.**
+
+| Archivo | Dónde lo nombra | Qué trae |
+|---|---|---|
+| `02_Diastolica/Nagueh_2025_Diastolica.pdf` | págs. PDF 29-30 y la cita 8 | describe el algoritmo en prosa —pretest, score, Paso 3— y **ningún número de péptido** |
+| `02_Diastolica/Left-Ventricular-Diastolic-Function.pdf` | ídem (es el mismo documento) | ídem |
+| `03_VD_y_corazon_derecho/Humbert_2022_Hipertension_Pulmonar.pdf` | pág. PDF 74 y la cita 16 | lo nombra como escala validada de IC-FEc; **ningún corte** |
+
+**CONSECUENCIA, por la regla de la casa:** «Verificada = texto completo leído, con documento, año,
+tabla y página», y **lo que no se pudo abrir NO se cita**. Así que los cortes de péptidos del
+HFA-PEFF **no están verificados al estándar de este repo**, y esta entrada va acá y no entre las
+verificadas. **No se tocó ni un corte ni un operador** — y no hacía falta: los que la app ya usaba
+coinciden con la fuente secundaria (abajo).
+
+#### La fuente SECUNDARIA, que es lo único verificable hoy
+
+`~/Desktop/EcoSmart_Criterios_Academicos_COMPLETO_1-18.docx` → **Sección 13 — Score HFA-PEFF**. Es
+el Word de criterios de Cowork, y la orden lo admite como **secundario**. Su propia nota de
+procedencia dice que el HTML del *European Heart Journal* se truncó en el criterio menor de LAVI y
+que el resto se leyó en la copublicación idéntica del *Eur J Heart Fail* 2020;22(3):391-412.
+
+**§13.3 — dominio biomarcador, transcrito:**
+
+| Peso | Ritmo sinusal | Fibrilación auricular |
+|---|---|---|
+| **Mayor (2 puntos)** | NT-proBNP **> 220** pg/ml, o BNP **> 80** pg/ml | NT-proBNP **> 660** pg/ml, o BNP **> 240** pg/ml |
+| **Menor (1 punto)** | NT-proBNP **125 a 220** pg/ml, o BNP **35 a 80** pg/ml | NT-proBNP **375 a 660** pg/ml, o BNP **105 a 240** pg/ml |
+
+Justificación que el Word cita *verbatim* del original: «For diagnosing HFpEF, we hence recommend
+values in patients with AF that are three times higher than used for patients in SR.»
+⚠️ **El corte del PASO 1 (cribado) es OTRO y no se usa acá:** BNP ≥ 35 o NT-proBNP ≥ 125 pg/ml.
+
+**§13.4 — regla de puntuación**, *verbatim*: «Within each domain, a major criterion scores 2 points
+or a minor criterion 1 point… Each domain can contribute maximally 2 points… Major and minor
+criteria are not additive in a single domain. Points are added only when they come from different
+domains.» Máximo **6** puntos, dos por dominio. Bandas: **≥ 5** «considered to be diagnostic of
+HFpEF» · **2 a 4** «need further evaluation» · **≤ 1** «diagnosis of HFpEF very unlikely».
+
+⚠️ **Y NO ASIGNA CLASE NI NIVEL DE EVIDENCIA.** Es un *consensus recommendation* de la Heart Failure
+Association, autodescrito como tal, no una guía de práctica de la ESC. Así que a estos cortes **no
+se les puede colgar un `Clase I · Nivel B`**.
+
+#### Lo que la app usa hoy, comparado criterio por criterio
+
+**COINCIDE EXACTAMENTE** en todo el dominio humoral y en la aritmética del puntaje: `hfUmbrales`
+publica los ocho cortes con los mismos números y los mismos operadores —mayor con `>` estricto,
+menor como rango cerrado `>= lo && <= hi`—, `_hfDom` da 2 puntos por mayor y 1 por menor sin
+sumarlos, el techo es 6 y `hfapeffInterp` corta en ≤1 / 2-4 / ≥5. **Medido por los dos bordes de
+cada uno de los ocho cortes** (TC-465 y `scripts/_probe_hfpep.mjs`, grupo `B`): el valor del corte
+cae del lado **MENOR** y el siguiente entero ya es mayor.
+
+**TRES DIFERENCIAS EN LOS OTROS DOS DOMINIOS — REPORTADAS Y NO TOCADAS**, porque son criterios
+ecocardiográficos y esta orden no autoriza moverlos (ver `docs/PENDIENTES.md` → H1, H2 y H3):
+
+| Qué | El Word (§13.1 y §13.2) | La app (`hfapeffScore`) |
+|---|---|---|
+| **PSAP > 35 mmHg** como criterio MAYOR del dominio funcional | lo lista, al lado de la velocidad de IT > 2,8 m/s | **no existe**: el dominio funcional vota `vmax_it` y nada más |
+| Operador del IMVI mayor | «Masa **≥** 149 g/m² en hombres o **≥** 122 en mujeres» | `> 149` / `> 122` — estricto |
+| Operador del IMVI menor | «Masa **≥** 115 / **≥** 95» | `> UMBRAL_MASA_HVI_H` / `_M` (115 / 95) — estricto |
+
+Los dos operadores sólo cambian el veredicto en el valor EXACTO del corte. La PSAP sí cambia
+escenas reales: un paciente con PSAP 40 mmHg y sin chorro de IT medible no suma el punto que el
+documento le daría.
+
 ### Registradas SIN folio → NO verificadas al estándar del repo
 
 Están en `IND_REFS`, pero su `full` **no tiene tabla ni página**. Sirven como referencia general;

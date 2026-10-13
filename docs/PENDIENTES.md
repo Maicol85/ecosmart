@@ -1,5 +1,106 @@
 # EcoSmart — pendientes vivos
 
+## Cartel de PÉPTIDOS del HFA-PEFF y el plan del usuario (2026-10-13) — DECLARADO y NO arreglado
+
+### H1 · El original del HFA-PEFF NO está en la biblioteca, así que sus cortes no están verificados
+
+Censado el disco entero: de los **89 archivos** de `~/Desktop/EcoSmart_Biblioteca_Fuentes`, **tres**
+nombran el HFA-PEFF y **ninguno trae los cortes de péptidos** — Nagueh 2025 lo describe en prosa y la
+ESC/ERS 2022 lo nombra como escala validada; los dos lo citan bibliográficamente y nada más. El PDF
+de Pieske 2019 (*Eur Heart J* 2019;40:3297-3317) **no existe en la carpeta**.
+
+Por la regla de la casa —«lo que no se pudo abrir NO se cita»— los ocho cortes **no están
+verificados al estándar de este repo**. Lo que hay es la fuente **secundaria** que la orden admite:
+el Word de Cowork, §13.3, que los transcribe y **coincide exactamente con los que la app ya usaba**.
+**No se tocó ni un corte ni un operador**, y por eso esto no bloqueó la tanda.
+
+**Qué haría falta:** conseguir el PDF (o la copublicación idéntica del *Eur J Heart Fail*
+2020;22(3):391-412, que el propio Word declara haber usado para la mitad del contenido) y verificar
+los ocho cortes contra el folio impreso. Hasta entonces, **ningún corte del HFA-PEFF puede llevar
+corchete en el panel de Evidencia.** `docs/fuentes/FUENTES.md` → `### hfaPeff2019`.
+
+### H2 · La PSAP > 35 mmHg es criterio MAYOR del dominio funcional y la app no la vota
+
+El Word (§13.1), transcribiendo el original, lista **PSAP > 35 mmHg** al lado de la velocidad de IT
+> 2,8 m/s como criterio mayor. `hfapeffScore` vota `vmax_it` y **nada más**: no hay un `d.psap`.
+
+**Alcance real**, no teórico: un paciente con PSAP estimada de 40 mmHg y **sin chorro de IT
+medible** —entre el 40 y el 60 % según la BSE— no suma el punto que el documento le da. Y la app ya
+tiene la PSAP calculada en `psap_calc`, así que el dato está.
+
+**No se toca porque es un criterio ECOCARDIOGRÁFICO** y esta orden lo prohíbe expresamente.
+⚠️ Y si se agrega, hay que decidir qué hacer cuando `psap_calc` dice «N mmHg (sin PmAD)» —a esa
+PSAP le falta el sumando de la aurícula derecha—, que es la misma decisión que la PAP diastólica de
+la ASE 2025 ya resolvió absteniéndose (ver C7).
+
+### H3 · Dos operadores del dominio morfológico son `>` y la fuente escribe `≥`
+
+| Criterio | El Word (§13.2) | La app |
+|---|---|---|
+| IMVI mayor | masa **≥** 149 g/m² (H) o **≥** 122 (M) | `> 149` / `> 122` |
+| IMVI menor | masa **≥** 115 g/m² (H) o **≥** 95 (M) | `> UMBRAL_MASA_HVI_H` / `_M` |
+
+Sólo cambia el veredicto en el valor **exacto** del corte. No se toca por lo mismo que H2, y además
+`UMBRAL_MASA_HVI_H/M` los comparten otros módulos: cambiar el operador acá sería cambiarlo allá.
+
+### H4 · El renglón escondido conserva el texto del estado anterior
+
+Cuando la compuerta de FEVI cierra —FEVI < 50 %— `hfapeffLineaEco` pone la fila en `display:none` y
+**sale sin reescribir** el `innerHTML`. Medido: con el péptido cargado y la FEVI bajada a 49, la
+fila queda escondida con el texto «4/4 en eco — HFpEF probable» adentro.
+
+**Es invisible y es PREEXISTENTE** —HEAD hace exactamente lo mismo, con el mismo `return`
+temprano—, así que no es un defecto de esta tanda y no se corrigió. Lo que lo haría relevante es un
+camino futuro que lea ese nodo sin mirar el `display` de su fila.
+
+### H5 · Un ritmo que no es sinusal ni fibrilación cae a los cortes de SINUSAL
+
+**El estado no es alcanzable con un gesto**: `diast_ritmo` ofrece **exactamente dos** opciones
+(`sinusal`, `fa`) —medido— y `hf_ritmo` tres (`auto`, `rs`, `fa`). Se llega sólo inyectando un token
+ajeno, que es lo que haría un estudio guardado con otro vocabulario o una reimportación: el
+`<select>` queda en **`selectedIndex -1`** con `value` vacío y `hfRitmoEfectivo()` devuelve **`'rs'`**,
+o sea los cortes de ritmo sinusal (NT-proBNP > 220).
+
+⚠️ **Y ES EL LADO QUE SOBRE-AFIRMA**: los cortes de fibrilación son el **triple**, así que aplicarle
+los de sinusal a un paciente con otro ritmo supraventricular cuenta como positivo lo que los cortes
+altos llamarían negativo. **No se tocó**: elegir qué hacer ahí —abstenerse, usar los de FA, o pedir
+el ritmo— es una decisión clínica. Es el mismo patrón que `et_grado` ya pagó con su legado.
+TC-465 lo fija como LÍMITE para que un cambio no pase en silencio.
+
+### H6 · El cartel no ofrece los tildes manuales del dominio humoral
+
+La sección de Avanzado tiene cuatro casillas (`hf_nt_may`, `hf_nt_men`, `hf_bnp_may`, `hf_bnp_men`)
+para el caso en que el médico tiene el laboratorio informado **pero no el número exacto**. El cartel
+pide un número y nada más.
+
+**Decisión conservadora y declarada**: la orden dice «el cartel pide el TIPO y el VALOR con su
+unidad», y con un número cargado `hfHumUI` calcula el tilde y lo **bloquea**, así que el camino del
+número está completo. Lo que queda sin puerta en Básico es el caso «sé que supera el corte y no
+tengo el valor», que hoy sólo se puede marcar desde Avanzado.
+
+### H7 · Con los dos péptidos cargados, el cartel muestra uno a la vez
+
+`hfPepTipoVigente()` abre con NT-proBNP cuando los dos tienen valor. **El otro no se pierde** —se ve
+cambiando el desplegable, y el score vota los dos— pero el renglón del corte del cartel sólo habla
+del tipo mostrado, con los puntos del dominio al lado. Alternativa, si molesta: dos filas en el
+cartel en vez de un selector, que es un rediseño y no un arreglo.
+
+### H8 · El plan se aplica escondiendo botones, no paneles
+
+No es de esta zona y no se tocó, pero es la causa de fondo y conviene que quede escrito:
+`applyViewMode()` esconde `.tabs-special`, `.tabs-tools`, `.tabs-lab-wrap` y cada
+`button[data-mod]`, y **`showTab` no chequea nada** —medido sobre su fuente: no nombra `eeGetMode`,
+`eeModOn`, `applyViewMode` ni `ett_view_mode`—. Los paneles de las pestañas avanzadas **siguen en el
+árbol** con plan Básico, así que cualquier código que active uno entra sin pasar por ninguna
+compuerta.
+
+**Al 2026-10-13 no queda ningún otro control que lo haga**: `hfapeffIr` era el único, censado por
+grep sobre los diez destinos gateados y por el grupo `X` de la sonda sobre el árbol vivo. Lo que
+queda abierto es que **nada lo impide estructuralmente**: el próximo botón que llame a `showTab` con
+una pestaña avanzada reabre el agujero y ningún chequeo de arranque lo avisaría. La defensa
+equivalente a `EE_MODULES` ↔ `data-mod` —que sí tiene chequeo de consola— sería una guarda dentro de
+`showTab`. **Decisión de Maicol**, porque toca el enrutador de toda la app.
+
 ## Cortes de la estenosis aórtica y estenosis tricuspídea (2026-10-13) — DECLARADO y NO arreglado
 
 ### A-1 · Cinco de los seis criterios NO votan «leve», y la guía sí tiene esa banda

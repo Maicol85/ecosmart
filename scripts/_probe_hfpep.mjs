@@ -29,7 +29,7 @@
 
 import { createServer } from 'node:http';
 import { spawn } from 'node:child_process';
-import { readFile, mkdtemp, rm } from 'node:fs/promises';
+import { readFile, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname, extname, isAbsolute, basename } from 'node:path';
@@ -66,6 +66,7 @@ const VER  = process.argv.includes('--ver');
 const arg  = (n) => { const i = process.argv.indexOf(n); return i > 0 ? process.argv[i + 1] : null; };
 const FARG = arg('--file') || 'index.html';
 const SOLO = arg('--solo');
+const CAPTURA = process.argv.includes('--captura');
 const EXTERNO = isAbsolute(FARG);
 const FILE = EXTERNO ? '__ab__' + basename(FARG) : FARG;
 
@@ -1026,9 +1027,18 @@ async function main() {
           await cdp.send('Emulation.setDeviceMetricsOverride',
             { width: ancho, height: 900, deviceScaleFactor: 1, mobile: ancho < 768 }, sessionId);
           await pausa(250);
-          await ev(`(function(){
-            try { document.documentElement.setAttribute('data-theme', ${JSON.stringify(tema)}) } catch(e){}
-            return document.documentElement.getAttribute('data-theme') })()`);
+          /* ⚠️ EL TEMA DE ESTA APP ES LA CLASE `light-mode` SOBRE documentElement, NO un
+             `data-theme`. La primera version de este grupo escribia `data-theme` y no hacia
+             NADA: las capturas de tema claro y de tema oscuro salieron IDENTICAS byte por byte
+             a 390 y 360 px, que es la firma de que el cambio nunca ocurrio, y las seis celdas
+             midieron el MISMO tema. Un barrido de dos temas que mide uno solo no es un barrido
+             de dos temas. Se verifica que la clase quedo puesta y se informa al lado. */
+          const temaPuesto = await ev(`(function(){
+            var r = document.documentElement;
+            if (${JSON.stringify(tema)} === 'light') r.classList.add('light-mode');
+            else r.classList.remove('light-mode');
+            return r.classList.contains('light-mode') ? 'light' : 'dark' })()`);
+          if (temaPuesto !== tema) throw new Error('el tema no quedo puesto: pedi ' + tema + ' y quedo ' + temaPuesto);
           await base('basico');
           const btnId = await ev(`(function(){
             var v = document.getElementById('hfapeff-eco'); if (!v) return 'SIN SPAN';
@@ -1058,7 +1068,27 @@ async function main() {
                      refApp: g(ref), refAppSelect: g(sel),
                      vw: window.innerWidth, vh: window.innerHeight,
                      scrollW: document.documentElement.scrollWidth } })()`);
-          W.celdas.push({ tema, ancho, boton: btnId, clic, cartel: c, geo,
+          /* CAPTURA del cartel en los dos temas, DEL VIEWPORT ENTERO y sin `clip`.
+             ⚠️ EL `clip` SACADO DE getBoundingClientRect NO COINCIDE CON LO QUE SE DIBUJA, y esta
+             medido: con el recorte puesto en la caja del cartel, la imagen de 1200 px salio
+             corrida ~160 px —mostraba los campos del Doppler de arriba y cortaba el cartel por
+             abajo— y las de 390 y 360 salieron PLANAS, con el mismo tamano de archivo byte por
+             byte en tema claro y en oscuro, que es la firma de una imagen vacia. El rect es del
+             viewport de LAYOUT y el recorte se interpreta sobre el visual, que con la emulacion
+             de movil no son el mismo. Sin `clip` no hay nada que alinear: el cartel es un
+             overlay centrado y entra entero. La geometria se mide aparte, con numeros. */
+          let png = null;
+          if (CAPTURA) {
+            try {
+              const r = await cdp.send('Page.captureScreenshot',
+                { format: 'png', captureBeyondViewport: false }, sessionId);
+              const buf = Buffer.from(r.data, 'base64');
+              const f = join(tmpdir(), `hfpep-${tema}-${ancho}.png`);
+              await writeFile(f, buf);
+              png = { archivo: f, bytes: buf.length };
+            } catch (x) { png = { err: String(x.message || x) }; }
+          }
+          W.celdas.push({ tema, temaPuesto, ancho, boton: btnId, clic, cartel: c, geo, png,
             DESBORDA: !!(geo && geo.caja && (geo.caja.x < 0 || geo.caja.x + geo.caja.w > geo.vw + 1)),
             MISMA_ALTURA_QUE_LA_APP: !!(geo && geo.val && geo.refApp && geo.val.h === geo.refApp.h),
             TEXTO_OK: !!(geo && geo.corte && geo.corte.fs >= 11) });
@@ -1067,7 +1097,7 @@ async function main() {
       }
     } catch (x) { W.FALLO = String(x.message || x); }
     try { await cdp.send('Emulation.clearDeviceMetricsOverride', {}, sessionId); } catch {}
-    await ev(`(function(){ try { document.documentElement.removeAttribute('data-theme') } catch(e){}; return 1 })()`);
+    await ev(`(function(){ document.documentElement.classList.remove('light-mode'); return 1 })()`);
     await J(`window.__H.planPoner('avanzado')`);
     out.W = W;
   }
@@ -1180,6 +1210,62 @@ async function main() {
   /* ⚠️ UNA EXCEPCION TRAGADA POR UN try/catch NO SE VE EN NINGUNA ESCENA, y en este repo una
      que corra dentro del oyente de documento se lleva por delante lo que viene DESPUES en ese
      oyente. La sonda la publica para que no quede muda. */
+  /* ══ Q — LO QUE EL PUNTAJE HACE HOY CON FEVI < 50 % Y CON UN RITMO QUE NO ES NINGUNO DE LOS
+     DOS ═══ Es el punto (8) de la orden: se MIDE y se reporta, no se cambia. */
+  if (hacer('Q')) {
+    const Q = {};
+    try {
+      /* (a) FEVI por debajo de 50, con el peptido cargado y los dos dominios de eco positivos. */
+      Q.fevi = [];
+      for (const fevi of ['60', '50', '49', '35']) {
+        await base('avanzado');
+        await ev(`window.__H.set('fevi', ${JSON.stringify(fevi)})`);
+        const puerta = await J('window.__H.abrirAvanzado()');
+        const tip = await tipear('hf_ntprobnp', '900');
+        await ev('window.__H.volverADoppler()');
+        await pausa(300);
+        Q.fevi.push({ fevi, puertaOk: puerta.ok, tecleo: tip,
+          score: await J('window.__H.score(false)'),
+          refs: await J('window.__H.refs()'),
+          humPts: (await J('window.__H.humCrit()')).pts });
+      }
+      /* (b) UN RITMO QUE NO ES SINUSAL NI FIBRILACION. El selector del Doppler SOLO ofrece esas
+         dos opciones, asi que el estado no es alcanzable con un gesto: se llega inyectando un
+         token ajeno, que es lo que haria un estudio guardado con otro vocabulario o una
+         reimportacion. Se mide el selector, lo que devuelve el dueno del ritmo y los cortes. */
+      Q.ritmoAjeno = {};
+      await base('avanzado');
+      Q.ritmoAjeno.opcionesDoppler = await J(`(function(){
+        var d = document.getElementById('diast_ritmo');
+        if (!d) return 'NO EXISTE';
+        return Array.prototype.map.call(d.options, function(o){ return o.value }) })()`);
+      Q.ritmoAjeno.opcionesScore = await J(`(function(){
+        var h = document.getElementById('hf_ritmo');
+        if (!h) return 'NO EXISTE';
+        return Array.prototype.map.call(h.options, function(o){ return o.value }) })()`);
+      Q.ritmoAjeno.tokens = [];
+      for (const tok of ['sinusal', 'fa', 'flutter', '']) {
+        await ev(`(function(){
+          var d = document.getElementById('diast_ritmo');
+          var h = document.getElementById('hf_ritmo');
+          if (h) h.value = 'auto';
+          if (d) { d.value = ${JSON.stringify(tok)};
+                   d.dispatchEvent(new Event('change', { bubbles: true })) }
+          return 1 })()`);
+        await pausa(250);
+        Q.ritmoAjeno.tokens.push({ token: tok,
+          valorQueQuedo: await ev(`window.__H.val('diast_ritmo')`),
+          selectedIndex: await ev(`(function(){ var d=document.getElementById('diast_ritmo');
+            return d ? d.selectedIndex : null })()`),
+          ritmoEfectivo: await ev('window.__H.ritmoEfectivo()'),
+          umbrales: await J('window.__H.umbrales(window.__H.ritmoEfectivo() === "fa")'),
+          cartelRitmo: await ev(`(function(){ return (typeof hfPepRitmoTxt === 'function')
+            ? hfPepRitmoTxt() : 'NO EXISTE' })()`) });
+      }
+    } catch (x) { Q.FALLO = String(x.message || x); }
+    out.Q = Q;
+  }
+
   out.errorCartel = await ev('window.__hfpepErr || null');
   out.md5_antes = antes;
   out.md5_despues = await md5(join(RAIZ, 'index.html'));

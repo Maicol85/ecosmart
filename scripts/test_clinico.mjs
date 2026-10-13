@@ -4152,6 +4152,337 @@ caso('TC-32', 'Con volumen Y diametro cargados manda el volumen', `
    mano no es de confianza. Las mismas escenas van con teclas y clics REALES en
    scripts/_probe_eacortes.mjs, que es la que midio los tres sintomas contra HEAD. Mismo reparto
    que TC-460 y TC-463. */
+caso('TC-465', 'El cartel de PEPTIDOS del HFA-PEFF: el boton no entra a ECO AVANZADO con ningun plan, el peptido es UN dato espejado en los dos sentidos, los cortes de cada tipo por ritmo con sus dos bordes, y el puntaje sale de la MISMA funcion', `
+  const R = {}, ex = [];
+  const G = id => __t.val(id);
+  const EX = id => !!document.getElementById(id);
+  /* ⚠️ ESTE CASO CARGA CON __t.set Y NO CON TECLAS DE CDP, y hay que decirlo: el cuerpo de un
+     caso corre DENTRO de la pagina, no tiene acceso al protocolo del navegador y un
+     KeyboardEvent construido a mano no es de confianza. Las mismas escenas van con teclas y
+     clics REALES en scripts/_probe_hfpep.mjs, que es la que midio el defecto contra HEAD.
+     Mismo reparto que TC-460 y TC-463. */
+
+  /* El plan NO es una licencia de servidor: es localStorage. 'ett_view_mode' vale 'basico' o
+     'avanzado', y con la clave ausente la app asume 'avanzado'. */
+  const plan = m => { try { localStorage.setItem('ett_view_mode', m); } catch (e) {}
+    try { applyViewMode(); } catch (e) {} return (typeof eeGetMode === 'function') ? eeGetMode() : null; };
+  const tabActiva = () => { const t = document.querySelector('.tab-section.active'); return t ? t.id : null; };
+
+  /* Paciente con los DOS dominios de eco positivos y FEVI conservada: sin eso el renglon del
+     HFA-PEFF se esconde por su propia guarda y las condiciones medirian un cuadro que no se
+     dibujo. Es el denominador de todo lo que sigue. */
+  const base = () => {
+    __t.limpiar();
+    [['edad','70'],['sexo','M'],['peso','70'],['talla','170'],['fevi','60'],
+     ['e_sep','5'],['e_lat','7'],['onda_e','110'],['ai_vol','80'],['vmax_it','3.2'],
+     ['ddfvi','50'],['siv','13'],['ppvi','13']].forEach(par => __t.set(par[0], par[1]));
+    try { calcBSA(); } catch (e) {}
+    try { calcDiastol(); } catch (e) {}
+    try { hfapeffLineaEco(); } catch (e) {}
+  };
+  const ritmo = tok => { const d = document.getElementById('diast_ritmo');
+    const h = document.getElementById('hf_ritmo'); if (h) h.value = 'auto';
+    if (!d) return 'NO EXISTE';
+    d.value = tok; d.dispatchEvent(new Event('change', { bubbles: true }));
+    try { hfapeffRender(); } catch (e) {}
+    return (typeof hfRitmoEfectivo === 'function') ? hfRitmoEfectivo() : null; };
+  /* Carga el peptido por el DUENO y devuelve los puntos del dominio humoral que calcula la
+     UNICA funcion del puntaje. No reimplementa ningun corte. */
+  const pts = (campo, valor) => { __t.set(campo, valor);
+    try { hfapeffRender(); } catch (e) {}
+    try { return hfapeffScore(false).hum.pts; } catch (e) { return 'EXC'; } };
+  const sinPep = () => { __t.set('hf_ntprobnp', ''); __t.set('hf_bnp', '');
+    try { hfapeffRender(); } catch (e) {} };
+  const renglon = () => { try { hfapeffLineaEco(); } catch (e) {}
+    const row = document.getElementById('hfapeff-eco-row');
+    const val = document.getElementById('hfapeff-eco');
+    const lbl = document.getElementById('hfapeff-eco-lbl');
+    return { disp: row ? row.style.display : 'NO EXISTE',
+             txt: val ? (val.textContent || '').trim() : 'NO EXISTE',
+             lbl: lbl ? (lbl.textContent || '').trim() : 'NO EXISTE' }; };
+
+  /* ── 0 · DENOMINADORES ──────────────────────────────────────────────────────────────────────
+     Sin esto, las condiciones de abajo podrian pasar en un arbol donde nada de esto existe:
+     dirian «no entra a Avanzado» sobre un boton que no se dibujo. */
+  base();
+  R.faltanFn = ['hfPepAbrir','hfPepCerrar','hfPepSync','hfPepPintar','hfPepTipoVigente',
+                'hfPepRitmoTxt','hfapeffIr','hfapeffLineaEco','hfapeffScore','hfUmbrales',
+                'hfRitmoEfectivo','applyViewMode','eeGetMode','_noEsDelEstudio']
+    .filter(n => typeof window[n] !== 'function');
+  R.faltanNodo = ['modal-hfpep','hfpep-tipo','hfpep-val','hfpep-ritmo','hfpep-corte','hfpep-caja',
+                  'hfapeff-eco-row','hfapeff-eco','hfapeff-eco-lbl','hf_ntprobnp','hf_bnp',
+                  'hf_ritmo','diast_ritmo'].filter(id => !EX(id));
+  R.rengBase = renglon();
+  const btnBase = (document.getElementById('hfapeff-eco') || {}).querySelector
+    ? document.getElementById('hfapeff-eco').querySelector('button') : null;
+  R.hayBoton = !!btnBase;
+  ex.push(['DENOMINADOR 1: estan las catorce funciones del cartel', R.faltanFn.length === 0, R.faltanFn.join(',')]);
+  ex.push(['DENOMINADOR 2: estan los trece nodos', R.faltanNodo.length === 0, R.faltanNodo.join(',')]);
+  ex.push(['DENOMINADOR 3: con el paciente cargado el renglon se DIBUJA y trae su boton',
+    R.rengBase.disp !== 'none' && R.hayBoton, JSON.stringify(R.rengBase)]);
+
+  /* ── 1 · EL BOTON NO ENTRA A ECO AVANZADO, CON NINGUN PLAN ──────────────────────────────────
+     Es el defecto reportado. La medicion es la pestana ACTIVA antes y despues de disparar la
+     accion del boton; el estado del rail va al lado para probar que el plan SI estaba aplicado
+     y que el defecto entraba por otra puerta. */
+  R.plan = {};
+  ['basico','avanzado'].forEach(m => {
+    base();
+    const modo = plan(m);
+    try { showTab('doppler'); } catch (e) {}
+    const railHemo = document.querySelector('button[data-mod="hemodinamica"]');
+    const antes = tabActiva();
+    try { hfapeffIr(); } catch (e) {}
+    const despues = tabActiva();
+    const ov = document.getElementById('modal-hfpep');
+    R.plan[m] = { modo, antes, despues,
+      railVisible: railHemo ? getComputedStyle(railHemo).display !== 'none' : null,
+      cartelAbierto: ov ? getComputedStyle(ov).display !== 'none' : null };
+    try { hfPepCerrar(); } catch (e) {}
+  });
+  plan('avanzado');
+  ex.push(['con plan BASICO el boton NO cambia de pestana',
+    R.plan.basico.antes === 'tab-doppler' && R.plan.basico.despues === 'tab-doppler', JSON.stringify(R.plan.basico)]);
+  ex.push(['con plan BASICO abre el cartel', R.plan.basico.cartelAbierto === true, '']);
+  ex.push(['con plan COMPLETO tampoco cambia de pestana y abre el cartel',
+    R.plan.avanzado.despues === 'tab-doppler' && R.plan.avanzado.cartelAbierto === true, JSON.stringify(R.plan.avanzado)]);
+  ex.push(['CONTROL NEGATIVO: con plan BASICO el boton del rail de Hemodinamica SI esta escondido —o sea el plan estaba aplicado— y con plan COMPLETO se ve',
+    R.plan.basico.railVisible === false && R.plan.avanzado.railVisible === true,
+    'basico=' + R.plan.basico.railVisible + ' avanzado=' + R.plan.avanzado.railVisible]);
+  /* LA CAUSA, medida sobre la fuente y no afirmada: showTab no chequea el plan. Si algun dia
+     lo chequeara, esta condicion se cae y hay que revisar si el cartel sigue haciendo falta. */
+  R.showTabFuente = (function () { try { const f = String(showTab);
+    return { eeGetMode: f.indexOf('eeGetMode') >= 0, eeModOn: f.indexOf('eeModOn') >= 0,
+             viewMode: f.indexOf('ett_view_mode') >= 0, apply: f.indexOf('applyViewMode') >= 0 };
+    } catch (e) { return 'EXC'; } })();
+  ex.push(['LA CAUSA: showTab no nombra ninguna compuerta de plan',
+    R.showTabFuente && !R.showTabFuente.eeGetMode && !R.showTabFuente.eeModOn
+    && !R.showTabFuente.viewMode && !R.showTabFuente.apply, JSON.stringify(R.showTabFuente)]);
+  R.irFuente = (function () { try { return String(hfapeffIr).indexOf('showTab') >= 0; } catch (e) { return 'EXC'; } })();
+  ex.push(['y hfapeffIr ya NO nombra showTab', R.irFuente === false, String(R.irFuente)]);
+
+  /* ── 2 · EL CARTEL: marcado, Escape por el oyente generico, y que NO es del estudio ─────────*/
+  const ov = document.getElementById('modal-hfpep');
+  R.marcado = ov ? { rol: ov.getAttribute('role'), modal: ov.getAttribute('aria-modal'),
+                     rotulado: ov.getAttribute('aria-labelledby') } : 'NO EXISTE';
+  ex.push(['el cartel se anuncia como dialogo modal rotulado',
+    R.marcado && R.marcado.rol === 'dialog' && R.marcado.modal === 'true'
+    && R.marcado.rotulado === 'hfpep-titulo', JSON.stringify(R.marcado)]);
+  /* El oyente GENERICO de Escape del bloque de accesibilidad clickea el primer boton del
+     dialogo cuyo texto u onclick matchee /cerrar|✕|✖|×|close|cancel|hide|ocultar/i. Que el
+     cartel tenga uno asi es lo que hace que Escape lo cierre SIN un oyente propio; si manana
+     alguien le cambia el rotulo a «Listo», Escape deja de funcionar y nada mas lo avisaria. */
+  R.botonCierre = ov ? Array.prototype.slice.call(ov.querySelectorAll('button,[onclick]'))
+    .filter(b => /cerrar|✕|✖|×|close|cancel|hide|ocultar/i.test((b.textContent || '') + ' ' + (b.getAttribute('onclick') || '')))
+    .map(b => (b.textContent || '').trim()) : [];
+  ex.push(['tiene un control que el oyente generico de Escape reconoce',
+    R.botonCierre.length >= 1, JSON.stringify(R.botonCierre)]);
+  R.noEsDelEstudio = { tipo: _noEsDelEstudio('hfpep-tipo'), val: _noEsDelEstudio('hfpep-val'),
+                       nt: _noEsDelEstudio('hf_ntprobnp'), bnp: _noEsDelEstudio('hf_bnp') };
+  ex.push(['los dos controles del cartel NO son del estudio y los dos DUENOS si',
+    R.noEsDelEstudio.tipo === true && R.noEsDelEstudio.val === true
+    && R.noEsDelEstudio.nt === false && R.noEsDelEstudio.bnp === false, JSON.stringify(R.noEsDelEstudio)]);
+  /* Y las dos columnas: el espejo y el pintor en el embudo de restauracion. */
+  R.enRecalc = (function () { try { const l = RECALC_MODULOS();
+    return { sync: l.indexOf('hfPepSync') >= 0, pintar: l.indexOf('hfPepPintar') >= 0 };
+    } catch (e) { return 'EXC'; } })();
+  ex.push(['hfPepSync y hfPepPintar estan en RECALC_MODULOS',
+    R.enRecalc && R.enRecalc.sync && R.enRecalc.pintar, JSON.stringify(R.enRecalc)]);
+
+  /* ── 3 · UN SOLO DATO, ESPEJADO EN LOS DOS SENTIDOS ────────────────────────────────────────*/
+  R.sinc = {};
+  [['nt','hf_ntprobnp','hf_bnp'],['bnp','hf_bnp','hf_ntprobnp']].forEach(t => {
+    base(); plan('basico');
+    try { hfPepAbrir(); } catch (e) {}
+    const sel = document.getElementById('hfpep-tipo'); if (sel) { sel.value = t[0];
+      try { hfPepTipoCambio(); } catch (e) {} }
+    __t.set('hfpep-val', '900'); try { hfPepEditado(); } catch (e) {}
+    const aDueno = { mio: G(t[1]), otro: G(t[2]) };
+    __t.set('hfpep-val', ''); try { hfPepEditado(); } catch (e) {}
+    const trasBorrar = { mio: G(t[1]), otro: G(t[2]) };
+    /* Y al reves: el DUENO hacia el cartel, por la via que usa al abrirse. */
+    try { hfPepCerrar(); } catch (e) {}
+    __t.set(t[1], '450'); try { hfapeffRender(); } catch (e) {}
+    try { hfPepAbrir(); } catch (e) {}
+    const alAbrir = { tipo: G('hfpep-tipo'), espejo: G('hfpep-val') };
+    try { hfPepCerrar(); } catch (e) {}
+    R.sinc[t[0]] = { aDueno, trasBorrar, alAbrir };
+  });
+  plan('avanzado');
+  ex.push(['escribir en el cartel escribe el DUENO de ese tipo (NT-proBNP)',
+    R.sinc.nt.aDueno.mio === '900', JSON.stringify(R.sinc.nt.aDueno)]);
+  ex.push(['escribir en el cartel escribe el DUENO de ese tipo (BNP)',
+    R.sinc.bnp.aDueno.mio === '900', JSON.stringify(R.sinc.bnp.aDueno)]);
+  ex.push(['CONTROL NEGATIVO: el OTRO peptido queda intacto en los dos casos',
+    R.sinc.nt.aDueno.otro === '' && R.sinc.bnp.aDueno.otro === '',
+    R.sinc.nt.aDueno.otro + ' / ' + R.sinc.bnp.aDueno.otro]);
+  ex.push(['borrar en el cartel borra el DUENO en los dos casos',
+    R.sinc.nt.trasBorrar.mio === '' && R.sinc.bnp.trasBorrar.mio === '',
+    JSON.stringify([R.sinc.nt.trasBorrar, R.sinc.bnp.trasBorrar])]);
+  ex.push(['con el valor ya cargado en Avanzado el cartel lo MUESTRA, con su tipo',
+    R.sinc.nt.alAbrir.espejo === '450' && R.sinc.nt.alAbrir.tipo === 'nt'
+    && R.sinc.bnp.alAbrir.espejo === '450' && R.sinc.bnp.alAbrir.tipo === 'bnp',
+    JSON.stringify([R.sinc.nt.alAbrir, R.sinc.bnp.alAbrir])]);
+
+  /* ── 4 · LOS CORTES, POR TIPO Y POR RITMO, CON SUS DOS BORDES ──────────────────────────────
+     Tres valores por corte: ABAJO, EN EL CORTE y ARRIBA. Los puntos los da la unica funcion del
+     puntaje. El RITMO se fija en el selector de la pestana Doppler, que es el que la app lee. */
+  R.bordes = {};
+  [['sinusal','rs'],['fa','fa']].forEach(rr => {
+    base(); const ef = ritmo(rr[0]);
+    const f = {};
+    f.ritmoEfectivo = ef;
+    /* NT-proBNP: mayor >220 (sinusal) / >660 (FA) · menor 125-220 / 375-660 */
+    const ntMay = rr[0] === 'fa' ? 660 : 220, ntMenLo = rr[0] === 'fa' ? 375 : 125;
+    const bnMay = rr[0] === 'fa' ? 240 : 80,  bnMenLo = rr[0] === 'fa' ? 105 : 35;
+    f.ntAbajoMay = pts('hf_ntprobnp', String(ntMay - 1));
+    f.ntEnMay    = pts('hf_ntprobnp', String(ntMay));
+    f.ntArribaMay= pts('hf_ntprobnp', String(ntMay + 1));
+    f.ntAbajoMen = pts('hf_ntprobnp', String(ntMenLo - 1));
+    f.ntEnMen    = pts('hf_ntprobnp', String(ntMenLo));
+    sinPep();
+    f.bnAbajoMay = pts('hf_bnp', String(bnMay - 1));
+    f.bnEnMay    = pts('hf_bnp', String(bnMay));
+    f.bnArribaMay= pts('hf_bnp', String(bnMay + 1));
+    f.bnAbajoMen = pts('hf_bnp', String(bnMenLo - 1));
+    f.bnEnMen    = pts('hf_bnp', String(bnMenLo));
+    sinPep();
+    R.bordes[rr[0]] = f;
+  });
+  ['sinusal','fa'].forEach(rr => {
+    const f = R.bordes[rr];
+    const esp = rr === 'fa' ? 'fa' : 'rs';
+    ex.push(['el ritmo del selector del Doppler llega al score (' + rr + ')', f.ritmoEfectivo === esp, String(f.ritmoEfectivo)]);
+    ex.push(['NT-proBNP ' + rr + ': el corte MAYOR separa por sus dos lados (debajo y en el corte 1 pt, arriba 2)',
+      f.ntAbajoMay === 1 && f.ntEnMay === 1 && f.ntArribaMay === 2,
+      JSON.stringify([f.ntAbajoMay, f.ntEnMay, f.ntArribaMay])]);
+    ex.push(['NT-proBNP ' + rr + ': el piso del corte MENOR separa (debajo 0, en el corte 1)',
+      f.ntAbajoMen === 0 && f.ntEnMen === 1, JSON.stringify([f.ntAbajoMen, f.ntEnMen])]);
+    ex.push(['BNP ' + rr + ': el corte MAYOR separa por sus dos lados',
+      f.bnAbajoMay === 1 && f.bnEnMay === 1 && f.bnArribaMay === 2,
+      JSON.stringify([f.bnAbajoMay, f.bnEnMay, f.bnArribaMay])]);
+    ex.push(['BNP ' + rr + ': el piso del corte MENOR separa',
+      f.bnAbajoMen === 0 && f.bnEnMen === 1, JSON.stringify([f.bnAbajoMen, f.bnEnMen])]);
+  });
+
+  /* ── 5 · EL MISMO VALOR CAMBIA DE PUNTOS AL CAMBIAR EL RITMO ───────────────────────────────
+     450 pg/ml de NT-proBNP es criterio MAYOR en ritmo sinusal (>220) y MENOR en fibrilacion
+     (375-660). Con un valor que cayera del mismo lado en los dos ritmos esto no probaria nada. */
+  base(); ritmo('sinusal');
+  const rs450 = pts('hf_ntprobnp', '450');
+  const rs450tot = (function () { try { return hfapeffScore(false).total; } catch (e) { return 'EXC'; } })();
+  ritmo('fa');
+  const fa450 = (function () { try { hfapeffRender(); return hfapeffScore(false).hum.pts; } catch (e) { return 'EXC'; } })();
+  const fa450tot = (function () { try { return hfapeffScore(false).total; } catch (e) { return 'EXC'; } })();
+  R.ritmo450 = { rs450, rs450tot, fa450, fa450tot };
+  ex.push(['450 de NT-proBNP: MAYOR en sinusal (2 pts) y MENOR en fibrilacion (1 pt), con el mismo valor cargado',
+    rs450 === 2 && fa450 === 1 && rs450tot === fa450tot + 1, JSON.stringify(R.ritmo450)]);
+  /* Y el cartel declara EL CORTE QUE APLICO, no uno generico: lo saca de hfUmbrales. */
+  ritmo('fa'); try { hfPepAbrir(); } catch (e) {}
+  R.cartelFA = (__t.txt('hfpep-corte') || '').trim();
+  ritmo('sinusal');
+  R.cartelRS = (__t.txt('hfpep-corte') || '').trim();
+  try { hfPepCerrar(); } catch (e) {}
+  ex.push(['el cartel declara el corte de FIBRILACION y sus puntos',
+    R.cartelFA.indexOf('375-660') > -1 && /MENOR/.test(R.cartelFA), R.cartelFA]);
+  ex.push(['y al volver a sinusal declara el de SINUSAL, sin quedarse con el anterior',
+    R.cartelRS.indexOf('220') > -1 && /MAYOR/.test(R.cartelRS), R.cartelRS]);
+  /* ⚠️ POR UN ACCESOR Y NO LLAMANDO A LA FUNCION DIRECTO: contra un arbol SIN esta tanda,
+     llamar a hfPepRitmoTxt tira un ReferenceError que mata la corrida ENTERA, y el caso
+     prueba que el arbol es distinto y no que sabe medir. Paso: la primera version de TC-465
+     murio asi en el worktree de HEAD. Es la misma leccion que TC-455 y TC-462 ya tienen
+     escrita. */
+  R.ritmoTxt = (function () { try { return (typeof hfPepRitmoTxt === 'function')
+    ? hfPepRitmoTxt() : 'NO EXISTE'; } catch (e) { return 'EXC'; } })();
+  ex.push(['el cartel nombra el ritmo que LEE del selector del Doppler',
+    /sinusal/i.test(R.ritmoTxt) && !/fibrilaci/i.test(R.ritmoTxt), R.ritmoTxt]);
+
+  /* ── 6 · LAS DOS SUPERFICIES DAN EL MISMO PUNTAJE ──────────────────────────────────────────*/
+  base(); ritmo('sinusal'); pts('hf_ntprobnp', '900');
+  const r6 = (function () { try { return hfapeffScore(false); } catch (e) { return null; } })();
+  R.conPep = renglon();
+  R.totalAvanzado = r6 ? r6.total + '/' + r6.max : 'EXC';
+  ex.push(['con peptido el renglon de las referencias publica el MISMO puntaje que Avanzado',
+    R.conPep.txt.indexOf(R.totalAvanzado) === 0, R.conPep.txt + ' vs ' + R.totalAvanzado]);
+  ex.push(['y el rotulo deja de decir «(eco)», porque el numero ya no sale solo del eco',
+    R.conPep.lbl === 'HFA-PEFF', R.conPep.lbl]);
+
+  /* ── 7 · SIN PEPTIDO, LO DE HEAD ───────────────────────────────────────────────────────────
+     Es el punto (7) de la orden. CONTROL NEGATIVO de las dos condiciones de arriba. */
+  sinPep();
+  R.sinPep = renglon();
+  ex.push(['CONTROL NEGATIVO: sin peptido el renglon vuelve a «4/4 en eco» y el rotulo a «HFA-PEFF (eco)»',
+    R.sinPep.txt.indexOf('4/4 en eco') === 0 && R.sinPep.lbl === 'HFA-PEFF (eco)', JSON.stringify(R.sinPep)]);
+  ex.push(['y el boton vuelve a decir «confirmar con peptidos»',
+    R.sinPep.txt.indexOf('confirmar con péptidos') > -1, R.sinPep.txt]);
+  /* Y el cartel, sin valor, no inventa ninguno ni afirma ningun corte. */
+  try { hfPepAbrir(); } catch (e) {}
+  R.cartelVacio = { espejo: G('hfpep-val'), corte: (__t.txt('hfpep-corte') || '').trim() };
+  try { hfPepCerrar(); } catch (e) {}
+  ex.push(['sin peptido el cartel abre VACIO y no nombra ningun corte',
+    R.cartelVacio.espejo === '' && /Sin valor cargado/.test(R.cartelVacio.corte), JSON.stringify(R.cartelVacio)]);
+
+  /* ── 8 · «Nuevo estudio» ───────────────────────────────────────────────────────────────────*/
+  base(); pts('hf_ntprobnp', '900'); try { hfPepAbrir(); } catch (e) {}
+  __t.nuevoEstudio();
+  R.trasLimpiar = { nt: G('hf_ntprobnp'), bnp: G('hf_bnp'), tipo: G('hfpep-tipo'),
+                    espejo: G('hfpep-val'), corte: (__t.txt('hfpep-corte') || '').trim() };
+  try { hfPepCerrar(); } catch (e) {}
+  ex.push(['«Nuevo estudio» vacia el dueno, el espejo y el renglon del corte, y devuelve el tipo a NT-proBNP',
+    R.trasLimpiar.nt === '' && R.trasLimpiar.espejo === '' && R.trasLimpiar.tipo === 'nt'
+    && /Sin valor cargado/.test(R.trasLimpiar.corte), JSON.stringify(R.trasLimpiar)]);
+
+  /* ── 9 · LIMITES MEDIDOS Y NO TOCADOS (punto 8 de la orden) ────────────────────────────────
+     La compuerta de FEVI y el ritmo que no es ninguno de los dos. Se FIJAN como estan, para que
+     un cambio futuro no pase en silencio; ninguna de las dos es una decision de esta tanda. */
+  base(); ritmo('sinusal'); pts('hf_ntprobnp', '900');
+  const gate = f => { __t.set('fevi', f); try { calcVI(); } catch (e) {}
+    try { hfapeffRender(); } catch (e) {}
+    let g = null; try { g = hfapeffScore(false).gate; } catch (e) {}
+    return { aplica: g ? g.aplica : 'EXC', motivo: g ? g.motivo : 'EXC', fila: renglon().disp }; };
+  R.fevi = { f50: gate('50'), f49: gate('49') };
+  ex.push(['FEVI 50 aplica y FEVI 49 NO: la compuerta es >= 50 y el renglon se esconde del lado que no aplica',
+    R.fevi.f50.aplica === true && R.fevi.f49.aplica === false
+    && R.fevi.f49.motivo === 'fevi_baja' && R.fevi.f49.fila === 'none', JSON.stringify(R.fevi)]);
+  base();
+  R.opcRitmo = (function () { const d = document.getElementById('diast_ritmo');
+    return d ? Array.prototype.map.call(d.options, o => o.value) : 'NO EXISTE'; })();
+  const ajeno = ritmo('flutter');
+  R.ritmoAjeno = { efectivo: ajeno, valor: G('diast_ritmo'),
+    idx: (document.getElementById('diast_ritmo') || {}).selectedIndex,
+    ntMay: (function () { try { return hfUmbrales(hfRitmoEfectivo() === 'fa').ntMay.txt; } catch (e) { return 'EXC'; } })() };
+  ritmo('sinusal');
+  ex.push(['el selector del Doppler ofrece SOLO ritmo sinusal y fibrilacion: un tercer ritmo no es alcanzable con un gesto',
+    Array.isArray(R.opcRitmo) && R.opcRitmo.length === 2
+    && R.opcRitmo.indexOf('sinusal') >= 0 && R.opcRitmo.indexOf('fa') >= 0, JSON.stringify(R.opcRitmo)]);
+  ex.push(['LIMITE DECLARADO: un token de ritmo AJENO deja el selector en selectedIndex -1 y el score cae a los cortes de SINUSAL',
+    R.ritmoAjeno.efectivo === 'rs' && R.ritmoAjeno.idx === -1
+    && R.ritmoAjeno.ntMay.indexOf('220') > -1, JSON.stringify(R.ritmoAjeno)]);
+
+  /* ── 10 · CONTROLES AJENOS: nada de esto se mueve con el peptido cargado ───────────────────*/
+  base(); ritmo('sinusal');
+  const diastSin = __t.txt('dd-interp');
+  const valvSin = ['im_grado','ia_grado','it_grado','ea_grado','em_grado','et_grado','ep_grado','ip_grado'].map(G).join('|');
+  const colsSin = (function () { try { const c = {};
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(e => { if (!_noEsDelEstudio(e.id)) c[e.id] = e.value; });
+    return Object.keys(_labExcelRow({ nombre: 'P', ci: '1', fecha_estudio: '2026-10-13', campos: c })).length;
+    } catch (e) { return 'EXC'; } })();
+  pts('hf_ntprobnp', '900');
+  const diastCon = __t.txt('dd-interp');
+  const valvCon = ['im_grado','ia_grado','it_grado','ea_grado','em_grado','et_grado','ep_grado','ip_grado'].map(G).join('|');
+  const colsCon = (function () { try { const c = {};
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(e => { if (!_noEsDelEstudio(e.id)) c[e.id] = e.value; });
+    return Object.keys(_labExcelRow({ nombre: 'P', ci: '1', fecha_estudio: '2026-10-13', campos: c })).length;
+    } catch (e) { return 'EXC'; } })();
+  R.ajenos = { diastSin, diastCon, valvSin, valvCon, colsSin, colsCon };
+  ex.push(['el veredicto de la funcion diastolica no se mueve con el peptido', diastSin === diastCon, diastSin + ' / ' + diastCon]);
+  ex.push(['los grados de las OCHO valvulas no se mueven con el peptido', valvSin === valvCon, valvSin + ' / ' + valvCon]);
+  ex.push(['el Excel sigue en 435 columnas con y sin peptido', colsSin === 435 && colsCon === 435, colsSin + ' / ' + colsCon]);
+
+  sinPep(); plan('avanzado');
+  return { extra: ex, R: R };
+`);
+
 caso('TC-464', 'Estenosis aortica: los cortes de las SEIS variables por sus dos bordes —Vmax, gradiente medio, AVA por continuidad, AVA por planimetria, AVA indexada y DVI—, las cuatro que solo pueden agravar, los tres casos del reporte del medico, el borrado que retira el grado y los controles de todo lo que no se toca', `
   const R = {}, ex = [];
   const G = id => __t.val(id);
