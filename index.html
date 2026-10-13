@@ -3871,8 +3871,13 @@ window.cerrarSesionReal = cerrarSesionReal;
 
       <div class="calc-box">
         <div class="calc-row"><span class="calc-lbl">E/A</span><span class="calc-val" id="ea-val">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">e' promedio</span><span class="calc-val" id="eprom-val">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">E/e' promedio</span><span class="calc-val" id="ee-val">—</span></div>
+        <!-- ⚠️ LOS DOS RÓTULOS SON DINÁMICOS DESDE EL 2026-10-12, Y NO ES COSMÉTICO. Con un solo
+             anillo medido, `eprom-val` muestra ESE anillo y `ee-val` el cociente contra ESE
+             anillo, y los dos renglones decían «promedio»: el cuadro afirmaba un promedio de dos
+             valores sobre un dato que tenía uno. Los escribe `diastRotulosSitioSync`, que es su
+             único dueño; lo que cambia es el TEXTO y nunca la cuenta. -->
+        <div class="calc-row"><span class="calc-lbl" id="eprom-lbl">e' promedio</span><span class="calc-val" id="eprom-val">—</span></div>
+        <div class="calc-row"><span class="calc-lbl" id="ee-lbl">E/e' promedio</span><span class="calc-val" id="ee-val">—</span></div>
         <!-- ⚠️ LAS DOS NACEN OCULTAS Y SE MUESTRAN CON EL DATO. Fijas, el cuadro gris arrancaría
              con dos renglones en «—» para todo paciente al que nadie le midió la vena pulmonar —
              y el pedido pide que sin datos se vea exactamente como hoy.
@@ -24447,7 +24452,21 @@ function _diastFADatos() {
     triv: v('triv'),
     lars: diastStrainAbs('lars'),   // valor absoluto: lo leen la Figura 8 (< 18 %) y la 19 (< 16 %)
     sd:   sv('venp_sd'),
-    imc:  (typeof getIMC === 'function') ? getIMC() : null,
+    /* ⚠️ EL IMC SE REDONDEA A UN DECIMAL, Y SÓLO ACÁ. `(170/100)**2` vale 2.8899999999999997 en
+       punto flotante, así que 86,7 kg con 170 cm da **30.000000000000004** y cruza un corte que es
+       `> 30` (Figura 8 de la ASE 2025, folio 563, y la FA de la BSE): un paciente con un IMC de 30
+       exacto salía con el criterio POSITIVO por un error de representación de 4e-15. Y la fila de
+       la ventana lo mostraba como «30.0», o sea el renglón diciendo 30,0 al lado de un ✗.
+       Se redondea en EL DUEÑO de los insumos y no en cada comparación: con dos redondeos, uno se
+       olvida y la fila vuelve a contradecir al veredicto. `getIMC`, `calcBSA` y el PDF NO se
+       tocan: ahí el valor crudo es el correcto y cambiarlo movería la celda `imc-val` y el papel
+       firmado, que esta orden no autoriza.
+       El redondeo es a UN decimal porque es la precisión con la que la app muestra el IMC en todas
+       sus superficies; con dos, el 30.000000000000004 seguiría cruzando. */
+    imc:  (function () {
+            const x = (typeof getIMC === 'function') ? getIMC() : null;
+            return (x === null) ? null : Math.round(x * 10) / 10;
+          })(),
     fevi: v('fevi'),
     fc:   v('ao_fc')
   };
@@ -25649,6 +25668,84 @@ function venpSdFilaVal(corte) {
 }
 window.venpSdFilaVal = venpSdFilaVal;
 
+/* ══ LOS DOS RÓTULOS DEL CUADRO QUE DECÍAN «promedio» ════════════════════════════════════════
+   Con un solo anillo medido, `eprom-val` muestra ESE anillo —no un promedio— y `ee-val` el
+   cociente contra ESE anillo. Los dos renglones decían «promedio» igual, así que el cuadro
+   afirmaba un promedio de dos valores sobre un dato que tenía uno. Y no es sólo un nombre: los
+   tres algoritmos cortan distinto según el sitio (la ASE 2016 en 15 el septal y 13 el lateral; la
+   BSE por edad y sexo), así que el rótulo es lo único que dice contra qué se comparó.
+   ⚠️ SOLO CAMBIA EL TEXTO, NUNCA LA CUENTA. Esta función no lee ni escribe un valor: los escribe
+   `diastCeldasBasicas` y las ramas de cada guía, que son sus dueños. Un segundo escritor del
+   mismo span es cómo se llega a que el cuadro muestre un número y el informe otro.
+   La misma cadena de `&&` y `||` que usan los tres evaluadores: `(esep && elat)` y no `!== null`,
+   para que un e' de 0 quede leído como «no medido». */
+function diastRotuloSitio() {
+  const esep = v('e_sep'), elat = v('e_lat');
+  if (esep && elat) return 'promedio';
+  if (esep) return 'septal';
+  if (elat) return 'lateral';
+  return null;
+}
+window.diastRotuloSitio = diastRotuloSitio;
+
+function diastRotulosSitioSync() {
+  /* Sin ningún anillo el rótulo vuelve a «promedio», que es el estado de fábrica del marcado: el
+     renglón está en «—» y nombrar un sitio ahí sería afirmar que hay uno medido. */
+  const sitio = diastRotuloSitio() || 'promedio';
+  const a = document.getElementById('eprom-lbl');
+  const b = document.getElementById('ee-lbl');
+  if (a) a.textContent = 'e\' ' + sitio;
+  if (b) b.textContent = 'E/e\' ' + sitio;
+  return sitio;
+}
+window.diastRotulosSitioSync = diastRotulosSitioSync;
+
+/* ══ EL ROJO DE LA CELDA DEL E/e' — EL CRITERIO DEL ALGORITMO EN VIGOR ═══════════════════════
+   Hasta el 2026-10-12 el color salía de `UMBRAL_EE_ELEVADA`, un 14 FIJO, con una sola excepción
+   escrita a mano (la FA de la BSE, que corta en 11, donde se decidió no pintar). Eso dejaba el
+   color contradiciendo al veredicto que está dos renglones más abajo en el MISMO cuadro gris, y
+   en varias combinaciones a la vez: la ASE 2025 corta el promedio en `>= 14` y la ASE 2016 en
+   `> 14`, así que un E/e' de 14,00 exacto es positivo en una y negativo en la otra; con un anillo
+   solo los cortes son 15 y 13 en la ASE 2016 y 15, 13 o 14 en la ASE 2025; y la FA tiene los
+   suyos. Un 14 fijo no puede representar nada de eso.
+   DESDE HOY EL COLOR LE PREGUNTA AL DUEÑO. Cada evaluador ya devuelve sus FILAS con el estado de
+   cada criterio, así que el color sale de la fila del E/e' de la guía en vigor: una sola fuente,
+   y lo que se pinta es exactamente lo que vota.
+   ⚠️ LA CONSULTA ES AL EVALUADOR Y NO A UNA COPIA DEL UMBRAL. Reescribir los cortes acá sería la
+   segunda copia que este archivo ya pagó tres veces — y con seis combinaciones de guía y ritmo,
+   la que se olvide sería la que pinta mal.
+   ⚠️ SE PINTA SÓLO SI ALGUNA FILA DE E/e' VOTÓ. Con el criterio sin evaluar —sin onda E o sin
+   ningún anillo— no se pinta: el gris es «no se midió» y el rojo sería una afirmación.
+   `UMBRAL_EE_ELEVADA` y `eeElevada` se conservan: los consume el Laboratorio y el caso de prueba
+   que mide esa banda, y son otro consumidor del mismo número. */
+function diastEeElevadaVigente() {
+  let R = null;
+  try {
+    const algo  = sv('diast_algoritmo') || 'ase2025';
+    const ritmo = sv('diast_ritmo') || 'sinusal';
+    if (ritmo === 'fa') {
+      R = (typeof diastFAEvaluar === 'function') ? diastFAEvaluar(algo) : null;
+    } else if (algo === 'bse2024') {
+      R = (typeof diastBSE2024Evaluar === 'function') ? diastBSE2024Evaluar() : null;
+    } else if (algo === 'ase2016') {
+      R = (typeof diastASE2016Evaluar === 'function') ? diastASE2016Evaluar() : null;
+    } else {
+      R = (typeof diastASE2025Evaluar === 'function') ? diastASE2025Evaluar() : null;
+    }
+  } catch (e) { return null; }
+  if (!R || !Array.isArray(R.filas)) return null;
+  /* Las filas cuyo criterio ES un cociente E/e'. El `e'` del paso 1 de la ASE 2025 y el
+     `e' septal < 7` de la 8A NO son cocientes y no entran: la expresión pide la barra. */
+  const ee = R.filas.filter(function (f) { return /^E\/e/.test(String(f.crit || '')); });
+  if (!ee.length) return null;
+  /* Con varias filas de E/e' —la ASE 2025 dibuja las tres alternativas— alcanza una positiva,
+     que es exactamente como vota ese criterio. Y si ninguna tiene valor, no se pinta. */
+  const conDato = ee.filter(function (f) { return f.val !== null && f.val !== undefined && f.val !== ''; });
+  if (!conDato.length) return null;
+  return conDato.some(function (f) { return !!f.ok; });
+}
+window.diastEeElevadaVigente = diastEeElevadaVigente;
+
 /* El sufijo del RÓTULO cuando el campo tiene un valor que ese corte no puede leer. Devuelve
    cadena vacía en todo otro caso, así el rótulo de siempre no se toca. */
 function venpSdCritSuf(corte) {
@@ -25711,21 +25808,23 @@ function venpVelArAlta() { const x = v('venp_vel_ar'); return x != null && isFin
 window.venpArAAlta = venpArAAlta;
 window.venpVelArAlta = venpVelArAlta;
 
-/* ⚠️ EL CORTE DE E/e' NO ES NUEVO: la app ya clasifica con `> 14` en CUATRO lugares —el BSE 2024
-   en ritmo sinusal (dos), el ASE 2016 y el Laboratorio— y hasta lo rotula «E/e' promedio > 14».
-   Se reusa ESE, con su operador: **14,0 exactos NO se marcan**.
-   ⚠️ PERO NO ES EL ÚNICO CORTE DE E/e' DEL ARCHIVO, y la primera versión de este comentario decía
-   «seis lugares» y era falso. La rama de FIBRILACIÓN AURICULAR del BSE 2024 vota con **`> 11`**, y
-   el score de amiloidosis también. O sea que con `diast_algoritmo = BSE 2024` + `diast_ritmo = FA`
-   —dos selects de este mismo bloque— un E/e' de 12,5 cuenta como criterio POSITIVO de presión de
-   llenado elevada y el 14 lo dejaría en negro: el color contradiciendo al veredicto que está dos
-   renglones más abajo, en el mismo cuadro gris. Lo cazó `/sharp-edges`.
-   DECISIÓN: en esa rama NO se pinta. No se inventa un segundo umbral de color —el pedido fijó
-   tres y éste sería un cuarto— y no se contradice nada: en FA el veredicto ya lo publica el badge
-   «FA — Presión de llenado elevada (BSE 2024)», que integra los cuatro criterios. El color existe
-   para señalar un marcador suelto donde no hay veredicto que lo diga.
-   DEUDA DECLARADA: los otros cuatro `> 14` siguen siendo literales; unificarlos toca tres
-   algoritmos diastólicos y el Laboratorio, que es lógica clínica y no el pintado de una celda. */
+/* ⚠️ ESTE UMBRAL YA NO GOBIERNA EL COLOR DE LA CELDA, Y ES EL CAMBIO DEL 2026-10-12. El párrafo
+   que seguía acá documentaba exactamente por qué un 14 FIJO no podía servir —que la rama de FA de
+   la BSE vota con `> 11`, así que un E/e' de 12,5 contaba como criterio POSITIVO y el 14 lo dejaba
+   en negro, «el color contradiciendo al veredicto que está dos renglones más abajo, en el mismo
+   cuadro gris»— y la DECISIÓN de entonces fue no pintar en esa rama, para no inventar un segundo
+   umbral de color. La deuda que ese mismo comentario declaraba («los otros cuatro `> 14` siguen
+   siendo literales; unificarlos toca tres algoritmos diastólicos y el Laboratorio») es la que esta
+   tanda cierra, y por el camino contrario al que parecía: en vez de unificar los umbrales, el color
+   le PREGUNTA al dueño de cada guía por el estado de su propio criterio. Ver
+   `diastEeElevadaVigente`. Medido: el color pasa a pintarse en 9 de 18 escenas donde antes no, las
+   tres ramas de FA incluidas, y en ninguna deja de pintarse.
+   ⚠️ LAS DOS FUNCIONES DE ABAJO SE CONSERVAN Y TIENEN OTRO CONSUMIDOR. `UMBRAL_EE_ELEVADA` y
+   `eeElevada` las usa el LABORATORIO —el bloque de «E/e' > 14 sin grado diastólico» de las
+   asociaciones—, que clasifica una cohorte y no un cuadro: ahí el 14 es el corte que esa
+   estadística declara en su propio rótulo. `eeCorteEs14` queda SIN CONSUMIDORES y se deja a
+   propósito, con este comentario al lado: borrarla deja el archivo sin el rastro de por qué el
+   color funcionaba así, y es lo que hace que un trabajo futuro reintroduzca el umbral fijo. */
 const UMBRAL_EE_ELEVADA = 14;
 function eeElevada(ee) { return ee != null && isFinite(ee) && ee > UMBRAL_EE_ELEVADA; }
 window.eeElevada = eeElevada;
@@ -25775,11 +25874,19 @@ function calcVenaPulm() {
      span y no se recalcula, por la misma razón. */
   const ee = document.getElementById('ee-val');
   if (ee) {
-    const n = parseFloat(String(ee.textContent).replace(',', '.'));
-    const alta = eeCorteEs14() && eeElevada(isFinite(n) ? n : null);
-    ee.style.color = alta ? '#ef4444' : '';
-    ee.style.fontWeight = alta ? '700' : '';
+    /* ⚠️ EL CRITERIO ES EL DEL ALGORITMO EN VIGOR DESDE EL 2026-10-12, no un 14 fijo. Ver el
+       comentario largo de `diastEeElevadaVigente`: con seis combinaciones de guía y ritmo y
+       cortes que van de 11 a 15, un umbral escrito acá contradecía al badge del mismo cuadro.
+       `null` es «no se evaluó» y NO pinta: el gris es «no se midió» y el rojo sería afirmar. */
+    const alta = (typeof diastEeElevadaVigente === 'function') ? diastEeElevadaVigente() : null;
+    ee.style.color = (alta === true) ? '#ef4444' : '';
+    ee.style.fontWeight = (alta === true) ? '700' : '';
   }
+  /* Los dos rótulos del sitio: van acá porque `calcVenaPulm` ya está en `RECALC_MODULOS` y en
+     `limpiarCampos`, que son dos de las tres columnas que un repintado necesita. La tercera —el
+     oyente de los campos del e'— la cubren los `oninput` de `e_sep` y `e_lat`, que llaman a
+     `calcDiastol`, y por eso también se llama desde ahí. */
+  if (typeof diastRotulosSitioSync === 'function') { try { diastRotulosSitioSync() } catch (e) {} }
 }
 window.calcVenaPulm = calcVenaPulm;
 
@@ -46531,7 +46638,11 @@ function generarPDFReal(_aj) {
       {lbl:'Onda E',    ref:'',  val:vPdf('onda_e',' cm/s')},
       {lbl:'Onda A',    ref:'',  val:vPdf('onda_a',' cm/s')},
       {lbl:'E/A',       ref:'',  val:ea},
-      {lbl:'TDA',       ref:'',  val:vPdf('tde',' ms')},
+      /* ⚠️ «TDE» Y NO «TDA» DESDE EL 2026-10-12. El campo es `tde` —tiempo de desaceleración de
+         la onda E— y en toda la app, en las tres guías y en el Excel se llama TDE; en el PDF
+         firmado salía «TDA», que se lee como la onda A y es la otra. Es un rótulo, no un valor:
+         el número no cambia. */
+      {lbl:'TDE',       ref:'',  val:vPdf('tde',' ms')},
       {lbl:'TRIV',      ref:'',  val:vPdf('triv',' ms')},
       {lbl:'THP',       ref:'',  val:vPdf('thp',' ms')},
       /* `emAvmThpPdfTxt()` y no `vPdf('avm_thp',' cm2')`: la fila «AVm» de la tabla de Estenosis

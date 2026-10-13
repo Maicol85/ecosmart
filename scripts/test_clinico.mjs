@@ -13912,24 +13912,46 @@ caso('TC-260', 'Vena pulmonar: los cuatro campos en la grilla, los tres cortes e
         return { ara: leer('venp-ara'), vel: leer('venp-vel') }; };
       const a29 = probar(120, 149, ''), a30 = probar(120, 150, ''), a31 = probar(120, 151, '');
       const v34 = probar('', '', 34), v35 = probar('', '', 35), v36 = probar('', '', 36);
-      /* E/e' lo escribe 'calcDiastol'; acá se lo pone a mano para fijar el borde sin depender de
-         que la cohorte de prueba de justo 13,9. */
-      const ee = n => { const e = document.getElementById('ee-val'); e.textContent = String(n);
-        calcVenaPulm(); return leer('ee-val'); };
-      const e139 = ee(13.9), e140 = ee(14), e141 = ee(14.1), eVacio = ee('—');
+      /* ADAPTADO 2026-10-12 — EL COLOR YA NO SALE DE UN UMBRAL FIJO SINO DEL CRITERIO DEL
+         ALGORITMO EN VIGOR (ver 'diastEeElevadaVigente'). La version anterior de este bloque
+         escribia '#ee-val' A MANO y llamaba a 'calcVenaPulm', que leia el TEXTO del span; hoy el
+         color le pregunta al evaluador, que lee los CAMPOS, asi que un span escrito a mano sobre
+         un formulario vacio no puede pintar nada. El borde se mide con campos REALES.
+         Se usa la ASE 2016, que es la guia donde el UNICO corte de E/e' con los dos anillos es el
+         promedio > 14: en la ASE 2025 el criterio es un OR de tres alternativas y el E/e' septal
+         (16,2 con e-prima septal 6) ya vota, asi que ahi el 13,9 se pinta y con razon. */
+      /* ⚠️ EL limpiar() DE ESTE CASO SOLO VACIA LOS CUATRO CAMPOS DE VENA PULMONAR, asi que los
+         del e-prima y la onda E hay que vaciarlos aca: sin eso, la escena «sin ningun dato»
+         heredaba el E/e' de 14,1 de la escena ANTERIOR y media su color, no el del vacio. Es la
+         trampa del denominador aplicada al estado de partida. */
+      const eeReal = (alg, rit, E) => {
+        limpiar();
+        ['e_sep', 'e_lat', 'onda_e', 'onda_a'].forEach(id => set(id, ''));
+        document.getElementById('diast_algoritmo').value = alg;
+        document.getElementById('diast_ritmo').value = rit;
+        if (E !== null) { set('e_sep', 6); set('e_lat', 8); set('onda_e', E); set('onda_a', 70); }
+        calcDiastol();
+        return leer('ee-val');
+      };
+      const e139 = eeReal('ase2016', 'sinusal', 97);
+      const e140 = eeReal('ase2016', 'sinusal', 98);
+      const e141 = eeReal('ase2016', 'sinusal', 99);
+      const eVacio = eeReal('ase2016', 'sinusal', null);
 
-      /* ── EN FIBRILACION AURICULAR EL ALGORITMO VOTA CON 11, NO CON 14 ── pintar el 14 ahi
-         contradiria al veredicto que esta dos renglones mas abajo en el MISMO cuadro gris: un
-         E/e' de 12,5 cuenta como criterio positivo en la rama FA del BSE 2024 y quedaria en
-         negro. En esa rama no se pinta; el badge ya publica la conclusion integrada. */
+      /* ── EN FIBRILACION AURICULAR EL ALGORITMO VOTA CON 11, Y DESDE HOY EL COLOR LO SIGUE ──
+         ADAPTADO 2026-10-12: esta condicion afirmaba lo CONTRARIO, y era la decision de su tanda
+         («en esa rama no se pinta, para no inventar un segundo umbral de color») con la deuda
+         declarada al lado. Esta tanda la cierra por el camino de preguntarle al dueño: un E/e'
+         septal de 18,3 cuenta como criterio POSITIVO en la Figura 19 de la BSE (corte > 11) y
+         ahora se pinta, que es lo que el comentario de entonces decia que haria falta. El
+         CONTROL NEGATIVO es el otro lado de esa misma rama: por debajo de 11 no se pinta. */
       const selAlg = document.getElementById('diast_algoritmo');
       const selRit = document.getElementById('diast_ritmo');
       const algPrev = selAlg.value, ritPrev = selRit.value;
-      selAlg.value = 'bse2024'; selRit.value = 'fa';
-      const eeFA = ee(18);
+      const eeFA = eeReal('bse2024', 'fa', 110);     // E/e-prima septal 110/6 = 18,3 -> POSITIVO
+      const eeFAbajo = eeReal('bse2024', 'fa', 60);  // septal 10,0 -> negativo
+      const eeSinusal = eeReal('bse2024', 'sinusal', 110);
       selAlg.value = algPrev; selRit.value = ritPrev;
-      const eeSinusal = ee(18);
-
       /* ── EL CERO DE LA VELOCIDAD: MISMO PREDICADO QUE EL PDF ── con != null la fila se veia en
          pantalla («0 cm/s») y el PDF la descartaba por truthiness. */
       set('venp_vel_ar', 0); calcVenaPulm();
@@ -13946,8 +13968,12 @@ caso('TC-260', 'Vena pulmonar: los cuatro campos en la grilla, los tres cortes e
 
       /* ── EL ROJO SE APAGA AL CAMBIAR DE PACIENTE ── el span es el MISMO nodo y el color va en
          linea: sin el 'else' explicito sobrevivia al vaciado. */
-      document.getElementById('ee-val').textContent = '18';
-      calcVenaPulm();
+      /* ADAPTADO 2026-10-12: el E/e' se pone en rojo con un PACIENTE y no escribiendo el span,
+         por el mismo motivo que el bloque del borde. Con el span a mano el denominador salia en
+         false y «el rojo se apago» habria dado verde sobre un rojo que nunca se puso. */
+      set('e_sep', 6); set('e_lat', 8); set('onda_e', 120); set('onda_a', 70);
+      set('venp_dur_a', 120); set('venp_dur_ar', 160);
+      calcDiastol();
       const antesDeLimpiar = leer('venp-ara').rojo && leer('ee-val').rojo;
       if (typeof limpiarCampos === 'function') limpiarCampos(true);
       const trasLimpiar = !leer('venp-ara').rojo && !leer('venp-vel').rojo && !leer('ee-val').rojo &&
@@ -14033,9 +14059,10 @@ caso('TC-260', 'Vena pulmonar: los cuatro campos en la grilla, los tres cortes e
         ['Ar 35 cm/s NO se marca (el corte es >)', !v35.vel.rojo, v35.vel.txt],
         ['  y 36 SI', v36.vel.rojo, v36.vel.txt],
         ["E/e' 13,9 NO se marca", !e139.rojo, e139.txt],
-        ["E/e' 14,0 NO se marca (el corte es > 14, como en el resto de la app)", !e140.rojo, e140.txt],
+        ["E/e' 14,0 NO se marca (el corte de la ASE 2016 es > 14)", !e140.rojo, e140.txt],
         ["  y 14,1 SI", e141.rojo, e141.txt],
-        ["  y el placeholder «—» no se marca", !eVacio.rojo, eVacio.txt],
+        ["  y sin ningun dato no se marca: el gris es «no se midio» y el rojo seria afirmar",
+          !eVacio.rojo, eVacio.txt],
         ['las dos se marcan a la vez', lasDosEnRojo, ambas.ara.txt + ' / ' + ambas.vel.txt],
         ['  y NO hay ninguna oracion', sinOraciones, textoDeLasFilas],
         ['DENOMINADOR: estaban en rojo antes de limpiar', antesDeLimpiar, ''],
@@ -14044,8 +14071,9 @@ caso('TC-260', 'Vena pulmonar: los cuatro campos en la grilla, los tres cortes e
         ['sigue redondeando donde calcula', redondeo, ''],
         ['el S/D sigue guardando un TOKEN', tokenSD, ''],
         ['la restauracion sigue pasando por el EMBUDO', enElEmbudo, ''],
-        ["en FA (BSE 2024) el E/e' NO se pinta: ahi el algoritmo vota con 11", !eeFA.rojo, eeFA.txt],
-        ['  DENOMINADOR: el mismo valor SI se pinta en ritmo sinusal', eeSinusal.rojo, eeSinusal.txt],
+        ["en FA (BSE 2024) el E/e' SI se pinta cuando cruza SU corte (septal > 11)", eeFA.rojo, eeFA.txt],
+        ['  CONTROL NEGATIVO: por debajo de ese corte no se pinta', !eeFAbajo.rojo, eeFAbajo.txt],
+        ['  DENOMINADOR: el mismo valor tambien se pinta en ritmo sinusal', eeSinusal.rojo, eeSinusal.txt],
         ['una velocidad de Ar en CERO no publica fila', velCeroOculta, ''],
         ['calcDiastol entra a las dos rutas de restauracion', restauraDiastol,
           'rutas=' + rutasConDiastol],
