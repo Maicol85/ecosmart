@@ -47657,10 +47657,15 @@ caso('TC-348', 'IAo Vmax telediastolica en Ao desc.: vota SOLO severa desde 20 c
      cada camino con lo viejo — es la declaracion que pide la regla de estudios guardados. */
   const vViejoMod  = esc('150');
   const vViejoLeve = esc('12');
-  /* GRADO RANCIO — LIMITE DECLARADO Y DECISION TOMADA (index.html, comentario de calcIM_ESC):
-     retirar el grado auto-derivado en nativa es decision clinica de Maicol y NO se toca. Se fija
-     aca para que el limite sea visible y no cambie en silencio: 25 -> 15 SIN limpiar deja el
-     grado severo en pie, porque params queda vacio y el early return sale antes de reescribirlo. */
+  /* GRADO RANCIO — ADAPTADO EL 2026-10-13. Este bloque fijaba el LIMITE contrario: «retirar el
+     grado auto-derivado en nativa es decision clinica de Maicol y NO se toca», y lo fijaba justo
+     para que no cambiara en silencio. Maicol tomo la decision el 2026-10-13 (regla 1), asi que
+     25 -> 15 sin limpiar ahora RETIRA el grado al centinela: el valor 15 no vota —la guia solo
+     publica el corte de severa— y sin ningun votante el grado final es «sin dato».
+     Lo que el caso prueba cambia de signo y conviene decirlo: deja de fijar el limite —ya no
+     existe— y pasa a fijar su reemplazo. La tercera condicion, que denunciaba la contradiccion de
+     pantalla («el renglon dice No grada sobre un grado severo»), se da vuelta tambien: hoy las dos
+     mitades dicen lo mismo. */
   __t.limpiar(); window.esqSevManual = {};
   __t.set('nombre','TC348r'); __t.set('ia_vmax_td','25');
   try { calcIA_ESC(); } catch (e) {}
@@ -47722,13 +47727,14 @@ caso('TC-348', 'IAo Vmax telediastolica en Ao desc.: vota SOLO severa desde 20 c
     ['DECLARADO — un guardado viejo con 12 cm/s (era «leve») pasa a NO votar',
       vViejoLeve.grado === '0' && vViejoLeve.suma.indexOf('IAo leve') === -1,
       'grado=' + vViejoLeve.grado + ' suma=' + vViejoLeve.suma],
-    /* ── Limite declarado, decision de Maicol: el grado rancio NO se retira en nativa. ── */
+    /* ── ADAPTADAS el 2026-10-13: antes fijaban que el grado rancio NO se retiraba en nativa. ── */
     ['DENOMINADOR del rancio: 25 cm/s dejo el grado en severa antes de bajar a 15',
       rancioAntes === '4', 'grado tras 25 = ' + rancioAntes],
-    ['LIMITE DECLARADO — al bajar 25 -> 15 sin limpiar, el grado severo SOBREVIVE (early return)',
-      rancioDespues === '4', 'grado tras 15 = ' + rancioDespues],
-    ['  y la pantalla queda contradiciendose: el renglon dice «No grada» sobre un grado severo',
-      rancioInterp.indexOf('No grad') > -1, 'ia-vtd-interp=' + rancioInterp],
+    ['al bajar 25 -> 15 sin limpiar, el grado severo SE RETIRA al centinela (regla 1, 13/10/2026)',
+      rancioDespues === '0', 'grado tras 15 = ' + rancioDespues],
+    ['  y la pantalla YA NO se contradice: el renglon dice «No grada» y el grado quedo sin dato',
+      rancioInterp.indexOf('No grad') > -1 && rancioDespues === '0',
+      'ia-vtd-interp=' + rancioInterp + ' grado=' + rancioDespues],
   ] };
 `);
 

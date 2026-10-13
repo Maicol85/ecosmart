@@ -31209,21 +31209,18 @@ function _eaRetirarGradoSugerido(){
    no existe, `sug` saldría `undefined`, el retiro saldría por su guarda y un grado automático
    quedaría publicado con su insumo fuera de banda — en silencio, porque la guarda devuelve `false`
    como si no hubiera nada que retirar. */
+/* ⚠️ DELEGA EN `sevRetirarSugerido` DESDE EL 2026-10-13, Y NO SE BORRA. Sigue exportada en
+   `window` y la llaman caminos que no pasan por `calcIA_ESC`, así que quitarla dejaría ese grado
+   publicado con su insumo fuera de banda — en silencio. Lo que se va es su CUERPO: eran las mismas
+   cuatro guardas escritas una segunda vez, y dos implementaciones del mismo retiro divergen en
+   cuanto se toca una. El dueño único hace exactamente lo que hacía ésta, con el centinela leído de
+   `SEV_TOKEN_SIN` y `sincronizarGradoIA` llamado por el `trasEscribir` del registro.
+   ⚠️ Y EL ORDEN DE LAS TRES LÍNEAS QUE ESTABA DECLARADO ACÁ SIGUE VIGENTE ADENTRO: la marca se
+   borra DESPUÉS de sincronizar, porque `trasEscribir` la repone; la reentrada la acota la guarda de
+   idempotencia, que es más fuerte que el orden. */
 function _iaRetirarGradoSugerido(){
-  const sel = document.getElementById('ia_grado');
-  if (!sel) return false;
-  if (window.esqSevManual && window.esqSevManual.ia) return false;
-  const sug = sel.dataset.sugerido;
-  if (!sug || sel.value !== sug) return false;
-  /* ⚠️ EL ORDEN DE ESTAS TRES LÍNEAS ES LO QUE ACOTA LA REENTRADA, y por eso se declara: la marca
-     se borra ANTES de sincronizar. `sincronizarGradoIA` arrastra `emContRefrescar` → `calcEM`, y
-     aunque hoy ese camino no vuelve a `calcIA_ESC`, invertir las dos líneas abriría la recursión el
-     día que alguien lo encadene. Con la marca ya borrada, una segunda entrada sale por la guarda de
-     arriba. */
-  sel.value = '0';
-  delete sel.dataset.sugerido;
-  if (typeof sincronizarGradoIA === 'function') sincronizarGradoIA();
-  return true;
+  const r = (typeof sevRetirarSugerido === 'function') ? sevRetirarSugerido('ia') : null;
+  return !!(r && r.retirado);
 }
 window._eaRetirarGradoSugerido = _eaRetirarGradoSugerido;
 window._iaRetirarGradoSugerido = _iaRetirarGradoSugerido;
@@ -34519,14 +34516,27 @@ function calcIA_ESC() {
   const _dElIA = document.getElementById('ia-discordancia');
   if (params.length === 0) {
     if (_dElIA) _dElIA.textContent = _aoFueraTxt(_iaFuera);
-    /* ⚠️ NADIE CUANTIFICO Y HAY ALGO FUERA DE BANDA: se retira el grado que la app sugirio.
-       Se exige `_iaFuera.length` y no basta `params.length === 0`, porque ese cero tambien es
-       el caso «todavia no se cargo nada» y «el medico borro los campos», que son otra
-       conversacion y no la que esta decision abre. Si quedo ALGUN voto, la cascada de abajo
-       reescribe el grado como siempre y no hay nada que retirar.
-       ⚠️ Y VA DESPUES del aviso: el `textContent` de arriba es lo que explica en pantalla por
-       que el grado desaparecio. Retirar en silencio es peor que no retirar. */
-    if (_iaFuera.length && typeof _iaRetirarGradoSugerido === 'function') _iaRetirarGradoSugerido();
+    /* ⚠️ EL BADGE SE REPINTA ACÁ DESDE EL 2026-10-13, Y ANTES NO SE REPINTABA NUNCA POR ESTA
+       SALIDA. `ia-sev` es el veredicto AUTOMÁTICO y se escribe sólo en la cascada de abajo, así
+       que al borrar el último votante se quedaba con «Severa» —medido con teclas reales en las 19
+       escenas de la IAo de `scripts/_probe_valvborra.mjs`: las 19 lo conservaban—. Un badge que
+       afirma severidad sobre un cuadro vacío es la misma afirmación falsa que el grado. */
+    const _iaSevEl = document.getElementById('ia-sev');
+    if (_iaSevEl) _iaSevEl.innerHTML = '—';
+    /* ⚠️ Y EL RETIRO YA NO EXIGE `_iaFuera.length`. El párrafo que vivía acá decía: «se exige
+       `_iaFuera.length` y no basta `params.length === 0`, porque ese cero también es el caso
+       *todavía no se cargó nada* y *el médico borró los campos*, que son otra conversación y no
+       la que esta decisión abre». Esa conversación la cerró Maicol el 2026-10-13 (regla 1): un
+       campo vacío no deja grado. Así que el retiro corre por las DOS puertas —insumo ilegible y
+       campo borrado— y las dos guardas que importan siguen siendo las del dueño: marca manual del
+       médico y `dataset.sugerido`.
+       El caso «todavía no se cargó nada» no necesita excepción: ahí el grado ya está en el
+       centinela y `sevRetirarSugerido` sale por su guarda de idempotencia.
+       ⚠️ VA DESPUÉS del aviso: el `textContent` de arriba es lo que explica en pantalla por qué el
+       grado desapareció. Retirar en silencio es peor que no retirar.
+       Se llama al dueño único y no a `_iaRetirarGradoSugerido`, que ahora delega en él: dos
+       implementaciones del mismo retiro divergen en cuanto se toca una. */
+    if (typeof sevRetirarSugerido === 'function') sevRetirarSugerido('ia');
     /* ⚠️ Y LA FOTO SE BORRA ACÁ, que es el equivalente del `bloqueado` de la EA para la IAo. Por este
        `return` se sale cuando NADIE cuantificó —o cuando todo lo cargado quedó fuera de banda— así
        que no hay grado calculado. Dejar `window._iaGradoCalc` con el valor del cálculo ANTERIOR haría
@@ -105472,8 +105482,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261013-1218';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791904739066;                 /* eco-build-ms */
+const ECO_BUILD    = '20261013-1230';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791905411784;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -105559,7 +105569,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-1218</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-1230</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
