@@ -22857,6 +22857,33 @@ function _bseDetalles(d, st) {
   return out;
 }
 
+/* ══ EL CAMINO DEL PACIENTE POR LA FIGURA — ids estables de nodo ════════════════════════════
+   Las tres funciones duenias de la BSE devuelven, ademas de lo que ya devolvian, la lista de
+   nodos por los que paso ESTE paciente (`R.camino`) y el ultimo de esa lista (`R.nodoFinal`).
+   No cambia ni una cuenta ni un texto: son dos propiedades nuevas en un objeto que ya existia.
+
+   ⚠️ EL NODO FINAL NO SE EMPUJA EN NINGUNA RAMA: SE DERIVA DE `R.clave`, que es la categoria
+   que firman el cuadro gris, el informe y el EN SUMA. Empujarlo a mano en cada salida seria una
+   SEGUNDA copia del veredicto, y la copia que se olvida de actualizarse es la que pinta el
+   camino rojo terminando en una casilla que el badge no dice. Por eso el mapa va por clave.
+
+   Los ids llevan el prefijo de la figura (`f17.` ritmo sinusal con FEVI normal, `f18.` ritmo
+   sinusal con FEVI reducida, `f19.` fibrilacion auricular) porque las tres figuras comparten
+   nombres de casilla y NO comparten ni una constante. */
+const BSE_NODO_FIN = {
+  normal: 'fin-normal',                 // Figura 17 · «Normal diastolic function»
+  alterada_normal: 'fin-pnormal',       // Figura 17 · «Impaired DF with normal filling pressures»
+  normal_sin_eprima: 'fin-sin-eprima',  // estado de la APP: presion normal y relajacion no valorada
+  elevada: 'fin-elevada',               // Figura 17 · «Impaired DF with elevated filling pressures»
+  indeterminado: 'fin-indet',           // de la PROSA (pag. 36 y 37): la figura no dibuja esta caja
+  presion_insuficiente: 'fin-insuf',    // estado de la APP: menos de dos variables principales
+  fr_normal: 'fin-normal',              // Figura 18 · misma casilla que la 17, otra via
+  fr_elevada: 'fin-elevada'             // Figura 18 · idem
+};
+const BSE_NODO_FIN19 = {
+  elevada: 'f19.fin-elevada', normal: 'f19.fin-normal', indeterminada: 'f19.fin-indet'
+};
+
 function diastBSE2024Evaluar() {
   const e = v('onda_e'), a = v('onda_a'), esep = v('e_sep'), elat = v('e_lat');
   const aiVol = v('ai_vol'), bsa = getBSA();
@@ -22882,7 +22909,8 @@ function diastBSE2024Evaluar() {
   const alterada = eprimaE.evaluable ? eprimaE.alterada : null;
 
   const R = { e, a, esep, elat, eprom, ee, ea, lavi, trv, fevi, sgl,
-              feviReducida, alterada, eprima: eprimaE, filas: [], pos: 0, total: 0, via: null };
+              feviReducida, alterada, eprima: eprimaE, filas: [], pos: 0, total: 0, via: null,
+              camino: [] };
 
   if (feviReducida) {
     /* El E/e' usa la MISMA regla de sitio que la vía normal (pág. 14): con los dos anillos manda
@@ -22906,6 +22934,7 @@ function diastBSE2024Evaluar() {
     });
     R.pos = pos; R.total = evalN;
     R.via = 'B — FEVI reducida o miocardiopatía';
+    R.camino.push('f18.entrada', 'f18.impaired', 'f18.banda');
     R.eeVal = eeVal; R.eeSitio = eeSitio; R.eeCorte = eeCorte;
 
     let presion;
@@ -22914,11 +22943,22 @@ function diastBSE2024Evaluar() {
     else if (evalN === 2 && pos === 1 && neg === 1) presion = 'discordancia';
     else               presion = 'insuficiente';
 
-    R.filas.push({ g: 'Presión de llenado (Figura 18 — relajación ya alterada)',
+    /* Con «insuficiente» no se recorre NINGUNA caja de rama: la Figura 18 no dibuja una para
+       menos de dos variables principales, igual que la 17. El camino termina en la casilla de
+       estado de la app, que es lo que `BSE_NODO_FIN` resuelve al final. */
+    if (presion !== 'insuficiente') {
+      R.camino.push('f18.' + (presion === 'elevada' ? 'pos' : presion === 'normal' ? 'neg' : 'mixto'));
+    }
+
+    /* `nodo` es ADITIVO: `_daFila` lee `crit`, `val`, `u`, `ok` y `dec` y nunca lo mira. Lo
+       consume el diagrama, para poner al lado de cada caja los valores de ESE paciente leidos de
+       la misma fila que la lista muestra — con dos lecturas distintas, la caja y el renglon se
+       contradicen sobre el mismo numero. */
+    R.filas.push({ g: 'Presión de llenado (Figura 18 — relajación ya alterada)', nodo: 'f18.banda',
                    crit: "E/e' " + (eeSitio || 'promedio') + ' > ' + (eeCorte === null ? BSE_EE_PROM : eeCorte),
                    val: eeVal, u: '', ok: cEe });
-    R.filas.push({ crit: 'Velocidad de la IT > ' + String(BSE_IT_SIGNIF).replace('.', ',') + ' m/s', val: trv, u: 'm/s', ok: cIt });
-    R.filas.push({ crit: 'LAVi > ' + UMBRAL_LAVI_DILATADO + ' ml/m²', val: lavi, u: 'ml/m²', ok: cLavi });
+    R.filas.push({ nodo: 'f18.banda', crit: 'Velocidad de la IT > ' + String(BSE_IT_SIGNIF).replace('.', ',') + ' m/s', val: trv, u: 'm/s', ok: cIt });
+    R.filas.push({ nodo: 'f18.banda', crit: 'LAVi > ' + UMBRAL_LAVI_DILATADO + ' ml/m²', val: lavi, u: 'ml/m²', ok: cLavi });
 
     if (presion === 'discordancia') {
       /* ⚠️ EL LARS ENTRA POR `diastStrainAbs` DESDE EL 2026-10-12, igual que los otros dos
@@ -22936,26 +22976,35 @@ function diastBSE2024Evaluar() {
       const tde = v('tde');
       R.strain = { lars: lars, laps: laps, arA: arA, ondaL: ondaL, sd: sd, tde: tde };
 
-      R.filas.push({ g: 'Sustitución por strain de la AI (Figura 18)',
+      R.filas.push({ g: 'Sustitución por strain de la AI (Figura 18)', nodo: 'f18.lars-elev',
                      crit: 'LARS < ' + BSE_FR_LARS_ELEV + ' % → presión elevada', val: lars, u: '%',
                      ok: lars !== null && lars < BSE_FR_LARS_ELEV });
-      R.filas.push({ crit: 'Strain de contracción de la AI < ' + BSE_FR_LAPS_ELEV + ' % → presión elevada',
+      R.filas.push({ nodo: 'f18.lars-elev', crit: 'Strain de contracción de la AI < ' + BSE_FR_LAPS_ELEV + ' % → presión elevada',
                      val: laps, u: '%', ok: laps !== null && laps < BSE_FR_LAPS_ELEV });
-      R.filas.push({ crit: 'LARS ≥ ' + BSE_FR_LARS_NORM + ' % → presión normal', val: lars, u: '%',
+      R.filas.push({ nodo: 'f18.lars-norm', crit: 'LARS ≥ ' + BSE_FR_LARS_NORM + ' % → presión normal', val: lars, u: '%',
                      ok: lars !== null && lars >= BSE_FR_LARS_NORM });
-      R.filas.push({ crit: 'Strain de contracción de la AI ≥ ' + BSE_FR_LAPS_NORM + ' % → presión normal',
+      R.filas.push({ nodo: 'f18.lars-norm', crit: 'Strain de contracción de la AI ≥ ' + BSE_FR_LAPS_NORM + ' % → presión normal',
                      val: laps, u: '%', ok: laps !== null && laps >= BSE_FR_LAPS_NORM });
 
+      /* ⚠️ CADA RAMA DECLARA SU PROPIO CAMINO, EN VEZ DE RECALCULAR LAS CONDICIONES AL LADO.
+         Un segundo `if` con las mismas comparaciones seria una copia de la regla, y la copia que
+         se olvida de cambiar es la que dibuja el camino rojo por una flecha que el veredicto no
+         tomo. El orden de las cajas es el de la Figura 18 (pag. 38): primero «LARs <18% OR
+         LAPs <8%», despues «LARs >=24% OR LAPs >=14%» y al final los suplementarios. */
       if (lars === null && laps === null) {
         presion = 'indeterminada';
+        R.camino.push('f18.strain');
         R.via += ' · discordancia sin strain de la AI';
       } else if ((lars !== null && lars < BSE_FR_LARS_ELEV) || (laps !== null && laps < BSE_FR_LAPS_ELEV)) {
         presion = 'elevada';
+        R.camino.push('f18.strain', 'f18.lars-elev');
         R.via += ' · LARS < ' + BSE_FR_LARS_ELEV + ' %';
       } else if ((lars !== null && lars >= BSE_FR_LARS_NORM) || (laps !== null && laps >= BSE_FR_LAPS_NORM)) {
         presion = 'normal';
+        R.camino.push('f18.strain', 'f18.lars-elev', 'f18.lars-norm');
         R.via += ' · strain de la AI alto-normal';
       } else {
+        R.camino.push('f18.strain', 'f18.lars-elev', 'f18.lars-norm', 'f18.supl');
         /* Los CUATRO suplementarios de la Figura 18, y desde el 2026-10-12 los cuatro con dato.
            El S/D vota acá porque su corte es exactamente «< 1» y es lo que dice la opción del
            <select> —al revés que en la ASE 2025, cuyo ≤ 0,67 ese control no puede expresar—, y
@@ -22970,11 +23019,11 @@ function diastBSE2024Evaluar() {
         const cTde   = tde !== null && tde < BSE_FR_TDE_SUPL;
         const suplEval = (arA !== null ? 1 : 0) + (ondaL !== null ? 1 : 0)
                        + (eSd !== null ? 1 : 0) + (tde !== null ? 1 : 0);
-        R.filas.push({ g: 'Parámetros suplementarios (Figura 18)',
+        R.filas.push({ g: 'Parámetros suplementarios (Figura 18)', nodo: 'f18.supl',
                        crit: 'Ar−A > ' + BSE_ARA_SUPL + ' ms', val: arA, u: 'ms', ok: cArA, dec: 0 });
-        R.filas.push({ crit: 'Onda L > ' + BSE_ONDAL_SUPL + ' cm/s', val: ondaL, u: 'cm/s', ok: cOndaL, dec: 1 });
-        R.filas.push({ crit: 'S/D venoso pulmonar < 1' + venpSdCritSuf('lt1'), val: venpSdFilaVal('lt1'), u: '', ok: cSd });
-        R.filas.push({ crit: 'TDE < ' + BSE_FR_TDE_SUPL + ' ms', val: tde, u: 'ms', ok: cTde, dec: 0 });
+        R.filas.push({ nodo: 'f18.supl', crit: 'Onda L > ' + BSE_ONDAL_SUPL + ' cm/s', val: ondaL, u: 'cm/s', ok: cOndaL, dec: 1 });
+        R.filas.push({ nodo: 'f18.supl', crit: 'S/D venoso pulmonar < 1' + venpSdCritSuf('lt1'), val: venpSdFilaVal('lt1'), u: '', ok: cSd });
+        R.filas.push({ nodo: 'f18.supl', crit: 'TDE < ' + BSE_FR_TDE_SUPL + ' ms', val: tde, u: 'ms', ok: cTde, dec: 0 });
         if (suplEval === 0) {
           presion = 'indeterminada';
           R.via += ' · LARS en zona intermedia, sin suplementarios evaluables';
@@ -23027,6 +23076,7 @@ function diastBSE2024Evaluar() {
     });
     R.pos = pos; R.total = evalN;
     R.via = 'A — FEVI normal';
+    R.camino.push('f17.entrada', 'f17.banda');
     R.eeVal = eeVal; R.eeSitio = eeSitio; R.eeCorte = eeCorte;
 
     let presion;
@@ -23034,6 +23084,11 @@ function diastBSE2024Evaluar() {
     else if (neg >= 2) presion = 'normal';
     else if (evalN === 2 && pos === 1 && neg === 1) presion = 'discordancia';
     else               presion = 'insuficiente';
+
+    /* Igual que en la Figura 18: con «insuficiente» no hay caja de rama que recorrer. */
+    if (presion !== 'insuficiente') {
+      R.camino.push('f17.' + (presion === 'elevada' ? 'pos' : presion === 'normal' ? 'neg' : 'mixto'));
+    }
 
     /* ══ SUSTITUCIÓN POR STRAIN DE LA AI — la rama del medio de la Figura 17 ═══════════════
        Folio 36: «in those with one positive and one negative key variable and where LA strain
@@ -23054,33 +23109,40 @@ function diastBSE2024Evaluar() {
       const arA = (typeof venpArA === 'function') ? venpArA() : null;
       R.strain = { lars: lars, laps: laps, arA: arA, ondaL: ondaL };
 
-      R.filas.push({ g: 'Sustitución por strain de la AI (Figura 17)',
+      R.filas.push({ g: 'Sustitución por strain de la AI (Figura 17)', nodo: 'f17.strain',
                      crit: 'LARS ≥ ' + BSE_LARS_NORMAL + ' % → presión normal', val: lars, u: '%',
                      ok: lars !== null && lars >= BSE_LARS_NORMAL });
-      R.filas.push({ crit: 'Strain de contracción de la AI ≥ ' + BSE_LAPS_NORMAL + ' % → presión normal',
+      R.filas.push({ nodo: 'f17.strain', crit: 'Strain de contracción de la AI ≥ ' + BSE_LAPS_NORMAL + ' % → presión normal',
                      val: laps, u: '%', ok: laps !== null && laps >= BSE_LAPS_NORMAL });
-      R.filas.push({ crit: 'LARS < ' + BSE_LARS_ELEVADA + ' % → presión elevada', val: lars, u: '%',
+      R.filas.push({ nodo: 'f17.lars18', crit: 'LARS < ' + BSE_LARS_ELEVADA + ' % → presión elevada', val: lars, u: '%',
                      ok: lars !== null && lars < BSE_LARS_ELEVADA });
 
+      /* Cada rama declara su camino, por el mismo motivo que la Figura 18. El orden de las
+         cajas es el de la Figura 17 (pag. 36): «Assess LA strain: pump strain >=14% OR reservoir
+         strain >=30%», despues «LARs <18%» y al final los suplementarios. */
       if (lars === null && laps === null) {
         presion = 'indeterminada';
+        R.camino.push('f17.strain');
         R.via = 'A — FEVI normal · discordancia sin strain de la AI';
       } else if ((laps !== null && laps >= BSE_LAPS_NORMAL) || (lars !== null && lars >= BSE_LARS_NORMAL)) {
         presion = 'normal';
+        R.camino.push('f17.strain');
         R.via = 'A — FEVI normal · strain de la AI alto-normal';
       } else if (lars !== null && lars < BSE_LARS_ELEVADA) {
         presion = 'elevada';
+        R.camino.push('f17.strain', 'f17.lars18');
         R.via = 'A — FEVI normal · LARS < ' + BSE_LARS_ELEVADA + ' %';
       } else {
+        R.camino.push('f17.strain', 'f17.lars18', 'f17.supl');
         /* Zona entre los dos cortes: los suplementarios. Con UNO positivo alcanza para elevada
            («≥1 positive» en la figura); con todos negativos la presión es normal. Si NINGUNO se
            puede evaluar no se contesta «no» a una pregunta que no se hizo: queda indeterminada. */
         const cArA = arA !== null && arA > BSE_ARA_SUPL;
         const cOndaL = ondaL !== null && ondaL > BSE_ONDAL_SUPL;
         const suplEval = (arA !== null ? 1 : 0) + (ondaL !== null ? 1 : 0);
-        R.filas.push({ g: 'Parámetros suplementarios (Figura 17)',
+        R.filas.push({ g: 'Parámetros suplementarios (Figura 17)', nodo: 'f17.supl',
                        crit: 'Ar−A > ' + BSE_ARA_SUPL + ' ms', val: arA, u: 'ms', ok: cArA, dec: 0 });
-        R.filas.push({ crit: 'Onda L > ' + BSE_ONDAL_SUPL + ' cm/s', val: ondaL, u: 'cm/s', ok: cOndaL, dec: 1 });
+        R.filas.push({ nodo: 'f17.supl', crit: 'Onda L > ' + BSE_ONDAL_SUPL + ' cm/s', val: ondaL, u: 'cm/s', ok: cOndaL, dec: 1 });
         if (suplEval === 0) {
           presion = 'indeterminada';
           R.via = 'A — FEVI normal · LARS en zona intermedia, sin suplementarios evaluables';
@@ -23095,11 +23157,20 @@ function diastBSE2024Evaluar() {
     }
     R.presion = presion;
 
-    R.filas.push({ g: 'Paso 1 — Presión de llenado (Figura 17)',
+    /* ⚠️ EL PASO DEL e' SOLO SE RECORRE DEL LADO DE LA PRESION NORMAL. La Figura 17 no lo
+       consulta en sus dos ramas rojas —van directo a la casilla roja— y la prosa de la pag. 13
+       lo respalda: «a value greater than the age-specific cut-off does not confirm normal LV
+       relaxation». Con presion indeterminada o insuficiente tampoco: el algoritmo no llego. */
+    if (presion === 'normal') {
+      R.camino.push('f17.eprima');
+      if (eprimaE.evaluable) R.camino.push(eprimaE.alterada ? 'f17.rel-baja' : 'f17.rel-normal');
+    }
+
+    R.filas.push({ g: 'Paso 1 — Presión de llenado (Figura 17)', nodo: 'f17.banda',
                    crit: "E/e' " + (eeSitio || 'promedio') + ' > ' + (eeCorte === null ? BSE_EE_PROM : eeCorte),
                    val: eeVal, u: '', ok: cEe });
-    R.filas.push({ crit: 'Velocidad de la IT > ' + String(BSE_IT_SIGNIF).replace('.', ',') + ' m/s', val: trv, u: 'm/s', ok: cIt });
-    R.filas.push({ crit: 'LAVi > ' + UMBRAL_LAVI_DILATADO + ' ml/m²', val: lavi, u: 'ml/m²', ok: cLavi });
+    R.filas.push({ nodo: 'f17.banda', crit: 'Velocidad de la IT > ' + String(BSE_IT_SIGNIF).replace('.', ',') + ' m/s', val: trv, u: 'm/s', ok: cIt });
+    R.filas.push({ nodo: 'f17.banda', crit: 'LAVi > ' + UMBRAL_LAVI_DILATADO + ' ml/m²', val: lavi, u: 'ml/m²', ok: cLavi });
 
     /* ⚠️ EL PASO DEL e' VA AL FINAL, Y ESE ES EL ORDEN DE LA GUÍA. Folio 35: «the assessment of
        LVDF in those with normal systolic function must start with the assessment of LVFP». La app
@@ -23107,11 +23178,11 @@ function diastBSE2024Evaluar() {
        alcanzaran para decidir la presión —que es el dato que la guía pone primero—. */
     if (eprimaE.evaluable) {
       const c = eprimaE.cortes;
-      R.filas.push({ g: "Paso 2 — Relajación por e' según edad (Tabla 2, " + c.franja + ')',
+      R.filas.push({ g: "Paso 2 — Relajación por e' según edad (Tabla 2, " + c.franja + ')', nodo: 'f17.eprima',
                      crit: "e' septal < " + String(c.sep).replace('.', ',') + ' cm/s', val: esep || null, u: 'cm/s', ok: eprimaE.bajoSep });
-      R.filas.push({ crit: "e' lateral < " + String(c.lat).replace('.', ',') + ' cm/s', val: elat || null, u: 'cm/s', ok: eprimaE.bajoLat });
+      R.filas.push({ nodo: 'f17.eprima', crit: "e' lateral < " + String(c.lat).replace('.', ',') + ' cm/s', val: elat || null, u: 'cm/s', ok: eprimaE.bajoLat });
     } else {
-      R.filas.push({ g: "Paso 2 — Relajación por e' según edad (Tabla 2)",
+      R.filas.push({ g: "Paso 2 — Relajación por e' según edad (Tabla 2)", nodo: 'f17.eprima',
                      crit: 'no evaluable: ' + (eprimaE.motivo === 'rango' ? eprimaE.que : 'falta ' + eprimaE.que),
                      val: null, u: '', ok: false });
     }
@@ -23124,6 +23195,12 @@ function diastBSE2024Evaluar() {
   }
 
   R.clave     = R.res.categoria;
+  /* El nodo final se DERIVA de la categoria que acaba de firmar la fabrica de texto. Si manana
+     naciera una categoria sin entrada en el mapa, `nodoFinal` queda en null y el camino no
+     inventa una casilla: el diagrama no pinta resultado y TC-460 lo caza. */
+  const _fin = BSE_NODO_FIN[R.res.categoria] || null;
+  if (_fin) R.camino.push((R.feviReducida ? 'f18.' : 'f17.') + _fin);
+  R.nodoFinal = _fin ? R.camino[R.camino.length - 1] : null;
   R.badgeHtml = R.res.badge;
   R.texto     = R.res.texto;
   R.textoSuma = R.res.textoSuma;
@@ -24608,19 +24685,21 @@ function diastFAEvaluarBSE2024() {
               _diastFAEstado(D.tr  !== null, cTr) ];
   const c1 = _diastFAContar(s);
 
-  R.filas.push({ g: 'Paso 1 — BSE 2024, Figura 19 (pág. 39)', crit: 'E/e\' septal > 11', val: D.eeSep, u: '', ok: cEe, dec: 1 });
-  R.filas.push({ crit: 'Onda E ≥ 100 cm/s', val: D.E, u: 'cm/s', ok: cE, dec: 0 });
-  R.filas.push({ crit: 'TDE ≤ 160 ms', val: D.tde, u: 'ms', ok: cTde, dec: 0 });
-  R.filas.push({ crit: 'Velocidad IT > 2,8 m/s', val: D.tr, u: 'm/s', ok: cTr });
+  /* `nodo` es ADITIVO y lo lee el diagrama de la Figura 19: los valores que pone al lado de cada
+     caja salen de la MISMA fila que la lista muestra. */
+  R.filas.push({ g: 'Paso 1 — BSE 2024, Figura 19 (pág. 39)', nodo: 'f19.paso1', crit: 'E/e\' septal > 11', val: D.eeSep, u: '', ok: cEe, dec: 1 });
+  R.filas.push({ nodo: 'f19.paso1', crit: 'Onda E ≥ 100 cm/s', val: D.E, u: 'cm/s', ok: cE, dec: 0 });
+  R.filas.push({ nodo: 'f19.paso1', crit: 'TDE ≤ 160 ms', val: D.tde, u: 'ms', ok: cTde, dec: 0 });
+  R.filas.push({ nodo: 'f19.paso1', crit: 'Velocidad IT > 2,8 m/s', val: D.tr, u: 'm/s', ok: cTr });
 
   const sLars = _diastFAEstado(D.lars !== null, D.lars < 16);   // Figura 19: «LA reservoir strain <16%»
   const sImc  = _diastFAEstado(D.imc  !== null, D.imc  > 30);   // «BMI >30 kg/m²»
   const sSd   = venpSdEstado('lt1');   // corte `< 1`, un solo dueño de la lectura
   const c2 = _diastFAContar([sLars, sImc, sSd]);
 
-  R.filas.push({ g: 'Paso 2 — si el paso 1 no alcanza', crit: 'LARS < 16 % (en FA el corte baja; pág. 40)', val: D.lars, u: '%', ok: sLars === true });
-  R.filas.push({ crit: 'IMC > 30 kg/m² (de peso y talla)', val: D.imc, u: 'kg/m²', ok: sImc === true });
-  R.filas.push({ crit: 'S/D venoso pulmonar < 1' + venpSdCritSuf('lt1'), val: venpSdFilaVal('lt1'), u: '', ok: sSd === true });
+  R.filas.push({ g: 'Paso 2 — si el paso 1 no alcanza', nodo: 'f19.paso2', crit: 'LARS < 16 % (en FA el corte baja; pág. 40)', val: D.lars, u: '%', ok: sLars === true });
+  R.filas.push({ nodo: 'f19.paso2', crit: 'IMC > 30 kg/m² (de peso y talla)', val: D.imc, u: 'kg/m²', ok: sImc === true });
+  R.filas.push({ nodo: 'f19.paso2', crit: 'S/D venoso pulmonar < 1' + venpSdCritSuf('lt1'), val: venpSdFilaVal('lt1'), u: '', ok: sSd === true });
 
   /* La regla de la BSE cuenta los NEGATIVOS tanto como los positivos, así que el renglón de la
      ventana informa los dos: con sólo los positivos, «2 de 4» no distingue «dos negativos» de
@@ -24631,11 +24710,26 @@ function diastFAEvaluarBSE2024() {
   const det2 = pl(c2.pos, 'positivo', 'positivos') + ' y ' + pl(c2.neg, 'negativo', 'negativos') + ' de 3 en el paso 2'
              + (c2.sin ? ' · ' + c2.sin + ' sin medir' : '');
 
-  if      (c1.pos >= 3) _diastFAElevada(R, det1);
-  else if (c1.neg >= 3) _diastFANormal(R, det1);
-  else if (c2.pos >= 2) _diastFAElevada(R, det1 + ' · ' + det2);
-  else if (c2.neg >= 2) _diastFANormal(R, det1 + ' · ' + det2);
-  else                  _diastFAIndet(R, det1 + ' · ' + det2);
+  /* El CAMINO por la Figura 19 (pag. 39). Cada rama declara el suyo, igual que en las Figuras
+     17 y 18, y el nodo final se DERIVA de `R.clave` —que es la que firma el badge— y no se
+     empuja a mano: dos copias del veredicto es como el camino rojo termina en una casilla que
+     el cuadro gris no dice.
+     ⚠️ LA ESTRUCTURA DEL `if` CAMBIA DE FORMA Y NO DE REGLA: los dos casos del paso 2 quedan
+     anidados adentro del «no alcanzo el paso 1», que es exactamente lo que la cascada de HEAD
+     evaluaba al llegar al tercer `else if`. Los cinco desenlaces y sus condiciones son los
+     mismos, en el mismo orden. */
+  R.camino = ['f19.entrada', 'f19.paso1'];
+  if      (c1.pos >= 3) { R.camino.push('f19.p1pos'); _diastFAElevada(R, det1); }
+  else if (c1.neg >= 3) { R.camino.push('f19.p1neg'); _diastFANormal(R, det1); }
+  else {
+    R.camino.push('f19.p1insuf', 'f19.paso2');
+    if      (c2.pos >= 2) { R.camino.push('f19.p2pos');   _diastFAElevada(R, det1 + ' · ' + det2); }
+    else if (c2.neg >= 2) { R.camino.push('f19.p2neg');   _diastFANormal(R, det1 + ' · ' + det2); }
+    else                  { R.camino.push('f19.p2insuf'); _diastFAIndet(R, det1 + ' · ' + det2); }
+  }
+  const _fin19 = BSE_NODO_FIN19[R.clave] || null;
+  if (_fin19) R.camino.push(_fin19);
+  R.nodoFinal = _fin19 || null;
   return R;
 }
 window.diastFAEvaluarBSE2024 = diastFAEvaluarBSE2024;
@@ -104113,8 +104207,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261012-1527';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791829663214;                 /* eco-build-ms */
+const ECO_BUILD    = '20261012-2335';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791858951816;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -104200,7 +104294,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261012-1527</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261012-2335</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
