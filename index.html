@@ -4658,9 +4658,25 @@ window.cerrarSesionReal = cerrarSesionReal;
           <!-- ⚠️ EL TEXTO DE «severa» DICE «Significativa» Y SU `value` NO CAMBIA (2026-10-11). El valor
                guardado sigue siendo `severa`: lo leen el Excel, `_labEstenSev` del Laboratorio y
                Evidencia, y cambiarlo sería migrar los estudios archivados. Tiene que decir lo mismo
-               que `EM_GRADO_VIS`, que es el dueño de las otras tres superficies. `leve` y `moderada`
-               no se tocan. De este texto cuelga además la franja del PPT, vía `_pptSel`. -->
-          <select id="em_grado" onchange="emGradoManual()" style="display:none;" aria-hidden="true" tabindex="-1"><option value="sin">&mdash; grado &mdash;</option><option value="leve">Leve</option><option value="moderada">Moderada</option><option value="severa">Significativa</option></select>
+               que `EM_GRADO_VIS`, que es el dueño de las otras tres superficies. De este texto
+               cuelga además la franja del PPT, vía `_pptSel`.
+               ⚠️ EL SELECTOR ES BINARIO DESDE EL 2026-10-13 (decisión de Maicol): «No
+               significativa» / «Significativa», y «Leve» y «Moderada» desaparecen DE LA PANTALLA.
+               Los `value` NO se tocan —ninguno—, porque `em_grado` lo leen el Excel (columna «EM
+               grado», vocabulario `sin · leve · moderada · severa`), el importador, `_labEstenSev`
+               del Laboratorio y el panel de Evidencia: renombrar un token es migrar los estudios
+               archivados y mover el vocabulario de la planilla para cambiar una palabra de
+               pantalla. Lo que cambia es el TEXTO de dos `<option>`.
+               ⚠️ `moderada` SE QUEDA COMO `<option hidden>` Y NO SE BORRA, con el precedente exacto
+               de «Moderada-severa» de `ep_grado` (2026-10-07): un `<select>` al que se le asigna un
+               valor que no existe queda en `selectedIndex -1` y `.value === ''`, o sea el grado
+               DESAPARECE de las cuatro superficies sin evento y sin rastro. El médico confirmó que
+               no hay estudios de EM guardados, pero un legado tiene que abrir igual. `hidden` lo
+               saca del menú ▼ —`valvSev.opciones` filtra por `o.hidden` desde esa misma tanda— y
+               del desplegable nativo, que de todas formas está en `display:none`.
+               ⚠️ LAS DOS DICEN LA MISMA PALABRA A PROPÓSITO: la nomenclatura nueva no distingue
+               leve de moderada, y el PPT publica el TEXTO de la opción. -->
+          <select id="em_grado" onchange="emGradoManual()" style="display:none;" aria-hidden="true" tabindex="-1"><option value="sin">&mdash; grado &mdash;</option><option value="leve">No significativa</option><option value="moderada" hidden>No significativa</option><option value="severa">Significativa</option></select>
           <div id="gftxt-esten-mitral" class="valv-gf-fijo" aria-readonly="true">&mdash;</div>
           <!-- Aviso de grado fijado a mano que discrepa del calculado, hermano de
                `ea-manual-aviso` y gobernado por `sevSincronizar` (clave `em`). Va ARRIBA del badge
@@ -15411,7 +15427,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
             <tr style="background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">Área mitral normal en el adulto</td><td style="padding:5px 8px;text-align:center;">4 – 6 cm²</td><td style="padding:5px 8px;color:var(--text2);">ASE 2023. La ESC no publica rango normal</td></tr>
           </table>
           <div style="margin-top:10px;font-size:12px;color:var(--text);line-height:1.8;">
-            <b style="color:var(--accent2);">Lo que la app hace con esto:</b> completa el grado en <b>«severa»</b> cuando el AVm válido es ≤ 1,5 cm². <b>Leve y moderada las elige el médico</b> — la app no las autocompleta.<br>
+            <b style="color:var(--accent2);">Lo que la app hace con esto:</b> completa el grado en <b>«Significativa»</b> cuando el AVm válido es ≤ 1,5 cm². <b>«No significativa» la elige el médico</b> — la app no la autocompleta.<br>
             • Con AVm &gt; 1,5 y <b>gradiente medio &gt; 4 mmHg</b> publica «EM con gradiente elevado»; con insuficiencia mitral moderada o mayor, «gradiente transmitral elevado» <b>sin</b> la palabra estenosis, porque ahí el gradiente sube por volumen.<br>
             • Si dos áreas válidas caen a los dos lados del corte, se publican <b>las dos</b> con su método y <b>prevalece el peor</b>, con «probablemente severa por …».<br>
             • El <b>gradiente medio ≥ 10 mmHg</b> de la ASE <b>no</b> se usa como criterio de severidad: el área es el indicador primario y la propia ESC 2021 describe la «estenosis mitral severa de bajo gradiente» (AVm ≤ 1,5 con gradiente medio &lt; 10).<br>
@@ -28042,7 +28058,15 @@ const EM_GMEDIO_SIGNIF_MIN  = 10;   // mmHg — borde >= · ASE 2023 Tabla 1, p.
    `_pptSel` devuelve el TEXTO de la opción cuando el nodo es un `<select>`, así que la franja de
    hallazgos pasa de «EM: severa» a «EM: significativa». Es el «empate frágil» que el comentario
    del PPT ya declaraba; ahora se rompió a propósito y queda medido. */
-const EM_GRADO_VIS = { severa: 'Significativa', moderada: 'Moderada', leve: 'Leve',
+/* ⚠️ `leve` Y `moderada` SE MUESTRAN LAS DOS COMO «No significativa» DESDE EL 2026-10-13
+   (decisión de Maicol): el selector es BINARIO y la nomenclatura de la ASE 2023 —que coincide con
+   la ESC/EACTS— es «significativa / no significativa». Los dos tokens siguen existiendo como
+   VALOR, intactos, por lo que dice el párrafo de arriba; lo que se colapsa es cómo se escriben.
+   El mapa es el dueño de TRES superficies —la fila «EM grado» del PDF, la etiqueta de la pastilla
+   (`SEV_SINC.em.etiqueta`) y, desde esta tanda, el texto del sub-botón y del «grado final al
+   informe»— y la CUARTA, el texto de las dos `<option>`, es HTML estático que tiene que decir lo
+   MISMO. De ella cuelga el PPT. */
+const EM_GRADO_VIS = { severa: 'Significativa', moderada: 'No significativa', leve: 'No significativa',
                        sin: 'Sin estenosis' };
 function emGradoVis(g){ const k = String(g == null ? '' : g);
   return Object.prototype.hasOwnProperty.call(EM_GRADO_VIS, k) ? EM_GRADO_VIS[k] : k; }
@@ -28825,7 +28849,11 @@ function calcEM() {
         : (emThpFueraBanda() ? emThpBandaTxt() : emThpMotivoNoVota());
     else if (window.esqSevManual && window.esqSevManual.em) badgeEl.textContent = 'Grado fijado a mano — el autocálculo no lo pisa.';
     else if (!cat.fuentes.length && cat.gm == null) badgeEl.textContent = '';
-    else badgeEl.textContent = 'Leve y moderada las elige el médico; «severa» la completa la app cuando el AVm es \u22641,5 cm².';
+    /* ⚠️ LA NOMENCLATURA NUEVA (2026-10-13): el selector ofrece «No significativa» y
+       «Significativa», así que la frase que nombraba «leve y moderada» describía un menú que ya no
+       existe. El HECHO que declara no cambia —la app completa un solo grado, y es el del corte del
+       área—, y el corte tampoco. */
+    else badgeEl.textContent = '«No significativa» la elige el médico; «Significativa» la completa la app cuando el AVm es \u22641,5 cm².';
   }
 
   /* ⚠️ EL DISPARADOR DEL CONSUMIDOR NUEVO VA ACÁ, Y ES LA RAZÓN DE PONERLO EN `calcEM` Y NO EN
@@ -40232,7 +40260,21 @@ function generarInforme(opts) {
     const _emManualPrev = !!(window.esqSevManual && window.esqSevManual.em);
     const _emCatPrev = (typeof emCategoria === 'function') ? emCategoria().clave : 'nada';
     const _emAppSevera = !_emManualPrev && emG === 'severa' && _emCatPrev === 'severa';
-    const emDesc = (emG && emG !== 'sin' && !_emAppSevera) ? emG.toLowerCase() : null;
+    /* ⚠️ EL SINTAGMA SALE DE UN DUEÑO Y NO DEL TOKEN EN MINÚSCULA (2026-10-13). Era
+       `emG.toLowerCase()`, o sea «estenosis leve» / «EM moderada.» en el informe FIRMADO, y desde
+       que el selector es binario esas dos palabras ya no existen en ninguna pantalla: el médico
+       elige «No significativa» y el papel publicaba «leve». Con `severa` pasaba lo mismo al revés
+       —elige «Significativa» y el papel decía «severa»—, y eso es PREEXISTENTE: lo arrastraba
+       desde el 2026-10-11, cuando la `<option>` cambió de texto y esta línea no.
+       ⚠️ LAS DOS FRASES QUE SALEN DE ACÁ YA LAS EMITE LA APP POR OTRO CAMINO, y por eso no se
+       inventa ninguna redacción nueva en un informe firmado: `EM_CAT_EST.severa` ya publica
+       «estenosis significativa (…)», `EM_CAT_SUMA.severa` «EM significativa.» y
+       `EM_CAT_SUMA.gradiente` «EM no significativa.». Lo que esta línea hacía era que el grado
+       ELEGIDO A MANO se escribiera distinto del CALCULADO sobre el mismo paciente.
+       `EM_GRADO_VIS` es el dueño del texto; acá se baja a minúscula porque el slot de `fraseEI`
+       recibe un sintagma («con estenosis no significativa»), no un rótulo. */
+    const emDesc = (emG && emG !== 'sin' && !_emAppSevera)
+                 ? String(emGradoVis(emG)).toLowerCase() : null;
     /* ══ LA CATEGORÍA ENTRA ACÁ, Y NO ES UN GRADO ══════════════════════════════════════════════
        Precedencia: el grado que el MÉDICO eligió gana siempre —«si el médico elige un grado a mano,
        se imprime su elección»— y sólo cuando no eligió ninguno habla la categoría. La píldora queda
@@ -64224,6 +64266,21 @@ window.valvSev = (function(){
   const corto = t => { const m = String(t||'').match(/severa|moderada|leve|esclerosis/i);
     if (!m) return String(t||''); const w = m[0].toLowerCase();
     return w.charAt(0).toUpperCase() + w.slice(1); };
+  /* ⚠️ `corto()` NO SIRVE PARA LA ESTENOSIS MITRAL, Y ESO SE MIDIÓ ANTES DE TOCAR NADA
+     (2026-10-13). Su regex busca «severa» en el VALOR del campo, así que con `em_grado='severa'`
+     el sub-botón decía «Severa ▼» y el «grado final al informe» decía «Severa» — mientras la
+     `<option>`, el PDF y la etiqueta de la pastilla ya decían «Significativa» desde el 2026-10-11.
+     Eran dos palabras para el mismo dato, en la misma pantalla, y la que el médico tiene más a la
+     vista era la que no correspondía.
+     Se resuelve con un dueño POR PAR y no tocando `corto()`: esa función gobierna las OCHO
+     pastillas y cualquier cambio suyo le cambiaría el rótulo a las otras siete. El par que declara
+     dueño usa el suyo; los otros siete caen a `corto()` y no se enteran — verificado en el A/B. */
+  const VIS_BTN = { 'esten|mitral': (raw) => (typeof emGradoVis === 'function') ? emGradoVis(raw) : null };
+  const rotulo = (tipo, valv, raw) => {
+    const f = VIS_BTN[tipo + '|' + valv];
+    if (f) { try { const t = f(raw); if (t) return String(t); } catch (e) {} }
+    return corto(raw);
+  };
 
   /* ══ «Sin» EN EL MENÚ — SÓLO LA AÓRTICA (2026-10-03) ════════════════════════════════════════
      Decisión de Maicol: el médico tiene que poder AFIRMAR que no hay estenosis (o insuficiencia),
@@ -64443,7 +64500,7 @@ window.valvSev = (function(){
         const n = parseInt(raw, 10) || 0;
         if (n > 0) { txt = INSUF_TXT[n] || 'Severa'; niv = n >= 3 ? 3 : n; }
       } else if (raw && NO_GRADO.indexOf(raw) === -1 && !/^sin/i.test(raw)) {
-        txt = corto(raw); niv = nivelDe(raw);
+        txt = rotulo(tipo, valv, raw); niv = nivelDe(raw);
       }
     }
     btn.classList.remove('nivel1','nivel2','nivel3');
@@ -106676,8 +106733,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261013-1917';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791929855107;                 /* eco-build-ms */
+const ECO_BUILD    = '20261013-1923';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791930225290;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -106763,7 +106820,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-1917</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-1923</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -108750,7 +108807,7 @@ const ECO_AYUDA = [
 
 <div class="mSub">🫀 Válvulas</div>
 <p class="mP">Seis válvulas con su grado y su morfología. La severidad de las regurgitaciones se integra con PISA, vena contracta y los criterios de soporte.</p>
-<div class="mBox mAviso"><b>Estenosis mitral: la app completa sólo «severa».</b> Con un área valvular válida ≤ 1,5 cm² escribe el grado en «severa» (ASE 2023 · AHA/ACC 2020; la ESC/EACTS 2021 usa el mismo corte y lo llama «clínicamente significativa»). <b>Leve y moderada las elige el médico</b> y la app no las autocompleta: la banda «leve» por área que tenía antes llegaba hasta 4 cm² y no la publica ninguna guía — una mitral sana mide 4-6 cm² (ASE 2023). Con área &gt; 1,5 y gradiente medio &gt; 4 mmHg el informe dice «EM con gradiente elevado»; si además hay insuficiencia mitral moderada o mayor dice «gradiente transmitral elevado», <b>sin</b> la palabra estenosis, porque ahí el gradiente sube por volumen y no por obstrucción. Si dos áreas válidas caen a los dos lados del corte se publican las dos con su método y prevalece el peor. El área por continuidad no vale con regurgitación mitral o aórtica significativa y el THP no vale con insuficiencia aórtica severa: ahí el número se muestra y se retira del cálculo, y la pantalla dice por qué.</div>
+<div class="mBox mAviso"><b>Estenosis mitral: la app completa sólo «Significativa».</b> Con un área valvular válida ≤ 1,5 cm² escribe el grado en «Significativa» (ASE 2023 · AHA/ACC 2020; la ESC/EACTS 2021 usa el mismo corte y lo llama «clínicamente significativa»). El selector es <b>binario</b> — «No significativa» / «Significativa», sin leve ni moderada — y «No significativa» la elige el médico: la app no la autocompleta, porque la banda «leve» por área que tenía antes llegaba hasta 4 cm² y no la publica ninguna guía — una mitral sana mide 4-6 cm² (ASE 2023). Con área &gt; 1,5 y gradiente medio &gt; 4 mmHg el informe dice «EM con gradiente elevado»; si además hay insuficiencia mitral moderada o mayor dice «gradiente transmitral elevado», <b>sin</b> la palabra estenosis, porque ahí el gradiente sube por volumen y no por obstrucción. Si dos áreas válidas caen a los dos lados del corte se publican las dos con su método y prevalece el peor. El área por continuidad no vale con regurgitación mitral o aórtica significativa y el THP no vale con insuficiencia aórtica severa: ahí el número se muestra y se retira del cálculo, y la pantalla dice por qué.</div>
 <div class="mBox mAviso"><b>Estenosis tricuspídea: es binaria, no se gradúa.</b> No hay clasificación leve/moderada/severa validada. Basta con que se cumpla <b>uno</b> de los tres criterios —gradiente medio ≥ 5 mmHg, THP ≥ 190 ms, área ≤ 1 cm²— para hablar de estenosis significativa. Los tres pesan igual. Los dos insumos del área por continuidad (diámetro del TSVD y VTI del TSVD) se cargan en la pestaña VD.</div>
 <div class="mBox mAviso"><b>Válvula pulmonar: morfología, estenosis e insuficiencia son tres campos separados.</b> Antes vivían en un solo desplegable y elegir una excluía las otras, cuando clínicamente coexisten. El auto-grado por gradiente pico produce sólo leve, moderada o severa; «moderada-severa» existe pero es <b>elección manual</b>, porque ninguna guía publica ese corte.</div>
 <div class="mBox mAviso"><b>La normalidad exige consignarla.</b> «No especificada» —el valor al que migran los estudios viejos— no produce «válvula pulmonar normal». Sin morfología consignada y sin mediciones, la válvula no se nombra en el informe.</div>

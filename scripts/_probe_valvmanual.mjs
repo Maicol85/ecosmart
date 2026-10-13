@@ -637,10 +637,34 @@ async function main() {
       g.ayudas = await ev(`window.__P.ayudasEM()`);
       /* Como se MUESTRA cada token: el sub-boton, el texto fijo y la fila del cuadro. */
       g.porToken = {};
+      /* ⚠️ CON LA MARCA MANUAL PUESTA, que es el unico estado en el que el informe imprime el
+         grado ELEGIDO: sin la marca, `_emAppSevera` manda y el papel publica la frase de la
+         CATEGORIA, asi que la tabla mediria otra cosa. El dato cargado le da denominador. */
       for (const tok of ['sin', 'leve', 'moderada', 'severa']) {
+        await ev(`window.__P.limpiar()`);
+        await ev(`window.__P.abrirTodo()`);
+        await tipear('em_gmedio', '12');
         await ev(`window.__P.set('em_grado', ${JSON.stringify(tok)})`);
-        await pausa(120);
-        g.porToken[tok] = await ev(`window.__P.foto('em')`);
+        await ev(`(function(){ window.esqSevManual = window.esqSevManual || {};
+          window.esqSevManual.em = true; if (typeof _sevManualSync === 'function') _sevManualSync();
+          if (typeof calcEM === 'function') calcEM(); return 1 })()`);
+        await pausa(140);
+        const f = await ev(`window.__P.foto('em')`);
+        f.informe = {};
+        for (const est of ['estandar', 'detallado', 'conciso']) {
+          f.informe[est] = await ev(`window.__P.informe(${JSON.stringify(est)})`);
+        }
+        f.excel = await ev(`window.__P.excel()`);
+        f.excelEM = await ev(`(function(){
+          var campos = {}; document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function(el){
+            try { if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(el.id)) return } catch(e){}
+            campos[el.id] = el.value });
+          try { var r = _labExcelRow({ nombre:'P', ci:'1', fecha_estudio:'2026-10-13', campos: campos });
+            return { emGrado: r['EM grado'],
+                     lab: (typeof _labEstenSev === 'function')
+                        ? _labEstenSev({ campos: campos }, 'em_grado') : 'SIN FN' } }
+          catch(e) { return 'EXC: ' + e.message } })()`);
+        g.porToken[tok] = f;
       }
       /* Un estudio con los valores VIEJOS tiene que abrir sin dejar el select en -1. */
       g.legado = {};
