@@ -23,6 +23,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 |---|---|
 | Qué falta hacer / próximo paso | `docs/PENDIENTES.md` |
 | **Ubicar un cálculo de severidad, un corte o una banda** | `docs/mapa/valvulas.md` |
+| **Tocar un CORTE de la estenosis AÓRTICA**: las seis variables, la regla del peor, el cuadro de referencias o el cableado del AVA por planimetría | `docs/mapa/aortica-cortes.md` |
 | **Tocar la función diastólica del VI**: el cuadro, la ventana 🧭 o los tres algoritmos | `docs/mapa/diastolica.md` |
 | **Tocar la ASE/EACVI 2016 en ritmo sinusal**: la Figura 8A, la 8B o el corte de FEVI | `docs/mapa/diastolica-ase2016.md` |
 | **Tocar el S/D venoso pulmonar, el LARS, los suplementarios de la ASE 2025, el E/e′ por sitio de la ASE 2016, los rótulos del cuadro o el rojo del E/e′** | `docs/mapa/diastolica-complementarios.md` |
@@ -60,6 +61,11 @@ glosario respetó la regla sacando su mapa a un archivo propio
 (`panel-evidencia-terminos.md`, 15 KB) en vez de agregarle una sección; lo que le entró fueron tres
 punteros. **La próxima tanda que lo toque conviene que lo parta.**
 ⚠️ **Al 2026-10-13 hay OCHO mapas y el nuevo también nació chico:** `doppler-mitral-grilla.md` pesa 8,9 KB. Se sacó a archivo propio en vez de agregarle una sección a `diastolica.md`, que está en 34,6 KB y a 400 bytes del techo.
+⚠️ **Y al 2026-10-13 hay NUEVE, porque `valvulas.md` CRUZÓ el techo y hubo que partirlo.** La tanda
+de los cortes de la aórtica lo llevó a **40,8 KB**; su sección nueva salió a
+`docs/mapa/aortica-cortes.md` (9,8 KB) y `valvulas.md` volvió a **32,0 KB** con un puntero de cinco
+líneas. Es la primera vez que la regla se aplica **después** de cruzar el techo y no antes: conviene
+medir con `wc -c` **antes** de escribir, no después.
 
 Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la ventana.
 
@@ -221,6 +227,145 @@ impecable.
 ---
 
 ## Estado vigente
+
+### Cortes de la estenosis AÓRTICA y revisión de la estenosis tricuspídea (2026-10-13)
+
+- Al **empezar** esta tanda, `main` local y `origin/main` estaban los dos en **`16e20e6`**, sin nada
+  sin pushear —confirmado con un `git fetch` de verdad, no con el ref en caché—, con los **siete**
+  commits de la tanda del borrado en Válvulas ya incluidos **y pusheados**. Los **tres** commits de
+  esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 3 → 2 → 1.**
+  El **1** (el gradiente medio y la Vmax) y el **2** (el DVI, la planimetría y el AVA indexada)
+  tocan la MISMA función —`eaGradoCalculado`— pero en partes distintas y **se revierten en
+  cualquier orden**: el 1 cambia la cascada del gradiente y una entrada de `EA_BANDAS`, el 2 agrega
+  tres funciones nuevas y un bloque al final. ⚠️ **PERO EL 2 NOMBRA `EA_BANDAS.gmedModMin`, QUE NACE
+  EN EL 1**, en dos lugares: el texto del badge y la fila del cuadro de referencias. Revertir el 1
+  sin revertir antes el 2 deja esos dos imprimiendo `undefined` —no rompe la app, porque es una
+  interpolación de texto— pero publica «no gradúa por debajo de undefined» en pantalla.
+  **El 3 es TC-464 más documentación** y afirma el comportamiento de los dos: revertir cualquiera
+  sin el 3 deja TC-464 en rojo. ⚠️ **Y EL 1 ADAPTÓ TC-463 EN TRES LUGARES**: usaba Vmax 2 como valor
+  «leve», y con el corte nuevo eso es el centinela.
+- **LA TAREA PEDÍA CUATRO COMMITS Y SON TRES: el de la ESTENOSIS TRICUSPÍDEA SE OMITIÓ**, porque la
+  fórmula, las unidades y el corte son correctos (ver abajo). Es la propia orden la que lo prevé.
+
+- **Línea base al cierre: suite 475/479 en la corrida completa con el pendrive `DISK_IMG`
+  MONTADO, Semgrep 127 / 0 ERROR, Excel 435 columnas con el HASH IDÉNTICO a HEAD, celular 43 a
+  360 px y 52 a 390 px con 1 ALTA cada uno —IDÉNTICO a la línea base, y `--todo` da 374 y 383: las
+  tres filas nuevas del cuadro de referencias no agregan un solo hallazgo—.** Los cuatro rojos son
+  los de ENTRADA y NO son regresiones: **TC-223** (el documentado, falla por la fecha), **TC-376**,
+  **TC-390** y **TC-406**. **El denominador subió a 479**: esta tanda agregó **TC-464**. La de
+  ENTRADA, medida en HEAD limpio el 2026-10-13, fue **474/478** con el pendrive montado y los
+  mismos cuatro rojos, con el `md5` de `index.html` sin moverse durante la corrida (`da36f208…`).
+
+- **LOS TRES SÍNTOMAS DEL REPORTE REPRODUCEN, Y UN CUARTO DETALLE NO.** Medido con teclas reales
+  contra una copia de HEAD, en las **73 escenas** de `scripts/_probe_eacortes.mjs`:
+  (a) el gradiente medio de 15 y de 30 mmHg daba `sin` y el EN SUMA callaba; (b) el DVI 0,48 con
+  AVA 1,50 daba `sin`, con el badge diciendo «Sin estenosis / leve (≥1.5cm²)»; (c) la planimetría
+  0,9 daba `sin` y el cuadro de referencias en «—». (d) el AVA por continuidad 1,20 daba moderada,
+  o sea el médico tiene razón en que esa parte funciona.
+  ⚠️ **LO QUE NO REPRODUCE ES EL OPERADOR: el reporte dice «con >40» y la app usa `>=40`**, y
+  siempre lo usó. Medido por sus dos lados: el 40 exacto da severa y el 39, moderada. **No se movió
+  ningún operador del gradiente.**
+
+- **LA REGLA DE INTEGRACIÓN NO SE TOCÓ: sigue siendo el PEOR de los criterios cargados.** Lo que
+  cambió es cuántos criterios hay. Y lo nuevo se aplica **después** del peor de los tres viejos, así
+  que **por construcción** —no por una medición a posteriori— en toda escena donde el DVI, la
+  planimetría y el AVA indexada se abstengan, `grado`, `criterio`, `gVel`, `gGrad`, `gAva`,
+  `gVelGrad` y `criterioVelGrad` valen byte por byte lo de HEAD.
+
+- ⚠️ **SÓLO LA Vmax VOTA «LEVE», Y LAS OTRAS CINCO SE ABSTIENEN EN ESA BANDA. ES UNA DECISIÓN MÍA,
+  DECLARADA, Y DEJA UNA PARTE DE LA ORDEN SIN HACER.** La Tabla 3 de la EAE/ASE 2009 (p. 10) publica
+  una columna «Mild» para las seis variables, pero esa banda **no tiene cota que la separe de lo
+  NORMAL**: un gradiente medio de 3 mmHg, un DVI de 0,9, un área de 3,5 cm² y un AVA indexada de 1,8
+  son los de un corazón sano y caen todos ahí — la misma página escribe *«A normal AVA in adults is
+  ∼3.0–4.0 cm²»*. Votar 'leve' pondría «EAo leve.» en el informe FIRMADO de todo paciente al que se
+  le mida el área, que es un resultado que **contradice la guía**, y por eso entra en el punto (4) de
+  la orden. **La Vmax es la única con techo de normalidad publicado** (la columna «Aortic
+  sclerosis», `≤2,5`). Las dos alternativas están en `docs/PENDIENTES.md` → A-1.
+
+- **LA ESTENOSIS TRICUSPÍDEA NO TIENE ERROR, Y EL COMMIT 3 SE OMITIÓ.** La fórmula es
+  `π·(Ø_TSVD/20)²·VTI_TSVD / VTI_entrada` —diámetro en **mm**, el `/20` pasa a cm y saca el radio en
+  un paso; los dos VTI en **cm**— y es **exactamente** la de la nota `ᵃ` de la **Tabla 10, p. 19** de
+  la EAE/ASE 2009 (*«Stroke volume derived from left or right ventricular outflow»*) y la del texto
+  de esa página (*«SV divided by the tricuspid inflow VTI as recorded with CWD»*). Corte `≤1 cm²`,
+  de la misma tabla. **Recalculada a mano en tres casos, coincide dígito por dígito con la app:**
+  Ø 25 mm (área TSVD `π·1,25² = 4,9087 cm²`) con VTI TSVD 18 y entrada 15 → **5,89**; con 14 y 70 →
+  **0,98**; con 3 y 15 → **0,98**.
+  ⚠️ **EL «VTI TSVD DE ~3» DEL REPORTE ES ARITMÉTICA CORRECTA, NO UN DEFECTO.** Con el VTI de
+  entrada **normal** (15 cm), `4,9087·x/15 ≤ 1` pide `x ≤ 3,06` — pero un VTI de entrada normal **es
+  el de una válvula sin estenosis**: la señal de estenosis vive en el **DENOMINADOR**, y la propia
+  Tabla 10 marca **>60 cm** para la ET significativa. Con un VTI de entrada de 70 cm basta un VTI
+  TSVD de **14,26 cm**, que es un valor bajo-normal plausible.
+  ⚠️ **Y ESA MISMA TABLA TIENE UN CUARTO CRITERIO QUE LA APP NO VOTA**: *«Inflow time-velocity
+  integral >60 cm»*. El campo existe (`et_vti_diast`) y se usa sólo como denominador del área. Es el
+  que más directamente diría en voz alta lo del párrafo anterior. `PENDIENTES.md` → A-5.
+
+- ⚠️ **TRES PIEZAS DE CABLEADO QUE NO ERAN OBVIAS, Y SIN ELLAS EL ARREGLO NO LLEGABA.**
+  (1) `avaPlanEditado` es el **dueño único del gesto** de editar el AVA por planimetría: sus dos
+  puertas llevaban `avaPlanSync(...);avaPlanPintar()`, que espeja y dice si el valor es plausible y
+  **nada más** — ninguna corría la cadena que escribe el grado, o sea el síntoma (c) por el otro
+  lado. (2) `ava_plan` entra en `EA_GRADO_INSUMOS`: desde que vota, un valor fuera de banda tiene que
+  **retirar** el grado sugerido. (3) **`calcBSA` recalcula la aórtica también en su rama SIN peso ni
+  talla**; su comentario declaraba lo contrario y era cierto hasta hoy — desde que el AVA indexada
+  vota, borrar el peso dejaba en el informe firmado una severidad sostenida por un peso que ya no
+  existe. Sólo puede **bajar** el grado, nunca subirlo.
+
+- ⚠️ **LA FRASE «el grado consignado no coincide con las mediciones» ALCANZA A MÁS ESCENAS, Y ES
+  PREEXISTENTE — ESTÁ MEDIDO.** Sale de `eaEscenario().esperado`, que es una **segunda lectura** del
+  veredicto (mira el AVA y la pareja Vmax/gradiente y nada más), así que puede diferir del grado que
+  el dueño único escribe. La escena de control «Vmax 3,5 + AVA por continuidad 1,60» la produce **sin
+  ninguna variable de esta tanda**, idéntica en HEAD y hoy. Cambiarla es cambiar un texto del informe
+  firmado y esta orden no lo autoriza. `PENDIENTES.md` → A-3.
+
+- **CONTROL NEGATIVO MAYOR, con escenario CARGADO para que tenga denominador:** Excel en **435
+  columnas con el hash IDÉNTICO**, **1094 campos**, las insuficiencias, la estenosis mitral, la
+  pulmonar y la tricuspídea, y el veredicto de la función diastólica (`dd-interp`), **todos idénticos
+  a HEAD**. ⚠️ **La primera versión de ese control leía `diast-badge`, que NO EXISTE**, así que
+  informaba «idéntico» comparando `'NO EXISTE'` contra `'NO EXISTE'` — un denominador vacío que pasa
+  por una medición buena. El id real es `dd-interp`.
+  **Las cuatro superficies, una por una:** informe narrativo y EN SUMA medidos en tres estilos en
+  todos los grupos; **Excel** con sus 435 columnas y el hash; **PDF** — no gana ni un campo:
+  `ava_plan` tiene **cero** apariciones en el bloque del PDF, que sigue imprimiendo `ea_grado`, el
+  mismo valor ya verificado en las otras tres.
+
+- **Arnés: `scripts/_probe_eacortes.mjs`** (A/B de solo lectura con `--file`), diez grupos (`V`, `G`,
+  `D`, `P`, `X`, `C`, `M`, `B`, `T`, `N`), **73 escenas** con teclas y clics reales.
+  **Cobertura: TC-464**, **24 condiciones** con cuatro denominadores y cinco controles negativos.
+  **Verificado que sabe fallar contra HEAD en un worktree aparte: 19 de las 24 en rojo**; las cinco
+  que pasan son el AVA por continuidad —que esta tanda no mueve—, el control negativo del grado
+  fijado a mano, los controles de las otras lesiones y del Excel, y los dos de la tricúspide.
+- ⚠️ **MI PROPIA SONDA ABORTÓ EN DOS ESCENAS Y ESO ESTUVO BIEN.** `diam_tsvi` vive en un `.fg` con
+  `display:none` desde que el campo se mudó a AI/VI: **no tiene geometría, así que no es un campo que
+  se pueda tipear**. La sonda abortó nombrándolo en vez de informar «sin cambios» sobre un AVA que
+  nunca se calculó. La puerta visible es `diam_tsvi_ao`. Es la lección que este archivo ya tiene
+  escrita para `im_dtsvi` y `im_itv_tsvi`.
+- ⚠️ **CASOS ADAPTADOS: SIETE**, con el motivo escrito en cada uno, y **seis los destapó la SUITE
+  COMPLETA**, no la corrida de zona. **TC-463** (usaba Vmax 2 como valor «leve», que con el corte
+  nuevo es el centinela, en tres lugares); **TC-367** (el gradiente que «no vota» pasa de 20 a 19, y
+  el VTI TSVI de la escena del AVA normal de 20 a 22 para que el DVI no se meta); **TC-369**, que
+  afirmaba en tres condiciones que `ava_plan` **NO vota** —era la decisión del 2026-10-06, que esta
+  orden revierte—; **TC-374**, **TC-377** y **TC-401**, los tres del fundamento; y **TC-423**, cuyo
+  control negativo usaba `ava_plan = 1,2` como «dato cargado que no gradúa», y hoy gradúa.
+- ⚠️ **TRES DE ESOS SEIS NO FALLABAN POR EL VALOR SINO POR EL ORDEN DEL GESTO, Y ESO COSTÓ DOS
+  VUELTAS.** TC-374 y TC-377 cargaban la planimetría **después** de consignar el grado a mano. Desde
+  que `ava_plan` vota, eso dispara la regla **R6** —«suelta el grado manual cuando el GRADO CALCULADO
+  cambia»—: la foto que R6 guarda al fijar «severa» era el calculado **sin** la planimetría, así que
+  al cargarla el calculado se mueve, R6 suelta el manual y el autocálculo pisa el grado. Cargando
+  primero, la foto ya la incluye — y es además el orden real del médico: primero mide, después
+  consigna. **Y el VALOR también había que moverlo**: con un área severa la planimetría **iguala** el
+  calculado al manual, desaparece la DISCREPANCIA, y `sevFundamento` **vacía el cajón a propósito**,
+  así que las frases del fundamento no llegan al informe. Las dos mitades hacían falta.
+- ⚠️ **Me comí el acento grave SEIS veces**, todas en comentarios míos dentro del cuerpo de un caso,
+  con el archivo que documenta la trampa abierto delante. `scripts/check_backticks.py` dio la línea
+  exacta las seis veces, en dos tandas de tres; `node --check` apuntaba a la apertura del template,
+  decenas de líneas antes. **Correrlo ANTES de `node --check`, no después.**
+
+- **Dónde está todo:** `docs/mapa/aortica-cortes.md` (**mapa NUEVO**: el dueño único, los seis
+  criterios con su corte, las tres piezas de cableado y el cuadro de once filas),
+  `docs/mapa/valvulas.md` → el puntero al mapa nuevo y las constantes, `docs/fuentes/FUENTES.md` →
+  «Estenosis AÓRTICA — los cortes por variable y por grado» (las dos guías leídas, con el folio
+  verificado en el pie impreso y las tablas leídas de la IMAGEN), `docs/PENDIENTES.md` → **ocho**
+  cosas declaradas y no tocadas (A-1 a A-8).
 
 ### El BORRADO en Válvulas — IM, IAo, EAo e IT, y las seis reglas del 13/10/2026 (2026-10-13)
 

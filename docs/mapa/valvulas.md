@@ -158,73 +158,13 @@ escribe: `gmax_calc`, `dvi-val`, `ava_cont`; llama `sugerirSeveridadEA` y `clasi
 `sugerirSeveridadEA(ava)` — escribe `ea_grado`: `>=1.5` leve · `avaEsModerada` moderada · resto severa;
 con AVA no válida **dice** que no actualizó, no borra el badge.
 
-`avaEsSevera(ava)` — `n <= AVA_SEVERA_MAX`; falla **cerrado** ante vacío, NaN, 0 y <0.
-`avaEsModerada(ava)` — `n > AVA_SEVERA_MAX && n < 1.5`. ⚠️ `!avaEsSevera(x)` **no** es moderada:
-negarlo vuelve el fail-closed en fail-open con default «moderada». `_avaNum(ava)` — normaliza coma
-decimal, número sólo si `isFinite && >0`. `avaEsValida(ava)` = `_avaNum(ava)!==null`.
+### Los SEIS votantes de la estenosis aórtica → `docs/mapa/aortica-cortes.md`
 
-`eaEscenario()` — escenario de EA (bajo gradiente, bajo flujo); todo insumo pasa por filtro
-de positividad, y una FEVI por rango visual que cruza `UMBRAL_FEVI_NORMAL` no es concluyente — lee:
-`ava_cont`, `vmax_ao`, `gmedio_ao`, `itv_tsvi`, `itv_ao`, `fevi`, `fevi_hasta`, `fevi_met`, `ea_grado`,
-BSA, `vliCalc()`.
-
-`vliCalc()` — volumen latido indexado = `vs_calc / BSA`; `null` si alguno no es `>0`. `_vliPintar()` —
-escribe `vli_calc` y `vli-interp`, **también en la rama sin datos** (se vacía).
-
-`calcTango()` — AVA proyectada de Tango — lee: `tango_te`, `tango_tac`, `vmax_ao`; escribe:
-`tango-ava`, `tango-ratio`.
-
-`calcIA_ESC` — integración de IAo por votos: **`severa>=1`** desde `8b143e6` (un solo voto severo
-basta), si no `moderada>=2`, si no `leve>=1` con los otros dos en cero, y el `else` publica
-«Moderada — evaluar integrado». ⚠️ **El grado 3 («Moderada-severa») lo ofrece el `select`
-`ia_sev_final` y `calcIA_ESC` NO lo emite nunca**: solo sale de `'4'`, `'2'` y `'1'`. Elegirlo a mano
-apaga el panel de conducta, que abre con `ia_sev_final === '4'`.
-Cortes inline VC `<3`/`<=6`/`>6` mm · jet/TSVI `<25`/`<65`/resto % · PHT `>500` leve/`>=200`
-moderada/`<200` severa · **Vmax telediastólica en Ao desc. `>= IA_VMAX_TD_SEVERA` (20 cm/s) vota
-severa y por debajo NO vota** —la ESC/EACTS 2025, Figura 4, folio 4659, publica solo el corte de
-severa— · VTI Ao desc. `<15`/`<25`/`>=25` cm, que **no tiene fuente**: son cortes de la app,
-declarados en el panel con el marcador `ecosmart` — lee: `ia_vc`, `ia_jet_diam`, `diam_tsvi`,
-`ia_pht`, `ia_vmax_td`,
-`ia_vti_desc`, `ia_pisa_r`, `ia_pisa_val`, `ia_vmax_cw`, `ia_vti`, `itv_tsvi`; escribe: `ia-jet-ratio`,
-`ia-pht-interp`, `ia-vtd-interp`, `ia-vti-desc-interp`, `ia-eroa`, `ia-volr`, `ia-freg`, grado vía
-`autoCompletarSevIA`.
-⚠️ **La fracción regurgitante es `volR/vsv`, con guarda `vsv > 0`** (corregido en la tanda 2b; antes
-era `volR/(volR+vsv)`). `vsv` es el volumen sistólico del TSVI — `π·(Ø TSVI/20)²·VTI TSVI` —, o sea el
-SV de la válvula **aórtica**, que es la regurgitante: ASE 2017 (Zoghbi, folio 311) `RF =
-RVol/SV_RegValv`, y Tabla 14 (folio 339) `RVol = SV_LVOT − SV_MV`, de donde el SV del TSVI ya contiene
-el regurgitante. Sin `vsv` positivo el renglón queda en «—» y la FR **no vota**. Fijado por TC-350.
-
-**Las tres FR de la app, que se parecen y no son la misma cuenta** — no unificar:
-
-| Función | Fórmula | Por qué |
-|---|---|---|
-| `calcIA_ESC` (IAo, PISA) | `volR/vsv` | `vsv` es el SV de la válvula regurgitante (la aórtica) |
-| `calcIM_ESC` (IM, PISA) | `volR/(volR+vsv)` | ahí `vsv` es el flujo **anterógrado**, y el SV mitral *es* `volR+vsv` |
-| `calcContIM` (IM, continuidad) | `volR/vmit` con `vmit > 0` | la forma directa de Zoghbi; es el precedente de la guarda |
-
-El defecto de la IAo fue la fórmula de `calcIM_ESC` copiada a otra válvula. **Un «dueño único» de la
-cuenta sería el error, no el arreglo.**
-
-⚠️ **Borde del voto severo: la app usa `fr >= 50` y las dos guías no coinciden entre sí.** La ASE 2017
-(tabla de IAo, folio 340) publica **`≥ 50 %`** —la app coincide— y la ESC/EACTS 2025 (Figura 4, folio
-4659) publica **`RF >50% (echo)`**. Difieren sólo en el 50 exacto. **No se tocó.**
-
-`eaProtVeredicto()` — Tabla 5 ASE 2024 (obstrucción protésica aórtica): normal/posible/significativa;
-`null` si `va_morf` no es prótesis; distingue TAVI; el DVI se lee de `dvi-val` antes que de
-`ea_dvi_display`.
-
-`eaTaviEspejar()` — espeja AVA, AVAi y DVI al módulo TAVI con `dataset.espejo='1'` y destinos `readOnly`;
-un valor previo sin la marca es del médico — escribe: `ete_tavi_ava`, `ete_tavi_avai`.
-
-`eaAtPintar()` — tiempo de aceleración protésico; fila sólo con `va_morf` protésico, y fuera de
-`va_at:[10,300]` **no clasifica** — escribe: `ea-det-at-row`, `ea-det-at`, `ea-det-at-nota`.
-
-`easvEstado()` — estenosis supravalvular aórtica; gradúa sólo con gradiente medio en banda (`[0,150]`;
-pico `[0,200]`), severa con `>= EASV_MEDIO_SEVERO` → alertas + `SEGUIMIENTO`; sólo el compromiso
-**documentado** de ostios alerta — lee: `easv_tipo`, `easv_williams`, `easv_coronarias`,
-`easv_estenosis_pulmonar`, `easv_gradiente_medio`, `easv_gradiente_mmhg`.
-
-`easvSync()` — pintor de `easvEstado` (por `createElement`) — escribe: `easv-resultado`.
+El dueño único (`eaGradoCalculado`), la regla del peor, los seis criterios con su corte y su
+operador, las tres piezas de cableado que no son obvias y el cuadro de referencias de once filas
+viven en **`docs/mapa/aortica-cortes.md`**. Se sacó a archivo propio el 2026-10-13 porque
+`valvulas.md` ya estaba en 33 KB y la regla de `CLAUDE.md` es partir en vez de estirar — la misma
+decisión que `vd-derecho.md` y `doppler-mitral-grilla.md`.
 
 ---
 
@@ -382,8 +322,23 @@ gradúa?» (una SAVR es prótesis y la aórtica sí se gradúa); cuerpo no leíd
 ## Constantes de cortes y bandas
 
 ### Aórtica
-- `AVA_SEVERA_MAX = 1.0` — `<=1.0` severa; `1.0 < AVA < 1.5` moderada.
+- `AVA_SEVERA_MAX = 1.0` — `<=1.0` severa; `1.0 < AVA < 1.5` moderada. **Lo comparten el AVA por
+  continuidad y el AVA por planimetría** desde el 2026-10-13: es la misma magnitud física medida por
+  otro método, y `_eaCritPlan` llama a `avaEsSevera`/`avaEsModerada` en vez de retipear los cortes.
+- `EA_BANDAS` — la tabla de la Vmax (`bajo: 2.6 · 3.0 · 4.0 · Infinity`, borde superior EXCLUSIVO),
+  `avaSinMin: 1.5` y los dos del gradiente medio, `gmedModMin: 20` y `gmedSevMin: 40`, los dos con
+  borde `>=`. ⚠️ **El primer corte de la Vmax pasó de 2,0 a 2,6 el 2026-10-13** (EAE/ASE 2009,
+  Tabla 3, p. 10: esclerosis `≤2,5`, leve `2,6-2,9`): el 2,0 no salía de ninguna guía de la
+  biblioteca. **Mueve informes en la dirección tranquilizadora** — una Vmax de 2,3 deja de publicar
+  «EAo leve.».
+- `EA_DVI_SEV_MAX = 0.25` (`<`) · `EA_DVI_MOD_MAX = 0.50` (`<=`) — el DVI, que la Tabla 3 llama
+  «velocity ratio». El **0,25 exacto es MODERADA**: el corte severo es estricto en las dos fuentes.
+- `EA_AVAI_SEV_MAX = 0.6` (`<=`, de la ESC/EACTS 2025) · `EA_AVAI_MOD_MAX = 0.85` (`<=`, Tabla 3).
+  El **0,60 exacto cae del lado SEVERO**, que es el de la guía vigente; la Tabla 3 escribe `<0.6`.
 - `EA_CRIT = {vmax: 4.0, gmed: 40, avai: 0.6, di: 0.25}` — criterios de EA severa del panel.
+  ⚠️ **Repite los cortes severos del gradiente, del AVA indexada y del DVI, y NO se unificó**: lo
+  consume `eaEscenario`, que calcula el SUBTIPO hemodinámico y la discordancia, no el grado.
+  Declarado en `docs/PENDIENTES.md`.
 - `UMBRAL_VLI_BAJO = 35` ml/m² — `<=35` bajo flujo; **mismo corte para ambos sexos** (ESC 2021/AHA 2020).
 - `EA_PROT_CRIT` (ASE 2024, Tabla 5) — `vmax_normal_max 3` · `vmax_signif_min 4` (⚠️ `>=`, no `>`) ·
   `atet_normal_max 0.32` · `atet_signif_min 0.37` · `savr_gmed_normal_max 20` · `savr_gmed_signif_min 35`
@@ -424,7 +379,21 @@ gradúa?» (una SAVR es prótesis y la aórtica sí se gradúa); cuerpo no leíd
 
 ### Tricúspide
 - `ET_GMEDIO_SIGNIF = 5` mmHg · `ET_THP_SIGNIF = 190` ms · `ET_AVT_SIGNIF = 1` cm² (EAE/ASE 2009 ·
-  ESC/EACTS 2021): **criterios de significación**, no grados.
+  ESC/EACTS 2021): **criterios de significación**, no grados. Los tres están en la **Tabla 10,
+  p. 19** de la EAE/ASE 2009, con el folio verificado en el pie impreso.
+- **El área por continuidad: `π · (Ø_TSVD/20)² · VTI_TSVD / VTI_entrada`**, con el diámetro en **mm**
+  —el `/20` pasa a cm y saca el radio en un paso— y los dos VTI en **cm**. Es la fórmula de la nota
+  `ᵃ` de esa tabla (*«Stroke volume derived from left or right ventricular outflow»*) y del texto de
+  la misma página (*«SV divided by the tricuspid inflow VTI as recorded with CWD»*).
+  ⚠️ **VERIFICADA POR RECÁLCULO A MANO DE TRES CASOS, Y NO HAY ERROR** (2026-10-13). Con Ø TSVD
+  25 mm el área del TSVD es `π·1,25² = 4,9087 cm²`: VTI TSVD 18 y entrada 15 → **5,89 cm²**; VTI
+  TSVD 14 y entrada 70 → **0,98 cm²**; VTI TSVD 3 y entrada 15 → **0,98 cm²**. Los tres coinciden
+  dígito por dígito con lo que publica la app.
+  ⚠️ **Y POR ESO HACE FALTA UN VTI TSVD DE ~3 cm PARA CRUZAR EL CORTE CON UN VTI DE ENTRADA
+  NORMAL**, que es el síntoma que el médico reportó: `4,9087 · x / 15 ≤ 1` pide `x ≤ 3,06`. **No es
+  un defecto, es la fisiología**: con el VTI de entrada normal no hay estenosis, y la señal vive en
+  el DENOMINADOR. Con el VTI de entrada que la propia Tabla 10 marca para ET significativa
+  (**>60 cm**), basta un VTI TSVD de **14,26 cm**, que es un valor bajo-normal plausible.
 
 ### Pulmonar
 - `EP_GMAX_NORMAL_MAX = 9` mmHg (Vmax <1,5 m/s) · `EP_GMAX_LEVE_MAX = 36` (Vmax <3) ·

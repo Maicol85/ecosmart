@@ -327,6 +327,122 @@ la biblioteca — ruta no registrada» y era falso: estaba, con otro nombre.
 - ⚠️ **Sus tablas son imágenes dentro del PDF.** Renderizar la página; el texto extraído no trae
   los valores.
 
+### Estenosis AÓRTICA — los cortes por variable y por grado (verificados 2026-10-13)
+
+**Prioridad aplicada** (la que fijó la orden): ESC/EACTS 2025 → ESC/EACTS 2021 → guía ASE/EACVI de
+estenosis valvular → ACC/AHA. ⚠️ **La ESC/EACTS 2021 NO está en la biblioteca** (cero entradas
+verificadas, ver la sección de más abajo), así que la segunda fuente real es la **EAE/ASE 2009**.
+
+#### ESC/EACTS 2025 — folio 4663, §8.2.1 y §8.2.2 (PDF 29)
+
+**Folio verificado en el pie impreso**, no por aritmética: la página termina en «4663».
+Publica **sólo el grado SEVERO**, literal:
+
+> *«High-gradient AS [mean gradient ≥40 mmHg, V max ≥4.0 m/s, AVA ≤1 cm² (or ≤0.6 cm²/m²)] is
+> considered severe irrespective of LV function and flow conditions.»*
+
+Y para el índice adimensional, en §8.2.2:
+
+> *«The ratio of the LVOT to the AV Doppler jet velocity time integral (VTI, dimensionless index or
+> velocity ratio) does not require calculation of LVOT area and may assist evaluation when other
+> parameters are equivocal (<0.25 suggests that severe AS is highly likely).»*
+
+⚠️ **NO publica banda de leve ni de moderada para ninguna variable.** Habla de «Non-severe AS» y de
+«moderate stenosis» sin darles cortes. Por eso los dos grados inferiores salen de la 2009.
+⚠️ **La planimetría por TC o RM tiene un corte PROPIO y distinto: 1,2 cm²** (nota ^f de la Figura 6,
+folio 4664). No es el de la planimetría ecocardiográfica y **no se aplicó**.
+
+#### EAE/ASE 2009 (Baumgartner) — **Tabla 3, p. 10**, «Recommendations for classification of AS severity»
+
+**Folio = página del PDF, sin offset**, verificado en el pie impreso («10 Baumgartner et al»).
+⚠️ **La tabla es una IMAGEN dentro del PDF**: el texto extraído trae el título y las notas al pie y
+**ni un valor**. Se leyó **renderizando la página a 230 dpi**.
+
+| Parámetro | Aortic sclerosis | Mild | Moderate | Severe |
+|---|---|---|---|---|
+| Aortic jet velocity (m/s) | ≤2.5 | 2.6–2.9 | 3.0–4.0 | >4.0 |
+| Mean gradient (mmHg) | — | <20 (<30ᵃ) | 20–40ᵇ (30–50ᵃ) | >40ᵇ (>50ᵃ) |
+| AVA (cm²) | — | >1.5 | 1.0–1.5 | <1.0 |
+| Indexed AVA (cm²/m²) | — | >0.85 | 0.60–0.85 | <0.6 |
+| Velocity ratio | — | >0.50 | 0.25–0.50 | <0.25 |
+
+`ᵃ`ESC Guidelines · `ᵇ`AHA/ACC Guidelines.
+
+⚠️ **EL GRADIENTE MEDIO TRAE DOS JUEGOS Y HAY QUE ELEGIR.** La columna sin superíndice es la de
+**AHA/ACC** y la del paréntesis con `ᵃ` es la de la **ESC de 2009**. Se usa la de **AHA/ACC**, porque
+su corte severo —40— es el que la **ESC/EACTS 2025 publica hoy**; tomar la columna ESC de 2009
+pondría el corte severo en 50 y contradiría a la guía vigente, que es la primera de la prioridad.
+
+⚠️ **«Velocity ratio» ES el DVI** de la app («DVI (ratio TSVI/Ao)»): el cociente de los dos VTI. La
+misma p. 10 lo llama *«the dimensionless velocity ratio»* en el texto de la columna derecha.
+
+#### Lo que la app aplica, variable por variable y grado por grado
+
+| Variable | Sin / se abstiene | Leve | Moderada | Severa | Fuente del corte |
+|---|---|---|---|---|---|
+| **Vmax** | `<2,6` → `'sin'` | `2,6` a `<3,0` | `3,0` a `<4,0` | **`≥4,0`** | 2009 p.10 · severa ESC 2025 f.4663 |
+| **G. medio** | `<20` → **se abstiene** | — | `20` a `<40` | **`≥40`** | 2009 p.10 (AHA/ACC) · severa ESC 2025 f.4663 |
+| **AVA continuidad** | `≥1,5` → `'sin'` | — | `>1,0` y `<1,5` | **`≤1,0`** | ESC 2025 f.4663 · 2009 p.10 |
+| **AVA planimetría** | `≥1,5` → **se abstiene** | — | `>1,0` y `<1,5` | **`≤1,0`** | ídem (los mismos predicados) |
+| **AVA indexada** | `>0,85` → **se abstiene** | — | `>0,6` y `≤0,85` | **`≤0,6`** | 2009 p.10 · severa ESC 2025 f.4663 |
+| **DVI** | `>0,50` → **se abstiene** | — | `0,25` a `0,50` | **`<0,25`** | ESC 2025 f.4663 · 2009 p.10 |
+
+⚠️ **NINGUNA VARIABLE SALVO LA Vmax VOTA «LEVE», Y NO ES UN OLVIDO.** La banda «Mild» de las otras
+cinco **no tiene cota inferior que la separe de lo NORMAL**: un gradiente de 3 mmHg, un DVI de 0,9,
+un área de 3,5 cm² y un AVA indexada de 1,8 son los de un corazón sano y caen todos en esa columna.
+La propia p. 10 dice, en el texto de al lado: *«A normal AVA in adults is ∼3.0–4.0 cm²»*. Votar
+'leve' ahí pondría «EAo leve.» en el informe firmado de todo paciente al que se le mida el área.
+**La Vmax es la única con techo de normalidad publicado** —la columna «Aortic sclerosis», `≤2,5`—
+y por eso es la única que puede votar esa banda. Las otras cinco devuelven `null`, que es «este
+criterio no se pronuncia». Declarado en `docs/PENDIENTES.md`.
+
+⚠️ **LA GUÍA NO APLICA LOS MISMOS CORTES A LAS TRES FORMAS DE MEDIR EL AVA**, y la orden pedía
+verificarlo. La Tabla 3 escribe «AVA (cm²)» sin calificar el método, pero el **§B.2.3 de la p. 8**
+dice que la planimetría mide el área **anatómica** y cierra con: *«as stated previously, effective,
+rather than anatomic, orifice area is the primary predictor of outcome»*; y la presenta como *«an
+acceptable alternative when Doppler estimation of flow velocities is unreliable»* — o sea una
+alternativa, no un votante paralelo. **Se aplican los de la Tabla 3 porque son los únicos publicados
+para planimetría ecocardiográfica**, y como el área anatómica es sistemáticamente mayor que la
+efectiva, con esos cortes la planimetría tiende a SUBESTIMAR la severidad, que es la dirección
+conservadora para una variable que sólo puede agravar.
+
+⚠️ **EL `'sin'` DEL AVA POR CONTINUIDAD NO SE COPIÓ A LA PLANIMETRÍA.** El AVA por continuidad es el
+único de los seis criterios que **afirma ausencia** de estenosis (`≥1,5` → `'sin'`); es su
+comportamiento vigente y el médico lo confirma en su reporte. Un área **anatómica** de 2,0 cm² no
+puede afirmar lo mismo, por lo que acaba de decirse.
+
+#### Estenosis TRICUSPÍDEA — **Tabla 10, p. 19** de la misma guía
+
+**Folio verificado en el pie impreso** («Baumgartner et al 19»). Tabla también **leída de la imagen**.
+
+> **Specific findings** — Mean pressure gradient **≥5 mmHg** · Inflow time-velocity integral
+> **>60 cm** · T½ **≥190 ms** · Valve area by continuity equation ᵃ **≤1 cm²**
+> **Supportive findings** — Enlarged right atrium ≥moderate · Dilated inferior vena cava
+
+Nota `ᵃ`: *«Stroke volume derived from left **or** right ventricular outflow. In the presence of more
+than mild TR, the derived valve area will be underestimated. Nevertheless, a value ≤1 cm² implies a
+significant haemodynamic burden imposed by the combined lesion.»*
+
+Y el texto de la misma página: *«the continuity equation should provide a robust method for
+determining the effective valve area as **SV divided by the tricuspid inflow VTI as recorded with
+CWD**»*.
+
+**La fórmula de la app es exactamente ésa** y **no se tocó**: `π · (Ø_TSVD/20)² · VTI_TSVD /
+VTI_entrada`, con el diámetro en **mm** (el `/20` pasa a cm y saca el radio en un paso) y los dos VTI
+en **cm**. Verificada por recálculo a mano de tres casos, que coincide dígito por dígito con la app.
+
+⚠️ **EL CRITERIO «Inflow time-velocity integral >60 cm» ESTÁ EN LA TABLA Y LA APP NO LO VOTA.** El
+campo existe (`et_vti_diast`) y se usa sólo como denominador del área. Declarado en
+`docs/PENDIENTES.md`; no se agregó porque la orden excluye variables nuevas.
+
+#### Fuente SECUNDARIA — el Word de criterios de Cowork
+
+`~/Desktop/EcoSmart_Biblioteca_Fuentes/EcoSmart_Criterios_Academicos_1-18.md`, §7.3.6. **Coincide con
+el original en los cuatro cortes de severidad** (gradiente medio ≥40, Vmáx ≥4,0, AVA ≤1,0, AVA
+indexada ≤0,6) y en el de la planimetría por TC/RMC (1,2 cm²). **No publica cortes de leve ni de
+moderada** para la EAo, así que esos dos grados salen sólo del original de 2009. No hubo que
+reportar ninguna divergencia.
+
 ### `esc2025vc` · MATERIAL SUPLEMENTARIO — `ehaf194_supplementary_data.pdf` (verificado 2026-10-12)
 
 **Ruta en disco:**

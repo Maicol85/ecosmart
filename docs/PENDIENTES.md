@@ -1,5 +1,106 @@
 # EcoSmart — pendientes vivos
 
+## Cortes de la estenosis aórtica y estenosis tricuspídea (2026-10-13) — DECLARADO y NO arreglado
+
+### A-1 · Cinco de los seis criterios NO votan «leve», y la guía sí tiene esa banda
+
+La **Tabla 3 de la EAE/ASE 2009, p. 10** publica una columna «Mild» para las seis variables. La app
+sólo la vota en la **Vmax** (`2,6-2,9`). Las otras cinco —gradiente medio `<20`, AVA por continuidad
+y por planimetría `>1,5`, AVA indexada `>0,85`, DVI `>0,50`— **se abstienen**.
+
+**El motivo**: esa banda no tiene cota inferior que la separe de lo NORMAL. Un gradiente medio de
+3 mmHg, un DVI de 0,9, un área de 3,5 cm² y un AVA indexada de 1,8 son los de un corazón sano y caen
+todos ahí; la misma p. 10 escribe *«A normal AVA in adults is ∼3.0–4.0 cm²»*. Votar 'leve' pondría
+«EAo leve.» en el informe FIRMADO de todo paciente al que se le mida el área. **La Vmax es la única
+con techo de normalidad publicado** (la columna «Aortic sclerosis», `≤2,5`).
+
+**Las dos alternativas, si Maicol quiere que voten**: (a) un gate de «hay estenosis» —por morfología
+valvular o por la Vmax— delante de esas cinco, de modo que la banda leve sólo se vote cuando algo ya
+indique estenosis; (b) un techo de normalidad propio para cada una, que sería **criterio EcoSmart**
+y no de la guía. **Decisión de Maicol.**
+
+### A-2 · La planimetría vota con los cortes del área EFECTIVA, y mide el área ANATÓMICA
+
+La Tabla 3 no califica la fila «AVA (cm²)» por método, pero el **§B.2.3 de la p. 8** cierra con
+*«effective, rather than anatomic, orifice area is the primary predictor of outcome»* y presenta la
+planimetría como *«an acceptable alternative when Doppler estimation of flow velocities is
+unreliable»* — una alternativa, no un votante paralelo. Y la **ESC/EACTS 2025 da un corte PROPIO y
+distinto para la planimetría por TC o RM: 1,2 cm²** (nota ^f de la Figura 6, folio 4664).
+
+Hoy la planimetría usa los mismos predicados que el AVA por continuidad, porque son los **únicos
+cortes publicados para planimetría ecocardiográfica** y porque el área anatómica es sistemáticamente
+mayor que la efectiva, de modo que con esos cortes **subestima** la severidad — la dirección
+conservadora para una variable que sólo puede agravar. **Lo que falta decidir**: si se la deja así,
+si se le pone un corte propio, o si se la limita a cuando el Doppler no es fiable, que es lo que la
+guía dice. **Decisión de Maicol.**
+
+### A-3 · «El grado consignado no coincide con las mediciones» alcanza a más escenas
+
+Esa frase del EN SUMA sale de **`eaEscenario().esperado`**, que es una **segunda lectura** del
+veredicto: mira el AVA y la pareja Vmax/gradiente y nada más, así que puede diferir del grado que
+`eaGradoCalculado` —el dueño único— escribe. Desde que el DVI, la planimetría y el AVA indexada
+votan, hay más escenas donde difieren.
+
+⚠️ **ES PREEXISTENTE Y ESTÁ MEDIDO**: la escena «Vmax 3,5 + AVA por continuidad 1,60» la produce
+**sin ninguna variable de esta tanda**, idéntica en HEAD y en el árbol de hoy (grupo `C` de
+`scripts/_probe_eacortes.mjs`, escena «CONTROL discordancia PREEXISTENTE»). Hoy el informe puede
+publicar «EAo moderada.» y, debajo, «el grado consignado (moderada) no coincide con las mediciones
+(corresponderían leve) - revisar» sobre un grado que **la propia app acaba de calcular de esas
+mismas mediciones**.
+
+**El arreglo de un renglón**: derivar `esperado` del dueño único en vez de recomputarlo, que además
+cierra una segunda copia del criterio. **No se hizo porque cambia una frase del informe firmado en
+escenas que ya existen en HEAD**, y esta orden no lo autoriza. **Decisión de Maicol.**
+
+### A-4 · `EA_CRIT` repite tres cortes severos y no se unificó
+
+`EA_CRIT = {vmax: 4.0, gmed: 40, avai: 0.6, di: 0.25}` tiene escritos aparte el corte severo del
+gradiente medio, el del AVA indexada y el del DVI — los mismos tres que ahora viven en `EA_BANDAS`,
+`EA_AVAI_SEV_MAX` y `EA_DVI_SEV_MAX`. **Son seis números para tres cortes.** No se unificaron porque
+`EA_CRIT` lo consume `eaEscenario`, que calcula el **subtipo hemodinámico** (bajo flujo, bajo
+gradiente, paradojal) y la discordancia, no el grado: fundirlos es tocar esa cadena, que esta orden
+no nombra. Es el patrón de la fórmula duplicada que este repo ya pagó varias veces. **Pendiente.**
+
+### A-5 · El criterio «VTI de entrada tricuspídeo >60 cm» está en la tabla y no vota
+
+La **Tabla 10, p. 19** de la EAE/ASE 2009 lista **cuatro** hallazgos específicos de ET
+hemodinámicamente significativa y la app vota **tres**: gradiente medio `≥5`, T½ `≥190` y área
+`≤1 cm²`. El cuarto —*«Inflow time-velocity integral >60 cm»*— **tiene campo en la app**
+(`et_vti_diast`) y se usa **sólo como denominador del área**, no como criterio propio.
+
+No se agregó porque la orden excluye variables nuevas en la aórtica y, para la tricúspide, pide no
+tocar el cálculo si es correcto. Es el criterio que **más directamente reproduce el síntoma que el
+médico reportó**: un VTI de entrada normal da un área grande porque no hay estenosis, y este
+criterio lo diría en voz alta. **Decisión de Maicol.**
+
+### A-6 · Los dos hallazgos de APOYO de la ET tampoco se recogen
+
+La misma Tabla 10 lista, bajo «Supportive findings», **aurícula derecha dilatada ≥ moderada** y
+**vena cava inferior dilatada**. La app tiene los dos datos (`ad_area`, `vci_diam`) y no los conecta
+a la estenosis tricuspídea. La guía los llama «de apoyo» y no de significación, así que no votarían
+el veredicto; serían una anotación. **Pendiente, sin urgencia.**
+
+### A-7 · El corte del gradiente medio salió de la columna AHA/ACC, no de la ESC de 2009
+
+La Tabla 3 trae **dos juegos** para el gradiente medio: AHA/ACC (`<20` · `20-40` · `>40`) y ESC de
+2009 (`<30` · `30-50` · `>50`). Se usó el de AHA/ACC porque su corte severo —40— es el que la
+**ESC/EACTS 2025 publica hoy** (folio 4663), y tomar la columna ESC de 2009 pondría el severo en 50 y
+contradiría a la guía vigente. **Queda declarado**: el corte de moderada (20) es de AHA/ACC y no de
+ninguna edición de la ESC. Si aparece una fuente europea con su propia banda de moderada, el 20 es el
+número a revisar.
+
+### A-8 · El primer corte de la Vmax pasó de 2,0 a 2,6 y mueve informes hacia lo tranquilizador
+
+El 2,0 no salía de ninguna guía de la biblioteca; la Tabla 3 separa esclerosis `≤2,5` de leve
+`2,6-2,9`. Con el corte nuevo, **una Vmax de 2,3 deja de publicar «EAo leve.»** y pasa al centinela.
+Es lo que la guía dice y está medido (grupo `V` de la sonda: 2,0 · 2,4 · 2,5 cambian; 2,6 en adelante
+no), pero es un cambio en la dirección peligrosa y por eso se declara.
+**Y no se emite `'esclerosis'` en esa banda**, aunque el `<select>` tenga la opción y la tabla la
+nombre: la esclerosis es un hallazgo **morfológico** y no se deduce de una velocidad —un corazón con
+válvula normal también tiene la Vmax por debajo de 2,5—, así que emitirla automáticamente pondría
+«con esclerosis valvular» en el informe de todo paciente sano. **Decisión de Maicol si quiere otra
+cosa.**
+
 ## Borrado en Válvulas: las cuatro lesiones (2026-10-13) — DECLARADO y NO arreglado
 
 ### B-1 · La banda de la EROA por continuidad es criterio EcoSmart, no de la guía

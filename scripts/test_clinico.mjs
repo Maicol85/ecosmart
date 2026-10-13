@@ -4143,6 +4143,298 @@ caso('TC-32', 'Con volumen Y diametro cargados manda el volumen', `
 `);
 
 /* UMBRAL_AD_AREA_NORMAL = 18: corte estricto `> 18`. */
+/* ══ TC-464 ══════════════════════════════════════════════════════════════════════════════════
+   Los cortes de la estenosis aortica, variable por variable y grado por grado, con el borde de
+   cada corte por sus DOS lados. Las fuentes estan en docs/fuentes/FUENTES.md; aca se fija el
+   COMPORTAMIENTO, no la cita.
+   ⚠️ CARGA CON `__t.set` Y NO CON TECLAS DE CDP, y hay que decirlo: el cuerpo de un caso corre
+   DENTRO de la pagina, no tiene acceso al protocolo del navegador y un KeyboardEvent construido a
+   mano no es de confianza. Las mismas escenas van con teclas y clics REALES en
+   scripts/_probe_eacortes.mjs, que es la que midio los tres sintomas contra HEAD. Mismo reparto
+   que TC-460 y TC-463. */
+caso('TC-464', 'Estenosis aortica: los cortes de las SEIS variables por sus dos bordes —Vmax, gradiente medio, AVA por continuidad, AVA por planimetria, AVA indexada y DVI—, las cuatro que solo pueden agravar, los tres casos del reporte del medico, el borrado que retira el grado y los controles de todo lo que no se toca', `
+  const R = {}, ex = [];
+  const G = id => __t.val(id);
+  const T = id => (__t.txt(id) || '').trim();
+  const PILL = (v, t) => { try { return pillOn(v, t); } catch (e) { return 'EXC'; } };
+  const base = () => {
+    __t.limpiar();
+    window.esqSevManual = {}; window._sevCalcAlFijar = {};
+    ['aortica','mitral','tricuspide','pulmonar'].forEach(v => ['esten','insuf'].forEach(t => {
+      try { if (PILL(v, t) === true) toggleValvPill(v, t); } catch (e) {}
+      try { localStorage.removeItem('valv-pill-' + t + '-' + v); } catch (e) {}
+    }));
+    try { if (window.VALV_ESTEN_AUTO) window.VALV_ESTEN_AUTO.clear(); } catch (e) {}
+    const e = document.getElementById('ea_grado'); if (e) delete e.dataset.sugerido;
+    try { if (typeof calcAo === 'function') calcAo(); } catch (x) {}
+    try { if (typeof calcEADetalle === 'function') calcEADetalle(); } catch (x) {}
+  };
+  /* Carga una escena y devuelve el grado calculado por el DUENO UNICO y el escrito en el select.
+     Los dos, porque son dos cosas: el dueno es la cuenta y el select es lo que baja al papel. */
+  const esc = pares => { base(); Object.keys(pares).forEach(k => __t.set(k, pares[k]));
+    try { if (typeof calcAo === 'function') calcAo(); } catch (x) {}
+    try { if (typeof calcEADetalle === 'function') calcEADetalle(); } catch (x) {}
+    let Rc = null; try { Rc = eaGradoCalculado(); } catch (x) { Rc = { grado: 'EXC' }; }
+    return { R: Rc, sel: G('ea_grado') }; };
+
+  /* ── 0 · DENOMINADOR: los duenos nuevos existen ─────────────────────────────────────────────
+     Sin esto, las condiciones de abajo podrian pasar en un arbol donde nada de esto se escribio:
+     dirian «no vota» sobre criterios que nunca existieron. */
+  R.faltan = ['_eaCritDvi','_eaCritPlan','_eaCritAvai','avaPlanEditado','eaGradoCalculado']
+    .filter(n => typeof window[n] !== 'function')
+    .concat(['EA_DVI_SEV_MAX','EA_DVI_MOD_MAX','EA_AVAI_SEV_MAX','EA_AVAI_MOD_MAX']
+      .filter(n => typeof window[n] !== 'number'))
+    .concat((window.EA_BANDAS && typeof window.EA_BANDAS.gmedModMin === 'number') ? [] : ['EA_BANDAS.gmedModMin']);
+  ex.push(['DENOMINADOR: los tres criterios nuevos, sus cuatro cortes y el corte del gradiente existen',
+    R.faltan.length === 0, 'faltan=' + JSON.stringify(R.faltan)]);
+  /* DENOMINADOR 2: los cortes valen lo que la guia dice. Una tabla congelada con otro numero
+     dejaria pasar todas las condiciones de abajo con los bordes corridos. */
+  R.cortes = { dviSev: window.EA_DVI_SEV_MAX, dviMod: window.EA_DVI_MOD_MAX,
+               avaiSev: window.EA_AVAI_SEV_MAX, avaiMod: window.EA_AVAI_MOD_MAX,
+               gmedMod: window.EA_BANDAS.gmedModMin, gmedSev: window.EA_BANDAS.gmedSevMin,
+               vmaxSin: window.EA_BANDAS.vmax[0].bajo, avaSin: window.EA_BANDAS.avaSinMin,
+               avaSev: window.AVA_SEVERA_MAX };
+  ex.push(['DENOMINADOR: los nueve cortes valen lo que la guia publica',
+    R.cortes.dviSev === 0.25 && R.cortes.dviMod === 0.50 && R.cortes.avaiSev === 0.6 &&
+    R.cortes.avaiMod === 0.85 && R.cortes.gmedMod === 20 && R.cortes.gmedSev === 40 &&
+    R.cortes.vmaxSin === 2.6 && R.cortes.avaSin === 1.5 && R.cortes.avaSev === 1.0,
+    JSON.stringify(R.cortes)]);
+
+  /* ── 1 · Vmax: las cuatro bandas por sus TRES bordes ────────────────────────────────────────
+     EAE/ASE 2009, Tabla 3, p. 10: esclerosis <=2,5 · leve 2,6-2,9 · moderada 3,0-4,0; severa
+     >=4,0 de la ESC/EACTS 2025, folio 4663. El 2,5 y el 2,6 separan el corte que esta tanda movio. */
+  R.vmax = {};
+  [['2.5','sin'],['2.6','leve'],['2.9','leve'],['3.0','moderada'],['3.9','moderada'],
+   ['4.0','severa'],['4.5','severa'],['1.4','sin']].forEach(p => {
+    R.vmax[p[0]] = { dio: esc({ vmax_ao: p[0] }).R.gVel, debe: p[1] }; });
+  ex.push(['Vmax: las cuatro bandas en sus bordes (2,5 sin · 2,6 leve · 3,0 moderada · 4,0 severa)',
+    Object.keys(R.vmax).every(k => R.vmax[k].dio === R.vmax[k].debe), JSON.stringify(R.vmax)]);
+
+  /* ── 2 · Gradiente medio: moderada 20-40, severa >=40, y por debajo de 20 SE ABSTIENE ───────
+     La abstencion es la mitad que importa: null es «este criterio no se pronuncia» y NO «sin
+     estenosis». La banda leve de la Tabla 3 no tiene cota que la separe de lo normal. */
+  R.gmed = {};
+  [['19', null],['20','moderada'],['25','moderada'],['39','moderada'],
+   ['40','severa'],['45','severa'],['8', null]].forEach(p => {
+    R.gmed[p[0]] = { dio: esc({ gmedio_ao: p[0] }).R.gGrad, debe: p[1] }; });
+  ex.push(['G. medio: 20 a 39 moderada, 40 y 45 severa, y 8 y 19 NO votan (abstencion, no «sin»)',
+    Object.keys(R.gmed).every(k => R.gmed[k].dio === R.gmed[k].debe), JSON.stringify(R.gmed)]);
+
+  /* ── 3 · DVI: severa <0,25, moderada 0,25-0,50, y por encima de 0,50 se abstiene ────────────
+     No es un campo: es el cociente itv_tsvi / itv_ao. Con VTI TSVI 20 fijo, el VTI aortico lo mueve. */
+  R.dvi = {};
+  [['83','severa'],['80','moderada'],['40','moderada'],['39', null],['25', null]].forEach(p => {
+    const e = esc({ itv_tsvi: '20', itv_ao: p[0] });
+    R.dvi[p[0]] = { dvi: e.R.dvi === null ? null : Math.round(e.R.dvi * 1000) / 1000,
+                    dio: e.R.gDvi, debe: p[1] }; });
+  ex.push(['DVI: 0,241 severa · 0,25 y 0,50 moderada · 0,513 y 0,80 NO votan — el 0,25 exacto es MODERADA',
+    Object.keys(R.dvi).every(k => R.dvi[k].dio === R.dvi[k].debe), JSON.stringify(R.dvi)]);
+
+  /* ── 4 · AVA por planimetria: los mismos predicados que el AVA por continuidad ──────────────
+     ⚠️ Y NO DICE «sin» POR ENCIMA DE 1,5, a diferencia del AVA por continuidad: se ABSTIENE. El
+     area ANATOMICA es sistematicamente mayor que la efectiva, asi que un 2,0 por planimetria no
+     puede afirmar ausencia de estenosis. Es la diferencia que separa los dos metodos. */
+  R.plan = {};
+  [['0.9','severa'],['1.0','severa'],['1.01','moderada'],['1.49','moderada'],
+   ['1.5', null],['3.5', null]].forEach(p => {
+    R.plan[p[0]] = { dio: esc({ ava_plan: p[0] }).R.gPlan, debe: p[1] }; });
+  ex.push(['AVA planimetria: 0,9 y 1,0 severa · 1,01 y 1,49 moderada · 1,5 y 3,5 NO votan (se abstiene, no «sin»)',
+    Object.keys(R.plan).every(k => R.plan[k].dio === R.plan[k].debe), JSON.stringify(R.plan)]);
+  /* CONTROL NEGATIVO del area por planimetria: fuera de su banda de plausibilidad NO vota. */
+  R.planFuera = esc({ ava_plan: '12' });
+  ex.push(['CONTROL NEGATIVO: un AVA por planimetria fuera de banda ([0.2, 8]) no vota y no deja grado',
+    R.planFuera.R.gPlan === null && R.planFuera.R.plan === null && R.planFuera.sel === 'sin',
+    JSON.stringify({ gPlan: R.planFuera.R.gPlan, plan: R.planFuera.R.plan, sel: R.planFuera.sel })]);
+
+  /* ── 5 · AVA indexada: deriva de AVA/ASC, y SIN ASC no vota ─────────────────────────────────
+     AVA = PI*(20/20)^2*18/VTI_Ao = 56,549/VTI_Ao. ASC(70 kg, 170 cm) = 1,8166 m2.
+     VTI Ao 55 -> AVA 1,03 -> AVAi 0,566 (severa) · 45 -> 1,26 -> 0,692 (moderada) ·
+     36 -> 1,57 -> 0,865 (no vota). */
+  R.avai = {};
+  [['55','severa'],['45','moderada'],['36', null]].forEach(p => {
+    const e = esc({ peso:'70', talla:'170', diam_tsvi_ao:'20', itv_tsvi:'18', itv_ao: p[0] });
+    R.avai[p[0]] = { avai: e.R.avai === null ? null : Math.round(e.R.avai * 1000) / 1000,
+                     dio: e.R.gAvai, debe: p[1] }; });
+  ex.push(['AVA indexada: 0,566 severa · 0,692 moderada · 0,865 NO vota',
+    Object.keys(R.avai).every(k => R.avai[k].dio === R.avai[k].debe), JSON.stringify(R.avai)]);
+  /* CONTROL NEGATIVO: sin peso ni talla el criterio se abstiene en vez de votar con la ASC de otro. */
+  R.avaiSinASC = esc({ diam_tsvi_ao:'20', itv_tsvi:'18', itv_ao:'55' });
+  ex.push(['CONTROL NEGATIVO: sin peso ni talla el AVA indexada NO vota, y el grado queda en el de los otros criterios',
+    R.avaiSinASC.R.gAvai === null && R.avaiSinASC.R.avai === null && R.avaiSinASC.R.gAva === 'moderada'
+    && R.avaiSinASC.R.grado === 'moderada',
+    JSON.stringify({ gAvai: R.avaiSinASC.R.gAvai, gAva: R.avaiSinASC.R.gAva, grado: R.avaiSinASC.R.grado })]);
+
+  /* ── 6 · AVA por continuidad: NO SE TOCO, y esta es la condicion que lo fija ────────────────
+     Es la unica de las seis que emite 'sin' por encima de 1,5, y el medico confirma en su reporte
+     que ese comportamiento es el correcto («con el AVA por continuidad por debajo de 1,5 SI marca
+     moderada: esto funciona»). Si alguien mueve ese borde, esta condicion se pone roja. */
+  R.avaCont = {};
+  [['71','severa'],['47','moderada'],['35','sin']].forEach(p => {
+    R.avaCont[p[0]] = esc({ diam_tsvi_ao:'20', itv_tsvi:'18', itv_ao: p[0] }).R.gAva; });
+  ex.push(['AVA por continuidad SIN CAMBIOS: 0,80 severa · 1,20 moderada · 1,62 «sin» (el unico que afirma ausencia)',
+    R.avaCont['71'] === 'severa' && R.avaCont['47'] === 'moderada' && R.avaCont['35'] === 'sin',
+    JSON.stringify(R.avaCont)]);
+
+  /* ── 7 · LOS TRES CASOS DEL REPORTE DEL MEDICO, textuales ───────────────────────────────────
+     (a) el gradiente medio no puntuaba moderada; (b) DVI 0,48 con AVA 1,5 no marcaba estenosis;
+     (c) la planimetria 0,9 no puntuaba nada. */
+  R.medA = esc({ gmedio_ao: '30' });
+  ex.push(['(a) el gradiente medio de 30 mmHg publica MODERADA, en el calculo y en el select',
+    R.medA.R.grado === 'moderada' && R.medA.R.gGrad === 'moderada' && R.medA.sel === 'moderada',
+    JSON.stringify({ grado: R.medA.R.grado, gGrad: R.medA.R.gGrad, sel: R.medA.sel })]);
+  /* ⚠️ EL OPERADOR DEL GRADIENTE ES MAYOR-O-IGUAL Y NO ESTRICTO, Y EL REPORTE DECIA LO CONTRARIO. Se fija por
+     sus dos lados con el valor exacto, que es un numero que se tipea entero. */
+  R.med40 = esc({ gmedio_ao: '40' }); R.med39 = esc({ gmedio_ao: '39' });
+  ex.push(['(a) el borde del gradiente es >=40 y NO >40: el 40 exacto es severa y el 39 moderada',
+    R.med40.R.gGrad === 'severa' && R.med39.R.gGrad === 'moderada',
+    JSON.stringify({ g40: R.med40.R.gGrad, g39: R.med39.R.gGrad })]);
+  /* (b) DVI 0,48 con AVA por continuidad 1,50. PI*(19.93/20)^2*18/37.5 = 1,4975 -> «1.50».  */
+  R.medB = esc({ peso:'70', talla:'170', diam_tsvi_ao:'19.93', itv_tsvi:'18', itv_ao:'37.5' });
+  ex.push(['(b) DVI 0,48 con AVA 1,50: el AVA dice «sin», el DVI dice moderada, y el peor publica MODERADA',
+    G('ava_cont') === '1.50' && R.medB.R.gAva === 'sin' && R.medB.R.gDvi === 'moderada'
+    && R.medB.R.grado === 'moderada' && R.medB.R.criterio === 'DVI' && R.medB.sel === 'moderada',
+    JSON.stringify({ ava: G('ava_cont'), gAva: R.medB.R.gAva, gDvi: R.medB.R.gDvi,
+                     grado: R.medB.R.grado, crit: R.medB.R.criterio, sel: R.medB.sel })]);
+  R.medC = esc({ ava_plan: '0.9' });
+  ex.push(['(c) el AVA por planimetria de 0,9 cm2 publica SEVERA, y el criterio nombrado es la planimetria',
+    R.medC.R.grado === 'severa' && R.medC.R.gPlan === 'severa'
+    && R.medC.R.criterio === 'AVA por planimetría' && R.medC.sel === 'severa',
+    JSON.stringify({ grado: R.medC.R.grado, crit: R.medC.R.criterio, sel: R.medC.sel })]);
+
+  /* ── 8 · DOS VARIABLES QUE DAN GRADOS DISTINTOS: gana el PEOR ───────────────────────────────
+     La regla de integracion NO cambio, y esto lo prueba por los DOS lados: una variable nueva
+     puede AGRAVAR y nunca suavizar. Con una sola pareja no alcanza: un veredicto que se quedara
+     SIEMPRE con la Vmax pasaria la primera y fallaria la segunda. */
+  R.dos = {
+    velLeveGradMod:  esc({ vmax_ao:'2.8', gmedio_ao:'25' }),
+    velSevGradMod:   esc({ vmax_ao:'4.5', gmedio_ao:'25' }),
+    velLevePlanSev:  esc({ vmax_ao:'2.8', ava_plan:'0.9' }),
+    velSevPlanSuave: esc({ vmax_ao:'4.5', ava_plan:'2.0' }),
+    gradModDviSev:   esc({ gmedio_ao:'25', itv_tsvi:'20', itv_ao:'100' }),
+    gradSevDviSuave: esc({ gmedio_ao:'45', itv_tsvi:'20', itv_ao:'25' })
+  };
+  ex.push(['DOS VARIABLES: gana el PEOR, y lo nuevo agrava sin poder suavizar (las seis parejas)',
+    R.dos.velLeveGradMod.R.grado === 'moderada' && R.dos.velSevGradMod.R.grado === 'severa' &&
+    R.dos.velLevePlanSev.R.grado === 'severa'   && R.dos.velSevPlanSuave.R.grado === 'severa' &&
+    R.dos.gradModDviSev.R.grado === 'severa'    && R.dos.gradSevDviSuave.R.grado === 'severa',
+    JSON.stringify(Object.keys(R.dos).map(k => k + '=' + R.dos[k].R.grado))]);
+  /* Y el badge NOMBRA el criterio que gano, no «velocidad» por defecto: sin esto, un veredicto
+     que ignorara el criterio nuevo pasaria la condicion de arriba por el solo hecho de empatar. */
+  ex.push(['el criterio nombrado es el que de verdad fijo el grado',
+    R.dos.velLeveGradMod.R.criterio === 'gradiente' && R.dos.velSevGradMod.R.criterio === 'velocidad' &&
+    R.dos.velLevePlanSev.R.criterio === 'AVA por planimetría' && R.dos.gradModDviSev.R.criterio === 'DVI',
+    JSON.stringify(Object.keys(R.dos).map(k => k + '=' + R.dos[k].R.criterio))]);
+
+  /* ── 9 · EL BORRADO: la fila vuelve a «—», el grado se retira y la pastilla se apaga ────────
+     Es la regla de la tanda del 2026-10-13, y lo que se prueba aca es que las variables NUEVAS
+     entraron por ese mecanismo y no por uno propio. */
+  R.borrado = {};
+  [['gmedio_ao','45'],['ava_plan','0.9'],['itv_ao','100'],['vmax_ao','4.5']].forEach(p => {
+    base();
+    if (p[0] === 'itv_ao') __t.set('itv_tsvi','20');
+    __t.set(p[0], p[1]);
+    const con = { g: G('ea_grado'), pill: PILL('aortica','esten') };
+    __t.set(p[0], '');
+    try { if (typeof calcAo === 'function') calcAo(); } catch (x) {}
+    try { if (typeof calcEADetalle === 'function') calcEADetalle(); } catch (x) {}
+    R.borrado[p[0]] = { con: con, sin: { g: G('ea_grado'), pill: PILL('aortica','esten'),
+      clave: (function(){ try { return localStorage.getItem('valv-pill-esten-aortica'); } catch (e) { return 'EXC'; } })() } };
+  });
+  ex.push(['DENOMINADOR del borrado: las cuatro variables cargaron grado severo y prendieron la pastilla',
+    Object.keys(R.borrado).every(k => R.borrado[k].con.g === 'severa' && R.borrado[k].con.pill === true),
+    JSON.stringify(Object.keys(R.borrado).map(k => k + '=' + R.borrado[k].con.g + '/' + R.borrado[k].con.pill))]);
+  ex.push(['BORRADO: en las cuatro, el grado vuelve al centinela, la pastilla se apaga y la clave se borra',
+    Object.keys(R.borrado).every(k => R.borrado[k].sin.g === 'sin' && R.borrado[k].sin.pill === false
+      && R.borrado[k].sin.clave === null),
+    JSON.stringify(Object.keys(R.borrado).map(k => k + '=' + R.borrado[k].sin.g + '/' + R.borrado[k].sin.pill + '/' + R.borrado[k].sin.clave))]);
+  /* CONTROL NEGATIVO del borrado: un grado fijado A MANO no se retira al borrar el dato. */
+  base(); __t.set('gmedio_ao','45');
+  try { if (typeof valvSev === 'object' && valvSev.aplicar) valvSev.aplicar('ea','severa'); } catch (e) {}
+  window.esqSevManual = Object.assign({}, window.esqSevManual, { ea: true });
+  __t.set('gmedio_ao','');
+  try { if (typeof calcAo === 'function') calcAo(); } catch (x) {}
+  try { if (typeof calcEADetalle === 'function') calcEADetalle(); } catch (x) {}
+  R.manual = G('ea_grado');
+  ex.push(['CONTROL NEGATIVO: el grado fijado A MANO sobrevive al borrado del dato',
+    R.manual === 'severa', 'quedo=' + R.manual]);
+
+  /* ── 10 · EL CUADRO DE REFERENCIAS publica el grado de cada variable ────────────────────────
+     Es SOLO pantalla —ningun emisor lo lee— pero es lo que el medico llama «las referencias», y
+     es donde los tres sintomas del reporte se veian. */
+  esc({ gmedio_ao:'30' }); R.refGmed = T('ao-ref-gmed');
+  esc({ ava_plan:'0.9' }); R.refPlan = T('ao-ref-plan');
+  esc({ itv_tsvi:'20', itv_ao:'100' }); R.refDvi = T('ao-ref-dvi');
+  ex.push(['el cuadro de referencias publica el grado de las tres variables, con su corte al lado',
+    /30 mmHg/.test(R.refGmed) && /Moderada/.test(R.refGmed) &&
+    /0\\.90/.test(R.refPlan) && /Severa/.test(R.refPlan) &&
+    /0\\.20/.test(R.refDvi) && /Severa/.test(R.refDvi),
+    JSON.stringify({ gmed: R.refGmed, plan: R.refPlan, dvi: R.refDvi })]);
+  /* Y DICE «no gradua» en vez de callar cuando el criterio se abstiene: una fila que muestra el
+     numero y no dice nada se lee como un criterio que la app perdio. */
+  esc({ gmedio_ao:'15' }); R.refGmedBajo = T('ao-ref-gmed');
+  esc({ ava_plan:'3.5' }); R.refPlanAlto = T('ao-ref-plan');
+  ex.push(['la abstencion se DICE: «no gradua» con el corte al lado, en vez de dejar la fila muda',
+    /no gradúa/.test(R.refGmedBajo) && /20/.test(R.refGmedBajo) &&
+    /no gradúa/.test(R.refPlanAlto) && /1,5/.test(R.refPlanAlto),
+    JSON.stringify({ gmed: R.refGmedBajo, plan: R.refPlanAlto })]);
+
+  /* ── 11 · CONTROLES: LO QUE ESTA TANDA NO TOCA ──────────────────────────────────────────────
+     Con escenario CARGADO: sin datos las otras lesiones salen en su centinela por el estado de
+     fabrica y el control diria «identicas» sobre conjuntos vacios. */
+  const otras = () => ({ em: G('em_grado'), et: G('et_grado'), ep: G('ep_grado'), ip: G('ip_grado'),
+    im: G('im_grado'), ia: G('ia_grado'), it: G('it_grado'), dd: T('dd-interp'),
+    pEM: PILL('mitral','esten'), pET: PILL('tricuspide','esten'), pEP: PILL('pulmonar','esten') });
+  const xls = () => { try {
+      const c = {};
+      document.querySelectorAll('input[id], select[id], textarea[id]').forEach(el => {
+        try { if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(el.id)) return; } catch (e) {}
+        c[el.id] = el.value; });
+      document.querySelectorAll('input[type=checkbox][id]').forEach(el => { c[el.id + '__chk'] = el.checked ? '1' : '0'; });
+      return Object.keys(_labExcelRow({ nombre:'P', ci:'1', fecha_estudio:'2026-10-13', campos:c })).length;
+    } catch (e) { return 'EXC'; } };
+  const AJENAS = { im_vc:'7', ia_pht:'150', it_vc:'8', em_gmedio:'12', avm_plan:'1.2',
+                   et_gmedio:'8', ep_vmax:'4', ip_vmax:'2', tde:'180', onda_e:'90', onda_a:'60',
+                   peso:'70', talla:'170', fevi:'60' };
+  base(); Object.keys(AJENAS).forEach(k => __t.set(k, AJENAS[k]));
+  R.ctrlAntes = otras(); R.xlsAntes = xls();
+  /* Ahora se agregan las CUATRO variables de la aortica, que es el gesto de esta tanda. */
+  ['gmedio_ao','ava_plan','itv_tsvi','itv_ao'].forEach((k, i) =>
+    __t.set(k, ['30','0.9','20','100'][i]));
+  try { if (typeof calcAo === 'function') calcAo(); } catch (x) {}
+  try { if (typeof calcEADetalle === 'function') calcEADetalle(); } catch (x) {}
+  R.ctrlDespues = otras(); R.xlsDespues = xls(); R.eaDespues = G('ea_grado');
+  ex.push(['DENOMINADOR del control: la aortica SI se movio con las cuatro variables cargadas',
+    R.eaDespues === 'severa', 'ea_grado=' + R.eaDespues]);
+  ex.push(['CONTROL: las otras seis lesiones y la funcion diastolica quedan IDENTICAS',
+    JSON.stringify(R.ctrlAntes) === JSON.stringify(R.ctrlDespues),
+    JSON.stringify({ antes: R.ctrlAntes, despues: R.ctrlDespues })]);
+  ex.push(['CONTROL: el Excel sigue en 435 columnas antes y despues',
+    R.xlsAntes === 435 && R.xlsDespues === 435, JSON.stringify({ antes: R.xlsAntes, despues: R.xlsDespues })]);
+
+  /* ── 12 · LA ESTENOSIS TRICUSPIDEA NO SE TOCO, y esto fija su formula y su corte ─────────────
+     EAE/ASE 2009, Tabla 10, p. 19: area por ecuacion de continuidad <=1 cm2. La formula es
+     PI*(D/20)^2 * VTI_TSVD / VTI_de_entrada, con D en mm y los dos VTI en cm. Los tres valores
+     son los tres casos recalculados a mano en el reporte del 2026-10-13. */
+  R.et = {};
+  [['1 normal','25','18','15', 5.89, false],
+   ['2 significativa','25','14','70', 0.98, true],
+   ['3 el caso del reporte','25','3','15', 0.98, true]].forEach(c => {
+    base();
+    __t.set('tsvd_diametro', c[1]); __t.set('vti_tsvd', c[2]); __t.set('et_vti_diast', c[3]);
+    try { if (typeof calcET === 'function') calcET(); } catch (x) {}
+    let E = null; try { E = etEstado(); } catch (x) { E = { avt: 'EXC' }; }
+    const areaTsvd = Math.PI * Math.pow(Number(c[1]) / 20, 2);
+    const aMano = Math.round((areaTsvd * Number(c[2]) / Number(c[3])) * 100) / 100;
+    R.et[c[0]] = { app: E.avt, aMano: aMano, debe: c[4], signif: E.signif, debeSignif: c[5] }; });
+  ex.push(['ET: el area por continuidad de la app coincide con el recalculo A MANO en los tres casos',
+    Object.keys(R.et).every(k => R.et[k].app === R.et[k].aMano && R.et[k].app === R.et[k].debe),
+    JSON.stringify(R.et)]);
+  ex.push(['ET: el corte es <=1 cm2 y el veredicto es el que da ese corte en los tres casos',
+    Object.keys(R.et).every(k => R.et[k].signif === R.et[k].debeSignif), JSON.stringify(R.et)]);
+
+  return { extra: ex };
+`);
+
 caso('TC-33', 'AD area 18 normal / 19 dilatada, y sin area no se valora', `
   __t.limpiar(); __t.set('ad_area','18'); const a = __t.informe();
   __t.limpiar(); __t.set('ad_area','19'); const b = __t.informe();
@@ -49509,7 +49801,11 @@ caso('TC-367', 'EA: el grado calculado es el PEOR de velocidad, gradiente y AVA 
   const vSin  = escena({ vmax_ao:'1.5' });
   /* (b) el gradiente por debajo de 40 NO vota: el codigo no tiene cortes de leve ni moderada para
      esa magnitud, asi que se ABSTIENE en vez de votar al lado tranquilizador. */
-  const gNoVota = escena({ vmax_ao:'2.6', gmedio_ao:'20' });
+  /* ADAPTADO 2026-10-13: el gradiente que NO vota pasa de 20 a 19 mmHg. El gradiente medio gano
+     su banda de moderada (EAE/ASE 2009, Tabla 3, p. 10, columna AHA/ACC: 20-40), asi que el 20
+     exacto ahora SI vota — es el borde inferior de esa banda. La escena sigue midiendo lo mismo
+     —que el gradiente se abstiene por debajo de su corte— con el valor que hoy corresponde. */
+  const gNoVota = escena({ vmax_ao:'2.6', gmedio_ao:'19' });
   /* (c) el gradiente severo AGRAVA una velocidad leve y una moderada. */
   const gAgravaLeve = escena({ vmax_ao:'2.6', gmedio_ao:'45' });
   const gAgravaMod  = escena({ vmax_ao:'3.5', gmedio_ao:'45' });
@@ -49523,7 +49819,12 @@ caso('TC-367', 'EA: el grado calculado es el PEOR de velocidad, gradiente y AVA 
      contradiccion que esta tanda reconcilio —sugerirSeveridadEA escribia 'leve' y calcEADetalle
      'sin' sobre el mismo dato, y ganaba una u otra segun si el cajon estaba abierto—. */
   const avaSola   = escena({ diam_tsvi:'20', itv_tsvi:'20', itv_ao:'78' });
-  const avaNormal = escena({ diam_tsvi:'22', itv_tsvi:'20', itv_ao:'42' });
+  /* ADAPTADO 2026-10-13: el VTI TSVI pasa de 20 a 22 cm. Esta escena mide que un AVA de area
+     NORMAL vota «sin», y para eso el AVA tiene que ser el UNICO criterio cargado. Con 20/42 el
+     DVI daba 0,476, que desde hoy vota MODERADA, asi que la escena medira el DVI y no el AVA.
+     Con 22/42 el DVI es 0,524 —por encima de su corte de 0,50, se abstiene— y el AVA sube a
+     1,99 cm2, que sigue siendo area normal. Mismo hecho medido, sin un segundo criterio adentro. */
+  const avaNormal = escena({ diam_tsvi:'22', itv_tsvi:'22', itv_ao:'42' });
   /* (g) nada cargado: 'null' y no 'sin'. Son dos cosas distintas y confundirlas es lo que hace que
      una app afirme que no hay estenosis cuando lo que pasa es que nadie midio. */
   const nada = escena({});
@@ -49766,16 +50067,21 @@ caso('TC-369', 'EA: el AVA por planimetria se carga y se guarda, tiene banda de 
     ['el campo «AVA por planimetria» existe con id ava_plan, y el de la mitral (avm_plan) sigue intacto',
       existe && mitralIntacta, 'ava_plan=' + existe + ' avm_plan=' + mitralIntacta],
 
-    ['⚠️ NO VOTA: un area severa por planimetria sobre una Vmax leve deja el grado en «leve»',
-      gradoAntes === 'leve' && gradoDespues === 'leve' && calcAntes === 'leve' && calcDespues === 'leve',
+    /* ADAPTADAS 2026-10-13, las TRES, y el caso afirma ahora lo contrario de lo que afirmaba.
+       Estas condiciones fijaban la decision del 2026-10-06 —«ava_plan se carga y se guarda y NO
+       vota»— y esa decision se revirtio: el AVA por planimetria vota con los cortes de la Tabla 3
+       de la EAE/ASE 2009 (p. 10), que es el sintoma (c) del reporte del medico. Estaban bien
+       escritas: describian la app de ayer. */
+    ['VOTA: un area SEVERA por planimetria sobre una Vmax leve agrava el grado a «severa»',
+      gradoAntes === 'leve' && gradoDespues === 'severa' && calcAntes === 'leve' && calcDespues === 'severa',
       'grado ' + gradoAntes + ' → ' + gradoDespues + ' · calculado ' + calcAntes + ' → ' + calcDespues],
-    ['⚠️ el DUENIO del grado no mira ava_plan: con planimetria 0,6 y el AVA por continuidad ausente, gAva sigue en null',
-      String(RPlan.gAva) === 'null' && String(RPlan.criterio) === 'velocidad' &&
-      String(RPlan.grado) === 'leve',
+    ['y lo hace por su PROPIO criterio: gAva sigue en null —el AVA por continuidad no esta cargado— y el que decide es la planimetria',
+      String(RPlan.gAva) === 'null' && String(RPlan.criterio) === 'AVA por planimetría' &&
+      String(RPlan.grado) === 'severa',
       'gAva=' + RPlan.gAva + ' criterio=' + RPlan.criterio + ' grado=' + RPlan.grado +
       ' (ava_cont=«' + String(__t.val('ava_cont')) + '»)'],
-    ['no es un insumo vigilado, asi que un valor fuera de banda NO retira el grado auto-sugerido',
-      enInsumos === false && gradoTrasFuera === 'leve',
+    ['y ES un insumo vigilado, asi que un valor fuera de banda RETIRA el grado auto-sugerido',
+      enInsumos === true && gradoTrasFuera === 'sin',
       'en EA_GRADO_INSUMOS=' + enInsumos + ' grado=' + gradoTrasFuera],
 
     ['la banda [0,2-8] cm² acepta el piso y el techo EXACTOS',
@@ -50448,6 +50754,14 @@ caso('TC-374', 'Las frases del fundamento llegan al informe sin decir «manual»
     const p = document.getElementById('pill-esten-aortica');
     if (p && !p.classList.contains('btn-primary')) toggleValvPill('aortica','esten');
     __t.set('nombre','TC374'); __t.set('vmax_ao','2.6');
+    /* ADAPTADO 2026-10-13: el AVA por planimetria se carga ANTES de consignar el grado, y es un
+       cambio de ORDEN, no de valor. Desde que ava_plan vota, cargarlo DESPUES del grado manual
+       dispara la regla R6 —«suelta el grado manual cuando el GRADO CALCULADO cambia»—: la foto
+       que R6 guarda al fijar «severa» era el calculado SIN la planimetria, y al cargarla el
+       calculado se mueve, R6 suelta el manual y el autocalculo pisa el grado. Cargando primero,
+       la foto ya incluye la planimetria. Es ademas el orden real del medico: primero mide, despues
+       consigna. */
+    if (arguments.length && arguments[0] != null) __t.set('ava_plan', String(arguments[0]));
     valvSev.aplicar('esten','aortica','severa'); };
   const baja = function (g) {
     __t.limpiar(); window.esqSevManual = {}; window._sevCalcAlFijar = {};
@@ -50460,11 +50774,18 @@ caso('TC-374', 'Las frases del fundamento llegan al informe sin decir «manual»
   sube(); chk('ea_fund_bfbg_red', true);  const fbfgRed = vao();
   sube(); chk('ea_fund_bfbg_cons', true); const fbfgCons = vao();
   sube(); chk('ea_fund_plan', true);      const fplanSin = vao();
-  sube(); chk('ea_fund_plan', true); __t.set('ava_plan','0.8'); const fplanCon = vao();
+  /* ADAPTADO 2026-10-13, dos cosas: el valor pasa de 0,8 a 1,2 y se carga ANTES del grado.
+     (a) El VALOR: desde que ava_plan vota, un 0,8 lleva el calculado a «severa», que es el mismo
+     que el medico fija, y sin DISCREPANCIA sevFundamento VACIA el cajon a proposito, asi que sus
+     frases no llegan al informe. Con 1,2 el calculado queda en moderada y la discrepancia vive.
+     (b) El ORDEN: ver el comentario de sube(). La escena mide la FRASE del fundamento, no el
+     grado, y el valor se sigue citando igual. */
+  sube('1.2'); chk('ea_fund_plan', true); const fplanCon = vao();
   sube(); chk('ea_fund_otro', true);      const fotro = vao();
   sube(); notaSet('calcio valvular 2400 UA'); const fsoloNota = vao();
   sube(); chk('ea_fund_bfbg_cons', true); notaSet('calcio valvular 2400 UA'); const fOpcNota = vao();
-  sube(); chk('ea_fund_bfbg_cons', true); chk('ea_fund_plan', true); __t.set('ava_plan','0.75');
+  /* ADAPTADO 2026-10-13 por los dos motivos de la escena de arriba: 0,75 -> 1,25 y el orden. */
+  sube('1.25'); chk('ea_fund_bfbg_cons', true); chk('ea_fund_plan', true);
   const fcombi = vao();
   sube(); chk('ea_fund_otro', true); notaSet('score de calcio 3100 UA'); const fotroNota = vao();
 
@@ -50521,10 +50842,10 @@ caso('TC-374', 'Las frases del fundamento llegan al informe sin decir «manual»
       /planimetr[ií]a de/.test(fplanSin) === false,
       'inf=«' + fplanSin + '»'],
     ['  y con el campo ava_plan cargado CITA el valor, con el punto decimal del resto del informe',
-      fplanCon.indexOf('con área valvular por planimetría de 0.80 cm²') > -1,
+      fplanCon.indexOf('con área valvular por planimetría de 1.20 cm²') > -1,   /* ADAPTADO 2026-10-13: 0.80 -> 1.20, el valor nuevo de la escena */
       'inf=«' + fplanCon + '»'],
     ['planimetria COMBINADA con una de bajo flujo: las dos, en una sola oracion',
-      fcombi.indexOf('de bajo flujo y bajo gradiente con fracción de eyección conservada, con área valvular por planimetría de 0.75 cm²') > -1,
+      fcombi.indexOf('de bajo flujo y bajo gradiente con fracción de eyección conservada, con área valvular por planimetría de 1.25 cm²') > -1,   /* ADAPTADO 2026-10-13: 0.75 -> 1.25 */
       'inf=«' + fcombi + '»'],
 
     ['⚠️ «Otro» NUNCA va al informe: tildado y sin nota, sale solo el grado',
@@ -50989,11 +51310,19 @@ caso('TC-377', 'El O TSVI deja los mismos espejos por las dos puertas (Aorta y D
     const p = document.getElementById('pill-esten-aortica');
     if (p && !p.classList.contains('btn-primary')) toggleValvPill('aortica','esten');
     __t.set('nombre','TC377-RT'); __t.set('ci','377'); __t.set('vmax_ao','2.6');
+    /* ADAPTADO 2026-10-13: la planimetria se carga ANTES de consignar el grado. Desde que vota,
+       cargarla despues dispara R6 —«suelta el grado manual cuando el GRADO CALCULADO cambia»— y
+       el autocalculo pisa el severa que este caso necesita para tener discrepancia que medir. Es
+       ademas el orden real del medico: primero mide, despues consigna. */
+    __t.set('ava_plan','1.2');
     valvSev.aplicar('esten','aortica','severa');
     ['ea_fund_bfbg_cons','ea_fund_plan'].forEach(function (id) {
       const e = document.getElementById(id); e.checked = true;
       e.dispatchEvent(new Event('change', { bubbles: true })); });
-    __t.set('ava_plan','0.8');
+    /* El valor pasa de 0,8 a 1,2 por el mismo motivo: con 0,8 la planimetria iguala el calculado
+       al manual «severa», y sin discrepancia sevFundamento vacia el cajon, asi que el round-trip
+       se quedaba sin fundamento que medir. Con 1,2 el calculado es moderada y la discrepancia
+       —que es lo que este caso mide volver IDENTICA al reabrir— se conserva. */
     (function () { const e = document.getElementById('ea_fund_nota');
       e.value = 'calcio valvular 2400 UA'; e.dispatchEvent(new Event('input', { bubbles: true })); })();
     const vao = function () { const i = __t.informe().inf;
@@ -53559,8 +53888,13 @@ caso('TC-401', 'El fundamento de la aortica llega al EN SUMA con sus frases cort
   const DISC = [['vmax_ao','3.2'],['gmedio_ao','25']];
   const red  = _escena({ c:DISC, g:[['ea_grado','severa']], m:{ea:true}, p:[['aortica','esten',true]], k:[['ea_fund_bfbg_red',true]] });
   const cons = _escena({ c:DISC, g:[['ea_grado','severa']], m:{ea:true}, p:[['aortica','esten',true]], k:[['ea_fund_bfbg_cons',true]] });
-  const plan = _escena({ c:DISC.concat([['ava_plan','0.8']]), g:[['ea_grado','severa']], m:{ea:true}, p:[['aortica','esten',true]], k:[['ea_fund_plan',true]] });
-  const comb = _escena({ c:DISC.concat([['ava_plan','0.8']]), g:[['ea_grado','severa']], m:{ea:true}, p:[['aortica','esten',true]], k:[['ea_fund_bfbg_red',true],['ea_fund_plan',true]] });
+  /* ADAPTADAS 2026-10-13: el AVA por planimetria de las dos escenas pasa de 0,8 a 1,2. Desde que
+     ava_plan vota, el 0,8 lleva el calculado a «severa» —el mismo grado que el medico fijo— y sin
+     DISCREPANCIA sevFundamento vacia el cajon a proposito, asi que las frases cortas no suben al
+     EN SUMA, que es lo que este caso mide. Con 1,2 el calculado queda en moderada y la
+     discrepancia se conserva. */
+  const plan = _escena({ c:DISC.concat([['ava_plan','1.2']]), g:[['ea_grado','severa']], m:{ea:true}, p:[['aortica','esten',true]], k:[['ea_fund_plan',true]] });
+  const comb = _escena({ c:DISC.concat([['ava_plan','1.2']]), g:[['ea_grado','severa']], m:{ea:true}, p:[['aortica','esten',true]], k:[['ea_fund_bfbg_red',true],['ea_fund_plan',true]] });
   /* OTSVI: «Sin estenosis» a mano sobre un calculado severo es el sentido «baja» del cajon. */
   const ots  = _escena({ c:[['vmax_ao','4.2'],['gmedio_ao','45']], g:[['ea_grado','sin']], m:{ea:true}, p:[['aortica','esten',true]], k:[['ea_fund_otsvi',true]] });
   /* ⚠ CON LA NOTA ESCRITA DE VERDAD, y es el denominador que faltaba: sin nota, parens queda
@@ -56610,11 +56944,15 @@ caso('TC-423', 'Valvulas, pantalla: en el celular los campos de cada lesion arra
   /* ⚠️ EL DATO TIENE QUE SER UNO QUE NO GRADUE, Y LA PRIMERA VERSION DE ESTE CASO SE EQUIVOCO.
      Usaba una vena contracta de 3 mm creyendo que "cuantifica pero no gradua"; medido, calcIA_ESC
      la vota y escribe ia_grado='2', asi que el control negativo no podia pasar nunca. El dato
-     correcto es ava_plan: el propio codigo declara que NO VOTA EL GRADO —no esta en
-     EA_GRADO_INSUMOS, no tiene columna en el Excel y su unico destino es el estudio guardado—, asi
-     que es exactamente "un dato cargado que no gradua". */
+     correcto era ava_plan, que entonces NO VOTABA EL GRADO por decision de Maicol.
+     ⚠️ ADAPTADO 2026-10-13: EL VALOR PASA DE 1,2 A 1,8 cm2, y el motivo es que ava_plan AHORA
+     VOTA —con los cortes del AVA de la Tabla 3 de la EAE/ASE 2009, p. 10— asi que 1,2 cae en su
+     banda de MODERADA y dejo de ser «un dato cargado que no gradua»: el control negativo medira
+     la apertura de un cajon que el grado nuevo abre con razon. Se conserva el mismo campo, con un
+     valor por encima de 1,5, que es donde la planimetria se ABSTIENE. El hecho medido —que un dato
+     sin grado no abre el cajon— es el mismo. */
   __t.limpiar(); aDen();
-  __t.set('ava_plan', '1.2');
+  __t.set('ava_plan', '1.8');
   const eaG0 = (g('ea_grado') || {}).value;
   try { showTab('paciente'); } catch (e) {}
   try { showTab('valvulas'); } catch (e) {}
@@ -56739,9 +57077,10 @@ caso('TC-423', 'Valvulas, pantalla: en el celular los campos de cada lesion arra
       CAJAS.map(function (c) { return gesto[c].abierto.aria + '/' + gesto[c].cerrado.aria; }).join(' ')],
 
     ['CONTROL NEGATIVO de la apertura automatica: un dato cargado que NO gradua no abre el cajon',
-      autoSinGrado.grado === 'sin' && autoSinGrado.dato === '1.2' &&
+      /* ADAPTADO 2026-10-13: el dato esperado pasa de 1,2 a 1,8 — ver el comentario de la escena. */
+      autoSinGrado.grado === 'sin' && autoSinGrado.dato === '1.8' &&
       autoSinGrado.pill === false && autoSinGrado.vis === false,
-      'ava_plan=1.2 ea_grado=' + eaG0 + ' -> ' + JSON.stringify(autoSinGrado)],
+      'ava_plan=1.8 ea_grado=' + eaG0 + ' -> ' + JSON.stringify(autoSinGrado)],
     ['y con grado graduable SI se abre solo —la regla de hoy, por grado',
       autoConGrado.grado === 'moderada' && autoConGrado.pill === true && autoConGrado.vis === true,
       JSON.stringify(autoConGrado)],

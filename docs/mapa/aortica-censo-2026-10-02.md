@@ -43,6 +43,10 @@ Vive en `#bloque-ea-detalle`, que muestra y esconde `toggleValvPill('aortica','e
   parámetro de válvula nativa: lo muestra y lo esconde `valvProtSync`.
 - **`ava_plan` / «AVA por planimetría»: cero ocurrencias en el archivo.** El id está libre. El de la
   mitral es `avm_plan`, que es otro campo y no se toca.
+  ⚠️ **ESTE RENGLÓN ES DEL 2026-10-02 Y CADUCÓ DOS VECES.** El campo `ava_plan` se creó el
+  2026-10-06 (con su espejo `ava_plan_dop` en el Doppler) y **pasó a VOTAR el grado el
+  2026-10-13**. Este archivo es un censo fechado y se deja como está, pero quien lo lea para
+  ubicar la planimetría tiene que ir a `docs/mapa/aortica-cortes.md`.
 - Recuadro de resultados (`.calc-box`) del mismo bloque: `ea-det-gmax`, `ea-det-gmedio`,
   `ea-det-ava`, `ea-det-avai`, `ea-det-dvi`, `ea-det-at` + `ea-det-at-row` + `ea-det-at-nota`,
   `ea-det-sev` + `ea-det-sev-lbl` + `ea-det-sev-nota`.
