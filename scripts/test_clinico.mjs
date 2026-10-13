@@ -3037,6 +3037,361 @@ caso('TC-460', 'Diagrama de flujo de la BSE 2024 en la ventana del Algoritmo: la
   return { extra: AF };
 `);
 
+caso('TC-462', 'Diagramas de flujo de la ASE 2025 (ritmo sinusal y fibrilacion auricular) y de la ASE/EACVI 2016 (Figuras 8A y 8B) en la ventana del Algoritmo: las VEINTIOCHO ramas con el camino rojo terminando en el nodo del veredicto que publica el cuadro gris, el umbral de ancho unico de las cinco guias-via, la tabla compacta por pasos, el paciente sin datos sin camino inventado, los pies que declaran que ninguna de las dos guias es de acceso abierto, y la BSE 2024 y la FA de la ASE/EACVI 2016 sin moverse', `
+  const S = (k, v) => __t.set(k, v);
+  const AF = [];
+  const ok = (c, t, d) => AF.push([t, !!c, String(d)]);
+  /* ⚠️ ESTE CASO CARGA CON __t.set Y NO CON TECLAS DE CDP, igual que TC-460 y que los otros 460.
+     El cuerpo de un caso corre DENTRO de la pagina: no tiene acceso al protocolo del navegador, y
+     un KeyboardEvent construido a mano no es de confianza, asi que no activa un <summary> ni
+     dispara la escritura nativa de un <input>. Las mismas escenas SI se cargan con teclas reales
+     en scripts/_probe_asediag.mjs, que es quien tiene el canal CDP; aca se fija el
+     comportamiento, no el gesto. __t.set despacha input y change de verdad sobre el campo. */
+
+  /* Abre la ventana, lee el diagrama y la cierra. La geometria se mide ABIERTA: con la ventana
+     cerrada el cuerpo conserva el innerHTML de la escena ANTERIOR y getClientRects devuelve cero
+     — un denominador roto que se leeria como «no hay diagrama» sobre un dibujo perfecto. */
+  const D = () => {
+    diastAlgoAbrir();
+    const cu = document.getElementById('diast-algo-cuerpo');
+    const svg = cu ? cu.querySelector('svg[data-bse-diag]') : null;
+    const ov = document.getElementById('diast-algo-overlay');
+    if (!svg) {
+      const r = { hay: false,
+                  caja: !!(cu && cu.querySelector('[data-bse-diag-caja]')),
+                  tabla: !!(cu && cu.querySelector('details[data-bse-tabla]')),
+                  lista: !!(cu && cu.querySelector('[data-bse-lista]')),
+                  ancho: !!(ov && ov.classList.contains('bse-ancho')),
+                  filas: cu ? cu.querySelectorAll('.da-row').length : 0 };
+      diastAlgoCerrar(); return r;
+    }
+    const nodos = Array.prototype.slice.call(svg.querySelectorAll('g[data-nodo]')).map(g => ({
+      id: g.getAttribute('data-nodo'),
+      cam: g.getAttribute('data-en-camino') === '1',
+      fin: g.getAttribute('data-final') === '1',
+      trazo: (() => { const rc = g.querySelector('rect'); return rc ? getComputedStyle(rc).stroke : null })()
+    }));
+    const aristas = Array.prototype.slice.call(svg.querySelectorAll('[data-arista]')).map(a => ({
+      id: a.getAttribute('data-arista'), cam: a.getAttribute('data-en-camino') === '1' }));
+    const r = {
+      hay: true, fig: svg.getAttribute('data-bse-diag'),
+      nodos: nodos, n: nodos.length,
+      enCam: nodos.filter(x => x.cam).map(x => x.id),
+      fin: (nodos.filter(x => x.fin)[0] || {}).id || null,
+      rotFin: Array.prototype.slice.call(svg.querySelectorAll('.rot-fin')).map(t => (t.textContent || '').trim()),
+      aristasCam: aristas.filter(a => a.cam).map(a => a.id),
+      alt: ((cu.querySelector('[data-bse-alt]') || {}).textContent || '').replace(/\\s+/g, ' ').trim(),
+      pie: ((cu.querySelector('[data-bse-pie]') || {}).textContent || '').replace(/\\s+/g, ' ').trim(),
+      caja: !!cu.querySelector('[data-bse-diag-caja]'),
+      dispLista: (() => { const c = cu.querySelector('[data-bse-lista]'); return c ? getComputedStyle(c).display : 'SIN CAJA' })(),
+      tabla: (() => { const t = cu.querySelector('details[data-bse-tabla]');
+        if (!t) return null;
+        return { abierta: !!t.open,
+                 cols: Array.prototype.slice.call(t.querySelectorAll('[data-bse-col]')).map(c => c.getAttribute('data-bse-col')) } })(),
+      filas: cu.querySelectorAll('.da-row').length,
+      ancho: !!(ov && ov.classList.contains('bse-ancho'))
+    };
+    diastAlgoCerrar();
+    return r;
+  };
+
+  /* El camino que devuelve el DUENIO del veredicto, para cruzarlo contra el dibujo. Son dos
+     lecturas distintas a proposito: solo el objeto deja pasar un camino que el dibujo no pinta, y
+     solo el dibujo no distingue «la caja no esta en el camino» de «la caja no existe». */
+  const CAM = () => {
+    const guia = __t.val('diast_algoritmo'), ritmo = __t.val('diast_ritmo');
+    try {
+      const R = (ritmo === 'fa') ? diastFAEvaluar(guia)
+              : (guia === 'ase2025') ? diastASE2025Evaluar()
+              : (guia === 'ase2016') ? diastASE2016Evaluar() : diastBSE2024Evaluar();
+      return R ? { cam: R.camino || null, fin: R.nodoFinal === undefined ? 'SIN PROPIEDAD' : R.nodoFinal } : { cam: null, fin: null };
+    } catch (e) { return { cam: 'EXC: ' + e.message, fin: null } }
+  };
+
+  const esc = (m, guia, ritmo) => {
+    __t.limpiar();
+    S('diast_algoritmo', guia || 'ase2025');
+    S('diast_ritmo', ritmo || 'sinusal');
+    if (m.peso === undefined) S('peso', '70');
+    if (m.talla === undefined) S('talla', '170');
+    /* El orden no es cosmetico: los <select> y lo que NO esta cableado a calcDiastol van primero
+       y los campos mitrales al final, para que el ultimo gesto deje el cuadro al dia. */
+    const orden = ['peso','talla','edad','sexo','fevi','sgl','venp_sd','tde','triv',
+                   'venp_dur_ar','venp_dur_a','venp_vel_ar','ip_vtd','onda_l','ai_vol','vmax_it',
+                   'lars','ai_strain_ct','e_sep','e_lat','onda_e','onda_a'];
+    orden.forEach(k => { if (m[k] !== undefined) S(k, m[k]) });
+    Object.keys(m).forEach(k => { if (orden.indexOf(k) < 0) S(k, m[k]) });
+    calcDiastol();
+    return { badge: (__t.txt('dd-interp') || '').replace(/\\s+/g, ' ').trim(), dia: D(), cam: CAM() };
+  };
+
+  // ══ A · DENOMINADORES ═════════════════════════════════════════════════════════════════════
+  /* Sin esto, una docena de condiciones comparan null contra null y el caso sale verde sobre una
+     app que no dibuja nada. */
+  const duenoPlano = (typeof _bseDiagPlano === 'function');
+  const planos = ['A25_PLANO_F3','A25FA_PLANO_F8','A16A_PLANO','A16B_PLANO']
+    .filter(n => { try { return typeof eval(n) === 'object' } catch (e) { return false } });
+  const nodosPlano = planos.length === 4
+    ? [A25_PLANO_F3.nodos.length, A25FA_PLANO_F8.nodos.length, A16A_PLANO.nodos.length, A16B_PLANO.nodos.length].join('/')
+    : 'SIN PLANOS';
+  const duenos = ['diastASE2025Evaluar','diastFAEvaluarASE2025','diastASE2016Evaluar']
+    .filter(n => { try { return typeof eval(n) === 'function' } catch (e) { return false } });
+  ok(duenoPlano, 'DENOMINADOR: el despachador de planos existe', 'typeof: ' + typeof _bseDiagPlano);
+  ok(planos.length === 4, 'DENOMINADOR: los CUATRO planos de la ASE existen (Figura 3, Figura 8, 8A y 8B)', 'planos: ' + planos.join(','));
+  ok(nodosPlano === '19/13/10/14', 'DENOMINADOR: los cuatro planos tienen 19, 13, 10 y 14 nodos', 'da ' + nodosPlano);
+  ok(duenos.length === 3, 'DENOMINADOR: las tres funciones duenias existen', 'duenias: ' + duenos.join(','));
+
+  // ══ B · RAMA -> ESCENA: las veintitres ramas de las cuatro vias ═══════════════════════════
+  /* El fragmento de badge que le toca a cada nodo final. Se compara contra el CUADRO GRIS, que es
+     la OTRA superficie: cotejar el camino contra el objeto del que sale no probaria nada.
+     ⚠️ LOS FRAGMENTOS DE GRADO LLEVAN EL GUION LARGO PEGADO («Grado I —»), porque «Grado I» es
+     prefijo de «Grado II» y de «Grado III»: sin eso, tres ramas distintas pasarian la misma
+     condicion y el caso no sabria separarlas. */
+  const ESPERA = {
+    'a25.fin-sindatos': ['Incompleto', 'Datos insuficientes'],
+    'a25.fin-normal':   ['Función diastólica normal'],
+    'a25.fin-g1':       ['DD Grado I —'],
+    'a25.fin-g2':       ['DD Grado II'],
+    'a25.fin-g3':       ['DD Grado III'],
+    'a25.fin-pnormal':  ['Presión de llenado normal'],
+    'a25.fin-noest':    ['No estimable'],
+    'a25.fin-sinea':    ['Presión elevada'],
+    'a25.fin-indet':    ['Indeterminado'],
+    'a25fa.fin-normal':  ['FA — Presión de llenado normal'],
+    'a25fa.fin-elevada': ['FA — Presión de llenado elevada'],
+    'a25fa.fin-indet':   ['FA — Presión de llenado indeterminada'],
+    'a25fa.fin-noconc':  ['FA — Datos insuficientes'],
+    'a16a.fin-normal': ['Normal — ASE 2016'],
+    'a16a.fin-indet':  ['Indeterminado — ASE 2016'],
+    'a16a.fin-dd':     ['Disfunción diastólica — ASE 2016'],
+    'a16a.fin-insuf':  ['Datos insuficientes — ASE 2016'],
+    'a16b.fin-insuf':  ['Datos insuficientes — ASE 2016'],
+    'a16b.fin-g1':     ['Grado I — ASE 2016'],
+    'a16b.fin-g2':     ['Grado II — ASE 2016'],
+    'a16b.fin-g3':     ['Grado III — ASE 2016'],
+    'a16b.fin-indet':  ['Indeterminado — ASE 2016'],
+    'a16b.fin-normal': ['Normal — ASE 2016']
+  };
+  const RAMAS = [
+    // ── ASE 2025, ritmo sinusal · Figura 3, folio 554 ──
+    { id: 'A01', g: 'ase2025', ri: 'sinusal', fig: 'a25f3', que: "sin e' septal ni lateral: el algoritmo no arranca",
+      fin: 'a25.fin-sindatos', m: { onda_e: '90', onda_a: '60', ai_vol: '40' } },
+    { id: 'A02', g: 'ase2025', ri: 'sinusal', fig: 'a25f3', que: "solo el e' medido: ningun parametro de presion",
+      fin: 'a25.fin-sindatos', m: { e_sep: '10' } },
+    { id: 'A03', g: 'ase2025', ri: 'sinusal', fig: 'a25f3', que: 'las tres principales negativas',
+      fin: 'a25.fin-normal', m: { e_sep: '10', e_lat: '13', onda_e: '70', onda_a: '70', ai_vol: '40', vmax_it: '2.0' } },
+    { id: 'A04', g: 'ase2025', ri: 'sinusal', fig: 'a25f3', que: "e' reducida sola con E/A <= 0,80",
+      fin: 'a25.fin-g1', m: { e_sep: '5', e_lat: '6', onda_e: '50', onda_a: '70', ai_vol: '40', vmax_it: '2.0' } },
+    { id: 'A05', g: 'ase2025', ri: 'sinusal', fig: 'a25f3', que: 'segundo paso positivo con E/A < 2',
+      fin: 'a25.fin-g2', m: { e_sep: '5', e_lat: '7', onda_e: '90', onda_a: '60', ai_vol: '80', vmax_it: '2.5' } },
+    { id: 'A06', g: 'ase2025', ri: 'sinusal', fig: 'a25f3', que: "las tres positivas con E/A >= 2 y e' reducida",
+      fin: 'a25.fin-g3', m: { e_sep: '5', e_lat: '6', onda_e: '120', onda_a: '50', ai_vol: '80', vmax_it: '3.0' } },
+    { id: 'A07', g: 'ase2025', ri: 'sinusal', fig: 'a25f3', que: 'segundo paso NEGATIVO: presion normal sin grado',
+      fin: 'a25.fin-pnormal', m: { e_sep: '5', e_lat: '6', onda_e: '60', onda_a: '50', ai_vol: '40', vmax_it: '2.0', lars: '30' } },
+    { id: 'A08', g: 'ase2025', ri: 'sinusal', fig: 'a25f3', que: 'segundo paso VACIO y suplementarios negativos',
+      fin: 'a25.fin-noest', m: { e_sep: '10', onda_e: '70' } },
+    { id: 'A09', g: 'ase2025', ri: 'sinusal', fig: 'a25f3', que: 'segundo paso VACIO con un suplementario POSITIVO (onda L)',
+      fin: 'a25.fin-sinea', m: { e_sep: '10', onda_e: '70', onda_l: '55' } },
+    { id: 'A10', g: 'ase2025', ri: 'sinusal', fig: 'a25f3', que: 'presion elevada SIN onda A: no se puede graduar',
+      fin: 'a25.fin-sinea', m: { e_sep: '5', e_lat: '6', onda_e: '120', ai_vol: '80', vmax_it: '3.0' } },
+    { id: 'A11', g: 'ase2025', ri: 'sinusal', fig: 'a25f3', que: "presion elevada con E/A >= 2 y e' CONSERVADA",
+      fin: 'a25.fin-indet', m: { e_sep: '10', e_lat: '13', onda_e: '180', onda_a: '90', ai_vol: '40', lars: '18', vmax_it: '2.0' } },
+    // ── ASE 2025, fibrilacion auricular · Figura 8, folio 563 ──
+    { id: 'B01', g: 'ase2025', ri: 'fa', fig: 'a25faf8', que: 'paso 1 con 0 de 4 positivos',
+      fin: 'a25fa.fin-normal', m: { onda_e: '70', e_sep: '10', vmax_it: '2.0', tde: '200' } },
+    { id: 'B02', g: 'ase2025', ri: 'fa', fig: 'a25faf8', que: 'paso 1 con 3 de 4 positivos',
+      fin: 'a25fa.fin-elevada', m: { onda_e: '120', e_sep: '10', vmax_it: '3.2', tde: '200' } },
+    { id: 'B03', g: 'ase2025', ri: 'fa', fig: 'a25faf8', que: 'paso 1 con 2 de 4 y paso 2 con DOS positivos',
+      fin: 'a25fa.fin-elevada', m: { onda_e: '120', e_sep: '10', vmax_it: '2.0', tde: '200', lars: '15', venp_sd: 'le067' } },
+    { id: 'B04', g: 'ase2025', ri: 'fa', fig: 'a25faf8', que: 'paso 1 con 2 de 4 y paso 2 con los TRES negativos',
+      fin: 'a25fa.fin-normal', m: { onda_e: '120', e_sep: '10', vmax_it: '2.0', tde: '200', lars: '25', venp_sd: 'ge1' } },
+    { id: 'B05', g: 'ase2025', ri: 'fa', fig: 'a25faf8', que: 'paso 1 con 2 de 4 y paso 2 con UNO solo',
+      fin: 'a25fa.fin-indet', m: { onda_e: '120', e_sep: '10', vmax_it: '2.0', tde: '200', lars: '15' } },
+    { id: 'B06', g: 'ase2025', ri: 'fa', fig: 'a25faf8', que: 'un solo criterio del paso 1 medido: el algoritmo no llega',
+      fin: 'a25fa.fin-noconc', m: { onda_e: '120' } },
+    // ── ASE/EACVI 2016 · Figura 8A, folio 290 (FEVI normal) ──
+    { id: 'C01', g: 'ase2016', ri: 'sinusal', fig: 'a16a8a', que: '8A con menos de la mitad positivas',
+      fin: 'a16a.fin-normal', m: { fevi: '60', onda_e: '70', onda_a: '70', e_sep: '10', e_lat: '13', vmax_it: '2.0', ai_vol: '50' } },
+    { id: 'C02', g: 'ase2016', ri: 'sinusal', fig: 'a16a8a', que: '8A con exactamente la mitad positivas',
+      fin: 'a16a.fin-indet', m: { fevi: '60', onda_e: '70', onda_a: '70', e_sep: '10', e_lat: '13', vmax_it: '3.2', ai_vol: '70' } },
+    { id: 'C03', g: 'ase2016', ri: 'sinusal', fig: 'a16a8a', que: '8A con mas de la mitad positivas',
+      fin: 'a16a.fin-dd', m: { fevi: '60', onda_e: '120', onda_a: '70', e_sep: '5', e_lat: '7', vmax_it: '3.2', ai_vol: '70' } },
+    { id: 'C04', g: 'ase2016', ri: 'sinusal', fig: 'a16a8a', que: '8A con NINGUNA de las cuatro medida',
+      fin: 'a16a.fin-insuf', m: { fevi: '60', onda_e: '70', onda_a: '70' } },
+    // ── ASE/EACVI 2016 · Figura 8B, folio 290 (FEVI reducida) ──
+    { id: 'D01', g: 'ase2016', ri: 'sinusal', fig: 'a16b8b', que: '8B sin relacion E/A: el flujo mitral no decide',
+      fin: 'a16b.fin-insuf', m: { fevi: '35', onda_e: '70', e_sep: '10', e_lat: '13', vmax_it: '2.0', ai_vol: '50' } },
+    { id: 'D02', g: 'ase2016', ri: 'sinusal', fig: 'a16b8b', que: '8B por el atajo E/A <= 0,8 con E <= 50 cm/s',
+      fin: 'a16b.fin-g1', m: { fevi: '35', onda_e: '40', onda_a: '60', e_sep: '10', e_lat: '13', vmax_it: '2.0', ai_vol: '50' } },
+    { id: 'D03', g: 'ase2016', ri: 'sinusal', fig: 'a16b8b', que: '8B por el atajo E/A >= 2',
+      fin: 'a16b.fin-g3', m: { fevi: '35', onda_e: '140', onda_a: '60', e_sep: '10', e_lat: '13', vmax_it: '2.0', ai_vol: '50' } },
+    { id: 'D04', g: 'ase2016', ri: 'sinusal', fig: 'a16b8b', que: '8B con 2 de 3 criterios POSITIVOS',
+      fin: 'a16b.fin-g2', m: { fevi: '35', onda_e: '70', onda_a: '70', e_sep: '10', e_lat: '13', vmax_it: '3.2', ai_vol: '70' } },
+    { id: 'D05', g: 'ase2016', ri: 'sinusal', fig: 'a16b8b', que: '8B con 2 de 3 criterios NEGATIVOS',
+      fin: 'a16b.fin-g1', m: { fevi: '35', onda_e: '70', onda_a: '70', e_sep: '10', e_lat: '13', vmax_it: '2.0', ai_vol: '50' } },
+    { id: 'D06', g: 'ase2016', ri: 'sinusal', fig: 'a16b8b', que: '8B con 1 positivo y 1 negativo sobre DOS disponibles',
+      fin: 'a16b.fin-indet', m: { fevi: '35', onda_e: '70', onda_a: '70', e_sep: '10', e_lat: '13', ai_vol: '70' } },
+    { id: 'D07', g: 'ase2016', ri: 'sinusal', fig: 'a16b8b', que: '8B SIN FEVI y 0 positivos: la app conserva su «normal»',
+      fin: 'a16b.fin-normal', m: { onda_e: '70', onda_a: '70', e_sep: '10', e_lat: '13', vmax_it: '2.0', ai_vol: '50' } }
+  ];
+
+  const R = RAMAS.map(r => Object.assign({ r }, esc(r.m, r.g, r.ri)));
+  ok(R.length === 28, 'DENOMINADOR: se recorren las VEINTIOCHO ramas de las cuatro vias', 'ramas: ' + R.length);
+  ok(R.every(x => x.dia.hay === true), 'Las veintiocho ramas dibujan diagrama', JSON.stringify(R.filter(x => !x.dia.hay).map(x => x.r.id)));
+  ok(R.every(x => x.dia.fig === x.r.fig), 'Cada rama dibuja la figura que le toca segun la guia, el ritmo y la FEVI',
+     JSON.stringify(R.filter(x => x.dia.fig !== x.r.fig).map(x => x.r.id + ': ' + x.dia.fig + ' en vez de ' + x.r.fig)));
+  /* LA CONDICION CENTRAL DE ESTA TANDA: el nodo con el rotulo «Resultado de este paciente» es el
+     que el DUENIO derivo de la clave, y es el que el cuadro gris firma. */
+  ok(R.every(x => x.dia.fin === x.r.fin), 'El nodo final del DIBUJO es el esperado en las veintiocho ramas',
+     JSON.stringify(R.filter(x => x.dia.fin !== x.r.fin).map(x => x.r.id + ' (' + x.r.que + '): ' + x.dia.fin + ' en vez de ' + x.r.fin)));
+  ok(R.every(x => x.cam.fin === x.r.fin), 'El nodo final del DUENIO coincide con el del dibujo en las veintiocho ramas',
+     JSON.stringify(R.filter(x => x.cam.fin !== x.r.fin).map(x => x.r.id + ': ' + x.cam.fin)));
+  ok(R.every(x => Array.isArray(x.cam.cam) && x.cam.cam.length > 0 && x.cam.cam[x.cam.cam.length - 1] === x.cam.fin),
+     'El ULTIMO nodo del camino es SIEMPRE el nodo final: el camino rojo no termina antes de la casilla del veredicto',
+     JSON.stringify(R.filter(x => !Array.isArray(x.cam.cam) || x.cam.cam[x.cam.cam.length - 1] !== x.cam.fin).map(x => x.r.id + ': ' + JSON.stringify(x.cam.cam))));
+  ok(R.every(x => ESPERA[x.r.fin] && ESPERA[x.r.fin].some(f => x.badge.indexOf(f) >= 0)),
+     'El badge del CUADRO GRIS concuerda con el nodo final del dibujo en las veintiocho ramas',
+     JSON.stringify(R.filter(x => !(ESPERA[x.r.fin] || []).some(f => x.badge.indexOf(f) >= 0)).map(x => x.r.id + ': «' + x.badge + '» para ' + x.r.fin)));
+  /* EL DIBUJO PINTA EXACTAMENTE LOS NODOS DEL CAMINO, ni uno mas ni uno menos. Con mirar solo el
+     ultimo nodo, un dibujo que pintara TODAS las cajas de rojo pasaria igual. */
+  /* ⚠️ TODAS LAS LECTURAS DEL DIBUJO VAN CON SU RESPALDO (\`|| []\`), Y NO ES DEFENSIVO POR GUSTO:
+     contra un arbol SIN estos diagramas \`dia.enCam\` no existe y un \`.slice()\` mata la corrida
+     entera con un TypeError. Un caso que muere por excepcion prueba que el arbol es distinto, no
+     que el caso sabe medir — y no se ve que condicion caza que defecto. */
+  ok(R.every(x => (x.dia.enCam || []).slice().sort().join(',') === (x.cam.cam || []).slice().sort().join(',')),
+     'El dibujo pinta EXACTAMENTE los nodos del camino, ni uno mas ni uno menos',
+     JSON.stringify(R.filter(x => (x.dia.enCam || []).slice().sort().join(',') !== (x.cam.cam || []).slice().sort().join(',')).map(x => x.r.id)));
+  /* Y LAS ARISTAS EN ROJO SON LOS PARES CONSECUTIVOS DEL CAMINO: sin esto, un dibujo que pintara
+     todas las flechas que tocan una caja del camino pasaria la condicion de arriba. */
+  ok(R.every(x => {
+    const c = x.cam.cam || [], esp = [];
+    for (let i = 0; i + 1 < c.length; i++) esp.push(c[i] + '>' + c[i + 1]);
+    return (x.dia.aristasCam || []).slice().sort().join(',') === esp.slice().sort().join(',');
+  }), 'Las aristas en rojo son los pares CONSECUTIVOS del camino, en las veintiocho ramas',
+     JSON.stringify(R.filter(x => { const c = x.cam.cam || [], esp = [];
+       for (let i = 0; i + 1 < c.length; i++) esp.push(c[i] + '>' + c[i + 1]);
+       return (x.dia.aristasCam || []).slice().sort().join(',') !== esp.slice().sort().join(','); }).map(x => x.r.id)));
+  ok(R.every(x => (x.dia.rotFin || []).length === 1 && (x.dia.rotFin || [])[0] === 'Resultado de este paciente'),
+     'Hay UN solo rotulo de resultado por dibujo, y dice «Resultado de este paciente»',
+     JSON.stringify(R.filter(x => (x.dia.rotFin || []).length !== 1).map(x => x.r.id + ': ' + (x.dia.rotFin || []).length)));
+  ok(R.every(x => x.dia.ancho === true), 'La tarjeta se ensancha en las veintiocho ramas', JSON.stringify(R.filter(x => !x.dia.ancho).map(x => x.r.id)));
+
+  // ══ C · EL PACIENTE SIN DATOS: NODOS EN GRIS, SIN CAMINO INVENTADO ════════════════════════
+  /* Con el formulario vacio el algoritmo arranca y no puede seguir. Lo que NO puede pasar es que
+     el dibujo pinte una casilla por la que nadie paso. */
+  const vacio = esc({}, 'ase2025', 'sinusal');
+  const rojoFuera = vacio.dia.hay
+    ? (vacio.dia.nodos || []).filter(n => !n.cam && n.trazo && /239, 68, 68|214, 59, 59/.test(n.trazo)).length : -1;
+  const grisVacio = vacio.dia.hay ? (vacio.dia.nodos || []).filter(n => !n.cam).length : -1;
+  ok(vacio.dia.hay && (vacio.dia.enCam || []).length === 3, 'Con el formulario vacio el camino tiene TRES nodos y no inventa el resto',
+     'nodos en camino: ' + (vacio.dia.enCam || []).join(','));
+  ok(grisVacio === 16, 'Los otros 16 nodos quedan en gris', 'quedan ' + grisVacio);
+  ok(rojoFuera === 0, 'CONTROL NEGATIVO: ningun nodo FUERA del camino esta pintado de rojo', 'hay ' + rojoFuera + ' en rojo');
+  ok(vacio.dia.fin === 'a25.fin-sindatos', 'El resultado del formulario vacio es la caja de datos insuficientes', 'da ' + vacio.dia.fin);
+
+  // ══ D · EL UMBRAL DE ANCHO, UNO SOLO PARA LAS CINCO GUIAS-VIA ═════════════════════════════
+  /* ⚠️ EL ANCHO NO SE PUEDE CAMBIAR DESDE EL CUERPO DE UN CASO: la ventana la maneja el runner,
+     no la pagina, y un media query no se puede fingir. Lo que este bloque fija es la REGLA que
+     produce el comportamiento —la caja nace en display:none y UNA SOLA media query de min-width
+     la enciende, y es la misma que esconde la lista larga—; el comportamiento RENDERIZADO a 360
+     px lo mide scripts/_probe_asediag.mjs, que si tiene el canal para emular el viewport, y ahi
+     da 69 escenas con 0 diferencias contra HEAD.
+     ⚠️ Y SE CUENTAN LAS MEDIA QUERIES QUE TOCAN LA CAJA, no solo que exista una: el umbral tiene
+     que ser UNO para las cinco guias-via. Con dos, bajarlo para el iPad vertical obligaria a
+     cambiar dos numeros y el que se olvida es el que deja media app con el dibujo y media sin. */
+  const reglas = (() => {
+    let base = null, media = null, px = null, cuantas = 0;
+    for (const h of Array.prototype.slice.call(document.styleSheets)) {
+      let rs = null; try { rs = h.cssRules } catch (e) { continue }
+      if (!rs) continue;
+      for (const r of Array.prototype.slice.call(rs)) {
+        if (r.type === 1 && r.selectorText === '.bse-diag-caja') base = r.style.display;
+        if (r.type === 4) {
+          const t = Array.prototype.slice.call(r.cssRules).map(x => x.selectorText || '').join(' ');
+          if (t.indexOf('.bse-diag-caja') >= 0) {
+            cuantas++; media = t; px = (r.conditionText || r.media.mediaText || '');
+          }
+        }
+      }
+    }
+    return { base, media, px, cuantas };
+  })();
+  ok(reglas.base === 'none', 'La caja del diagrama nace ESCONDIDA: por debajo del umbral la ventana es la de HEAD', 'display de base: ' + reglas.base);
+  ok(reglas.cuantas === 1, 'EL UMBRAL ES UNO SOLO: una unica media query enciende el diagrama de las cinco guias-via', 'media queries que tocan la caja: ' + reglas.cuantas);
+  ok(!!reglas.px && reglas.px.indexOf('780px') >= 0, 'Ese umbral es min-width 780 px', 'media: ' + reglas.px);
+  ok(!!reglas.media && reglas.media.indexOf('.bse-lista') >= 0, 'La MISMA media query esconde la lista larga: la tabla la reemplaza, no se suma', 'reglas: ' + reglas.media);
+
+  // ══ E · LA TABLA COMPACTA ════════════════════════════════════════════════════════════════
+  const tA05 = esc(RAMAS[4].m, 'ase2025', 'sinusal').dia.tabla;   // paso 1 + segundo paso + resultado
+  const tA08 = esc(RAMAS[7].m, 'ase2025', 'sinusal').dia.tabla;   // + la columna de suplementarios
+  const tA06 = esc(RAMAS[5].m, 'ase2025', 'sinusal').dia.tabla;   // el paso 1 decide solo
+  const tB02 = esc(RAMAS[12].m, 'ase2025', 'fa').dia.tabla;       // Figura 8: el paso 1 decide solo
+  const tB03 = esc(RAMAS[13].m, 'ase2025', 'fa').dia.tabla;       // Figura 8: con paso 2
+  const tC03 = esc(RAMAS[18].m, 'ase2016', 'sinusal').dia.tabla;  // 8A: un solo paso
+  const tD04 = esc(RAMAS[24].m, 'ase2016', 'sinusal').dia.tabla;  // 8B: con el paso 2
+  const tD02 = esc(RAMAS[22].m, 'ase2016', 'sinusal').dia.tabla;  // 8B: por un atajo del flujo mitral
+  ok(!!tA05 && tA05.abierta === false, 'La tabla compacta nace CERRADA', 'abierta: ' + (tA05 ? tA05.abierta : 'SIN TABLA'));
+  ok(!!tA05 && tA05.cols.join(',') === '1,2,res', 'Figura 3: con el camino por el segundo paso la tabla trae paso 1, segundo paso y resultado', 'columnas: ' + (tA05 ? tA05.cols.join(',') : '-'));
+  ok(!!tA08 && tA08.cols.join(',') === '1,2,s,res', 'Figura 3: con el camino por los suplementarios aparece su columna', 'columnas: ' + (tA08 ? tA08.cols.join(',') : '-'));
+  ok(!!tB03 && tB03.cols.join(',') === '1,2,res', 'Figura 8: la columna del paso 2 aparece cuando el camino paso por el', 'columnas: ' + (tB03 ? tB03.cols.join(',') : '-'));
+  ok(!!tD04 && tD04.cols.join(',') === '1,2,res', 'Figura 8B: la columna del paso 2 aparece cuando el camino paso por el', 'columnas: ' + (tD04 ? tD04.cols.join(',') : '-'));
+  /* CONTROL NEGATIVO de la compuerta, cuatro veces: una columna de paso que el paciente NO
+     recorrio no se dibuja. Con sus criterios en gris se leeria como «se evaluaron y dieron
+     negativo», cuando lo que paso es que el algoritmo nunca llego a preguntarlos. */
+  ok(!!tA06 && tA06.cols.join(',') === '1,res', 'CONTROL NEGATIVO: con las tres principales positivas no se dibuja la columna del segundo paso', 'columnas: ' + (tA06 ? tA06.cols.join(',') : '-'));
+  ok(!!tB02 && tB02.cols.join(',') === '1,res', 'CONTROL NEGATIVO: con 3 de 4 en el paso 1 no se dibuja la del paso 2', 'columnas: ' + (tB02 ? tB02.cols.join(',') : '-'));
+  ok(!!tD02 && tD02.cols.join(',') === '1,res', 'CONTROL NEGATIVO: con un atajo del flujo mitral no se dibuja la de los tres criterios', 'columnas: ' + (tD02 ? tD02.cols.join(',') : '-'));
+  ok(!!tC03 && tC03.cols.join(',') === '1,res', 'La 8A tiene UN solo paso: su tabla son dos columnas', 'columnas: ' + (tC03 ? tC03.cols.join(',') : '-'));
+
+  // ══ F · CONTROL NEGATIVO MAYOR: LO QUE ESTA TANDA NO TOCA ═════════════════════════════════
+  /* La BSE 2024 ya tenia diagrama y tiene que quedar IDENTICA; la fibrilacion auricular de la
+     ASE/EACVI 2016 no tiene algoritmo en la app —la guia enumera parametros y no los combina en
+     ninguna regla de conteo— asi que no tiene diagrama y conserva su lista larga. */
+  const mBSE = { edad: '50', sexo: 'M', onda_e: '120', e_sep: '6', e_lat: '7', vmax_it: '3.2', ai_vol: '70' };
+  const bseS = esc(mBSE, 'bse2024', 'sinusal');
+  const bseF = esc({ onda_e: '120', e_sep: '10', vmax_it: '3.2', tde: '140' }, 'bse2024', 'fa');
+  const faA16 = esc({ onda_e: '120', e_sep: '10', vmax_it: '3.2', tde: '140' }, 'ase2016', 'fa');
+  ok(bseS.dia.hay && bseS.dia.fig === 'f17', 'CONTROL NEGATIVO: la BSE 2024 en ritmo sinusal sigue dibujando su Figura 17', 'fig: ' + bseS.dia.fig);
+  ok(bseF.dia.hay && bseF.dia.fig === 'f19', 'CONTROL NEGATIVO: la BSE 2024 en fibrilacion auricular sigue dibujando su Figura 19', 'fig: ' + bseF.dia.fig);
+  ok(faA16.dia.hay === false && faA16.dia.caja === false && faA16.dia.ancho === false,
+     'CONTROL NEGATIVO: la ASE/EACVI 2016 en fibrilacion auricular NO dibuja diagrama ni ensancha la tarjeta',
+     JSON.stringify({ hay: faA16.dia.hay, caja: faA16.dia.caja, ancho: faA16.dia.ancho }));
+  ok(faA16.dia.filas > 0, 'DENOMINADOR: esa via sigue mostrando su lista larga', 'filas: ' + faA16.dia.filas);
+
+  // ══ G · LOS PIES Y EL CAMINO EN PALABRAS ══════════════════════════════════════════════════
+  /* ⚠️ NINGUNA DE LAS DOS GUIAS DE LA ASE ES DE ACCESO ABIERTO, a diferencia de la BSE 2024, que
+     es CC BY 4.0. El pie de la primera pagina de la ASE 2025 dice «Copyright 2025 Published by
+     Elsevier Inc. on behalf of the American Society of Echocardiography» y el de la ASE/EACVI
+     2016 «Copyright 2016 by the American Society of Echocardiography», sin licencia Creative
+     Commons en ninguno de los dos. Por eso el pie de estos cuatro dibujos NO atribuye una
+     licencia que no existe: declara que el dibujo es PROPIO y que no reproduce la figura. */
+  const pies = {};
+  [{ k: 'a25f3', r: RAMAS[4], fo: '554' }, { k: 'a25faf8', r: RAMAS[12], fo: '563' },
+   { k: 'a16a8a', r: RAMAS[18], fo: '290' }, { k: 'a16b8b', r: RAMAS[24], fo: '290' }].forEach(c => {
+    const e = esc(c.r.m, c.r.g, c.r.ri);
+    pies[c.k] = { pie: String(e.dia.pie || ''), alt: String(e.dia.alt || ''), fo: c.fo };
+  });
+  const K = Object.keys(pies);
+  ok(K.length === 4 && K.every(f => pies[f].pie.indexOf('dibujo propio, no es una reproducción de la figura') >= 0),
+     'Los cuatro pies declaran que el dibujo es PROPIO y que no reproduce la figura', JSON.stringify(K.map(f => pies[f].pie.slice(0, 80))));
+  ok(K.every(f => pies[f].pie.indexOf('folio ' + pies[f].fo) >= 0),
+     'Cada pie nombra el folio del original del que sale la logica', JSON.stringify(K.map(f => f + ': ' + pies[f].fo)));
+  ok(K.every(f => pies[f].pie.indexOf('NO de acceso abierto') >= 0),
+     'Los cuatro pies declaran que el articulo NO es de acceso abierto', JSON.stringify(K.map(f => pies[f].pie.indexOf('NO de acceso abierto') >= 0)));
+  /* CONTROL NEGATIVO del pie: ninguno de los cuatro cita una licencia Creative Commons, que es lo
+     que SI corresponde a la BSE 2024 y lo que NO corresponde a estas dos guias. */
+  ok(K.every(f => pies[f].pie.indexOf('CC BY') < 0 && pies[f].pie.indexOf('Creative Commons') < 0),
+     'CONTROL NEGATIVO: ninguno de los cuatro pies atribuye una licencia Creative Commons que estas guias no tienen',
+     JSON.stringify(K.map(f => f + ': ' + (pies[f].pie.indexOf('CC BY') < 0))));
+  ok(String(bseS.dia.pie || '').indexOf('CC BY 4.0') >= 0,
+     'CONTROL NEGATIVO: la BSE 2024, que SI es de acceso abierto, sigue atribuyendo su CC BY 4.0', String(bseS.dia.pie || 'SIN PIE').slice(0, 120));
+  ok(K.every(f => pies[f].alt.indexOf('Camino de este paciente:') === 0 && pies[f].alt.indexOf(' → resultado: ') > 0),
+     'Los cuatro llevan el camino EN PALABRAS, con el ultimo paso nombrado como resultado', JSON.stringify(K.map(f => pies[f].alt.slice(0, 70))));
+
+  __t.limpiar();
+  return { extra: AF };
+`);
+
 caso('TC-461', 'Doppler mitral: los 16 campos en CUATRO columnas con el Tab por columnas y foco real campo por campo, la posicion EXPLICITA que deja vacia la casilla de un campo oculto, el orden visual igual al del Tab cuando la grilla cae a una columna, y el selector del S/D con sus CUATRO opciones y un token desconocido tratado como campo SIN CARGAR', `
   const AF = [];
   const ok = (c, t, d) => AF.push([t, !!c, String(d)]);

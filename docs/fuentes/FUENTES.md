@@ -1327,3 +1327,128 @@ En `docs/fuentes/PENDIENTES_FUENTES.md`: las fuentes que **no se pudieron verifi
 Lancellotti 2013, la Tabla S3 suplementaria de la ESC/EACTS 2025, los cortes de TC mitrales), las que
 **faltan** para aórtica, tricúspide, pulmonar y congénitas, y el **procedimiento** para incorporar
 una fuente nueva al registro.
+
+---
+
+## Derechos de autor de la ASE 2025 y de la ASE/EACVI 2016 — VERIFICADOS EN EL PDF (2026-10-13)
+
+Leídos para la tanda de los diagramas de flujo de esas dos guías. **Ninguna de las dos es de
+acceso abierto**, a diferencia de la BSE 2024 (CC BY 4.0, ver arriba).
+
+### ASE 2025 — Nagueh SF y cols., J Am Soc Echocardiogr 2025;38(7):537-69
+
+Texto EXACTO del pie de la **página 1** del PDF (`Nagueh_2025_Diastolica.pdf`), que además
+confirma la regla de folio (página 1 → folio **537**, o sea folio = página del PDF + 536):
+
+> «0894-7317/$36.00
+> Copyright 2025 Published by Elsevier Inc. on behalf of the American Society of
+> Echocardiography.
+> https://doi.org/10.1016/j.echo.2025.03.011»
+
+### ASE/EACVI 2016 — Nagueh SF y cols., J Am Soc Echocardiogr 2016;29(4):277-314
+
+Texto EXACTO del pie de la **página 1** del PDF (`LV-Diastolic-Function-ASE-EACVI-2016.pdf`), que
+confirma la regla de folio (página 1 → folio **277**, o sea folio = página del PDF + 276):
+
+> «0894-7317/$36.00
+> Copyright 2016 by the American Society of Echocardiography.
+> http://dx.doi.org/10.1016/j.echo.2016.01.011»
+
+### Qué implican, y qué se hizo
+
+- **¿Acceso abierto?** NO, ninguno de los dos.
+- **¿Con qué licencia?** Ninguna licencia pública. Aviso de copyright reservado, de Elsevier en
+  nombre de la ASE (2025) y de la ASE (2016).
+- **¿Permiten adaptaciones?** No lo dicen. No hay concesión de derechos de ningún tipo.
+- **¿Uso comercial?** Tampoco lo dicen. No hay concesión.
+- **Barrido del PDF completo** buscando `Creative Commons`, `creativecommons`, `CC BY`,
+  `open access`, `This is an open` y `under the terms of`: **cero coincidencias en los dos**. La
+  única aparición de «permission» en los dos documentos es un «Reprinted with permission from
+  Klein et al.» en una figura ajena de la ASE 2025 (página 26), que es lo contrario de una
+  licencia abierta: es una figura de terceros reproducida con permiso individual.
+
+**NINGUNO DE LOS DOS AVISOS PROHÍBE EXPRESAMENTE lo que esta tanda hace**, así que las dos guías
+siguieron adelante y **no hubo que parar ninguna**. Lo que esos avisos reservan es la **obra** —su
+expresión: la disposición gráfica, el texto literal de las cajas, la tipografía, los colores—. Lo
+que la app dibuja NO es esa obra:
+
+- **disposición propia**: cinco columnas verticales, una por cadena de decisión, contra el reparto
+  horizontal del original;
+- **palabras propias en todas las cajas**: ni un rótulo copia el literal de la figura;
+- **sólo la lógica de decisión que la app ya implementa** —cortes y operadores, que son datos
+  clínicos y no expresión—;
+- **los valores de ESTE paciente adentro**, que el original no tiene.
+
+El pie de los cuatro dibujos lo declara con el texto que fijó la orden, y **no atribuye ninguna
+licencia Creative Commons**, que es lo que corresponde a la BSE 2024 y lo que NO corresponde a
+estas dos:
+
+> «Lógica según el algoritmo de la Figura N, ASE 20XX, folio X; dibujo propio, no es una
+> reproducción de la figura. […] artículo NO de acceso abierto, así que no se reproduce ninguna
+> figura ni el texto de sus cajas.»
+
+TC-462 lo fija por los dos lados: los cuatro pies declaran el folio, que el dibujo es propio y que
+el artículo no es de acceso abierto, y **ninguno** nombra una licencia Creative Commons; el de la
+BSE 2024 **sí** sigue atribuyendo su CC BY 4.0.
+
+---
+
+## Las cuatro figuras de la ASE, caja por caja y flecha por flecha (2026-10-13)
+
+Leídas del texto de su propia página para la tanda de los diagramas. **Ni un corte ni un operador
+se movieron**: lo verificado es que la app ya los implementaba bien.
+
+### Figura 3 — ASE 2025, ritmo sinusal (folio 554 = página 18 del PDF)
+
+Literal de la caja del algoritmo:
+
+- `1. Reduced e' velocity: septal ≤6 or lateral ≤ 7 or average ≤ 6.5 cm/s *`
+- `2. Increased E/e': septal ≥ 15 or lateral ≥ 13 or average ≥ 14`
+- `3. Increased TR velocity ≥ 2.8 m/s or PASP ≥ 35 mm Hg`
+- `All normal` → `Normal DF` / `Normal LAP`
+- `Reduced e' only` → `E/A ≤ 0.8` → `Grade 1` · `E/A > 0.8` → segundo paso
+- `Increased TR/PASP only or Increased E/e' only or Any 2 abnormal variables` → segundo paso
+- `3 of the above` → `Increased LAP` → `E/A < 2` → `Grade 2` · `E/A ≥ 2` → `Grade 3`
+- Segundo paso: `Pulmonary Vein S/D ≤0.67 or LARS ≤ 18% or LAVi > 34 mL/m2`,
+  `Alternatively IVRT ≤ 70 ms`, `If none available or reliable use Supplemental methods‡`
+- `≥1 present` → `Increased LAP` · `None` → `Normal LAP` + `Diastolic Exercise Echo If symptomatic`
+- Nota ‡ del pie: `PR end-diastolic velocity ≥ 2 m/s, PA diastolic pressure ≥ 16 mm Hg, mitral
+  inflow L-wave velocity ≥ 50 cm/s, Ar-A duration > 30 ms, and/or a decrease in mitral E/A ratio
+  of ≥50% with Valsalva maneuver.`
+
+### Figura 8 — ASE 2025, fibrilación auricular (folio 563 = página 27 del PDF)
+
+- Paso 1: `1. Mitral E velocity ≥ 100 cm/s` · `2. Septal E/e' ratio > 11` ·
+  `3. TR velocity > 2.8 m/s or PASP > 35 mm Hg` · `4. DT ≤160 ms`
+- `3 or more of above` → `Elevated LAP` · `None or 1 of above` → `Normal LAP` ·
+  `2 of above` → paso 2
+- Paso 2: `LARS <18%` · `Pulm vein S/D ratio <1` · `BMI > 30 kg/m2`
+- `2/3 or 3/3` → `Elevated LAP` · `None` → `Normal LAP` ·
+  `1 only or not available or not reliable` → `Indeterminate`
+
+⚠️ **DOS GUARDAS DE LA APP SON MÁS CONSERVADORAS QUE LA FIGURA, y se conservan tal cual** (son de
+HEAD y esta tanda no las toca): el «None or 1 of above» de la app exige además que no haya ningún
+criterio **sin medir**, y el «None» del paso 2 exige los **tres** medidos. Con criterios sin medir
+la app no afirma y publica «Datos insuficientes», que es la caja punteada del dibujo.
+
+### Figura 8 — ASE/EACVI 2016 (folio 290 = página 14 del PDF)
+
+**8A, FEVI normal**: `In patients with normal LV EF` · `1-Average E/e' > 14` ·
+`2-Septal e' velocity < 7 cm/s or Lateral e' velocity <10 cm/s` · `3-TR velocity > 2.8 m/s` ·
+`4-LA volume index >34ml/m2`; `>50% positive` → `Diastolic Dysfunction`; `50% positive` →
+`Indeterminate`; `<50% positive` → `Normal Diastolic function`.
+
+**8B, FEVI deprimida**: `Mitral Inflow` → `E/A ≤ 0.8 + E ≤ 50 cm/s` ·
+`E/A ≤ 0.8 + E > 50 cm/s or E/A > 0.8 - <2` · `E/A ≥ 2`; los tres criterios
+`1-Average E/e' > 14` · `2-TR velocity > 2.8 m/s` · `3-LA Vol. index>34ml/m2`;
+`2 of 3 or 3 of 3 Positive` → `↑ LAP / Grade II Diastolic Dysfunction`;
+`2 of 3 or 3 of 3 Negative` → `Normal LAP / Grade I Diastolic Dysfunction` + `If Symptomatic`
+`Consider CAD, or proceed to diastolic stress test`; `When only 2 criteria are available`:
+`1 positive and 1 negative` → `Cannot determine LAP and Diastolic Dysfunction Grade`; y el pie
+`(*: LAP indeterminate if only 1 of 3 parameters available. Pulmonary vein S/D ratio <1 applicable
+to conclude elevated LAP in patients with depressed LV EF)`.
+
+⚠️ **EL DIBUJO DE LA 8B FUNDE LAS DOS ENTRADAS A «Cannot determine» EN UNA SOLA CAJA**, porque es
+una sola casilla de la figura: la sub-caja «1 positive and 1 negative» de los dos criterios
+disponibles y el pie «only 1 of 3 parameters available». El título de la caja nombra las dos y el
+renglón de resultado de la ventana dice cuál fue.

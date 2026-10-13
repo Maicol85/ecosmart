@@ -1340,3 +1340,55 @@ Los dos viajan con el estudio guardado (el barrido de `guardarInforme` los toma 
 volver a importarla deja esos dos campos vacíos, mientras el LARS y el strain de contracción sí
 vuelven. No es un defecto del round-trip —ninguna columna se desalinea—, es que esos dos datos no
 están en la planilla. Si alguna vez se quieren para análisis, son dos columnas más.
+
+---
+
+## Diagramas de flujo de la ASE 2025 y de la ASE/EACVI 2016 (2026-10-13)
+
+Declarado y NO tocado en la tanda de los diagramas de las cuatro vías de la ASE. Nada de esto es
+una regresión: son decisiones conscientes o cosas preexistentes que esta tanda sólo hace visibles.
+
+**E1 · El umbral de 780 px sigue sin probarse en iPad vertical.** Un iPad en vertical son 768 px y
+queda **12 px por debajo** del umbral, así que ahí NO se dibuja. Es el mismo punto D3 que la tanda
+de la BSE dejó abierto, y ahora alcanza a las cinco guías-vía. **El número está en UN solo lugar**
+—una única media query `@media (min-width:780px)`, y TC-462 comprueba que no haya una segunda— así
+que bajarlo es cambiar un literal. Lo decide el médico después de probarlo.
+
+**E2 · `a25.fin-sindatos` funde dos claves de categoría.** `incompleto` (sin e′ septal ni lateral)
+e `insuf` (sólo el e′ medido) van a la misma casilla del dibujo. Son dos frases distintas en el
+informe y el renglón de resultado de la ventana las distingue, pero el dibujo no. Mismo caso que
+`g1prol`/`g1alt` en la 8B, que ya estaba así.
+
+**E3 · `a16b.unoyuno` funde las dos entradas a «Cannot determine» de la Figura 8B.** La sub-caja
+«1 positivo y 1 negativo» con dos criterios disponibles, y el pie «LAP indeterminate if only 1 of
+3 parameters available». Son dos motivos y **una sola casilla** de la figura; el título de la caja
+nombra los dos. Si alguna vez hiciera falta separarlos en el dibujo, hay que rehacer la fila 3 de
+la 8B: con cinco columnas no entran cuatro salidas del paso 2 más los dos atajos.
+
+**E4 · La caja de entrada del paso 1 de la Figura 3 imprime OCHO renglones de valores** (los tres
+e′, los tres E/e′, la IT y la PSAP) en una caja de 688 px de ancho. Es funcional y está medido sin
+desbordes, pero queda con mucho aire a los lados. Partirla en tres sub-cajas —una por variable—
+daría un dibujo más fiel a la numeración 1-2-3 del original, a costa de tres aristas más.
+
+**E5 · El rótulo del e′ de la 8A se lee «e' septal sep 5 / lat 7 cm/s».** `_bdFilaTxt` corta el
+criterio en el primer operador, así que de «e′ septal < 7 o lateral < 10 cm/s (una variable, dos
+cortes en OR)» saca «e′ septal», y el valor de esa fila es el string «sep 5 / lat 7». Se entiende
+pero es redundante. Un `vals` propio para ese nodo lo arreglaría.
+
+**E6 · La fibrilación auricular de la ASE/EACVI 2016 no tiene diagrama y no es una via pendiente.**
+La guía enumera parámetros sugestivos en el folio 295 y **no los combina en ninguna regla de
+conteo**, así que la app no publica veredicto y no hay camino que dibujar. Si algún día la app
+inventara una regla de conteo para esa sección, sería inventarle a la guía un algoritmo que no
+tiene — que es exactamente lo que la tanda de la fibrilación auricular vino a sacar.
+
+**E7 · Las dos guardas conservadoras de la Figura 8 siguen como en HEAD.** El «None or 1 of above»
+de la app exige además que no haya ningún criterio sin medir, y el «None» del paso 2 exige los
+tres medidos; la figura no pide ninguna de las dos cosas. Son de HEAD, son el lado conservador
+—con criterios sin medir la app no afirma normalidad— y esta tanda no las toca. El dibujo las
+muestra como la caja punteada «Datos insuficientes», que declara que es un estado de la app.
+
+**E8 · El prefijo `bse-` de las clases, los atributos y las funciones es histórico.** Hoy los
+comparten las cinco guías-vía. Renombrarlos a algo neutro obligaría a adaptar TC-460 y
+`scripts/_probe_bsediag.mjs` enteros sin cambiar una línea de comportamiento, así que se reusaron
+tal cual. Si alguna vez se renombra, es un cambio mecánico de atributos y conviene hacerlo en un
+commit propio que no toque nada más.

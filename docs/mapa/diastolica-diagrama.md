@@ -150,3 +150,144 @@ Cobertura: **TC-460**, 40 condiciones con tres denominadores y cinco controles n
 Verificado que sabe fallar contra HEAD en un worktree aparte: **35 de las 40 en rojo**; las cinco
 que pasan son los cuatro controles de las otras dos guías y el que comprueba que el **cuadro gris
 sigue publicando el mismo veredicto**, que es justamente lo que esta tanda no mueve.
+
+---
+---
+
+# Los diagramas de la ASE — Figura 3, Figura 8, 8A y 8B (tanda del 2026-10-13)
+
+Lo de arriba describe la BSE 2024 y **sigue vigente sin un cambio**. Esta mitad agrega las
+**cuatro vías de la ASE**, que reusan el MISMO motor, el MISMO CSS, la MISMA tabla compacta y el
+MISMO umbral de ancho.
+
+**Cinco guías-vía con diagrama:** BSE 2024 sinusal (F17/F18), BSE 2024 en FA (F19), ASE 2025
+sinusal (Figura 3), ASE 2025 en FA (Figura 8) y ASE/EACVI 2016 sinusal (8A u 8B según la FEVI).
+**La sexta no lo tiene y no lo va a tener:** la **ASE/EACVI 2016 en fibrilación auricular** no
+tiene algoritmo en la app —la guía enumera parámetros en el folio 295 y no los combina en
+ninguna regla de conteo—, así que no hay veredicto que dibujar.
+
+---
+
+## ⚠️ EL PREFIJO `bse-` ES HISTÓRICO, NO DE ALCANCE
+
+Las clases (`bse-diag`, `bse-diag-caja`, `bse-lista`, `bse-ancho`, `bse-tabla`…), los atributos
+(`data-bse-diag`, `data-bse-tabla`…) y las funciones (`_bseDiagSVG`, `_bseDiagCaja`,
+`_bseDiagPlano`, `_bseTablaHTML`…) nacieron con la BSE y hoy las comparten **las cinco
+guías-vía**. Renombrarlas obligaría a adaptar TC-460 y `scripts/_probe_bsediag.mjs` enteros sin
+cambiar una sola línea de comportamiento, así que se reusan tal cual.
+
+---
+
+## Las piezas nuevas
+
+| Pieza | Qué hace |
+|---|---|
+| `ASE25_NODO_FIN` · `ASE25FA_NODO_FIN` · `ASE16A_NODO_FIN` · `ASE16B_NODO_FIN` | **cuatro** mapas clave de categoría → nodo final |
+| `A25_PLANO_F3` | Figura 3 (ritmo sinusal), 19 nodos, prefijo `a25.` |
+| `A25FA_PLANO_F8` | Figura 8 (fibrilación auricular), 13 nodos, prefijo `a25fa.` |
+| `A16A_PLANO` · `A16B_PLANO` | Figuras 8A y 8B, 10 y 14 nodos, prefijos `a16a.` / `a16b.` |
+| `A25_C` · `_a25(c, n)` | la rejilla de **cinco** columnas de 132 px que usan los cuatro planos |
+| `_a16Flujo(R)` | los valores de la caja del flujo mitral de la 8B |
+| `plano.gap` | el hueco entre filas, **por plano** (50 px en la Figura 3, 40 en las otras tres) |
+
+**El nodo final se DERIVA de `R.clave`**, igual que en la BSE. Ninguna rama lo empuja.
+
+⚠️ **CUATRO MAPAS Y NO UNO, PORQUE LAS CLAVES SE REPITEN.** `insuf`, `indet`, `normal` y `g3`
+existen en la 8A **y** en la 8B y nombran casillas distintas; `normal` se repite además entre el
+ritmo sinusal y la FA de la ASE 2025. Por eso cada vía tiene su mapa y sus ids llevan prefijo.
+
+⚠️ **DOS PARES DE CLAVES COMPARTEN CASILLA, Y ES A PROPÓSITO.** `incompleto` e `insuf` van las dos
+a `a25.fin-sindatos`, y `g1prol` y `g1alt` las dos a `a16b.fin-g1`: son categorías con frases
+distintas en el informe pero **una sola casilla** de la figura. El motivo exacto lo dice el
+renglón de resultado de la ventana, que es donde se explica.
+
+---
+
+## El hueco entre filas pasó a ser por plano
+
+`plano.gap || BSE_DG.GAP`. **Lo fija el rótulo de la arista más baja, no el aire que se ve bien.**
+De `a25.elevada` salen **cuatro** aristas con rótulo y, con los 34 px de la BSE, la cuarta calle
+cae DENTRO de la fila de abajo: el rótulo no desaparece de una forma que se note, lo tapa la caja
+—que se dibuja después— y el dibujo parece tener flechas sin nombre. La BSE **no cambia**.
+
+---
+
+## ⚠️ CADA COLUMNA ES UNA CADENA COMPLETA, y no es decoración
+
+Una **vertical larga necesita su columna libre en TODAS las filas que cruza**. En la Figura 8 la
+cadena del «ninguno o uno positivo» baja por la columna 0 hasta la presión normal y la de «tres o
+más» por la 4 hasta la elevada, así que las cajas del paso 2 viven en las del medio. Con las
+cadenas mezcladas, una de esas dos líneas cruzaría una caja por la que el paciente **no pasó** —y
+el dibujo diría lo contrario de lo que el camino dice. Lo mismo gobierna los dos atajos del flujo
+mitral de la 8B, que bajan por las columnas 0 y 4.
+
+---
+
+## Las columnas de la tabla compacta
+
+| Vía | Columnas |
+|---|---|
+| ASE 2025 sinusal | paso 1 · segundo paso · suplementarios · resultado |
+| ASE 2025 en FA | paso 1 · paso 2 · resultado |
+| ASE 2016 · 8A | las cuatro variables · resultado |
+| ASE 2016 · 8B | flujo mitral · tres criterios · resultado |
+
+**La compuerta es el CAMINO**, igual que en la BSE: una columna de paso que el paciente no
+recorrió no se dibuja. Las filas **sin `nodo`** —las dos de «no son insumos de la 8A» y la del e′
+en la 8B— no entran en ninguna columna, que es lo correcto: no pertenecen a esos algoritmos.
+
+---
+
+## Trampas nuevas de esta zona
+
+- ⚠️ **LA SUPERPOSICIÓN DE RÓTULOS SE MIDE, NO SE MIRA EN EL PNG.** Dos rótulos a la misma altura
+  con sus cajas de texto solapadas se imprimen uno encima del otro, y un rótulo que cae dentro de
+  una caja queda **tapado**; ninguna de las dos cosas desaparece de forma que se note. El grupo
+  `geo` de `scripts/_probe_asediag.mjs` compara la posición de cada rótulo contra la de cada caja
+  y contra la de los otros rótulos. **Destapó tres defectos reales** que el ojo había dejado pasar.
+- ⚠️ **`calleAntes` CHOCA SIEMPRE CON EL RÓTULO DE RESULTADO si la arista termina en un nodo
+  FINAL.** Pone la horizontal 12 px encima de la caja destino y su rótulo 9 px debajo de la calle,
+  o sea 3 px por encima de esa caja — que es exactamente donde el motor imprime «Resultado de este
+  paciente». En esas aristas va `calleRel`, relativa al origen.
+- ⚠️ **UN TECLEO QUE NO OCURRIÓ NO ES UNA MEDICIÓN.** El aviso legal (`#modalAvisoEco`,
+  z-index 9999) **vuelve a mitad de corrida**: con él puesto, `clicEn` cae a su respaldo por tecla,
+  un `input` numérico no recibe nada y la escena informa el veredicto de **otro paciente**. La
+  sonda despeja antes de cada escena (`__P.despejar()`, con su denominador) y **aborta**
+  (`exigirCarga`) nombrando el campo si un tecleo no quedó.
+- ⚠️ **UN CASO QUE MUERE POR EXCEPCIÓN NO PRUEBA NADA.** Contra un árbol sin estos diagramas,
+  `dia.enCam` no existe y un `.slice()` mata la corrida entera con un `TypeError`: se ve que el
+  árbol es distinto, no qué condición caza qué defecto. Todas las lecturas del dibujo en TC-462
+  van con su respaldo `|| []`.
+- ⚠️ **LAS TRES FILAS DEL FLUJO MITRAL NO SERVÍAN COMO VALORES DE LA CAJA.** Las dos de los atajos
+  llevan el MISMO `val` —la relación E/A—, así que la caja imprimía dos renglones idénticos, y la
+  tercera no tiene operador en su rótulo, así que `_bdFilaTxt` la devolvía **sin número**. Lo arma
+  `_a16Flujo`.
+- ⚠️ **`scrollIntoView` DEJA LA PRIMERA CAJA DEBAJO DEL ENCABEZADO FIJO** de la tarjeta y el
+  recorte sale sin ella: parece que el diagrama empieza en el paso 1. Se lleva el **cuerpo** a su
+  tope (`#diast-algo-cuerpo.scrollTop = 0`).
+
+---
+
+## Cómo medir esta zona
+
+```bash
+node scripts/_probe_asediag.mjs --solo camino        # el camino del dueño, 69 escenas
+node scripts/_probe_asediag.mjs --solo diagrama      # el SVG: nodos, camino y rótulo final
+node scripts/_probe_asediag.mjs --solo geo           # choques y rótulos tapados, medidos
+node scripts/_probe_asediag.mjs --solo angosto       # A/B a 360 px contra HEAD
+node scripts/_probe_asediag.mjs --solo ancho         # 1200/900/790/770/390/360 en los dos temas
+node scripts/_probe_asediag.mjs --solo tabla         # el plegable con teclas reales
+node scripts/_probe_asediag.mjs --solo superficies   # informe, EN SUMA, Excel, PPT, Laboratorio
+node scripts/_probe_asediag.mjs --solo excelab       # la fila del Excel clave por clave
+node scripts/_probe_asediag.mjs --solo otras         # control negativo: BSE 2024 y FA de la 2016
+node scripts/_probe_asediag.mjs --solo captura --escenas S04-g2 --out /tmp
+node scripts/test_clinico.mjs --solo TC-462
+```
+
+**Los grupos se corren de a uno.** Varios en una sola sesión de página se cuelgan.
+
+Cobertura: **TC-462**, 42 condiciones con cuatro denominadores y nueve controles negativos, que
+recorre las **28 ramas** de las cuatro vías. Verificado que sabe fallar contra HEAD en un worktree
+aparte: **26 de las 42 en rojo**; las 16 que pasan son los denominadores de las funciones dueñas,
+el badge del cuadro —que esta tanda no mueve—, las tres reglas de CSS que ya existían para la BSE
+y los controles negativos de la BSE 2024 y de la FA de la ASE/EACVI 2016.

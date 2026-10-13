@@ -26,7 +26,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la función diastólica del VI**: el cuadro, la ventana 🧭 o los tres algoritmos | `docs/mapa/diastolica.md` |
 | **Tocar la ASE/EACVI 2016 en ritmo sinusal**: la Figura 8A, la 8B o el corte de FEVI | `docs/mapa/diastolica-ase2016.md` |
 | **Tocar el S/D venoso pulmonar, el LARS, los suplementarios de la ASE 2025, el E/e′ por sitio de la ASE 2016, los rótulos del cuadro o el rojo del E/e′** | `docs/mapa/diastolica-complementarios.md` |
-| **Tocar el DIAGRAMA DE FLUJO de la ventana 🧭 de la BSE 2024**: los planos, el motor del SVG, el umbral de ancho o la tabla compacta | `docs/mapa/diastolica-diagrama.md` |
+| **Tocar un DIAGRAMA DE FLUJO de la ventana 🧭** (BSE 2024, ASE 2025 en ritmo sinusal o en FA, ASE/EACVI 2016 8A y 8B): los planos, el motor del SVG, el umbral de ancho o la tabla compacta | `docs/mapa/diastolica-diagrama.md` |
 | **Tocar la GRILLA del Doppler mitral**: el orden de los 16 campos, el Tab por columnas, los puntos de corte o el selector del S/D | `docs/mapa/doppler-mitral-grilla.md` |
 | **Tocar el VENTRÍCULO DERECHO**: sus campos, el cuadro de referencias, la disfunción sistólica, la pared o el Tei | `docs/mapa/vd-derecho.md` |
 | **Tocar el panel de Evidencia: agregar una cita, una sección o un sub-bloque** | `docs/mapa/panel-evidencia.md` |
@@ -220,6 +220,149 @@ impecable.
 ---
 
 ## Estado vigente
+
+### Diagramas de flujo de la ASE en la ventana 🧭 — Figura 3, Figura 8, 8A y 8B (2026-10-13)
+
+- Al **empezar** esta tanda, `main` local y `origin/main` estaban los dos en **`5752677`**, sin nada
+  sin pushear —confirmado con un `git fetch` de verdad, no con el ref en caché—, con los **tres**
+  commits de la tanda del Doppler mitral ya incluidos **y pusheados**. Los **seis** commits de esta
+  tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 6 → 5 → 4 → 3 → 2 → 1.**
+  El **1** crea `R.camino`, `R.nodoFinal`, el `nodo` de cada fila y los cuatro mapas de nodo final;
+  **del 2 al 5 cuelgan todos de él**, pero revertirlo solo **no rompe la app**: `_bseDiagPlano` sale
+  por su guarda de `!R.camino` y deja de dibujar, con la ventana en lo de HEAD.
+  **El 2, el 3 y el 4 se revierten entre sí en cualquier orden**: el 2 es la Figura 3, el 3 la
+  Figura 8 y el 4 las 8A/8B, y ninguno llama a otro. ⚠️ **PERO EL 2 LLEVA DOS COSAS QUE EL 3 Y EL 4
+  USAN:** `plano.gap` en el motor —sin él los tres planos nuevos vuelven a los 34 px de la BSE y sus
+  rótulos quedan tapados— y la rejilla `A25_C`/`_a25()`, que los cuatro planos nombran; revertir el
+  2 sin revertir antes el 3 y el 4 deja `A25FA_PLANO_F8` y los dos de la 2016 llamando a una
+  función que no existe, y un `ReferenceError` en la evaluación de un `<script>` **aborta el bloque
+  COMPLETO** — o sea la app con cero pestañas con geometría.
+  ⚠️ **Y EL 4 LLEVA UN CAMBIO DEL CAMINO QUE EL 1 CREÓ:** la rama de un solo criterio de la 8B pasa
+  a empujar `a16b.unoyuno` en vez de `a16b.unosolo`, porque el dibujo funde las dos entradas a
+  «Cannot determine» en una sola casilla.
+  **El 5 (la tabla compacta) se revierte solo.** **El 6 es TC-462 más documentación** y afirma el
+  comportamiento de los cinco: revertir cualquiera sin el 6 deja TC-462 en rojo. ⚠️ **Y EL 2
+  ADAPTÓ TC-460**, cuyo control negativo afirmaba que la ASE no dibuja diagrama: revertir del 2 al
+  5 sin reponer esas tres afirmaciones deja TC-460 midiendo de menos, no en rojo.
+
+- **Línea base al cierre: suite 473/477 en la corrida completa con el pendrive `DISK_IMG` MONTADO,
+  Semgrep 127 / 0 ERROR, Excel 435 columnas, celular 43 a 360 px y 52 a 390 px con 1 ALTA cada uno
+  —IDÉNTICO a la línea base: los diagramas no agregaron un solo hallazgo, porque en celular no se
+  dibujan—.** Los cuatro rojos son los de ENTRADA y NO son regresiones: **TC-223** (el documentado,
+  falla por la fecha), **TC-376**, **TC-390** y **TC-406**. **El denominador subió a 477**: esta
+  tanda agregó **TC-462**. La de ENTRADA, medida en HEAD limpio el 2026-10-13, fue **472/476** con
+  el pendrive montado y los mismos cuatro rojos, con el `md5` de `index.html` sin moverse durante la
+  corrida de entrada (`8320f467…`) ni durante la de cierre (`d0bd8055…`). `--todo` da **374 a 360 px
+  y 383 a 390 px**, el mismo par que la tanda anterior midió.
+- **Dónde está todo:** `docs/mapa/diastolica-diagrama.md` → la segunda mitad, «Los diagramas de la
+  ASE» (las cuatro vías, los cuatro mapas, la rejilla de cinco columnas, el `gap` por plano y las
+  trampas nuevas); `docs/fuentes/FUENTES.md` → «Derechos de autor de la ASE 2025 y de la ASE/EACVI
+  2016» y «Las cuatro figuras de la ASE, caja por caja y flecha por flecha»; `docs/PENDIENTES.md` →
+  **ocho** cosas declaradas y no tocadas (E1 a E8).
+
+- ⚠️ **NINGUNA DE LAS DOS GUÍAS DE LA ASE ES DE ACCESO ABIERTO, A DIFERENCIA DE LA BSE 2024.**
+  Verificado en el pie de la **página 1** de cada PDF, literal: «Copyright 2025 Published by
+  Elsevier Inc. on behalf of the American Society of Echocardiography.» y «Copyright 2016 by the
+  American Society of Echocardiography.» Barrido del PDF completo buscando `Creative Commons`,
+  `CC BY`, `open access` y `under the terms of`: **cero coincidencias en los dos**. **No hubo que
+  parar ninguna guía**: lo que esos avisos reservan es la OBRA —la disposición gráfica y el texto
+  literal de las cajas— y el dibujo de la app no es esa obra: disposición propia (cinco columnas
+  verticales contra el reparto horizontal del original), palabras propias en todas las cajas, sólo
+  la lógica de decisión que la app ya implementa, y los valores del paciente adentro. El pie de los
+  cuatro **NO atribuye una licencia Creative Commons**, que es lo que corresponde a la BSE y lo que
+  NO corresponde a estas dos; TC-462 lo fija por los dos lados.
+- **LAS DOS REGLAS DE FOLIO QUEDARON COMPROBADAS EN EL PIE IMPRESO, no por aritmética:** la ASE 2025
+  página 1 → folio **537** (folio = página + 536) y la ASE/EACVI 2016 página 1 → folio **277**
+  (folio = página + 276).
+
+- **NO CAMBIA NINGUNA CUENTA, NINGÚN CORTE, NINGÚN VEREDICTO NI NINGUNA SUPERFICIE FIRMADA, Y ESTÁ
+  MEDIDO.** A/B contra HEAD en las **69 escenas** de las tres vías —las de los trabajos anteriores,
+  reusadas a propósito—: **0 diferencias** en informe (3 estilos), EN SUMA (3), Excel con sus **435**
+  columnas, franja del PPT, grado del Laboratorio, hash de los campos guardados y el cuadro gris
+  entero; y la fila del Excel **clave por clave** en 5 escenas, también 0.
+- **EL NODO FINAL NO SE EMPUJA EN NINGUNA RAMA: SE DERIVA DE `R.clave`**, igual que en la BSE.
+  **Medido: el último nodo del camino es el nodo final en 69 de 69 escenas**, y el badge del cuadro
+  gris concuerda con ese nodo en las 28 ramas que recorre TC-462.
+- ⚠️ **CUATRO MAPAS DE NODO FINAL Y NO UNO, PORQUE LAS CLAVES SE REPITEN.** `insuf`, `indet`,
+  `normal` y `g3` existen en la **8A y en la 8B** y nombran casillas distintas; `normal` se repite
+  además entre el ritmo sinusal y la FA de la ASE 2025. Un solo mapa habría pintado el camino rojo
+  terminando en la casilla de otro algoritmo.
+- ⚠️ **DOS PARES DE CLAVES COMPARTEN CASILLA, Y ES A PROPÓSITO:** `incompleto`+`insuf` →
+  `a25.fin-sindatos` y `g1prol`+`g1alt` → `a16b.fin-g1`. Son categorías con frases distintas en el
+  informe pero **una sola casilla** de la figura; el motivo exacto lo dice el renglón de resultado
+  de la ventana. `PENDIENTES.md` → E2 y E3.
+- **LA FIBRILACIÓN AURICULAR DE LA ASE/EACVI 2016 NO LLEVA DIAGRAMA, y no es una vía pendiente:**
+  esa guía enumera parámetros en el folio 295 y **no los combina en ninguna regla de conteo**, así
+  que la app no publica veredicto y no hay camino que dibujar. Su ventana queda IDÉNTICA a HEAD, y
+  TC-462 lo fija como control negativo.
+
+- **EL UMBRAL DE ANCHO ES UNO SOLO PARA LAS CINCO GUÍAS-VÍA, Y ESTÁ COMPROBADO.** Sigue siendo la
+  única media query `@media (min-width:780px)`, y **TC-462 cuenta cuántas media queries tocan la
+  caja del diagrama y exige que sea UNA**: con dos, bajarlo para el iPad vertical obligaría a
+  cambiar dos números y el que se olvida deja media app con dibujo y media sin. **Medido en las 48
+  celdas** (4 escenas × 2 temas × 6 anchos): a **1200, 900 y 790 px** diagrama con el texto a
+  **11,5 px exactos**, tabla compacta y lista escondida; a **770, 390 y 360 px** sin diagrama y con
+  la lista larga entera. ⚠️ **Un iPad en vertical son 768 px y queda 12 px por debajo**:
+  `PENDIENTES.md` → E1.
+- **A 360 px LA VENTANA ES LA DE HEAD, LETRA POR LETRA:** A/B en las **69 escenas** con **0
+  diferencias** en el texto VISIBLE del cuerpo, en su hash, en el número de filas y en el de filas
+  con geometría, y **cero diagramas visibles** a ese ancho.
+- **CONTROL NEGATIVO MAYOR: la BSE 2024 en ritmo sinusal y en FA, y la ASE/EACVI 2016 en FA, 9
+  escenas con 0 diferencias contra HEAD** en el cuadro, la ventana, el dibujo, la tabla, la lista
+  larga, el ensanche de la tarjeta y los avisos ámbar. La BSE sigue dibujando sus f17 y f19.
+
+- ⚠️ **EL HUECO ENTRE FILAS PASÓ A SER POR PLANO (`plano.gap`), Y NO ES COSMÉTICO.** Lo fija el
+  rótulo de la arista más baja, no el aire que se ve bien: de `a25.elevada` salen **cuatro** aristas
+  con rótulo y, con los 34 px de la BSE, la cuarta calle cae DENTRO de la fila de abajo — el rótulo
+  no desaparece de forma que se note, lo tapa la caja —que se dibuja después— y el dibujo parece
+  tener flechas sin nombre. La BSE **no cambia**: `plano.gap || BSE_DG.GAP`.
+- ⚠️ **CADA COLUMNA ES UNA CADENA COMPLETA, y tampoco es decoración.** Una vertical larga necesita
+  su columna libre en **todas** las filas que cruza: en la Figura 8 la cadena del «ninguno o uno
+  positivo» baja por la columna 0 y la de «tres o más» por la 4, y las cajas del paso 2 viven en
+  las del medio. Con las cadenas mezcladas, una de esas líneas cruzaría una caja por la que el
+  paciente **no pasó**, y el dibujo diría lo contrario de lo que el camino dice.
+- ⚠️ **LA SUPERPOSICIÓN DE RÓTULOS SE MIDE, NO SE MIRA EN EL PNG.** El grupo `geo` de la sonda
+  compara la caja de texto de cada rótulo contra la de cada caja y contra la de los otros rótulos:
+  **cero choques y cero rótulos tapados en las 69 escenas**. **Destapó tres defectos reales** que la
+  captura había dejado pasar, y uno de ellos es estructural: **`calleAntes` choca SIEMPRE con el
+  rótulo «Resultado de este paciente» si la arista termina en un nodo FINAL** —pone su rótulo 3 px
+  encima de la caja destino, que es justo donde el motor lo imprime—.
+- ⚠️ **EL PREFIJO `bse-` ES HISTÓRICO Y NO DE ALCANCE.** Las clases, los atributos y las funciones
+  nacieron con la BSE y hoy los comparten las cinco guías-vía. Renombrarlos obligaría a adaptar
+  TC-460 y `scripts/_probe_bsediag.mjs` enteros sin cambiar una línea de comportamiento, así que se
+  reusaron tal cual. `PENDIENTES.md` → E8.
+
+- **Arnés: `scripts/_probe_asediag.mjs`** (A/B de solo lectura con `--file`), nueve grupos
+  (`camino`, `diagrama`, `geo`, `ancho`, `angosto`, `tabla`, `superficies`, `excelab`, `otras`) más
+  `captura`. **69 escenas** cargadas con teclas reales: las 24 de la ASE 2025 sinusal, las 16 de su
+  FA y las 29 de la ASE/EACVI 2016, reusadas de `_probe_diast2025.mjs`, `_probe_diastfa.mjs` y
+  `_probe_ase2016.mjs`.
+  **Cobertura: TC-462**, **42 condiciones** con cuatro denominadores y nueve controles negativos,
+  que recorre las **28 ramas** de las cuatro vías. **Verificado que sabe fallar contra HEAD en un
+  worktree aparte: 26 de las 42 en rojo**; las 16 que pasan son los denominadores de las funciones
+  dueñas, el badge del cuadro —que esta tanda no mueve—, las tres reglas de CSS que ya existían para
+  la BSE y los controles negativos de la BSE 2024 y de la FA de la ASE/EACVI 2016.
+- ⚠️ **CASOS ADAPTADOS: UNO, TC-460**, con el motivo escrito en el caso. Su control negativo
+  afirmaba que la ASE 2025 y la ASE/EACVI 2016 no dibujan diagrama «ni en sinusal ni en FA», y esta
+  tanda se lo da a tres vías más. Queda el único que sigue siendo cierto —la FA de la ASE/EACVI
+  2016— y el resto lo fija TC-462.
+- ⚠️ **UN TECLEO QUE NO OCURRIÓ NO ES UNA MEDICIÓN, Y MI PROPIA SONDA LO HIZO EN TRES ESCENAS.** El
+  aviso legal **vuelve a mitad de corrida**: con `#modalAvisoEco` puesto, `clicEn` cae a su respaldo
+  por tecla, un `input` numérico no recibe nada y la escena informa el veredicto de **otro
+  paciente** — la primera corrida del grupo `diagrama` dijo «S03 termina en presión normal sin
+  grado» sobre un paciente cuyas tres variables son negativas. Hoy la sonda despeja antes de cada
+  escena y **aborta** nombrando el campo si un tecleo no quedó.
+- ⚠️ **TC-462 MORÍA POR EXCEPCIÓN CONTRA HEAD Y NO POR SUS CONDICIONES.** `dia.enCam` no existe en
+  un árbol sin estos diagramas y un `.slice()` mata la corrida entera con un `TypeError`: prueba que
+  el árbol es distinto, no que el caso sabe medir. Todas las lecturas del dibujo van con su
+  respaldo `|| []`. Es la misma lección que TC-455 ya tiene escrita.
+- ⚠️ **Me comí el acento grave UNA vez**, en un comentario mío dentro del template de la sonda, con
+  el archivo que documenta la trampa abierto delante. Esta vez lo cazó `node --check` con la línea
+  exacta; `scripts/check_backticks.py` corrió limpio antes de cada commit.
+- ⚠️ **ESCRIBÍ «23 ramas» EN EL TÍTULO DE TC-462 ANTES DE CONTARLAS, Y SON 28.** Lo cazó el propio
+  denominador del caso en su primera corrida, que es para lo que está. **Contar y después escribir**,
+  igual que medir y después escribir.
 
 ### Doppler mitral: el S/D sin legado y los 16 campos en cuatro columnas (2026-10-13)
 
