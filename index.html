@@ -31946,18 +31946,55 @@ const EA_GRADO_ORDEN = Object.freeze({ sin:0, esclerosis:1, leve:2, moderada:3, 
    y deja `null` para un AVA ≤0, que NO es «sin estenosis» sino «no se puede graduar». Una cascada
    por `bajo` perdería esa tercera salida. De acá sale sólo el `1.5`, que era el único literal.
 
-   ⚠️ EL GRADIENTE SÓLO SABE DECIR «SEVERA». No tiene cortes de leve ni de moderada, así que por
-   debajo de 40 se ABSTIENE en vez de votar: puede agravar el grado y nunca suavizarlo. Inventarle
-   cortes sería tocar contenido clínico. `EA_CRIT.gmed` tiene el mismo 40 escrito aparte y NO se
-   unificó en esta tanda — está declarado en el reporte. */
+   ⚠️ EL GRADIENTE MEDIO GANA SU BANDA DE MODERADA EL 2026-10-13, Y ESTE PÁRRAFO DECÍA LO
+   CONTRARIO. Decía: «EL GRADIENTE SÓLO SABE DECIR SEVERA. No tiene cortes de leve ni de moderada,
+   así que por debajo de 40 se ABSTIENE en vez de votar… inventarle cortes sería tocar contenido
+   clínico». La primera mitad era falsa y la segunda sigue siendo cierta: los cortes NO se
+   inventaron, se leyeron de la **Tabla 3 de la EAE/ASE 2009, p. 10** —folio verificado en el pie
+   impreso, «10 Baumgartner et al»—, que es la guía de estenosis valvular de la biblioteca y la
+   única fuente verificada que publica las tres bandas.
+   ⚠️ ESA TABLA TRAE DOS JUEGOS DE GRADIENTE MEDIO Y HAY QUE ELEGIR, porque no dicen lo mismo:
+   la columna sin superíndice es la de **AHA/ACC** (`<20` · `20-40` · `>40`) y la que va entre
+   paréntesis con `ᵃ` es la de **ESC de 2009** (`<30` · `30-50` · `>50`). Se usa la de AHA/ACC
+   porque su corte severo —40— es el que la **ESC/EACTS 2025 publica hoy** (folio 4663, verificado
+   en el pie impreso: «mean gradient ≥40 mmHg»); tomar la columna ESC de 2009 pondría el corte
+   severo en 50 y contradiría a la guía vigente, que es la primera de la prioridad.
+   ⚠️ EL BORDE SEVERO ES `>=` Y NO `>`, y la app ya lo tenía así: la ESC/EACTS 2025 escribe
+   `≥40 mmHg`. La Tabla 3 de 2009 escribe `>40` en esa misma casilla; con `>=` el 40 exacto cae del
+   lado severo, que es el de la guía vigente y el conservador. **No se movió el operador.**
+   ⚠️ Y LA BANDA LEVE (`<20`) NO VOTA — EL GRADIENTE SE SIGUE ABSTENIENDO AHÍ. Esa banda de la
+   Tabla 3 no tiene cota inferior que la separe de lo NORMAL: un gradiente medio de 3 mmHg es el de
+   una válvula sana y cae en «Mild» igual que uno de 19. Votar 'leve' ahí haría que un paciente sin
+   estenosis publicara «EAo leve.» en un informe firmado, que es lo contrario de lo que la guía
+   dice. La abstención es la misma convención que el gradiente ya usaba, que `IA_VMAX_TD_SEVERA`
+   usa en la IAo y que este archivo declara para todo criterio sin corte aplicable: puede agravar
+   el grado y nunca suavizarlo. Queda declarado en `docs/PENDIENTES.md`.
+   `EA_CRIT.gmed` tiene el mismo 40 escrito aparte y NO se unificó — está declarado en el reporte.
+
+   ⚠️ EL PRIMER CORTE DE LA Vmax PASA DE 2,0 A 2,6 m/s, Y ES UN CAMBIO DE CORTE. El 2,0 no salía de
+   ninguna guía de la biblioteca; la Tabla 3 separa **esclerosis aórtica `≤2,5 m/s`** de **leve
+   `2,6-2,9`**, así que con el corte en 2,6 una Vmax de 2,3 deja de publicar «EAo leve.» y pasa al
+   centinela. **Mueve informes en la dirección tranquilizadora y por eso se declara:** es
+   exactamente lo que la guía dice, y la Vmax es la ÚNICA de las seis variables que tiene un techo
+   de normalidad publicado —por eso es la única que puede votar la banda leve sin afirmar estenosis
+   sobre un corazón sano—.
+   ⚠️ SE EMITE `'sin'` Y NO `'esclerosis'` EN ESA BANDA, aunque el `<select>` tenga la opción y la
+   tabla la nombre. La esclerosis aórtica es un hallazgo MORFOLÓGICO —engrosamiento valvular sin
+   obstrucción— y no se deduce de una velocidad: un corazón con válvula normal también tiene la
+   Vmax por debajo de 2,5. Emitirla automáticamente pondría «con esclerosis valvular» en el informe
+   firmado de todo paciente sano. `eaGradoCalculado` sigue sin emitir ese token nunca. */
 const EA_BANDAS = Object.freeze({
   vmax: Object.freeze([
-    Object.freeze({ bajo: 2.0,      grado: 'sin' }),
+    Object.freeze({ bajo: 2.6,      grado: 'sin' }),
     Object.freeze({ bajo: 3.0,      grado: 'leve' }),
     Object.freeze({ bajo: 4.0,      grado: 'moderada' }),
     Object.freeze({ bajo: Infinity, grado: 'severa' })
   ]),
   avaSinMin: 1.5,
+  /* Tabla 3 de la EAE/ASE 2009, p. 10, columna AHA/ACC: moderada `20-40`. El borde inferior es
+     `>=` por el mismo argumento que el severo: la banda de abajo no vota, así que el 20 exacto
+     tiene que caer en alguna y la que lo reclama es ésta. */
+  gmedModMin: 20,
   gmedSevMin: 40
 });
 window.EA_BANDAS = EA_BANDAS;
@@ -32015,7 +32052,15 @@ function eaGradoCalculado() {
     const _b = _eaBandaVmax(vmax);
     gVel = _b ? _b.grado : null;
   }
-  const gGrad = (gmedio !== null && gmedio >= EA_BANDAS.gmedSevMin) ? 'severa' : null;
+  /* ⚠️ TRES SALIDAS Y NO DOS DESDE EL 2026-10-13, y la tercera sigue siendo la ABSTENCIÓN. El
+     orden importa: severa primero, así que el 40 exacto cae del lado severo y las dos bandas no
+     se solapan nunca —el defecto que la aórtica ya pagó con el 1,00 del AVA—. Por debajo de
+     `gmedModMin` devuelve `null`, que es «este criterio no se pronuncia» y NO «sin estenosis»:
+     ver el comentario de `EA_BANDAS` para por qué la banda leve de la Tabla 3 no se puede votar. */
+  const gGrad = (gmedio === null) ? null
+    : (gmedio >= EA_BANDAS.gmedSevMin) ? 'severa'
+    : (gmedio >= EA_BANDAS.gmedModMin) ? 'moderada'
+    : null;
   let gAva = null;
   if (ava !== null) {
     if (ava >= EA_BANDAS.avaSinMin) gAva = 'sin';
@@ -32047,8 +32092,11 @@ function _eaBadgeAuto(R) {
     'el gradiente medio o los tres insumos del AVA por continuidad.';
   const partes = [];
   if (R.vmax !== null)   partes.push('Vmax ' + R.vmax + ' m/s (' + EA_GRADO_TXT[R.gVel] + ')');
+  /* El número sale de `EA_BANDAS` y no se tipea: el día que el corte se mueva, el badge se mueve
+     con él. Decía «no gradúa por debajo de 40» con el 40 escrito a mano, y ese literal quedó
+     equivocado en el mismo commit que le dio al gradiente su banda de moderada. */
   if (R.gmedio !== null) partes.push('G. medio ' + R.gmedio + ' mmHg (' +
-    (R.gGrad ? EA_GRADO_TXT[R.gGrad] : 'no gradúa por debajo de 40') + ')');
+    (R.gGrad ? EA_GRADO_TXT[R.gGrad] : 'no gradúa por debajo de ' + EA_BANDAS.gmedModMin) + ')');
   if (R.ava !== null)    partes.push('AVA ' + R.ava.toFixed(2) + ' cm² (' + EA_GRADO_TXT[R.gAva] + ')');
   return 'Grado calculado: ' + _eaCap(EA_GRADO_TXT[R.grado]) + ' — el peor de los criterios cargados, por ' +
     R.criterio + '. ' + partes.join(' · ') + '. ESC/EACTS 2025. Editable manualmente.';
@@ -35357,15 +35405,21 @@ function aoRefPintar() {
       (b ? grado(b.grado) + gris('(' + _eaRangoVmax(b.i) + ')') : ''));
   }
 
-  // ── G. medio ── sólo sabe decir «severa»; por debajo del corte se abstiene (ver `EA_BANDAS`)
+  /* ── G. medio ── TRES ramas desde el 2026-10-13: severa, moderada y la abstención. Los tres
+     números salen de `EA_BANDAS`, que es el dueño: esta fila imprime el mismo corte que decide el
+     voto, o la pantalla y el informe se separan. Por debajo de `gmedModMin` sigue diciendo «no
+     gradúa» y no «leve» — ver el comentario de `EA_BANDAS`. */
   const gmed = v('gmedio_ao');
   if (gmed === null) set('ao-ref-gmed', '—');
   else if (gmed >= EA_BANDAS.gmedSevMin) {
     set('ao-ref-gmed', '<b>' + gmed + ' mmHg</b> ' + grado('severa') +
       gris('(≥' + EA_BANDAS.gmedSevMin + ' mmHg)'));
+  } else if (gmed >= EA_BANDAS.gmedModMin) {
+    set('ao-ref-gmed', '<b>' + gmed + ' mmHg</b> ' + grado('moderada') +
+      gris('(' + EA_BANDAS.gmedModMin + ' a <' + EA_BANDAS.gmedSevMin + ' mmHg)'));
   } else {
     set('ao-ref-gmed', '<b>' + gmed + ' mmHg</b>' +
-      gris('no gradúa (<' + EA_BANDAS.gmedSevMin + ' mmHg)'));
+      gris('no gradúa (<' + EA_BANDAS.gmedModMin + ' mmHg)'));
   }
 
   // ── AVA por continuidad ── mismos predicados que gradúan, mismos cortes
@@ -106013,8 +106067,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261013-1426';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791912376883;                 /* eco-build-ms */
+const ECO_BUILD    = '20261013-1514';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791915267771;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -106100,7 +106154,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-1426</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-1514</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

@@ -3457,7 +3457,11 @@ caso('TC-463', 'Borrado en Valvulas: un campo vacio no vota ni deja grado en las
     { les:'ia', id:'ia_pht',      fila:null,           pre:{}, v:{ leve:'550', moderada:'300', severa:'150' } },
     { les:'ia', id:'ia_vti_desc', fila:null,           pre:{}, v:{ leve:'10', moderada:'20', severa:'30' } },
     { les:'ia', id:'ia_pisa_r',   fila:'ia-eroa',      pre:{ ia_pisa_val:'40', ia_vmax_cw:'5' }, v:{ leve:'4', moderada:'6', severa:'9' } },
-    { les:'ea', id:'vmax_ao',     fila:null,           pre:{}, v:{ leve:'2', moderada:'3', severa:'4' } },
+    /* ADAPTADO 2026-10-13: el valor LEVE pasa de 2 a 2.7. El primer corte de la Vmax se movio de
+       2,0 a 2,6 m/s —Tabla 3 de la EAE/ASE 2009, p. 10, que separa esclerosis <=2,5 de leve
+       2,6-2,9— asi que una Vmax de 2 ya NO es leve: es el centinela. El caso afirma «cada valor
+       carga el grado que su valor manda», y con el 2 estaba afirmando el corte de ayer. */
+    { les:'ea', id:'vmax_ao',     fila:null,           pre:{}, v:{ leve:'2.7', moderada:'3', severa:'4' } },
     { les:'ea', id:'gmedio_ao',   fila:null,           pre:{}, v:{ severa:'45' } },
     { les:'it', id:'it_vc',       fila:'it-ref-vc',    pre:{}, v:{ leve:'2', moderada:'5', severa:'8' } },
     { les:'it', id:'it_pisa_r',   fila:'it-eroa',      pre:{ it_pisa_val:'40', it_vmax_cw:'5' }, v:{ leve:'6', moderada:'7', severa:'10' } }
@@ -3540,7 +3544,10 @@ caso('TC-463', 'Borrado en Valvulas: un campo vacio no vota ni deja grado en las
   const DOS = [
     { les:'im', pre:{ im_ai_area:'20' }, a:['im_vc','7'],     b:['im_jet_area','3'] },
     { les:'ia', pre:{},                  a:['ia_pht','150'],  b:['ia_vc','2'] },
-    { les:'ea', pre:{},                  a:['gmedio_ao','45'],b:['vmax_ao','2'] },
+    /* ADAPTADO 2026-10-13: la Vmax que QUEDA pasa de 2 a 2.7, por el corte nuevo (ver arriba).
+       Con 2 el grado que queda seria el centinela y la escena dejaria de separar «retira siempre»
+       de «recalcula», que es exactamente lo que este bloque mide. */
+    { les:'ea', pre:{},                  a:['gmedio_ao','45'],b:['vmax_ao','2.7'] },
     { les:'it', pre:{ it_pisa_val:'40', it_vmax_cw:'5' }, a:['it_vc','8'], b:['it_pisa_r','6'] }
   ];
   R.dos = []; R.dosMal = [];
@@ -3651,7 +3658,10 @@ caso('TC-463', 'Borrado en Valvulas: un campo vacio no vota ni deja grado en las
     { les:'im', v:'mitral',     t:'insuf', c:'im_vc',   x:'7'   },
     { les:'ia', v:'aortica',    t:'insuf', c:'ia_pht',  x:'150' },
     { les:'it', v:'tricuspide', t:'insuf', c:'it_vc',   x:'8'   },
-    { les:'ea', v:'aortica',    t:'esten', c:'vmax_ao', x:'2'   },
+    /* ADAPTADO 2026-10-13: 2 -> 2.7 por el corte nuevo de la Vmax. Con 2 la app ya no escribe
+       grado, asi que no prende la pastilla y la escena media el apagado de un boton que nadie
+       habia prendido — un denominador vacio que pasa por un hallazgo. */
+    { les:'ea', v:'aortica',    t:'esten', c:'vmax_ao', x:'2.7' },
     { les:'ea', v:'aortica',    t:'esten', c:'vmax_ao', x:'3'   },
     { les:'ea', v:'aortica',    t:'esten', c:'vmax_ao', x:'4'   }
   ];
