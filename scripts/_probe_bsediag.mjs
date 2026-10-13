@@ -32,7 +32,7 @@
 
 import { createServer } from 'node:http';
 import { spawn } from 'node:child_process';
-import { readFile, mkdtemp, rm } from 'node:fs/promises';
+import { readFile, writeFile, mkdtemp, rm } from 'node:fs/promises';
 import { rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname, extname, isAbsolute, basename } from 'node:path';
@@ -405,9 +405,20 @@ window.__P = {
     var aristas = Array.from(svg.querySelectorAll('[data-arista]')).map(function (a) {
       return { id: a.getAttribute('data-arista'), enCamino: a.getAttribute('data-en-camino') === '1',
                trazo: getComputedStyle(a).stroke, ancho: getComputedStyle(a).strokeWidth } });
+    /* ⚠️ EL TAMANIO RENDERIZADO NO ES el fontSize computado. Dentro de un SVG con
+       viewBox, la hoja declara 11,5 px en unidades de USUARIO y el navegador sigue informando
+       11,5 px aunque el dibujo este escalado a la mitad: el computado NO conoce la escala. El
+       numero que importa es 11,5 x (ancho dibujado / ancho del viewBox), y asi se midio el
+       umbral. Se informan los tres para que un falso se vea. */
     var fs = null;
     var tt = svg.querySelector('g[data-nodo] text');
-    if (tt) { var r = tt.getBoundingClientRect(); fs = { font: getComputedStyle(tt).fontSize, alto: Math.round(r.height * 10) / 10 } };
+    var vb = (svg.getAttribute('viewBox') || '0 0 700 100').split(/\s+/);
+    var anchoDib = svg.getBoundingClientRect().width;
+    var escala = anchoDib / (parseFloat(vb[2]) || 700);
+    if (tt) { var r = tt.getBoundingClientRect();
+      fs = { font: getComputedStyle(tt).fontSize, alto: Math.round(r.height * 10) / 10,
+             anchoDib: Math.round(anchoDib), escala: Math.round(escala * 1000) / 1000,
+             px: Math.round(parseFloat(getComputedStyle(tt).fontSize) * escala * 100) / 100 } };
     return { existe: true, disp: disp, dispCaja: dispCaja, fig: svg.getAttribute('data-bse-diag'),
              nodos: nodos, nNodos: nodos.length,
              enCamino: nodos.filter(function (n) { return n.enCamino }).map(function (n) { return n.id }),
@@ -1096,6 +1107,41 @@ async function main() {
                          ventana: v, lista: lis, dia, tabla: tab });
     }
     await anchoLibre();
+  }
+
+  /* ══ CAPTURA ══ PNG del diagrama en los dos temas, para mirarlo de verdad. `--out <dir>`.
+     No mide nada: es para que el dibujo se pueda revisar con los ojos, que es la unica forma de
+     ver que dos cajas no se pisan o que una flecha pasa por encima de un rotulo. */
+  if (hacer('captura')) {
+    const dir = arg('--out') || tmpdir();
+    out.captura = [];
+    await ancho(1200);
+    const SUBC = (arg('--escenas') || 'S01-3neg,S08-dos-1y1-LARSbajo,S09-dos-1y1-LARSgris-ArAneg,S16-sin-edad,S19-fevi40,S25-fevi-red-2crit-sd').split(',');
+    for (const t of TEMAS) {
+      await tema(t);
+      for (const id of SUBC) {
+        const e = ESCENAS.concat(ESCENAS_FA).find((x) => x.id === id);
+        if (!e) { out.captura.push({ id, err: 'ESCENA INEXISTENTE' }); continue; }
+        const esFA = ESCENAS_FA.indexOf(e) > -1;
+        const base = esFA ? Object.assign(esc('bse2024', e.sel), { diast_ritmo: 'fa' }) : esc('bse2024', e.sel);
+        const carga = await cargar(e.c, base, e.teclas);
+        if (!btn.err) await clicEn(btn.sel);
+        const caja = await ev(`(function(){ var c=document.querySelector('#diast-algo-cuerpo [data-bse-diag-caja]');
+          if(!c) return null; var r=c.getBoundingClientRect();
+          return { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) } })()`);
+        let f = null;
+        if (caja && caja.w > 0 && caja.h > 0) {
+          const png = await cdp.send('Page.captureScreenshot',
+            { format: 'png', clip: { x: caja.x, y: caja.y, width: caja.w, height: caja.h, scale: 2 } }, sessionId);
+          f = join(dir, 'bsediag_' + id.replace(/[^A-Za-z0-9]/g, '') + '_' + t + '.png');
+          await writeFile(f, Buffer.from(png.data, 'base64'));
+        }
+        if (!btnX.err) await clicEn(btnX.sel);
+        out.captura.push({ id, tema: t, carga: carga.todosOk ? 'OK' : carga.tecleos, caja, archivo: f });
+      }
+    }
+    await anchoLibre();
+    await tema('oscuro');
   }
 
   /* ══ TABLA ══ el plegable: nace cerrado, se abre con el teclado y anuncia su estado. */

@@ -582,6 +582,47 @@
   .da-res  { margin-top:12px; padding:10px 12px; border-radius:8px; background:var(--bg3);
              border:1px solid var(--border); font-size:12px; line-height:1.55; }
   .da-res b { color:var(--accent2); }
+  /* ══ DIAGRAMA DE FLUJO DE LA BSE 2024 (ventana 🧭) ═══════════════════════════════════════
+     SIN COLORES: el dibujo entero va en los grises del tema y lo UNICO en rojo es el camino de
+     ESTE paciente, con linea gruesa. Y no se depende solo del color: el nodo final lleva un
+     rotulo de texto («Resultado de este paciente») y debajo del dibujo va el camino EN PALABRAS,
+     que es lo que lee un lector de pantalla.
+
+     ⚠️ EL UMBRAL DE ANCHO ES 780 px Y SALE DE UNA MEDICION, no de un numero redondo. El SVG se
+     dibuja sobre un viewBox de 700 px con texto de 11,5 px y lleva `max-width:700px`, asi que
+     por encima del umbral NO se escala: el texto renderiza exactamente a 11,5 px. Por debajo de
+     721 px de viewport el ancho util del cuerpo (min(760, vw-24) - 28) cae de 669 px y el texto
+     bajaria de los 11 px que esta tanda se fijo como piso de legibilidad; el umbral queda en 780
+     para dejar 59 px de margen y porque es donde la tarjeta ya alcanza sus 760 px.
+     Por DEBAJO del umbral no se dibuja nada: la ventana queda exactamente como estaba.
+
+     ⚠️ LA TARJETA SE ENSANCHA SOLO PARA LA BSE, por la clase `bse-ancho` que pone
+     `diastAlgoRender`. Sin ese alcance, la ventana de la ASE 2025 y la de la ASE/EACVI 2016
+     cambiarian de ancho — y esta tanda las deja identicas a HEAD. */
+  .bse-diag-caja { display:none; }
+  .bse-diag { width:100%; max-width:700px; height:auto; display:block; margin:0 auto; }
+  .bse-diag text  { fill:var(--text2); font-size:11.5px; }
+  .bse-diag .n-tit{ fill:var(--text); font-weight:600; }
+  .bse-diag rect  { fill:var(--bg3); stroke:var(--border); stroke-width:1; }
+  .bse-diag .n-app rect { stroke-dasharray:4 3; }
+  .bse-diag g.cam rect { stroke:var(--red); stroke-width:2.5; }
+  .bse-diag g.cam text, .bse-diag g.cam .n-tit { fill:var(--text); }
+  .bse-diag path.ar { fill:none; stroke:var(--border); stroke-width:1.4; }
+  .bse-diag path.ar.cam { stroke:var(--red); stroke-width:3; }
+  .bse-diag .rot-fin { fill:var(--red); font-weight:700; font-size:10.5px; }
+  .bse-diag .ar-et { font-size:10px; fill:var(--text2); }
+  .bse-pie { font-size:10.5px; color:var(--text2); line-height:1.45; margin:8px 0 0;
+             border-top:1px solid var(--border); padding-top:6px; }
+  .bse-alt { font-size:11px; color:var(--text2); line-height:1.5; margin:6px 0 0; }
+  @media (min-width:780px) {
+    /* ⚠️ EL `!important` NO ES DECORATIVO: `#diast-algo-card` lleva `width:560px` en un `style`
+       EN LINEA, y una declaracion en linea le gana a cualquier selector de hoja por mucha
+       especificidad que tenga. Sin el, la tarjeta se quedaba en 560 px, el SVG se escalaba a
+       530 y su texto bajaba a 8,7 px — una regla que no gana se lee como un arreglo aplicado,
+       que es una leccion que este archivo ya pago tres veces. */
+    #diast-algo-overlay.bse-ancho #diast-algo-card { width:760px !important; }
+    .bse-diag-caja { display:block; }
+  }
   .am-head { display:flex; align-items:center; justify-content:space-between; gap:10px; cursor:pointer; user-select:none; }
   .am-head .am-tit { display:flex; align-items:center; gap:6px; font-weight:600; }
   .am-head .am-arrow { transition:transform .18s; font-size:11px; color:var(--text2); }
@@ -23904,6 +23945,315 @@ function _daContar(cs) {
   return { pos, eval: eval_ };
 }
 
+// ══════════════════════════════════════════════════════════════════
+// DIAGRAMA DE FLUJO DE LA BSE 2024 — ventana 🧭
+// ══════════════════════════════════════════════════════════════════
+/* Redibuja el algoritmo de la guia con el camino de ESTE paciente marcado, y pone en cada caja
+   los valores que el estudio ya tiene cargados. Es SOLO PANTALLA: no calcula nada, no escribe
+   ningun campo y no toca el informe, el EN SUMA, el PDF, el PPT, el Excel ni el Laboratorio.
+   El camino se lo da la funcion DUENIA del veredicto (`R.camino`), que es la misma que firma el
+   cuadro gris: con un camino calculado aparte, el dibujo podria contradecir al badge.
+
+   ⚠️ EL DIBUJO ES PROPIO. La BSE 2024 es de acceso abierto bajo CC BY 4.0 —el pie de su pagina 1
+   lo dice y exige «appropriate credit to the original author(s) and the source, a link to the
+   licence, and indicate if changes were made»—, asi que reproducir su figura seria legitimo
+   citandola; igual el dibujo es otro: otra disposicion, otras palabras y los valores del paciente
+   adentro, que la figura original no tiene. El pie nombra la figura, la pagina y la licencia, y
+   dice que es un redibujo. Los rotulos NO copian el literal de las cajas.
+
+   ⚠️ SIN COLORES. Todo el dibujo va en los grises del tema y lo unico en rojo es el camino. Y no
+   se depende solo del color: el nodo final lleva el rotulo «Resultado de este paciente» y debajo
+   va el camino EN PALABRAS. */
+
+/* Las cuatro columnas y el ancho util. El viewBox es de 700 px de ancho y el SVG lleva
+   `max-width:700px`, asi que por encima del umbral de 780 px no se escala y el texto renderiza
+   a sus 11,5 px exactos. */
+const BSE_DG = { W: 700, C: [4, 180, 356, 532], CW: 164, GAP: 26, PAD: 7, LH: 13, TIT: 13.5 };
+function _bdX(col) { return (col === 'full') ? BSE_DG.C[0] : BSE_DG.C[col]; }
+function _bdW(col, span) { return (col === 'full') ? (BSE_DG.C[3] + BSE_DG.CW - BSE_DG.C[0])
+                                                  : (BSE_DG.CW * (span || 1) + (BSE_DG.C[1] - BSE_DG.C[0] - BSE_DG.CW) * ((span || 1) - 1)); }
+
+/* El rotulo de un criterio sale de su propia fila: se corta el `crit` en el primer operador, asi
+   que «E/e' promedio > 14» da «E/e' promedio» y «LARS >= 30 % -> presion normal» da «LARS». Si no
+   hay operador —el caso de «no evaluable: falta la edad»— se devuelve el texto entero y no se
+   agrega ningun valor, porque no hay un criterio que medir. */
+function _bdFilaTxt(f) {
+  const crit = String(f.crit || '');
+  const m = crit.match(/^([^<>≥≤]+?)\s*[<>≥≤]/);
+  if (!m) return crit;
+  const hay = (typeof f.val === 'number') ? !isNaN(f.val)
+            : (f.val !== null && f.val !== undefined && String(f.val).trim() !== '');
+  if (!hay) return m[1].trim() + ' sin dato';
+  const num = (typeof f.val === 'number') ? f.val.toFixed(f.dec == null ? 1 : f.dec) : String(f.val);
+  return m[1].trim() + ' ' + num + (f.u ? ' ' + f.u : '') + (f.ok ? ' (+)' : ' (−)');
+}
+/* ⚠️ EL TEXTO DE UN SVG NO SE ENVUELVE SOLO: un `<text>` mas ancho que su caja se dibuja igual,
+   desbordando por los dos lados y pisando la caja de al lado. No hay `overflow` que lo recorte.
+   Se parte por palabras contra un presupuesto de caracteres calculado del ancho de la caja: a
+   11,5 px la fuente de esta app mide ~5,9 px por caracter, medido sobre el renglon mas largo del
+   dibujo. Una palabra sola mas larga que el presupuesto se deja entera —cortarla a la mitad es
+   peor que un desborde de dos letras— y por eso la altura se calcula DESPUES de envolver. */
+function _bdEnvolver(txt, w) {
+  const max = Math.max(8, Math.floor((w - 12) / 5.9));
+  const pal = String(txt == null ? '' : txt).split(' ');
+  const out = []; let linea = '';
+  pal.forEach(function (p) {
+    if (!linea) { linea = p; return; }
+    if ((linea + ' ' + p).length <= max) linea += ' ' + p;
+    else { out.push(linea); linea = p; }
+  });
+  if (linea) out.push(linea);
+  return out.length ? out : [''];
+}
+
+/* Los valores de un nodo: las filas que el DUENIO marco con ese `nodo`. Leer de las mismas filas
+   que la lista muestra es lo que impide que la caja y el renglon se contradigan sobre el mismo
+   numero — y es por lo que el commit anterior etiqueto las filas en vez de volver a leer el DOM. */
+function _bdVals(R, id) {
+  return (R.filas || []).filter(function (f) { return f.nodo === id; }).map(_bdFilaTxt);
+}
+
+/* El renglon de la Tabla 2 (pag. 13) que le toca a ESTE paciente, con sus dos cortes y sus dos
+   valores medidos. Con la edad por debajo de 18, sin edad o sin el sexo en la franja 18-40, la
+   caja dice QUE FALTA y no inventa una fila: la tabla arranca en los 18 anios y no tiene columna
+   neutra para esa franja. */
+function _bdTabla2(R) {
+  const ep = R.eprima || {};
+  if (!ep.evaluable) {
+    return ['Tabla 2 no aplicable:', (ep.motivo === 'rango' ? String(ep.que) : 'falta ' + String(ep.que || 'el dato'))];
+  }
+  const c = ep.cortes, sx = sv('sexo');
+  const franja = c.franja + (c.porSexo ? (sx === 'F' ? ', mujer' : ', varón') : '');
+  const vs = (x) => (x === null || x === undefined || x === '' || isNaN(x)) ? 'sin dato' : String(Number(x).toFixed(1)).replace('.', ',');
+  return [franja,
+          "e' septal <" + String(c.sep).replace('.', ',') + ' (' + vs(R.esep) + ')',
+          "e' lateral <" + String(c.lat).replace('.', ',') + ' (' + vs(R.elat) + ')',
+          '→ relajación ' + (ep.alterada ? 'alterada' : 'normal para la edad')];
+}
+
+/* La caja de entrada nombra los DOS datos que eligieron la via (pag. 35), con sus valores. Sin
+   ninguno de los dos cargados la app corre la via de FEVI normal —es lo que hace HEAD— y la caja
+   lo dice: «sin dato» al lado del rotulo es lo que evita que el dibujo afirme una FEVI normal que
+   nadie midio. El tercer motivo de entrada a la Figura 18, «known myocardial disease», la app no
+   lo mide y no se dibuja. */
+function _bdFeviGls(R) {
+  const f = (R && R.fevi !== null && R.fevi !== undefined && !isNaN(R.fevi)) ? (R.fevi.toFixed(0) + ' %') : 'sin dato';
+  const g = (R && R.sgl !== null && R.sgl !== undefined && !isNaN(R.sgl)) ? (R.sgl.toFixed(1) + ' %') : 'sin dato';
+  return ['FEVI ' + f + ' · GLS ' + g];
+}
+
+/* ══ EL MOTOR ══ Toma un plano (columnas, filas, nodos y aristas) y el camino, y devuelve el SVG.
+   Las alturas se calculan del contenido y las `y` se acumulan por fila: una caja a la que le
+   entra un renglon mas no se superpone con la de abajo. */
+function _bseDiagSVG(plano, R) {
+  const cam = (R && R.camino) ? R.camino.slice() : [];
+  const enCam = {}; cam.forEach(function (id) { enCam[id] = true; });
+  /* Las aristas del camino son los pares CONSECUTIVOS: el camino es un recorrido por el grafo,
+     asi que «de A a B» esta pintado si y solo si B viene inmediatamente despues de A. */
+  const parEnCam = {};
+  for (let i = 0; i + 1 < cam.length; i++) parEnCam[cam[i] + '>' + cam[i + 1]] = true;
+
+  const N = {};
+  plano.nodos.forEach(function (n) {
+    const x = _bdX(n.col), w = _bdW(n.col, n.span);
+    const crudos = n.vals ? n.vals(R) : _bdVals(R, n.id);
+    /* Se envuelve ANTES de medir: la altura sale del numero de renglones que de verdad se van a
+       dibujar, no del numero de valores. Con la altura calculada sobre los valores, un renglon
+       partido en dos se salia de su caja y pisaba la de abajo. */
+    const vals = []; crudos.forEach(function (t) { _bdEnvolver(t, w).forEach(function (l) { vals.push(l); }); });
+    const tit = []; n.tit.forEach(function (t) { _bdEnvolver(t, w).forEach(function (l) { tit.push(l); }); });
+    const alto = BSE_DG.PAD * 2 + tit.length * BSE_DG.TIT + vals.length * BSE_DG.LH;
+    N[n.id] = { n: n, tit: tit, vals: vals, x: x, w: w, alto: alto };
+  });
+  /* `y` por fila: alto de la fila = el de su caja mas alta. Las filas vacias no ocupan. */
+  const filas = {};
+  plano.nodos.forEach(function (n) { filas[n.fila] = Math.max(filas[n.fila] || 0, N[n.id].alto); });
+  const ys = {}; let y = 6;
+  Object.keys(filas).map(Number).sort(function (a, b) { return a - b; }).forEach(function (f) {
+    ys[f] = y; y += filas[f] + BSE_DG.GAP;
+  });
+  const H = y + 6;
+  plano.nodos.forEach(function (n) { N[n.id].y = ys[n.fila]; });
+
+  let h = '';
+  /* ARISTAS primero, para que las cajas queden por encima de las lineas. El ruteo es en codo:
+     baja del borde inferior del origen, cruza por una calle horizontal y baja al borde superior
+     del destino. `calle` mueve esa horizontal y `dx` corre el punto de salida o de llegada
+     cuando dos aristas comparten carril — sin eso, dos lineas verticales se pisan y el camino
+     rojo parece pasar por una caja por la que no paso. */
+  plano.aristas.forEach(function (a) {
+    const A = N[a.de], B = N[a.a];
+    if (!A || !B) return;
+    const x1 = A.x + A.w / 2 + (a.dx1 || 0), y1 = A.y + A.alto;
+    const x2 = B.x + B.w / 2 + (a.dx2 || 0), y2 = B.y - 7;
+    /* `calleRel` corre la horizontal unos pixeles por debajo del origen. Es relativa y no
+       absoluta porque las `y` se calculan del contenido: una caja a la que le entra un renglon
+       mas mueve todas las filas de abajo, y una calle en coordenada fija quedaria cruzando una
+       caja. Dos aristas que salen del MISMO nodo hacia lados distintos necesitan calles
+       distintas: con la misma, sus rotulos se imprimen uno encima del otro. */
+    const ym = (a.calleRel !== undefined) ? (y1 + a.calleRel)
+             : (y1 + Math.min(14, (y2 - y1) / 2));
+    const d = (Math.abs(x1 - x2) < 0.5)
+      ? ('M' + x1 + ' ' + y1 + ' L' + x2 + ' ' + y2)
+      : ('M' + x1 + ' ' + y1 + ' L' + x1 + ' ' + ym + ' L' + x2 + ' ' + ym + ' L' + x2 + ' ' + y2);
+    const vivo = !!parEnCam[a.de + '>' + a.a];
+    h += '<path class="ar' + (vivo ? ' cam' : '') + '" d="' + d + '"'
+       + ' marker-end="url(#' + (vivo ? 'bdFlechaCam' : 'bdFlecha') + ')"'
+       + ' data-arista="' + escHtml(a.de + '>' + a.a) + '" data-en-camino="' + (vivo ? '1' : '0') + '"></path>';
+    if (a.et) {
+      /* ⚠️ EN UNA ARISTA VERTICAL EL PUNTO MEDIO ES LA PROPIA LINEA, asi que el rotulo quedaba
+         impreso ENCIMA de la flecha y no se leia ninguno de los dos. Se corre a la derecha y se
+         ancla a la izquierda; en las de codo el medio del tramo horizontal esta libre. */
+      const vert = Math.abs(x1 - x2) < 0.5;
+      h += '<text class="ar-et" x="' + (vert ? (x1 + 9) : ((x1 + x2) / 2)) + '" y="' + (ym - 3) + '"'
+         + ' text-anchor="' + (vert ? 'start' : 'middle') + '">' + escHtml(a.et) + '</text>';
+    }
+  });
+
+  const fin = R && R.nodoFinal ? R.nodoFinal : null;
+  plano.nodos.forEach(function (n) {
+    const o = N[n.id], vivo = !!enCam[n.id], esFin = (n.id === fin);
+    h += '<g data-nodo="' + escHtml(n.id) + '" data-en-camino="' + (vivo ? '1' : '0') + '"'
+       + ' data-final="' + (esFin ? '1' : '0') + '" class="' + (vivo ? 'cam ' : '') + (n.app ? 'n-app' : '') + '">';
+    h += '<rect x="' + o.x + '" y="' + o.y + '" width="' + o.w + '" height="' + o.alto + '" rx="6"></rect>';
+    let ty = o.y + BSE_DG.PAD + 10;
+    o.tit.forEach(function (t) {
+      h += '<text class="n-tit" x="' + (o.x + o.w / 2) + '" y="' + ty + '" text-anchor="middle">' + escHtml(t) + '</text>';
+      ty += BSE_DG.TIT;
+    });
+    o.vals.forEach(function (t) {
+      h += '<text x="' + (o.x + o.w / 2) + '" y="' + ty + '" text-anchor="middle">' + escHtml(t) + '</text>';
+      ty += BSE_DG.LH;
+    });
+    if (esFin) {
+      h += '<text class="rot-fin" x="' + (o.x + o.w / 2) + '" y="' + (o.y - 4) + '" text-anchor="middle">'
+         + 'Resultado de este paciente</text>';
+    }
+    h += '</g>';
+  });
+
+  return '<svg class="bse-diag" data-bse-diag="' + escHtml(plano.fig) + '" viewBox="0 0 ' + BSE_DG.W + ' ' + H + '"'
+       + ' role="img" aria-label="' + escHtml(plano.aria) + '" xmlns="http://www.w3.org/2000/svg">'
+       + '<defs>'
+       + '<marker id="bdFlecha" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">'
+       + '<path d="M0 0 L8 4 L0 8 z" fill="currentColor" style="fill:var(--border)"></path></marker>'
+       + '<marker id="bdFlechaCam" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">'
+       + '<path d="M0 0 L8 4 L0 8 z" style="fill:var(--red)"></path></marker>'
+       + '</defs>' + h + '</svg>';
+}
+
+/* El camino EN PALABRAS: la misma lista de nodos, con el rotulo corto de cada uno. Es lo que lee
+   un lector de pantalla y es lo que hace que el dibujo no dependa solo del color. */
+function _bseDiagAlt(plano, R) {
+  const cam = (R && R.camino) ? R.camino : [];
+  if (!cam.length) return '';
+  const corto = {};
+  plano.nodos.forEach(function (n) { corto[n.id] = n.corto || n.tit.join(' '); });
+  const pasos = cam.map(function (id) { return corto[id] || id; });
+  /* El ultimo paso se nombra como RESULTADO: sin eso, el camino en palabras es una lista de
+     cajas y el que no ve el dibujo no sabe cual de ellas es el veredicto — que es justo lo que
+     esta descripcion existe para resolver. */
+  const fin = pasos.pop();
+  return 'Camino de este paciente: ' + pasos.join(' → ') + ' → resultado: ' + fin + '.';
+}
+
+/* Arma la caja entera: el dibujo, el pie con la fuente y la descripcion accesible. */
+function _bseDiagCaja(plano, R) {
+  return '<div class="bse-diag-caja" data-bse-diag-caja="' + escHtml(plano.fig) + '">'
+       + _bseDiagSVG(plano, R)
+       + '<p class="bse-alt" data-bse-alt>' + escHtml(_bseDiagAlt(plano, R)) + '</p>'
+       + '<p class="bse-pie" data-bse-pie>' + escHtml(plano.pie) + '</p>'
+       + '</div>';
+}
+
+/* ══ PLANO DE LA FIGURA 17 — ritmo sinusal con FEVI normal (BSE 2024, pag. 36) ═══════════════
+   Las cajas con `app: true` son ESTADOS DE LA APP y no casillas de la figura: la indeterminada
+   sale de la prosa de la pag. 36 («where LA strain analysis is not possible, the assessment of
+   LVFP is indeterminate») y las otras dos son lo que esta app contesta cuando el algoritmo no
+   llega. Van con el borde punteado para que no se lean como parte del dibujo de la guia. */
+const BSE_PLANO_F17 = {
+  fig: 'f17',
+  aria: 'Diagrama de flujo de la BSE 2024 para ritmo sinusal con FEVI normal, con el camino de este paciente marcado en rojo.',
+  pie: 'Dibujo propio, basado en la Figura 17 de la BSE 2024 (Robinson S y cols., Echo Res Pract 2024;11:16, pág. 36). '
+     + 'Artículo de acceso abierto bajo licencia Creative Commons Attribution 4.0 (CC BY 4.0, creativecommons.org/licenses/by/4.0). '
+     + 'La disposición y los textos son propios y no reproducen los rótulos del original; las cajas punteadas no están en la figura.',
+  nodos: [
+    { id: 'f17.entrada', col: 1, span: 2, fila: 0, corto: 'función sistólica del VI normal',
+      tit: ['Función sistólica del VI normal'], vals: _bdFeviGls },
+    { id: 'f17.banda', col: 'full', fila: 1, corto: 'paso 1, las tres variables principales',
+      tit: ['Paso 1 · tres variables de presión de llenado'] },
+    { id: 'f17.neg', col: 0, fila: 2, corto: '2 o 3 criterios negativos',
+      tit: ['2 o 3 criterios', 'negativos'], vals: function () { return []; } },
+    { id: 'f17.mixto', col: 1, fila: 2, corto: 'sólo 2 disponibles, 1 positivo y 1 negativo',
+      tit: ['Sólo 2 disponibles:', '1 positivo y 1 negativo'], vals: function () { return []; } },
+    { id: 'f17.pos', col: 2, fila: 2, corto: '2 o 3 criterios positivos',
+      tit: ['2 o 3 criterios', 'positivos'], vals: function () { return []; } },
+    { id: 'f17.fin-insuf', col: 3, fila: 2, app: true, corto: 'datos insuficientes (menos de dos variables)',
+      tit: ['Datos insuficientes', 'para decidir la presión'], vals: function () { return []; } },
+    { id: 'f17.strain', col: 1, fila: 3, corto: 'pregunta del strain de la AI',
+      tit: ['Strain de la AI:', 'contracción ≥14 % o', 'reservorio ≥30 %'] },
+    { id: 'f17.lars18', col: 1, fila: 4, corto: 'pregunta LARS < 18 %', tit: ['LARS < 18 %'] },
+    { id: 'f17.supl', col: 1, fila: 5, corto: 'parámetros suplementarios',
+      tit: ['Suplementarios:', 'Ar−A >30 ms · onda L >20 cm/s'] },
+    { id: 'f17.fin-indet', col: 3, fila: 6, app: true, corto: 'presión de llenado indeterminada',
+      tit: ['Presión de llenado', 'indeterminada'], vals: function () { return []; } },
+    { id: 'f17.eprima', col: 0, fila: 6, corto: "relajación por e' según la edad",
+      tit: ["Relajación por e'", 'según edad y sexo'], vals: _bdTabla2 },
+    { id: 'f17.fin-sin-eprima', col: 3, fila: 7, app: true, corto: 'presión normal, relajación no valorada',
+      tit: ['Presión normal,', 'relajación no valorada'], vals: function () { return []; } },
+    { id: 'f17.rel-normal', col: 0, fila: 7, corto: "e' normal para la edad",
+      tit: ["e' normal"], vals: function () { return []; } },
+    { id: 'f17.rel-baja', col: 1, fila: 7, corto: "e' por debajo del corte de la Tabla 2",
+      tit: ["e' bajo el corte"], vals: function () { return []; } },
+    { id: 'f17.fin-normal', col: 0, fila: 8, corto: 'función diastólica normal',
+      tit: ['Función diastólica', 'normal'], vals: function () { return []; } },
+    { id: 'f17.fin-pnormal', col: 1, fila: 8, corto: 'función diastólica deteriorada con presión normal',
+      tit: ['Función diastólica', 'deteriorada, presión', 'de llenado normal'], vals: function () { return []; } },
+    { id: 'f17.fin-elevada', col: 2, fila: 8, corto: 'función diastólica deteriorada con presión elevada',
+      tit: ['Función diastólica', 'deteriorada, presión', 'de llenado elevada'], vals: function () { return []; } }
+  ],
+  aristas: [
+    { de: 'f17.entrada', a: 'f17.banda' },
+    { de: 'f17.banda', a: 'f17.neg' },
+    { de: 'f17.banda', a: 'f17.mixto' },
+    { de: 'f17.banda', a: 'f17.pos' },
+    { de: 'f17.banda', a: 'f17.fin-insuf' },
+    { de: 'f17.neg', a: 'f17.eprima' },
+    { de: 'f17.mixto', a: 'f17.strain' },
+    { de: 'f17.strain', a: 'f17.eprima', et: 'sí', dx2: 46 },
+    { de: 'f17.strain', a: 'f17.lars18', et: 'no' },
+    { de: 'f17.strain', a: 'f17.fin-indet', et: 'sin strain', dx1: 60, calleRel: 8 },
+    { de: 'f17.lars18', a: 'f17.fin-elevada', et: 'sí', dx1: 60, dx2: -40, calleRel: 8 },
+    { de: 'f17.lars18', a: 'f17.supl', et: 'no' },
+    { de: 'f17.supl', a: 'f17.fin-elevada', et: '≥1 positivo', dx1: 60, calleRel: 8 },
+    { de: 'f17.supl', a: 'f17.eprima', et: 'ninguno', dx1: -60, dx2: 20, calleRel: 8 },
+    { de: 'f17.supl', a: 'f17.fin-indet', et: 'no evaluables', dx1: 20, calleRel: 20 },
+    { de: 'f17.pos', a: 'f17.fin-elevada', dx1: 40, dx2: 40 },
+    { de: 'f17.eprima', a: 'f17.rel-normal' },
+    { de: 'f17.eprima', a: 'f17.rel-baja', dx1: 50 },
+    { de: 'f17.eprima', a: 'f17.fin-sin-eprima', et: 'sin edad o sexo', dx1: -60 },
+    { de: 'f17.rel-normal', a: 'f17.fin-normal' },
+    { de: 'f17.rel-baja', a: 'f17.fin-pnormal' }
+  ]
+};
+
+/* Que plano le toca a este paciente. Devuelve `null` cuando la guia elegida no es la BSE o
+   cuando esa via todavia no tiene diagrama: ahi la ventana sigue siendo la de HEAD, sin una
+   sola linea nueva. La ASE 2025 y la ASE/EACVI 2016 no entran en esta tanda. */
+function _bseDiagPlano(algo, ritmo, R) {
+  if (algo !== 'bse2024' || !R || !R.camino || !R.camino.length) return null;
+  if (ritmo === 'fa') return null;
+  return R.feviReducida ? null : BSE_PLANO_F17;
+}
+/* La tarjeta se ensancha SOLO cuando hay diagrama, y el ensanche vive en una media query: sin
+   esta clase la ventana de las otras dos guias cambiaria de ancho, y esta tanda las deja
+   identicas a HEAD. Se quita siempre antes de ponerla, para que no sobreviva a un cambio de
+   guia dentro de la misma apertura. */
+function _bseDiagAncho(hay) {
+  const ov = document.getElementById('diast-algo-overlay');
+  if (ov) ov.classList.toggle('bse-ancho', !!hay);
+}
+
 function diastAlgoRender() {
   const algo = (document.getElementById('diast_algoritmo') || {}).value || 'ase2025';
   const tit = { ase2025:'Algoritmo ASE 2025', bse2024:'Algoritmo BSE 2024', ase2016:'Algoritmo ASE/EACVI 2016' }[algo];
@@ -23920,6 +24270,7 @@ function diastAlgoRender() {
      auricular» sobre los criterios SINUSALES, y las otras dos ni eso. Si la guía elegida todavía
      no tiene su protocolo de FA, `diastFAEvaluar` devuelve `null` y se sigue como en HEAD. */
   const ritmoDA = (document.getElementById('diast_ritmo') || {}).value || 'sinusal';
+  _bseDiagAncho(false);
   if (ritmoDA === 'fa') {
     const RFA = (typeof diastFAEvaluar === 'function') ? diastFAEvaluar(algo) : null;
     if (RFA) {
@@ -23963,6 +24314,11 @@ function diastAlgoRender() {
        umbral, así que los dos rótulos podían contradecirse sobre el mismo paciente. Hoy las
        filas, el conteo y el rótulo salen de `diastBSE2024Evaluar`, que es el único dueño. */
     const R = diastBSE2024Evaluar();
+    /* El diagrama va ARRIBA de todo y SOLO si hay plano. Por debajo del umbral de ancho la caja
+       queda en `display:none` por CSS, asi que la ventana se ve exactamente como en HEAD; el
+       nodo igual se arma, que es lo que hace que un cambio de ancho no necesite repintar. */
+    const planoB = _bseDiagPlano('bse2024', 'sinusal', R);
+    if (planoB) { h += _bseDiagCaja(planoB, R); _bseDiagAncho(true); }
     let gB = null;
     R.filas.forEach(f => {
       if (f.g && f.g !== gB) { h += '<div class="da-paso">' + escHtml(f.g) + '</div>'; gB = f.g; }
@@ -104207,8 +104563,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261012-2335';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791858951816;                 /* eco-build-ms */
+const ECO_BUILD    = '20261012-2359';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791860340578;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -104294,7 +104650,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261012-2335</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261012-2359</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
