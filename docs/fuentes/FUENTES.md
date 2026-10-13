@@ -788,6 +788,63 @@ considered normal», que con cuatro criterios es la condición contraria a la qu
 decir; la figura escribe **«≥3 criteria negative»**. Gana la figura. La misma prosa escribe la
 onda E con `>` donde el encabezado de su propia sección y la figura escriben `≥ 100 cm/s`.
 
+#### Licencia de acceso abierto — VERIFICADA EN EL PDF (2026-10-13)
+
+Leida en el pie de la **pagina 1** del PDF, literal: «© The Author(s) 2024. Open Access  This
+article is licensed under a **Creative Commons Attribution 4.0 International License**, which
+permits use, sharing, adaptation, distribution and reproduction in any medium or format, **as long
+as you give appropriate credit to the original author(s) and the source, provide a link to the
+Creative Commons licence, and indicate if changes were made**. The images or other third party
+material in this article are included in the article's Creative Commons licence, unless indicated
+otherwise in a credit line to the material. […] To view a copy of this licence, visit
+http://creativecommons.org/licenses/by/4.0/.»
+
+**Si exige atribucion: si.** Las tres condiciones son credito al autor y a la fuente, enlace a la
+licencia, e indicar si hubo cambios. Las imagenes del articulo —las Figuras 17, 18 y 19 entre
+ellas— **estan incluidas** en esa licencia, porque ninguna lleva una linea de credito aparte.
+
+⚠️ **O SEA QUE REPRODUCIR LA FIGURA SERIA LEGITIMO, Y AUN ASI EL DIBUJO DE LA APP ES PROPIO.** Lo
+que la app dibuja tiene otra disposicion, otras palabras —no copia el literal de ninguna caja— y
+los valores del paciente adentro, que el original no tiene. El pie de cada diagrama nombra la
+figura, la pagina, la licencia y declara que es un redibujo, que cubre las tres condiciones.
+
+#### Las tres figuras, caja por caja y flecha por flecha — RE-LEIDAS DE LA IMAGEN (2026-10-13)
+
+Renderizadas a 200 dpi para dibujar el diagrama de la ventana. **No se movio ni un corte ni un
+operador** respecto de lo registrado arriba: lo que esta lectura agrega es la TOPOLOGIA, que la
+tabla de cortes no guarda.
+
+**Figura 17 (pag. 36) — entrada «Normal LV systolic function».** De la banda de tres variables
+salen TRES ramas: `2 or 3 criteria negative` (izquierda), `Only 2 criteria available: 1 positive and
+1 negative` (centro) y `2 or 3 criteria positive` (derecha). La del centro baja a
+`Assess LA strain: pump strain >=14% OR reservoir strain >=30%`; su **si** va al paso del e' y su
+**no** a `LARs <18%`, cuyo **si** va a la casilla roja y cuyo **no** va a
+`Assess supplementary parameters`, de donde `>=1 positive` va a la roja y `No` al paso del e'. El
+paso del e' (`Assess relaxation by age-specific e'`) tiene dos salidas: `Normal e'` →
+**Normal diastolic function** y `e' <LLN` → **Impaired diastolic function with normal filling
+pressures**, que a su vez apunta a una caja de eco de esfuerzo. La rama derecha va directo a
+**Impaired diastolic function with elevated filling pressures**. ⚠️ **No hay ninguna caja de
+indeterminada dibujada**: ese estado sale de la prosa del folio 36.
+
+**Figura 18 (pag. 38).** Entrada `LVEF <50% OR GLS <16% OR known myocardial disease` →
+`Diastolic function is impaired, assess filling pressure` → la misma banda de tres variables con
+las mismas tres ramas. La del centro baja a `Assess LA strain` → `LARs <18% OR LAPs <8%` (**si** →
+roja) → `LARs >=24% OR LAPs >=14%` (**si** → normal) → `Assess supplementary parameters` (cuatro
+criterios; `>=1 positive` → roja, `No` → normal). **No hay paso del e'** y **no hay caja de
+indeterminada dibujada**.
+
+**Figura 19 (pag. 39).** Encabezado `Atrial Fibrillation / For use in all AF patients, irrespective
+of LV systolic function / Heart rate <100 bpm; ideally use index beat method`. Banda `STEP 1` con
+sus cuatro criterios y tres salidas: `>=3 criteria negative`, `Insufficient STEP 1 criteria for
+decision` y `>=3 criteria positive`. La del medio baja a la banda `STEP 2`, que tiene sus tres
+salidas: `>=2 STEP 2 criteria negative`, `Insufficient STEP 2 criteria` y `>=2 STEP 2 criteria
+positive`. Las casillas finales son **Normal filling pressures**, **Indeterminate filling
+pressures** e **Impaired diastolic function with elevated filling pressures**.
+⚠️ **LA BANDA DEL PASO 2 ES MAS ANGOSTA QUE LA DEL PASO 1, Y NO ES UN DETALLE DE MAQUETA**: las dos
+flechas largas —la de «>=3 negativos» y la de «>=3 positivos»— bajan POR FUERA de ella hasta sus
+casillas. Si se dibuja con las dos bandas del mismo ancho, esas dos lineas cruzan por encima del
+paso 2 y el diagrama dice que pasaron por ahi.
+
 ### `aseDiast2016` — ASE/EACVI 2016, RITMO SINUSAL · Figura 8 del folio 290 (verificada 2026-10-12)
 
 **Documento.** Nagueh SF y cols., «Recommendations for the Evaluation of Left Ventricular Diastolic

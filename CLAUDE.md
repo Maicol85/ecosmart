@@ -26,6 +26,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la función diastólica del VI**: el cuadro, la ventana 🧭 o los tres algoritmos | `docs/mapa/diastolica.md` |
 | **Tocar la ASE/EACVI 2016 en ritmo sinusal**: la Figura 8A, la 8B o el corte de FEVI | `docs/mapa/diastolica-ase2016.md` |
 | **Tocar el S/D venoso pulmonar, el LARS, los suplementarios de la ASE 2025, el E/e′ por sitio de la ASE 2016, los rótulos del cuadro o el rojo del E/e′** | `docs/mapa/diastolica-complementarios.md` |
+| **Tocar el DIAGRAMA DE FLUJO de la ventana 🧭 de la BSE 2024**: los planos, el motor del SVG, el umbral de ancho o la tabla compacta | `docs/mapa/diastolica-diagrama.md` |
 | **Tocar el VENTRÍCULO DERECHO**: sus campos, el cuadro de referencias, la disfunción sistólica, la pared o el Tei | `docs/mapa/vd-derecho.md` |
 | **Tocar el panel de Evidencia: agregar una cita, una sección o un sub-bloque** | `docs/mapa/panel-evidencia.md` |
 | **Agregar un TÉRMINO al glosario del panel (el ⓘ con tarjeta)** | `docs/mapa/panel-evidencia-terminos.md` |
@@ -217,6 +218,152 @@ impecable.
 ---
 
 ## Estado vigente
+
+### Diagrama de flujo de la BSE 2024 en la ventana 🧭 — las Figuras 17, 18 y 19 (2026-10-13)
+
+- Al **empezar** esta tanda, `main` local y `origin/main` estaban los dos en **`f371c08`**, sin nada
+  sin pushear —confirmado con un `git fetch` de verdad, no con el ref en caché—, con los **siete**
+  commits de la tanda de los parámetros complementarios ya incluidos **y pusheados**. Los **seis**
+  commits de esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 6 → 5 → 4 → 3 → 2 → 1.**
+  ⚠️ **EL COMMIT 6 NO ES SÓLO DOCUMENTACIÓN, y conviene saberlo antes de revertir:** además de
+  TC-460 y los cuatro archivos de documentación lleva **dos correcciones de `index.html`** que
+  destapó ese caso —el estado del plegable, que con `ontoggle` se perdía, y el decimal del corte de
+  la Tabla 2 en el dibujo—. Revertirlo deja las dos como estaban en el commit 5.
+  El 1 crea `R.camino`, `R.nodoFinal`, el `nodo` de cada fila y los dos mapas de nodo final; **del
+  2 al 5 cuelgan todos de él**, pero revertirlo solo **no rompe la app**: `_bseDiagPlano` sale por
+  su guarda de `!R.camino` y deja de dibujar, con las cajas sin valores. **Revertir el 2 sin
+  revertir antes el 3, el 4 y el 5 SÍ la rompe**: el 2 crea `_bdFeviGls`, `_bdEnvolver`,
+  `_bseDiagSVG` y `_bseDiagCaja`, que los planos de la Figura 18 y de la 19 nombran, y un
+  `ReferenceError` en la evaluación de un `<script>` **aborta el bloque COMPLETO** — o sea la app
+  con cero pestañas con geometría.
+  **El 3 y el 4 se revierten entre sí en cualquier orden**: el 3 es la Figura 18 y el 4 la 19, y
+  ninguno llama al otro. El 4 agrega al motor `px`/`pw` y `calleAntes`, que **sólo** usa la 19.
+  **El 5 (la tabla y el envoltorio de la lista) se revierte solo.**
+
+- **Línea base al cierre: suite 469/475 en la corrida completa con el pendrive `DISK_IMG` MONTADO,
+  Semgrep 127 / 0 ERROR, Excel 435 columnas, celular 43 a 360 px y 52 a 390 px con 1 ALTA cada uno
+  —IDÉNTICO a la línea base: el diagrama no agregó un solo hallazgo, porque en celular no se
+  dibuja—.** ⚠️ **DE LOS SEIS ROJOS, DOS SON LOS INESTABLES CONOCIDOS**: **TC-246** y **TC-252**
+  salen VERDES corridos solos, así que la cifra real es **471/475** y los rojos de verdad son los
+  **cuatro** de entrada, que NO son regresiones: **TC-223** (el documentado, falla por la fecha),
+  **TC-376**, **TC-390** y **TC-406**. **Repetir antes de sospechar.** **El denominador subió a 475**: esta tanda agregó
+  **TC-460**. La de ENTRADA, medida en HEAD limpio el 2026-10-12, fue **470/474** con el pendrive
+  montado y los mismos cuatro rojos, con el `md5` de `index.html` sin moverse durante la corrida
+  (`ea3ece73…`).
+- **Dónde está todo:** `docs/mapa/diastolica-diagrama.md` (**mapa NUEVO**: el camino, los tres
+  planos, el motor del SVG, el umbral de ancho, la tabla compacta, las trampas y cómo medir),
+  `docs/fuentes/FUENTES.md` → «Licencia de acceso abierto» y «Las tres figuras, caja por caja y
+  flecha por flecha», `docs/PENDIENTES.md` → **siete** cosas declaradas y no tocadas (D1 a D7).
+
+- **NO CAMBIA NINGUNA CUENTA NI NINGUNA SUPERFICIE FIRMADA, Y ESTÁ MEDIDO.** Informe en tres
+  estilos, EN SUMA en tres, Excel con sus **435** columnas, texto del PPT, grado del Laboratorio y
+  hash de los campos guardados: **0 diferencias contra HEAD en las 30 escenas** de ritmo sinusal, y
+  la fila del Excel clave por clave en 5 escenas. Lo único que esta tanda agrega es una forma nueva
+  de MOSTRAR lo que las funciones dueñas ya calculaban.
+- ⚠️ **EL NODO FINAL NO SE EMPUJA EN NINGUNA RAMA: SE DERIVA DE `R.clave`**, que es la categoría que
+  firman el cuadro gris, el informe y el EN SUMA. Empujarlo a mano en cada salida sería una segunda
+  copia del veredicto, y la copia que se olvida es la que pinta el camino rojo terminando en una
+  casilla que el badge no dice. **Medido: el último nodo del camino coincide con el veredicto del
+  cuadro en 46 de 46 escenas** (30 de ritmo sinusal y 16 de fibrilación auricular).
+- **LAS ARISTAS EN ROJO SON LOS PARES CONSECUTIVOS DEL CAMINO**, y eso también se comprueba: con
+  mirar sólo el último nodo, un dibujo que pintara TODAS las cajas de rojo pasaría igual. TC-460 lo
+  exige en las 24 ramas.
+
+- **LA LICENCIA DE LA BSE 2024 ES CC BY 4.0 Y SÍ EXIGE ATRIBUCIÓN**, verificado en el pie de la
+  página 1 del PDF: crédito al autor y a la fuente, enlace a la licencia e indicar si hubo cambios.
+  Las imágenes del artículo **están incluidas** en esa licencia. ⚠️ **O SEA QUE REPRODUCIR LA FIGURA
+  SERÍA LEGÍTIMO, Y AUN ASÍ EL DIBUJO ES PROPIO**: otra disposición, otras palabras —no copia el
+  literal de ninguna caja— y los valores del paciente adentro, que el original no tiene. El pie de
+  cada diagrama nombra la figura, la página, la licencia y declara que es un redibujo.
+- **SIN COLORES Y SIN DEPENDER DEL COLOR.** Todo el dibujo va en los grises del tema y lo único en
+  rojo es el camino, con línea gruesa. El nodo final lleva el rótulo de texto «Resultado de este
+  paciente» —uno solo, y TC-460 lo cuenta— y debajo va el camino **en palabras**. Las tres cajas que
+  **no están en la figura** —la indeterminada, que sale de la prosa, y los dos estados propios de la
+  app— van con el borde punteado y el pie lo declara.
+
+- **EL UMBRAL DE ANCHO ES 780 px Y SALE DE UNA MEDICIÓN, no de un número redondo.** El SVG se dibuja
+  sobre un viewBox de 700 px con texto de 11,5 px y lleva `max-width:700px`, así que por encima del
+  umbral **no se escala**: medido en los dos temas, a **1200 y 900 px** el diagrama aparece y su
+  texto renderiza a **11,5 px exactos**; a **600, 560, 390 y 360 px** la caja queda en
+  `display:none` y la ventana es la de HEAD. Por debajo de **721 px** de viewport el ancho útil
+  (`min(760, vw−24) − 28`) cae de 669 px y el texto bajaría de los 11 px que esta tanda se fijó como
+  piso: el umbral deja 59 px de margen y es donde la tarjeta ya alcanza sus 760.
+  ⚠️ **Un iPad en vertical son 768 px y queda 12 px por debajo**: `PENDIENTES.md` → D3.
+- ⚠️ **EL `!important` DE LA MEDIA QUERY NO ES DECORATIVO.** `#diast-algo-card` lleva `width:560px`
+  en un `style` **en línea**, que le gana a cualquier selector de hoja por mucha especificidad que
+  tenga. Sin él la tarjeta se quedaba en 560, el SVG se escalaba a 530 y su texto caía a **8,7 px**
+  — una regla que no gana se lee como un arreglo aplicado, y es la cuarta vez que este archivo lo
+  paga. **Y la tarjeta se ensancha SÓLO para la BSE**, por la clase `bse-ancho`: sin ese alcance
+  cambiaría también el ancho de la ventana de las otras dos guías.
+
+- ⚠️ **EL TEXTO DE UN SVG NO SE ENVUELVE SOLO.** Un `<text>` más ancho que su caja se dibuja igual y
+  pisa la de al lado; no hay `overflow` que lo recorte. Se envuelve por palabras contra un
+  presupuesto sacado del ancho, y **la altura se calcula DESPUÉS de envolver** — con la altura
+  sacada del número de valores, un renglón partido en dos se salía de su caja.
+- ⚠️ **LAS CAJAS SE DIBUJAN DESPUÉS DE LAS LÍNEAS**, así que un rótulo de arista que caiga sobre una
+  caja queda **TAPADO**: no desaparece de una forma que se note, simplemente no se lee y el dibujo
+  parece tener flechas sin nombre. El rótulo va **debajo** de su calle y el hueco entre filas subió
+  a 34 px.
+- ⚠️ **LA FIGURA 19 NO ENTRA EN LA REJILLA DE CUATRO COLUMNAS Y LLEVA GEOMETRÍA PROPIA.** Sus dos
+  flechas largas —la de «≥3 negativos» y la de «≥3 positivos»— bajan **por fuera** de la banda del
+  paso 2, que en el original es más angosta que la del paso 1 justamente para dejarles el carril.
+  Con la rejilla fija, esas dos líneas cruzaban por encima de la banda y el diagrama decía que el
+  paciente pasó por ahí.
+
+- **LA TABLA COMPACTA REEMPLAZA A LA LISTA LARGA, Y LO HACE EL CSS.** La lista se arma siempre y se
+  esconde con una clase, así un cambio de ancho no necesita repintar nada. El envoltorio
+  `.bse-lista` **sólo existe cuando hay diagrama**, de modo que la lista de la ASE 2025 y la de la
+  ASE/EACVI 2016 se ve a cualquier ancho.
+- ⚠️ **UNA COLUMNA DE PASO QUE EL PACIENTE NO RECORRIÓ NO SE DIBUJA**, y no es cosmético: la columna
+  del strain con sus criterios en gris se lee como «se evaluaron y dieron negativo», cuando lo que
+  pasó es que el algoritmo nunca llegó a preguntarlos. La compuerta es el **camino**. Medido: 3
+  columnas con el paso del e′, 3 con el strain y 2 cuando el paso 1 decide solo.
+- ⚠️ **`ontoggle` NO SIRVE PARA CONSERVAR EL ESTADO DEL PLEGABLE, Y LO CAZÓ TC-460.** El evento
+  `toggle` de un `<details>` se despacha de forma **asíncrona**: cuando el repintado corre en la
+  misma vuelta que el clic, el estado guardado sigue siendo el anterior y la tabla se cierra sola
+  —medido: abrir y repintar la dejaba cerrada—. Se lee del árbol vivo justo antes de reemplazarlo.
+- **No lleva un `aria-expanded` propio a propósito**: habría que sincronizarlo a mano y un atributo
+  que se desincroniza miente con más convicción que no tenerlo. El `<summary>` nativo ya anuncia el
+  estado y se abre con Enter, medido con teclas reales de CDP en cuatro escenas.
+
+- ⚠️ **EL CORTE DE LA TABLA 2 SE IMPRIMÍA SIN DECIMAL EN EL DIBUJO.** `String(7.0)` da «7» en
+  JavaScript, así que el renglón decía «e′ septal <7» al lado de un valor medido que sí lleva
+  decimal («6,5»): dos notaciones para dos números que se comparan entre sí. Se corrigió **sólo en
+  el dibujo** —la lista larga, el informe y el EN SUMA no se tocaron— y **el valor del corte no
+  cambia**.
+- **CONTROL NEGATIVO MAYOR: la ASE 2025 y la ASE/EACVI 2016, en ritmo sinusal y en FA, 30 entradas
+  con 0 diferencias** en el cuadro y en la ventana, sin diagrama, sin tabla, sin envoltorio de lista
+  y sin el ensanche de la tarjeta. Y a **360 px, 46 escenas con 0 diferencias contra HEAD** en el
+  texto VISIBLE de la ventana, en el número de filas con geometría y en la lectura completa.
+- **Arneses: `scripts/_probe_bsediag.mjs`** (A/B de solo lectura con `--file`), ocho grupos
+  (`camino`, `ventana`, `angosto`, `diagrama`, `ancho`, `tabla`, `superficies`, `excelab`, `otras`)
+  más `captura`, que saca PNG del dibujo y de la tabla en los dos temas. **46 escenas** —las 30 de
+  ritmo sinusal de la tanda de la BSE y las 16 de FA de la tanda de la fibrilación—, cargadas con
+  **teclas reales**.
+  **Cobertura: TC-460**, **40 condiciones** con tres denominadores y cinco controles negativos, que
+  recorre las **24 ramas** de las tres figuras. **Verificado que sabe fallar contra HEAD en un
+  worktree aparte: 35 de las 40 en rojo**; las cinco que pasan son los cuatro controles de las otras
+  dos guías y el que comprueba que el cuadro gris sigue publicando el mismo veredicto, que es
+  justamente lo que esta tanda no mueve.
+- ⚠️ **EL CUERPO DE UN CASO NO PUEDE CAMBIAR EL ANCHO DE LA VENTANA**: corre dentro de la página y
+  un media query no se puede fingir. TC-460 fija la **regla** que produce el comportamiento —la caja
+  nace en `display:none` y sólo una media query de `min-width: 780px` la enciende, y es la misma que
+  esconde la lista—; el comportamiento **renderizado** a 360 px lo mide la sonda, que sí tiene el
+  canal para emular el viewport.
+- ⚠️ **Y UN CASO CARGA CON `__t.set`, NO CON TECLAS DE CDP.** El cuerpo corre dentro de la página:
+  no tiene acceso al protocolo del navegador, y un `KeyboardEvent` construido a mano no es de
+  confianza, así que no activa un `<summary>` ni dispara la escritura nativa de un `<input>`. Las
+  mismas 46 escenas sí se cargan con teclas reales en la sonda.
+- ⚠️ **UN RECORTE DE CAPTURA MÁS ALTO QUE LA VENTANA SALE EN NEGRO.** La tarjeta scrollea y
+  `Page.captureScreenshot` con un `clip` que se va por debajo del viewport no dibuja lo que no está
+  renderizado: la primera captura de la tabla salió con la mitad inferior negra y parecía que la
+  tabla no se dibujaba.
+- ⚠️ **El desborde horizontal de la página a 900 px (930 contra 900) es PREEXISTENTE**, medido en
+  HEAD el mismo día en las 48 celdas de la tabla de anchos. No lo trae esta tanda.
+- ⚠️ **Me comí el acento grave DOS veces**, las dos en comentarios míos dentro del cuerpo de la
+  sonda, con el archivo que documenta la trampa abierto delante. `node --check` dio la línea exacta
+  las dos veces porque el culpable estaba dentro del mismo template.
 
 ### Parámetros complementarios de la función diastólica — S/D, LARS, suplementarios, E/e′ por sitio (2026-10-12)
 

@@ -2650,6 +2650,348 @@ caso('TC-459', 'Parametros complementarios de la funcion diastolica: las TRES op
       String(/\\{lbl:'TDE'/.test(fuente)) + ' / TDA=' + String(/\\{lbl:'TDA'/.test(fuente))]
   ] };
 `);
+caso('TC-460', 'Diagrama de flujo de la BSE 2024 en la ventana del Algoritmo: las VEINTICUATRO ramas de las Figuras 17, 18 y 19 con el camino rojo terminando en el nodo del veredicto, el umbral de ancho que esconde el dibujo, la tabla compacta por pasos, el paciente sin datos sin camino inventado, y las ventanas de la ASE 2025 y la ASE/EACVI 2016 sin moverse', `
+  const S = (k, v) => __t.set(k, v);
+  /* Las condiciones se juntan en una lista y se devuelven al final, que es la forma que el
+     runner espera (\`{ extra: [[titulo, booleano, detalle], ...] }\`). Van declaradas donde se
+     miden y no todas juntas al final para que cada una quede al lado de la escena que la produce. */
+  const AF = [];
+  const ok = (c, t, d) => AF.push([t, !!c, String(d)]);
+  /* ⚠️ ESTE CASO CARGA CON __t.set Y NO CON TECLAS DE CDP, igual que los otros 459. El cuerpo de
+     un caso corre DENTRO de la pagina: no tiene acceso al protocolo del navegador, y un
+     KeyboardEvent construido a mano no es de confianza, asi que no activa un <summary> ni dispara
+     la escritura nativa de un <input>. Las mismas 46 escenas SI se cargan con teclas reales en
+     scripts/_probe_bsediag.mjs, que es quien tiene el canal CDP; aca lo que se fija es el
+     comportamiento, no el gesto. __t.set despacha input y change de verdad sobre el campo, que es
+     la cadena que la app escucha. */
+
+  /* Abre la ventana, lee el diagrama y la cierra. La geometria se mide ABIERTA: con la ventana
+     cerrada, getClientRects devuelve cero y un conteo de nodos visibles da 0 — un denominador
+     roto que se leeria como "no hay diagrama". */
+  const D = () => {
+    diastAlgoAbrir();
+    const cu = document.getElementById('diast-algo-cuerpo');
+    const svg = cu ? cu.querySelector('svg[data-bse-diag]') : null;
+    if (!svg) {
+      const r = { hay: false,
+                  caja: !!(cu && cu.querySelector('[data-bse-diag-caja]')),
+                  tabla: !!(cu && cu.querySelector('details[data-bse-tabla]')),
+                  lista: !!(cu && cu.querySelector('[data-bse-lista]')),
+                  ancho: !!(document.getElementById('diast-algo-overlay') || { classList: { contains: () => false } }).classList.contains('bse-ancho'),
+                  filas: cu ? cu.querySelectorAll('.da-row').length : 0 };
+      diastAlgoCerrar(); return r;
+    }
+    const nodos = Array.prototype.slice.call(svg.querySelectorAll('g[data-nodo]')).map(g => ({
+      id: g.getAttribute('data-nodo'),
+      cam: g.getAttribute('data-en-camino') === '1',
+      fin: g.getAttribute('data-final') === '1',
+      trazo: (() => { const rc = g.querySelector('rect'); return rc ? getComputedStyle(rc).stroke : null })(),
+      txt: Array.prototype.slice.call(g.querySelectorAll('text')).map(t => (t.textContent || '').trim()).join(' | ')
+    }));
+    const aristas = Array.prototype.slice.call(svg.querySelectorAll('[data-arista]')).map(a => ({
+      id: a.getAttribute('data-arista'), cam: a.getAttribute('data-en-camino') === '1' }));
+    const r = {
+      hay: true, fig: svg.getAttribute('data-bse-diag'),
+      nodos: nodos, n: nodos.length,
+      enCam: nodos.filter(x => x.cam).map(x => x.id),
+      fin: (nodos.filter(x => x.fin)[0] || {}).id || null,
+      rotFin: Array.prototype.slice.call(svg.querySelectorAll('.rot-fin')).map(t => (t.textContent || '').trim()),
+      aristasCam: aristas.filter(a => a.cam).map(a => a.id),
+      nAristas: aristas.length,
+      alt: ((cu.querySelector('[data-bse-alt]') || {}).textContent || '').replace(/\\s+/g, ' ').trim(),
+      pie: ((cu.querySelector('[data-bse-pie]') || {}).textContent || '').replace(/\\s+/g, ' ').trim(),
+      caja: !!cu.querySelector('[data-bse-diag-caja]'),
+      dispCaja: (() => { const c = cu.querySelector('[data-bse-diag-caja]'); return c ? getComputedStyle(c).display : 'SIN CAJA' })(),
+      dispLista: (() => { const c = cu.querySelector('[data-bse-lista]'); return c ? getComputedStyle(c).display : 'SIN CAJA' })(),
+      tabla: (() => { const t = cu.querySelector('details[data-bse-tabla]');
+        if (!t) return null;
+        return { abierta: !!t.open,
+                 cols: Array.prototype.slice.call(t.querySelectorAll('[data-bse-col]')).map(c => c.getAttribute('data-bse-col')),
+                 rot: ((t.querySelector('summary') || {}).textContent || '').trim() } })(),
+      filas: cu.querySelectorAll('.da-row').length,
+      ancho: document.getElementById('diast-algo-overlay').classList.contains('bse-ancho')
+    };
+    diastAlgoCerrar();
+    return r;
+  };
+
+  /* El camino que devuelve el DUENIO del veredicto, para cruzarlo contra el dibujo. Son dos
+     lecturas distintas a proposito: solo el objeto deja pasar un camino que el dibujo no pinta, y
+     solo el dibujo no distingue "la caja no esta en el camino" de "la caja no existe". */
+  const CAM = () => {
+    const ritmo = __t.val('diast_ritmo');
+    try {
+      const R = (ritmo === 'fa') ? diastFAEvaluar(__t.val('diast_algoritmo')) : diastBSE2024Evaluar();
+      return R ? { cam: R.camino || null, fin: R.nodoFinal === undefined ? 'SIN PROPIEDAD' : R.nodoFinal } : { cam: null, fin: null };
+    } catch (e) { return { cam: 'EXC: ' + e.message, fin: null } }
+  };
+
+  const esc = (m, guia, ritmo) => {
+    __t.limpiar();
+    S('diast_algoritmo', guia || 'bse2024');
+    S('diast_ritmo', ritmo || 'sinusal');
+    if (m.peso === undefined) S('peso', '70');
+    if (m.talla === undefined) S('talla', '170');
+    /* El orden no es cosmetico: los <select> y lo que NO esta cableado a calcDiastol van primero
+       y los campos mitrales al final, para que el ultimo gesto deje el cuadro al dia. */
+    const orden = ['peso','talla','edad','sexo','fevi','sgl','venp_sd','tde','triv',
+                   'venp_dur_ar','venp_dur_a','onda_l','ai_vol','vmax_it','lars','ai_strain_ct',
+                   'e_sep','e_lat','onda_e','onda_a'];
+    orden.forEach(k => { if (m[k] !== undefined) S(k, m[k]) });
+    Object.keys(m).forEach(k => { if (orden.indexOf(k) < 0) S(k, m[k]) });
+    calcDiastol();
+    return { badge: (__t.txt('dd-interp') || '').replace(/\\s+/g, ' ').trim(), dia: D(), cam: CAM() };
+  };
+
+  // ══ A · DENOMINADORES ═════════════════════════════════════════════════════════════════════
+  /* Sin esto, media docena de condiciones comparan null contra null y el caso sale verde sobre
+     una app que no dibuja nada. */
+  const duenoPlano = (typeof _bseDiagPlano === 'function');
+  const duenoCaja = (typeof _bseDiagCaja === 'function');
+  const planos = ['BSE_PLANO_F17','BSE_PLANO_F18','BSE_PLANO_F19']
+    .filter(n => { try { return typeof eval(n) === 'object' } catch (e) { return false } });
+  const nodosPlano = planos.length === 3
+    ? [BSE_PLANO_F17.nodos.length, BSE_PLANO_F18.nodos.length, BSE_PLANO_F19.nodos.length].join('/')
+    : 'SIN PLANOS';
+
+  ok(duenoPlano && duenoCaja, 'DENOMINADOR: el despachador de planos y el armador de la caja existen', 'faltan: ' + duenoPlano + ' / ' + duenoCaja);
+  ok(planos.length === 3, 'DENOMINADOR: los TRES planos existen (17, 18 y 19)', 'planos: ' + planos.join(','));
+  ok(nodosPlano === '17/14/12', 'DENOMINADOR: los planos tienen 17, 14 y 12 nodos', 'da ' + nodosPlano);
+
+  // ══ B · RAMA -> ESCENA: las veinticuatro ramas ════════════════════════════════════════════
+  /* El badge que le toca a cada nodo final. Se compara contra el CUADRO GRIS, que es la otra
+     superficie: cotejar el camino contra el objeto del que sale no probaria nada. */
+  const ESPERA = {
+    'f17.fin-insuf': 'Datos insuficientes', 'f17.fin-normal': 'Normal para la edad',
+    'f17.fin-pnormal': 'Deteriorada, presión normal', 'f17.fin-elevada': 'Deteriorada, presión elevada',
+    'f17.fin-indet': 'Presión indeterminada', 'f17.fin-sin-eprima': 'Presión normal, relajación no valorada',
+    'f18.fin-insuf': 'Datos insuficientes', 'f18.fin-normal': 'Deteriorada, presión normal',
+    'f18.fin-elevada': 'Deteriorada, presión elevada', 'f18.fin-indet': 'Presión indeterminada',
+    'f19.fin-normal': 'FA — Presión de llenado normal', 'f19.fin-elevada': 'FA — Presión de llenado elevada',
+    'f19.fin-indet': 'FA — Presión de llenado indeterminada'
+  };
+  const E50 = { edad: '50', sexo: 'M' };
+  const mix = Object.assign({}, E50, { onda_e: '120', e_sep: '6', e_lat: '7', ai_vol: '50' });
+  const mixR = Object.assign({}, mix, { fevi: '40' });
+  const fa4 = { onda_e: '120', e_sep: '10', vmax_it: '2.0', tde: '200' };
+
+  const RAMAS = [
+    // ── Figura 17 ──
+    { id: 'R01', fig: 'f17', que: 'menos de dos variables principales', m: {}, fin: 'f17.fin-insuf' },
+    { id: 'R02', fig: 'f17', que: '2 o 3 negativas y e-prima normal para la edad', fin: 'f17.fin-normal',
+      m: Object.assign({}, E50, { onda_e: '70', onda_a: '60', e_sep: '10', e_lat: '12', vmax_it: '2.0', ai_vol: '50' }) },
+    { id: 'R03', fig: 'f17', que: '2 o 3 negativas y e-prima bajo el corte de la Tabla 2', fin: 'f17.fin-pnormal',
+      m: Object.assign({}, E50, { onda_e: '30', onda_a: '60', e_sep: '4.5', e_lat: '5.5', vmax_it: '2.0', ai_vol: '50' }) },
+    { id: 'R04', fig: 'f17', que: '2 o 3 negativas SIN EDAD: la Tabla 2 no se puede resolver', fin: 'f17.fin-sin-eprima',
+      m: { onda_e: '70', onda_a: '60', e_sep: '10', e_lat: '12', vmax_it: '2.0', ai_vol: '50' } },
+    { id: 'R05', fig: 'f17', que: '2 o 3 positivas', fin: 'f17.fin-elevada',
+      m: Object.assign({}, E50, { onda_e: '120', e_sep: '6', e_lat: '7', vmax_it: '3.2', ai_vol: '70' }) },
+    { id: 'R06', fig: 'f17', que: '1 y 1 SIN strain de la AI', m: mix, fin: 'f17.fin-indet' },
+    { id: 'R07', fig: 'f17', que: '1 y 1 con strain alto-normal', fin: 'f17.fin-normal',
+      m: Object.assign({}, mix, { lars: '32' }) },
+    { id: 'R08', fig: 'f17', que: '1 y 1 con LARS < 18 %', fin: 'f17.fin-elevada',
+      m: Object.assign({}, mix, { lars: '15' }) },
+    { id: 'R09', fig: 'f17', que: '1 y 1, LARS intermedio y un suplementario POSITIVO', fin: 'f17.fin-elevada',
+      m: Object.assign({}, mix, { lars: '25', venp_dur_ar: '160', venp_dur_a: '120' }) },
+    { id: 'R10', fig: 'f17', que: '1 y 1, LARS intermedio y suplementarios negativos', fin: 'f17.fin-normal',
+      m: Object.assign({}, mix, { lars: '25', venp_dur_ar: '130', venp_dur_a: '120' }) },
+    { id: 'R11', fig: 'f17', que: '1 y 1, LARS intermedio y NINGUN suplementario evaluable', fin: 'f17.fin-indet',
+      m: Object.assign({}, mix, { lars: '25' }) },
+    // ── Figura 18 ──
+    { id: 'R12', fig: 'f18', que: 'FEVI reducida con una sola variable principal', fin: 'f18.fin-insuf',
+      m: Object.assign({}, E50, { fevi: '40', e_sep: '6', e_lat: '7', ai_vol: '70' }) },
+    { id: 'R13', fig: 'f18', que: 'FEVI reducida, 2 o 3 negativas', fin: 'f18.fin-normal',
+      m: Object.assign({}, E50, { fevi: '40', onda_e: '70', onda_a: '60', e_sep: '10', e_lat: '12', vmax_it: '2.0', ai_vol: '50' }) },
+    { id: 'R14', fig: 'f18', que: 'FEVI reducida, 2 o 3 positivas', fin: 'f18.fin-elevada',
+      m: Object.assign({}, E50, { fevi: '40', onda_e: '120', e_sep: '6', e_lat: '7', vmax_it: '3.2', ai_vol: '70' }) },
+    { id: 'R15', fig: 'f18', que: 'FEVI reducida, 1 y 1 SIN strain de la AI', m: mixR, fin: 'f18.fin-indet' },
+    { id: 'R16', fig: 'f18', que: 'FEVI reducida, lado elevado del strain (LARS < 18 %)', fin: 'f18.fin-elevada',
+      m: Object.assign({}, mixR, { lars: '15' }) },
+    { id: 'R17', fig: 'f18', que: 'FEVI reducida, lado normal del strain (LARS >= 24 %)', fin: 'f18.fin-normal',
+      m: Object.assign({}, mixR, { lars: '26' }) },
+    { id: 'R18', fig: 'f18', que: 'FEVI reducida, LARS intermedio y un suplementario POSITIVO (S/D < 1)', fin: 'f18.fin-elevada',
+      m: Object.assign({}, mixR, { lars: '20', venp_sd: 'menor1' }) },
+    { id: 'R19', fig: 'f18', que: 'FEVI reducida, LARS intermedio y los CUATRO suplementarios negativos', fin: 'f18.fin-normal',
+      m: Object.assign({}, mixR, { lars: '20', venp_sd: 'ge1', onda_l: '5', tde: '200', venp_dur_ar: '130', venp_dur_a: '120' }) },
+    // ── Figura 19 ──
+    { id: 'R20', fig: 'f19', ritmo: 'fa', que: 'FA, 3 o 4 criterios negativos en el paso 1', fin: 'f19.fin-normal',
+      m: { onda_e: '70', e_sep: '10', vmax_it: '2.0', tde: '200' } },
+    { id: 'R21', fig: 'f19', ritmo: 'fa', que: 'FA, 3 o 4 criterios positivos en el paso 1', fin: 'f19.fin-elevada',
+      m: { onda_e: '120', e_sep: '10', vmax_it: '3.2', tde: '200' } },
+    { id: 'R22', fig: 'f19', ritmo: 'fa', que: 'FA, paso 1 insuficiente y 2 o 3 negativos en el paso 2', fin: 'f19.fin-normal',
+      m: Object.assign({}, fa4, { lars: '25', venp_sd: 'ge1' }) },
+    { id: 'R23', fig: 'f19', ritmo: 'fa', que: 'FA, paso 1 insuficiente y 2 o 3 positivos en el paso 2', fin: 'f19.fin-elevada',
+      m: Object.assign({}, fa4, { lars: '15', venp_sd: 'menor1' }) },
+    { id: 'R24', fig: 'f19', ritmo: 'fa', que: 'FA, paso 1 y paso 2 insuficientes', fin: 'f19.fin-indet', m: fa4 }
+  ];
+
+  let ramasOk = 0, ramasFin = 0, ramasCadena = 0, ramasBadge = 0, ramasRot = 0, figsMal = [];
+  const detalle = [];
+  RAMAS.forEach(r => {
+    const e = esc(r.m, 'bse2024', r.ritmo || 'sinusal');
+    const d = e.dia;
+    const okFig = d.hay && d.fig === r.fig;
+    if (!okFig) figsMal.push(r.id + ':' + (d.fig || 'SIN DIAGRAMA'));
+    const okFin = d.hay && d.fin === r.fin && d.fin === e.cam.fin;
+    /* La CADENA: las aristas pintadas tienen que ser exactamente los pares consecutivos del
+       camino del duenio. Con solo mirar el ultimo nodo, un dibujo que pintara TODAS las cajas de
+       rojo pasaria igual. */
+    const esperada = (e.cam.cam || []).slice(0, -1).map((x, i) => x + '>' + e.cam.cam[i + 1]).join(',');
+    const okCadena = d.hay && d.aristasCam.join(',') === esperada && esperada !== '';
+    const okNodos = d.hay && d.enCam.join(',') === (e.cam.cam || []).join(',');
+    const okBadge = e.badge.indexOf(ESPERA[r.fin]) === 0;
+    const okRot = d.hay && d.rotFin.length === 1 && d.rotFin[0] === 'Resultado de este paciente';
+    if (okFig && okFin && okNodos) ramasOk++;
+    if (okFin) ramasFin++;
+    if (okCadena) ramasCadena++;
+    if (okBadge) ramasBadge++;
+    if (okRot) ramasRot++;
+    if (!(okFig && okFin && okCadena && okNodos && okBadge && okRot)) {
+      detalle.push(r.id + ' ' + r.que + ' -> fin=' + (d.fin || '?') + ' esp=' + r.fin
+                 + ' badge=' + e.badge.slice(0, 40) + ' cadena=' + okCadena + ' rot=' + okRot);
+    }
+  });
+
+  ok(figsMal.length === 0, 'Las 24 ramas dibujan la figura que les toca (11 de la 17, 8 de la 18 y 5 de la 19)', 'figura equivocada en: ' + figsMal.join(' · '));
+  ok(ramasFin === 24, 'El nodo marcado como resultado es el del veredicto en las 24 ramas', 'solo ' + ramasFin + '/24 · ' + detalle.join(' || '));
+  ok(ramasCadena === 24, 'Las aristas en rojo son EXACTAMENTE los pares consecutivos del camino del duenio, en las 24', 'solo ' + ramasCadena + '/24');
+  ok(ramasBadge === 24, 'El cuadro gris publica el veredicto del nodo final en las 24 ramas', 'solo ' + ramasBadge + '/24 · ' + detalle.join(' || '));
+  ok(ramasRot === 24, 'Hay UN solo rotulo «Resultado de este paciente» y esta en el nodo final, en las 24', 'solo ' + ramasRot + '/24');
+  ok(ramasOk === 24, 'Las 24 ramas: figura, nodo final y cajas en rojo coinciden con el camino del duenio', 'solo ' + ramasOk + '/24 · ' + detalle.join(' || '));
+
+  // ══ C · EL PACIENTE SIN DATOS: NO SE INVENTA UN CAMINO ════════════════════════════════════
+  const vacio = esc({}, 'bse2024', 'sinusal');
+  const grisVacio = vacio.dia.hay ? vacio.dia.nodos.filter(n => !n.cam).length : -1;
+  const rojoFuera = vacio.dia.hay
+    ? vacio.dia.nodos.filter(n => !n.cam && n.trazo && /239, 68, 68|214, 59, 59/.test(n.trazo)).length : -1;
+  ok(vacio.dia.hay && vacio.dia.enCam.length === 3, 'Con el formulario vacio el camino tiene TRES nodos y no inventa el resto', 'nodos en camino: ' + (vacio.dia.enCam || []).join(','));
+  ok(grisVacio === 14, 'Los otros 14 nodos quedan en gris', 'quedan ' + grisVacio);
+  ok(rojoFuera === 0, 'CONTROL NEGATIVO: ningun nodo FUERA del camino esta pintado de rojo', 'hay ' + rojoFuera + ' en rojo');
+  ok(vacio.dia.fin === 'f17.fin-insuf', 'El resultado del formulario vacio es la caja de datos insuficientes', 'da ' + vacio.dia.fin);
+
+  // ══ D · EL UMBRAL DE ANCHO ════════════════════════════════════════════════════════════════
+  /* ⚠️ EL ANCHO NO SE PUEDE CAMBIAR DESDE EL CUERPO DE UN CASO: la ventana del navegador la
+     maneja el runner, no la pagina, y un media query no se puede fingir. Lo que este bloque fija
+     es la REGLA que produce el comportamiento —la caja del diagrama nace en display:none y solo
+     una media query de min-width la enciende, y es la misma que esconde la lista larga—; el
+     comportamiento RENDERIZADO a 360 px se mide en scripts/_probe_bsediag.mjs, que si tiene el
+     canal para emular el viewport, y ahi da 46 escenas con 0 diferencias contra HEAD. */
+  const reglas = (() => {
+    let base = null, media = null, px = null;
+    for (const h of Array.prototype.slice.call(document.styleSheets)) {
+      let rs = null; try { rs = h.cssRules } catch (e) { continue }
+      if (!rs) continue;
+      for (const r of Array.prototype.slice.call(rs)) {
+        if (r.type === 1 && r.selectorText === '.bse-diag-caja') base = r.style.display;
+        if (r.type === 4 && /min-width/.test(r.conditionText || r.media.mediaText || '')) {
+          const t = Array.prototype.slice.call(r.cssRules).map(x => x.selectorText || '').join(' ');
+          if (/\\.bse-diag-caja/.test(t) && /\\.bse-lista/.test(t)) {
+            media = t; px = (r.conditionText || r.media.mediaText || '');
+          }
+        }
+      }
+    }
+    return { base, media, px };
+  })();
+  ok(reglas.base === 'none', 'La caja del diagrama nace ESCONDIDA: por debajo del umbral la ventana es la de HEAD', 'display de base: ' + reglas.base);
+  ok(!!reglas.media && /780px/.test(reglas.px || ''), 'El umbral es una media query de min-width 780 px y enciende el diagrama', 'media: ' + reglas.px);
+  ok(!!reglas.media && /\\.bse-lista/.test(reglas.media), 'La MISMA media query esconde la lista larga: la tabla la reemplaza, no se suma', 'reglas: ' + reglas.media);
+
+  // ══ E · LA TABLA COMPACTA ════════════════════════════════════════════════════════════════
+  const tR02 = esc(RAMAS[1].m, 'bse2024', 'sinusal').dia.tabla;      // 3 columnas: paso 1, paso 3 y resultado
+  const tR08 = esc(RAMAS[7].m, 'bse2024', 'sinusal').dia.tabla;      // 3 columnas: paso 1, paso 2 y resultado
+  const tR05 = esc(RAMAS[4].m, 'bse2024', 'sinusal').dia.tabla;      // 2 columnas: el paso 1 decide solo
+  const tR24 = esc(RAMAS[23].m, 'bse2024', 'fa').dia.tabla;          // 3 columnas en la Figura 19
+  ok(!!tR02 && tR02.abierta === false, 'La tabla compacta nace CERRADA', 'abierta: ' + (tR02 ? tR02.abierta : 'SIN TABLA'));
+  ok(!!tR02 && tR02.cols.join(',') === '1,3,res', 'Con el camino por el paso del e-prima la tabla trae paso 1, paso 3 y resultado', 'columnas: ' + (tR02 ? tR02.cols.join(',') : '-'));
+  ok(!!tR08 && tR08.cols.join(',') === '1,2,res', 'Con el camino por el strain la tabla trae paso 1, paso 2 y resultado', 'columnas: ' + (tR08 ? tR08.cols.join(',') : '-'));
+  /* CONTROL NEGATIVO de la compuerta: una columna de paso que el paciente NO recorrio no se
+     dibuja. Con los criterios en gris se leeria como "se evaluaron y dieron negativo", cuando lo
+     que paso es que el algoritmo nunca llego a preguntarlos. */
+  ok(!!tR05 && tR05.cols.join(',') === '1,res', 'CONTROL NEGATIVO: con 2 o 3 positivas no se dibujan las columnas de los pasos que no se recorrieron', 'columnas: ' + (tR05 ? tR05.cols.join(',') : '-'));
+  ok(!!tR24 && tR24.cols.join(',') === '1,2,res', 'En la Figura 19 la columna del paso 2 aparece solo si el camino paso por el', 'columnas: ' + (tR24 ? tR24.cols.join(',') : '-'));
+
+  /* El plegable se abre y se cierra, y su estado SOBREVIVE al repintado —la ventana se arma
+     entera con cada tecla, asi que sin eso la tabla se cerraria sola al corregir un valor—. */
+  const tog = (() => {
+    diastAlgoAbrir();
+    const t = document.querySelector('#diast-algo-cuerpo details[data-bse-tabla]');
+    if (!t) { diastAlgoCerrar(); return { err: 'SIN TABLA' } }
+    const sm = t.querySelector('summary');
+    const antes = !!t.open;
+    if (sm) sm.click();
+    const abierta = !!document.querySelector('#diast-algo-cuerpo details[data-bse-tabla]').open;
+    diastAlgoRender();
+    const trasRepintar = !!document.querySelector('#diast-algo-cuerpo details[data-bse-tabla]').open;
+    const sm2 = document.querySelector('#diast-algo-cuerpo details[data-bse-tabla] summary');
+    if (sm2) sm2.click();
+    const cerrada = !!document.querySelector('#diast-algo-cuerpo details[data-bse-tabla]').open;
+    const foco = !!(sm2 && (sm2.tabIndex >= 0 || sm2.tagName === 'SUMMARY'));
+    diastAlgoCerrar();
+    return { antes, abierta, trasRepintar, cerrada, foco };
+  })();
+  ok(tog.antes === false && tog.abierta === true && tog.cerrada === false, 'El plegable se abre y se vuelve a cerrar', JSON.stringify(tog));
+  ok(tog.trasRepintar === true, 'El estado del plegable SOBREVIVE al repintado de la ventana', 'tras repintar: ' + tog.trasRepintar);
+  ok(tog.foco === true, 'El control del plegable es un <summary> nativo: teclado y lector de pantalla de serie', 'foco: ' + tog.foco);
+
+  // ══ F · CONTROL NEGATIVO MAYOR: LAS OTRAS DOS GUIAS ══════════════════════════════════════
+  /* La ASE 2025 y la ASE/EACVI 2016 no entran en esta tanda: su ventana tiene que quedar sin
+     diagrama, sin tabla, sin envoltorio de lista y sin el ensanche de la tarjeta, en ritmo
+     sinusal y en fibrilacion auricular. */
+  const otras = [];
+  ['ase2025', 'ase2016'].forEach(g => ['sinusal', 'fa'].forEach(ri => {
+    const e = esc(RAMAS[4].m, g, ri);
+    otras.push({ g, ri, hay: e.dia.hay, caja: e.dia.caja, tabla: !!e.dia.tabla,
+                 lista: e.dia.dispLista !== undefined ? e.dia.dispLista : null,
+                 ancho: e.dia.ancho, filas: e.dia.filas });
+  }));
+  ok(otras.length === 4 && otras.every(o => o.hay === false && o.caja === false), 'CONTROL NEGATIVO: la ASE 2025 y la ASE/EACVI 2016 no dibujan diagrama, ni en sinusal ni en FA', JSON.stringify(otras));
+  ok(otras.every(o => o.tabla === false), 'CONTROL NEGATIVO: tampoco tienen tabla compacta', JSON.stringify(otras.map(o => o.g + '/' + o.ri + ':' + o.tabla)));
+  ok(otras.every(o => o.ancho === false), 'CONTROL NEGATIVO: la tarjeta NO se ensancha para las otras dos guias', JSON.stringify(otras.map(o => o.g + '/' + o.ri + ':' + o.ancho)));
+  ok(otras.every(o => o.filas > 0), 'DENOMINADOR: las otras dos guias siguen mostrando su lista larga', JSON.stringify(otras.map(o => o.g + '/' + o.ri + ':' + o.filas)));
+
+  // ══ G · LA FILA DE LA TABLA 2 EN EL NODO DE RELAJACION ═══════════════════════════════════
+  /* Una escena por franja, los cuatro bordes de edad y los dos casos en que la guia no da fila. */
+  const nodoTxt = (dia, id) => { const n = (dia.nodos || []).filter(x => x.id === id)[0]; return n ? n.txt : 'SIN NODO' };
+  const t2 = (edad, sexo) => nodoTxt(esc({ edad, sexo, onda_e: '70', onda_a: '60', e_sep: '6.5', e_lat: '8.5', vmax_it: '2.0', ai_vol: '50' }, 'bse2024', 'sinusal').dia, 'f17.eprima');
+  const T2 = { v30: t2('30', 'M'), m30: t2('30', 'F'), a40: t2('40', 'M'), a41: t2('41', 'M'),
+               a50: t2('50', 'M'), a65: t2('65', 'M'), a66: t2('66', 'M'), a80: t2('80', 'M'),
+               menor: t2('12', 'M'), sinEdad: t2('', 'M'), sinSexo: t2('30', '') };
+  ok(/18-40 años, varón/.test(T2.v30) && /septal <7,0 \\(6,5\\)/.test(T2.v30) && /lateral <9,0 \\(8,5\\)/.test(T2.v30),
+     'El nodo de relajacion trae la fila de 18-40 varon con sus dos cortes y los dos valores medidos', T2.v30);
+  ok(/18-40 años, mujer/.test(T2.m30) && /septal <8,0/.test(T2.m30) && /lateral <11,0/.test(T2.m30),
+     'La franja 18-40 separa por SEXO: la mujer lleva otros dos cortes', T2.m30);
+  ok(/18-40 años/.test(T2.a40) && /41-65 años/.test(T2.a41), 'El borde 40/41 cambia de franja', T2.a40 + ' || ' + T2.a41);
+  ok(/41-65 años/.test(T2.a65) && /más de 65 años/.test(T2.a66), 'El borde 65/66 cambia de franja', T2.a65 + ' || ' + T2.a66);
+  ok(/septal <5,0/.test(T2.a50) && /lateral <6,0/.test(T2.a50), 'En 41-65 los cortes son 5,0 y 6,0 y no dependen del sexo', T2.a50);
+  ok(/septal <4,0/.test(T2.a80) && /lateral <5,0/.test(T2.a80), 'Por encima de 65 los cortes son 4,0 y 5,0', T2.a80);
+  ok(/relajación alterada/.test(T2.v30) && /relajación normal/.test(T2.a50),
+     'El MISMO e-prima (septal 6,5 / lateral 8,5) da alterada a los 30 y normal a los 50', T2.v30 + ' || ' + T2.a50);
+  ok(/no aplicable/.test(T2.menor) && /Tabla 2/.test(T2.menor), 'Por debajo de 18 anios la caja dice que la Tabla 2 no aplica y NO inventa una fila', T2.menor);
+  ok(/no aplicable/.test(T2.sinEdad) && /edad/.test(T2.sinEdad), 'Sin edad, la caja pide completar la edad', T2.sinEdad);
+  ok(/no aplicable/.test(T2.sinSexo) && /sexo/.test(T2.sinSexo), 'Sin sexo en la franja 18-40, la caja pide completar el sexo', T2.sinSexo);
+
+  // ══ H · EL PIE Y LA DESCRIPCION ACCESIBLE ════════════════════════════════════════════════
+  const pies = {};
+  ['f17', 'f18', 'f19'].forEach((f, i) => {
+    const r = RAMAS[[1, 12, 20][i]];
+    const e = esc(r.m, 'bse2024', r.ritmo || 'sinusal');
+    pies[f] = { pie: e.dia.pie || '', alt: e.dia.alt || '' };
+  });
+  const paginas = { f17: '36', f18: '38', f19: '39' };
+  ok(['f17','f18','f19'].every(f => /Dibujo propio/.test(pies[f].pie)
+      && new RegExp('Figura ' + f.slice(1) + ' de la BSE 2024').test(pies[f].pie)
+      && new RegExp('pág\\\\. ' + paginas[f]).test(pies[f].pie)
+      && /CC BY 4\\.0/.test(pies[f].pie)),
+     'Las tres figuras llevan al pie la fuente con su pagina, la licencia CC BY 4.0 y la aclaracion de que el dibujo es propio',
+     JSON.stringify(pies));
+  ok(['f17','f18','f19'].every(f => /^Camino de este paciente:/.test(pies[f].alt) && / → resultado: /.test(pies[f].alt)),
+     'Las tres llevan el camino EN PALABRAS, con el ultimo paso nombrado como resultado', JSON.stringify(Object.keys(pies).map(f => pies[f].alt)));
+
+  __t.limpiar();
+  return { extra: AF };
+`);
+
 
 caso('TC-30', 'AI por volumen indexado: las cuatro bandas en sus cortes exactos', `
   function ai(vol) { __t.limpiar(); ${BSA2} __t.set('ai_vol', String(vol)); return __t.informe(); }

@@ -1,5 +1,62 @@
 # EcoSmart — pendientes vivos
 
+## Diagrama de flujo de la BSE 2024 en la ventana 🧭 (2026-10-13) — DECLARADO y NO arreglado
+
+Fuente: `docs/fuentes/FUENTES.md` → «Las tres figuras, caja por caja y flecha por flecha» y
+«Licencia de acceso abierto». Mapa: `docs/mapa/diastolica-diagrama.md`.
+
+### D1 · La ASE 2025 y la ASE/EACVI 2016 siguen sin diagrama
+
+Es la decisión de la orden: esta tanda es sólo de la BSE 2024 y las otras dos ventanas quedan
+idénticas a HEAD. Cuando les toque, el motor (`_bseDiagSVG`), el envoltorio (`_bseDiagCaja`), la
+tabla (`_bseTablaHTML`) y el umbral de ancho ya están: lo que falta por guía es **su plano** y que
+su función dueña devuelva `camino` y `nodoFinal`, que hoy no devuelve ninguna de las dos.
+
+### D2 · La Figura 17 dibuja la caja de eco de esfuerzo del original, y la app no
+
+El original cuelga de «Impaired diastolic function with normal filling pressures» una caja que
+dice que, si está clínicamente indicado, puede considerarse un eco de esfuerzo. **No se dibujó**:
+es una recomendación clínica y agregarla al diagrama sería ponerla en pantalla sin que nadie la
+haya decidido. Lo mismo con el tercer motivo de entrada a la Figura 18 —«known myocardial
+disease»—, que la app **no mide** y por eso no tiene caja propia.
+
+### D3 · El umbral de 780 px deja el diagrama fuera de una tablet en vertical
+
+Un iPad en vertical son 768 px de viewport: cae **12 px por debajo** del umbral y ve la ventana de
+HEAD. Es el lado conservador —el piso de legibilidad medido es de 721 px y bajar el umbral hasta
+ahí deja el texto en 11,0 px justos, sin margen—, pero si Maicol quiere el diagrama en esa tablet
+hay dos caminos: bajar el umbral a 760 px, o achicar el viewBox a ~640 px, que mete más texto por
+caja a costa de renglones más cortos. **No se tocó**: mover el umbral es cambiar qué ve el médico.
+
+### D4 · El rótulo de tres criterios se abrevia en el dibujo y no en la lista
+
+`BSE_DG_ABREV` acorta «Strain de contracción de la AI», «Velocidad de la IT» y «S/D venoso
+pulmonar» **sólo** dentro del SVG, porque a 164 px de caja el nombre completo ocupa dos renglones.
+La lista larga, la tabla compacta, el informe y el EN SUMA siguen escribiendo el nombre entero, así
+que el mismo criterio aparece con dos nombres en la misma ventana. Es de pantalla y no toca ninguna
+frase firmada, pero está declarado.
+
+### D5 · La tabla compacta conserva el código de color rojo/verde de la lista
+
+El diagrama es SIN COLORES —lo único en rojo es el camino— pero la tabla que reemplaza a la lista
+larga hereda el ✗ rojo y el ✓ verde que esa lista ya usaba, para que el médico no vea dos códigos
+distintos para lo mismo en la misma ventana. **El significado no depende del color**: los tres
+glifos (✗ / ✓ / –) lo llevan solos. Si se decidiera llevar la tabla también a escala de grises,
+`.bse-td.si i` y `.bse-td.no i` son los dos únicos lugares.
+
+### D6 · El diagrama no sale en el PDF, el PPT ni el Excel
+
+Es sólo pantalla, a propósito y por la regla de la casa: «el panel explica, el papel afirma».
+Ningún generador lo lee y `@media print` no necesita apagarlo porque vive dentro de un overlay que
+ya está en `display:none` cuando la ventana está cerrada. Si alguna vez se quisiera en el informe,
+hay que decidir antes qué pasa con el pie de licencia, que en papel es obligatorio.
+
+### D7 · El estado del plegable es de la SESIÓN y no viaja con el estudio
+
+`_bseTablaAbierta` es una variable en memoria: sobrevive al repintado y a cambiar de paciente, y se
+pierde al recargar. **No se guarda** con el estudio ni en `localStorage`, porque es una preferencia
+de lectura y no un dato clínico.
+
 ## Parámetros complementarios de la función diastólica (2026-10-12) — DECLARADO y NO arreglado
 
 Fuente: `docs/fuentes/FUENTES.md` → «Parámetros complementarios de la función diastólica».

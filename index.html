@@ -24070,9 +24070,14 @@ function _bdTabla2(R) {
   const c = ep.cortes, sx = sv('sexo');
   const franja = c.franja + (c.porSexo ? (sx === 'F' ? ', mujer' : ', varón') : '');
   const vs = (x) => (x === null || x === undefined || x === '' || isNaN(x)) ? 'sin dato' : String(Number(x).toFixed(1)).replace('.', ',');
+  /* ⚠️ EL CORTE SE IMPRIME CON UN DECIMAL, QUE ES COMO LO ESCRIBE LA TABLA 2. `String(7.0)` da
+     «7» en JavaScript, asi que el renglon decia «e' septal <7» al lado de un valor medido que SI
+     lleva decimal («6,5»): dos notaciones para dos numeros que se comparan entre si. Es SOLO el
+     dibujo —la lista larga, el informe y el EN SUMA no se tocan— y el VALOR del corte no cambia. */
+  const vc = (x) => Number(x).toFixed(1).replace('.', ',');
   return [franja,
-          "e' septal <" + String(c.sep).replace('.', ',') + ' (' + vs(R.esep) + ')',
-          "e' lateral <" + String(c.lat).replace('.', ',') + ' (' + vs(R.elat) + ')',
+          "e' septal <" + vc(c.sep) + ' (' + vs(R.esep) + ')',
+          "e' lateral <" + vc(c.lat) + ' (' + vs(R.elat) + ')',
           '→ relajación ' + (ep.alterada ? 'alterada' : 'normal para la edad')];
 }
 
@@ -24243,8 +24248,15 @@ function _bseTablaCol(R, col) {
    tecla que el medico toca, asi que sin esto la tabla se cerraria sola apenas se corrige un
    valor — que es el defecto que el panel de Evidencia ya pago con sus `<details>`. */
 let _bseTablaAbierta = false;
-function _bseTablaRec(d) { _bseTablaAbierta = !!(d && d.open); }
-window._bseTablaRec = _bseTablaRec;
+/* ⚠️ `ontoggle` NO SIRVE PARA ESTO, Y LA PRIMERA VERSION LO USABA. El evento `toggle` de un
+   `<details>` se despacha de forma ASINCRONA —queda encolado—, asi que cuando el repintado corre
+   en la misma vuelta que el clic, el estado guardado todavia es el anterior y la tabla se cerraba
+   sola: medido, abrir y repintar dejaba el plegable cerrado. Se lee del arbol VIVO justo antes de
+   reemplazarlo, que es sincronico y no depende de ningun evento. */
+function _bseTablaLeerEstado() {
+  const d = document.querySelector('#diast-algo-cuerpo details[data-bse-tabla]');
+  if (d) _bseTablaAbierta = !!d.open;
+}
 
 function _bseTablaHTML(plano, R) {
   const cam = (R && R.camino) ? R.camino : [];
@@ -24264,7 +24276,7 @@ function _bseTablaHTML(plano, R) {
      Espacio lo abren y lo cierran, y el rol de divulgacion ya anuncia si esta expandido—. NO se
      agrega un `aria-expanded` propio a proposito: habria que mantenerlo sincronizado a mano y un
      atributo que se desincroniza miente con mas conviccion que no tenerlo. */
-  return '<details class="bse-tabla" data-bse-tabla ontoggle="_bseTablaRec(this)"'
+  return '<details class="bse-tabla" data-bse-tabla'
        + (_bseTablaAbierta ? ' open' : '') + '>'
        + '<summary>Tabla de criterios por paso (' + n + (n === 1 ? ' columna)' : ' columnas)') + '</summary>'
        + '<div class="bse-tg">' + cols + '</div></details>';
@@ -24518,6 +24530,9 @@ function _bseDiagAncho(hay) {
 }
 
 function diastAlgoRender() {
+  /* Lo primero, y antes de tocar el innerHTML: el plegable de la tabla compacta se vuelve a armar
+     con cada tecla que el medico toca, asi que sin leer su estado aca se cerraria solo. */
+  _bseTablaLeerEstado();
   const algo = (document.getElementById('diast_algoritmo') || {}).value || 'ase2025';
   const tit = { ase2025:'Algoritmo ASE 2025', bse2024:'Algoritmo BSE 2024', ase2016:'Algoritmo ASE/EACVI 2016' }[algo];
   const tEl = document.getElementById('diast-algo-titulo'); if (tEl) tEl.textContent = tit;
@@ -104838,8 +104853,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261013-0033';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791862394379;                 /* eco-build-ms */
+const ECO_BUILD    = '20261013-0101';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791864108779;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -104925,7 +104940,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-0033</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-0101</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

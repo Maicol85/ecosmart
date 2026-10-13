@@ -33,6 +33,12 @@ veredicto.** Esa función **lee el DOM y no escribe nada**; devuelve el veredict
 quedaron **definidos y sin consumidores**. El renglón que decía que las otras dos ramas calculaban
 por su cuenta ya no vale.
 
+📊 **EL DIAGRAMA DE FLUJO DE LA VENTANA 🧭 TIENE MAPA PROPIO DESDE EL 2026-10-13:**
+`docs/mapa/diastolica-diagrama.md` — el camino de nodos que devuelven las tres funciones dueñas de
+la BSE, los tres planos (Figuras 17, 18 y 19), el motor del SVG, el umbral de ancho de 780 px, la
+tabla compacta plegada y las trampas. **Es sólo pantalla**: no mueve ninguna cuenta ni ninguna
+superficie firmada.
+
 📄 **La ASE/EACVI 2016 en ritmo sinusal tiene mapa propio: `docs/mapa/diastolica-ase2016.md`** (los
 dos algoritmos de la Figura 8, el corte de FEVI, el S/D, las frases y las trampas). Se sacó a
 archivo aparte porque este mapa ya pesaba 32,7 KB y el techo son ~35 KB. La **fibrilación auricular**
