@@ -816,9 +816,18 @@ async function main() {
             d.dispatchEvent(new Event('change', { bubbles: true }));
             return d.value })()`);
           await pausa(200);
+          /* ⚠️ HAY QUE ABRIR LA PUERTA DE AVANZADO ANTES DE TIPEAR, Y LA PRIMERA CORRIDA DE
+             ESTA TABLA NO LA ABRIA: los 24 valores salieron con `humPts: 0` y el renglon
+             identico en los dos arboles — una tabla de 24 filas que decia «ningun corte
+             funciona» sobre cortes que funcionan. El tecleo habia ABORTADO con «SIN GEOMETRIA
+             hf_ntprobnp» en las 24, que es lo correcto, y el lector no lo miraba. Es la trampa
+             del denominador de este repo, otra vez. */
+          const puerta = await J('window.__H.abrirAvanzado()');
           const tip = await tipear(campo, val);
+          /* Y se vuelve al Doppler para leer el renglon de las referencias, que es donde vive. */
+          await ev('window.__H.volverADoppler()');
           await pausa(250);
-          B.filas.push({ ritmo, tipo, corte, valor: val, ponerRitmo: pr,
+          B.filas.push({ ritmo, tipo, corte, valor: val, ponerRitmo: pr, puerta,
             ritmoEfectivo: await ev('window.__H.ritmoEfectivo()'),
             tecleo: tip,
             umbrales: await J(`window.__H.umbrales(${ritmo === 'fa'})`),
@@ -833,9 +842,11 @@ async function main() {
       await base('avanzado');
       await ev(`(function(){ var d = document.getElementById('diast_ritmo');
         if (d) { d.value='sinusal'; d.dispatchEvent(new Event('change',{bubbles:true})) } return 1 })()`);
+      const puertaCN = await J('window.__H.abrirAvanzado()');
       const cn = await tipear('hf_ntprobnp', '50');
+      await ev('window.__H.volverADoppler()');
       await pausa(250);
-      B.controlNegativo = { tecleo: cn, hum: await J('window.__H.humCrit()'),
+      B.controlNegativo = { puerta: puertaCN, tecleo: cn, hum: await J('window.__H.humCrit()'),
         score6: await J('window.__H.score(false)'), refs: await J('window.__H.refs()') };
     } catch (x) { B.FALLO = String(x.message || x); }
     out.B = B;
@@ -848,16 +859,32 @@ async function main() {
   if (hacer('R')) {
     const R = { pasos: [] };
     try {
-      await base('avanzado');
+      await base('basico');
       await ev(`(function(){ var h=document.getElementById('hf_ritmo'); if(h) h.value='auto';
         var d=document.getElementById('diast_ritmo');
         if (d) { d.value='sinusal'; d.dispatchEvent(new Event('change',{bubbles:true})) } return 1 })()`);
       await pausa(200);
-      R.tecleo = await tipear('hf_ntprobnp', '450');
-      await pausa(250);
+      /* ⚠️ EL VALOR SE CARGA POR EL CARTEL, que es el gesto que esta tanda agrega y el unico
+         disponible con plan BASICO. Tipear en el campo dueno abortaria por falta de geometria
+         —la tarjeta de Avanzado esta plegada—, que es lo que le paso a la primera corrida de
+         este grupo: los tres pasos salieron con humPts 0 y el renglon identico, o sea una tabla
+         que decia «el ritmo no mueve nada» sobre un peptido que nunca se cargo. */
+      const btnR = await ev(`(function(){
+        var v = document.getElementById('hfapeff-eco'); if (!v) return 'SIN SPAN';
+        var b = v.querySelector('button'); if (!b) return 'SIN BOTON';
+        if (!b.id) b.id = '__hfpepBtn'; return b.id })()`);
+      R.clicAbrir = (btnR === '__hfpepBtn') ? await clicEn(btnR) : { via: 'NO SE PUDO', por: btnR };
+      await pausa(350);
+      /* 450 pg/ml de NT-proBNP es el valor que DISCRIMINA: criterio MAYOR en ritmo sinusal
+         (> 220) y MENOR en fibrilacion auricular (375-660). Con un valor que cayera del mismo
+         lado en los dos ritmos, el paso no probaria nada. */
+      R.tecleo = await tipear('hfpep-val', '450');
+      await pausa(300);
+      R.cartelSinusal = await J('window.__H.cartel()');
       R.pasos.push({ paso: 'sinusal', ritmoEfectivo: await ev('window.__H.ritmoEfectivo()'),
         hum: await J('window.__H.humCrit()'), score6: await J('window.__H.score(false)'),
-        refs: await J('window.__H.refs()'), avanzado: await J('window.__H.avanzado()') });
+        refs: await J('window.__H.refs()'), avanzado: await J('window.__H.avanzado()'),
+        cartelCorte: await ev(`window.__H.txt('hfpep-corte')`) });
       /* El cambio de ritmo va con un gesto real sobre el <select> de Doppler. */
       const pr = await ev(`(function(){ var d=document.getElementById('diast_ritmo');
         if (!d) return 'NO EXISTE'; d.value='fa';
@@ -865,14 +892,16 @@ async function main() {
       await pausa(300);
       R.pasos.push({ paso: 'fa', ponerRitmo: pr, ritmoEfectivo: await ev('window.__H.ritmoEfectivo()'),
         hum: await J('window.__H.humCrit()'), score6: await J('window.__H.score(false)'),
-        refs: await J('window.__H.refs()'), avanzado: await J('window.__H.avanzado()') });
+        refs: await J('window.__H.refs()'), avanzado: await J('window.__H.avanzado()'),
+        cartelCorte: await ev(`window.__H.txt('hfpep-corte')`) });
       /* Y de vuelta, para que el cambio se vea en los dos sentidos. */
       await ev(`(function(){ var d=document.getElementById('diast_ritmo');
         if (d) { d.value='sinusal'; d.dispatchEvent(new Event('change',{bubbles:true})) } return 1 })()`);
       await pausa(300);
       R.pasos.push({ paso: 'sinusal-vuelta', ritmoEfectivo: await ev('window.__H.ritmoEfectivo()'),
         hum: await J('window.__H.humCrit()'), score6: await J('window.__H.score(false)'),
-        refs: await J('window.__H.refs()'), avanzado: await J('window.__H.avanzado()') });
+        refs: await J('window.__H.refs()'), avanzado: await J('window.__H.avanzado()'),
+        cartelCorte: await ev(`window.__H.txt('hfpep-corte')`) });
     } catch (x) { R.FALLO = String(x.message || x); }
     out.R = R;
   }
@@ -933,6 +962,21 @@ async function main() {
       await pausa(300);
       G.cartelAbierto = await J('window.__H.cartel()');
       G.fotoGuardado = await J('window.__H.guardarFoto()');
+      /* ⚠️ EL MODULO INTEGRADO ES PARTE DE ESTA ESCENA, y no es un extra: `amiloIntegrar`
+         genera el texto de la hoja del PDF y `amiloRefrescarSiIntacto` lo regenera desde el
+         oyente de documento. Si algo de esa cadena TIRA, el modulo se retira solo y el texto
+         se pierde — que es el defecto que TC-GR-06 vigila. */
+      G.integrar = await ev(`(function(){
+        try { amiloIntegrar('hfpeff') } catch(e) { return 'EXC: ' + e.message }
+        return { integrado: (typeof amiloIntegrado === 'function') ? amiloIntegrado('hfpeff') : null,
+                 largo: ((document.getElementById('am-txt-hfpeff')||{}).value || '').length } })()`);
+      await ev(`(function(){ var e=document.getElementById('edad');
+        if (e) { e.value='74'; e.dispatchEvent(new Event('input',{bubbles:true})) } return 1 })()`);
+      await pausa(300);
+      G.trasEventoConIntegrado = await ev(`(function(){
+        return { integrado: (typeof amiloIntegrado === 'function') ? amiloIntegrado('hfpeff') : null,
+                 largo: ((document.getElementById('am-txt-hfpeff')||{}).value || '').length,
+                 err: window.__hfpepErr || null } })()`);
       await ev(`(function(){ try{ if (typeof hfPepCerrar === 'function') hfPepCerrar() }catch(e){}; return 1 })()`);
       /* Reapertura: se repone por el MISMO camino que las rutas de restauracion —asignar
          `.value` y pasar por el embudo de RECALC_MODULOS—, que es lo que no dispara ningun
@@ -1051,7 +1095,12 @@ async function main() {
         try { if (typeof calcDiastol === 'function') calcDiastol() } catch(e) {}
         return r })()`);
       await pausa(400);
+      /* La puerta de Avanzado, por lo mismo que en los grupos B y R: sin ella el tecleo
+         ABORTA y el control negativo mediria un escenario SIN peptido, o sea el control mas
+         facil de pasar y el que no prueba nada. */
+      N.puerta = await J('window.__H.abrirAvanzado()');
       N.tecleoPeptido = await tipear('hf_ntprobnp', '900');
+      await ev('window.__H.volverADoppler()');
       await pausa(400);
       N.diastolica = await J('window.__H.diastolica()');
       N.valvulas = await J('window.__H.valvulas()');
@@ -1128,6 +1177,10 @@ async function main() {
     out.X = X;
   }
 
+  /* ⚠️ UNA EXCEPCION TRAGADA POR UN try/catch NO SE VE EN NINGUNA ESCENA, y en este repo una
+     que corra dentro del oyente de documento se lleva por delante lo que viene DESPUES en ese
+     oyente. La sonda la publica para que no quede muda. */
+  out.errorCartel = await ev('window.__hfpepErr || null');
   out.md5_antes = antes;
   out.md5_despues = await md5(join(RAIZ, 'index.html'));
   out.index_intacto = out.md5_antes === out.md5_despues;

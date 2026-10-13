@@ -4018,7 +4018,7 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="calc-row" id="venp-vel-row" style="display:none;"><span class="calc-lbl">Veloc. Ar pulmonar</span><span class="calc-val" id="venp-vel">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Función diastólica</span><span id="dd-interp">—</span></div>
         <!-- Sólo aparece si los dos dominios de eco tienen datos y suman >= 2 -->
-        <div class="calc-row" id="hfapeff-eco-row" style="display:none;"><span class="calc-lbl">HFA-PEFF (eco)</span><span id="hfapeff-eco">—</span></div>
+        <div class="calc-row" id="hfapeff-eco-row" style="display:none;"><span class="calc-lbl" id="hfapeff-eco-lbl">HFA-PEFF (eco)</span><span id="hfapeff-eco">—</span></div>
       </div>
     </div>
   </div>
@@ -23764,24 +23764,58 @@ function hfapeffLineaEco() {
   const el = document.getElementById('hfapeff-eco-row');
   const val = document.getElementById('hfapeff-eco');
   if (!el || !val) return;
-  const r = hfapeffScore(true);
+  /* ⚠️ EL RENGLÓN PUBLICA EL PUNTAJE COMPLETO EN CUANTO HAY PÉPTIDO, Y SIN PÉPTIDO ES BYTE POR
+     BYTE EL DE HEAD. Hasta hoy llamaba siempre a `hfapeffScore(true)` —techo 4, dominio humoral
+     excluido—, así que con un péptido cargado el cuadro de referencias seguía diciendo «4/4 en
+     eco» mientras Avanzado decía 6/6 sobre el MISMO paciente: dos superficies del mismo score
+     con dos números. La rama de HEAD se conserva entera y se elige por `hum.hayDatos`, que es
+     el propio dueño el que lo dice — con eso el punto «sin péptido, idéntico a HEAD» queda
+     garantizado por construcción y no por una medición a posteriori.
+     LA FUNCIÓN DEL PUNTAJE ES UNA SOLA y sigue siendo `hfapeffScore`: lo único que cambia es el
+     argumento `soloEco`. */
+  const r6 = hfapeffScore(false);
+  const hayHum = !!r6.hum.hayDatos;
+  const r = hayHum ? r6 : hfapeffScore(true);
   // Sin los dos dominios de eco cargados no se muestra nada: un score parcial
   // sobre datos ausentes induciría a error. Con FEVI reducida, tampoco: esta línea vive en la
   // tabla del Doppler, lejos del módulo, y sería la única superficie que seguiría anunciando
   // «HFpEF probable» sobre un paciente cuyo diagnóstico es HFrEF.
+  /* La compuerta sigue exigiendo los DOS dominios de ECO, también con péptido: este renglón es
+     del cuadro del Doppler y un péptido suelto no es un hallazgo ecocardiográfico. Es el lado
+     conservador y deja el momento en que la fila aparece igual que en HEAD para todo paciente
+     sin péptido. */
   if (!r.func.hayDatos || !r.morf.hayDatos || r.total <= 1
       || (r.gate && !r.gate.aplica)) { el.style.display = 'none'; return; }
   el.style.display = '';
+  /* El rótulo dice «(eco)» sólo mientras el puntaje SEA de eco sola. Con el péptido cargado
+     ese paréntesis sería falso: el número ya no sale sólo del eco. Se escribe acá y no en el
+     marcado para que sin péptido quede exactamente el texto de HEAD. */
+  const lbl = document.getElementById('hfapeff-eco-lbl');
+  if (lbl) lbl.textContent = hayHum ? 'HFA-PEFF' : 'HFA-PEFF (eco)';
+  const btn = (txt) => ' <button type="button" class="btn btn-ghost" style="font-size:10px;padding:2px 8px;margin-left:6px;"'
+    + ' onclick="hfapeffIr()">' + txt + '</button>';
+  if (hayHum) {
+    /* Con los tres dominios en juego el techo son 6 y las bandas son las del consenso, que es
+       lo que `hfapeffInterp` ya resuelve: no se escribe acá ni un corte ni una frase nueva. */
+    const t = r.interp ? r.interp.txt : '';
+    /* ⚠️ SE ARMA EN UNA VARIABLE Y SE ASIGNA UNA VEZ, y no es estilo: la regla local
+       `ceibo-xss-innerhtml-concat` cuenta las asignaciones a `innerHTML` con concatenación, y
+       una rama nueva subía el barrido de Semgrep de 127 a 128. Acá no hay un solo dato del
+       paciente —`t` es una de las tres frases fijas de `hfapeffInterp` y los otros dos son
+       números del score— así que no es un XSS; pero un hallazgo nuevo en el barrido es un
+       renglón que alguien tiene que ir a descartar a mano la próxima vez. Las DOS ramas de
+       HEAD se dejan como están: cambiarlas bajaría el número por debajo de su línea base. */
+    const cuerpo = badge(r.total >= 5 ? 'red' : 'yellow', r.total + '/' + r.max + ' — ' + t)
+      + btn('editar péptido →');
+    val.innerHTML = cuerpo;
+    return;
+  }
   // Con eco sola el techo son 4 puntos (2 funcional + 2 morfológico): nunca se
   // llega a 5 sin péptidos. Por eso el corte de "probable" es 4/4, no 5.
   if (r.total >= 4) {
-    val.innerHTML = badge('red', '4/4 en eco — HFpEF probable') +
-      ' <button type="button" class="btn btn-ghost" style="font-size:10px;padding:2px 8px;margin-left:6px;"' +
-      ' onclick="hfapeffIr()">confirmar con péptidos →</button>';
+    val.innerHTML = badge('red', '4/4 en eco — HFpEF probable') + btn('confirmar con péptidos →');
   } else {
-    val.innerHTML = badge('yellow', r.total + ' pts eco') +
-      ' <button type="button" class="btn btn-ghost" style="font-size:10px;padding:2px 8px;margin-left:6px;"' +
-      ' onclick="hfapeffIr()">completar péptidos →</button>';
+    val.innerHTML = badge('yellow', r.total + ' pts eco') + btn('completar péptidos →');
   }
 }
 window.hfapeffLineaEco = hfapeffLineaEco;
@@ -24178,10 +24212,38 @@ function hfPepPintar() {
   const tipo = sel ? sel.value : 'nt';
   const esp = document.getElementById('hfpep-val');
   const crudo = esp ? String(esp.value).trim() : '';
-  const nombre = tipo === 'bnp' ? 'BNP' : 'NT-proBNP';
-  c.textContent = (crudo === '')
-    ? 'Sin valor cargado: el dominio de biomarcadores no suma puntos.'
-    : (nombre + ' ' + crudo + ' pg/ml.');
+  if (crudo === '') {
+    c.textContent = 'Sin valor cargado: el dominio de biomarcadores no suma puntos.';
+    return;
+  }
+  /* ⚠️ EL CORTE Y LOS PUNTOS SALEN DEL DUEÑO ÚNICO Y NO SE RECALCULAN ACÁ. El texto del corte es
+     el de `hfUmbrales(fa)` —el mismo que rotula las cuatro casillas del dominio humoral en
+     Avanzado— y los puntos salen de `hfapeffScore(false).hum`, que es LA función del puntaje.
+     Reimplementar la comparación acá sería una segunda copia de un criterio clínico, que es el
+     defecto que este repo ya pagó varias veces: así, lo que el cartel muestra ANTES de confirmar
+     es por construcción lo que el score va a sumar, y las referencias y Avanzado no pueden
+     diferir con los mismos datos.
+     ⚠️ Y SE FILTRA POR EL TIPO QUE EL CARTEL MUESTRA. El otro péptido puede estar cargado y
+     cumplir su propio corte; atribuirle esos puntos a ESTE valor sería afirmar lo que el valor
+     no dice. Los puntos del DOMINIO se publican aparte y con su nombre, porque el dominio es lo
+     que entra al puntaje. */
+  let txt = '';
+  try {
+    const fa = (typeof hfRitmoEfectivo === 'function') ? hfRitmoEfectivo() === 'fa' : false;
+    const U = hfUmbrales(fa);
+    const R = hfapeffScore(false);
+    const h = R.hum;
+    const esMio = (x) => (tipo === 'bnp' ? /^BNP\b/ : /^NT-proBNP\b/).test(x && x.txt || '');
+    const may = (h.mayor || []).filter(esMio);
+    const men = (h.menor || []).filter(esMio);
+    if (may.length)      txt = 'Corte aplicado: ' + may[0].txt + ' — criterio MAYOR, 2 puntos.';
+    else if (men.length) txt = 'Corte aplicado: ' + men[0].txt + ' — criterio MENOR, 1 punto.';
+    else txt = 'No alcanza el corte menor (' + (tipo === 'bnp' ? U.bnMen.txt : U.ntMen.txt)
+             + '): este péptido no suma puntos.';
+    txt += ' Dominio de biomarcadores: ' + h.pts + ' de 2. Puntaje HFA-PEFF: '
+         + R.total + '/' + R.max + '.';
+  } catch (e) { txt = 'No se pudo calcular el puntaje con los datos actuales.'; }
+  c.textContent = txt;
 }
 window.hfPepPintar = hfPepPintar;
 
@@ -25385,6 +25447,25 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') diastAlgoCer
   if (typeof diastBseGrisAvisoSync === 'function') diastBseGrisAvisoSync();
   // La línea HFA-PEFF de la tabla del Doppler y la calculadora siguen al estudio.
   if (typeof hfapeffLineaEco === 'function') hfapeffLineaEco();
+  /* ⚠️ Y LOS DOS RENGLONES DEL CARTEL DE PÉPTIDOS, POR EL MISMO ARGUMENTO Y CON UN DEFECTO
+     MEDIDO DETRÁS. El cartel es un overlay: queda a la vista con cualquier pestaña debajo, así
+     que el médico puede mover el selector «Ritmo» del Doppler con el cartel abierto. Sin esta
+     línea el cartel seguía declarando el corte y los puntos del ritmo ANTERIOR — la sonda lo
+     midió: con NT-proBNP 450 y el ritmo pasado a fibrilación auricular, el score bajaba a 5/6
+     por criterio MENOR mientras el cartel seguía diciendo «NT-proBNP > 220 pg/ml — criterio
+     MAYOR, 2 puntos … 6/6». Un cartel que afirma un corte que ya no se aplica es peor que uno
+     vacío. Va acá, en el oyente de documento, y no colgado del `onchange` del selector: sus
+     insumos (`diast_ritmo`, `hf_ritmo` y los dos campos dueños) viven en TRES pestañas, y son
+     tres puertas que se separan en cuanto se toque una. */
+  /* ⚠️ EN `try`, Y NO ES DECORATIVO: este oyente NO envuelve sus llamadas, así que una
+     excepción acá se lleva por delante todo lo que viene DESPUÉS en el mismo oyente —hoy el
+     repintado de la calculadora de Avanzado— para CADA evento de input del documento. Es el
+     modo de falla que este archivo ya documenta para `showTab`. Se avisa por consola en vez de
+     tragarla en silencio. */
+  if (typeof hfPepPintar === 'function') {
+    try { hfPepPintar(); }
+    catch (e) { window.__hfpepErr = String(e && e.message || e); console.warn('[hfPepPintar]', e); }
+  }
   const hs = document.getElementById('hfapeff-seccion');
   if (hs && hs.style.display !== 'none' && typeof hfapeffRender === 'function') hfapeffRender();
 }));
@@ -106520,8 +106601,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261013-1702';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791921767745;                 /* eco-build-ms */
+const ECO_BUILD    = '20261013-1731';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791923473870;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -106607,7 +106688,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-1702</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-1731</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
