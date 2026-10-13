@@ -33264,7 +33264,34 @@ function clasificarEA_Vmax() {
          graduar. El aviso de bajo flujo / bajo gradiente no se perdió: lo sigue escribiendo
          `calcEADetalle`, que es su dueño, y sigue colgando de que el grado sea 'severa'. */
   const R = eaGradoCalculado();
+  /* ⚠️ EL `else` ENTRA EL 2026-10-13, Y SIN ÉL ESTE `if` ERA LA CAUSA ENTERA DEL SÍNTOMA DE LA EAo.
+     `eaGradoCalculado` devuelve `grado: null` sólo cuando NINGUNO de los tres insumos está cargado
+     —con una Vmax por debajo de 2,0 devuelve `'sin'`, que es un token y es truthy—, o sea
+     exactamente el estado «el médico borró el último dato». Sin rama negativa, el `<select>` se
+     quedaba con lo último que la app escribió.
+     ⚠️ Y ERA EL ÚNICO DE LOS CUATRO DONDE LAS DOS MITADES YA SE CONTRADECÍAN EN PANTALLA, que es el
+     síntoma (b) del reporte: el badge SÍ se reescribe tres líneas más abajo —`_eaBadgeAuto` con
+     `R.grado` en `null` publica «No alcanza para graduar la estenosis aórtica automáticamente»— y
+     el recuadro del Doppler vuelve a «— sin Vmax ni gradiente medio cargados», mientras el grado
+     seguía en leve/moderada/severa y el informe firmado publicaba «EAo leve.». Medido con teclas
+     reales en las 4 escenas de la EAo: las 4.
+     Y CIERRA ADEMÁS LA DEUDA QUE `docs/PENDIENTES.md` DECLARABA PARA ESTA FUNCIÓN: «Sin en el
+     desplegable aórtico no es durable: reabrir el botón corre clasificarEA_Vmax, que no mira la
+     pastilla y no tiene marca que lo frene, así que regrada a severa». La señal que esa entrada
+     pedía —«una señal nueva que sobreviva al recálculo sin ser `esqSevManual`»— ya existe y es
+     `dataset.sugerido`: con el grado elegido a mano la marca no coincide y el retiro no lo toca.
+     ⚠️ NO HACE FALTA REPINTAR LA PANTALLA ACÁ, Y ESO SE COMPROBÓ: el `_eaSincronizarPantalla()` de
+     tres líneas más abajo está FUERA del `if`, así que corre por las dos ramas. Agregar una segunda
+     llamada en esta rama habría sido la duplicación de siempre.
+     ⚠️ Y LA PASTILLA SE APAGA SOLA, por `_eaApagarAuto()`, que `calcAo` ya llamaba desde el
+     2026-10-11 y que estaba inerte por ESTE defecto: su segunda guarda pide que el grado haya
+     quedado en el centinela, y sin la rama negativa el grado nunca volvía ahí al borrar —sólo al
+     CORREGIR la Vmax de 4,5 a 1,4—. Medido: con la Vmax borrada la pastilla queda apagada en los
+     tres grados que la app puede poner, leve, moderada y severa, con la clave de `localStorage`
+     borrada. O sea que el auto-apagado de la EAo no hubo que escribirlo: hubo que darle el estado
+     que esperaba. */
   if (R.grado) { sel.value = R.grado; _eaMarcarSugerido(sel, R.grado); }
+  else if (typeof sevRetirarSugerido === 'function') sevRetirarSugerido('ea');
   if (badgeEl) badgeEl.textContent = _eaBadgeAuto(R);
   /* La pastilla se repinta ACÁ y no por un evento (R3). Las escrituras automáticas asignan `.value`
      sin despachar `change` ni `input` —a propósito: despacharlos borraría `dataset.sugerido` por
@@ -105482,8 +105509,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261013-1230';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791905411784;                 /* eco-build-ms */
+const ECO_BUILD    = '20261013-1240';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791906023232;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -105569,7 +105596,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-1230</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-1240</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

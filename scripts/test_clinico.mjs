@@ -58164,11 +58164,17 @@ caso('TC-435', 'Aortica: el G. maximo se vacia en las TRES superficies cuando la
     ['al volver a cargar la Vmax en 3 m/s, las tres dicen 36',
       todos.every(e => e.re.gmaxDop === '36.0' && e.re.gmaxValv === '36 mmHg' && e.re.gmaxRef === '36 mmHg'),
       JSON.stringify(todos.map(e => e.re.gmaxDop))],
-    /* El grado NO se toca al borrar: con la pastilla prendida sigue «severa» y con la pastilla
-       apagada queda «sin». Es la regla 12 y es lo que se midio en HEAD — si esta asercion se cae,
-       la correccion se metio en la cola de calcAo, que es lo que la orden prohibia. */
-    ['el GRADO no cambia al borrar la Vmax: prendida conserva severa, apagada queda sin',
-      dopOn.sin.grado === 'severa' && valvOn.sin.grado === 'severa'
+    /* ADAPTADA EL 2026-10-13. Decia: «el grado NO se toca al borrar: con la pastilla prendida
+       sigue severa y con la apagada queda sin. Es la regla 12 y es lo que se midio en HEAD — si
+       esta asercion se cae, la correccion se metio en la cola de calcAo, que es lo que la orden
+       prohibia». La regla 12 la reemplazo Maicol el 2026-10-13 con la regla 1: un campo vacio no
+       deja grado. Asi que las cuatro escenas tienen que dar «sin», y el estado de la pastilla deja
+       de importar para el grado — que es el punto de la regla nueva.
+       Lo que esta condicion seguia defendiendo —que la correccion del G. maximo no se metiera en
+       la cola de calcAo— lo defienden igual las cuatro de arriba, que son las que miden el G.
+       maximo en sus tres superficies. Esta pasa a medir el retiro del grado. */
+    ['el GRADO vuelve al centinela al borrar la Vmax, con la pastilla prendida y apagada (regla 1)',
+      dopOn.sin.grado === 'sin' && valvOn.sin.grado === 'sin'
       && dopOff.sin.grado === 'sin' && valvOff.sin.grado === 'sin',
       [dopOn.sin.grado, valvOn.sin.grado, dopOff.sin.grado, valvOff.sin.grado].join('/')],
     ['CONTROL: el G. medio, que el medico tipea, NO se borra con la Vmax',
