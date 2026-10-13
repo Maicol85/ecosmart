@@ -24686,16 +24686,79 @@ const A25_PLANO_F3 = Object.assign({
    tabla compacta y el UMBRAL DE ANCHO nacieron con la BSE 2024 y hoy los comparten las cinco
    guias-via. Renombrarlos obligaria a adaptar TC-460 y scripts/_probe_bsediag.mjs enteros sin
    cambiar una sola linea de comportamiento, asi que se reusan tal cual. */
+/* ══ PLANO DE LA FIGURA 8 — ASE 2025, fibrilacion auricular (folio 563) ══════════════════════
+   Mismo aviso de derechos que la Figura 3: la ASE 2025 NO es de acceso abierto (ver la nota de
+   `A25_PLANO_F3`), asi que el dibujo es propio y el pie lo declara.
+
+   ⚠️ CADA COLUMNA ES UNA CADENA COMPLETA, y no es decoracion: una vertical larga necesita su
+   columna libre en TODAS las filas que cruza. La del «ninguno o uno positivo» baja por la
+   columna 0 hasta la presion normal y la de «tres o mas» por la 4 hasta la elevada, asi que las
+   cajas del paso 2 viven en las columnas del medio. Con las cadenas mezcladas, una de esas dos
+   lineas cruzaria una caja por la que el paciente NO paso — y el dibujo diria lo contrario de
+   lo que el camino dice. */
+const A25FA_PLANO_F8 = {
+  fig: 'a25faf8',
+  gap: 40,
+  aria: 'Diagrama de flujo de la ASE 2025 para fibrilación auricular, con el camino de este paciente marcado en rojo.',
+  pie: 'Lógica según el algoritmo de la Figura 8, ASE 2025, folio 563; dibujo propio, no es una reproducción de la figura. '
+     + 'Nagueh SF y cols., J Am Soc Echocardiogr 2025;38(7):537-69. © 2025 Elsevier Inc. en nombre de la American Society of '
+     + 'Echocardiography: artículo NO de acceso abierto, así que no se reproduce ninguna figura ni el texto de sus cajas. '
+     + 'La caja punteada es un estado de esta aplicación y no una casilla de la figura.',
+  nodos: [
+    Object.assign({ id: 'a25fa.entrada', fila: 0, corto: 'fibrilación auricular, algoritmo de la Figura 8',
+      tit: ['Fibrilación auricular · estimación de la presión auricular izquierda media'] }, _a25(1, 3)),
+    Object.assign({ id: 'a25fa.paso1', fila: 1, corto: 'paso 1, los cuatro criterios',
+      tit: ['Paso 1 · cuatro criterios'] }, _a25(0, 5)),
+    Object.assign({ id: 'a25fa.p1cero', fila: 2, corto: 'ninguno o uno positivo en el paso 1',
+      tit: ['Ninguno o uno', 'positivo'] }, _a25(0)),
+    Object.assign({ id: 'a25fa.p1dos', fila: 2, corto: 'dos positivos con los cuatro medidos',
+      tit: ['Dos positivos,', 'los cuatro medidos'] }, _a25(2)),
+    Object.assign({ id: 'a25fa.p1tres', fila: 2, corto: 'tres o más positivos en el paso 1',
+      tit: ['Tres o más', 'positivos'] }, _a25(4)),
+    Object.assign({ id: 'a25fa.fin-noconc', fila: 3, app: true, corto: 'datos insuficientes para decidir',
+      tit: ['Datos', 'insuficientes'] }, _a25(1)),
+    Object.assign({ id: 'a25fa.paso2', fila: 3, corto: 'paso 2, los tres criterios',
+      tit: ['Paso 2 · tres criterios'] }, _a25(2)),
+    Object.assign({ id: 'a25fa.p2cero', fila: 4, corto: 'ninguno positivo con los tres medidos',
+      tit: ['Ninguno positivo,', 'los tres medidos'] }, _a25(1)),
+    Object.assign({ id: 'a25fa.p2uno', fila: 4, corto: 'uno solo, o no disponible o no fiable',
+      tit: ['Uno solo, o no', 'disponible'] }, _a25(2)),
+    Object.assign({ id: 'a25fa.p2dos', fila: 4, corto: 'dos o tres positivos en el paso 2',
+      tit: ['Dos o tres', 'positivos'] }, _a25(3)),
+    Object.assign({ id: 'a25fa.fin-normal', fila: 5, corto: 'presión de llenado normal',
+      tit: ['Presión de llenado', 'normal'] }, _a25(0)),
+    Object.assign({ id: 'a25fa.fin-indet', fila: 5, corto: 'presión de llenado indeterminada',
+      tit: ['Presión de llenado', 'indeterminada'] }, _a25(2)),
+    Object.assign({ id: 'a25fa.fin-elevada', fila: 5, corto: 'presión de llenado elevada',
+      tit: ['Presión de llenado', 'elevada'] }, _a25(4))
+  ],
+  aristas: [
+    { de: 'a25fa.entrada', a: 'a25fa.paso1' },
+    /* Las tres salidas del paso 1 no llevan rotulo: lo que las distingue esta en el TITULO de
+       cada caja, y tres rotulos saliendo del mismo borde se imprimen unos encima de otros. */
+    { de: 'a25fa.paso1', a: 'a25fa.p1cero', dx1: -200 },
+    { de: 'a25fa.paso1', a: 'a25fa.p1dos', dx1: -40, calleRel: 12 },
+    { de: 'a25fa.paso1', a: 'a25fa.p1tres', dx1: 200 },
+    { de: 'a25fa.paso1', a: 'a25fa.fin-noconc', et: 'dos positivos con alguno sin medir', dx1: -110, calleRel: 22 },
+    { de: 'a25fa.p1cero', a: 'a25fa.fin-normal' },
+    { de: 'a25fa.p1dos', a: 'a25fa.paso2' },
+    { de: 'a25fa.p1tres', a: 'a25fa.fin-elevada' },
+    { de: 'a25fa.paso2', a: 'a25fa.p2cero', dx1: -40 },
+    { de: 'a25fa.paso2', a: 'a25fa.p2uno', calleRel: 12 },
+    { de: 'a25fa.paso2', a: 'a25fa.p2dos', dx1: 40 },
+    { de: 'a25fa.p2cero', a: 'a25fa.fin-normal' },
+    { de: 'a25fa.p2uno', a: 'a25fa.fin-indet' },
+    { de: 'a25fa.p2dos', a: 'a25fa.fin-elevada' }
+  ]
+};
+
 function _bseDiagPlano(algo, ritmo, R) {
   if (!R || !R.camino || !R.camino.length) return null;
   if (algo === 'bse2024') {
     if (ritmo === 'fa') return BSE_PLANO_F19;
     return R.feviReducida ? BSE_PLANO_F18 : BSE_PLANO_F17;
   }
-  if (algo === 'ase2025') {
-    if (ritmo === 'fa') return null;   // entra en el commit siguiente
-    return A25_PLANO_F3;
-  }
+  if (algo === 'ase2025') return (ritmo === 'fa') ? A25FA_PLANO_F8 : A25_PLANO_F3;
   /* La ASE/EACVI 2016 entra en su propio commit; su FIBRILACION AURICULAR no tiene algoritmo en
      la app —la guia no da una regla de conteo— asi que no tiene diagrama y no lo tendra. */
   return null;
