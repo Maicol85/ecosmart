@@ -23968,10 +23968,24 @@ function _daContar(cs) {
 /* Las cuatro columnas y el ancho util. El viewBox es de 700 px de ancho y el SVG lleva
    `max-width:700px`, asi que por encima del umbral de 780 px no se escala y el texto renderiza
    a sus 11,5 px exactos. */
-const BSE_DG = { W: 700, C: [4, 180, 356, 532], CW: 164, GAP: 26, PAD: 7, LH: 13, TIT: 13.5 };
+/* ⚠️ EL `GAP` ENTRE FILAS LO FIJA EL ROTULO DE UNA ARISTA, no el aire que se ve bien. Las cajas
+   se dibujan DESPUES de las lineas, asi que un rotulo que caiga sobre una caja queda TAPADO: no
+   desaparece de una forma que se note, simplemente no se lee y el dibujo parece tener flechas sin
+   nombre. Con 34 px entran la calle de la arista y su rotulo debajo, dentro del hueco. */
+const BSE_DG = { W: 700, C: [4, 180, 356, 532], CW: 164, GAP: 34, PAD: 7, LH: 13, TIT: 13.5 };
 function _bdX(col) { return (col === 'full') ? BSE_DG.C[0] : BSE_DG.C[col]; }
 function _bdW(col, span) { return (col === 'full') ? (BSE_DG.C[3] + BSE_DG.CW - BSE_DG.C[0])
                                                   : (BSE_DG.CW * (span || 1) + (BSE_DG.C[1] - BSE_DG.C[0] - BSE_DG.CW) * ((span || 1) - 1)); }
+
+/* ⚠️ TRES ROTULOS SE ABREVIAN, Y SOLO EN EL DIBUJO. «Strain de contracción de la AI» ocupa dos
+   renglones de una caja de 164 px y la deja tan alta como el resto del diagrama junto; la lista
+   larga, el informe y el EN SUMA siguen escribiendo el nombre completo. La tabla es de PANTALLA
+   y no toca ninguna frase firmada. */
+const BSE_DG_ABREV = {
+  'Strain de contracción de la AI': 'Strain de contracción',
+  'Velocidad de la IT': 'Velocidad IT',
+  'S/D venoso pulmonar': 'S/D venoso'
+};
 
 /* El rotulo de un criterio sale de su propia fila: se corta el `crit` en el primer operador, asi
    que «E/e' promedio > 14» da «E/e' promedio» y «LARS >= 30 % -> presion normal» da «LARS». Si no
@@ -23981,11 +23995,12 @@ function _bdFilaTxt(f) {
   const crit = String(f.crit || '');
   const m = crit.match(/^([^<>≥≤]+?)\s*[<>≥≤]/);
   if (!m) return crit;
+  const et = BSE_DG_ABREV[m[1].trim()] || m[1].trim();
   const hay = (typeof f.val === 'number') ? !isNaN(f.val)
             : (f.val !== null && f.val !== undefined && String(f.val).trim() !== '');
-  if (!hay) return m[1].trim() + ' sin dato';
+  if (!hay) return et + ' sin dato';
   const num = (typeof f.val === 'number') ? f.val.toFixed(f.dec == null ? 1 : f.dec) : String(f.val);
-  return m[1].trim() + ' ' + num + (f.u ? ' ' + f.u : '') + (f.ok ? ' (+)' : ' (−)');
+  return et + ' ' + num + (f.u ? ' ' + f.u : '') + (f.ok ? ' (+)' : ' (−)');
 }
 /* ⚠️ EL TEXTO DE UN SVG NO SE ENVUELVE SOLO: un `<text>` mas ancho que su caja se dibuja igual,
    desbordando por los dos lados y pisando la caja de al lado. No hay `overflow` que lo recorte.
@@ -24105,7 +24120,9 @@ function _bseDiagSVG(plano, R) {
          impreso ENCIMA de la flecha y no se leia ninguno de los dos. Se corre a la derecha y se
          ancla a la izquierda; en las de codo el medio del tramo horizontal esta libre. */
       const vert = Math.abs(x1 - x2) < 0.5;
-      h += '<text class="ar-et" x="' + (vert ? (x1 + 9) : ((x1 + x2) / 2)) + '" y="' + (ym - 3) + '"'
+      /* El rotulo va DEBAJO de su calle y no encima: arriba cae sobre el borde inferior de la
+         caja de la que sale la arista, y la caja —que se dibuja despues— lo tapa. */
+      h += '<text class="ar-et" x="' + (vert ? (x1 + 9) : ((x1 + x2) / 2)) + '" y="' + (ym + 9) + '"'
          + ' text-anchor="' + (vert ? 'start' : 'middle') + '">' + escHtml(a.et) + '</text>';
     }
   });
@@ -24193,8 +24210,8 @@ const BSE_PLANO_F17 = {
     { id: 'f17.strain', col: 1, fila: 3, corto: 'pregunta del strain de la AI',
       tit: ['Strain de la AI:', 'contracción ≥14 % o', 'reservorio ≥30 %'] },
     { id: 'f17.lars18', col: 1, fila: 4, corto: 'pregunta LARS < 18 %', tit: ['LARS < 18 %'] },
-    { id: 'f17.supl', col: 1, fila: 5, corto: 'parámetros suplementarios',
-      tit: ['Suplementarios:', 'Ar−A >30 ms · onda L >20 cm/s'] },
+    { id: 'f17.supl', col: 1, span: 2, fila: 5, corto: 'parámetros suplementarios',
+      tit: ['Suplementarios: Ar−A >30 ms · onda L >20 cm/s'] },
     { id: 'f17.fin-indet', col: 3, fila: 6, app: true, corto: 'presión de llenado indeterminada',
       tit: ['Presión de llenado', 'indeterminada'], vals: function () { return []; } },
     { id: 'f17.eprima', col: 0, fila: 6, corto: "relajación por e' según la edad",
@@ -24225,9 +24242,9 @@ const BSE_PLANO_F17 = {
     { de: 'f17.strain', a: 'f17.fin-indet', et: 'sin strain', dx1: 60, calleRel: 8 },
     { de: 'f17.lars18', a: 'f17.fin-elevada', et: 'sí', dx1: 60, dx2: -40, calleRel: 8 },
     { de: 'f17.lars18', a: 'f17.supl', et: 'no' },
-    { de: 'f17.supl', a: 'f17.fin-elevada', et: '≥1 positivo', dx1: 60, calleRel: 8 },
+    { de: 'f17.supl', a: 'f17.fin-elevada', et: '≥1 positivo', dx1: -40, calleRel: 8 },
     { de: 'f17.supl', a: 'f17.eprima', et: 'ninguno', dx1: -60, dx2: 20, calleRel: 8 },
-    { de: 'f17.supl', a: 'f17.fin-indet', et: 'no evaluables', dx1: 20, calleRel: 20 },
+    { de: 'f17.supl', a: 'f17.fin-indet', et: 'no evaluables', dx1: 20, calleRel: 18 },
     { de: 'f17.pos', a: 'f17.fin-elevada', dx1: 40, dx2: 40 },
     { de: 'f17.eprima', a: 'f17.rel-normal' },
     { de: 'f17.eprima', a: 'f17.rel-baja', dx1: 50 },
@@ -24240,10 +24257,75 @@ const BSE_PLANO_F17 = {
 /* Que plano le toca a este paciente. Devuelve `null` cuando la guia elegida no es la BSE o
    cuando esa via todavia no tiene diagrama: ahi la ventana sigue siendo la de HEAD, sin una
    sola linea nueva. La ASE 2025 y la ASE/EACVI 2016 no entran en esta tanda. */
+
+/* ══ PLANO DE LA FIGURA 18 — ritmo sinusal con FEVI reducida (BSE 2024, pag. 38) ═════════════
+   ⚠️ NO COMPARTE NI UNA CONSTANTE CON LA FIGURA 17, y por eso tiene plano propio en vez de una
+   variante del otro: el lado elevado corta en LARS < 18 % O contraccion < 8 %, el normal en
+   LARS >= 24 % O contraccion >= 14 %, y los suplementarios son CUATRO. El 18 y el 14 coinciden
+   con los de la 17 por casualidad; el 8 y el 24 no existen alla.
+   ⚠️ Y EL PASO DEL e' NO EXISTE EN ESTA VIA: la pag. 37 dice que, establecida la relajacion
+   alterada, los cortes de e' por edad no se consideran. Por eso no hay caja de Tabla 2. */
+const BSE_PLANO_F18 = {
+  fig: 'f18',
+  aria: 'Diagrama de flujo de la BSE 2024 para ritmo sinusal con FEVI reducida o cardiopatia conocida, con el camino de este paciente marcado en rojo.',
+  pie: 'Dibujo propio, basado en la Figura 18 de la BSE 2024 (Robinson S y cols., Echo Res Pract 2024;11:16, pág. 38). '
+     + 'Artículo de acceso abierto bajo licencia Creative Commons Attribution 4.0 (CC BY 4.0, creativecommons.org/licenses/by/4.0). '
+     + 'La disposición y los textos son propios y no reproducen los rótulos del original; las cajas punteadas no están en la figura.',
+  nodos: [
+    { id: 'f18.entrada', col: 1, span: 2, fila: 0, corto: 'FEVI reducida o cardiopatía conocida',
+      tit: ['FEVI < 50 % o GLS < 16 %', 'o cardiopatía conocida'], vals: _bdFeviGls },
+    { id: 'f18.impaired', col: 1, span: 2, fila: 1, corto: 'la relajación ya está alterada',
+      tit: ['La relajación ya está alterada:', 'se evalúa la presión de llenado'], vals: function () { return []; } },
+    { id: 'f18.banda', col: 'full', fila: 2, corto: 'paso 1, las tres variables principales',
+      tit: ['Paso 1 · tres variables de presión de llenado'] },
+    { id: 'f18.neg', col: 0, fila: 3, corto: '2 o 3 criterios negativos',
+      tit: ['2 o 3 criterios', 'negativos'], vals: function () { return []; } },
+    { id: 'f18.mixto', col: 1, fila: 3, corto: 'sólo 2 disponibles, 1 positivo y 1 negativo',
+      tit: ['Sólo 2 disponibles:', '1 positivo y 1 negativo'], vals: function () { return []; } },
+    { id: 'f18.pos', col: 2, fila: 3, corto: '2 o 3 criterios positivos',
+      tit: ['2 o 3 criterios', 'positivos'], vals: function () { return []; } },
+    { id: 'f18.fin-insuf', col: 3, fila: 3, app: true, corto: 'datos insuficientes (menos de dos variables)',
+      tit: ['Datos insuficientes', 'para decidir la presión'], vals: function () { return []; } },
+    { id: 'f18.strain', col: 1, fila: 4, corto: 'strain de la AI',
+      tit: ['Strain de la AI'], vals: function () { return []; } },
+    { id: 'f18.lars-elev', col: 1, fila: 5, corto: 'pregunta del lado elevado del strain',
+      tit: ['LARS < 18 % o', 'contracción < 8 %'] },
+    { id: 'f18.lars-norm', col: 1, fila: 6, corto: 'pregunta del lado normal del strain',
+      tit: ['LARS ≥ 24 % o', 'contracción ≥ 14 %'] },
+    { id: 'f18.supl', col: 1, span: 2, fila: 7, corto: 'parámetros suplementarios',
+      tit: ['Suplementarios: Ar−A >30 ms · onda L >20 cm/s · S/D <1 · TDE <150 ms'] },
+    { id: 'f18.fin-indet', col: 3, fila: 8, app: true, corto: 'presión de llenado indeterminada',
+      tit: ['Presión de llenado', 'indeterminada'], vals: function () { return []; } },
+    { id: 'f18.fin-normal', col: 0, fila: 9, corto: 'función diastólica deteriorada con presión normal',
+      tit: ['Función diastólica', 'deteriorada, presión', 'de llenado normal'], vals: function () { return []; } },
+    { id: 'f18.fin-elevada', col: 2, fila: 9, corto: 'función diastólica deteriorada con presión elevada',
+      tit: ['Función diastólica', 'deteriorada, presión', 'de llenado elevada'], vals: function () { return []; } }
+  ],
+  aristas: [
+    { de: 'f18.entrada', a: 'f18.impaired' },
+    { de: 'f18.impaired', a: 'f18.banda' },
+    { de: 'f18.banda', a: 'f18.neg' },
+    { de: 'f18.banda', a: 'f18.mixto' },
+    { de: 'f18.banda', a: 'f18.pos' },
+    { de: 'f18.banda', a: 'f18.fin-insuf' },
+    { de: 'f18.neg', a: 'f18.fin-normal' },
+    { de: 'f18.mixto', a: 'f18.strain' },
+    { de: 'f18.strain', a: 'f18.fin-indet', et: 'sin strain', dx1: 60, calleRel: 8 },
+    { de: 'f18.strain', a: 'f18.lars-elev' },
+    { de: 'f18.lars-elev', a: 'f18.fin-elevada', et: 'sí', dx1: 60, dx2: -40, calleRel: 8 },
+    { de: 'f18.lars-elev', a: 'f18.lars-norm', et: 'no' },
+    { de: 'f18.lars-norm', a: 'f18.fin-normal', et: 'sí', dx1: -60, dx2: 40, calleRel: 8 },
+    { de: 'f18.lars-norm', a: 'f18.supl', et: 'no' },
+    { de: 'f18.supl', a: 'f18.fin-elevada', et: '≥1 positivo', dx1: -40, calleRel: 8 },
+    { de: 'f18.supl', a: 'f18.fin-normal', et: 'ninguno', dx1: -60, dx2: 20, calleRel: 18 },
+    { de: 'f18.pos', a: 'f18.fin-elevada', dx1: 40, dx2: 40 }
+  ]
+};
+
 function _bseDiagPlano(algo, ritmo, R) {
   if (algo !== 'bse2024' || !R || !R.camino || !R.camino.length) return null;
   if (ritmo === 'fa') return null;
-  return R.feviReducida ? null : BSE_PLANO_F17;
+  return R.feviReducida ? BSE_PLANO_F18 : BSE_PLANO_F17;
 }
 /* La tarjeta se ensancha SOLO cuando hay diagrama, y el ensanche vive en una media query: sin
    esta clase la ventana de las otras dos guias cambiaria de ancho, y esta tanda las deja
@@ -104563,8 +104645,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261012-2359';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791860340578;                 /* eco-build-ms */
+const ECO_BUILD    = '20261013-0010';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791861015650;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -104650,7 +104732,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261012-2359</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-0010</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
