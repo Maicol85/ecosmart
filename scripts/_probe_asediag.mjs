@@ -1117,10 +1117,19 @@ async function main() {
     const OUT = arg('--out') || '/tmp';
     await ancho(1200);
     for (const e of porId((arg('--escenas') || 'S04-g2,F04-tres,T06-fr-2pos,T19-fn-3pos').split(','))) {
-      await cargarEsc(e);
+      const carga = await cargarEsc(e);
+      exigirCarga(e, carga);
       for (const t of TEMAS) {
         await tema(t);
+        /* ⚠️ UN CLIC QUE NO ABRIO LA VENTANA DA UN RECORTE VACIO, Y EL JSON LO INFORMA COMO
+           `rect: null` — que se lee como «no hay diagrama» sobre un dibujo perfecto. Se
+           comprueba el estado del overlay y se reintenta una vez, despejando antes. */
         await clicEn(btn.sel);
+        let abierta = await ev(`(function(){ var o=document.getElementById('diast-algo-overlay');
+          return !!o && getComputedStyle(o).display !== 'none' })()`);
+        if (!abierta) { await ev(`window.__P.despejar()`); await clicEn(btn.sel);
+          abierta = await ev(`(function(){ var o=document.getElementById('diast-algo-overlay');
+            return !!o && getComputedStyle(o).display !== 'none' })()`); }
         if (process.argv.indexOf('--abrir-tabla') > -1) {
           await ev(`(function(){ var d=document.querySelector('#diast-algo-cuerpo details[data-bse-tabla]');
             if(d) d.open = true; return 1 })()`);
@@ -1149,7 +1158,7 @@ async function main() {
           arch = join(OUT, 'diag_' + e.id + '_' + t + '.png');
           await writeFile(arch, Buffer.from(shot.data, 'base64'));
         }
-        out.captura.push({ via: e._via, id: e.id, tema: t, rect: r, archivo: arch });
+        out.captura.push({ via: e._via, id: e.id, tema: t, abierta, rect: r, archivo: arch });
         const cerrar = btnX.err ? null : await clicEn(btnX.sel);
         if (cerrar) out.captura[out.captura.length - 1].viaCerrar = cerrar.via;
       }

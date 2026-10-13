@@ -24752,6 +24752,140 @@ const A25FA_PLANO_F8 = {
   ]
 };
 
+/* ══ PLANOS DE LA FIGURA 8 — ASE/EACVI 2016, ritmo sinusal (folio 290) ═══════════════════════
+   ⚠️ DERECHOS DE AUTOR: ESTA GUIA TAMPOCO ES DE ACCESO ABIERTO. El pie de su primera pagina
+   dice, literal: «Copyright 2016 by the American Society of Echocardiography.» — sin licencia
+   Creative Commons, sin aviso de acceso abierto y sin permiso de reproduccion. Barrido del PDF
+   completo: cero menciones de «Creative Commons», «open access» o «CC BY». Mismo trato que la
+   ASE 2025: el dibujo es PROPIO y el pie lo declara.
+
+   SON DOS PLANOS Y NO UNO, porque son DOS ALGORITMOS: la 8A contesta «hay disfuncion
+   diastolica?» con cuatro variables de igual peso y la regla de la mitad, y la 8B contesta
+   «cual es la presion de llenado y que grado?» con el flujo mitral y tres criterios. La FEVI
+   elige cual corre, y sus claves de categoria SE REPITEN —`insuf`, `indet`, `normal` y `g3`
+   existen en las dos y nombran casillas distintas—, que es por lo que cada una tiene su mapa
+   de nodo final y su prefijo de id. */
+const A16A_PLANO = {
+  fig: 'a16a8a',
+  gap: 40,
+  aria: 'Diagrama de flujo de la Figura 8A de la ASE/EACVI 2016, para FEVI normal, con el camino de este paciente marcado en rojo.',
+  pie: 'Lógica según el algoritmo de la Figura 8A, ASE/EACVI 2016, folio 290; dibujo propio, no es una reproducción de la figura. '
+     + 'Nagueh SF y cols., J Am Soc Echocardiogr 2016;29(4):277-314. © 2016 American Society of Echocardiography: artículo NO de '
+     + 'acceso abierto, así que no se reproduce ninguna figura ni el texto de sus cajas. '
+     + 'Las cajas punteadas son estados de esta aplicación y no casillas de la figura.',
+  nodos: [
+    Object.assign({ id: 'a16a.entrada', fila: 0, corto: 'FEVI normal, algoritmo de la Figura 8A',
+      tit: ['FEVI ≥ 50 % · ¿hay disfunción diastólica?'] }, _a25(1, 3)),
+    Object.assign({ id: 'a16a.cuatro', fila: 1, corto: 'las cuatro variables de la 8A',
+      tit: ['Cuatro variables de igual peso'] }, _a25(0, 5)),
+    Object.assign({ id: 'a16a.menos', fila: 2, corto: 'menos de la mitad positivas',
+      tit: ['Menos de la mitad', 'positivas'] }, _a25(0)),
+    Object.assign({ id: 'a16a.mitad', fila: 2, corto: 'exactamente la mitad positivas',
+      tit: ['Exactamente', 'la mitad'] }, _a25(1)),
+    Object.assign({ id: 'a16a.mas', fila: 2, corto: 'más de la mitad positivas',
+      tit: ['Más de la mitad', 'positivas'] }, _a25(2)),
+    Object.assign({ id: 'a16a.una', fila: 2, app: true, corto: 'una sola variable medida',
+      tit: ['Una sola', 'variable medida'] }, _a25(3)),
+    Object.assign({ id: 'a16a.fin-insuf', fila: 2, app: true, corto: 'ninguna variable medida',
+      tit: ['Ninguna', 'variable medida'] }, _a25(4)),
+    Object.assign({ id: 'a16a.fin-normal', fila: 3, corto: 'función diastólica normal',
+      tit: ['Función diastólica', 'normal'] }, _a25(0)),
+    Object.assign({ id: 'a16a.fin-indet', fila: 3, corto: 'estudio no concluyente',
+      tit: ['No concluyente'] }, _a25(2)),
+    Object.assign({ id: 'a16a.fin-dd', fila: 3, corto: 'disfunción diastólica, sin grado',
+      tit: ['Disfunción', 'diastólica'] }, _a25(4))
+  ],
+  aristas: [
+    { de: 'a16a.entrada', a: 'a16a.cuatro' },
+    { de: 'a16a.cuatro', a: 'a16a.menos', dx1: -200 },
+    { de: 'a16a.cuatro', a: 'a16a.mitad', dx1: -100, calleRel: 12 },
+    { de: 'a16a.cuatro', a: 'a16a.mas', dx1: 0, calleRel: 20 },
+    { de: 'a16a.cuatro', a: 'a16a.una', dx1: 100, calleRel: 12 },
+    { de: 'a16a.cuatro', a: 'a16a.fin-insuf', dx1: 200 },
+    { de: 'a16a.menos', a: 'a16a.fin-normal' },
+    { de: 'a16a.mitad', a: 'a16a.fin-indet', dx2: -30 },
+    { de: 'a16a.una', a: 'a16a.fin-indet', dx2: 30, calleRel: 12 },
+    { de: 'a16a.mas', a: 'a16a.fin-dd' }
+  ]
+};
+
+/* ⚠️ `a16b.unoyuno` TIENE DOS ENTRADAS Y UN SOLO TITULO. La figura manda a «Cannot determine»
+   por dos caminos —la sub-caja «1 positivo y 1 negativo» de los dos criterios disponibles y el
+   pie «LAP indeterminate if only 1 of 3 parameters available»— y el titulo de la caja nombra
+   los dos. Cual de los dos fue lo dice el renglon de resultado de la ventana. */
+/* ⚠️ LAS TRES FILAS DEL FLUJO MITRAL NO SIRVEN COMO VALORES DE LA CAJA, Y LA PRIMERA VERSION LAS
+   USABA: las dos de los atajos llevan el MISMO `val` —la relacion E/A— asi que la caja imprimia
+   dos renglones identicos, y la tercera no tiene operador en su rotulo, asi que `_bdFilaTxt`
+   devolvia el texto entero SIN numero. Tres renglones de los cuales dos se repiten y uno no
+   dice nada. La caja publica los dos datos una sola vez y cada atajo tiene su propia caja con
+   su titulo, que es donde se lee la condicion. */
+function _a16Flujo(R) {
+  const n2 = (x, d) => (x === null || x === undefined || isNaN(x)) ? 'sin dato' : Number(x).toFixed(d).replace('.', ',');
+  return ['E/A ' + n2(R.ea, 2) + ' · onda E ' + n2(R.e, 0) + (R.e === null || R.e === undefined || isNaN(R.e) ? '' : ' cm/s')];
+}
+const A16B_PLANO = {
+  fig: 'a16b8b',
+  gap: 40,
+  aria: 'Diagrama de flujo de la Figura 8B de la ASE/EACVI 2016, para FEVI reducida, con el camino de este paciente marcado en rojo.',
+  pie: 'Lógica según el algoritmo de la Figura 8B, ASE/EACVI 2016, folio 290; dibujo propio, no es una reproducción de la figura. '
+     + 'Nagueh SF y cols., J Am Soc Echocardiogr 2016;29(4):277-314. © 2016 American Society of Echocardiography: artículo NO de '
+     + 'acceso abierto, así que no se reproduce ninguna figura ni el texto de sus cajas. '
+     + 'La caja punteada es un estado de esta aplicación y no una casilla de la figura.',
+  nodos: [
+    Object.assign({ id: 'a16b.entrada', fila: 0, corto: 'FEVI reducida, algoritmo de la Figura 8B',
+      tit: ['FEVI < 50 % · presión de llenado y grado'] }, _a25(1, 3)),
+    Object.assign({ id: 'a16b.flujo', fila: 1, corto: 'flujo mitral', vals: _a16Flujo,
+      tit: ['Paso 1 · flujo mitral'] }, _a25(0, 5)),
+    Object.assign({ id: 'a16b.atajo1', fila: 2, corto: 'E/A ≤ 0,8 con onda E ≤ 50 cm/s',
+      tit: ['E/A ≤ 0,8 con', 'E ≤ 50 cm/s'] }, _a25(0)),
+    Object.assign({ id: 'a16b.tres', fila: 2, corto: 'los tres criterios de presión de llenado',
+      tit: ['Paso 2 · tres criterios de presión de llenado'] }, _a25(1, 2)),
+    Object.assign({ id: 'a16b.fin-insuf', fila: 2, app: true, corto: 'sin E/A o sin ningún criterio',
+      tit: ['Datos', 'insuficientes'] }, _a25(3)),
+    Object.assign({ id: 'a16b.atajo3', fila: 2, corto: 'E/A ≥ 2',
+      tit: ['E/A ≥ 2'] }, _a25(4)),
+    Object.assign({ id: 'a16b.neg2', fila: 3, corto: '2 o 3 criterios negativos',
+      tit: ['2 o 3', 'negativos'] }, _a25(1)),
+    Object.assign({ id: 'a16b.unoyuno', fila: 3, corto: '1 positivo y 1 negativo, o un solo criterio disponible',
+      tit: ['1 y 1, o un solo', 'criterio disponible'] }, _a25(2)),
+    Object.assign({ id: 'a16b.pos2', fila: 3, corto: '2 o 3 criterios positivos',
+      tit: ['2 o 3', 'positivos'] }, _a25(3)),
+    Object.assign({ id: 'a16b.fin-g1', fila: 4, corto: 'presión normal, grado I',
+      tit: ['Presión normal,', 'grado I'] }, _a25(0)),
+    Object.assign({ id: 'a16b.fin-normal', fila: 4, app: true, corto: 'función diastólica normal',
+      tit: ['Función diastólica', 'normal'] }, _a25(1)),
+    Object.assign({ id: 'a16b.fin-indet', fila: 4, corto: 'no se puede determinar la presión ni el grado',
+      tit: ['No se puede', 'determinar'] }, _a25(2)),
+    Object.assign({ id: 'a16b.fin-g2', fila: 4, corto: 'presión elevada, grado II',
+      tit: ['Presión elevada,', 'grado II'] }, _a25(3)),
+    Object.assign({ id: 'a16b.fin-g3', fila: 4, corto: 'presión elevada, grado III',
+      tit: ['Presión elevada,', 'grado III'] }, _a25(4))
+  ],
+  aristas: [
+    { de: 'a16b.entrada', a: 'a16b.flujo' },
+    { de: 'a16b.flujo', a: 'a16b.atajo1', dx1: -200 },
+    { de: 'a16b.flujo', a: 'a16b.tres', dx1: -60, calleRel: 12 },
+    { de: 'a16b.flujo', a: 'a16b.fin-insuf', dx1: 80, calleRel: 20 },
+    { de: 'a16b.flujo', a: 'a16b.atajo3', dx1: 200 },
+    { de: 'a16b.tres', a: 'a16b.neg2', dx1: -60 },
+    { de: 'a16b.tres', a: 'a16b.unoyuno', calleRel: 12 },
+    { de: 'a16b.tres', a: 'a16b.pos2', dx1: 60 },
+    /* Las dos salidas de «2 o 3 negativos» son las dos ramas de HEAD: con FEVI deprimida —o con
+       un E/A <= 0,8— la figura publica grado I, y SIN FEVI cargada la app conserva el «normal»
+       que ya publicaba, porque el grado I de la 8B vale para su poblacion y aca no se sabe cual
+       es. La caja de la derecha va punteada: no es una casilla de la figura. */
+    { de: 'a16b.neg2', a: 'a16b.fin-g1', et: 'con FEVI o E/A ≤ 0,8', dx1: -20, dx2: 45, calleRel: 6 },
+    /* calleRel 14 y no 20: con la calle mas baja su rotulo caia sobre el de «Resultado de este
+       paciente», que el motor imprime 4 px encima del nodo final — y en esta rama el final ES
+       esta caja. Medido con el grupo `geo` de la sonda en la escena sin FEVI. */
+    { de: 'a16b.neg2', a: 'a16b.fin-normal', et: 'sin FEVI', dx1: 50, calleRel: 14 },
+    { de: 'a16b.unoyuno', a: 'a16b.fin-indet' },
+    { de: 'a16b.pos2', a: 'a16b.fin-g2' },
+    { de: 'a16b.atajo1', a: 'a16b.fin-g1' },
+    { de: 'a16b.atajo3', a: 'a16b.fin-g3' }
+  ]
+};
+
 function _bseDiagPlano(algo, ritmo, R) {
   if (!R || !R.camino || !R.camino.length) return null;
   if (algo === 'bse2024') {
@@ -24759,8 +24893,11 @@ function _bseDiagPlano(algo, ritmo, R) {
     return R.feviReducida ? BSE_PLANO_F18 : BSE_PLANO_F17;
   }
   if (algo === 'ase2025') return (ritmo === 'fa') ? A25FA_PLANO_F8 : A25_PLANO_F3;
-  /* La ASE/EACVI 2016 entra en su propio commit; su FIBRILACION AURICULAR no tiene algoritmo en
-     la app —la guia no da una regla de conteo— asi que no tiene diagrama y no lo tendra. */
+  /* La FIBRILACION AURICULAR de la ASE/EACVI 2016 NO tiene algoritmo en la app —la guia enumera
+     parametros sugestivos en el folio 295 y no los combina en ninguna regla de conteo—, asi que
+     no hay veredicto que dibujar y su ventana queda exactamente como en HEAD. No es una via
+     pendiente: es una via que no existe. */
+  if (algo === 'ase2016' && ritmo !== 'fa') return (R.algoritmo === '8A') ? A16A_PLANO : A16B_PLANO;
   return null;
 }
 /* La tarjeta se ensancha SOLO cuando hay diagrama, y el ensanche vive en una media query: sin
@@ -24875,6 +25012,11 @@ function diastAlgoRender() {
        FIGURA 8B: dos algoritmos distintos de la misma guía sobre el mismo paciente. Hoy las filas,
        el conteo y el rótulo salen de `diastASE2016Evaluar`, que es el único dueño. */
     const R = diastASE2016Evaluar();
+    /* El diagrama va ARRIBA de todo y SOLO si hay plano; cual de los dos lo decide la FEVI, que
+       es la que elige el algoritmo. Por debajo del umbral de ancho la caja queda en
+       `display:none` por CSS y la ventana se ve exactamente como en HEAD. */
+    const plano16 = _bseDiagPlano('ase2016', 'sinusal', R);
+    if (plano16) { h += _bseDiagCaja(plano16, R); _bseDiagAncho(true); }
     let g16 = null;
     R.filas.forEach(f => {
       if (f.g && f.g !== g16) { h += '<div class="da-paso">' + escHtml(f.g) + '</div>'; g16 = f.g; }
@@ -26214,7 +26356,13 @@ function diastASE2016Evaluar() {
           'Función diastólica indeterminada.', 'Función diastólica indeterminada.',
           '1 positivo y 1 negativo con sólo ' + R.total + ' criterios disponibles' + sufFevi);
   } else if (R.total === 1) {
-    R.camino.push('a16b.tres', 'a16b.unosolo');
+    /* ⚠️ MISMA CASILLA QUE «1 positivo y 1 negativo», Y NO ES UN DESCUIDO. La Figura 8B tiene
+       dos entradas a «Cannot determine LAP and Diastolic Dysfunction Grade»: la sub-caja «1
+       positive and 1 negative» de los dos criterios disponibles, y el pie «LAP indeterminate if
+       only 1 of 3 parameters available». Son dos motivos y una sola casilla, y el titulo de la
+       caja del dibujo nombra los dos. Cual de los dos fue lo dice el renglon de resultado de la
+       ventana, que es donde se explica. */
+    R.camino.push('a16b.tres', 'a16b.unoyuno');
     poner('indet', 'gray', 'Indeterminado — ASE 2016',
           'Función diastólica indeterminada.', 'Función diastólica indeterminada.',
           'un solo criterio disponible (pie de la Figura 8)' + sufFevi);
