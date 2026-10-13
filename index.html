@@ -7179,10 +7179,10 @@ window.cerrarSesionReal = cerrarSesionReal;
           </select>
         </div>
         <div class="fg"><label>NT-proBNP (pg/ml)</label>
-          <input type="number" id="hf_ntprobnp" step="1" placeholder="pg/ml" oninput="hfapeffRender()">
+          <input type="number" id="hf_ntprobnp" step="1" placeholder="pg/ml" oninput="hfPepSync('hf_ntprobnp');hfapeffRender()">
         </div>
         <div class="fg"><label>BNP (pg/ml)</label>
-          <input type="number" id="hf_bnp" step="1" placeholder="pg/ml" oninput="hfapeffRender()">
+          <input type="number" id="hf_bnp" step="1" placeholder="pg/ml" oninput="hfPepSync('hf_bnp');hfapeffRender()">
         </div>
         <div class="fg"><label>GLS (%) <span style="font-weight:400;color:var(--text2);font-size:10px;">si no está en SGL</span></label>
           <input type="number" id="hf_gls" step="0.1" placeholder="%" oninput="hfapeffRender()">
@@ -19100,6 +19100,59 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   </div>
 </div>
 
+<!-- ═══ Modal: PÉPTIDO NATRIURÉTICO del HFA-PEFF (2026-10-13) ═══════════════════════════════
+     El renglón «HFA-PEFF (eco)» del cuadro de referencias del Doppler lleva un botón de
+     péptidos. Hasta hoy ese botón llamaba a `hfapeffIr()`, que hacía `showTab('hemodinamica')`.
+     ⚠️ `showTab` NO CHEQUEA EL PLAN —medido leyendo su fuente: no nombra `eeGetMode`, `eeModOn`
+     ni `ett_view_mode`— y el plan Básico se aplica SÓLO escondiendo los `button[data-mod]` en
+     `applyViewMode()`. El panel `#tab-hemodinamica` sigue en el árbol, así que activarlo por
+     código metía a un usuario de plan Básico en una pestaña de ECO AVANZADO que no paga. Y el
+     botón vive en el Doppler, que es el estudio principal, o sea la pestaña MÁS alcanzable en
+     Básico. Acá el péptido se carga sin cambiar de pestaña.
+
+     ⚠️ `role="dialog"` CON `aria-modal="true"` Y UN BOTÓN QUE DICE «Cerrar», A PROPÓSITO: el
+     oyente genérico de Escape del bloque de accesibilidad busca el
+     `[role="dialog"][aria-modal="true"]` visible más alto y le CLICKEA el primer botón cuyo
+     texto o cuyo `onclick` matchee /cerrar|✕|close|cancel/. Con ese marcado, Escape cierra sin
+     oyente propio — y sin oyente propio no hay un segundo camino que se desincronice. La trampa
+     de Tab de ese mismo bloque también lo alcanza por selector. Lo que NO lo alcanza es la
+     gestión de foco: `STATIC_MODALS` vigila cuatro ids y éste no es uno, así que
+     `openModal`/`closeModal` no corren y el foco de entrada y el de vuelta son nuestros.
+
+     ⚠️ LOS IDS VAN CON GUIÓN MEDIO (`hfpep-tipo`, `hfpep-val`) Y ESO LOS SACA DEL ESTUDIO:
+     `_noEsDelEstudio` los excluye por prefijo, así que el recolector de `guardarInforme` no los
+     guarda. Es deliberado, no un olvido: el péptido tiene UN dueño —`hf_ntprobnp` / `hf_bnp`,
+     que ya viajan con el estudio y ya tienen su columna de Excel («NT-proBNP (pg/ml)» y «BNP
+     (pg/ml)»)— y persistir el espejo dejaría una SEGUNDA copia del dato, que al reabrir puede
+     contradecir al dueño. El cartel DERIVA su valor del dueño cada vez que se abre. -->
+<div id="modal-hfpep" role="dialog" aria-modal="true" aria-labelledby="hfpep-titulo"
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:700;align-items:center;justify-content:center;padding:20px;"
+     onclick="if(event.target===this)hfPepCerrar()">
+  <div id="hfpep-caja" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;max-width:420px;width:100%;padding:20px 22px;box-shadow:0 18px 48px rgba(0,0,0,.5);max-height:88vh;overflow:auto;box-sizing:border-box;">
+    <h3 id="hfpep-titulo" style="margin:0 0 6px;font-size:16.5px;color:var(--text);">🧪 Péptido natriurético — HFA-PEFF</h3>
+    <p style="margin:0 0 12px;font-size:12.5px;line-height:1.5;color:var(--text2,#94A3B8);">Es el mismo dato que el del score HFA-PEFF: se guarda con el estudio y se puede corregir desde cualquiera de los dos lugares.</p>
+    <!-- El RITMO se LEE y no se pregunta: los cortes de fibrilación auricular son el triple de
+         los de ritmo sinusal, y dos lugares donde elegirlo son dos verdades. Lo escribe
+         `hfPepPintar` a partir de `hfRitmoEfectivo()`, que es el dueño único. -->
+    <div id="hfpep-ritmo" style="font-size:12px;line-height:1.5;color:var(--text2,#94A3B8);margin-bottom:12px;"></div>
+    <div class="grid-2" style="gap:10px 12px;margin-bottom:12px;">
+      <div class="fg" style="margin:0;"><label for="hfpep-tipo">Tipo</label>
+        <select id="hfpep-tipo" onchange="hfPepTipoCambio()">
+          <option value="nt">NT-proBNP</option>
+          <option value="bnp">BNP</option>
+        </select></div>
+      <div class="fg" style="margin:0;"><label for="hfpep-val">Valor (pg/ml)</label>
+        <input type="number" id="hfpep-val" step="1" min="0" placeholder="pg/ml" autocomplete="off"
+               oninput="hfPepEditado()"></div>
+    </div>
+    <div id="hfpep-corte" style="font-size:12px;line-height:1.55;color:var(--text2,#94A3B8);border:1px solid var(--border);border-radius:8px;padding:9px 11px;margin-bottom:14px;min-height:17px;"></div>
+    <div style="display:flex;gap:9px;flex-wrap:wrap;">
+      <button class="btn btn-primary" style="flex:1 1 140px;justify-content:center;" onclick="hfPepConfirmar()">Confirmar</button>
+      <button class="btn btn-ghost" style="flex:1 1 140px;justify-content:center;" onclick="hfPepCerrar()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <script>
@@ -24025,13 +24078,193 @@ function amiloTextoHFAPEFF() {
   return L.join('\n');
 }
 
-function hfapeffIr() {
-  if (typeof showTab === 'function') showTab('hemodinamica');
-  const s = document.getElementById('hfapeff-seccion');
-  if (s) { s.style.display = ''; setTimeout(() => s.scrollIntoView({ behavior:'smooth', block:'center' }), 60); }
-  hfapeffRender();
-}
+/* ══ EL CARTEL DEL PÉPTIDO NATRIURÉTICO (2026-10-13) ════════════════════════════════════════
+   ⚠️ ESTA FUNCIÓN HACÍA `showTab('hemodinamica')` Y ESE ERA EL DEFECTO REPORTADO. `showTab` no
+   chequea el plan —medido sobre su propia fuente: no nombra `eeGetMode`, `eeModOn`,
+   `applyViewMode` ni `ett_view_mode`— y el plan Básico se aplica SÓLO escondiendo los
+   `button[data-mod]`. El panel de Hemodinámica queda en el árbol, así que este botón, que vive
+   en el cuadro de referencias del DOPPLER —estudio principal, visible en Básico—, era una
+   puerta de entrada a ECO AVANZADO sin pasar por ninguna compuerta.
+
+   SE CONSERVA EL NOMBRE Y SE CAMBIA EL DESTINO, en vez de arreglar los dos `onclick`: así
+   ningún llamador futuro reabre el agujero por la puerta de al lado. Hoy los dos llamadores son
+   los botones que arma `hfapeffLineaEco` y los dos pasan por acá. */
+function hfapeffIr() { hfPepAbrir(); }
 window.hfapeffIr = hfapeffIr;
+
+/* El tipo de péptido y su campo DUEÑO en la sección HFA-PEFF de Avanzado. Los dos campos ya
+   existían, los dos están en pg/ml y los dos tienen columna de Excel, así que el cartel no
+   agrega ni un dato nuevo: es otra puerta al mismo. De ahí que el Excel siga en 435 columnas. */
+const HFPEP_CAMPO = { nt: 'hf_ntprobnp', bnp: 'hf_bnp' };
+function hfPepCampo(tipo) { return HFPEP_CAMPO[tipo] || HFPEP_CAMPO.nt; }
+window.HFPEP_CAMPO = HFPEP_CAMPO; window.hfPepCampo = hfPepCampo;
+
+/* Qué tipo muestra el cartel al abrirse. Si el estudio ya trae un valor, el cartel lo MUESTRA
+   —punto (3) de la orden—; con los dos cargados gana NT-proBNP, que es el primero de la sección
+   y el primero del Excel, y el otro NO se pierde: se ve cambiando el desplegable de tipo.
+   ⚠️ NO SE INVENTA NI SE DEDUCE UN VALOR: con los dos vacíos el cartel abre vacío. */
+function hfPepTipoVigente() {
+  const nt = document.getElementById('hf_ntprobnp');
+  const bn = document.getElementById('hf_bnp');
+  if (nt && String(nt.value).trim() !== '') return 'nt';
+  if (bn && String(bn.value).trim() !== '') return 'bnp';
+  return 'nt';
+}
+window.hfPepTipoVigente = hfPepTipoVigente;
+
+/* ⚠️ EL ESPEJO, CON EL MISMO MECANISMO QUE `aoFcSync` Y `avaPlanSync`, y por el mismo motivo
+   que `itVmaxSync`: era un dato que el médico tendría que cargar dos veces. La diferencia es
+   que acá el par NO ES FIJO — el dueño lo elige el desplegable de tipo —, así que el espejo
+   pregunta por el tipo vigente en cada llamada en vez de cerrar sobre dos ids.
+
+   ⚠️ NO HAY BUCLE, Y NO ES POR LA GUARDA: asignar `.value` por código NO dispara `oninput`. La
+   guarda `_hfPepSinc` está para el día en que alguien despache un `input` a mano —los arneses de
+   prueba lo hacen—, exactamente como documenta `itVmaxSync`.
+
+   ⚠️ LA SALIDA TEMPRANA POR VALOR IGUAL NO ES COSMÉTICA: escribir `.value` con el mismo
+   contenido manda el caret al final del campo, y los dos lados del par pueden estar visibles a
+   la vez cuando el cartel se abre encima de la sección de Avanzado. Se compara el TEXTO CRUDO y
+   no el número, para que los dos muestren lo mismo carácter por carácter («50» y «50.0» son el
+   mismo número y dos textos distintos).
+
+   Llamada SIN argumento copia DUEÑO → CARTEL, que es como la llaman `hfPepAbrir`,
+   `RECALC_MODULOS` y `limpiarCampos`: las rutas de restauración pueblan asignando `.value`, que
+   no dispara ningún evento, así que sin esto el cartel abriría con el valor del paciente
+   anterior. Con `origenId === 'hfpep-val'` copia al revés, que es el gesto del médico. */
+let _hfPepSinc = false;
+function hfPepSync(origenId) {
+  if (_hfPepSinc) return null;
+  _hfPepSinc = true;
+  try {
+    const sel = document.getElementById('hfpep-tipo');
+    const esp = document.getElementById('hfpep-val');
+    if (!sel || !esp) return null;
+    const dueno = document.getElementById(hfPepCampo(sel.value));
+    if (!dueno) return null;
+    const delCartel = (origenId === 'hfpep-val');
+    const src = delCartel ? esp : dueno;
+    const dst = delCartel ? dueno : esp;
+    if (dst.value === src.value) return { copio: false, valor: src.value, dueno: dueno.id };
+    dst.value = src.value;   /* borrar uno borra el otro: '' se copia igual que un número */
+    return { copio: true, valor: src.value, dueno: dueno.id, hacia: dst.id };
+  } finally { _hfPepSinc = false; }
+}
+window.hfPepSync = hfPepSync;
+
+/* El renglón del RITMO, en palabras. Sale de `hfRitmoEfectivo()`, que es el dueño único: con
+   `hf_ritmo` en «auto» —su valor de fábrica— manda el selector «Ritmo» de la pestaña Doppler, y
+   si el médico lo fijó a mano en el score, manda ése. El cartel LEE y no ofrece cambiarlo. */
+function hfPepRitmoTxt() {
+  const fa = (typeof hfRitmoEfectivo === 'function') ? hfRitmoEfectivo() === 'fa' : false;
+  const sel = document.getElementById('hf_ritmo');
+  const auto = !sel || sel.value === 'auto';
+  return 'Ritmo: ' + (fa ? 'fibrilación auricular' : 'sinusal')
+       + (auto ? ' — tomado del selector «Ritmo» de la pestaña Doppler.'
+               : ' — fijado a mano en el score HFA-PEFF.');
+}
+window.hfPepRitmoTxt = hfPepRitmoTxt;
+
+/* Repinta los dos renglones de texto del cartel. PINTA Y NADA MÁS: no lee para decidir ni
+   escribe un valor, así que se puede llamar desde `limpiarCampos` sin arrastrar nada.
+   Va en las DOS columnas —`RECALC_MODULOS` y el final de `limpiarCampos`— por la razón de
+   siempre: los dos `div` no son `.calc-row span[id]` ni terminan en `-aviso`, así que no los
+   alcanza ningún barrido genérico y el texto del paciente anterior sobrevivía. */
+function hfPepPintar() {
+  const r = document.getElementById('hfpep-ritmo');
+  if (r) r.textContent = hfPepRitmoTxt();
+  const c = document.getElementById('hfpep-corte');
+  if (!c) return;
+  const sel = document.getElementById('hfpep-tipo');
+  const tipo = sel ? sel.value : 'nt';
+  const esp = document.getElementById('hfpep-val');
+  const crudo = esp ? String(esp.value).trim() : '';
+  const nombre = tipo === 'bnp' ? 'BNP' : 'NT-proBNP';
+  c.textContent = (crudo === '')
+    ? 'Sin valor cargado: el dominio de biomarcadores no suma puntos.'
+    : (nombre + ' ' + crudo + ' pg/ml.');
+}
+window.hfPepPintar = hfPepPintar;
+
+/* El nodo al que vuelve el foco al cerrar. `STATIC_MODALS` del bloque de accesibilidad vigila
+   cuatro ids y éste no es uno, así que `openModal`/`closeModal` —los que guardan y reponen el
+   foco— no corren sobre este cartel: el foco es nuestro. */
+let _hfPepFoco = null;
+function hfPepAbrir() {
+  const ov = document.getElementById('modal-hfpep');
+  if (!ov) return;
+  _hfPepFoco = (document.activeElement && document.activeElement !== document.body)
+    ? document.activeElement : null;
+  const sel = document.getElementById('hfpep-tipo');
+  if (sel) sel.value = hfPepTipoVigente();
+  hfPepSync();            /* dueño → cartel: si el valor ya estaba en Avanzado, acá se ve */
+  hfPepPintar();
+  ov.style.display = 'flex';
+  const val = document.getElementById('hfpep-val');
+  if (val) { try { val.focus({ preventScroll: true }); } catch (e) { try { val.focus(); } catch (e2) {} } }
+}
+/* ⚠️ LAS CUATRO PUERTAS DE SALIDA PASAN POR ACÁ —«Cerrar», «Confirmar», Escape y el clic en el
+   fondo— y las cuatro repintan. No hay un estado donde el dueño y lo que se ve discrepen:
+   el espejo escribe AL TIPEAR, así que cerrar con Escape no pierde el dato, y el repintado está
+   acá y no sólo en «Confirmar» justamente para que las cuatro terminen igual. */
+function hfPepCerrar() {
+  const ov = document.getElementById('modal-hfpep');
+  if (ov) ov.style.display = 'none';
+  /* ⚠️ EL NODO DEL BOTÓN SE DESTRUYE AL REPINTAR, Y POR ESO EL FOCO VUELVE POR POSICIÓN Y NO POR
+     REFERENCIA. `hfapeffLineaEco` reescribe el `innerHTML` de `#hfapeff-eco`, así que el
+     `<button>` que abrió el cartel queda DESCONECTADO del documento: `document.contains` da
+     false y el foco se caía al `<body>` — medido por la sonda, que informó
+     «focoVolvioAlBoton: false» con el cartel cerrándose bien. Se recuerda SI el nodo vivía
+     dentro del renglón —ANTES de repintar, que es cuando todavía está conectado— y después se
+     enfoca el botón NUEVO de ese renglón. Con un disparador de otra parte se usa la referencia,
+     que sigue siendo válida porque nadie la reemplaza. */
+  const cont0 = document.getElementById('hfapeff-eco');
+  const eraDelRenglon = !!(_hfPepFoco && cont0 && cont0.contains(_hfPepFoco));
+  if (typeof hfapeffLineaEco === 'function') { try { hfapeffLineaEco(); } catch (e) {} }
+  const sec = document.getElementById('hfapeff-seccion');
+  if (sec && sec.style.display !== 'none' && typeof hfapeffRender === 'function') {
+    try { hfapeffRender(); } catch (e) {}
+  }
+  let destino = (_hfPepFoco && document.contains(_hfPepFoco)) ? _hfPepFoco : null;
+  if (!destino && eraDelRenglon) {
+    const cont = document.getElementById('hfapeff-eco');
+    destino = cont ? cont.querySelector('button') : null;
+  }
+  if (destino) {
+    try { destino.focus({ preventScroll: true }); } catch (e) { try { destino.focus(); } catch (e2) {} }
+  }
+  _hfPepFoco = null;
+}
+/* «Confirmar» cierra y nada más, y eso es correcto: el espejo ya escribió el dueño al tipear,
+   que es lo que la orden pide cuando dice que el dato es UNO SOLO y está sincronizado en los
+   dos sentidos. Lo único propio es el acuse, que es de pantalla. */
+function hfPepConfirmar() {
+  const esp = document.getElementById('hfpep-val');
+  const hay = !!(esp && String(esp.value).trim() !== '');
+  hfPepCerrar();
+  if (typeof toast === 'function') {
+    toast(hay ? '🧪 Péptido cargado — HFA-PEFF actualizado' : '🧪 Sin valor de péptido');
+  }
+}
+/* El gesto del médico en el campo del cartel. El dueño cambia por CÓDIGO, así que hay que
+   correr a mano lo que su propio `oninput` corre: `hfapeffRender` deja los tildes humorales
+   coherentes con el número —si no, un tilde calculado con el valor anterior sigue sumando— y
+   repunta el score. */
+function hfPepEditado() {
+  hfPepSync('hfpep-val');
+  if (typeof hfapeffRender === 'function') { try { hfapeffRender(); } catch (e) {} }
+  if (typeof hfapeffLineaEco === 'function') { try { hfapeffLineaEco(); } catch (e) {} }
+  hfPepPintar();
+}
+/* Cambiar el tipo NO mueve ningún valor: TRAE el del tipo elegido. Así los dos péptidos
+   sobreviven —el cartel muestra uno a la vez y no pisa el otro—, que es lo conservador: la
+   sección de Avanzado acepta los dos a la vez y el score los vota a los dos. */
+function hfPepTipoCambio() {
+  hfPepSync();
+  hfPepPintar();
+}
+window.hfPepAbrir = hfPepAbrir; window.hfPepCerrar = hfPepCerrar;
+window.hfPepConfirmar = hfPepConfirmar; window.hfPepEditado = hfPepEditado;
+window.hfPepTipoCambio = hfPepTipoCambio;
 
 // ══════════════════════════════════════════════════════════════════
 // CARD DEL ALGORITMO DIASTÓLICO
@@ -43270,7 +43503,12 @@ function showTabById(id) {
    lista el 2026-09-09 por el mismo motivo. Y `cineCerrar()` sólo pone `display:none`, así que
    el input sobrevive en el DOM con su valor — y este barrido no mira visibilidad. */
 function _noEsDelEstudio(id) {
-  return /^(login-|ig-|lab-|cfg-|exp-|filtro-|adv-|asoc-|pdf-|lgal-|fcg-|(?:b-)?cine-)/.test(id);
+  /* `hfpep-` son los DOS controles del cartel de péptidos (2026-10-13). NO son del estudio
+     a propósito: el péptido tiene un dueño —`hf_ntprobnp` / `hf_bnp`, que sí viajan— y
+     persistir el espejo dejaría una segunda copia que al reabrir puede contradecirlo. El
+     cartel deriva su valor del dueño cada vez que se abre. Guión MEDIO, así que este
+     prefijo no alcanza a `hf_ntprobnp` ni a `hf_bnp`, que van con guión BAJO. */
+  return /^(login-|ig-|lab-|cfg-|exp-|filtro-|adv-|asoc-|pdf-|lgal-|fcg-|hfpep-|(?:b-)?cine-)/.test(id);
 }
 
 /* ══ Repintado de módulos al cargar un estudio ═══════════════════════════════════════════
@@ -43923,7 +44161,13 @@ function RECALC_MODULOS() {
      `emAvmPdfVal` para la fila del PDF, `dataset` protege esa decision, y `disabled` no lo
      persiste ni lo lee nadie. Los dos primeros siguen intocados — que es exactamente la objecion
      que este archivo dejo escrita para IM: «pisaria la decision que la reimpresion respalda». */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync'];
+  /* `hfPepSync` sin argumento copia el DUEÑO del péptido (`hf_ntprobnp` / `hf_bnp`) al espejo
+     del cartel, y `hfPepPintar` repinta sus dos renglones de texto. Entran acá por lo mismo
+     que `dtTapSync` y `etTsvdSync`: las cinco rutas de restauración pueblan asignando
+     `.value`, que no dispara `input`, así que un cartel abierto durante una restauración —o
+     el texto del ritmo y del corte— se quedaba con el paciente ANTERIOR. Ninguno de los dos
+     puede migrar nada: el espejo no se persiste y el pintor sólo escribe texto. */
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -44615,6 +44859,15 @@ function limpiarCampos(silencioso) {
      Esto NO repone el protocolo de la sesión —eso lo hacen los dos caminos de «Nuevo estudio»,
      ver `_diastAlgoTrasLimpiar`—: acá sólo se sincroniza lo que se ve con lo que hay. */
   if (typeof diastAlgoAvisoSync === 'function') { try { diastAlgoAvisoSync(); } catch (e) {} }
+  /* ⚠️ LOS DOS RENGLONES DE TEXTO DEL CARTEL DE PÉPTIDOS, SEGUNDA COLUMNA Y AL FINAL. Los dos
+     controles (`hfpep-tipo` y `hfpep-val`) SÍ los barre esta función —el `querySelectorAll`
+     de `input[type=number]` y el de `select` de más arriba los alcanzan—, pero los dos `div`
+     de texto no son `.calc-row span[id]` ni terminan en `-aviso`, así que ningún barrido
+     genérico los toca y el ritmo y el valor del paciente ANTERIOR quedaban publicados sobre
+     un formulario ya vacío. `limpiarCampos` no pasa por el embudo de `RECALC_MODULOS`, que
+     es la otra columna. Va acá y no arriba porque LEE los campos para decidir qué escribir:
+     corriendo antes del vaciado vería los del paciente anterior. */
+  if (typeof hfPepPintar === 'function') { try { hfPepPintar(); } catch (e) {} }
   if (!silencioso) toast('🗑 Formulario limpiado');
 }
 
@@ -106267,8 +106520,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261013-1524';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791915891477;                 /* eco-build-ms */
+const ECO_BUILD    = '20261013-1702';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791921767745;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -106354,7 +106607,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-1524</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-1702</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
