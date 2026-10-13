@@ -180,6 +180,11 @@ window.__P = {
   txt(id) { var e = document.getElementById(id); return e ? (e.textContent || '').trim() : null },
   tag(id) { var e = document.getElementById(id); return e ? e.tagName : null },
   sug(id) { var e = document.getElementById(id); return e ? (e.dataset.sugerido || null) : null },
+  /* El «(leve)/(moderada)/(severa)» de una fila de referencia: span hermano, SIN id, seleccionado
+     por su atributo. Devuelve 'NO EXISTE' si el nodo no esta —es como el A/B contra HEAD muestra
+     que aparecio, y no un null silencioso—. */
+  grd(spanId) { var e = document.querySelector('[data-grado-de="' + spanId + '"]');
+    return e ? (e.textContent || '') : 'NO EXISTE' },
   chk(id) { var e = document.getElementById(id); return e ? !!e.checked : null },
   vis(id) { var e = document.getElementById(id); if (!e) return null;
     var n = e; while (n && n.nodeType === 1) {
@@ -314,6 +319,9 @@ window.__P = {
     eroa: window.__P.txt('eroa-val'), volr: window.__P.txt('volr-val'),
     vsv: window.__P.txt('vsvtsvi-val'), fr: window.__P.txt('freg-val'),
     ondaS: window.__P.txt('im-onda-s-interp'), disc: window.__P.txt('im-discordancia'),
+    g: { vc: window.__P.grd('im-vc-ref'), jet: window.__P.grd('im-jet-ratio'),
+         eroa: window.__P.grd('eroa-val'), volr: window.__P.grd('volr-val'),
+         fr: window.__P.grd('freg-val') },
     ratio: window.__P.txt('im-vti-ratio'),
     contSev: window.__P.txt('im-cont-severidad'),
     contEroa: window.__P.val('im_eroa_cont'), contVolr: window.__P.val('vr_cont'),
@@ -332,6 +340,8 @@ window.__P = {
     jet: window.__P.txt('ia-jet-ratio'), pht: window.__P.txt('ia-pht-interp'),
     vtd: window.__P.txt('ia-vtd-interp'), vtiDesc: window.__P.txt('ia-vti-desc-interp'),
     eroa: window.__P.txt('ia-eroa'), volr: window.__P.txt('ia-volr'), fr: window.__P.txt('ia-freg'),
+    g: { jet: window.__P.grd('ia-jet-ratio'), eroa: window.__P.grd('ia-eroa'),
+         volr: window.__P.grd('ia-volr'), fr: window.__P.grd('ia-freg') },
     disc: window.__P.txt('ia-discordancia'),
     bloque: window.__P.vis('bloque-insuf-aortica') } },
 
@@ -701,9 +711,9 @@ async function main() {
           const fr1 = await ev(`window.__P.frases(${JSON.stringify(i1.inf)}, ${JSON.stringify(les === 'im' ? 'mitral' : (les === 'it' ? 'tricuspide' : 'aortica'))})`);
           const fr2 = await ev(`window.__P.frases(${JSON.stringify(i2.inf)}, ${JSON.stringify(les === 'im' ? 'mitral' : (les === 'it' ? 'tricuspide' : 'aortica'))})`);
           g[les].push({ campo: e.id, grado, pedido: e.val[grado], limpio, pre: p, tecleo: t, borrado: b,
-            ini: { grado: f0.grado, sev: f0.sev, pill: f0.pill, fila: f0[e.fila] },
-            con: { grado: f1.grado, sev: f1.sev, pill: f1.pill, fila: f1[e.fila], sug: f1.sug, calc: f1.calc },
-            tras:{ grado: f2.grado, sev: f2.sev, pill: f2.pill, fila: f2[e.fila], sug: f2.sug, calc: f2.calc },
+            ini: { grado: f0.grado, sev: f0.sev, pill: f0.pill, fila: f0[e.fila], g: f0.g },
+            con: { grado: f1.grado, sev: f1.sev, pill: f1.pill, fila: f1[e.fila], sug: f1.sug, calc: f1.calc, g: f1.g },
+            tras:{ grado: f2.grado, sev: f2.sev, pill: f2.pill, fila: f2[e.fila], sug: f2.sug, calc: f2.calc, g: f2.g },
             frasesCon: fr1, frasesTras: fr2,
             sumaCon: i1.suma, sumaTras: i2.suma,
             volvioGrado: String(f2.grado) === String(f0.grado),

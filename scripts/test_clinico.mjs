@@ -40092,6 +40092,19 @@ caso('TC-296', 'Insuficiencia mitral: las tres casillas «auto» espejan, SIGUEN
                     'im_grado','im_grado'].filter(id => g(id) === null);
 
     cerrar();
+    /* ⚠️ CERRAR LA PASTILLA PASO A SER UN GESTO CON CONSECUENCIA (2026-10-13). Hasta hoy la pastilla
+       de la IM NO se prendia sola, asi que cerrar() encontraba el bloque ya oculto y no hacia
+       NADA. Desde la regla 2 de Maicol el autocalculo la prende al sembrar, asi que cerrar() la
+       apaga de verdad, y la cadena toggleValvPill -> valvApagarGrado ->
+       valvSev.aplicar(..., centinela) devuelve im_grado a '0' Y pone esqSevManual.im — que es
+       la regla de siempre: boton apagado = no hay valvulopatia, y la marca lo hace durable.
+       Este caso mide los TRES espejos «auto», no la semantica de la pastilla, asi que se le repone
+       el estado que necesita: se suelta la marca y se recalcula. La semantica nueva —cerrar a mano
+       retira el grado, y reabrir no lo recupera— la fija TC-463 con su propia condicion, para que
+       no quede escondida dentro de este caso. */
+    try { delete window.esqSevManual.im; } catch (e) {}
+    try { if (typeof _sevManualSync === 'function') _sevManualSync(); } catch (e) {}
+    try { calcIM_ESC(); } catch (e) {}
     const cerradaTres = tres();
     /* EL «ANTES» SE MIDE, NO SE ESCRIBE COMO LITERAL. La version anterior pinaba
        «62.3 ml | 89% | 34.6% | Severa» capturado CON la sincronia puesta: si la sincronia hubiera
@@ -40105,6 +40118,10 @@ caso('TC-296', 'Insuficiencia mitral: las tres casillas «auto» espejan, SIGUEN
     __t.set('ai_area','26');
 
     abrir();
+    /* Y por lo mismo despues de reabrir: abrir() dispara la cadena en el otro sentido. */
+    try { delete window.esqSevManual.im; } catch (e) {}
+    try { if (typeof _sevManualSync === 'function') _sevManualSync(); } catch (e) {}
+    try { calcIM_ESC(); } catch (e) {}
     const alAbrir = tres();
     const derivAbierto = deriv();
     const gradoAbierto = __t.val('im_grado') + '/' + __t.val('im_grado');
@@ -53376,7 +53393,12 @@ caso('TC-403', '(f) La tarjeta pre-PDF deja select y oculto IGUALES en la IAo �
     return { antes: antes, cerro: !document.getElementById('pdf-review-overlay') }; };
 
   // IAo calculada severa (vena contracta 7 mm) y el medico la baja a «Moderada» en la tarjeta
-  const d1 = aReset(); __t.set('ia_vc','7'); toggleValvPill('aortica','insuf');
+  /* ⚠️ IDEMPOTENTE DESDE EL 2026-10-13, exactamente por el motivo que la escena de la EAo ya tiene
+     escrito cuatro lineas mas abajo: con la regla 2 de Maicol el autocalculo PRENDE la pastilla al
+     cargar un dato cuantitativo, asi que el click explicito seria un SEGUNDO gesto que la apagaria
+     —y apagarla retira el grado y pone la marca manual—. Medido: el denominador caia a ia=0. */
+  const d1 = aReset(); __t.set('ia_vc','7');
+  if (!pillOn('aortica','insuf')) toggleValvPill('aortica','insuf');
   const t1 = tarjeta('rev-ia','2');
   const ia = aFoto('ia');
   // EAo calculada severa y el medico la baja a «Leve» en el clon de la tarjeta
@@ -53388,7 +53410,8 @@ caso('TC-403', '(f) La tarjeta pre-PDF deja select y oculto IGUALES en la IAo �
   const t2 = tarjeta('ea_grado','leve');
   const ea = aFoto('ea');
   // CONTROL POSITIVO: la IM, que ya estaba arreglada. Si sale distinta, el harness miente.
-  const d3 = aReset(); __t.set('im_vc','8'); toggleValvPill('mitral','insuf');
+  const d3 = aReset(); __t.set('im_vc','8');
+  if (!pillOn('mitral','insuf')) toggleValvPill('mitral','insuf');   // idempotente: ver la nota de la IAo
   const t3 = tarjeta('rev-im','2');
   const im = aFoto('im');
   const dgf = function (n, o) { return n + '{sel=' + o.sel + ' oculto=' + o.oculto + ' disc=' + o.disc +
@@ -54609,15 +54632,20 @@ caso('TC-416', 'Estenosis tricuspidea BINARIA: se prende sola solo con criterio 
       hDespues.grado === 'sin' && hDespues.pill === false && hDespues.bloq === false,
       'antes=' + JSON.stringify(hAntes) + ' despues=' + JSON.stringify(hDespues)],
 
-    /* ⚠️ NO SE EXIGE QUE LAS PASTILLAS SE PRENDAN, Y LA PRIMERA VERSION DE ESTA CONDICION LO HACIA.
-       Esta MEDIDO y documentado en el CLAUDE.md de la tanda anterior: it_vc, it_pisa_r e it_vti NO
-       prenden la pastilla de la IT —solo la Vmax del jet lo hace, via calcPSAP— y la mitral se
-       comporta igual con im_vc. La expectativa estaba mal, la app no. Lo que este control negativo
-       afirma es que las OTRAS dos lesiones siguen graduando por su cuenta con el auto-prendido de la
-       ET activo al lado: si el cableado nuevo se hubiera derramado, estos dos grados se moverian. */
-    ['(i) CONTROL NEGATIVO de valvula: la IT y la IM siguen graduando por su cuenta',
+    /* ⚠️ ADAPTADA EL 2026-10-13: LAS DOS PASTILLAS AHORA SI SE PRENDEN. Este comentario decia:
+       «NO SE EXIGE QUE LAS PASTILLAS SE PRENDAN, y la primera version de esta condicion lo hacia.
+       Esta MEDIDO: it_vc, it_pisa_r e it_vti NO prenden la pastilla de la IT —solo la Vmax del jet
+       lo hace— y la mitral se comporta igual con im_vc. La expectativa estaba mal, la app no».
+       La expectativa que estaba mal es la que la regla 2 de Maicol volvio correcta: desde el
+       2026-10-13 un dato cuantitativo que vota PRENDE la pastilla de su lesion, asi que lo que
+       antes era un hecho medido —que no se prendian— paso a ser el defecto que la regla cierra.
+       El control negativo sigue siendo el mismo y sigue siendo discriminante: lo que afirma es que
+       las OTRAS dos lesiones gradaan por su cuenta con el auto-prendido de la ET activo al lado, y
+       los dos grados se moverian igual si el cableado se derramara. Lo que cambia es que ahora se
+       exige que sus pastillas esten PRENDIDAS, que es el estado correcto con un grado escrito. */
+    ['(i) CONTROL NEGATIVO de valvula: la IT y la IM siguen graduando por su cuenta, con su pastilla prendida',
       iOtras.it === '4' && iOtras.im === '4' &&
-      iOtras.itPill === false && iOtras.imPill === false,
+      iOtras.itPill === true && iOtras.imPill === true,
       JSON.stringify(iOtras)],
   ] };
 `);
@@ -59079,13 +59107,26 @@ caso('TC-442', 'La insuficiencia pulmonar se APAGA SOLA cuando desaparecen todas
   __t.nuevoEstudio(); abrir();
   const e19 = F();
 
-  /* ── CONTROL NEGATIVO: las OTRAS TRES insuficiencias no tienen auto-apagado ────────────────
+  /* ── CONTROL, ADAPTADO EL 2026-10-13 ───────────────────────────────────────────────────────
+     Este bloque decia: «CONTROL NEGATIVO: las OTRAS TRES insuficiencias no tienen auto-apagado.
      Se prende la IT con su velocidad y se borra: su boton NO se apaga, porque esta tanda no la
-     toca. Sin esta condicion, un auto-apagado escrito en el embudo compartido pasaria igual. */
+     toca». La regla 2 de Maicol (2026-10-13) les dio auto-apagado a las otras tres, asi que el
+     hecho que este control fijaba dejo de ser cierto: hoy la IT TAMBIEN se apaga cuando desaparece
+     su ultima causa, por _insufApagarAuto.
+     Lo que el control protegia sigue protegido, y por el mismo mecanismo: la pulmonar tiene su
+     RUTA PROPIA (_ipApagarAuto) y las otras tres la suya (_insufApagarAuto), asi que un
+     auto-apagado escrito en un embudo compartido seguiria siendo visible — lo que cambia es el
+     signo de la expectativa. Se mide ademas que la velocidad es una CAUSA viva: con la Vmax
+     cargada el boton NO se apaga aunque no haya ningun votante, que es la guarda 4 de esa
+     funcion y lo que evita que el aviso de incongruencia salga por obra de la app. */
   __t.nuevoEstudio(); abrir();
   __t.set('vmax_it', '3.2');
   const itPrendida = aOn('tricuspide', 'insuf');
+  /* Con la velocidad cargada y sin ningun votante cuantitativo, la causa viva lo sostiene. */
+  try { calcIT_ESC(); } catch (e) {}
+  const itConCausa = aOn('tricuspide', 'insuf');
   __t.set('vmax_it', '');
+  try { calcIT_ESC(); } catch (e) {}
   const itSigue = aOn('tricuspide', 'insuf');
   __t.nuevoEstudio();
 
@@ -59159,8 +59200,12 @@ caso('TC-442', 'La insuficiencia pulmonar se APAGA SOLA cuando desaparecen todas
     // CONTROL NEGATIVO
     ['DENOMINADOR del control: la velocidad de IT prende la insuficiencia tricuspidea',
       itPrendida === true, String(itPrendida)],
-    ['CONTROL: la TRICUSPIDE no tiene auto-apagado y su boton sigue prendido al borrar la velocidad',
-      itSigue === true, String(itSigue)]
+    ['CONTROL: con la velocidad de IT cargada y sin votantes, la causa viva SOSTIENE el boton',
+      itConCausa === true, String(itConCausa)],
+    /* ADAPTADA el 2026-10-13: antes exigia itSigue === true («la tricuspide no tiene
+       auto-apagado»). La regla 2 se lo dio, con su ruta propia. */
+    ['y al borrarla tambien se apaga, por su propia ruta y no por el embudo de la pulmonar',
+      itSigue === false, String(itSigue)]
   ] };
 `);
 

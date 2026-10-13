@@ -1410,6 +1410,17 @@
     .valv-datos-abierto > #campos-insuf-pulmonar,
     .valv-datos-abierto > #campos-esten-pulmonar { display: block !important; }
   }
+  /* ══ EL GRADO DE CADA FILA, ENTRE PARÉNTESIS Y EN FORMA BREVE — REGLA 5 (2026-10-13) ══════════
+     ⚠️ ES UN `<span>` HERMANO Y NO TEXTO DENTRO DEL `.calc-val`, y eso NO es cosmético: el texto de
+     `eroa-val`, `volr-val` y `freg-val` ES lo que el PDF publica —`_imPdfPisaTxt` lo lee literal— y
+     lo que `_imPisaSellar` congela en el estudio. Un «(severa)» dentro del `.calc-val` habría
+     entrado al papel firmado y al sellado, que es lo contrario de lo que esta regla pide.
+     ⚠️ Y SIN `id`, A PROPÓSITO. El barrido de `limpiarCampos` devuelve a «—» todo
+     `.calc-box .calc-row span[id]:not(.calc-lbl)`, así que con `id` la fila sin dato diría «—» en
+     vez de quedar en blanco, y la regla 5 pide «sin dato, nada». Se selecciona por
+     `data-grado-de`, que además dice a qué fila pertenece. */
+  .calc-grado { color: var(--text2); font-weight: 400; font-size: 11px; margin-left: 6px; }
+
   /* ⚠️ 44 px DE ALTO MÍNIMO, QUE ES EL PUNTO 5c, Y `width:100%` PARA QUE EL BLANCO SEA LA FILA
      ENTERA. Un `min-height` solo deja el texto centrado en una caja ancha pero el blanco táctil
      real es el del bloque, así que se declara `display:block`. En la PC la regla de arriba lo
@@ -5014,17 +5025,17 @@ window.cerrarSesionReal = cerrarSesionReal;
              hoy: `calcIM_ESC` no tiene rama protésica para la vena contracta —sólo el jet/AI y el
              cociente VTI la tienen—. Queda REPORTADO y NO corregido: inventarle un corte protésico
              sería contenido clínico que ninguna guía leída da. -->
-        <div class="calc-row"><span class="calc-lbl" title="Vena contracta del chorro de IM, en el eje donde se ve más angosta. ASE 2017 (Zoghbi, JASE 2017;30:303-371), Tabla 8. Los cortes salen de la misma tabla que aplica el cálculo. En PRÓTESIS mitral esta aplicación usa IGUAL los cortes de válvula nativa: ninguna de las guías leídas publica un corte de vena contracta para prótesis, así que no se inventa uno. Ver «Referencia clínica» en la ayuda.">Vena contracta (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="vc"></span> <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></span><span class="calc-val" id="im-vc-ref">—</span></div>
+        <div class="calc-row"><span class="calc-lbl" title="Vena contracta del chorro de IM, en el eje donde se ve más angosta. ASE 2017 (Zoghbi, JASE 2017;30:303-371), Tabla 8. Los cortes salen de la misma tabla que aplica el cálculo. En PRÓTESIS mitral esta aplicación usa IGUAL los cortes de válvula nativa: ninguna de las guías leídas publica un corte de vena contracta para prótesis, así que no se inventa uno. Ver «Referencia clínica» en la ayuda.">Vena contracta (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="vc"></span> <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></span><span class="calc-val" id="im-vc-ref">—</span><span class="calc-grado" data-grado-de="im-vc-ref"></span></div>
         <!-- El ⓘ y el `title` publican los DOS regímenes, igual que la fila del cociente VTI: hasta
              hoy esta fila no declaraba su corte en NINGUNA superficie —ni acá, ni en la tarjeta de
              Referencias, ni en el manual—, así que ni el 20/40 nativo ni el 20/50 protésico eran
              consultables desde la app. -->
-        <div class="calc-row"><span class="calc-lbl" title="DOS CORTES SEGÚN LA MORFOLOGÍA. En válvula NATIVA: &lt;20 % leve · ≤40 % moderada · &gt;40 % severa. En PRÓTESIS mitral: &lt;20 % leve · &gt;50 % severa, y entre 20 y 50 la ASE 2024 (Tabla 13, pág. 30 — Zoghbi, JASE 2024;37(1):2-63) dice «Variable», así que el parámetro NO vota y la fila lo declara. Los cortes absolutos de esa tabla (&lt;4 cm² / &gt;8 cm²) no se implementan: la guía los da como alternativa al porcentaje. La tabla exige además un Nyquist de 50-60 cm/s que la app no registra. Ver «Referencia clínica» en la ayuda.">Ratio jet/AI (%) <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="jet"></span> <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></span><span class="calc-val" id="im-jet-ratio">—</span></div>
+        <div class="calc-row"><span class="calc-lbl" title="DOS CORTES SEGÚN LA MORFOLOGÍA. En válvula NATIVA: &lt;20 % leve · ≤40 % moderada · &gt;40 % severa. En PRÓTESIS mitral: &lt;20 % leve · &gt;50 % severa, y entre 20 y 50 la ASE 2024 (Tabla 13, pág. 30 — Zoghbi, JASE 2024;37(1):2-63) dice «Variable», así que el parámetro NO vota y la fila lo declara. Los cortes absolutos de esa tabla (&lt;4 cm² / &gt;8 cm²) no se implementan: la guía los da como alternativa al porcentaje. La tabla exige además un Nyquist de 50-60 cm/s que la app no registra. Ver «Referencia clínica» en la ayuda.">Ratio jet/AI (%) <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="jet"></span> <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></span><span class="calc-val" id="im-jet-ratio">—</span><span class="calc-grado" data-grado-de="im-jet-ratio"></span></div>
         <div class="calc-row"><span class="calc-lbl">Onda S pulmonar <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="onda_s"></span></span><span id="im-onda-s-interp">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">EROA — PISA (mm²) <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="eroa"></span></span><span class="calc-val" id="eroa-val">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">Vol regurgitante (ml) <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="volr"></span></span><span class="calc-val" id="volr-val">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">EROA — PISA (mm²) <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="eroa"></span></span><span class="calc-val" id="eroa-val">—</span><span class="calc-grado" data-grado-de="eroa-val"></span></div>
+        <div class="calc-row"><span class="calc-lbl">Vol regurgitante (ml) <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="volr"></span></span><span class="calc-val" id="volr-val">—</span><span class="calc-grado" data-grado-de="volr-val"></span></div>
         <div class="calc-row"><span class="calc-lbl">Vol eyectado TSVI (ml)</span><span class="calc-val" id="vsvtsvi-val">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">Fracción regurgitante (%) <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="fr"></span></span><span class="calc-val" id="freg-val">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">Fracción regurgitante (%) <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="fr"></span></span><span class="calc-val" id="freg-val">—</span><span class="calc-grado" data-grado-de="freg-val"></span></div>
         <!-- ⚠️ EL RÓTULO DICE «ASE 2017» Y NO «ESC/EACTS 2025» — DECISIÓN 2 DE MAICOL, RAMA «NO
              COINCIDEN» (etapa 4, 2026-10-03). Era «(ESC 2021)», que NO tenía respaldo: `FUENTES.md`
              no registra ninguna guía valvular ESC 2021. Se leyó la ESC/EACTS 2025 inglesa
@@ -5605,10 +5616,10 @@ window.cerrarSesionReal = cerrarSesionReal;
                campo que la tenía adentro, y en una columna de un tercio no entraba. Texto intacto. -->
           <div style="font-size:10px;color:var(--text2);margin-top:3px;">Reversi&oacute;n holodiast&oacute;lica &ge;20 cm/s &rarr; severa. Es el &uacute;nico corte que publica la gu&iacute;a: por debajo, el par&aacute;metro no grad&uacute;a.</div>
       <div class="calc-box" style="margin-top:10px;">
-        <div class="calc-row"><span class="calc-lbl">Ratio jet/TSVI (%)</span><span class="calc-val" id="ia-jet-ratio">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">EROA — PISA (mm²)</span><span class="calc-val" id="ia-eroa">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">Vol regurgitante (ml)</span><span class="calc-val" id="ia-volr">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">Fracción regurgitante (%)</span><span class="calc-val" id="ia-freg">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">Ratio jet/TSVI (%)</span><span class="calc-val" id="ia-jet-ratio">—</span><span class="calc-grado" data-grado-de="ia-jet-ratio"></span></div>
+        <div class="calc-row"><span class="calc-lbl">EROA — PISA (mm²)</span><span class="calc-val" id="ia-eroa">—</span><span class="calc-grado" data-grado-de="ia-eroa"></span></div>
+        <div class="calc-row"><span class="calc-lbl">Vol regurgitante (ml)</span><span class="calc-val" id="ia-volr">—</span><span class="calc-grado" data-grado-de="ia-volr"></span></div>
+        <div class="calc-row"><span class="calc-lbl">Fracción regurgitante (%)</span><span class="calc-val" id="ia-freg">—</span><span class="calc-grado" data-grado-de="ia-freg"></span></div>
         <div class="calc-row"><span class="calc-lbl">PHT — interpretación</span><span id="ia-pht-interp">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Vmax telediastólica</span><span id="ia-vtd-interp">—</span></div>
         <div class="calc-row"><span class="calc-lbl">VTI Ao desc. — inversión diastólica</span><span id="ia-vti-desc-interp">—</span></div>
@@ -22765,11 +22776,19 @@ function calcPSAP() {
      su presencia también afirma la IT). Se respeta el APAGADO MANUAL: si el médico cerró la pastilla
      a mano (clave de `localStorage` en '0'), no se reprende; sólo lo hace un gesto suyo. Idempotente:
      si ya está prendida no toca nada. Borrar la VRT NO la apaga (regla 11: borrar un dato no retira). */
+  /* ⚠️ Y SE REGISTRA QUE LA PRENDIÓ LA APP (2026-10-13). Era la TERCERA puerta sin dueño, y sin
+     esto `_insufApagarAuto('tricuspide')` contesta «no la prendí yo» y queda inerte por el camino
+     más frecuente de esta válvula. El registro va DESPUÉS del toggle porque su cola borra la
+     entrada. Lo que NO cambia es que borrar la VRT no apaga la pastilla por sí solo: la velocidad
+     es una CAUSA viva y `_insufApagarAuto` la consulta por `_INSUF_CAUSAS`, así que el botón se
+     apaga recién cuando no queda ni velocidad ni votante ni grado. */
   try {
     if (typeof pillOn === 'function' && typeof toggleValvPill === 'function'
         && !pillOn('tricuspide', 'insuf')
         && localStorage.getItem('valv-pill-insuf-tricuspide') !== '0') {
       toggleValvPill('tricuspide', 'insuf');
+      const _autoIT = window.VALV_INSUF_AUTO;
+      if (_autoIT) _autoIT.add('tricuspide');
     }
   } catch (e) {}
   // Dato primario: gradiente VD-AD = 4 × VRT²
@@ -33620,6 +33639,69 @@ function imCortesPintar() {
 }
 window.imCortesPintar = imCortesPintar;
 
+/* ══ EL GRADO DE CADA FILA DE REFERENCIA — REGLA 5 DE MAICOL (2026-10-13) ══════════════════════
+   «En las referencias de las tres insuficiencias, cada fila que tiene cortes (EROA, Vol-R, FR,
+   vena contracta, etc.) muestra su grado entre paréntesis y en forma breve —(leve), (moderada),
+   (severa)— cuando tiene dato; sin dato, nada.»
+
+   ⚠️ SALE DE LOS VOTOS QUE YA SE CONTARON, NO DE UNA SEGUNDA LECTURA DE LOS CAMPOS. Cada votante
+   ya pasó por su cascada y dejó su `sev` en la lista; derivarlo otra vez acá sería la fórmula
+   duplicada de siempre, y el día que un corte se mueva la fila y el veredicto dirían cosas
+   distintas sobre el mismo número. Es el mismo criterio con el que `itRefPintar` publica su grado:
+   «`itGradoDe` ya decidió; esto lo muestra. El pintor no decide».
+
+   ⚠️ UN VOTANTE SIN DATO —O FUERA DE BANDA— NO DEJA NADA, y es automático: si no votó, no está en
+   la lista, y el pintor vacía todas las filas de su mapa antes de escribir. Ésa es la mitad
+   «sin dato, nada» de la regla, y es también lo que evita el número rancio que esta zona pagó
+   cuatro veces con los span de PISA.
+
+   ⚠️ LAS FILAS QUE YA PUBLICAN SU GRADO NO SE TOCAN. El THP, la Vmax telediastólica y el VTI de la
+   aorta descendente lo traen en un `badge` con su rango («Leve (>500ms)»), y las tres de la
+   tricúspide lo traen con el formato de `itRefPintar` («18.1 mm² · Leve (<20 mm²)»). Agregarles un
+   «(leve)» al lado sería decir el grado dos veces en la misma fila. La diferencia de formato entre
+   la tricúspide y las otras dos queda declarada en `docs/PENDIENTES.md`.
+
+   ⚠️ Y LA ONDA S NO ENTRA, aunque vote: su fila es `im-onda-s-interp`, que ya publica un badge con
+   el grado adentro («Invertida — severa»). */
+const SEV_FILA_GRADO_TXT = Object.freeze({ leve:'(leve)', moderada:'(moderada)', severa:'(severa)' });
+function sevFilaGradoPintar(mapa, votos) {
+  const ids = Object.keys(mapa);
+  const puesto = {};
+  /* ⚠️ SE VACÍAN TODAS Y DESPUÉS SE ESCRIBEN LAS QUE VOTARON, en ese orden: escribir sólo las que
+     votaron dejaría el grado del parámetro que el médico acaba de borrar. Es el `else` que los
+     cuatro span de PISA tuvieron que aprender. */
+  ids.forEach(function (k) {
+    const el = document.querySelector('[data-grado-de="' + mapa[k] + '"]');
+    if (el) el.textContent = '';
+  });
+  (votos || []).forEach(function (vt) {
+    /* Los votos de la CONTINUIDAD comparten el nombre del parámetro con los de PISA ('EROA',
+       'Vol-R', 'FR') y sus filas son otras —las casillas `im_eroa_cont`, `vr_cont` y
+       `im_fr_cont`, que son `input` y no `.calc-val`—, así que se descartan: pintarlos acá
+       escribiría el grado de la continuidad al lado del número de PISA. */
+    if (vt.grupo === 'cont') return;
+    const id = mapa[vt.p];
+    if (!id || puesto[id]) return;
+    const el = document.querySelector('[data-grado-de="' + id + '"]');
+    if (!el) return;
+    el.textContent = SEV_FILA_GRADO_TXT[vt.sev] || '';
+    puesto[id] = 1;
+  });
+  return puesto;
+}
+window.sevFilaGradoPintar = sevFilaGradoPintar;
+/* Los dos mapas, uno por lesión. Las claves son los nombres con que cada cascada empuja su voto;
+   si alguna vez se renombra uno, la fila deja de pintarse y no se rompe nada — por eso el caso de
+   la suite exige el conteo de filas pintadas y no sólo el texto de una. */
+const IM_FILA_GRADO = Object.freeze({ 'VC':'im-vc-ref', 'Jet/AI':'im-jet-ratio',
+  'EROA':'eroa-val', 'Vol-R':'volr-val', 'FR':'freg-val' });
+const IA_FILA_GRADO = Object.freeze({ 'Jet/TSVI':'ia-jet-ratio',
+  'EROA':'ia-eroa', 'Vol-R':'ia-volr', 'FR':'ia-freg' });
+function imGradoFilasPintar(votos) { return sevFilaGradoPintar(IM_FILA_GRADO, votos); }
+function iaGradoFilasPintar(votos) { return sevFilaGradoPintar(IA_FILA_GRADO, votos); }
+window.imGradoFilasPintar = imGradoFilasPintar;
+window.iaGradoFilasPintar = iaGradoFilasPintar;
+
 /* ══ LA REGLA DE INTEGRACIÓN DE LA IM — UN SOLO DUEÑO (2026-10-13) ═════════════════════════════
    NO SE MOVIÓ UNA CONDICIÓN. Es la cascada que vivía dentro de `calcIM_ESC`, con sus cuatro ramas
    y sus mismos operadores, extraída para poder correrla DOS veces —una por método— cuando la regla
@@ -34225,9 +34307,16 @@ function calcIM_ESC() {
     const _imRet = (typeof sevRetirarSugerido === 'function') ? sevRetirarSugerido('im') : null;
     /* El cruce con el método volumétrico lee `im_grado`, que recién pudo cambiar. */
     imDiscordanciaPintar();
+    /* ⚠️ REGLA 2: LAS DOS LLAMADAS, Y LAS DOS SE AUTO-GATEAN. Es el mismo par que `calcAo` tiene
+       para la estenosis aórtica (`valvAutoPrenderEsten` + `_eaApagarAuto`): acá se llega sin ningún
+       votante, así que el apagado es el que actúa y el prendido sale por su propia guarda. Van
+       DESPUÉS del retiro del grado, porque el apagado pregunta si sobrevivió un grado. */
+    if (typeof _insufApagarAuto === 'function') _insufApagarAuto('mitral');
     /* La pastilla y el aviso se repintan TAMBIÉN por esta salida. Sin esto, vaciar el último
-       parámetro dejaba el sub-botón con el grado de la medición anterior. */
+       parámetro dejaba el sub-botón con el grado de la medición anterior. Va DESPUÉS del apagado,
+       para que repinte el estado nuevo del botón y no el de hace un paso. */
     _imSincronizarPantalla();
+    if (typeof imGradoFilasPintar === 'function') { try { imGradoFilasPintar([]); } catch (e) {} }
     return _imRet;
   }
   /* ══ UN GRADO POR MÉTODO, Y AL INFORME VA EL PEOR DE LOS INCLUIDOS — REGLA 3 ══════════════════
@@ -34278,7 +34367,15 @@ function calcIM_ESC() {
      `valvSev.refrescar` sólo la llamaba el ▼. Acá hace las dos cosas de una: repinta la pastilla
      con el grado que acaba de calcularse Y corre la regla del grado manual, que necesita enterarse
      del cambio del CALCULADO aunque el campo no se haya tocado. */
+  /* ⚠️ REGLA 2: con al menos un votante la pastilla se PRENDE sola, y se auto-gatea por el
+     apagado manual y por el prendido manual (la clave de `localStorage` presente). Va antes de
+     `_imSincronizarPantalla`, que repinta el bloque de grado leyendo `pillOn`: al revés, el sub-botón
+     quedaría un paso atrás, que es el desfase que esta zona ya pagó dos veces. */
+  if (typeof _insufAutoPrender === 'function') _insufAutoPrender('mitral');
   _imSincronizarPantalla();
+  /* El grado de cada fila, entre paréntesis y en forma breve (regla 5). Sale de los MISMOS votos
+     que decidieron, no de una segunda lectura de los campos. */
+  if (typeof imGradoFilasPintar === 'function') { try { imGradoFilasPintar(params); } catch (e) {} }
   /* El corte que publica cada fila se repinta acá y no una sola vez al arrancar: el del jet/AI
      depende de si la válvula es protésica, y eso cambia con `vm_morf` en medio del estudio. */
   if (typeof imCortesPintar === 'function') { try { imCortesPintar(); } catch (e) {} }
@@ -34712,6 +34809,12 @@ function calcIA_ESC() {
        Se llama al dueño único y no a `_iaRetirarGradoSugerido`, que ahora delega en él: dos
        implementaciones del mismo retiro divergen en cuanto se toca una. */
     if (typeof sevRetirarSugerido === 'function') sevRetirarSugerido('ia');
+    /* ⚠️ REGLA 2: LAS DOS LLAMADAS, Y LAS DOS SE AUTO-GATEAN. Es el mismo par que `calcAo` tiene
+       para la estenosis aórtica (`valvAutoPrenderEsten` + `_eaApagarAuto`): acá se llega sin ningún
+       votante, así que el apagado es el que actúa y el prendido sale por su propia guarda. Van
+       DESPUÉS del retiro del grado, porque el apagado pregunta si sobrevivió un grado. */
+    if (typeof _insufApagarAuto === 'function') _insufApagarAuto('aortica');
+    if (typeof iaGradoFilasPintar === 'function') { try { iaGradoFilasPintar([]); } catch (e) {} }
     /* ⚠️ Y LA FOTO SE BORRA ACÁ, que es el equivalente del `bloqueado` de la EA para la IAo. Por este
        `return` se sale cuando NADIE cuantificó —o cuando todo lo cargado quedó fuera de banda— así
        que no hay grado calculado. Dejar `window._iaGradoCalc` con el valor del cálculo ANTERIOR haría
@@ -34762,9 +34865,13 @@ function calcIA_ESC() {
     document.getElementById('ia_grado').value = gradoVal;
     if (typeof autoCompletarSevIA === 'function') autoCompletarSevIA(gradoVal);
   }
+  /* Regla 2: con al menos un votante la pastilla se prende sola. Antes de `sevSincronizar`, que
+     repinta el bloque de grado leyendo `pillOn`. */
+  if (typeof _insufAutoPrender === 'function') _insufAutoPrender('aortica');
   /* R3/R5/R6 para la IAo: repinta la pastilla, pinta o apaga el aviso rojo y suelta el manual si el
      grado calculado cambió. Va FUERA de la guarda por el mismo motivo que la foto. */
   if (typeof sevSincronizar === 'function') sevSincronizar('ia');
+  if (typeof iaGradoFilasPintar === 'function') { try { iaGradoFilasPintar(params); } catch (e) {} }
   const sevs = [...new Set(params.map(p=>p.sev))];
   /* Los DOS avisos en el mismo nodo y los dos completos: el que está fuera de banda no aparece en
      `params` —no votó—, así que la discordancia no lo nombra y sin esta línea su valor ilegible no
@@ -36000,6 +36107,112 @@ function _ipAutoPrender() {
 }
 window._ipAutoPrender = _ipAutoPrender;
 
+/* ══ LAS PASTILLAS DE INSUFICIENCIA DE LA MITRAL, LA AÓRTICA Y LA TRICÚSPIDE — REGLA 2 ══════════
+   REGLA 2 DE MAICOL (2026-10-13): «la pastilla de cada lesión se PRENDE sola cuando hay al menos
+   un dato cuantitativo que vota y se APAGA sola cuando se borran todos, SÓLO si la prendió la app;
+   si el médico la marcó o ajustó el grado a mano, NO se toca».
+
+   ⚠️ MEDIDO EN HEAD: ESTAS TRES NO SE PRENDÍAN NUNCA DESDE EL CÁLCULO. Cargar la vena contracta en
+   7 mm dejaba `pillOn('mitral','insuf')` en `false`, la clave de `localStorage` en `null` y
+   `VALV_INSUF_AUTO` vacío — y el grado 4 escrito igual, o sea un informe firmado que dice
+   «con insuficiencia severa» con el botón apagado. Lo único que las prendía era el clic del médico,
+   la regla J al entrar a la pestaña (que no dejaba dueño hasta este commit) y, en la tricúspide, el
+   bloque inline de `calcPSAP` por la velocidad del chorro.
+
+   ⚠️ SON DOS FUNCIONES GENÉRICAS Y NO UNA RAMA DE `valvAutoApagarEsten`, igual que `_ipApagarAuto`
+   y por la misma razón: ésa gobierna la ESTENOSIS de tres válvulas y su segunda condición mira un
+   `<select>` de estenosis por un mapa propio. Tocarla para que entienda de insuficiencia le
+   cambiaría el informe firmado a válvulas que esta tanda no toca.
+
+   LAS GUARDAS DEL APAGADO, en orden, y ninguna es decorativa:
+     1. ya está apagada ⇒ idempotente;
+     2. **no la prendió la app** —`VALV_INSUF_AUTO` no la tiene— ⇒ es una afirmación del médico y no
+        se apaga. Es la única forma de distinguirlo: la clave de `localStorage` dice `'1'` en los dos
+        casos, porque la escribe `toggleValvPill` y esa función no sabe quién la llamó;
+     3. **sobrevivió un GRADO** ⇒ no se apaga, porque un grado es una afirmación. En el flujo normal
+        no se alcanza —`sevRetirarSugerido` corre antes y ya devolvió el campo al centinela— pero sí
+        con la marca manual puesta, que es justo el caso que hay que respetar;
+     4. **queda una CAUSA viva propia de la válvula** ⇒ sigue prendida. Hoy sólo la tricúspide tiene
+        una: la velocidad del chorro de IT, que es evidencia de que hay insuficiencia aunque no
+        gradúe —la app la usa para la PSAP— y que es la que `itIncongruenciaSync` denuncia cuando el
+        botón está apagado. Sin esta guarda, apagar la pastilla con la Vmax cargada haría aparecer
+        ese aviso rojo por obra de la app.
+
+   ⚠️ Y BORRA LA CLAVE DE `localStorage` Y LA MARCA MANUAL, que es la lección que `_etApagarAuto`,
+   `_epApagarAuto` y `_ipApagarAuto` ya pagaron las tres:
+     · sin borrar la CLAVE, el auto-prendido se gasta en un solo uso —cargar 7 prende, borrar apaga
+       y deja `'0'`, y volver a cargar 7 ya no prende, porque para el prendido `'0'` significa «el
+       médico lo cerró»—;
+     · sin borrar la MARCA, tampoco vuelve: la cadena `toggleValvPill` → `valvApagarGrado` →
+       `valvSev.aplicar(…, centinela)` pone `esqSevManual` —y las tres claves están registradas en
+       `SEV_SINC`—, con lo que el próximo recálculo saldría por su guarda de manual.
+   El apagado del MÉDICO no pasa por acá (su clic entra directo a `toggleValvPill`), así que sigue
+   siendo durable: la clave queda en `'0'` y nada la borra.
+
+   ⚠️ UN DATO CARGADO PERO FUERA DE BANDA NO SOSTIENE LA PASTILLA, y queda declarado. Los
+   calculadores llaman al apagado desde su salida «nadie votó», y a esa salida se llega también
+   cuando TODO lo cargado quedó fuera de rango. Ahí el grado ya se retiró por el mismo motivo, así
+   que apagar el botón va en la misma dirección: la app no puede afirmar la valvulopatía. El número
+   sigue a la vista en su campo y el aviso de fuera de banda lo nombra. */
+const _INSUF_CAUSAS = Object.freeze({
+  /* Campos que afirman que hay insuficiencia aunque no gradúen. Sólo la tricúspide tiene: la
+     velocidad del chorro de IT, en sus dos puertas —son el MISMO dato espejado (`itVmaxSync`) y se
+     leen las dos porque un estudio guardado se repone con `.value =` sin eventos, así que en ese
+     instante pueden diferir. Fallar del lado de NO apagar es lo correcto. */
+  tricuspide: Object.freeze(['vmax_it', 'it_vmax_cw']),
+  mitral: Object.freeze([]),
+  aortica: Object.freeze([])
+});
+function _insufCausaViva(valv) {
+  const ids = _INSUF_CAUSAS[valv] || [];
+  for (let i = 0; i < ids.length; i++) {
+    const e = document.getElementById(ids[i]);
+    if (e && String(e.value).trim() !== '' && parseFloat(e.value) > 0) return ids[i];
+  }
+  return null;
+}
+function _insufAutoPrender(valv) {
+  try {
+    if (typeof pillOn !== 'function' || typeof toggleValvPill !== 'function') return null;
+    if (pillOn(valv, 'insuf')) return { yaEstaba: true };
+    /* Respeta el apagado manual Y el prendido manual, los dos: la clave en `'0'` significa «el
+       médico la cerró» y en `'1'` «la afirmó», y en ninguno de los dos casos la app decide. */
+    let guardado = null;
+    try { guardado = localStorage.getItem('valv-pill-insuf-' + valv); } catch (e) { return null; }
+    if (guardado !== null) return { tocada: guardado };
+    toggleValvPill(valv, 'insuf');
+    const _auto = window.VALV_INSUF_AUTO;
+    if (_auto) _auto.add(valv);
+    return { prendida: pillOn(valv, 'insuf') };
+  } catch (e) { return null; }
+}
+window._insufAutoPrender = _insufAutoPrender;
+function _insufApagarAuto(valv) {
+  try {
+    if (typeof pillOn !== 'function' || typeof toggleValvPill !== 'function') return null;
+    if (!pillOn(valv, 'insuf')) return { yaEstaba: true };
+    const _auto = window.VALV_INSUF_AUTO;
+    if (!_auto || !_auto.has(valv)) return { delMedico: true };
+    const causa = _insufCausaViva(valv);
+    if (causa) return { hayCausa: causa };
+    const clave = (typeof sevClaveDe === 'function') ? sevClaveDe('insuf', valv) : null;
+    const C = (clave && typeof SEV_SINC !== 'undefined') ? SEV_SINC[clave] : null;
+    const sel = C ? document.getElementById(C.select) : null;
+    const g = sel ? String(sel.value || '') : '';
+    /* «Hay grado» se pregunta con el dueño del token de «no hay» y no con un literal: `'0'` para una
+       insuficiencia sale de `SEV_TOKEN_SIN`, igual que en `sevRetirarSugerido`. */
+    if (g !== '' && typeof sevEsSin === 'function' && !sevEsSin('insuf', g)) return { hayGrado: g };
+    toggleValvPill(valv, 'insuf');
+    _auto.delete(valv);
+    try { localStorage.removeItem('valv-pill-insuf-' + valv); } catch (e) {}
+    if (clave && window.esqSevManual) delete window.esqSevManual[clave];
+    if (clave && window._sevCalcAlFijar) delete window._sevCalcAlFijar[clave];
+    if (typeof _sevManualSync === 'function') { try { _sevManualSync(); } catch (e) {} }
+    return { apagada: !pillOn(valv, 'insuf') };
+  } catch (e) { return null; }
+}
+window._insufApagarAuto = _insufApagarAuto;
+
 /* ══ EL GEMELO DEL AUTO-PRENDIDO — RUTA PROPIA DE LA PULMONAR (2026-10-08) ════════════════════
    Cierra el agujero que el comentario de `_ipAutoGrado` dejó DECLARADO el 2026-10-07: «si la
    pastilla la prendió un SIGNO y el signo se borra sin que haya velocidad, el botón queda prendido y
@@ -36920,6 +37133,11 @@ function calcIT_ESC() {
     const _itDisc0 = document.getElementById('it-discordancia');
     if (_itDisc0) _itDisc0.textContent = '';
     const _itRet = (typeof sevRetirarSugerido === 'function') ? sevRetirarSugerido('it') : null;
+    /* ⚠️ REGLA 2: LAS DOS LLAMADAS, Y LAS DOS SE AUTO-GATEAN. Es el mismo par que `calcAo` tiene
+       para la estenosis aórtica (`valvAutoPrenderEsten` + `_eaApagarAuto`): acá se llega sin ningún
+       votante, así que el apagado es el que actúa y el prendido sale por su propia guarda. Van
+       DESPUÉS del retiro del grado, porque el apagado pregunta si sobrevivió un grado. */
+    if (typeof _insufApagarAuto === 'function') _insufApagarAuto('tricuspide');
     /* La pastilla y el aviso rojo se repintan también por esta salida: sin esto el sub-botón
        quedaba anunciando el grado de la medición anterior. Es el mismo cableado que la salida
        normal hace al final. */
@@ -36997,6 +37215,8 @@ function calcIT_ESC() {
   const _itDiscTxt = sevs.length > 1 ? '\u26a0\ufe0f Discordancia: ' + params.map(p=>`${p.p}:${p.sev}`).join(', ') : '';
   document.getElementById('it-discordancia').textContent =
     [_itDiscTxt, _itClausula].filter(Boolean).join(' \u00b7 ');
+  /* Regla 2: con al menos un votante la pastilla se prende sola. */
+  if (typeof _insufAutoPrender === 'function') _insufAutoPrender('tricuspide');
   if (typeof sevSincronizar === 'function') { try { sevSincronizar('it'); } catch (e) {} }   // v2 (E2c): repinta aviso/pastilla de la IT
 }
 
@@ -44116,6 +44336,13 @@ function limpiarCampos(silencioso) {
      generico de `[id$="-aviso"]` le vacia el texto y le deja el `display:block` puesto, asi que
      sin esta linea «Nuevo estudio» dejaba un renglon ambar vacio en el cuadro del VD. */
   if (typeof vdTeiAvisoSync === 'function') { try { vdTeiAvisoSync(); } catch (e) {} }
+  /* ⚠️ Y LOS NUEVE «(leve)/(moderada)/(severa)» DE LAS FILAS DE REFERENCIA (regla 5, 2026-10-13),
+     por el MISMO motivo que las dos líneas de arriba: son `<span>` SIN `id` —a propósito, para que
+     el barrido genérico no les escriba «—»— así que ningún barrido los alcanza y el grado del
+     paciente anterior sobrevivía a «Nuevo estudio» al lado de una fila ya en «—». Con la lista
+     vacía el pintor hace exactamente eso: vaciar las nueve. */
+  if (typeof imGradoFilasPintar === 'function') { try { imGradoFilasPintar([]); } catch (e) {} }
+  if (typeof iaGradoFilasPintar === 'function') { try { iaGradoFilasPintar([]); } catch (e) {} }
   /* ⚠️ VENA PULMONAR, POR EL MISMO MOTIVO QUE `ccSegSync` Y AL FINAL COMO ÉL. El barrido de
      arriba vacía los cuatro `value`, pero las dos filas del cuadro gris se esconden por `display`
      y el color va en `style` en línea: sin esto el paciente siguiente arrancaba con los renglones
@@ -63264,13 +63491,17 @@ function toggleValvPill(valvula, tipo) {
      agregarla/quitarla ellos mismos cuando el gesto es suyo. Inerte salvo para la pulmonar: el Set
      sólo lo lee `valvAutoApagarEsten('pulmonar')`. */
   if (tipo === 'esten' && typeof VALV_ESTEN_AUTO !== 'undefined') VALV_ESTEN_AUTO.delete(valvula);
-  /* (2026-10-08) El gemelo para la INSUFICIENCIA, gateado a la PULMONAR: un gesto del médico sobre
-     este botón —prenda o apague— le quita a la app la propiedad de esa pastilla, así que el
-     auto-apagado por recálculo (`calcIP` → `_ipApagarAuto`) ya no la toca. `_ipAutoPrender` vuelve a
-     agregarla cuando el gesto es suyo, inmediatamente después de llamar acá.
-     Se gatea por válvula y por tipo, igual que las dos líneas de abajo, para no gastar nada en los
-     otros siete botones: el Set sólo lo lee `_ipApagarAuto('pulmonar')`. */
-  if (valvula === 'pulmonar' && tipo === 'insuf' && typeof VALV_INSUF_AUTO !== 'undefined')
+  /* (2026-10-08) El gemelo para la INSUFICIENCIA: un gesto del médico sobre este botón —prenda o
+     apague— le quita a la app la propiedad de esa pastilla, así que el auto-apagado por recálculo
+     ya no la toca. El auto-prendido vuelve a agregarla cuando el gesto es suyo, inmediatamente
+     después de llamar acá.
+     ⚠️ EL GATE `valvula === 'pulmonar'` SE FUE EL 2026-10-13, y era correcto mientras el Set lo
+     leyera sólo `_ipApagarAuto`. Desde la regla 2 de Maicol lo leen también `_insufApagarAuto`
+     para la mitral, la aórtica y la tricúspide, así que dejar el gate habría hecho que un clic del
+     médico en esos tres botones NO le quitara a la app la propiedad: la app seguiría creyéndose
+     dueña y el auto-apagado se llevaría puesta una afirmación del médico. Es la clase de defecto
+     que la asimetría de `valvAutoApagarEsten` ya pagó en la aórtica. */
+  if (tipo === 'insuf' && typeof VALV_INSUF_AUTO !== 'undefined')
     VALV_INSUF_AUTO.delete(valvula);
   /* P5 (2026-10-05): el aviso de «Vmax IT cargada con la insuficiencia apagada» se repinta acá
      porque ESTE es el gesto que lo enciende y lo apaga. Va al final y después del `setItem`, así
@@ -63972,6 +64203,20 @@ function valvAutoAbrirCajones() {
     if (VALV_AUTO_GRADO[tipo].indexOf(String(sel.value || '').toLowerCase()) === -1) return;
     if (pillOn(valv, tipo)) return;
     toggleValvPill(valv, tipo);
+    /* ⚠️ Y SE REGISTRA QUE LA PRENDIÓ LA APP, DESPUÉS DEL TOGGLE Y NO ANTES (2026-10-13). Esta es
+       la OTRA puerta por la que la app prende una pastilla —la regla J, que corre en cada
+       `showTab('valvulas')` cuando el grado es graduable— y era la que no dejaba dueño: el defecto
+       que `docs/PENDIENTES.md` declaró para la aórtica («el código que la prende no registra
+       dueño»). Sin esto, `_insufApagarAuto` y `valvAutoApagarEsten` contestan «no la prendí yo» y
+       quedan inertes por este camino, que es el MÁS frecuente: basta entrar a Válvulas con un
+       grado escrito.
+       Medido antes de este commit: cargar la vena contracta en 7 mm, entrar a Válvulas, borrarla y
+       el EN SUMA seguía diciendo «IM presente.» con el botón prendido y sin grado.
+       El orden importa porque la cola de `toggleValvPill` BORRA la entrada —no puede saber quién la
+       llamó—, así que agregarla antes se perdería en el mismo paso. Es el mismo orden que
+       `valvAutoPrenderEsten` y `_ipAutoPrender`. */
+    const _setJ = (tipo === 'esten') ? window.VALV_ESTEN_AUTO : window.VALV_INSUF_AUTO;
+    if (_setJ) _setJ.add(valv);
   });
 }
 window.valvAutoAbrirCajones = valvAutoAbrirCajones;
@@ -105745,8 +105990,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261013-1310';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791907815657;                 /* eco-build-ms */
+const ECO_BUILD    = '20261013-1341';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791909671382;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -105832,7 +106077,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-1310</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-1341</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
