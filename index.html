@@ -1700,6 +1700,33 @@
    PANTALLA — el texto de la pastilla no se toca y ninguna superficie de salida lee el color. */
 #tab-valvulas .valv-sev-btn.nivel2{background:var(--sev-naranja);border-color:#c2410c;color:#7c2d12;}
 #tab-valvulas .valv-sev-btn.nivel3{background:#fee2e2;border-color:#dc2626;color:#7f1d1d;}
+/* ⚠️ «Significativa» VA EN VIOLETA, Y SOLO EN LAS DOS VALVULAS BINARIAS (2026-10-13, decisión de
+   Maicol): la estenosis MITRAL y la TRICUSPÍDEA. Las otras seis lesiones y los demás grados no se
+   tocan — está medido en el A/B, en los dos temas.
+   POR QUÉ UNA CLASE PROPIA Y NO UN `nivel`: «Significativa» no es un escalón de una escala de
+   severidad, que es lo que `nivelDe()` deriva. En la tricúspide ese nivel vale 0 —su veredicto no
+   matchea leve/moderada/severa— así que hasta hoy la pastilla decía «Significativa ▼» con el
+   MISMO amarillo que «sin dato», que es el defecto que el comentario de `nivel2` ya documenta
+   para moderada: dos estados distintos con el mismo byte de fondo. En la mitral pasaba al revés,
+   pintaba de rojo el nivel 3 del token `severa`.
+   VA DESPUÉS DE LOS TRES `nivel*` A PROPÓSITO: misma especificidad, así que gana la última, y la
+   mitral —que sí tiene `nivel3` por su token— queda violeta sin tener que quitarle la clase en el
+   JS. Una regla que no gana se lee como un arreglo aplicado y este archivo ya lo pagó cuatro
+   veces; acá no hay `style` en línea compitiendo (verificado: el sub-botón no lleva ninguno).
+   ⚠️ EL COLOR NO ES EL SIGNIFICADO: el texto del botón sigue diciendo «Significativa» y el
+   `title` lo repite. Un daltónico lee la palabra.
+   ⚠️ EN HEX Y NO EN VARIABLE, Y ES EL MISMO EN LOS DOS TEMAS, igual que los otros tres niveles:
+   la paleta de esta pastilla está cableada y darle a uno solo un valor por tema lo volvería el
+   único que cambia (es el párrafo de `--sev-naranja`, aplicado). `--purple` existe pero es un
+   color de PRIMER PLANO (#9b7fe8): acá hace falta un FONDO pastel detrás de texto oscuro,
+   hermano de #dcfce7 / #fdba74 / #fee2e2. Contraste MEDIDO de #4c1d95 sobre #ede9fe: **9,23:1**,
+   y del borde #7c3aed sobre ese fondo, 4,8:1.
+   ⚠️ CONTRA SUS VECINOS SE DISTINGUE POR TONO Y NO POR CLARIDAD, y hay que decirlo: la razón de
+   contraste del violeta contra el rojo de `nivel3` es 1,03:1 —o sea la misma luminancia— y la
+   distancia de color es ΔE76 13,9, la más corta de las cuatro (verde 25,5 · amarillo 33,4 ·
+   naranja 57,0). Es PREEXISTENTE y vale para los tres pastel que ya estaban entre sí; lo que
+   sostiene el significado es la PALABRA del botón, no el color. */
+#tab-valvulas .valv-sev-btn.nivel-sig{background:#ede9fe;border-color:#7c3aed;color:#4c1d95;}
 #tab-valvulas .valv-sev-menu{display:none;position:absolute;top:100%;right:0;z-index:60;margin-top:4px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:4px;min-width:170px;max-width:260px;box-shadow:0 10px 28px rgba(0,0,0,.45);}
 #tab-valvulas .valv-sev-menu.open{display:block;}
 /* ⚠️ EL MENÚ LO RECORTABA `.card{overflow:hidden}` (línea 506), NO UN CONTEXTO DE APILAMIENTO.
@@ -64503,8 +64530,24 @@ window.valvSev = (function(){
         txt = rotulo(tipo, valv, raw); niv = nivelDe(raw);
       }
     }
-    btn.classList.remove('nivel1','nivel2','nivel3');
-    if (txt) { btn.textContent = txt + ' ▼'; btn.classList.add('nivel' + niv); }
+    btn.classList.remove('nivel1','nivel2','nivel3','nivel-sig');
+    if (txt) { btn.textContent = txt + ' ▼'; btn.classList.add('nivel' + niv);
+      /* ⚠️ LA COMPUERTA ES EL TEXTO QUE EL MÉDICO LEE, NO EL TOKEN, y eso NO es un atajo: es lo
+         que garantiza que el color y la palabra no se puedan desincronizar. `txt` sale de
+         `rotulo()`, que es el mismo dueño que acaba de escribir el botón, así que la pastilla está
+         violeta exactamente cuando dice «Significativa» — en la mitral, donde el token es `severa`,
+         y en la tricúspide, donde es la palabra misma. Preguntando por el token habría que
+         mantener un segundo mapa de «qué valor significa Significativa en cada válvula», que es la
+         lista paralela que este módulo ya pagó cuatro veces.
+         ⚠️ EL ALCANCE SON LAS DOS LESIONES QUE HOY PUEDEN ESCRIBIR ESA PALABRA, y no una lista:
+         la estenosis MITRAL, por `VIS_BTN` sobre su token `severa`, y la TRICUSPÍDEA, cuyo
+         vocabulario ES «Significativa». Las otras seis no la producen por ningún valor —medido en
+         el A/B, en los dos temas, con el grado más grave de cada una— así que el violeta no las
+         alcanza. Consecuencia declarada: el día que una séptima lesión pase a este vocabulario,
+         hereda el color sin que nadie lo decida. Es lo correcto —el color sigue a la palabra— y
+         queda escrito para que no sorprenda. */
+      if (String(txt) === 'Significativa') btn.classList.add('nivel-sig');
+    }
     else { btn.textContent = '🟡 Severidad ▼'; }
     /* ══ EL TEXTO FIJO DEL «GRADO FINAL AL INFORME» SE PINTA ACÁ (2026-10-06, aórtica y mitral) ═══
        ⚠️ VA DENTRO DE ESTA FUNCIÓN Y NO EN UNA PROPIA, Y ES LA RAZÓN POR LA QUE EL PEDIDO
@@ -106733,8 +106776,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261013-1923';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791930225290;                 /* eco-build-ms */
+const ECO_BUILD    = '20261013-1929';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791930580267;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -106820,7 +106863,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-1923</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-1929</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

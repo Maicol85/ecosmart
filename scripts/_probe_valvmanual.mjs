@@ -26,7 +26,7 @@
  */
 import { createServer } from 'node:http';
 import { spawn } from 'node:child_process';
-import { readFile, mkdtemp } from 'node:fs/promises';
+import { readFile, mkdtemp, writeFile } from 'node:fs/promises';
 import { rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname, extname, isAbsolute, basename } from 'node:path';
@@ -64,6 +64,8 @@ const FARG = arg('--file') || 'index.html';
 const EXTERNO = isAbsolute(FARG);
 const FILE = EXTERNO ? '__ab__' + basename(FARG) : FARG;
 const SOLO = arg('--solo');
+const CAPTURA = process.argv.includes('--captura');
+const DEST = arg('--dest') || tmpdir();
 const hacer = (g) => !SOLO || SOLO.split(',').indexOf(g) > -1;
 
 const CHROMES = [
@@ -711,6 +713,47 @@ async function main() {
         bloque.control.im = await ev(`window.__P.colorBtn('insuf','mitral')`);
         bloque.control.it = await ev(`window.__P.colorBtn('insuf','tricuspide')`);
         g.temas[tema] = bloque;
+      }
+      /* ⚠️ LA CAPTURA ES REAL Y SE RECORTA SOBRE EL RECT VIVO. Un clip mas alto que el viewport
+         sale en NEGRO —la pagina scrollea y lo que no esta renderizado no se dibuja—, asi que se
+         pide el rect DESPUES de scrollIntoView y se declara al lado del archivo. */
+      if (CAPTURA) {
+        g.capturas = [];
+        for (const tema of ['oscuro', 'claro']) {
+          const t = await ev(`window.__P.tema(${JSON.stringify(tema)})`);
+          if (t.err) throw new Error('ABORTA: ' + t.err);
+          /* ⚠️ EL AVISO LEGAL VUELVE A MITAD DE CORRIDA Y OSCURECE LA CAPTURA ENTERA. La primera
+             version de este bloque saco los cuatro PNG con el boton bajo el scrim de
+             #modalAvisoEco: el violeta salia gris oscuro y getComputedStyle —que lee el estilo y
+             no el pixel— decia rgb(237,233,254) al lado. Se despeja ANTES de cada captura y el
+             estado del despeje viaja con ella. */
+          g.despeje = await ev(`window.__P.despejar()`);
+          await ev(`window.__P.set('em_grado','severa')`);
+          await ev(`window.__P.set('et_grado','Significativa')`);
+          await pausa(160);
+          for (const [par, id] of [['em','sevbtn-esten-mitral'], ['et','sevbtn-esten-tricuspide']]) {
+            const c = await ev(`(function(){ var e=document.getElementById(${JSON.stringify(id)});
+              if(!e) return null; e.scrollIntoView({block:'center'});
+              var r=e.getBoundingClientRect();
+              /* ⚠️ EL CLIP DE Page.captureScreenshot VA EN COORDENADAS DE PAGINA Y getBoundingClientRect
+                 DA LAS DEL VIEWPORT: en cuanto scrollIntoView scrollea, difieren en scrollY y el
+                 recorte sale de otra parte de la pagina —la primera version saco el PNG de la
+                 tricuspide en NEGRO, y el de la mitral salio bien solo porque ahi scrollY era 0—.
+                 Se suma el scroll y se declara al lado. */
+              return { x: Math.max(0, Math.round(r.left + window.scrollX)-150),
+                       y: Math.max(0, Math.round(r.top + window.scrollY)-10),
+                       w: Math.round(r.width)+300, h: Math.round(r.height)+20,
+                       scroll: [Math.round(window.scrollX), Math.round(window.scrollY)],
+                       dentro: r.width > 0 && r.height > 0 && r.top >= 0 && r.bottom <= window.innerHeight } })()`);
+            if (!c) { g.capturas.push({ par, tema, err: 'sin nodo' }); continue; }
+            if (!c.dentro) { g.capturas.push({ par, tema, err: 'fuera del viewport', c }); continue; }
+            const shot = await cdp.send('Page.captureScreenshot',
+              { format: 'png', clip: { x: c.x, y: c.y, width: c.w, height: c.h, scale: 2 } }, sessionId);
+            const out = join(DEST, 'sevbtn-' + par + '-' + tema + '.png');
+            await writeFile(out, Buffer.from(shot.data, 'base64'));
+            g.capturas.push({ par, tema, archivo: out, rect: c });
+          }
+        }
       }
       await ev(`window.__P.tema('oscuro')`);
       await reset();
