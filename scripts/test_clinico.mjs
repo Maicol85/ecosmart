@@ -2297,8 +2297,19 @@ caso('TC-458', 'Diastolica ASE/EACVI 2016 en RITMO SINUSAL: los DOS algoritmos d
       p1.lab === 'I' && p2.lab === 'II' && ea200.lab === 'III',
       [p1.lab, p2.lab, ea200.lab].join(',')],
     ['Laboratorio: «Funcion diastolica normal.» sigue clasificando «sin»', n0.lab === 'sin', String(n0.lab)],
-    ['Laboratorio REPORTADO: la frase nueva de la 8A no la clasifica, igual que la indeterminada',
-      n3.lab === null && n2.lab === null, String(n3.lab) + ' / ' + String(n2.lab)]
+    /* ADAPTADO 2026-10-12: el Laboratorio YA la clasifica. Cuando esta condicion se escribio, la
+       frase de la 8A caia en null y eso estaba REPORTADO como defecto en PENDIENTES -> A4: con
+       el E/e-prima documentado, la columna DD_Sin vale
+       (gd === sin, o null con eeDoc) ? 1 : 0, asi que un estudio que AFIRMA disfuncion
+       sumaba en «Sin disfuncion». Se cerro con el mecanismo de los cuatro tokens de la BSE: un
+       token propio (ase2016_sin_grado), rotulo en la columna de texto y ningun DD_*. Medido
+       antes y despues: DD_Sin pasa de 1 a 0 y el Excel sigue en 435 columnas.
+       La «indeterminada» sigue en null a proposito: esa frase no afirma disfuncion, y es la
+       unica de las dos que el defecto del DD_Sin deja contando como «sin». Queda REPORTADO. */
+    ['el Laboratorio clasifica la frase de la 8A con su propio token, sin grado',
+      n3.lab === 'ase2016_sin_grado', String(n3.lab)],
+    ['CONTROL NEGATIVO: la «indeterminada» sigue SIN clasificar —no afirma disfuncion—',
+      n2.lab === null, String(n2.lab)]
   ] };
 `);
 

@@ -87333,6 +87333,22 @@ function _labDiastGrado(inf) {   // grado desde el texto del resumen (misma heur
   if (_labMenciona(t, /funci[oó]n\s+diast[oó]lica\s+deteriorada[^.]{0,40}elevada/i)) return 'bse_det_elevada';
   if (_labMenciona(t, /funci[oó]n\s+diast[oó]lica\s+deteriorada[^.]{0,40}normal/i))  return 'bse_det_normal';
   if (_labMenciona(t, /presi[oó]n\s+de\s+llenado\s+elevada\s*\(con\s+FA\)/i)) return 'fa_elevada';
+  /* La de la ASE/EACVI 2016 por la Figura 8A, que afirma disfunción y NO lleva grado —la guía no
+     manda graduar al que esa figura diagnosticó: no hay flecha de su casilla a la 8B—. Va acá, con
+     las otras de «sin grado», y DESPUÉS de las tres de grado y de la de FA, que son más
+     específicas.
+     ⚠️ EL REGEX EXIGE EL PUNTO O LA CITA DE LA GUÍA, Y NO ES UN LUJO. «Disfunción diastólica» es
+     el arranque de DIEZ frases de esta app, y las otras nueve ya tienen su token: las tres de
+     grado, la de FA, y «Disfunción diastólica — presión de llenado elevada.» de la ASE 2025, que
+     es presión elevada SIN grado y no es lo mismo que esto. Censadas una por una en el archivo: lo
+     único que sigue a «diastólica» en esta familia es un punto (el EN SUMA) o el paréntesis del
+     conteo con la cita (el informe). Un regex suelto se las llevaría todas.
+     ⚠️ Y EL ANCLAJE A PRINCIPIO DE ORACIÓN TAMPOCO ES COSMÉTICO: es la misma razón que la tanda de
+     la BSE escribió para sus cuatro tokens. Sin él, cualquier frase que NOMBRE la disfunción
+     diastólica dentro de otra oración cambiaría de clasificación, y eso reclasifica los estudios
+     ya guardados, que no se migran. */
+  if (_labMenciona(t, /(^|[.;\n]\s*)disfunci[oó]n\s+diast[oó]lica\s*(?:\.|\([^)]*ASE\/EACVI\s*2016)/i))
+    return 'ase2016_sin_grado';
   if (_labMenciona(t, /diast[oó]lica\s+normal/i)) return 'sin';
   if (_labMenciona(t, /(^|[.;\n]\s*)presi[oó]n\s+de\s+llenado\s+del\s+VI\s+normal/i)) return 'pres_normal_sin_grado';
   if (_labMenciona(t, /llenado\s+(del\s+vi\s+)?normal/i)) return 'sin';
@@ -88727,7 +88743,17 @@ function _labExcelRow(inf) {
                   bse_det_normal:'Deteriorada, presión normal (BSE)',
                   bse_det_elevada:'Deteriorada, presión elevada (BSE)',
                   fa_elevada:'Presión elevada (FA)',
-                  pres_normal_sin_grado:'Presión normal, sin grado' }[gd] || '';
+                  pres_normal_sin_grado:'Presión normal, sin grado',
+                  /* El QUINTO token sin grado, de la Figura 8A de la ASE/EACVI 2016. Mismo
+                     mecanismo que los cuatro de arriba: rótulo en la columna de TEXTO y ningún
+                     `DD_*`, porque esa figura afirma disfunción y no la gradúa.
+                     ⚠️ Y ESTO ES LO QUE ARREGLA LA COLUMNA `DD_Sin`, que es el motivo de fondo.
+                     Valía `(gd === 'sin' || (gd === null && eeDoc)) ? 1 : 0`, así que un estudio
+                     con esta frase y el E/e' documentado sumaba en «Sin disfunción» AUNQUE su
+                     propio texto afirme lo contrario. Medido antes y después: 1 y 0. No se tocó
+                     la fórmula de la columna — con el token el `gd` deja de ser `null` y la
+                     guarda del `eeDoc` no se alcanza. */
+                  ase2016_sin_grado:'Disfunción, sin grado (ASE 2016)' }[gd] || '';
   // Grados valvulares (texto) + binarizador — se conserva el texto y se agregan columnas 0/1
   const gIM = _labGradoTxt(inf,'im_grado'), gIA = _labGradoTxt(inf,'ia_grado'), gIT = _labGradoTxt(inf,'it_grado');
   /* ⚠️ CON PRÓTESIS AÓRTICA EL GRADO NO SE EXPORTA. `ea_grado` conserva la lectura con cortes
