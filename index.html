@@ -24677,6 +24677,12 @@ const A25_PLANO_F3 = Object.assign({
     { de: 'a25.elevada', a: 'a25.fin-g2', et: 'E/A < 2', dx1: -60, calleRel: 18 },
     { de: 'a25.elevada', a: 'a25.fin-indet', et: "E/A ≥ 2, e' normal", dx1: -45, calleRel: 24 },
     { de: 'a25.elevada', a: 'a25.fin-sinea', et: 'sin E/A' }
+  ],
+  tabla: [
+    { paso: '1', tit: 'Paso 1 · tres variables', nodos: ['a25.paso1'] },
+    { paso: '2', tit: 'Segundo paso', nodos: ['a25.paso2'], puerta: 'a25.paso2' },
+    { paso: 's', tit: 'Suplementarios (folio 555)', nodos: ['a25.supl'], puerta: 'a25.supl' },
+    { paso: 'res', tit: 'Resultado', nodos: [], res: true }
   ]
 }, {});
 
@@ -24749,6 +24755,11 @@ const A25FA_PLANO_F8 = {
     { de: 'a25fa.p2cero', a: 'a25fa.fin-normal' },
     { de: 'a25fa.p2uno', a: 'a25fa.fin-indet' },
     { de: 'a25fa.p2dos', a: 'a25fa.fin-elevada' }
+  ],
+  tabla: [
+    { paso: '1', tit: 'Paso 1 · cuatro criterios', nodos: ['a25fa.paso1'] },
+    { paso: '2', tit: 'Paso 2 · tres criterios', nodos: ['a25fa.paso2'], puerta: 'a25fa.paso2' },
+    { paso: 'res', tit: 'Resultado', nodos: [], res: true }
   ]
 };
 
@@ -24806,6 +24817,12 @@ const A16A_PLANO = {
     { de: 'a16a.mitad', a: 'a16a.fin-indet', dx2: -30 },
     { de: 'a16a.una', a: 'a16a.fin-indet', dx2: 30, calleRel: 12 },
     { de: 'a16a.mas', a: 'a16a.fin-dd' }
+  ],
+  /* La 8A tiene UN solo paso, asi que su tabla son dos columnas: las cuatro variables y el
+     resultado. Las dos filas de «no son insumos de la 8A» no entran — no llevan `nodo`. */
+  tabla: [
+    { paso: '1', tit: 'Cuatro variables (folio 290)', nodos: ['a16a.cuatro'] },
+    { paso: 'res', tit: 'Resultado', nodos: [], res: true }
   ]
 };
 
@@ -24883,6 +24900,14 @@ const A16B_PLANO = {
     { de: 'a16b.pos2', a: 'a16b.fin-g2' },
     { de: 'a16b.atajo1', a: 'a16b.fin-g1' },
     { de: 'a16b.atajo3', a: 'a16b.fin-g3' }
+  ],
+  /* La columna del paso 2 solo aparece si el paciente llego ahi: con un atajo del flujo mitral
+     la figura cierra sin preguntar los tres criterios, y dibujarlos en gris diria que se
+     evaluaron. La fila del e' no entra — no lleva `nodo`, porque la 8B no lo mira. */
+  tabla: [
+    { paso: '1', tit: 'Paso 1 · flujo mitral', nodos: ['a16b.flujo'] },
+    { paso: '2', tit: 'Paso 2 · tres criterios', nodos: ['a16b.tres'], puerta: 'a16b.tres' },
+    { paso: 'res', tit: 'Resultado', nodos: [], res: true }
   ]
 };
 
@@ -24969,11 +24994,16 @@ function diastAlgoRender() {
        nodo igual se arma, que es lo que hace que un cambio de ancho no necesite repintar. */
     const planoA = _bseDiagPlano('ase2025', 'sinusal', R);
     if (planoA) { h += _bseDiagCaja(planoA, R); _bseDiagAncho(true); }
+    /* Mismo envoltorio que las ramas de la BSE, y por el mismo motivo: por encima del umbral de
+       ancho el CSS lo esconde y la tabla compacta ocupa su lugar. Sin diagrama no hay
+       envoltorio y la lista se ve a cualquier ancho, que es lo de HEAD. */
+    if (planoA) h += '<div class="bse-lista" data-bse-lista>';
     let gAct = null;
     R.filas.forEach(f => {
       if (f.g && f.g !== gAct) { h += '<div class="da-paso">' + escHtml(f.g) + '</div>'; gAct = f.g; }
       h += _daFila(f.crit, f.val, f.u, f.ok, f.dec);
     });
+    if (planoA) h += '</div>';
     h += '<div class="da-res"><b>' + escHtml(R.ventanaTit) + '</b>'
        + (R.ventanaDet ? ' · ' + escHtml(R.ventanaDet) + '.' : '') + '</div>';
     /* La frase es LA DEL INFORME, leída del mismo objeto. Si alguna vez volvieran a divergir, se
@@ -25017,11 +25047,13 @@ function diastAlgoRender() {
        `display:none` por CSS y la ventana se ve exactamente como en HEAD. */
     const plano16 = _bseDiagPlano('ase2016', 'sinusal', R);
     if (plano16) { h += _bseDiagCaja(plano16, R); _bseDiagAncho(true); }
+    if (plano16) h += '<div class="bse-lista" data-bse-lista>';
     let g16 = null;
     R.filas.forEach(f => {
       if (f.g && f.g !== g16) { h += '<div class="da-paso">' + escHtml(f.g) + '</div>'; g16 = f.g; }
       h += _daFila(f.crit, f.val, f.u, f.ok, f.dec);
     });
+    if (plano16) h += '</div>';
     h += '<div class="da-res"><b>' + escHtml(R.ventanaTit) + '</b>'
        + (R.ventanaDet ? ' · ' + escHtml(R.ventanaDet) + '.' : '') + '</div>';
     /* La frase es LA DEL INFORME, leída del mismo objeto. */
