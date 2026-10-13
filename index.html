@@ -3784,11 +3784,34 @@ window.cerrarSesionReal = cerrarSesionReal;
                de tiempo: la primera superficie que lo renderice concatenando `innerHTML` —o el
                primer CSV— lo toca sin que nadie se acuerde, y el historial de XSS de esta suite
                está en CLAUDE.md. La etiqueta legible sale de `VENP_SD_TXT`. -->
+          <!-- ⚠️ TRES OPCIONES DESDE EL 2026-10-12, Y EL MOTIVO ES QUE DOS CORTES DISTINTOS SE
+               LEEN DEL MISMO CAMPO. La ASE 2025 en ritmo sinusal corta en ≤ 0,67 (folio 554) y las
+               otras cuatro lecturas cortan en  < 1 (Figura 8 de la ASE 2025 folio 563, Figuras 18 y
+               19 de la BSE págs. 37 y 40, y el pie de la Figura 8 de la ASE 2016 folio 290). Con dos
+               opciones el ≤ 0,67 era INEXPRESABLE —un S/D de 0,9 es «<1» y no lo cumple— y quedaba
+               declarado «no evaluable». El tramo del medio es lo que separa los dos cortes.
+               ⚠️ LAS DOS OPCIONES VIEJAS SIGUEN EN EL MARCADO, OCULTAS, Y NO SON DECORACIÓN. Un
+               estudio guardado trae `menor1` o `mayor1` en `campos.venp_sd` y se restaura por el
+               recolector genérico (`campos[el.id] = el.value`): sin su `<option>`, el `<select>`
+               queda en `selectedIndex -1` y el dato guardado desaparece de la pantalla. Es el
+               defecto que `et_grado` ya pagó en esta app. NO se migran: se leen como lo que su
+               etiqueta dice, y para el corte ≤ 0,67 el «<1» es NO EVALUABLE —no distingue si el
+               valor era 0,6 o 0,9—. El único dueño de esa lectura es `venpSdEstado`.
+               ⚠️ Y EL VALUE SIGUE SIENDO UN TOKEN, NO «≤0,67». Lo que se guarda en `campos.venp_sd`
+               viaja con el estudio, y un valor almacenado que empieza con `<` o trae un glifo
+               matemático es la bomba de tiempo que el comentario original de este campo describe:
+               la primera superficie que lo renderice concatenando `innerHTML` —o el primer CSV— lo
+               toca sin que nadie se acuerde. La etiqueta legible sale de `VENP_SD_TXT`.
+               Sigue sin columna de Excel: los cuatro campos `venp_` no están en `LAB_XLS_MAP`, así
+               que el importador nunca les pregunta y la planilla queda en 435 columnas. -->
           <label>S/D pulmonar</label>
           <select id="venp_sd" onchange="calcVenaPulm();calcDiastol()">
             <option value="">—</option>
-            <option value="menor1">&lt;1</option>
-            <option value="mayor1">&gt;1</option>
+            <option value="le067">&le;0,67</option>
+            <option value="mid">&gt;0,67 y &lt;1</option>
+            <option value="ge1">&ge;1</option>
+            <option value="menor1" hidden>&lt;1 (estudio anterior)</option>
+            <option value="mayor1" hidden>&gt;1 (estudio anterior)</option>
           </select>
         </div>
         <!-- VTI mitral DE ENTRADA, y vive aca y no en Valvulas por lo que mide: es la envolvente
@@ -22711,9 +22734,10 @@ const BSE_ONDAL_SUPL   = 20;    // cm/s — onda L, borde `>` (Figura 17). Campo
    lado elevado es «LARs <18 % OR LAPs <8 %» y el normal «LARs ≥24 % OR LAPs ≥14 %». El 18 del
    lado elevado coincide con el de la Figura 17 por casualidad; el 24 y el 8 no existen allá.
    ✅ Y LOS SUPLEMENTARIOS SON CUATRO, NO DOS, Y DESDE EL 2026-10-12 LOS CUATRO TIENEN DATO: la
-   Figura 18 suma el S/D venoso pulmonar < 1 y el TDE < 150 ms a los dos de la Figura 17. El S/D SÍ VOTA acá —al revés que en la ASE 2025, donde
-   el corte es ≤ 0,67 y el <select> de «<1 / >1» no puede expresarlo—: el corte de esta figura es
-   exactamente «< 1», que es lo que dice la opción. El TDE de la Figura 18 es «< 150» y NO es el
+   Figura 18 suma el S/D venoso pulmonar < 1 y el TDE < 150 ms a los dos de la Figura 17. El S/D
+   vota acá con el corte `< 1` y en la ASE 2025 en ritmo sinusal con el ≤ 0,67: desde el selector
+   de tres opciones del 2026-10-12 los DOS son expresables, y la lectura de cada uno la hace
+   `venpSdEstado` con su clave. El TDE de la Figura 18 es «< 150» y NO es el
    «≤ 160» de la Figura 19 de la FA de esta misma guía: dos figuras, dos constantes.
    ⚠️ LA ENTRADA DE LA FIGURA 18 TIENE UN TERCER MOTIVO QUE LA APP NO MIDE: «known myocardial
    disease» (cardiopatía isquémica con alteraciones sectoriales, miocardiopatía, HVI patológica).
@@ -22790,7 +22814,8 @@ window.bseEprimaEstado = bseEprimaEstado;
 
 /* Los DETALLES que van entre paréntesis en la frase del informe: las tres variables principales
    que se midieron y, sólo si la rama del strain llegó a correr, los parámetros que ahí votaron.
-   El S/D se nombra por su token y no por un número: el campo es un <select> de «<1 / >1». */
+   El S/D se nombra por su ETIQUETA y no por un número: el campo es un <select> de tres
+   opciones («≤0,67» / «>0,67 y <1» / «≥1») más los dos valores de legado. */
 function _bseDetalles(d, st) {
   const out = [];
   if (d.eeVal !== null) out.push("E/e' " + d.eeSitio + ' ' + d.eeVal.toFixed(1));
@@ -22804,7 +22829,13 @@ function _bseDetalles(d, st) {
     if (st.laps !== null && st.laps !== undefined) out.push('strain de contracción de la AI ' + st.laps.toFixed(1) + ' %');
     if (st.arA  !== null && st.arA  !== undefined) out.push('Ar−A ' + st.arA.toFixed(0) + ' ms');
     if (st.ondaL !== null && st.ondaL !== undefined) out.push('onda L ' + st.ondaL.toFixed(1) + ' cm/s');
-    if (st.sd) out.push('S/D venoso pulmonar ' + (st.sd === 'menor1' ? '<1' : '>1'));
+    /* ⚠️ LA ETIQUETA SALE DE `VENP_SD_TXT` Y NO DE UN TERNARIO. Con el selector de dos opciones
+       `st.sd === 'menor1' ? '<1' : '>1'` era correcto porque no había un tercer token; con las
+       tres opciones del 2026-10-12, un «≤0,67» elegido por el médico se imprimía «>1» en un
+       informe FIRMADO —la etiqueta contraria a lo que ese estudio dice—. El mapa es el único
+       dueño de la traducción token → etiqueta, así que un token nuevo no puede volver a salir
+       con la etiqueta de otro. */
+    if (st.sd && VENP_SD_TXT[st.sd]) out.push('S/D venoso pulmonar ' + VENP_SD_TXT[st.sd]);
     if (st.tde !== null && st.tde !== undefined) out.push('TDE ' + st.tde.toFixed(0) + ' ms');
   }
   return out;
@@ -22911,14 +22942,18 @@ function diastBSE2024Evaluar() {
            la onda L entra por `onda_l`, con el MISMO corte que la Figura 17 (> 20 cm/s). */
         const cArA   = arA !== null && arA > BSE_ARA_SUPL;
         const cOndaL = ondaL !== null && ondaL > BSE_ONDAL_SUPL;
-        const cSd    = sd === 'menor1';
+        /* El corte de esta figura es `< 1` (pág. 37), así que la lectura es `'lt1'` y la hace
+           `venpSdEstado`. Un estudio con el selector viejo en «<1» SÍ decide acá —es exactamente
+           ese corte—; el que no decide es el ≤ 0,67 de la ASE 2025 en ritmo sinusal. */
+        const eSd    = venpSdEstado('lt1');
+        const cSd    = eSd === true;
         const cTde   = tde !== null && tde < BSE_FR_TDE_SUPL;
         const suplEval = (arA !== null ? 1 : 0) + (ondaL !== null ? 1 : 0)
-                       + (sd ? 1 : 0) + (tde !== null ? 1 : 0);
+                       + (eSd !== null ? 1 : 0) + (tde !== null ? 1 : 0);
         R.filas.push({ g: 'Parámetros suplementarios (Figura 18)',
                        crit: 'Ar−A > ' + BSE_ARA_SUPL + ' ms', val: arA, u: 'ms', ok: cArA, dec: 0 });
         R.filas.push({ crit: 'Onda L > ' + BSE_ONDAL_SUPL + ' cm/s', val: ondaL, u: 'cm/s', ok: cOndaL, dec: 1 });
-        R.filas.push({ crit: 'S/D venoso pulmonar < 1', val: sd ? (sd === 'menor1' ? '<1' : '>1') : null, u: '', ok: cSd });
+        R.filas.push({ crit: 'S/D venoso pulmonar < 1' + venpSdCritSuf('lt1'), val: venpSdFilaVal('lt1'), u: '', ok: cSd });
         R.filas.push({ crit: 'TDE < ' + BSE_FR_TDE_SUPL + ' ms', val: tde, u: 'ms', ok: cTde, dec: 0 });
         if (suplEval === 0) {
           presion = 'indeterminada';
@@ -24104,23 +24139,29 @@ function diastASE2025Evaluar() {
 
   /* ── SEGUNDO PASO (Figura 3, folio 554) ────────────────────────────────────────────────────
      «S/D venoso pulmonar ≤ 0,67 o LARS ≤ 18 % o LAVi > 34», y como ALTERNATIVA el TRIV ≤ 70 ms.
-     ⚠️ EL S/D QUEDA DECLARADO «NO EVALUABLE» A PROPÓSITO. El campo `venp_sd` es un <select> de
-     «<1 / >1», informativo, y el corte de la guía es ≤ 0,67 — que NO es «<1»: un S/D de 0,9 es
-     «<1» y no cumple el criterio. Tomar «<1» por «≤ 0,67» inventaría un positivo. Esta tanda no
-     agrega campos nuevos, así que el criterio se dibuja en GRIS y con el motivo escrito en su
-     rótulo: lo que evita que su ausencia se lea como un negativo.
+     ✅ EL S/D YA VOTA, DESDE EL 2026-10-12. El campo pasó a tener TRES opciones
+     («≤0,67» / «>0,67 y <1» / «≥1»), así que el ≤ 0,67 de esta figura ya es expresable y el
+     criterio dejó de estar en gris. El estado sale de `venpSdEstado('le067')`, que es el único
+     dueño de la lectura —las otras cuatro usan `'lt1'`—.
+     ⚠️ Y TIENE UN TERCER ESTADO QUE NO ES «NEGATIVO». Un estudio GUARDADO con el selector viejo
+     trae «<1», y eso NO distingue un 0,6 de un 0,9: `venpSdEstado` devuelve `null` y el criterio
+     queda SIN EVALUAR, o sea que no entra en `seg2Eval`. Contarlo como negativo haría que un
+     estudio viejo empujara hacia «presión normal» por un dato que no dice eso.
      ⚠️ EL TRIV ES ALTERNATIVA Y NO PAR: la figura lo escribe «Alternatively», así que vota sólo
      cuando NINGUNO de los otros está medido. Hasta hoy el campo `triv` no entraba en la
-     diastólica por ninguna puerta. */
+     diastólica por ninguna puerta. El S/D entra en ese «ninguno» por la misma puerta que los
+     otros dos: si el S/D vota, el TRIV no se consulta, que es lo que dice la figura. */
+  const sSd = venpSdEstado('le067');
   let seg2Eval = 0, seg2Pos = 0, seg2Via = 'directo';
   [ { ev: lavi !== null, ok: cLavi },
-    { ev: lars !== null, ok: cLars }
+    { ev: lars !== null, ok: cLars },
+    { ev: sSd !== null,  ok: sSd === true }
   ].forEach(c => { if (c.ev) { seg2Eval++; if (c.ok) seg2Pos++; } });
   if (seg2Eval === 0 && triv !== null) { seg2Eval = 1; seg2Pos = cTriv ? 1 : 0; seg2Via = 'TRIV'; }
 
   R.filas.push({ g: 'Segundo paso — si las principales no deciden', crit: 'Vol AI > ' + UMBRAL_LAVI_DILATADO + ' ml/m²', val: lavi, u: 'ml/m²', ok: cLavi });
   R.filas.push({ crit: 'LARS ≤ 18 %', val: lars, u: '%', ok: cLars });
-  R.filas.push({ crit: 'S/D venoso pulmonar ≤ 0,67 — no evaluable: el campo es «<1 / >1»', val: null, u: '', ok: false });
+  R.filas.push({ crit: 'S/D venoso pulmonar ≤ 0,67 (folio 554)' + venpSdCritSuf('le067'), val: venpSdFilaVal('le067'), u: '', ok: sSd === true });
   R.filas.push({ crit: 'TRIV ≤ 70 ms (alternativa, sólo si no hay ninguno de los de arriba)', val: triv, u: 'ms', ok: cTriv });
 
   /* ── PARÁMETROS SUPLEMENTARIOS (folio 555) ────────────────────────────────────────────────
@@ -24236,7 +24277,8 @@ function diastASE2025Evaluar() {
   } else if (seg2Eval === 0) {
     /* ESTADO (b) — texto aprobado por Maicol el 2026-10-12. La figura manda al segundo paso y el
        segundo paso no tiene con qué: no se afirma presión normal ni elevada, y se nombra qué
-       completar. El S/D no entra en esa lista como medible porque el campo no lo mide.
+       completar. El S/D entra en esa lista desde el 2026-10-12: el selector de tres opciones lo
+       hizo medible, así que nombrarlo ya no promete un campo que no existe.
        ⚠️ Y TAMPOCO SE AFIRMA NADA CON UN SUPLEMENTARIO NEGATIVO: la app implementa UNO de los
        cinco de la nota ‡, así que «ninguno positivo» no es «ninguno presente». El texto de este
        estado sigue siendo cierto palabra por palabra, así que no cambia; lo que cambia es la
@@ -24300,12 +24342,13 @@ window.diastASE2025Evaluar = diastASE2025Evaluar;
    como un negativo— y no entra en ningún conteo. No se agregó ni un campo: el Excel sigue en 434
    columnas. */
 
-/* Los insumos de las tres, leídos una sola vez. `venp_sd` guarda TOKENS (`menor1`/`mayor1`), no
-   «<1»: la etiqueta legible vive en `VENP_SD_TXT`.
-   ⚠️ EN FA EL S/D SÍ ES EVALUABLE, al revés que en ritmo sinusal. El corte de la Figura 3 (folio
-   554) es ≤0,67 y ese `<select>` no puede expresarlo; el de la FA es **<1** en las dos guías que
-   lo usan —Figura 8 de la ASE 2025 y Figura 19 de la BSE—, que es exactamente lo que la opción
-   dice. Es el mismo campo con dos cortes distintos, y uno cae justo en el borde de la opción. */
+/* Los insumos de las tres, leídos una sola vez. `venp_sd` guarda TOKENS (`le067`/`mid`/`ge1`, más
+   los dos de legado), no «≤0,67»: la etiqueta legible vive en `VENP_SD_TXT` y el ESTADO por corte
+   lo da `venpSdEstado`, que es el único dueño de esa lectura.
+   ⚠️ EL S/D ENTRA CON EL CORTE `< 1`, QUE NO ES EL DEL RITMO SINUSAL DE LA ASE 2025. El de la
+   Figura 3 (folio 554) es ≤ 0,67 y el de la FA es **< 1** en las dos guías que lo usan —Figura 8
+   de la ASE 2025 folio 563 y Figura 19 de la BSE pág. 40—. Es el mismo campo con dos cortes
+   distintos, y por eso `venpSdEstado` se llama con `'lt1'` acá y con `'le067'` allá. */
 function _diastFADatos() {
   const ep = v('e_sep'), el = v('e_lat');
   const E = v('onda_e');
@@ -24389,12 +24432,12 @@ function diastFAEvaluarASE2025() {
   R.filas.push({ crit: 'TDE ≤ 160 ms', val: D.tde, u: 'ms', ok: cTde, dec: 0 });
 
   const sLars = _diastFAEstado(D.lars !== null, D.lars < 18);          // Figura 8: «< 18 %»
-  const sSd   = (D.sd === 'menor1') ? true : (D.sd === 'mayor1' ? false : null);
+  const sSd   = venpSdEstado('lt1');   // corte `< 1`, un solo dueño de la lectura
   const sImc  = _diastFAEstado(D.imc !== null, D.imc > 30);            // Figura 8: «> 30 kg/m²»
   const c2 = _diastFAContar([sLars, sSd, sImc]);
 
   R.filas.push({ g: 'Paso 2 — sólo con 2 del paso 1', crit: 'LARS < 18 %', val: D.lars, u: '%', ok: sLars === true });
-  R.filas.push({ crit: 'S/D venoso pulmonar < 1', val: (sSd === null ? null : (sSd ? '< 1' : '> 1')), u: '', ok: sSd === true });
+  R.filas.push({ crit: 'S/D venoso pulmonar < 1' + venpSdCritSuf('lt1'), val: venpSdFilaVal('lt1'), u: '', ok: sSd === true });
   R.filas.push({ crit: 'IMC > 30 kg/m² (de peso y talla)', val: D.imc, u: 'kg/m²', ok: sImc === true });
 
   const det1 = c1.pos + ' de ' + c1.ev + ' del paso 1 positivos'
@@ -24472,12 +24515,12 @@ function diastFAEvaluarBSE2024() {
 
   const sLars = _diastFAEstado(D.lars !== null, D.lars < 16);   // Figura 19: «LA reservoir strain <16%»
   const sImc  = _diastFAEstado(D.imc  !== null, D.imc  > 30);   // «BMI >30 kg/m²»
-  const sSd   = (D.sd === 'menor1') ? true : (D.sd === 'mayor1' ? false : null);
+  const sSd   = venpSdEstado('lt1');   // corte `< 1`, un solo dueño de la lectura
   const c2 = _diastFAContar([sLars, sImc, sSd]);
 
   R.filas.push({ g: 'Paso 2 — si el paso 1 no alcanza', crit: 'LARS < 16 % (en FA el corte baja; pág. 40)', val: D.lars, u: '%', ok: sLars === true });
   R.filas.push({ crit: 'IMC > 30 kg/m² (de peso y talla)', val: D.imc, u: 'kg/m²', ok: sImc === true });
-  R.filas.push({ crit: 'S/D venoso pulmonar < 1', val: (sSd === null ? null : (sSd ? '< 1' : '> 1')), u: '', ok: sSd === true });
+  R.filas.push({ crit: 'S/D venoso pulmonar < 1' + venpSdCritSuf('lt1'), val: venpSdFilaVal('lt1'), u: '', ok: sSd === true });
 
   /* La regla de la BSE cuenta los NEGATIVOS tanto como los positivos, así que el renglón de la
      ventana informa los dos: con sólo los positivos, «2 de 4» no distingue «dos negativos» de
@@ -24821,14 +24864,17 @@ function diastASE2016Evaluar() {
           exactamente lo que la guía desaconseja.
        2. FALTA UNO de los tres principales, o sea `R.total === 2`. Con los tres medidos la guía
           no lo invoca, y con dos faltantes tampoco: dice «one».
-       3. El valor es «< 1». El corte CAE JUSTO en el borde de la opción del <select>, que es lo
-          que lo hace usable acá y no en la ASE 2025 —allá el corte es ≤ 0,67 y un S/D de 0,9 es
-          «<1» sin cumplirlo—. Es la misma lectura que ya hace la Figura 18 de la BSE.
+       3. El valor cumple «< 1». La lectura la hace `venpSdEstado('lt1')`, el único dueño: desde
+          el selector de tres opciones del 2026-10-12, ese corte lo cumplen «≤0,67» y
+          «>0,67 y <1», y también el «<1» de un estudio guardado con el selector viejo —que es
+          exactamente este corte—. El que NO se puede leer con el valor de legado es el ≤ 0,67 de
+          la ASE 2025 en ritmo sinusal.
      ⚠️ Y SÓLO SUMA DEL LADO POSITIVO. La guía escribe «A ratio < 1 is consistent with increased
-     LAP» y no dice nada del ≥ 1, así que un «>1» NO cuenta como un tercer criterio negativo:
-     contarlo convertiría un silencio de la fuente en un voto que empuja hacia «presión normal». */
-  const sdTok = sv('venp_sd');
-  if (feviDeprimida && R.total === 2 && sdTok === 'menor1') {
+     LAP» y no dice nada del ≥ 1, así que un «≥1» NO cuenta como un tercer criterio negativo:
+     contarlo convertiría un silencio de la fuente en un voto que empuja hacia «presión normal».
+     Por eso la compuerta pregunta `=== true` y no `!== null`. */
+  const sdEst = venpSdEstado('lt1');
+  if (feviDeprimida && R.total === 2 && sdEst === true) {
     R.total++; R.pos++; R.sdUsado = true;
   }
 
@@ -24849,8 +24895,8 @@ function diastASE2016Evaluar() {
   R.filas.push({ crit: 'Velocidad IT > 2,8 m/s', val: trv, u: 'm/s', ok: cTr });
   R.filas.push({ crit: 'Vol AI > ' + UMBRAL_LAVI_DILATADO + ' ml/m²', val: lavi, u: 'ml/m²', ok: cLavi });
   R.filas.push({ crit: 'S/D venoso pulmonar < 1 — sustituto del criterio que falta, sólo con FEVI < '
-                       + UMBRAL_FEVI_NORMAL + ' % (folios 286, 287 y 290)',
-                 val: (sdTok ? (sdTok === 'menor1' ? '< 1' : '> 1') : null), u: '', ok: R.sdUsado });
+                       + UMBRAL_FEVI_NORMAL + ' % (folios 286, 287 y 290)' + venpSdCritSuf('lt1'),
+                 val: venpSdFilaVal('lt1'), u: '', ok: R.sdUsado });
 
   /* ⚠️ EL e' NO VOTA EN LA 8B. La figura no lo mira por ninguna puerta: sus insumos son el flujo
      mitral y los tres criterios de arriba. La fila se dibuja igual —el e' SÍ es una de las cuatro
@@ -25414,12 +25460,83 @@ const VENP_CAMPOS = ['venp_dur_a', 'venp_sd', 'venp_dur_ar', 'venp_vel_ar'];
 /* El token del S/D y su etiqueta, en UN solo mapa: lo consumen el PDF y cualquier superficie que
    lo muestre mañana. Con la etiqueta quemada en el `value` del `<option>`, el dato guardado y lo
    que se lee serían la misma cadena — que es cómo un `<` termina en un `innerHTML`. */
-const VENP_SD_TXT = Object.assign(Object.create(null), { menor1: '<1', mayor1: '>1' });
+const VENP_SD_TXT = Object.assign(Object.create(null), {
+  le067:  '≤0,67',
+  mid:    '>0,67 y <1',
+  ge1:    '≥1',
+  /* Los dos de legado conservan su etiqueta EXACTA: es lo que el médico eligió cuando firmó ese
+     informe, y traducir «<1» a cualquiera de las dos opciones nuevas sería inventar un dato que
+     el estudio no tiene. Por eso tampoco se migran. */
+  menor1: '<1',
+  mayor1: '>1'
+});
 function venpSDTxt() {
   const t = (typeof sv === 'function') ? sv('venp_sd') : '';
   return VENP_SD_TXT[t] || null;
 }
 window.venpSDTxt = venpSDTxt;
+
+/* ══ LA LECTURA DEL S/D POR CORTE — UN SOLO DUEÑO PARA LAS CINCO LECTURAS ═════════════════════
+   El MISMO campo se lee con DOS cortes distintos, verificados uno por uno en el original:
+     · `le067` — ASE 2025 en RITMO SINUSAL, segundo paso. Folio 554, prosa: «The corresponding
+       value for pulmonary vein systolic velocity-to-diastolic velocity ratio of ≤0.67 is equal
+       to ≤40% systolic filling fraction and is therefore recommended», y la caja de la Figura 3
+       escribe «Pulmonary Vein S/D ≤0.67». Operador `<=`.
+     · `lt1` — las otras CUATRO, todas con `< 1` estricto:
+         – ASE 2025, Figura 8 (FA), folio 563: «Pulm vein S/D ratio <1».
+         – BSE 2024, Figura 18 (FEVI reducida), pág. 37: «a PV S/D ratio < 1 ... are accurate
+           indicators of elevated LVFP ... when LV systolic function is impaired».
+         – BSE 2024, FA (Figura 19), pág. 40: «reduction in the PV S/D ratio to below 1».
+         – ASE/EACVI 2016, FEVI deprimida: folio 286, Key Point 6 del folio 287 y el pie de la
+           Figura 8 del folio 290, los tres con «< 1».
+   ⚠️ TRES ESTADOS Y NO DOS. Devuelve `null` —no `false`— cuando el campo no permite decidir, que
+   es lo que impide que «no se puede saber» se cuente como «no cumple». Pasa en UN caso y es el
+   que obliga a esta tabla: un estudio GUARDADO con el selector viejo trae `menor1` («<1») y para
+   el corte ≤ 0,67 eso no distingue un 0,6 de un 0,9. Para el corte `<1` sí decide, porque «<1» es
+   exactamente ese corte.
+   ⚠️ Y `mayor1` («>1») ES NEGATIVO PARA LOS DOS, sin ambigüedad: un S/D > 1 no es ≤ 0,67 ni es
+   < 1. Lo ambiguo es sólo lo inverso.
+   Quien quiera el estado llama acá y no reimplementa la comparación: con dos lectores, un token
+   nuevo entra en una figura y no en la otra, que es el defecto que esta app ya pagó tres veces. */
+const VENP_SD_LECTURA = Object.freeze({
+  /* corte ≤ 0,67 (ASE 2025 ritmo sinusal) */
+  le067: Object.freeze({ le067: true, mid: false, ge1: false, menor1: null, mayor1: false }),
+  /* corte < 1 (las otras cuatro) */
+  lt1:   Object.freeze({ le067: true, mid: true,  ge1: false, menor1: true, mayor1: false })
+});
+function venpSdEstado(corte) {
+  const tabla = VENP_SD_LECTURA[corte];
+  if (!tabla) return null;
+  const t = (typeof sv === 'function') ? sv('venp_sd') : '';
+  /* Campo vacío: SIN EVALUAR, igual que `null` en cualquier otro criterio. */
+  if (!t || !Object.prototype.hasOwnProperty.call(tabla, t)) return null;
+  return tabla[t];
+}
+window.venpSdEstado = venpSdEstado;
+window.VENP_SD_LECTURA = VENP_SD_LECTURA;
+
+/* ⚠️ EL VALOR DE LA FILA ES `null` CUANDO EL ESTADO NO SE PUEDE DECIDIR, Y EL MOTIVO VA EN EL
+   ROTULO. `_daFila` tiene TRES estados y los deriva del valor: con dato y positivo pinta ✗, con
+   dato y negativo pinta ✓, y sin dato pinta un guion gris. Devolviendo la etiqueta con el motivo
+   pegado, un «<1» de un estudio viejo sobre el corte ≤ 0,67 salia con el ✓ de NEGATIVO —o sea la
+   fila afirmando que el criterio no se cumple sobre un criterio que no se evaluó—. Medido en la
+   sonda de esta tanda. Con `null` sale en gris, que es lo que corresponde, y el por qué lo dice
+   su propio rótulo: es el mismo patrón que tenía el «no evaluable» de HEAD. */
+function venpSdFilaVal(corte) {
+  return (venpSdEstado(corte) === null) ? null : venpSDTxt();
+}
+window.venpSdFilaVal = venpSdFilaVal;
+
+/* El sufijo del RÓTULO cuando el campo tiene un valor que ese corte no puede leer. Devuelve
+   cadena vacía en todo otro caso, así el rótulo de siempre no se toca. */
+function venpSdCritSuf(corte) {
+  const txt = venpSDTxt();
+  if (txt === null) return '';
+  return (venpSdEstado(corte) === null)
+    ? ' — el estudio dice «' + txt + '» y eso no distingue este corte'
+    : '';
+}
+window.venpSdCritSuf = venpSdCritSuf;
 
 /* ¿El médico cargó ALGO de vena pulmonar? Es la compuerta de la sub-columna en pantalla y de la
    del PDF, y por eso es UNA sola función: con dos predicados, el papel y la pantalla podrían
