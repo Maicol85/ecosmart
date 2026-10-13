@@ -33447,6 +33447,71 @@ window.imFundamentoInforme = imFundamentoInforme;
 function emFundamentoInforme() { return sevNotaInforme('em'); }
 window.emFundamentoInforme = emFundamentoInforme;
 
+/* ══ EL ESTADO INICIAL SE RECUPERA SOLO — REGLA DE MAICOL (2026-10-13) ════════════════════════
+   El defecto, medido con teclas reales en las OCHO lesiones con pastilla: cargar un dato, APAGAR
+   la pastilla y BORRAR el dato dejaba la marca de manual puesta sobre un formulario vacío, y el
+   dato SIGUIENTE ya no se graduaba. La cadena es la de siempre —`toggleValvPill` →
+   `valvApagarGrado` → `valvSev.aplicar(…, centinela)`, que marca y toma la foto del calculado— y
+   lo que faltaba era quién la deshace: `sevRetirarSugerido` sale por su guarda de manual
+   (`{delMedico:true}`) y los seis apagados automáticos (`_insufApagarAuto`, `_emApagarAuto`,
+   `_etApagarAuto`, `_epApagarAuto`, `_ipApagarAuto`, `_eaApagarAuto`) salen por su PRIMERA guarda
+   —«la pastilla ya está apagada»— sin tocar nada. Medido en HEAD: marca viva en 8 de 8, y con el
+   dato nuevo el grado NO se escribía en 6 de 8 (ia, it, ip, em, ea, et), cinco de ellas con el
+   aviso rojo «(ajuste manual) · cálculo automático: Severa» acusando un ajuste que nadie hizo.
+
+   LAS CUATRO GUARDAS, en orden, y ninguna es decorativa:
+     1. **la marca tiene que ser de un GESTO de esta sesión**, y eso lo dice la FOTO. `aplicar()`
+        es el único que escribe `_sevCalcAlFijar[clave]`, que NO se persiste y que `limpiarCampos`
+        vacía: un estudio reabierto o una planilla importada traen la marca SIN foto (lo dice el
+        comentario de la tarjeta de reimpresión y la rama `foto == null` de abajo). Sin esta
+        guarda, abrir un estudio que trae «IM ausente» importada —`_sevManualDesdeCampos` la marca
+        a propósito, «escribir IM ausente en la planilla es un hallazgo»— le borraría esa marca y
+        el primer dato que el médico cargara la pisaría. Eso sería MIGRAR un estudio guardado.
+        Se pregunta con `hasOwnProperty` y no con `!= null`: apagar la pastilla sin ningún dato
+        guarda la foto en `null`, que es un gesto igual;
+     2. **no puede quedar un grado escrito**. Un grado que el médico fijó es una afirmación suya y
+        la marca es lo que la protege; acá sólo entra el centinela, que es «no hay»;
+     3. **el cálculo no puede estar BLOQUEADO**. Con prótesis o con un insumo fuera de banda
+        `sevCalcPublicable` también devuelve `null`, y ahí SÍ hay un dato cargado: el médico lo ve
+        en su campo con el aviso que lo nombra. Falla CERRADA — no se reinicia;
+     4. **no puede quedar ningún dato que vote**, que es la condición de la regla.
+   Con un dato cargado que vota, la regla (b) de Maicol queda intacta POR CONSTRUCCIÓN: la guarda
+   4 no deja pasar, así que apagar la pastilla con datos sigue dejando la marca y su aviso de
+   discordancia. El cajón de fundamento no necesita una línea propia: lo vacía y lo esconde
+   `sevFundamento`, que `sevSincronizar` llama en el mismo punto único que pinta el aviso.
+   Devuelve lo que hizo, para que las pruebas afirmen sobre el gesto y no sobre un textContent. */
+function sevReiniciarManual(clave, calcYa) {
+  try {
+    const C = (typeof SEV_SINC !== 'undefined') ? SEV_SINC[clave] : null;
+    if (!C) return { err: 'clave no registrada: ' + String(clave) };
+    if (!(window.esqSevManual && window.esqSevManual[clave])) return { sinMarca: true };
+    if (!(window._sevCalcAlFijar &&
+          Object.prototype.hasOwnProperty.call(window._sevCalcAlFijar, clave)))
+      return { restaurada: true };
+    const sel = document.getElementById(C.select);
+    if (!sel) return { err: 'sin nodo #' + C.select };
+    /* El centinela sale del registro cuando la entrada lo declara —la IP guarda «Sin
+       insuficiencia» y no «0»—, igual que en `valvApagarGrado`. */
+    const sent = (typeof C.sinToken === 'string') ? C.sinToken
+               : ((typeof SEV_TOKEN_SIN !== 'undefined') ? SEV_TOKEN_SIN[C.tipo] : null);
+    if (sent == null) return { err: 'sin centinela para tipo ' + String(C.tipo) };
+    const v = String(sel.value || '');
+    if (v !== '' && v !== String(sent)) return { hayGrado: v };
+    if (typeof C.bloqueado === 'function') {
+      let bloq = true;
+      try { bloq = !!C.bloqueado(); } catch (e) { bloq = true; }
+      if (bloq) return { bloqueado: true };
+    }
+    const calc = (arguments.length > 1) ? calcYa : sevCalcPublicable(clave);
+    if (calc !== null && calc !== undefined && calc !== '') return { hayCalc: calc };
+    delete window.esqSevManual[clave];
+    delete window._sevCalcAlFijar[clave];
+    if (typeof _sevManualSync === 'function') _sevManualSync();
+    return { reiniciada: true };
+  } catch (e) { return { err: e.message }; }
+}
+window.sevReiniciarManual = sevReiniciarManual;
+
 /* Repinta la pastilla y el aviso de UNA clave, y suelta el manual si el calculado cambió (R6).
    Devuelve lo que hizo, para que las pruebas puedan afirmar sobre el gesto y no sobre un textContent. */
 function sevSincronizar(clave) {
@@ -33454,8 +33519,17 @@ function sevSincronizar(clave) {
   if (!C) return null;
   const sel = document.getElementById(C.select);
   if (!sel) return null;
-  const manual = !!(window.esqSevManual && window.esqSevManual[clave]);
+  /* ⚠️ EL CÁLCULO SE LEE ANTES QUE LA MARCA, Y ES UN REORDEN A PROPÓSITO. `sevCalcPublicable` es
+     puro —los seis proveedores leen campos o una foto de proceso y ninguno escribe— así que
+     adelantarlo no cambia nada, y deja que el reinicio del estado inicial corra con el MISMO
+     número contra el que R6 va a comparar abajo: dos lecturas del cálculo en el mismo gesto son
+     dos respuestas que pueden discrepar en la banda que nadie probó. */
   const calc = sevCalcPublicable(clave);
+  /* VA ACÁ, ANTES DE LEER LA MARCA: lo que esta función decide después —R6, el aviso rojo, el
+     cajón y la visibilidad del bloque— tiene que ver el estado YA reiniciado, o el mismo gesto
+     pintaría el aviso de una marca que acaba de dejar de existir. */
+  const reinicio = (typeof sevReiniciarManual === 'function') ? sevReiniciarManual(clave, calc) : null;
+  const manual = !!(window.esqSevManual && window.esqSevManual[clave]);
   /* ¿El grado que el médico fijó es uno que el cálculo PUEDE emitir? Si no, no hay nada que
      comparar: no se pinta aviso y no se suelta. Ver `sevComparable` y `comparables` en el registro. */
   const comparable = sevComparable(clave, sel.value);
@@ -33583,7 +33657,8 @@ function sevSincronizar(clave) {
   if (typeof valvGradoVisSync === 'function') {
     try { valvGradoVisSync(C.tipo, C.valv); } catch (e) { console.warn('[valvGradoVisSync]', clave, e); }
   }
-  return { manual: sigueManual, calc: calc, final: sel.value, discrepa: discrepa, soltado: soltado };
+  return { manual: sigueManual, calc: calc, final: sel.value, discrepa: discrepa, soltado: soltado,
+           reinicio: reinicio };
 }
 window.sevSincronizar = sevSincronizar;
 window.SEV_SINC = SEV_SINC;
@@ -106601,8 +106676,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261013-1731';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791923473870;                 /* eco-build-ms */
+const ECO_BUILD    = '20261013-1917';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791929855107;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -106688,7 +106763,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-1731</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-1917</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
