@@ -1421,6 +1421,41 @@
      `data-grado-de`, que además dice a qué fila pertenece. */
   .calc-grado { color: var(--text2); font-weight: 400; font-size: 11px; margin-left: 6px; }
 
+  /* ══ EL GLOBO «i» DE VALVULAS (2026-10-14) ═════════════════════════════════════════════════
+     Es un `<button>` y no un `<span onclick>`: asi es enfocable y se activa con Enter y con
+     Espacio sin inventarle un `tabindex` ni un manejador de teclado propio, que es lo que pide
+     «se opera con teclado».
+     ⚠️ SIN `title`, Y ESO ES LA MITAD DE «no aparece al pasar el mouse»: el `title` nativo es el
+     UNICO camino por el que algo aparecia al hover en estos globos.
+     ⚠️ EL PISO TACTIL SE ACOTA A `pointer:coarse`, Y HUBO QUE MEDIR LOS DOS ARBOLES PARA SABERLO.
+     La regla global de accesibilidad de este archivo (`button, …, [onclick] { min-height:44px;
+     min-width:44px }`) matcheaba al globo VIEJO por su atributo `onclick`… y NO LO AGRANDABA: era
+     un `<span>`, o sea un elemento INLINE no reemplazado, y a esos `min-height` y `min-width` NO
+     SE LES APLICA. Medido en HEAD: 12 x 15 px. Un `<button>` es `inline-block`, asi que la misma
+     regla si lo agarra y el globo saltaba a 44 x 44 en las ocho filas, cambiando la densidad de
+     una pantalla que esta tanda no vino a cambiar.
+     Con el piso acotado al puntero GRUESO, el escritorio conserva el tamano que tenia y el dedo
+     gana el blanco de 44 px que antes NO tenia —el `<span>` nunca lo tuvo—, o sea que es mejor que
+     HEAD en tactil e identico en escritorio. Es el mismo recurso y el mismo precedente que el
+     boton del glosario del panel de Evidencia (2026-10-12).
+     ⚠️ Es `pointer` y NO `any-pointer`: con `any-pointer`, una tablet con un mouse conectado
+     perderia el piso para el dedo. */
+  .vinfo-btn { background: none; border: 0; padding: 0 2px; margin: 0; font: inherit;
+               line-height: 1; color: var(--accent2); cursor: pointer;
+               min-height: 0; min-width: 0; }
+  .vinfo-btn:focus-visible { outline: 2px solid var(--accent2); outline-offset: 2px; border-radius: 4px; }
+  @media (pointer: coarse) {
+    .vinfo-btn { min-width: 44px; min-height: 44px; }
+  }
+  /* Los cuatro bloques de la tarjeta. El rotulo de cada uno va arriba, chico y en gris, para que
+     se vea de un vistazo cual es la formula y cual la fuente. */
+  #vinfo-card h4 { margin: 0 0 6px; font-size: 12px; color: var(--accent2); }
+  #vinfo-card [data-vinfo-b] { margin-top: 7px; }
+  #vinfo-card [data-vinfo-b] b { display: block; font-size: 9px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .4px; color: var(--text2); margin-bottom: 1px; }
+  #vinfo-card [data-vinfo-b="formula"] { font-family: ui-monospace, Menlo, monospace; font-size: 10.5px; }
+  #vinfo-card [data-vinfo-b="ojo"] { color: var(--orange); }
+
   /* ══ LA TABLA DE DOS METODOS DEL BLOQUE 2 DE LA IM (2026-10-14) ═══════════════════════════
      Tres columnas: el parametro con su corte, el valor por PISA y el valor por continuidad.
      ⚠️ LAS FILAS LLEVAN LAS DOS CLASES, `calc-row im-m2`, Y NO SOLO ESTA. El barrido de
@@ -2792,6 +2827,27 @@ window.cerrarSesionReal = cerrarSesionReal;
   <div id="indic-term" role="dialog" aria-labelledby="indic-term-tit" tabindex="-1"
        style="display:none;position:fixed;z-index:310;box-sizing:border-box;overflow:auto;background:var(--bg2);border:1px solid var(--border);border-radius:10px;box-shadow:0 14px 40px rgba(0,0,0,.55);padding:11px 13px;"></div>
 </div>
+
+<!-- ══ LA TARJETA DE LOS GLOBOS «i» DE VALVULAS (2026-10-14) — DECISION DE MAICOL ════════════
+     UNA sola tarjeta para los ocho globos de la pestana: el contenido lo escribe `_vInfoAbrir` y
+     cual esta abierto lo dice `_vInfoId`. Ocho tarjetas en el marcado serian ocho nodos que se
+     desincronizan.
+     ⚠️ VA EN EL MARCADO ESTATICO Y NO SE CREA POR JS. El MutationObserver del bloque de
+     accesibilidad trata como MODAL a cualquier div AGREGADO con `position:fixed` y `top:0`, asi
+     que una tarjeta creada al vuelo entraria en la trampa de Tab del panel y en el oyente generico
+     de Escape. Es la misma leccion que `#indic-term` ya tiene escrita.
+     ⚠️ `role="dialog"` SIN `aria-modal`, tambien a proposito: con `aria-modal` el oyente generico
+     de Escape la cerraria clickeandole un boton que dice «Cerrar», que esta tarjeta no tiene, y
+     ademas entraria en la trampa de Tab. Su Escape es el suyo.
+     ⚠️ CUELGA DEL BODY Y NO DE LA FILA QUE LA ABRE. Un ancestro con `transform` es bloque
+     contenedor de un `position:fixed`, y entonces el rect del boton —que es del viewport— y la
+     posicion de la tarjeta dejan de estar en el mismo sistema. Colgada del body no hay un segundo
+     sistema de coordenadas que mantener.
+     NI `width`, NI `top`, NI `left` en este `style`: la geometria la pone SOLO `_vInfoColocar`, y
+     lo que el marcado no declara no puede ganarle. Es la leccion de las tres declaraciones muertas
+     del boton del panel. El `overflow:auto` es el scroll interno. -->
+<div id="vinfo-card" role="dialog" aria-labelledby="vinfo-tit" tabindex="-1"
+     style="display:none;position:fixed;z-index:320;box-sizing:border-box;overflow:auto;background:var(--bg2);border:1px solid var(--border);border-radius:10px;box-shadow:0 14px 40px rgba(0,0,0,.45);padding:10px 12px;font-size:11px;line-height:1.45;color:var(--text);"></div>
 
 <div id="firma-panel" style="display:none;position:fixed;top:64px;left:16px;z-index:250;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;box-shadow:0 12px 40px rgba(0,0,0,0.5);width:330px;max-width:calc(100vw - 32px);">
   <div style="font-weight:700;font-size:13px;margin-bottom:12px;color:var(--text);">🖊️ Firma del centro</div>
@@ -4778,9 +4834,9 @@ window.cerrarSesionReal = cerrarSesionReal;
              patrón del espesor parietal, pagado tres veces). Por eso la cápsula NOMBRA el campo que
              falta en vez de ofrecer dónde tipearlo de nuevo. -->
         <div id="bloque-prot-vm-res" class="calc-box" style="display:none;margin-top:8px;">
-          <div class="calc-row"><span class="calc-lbl" title="Área efectiva del orificio protésico. ASE 2024 (Zoghbi, JASE 2024;37(1):2-63), Sección III.B: EOA = volumen sistólico del TSVI / VTI a través de la prótesis por CW. Es la ecuación de continuidad, la misma que publica «AVm por continuidad». Tabla 11, pág. 27: &lt;1,0 cm² sugiere obstrucción significativa. El volumen sistólico del TSVI exige ausencia de regurgitación significativa: con IAo o IM moderada o mayor no se calcula. Insumos: Ø TSVI y VTI TSVI (Doppler aórtico) y VTI mitral CW (bloque Estenosis Mitral).">EOA por continuidad <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></span><span class="calc-val" id="vm-prot-eoa">—</span></div>
-          <div class="calc-row"><span class="calc-lbl" title="DVI = VTI de la prótesis mitral (CW) / VTI del TSVI. ASE 2024, Tabla 11, pág. 27: &lt;2,2 normal · 2,2-2,5 posible obstrucción · &gt;2,5 sugiere obstrucción significativa. Es un COCIENTE de dos VTI y no usa el volumen sistólico, así que se CALCULA aunque la salvedad de regurgitación retire el EOA, pero con IAo o IM moderada o mayor —o sin poder verificarla— se muestra y NO concluye obstrucción: el cociente sube igual con la regurgitación (Tabla 13, pág. 30). Se calcula desde los dos VTI; el campo DVI de arriba se usa sólo como respaldo cuando no alcanzan, y la fila dice «consignado» cuando es así.">DVI — VTI prótesis / VTI TSVI <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></span><span class="calc-val" id="vm-prot-dvi">—</span></div>
-          <div class="calc-row"><span class="calc-lbl" title="Desajuste protésico-paciente (PPM): EOA indexada a la superficie corporal. ASE 2024, Tabla 7, pág. 20, TODA indexada — esa tabla no publica valores absolutos en cm². IMC &lt;30: normal &gt;1,2 · moderado 1,2-0,91 · severo ≤0,90 cm²/m². IMC ≥30: normal &gt;1,0 · moderado 1,0-0,76 · severo ≤0,75 cm²/m². La rama de IMC ≥30 está SÓLO en la tabla; el texto narrativo de la pág. 10 la omite. Contesta «¿la prótesis es chica para este paciente?», que es otra pregunta que «¿está obstruida?» — por eso el corte es indexado y el de arriba absoluto.">PPM — EOA indexada <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></span><span class="calc-val" id="vm-prot-ppm">—</span></div>
+          <div class="calc-row"><span class="calc-lbl" title="Área efectiva del orificio protésico. ASE 2024 (Zoghbi, JASE 2024;37(1):2-63), Sección III.B: EOA = volumen sistólico del TSVI / VTI a través de la prótesis por CW. Es la ecuación de continuidad, la misma que publica «AVm por continuidad». Tabla 11, pág. 27: &lt;1,0 cm² sugiere obstrucción significativa. El volumen sistólico del TSVI exige ausencia de regurgitación significativa: con IAo o IM moderada o mayor no se calcula. Insumos: Ø TSVI y VTI TSVI (Doppler aórtico) y VTI mitral CW (bloque Estenosis Mitral).">EOA por continuidad <button type="button" class="vinfo-btn" data-vinfo="prot-eoa" aria-expanded="false" aria-label="Información sobre EOA por continuidad" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-eoa">—</span></div>
+          <div class="calc-row"><span class="calc-lbl" title="DVI = VTI de la prótesis mitral (CW) / VTI del TSVI. ASE 2024, Tabla 11, pág. 27: &lt;2,2 normal · 2,2-2,5 posible obstrucción · &gt;2,5 sugiere obstrucción significativa. Es un COCIENTE de dos VTI y no usa el volumen sistólico, así que se CALCULA aunque la salvedad de regurgitación retire el EOA, pero con IAo o IM moderada o mayor —o sin poder verificarla— se muestra y NO concluye obstrucción: el cociente sube igual con la regurgitación (Tabla 13, pág. 30). Se calcula desde los dos VTI; el campo DVI de arriba se usa sólo como respaldo cuando no alcanzan, y la fila dice «consignado» cuando es así.">DVI — VTI prótesis / VTI TSVI <button type="button" class="vinfo-btn" data-vinfo="prot-dvi" aria-expanded="false" aria-label="Información sobre DVI de la protesis mitral" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-dvi">—</span></div>
+          <div class="calc-row"><span class="calc-lbl" title="Desajuste protésico-paciente (PPM): EOA indexada a la superficie corporal. ASE 2024, Tabla 7, pág. 20, TODA indexada — esa tabla no publica valores absolutos en cm². IMC &lt;30: normal &gt;1,2 · moderado 1,2-0,91 · severo ≤0,90 cm²/m². IMC ≥30: normal &gt;1,0 · moderado 1,0-0,76 · severo ≤0,75 cm²/m². La rama de IMC ≥30 está SÓLO en la tabla; el texto narrativo de la pág. 10 la omite. Contesta «¿la prótesis es chica para este paciente?», que es otra pregunta que «¿está obstruida?» — por eso el corte es indexado y el de arriba absoluto.">PPM — EOA indexada <button type="button" class="vinfo-btn" data-vinfo="prot-ppm" aria-expanded="false" aria-label="Información sobre PPM — EOA indexada" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-ppm">—</span></div>
         </div>
         <div id="bloque-prolapso-vm" class="fg" style="display:none;">
           <label style="font-weight:600">🔍 Detalle morfológico — Prolapso / Barlow</label>
@@ -5037,7 +5093,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                  ⚠️ LAS TRES NUEVAS NO VIAJAN CON EL ESTUDIO, y el prefijo `vauto-` las saca de
                  `_noEsDelEstudio` — ver ahi el motivo, que es el mismo de `hfpep-`. -->
             <div class="fg">
-              <label>EROA por PISA (mm²) (auto)</label>
+              <label>EROA por PISA (mm²) (auto) <button type="button" class="vinfo-btn" data-vinfo="eroa-pisa" aria-expanded="false" aria-label="Información sobre EROA, Vol-R y FR por PISA" onclick="vInfoClic(this)">&#9432;</button></label>
               <input type="text" id="vauto-eroa-pisa" readonly style="font-weight:700;">
             </div>
             <div class="fg">
@@ -5049,7 +5105,15 @@ window.cerrarSesionReal = cerrarSesionReal;
               <input type="text" id="vauto-fr-pisa" readonly>
             </div>
             <div class="fg">
-              <label title="EROA = Vol-R ÷ VTI del chorro de IM por CW. Los dos cortes de severidad de la guía —EROA ≥ 40 mm² y Vol-R ≥ 60 ml— sólo coinciden con un VTI de chorro de 150 cm, porque 60 ÷ 0,40 = 150. Con un VTI menor la EROA sale inflada respecto del Vol-R y con uno mayor sale reducida: es aritmética de la fórmula, no una discrepancia entre guías. Desde el 13/10/2026 esta EROA SÍ vota, junto con el Vol-R y la fracción regurgitante por continuidad: el método de continuidad se integra como el de PISA y, con los dos marcados en «Incluir en el informe», al informe va el PEOR de los dos. Los votos comunes a los dos métodos son la vena contracta, el jet sobre área auricular y la onda S pulmonar. Ver «Referencia clínica» en la ayuda.">EROA por continuidad (mm²) (auto) <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></label>
+              <!-- ⚠️ EL `title` LARGO SE FUE (2026-10-14) — DECISION DE MAICOL. Contaba desde cuando
+                   vota esta EROA y explicaba la aritmetica de por que los dos cortes de la guia
+                   coinciden solo con un VTI de 150 cm: 748 caracteres en un tooltip que en tactil no
+                   existe. Lo reemplaza la TARJETA corta del globo, que dice la formula, que mide, la
+                   fuente con su folio y el unico reparo que cambia como se lee el numero.
+                   ⚠️ EL TEXTO LARGO NO SE PIERDE: vive —y vivia ya— en la pestana «Referencia
+                   clinica», en la fila «IM — EROA por continuidad y Vol-R», con el reparo de los
+                   150 cm entero. La tarjeta NO lleva a esa pestana: el globo ya no abre el manual. -->
+              <label>EROA por continuidad (mm²) (auto) <button type="button" class="vinfo-btn" data-vinfo="eroa-cont" aria-expanded="false" aria-label="Información sobre EROA, Vol-R y FR por continuidad" onclick="vInfoClic(this)">&#9432;</button></label>
               <input type="text" id="im_eroa_cont" readonly style="font-weight:700;">
             </div>
             <div class="fg">
@@ -5105,7 +5169,7 @@ window.cerrarSesionReal = cerrarSesionReal;
              numero rancio que esta zona ya pago cuatro veces. -->
         <div data-im-bloque="1">
         <div class="calc-row"><span class="calc-lbl" style="font-weight:700;color:var(--accent2);">Signos y parámetros semicuantitativos — valen para los dos métodos</span></div>
-        <div class="calc-row"><span class="calc-lbl" title="Válido sin estenosis mitral, calcificación anular, anillo protésico ni fibrilación auricular. Menos específico en IM secundaria. La onda A dominante es más aplicable en mayores de 50 años. ASE 2017 (Zoghbi, JASE 30:303-371).">Onda E (parámetro soporte — &ge;120 cm/s apoya IM severa) <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></span><span id="im-ondae-interp">—</span></div>
+        <div class="calc-row"><span class="calc-lbl" title="Válido sin estenosis mitral, calcificación anular, anillo protésico ni fibrilación auricular. Menos específico en IM secundaria. La onda A dominante es más aplicable en mayores de 50 años. ASE 2017 (Zoghbi, JASE 30:303-371).">Onda E (parámetro soporte — &ge;120 cm/s apoya IM severa) <button type="button" class="vinfo-btn" data-vinfo="im-onda-e" aria-expanded="false" aria-label="Información sobre Onda E como parametro de soporte" onclick="vInfoClic(this)">&#9432;</button></span><span id="im-ondae-interp">—</span></div>
         <!-- ⚠️ EL 1,4 SÍ TIENE FUENTE, Y NO ES LA QUE SE BUSCÓ EN LA FASE 2. Aquella pasada barrió el
              PDF primario de ASE 2017 —«1.4» cero veces, «VTI ratio» y «mitral-to-aortic» tampoco,
              con control de denominador: «1.2» sale 4 veces y «1.5» 3, o sea que la extracción
@@ -5142,7 +5206,7 @@ window.cerrarSesionReal = cerrarSesionReal;
              equivocado; el orden del content stream la pone en «Semi-quantitative». Se resolvió
              RENDERIZANDO la página y mirándola, que es lo único que no se puede discutir. Quien
              vuelva a verificar esto: no le crea a la coordenada. -->
-        <div class="calc-row"><span class="calc-lbl" title="La ASE 2023 lo da en ausencia de insuficiencia aórtica moderada o severa: la IAo aumenta el VTI aórtico, que es el denominador, y el cociente deja de medir lo que dice medir. En válvula NATIVA esta aplicación lo usa IGUAL con IAo moderada y moderada-severa —y lo declara en la propia fila— y lo retira sólo con IAo severa: es criterio EcoSmart (2026-09-30), no lo que dice la guía. En PRÓTESIS se retira desde la IAo moderada. Con un grado de IAo que no se puede interpretar se retira en los dos casos. DOS CORTES SEGÚN LA MORFOLOGÍA: en válvula NATIVA, &gt;1,4 apoya IM severa — ASE 2023, cardiopatía reumática (Pandian, JASE 36:3-28), y también ESC/EACTS 2025 (Figura 10, pág. 4672), entre los criterios semicuantitativos de IM severa; no figura en ASE 2017 ni en ESC/EACTS 2021, y el estudio original (Tribouilloy, Eur Heart J 1994) da 1,3. En PRÓTESIS mitral el corte es ≥2,5 — ASE 2024, Tabla 12, pág. 28 (Zoghbi, JASE 2024;37(1):2-63), «hallazgos de ETT que sugieren IM protésica significativa en válvulas mecánicas con THP normal»: sensibilidad 89 %, especificidad 91 %. Esa tabla lo define para válvulas MECÁNICAS con THP normal, y la app NO verifica ninguna de las dos condiciones: el ≥2,5 se aplica a toda prótesis mitral, biológica incluida, y el THP no se cruza. Ver «Referencia clínica» en la ayuda.">Ratio VTI mitral / VTI TSVI (nativa &gt;1.4 · prótesis ≥2.5) <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></span><span class="calc-val" id="im-vti-ratio">—</span></div>
+        <div class="calc-row"><span class="calc-lbl" title="La ASE 2023 lo da en ausencia de insuficiencia aórtica moderada o severa: la IAo aumenta el VTI aórtico, que es el denominador, y el cociente deja de medir lo que dice medir. En válvula NATIVA esta aplicación lo usa IGUAL con IAo moderada y moderada-severa —y lo declara en la propia fila— y lo retira sólo con IAo severa: es criterio EcoSmart (2026-09-30), no lo que dice la guía. En PRÓTESIS se retira desde la IAo moderada. Con un grado de IAo que no se puede interpretar se retira en los dos casos. DOS CORTES SEGÚN LA MORFOLOGÍA: en válvula NATIVA, &gt;1,4 apoya IM severa — ASE 2023, cardiopatía reumática (Pandian, JASE 36:3-28), y también ESC/EACTS 2025 (Figura 10, pág. 4672), entre los criterios semicuantitativos de IM severa; no figura en ASE 2017 ni en ESC/EACTS 2021, y el estudio original (Tribouilloy, Eur Heart J 1994) da 1,3. En PRÓTESIS mitral el corte es ≥2,5 — ASE 2024, Tabla 12, pág. 28 (Zoghbi, JASE 2024;37(1):2-63), «hallazgos de ETT que sugieren IM protésica significativa en válvulas mecánicas con THP normal»: sensibilidad 89 %, especificidad 91 %. Esa tabla lo define para válvulas MECÁNICAS con THP normal, y la app NO verifica ninguna de las dos condiciones: el ≥2,5 se aplica a toda prótesis mitral, biológica incluida, y el THP no se cruza. Ver «Referencia clínica» en la ayuda.">Ratio VTI mitral / VTI TSVI (nativa &gt;1.4 · prótesis ≥2.5) <button type="button" class="vinfo-btn" data-vinfo="im-vti-ratio" aria-expanded="false" aria-label="Información sobre Ratio VTI mitral / VTI TSVI" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="im-vti-ratio">—</span></div>
         <!-- ⚠️ FILA NUEVA (2026-10-09) — DECISIÓN DE MAICOL, Y CIERRA UN AGUJERO QUE EL PROPIO
              CÓDIGO DECLARABA. El comentario de `calcIM_ESC` dice, textual, que «la VC es el ÚNICO
              votante sin fila de resultado propia — su valor se ve en su input y nada más»: votaba
@@ -5161,12 +5225,12 @@ window.cerrarSesionReal = cerrarSesionReal;
              hoy: `calcIM_ESC` no tiene rama protésica para la vena contracta —sólo el jet/AI y el
              cociente VTI la tienen—. Queda REPORTADO y NO corregido: inventarle un corte protésico
              sería contenido clínico que ninguna guía leída da. -->
-        <div class="calc-row"><span class="calc-lbl" title="Vena contracta del chorro de IM, en el eje donde se ve más angosta. ASE 2017 (Zoghbi, JASE 2017;30:303-371), Tabla 8. Los cortes salen de la misma tabla que aplica el cálculo. En PRÓTESIS mitral esta aplicación usa IGUAL los cortes de válvula nativa: ninguna de las guías leídas publica un corte de vena contracta para prótesis, así que no se inventa uno. Ver «Referencia clínica» en la ayuda.">Vena contracta (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="vc"></span> <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></span><span class="calc-val" id="im-vc-ref">—</span><span class="calc-grado" data-grado-de="im-vc-ref"></span></div>
+        <div class="calc-row"><span class="calc-lbl" title="Vena contracta del chorro de IM, en el eje donde se ve más angosta. ASE 2017 (Zoghbi, JASE 2017;30:303-371), Tabla 8. Los cortes salen de la misma tabla que aplica el cálculo. En PRÓTESIS mitral esta aplicación usa IGUAL los cortes de válvula nativa: ninguna de las guías leídas publica un corte de vena contracta para prótesis, así que no se inventa uno. Ver «Referencia clínica» en la ayuda.">Vena contracta (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="vc"></span> <button type="button" class="vinfo-btn" data-vinfo="im-vc" aria-expanded="false" aria-label="Información sobre Vena contracta" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="im-vc-ref">—</span><span class="calc-grado" data-grado-de="im-vc-ref"></span></div>
         <!-- El ⓘ y el `title` publican los DOS regímenes, igual que la fila del cociente VTI: hasta
              hoy esta fila no declaraba su corte en NINGUNA superficie —ni acá, ni en la tarjeta de
              Referencias, ni en el manual—, así que ni el 20/40 nativo ni el 20/50 protésico eran
              consultables desde la app. -->
-        <div class="calc-row"><span class="calc-lbl" title="DOS CORTES SEGÚN LA MORFOLOGÍA. En válvula NATIVA: &lt;20 % leve · ≤40 % moderada · &gt;40 % severa. En PRÓTESIS mitral: &lt;20 % leve · &gt;50 % severa, y entre 20 y 50 la ASE 2024 (Tabla 13, pág. 30 — Zoghbi, JASE 2024;37(1):2-63) dice «Variable», así que el parámetro NO vota y la fila lo declara. Los cortes absolutos de esa tabla (&lt;4 cm² / &gt;8 cm²) no se implementan: la guía los da como alternativa al porcentaje. La tabla exige además un Nyquist de 50-60 cm/s que la app no registra. Ver «Referencia clínica» en la ayuda.">Ratio jet/AI (%) <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="jet"></span> <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></span><span class="calc-val" id="im-jet-ratio">—</span><span class="calc-grado" data-grado-de="im-jet-ratio"></span></div>
+        <div class="calc-row"><span class="calc-lbl" title="DOS CORTES SEGÚN LA MORFOLOGÍA. En válvula NATIVA: &lt;20 % leve · ≤40 % moderada · &gt;40 % severa. En PRÓTESIS mitral: &lt;20 % leve · &gt;50 % severa, y entre 20 y 50 la ASE 2024 (Tabla 13, pág. 30 — Zoghbi, JASE 2024;37(1):2-63) dice «Variable», así que el parámetro NO vota y la fila lo declara. Los cortes absolutos de esa tabla (&lt;4 cm² / &gt;8 cm²) no se implementan: la guía los da como alternativa al porcentaje. La tabla exige además un Nyquist de 50-60 cm/s que la app no registra. Ver «Referencia clínica» en la ayuda.">Ratio jet/AI (%) <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="jet"></span> <button type="button" class="vinfo-btn" data-vinfo="im-jet-ai" aria-expanded="false" aria-label="Información sobre Ratio jet / area de la AI" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="im-jet-ratio">—</span><span class="calc-grado" data-grado-de="im-jet-ratio"></span></div>
         <div class="calc-row"><span class="calc-lbl">Onda S pulmonar <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="onda_s"></span></span><span id="im-onda-s-interp">—</span></div>
         </div>
         <div data-im-bloque="2">
@@ -34759,6 +34823,194 @@ function _imPeorIntegrado(a, b) {
   return (IM_GRADO_ORDEN[b.grado] > IM_GRADO_ORDEN[a.grado]) ? b : a;
 }
 window._imPeorIntegrado = _imPeorIntegrado;
+
+/* ══ LOS GLOBOS «i» DE LA PESTANA VALVULAS — MECANISMO (2026-10-14) ════════════════════════════
+   DECISION DE MAICOL. Hasta hoy los ocho globos de esta pestana eran `<span onclick>` con un
+   `title` y su clic llevaba al MANUAL (`abrirAyudaEco`), que abre otra pestana entera: el medico
+   perdia de vista el numero que estaba mirando para leer una fila de una tabla larga. Y el `title`
+   NO EXISTE EN TACTIL —esta app se usa en celular y tablet—, asi que en el dedo el globo prometia
+   informacion que al tocar no aparecia; es lo que ese mismo marcado ya declaraba.
+   Hoy: un TOQUE abre una tarjeta CORTA junto al globo, otro toque la cierra, tocar afuera la
+   cierra y Escape tambien. No hay hover, no hay enlace al manual.
+
+   ⚠️ EL REGISTRO NO LLEVA HISTORIAS NI FECHAS. Cada tarjeta tiene a lo sumo CUATRO bloques: la
+   formula, que mide o como se lee, la fuente con guia, ano y folio, y —solo si cambia como se
+   interpreta el numero— un «a tener en cuenta». Las palabras son propias: ninguna guia se copia
+   literal, que es la regla de derechos de autor de este repo.
+
+   ⚠️ LOS SIETE GLOBOS QUE NO SON DE ESTA TANDA LLEVAN EL MECANISMO Y **NO** EL TEXTO. Su tarjeta
+   muestra el `title` que su fila ya tenia, leido del DOM en el momento de abrir: no se duplica ni
+   una palabra. Se reescriben en D2, y mientras tanto el medico ve en el dedo lo que antes solo
+   veia con el mouse. Son `legado: true`. */
+const VINFO = Object.freeze({
+  'eroa-pisa': {
+    tit: 'EROA, Vol-R y FR por PISA',
+    formula: 'EROA = 2π · r² · V_aliasing ÷ Vmax del chorro\n'
+           + 'Vol-R = EROA × VTI del chorro (CW)\n'
+           + 'FR = Vol-R ÷ (Vol-R + Vol eyectado TSVI)',
+    lee: 'Mide el orificio regurgitante en el instante de velocidad maxima y el volumen que pasa por el en un latido.',
+    fuente: 'ASE 2017 (Zoghbi), folio 312; los cortes, Tabla 8, folio 332.',
+    ojo: 'El radio se mide en el pico de velocidad: con un chorro que no ocupa toda la sistole, la EROA sale sobreestimada.'
+  },
+  'eroa-cont': {
+    tit: 'EROA, Vol-R y FR por continuidad',
+    formula: 'Vol-R = Vol mitral / latido − Vol eyectado TSVI\n'
+           + 'EROA = Vol-R ÷ VTI del chorro (CW)\n'
+           + 'FR = Vol-R ÷ Vol mitral / latido',
+    lee: 'Mide lo que vuelve a la auricula como diferencia entre el flujo que entra por la mitral y el que sale por el tracto de salida.',
+    fuente: 'ASE 2017 (Zoghbi), folios 311 y 312; los cortes, Tabla 8, folio 332.',
+    ojo: 'La banda de severidad de la EROA la guia la define para PISA 2D; aplicarla a esta EROA es criterio de la aplicacion.'
+  },
+  'vsv-tsvi': {
+    tit: 'Volumen eyectado del TSVI',
+    formula: 'Ø² × 0,785 × VTI del TSVI, con el Ø en cm\n(0,785 = π/4; la app guarda el Ø en mm y lo convierte)',
+    lee: 'Es el volumen que el ventriculo expulsa por el tracto de salida en un latido, y el denominador de las dos cuentas que lo usan.',
+    fuente: 'EAE/ASE 2009 (Baumgartner), folio 13.',
+    ojo: 'El diametro va al cuadrado: un error de 1 mm mueve el volumen alrededor de un 10 %.'
+  },
+  'avm-thp': {
+    tit: 'Area mitral por tiempo de hemipresion',
+    formula: 'AVm = 220 ÷ THP (ms)',
+    lee: 'Estima el area mitral por lo rapido que cae el gradiente en diastole: cuanto mas estrecha la valvula, mas lento cae.',
+    fuente: 'EAE/ASE 2009 (Baumgartner), folio 12. La constante 220 es empirica.',
+    ojo: 'La guia dice que debe EVITARSE en la estenosis calcificada degenerativa, y el THP se acorta con insuficiencia aortica.'
+  },
+  'avm-cont': {
+    tit: 'Area mitral por ecuacion de continuidad',
+    formula: 'AVm = Vol eyectado TSVI ÷ VTI mitral (CW)',
+    lee: 'Area mitral por conservacion del flujo: lo que entra por la mitral en diastole es lo que sale por la aorta en sistole.',
+    fuente: 'EAE/ASE 2009 (Baumgartner), folio 13.',
+    ojo: 'La guia la excluye con fibrilacion auricular y con insuficiencia mitral o aortica significativa: ahi los dos flujos dejan de ser iguales.'
+  }
+});
+let _vInfoId = null;
+function _vInfoBtnDe(clave) {
+  return document.querySelector('[data-vinfo="' + String(clave).replace(/"/g, '') + '"]');
+}
+/* El texto de un globo de LEGADO sale del `title` de su propia fila, leido del DOM: la alternativa
+   era copiarlo al registro, y entonces el dia que D2 reescriba uno quedarian dos textos y el que
+   se olvida es el que se ve. `closest('[title]')` sube desde el boton hasta el rotulo. */
+function _vInfoLegadoTxt(btn) {
+  const h = btn ? btn.closest('[title]') : null;
+  return h ? (h.getAttribute('title') || '') : '';
+}
+function _vInfoHTML(clave, btn) {
+  const esc = (t) => String(t == null ? '' : t)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const d = VINFO[clave];
+  if (!d) {
+    const t = _vInfoLegadoTxt(btn);
+    return '<h4 id="vinfo-tit">Referencia</h4><div data-vinfo-b="lee">' + esc(t) + '</div>';
+  }
+  const b = (k, rot, txt) => txt
+    ? '<div data-vinfo-b="' + k + '"><b>' + rot + '</b>' + esc(txt).replace(/\n/g, '<br>') + '</div>'
+    : '';
+  return '<h4 id="vinfo-tit">' + esc(d.tit) + '</h4>'
+       + b('formula', 'Fórmula', d.formula)
+       + b('lee', 'Qué mide', d.lee)
+       + b('fuente', 'Fuente', d.fuente)
+       + b('ojo', 'A tener en cuenta', d.ojo);
+}
+/* ⚠️ LA GEOMETRIA LA PONE SOLO ESTA FUNCION, calcada de `_indTermColocar` y sin la mitad del
+   panel: aca la caja permitida es el viewport con su margen y nada mas.
+   ⚠️ DENOMINADOR: UN BOTON SIN GEOMETRIA NO SE ANCLA. Dentro de un cajon cerrado el boton existe
+   y mide 0 x 0, y anclar contra ese rect manda la tarjeta a la esquina de la pantalla, lejos del
+   numero que explica. Se informa y no se abre. */
+const VINFO_MARGEN = 8, VINFO_ANCHO = 300;
+function _vInfoColocar(clave) {
+  const c = document.getElementById('vinfo-card'); if (!c) return null;
+  const btn = _vInfoBtnDe(clave); if (!btn) return null;
+  const r0 = btn.getBoundingClientRect();
+  if (r0.width === 0 || r0.height === 0) return null;
+  const vw = innerWidth, vh = innerHeight, M = VINFO_MARGEN;
+  const L = M, T = M, R = vw - M, B = vh - M;
+  const w = Math.max(150, Math.min(VINFO_ANCHO, Math.floor(R - L)));
+  c.style.width = w + 'px';
+  /* ⚠️ LA ALTURA SE ACOTA AL LADO DONDE VA, Y NO A LA CAJA ENTERA — LO ENCONTRO LA SONDA. Con el
+     tope en la caja completa, una tarjeta mas alta que la pantalla terminaba colocada arriba de
+     todo y TAPANDO SU PROPIO GLOBO: medido con la del cociente VTI mitral/TSVI, que hasta D2
+     muestra su texto de legado (1319 caracteres). Con el globo tapado, el SEGUNDO toque —que es
+     una de las tres formas de cierre que pidio Maicol— no llega al boton y la tarjeta se queda
+     abierta; Escape y el clic afuera seguian cerrandola, asi que el defecto no deja a nadie
+     encerrado, pero una de las tres puertas no funcionaba.
+     Acotandola al hueco del lado elegido, la tarjeta NUNCA cubre su ancla: lo que no entra
+     scrollea adentro, que es para lo que esta el `overflow:auto`. */
+  const _abajo = B - (r0.bottom + 6), _arriba = (r0.top - 6) - T;
+  const _lado = (_abajo >= _arriba) ? 'abajo' : 'arriba';
+  c.style.maxHeight = Math.max(80, Math.floor(_lado === 'abajo' ? _abajo : _arriba)) + 'px';
+  c.innerHTML = _vInfoHTML(clave, btn);
+  /* Se pinta y se mide EN EL MISMO CUADRO: entre el display y la escritura de top/left no hay
+     ningun await ni setTimeout, asi que no hay salto visible. */
+  c.style.left = '0px'; c.style.top = '0px';
+  c.style.display = 'block';
+  const h = c.getBoundingClientRect().height;
+  let top = (_lado === 'abajo') ? (r0.bottom + 6) : (r0.top - 6 - h);
+  /* El acote de las DOS puntas vale para las tres ramas: un boton que quedo fuera del area visible
+     sigue teniendo rect, y sin esto la rama de «arriba» coloca la tarjeta fuera de la pantalla.
+     Es el defecto que TC-451 encontro en la tarjeta del glosario. */
+  top = Math.max(T, Math.min(top, B - h));
+  let left = Math.round(r0.left + r0.width / 2 - w / 2);
+  left = Math.max(L, Math.min(left, R - w));
+  c.style.left = Math.round(left) + 'px';
+  c.style.top = Math.round(top) + 'px';
+  return { w: w, h: Math.round(h), left: Math.round(left), top: Math.round(top) };
+}
+function vInfoCerrar(sinFoco) {
+  const c = document.getElementById('vinfo-card');
+  const prev = _vInfoId;
+  _vInfoId = null;
+  if (c) { c.style.display = 'none'; c.innerHTML = ''; }
+  const btn = prev ? _vInfoBtnDe(prev) : null;
+  if (btn) {
+    btn.setAttribute('aria-expanded', 'false');
+    /* El foco VUELVE al globo que abrio, salvo que el llamador diga que no: devolverselo a un
+       boton que ya no esta lo tira al body, que es lo que `indicAbrir` tuvo que arreglar. */
+    if (!sinFoco) { try { btn.focus({ preventScroll: true }); } catch (e) { btn.focus(); } }
+  }
+}
+window.vInfoCerrar = vInfoCerrar;
+function _vInfoAbrir(clave) {
+  /* El MISMO boton cierra, y va primero: sin esto el segundo toque repinta la misma tarjeta y
+     parece que el boton no hace nada. */
+  if (_vInfoId === clave) { vInfoCerrar(); return; }
+  if (_vInfoId) vInfoCerrar(true);
+  const geo = _vInfoColocar(clave);
+  if (!geo) return;
+  _vInfoId = clave;
+  const btn = _vInfoBtnDe(clave);
+  if (btn) btn.setAttribute('aria-expanded', 'true');
+  /* El foco pasa a LA TARJETA y no a un control de adentro: su contenido es texto, asi que no hay
+     «primer control», y dejarlo en el boton haria que un lector de pantalla no leyera nada de lo
+     que se acaba de abrir. Lleva `tabindex="-1"` para eso. */
+  const c = document.getElementById('vinfo-card');
+  if (c) { try { c.focus({ preventScroll: true }); } catch (e) { c.focus(); } }
+}
+function vInfoClic(btn) {
+  if (!btn) return;
+  const k = btn.getAttribute('data-vinfo');
+  if (k) _vInfoAbrir(k);
+}
+window.vInfoClic = vInfoClic;
+/* ⚠️ EL CIERRE POR AFUERA VA EN CAPTURA Y DESCARTA EL CLIC QUE ABRE. Sin el `closest`, el mismo
+   clic que activa el globo llega al documento y cierra lo que se acaba de abrir: es el defecto que
+   el glosario del panel ya documenta. Y la tarjeta tampoco se cierra a si misma, para que se pueda
+   seleccionar su texto. */
+document.addEventListener('click', function (ev) {
+  if (!_vInfoId) return;
+  const t = ev.target;
+  if (t && t.closest) {
+    if (t.closest('[data-vinfo]')) return;
+    if (t.closest('#vinfo-card')) return;
+  }
+  vInfoCerrar(true);
+}, true);
+/* Escape propio: la tarjeta NO lleva `aria-modal`, asi que el oyente generico de esta app —que
+   cierra cualquier `[role=dialog][aria-modal]` clickeandole su boton «Cerrar»— no la alcanza, y
+   eso es lo que queriamos: ese oyente le buscaria un boton que esta tarjeta no tiene. */
+document.addEventListener('keydown', function (ev) {
+  if (ev.key === 'Escape' && _vInfoId) { ev.stopPropagation(); vInfoCerrar(); }
+});
+
 
 /* ══ LAS CUATRO CASILLAS AUTOMATICAS DE LA INSUFICIENCIA MITRAL (2026-10-14) ═══════════════════
    Decision de Maicol: la columna 2 gana la relacion jet/AI y la columna 3 gana el trio de PISA,

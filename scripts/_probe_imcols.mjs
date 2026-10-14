@@ -361,6 +361,15 @@ window.__P = {
              conTitle: g.filter(function(e){ return !!e.getAttribute('title') }).length,
              tags: g.map(function(e){ return e.tagName.toLowerCase() }).filter(function(v,i,a){ return a.indexOf(v)===i }),
              alManual: viejos.length,
+             /* ⚠️ EL TAMANO DEL GLOBO VIEJO, para poder afirmar que el control NO cambio de medida:
+                el span con onclick de HEAD entraba en la MISMA regla global de 44 px por su
+                atributo onclick que el button de hoy. Sin esta medicion, «44 x 44» en el
+                arbol nuevo no dice si subio, bajo o quedo igual. */
+             geoViejo: (function(){ var v = viejos.filter(function(e){
+                 if ((e.textContent||'').indexOf('\u24d8') < 0) return false;
+                 var r = e.getBoundingClientRect(); return r.width > 0 })[0];
+               if (!v) return null; var r = v.getBoundingClientRect();
+               return Math.round(r.width) + 'x' + Math.round(r.height) })(),
              tarjeta: window.__P.existe('vinfo-card') } },
 
   tarjeta() {
@@ -383,8 +392,13 @@ window.__P = {
     var e = document.querySelector('[data-vinfo="' + clave + '"]');
     if (!e) return { err: 'NO EXISTE globo ' + clave };
     if (!e.id) e.id = '__gl_' + clave.replace(/[^a-z0-9]/gi, '');
+    var r = e.getBoundingClientRect();
     return { sel: e.id, title: e.getAttribute('title'), tag: e.tagName.toLowerCase(),
-             tabindex: e.getAttribute('tabindex'), rol: e.getAttribute('aria-label') } },
+             tabindex: e.getAttribute('tabindex'), rol: e.getAttribute('aria-label'),
+             /* ⚠️ DENOMINADOR: un globo dentro de un bloque oculto existe y mide 0 x 0. Sin esto,
+                «no abre» se lee igual que «el mecanismo no funciona». */
+             geo: Math.round(r.width) + 'x' + Math.round(r.height),
+             vis: window.__P.vis(e.id) } },
 
   /* Un hover REAL no se puede fingir desde el DOM; lo que si se puede afirmar es que el globo no
      tiene un manejador de hover ni un title, que son los DOS caminos por los que algo aparece al
@@ -664,6 +678,59 @@ async function main() {
     out.refs.vacio = await ev(`window.__P.refs()`);
   }
 
+  if (hacer('globos')) {
+    await escena();
+    out.globos = { censo: await ev(`window.__P.globos()`), escenas: [] };
+    /* ⚠️ LOS TRES GLOBOS DE LA PROTESIS NO SON ALCANZABLES EN UNA ESCENA NATIVA, Y ESO NO ES UN
+       DEFECTO: su bloque esta oculto hasta que la morfologia mitral es protesica, asi que el
+       boton existe y mide 0 x 0. Se corre una escena PROTESICA aparte para probar que el
+       mecanismo tambien vale ahi; sin ella, «no abre» se leeria como «el mecanismo no funciona».
+       El selector de morfologia va por `set` porque es un <select> de escenario. */
+    const claves = out.globos.censo.claves || [];
+    for (const k of claves) {
+      const sel = await ev(`window.__P.globoSel(${JSON.stringify(k)})`);
+      if (sel.err) { out.globos.escenas.push({ k, err: sel.err }); continue; }
+      const cerrada0 = await ev(`window.__P.tarjeta()`);
+      const abrir = await clicEn(sel.sel);
+      const abierta = await ev(`window.__P.tarjeta()`);
+      /* ⚠️ EL MISMO BOTON CIERRA: segundo toque. */
+      await clicEn(sel.sel);
+      const trasSegundo = await ev(`window.__P.tarjeta()`);
+      /* Y se vuelve a abrir para probar los otros dos cierres. */
+      await clicEn(sel.sel);
+      await tecla('Escape', null); await pausa(120);
+      const trasEsc = await ev(`window.__P.tarjeta()`);
+      await clicEn(sel.sel);
+      await clicEn('im_vc');            /* un clic AFUERA, en un campo cualquiera */
+      const trasFuera = await ev(`window.__P.tarjeta()`);
+      out.globos.escenas.push({ k, sel: sel.sel, tag: sel.tag, title: sel.title,
+        rotulo: sel.rol, viaAbrir: abrir.via, vis: sel.vis, geoBtn: sel.geo,
+        antes: cerrada0.abierta, abierta: abierta.abierta,
+        texto: abierta.texto, largo: abierta.largo, bloques: abierta.bloques,
+        alManual: abierta.alManual, dentro: abierta.dentro,
+        geo: { x: abierta.x, y: abierta.y, w: abierta.w, h: abierta.h, vw: abierta.vw, vh: abierta.vh },
+        trasSegundo: trasSegundo.abierta, trasEsc: trasEsc.abierta, trasFuera: trasFuera.abierta,
+        sinHover: await ev(`window.__P.sinHover(${JSON.stringify(k)})`) });
+    }
+  }
+
+  if (hacer('globos')) {
+    await ev(`window.__P.set('vm_morf', 'Pr\u00f3tesis mec\u00e1nica')`);
+    await pausa(200);
+    await ev(`window.__P.abrirTodo()`);
+    out.globosProt = [];
+    for (const k of ['prot-eoa', 'prot-dvi', 'prot-ppm']) {
+      const sel = await ev(`window.__P.globoSel(${JSON.stringify(k)})`);
+      if (sel.err) { out.globosProt.push({ k, err: sel.err }); continue; }
+      await clicEn(sel.sel);
+      const ab = await ev(`window.__P.tarjeta()`);
+      await clicEn(sel.sel);
+      const ce = await ev(`window.__P.tarjeta()`);
+      out.globosProt.push({ k, geoBtn: sel.geo, vis: sel.vis, abierta: ab.abierta,
+                            largo: ab.largo, dentro: ab.dentro, trasSegundo: ce.abierta });
+    }
+  }
+
   if (hacer('em')) {
     await escena();
     out.em = { cargado: await ev(`window.__P.autos()`),
@@ -693,7 +760,18 @@ async function main() {
     out.controles = { grados: await ev(`window.__P.grados()`),
                       pastillas: await ev(`window.__P.pastillas()`),
                       colorAviso: await ev(`window.__P.color('#im-pdf-metodo-aviso','color')`) };
+    /* ⚠️ EL COLOR REAL DE LA TARJETA EN LOS DOS TEMAS. La tanda anterior encontro un aviso
+       «ambar» que se veia GRIS porque `--amber` solo existe dentro de `.amilo-root`: lo que se
+       mide aca es el valor COMPUTADO, no la variable escrita. */
+    const _sel = await ev(`window.__P.globoSel('eroa-pisa')`);
+    if (!_sel.err) { await clicEn(_sel.sel); }
+    out.controles.colorOjoOscuro = await ev(`window.__P.color('#vinfo-card [data-vinfo-b=\"ojo\"]','color')`);
+    out.controles.colorTitOscuro = await ev(`window.__P.color('#vinfo-card h4','color')`);
+    out.controles.fondoOscuro = await ev(`window.__P.color('#vinfo-card','backgroundColor')`);
     await ev(`window.__P.tema(true)`);
+    out.controles.colorOjoClaro = await ev(`window.__P.color('#vinfo-card [data-vinfo-b=\"ojo\"]','color')`);
+    out.controles.colorTitClaro = await ev(`window.__P.color('#vinfo-card h4','color')`);
+    out.controles.fondoClaro = await ev(`window.__P.color('#vinfo-card','backgroundColor')`);
     out.controles.colorAvisoClaro = await ev(`window.__P.color('#im-pdf-metodo-aviso','color')`);
     out.controles.temaClaro = await ev(`window.__P.tema(true)`);
     await ev(`window.__P.tema(false)`);

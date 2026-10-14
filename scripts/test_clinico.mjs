@@ -41990,12 +41990,20 @@ caso('TC-298', 'La fila de Onda E revive con el corte VERIFICADO, publica el sig
       ['un im_grado 3 (Moderada-severa), que solo pone el medico, SI se reporta',
         volParaTres === 'Moderada' && /volum.trico da Moderada y el integrado Moderada-severa/.test(conTres), volParaTres + ' :: ' + conTres],
       ['y un im_grado 0, que es ambiguo, se calla', conCero === '', conCero],
-      ['el ⓘ es un control TOCABLE que abre la ayuda, no solo un title',
+      /* ⚠️ ADAPTADO 2026-10-14 (D1 del rediseno de Valvulas). Este caso exigia que el globo fuera
+         un span con onclick que llamara a abrirAyudaEco, o sea que llevara al MANUAL. Maicol lo
+         cambio: el globo es un BOTON que abre una tarjeta corta al lado y NO lleva al manual, que
+         es lo contrario de lo que esta condicion afirmaba. Lo que se pina ahora es el HECHO NUEVO,
+         y las dos mitades: que sea un control tocable y enfocable (un boton con su clave de
+         tarjeta) y que ya NO nombre a abrirAyudaEco. */
+      ['el globo es un BOTON que abre su tarjeta, y ya no lleva al manual',
         (() => { const e = g('im-ondae-interp');
           const l = e && e.parentElement.querySelector('.calc-lbl');
-          const i = l && l.querySelector('span[onclick]');
-          return !!i && /abrirAyudaEco/.test(i.getAttribute('onclick')) && typeof abrirAyudaEco === 'function'; })(),
-        'ⓘ tocable'],
+          const i = l && l.querySelector('[data-vinfo]');
+          return !!i && i.tagName.toLowerCase() === 'button'
+                 && !/abrirAyudaEco/.test(i.getAttribute('onclick') || '')
+                 && typeof vInfoClic === 'function'; })(),
+        'ⓘ boton con tarjeta'],
       ['la onda E NO vota el grado', noVota, gradoSinE + ' vs ' + gradoConE],
       ['ni llega al informe ni al EN SUMA', noPapel, noPapel ? 'identicos' : 'DIFIEREN'],
       ['ni al Excel', xlsTieneOndaE === '(ninguna columna)', xlsTieneOndaE],
@@ -45499,14 +45507,21 @@ caso('TC-335', 'IM: la EROA por continuidad VOTA como metodo desde el 13/10/2026
        vota y que nombre la regla del peor— y la mitad que NO cambio: que la capsula «Severidad
        (continuidad)» siga siendo una lectura de dos parametros. El reparo aritmetico de los 150 cm
        se conserva intacto, porque no depende de quien vote. */
-    R.tieneNoVota = /SI vota|S\u00cd vota/.test(ti);
-    R.tienePisa = /PEOR de los dos|peor de los dos/.test(ti);
-    R.tieneInfo = !!(lbls[0] && lbls[0].querySelector('[onclick]'));
+    /* ⚠️ ADAPTADO 2026-10-14 (D1 del rediseno de Valvulas). Estas tres condiciones leian el
+       atributo title LARGO de ese rotulo —748 caracteres que contaban desde cuando vota la EROA y
+       explicaban la aritmetica de los 150 cm—. Maicol lo saco: el globo ya no es un title ni
+       lleva al manual, es un BOTON que abre una tarjeta CORTA al lado. Lo que se pina ahora es el
+       HECHO NUEVO: que el rotulo ya NO tenga title, que su globo sea un boton con su clave de
+       tarjeta, y que el texto largo —el reparo de los 150 cm incluido— siga VIVO en la pestana
+       «Referencia clinica», que es lo que las condiciones de abajo ya median y no cambia. */
+    R.sinTitle = (ti === '');
+    R.globo = (function(){ const b = lbls[0] && lbls[0].querySelector('[data-vinfo]');
+      return b ? (b.tagName.toLowerCase() + ':' + b.getAttribute('data-vinfo')) : '(sin globo)'; })();
+    R.tieneInfo = R.globo === 'button:eroa-cont';
 
-    ex.push(['el rotulo lleva su reparo: los 150 cm, que SI vota, y la regla del peor de los dos metodos',
-      R.nLabels === 1 && R.tiene150 && R.tieneNoVota && R.tienePisa && R.tieneInfo,
-      'labels=' + R.nLabels + ' 150=' + R.tiene150 + ' noVota=' + R.tieneNoVota +
-      ' pisa=' + R.tienePisa + ' info=' + R.tieneInfo]);
+    ex.push(['el rotulo ya no lleva el title largo y su globo es un boton con su tarjeta',
+      R.nLabels === 1 && R.sinTitle && R.tieneInfo,
+      'labels=' + R.nLabels + ' sinTitle=' + R.sinTitle + ' globo=' + R.globo]);
 
     abrirAyudaEco();
     const iRef = ECO_AYUDA.map(function(s){ return s.tab; })
