@@ -435,10 +435,10 @@ en **cm**. Verificada por recálculo a mano de tres casos, que coincide dígito 
 Maicol: «si está en la guía, vota»). Hasta ese día el campo existía (`et_vti_diast`) y se usaba
 sólo como denominador del área; era el punto **A-5** de `docs/PENDIENTES.md`, que queda cerrado.
 
-**El operador es `>` ESTRICTO**, y eso se leyó de la IMAGEN de la tabla —es un bitmap dentro del
-PDF y el texto extraído se come los glifos `≥`/`≤`, que es la trampa que este archivo ya documenta
-para Baumgartner 2009 y Wilkins 1988—, con el folio comprobado en el **pie impreso** de la página
-(«Baumgartner et al 19»). Los cuatro renglones, tal como están impresos:
+**La EAE/ASE 2009 escribe `>` ESTRICTO**, y eso se leyó de la IMAGEN de la tabla —es un bitmap
+dentro del PDF y el texto extraído se come los glifos `≥`/`≤`, que es la trampa que este archivo ya
+documenta para Baumgartner 2009 y Wilkins 1988—, con el folio comprobado en el **pie impreso** de la
+página («Baumgartner et al 19»). Los cuatro renglones, tal como están impresos:
 
 | hallazgo específico | corte impreso |
 |---|---|
@@ -447,19 +447,36 @@ para Baumgartner 2009 y Wilkins 1988—, con el folio comprobado en el **pie imp
 | T½ | **≥190 ms** |
 | Valve area by continuity equation ᵃ | **≤1 cm²** |
 
-O sea que la guía escribe los cuatro con cuidado y **el del VTI es el único estricto**. La app usa
-ese `>`, así que **60,0 exactos NO afirman** y 60,1 sí.
+O sea que la guía escribe los cuatro con cuidado y **el del VTI es el único estricto**.
 
-⚠️ **LA ASE 2023 ESCRIBE `≥60 cm` PARA EL MISMO CRITERIO, Y ES MÁS NUEVA.** Pandian et al,
-*Echocardiographic Evaluation of Rheumatic Heart Disease* (JASE, enero 2023), **folio 16**
-—verificado en el pie impreso, «16 · Pandian et al»— leído de la imagen:
+### ⚠️ EL OPERADOR DEL VTI DE ENTRADA SE DIO VUELTA EL 2026-10-14, Y GANA LA GUÍA MÁS NUEVA
+
+**Decisión de Maicol («VTI de entrada mayor o igual a 60»).** La app aplica **`>= 60 cm`** desde esa
+fecha, así que **60,0 exactos SÍ afirman**, y antes no.
+
+La fuente es la **ASE 2023** — Pandian et al, *Echocardiographic Evaluation of Rheumatic Heart
+Disease*, JASE enero 2023 — **folio 16**, verificado en el **encabezado impreso** de la página
+(«16 · Pandian et al · Journal of the American Society of Echocardiography · January 2023») y leído
+**renderizando la página a 600 dpi**:
 > «TS is considered to be severe if the mean gradient is **≥5 mmHg, inflow VTI ≥60 cm, PHT ≥190 ms,
-> and TVA ≤1 cm²**»
+> and TVA ≤1 cm²**. TS is considered to be mild with a TVA **>1.5 cm²**…»
 
-Se conservó el `>` de la EAE/ASE 2009 por dos razones: es la fuente de la que salen los **otros
-tres** cortes de esta válvula —mezclar operadores de dos documentos deja la tabla sin un dueño— y
-es el **lado conservador**, porque con 60,0 exactos no afirma. La diferencia alcanza a **un solo
-valor**. Queda declarada.
+Los cuatro con el igual, y la **misma oración distingue los glifos**: dos renglones más abajo escribe
+`>1.5 cm²` con un `>` pelado. O sea que el `≥` de los cuatro primeros es deliberado.
+
+⚠️ **EL TEXTO EXTRAÍDO DE ESE PDF NO SIRVE PARA LEER EL OPERADOR, Y NO ES PORQUE SEA UNA IMAGEN.**
+La fuente codifica `≥` como **`$`** y `≤` como **`#`**, así que `pdftotext` devuelve «the mean
+gradient is $5 mmHg, inflow VTI $60 cm, PHT $190 ms, and TVA #1 cm2». Quien lo lea así concluye que
+la guía no escribe operador. Hay que **renderizar**, igual que con Baumgartner 2009 y Wilkins 1988,
+pero por otra causa: allá la tabla es un bitmap, acá es la codificación de la fuente.
+
+**Los otros tres cortes siguen saliendo de la EAE/ASE 2009** —coinciden en los cuatro valores y en
+tres de los cuatro operadores— así que `ET_CRIT_FUENTE` **suma** «ASE 2023» y no reemplaza nada.
+
+⚠️ **Y NO HAY UNA GUÍA MÁS NUEVA QUE LO CONTRADIGA.** Censadas las dos de 2025 de la biblioteca
+—ESC/EACTS 2025 y Praz 2025—: **ninguna nombra el VTI de entrada tricuspídeo** como criterio; las
+únicas apariciones de «VTI» en ellas son las listas de abreviaturas. Verificado por barrido de los
+dos PDF completos.
 
 ⚠️ **LA ESC/EACTS 2025 NO LO CONTRADICE: NO LO NOMBRA.** Su §12.2 (**folio 4688**) publica un solo
 número para la estenosis tricuspídea entera:
@@ -621,6 +638,30 @@ errata «Reumatic»). **Folio = PDF + 2.**
   | `AVM_SEVERA_MAX` | 1,5 cm² | `<=` | Tabla 1, columna «severe»: `≤ 1,5 cm²` |
   | `EM_GMEDIO_ELEVADO_MIN` | 5 mmHg | `>=` | Tabla 1, banda media del gradiente: `5-9 mmHg` |
   | `EM_GMEDIO_SIGNIF_MIN` | 10 mmHg | `>=` | Tabla 1, banda alta del gradiente: `≥ 10 mmHg` |
+
+- ✅ **Y DE ACÁ SALE EL OPERADOR DEL VTI DE ENTRADA TRICUSPÍDEO** desde el 2026-10-14 (**folio 16**,
+  verificado en el encabezado impreso, leído renderizando a 600 dpi): *«TS is considered to be severe
+  if the mean gradient is ≥5 mmHg, inflow VTI ≥60 cm, PHT ≥190 ms, and TVA ≤1 cm²»*. Ver la sección
+  «Estenosis TRICUSPÍDEA» más arriba, donde está la comparación con la EAE/ASE 2009.
+  ⚠️ **El texto extraído de este PDF codifica `≥` como `$` y `≤` como `#`**, así que `pdftotext` no
+  sirve para leer sus operadores. Hay DOS copias del artículo en la biblioteca —`Reumatic
+  Disease.pdf` (28 págs.) y `ASE Enf Reumatica.pdf` (26 págs.)— con el **mismo texto** en esa página;
+  la regla de folio `PDF + 2` vale para las dos.
+
+### ⚠️ «Estenosis mitral severa de BAJO GRADIENTE» — ESC/EACTS 2025, **folio 4680** (verificado 2026-10-14)
+
+Leído renderizando la página, con el folio comprobado en el **encabezado impreso**:
+> «Treatment of patients with **low-gradient severe MS (MVA <1.5 cm², mean gradient <10 mmHg)** is
+> challenging, because these patients are often older and have unfavourable anatomy.»
+
+**Dónde se usa:** reemplaza a la atribución «la propia ESC 2021» que tenía la tarjeta «Referencia
+clínica» de la estenosis mitral — **este archivo no tiene ninguna entrada de ESC/EACTS 2021**, así
+que esa cita no estaba verificada al estándar de la casa. El concepto es el mismo y acá sí tiene
+documento, folio y frase.
+
+⚠️ **ESA GUÍA ESCRIBE `<1.5` ESTRICTO Y LA APP APLICA `≤1,5`.** El corte de la app sale de la ASE
+2023 (arriba) y de la ACC/AHA 2020, y **no se tocó**. La frase sólo sostiene que la estenosis severa
+de bajo gradiente existe y se gradúa por el área, que es lo que el texto de la ayuda afirma.
 
   La nota de la tabla —**«a una frecuencia cardíaca de 60-80 lpm»**— es una condición de la
   medición que la app **no verifica**: no recoge la FC del Doppler transmitral. Queda dicho.

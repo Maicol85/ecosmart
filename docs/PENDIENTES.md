@@ -12,7 +12,7 @@ Se eligió no borrar la clave porque eso **deshace un gesto del médico** que el
 en cuatro lugares. Si se decide lo contrario, el borrado va al lado del `delete esqSevManual` de
 `sevReiniciarManual`. **Decisión de Maicol.**
 
-### M2 · `limpiarCampos` no limpia `_imGradoCalc` ni `_itGradoCalc`, y `_iaGradoCalc` sí
+### M2 · ✅ CERRADO el 2026-10-14 — `limpiarCampos` limpia las TRES fotos de proceso
 
 Lo destapó TC-430. Las tres son la MISMA pieza —la foto de proceso del grado calculado— y el
 comentario de `limpiarCampos` explica por qué la de la IAo se borra: «sobreviviendo, el aviso rojo
@@ -20,8 +20,12 @@ del paciente B nombra "cálculo automático: Severa" sobre un estudio que no tie
 otras dos tienen exactamente el mismo agujero y no están en esa línea. **Consecuencia medida en
 TC-430**: tras «Nuevo estudio», apagar la pastilla de la IT deja la marca puesta mientras la de la
 ET se limpia, porque el reinicio ve un cálculo que es del paciente anterior.
-No se tocó: `limpiarCampos` gobierna el formulario entero y esta orden no la nombra. Son dos
-nombres en una lista que ya existe. **Pendiente, con causa y lugar.**
+**CERRADO**: los dos nombres entraron a esa lista, al lado de `_iaGradoCalc`. Reproducido antes de
+tocarlo con clics reales en los dos botones del gesto —el de la barra y el «Continuar sin guardar»
+del modal—: `_imGradoCalc` y `_itGradoCalc` seguían valiendo `'4'` después de «Nuevo estudio», y
+`sevCalcPublicable('im')` y `('it')` publicaban `'4'` sobre un formulario vacío, que es lo que lee el
+aviso rojo. Control negativo: la IAo iba a `null` en los dos árboles. Lo fija **TC-468**, y **TC-430**
+se adaptó: su condición (5) afirmaba este defecto con el motivo escrito.
 
 ### M3 · La estenosis tricuspídea no pinta el aviso de discordancia al apagar la pastilla
 
@@ -45,7 +49,7 @@ significativa / Significativa».
 `_labEstenSev`, y de él cuelgan `sevTable('lab-esten-em', …)`, `_labGradoTxt`, el filtro de cohorte
 `C.em` y el PDF de auditoría.
 
-### M5 · Tres afirmaciones de la ayuda «Referencia clínica» de la EM quedaron viejas, y no son de esta tanda
+### M5 · ✅ CERRADO el 2026-10-14 — las tres afirmaciones de la ayuda de la EM dicen la regla vigente
 
 En el mismo bloque que se reescribió hay tres frases que **ya estaban desactualizadas** y que esta
 orden no autoriza a tocar porque son contenido clínico: (1) «con AVm > 1,5 y gradiente medio
@@ -53,7 +57,13 @@ orden no autoriza a tocar porque son contenido clínico: (1) «con AVm > 1,5 y g
 (2) «se publican las dos con su método y prevalece el peor, con "**probablemente severa** por …"»
 —la categoría `probable` se eliminó ese mismo día—; y (3) «El gradiente medio **≥ 10 mmHg** de la
 ASE **no** se usa como criterio de severidad» —hoy **sí** se usa, es la mitad de la regla binaria—.
-Se reescribió **sólo** la frase de la nomenclatura. **Reportado, no corregido.**
+**CERRADO**: las tres se reescribieron contra la regla vigente, **sin mover ningún corte ni ninguna
+cuenta** —los números salen de `AVM_SEVERA_MAX`, `EM_GMEDIO_ELEVADO_MIN` y `EM_GMEDIO_SIGNIF_MIN`,
+que son los que `emCategoria` aplica—. De paso, la atribución de la tercera pasó de «la propia ESC
+2021» —que **no tiene ninguna entrada** en `docs/fuentes/FUENTES.md`— a la **ESC/EACTS 2025, folio
+4680**, que sí está en la biblioteca y escribe el concepto literal. Y se corrigió una **cuarta**, no
+listada acá, que repetía el mismo «> 4 mmHg» en el cartel del manual. Lo fija **TC-468**, y **TC-307**
+se adaptó: exigía que el manual NO nombrara el «≥ 10 mmHg», que hoy sí es criterio.
 
 ### M6 · Por encima de 100 cm el VTI de entrada no vota
 
@@ -63,17 +73,84 @@ queda «fuera de rango (no gradúa)» aunque cruce el corte de 60 por casi el do
 conservador —un número de tres cifras en ese campo es, casi siempre, un error de tipeo— pero queda
 declarado porque ahora **retira un criterio** y antes sólo retiraba un denominador.
 
-### M7 · La ASE 2023 escribe `≥60 cm` donde la EAE/ASE 2009 escribe `>60 cm`
+### M7 · ✅ CERRADO el 2026-10-14 — gana la ASE 2023 y el operador pasa a `>=`
 
-Los dos documentos están verificados en su folio impreso y leídos de la imagen. Se aplicó el `>` del
-original —es la fuente de los otros tres cortes de esta válvula y es el lado conservador—, así que
-un VTI de **60,0 exactos** no afirma. La diferencia alcanza a un solo valor. **Declarado.**
+Los dos documentos están verificados en su folio impreso. **Decisión de Maicol («VTI de entrada
+mayor o igual a 60»): gana la guía más nueva**, que es la ASE 2023 (Pandian, folio 16, leído
+renderizando a 600 dpi). La app aplica `>= 60 cm` desde el 2026-10-14, así que **el 60,0 exacto hoy
+sí afirma**. Verificado además que no hay una guía más nueva que lo contradiga: ni la ESC/EACTS 2025
+ni el Praz 2025 nombran el VTI de entrada tricuspídeo, censados los dos PDF completos. El área por
+continuidad —de la que este campo es el denominador— **no se movió**: 0,98 / 0,98 / 1,15 cm² en los
+dos árboles. Lo fija **TC-468**; **TC-466**, **TC-141**, **TC-416**, **TC-417** y **TC-429** se
+adaptaron.
 
 ### M8 · Los dos hallazgos de APOYO de la Tabla 10 siguen sin recogerse
 
 Era el punto A-6 y sigue vivo: **aurícula derecha dilatada ≥ moderada** y **vena cava inferior
 dilatada**. La app tiene los dos datos (`ad_area`, `vci_diam`) y no los conecta. La guía los llama
 «de apoyo» y no de significación, así que no votarían el veredicto: serían una anotación.
+
+---
+
+## Las cuatro partes de Válvulas (2026-10-14) — DECLARADO y NO arreglado
+
+### Q1 · La regla «la última casilla tildada no se destilda» la decidió Claude, no el médico
+
+La orden la proponía así —«regla que decidió Claude y el médico puede ajustar»— y es la que está
+implementada: con una sola casilla tildada, el clic se revierte y el panel escribe «Tiene que quedar
+al menos un método incluido en el informe.». La alternativa sería **permitir las dos apagadas** y que
+el informe no publique ningún método cuantitativo de la IM. **Decisión de Maicol.**
+
+### Q2 · El aviso del panel es un renglón nuevo que no estaba pedido
+
+`im-pdf-metodo-aviso`. Lo agregué porque un clic que no hace nada y no explica se lee como un control
+roto. Es de PANTALLA —no tiene emisor en informe, EN SUMA, PDF, PPT ni Excel, es un `<div>` así que
+el recolector de `guardarInforme` no lo toma, y lo vacía el barrido de `[id^="im-pdf-"]`— y su texto
+se puede cambiar en una línea (`IM_PDF_AVISO`). **Si sobra, se saca.**
+
+### Q3 · Con PISA destildada y la continuidad sin números, la IM se queda sin método
+
+Es alcanzable: la casilla de continuidad se tilda con valor, después se destilda PISA, y más tarde se
+borra un insumo de la continuidad. Ahí `_imPisaIncl` y `_imContIncl` son los dos `false` y el grado
+sale de los votos COMUNES solos —vena contracta, ratio jet/AI y onda S—, que es exactamente el
+comportamiento de HEAD sin ningún método marcado. **No es una regresión y es el lado conservador**,
+pero la regla de la última casilla no lo previene, porque mira el TILDE y no el número.
+
+### Q4 · `im_pdf_pisa` sigue fuera de `_PDF_METODOS`, y por eso necesita su propia restauración
+
+Esa tabla gobierna `_restaurarChkInclusion` y `_pdfMetodoChk`, y se indexa por **campos** que
+habilitan la casilla; PISA no tiene campos propios —su valor sale de los span `eroa-val` / `volr-val`
+/ `freg-val`— así que no entra. El precio es `imPdfPisaRestaurar`, una función aparte llamada desde
+las dos rutas. Meterla en la tabla pidiendo `['pisa_r','pisa_val','im_vmax','im_itv']` unificaría los
+dos mecanismos, pero cambiaría también cuándo se **deshabilita** la casilla, que hoy no se deshabilita
+nunca. **No se hizo: es más de lo que esta orden autoriza.**
+
+### Q5 · El `tocado` de PISA se escribe y no lo lee nadie
+
+`imPdfMetodoClic` lo pone en las dos casillas. La de continuidad lo persiste (`__tocado`) y lo leen
+`_pdfMetodoChk` y las dos restauraciones; la de PISA **no está en `_PDF_METODO_IDS`**, así que su
+bandera vive sólo en memoria y nadie la consulta. Se escribe igual por simetría y se borra en
+`limpiarCampos`. Si algún día PISA entra a esa lista, la bandera ya está.
+
+### Q6 · El operador del VTI de entrada quedó escrito en DOS líneas
+
+El símbolo que imprime el cuadro sale de `ET_CRIT.vtiEnt.op` y la comparación es un `>=` literal en
+`etEstado`. Es la convención de los otros tres criterios de esa tabla —los cuatro tienen su `op` en
+la tabla y su comparación en el código— así que unificarlo en uno solo pedía tocar los cuatro. Lo que
+hoy impide que se desincronicen es **TC-468**, que compara el símbolo IMPRESO contra el lado del
+borde que vota. **Declarado.**
+
+### Q7 · La ESC/EACTS 2025 escribe `<1.5` donde la app aplica `≤1,5` para el área mitral
+
+Apareció al verificar el folio 4680 para la frase de la estenosis severa de bajo gradiente. El corte
+de la app sale de la ASE 2023 y de la ACC/AHA 2020, las dos con `≤`, y **no se tocó**. Es una
+diferencia de un solo valor —el 1,50 exacto— y es otra fuente y otro trabajo.
+
+### Q8 · TC-395 es un séptimo caso inestable por orden de corrida
+
+Salió rojo en un `--solo` de 20 casos de la zona y **verde corrido solo**, con el mismo árbol, igual
+que TC-137 en la misma corrida. Se suma a TC-137, TC-246, TC-249, TC-252, TC-260 y TC-GR-06.
+**Repetir antes de sospechar.**
 
 ---
 
@@ -426,7 +503,7 @@ La tabla de la ASE 2017 tiene **cuatro** columnas de cuantitativos: la moderada 
 declara —«Quantitative parameters can help subclassify the moderate regurgitation group»—.
 `IM_CORTES` tiene tres bandas. **Pre-existente**, no se tocó en esta tanda.
 
-### B-9 · El aviso «Severidad (continuidad)» sobrevive a «Nuevo estudio»
+### B-9 · ✅ CERRADO el 2026-10-14 — el renglón «Severidad (continuidad)» se vacía
 
 Medido en la sonda: en la escena `ninguno` del grupo `metodo` —formulario recién limpiado— el
 renglón `im-cont-severidad` seguía diciendo «Severidad (continuidad): Leve · método volumétrico ·
@@ -436,6 +513,12 @@ que el barrido genérico de `limpiarCampos` no lo alcanza, igual que les pasaba 
 Excel, y su `dataset.gradoVolum` sí se borra en las ramas que corresponden—, pero es una afirmación
 sobre un paciente que ya no está. El arreglo es una línea en el final de `limpiarCampos`, al lado
 de las que entraron en esta tanda; se declara en vez de hacerse porque no es de esta orden.
+
+**CERRADO el 2026-10-14** con esa línea, al lado del barrido de `[id^="im-pdf-"]`. Reproducido antes
+con clics reales: el renglón seguía diciendo «Severidad (continuidad): Severa · método volumétrico ·
+Vol-R 88 ml · FR 58%» sobre un formulario en blanco. Se vacía con `innerHTML` y no con `textContent`
+porque su pintor escribe HTML, que es lo mismo que hace `calcContIM` en su rama de «no hay nada que
+decir». Lo fija **TC-468**, con su denominador: primero se comprueba que el renglón dijera algo.
 
 ---
 

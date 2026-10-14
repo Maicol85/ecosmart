@@ -63067,6 +63067,325 @@ caso('TC-467', 'HFA-PEFF contra el original de Pieske 2019: el piso del NT-proBN
   return { extra: ex, R: R };
 `);
 
+
+/* ══ TC-468 — LAS CUATRO PARTES CHICAS DE VALVULAS (2026-10-14) ════════════════════════════════
+   (1) el VTI de entrada tricuspideo vota con >=60 cm, que es el operador de la ASE 2023 (Pandian,
+       folio 16) y no el > estricto de la EAE/ASE 2009;
+   (2) la casilla de PISA de «Incluir en el informe» se puede DESTILDAR, y la ultima tildada no;
+   (3) los dos grados calculados y el renglon «Severidad (continuidad)» dejan de sobrevivir a
+       «Nuevo estudio»;
+   (4) las tres afirmaciones viejas de la ayuda de la estenosis mitral.
+
+   ⚠️ CARGA CON `__t.set` Y NO CON TECLAS DE CDP, y hay que decirlo: el cuerpo de un caso corre
+   DENTRO de la pagina, no tiene acceso al protocolo del navegador y un KeyboardEvent construido a
+   mano no es de confianza. Las mismas escenas van con TECLAS Y CLICS REALES en
+   scripts/_probe_valvcuatro.mjs, que es la que midio los sintomas contra HEAD. Mismo reparto que
+   TC-460, TC-463, TC-465 y TC-466.
+   ⚠️ TODAS LAS LECTURAS DEL ARBOL NUEVO VAN CON SU RESPALDO. Un caso que muere por EXCEPCION
+   contra HEAD prueba que el arbol es distinto, no que sabe medir — es la leccion que TC-455,
+   TC-462, TC-465 y TC-466 ya tienen escrita. */
+caso('TC-468', 'Las cuatro partes de Valvulas: el VTI de entrada tricuspideo vota con >=60 cm (ASE 2023, folio 16) y el area por continuidad no se mueve, la casilla de PISA se destilda salvo que sea la ultima, «Nuevo estudio» no deja vivos los grados calculados de la IM y la IT ni el renglon de continuidad, y la ayuda de la estenosis mitral dice la regla vigente', `
+  const ex = [];
+  const G = id => __t.val(id);
+  const T = id => (__t.txt(id) || '').trim();
+  const CHK = id => { const e = document.getElementById(id); return e ? !!e.checked : 'NO EXISTE'; };
+  const PILL = (v, t) => { try { return pillOn(v, t); } catch (e) { return 'EXC'; } };
+  const recalc = () => ['calcAo','calcEM','calcIM_ESC','calcIA_ESC','calcIT_ESC','calcET','calcVP','calcIP','calcContIM','calcDiastol']
+    .forEach(f => { try { if (typeof window[f] === 'function') window[f](); } catch (e) {} });
+  const base = () => {
+    __t.limpiar();
+    window.esqSevManual = {}; window._sevCalcAlFijar = {};
+    ['aortica','mitral','tricuspide','pulmonar'].forEach(v => ['esten','insuf'].forEach(t => {
+      try { if (PILL(v, t) === true) toggleValvPill(v, t); } catch (e) {}
+      try { localStorage.removeItem('valv-pill-' + t + '-' + v); } catch (e) {}
+    }));
+    try { if (window.VALV_ESTEN_AUTO) window.VALV_ESTEN_AUTO.clear(); } catch (e) {}
+    try { if (window.VALV_INSUF_AUTO) window.VALV_INSUF_AUTO.clear(); } catch (e) {}
+    recalc();
+  };
+  const poner = (id, val) => { __t.set(id, val); recalc(); };
+  /* El clic del medico sobre una casilla: se cambia el .checked y se DESPACHA el change, que es lo
+     que corre el dueno de la regla. Lo que queda despues es la medicion, no lo que se pidio. */
+  const clicChk = id => {
+    const e = document.getElementById(id); if (!e) return 'NO EXISTE';
+    e.checked = !e.checked; e.dispatchEvent(new Event('change', { bubbles: true }));
+    recalc(); return e.checked;
+  };
+
+  /* ── 0 · DENOMINADORES ─────────────────────────────────────────────────────────────────────
+     Sin esto, todo lo de abajo podria pasar en un arbol donde nada de esto se escribio. */
+  const faltan = ['etEstado','imPdfMetodoClic','imPdfPisaIncluida','imPdfPisaRestaurar','limpiarCampos']
+    .filter(n => typeof window[n] !== 'function');
+  ex.push(['DENOMINADOR: las cinco funciones duenas de esta tanda existen',
+    faltan.length === 0, 'faltan=' + JSON.stringify(faltan)]);
+  const CV = (window.ET_CRIT || {}).vtiEnt || {};
+  ex.push(['DENOMINADOR: el corte del VTI de entrada vale 60 cm y su operador es MAYOR-O-IGUAL (ASE 2023, Pandian, folio 16)',
+    CV.signif === 60 && CV.op === '>=' && CV.uni === 'cm',
+    JSON.stringify({ signif: CV.signif, op: CV.op, uni: CV.uni })]);
+
+  /* ── 1 · EL VTI DE ENTRADA EN SU BORDE ─────────────────────────────────────────────────────
+     Con el VTI como UNICO dato: si hubiera otro criterio cumplido, el veredicto seria el mismo por
+     otra razon y la tabla no probaria nada. */
+  const vti = {};
+  ['59.9','60','60.1','99','101'].forEach(v => {
+    base(); poner('et_vti_diast', v);
+    let E = null; try { E = etEstado(); } catch (e) { E = { err: 1 }; }
+    vti[v] = { cVti: E.cVti, signif: E.signif, grado: G('et_grado'),
+               pill: PILL('tricuspide','esten'), fila: T('et-ref-vti'), suma: (__t.informe() || {}).suma || '' };
+  });
+  const dv = JSON.stringify(Object.keys(vti).map(k => k + ':' + vti[k].cVti + '/' + vti[k].grado));
+  ex.push(['(1) el corte separa por sus DOS lados: 59,9 NO vota · 60,0 SI · 60,1 SI',
+    vti['59.9'].cVti === false && vti['60'].cVti === true && vti['60.1'].cVti === true, dv]);
+  ex.push(['(1) el 60,0 exacto basta SOLO para el veredicto, para el grado y para prender la pastilla',
+    vti['60'].signif === true && vti['60'].grado === 'Significativa' && vti['60'].pill === true, dv]);
+  ex.push(['(1) y llega al EN SUMA: «ET significativa.» con 60,0 y nada con 59,9',
+    vti['60'].suma.indexOf('ET significativa.') > -1 && vti['59.9'].suma.indexOf('ET significativa.') === -1,
+    JSON.stringify({ a: vti['59.9'].suma.slice(0, 80), b: vti['60'].suma.slice(0, 80) })]);
+  ex.push(['(1) CONTROL NEGATIVO: con 59,9 no hay veredicto, ni grado, ni pastilla',
+    vti['59.9'].signif === false && vti['59.9'].grado === 'sin' && vti['59.9'].pill === false, dv]);
+  /* ⚠️ EL SIMBOLO IMPRESO Y LA COMPARACION SON DOS LINEAS DISTINTAS, y esta condicion es lo unico
+     que impide que se desincronicen: el rotulo sale del campo op de ET_CRIT y el voto del >= de
+     etEstado. Un cuadro que imprimiera «>60 cm» al lado de un 60,0 que vota es peor que no tenerlo. */
+  ex.push(['(1) la fila del cuadro imprime >=60 y NO el operador contrario ni el estricto',
+    vti['60'].fila.indexOf('≥60 cm') > -1 && vti['60'].fila.indexOf('≤60') === -1 &&
+    vti['60'].fila.indexOf('>60 cm') === -1, vti['60'].fila]);
+  ex.push(['(1) la banda NO se movio: 99 vota y 101 queda «fuera de rango (no gradua)»',
+    vti['99'].cVti === true && vti['101'].cVti === false &&
+    vti['101'].fila.indexOf('fuera de rango') > -1, dv]);
+  /* EL AREA POR CONTINUIDAD NO SE MUEVE: este campo es su DENOMINADOR. Dos juegos de insumos, uno
+     de cada lado del corte del area, con el VTI a los dos lados del corte NUEVO. */
+  const area = {};
+  [['25','14','70','0.98'], ['25','12','60','0.98'], ['25','14','59.9','1.15']].forEach(c => {
+    base(); poner('tsvd_diametro', c[0]); poner('vti_tsvd', c[1]); poner('et_vti_diast', c[2]);
+    let E = null; try { E = etEstado(); } catch (e) { E = { avt: 'EXC' }; }
+    area[c[2]] = { campo: G('et_avt'), avt: E.avt, esperado: c[3] };
+  });
+  ex.push(['(1) el area por continuidad da los MISMOS numeros que antes del cambio: 0,98 / 0,98 / 1,15 cm²',
+    area['70'].campo === '0.98 cm²' && area['60'].campo === '0.98 cm²' && area['59.9'].campo === '1.15 cm²' &&
+    area['70'].avt === 0.98 && area['59.9'].avt === 1.15, JSON.stringify(area)]);
+  /* CONTROL NEGATIVO: con el gradiente ya significativo, el VTI no puede cambiar el veredicto —el
+     criterio es un OR— asi que 30 y 60 tienen que dar lo mismo. */
+  base(); poner('et_gmedio','8'); poner('et_vti_diast','30');
+  const gmA = { grado: G('et_grado'), pill: PILL('tricuspide','esten') };
+  base(); poner('et_gmedio','8'); poner('et_vti_diast','60');
+  const gmB = { grado: G('et_grado'), pill: PILL('tricuspide','esten') };
+  ex.push(['(1) CONTROL NEGATIVO: con el gradiente ya cumpliendo, el VTI no cambia el veredicto',
+    gmA.grado === 'Significativa' && JSON.stringify(gmA) === JSON.stringify(gmB),
+    JSON.stringify(gmA) + ' vs ' + JSON.stringify(gmB)]);
+
+  /* ── 2 · LA CASILLA DE PISA ────────────────────────────────────────────────────────────────
+     PISA se calibra para dar SEVERA (EROA 50,3 mm²) y la continuidad para dar un grado MENOR, asi
+     que los dos metodos dan grados DISTINTOS y la regla se puede ver. Con una sola pareja no se
+     puede: un veredicto que se quedara SIEMPRE con PISA pasaria las escenas donde PISA gana. */
+  const PISA = { pisa_r:'10', pisa_val:'40', im_vmax:'5', im_itv:'40' };
+  const CONT = { diam_mit:'30', vtim:'12', ea_dtsvi:'20', itv_tsvi:'22' };
+  const sembrarIM = () => { base();
+    Object.keys(PISA).forEach(k => __t.set(k, PISA[k]));
+    Object.keys(CONT).forEach(k => __t.set(k, CONT[k]));
+    recalc(); };
+  const fotoIM = () => { const i = __t.informe() || {};
+    let pdf = {}; ['imEroaPdfVal','imVolrPdfVal','imFrPdfVal'].forEach(f => {
+      try { pdf[f] = (typeof window[f] === 'function') ? window[f]() : 'NO EXISTE'; }
+      catch (e) { pdf[f] = 'EXC'; } });
+    return { grado: G('im_grado'), sev: T('im-sev'), pill: PILL('mitral','insuf'),
+             chkP: CHK('im_pdf_pisa'), chkC: CHK('im_pdf_cont'),
+             eroa: T('eroa-val'), contEroa: G('im_eroa_cont'),
+             pdf: pdf, suma: i.suma || '', inf: i.inf || '' }; };
+
+  sembrarIM();
+  const mAmbasNo = fotoIM();                                  // solo PISA tildada (el default)
+  __t.set('im_pdf_cont', true); clicChk('im_pdf_cont');        // se fuerza el estado y se despacha
+  const cbC0 = document.getElementById('im_pdf_cont');
+  if (cbC0 && !cbC0.checked) { cbC0.checked = true; cbC0.dispatchEvent(new Event('change', { bubbles: true })); recalc(); }
+  const mAmbas = fotoIM();                                    // las dos tildadas
+  const trasDestildarPisa = clicChk('im_pdf_pisa');           // solo continuidad
+  const mSoloCont = fotoIM();
+  ex.push(['DENOMINADOR: los DOS metodos tienen numero y dan grados DISTINTOS',
+    mAmbas.eroa.indexOf('50.3') > -1 && mAmbas.contEroa.indexOf('39.3') > -1 &&
+    mAmbas.grado !== mSoloCont.grado,
+    JSON.stringify({ pisa: mAmbas.eroa, cont: mAmbas.contEroa, gAmbas: mAmbas.grado, gCont: mSoloCont.grado })]);
+  ex.push(['(2) la casilla de PISA SE DESTILDA cuando la continuidad esta tildada',
+    trasDestildarPisa === false && mSoloCont.chkP === false && mSoloCont.chkC === true,
+    'trasClic=' + trasDestildarPisa + ' ' + JSON.stringify({ p: mSoloCont.chkP, c: mSoloCont.chkC })]);
+  ex.push(['(2) y al informe va SOLO la continuidad: el grado baja y el EN SUMA lo dice',
+    mAmbas.grado === '4' && mSoloCont.grado === '2' &&
+    mAmbas.suma.indexOf('IM severa.') > -1 && mSoloCont.suma.indexOf('IM moderada.') > -1,
+    JSON.stringify({ gA: mAmbas.grado, gC: mSoloCont.grado,
+                     sA: mAmbas.suma.slice(0, 60), sC: mSoloCont.suma.slice(0, 60) })]);
+  ex.push(['(2) y la tabla del PDF deja de publicar la pata «PISA:» en las TRES filas',
+    String(mAmbas.pdf.imEroaPdfVal).indexOf('PISA:') > -1 &&
+    String(mSoloCont.pdf.imEroaPdfVal).indexOf('PISA:') === -1 &&
+    String(mSoloCont.pdf.imEroaPdfVal).indexOf('Cont:') > -1 &&
+    String(mSoloCont.pdf.imVolrPdfVal).indexOf('PISA:') === -1 &&
+    String(mSoloCont.pdf.imFrPdfVal).indexOf('PISA:') === -1,
+    JSON.stringify({ ambas: mAmbas.pdf, soloCont: mSoloCont.pdf })]);
+  /* LA ULTIMA CASILLA TILDADA NO SE DESTILDA, POR LOS DOS LADOS. Con una sola pareja no alcanza:
+     una implementacion que protegiera solo a PISA pasaria la primera mitad. */
+  const ultimaCont = clicChk('im_pdf_cont');                  // continuidad es la unica tildada
+  const avisoCont = T('im-pdf-metodo-aviso');
+  ex.push(['(2) la ULTIMA tildada no se destilda — con la continuidad sola el clic se revierte',
+    ultimaCont === true && avisoCont.indexOf('al menos un m') > -1,
+    'quedo=' + ultimaCont + ' aviso=«' + avisoCont + '»']);
+  sembrarIM();                                                 // vuelve al default: solo PISA
+  const ultimaPisa = clicChk('im_pdf_pisa');
+  const avisoPisa = T('im-pdf-metodo-aviso');
+  ex.push(['(2) y del otro lado: con PISA sola el clic sobre PISA tampoco la baja',
+    ultimaPisa === true && avisoPisa.indexOf('al menos un m') > -1,
+    'quedo=' + ultimaPisa + ' aviso=«' + avisoPisa + '»']);
+  /* ⚠️ LA AUSENCIA DE LA CLAVE SIGNIFICA TILDADA, y es lo que hace seguro consultar la casilla: un
+     estudio anterior a este selector no trae la clave im_pdf_pisa__chk y la ventana de reimpresion escribe
+     .checked SIEMPRE. Sin esto, todo informe firmado antes se reimprimiria sin EROA ni Vol-R. */
+  const cbP = document.getElementById('im_pdf_pisa');
+  if (cbP) { cbP.checked = false; }
+  try { imPdfPisaRestaurar({}); } catch (e) {}
+  const sinClave = CHK('im_pdf_pisa');
+  try { imPdfPisaRestaurar({ im_pdf_pisa__chk: '0' }); } catch (e) {}
+  const conCero = CHK('im_pdf_pisa');
+  try { imPdfPisaRestaurar({ im_pdf_pisa__chk: '1' }); } catch (e) {}
+  const conUno = CHK('im_pdf_pisa');
+  ex.push(['(2) un estudio SIN la clave reabre TILDADA; con «0» destildada y con «1» tildada',
+    sinClave === true && conCero === false && conUno === true,
+    JSON.stringify({ sinClave: sinClave, cero: conCero, uno: conUno })]);
+  /* y las DOS rutas de restauracion la llaman: la del estudio y la de la ventana de reimpresion. */
+  const fuentes = [];
+  try { fuentes.push(String(_restaurarChkInclusion).indexOf('imPdfPisaRestaurar') > -1); } catch (e) { fuentes.push('EXC'); }
+  try { fuentes.push(String(_pdfDeInformeGuardadoArmar).indexOf('imPdfPisaRestaurar') > -1); } catch (e) { fuentes.push('EXC'); }
+  ex.push(['(2) las DOS rutas de restauracion reponen el default de PISA',
+    fuentes[0] === true && fuentes[1] === true, JSON.stringify(fuentes)]);
+
+  /* ── 3 · «NUEVO ESTUDIO» NO DEJA VIVO EL CALCULO DEL PACIENTE ANTERIOR ─────────────────────
+     Lo que se mide son las tres piezas que NINGUN barrido alcanzaba: las dos fotos de proceso, que
+     no son DOM, y el renglon de continuidad, que es un div que no matchea ningun selector. */
+  const proc = () => {
+    let cp = {}; ['im','it','ia'].forEach(k => {
+      try { cp[k] = (typeof sevCalcPublicable === 'function') ? sevCalcPublicable(k) : 'SIN FN'; }
+      catch (e) { cp[k] = 'EXC'; } });
+    const cs = document.getElementById('im-cont-severidad');
+    return { im: (window._imGradoCalc === undefined ? 'UNDEF' : window._imGradoCalc),
+             it: (window._itGradoCalc === undefined ? 'UNDEF' : window._itGradoCalc),
+             ia: (window._iaGradoCalc === undefined ? 'UNDEF' : window._iaGradoCalc),
+             contSev: cs ? (cs.textContent || '').trim() : 'NO EXISTE',
+             calcPub: cp };
+  };
+  /* ⚠️ SE USA limpiarCampos, QUE ES LO QUE CORRE EL BOTON. El gesto completo —los dos clics, el
+     de la barra y el del modal— va con CLICS REALES en la sonda; aca no hay protocolo. */
+  base(); Object.keys(PISA).forEach(k => __t.set(k, PISA[k])); poner('it_vc','8'); poner('ia_vc','8');
+  const pAntes = proc();
+  try { limpiarCampos(true); } catch (e) {}
+  const pDespues = proc();
+  ex.push(['DENOMINADOR: con los datos cargados las TRES fotos de proceso valen el grado calculado',
+    pAntes.im === '4' && pAntes.it === '4' && pAntes.ia === '4', JSON.stringify(pAntes)]);
+  ex.push(['(3) «Nuevo estudio» deja los grados calculados de la IM y de la IT en null',
+    (pDespues.im === null || pDespues.im === undefined) &&
+    (pDespues.it === null || pDespues.it === undefined), JSON.stringify(pDespues)]);
+  ex.push(['(3) y sevCalcPublicable deja de publicar un calculo sobre el formulario vacio',
+    pDespues.calcPub.im === null && pDespues.calcPub.it === null && pDespues.calcPub.ia === null,
+    JSON.stringify(pDespues.calcPub)]);
+  ex.push(['(3) CONTROL NEGATIVO: la IAo, que YA se limpiaba, sigue limpiandose igual',
+    pAntes.ia === '4' && (pDespues.ia === null || pDespues.ia === undefined),
+    'antes=' + pAntes.ia + ' despues=' + pDespues.ia]);
+  /* EL RENGLON «Severidad (continuidad)». Se carga el metodo volumetrico con un Vol-R grande para
+     que el renglon tenga algo que decir: sin eso la condicion pasa sobre un renglon que nunca se
+     escribio, que es el denominador vacio de siempre. */
+  base(); ['diam_mit','vtim','ea_dtsvi','itv_tsvi','im_itv'].forEach((id, i) =>
+    __t.set(id, ['40','12','20','20','40'][i]));
+  recalc();
+  const csAntes = proc().contSev;
+  try { limpiarCampos(true); } catch (e) {}
+  const csDespues = proc().contSev;
+  ex.push(['DENOMINADOR: con el metodo volumetrico cargado el renglon de continuidad dice algo',
+    csAntes.indexOf('Severidad (continuidad)') > -1, '«' + csAntes.slice(0, 120) + '»']);
+  ex.push(['(3) y «Nuevo estudio» lo deja VACIO, no con la severidad del paciente anterior',
+    csDespues === '', '«' + csDespues.slice(0, 120) + '»']);
+  /* EL DATO NUEVO CLASIFICA SIN ARRASTRAR NADA: despues del gesto, un dato LEVE da grado 1. */
+  base(); Object.keys(PISA).forEach(k => __t.set(k, PISA[k])); recalc();
+  try { limpiarCampos(true); } catch (e) {}
+  poner('im_vc','2');
+  const imNuevo = { grado: G('im_grado'), calc: (window._imGradoCalc === undefined ? 'UNDEF' : window._imGradoCalc) };
+  ex.push(['(3) el dato nuevo clasifica por su cuenta: una vena contracta de 2 mm da grado 1',
+    imNuevo.grado === '1' && imNuevo.calc === '1', JSON.stringify(imNuevo)]);
+
+  /* ── 4 · LA AYUDA DE LA ESTENOSIS MITRAL ───────────────────────────────────────────────────
+     ⚠️ EL TEXTO SE LEE DE LOS NODOS QUE EL MEDICO LEE Y NO DE document.body: eso incluye los 6 MB
+     de JS con sus comentarios, y una frase que solo vive en un comentario se informa como si
+     estuviera en la ayuda. Le paso a la sonda de esta tanda y dijo que una frase borrada seguia
+     en pantalla. Se recorren las secciones del manual —que se pinta DE A UNA— mas la tarjeta
+     ref-em, que es donde viven las tres y que renderAyudaEco no toca. */
+  let ayudaTxt = '', secciones = 0;
+  try {
+    const N = (typeof ECO_AYUDA !== 'undefined' ? ECO_AYUDA : []).length;
+    secciones = N;
+    for (let i = 0; i < N; i++) { try { renderAyudaEco(i); } catch (e) {}
+      const c = document.getElementById('ecoAyudaContenido');
+      ayudaTxt += ' | ' + (c ? (c.textContent || '') : ''); }
+  } catch (e) { ayudaTxt = 'EXC'; }
+  ['ref-em','ref-im'].forEach(id => { const r = document.getElementById(id);
+    ayudaTxt += ' | ' + (r ? (r.textContent || '') : ''); });
+  const tiene = f => ayudaTxt.indexOf(f) >= 0;
+  ex.push(['DENOMINADOR: el manual tiene secciones y la tarjeta de referencia de la EM tiene texto',
+    secciones > 0 && (document.getElementById('ref-em') || { textContent:'' }).textContent.length > 500,
+    'secciones=' + secciones + ' refEm=' + (document.getElementById('ref-em') || { textContent:'' }).textContent.length]);
+  ex.push(['(4) la ayuda ya NO dice «gradiente medio > 4 mmHg»: la banda del gradiente elevado es 5 a <10',
+    !tiene('gradiente medio > 4 mmHg') && tiene('5 a menos de 10 mmHg'),
+    'grad4=' + tiene('gradiente medio > 4 mmHg') + ' banda=' + tiene('5 a menos de 10 mmHg')]);
+  ex.push(['(4) ya NO dice «probablemente severa por»: esa categoria se elimino el 2026-10-11',
+    !tiene('probablemente severa por'), 'probable=' + tiene('probablemente severa por')]);
+  ex.push(['(4) y ya NO dice que el ≥10 mmHg «no se usa como criterio de severidad» — hoy SI es criterio',
+    !tiene('no se usa como criterio de severidad') && tiene('≥ 10 mmHg'),
+    'noCrit=' + tiene('no se usa como criterio de severidad') + ' diez=' + tiene('≥ 10 mmHg')]);
+  ex.push(['(4) y el cartel de la estenosis tricuspidea publica el operador NUEVO del VTI de entrada',
+    tiene('VTI de entrada ≥ 60 cm') && !tiene('VTI de entrada > 60 cm'),
+    'mayorIgual=' + tiene('VTI de entrada ≥ 60 cm') + ' mayor=' + tiene('VTI de entrada > 60 cm')]);
+
+  /* ── 5 · CONTROLES: LO QUE ESTA TANDA NO PUEDE MOVER ───────────────────────────────────────
+     Con un escenario CARGADO, para que el control tenga denominador: un formulario vacio sale
+     identico por construccion y no prueba nada. */
+  base();
+  const SEMBRADO = { im_vc:'6', ia_vc:'5', it_vc:'6', ea_dtsvi:'20', itv_tsvi:'22',
+    vmax_ao:'4.2', gmedio_ao:'45', em_gmedio:'12', et_gmedio:'8', et_thp:'200',
+    vp_vmax:'3.5', ip_pht:'80', onda_e:'90', onda_a:'60', tde:'180', e_sep:'6', e_lat:'8',
+    vmax_it:'2.9', ai_vol:'40', peso:'70', talla:'170', edad:'60', fevi:'60', hf_ntprobnp:'450' };
+  Object.keys(SEMBRADO).forEach(k => __t.set(k, SEMBRADO[k]));
+  recalc();
+  const ctrl = { diast: T('dd-interp'), hfapeff: T('hfapeff-eco'),
+    eaSev: T('ea-sev'), iaSev: T('ia-sev'), itSev: T('it-sev'),
+    emBadge: T('em-sev-integrada'), vpBadge: T('vp-sev-badge'), ipPht: T('ip-ref-pht'),
+    eaGrado: G('ea_grado'), iaGrado: G('ia_grado'), itGrado: G('it_grado'),
+    emGrado: G('em_grado'), epGrado: G('ep_grado'), ipGrado: G('ip_grado') };
+  const vacios = Object.keys(ctrl).filter(k => !ctrl[k] || ctrl[k] === '—');
+  ex.push(['DENOMINADOR del control: las CATORCE superficies ajenas tienen contenido',
+    vacios.length === 0, 'vacias=' + JSON.stringify(vacios)]);
+  ex.push(['(5) la funcion diastolica y el HFA-PEFF publican su veredicto con el escenario cargado',
+    ctrl.diast.indexOf('DD Grado II') > -1 && ctrl.hfapeff.indexOf('4/6') > -1,
+    JSON.stringify({ d: ctrl.diast, h: ctrl.hfapeff })]);
+  ex.push(['(5) las cuatro lesiones ajenas conservan su grado: EAo severa, IAo 2, IT 2, EP moderada',
+    ctrl.eaGrado === 'severa' && ctrl.iaGrado === '2' && ctrl.itGrado === '2' &&
+    ctrl.epGrado === 'Moderada' && ctrl.ipGrado === 'Severa', JSON.stringify(ctrl)]);
+  /* El Laboratorio lee el TOKEN guardado, no la pantalla: se le pregunta a su propia funcion. */
+  let labEM = 'SIN FN', labEA = 'SIN FN';
+  try { if (typeof _labEstenSev === 'function') {
+    labEM = _labEstenSev({ campos: { em_grado: G('em_grado') } }, 'em_grado');
+    labEA = _labEstenSev({ campos: { ea_grado: G('ea_grado') } }, 'ea_grado'); } } catch (e) {}
+  ex.push(['(5) el Laboratorio clasifica los dos tokens como siempre: EM «Sin» y EAo «Severa»',
+    labEM === 'Sin' && labEA === 'Severa', 'EM=' + labEM + ' EA=' + labEA]);
+  /* EL EXCEL: 435 columnas y ni una nueva. Se arma la fila por el MISMO barrido que usa el export. */
+  let xl = 'EXC';
+  try {
+    const campos = {};
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(el => {
+      try { if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(el.id)) return; } catch (e) {}
+      campos[el.id] = el.value; });
+    document.querySelectorAll('input[type=checkbox][id]').forEach(el => {
+      campos[el.id + '__chk'] = el.checked ? '1' : '0'; });
+    const row = _labExcelRow({ nombre:'P', ci:'1', fecha_estudio:'2026-10-14', campos: campos });
+    xl = Object.keys(row).length;
+  } catch (e) { xl = 'EXC: ' + e.message; }
+  ex.push(['(5) el Excel sigue en 435 columnas: esta tanda no agrega ni una',
+    xl === 435, 'columnas=' + xl]);
+
+  return { extra: ex };
+`);
+
 let servidor, chrome;
 try {
   const s = await servir(); servidor = s.srv;

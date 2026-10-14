@@ -30,7 +30,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar un DIAGRAMA DE FLUJO de la ventana 🧭** (BSE 2024, ASE 2025 en ritmo sinusal o en FA, ASE/EACVI 2016 8A y 8B): los planos, el motor del SVG, el umbral de ancho o la tabla compacta | `docs/mapa/diastolica-diagrama.md` |
 | **Tocar la GRILLA del Doppler mitral**: el orden de los 16 campos, el Tab por columnas, los puntos de corte o el selector del S/D | `docs/mapa/doppler-mitral-grilla.md` |
 | **Tocar el BORRADO de una lesión valvular**: el retiro del grado, quién prendió una pastilla, los dos métodos de la IM, la continuidad de la IT o el grado de cada fila | `docs/mapa/valvulas-borrado.md` |
-| **Tocar la MARCA DE MANUAL de una pastilla, el selector binario de la estenosis mitral, el VIOLETA de «Significativa» o el VTI de entrada tricuspídeo** | `docs/mapa/valvulas-manual-binario.md` |
+| **Tocar la MARCA DE MANUAL de una pastilla, el selector binario de la estenosis mitral, el VIOLETA de «Significativa», el VTI de entrada tricuspídeo, la CASILLA DE PISA de «Incluir en el informe» o lo que «Nuevo estudio» deja vivo** | `docs/mapa/valvulas-manual-binario.md` |
 | **Tocar el VENTRÍCULO DERECHO**: sus campos, el cuadro de referencias, la disfunción sistólica, la pared o el Tei | `docs/mapa/vd-derecho.md` |
 | **Tocar el panel de Evidencia: agregar una cita, una sección o un sub-bloque** | `docs/mapa/panel-evidencia.md` |
 | **Agregar un TÉRMINO al glosario del panel (el ⓘ con tarjeta)** | `docs/mapa/panel-evidencia-terminos.md` |
@@ -230,6 +230,144 @@ impecable.
 ---
 
 ## Estado vigente
+
+### Las CUATRO PARTES CHICAS de Válvulas: el VTI de la ET, la casilla de PISA, «Nuevo estudio» y la ayuda de la EM (2026-10-14)
+
+- Al **empezar** esta tanda, `main` local y `origin/main` estaban los dos en **`2d98133`**, sin nada
+  sin pushear —confirmado con un `git fetch` de verdad, no con el ref en caché—, con los **tres**
+  commits de la tanda de los criterios del HFA-PEFF ya incluidos **y pusheados**. Los **cinco**
+  commits de esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 5 → 4 → 3 → 2 → 1.**
+  ⚠️ **EL 1, EL 2, EL 3 Y EL 4 NO SE LLAMAN ENTRE SÍ Y SE REVIERTEN EN CUALQUIER ORDEN**, que es
+  raro en esta serie y conviene decirlo: el 1 toca `ET_CRIT` y `etEstado`, el 2 el panel de métodos
+  de la IM, el 3 dos líneas de `limpiarCampos` y el 4 sólo texto de ayuda.
+  ⚠️ **PERO EL 1 LLEVA LA SONDA** (`scripts/_probe_valvcuatro.mjs`), que los otros tres también
+  usan, y la adaptación de **cinco** casos; revertirlo deja a los demás sin arnés. **El 5 es TC-468
+  más documentación** y afirma el comportamiento de los cuatro: revertir cualquiera sin el 5 deja
+  TC-468 en rojo —21 de sus 35 condiciones, verificado en un worktree aparte—. Y **el 4 adaptó
+  TC-307**, cuya condición exigía lo contrario de lo que la regla vigente publica: revertir el 4 sin
+  reponer esa afirmación lo deja midiendo de menos, no en rojo.
+
+- **Línea base al cierre: suite 478/482 con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0 ERROR,
+  Excel 435 columnas con el hash IDÉNTICO a HEAD, celular 43 a 360 px y 52 a 390 px con 1 ALTA cada
+  uno —IDÉNTICO a la línea base, y `--todo` da 374 y 383, el mismo par—.** Los cuatro rojos son los
+  de ENTRADA y NO son regresiones: **TC-223** (el documentado, falla por la fecha), **TC-376**,
+  **TC-390** y **TC-406**. **El denominador subió a 482**: esta tanda agregó **TC-468**.
+  ⚠️ **EL PENDRIVE ESTABA AFUERA AL ABRIR Y MONTADO AL CERRAR, ASÍ QUE LAS DOS CIFRAS NO SE RESTAN.**
+  La de ENTRADA, medida en HEAD limpio el 2026-10-14 con el pendrive **AFUERA**, fue **460/481** con
+  **21** rojos: los **cuatro** de arriba más los **diecisiete** de **TC-181…TC-197**, que son los del
+  pendrive y son ENTORNO. En la corrida de cierre esos diecisiete salieron **VERDES**, que es la
+  prueba de que lo eran. **La comparación válida es que el conjunto de rojos NO-pendrive es el MISMO
+  en las dos puntas, y son esos cuatro.** `ls /Volumes/DISK_IMG` ANTES de comparar dos cifras.
+  El `md5` de `index.html` no se movió durante ninguna de las dos corridas.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista de ids con
+  `grep -o "^caso('[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. Por eso los totales son sobre 481 y 482 y no sobre 482 y 483.
+  ⚠️ **Y LA PRIMERA CORRIDA DE LA LÍNEA BASE SE COLGÓ 43 MINUTOS EN TC-228**, con node al 0 % de CPU
+  y el log sin escribir, sobre HEAD limpio. Corrido **solo** pasó en segundos. Es la trampa de
+  `cdp.mjs` que este archivo ya documenta, no un caso que necesite el pendrive: **repetir antes de
+  sospechar**, y mirar el `mtime` del log antes de creer que una corrida avanza.
+
+- **Dónde está todo:** `docs/mapa/valvulas-manual-binario.md` → **tres secciones nuevas** (6 la
+  casilla de PISA, 7 lo que «Nuevo estudio» dejaba vivo, 8 las tres afirmaciones de la ayuda) más el
+  operador nuevo en la 4; el mapa pasó de 16,2 a **29,2 KB**, medido, así que **no hizo falta
+  partirlo** —pero la próxima tanda que lo toque conviene que mida antes de escribir—.
+  `docs/fuentes/FUENTES.md` → el operador del VTI con su folio y la trampa de codificación, la
+  entrada nueva de la ESC/EACTS 2025 folio 4680, y `### asePandian2023` con el puntero.
+  `docs/PENDIENTES.md` → **M2, M5, M7 y B-9 marcados CERRADOS** más **ocho** cosas nuevas declaradas
+  y no tocadas (Q1 a Q8).
+
+- **EL VTI DE ENTRADA TRICUSPÍDEO PASA A `>= 60 cm`, Y GANA LA GUÍA MÁS NUEVA.** Decisión de Maicol.
+  La **ASE 2023** (Pandian, JASE enero 2023), **folio 16** —verificado en el encabezado impreso—
+  escribe *«inflow VTI ≥60 cm»*, leído **renderizando a 600 dpi**; la EAE/ASE 2009 escribe `>60` y
+  sigue siendo la fuente de los otros tres cortes. **Ninguna guía más nueva lo contradice**: ni la
+  ESC/EACTS 2025 ni el Praz 2025 lo nombran, censados los dos PDF completos.
+  ⚠️ **EL TEXTO EXTRAÍDO DE ESE PDF NO SIRVE PARA LEER EL OPERADOR, Y NO ES PORQUE SEA UNA IMAGEN:**
+  la fuente codifica `≥` como **`$`** y `≤` como **`#`**, así que `pdftotext` devuelve «the mean
+  gradient is $5 mmHg, inflow VTI $60 cm». Hay que renderizar.
+  **MEDIDO con teclas reales, seis valores por el campo SOLO: la ÚNICA escena que cambia es el 60,0
+  exacto** —grado `sin` → `Significativa`, pastilla apagada → prendida, EN SUMA «ET significativa.»—.
+  59,9 y 60,1 dan lo mismo en los dos árboles, igual que 99 y 101. **EL ÁREA POR CONTINUIDAD NO SE
+  MUEVE**, y este campo es su denominador: 0,98 / 0,98 / 5,89 / 1,15 cm² idénticas a HEAD.
+  ⚠️ **EL SÍMBOLO Y LA COMPARACIÓN SON DOS LÍNEAS DISTINTAS** —el rótulo sale del `op` de `ET_CRIT`,
+  el voto del `>=` de `etEstado`— y lo único que impide que se desincronicen es TC-468, que compara
+  el símbolo IMPRESO contra el lado del borde que vota. `PENDIENTES.md` → Q6.
+
+- **LA CASILLA DE PISA SE DESTILDA, Y LA ÚLTIMA TILDADA NO.** Hasta hoy llevaba
+  `onchange="this.checked=true"`: era informativa, y con datos en los dos métodos el médico no podía
+  mandar **sólo la continuidad** al informe. Un dueño único, `imPdfMetodoClic`, que gobierna las dos
+  casillas, pone `tocado` **sólo cuando el clic prospera** y corre `calcIM_ESC` al final.
+  **Medido con clics reales, con PISA calibrada a severa y la continuidad a un grado menor:** las dos
+  tildadas 4, sólo PISA 4 —las dos **idénticas a HEAD**— y **sólo continuidad 4 → 2**, con el badge
+  pasando a «Moderada — evaluar integrado», el PDF de `PISA: 50.3 mm² · Cont: 39.3 mm²` a
+  `Cont: 39.3 mm²` en las **tres** filas, y el EN SUMA de «IM severa.» a «IM moderada.». La regla de
+  la última casilla, **por los dos lados**, con su aviso.
+  ⚠️ **LO QUE HACE SEGURO CONSULTAR LA CASILLA NO ES LA CASILLA: ES `imPdfPisaRestaurar`.** El
+  comentario que vivía en el marcado advertía que el día que alguien agregara `if (pisaCb.checked)`
+  **todo informe anterior se reimprimiría sin EROA ni Vol-R** —la ventana de reimpresión escribe
+  `.checked` desde `campos` sobre TODOS los checkbox y un estudio anterior al selector no trae
+  `im_pdf_pisa__chk`—. Por eso ese `if` entró **junto** con la función que repone **TILDADA** con la
+  clave ausente, llamada desde las **dos** rutas. No se migra nada: se repone el **default**.
+
+- **«NUEVO ESTUDIO» DEJABA VIVAS TRES PIEZAS, Y NINGÚN BARRIDO LAS ALCANZABA.** `_imGradoCalc` y
+  `_itGradoCalc` no son DOM —eran M2— y `im-cont-severidad` es un `<div>` dentro de un `calc-row`
+  —era B-9—. **REPRODUCIDO ANTES DE TOCAR NADA, con clics reales en los DOS botones del gesto**: los
+  dos grados calculados seguían valiendo `'4'` después del gesto y el renglón seguía diciendo
+  «Severidad (continuidad): Severa…» sobre un formulario en blanco; `sevCalcPublicable('im')` y
+  `('it')` publicaban `'4'` sobre un formulario vacío, que es lo que lee el aviso rojo.
+  **CONTROL NEGATIVO:** la IAo, que ya se limpiaba, va a `null` en los dos árboles.
+  ⚠️ **EL `dataset.gradoVolum` DE ESE RENGLÓN SÍ SE BORRABA Y EL TEXTO NO**: se limpiaba lo que
+  decide y quedaba vivo lo que se ve. ⚠️ **Y QUE `calcIT_ESC` SE PONGA EN `null` AL ENTRAR NO
+  ALCANZA**: `limpiarCampos` no llama a ninguno de los dos calculadores.
+
+- **LAS TRES AFIRMACIONES DE LA AYUDA DE LA EM VIVEN EN `ref-em`, NO EN EL MANUAL**, y las tres
+  describían la app anterior a la regla binaria del 2026-10-11. **No se movió ningún corte ni
+  ninguna cuenta.** La atribución de la tercera pasó de «la propia ESC 2021» —que **no tiene ninguna
+  entrada** en `FUENTES.md`— a la **ESC/EACTS 2025, folio 4680**, verificada renderizando:
+  *«low-gradient severe MS (MVA <1.5 cm², mean gradient <10 mmHg)»*. ⚠️ Esa guía escribe `<1.5`
+  estricto donde la app aplica `≤1,5`: `PENDIENTES.md` → Q7. **Una CUARTA, decidida sobre la marcha:**
+  el cartel del manual repetía el mismo «> 4 mmHg» con otras palabras, y dejar una de las dos ayudas
+  diciéndolo era conservar el defecto que la otra acababa de cerrar.
+
+- **CONTROL NEGATIVO MAYOR, con escenario CARGADO para que tenga denominador: 0 diferencias contra
+  HEAD** en las **14** superficies ajenas (función diastólica «DD Grado II — ASE 2025», HFA-PEFF
+  4/6, EAo severa, IAo, IT, EM, EP, IP y los dos tokens del Laboratorio), el **Excel en 435 columnas
+  con el hash IDÉNTICO**, los **1096 campos** con su hash idéntico, y el informe y el EN SUMA en los
+  **tres** estilos.
+
+- **Arnés: `scripts/_probe_valvcuatro.mjs`** (A/B de solo lectura con `--file`), seis grupos (`vti`,
+  `area`, `pisa`, `nuevo`, `ayuda`, `controles`), con «Nuevo estudio» por los **dos botones** del
+  gesto en vez de llamar a `limpiarCampos`. **Cobertura: TC-468**, **35 condiciones** con siete
+  denominadores y tres controles negativos. **Verificado que sabe fallar contra HEAD en un worktree
+  aparte: 21 de las 35 en rojo**, y **ninguna por excepción**; las 14 que pasan son lo que esta tanda
+  no mueve.
+- ⚠️ **CASOS ADAPTADOS: SIETE**, con el motivo escrito en cada uno. **TC-466** (el denominador del
+  operador y el símbolo de la fila), **TC-141**, **TC-416**, **TC-417** y **TC-429** —los cuatro
+  usaban el **60,0 exacto como relleno «que no vota»**, que es lo que la tanda del 2026-10-13 había
+  elegido JUSTAMENTE por el operador estricto; pasan a 59,9, y en dos de ellos el área se mueve de
+  0,88 a 0,89 cm² porque ese campo es su denominador—; **TC-299** («la casilla de PISA no se puede
+  desmarcar»); y **TC-430**, cuya condición (5) afirmaba el defecto de M2 **con la causa escrita en
+  su propio comentario**.
+- ⚠️ **TRES DENOMINADORES ROTOS SEGUIDOS EN LA SONDA DE LA AYUDA, LOS TRES CON PINTA DE MEDICIÓN
+  BUENA.** (1) `document.body.textContent` incluye el texto de los `<script>`, o sea los 6 MB de JS
+  con sus comentarios: informó que una frase borrada **seguía en pantalla**. (2) El modal de ayuda
+  nace con **251 caracteres** y se pinta de a una sección, así que leerlo sin recorrerlas da todas
+  las preguntas en `false`, que **se lee igual que «la frase ya no está»**. (3) Y las tres
+  afirmaciones **no viven en ese modal sino en `ref-em`**: sin ese nodo, dos de las tres salían
+  `false` **en HEAD**.
+- ⚠️ **`ECO_AYUDA` ES UN `const` DE MÓDULO Y NO UNA PROPIEDAD DE `window`**, así que
+  `window.ECO_AYUDA` da `undefined` y el bucle no corre.
+- ⚠️ **PARA PROBAR «LA ÚLTIMA NO SE DESTILDA» HAY QUE CUIDAR EL ORDEN DE LOS CLICS.** Destildar PISA
+  y después la continuidad deja las dos apagadas, así que **la regla revierte la continuidad** y PISA
+  queda libre de bajar: la primera versión de la adaptación de TC-299 medía lo contrario de lo que
+  decía medir.
+- ⚠️ **Me comí el acento grave DIEZ veces** —cinco en comentarios dentro del cuerpo de un caso y
+  cinco dentro del template de la sonda—, con el archivo que documenta la trampa abierto delante.
+  ⚠️ **Y `scripts/check_backticks.py` NO ALCANZÓ A LOS DEL OBJETO `SONDA`:** su cobertura es el
+  cuerpo de un `caso(...)` y el de la sonda inyectada, y los míos estaban en los comentarios del
+  objeto. Ésos los cazó `node --check`. **Correr los dos, siempre.**
+- ⚠️ **TC-395 ES UN SÉPTIMO INESTABLE POR ORDEN DE CORRIDA**, al lado de TC-137, TC-246, TC-249,
+  TC-252, TC-260 y TC-GR-06: rojo en un `--solo` de 20 casos de la zona y **verde corrido solo**.
 
 ### Los CRITERIOS del HFA-PEFF contra el ORIGINAL de Pieske 2019 (2026-10-14)
 
