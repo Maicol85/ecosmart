@@ -44691,7 +44691,22 @@ function limpiarCampos(silencioso) {
      Van ACA, al lado de `esqSevManual`, porque son las tres piezas del mismo mecanismo y separarlas
      es como se olvida una. */
   window._sevCalcAlFijar = {};
+  /* ⚠️ LAS TRES FOTOS DE PROCESO, Y HASTA EL 2026-10-14 SOLO ESTABA LA DE LA IAo. Son la MISMA
+     pieza —el grado calculado de la ultima corrida— y el parrafo de arriba explica por que la de
+     la IAo se borra: «sobreviviendo, el aviso rojo del paciente B nombra "calculo automatico:
+     Severa" sobre un estudio que no tiene un solo dato». Las otras dos tenian el mismo agujero y
+     no estaban en esta linea; era el punto M2 de `docs/PENDIENTES.md`, que lo destapo TC-430.
+     MEDIDO con clics reales en el boton «Nuevo Estudio» y el del modal, contra el arbol anterior:
+     con PISA severa cargada, `_imGradoCalc` seguia valiendo '4' DESPUES del gesto, y lo mismo
+     `_itGradoCalc` con la vena contracta tricuspidea; `sevCalcPublicable('im')` y `('it')`
+     devolvian '4' sobre un formulario vacio, que es lo que lee el aviso rojo. La de la IAo iba a
+     `null`, que es el control negativo de la medicion.
+     ⚠️ `calcIT_ESC` SE PONE EN `null` AL ENTRAR Y `calcIM_ESC` NO, y eso no alcanza: las dos
+     quedan rancias igual hasta que su calculador vuelva a correr, y `limpiarCampos` no llama a
+     ninguno de los dos. */
   window._iaGradoCalc = null;
+  window._imGradoCalc = null;
+  window._itGradoCalc = null;
   /* ⚠️ Y LOS DOS REGISTROS DE «QUIEN PRENDIO EL BOTON», por la misma razón que las tres líneas de
      arriba: `VALV_INSUF_AUTO` y `VALV_ESTEN_AUTO` guardan qué pastillas prendió la APP, y
      `limpiarCampos` apaga las pastillas manipulando clases —no pasa por `toggleValvPill`, que es
@@ -44904,6 +44919,17 @@ function limpiarCampos(silencioso) {
      alcanza y sus `.checked`/`.disabled` los sigue gobernando el bloque de `_PDF_METODO_IDS` de
      acá arriba. Verificado por censo del archivo entero. */
   document.querySelectorAll('[id^="im-pdf-"]').forEach(el => { el.textContent = ''; });
+  /* ⚠️ EL RENGLON «Severidad (continuidad)» TAMBIEN, Y ERA EL PUNTO B-9 DE `docs/PENDIENTES.md`.
+     `im-cont-severidad` es un `<div>` con id dentro de un `calc-row`, asi que no lo alcanza NI el
+     barrido de `.calc-box .calc-row span[id]` NI el de `[id^="im-pdf-"]` de la linea de arriba: su
+     `dataset.gradoVolum` si se borra —entra en la lista de `[data-grado-volum]`— pero el TEXTO
+     sobrevivia. MEDIDO con clics reales en «Nuevo Estudio»: el renglon seguia diciendo «Severidad
+     (continuidad): Severa · metodo volumetrico · Vol-R 88.x ml · FR 58%» del paciente anterior
+     sobre un formulario en blanco. Es de PANTALLA —no lo leen el informe, el EN SUMA, el PDF ni el
+     Excel— pero es una afirmacion sobre un paciente que ya no esta.
+     Se vacia con `innerHTML` y no con `textContent` porque su pintor escribe HTML (`_imAvisoCont`),
+     que es lo mismo que hace `calcContIM` en su rama de «no hay nada que decir». */
+  { const _cs = document.getElementById('im-cont-severidad'); if (_cs) _cs.innerHTML = ''; }
   /* Y los tres de EM, por el mismo motivo y con el mismo recurso. Medido antes de escribirlo:
      tras «Nuevo estudio» los campos quedan vacios, las casillas se limpian bien —esas si las
      barre esta funcion— y los tres span seguian con «— 1.57 cm²» del paciente anterior, con
@@ -107011,8 +107037,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261014-0103';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791950633718;                 /* eco-build-ms */
+const ECO_BUILD    = '20261014-0107';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791950869108;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -107098,7 +107124,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261014-0103</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261014-0107</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

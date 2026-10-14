@@ -59230,20 +59230,27 @@ caso('TC-430', 'Tricuspide: la PASTILLA es la unica fuente del grado y el «grad
       JSON.stringify(e4e.esten)],
 
     // --- (5) apagar -------------------------------------------------------------------------
-    ['(5) apagar el boton borra el grado y DEJA la marca manual — insuficiencia',
+    /* ⚠️ ADAPTADO el 2026-10-14: este caso afirmaba manual=true para la INSUFICIENCIA, y el
+       comentario de abajo explicaba por que: limpiarCampos no limpiaba _itGradoCalc, asi que
+       el reinicio veia un calculo del paciente ANTERIOR—. Ese era el punto M2 de PENDIENTES y se
+       cierra hoy: las dos fotos de proceso que faltaban entran a limpiarCampos al lado de la de
+       la IAo. Desde hoy la insuficiencia se comporta como la estenosis de la condicion siguiente:
+       sin ningun dato cargado, apagar la pastilla deja el estado INICIAL, sin marca. El grado, la
+       pastilla y el texto fijo no cambian, que es lo que este caso cuida. */
+    ['(5) apagar el boton borra el grado y NO deja marca manual — insuficiencia, sin dato cargado',
       e5i.insuf.pill === false && e5i.insuf.fijo === 'RAYA' && e5i.insuf.sel === '0'
-      && e5i.insuf.manual === true && e5i.insuf.coincide === true, JSON.stringify(e5i.insuf)],
+      && e5i.insuf.manual === false && e5i.insuf.coincide === true, JSON.stringify(e5i.insuf)],
     /* ⚠️ ADAPTADO el 2026-10-13 — ESTE CASO AFIRMABA EL COMPORTAMIENTO QUE LA REGLA DEL MODO
        MANUAL CAMBIA A PROPOSITO, y por eso estaba escrito. La escena viene de «Nuevo estudio», o
        sea SIN ningun dato cuantitativo cargado: apagar la pastilla ahi es exactamente el ESTADO
        INICIAL de la regla (a) de Maicol —«sin marca de manual y sin ninguna advertencia»— asi que
        la marca se limpia sola. El grado, la pastilla y el texto fijo NO cambian: siguen en el
        centinela, apagada y en raya, que es lo que este caso cuida.
-       ⚠️ Y LA INSUFICIENCIA DE AL LADO SIGUE EN true, que no es una contradiccion sino un
-       efecto PREEXISTENTE medido: limpiarCampos pone _iaGradoCalc en null y NO toca
-       _imGradoCalc ni _itGradoCalc, asi que la foto de proceso de la IT sobrevive a «Nuevo
-       estudio» y el reinicio ve un calculo que ya no corresponde a este paciente. Queda declarado
-       en docs/PENDIENTES.md; arreglarlo es tocar limpiarCampos, que esta orden no autoriza. */
+       ⚠️ Y LA INSUFICIENCIA DE AL LADO HACE HOY LO MISMO. Hasta el 2026-10-14 quedaba en true,
+       por un efecto PREEXISTENTE medido: limpiarCampos ponia _iaGradoCalc en null y NO tocaba
+       _imGradoCalc ni _itGradoCalc, asi que la foto de proceso de la IT sobrevivia a «Nuevo
+       estudio» y el reinicio veia un calculo que ya no correspondia a este paciente. Era el punto
+       M2 de docs/PENDIENTES.md y se cerro agregando las dos a limpiarCampos. */
     ['(5) y en la estenosis, con el centinela en el campo — y SIN marca, porque no hay ningun dato',
       e5e.esten.pill === false && e5e.esten.fijo === 'RAYA' && e5e.esten.sel === 'sin'
       && e5e.esten.manual === false && e5e.esten.coincide === true, JSON.stringify(e5e.esten)],
