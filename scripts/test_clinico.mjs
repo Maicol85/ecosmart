@@ -4332,8 +4332,12 @@ caso('TC-465', 'El cartel de PEPTIDOS del HFA-PEFF: el boton no entra a ECO AVAN
     base(); const ef = ritmo(rr[0]);
     const f = {};
     f.ritmoEfectivo = ef;
-    /* NT-proBNP: mayor >220 (sinusal) / >660 (FA) · menor 125-220 / 375-660 */
-    const ntMay = rr[0] === 'fa' ? 660 : 220, ntMenLo = rr[0] === 'fa' ? 375 : 125;
+    /* NT-proBNP: mayor >220 (sinusal) / >660 (FA) · menor 125-220 / 365-660.
+       ADAPTADO el 2026-10-14: el piso de FA pasa de 375 a 365 — el TEXTO del folio 3304 escribe
+       375 y la FIGURA 3 del folio 3305 escribe 365, y gana la figura (decision del medico). Sin
+       mover este numero, la condicion del piso MENOR comparaba 374 contra un corte de 365 y el
+       caso salia rojo por el corte nuevo, no por un defecto. */
+    const ntMay = rr[0] === 'fa' ? 660 : 220, ntMenLo = rr[0] === 'fa' ? 365 : 125;
     const bnMay = rr[0] === 'fa' ? 240 : 80,  bnMenLo = rr[0] === 'fa' ? 105 : 35;
     f.ntAbajoMay = pts('hf_ntprobnp', String(ntMay - 1));
     f.ntEnMay    = pts('hf_ntprobnp', String(ntMay));
@@ -4367,7 +4371,10 @@ caso('TC-465', 'El cartel de PEPTIDOS del HFA-PEFF: el boton no entra a ECO AVAN
 
   /* ── 5 · EL MISMO VALOR CAMBIA DE PUNTOS AL CAMBIAR EL RITMO ───────────────────────────────
      450 pg/ml de NT-proBNP es criterio MAYOR en ritmo sinusal (>220) y MENOR en fibrilacion
-     (375-660). Con un valor que cayera del mismo lado en los dos ritmos esto no probaria nada. */
+     (365-660). Con un valor que cayera del mismo lado en los dos ritmos esto no probaria nada.
+     ADAPTADO el 2026-10-14 por el piso nuevo; el 450 cae del mismo lado con los dos pisos, asi
+     que esta condicion no cambia de veredicto — lo que cambia es el rotulo que el cartel
+     declara, dos condiciones mas abajo. */
   base(); ritmo('sinusal');
   const rs450 = pts('hf_ntprobnp', '450');
   const rs450tot = (function () { try { return hfapeffScore(false).total; } catch (e) { return 'EXC'; } })();
@@ -4384,7 +4391,7 @@ caso('TC-465', 'El cartel de PEPTIDOS del HFA-PEFF: el boton no entra a ECO AVAN
   R.cartelRS = (__t.txt('hfpep-corte') || '').trim();
   try { hfPepCerrar(); } catch (e) {}
   ex.push(['el cartel declara el corte de FIBRILACION y sus puntos',
-    R.cartelFA.indexOf('375-660') > -1 && /MENOR/.test(R.cartelFA), R.cartelFA]);
+    R.cartelFA.indexOf('365-660') > -1 && /MENOR/.test(R.cartelFA), R.cartelFA]);
   ex.push(['y al volver a sinusal declara el de SINUSAL, sin quedarse con el anterior',
     R.cartelRS.indexOf('220') > -1 && /MAYOR/.test(R.cartelRS), R.cartelRS]);
   /* ⚠️ POR UN ACCESOR Y NO LLAMANDO A LA FUNCION DIRECTO: contra un arbol SIN esta tanda,
@@ -5281,14 +5288,18 @@ caso('TC-56', 'HTP ESC 2022: VRT alta + un signo = probabilidad ALTA', `
 
 // ═══ GRUPO 19 — HFA-PEFF ════════════════════════════════════════════════════════════════════
 /* Los umbrales de NT-proBNP son los de Pieske 2019: ritmo sinusal mayor >220 y menor 125-220;
-   FA mayor >660 y menor 375-660.
+   FA mayor >660 y menor 365-660.
 
-   EL VALOR 370 ES EL QUE IMPORTA. El piso de FA ya se bajo a 365 una vez, de memoria, con un
-   comentario nuevo que contradecia al que estaba dos lineas mas abajo. Una bateria con 300 y 400
-   pasa IGUAL con 375 que con 365 —los dos caen del mismo lado de ambos— y no habria dicho nada:
-   verificado moviendo el umbral a 365 en una copia, el caso seguia verde.
-   370 cae ENTRE los dos: con 375 vale 0 puntos, con 365 vale 1. Es el unico valor que separa el
-   umbral correcto del que ya se colo. */
+   ADAPTADO el 2026-10-14: el piso del criterio MENOR en FA pasa de 375 a 365. Este caso afirmaba
+   «el piso es 375, NO 365» y era lo medido hasta hoy, con el original FUERA de la biblioteca. El
+   PDF entro el 13/10 a las 18:55 y se leyo en texto completo: el TEXTO del folio 3304 escribe
+   375-660 y la FIGURA 3 del folio 3305 escribe 365-660 — el articulo se contradice consigo mismo
+   en este unico corte, y los dos textos estan impresos. TEXTO VS FIGURA: GANA LA FIGURA, decision
+   del medico del 13/10/2026. O sea que el caso no estaba mal escrito: describia la app de ayer.
+
+   EL VALOR 370 SIGUE SIENDO EL QUE IMPORTA, y ahora separa en la direccion contraria: es el unico
+   valor que cae ENTRE los dos candidatos, asi que con 375 vale 0 puntos y con 365 vale 1. Una
+   bateria con 300 y 400 pasa IGUAL con los dos pisos y no probaria nada. */
 caso('TC-57', 'HFA-PEFF: umbrales de NT-proBNP en ritmo sinusal y en FA (Pieske 2019)', `
   function biom(ritmo, nt) { __t.limpiar(); ${BSA2}
     __t.set('edad','70'); __t.set('fevi','60'); __t.set('hf_ritmo', ritmo); __t.set('hf_ntprobnp', String(nt));
@@ -5297,9 +5308,11 @@ caso('TC-57', 'HFA-PEFF: umbrales de NT-proBNP en ritmo sinusal y en FA (Pieske 
     ['sinusal 100 -> 0 pts',  biom('sinusal', 100) === 0],
     ['sinusal 150 -> 1 pt (menor 125-220)', biom('sinusal', 150) === 1],
     ['sinusal 300 -> 2 pts (mayor >220)',   biom('sinusal', 300) === 2],
-    ['FA 300 -> 0 pts (por debajo de 375)', biom('fa', 300) === 0],
-    ['FA 370 -> 0 pts — el piso es 375, NO 365', biom('fa', 370) === 0],
-    ['FA 400 -> 1 pt (menor 375-660)',      biom('fa', 400) === 1],
+    ['FA 300 -> 0 pts (por debajo de 365)', biom('fa', 300) === 0],
+    ['FA 364 -> 0 pts — el piso es 365 y el valor de abajo no vota', biom('fa', 364) === 0],
+    ['FA 365 -> 1 pt — el valor del corte YA cuenta (rango cerrado)', biom('fa', 365) === 1],
+    ['FA 370 -> 1 pt — el piso es 365, NO 375 (Figura 3, folio 3305)', biom('fa', 370) === 1],
+    ['FA 400 -> 1 pt (menor 365-660)',      biom('fa', 400) === 1],
     ['FA 660 -> sigue siendo menor (mayor es >660)', biom('fa', 660) === 1],
     ['FA 700 -> 2 pts (mayor >660)',        biom('fa', 700) === 2]
   ] };

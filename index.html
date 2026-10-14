@@ -23601,21 +23601,29 @@ window._hfSrcCampos = _hfSrcCampos;
 // desalinearse. Los umbrales de FA son más altos que los de ritmo sinusal.
 // Notación: los MAYORES son > estricto (no >=). Con >= el valor exacto del umbral
 // caería a la vez en el mayor y en el menor, que se solapan por diseño en la tabla.
-// ── El piso del criterio MENOR de NT-proBNP en FA es 375. CERRADO, no volver a darlo vuelta ──
-// Valores exactos del paper (Pieske et al., Eur Heart J 2019;40:3297-3317), confirmados por
-// Maicol contra la fuente el 2026-09-14:
-//     FA      → NT-proBNP: mayor >660 · menor 375-660    BNP: mayor >240 · menor 105-240
+// ── El piso del criterio MENOR de NT-proBNP en FA es 365: LO DICE LA FIGURA 3 ──────────────
+// Valores del ORIGINAL (Pieske et al., Eur Heart J 2019;40:3297-3317), leído en texto completo
+// el 2026-10-14. El PDF entró a la biblioteca el 13/10 a las 18:55, o sea DESPUÉS del censo que
+// lo daba por ausente: el censo no estaba mal, el disco cambió.
+//     FA      → NT-proBNP: mayor >660 · menor 365-660    BNP: mayor >240 · menor 105-240
 //     sinusal → NT-proBNP: mayor >220 · menor 125-220    BNP: mayor  >80 · menor  35-80
-// **El 365 no existe en la guía.** Es una errata muy repetida en la literatura secundaria, y
-// además rompe el patrón 3x que cumplen los otros tres cortes (35→105, 80→240, 220→660,
-// 125→375). Ya se corrigió una vez en 2693c48 (2026-08-26) y volvió a aparecer el 2026-09-14
-// —lo escribí yo, de memoria, al hacer otro cambio— con un comentario que contradecía a ÉSTE
-// dos líneas más abajo sin tocarlo. Lo agarró el differential-review.
-// Lo que está en juego si alguien lo vuelve a mover: FA con NT-proBNP entre 365 y 375 —una
-// ventana de 10 pg/ml— donde el dominio humoral pasa de 0 a 1 punto, suficiente para mover el
-// total de 4 a 5, o sea de «probabilidad intermedia» a «HFpEF confirmado» en un informe firmado.
+// ⚠️ EL ARTÍCULO SE CONTRADICE CONSIGO MISMO EN ESTE ÚNICO CORTE, Y LOS DOS TEXTOS ESTÁN
+// IMPRESOS: el TEXTO del folio 3304 escribe «NT-proBNP 375–660 pg/mL» y la FIGURA 3 del folio
+// 3305 escribe «NT-proBNP 365-660 pg/ml». La figura es un BITMAP y el texto extraído no la
+// trae: se leyó renderizando la página a 600 dpi.
+// TEXTO VS FIGURA: GANA LA FIGURA — decisión del médico, 13/10/2026. La Figura 3 es el
+// algoritmo que esta app ejecuta, y es la que el lector tiene delante al auditar el puntaje.
+// ⚠️ EL COMENTARIO QUE ESTABA ACÁ AFIRMABA LO CONTRARIO: «el 365 no existe en la guía, es una
+// errata de la literatura secundaria, CERRADO, no volver a darlo vuelta». Era FALSO, y se
+// escribió sobre un original que en ese momento nadie podía abrir. El 365 está impreso en la
+// Figura 3. Por eso este corte se dio vuelta dos veces: no era un descuido, era que la fuente
+// primaria no estaba disponible y se razonó por el patrón 3x de los otros tres cortes
+// (35→105, 80→240, 220→660) — que el propio artículo rompe sólo acá.
+// Lo que está en juego: FA con NT-proBNP entre 365 y 375 —una ventana de 10 pg/ml— donde el
+// dominio humoral pasa de 0 a 1 punto, suficiente para mover el total de 4 a 5, o sea de
+// «probabilidad intermedia» a «HFpEF confirmado» en un informe firmado.
 function hfUmbrales(fa) {
-  const ntMay = fa ? 660 : 220, ntMenLo = fa ? 375 : 125;
+  const ntMay = fa ? 660 : 220, ntMenLo = fa ? 365 : 125;
   const bnMay = fa ? 240 : 80,  bnMenLo = fa ? 105 : 35;
   const cr = (txt, test) => ({ txt, test });
   return {
@@ -23728,10 +23736,19 @@ function hfapeffScore(soloEco, src) {
 
   const uLaviMay = fa ? 40 : UMBRAL_LAVI_DILATADO, uLaviMenLo = fa ? UMBRAL_LAVI_DILATADO : 29, uLaviMenHi = fa ? 40 : UMBRAL_LAVI_DILATADO;
   const uImviMay = M ? 149 : 122, uImviMen = M ? UMBRAL_MASA_HVI_H : UMBRAL_MASA_HVI_M;
+  /* ⚠️ LOS DOS OPERADORES DEL IMVI SON DISTINTOS, Y ES LO QUE EL ORIGINAL IMPRIME.
+     MAYOR con «>=»: la Figura 3 (folio 3305) escribe «LVMI ≥ 149/122 g/m2 (m/w) and RWT > 0,42»
+     y el TEXTO del folio 3304 escribe «LVMI ≥149 g/m2 in men or ≥122 g/m2 in women» — los dos
+     coinciden en «≥», así que acá no hay nada que dirimir: la app usaba «>» y estaba mal.
+     MENOR con «>» estricto: acá SÍ difieren —la Figura 3 escribe «LVMI > 115/95 g/m2 (m/w)» y el
+     texto del folio 3304 escribe «≥115 … or ≥95»—. TEXTO VS FIGURA: GANA LA FIGURA, decisión del
+     médico, 13/10/2026; o sea el «>» que la app ya tenía, y por eso esa línea no se toca.
+     Consecuencia medible: un IMVI de 149,0 exactos en un hombre pasa de NO votar a votar como
+     criterio MAYOR, y uno de 115,0 exactos sigue sin votar como menor. */
   const morf = _hfDom([
     _hfC('LAVI > ' + uLaviMay + ' ml/m2' + (fa ? ' (FA)' : ''), d.lavi !== null, d.lavi > uLaviMay),
-    _hfC('IMVI > ' + uImviMay + ' g/m2 con RWT > 0.42',
-         d.imvi !== null && d.rwt !== null, d.imvi > uImviMay && d.rwt > 0.42)
+    _hfC('IMVI >= ' + uImviMay + ' g/m2 con RWT > 0.42',
+         d.imvi !== null && d.rwt !== null, d.imvi >= uImviMay && d.rwt > 0.42)
   ], [
     _hfC('LAVI ' + uLaviMenLo + '-' + uLaviMenHi + ' ml/m2', d.lavi !== null, d.lavi >= uLaviMenLo && d.lavi <= uLaviMenHi),
     _hfC('IMVI > ' + uImviMen + ' g/m2',                     d.imvi !== null, d.imvi > uImviMen),
