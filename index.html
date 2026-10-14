@@ -5421,6 +5421,22 @@ window.cerrarSesionReal = cerrarSesionReal;
               <input type="number" id="em_vtitsvi" placeholder="cm" oninput="vtiTsviEditado('em_vtitsvi')">
             </div>
             <div class="fg">
+              <!-- ⚠️ CASILLA NUEVA (2026-10-14) — DECISION DE MAICOL, Y NO ES UN CALCULO NUEVO.
+                   El volumen eyectado del TSVI ya se calculaba en DOS lugares de esta app —la fila
+                   «Vol eyectado TSVI» del cuadro de la insuficiencia mitral y el numerador del AVm
+                   por continuidad de aqui al lado— y no tenia casilla propia: el medico veia el
+                   AREA que sale de el y no el volumen que la produce.
+                   Desde esta tanda los TRES piden el numero al MISMO dueno, `_vsTsviCalc`, que es
+                   la formula escrita una sola vez. Antes eran dos copias de `Math.PI*((d/20)**2)*vti`
+                   a ocho mil lineas de distancia.
+                   ⚠️ VA ENTRE EL VTI DEL TSVI Y EL THP, que es el orden que pidio Maicol: los dos
+                   insumos primero y su producto despues, y el THP al final porque abre la otra via
+                   de area. La columna queda en CUATRO campos.
+                   ⚠️ NO VIAJA CON EL ESTUDIO: prefijo `vauto-`, ver `_noEsDelEstudio`. -->
+              <label>Vol eyectado TSVI (ml) (auto) <button type="button" class="vinfo-btn" data-vinfo="vsv-tsvi" aria-expanded="false" aria-label="Información sobre el volumen eyectado del TSVI" onclick="vInfoClic(this)">&#9432;</button></label>
+              <input type="text" id="vauto-vsv-tsvi" readonly>
+            </div>
+            <div class="fg">
               <!-- ⚠️ ERA UN DISPLAY DE SOLO LECTURA Y HOY ES UNA PUERTA DEL MISMO DATO
                    (2026-10-09). El `id` se conserva —lo persiste `guardarInforme`, lo repone
                    `limpiarCampos` y lo nombran dos arneses— aunque el nombre ya no describa lo
@@ -5443,11 +5459,11 @@ window.cerrarSesionReal = cerrarSesionReal;
           </div>
           <div>
             <div class="fg">
-              <label>AVm por THP (cm²) (auto)</label>
+              <label>AVm por THP (cm²) (auto) <button type="button" class="vinfo-btn" data-vinfo="avm-thp" aria-expanded="false" aria-label="Información sobre el area mitral por tiempo de hemipresion" onclick="vInfoClic(this)">&#9432;</button></label>
               <input type="text" id="em_avm_thp_display" readonly style="font-weight:700;">
             </div>
             <div class="fg">
-              <label>AVm continuidad (cm²) (auto)</label>
+              <label>AVm continuidad (cm²) (auto) <button type="button" class="vinfo-btn" data-vinfo="avm-cont" aria-expanded="false" aria-label="Información sobre el area mitral por ecuacion de continuidad" onclick="vInfoClic(this)">&#9432;</button></label>
               <input type="text" id="avm_cont" readonly style="font-weight:700;">
             </div>
             <div class="fg">
@@ -28962,10 +28978,23 @@ function calcEM() {
     }
   }
 
+  /* ⚠️ LA CASILLA NUEVA SE ESCRIBE ANTES DEL AREA Y CON SU PROPIA GUARDA, porque sus insumos son
+     DOS y los del area son TRES: con el VTI mitral sin cargar el area no se puede calcular pero el
+     volumen eyectado si, y esconderlo mandaria a buscar un dato que ya esta. Su mensaje nombra el
+     que falta, igual que las casillas de la continuidad de la IM. */
+  { const _vs = _vsTsviCalc(dtsvi, itsvi);
+    const _el = document.getElementById('vauto-vsv-tsvi');
+    if (_el) {
+      _el.value = (_vs != null) ? _vs.toFixed(1) + ' ml' : '';
+      const _f = [!dtsvi ? 'Di\u00e1m. TSVI' : null, !itsvi ? 'VTI TSVI' : null].filter(Boolean);
+      _el.placeholder = _f.length ? ('requiere ' + _f.join(' y ')) : '';
+    } }
+
   let avm_cont_val = null;
   if (dtsvi && itsvi && vtimit) {
-    const atsvi   = Math.PI * ((dtsvi / 20) ** 2);
-    avm_cont_val  = (atsvi * itsvi) / vtimit;
+    /* MISMO DUENO QUE LA FILA DE LA IM Y QUE LA CASILLA DE ARRIBA: `_vsTsviCalc`. Aca estaba la
+       segunda copia de la formula. */
+    avm_cont_val  = _vsTsviCalc(dtsvi, itsvi) / vtimit;
     const contStr = avm_cont_val.toFixed(2);
     /* ⚠️ SE CLASIFICA EL REDONDEADO, igual que el del THP. Ver la nota de la cascada. */
     avm_cont_val = PF(contStr);
@@ -35035,6 +35064,28 @@ document.addEventListener('keydown', function (ev) {
    ⚠️ EL CENTINELA ES EL MISMO «—» DE LAS FILAS: con la fila vacia la casilla queda vacia y lo que
    se ve es el «requiere …». Sin ese mapeo la casilla publicaria un guion largo, que en un campo de
    formulario se lee como un valor. */
+/* ══ EL VOLUMEN EYECTADO DEL TSVI — UN SOLO DUENO (2026-10-14) ════════════════════════════════
+   Area del tracto de salida por su integral de velocidad: pi (D/2)^2 x VTI, con D en MILIMETROS,
+   que es como la app lo guarda. El `/20` hace las dos cosas en un paso —la mitad para el radio y
+   la decima para pasar a cm—, asi que `pi (d/20)^2` es exactamente `(pi/4) (d/10)^2`, que es la
+   forma en que la guia lo escribe.
+   FUENTE: EAE/ASE 2009 (Baumgartner), folio 13, seccion B.1.4 —leida RENDERIZANDO la ecuacion,
+   porque el texto extraido de ese PDF se come los glifos: «MVA = pi (D^2/4) (VTI_Aortic /
+   VTI_mitral), where D is the diameter of the LVOT (in cm) and VTI is in cm»—. El numerador de
+   esa ecuacion ES este volumen.
+   ⚠️ ESTA EXPRESION VIVIA DUPLICADA EN DOS LUGARES a ocho mil lineas de distancia: `calcIM_ESC`
+   la usaba para la fila «Vol eyectado TSVI» del cuadro de la IM y `calcEM` para el numerador del
+   AVm por continuidad. Con la casilla nueva de la estenosis habrian sido TRES. El orden de las
+   operaciones se conserva LETRA POR LETRA para que el resultado en coma flotante sea el mismo
+   bit a bit: `Math.PI * ((d/20)**2)` primero y `* vti` despues, que es como estaban las dos.
+   Devuelve `null` si falta un insumo, que es lo que los tres llamadores ya chequeaban por su
+   cuenta antes de entrar. */
+function _vsTsviCalc(dMm, vtiCm) {
+  if (!dMm || !vtiCm) return null;
+  return (Math.PI * ((dMm / 20) ** 2)) * vtiCm;
+}
+window._vsTsviCalc = _vsTsviCalc;
+
 function _imAutoDeFila(idCampo, idSpan, falta) {
   const el = document.getElementById(idCampo);
   if (!el) return;
@@ -35267,8 +35318,10 @@ function calcIM_ESC() {
         else { params.push({p:'Vol-R',sev:'severa',grupo:'pisa'}); }
       }
       if (itsvi && dtsvi) {
-        const atsvi = Math.PI*((dtsvi/20)**2);
-        const vsv = (atsvi*itsvi).toFixed(1);
+        /* La formula vive en `_vsTsviCalc`, que es su dueno unico desde el 2026-10-14; aca
+           estaba escrita entera y en `calcEM` otra vez. El orden de operaciones es el mismo, asi
+           que el numero no se mueve ni un bit. */
+        const vsv = _vsTsviCalc(dtsvi, itsvi).toFixed(1);
         /* El VS del TSVI se marca por SUS dos insumos y no por los del PISA: es una medición
            independiente, y ensuciarla con la duda del jet diría que está mal algo que no lo está.
            La FR sí hereda las dos, porque las multiplica. */
@@ -39777,9 +39830,13 @@ function calcContIM() {
   imContAvisoPintar();
 
   const am     = Math.PI * ((diam  / 20) ** 2);   // área anillo mitral (cm²)
-  const atsvi  = Math.PI * ((dtsvi / 20) ** 2);   // área TSVI (cm²)
   const vmit   = am    * vtim;                     // Vol mitral/latido (ml)
-  const vstsvi = atsvi * itsvi;                    // VS anterógrado TSVI (ml)
+  /* ⚠️ EL VOLUMEN EYECTADO DEL TSVI SALE DE `_vsTsviCalc`, su dueno unico desde el 2026-10-14.
+     Aca estaba escrito entero —`Math.PI*((dtsvi/20)**2)` y despues `* itsvi`— y en `calcIM_ESC` y
+     en `calcEM` otra vez, o sea TRES copias de la misma formula repartidas en ocho mil lineas.
+     El orden de operaciones es el mismo, asi que el Vol-R y la FR por continuidad no se mueven ni
+     un bit. El area del ANILLO MITRAL de arriba NO entra: es otra medicion y otro campo. */
+  const vstsvi = _vsTsviCalc(dtsvi, itsvi);        // VS anterógrado TSVI (ml)
 
   /* NO se calcula EROA acá, y no es un olvido. La expresión que había —`(atsvi*itsvi)/vtim`— es
      literalmente la ecuación de continuidad del ÁREA VALVULAR MITRAL: la MISMA línea que usa
