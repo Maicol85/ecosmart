@@ -3934,7 +3934,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                la primera superficie que lo renderice concatenando `innerHTML` —o el primer CSV— lo
                toca sin que nadie se acuerde. La etiqueta legible sale de `VENP_SD_TXT`.
                Sigue sin columna de Excel: los cuatro campos `venp_` no están en `LAB_XLS_MAP`, así
-               que el importador nunca les pregunta y la planilla queda en 435 columnas. -->
+               que el importador nunca les pregunta y la planilla queda en 436 columnas. -->
           <label>S/D pulmonar</label>
           <select id="venp_sd" onchange="calcVenaPulm();calcDiastol()">
             <option value="">—</option>
@@ -6439,7 +6439,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                el estudio porque `guardarInforme` barre `input[id]`/`select[id]` de TODO el documento, y
                «Nuevo estudio» los limpia por los mismos barridos (`input[type=number]`, `select` →
                `selectedIndex = 0`, `input[type=checkbox][id]` → `checked = false`). El Excel se queda
-               en 435 columnas porque sus columnas son una LISTA explícita (`LAB_XLS_COLS`) y ninguno
+               en 436 columnas porque sus columnas son una LISTA explícita (`LAB_XLS_COLS`) y ninguno
                de los cuatro ids está en ella; y `_labXlsAssertListas` sólo compara los `<select>` cuyo
                id es una CLAVE de `LAB_XLS_LISTAS`, así que los dos desplegables nuevos no la tocan.
                ⚠️ LA OPCIÓN 0 DE LOS DOS DESPLEGABLES ES «—» CON `value=""`, y no es cosmético: es el
@@ -24271,7 +24271,7 @@ window.hfapeffIr = hfapeffIr;
 
 /* El tipo de péptido y su campo DUEÑO en la sección HFA-PEFF de Avanzado. Los dos campos ya
    existían, los dos están en pg/ml y los dos tienen columna de Excel, así que el cartel no
-   agrega ni un dato nuevo: es otra puerta al mismo. De ahí que el Excel siga en 435 columnas. */
+   agrega ni un dato nuevo: es otra puerta al mismo. De ahí que el Excel siga en 436 columnas. */
 const HFPEP_CAMPO = { nt: 'hf_ntprobnp', bnp: 'hf_bnp' };
 function hfPepCampo(tipo) { return HFPEP_CAMPO[tipo] || HFPEP_CAMPO.nt; }
 window.HFPEP_CAMPO = HFPEP_CAMPO; window.hfPepCampo = hfPepCampo;
@@ -47749,7 +47749,7 @@ function mostrarCardSeveridadValvular(onConfirm) {
        `SEV_SINC` el `<select>` visible `im_sev_final` es lo que leen `sevDiscrepa`, el aviso rojo,
        el cajón del fundamento y la pastilla. Medido: con IM calculada «Severa» (vena contracta
        8 mm), apretar «Generar PDF» y corregir la IM a «Moderada» en la tarjeta dejaba
-       `im_grado = 2` —que es lo que firma el PDF y lo que va a las 435 columnas— y
+       `im_grado = 2` —que es lo que firma el PDF y lo que va a las 436 columnas— y
        `im_sev_final = 4`; o sea el aviso rojo comparaba el grado EQUIVOCADO (no había discrepancia
        que mostrar entre 4 y 4), el cajón del fundamento no se abría, la pastilla seguía diciendo
        «Severa» y el narrativo decía «insuficiencia moderada». La marca manual que la línea de abajo
@@ -47781,7 +47781,7 @@ function mostrarCardSeveridadValvular(onConfirm) {
        `ia_sev_final` acá». Es exactamente eso.
        Medido antes de tocar (sonda `_probe_sinapaga.mjs`, escena CARD-ia): con una IAo calculada
        severa (vena contracta 7 mm), apretar «Generar PDF» y corregir la IAo a «Moderada» en la
-       tarjeta dejaba `ia_grado = 2` —que es lo que firma el PDF y lo que va a las 435 columnas— y
+       tarjeta dejaba `ia_grado = 2` —que es lo que firma el PDF y lo que va a las 436 columnas— y
        `ia_sev_final = 4`. O sea el aviso rojo comparaba el grado EQUIVOCADO (no veía discrepancia
        entre 4 y 4), el cajón del fundamento no se abría, la pastilla seguía diciendo «Severa ▼» y
        el narrativo decía «insuficiencia moderada». Y la marca que pone la línea de abajo deja la
@@ -90267,6 +90267,50 @@ window._labMenciona = _labMenciona;
    El pericardio va por `byField` porque sale de un `<select>` acotado, no del narrativo, y
    también pasa por `_labMenciona`: su lista de negaciones a mano («sin derrame», «sin
    efusión») era la respuesta correcta escrita una vez y no reutilizada. */
+/* ══ DISFUNCIÓN SISTÓLICA: DE QUÉ VENTRÍCULO HABLA CADA FRASE ═══════════════════════════════
+   Dueño ÚNICO, y lo consultan las DOS filas de `_LAB_HALLAZGOS` más la columna `DisfSist_VD` del
+   Excel. Devuelve `{vi, vd}`: un estudio puede tener las dos, porque son dos frases distintas.
+
+   EL CRITERIO ES LA FRASE, NO EL TEXTO ENTERO. Se parte por `.`, `;` y salto de línea —los mismos
+   tres cortes que `_labMenciona` ya usa para su ventana de negación— y cada frase se clasifica
+   sola. Dentro de una frase sin esos cortes, `_labMenciona(seg, re)` mira exactamente los mismos
+   40 caracteres hacia atrás que miraba sobre el texto completo, así que la detección de negaciones
+   NO cambia y la cuenta del VI es la de HEAD menos las frases que nombran el VD.
+
+   QUÉ CUENTA COMO «habla del VD»: que la MISMA frase nombre el ventrículo derecho, en cualquiera
+   de las tres formas en que la app lo escribe — `VD`, `HVD` o «ventrículo derecho». Censadas las
+   frases que la app produce, TODAS las del VD lo nombran en su propia oración (es el sujeto) y
+   NINGUNA del VI lo nombra. No hace falta un criterio más fino y uno más fino sería más frágil.
+
+   ⚠️ LA VÍA DE LA FEVI NO SE PARTE, Y ES DELIBERADO. `FEVI 45` es del ventrículo IZQUIERDO por
+   construcción —la sigla lo dice—, así que esa alternativa suma al VI aunque la frase nombre
+   también el VD. Partirla sólo podría PERDER cuentas del VI que HEAD sí tenía, que es lo que esta
+   tanda no debe hacer: lo único que se le quita al VI son las frases de disfunción sistólica que
+   hablan del derecho.
+
+   ⚠️ LO QUE ESTO NO ARREGLA, Y QUEDA DECLARADO: con el estilo CONCISO la disfunción del VI no
+   matchea por ninguna de las dos vías —su frase es «FEVI levemente reducida (45 %)», sin la
+   palabra y sin el número pegado a la sigla—. Es PREEXISTENTE, se midió, y está en
+   `docs/PENDIENTES.md`: corregirlo es cambiar qué estudios entran en la categoría, que esta orden
+   no autoriza. */
+const _LAB_DISF_SIST_RE = /disfunci[oó]n\s+sist[oó]lica/i;
+const _LAB_DISF_FEVI_RE = /FEVI\s+[<>]?\s*[0-4]\d/i;
+const _LAB_VENT_DER_RE  = /\bHVD\b|\bVD\b|ventr[ií]culo\s+derecho/i;
+function _labDisfSistVent(inf) {
+  const c = (inf && inf.campos) || {};
+  const t = String((c.en_suma || '') + ' ' + (c.informe_texto || ''));
+  const out = { vi: false, vd: false };
+  if (!t.trim()) return out;
+  t.split(/[.;\n]/).forEach((seg) => {
+    if (!seg.trim()) return;
+    const esVD = _LAB_VENT_DER_RE.test(seg);
+    if (_labMenciona(seg, _LAB_DISF_SIST_RE)) { if (esVD) out.vd = true; else out.vi = true; }
+    if (_labMenciona(seg, _LAB_DISF_FEVI_RE)) out.vi = true;
+  });
+  return out;
+}
+window._labDisfSistVent = _labDisfSistVent;
+
 const _LAB_HALLAZGOS = [
   /* HTP por NÚMERO y no sólo por texto, igual que el filtro de cohorte (`case 'htp'`). Hasta
      2026-09-14 el narrativo de un ETT corriente con PSAP alta decía «hipertensión pulmonar» en
@@ -90284,7 +90328,16 @@ const _LAB_HALLAZGOS = [
                           /hipertensi[oó]n\s+pulmonar|HTP/i);
     } },
   { lbl:'Disfunción diastólica', patron:/disfunci[oó]n\s+diast[oó]lica/i },
-  { lbl:'Disfunción sistólica VI', patron:/disfunci[oó]n\s+sist[oó]lica|FEVI\s+[<>]?\s*[0-4]\d/i },
+  /* ⚠️ DOS CATEGORÍAS Y UN SOLO DUEÑO, DESDE EL 2026-10-14. Hasta hoy había UNA sola fila
+     —«Disfunción sistólica VI»— con una expresión regular que NO distingue el ventrículo, así que
+     «VD de dimensiones normales con disfunción sistólica.», «Disfunción sistólica severa del VD
+     (FAC 24%).», «HVD con disfunción sistólica.» y «VD dilatado e hipertrófico, con disfunción
+     sistólica.» contaban como disfunción del VI: todo estudio con el VD alterado inflaba la
+     estadística del izquierdo. Lo reportó Maicol.
+     Las dos filas le preguntan a `_labDisfSistVent`, que clasifica FRASE POR FRASE; reimplementar
+     el criterio en cada una es cómo las dos se separan el día que alguien toque una. */
+  { lbl:'Disfunción sistólica VI', byField:i => _labDisfSistVent(i).vi },
+  { lbl:'Disfunción sistólica VD', byField:i => _labDisfSistVent(i).vd },
   { lbl:'Insuficiencia mitral', patron:/insuficiencia\s+mitral|IM\s+(?:leve|moderada|severa)/i },
   { lbl:'Estenosis aórtica', patron:/estenosis\s+a[oó]rtica|EAo/i },
   { lbl:'Dilatación AI', patron:/dilataci[oó]n.{0,10}auricular|AI\s+(?:dilata|agrand)/i },
@@ -92168,6 +92221,18 @@ function _labExcelRow(inf) {
     'FAC VD (%)': (function(){ const ad = num('vd_area_d'), as = num('vd_area_s');
       return (ad !== null && as !== null && ad > 0 && as > 0 && as < ad) ? rnd((ad - as) / ad * 100, 0) : null; })(),
     'FEVD (%)': rnd(num('fevd'),0),
+    /* ⚠️ COLUMNA NUEVA (2026-10-14), AUTORIZADA, Y LA ÚNICA DE ESTA TANDA: el Excel pasa de 435 a
+       436. Sale del TEXTO del informe por `_labDisfSistVent`, el mismo dueño que cuentan las dos
+       filas del dashboard, el PDF de auditoría y el PPT — no hay una segunda copia del criterio.
+       Es DERIVADA, así que no entra en `LAB_XLS_MAP` y no se reimporta, igual que `DD_I`,
+       `Geom_Normal` y `TS_Presente`; su encabezado lo dice solo («Sólo lectura»).
+       VA EN EL BLOQUE 5 porque está declarada en `LAB_XLS_BLOQUES`, que es lo que decide la
+       posición: `_labOrdenarCols` manda las columnas que el mapa no conoce AL FINAL y después
+       reagrupa por bloque, así que sin esa declaración habría caído a decenas de columnas de las
+       del VD —el defecto que «DVI mitral (fuente)» ya pagó—.
+       ⚠️ NO HAY COLUMNA GEMELA PARA EL VI, y es la decisión de la orden: una sola columna nueva.
+       El VI nunca tuvo una. Queda declarado en `docs/PENDIENTES.md`. */
+    'DisfSist_VD': _labDisfSistVent(inf).vd ? 1 : 0,
     'VCI diám (mm)': rnd(num('vci_diam'),0), 'Colapso VCI': c.vci_col || '', 'PmAD (mmHg)': rnd(num('pmad'),0),
     'VEXUS suprahepática': c.vexus_sh || '', 'VEXUS porta': c.vexus_pv || '', 'VEXUS intrarrenal': c.vexus_ir || '',
     /* DVI y AT de prótesis, Fase 1 (2026-09-27). Van al Excel y al PDF porque son MEDICIONES que
@@ -92206,7 +92271,7 @@ function _labExcelRow(inf) {
        rama `src` que su propio comentario declaraba código muerto «de una línea el día que se
        decida». Hoy se decidió.
        Vaciar y no marcar, igual que la continuidad: es una columna numérica y un texto la volvería
-       inimportable. Los 435 encabezados no cambian. */
+       inimportable. Los 436 encabezados no cambian. */
     'AVm (cm²)': (typeof emThpValido === 'function' && !emThpValido(c)) ? '' : rnd(num('avm_thp'),2),
     'AT aórtico (ms)': rnd(valvProtDato('va_morf','va_at',c),0),
     'Morfología aórtica': c.va_morf || '', 'EA grado': gEA,
@@ -92410,7 +92475,7 @@ function _labExcelRow(inf) {
     /* ⚠️ `vab_tipo` SALE EN DOS COLUMNAS, ésta y «VAB tipo de fusión» treinta líneas más abajo.
        Las dos llevan hoy el MISMO texto porque son el mismo dato: la de abajo quedó con el mapa
        Sievers y exportaba la celda vacía para los siete valores del Consenso. No se unifican ni se
-       borra una porque cambiaría el número de columnas (435) y un Excel ya exportado perdería la
+       borra una porque cambiaría el número de columnas (436) y un Excel ya exportado perdería la
        que falte en silencio. Sólo ÉSTA se reimporta —es la única de las dos que está en
        `LAB_XLS_MAP`—. Queda declarado para Maicol, no corregido. */
     'VAB tipo (Consenso 2021)': _ccLbl(VAB_TIPO_LBL_LEGACY, c.vab_tipo),
@@ -93092,7 +93157,7 @@ const LAB_XLS_BLOQUES = [
       'Masa VI (g/m²)','RWT','VDFVI idx (ml/m²)','FA (%)'], pre:['Geometría VI','Geom_','Trastornos sectoriales','TS_'] },
   { n:'5 · VENTRÍCULO DERECHO', cols:['TAPSE (mm)',"S' (cm/s)",'TAP (ms)','Diám. basal VD (mm)',
       'Diám. medio VD (mm)','Long. VD (mm)',
-      'Área VD telediast. (cm²)','Área VD telesist. (cm²)','FAC VD (%)','FEVD (%)'] },
+      'Área VD telediast. (cm²)','Área VD telesist. (cm²)','FAC VD (%)','FEVD (%)','DisfSist_VD'] },
   { n:'6 · AURÍCULA DERECHA / VCI', cols:['Área AD (cm²)','VCI diám (mm)','Colapso VCI','PmAD (mmHg)'] },
   { n:'7 · DOPPLER Y DIASTÓLICA', cols:['Onda E (cm/s)','Onda A (cm/s)',"e' septal (cm/s)","e' lateral (cm/s)",
       'E/A',"e' promedio (cm/s)","E/e'",'Grado disfunción diastólica'], pre:['DD_'] },
@@ -93354,6 +93419,7 @@ function _labExportarXLSXReal(infs, anon, sel, origen) {
     ['Geom_HVI_Concentrica',    'Hipertrofia VI concéntrica (leve/mod/severa)', V],
     ['Geom_HVI_Excentrica',     'Hipertrofia VI excéntrica (leve/mod/severa)',  V],
     ['TS_Presente',             'Trastornos sectoriales de la motilidad presentes', V],
+    ['DisfSist_VD',             'Disfunción sistólica del VD afirmada en el texto del informe', V],
   ];
   const wsLeg = XLSX.utils.aoa_to_sheet(leyenda);
   wsLeg['!cols'] = [{ wch: 22 }, { wch: 44 }, { wch: 30 }];
@@ -107483,8 +107549,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261014-1728';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1792009691916;                 /* eco-build-ms */
+const ECO_BUILD    = '20261014-1739';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1792010346120;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -107570,7 +107636,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261014-1728</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261014-1739</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

@@ -2019,7 +2019,8 @@ caso('TC-457', 'Pared del VD e indice de Tei (DTI): los dos cortes por sus dos l
       avSinTei.aviso === '' && !/puede no ser v.lido/.test(avSinTei.vd), avSinTei.aviso + ' // ' + avSinTei.vd],
 
     // ── I · EXCEL ────────────────────────────────────────────────────────────────────────────
-    ['el Excel sigue en 435 columnas y no gano ninguna', cols.length === 435, 'n=' + cols.length],
+    /* ADAPTADO 2026-10-14: 435 -> 436. La separacion de la disfuncion sistolica del VD agrego UNA columna, «DisfSist_VD». Lo que la condicion vigila —que esta tanda no agregue columnas— no cambia. */
+    ['el Excel sigue en 436 columnas y no gano ninguna', cols.length === 436, 'n=' + cols.length],
     ['  ninguna columna nombra la pared del VD ni el Tei',
       !cols.some(k => /[Pp]ared del VD/.test(k)) && !cols.some(k => /Tei/.test(k)),
       cols.filter(k => /[Pp]ared del VD|Tei/.test(k)).join(',') || '(ninguna)'],
@@ -2324,7 +2325,7 @@ caso('TC-458', 'Diastolica ASE/EACVI 2016 en RITMO SINUSAL: los DOS algoritmos d
        (gd === sin, o null con eeDoc) ? 1 : 0, asi que un estudio que AFIRMA disfuncion
        sumaba en «Sin disfuncion». Se cerro con el mecanismo de los cuatro tokens de la BSE: un
        token propio (ase2016_sin_grado), rotulo en la columna de texto y ningun DD_*. Medido
-       antes y despues: DD_Sin pasa de 1 a 0 y el Excel sigue en 435 columnas.
+       antes y despues: DD_Sin pasa de 1 a 0 y el Excel sigue en 436 columnas.
        La «indeterminada» sigue en null a proposito: esa frase no afirma disfuncion, y es la
        unica de las dos que el defecto del DD_Sin deja contando como «sin». Queda REPORTADO. */
     ['el Laboratorio clasifica la frase de la 8A con su propio token, sin grado',
@@ -3737,8 +3738,9 @@ caso('TC-463', 'Borrado en Valvulas: un campo vacio no vota ni deja grado en las
   ex.push(['CONTROL: las tres estenosis ajenas y la IP vuelven a su centinela, igual que en HEAD',
     JSON.stringify(R.ctrlBorrado) === JSON.stringify(R.ctrlVacio),
     'vacio=' + JSON.stringify(R.ctrlVacio) + ' borrado=' + JSON.stringify(R.ctrlBorrado)]);
-  ex.push(['CONTROL: el Excel sigue en 435 columnas en las tres fases',
-    R.xlsVacio === 435 && R.xlsCargado === 435 && R.xlsBorrado === 435,
+  /* ADAPTADO 2026-10-14: 435 -> 436. La separacion de la disfuncion sistolica del VD agrego UNA columna, «DisfSist_VD». Lo que la condicion vigila —que esta tanda no agregue columnas— no cambia. */
+  ex.push(['CONTROL: el Excel sigue en 436 columnas en las tres fases',
+    R.xlsVacio === 436 && R.xlsCargado === 436 && R.xlsBorrado === 436,
     R.xlsVacio + '/' + R.xlsCargado + '/' + R.xlsBorrado]);
   ex.push(['y con las nueve lesiones borradas el EN SUMA no nombra NINGUNA',
     !/\\bIM |\\bIAo |\\bEAo |\\bIT |\\bEM |\\bET |\\bEP |\\bIP /.test(R.sumaBorrado),
@@ -4484,7 +4486,8 @@ caso('TC-465', 'El cartel de PEPTIDOS del HFA-PEFF: el boton no entra a ECO AVAN
   R.ajenos = { diastSin, diastCon, valvSin, valvCon, colsSin, colsCon };
   ex.push(['el veredicto de la funcion diastolica no se mueve con el peptido', diastSin === diastCon, diastSin + ' / ' + diastCon]);
   ex.push(['los grados de las OCHO valvulas no se mueven con el peptido', valvSin === valvCon, valvSin + ' / ' + valvCon]);
-  ex.push(['el Excel sigue en 435 columnas con y sin peptido', colsSin === 435 && colsCon === 435, colsSin + ' / ' + colsCon]);
+  /* ADAPTADO 2026-10-14: 435 -> 436. La separacion de la disfuncion sistolica del VD agrego UNA columna, «DisfSist_VD». Lo que la condicion vigila —que esta tanda no agregue columnas— no cambia. */
+  ex.push(['el Excel sigue en 436 columnas con y sin peptido', colsSin === 436 && colsCon === 436, colsSin + ' / ' + colsCon]);
 
   sinPep(); plan('avanzado');
   return { extra: ex, R: R };
@@ -4746,8 +4749,9 @@ caso('TC-464', 'Estenosis aortica: los cortes de las SEIS variables por sus dos 
   ex.push(['CONTROL: las otras seis lesiones y la funcion diastolica quedan IDENTICAS',
     JSON.stringify(R.ctrlAntes) === JSON.stringify(R.ctrlDespues),
     JSON.stringify({ antes: R.ctrlAntes, despues: R.ctrlDespues })]);
-  ex.push(['CONTROL: el Excel sigue en 435 columnas antes y despues',
-    R.xlsAntes === 435 && R.xlsDespues === 435, JSON.stringify({ antes: R.xlsAntes, despues: R.xlsDespues })]);
+  /* ADAPTADO 2026-10-14: 435 -> 436. La separacion de la disfuncion sistolica del VD agrego UNA columna, «DisfSist_VD». Lo que la condicion vigila —que esta tanda no agregue columnas— no cambia. */
+  ex.push(['CONTROL: el Excel sigue en 436 columnas antes y despues',
+    R.xlsAntes === 436 && R.xlsDespues === 436, JSON.stringify({ antes: R.xlsAntes, despues: R.xlsDespues })]);
 
   /* ── 12 · LA ESTENOSIS TRICUSPIDEA NO SE TOCO, y esto fija su formula y su corte ─────────────
      EAE/ASE 2009, Tabla 10, p. 19: area por ecuacion de continuidad <=1 cm2. La formula es
@@ -8721,11 +8725,11 @@ caso('TC-135', 'GLS y contractilidad son BASICOS del Excel: sin checkbox y siemp
         /* +1 el 2026-09-29: «DVI mitral (fuente)», la procedencia del DVI. Cae como BASICA por el
            mismo argumento que el DVI que describe —es del bloque valvular, no de un modulo detras
            de un checkbox— y las dos cuentas crecen igual, que es lo que este caso vigila. */
-        /* ADAPTADO 2026-10-12: 134/434 -> 135/435. La tanda del strain de la AI agrego UNA
+        /* ADAPTADO 2026-10-12: 134/434 -> 135/435; ADAPTADO 2026-10-14: 135/435 -> 136/436. La tanda del strain de la AI agrego UNA
            columna, «Strain contraccion AI (%)», y cae como BASICA —es del bloque 3, AURICULA
            IZQUIERDA, que no tiene modulo—, asi que las DOS cuentas crecen igual, que es
            exactamente lo que esta condicion existe para vigilar. */
-        basicas.length === 135 && TODAS.length === 435,   // +4 ET · +8 Lab · +5 protesis · −1 «DVI aortico», que salio al unificar el calculo · +1 fuente del DVI mitral · +1 strain de contraccion de la AI
+        basicas.length === 136 && TODAS.length === 436,   // +4 ET · +8 Lab · +5 protesis · −1 «DVI aortico», que salio al unificar el calculo · +1 fuente del DVI mitral · +1 strain de contraccion de la AI · +1 DisfSist_VD (2026-10-14)
         basicas.length + ' basicas de ' + TODAS.length],
       // 6 · Una preferencia vieja con el modulo borrado no lo revive.
       ['una preferencia guardada con contr no revive el modulo', (function(){
@@ -46544,8 +46548,8 @@ caso('TC-319', 'Excel: la columna de procedencia del DVI mitral dice consignado 
   const vacio = x => x === '' || x === null || x === undefined;
 
   return { extra: [
-    /* ADAPTADO 2026-10-12: 434 -> 435 por la columna «Strain contraccion AI (%)». */
-    ['el Excel pasa a 435 columnas', ks.length === 435, String(ks.length)],
+    /* ADAPTADO 2026-10-12: 434 -> 435; ADAPTADO 2026-10-14: 435 -> 436 por la columna «Strain contraccion AI (%)». */
+    ['el Excel pasa a 436 columnas', ks.length === 436, String(ks.length)],
     ['la columna nueva va PEGADA al DVI que describe EN EL EXCEL EMITIDO',
       ks[i + 1] === 'DVI mitral (fuente)',
       'vecindario=' + JSON.stringify(ks.slice(i, i + 3)) +
@@ -48034,11 +48038,11 @@ caso('TC-337', 'EM: con thp o em_vmax fuera de banda las DOS filas del PDF dicen
          THP fuera de banda sale VACIA. El argumento: ese libro cruza a CeiboAnalytics, donde nadie
          tiene la pantalla al lado para ver el «(revisar)», y 1833 cm² se lee como una medicion —
          una valvula sana mide 4-6—. Es exactamente lo que «AVm continuidad (cm²)» ya hacia.
-         Lo que la condicion sigue protegiendo NO cambio: los 435 encabezados y que la marca de
+         Lo que la condicion sigue protegiendo NO cambio: los 436 encabezados y que la marca de
          texto no se cuele en una columna numerica. Lo que cambia es el valor esperado. */
-      /* ADAPTADO 2026-10-12: 434 -> 435 por la columna «Strain contraccion AI (%)». */
-      ['⚠️ y el Excel RETIRA el area —celda vacia, no el crudo 1833.33— conservando sus 435 columnas',
-        R.xls.n === 435 && R.xls.avm === '' && R.xls.hayThp === false && R.xls.hayVmax === false,
+      /* ADAPTADO 2026-10-12: 434 -> 435; ADAPTADO 2026-10-14: 435 -> 436 por la columna «Strain contraccion AI (%)». */
+      ['⚠️ y el Excel RETIRA el area —celda vacia, no el crudo 1833.33— conservando sus 436 columnas',
+        R.xls.n === 436 && R.xls.avm === '' && R.xls.hayThp === false && R.xls.hayVmax === false,
         JSON.stringify(R.xls)]
     ] };
   })();
@@ -48402,7 +48406,7 @@ caso('TC-340', 'Nuevo estudio: las respuestas del panel de Evidencia no pasan al
 
    ⚠️ TODO LO DE AFUERA TIENE QUE QUEDAR QUIETO, y por eso la mitad de las condiciones son de
    «identico»: estos dos cambios son de PANTALLA. El informe, el EN SUMA, las dos filas del PDF y la
-   fila de 435 columnas del Excel se miden dentro Y fuera de banda.
+   fila de 436 columnas del Excel se miden dentro Y fuera de banda.
 
    ⚠️ LOS BORDES EXACTOS (20 y 600 ms) SIGUEN ADENTRO: sin esa condicion, correr la banda un milimetro
    pasaria en verde. Y el CERO no es una medicion: ahi el papel no retira nada, asi que el panel
@@ -48486,7 +48490,7 @@ caso('TC-341', 'EM: con el THP fuera de banda el panel dice lo MISMO que el PDF 
         'conPlan=«' + R.conPlan.idx + '»'],
       ['⚠️ EL EXCEL NO SE MUEVE: la marca entra al string guardado pero el exportador parsea con parseFloat, asi que la celda sigue siendo el numero crudo',
         R.bajo.xls.avmIdx === '929.67' && R.alto.xls.avmIdx === '0.05' &&
-        R.dentro.xls.avmIdx === '0.47' && R.bajo.xls.cols === 435,   // ADAPTADO 2026-10-12: +1 por «Strain contraccion AI (%)»
+        R.dentro.xls.avmIdx === '0.47' && R.bajo.xls.cols === 436,   // ADAPTADO 2026-10-12: +1 por «Strain contraccion AI (%)»; ADAPTADO 2026-10-14: +1 por «DisfSist_VD»
         'bajo=' + JSON.stringify(R.bajo.xls) + ' dentro=' + JSON.stringify(R.dentro.xls)],
       /* ⚠️ ADAPTADA EL 2026-10-10 POR EL MISMO CAMBIO DE DISENO QUE LA DE TC-337: la columna del
          THP dejo de exportar el crudo y ahora se vacia cuando emThpValido(c) dice que el area no
@@ -50509,10 +50513,10 @@ caso('TC-369', 'EA: el AVA por planimetria se carga y se guarda, tiene banda de 
       b_vacio.fuera === false && b_vacio.aviso === '',
       'fuera=' + b_vacio.fuera + ' aviso=«' + b_vacio.aviso + '»'],
 
-    /* ADAPTADO 2026-10-12: 434 -> 435 por «Strain contraccion AI (%)». Lo que el caso vigila
+    /* ADAPTADO 2026-10-12: 434 -> 435; ADAPTADO 2026-10-14: 435 -> 436 por «Strain contraccion AI (%)». Lo que el caso vigila
        —que la planimetria aortica NO agregue columnas— no cambia. */
-    ['NO entra al Excel: ninguna columna nueva de planimetria aortica, y la fila sigue teniendo 435',
-      mencionPlanAo.length === 0 && total === 435,
+    ['NO entra al Excel: ninguna columna nueva de planimetria aortica, y la fila sigue teniendo 436',
+      mencionPlanAo.length === 0 && total === 436,
       'columnas=' + total + ' planimetria aortica=' + (mencionPlanAo.join(', ') || 'ninguna')],
     ['NO entra a la reimportacion: no hay entrada en LAB_XLS_MAP',
       enImport === false, 'en LAB_XLS_MAP=' + enImport],
@@ -51403,9 +51407,9 @@ caso('TC-375', 'El informe usa SOLO el grado final: con «Sin estenosis» dice s
       JSON.stringify(abiertoS.xls) === JSON.stringify(cerradoS.xls),
       'abierto pdf=' + abiertoS.pdf + ' xls=' + JSON.stringify(abiertoS.xls) +
       ' · cerrado pdf=' + cerradoS.pdf + ' xls=' + JSON.stringify(cerradoS.xls)],
-    /* ADAPTADO 2026-10-12: 434 -> 435 por «Strain contraccion AI (%)». */
-    ['  y la fila de Excel sigue teniendo 435 columnas, con los tres binarios en cero',
-      abiertoS.xls.n === 435 && abiertoS.xls.g === 'sin' &&
+    /* ADAPTADO 2026-10-12: 434 -> 435; ADAPTADO 2026-10-14: 435 -> 436 por «Strain contraccion AI (%)». */
+    ['  y la fila de Excel sigue teniendo 436 columnas, con los tres binarios en cero',
+      abiertoS.xls.n === 436 && abiertoS.xls.g === 'sin' &&
       abiertoS.xls.I === 0 && abiertoS.xls.II === 0 && abiertoS.xls.III === 0,
       'xls=' + JSON.stringify(abiertoS.xls)],
 
@@ -53037,7 +53041,7 @@ const MIT_FUND_PRE = MIT_PRE + `
     return e ? (e.style.display === 'none' ? 'oculto' : 'visible') : 'NO-EXISTE'; };
   /* Las CUATRO superficies en una foto. La frase de la mitral se recorta del narrativo con el
      mismo patron que usa TC-375 para la aortica; el Excel se arma por «_labExcelRow», o sea sin
-     DOM, que es la unica forma de ver las 435 columnas. */
+     DOM, que es la unica forma de ver las 436 columnas. */
   const mFoto = function () {
     const r = __t.informe();
     const m = r.inf.match(/[^.\\n]*[Vv][aá]lvula mitral[^\\n]*?\\.(?= |$|\\n)/);
@@ -53139,10 +53143,10 @@ caso('TC-389', 'El aviso rojo y el cajon «Fundamento del ajuste» de la mitral 
     ['  y los grados que el medico consigno sobre la protesis siguen ahi',
       prot.imSel === '2' && prot.imHid === '2' && prot.emSel === 'moderada', dg],
 
-    /* ADAPTADO 2026-10-12: 434 -> 435 por «Strain contraccion AI (%)». */
-    ['y las 435 columnas del Excel salen enteras en las cinco escenas',
-      imDisc.xls.n === 435 && emDisc.xls.n === 435 && imCoincide.xls.n === 435 &&
-      emSinClasif.xls.n === 435 && prot.xls.n === 435,
+    /* ADAPTADO 2026-10-12: 434 -> 435; ADAPTADO 2026-10-14: 435 -> 436 por «Strain contraccion AI (%)». */
+    ['y las 436 columnas del Excel salen enteras en las cinco escenas',
+      imDisc.xls.n === 436 && emDisc.xls.n === 436 && imCoincide.xls.n === 436 &&
+      emSinClasif.xls.n === 436 && prot.xls.n === 436,
       'n=' + [imDisc.xls.n, emDisc.xls.n, imCoincide.xls.n, emSinClasif.xls.n, prot.xls.n].join('/')],
   ] };
 `);
@@ -53154,7 +53158,7 @@ caso('TC-390', 'El informe de la mitral usa SOLO el grado final —el boton ya n
      Medido contra HEAD el 2026-10-03, misma escena byte a byte:
        narrativo → «Válvula mitral de morfología normal, con estenosis e insuficiencia.»
        EN SUMA   → «Estenosis mitral. | Insuficiencia mitral.»
-       Excel     → 435 columnas con «EM grado = sin» e «IM grado = 0»
+       Excel     → 436 columnas con «EM grado = sin» e «IM grado = 0»
      O sea dos superficies afirmaban dos valvulopatias que las otras dos negaban, y lo que lo
      decidia era si el boton estaba apretado. */
   mReset();
@@ -53255,7 +53259,7 @@ caso('TC-390', 'El informe de la mitral usa SOLO el grado final —el boton ya n
       JSON.stringify(abiertoSinGrado.xls) === JSON.stringify(sinAMano.xls),
       'abierto=' + JSON.stringify(abiertoSinGrado.xls) + ' aMano=' + JSON.stringify(sinAMano.xls)],
     ['  y las cuatro superficies coinciden: el Excel tambien niega las dos',
-      abiertoSinGrado.xls.n === 435 && abiertoSinGrado.xls.em === 'sin' &&   // ADAPTADO 2026-10-12: +1 por «Strain contraccion AI (%)»
+      abiertoSinGrado.xls.n === 436 && abiertoSinGrado.xls.em === 'sin' &&   // ADAPTADO 2026-10-12: +1 por «Strain contraccion AI (%)»; ADAPTADO 2026-10-14: +1 por «DisfSist_VD»
       String(abiertoSinGrado.xls.im) === 'Ausente', 'xls=' + JSON.stringify(abiertoSinGrado.xls)],
 
     /* ⚠ LAS CUATRO DE ABAJO, ACTUALIZADAS A PROPOSITO el 2026-10-03, y el cambio NO esta en la
@@ -54626,7 +54630,7 @@ caso('TC-402', 'El boton v2: elegir grado por el menu ▼ lo prende; un grado di
 
 /* TC-403 — Punto (f): la tarjeta pre-PDF deja el select y el oculto IGUALES. El defecto de la IM
    lo cerro 5602597 y TC-393; el de la IAo quedo abierto y declarado, y se cierra el 2026-10-03.
-   Lo que firma el PDF y lo que va a las 435 columnas es el OCULTO; lo que leen el aviso rojo, el
+   Lo que firma el PDF y lo que va a las 436 columnas es el OCULTO; lo que leen el aviso rojo, el
    cajon y la pastilla es el SELECT. Divergentes, la pantalla y el papel dicen cosas distintas. */
 caso('TC-403', '(f) La tarjeta pre-PDF deja select y oculto IGUALES en la IAo —no solo en la IM— y repinta la pastilla, el aviso y el cajon de la AORTICA', `
   ${APAGA_HELPERS}
@@ -59022,8 +59026,8 @@ caso('TC-429', 'Tricuspide: el Diam. y el VTI del TSVD son UN dato con DOS campo
       JSON.stringify({ crit: ET_CRIT, insumo: typeof ET_BANDA_INSUMO !== 'undefined' ? ET_BANDA_INSUMO : null })],
 
     // --- El Excel no cambia de tamanio --------------------------------------------------------
-    /* ADAPTADO 2026-10-12: 434 -> 435 por «Strain contraccion AI (%)». */
-    ['el Excel sigue en 435 columnas', cols.length === 435, 'columnas: ' + cols.length]
+    /* ADAPTADO 2026-10-12: 434 -> 435; ADAPTADO 2026-10-14: 435 -> 436 por «Strain contraccion AI (%)». */
+    ['el Excel sigue en 436 columnas', cols.length === 436, 'columnas: ' + cols.length]
   ] };
 `);
 
@@ -59286,9 +59290,9 @@ caso('TC-430', 'Tricuspide: la PASTILLA es la unica fuente del grado y el «grad
       desinc.length === 0, JSON.stringify(gestos)],
 
     // --- (9) las superficies no cambiaron de origen -----------------------------------------
-    /* ADAPTADO 2026-10-12: 434 -> 435 por «Strain contraccion AI (%)». */
-    ['(9) el Excel sigue en 435 columnas con el grado fijado por la pastilla',
-      sIT2.xls === 435 && sIT4.xls === 435 && sETs.xls === 435 && sETn.xls === 435,
+    /* ADAPTADO 2026-10-12: 434 -> 435; ADAPTADO 2026-10-14: 435 -> 436 por «Strain contraccion AI (%)». */
+    ['(9) el Excel sigue en 436 columnas con el grado fijado por la pastilla',
+      sIT2.xls === 436 && sIT4.xls === 436 && sETs.xls === 436 && sETn.xls === 436,
       [sIT2.xls, sIT4.xls, sETs.xls, sETn.xls].join('/')],
     ['(9) y la celda del Excel lleva el grado elegido',
       sIT2.celda.it === 'Moderada' && sIT4.celda.it === 'Severa'
@@ -59985,9 +59989,9 @@ caso('TC-439', 'Pulmonar: la PASTILLA es la unica fuente del grado y el «grado 
       e8inf.inf.indexOf('estenosis moderada-severa') > -1
       && e8inf.suma.indexOf('EP moderada-severa.') > -1,
       recorteJS(e8inf.inf) + ' // ' + recorteJS(e8inf.suma)],
-    /* ADAPTADO 2026-10-12: 434 -> 435 por «Strain contraccion AI (%)». */
-    ['(8) el Excel tambien, y sigue en 435 columnas',
-      e8celda.ep === 'Moderada-severa' && e8celda.cols === 435, JSON.stringify(e8celda)],
+    /* ADAPTADO 2026-10-12: 434 -> 435; ADAPTADO 2026-10-14: 435 -> 436 por «Strain contraccion AI (%)». */
+    ['(8) el Excel tambien, y sigue en 436 columnas',
+      e8celda.ep === 'Moderada-severa' && e8celda.cols === 436, JSON.stringify(e8celda)],
     ['(8) y el panel de Evidencia, que lee el select VIVO, no lo pierde',
       e8evid === 'Moderada-severa', String(e8evid)],
     /* La pastilla y el texto fijo dicen «Moderada» porque \`corto()\` recorta al primer grado que
@@ -60200,9 +60204,9 @@ caso('TC-440', 'Insuficiencia pulmonar: los CUATRO signos nuevos graduan por el 
       JSON.stringify(reabierto)],
 
     // --- NO salen por ninguna superficie firmada ---------------------------------------------
-    /* ADAPTADO 2026-10-12: 434 -> 435 por «Strain contraccion AI (%)». */
-    ['el Excel sigue en 435 columnas y ninguna nombra los signos',
-      cols.length === 435 && colsSigno.length === 0,
+    /* ADAPTADO 2026-10-12: 434 -> 435; ADAPTADO 2026-10-14: 435 -> 436 por «Strain contraccion AI (%)». */
+    ['el Excel sigue en 436 columnas y ninguna nombra los signos',
+      cols.length === 436 && colsSigno.length === 0,
       'cols=' + cols.length + ' signos=[' + colsSigno.join(',') + ']'],
     ['el informe narrativo no nombra ningun signo nuevo',
       enInforme === false, recorteJS(r.inf)],
@@ -61541,11 +61545,11 @@ caso('TC-449', 'EM: con IAo SEVERA el area por THP se retira del Excel y de las 
       JSON.stringify({ input: base.input, valido: base.valido, fuentes: base.fuentes })],
     ['y en ese caso NADA se mueve: las dos filas, el panel y las tres celdas del Excel publican el area',
       base.filaThp === '1.47 cm2' && base.filaAvm.indexOf('THP: 1.47 cm2') === 0 &&
-      base.panel.indexOf('1.47') > -1 && base.xlsAvm === 1.47 && base.cols === 435,   // ADAPTADO 2026-10-12: +1 por «Strain contraccion AI (%)»
+      base.panel.indexOf('1.47') > -1 && base.xlsAvm === 1.47 && base.cols === 436,   // ADAPTADO 2026-10-12: +1 por «Strain contraccion AI (%)»; ADAPTADO 2026-10-14: +1 por «DisfSist_VD»
       JSON.stringify(base)],
 
     ['con IAo SEVERA la celda del Excel sale VACIA, sin perder una sola columna',
-      iaSevera.xlsAvm === '' && iaSevera.cols === 435, JSON.stringify({ avm: iaSevera.xlsAvm, cols: iaSevera.cols })],
+      iaSevera.xlsAvm === '' && iaSevera.cols === 436, JSON.stringify({ avm: iaSevera.xlsAvm, cols: iaSevera.cols })],
     ['y las DOS filas del papel dicen lo mismo, con el literal que la app YA tenia —no hay texto nuevo—',
       iaSevera.filaThp === L_IA && iaSevera.filaAvm.indexOf(L_IA) === 0,
       'thp=' + iaSevera.filaThp + ' // avm=' + iaSevera.filaAvm],
@@ -61584,12 +61588,12 @@ caso('TC-449', 'EM: con IAo SEVERA el area por THP se retira del Excel y de las 
       ambas.filaThp === L_BANDA && ambas.filaAvm.indexOf(L_BANDA) === 0 && ambas.panel.indexOf(L_BANDA) > -1,
       'thp=' + ambas.filaThp + ' // avm=' + ambas.filaAvm + ' // panel=' + ambas.panel],
     ['y la celda sigue vacia en esa escena, por el otro motivo',
-      ambas.xlsAvm === '' && ambas.cols === 435, JSON.stringify({ avm: ambas.xlsAvm, cols: ambas.cols })],
+      ambas.xlsAvm === '' && ambas.cols === 436, JSON.stringify({ avm: ambas.xlsAvm, cols: ambas.cols })],
 
-    /* ADAPTADO 2026-10-12: 434 -> 435 por «Strain contraccion AI (%)». */
-    ['los 435 encabezados y su ORDEN no cambian en ninguna de las cinco escenas',
-      base.cols === 435 && iaSevera.cols === 435 && thpFuera.cols === 435 &&
-      ambas.cols === 435 && iaModerada.cols === 435,
+    /* ADAPTADO 2026-10-12: 434 -> 435; ADAPTADO 2026-10-14: 435 -> 436 por «Strain contraccion AI (%)». */
+    ['los 436 encabezados y su ORDEN no cambian en ninguna de las cinco escenas',
+      base.cols === 436 && iaSevera.cols === 436 && thpFuera.cols === 436 &&
+      ambas.cols === 436 && iaModerada.cols === 436,
       JSON.stringify([base.cols, iaSevera.cols, thpFuera.cols, ambas.cols, iaModerada.cols])],
   ] };
   })();
@@ -62754,8 +62758,9 @@ caso('TC-466', 'Las ocho pastillas vuelven al estado inicial al borrar el ultimo
       campos[el.id + '__chk'] = el.checked ? '1' : '0'; });
     xl = _labExcelRow({ nombre:'P', ci:'1', fecha_estudio:'2026-10-13', campos: campos });
   } catch (e) { xl = null; }
-  ex.push(['(5) el Excel sigue en 435 columnas y «EM grado» publica el TOKEN, no la palabra nueva',
-    !!xl && Object.keys(xl).length === 435 && xl['EM grado'] === 'severa',
+  /* ADAPTADO 2026-10-14: 435 -> 436. La separacion de la disfuncion sistolica del VD agrego UNA columna, «DisfSist_VD». Lo que la condicion vigila —que esta tanda no agregue columnas— no cambia. */
+  ex.push(['(5) el Excel sigue en 436 columnas y «EM grado» publica el TOKEN, no la palabra nueva',
+    !!xl && Object.keys(xl).length === 436 && xl['EM grado'] === 'severa',
     'cols=' + (xl ? Object.keys(xl).length : 'EXC') + ' EM grado=' + (xl ? xl['EM grado'] : '?')]);
   let lab = 'EXC';
   try { lab = _labEstenSev({ campos: { em_grado: 'severa' } }, 'em_grado'); } catch (e) {}
@@ -63050,8 +63055,9 @@ caso('TC-467', 'HFA-PEFF contra el original de Pieske 2019: el piso del NT-proBN
   ex.push(['CONTROL: la funcion diastolica publica su veredicto y no quedo en blanco',
     typeof R.ctrl.diastolica === 'string' && R.ctrl.diastolica.length > 2 && R.ctrl.diastolica !== '—',
     String(R.ctrl.diastolica)]);
-  ex.push(['CONTROL: el Excel sigue en 435 columnas — esta tanda no agrego ninguna',
-    R.ctrl.excelCols === 435, String(R.ctrl.excelCols)]);
+  /* ADAPTADO 2026-10-14: 435 -> 436. La separacion de la disfuncion sistolica del VD agrego UNA columna, «DisfSist_VD». Lo que la condicion vigila —que esta tanda no agregue columnas— no cambia. */
+  ex.push(['CONTROL: el Excel sigue en 436 columnas — esta tanda no agrego ninguna',
+    R.ctrl.excelCols === 436, String(R.ctrl.excelCols)]);
   /* El puntaje NO se guarda con el estudio: no hay ningun campo que lo almacene, asi que se
      RECALCULA al reabrir. Es lo que hace que un corte nuevo alcance a los estudios ya guardados
      —y por eso esta escrito aca, para que un cambio futuro a un campo persistido se vea. */
@@ -63368,7 +63374,7 @@ caso('TC-468', 'Las cuatro partes de Valvulas: el VTI de entrada tricuspideo vot
     labEA = _labEstenSev({ campos: { ea_grado: G('ea_grado') } }, 'ea_grado'); } } catch (e) {}
   ex.push(['(5) el Laboratorio clasifica los dos tokens como siempre: EM «Sin» y EAo «Severa»',
     labEM === 'Sin' && labEA === 'Severa', 'EM=' + labEM + ' EA=' + labEA]);
-  /* EL EXCEL: 435 columnas y ni una nueva. Se arma la fila por el MISMO barrido que usa el export. */
+  /* EL EXCEL: 436 columnas y ni una nueva. Se arma la fila por el MISMO barrido que usa el export. */
   let xl = 'EXC';
   try {
     const campos = {};
@@ -63380,8 +63386,9 @@ caso('TC-468', 'Las cuatro partes de Valvulas: el VTI de entrada tricuspideo vot
     const row = _labExcelRow({ nombre:'P', ci:'1', fecha_estudio:'2026-10-14', campos: campos });
     xl = Object.keys(row).length;
   } catch (e) { xl = 'EXC: ' + e.message; }
-  ex.push(['(5) el Excel sigue en 435 columnas: esta tanda no agrega ni una',
-    xl === 435, 'columnas=' + xl]);
+  /* ADAPTADO 2026-10-14: 435 -> 436. La separacion de la disfuncion sistolica del VD agrego UNA columna, «DisfSist_VD». Lo que la condicion vigila —que esta tanda no agregue columnas— no cambia. */
+  ex.push(['(5) el Excel sigue en 436 columnas: esta tanda no agrega ni una',
+    xl === 436, 'columnas=' + xl]);
 
   return { extra: ex };
 `);
@@ -63628,8 +63635,9 @@ caso('TC-469', 'Laboratorio · estenosis mitral nativa: seis categorias excluyen
       !!sev && sev.em === 'Severa', 'em=' + (sev ? sev.em : '?')]);
     let cols = 'EXC';
     try { cols = Object.keys(_labExcelRow(r)).length } catch (e) { cols = 'EXC: ' + e.message }
-    ex.push(['(14) CONTROL NEGATIVO: el Excel sigue en 435 columnas — esta tanda no agrega ni una',
-      cols === 435, 'columnas=' + cols]);
+    /* ADAPTADO 2026-10-14: 435 -> 436. La separacion de la disfuncion sistolica del VD agrego UNA columna, «DisfSist_VD». Lo que la condicion vigila —que esta tanda no agregue columnas— no cambia. */
+    ex.push(['(14) CONTROL NEGATIVO: el Excel sigue en 436 columnas — esta tanda no agrega ni una',
+      cols === 436, 'columnas=' + cols]);
     let vc = 'EXC';
     try { vc = _labValvCounts([r]) } catch (e) { vc = 'EXC: ' + e.message }
     ex.push(['(14) CONTROL NEGATIVO: la tabla resumen sigue contando OCHO lesiones por severidad',
