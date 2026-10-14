@@ -94245,6 +94245,31 @@ const LAB_XLS_RANGO_PROPIO = {
    Resolviendo en la primera llamada, DCM_RANGO ya está inicializado. Se cachea para no rehacer
    el merge por celda. */
 let _labRangoCache = null;
+/* ══ QUE VALOR SE COMPARA CONTRA LA BANDA ════════════════════════════════════════════════════
+   Dueño ÚNICO, y lo consultan el IMPORTADOR y la ayuda de la plantilla. Devuelve el número que se
+   compara contra `_labRango(dest)`: el crudo para casi todos, y la MAGNITUD para los campos que
+   la app ya lee en valor absoluto.
+   ⚠️ NO HAY UNA LISTA NUEVA: se le pregunta a `_DIAST_STRAIN_ABS_MARCA`, que es el dueño que la
+   PANTALLA ya usa desde el 2026-10-12 para decidir la marca «(revisar)». Escribir acá una segunda
+   lista es cómo se llega a que el importador rechace un número que la pantalla acepta —el defecto
+   que este archivo ya pagó tres veces—, y es exactamente lo que pasaba hasta hoy: `lars` tiene la
+   única banda ASIMÉTRICA (`[0,60]`), así que un LARS de −32, que la pantalla interpreta como 32 y
+   no marca, el importador lo RECHAZABA por rango y se llevaba la fila entera. Decisión de Maicol
+   (14/10/2026): −32 y 32 dan lo mismo. Era el punto C1 de `docs/PENDIENTES.md`.
+   ⚠️ EL VALOR QUE SE GUARDA NO CAMBIA: esto decide qué se COMPARA, no qué se escribe. El Excel
+   sigue exportando el número tipeado con su signo y el estudio guarda lo que vino.
+   ⚠️ `ai_strain_ct` NO ENTRA, y está medido: su banda ya es SIMÉTRICA (`[-60,60]`), y comparar el
+   crudo contra una banda simétrica es exactamente comparar la magnitud contra su mitad positiva.
+   Agregarlo no cambiaría ni un veredicto y pondría un campo de más en una tabla que decide. */
+function _labRangoValor(dest, v) {
+  if (typeof v !== 'number' || !isFinite(v)) return v;
+  try {
+    if (typeof _DIAST_STRAIN_ABS_MARCA !== 'undefined' && _DIAST_STRAIN_ABS_MARCA[dest]) return Math.abs(v);
+  } catch (e) {}
+  return v;
+}
+window._labRangoValor = _labRangoValor;
+
 function _labRango(dest) {
   if (!_labRangoCache) {
     let base = {};
@@ -95243,7 +95268,13 @@ function labPlantillaXLSX(vacia, sel) {
     let ayuda = '';
     if (tipo === 'num') {
       const r = (typeof _labRango === 'function') ? _labRango(dest) : null;
-      ayuda = 'Número decimal (coma o punto).' + (r ? ' Rango aceptado: ' + r[0] + ' a ' + r[1] + '.' : '');
+      /* La ayuda y la guarda salen de la MISMA pareja de funciones. Si un campo se compara por
+         magnitud y la ayuda no lo dijera, el médico leería «Rango aceptado: 0 a 60» sobre una
+         columna que acepta −32: una ayuda que enseña un formato distinto del que el importador
+         aplica es peor que no tener ayuda, que es lo que el comentario de arriba ya declara. */
+      const porMagnitud = (typeof _labRangoValor === 'function') && _labRangoValor(dest, -1) === 1;
+      ayuda = 'Número decimal (coma o punto).' + (r ? ' Rango aceptado: ' + r[0] + ' a ' + r[1] + '.' : '')
+            + (porMagnitud ? ' Se compara la MAGNITUD: un valor negativo de la misma magnitud se acepta igual y se guarda con su signo.' : '');
     } else if (tipo === 'fecha') ayuda = 'Fecha AAAA-MM-DD, por ejemplo 2026-03-15.';
     else if (tipo === 'vocab') {
       const op = LAB_XLS_OPCIONES[dest];
@@ -95483,8 +95514,15 @@ function labImportarXLSX(file) {
              el estudio vía la BSA. Se rechaza la FILA, con el motivo, en vez de importar un
              número imposible en silencio. */
           const _rg = _labRango(dest);
-          if (_rg && (v < _rg[0] || v > _rg[1])) {
-            errs.push('«' + col + '»: ' + v + ' fuera del rango esperado (' + _rg[0] + '–' + _rg[1] + ')');
+          /* ⚠️ SE COMPARA LO QUE DICE `_labRangoValor`, NO EL CRUDO. Para `lars` eso es la
+             MAGNITUD, porque la app lee ese strain en valor absoluto desde el 2026-10-12 y hasta
+             hoy el importador rechazaba por rango un número que la pantalla no marcaba: una
+             planilla con un LARS de −32 perdía la FILA ENTERA. El valor que se guarda sigue
+             siendo el crudo, con su signo. */
+          const _vc = _labRangoValor(dest, v);
+          if (_rg && (_vc < _rg[0] || _vc > _rg[1])) {
+            errs.push('«' + col + '»: ' + v + ' fuera del rango esperado (' + _rg[0] + '–' + _rg[1] + ')'
+                      + (_vc !== v ? ' — se compara la magnitud (' + _vc + ')' : ''));
             return;
           }
           v = String(v);
@@ -107549,8 +107587,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261014-1739';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1792010346120;                 /* eco-build-ms */
+const ECO_BUILD    = '20261014-1743';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1792010605864;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -107636,7 +107674,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261014-1739</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261014-1743</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
