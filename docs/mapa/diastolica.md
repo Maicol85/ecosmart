@@ -519,3 +519,13 @@ Verificado que sabe fallar contra HEAD en un worktree aparte: **27 de las 46 en 
 pasan son los controles negativos y lo que esta tanda no mueve.
 **Arnés: `scripts/_probe_strainai.mjs`** (A/B de solo lectura con `--file`), once grupos
 (`sinc`, `marca`, `vacio`, `bse17`, `bse18`, `ase`, `bordes`, `signo`, `excel`, `ancho`, `guardado`).
+
+---
+
+## El AVISO DE EXCLUSIONES MITRALES → `docs/mapa/exclusiones-laboratorio-vd.md` (2026-10-14)
+
+Desde el 2026-10-14 vale para **las TRES guías y los DOS ritmos**, en el cuadro **y** en la ventana
+🧭. Dueño único del texto: **`diastExclTexto`**; la referencia por guía sale de `DIAST_EXCL_REF`.
+No cambia ningún veredicto ni superficie firmada (0 diferencias contra HEAD en 12 escenas).
+⚠️ Su color va en `var(--orange)`: `--amber` sólo existe dentro de `.amilo-root`, así que los otros
+tres avisos de esta zona **no son ámbar** —medido en HEAD, `rgb(232,236,244)`—. `PENDIENTES.md` → X1.

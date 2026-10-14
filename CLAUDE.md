@@ -25,6 +25,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Ubicar un cálculo de severidad, un corte o una banda** | `docs/mapa/valvulas.md` |
 | **Tocar un CORTE de la estenosis AÓRTICA**: las seis variables, la regla del peor, el cuadro de referencias o el cableado del AVA por planimetría | `docs/mapa/aortica-cortes.md` |
 | **Tocar la función diastólica del VI**: el cuadro, la ventana 🧭 o los tres algoritmos | `docs/mapa/diastolica.md` |
+| **Tocar el AVISO DE EXCLUSIONES MITRALES de la diastólica, o la disfunción sistólica del VD en el LABORATORIO**: los disparadores, la referencia por guía, la columna `DisfSist_VD` o el LARS por magnitud | `docs/mapa/exclusiones-laboratorio-vd.md` |
 | **Tocar la ASE/EACVI 2016 en ritmo sinusal**: la Figura 8A, la 8B o el corte de FEVI | `docs/mapa/diastolica-ase2016.md` |
 | **Tocar el S/D venoso pulmonar, el LARS, los suplementarios de la ASE 2025, el E/e′ por sitio de la ASE 2016, los rótulos del cuadro o el rojo del E/e′** | `docs/mapa/diastolica-complementarios.md` |
 | **Tocar un DIAGRAMA DE FLUJO de la ventana 🧭** (BSE 2024, ASE 2025 en ritmo sinusal o en FA, ASE/EACVI 2016 8A y 8B): los planos, el motor del SVG, el umbral de ancho o la tabla compacta | `docs/mapa/diastolica-diagrama.md` |
@@ -65,6 +66,12 @@ glosario respetó la regla sacando su mapa a un archivo propio
 (`panel-evidencia-terminos.md`, 15 KB) en vez de agregarle una sección; lo que le entró fueron tres
 punteros. **La próxima tanda que lo toque conviene que lo parta.**
 ⚠️ **Al 2026-10-13 hay OCHO mapas y el nuevo también nació chico:** `doppler-mitral-grilla.md` pesa 8,9 KB. Se sacó a archivo propio en vez de agregarle una sección a `diastolica.md`, que está en 34,6 KB y a 400 bytes del techo.
+⚠️ **Al 2026-10-14 hay DIEZ mapas y `diastolica.md` CRUZÓ el techo.** El de la tanda del aviso de
+exclusiones y de la disfunción del VD salió a archivo propio
+(`docs/mapa/exclusiones-laboratorio-vd.md`, **16,5 KB**) y lo que le entró a `diastolica.md` fue un
+**puntero de siete líneas** — y aun así pasó de 34,6 a **35,2 KB**, o sea que cualquier cosa que se
+le agregue ahora lo cruza. **La próxima tanda que lo toque tiene que partirlo**, igual que
+`panel-evidencia.md` (35,3 KB) y `valvulas.md` (33,8 KB), que siguen esperando.
 ⚠️ **Y al 2026-10-13 hay NUEVE, porque `valvulas.md` CRUZÓ el techo y hubo que partirlo.** La tanda
 de los cortes de la aórtica lo llevó a **40,8 KB**; su sección nueva salió a
 `docs/mapa/aortica-cortes.md` (9,8 KB) y `valvulas.md` volvió a **32,0 KB** con un puntero de cinco
@@ -78,7 +85,7 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **7,30 MB / 110.314 líneas**, medido el 2026-10-14 —el renglón decía «6,13 MB /
+  sin frameworks. Hoy **7,31 MB / 110.490 líneas**, medido el 2026-10-14 al cierre de la tanda del aviso de exclusiones —el renglón decía «6,13 MB /
   90.494 líneas» y llevaba varias tandas sin actualizarse: **medirlo antes de presupuestar contexto**—. Las únicas dependencias son jsPDF, XLSX y
   PptxGenJS por CDN. Se abre como archivo local y corre en Chrome.
 - Lo que produce es un **informe firmado**: narrativo, EN SUMA, PDF, PPT y Excel del Laboratorio.
@@ -232,6 +239,172 @@ impecable.
 ---
 
 ## Estado vigente
+
+### El AVISO DE EXCLUSIONES MITRALES en las TRES guías, y la disfunción sistólica del VD en el LABORATORIO (2026-10-14)
+
+- Al **empezar** esta tanda, `main` local y `origin/main` estaban los dos en **`b2bec97`**, sin nada
+  sin pushear —confirmado con un `git fetch` de verdad, no con el ref en caché—, con los **cuatro**
+  commits de la tanda del Laboratorio de la estenosis mitral ya incluidos **y pusheados**. Los
+  **cuatro** commits de esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 4 → 3 → 2 → 1.**
+  ⚠️ **EL 1, EL 2 Y EL 3 NO SE LLAMAN ENTRE SÍ Y SE REVIERTEN EN CUALQUIER ORDEN**, que es raro en
+  esta serie y conviene decirlo: el 1 toca el aviso de la diastólica (`DIAST_EXCL_REF`,
+  `diastExclTexto`, `diastExclSync` y la inicialización de `h` en `diastAlgoRender`), el 2 el
+  Laboratorio (`_labDisfSistVent`, las dos filas de `_LAB_HALLAZGOS` y la columna del Excel) y el 3
+  el importador (`_labRangoValor`). Ninguno nombra nada de los otros dos.
+  ⚠️ **PERO EL 2 ADAPTÓ 26 CASOS por el salto de 435 a 436 columnas**, así que revertirlo sin
+  reponer esas afirmaciones deja la suite entera en rojo por el denominador del Excel, no por un
+  defecto. **El 4 es TC-470 más documentación** y afirma el comportamiento de los tres: revertir
+  cualquiera sin el 4 deja TC-470 en rojo —42 de sus 91 condiciones, verificado en un worktree
+  aparte—.
+
+- **Línea base al cierre: suite 480/484 con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0 ERROR,
+  Excel en 436 columnas, celular 43 a 360 px y 52 a 390 px con 1 ALTA cada uno —IDÉNTICO a la línea
+  base, y `--todo` da 374 y 383, el mismo par—.** **CERO REGRESIONES**: los **cuatro** rojos son
+  exactamente los de ENTRADA documentados —**TC-223** (el documentado, falla por la fecha),
+  **TC-376**, **TC-390** y **TC-406**—. **El denominador subió a 484**: esta tanda agregó **TC-470**.
+  El `md5` de `index.html` no se movió durante la corrida (`d7583ebd…`).
+  ⚠️ **LA DE ENTRADA, medida en HEAD limpio en un worktree aparte, fue 472/483 con el pendrive
+  MONTADO, y sus ONCE rojos NO se restan contra los cuatro del cierre.** Siete eran de **ENTORNO** y
+  lo dicen en su propia condición: **TC-131** y **TC-135** («la librería XLSX está disponible, llega
+  por CDN»), **TC-148**, **TC-150**, **TC-151** y **TC-152** («PptxGenJS cargó por CDN») y —esto es
+  nuevo— **TC-147**, que muere con `ReferenceError: Chart is not defined`, o sea **Chart.js por
+  CDN**: es el mismo racimo de siempre con un tercer miembro. En la corrida de cierre los siete
+  salieron **VERDES**, con el mismo árbol, que es la prueba de que eran entorno. **La comparación
+  válida es que el conjunto de rojos NO-entorno es el MISMO en las dos puntas, y son esos cuatro.**
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista de ids con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. Por eso el total es sobre 484 y no sobre 485.
+
+- **Dónde está todo:** `docs/mapa/exclusiones-laboratorio-vd.md` (**mapa NUEVO**, 16,5 KB: los dos
+  bloques, la tabla de las nueve opciones de morfología, la referencia por guía y por ritmo, el
+  censo de frases antes y después, la columna nueva y las seis trampas medidas),
+  `docs/mapa/diastolica.md` → un **puntero de siete líneas**, `docs/mapa/informe-pdf-excel.md` → el
+  conteo de columnas **436**, `docs/fuentes/FUENTES.md` → «Las EXCLUSIONES de los algoritmos de
+  función diastólica — LAS TRES GUÍAS», y `docs/PENDIENTES.md` → **C1 marcado CERRADO** más **cinco**
+  cosas declaradas y no tocadas (X1 a X5).
+
+- **BLOQUE S · EL AVISO VALE PARA LAS TRES GUÍAS Y LOS DOS RITMOS, Y NO MUEVE NADA.** Hasta hoy
+  hablaba **sólo con la ASE 2025 en ritmo sinusal**: un paciente con prótesis mitral evaluado por la
+  BSE o por la ASE/EACVI 2016 corría el algoritmo sin que nada lo dijera. Decisión de Maicol: la
+  función diastólica se **calcula igual que hoy en todos los casos** y lo único que entra es el
+  cartel. **Dueño ÚNICO del texto: `diastExclTexto`**, al que llaman las DOS superficies —el cuadro
+  gris y la ventana 🧭—, así que no se pueden desincronizar.
+  ⚠️ **EN LA VENTANA VA EN LA INICIALIZACIÓN DE `h`, Y NO EN CADA SALIDA.** `diastAlgoRender` tiene
+  **DOS** `host.innerHTML = h`: el de la rama de FA y el del final. Agregarlo en cada uno son dos
+  puertas que se separan el día que alguien toque una.
+- **LAS TRES GUÍAS ESCRIBEN LA MISMA LISTA, y lo único que cambia es la REFERENCIA.** ASE 2025 pie
+  de la Figura 3 folio 554 (+ su nota ¶ sobre plastia, reemplazo y TEER) · BSE 2024 pie de la Figura
+  17 pág. 36 en sinusal y pie de la Figura 19 pág. 39 en FA · ASE/EACVI 2016 folio 286, en prosa.
+  ⚠️ **LA BSE ES LA ÚNICA CON UNA REFERENCIA POR RITMO**, porque es la única que escribe la lista dos
+  veces. **La Figura 8 de la ASE 2025 —la de FA, folio 563— NO la repite**, censado el PDF completo,
+  así que ahí se cita igual la Figura 3.
+  ⚠️ **Y LA FIGURA 18 DE LA BSE NO LISTA LAS EXCLUSIONES MITRALES**: su pie (pág. 38) nombra bloqueo
+  de rama, marcapaso apical del VD, resincronización y asistencia ventricular. El aviso sale igual
+  con la BSE en sinusal **por las dos vías**, que es el lado conservador para un cartel que no
+  cambia nada: avisa de más en esa vía y nunca de menos.
+- **MEDIDO con teclas y clics reales:** las **NUEVE** opciones EXACTAS de «Morfología VM» una por
+  una (12/12 coinciden, contando las tres escenas del selector de estenosis), los cuatro
+  disparadores por las **tres guías y los dos ritmos** (**30/30**), y el grado final de la IM por la
+  **vena contracta** (**24/24**) con el grado LEÍDO —0 / 1 / 2 / 4— y sólo el 4 disparando.
+  ⚠️ **NO HAY OPCIÓN DE PLASTIA NI DE ANULOPLASTIA MITRAL EN LA MORFOLOGÍA**, y las tres guías las
+  excluyen; tampoco hay campo para un TEER ya hecho. El aviso **nombra de menos**, que es el lado
+  correcto. `PENDIENTES.md` → X2.
+- ⚠️ **EL COLOR ÁMBAR NO ERA ÁMBAR, Y ESTÁ MEDIDO EN HEAD.** `--amber` se define **sólo dentro de
+  `.amilo-root`**, así que fuera de ahí `color: var(--amber)` es **inválido en tiempo de valor
+  computado** y cae al heredado: los **cuatro** avisos de la diastólica computaban
+  `rgb(232, 236, 244)`, el gris del texto normal, con el comentario diciendo «ámbar» al lado. El de
+  exclusiones pasó a `var(--orange)` —global y theme-aware— y hoy computa `rgb(245, 158, 66)`.
+  **Los otros tres no se tocaron**: son del protocolo y de la BSE y no son de esta tanda.
+  `PENDIENTES.md` → X1.
+- **CONTROL NEGATIVO MAYOR: 12 escenas con el aviso prendido y apagado por las tres guías, 0
+  diferencias contra HEAD** en informe (3 estilos), EN SUMA (3), **Excel con sus 435 columnas y su
+  hash**, franja del PPT, grado del Laboratorio y hash de los campos guardados. Y **captura en los
+  dos temas**, cuadro y ventana, con los cuatro PNG de `md5` distinto —o sea que la clase
+  `light-mode` quedó puesta de verdad—.
+
+- **BLOQUE R1 · EL LABORATORIO CONTABA LA DISFUNCIÓN SISTÓLICA DEL VD COMO DEL VI.** Lo reportó
+  Maicol. La categoría clasificaba con `/disfunci[oó]n\s+sist[oó]lica|FEVI\s+[<>]?\s*[0-4]\d/i`,
+  que **no distingue el ventrículo**, así que todo estudio con el VD alterado inflaba la estadística
+  del izquierdo. **`_labDisfSistVent` es el dueño único** y clasifica **FRASE POR FRASE**: parte por
+  `.`, `;` y salto de línea —los mismos tres cortes que `_labMenciona` ya usa para su ventana de
+  negación— y manda la frase al VD cuando ELLA MISMA nombra el ventrículo derecho (`VD`, `HVD` o
+  «ventrículo derecho»). Dentro de una frase, la detección de negaciones es **exactamente la de
+  HEAD**.
+- ⚠️ **LA VÍA DE LA FEVI NO SE PARTE, Y ES DELIBERADO.** `FEVI 45` es del VI por construcción, así
+  que suma al VI aunque la frase nombre también el VD: partirla sólo podría **perder** cuentas que
+  HEAD tenía, y lo único que se le quita al VI son las frases de disfunción que hablan del derecho.
+- **EL CENSO, MEDIDO CON EL INFORME GENERADO: 12 escenas × 3 estilos = 36 celdas, CAMBIAN 21.** Las
+  seis familias de frase del VD —`VD dilatado…`, `VD de dimensiones normales…`, `VD con…`, `HVD
+  con…`, `VD dilatado e hipertrófico…` y `Disfunción sistólica severa del VD (FAC N%)`— en los tres
+  estilos, más la escena con los dos ventrículos. Las tres del VI y los dos controles negativos no
+  se mueven. **Ninguna frase es ambigua**: todas las del VD lo nombran en su propia oración y
+  ninguna del VI lo nombra. **El EN SUMA y el informe salen IDÉNTICOS a HEAD en las 12 escenas.**
+- ⚠️ **CON EL ESTILO CONCISO LA DISFUNCIÓN DEL VI NO ENTRA EN LA CATEGORÍA, Y ES PREEXISTENTE.** Su
+  frase es «FEVI levemente reducida (45 %)», sin la palabra y sin el número pegado a la sigla; en el
+  estándar entra por «FEVI 45» y en el narrativo por «compatible con disfunción sistólica leve». O
+  sea que la misma cohorte da una prevalencia distinta según el estilo con que se firmaron los
+  informes. **No se tocó** —cambia qué estudios entran en la categoría—: `PENDIENTES.md` → X3.
+- **LA CATEGORÍA NUEVA APARECE EN LOS TRES CONSUMIDORES POR CONSTRUCCIÓN**, porque `_LAB_HALLAZGOS`
+  es **una** lista cerrada que leen el dashboard, el PDF de auditoría y el PPT.
+  ⚠️ **EL FILTRO DE COHORTE NO TIENE NINGUNA CATEGORÍA DE DISFUNCIÓN SISTÓLICA, Y ESTÁ MEDIDO:** sus
+  cinco selectores son `filtro-fevi` (numérica), `filtro-geom`, `filtro-diast`, `filtro-valv` y
+  `filtro-interes`. No hubo nada que agregarle, y TC-470 lo afirma para que el día que se agregue uno
+  se note.
+  ⚠️ **Y `_labHallazgosCuenta` CORTA EN OCHO** (`.slice(0, 8)`): con una novena categoría, una
+  cohorte donde la del VD sea frecuente puede desplazar a otra del top 8. `PENDIENTES.md` → X5.
+- **EL EXCEL PASA DE 435 A 436 COLUMNAS, UNA SOLA Y AUTORIZADA.** `DisfSist_VD`, declarada en el
+  bloque **«5 · VENTRÍCULO DERECHO»** —y eso es lo que decide su posición, porque `_labOrdenarCols`
+  manda al final lo que el mapa no conoce y después reagrupa por bloque—. Medido: **índice 50, entre
+  `FAC VD (%)` y `Área AD (cm²)`**; **ninguna columna existente cambió de valor**, comparadas clave
+  por clave contra HEAD en 12 escenas; ninguna desaparece. Es **derivada**: no entra en
+  `LAB_XLS_MAP`, no se reimporta, y tiene su fila en la hoja Leyenda.
+  **Reverificado** que los consumidores leen por NOMBRE: el export arma un objeto, el importador lee
+  por encabezado, y **CeiboAnalytics no lee este Excel** (cero `XLSX.read`, cero `sheet_to_json`).
+  ⚠️ **No hay columna gemela para el VI**, que es la decisión de la orden. `PENDIENTES.md` → X4.
+- **LOS ESTUDIOS GUARDADOS NO SE MIGRAN:** el Laboratorio los lee del texto guardado, así que se
+  reclasifican solos al calcular. No se reescribió un solo registro.
+
+- **BLOQUE R2 · EL IMPORTADOR COMPARA EL LARS POR MAGNITUD, y cierra C1.** La pantalla lo lee en
+  valor absoluto desde el 2026-10-12 —un −32 vota como 32 y **no** se marca— pero el importador
+  comparaba el **crudo** contra `lars:[0,60]`, la única banda **asimétrica** de la tabla: una
+  planilla con un LARS negativo perdía la **fila entera**. **`_labRangoValor(dest, v)`** es el dueño
+  y **no tiene lista propia**: le pregunta a `_DIAST_STRAIN_ABS_MARCA`, que es el dueño que la
+  pantalla ya usa. Lo consultan la **guarda** del importador y la **ayuda** de la plantilla, que es
+  la otra superficie del mismo rango.
+  **Medido, nueve valores por los dos signos: CAMBIAN EXACTAMENTE DOS** —el **−32** y el **−60**,
+  que HEAD rechazaba y hoy acepta—; ±61 y ±80 se rechazaban y se siguen rechazando. Y **las dos
+  puertas concuerdan**: con teclas reales ±32 no lleva marca y ±80 lleva «(revisar)».
+  ⚠️ **`ai_strain_ct` NO SUFRE LO MISMO Y ESTÁ MEDIDO:** su banda ya es simétrica (`[-60,60]`), así
+  que comparar el crudo contra ella es exactamente comparar la magnitud contra su mitad positiva.
+  **El valor guardado no cambia** y el Excel no gana ninguna columna por este bloque.
+
+- **Arneses: `scripts/_probe_exclusiones.mjs`** (siete grupos: `morf`, `guias`, `im`, `ventana`,
+  `superficies`, `controles`, `captura`) y **`scripts/_probe_labdisf.mjs`** (cuatro: `censo`,
+  `excel`, `lars`, `controles`), los dos A/B de solo lectura con `--file`.
+  **Cobertura: TC-470**, **91 condiciones** —contadas instrumentando el propio caso para que
+  publicara su `ex.length`, no a ojo— con **ocho** denominadores y **doce** controles negativos.
+  **Verificado que sabe fallar contra HEAD en un worktree aparte: 42 de las 91 en rojo, y NINGUNA
+  por excepción**; las 49 que pasan son lo que esta tanda no mueve.
+- ⚠️ **`showTab('valvulas')` CIERRA LO QUE EL CLIC ACABA DE ABRIR**, porque corre
+  `valvCerrarTarjetas`. La sonda clickeó **cuatro veces** la sección de la mitral, el clic llegó al
+  blanco las cuatro —`esElBlanco: true`, medido— y la sección salía cerrada igual. Se llama **sólo
+  si la pestaña no está activa**.
+- ⚠️ **`im_vc` VIVE DETRÁS DE DOS PUERTAS Y LOS DOS NOMBRES NO COINCIDEN:** el contenedor oculto es
+  `#bloque-insuf-mitral` y el `onclick` dice `valvDatosTog('caja-insuf-mitral')`, así que el
+  buscador genérico de `revelar()` no da con él; y arriba hay otra, `#ete-seccion-valv-mitral`, que
+  abre `toggleEteSeccion('valv-mitral', this)` —con la coma y el `this`, así que buscar el literal
+  con paréntesis cerrado tampoco matchea—.
+- ⚠️ **UN TECLEO QUE NO QUEDA NO ES UNA MEDICIÓN:** `tipear()` ahora **aborta** si el valor no quedó.
+  Sin eso, la sonda informó «no avisa» en 24 escenas sobre un campo que nunca se cargó.
+- ⚠️ **EL ESTILO DEL INFORME CAMBIA EL DENOMINADOR DEL CENSO:** midiendo en el estilo por omisión,
+  «diez de las doce escenas emiten una frase» daba **7**, porque en el conciso la del VI no existe.
+  TC-470 fija `setEstiloInforme('narrativo')`.
+- ⚠️ **Me comí el acento grave CUATRO veces**, todas en comentarios míos dentro del template de una
+  sonda. `node --check` dio la línea exacta las cuatro, porque el culpable estaba en el mismo
+  template; `scripts/check_backticks.py` **no las alcanza**, porque su cobertura es el cuerpo de un
+  `caso(...)` y el de la sonda inyectada, y las mías estaban en el objeto `SONDA`. **Correr los dos,
+  y barrer el cuerpo del template después de CADA edición, no sólo antes del commit.**
 
 ### La ESTENOSIS MITRAL NATIVA en el LABORATORIO: seis categorías desde los DATOS y dos casillas superponibles (2026-10-14)
 

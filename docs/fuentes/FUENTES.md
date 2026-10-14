@@ -1305,6 +1305,42 @@ Las dos están medidas en `scripts/_probe_diast2025.mjs` y quedan declaradas en 
 El **estudio de validación** `New-algorithm-for-estimating-left-ventricular-filling-pressure.
 Circ-2025.pdf` de la misma carpeta **no se abrió ni se citó**: es un estudio, no una guía.
 
+
+### Las EXCLUSIONES de los algoritmos de función diastólica — LAS TRES GUÍAS (verificadas 2026-10-14)
+
+Leídas en el texto COMPLETO de cada PDF, con el folio comprobado y sin copia literal en la app. Las
+tres escriben la MISMA lista para la válvula mitral, con diferencias de grado que están anotadas.
+
+| Guía | Dónde lo dice | Qué excluye |
+|---|---|---|
+| **ASE 2025** | pie de la **Figura 3**, **folio 554** (PDF 18) | insuficiencia mitral **primaria grave**, estenosis mitral de **cualquier grado**, calcificación del anillo (**MAC**) **moderada o grave**; y, por su nota ¶, **reparación, reemplazo y TEER mitral**. Además, fuera de la mitral: fibrilación auricular, trasplante cardíaco, HTP no cardíaca, constricción pericárdica y asistencia ventricular |
+| **BSE 2024** | pie de la **Figura 17**, **pág. 36** | *«severe MR/MS or MAC or MV replacement or repair»* |
+| **BSE 2024** (FA) | pie de la **Figura 19**, **pág. 39** | cardiopatía congénita compleja, trasplante, hepatopatía terminal, **estenosis mitral o MAC que produzca estenosis mitral significativa**, **prótesis mitral**, estenosis aórtica severa, **insuficiencia mitral** o tricuspídea **severa**, y FA con frecuencia ventricular media en reposo **> 120 lpm** |
+| **ASE/EACVI 2016** | **folio 286** (PDF 10), en prosa | *«significant mitral valve disease (at least moderate mitral annular calcification [MAC], any mitral stenosis or mitral regurgitation [MR] of more than moderate severity, mitral valve repair or prosthetic mitral valve)»*, más fibrilación auricular, asistencia ventricular, bloqueo de rama izquierda y ritmo de marcapaso ventricular |
+
+**Reglas de folio comprobadas en el pie impreso:** ASE 2025 = página del PDF **+ 536** · ASE/EACVI
+2016 = página **+ 276** · BSE 2024 = la página del PDF, **sin offset** (se pagina por «Page N of
+55»).
+
+⚠️ **LA FIGURA 8 DE LA ASE 2025 —LA DE FIBRILACIÓN AURICULAR, FOLIO 563— NO REPITE LAS
+EXCLUSIONES.** Su pie entero es *«Algorithm for estimation of mean LAP with atrial fibrillation.
+BMI, Body mass index; Pulm, pulmonary.»*, censado el PDF completo. Por eso la app cita igual la
+Figura 3 en los dos ritmos de esa guía: es donde la guía lo dice.
+
+⚠️ **Y LA FIGURA 18 DE LA BSE —la vía de función sistólica deprimida, pág. 38— NO LISTA LAS
+EXCLUSIONES MITRALES.** Su pie nombra *«LBBB, RV apical pacing or resynchronisation pacing (CRT);
+LV assist devices»*, y nada más. Es la Figura 17 la que las escribe para el ritmo sinusal.
+
+⚠️ **LA ASE 2025 EXCLUYE LA ESTENOSIS MITRAL DE CUALQUIER GRADO Y LA BSE SÓLO LA SEVERA.** La app
+avisa con **cualquier** estenosis consignada, que es el lado conservador y el de la guía más nueva.
+Lo mismo con la MAC: la ASE y la 2016 piden «moderada o al menos moderada» y la app no tiene campo
+de anillo —lo más cercano es la morfología «Calcificada», que describe la VALVA—, así que el motivo
+se escribe con esas palabras y no con las de la guía.
+
+⚠️ **LAS TRES EXCLUYEN LA PLASTIA O REPARACIÓN MITRAL Y LA ASE 2025 ADEMÁS EL TEER, Y LA APP NO LOS
+PUEDE DETECTAR.** `vm_morf` tiene NUEVE opciones y ninguna es plastia, anuloplastia ni reparación —
+censadas una por una el 2026-10-14. Queda en `docs/PENDIENTES.md` → X2.
+
 ### `aseVd2025` — ASE 2025, cavidades derechas (verificada 2026-10-12)
 
 **Mukherjee M, et al. «Echocardiographic Assessment of the Right Heart: Guidelines and Standards

@@ -1,5 +1,58 @@
 # EcoSmart — pendientes vivos
 
+## Aviso de exclusiones mitrales y disfunción sistólica del VD (2026-10-14) — DECLARADO y NO arreglado
+
+### X1 · Los otros TRES avisos ámbar de la diastólica NO son ámbar
+
+`--amber` se define **sólo dentro de `.amilo-root`** (es un alias de `--orange` para ese módulo),
+así que fuera de ahí `color: var(--amber)` es inválido en tiempo de valor computado y el color cae
+al **heredado**. Medido en HEAD el 2026-10-14: `#diast-excl-aviso`, `#diast-fc-aviso`,
+`#diast-bse-eprima-aviso` y `#diast-bse-gris-aviso` computaban los cuatro `rgb(232, 236, 244)`, o
+sea el gris del texto normal, con el comentario del marcado diciendo «ámbar» al lado.
+
+El de exclusiones pasó a `var(--orange)` —global y theme-aware— y hoy computa `rgb(245, 158, 66)`.
+**Los otros tres no se tocaron**: son del protocolo y de la BSE, no de esta tanda, y cambiarles el
+color es una diferencia visible que la orden no autorizaba. La salida limpia es una de dos: definir
+`--amber` en `:root` como alias de `--orange` (los arregla los cuatro de una vez, y de paso todo
+otro uso fuera de `.amilo-root`), o cambiar los tres restantes uno por uno. **Decisión de Maicol.**
+
+### X2 · Las tres guías excluyen la plastia y el TEER mitral, y la app no los puede detectar
+
+`vm_morf` tiene **nueve** opciones —censadas una por una el 2026-10-14— y ninguna es plastia,
+anuloplastia ni reparación mitral; tampoco hay campo que diga que ya se hizo un TEER. Las tres
+guías los excluyen (ASE 2025 en la nota ¶ de su Figura 3; BSE 2024 en el pie de la Figura 17;
+ASE/EACVI 2016 en el folio 286). El aviso **nombra de menos**, que es el lado correcto para un
+cartel que no cambia nada, y lo que falta está escrito acá. Cerrarlo pide una opción nueva en la
+morfología o un campo propio, o sea contenido clínico. **Decisión de Maicol.**
+
+### X3 · Con el estilo CONCISO la disfunción sistólica del VI no entra en la categoría
+
+Es **PREEXISTENTE** y se midió contra HEAD. La regla del Laboratorio detecta la disfunción del VI
+por dos vías —la palabra «disfunción sistólica» o un `FEVI <40-49>` pegado a la sigla—, y la frase
+del estilo **conciso** es «FEVI levemente reducida (45 %)»: no tiene ninguna de las dos. En el
+**estándar** entra por «FEVI 45» y en el **narrativo** por «compatible con disfunción sistólica
+leve». O sea que la misma cohorte da una prevalencia distinta según el estilo con que se firmaron
+los informes.
+
+**No se tocó** porque corregirlo cambia **qué estudios entran en la categoría**, que la orden del
+2026-10-14 no autorizaba. La salida limpia es que la regla lea «FEVI … reducida» además del número.
+**Decisión de Maicol.**
+
+### X4 · No hay columna de Excel para la disfunción sistólica del VI
+
+La tanda del 2026-10-14 agregó `DisfSist_VD` —**una** columna, que era lo que la orden autorizaba—
+y el VI sigue sin la suya: su presencia en la estadística sólo se ve en el dashboard, en el PDF de
+auditoría y en el PPT, no en la planilla. Un `DisfSist_VI` simétrico costaría una columna más
+(436 → 437) y dejaría las dos categorías legibles desde el archivo. **Decisión de Maicol.**
+
+### X5 · `_labHallazgosCuenta` corta en OCHO y ahora hay NUEVE categorías
+
+La lista `_LAB_HALLAZGOS` ordena por `n` descendente y hace `.slice(0, 8)`. Con la categoría nueva,
+una cohorte donde la disfunción del VD sea frecuente puede **desplazar** a otra fuera del top 8 del
+dashboard, del PDF de auditoría y del PPT. Es el comportamiento de un «top 8» y no una rotura, pero
+el corte se eligió cuando había ocho categorías y nadie lo revisó al agregar la novena.
+**Decisión de Maicol**: subir el corte, o declararlo al pie de las tres superficies.
+
 ## Estenosis mitral nativa en el LABORATORIO (2026-10-14) — DECLARADO y NO arreglado
 
 ### L1 · La tabla de ocho válvulas y el gráfico apilado siguen contando la EM por el BOTÓN
@@ -714,16 +767,21 @@ de lectura y no un dato clínico.
 Fuente: `docs/fuentes/FUENTES.md` → «Parámetros complementarios de la función diastólica».
 Mapa: `docs/mapa/diastolica-complementarios.md`.
 
-### C1 · El importador sigue rechazando un LARS negativo que la pantalla ya no marca
+### C1 · El importador sigue rechazando un LARS negativo que la pantalla ya no marca — ✅ **CERRADO 2026-10-14**
 
-`LAB_XLS_RANGO_PROPIO` tiene `lars:[0,60]` y lo compara sobre el valor **crudo**, así que una
-planilla con un LARS de −32 se rechaza por rango. En pantalla ese mismo valor ya **no** se marca
-«(revisar)», porque la cuenta usa `|x|` y 32 está en banda. Las dos superficies dicen cosas
-distintas sobre el mismo número.
+`LAB_XLS_RANGO_PROPIO` tiene `lars:[0,60]` y lo comparaba sobre el valor **crudo**, así que una
+planilla con un LARS de −32 se rechazaba por rango y se perdía la **fila entera**. En pantalla ese
+mismo valor ya **no** se marca «(revisar)», porque la cuenta usa `|x|` y 32 está en banda. Las dos
+superficies decían cosas distintas sobre el mismo número.
 
-**No se tocó** porque tocar el importador cambia el round-trip de Excel, que necesita orden
-expresa. La salida limpia es la misma que ya tienen los otros tres strain: banda simétrica
-(`[-60, 60]`), que es la banda del valor absoluto escrita sobre el valor crudo.
+**CERRADO** por orden expresa de Maicol (14/10/2026). La salida no fue cambiarle la banda sino
+cambiar **qué número se compara**: `_labRangoValor(dest, v)` devuelve la MAGNITUD para los campos
+que la app ya lee en valor absoluto, y **no tiene lista propia** — le pregunta a
+`_DIAST_STRAIN_ABS_MARCA`, que es el dueño que la pantalla usa desde el 2026-10-12. Lo consultan la
+guarda del importador y la ayuda de la plantilla, que es la otra superficie del mismo rango.
+Medido: cambian exactamente **dos** valores de nueve —el −32 y el −60, que HEAD rechazaba y hoy
+acepta—, y ±61 y ±80 se siguen rechazando. La banda `[0,60]` **no se tocó** y el valor guardado
+sigue siendo el crudo con su signo. Ver `docs/mapa/exclusiones-laboratorio-vd.md` → «BLOQUE R2».
 
 ### C2 · La nota ‡ de la Figura 3 y el inciso (d) del folio 555 no dicen lo mismo
 

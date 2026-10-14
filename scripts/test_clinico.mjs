@@ -63648,6 +63648,355 @@ caso('TC-469', 'Laboratorio · estenosis mitral nativa: seis categorias excluyen
   return { extra: ex };
 `);
 
+/* ══════════════════════════════════════════════════════════════════════════════════════════════
+   TC-470 — 2026-10-14. Cubre las TRES partes de esta tanda:
+     S  · el aviso de exclusiones mitrales, que paso de hablar SOLO con la ASE 2025 en ritmo
+          sinusal a valer para las TRES guias y los DOS ritmos, en el cuadro y en la ventana.
+     R1 · la disfuncion sistolica del VD deja de contarse como del VI, con categoria propia y
+          columna propia de Excel (435 -> 436).
+     R2 · el importador compara el LARS por MAGNITUD.
+   ⚠️ EL CUERPO DE UN CASO CORRE DENTRO DE LA PAGINA, asi que carga con __t.set y no con teclas
+   del navegador: un KeyboardEvent construido a mano no es de confianza. Las MISMAS escenas van
+   con teclas y clics reales en scripts/_probe_exclusiones.mjs y scripts/_probe_labdisf.mjs, que
+   son las que midieron los sintomas contra HEAD. Mismo reparto que TC-463 y TC-469.
+   ⚠️ TODAS las lecturas van con guarda de typeof: contra un arbol sin esta tanda las funciones
+   no existen y un ReferenceError mata la corrida entera — entonces el caso probaria que el arbol
+   es distinto, no que sabe medir. Es la leccion que TC-455, TC-462 y TC-465 ya tienen escrita.
+   ══════════════════════════════════════════════════════════════════════════════════════════ */
+caso('TC-470', 'Aviso de exclusiones mitrales en las TRES guias y los DOS ritmos, con su referencia por guia y el mismo texto en el cuadro y en la ventana; el Laboratorio separa la disfuncion sistolica del VD de la del VI con columna propia (436 columnas); y el importador compara el LARS por magnitud', `
+  const ex = [];
+  const HAY_EXCL = typeof diastExclTexto === 'function';
+  const HAY_VENT = typeof _labDisfSistVent === 'function';
+  const HAY_RVAL = typeof _labRangoValor === 'function';
+
+  /* ── (0) DENOMINADORES. Sin ellos, todas las condiciones de abajo comparan contra 'SIN FN' y
+       salen rojas por la razon equivocada, que no es lo mismo que cazar el defecto. ── */
+  ex.push(['(0) DENOMINADOR: existe el duenio UNICO del texto del aviso', HAY_EXCL,
+    'typeof diastExclTexto=' + typeof diastExclTexto]);
+  ex.push(['(0) DENOMINADOR: existe el duenio UNICO de la clasificacion por ventriculo', HAY_VENT,
+    'typeof _labDisfSistVent=' + typeof _labDisfSistVent]);
+  ex.push(['(0) DENOMINADOR: existe el duenio del valor que se compara contra la banda', HAY_RVAL,
+    'typeof _labRangoValor=' + typeof _labRangoValor]);
+
+  /* ══ BLOQUE S · EL AVISO ════════════════════════════════════════════════════════════════ */
+
+  const morfEl = document.getElementById('vm_morf');
+  const OPCS = morfEl ? Array.from(morfEl.options).map(o => o.value) : [];
+  /* DENOMINADOR: las NUEVE opciones de la morfologia. Si maniana hay una decima y nadie la
+     clasifica, esta condicion lo dice en vez de dejarla pasar en silencio. */
+  ex.push(['(S0) DENOMINADOR: «Morfologia VM» tiene NUEVE opciones y son las conocidas',
+    OPCS.length === 9 && OPCS[0] === 'Normal' && OPCS.indexOf('Calcificada') > -1 &&
+    OPCS.indexOf('Reumática') > -1 && OPCS.indexOf('Prótesis biológica') > -1 &&
+    OPCS.indexOf('Prótesis mecánica') > -1 && OPCS.indexOf('Endocarditis') > -1,
+    'n=' + OPCS.length + ' [' + OPCS.join(' | ') + ']']);
+  /* Y NO hay opcion de plastia ni de anuloplastia: las tres guias las excluyen y la app no tiene
+     con que detectarlas. Queda afirmado para que el dia que exista se note. */
+  ex.push(['(S0) NO hay opcion de plastia ni anuloplastia mitral — las guias la excluyen y la app no la puede detectar',
+    OPCS.filter(o => /plasti|anuloplasti|reparaci/i.test(o)).length === 0, OPCS.join(' | ')]);
+
+  const avisoTxt = () => { const e = document.getElementById('diast-excl-aviso');
+    if (!e) return 'NO EXISTE';
+    return getComputedStyle(e).display === 'none' ? '' : (e.textContent || '').replace(/\\s+/g, ' ').trim() };
+  const escenaDia = (extra) => {
+    __t.limpiar();
+    __t.set('edad', '68'); __t.set('peso', '78'); __t.set('talla', '172');
+    __t.set('ai_vol', '78'); __t.set('vmax_it', '3.0');
+    __t.set('e_sep', '5.5'); __t.set('e_lat', '7.0');
+    Object.keys(extra || {}).forEach(k => __t.set(k, extra[k]));
+    __t.set('onda_e', '95'); __t.set('onda_a', '60');
+    try { calcDiastol() } catch (e) {}
+    return avisoTxt();
+  };
+
+  /* ── (S1) LAS NUEVE OPCIONES, UNA POR UNA, contra «avisa si / no» ── */
+  const ESPERA_MORF = {
+    'Normal': false, 'Mixomatosa / Barlow': false, 'Calcificada': true,
+    'Reumática': false, 'Prolapso / EVMS': false,
+    'Prótesis biológica': true, 'Prótesis mecánica': true,
+    'Endocarditis': false, 'Isquémica (disfunción/rotura músculo papilar)': false
+  };
+  OPCS.forEach(op => {
+    const t = escenaDia({ diast_algoritmo: 'ase2025', diast_ritmo: 'sinusal', vm_morf: op });
+    const hay = !!t;
+    const esp = ESPERA_MORF[op];
+    ex.push(['(S1) morfologia «' + op + '» ' + (esp ? 'SI' : 'NO') + ' dispara el aviso',
+      hay === esp, 'morf=' + __t.val('vm_morf') + ' aviso=' + (t || '—')]);
+  });
+
+  /* ── (S2) LA ESTENOSIS NO ES UNA MORFOLOGIA: su duenio es el selector de grado, y el centinela
+       es 'sin'. Los dos grados reales avisan y el centinela no. ── */
+  ['severa', 'leve'].forEach(g => {
+    const t = escenaDia({ diast_algoritmo: 'ase2025', diast_ritmo: 'sinusal', vm_morf: 'Normal', em_grado: g });
+    ex.push(['(S2) con la estenosis mitral consignada «' + g + '» el aviso sale',
+      !!t && t.indexOf('estenosis mitral') > -1, 'em=' + __t.val('em_grado') + ' | ' + (t || '—')]);
+  });
+  const tSin = escenaDia({ diast_algoritmo: 'ase2025', diast_ritmo: 'sinusal', vm_morf: 'Normal', em_grado: 'sin' });
+  ex.push(['(S2) CONTROL NEGATIVO: con el centinela «sin» NO avisa', tSin === '', tSin || '—']);
+
+  /* ── (S3) EL GRADO FINAL DE LA IM: severa dispara, moderada no. El grado NO se escribe a mano:
+       se carga la vena contracta y se LEE lo que quedo en im_grado, que es lo que el aviso mira. ── */
+  const imEscena = (vc) => {
+    const t = escenaDia({ diast_algoritmo: 'ase2025', diast_ritmo: 'sinusal', vm_morf: 'Normal', im_vc: vc });
+    return { grado: __t.val('im_grado'), aviso: t };
+  };
+  const imSev = imEscena('8'), imMod = imEscena('5'), imLeve = imEscena('2');
+  ex.push(['(S3) DENOMINADOR: la vena contracta produce los tres grados (4 / 2 / 1) sin escribirlos a mano',
+    imSev.grado === '4' && imMod.grado === '2' && imLeve.grado === '1',
+    'sev=' + imSev.grado + ' mod=' + imMod.grado + ' leve=' + imLeve.grado]);
+  ex.push(['(S3) con IM SEVERA el aviso sale y nombra la insuficiencia',
+    !!imSev.aviso && imSev.aviso.indexOf('insuficiencia mitral grave') > -1, imSev.aviso || '—']);
+  ex.push(['(S3) CONTROL NEGATIVO: con IM moderada NO sale', imMod.aviso === '', imMod.aviso || '—']);
+  ex.push(['(S3) CONTROL NEGATIVO: con IM leve tampoco', imLeve.aviso === '', imLeve.aviso || '—']);
+
+  /* ── (S4) LAS TRES GUIAS Y LOS DOS RITMOS, con su REFERENCIA. La BSE es la unica con una por
+       ritmo, porque es la unica que escribe la lista dos veces (Figura 17 y Figura 19). ── */
+  const REF = {
+    'ase2025|sinusal': 'folio 554', 'ase2025|fa': 'folio 554',
+    'bse2024|sinusal': 'Figura 17', 'bse2024|fa': 'Figura 19',
+    'ase2016|sinusal': 'folio 286', 'ase2016|fa': 'folio 286'
+  };
+  Object.keys(REF).forEach(k => {
+    const g = k.split('|')[0], r = k.split('|')[1];
+    const t = escenaDia({ diast_algoritmo: g, diast_ritmo: r, vm_morf: 'Prótesis biológica' });
+    ex.push(['(S4) ' + g + ' / ' + r + ': avisa y cita «' + REF[k] + '»',
+      !!t && t.indexOf(REF[k]) > -1 && t.indexOf('no están validados') > -1, t || '—']);
+    const t0 = escenaDia({ diast_algoritmo: g, diast_ritmo: r, vm_morf: 'Normal' });
+    ex.push(['(S4) CONTROL NEGATIVO ' + g + ' / ' + r + ': con la mitral normal NO avisa',
+      t0 === '', t0 || '—']);
+  });
+
+  /* ── (S5) LA VENTANA 🧭 DICE EXACTAMENTE LO MISMO QUE EL CUADRO, porque las dos llaman al
+       mismo duenio. Y sin motivos no dibuja la caja. ── */
+  const cajaVentana = () => {
+    try { diastAlgoRender() } catch (e) { return 'EXC: ' + e.message }
+    const cu = document.getElementById('diast-algo-cuerpo');
+    if (!cu) return 'NO EXISTE';
+    const c = cu.querySelectorAll('.da-excl');
+    return { n: c.length, txt: c.length ? (c[0].textContent || '').replace(/\\s+/g, ' ').trim() : '',
+             filas: cu.querySelectorAll('.da-row').length,
+             primera: c.length ? (cu.firstElementChild === c[0]) : null };
+  };
+  ['ase2025', 'bse2024', 'ase2016'].forEach(g => {
+    const t = escenaDia({ diast_algoritmo: g, diast_ritmo: 'sinusal', vm_morf: 'Prótesis mecánica' });
+    const v = cajaVentana();
+    ex.push(['(S5) ' + g + ': la ventana dibuja UNA caja, primera del cuerpo, con el MISMO texto que el cuadro',
+      !!v && v.n === 1 && v.txt === t && v.primera === true,
+      JSON.stringify({ n: v && v.n, igual: !!v && v.txt === t, primera: v && v.primera })]);
+    /* DENOMINADOR: una ventana que no dibujo filas da cero y pareceria acuerdo perfecto. */
+    ex.push(['(S5) ' + g + ': DENOMINADOR — la ventana tiene filas de criterio',
+      !!v && v.filas > 0, 'filas=' + (v && v.filas)]);
+    const t0 = escenaDia({ diast_algoritmo: g, diast_ritmo: 'sinusal', vm_morf: 'Normal' });
+    const v0 = cajaVentana();
+    ex.push(['(S5) CONTROL NEGATIVO ' + g + ': sin motivos la ventana NO dibuja la caja',
+      t0 === '' && !!v0 && v0.n === 0, 'aviso=«' + t0 + '» cajas=' + (v0 && v0.n)]);
+  });
+
+  /* ── (S6) EL AVISO NO MUEVE EL VEREDICTO NI EL TEXTO. Se comparan el badge de la diastolica y
+       la LINEA diastolica del informe con y sin aviso, con los MISMOS datos diastolicos: lo
+       unico que cambia entre las dos escenas es la morfologia mitral. ── */
+  const lineaDia = () => {
+    const r = __t.informe();
+    const l = String(r.inf || '').split('\\n').filter(x => /diast[oó]lic|presi[oó]n de llenado|relajaci[oó]n/i.test(x));
+    return { badge: (__t.txt('dd-interp') || '').replace(/\\s+/g, ' ').trim(),
+             linea: l.map(x => x.replace(/\\s+/g, ' ').trim()).join(' ~ ') };
+  };
+  ['ase2025', 'bse2024', 'ase2016'].forEach(g => {
+    escenaDia({ diast_algoritmo: g, diast_ritmo: 'sinusal', vm_morf: 'Normal' });
+    const sin = lineaDia();
+    escenaDia({ diast_algoritmo: g, diast_ritmo: 'sinusal', vm_morf: 'Prótesis biológica' });
+    const con = lineaDia();
+    ex.push(['(S6) ' + g + ': el aviso NO cambia el veredicto ni la linea diastolica del informe',
+      sin.badge === con.badge && sin.linea === con.linea,
+      'sin=«' + sin.badge + '» con=«' + con.badge + '»']);
+    /* DENOMINADOR: que haya veredicto. Comparar dos cuadros vacios da «idéntico» siempre. */
+    ex.push(['(S6) ' + g + ': DENOMINADOR — el cuadro publica un veredicto',
+      !!sin.badge && sin.badge !== '—', 'badge=«' + sin.badge + '»']);
+  });
+
+  /* ══ BLOQUE R1 · LA DISFUNCION SISTOLICA DEL VD ═════════════════════════════════════════ */
+
+  const REG = (inf, suma) => ({ id: 'P', nombre: 'P', ci: '1', fecha_estudio: '2026-10-14',
+                                campos: { informe_texto: inf, en_suma: suma } });
+  const VENT = (inf, suma) => HAY_VENT ? _labDisfSistVent(REG(inf, suma)) : { vi: 'SIN FN', vd: 'SIN FN' };
+  const CATS = (inf, suma) => {
+    if (typeof _labHallazgosCuenta !== 'function') return 'SIN FN';
+    try { return _labHallazgosCuenta([REG(inf, suma)]).map(h => h.lbl).filter(l => /Disfunci[oó]n sist/.test(l)).sort().join(' + ') }
+    catch (e) { return 'EXC: ' + e.message }
+  };
+
+  /* EL CENSO. Las escenas se CARGAN y el informe se GENERA: las frases no se escriben a mano,
+     asi que el dia que una cambie de redaccion el caso sigue midiendo la frase de verdad. */
+  /* ⚠️ EL ESTILO SE FIJA EN NARRATIVO, Y NO ES UN DETALLE. La frase de disfuncion del VI vive en
+     el narrativo («compatible con disfuncion sistolica leve»); en el ESTANDAR el estudio entra a
+     la categoria por la otra via de la regla —«FEVI 45»— y en el CONCISO no entra por ninguna,
+     porque su frase es «FEVI levemente reducida (45 %)», sin la palabra y sin el numero pegado a
+     la sigla. Eso ULTIMO es PREEXISTENTE, se midio contra HEAD y NO lo arregla esta tanda: esta
+     declarado en docs/PENDIENTES.md. Midiendo en el estilo por omision, el denominador de abajo
+     daba 7 en vez de 10 y la diferencia se leia como un defecto del censo. */
+  const escenaVD = (c) => {
+    __t.limpiar();
+    try { setEstiloInforme('narrativo') } catch (e) {}
+    __t.set('edad', '66'); __t.set('peso', '76'); __t.set('talla', '172');
+    Object.keys(c).forEach(k => __t.set(k, c[k]));
+    return __t.informe();
+  };
+  const CENSO = [
+    { id: 'VD dilatado con disfuncion sistolica',          c: { vd_bas: '48', tapse: '14' }, vi: false, vd: true },
+    { id: 'VD de dimensiones normales con disf. sist.',    c: { vd_bas: '35', tapse: '14' }, vi: false, vd: true },
+    { id: 'VD con disfuncion sistolica (sin tamanio)',     c: { tapse: '14' },               vi: false, vd: true },
+    { id: 'HVD con disfuncion sistolica',                  c: { vd_bas: '35', vd_pared: '7', tapse: '14' }, vi: false, vd: true },
+    { id: 'VD dilatado e hipertrofico, con disf. sist.',   c: { vd_bas: '48', vd_pared: '7', tapse: '14' }, vi: false, vd: true },
+    { id: 'Disfuncion sistolica severa del VD (FAC)',      c: { vd_bas: '48', vd_area_d: '26', vd_area_s: '20' }, vi: false, vd: true },
+    { id: 'FEVI levemente reducida',                       c: { fevi: '45' }, vi: true,  vd: false },
+    { id: 'FEVI moderadamente reducida',                   c: { fevi: '35' }, vi: true,  vd: false },
+    { id: 'FEVI severamente reducida',                     c: { fevi: '25' }, vi: true,  vd: false },
+    { id: 'los DOS ventriculos',                           c: { fevi: '35', vd_bas: '48', tapse: '14' }, vi: true, vd: true },
+    { id: 'CONTROL todo normal',                           c: { fevi: '60', vd_bas: '35', tapse: '22' }, vi: false, vd: false },
+    { id: 'CONTROL VD dilatado con funcion CONSERVADA',    c: { vd_bas: '48', tapse: '22' }, vi: false, vd: false }
+  ];
+  let conFrase = 0;
+  CENSO.forEach(e => {
+    const r = escenaVD(e.c);
+    const v = VENT(r.inf, r.suma);
+    const esp = (e.vi ? 'Disfunción sistólica VI' : '') + ((e.vi && e.vd) ? ' + ' : '') + (e.vd ? 'Disfunción sistólica VD' : '');
+    /* Las dos categorias van ORDENADAS alfabeticamente por CATS: «VD» antes que «VI». */
+    const espOrd = [e.vd ? 'Disfunción sistólica VD' : '', e.vi ? 'Disfunción sistólica VI' : ''].filter(Boolean).join(' + ');
+    if (/disfunci[oó]n\\s+sist[oó]lica/i.test(String(r.inf) + String(r.suma))) conFrase++;
+    ex.push(['(R1) «' + e.id + '»: vi=' + e.vi + ' vd=' + e.vd,
+      !!v && v.vi === e.vi && v.vd === e.vd,
+      'dio vi=' + (v && v.vi) + ' vd=' + (v && v.vd) + ' | EN SUMA: ' + String(r.suma).replace(/\\s+/g, ' ').trim().slice(0, 90)]);
+    ex.push(['(R1) «' + e.id + '»: la categoria del Laboratorio es «' + (espOrd || 'ninguna') + '»',
+      CATS(r.inf, r.suma) === espOrd, 'dio «' + CATS(r.inf, r.suma) + '»']);
+  });
+  /* DENOMINADOR: que las escenas hayan producido frases de verdad. Si el tecleo no llegara, el
+     informe saldria sin la palabra y TODAS las filas dirian «no clasifica» sobre una frase que
+     nunca se emitio — el falso que este archivo documenta tres veces. */
+  ex.push(['(R1) DENOMINADOR: diez de las doce escenas emiten una frase con «disfuncion sistolica»',
+    conFrase === 10, 'escenas con frase=' + conFrase + ' de ' + CENSO.length]);
+
+  /* ── (R1b) EL RECUENTO TOTAL NO SE ROMPE: una cohorte con las dos clases suma en las dos
+       categorias y NO suma dos veces el mismo estudio. ── */
+  (function () {
+    if (typeof _labHallazgosCuenta !== 'function') { ex.push(['(R1b) existe _labHallazgosCuenta', false, 'SIN FN']); return; }
+    const rVD = escenaVD({ vd_bas: '48', tapse: '14' });
+    const rVI = escenaVD({ fevi: '35' });
+    const rAMBOS = escenaVD({ fevi: '35', vd_bas: '48', tapse: '14' });
+    const cohorte = [REG(rVD.inf, rVD.suma), REG(rVI.inf, rVI.suma), REG(rAMBOS.inf, rAMBOS.suma)];
+    let h = [];
+    try { h = _labHallazgosCuenta(cohorte) } catch (e) { h = [] }
+    const n = (l) => { const f = h.find(x => x.lbl === l); return f ? f.n : 0 };
+    ex.push(['(R1b) sobre TRES estudios, el VD cuenta 2 y el VI cuenta 2, y ninguno supera el total',
+      n('Disfunción sistólica VD') === 2 && n('Disfunción sistólica VI') === 2,
+      'VD=' + n('Disfunción sistólica VD') + ' VI=' + n('Disfunción sistólica VI') + ' total=' + cohorte.length]);
+    ex.push(['(R1b) la categoria nueva EXISTE en la lista que leen el dashboard, el PDF de auditoria y el PPT',
+      h.some(x => x.lbl === 'Disfunción sistólica VD'), h.map(x => x.lbl + '=' + x.n).join(' · ')]);
+  })();
+
+  /* ── (R1c) LA COLUMNA NUEVA DEL EXCEL: 436, su bloque, su posicion y su valor. ── */
+  (function () {
+    if (typeof _labExcelRow !== 'function') { ex.push(['(R1c) existe _labExcelRow', false, 'SIN FN']); return; }
+    const rVD = escenaVD({ vd_bas: '48', tapse: '14' });
+    const rVI = escenaVD({ fevi: '35' });
+    let fVD = null, fVI = null;
+    try { fVD = _labExcelRow(REG(rVD.inf, rVD.suma)); fVI = _labExcelRow(REG(rVI.inf, rVI.suma)) } catch (e) {}
+    const ks = fVD ? Object.keys(fVD) : [];
+    ex.push(['(R1c) el Excel pasa a 436 columnas y la nueva se llama «DisfSist_VD»',
+      ks.length === 436 && ks.indexOf('DisfSist_VD') > -1, 'n=' + ks.length]);
+    ex.push(['(R1c) vale 1 con disfuncion del VD y 0 con disfuncion del VI',
+      !!fVD && !!fVI && fVD.DisfSist_VD === 1 && fVI.DisfSist_VD === 0,
+      'VD=' + (fVD && fVD.DisfSist_VD) + ' VI=' + (fVI && fVI.DisfSist_VD)]);
+    ex.push(['(R1c) esta declarada en el bloque del VENTRICULO DERECHO',
+      typeof _labXlsBloqueDe === 'function' && /VENTR[IÍ]CULO DERECHO/.test(_labXlsBloqueDe('DisfSist_VD')),
+      typeof _labXlsBloqueDe === 'function' ? _labXlsBloqueDe('DisfSist_VD') : 'SIN FN']);
+    if (typeof _labOrdenarCols === 'function') {
+      const orden = _labOrdenarCols(ks);
+      const i = orden.indexOf('DisfSist_VD');
+      ex.push(['(R1c) y queda PEGADA a las columnas del VD en el orden del archivo, no al final',
+        i > -1 && /VD|VENTR/.test(String(orden[i - 1])) && i < orden.length - 1,
+        'vecinos: ' + orden.slice(Math.max(0, i - 1), i + 2).join(' | ')]);
+    }
+    /* Es DERIVADA: no se reimporta, igual que DD_I, Geom_Normal y TS_Presente. */
+    ex.push(['(R1c) es derivada y NO entra en el mapa del importador',
+      typeof LAB_XLS_MAP === 'undefined' || !LAB_XLS_MAP.some(m => m[0] === 'DisfSist_VD'),
+      'en el mapa=' + (typeof LAB_XLS_MAP !== 'undefined' && LAB_XLS_MAP.some(m => m[0] === 'DisfSist_VD'))]);
+  })();
+
+  /* ── (R1d) EL FILTRO DE COHORTE. MEDIDO Y DECLARADO: el panel NO tiene ningun filtro por
+       disfuncion sistolica —sus cinco selectores son FEVI (numerica), geometria, diastolica,
+       valvulopatia y caso de interes—, asi que no hay nada que agregarle. La condicion existe
+       para que el dia que se agregue uno se note que hay que sumar la categoria nueva. ── */
+  (function () {
+    const IDS = ['filtro-fevi', 'filtro-geom', 'filtro-diast', 'filtro-valv', 'filtro-interes'];
+    const existen = IDS.filter(i => !!document.getElementById(i));
+    const conDisf = IDS.filter(i => {
+      const e = document.getElementById(i);
+      return e && /disfunci[oó]n\\s+sist/i.test(e.textContent || '');
+    });
+    ex.push(['(R1d) el filtro de cohorte tiene sus CINCO selectores y NINGUNO clasifica por disfuncion sistolica',
+      existen.length === 5 && conDisf.length === 0,
+      'existen=' + existen.join(',') + ' conDisf=' + (conDisf.join(',') || 'ninguno')]);
+  })();
+
+  /* ══ BLOQUE R2 · EL LARS POR MAGNITUD ═══════════════════════════════════════════════════ */
+
+  (function () {
+    const banda = (typeof _labRango === 'function') ? _labRango('lars') : null;
+    ex.push(['(R2) DENOMINADOR: la banda del LARS existe y es la asimetrica [0,60]',
+      !!banda && banda[0] === 0 && banda[1] === 60, JSON.stringify(banda)]);
+    const cmp = (v) => HAY_RVAL ? _labRangoValor('lars', v) : 'SIN FN';
+    const acepta = (v) => { const c = cmp(v); return (banda && typeof c === 'number') ? !(c < banda[0] || c > banda[1]) : 'SIN FN' };
+    ex.push(['(R2) el mismo valor con los dos signos se compara igual: |-32| = |32| = 32',
+      cmp(-32) === 32 && cmp(32) === 32, '-32 -> ' + cmp(-32) + ' · 32 -> ' + cmp(32)]);
+    ex.push(['(R2) el importador ACEPTA -32 igual que 32', acepta(-32) === true && acepta(32) === true,
+      '-32=' + acepta(-32) + ' 32=' + acepta(32)]);
+    ex.push(['(R2) y acepta -60 igual que 60 — el borde de la banda por los dos lados',
+      acepta(-60) === true && acepta(60) === true, '-60=' + acepta(-60) + ' 60=' + acepta(60)]);
+    ex.push(['(R2) CONTROL NEGATIVO: la MAGNITUD fuera de banda se sigue rechazando con los dos signos',
+      acepta(-61) === false && acepta(61) === false && acepta(-80) === false && acepta(80) === false,
+      '-61=' + acepta(-61) + ' 61=' + acepta(61) + ' -80=' + acepta(-80) + ' 80=' + acepta(80)]);
+    /* CONTROL NEGATIVO: el strain de CONTRACCION de la AI no entra en la tabla de magnitud,
+       porque su banda ya es simetrica y comparar el crudo contra ella da lo mismo. */
+    const bCtr = (typeof _labRango === 'function') ? _labRango('ai_strain_ct') : null;
+    ex.push(['(R2) CONTROL NEGATIVO: el strain de contraccion de la AI NO se compara por magnitud — su banda ya es simetrica',
+      !!bCtr && bCtr[0] === -60 && bCtr[1] === 60 && (HAY_RVAL ? _labRangoValor('ai_strain_ct', -32) === -32 : false),
+      'banda=' + JSON.stringify(bCtr) + ' cmp(-32)=' + (HAY_RVAL ? _labRangoValor('ai_strain_ct', -32) : 'SIN FN')]);
+    /* Y LAS DOS PUERTAS CONCUERDAN: la marca de pantalla ya trabajaba por magnitud. */
+    __t.limpiar(); __t.set('lars', '-32');
+    try { diastStrainMarcaSync() } catch (e) {}
+    const m32 = (__t.txt('lars-marca') || '').trim();
+    __t.set('lars', '-80');
+    try { diastStrainMarcaSync() } catch (e) {}
+    const m80 = (__t.txt('lars-marca') || '').trim();
+    ex.push(['(R2) las DOS puertas dicen lo mismo: -32 no se marca en pantalla y -80 si',
+      m32 === '' && /revisar/i.test(m80), '-32:«' + m32 + '» -80:«' + m80 + '»']);
+  })();
+
+  /* ══ CONTROLES: lo que esta tanda NO mueve ══════════════════════════════════════════════ */
+
+  (function () {
+    const r = escenaVD({ fevi: '35', vd_bas: '48', tapse: '14' });
+    /* Las otras dos lecturas por TEXTO del Laboratorio siguen dando lo de siempre. */
+    ex.push(['(C) CONTROL: la geometria del VI se sigue leyendo del texto sin cambios',
+      typeof _labGeomCat !== 'function' || _labGeomCat(REG(r.inf, r.suma)) === null,
+      String(typeof _labGeomCat === 'function' ? _labGeomCat(REG(r.inf, r.suma)) : 'SIN FN')]);
+    ex.push(['(C) CONTROL: el grado diastolico derivado del texto no cambia',
+      typeof _labDiastGrado !== 'function' || _labDiastGrado(REG(r.inf, r.suma)) === null,
+      String(typeof _labDiastGrado === 'function' ? _labDiastGrado(REG(r.inf, r.suma)) : 'SIN FN')]);
+    /* El EN SUMA del VD no se toco: la frase es la de siempre, letra por letra. */
+    ex.push(['(C) CONTROL: el EN SUMA sigue diciendo «VD dilatado con disfunción sistólica.»',
+      String(r.suma).indexOf('VD dilatado con disfunción sistólica.') > -1,
+      String(r.suma).replace(/\\s+/g, ' ').trim().slice(0, 120)]);
+    /* Y la tabla de valvulopatias del Laboratorio sigue contando sus OCHO lesiones. */
+    let vc = null;
+    try { vc = _labValvCounts([REG(r.inf, r.suma)]) } catch (e) {}
+    ex.push(['(C) CONTROL: la tabla resumen de valvulopatias sigue con sus OCHO lesiones',
+      !!vc && Array.isArray(vc.bases) && vc.bases.length === 8,
+      vc && vc.bases ? vc.bases.join(',') : 'SIN FN']);
+  })();
+
+  return { extra: ex };
+`);
+
 let servidor, chrome;
 try {
   const s = await servir(); servidor = s.srv;

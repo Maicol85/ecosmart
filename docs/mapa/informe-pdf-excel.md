@@ -184,8 +184,10 @@ del array define el orden de columnas de la plantilla y del export.**
 porque llevan apóstrofo en el nombre: `e' septal`, `e' lateral`, `S'`, `e' lateral tricuspideo`).
 Las 361 **no** son las columnas del Excel: el mapa es un subconjunto del export.
 
-**Columnas reales de la fila exportada: 435 claves distintas** (eran 434 hasta el 2026-10-12,
-cuando entró «Strain contracción AI (%)» pegada a «LARS (%)» en el bloque 3 — ver abajo) — 412 claves distintas en el objeto
+**Columnas reales de la fila exportada: 436 claves distintas** (eran 434 hasta el 2026-10-12,
+cuando entró «Strain contracción AI (%)» pegada a «LARS (%)» en el bloque 3, y 435 hasta el
+2026-10-14, cuando entró **`DisfSist_VD`** en el bloque 5 — ver
+`docs/mapa/exclusiones-laboratorio-vd.md`) — 412 claves distintas en el objeto
 literal de `_labExcelRow` (413 escritas, con `'VAB cirugía valvular prevista'` **repetida dos
 veces**, así que la segunda pisa a la primera), más 1 clave computada
 (`` [`PSAP_${UMBRAL_PSAP_ELEVADA+1}_50`] ``), más 22 columnas del bloque de pericardio que entra
@@ -325,8 +327,9 @@ presentador)`, `_pptEnSuma` (lee `campos.en_suma`), `_pptAgregarImagenes`, `_ppt
 
 ## No confirmado
 
-- **«429 columnas» vs 435.** La ayuda de la app declara 429 en 17 bloques y 129 básicas; el conteo
-  de claves de `_labExcelRow` da 434. No se investigó de dónde sale la diferencia de 5.
+- **«429 columnas» vs 436.** La ayuda de la app declara 429 en 17 bloques y 129 básicas; el conteo
+  de claves de `_labExcelRow` da 436 (daba 434 cuando se escribió este renglón). No se investigó de
+  dónde sale la diferencia.
 - **`'VAB cirugía valvular prevista'` aparece dos veces** como clave del mismo objeto literal, con
   expresiones distintas (`{no:'No',si:'Sí'}[c.vab_cx_valvular]` y `_cc3e(c.vab_cx_valvular)`). En
   JS gana la segunda. No verificado si es intencional ni cuál es la correcta clínicamente.
