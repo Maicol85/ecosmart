@@ -90527,6 +90527,166 @@ function _labEstenSev(inf, key) {   // ea_grado/em_grado: select sin/esclerosis/
   if (/sin|esclerosis/.test(raw)) return 'Sin';
   return null;
 }
+/* ══ LA ESTENOSIS MITRAL NATIVA EN EL LABORATORIO — UNA SOLA LECTURA ════════════════════════
+   Decisiones de Maicol (2026-10-14). El Laboratorio tiene que poder decir DOS cosas sobre la
+   misma mitral y no una: (A) una CATEGORIA mutuamente excluyente para el grafico y (B) dos
+   CASILLAS superponibles para el filtro, que es como se cuenta cuantos estudios son
+   significativos por area, cuantos por gradiente y cuantos por los dos.
+
+   ⚠️ SE CALCULA DESDE LOS DATOS Y NO DESDE EL BOTON, y esa es la diferencia de fondo con
+   `_labEstenSev`, que lee el token guardado en `em_grado`. El token es BINARIO desde el
+   2026-10-13 —«leve» o «severa», que la pantalla escribe «No significativa» / «Significativa»—,
+   asi que no puede distinguir un area de 0,8 cm² de una de 1,4, ni decir si la estenosis la
+   afirma el area o el gradiente. Los numeros si.
+
+   ⚠️ NO SE REIMPLEMENTA LA REGLA: SE LE PREGUNTA A SUS DUEÑOS. Las compuertas de validez son las
+   MISMAS funciones que gobiernan la pantalla y el informe firmado —`emThpValido(c)`,
+   `emContValido(c)`, `emImSignificativa(c)`— y los cortes son las MISMAS constantes
+   (`AVM_SEVERA_MAX`, `EM_GMEDIO_ELEVADO_MIN`, `EM_GMEDIO_SIGNIF_MIN`). Las tres aceptan `src`
+   justamente para esto: aca no hay formulario que leer. Una segunda escalera escrita a mano seria
+   el defecto que este archivo persigue desde que la ventana del 🧭 y el cuadro gris de la
+   diastolica calculaban por separado y acordaban en 2 de 20 escenas.
+   `emCategoria()` NO se puede llamar: lee el DOM (`v(id)`, `document.getElementById`) y el
+   Laboratorio trabaja sobre `inf.campos` de un estudio archivado.
+
+   ⚠️ EL SUB-RANGO DE 1,0 cm² NO ES UN CORTE CLINICO NUEVO: ES LA FRONTERA DE UN ROTULO. La app
+   sigue graduando con UN solo corte de area (1,5). El 1,0 parte la categoria «Significativa» en
+   dos para el grafico, y por eso el rotulo lleva el RANGO y no un nombre de guia: los nombres
+   chocan entre guias y el mismo 1,2 cm² es «moderada» en una y «severa» en las otras tres
+   (ver `docs/fuentes/FUENTES.md` → «Los nombres de los rangos de area de la EM»).
+
+   ⚠️ CON IM SIGNIFICATIVA EL GRADIENTE NO VOTA, LAS DOS BANDAS, igual que `emCategoria`. Es la
+   decision de Maicol del 2026-10-11: el gradiente transmitral sube por VOLUMEN y no por
+   obstruccion. Si el Laboratorio lo contara igual, diria «significativa solo por gradiente» sobre
+   un estudio cuyo informe firmado dice «Gradiente transmitral elevado» SIN la palabra estenosis
+   — dos lecturas del mismo dato en la misma app. El AREA sigue votando. */
+const LAB_EM_AVM_SUBRANGO = 1.0;   // cm² — borde <=; parte el rotulo, no gradua
+const LAB_EM_CAT = Object.freeze({
+  sig_area_1:  'Significativa, AVm ≤1,0 cm²',
+  sig_area_15: 'Significativa, AVm >1,0 a ≤1,5 cm²',
+  sig_grad:    'Significativa solo por gradiente',
+  grad_elev:   'No significativa con gradiente elevado',
+  sin:         'Sin estenosis',
+  sig_sin_num: 'Significativa sin dato numérico'
+});
+/* El orden del grafico, de lo mas grave a lo menos, con el estado del boton al final. */
+const LAB_EM_CAT_ORDEN = Object.freeze(['sig_area_1','sig_area_15','sig_grad','grad_elev','sin','sig_sin_num']);
+/* Colores del grafico de barras de la EM. Los dos rojos para las dos bandas significativas por
+   area, naranja para la significativa por gradiente solo, amarillo para la banda intermedia y
+   verde para «sin estenosis». El gris de «sin dato numerico» dice que el dato lo puso el medico
+   y no la medicion. */
+const LAB_EM_CAT_COLOR = Object.freeze({
+  sig_area_1:'#d32f2f', sig_area_15:'#f05454', sig_grad:'#f0a500',
+  grad_elev:'#f5c842', sin:'#3ecf8e', sig_sin_num:'#8a93a0'
+});
+/* ⚠️ «Significativa» Y NO «Severa» PARA LA ESTENOSIS MITRAL (decision 5). El valor GUARDADO no
+   cambia —`em_grado` sigue siendo `severa`/`leve`, que es lo que leen el Excel, el importador y
+   `VALVSIG`—; lo que cambia es como se ESCRIBE en el Laboratorio, para que la pantalla del
+   Laboratorio no contradiga al informe firmado, que dice «significativa» desde el 2026-10-11.
+   Se traduce SOLO la mitral: las otras siete lesiones pasan por esta funcion sin tocarse, y el
+   control negativo de TC-469 lo fija. */
+function _labEmSevVis(sev) {
+  if (sev === 'Severa')   return 'Significativa';
+  if (sev === 'Moderada' || sev === 'Leve') return 'No significativa';
+  if (sev === 'Sin')      return 'Sin estenosis';
+  return sev;
+}
+/* ⚠️ LA CASILLA «INCLUIR EN EL INFORME» SE RESPETA SOLO SI EL ESTUDIO LA TRAE, y de eso depende
+   que la base archivada no cambie de categoria. Es el espejo exacto de `emMetodoIncluido`: con la
+   clave AUSENTE el metodo VOTA. Un estudio anterior al selector de inclusion (2026-10-11) no trae
+   `em_pdf_plan__chk`, y leerlo como desmarcado le borraria al Laboratorio la estenosis que su
+   propio PDF firmado afirma — el mismo defecto que `emMetodoIncluido` documenta haber evitado.
+   El predicado `'1'` / `'true'` es el de los otros seis consumidores de checkbox de este archivo. */
+function _labEmIncluido(c, idChk) {
+  const k = idChk + '__chk';
+  if (c[k] === undefined || c[k] === null || String(c[k]).trim() === '') return true;
+  const s = String(c[k]).trim().toLowerCase();
+  return s === '1' || s === 'true';
+}
+/* Banda de plausibilidad desde `campos`, con el patron de `emContFueraBanda(src)`: sin banda
+   creible no se invalida nada —fallar al reves dejaria la lectura muda el dia que la tabla de
+   rangos no cargue—, que es la misma guarda que usa `vPlaus`. */
+function _labEmFueraBanda(id, x) {
+  if (x === null) return false;
+  let b = null;
+  try { b = (typeof _labRango === 'function') ? _labRango(id) : null; } catch (e) { b = null; }
+  if (!Array.isArray(b) || b.length !== 2 || !isFinite(b[0]) || !isFinite(b[1]) || !(b[0] <= b[1])) return false;
+  return x < b[0] || x > b[1];
+}
+/* Devuelve `null` cuando el estudio NO tiene ningun dato de estenosis mitral: esos quedan fuera de
+   TODAS las categorias, ni siquiera «Sin estenosis» (decision 4). Afirmar «sin estenosis» sobre una
+   mitral que nadie interrogo es la misma clase de afirmacion que la columna «Sin» de la tabla de
+   valvulopatias ya se niega a hacer con el campo ausente.
+   Con PROTESIS mitral tampoco clasifica: `emCategoria` no aplica ningun corte nativo sobre una
+   protesis, asi que contarla seria graduar con una regla que la app se niega a aplicar. */
+function _labEmLectura(inf) {
+  const c = (inf && inf.campos) ? inf.campos : null;
+  if (!c) return null;
+  try {
+    if (typeof valvEsProtesis === 'function' && valvEsProtesis(c['vm_morf'])) return null;
+  } catch (e) {}
+  const _n = (id) => {
+    const raw = c[id];
+    if (raw === undefined || raw === null || String(raw).trim() === '') return null;
+    const x = (typeof PF === 'function') ? PF(String(raw)) : parseFloat(String(raw).replace(',', '.'));
+    return (x === null || isNaN(x) || !isFinite(x)) ? null : x;
+  };
+  /* El CERO no es una medicion, y entraba como fuente valida: es la guarda `_pos` de
+     `emCategoria`, que este archivo ya documenta haber tenido que agregar alli. */
+  const _pos = (x) => (x !== null && x > 0) ? x : null;
+  const avmPlan = _pos(_n('avm_plan')), avmThp = _pos(_n('avm_thp')), avmCont = _pos(_n('avm_cont'));
+  const gmCrudo = _pos(_n('em_gmedio'));
+  /* «Hay datos» se mide ANTES de las compuertas: un area fuera de banda o un metodo que el medico
+     saco del informe SON datos cargados, y el estudio no es una mitral sin interrogar. */
+  const hayNum = (avmPlan !== null || avmThp !== null || avmCont !== null || gmCrudo !== null);
+  const tok = String(c['em_grado'] == null ? '' : c['em_grado']).trim().toLowerCase();
+  const tokSig = /severa/.test(tok);
+  const tokNoSig = /leve|moderada/.test(tok);
+  if (!hayNum && !tokSig && !tokNoSig) return null;
+
+  const _vale = (x, id, idChk, gate) => {
+    if (x === null) return null;
+    if (!_labEmIncluido(c, idChk)) return null;
+    if (_labEmFueraBanda(id, x)) return null;
+    if (gate && !gate()) return null;
+    return x;
+  };
+  const vPlan = _vale(avmPlan, 'avm_plan', 'em_pdf_plan', null);
+  const vThp  = _vale(avmThp,  'avm_thp',  'em_pdf_thp',
+    () => (typeof emThpValido === 'function') ? !!emThpValido(c) : true);
+  const vCont = _vale(avmCont, 'avm_cont', 'em_pdf_cont',
+    () => (typeof emContValido === 'function') ? !!emContValido(c) : true);
+  /* PREVALECE EL PEOR (decision 2): el area mas chica de las que votan. Es la misma regla que
+     `emCategoria` aplica con `sev.length`, dicha en numeros para poder partir el rotulo en 1,0. */
+  const areas = [vPlan, vThp, vCont].filter(x => x !== null);
+  const avm = areas.length ? Math.min.apply(null, areas) : null;
+  const gm = _labEmFueraBanda('em_gmedio', gmCrudo) ? null : gmCrudo;
+
+  const imSig = (typeof emImSignificativa === 'function') ? !!emImSignificativa(c) : false;
+  const gradCuenta = !imSig;
+  const _max = (typeof AVM_SEVERA_MAX === 'number') ? AVM_SEVERA_MAX : 1.5;
+  const _elev = (typeof EM_GMEDIO_ELEVADO_MIN === 'number') ? EM_GMEDIO_ELEVADO_MIN : 5;
+  const _sig  = (typeof EM_GMEDIO_SIGNIF_MIN === 'number') ? EM_GMEDIO_SIGNIF_MIN : 10;
+
+  const porArea = avm !== null && avm <= _max;
+  const porGrad = gm !== null && gm >= _sig && gradCuenta;
+  const gmElev  = gm !== null && gm >= _elev && gradCuenta;
+
+  let cat;
+  if (porArea)      cat = (avm <= LAB_EM_AVM_SUBRANGO) ? 'sig_area_1' : 'sig_area_15';
+  else if (porGrad) cat = 'sig_grad';
+  else if (gmElev)  cat = 'grad_elev';
+  /* Con un numero cargado manda el NUMERO, aunque el boton diga «Significativa»: la categoria se
+     calcula desde los datos (decision 1). «Significativa sin dato numerico» es la UNICA entrada
+     donde decide el boton, y existe para que ese estudio no se cuente como «Sin estenosis». */
+  else if (hayNum)  cat = 'sin';
+  else if (tokSig)  cat = 'sig_sin_num';
+  else              cat = 'sin';
+  return { cat: cat, lbl: LAB_EM_CAT[cat], avm: avm, gm: gm, porArea: porArea, porGrad: porGrad,
+           imSig: imSig, hayNum: hayNum };
+}
+window.LAB_EM_CAT = LAB_EM_CAT; window.LAB_EM_CAT_ORDEN = LAB_EM_CAT_ORDEN;
+window._labEmLectura = _labEmLectura; window._labEmSevVis = _labEmSevVis;
 // Lista de los 10 indicadores automáticos (CAMBIO 5) — compartida entre vista web y PDF
 function _labIndicadoresList(infs) {
   return [
@@ -91421,11 +91581,15 @@ function labRenderExtras(infs, n) {
   // Contractilidad segmentaria — población (entre Función diastólica y Valvulopatías)
   _labContrRenderDash(infs);
   // SECCIÓN C — Valvulopatías (regurgitaciones + estenosis)
-  const sevTable = (containerId, sevFn) => {
+  /* `visFn` traduce el ROTULO sin tocar el conteo: lo usa SOLO la estenosis mitral, que dice
+     «Significativa» donde las otras siete dicen «Severa» (decision de Maicol del 2026-10-14).
+     Las cuatro cubetas y sus numeros no se mueven — lo fija el control negativo de TC-469. */
+  const sevTable = (containerId, sevFn, visFn) => {
     const b = { Sin:0, Leve:0, Moderada:0, Severa:0 };
     let tot = 0;
     infs.forEach(i => { const s = sevFn(i); if (s && b[s] !== undefined) { b[s]++; tot++; } });
-    const rows = ['Sin','Leve','Moderada','Severa'].map(k => ({ lbl:`${k} (n=${b[k]})`, n:b[k], total:tot, color:cMap[k] }));
+    const _lbl = k => (visFn ? visFn(k) : k);
+    const rows = ['Sin','Leve','Moderada','Severa'].map(k => ({ lbl:`${_lbl(k)} (n=${b[k]})`, n:b[k], total:tot, color:cMap[k] }));
     labBarras(containerId, tot > 0 ? rows : []);
   };
   /* ══ TABLA RESUMEN DE VALVULOPATÍAS ═════════════════════════════════════════════════════
@@ -91498,7 +91662,7 @@ function labRenderExtras(infs, n) {
   sevTable('lab-valv-ia', i => _labRegurgSev(i,'ia_grado'));
   sevTable('lab-valv-it', i => _labRegurgSev(i,'it_grado'));
   sevTable('lab-esten-ea', i => _labEstenSev(i,'ea_grado'));
-  sevTable('lab-esten-em', i => _labEstenSev(i,'em_grado'));
+  sevTable('lab-esten-em', i => _labEstenSev(i,'em_grado'), _labEmSevVis);
 
   // Gráfica apilada integrada de valvulopatías (debajo de las tablas)
   _labValvBuildChart('lab-valv-chart', infs);
@@ -105494,16 +105658,18 @@ async function labGenerarPDF() {
     // 9. Valvulopatías — gráfica apilada (antes) + detalle en grid 2 columnas
     const vdefs6 = [
       ['Insuficiencia mitral (IM)', i => _labRegurgSev(i, 'im_grado')],
-      ['Estenosis mitral (EM)', i => _labEstenSev(i, 'em_grado')],
+      /* La mitral lleva un TRADUCTOR de rotulo —tercer elemento—: dice «Significativa» donde las
+         otras cinco dicen «Severa», sin tocar su conteo (decision de Maicol del 2026-10-14). */
+      ['Estenosis mitral (EM)', i => _labEstenSev(i, 'em_grado'), _labEmSevVis],
       ['Insuficiencia aórtica (IAo)', i => _labRegurgSev(i, 'ia_grado')],
       ['Estenosis aórtica (EAo)', i => _labEstenSev(i, 'ea_grado')],
       ['Insuficiencia tricuspídea (IT)', i => _labRegurgSev(i, 'it_grado')],
       ['Estenosis tricuspídea (ET)', () => null]
     ];
-    const vstats6 = vdefs6.map(([name, fn]) => {
+    const vstats6 = vdefs6.map(([name, fn, vis]) => {
       const b = { Sin: 0, Leve: 0, Moderada: 0, Severa: 0 }; let t = 0;
       infs.forEach(i => { const s = fn(i); if (s && b[s] !== undefined) { b[s]++; t++; } });
-      return { name, b, t };
+      return { name, b, t, vis };
     });
     // Título + subtítulo + gráfica apilada (centrada, ~170mm) ANTES de las tablas
     if (y > 195) { doc.addPage(); y = 20; }
@@ -105535,11 +105701,12 @@ async function labGenerarPDF() {
          confiadas en 0% y un auditor leía «este laboratorio no tiene estenosis tricuspídea».
          Lo cierto es que la app no puede registrarla. Un 0% afirma; un «—» no. */
       const celda = (nn) => v.t > 0 ? _labCel(nn, v.t) : '—';
+      const rot = k => v.vis ? v.vis(k) : k;
       drawTable(x, [w * 0.52, w * 0.48], ['Severidad', 'n (%)'],
-        [['Sin', celda(v.b.Sin)],
-         ['Leve', celda(v.b.Leve)],
-         ['Moderada', celda(v.b.Moderada)],
-         ['Severa', celda(v.b.Severa)]]);
+        [[rot('Sin'), celda(v.b.Sin)],
+         [rot('Leve'), celda(v.b.Leve)],
+         [rot('Moderada'), celda(v.b.Moderada)],
+         [rot('Severa'), celda(v.b.Severa)]]);
       return y;
     };
     const valvColW = 86, valvGap = 8, valvXR = M + valvColW + valvGap;
