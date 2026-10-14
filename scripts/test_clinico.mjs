@@ -11057,14 +11057,19 @@ caso('TC-141', 'ET completa: gradiente, THP y area por continuidad, los tres con
       .filter(function(l){ return /tric[úu]sp/i.test(l); }).join(' // ');
     return { li: li, suma: r.suma, avt: __t.val('et_avt'), faltan: faltan }; };
 
-  /* AREA: TSVD 25 mm + VTI-TSVD 12 cm + VTI diast 60 cm -> pi*(25/20)^2 = 4.909 cm², x12/60 = 0.98 */
-  const AREA = { tsvd_diametro:'25', vti_tsvd:'12', et_vti_diast:'60' };
+  /* AREA: TSVD 25 mm + VTI-TSVD 12 cm + VTI diast 59.9 cm -> pi*(25/20)^2 = 4.909 cm², x12/59.9 = 0.98
+     ⚠️ ADAPTADO el 2026-10-14: el VTI de entrada era 59.9 -> 60 y desde que el operador del cuarto
+     criterio es mayor-o-igual (ASE 2023, Pandian, folio 16) ese 60 CUMPLE, asi que las escenas que
+     usaban el area «sola» dejaban de aislarla y el parentesis nombraba los dos criterios. Con 59.9
+     el area redondea al MISMO 0.98 y el VTI no vota, que es lo que estas escenas necesitan. Lo
+     delataron sus propios denominadores, que es para lo que estan. */
+  const AREA = { tsvd_diametro:'25', vti_tsvd:'12', et_vti_diast:'59.9' };
   const con = function(extra){ const o = {}; Object.keys(extra).forEach(function(k){ o[k]=extra[k]; }); return o; };
 
   const soloGm  = esc({ et_gmedio:'6' });
   const soloThp = esc({ et_thp:'200' });
   const soloAvt = esc(AREA);
-  const losTres = esc({ et_gmedio:'6', et_thp:'200', tsvd_diametro:'25', vti_tsvd:'12', et_vti_diast:'60' });
+  const losTres = esc({ et_gmedio:'6', et_thp:'200', tsvd_diametro:'25', vti_tsvd:'12', et_vti_diast:'59.9' });
   const sinCrit = esc({ et_gmedio:'3', et_thp:'180' });
   const nada    = esc({});
   const fuera   = esc({ et_thp:'4000' });
@@ -11076,7 +11081,7 @@ caso('TC-141', 'ET completa: gradiente, THP y area por continuidad, los tres con
   const a102 = esc({ tsvd_diametro:'25', vti_tsvd:'12', et_vti_diast:'57' });
 
   /* EL AREA DESAPARECE al borrar cualquiera de sus tres insumos. */
-  __t.limpiar(); set('tsvd_diametro','25'); set('vti_tsvd','12'); set('et_vti_diast','60');
+  __t.limpiar(); set('tsvd_diametro','25'); set('vti_tsvd','12'); set('et_vti_diast','59.9');
   const avtCon = __t.val('et_avt');
   set('et_vti_diast','');
   const avtSin = __t.val('et_avt');
@@ -55727,10 +55732,16 @@ caso('TC-416', 'Estenosis tricuspidea BINARIA: se prende sola solo con criterio 
      ausencia, y lo delato el propio DENOMINADOR del caso («las escenas no dan todas lo mismo»).
      Se baja a 60,0 EXACTOS, que ademas refuerza el control: el operador de la guia es «>»
      estricto, asi que el valor del corte cae del lado que NO cumple. El area sube de 1,49 a 1,59
-     y sigue por encima de 1 cm2, o sea que el criterio del area tampoco vota. */
+     y sigue por encima de 1 cm2, o sea que el criterio del area tampoco vota.
+     ⚠️ ADAPTADO OTRA VEZ el 2026-10-14, y por la MISMA razon medio corte mas abajo: el operador
+     paso a mayor-o-igual (ASE 2023, Pandian, folio 16, decision de Maicol), asi que el 60,0 exacto
+     que este control usaba como «no cumple» ahora CUMPLE y las tres escenas que cuelgan de el
+     volvian a medir una estenosis significativa creyendo medir su ausencia. Lo delato otra vez el
+     propio DENOMINADOR del caso. Se baja a 59,9, que es el valor que no cumple con el operador de
+     hoy; el area queda en 1,59 y tampoco vota. */
   const sinCrit = function () {
     base(); __t.set('et_gmedio','3'); __t.set('et_thp','150');
-    __t.set('et_vti_diast','60'); __t.set('tsvd_diametro','26'); __t.set('vti_tsvd','18'); };
+    __t.set('et_vti_diast','59.9'); __t.set('tsvd_diametro','26'); __t.set('vti_tsvd','18'); };
   sinCrit(); const bNada = leer(); const bSuma = suma();
 
   /* (c) Las dos discrepancias, por el camino REAL del menu (valvSev.aplicar). */
@@ -55930,8 +55941,13 @@ caso('TC-417', 'Tricuspide — la tabla de textos: 15 escenas del informe (presi
      a 60,0 EXACTOS, que NO cumple por el operador estricto: la escena vuelve a aislar el area,
      que es para lo que esta escrita —S07 el gradiente, S08 el THP, S09 el area, uno cada una— y
      de paso fija el borde del criterio nuevo por el lado que no afirma. El area pasa de 0,83 a
-     0,88 cm2 y sigue por debajo de 1. */
-  const S09 = esc(function(){ __t.set('et_vti_diast','60');
+     0,88 cm2 y sigue por debajo de 1.
+     ⚠️ ADAPTADO OTRA VEZ el 2026-10-14: el operador paso a mayor-o-igual (ASE 2023, Pandian,
+     folio 16, decision de Maicol), asi que el 60,0 exacto volvio a cumplir y el parentesis volvio
+     a nombrar DOS criterios. Se baja a 59,9, que es el valor que no cumple con el operador de hoy.
+     El area pasa de 0,88 a 0,89 cm2 —el VTI de entrada es su DENOMINADOR— y sigue por debajo de 1,
+     que es lo que esta escena prueba. */
+  const S09 = esc(function(){ __t.set('et_vti_diast','59.9');
     __t.set('tsvd_diametro','26'); __t.set('vti_tsvd','10'); });
   const S10 = esc(function(){ __t.set('et_gmedio','3');
     valvSev.aplicar('esten','tricuspide','No significativa'); });
@@ -56009,8 +56025,10 @@ caso('TC-417', 'Tricuspide — la tabla de textos: 15 escenas del informe (presi
       S07.tri === CAB + ', con estenosis significativa (gradiente medio 8 mmHg).', S07.tri],
     ['S08 THP 200 → «(THP 200 ms)»',
       S08.tri === CAB + ', con estenosis significativa (THP 200 ms).', S08.tri],
-    ['S09 area 0,88 → «(área valvular 0.88 cm²)», con punto decimal como el resto del narrativo',
-      S09.tri === CAB + ', con estenosis significativa (área valvular 0.88 cm²).', S09.tri],
+    /* ⚠️ ADAPTADO el 2026-10-14: 0,88 -> 0,89 porque la escena bajo su VTI de entrada de 60 a
+       59,9 para que el criterio nuevo no vote, y ese campo es el DENOMINADOR del area. */
+    ['S09 area 0,89 → «(área valvular 0.89 cm²)», con punto decimal como el resto del narrativo',
+      S09.tri === CAB + ', con estenosis significativa (área valvular 0.89 cm²).', S09.tri],
     ['y la cita «— EAE/ASE 2009» NO viaja en ninguna de las tres',
       [S07,S08,S09].every(function(c){ return c.tri.indexOf('EAE/ASE') === -1; }),
       S07.tri + ' /// ' + S09.tri],
@@ -58643,8 +58661,8 @@ caso('TC-429', 'Tricuspide: el Diam. y el VTI del TSVD son UN dato con DOS campo
 
   /* ── EL AREA SE ACTUALIZA AL TIPEAR DESDE CADA PUERTA ─────────────────────────────────────
      Area = PI x (D/20)^2 x VTI-TSVD / VTI diastolico. Con VTI-TSVD 10 y VTI diast 60:
-       D 26 -> PI x 1,3^2 x 10 / 60 = 0,88 cm2  (<= 1: significativa por el criterio del area)
-       D 30 -> PI x 1,5^2 x 10 / 60 = 1,18 cm2  (> 1: ese criterio no vota)
+       D 26 -> PI x 1,3^2 x 10 / 59,9 = 0,89 cm2  (<= 1: significativa por el criterio del area)
+       D 30 -> PI x 1,5^2 x 10 / 59,9 = 1,18 cm2  (> 1: ese criterio no vota)
      Las dos puertas tienen que dar los MISMOS dos numeros: si una sola recalculara, el espejo
      estaria copiando el valor sin disparar el calculo, que es la mitad del defecto.
      ⚠️ ADAPTADO el 2026-10-13: el VTI de entrada era 90 cm y el del TSVD 14, y desde esta tanda
@@ -58653,15 +58671,19 @@ caso('TC-429', 'Tricuspide: el Diam. y el VTI del TSVD son UN dato con DOS campo
      vota, publicaba «Significativa» por el VTI y el control negativo dejaba de serlo. Con 60,0
      exactos no cumple (operador estricto) y las dos escenas vuelven a aislar el area. Los dos
      numeros del area se mueven en consecuencia, y el par 0,88 / 1,18 sigue cayendo a los dos
-     lados del corte de 1 cm2, que es lo que esta pareja prueba. */
+     lados del corte de 1 cm2, que es lo que esta pareja prueba.
+     ⚠️ ADAPTADO OTRA VEZ el 2026-10-14: el operador paso a mayor-o-igual (ASE 2023, Pandian,
+     folio 16, decision de Maicol), asi que el 60,0 volvio a cumplir y el control negativo del
+     area > 1 volvia a publicar «Significativa» por el VTI. Se baja a 59,9. El par pasa a ser
+     0,89 / 1,18 y sigue cayendo a los dos lados del corte de 1 cm2. */
   const porTarjeta = function (d) {
     __t.nuevoEstudio(); abrir();
-    __t.set('et_vti_diast','60'); __t.set('et_vti_tsvd','10'); __t.set('et_tsvd_diam', d);
+    __t.set('et_vti_diast','59.9'); __t.set('et_vti_tsvd','10'); __t.set('et_tsvd_diam', d);
     return { area: V('et_avt'), sev: T('et-sev'), dueno: V('tsvd_diametro') };
   };
   const porVD = function (d) {
     __t.nuevoEstudio(); abrir();
-    __t.set('et_vti_diast','60'); __t.set('vti_tsvd','10'); __t.set('tsvd_diametro', d);
+    __t.set('et_vti_diast','59.9'); __t.set('vti_tsvd','10'); __t.set('tsvd_diametro', d);
     return { area: V('et_avt'), sev: T('et-sev'), espejo: V('et_tsvd_diam') };
   };
   const t26 = porTarjeta('26'), t30 = porTarjeta('30');
@@ -58771,8 +58793,13 @@ caso('TC-429', 'Tricuspide: el Diam. y el VTI del TSVD son UN dato con DOS campo
          de entrada ES CRITERIO por encima de 60 cm, asi que aquellas escenas tenian un criterio
          cumplido de mas: la de area 1,01, que existe para medir que el area NO vota, publicaba
          «Significativa» por el VTI y el control negativo dejaba de serlo. Con 60,0 exactos no
-         cumple —el operador de la guia es estricto— y la escena vuelve a aislar el area. */
-      const D = 26, VD = 60;
+         cumple —el operador de la guia es estricto— y la escena vuelve a aislar el area.
+         ⚠️ ADAPTADO OTRA VEZ el 2026-10-14: el operador paso a mayor-o-igual (ASE 2023, Pandian,
+         folio 16, decision de Maicol), asi que el 60,0 volvio a cumplir y las escenas de borde
+         volvieron a traer un criterio prestado. El VTI de entrada FIJO pasa a 59,9, que es el
+         valor que no cumple con el operador de hoy; el VTI del TSVD se despeja contra EL, asi que
+         los tres numeros del area siguen siendo 0,99 / 1,00 / 1,01. */
+      const D = 26, VD = 59.9;
       const VT = o.area * VD / (Math.PI * Math.pow(D / 20, 2));
       __t.set('et_vti_diast', VD);
       __t.set('et_tsvd_diam', D); __t.set('et_vti_tsvd', VT.toFixed(6));
@@ -58780,7 +58807,7 @@ caso('TC-429', 'Tricuspide: el Diam. y el VTI del TSVD son UN dato con DOS campo
     if (o.vtiSolo != null) __t.set('et_vti_diast', o.vtiSolo);
     /* Mismo motivo: 60 y no 90, para que el insumo FUERA de banda sea lo unico que esta escena
        declara y el VTI de entrada no meta un veredicto por la puerta de al lado. */
-    if (o.dFuera != null) { __t.set('et_vti_diast', 60);
+    if (o.dFuera != null) { __t.set('et_vti_diast', 59.9);
       __t.set('et_tsvd_diam', o.dFuera); __t.set('et_vti_tsvd', 14); }
     const T = function (id) { const e = document.getElementById(id);
       return e ? (e.textContent || '').trim() : 'NO ' + id; };
@@ -58799,8 +58826,9 @@ caso('TC-429', 'Tricuspide: el Diam. y el VTI del TSVD son UN dato con DOS campo
   /* ⚠️ ADAPTADO el 2026-10-13: el VTI SOLO era 90 y desde esta tanda eso CUMPLE el criterio nuevo,
      asi que la escena habria pasado a tener veredicto. Lo que mide es la FILA DEL AREA —raya
      pelada porque le faltan insumos, no «fuera de rango»— y con 60 eso se mide igual, sin un
-     veredicto prestado. */
-  const rAreaFaltan = ref({ vtiSolo: 60 });
+     veredicto prestado.
+     ⚠️ ADAPTADO OTRA VEZ el 2026-10-14: 60 -> 59,9, por el operador que paso a mayor-o-igual. */
+  const rAreaFaltan = ref({ vtiSolo: 59.9 });
   /* Las tres juntas, cada una en un estado distinto, y basta UNA para el veredicto. */
   const rMixta = ref({ gm: 4.9, thp: 190, area: 1.01 });
   /* La frase que se fue del cuadro, y el texto celeste que ya no existe. */
@@ -58832,9 +58860,10 @@ caso('TC-429', 'Tricuspide: el Diam. y el VTI del TSVD son UN dato con DOS campo
     ['borrar el VTI en VD/AD lo borra en la tarjeta', borraVtiDesdeVD === '', JSON.stringify(borraVtiDesdeVD)],
 
     // --- El area, desde las DOS puertas, con el corte de 1 cm2 por los dos lados --------------
-    ['el area se calcula tipeando desde la TARJETA: D 26 -> 0,88 cm2',
-      t26.area === '0.88 cm²', t26.area],
-    ['y tipeando desde VD/AD da el MISMO numero', v26.area === '0.88 cm²', v26.area],
+    /* ⚠️ ADAPTADO el 2026-10-14: 0,88 -> 0,89, por el VTI de entrada que bajo a 59,9 (ver arriba). */
+    ['el area se calcula tipeando desde la TARJETA: D 26 -> 0,89 cm2',
+      t26.area === '0.89 cm²', t26.area],
+    ['y tipeando desde VD/AD da el MISMO numero', v26.area === '0.89 cm²', v26.area],
     ['D 30 -> 1,18 cm2 por la tarjeta', t30.area === '1.18 cm²', t30.area],
     ['y 1,18 cm2 por VD/AD', v30.area === '1.18 cm²', v30.area],
     ['las dos puertas dan la MISMA severidad sugerida con el area <= 1',
@@ -58890,8 +58919,10 @@ caso('TC-429', 'Tricuspide: el Diam. y el VTI del TSVD son UN dato con DOS campo
     ['las TRES filas estan presentes y en raya con la tarjeta vacia',
       rVacia.gm === '—' && rVacia.thp === '—' && rVacia.avt === '—',
       JSON.stringify(rVacia)],
+    /* ⚠️ ADAPTADO el 2026-10-14: la linea de fuente suma «ASE 2023», que es de donde sale el
+       operador del VTI de entrada desde esa fecha; los otros tres cortes siguen siendo de 2009. */
     ['la fuente va UNA vez debajo de las filas, con su texto exacto',
-      rVacia.fuente === 'EAE/ASE 2009 · ESC/EACTS 2021. La estenosis tricuspídea no se gradúa: es binaria.',
+      rVacia.fuente === 'EAE/ASE 2009 · ASE 2023 · ESC/EACTS 2021. La estenosis tricuspídea no se gradúa: es binaria.',
       rVacia.fuente],
     ['gradiente: 4,9 no alcanza · 5 significativa · 5,1 significativa',
       rGm49.gm === '4.9 mmHg (no alcanza el criterio (≥5 mmHg))'
@@ -62336,7 +62367,7 @@ const L = '═'.repeat(62);
    ⚠️ TODAS LAS LECTURAS DEL ARBOL NUEVO VAN CON SU RESPALDO. Un caso que muere por EXCEPCION
    contra HEAD prueba que el arbol es distinto, no que sabe medir — es la leccion que TC-455,
    TC-462 y TC-465 ya tienen escrita. */
-caso('TC-466', 'Las ocho pastillas vuelven al estado inicial al borrar el ultimo dato (y lo respetan con el dato cargado), el selector de la estenosis mitral es binario «No significativa»/«Significativa», «Significativa» se pinta violeta en las DOS valvulas binarias y en los DOS temas, y el VTI de entrada tricuspideo >60 cm vota', `
+caso('TC-466', 'Las ocho pastillas vuelven al estado inicial al borrar el ultimo dato (y lo respetan con el dato cargado), el selector de la estenosis mitral es binario «No significativa»/«Significativa», «Significativa» se pinta violeta en las DOS valvulas binarias y en los DOS temas, y el VTI de entrada tricuspideo >=60 cm vota', `
   const ex = [];
   const G = id => __t.val(id);
   const T = id => (__t.txt(id) || '').trim();
@@ -62402,8 +62433,11 @@ caso('TC-466', 'Las ocho pastillas vuelven al estado inicial al borrar el ultimo
   /* El corte del VTI y su operador salen de la tabla congelada: con otro numero adentro, los
      bordes de mas abajo pasarian corridos. */
   const CV = (window.ET_CRIT || {}).vtiEnt || {};
-  ex.push(['DENOMINADOR: el corte del VTI de entrada vale 60 cm con operador ESTRICTO (EAE/ASE 2009, Tabla 10, p. 19)',
-    CV.signif === 60 && CV.op === '>' && CV.uni === 'cm',
+  /* ⚠️ ADAPTADO el 2026-10-14: el operador paso de ESTRICTO a mayor-o-igual por decision de
+     Maicol, con la guia mas nueva de la biblioteca en la mano —ASE 2023, Pandian, folio 16,
+     «inflow VTI >=60 cm»—. El VALOR del corte no se movio: sigue siendo 60 cm. */
+  ex.push(['DENOMINADOR: el corte del VTI de entrada vale 60 cm con operador MAYOR-O-IGUAL (ASE 2023, Pandian, folio 16)',
+    CV.signif === 60 && CV.op === '>=' && CV.uni === 'cm',
     JSON.stringify({ signif: CV.signif, op: CV.op, uni: CV.uni })]);
 
   /* ── 1 · LA REGLA DEL MODO MANUAL, LAS OCHO LESIONES ────────────────────────────────────────
@@ -62581,18 +62615,26 @@ caso('TC-466', 'Las ocho pastillas vuelven al estado inicial al borrar el ultimo
                  pill: PILL('tricuspide','esten'), fila: T('et-ref-vti') };
   });
   const dgv = JSON.stringify(vti);
-  ex.push(['(4) el corte separa por sus DOS lados: 59,9 no · 60,0 NO (operador estricto) · 60,1 SI',
-    vti['59.9'].cVti === false && vti['60'].cVti === false && vti['60.1'].cVti === true, dgv]);
-  ex.push(['(4) y 60,1 solo basta para el veredicto y para prender la pastilla',
-    vti['60.1'].signif === true && vti['60.1'].grado === 'Significativa' &&
-    vti['60.1'].pill === true, dgv]);
-  ex.push(['(4) CONTROL NEGATIVO: con 60,0 exactos no hay veredicto ni pastilla',
-    vti['60'].signif === false && vti['60'].grado === 'sin' && vti['60'].pill === false, dgv]);
+  /* ⚠️ ADAPTADO el 2026-10-14: estas tres condiciones afirmaban el operador ESTRICTO de la
+     EAE/ASE 2009 —«60,0 NO»— y hoy el operador es mayor-o-igual, de la ASE 2023 (Pandian, folio 16), por
+     decision de Maicol. Estaban VERDES y describian la app de ayer, no estaban mal escritas. El
+     borde se corre un valor: el que separa pasa a ser 59,9 contra 60,0, y el control negativo
+     pasa a ser 59,9. Lo fija ademas TC-468. */
+  ex.push(['(4) el corte separa por sus DOS lados: 59,9 no · 60,0 SI (operador >=) · 60,1 SI',
+    vti['59.9'].cVti === false && vti['60'].cVti === true && vti['60.1'].cVti === true, dgv]);
+  ex.push(['(4) y 60,0 solo basta para el veredicto y para prender la pastilla',
+    vti['60'].signif === true && vti['60'].grado === 'Significativa' &&
+    vti['60'].pill === true, dgv]);
+  ex.push(['(4) CONTROL NEGATIVO: con 59,9 no hay veredicto ni pastilla',
+    vti['59.9'].signif === false && vti['59.9'].grado === 'sin' && vti['59.9'].pill === false, dgv]);
   ex.push(['(4) la banda por sus dos lados: 99 vota y 101 queda «fuera de rango (no gradua)»',
     vti['99'].cVti === true && vti['101'].cVti === false &&
     vti['101'].fila.indexOf('fuera de rango') > -1, dgv]);
+  /* ⚠️ ADAPTADO el 2026-10-14 por el mismo motivo: el simbolo impreso sale del campo op de
+     ET_CRIT, asi que al pasar a mayor-o-igual la fila dice «≥60 cm». La condicion es la misma
+     —que el rotulo no imprima el operador CONTRARIO— con el simbolo nuevo. */
   ex.push(['(4) la fila del cuadro imprime el operador de la guia y NO el contrario',
-    vti['60.1'].fila.indexOf('>60 cm') > -1 && vti['60.1'].fila.indexOf('≤60') === -1,
+    vti['60.1'].fila.indexOf('≥60 cm') > -1 && vti['60.1'].fila.indexOf('≤60') === -1,
     vti['60.1'].fila]);
   /* El informe nombra el criterio cuando cumple, y el EN SUMA publica la sigla. */
   base(); poner('et_vti_diast','75');

@@ -37156,7 +37156,7 @@ window.calcIP = calcIP;
 
 /* ══ ESTENOSIS TRICUSPÍDEA — la guía define UN UMBRAL, no tres bandas ════════════════════════
    EAE/ASE 2009 (Baumgartner, JASE 2009) y ESC/EACTS 2021: la ET hemodinámicamente significativa
-   es **gradiente medio >= 5 mmHg** (más VTI de entrada > 60 cm, T1/2 >= 190 ms y área <= 1 cm²,
+   es **gradiente medio >= 5 mmHg** (más VTI de entrada >= 60 cm, T1/2 >= 190 ms y área <= 1 cm²,
    ninguno de los cuales esta app recoge todavía). **No hay graduación leve/moderada/severa
    publicada** para la tricúspide: es binaria.
 
@@ -37211,15 +37211,28 @@ const ET_CRIT = Object.freeze({
      está en la guía, vota»). La **Tabla 10, p. 19** de la EAE/ASE 2009 lista CUATRO hallazgos
      específicos y la app votaba tres; el campo `et_vti_diast` existía y se usaba SÓLO como
      denominador del área por continuidad. Estaba declarado en `docs/PENDIENTES.md` → A-5.
-     ⚠️ EL OPERADOR ES `>` ESTRICTO Y NO `>=`, verificado en el ORIGINAL leído de la IMAGEN —la
-     tabla es un bitmap dentro del PDF y el texto extraído se come los glifos `≥`/`≤`— con el
-     folio comprobado en el pie impreso («Baumgartner et al 19»): *«Inflow time-velocity integral
-     >60 cm»*, al lado de un `≥5 mmHg`, un `≥190 ms` y un `≤1 cm²` que sí llevan el igual. O sea
-     que la guía escribe los cuatro con cuidado y éste es el único estricto.
-     ⚠️ LA ASE 2023 (Pandian, cardiopatía reumática, folio 16) ESCRIBE `≥60 cm` PARA EL MISMO
-     criterio, y es un documento MÁS NUEVO. Se conserva el `>` del original, que es la fuente de
-     los otros tres cortes de esta válvula y es el lado conservador —con 60,0 exactos no afirma—.
-     La diferencia alcanza a UN valor y queda declarada en `docs/fuentes/FUENTES.md`.
+     ⚠️ EL OPERADOR ES `>=` DESDE EL 2026-10-14, Y ANTES ERA `>` ESTRICTO (decisión de Maicol:
+     «VTI de entrada mayor o igual a 60»). Lo que lo movió es la GUÍA MÁS NUEVA: la **ASE 2023**
+     (Pandian et al, *Echocardiographic Evaluation of Rheumatic Heart Disease*, JASE enero 2023),
+     **folio 16** —verificado en el encabezado impreso de la página, «16 · Pandian et al · Journal
+     of the American Society of Echocardiography · January 2023», y leído RENDERIZANDO la página a
+     600 dpi— escribe: *«TS is considered to be severe if the mean gradient is ≥5 mmHg, inflow VTI
+     ≥60 cm, PHT ≥190 ms, and TVA ≤1 cm²»*. Los cuatro con el igual, y la misma oración distingue
+     los glifos —dos renglones más abajo escribe «TVA >1.5 cm²» con un `>` pelado—.
+     ⚠️ EL TEXTO EXTRAÍDO DE ESE PDF NO SIRVE PARA LEER EL OPERADOR: la fuente codifica `≥` como
+     `$` y `≤` como `#`, así que `pdftotext` devuelve «$5 mmHg, inflow VTI $60 cm» y quien lo lea
+     así concluye que no hay operador. Hay que renderizar, como ya está escrito para Baumgartner
+     2009 y Wilkins 1988.
+     ⚠️ LA EAE/ASE 2009 ESCRIBE `>60 cm`, Y SIGUE SIENDO LA FUENTE DE LOS OTROS TRES CORTES. Su
+     **Tabla 10, p. 19** —folio comprobado en el pie impreso, «Baumgartner et al 19», leída de la
+     IMAGEN porque la tabla es un bitmap— publica *«Inflow time-velocity integral >60 cm»* al lado
+     de un `≥5 mmHg`, un `≥190 ms` y un `≤1 cm²`. La diferencia entre las dos guías alcanza a UN
+     valor —el 60,0 exacto, que antes no afirmaba y hoy sí— y gana la más nueva, que es lo que
+     pidió Maicol. Queda declarada en `docs/fuentes/FUENTES.md`. Era el punto M7 de `PENDIENTES`.
+     ⚠️ EL SÍMBOLO Y LA COMPARACIÓN SON DOS LÍNEAS DISTINTAS, Y SE MUEVEN JUNTAS. El rótulo del
+     cuadro de referencias sale de este `op` por el mapa de `etRefPintar`, y el voto sale del `>=`
+     de `etEstado`. Es la convención de los otros tres criterios de esta tabla; lo que la sostiene
+     es TC-468, que compara el símbolo IMPRESO contra el lado del borde que vota.
      ⚠️ LA ESC/EACTS 2025 NO LO CONTRADICE: su §12.2 (folio 4688) publica un solo número para la
      ET entera —*«A mean diastolic transvalvular gradient of >5 mmHg at a normal heart rate
      indicates severe TS»*— y no nombra el VTI de entrada, igual que no nombra el T½ ni el área
@@ -37231,7 +37244,7 @@ const ET_CRIT = Object.freeze({
      La banda vive en `ET_BANDA_INSUMO` y NO se copia acá: el campo sigue siendo además el
      denominador del área, así que su rango tiene un solo dueño y las dos lecturas no pueden
      divergir. Por eso esta entrada declara `banda: null`, igual que el área. */
-  vtiEnt: Object.freeze({ signif: 60,  op: '>',  uni: 'cm',   banda: null,
+  vtiEnt: Object.freeze({ signif: 60,  op: '>=', uni: 'cm',   banda: null,
                           nombre: 'VTI de entrada tricuspídeo' }),
   thp:    Object.freeze({ signif: 190, op: '>=', uni: 'ms',   banda: Object.freeze([50, 400]),
                           nombre: 'THP tricuspídeo' }),
@@ -37247,11 +37260,15 @@ const ET_BANDA_INSUMO = Object.freeze({
   tsvd_diametro: Object.freeze([5, 60]),
   vti_tsvd:      Object.freeze([2, 60])
 });
-const ET_CRIT_FUENTE = 'EAE/ASE 2009 · ESC/EACTS 2021. La estenosis tricuspídea no se gradúa: es binaria.';
+/* ⚠️ LA ASE 2023 ENTRA EN ESTA LÍNEA EL 2026-10-14, y no es cosmético: desde esa fecha el
+   operador del VTI de entrada (`>=`) sale de ESA guía y no de la de 2009, que escribe `>`. El
+   cuadro imprime los cuatro cortes, así que nombrar sólo las dos viejas dejaba un corte
+   aplicado sin su fuente. Los otros tres cortes siguen siendo de la EAE/ASE 2009. */
+const ET_CRIT_FUENTE = 'EAE/ASE 2009 · ASE 2023 · ESC/EACTS 2021. La estenosis tricuspídea no se gradúa: es binaria.';
 const ET_GMEDIO_SIGNIF = ET_CRIT.gmedio.signif;  // 5 mmHg   — EAE/ASE 2009 · ESC/EACTS 2021
 const ET_THP_SIGNIF    = ET_CRIT.thp.signif;     // 190 ms   — EAE/ASE 2009
 const ET_AVT_SIGNIF    = ET_CRIT.avt.signif;     // 1 cm²    — EAE/ASE 2009
-const ET_VTIENT_SIGNIF = ET_CRIT.vtiEnt.signif;  // 60 cm    — EAE/ASE 2009, borde `>` estricto
+const ET_VTIENT_SIGNIF = ET_CRIT.vtiEnt.signif;  // 60 cm    — ASE 2023 (Pandian, f. 16), borde `>=`
 
 /* ══ ET: TRES CRITERIOS, UN SOLO VEREDICTO BINARIO ═══════════════════════════════════════════
    La guía NO gradúa la estenosis tricuspídea: no hay leve/moderada/severa validada. Es
@@ -37306,8 +37323,12 @@ function etEstado(){
      que lo único que se agrega es un término al OR. Y la compuerta es `vtiOk`, la misma banda que
      ya decide si el VTI puede alimentar el área: un número ilegible no vota por ninguna puerta.
      ⚠️ EL ÁREA NO SE TOCA Y NO PUEDE MOVERSE: este campo es su DENOMINADOR y sigue entrando ahí
-     por la misma línea de siempre. Medido en el A/B contra HEAD con los mismos datos. */
-  const cVti = vtiOk && vtiD > ET_VTIENT_SIGNIF;
+     por la misma línea de siempre. Medido en el A/B contra HEAD con los mismos datos: con los
+     mismos insumos el área da 0,98 cm² en los dos árboles, y el 59,9 —el valor del borde que NO
+     vota por ninguno de los dos criterios— da 1,15 cm² en los dos.
+     ⚠️ EL OPERADOR PASÓ A `>=` EL 2026-10-14 y el símbolo que imprime el cuadro sale del `op` de
+     `ET_CRIT`, así que los dos se mueven juntos. El 60,0 exacto, que antes no afirmaba, hoy sí. */
+  const cVti = vtiOk && vtiD >= ET_VTIENT_SIGNIF;
   const signif = cGm || cThp || cAvt || cVti;
   /* ⚠️ `dOk`/`vtOk` Y LOS DOS INSUMOS SE PUBLICAN DESDE EL 2026-10-07, y no deciden nada nuevo:
      ya se calculaban acá y se usaban para el área. Los necesita la FILA del área del cuadro de
@@ -37347,7 +37368,8 @@ window.ET_CRIT_FUENTE = ET_CRIT_FUENTE;
    bloque y la definición de "hay cálculo" es "hay al menos un dato cargado" (decisión de Maicol).
    Solo, nunca puede dar "Significativa" —no es criterio—, así que da "No significativa"». La
    segunda mitad caducó: desde esta tanda el VTI de entrada ES el cuarto criterio de la Tabla 10,
-   así que SOLO y por encima de 60 cm da «Significativa». La primera sigue valiendo: un VTI de
+   así que SOLO y desde 60 cm —el operador es `>=` desde el 2026-10-14— da «Significativa». La
+   primera sigue valiendo: un VTI de
    30 cm, solo, sigue contando como dato y da «No significativa». */
 const ET_SIGNIF_TXT   = 'Significativa';
 const ET_NOSIGNIF_TXT = 'No significativa';
@@ -106884,8 +106906,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261013-1948';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791931713827;                 /* eco-build-ms */
+const ECO_BUILD    = '20261014-0050';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791949859615;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -106971,7 +106993,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261013-1948</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261014-0050</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -108959,7 +108981,7 @@ const ECO_AYUDA = [
 <div class="mSub">🫀 Válvulas</div>
 <p class="mP">Seis válvulas con su grado y su morfología. La severidad de las regurgitaciones se integra con PISA, vena contracta y los criterios de soporte.</p>
 <div class="mBox mAviso"><b>Estenosis mitral: la app completa sólo «Significativa».</b> Con un área valvular válida ≤ 1,5 cm² escribe el grado en «Significativa» (ASE 2023 · AHA/ACC 2020; la ESC/EACTS 2021 usa el mismo corte y lo llama «clínicamente significativa»). El selector es <b>binario</b> — «No significativa» / «Significativa», sin leve ni moderada — y «No significativa» la elige el médico: la app no la autocompleta, porque la banda «leve» por área que tenía antes llegaba hasta 4 cm² y no la publica ninguna guía — una mitral sana mide 4-6 cm² (ASE 2023). Con área &gt; 1,5 y gradiente medio &gt; 4 mmHg el informe dice «EM con gradiente elevado»; si además hay insuficiencia mitral moderada o mayor dice «gradiente transmitral elevado», <b>sin</b> la palabra estenosis, porque ahí el gradiente sube por volumen y no por obstrucción. Si dos áreas válidas caen a los dos lados del corte se publican las dos con su método y prevalece el peor. El área por continuidad no vale con regurgitación mitral o aórtica significativa y el THP no vale con insuficiencia aórtica severa: ahí el número se muestra y se retira del cálculo, y la pantalla dice por qué.</div>
-<div class="mBox mAviso"><b>Estenosis tricuspídea: es binaria, no se gradúa.</b> No hay clasificación leve/moderada/severa validada. Basta con que se cumpla <b>uno</b> de los cuatro criterios —gradiente medio ≥ 5 mmHg, VTI de entrada &gt; 60 cm, THP ≥ 190 ms, área ≤ 1 cm²— para hablar de estenosis significativa. Los cuatro pesan igual. Los dos insumos del área por continuidad (diámetro del TSVD y VTI del TSVD) se cargan en la pestaña VD.</div>
+<div class="mBox mAviso"><b>Estenosis tricuspídea: es binaria, no se gradúa.</b> No hay clasificación leve/moderada/severa validada. Basta con que se cumpla <b>uno</b> de los cuatro criterios —gradiente medio ≥ 5 mmHg, VTI de entrada ≥ 60 cm, THP ≥ 190 ms, área ≤ 1 cm²— para hablar de estenosis significativa. Los cuatro pesan igual. Los dos insumos del área por continuidad (diámetro del TSVD y VTI del TSVD) se cargan en la pestaña VD.</div>
 <div class="mBox mAviso"><b>Válvula pulmonar: morfología, estenosis e insuficiencia son tres campos separados.</b> Antes vivían en un solo desplegable y elegir una excluía las otras, cuando clínicamente coexisten. El auto-grado por gradiente pico produce sólo leve, moderada o severa; «moderada-severa» existe pero es <b>elección manual</b>, porque ninguna guía publica ese corte.</div>
 <div class="mBox mAviso"><b>La normalidad exige consignarla.</b> «No especificada» —el valor al que migran los estudios viejos— no produce «válvula pulmonar normal». Sin morfología consignada y sin mediciones, la válvula no se nombra en el informe.</div>
 
