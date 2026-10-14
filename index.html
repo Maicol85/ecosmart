@@ -90685,8 +90685,48 @@ function _labEmLectura(inf) {
   return { cat: cat, lbl: LAB_EM_CAT[cat], avm: avm, gm: gm, porArea: porArea, porGrad: porGrad,
            imSig: imSig, hayNum: hayNum };
 }
+/* ══ EL GRAFICO DE DISTRIBUCION DE LA ESTENOSIS MITRAL, POR CATEGORIA ════════════════════════
+   Seis barras, mutuamente excluyentes, calculadas desde los DATOS por `_labEmLectura`.
+
+   ⚠️ EL DENOMINADOR SON LOS ESTUDIOS CON DATO DE ESTENOSIS MITRAL, NO LOS DEL PERIODO
+   (decision 4 de Maicol). Un estudio donde nadie interrogo la mitral no entra en ninguna
+   categoria —ni siquiera en «Sin estenosis»—, porque meterlo ahi no mide prevalencia: afirma
+   ausencia de estenosis sobre una valvula que nadie midio. Es la misma razon por la que la
+   columna «Sin» de la tabla de valvulopatias se niega a contar el campo AUSENTE. La diferencia
+   entre el periodo y este denominador se declara al pie en vez de repartirse en las barras.
+
+   ⚠️ LAS CATEGORIAS VACIAS SE DIBUJAN IGUAL, con su cero. Omitirlas haria que el lector no
+   pudiera distinguir «ningun estudio cayo ahi» de «esta categoria no existe» — y con seis
+   categorias y una cohorte chica la mayoria van a estar vacias casi siempre. */
+function _labEmBarras(containerId, infs) {
+  const cont = document.getElementById(containerId);
+  if (!cont) return;
+  const cuenta = {}; LAB_EM_CAT_ORDEN.forEach(k => { cuenta[k] = 0; });
+  let conDato = 0, fuera = 0;
+  (infs || []).forEach(i => {
+    const r = (typeof _labEmLectura === 'function') ? _labEmLectura(i) : null;
+    if (!r) { fuera++; return; }
+    conDato++;
+    if (cuenta[r.cat] !== undefined) cuenta[r.cat]++;
+  });
+  const rows = LAB_EM_CAT_ORDEN.map(k => ({ lbl: LAB_EM_CAT[k] + ' (n=' + cuenta[k] + ')',
+    n: cuenta[k], total: conDato, color: LAB_EM_CAT_COLOR[k] }));
+  labBarras(containerId, conDato > 0 ? rows : []);
+  /* El pie se agrega DESPUES de `labBarras`, que reescribe el innerHTML del contenedor, y se
+     pinta con DOM: es texto derivado de numeros, pero la regla de la casa es no pintar por
+     innerHTML si alcanza con texto. */
+  const pie = document.createElement('div');
+  pie.setAttribute('style', 'font-size:.7rem;color:var(--text2);margin-top:6px;line-height:1.45;');
+  pie.textContent = conDato > 0
+    ? ('Sobre los ' + conDato + ' estudio' + (conDato === 1 ? '' : 's') + ' con dato de estenosis mitral' +
+       (fuera ? (' — ' + fuera + ' sin ningun dato de esta valvula quedan fuera de todas las categorias.') : '.') +
+       ' Categorias excluyentes, calculadas desde las mediciones y no desde el grado consignado.')
+    : ('Ningun estudio del periodo tiene datos de estenosis mitral' + (fuera ? (' (' + fuera + ' revisados).') : '.'));
+  cont.appendChild(pie);
+}
 window.LAB_EM_CAT = LAB_EM_CAT; window.LAB_EM_CAT_ORDEN = LAB_EM_CAT_ORDEN;
 window._labEmLectura = _labEmLectura; window._labEmSevVis = _labEmSevVis;
+window._labEmBarras = _labEmBarras;
 // Lista de los 10 indicadores automáticos (CAMBIO 5) — compartida entre vista web y PDF
 function _labIndicadoresList(infs) {
   return [
@@ -91653,16 +91693,30 @@ function labRenderExtras(infs, n) {
     tab.appendChild(tb); cont.appendChild(tab);
     const pie = document.createElement('div');
     pie.setAttribute('style','font-size:.72rem;color:var(--text2);margin-top:6px;line-height:1.5;');
+    /* ⚠️ LA FILA «EM» SE DECLARA, NO SE RE-ROTULA. Las cuatro columnas las comparten las OCHO
+       lesiones, asi que cambiarle el encabezado a la mitral le cambiaria el rotulo a las otras
+       siete. Lo que se puede hacer sin tocarlas es decir como se leen para la EM, que desde el
+       2026-10-13 tiene un selector BINARIO: su columna «Mod» esta vacia por construccion. El
+       desglose por categoria —y el que distingue el area del gradiente— vive en el grafico de
+       distribucion propio de la EM, que esta unas lineas mas abajo en la misma tarjeta. */
     pie.textContent = 'Sobre el total de estudios del período (n=' + N + '). No marcar una válvula ' +
       'indica que fue valorada como normal.' +
-      (sinDato ? ' Los estudios sin el campo —importados sin esa columna— no se cuentan como «Sin».' : '');
+      (sinDato ? ' Los estudios sin el campo —importados sin esa columna— no se cuentan como «Sin».' : '') +
+      ' En la estenosis mitral «Leve» se lee «no significativa» y «Sev» «significativa» (la regla ' +
+      'es binaria): el desglose por categoría está en su gráfico de distribución.';
     cont.appendChild(pie);
   })();
   sevTable('lab-valv-im', i => _labRegurgSev(i,'im_grado'));
   sevTable('lab-valv-ia', i => _labRegurgSev(i,'ia_grado'));
   sevTable('lab-valv-it', i => _labRegurgSev(i,'it_grado'));
   sevTable('lab-esten-ea', i => _labEstenSev(i,'ea_grado'));
-  sevTable('lab-esten-em', i => _labEstenSev(i,'em_grado'), _labEmSevVis);
+  /* ⚠️ LA ESTENOSIS MITRAL YA NO SE DIBUJA POR SEVERIDAD: SE DIBUJA POR CATEGORIA. Es la unica de
+     las ocho con una regla BINARIA y dos criterios independientes (area y gradiente), asi que las
+     cuatro cubetas Sin/Leve/Moderada/Severa no pueden representarla: «Moderada» quedo vacia para
+     siempre desde que el selector es binario, y «Severa» no distingue una estenosis afirmada por
+     un area de 0,8 cm² de una afirmada solo por el gradiente. Las seis categorias de
+     `LAB_EM_CAT` salen de `_labEmLectura`, que lee los DATOS. */
+  _labEmBarras('lab-esten-em', infs);
 
   // Gráfica apilada integrada de valvulopatías (debajo de las tablas)
   _labValvBuildChart('lab-valv-chart', infs);
