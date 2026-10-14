@@ -747,51 +747,55 @@ async function main() {
   /* ══ T — LA VELOCIDAD DE LA IT Y LA PSAP ══════════════════════════════════════════════════
      ⚠️ LA PSAP DE ESTA APP NO ES UNA MEDICION INDEPENDIENTE: `psap_calc` es readonly y lo
      escribe `calcPSAP` como (4*VRT^2 + PmAD).toFixed(0), o sea que DERIVA de la misma velocidad
-     de IT y ademas se REDONDEA a entero. Y se VACIA cuando no hay velocidad de IT.
-     Por eso la palanca que separa las dos es la PmAD: con VRT 2,7 (que no cumple >2,8) y una
-     PmAD alta, la PSAP cruza 35 mmHg y el criterio vota igual. Sin esa palanca, «la PSAP sola»
-     no es una escena alcanzable y decirlo medido es mejor que inventar una.
-     Las cuatro escenas que pide la orden: 2,7 / 2,8 / 2,9 · PSAP sola · las dos · ninguna. */
+     de IT y ademas se REDONDEA a entero. Y se VACIA cuando falta la VRT o falta la VCI.
+     Por eso «la PSAP sola» NO es un estado alcanzable, y lo que separa las dos vias es la PmAD:
+     con una VRT que no llega a 2,8 y una PmAD alta, la PSAP cruza 35 mmHg y el criterio vota
+     igual. Decirlo medido es mejor que inventar una escena que la app no produce.
+     La PmAD sale de los dos campos de la VCI y vale 3, 8 o 15 segun diametro y colapso; el
+     colapso es un <select> con tokens '>50' y '<50', asi que va por `set` y no por teclado —un
+     <select> no se tipea—, y el diametro va con TECLAS REALES.
+     Las siete escenas incluyen el BORDE del 35 por sus dos lados CON LA VRT SIN CUMPLIR, que es
+     lo unico que aisla la via de la PSAP: con PmAD 8, una VRT de 2,60 da PSAP 35 (no cumple,
+     porque el corte es > estricto) y una de 2,65 da 36 (cumple SOLO por la PSAP). */
   if (hacer('T')) {
-    const T = { escenas: [] };
+    const T = { escenas: [], nota: 'pmad: 3 = diam<21 y col >50 · 8 = diam>=21 y col >50 · 15 = diam>=21 y col <50' };
     try {
       const esc = [
-        { etq: 'sin nada',                 vit: null,   vci: null },
-        { etq: 'VRT 2,7 (no cumple)',      vit: '2.7',  vci: null },
-        { etq: 'VRT 2,8 (el corte, > estricto)', vit: '2.8', vci: null },
-        { etq: 'VRT 2,9 (cumple)',         vit: '2.9',  vci: null },
-        { etq: 'VRT 2,7 + PmAD alta -> PSAP > 35', vit: '2.7', vci: 'alta' },
-        { etq: 'VRT 2,9 + PmAD alta -> las DOS',   vit: '2.9', vci: 'alta' },
+        { etq: 'sin nada',                              vit: null,    diam: null, col: null },
+        { etq: 'VRT 2,7 sin VCI (PSAP no estimable)',   vit: '2.7',   diam: null, col: null },
+        { etq: 'VRT 2,8 + PmAD 3 -> PSAP 34: ninguna',  vit: '2.8',   diam: '18', col: '>50' },
+        { etq: 'VRT 2,9 + PmAD 3 -> PSAP 37: las DOS',  vit: '2.9',   diam: '18', col: '>50' },
+        { etq: 'VRT 2,60 + PmAD 8 -> PSAP 35: ninguna (borde)', vit: '2.60', diam: '25', col: '>50' },
+        { etq: 'VRT 2,65 + PmAD 8 -> PSAP 36: SOLO la PSAP',    vit: '2.65', diam: '25', col: '>50' },
+        { etq: 'VRT 2,7 + PmAD 15 -> PSAP 44: SOLO la PSAP',    vit: '2.7',  diam: '25', col: '<50' },
       ];
       for (const e of esc) {
         await despejar();
         await ev(`window.__H.limpiar()`);
         await ev(`try{ showTab('doppler') }catch(e){}; 1`);
         await J('window.__H.pacienteFunc()');
-        let vciFoto = null;
-        if (e.vci === 'alta') {
-          /* PmAD alta por la VCI: dilatada y sin colapso. Son los dos <select> de la VCI, que
-             es el camino real; la PmAD no es un campo que se tipee. */
-          vciFoto = await J(`(function(){
-            var r = {};
-            r.diam = window.__H.set('vci_diam', '25');
-            r.col  = window.__H.set('vci_col', 'no');
-            try { if (typeof calcPmAD === 'function') calcPmAD() } catch(e) {}
-            try { if (typeof calcPSAP === 'function') calcPSAP() } catch(e) {}
-            r.pmad = window.__H.val('pmad');
-            return r })()`);
+        let tDiam = null, colFoto = null;
+        if (e.diam) {
+          await J(`window.__H.abrirPara('vci_diam')`);
+          tDiam = await tipear('vci_diam', e.diam);
+          colFoto = await J(`(function(){
+            var r = window.__H.set('vci_col', ${JSON.stringify(e.col)});
+            try { if (typeof calcPmAD === 'function') calcPmAD() } catch(x) {}
+            return { set: r, pmad: window.__H.val('pmad') } })()`);
         }
         let t = null;
         if (e.vit) { await J(`window.__H.abrirPara('vmax_it')`); t = await tipear('vmax_it', e.vit); }
         await ev('window.__H.recalc()');
-        await pausa(160);
+        await pausa(170);
         const der = await J('window.__H.derivados()');
         const func = await J("window.__H.critDom('func')");
         const cIT = await J('window.__H.critIT()');
         const sc = await J('window.__H.score(false)');
-        T.escenas.push({ etq: e.etq, tecleo: t, vciFoto,
-          vmax_it: der.it, psapCampo: der.psapCampo, pmad: await ev(`window.__H.val('pmad')`),
-          criteriosIToPSAP: cIT, funcPts: (typeof func === 'string') ? func : func.pts,
+        T.escenas.push({ etq: e.etq, tecleoVRT: t, tecleoDiam: tDiam, colFoto,
+          vmax_it: der.it, psapCampo: der.psapCampo,
+          pmad: await ev(`window.__H.val('pmad')`),
+          criteriosIToPSAP: cIT,
+          funcPts: (typeof func === 'string') ? func : func.pts,
           funcTodos: (typeof func === 'string') ? func : func.todos,
           total: sc.total });
       }

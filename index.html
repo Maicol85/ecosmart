@@ -23657,6 +23657,18 @@ function hfapeffDatos(src) {
     edad: S.num('edad'), sexo: (S.txt('sexo') || '').toUpperCase(),
     esep, elat, eprom, ee: (e && eprom) ? e / eprom : null,
     it: S.num('vmax_it'),
+    /* ⚠️ LA PSAP NO ES UNA MEDICION INDEPENDIENTE EN ESTA APP: `psap_calc` es un campo
+       READONLY que escribe `calcPSAP` como (4*VRT^2 + PmAD).toFixed(0), o sea que deriva de la
+       MISMA velocidad de IT y ademas se redondea a entero. Se lee el campo y no se recalcula la
+       formula: una segunda copia de 4*VRT^2+PmAD es el defecto de la formula duplicada que este
+       repo ya pago varias veces, y ademas el medico audita el numero que tiene delante.
+       Consecuencias de leer el campo, las dos medidas y declaradas:
+         · con la velocidad de IT borrada `calcPSAP` VACIA el campo, asi que «PSAP sola» no es
+           un estado alcanzable: lo que separa las dos vias es la PmAD, no la ausencia de VRT;
+         · el campo imprime con toFixed(0), asi que una PSAP real de 35,6 se lee 36 y cruza el
+           corte, y una de 35,4 se lee 35 y no. Es el mismo precio que la PAP diastolica de la
+           ASE 2025 ya paga (PENDIENTES.md → C7). */
+    psap: S.num('psap_calc'),
     lavi: (aiVol && bsa) ? aiVol / bsa : null,
     pared: (siv !== null || pp !== null) ? Math.max(siv || 0, pp || 0) : null,
     imvi, rwt, gls: (gls !== null) ? Math.abs(gls) : null,
@@ -23728,7 +23740,19 @@ function hfapeffScore(soloEco, src) {
     _hfC("e' septal < " + uSep + " cm/s",  d.esep !== null, d.esep < uSep),
     _hfC("e' lateral < " + uLat + " cm/s", d.elat !== null, d.elat < uLat),
     _hfC("E/e' promedio >= 15",            d.ee !== null,   d.ee >= 15),
-    _hfC('Velocidad IT > 2.8 m/s',         d.it !== null,   d.it > 2.8)
+    /* ⚠️ UN SOLO CRITERIO CON DOS VIAS, Y CUENTA UNA SOLA VEZ AUNQUE ESTEN LAS DOS MEDIDAS.
+       La Figura 3 (folio 3305) las imprime en el MISMO renglon, con la PSAP entre parentesis
+       debajo de la velocidad —«TR velocity > 2.8 m/s (PASP > 35 mmHg)»—, o sea como dos formas
+       de decir lo mismo; y el texto del folio 3303 lo explica: «A TR peak velocity >2.8 m/s
+       indicates increased PASP». Dos entradas separadas en el array darian dos renglones
+       cumplidos sobre un unico hallazgo — no cambiarian el puntaje, porque `_hfDom` da 2 puntos
+       con cualquier mayor, pero la pantalla diria que el paciente tiene dos criterios y el
+       lector que audita el score contaria mal.
+       `dato` es un OR: alcanza con que UNA de las dos este medida para que el criterio se haya
+       podido evaluar. Un dato que falta no vota (punto 6 de la orden). */
+    _hfC('Velocidad IT > 2.8 m/s o PSAP > 35 mmHg',
+         d.it !== null || d.psap !== null,
+         (d.it !== null && d.it > 2.8) || (d.psap !== null && d.psap > 35))
   ], [
     _hfC("E/e' promedio 9-14",             d.ee !== null,   d.ee >= 9 && d.ee <= 14),
     _hfC('GLS < 16 %',                     d.gls !== null,  d.gls < 16)
@@ -24068,9 +24092,13 @@ function hfapeffRender() {
     { k:'LAVI', v:d.lavi, u:'ml/m²' }, { k:'IMVI', v:d.imvi, u:'g/m²', d:0 },
     { k:'RWT', v:d.rwt, u:'', d:2 },   { k:'Pared VI', v:d.pared, u:'mm' }
   ]);
-  h += columna('Funcional', "e' · E/e' · velocidad de IT · GLS", r.func, [
+  h += columna('Funcional', "e' · E/e' · velocidad de IT o PSAP · GLS", r.func, [
     { k:"e' septal", v:d.esep, u:'cm/s' }, { k:"e' lateral", v:d.elat, u:'cm/s' },
     { k:"E/e' prom.", v:d.ee, u:'' },      { k:'Vel. IT', v:d.it, u:'m/s' },
+    /* La PSAP se muestra desde que VOTA: un criterio que nombra un valor sin mostrarlo obliga
+       a irlo a buscar a otra pestana para auditar el puntaje. Es el campo `psap_calc`, el
+       mismo que el criterio lee. */
+    { k:'PSAP', v:d.psap, u:'mmHg', d:0 },
     { k:'GLS', v:d.gls, u:'%' }
   ]);
   h += columna('Humoral', subHum, r.hum, [
@@ -24141,6 +24169,7 @@ function amiloTextoHFAPEFF() {
   L.push('## Valores del paciente');
   fila("e' septal", d.esep, 'cm/s'); fila("e' lateral", d.elat, 'cm/s');
   fila("E/e' promedio", d.ee, ''); fila('Velocidad IT', d.it, 'm/s');
+  fila('PSAP', d.psap, 'mmHg', 0);
   fila('LAVI', d.lavi, 'ml/m2'); fila('IMVI', d.imvi, 'g/m2', 0);
   fila('RWT', d.rwt, '', 2); fila('Grosor de pared VI', d.pared, 'mm');
   fila('GLS', d.gls, '%');
