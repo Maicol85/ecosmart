@@ -3790,9 +3790,19 @@ window.cerrarSesionReal = cerrarSesionReal;
                en esta tanda; dejarlo sin aviso es peor todavía. Así que se declara.
                Va DEBAJO del aviso de protocolo y en la MISMA celda, por lo mismo que aquél:
                a 360 px el `.grid-2` se apila y un aviso al lado del rótulo compite por ancho.
-               `--amber` y no `--red`: no es un error del médico ni de la app, es el alcance de
-               la guía. Su único dueño es `diastExclSync`. -->
-          <div id="diast-excl-aviso" style="display:none;font-size:11px;font-weight:700;color:var(--amber);margin-top:4px;line-height:1.3;overflow-wrap:break-word;"></div>
+               Ámbar y no rojo: no es un error del médico ni de la app, es el alcance de
+               la guía. Su único dueño es `diastExclSync`.
+               ⚠️ EL COLOR VA EN `--orange` Y NO EN `--amber`, Y ESTÁ MEDIDO. `--amber` se define
+               SOLO dentro de `.amilo-root` (es un alias de `--orange` para ese módulo), así que
+               fuera de ahí `color:var(--amber)` es inválido en tiempo de valor computado y el
+               color cae al HEREDADO: medido en HEAD el 2026-10-14, este aviso y los tres de abajo
+               computaban `rgb(232,236,244)`, o sea el gris del texto normal, con el comentario
+               diciendo «ámbar» al lado. `--orange` es global y theme-aware (`#f59e42` de noche,
+               `#d97b1f` de día), que es exactamente a lo que `--amber` resuelve en su módulo.
+               ⚠️ LOS OTROS TRES AVISOS DE ABAJO SIGUEN CON `--amber` A PROPÓSITO: son de la BSE y
+               del protocolo, no de esta tanda, y cambiarles el color es una diferencia visible
+               que esta orden no autoriza. Queda declarado en `docs/PENDIENTES.md`. -->
+          <div id="diast-excl-aviso" style="display:none;font-size:11px;font-weight:700;color:var(--orange);margin-top:4px;line-height:1.3;overflow-wrap:break-word;"></div>
           <!-- ⚠️ EL AVISO DE FRECUENCIA CARDIACA DE LA BSE. SÓLO AVISA: no cambia ni un veredicto,
                igual que el de exclusiones de arriba. La Figura 19 (pág. 39) encabeza su algoritmo
                de FA con «Heart rate <100 bpm» y su pie lo excluye con «fibrilación auricular con
@@ -25430,7 +25440,19 @@ function diastAlgoRender() {
   /* Los ocho locales que vivian aca se fueron con la rama de la ASE 2016: las TRES guias leen
      hoy su propia funcion duena, asi que ninguna de las tres necesita que esta funcion lea el
      DOM por su cuenta. `_daCriteriosLAP` y `_daContar` quedan definidos y sin consumidores. */
+  /* ⚠️ EL AVISO DE EXCLUSIONES MITRALES ES LO PRIMERO DEL CUERPO, Y VA EN LA INICIALIZACION DE
+     `h` A PROPOSITO. Esta funcion tiene DOS salidas (`host.innerHTML = h`): la de la rama de FA y
+     la del final. Agregarlo en cada una son dos puertas que se separan el dia que alguien toque
+     una; arrancando `h` con el aviso, las dos lo llevan por construccion. El texto sale de
+     `diastExclTexto`, que es el MISMO duenio que escribe el cuadro gris: las dos superficies no
+     se pueden desincronizar. NO cambia ningun veredicto, ninguna fila ni ningun texto firmado. */
   let h = '';
+  {
+    const _excl = (typeof diastExclTexto === 'function') ? diastExclTexto() : null;
+    if (_excl) h += '<div class="da-excl" style="margin:0 0 10px;padding:7px 9px;border:1px solid var(--orange);'
+                  + 'border-radius:6px;font-size:11px;font-weight:700;color:var(--orange);line-height:1.35;'
+                  + 'overflow-wrap:break-word;">' + escHtml(_excl) + '</div>';
+  }
 
   /* ⚠️ LA FA VA PRIMERO Y LEE EL MISMO DUEÑO QUE EL CUADRO GRIS. Las tres ramas de abajo son
      de RITMO SINUSAL: con FA, la de la BSE se limitaba a imprimir «Vía aplicada: C — fibrilación
@@ -27072,11 +27094,24 @@ function diastAlgoAvisoSync() {
 }
 window.diastAlgoAvisoSync = diastAlgoAvisoSync;
 
-/* ── P11 · LAS EXCLUSIONES DE LA FIGURA 3 (pie de la figura, folio 554) ──────────────────────
+/* ── P11 · LAS EXCLUSIONES MITRALES, LAS TRES GUÍAS Y LOS DOS RITMOS ─────────────────────────
    ⚠️ ESTO NO GRADÚA NI CALLA NADA. Devuelve los motivos DETECTABLES con los campos que la app ya
    tiene, y `diastExclSync` los escribe en un aviso ámbar. El veredicto, el informe, el EN SUMA,
    el PDF, el PPT, el Excel y el Laboratorio salen exactamente igual que sin aviso: abstenerse
    sería cambiar una frase del informe firmado, que esta tanda no autoriza.
+   ⚠️ NACIÓ SÓLO PARA LA ASE 2025 EN RITMO SINUSAL Y DESDE EL 2026-10-14 VALE PARA LAS TRES GUÍAS
+   Y LOS DOS RITMOS, por decisión de Maicol y porque las TRES escriben la misma lista:
+     · ASE 2025 — pie de la Figura 3, folio 554: «severe primary MR, any degree of mitral stenosis
+       (MS), or moderate or severe MAC», y su nota ¶ agrega «mitral valve repair, mitral valve
+       replacement, or mitral-transcatheter edge-to-edge repair».
+     · BSE 2024 — pie de la Figura 17, pág. 36: «severe MR/MS or MAC or MV replacement or repair»;
+       y pie de la Figura 19, pág. 39, para la FA, que la escribe otra vez con más detalle.
+     · ASE/EACVI 2016 — folio 286, en prosa: «at least moderate mitral annular calcification [MAC],
+       any mitral stenosis or mitral regurgitation [MR] of more than moderate severity, mitral
+       valve repair or prosthetic mitral valve».
+   Los motivos NO se recalculan por guía: la lista detectable es la misma y las tres guías la
+   nombran igual, así que un solo dueño la produce y lo único que cambia por guía es la
+   REFERENCIA que se cita.
    LO QUE NO SE PUEDE DETECTAR, y queda declarado en docs/PENDIENTES.md: la calcificación del
    ANILLO mitral moderada o grave —no hay campo; lo más cercano es la morfología «Calcificada»,
    que describe la VALVA y no el anillo, y por eso su motivo lo dice con esas palabras—, la
@@ -27102,20 +27137,57 @@ function diastExclMotivos() {
 }
 window.diastExclMotivos = diastExclMotivos;
 
-/* Dueño ÚNICO del nodo. Sólo habla cuando el protocolo activo es el de 2025 EN RITMO SINUSAL:
-   las exclusiones son del algoritmo de la Figura 3, y en FA la app ya gradúa por otro lado — un
-   aviso ahí sería ruido sobre un algoritmo que no es el excluido. */
+/* La REFERENCIA que se cita, por guía y por ritmo. Es lo ÚNICO que cambia entre las tres: el
+   texto y los motivos son los mismos, porque la limitación es de la técnica —el flujo transmitral
+   y las velocidades anulares quedan determinados por la válvula— y no de una figura.
+   ⚠️ LA BSE ES LA ÚNICA CON UNA REFERENCIA POR RITMO, y es porque es la única que escribe la lista
+   DOS veces: la Figura 17 para el ritmo sinusal y la Figura 19 para la FA. La ASE 2025 la escribe
+   sólo en el pie de su Figura 3; su Figura 8 —la de la FA, folio 563— NO la repite, medido en el
+   PDF completo, así que en FA se cita igual la 3, que es donde la guía lo dice. La ASE/EACVI 2016
+   la escribe una sola vez, en prosa, en el folio 286.
+   ⚠️ Y LA FIGURA 18 DE LA BSE —la vía de función sistólica deprimida— NO LISTA LAS EXCLUSIONES
+   MITRALES: su pie (pág. 38) nombra bloqueo de rama, marcapaso apical del VD, resincronización y
+   asistencia ventricular, y nada más. El aviso sale igual con la BSE en ritmo sinusal, por las dos
+   vías, que es el lado conservador para un cartel que no cambia nada: avisa de más en la vía de la
+   Figura 18 y nunca de menos. Separarlo por vía obligaría a preguntarle a `diastBSE2024Evaluar`
+   cuál corrió, o sea a atar el aviso al veredicto que no debe tocar. */
+const DIAST_EXCL_REF = Object.freeze({
+  ase2025: { sinusal: 'ASE 2025, pie de la Figura 3, folio 554',
+             fa:      'ASE 2025, pie de la Figura 3, folio 554' },
+  bse2024: { sinusal: 'BSE 2024, pie de la Figura 17, pág. 36',
+             fa:      'BSE 2024, pie de la Figura 19, pág. 39' },
+  ase2016: { sinusal: 'ASE/EACVI 2016, folio 286',
+             fa:      'ASE/EACVI 2016, folio 286' }
+});
+window.DIAST_EXCL_REF = DIAST_EXCL_REF;
+
+/* Dueño ÚNICO DEL TEXTO, y existe para que el cuadro gris y la ventana 🧭 no puedan decir dos
+   cosas distintas sobre el mismo paciente: las dos superficies llaman acá. Devuelve `null`
+   cuando no hay nada que avisar, que es lo que las dos usan para esconder su nodo.
+   PALABRAS PROPIAS: ninguna de las tres guías se cita literalmente — lo que se nombra es la
+   referencia, que es dato bibliográfico y no texto de la obra. */
+function diastExclTexto() {
+  const algo  = sv('diast_algoritmo') || DIAST_ALGO_RECOMENDADO;
+  const ritmo = (sv('diast_ritmo') === 'fa') ? 'fa' : 'sinusal';
+  const m = diastExclMotivos();
+  if (!m.length) return null;
+  const ref = (DIAST_EXCL_REF[algo] || {})[ritmo] || '';
+  return 'Los algoritmos de función diastólica no están validados con ' + m.join(', ')
+       + ': interpretar el resultado con cautela' + (ref ? ' (' + ref + ')' : '') + '.';
+}
+window.diastExclTexto = diastExclTexto;
+
+/* Dueño ÚNICO del nodo del cuadro gris. Habla con CUALQUIERA de las tres guías y en los dos
+   ritmos desde el 2026-10-14: hasta esa fecha la compuerta era `ase2025 && sinusal`, y un
+   paciente con prótesis mitral evaluado por la BSE o por la ASE/EACVI 2016 corría el algoritmo
+   sin que nada lo dijera. */
 function diastExclSync() {
   const av = document.getElementById('diast-excl-aviso');
   if (!av) return null;
-  const algo = sv('diast_algoritmo') || DIAST_ALGO_RECOMENDADO;
-  const ritmo = sv('diast_ritmo') || 'sinusal';
-  const m = (algo === 'ase2025' && ritmo === 'sinusal') ? diastExclMotivos() : [];
-  av.textContent = m.length
-    ? ('ASE 2025: algoritmo no aplicable con ' + m.join(', ') + ' (Figura 3, folio 554).')
-    : '';
-  av.style.display = m.length ? 'block' : 'none';
-  return m.length ? m : null;
+  const txt = diastExclTexto();
+  av.textContent = txt || '';
+  av.style.display = txt ? 'block' : 'none';
+  return txt ? diastExclMotivos() : null;
 }
 window.diastExclSync = diastExclSync;
 
@@ -107411,8 +107483,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261014-0633';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791970406968;                 /* eco-build-ms */
+const ECO_BUILD    = '20261014-1728';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1792009691916;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -107498,7 +107570,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261014-0633</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261014-1728</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
