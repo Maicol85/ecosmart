@@ -39356,9 +39356,30 @@ caso('TC-299', 'Selector de EROA/Vol-R: PISA es el default y siempre sale, la co
     if (cbC()) { cbC().checked = true; cbC().dataset.tocado = '1'; }
     const pdfConCont = await pdfVivo();
 
-    // ── 5. PISA no se puede desmarcar ───────────────────────────────────────────────────
-    let pisaSiguePuesta = '(sin casilla)';
-    if (cbP()) { cbP().checked = false; cbP().dispatchEvent(new Event('change')); pisaSiguePuesta = cbP().checked; }
+    // ── 5. PISA SI se puede desmarcar, pero NO si es la ultima tildada ──────────────────
+    /* ⚠️ ADAPTADO el 2026-10-14: hasta hoy esta casilla llevaba un onchange que la volvia a tildar y el
+       caso afirmaba «no se puede desmarcar». Por decision de Maicol se puede, con una regla nueva
+       —la ULTIMA casilla tildada no se destilda, asi el informe nunca queda sin metodo—, asi que
+       el caso pasa a medir las DOS mitades: con la continuidad tildada el clic en PISA prospera,
+       y con PISA sola el clic se revierte y el panel dice por que. Estaba VERDE y describia la app
+       de ayer, no estaba mal escrito. Lo fija ademas TC-468.
+       Se deja PISA otra vez TILDADA al final, que es el estado que los pasos 6 y 7 asumen. */
+    let pisaSeDestilda = '(sin casilla)', pisaUltimaVuelve = '(sin casilla)', avisoUltima = '';
+    if (cbP() && cbC()) {
+      /* (a) con la continuidad TILDADA, el clic en PISA prospera. */
+      cbP().checked = false; cbP().dispatchEvent(new Event('change'));
+      pisaSeDestilda = cbP().checked;
+      /* (b) se repone PISA y se saca la continuidad —eso SI esta permitido, porque PISA queda— */
+      cbP().checked = true;  cbP().dispatchEvent(new Event('change'));
+      cbC().checked = false; cbC().dispatchEvent(new Event('change'));
+      /* (c) y ahora PISA es la ULTIMA: el clic se revierte y el panel lo dice. */
+      cbP().checked = false; cbP().dispatchEvent(new Event('change'));
+      pisaUltimaVuelve = cbP().checked;
+      avisoUltima = gv('im-pdf-metodo-aviso');
+      /* Se repone el estado que los pasos 6 y 7 asumen: las dos tildadas. */
+      cbC().checked = true; cbC().dataset.tocado = '1';
+      cbP().checked = true;
+    }
 
     // ── 6. Sin valor, la casilla se deshabilita — y el PDF NO la imprime aunque siga
     //       tildada: la guarda es el NUMERO, no la casilla. Es lo que hace que reimprimir
@@ -39488,7 +39509,11 @@ caso('TC-299', 'Selector de EROA/Vol-R: PISA es el default y siempre sale, la co
         pdfDefault.indexOf('PISA: 50.3') > -1 && pdfDefault.indexOf('Cont') < 0, pdfDefault],
       ['tildada, el PDF lleva los DOS y cada numero dice de que metodo salio',
         pdfConCont.indexOf('PISA: 50.3') > -1 && pdfConCont.indexOf('Cont: 33.6') > -1, pdfConCont],
-      ['la casilla de PISA no se puede desmarcar', pisaSiguePuesta === true, String(pisaSiguePuesta)],
+      ['la casilla de PISA SI se desmarca cuando la continuidad esta tildada',
+        pisaSeDestilda === false, String(pisaSeDestilda)],
+      ['pero NO si es la ultima tildada: vuelve sola y el panel dice por que',
+        pisaUltimaVuelve === true && avisoUltima.indexOf('al menos un m') > -1,
+        String(pisaUltimaVuelve) + ' | ' + avisoUltima],
       ['sin valor la casilla se deshabilita', sinValorDeshabilita,
         'checked=' + (cbC() && cbC().checked) + ' disabled=' + (cbC() && cbC().disabled)],
       ['y el PDF NO imprime la continuidad sin numero, aunque la casilla siga tildada',

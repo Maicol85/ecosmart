@@ -5139,20 +5139,25 @@ window.cerrarSesionReal = cerrarSesionReal;
       <div style="font-size:10px;color:var(--text2);margin-bottom:6px;">EROA = Vol-R ÷ VTI del chorro (CW) &nbsp;·&nbsp; Vol-R = SV mitral (Área<sub>anillo</sub> × VTI de entrada) − SV<sub>TSVI</sub> &nbsp;·&nbsp; FR = Vol-R ÷ SV mitral</div>
       <div id="im-cont-severidad" style="font-size:11px;font-weight:700;margin:6px 2px 0;min-height:16px;"></div>
       <!-- Selector de metodo para el informe. Mismo patron que em_pdf_thp/cont/plan.
-           ⚠️ LO QUE PROTEGE A LOS INFORMES VIEJOS NO ES EL `onchange` DE LA CASILLA DE PISA: es que
-           `_imMetodoPdfVal` NO la consulte nunca. La fila se gatea por el NUMERO. Importa porque
-           la reimpresion SI la desmarca —su bucle escribe `.checked` desde `campos` sobre todos
-           los checkbox, y un estudio anterior a este selector no trae `im_pdf_pisa__chk`—, asi que
-           el dia que alguien «complete» el selector agregando `if (pisaCb.checked)` todo informe
-           anterior se reimprimiria sin EROA ni Vol-R, en silencio. Es el defecto que `em_pdf_thp`
-           ya documenta haber pagado.
-           La casilla es INFORMATIVA y no se puede desmarcar para que no prometa una eleccion que
-           no existe. `onchange` y NUNCA `onclick`: la regla tactil global matchea por el ATRIBUTO
-           e inflaria la casilla a 44x44. -->
+           ⚠️ LA CASILLA DE PISA SE PUEDE DESTILDAR DESDE EL 2026-10-14 (decision de Maicol). Hasta
+           ese dia llevaba `onchange="this.checked=true"`, o sea que era INFORMATIVA: con datos en
+           los dos metodos el medico no podia mandar solo la continuidad al informe, que es lo que
+           reporto. Lo que la reemplaza es `imPdfMetodoClic`, el dueno unico de la regla: la ULTIMA
+           casilla tildada no se destilda, asi el informe nunca queda sin metodo.
+           ⚠️ Y LO QUE PROTEGE A LOS INFORMES VIEJOS YA NO ES «no consultarla nunca»: es que la
+           AUSENCIA de la clave signifique TILDADA. El parrafo que vivia aca decia, con razon, que
+           el dia que alguien agregara `if (pisaCb.checked)` todo informe anterior se reimprimiria
+           sin EROA ni Vol-R —la reimpresion escribe `.checked` desde `campos` sobre todos los
+           checkbox y un estudio anterior a este selector no trae `im_pdf_pisa__chk`—. Por eso ese
+           `if` entro JUNTO con `imPdfPisaRestaurar`, que repone TILDADA cuando la clave falta, en
+           las DOS rutas de restauracion. Sin esa pieza el `if` es el defecto que ese parrafo
+           anunciaba, y es el que `em_pdf_thp` ya documenta haber pagado.
+           `onchange` y NUNCA `onclick`: la regla tactil global matchea por el ATRIBUTO e inflaria
+           la casilla a 44x44. -->
       <div style="margin-top:8px;padding:8px;border:1px solid var(--border);border-radius:6px;">
         <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:6px;">🖨️ Incluir en el informe:</div>
         <label style="display:block;font-size:11px;margin-bottom:4px;cursor:pointer;">
-          <input type="checkbox" id="im_pdf_pisa" checked onchange="this.checked=true;"> EROA y Vol-R por PISA
+          <input type="checkbox" id="im_pdf_pisa" checked onchange="imPdfMetodoClic(this);"> EROA y Vol-R por PISA
           <span id="im-pdf-pisa-val" style="color:var(--text2);"></span>
           <span style="color:var(--text2);font-size:10px;">— se incluyen cuando estan calculados</span>
         </label>
@@ -5162,9 +5167,18 @@ window.cerrarSesionReal = cerrarSesionReal;
                tildarla tiene que recalcularlo. Sin esto el medico la tildaba y el grado se quedaba
                con el de PISA hasta tocar otro campo. La bandera `tocado` se sigue poniendo PRIMERO,
                porque `_pdfMetodoChk` la lee para no pisar la decision del medico. -->
-          <input type="checkbox" id="im_pdf_cont" onchange="this.dataset.tocado='1';calcIM_ESC();"> EROA y Vol-R por continuidad
+          <input type="checkbox" id="im_pdf_cont" onchange="imPdfMetodoClic(this);"> EROA y Vol-R por continuidad
           <span id="im-pdf-cont-val" style="color:var(--text2);"></span>
         </label>
+        <!-- ⚠️ EL AVISO EXISTE PORQUE UN CLIC QUE NO HACE NADA SE LEE COMO UNA APP ROTA. La regla
+             de la ultima casilla repone el tilde, asi que sin un renglon que lo diga el medico ve
+             un control que se resiste y no sabe por que. Es de PANTALLA: no tiene emisor en el
+             informe, el EN SUMA, el PDF, el PPT ni el Excel, y NO viaja con el estudio: el
+             recolector de `guardarInforme` barre `input[id], select[id], textarea[id]` y esto es
+             un `<div>`. Lo vacia el barrido de `[id^="im-pdf-"]` de `limpiarCampos`, el mismo que
+             ya limpia los dos span de valor —el prefijo con guion MEDIO solo lo usan estos tres;
+             las casillas van con guion BAJO y ese selector no las alcanza—. -->
+        <div id="im-pdf-metodo-aviso" style="font-size:10px;color:var(--amber);margin-top:4px;"></div>
       </div>
       </div><!-- fin bloque-insuf-mitral -->
       </div><!-- fin caja-insuf-mitral -->
@@ -29951,6 +29965,66 @@ function imPdfMetodosUI() {
 }
 window.imPdfMetodosUI = imPdfMetodosUI;
 
+/* ══ LAS DOS CASILLAS DE «Incluir en el informe» DE LA IM — UN SOLO DUEÑO (2026-10-14) ═════════
+   Decisión de Maicol: la casilla de PISA se puede DESTILDAR. Hasta hoy llevaba
+   `onchange="this.checked=true"`, así que con datos en los dos métodos el médico no podía mandar
+   SÓLO la continuidad al informe — que es lo que reportó.
+
+   ⚠️ LA REGLA ES «LA ÚLTIMA TILDADA NO SE DESTILDA», Y VALE PARA LAS DOS. Con las dos apagadas el
+   informe se quedaría sin ningún método y la tabla del PDF publicaría una EROA y un Vol-R que
+   nadie eligió — o, peor, ninguno. Se repone el tilde y se dice POR QUÉ: un clic que no hace nada
+   y no explica se lee como un control roto. La casilla que gana el empate es la OTRA, la que ya
+   estaba tildada; acá no hay preferencia por PISA, hay una sola que queda.
+
+   ⚠️ `tocado` SE PONE EN LAS DOS Y SÓLO CUANDO EL CLIC PROSPERA. Es la bandera de «el médico
+   decidió» que `_pdfMetodoChk` lee para no pisarlo y que `guardarInforme` persiste; ponerla en un
+   clic que la regla acaba de revertir registraría una decisión que el médico no llegó a tomar.
+
+   ⚠️ Y `calcIM_ESC()` AL FINAL, EN LAS DOS. Desde la regla 3 del 2026-10-13 estas casillas deciden
+   qué método entra al GRADO y no sólo a la fila del papel, así que tildar o destildar tiene que
+   recalcularlo. Sin esto el médico la movía y el grado se quedaba con el del otro método hasta
+   tocar otro campo — que es exactamente el defecto que esa tanda cerró del lado de la
+   continuidad. */
+const IM_PDF_AVISO = 'Tiene que quedar al menos un método incluido en el informe.';
+function imPdfMetodoClic(cb) {
+  if (!cb) return;
+  const otra = document.getElementById(cb.id === 'im_pdf_pisa' ? 'im_pdf_cont' : 'im_pdf_pisa');
+  const av = document.getElementById('im-pdf-metodo-aviso');
+  if (!cb.checked && !(otra && otra.checked)) {
+    cb.checked = true;                       // la regla: no se queda sin método
+    if (av) av.textContent = IM_PDF_AVISO;
+    return;                                  // ni `tocado` ni recálculo: el clic no prosperó
+  }
+  if (av) av.textContent = '';
+  cb.dataset.tocado = '1';
+  if (typeof calcIM_ESC === 'function') calcIM_ESC();
+}
+window.imPdfMetodoClic = imPdfMetodoClic;
+/* ⚠️ LA AUSENCIA DE LA CLAVE SIGNIFICA TILDADA, Y ES LO QUE HACE SEGURO CONSULTAR LA CASILLA.
+   `im_pdf_pisa` no está en `_PDF_METODOS` —no tiene campos propios que habiliten o deshabiliten la
+   casilla: su valor sale de los span de PISA— así que `_restaurarChkInclusion` no la gobierna y
+   las dos rutas de restauración la dejaban en lo que encontraran: la del estudio sólo escribe
+   `.checked` cuando la clave existe, y la de la REIMPRESIÓN la escribe SIEMPRE, o sea que un
+   estudio anterior a esta tanda —que no trae `im_pdf_pisa__chk`— la reimprimía DESMARCADA.
+   Mientras nadie la consultaba eso era inocuo; desde que decide el grado y la fila del papel,
+   sería reimprimir todo informe anterior sin EROA ni Vol-R, en silencio. Por eso esta función
+   existe y la llaman las DOS rutas. No se migra nada: lo que se repone es el DEFAULT. */
+function imPdfPisaRestaurar(campos) {
+  const cb = document.getElementById('im_pdf_pisa');
+  if (!cb) return;
+  const k = (campos || {})['im_pdf_pisa__chk'];
+  cb.checked = (k === undefined) ? true : (k === '1' || k === true || k === 'true');
+}
+window.imPdfPisaRestaurar = imPdfPisaRestaurar;
+/* El estado de PISA para el GRADO y para la fila del PDF, en un solo lugar: `imPdfMetodosUI` lo
+   pinta, `calcIM_ESC` lo vota y `_imMetodoPdfVal` lo imprime, y los tres tienen que leer lo mismo.
+   Falla ABIERTO —sin la casilla, PISA se incluye— que es el lado que no borra un dato del papel. */
+function imPdfPisaIncluida() {
+  const cb = document.getElementById('im_pdf_pisa');
+  return cb ? !!cb.checked : true;
+}
+window.imPdfPisaIncluida = imPdfPisaIncluida;
+
 /* ⚠️ EL ENGANCHE VA COMO ENVOLTORIO Y NO ADENTRO, y no es comodidad. `calcContIM` tiene SIETE
    salidas —insumo fuera de banda, los cuatro que faltan, Vol-R negativo, Vol-R bajo la
    tolerancia— y el selector tiene que reflejar el estado en todas: una casilla que queda marcada
@@ -29987,7 +30061,16 @@ window.imPdfMetodosUI = imPdfMetodosUI;
    El dato no cambia: cambia el rotulo, y hacia decir mas. */
 function _imMetodoPdfVal(idSpanPisa, idCampoCont, uni, dec) {
   const partes = [];
-  const p = _imPdfPisaTxt(idSpanPisa);
+  /* ⚠️ LA CASILLA DE PISA ENTRA ACÁ EL 2026-10-14, y hasta ese día NO se consultaba a propósito.
+     El motivo de entonces era que la reimpresión escribe `.checked` desde `campos` sobre todos los
+     checkbox y un estudio anterior al selector no trae `im_pdf_pisa__chk`, así que gatear por la
+     casilla borraba la EROA y el Vol-R de todo informe firmado antes. Eso lo cierra
+     `imPdfPisaRestaurar`, que repone TILDADA con la clave ausente y corre en las DOS rutas de
+     restauración —la del estudio y la de la ventana de reimpresión—. Sin esa pieza, esta línea
+     ES ese defecto. Verificado con el estudio guardado y reabierto en TC-468.
+     El NÚMERO sigue siendo la otra compuerta: una casilla tildada sobre un método sin valor no
+     imprime nada. */
+  const p = imPdfPisaIncluida() ? _imPdfPisaTxt(idSpanPisa) : null;
   if (p) partes.push('PISA: ' + p);
   /* NO se consulta `disabled`, y acá la razón NO es la misma que en `emAvmPdfVal` — conviene no
      copiar aquel comentario sin medir. Allá `calcEM` no corre durante la reimpresión, así que el
@@ -34975,18 +35058,23 @@ function calcIM_ESC() {
 
   /* ══ QUÉ MÉTODO VA AL INFORME ═════════════════════════════════════════════════════════════════
      Lo elige el médico con las casillas «🖨️ Incluir en el informe», que es el mecanismo que ya
-     existía para el PDF. ⚠️ `im_pdf_pisa` ESTÁ SIEMPRE TILDADA Y NO SE PUEDE DESTILDAR
-     (`onchange="this.checked=true"`), así que «PISA incluido» equivale a «PISA tiene números», que
-     es además la compuerta que `_imMetodoPdfVal` usa para la fila del papel: la fila se gatea por
-     el NÚMERO y no por la casilla, y el comentario de esa función explica por qué —si se gateara
-     por la casilla, todo informe anterior a este selector se reimprimiría sin EROA ni Vol-R—.
-     La de continuidad sí es una elección, y se consulta con su número al lado por el mismo motivo.
+     existía para el PDF. ⚠️ LAS DOS SON UNA ELECCIÓN DESDE EL 2026-10-14 (decisión de Maicol): la
+     de PISA se puede DESTILDAR, y hasta ese día no. Por eso `_imPisaIncl` pasa a pedir las DOS
+     cosas —que la casilla esté tildada Y que PISA tenga votos— donde antes pedía sólo la segunda.
+     Lo que sostiene el cambio no es esta línea: es `imPdfPisaRestaurar`, que repone TILDADA cuando
+     el estudio no trae la clave, en las dos rutas de restauración. Sin ella, consultar la casilla
+     haría que todo estudio anterior a este selector reabriera y reimprimiera sin el método de
+     PISA, que es el defecto que el comentario de `_imMetodoPdfVal` anunciaba.
+     La de continuidad era una elección desde antes, y se consulta igual, con su número al lado.
      ⚠️ SIN NINGUNO DE LOS DOS MÉTODOS, EL COMPORTAMIENTO ES EXACTAMENTE EL DE HEAD y no hace falta
      una rama para eso: los votos comunes son los únicos que quedan, que es lo que HEAD contaba.
      Medido: con sólo la vena contracta en 2 mm el grado es 1 en los dos árboles. */
   const _imChkCont = (function(){ const c = document.getElementById('im_pdf_cont');
     return !!(c && c.checked); })();
-  const _imPisaIncl = params.some(function (x) { return x.grupo === 'pisa'; });
+  /* ⚠️ LA CASILLA **Y** EL NÚMERO. Un método sin votos no puede entrar aunque esté tildado —no
+     tiene nada que integrar— y uno con votos no entra si el médico lo sacó. `imPdfPisaIncluida`
+     falla ABIERTO: sin la casilla en el árbol, PISA se incluye. */
+  const _imPisaIncl = imPdfPisaIncluida() && params.some(function (x) { return x.grupo === 'pisa'; });
   const _imContIncl = _imChkCont && _imCont.length > 0;
   if (_imContIncl) params = params.concat(_imCont);
 
@@ -44721,7 +44809,13 @@ function limpiarCampos(silencioso) {
      nuevo el auto-marcado nunca vuelve a encenderse y la continuidad queda fuera del
      informe en silencio. THP vuelve a marcado, que es su estado permanente. */
   { const _t = document.getElementById('em_pdf_thp'); if (_t) _t.checked = true; }
-  { const _p = document.getElementById('im_pdf_pisa'); if (_p) _p.checked = true; }
+  /* ⚠️ Y SU `tocado` CON ELLA, desde el 2026-10-14: la casilla gano una bandera de decision el dia
+     que se pudo destildar, y una bandera que sobrevive al paciente es la fuga que esta funcion
+     documenta tres veces mas arriba. Hoy nadie la LEE —`_pdfMetodoChk` solo corre sobre
+     `_PDF_METODO_IDS`, que no la incluye, y `guardarInforme` persiste `__tocado` sobre esa misma
+     lista— asi que esto cierra el estado inconsistente antes de que un camino futuro lo alcance. */
+  { const _p = document.getElementById('im_pdf_pisa');
+    if (_p) { _p.checked = true; delete _p.dataset.tocado; } }
   /* Las DOS columnas: `RECALC_MODULOS` es el embudo de las rutas de restauracion y `limpiarCampos`
      NO pasa por ahi. Sin esta linea, «Nuevo estudio» dejaba el aviso del paciente anterior. */
   { if (typeof eteVmAvisoSync === 'function') { try { eteVmAvisoSync(); } catch (e) {} } }
@@ -64078,6 +64172,11 @@ function _restaurarChkInclusion(campos){
     if (campos[id + '__tocado'] === '1') cb.dataset.tocado = '1';
     else if (conValor) cb.dataset.desdeEstudio = '1';
   });
+  /* ⚠️ Y LA DE PISA, QUE NO ESTÁ EN `_PDF_METODOS` Y POR ESO NO LA ALCANZA EL BUCLE DE ARRIBA. No
+     tiene campos propios que la habiliten —su valor sale de los span de PISA—, así que no entra en
+     esa tabla; lo que necesita es el DEFAULT, y el default con la clave ausente es TILDADA. Ver
+     `imPdfPisaRestaurar`. */
+  if (typeof imPdfPisaRestaurar === 'function') imPdfPisaRestaurar(campos);
 }
 window._restaurarChkInclusion = _restaurarChkInclusion;
 
@@ -75469,6 +75568,12 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
        estudio y podia conservar una casilla que ese estudio no pidio. */
     delete cb.dataset.desdeEstudio;
   });
+  /* ⚠️ Y LA DE PISA, QUE ESTA VENTANA ESCRIBE SIEMPRE. El bucle genérico de más arriba hace
+     `el.checked = (c[el.id + '__chk'] === '1')` sin preguntar si la clave existe, así que un
+     estudio anterior a este selector —que no la trae— llegaba acá DESMARCADO. Mientras nadie la
+     consultaba era inocuo; desde el 2026-10-14 decide la fila del papel, así que sin esta línea la
+     reimpresión de todo informe anterior saldría sin EROA ni Vol-R. */
+  if (typeof imPdfPisaRestaurar === 'function') imPdfPisaRestaurar(c);
   /* Se escribe SIEMPRE, con '' cuando el estudio no trae la clave. Con la asignación
      condicional, un guardado sin médico —toda la base anterior a que guardarInforme lo
      persistiera— dejaba en el encabezado al médico del paciente que estuviera en pantalla, y
@@ -106906,8 +107011,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261014-0050';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791949859615;                 /* eco-build-ms */
+const ECO_BUILD    = '20261014-0103';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791950633718;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -106993,7 +107098,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261014-0050</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261014-0103</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
