@@ -17743,8 +17743,24 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
           <select id="coh-ia"><option value="">Todas</option><option value="Leve">Leve</option><option value="Moderada">Moderada</option><option value="Severa">Severa</option></select></div>
         <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Insuficiencia tricuspídea</label>
           <select id="coh-it"><option value="">Todas</option><option value="Leve">Leve</option><option value="Moderada">Moderada</option><option value="Severa">Severa</option></select></div>
+        <!-- ⚠️ LA ESTENOSIS MITRAL FILTRA POR CATEGORIA Y NO POR SEVERIDAD (2026-10-14). Las seis
+             opciones son las de `LAB_EM_CAT`, mutuamente excluyentes y calculadas desde los DATOS:
+             su regla es binaria desde el 2026-10-13 y «Moderada» no existia como respuesta posible.
+             Los `value` son las CLAVES del mapa y no sus rotulos: un rotulo con el signo ≤ dentro
+             de un `value` es un texto que viaja a la descripcion de la cohorte, al encabezado del
+             PDF de auditoria y a la hoja «Cohorte» del Excel. -->
         <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Estenosis mitral</label>
-          <select id="coh-em"><option value="">Todas</option><option value="Leve">Leve</option><option value="Moderada">Moderada</option><option value="Severa">Severa</option></select></div>
+          <select id="coh-em"><option value="">Todas</option><option value="sig_area_1">Significativa, AVm &le;1,0 cm&sup2;</option><option value="sig_area_15">Significativa, AVm &gt;1,0 a &le;1,5 cm&sup2;</option><option value="sig_grad">Significativa solo por gradiente</option><option value="grad_elev">No significativa con gradiente elevado</option><option value="sin">Sin estenosis</option><option value="sig_sin_num">Significativa sin dato num&eacute;rico</option></select></div>
+      </div>
+      <!-- ⚠️ LAS DOS CASILLAS SE SUPERPONEN A PROPOSITO, que es lo que el desplegable de arriba no
+           puede hacer. Sirven para contar cuantas estenosis mitrales son significativas por cada
+           criterio y cuantas por los DOS; marcadas las dos, el filtro exige AMBAS. Son casillas y
+           no opciones de un `<select>` justamente por eso. -->
+      <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:4px 18px;align-items:center;">
+        <span style="font-size:.74rem;font-weight:700;color:var(--text2);">Estenosis mitral significativa por:</span>
+        <label class="chk-lab" style="font-size:.76rem;display:inline-flex;align-items:center;gap:6px;cursor:pointer;min-height:44px;"><input type="checkbox" id="coh-em-area"> área (AVm &le;1,5 cm&sup2;)</label>
+        <label class="chk-lab" style="font-size:.76rem;display:inline-flex;align-items:center;gap:6px;cursor:pointer;min-height:44px;"><input type="checkbox" id="coh-em-grad"> gradiente (&ge;10 mmHg)</label>
+        <span id="coh-em-conteo" style="font-size:.74rem;color:var(--text2);"></span>
       </div>
       <div style="font-size:.74rem;color:var(--text);background:var(--bg3);border-left:3px solid var(--orange,#f0a500);border-radius:6px;padding:8px 10px;margin-top:10px;line-height:1.55;">
         ⚠️ Los grados valvulares se registran en todos los estudios por defecto — este filtro puede no reflejar
@@ -89615,7 +89631,18 @@ function _labCohorteOk(inf) {
   if (C.ia && _labRegurgSev(inf, 'ia_grado') !== C.ia) return false;
   if (C.it && _labRegurgSev(inf, 'it_grado') !== C.it) return false;
   if (C.ea && _labEstenSev(inf, 'ea_grado')  !== C.ea) return false;
-  if (C.em && _labEstenSev(inf, 'em_grado')  !== C.em) return false;
+  /* ⚠️ LA MITRAL NO PASA POR `_labEstenSev`: su filtro es la CATEGORIA calculada desde los datos.
+     Un estudio sin ningun dato de estenosis mitral da `null` y NO entra en ninguna categoria, asi
+     que con el desplegable activo queda fuera — que es lo mismo que hacen los otros cuatro cuando
+     el campo falta, y lo que la decision 4 pide.
+     Las dos casillas son INDEPENDIENTES entre si y del desplegable: marcadas las dos, el filtro
+     exige las DOS. Es lo que permite contar la interseccion, que con un `<select>` no se puede. */
+  if (C.em || C.emArea || C.emGrad) {
+    const _em = (typeof _labEmLectura === 'function') ? _labEmLectura(inf) : null;
+    if (C.em && (!_em || _em.cat !== C.em)) return false;
+    if (C.emArea && !(_em && _em.porArea)) return false;
+    if (C.emGrad && !(_em && _em.porGrad)) return false;
+  }
 
   // ── Insuficiencia cardíaca ──
   if (C.hfpeff) {
@@ -89729,6 +89756,10 @@ function _labCohorteOk(inf) {
 /* ── Lectura del panel, descripción legible y pintado del aviso ───────────────────────── */
 function _cohEl(id) { return document.getElementById(id); }
 function _cohSel(id) { const e = _cohEl(id); return e ? String(e.value || '').trim() : ''; }
+/* Un checkbox del panel. Devuelve `false` cuando el control no esta: `_labCohorteLeer` decide si
+   la cohorte esta ACTIVA mirando si algun criterio es distinto de vacio, y un `null` ahi contaria
+   como criterio puesto —encendiendo el aviso amarillo sobre toda la poblacion—. */
+function _cohChk(id) { const e = _cohEl(id); return !!(e && e.checked); }
 function _cohNum(id) {
   const e = _cohEl(id); if (!e) return null;
   const s = String(e.value || '').trim(); if (s === '') return null;
@@ -89771,6 +89802,7 @@ function _labCohorteLeer() {
     fevi: _cohSel('coh-fevi'), diast: _cohSel('coh-diast'), geom: _cohSel('coh-geom'),
     im: _cohSel('coh-im'), ea: _cohSel('coh-ea'), ia: _cohSel('coh-ia'),
     it: _cohSel('coh-it'), em: _cohSel('coh-em'),
+    emArea: _cohChk('coh-em-area'), emGrad: _cohChk('coh-em-grad'),
     hfpeff: _cohSel('coh-hfpeff'), peptido: _cohSel('coh-peptido'),
     htp: _cohSel('coh-htp'), psap: _cohSel('coh-psap'), tep: _cohSel('coh-tep'),
     amil: _cohSel('coh-amil'), sparkling: _cohSel('coh-sparkling'),
@@ -89784,6 +89816,13 @@ function _labCohorteLeer() {
   const activo = Object.keys(C).some(k => {
     const val = C[k];
     if (Array.isArray(val)) return val.length > 0;
+    /* ⚠️ LOS BOOLEANOS VAN ANTES QUE LA GUARDA GENERICA, Y SIN ESTA LINEA LA COHORTE QUEDA ACTIVA
+       PARA SIEMPRE. El criterio de abajo es «distinto de vacio, null y undefined», y un `false`
+       —que es lo que devuelve una casilla SIN tildar— pasa los tres: el panel habria declarado
+       filtros activos sobre los estudios de siempre, encendido el aviso amarillo y escrito «n —
+       filtros activos» en el badge con la poblacion entera. Es justo lo que el comentario de esta
+       funcion dice venir a evitar («una cohorte vacia que no filtra nada no es una cohorte»). */
+    if (typeof val === 'boolean') return val;
     return val !== '' && val !== null && val !== undefined;
   });
   return activo ? C : null;
@@ -89804,9 +89843,16 @@ function _labCohorteDesc() {
                   ['hfpeff','hfpeff'], ['peptido','peptido'], ['htp','htp'], ['psap','psap'],
                   ['amil','amil'], ['coFarmaco','farmaco'], ['coFevi','coFevi']];
   simple.forEach(([campo, grupo]) => { const l = _cohLbl(grupo, C[campo]); if (l) p.push(l); });
-  [['im','IM'], ['ea','EA'], ['ia','IAo'], ['it','IT'], ['em','EM']].forEach(([k, lbl]) => {
+  [['im','IM'], ['ea','EA'], ['ia','IAo'], ['it','IT']].forEach(([k, lbl]) => {
     if (C[k] === 'Leve' || C[k] === 'Moderada' || C[k] === 'Severa') p.push(lbl + ' ' + C[k].toLowerCase());
   });
+  /* La EM sale de este bucle porque sus valores ya no son los tres grados: son las claves de
+     `LAB_EM_CAT`, y lo que se escribe en la descripcion es su ROTULO —esta frase viaja al
+     encabezado del PDF de auditoria y a la hoja «Cohorte» del Excel, asi que una clave cruda ahi
+     publicaria «EM sig_area_1» en un documento que declara el denominador—. */
+  if (C.em && LAB_EM_CAT[C.em]) p.push('EM: ' + LAB_EM_CAT[C.em]);
+  if (C.emArea) p.push('EM significativa por área');
+  if (C.emGrad) p.push('EM significativa por gradiente');
   if (C.tep === 'si') p.push('Con signos de TEP');
   if (C.sparkling === 'si') p.push('Sparkling presente');
   if (C.coGls === 'gt15') p.push('Caída GLS ≥ ' + CO_UMBRAL_GLS_REL + ' %');
@@ -89906,6 +89952,12 @@ function _labCohortePintar(n) {
      sólo se gobierna la VISIBILIDAD, no la capacidad. */
   const btnPdf = document.getElementById('coh-btn-pdf');
   if (btnPdf) btnPdf.style.display = _LAB_COHORTE ? 'inline-flex' : 'none';
+  /* ⚠️ EL CONTEO DE LAS DOS CASILLAS SE MIDE CON ESAS DOS CASILLAS DESACTIVADAS, y no sobre la
+     cohorte que ellas mismas acaban de filtrar: medido ahi daria «por area: N · por gradiente: N ·
+     por los dos: N» con el mismo N siempre, que es un contador midiendose a si mismo. La base va
+     escrita al lado de los numeros, que es la regla de esta casa para toda cifra que no comparte
+     denominador con la pantalla donde esta. */
+  try { _labEmConteoPintar(); } catch (e) { console.error('[lab] conteo EM', e); }
   const badge = document.getElementById('lab-coh-badge');
   if (badge) {
     if (_LAB_COHORTE) { badge.textContent = n + ' — filtros activos'; badge.style.display = 'inline-block'; }
@@ -89993,6 +90045,10 @@ function labCohorteLimpiar(silencioso) {
    'coh-sparkling','coh-co-farmaco','coh-co-fevi','coh-co-gls','coh-co-tox','coh-ete','coh-tavi',
    'coh-trombo','coh-dpt-tam','coh-dpt-con','coh-cvr-con'].forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
   Array.prototype.forEach.call(document.querySelectorAll('#coh-cc-box input.coh-cc'), e => { e.checked = false; });
+  /* Las dos casillas de la estenosis mitral van aca y no en el barrido de arriba: ese escribe
+     `e.value = ''`, que en un checkbox cambia el VALUE y deja el tilde puesto — o sea un filtro
+     activo sobre una caja de filtros que dice estar limpia. */
+  ['coh-em-area','coh-em-grad'].forEach(id => { const e = document.getElementById(id); if (e) e.checked = false; });
   _LAB_COHORTE = null;
   if (typeof labInit === 'function') labInit();
   _labCohortePintar(0);
@@ -90724,9 +90780,42 @@ function _labEmBarras(containerId, infs) {
     : ('Ningun estudio del periodo tiene datos de estenosis mitral' + (fuera ? (' (' + fuera + ' revisados).') : '.'));
   cont.appendChild(pie);
 }
+/* ⚠️ LAS CASILLAS (B) SE CUENTAN APARTE Y PUEDEN SUPERPONERSE, que es exactamente lo que las
+   categorias no pueden hacer. Devuelve los tres numeros que el filtro publica: cuantos son
+   significativos por area, cuantos por gradiente y cuantos por los DOS. */
+function _labEmCasillas(infs) {
+  let area = 0, grad = 0, ambos = 0, base = 0;
+  (infs || []).forEach(i => {
+    const r = (typeof _labEmLectura === 'function') ? _labEmLectura(i) : null;
+    if (!r) return;
+    base++;
+    if (r.porArea) area++;
+    if (r.porGrad) grad++;
+    if (r.porArea && r.porGrad) ambos++;
+  });
+  return { area: area, grad: grad, ambos: ambos, base: base };
+}
+/* Pinta el renglon de conteo que va al lado de las dos casillas. Se mide con las dos casillas
+   DESACTIVADAS —se apagan en la foto de la cohorte y se reponen— para que el numero no dependa de
+   lo que el propio filtro acaba de sacar. */
+function _labEmConteoPintar() {
+  const el = document.getElementById('coh-em-conteo');
+  if (!el) return;
+  const prev = _LAB_COHORTE;
+  let infs = [];
+  try {
+    if (prev) _LAB_COHORTE = Object.assign({}, prev, { emArea: false, emGrad: false });
+    infs = labGetInformes();
+  } finally { _LAB_COHORTE = prev; }
+  const c = _labEmCasillas(infs);
+  el.textContent = c.base === 0 ? 'sin estudios con dato de estenosis mitral'
+    : ('\u2192 por área: ' + c.area + ' \u00b7 por gradiente: ' + c.grad + ' \u00b7 por los dos: ' +
+       c.ambos + '  (sobre ' + c.base + ' con dato de esta válvula)');
+}
 window.LAB_EM_CAT = LAB_EM_CAT; window.LAB_EM_CAT_ORDEN = LAB_EM_CAT_ORDEN;
 window._labEmLectura = _labEmLectura; window._labEmSevVis = _labEmSevVis;
-window._labEmBarras = _labEmBarras;
+window._labEmBarras = _labEmBarras; window._labEmCasillas = _labEmCasillas;
+window._labEmConteoPintar = _labEmConteoPintar;
 // Lista de los 10 indicadores automáticos (CAMBIO 5) — compartida entre vista web y PDF
 function _labIndicadoresList(infs) {
   return [
@@ -105712,18 +105801,36 @@ async function labGenerarPDF() {
     // 9. Valvulopatías — gráfica apilada (antes) + detalle en grid 2 columnas
     const vdefs6 = [
       ['Insuficiencia mitral (IM)', i => _labRegurgSev(i, 'im_grado')],
-      /* La mitral lleva un TRADUCTOR de rotulo —tercer elemento—: dice «Significativa» donde las
-         otras cinco dicen «Severa», sin tocar su conteo (decision de Maicol del 2026-10-14). */
-      ['Estenosis mitral (EM)', i => _labEstenSev(i, 'em_grado'), _labEmSevVis],
+      /* ⚠️ LA MITRAL LLEVA SU PROPIA TABLA, DE SEIS FILAS Y POR CATEGORIA (2026-10-14). El tercer
+         elemento marca que esta entrada se calcula con `_labEmLectura` y no con las cuatro cubetas
+         de severidad: su regla es binaria y tiene dos criterios independientes, asi que «Moderada»
+         estaba vacia por construccion y «Severa» no distinguia el area del gradiente.
+         Su denominador son los estudios CON dato de estenosis mitral, igual que el grafico de la
+         pantalla — y por eso se declara en el titulo de la tabla, que es donde el `n` ya vivia. */
+      ['Estenosis mitral (EM)', null, 'em'],
       ['Insuficiencia aórtica (IAo)', i => _labRegurgSev(i, 'ia_grado')],
       ['Estenosis aórtica (EAo)', i => _labEstenSev(i, 'ea_grado')],
       ['Insuficiencia tricuspídea (IT)', i => _labRegurgSev(i, 'it_grado')],
       ['Estenosis tricuspídea (ET)', () => null]
     ];
-    const vstats6 = vdefs6.map(([name, fn, vis]) => {
+    const vstats6 = vdefs6.map(([name, fn, modo]) => {
+      if (modo === 'em') {
+        /* ⚠️ `sig` ES EL NUMERADOR DEL PIE DE «VALVULA MAS FRECUENTE», y para la mitral son las
+           CUATRO categorias que afirman estenosis significativa —las dos por area, la que es solo
+           por gradiente y la que el medico marco sin dato numerico—. Sin el, ese pie habria seguido sumando `Moderada +
+           Severa` sobre unas cubetas que esta entrada ya no calcula — o sea la tabla diciendo una
+           cosa y el pie de la misma seccion otra, que es la divergencia que esta seccion ya pago
+           una vez con los denominadores de la grafica. */
+        const cnt = {}; LAB_EM_CAT_ORDEN.forEach(k => { cnt[k] = 0; });
+        let t = 0;
+        infs.forEach(i => { const r = _labEmLectura(i); if (!r) return; t++;
+          if (cnt[r.cat] !== undefined) cnt[r.cat]++; });
+        const sig = cnt.sig_area_1 + cnt.sig_area_15 + cnt.sig_grad + cnt.sig_sin_num;
+        return { name, t, cats: cnt, sig, b: { Sin: 0, Leve: 0, Moderada: 0, Severa: 0 } };
+      }
       const b = { Sin: 0, Leve: 0, Moderada: 0, Severa: 0 }; let t = 0;
       infs.forEach(i => { const s = fn(i); if (s && b[s] !== undefined) { b[s]++; t++; } });
-      return { name, b, t, vis };
+      return { name, b, t };
     });
     // Título + subtítulo + gráfica apilada (centrada, ~170mm) ANTES de las tablas
     if (y > 195) { doc.addPage(); y = 20; }
@@ -105755,12 +105862,16 @@ async function labGenerarPDF() {
          confiadas en 0% y un auditor leía «este laboratorio no tiene estenosis tricuspídea».
          Lo cierto es que la app no puede registrarla. Un 0% afirma; un «—» no. */
       const celda = (nn) => v.t > 0 ? _labCel(nn, v.t) : '—';
-      const rot = k => v.vis ? v.vis(k) : k;
+      if (v.cats) {
+        drawTable(x, [w * 0.62, w * 0.38], ['Categoria', 'n (%)'],
+          LAB_EM_CAT_ORDEN.map(k => [S(LAB_EM_CAT[k]), celda(v.cats[k])]));
+        return y;
+      }
       drawTable(x, [w * 0.52, w * 0.48], ['Severidad', 'n (%)'],
-        [[rot('Sin'), celda(v.b.Sin)],
-         [rot('Leve'), celda(v.b.Leve)],
-         [rot('Moderada'), celda(v.b.Moderada)],
-         [rot('Severa'), celda(v.b.Severa)]]);
+        [['Sin', celda(v.b.Sin)],
+         ['Leve', celda(v.b.Leve)],
+         ['Moderada', celda(v.b.Moderada)],
+         ['Severa', celda(v.b.Severa)]]);
       return y;
     };
     const valvColW = 86, valvGap = 8, valvXR = M + valvColW + valvGap;
@@ -105782,7 +105893,7 @@ async function labGenerarPDF() {
       let mejor = null;
       vstats6.forEach(v => {
         if (!(v.t >= PIE_MIN)) return;
-        const sig = v.b.Moderada + v.b.Severa;
+        const sig = (v.sig !== undefined) ? v.sig : (v.b.Moderada + v.b.Severa);
         if (sig <= 0) return;
         const pr = sig / v.t;
         if (!mejor || pr > mejor.pr) mejor = { v: v, sig: sig, pr: pr };
@@ -105793,7 +105904,12 @@ async function labGenerarPDF() {
         return;
       }
       const b = mejor.v.b;
-      const sev = b.Severa > b.Moderada ? 'severa' : (b.Severa === b.Moderada ? 'moderada a severa' : 'moderada');
+      /* ⚠️ LA MITRAL NO TIENE «moderada» QUE NOMBRAR: su regla es binaria y sus cubetas de
+         severidad quedan en cero a proposito, asi que el ternario de abajo habria publicado
+         «Estenosis mitral (EM) moderada» —0 contra 0 cae en la rama del empate— sobre una
+         valvula cuya unica palabra posible es «significativa». */
+      const sev = (mejor.v.sig !== undefined) ? 'significativa'
+        : (b.Severa > b.Moderada ? 'severa' : (b.Severa === b.Moderada ? 'moderada a severa' : 'moderada'));
       _pie(mejor.v.t, 'Valvulopatia significativa mas frecuente: ' + mejor.v.name + ' ' + sev
         + ' en ' + mejor.sig + ' de ' + mejor.v.t + ' estudios con esa valvula evaluada ('
         + _pc(mejor.sig, mejor.v.t) + '%).');
@@ -106457,7 +106573,35 @@ async function _labAnalisisPDFReal(infs) {
          valorado normal. El PDF de auditoría es donde ese malentendido más caro sale: un auditor
          leyendo «puede incluir estudios donde nadie la miró» descuenta los números enteros. */
       nota('Porcentajes sobre el total de estudios del período (' + infs.length + ' de la cohorte). ' +
-           'No marcar una válvula indica que fue valorada como normal.');
+           'No marcar una válvula indica que fue valorada como normal. En la estenosis mitral ' +
+           '«Leve» se lee «no significativa» y «Severa» «significativa»: su desglose por categoría ' +
+           'va en la tabla de abajo.');
+      /* ⚠️ LA ESTENOSIS MITRAL LLEVA SU PROPIA TABLA, y no se la puede meter en la de arriba: sus
+         seis categorias no caben en cuatro columnas que comparten las OCHO lesiones, y su
+         denominador es otro —los estudios con dato de esta valvula, no los del periodo—. La de
+         arriba se queda como esta para las ocho; esta la desglosa. Mismo reparto que el PDF de
+         auditoria y que la pantalla, que es lo que impide que las tres digan numeros distintos. */
+      if (typeof _labEmLectura === 'function' && typeof LAB_EM_CAT_ORDEN !== 'undefined') {
+        const cnt = {}; LAB_EM_CAT_ORDEN.forEach(k => { cnt[k] = 0; });
+        let base = 0;
+        infs.forEach(i => { const r = _labEmLectura(i); if (!r) return; base++;
+          if (cnt[r.cat] !== undefined) cnt[r.cat]++; });
+        /* El porcentaje se calcula aca y no con `_pc`: esa funcion es LOCAL del PDF de auditoria
+           —otra funcion, otro scope— y nombrarla desde el PPT es un ReferenceError que se lleva
+           la exportacion entera. Con base 0 va un guion y no «0 (0%)», que es la regla de esta
+           casa: un cero afirma «lo medimos y dio cero», un guion no. */
+        const _pcE = (x) => base > 0 ? Math.round(x / base * 100) : 0;
+        const fem = LAB_EM_CAT_ORDEN.map(k => [S(LAB_EM_CAT[k]),
+          base > 0 ? (String(cnt[k]) + ' (' + _pcE(cnt[k]) + '%)') : '-']);
+        ensure(14 + 6 * 5);
+        doc.setFont('helvetica','bold'); doc.setFontSize(9);
+        doc.text(S('Estenosis mitral por categoria' + (base > 0 ? ('  (n = ' + base + ')') : '  (sin datos)')), M, y);
+        y += 4; doc.setFont('helvetica','normal');
+        tabla([110, 70], ['Categoria','n (%)'], fem);
+        nota('Categorias excluyentes, calculadas desde las mediciones (AVm y gradiente medio) y no ' +
+             'desde el grado consignado. Sobre los estudios con dato de estenosis mitral: los que no ' +
+             'tienen ninguno quedan fuera de todas.');
+      }
     }
   }
 

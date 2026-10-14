@@ -256,6 +256,94 @@ window.__P = {
              im: window.__P.barras('lab-valv-im'),
              tabla: window.__P.barras('lab-valv-tabla') } },
 
+  /* El filtro de cohorte con un criterio armado a mano. _labCohorteOk lee el global
+     _LAB_COHORTE, asi que la escena lo fija y lo repone — nunca lo deja puesto. */
+  filtra(regs, C) {
+    if (typeof _labCohorteOk !== 'function') return 'SIN FN';
+    var prev = window._LAB_COHORTE;
+    try {
+      window._LAB_COHORTE = C;
+      var n = 0;
+      regs.forEach(function(c){ if (_labCohorteOk(window.__P.reg(c))) n++ });
+      return n;
+    } catch (e) { return 'EXC: ' + e.message }
+    finally { window._LAB_COHORTE = prev }
+  },
+  /* La foto de los controles del panel: devuelve el objeto que _labCohorteLeer arma, para
+     comprobar que una casilla SIN tildar no deja la cohorte activa. */
+  cohLeer() {
+    if (typeof _labCohorteLeer !== 'function') return 'SIN FN';
+    try { return _labCohorteLeer() } catch (e) { return 'EXC: ' + e.message } },
+  /* ⚠️ UN CRITERIO INCOMPLETO RECHAZA TODO, Y LA PRIMERA CORRIDA DE ESTA SONDA DIO CERO EN LAS
+     CUATRO CUENTAS. _labCohorteOk evalua TODOS los criterios del objeto, y una clave ausente deja
+     comparaciones contra undefined que fallan cerradas: edadMax undefined entra en su rama y
+     compara contra NaN. La base NO se escribe a mano —una lista cableada se desactualiza el dia
+     que el panel gane un filtro— : se le pide al dueño, _labCohorteLeer, con una casilla tildada
+     para que la cohorte cuente como activa, y despues se repone el control.
+     Tildar aca no es un gesto medido: es construir el denominador. */
+  cohBase() {
+    if (typeof _labCohorteLeer !== 'function') return null;
+    var cb = document.getElementById('coh-em-area');
+    if (!cb) return null;
+    var antes = cb.checked;
+    cb.checked = true;
+    var C = null;
+    try { C = _labCohorteLeer() } catch (e) { C = null }
+    cb.checked = antes;
+    if (!C) return null;
+    C.emArea = false; C.emGrad = false; C.em = '';
+    return C },
+  /* Las opciones del desplegable de la EM y los ids de las dos casillas. */
+  cohEM() {
+    var sel = document.getElementById('coh-em');
+    return { opciones: sel ? Array.from(sel.options).map(function(o){ return o.value + '|' + o.textContent }) : 'NO EXISTE',
+             area: window.__P.existe('coh-em-area'), grad: window.__P.existe('coh-em-grad'),
+             conteo: window.__P.existe('coh-em-conteo') } },
+  /* La descripcion legible de la cohorte, que viaja al encabezado del PDF de auditoria. */
+  cohDesc(C) {
+    if (typeof _labCohorteDesc !== 'function') return 'SIN FN';
+    var prev = window._LAB_COHORTE;
+    try { window._LAB_COHORTE = C; return _labCohorteDesc() }
+    catch (e) { return 'EXC: ' + e.message } finally { window._LAB_COHORTE = prev } },
+
+  /* ⚠️ EL PDF SE GENERA DE VERDAD, interceptando el constructor de jsPDF: lo que se mide es lo que
+     el papel IMPRIME y no lo que una funcion devuelve. Cada doc.text queda registrado. */
+  /* ⚠️ jsPDF LLEGA POR CDN Y A VECES NO LLEGA — es el mismo defecto de entorno que TC-148 y TC-318
+     ya tienen documentado—. Se espera hasta 8 s antes de rendirse, y si no llega se informa «sin
+     jsPDF» en vez de medir un PDF vacio: un A/B contra una corrida sin libreria compara una tabla
+     que no se dibujo contra una que si, y eso se lee como una diferencia del commit. */
+  esperarJspdf(ms) {
+    var t0 = Date.now();
+    return new Promise(function(res){
+      (function tic(){
+        if (typeof window.jspdf !== 'undefined' && window.jspdf.jsPDF) return res(true);
+        if (Date.now() - t0 > (ms || 8000)) return res(false);
+        setTimeout(tic, 250);
+      })();
+    }) },
+  armarPdf(fn) {
+    if (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF) return Promise.resolve({ err: 'sin jsPDF' });
+    var reg = [];
+    var Orig = window.jspdf.jsPDF;
+    function Espia() {
+      var d = new Orig(arguments[0], arguments[1], arguments[2]);
+      var t = d.text.bind(d);
+      d.text = function(txt) { try { reg.push(String(txt)) } catch (e) {} return t.apply(d, arguments) };
+      /* save se neutraliza para que la sonda no deje archivos, pero el documento se GUARDA en
+         memoria: la verificacion pide una captura del papel, y leer el PDF renderizado es la unica
+         forma de ver lo que el lector ve. output queda intacto. */
+      d.save = function(){ try { window.__P._pdfUri = d.output('datauristring') } catch (e) {} return d };
+      return d;
+    }
+    Espia.prototype = Orig.prototype;
+    window.jspdf.jsPDF = Espia;
+    return Promise.resolve().then(function(){ return fn() })
+      .then(function(){ return { ok: true, lineas: reg } })
+      .catch(function(e){ return { err: 'EXC: ' + e.message, lineas: reg } })
+      .then(function(r){ window.jspdf.jsPDF = Orig;
+        r.uri = window.__P._pdfUri || null; window.__P._pdfUri = null; return r });
+  },
+
   despejar() {
     var o = {};
     ['modalAvisoEco','login-overlay'].forEach(function(id){
@@ -578,6 +666,100 @@ async function main() {
     pob[2].em_grado = 'severa'; pob[3].em_grado = 'leve'; pob[4].em_grado = 'leve';
     const r = await ev(`window.__P.pintarLab(${JSON.stringify(pob)})`, 30000);
     out.grupos.barras = { poblacion: pob.length, r };
+  }
+
+  /* ── filtro ── Las dos casillas superponibles y el desplegable de categoria. La poblacion tiene
+     un estudio de CADA combinacion posible de las dos casillas, para que la interseccion se pueda
+     contar y no salga por casualidad. */
+  if (corre('filtro')) {
+    const POB = [
+      { avm_plan:'0.8' },                  // area si, gradiente no
+      { avm_plan:'1.2', em_gmedio:'12' },  // area si, gradiente si  -> interseccion
+      { avm_plan:'2.0', em_gmedio:'12' },  // area no, gradiente si
+      { avm_plan:'2.0', em_gmedio:'7' },   // ninguna
+      { avm_plan:'2.0' },                  // ninguna
+      { fevi:'60' }                        // sin dato de EM: ninguna, y fuera de toda categoria
+    ];
+    const g = { poblacion: POB.length, controles: await ev(`window.__P.cohEM()`), conteos: {}, cats: {} };
+    const BASE = await ev(`window.__P.cohBase()`);
+    /* ⚠️ CONTRA HEAD LAS DOS CASILLAS NO EXISTEN Y LA BASE NO SE PUEDE CONSTRUIR. Se informa y se
+       sigue, en vez de tirar: una sonda que muere por excepcion prueba que el arbol es distinto y
+       no que sabe medir, y ademas se lleva por delante los otros grupos de la misma corrida. */
+    if (!BASE) { g.base = 'SIN CASILLAS (arbol sin coh-em-area)'; out.grupos.filtro = g; }
+    else { g.base = BASE;
+    const con = (x) => JSON.stringify(Object.assign({}, BASE, x));
+    g.conteos.soloArea  = await ev(`window.__P.filtra(${JSON.stringify(POB)}, ${con({ emArea:true })})`);
+    g.conteos.soloGrad  = await ev(`window.__P.filtra(${JSON.stringify(POB)}, ${con({ emGrad:true })})`);
+    g.conteos.ambas     = await ev(`window.__P.filtra(${JSON.stringify(POB)}, ${con({ emArea:true, emGrad:true })})`);
+    g.conteos.ninguna   = await ev(`window.__P.filtra(${JSON.stringify(POB)}, ${con({})})`);
+    for (const k of ['sig_area_1','sig_area_15','sig_grad','grad_elev','sin','sig_sin_num'])
+      g.cats[k] = await ev(`window.__P.filtra(${JSON.stringify(POB)}, ${con({ em: k })})`);
+    /* El contador de la pantalla, sobre la misma poblacion. */
+    g.casillas = await ev(`(function(){
+      if (typeof _labEmCasillas !== 'function') return 'SIN FN';
+      return _labEmCasillas(${JSON.stringify(POB)}.map(function(c){ return window.__P.reg(c) })) })()`);
+    /* ⚠️ UNA CASILLA SIN TILDAR NO PUEDE DEJAR LA COHORTE ACTIVA: `_labCohorteLeer` decide si hay
+       filtros mirando si algun criterio es distinto de vacio, y un `false` pasa esa guarda. */
+    g.leerLimpio = await ev(`window.__P.cohLeer()`);
+    g.desc = {
+      cat:  await ev(`window.__P.cohDesc(${con({ em:'sig_area_1' })})`),
+      area: await ev(`window.__P.cohDesc(${con({ emArea:true })})`),
+      dos:  await ev(`window.__P.cohDesc(${con({ emArea:true, emGrad:true })})`),
+      otra: await ev(`window.__P.cohDesc(${con({ im:'Severa' })})`)
+    };
+    out.grupos.filtro = g; }
+  }
+
+  /* ── pdf ── El PDF de auditoria GENERADO de verdad, interceptando jsPDF. */
+  if (corre('pdf')) {
+    const POB = [
+      { avm_plan:'0.8', em_grado:'severa' },
+      { avm_plan:'1.2', em_grado:'severa' },
+      { avm_plan:'2.0', em_gmedio:'12', em_grado:'severa' },
+      { avm_plan:'2.0', em_gmedio:'7', em_grado:'leve' },
+      { avm_plan:'2.0', em_grado:'leve' },
+      { em_grado:'severa' },
+      { fevi:'60', ia_grado:'4' }
+    ];
+    const g = { poblacion: POB.length };
+    /* ⚠️ `labGenerarPDF` NO RECIBE LA POBLACION: la saca de `labGetInformes()`, que a su vez lee
+       `getInformes()`. Se sustituye ESA funcion y se repone — asi la escena fija su poblacion sin
+       escribir nada en el almacenamiento, que es lo que mantiene a la sonda de solo lectura. */
+    g.jspdf = await ev(`window.__P.esperarJspdf(12000)`, 20000);
+    g.r = await ev(`(function(){
+      var pob = ${JSON.stringify(POB)}.map(function(c){ return window.__P.reg(c) });
+      var orig = window.getInformes;
+      window.getInformes = function(){ return pob };
+      return window.__P.armarPdf(function(){
+        if (typeof labGenerarPDF !== 'function') return { err: 'sin labGenerarPDF' };
+        return labGenerarPDF();
+      }).then(function(r){ window.getInformes = orig; return r });
+    })()`, 90000);
+    /* El PPT estadistico («analisis»), por el mismo camino: su tabla de leyenda es la de las OCHO
+       lesiones y la de la EM es propia. */
+    g.ppt = await ev(`(function(){
+      var pob = ${JSON.stringify(POB)}.map(function(c){ return window.__P.reg(c) });
+      var orig = window.getInformes;
+      window.getInformes = function(){ return pob };
+      return window.__P.armarPdf(function(){
+        if (typeof labAnalisisPDF !== 'function') return { err: 'sin labAnalisisPDF' };
+        return labAnalisisPDF();
+      }).then(function(r){ window.getInformes = orig; return r });
+    })()`, 120000);
+    if (arg('--pdfdump')) {
+      for (const [k, dest] of [['r', 'auditoria'], ['ppt', 'analisis']]) {
+        const u = g[k] && g[k].uri;
+        if (!u) { g[dest + 'Dump'] = 'sin uri'; continue; }
+        const b64 = String(u).split(',')[1] || '';
+        const ruta = join(arg('--pdfdump'), 'labem_' + dest + '.pdf');
+        await writeFile(ruta, Buffer.from(b64, 'base64'));
+        g[dest + 'Dump'] = ruta;
+      }
+    }
+    /* El uri no viaja al JSON: son megabytes de base64 que lo vuelven ilegible. */
+    if (g.r) delete g.r.uri;
+    if (g.ppt) delete g.ppt.uri;
+    out.grupos.pdf = g;
   }
 
   out.avisoFin = await ev(`window.__P.despejar()`);
