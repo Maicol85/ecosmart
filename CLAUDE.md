@@ -35,6 +35,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar el panel de Evidencia: agregar una cita, una sección o un sub-bloque** | `docs/mapa/panel-evidencia.md` |
 | **Agregar un TÉRMINO al glosario del panel (el ⓘ con tarjeta)** | `docs/mapa/panel-evidencia-terminos.md` |
 | **Tocar el CARTEL DE PÉPTIDOS del HFA-PEFF, su puntaje o el plan Básico/Avanzado**: el espejo del péptido, el ritmo que se lee, los cortes por tipo o por qué `showTab` no chequea el plan | `docs/mapa/hfapeff-peptidos.md` |
+| **Tocar un CRITERIO o un CORTE del puntaje HFA-PEFF**: la tabla contra el original, las tres contradicciones del artículo, la PSAP o el operador del IMVI | `docs/mapa/hfapeff-criterios.md` |
 | **Ver por dónde sale un dato** (informe narrativo, EN SUMA, PDF, Excel) | `docs/mapa/informe-pdf-excel.md` |
 | **Agregar o correr un caso de prueba; A/B; mutación** | `docs/mapa/tests.md` |
 | **Visor de cineloop, medición, calibración, IndexedDB** | `docs/mapa/imagenes-visor.md` |
@@ -229,6 +230,143 @@ impecable.
 ---
 
 ## Estado vigente
+
+### Los CRITERIOS del HFA-PEFF contra el ORIGINAL de Pieske 2019 (2026-10-14)
+
+- Al **empezar** esta tanda, `main` local y `origin/main` estaban los dos en **`970dea7`**, sin nada
+  sin pushear —confirmado con un `git fetch` de verdad, no con el ref en caché—, con los **cinco**
+  commits de la tanda del modo manual y la estenosis mitral ya incluidos **y pusheados**. Los
+  **tres** commits de esta tanda quedan locales; el push lo corre Maicol.
+  **LA TAREA PEDÍA CUATRO COMMITS Y SON TRES: el de las REGLAS DEL TEXTO se omitió**, porque las
+  dos que esa etapa pedía —el LAVI según ritmo y el e′ para ≥75 años— **ya estaban implementadas y
+  correctas**, verificadas contra el original por sus bordes. Es la propia orden la que lo prevé, y
+  es el mismo caso que el commit de la estenosis tricuspídea de la tanda de la aórtica.
+  **El orden de revertido seguro es el inverso del de aplicación: 3 → 2 → 1.**
+  El **1** (los dos cortes) y el **2** (la PSAP) **tocan la misma función pero en partes distintas
+  y se revierten en cualquier orden**: el 1 cambia `hfUmbrales` y el operador del IMVI, el 2 agrega
+  `d.psap` y reescribe el criterio de la IT. ⚠️ **PERO EL 1 LLEVA LA SONDA**
+  (`scripts/_probe_hfcrit.mjs`), que el 2 también usa, y la adaptación de **dos** casos;
+  revertirlo deja al 2 sin arnés. **El 3 es TC-467 más documentación** y afirma el comportamiento
+  de los dos: revertir cualquiera sin el 3 deja TC-467 en rojo —9 de sus 36 condiciones,
+  verificado en un worktree aparte—.
+
+- **Línea base al cierre: suite 460/481 con el pendrive `DISK_IMG` AFUERA, Semgrep 127 / 0 ERROR,
+  Excel 435 columnas con el hash IDÉNTICO a HEAD, celular 43 a 360 px y 52 a 390 px con 1 ALTA cada
+  uno —IDÉNTICO a la línea base, y `--todo` da 374 y 383, el mismo par—.**
+  ⚠️ **EL PENDRIVE ESTUVO AFUERA EN LAS DOS PUNTAS, Y POR ESO LAS CIFRAS SE PUEDEN COMPARAR.** De
+  los 21 rojos, **diecisiete** son **TC-181…TC-197**, los del pendrive: son ENTORNO y no prueban
+  nada. Los **cuatro** restantes son los de ENTRADA y NO son regresiones: **TC-223** (el
+  documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**. La comparación válida es
+  que **el conjunto de rojos NO-pendrive es el MISMO en las dos puntas, y son esos cuatro**.
+  **El denominador subió a 481**: esta tanda agregó **TC-467**. La de ENTRADA, medida en HEAD
+  limpio el 2026-10-14 con el pendrive AFUERA, fue **459/480**, y el `md5` de `index.html` no se
+  movió durante ninguna de las dos corridas.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista de ids con
+  `grep -o "^caso('[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`. ⚠️ **EL `--solo` QUIERE COMAS, NO ESPACIOS.** La primera corrida de la línea base pasó
+  la lista separada por espacios, el runner leyó **un solo id** y publicó **«1/1 ✓ — sin
+  regresiones»**: un denominador de uno con pinta de corrida limpia. **Mirar el denominador antes
+  de creerle al veredicto.**
+
+- **Dónde está todo:** `docs/mapa/hfapeff-criterios.md` (**mapa NUEVO**, 14,1 KB: la tabla completa
+  criterio por criterio con su folio, las tres contradicciones del artículo y la regla «gana la
+  figura», por qué la PSAP es un derivado, el puntaje que se recalcula y las seis trampas medidas),
+  `docs/mapa/hfapeff-peptidos.md` → un puntero, `docs/fuentes/FUENTES.md` → `### hfaPeff2019`
+  **reescrita de arriba abajo** (ya no dice que el original falta), y `docs/PENDIENTES.md` → **H1,
+  H2 y H3 marcados CERRADOS** más **seis** cosas nuevas declaradas y no tocadas (P1 a P6).
+
+- ⚠️ **EL ORIGINAL YA ESTÁ EN LA BIBLIOTECA, Y EL CENSO QUE LO DABA POR AUSENTE NO ESTABA MAL.**
+  `02_Diastolica/HFA PEFF Pieske ESC 2019.pdf` entró al disco el **13/10 a las 18:55**, después de
+  ese censo. **Folio = página del PDF + 3296**, comprobado en el pie impreso de cuatro páginas.
+  ⚠️ **Y LA FIGURA 3 ES UN BITMAP:** el texto extraído de esa página trae el cuerpo del artículo y
+  **ninguno** de los cortes de la tabla. Se leyó renderizando a **600 dpi** con un `clip` por celda.
+  Quien la busque con `pdftotext` concluye que la figura no dice nada.
+
+- ⚠️ **EL ARTÍCULO SE CONTRADICE CONSIGO MISMO EN TRES LUGARES Y LOS SEIS TEXTOS ESTÁN IMPRESOS.**
+  Regla de Maicol del 13/10: **gana la Figura 3**. NT-proBNP menor en FA: texto 375-660 (f. 3304),
+  figura **365-660** (f. 3305) → **365**. IMVI menor: texto `≥115/≥95`, figura **`> 115/95`** →
+  `>`, que es lo que la app ya tenía. Y el LAVI por ritmo y el e′ por edad sólo están en el texto.
+  ⚠️ **EL IMVI *MAYOR* NO ERA UNA CONTRADICCIÓN:** texto y figura dicen los dos **`≥`**, y la app
+  usaba `>` — estaba mal, sin nada que dirimir.
+- ⚠️ **EL COMENTARIO QUE ESTABA EN `hfUmbrales` AFIRMABA QUE EL 365 NO EXISTE, Y ERA FALSO.** Decía
+  que era «una errata muy repetida en la literatura secundaria» y que quedaba **«CERRADO, no volver
+  a darlo vuelta»**. Se escribió sobre un original que nadie podía abrir, razonando por el patrón 3×
+  de los otros tres cortes (35→105, 80→240, 220→660) — que **el propio artículo rompe sólo acá**.
+  Por eso este corte se dio vuelta dos veces antes: no era un descuido, era una fuente ausente.
+  **Y el archivo ya se contradecía solo:** el comentario de `amiloTextoHFAPEFF` decía «desde 365»
+  al lado de una constante que valía 375.
+
+- **EL PISO DE 365 MUEVE INFORMES, Y ESTÁ MEDIDO.** A/B con teclas reales, seis valores por ritmo:
+  en FA el **365, el 370 y el 374** pasan de 0 a 1 punto y el **total de 4 a 5**, o sea de
+  «probabilidad intermedia» a **«HFpEF confirmado»**. Es exactamente la ventana de 10 pg/ml que el
+  comentario viejo advertía. **CONTROL NEGATIVO:** en ritmo sinusal los seis valores dan idéntico
+  en los dos árboles.
+- ⚠️ **EL OPERADOR DEL IMVI NO SE PUEDE PROBAR TIPEANDO VALORES NORMALES, Y SIN ESO EL COMMIT NO
+  ESTABA VERIFICADO.** El IMVI **no es un campo**: es masa de Devereux sobre BSA de Mosteller, un
+  derivado float de **cinco** campos, y con valores clínicos nunca cae exactamente en `149.000…`,
+  así que `>` y `>=` dan lo mismo en toda escena alcanzable —un A/B daría **0 diferencias** y se
+  leería como «el cambio no hizo nada»—. Los dos valores salen de una **bisección sobre doubles**:
+  `ppvi = 13.624098525525902` da IMVI **149 exacto** (hombre, 70 kg/170 cm, DDVI 50, SIV 13) y
+  `11.427598347830793` da **122 exacto** (mujer, 60/160, DDVI 48, SIV 11). A/B: los dos pasan de 1
+  a 2 puntos y los de arriba y abajo no se mueven.
+
+- **LA PSAP ENTRA COMO SEGUNDA VÍA DEL MISMO CRITERIO Y CUENTA UNA SOLA VEZ.** La Figura 3 las
+  imprime en el **mismo renglón** —«TR velocity > 2.8 m/s (PASP > 35 mmHg)»— y el folio 3303 lo
+  explica. Dos entradas separadas no cambiarían el puntaje —`_hfDom` da 2 con cualquier mayor— pero
+  la pantalla diría **dos** criterios cumplidos sobre un único hallazgo.
+  ⚠️ **LA PSAP DE ESTA APP NO ES UNA MEDICIÓN INDEPENDIENTE, Y ESO ACOTA QUÉ ESCENAS EXISTEN.**
+  `psap_calc` es `readonly` y vale `(4·VRT² + PmAD).toFixed(0)`: deriva de la misma velocidad de IT,
+  **se vacía sin ella** —así que **«la PSAP sola» no es un estado alcanzable**— y se **redondea a
+  entero**, así que una PSAP real de 35,6 se lee 36 y cruza. Lo que separa las dos vías es la
+  **PmAD**. Medido en siete escenas: VRT 2,65 con PmAD 8 da PSAP 36 y **vota sólo por la PSAP**,
+  donde HEAD no votaba. `PENDIENTES.md` → P1 y P2.
+
+- **LAS DOS REGLAS DEL TEXTO YA ESTABAN, Y SE MIDIERON ANTES DE DARLAS POR BUENAS.** LAVI: ocho
+  bordes, sinusal `>34` / `29-34` y FA `>40` / `34-40`, y **con el dato cargado** un LAVI de 38 pasa
+  de MAYOR en sinusal a MENOR en FA. e′: con el **mismo** par de anillos (septal 6 / lateral 8), a
+  los **74** cumple los dos criterios y a los **75 y 76** ninguno — el borde es `>= 75` y es un
+  **REEMPLAZO**, no una suma. Un par que cayera del mismo lado de los dos juegos no probaría nada.
+- **LOS DEMÁS CRITERIOS COINCIDEN, MEDIDOS POR SUS DOS LADOS:** E/e′ 8/9/14/15, GLS 15,9/16,0/16,1,
+  RWT 0,416/0,420/0,424 y pared 11,9/12,0/12,1. Los cuatro operadores son los de la figura.
+
+- **EL CARTEL DE PÉPTIDOS PUBLICA EL CORTE NUEVO SIN QUE SE LE TOCARA UNA LÍNEA**, que es el punto
+  (7) de la orden: lee `hfUmbrales(fa)`. Medido: con 370 en FA dice «Corte aplicado: NT-proBNP
+  365-660 pg/ml — criterio MENOR, 1 punto… Puntaje HFA-PEFF: 5/6», y **las dos superficies
+  coinciden** (el renglón de referencias y Avanzado dan 5/6).
+- ⚠️ **EL PUNTAJE SE RECALCULA AL REABRIR, NO SE GUARDA.** No hay ningún campo que almacene el
+  total: viajan los insumos. Un estudio en FA con NT-proBNP entre 365 y 374 guardado con 4/6
+  **reabre con 5/6**. **No se migra nada** y el `informe_texto` ya firmado no cambia.
+  `PENDIENTES.md` → P3.
+- **CONTROL NEGATIVO MAYOR, con escenario CARGADO para que tenga denominador: 0 diferencias contra
+  HEAD** en la función diastólica (que publica «DD — Presión elevada (ASE 2025)»), las ocho
+  válvulas, el **Excel en 435 columnas con 0 celdas distintas**, los **1096** campos guardados y el
+  informe y el EN SUMA en los **tres** estilos.
+
+- **Arnés: `scripts/_probe_hfcrit.mjs`** (A/B de solo lectura con `--file`), ocho grupos (`I`, `B`,
+  `T`, `L`, `E`, `O`, `C`, `N`). **Cobertura: TC-467**, **36 condiciones** con cinco denominadores
+  y seis controles. **Verificado que sabe fallar contra HEAD en un worktree aparte: 9 de las 36 en
+  rojo**, y **ninguna por excepción**; las 27 que pasan son lo que esta tanda no mueve.
+  ⚠️ **ESCRIBÍ «28 condiciones» ANTES DE CONTARLAS Y SON 36.** Lo cazó contar los `ex.push` del
+  propio caso. **Contar y después escribir.**
+- ⚠️ **CASOS ADAPTADOS: DOS**, con el motivo escrito en cada uno. **TC-57**, que afirmaba «el piso
+  es 375, NO 365» con el 370 como valor separador —hoy separa en la dirección contraria—, y
+  **TC-465**, que tenía el 375 cableado en su tabla de bordes y en el rótulo que el cartel declara.
+  Los dos estaban VERDES y **describían la app de ayer**, no estaban mal escritos.
+- ⚠️ **LOS INSUMOS DEL SCORE VIVEN EN CUATRO PESTAÑAS, Y MI SONDA ABORTÓ EN SEIS ESCENAS POR ESO.**
+  `ppvi`, `siv`, `ddfvi` y `edad` están en **Datos**, no en Doppler: la primera corrida del grupo
+  `I` abortó con **`SIN GEOMETRIA ppvi`** en las seis, que es lo correcto — y si el lector no mira
+  el aborto, la tabla sale con `imvi: null` en todas y dice «ningún corte funciona» sobre cortes que
+  funcionan. Se cerró con un **abridor genérico** que sube por el DOM hasta la `.tab-section` del
+  campo, en vez de una lista de pestañas cableada que se desactualiza.
+- ⚠️ **EL TOKEN DEL COLAPSO DE LA VCI ES `>50` / `<50`, NO `si` / `no`, Y ESO ME COSTÓ UNA CORRIDA
+  ENTERA DEL GRUPO DE LA PSAP.** Con el token inventado, `calcPmAD` salió por su guarda, la PmAD
+  quedó vacía y `psap_calc` también: las **seis** escenas informaron la PSAP sin valor y el A/B dijo
+  «0 diferencias» **sobre el commit que la agrega**. Un denominador vacío con pinta de medición
+  buena.
+- ⚠️ **UN DOMINIO QUE YA VALE 2 HACE QUE TODOS SUS CORTES PAREZCAN NO FUNCIONAR.** Las escenas de
+  los criterios que no cambian usan anillos que **cumplen** el criterio del e′, así que el dominio
+  funcional ya está en 2 y los puntos no se mueven al cruzar el corte del E/e′: lo que se mide es la
+  **FILA** de cada criterio (`SI` / `no` / `na`), no los puntos del dominio.
 
 ### El MODO MANUAL de las pastillas, el selector binario de la EM, el violeta y el VTI de la ET (2026-10-13)
 

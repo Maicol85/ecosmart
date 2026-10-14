@@ -1461,30 +1461,99 @@ negativo, y por eso el redondeo del IMC a un decimal es lo que hace que el pacie
 170 cm caiga del lado que la guía describe.
 
 ---
-### `hfaPeff2019` — HFA-PEFF, Pieske et al. · ⚠️ EL ORIGINAL **NO ESTÁ EN LA BIBLIOTECA** (censado 2026-10-13)
+### `hfaPeff2019` — HFA-PEFF, Pieske et al. · ✅ **VERIFICADA EN EL ORIGINAL** (2026-10-14)
 
-**Fuente primaria declarada:** Pieske B, Tschöpe C, de Boer RA, Fraser AG, Anker SD, Donal E et al.
+**Fuente primaria:** Pieske B, Tschöpe C, de Boer RA, Fraser AG, Anker SD, Donal E et al.
 *How to diagnose heart failure with preserved ejection fraction: the HFA-PEFF diagnostic algorithm
 — a consensus recommendation from the Heart Failure Association (HFA) of the European Society of
 Cardiology (ESC).* **Eur Heart J 2019;40(40):3297-3317**, DOI 10.1093/eurheartj/ehz641.
 
-⚠️ **ESE PDF NO ESTÁ EN LA BIBLIOTECA, Y SE CENSÓ EL DISCO ENTERO.** Barrido de los **89 archivos**
-de `~/Desktop/EcoSmart_Biblioteca_Fuentes` buscando `HFA-PEFF`, `HFA–PEFF`, `HFAPEFF`, `HFA PEFF` y
-`Pieske` dentro del texto de cada PDF: **tres archivos lo nombran y ninguno trae los cortes.**
+**En disco:** `~/Desktop/EcoSmart_Biblioteca_Fuentes/02_Diastolica/HFA PEFF Pieske ESC 2019.pdf`,
+21 páginas. **Leído en texto completo el 2026-10-14.**
 
-| Archivo | Dónde lo nombra | Qué trae |
+⚠️ **ESTA ENTRADA DECÍA «EL ORIGINAL NO ESTÁ EN LA BIBLIOTECA» Y ESO DEJÓ DE SER CIERTO.** El
+censo de los 89 archivos del 2026-10-13 **no estaba mal**: el archivo entró al disco el **13/10 a
+las 18:55**, después de ese censo. Lo que cambió es el disco, no la lectura. Por eso los cortes
+pasan de «no verificados al estándar del repo» a **verificados**: documento, año, folio y tabla.
+
+**Regla de folio: folio = página del PDF + 3296**, comprobada en el **pie impreso** de las páginas
+1, 8, 9 y 10 (PDF 8 → 3304, PDF 9 → 3305, PDF 10 → 3306), no por aritmética sobre el rango.
+
+| Dónde | Folio | PDF |
 |---|---|---|
-| `02_Diastolica/Nagueh_2025_Diastolica.pdf` | págs. PDF 29-30 y la cita 8 | describe el algoritmo en prosa —pretest, score, Paso 3— y **ningún número de péptido** |
-| `02_Diastolica/Left-Ventricular-Diastolic-Function.pdf` | ídem (es el mismo documento) | ídem |
-| `03_VD_y_corazon_derecho/Humbert_2022_Hipertension_Pulmonar.pdf` | pág. PDF 74 y la cita 16 | lo nombra como escala validada de IC-FEc; **ningún corte** |
+| Criterios funcionales (e′ por edad, E/e′, IT, PSAP, GLS) y **LAVI por ritmo** | **3303** | 7 |
+| IMVI, RWT, espesor de pared, **péptidos** y la regla del puntaje | **3304** | 8 |
+| **Figura 3** — el algoritmo que la app ejecuta | **3305** | 9 |
 
-**CONSECUENCIA, por la regla de la casa:** «Verificada = texto completo leído, con documento, año,
-tabla y página», y **lo que no se pudo abrir NO se cita**. Así que los cortes de péptidos del
-HFA-PEFF **no están verificados al estándar de este repo**, y esta entrada va acá y no entre las
-verificadas. **No se tocó ni un corte ni un operador** — y no hacía falta: los que la app ya usaba
-coinciden con la fuente secundaria (abajo).
+⚠️ **LA FIGURA 3 ES UNA IMAGEN.** El texto extraído de esa página trae el cuerpo del artículo y
+**ninguno** de los cortes de la tabla. Se leyó renderizando la página a **600 dpi** con un `clip`
+por celda. Quien la busque con `pdftotext` va a concluir que la figura no dice nada.
 
-#### La fuente SECUNDARIA, que es lo único verificable hoy
+#### ⚠️ LAS TRES CONTRADICCIONES INTERNAS DEL ARTÍCULO
+
+El artículo **se contradice consigo mismo** en tres lugares y en los tres **los dos textos están
+impresos**. Decisión de Maicol del **13/10/2026: cuando el texto y la Figura 3 difieren, gana la
+FIGURA** — es el algoritmo que esta app ejecuta y el que el lector tiene delante al auditar.
+
+| Criterio | TEXTO (verbatim) | FIGURA 3 (verbatim) | Quedó |
+|---|---|---|---|
+| NT-proBNP menor en FA | «Minor criterion: NT-proBNP 375–660 pg/mL» (f. 3304) | «NT-proBNP 365-660 pg/ml» (f. 3305) | **365** |
+| IMVI menor | «Minor criterion: LVMI ≥115 g/m² in men or ≥95 g/m² in women» (f. 3304) | «LVMI > 115/95 g/m² (m/w)» (f. 3305) | **`>`** |
+| LAVI y e′ por edad | los publica con su corchete (f. 3303) | no los separa | **se aplican** |
+
+⚠️ **EL IMVI *MAYOR* NO ESTÁ EN CONFLICTO:** el texto escribe «Major criterion: LVMI ≥149 g/m² in
+men or ≥122 g/m² in women and RWT >0.42» (f. 3304) y la figura escribe «LVMI ≥ 149/122 g/m² (m/w)
+and RWT > 0,42 #» (f. 3305) — **los dos con `≥`**. La app usaba `>` y estaba mal.
+
+⚠️ **LA MARCA `#` DE LA FIGURA NO ESTÁ EXPLICADA EN NINGUNA PARTE.** No aparece en el pie de la
+Figura 3 («Step 2 (E): Echocardiographic and natriuretic peptide heart failure with preserved
+ejection fraction workup and scoring system») ni en el texto de los folios 3303-3305. **No se
+implementa**, decisión (4) de la orden.
+
+#### Los criterios, con su frase verificada
+
+**Funcionales, folio 3303** — los cuatro encabezados están impresos como «Major criterion» /
+«Minor criterion» con su corte:
+- e′: «septal e′<7 cm/s; or lateral e′<10 cm/s [subjects aged <75 years]» y «septal e′<5 cm/s; or
+  lateral e′<7 cm/s [subjects aged ≥75 years]». **Son dos renglones alternativos con su corchete
+  de edad, o sea un REEMPLAZO y no una suma** — la redacción no es ambigua.
+- E/e′: «average septal–lateral E/e′ ratio ≥15» (mayor) y «average septal–lateral E/e′ ratio 9-14»
+  (menor).
+- «Tricuspid regurgitation peak velocity or pulmonary arterial systolic pressure — Major
+  criterion: TR peak velocity >2.8 m/s · Major criterion: Pulmonary artery systolic pressure
+  >35 mmHg», y la prosa de la misma página lo explica: «A TR peak velocity >2.8 m/s indicates
+  increased PASP and is an indirect marker of LV diastolic dysfunction». La Figura 3 las imprime en
+  **un solo renglón** — «TR velocity > 2.8 m/s (PASP > 35 mmHg)» — y por eso la app las vota como
+  **un criterio con dos vías, que cuenta una sola vez**.
+- GLS: «Minor criterion: GLS < 16%».
+
+**LAVI por ritmo, folio 3303** — los cuatro renglones están impresos: mayor «>34 mL/m² [in sinus
+rhythm]» y «>40 mL/m² [in atrial fibrillation]»; menor «29-34 mL/m² [in sinus rhythm]» y «34–40
+mL/m² [in atrial fibrillation]». El fundamento está en el folio 3304: «We therefore recommend
+separate cut-offs for LAVI in SR vs. AF».
+
+**Morfológicos, folio 3304** — «Major criterion: LVMI ≥149 g/m² in men or ≥122 g/m² in women and
+RWT >0.42» y «Minor criterion: LVMI ≥115 g/m² in men or ≥95 g/m² in women or RWT >0.42 or LV
+end-diastolic wall thickness ≥12 mm».
+
+**Péptidos, folio 3304** — los cuatro renglones impresos: mayor «NT-proBNP >220 pg/mL; or BNP >80
+pg/mL [in sinus rhythm]» y «NT-proBNP >660 pg/mL or BNP >240 pg/mL [in atrial fibrillation]»;
+menor «NT-proBNP 125–220 pg/mL; or BNP 35–80 pg/mL [in sinus rhythm]» y «NT-proBNP 375–660 pg/mL;
+or BNP 105–240 pg/mL [in atrial fibrillation]» — **éste último es el que la Figura 3 contradice**.
+⚠️ **El corte del PASO 1 (cribado) es OTRO y no se usa acá:** BNP ≥ 35 o NT-proBNP ≥ 125 pg/mL.
+
+**La regla del puntaje, folio 3304**, verbatim: «Within each domain, a major criterion scores 2
+points or a minor criterion 1 point… Each domain can contribute maximally 2 points… Major and
+minor criteria are not additive in a single domain. Points are added only when they come from
+different domains.» Bandas: «A total score ≥5 points is considered to be diagnostic of HFpEF,
+while a score of ≤1 point is considered to make a diagnosis of HFpEF very unlikely… Patients with
+an intermediate score (2–4 points) need further evaluation.» Techo **6**.
+
+⚠️ **Y NO ASIGNA CLASE NI NIVEL DE EVIDENCIA.** Es un *consensus recommendation* de la Heart
+Failure Association, autodescrito como tal, no una guía de práctica de la ESC. A estos cortes **no
+se les puede colgar un `Clase I · Nivel B`**.
+
+#### La fuente SECUNDARIA, que ya no hace falta para verificar
 
 `~/Desktop/EcoSmart_Criterios_Academicos_COMPLETO_1-18.docx` → **Sección 13 — Score HFA-PEFF**. Es
 el Word de criterios de Cowork, y la orden lo admite como **secundario**. Su propia nota de
@@ -1512,27 +1581,40 @@ HFpEF» · **2 a 4** «need further evaluation» · **≤ 1** «diagnosis of HFp
 Association, autodescrito como tal, no una guía de práctica de la ESC. Así que a estos cortes **no
 se les puede colgar un `Clase I · Nivel B`**.
 
-#### Lo que la app usa hoy, comparado criterio por criterio
+#### Lo que la app usa hoy, comparado criterio por criterio (al 2026-10-14)
 
-**COINCIDE EXACTAMENTE** en todo el dominio humoral y en la aritmética del puntaje: `hfUmbrales`
-publica los ocho cortes con los mismos números y los mismos operadores —mayor con `>` estricto,
-menor como rango cerrado `>= lo && <= hi`—, `_hfDom` da 2 puntos por mayor y 1 por menor sin
-sumarlos, el techo es 6 y `hfapeffInterp` corta en ≤1 / 2-4 / ≥5. **Medido por los dos bordes de
-cada uno de los ocho cortes** (TC-465 y `scripts/_probe_hfpep.mjs`, grupo `B`): el valor del corte
-cae del lado **MENOR** y el siguiente entero ya es mayor.
+**COINCIDE con el original en los VEINTIDÓS criterios**, tras la tanda del 2026-10-14. Medido por
+los **dos lados de cada corte** con teclas reales (`scripts/_probe_hfcrit.mjs`, grupos `I`, `B`,
+`T`, `L`, `E`, `O`; cobertura en **TC-467**, 36 condiciones):
 
-**TRES DIFERENCIAS EN LOS OTROS DOS DOMINIOS — REPORTADAS Y NO TOCADAS**, porque son criterios
-ecocardiográficos y esta orden no autoriza moverlos (ver `docs/PENDIENTES.md` → H1, H2 y H3):
-
-| Qué | El Word (§13.1 y §13.2) | La app (`hfapeffScore`) |
+| Dominio | Qué se verificó | Resultado |
 |---|---|---|
-| **PSAP > 35 mmHg** como criterio MAYOR del dominio funcional | lo lista, al lado de la velocidad de IT > 2,8 m/s | **no existe**: el dominio funcional vota `vmax_it` y nada más |
-| Operador del IMVI mayor | «Masa **≥** 149 g/m² en hombres o **≥** 122 en mujeres» | `> 149` / `> 122` — estricto |
-| Operador del IMVI menor | «Masa **≥** 115 / **≥** 95» | `> UMBRAL_MASA_HVI_H` / `_M` (115 / 95) — estricto |
+| Funcional | e′ por edad (74 / 75 / 76 con el mismo par de anillos) | corte en `>= 75`, **reemplaza** y no suma |
+| Funcional | E/e′ 8 / 9 / 14 / 15 | mayor `>= 15`, menor `9-14` cerrado |
+| Funcional | IT 2,7 / 2,8 / 2,9 y PSAP 35 / 36 / 44 | **un criterio, dos vías, cuenta UNA vez** |
+| Funcional | GLS 15,9 / 16,0 / 16,1 | `< 16` estricto |
+| Morfológico | LAVI en los dos ritmos, ocho bordes | `>34` / `29-34` · `>40` / `34-40` |
+| Morfológico | IMVI en su valor **exacto** (149,000 y 122,000) | mayor **`>=`**, menor `>` |
+| Morfológico | RWT 0,416 / 0,420 / 0,424 | `> 0.42` estricto |
+| Morfológico | pared 11,9 / 12,0 / 12,1 | `>= 12` |
+| Humoral | los ocho cortes por sus dos lados | mayores `>`, menores rango cerrado |
+| Total | 0 / 1 / 2 / 4 / 5 / 6 | `≤1` · `2-4` · `≥5` |
 
-Los dos operadores sólo cambian el veredicto en el valor EXACTO del corte. La PSAP sí cambia
-escenas reales: un paciente con PSAP 40 mmHg y sin chorro de IT medible no suma el punto que el
-documento le daría.
+**TRES COSAS QUE ESA TANDA CORRIGIÓ** y que esta entrada declaraba como diferencias abiertas:
+
+| Qué | Antes | Hoy | Por qué |
+|---|---|---|---|
+| **PSAP > 35 mmHg** | no votaba | **vota**, en el mismo renglón que la velocidad de IT | f. 3303 y Figura 3 |
+| Operador del IMVI **mayor** | `> 149` / `> 122` | **`>= 149` / `>= 122`** | texto y figura coinciden en `≥` |
+| NT-proBNP menor en FA | `375-660` | **`365-660`** | gana la Figura 3 |
+
+El operador del IMVI **menor** se deja en `>` a propósito: ahí texto y figura **sí** difieren y
+gana la figura, que es lo que la app ya tenía.
+
+⚠️ **LA PSAP DE LA APP ES UN DERIVADO, NO UNA MEDICIÓN.** `psap_calc` es `readonly` y vale
+`(4·VRT² + PmAD).toFixed(0)`: deriva de la misma velocidad de IT, **se vacía sin ella** —así que
+«PSAP sola» no es un estado alcanzable— y se **redondea a entero**. El detalle está en
+`docs/mapa/hfapeff-criterios.md` → §5.
 
 ### Registradas SIN folio → NO verificadas al estándar del repo
 

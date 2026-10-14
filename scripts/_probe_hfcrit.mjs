@@ -898,6 +898,76 @@ async function main() {
     out.E = E;
   }
 
+  /* ══ O — LOS DEMAS CRITERIOS, CONTRA LA FIGURA 3 ═════════════════════════════════════════
+     Punto (5) de la orden: verificar TODOS los otros criterios, no solo los que cambian. Cada
+     uno por sus DOS lados, con el valor del corte incluido para fijar el operador.
+     E/e' se tipea por la onda E con los anillos fijos (septal 6 y lateral 10 -> promedio 8), de
+     modo que E/e' = onda_e / 8: E 64 da 8,00 · E 72 da 9,00 · E 112 da 14,00 · E 120 da 15,00.
+     ⚠️ Esos anillos cumplen el criterio del e-prima (6 < 7 y 10 no es < 10), asi que el dominio
+     funcional ya vale 2 por el septal y los PUNTOS no se mueven: lo que se mide es la FILA de
+     cada criterio, no el puntaje del dominio. Sin mirar la fila, un dominio que ya esta en 2
+     hace que todos los cortes parezcan no funcionar. */
+  if (hacer('O')) {
+    const O = { ee: [], gls: [], rwt: [], pared: [] };
+    try {
+      const esc = async () => {
+        await despejar();
+        await ev(`window.__H.limpiar()`);
+        await ev(`try{ showTab('doppler') }catch(e){}; 1`);
+        await J(`(function(){
+          [['edad','70'],['sexo','M'],['peso','72'],['talla','200'],['fevi','60'],
+           ['e_sep','6'],['e_lat','10'],['ai_vol','40'],
+           ['ddfvi','50'],['siv','9'],['ppvi','9']].forEach(function(p){ window.__H.set(p[0], p[1]) });
+          try { if (typeof calcBSA === 'function') calcBSA() } catch(e) {}
+          return 1 })()`);
+      };
+      const fila = (dom, re) => (typeof dom === 'string') ? dom
+        : dom.todos.filter(x => re.test(x.txt)).map(x => ({ txt: x.txt, tipo: x.tipo,
+            estado: !x.dato ? 'na' : (x.ok ? 'SI' : 'no') }));
+      /* E/e': promedio, mayor >= 15 y menor 9-14 */
+      for (const e of ['64', '72', '112', '120']) {
+        await esc();
+        await J(`window.__H.abrirPara('onda_e')`);
+        const t = await tipear('onda_e', e);
+        await ev('window.__H.recalc()');
+        const der = await J('window.__H.derivados()');
+        const f = await J("window.__H.critDom('func')");
+        O.ee.push({ ondaE: e, tecleo: t, eeCalculado: der.ee, filas: fila(f, /E\/e/) });
+      }
+      /* GLS < 16 %, criterio MENOR. Se tipea hf_gls, que es el campo propio del score. */
+      for (const g of ['15.9', '16', '16.1']) {
+        await esc();
+        await J(`window.__H.abrirPara('hf_gls')`);
+        const t = await tipear('hf_gls', g);
+        await ev('window.__H.recalc()');
+        const der = await J('window.__H.derivados()');
+        const f = await J("window.__H.critDom('func')");
+        O.gls.push({ gls: g, tecleo: t, glsLeido: der.gls, filas: fila(f, /GLS/) });
+      }
+      /* RWT > 0,42 (menor) con ddfvi 50: pp 10,5 da 0,42 exacto y 10,6 da 0,424. */
+      for (const pp of ['10.4', '10.5', '10.6']) {
+        await esc();
+        await J(`window.__H.abrirPara('ppvi')`);
+        const t = await tipear('ppvi', pp);
+        await ev('window.__H.recalc()');
+        const der = await J('window.__H.derivados()');
+        const f = await J("window.__H.critDom('morf')");
+        O.rwt.push({ ppvi: pp, tecleo: t, rwt: der.rwt, filas: fila(f, /RWT/) });
+      }
+      /* Grosor de pared >= 12 mm (menor). Es el MAXIMO de siv y ppvi. */
+      for (const sv of ['11.9', '12', '12.1']) {
+        await esc();
+        await J(`window.__H.abrirPara('siv')`);
+        const t = await tipear('siv', sv);
+        await ev('window.__H.recalc()');
+        const der = await J('window.__H.derivados()');
+        const f = await J("window.__H.critDom('morf')");
+        O.pared.push({ siv: sv, tecleo: t, pared: der.pared, filas: fila(f, /pared/i) });
+      }
+    } catch (x) { O.FALLO = String(x.message || x); }
+    out.O = O;
+  }
+
   /* ══ C — EL CARTEL DECLARA EL CORTE NUEVO ═════════════════════════════════════════════════
      El cartel no se toco: lee hfUmbrales. Esto comprueba que el corte nuevo LLEGA solo, que es
      el punto (7) de la orden. Contra HEAD la rama es «dice 375», que es la diferencia esperada. */

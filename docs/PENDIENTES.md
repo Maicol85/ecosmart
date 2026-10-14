@@ -79,46 +79,43 @@ dilatada**. La app tiene los dos datos (`ad_area`, `vci_diam`) y no los conecta.
 
 ## Cartel de PÉPTIDOS del HFA-PEFF y el plan del usuario (2026-10-13) — DECLARADO y NO arreglado
 
-### H1 · El original del HFA-PEFF NO está en la biblioteca, así que sus cortes no están verificados
+### H1 · ✅ CERRADO el 2026-10-14 — el original ENTRÓ a la biblioteca y los cortes están verificados
 
-Censado el disco entero: de los **89 archivos** de `~/Desktop/EcoSmart_Biblioteca_Fuentes`, **tres**
-nombran el HFA-PEFF y **ninguno trae los cortes de péptidos** — Nagueh 2025 lo describe en prosa y la
-ESC/ERS 2022 lo nombra como escala validada; los dos lo citan bibliográficamente y nada más. El PDF
-de Pieske 2019 (*Eur Heart J* 2019;40:3297-3317) **no existe en la carpeta**.
+El PDF de Pieske 2019 entró al disco el **13/10 a las 18:55**, después del censo que lo daba por
+ausente —o sea que el censo no estaba mal, cambió el disco—. Se leyó en texto completo el
+2026-10-14, con el folio comprobado en el **pie impreso** (folio = página + 3296) y la **Figura 3
+leída de la imagen a 600 dpi**, porque es un bitmap y el texto extraído no la trae.
 
-Por la regla de la casa —«lo que no se pudo abrir NO se cita»— los ocho cortes **no están
-verificados al estándar de este repo**. Lo que hay es la fuente **secundaria** que la orden admite:
-el Word de Cowork, §13.3, que los transcribe y **coincide exactamente con los que la app ya usaba**.
-**No se tocó ni un corte ni un operador**, y por eso esto no bloqueó la tanda.
+Los veintidós criterios quedan **verificados al estándar del repo**: documento, año, folio y tabla.
+`docs/fuentes/FUENTES.md` → `### hfaPeff2019`, y la tabla completa en
+`docs/mapa/hfapeff-criterios.md`.
+⚠️ **Lo que SIGUE vigente de esta entrada:** el artículo es un *consensus recommendation* de la HFA
+y **no asigna clase ni nivel de evidencia**, así que a estos cortes no se les puede colgar un
+`Clase I · Nivel B` en el panel de Evidencia.
 
-**Qué haría falta:** conseguir el PDF (o la copublicación idéntica del *Eur J Heart Fail*
-2020;22(3):391-412, que el propio Word declara haber usado para la mitad del contenido) y verificar
-los ocho cortes contra el folio impreso. Hasta entonces, **ningún corte del HFA-PEFF puede llevar
-corchete en el panel de Evidencia.** `docs/fuentes/FUENTES.md` → `### hfaPeff2019`.
+### H2 · ✅ CERRADO el 2026-10-14 — la PSAP > 35 mmHg vota
 
-### H2 · La PSAP > 35 mmHg es criterio MAYOR del dominio funcional y la app no la vota
+Entró como **segunda vía del mismo criterio** que la velocidad de IT, en el renglón que la Figura 3
+imprime junto («TR velocity > 2.8 m/s (PASP > 35 mmHg)»), y **cuenta una sola vez** aunque estén
+las dos medidas. Medido por los dos lados del 35 con la velocidad de IT sin cumplir.
+⚠️ **La decisión que esta entrada anticipaba quedó resuelta por el lado conservador:** se lee el
+campo `psap_calc` tal como está, y cuando `calcPSAP` no pudo calcularlo el campo está **vacío**, así
+que el criterio queda sin evaluar en vez de votar con una PSAP a la que le falta el sumando de la
+aurícula derecha. Lo que queda abierto es **P1**, abajo.
 
-El Word (§13.1), transcribiendo el original, lista **PSAP > 35 mmHg** al lado de la velocidad de IT
-> 2,8 m/s como criterio mayor. `hfapeffScore` vota `vmax_it` y **nada más**: no hay un `d.psap`.
+### H3 · ✅ CERRADO PARCIALMENTE el 2026-10-14 — el IMVI mayor pasa a `>=`; el menor se queda en `>`
 
-**Alcance real**, no teórico: un paciente con PSAP estimada de 40 mmHg y **sin chorro de IT
-medible** —entre el 40 y el 60 % según la BSE— no suma el punto que el documento le da. Y la app ya
-tiene la PSAP calculada en `psap_calc`, así que el dato está.
+Con el original delante, los dos renglones **no dicen lo mismo** y por eso no se tocaron los dos:
 
-**No se toca porque es un criterio ECOCARDIOGRÁFICO** y esta orden lo prohíbe expresamente.
-⚠️ Y si se agrega, hay que decidir qué hacer cuando `psap_calc` dice «N mmHg (sin PmAD)» —a esa
-PSAP le falta el sumando de la aurícula derecha—, que es la misma decisión que la PAP diastólica de
-la ASE 2025 ya resolvió absteniéndose (ver C7).
+| Criterio | TEXTO (f. 3304) | FIGURA 3 (f. 3305) | Quedó |
+|---|---|---|---|
+| IMVI **mayor** | `≥149 … or ≥122` | `≥ 149/122` | **`>=`** — los dos coinciden, la app estaba mal |
+| IMVI **menor** | `≥115 … or ≥95` | **`> 115/95`** | **`>`** — difieren, y gana la figura |
 
-### H3 · Dos operadores del dominio morfológico son `>` y la fuente escribe `≥`
-
-| Criterio | El Word (§13.2) | La app |
-|---|---|---|
-| IMVI mayor | masa **≥** 149 g/m² (H) o **≥** 122 (M) | `> 149` / `> 122` |
-| IMVI menor | masa **≥** 115 g/m² (H) o **≥** 95 (M) | `> UMBRAL_MASA_HVI_H` / `_M` |
-
-Sólo cambia el veredicto en el valor **exacto** del corte. No se toca por lo mismo que H2, y además
-`UMBRAL_MASA_HVI_H/M` los comparten otros módulos: cambiar el operador acá sería cambiarlo allá.
+El Word de Cowork (§13.2) transcribía el **texto** en los dos, que es por lo que esta entrada los
+daba por iguales. `UMBRAL_MASA_HVI_H/M` **no se tocaron**: el criterio mayor usa literales propios
+(149/122) y el menor sigue leyendo esas constantes con el mismo operador, así que ningún otro módulo
+cambia.
 
 ### H4 · El renglón escondido conserva el texto del estado anterior
 
@@ -177,6 +174,67 @@ queda abierto es que **nada lo impide estructuralmente**: el próximo botón que
 una pestaña avanzada reabre el agujero y ningún chequeo de arranque lo avisaría. La defensa
 equivalente a `EE_MODULES` ↔ `data-mod` —que sí tiene chequeo de consola— sería una guarda dentro de
 `showTab`. **Decisión de Maicol**, porque toca el enrutador de toda la app.
+
+## Criterios del HFA-PEFF contra el original (2026-10-14) — DECLARADO y NO arreglado
+
+### P1 · La PSAP se lee REDONDEADA a entero, así que el corte de 35 mmHg se cruza por el redondeo
+
+`calcPSAP` escribe `psap_calc` con `(4·VRT² + PmAD).toFixed(0)`. El criterio lee ese campo, así que
+una PSAP real de **35,6 mmHg se lee 36 y cruza** el corte, y una de **35,4 se lee 35 y no**.
+
+**Se eligió leer el campo y no recalcular la fórmula** a propósito: una segunda copia de
+`4·VRT²+PmAD` es el defecto de la fórmula duplicada que este repo ya pagó varias veces, y además el
+médico audita el número que tiene delante. Es el mismo precio que la PAP diastólica de la ASE 2025
+ya paga (**C7**).
+
+**Qué haría falta:** exponer la PSAP sin redondear —`calcPSAP` ya la tiene en una variable local—
+y que el criterio lea ésa, dejando el campo como está para la pantalla. Es una decisión de Maicol
+porque cambia qué pacientes suman el punto.
+
+### P2 · «La PSAP sola» no es un estado alcanzable, y eso acota el alcance del criterio nuevo
+
+`calcPSAP` **vacía** `psap_calc` cuando no hay velocidad de IT. Así que el paciente que el folio
+3303 contempla —PSAP elevada **sin chorro de IT medible**, entre el 40 y el 60 % según la BSE—
+sigue **sin sumar el punto**, porque esta app no tiene dónde cargar una PSAP que no venga de la VRT.
+
+Lo que el criterio nuevo sí agrega es el paciente con **VRT por debajo de 2,8 y PmAD alta**: medido,
+VRT 2,7 con PmAD 15 da PSAP 44 y ahora vota.
+
+**Qué haría falta:** un campo de PSAP medida por otra vía (cateterismo, o una estimación manual),
+que es un campo nuevo y por lo tanto una columna de Excel — y esta orden lo prohíbe expresamente.
+
+### P3 · El puntaje se RECALCULA al reabrir un estudio, así que los cortes nuevos lo alcanzan
+
+No hay ningún campo que guarde el total: censado, no existe `hf_score`, `hf_total` ni `hf_puntaje`.
+Viajan los **insumos**. Consecuencia medida: un estudio en FA con NT-proBNP entre **365 y 374** que
+se guardó con 4/6 **reabre con 5/6**, o sea pasa de «probabilidad intermedia» a «HFpEF confirmado».
+
+**No se migra nada y es deliberado** —la regla de la casa es que un cambio de criterio no sale a
+reescribir lo que ya está en disco—, y el `informe_texto` ya firmado **no cambia**: se guarda como
+texto y se reimprime tal cual. Lo que cambia es lo que la pantalla muestra al reabrirlo.
+TC-467 fija que no hay campo persistido, para que un cambio futuro a uno sí persistido se vea.
+
+### P4 · La marca `#` de la Figura 3, al lado del RWT, no está explicada en el artículo
+
+No aparece en el pie de la Figura 3 ni en el texto de los folios 3303-3305. **No se implementó**
+(decisión 4 de la orden). Si alguna vez se consigue el material suplementario (Supplementary
+material online, Table S1), ahí podría estar.
+
+### P5 · El criterio del e′ no distingue «no medido» de «medido y normal» cuando falta un anillo
+
+`hfapeffScore` evalúa cada anillo por separado y el que falta queda en `na`. Es correcto —un dato
+que falta no vota— pero con **un solo anillo medido y normal** el criterio mayor del e′ queda en
+«no cumple», igual que si los dos estuvieran medidos y normales. El artículo escribe los dos
+anillos con un «or», así que un anillo normal **no descarta** que el otro fuera patológico.
+No se tocó: cambiarlo es cambiar cuándo la app afirma, y esta orden no lo autoriza.
+
+### P6 · Tres afirmaciones viejas sobre los cortes quedaron en el código y se corrigieron sólo donde mentían
+
+El comentario de `hfUmbrales` afirmaba que **«el 365 no existe en la guía»** y quedaba «CERRADO»;
+el de `amiloTextoHFAPEFF` decía «NT-proBNP menor desde **365**» al lado de una constante que valía
+**375**. O sea el archivo ya se contradecía a sí mismo. Los dos quedaron alineados con la medición.
+⚠️ **Lo que NO se reescribió** son las frases que registran una MEDICIÓN pasada: cambiarlas diría
+que aquellas corridas midieron otra cosa, y no fue así.
 
 ## Cortes de la estenosis aórtica y estenosis tricuspídea (2026-10-13) — DECLARADO y NO arreglado
 

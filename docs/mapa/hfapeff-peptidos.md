@@ -133,6 +133,17 @@ excepción ahí se lleva todo lo que viene después, para cada evento de input d
 
 ## 5 · El puntaje sale de UNA sola función
 
+> ⚠️ **LOS CORTES Y SU PROCEDENCIA YA NO VIVEN ACÁ: ver `docs/mapa/hfapeff-criterios.md`** (mapa
+> nuevo del 2026-10-14, 14,1 KB). Ahí están la tabla completa criterio por criterio con su folio,
+> las **tres contradicciones internas** del artículo y la regla «gana la Figura 3», por qué la
+> PSAP no es una medición independiente, y por qué el operador del IMVI sólo se puede probar con
+> un `ppvi` de 15 decimales. Este mapa sigue siendo el del **cartel**.
+>
+> Lo que cambió para este cartel y no hubo que tocar: **el corte del NT-proBNP menor en
+> fibrilación auricular pasó de 375 a 365**, y el cartel lo publica solo, porque lee
+> `hfUmbrales(fa)` en vez de reimplementar la comparación. Medido.
+
+
 `hfapeffScore(soloEco, src)` era y sigue siendo la única. Lo que cambió es **el argumento**:
 
 ```

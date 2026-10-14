@@ -62683,6 +62683,308 @@ caso('TC-466', 'Las ocho pastillas vuelven al estado inicial al borrar el ultimo
 
   return { extra: ex };
 `);
+/* ═══ GRUPO 19b — HFA-PEFF: los criterios contra el ORIGINAL (Pieske 2019) ═══════════════════
+   Fija lo que la tanda del 2026-10-14 alineo con el articulo original, leido en texto completo
+   —folios 3303 a 3305, folio = pagina del PDF + 3296 comprobado en el pie impreso—, mas los
+   criterios que NO cambiaron, que es lo que impide que una proxima tanda los mueva sin verlo.
+
+   ⚠️ TODO VA CON GUARDAS Y SIN LLAMAR A NADA QUE PUEDA NO EXISTIR. Un ReferenceError en el
+   cuerpo de un caso mata la corrida ENTERA, y entonces el caso prueba que el arbol es distinto
+   y no que sabe medir: es la leccion que TC-455, TC-462 y TC-465 ya tienen escrita.
+
+   ⚠️ Y CARGA CON __t.set, NO CON TECLAS DE CDP: el cuerpo corre DENTRO de la pagina y no tiene
+   acceso al protocolo del navegador. Las mismas escenas van con teclas y clics reales en
+   scripts/_probe_hfcrit.mjs, que es la que midio el A/B contra HEAD. Mismo reparto que TC-463. */
+caso('TC-467', 'HFA-PEFF contra el original de Pieske 2019: el piso del NT-proBNP menor en FA es 365 (Figura 3), el IMVI mayor usa >= por su valor EXACTO, la PSAP > 35 vota en el MISMO renglon que la velocidad de IT y cuenta UNA vez, el LAVI cambia de peso con el ritmo y el e-prima con la edad', `
+  const ex = [], R = {};
+
+  /* ── DENOMINADOR 1: las funciones que todo esto necesita ──────────────────────────────── */
+  R.faltan = ['hfapeffScore','hfUmbrales','hfRitmoEfectivo','hfapeffDatos']
+    .filter(f => typeof window[f] !== 'function');
+  ex.push(['DENOMINADOR: estan las cuatro funciones del score', R.faltan.length === 0,
+    JSON.stringify(R.faltan)]);
+  if (R.faltan.length) return { extra: ex };
+
+  const sc = () => { try { return hfapeffScore(false); } catch (e) { return null; } };
+  /* La FILA de un criterio, por el texto que el medico ve. Devuelve 'na' cuando el criterio no
+     se pudo evaluar, que es distinto de 'no': sin esa distincion, una escena que no llega al
+     criterio se lee como un corte que no funciona. */
+  const fila = (dom, re) => {
+    const r = sc(); if (!r) return 'SIN SCORE';
+    const t = (r[dom] && r[dom].todos) || [];
+    const m = t.filter(c => re.test(c.txt));
+    if (!m.length) return 'SIN FILA';
+    return m.map(c => (!c.dato ? 'na' : (c.ok ? 'SI' : 'no'))).join(',');
+  };
+  const pts = (dom) => { const r = sc(); return r ? r[dom].pts : 'SIN SCORE'; };
+  const base = () => { __t.limpiar(); ${BSA2}
+    __t.set('edad','70'); __t.set('sexo','M'); __t.set('fevi','60'); };
+
+  /* ── 1 · EL PISO DEL NT-proBNP MENOR EN FA ES 365 ───────────────────────────────────────
+     El TEXTO del folio 3304 escribe 375-660 y la FIGURA 3 del folio 3305 escribe 365-660: el
+     articulo se contradice consigo mismo en este unico corte y los dos textos estan impresos.
+     Gana la figura (decision del medico, 13/10/2026).
+     EL 370 ES EL VALOR QUE SEPARA: es el unico que cae ENTRE los dos candidatos. Una bateria
+     con 300 y 400 pasa igual con los dos pisos y no probaria nada. */
+  const biom = (ritmo, nt) => { base(); __t.set('hf_ritmo', ritmo);
+    __t.set('hf_ntprobnp', String(nt)); return pts('hum'); };
+  R.fa = { v364: biom('fa',364), v365: biom('fa',365), v370: biom('fa',370),
+           v374: biom('fa',374), v375: biom('fa',375), v660: biom('fa',660), v661: biom('fa',661) };
+  ex.push(['FA: 364 no vota y 365 YA vota — el piso es 365, no 375 (Figura 3, folio 3305)',
+    R.fa.v364 === 0 && R.fa.v365 === 1, JSON.stringify([R.fa.v364, R.fa.v365])]);
+  ex.push(['FA: 370 y 374 valen 1 punto — con el piso viejo valian 0',
+    R.fa.v370 === 1 && R.fa.v374 === 1, JSON.stringify([R.fa.v370, R.fa.v374])]);
+  ex.push(['FA: el techo del menor no se movio (660 sigue siendo MENOR, 661 es MAYOR)',
+    R.fa.v660 === 1 && R.fa.v661 === 2, JSON.stringify([R.fa.v660, R.fa.v661])]);
+  /* CONTROL NEGATIVO: en ritmo sinusal ese piso NO se movio y sigue en 125. */
+  R.rs = { v124: biom('sinusal',124), v125: biom('sinusal',125), v370: biom('sinusal',370) };
+  ex.push(['CONTROL NEGATIVO: en ritmo sinusal el piso sigue en 125 y el 370 ya es MAYOR',
+    R.rs.v124 === 0 && R.rs.v125 === 1 && R.rs.v370 === 2, JSON.stringify(R.rs)]);
+  /* Y el texto del umbral, que es lo que el cartel de peptidos y Avanzado publican. */
+  R.umbralFA = (function () { try { return hfUmbrales(true).ntMen.txt; } catch (e) { return 'EXC'; } })();
+  ex.push(['el rotulo del umbral de FA dice 365-660 — el cartel lo lee de aca y no lo reimplementa',
+    R.umbralFA.indexOf('365-660') > -1, R.umbralFA]);
+
+  /* ── 2 · EL MISMO VALOR CAMBIA DE PESO AL CAMBIAR EL RITMO, CON EL DATO CARGADO ──────────
+     370 es MAYOR en sinusal (>220) y MENOR en fibrilacion (365-660). Con un valor que cayera
+     del mismo lado de los dos ritmos esto no probaria nada. */
+  base(); __t.set('hf_ritmo','sinusal'); __t.set('hf_ntprobnp','370');
+  const t370rs = pts('hum');
+  __t.set('hf_ritmo','fa');
+  const t370fa = pts('hum');
+  R.cambioRitmo = { rs: t370rs, fa: t370fa };
+  ex.push(['370 de NT-proBNP: MAYOR en sinusal (2 pts) y MENOR en FA (1 pt), con el dato ya cargado',
+    t370rs === 2 && t370fa === 1, JSON.stringify(R.cambioRitmo)]);
+
+  /* ── 3 · EL OPERADOR DEL IMVI MAYOR, POR SU VALOR EXACTO ─────────────────────────────────
+     ⚠️ EL IMVI NO ES UN CAMPO: es masa de Devereux sobre BSA de Mosteller, un derivado float de
+     CINCO campos. Con valores clinicos normales nunca cae exactamente en 149,000..., asi que
+     «> 149» y «>= 149» dan lo mismo en toda escena alcanzable y el operador queda SIN PROBAR.
+     Los dos ppvi de 15 decimales salen de una biseccion sobre doubles hecha afuera: son los
+     UNICOS valores que separan los dos operadores, igual que el 370 separa el 365 del 375.
+     Se exige que el IMVI haya caido EXACTO antes de creerle al veredicto: sin eso, un cambio de
+     la formula de la masa dejaria el caso midiendo otro numero y pasando igual. */
+  const imvi = (sexo, peso, talla, dd, siv, pp) => {
+    base(); __t.set('sexo', sexo); __t.set('peso', String(peso)); __t.set('talla', String(talla));
+    __t.set('ddfvi', String(dd)); __t.set('siv', String(siv)); __t.set('ppvi', String(pp));
+    const r = sc();
+    return { imvi: r ? r.d.imvi : null, rwt: r ? r.d.rwt : null,
+             may: fila('morf', /IMVI/.source && /IMVI >/), pts: pts('morf') };
+  };
+  R.imviH = { abajo: imvi('M',70,170,50,13,'13.62'),
+              justo: imvi('M',70,170,50,13,'13.624098525525902'),
+              arriba: imvi('M',70,170,50,13,'13.63') };
+  R.imviF = { abajo: imvi('F',60,160,48,11,'11.42'),
+              justo: imvi('F',60,160,48,11,'11.427598347830793'),
+              arriba: imvi('F',60,160,48,11,'11.44') };
+  ex.push(['DENOMINADOR: el ppvi de 15 decimales hace caer el IMVI EXACTAMENTE en el corte (149 y 122)',
+    R.imviH.justo.imvi === 149 && R.imviF.justo.imvi === 122,
+    JSON.stringify([R.imviH.justo.imvi, R.imviF.justo.imvi])]);
+  ex.push(['IMVI hombre: 149,00 EXACTO ya vota como MAYOR — el operador es >=, no >',
+    R.imviH.justo.may.indexOf('SI') === 0 && R.imviH.justo.pts === 2,
+    JSON.stringify([R.imviH.justo.may, R.imviH.justo.pts])]);
+  ex.push(['IMVI mujer: 122,00 EXACTO ya vota como MAYOR',
+    R.imviF.justo.may.indexOf('SI') === 0 && R.imviF.justo.pts === 2,
+    JSON.stringify([R.imviF.justo.may, R.imviF.justo.pts])]);
+  ex.push(['y los dos lados no se movieron: debajo del corte NO vota y arriba SI (hombre)',
+    R.imviH.abajo.may.indexOf('no') === 0 && R.imviH.arriba.may.indexOf('SI') === 0,
+    JSON.stringify([R.imviH.abajo.may, R.imviH.arriba.may, R.imviH.abajo.imvi, R.imviH.arriba.imvi])]);
+  ex.push(['y lo mismo en mujer, con el corte en 122 y no en 149',
+    R.imviF.abajo.may.indexOf('no') === 0 && R.imviF.arriba.may.indexOf('SI') === 0,
+    JSON.stringify([R.imviF.abajo.may, R.imviF.arriba.may])]);
+  /* CONTROL NEGATIVO: el criterio MENOR del IMVI conserva el «>» ESTRICTO. Ahi la figura y el
+     texto SI difieren —figura «> 115/95», texto «>=115 … or >=95»— y por la misma regla gana la
+     figura, que es lo que la app ya tenia. 115,00 exactos NO votan. */
+  R.imviMenor = (function () {
+    base(); __t.set('sexo','M'); __t.set('peso','72'); __t.set('talla','200');
+    __t.set('ddfvi','50'); __t.set('siv','9');
+    const out = {};
+    ['10.887006','10.9'].forEach(function (pp, i) {
+      __t.set('ppvi', pp); const r = sc();
+      out[i === 0 ? 'cerca' : 'arriba'] = { imvi: r ? r.d.imvi : null, men: fila('morf', /IMVI > 115/) };
+    });
+    return out;
+  })();
+  ex.push(['CONTROL NEGATIVO: el criterio MENOR del IMVI conserva el > ESTRICTO (la figura dice > 115/95)',
+    (function () { try { return String(hfapeffScore(false).morf.todos
+      .filter(c => /IMVI/.test(c.txt) && c.tipo === 'menor')[0].txt).indexOf('>=') === -1; }
+      catch (e) { return false; } })(),
+    JSON.stringify(R.imviMenor)]);
+
+  /* ── 4 · LA PSAP > 35 mmHg VOTA, EN EL MISMO RENGLON QUE LA VELOCIDAD DE IT ──────────────
+     ⚠️ LA PSAP NO ES UNA MEDICION INDEPENDIENTE: psap_calc es readonly y lo escribe calcPSAP
+     como (4*VRT^2 + PmAD).toFixed(0). Deriva de la MISMA velocidad de IT y se VACIA sin ella,
+     asi que «la PSAP sola» no es un estado alcanzable: lo que separa las dos vias es la PmAD,
+     que sale de los dos campos de la VCI (3 / 8 / 15 segun diametro y colapso). */
+  const func = (vit, diam, col) => {
+    base();
+    /* e-prima y E/e por encima de sus cortes y GLS normal: asi el dominio funcional depende
+       SOLO de la IT y la PSAP. Sin esto el dominio ya vale 2 y todos los cortes parecen no
+       funcionar — la trampa del denominador. */
+    __t.set('e_sep','9'); __t.set('e_lat','12'); __t.set('onda_e','60'); __t.set('hf_gls','22');
+    if (diam) { __t.set('vci_diam', String(diam)); __t.set('vci_col', col);
+      try { calcPmAD(); } catch (e) {} }
+    if (vit) { __t.set('vmax_it', String(vit)); }
+    try { calcPSAP(); } catch (e) {}
+    const r = sc();
+    const it = (r && r.func.todos || []).filter(c => /IT|PSAP/.test(c.txt));
+    return { psap: __t.val ? __t.val('psap_calc') : (document.getElementById('psap_calc')||{}).value,
+             pmad: (document.getElementById('pmad')||{}).value,
+             cuantos: it.length, txt: it.length ? it[0].txt : 'SIN CRITERIO',
+             estado: it.length ? (!it[0].dato ? 'na' : (it[0].ok ? 'SI' : 'no')) : 'SIN CRITERIO',
+             pts: pts('func') };
+  };
+  R.it = {
+    nada:      func(null, null, null),
+    v27:       func('2.7', null, null),
+    v28:       func('2.8', null, null),
+    v29:       func('2.9', null, null),
+    psapSola:  func('2.7', 25, '<50'),
+    lasDos:    func('2.9', 25, '<50'),
+    borde35:   func('2.60', 25, '>50'),
+    borde36:   func('2.65', 25, '>50')
+  };
+  ex.push(['el criterio de IT/PSAP es UNO SOLO y nombra las dos vias',
+    R.it.v29.cuantos === 1 && /IT/.test(R.it.v29.txt) && /PSAP/.test(R.it.v29.txt), R.it.v29.txt]);
+  ex.push(['sin ninguna de las dos medidas NO vota (un dato que falta no vota)',
+    R.it.nada.estado === 'na' && R.it.nada.pts === 0, JSON.stringify(R.it.nada)]);
+  ex.push(['velocidad de IT: 2,7 no · 2,8 NO (el corte es > estricto) · 2,9 SI',
+    R.it.v27.estado === 'no' && R.it.v28.estado === 'no' && R.it.v29.estado === 'SI',
+    JSON.stringify([R.it.v27.estado, R.it.v28.estado, R.it.v29.estado])]);
+  ex.push(['DENOMINADOR: la PmAD se calculo y la PSAP tiene valor en las escenas de VCI',
+    R.it.psapSola.pmad === '15' && String(R.it.psapSola.psap).length > 0,
+    JSON.stringify([R.it.psapSola.pmad, R.it.psapSola.psap])]);
+  ex.push(['la PSAP hace votar el criterio con una velocidad de IT que NO llega al corte (2,7 + PmAD 15 -> PSAP 44)',
+    R.it.psapSola.estado === 'SI' && R.it.psapSola.pts === 2, JSON.stringify(R.it.psapSola)]);
+  ex.push(['el corte de la PSAP es > 35 ESTRICTO: 35 no vota y 36 si, con la velocidad de IT sin cumplir en los dos',
+    R.it.borde35.estado === 'no' && R.it.borde36.estado === 'SI'
+      && String(R.it.borde35.psap) === '35' && String(R.it.borde36.psap) === '36',
+    JSON.stringify([R.it.borde35.psap, R.it.borde35.estado, R.it.borde36.psap, R.it.borde36.estado])]);
+  ex.push(['con las DOS medidas cumpliendo el criterio sigue contando UNA sola vez',
+    R.it.lasDos.cuantos === 1 && R.it.lasDos.estado === 'SI' && R.it.lasDos.pts === 2,
+    JSON.stringify(R.it.lasDos)]);
+
+  /* ── 5 · EL LAVI CAMBIA DE CORTE CON EL RITMO (folio 3303, regla que solo trae el TEXTO) ──
+     sinusal mayor >34 y menor 29-34 · FA mayor >40 y menor 34-40. Con BSA 2,00 el LAVI es el
+     Vol AI sobre dos, asi que los bordes se alcanzan con enteros. */
+  const lavi = (ritmo, vol) => { base(); __t.set('hf_ritmo', ritmo); __t.set('ai_vol', String(vol));
+    return { lavi: (sc() || { d:{} }).d.lavi, fil: fila('morf', /LAVI/), pts: pts('morf') }; };
+  R.lavi = { rs56: lavi('sinusal',56), rs58: lavi('sinusal',58), rs68: lavi('sinusal',68),
+             rs70: lavi('sinusal',70), fa68: lavi('fa',68), fa80: lavi('fa',80), fa82: lavi('fa',82),
+             fa60: lavi('fa',60) };
+  ex.push(['DENOMINADOR: con BSA 2,00 el LAVI es el Vol AI sobre dos',
+    R.lavi.rs70.lavi === 35 && R.lavi.fa82.lavi === 41,
+    JSON.stringify([R.lavi.rs70.lavi, R.lavi.fa82.lavi])]);
+  ex.push(['sinusal: LAVI 28 ninguno · 29 MENOR · 34 MENOR · 35 MAYOR',
+    R.lavi.rs56.fil === 'no,no' && R.lavi.rs58.fil === 'no,SI'
+      && R.lavi.rs68.fil === 'no,SI' && R.lavi.rs70.fil === 'SI,no',
+    JSON.stringify([R.lavi.rs56.fil, R.lavi.rs58.fil, R.lavi.rs68.fil, R.lavi.rs70.fil])]);
+  ex.push(['FA: los cortes son OTROS — 30 ninguno · 34 MENOR · 40 MENOR · 41 MAYOR',
+    R.lavi.fa60.fil === 'no,no' && R.lavi.fa68.fil === 'no,SI'
+      && R.lavi.fa80.fil === 'no,SI' && R.lavi.fa82.fil === 'SI,no',
+    JSON.stringify([R.lavi.fa60.fil, R.lavi.fa68.fil, R.lavi.fa80.fil, R.lavi.fa82.fil])]);
+  /* El cambio de ritmo CON el dato cargado: un LAVI de 38 es MAYOR en sinusal y MENOR en FA. */
+  base(); __t.set('hf_ritmo','sinusal'); __t.set('ai_vol','76');
+  const l38rs = fila('morf', /LAVI/), p38rs = pts('morf');
+  __t.set('hf_ritmo','fa');
+  const l38fa = fila('morf', /LAVI/), p38fa = pts('morf');
+  R.lavi38 = { rs: l38rs, rsPts: p38rs, fa: l38fa, faPts: p38fa };
+  ex.push(['LAVI 38 con el dato CARGADO: MAYOR en sinusal (2 pts) y MENOR en FA (1 pt)',
+    l38rs === 'SI,no' && p38rs === 2 && l38fa === 'no,SI' && p38fa === 1,
+    JSON.stringify(R.lavi38)]);
+
+  /* ── 6 · EL e-PRIMA CAMBIA DE CORTE A LOS 75 ANIOS (folio 3303, regla que solo trae el TEXTO)
+     El par de anillos se elige para caer ENTRE los dos juegos de cortes: septal 6 cumple <7 pero
+     no <5, y lateral 8 cumple <10 pero no <7. Con un e-prima del mismo lado de los dos juegos,
+     el triplete no probaria nada. Y es un REEMPLAZO, no una suma: a los 75 los criterios que se
+     publican son <5 y <7, y los de <75 ya no existen. */
+  const epr = (edad) => { base(); __t.set('edad', String(edad));
+    __t.set('e_sep','6'); __t.set('e_lat','8');
+    const r = sc();
+    const f = (r && r.func.todos || []).filter(c => /e' (septal|lateral)/.test(c.txt));
+    return { txt: f.map(c => c.txt).join(' + '),
+             est: f.map(c => (!c.dato ? 'na' : (c.ok ? 'SI' : 'no'))).join(','), pts: pts('func') }; };
+  R.epr = { e74: epr(74), e75: epr(75), e76: epr(76) };
+  ex.push(['con 74 anios el e-prima 6/8 cumple los DOS criterios (<7 y <10)',
+    R.epr.e74.est === 'SI,SI' && R.epr.e74.pts === 2, JSON.stringify(R.epr.e74)]);
+  ex.push(['con 75 anios el MISMO e-prima ya no cumple ninguno: los cortes pasan a <5 y <7',
+    R.epr.e75.est === 'no,no' && R.epr.e75.pts === 0 && /< 5/.test(R.epr.e75.txt),
+    JSON.stringify(R.epr.e75)]);
+  ex.push(['y con 76 sigue en los cortes de >=75 (el borde es 75, no 76)',
+    R.epr.e76.est === 'no,no' && /< 5/.test(R.epr.e76.txt), JSON.stringify(R.epr.e76)]);
+  ex.push(['es un REEMPLAZO y no una suma: a los 75 se publican DOS criterios de e-prima, no cuatro',
+    R.epr.e75.txt.split(' + ').length === 2, R.epr.e75.txt]);
+
+  /* ── 7 · LOS CRITERIOS QUE NO CAMBIARON, contra la Figura 3 ──────────────────────────────
+     Estan aca para que una proxima tanda no los mueva sin que nada lo avise. */
+  const eeF = (e) => { base(); __t.set('e_sep','6'); __t.set('e_lat','10'); __t.set('onda_e', String(e));
+    return fila('func', /E\\/e/); };
+  R.ee = { v8: eeF(64), v9: eeF(72), v14: eeF(112), v15: eeF(120) };
+  ex.push(["E/e' promedio: 8 ninguno · 9 MENOR · 14 MENOR · 15 MAYOR (mayor >= 15, menor 9-14)",
+    R.ee.v8 === 'no,no' && R.ee.v9 === 'no,SI' && R.ee.v14 === 'no,SI' && R.ee.v15 === 'SI,no',
+    JSON.stringify(R.ee)]);
+  const glsF = (g) => { base(); __t.set('hf_gls', String(g)); return fila('func', /GLS/); };
+  R.gls = { a: glsF('15.9'), b: glsF('16'), c: glsF('16.1') };
+  ex.push(['GLS < 16 % ESTRICTO: 15,9 cumple y 16,0 no',
+    R.gls.a === 'SI' && R.gls.b === 'no' && R.gls.c === 'no', JSON.stringify(R.gls)]);
+  const parF = (sv) => { base(); __t.set('ddfvi','50'); __t.set('ppvi','9'); __t.set('siv', String(sv));
+    return fila('morf', /pared/i); };
+  R.pared = { a: parF('11.9'), b: parF('12'), c: parF('12.1') };
+  ex.push(['Grosor de pared >= 12 mm: 11,9 no y 12,0 SI (el valor del corte ya cuenta)',
+    R.pared.a === 'no' && R.pared.b === 'SI' && R.pared.c === 'SI', JSON.stringify(R.pared)]);
+  const rwtF = (pp) => { base(); __t.set('ddfvi','50'); __t.set('siv','9'); __t.set('ppvi', String(pp));
+    return { rwt: (sc() || { d:{} }).d.rwt, fil: fila('morf', /^RWT/) }; };
+  R.rwt = { a: rwtF('10.4'), b: rwtF('10.5'), c: rwtF('10.6') };
+  ex.push(['RWT > 0,42 ESTRICTO: 0,42 exacto NO cumple y 0,424 si',
+    R.rwt.a.fil === 'no' && R.rwt.b.fil === 'no' && R.rwt.b.rwt === 0.42 && R.rwt.c.fil === 'SI',
+    JSON.stringify(R.rwt)]);
+  /* Las bandas del total, que la Figura 3 imprime al pie: >= 5 HFpEF, 2-4 zona gris, <= 1 poco
+     probable. No se tocaron y se fijan por sus bordes. */
+  R.bandas = (function () { try { return [0,1,2,4,5,6].map(t => hfapeffInterp(t).nivel); }
+    catch (e) { return 'EXC'; } })();
+  ex.push(['las bandas del total no se movieron: <=1 baja · 2-4 intermedia · >=5 alta',
+    JSON.stringify(R.bandas) === JSON.stringify(['baja','baja','intermedia','intermedia','alta','alta']),
+    JSON.stringify(R.bandas)]);
+
+  /* ── 8 · CONTROLES: lo que esta tanda NO toca ────────────────────────────────────────────
+     Con un escenario CARGADO, para que el control tenga denominador: un control sobre un
+     formulario vacio compara 'sin dato' contra 'sin dato' y pasa por una medicion buena. */
+  base();
+  __t.set('e_sep','5'); __t.set('e_lat','7'); __t.set('onda_e','110'); __t.set('ai_vol','80');
+  __t.set('vmax_it','3.2'); __t.set('ddfvi','50'); __t.set('siv','13'); __t.set('ppvi','13');
+  __t.set('tde','160'); __t.set('triv','80');
+  try { calcDiastol(); } catch (e) {}
+  R.ctrl = {
+    diastolica: __t.txt('dd-interp'),
+    excelCols: (function () { try {
+      const campos = {};
+      document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function (el) {
+        if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(el.id)) return;
+        campos[el.id] = el.value; });
+      return Object.keys(_labExcelRow({ nombre:'P', ci:'1', fecha_estudio:'2026-10-14', campos: campos })).length;
+    } catch (e) { return 'EXC: ' + e.message; } })(),
+    labDiast: (function () { try { return typeof _labDiastGrado === 'function' ? 'existe' : 'no existe'; }
+      catch (e) { return 'EXC'; } })()
+  };
+  ex.push(['CONTROL: la funcion diastolica publica su veredicto y no quedo en blanco',
+    typeof R.ctrl.diastolica === 'string' && R.ctrl.diastolica.length > 2 && R.ctrl.diastolica !== '—',
+    String(R.ctrl.diastolica)]);
+  ex.push(['CONTROL: el Excel sigue en 435 columnas — esta tanda no agrego ninguna',
+    R.ctrl.excelCols === 435, String(R.ctrl.excelCols)]);
+  /* El puntaje NO se guarda con el estudio: no hay ningun campo que lo almacene, asi que se
+     RECALCULA al reabrir. Es lo que hace que un corte nuevo alcance a los estudios ya guardados
+     —y por eso esta escrito aca, para que un cambio futuro a un campo persistido se vea. */
+  R.noSeGuarda = (function () {
+    const ids = [];
+    document.querySelectorAll('input[id], select[id]').forEach(function (el) {
+      if (/^hf_(score|total|puntaje)/.test(el.id)) ids.push(el.id); });
+    return ids;
+  })();
+  ex.push(['el puntaje NO se persiste: no hay campo que lo guarde, se recalcula al reabrir',
+    R.noSeGuarda.length === 0, JSON.stringify(R.noSeGuarda)]);
+
+  return { extra: ex, R: R };
+`);
 
 let servidor, chrome;
 try {
