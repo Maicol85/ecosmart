@@ -830,7 +830,8 @@ async function main() {
         ['im_vc','6'], ['ia_vc','5'], ['it_vc','6'], ['ea_dtsvi','20'],
         ['vmax_ao','4.2'], ['gmedio_ao','45'], ['em_gmedio','12'],
         ['et_gmedio','8'], ['et_thp','200'], ['vp_vmax','3.5'], ['ip_pht','80'],
-        ['onda_e','90'], ['onda_a','60'], ['tde','180'], ['eprima_sep','6'], ['eprima_lat','8'],
+        ['onda_e','90'], ['onda_a','60'], ['tde','180'], ['e_sep','6'], ['e_lat','8'],
+        ['vmax_it','2.9'],
         ['ai_vol','40'], ['peso','70'], ['talla','170'], ['edad','60']
       ];
       g.sembrado = [];

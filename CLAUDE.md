@@ -30,6 +30,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar un DIAGRAMA DE FLUJO de la ventana 🧭** (BSE 2024, ASE 2025 en ritmo sinusal o en FA, ASE/EACVI 2016 8A y 8B): los planos, el motor del SVG, el umbral de ancho o la tabla compacta | `docs/mapa/diastolica-diagrama.md` |
 | **Tocar la GRILLA del Doppler mitral**: el orden de los 16 campos, el Tab por columnas, los puntos de corte o el selector del S/D | `docs/mapa/doppler-mitral-grilla.md` |
 | **Tocar el BORRADO de una lesión valvular**: el retiro del grado, quién prendió una pastilla, los dos métodos de la IM, la continuidad de la IT o el grado de cada fila | `docs/mapa/valvulas-borrado.md` |
+| **Tocar la MARCA DE MANUAL de una pastilla, el selector binario de la estenosis mitral, el VIOLETA de «Significativa» o el VTI de entrada tricuspídeo** | `docs/mapa/valvulas-manual-binario.md` |
 | **Tocar el VENTRÍCULO DERECHO**: sus campos, el cuadro de referencias, la disfunción sistólica, la pared o el Tei | `docs/mapa/vd-derecho.md` |
 | **Tocar el panel de Evidencia: agregar una cita, una sección o un sub-bloque** | `docs/mapa/panel-evidencia.md` |
 | **Agregar un TÉRMINO al glosario del panel (el ⓘ con tarjeta)** | `docs/mapa/panel-evidencia-terminos.md` |
@@ -228,6 +229,156 @@ impecable.
 ---
 
 ## Estado vigente
+
+### El MODO MANUAL de las pastillas, el selector binario de la EM, el violeta y el VTI de la ET (2026-10-13)
+
+- Al **empezar** esta tanda, `main` local y `origin/main` estaban los dos en **`0cd0bf5`**, sin nada
+  sin pushear —confirmado con un `git fetch` de verdad, no con el ref en caché—, con los **tres**
+  commits de la tanda del cartel de péptidos ya incluidos **y pusheados**. Los **cinco** commits de
+  esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 5 → 4 → 3 → 2 → 1.**
+  El **1** (`sevReiniciarManual`) **se revierte solo**: nadie más lo llama y `sevSincronizar` lo
+  invoca con `typeof`. El **4** (el VTI de la ET) **también**: no toca nada de los otros tres.
+  ⚠️ **EL 3 CUELGA DEL 2 PARA LA MITRAL, Y NO AL REVÉS.** El violeta se prende cuando el TEXTO del
+  sub-botón es «Significativa», y en la mitral ese texto lo produce `VIS_BTN`, que nace en el 2.
+  Revertir el 2 sin revertir antes el 3 deja la pastilla mitral diciendo «Severa ▼» y **sin**
+  violeta —inocuo, la regla simplemente no matchea— pero la tricúspide lo conserva, así que queda
+  la mitad del cambio. Orden: **3 antes que 2**.
+  ⚠️ **Y EL 5 LLEVA ADAPTACIONES DE CASOS QUE AFIRMAN LO DEL 2 Y LO DEL 4.** Revertir el 4 sin el 5
+  deja **TC-417** y **TC-429** midiendo escenas con el VTI en 60 que allá no existe como criterio
+  —no se ponen rojos: miden de menos—, y revertir el 2 sin el 5 deja en rojo los nueve de la
+  nomenclatura. Revertir cualquiera sin el 5 deja **TC-466** en rojo, que es lo que afirma los
+  cuatro.
+
+- **Línea base al cierre: suite 459/480 con el pendrive `DISK_IMG` AFUERA, Semgrep 127 / 0 ERROR,
+  Excel 435 columnas con el hash IDÉNTICO a HEAD, celular 43 a 360 px y 52 a 390 px con 1 ALTA cada
+  uno —IDÉNTICO a la línea base, y `--todo` da 374 y 383, el mismo par—.**
+  ⚠️ **EL PENDRIVE SE DESMONTÓ A MITAD DE ESA CORRIDA, Y HAY QUE DECIRLO EN VEZ DE RESTAR.** De los
+  21 rojos, **diecisiete** son **TC-181…TC-197**, los del pendrive: son ENTORNO y no prueban nada.
+  Los **cuatro** restantes son los de ENTRADA y NO son regresiones: **TC-223** (el documentado,
+  falla por la fecha), **TC-376**, **TC-390** y **TC-406**. La comparación válida no es 459 contra
+  475: es que **el conjunto de rojos NO-pendrive es el MISMO en las dos puntas, y son esos cuatro**.
+  La prueba de que es entorno está en la corrida anterior del mismo árbol, con el pendrive puesto:
+  ahí los diecisiete salieron **verdes**. Mirar `ls /Volumes/DISK_IMG` ANTES de comparar dos cifras.
+  **El denominador subió a 480**: esta tanda agregó **TC-466**. La de ENTRADA, medida en HEAD limpio
+  el 2026-10-13 con el pendrive MONTADO, fue **475/479** con esos mismos cuatro rojos, y el `md5` de
+  `index.html` no se movió durante ninguna de las tres corridas completas.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista de ids con
+  `grep -o "^caso('[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`. El runner no tiene un flag de exclusión. El motivo es el de siempre: ese caso llama a
+  `pdfDeInformeGuardado`, que necesita jsPDF por CDN, y sin la librería la promesa no resuelve nunca
+  y cuelga la corrida entera. Por eso los totales son sobre **480** y no sobre 481.
+  ⚠️ **TC-137 ES UN SEXTO INESTABLE POR ORDEN DE CORRIDA**, al lado de TC-246, TC-249, TC-252,
+  TC-260 y TC-GR-06: salió rojo en un `--solo` de 15 casos de la zona y **verde corrido solo**, con
+  el mismo árbol. **Repetir antes de sospechar.**
+
+- **Dónde está todo:** `docs/mapa/valvulas-manual-binario.md` (**mapa NUEVO**, 16,2 KB: las cuatro
+  guardas del reinicio, el selector binario con el censo de quién lee el valor, el violeta y el
+  cuarto criterio de la ET, más las seis trampas medidas), `docs/mapa/valvulas.md` y
+  `docs/mapa/valvulas-borrado.md` → sendos punteros, `docs/fuentes/FUENTES.md` → la Tabla 10 con sus
+  cuatro cortes impresos y los dos operadores en conflicto, y `docs/PENDIENTES.md` → **ocho** cosas
+  declaradas y no tocadas (M1 a M8), con **A-5 marcado CERRADO**.
+
+- ⚠️ **EL DEFECTO DEL MODO MANUAL REPRODUCE EN LAS OCHO LESIONES CON PASTILLA, Y ES PEOR QUE UN
+  AVISO DE MÁS.** Medido con teclas y clics reales contra HEAD: cargar un dato, **apagar** la
+  pastilla y **borrar** el dato dejaba la marca viva en **8 de 8**, y con el dato siguiente el grado
+  **no se escribía en 6 de 8** (ia, it, ip, em, ea, et) — cinco de ellas con el aviso rojo «(ajuste
+  manual) · cálculo automático: Severa» acusando un ajuste que nadie hizo, y **la ET ni eso**,
+  porque su `comparables` excluye el centinela y el grado desaparecía en silencio. Hoy las ocho
+  vuelven al estado inicial y el dato nuevo gradúa.
+- **LA CAUSA, CON NOMBRE:** `toggleValvPill` → `valvApagarGrado` → `valvSev.aplicar(…, centinela)`
+  marca y toma la foto del calculado, y **nadie la deshace**: `sevRetirarSugerido` sale por su
+  guarda de manual y los **seis** apagados automáticos salen por su PRIMERA guarda, «la pastilla ya
+  está apagada».
+- **UN SOLO DUEÑO, `sevReiniciarManual`, llamado desde `sevSincronizar`**, que es el punto por el
+  que pasan las ocho claves registradas. ⚠️ **SU PRIMERA GUARDA ES LA QUE EVITA MIGRAR UN ESTUDIO
+  GUARDADO:** exige que la marca venga de un GESTO de esta sesión, y eso lo dice la FOTO
+  (`_sevCalcAlFijar`, que no se persiste). Una planilla que trae «IM ausente» —que
+  `_sevManualDesdeCampos` marca a propósito— llega **sin** foto y no se toca.
+- **LA REGLA (b) QUEDA INTACTA POR CONSTRUCCIÓN Y ESTÁ MEDIDA:** con el dato cargado, apagar la
+  pastilla da **0 diferencias contra HEAD** en las ocho lesiones (marca, grado, pastilla, cajón y
+  aviso letra por letra). Y **B-3 tampoco se movió**: reabrir la pastilla a mano con el dato cargado
+  sigue sin recuperar el grado, idéntico a HEAD en 8 de 8.
+- ⚠️ **LA PASTILLA NO SE VUELVE A PRENDER SOLA, Y ES DELIBERADO.** El apagado del médico deja la
+  clave de `localStorage` en `'0'` y los auto-prendidos la respetan. Lo que sí cambia es que **el
+  grado se escribe**, que es lo que el informe lee desde la etapa 4b. `PENDIENTES.md` → M1.
+
+- **EL SELECTOR DE LA ESTENOSIS MITRAL ES BINARIO Y NINGÚN TOKEN CAMBIA.** El menú ▼ pasó de tres
+  items a **dos** —«No significativa» / «Significativa»—, medido con un clic real; los cuatro
+  `value` siguen intactos y `moderada` quedó como `<option hidden>` para que un legado reabra en su
+  índice y no en `-1`. **Excel en 435 columnas con el MISMO valor en los cuatro tokens y el
+  Laboratorio clasificando igual.**
+- ⚠️ **EL SUB-BOTÓN DECÍA «Severa» Y ESO ERA PREEXISTENTE.** `corto()` lee el VALOR, así que con
+  `em_grado='severa'` la pastilla y el «grado final al informe» decían «Severa» mientras la
+  `<option>`, el PDF y la etiqueta decían «Significativa» desde el 2026-10-11. Se cerró con un dueño
+  **por par** (`VIS_BTN`) y **sin tocar `corto()`**, que gobierna las ocho pastillas.
+- **INFORME Y EN SUMA, la tabla antes → después:** `leve` y `moderada` pasan de «con estenosis
+  leve/moderada» y «EM leve./EM moderada.» a **«con estenosis no significativa»** y **«EM no
+  significativa.»**; `severa` pasa de «con estenosis severa» y «EM severa.» a **«significativa»**.
+  ⚠️ **LAS CUATRO FRASES NUEVAS YA LAS EMITÍA LA APP** por el camino de la CATEGORÍA, así que no se
+  inventó ninguna redacción en un informe firmado. La de `severa` era PREEXISTENTE.
+- ⚠️ **TRES TEXTOS DE AYUDA, NO DOS.** El tercero —la caja del manual, cerca del final del
+  archivo— **lo encontró la sonda y no la lectura**. Y en la tabla «Referencia clínica» quedaron
+  **tres afirmaciones viejas que NO son de esta tanda** y que no se tocaron por ser contenido
+  clínico: `PENDIENTES.md` → M5.
+
+- **EL VIOLETA VA EN LAS DOS VÁLVULAS BINARIAS Y EN LOS DOS TEMAS**, con la compuerta en el TEXTO y
+  no en el token, así que el color y la palabra no se pueden desincronizar. Medido con
+  `getComputedStyle` y con captura real: `rgb(237,233,254)` en los cuatro casos, «No significativa»
+  nunca, y **control negativo** con IM, IT, EAo y EP en su grado más grave idénticas a HEAD.
+  Contraste **9,23:1** el texto y 4,8:1 el borde; contra el rojo de `nivel3` la luminancia es la
+  misma (1,03:1) y se distingue por TONO, que es lo que ya pasaba entre los tres pastel anteriores.
+  ⚠️ **ESCRIBÍ «11,9:1» EN EL COMENTARIO ANTES DE MEDIRLO Y ERA 9,23.** Lo corregí al medir, pero el
+  número estuvo escrito sin medición. **Medir y después escribir.**
+
+- **EL VTI DE ENTRADA TRICUSPÍDEO >60 cm VOTA, y el operador es `>` ESTRICTO.** Leído de la IMAGEN
+  de la Tabla 10 —es un bitmap y el texto extraído se come los glifos— con el folio comprobado en el
+  pie impreso. Medido por sus dos lados con el VTI como único dato: **59,9 no · 60,0 NO · 60,1 sí**,
+  con pastilla y EN SUMA «ET significativa.». La banda **no hubo que ampliarla**: su techo es 100 cm
+  desde el 2026-10-07 y el comentario de entonces explica por qué. **El área por continuidad no se
+  mueve** —este campo es su DENOMINADOR— y está medido: 0,98 cm² en los dos árboles.
+  ⚠️ **LA ASE 2023 ESCRIBE `≥60` PARA EL MISMO CRITERIO Y ES MÁS NUEVA**: se conservó el `>` del
+  original, que es la fuente de los otros tres cortes y el lado conservador. La **ESC/EACTS 2025 no
+  lo nombra** —publica un solo número para la ET entera— así que no lo contradice.
+  ⚠️ **EL SÍMBOLO DEL OPERADOR SALÍA DE UN TERNARIO** `('>=' ? '≥' : '≤')`: con el cuarto criterio,
+  el único estricto, habría impreso **«≤60 cm»** —el signo CONTRARIO— en el renglón que explica el
+  veredicto. Hoy es un mapa.
+
+- **CONTROL NEGATIVO MAYOR, con un escenario CARGADO que tiene veredicto en las nueve superficies:**
+  función diastólica («DD Grado II — ASE 2025»), HFA-PEFF, las tres insuficiencias, la estenosis
+  aórtica, el badge de la EM, el de la pulmonar y la fila del PHT de la IP, **todos idénticos a
+  HEAD**, con el **Excel en 435 columnas y el mismo hash** y el informe y el EN SUMA en los **tres**
+  estilos con **0 de 6** superficies distintas.
+
+- **Arnés: `scripts/_probe_valvmanual.mjs`** (A/B de solo lectura con `--file`, y `--captura
+  --dest`), seis grupos (`repro`, `respeta`, `emsel`, `color`, `vti`, `controles`).
+  **Cobertura: TC-466**, **37 condiciones** con cinco denominadores y cinco controles negativos.
+  **Verificado que sabe fallar contra HEAD en un worktree aparte: 19 de las 37 en rojo**, y sin
+  morir por excepción; las 18 que pasan son lo que esta tanda no mueve.
+- ⚠️ **CASOS ADAPTADOS: VEINTE**, con el motivo escrito en cada uno. **Quince** por la
+  nomenclatura de la EM, el rótulo del sub-botón o el conteo del menú ▼ (**TC-304**, **TC-306**,
+  **TC-307**, **TC-308**, **TC-384**, **TC-387**, **TC-388**, **TC-389**, **TC-391**, **TC-395**,
+  **TC-399**, **TC-400**, **TC-402**, **TC-405**, **TC-422**), **tres** por el VTI que ahora vota
+  (**TC-416**, **TC-417**, **TC-429**) y **dos** por la regla del manual (**TC-375**, **TC-430**).
+  ⚠️ **ESCRIBÍ «DIECISÉIS» ANTES DE CONTARLOS Y SON VEINTE.** Lo cazó contar las marcas
+  «ADAPTADO el 2026-10-13» del archivo, que es lo que había que hacer primero. **Contar y después
+  escribir**, igual que medir y después escribir.
+  ⚠️ **NUEVE DE ESOS DIECISÉIS LOS DESTAPÓ LA SUITE COMPLETA**, no la corrida de zona: TC-307,
+  TC-375, TC-387, TC-389, TC-395, TC-399, TC-417, TC-422 y TC-429.
+  ⚠️ **TRES DE ELLOS NO FALLABAN POR UNA PALABRA SINO PORQUE SU ESCENA DEJÓ DE AISLAR SU CRITERIO.**
+  TC-416, TC-417 y TC-429 cargaban el VTI de entrada en 64, 90 y 90 cm «como relleno», y desde que
+  ese número vota, sus **controles negativos del área** publicaban «Significativa» por el VTI. Los
+  tres bajan a **60,0 exactos** —que no cumple, por el operador estricto— y de paso fijan el borde
+  por el lado que no afirma. **Lo delataron sus propios denominadores**, que es para lo que están.
+- ⚠️ **Me comí el acento grave SEIS veces**, todas en comentarios míos dentro del cuerpo de un caso,
+  con el archivo que documenta la trampa abierto delante. `scripts/check_backticks.py` dio la línea
+  exacta las seis; `node --check` apuntaba a la apertura del template, cientos de líneas antes.
+- ⚠️ **Y DOS TRAMPAS DE CAPTURA QUE COSTARON DOS CORRIDAS:** el aviso legal vuelve a mitad de
+  corrida y **oscurece el PNG entero** —el violeta salía gris con `getComputedStyle` diciendo
+  `rgb(237,233,254)` al lado, porque lee el estilo y no el píxel—, y el `clip` de
+  `Page.captureScreenshot` va en coordenadas de **PÁGINA** mientras `getBoundingClientRect` da las
+  del **viewport**: con la página scrolleada, el PNG de la tricúspide salió **en negro**.
+
 
 ### El cartel de PÉPTIDOS del HFA-PEFF y el plan del usuario (2026-10-13)
 

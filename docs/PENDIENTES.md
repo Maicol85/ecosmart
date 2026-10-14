@@ -1,5 +1,82 @@
 # EcoSmart — pendientes vivos
 
+## Modo manual de las pastillas, selector binario de la EM y VTI tricuspídeo (2026-10-13) — DECLARADO y NO arreglado
+
+### M1 · La pastilla no se vuelve a prender sola después de que el médico la cerró
+
+La regla (a) de Maicol dice «ESTADO INICIAL». La marca de manual sí se limpia, pero la **clave de
+`localStorage`** queda en `'0'`, y los seis auto-prendidos la leen como «el médico la cerró» —lo
+dice el comentario de `_insufAutoPrender`—. O sea que el dato nuevo **se gradúa** (que es lo que el
+informe lee desde la etapa 4b) pero el botón sigue apagado hasta que el médico lo toque.
+Se eligió no borrar la clave porque eso **deshace un gesto del médico** que el repo declara durable
+en cuatro lugares. Si se decide lo contrario, el borrado va al lado del `delete esqSevManual` de
+`sevReiniciarManual`. **Decisión de Maicol.**
+
+### M2 · `limpiarCampos` no limpia `_imGradoCalc` ni `_itGradoCalc`, y `_iaGradoCalc` sí
+
+Lo destapó TC-430. Las tres son la MISMA pieza —la foto de proceso del grado calculado— y el
+comentario de `limpiarCampos` explica por qué la de la IAo se borra: «sobreviviendo, el aviso rojo
+del paciente B nombra "cálculo automático: Severa" sobre un estudio que no tiene un solo dato». Las
+otras dos tienen exactamente el mismo agujero y no están en esa línea. **Consecuencia medida en
+TC-430**: tras «Nuevo estudio», apagar la pastilla de la IT deja la marca puesta mientras la de la
+ET se limpia, porque el reinicio ve un cálculo que es del paciente anterior.
+No se tocó: `limpiarCampos` gobierna el formulario entero y esta orden no la nombra. Son dos
+nombres en una lista que ya existe. **Pendiente, con causa y lugar.**
+
+### M3 · La estenosis tricuspídea no pinta el aviso de discordancia al apagar la pastilla
+
+Medido en las ocho lesiones: con el dato cargado, apagar la pastilla deja el aviso
+«(ajuste manual) · cálculo automático: …» en **siete**, y la ET no. Es su `comparables`, que
+—a diferencia de las otras siete— **no incluye el centinela**, así que `sevComparable` devuelve
+`false` y `sevDiscrepa` nunca llega a comparar. Es PREEXISTENTE y es también lo que hacía que el
+defecto del modo manual fuera **mudo** justo en esa válvula. Agregar `'sin'` a esa lista es una
+línea, pero cambia qué publica el aviso rojo en una válvula que esta orden no autoriza a tocar.
+**Decisión de Maicol.**
+
+### M4 · El Laboratorio seguirá viendo «Moderada» en estudios que ya no se pueden escribir
+
+`_labEstenSev` clasifica por regex sobre el valor guardado y devuelve `Sin / Leve / Moderada /
+Severa`. Los tokens no cambiaron, así que **nada se movió hoy**; lo que cambia de acá en más es el
+DATO: el médico ya no puede elegir `moderada` —sólo `leve`, que es lo que escribe «No
+significativa»— así que la fila «Esten. Mitral» del Laboratorio va a concentrarse en `Leve` y
+`Severa`, con los rótulos viejos. Con la nomenclatura nueva, esa fila debería decir «No
+significativa / Significativa».
+**Es el trabajo del prompt siguiente**, y éste es el insumo: el único lector del token es
+`_labEstenSev`, y de él cuelgan `sevTable('lab-esten-em', …)`, `_labGradoTxt`, el filtro de cohorte
+`C.em` y el PDF de auditoría.
+
+### M5 · Tres afirmaciones de la ayuda «Referencia clínica» de la EM quedaron viejas, y no son de esta tanda
+
+En el mismo bloque que se reescribió hay tres frases que **ya estaban desactualizadas** y que esta
+orden no autoriza a tocar porque son contenido clínico: (1) «con AVm > 1,5 y gradiente medio
+**> 4 mmHg** publica "EM con gradiente elevado"» —los cortes son 5 y 10 desde el 2026-10-11—;
+(2) «se publican las dos con su método y prevalece el peor, con "**probablemente severa** por …"»
+—la categoría `probable` se eliminó ese mismo día—; y (3) «El gradiente medio **≥ 10 mmHg** de la
+ASE **no** se usa como criterio de severidad» —hoy **sí** se usa, es la mitad de la regla binaria—.
+Se reescribió **sólo** la frase de la nomenclatura. **Reportado, no corregido.**
+
+### M6 · Por encima de 100 cm el VTI de entrada no vota
+
+La banda de `et_vti_diast` es `[5, 100]` y su techo está elegido —desde el 2026-10-07— para que un
+flujo de entrada largo siga votando el área. Con el VTI convertido en criterio, un valor de 101 cm
+queda «fuera de rango (no gradúa)» aunque cruce el corte de 60 por casi el doble. Es el lado
+conservador —un número de tres cifras en ese campo es, casi siempre, un error de tipeo— pero queda
+declarado porque ahora **retira un criterio** y antes sólo retiraba un denominador.
+
+### M7 · La ASE 2023 escribe `≥60 cm` donde la EAE/ASE 2009 escribe `>60 cm`
+
+Los dos documentos están verificados en su folio impreso y leídos de la imagen. Se aplicó el `>` del
+original —es la fuente de los otros tres cortes de esta válvula y es el lado conservador—, así que
+un VTI de **60,0 exactos** no afirma. La diferencia alcanza a un solo valor. **Declarado.**
+
+### M8 · Los dos hallazgos de APOYO de la Tabla 10 siguen sin recogerse
+
+Era el punto A-6 y sigue vivo: **aurícula derecha dilatada ≥ moderada** y **vena cava inferior
+dilatada**. La app tiene los dos datos (`ad_area`, `vci_diam`) y no los conecta. La guía los llama
+«de apoyo» y no de significación, así que no votarían el veredicto: serían una anotación.
+
+---
+
 ## Cartel de PÉPTIDOS del HFA-PEFF y el plan del usuario (2026-10-13) — DECLARADO y NO arreglado
 
 ### H1 · El original del HFA-PEFF NO está en la biblioteca, así que sus cortes no están verificados
@@ -162,17 +239,18 @@ gradiente medio, el del AVA indexada y el del DVI — los mismos tres que ahora 
 gradiente, paradojal) y la discordancia, no el grado: fundirlos es tocar esa cadena, que esta orden
 no nombra. Es el patrón de la fórmula duplicada que este repo ya pagó varias veces. **Pendiente.**
 
-### A-5 · El criterio «VTI de entrada tricuspídeo >60 cm» está en la tabla y no vota
+### A-5 · ✅ **CERRADO 2026-10-13** — El criterio «VTI de entrada tricuspídeo >60 cm» ya vota
 
 La **Tabla 10, p. 19** de la EAE/ASE 2009 lista **cuatro** hallazgos específicos de ET
 hemodinámicamente significativa y la app vota **tres**: gradiente medio `≥5`, T½ `≥190` y área
 `≤1 cm²`. El cuarto —*«Inflow time-velocity integral >60 cm»*— **tiene campo en la app**
 (`et_vti_diast`) y se usa **sólo como denominador del área**, no como criterio propio.
 
-No se agregó porque la orden excluye variables nuevas en la aórtica y, para la tricúspide, pide no
-tocar el cálculo si es correcto. Es el criterio que **más directamente reproduce el síntoma que el
-médico reportó**: un VTI de entrada normal da un área grande porque no hay estenosis, y este
-criterio lo diría en voz alta. **Decisión de Maicol.**
+No se agregó entonces porque aquella orden excluía variables nuevas. **Maicol lo decidió el
+2026-10-13** («si está en la guía, vota») y entró como cuarto término del mismo OR, con el operador
+`>` estricto verificado en el original. Ver `docs/mapa/valvulas-manual-binario.md` §4 y la entrada
+de la Tabla 10 en `docs/fuentes/FUENTES.md`. Lo que queda abierto de esa zona está en **M6**, **M7**
+y **M8** de este archivo.
 
 ### A-6 · Los dos hallazgos de APOYO de la ET tampoco se recogen
 

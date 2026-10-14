@@ -214,6 +214,21 @@ publica con sufijo «(sin PmAD)» — lee: `ip_vmax`, `ip_vtd`, `pmad`; escribe:
 
 ## Compartido
 
+### El MODO MANUAL, el selector binario de la EM, el violeta y el VTI de la ET → `docs/mapa/valvulas-manual-binario.md`
+
+Mapa aparte, del 2026-10-13, porque este archivo está en 32,0 KB y el techo son ~35 KB. Allá viven:
+
+- **`sevReiniciarManual(clave, calc)`** — dueño único de «la marca de manual se limpia sola al
+  borrar el último dato que votaba», para las **ocho** lesiones con pastilla. Lo llama
+  `sevSincronizar` y nadie más. Sus cuatro guardas, y por qué una marca **restaurada** —la de un
+  estudio reabierto o una planilla importada— no se toca;
+- el **selector binario** de la estenosis mitral: «No significativa» / «Significativa», con los
+  cuatro `value` intactos y `moderada` como `<option hidden>`, más el censo de quién lee el valor;
+- **`VIS_BTN` / `rotulo()`**, el dueño por par del rótulo del sub-botón, que cerró una divergencia
+  pantalla/pantalla: `corto()` decía «Severa» donde la `<option>` decía «Significativa»;
+- **`.valv-sev-btn.nivel-sig`**, el violeta de «Significativa» en las dos válvulas binarias;
+- **`ET_CRIT.vtiEnt`**, el cuarto criterio de la estenosis tricuspídea (VTI de entrada `>60 cm`).
+
 ### «Sin» apaga el botón, y quién decide que el bloque de grado se vea (2026-10-03)
 
 El invariante: **botón prendido = «hay valvulopatía»**. Antes el botón significaba «el cajón está

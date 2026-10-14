@@ -8,6 +8,13 @@
 
 Sin números de línea a propósito: la línea cambia en cada edición, el nombre de la función no.
 
+> ⚠️ **LA OTRA MITAD DE ESTE MECANISMO ESTÁ EN `docs/mapa/valvulas-manual-binario.md`** (2026-10-13):
+> acá se retira el GRADO, allá se limpia la MARCA de manual. Son dos cosas y por eso tienen dos
+> dueños: `sevRetirarSugerido` sale por su guarda de manual (`{delMedico:true}`) y los seis apagados
+> automáticos de abajo salen por su primera guarda —«la pastilla ya está apagada»—, así que ninguno
+> de los dos tocaba la marca. El punto **B-3** de `docs/PENDIENTES.md` **sigue abierto**: con el dato
+> cargado, reabrir la pastilla a mano no recupera el grado, y está medido idéntico a HEAD en 8 de 8.
+
 ---
 
 ## 1 · El retiro del grado — un solo dueño para las cuatro lesiones

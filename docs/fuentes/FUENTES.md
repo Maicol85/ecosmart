@@ -431,9 +431,44 @@ CWD**»*.
 VTI_entrada`, con el diámetro en **mm** (el `/20` pasa a cm y saca el radio en un paso) y los dos VTI
 en **cm**. Verificada por recálculo a mano de tres casos, que coincide dígito por dígito con la app.
 
-⚠️ **EL CRITERIO «Inflow time-velocity integral >60 cm» ESTÁ EN LA TABLA Y LA APP NO LO VOTA.** El
-campo existe (`et_vti_diast`) y se usa sólo como denominador del área. Declarado en
-`docs/PENDIENTES.md`; no se agregó porque la orden excluye variables nuevas.
+✅ **EL CRITERIO «Inflow time-velocity integral >60 cm» VOTA DESDE EL 2026-10-13** (decisión de
+Maicol: «si está en la guía, vota»). Hasta ese día el campo existía (`et_vti_diast`) y se usaba
+sólo como denominador del área; era el punto **A-5** de `docs/PENDIENTES.md`, que queda cerrado.
+
+**El operador es `>` ESTRICTO**, y eso se leyó de la IMAGEN de la tabla —es un bitmap dentro del
+PDF y el texto extraído se come los glifos `≥`/`≤`, que es la trampa que este archivo ya documenta
+para Baumgartner 2009 y Wilkins 1988—, con el folio comprobado en el **pie impreso** de la página
+(«Baumgartner et al 19»). Los cuatro renglones, tal como están impresos:
+
+| hallazgo específico | corte impreso |
+|---|---|
+| Mean pressure gradient | **≥5 mmHg** |
+| Inflow time-velocity integral | **>60 cm** |
+| T½ | **≥190 ms** |
+| Valve area by continuity equation ᵃ | **≤1 cm²** |
+
+O sea que la guía escribe los cuatro con cuidado y **el del VTI es el único estricto**. La app usa
+ese `>`, así que **60,0 exactos NO afirman** y 60,1 sí.
+
+⚠️ **LA ASE 2023 ESCRIBE `≥60 cm` PARA EL MISMO CRITERIO, Y ES MÁS NUEVA.** Pandian et al,
+*Echocardiographic Evaluation of Rheumatic Heart Disease* (JASE, enero 2023), **folio 16**
+—verificado en el pie impreso, «16 · Pandian et al»— leído de la imagen:
+> «TS is considered to be severe if the mean gradient is **≥5 mmHg, inflow VTI ≥60 cm, PHT ≥190 ms,
+> and TVA ≤1 cm²**»
+
+Se conservó el `>` de la EAE/ASE 2009 por dos razones: es la fuente de la que salen los **otros
+tres** cortes de esta válvula —mezclar operadores de dos documentos deja la tabla sin un dueño— y
+es el **lado conservador**, porque con 60,0 exactos no afirma. La diferencia alcanza a **un solo
+valor**. Queda declarada.
+
+⚠️ **LA ESC/EACTS 2025 NO LO CONTRADICE: NO LO NOMBRA.** Su §12.2 (**folio 4688**) publica un solo
+número para la estenosis tricuspídea entera:
+> «A mean diastolic transvalvular gradient of **>5 mmHg** at a normal heart rate indicates severe TS.»
+
+No menciona el VTI de entrada, y tampoco el T½ ni el área que la app ya votaba desde antes, así que
+su silencio no distingue a este criterio de los otros tres. Por eso esta parte **no se detuvo**.
+⚠️ Y de paso: esa guía escribe el gradiente con **`>5`** donde la app aplica **`>=5`**, lo que
+`index.html` ya declara en su propio comentario. **No se tocó** — es otra fuente y otro trabajo.
 
 #### Fuente SECUNDARIA — el Word de criterios de Cowork
 

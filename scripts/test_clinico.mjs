@@ -40516,15 +40516,22 @@ caso('TC-307', 'Las superficies dejan de publicar la escalera derogada: Referenc
         refTxt.indexOf('4 – 6 cm²') > -1 || refTxt.indexOf('4 - 6 cm²') > -1 || refTxt.indexOf('4-6 cm²') > -1,
         '«' + refTxt + '»'],
       // (2)
+      /* ADAPTADO el 2026-10-13: el manual dice «la app completa solo «Significativa»» desde que
+         el selector de la estenosis mitral es binario. Lo que el denominador cuida —que el manual
+         exista y describa la regla— no cambia. */
       ['DENOMINADOR: el manual existe y describe la regla implementada',
-        ayuda.length > 5000 && ayuda.indexOf('la app completa solo «severa»') > -1,
+        ayuda.length > 5000 && ayuda.indexOf('la app completa solo «significativa»') > -1,
         'largo=' + ayuda.length],
       ['⚠️ el manual ya NO atribuye el corte de area a la ESC/EACTS 2021 a secas, y NO publica el ≥10 mmHg como severidad mitral',
         ayuda.indexOf('gradiente medio mitral, severa') === -1 &&
         ayuda.indexOf('≥ 10 mmhg') === -1,
         '«' + (ayuda.match(/[^<>]*mitral[^<>]*/g) || []).join(' | ').slice(0, 600) + '»'],
-      ['  y dice explicitamente que leve y moderada las elige el medico',
-        ayuda.indexOf('leve y moderada las elige el medico') > -1, ''],
+      /* ADAPTADO el 2026-10-13: el selector de la estenosis mitral es BINARIO (decision de
+         Maicol) y el manual ya no puede nombrar dos grados que la pantalla no ofrece. Lo que esta
+         condicion cuida —que el manual DIGA que la app completa un solo grado y que el otro lo
+         elige el medico— no cambia; cambian las palabras. */
+      ['  y dice explicitamente que «No significativa» la elige el medico',
+        ayuda.indexOf('no significativa') > -1 && ayuda.indexOf('la elige el medico') > -1, ''],
       ['  con el >4 mmHg como definicion de EM reumatica y la atribucion correcta',
         ayuda.indexOf('world heart federation') > -1 && ayuda.indexOf('reumatica') > -1, ''],
       // (3)
@@ -51305,9 +51312,14 @@ caso('TC-375', 'El informe usa SOLO el grado final: con «Sin estenosis» dice s
   prep(); abrir('insuf');
   const insufAbierta = cuatro();
   const insufAbiertaMan = !!(window.esqSevManual && window.esqSevManual.ia);
+  /* El estado de la PASTILLA, que desde el 2026-10-13 es el discriminador real de estas dos
+     escenas: ver el comentario de su denominador, mas abajo. */
+  const pillIA = function () { try { return pillOn('aortica','insuf'); } catch (e) { return 'EXC'; } };
+  const insufAbiertaPill = pillIA();
   prep(); abrir('insuf'); valvSev.aplicar('insuf','aortica','0');
   const insufSinManual = cuatro();
   const insufSinManualMan = !!(window.esqSevManual && window.esqSevManual.ia);
+  const insufSinManualPill = pillIA();
 
   /* ── (3) ⚠️ EL CAJON POBLADO SIN DISCREPANCIA NO APORTA NADA. sevFundamento lo vacia en cuanto
          la discrepancia desaparece, asi que en la practica no deberia poder quedar poblado — pero
@@ -51350,9 +51362,19 @@ caso('TC-375', 'El informe usa SOLO el grado final: con «Sin estenosis» dice s
     /* DENOMINADOR de la distincion: las dos escenas tienen que diferir en la MARCA, que es el
        unico discriminador. Sin esta condicion las dos de abajo podrian estar midiendo el mismo
        estado y pasarian las dos por casualidad. */
-    ['denominador: la escena 2 NO tiene la marca manual y la escena 3 SI',
-      insufAbiertaMan === false && insufSinManualMan === true,
-      'abierta=' + insufAbiertaMan + ' aMano=' + insufSinManualMan],
+    /* ⚠️ ADAPTADO el 2026-10-13, Y EL DISCRIMINADOR CAMBIO DE PIEZA. Las dos escenas corren sobre
+       un formulario SIN ningun dato que vote, y desde la regla del modo manual (decision de
+       Maicol) ese estado es el ESTADO INICIAL: sevReiniciarManual limpia la marca en el mismo
+       gesto, asi que la escena 3 ya no la conserva. Lo que las sigue distinguiendo —y lo que
+       produce las dos afirmaciones de abajo, que NO cambiaron— es la PASTILLA: la escena 2 la deja
+       ABIERTA (estado 2, «con insuficiencia») y el «Sin» de la escena 3 la APAGA, que es lo que
+       niega. Se mide eso, que es el discriminador real, en vez de una marca que en este escenario
+       ya no existe. Las dos condiciones de abajo siguen verdes sin tocarles una letra. */
+    ['denominador: las dos escenas difieren en la PASTILLA, y sin ningun dato ninguna conserva marca',
+      insufAbiertaMan === false && insufSinManualMan === false &&
+      insufAbiertaPill === true && insufSinManualPill === false,
+      'abierta=' + insufAbiertaMan + ' aMano=' + insufSinManualMan +
+      ' pill2=' + insufAbiertaPill + ' pill3=' + insufSinManualPill],
     /* ✅ ESTADO 2 CON LA AORTICA ENCENDIDA: EA_ESCALON_SIN_GRADO está en TRUE (23eb4e2/e8b03c5), así
        que la pastilla abierta y sin grado —SIN marca— afirma «con insuficiencia» y el EN SUMA la
        sigla + «presente» (regla 9). Antes esta tanda pineaba el estado apagado de 4b; se invierte. */
@@ -52813,8 +52835,11 @@ caso('TC-387', 'La pastilla mitral sigue SOLA al calculo —IM por vena contract
       /Severa/.test(vc8.past) && vc8.sel === '4' && vc8.hid === '4' && vc8.manual === false, dg],
     ['IM: bajar la vena contracta a 2 mm la sigue hasta «Leve» y el hidden va con ella',
       /Leve/.test(vc2.past) && vc2.sel === '1' && vc2.hid === '1', dg],
-    ['EM: AVm 1,20 por planimetria deja la pastilla en «Severa» y el grado calculado publicable',
-      /Severa/.test(avmSev.past) && avmSev.sel === 'severa' && avmSev.calc === 'severa' &&
+    /* ADAPTADO el 2026-10-13: el sub-boton de la estenosis mitral dice «Significativa ▼» —antes
+       derivaba su rotulo de corto(), que lee el VALOR y escribia «Severa»—. El token guardado y el
+       grado calculado NO cambian, y son las otras tres mitades de esta misma condicion. */
+    ['EM: AVm 1,20 por planimetria deja la pastilla en «Significativa» y el grado calculado publicable',
+      /Significativa/.test(avmSev.past) && avmSev.sel === 'severa' && avmSev.calc === 'severa' &&
       avmSev.cat === 'severa', dg],
     /* CONTROL NEGATIVO: la sonda sabe decir que NO. */
     ['CONTROL NEGATIVO: con AVm 2,50 la app no gradua, la pastilla vuelve al neutro y el calculado es null',
@@ -53036,8 +53061,13 @@ caso('TC-389', 'El aviso rojo y el cajon «Fundamento del ajuste» de la mitral 
     ['EM: con «Moderada» a mano sobre un calculo Severa hay discrepancia, aviso ROJO y cajon',
       emDisc.dEM === true && emDisc.emFund === 'visible' &&
       /* ADAPTADO el 2026-10-11: el aviso nombra el grado CALCULADO con la palabra visible, que
-         ahora es «Significativa». Lo que no cambia es el valor guardado ni la mecanica. */
-      emDisc.avEM === '⚠️ Moderada (ajuste manual) · cálculo automático: Significativa', dg],
+         ahora es «Significativa». Lo que no cambia es el valor guardado ni la mecanica.
+         ADAPTADO el 2026-10-13: el grado MANUAL tambien se nombra con su palabra visible, y el
+         token «moderada» se escribe «No significativa» desde que el selector es binario. Las dos
+         mitades del aviso salen del MISMO dueño (EM_GRADO_VIS, via SEV_SINC.em.etiqueta), que es
+         lo que impide que el aviso diga una palabra y el selector otra. El valor guardado sigue
+         siendo «moderada» — lo dice el xls de la misma foto. */
+      emDisc.avEM === '⚠️ No significativa (ajuste manual) · cálculo automático: Significativa', dg],
     ['  y el cajon de la INSUFICIENCIA sigue cerrado y sin aviso',
       emDisc.imFund === 'oculto' && emDisc.avIM === '' && emDisc.dIM === false, dg],
 
@@ -53615,14 +53645,22 @@ caso('TC-395', 'El menu de severidad no lo recorta la tarjeta: las opciones de l
        opciones donde ofrecía cuatro. Los menús siguen siendo ocho y el comportamiento tampoco
        cambió. Es el mismo tipo de ajuste que la v3, y el número escrito a mano hizo su trabajo:
        este caso se puso rojo y dijo qué había cambiado. */
+    /* ADAPTADO el 2026-10-13: 23 y no 24, porque el menu de la estenosis MITRAL paso de tres
+       grados a DOS (selector binario, decision de Maicol). La cuenta es el DENOMINADOR de este
+       caso y por eso se mueve con el menu. */
     ['DENOMINADOR: hay OCHO menus y ninguna opcion quedo fuera del viewport ni sin medir',
-      MENUS.length === 8 && apagados.total === 24 && apagados.fueraVP === 0 &&
-      encendidos.total === 24 && encendidos.fueraVP === 0,
+      MENUS.length === 8 && apagados.total === 23 && apagados.fueraVP === 0 &&
+      encendidos.total === 23 && encendidos.fueraVP === 0,
       'menus=' + MENUS.length + ' total=' + apagados.total + ' fueraVP=' + apagados.fueraVP + ' · ' + dg],
     /* El numero que importa: con los dos botones apagados —la tarjeta baja, que es el sintoma—
        antes se perdian TRES opciones, las tres en la aortica. Ahora, cero. */
-    ['con los dos botones APAGADOS las 24 opciones de los ocho menus son clickeables',
-      apagados.alcanzables === 24 && apagados.perdidas.length === 0, dg],
+    /* ADAPTADO el 2026-10-13: son 23 y no 24. El menu de la estenosis MITRAL paso de tres grados
+       a DOS —«No significativa» / «Significativa»— porque su selector es binario (decision de
+       Maicol) y «moderada» quedo como <option hidden>, que valvSev.opciones filtra. Lo que este
+       caso cuida —que ninguna opcion quede recortada por la tarjeta— no cambia: la cuenta es el
+       DENOMINADOR, y por eso se mueve con el menu en vez de quedar fija. */
+    ['con los dos botones APAGADOS las 23 opciones de los ocho menus son clickeables',
+      apagados.alcanzables === 23 && apagados.perdidas.length === 0, dg],
     ['mientras hay un menu abierto su tarjeta deja de recortar',
       abiertos(apagados).every(function (o) { return o === 'visible'; }), dg],
     /* Sin esta mitad, un overflow:visible pelado sobre .card pasaria igual — y seria un cambio
@@ -53632,8 +53670,8 @@ caso('TC-395', 'El menu de severidad no lo recorta la tarjeta: las opciones de l
     /* CONTROL NEGATIVO: con los dos botones ENCENDIDOS la tarjeta ya era alta y el menu entraba
        solo. Ahi el arreglo no tiene nada que arreglar. Si esta condicion y la de arriba dieran
        lo mismo siempre, la sonda estaria diciendo que si a todo y no probaria nada. */
-    ['CONTROL NEGATIVO: con los dos botones ENCENDIDOS tambien estan las 24, que ya era cierto antes',
-      encendidos.alcanzables === 24, dg],
+    ['CONTROL NEGATIVO: con los dos botones ENCENDIDOS tambien estan las 23, que ya era cierto antes',
+      encendidos.alcanzables === 23, dg],
   ] };
 `);
 
@@ -54181,7 +54219,10 @@ caso('TC-399', 'IAo abierta sin grado da «con insuficiencia» y «IAo.»; con l
     ['aortica con las dos mitades: DOS lineas en el EN SUMA, cada una con su grado',
       mx.suma.indexOf('EAo leve.') > -1 && mx.suma.indexOf('IAo leve.') > -1, recorteJS(mx.suma)],
     ['mitral con las dos mitades: las DOS con su grado',
-      L(mm.estandar, MI).indexOf('con estenosis moderada e insuficiencia severa.') > -1 && mm.suma.indexOf('EM moderada.') > -1 && mm.suma.indexOf('IM severa.') > -1,
+      /* ADAPTADO el 2026-10-13: el grado «moderada» de la estenosis mitral se escribe «no
+         significativa». La mitad de la INSUFICIENCIA no cambia, que es lo que separa esta
+         condicion: las DOS mitades siguen saliendo con su grado. */
+      L(mm.estandar, MI).indexOf('con estenosis no significativa e insuficiencia severa.') > -1 && mm.suma.indexOf('EM no significativa.') > -1 && mm.suma.indexOf('IM severa.') > -1,
       L(mm.estandar, MI) + ' // ' + recorteJS(mm.suma)],
     /* La palabra prohibida, en las cuatro superficies de las dos valvulas. */
     ['la app NUNCA escribe «mixta» ni «mixto»',
@@ -55868,10 +55909,17 @@ caso('TC-417', 'Tricuspide — la tabla de textos: 15 escenas del informe (presi
     __t.set('vci_diam','18'); __t.set('vci_col','>50'); });
   const S07 = esc(function(){ __t.set('et_gmedio','8'); });
   const S08 = esc(function(){ __t.set('et_thp','200'); });
-  /* AREA: pi*(26/20)^2 = 5,31 cm2 de TSVD, x VTI-TSVD 14 cm / VTI diast 90 cm = 0,83 cm2. Los TRES
-     insumos dentro de banda: uno fuera convierte este positivo en un negativo que parece pasar. */
-  const S09 = esc(function(){ __t.set('et_vti_diast','90');
-    __t.set('tsvd_diametro','26'); __t.set('vti_tsvd','14'); });
+  /* AREA: pi*(26/20)^2 = 5,31 cm2 de TSVD, x VTI-TSVD 10 cm / VTI diast 60 cm = 0,88 cm2. Los TRES
+     insumos dentro de banda: uno fuera convierte este positivo en un negativo que parece pasar.
+     ⚠️ ADAPTADO el 2026-10-13: el VTI de entrada era 90 cm y desde esta tanda ES CRITERIO
+     —«Inflow time-velocity integral >60 cm», Tabla 10, p. 19 de la EAE/ASE 2009—, asi que esta
+     escena pasaba a tener DOS criterios cumplidos y el parentesis los nombraba a los dos. Se baja
+     a 60,0 EXACTOS, que NO cumple por el operador estricto: la escena vuelve a aislar el area,
+     que es para lo que esta escrita —S07 el gradiente, S08 el THP, S09 el area, uno cada una— y
+     de paso fija el borde del criterio nuevo por el lado que no afirma. El area pasa de 0,83 a
+     0,88 cm2 y sigue por debajo de 1. */
+  const S09 = esc(function(){ __t.set('et_vti_diast','60');
+    __t.set('tsvd_diametro','26'); __t.set('vti_tsvd','10'); });
   const S10 = esc(function(){ __t.set('et_gmedio','3');
     valvSev.aplicar('esten','tricuspide','No significativa'); });
   const S11 = esc(function(){ __t.set('et_gmedio','3');
@@ -55948,8 +55996,8 @@ caso('TC-417', 'Tricuspide — la tabla de textos: 15 escenas del informe (presi
       S07.tri === CAB + ', con estenosis significativa (gradiente medio 8 mmHg).', S07.tri],
     ['S08 THP 200 → «(THP 200 ms)»',
       S08.tri === CAB + ', con estenosis significativa (THP 200 ms).', S08.tri],
-    ['S09 area 0,83 → «(área valvular 0.83 cm²)», con punto decimal como el resto del narrativo',
-      S09.tri === CAB + ', con estenosis significativa (área valvular 0.83 cm²).', S09.tri],
+    ['S09 area 0,88 → «(área valvular 0.88 cm²)», con punto decimal como el resto del narrativo',
+      S09.tri === CAB + ', con estenosis significativa (área valvular 0.88 cm²).', S09.tri],
     ['y la cita «— EAE/ASE 2009» NO viaja en ninguna de las tres',
       [S07,S08,S09].every(function(c){ return c.tri.indexOf('EAE/ASE') === -1; }),
       S07.tri + ' /// ' + S09.tri],
@@ -56910,7 +56958,11 @@ caso('TC-422', 'Aortica y mitral: la PASTILLA es la unica fuente del grado y el 
       insumo:['im_vc','8'], bajo:'2', alto:'4', verBajo:'Moderada', verAlto:'Severa', romper:['im_vc','2'] },
     { k:'em', tipo:'esten', valv:'mitral',  campo:'em_grado', slot:'gftxt-esten-mitral',
       aviso:'em-manual-aviso', fund:'em-fund', nota:'em_fund_nota',
-      insumo:['avm_plan','1.0'], bajo:'moderada', alto:'severa', verBajo:'Moderada', verAlto:'Severa', romper:['avm_plan','2.5'] },
+      /* ADAPTADO el 2026-10-13: los dos campos verBajo/verAlto de la estenosis MITRAL son las palabras del selector
+         BINARIO. Los bajo/alto —que son los VALUE— no se tocan: siguen siendo «moderada» y
+         «severa», que es lo que viaja al Excel y al Laboratorio. La tabla ya separaba las dos
+         cosas, asi que esto es exactamente para lo que estaba escrita. */
+      insumo:['avm_plan','1.0'], bajo:'moderada', alto:'severa', verBajo:'No significativa', verAlto:'Significativa', romper:['avm_plan','2.5'] },
     { k:'ia', tipo:'insuf', valv:'aortica', campo:'ia_grado', slot:'gftxt-insuf-aortica',
       aviso:'ia-manual-aviso', fund:'ia-fund', nota:'ia_fund_nota',
       insumo:['ia_vc','7'], bajo:'2', alto:'4', verBajo:'Moderada', verAlto:'Severa', romper:['ia_vc','2'] },
@@ -56968,6 +57020,9 @@ caso('TC-422', 'Aortica y mitral: la PASTILLA es la unica fuente del grado y el 
   const selAlcanzable = ['im_sev_final','ia_sev_final'].filter(function (id) { return !!g(id); })
     .concat(['em_grado','ea_grado'].filter(function (id) { return vis(id) === true; }));
 
+  /* Las palabras VISIBLES por clave, para que las condiciones no lleven literales: desde que la
+     estenosis mitral es binaria, «Severa» y «Moderada» no son las de las cuatro. */
+  const VER = {}; LES.forEach(function (L) { VER[L.k] = L; });
   const R = {};
   LES.forEach(function (L) {
     const r = {}; const gestos = [];
@@ -57097,23 +57152,23 @@ caso('TC-422', 'Aortica y mitral: la PASTILLA es la unica fuente del grado y el 
     ['no queda NINGUN desplegable de grado final alcanzable en aortica ni mitral',
       selAlcanzable.length === 0, 'alcanzables: [' + selAlcanzable.join(',') + ']'],
     ['DENOMINADOR: el calculo automatico produjo grado en las cuatro —si no, no hay nada que seguir—',
-      todos(function (k) { return R[k].a.ver === 'Severa'; }).length === 4,
+      todos(function (k) { return R[k].a.ver === VER[k].verAlto; }).length === 4,
       ks.map(function (k) { return k + '=' + R[k].a.ver; }).join(' ')],
 
     ['(a) con calculo automatico el texto fijo dice lo que la pastilla, sin aviso ni cajon',
       todos(function (k) { return R[k].a.sinc && !R[k].a.aviso && R[k].a.cajon === false; }).length === 4, dg],
     ['(b) el cambio manual por la pastilla lo sigue el texto fijo, con aviso Y cajon',
-      todos(function (k) { return R[k].b.ver === 'Moderada' && R[k].b.sinc &&
+      todos(function (k) { return R[k].b.ver === VER[k].verBajo && R[k].b.sinc &&
         /ajuste manual/.test(String(R[k].b.aviso)) && R[k].b.cajon === true; }).length === 4, dg],
     ['(c) volver al grado calculado apaga el aviso y el cajon',
-      todos(function (k) { return R[k].c.ver === 'Severa' && R[k].c.sinc &&
+      todos(function (k) { return R[k].c.ver === VER[k].verAlto && R[k].c.sinc &&
         !R[k].c.aviso && R[k].c.cajon === false; }).length === 4, dg],
     ['(d) elegir un grado con el boton APAGADO lo prende',
       todos(function (k) { return R[k].dAntes === false && R[k].d.pill === true &&
-        R[k].d.ver === 'Moderada' && R[k].d.sinc; }).length === 4,
+        R[k].d.ver === VER[k].verBajo && R[k].d.sinc; }).length === 4,
       ks.map(function (k) { return k + ': antes=' + R[k].dAntes + ' tras=' + R[k].d.pill + '/' + R[k].d.ver; }).join(' · ')],
     ['  DENOMINADOR de (e): antes de apagar habia grado, aviso y cajon en las cuatro',
-      todos(function (k) { return R[k].eAntes.ver === 'Moderada' && !!R[k].eAntes.aviso &&
+      todos(function (k) { return R[k].eAntes.ver === VER[k].verBajo && !!R[k].eAntes.aviso &&
         R[k].eAntes.cajon === true; }).length === 4,
       ks.map(function (k) { return k + '=' + R[k].eAntes.ver; }).join(' ')],
     /* ⚠️ APAGAR BORRA EL GRADO Y DEJA EL AVISO, Y ESO ES LA REGLA 8 —NO UN OLVIDO—. El pedido de
@@ -58574,19 +58629,26 @@ caso('TC-429', 'Tricuspide: el Diam. y el VTI del TSVD son UN dato con DOS campo
   __t.set('vti_tsvd','');         const borraVtiDesdeVD  = V('et_vti_tsvd');
 
   /* ── EL AREA SE ACTUALIZA AL TIPEAR DESDE CADA PUERTA ─────────────────────────────────────
-     Area = PI x (D/20)^2 x VTI-TSVD / VTI diastolico. Con VTI-TSVD 14 y VTI diast 90:
-       D 26 -> PI x 1,3^2 x 14 / 90 = 0,83 cm2  (<= 1: significativa por el tercer criterio)
-       D 30 -> PI x 1,5^2 x 14 / 90 = 1,10 cm2  (> 1: ese criterio no vota)
+     Area = PI x (D/20)^2 x VTI-TSVD / VTI diastolico. Con VTI-TSVD 10 y VTI diast 60:
+       D 26 -> PI x 1,3^2 x 10 / 60 = 0,88 cm2  (<= 1: significativa por el criterio del area)
+       D 30 -> PI x 1,5^2 x 10 / 60 = 1,18 cm2  (> 1: ese criterio no vota)
      Las dos puertas tienen que dar los MISMOS dos numeros: si una sola recalculara, el espejo
-     estaria copiando el valor sin disparar el calculo, que es la mitad del defecto. */
+     estaria copiando el valor sin disparar el calculo, que es la mitad del defecto.
+     ⚠️ ADAPTADO el 2026-10-13: el VTI de entrada era 90 cm y el del TSVD 14, y desde esta tanda
+     un VTI de entrada por encima de 60 cm CUMPLE su propio criterio —Tabla 10, p. 19 de la
+     EAE/ASE 2009—, asi que la escena del area > 1, que existe para medir que ese criterio NO
+     vota, publicaba «Significativa» por el VTI y el control negativo dejaba de serlo. Con 60,0
+     exactos no cumple (operador estricto) y las dos escenas vuelven a aislar el area. Los dos
+     numeros del area se mueven en consecuencia, y el par 0,88 / 1,18 sigue cayendo a los dos
+     lados del corte de 1 cm2, que es lo que esta pareja prueba. */
   const porTarjeta = function (d) {
     __t.nuevoEstudio(); abrir();
-    __t.set('et_vti_diast','90'); __t.set('et_vti_tsvd','14'); __t.set('et_tsvd_diam', d);
+    __t.set('et_vti_diast','60'); __t.set('et_vti_tsvd','10'); __t.set('et_tsvd_diam', d);
     return { area: V('et_avt'), sev: T('et-sev'), dueno: V('tsvd_diametro') };
   };
   const porVD = function (d) {
     __t.nuevoEstudio(); abrir();
-    __t.set('et_vti_diast','90'); __t.set('vti_tsvd','14'); __t.set('tsvd_diametro', d);
+    __t.set('et_vti_diast','60'); __t.set('vti_tsvd','10'); __t.set('tsvd_diametro', d);
     return { area: V('et_avt'), sev: T('et-sev'), espejo: V('et_tsvd_diam') };
   };
   const t26 = porTarjeta('26'), t30 = porTarjeta('30');
@@ -58690,13 +58752,22 @@ caso('TC-429', 'Tricuspide: el Diam. y el VTI del TSVD son UN dato con DOS campo
     if (o.gm != null) __t.set('et_gmedio', o.gm);
     if (o.thp != null) __t.set('et_thp', o.thp);
     if (o.area != null) {
-      /* area = PI*(D/20)^2*VTItsvd / VTIdiast  =>  VTIdiast = PI*(D/20)^2*VTItsvd / area */
-      const D = 26, VT = 14;
-      __t.set('et_vti_diast', (Math.PI * Math.pow(D / 20, 2) * VT / o.area).toFixed(6));
-      __t.set('et_tsvd_diam', D); __t.set('et_vti_tsvd', VT);
+      /* area = PI*(D/20)^2*VTItsvd / VTIdiast  =>  VTItsvd = area * VTIdiast / (PI*(D/20)^2)
+         ⚠️ ADAPTADO el 2026-10-13: se despeja el VTI del TSVD con el VTI de ENTRADA FIJO en 60, y
+         antes era al reves —el de entrada se despejaba y salia 73-75 cm—. Desde esta tanda el VTI
+         de entrada ES CRITERIO por encima de 60 cm, asi que aquellas escenas tenian un criterio
+         cumplido de mas: la de area 1,01, que existe para medir que el area NO vota, publicaba
+         «Significativa» por el VTI y el control negativo dejaba de serlo. Con 60,0 exactos no
+         cumple —el operador de la guia es estricto— y la escena vuelve a aislar el area. */
+      const D = 26, VD = 60;
+      const VT = o.area * VD / (Math.PI * Math.pow(D / 20, 2));
+      __t.set('et_vti_diast', VD);
+      __t.set('et_tsvd_diam', D); __t.set('et_vti_tsvd', VT.toFixed(6));
     }
     if (o.vtiSolo != null) __t.set('et_vti_diast', o.vtiSolo);
-    if (o.dFuera != null) { __t.set('et_vti_diast', 90);
+    /* Mismo motivo: 60 y no 90, para que el insumo FUERA de banda sea lo unico que esta escena
+       declara y el VTI de entrada no meta un veredicto por la puerta de al lado. */
+    if (o.dFuera != null) { __t.set('et_vti_diast', 60);
       __t.set('et_tsvd_diam', o.dFuera); __t.set('et_vti_tsvd', 14); }
     const T = function (id) { const e = document.getElementById(id);
       return e ? (e.textContent || '').trim() : 'NO ' + id; };
@@ -58712,7 +58783,11 @@ caso('TC-429', 'Tricuspide: el Diam. y el VTI del TSVD son UN dato con DOS campo
   const rGmFuera = ref({ gm: 45 }), rThpFuera = ref({ thp: 500 });
   const rAreaInsumoFuera = ref({ dFuera: 2.6 });
   /* El area sin sus tres insumos: NO es fuera de rango, es que falta el dato. */
-  const rAreaFaltan = ref({ vtiSolo: 90 });
+  /* ⚠️ ADAPTADO el 2026-10-13: el VTI SOLO era 90 y desde esta tanda eso CUMPLE el criterio nuevo,
+     asi que la escena habria pasado a tener veredicto. Lo que mide es la FILA DEL AREA —raya
+     pelada porque le faltan insumos, no «fuera de rango»— y con 60 eso se mide igual, sin un
+     veredicto prestado. */
+  const rAreaFaltan = ref({ vtiSolo: 60 });
   /* Las tres juntas, cada una en un estado distinto, y basta UNA para el veredicto. */
   const rMixta = ref({ gm: 4.9, thp: 190, area: 1.01 });
   /* La frase que se fue del cuadro, y el texto celeste que ya no existe. */
@@ -58744,11 +58819,11 @@ caso('TC-429', 'Tricuspide: el Diam. y el VTI del TSVD son UN dato con DOS campo
     ['borrar el VTI en VD/AD lo borra en la tarjeta', borraVtiDesdeVD === '', JSON.stringify(borraVtiDesdeVD)],
 
     // --- El area, desde las DOS puertas, con el corte de 1 cm2 por los dos lados --------------
-    ['el area se calcula tipeando desde la TARJETA: D 26 -> 0,83 cm2',
-      t26.area === '0.83 cm²', t26.area],
-    ['y tipeando desde VD/AD da el MISMO numero', v26.area === '0.83 cm²', v26.area],
-    ['D 30 -> 1,10 cm2 por la tarjeta', t30.area === '1.10 cm²', t30.area],
-    ['y 1,10 cm2 por VD/AD', v30.area === '1.10 cm²', v30.area],
+    ['el area se calcula tipeando desde la TARJETA: D 26 -> 0,88 cm2',
+      t26.area === '0.88 cm²', t26.area],
+    ['y tipeando desde VD/AD da el MISMO numero', v26.area === '0.88 cm²', v26.area],
+    ['D 30 -> 1,18 cm2 por la tarjeta', t30.area === '1.18 cm²', t30.area],
+    ['y 1,18 cm2 por VD/AD', v30.area === '1.18 cm²', v30.area],
     ['las dos puertas dan la MISMA severidad sugerida con el area <= 1',
       t26.sev === v26.sev && t26.sev.indexOf('Significativa') > -1, t26.sev + ' / ' + v26.sev],
     ['y la MISMA con el area > 1, donde ese criterio no vota',
@@ -62238,6 +62313,364 @@ const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0,
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────
 const L = '═'.repeat(62);
+
+/* ══ TC-466 — LA REGLA DEL MODO MANUAL, EL SELECTOR BINARIO DE LA EM, EL VIOLETA Y EL VTI ══════
+   ⚠️ CARGA CON `__t.set` Y NO CON TECLAS DE CDP, y hay que decirlo: el cuerpo de un caso corre
+   DENTRO de la pagina, no tiene acceso al protocolo del navegador y un KeyboardEvent construido a
+   mano no es de confianza. Las mismas escenas van con TECLAS Y CLICS REALES en
+   scripts/_probe_valvmanual.mjs, que es la que midio los sintomas contra HEAD. Mismo reparto que
+   TC-460, TC-463 y TC-465.
+   ⚠️ TODAS LAS LECTURAS DEL ARBOL NUEVO VAN CON SU RESPALDO. Un caso que muere por EXCEPCION
+   contra HEAD prueba que el arbol es distinto, no que sabe medir — es la leccion que TC-455,
+   TC-462 y TC-465 ya tienen escrita. */
+caso('TC-466', 'Las ocho pastillas vuelven al estado inicial al borrar el ultimo dato (y lo respetan con el dato cargado), el selector de la estenosis mitral es binario «No significativa»/«Significativa», «Significativa» se pinta violeta en las DOS valvulas binarias y en los DOS temas, y el VTI de entrada tricuspideo >60 cm vota', `
+  const ex = [];
+  const G = id => __t.val(id);
+  const T = id => (__t.txt(id) || '').trim();
+  const PILL = (v, t) => { try { return pillOn(v, t); } catch (e) { return 'EXC'; } };
+  /* Las OCHO lesiones con pastilla, con UN campo votante cada una y DOS valores que graduan: el
+     segundo es el «dato nuevo» del final, y tiene que graduar tambien — si no, la escena no llega
+     a la compuerta y mediria «no hay aviso» sobre un calculo que no existe. */
+  const LES = [
+    { k:'im', t:'insuf', v:'mitral',     campo:'im_vc',     v1:'7',   v2:'6'   },
+    { k:'ia', t:'insuf', v:'aortica',    campo:'ia_vc',     v1:'8',   v2:'7'   },
+    { k:'it', t:'insuf', v:'tricuspide', campo:'it_vc',     v1:'8',   v2:'9'   },
+    { k:'ip', t:'insuf', v:'pulmonar',   campo:'ip_pht',    v1:'80',  v2:'70'  },
+    { k:'em', t:'esten', v:'mitral',     campo:'em_gmedio', v1:'12',  v2:'14'  },
+    { k:'ea', t:'esten', v:'aortica',    campo:'vmax_ao',   v1:'4.5', v2:'4.2' },
+    { k:'et', t:'esten', v:'tricuspide', campo:'et_gmedio', v1:'8',   v2:'9'   },
+    { k:'ep', t:'esten', v:'pulmonar',   campo:'vp_vmax',   v1:'4.5', v2:'4.2' }
+  ];
+  const base = () => {
+    __t.limpiar();
+    window.esqSevManual = {}; window._sevCalcAlFijar = {};
+    window._imGradoCalc = null; window._iaGradoCalc = null; window._itGradoCalc = null;
+    ['aortica','mitral','tricuspide','pulmonar'].forEach(v => ['esten','insuf'].forEach(t => {
+      try { if (PILL(v, t) === true) toggleValvPill(v, t); } catch (e) {}
+      try { localStorage.removeItem('valv-pill-' + t + '-' + v); } catch (e) {}
+    }));
+    try { if (window.VALV_ESTEN_AUTO) window.VALV_ESTEN_AUTO.clear(); } catch (e) {}
+    try { if (window.VALV_INSUF_AUTO) window.VALV_INSUF_AUTO.clear(); } catch (e) {}
+    ['im_grado','ia_grado','it_grado','ea_grado','em_grado','et_grado','ep_grado','ip_grado']
+      .forEach(id => { const e = document.getElementById(id); if (e) delete e.dataset.sugerido; });
+    try { if (typeof _sevManualSync === 'function') _sevManualSync(); } catch (e) {}
+    recalc();
+  };
+  const recalc = () => ['calcAo','calcEM','calcIM_ESC','calcIA_ESC','calcIT_ESC','calcET','calcVP','calcIP']
+    .forEach(f => { try { if (typeof window[f] === 'function') window[f](); } catch (e) {} });
+  /* La foto de una clave: lo que el medico ve y lo que decide. Con respaldo en TODO, para que el
+     caso corra contra un arbol que no tiene nada de esto. */
+  const foto = k => {
+    const C = (window.SEV_SINC || {})[k]; if (!C) return { err: 'NO REGISTRADA ' + k };
+    const sel = document.getElementById(C.select);
+    let fotoCalc = false;
+    try { fotoCalc = !!(window._sevCalcAlFijar &&
+      Object.prototype.hasOwnProperty.call(window._sevCalcAlFijar, k)); } catch (e) {}
+    let calc = 'EXC'; try { calc = sevCalcPublicable(k); } catch (e) {}
+    const caj = C.fundamento ? document.getElementById(C.fundamento) : null;
+    return { grado: sel ? sel.value : 'NO EXISTE',
+             manual: !!(window.esqSevManual && window.esqSevManual[k]), fotoCalc: fotoCalc,
+             calc: calc, pill: PILL(C.valv, C.tipo),
+             aviso: T(C.aviso), past: T('sevbtn-' + C.tipo + '-' + C.valv),
+             cajon: caj ? (getComputedStyle(caj).display !== 'none') : 'NO EXISTE' };
+  };
+  const poner = (id, val) => { __t.set(id, val); recalc(); };
+  const borrarC = id => { __t.set(id, ''); recalc(); };
+
+  /* ── 0 · DENOMINADORES ─────────────────────────────────────────────────────────────────────
+     Sin esto, todo lo de abajo podria pasar en un arbol donde nada de esto se escribio. */
+  const faltan = ['sevReiniciarManual','sevSincronizar','emGradoVis','etEstado']
+    .filter(n => typeof window[n] !== 'function');
+  ex.push(['DENOMINADOR: el dueño del reinicio y los otros tres existen',
+    faltan.length === 0, 'faltan=' + JSON.stringify(faltan)]);
+  const registradas = LES.filter(L => !!(window.SEV_SINC || {})[L.k]).map(L => L.k);
+  ex.push(['DENOMINADOR: las OCHO lesiones con pastilla estan registradas en SEV_SINC',
+    registradas.length === 8, registradas.join('/')]);
+  /* El corte del VTI y su operador salen de la tabla congelada: con otro numero adentro, los
+     bordes de mas abajo pasarian corridos. */
+  const CV = (window.ET_CRIT || {}).vtiEnt || {};
+  ex.push(['DENOMINADOR: el corte del VTI de entrada vale 60 cm con operador ESTRICTO (EAE/ASE 2009, Tabla 10, p. 19)',
+    CV.signif === 60 && CV.op === '>' && CV.uni === 'cm',
+    JSON.stringify({ signif: CV.signif, op: CV.op, uni: CV.uni })]);
+
+  /* ── 1 · LA REGLA DEL MODO MANUAL, LAS OCHO LESIONES ────────────────────────────────────────
+     (a) apagar la pastilla y BORRAR el dato deja el ESTADO INICIAL: sin marca y sin advertencia;
+     (c) y un dato NUEVO se gradua como si nada hubiera pasado. */
+  const borr = {}, nuevo = {}, conDato = {};
+  LES.forEach(L => {
+    base();
+    poner(L.campo, L.v1);
+    conDato[L.k] = foto(L.k);
+    try { if (PILL(L.v, L.t) === true) toggleValvPill(L.v, L.t); } catch (e) {}
+    recalc();
+    borrarC(L.campo);
+    borr[L.k] = foto(L.k);
+    poner(L.campo, L.v2);
+    nuevo[L.k] = foto(L.k);
+  });
+  const dg = o => LES.map(L => L.k + '{g=' + o[L.k].grado + ' man=' + o[L.k].manual +
+    ' av=' + (o[L.k].aviso || '-') + '}').join(' ');
+  /* DENOMINADOR de la escena: el PRIMER dato tuvo que graduar en las ocho. Sin esto, «no hay
+     aviso» al final seria cierto sobre ocho lesiones que nunca se graduaron. */
+  /* ⚠️ SEV_TOKEN_SIN NO ESTA EN window —es un const de modulo— y la primera version de este
+     caso MURIO POR EXCEPCION leyendolo: «Cannot read properties of undefined». Un caso que muere
+     asi prueba que el arbol es distinto, no que sabe medir, que es la leccion que TC-455, TC-462
+     y TC-465 ya tienen escrita. El centinela se pregunta por el dueño que SI esta exportado,
+     sevEsSin, y el literal queda solo como respaldo del respaldo. */
+  const sentinela = k => { const C = (window.SEV_SINC || {})[k] || {};
+    if (typeof C.sinToken === 'string') return C.sinToken;
+    return C.tipo === 'esten' ? 'sin' : '0'; };
+  const esSin = (k, val) => { const C = (window.SEV_SINC || {})[k] || {};
+    if (typeof C.sinToken === 'string') return String(val) === C.sinToken;
+    try { return !!sevEsSin(C.tipo, val); } catch (e) { return String(val) === sentinela(k); } };
+  ex.push(['DENOMINADOR: el primer dato gradua en las OCHO lesiones',
+    LES.every(L => !esSin(L.k, conDato[L.k].grado) && conDato[L.k].grado !== ''),
+    dg(conDato)]);
+  ex.push(['(a) apagar la pastilla y BORRAR el dato NO deja marca de manual en ninguna de las ocho',
+    LES.every(L => borr[L.k].manual === false), dg(borr)]);
+  ex.push(['(a) y tampoco deja aviso de contradiccion ni cajon de fundamento',
+    LES.every(L => borr[L.k].aviso === '' && borr[L.k].cajon !== true), dg(borr)]);
+  ex.push(['(a) el grado queda en el centinela en las ocho',
+    LES.every(L => esSin(L.k, borr[L.k].grado)), dg(borr)]);
+  ex.push(['(c) un dato NUEVO se gradua en las ocho, sin marca y sin aviso',
+    LES.every(L => !esSin(L.k, nuevo[L.k].grado) && nuevo[L.k].manual === false &&
+                   nuevo[L.k].aviso === ''), dg(nuevo)]);
+
+  /* (b) CONTROL NEGATIVO DE LA MISMA REGLA: con el dato CARGADO, apagar la pastilla se RESPETA —
+     la marca queda y el aviso de discordancia tambien—. Es la mitad que prueba que el reinicio
+     distingue escenarios y no esta diciendo que si a todo. */
+  const conDatoApagada = {};
+  LES.forEach(L => {
+    base();
+    poner(L.campo, L.v1);
+    try { if (PILL(L.v, L.t) === true) toggleValvPill(L.v, L.t); } catch (e) {}
+    recalc();
+    conDatoApagada[L.k] = foto(L.k);
+  });
+  ex.push(['(b) CONTROL NEGATIVO: con el dato CARGADO, apagar la pastilla CONSERVA la marca en las ocho',
+    LES.every(L => conDatoApagada[L.k].manual === true), dg(conDatoApagada)]);
+  /* El aviso rojo sale en SIETE de las ocho: la estenosis tricuspidea no lo pinta porque su
+     su lista de comparables excluye el centinela, y eso es PREEXISTENTE —medido igual en HEAD— y no lo
+     toca esta tanda. Se afirma con el numero para que un cambio futuro se vea. */
+  const conAviso = LES.filter(L => conDatoApagada[L.k].aviso !== '').map(L => L.k);
+  ex.push(['(b) y el aviso de discordancia sigue saliendo en SIETE de las ocho (la ET no, por su comparables — preexistente)',
+    conAviso.length === 7 && conAviso.indexOf('et') === -1, conAviso.join('/')]);
+  /* CONTROL NEGATIVO 2: un estudio RESTAURADO trae la marca SIN foto del calculado, y el reinicio
+     NO la toca aunque no haya ni un dato. Es lo que impide migrar un «IM ausente» importado. */
+  base();
+  window.esqSevManual = { im: true };
+  try { if (typeof _sevManualSync === 'function') _sevManualSync(); } catch (e) {}
+  if (window._sevCalcAlFijar) delete window._sevCalcAlFijar.im;
+  let rRest = null; try { rRest = sevReiniciarManual('im'); } catch (e) { rRest = { err: 1 }; }
+  ex.push(['CONTROL NEGATIVO: una marca RESTAURADA (sin foto del calculado) NO se reinicia, aunque no haya ni un dato',
+    !!(rRest && rRest.restaurada === true) && !!(window.esqSevManual && window.esqSevManual.im),
+    JSON.stringify(rRest) + ' marca=' + !!(window.esqSevManual && window.esqSevManual.im)]);
+
+  /* ── 2 · EL SELECTOR BINARIO DE LA ESTENOSIS MITRAL ─────────────────────────────────────────
+     Se leen las <option> del <select> oculto, que es de donde el menu ▼ arma sus items
+     (valvSev.opciones las filtra por su atributo hidden). */
+  base();
+  const emSel = document.getElementById('em_grado');
+  const emOpts = emSel && emSel.options
+    ? Array.prototype.map.call(emSel.options, o => o.value + '|' + o.textContent.trim() + '|' + (o.hidden ? 'H' : '-'))
+    : ['NO EXISTE'];
+  ex.push(['(2) las cuatro <option> de em_grado conservan su VALUE y «leve»/«moderada» dicen las dos «No significativa», con «moderada» oculta',
+    emOpts.join(' · ') === 'sin|— grado —|- · leve|No significativa|- · moderada|No significativa|H · severa|Significativa|-',
+    emOpts.join(' · ')]);
+  const emMenu = emSel && emSel.options
+    ? Array.prototype.filter.call(emSel.options, o => !o.hidden && o.value !== 'sin')
+        .map(o => o.textContent.trim())
+    : [];
+  ex.push(['(2) el menu ▼ ofrece exactamente DOS grados: «No significativa» y «Significativa»',
+    emMenu.join('|') === 'No significativa|Significativa', emMenu.join('|')]);
+  /* Las cuatro superficies de texto tienen que decir lo MISMO, y por el mismo dueño. */
+  const vis = {}; ['sin','leve','moderada','severa'].forEach(k => {
+    try { vis[k] = emGradoVis(k); } catch (e) { vis[k] = 'EXC'; } });
+  ex.push(['(2) EM_GRADO_VIS colapsa los dos tokens de legado en «No significativa» y «severa» dice «Significativa»',
+    vis.leve === 'No significativa' && vis.moderada === 'No significativa' &&
+    vis.severa === 'Significativa' && vis.sin === 'Sin estenosis', JSON.stringify(vis)]);
+  const past = {};
+  ['leve','moderada','severa'].forEach(k => { base(); __t.set('em_grado', k);
+    try { valvSev.refrescar('esten','mitral'); } catch (e) {}
+    past[k] = { btn: T('sevbtn-esten-mitral'), fijo: T('gftxt-esten-mitral') }; });
+  ex.push(['(2) el sub-boton y el «grado final al informe» dicen lo mismo que la option — y NO «Severa»',
+    past.severa.btn.indexOf('Significativa') === 0 && past.severa.fijo === 'Significativa' &&
+    past.leve.fijo === 'No significativa' && past.moderada.fijo === 'No significativa' &&
+    past.severa.btn.indexOf('Severa') === -1, JSON.stringify(past)]);
+  /* Un estudio con los valores VIEJOS abre sin quedar en selectedIndex -1, que es lo que haria
+     DESAPARECER el grado de las cuatro superficies sin evento y sin rastro. */
+  const legado = {};
+  ['leve','moderada'].forEach(k => { const e = document.getElementById('em_grado');
+    if (e) { e.value = k; legado[k] = { idx: e.selectedIndex, leido: e.value }; } });
+  ex.push(['(2) un estudio con los valores viejos reabre en su indice, no en -1',
+    legado.leve && legado.leve.idx > -1 && legado.leve.leido === 'leve' &&
+    legado.moderada && legado.moderada.idx > -1 && legado.moderada.leido === 'moderada',
+    JSON.stringify(legado)]);
+  /* Y los textos de ayuda ya no nombran grados que el selector no ofrece. */
+  const fuente = document.documentElement.innerHTML;
+  ex.push(['(2) ningun texto de ayuda dice ya «Leve y moderada las elige el medico»',
+    fuente.indexOf('Leve y moderada las elige') === -1,
+    'apariciones=' + (fuente.split('Leve y moderada las elige').length - 1)]);
+
+  /* ── 3 · EL VIOLETA DE «Significativa», EN LOS DOS TEMAS ────────────────────────────────────
+     ⚠️ EL TEMA DE ESTA APP ES LA CLASE light-mode SOBRE documentElement, NO data-theme: una sonda
+     de este repo saco dos capturas identicas creyendo que medía dos temas. Se EXIGE que la clase
+     quede puesta antes de leer. */
+  const bg = (t, v) => { const e = document.getElementById('sevbtn-' + t + '-' + v);
+    return e ? getComputedStyle(e).backgroundColor : 'NO EXISTE'; };
+  const esVioleta = s => s === 'rgb(237, 233, 254)';
+  const col = { oscuro: {}, claro: {} };
+  const temaOk = {};
+  ['oscuro','claro'].forEach(tema => {
+    const r = document.documentElement;
+    if (tema === 'claro') r.classList.add('light-mode'); else r.classList.remove('light-mode');
+    temaOk[tema] = (r.classList.contains('light-mode') === (tema === 'claro'));
+    base();
+    __t.set('em_grado','severa'); __t.set('et_grado','Significativa');
+    try { valvSev.refrescar('esten','mitral'); valvSev.refrescar('esten','tricuspide'); } catch (e) {}
+    col[tema].emSig = bg('esten','mitral'); col[tema].etSig = bg('esten','tricuspide');
+    __t.set('em_grado','leve'); __t.set('et_grado','No significativa');
+    try { valvSev.refrescar('esten','mitral'); valvSev.refrescar('esten','tricuspide'); } catch (e) {}
+    col[tema].emNo = bg('esten','mitral'); col[tema].etNo = bg('esten','tricuspide');
+    __t.set('ea_grado','severa'); __t.set('ep_grado','Severa');
+    __t.set('im_grado','4'); __t.set('it_grado','4');
+    try { ['aortica','pulmonar'].forEach(v => valvSev.refrescar('esten', v));
+          ['mitral','tricuspide'].forEach(v => valvSev.refrescar('insuf', v)); } catch (e) {}
+    col[tema].ea = bg('esten','aortica'); col[tema].ep = bg('esten','pulmonar');
+    col[tema].im = bg('insuf','mitral'); col[tema].it = bg('insuf','tricuspide');
+  });
+  document.documentElement.classList.remove('light-mode');
+  ex.push(['DENOMINADOR: la clase light-mode quedo puesta y quitada de verdad en los dos pases',
+    temaOk.oscuro === true && temaOk.claro === true, JSON.stringify(temaOk)]);
+  ex.push(['(3) «Significativa» se pinta VIOLETA en las DOS valvulas binarias y en los DOS temas',
+    esVioleta(col.oscuro.emSig) && esVioleta(col.oscuro.etSig) &&
+    esVioleta(col.claro.emSig) && esVioleta(col.claro.etSig), JSON.stringify(col)]);
+  ex.push(['(3) «No significativa» NO se pinta violeta, en ninguna de las dos ni en ningun tema',
+    !esVioleta(col.oscuro.emNo) && !esVioleta(col.oscuro.etNo) &&
+    !esVioleta(col.claro.emNo) && !esVioleta(col.claro.etNo), JSON.stringify(col)]);
+  ex.push(['(3) CONTROL NEGATIVO: las otras cuatro lesiones con su grado mas grave NO se pintan violeta',
+    ['ea','ep','im','it'].every(k => !esVioleta(col.oscuro[k]) && !esVioleta(col.claro[k])),
+    JSON.stringify(col)]);
+  /* El significado no depende del color: la palabra sigue en el boton. */
+  base(); __t.set('et_grado','Significativa');
+  try { valvSev.refrescar('esten','tricuspide'); } catch (e) {}
+  ex.push(['(3) y el boton SIGUE diciendo la palabra: el color no es el unico portador',
+    T('sevbtn-esten-tricuspide').indexOf('Significativa') === 0, T('sevbtn-esten-tricuspide')]);
+
+  /* ── 4 · EL VTI DE ENTRADA TRICUSPIDEO EN SU BORDE ──────────────────────────────────────────
+     Con el VTI como UNICO dato: si hubiera otro criterio cumplido, el veredicto seria el mismo
+     por otra razon y la tabla no probaria nada. */
+  const vti = {};
+  ['59.9','60','60.1','99','101'].forEach(val => {
+    base(); poner('et_vti_diast', val);
+    let E = null; try { E = etEstado(); } catch (e) { E = { err: 1 }; }
+    vti[val] = { cVti: E.cVti, signif: E.signif, grado: G('et_grado'),
+                 pill: PILL('tricuspide','esten'), fila: T('et-ref-vti') };
+  });
+  const dgv = JSON.stringify(vti);
+  ex.push(['(4) el corte separa por sus DOS lados: 59,9 no · 60,0 NO (operador estricto) · 60,1 SI',
+    vti['59.9'].cVti === false && vti['60'].cVti === false && vti['60.1'].cVti === true, dgv]);
+  ex.push(['(4) y 60,1 solo basta para el veredicto y para prender la pastilla',
+    vti['60.1'].signif === true && vti['60.1'].grado === 'Significativa' &&
+    vti['60.1'].pill === true, dgv]);
+  ex.push(['(4) CONTROL NEGATIVO: con 60,0 exactos no hay veredicto ni pastilla',
+    vti['60'].signif === false && vti['60'].grado === 'sin' && vti['60'].pill === false, dgv]);
+  ex.push(['(4) la banda por sus dos lados: 99 vota y 101 queda «fuera de rango (no gradua)»',
+    vti['99'].cVti === true && vti['101'].cVti === false &&
+    vti['101'].fila.indexOf('fuera de rango') > -1, dgv]);
+  ex.push(['(4) la fila del cuadro imprime el operador de la guia y NO el contrario',
+    vti['60.1'].fila.indexOf('>60 cm') > -1 && vti['60.1'].fila.indexOf('≤60') === -1,
+    vti['60.1'].fila]);
+  /* El informe nombra el criterio cuando cumple, y el EN SUMA publica la sigla. */
+  base(); poner('et_vti_diast','75');
+  const infVti = __t.informe();
+  ex.push(['(4) el informe nombra el VTI de entrada en el parentesis y el EN SUMA dice «ET significativa.»',
+    infVti.inf.indexOf('VTI de entrada 75 cm') > -1 && infVti.suma.indexOf('ET significativa.') > -1,
+    (infVti.inf.match(/[^.]*tric[^.]*\./i) || ['(sin frase)'])[0] + ' // ' + infVti.suma]);
+  /* EL AREA POR CONTINUIDAD NO SE MUEVE: este campo es su DENOMINADOR. */
+  base();
+  __t.set('tsvd_diametro','25'); __t.set('vti_tsvd','14'); poner('et_vti_diast','70');
+  let Ea = null; try { Ea = etEstado(); } catch (e) { Ea = { avt: 'EXC' }; }
+  ex.push(['(4) el area por continuidad sigue dando 0,98 cm² con esos insumos — el VTI sigue siendo su denominador',
+    Ea.avt === 0.98 && G('et_avt') === '0.98 cm²', 'avt=' + Ea.avt + ' campo=' + G('et_avt')]);
+  /* BORRAR el dato retira el grado y apaga la pastilla que la APP prendio. */
+  base(); poner('et_vti_diast','75');
+  const vtiAntes = { grado: G('et_grado'), pill: PILL('tricuspide','esten') };
+  borrarC('et_vti_diast');
+  const vtiDespues = { grado: G('et_grado'), pill: PILL('tricuspide','esten'), fila: T('et-ref-vti') };
+  ex.push(['(4) borrar el VTI retira el grado y apaga la pastilla que prendio la app',
+    vtiAntes.grado === 'Significativa' && vtiAntes.pill === true &&
+    vtiDespues.grado === 'sin' && vtiDespues.pill === false && vtiDespues.fila === '—',
+    JSON.stringify(vtiAntes) + ' -> ' + JSON.stringify(vtiDespues)]);
+  /* CONTROL NEGATIVO: el gradiente cumple y el VTI no — el veredicto lo sostiene el gradiente y
+     el parentesis NO nombra el VTI. */
+  base(); __t.set('et_gmedio','8'); poner('et_vti_diast','30');
+  let Ec = null; try { Ec = etEstado(); } catch (e) { Ec = { err: 1 }; }
+  const infC = __t.informe();
+  ex.push(['(4) CONTROL NEGATIVO: con el gradiente cumpliendo y el VTI en 30, el veredicto lo sostiene el gradiente y el parentesis no nombra el VTI',
+    Ec.cGm === true && Ec.cVti === false && Ec.signif === true &&
+    infC.inf.indexOf('VTI de entrada') === -1, JSON.stringify({ cGm: Ec.cGm, cVti: Ec.cVti }) +
+    ' | ' + (infC.inf.match(/[^.]*tric[^.]*\./i) || ['(sin frase)'])[0]]);
+  /* El cuadro pasa de TRES filas a CUATRO: el conteo es lo unico que caza una fila perdida. */
+  const filasET = ['et-ref-gmedio','et-ref-vti','et-ref-thp','et-ref-avt']
+    .filter(id => !!document.getElementById(id));
+  ex.push(['(4) el cuadro de referencias de la ET tiene sus CUATRO filas',
+    filasET.length === 4, filasET.join('/')]);
+
+  /* ── 5 · LOS CONTROLES: lo que esta tanda NO puede mover ────────────────────────────────────
+     Con un escenario CARGADO, que es lo que les da denominador: sobre un formulario vacio salen
+     identicos por construccion y no prueban nada. */
+  base();
+  [['im_vc','6'],['ia_vc','5'],['it_vc','6'],['ea_dtsvi','20'],['vmax_ao','4.2'],
+   ['gmedio_ao','45'],['em_gmedio','12'],['et_gmedio','8'],['et_thp','200'],['vp_vmax','3.5'],
+   ['ip_pht','80'],['onda_e','90'],['onda_a','60'],['tde','180'],['e_sep','6'],['e_lat','8'],
+   ['vmax_it','2.9'],['ai_vol','40'],['peso','70'],['talla','170'],['edad','60']]
+    .forEach(p => __t.set(p[0], p[1]));
+  recalc();
+  const ctrl = { diast: T('dd-interp'), hfapeff: T('hfapeff-eco'), eaSev: T('ea-sev'),
+                 imSev: T('im-sev'), iaSev: T('ia-sev'), itSev: T('it-sev'),
+                 emBadge: T('em-sev-integrada'), vpBadge: T('vp-sev-badge'), ipPht: T('ip-ref-pht') };
+  ex.push(['DENOMINADOR: el escenario de control tiene veredicto en las nueve superficies ajenas',
+    Object.keys(ctrl).every(k => ctrl[k] && ctrl[k] !== '—'), JSON.stringify(ctrl)]);
+  /* Los valores exactos, medidos en el A/B contra HEAD el 2026-10-13 con este mismo escenario. */
+  ex.push(['(5) la funcion diastolica y el HFA-PEFF no se mueven',
+    ctrl.diast === 'DD Grado II — ASE 2025' && ctrl.hfapeff.indexOf('2 pts eco') === 0,
+    ctrl.diast + ' // ' + ctrl.hfapeff]);
+  ex.push(['(5) las tres insuficiencias y la estenosis aortica no se mueven',
+    ctrl.imSev === 'Moderada — evaluar integrado' && ctrl.iaSev === 'Moderada — evaluar integrado' &&
+    ctrl.itSev === 'Moderada — evaluar integrado' && ctrl.eaSev.indexOf('Severa') === 0,
+    JSON.stringify(ctrl)]);
+  /* ⚠️ EL GRADO SE FIJA A MANO PARA ESTA CELDA, Y ES EL DENOMINADOR DE LA CONDICION. El escenario
+     de control carga el gradiente medio con IM moderada, o sea la categoria «gradiente transmitral
+     elevado»: ahi la app NO escribe grado y la celda sale «sin», que no distingue el token de la
+     palabra nueva. La primera version de este caso midio exactamente eso. Con el grado elegido y
+     su marca, la celda tiene que publicar el TOKEN «severa» aunque la pantalla diga
+     «Significativa» — que es lo que mantiene el Excel y el Laboratorio sin tocar. */
+  window.esqSevManual = window.esqSevManual || {}; window.esqSevManual.em = true;
+  try { if (typeof _sevManualSync === 'function') _sevManualSync(); } catch (e) {}
+  __t.set('em_grado','severa');
+  try { if (typeof calcEM === 'function') calcEM(); } catch (e) {}
+  let xl = null;
+  try {
+    const campos = {};
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(el => {
+      try { if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(el.id)) return; } catch (e) {}
+      campos[el.id] = el.value; });
+    document.querySelectorAll('input[type=checkbox][id]').forEach(el => {
+      campos[el.id + '__chk'] = el.checked ? '1' : '0'; });
+    xl = _labExcelRow({ nombre:'P', ci:'1', fecha_estudio:'2026-10-13', campos: campos });
+  } catch (e) { xl = null; }
+  ex.push(['(5) el Excel sigue en 435 columnas y «EM grado» publica el TOKEN, no la palabra nueva',
+    !!xl && Object.keys(xl).length === 435 && xl['EM grado'] === 'severa',
+    'cols=' + (xl ? Object.keys(xl).length : 'EXC') + ' EM grado=' + (xl ? xl['EM grado'] : '?')]);
+  let lab = 'EXC';
+  try { lab = _labEstenSev({ campos: { em_grado: 'severa' } }, 'em_grado'); } catch (e) {}
+  ex.push(['(5) el Laboratorio sigue leyendo el token y clasifica «Severa» — esta tanda no lo toca',
+    lab === 'Severa', String(lab)]);
+
+  return { extra: ex };
+`);
+
 let servidor, chrome;
 try {
   const s = await servir(); servidor = s.srv;
