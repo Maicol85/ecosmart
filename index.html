@@ -1421,6 +1421,26 @@
      `data-grado-de`, que además dice a qué fila pertenece. */
   .calc-grado { color: var(--text2); font-weight: 400; font-size: 11px; margin-left: 6px; }
 
+  /* ══ LA TABLA DE DOS METODOS DEL BLOQUE 2 DE LA IM (2026-10-14) ═══════════════════════════
+     Tres columnas: el parametro con su corte, el valor por PISA y el valor por continuidad.
+     ⚠️ LAS FILAS LLEVAN LAS DOS CLASES, `calc-row im-m2`, Y NO SOLO ESTA. El barrido de
+     `limpiarCampos` es `.calc-box .calc-row span[id]:not(.calc-lbl)`: sin `calc-row` los seis
+     numeros de este bloque dejarian de volver a «—» con «Nuevo estudio», que es el numero rancio
+     que esta zona ya pago cuatro veces. Esta regla va DESPUES de `.calc-row` en la hoja, asi que
+     su `display:grid` le gana al `display:flex` de aquella por orden y sin `!important`.
+     ⚠️ Y EL ENCABEZADO NO ES UNA FILA DE DATOS: no lleva ningun `span[id]`, asi que el barrido no
+     tiene nada que borrarle y los dos rotulos sobreviven a «Nuevo estudio». */
+  .im-m2 { display: grid; grid-template-columns: minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr);
+           gap: 6px; align-items: center; }
+  .im-m2 > span:nth-child(2), .im-m2 > span:nth-child(3) { text-align: right; }
+  .im-m2-head > span { color: var(--text2); font-size: 10px; font-weight: 700;
+                       text-transform: uppercase; letter-spacing: .3px; }
+  /* A 360 y 390 px la rejilla se angosta sola —las tres pistas son `minmax(0,…)`— y lo unico que
+     hace falta es que el rotulo no empuje: por eso va con `minmax(0,1.6fr)` y no con `auto`. */
+  @media (max-width: 420px) {
+    .im-m2 { grid-template-columns: minmax(0,1.3fr) minmax(0,1fr) minmax(0,1fr); gap: 4px; }
+  }
+
   /* ⚠️ 44 px DE ALTO MÍNIMO, QUE ES EL PUNTO 5c, Y `width:100%` PARA QUE EL BLANCO SEA LA FILA
      ENTERA. Un `min-height` solo deja el texto centrado en una caja ancha pero el blanco táctil
      real es el del bloque, así que se declara `display:block`. En la PC la regla de arriba lo
@@ -5064,6 +5084,27 @@ window.cerrarSesionReal = cerrarSesionReal;
              que ya existía— y el detalle largo vive en la pestaña «Referencia clínica», que sí es
              alcanzable con el dedo. El `title` queda como atajo en escritorio, no como único
              camino. -->
+        <!-- ══ LOS TRES BLOQUES (2026-10-14) — DECISION DE MAICOL ════════════════════════════
+             El cuadro era UNA lista de doce filas donde los signos, los cuantitativos de PISA, el
+             volumen eyectado y la integracion iban seguidos, asi que nada separaba «esto apoya»
+             de «esto cuantifica por un metodo» ni decia por que metodo graduaba cada numero.
+             Hoy son TRES bloques, marcados con `data-im-bloque` para que el caso de la suite los
+             cuente por ATRIBUTO y no por el texto de un rotulo —que es la leccion que el panel de
+             Evidencia ya pago con sus `<details>`—:
+               1 · signos y semicuantitativos, UNA columna, valen para los dos metodos;
+               2 · cuantitativos, DOS columnas (PISA y continuidad), y debajo los dos volumenes de
+                   base que los dos metodos comparten;
+               3 · integracion.
+             ⚠️ NI UN CORTE, NI UN GRADO, NI UN TEXTO DEL INFORME CAMBIA. Las filas son las mismas
+             y los `id` de sus span tambien: `eroa-val`, `volr-val` y `freg-val` son LITERALMENTE lo
+             que `_imPdfPisaTxt` publica en el papel y lo que `_imPisaSellar` congela en el estudio,
+             asi que moverlos de contenedor es lo unico que se hace con ellos.
+             ⚠️ Y LAS FILAS DE LA TABLA LLEVAN LAS DOS CLASES, `calc-row im-m2`. El barrido de
+             `limpiarCampos` es `.calc-box .calc-row span[id]:not(.calc-lbl)`: sin `calc-row` los
+             seis numeros de este bloque dejarian de volver a «—» con «Nuevo estudio», que es el
+             numero rancio que esta zona ya pago cuatro veces. -->
+        <div data-im-bloque="1">
+        <div class="calc-row"><span class="calc-lbl" style="font-weight:700;color:var(--accent2);">Signos y parámetros semicuantitativos — valen para los dos métodos</span></div>
         <div class="calc-row"><span class="calc-lbl" title="Válido sin estenosis mitral, calcificación anular, anillo protésico ni fibrilación auricular. Menos específico en IM secundaria. La onda A dominante es más aplicable en mayores de 50 años. ASE 2017 (Zoghbi, JASE 30:303-371).">Onda E (parámetro soporte — &ge;120 cm/s apoya IM severa) <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></span><span id="im-ondae-interp">—</span></div>
         <!-- ⚠️ EL 1,4 SÍ TIENE FUENTE, Y NO ES LA QUE SE BUSCÓ EN LA FASE 2. Aquella pasada barrió el
              PDF primario de ASE 2017 —«1.4» cero veces, «VTI ratio» y «mitral-to-aortic» tampoco,
@@ -5127,10 +5168,23 @@ window.cerrarSesionReal = cerrarSesionReal;
              consultables desde la app. -->
         <div class="calc-row"><span class="calc-lbl" title="DOS CORTES SEGÚN LA MORFOLOGÍA. En válvula NATIVA: &lt;20 % leve · ≤40 % moderada · &gt;40 % severa. En PRÓTESIS mitral: &lt;20 % leve · &gt;50 % severa, y entre 20 y 50 la ASE 2024 (Tabla 13, pág. 30 — Zoghbi, JASE 2024;37(1):2-63) dice «Variable», así que el parámetro NO vota y la fila lo declara. Los cortes absolutos de esa tabla (&lt;4 cm² / &gt;8 cm²) no se implementan: la guía los da como alternativa al porcentaje. La tabla exige además un Nyquist de 50-60 cm/s que la app no registra. Ver «Referencia clínica» en la ayuda.">Ratio jet/AI (%) <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="jet"></span> <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></span><span class="calc-val" id="im-jet-ratio">—</span><span class="calc-grado" data-grado-de="im-jet-ratio"></span></div>
         <div class="calc-row"><span class="calc-lbl">Onda S pulmonar <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="onda_s"></span></span><span id="im-onda-s-interp">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">EROA — PISA (mm²) <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="eroa"></span></span><span class="calc-val" id="eroa-val">—</span><span class="calc-grado" data-grado-de="eroa-val"></span></div>
-        <div class="calc-row"><span class="calc-lbl">Vol regurgitante (ml) <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="volr"></span></span><span class="calc-val" id="volr-val">—</span><span class="calc-grado" data-grado-de="volr-val"></span></div>
+        </div>
+        <div data-im-bloque="2">
+        <div class="calc-row"><span class="calc-lbl" style="font-weight:700;color:var(--accent2);">Cuantitativos — por método</span></div>
+        <div class="calc-row im-m2 im-m2-head"><span class="calc-lbl"></span><span>PISA</span><span>Continuidad</span></div>
+        <div class="calc-row im-m2"><span class="calc-lbl">EROA (mm²) <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="eroa"></span></span><span><span class="calc-val" id="eroa-val">—</span><span class="calc-grado" data-grado-de="eroa-val"></span></span><span><span class="calc-val" id="im-eroa-cont-ref">—</span><span class="calc-grado" data-grado-de="im-eroa-cont-ref"></span></span></div>
+        <div class="calc-row im-m2"><span class="calc-lbl">Vol regurgitante (ml) <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="volr"></span></span><span><span class="calc-val" id="volr-val">—</span><span class="calc-grado" data-grado-de="volr-val"></span></span><span><span class="calc-val" id="im-volr-cont-ref">—</span><span class="calc-grado" data-grado-de="im-volr-cont-ref"></span></span></div>
+        <div class="calc-row im-m2"><span class="calc-lbl">Fracción regurgitante (%) <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="fr"></span></span><span><span class="calc-val" id="freg-val">—</span><span class="calc-grado" data-grado-de="freg-val"></span></span><span><span class="calc-val" id="im-fr-cont-ref">—</span><span class="calc-grado" data-grado-de="im-fr-cont-ref"></span></span></div>
+        <!-- ⚠️ LOS DOS VOLUMENES DE BASE VAN DEBAJO Y EN UNA SOLA COLUMNA, porque son COMUNES a
+             los dos metodos: el volumen mitral por latido es el denominador de la fraccion
+             regurgitante por continuidad y el eyectado del TSVI lo es de la de PISA. El eyectado
+             conserva su id `vsvtsvi-val`, su texto y su cuenta; el volumen mitral es una fila
+             NUEVA que espeja la casilla `vm_lat` —la escribe `calcContIM`, su dueno unico— y por
+             eso no tiene corte ni grado: es un volumen anterogrado, no una medida de severidad. -->
+        <div class="calc-row"><span class="calc-lbl">Vol mitral / latido (ml)</span><span class="calc-val" id="im-vmlat-ref">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Vol eyectado TSVI (ml)</span><span class="calc-val" id="vsvtsvi-val">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">Fracción regurgitante (%) <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="fr"></span></span><span class="calc-val" id="freg-val">—</span><span class="calc-grado" data-grado-de="freg-val"></span></div>
+        </div>
+        <div data-im-bloque="3">
         <!-- ⚠️ EL RÓTULO DICE «ASE 2017» Y NO «ESC/EACTS 2025» — DECISIÓN 2 DE MAICOL, RAMA «NO
              COINCIDEN» (etapa 4, 2026-10-03). Era «(ESC 2021)», que NO tenía respaldo: `FUENTES.md`
              no registra ninguna guía valvular ESC 2021. Se leyó la ESC/EACTS 2025 inglesa
@@ -5158,28 +5212,27 @@ window.cerrarSesionReal = cerrarSesionReal;
              al informe, EN SUMA, PDF ni Excel. -->
         <div class="calc-row"><span id="im-sec-aviso" style="color:var(--yellow);font-size:11px;"></span></div>
         <div class="calc-row"><span id="im-discordancia" style="color:var(--yellow);font-size:11px;"></span></div>
+        <!-- ⚠️ LA CAPSULA «Severidad (continuidad)» SE CONSERVA Y SUBE AL BLOQUE 3, y no es
+             redundante con el bloque 2: ahi arriba va el grado de CADA parametro por separado y
+             aca va la lectura VOLUMETRICA combinada —la que `calcContIM` deriva de Vol-R y FR— mas
+             sus dos avisos, que no tienen otra superficie: «No valorable — revisar mediciones»
+             cuando el Vol-R sale negativo y «Fuera de rango: …» cuando un insumo es ilegible.
+             Conserva su `id`, su estilo en linea y su `dataset.gradoVolum`, que es lo que lee
+             `imDiscordanciaPintar`: lo unico que cambia es de que contenedor cuelga. -->
+      <div id="im-cont-severidad" style="font-size:11px;font-weight:700;margin:6px 2px 0;min-height:16px;"></div>
+        </div>
       </div>
 
-      <!-- ═══ ECUACIÓN DE CONTINUIDAD IM ═══ ────────────────────────────────────────────────
-           ⚠️ EL TÍTULO «📐 Ecuación de Continuidad — Cuantificación IM» SALIÓ DE ACÁ (2026-10-09)
-           — DECISIÓN DE MAICOL. Encabezaba la fila de los cuatro insumos de la continuidad, y esa
-           fila dejó de existir en la tanda del 2026-10-09: los insumos subieron a las cuatro
-           columnas del bloque y los resultados quedaron en la columna 4. Desde entonces el título
-           no encabezaba NADA —quedó REPORTADO en la lista de sobrantes de esa tanda— y un rótulo
-           de sección sobre un contenido que ya no es suyo se lee como que lo de abajo es otra
-           cosa de la que es.
-           LO QUE NO SE VA ES LA LÍNEA DE FÓRMULAS de abajo, y no es un olvido: sigue describiendo
-           exactamente la columna 4 —EROA continuidad, Vol-R, FR y Vol mitral por latido— que es
-           lo que el médico tiene delante. El `divider` tampoco: separa el cuadro de referencias
-           de este grupo.
-           Es sólo texto y su contenedor: ninguna cuenta, ningún id, ningún campo. -->
-      <div class="divider"></div>
-      <!-- El rotulo anunciaba `EROA = (VTI_TSVI x Area_TSVI) / VTI_mitral`, que es la ecuacion de
-           continuidad del AREA VALVULAR mitral y no una EROA de insuficiencia; el codigo la habia
-           quitado a proposito (ver el comentario de calcContIM) y el rotulo se quedo pidiendo un
-           numero que la app decidio no dar. Hoy dice las tres formulas que se implementan. -->
-      <div style="font-size:10px;color:var(--text2);margin-bottom:6px;">EROA = Vol-R ÷ VTI del chorro (CW) &nbsp;·&nbsp; Vol-R = SV mitral (Área<sub>anillo</sub> × VTI de entrada) − SV<sub>TSVI</sub> &nbsp;·&nbsp; FR = Vol-R ÷ SV mitral</div>
-      <div id="im-cont-severidad" style="font-size:11px;font-weight:700;margin:6px 2px 0;min-height:16px;"></div>
+      <!-- ⚠️ LA LINEA DE FORMULAS SALIO DE ACA (2026-10-14) — DECISION DE MAICOL. Decia
+           «EROA = Vol-R ÷ VTI del chorro (CW) · Vol-R = SV mitral (Area_anillo x VTI de entrada)
+           − SV_TSVI · FR = Vol-R ÷ SV mitral», o sea las tres formulas de la continuidad en letra
+           chica debajo del cuadro. Pasan a las TARJETAS de los globos «i», que es donde se las
+           consulta por el parametro y no por el bloque: ver el commit del mecanismo.
+           ⚠️ Y LA CAPSULA «Severidad (continuidad)» NO SE PERDIO: subio al bloque 3 del cuadro,
+           con su `id`, su estilo y su `dataset.gradoVolum` intactos. No es redundante con el
+           bloque 2 —ahi va el grado de cada parametro y aca la lectura volumetrica combinada mas
+           sus dos avisos, que no tienen otra superficie—.
+           El `divider` se va con ellos: separaba el cuadro de un grupo que ya no existe. -->
       <!-- Selector de metodo para el informe. Mismo patron que em_pdf_thp/cont/plan.
            ⚠️ LA CASILLA DE PISA SE PUEDE DESTILDAR DESDE EL 2026-10-14 (decision de Maicol). Hasta
            ese dia llevaba `onchange="this.checked=true"`, o sea que era INFORMATIVA: con datos en
@@ -34597,7 +34650,10 @@ window.imCortesPintar = imCortesPintar;
    ⚠️ Y LA ONDA S NO ENTRA, aunque vote: su fila es `im-onda-s-interp`, que ya publica un badge con
    el grado adentro («Invertida — severa»). */
 const SEV_FILA_GRADO_TXT = Object.freeze({ leve:'(leve)', moderada:'(moderada)', severa:'(severa)' });
-function sevFilaGradoPintar(mapa, votos) {
+/* `soloGrupo` es OPCIONAL y no cambia una coma del comportamiento de los dos llamadores viejos:
+   sin el, se saltean los votos de continuidad —que es lo que hacia—; con 'cont', se saltean todos
+   los demas. Es lo que deja pintar la SEGUNDA columna del bloque 2 de la IM con el mismo pintor. */
+function sevFilaGradoPintar(mapa, votos, soloGrupo) {
   const ids = Object.keys(mapa);
   const puesto = {};
   /* ⚠️ SE VACÍAN TODAS Y DESPUÉS SE ESCRIBEN LAS QUE VOTARON, en ese orden: escribir sólo las que
@@ -34612,7 +34668,8 @@ function sevFilaGradoPintar(mapa, votos) {
        'Vol-R', 'FR') y sus filas son otras —las casillas `im_eroa_cont`, `vr_cont` y
        `im_fr_cont`, que son `input` y no `.calc-val`—, así que se descartan: pintarlos acá
        escribiría el grado de la continuidad al lado del número de PISA. */
-    if (vt.grupo === 'cont') return;
+    if (soloGrupo) { if (vt.grupo !== soloGrupo) return; }
+    else if (vt.grupo === 'cont') return;
     const id = mapa[vt.p];
     if (!id || puesto[id]) return;
     const el = document.querySelector('[data-grado-de="' + id + '"]');
@@ -34630,7 +34687,21 @@ const IM_FILA_GRADO = Object.freeze({ 'VC':'im-vc-ref', 'Jet/AI':'im-jet-ratio',
   'EROA':'eroa-val', 'Vol-R':'volr-val', 'FR':'freg-val' });
 const IA_FILA_GRADO = Object.freeze({ 'Jet/TSVI':'ia-jet-ratio',
   'EROA':'ia-eroa', 'Vol-R':'ia-volr', 'FR':'ia-freg' });
-function imGradoFilasPintar(votos) { return sevFilaGradoPintar(IM_FILA_GRADO, votos); }
+/* ⚠️ EL SEGUNDO MAPA DE LA IM (2026-10-14): la COLUMNA DE CONTINUIDAD del bloque 2. Las claves
+   son las MISMAS —los votos de los dos metodos se llaman igual, que es por lo que
+   `sevFilaGradoPintar` descarta los de grupo 'cont' en el mapa de arriba— y lo que cambia es la
+   fila. Con un solo mapa, el grado de la continuidad se escribiria al lado del numero de PISA. */
+const IM_FILA_GRADO_CONT = Object.freeze({ 'EROA':'im-eroa-cont-ref',
+  'Vol-R':'im-volr-cont-ref', 'FR':'im-fr-cont-ref' });
+/* El segundo argumento es OPCIONAL y existe porque los votos de continuidad no siempre estan en
+   la misma lista: `calcIM_ESC` los concatena a `params` SOLO cuando el metodo esta incluido en el
+   informe, y el grado de la fila se muestra igual —como el de PISA, que se publica este o no
+   incluido—. Sin el, las dos columnas dirian cosas distintas segun una casilla de impresion. */
+function imGradoFilasPintar(votos, votosCont) {
+  const r = sevFilaGradoPintar(IM_FILA_GRADO, votos);
+  sevFilaGradoPintar(IM_FILA_GRADO_CONT, votosCont || votos, 'cont');
+  return r;
+}
 function iaGradoFilasPintar(votos) { return sevFilaGradoPintar(IA_FILA_GRADO, votos); }
 window.imGradoFilasPintar = imGradoFilasPintar;
 window.iaGradoFilasPintar = iaGradoFilasPintar;
@@ -34735,6 +34806,23 @@ function _imAutosSync() {
                  _f(v('im_itv_tsvi') || v('itv_tsvi'), 'VTI TSVI')].filter(Boolean);
   const _jet = [_f(v('im_jet_area'), '\u00e1rea del jet'),
                 _f(v('im_ai_area') || v('ai_area'), '\u00e1rea de la AI')].filter(Boolean);
+  /* ⚠️ LAS TRES CELDAS DE LA COLUMNA DE CONTINUIDAD Y EL ESPEJO DEL VOLUMEN MITRAL (2026-10-14).
+     Van en la direccion CONTRARIA a las cuatro de abajo: ahi la casilla copia a la fila y aca la
+     fila copia a la CASILLA, porque el dueno de estos tres numeros es `calcContIM`, que los
+     escribe en `im_eroa_cont`, `vr_cont` y `im_fr_cont`. Es exactamente lo que ya hace
+     `calcIM_ESC` para votar con ellos —«los tres numeros se leen de los campos que el medico
+     tiene delante, no se recalculan»—, aplicado a la superficie nueva.
+     ⚠️ EL `vr_cont` NO TRAE UNIDAD y los otros dos si («22.4 mm²», «32 %»), asi que se le agrega
+     aca y NO en el campo: tocar el campo cambiaria lo que el PDF publica, que lo lee literal. */
+  const _celda = (idFila, valor, uni) => {
+    const el = document.getElementById(idFila); if (!el) return;
+    const t = String(valor == null ? '' : valor).trim();
+    el.textContent = t ? (t + (uni || '')) : '\u2014';
+  };
+  _celda('im-eroa-cont-ref', document.getElementById('im_eroa_cont') ? document.getElementById('im_eroa_cont').value : '', '');
+  _celda('im-volr-cont-ref', document.getElementById('vr_cont') ? document.getElementById('vr_cont').value : '', ' ml');
+  _celda('im-fr-cont-ref',   document.getElementById('im_fr_cont') ? document.getElementById('im_fr_cont').value : '', '');
+  _celda('im-vmlat-ref',     document.getElementById('vm_lat') ? document.getElementById('vm_lat').value : '', ' ml');
   _imAutoDeFila('vauto-jet-ai', 'im-jet-ratio', _req(_jet));
   _imAutoDeFila('vauto-eroa-pisa', 'eroa-val', _req(_pisa));
   _imAutoDeFila('vauto-volr-pisa', 'volr-val',
@@ -35378,7 +35466,7 @@ function calcIM_ESC() {
   _imSincronizarPantalla();
   /* El grado de cada fila, entre paréntesis y en forma breve (regla 5). Sale de los MISMOS votos
      que decidieron, no de una segunda lectura de los campos. */
-  if (typeof imGradoFilasPintar === 'function') { try { imGradoFilasPintar(params); } catch (e) {} }
+  if (typeof imGradoFilasPintar === 'function') { try { imGradoFilasPintar(params, _imCont); } catch (e) {} }
   /* El corte que publica cada fila se repinta acá y no una sola vez al arrancar: el del jet/AI
      depende de si la válvula es protésica, y eso cambia con `vm_morf` en medio del estudio. */
   if (typeof imCortesPintar === 'function') { try { imCortesPintar(); } catch (e) {} }

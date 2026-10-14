@@ -41717,9 +41717,13 @@ caso('TC-297', 'El VTI mitral DE ENTRADA vive en Doppler, vtim es su espejo, la 
       ['el rotulo de vtim ya no dice CW ni «compartido con PISA»',
         /de entrada/.test(lblVtim) && /pulsado/.test(lblVtim) && !/CW/.test(lblVtim) &&
         !/compartido con PISA/.test(lblVtim) && /Doppler mitral/i.test(lblVtim), lblVtim],
-      ['el rotulo de la ecuacion anuncia las tres formulas que el codigo implementa',
-        /EROA = Vol-R/.test(lblEc) && /VTI del chorro/.test(lblEc) && /VTI de entrada/.test(lblEc) &&
-        !/VTI\\s*TSVI\\s*×\\s*Área\\s*TSVI/.test(lblEc), lblEc],
+      /* ⚠️ ADAPTADO 2026-10-14 (D1 del rediseno de Valvulas). Este caso exigia que debajo del
+         cuadro de referencias hubiera un renglon de 10 px con las tres formulas de la continuidad.
+         Maicol lo saco: las formulas pasan a las TARJETAS de los globos «i», que es donde se las
+         consulta por el parametro y no por el bloque. Lo que se pina ahora es el HECHO NUEVO —que
+         ese renglon ya no esta—; el contenido de las tarjetas lo fija el caso de esta tanda. */
+      ['el renglon de formulas salio de debajo del cuadro de referencias',
+        lblEc === '(sin rotulo)', lblEc],
       ['el Vol R del Excel coincide con el de la pantalla', xlsVolR === '65.4' && pantallaVolR === '65.4 ml',
         'pantalla=' + pantallaVolR + ' excel=' + xlsVolR],
     ] };
