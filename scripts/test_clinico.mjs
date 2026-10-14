@@ -45471,8 +45471,13 @@ caso('TC-335', 'IM: la EROA por continuidad VOTA como metodo desde el 13/10/2026
       'im_grado=' + R.imGrado + ' im_grado=' + R.imSevFinal]);
 
     /* ── El reparo, en las dos superficies ── */
+    /* ⚠️ ADAPTADO 2026-10-14 (D1 del rediseno de Valvulas): el rotulo decia «EROA continuidad
+       (mm2) (auto)» y hoy dice «EROA POR continuidad», porque la columna 3 publica los dos
+       metodos —tres casillas de PISA y tres de continuidad— y un rotulo sin metodo no distingue
+       cual de los dos numeros se esta mirando. El caso seguia midiendo lo mismo: lo que cambio es
+       la palabra con que se encuentra el nodo. */
     const lbls = Array.prototype.slice.call(document.querySelectorAll('label'))
-      .filter(function(l){ return /EROA continuidad/.test(l.textContent); });
+      .filter(function(l){ return /EROA por continuidad/.test(l.textContent); });
     R.nLabels = lbls.length;
     const ti = lbls[0] ? (lbls[0].getAttribute('title') || '') : '';
     R.tiene150 = /150 cm/.test(ti);

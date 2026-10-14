@@ -4945,6 +4945,15 @@ window.cerrarSesionReal = cerrarSesionReal;
               <label>VTI mitral de entrada — pulsado (cm) <span style="font-weight:400;color:var(--text2);font-size:10px;">&harr; Doppler mitral</span></label>
               <input type="number" id="vtim" placeholder="cm" oninput="vtiMitralEditado('vtim')">
             </div>
+            <div class="fg">
+              <!-- ⚠️ EL VOLUMEN MITRAL POR LATIDO BAJO A LA COLUMNA 1 (2026-10-14) — DECISION DE
+                   MAICOL. Estaba en la columna 3, entre los resultados, y no es un resultado de
+                   ninguno de los dos metodos: es el VOLUMEN DE BASE que los dos usan, y sus dos
+                   insumos —el Ø del anillo y el VTI de entrada— son las dos casillas que tiene
+                   justo encima. Lo escribe `calcContIM`, que es su dueno unico y no cambia. -->
+              <label>Vol mitral / latido (ml) (auto)</label>
+              <input type="text" id="vm_lat" readonly>
+            </div>
           </div>
           <div>
             <div class="fg"><label>Radio PISA (mm)</label><input type="number" id="pisa_r" placeholder="mm" oninput="calcIM_ESC()"></div>
@@ -4975,38 +4984,61 @@ window.cerrarSesionReal = cerrarSesionReal;
                  `im_dtsvi`/`im_itv_tsvi`: un consumidor nuevo sin su disparador. -->
             <div class="fg"><label>VTI IM (cm) <span style="font-weight:400;color:var(--text2);font-size:10px;">del chorro, CW</span></label><input type="number" id="im_itv" placeholder="cm" oninput="calcContIM();calcIM_ESC()"></div>
             <div class="fg"><label>Área AI (cm²) <span style="font-weight:400;color:var(--text2);font-size:10px;">&harr; AI/VI</span></label><!-- El rótulo decía «auto ← AI/VI» y era FALSO desde el 2026-10-08: el campo no sigue a AI/VI, es una PUERTA del área de la AI y lo que se tipea acá LLEGA a AI/VI. Aquella tanda lo dejó REPORTADO porque prohibía cambiar rótulos; esta lo corrige a «↔ AI/VI». `calcIM_ESC()` no se perdió: lo lleva `aiAreaEditado`, que además repinta la interpretación de la AI. --><input type="number" id="im_ai_area" placeholder="cm²" oninput="aiAreaEditado('im_ai_area')"></div>
+            <div class="fg">
+              <!-- ⚠️ CASILLA NUEVA (2026-10-14) — DECISION DE MAICOL, Y NO ES UN CALCULO NUEVO.
+                   Publica el MISMO cociente que la fila «Ratio jet/AI (%)» del cuadro de
+                   referencias, que `calcIM_ESC` ya computa en el span `im-jet-ratio`: se escribe
+                   el valor que esa fila acaba de publicar y nada mas. Va en la columna 2 porque
+                   sus dos insumos —el area del jet y el area de la AI— estan en esta pantalla y
+                   el area de la AI es la casilla de arriba.
+                   ⚠️ LA CASILLA NO LLEVA LA LEYENDA DEL REGIMEN PROTESICO que si lleva la fila.
+                   «45.0 % (Variable — no gradua en protesis)» es una afirmacion sobre la BANDA en
+                   la que cae el numero, o sea graduacion, y eso es lo que el cuadro de referencias
+                   publica; la casilla publica la MEDICION. El numero es el mismo en las dos.
+                   ⚠️ NO VIAJA CON EL ESTUDIO: prefijo `vauto-`, ver `_noEsDelEstudio`. -->
+              <label>Relación área jet IM / área AI (%) (auto)</label>
+              <input type="text" id="vauto-jet-ai" readonly>
+            </div>
           </div>
           <div>
+            <!-- ══ LOS SEIS AUTOMATICOS, TRES POR METODO (2026-10-14) — DECISION DE MAICOL ═══════
+                 Hasta hoy esta columna tenia CUATRO casillas y las tres de PISA no existian como
+                 campo: sus numeros vivian solo en el cuadro de referencias, en los span
+                 `eroa-val`, `volr-val` y `freg-val`. El medico leia la continuidad en una casilla
+                 y el PISA en una fila, o sea el mismo trio por dos caminos distintos.
+                 ⚠️ NINGUNA DE LAS TRES NUEVAS CALCULA NADA. `calcIM_ESC` ya computa el trio de
+                 PISA para esos span; lo unico que se agrega es escribir el MISMO string en la
+                 casilla. Una segunda copia de la formula es el defecto que este archivo documenta
+                 como «la copia que usa el PDF se pudre sin que se vea desde la app».
+                 ⚠️ Y EL ROTULO LLEVA EL METODO EN LAS SEIS. Antes decia «Vol-R (ml) (auto)» y
+                 «FR — Fraccion regurg. (%) (auto)» a secas, en una columna que publicaba solo la
+                 continuidad; con los dos metodos a la vista, un rotulo sin metodo no distingue
+                 cual de los dos numeros se esta mirando.
+                 ⚠️ LAS TRES NUEVAS NO VIAJAN CON EL ESTUDIO, y el prefijo `vauto-` las saca de
+                 `_noEsDelEstudio` — ver ahi el motivo, que es el mismo de `hfpep-`. -->
             <div class="fg">
-              <!-- ⚠️ LA RELACIÓN ENTRE LOS DOS CORTES ES ARITMÉTICA, NO UNA CITA, y por eso el texto no
-                   lleva corchete ni guía: `EROA = Vol-R ÷ VTI del chorro`, así que los dos umbrales de
-                   severidad —EROA ≥ 40 mm² y Vol-R ≥ 60 ml— describen al MISMO paciente sólo cuando el
-                   VTI del chorro vale 150 cm (60 ÷ 0,40). Con 100 cm un Vol-R justo en el corte da una
-                   EROA de 60 mm², o sea severa con holgura; con 200 cm da 30 mm², o sea por debajo del
-                   corte con el Vol-R ya severo. Publicar los dos números sin ese reparo invita a leer
-                   una discordancia donde lo que hay es la fórmula.
-                   ⚠️ LA SEGUNDA MITAD DE LA FRASE DECÍA «esta EROA NO vota el grado» Y SE CORRIGIÓ EL
-                   2026-10-13, porque dejó de ser cierta: la regla 3 de Maicol hace que el método de
-                   continuidad se integre igual que el de PISA. La frase estaba VERIFICADA cuando se
-                   escribió —el único EROA que entraba a `params` era el de PISA y `im_eroa_cont` tenía
-                   tres lectores, los tres del PDF—, así que lo que cambió es la app y no la lectura.
-                   Hoy `calcIM_ESC` es un cuarto lector. Se corrigió SÓLO esa frase: el reparo
-                   aritmético de arriba —por qué la EROA y el Vol-R parecen discordar— sigue vigente
-                   palabra por palabra, porque es aritmética de la fórmula y no depende de quién vote. -->
-              <label title="EROA = Vol-R ÷ VTI del chorro de IM por CW. Los dos cortes de severidad de la guía —EROA ≥ 40 mm² y Vol-R ≥ 60 ml— sólo coinciden con un VTI de chorro de 150 cm, porque 60 ÷ 0,40 = 150. Con un VTI menor la EROA sale inflada respecto del Vol-R y con uno mayor sale reducida: es aritmética de la fórmula, no una discrepancia entre guías. Desde el 13/10/2026 esta EROA SÍ vota, junto con el Vol-R y la fracción regurgitante por continuidad: el método de continuidad se integra como el de PISA y, con los dos marcados en «Incluir en el informe», al informe va el PEOR de los dos. Los votos comunes a los dos métodos son la vena contracta, el jet sobre área auricular y la onda S pulmonar. Ver «Referencia clínica» en la ayuda.">EROA continuidad (mm²) (auto) <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></label>
+              <label>EROA por PISA (mm²) (auto)</label>
+              <input type="text" id="vauto-eroa-pisa" readonly style="font-weight:700;">
+            </div>
+            <div class="fg">
+              <label>Vol-R por PISA (ml) (auto)</label>
+              <input type="text" id="vauto-volr-pisa" readonly>
+            </div>
+            <div class="fg">
+              <label>FR por PISA (%) (auto)</label>
+              <input type="text" id="vauto-fr-pisa" readonly>
+            </div>
+            <div class="fg">
+              <label title="EROA = Vol-R ÷ VTI del chorro de IM por CW. Los dos cortes de severidad de la guía —EROA ≥ 40 mm² y Vol-R ≥ 60 ml— sólo coinciden con un VTI de chorro de 150 cm, porque 60 ÷ 0,40 = 150. Con un VTI menor la EROA sale inflada respecto del Vol-R y con uno mayor sale reducida: es aritmética de la fórmula, no una discrepancia entre guías. Desde el 13/10/2026 esta EROA SÍ vota, junto con el Vol-R y la fracción regurgitante por continuidad: el método de continuidad se integra como el de PISA y, con los dos marcados en «Incluir en el informe», al informe va el PEOR de los dos. Los votos comunes a los dos métodos son la vena contracta, el jet sobre área auricular y la onda S pulmonar. Ver «Referencia clínica» en la ayuda.">EROA por continuidad (mm²) (auto) <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></label>
               <input type="text" id="im_eroa_cont" readonly style="font-weight:700;">
             </div>
             <div class="fg">
-              <label>Vol-R (ml) (auto)</label>
+              <label>Vol-R por continuidad (ml) (auto)</label>
               <input type="text" id="vr_cont" readonly>
             </div>
             <div class="fg">
-              <label>FR — Fracción regurg. (%) (auto)</label>
+              <label>FR por continuidad (%) (auto)</label>
               <input type="text" id="im_fr_cont" readonly>
-            </div>
-            <div class="fg">
-              <label>Vol mitral / latido (ml) (auto)</label>
-              <input type="text" id="vm_lat" readonly>
             </div>
           </div>
         </div>
@@ -34657,6 +34689,63 @@ function _imPeorIntegrado(a, b) {
 }
 window._imPeorIntegrado = _imPeorIntegrado;
 
+/* ══ LAS CUATRO CASILLAS AUTOMATICAS DE LA INSUFICIENCIA MITRAL (2026-10-14) ═══════════════════
+   Decision de Maicol: la columna 2 gana la relacion jet/AI y la columna 3 gana el trio de PISA,
+   los cuatro de SOLO LECTURA y con el mensaje «requiere …» cuando falta un insumo, que es el
+   mecanismo que las tres casillas de la continuidad ya usaban.
+
+   ⚠️ NO CALCULAN NADA, Y ESA ES LA REGLA DE ESTA TANDA. Cada casilla COPIA el texto que su fila
+   del cuadro de referencias acaba de publicar —`im-jet-ratio`, `eroa-val`, `volr-val` y
+   `freg-val`, que escribe `calcIM_ESC` unas lineas mas arriba—. Recalcular acá seria una SEGUNDA
+   copia de cuatro formulas, con sus propias bandas de plausibilidad y su propia marca
+   «(revisar)», y es el defecto que este archivo documenta tres veces: «la copia que usa el PDF se
+   pudre sin que se vea desde la app». Copiando el string, la casilla y la fila NO SE PUEDEN
+   desincronizar — ni siquiera en el valor, ni en la marca.
+
+   ⚠️ LA LEYENDA DEL REGIMEN PROTESICO DEL JET SE RECORTA, Y NO ES COSMETICO. La fila publica
+   «45.0%  (Variable — no gradua en protesis)», que es una afirmacion sobre la BANDA en que cae el
+   numero, o sea graduacion; la casilla publica la MEDICION. El corte es por DOS espacios, que es
+   exactamente como esa fila separa su leyenda (`ratio + '%  (…)'`); `MARCA_REVISAR` lleva UN solo
+   espacio (' (revisar)'), asi que sobrevive al recorte — que es lo que tiene que pasar, porque es
+   una advertencia sobre el numero y no sobre su banda.
+
+   ⚠️ EL CENTINELA ES EL MISMO «—» DE LAS FILAS: con la fila vacia la casilla queda vacia y lo que
+   se ve es el «requiere …». Sin ese mapeo la casilla publicaria un guion largo, que en un campo de
+   formulario se lee como un valor. */
+function _imAutoDeFila(idCampo, idSpan, falta) {
+  const el = document.getElementById(idCampo);
+  if (!el) return;
+  const sp = document.getElementById(idSpan);
+  let t = sp ? String(sp.textContent || '').trim() : '';
+  if (t.indexOf('  ') > -1) t = t.slice(0, t.indexOf('  ')).trim();
+  const hay = !!t && t !== '\u2014';
+  el.value = hay ? t : '';
+  el.placeholder = hay ? '' : (falta || '');
+}
+/* El texto de «requiere …» se arma con la MISMA precedencia con que la cuenta lee cada insumo, que
+   es lo que evita que el aviso mande a cargar un campo que la cuenta si tiene. Los dos del TSVI
+   llevan «(en Estenosis)» porque sus casillas de este bloque estan ocultas desde el 2026-10-10 —es
+   el mismo texto y el mismo motivo que `imContAvisoPintar`—. */
+function _imAutosSync() {
+  const _f = (cond, nom) => cond ? null : nom;
+  const _pisa = [_f(v('pisa_r'), 'radio PISA'), _f(v('pisa_val'), 'Valiasing'),
+                 _f(v('im_vmax'), 'Vmax IM')].filter(Boolean);
+  const _req = l => l.length ? 'requiere ' + l.join(', ') : '';
+  const _tsvi = [_f(v('im_dtsvi') || v('diam_tsvi'), 'Di\u00e1m. TSVI'),
+                 _f(v('im_itv_tsvi') || v('itv_tsvi'), 'VTI TSVI')].filter(Boolean);
+  const _jet = [_f(v('im_jet_area'), '\u00e1rea del jet'),
+                _f(v('im_ai_area') || v('ai_area'), '\u00e1rea de la AI')].filter(Boolean);
+  _imAutoDeFila('vauto-jet-ai', 'im-jet-ratio', _req(_jet));
+  _imAutoDeFila('vauto-eroa-pisa', 'eroa-val', _req(_pisa));
+  _imAutoDeFila('vauto-volr-pisa', 'volr-val',
+    _req(_pisa.concat(_f(v('im_itv'), 'VTI del jet de IM') || [])));
+  _imAutoDeFila('vauto-fr-pisa', 'freg-val',
+    _req(_pisa.concat(_f(v('im_itv'), 'VTI del jet de IM') || []).concat(_tsvi))
+      + (_tsvi.length ? ' (en Estenosis)' : ''));
+}
+window._imAutosSync = _imAutosSync;
+
+
 function calcIM_ESC() {
   /* El aviso de mecanismo secundario, ARRIBA de todo: no depende de un solo parámetro medido y el
      `return` temprano de más abajo saldría antes de pintarlo. Ver `imSecAvisoPintar`. */
@@ -34862,6 +34951,14 @@ function calcIM_ESC() {
      Ver `_imPisaSellar`. No toca ningún `score` ni ningún `param`: la graduación sale de las
      mismas ramas de arriba, sin enterarse. */
   try { _imPisaSellar(); } catch (e) { console.error('[imPisaSellar]', e); }
+  /* ⚠️ LAS CUATRO CASILLAS AUTOMATICAS, EN UN SOLO SITIO Y DESPUES DE LAS CUATRO FILAS. Copian lo
+     que las filas acaban de publicar, incluido el «—» de las ramas que las vacian, asi que una
+     sola llamada cubre las cinco salidas del bloque de PISA y las dos del jet. Repartirla en cada
+     rama serian siete puertas que se separan el dia que alguien toque una, que es el defecto que
+     el `else` de los cuatro span de PISA ya tuvo que aprender acá al lado.
+     Va DESPUES del sellado porque `_imPisaSellar` lee los span y no las casillas: el orden no le
+     importa a la cuenta, pero deja el sellado leyendo exactamente lo que leia en HEAD. */
+  try { _imAutosSync(); } catch (e) { console.error('[imAutosSync]', e); }
 
   /* ⚠️ LA ONDA S VOTA Y NO ENTRABA EN EL REGISTRO DE DISCORDANCIA, y eso se volvió caro el día que
      un solo voto severo pasó a bastar (`8b143e6`). Los otros cinco votantes hacen `scores.X++` **y**
@@ -44048,7 +44145,16 @@ function _noEsDelEstudio(id) {
      persistir el espejo dejaría una segunda copia que al reabrir puede contradecirlo. El
      cartel deriva su valor del dueño cada vez que se abre. Guión MEDIO, así que este
      prefijo no alcanza a `hf_ntprobnp` ni a `hf_bnp`, que van con guión BAJO. */
-  return /^(login-|ig-|lab-|cfg-|exp-|filtro-|adv-|asoc-|pdf-|lgal-|fcg-|hfpep-|(?:b-)?cine-)/.test(id);
+  /* `vauto-` son las CUATRO casillas automaticas de la insuficiencia mitral y la del volumen
+     eyectado de la estenosis mitral (2026-10-14). NO son del estudio por el MISMO motivo que
+     `hfpep-`: cada una COPIA una fila del cuadro de referencias que ya tiene su dueno, asi que
+     persistirlas dejaria una segunda copia que al reabrir puede contradecir al dueno. Y seria
+     ademas cinco claves nuevas en TODO estudio que se guarde desde hoy, con el juego de campos
+     guardados cambiado, cuando lo que publican ya viaja por otros caminos —`im_pisa` congela el
+     trio de PISA y `im_eroa_cont`/`vr_cont`/`im_fr_cont` son campos reales—.
+     Guion MEDIO, asi que este prefijo no alcanza a ningun campo del estudio, que van con guion
+     BAJO (`avm_cont`, `vm_lat`, `em_gmax`). */
+  return /^(login-|ig-|lab-|cfg-|exp-|filtro-|adv-|asoc-|pdf-|lgal-|fcg-|hfpep-|vauto-|(?:b-)?cine-)/.test(id);
 }
 
 /* ══ Repintado de módulos al cargar un estudio ═══════════════════════════════════════════
@@ -45413,6 +45519,12 @@ function limpiarCampos(silencioso) {
      vacía el pintor hace exactamente eso: vaciar las nueve. */
   if (typeof imGradoFilasPintar === 'function') { try { imGradoFilasPintar([]); } catch (e) {} }
   if (typeof iaGradoFilasPintar === 'function') { try { iaGradoFilasPintar([]); } catch (e) {} }
+  /* ⚠️ Y LAS CUATRO CASILLAS AUTOMATICAS DE LA IM, por una razon distinta de la de arriba: su
+     VALOR si lo borra el barrido generico (son `input[type=text]`), pero el PLACEHOLDER no, asi
+     que el formulario nuevo arrancaba diciendo «requiere VTI del jet de IM» sobre un paciente
+     donde falta todo. No hay dato del paciente anterior en ese texto —es generico— pero nombra el
+     insumo equivocado, que es lo que esta zona ya documenta para `im_eroa_cont`. */
+  if (typeof _imAutosSync === 'function') { try { _imAutosSync(); } catch (e) {} }
   /* ⚠️ VENA PULMONAR, POR EL MISMO MOTIVO QUE `ccSegSync` Y AL FINAL COMO ÉL. El barrido de
      arriba vacía los cuatro `value`, pero las dos filas del cuadro gris se esconden por `display`
      y el color va en `style` en línea: sin esto el paciente siguiente arrancaba con los renglones
