@@ -344,6 +344,74 @@ window.__P = {
         r.uri = window.__P._pdfUri || null; window.__P._pdfUri = null; return r });
   },
 
+  revelar(id) {
+    var e = document.getElementById(id); if (!e) return { err: 'NO EXISTE ' + id };
+    var abrio = [];
+    for (var pase = 0; pase < 6; pase++) {
+      var oculto = null, n = e;
+      while (n && n.nodeType === 1) {
+        if (getComputedStyle(n).display === 'none') { oculto = n; }
+        n = n.parentNode;
+      }
+      if (!oculto) break;
+      var oid = oculto.id || '';
+      if (oid.indexOf('tab-') === 0) {
+        try { showTab(oid.slice(4)); abrio.push(oid) } catch(x) { return { err: 'showTab ' + oid, abrio: abrio } }
+      } else {
+        var ctrl = null;
+        if (oid) {
+          var cand = Array.from(document.querySelectorAll('[onclick]')).find(function(b){
+            return (b.getAttribute('onclick')||'').indexOf("'" + oid + "'") >= 0 });
+          if (cand) { if (!cand.id) cand.id = '__prv_' + oid; ctrl = cand.id }
+        }
+        if (!ctrl) return { err: 'oculto por ' + (oid ? ('#' + oid) : ('.' + String(oculto.className||'?'))), abrio: abrio };
+        return { necesitaClic: ctrl, abrio: abrio };
+      }
+    }
+    return { abrio: abrio, ok: window.__P.vis(id) === true } },
+
+  centro(id) { var e = document.getElementById(id); if (!e) return null;
+    e.scrollIntoView({ block:'center', inline:'center' });
+    var r = e.getBoundingClientRect();
+    if (r.width === 0 || r.height === 0) return { err: 'nodo sin geometria' };
+    return { x: Math.round(r.left + r.width/2), y: Math.round(r.top + r.height/2) } },
+
+  quienEsta(id, x, y) {
+    var t = document.getElementById(id);
+    var e = document.elementFromPoint(x, y);
+    if (!e) return { enPunto: null, esElBlanco: false };
+    return { enPunto: (e.id || ('<' + e.tagName.toLowerCase() + ' ' + String(e.className || '') + '>')),
+             esElBlanco: !!(t && (e === t || t.contains(e) || e.contains(t))) } },
+
+  /* ⚠️ DENOMINADOR. clicEn necesita que la pestania este abierta: lo que esta en display:none
+     no tiene caja, y un focus() sobre un nodo oculto falla EN SILENCIO. */
+  abrirTodo() { return window.__P.abrirMitral() },
+
+  /* Abre Valvulas con el cajon de datos de la mitral desplegado: sin eso los campos no tienen
+     caja y un tecleo no es un gesto. Devuelve el denominador. */
+  abrirMitral() {
+    try { showTab('valvulas') } catch (e) {}
+    var sec = document.getElementById('ete-seccion-valv-mitral');
+    if (sec && getComputedStyle(sec).display === 'none') { try { toggleEteSeccion('valv-mitral') } catch (e) {} }
+    try { if (typeof valvDatosTog === 'function') {
+      var caj = document.getElementById('bloque-em-detalle');
+      if (!caj || getComputedStyle(caj).display === 'none') valvDatosTog('mitral');
+    } } catch (e) {}
+    var g = function(id){ var e = document.getElementById(id); if (!e) return null;
+      var r = e.getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height) } };
+    return { tabValv: window.__P.vis('tab-valvulas'), gmedio: g('em_gmedio'), plan: g('avm_plan') } },
+
+  /* El recolector del estudio, el MISMO barrido que usa el export: lo que esta funcion devuelve
+     es lo que se archiva, y es lo que el Laboratorio va a leer. */
+  recolectar() {
+    var campos = {};
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function(el){
+      try { if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(el.id)) return } catch (e) {}
+      campos[el.id] = el.value; });
+    document.querySelectorAll('input[type=checkbox][id]').forEach(function(el){
+      campos[el.id + '__chk'] = el.checked ? '1' : '0'; });
+    return campos },
+
   despejar() {
     var o = {};
     ['modalAvisoEco','login-overlay'].forEach(function(id){
@@ -760,6 +828,39 @@ async function main() {
     if (g.r) delete g.r.uri;
     if (g.ppt) delete g.ppt.uri;
     out.grupos.pdf = g;
+  }
+
+  /* ── teclas ── De punta a punta, UNA vez: un estudio cargado con TECLAS REALES sobre el
+     formulario, recolectado por el mismo barrido que archiva el export, y leido por el
+     Laboratorio. Es lo que comprueba que los ids y los FORMATOS reales de la app —un AVm por
+     continuidad que llega como «0.63 cm²», un gradiente con coma decimal— coinciden con lo que la
+     lectura espera: las escenas sinteticas de los otros grupos no pueden verlo. */
+  if (corre('teclas')) {
+    const g = { denominador: await ev(`window.__P.abrirMitral()`) };
+    if (!g.denominador || !g.denominador.gmedio || g.denominador.gmedio.w === 0)
+      throw new Error('ABORTA: el cajon de la estenosis mitral no quedo abierto: ' + JSON.stringify(g.denominador));
+    g.tipeos = [];
+    g.tipeos.push(await tipear('avm_plan', '1.2'));
+    g.tipeos.push(await tipear('em_gmedio', '12'));
+    g.campos = await ev(`(function(){ var c = window.__P.recolectar();
+      return { avm_plan: c.avm_plan, em_gmedio: c.em_gmedio, avm_cont: c.avm_cont,
+               avm_thp: c.avm_thp, em_grado: c.em_grado,
+               planChk: c['em_pdf_plan__chk'], n: Object.keys(c).length } })()`);
+    g.lectura = await ev(`(function(){
+      if (typeof _labEmLectura !== 'function') return 'SIN FN';
+      var c = window.__P.recolectar();
+      var r = _labEmLectura({ id:'T', nombre:'T', ci:'1', fecha_estudio:'2026-10-14', campos: c });
+      return r === null ? null : { cat: r.cat, avm: r.avm, gm: r.gm, porArea: r.porArea, porGrad: r.porGrad } })()`);
+    /* Y el borrado: con los dos campos vacios el estudio sale de todas las categorias. */
+    g.borrado = [];
+    g.borrado.push(await borrar('avm_plan'));
+    g.borrado.push(await borrar('em_gmedio'));
+    g.lecturaVacia = await ev(`(function(){
+      if (typeof _labEmLectura !== 'function') return 'SIN FN';
+      var c = window.__P.recolectar();
+      var r = _labEmLectura({ id:'T', nombre:'T', ci:'1', fecha_estudio:'2026-10-14', campos: c });
+      return r === null ? null : { cat: r.cat } })()`);
+    out.grupos.teclas = g;
   }
 
   out.avisoFin = await ev(`window.__P.despejar()`);

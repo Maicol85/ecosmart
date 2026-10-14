@@ -39,6 +39,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Ver por dónde sale un dato** (informe narrativo, EN SUMA, PDF, Excel) | `docs/mapa/informe-pdf-excel.md` |
 | **Agregar o correr un caso de prueba; A/B; mutación** | `docs/mapa/tests.md` |
 | **Visor de cineloop, medición, calibración, IndexedDB** | `docs/mapa/imagenes-visor.md` |
+| **Tocar la ESTENOSIS MITRAL en el LABORATORIO**: las seis categorías, las dos casillas del filtro, el gráfico de distribución, el PDF de auditoría o el PPT | `docs/mapa/laboratorio-estenosis-mitral.md` |
 | **Orientarse en otro módulo** (Congénitas, Laboratorio, PPT, Cardio-Onco, Pericardio) | `docs/mapa/congenitas-otros.md` |
 | **Citar un dato de una guía** (documento, folio, frase verificada) | `docs/fuentes/FUENTES.md` |
 | **Citar un dato de PRÓTESIS valvular** | `docs/fuentes/FUENTES-protesis.md` |
@@ -77,7 +78,8 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **6,13 MB / 90.494 líneas**. Las únicas dependencias son jsPDF, XLSX y
+  sin frameworks. Hoy **7,30 MB / 110.314 líneas**, medido el 2026-10-14 —el renglón decía «6,13 MB /
+  90.494 líneas» y llevaba varias tandas sin actualizarse: **medirlo antes de presupuestar contexto**—. Las únicas dependencias son jsPDF, XLSX y
   PptxGenJS por CDN. Se abre como archivo local y corre en Chrome.
 - Lo que produce es un **informe firmado**: narrativo, EN SUMA, PDF, PPT y Excel del Laboratorio.
   Un dato que se carga y no sale en ninguno de esos destinos desapareció sin aviso.
@@ -230,6 +232,166 @@ impecable.
 ---
 
 ## Estado vigente
+
+### La ESTENOSIS MITRAL NATIVA en el LABORATORIO: seis categorías desde los DATOS y dos casillas superponibles (2026-10-14)
+
+- Al **empezar** esta tanda, `main` local y `origin/main` estaban los dos en **`38ad16e`**, sin nada
+  sin pushear —confirmado con un `git fetch` de verdad, no con el ref en caché—, con los **cinco**
+  commits de la tanda de las cuatro partes chicas de Válvulas ya incluidos **y pusheados**. Los
+  **cuatro** commits de esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 4 → 3 → 2 → 1.**
+  El **1** crea el dueño único (`_labEmLectura`), las cuatro constantes y `_labEmSevVis`, y **el 2 y
+  el 3 cuelgan de él**. ⚠️ **PERO REVERTIR EL 1 SOLO NO ROMPE LA CARGA, Y SÍ ROMPE EL PDF.** Los dos
+  consumidores de pantalla —`_labEmBarras` y `_labEmCasillas`— lo llaman con `typeof` y salen por su
+  guarda, y las cuatro líneas de `window.*` que quedarían vivas nombran sólo funciones del 2 y del 3;
+  pero la rama `modo === 'em'` del **PDF de auditoría** nombra `LAB_EM_CAT_ORDEN` y `_labEmLectura`
+  **SIN guarda**, así que ahí un `ReferenceError` se lleva la exportación entera. No la carga, porque
+  está dentro de un cuerpo de función: la diferencia entre las dos cosas es lo que hay que saber
+  antes de revertir.
+  ⚠️ **Y EL 3 TIENE QUE REVERTIRSE ANTES QUE EL 2.** La línea de exportación que el 3 **reescribe**
+  —`window._labEmBarras = _labEmBarras; window._labEmCasillas = _labEmCasillas;`— nombra
+  `_labEmBarras`, que **nace en el 2**, y está en **columna 0, fuera de todo `try`** (el `try` de esa
+  zona es de `_labEmConteoPintar` y cierra antes). Revertir el 2 primero deja una referencia de
+  **NIVEL SUPERIOR** a una función que no existe, y un `ReferenceError` en la evaluación de un
+  `<script>` **aborta el bloque COMPLETO** — o sea la app con cero pestañas con geometría.
+  **El 4 es TC-469 más documentación** y afirma el comportamiento de los tres: revertir cualquiera
+  sin el 4 deja TC-469 en rojo —51 de sus 55 condiciones, verificado en un worktree aparte—.
+
+- **Línea base al cierre: suite 466/483 con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0 ERROR,
+  Excel 435 columnas con el hash IDÉNTICO a HEAD, celular 43 a 360 px y 52 a 390 px con 1 ALTA cada
+  uno —IDÉNTICO a la línea base, y `--todo` da 374 y 383, el mismo par—.** **CERO REGRESIONES**, y
+  los 17 rojos se reparten en tres grupos que **no se restan**:
+  · **ONCE son de ENTORNO y lo dicen en su propia condición-denominador**: TC-131, TC-135, TC-148,
+    TC-150, TC-151, TC-152, TC-155, TC-156, TC-157, TC-162 y TC-165, todos de **Excel y PPT**,
+    fallan en «la librería XLSX está disponible (llega por CDN)» y «PptxGenJS cargó por CDN».
+    ⚠️ **MEDIDO: no es que el CDN esté caído, es que TARDA MÁS QUE EL PRESUPUESTO.** `cdnjs` contesta
+    **200 en 8,0 s** y la red está arriba (google 200), pero esos casos esperan **6 s** y se rinden.
+    Es el defecto de entorno que TC-148 ya documenta, con el racimo entero en vez de uno solo.
+  · **DOS son los inestables por orden de corrida conocidos**: **TC-246** y **TC-252**, los dos
+    **VERDES corridos solos** sobre el mismo árbol. **Repetir antes de sospechar.**
+  · **CUATRO son los de ENTRADA y NO son regresiones**: **TC-223** (el documentado, falla por la
+    fecha), **TC-376**, **TC-390** y **TC-406**.
+  O sea que **el conjunto de rojos que no son entorno ni orden es exactamente esos cuatro**, que es
+  la comparación válida. **El denominador subió a 484**: esta tanda agregó **TC-469**.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista de ids con
+  `grep -o "^caso('[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. Por eso el total es sobre 483 y no sobre 484.
+  El `md5` de `index.html` no se movió durante la corrida (`a1b06352…`).
+
+- **Dónde está todo:** `docs/mapa/laboratorio-estenosis-mitral.md` (**mapa NUEVO**, 10,2 KB: el
+  problema, los dueños por nombre, las seis categorías, las dos casillas, lo que NO se reimplementa,
+  las siete decisiones, las superficies una por una y las siete trampas medidas),
+  `docs/mapa/congenitas-otros.md` y `docs/mapa/valvulas.md` → sendos punteros —el de válvulas avisa
+  que **mover un corte de `emCategoria` mueve las seis categorías del Laboratorio**, porque
+  `_labEmLectura` consume sus mismas constantes—, `docs/fuentes/FUENTES.md` → «Los NOMBRES de los
+  rangos de área de la estenosis mitral, guía por guía» (las cuatro guías con su folio comprobado en
+  el pie impreso), y `docs/PENDIENTES.md` → **siete** cosas declaradas y no tocadas (L1 a L7).
+  ⚠️ `valvulas.md` quedó en **33,8 KB**, o sea a 1,2 KB del techo de 35: **la próxima tanda que lo
+  toque conviene que lo parta.**
+
+- ⚠️ **EL SELLO DE VERSIÓN QUEDÓ VIEJO EN EL TERCER COMMIT Y NO SE CORRIGIÓ ACÁ.** Medido:
+  `sellar_version.py --check` dice que `index.html` se modificó **68 min después** de sellarlo
+  —`ECO_BUILD` en `20261014-0633` contra un commit de las `07:46`—, así que el pie de la app miente
+  sobre qué versión se mira, que es justo lo que ese sello evita. **No se re-selló en el commit de
+  documentación a propósito:** escribir en `index.html` después de medir la línea base sobre él
+  publicaría una línea base de un `md5` que no es el del árbol. Va **con el próximo commit que toque
+  `index.html`**, que es cuando la regla lo pide. `PENDIENTES.md` → L7.
+
+- **EL PROBLEMA ERA QUE EL LABORATORIO LEÍA LA MITRAL COMO A LAS OTRAS SIETE, Y YA NO ALCANZA.**
+  Leía `_labEstenSev(inf,'em_grado')`, una **regex sobre el token guardado**. Desde que el selector
+  es binario (2026-10-13) la cubeta **«Moderada» quedó vacía por construcción**, la palabra que el
+  Laboratorio imprimía —«Severa»— **no es la que el informe firmado publica desde el 2026-10-11**, y
+  el token **no dice POR QUÉ**: una estenosis afirmada por un AVm de 0,8 cm², otra por 1,4 y otra
+  sólo por un gradiente de 12 mmHg salían las tres como «Severa».
+
+- **LAS SEIS CATEGORÍAS SON MUTUAMENTE EXCLUYENTES Y SE CALCULAN DESDE LOS DATOS**, con el área
+  primero en la cascada: `sig_area_1` (≤1,0) · `sig_area_15` (>1,0 a ≤1,5) · `sig_grad`
+  (significativa sólo por gradiente) · `grad_elev` (no significativa con gradiente elevado) · `sin` ·
+  `sig_sin_num`. **Las dos casillas (B) se SUPERPONEN** —por área y por gradiente— y por eso se puede
+  contar la intersección; marcadas las dos, el filtro exige las dos.
+  ⚠️ **EL SUB-RANGO DE 1,0 cm² ES LA FRONTERA DE UN RÓTULO Y NO UN CORTE CLÍNICO.** La app sigue
+  graduando con un solo corte de área y **no se movió ningún corte ni ningún operador**.
+- ⚠️ **EL RÓTULO LLEVA EL RANGO Y NO UN NOMBRE DE GUÍA, PORQUE LOS NOMBRES CHOCAN.** El mismo
+  **1,2 cm²** es **«moderada»** para la EAE/ASE 2009 y **«severa»** para la ASE 2023, la ACC/AHA 2020
+  y la ESC/EACTS 2025; y el 1,6–2,5 que la ASE 2023 llama «Progressive (Moderate)» es «Mild» para la
+  EAE/ASE 2009. Cualquier nombre habría que atribuirlo a una guía que otra desmiente.
+  ⚠️ **Y DOS DE LAS TRES PREMISAS CON QUE SE PIDIÓ EL TRABAJO SON FALSAS, CENSADAS EN LOS PDF
+  COMPLETOS:** la ESC escribe **«clinically severe MS»** y no «clínicamente significativa»
+  —*«clinically significant»* aparece 12 veces y **ninguna** sobre la mitral—, y la categoría **«muy
+  severa» NO EXISTE** para la EM en la ACC/AHA —*«very severe»* 11 veces y ninguna sobre la mitral—.
+  La tercera, que la EAE/ASE 2009 llama «moderada» a 1,0–1,5 y «severa» a <1,0, **es cierta**,
+  verificada **renderizando** la Tabla 9: sus valores son una imagen.
+
+- **NO SE REIMPLEMENTA LA REGLA: SE LE PREGUNTA A SUS DUEÑOS.** `_labEmLectura` consume
+  `emThpValido`, `emContValido` y `emImSignificativa` —las tres aceptan `src` justamente para esto—
+  más `AVM_SEVERA_MAX`, `EM_GMEDIO_ELEVADO_MIN` y `EM_GMEDIO_SIGNIF_MIN`.
+  ⚠️ **`emCategoria()` NO SE PUEDE LLAMAR, Y ESTÁ MEDIDO:** no toma argumentos y lee el DOM por
+  `v(id)` y `protNoGradua('vm_morf')`, y el Laboratorio trabaja sobre un **registro archivado**.
+- **CON IM SIGNIFICATIVA EL GRADIENTE NO VOTA, LAS DOS BANDAS**, igual que `emCategoria` —la decisión
+  de Maicol del 2026-10-11—, y **el área sigue votando**. Si el Laboratorio lo contara igual diría
+  «significativa sólo por gradiente» sobre un estudio cuyo informe firmado dice «Gradiente
+  transmitral elevado» **sin** la palabra estenosis: dos lecturas del mismo dato en la misma app.
+- **UN MÉTODO QUE EL MÉDICO SACÓ DE «INCLUIR EN EL INFORME» NO VOTA, Y CON LA CLAVE AUSENTE SÍ.** Es
+  el espejo exacto de `emMetodoIncluido`: un estudio anterior al selector (2026-10-11) no trae
+  `em_pdf_plan__chk`, y leerlo como desmarcado le borraría al Laboratorio **la estenosis que su
+  propio PDF firmado afirma**. **No se migra nada.**
+- **SIN NINGÚN DATO DE ESTA VÁLVULA EL ESTUDIO QUEDA FUERA DE TODAS LAS CATEGORÍAS**, ni siquiera en
+  «Sin estenosis»: afirmar ausencia sobre una mitral que nadie midió no es medir prevalencia. La
+  diferencia se declara al pie del gráfico. **Medido con teclas reales de punta a punta**: cargar
+  AVm 1,2 y gradiente 12 da `sig_area_15`, y **borrar los dos deja la lectura en `null`**.
+- **EL CERO NO ES UNA MEDICIÓN Y UN VALOR FUERA DE BANDA NO VOTA**, las dos guardas de `emCategoria`.
+  ⚠️ **La banda del gradiente es `[1,60]` y sale de `DCM_RANGO`, que `_labRango` fusiona — NO de
+  `LAB_XLS_RANGO_PROPIO`, donde `em_gmedio` no tiene entrada propia (medido).** Sin banda, un 600
+  cruzaría el `≥10` y publicaría «significativa sólo por gradiente».
+- **SOBRE PRÓTESIS MITRAL NO SE CLASIFICA**: la regla es de válvula nativa.
+
+- **EL ROTULO «Significativa» SE TRADUCE SÓLO EN LA MITRAL, Y EL VALOR GUARDADO NO CAMBIA.**
+  `em_grado` sigue siendo `severa`/`leve` —es lo que leen el Excel, el importador y `VALVSIG`— y
+  `_labEmSevVis` cambia cómo se **escribe**. Medido en los dos árboles: `Severa`→«Significativa»,
+  `Leve`/`Moderada`→«No significativa», `Sin`→«Sin estenosis», y un token ajeno pasa **sin tocarse**.
+- ⚠️ **LA TABLA DE OCHO FILAS Y EL GRÁFICO APILADO SIGUEN CONTANDO POR EL TOKEN, A PROPÓSITO.** Sus
+  cuatro columnas las comparten las OCHO lesiones, así que cambiarle el conteo a la mitral se lo
+  cambia a las otras siete. Lo que entró es una **nota al pie** que declara cómo se leen. Por eso la
+  fila de la EM **puede diferir de las barras de la misma tarjeta**: un estudio con AVm 2,0 cm² y el
+  botón en «Significativa» cuenta «Sev» ahí y «Sin estenosis» abajo. `PENDIENTES.md` → L1.
+- ⚠️ **EL EXCEL NO EXPORTA EL GRADIENTE MEDIO MITRAL, ASÍ QUE LAS CATEGORÍAS NO SE PUEDEN RECALCULAR
+  DESDE EL LIBRO.** `em_gmedio` tiene **cero** apariciones en el exportador. **No se agregó ninguna
+  columna** —la orden lo prohíbe—: las tres alternativas, con la conservadora marcada, están en
+  `PENDIENTES.md` → L3.
+
+- **CONTROL NEGATIVO MAYOR, A/B contra HEAD con un escenario CARGADO en las ocho lesiones:
+  0 diferencias** en el **Excel con sus 435 columnas y el hash IDÉNTICO** (`945166006` en los dos
+  árboles), en el Excel del formulario vacío, en `_labValvCounts` (las ocho columnas del apilado) y
+  en la lectura de severidad de las otras lesiones —incluido `_labEstenSev(em_grado)`, que **sigue
+  devolviendo «Severa» sin tocarse**—.
+
+- **Arnés: `scripts/_probe_labem.mjs`** (A/B de solo lectura con `--file`, y `--pdfdump`), **nueve**
+  grupos (`lectura`, `excluy`, `sindato`, `legado`, `barras`, `filtro`, `pdf`, `teclas`,
+  `controles`), con el PDF y el PPT **generados de verdad** interceptando jsPDF.
+  **Cobertura: TC-469**, **55 condiciones** —contadas, no estimadas— con **cuatro** denominadores y
+  **nueve** controles negativos. **Verificado que sabe fallar contra HEAD en un worktree aparte: 51
+  de las 55 en rojo, y NINGUNA por excepción**; las cuatro que pasan son **exactamente** el grupo de
+  controles negativos, o sea lo que esta tanda no mueve.
+- ⚠️ **EL LABORATORIO LEE REGISTROS Y NO EL FORMULARIO**, así que las escenas de TC-469 son objetos
+  de estudio archivado y no tecleos; las mismas escenas con **teclas y clics reales** las corre la
+  sonda, que es la que midió los síntomas contra HEAD. Mismo reparto que TC-460 y TC-463.
+- ⚠️ **ESCRIBÍ «56 condiciones» ANTES DE CONTARLAS Y SON 55.** Lo cazó instrumentar el propio caso
+  para que publicara su `ex.length`, no contar los `ex.push` a ojo —varios están dentro de un
+  `forEach`—. Es la tercera vez que este archivo lo anota: **contar y después escribir.**
+- ⚠️ **UN CRITERIO DE COHORTE INCOMPLETO RECHAZA TODO.** `_labCohorteOk` evalúa todos los criterios y
+  una clave ausente deja comparaciones contra `undefined`: la primera corrida del grupo `filtro` dio
+  **cero en las cuatro cuentas** con pinta de medición buena. La base se le pide al dueño
+  (`_labCohorteLeer`) y **no se escribe a mano** — una lista cableada se desactualiza el día que el
+  panel gane un filtro.
+- ⚠️ **UN BOOLEANO EN `false` DEJABA LA COHORTE ACTIVA PARA SIEMPRE.** `_labCohorteLeer` decide si hay
+  filtros con «distinto de vacío, `null` y `undefined`», y una casilla sin tildar pasa los tres. Y el
+  reset escribe `e.value = ''`, que en un checkbox cambia el *value* y **deja el tilde puesto**.
+- ⚠️ **`_pc` ES LOCAL DEL PDF DE AUDITORÍA**: nombrarla desde el PPT —otra función, otro scope— es un
+  `ReferenceError` que se lleva la exportación entera.
+- ⚠️ **EL PIE DE «VÁLVULA MÁS FRECUENTE» HABRÍA DICHO «Estenosis mitral (EM) moderada».** Su ternario
+  compara `b.Severa > b.Moderada`, y con las cubetas de la EM en cero cae en la rama del empate.
+- ⚠️ **`scripts/check_backticks.py` NO ALCANZÓ A LOS ACENTOS GRAVES DE LOS COMENTARIOS DENTRO DEL
+  TEMPLATE DE LA SONDA**, tres veces en esta tanda. Los cazó `node --check`. **Correr los dos.**
 
 ### Las CUATRO PARTES CHICAS de Válvulas: el VTI de la ET, la casilla de PISA, «Nuevo estudio» y la ayuda de la EM (2026-10-14)
 

@@ -63386,6 +63386,260 @@ caso('TC-468', 'Las cuatro partes de Valvulas: el VTI de entrada tricuspideo vot
   return { extra: ex };
 `);
 
+/* ═══ GRUPO 20 — LA ESTENOSIS MITRAL NATIVA EN EL LABORATORIO (2026-10-14) ═══════════════════
+   Fija la lectura unica del Laboratorio: la CATEGORIA (A) mutuamente excluyente y las dos
+   CASILLAS (B) superponibles, los cuatro bordes por sus dos lados, lo que la regla vigente de la
+   app RETIRA, y los controles de que nada mas se movio.
+
+   ⚠️ TODO VA CON GUARDAS Y SIN LLAMAR A NADA QUE PUEDA NO EXISTIR. Un ReferenceError en el
+   cuerpo de un caso mata la corrida ENTERA, y entonces el caso prueba que el arbol es distinto y
+   no que sabe medir: es la leccion que TC-455, TC-462 y TC-465 ya tienen escrita.
+
+   ⚠️ EL LABORATORIO LEE REGISTROS, NO EL FORMULARIO, asi que las escenas de este caso son objetos
+   de estudio archivado y no tecleos. Las mismas escenas, con teclas y clics reales sobre el
+   formulario, las corre scripts/_probe_labem.mjs — que es la que midio los sintomas contra HEAD.
+   Mismo reparto que TC-460 y TC-463. */
+caso('TC-469', 'Laboratorio · estenosis mitral nativa: seis categorias excluyentes desde los DATOS con los bordes 1,0 / 1,5 cm2 y 5 / 10 mmHg por sus dos lados, dos casillas superponibles que cuentan la interseccion, la discrepancia resuelta por el PEOR, el token antiguo que sigue leyendose, el estudio sin dato fuera de todas, y el rotulo «Significativa» solo en la mitral', `
+  const ex = [];
+  const REG = (c, k) => ({ id: 'P' + (k || 'x'), nombre: 'P', ci: '1', fecha_estudio: '2026-10-14', campos: c || {} });
+  const HAY = typeof _labEmLectura === 'function';
+  const L = (c) => { if (!HAY) return 'SIN FN'; try { return _labEmLectura(REG(c)) } catch (e) { return 'EXC: ' + e.message } };
+  const CAT = (c) => { const r = L(c); return (r && r.cat) ? r.cat : (r === null ? null : String(r)) };
+  const AREA = (c) => { const r = L(c); return r && typeof r === 'object' ? !!r.porArea : 'SIN FN' };
+  const GRAD = (c) => { const r = L(c); return r && typeof r === 'object' ? !!r.porGrad : 'SIN FN' };
+
+  /* ── DENOMINADOR 1: la funcion existe. Sin esto, todas las condiciones de abajo comparan
+       'SIN FN' contra una clave y salen rojas por la razon equivocada. ── */
+  ex.push(['(0) DENOMINADOR: el Laboratorio tiene su lectura propia de la estenosis mitral',
+    HAY, 'typeof _labEmLectura=' + typeof _labEmLectura]);
+
+  /* ── LAS SEIS CATEGORIAS, una escena por cada una ── */
+  const SEIS = {
+    sig_area_1:  { avm_plan: '0.8' },
+    sig_area_15: { avm_plan: '1.2' },
+    sig_grad:    { avm_plan: '2.0', em_gmedio: '12' },
+    grad_elev:   { avm_plan: '2.0', em_gmedio: '7' },
+    sin:         { avm_plan: '2.0' },
+    sig_sin_num: { em_grado: 'severa' }
+  };
+  Object.keys(SEIS).forEach(k => {
+    ex.push(['(1) categoria «' + k + '» desde los datos', CAT(SEIS[k]) === k,
+      'esperado ' + k + ', dio ' + CAT(SEIS[k])]);
+  });
+
+  /* ── EL BORDE DEL AREA, por sus dos lados y EN el corte. El 1,0 parte el ROTULO —no gradua— y
+       el 1,5 decide la estenosis. Un borde se prueba con el valor que cae ENTRE los dos lados. ── */
+  const A = { '0.99': 'sig_area_1', '1.0': 'sig_area_1', '1.01': 'sig_area_15',
+              '1.49': 'sig_area_15', '1.5': 'sig_area_15', '1.51': 'sin' };
+  Object.keys(A).forEach(v => {
+    ex.push(['(2) AVm ' + v + ' cm2 cae en «' + A[v] + '»', CAT({ avm_plan: v }) === A[v],
+      v + ' -> ' + CAT({ avm_plan: v })]);
+  });
+  ex.push(['(2) el 1,5 exacto SI es significativo por area y el 1,51 NO — el corte es <=',
+    AREA({ avm_plan: '1.5' }) === true && AREA({ avm_plan: '1.51' }) === false,
+    '1.5=' + AREA({ avm_plan: '1.5' }) + ' 1.51=' + AREA({ avm_plan: '1.51' })]);
+
+  /* ── EL BORDE DEL GRADIENTE, sin area cargada para que no lo tape: 4,9 / 5 / 9,9 / 10. ── */
+  const G = { '4.9': 'sin', '5': 'grad_elev', '9.9': 'grad_elev', '10': 'sig_grad', '12': 'sig_grad' };
+  Object.keys(G).forEach(v => {
+    ex.push(['(3) gradiente medio ' + v + ' mmHg cae en «' + G[v] + '»', CAT({ em_gmedio: v }) === G[v],
+      v + ' -> ' + CAT({ em_gmedio: v })]);
+  });
+  ex.push(['(3) el 10 exacto SI tilda la casilla del gradiente y el 9,9 NO — el corte es >=',
+    GRAD({ em_gmedio: '10' }) === true && GRAD({ em_gmedio: '9.9' }) === false,
+    '10=' + GRAD({ em_gmedio: '10' }) + ' 9.9=' + GRAD({ em_gmedio: '9.9' })]);
+
+  /* ── LA DISCREPANCIA: MANDA EL PEOR (decision de Maicol, 2026-10-14) ── */
+  ex.push(['(4) AVm >1,5 con gradiente >=10 es «significativa solo por gradiente»',
+    CAT({ avm_plan: '2.0', em_gmedio: '12' }) === 'sig_grad', String(CAT({ avm_plan: '2.0', em_gmedio: '12' }))]);
+  ex.push(['(4) AVm <=1,5 con gradiente de 5 a <10 es significativa POR AREA y la casilla del gradiente queda SIN tildar',
+    CAT({ avm_plan: '1.2', em_gmedio: '7' }) === 'sig_area_15' &&
+    AREA({ avm_plan: '1.2', em_gmedio: '7' }) === true &&
+    GRAD({ avm_plan: '1.2', em_gmedio: '7' }) === false,
+    'cat=' + CAT({ avm_plan: '1.2', em_gmedio: '7' }) + ' A=' + AREA({ avm_plan: '1.2', em_gmedio: '7' }) +
+    ' G=' + GRAD({ avm_plan: '1.2', em_gmedio: '7' })]);
+  /* Dos areas que discrepan: el PEOR es el menor, mire por donde se cargue. */
+  ex.push(['(4) con dos areas discrepantes manda la MENOR, en los dos ordenes de carga',
+    CAT({ avm_plan: '1.2', avm_cont: '2.0' }) === 'sig_area_15' &&
+    CAT({ avm_plan: '2.0', avm_cont: '1.2' }) === 'sig_area_15',
+    'plan1.2/cont2.0=' + CAT({ avm_plan: '1.2', avm_cont: '2.0' }) +
+    ' plan2.0/cont1.2=' + CAT({ avm_plan: '2.0', avm_cont: '1.2' })]);
+
+  /* ── SOLO GRADIENTE, SIN NINGUNA AREA ── */
+  ex.push(['(5) con el gradiente como UNICO dato, >=10 afirma estenosis y 5-9,9 no',
+    CAT({ em_gmedio: '12' }) === 'sig_grad' && CAT({ em_gmedio: '6' }) === 'grad_elev',
+    '12=' + CAT({ em_gmedio: '12' }) + ' 6=' + CAT({ em_gmedio: '6' })]);
+
+  /* ── SOLO EL BOTON, SIN NINGUN NUMERO, Y SU CONTROL NEGATIVO ── */
+  ex.push(['(6) «Significativa» marcada a mano SIN ningun valor es su propia categoria',
+    CAT({ em_grado: 'severa' }) === 'sig_sin_num', String(CAT({ em_grado: 'severa' }))]);
+  ex.push(['(6) CONTROL NEGATIVO: con un numero cargado manda el NUMERO y no el boton',
+    CAT({ em_grado: 'severa', avm_plan: '2.0' }) === 'sin',
+    String(CAT({ em_grado: 'severa', avm_plan: '2.0' }))]);
+
+  /* ── SIN NINGUN DATO DE ESTA VALVULA: FUERA DE TODAS LAS CATEGORIAS (decision 4) ── */
+  [['formulario vacio', {}], ['otra lesion cargada', { fevi: '55', im_grado: '2' }],
+   ['em_grado en su valor de fabrica', { em_grado: 'sin' }]].forEach(par => {
+    ex.push(['(7) sin dato de estenosis mitral (' + par[0] + ') queda FUERA de todas, ni siquiera «Sin estenosis»',
+      L(par[1]) === null, String(CAT(par[1]))]);
+  });
+
+  /* ── EL ESTUDIO VIEJO: los valores internos antiguos se leen sin error ── */
+  ['leve', 'moderada', 'severa', 'sin', 'Sin estenosis', 'Severa'].forEach(tok => {
+    const r = L({ em_grado: tok, avm_plan: '1.2' });
+    ex.push(['(8) el token antiguo «' + tok + '» se lee sin error y el AREA sigue mandando',
+      r !== null && typeof r === 'object' && r.cat === 'sig_area_15',
+      tok + ' -> ' + (r && r.cat ? r.cat : String(r))]);
+  });
+
+  /* ── MUTUAMENTE EXCLUYENTES Y SUMAN EL TOTAL CON DATOS ── */
+  (function () {
+    const pob = [];
+    ['0.9','1.0','1.01','1.5','1.51','2.0'].forEach(a =>
+      ['', '4.9', '5', '9.9', '10'].forEach(g => {
+        const c = { avm_plan: a }; if (g) c.em_gmedio = g; pob.push(c);
+      }));
+    pob.push({ em_grado: 'severa' }); pob.push({}); pob.push({ fevi: '60' });
+    const cuenta = {}; let fuera = 0;
+    pob.forEach(c => { const r = L(c);
+      if (!r || typeof r !== 'object') { fuera++; return }
+      cuenta[r.cat] = (cuenta[r.cat] || 0) + 1; });
+    const suma = Object.keys(cuenta).reduce((a, k) => a + cuenta[k], 0);
+    ex.push(['(9) DENOMINADOR: la poblacion de prueba tiene 33 estudios y 2 sin dato de la mitral',
+      pob.length === 33 && fuera === 2, 'pob=' + pob.length + ' fuera=' + fuera]);
+    ex.push(['(9) las categorias son EXCLUYENTES y suman los estudios CON dato',
+      suma === pob.length - fuera && suma > 0, 'suma=' + suma + ' conDato=' + (pob.length - fuera) +
+      ' ' + JSON.stringify(cuenta)]);
+  })();
+
+  /* ── LAS DOS CASILLAS: SE SUPERPONEN, Y LA INTERSECCION SE PUEDE CONTAR ── */
+  (function () {
+    const POB = [
+      { avm_plan: '0.8' },                   // area si, gradiente no
+      { avm_plan: '1.2', em_gmedio: '12' },  // las DOS
+      { avm_plan: '2.0', em_gmedio: '12' },  // gradiente si, area no
+      { avm_plan: '2.0', em_gmedio: '7' },   // ninguna
+      { avm_plan: '2.0' },                   // ninguna
+      { fevi: '60' }                         // sin dato: ninguna
+    ];
+    const regs = POB.map((c, k) => REG(c, k));
+    const cs = (typeof _labEmCasillas === 'function') ? _labEmCasillas(regs) : 'SIN FN';
+    ex.push(['(10) el contador de las casillas da area 2, gradiente 2, los dos 1, sobre 5 con dato',
+      !!cs && cs.area === 2 && cs.grad === 2 && cs.ambos === 1 && cs.base === 5, JSON.stringify(cs)]);
+    /* Y el FILTRO cuenta lo mismo. Se le arma el criterio completo pidiendoselo a su propio
+       lector, porque un criterio incompleto deja comparaciones contra undefined que rechazan
+       todo — una cuenta de cero con pinta de medicion buena. */
+    const cb = document.getElementById('coh-em-area');
+    let base = null;
+    if (cb && typeof _labCohorteLeer === 'function') {
+      const antes = cb.checked; cb.checked = true;
+      try { base = _labCohorteLeer() } catch (e) { base = null }
+      cb.checked = antes;
+      if (base) { base.emArea = false; base.emGrad = false; base.em = ''; }
+    }
+    ex.push(['(10) DENOMINADOR: las dos casillas existen en el panel de filtros y se puede armar el criterio',
+      !!base && !!document.getElementById('coh-em-grad') && !!document.getElementById('coh-em-conteo'),
+      'base=' + (base ? 'ok' : 'NO') + ' grad=' + !!document.getElementById('coh-em-grad')]);
+    const filtra = (C) => {
+      if (!base || typeof _labCohorteOk !== 'function') return 'SIN FN';
+      const prev = window._LAB_COHORTE;
+      try { window._LAB_COHORTE = Object.assign({}, base, C);
+        return regs.filter(r => _labCohorteOk(r)).length;
+      } catch (e) { return 'EXC' } finally { window._LAB_COHORTE = prev }
+    };
+    ex.push(['(10) el filtro cuenta 2 por area, 2 por gradiente y 1 por los DOS (se superponen)',
+      filtra({ emArea: true }) === 2 && filtra({ emGrad: true }) === 2 &&
+      filtra({ emArea: true, emGrad: true }) === 1,
+      'area=' + filtra({ emArea: true }) + ' grad=' + filtra({ emGrad: true }) +
+      ' ambas=' + filtra({ emArea: true, emGrad: true })]);
+    ex.push(['(10) CONTROL NEGATIVO: sin ninguna casilla el filtro no saca a nadie',
+      filtra({}) === POB.length, String(filtra({}))]);
+    ex.push(['(10) el desplegable de categoria filtra por la categoria elegida',
+      filtra({ em: 'sig_area_1' }) === 1 && filtra({ em: 'sig_grad' }) === 1 &&
+      filtra({ em: 'sig_sin_num' }) === 0,
+      'a1=' + filtra({ em: 'sig_area_1' }) + ' grad=' + filtra({ em: 'sig_grad' }) +
+      ' sinNum=' + filtra({ em: 'sig_sin_num' })]);
+  })();
+
+  /* ── LO QUE LA REGLA VIGENTE RETIRA, Y QUE EL LABORATORIO TIENE QUE RESPETAR IGUAL ── */
+  ex.push(['(11) con IM significativa el gradiente NO vota —las dos bandas— igual que en la pantalla',
+    CAT({ em_gmedio: '12', im_grado: '4' }) === 'sin' &&
+    CAT({ em_gmedio: '7',  im_grado: '4' }) === 'sin' &&
+    GRAD({ em_gmedio: '12', im_grado: '4' }) === false,
+    'g12=' + CAT({ em_gmedio: '12', im_grado: '4' }) + ' g7=' + CAT({ em_gmedio: '7', im_grado: '4' })]);
+  ex.push(['(11) CONTROL NEGATIVO: con IM significativa el AREA sigue votando',
+    CAT({ avm_plan: '1.2', em_gmedio: '12', im_grado: '4' }) === 'sig_area_15',
+    String(CAT({ avm_plan: '1.2', em_gmedio: '12', im_grado: '4' }))]);
+  ex.push(['(11) CONTROL NEGATIVO: con IM leve el gradiente SI vota',
+    CAT({ em_gmedio: '12', im_grado: '1' }) === 'sig_grad',
+    String(CAT({ em_gmedio: '12', im_grado: '1' }))]);
+  ex.push(['(12) un metodo que el medico saco del informe no vota, y con la clave AUSENTE si',
+    CAT({ avm_plan: '1.2', em_pdf_plan__chk: '0' }) === 'sin' &&
+    CAT({ avm_plan: '1.2', em_pdf_plan__chk: '1' }) === 'sig_area_15' &&
+    CAT({ avm_plan: '1.2' }) === 'sig_area_15',
+    'destildada=' + CAT({ avm_plan: '1.2', em_pdf_plan__chk: '0' }) +
+    ' tildada=' + CAT({ avm_plan: '1.2', em_pdf_plan__chk: '1' })]);
+  ex.push(['(12) un valor fuera de banda no vota, y el cero no es una medicion',
+    CAT({ avm_plan: '150' }) === 'sin' && CAT({ em_gmedio: '600' }) === 'sin' &&
+    L({ avm_plan: '0' }) === null,
+    'area150=' + CAT({ avm_plan: '150' }) + ' grad600=' + CAT({ em_gmedio: '600' }) +
+    ' cero=' + String(CAT({ avm_plan: '0' }))]);
+  ex.push(['(12) sobre PROTESIS mitral no se clasifica: la regla es de valvula NATIVA',
+    (function () { const op = (window.VALV_PROT_OPCIONES || [])[0];
+      return !!op && L({ avm_plan: '1.0', em_gmedio: '12', vm_morf: op }) === null; })(),
+    'prot=' + String((window.VALV_PROT_OPCIONES || [])[0])]);
+
+  /* ── EL ROTULO: «Significativa» Y SOLO EN LA MITRAL ── */
+  ex.push(['(13) el traductor de rotulo de la mitral dice «Significativa» y «No significativa»',
+    typeof _labEmSevVis === 'function' && _labEmSevVis('Severa') === 'Significativa' &&
+    _labEmSevVis('Leve') === 'No significativa' && _labEmSevVis('Moderada') === 'No significativa' &&
+    _labEmSevVis('Sin') === 'Sin estenosis',
+    typeof _labEmSevVis === 'function' ? ['Sin','Leve','Moderada','Severa'].map(k => _labEmSevVis(k)).join(' / ') : 'SIN FN']);
+  ex.push(['(13) los seis rotulos de las categorias llevan el RANGO de area y no un nombre de guia',
+    typeof LAB_EM_CAT !== 'undefined' &&
+    LAB_EM_CAT.sig_area_1.indexOf('1,0') > -1 && LAB_EM_CAT.sig_area_15.indexOf('1,5') > -1 &&
+    !/moderada|severa|muy severa/i.test(Object.keys(LAB_EM_CAT).map(k => LAB_EM_CAT[k]).join(' ')),
+    typeof LAB_EM_CAT !== 'undefined' ? Object.keys(LAB_EM_CAT).map(k => LAB_EM_CAT[k]).join(' | ') : 'SIN CONST']);
+  ex.push(['(13) el desplegable del filtro ofrece las SEIS categorias y «Todas», con las CLAVES como value',
+    (function () { const s = document.getElementById('coh-em'); if (!s) return false;
+      const vs = Array.prototype.map.call(s.options, o => o.value);
+      return vs.length === 7 && vs[0] === '' &&
+             ['sig_area_1','sig_area_15','sig_grad','grad_elev','sin','sig_sin_num'].every(k => vs.indexOf(k) > 0); })(),
+    (function () { const s = document.getElementById('coh-em');
+      return s ? Array.prototype.map.call(s.options, o => o.value).join(',') : 'NO EXISTE'; })()]);
+
+  /* ── CONTROLES NEGATIVOS: lo que esta tanda NO mueve ── */
+  (function () {
+    const c = { im_grado: '2', ia_grado: '1', it_grado: '4', ea_grado: 'severa',
+                ep_grado: 'Moderada', ip_grado: 'Leve', em_grado: 'severa',
+                avm_plan: '1.2', em_gmedio: '12' };
+    const r = REG(c);
+    const sev = (typeof _labEstenSev === 'function') ? {
+      ea: _labEstenSev(r, 'ea_grado'), ep: _labEstenSev(r, 'ep_grado'), em: _labEstenSev(r, 'em_grado')
+    } : 'SIN FN';
+    const reg = (typeof _labRegurgSev === 'function') ? {
+      im: _labRegurgSev(r, 'im_grado'), ia: _labRegurgSev(r, 'ia_grado'), it: _labRegurgSev(r, 'it_grado')
+    } : 'SIN FN';
+    ex.push(['(14) CONTROL NEGATIVO: las otras lesiones siguen clasificando con sus mismas palabras',
+      !!sev && sev.ea === 'Severa' && sev.ep === 'Moderada' &&
+      !!reg && reg.im === 'Moderada' && reg.ia === 'Leve' && reg.it === 'Severa',
+      JSON.stringify(sev) + ' ' + JSON.stringify(reg)]);
+    ex.push(['(14) CONTROL NEGATIVO: _labEstenSev sigue leyendo el TOKEN de la mitral, sin tocarse',
+      !!sev && sev.em === 'Severa', 'em=' + (sev ? sev.em : '?')]);
+    let cols = 'EXC';
+    try { cols = Object.keys(_labExcelRow(r)).length } catch (e) { cols = 'EXC: ' + e.message }
+    ex.push(['(14) CONTROL NEGATIVO: el Excel sigue en 435 columnas — esta tanda no agrega ni una',
+      cols === 435, 'columnas=' + cols]);
+    let vc = 'EXC';
+    try { vc = _labValvCounts([r]) } catch (e) { vc = 'EXC: ' + e.message }
+    ex.push(['(14) CONTROL NEGATIVO: la tabla resumen sigue contando OCHO lesiones por severidad',
+      !!vc && Array.isArray(vc.bases) && vc.bases.length === 8 && vc.counts.Severa[1] === 1,
+      vc && vc.bases ? ('bases=' + vc.bases.join(',') + ' S=' + vc.counts.Severa.join(',')) : String(vc)]);
+  })();
+
+  return { extra: ex };
+`);
+
 let servidor, chrome;
 try {
   const s = await servir(); servidor = s.srv;

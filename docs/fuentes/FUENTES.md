@@ -696,6 +696,44 @@ de bajo gradiente existe y se gradúa por el área, que es lo que el texto de la
 - ⚠️ **El mismo documento dice lo CONTRARIO para la aórtica** (folio 20): con IAo y EAo coexistentes
   la continuidad sí se usa. No se mezcla con la regla mitral del folio 8.
 
+### Los NOMBRES de los rangos de área de la estenosis mitral, guía por guía (verificados 2026-10-14)
+
+Censo pedido para decidir cómo rotular las categorías del Laboratorio. **Las cuatro guías de la
+biblioteca se abrieron de nuevo y el folio está comprobado en el pie impreso**, no por aritmética.
+
+| Guía | Folio | Cómo rotula los rangos de ÁREA | Gradiente medio |
+|---|---|---|---|
+| **ASE 2023** (Pandian), Tabla 1 «Classification of Mitral Stenosis Severity» | **8** (pág. 6 del PDF; folio = pág + 2) | **«Progressive»**, que agrupa **«(Mild)»** `>2,5` y **«(Moderate)»** `2,5–1,6`, y **«Severe»** `≤1,5` | `<5` / **`5–9`** / **`≥10`**, «at a heart rate of 60-80 beats per minute» |
+| **EAE/ASE 2009** (Baumgartner), Tabla 9 «Recommendations for classification of mitral stenosis severity» | **17** (sin offset; pie «Baumgartner et al 17») | **«Mild»** `>1,5` · **«Moderate»** `1,0–1,5` · **«Severe»** `<1,0` | `<5` / `5–10` / `>10`, como **«Supportive findings»** |
+| **ESC/EACTS 2025**, §10.2.1 y título de la Figura 14 | **4680** / **4681** | un solo corte: `MVA ≤1,5 cm²` = **«clinically severe MS»**. **No publica bandas por área.** | no las usa como grado |
+| **ACC/AHA 2020** (Otto), Tabla 16 «Stages of MS» | **e113** (pie impreso «e113»; folio = idx 0-based + 72) | estadio **B «Progressive MS»** `>1,5` · estadios **C/D «severe MS»** `≤1,5` | el texto dice que `≤1,5` «typically corresponds to a transmitral mean gradient of >5 mm Hg to 10 mm Hg at a normal heart rate» |
+
+**Las tres premisas con que se pidió el trabajo, medidas:**
+
+1. ⚠️ **«La ESC llama *clínicamente significativa* a ≤1,5» es FALSO.** La guía escribe
+   **«clinically severe MS»** (folio 4680, literal arriba). Barrido del PDF completo: *«clinically
+   significant»* aparece **12 veces y NINGUNA sobre la estenosis mitral** —son fuga paravalvular,
+   IM funcional y trombosis de prótesis—.
+2. ✅ **«La EAE/ASE 2009 llamaba *moderada* a 1,0–1,5 y *severa* a <1,0» es CIERTO**, verificado
+   **renderizando** la Tabla 9: sus valores son una imagen y el texto extraído no los trae.
+3. ⚠️ **«La ACC/AHA llama *muy severa* a ≤1,0» es FALSO: esa categoría NO EXISTE para la EM.**
+   Censo del documento completo: *«very severe»* aparece **11 veces y ninguna sobre la mitral**
+   —son estenosis aórtica o títulos de la bibliografía—; *«moderate MS»* sólo en referencias
+   bibliográficas. Sus nombres son «Progressive» y «severe».
+
+**Por qué las categorías del Laboratorio llevan el RANGO y no un nombre de guía.** El mismo
+**1,2 cm²** es **«moderada»** para la EAE/ASE 2009 y **«severa»** para la ASE 2023, la ACC/AHA 2020
+y la ESC/EACTS 2025. Y el **1,6–2,5 cm²** que la ASE 2023 llama «Progressive (Moderate)» es, para
+la EAE/ASE 2009, **«Mild»**. Un rótulo con nombre de grado habría que atribuirlo a una guía, y
+cualquiera de las cuatro desmiente a otra. Por eso los rótulos son «Significativa, AVm ≤1,0 cm²» y
+«Significativa, AVm >1,0 a ≤1,5 cm²», que es lo que la app midió. **Ningún corte se movió.**
+
+⚠️ **UNA DIFERENCIA ENTRE LAS DOS FUENTES DEL GRADIENTE, DECLARADA Y NO TOCADA.** La app aplica
+`≥5` y `≥10`, que son los de la **ASE 2023** —`5–9` y `≥10`, los mismos operadores—. La **EAE/ASE
+2009** escribe `5–10` y `>10`, así que para ella un **10 exacto** es la banda intermedia y para la
+ASE 2023 es significativa. La app sigue a la ASE 2023, que es más nueva y es la que la regla
+vigente cita. `docs/PENDIENTES.md` → L5.
+
 ### `esc2020guch` — ESC 2020, cardiopatías congénitas del adulto
 Baumgartner H, De Backer J, Babu-Narayan SV, et al. *Eur Heart J* 2021;42(6):563-645.
 doi:10.1093/eurheartj/ehaa554.

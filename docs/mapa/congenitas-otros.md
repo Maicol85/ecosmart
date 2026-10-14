@@ -98,6 +98,13 @@ Pestaña `tab-congenitas2`, mismo patrón `<k>Estado`/`<k>Conclusion` + `<k>Sync
 
 ## Laboratorio
 
+> ⚠️ **La ESTENOSIS MITRAL del Laboratorio tiene su propio mapa:**
+> `docs/mapa/laboratorio-estenosis-mitral.md`. Desde el 2026-10-14 no se lee por
+> `_labEstenSev(inf,'em_grado')` como las otras siete lesiones, sino por `_labEmLectura(inf)`, que
+> calcula **seis categorías** excluyentes y **dos casillas** superponibles desde los DATOS. Ahí
+> están los dueños, las siete decisiones y las superficies, una por una. **La tabla resumen de ocho
+> filas y el gráfico apilado siguen leyendo el token** —`docs/PENDIENTES.md` → L1—.
+
 - `labInit()` — **puerta de entrada**, desde el botón al pie
   (`showTab('lab');if(window.labInit)labInit();`) y en cada cambio de período o centro. Recalcula
   **cada bloque en su propio `try`**, y el `catch` del bloque A **vacía** la tabla a propósito.

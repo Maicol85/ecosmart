@@ -36,6 +36,13 @@ panel de Evidencia, ni el espejo del TEER. Nunca tuvo columna en el Excel ni map
 importador, ni entrada en ninguna tabla de rangos — y esto último es por qué un `150` tipeado ahí
 subía al PDF firmado sin marca «(revisar)».
 
+> ⚠️ **EL LABORATORIO TIENE SU PROPIO LECTOR DE ESTA MISMA REGLA, Y COMPARTE LAS CONSTANTES.**
+> `_labEmLectura(inf)` (ver `docs/mapa/laboratorio-estenosis-mitral.md`) reproduce esta cascada
+> sobre un **registro archivado** —`emCategoria` no se puede llamar desde ahí: lee el DOM— y
+> consume `AVM_SEVERA_MAX`, `EM_GMEDIO_ELEVADO_MIN`, `EM_GMEDIO_SIGNIF_MIN`, `emThpValido`,
+> `emContValido` y `emImSignificativa`. **Mover un corte o una compuerta de acá mueve las seis
+> categorías del Laboratorio**, y al revés no: el sub-rango de 1,0 cm² es sólo de allá y no gradúa.
+
 `emCategoria` — junta las fuentes de AVm **marcadas y válidas** →
 `{clave, gm, fuentes, sev, noSev, revisar, noIncl}`, `clave:'protesis'` si lo es; su
 `_tomar(id, fuente, vota, insumo, chk)` exige `>0`, consulta la casilla ANTES de la banda y manda a

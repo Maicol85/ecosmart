@@ -1,5 +1,83 @@
 # EcoSmart — pendientes vivos
 
+## Estenosis mitral nativa en el LABORATORIO (2026-10-14) — DECLARADO y NO arreglado
+
+### L1 · La tabla de ocho válvulas y el gráfico apilado siguen contando la EM por el BOTÓN
+
+El gráfico de distribución propio de la EM, el PDF de auditoría y el PPT pasaron a las seis
+categorías, que se calculan desde los **datos**. La **tabla resumen de ocho filas** y el **gráfico
+apilado** siguen leyendo `_labEstenSev(inf,'em_grado')`, o sea el token guardado, y por eso su fila
+de la EM puede diferir de las barras de la misma tarjeta: un estudio con AVm 2,0 cm² y el botón en
+«Significativa» cuenta como «Sev» ahí y como «Sin estenosis» en el gráfico de abajo.
+**No se tocaron a propósito**: sus cuatro columnas las comparten las OCHO lesiones, y cambiarle el
+conteo o el encabezado a la mitral se los cambia a las otras siete, que esta orden prohíbe. Lo que
+sí entró es una **nota al pie** que declara cómo se leen. Cerrarlo pide decidir si la EM sale de
+esas dos superficies compartidas y tiene las suyas. **Decisión de Maicol.**
+
+### L2 · `VALVSIG` cuenta la estenosis mitral por una regex sobre el token
+
+El módulo de **asociaciones** (`VALVSIG`, que alimenta «HTP → valvulopatía significativa») hace
+`/severa|moderada/` sobre seis campos de grado a la vez, `em_grado` incluido. Con la lectura nueva
+disponible, esa estenosis podría contarse por los datos; **no se tocó** porque la función es
+transversal a las seis válvulas y cambiarla mueve las otras cinco.
+
+### L3 · El Excel no exporta el gradiente medio mitral, así que las categorías NO se pueden
+recalcular desde el libro
+
+**PARADA del punto 7 de la orden, verificada.** El Excel exporta `AVm (cm²)` (por THP),
+`AVm continuidad (cm²)`, `AVm planimetría (cm²)`, `AVm indexada (cm²/m²)` y `EM grado`, pero
+**`em_gmedio` no tiene columna**: cero apariciones en el bloque del exportador. Sin el gradiente no
+se puede derivar «significativa solo por gradiente» ni «no significativa con gradiente elevado» ni
+la casilla del gradiente desde el libro que cruza a **CeiboAnalytics**.
+**No se agregó ninguna columna** (la orden lo prohíbe expresamente y manda reportar). Las
+alternativas, en orden de menor a mayor costo:
+1. **Una columna numérica, «Grad medio mitral (mmHg)»**, con su banda ya existente — `[1,60]`, que
+   sale de `DCM_RANGO` y la fusiona `_labRango`, **no** de `LAB_XLS_RANGO_PROPIO`, donde este campo
+   no tiene entrada propia (medido) — el Excel pasaría a **436**. Es el dato crudo y deja el cálculo del
+   lado del consumidor, que es lo que hacen las otras 434.
+2. **Una columna de texto con la categoría ya calculada** — también 436, y además congela en el
+   libro una clasificación que puede cambiar con la regla; el repo ya documenta que el puntaje del
+   HFA-PEFF no se guarda por esa misma razón.
+3. **Dos columnas booleanas con las casillas** — 437, y es la más redundante.
+La 1 es la conservadora. **Decisión de Maicol.**
+
+### L4 · El estudio con «No significativa» marcada a mano y sin ningún número cae en «Sin estenosis»
+
+`sig_sin_num` existe sólo para el lado que AFIRMA. Un estudio donde el médico marcó «No
+significativa» sin cargar un valor entra en **«Sin estenosis»**, que es lo que esa marca afirma,
+pero no se distingue del que tiene los números y no alcanza ningún corte. Hacerlo pediría una
+séptima categoría («No significativa sin dato numérico») y la orden pide seis.
+
+### L5 · El 10 exacto del gradiente: la ASE 2023 y la EAE/ASE 2009 no coinciden
+
+La app usa `≥10` (ASE 2023, Tabla 1, folio 8, banda `≥10`). La **EAE/ASE 2009** (Tabla 9, p. 17)
+escribe `5–10` y `>10`, así que para ella el **10 exacto** es la banda intermedia. **No se movió
+ningún operador**: la app sigue a la guía más nueva, que es la que su propia regla cita. Queda
+dicho para que nadie lo «corrija» con la tabla de 2009 en la mano.
+
+### L7 · EL SELLO DE VERSIÓN QUEDÓ VIEJO en el tercer commit de esta tanda
+
+**Medido:** `python3 scripts/sellar_version.py --check` dice *«El sello quedó viejo: index.html se
+modificó 68 min después de sellarlo»*. `ECO_BUILD` vale **`20261014-0633`** y el commit `5e061e2`
+—el último que toca `index.html`— es de las **07:46**. O sea que el pie de la app **miente sobre qué
+versión se está mirando**, que es exactamente lo que ese sello existe para evitar: el propio script
+declara que ya costó tres diagnósticos, el último medio día.
+
+**No se corrigió en el commit de cobertura y documentación, y el motivo es el protocolo:** re-sellar
+escribe dos constantes en `index.html` y `version.json`, o sea tocaría el archivo **después** de que
+la línea base de esta tanda se midió sobre él (`md5 a1b06352…`, suite 466/483, Excel con hash
+`945166006`). Publicar una línea base medida sobre un `md5` distinto del que queda en el árbol es la
+clase de falso que `CLAUDE.md` documenta para el pendrive y para las fechas.
+
+**Qué hacer:** correr `python3 scripts/sellar_version.py` **junto con el próximo commit que toque
+`index.html`**, que es cuando la regla de la casa lo pide. No hay nada que arreglar en el código.
+
+### L6 · El PDF imprime «<=» y «>=» en vez de «≤» y «≥»
+
+Es `_labSanPDF`, el saneador **preexistente** del papel: la fuente del PDF no tiene esos glifos.
+Alcanza a los rótulos nuevos igual que a todo el resto del documento. No se tocó.
+
+
 ## Modo manual de las pastillas, selector binario de la EM y VTI tricuspídeo (2026-10-13) — DECLARADO y NO arreglado
 
 ### M1 · La pastilla no se vuelve a prender sola después de que el médico la cerró
