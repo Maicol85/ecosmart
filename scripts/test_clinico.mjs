@@ -40565,9 +40565,16 @@ caso('TC-307', 'Las superficies dejan de publicar la escalera derogada: Referenc
       ['DENOMINADOR: el manual existe y describe la regla implementada',
         ayuda.length > 5000 && ayuda.indexOf('la app completa solo «significativa»') > -1,
         'largo=' + ayuda.length],
-      ['⚠️ el manual ya NO atribuye el corte de area a la ESC/EACTS 2021 a secas, y NO publica el ≥10 mmHg como severidad mitral',
+      /* ⚠️ ADAPTADO el 2026-10-14: la segunda mitad exigia que el manual NO nombrara el
+         «≥ 10 mmHg», y eso era cierto mientras ese gradiente no fuera criterio. Desde la regla
+         binaria del 2026-10-11 SI lo es —es la mitad de «significativa si el area alcanza el corte
+         O el gradiente medio es >= 10»— asi que exigir su ausencia pedia que la ayuda callara la
+         regla que la app aplica. Era una de las tres afirmaciones viejas del punto M5 de
+         PENDIENTES, vista desde el otro lado. Hoy se exige lo contrario: que lo nombre, y que lo
+         nombre como SIGNIFICACION y no como un grado. La primera mitad no cambia. */
+      ['⚠️ el manual ya NO atribuye el corte de area a la ESC/EACTS 2021 a secas, y publica el ≥10 mmHg como SIGNIFICACION (no como grado)',
         ayuda.indexOf('gradiente medio mitral, severa') === -1 &&
-        ayuda.indexOf('≥ 10 mmhg') === -1,
+        ayuda.indexOf('≥ 10 mmhg') > -1 && ayuda.indexOf('significativa') > -1,
         '«' + (ayuda.match(/[^<>]*mitral[^<>]*/g) || []).join(' | ').slice(0, 600) + '»'],
       /* ADAPTADO el 2026-10-13: el selector de la estenosis mitral es BINARIO (decision de
          Maicol) y el manual ya no puede nombrar dos grados que la pantalla no ofrece. Lo que esta

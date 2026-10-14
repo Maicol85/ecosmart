@@ -15474,9 +15474,18 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
           </table>
           <div style="margin-top:10px;font-size:12px;color:var(--text);line-height:1.8;">
             <b style="color:var(--accent2);">Lo que la app hace con esto:</b> completa el grado en <b>«Significativa»</b> cuando el AVm válido es ≤ 1,5 cm². <b>«No significativa» la elige el médico</b> — la app no la autocompleta.<br>
-            • Con AVm &gt; 1,5 y <b>gradiente medio &gt; 4 mmHg</b> publica «EM con gradiente elevado»; con insuficiencia mitral moderada o mayor, «gradiente transmitral elevado» <b>sin</b> la palabra estenosis, porque ahí el gradiente sube por volumen.<br>
-            • Si dos áreas válidas caen a los dos lados del corte, se publican <b>las dos</b> con su método y <b>prevalece el peor</b>, con «probablemente severa por …».<br>
-            • El <b>gradiente medio ≥ 10 mmHg</b> de la ASE <b>no</b> se usa como criterio de severidad: el área es el indicador primario y la propia ESC 2021 describe la «estenosis mitral severa de bajo gradiente» (AVm ≤ 1,5 con gradiente medio &lt; 10).<br>
+            <!-- ⚠️ ESTAS TRES FRASES SE REESCRIBIERON EL 2026-10-14 (punto M5 de docs/PENDIENTES.md).
+                 Las tres describían la app ANTERIOR a la regla binaria del 2026-10-11 y ninguna era
+                 ya cierta: (1) el gradiente que publica «gradiente elevado» no es «> 4» sino la
+                 banda 5 a &lt; 10; (2) la categoría «probablemente severa» se eliminó ese mismo día;
+                 y (3) el gradiente ≥ 10 mmHg SÍ es criterio de significación desde entonces — es la
+                 mitad de la regla binaria—. NO SE MOVIÓ NINGÚN CORTE NI NINGUNA CUENTA: lo que
+                 cambia es el texto que las describe. Los números salen de `AVM_SEVERA_MAX` (1,5),
+                 `EM_GMEDIO_ELEVADO_MIN` (5) y `EM_GMEDIO_SIGNIF_MIN` (10), que son los que
+                 `emCategoria` aplica. -->
+            • Con AVm &gt; 1,5 y <b>gradiente medio de 5 a menos de 10 mmHg</b> publica «EM no significativa, con gradiente elevado»; con insuficiencia mitral moderada o mayor el gradiente <b>no gradúa en ninguna de sus dos bandas</b> y el informe dice «gradiente transmitral elevado» <b>sin</b> la palabra estenosis, porque ahí el gradiente sube por volumen.<br>
+            • Si dos áreas válidas caen a los dos lados del corte, se publican <b>las dos</b> con su método y <b>prevalece el peor</b>: basta una por debajo del corte para que la estenosis sea significativa.<br>
+            • El <b>gradiente medio ≥ 10 mmHg</b> <b>sí</b> es criterio de significación, junto con el área: alcanza con <b>uno</b> de los dos. Y como el área decide por su cuenta, la «estenosis mitral severa de bajo gradiente» (AVm ≤ 1,5 con gradiente medio &lt; 10, ESC/EACTS 2025, folio 4680) se gradúa igual por el área.<br>
             • La <b>ecuación de continuidad</b> no vale con regurgitación mitral o aórtica significativa, y el <b>THP</b> no es confiable con insuficiencia aórtica moderada o severa (ASE 2023). La app retira el voto y lo dice.
           </div>
           <div style="margin-top:10px;font-size:12px;color:var(--text);line-height:1.8;">
@@ -107037,8 +107046,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261014-0107';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791950869108;                 /* eco-build-ms */
+const ECO_BUILD    = '20261014-0633';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791970406968;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -107124,7 +107133,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261014-0107</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261014-0633</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -109111,7 +109120,7 @@ const ECO_AYUDA = [
 
 <div class="mSub">🫀 Válvulas</div>
 <p class="mP">Seis válvulas con su grado y su morfología. La severidad de las regurgitaciones se integra con PISA, vena contracta y los criterios de soporte.</p>
-<div class="mBox mAviso"><b>Estenosis mitral: la app completa sólo «Significativa».</b> Con un área valvular válida ≤ 1,5 cm² escribe el grado en «Significativa» (ASE 2023 · AHA/ACC 2020; la ESC/EACTS 2021 usa el mismo corte y lo llama «clínicamente significativa»). El selector es <b>binario</b> — «No significativa» / «Significativa», sin leve ni moderada — y «No significativa» la elige el médico: la app no la autocompleta, porque la banda «leve» por área que tenía antes llegaba hasta 4 cm² y no la publica ninguna guía — una mitral sana mide 4-6 cm² (ASE 2023). Con área &gt; 1,5 y gradiente medio &gt; 4 mmHg el informe dice «EM con gradiente elevado»; si además hay insuficiencia mitral moderada o mayor dice «gradiente transmitral elevado», <b>sin</b> la palabra estenosis, porque ahí el gradiente sube por volumen y no por obstrucción. Si dos áreas válidas caen a los dos lados del corte se publican las dos con su método y prevalece el peor. El área por continuidad no vale con regurgitación mitral o aórtica significativa y el THP no vale con insuficiencia aórtica severa: ahí el número se muestra y se retira del cálculo, y la pantalla dice por qué.</div>
+<div class="mBox mAviso"><b>Estenosis mitral: la app completa sólo «Significativa».</b> Con un área valvular válida ≤ 1,5 cm² escribe el grado en «Significativa» (ASE 2023 · AHA/ACC 2020; la ESC/EACTS 2021 usa el mismo corte y lo llama «clínicamente significativa»). El selector es <b>binario</b> — «No significativa» / «Significativa», sin leve ni moderada — y «No significativa» la elige el médico: la app no la autocompleta, porque la banda «leve» por área que tenía antes llegaba hasta 4 cm² y no la publica ninguna guía — una mitral sana mide 4-6 cm² (ASE 2023). Con área &gt; 1,5 y gradiente medio de 5 a menos de 10 mmHg el informe dice «EM no significativa, con gradiente elevado»; con un gradiente medio ≥ 10 mmHg la estenosis es <b>significativa</b> aunque el área no alcance el corte; y si hay insuficiencia mitral moderada o mayor el gradiente no gradúa en ninguna de sus dos bandas y el informe dice «gradiente transmitral elevado», <b>sin</b> la palabra estenosis, porque ahí el gradiente sube por volumen y no por obstrucción. Si dos áreas válidas caen a los dos lados del corte se publican las dos con su método y prevalece el peor. El área por continuidad no vale con regurgitación mitral o aórtica significativa y el THP no vale con insuficiencia aórtica severa: ahí el número se muestra y se retira del cálculo, y la pantalla dice por qué.</div>
 <div class="mBox mAviso"><b>Estenosis tricuspídea: es binaria, no se gradúa.</b> No hay clasificación leve/moderada/severa validada. Basta con que se cumpla <b>uno</b> de los cuatro criterios —gradiente medio ≥ 5 mmHg, VTI de entrada ≥ 60 cm, THP ≥ 190 ms, área ≤ 1 cm²— para hablar de estenosis significativa. Los cuatro pesan igual. Los dos insumos del área por continuidad (diámetro del TSVD y VTI del TSVD) se cargan en la pestaña VD.</div>
 <div class="mBox mAviso"><b>Válvula pulmonar: morfología, estenosis e insuficiencia son tres campos separados.</b> Antes vivían en un solo desplegable y elegir una excluía las otras, cuando clínicamente coexisten. El auto-grado por gradiente pico produce sólo leve, moderada o severa; «moderada-severa» existe pero es <b>elección manual</b>, porque ninguna guía publica ese corte.</div>
 <div class="mBox mAviso"><b>La normalidad exige consignarla.</b> «No especificada» —el valor al que migran los estudios viejos— no produce «válvula pulmonar normal». Sin morfología consignada y sin mediciones, la válvula no se nombra en el informe.</div>

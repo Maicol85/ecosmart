@@ -548,7 +548,45 @@ window.__P = {
      literal. Se busca en textContent y no en innerHTML: el texto renderizado ya decodifico las
      entidades, asi que el literal que se busca es el que el medico lee. */
   ayudaEM() {
-    var t = document.body.textContent || '';
+    /* ⚠️ NO document.body.textContent: eso incluye el texto de los <script>, o sea los 6 MB de JS
+       de esta app con todos sus comentarios, asi que una frase que solo vive en un comentario se
+       informa como si estuviera en la ayuda. La primera version de esta sonda hizo exactamente eso
+       y dijo que «probablemente severa por» seguia en pantalla despues de haberla borrado de los
+       dos textos que el medico lee. Se arma el texto de los nodos que el medico LEE: el modal de
+       ayuda mas el panel de Valvulas, con los <script> y <style> descontados. */
+    /* ⚠️ Y EL MODAL SE RENDERIZA POR PESTANIA, ASI QUE HAY QUE RECORRERLAS TODAS. Nace con 251
+       caracteres —solo el cascaron— y renderAyudaEco(i) pinta UNA seccion a la vez: leerlo sin
+       abrirlo da un denominador de 251 y las seis preguntas salen todas en false, que se lee
+       igual que «la frase ya no esta». Se acumula el texto de las N secciones. */
+    var secciones = 0;
+    var ayuda = '';
+    try {
+      /* ⚠️ ECO_AYUDA es un const de modulo y NO una propiedad de window, asi que
+         window.ECO_AYUDA da undefined y el bucle no corre: eso daba secciones=0 con las seis
+         preguntas en false, que se lee igual que «las frases ya no estan». Se nombra pelado. */
+      var N = (typeof ECO_AYUDA !== 'undefined' ? ECO_AYUDA : []).length;
+      secciones = N;
+      for (var i = 0; i < N; i++) {
+        renderAyudaEco(i);
+        var cont = document.getElementById('ecoAyudaContenido');
+        ayuda += ' | ' + (cont ? (cont.textContent || '') : '');
+      }
+    } catch (e) { ayuda = 'EXC: ' + e.message }
+    /* ⚠️ Y LAS TRES AFIRMACIONES DE M5 NO VIVEN EN ESE MODAL: viven en ref-em, la tarjeta
+       «Referencia clinica» de la estenosis mitral, que nace en display:none y NO la pinta
+       renderAyudaEco. Sin este nodo, dos de las tres preguntas salian false en HEAD —o sea «la
+       frase vieja ya no esta» sobre un texto intacto— y solo matcheaba la que ADEMAS esta en el
+       cartel mBox del modal. Un denominador incompleto con pinta de medicion buena. */
+    var raiz = [document.getElementById('ref-em'), document.getElementById('ref-im'),
+                document.getElementById('tab-valvulas')];
+    var partes = [ayuda];
+    raiz.forEach(function(r){
+      if (!r) { partes.push(''); return }
+      var c = r.cloneNode(true);
+      Array.prototype.forEach.call(c.querySelectorAll('script,style'), function(x){ x.remove() });
+      partes.push(c.textContent || '');
+    });
+    var t = partes.join(' | ');
     var tiene = function(f){ return t.indexOf(f) >= 0 };
     return {
       A_grad4: tiene('gradiente medio > 4 mmHg'),
@@ -561,6 +599,8 @@ window.__P = {
       /* El renglon del aviso de la ET, que nombra el operador del VTI. */
       etAviso60: { mayor: tiene('VTI de entrada > 60 cm'),
                    mayorIgual: tiene('VTI de entrada ≥ 60 cm') },
+      secciones: secciones,
+      largos: partes.map(function(x){ return x.length }),
       largo: t.length } },
 
   /* Devuelve el id de un boton cuyo onclick contiene el fragmento, poniendoselo si no lo tiene.
