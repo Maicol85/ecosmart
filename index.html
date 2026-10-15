@@ -31647,19 +31647,8 @@ function _eaDetCuentaPura() {
     /* El grado de la fila va JUNTO al valor que la fila acaba de publicar, en la misma funcion,
        para que no haya un camino que escriba uno y no el otro. Ver `eaAvaiGradoPintar`. */
     if (typeof eaAvaiGradoPintar === 'function') eaAvaiGradoPintar();
-    const dvi = (itsvi/itvao).toFixed(2);
-    /* El MISMO argumento que en `calcAo` para `dvi-val`, y acá pesa más: de este `input` sale el
-       «DI» del informe narrativo firmado y es la PRIMERA fuente que lee `eaProtVeredicto`, con
-       `parseFloat`. Pegarle « (revisar)» dejaría la marca decorativa —el número sigue parseando—,
-       así que se publica un texto que no parsea y las dos superficies caen en su propio «falta un
-       dato», que es fail-closed. Mismo recurso que el EOA protésico de la mitral.
-       `ea-det-dvi` es un `<span>` de pantalla y ahí sí vale marcar sin borrar: el número se ve y
-       la marca dice que no se lo crea. */
-    const dviEl = document.getElementById('ea_dvi_display');
-    if (dviEl) dviEl.value = _eaDetDviDud ? '' : dvi;
-    document.getElementById('ea-det-dvi').textContent = dvi + (_eaDetDviDud ? MARCA_REVISAR : '');
   } else {
-    ['ea-det-ava','ea-det-avai','ea-det-dvi'].forEach(id => { document.getElementById(id).textContent = '—'; });
+    ['ea-det-ava','ea-det-avai'].forEach(id => { document.getElementById(id).textContent = '—'; });
     /* Y el grado de la fila del AVA indexada con ellos: es un `<span>` sin `id`, asi que el
        barrido generico no lo alcanza y el grado del paciente anterior sobrevivia al lado de una
        fila ya en «—». Mismo motivo que los nueve de la IM. */
@@ -31669,7 +31658,36 @@ function _eaDetCuentaPura() {
        que `guardarInforme` los persiste y viajan en `campos`; y el espejo del TAVI leía
        `ea_dvi_display` como una de sus fuentes, o sea justo la superficie que nunca se limpiaba.
        Lo encontró /sharp-edges. */
-    ['ea_ava_display','ea_dvi_display'].forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+    ['ea_ava_display'].forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+  }
+
+  /* ══ EL DVI SALE DEL `if` DEL AVA Y TIENE EL SUYO (Z5, 2026-10-15) — cierra la parada Z3-2 ══
+     Decision de Maicol, reportada por el: el DVI es el cociente de dos VTI y NO usa el diametro
+     del TSVI; vivia dentro de `if (itsvi && itvao && dtsvi)` porque comparte el bloque con el AVA
+     por continuidad, que si lo necesita. El sintoma era peor que una fila vacia: `_eaCritDvi` ya
+     votaba sin el diametro, asi que la fila publicaba su GRADO con el valor en «—» —medido en
+     HEAD: «— (moderada)», un grado sin numero—.
+     ⚠️ SE ELIGIO LA SALIDA (a) DE `PENDIENTES.md` Y NO LA CONSERVADORA, porque es la que la orden
+     autoriza: se despega tambien el `input` `ea_dvi_display`, que viaja en `campos` y es la
+     SEGUNDA fuente que lee `eaProtVeredicto`. Medido: en las escenas de prueba el veredicto
+     protesico NO cambia, porque `dvi-val` —que `calcAo` escribe sin diametro— se lee PRIMERO y ya
+     estaba poblado; lo que cambia es que las dos superficies dejan de contradecirse.
+     ⚠️ LA BANDA SIGUE SIENDO LA DE LOS DOS VTI (`_eaDetDviDud`) y no la del AVA: el diametro ya
+     no entra en esta cuenta, asi que bandearlo aca retiraria el DVI por un dato que no usa. */
+  if (itsvi && itvao) {
+    const dvi = (itsvi/itvao).toFixed(2);
+    /* El MISMO argumento que en `calcAo` para `dvi-val`: de este `input` sale el «DI» del informe
+       narrativo firmado y es una de las dos fuentes que lee `eaProtVeredicto`, con `parseFloat`.
+       Pegarle « (revisar)» dejaria la marca decorativa —el numero sigue parseando—, asi que se
+       deja VACIO y las dos superficies caen en su propio «falta un dato», que es fail-closed.
+       `ea-det-dvi` es un `<span>` de pantalla y ahi si vale marcar sin borrar. */
+    const dviEl = document.getElementById('ea_dvi_display');
+    if (dviEl) dviEl.value = _eaDetDviDud ? '' : dvi;
+    document.getElementById('ea-det-dvi').textContent = dvi + (_eaDetDviDud ? MARCA_REVISAR : '');
+  } else {
+    document.getElementById('ea-det-dvi').textContent = '—';
+    const dviEl = document.getElementById('ea_dvi_display');
+    if (dviEl) dviEl.value = '';
   }
 
   /* ⚠️ EL RENGLON INTEGRADO VUELVE A «SIN DATO» DESDE ACA (Z, 2026-10-15), porque esta mitad es
@@ -34250,15 +34268,48 @@ const EA_FILA_GRADO = Object.freeze({
   'ea-det-dvi':    'gDvi'
 });
 window.EA_FILA_GRADO = EA_FILA_GRADO;
+/* ══ LA REFERENCIA DEL DVI SE ADAPTA A LA MORFOLOGIA (Z5, 2026-10-15) ═════════════════
+   Decision de Maicol. El DVI es el unico criterio del cuadro que la app lee en los DOS regimenes:
+   en valvula NATIVA con los cortes de `EA_DVI_SEV_MAX` / `EA_DVI_MOD_MAX` (ESC/EACTS 2025 folio
+   4663 y EAE/ASE 2009 Tabla 3) y en PROTESIS con los de la Tabla 5 de la ASE 2024, que la app ya
+   aplica en `eaProtVeredicto`. NINGUN CORTE NUEVO: los dos juegos ya existian y lo que entra es
+   que la FILA publique el del regimen que corresponde, en vez de quedarse muda con protesis.
+   ⚠️ LAS PALABRAS SON OTRAS Y NO ES COSMETICO: en nativa el DVI gradua una SEVERIDAD («moderada»,
+   «severa») y en protesis declara un NIVEL DE SOSPECHA («posible», «significativa»), que es lo que
+   la Tabla 5 publica. Traducir uno al vocabulario del otro diria que una protesis tiene estenosis
+   «severa», que es justamente la escala que el W2-B retiro de esta pantalla. */
+const EA_DVI_PROT_TXT = Object.freeze({ normal: 'sin criterios', posible: 'posible',
+                                        signif: 'significativa' });
+function _eaDviProtNivel() {
+  if (typeof _eaCritDvi !== 'function' || typeof _eaProtNivel !== 'function') return null;
+  let c = null;
+  try { c = _eaCritDvi(); } catch (e) { return null; }
+  if (!c || c.val == null) return null;
+  return _eaProtNivel(c.val, EA_PROT_CRIT.savr_dvi_normal_min, EA_PROT_CRIT.savr_dvi_signif_max, false);
+}
+window._eaDviProtNivel = _eaDviProtNivel;
 function eaAvaiGradoPintar() {
   let R = null;
-  if (!_eaEsProtesisAo()) {
+  const _esProtAo = _eaEsProtesisAo();
+  if (!_esProtAo) {
     try { R = (typeof eaGradoCalculado === 'function') ? eaGradoCalculado() : null; }
     catch (e) { R = null; }
   }
+  /* El DVI protesico se calcula UNA vez y fuera del bucle: adentro se recalcularia en cada
+     una de las cinco filas para usarse en una sola. */
+  const _dviProt = _esProtAo ? _eaDviProtNivel() : null;
   Object.keys(EA_FILA_GRADO).forEach(function (id) {
     const el = document.querySelector('[data-grado-de="' + id + '"]');
     if (!el) return;
+    /* ⚠️ CON PROTESIS SOLO LA FILA DEL DVI PUBLICA REFERENCIA, y las otras cuatro siguen mudas:
+       la Tabla 5 no da cortes absolutos de AVA ni de AVA indexada para una protesis —es el
+       defecto W1-4 que el W2-B cerro en el badge de al lado— y el gradiente medio protesico lo
+       publica el veredicto, no esta fila. */
+    if (_esProtAo) {
+      el.textContent = (id === 'ea-det-dvi' && _dviProt && EA_DVI_PROT_TXT[_dviProt])
+                     ? '(' + EA_DVI_PROT_TXT[_dviProt] + ')' : '';
+      return;
+    }
     const g = R ? R[EA_FILA_GRADO[id]] : null;
     /* ⚠️ «sin estenosis» NO se imprime como grado de una fila. `gAva` vale `'sin'` con un area
        normal y «(sin estenosis)» al lado de «3.20 cm2» afirma un veredicto que la fila no da:

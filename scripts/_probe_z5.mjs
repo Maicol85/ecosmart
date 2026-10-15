@@ -584,6 +584,17 @@ window.__P = {
    (moderada) y DVI 0,357 (moderado). */
 const EA_BASE = { diam_tsvi: '20', itv_tsvi: '20', itv_ao: '56' };
 const EA_TRES = ['diam_tsvi', 'itv_tsvi', 'itv_ao'];
+/* ⚠️ LA OPCION NATIVA SE DERIVA DE LA LISTA Y NO SE CABLEA. La de `vm_morf` se llama «Normal»
+   y la de `va_morf` «Trivalva normal»: con el literal cableado, `sel` devolvia
+   «NO HAY OPCION Normal» y la escena media la PROTESIS anterior creyendo que medía una nativa
+   —el control negativo informo una diferencia que era suya—. Se toma la primera opcion que no
+   sea protesis, que es la que la app ofrece como valor de fabrica. */
+function nativaDe(ops) {
+  const n = (ops || []).filter((o) => o && !/tesis|TAVI/i.test(o))[0];
+  if (!n) throw new Error('DENOMINADOR: no hay opcion NATIVA en la lista: ' + JSON.stringify(ops));
+  return n;
+}
+
 /* Los seis ordenes de borrado de los tres campos. */
 function permutaciones(a) {
   if (a.length <= 1) return [a];
@@ -796,7 +807,8 @@ async function main() {
     await ev(`window.__P.setSev('insuf','mitral','0')`);
     /* CONTROL NEGATIVO: la valvula NATIVA no tiene veredicto protesico y su informe no nombra
        la obstruccion protesica. */
-    await ev(`window.__P.sel('vm_morf','Normal')`);
+    g.opcionNativa = nativaDe(ops);
+    g.volverANativa = await ev(`window.__P.sel('vm_morf', ${JSON.stringify(nativaDe(ops))})`);
     g.nativa = { prot: await ev(`window.__P.prot()`), caps: await ev(`window.__P.caps()`),
                  inf: await ev(`window.__P.informe('estandar')`), grados: await ev(`window.__P.grados()`) };
     out.grupos.votoMitral = g;
@@ -855,11 +867,13 @@ async function main() {
     const protAo = (ops || []).filter((o) => /tesis/i.test(o) && !/TAVI/i.test(o))[0];
     if (!protAo) throw new Error('DENOMINADOR: no hay opcion protesica en va_morf: ' + JSON.stringify(ops));
     g.opcionProt = protAo;
+    const natAo = nativaDe(ops);
+    g.opcionNativa = natAo;
     /* La tabla pedida: VTI TSVI x VTI Ao x diametro x morfologia. El DVI = VTI TSVI / VTI Ao.
        20/56 da 0,357 (MODERADO en nativa, posible en protesis) ; 20/90 da 0,222 (SEVERO en
        nativa, significativa en protesis) ; 20/40 da 0,50 (el borde nativo, moderada). */
     g.tabla = {};
-    for (const morf of ['Normal', protAo]) {
+    for (const morf of [natAo, protAo]) {
       for (const [eti, dt, it, ia] of [
           ['dos VTI, SIN diametro, dvi 0.357', '',   '20', '56'],
           ['dos VTI, SIN diametro, dvi 0.222', '',   '20', '90'],
@@ -870,8 +884,15 @@ async function main() {
           ['solo VTI Ao',                      '',   '',   '56'],
           ['ninguno',                          '',   '',   '']]) {
         await ev(`window.__P.sel('va_morf', ${JSON.stringify(morf)})`);
+        /* ⚠️ EL VEREDICTO PROTESICO EXIGE SUS DOS MITADES: un eje dependiente del flujo (la
+           velocidad pico o el gradiente medio) y uno independiente (el DVI). Sin la velocidad
+           cargada, `eaProtVeredicto` devuelve nivel «faltan» en TODAS las escenas y la tabla
+           informa lo mismo con y sin DVI — un denominador vacio con pinta de medicion buena.
+           La velocidad 4,2 m/s cae en la banda significativa de la Tabla 5, asi que lo unico
+           que queda por decidir es el eje independiente, que es lo que esta parte mueve. */
+        await tipear('vmax_ao', morf === natAo ? '' : '4.2');
         for (const [id, val] of [['diam_tsvi', dt], ['itv_tsvi', it], ['itv_ao', ia]]) await tipear(id, val);
-        g.tabla[(morf === 'Normal' ? 'nativa' : 'protesis') + ' | ' + eti] = {
+        g.tabla[(morf === natAo ? 'nativa' : 'protesis') + ' | ' + eti] = {
           cuadro: await ev(`window.__P.eaCuadro()`),
           protAo: await ev(`window.__P.protAo()`),
           inf: await ev(`window.__P.informe('estandar')`) };
@@ -879,7 +900,22 @@ async function main() {
     }
     /* CONTROL NEGATIVO MAYOR: con los TRES cargados la valvula nativa tiene que salir identica
        a HEAD en grado, informe, EN SUMA y las ocho pastillas. */
-    await ev(`window.__P.sel('va_morf','Normal')`);
+    g.volverANativa = await ev(`window.__P.sel('va_morf', ${JSON.stringify(natAo)})`);
+    /* DENOMINADOR: la morfologia tiene que haber VUELTO a nativa. Si el `sel` falla, la escena
+       mide una protesis creyendo que mide una nativa y el control negativo deja de serlo. */
+    g.morfControl = await ev(`window.__P.val('va_morf')`);
+    g.esProtControl = await ev(`(typeof _eaEsProtesisAo === 'function') ? _eaEsProtesisAo() : 'SIN FN'`);
+    if (g.esProtControl === true) {
+      /* Segundo intento: el primer `sel` puede caer en una ventana en la que el repintado del
+         bloque protesico todavia no corrio. Si tampoco queda, se aborta nombrandolo. */
+      g.volverANativa2 = await ev(`window.__P.sel('va_morf', ${JSON.stringify(natAo)})`);
+      g.morfControl = await ev(`window.__P.val('va_morf')`);
+      g.esProtControl = await ev(`(typeof _eaEsProtesisAo === 'function') ? _eaEsProtesisAo() : 'SIN FN'`);
+    }
+    if (g.esProtControl === true)
+      throw new Error('DENOMINADOR: el control negativo quedo en PROTESIS: ' +
+        JSON.stringify(g.morfControl) + ' sel1=' + JSON.stringify(g.volverANativa) +
+        ' sel2=' + JSON.stringify(g.volverANativa2));
     for (const [id, val] of [['diam_tsvi', '20'], ['itv_tsvi', '16'], ['itv_ao', '50']]) await tipear(id, val);
     await tipear('vmax_ao', '4.2'); await tipear('gmedio_ao', '45');
     g.nativaCargada = { cuadro: await ev(`window.__P.eaCuadro()`), grados: await ev(`window.__P.grados()`),
@@ -920,8 +956,8 @@ async function main() {
                          infNarr: await ev(`window.__P.informe('narrativo')`) };
     }
     /* CONTROL NEGATIVO: con las DOS valvulas nativas no hay fila de PPM ni frase. */
-    await ev(`window.__P.sel('va_morf','Normal')`);
-    await ev(`window.__P.sel('vm_morf','Normal')`);
+    g.volverANativas = [await ev(`window.__P.sel('va_morf', ${JSON.stringify(nativaDe(opsA))})`),
+                        await ev(`window.__P.sel('vm_morf', ${JSON.stringify(nativaDe(opsM))})`)];
     g.nativas = { filas: await ev(`window.__P.ppmFilas()`), inf: await ev(`window.__P.informe('estandar')`) };
     out.grupos.ppm = g;
   }
