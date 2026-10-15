@@ -31842,8 +31842,31 @@ function calcEADetalle() {
        «Sin estenosis / leve», que lleva los dos nombres porque un AVA normal no distingue entre no
        tener estenosis y tenerla leve— y lo que se unificó es el `value` que baja al informe. */
     gradoStr = _RCalc.grado;
-    if (avaR >= 1.5)      { sev='Sin estenosis / leve'; color='#3ecf8e'; }
-    else if (avaEsModerada(avaR)) { sev='Moderada';       color='#f59e0b'; }
+    /* ══ LA ETIQUETA SALE DEL GRADO CALCULADO, NO DE LA BANDA DEL AVA (Z5) — cierra Z3-1 ═════
+       Decision de Maicol. Esta rama armaba la etiqueta con `avaEsSevera(avaR)` /
+       `avaEsModerada(avaR)` —o sea con la banda del AVA por CONTINUIDAD— y le pegaba el sufijo
+       del criterio GLOBAL, que es otro. Medido en HEAD con la escena del medico (O TSVI 20 ·
+       VTI TSVI 20 · VTI Ao 56 · gradiente 30 · planimetria 0,90): la linea publicaba
+       **«Moderada — por AVA por planimetria»** mientras el `<select>`, el informe y la propia
+       fila de la planimetria decian **severa**. No es la discordancia entre dos valores —esa
+       existe, tiene su aviso y se queda—: es una linea que nombra un criterio y le pone el
+       grado de OTRO, o sea un grado que ningun criterio respalda.
+       Hoy la etiqueta sale de `gradoStr`, que es `_RCalc.grado`, igual que en la rama con Vmax
+       de arriba. NINGUN CORTE SE MOVIO, la regla del peor no se toco y el grado que baja al
+       `<select>` es el mismo: lo unico que cambia es la PALABRA de esta linea, que pasa a
+       coincidir con el grado que se publica.
+       ⚠️ LAS DOS ETIQUETAS PROPIAS DE ESTA RAMA SE CONSERVAN, y no son decorativas:
+         · «Sin estenosis / leve» lleva los DOS nombres porque un AVA normal no distingue entre
+           no tener estenosis y tenerla leve —es la misma razon por la que `EA_GRADO_TXT` no se
+           imprime como grado de una fila—, y va en verde, que es su color de siempre;
+         · «AVA no valuable» es el fail-closed del AVA que redondea a 0, que ADEMAS retira el
+           grado. Esa abstencion se conserva tal cual: lo que la define es la banda del AVA por
+           continuidad y no el grado global, porque es la validez de ESTE numero lo que falla. */
+    const _avaNoValuable = !(avaR >= 1.5) && !avaEsModerada(avaR) && !avaEsSevera(avaR);
+    if (_avaNoValuable) gradoStr = null;
+    sev   = gradoStr ? (EA_GRADO_LBL[gradoStr] || gradoStr) : 'AVA no valuable';
+    color = gradoStr ? (EA_GRADO_COLOR[gradoStr] || 'var(--text2)') : 'var(--text2)';
+    if (gradoStr === 'sin') { sev = 'Sin estenosis / leve'; color = '#3ecf8e'; }
     /* ⚠️ EL `else` INCONDICIONAL MANDABA A «SEVERA» TODO AVA NO POSITIVO, y ésta es la tercera vez
        que el mismo fail-open aparece en la aórtica. La guarda de arriba —`else if (ava)`— entra por
        TRUTHY, así que un AVA de 0,004 pasa; `avaR` es el REDONDEADO y vale 0; `avaR >= 1.5` es
@@ -31860,9 +31883,12 @@ function calcEADetalle() {
        `else` se ABSTIENE. Abstenerse es dejar `gradoStr` en `null`, que es lo que hace que el
        `if (sel && gradoStr)` de abajo no escriba: el grado anterior no se borra —la regla del
        archivo es marcar sin borrar— y se DICE que no se actualizó, con el mismo texto que publica
-       `sugerirSeveridadEA`, para que las dos mitades sigan diciendo lo mismo carácter por carácter. */
-    else if (avaEsSevera(avaR)) { sev='Severa';          color='var(--red)'; }
-    else { sev='AVA no valuable'; color='var(--text2)'; gradoStr=null; }
+       `sugerirSeveridadEA`, para que las dos mitades sigan diciendo lo mismo carácter por carácter.
+       ⚠️ DESDE EL Z5 LA ABSTENCION VIVE ARRIBA, en `_avaNoValuable`, que es la MISMA condicion
+       escrita por su complemento: ninguna de las tres bandas del AVA por continuidad matchea.
+       Lo que se conserva entero es el efecto —`gradoStr` en `null`, el `<select>` sin escribir y
+       el mismo texto que publica `sugerirSeveridadEA`—; lo que cambia es que la etiqueta de los
+       OTROS estados ya no sale de esta cascada. */
     /* Y el criterio tambien por esta rama. Con `gradoStr` en `null` —«AVA no valuable»— y con
        `'sin'` —«Sin estenosis / leve»— `_eaPorCriterio` devuelve cadena vacia, asi que las dos
        etiquetas que esta rama tiene para «no afirmo nada» salen intactas. */
