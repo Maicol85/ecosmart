@@ -868,6 +868,55 @@ async function main() {
     out.grupos.mitral = g;
   }
 
+  /* ══ GRUPO jet — W1-11 (punto 4 de la orden): el jet/AI por sus DOS regimenes ════════════
+     El NUMERO no cambia en esta tanda: nativa >40 % severa, protesis >50 % severa. Lo que se
+     comprueba es (a) que con protesis un jet por encima del 50 % SI cuenta como criterio de
+     severidad —el censo dice que ya figura en esa fila, y «ya figura» hay que medirlo— y
+     (b) que el ROTULO de la fuente dejo de atribuirle a la ASE 2017 un corte que esa guia no
+     publica.
+     ⚠️ EL AREA DE LA AI VA EN 40 cm2 Y NO EN 100, Y LA PRIMERA CORRIDA LO PAGO: la banda de
+     `ai_area` es [3,60], asi que con 100 el cociente sale MARCADO «(revisar)», el jet NO vota y
+     las catorce escenas informaron `im_grado = 0` con el EN SUMA vacio — una tabla que decia
+     «el corte no funciona» sobre cortes que funcionan. El area del jet es el porcentaje por 0,4.
+     ⚠️ Y EL ROTULO DE LA FILA SOLO SE REPINTA CUANDO HAY VOTOS: `imCortesPintar` cuelga del FINAL
+     de `calcIM_ESC`, que sale temprano sin parametros cuantitativos. Por eso el regimen se lee
+     en las escenas CON dato y no en una escena vacia. */
+  if (corre('jet')) {
+    paso('jet');
+    const g = { nativa: {}, protesis: {}, rotulos: {} };
+    for (const [modo, morf] of [['nativa', 'Normal'], ['protesis', 'Prótesis mecánica']]) {
+      for (const pct of ['19', '20', '40', '45', '50', '51', '60']) {
+        await base(morf);
+        await tipear('im_ai_area', '40');
+        await tipear('im_jet_area', String(Math.round(Number(pct) * 0.4 * 100) / 100));
+        await pausa(140);
+        const c = await J('window.__P.cortesIM()');
+        const i = await J('window.__P.informe("estandar")');
+        g[modo][pct] = { fila: c.jetRatio, corteJet: c.jet, imGrado: c.imGrado,
+                         suma: (i.suma || '').split('\n').filter(function(l){ return /IM /.test(l) }).join(' ') };
+      }
+    }
+    /* El rotulo de la fila de referencia y el de la tarjeta. Con DATO cargado, porque el pintor
+       cuelga del final de `calcIM_ESC` y esa funcion sale temprano sin parametros. */
+    await base('Normal');
+    await tipear('im_ai_area', '40'); await tipear('im_jet_area', '10');
+    g.rotulos.filaNativa = (await J('window.__P.cortesIM()')).jet;
+    await base('Prótesis mecánica');
+    await tipear('im_ai_area', '40'); await tipear('im_jet_area', '10');
+    g.rotulos.filaProt = (await J('window.__P.cortesIM()')).jet;
+    /* CONTROL NEGATIVO del pintor: con protesis y SIN un solo dato cuantitativo la fila se queda
+       con el regimen NATIVO, porque `calcIM_ESC` sale antes de repintarla. Es PREEXISTENTE —se
+       mide igual en HEAD— y queda declarado, no tocado. */
+    await base('Prótesis mecánica');
+    g.rotulos.filaProtSinDato = (await J('window.__P.cortesIM()')).jet;
+    g.rotulos.tarjeta = await J('(function(){ try { return VINFO["im-jet-ai"] } catch(e) { return "EXC" } })()');
+    g.rotulos.refTabla = await ev('(function(){ var t = document.getElementById("ref-im");'
+      + ' if (!t) return "NO EXISTE ref-im";'
+      + ' var f = Array.from(t.querySelectorAll("tr")).find(function(r){ return /jet\\/AI/.test(r.textContent) });'
+      + ' return f ? f.textContent.replace(/\\s+/g, " ").trim() : "SIN FILA" })()');
+    out.grupos.jet = g;
+  }
+
   out.dialogos = dialogos;
   out.avisoFin = await J('window.__P.despejar()');
   out.md5Fin = await md5(rutaViva);

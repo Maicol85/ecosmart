@@ -15679,7 +15679,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
      corte no es consultable es el defecto que esta tarjeta existe para cerrar.
      La banda intermedia de la prótesis dice «Variable» porque eso es lo que dice la Tabla 13:
      ahí el parámetro NO gradúa, y la app se abstiene en vez de inventar «moderada». -->
-<tr style="background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">Ratio jet/AI (%) <span style="font-size:10px;">(nativa ASE 2017 · prótesis ASE 2024 T13 p.30)</span></td><td style="padding:5px 8px;text-align:center;">&lt;20</td><td style="padding:5px 8px;text-align:center;">nativa 20–40 · <b>prótesis: Variable, no gradúa</b></td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">nativa &gt;40 · prótesis &gt;50</td></tr>
+<tr style="background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">Ratio jet/AI (%) <span style="font-size:10px;">(pr&oacute;tesis ASE 2024 T13 p.30 &middot; los cortes nativos de 20 y 40 % NO figuran en la ASE 2017)</span></td><td style="padding:5px 8px;text-align:center;">&lt;20</td><td style="padding:5px 8px;text-align:center;">nativa 20–40 · <b>prótesis: Variable, no gradúa</b></td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">nativa &gt;40 · prótesis &gt;50</td></tr>
           </table>
           <!-- Las dos condiciones que la Tabla 12 enuncia y la app NO verifica van juntas acá y no
      dentro de la celda: una celda de tabla con dos salvedades deja de leerse como un corte. -->
@@ -34933,8 +34933,17 @@ const IM_CORTES = Object.freeze({
   /* ASE 2017, Tabla 8 (Zoghbi, JASE 2017;30:303-371), folio 332. `<3` leve · `3` a `<7` moderada
      · `>=7` severa, en mm. Los mismos cortes que la ESC/EACTS 2025 da para el borde de severa. */
   vc:       Object.freeze({ leve_max: 3,  sev_min: 7,  uni: 'mm',  forma: 'sev_min' }),
-  /* ASE 2017: `<20` leve · `20`-`40` moderada · `>40` severa, en % del área de la AI. El `40` cae
-     en la MODERADA (`<=`), que es el borde que la cuenta ya aplicaba. */
+  /* ⚠️ EL 20 Y EL 40 NO SON DE LA ASE 2017, Y EL COMENTARIO LO DECIA (censo W1, W1-11). La
+     ASE 2017 (Zoghbi), Tabla 8, folio 332, y el folio 333 publican severa por encima del **50 %**
+     del área de la AI y NO publican ni el 20 ni el 40 —censado el PDF entero: las dos únicas
+     apariciones de un porcentaje de área de AI para la IM dicen `>50 %`—. El 20/40 viene de guías
+     previas que este repo no tiene verificadas.
+     ⚠️ EL NUMERO NO SE TOCA, Y ES UNA DECISION DE MAICOL (15/10/2026): mover ese corte cambia el
+     grado de la insuficiencia mitral de los pacientes con un jet entre el 40 y el 50 % en el
+     informe FIRMADO, y eso es contenido clínico nativo. Lo que se corrigió es el RÓTULO de la
+     fuente en las dos superficies que lo publicaban —la tarjeta ⓘ y la fila de «Referencia
+     clínica»—, que atribuían a la ASE 2017 un corte que esa guía no escribe.
+     El `40` cae en la MODERADA (`<=`), que es el borde que la cuenta ya aplicaba. */
   jet_nat:  Object.freeze({ leve_max: 20, mod_max_incl: 40, uni: '%', forma: 'mod_incl' }),
   /* ASE 2024, Tabla 13, pág. 30: en prótesis mitral `<20` leve y `>50` severa, y entre 20 y 50 la
      guía dice «Variable», así que el parámetro NO vota. No se toca (orden del punto 5c). */
@@ -35248,9 +35257,9 @@ const VINFO = Object.freeze({
   'im-jet-ai': {
     tit: 'Relaci\u00f3n \u00e1rea del jet / \u00e1rea de la aur\u00edcula izquierda',
     formula: '\u00e1rea del jet de IM ÷ \u00e1rea de la AI × 100',
-    lee: 'Qu\u00e9 proporci\u00f3n de la aur\u00edcula ocupa el chorro en color. En v\u00e1lvula nativa, menos del 20 % es leve y m\u00e1s del 40 % severa.',
-    fuente: 'Nativa: ASE 2017 (Zoghbi), Tabla 8, folio 332. Pr\u00f3tesis: ASE 2024, Tabla 13, p\u00e1g. 30.',
-    ojo: 'En pr\u00f3tesis mitral la gu\u00eda llama «variable» a la banda del 20 al 50 %, as\u00ed que ah\u00ed el par\u00e1metro no gradu\u00faa y la fila lo declara.'
+    lee: 'Qu\u00e9 proporci\u00f3n de la aur\u00edcula ocupa el chorro en color. En v\u00e1lvula nativa, menos del 20 % es leve y m\u00e1s del 40 % severa; en pr\u00f3tesis, menos del 20 % es leve y m\u00e1s del 50 % severa.',
+    fuente: 'Pr\u00f3tesis: ASE 2024 (Zoghbi), Tabla 13, p\u00e1g. 30. Nativa: el 20 y el 40 % NO figuran en la ASE 2017 (Zoghbi), Tabla 8, folio 332, que publica severa por encima del 50 % del \u00e1rea de la aur\u00edcula; la aplicaci\u00f3n conserva el 40 % y no se lo atribuye a esa gu\u00eda.',
+    ojo: 'En pr\u00f3tesis mitral la gu\u00eda llama «variable» a la banda del 20 al 50 %, as\u00ed que ah\u00ed el par\u00e1metro no gradu\u00faa y la fila lo declara. El corte nativo del 40 % no se movi\u00f3: cambiarlo es contenido cl\u00ednico y queda para otra decisi\u00f3n.'
   },
   'prot-eoa': {
     tit: 'AEO por continuidad de la pr\u00f3tesis mitral',
