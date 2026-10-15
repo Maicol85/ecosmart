@@ -15850,9 +15850,12 @@ caso('TC-262', 'Cajon Doppler en dos columnas: nada se pierde ni se duplica, y e
          escrito a mano: si el reparto se come una fila, la cuenta no cierra. */
       const sinDuplicados = ['ao','mit','tri','pul'].every(v => porValv[v].dup.length === 0);
       const ESPERADO = {
-        ao:  ['Vmax VAo','Grad Máx','Grad Medio','PHT IAo','Severidad IAo','Diam TSVI','VTI TSVI','VTI VAo','AVA'],
-        mit: ['Onda E','Onda A',"e' septal","e' lateral","e' promedio",'VTI VM','Grad Medio VM','PHT VM',
-              'AVM por PHT','AVM por continuidad','E/A',"E/e' (prom)",'Vmax IM','Grad Máx IM','VTI IM'],
+        /* ADAPTADO 2026-10-14 (D2): los rotulos del panel de revision del Doppler pasaron de
+           «PHT» a «THP» en toda la app. Lo que estas listas miden —que cada medicion aparece una
+           vez y en su columna— no cambia; cambia como se llama una de ellas. */
+        ao:  ['Vmax VAo','Grad Máx','Grad Medio','THP IAo','Severidad IAo','Diam TSVI','VTI TSVI','VTI VAo','AVA'],
+        mit: ['Onda E','Onda A',"e' septal","e' lateral","e' promedio",'VTI VM','Grad Medio VM','THP VM',
+              'AVM por THP','AVM por continuidad','E/A',"E/e' (prom)",'Vmax IM','Grad Máx IM','VTI IM'],
         tri: ['Vmax IT','Grad Máx IT','PSAP (PVC 10)','Vmax ET','Grad Máx ET'],
         pul: ['Vmax IP','Grad Máx IP','Vmax EP','Grad Máx EP','TAP','VP','Diam TSVD','VTI Pulmonar (TSVD)','Vol Eyectivo VD']
       };
@@ -32191,8 +32194,9 @@ caso('TC-250', 'Cajon Doppler: Mitral, Tricuspide y Pulmonar, con sus unidades y
       /* Las catorce filas del acordeon mitral estan en la tabla. */
       const txtMit = cajon.textContent;
       R.filasMit = ['Onda E','Onda A','E/A','e\\u0027 septal','e\\u0027 lateral','Vmax IM',
-                    'Grad Máx IM','VTI VM','VTI IM','Grad Medio VM','PHT VM',
-                    'AVM por PHT','AVM por continuidad'].filter(t => txtMit.indexOf(t) < 0).join(',');
+                    /* ADAPTADO 2026-10-14 (D2): «PHT» -> «THP» en los rotulos del panel. */
+                    'Grad Máx IM','VTI VM','VTI IM','Grad Medio VM','THP VM',
+                    'AVM por THP','AVM por continuidad'].filter(t => txtMit.indexOf(t) < 0).join(',');
       R.mitCompleta = R.filasMit === '';
       /* ⚠️ Y SOLO LAS SUYAS: la seleccion progresiva (2026-09-24) muestra la tabla de UNA
          valvula por vez. Se busca el marcador de la aortica —la unica valvula que el caso deja
@@ -47433,12 +47437,23 @@ caso('TC-332', 'Panel: el selector de mecanismo de IM vive FUERA de _indIM, sobr
 caso('TC-333', 'IM: el ⓘ y la ayuda del cociente VTI mitral/TSVI atribuyen el 1,4 a la ESC/EACTS 2025 Figura 10 y NO afirman la modalidad', `
   return (async () => {
     const R = {};
-    /* El ⓘ se lee del ATRIBUTO title —que es donde vive el texto— y la ayuda del DOM RENDERIZADO,
-       no del const ECO_AYUDA: leer el dato probaria el dato, no que llegue a la pantalla. */
+    /* ADAPTADO 2026-10-14 (D2): el ⓘ ya NO es un atributo title. Ese title de 1312 caracteres se
+       retiro al reescribir el globo —un title es HOVER, que en el dedo no existe— y su texto vive
+       hoy en la TARJETA del registro VINFO, corta, mas lo que bajo a «Referencia clinica». La
+       ayuda se sigue leyendo del DOM RENDERIZADO, que es el punto del caso: leer el dato probaria
+       el dato y no que llegue a la pantalla.
+       ⚠️ LA TARJETA NO REPITE TODO A PROPOSITO: su formato son cuatro bloques cortos. Por eso las
+       condiciones se reparten —lo que la tarjeta afirma se le exige a la tarjeta, y lo que solo
+       vive en el manual, al manual— en vez de debilitarse. */
     const val  = document.getElementById('im-vti-ratio');
     const fila = val ? val.closest('.calc-row') : null;
     const lbl  = fila ? fila.querySelector('.calc-lbl') : null;
-    R.ttl = lbl ? (lbl.getAttribute('title') || '') : null;
+    R.tituloViejo = lbl ? (lbl.getAttribute('title') || '') : null;
+    R.ttl = (function(){
+      if (typeof VINFO === 'undefined' || !VINFO['im-vti-ratio']) return '';
+      const d = VINFO['im-vti-ratio'];
+      return (d.tit||'') + ' ' + (d.formula||'') + ' ' + (d.lee||'') + ' ' + (d.fuente||'') + ' ' + (d.ojo||'');
+    })();
 
     let seccion = -1;
     try {
@@ -47476,9 +47491,13 @@ caso('TC-333', 'IM: el ⓘ y la ayuda del cociente VTI mitral/TSVI atribuyen el 
 
     const T = R.ttl || '', A = R.ayuda || '';
     return { extra: [
-      ['DENOMINADOR: el ⓘ de la fila y la fila de la ayuda existen y llegaron al DOM',
-        T.length > 200 && R.ayuda !== null && A.length > 200,
-        'ttl=' + T.length + ' ayuda=' + (R.ayuda === null ? 'NULL' : A.length) + ' secc=' + R.seccion],
+      ['DENOMINADOR: la tarjeta del ⓘ y la fila de la ayuda existen y llegaron al DOM',
+        T.length > 120 && R.ayuda !== null && A.length > 200,
+        'tarjeta=' + T.length + ' ayuda=' + (R.ayuda === null ? 'NULL' : A.length) + ' secc=' + R.seccion],
+      /* El title viejo tiene que haberse IDO: con la tarjeta puesta serian dos textos, y el que
+         se olvida es el que se ve. */
+      ['y el title largo de la fila YA NO ESTA',
+        R.tituloViejo === '' || R.tituloViejo === null, 'title=' + JSON.stringify(R.tituloViejo)],
       ['el ⓘ atribuye el 1,4 a la ESC/EACTS 2025, que es lo que antes negaba',
         T.indexOf('ESC/EACTS 2025') >= 0 && A.indexOf('ESC/EACTS 2025') >= 0,
         'ttl=' + (T.indexOf('ESC/EACTS 2025') >= 0) + ' ayuda=' + (A.indexOf('ESC/EACTS 2025') >= 0)],
@@ -47486,23 +47505,32 @@ caso('TC-333', 'IM: el ⓘ y la ayuda del cociente VTI mitral/TSVI atribuyen el 
         T.indexOf('Figura 10') >= 0 && T.indexOf('4672') >= 0 &&
         A.indexOf('Figura 10') >= 0 && A.indexOf('4672') >= 0,
         'ttl fig=' + (T.indexOf('Figura 10') >= 0) + ' pag=' + (T.indexOf('4672') >= 0)],
-      ['y con su grupo, que es el semicuantitativo y no el cuantitativo',
-        T.indexOf('semicuantitativ') >= 0 && A.indexOf('semicuantitativ') >= 0,
-        'ttl=' + (T.indexOf('semicuantitativ') >= 0) + ' ayuda=' + (A.indexOf('semicuantitativ') >= 0)],
+      /* ADAPTADO (D2): el grupo lo declara el MANUAL. La tarjeta corta no lo repite —cuatro
+         bloques, y el suyo se gasta en la salvedad de la IAo, que es la que cambia como se lee el
+         numero—; se le exige a la superficie donde vive. */
+      ['y con su grupo, que es el semicuantitativo y no el cuantitativo, en la ayuda',
+        A.indexOf('semicuantitativ') >= 0, 'ayuda=' + (A.indexOf('semicuantitativ') >= 0)],
       ['NO se afirma la modalidad: la ayuda declara que el Doppler pulsado anterogrado es criterio de la APP',
         A.indexOf('modalidad') >= 0 && A.indexOf('criterio de la aplicaci') >= 0,
         'modalidad=' + (A.indexOf('modalidad') >= 0) + ' criterioApp=' + (A.indexOf('criterio de la aplicaci') >= 0)],
-      ['sigue en pie que NO figura en ASE 2017 ni en ESC/EACTS 2021',
-        T.indexOf('ASE 2017') >= 0 && T.indexOf('ESC/EACTS 2021') >= 0 &&
+      /* ADAPTADO (D2): idem. La negativa —que el corte NO figura en ASE 2017 ni en ESC/EACTS
+         2021— es una afirmacion sobre dos documentos ausentes y vive en el manual; la tarjeta
+         nombra las guias que SI lo publican. */
+      ['sigue en pie en la ayuda que NO figura en ASE 2017 ni en ESC/EACTS 2021',
         A.indexOf('ASE 2017') >= 0 && A.indexOf('ESC/EACTS 2021') >= 0,
-        'ttl=' + (T.indexOf('ESC/EACTS 2021') >= 0) + ' ayuda=' + (A.indexOf('ESC/EACTS 2021') >= 0)],
+        'ayuda ASE2017=' + (A.indexOf('ASE 2017') >= 0) + ' ESC2021=' + (A.indexOf('ESC/EACTS 2021') >= 0)],
       ['y la columna «Guia» —la de escaneo rapido— tambien nombra a la ESC/EACTS 2025, no solo el cuerpo',
         (R.guia || '').indexOf('ESC/EACTS 2025') >= 0 && (R.guia || '').indexOf('4672') >= 0,
         'guia=«' + String(R.guia).slice(0, 110) + '»'],
-      ['y sigue declarado que el primario (Tribouilloy) da 1,3, con los dos cortes de la app intactos',
-        T.indexOf('1,3') >= 0 && T.indexOf('1,4') >= 0 && T.indexOf('2,5') >= 0 &&
-        A.indexOf('1,3') >= 0 && A.indexOf('2,5') >= 0,
-        'ttl 1,3=' + (T.indexOf('1,3') >= 0) + ' 1,4=' + (T.indexOf('1,4') >= 0) + ' 2,5=' + (T.indexOf('2,5') >= 0)]
+      /* ADAPTADO (D2): la procedencia Tribouilloy y el 1,3 bajaron al manual y a «Referencia
+         clinica»; los DOS CORTES de la app siguen teniendo que estar en la tarjeta, que es la
+         superficie que el medico abre con el dedo sobre la fila. */
+      ['la tarjeta conserva los DOS cortes de la app, 1,4 nativa y 2,5 protesis',
+        T.indexOf('1,4') >= 0 && T.indexOf('2,5') >= 0,
+        'tarjeta 1,4=' + (T.indexOf('1,4') >= 0) + ' 2,5=' + (T.indexOf('2,5') >= 0)],
+      ['y la ayuda sigue declarando que el primario (Tribouilloy) da 1,3',
+        A.indexOf('1,3') >= 0 && A.indexOf('2,5') >= 0 && A.indexOf('Tribouilloy') >= 0,
+        'ayuda 1,3=' + (A.indexOf('1,3') >= 0) + ' Tribouilloy=' + (A.indexOf('Tribouilloy') >= 0)]
     ] };
   })();
 `);
@@ -59000,8 +59028,14 @@ caso('TC-429', 'Tricuspide: el Diam. y el VTI del TSVD son UN dato con DOS campo
       textoMorf.indexOf('frecuente de insuficiencia') === -1],
 
     // --- Tab ----------------------------------------------------------------------------------
+    /* ADAPTADO 2026-10-14 (D2): la fila del area automatica gano su globo de informacion, que es
+       un <button> sin id y por eso tabIds lo lista como «(button)». Es correcto que el Tab lo
+       visite —es un control y se abre con Enter—, pero no es un campo de la lesion: se filtra,
+       igual que en TC-423. Lo que esta condicion afirma —el orden izquierda a derecha y que el
+       area de solo lectura NO esta en el recorrido— no cambia. */
     ['el Tab va de izquierda a derecha, fila por fila, y SALTEA el area automatica',
-      tabIds.join(',') === 'et_gmedio,et_thp,et_vti_diast,et_tsvd_diam,et_vti_tsvd',
+      tabIds.filter(function (x) { return x !== '(button)'; }).join(',')
+        === 'et_gmedio,et_thp,et_vti_diast,et_tsvd_diam,et_vti_tsvd',
       tabIds.join(',')],
 
     // --- Nuevo estudio ------------------------------------------------------------------------
@@ -60222,7 +60256,9 @@ caso('TC-440', 'Insuficiencia pulmonar: los CUATRO signos nuevos graduan por el 
     ['con PHT 99 (severa) y jet intermedio (moderada) manda el PEOR',
       disc.calc === 'Severa' && disc.sel === 'Severa' && disc.sev === 'Severa', JSON.stringify(disc)],
     ['y la linea de discordancia nombra los dos votos',
-      disc.disc === '\\u26a0\\ufe0f Discordancia: PHT <100 ms: severa \\u00b7 ancho del jet: moderada',
+      /* ADAPTADO 2026-10-14 (D2): el rotulo del voto paso de «PHT» a «THP» en toda la app.
+         El corte (100 ms), quien vota y la discordancia no cambian: cambia el nombre. */
+      disc.disc === '\\u26a0\\ufe0f Discordancia: THP <100 ms: severa \\u00b7 ancho del jet: moderada',
       disc.disc],
     ['CONTROL: con dos signos que votan LO MISMO no hay linea de discordancia',
       conc.calc === 'Severa' && conc.disc === '', conc.calc + ' // ' + conc.disc],
@@ -64420,6 +64456,354 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
     VL('et_grado') === 'sin' && VL('ep_grado') === 'sin',
     'ia=' + VL('ia_grado') + ' it=' + VL('it_grado') + ' ea=' + VL('ea_grado') +
     ' et=' + VL('et_grado') + ' ep=' + VL('ep_grado')]);
+
+  return { extra: ex };
+`);
+
+
+caso('TC-472', 'Valvulas D2: la insuficiencia aortica en TRES columnas de CUATRO y la tricuspidea en tres, con los automaticos de PISA que COPIAN su fila; las once tarjetas «i» con su formula y su folio, sin legado; el rotulo THP en pantalla, informe y PDF con el Excel intacto; y los cinco avisos que ya no se ven grises', `
+  const ex = [];
+  const HAY_IA = typeof _iaAutosSync === 'function';
+  const HAY_IT = typeof _itAutosSync === 'function';
+  const HAY_INFO = typeof vInfoClic === 'function' && typeof VINFO !== 'undefined';
+
+  /* ── (0) DENOMINADORES. Sin ellos todo lo de abajo compara contra un centinela y sale rojo por
+       la razon equivocada, que no es lo mismo que cazar el defecto. ── */
+  ex.push(['(0) DENOMINADOR: existe el duenio UNICO de las casillas de la IAo', HAY_IA,
+    'typeof _iaAutosSync=' + typeof _iaAutosSync]);
+  ex.push(['(0) DENOMINADOR: existe el duenio UNICO de las casillas de la IT', HAY_IT,
+    'typeof _itAutosSync=' + typeof _itAutosSync]);
+  ex.push(['(0) DENOMINADOR: existe el mecanismo de los globos y su registro', HAY_INFO,
+    'typeof vInfoClic=' + typeof vInfoClic]);
+
+  const G = (id) => document.getElementById(id);
+  const TX = (id) => { const e = G(id); return e ? (e.textContent || '').trim() : 'NO EXISTE'; };
+  const VL = (id) => { const e = G(id); return e ? e.value : 'NO EXISTE'; };
+  /* ⚠️ TODA LECTURA DE UN NODO DE ESTA TANDA VA POR UN AYUDANTE CON CENTINELA: contra el arbol de
+     HEAD esos nodos NO EXISTEN y leer .placeholder sobre null mata la corrida entera, con lo que
+     el caso probaria que el arbol es distinto y no que sabe medir. Misma leccion que TC-455,
+     TC-462 y TC-471. */
+  const PH = (id) => { const e = G(id); return e ? (e.placeholder || '') : 'NO EXISTE'; };
+
+  /* ══ (A) EL REPARTO DE COLUMNAS DE LAS DOS LESIONES ══
+     La columna sale del indice del contenedor dentro de la rejilla y NO de una lista cableada.
+     El orden del DOM ES el del Tab: se comprueba que no haya un solo tabindex en los bloques. */
+  function mapaDe(sel) {
+    const rej = document.querySelector(sel);
+    const cols = rej ? Array.prototype.slice.call(rej.children) : [];
+    const m = [];
+    cols.forEach(function(col, ci){
+      Array.prototype.slice.call(col.querySelectorAll('input[id], select[id]')).forEach(function(e){
+        m.push({ id: e.id, col: ci + 1, auto: e.hasAttribute('readonly') });
+      });
+    });
+    return { cols: cols.length, mapa: m,
+             plano: m.map(function(x){ return x.id + ':' + x.col; }).join(' ') };
+  }
+  const rIA = mapaDe('#bloque-insuf-aortica .valv-cols-3');
+  const rIT = mapaDe('#campos-insuf-tricuspide .valv-cols-3');
+  const Q_IA = 'ia_vc:1 ia_jet_diam:1 ia_pht:1 ia_vmax_td:1 ia_pisa_r:2 ia_pisa_val:2 ia_vmax_cw:2'
+             + ' ia_vti:2 vauto-ia-eroa:3 vauto-ia-volr:3 vauto-ia-fr:3 ia_vti_desc:3';
+  const Q_IT = 'it_vc:1 it_densidad:1 it_vti:1 it_pisa_r:2 it_pisa_val:2 it_vmax_cw:2'
+             + ' vauto-it-eroa:3 vauto-it-volr:3';
+  ex.push(['(A) DENOMINADOR: las dos rejillas tienen TRES columnas',
+    rIA.cols === 3 && rIT.cols === 3, 'ia=' + rIA.cols + ' it=' + rIT.cols]);
+  ex.push(['(A) la IAo reparte sus DOCE campos en 4 + 4 + 4, en ese orden',
+    rIA.plano === Q_IA, rIA.plano]);
+  ex.push(['(A) la IT reparte sus OCHO en 3 + 3 + 2 — la FR no existe en esta valvula',
+    rIT.plano === Q_IT, rIT.plano]);
+  ex.push(['(A) las CINCO casillas automaticas son de SOLO LECTURA y las demas no',
+    rIA.mapa.concat(rIT.mapa).every(function(x){
+      return x.auto === (x.id.indexOf('vauto-') === 0); }),
+    rIA.mapa.concat(rIT.mapa).filter(function(x){ return x.auto; })
+      .map(function(x){ return x.id; }).join(',')]);
+  /* ⚠️ EL ORDEN DEL TAB ES EL DEL DOM **PORQUE NO HAY TABINDEX**, y eso es lo que se afirma aca:
+     el recorrido con teclas reales lo mide la sonda, que si tiene el canal del navegador. Si
+     alguien agregara un tabindex, el mapa de arriba seguiria verde y el Tab diria otra cosa. */
+  ex.push(['(A) y NINGUN campo de los dos bloques lleva tabindex, asi que el DOM manda en el Tab',
+    (function(){
+      const n = document.querySelectorAll(
+        '#bloque-insuf-aortica input[tabindex], #bloque-insuf-aortica select[tabindex],'
+        + ' #campos-insuf-tricuspide input[tabindex], #campos-insuf-tricuspide select[tabindex]');
+      return n.length === 0; })(),
+    'con tabindex=' + document.querySelectorAll(
+      '#bloque-insuf-aortica input[tabindex], #campos-insuf-tricuspide input[tabindex]').length]);
+
+  /* ══ (B) CADA CASILLA AUTOMATICA MUESTRA LO MISMO QUE SU FILA ══
+     ⚠️ SE COMPARA CONTRA LA FILA Y NO CONTRA UNA CUENTA DE ESTE CASO. Un caso que recalculara la
+     EROA mediria su propia copia de la formula y no la de la app, que es el defecto que las
+     casillas existen para no tener.
+     La fila de la IAo publica el valor pelado y la de la IT le pega su leyenda de grado con un
+     punto medio, asi que el valor esperado se deriva del PREFIJO de cada fila. */
+  function esperado(idFila, sep) {
+    const t = TX(idFila);
+    if (t === 'NO EXISTE') return 'NO EXISTE';
+    const i = t.indexOf(sep);
+    const c = (i > -1 ? t.slice(0, i) : t).trim();
+    return c === '\\u2014' ? '' : c;
+  }
+  const PARES = [['vauto-ia-eroa','ia-eroa','  '], ['vauto-ia-volr','ia-volr','  '],
+                 ['vauto-ia-fr','ia-freg','  '],
+                 ['vauto-it-eroa','it-eroa',' \\u00b7 '], ['vauto-it-volr','it-volr',' \\u00b7 ']];
+  function leerAutos() {
+    return PARES.map(function(p){
+      return { id: p[0], campo: VL(p[0]), ph: PH(p[0]), esp: esperado(p[1], p[2]) }; });
+  }
+  __t.limpiar();
+  /* La escena carga los DOS metodos por sus puertas VISIBLES de esta pestana: los dos del TSVI
+     viven en el cajon Doppler y su puerta aca es el bloque de la estenosis aortica. */
+  const ESCENA = { ia_vc:'7', ia_jet_diam:'15', ia_pht:'180', ia_pisa_r:'8', ia_pisa_val:'40',
+                   ia_vmax_cw:'4.5', ia_vti:'120', ia_vmax_td:'25', ia_vti_desc:'30',
+                   ea_dtsvi:'22', ea_vtitsvi:'25',
+                   it_vc:'8', it_pisa_r:'9', it_pisa_val:'38', it_vmax_cw:'3', it_vti:'90' };
+  Object.keys(ESCENA).forEach(function(k){ __t.set(k, ESCENA[k]); });
+  __t.set('it_densidad','denso');
+  const cargado = leerAutos();
+  ex.push(['(B) DENOMINADOR: con la escena cargada las CINCO filas publican un numero',
+    cargado.every(function(r){ return r.esp && r.esp !== 'NO EXISTE'; }),
+    cargado.map(function(r){ return r.id + '=' + r.esp; }).join(' | ')]);
+  ex.push(['(B) y las CINCO casillas dicen exactamente lo que dice su fila',
+    cargado.every(function(r){ return r.campo === r.esp; }),
+    cargado.map(function(r){ return r.id + ': campo=' + r.campo + ' fila=' + r.esp; }).join(' | ')]);
+
+  /* El grado y el informe ANTES y DESPUES de que las casillas existan tienen que ser los mismos:
+     las casillas no votan. Se guarda la foto para el control del bloque (F). */
+  const gradoConAutos = { ia: VL('ia_grado'), it: VL('it_grado') };
+  const infConAutos = __t.informe();
+
+  /* ══ (C) EL BORRADO DE UN INSUMO LAS VACIA Y DICE QUE FALTA ══ */
+  __t.set('ia_pisa_r','');
+  __t.set('it_pisa_val','');
+  const borrado = leerAutos();
+  ex.push(['(C) al borrar el radio PISA de la IAo y el Valiasing de la IT, las cinco se vacian',
+    borrado.every(function(r){ return r.campo === ''; }),
+    borrado.map(function(r){ return r.id + '=' + JSON.stringify(r.campo); }).join(' ')]);
+  ex.push(['(C) y cada una NOMBRA el insumo que falta en su placeholder',
+    borrado.slice(0,3).every(function(r){ return /radio PISA/.test(r.ph); }) &&
+    borrado.slice(3).every(function(r){ return /Valiasing/.test(r.ph); }),
+    borrado.map(function(r){ return r.id + ': ' + r.ph; }).join(' | ')]);
+  /* ⚠️ LA PRECEDENCIA DEL TEXTO ES LA DE LA CUENTA, y el Vol-R de la IAo lo prueba: sus dos
+     filas viven dentro del MISMO if que exige los dos del TSVI, asi que su aviso los nombra.
+     Sin esta condicion, la casilla puede quedar vacia con el placeholder vacio al lado —un campo
+     mudo que no dice que le falta—, que es lo que la sonda encontro al escribir esta tanda. */
+  __t.limpiar();
+  Object.keys(ESCENA).forEach(function(k){
+    if (k !== 'ea_dtsvi' && k !== 'ea_vtitsvi') __t.set(k, ESCENA[k]); });
+  const sinTsvi = leerAutos();
+  ex.push(['(C) sin los dos del TSVI, el Vol-R y la FR de la IAo los NOMBRAN y la EROA sigue',
+    sinTsvi[0].campo !== '' && /TSVI/.test(sinTsvi[1].ph) && /TSVI/.test(sinTsvi[2].ph),
+    'eroa=' + sinTsvi[0].campo + ' volr.ph=' + sinTsvi[1].ph + ' fr.ph=' + sinTsvi[2].ph]);
+  /* CONTROL NEGATIVO: las dos de la IT no dependen del TSVI y en esta misma escena siguen. */
+  ex.push(['(C) CONTROL NEGATIVO: las dos de la IT no dependen del TSVI y siguen publicando',
+    sinTsvi[3].campo !== '' && sinTsvi[4].campo !== '',
+    'it eroa=' + sinTsvi[3].campo + ' volr=' + sinTsvi[4].campo]);
+  __t.limpiar();
+  const vacio = leerAutos();
+  ex.push(['(C) con el formulario vacio las cinco quedan vacias y con su aviso completo',
+    vacio.every(function(r){ return r.campo === '' && /^requiere /.test(r.ph); }),
+    vacio.map(function(r){ return r.id + ': ' + r.ph; }).join(' | ')]);
+
+  /* ══ (D) LAS CASILLAS NO VIAJAN CON EL ESTUDIO ══
+     Se replica el barrido de guardarInforme con su MISMA exclusion por prefijo: contar los input
+     del documento cuenta tambien las que no viajan. */
+  Object.keys(ESCENA).forEach(function(k){ __t.set(k, ESCENA[k]); });
+  const delEstudio = (function(){
+    const o = [];
+    Array.prototype.slice.call(document.querySelectorAll('input[id], select[id], textarea[id]'))
+      .forEach(function(e){
+        if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(e.id)) return;
+        o.push(e.id); });
+    return o; })();
+  ex.push(['(D) NINGUNA casilla vauto- viaja con el estudio',
+    delEstudio.filter(function(k){ return k.indexOf('vauto-') === 0; }).length === 0,
+    'vauto en el estudio=' + delEstudio.filter(function(k){ return k.indexOf('vauto-') === 0; }).join(',')]);
+  ex.push(['(D) DENOMINADOR: y las cinco SI estan en el documento',
+    PARES.every(function(p){ return !!G(p[0]); }),
+    PARES.map(function(p){ return p[0] + '=' + !!G(p[0]); }).join(' ')]);
+
+  /* ══ (E) LAS TARJETAS «i» ══ */
+  const globos = Array.prototype.slice.call(
+    document.querySelectorAll('#tab-valvulas [data-vinfo]'));
+  const NUEVAS = ['ia-eroa-pisa','it-eroa-pisa','ea-ava-cont','et-avt-cont'];
+  const REESCRITAS = ['prot-eoa','prot-dvi','prot-ppm','im-onda-e','im-vti-ratio','im-vc','im-jet-ai'];
+  ex.push(['(E) DENOMINADOR: la pestana tiene DIECISEIS globos y la tarjeta esta en el marcado',
+    globos.length === 16 && !!G('vinfo-card'),
+    'globos=' + globos.length + ' tarjeta=' + !!G('vinfo-card')]);
+  ex.push(['(E) las CUATRO nuevas y las SIETE reescritas estan en el registro',
+    HAY_INFO && NUEVAS.concat(REESCRITAS).every(function(k){ return !!VINFO[k]; }),
+    HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO']);
+  /* ⚠️ YA NO QUEDA NINGUN GLOBO DE LEGADO, y esto es lo que lo fija: un globo sin entrada cae al
+     camino que lee el title de su fila, y como esta tanda retiro esos title la tarjeta saldria
+     VACIA y nadie lo notaria. */
+  ex.push(['(E) toda clave del marcado tiene entrada: cero globos de legado',
+    HAY_INFO && globos.every(function(b){ return !!VINFO[b.getAttribute('data-vinfo')]; }),
+    globos.filter(function(b){ return HAY_INFO && !VINFO[b.getAttribute('data-vinfo')]; })
+      .map(function(b){ return b.getAttribute('data-vinfo'); }).join(',') || 'ninguno']);
+  ex.push(['(E) los dieciseis son BOTONES, sin title y sin manejador de hover',
+    globos.every(function(b){ return b.tagName.toLowerCase() === 'button'; }) &&
+    globos.filter(function(b){ return b.getAttribute('title') || b.getAttribute('onmouseover')
+      || b.getAttribute('onmouseenter'); }).length === 0,
+    globos.filter(function(b){ return b.getAttribute('title'); }).length + ' con title']);
+  ex.push(['(E) y ninguno lleva al manual',
+    globos.filter(function(b){ return /abrirAyudaEco/.test(b.getAttribute('onclick') || ''); }).length === 0,
+    'con abrirAyudaEco=' + globos.filter(function(b){
+      return /abrirAyudaEco/.test(b.getAttribute('onclick') || ''); }).length]);
+  /* ⚠️ LOS ACENTOS SE CUENTAN, y no es manierismo: el D1 escribio CINCO tarjetas sin un solo
+     acento y no lo vio la lectura sino la captura. Un texto clinico en castellano de mas de
+     cien caracteres sin ningun acento es el sintoma exacto de ese error. */
+  const sinAcento = HAY_INFO ? NUEVAS.concat(REESCRITAS).filter(function(k){
+    const d = VINFO[k]; if (!d) return true;
+    const t = (d.tit||'') + ' ' + (d.lee||'') + ' ' + (d.fuente||'') + ' ' + (d.ojo||'');
+    return !/[\\u00e1\\u00e9\\u00ed\\u00f3\\u00fa\\u00f1]/.test(t); }) : ['SIN REGISTRO'];
+  ex.push(['(E) las ONCE tarjetas tienen acentos', sinAcento.length === 0, 'sin acento: ' + sinAcento.join(',')]);
+  ex.push(['(E) las ONCE nombran su FUENTE con guia y folio o pagina',
+    HAY_INFO && NUEVAS.concat(REESCRITAS).every(function(k){
+      return /folio|p\\u00e1g\\./.test((VINFO[k]||{}).fuente || ''); }),
+    HAY_INFO ? NUEVAS.concat(REESCRITAS).filter(function(k){
+      return !/folio|p\\u00e1g\\./.test((VINFO[k]||{}).fuente || ''); }).join(',') || 'todas' : '-']);
+  ex.push(['(E) ninguna pasa de CUATRO bloques, que es el formato acordado',
+    HAY_INFO && Object.keys(VINFO).every(function(k){
+      const d = VINFO[k];
+      return ['formula','lee','fuente','ojo'].filter(function(b){ return !!d[b]; }).length <= 4; }),
+    'ok']);
+  /* El mecanismo: toque abre, segundo toque cierra, Escape cierra. El clic AFUERA y la posicion
+     a 390 y 360 px los mide la sonda, que tiene el canal del navegador. */
+  /* ⚠️ DENOMINADOR DEL MECANISMO: un globo dentro de un bloque cerrado existe y mide 0 x 0, y
+     _vInfoColocar se NIEGA a anclar contra ese rect —manda la tarjeta a la esquina, lejos del
+     numero que explica—. Sin abrir la pestana, la seccion plegable y el cajon «Datos», «no abre»
+     se lee como «el mecanismo no funciona». */
+  const mec = (function(){
+    if (!HAY_INFO) return 'SIN MECANISMO';
+    try { if (!document.getElementById('tab-valvulas').classList.contains('active')) showTab('valvulas'); } catch (e) {}
+    const sec = document.getElementById('ete-seccion-valv-aortica');
+    if (sec && getComputedStyle(sec).display === 'none') {
+      try { toggleEteSeccion('valv-aortica', document.querySelector('[onclick*="valv-aortica"]')); } catch (e) {}
+    }
+    const caja = document.getElementById('caja-insuf-aortica');
+    if (caja && !caja.classList.contains('valv-datos-abierto')) {
+      try { valvDatosTog('caja-insuf-aortica'); } catch (e) {}
+    }
+    const bl = document.getElementById('bloque-insuf-aortica');
+    if (bl && getComputedStyle(bl).display === 'none') bl.style.display = 'block';
+    const b = document.querySelector('[data-vinfo="ia-eroa-pisa"]');
+    const c = G('vinfo-card');
+    if (!b || !c) return 'SIN NODOS';
+    const rb = b.getBoundingClientRect();
+    if (rb.width === 0 || rb.height === 0) return { geo: '0x0 — el globo no tiene caja' };
+    const cerrada0 = getComputedStyle(c).display === 'none';
+    b.click(); const abierta = getComputedStyle(c).display !== 'none';
+    const texto = (c.textContent || '').trim();
+    b.click(); const cerrada1 = getComputedStyle(c).display === 'none';
+    b.click();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    const cerrada2 = getComputedStyle(c).display === 'none';
+    try { vInfoCerrar(true); } catch (e) {}
+    return { cerrada0: cerrada0, abierta: abierta, cerrada1: cerrada1, cerrada2: cerrada2,
+             largo: texto.length };
+  })();
+  ex.push(['(E) toque abre, segundo toque cierra y Escape cierra',
+    mec && mec.cerrada0 === true && mec.abierta === true && mec.cerrada1 === true && mec.cerrada2 === true,
+    JSON.stringify(mec)]);
+
+  /* ══ (F) EL ROTULO THP ══
+     Se mide el texto VISIBLE de la pestana, no el fuente: un rotulo dentro de un bloque oculto
+     no es una superficie que alguien lea. */
+  const vis = (id) => { const e = G(id); return e ? (e.innerText || e.textContent || '') : ''; };
+  const tv = vis('tab-valvulas');
+  ex.push(['(F) en Valvulas ya no se lee PHT en ninguna parte, y THP si',
+    (tv.match(/PHT/g) || []).length === 0 && (tv.match(/THP/g) || []).length > 0,
+    'pht=' + (tv.match(/PHT/g) || []).length + ' thp=' + (tv.match(/THP/g) || []).length]);
+  ex.push(['(F) los cuatro rotulos de campo y de fila dicen THP',
+    /THP/.test(TX('ia-pht-interp') === 'NO EXISTE' ? '' :
+      (G('ia_pht') && G('ia_pht').closest('.fg') ? G('ia_pht').closest('.fg').textContent : '')) &&
+    /THP/.test(G('ip_pht') && G('ip_pht').closest('.fg') ? G('ip_pht').closest('.fg').textContent : ''),
+    'ia=' + (G('ia_pht') && G('ia_pht').closest('.fg') ? G('ia_pht').closest('.fg').textContent.trim() : 'NO EXISTE')]);
+  /* ⚠️ EL EXCEL CONSERVA SUS ENCABEZADOS A PROPOSITO: el importador lee por NOMBRE, asi que
+     renombrarlos descarta esas columnas en todo backup ya exportado. Esta condicion lo FIJA, por
+     los dos lados: los tres encabezados siguen como estaban Y el mapa del importador los encuentra. */
+  const mapaXls = (typeof LAB_XLS_MAP !== 'undefined')
+    ? LAB_XLS_MAP.filter(function(r){ return /PHT|THP/.test(r[0]); }).map(function(r){ return r[0]; })
+    : ['SIN MAPA'];
+  ex.push(['(F) el Excel y el importador CONSERVAN sus encabezados, que se leen por nombre',
+    mapaXls.length === 3 && mapaXls.indexOf('PHT IAo (ms)') > -1 &&
+    mapaXls.indexOf('ET THP (ms)') > -1 && mapaXls.indexOf('TAVI RPV PHT (ms)') > -1,
+    mapaXls.join(' | ')]);
+  /* La clave del vocabulario del ecografo es de ellos; su ETIQUETA visible si cambio. */
+  ex.push(['(F) la clave del ecografo «AR PHT» no se toco y su etiqueta visible dice THP',
+    (function(){
+      if (typeof CHM_MAPA === 'undefined') return 'SIN MAPA';
+      const e = CHM_MAPA['AR PHT'];
+      return !!e && e.campo === 'ia_pht' && /THP/.test(e.etiq || ''); })() === true,
+    (typeof CHM_MAPA !== 'undefined' && CHM_MAPA['AR PHT'])
+      ? JSON.stringify({ campo: CHM_MAPA['AR PHT'].campo, etiq: CHM_MAPA['AR PHT'].etiq })
+      : 'SIN ENTRADA']);
+
+  /* ══ (G) EL COLOR REAL DE LOS AVISOS, EN LOS DOS TEMAS ══
+     ⚠️ SE MIDE EL COLOR COMPUTADO Y NO LA DECLARACION: el defecto era justamente que la variable
+     no existe en esta zona y el valor cae al heredado, que es una lectura que el fuente no da.
+     El tema claro es la clase light-mode sobre el elemento raiz, no un data-theme. */
+  const AVISOS = ['im-pdf-metodo-aviso','diast-algo-aviso','diast-fc-aviso',
+                  'diast-bse-eprima-aviso','diast-bse-gris-aviso'];
+  function colorDe(id) {
+    const e = G(id); if (!e) return 'NO EXISTE';
+    const prev = e.style.display;
+    if (getComputedStyle(e).display === 'none') e.style.display = 'block';
+    if (!(e.textContent || '').trim()) e.textContent = 'x';
+    const c = getComputedStyle(e).color;
+    e.style.display = prev;
+    return c;
+  }
+  const raiz = document.documentElement;
+  const eraClaro = raiz.classList.contains('light-mode');
+  raiz.classList.remove('light-mode');
+  const oscuro = AVISOS.map(colorDe);
+  raiz.classList.add('light-mode');
+  const puestoClaro = raiz.classList.contains('light-mode');
+  const claro = AVISOS.map(colorDe);
+  if (!eraClaro) raiz.classList.remove('light-mode');
+  ex.push(['(G) DENOMINADOR: el tema claro quedo puesto de verdad', puestoClaro === true,
+    'light-mode=' + puestoClaro]);
+  ex.push(['(G) los CINCO avisos computan naranja en oscuro, y ninguno el gris del texto',
+    oscuro.every(function(c){ return c === 'rgb(245, 158, 66)'; }),
+    AVISOS.map(function(id,i){ return id + '=' + oscuro[i]; }).join(' | ')]);
+  ex.push(['(G) y naranja en claro',
+    claro.every(function(c){ return c === 'rgb(217, 123, 31)'; }),
+    AVISOS.map(function(id,i){ return id + '=' + claro[i]; }).join(' | ')]);
+  /* CONTROL NEGATIVO: el de exclusiones ya estaba en --orange y no se movio. */
+  ex.push(['(G) CONTROL NEGATIVO: el aviso de exclusiones, que ya estaba bien, no cambio',
+    colorDe('diast-excl-aviso') === 'rgb(245, 158, 66)', colorDe('diast-excl-aviso')]);
+  /* ⚠️ LIMITE DECLARADO: #vd-tei-aviso tiene el MISMO defecto y NO se toco en esta tanda, por
+     estar fuera del alcance de la orden. Se fija para que el dia que se arregle se note. */
+  ex.push(['(G) LIMITE DECLARADO: el aviso del Tei del VD sigue gris, y queda en PENDIENTES',
+    colorDe('vd-tei-aviso') !== 'rgb(245, 158, 66)', colorDe('vd-tei-aviso')]);
+
+  /* ══ (H) CONTROLES: lo que esta tanda NO mueve ══ */
+  __t.limpiar();
+  Object.keys(ESCENA).forEach(function(k){ __t.set(k, ESCENA[k]); });
+  __t.set('it_densidad','denso');
+  const r = __t.informe();
+  ex.push(['(H) CONTROL: los grados de las ocho lesiones son los mismos con las casillas puestas',
+    VL('ia_grado') === gradoConAutos.ia && VL('it_grado') === gradoConAutos.it,
+    'ia=' + VL('ia_grado') + ' it=' + VL('it_grado') +
+    ' im=' + VL('im_grado') + ' em=' + VL('em_grado') + ' ea=' + VL('ea_grado') +
+    ' et=' + VL('et_grado') + ' ep=' + VL('ep_grado') + ' ip=' + VL('ip_grado')]);
+  ex.push(['(H) CONTROL: el informe y el EN SUMA no dependen de las casillas',
+    r.inf === infConAutos.inf && r.suma === infConAutos.suma,
+    String(r.suma || '').split(String.fromCharCode(10)).join(' | ').slice(0, 200)]);
+  /* ⚠️ Y EL INFORME NO NOMBRA NINGUNA CASILLA: su texto no puede contener un id vauto-. */
+  ex.push(['(H) CONTROL: ni el informe ni el EN SUMA nombran una casilla automatica',
+    r.inf.indexOf('vauto-') === -1 && r.suma.indexOf('vauto-') === -1, 'sin vauto-']);
+  ex.push(['(H) CONTROL: el Excel sigue en 436 columnas',
+    (function(){
+      if (typeof _labExcelRow !== 'function') return 'SIN EXPORTADOR';
+      const campos = {};
+      Array.prototype.slice.call(document.querySelectorAll('input[id], select[id], textarea[id]'))
+        .forEach(function(e){
+          if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(e.id)) return;
+          campos[e.id] = e.value; });
+      try { return Object.keys(_labExcelRow({ nombre:'P', ci:'1', fecha_estudio:'2026-10-14',
+        campos: campos })).length; } catch (e) { return 'EXC'; } })() === 436,
+    'columnas']);
 
   return { extra: ex };
 `);

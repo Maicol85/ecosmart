@@ -32,6 +32,8 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la GRILLA del Doppler mitral**: el orden de los 16 campos, el Tab por columnas, los puntos de corte o el selector del S/D | `docs/mapa/doppler-mitral-grilla.md` |
 | **Tocar el BORRADO de una lesión valvular**: el retiro del grado, quién prendió una pastilla, los dos métodos de la IM, la continuidad de la IT o el grado de cada fila | `docs/mapa/valvulas-borrado.md` |
 | **Tocar la PANTALLA de las dos lesiones MITRALES**: las tres columnas de la insuficiencia, las casillas automáticas, el cuadro de referencias en tres bloques, la columna 2 de la estenosis o el mecanismo de los globos ⓘ | `docs/mapa/valvulas-mitral-pantalla.md` |
+| **Tocar la PANTALLA de las insuficiencias AÓRTICA o TRICUSPÍDEA**: sus columnas, las cinco casillas automáticas, las once tarjetas ⓘ, el rótulo THP o el color de los avisos | `docs/mapa/valvulas-ia-it-pantalla.md` |
+| **Buscar un CORTE o una BANDA de plausibilidad** de cualquier válvula, con su fuente | `docs/mapa/valvulas-constantes.md` |
 | **Tocar la MARCA DE MANUAL de una pastilla, el selector binario de la estenosis mitral, el VIOLETA de «Significativa», el VTI de entrada tricuspídeo, la CASILLA DE PISA de «Incluir en el informe» o lo que «Nuevo estudio» deja vivo** | `docs/mapa/valvulas-manual-binario.md` |
 | **Tocar el VENTRÍCULO DERECHO**: sus campos, el cuadro de referencias, la disfunción sistólica, la pared o el Tei | `docs/mapa/vd-derecho.md` |
 | **Tocar el panel de Evidencia: agregar una cita, una sección o un sub-bloque** | `docs/mapa/panel-evidencia.md` |
@@ -73,6 +75,12 @@ exclusiones y de la disfunción del VD salió a archivo propio
 **puntero de siete líneas** — y aun así pasó de 34,6 a **35,2 KB**, o sea que cualquier cosa que se
 le agregue ahora lo cruza. **La próxima tanda que lo toque tiene que partirlo**, igual que
 `panel-evidencia.md` (35,3 KB) y `valvulas.md` (33,8 KB), que siguen esperando.
+⚠️ **Al 2026-10-14, tras la tanda D2, hay DOCE mapas y `valvulas.md` VOLVIÓ a cruzar el techo —con
+un PUNTERO de dieciséis líneas, de 34,5 a 35,4 KB—.** Hubo que partirlo otra vez: el bloque
+«Constantes de cortes y bandas» salió a `docs/mapa/valvulas-constantes.md` (9,2 KB) y el mapa
+volvió a **27,6 KB**. El de la tanda nació chico, `valvulas-ia-it-pantalla.md` (14,6 KB).
+**Es la segunda vez que la regla se aplica DESPUÉS de cruzar: medir con `wc -c` ANTES de
+escribir, no después.** Siguen esperando `panel-evidencia.md` (35,3 KB) y `diastolica.md` (35,2).
 ⚠️ **Y al 2026-10-13 hay NUEVE, porque `valvulas.md` CRUZÓ el techo y hubo que partirlo.** La tanda
 de los cortes de la aórtica lo llevó a **40,8 KB**; su sección nueva salió a
 `docs/mapa/aortica-cortes.md` (9,8 KB) y `valvulas.md` volvió a **32,0 KB** con un puntero de cinco
@@ -86,7 +94,7 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **7,35 MB / 110.999 líneas**, medido el 2026-10-14 al cierre de la tanda D1 del rediseño de Válvulas —el renglón decía «6,13 MB /
+  sin frameworks. Hoy **7,37 MB / 111.272 líneas**, medido el 2026-10-14 al cierre de la tanda D2 del rediseño de Válvulas —el renglón decía «6,13 MB /
   90.494 líneas» y llevaba varias tandas sin actualizarse: **medirlo antes de presupuestar contexto**—. Las únicas dependencias son jsPDF, XLSX y
   PptxGenJS por CDN. Se abre como archivo local y corre en Chrome.
 - Lo que produce es un **informe firmado**: narrativo, EN SUMA, PDF, PPT y Excel del Laboratorio.
@@ -240,6 +248,166 @@ impecable.
 ---
 
 ## Estado vigente
+
+### La AÓRTICA y la TRICÚSPIDE en pantalla, las once tarjetas ⓘ, el rótulo THP y el color de los avisos (2026-10-14)
+
+- **Es la SEGUNDA MITAD («D2») del rediseño de Válvulas** y cierra la serie que abrió D1. Al
+  **empezar**, `main` local y `origin/main` estaban los dos en **`8bcd2f9`**, sin nada sin pushear
+  —confirmado con un `git fetch` de verdad—, con los **cinco** commits del D1 ya incluidos **y
+  pusheados**. Los **seis** commits de esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 6 → 5 → 4 → 3 → 2 → 1.**
+  ⚠️ **EL 1 ES LA BASE DEL 2**: crea `_iaAutosSync` y, sobre todo, **le agrega a `_imAutoDeFila` su
+  CUARTO argumento**, el separador, que es lo único que el 2 necesita de él. Revertir el 1 sin
+  revertir antes el 2 deja `_itAutosSync` pasando un `sep` que el copiador ignora: **no rompe nada
+  y no se nota** —las dos casillas de la IT publicarían su grado al lado del número, que es
+  exactamente lo que el separador existe para evitar—. Es el peor modo de falla de la serie:
+  silencioso y plausible. **Orden: 2 antes que 1.**
+  ⚠️ **EL 3 CUELGA DEL 1 Y DEL 2 POR EL MARCADO**: los dos botones ⓘ nuevos de las insuficiencias
+  viven en los rótulos de `vauto-ia-eroa` y `vauto-it-eroa`, que nacen ahí. Revertir el 1 o el 2
+  sin revertir antes el 3 deja el botón sin su rótulo —o sea sin existir—, lo cual es inocuo, pero
+  deja además **dos entradas del registro sin globo**, que es lo contrario del defecto que se
+  cerró. **El 4 y el 5 se revierten solos y en cualquier orden**: el 4 es sólo el rótulo y el 5
+  sólo el color, y ninguno nombra nada de los otros.
+  ⚠️ **PERO EL 3 RETIRÓ LOS SIETE `title` LARGOS, y eso NO se repone solo.** Un globo sin entrada
+  en `VINFO` cae al camino de legado, que lee el `title` de su fila: revertir el 3 sin reponer los
+  `title` deja **siete tarjetas VACÍAS**, que abren y no dicen nada. TC-472 lo fija.
+  **El 6 es TC-472 más documentación y el sello**, y afirma el comportamiento de los cinco:
+  revertir cualquiera sin el 6 deja TC-472 en rojo —22 de sus 39 condiciones—.
+
+- **Línea base al cierre: suite 482/486 con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0 ERROR,
+  Excel en 436 columnas, celular 43 a 360 px y 52 a 390 px con 1 ALTA cada uno —IDÉNTICO a la línea
+  base, y `--todo` da 374 y 383, el mismo par—.** **CERO REGRESIONES**: los cuatro rojos son
+  exactamente los de ENTRADA —**TC-223** (el documentado, falla por la fecha), **TC-376**,
+  **TC-390** y **TC-406**—. **El denominador subió a 486**: esta tanda agregó **TC-472**. La de
+  ENTRADA, medida en HEAD limpio en un worktree aparte, fue **481/485** con los mismos cuatro
+  rojos. El `md5` de `index.html` no se movió durante ninguna de las corridas.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. Por eso el total es sobre 486 y no sobre 487.
+  ⚠️ **LA SUITE COMPLETA SE CORRIÓ DOS VECES, Y LA PRIMERA NO ES LA LÍNEA BASE.** Dio **477/486**
+  con **nueve** rojos: los cuatro de entrada más **cinco que la propia suite completa destapó** y
+  que ninguna corrida de zona podía ver —TC-250, TC-262, TC-333, TC-429 y TC-440—. Los cinco
+  afirmaban el rótulo viejo o el `title` retirado; se adaptaron y la segunda corrida es la que
+  vale. **Es la tercera tanda seguida en que la suite completa destapa casos que la zona no toca.**
+- **EL SELLO DE VERSIÓN** estaba al día al empezar (`v20261014-2125`) y se volvió a sellar en el
+  commit 6: **`v20261015-0019`**. La suite se midió **DESPUÉS** de sellar, con el `md5` quieto.
+
+- **Dónde está todo:** `docs/mapa/valvulas-ia-it-pantalla.md` (**mapa NUEVO**, 14,6 KB: las dos
+  tablas de columnas, las cinco casillas y sus dos dueños, las once tarjetas con su fuente, el
+  censo del rótulo con lo que NO se cambió, la tabla de colores medidos y las cinco trampas),
+  `docs/mapa/valvulas-constantes.md` (**mapa NUEVO por PARTICIÓN**, 9,2 KB),
+  `docs/mapa/valvulas.md` → dos punteros, `docs/fuentes/FUENTES.md` → «Las ONCE TARJETAS de los
+  globos ⓘ de la tanda D2», y `docs/PENDIENTES.md` → **D1-1, D1-2 y D1-3 marcados CERRADOS** más
+  **cinco** cosas declaradas y no tocadas (D2-1 a D2-5).
+  ⚠️ **`valvulas.md` CRUZÓ EL TECHO CON UN PUNTERO DE DIECISÉIS LÍNEAS** —pasó de 34,5 a 35,4 KB—
+  y hubo que partirlo: el bloque «Constantes de cortes y bandas» salió a archivo propio y el mapa
+  volvió a **27,6 KB**. Es la segunda vez que la regla se aplica **después** de cruzar: **medir con
+  `wc -c` ANTES de escribir, no después.**
+
+- **NO CAMBIA NINGUNA CUENTA, NINGÚN CORTE, NINGÚN GRADO NI NINGUNA REGLA DE INTEGRACIÓN, Y ESTÁ
+  MEDIDO.** A/B contra HEAD en los cinco commits: **0 diferencias** en informe (tres estilos), EN
+  SUMA, Excel en **436** columnas con el mismo hash, Laboratorio, grados de las ocho lesiones,
+  pastillas y las filas de los cuatro cuadros de referencia. **Escenas que cambian de veredicto:
+  NINGUNA.** Las ÚNICAS dos diferencias contra HEAD son textos «THP»: la fila de discordancia de la
+  IAo en pantalla y el informe firmado del TAVI.
+
+- **LAS CINCO CASILLAS AUTOMÁTICAS NO CALCULAN NADA: COPIAN SU FILA**, igual que las del D1. Tres
+  en la IAo (EROA, Vol-R y FR por PISA) y dos en la IT (EROA y Vol-R). Dueños `_iaAutosSync` y
+  `_itAutosSync`, los dos sobre `_imAutoDeFila`. **Medido con teclas reales: 45 de 45 lecturas
+  coinciden con su fila** (cargado, sin cada insumo, vacío y tras borrar con Backspace reales).
+  ⚠️ **EL COPIADOR GANÓ UN CUARTO ARGUMENTO, Y NO ES COSMÉTICO.** Las filas de la IT traen la
+  leyenda de grado pegada con ` · ` («18.1 mm² · Leve (<20 mm²)»); sin ese corte la casilla
+  publicaría la GRADUACIÓN, y el reparto que el D1 fijó es que la casilla publica la MEDICIÓN.
+- ⚠️ **LA FR DE LA TRICÚSPIDE NO EXISTE, Y ES UNA PARADA.** La orden pedía tres casillas en esa
+  columna y entraron dos: **ninguna función de la app calcula la FR de la IT** —`calcIT_ESC`
+  produce `eroa` y `volR` y nada más— y la **Tabla 14 de la ASE 2017, folio 350, tampoco publica
+  una banda de FR para esa válvula**. Faltan las dos mitades, la cuenta y el corte.
+  `PENDIENTES.md` → **D2-1**.
+- ⚠️ **EL VOL-R DE LA IAo DEPENDE DE LOS DOS DEL TSVI AUNQUE SU FÓRMULA NO LOS USE**, porque sus
+  dos filas viven en el **mismo** `if` de `calcIA_ESC`. Lo destapó la sonda: la primera versión del
+  aviso no los nombraba y la casilla salía vacía **con el placeholder vacío al lado** —un campo
+  mudo que no dice qué le falta—. `PENDIENTES.md` → **D2-4**.
+- ⚠️ **NINGUNA VIAJA CON EL ESTUDIO:** prefijo `vauto-`, que `_noEsDelEstudio` ya excluía.
+  **Medido: 893 campos, mismo hash, cero claves `vauto-`.**
+
+- **ONCE TARJETAS ⓘ: CUATRO NUEVAS, SIETE REESCRITAS, Y CERO GLOBOS DE LEGADO.** El registro
+  `VINFO` pasa de 5 a **16** entradas. **Ninguna fórmula difiere de su guía.** La ecuación de
+  continuidad aórtica se verificó **RENDERIZANDO** el PDF —`AVA × VTI_AV = CSA_LVOT × VTI_LVOT`,
+  folio 6, y `CSA_LVOT = π(D/2)²`, folio 7, con el folio comprobado en el pie impreso— y coincide
+  con `_avaContinuidad`. **Ningún corte se movió**: los once números de los siete textos viejos se
+  verificaron contra la constante que la app aplica, no contra el recuerdo.
+- ⚠️ **LOS SIETE `title` LARGOS SE RETIRARON, Y ESO ES LO QUE HACE QUE «CERO LEGADO» SEA UNA
+  AFIRMACIÓN.** Un globo sin entrada cae al camino que lee el `title` de su fila: con los `title`
+  afuera, una clave sin entrada abriría una tarjeta **vacía** y nadie lo notaría.
+  **Lo que la tarjeta no repite NO se perdió:** bajó a «Referencia clínica», en dos bloques nuevos
+  —«Salvedades de los parámetros de apoyo» y «Prótesis mitral — ASE 2024»—. El detalle del EOA, el
+  DVI y el PPM mitrales **no estaba en ninguna otra superficie de la app**.
+- **MECANISMO MEDIDO con clics y teclas reales:** toque abre, segundo toque cierra, Escape cierra y
+  el clic afuera cierra, en las **once**; los 16 globos son `<button>`, **cero `title`** y **cero
+  `abrirAyudaEco`**. A **1200, 390 y 360 px en los DOS temas** la tarjeta entra entera en el
+  viewport y **el globo sigue siendo alcanzable después de abrirla** (30 de 30 lecturas), que es el
+  defecto que el D1 encontró con su tarjeta más alta. **Captura PNG de seis tarjetas en los dos
+  temas**, que es como el D1 cazó los acentos faltantes.
+- ⚠️ **LOS TRES GLOBOS DE LA PRÓTESIS MIDEN 0×0 SIN MORFOLOGÍA PROTÉSICA**, así que se miden en una
+  **escena protésica aparte**: sin ella, «no abre» se lee como «el mecanismo no funciona».
+
+- **EL RÓTULO «PHT» → «THP»: 24 lugares en 25 líneas, en siete superficies.** El texto **visible**
+  de Válvulas pasa de 5 PHT / 6 THP a **0 / 11** y el del ETE de 1 / 0 a **0 / 1**.
+  ⚠️ **EL EXCEL CONSERVA DOS ENCABEZADOS QUE DICEN PHT, Y ES DELIBERADO.** `PHT IAo (ms)` y
+  `TAVI RPV PHT (ms)` —y el prefijo de ordenamiento `PHT IAo`— no se tocan porque **el importador
+  lee por NOMBRE DE ENCABEZADO**: renombrarlos descarta esas columnas en todo backup ya exportado.
+  `ET THP (ms)` **ya decía THP**, así que el libro queda con dos nomenclaturas. La salida limpia es
+  una tabla de **alias de ENTRADA**, el patrón que `LAB_XLS_LISTAS_LEGADO` ya usa para los valores.
+  `PENDIENTES.md` → **D2-3**.
+  ⚠️ **TAMPOCO SE TOCARON** la clave `AR PHT` del vocabulario del ecógrafo —es de ellos; su
+  `etiq` visible sí cambió—, las **cinco citas literales en inglés** de las guías —alterar una cita
+  la falsifica— ni los **44 comentarios de código** (`PENDIENTES.md` → **D2-5**).
+- **EL INFORME FIRMADO DEL TAVI CAMBIA, Y ESTÁ MEDIDO**, en los tres estilos y sólo en el rótulo:
+  «Prótesis TAVI de 26 mm. Insuficiencia paravalvular severa. **THP** 180 ms.». El EN SUMA no se
+  mueve. Esa escena vive detrás de **CUATRO** puertas y la sonda informó «no cambia» dos veces
+  sobre gestos que no ocurrieron — ver las trampas.
+
+- **EL COLOR: CINCO AVISOS QUE SE VEÍAN GRISES.** `--amber` se define **sólo** dentro de
+  `.amilo-root` y de `#sp-root`, así que fuera de ahí `color:var(--amber)` es inválido en tiempo de
+  valor computado y cae al heredado. **Medido en HEAD:** `#im-pdf-metodo-aviso` y los **CUATRO** de
+  la diastólica computaban `rgb(232,236,244)` de noche y `rgb(26,34,51)` de día, y
+  `getPropertyValue('--amber')` devuelve **cadena vacía** en los siete nodos. Hoy los cinco dan
+  `rgb(245,158,66)` y `rgb(217,123,31)`. **Control negativo:** `#diast-excl-aviso`, que ya estaba
+  en `--orange`, no se movió.
+  ⚠️ **SON CUATRO Y NO TRES en la diastólica** —la orden decía tres y el censo da cuatro— y
+  **queda un QUINTO sin tocar**: `#vd-tei-aviso`, con el mismo defecto y la misma medición, fuera
+  del alcance de la orden. Es **una línea**. `PENDIENTES.md` → **D2-2**, y TC-472 lo fija como
+  límite declarado para que el día que se arregle el caso lo note.
+
+- **Arnés: `scripts/_probe_iaitcols.mjs`** (A/B de solo lectura con `--file`, y `--captura --dest`),
+  diez grupos (`campos`, `autos`, `globos`, `thp`, `tavi`, `color`, `superficies`, `controles`,
+  `ancho`, `captura`). **Cobertura: TC-472**, **39 condiciones** —contadas instrumentando el propio
+  caso para que publicara su `ex.length`, no a ojo— con cinco denominadores y cuatro controles
+  negativos. **Verificado que sabe fallar contra HEAD en un worktree aparte: 22 de las 39 en rojo,
+  y NINGUNA por excepción.**
+- ⚠️ **CASOS ADAPTADOS: OCHO**, con el motivo escrito en cada uno. **TC-423** (dos veces: el
+  reparto de columnas de la IAo, y después el globo nuevo que entra en el Tab), **TC-471** (de 12 a
+  16 globos, y la condición se REFUERZA: ya no hay legado), **TC-298** y **TC-333** (la salvedad y
+  la atribución, que pasan del `title` a la tarjeta y al manual), **TC-354** (el rótulo en su tabla
+  de bandas), **TC-250** y **TC-262** (los rótulos del panel del Doppler importado), **TC-429** (el
+  globo nuevo del área tricuspídea en el Tab) y **TC-440** (el nombre del voto en la discordancia
+  de la IP). **CINCO de los ocho los destapó la SUITE COMPLETA**, no la corrida de zona.
+- ⚠️ **ENTER NO ACTIVA UN CHECKBOX, Y EL CHECKBOX DEL TAVI NO ES EL CONTROL.** La escena del
+  informe del TAVI informó «el informe no cambia» **dos veces** sobre gestos que no ocurrieron:
+  primero porque el respaldo por tecla de `clicEn` manda Enter y la tecla de un checkbox es
+  Espacio, y después porque `ete_tavi_incluir_chk` está en `display:none` con `tabindex="-1"` y el
+  control real es el **botón** «Integrar al informe» (`[data-ete-chk="…"]`).
+- ⚠️ **UN REGEX CON `\n` DENTRO DE UN TEMPLATE LITERAL NO PARSEA, Y LAS DOS FORMAS FALLAN DISTINTO.**
+  La barra-ene se **cocina** a un salto real: `/\n/g` da «Invalid regular expression: missing /» y
+  `'\n'` deja la cadena sin cerrar, «Invalid or unexpected token». Las dos aparecieron seguidas al
+  escribir TC-472. Se nombra el salto por su código: `String.fromCharCode(10)`.
+- ⚠️ **LA ESCENA BASE DABA UNA FR IMPOSIBLE Y LA CASILLA SALÍA VACÍA — Y COINCIDÍA IGUAL.** Con
+  Ø TSVI 20 mm y VTI 20 cm el volumen eyectado es 62,8 ml contra un Vol-R de 71,4: la FR daba 114 %
+  y la fila publicaba su explicación en vez de un número. **Una escena que no produce el valor que
+  se quiere medir pasa la comparación sin medir nada.**
+- ⚠️ **Me comí el acento grave TRES veces**, las tres en comentarios míos dentro del cuerpo de un
+  caso, con el archivo que documenta la trampa abierto delante. `scripts/check_backticks.py` dio la
+  línea exacta las tres; `node --check` apuntaba a la apertura del template. **Correr los dos.**
 
 ### La MITRAL EN PANTALLA: tres columnas de seis, el cuadro en tres bloques y los globos ⓘ (2026-10-14)
 

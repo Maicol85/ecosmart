@@ -1,9 +1,65 @@
 # EcoSmart — pendientes vivos
 
 
+## Rediseño de Válvulas · D2 — aórtica, tricúspide, tarjetas, THP y color (2026-10-14) — DECLARADO y NO arreglado
+
+### D2-1 · La FRACCIÓN REGURGITANTE de la insuficiencia tricuspídea no existe — PARADA
+
+La orden pedía tres casillas automáticas en la columna 3 de la IT: EROA, Vol-R y **FR**. Entraron
+dos. **Ninguna función de la app calcula la FR de esta válvula** —`calcIT_ESC` produce `eroa` y
+`volR` y nada más, e `itRefPintar` publica tres filas: vena contracta, EROA y Vol-R— y la
+**Tabla 14 de la ASE 2017, folio 350, tampoco publica una banda de FR para la IT**: sus
+parámetros son VCW, EROA, RVol, densidad del chorro por CW, radio PISA y área del jet color.
+
+O sea que faltan **las dos mitades**: la cuenta y el corte. Implementarla pediría elegir un
+denominador —el volumen eyectado del TSVD, que la app sí sabe calcular con `tsvd_diametro` y
+`vti_tsvd`— y aplicarle una banda que **ninguna guía leída publica para esta válvula**. Las dos
+decisiones son clínicas. **Es decisión de Maicol.** Mientras tanto, la columna 3 tiene dos
+casillas y el reparto es 3 + 3 + 2; la tarjeta ⓘ de esa lesión publica DOS fórmulas y lo declara.
+
+### D2-2 · `#vd-tei-aviso` tiene el mismo defecto de color y quedó fuera de alcance
+
+El aviso del índice de Tei del ventrículo derecho lleva `color:var(--amber)` y, como los cinco que
+esta tanda corrigió, **`--amber` no existe fuera de `.amilo-root`**. Medido el 2026-10-14 con
+`getComputedStyle`: computa **`rgb(232, 236, 244)`** en oscuro y **`rgb(26, 34, 51)`** en claro, el
+gris del texto normal, mientras el comentario de su línea dice «ámbar».
+
+**No se tocó** porque la orden del D2 enumeraba el aviso del método de la IM y los de la función
+diastólica, y éste es del módulo del VD. Es **una línea** —`var(--amber)` → `var(--orange)`— y
+TC-472 lo fija como límite declarado, de modo que el día que se arregle el caso lo note.
+⚠️ La otra lectura de `--amber` fuera de esos contenedores (`var(--amber, #f59e0b)`) lleva valor de
+respaldo y resuelve bien: no hay un tercer caso.
+
+### D2-3 · El Excel conserva dos encabezados que dicen PHT
+
+`PHT IAo (ms)` y `TAVI RPV PHT (ms)` siguen con el nombre viejo —y el prefijo de ordenamiento
+`PHT IAo` con ellos— porque **el importador lee por NOMBRE DE ENCABEZADO**: renombrarlos descarta
+esas columnas en todo backup ya exportado, y eso es un cambio del Excel que la orden manda parar.
+`ET THP (ms)`, en cambio, **ya decía THP**, así que el libro queda con dos nomenclaturas.
+
+La salida limpia, para cuando se decida: una tabla de **alias de ENTRADA** que acepte el nombre
+viejo al importar y exporte el nuevo — el mismo patrón que `LAB_XLS_LISTAS_LEGADO` ya usa para los
+VALORES de lista, aplicado a los encabezados. **Decisión de Maicol**, porque toca el round-trip.
+
+### D2-4 · El Vol-R de la IAo exige los dos del TSVI aunque su fórmula no los use
+
+`Vol-R = EROA × VTI del chorro` no necesita el tracto de salida, pero en `calcIA_ESC` esa fila vive
+dentro del **mismo** `if (vtiIA && itsvi && dtsvi)` que la FR, así que sin el Ø o el VTI del TSVI
+se va al `else` y queda en «—». Es **preexistente** y esta tanda no lo movió: lo único que hizo
+fue que la casilla nueva lo **declare** («requiere Diám. TSVI, VTI TSVI (en Estenosis)»), que es
+mejor que un campo mudo. Separar las dos filas cambia cuándo el Vol-R vota, o sea contenido
+clínico. **Decisión de Maicol.**
+
+### D2-5 · Los cuarenta y cuatro comentarios de código siguen diciendo PHT
+
+El rótulo cambió en las superficies que se leen; los comentarios de `index.html` y el nombre de la
+función `_avmPorPHT` no. No se muestran, así que no es un defecto de cara al médico, pero el
+archivo queda con las dos nomenclaturas y la próxima lectura tiene que saberlo. **Las cinco citas
+literales en inglés de las guías NO deben tocarse nunca**: alterar una cita la falsifica.
+
 ## Rediseño de Válvulas · D1 — la mitral en pantalla (2026-10-14) — DECLARADO y NO arreglado
 
-### D1-1 · El aviso del selector de método de la IM dice `--amber` y se ve GRIS
+### ✅ [CERRADO 2026-10-14, D2] D1-1 · El aviso del selector de método de la IM dice `--amber` y se ve GRIS
 
 `#im-pdf-metodo-aviso` —el renglón que explica por qué la última casilla de «Incluir en el informe»
 no se destilda— lleva `color:var(--amber)`, y **`--amber` sólo existe dentro de `.amilo-root`**.
@@ -17,7 +73,7 @@ los cinco de una vez—. **Decisión de Maicol.**
 y `--accent2`, y los tres se verificaron **computados** en los dos temas (la línea «a tener en
 cuenta» da `rgb(245,158,66)` oscuro y `rgb(217,123,31)` claro).
 
-### D1-2 · Los SIETE globos de legado muestran su texto viejo hasta D2
+### ✅ [CERRADO 2026-10-14, D2] D1-2 · Los SIETE globos de legado muestran su texto viejo hasta D2
 
 El mecanismo nuevo —toque, tarjeta corta, sin hover, sin manual— rige para los **doce** globos de la
 pestaña desde esta tanda, pero sólo **cinco** tienen tarjeta escrita. Los otros siete
@@ -26,7 +82,7 @@ pestaña desde esta tanda, pero sólo **cinco** tienen tarjeta escrita. Los otro
 algunos cuentan historia y atribución, que es justo lo que las tarjetas cortas vienen a sacar.
 **Es lo que la orden pide**: sus textos se reescriben en **D2**.
 
-### D1-3 · El `title` largo de la fila sigue existiendo en escritorio
+### ✅ [CERRADO 2026-10-14, D2] D1-3 · El `title` largo de la fila sigue existiendo en escritorio
 
 Lo que se sacó es el `title` **del globo**; el de la **fila** (`span.calc-lbl[title]`) sigue ahí y
 sigue apareciendo al pasar el mouse por el rótulo. No es el globo —el globo ya no muestra nada al

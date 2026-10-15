@@ -323,6 +323,67 @@ que ahora se lee desde la app.
 palabras propias.
 
 
+### Las ONCE TARJETAS de los globos ⓘ de la tanda D2 — fórmula y folio (verificadas 2026-10-14)
+
+Cuatro nuevas y siete reescritas. **Ninguna fórmula de la app difiere de su guía**, que es la
+condición de parada de esta tanda. El mapa de la zona es `docs/mapa/valvulas-ia-it-pantalla.md`.
+
+#### Las CUATRO nuevas
+
+| Tarjeta | Fórmula que la app aplica | Fuente verificada |
+|---|---|---|
+| **IAo — EROA por PISA** | `EROA = 2π·r²·V_aliasing ÷ Vmax del chorro` | ASE 2017 (Zoghbi), **folio 312** — la misma fórmula general de PISA ya registrada arriba |
+| **IAo — Vol-R** | `Vol-R = EROA × VTI del chorro` | ASE 2017, **folio 312**: *«RVol = EROA × VTI_RegJet»* |
+| **IAo — FR** | `FR = Vol-R ÷ Vol eyectado del TSVI` | ASE 2017, **folio 311** (*«RF = RVol/SV_RegValv»*) + **Tabla 14, folio 339**, que da el método de la IAo: *«SV method: RVol = SV_LVOT − SV_MV»*. En la aórtica la válvula regurgitante **es** la aórtica y su SV se mide en el TSVI, así que el denominador es `vsv` SOLO y no `volR + vsv` como en la mitral |
+| **IT — EROA y Vol-R** | las mismas dos de arriba, con la Vmax y el VTI de la IT | ASE 2017, **folio 312**; los cortes, **Tabla 14, folio 350** |
+| **EAo — AVA por continuidad** | `AVA = π·(Ø/2)² × VTI_TSVI ÷ VTI_Ao`, con el Ø en cm | EAE/ASE 2009 (Baumgartner), **folio 6** y **folio 7** — ver abajo |
+| **ET — AVT por continuidad** | `AVT = π·(Ø_TSVD/20)² × VTI_TSVD ÷ VTI_entrada` | EAE/ASE 2009, **Tabla 10 y su texto, folio 19** — ya registrada en «Estenosis TRICUSPÍDEA» más abajo |
+
+⚠️ **LA FRACCIÓN REGURGITANTE DE LA IT NO EXISTE, NI EN LA APP NI EN SU TABLA.** `calcIT_ESC`
+produce `eroa` y `volR` y nada más, e `itRefPintar` publica tres filas: vena contracta, EROA y
+Vol-R. Y la **Tabla 14 del folio 350 no tiene fila de RF**: sus parámetros son VCW, EROA, RVol,
+densidad del chorro por CW, radio PISA y área del jet color (ver su transcripción completa más
+arriba). Por eso la columna 3 de esa lesión tiene DOS casillas y la tarjeta publica DOS fórmulas.
+`docs/PENDIENTES.md` → **D2-1**.
+
+#### La ecuación de continuidad AÓRTICA — leída RENDERIZANDO (2026-10-14)
+
+El texto extraído de ese PDF pierde los operadores (`AVA  VTIAV  CSALVOT  VTILVOT`), así que la
+página se renderizó. **Folio = página del PDF, sin offset**, comprobado en el pie impreso de la
+página 7: «Baumgartner et al · 7 · Volume 22 Number 1».
+
+> **Folio 6** — *«SV_AV = SV_LVOT»*, y de ahí **`AVA × VTI_AV = CSA_LVOT × VTI_LVOT`**, con el
+> pie *«Solving for AVA yields the continuity equation»* y el cociente
+> **`AVA = (CSA_LVOT × VTI_LVOT) / VTI_AV`**.
+>
+> **Folio 7** — **`CSA_LVOT = π (D/2)²`**, *«where D is diameter»*, y las tres mediciones que la
+> ecuación exige: velocidad del chorro por CW, diámetro del TSVI y velocidad del TSVI por pulsado.
+
+**La app coincide:** `_avaContinuidad(dMm, vtiTsvi, vtiAo)` hace `π·(d/20)² · t / a`, y `d/20` es
+`(d/10)/2`, o sea el radio en cm del diámetro en mm. **No se movió ninguna operación.**
+
+#### Las SIETE reescritas — ningún corte se movió
+
+Sus textos largos vivían en el `title` de cada fila y se verificaron **contra la constante que la
+app aplica**, no contra el recuerdo:
+
+| Tarjeta | Cortes del texto | Constante de la app | Fuente |
+|---|---|---|---|
+| `im-vc` | 3 y 7 mm | `IM_CORTES.vc` | ASE 2017, Tabla 8, folio 332 |
+| `im-jet-ai` | 20 y 40 % nativa · 20 y 50 % prótesis | `IM_CORTES.jet_nat` / `jet_prot` | ASE 2017 folio 332 · ASE 2024 Tabla 13 pág. 30 |
+| `im-onda-e` | 120 cm/s | `UMBRAL_ONDA_E_APOYO_IM` | ASE 2017, Tabla 8, folio 332 |
+| `im-vti-ratio` | 1,4 nativa · 2,5 prótesis | los dos umbrales de `calcIM_ESC` | ASE 2023 folio 12 · ESC/EACTS 2025 Figura 10 folio 4672 · ASE 2024 Tabla 12 pág. 28 |
+| `prot-eoa` | 1,0 cm² | `VM_PROT_EOA_OBSTR_MAX` | ASE 2024, Tabla 11, pág. 27 |
+| `prot-dvi` | 2,2 y 2,5 | `VM_PROT_DVI_NORMAL_MAX` / `_SIGNIF_MIN` | ASE 2024, Tabla 11, pág. 27 |
+| `prot-ppm` | 1,2 / 0,90 y 1,0 / 0,75 cm²/m² | `VM_PROT_PPM_CORTES` | ASE 2024, Tabla 7, pág. 20 |
+
+Las cuatro entradas de prótesis están transcritas en `docs/fuentes/FUENTES-protesis.md`.
+
+⚠️ **LO QUE LA TARJETA NO REPITE NO SE PERDIÓ:** bajó a la pestaña «Referencia clínica» de la app,
+en los bloques «Salvedades de los parámetros de apoyo» y «Prótesis mitral — ASE 2024». El detalle
+del EOA, el DVI y el PPM mitrales **no estaba en ninguna otra superficie** antes de esta tanda.
+
+
 ### `ahaVc2020` — ACC/AHA 2020, valvulopatías (válvula nativa)
 Otto CM, Nishimura RA, Bonow RO, et al. *Circulation* 2021;143:e72-e227.
 doi:10.1161/CIR.0000000000000923.
