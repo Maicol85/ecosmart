@@ -64364,13 +64364,15 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
      PISA de la insuficiencia aortica y de la tricuspidea, AVA por continuidad de la estenosis
      aortica y AVT por continuidad de la tricuspidea—. Lo que esta condicion afirma —que la
      pestana tiene sus globos y la tarjeta esta en el marcado— no cambia; cambia el denominador. */
-  ex.push([/* ADAPTADO el 2026-10-15 (W2-B, commit 4): la pestana gana el globo del PPM AORTICO,
-       que nace con la fila de la Tabla 7. Lo que esta condicion afirma no cambia; cambia el
-       denominador, que es para lo que esta. */
-    '(H) DENOMINADOR: la pestana tiene los DIECISIETE globos y la tarjeta esta en el marcado',
-    globos.length === 17 && !!G('vinfo-card'),
+  ex.push([/* ADAPTADO el 2026-10-15 (W2-B) DOS VECES, y las dos por el mismo denominador: el commit 4
+       agrega el globo del PPM AORTICO (16 -> 17) y el commit 5 los CUATRO de diferencia
+       nativa-protesis —velocidad pico, gradiente medio y THP de la protesis mitral, y la
+       severidad aortica protesica— (17 -> 21). Lo que esta condicion afirma no cambia; cambia
+       el denominador, que es para lo que esta. */
+    '(H) DENOMINADOR: la pestana tiene los VEINTIUN globos y la tarjeta esta en el marcado',
+    globos.length === 21 && !!G('vinfo-card'),
     'globos=' + globos.length + ' tarjeta=' + !!G('vinfo-card')]);
-  ex.push(['(H) los diecisiete son BOTONES, o sea enfocables y activables con teclado',
+  ex.push(['(H) los veintiuno son BOTONES, o sea enfocables y activables con teclado',
     globos.every(function(b){ return b.tagName.toLowerCase() === 'button'; }),
     globos.map(function(b){ return b.tagName.toLowerCase(); }).filter(function(v,i,a){ return a.indexOf(v)===i; }).join(',')]);
   ex.push(['(H) ninguno lleva title, que es el unico camino por el que algo aparecia al pasar el mouse',
@@ -64445,12 +64447,12 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
      title viejo, asi que el registro pasa de 5 a 16 y la clave de legado deja de existir. Lo que
      esta condicion afirma —que toda clave del marcado tiene entrada, porque si no la tarjeta sale
      vacia y nadie lo nota— se vuelve mas fuerte: ahora se exige para las DIECISEIS. */
-  /* ADAPTADO el 2026-10-15 (W2-B, commit 4): diecisiete, por el globo del PPM aortico. La
-     condicion se CONSERVA entera —cada clave del marcado tiene entrada y no hay legado—; lo
-     unico que se mueve es el denominador. */
-  ex.push(['(H) las diecisiete claves del marcado tienen entrada en el registro, sin ninguna de legado',
+  /* ADAPTADO el 2026-10-15 (W2-B, commits 4 y 5): veintiuna. La condicion se CONSERVA entera
+     —cada clave del marcado tiene entrada y no hay legado, que es lo que impide una tarjeta
+     VACIA— y lo unico que se mueve es el denominador. */
+  ex.push(['(H) las veintiuna claves del marcado tienen entrada en el registro, sin ninguna de legado',
     HAY_INFO && globos.every(function(b){ return !!VINFO[b.getAttribute('data-vinfo')]; }) &&
-    Object.keys(VINFO).length === 17,
+    Object.keys(VINFO).length === 21,
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
   ex.push(['(H) y la tarjeta se coloca SIEMPRE dentro de la pantalla, sin cortarse',
     (function(){ const b = document.querySelector('[data-vinfo="avm-thp"]');
@@ -64673,9 +64675,10 @@ caso('TC-472', 'Valvulas D2: la insuficiencia aortica en TRES columnas de CUATRO
     document.querySelectorAll('#tab-valvulas [data-vinfo]'));
   const NUEVAS = ['ia-eroa-pisa','it-eroa-pisa','ea-ava-cont','et-avt-cont'];
   const REESCRITAS = ['prot-eoa','prot-dvi','prot-ppm','im-onda-e','im-vti-ratio','im-vc','im-jet-ai'];
-  ex.push([/* ADAPTADO el 2026-10-15 (W2-B, commit 4): idem — el globo del PPM aortico. */
-    '(E) DENOMINADOR: la pestana tiene DIECISIETE globos y la tarjeta esta en el marcado',
-    globos.length === 17 && !!G('vinfo-card'),
+  ex.push([/* ADAPTADO el 2026-10-15 (W2-B, commits 4 y 5): idem — el PPM aortico y los CUATRO de
+     diferencia nativa-protesis. */
+    '(E) DENOMINADOR: la pestana tiene VEINTIUN globos y la tarjeta esta en el marcado',
+    globos.length === 21 && !!G('vinfo-card'),
     'globos=' + globos.length + ' tarjeta=' + !!G('vinfo-card')]);
   ex.push(['(E) las CUATRO nuevas y las SIETE reescritas estan en el registro',
     HAY_INFO && NUEVAS.concat(REESCRITAS).every(function(k){ return !!VINFO[k]; }),

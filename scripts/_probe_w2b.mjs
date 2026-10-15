@@ -236,12 +236,19 @@ window.__P = {
       var s = document.getElementById('ete-seccion-' + tok);
       if (s && getComputedStyle(s).display === 'none') { try { toggleEteSeccion(tok) } catch(e) {} }
     });
-    ['mitral','aortica'].forEach(function(v){
-      try { if (typeof valvDatosTog === 'function') {
-        var caj = document.getElementById(v === 'mitral' ? 'bloque-em-detalle' : 'bloque-ea-detalle');
-        if (!caj || getComputedStyle(caj).display === 'none') valvDatosTog(v);
-      } } catch(e) {}
-    });
+    /* ⚠️ valvDatosTog RECIBE EL ID DEL CONTENEDOR, NO EL NOMBRE DE LA VALVULA, y la version
+       anterior le pasaba 'mitral'/'aortica': devolvia null y no abria nada. En escritorio no se
+       notaba porque abajo hay un respaldo que escribe display:block en linea sobre el cajon
+       mitral; a 390 y 360 px ese respaldo NO gana —el CSS del celular usa la clase
+       valv-datos-abierto con !important— y los dos globos AORTICOS salian «sin geometria» en
+       las seis combinaciones de ancho x tema. Lo que abre el cajon es la CLASE, y la pone esta
+       funcion con el id correcto. */
+    ['caja-esten-mitral','caja-insuf-mitral','caja-esten-aortica','caja-insuf-aortica']
+      .forEach(function(cid){
+        try { var c = document.getElementById(cid);
+          if (c && !c.classList.contains('valv-datos-abierto')) valvDatosTog(cid);
+        } catch(e) {}
+      });
     var det = document.getElementById('bloque-em-detalle');
     if (det && getComputedStyle(det).display === 'none') det.style.display = 'block';
     return { tab: window.__P.vis('tab-valvulas'),
@@ -1002,6 +1009,99 @@ async function main() {
     await pausa(200);
     g.vuelta.aNativa = await J('window.__P.fotoProtVA()');
     out.grupos.aorta = g;
+  }
+
+  /* ══ GRUPO tarjetas — las CINCO «i» nuevas: mecanismo, texto y maqueta ═══════════════════
+     ⚠️ LAS TRES DE LA PROTESIS MITRAL Y LA DEL PPM AORTICO MIDEN 0x0 SIN MORFOLOGIA PROTESICA,
+     asi que se miden en una escena protesica: sin ella, «no abre» se lee como «el mecanismo no
+     funciona». Es la leccion que la tanda D2 ya tiene escrita para los tres globos de la
+     protesis mitral. */
+  if (corre('tarjetas')) {
+    paso('tarjetas');
+    const g = { censo: null, escenas: {}, maqueta: {} };
+    await base('Prótesis mecánica');
+    await J('window.__P.set("va_morf","Prótesis mecánica")');
+    await tipear('em_vmax', '2.2');
+    await tipear('em_gmedio', '8');
+    await tipear('thp', '160');
+    await cont({ d:20, tsvi:20, prmv:40 });
+    await J('window.__P.abrirTodo()');
+    await pausa(250);
+    g.censo = await J('window.__P.globos()');
+
+    const NUEVAS = ['prot-vmax', 'prot-gmed', 'prot-thp', 'ea-prot-sev', 'ea-prot-ppm'];
+    for (const k of NUEVAS) {
+      const e = {};
+      e.boton = await J('window.__P.botonGlobo(' + JSON.stringify(k) + ')');
+      if (e.boton.err || !e.boton.w) { g.escenas[k] = e; continue; }
+      /* (1) toque ABRE */
+      await clicEn(e.boton.id); await pausa(140);
+      e.abre = await J('window.__P.tarjeta()');
+      /* (2) segundo toque CIERRA */
+      await clicEn(e.boton.id); await pausa(140);
+      e.segundoToque = (await J('window.__P.tarjeta()')).abierta;
+      /* (3) Escape CIERRA */
+      await clicEn(e.boton.id); await pausa(140);
+      await tecla('Escape', null); await pausa(140);
+      e.escape = (await J('window.__P.tarjeta()')).abierta;
+      /* (4) el clic AFUERA cierra */
+      await clicEn(e.boton.id); await pausa(140);
+      await cdp.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: 5, y: 5, button: 'left', clickCount: 1 }, sessionId);
+      await cdp.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: 5, y: 5, button: 'left', clickCount: 1 }, sessionId);
+      await pausa(160);
+      e.afuera = (await J('window.__P.tarjeta()')).abierta;
+      g.escenas[k] = e;
+    }
+    /* MAQUETA: 1200, 390 y 360 px en los DOS temas. La tarjeta tiene que entrar ENTERA y el
+       globo tiene que seguir siendo ALCANZABLE despues de abrirla —el defecto que el D1
+       encontro con su tarjeta mas alta—. */
+    for (const anc of [1200, 390, 360]) {
+      for (const claro of [false, true]) {
+        await cdp.send('Emulation.setDeviceMetricsOverride',
+          { width: anc, height: 900, deviceScaleFactor: 1, mobile: anc < 500 }, sessionId);
+        const tema = await J('window.__P.tema(' + (claro ? 'true' : 'false') + ')');
+        if (tema.tieneClase !== !!claro) throw new Error('ABORTA: la clase light-mode no quedo puesta');
+        await J('window.__P.despejar()');
+        await J('window.__P.abrirTodo()');
+        await pausa(200);
+        const fila = {};
+        for (const k of NUEVAS) {
+          const b = await J('window.__P.botonGlobo(' + JSON.stringify(k) + ')');
+          if (b.err || !b.w) { fila[k] = { boton: b }; continue; }
+          await clicEn(b.id); await pausa(160);
+          const t = await J('window.__P.tarjeta()');
+          const sigue = await J('window.__P.botonGlobo(' + JSON.stringify(k) + ')');
+          fila[k] = { abierta: t.abierta, dentro: t.dentro, rect: t.rect,
+                      nBloques: t.nBloques, chars: t.texto.length,
+                      /* Los acentos se cuentan: la tanda D1 publico CINCO tarjetas sin acentos y
+                         lo vio la CAPTURA, no la lectura. */
+                      acentos: (t.texto.match(/[\u00e1\u00e9\u00ed\u00f3\u00fa\u00f1\u00c1\u00c9\u00cd\u00d3\u00da\u00d1]/g) || []).length,
+                      globoAlcanzable: !!(sigue && sigue.w > 0 && sigue.h > 0) };
+          /* CAPTURA: del VIEWPORT entero y sin `clip`, a proposito. La tarjeta es
+             `position:fixed`, asi que su rect de viewport y el de PAGINA sólo coinciden con el
+             scroll en cero — y un clip que se va por debajo del viewport sale EN NEGRO, que es
+             la trampa que este repo ya pago dos veces. El md5 de los dos temas tiene que
+             DIFERIR: dos capturas identicas byte por byte son la firma de que el tema nunca
+             cambio, que es el falso que la tanda del cartel de peptidos pago. */
+          if (DEST && (anc === 1200 || anc === 360)) {
+            const png = await cdp.send('Page.captureScreenshot', { format: 'png' }, sessionId);
+            const nom = 'w2b-' + k + '-' + anc + (claro ? '-claro' : '-oscuro') + '.png';
+            await writeFile(join(DEST, nom), Buffer.from(png.data, 'base64'));
+            fila[k].png = nom;
+            fila[k].pngMd5 = createHash('md5').update(Buffer.from(png.data, 'base64')).digest('hex');
+          }
+          await tecla('Escape', null); await pausa(120);
+        }
+        g.maqueta[anc + (claro ? '-claro' : '-oscuro')] = fila;
+      }
+    }
+    await cdp.send('Emulation.clearDeviceMetricsOverride', {}, sessionId);
+    await J('window.__P.tema(false)');
+    /* El TEXTO completo de las cinco, para leerlo en el reporte. */
+    g.textos = await J('(function(){ var o = {};'
+      + ' ["prot-vmax","prot-gmed","prot-thp","ea-prot-sev","ea-prot-ppm","prot-eoa","im-vc","eroa-pisa","eroa-cont"]'
+      + '.forEach(function(k){ try { o[k] = VINFO[k] } catch(e) { o[k] = "EXC" } }); return o })()');
+    out.grupos.tarjetas = g;
   }
 
   out.dialogos = dialogos;

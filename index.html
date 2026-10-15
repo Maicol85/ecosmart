@@ -4845,11 +4845,11 @@ window.cerrarSesionReal = cerrarSesionReal;
                PROTESICO: el cuadro de referencias de mas abajo los rotulaba con el corte NATIVO.
                No hay un campo nuevo ni una columna nueva: la capsula NOMBRA donde se carga cada
                uno, igual que ya lo hace con el VTI mitral. -->
-          <div class="calc-row"><span class="calc-lbl">Velocidad pico de E</span><span class="calc-val" id="vm-prot-vmax">&mdash;</span></div>
-          <div class="calc-row"><span class="calc-lbl">Gradiente medio</span><span class="calc-val" id="vm-prot-gmed">&mdash;</span></div>
+          <div class="calc-row"><span class="calc-lbl">Velocidad pico de E <button type="button" class="vinfo-btn" data-vinfo="prot-vmax" aria-expanded="false" aria-label="Informaci&oacute;n sobre la velocidad pico de E de la pr&oacute;tesis" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-vmax">&mdash;</span></div>
+          <div class="calc-row"><span class="calc-lbl">Gradiente medio <button type="button" class="vinfo-btn" data-vinfo="prot-gmed" aria-expanded="false" aria-label="Informaci&oacute;n sobre el gradiente medio transprot&eacute;sico" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-gmed">&mdash;</span></div>
           <div class="calc-row"><span class="calc-lbl">AEO por continuidad <button type="button" class="vinfo-btn" data-vinfo="prot-eoa" aria-expanded="false" aria-label="Información sobre AEO por continuidad" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-eoa">—</span></div>
           <div class="calc-row"><span class="calc-lbl">DVI — VTI prótesis / VTI TSVI <button type="button" class="vinfo-btn" data-vinfo="prot-dvi" aria-expanded="false" aria-label="Información sobre DVI de la protesis mitral" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-dvi">—</span></div>
-          <div class="calc-row"><span class="calc-lbl">THP &mdash; tiempo de hemipresi&oacute;n</span><span class="calc-val" id="vm-prot-thp">&mdash;</span></div>
+          <div class="calc-row"><span class="calc-lbl">THP &mdash; tiempo de hemipresi&oacute;n <button type="button" class="vinfo-btn" data-vinfo="prot-thp" aria-expanded="false" aria-label="Informaci&oacute;n sobre el THP de la pr&oacute;tesis mitral" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-thp">&mdash;</span></div>
           <div class="calc-row"><span class="calc-lbl">PPM — AEO indexada <button type="button" class="vinfo-btn" data-vinfo="prot-ppm" aria-expanded="false" aria-label="Información sobre PPM — AEO indexada" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-ppm">—</span></div>
         </div>
         <div id="bloque-prolapso-vm" class="fg" style="display:none;">
@@ -6019,7 +6019,7 @@ window.cerrarSesionReal = cerrarSesionReal;
           <!-- La fila del AT se esconde con la misma regla que su campo: sin prótesis no aplica. -->
           <div class="calc-row" id="ea-det-at-row"><span class="calc-lbl">AT &mdash; tiempo de aceleraci&oacute;n</span><span id="ea-det-at">&#8212;</span></div>
           <div id="ea-det-at-nota" style="font-size:10px;color:var(--text2);line-height:1.45;margin:-2px 0 4px;display:none;"></div>
-          <div class="calc-row"><span class="calc-lbl" id="ea-det-sev-lbl" style="font-weight:700;">&#x2696;&#xFE0F; Severidad EA (ESC/EACTS 2025)</span><span id="ea-det-sev">&#8212;</span></div>
+          <div class="calc-row"><span class="calc-lbl" style="font-weight:700;"><span id="ea-det-sev-lbl">&#x2696;&#xFE0F; Severidad EA (ESC/EACTS 2025)</span> <button type="button" class="vinfo-btn" data-vinfo="ea-prot-sev" aria-expanded="false" aria-label="Informaci&oacute;n sobre la severidad de la estenosis a&oacute;rtica prot&eacute;sica" onclick="vInfoClic(this)">&#9432;</button></span><span id="ea-det-sev">&#8212;</span></div>
           <!-- Salvedades del veredicto PROTÉSICO. Con válvula nativa queda oculta. -->
           <div id="ea-det-sev-nota" style="font-size:10px;color:var(--text2);line-height:1.45;margin:-2px 0 4px;display:none;"></div>
         </div>
@@ -35182,8 +35182,8 @@ const VINFO = Object.freeze({
            + 'Vol-R = EROA × VTI del chorro (CW)\n'
            + 'FR = Vol-R ÷ (Vol-R + Vol eyectado TSVI)',
     lee: 'Mide el orificio regurgitante en el instante de velocidad m\u00e1xima y el volumen que pasa por \u00e9l en un latido.',
-    fuente: 'ASE 2017 (Zoghbi), folio 312; los cortes, Tabla 8, folio 332.',
-    ojo: 'El radio se mide en el pico de velocidad: con un chorro que no ocupa toda la s\u00edstole, la EROA sale sobreestimada.'
+    fuente: 'Nativa: ASE 2017 (Zoghbi), folio 312; los cortes, Tabla 8, folio 332. Pr\u00f3tesis mitral: ASE 2024 (Zoghbi), Tabla 13, p\u00e1g. 30.',
+    ojo: 'El radio se mide en el pico de velocidad: con un chorro que no ocupa toda la s\u00edstole, la EROA sale sobreestimada. En pr\u00f3tesis los cortes son los MISMOS, y esa tabla avisa que est\u00e1n menos validados que en la IM nativa.'
   },
   'eroa-cont': {
     tit: 'EROA, Vol-R y FR por continuidad',
@@ -35191,8 +35191,8 @@ const VINFO = Object.freeze({
            + 'EROA = Vol-R ÷ VTI del chorro (CW)\n'
            + 'FR = Vol-R ÷ Vol mitral / latido',
     lee: 'Mide lo que vuelve a la aur\u00edcula como diferencia entre el flujo que entra por la mitral y el que sale por el tracto de salida.',
-    fuente: 'ASE 2017 (Zoghbi), folios 311 y 312; los cortes, Tabla 8, folio 332.',
-    ojo: 'La banda de severidad de la EROA la gu\u00eda la define para PISA 2D; aplicarla a esta EROA es criterio de la aplicaci\u00f3n.'
+    fuente: 'Nativa: ASE 2017 (Zoghbi), folios 311 y 312; los cortes, Tabla 8, folio 332. Pr\u00f3tesis mitral: ASE 2024 (Zoghbi), Tabla 13, p\u00e1g. 30.',
+    ojo: 'La banda de severidad de la EROA la gu\u00eda la define para PISA 2D; aplicarla a esta EROA es criterio de la aplicaci\u00f3n. En pr\u00f3tesis los cortes son los MISMOS, y esa tabla avisa que est\u00e1n menos validados que en la IM nativa.'
   },
   'vsv-tsvi': {
     tit: 'Volumen eyectado del TSVI',
@@ -35276,8 +35276,8 @@ const VINFO = Object.freeze({
   'im-vc': {
     tit: 'Vena contracta de la insuficiencia mitral',
     lee: 'Es el ancho m\u00e1s angosto del chorro al salir del orificio, medido en el eje donde se ve m\u00e1s estrecho. Menos de 3 mm es leve y 7 mm o m\u00e1s es severa.',
-    fuente: 'ASE 2017 (Zoghbi), Tabla 8, folio 332.',
-    ojo: 'En pr\u00f3tesis mitral se aplican los mismos cortes: ninguna de las gu\u00edas le\u00eddas publica un corte propio para pr\u00f3tesis.'
+    fuente: 'Nativa: ASE 2017 (Zoghbi), Tabla 8, folio 332. Pr\u00f3tesis mitral: ASE 2024 (Zoghbi), Tabla 13, p\u00e1g. 30.',
+    ojo: 'Los dos juegos de cortes COINCIDEN n\u00famero por n\u00famero, as\u00ed que ning\u00fan paciente cambia de grado por el r\u00e9gimen. La tabla de pr\u00f3tesis avisa que sus par\u00e1metros cuantitativos est\u00e1n menos validados que en la insuficiencia mitral nativa.'
   },
   'im-jet-ai': {
     tit: 'Relaci\u00f3n \u00e1rea del jet / \u00e1rea de la aur\u00edcula izquierda',
@@ -35289,7 +35289,7 @@ const VINFO = Object.freeze({
   'prot-eoa': {
     tit: 'AEO por continuidad de la pr\u00f3tesis mitral',
     formula: 'AEO = Vol eyectado del TSVI ÷ VTI de la pr\u00f3tesis (CW)',
-    lee: 'AEO = \u00e1rea efectiva del orificio prot\u00e9sico (EOA en las gu\u00edas anglosajonas). No es la EROA, que es el \u00e1rea del orificio REGURGITANTE. Por debajo de 1,0 cm\u00b2 sugiere obstrucci\u00f3n significativa.',
+    lee: 'AEO = \u00e1rea efectiva del orificio prot\u00e9sico (EOA en las gu\u00edas anglosajonas). No es la EROA, que es el \u00e1rea del orificio REGURGITANTE. Nativa: el \u00e1rea mitral es significativa en 1,5 cm\u00b2 o menos. Pr\u00f3tesis: 2,0 cm\u00b2 o m\u00e1s es normal, de 1 a 2 hay posible obstrucci\u00f3n y por debajo de 1 la obstrucci\u00f3n es significativa.',
     fuente: 'ASE 2024 (Zoghbi), Tabla 11, p\u00e1g. 27.',
     ojo: 'El volumen del TSVI exige que no haya regurgitaci\u00f3n significativa: con insuficiencia a\u00f3rtica o mitral moderada o mayor, la aplicaci\u00f3n no lo calcula.'
   },
@@ -35306,6 +35306,35 @@ const VINFO = Object.freeze({
     lee: 'AEO indexada = AEO dividida por la superficie corporal (EOA indexada en las gu\u00edas anglosajonas). Contesta si la pr\u00f3tesis es chica para este paciente, que es otra pregunta que si est\u00e1 obstruida. Con \u00edndice de masa corporal por debajo de 30, normal por encima de 1,2 y severo en 0,90 cm\u00b2/m\u00b2 o menos.',
     fuente: 'ASE 2024 (Zoghbi), Tabla 7, p\u00e1g. 20.',
     ojo: 'Con \u00edndice de masa corporal de 30 o m\u00e1s la tabla usa cortes m\u00e1s bajos \u20141,0 y 0,75 cm\u00b2/m\u00b2\u2014, y esa rama est\u00e1 s\u00f3lo en la tabla: el texto de la gu\u00eda la omite.'
+  },
+  /* ══ W2-B (2026-10-15) — LAS TARJETAS DE DIFERENCIA NATIVA / PROTESIS ════════════════════
+     Decisión de Maicol: en cada criterio donde el corte de válvula nativa y el de prótesis son
+     DISTINTOS, la tarjeta publica los dos con el formato «Nativa: … · Prótesis: …», su fuente
+     con folio y una línea de «a tener en cuenta» SOLO si cambia la interpretación. Palabras
+     propias, sin copia literal de las guías. */
+  'prot-vmax': {
+    tit: 'Velocidad pico de E de la pr\u00f3tesis mitral',
+    lee: 'Nativa: la aplicaci\u00f3n no grad\u00faa la estenosis por la velocidad pico; la usa para los gradientes. Pr\u00f3tesis: por debajo de 1,9 m/s es normal, entre 1,9 y 2,5 hay posible obstrucci\u00f3n y desde 2,5 la obstrucci\u00f3n es significativa.',
+    fuente: 'ASE 2024 (Zoghbi), Tabla 11, p\u00e1g. 27.',
+    ojo: 'La misma velocidad sube con una regurgitaci\u00f3n prot\u00e9sica significativa, y la tabla lo marca: por eso este par\u00e1metro no decide solo. Con el THP normal, lo que orienta es la regurgitaci\u00f3n.'
+  },
+  'prot-gmed': {
+    tit: 'Gradiente medio transprot\u00e9sico mitral',
+    lee: 'Nativa: hasta 5 mmHg no se nombra, de 5 a menos de 10 es elevado y desde 10 es significativo. Pr\u00f3tesis: hasta 5 es normal, de 6 a 10 hay posible obstrucci\u00f3n y por encima de 10 es significativa.',
+    fuente: 'Nativa: ASE 2023 (Pandian), Tabla 1, folio 8. Pr\u00f3tesis: ASE 2024 (Zoghbi), Tabla 11, p\u00e1g. 27.',
+    ojo: 'Los dos reg\u00edmenes difieren por el OPERADOR en los dos bordes: con 5 mmHg exactos la nativa dice elevado y la pr\u00f3tesis normal, y con 10 exactos la nativa dice significativo y la pr\u00f3tesis posible.'
+  },
+  'prot-thp': {
+    tit: 'THP de la pr\u00f3tesis mitral',
+    lee: 'Nativa: el THP no grad\u00faa por s\u00ed mismo \u2014de \u00e9l se deriva el \u00e1rea, 220 sobre el THP\u2014. Pr\u00f3tesis: es un par\u00e1metro DIRECTO: por debajo de 130 ms normal, de 130 a 200 posible obstrucci\u00f3n y por encima de 200 significativa.',
+    fuente: 'ASE 2024 (Zoghbi), Tabla 11, p\u00e1g. 27; el reparo del \u00e1rea, p\u00e1g. 10.',
+    ojo: 'En una pr\u00f3tesis el \u00e1rea calculada por el tiempo de hemipresi\u00f3n es frecuentemente inexacta y la sobreestima, sobre todo en v\u00e1lvulas normales: el \u00e1rea sale de la ecuaci\u00f3n de continuidad. Por eso el cuadro de referencias retira ah\u00ed esa clasificaci\u00f3n.'
+  },
+  'ea-prot-sev': {
+    tit: 'Estenosis a\u00f3rtica prot\u00e9sica \u2014 qu\u00e9 cambia respecto de la nativa',
+    lee: 'Velocidad pico \u2014 nativa: severa desde 4 m/s; pr\u00f3tesis: normal por debajo de 3, posible de 3 a 4, significativa desde 4. Gradiente medio \u2014 nativa: severa desde 40 mmHg; pr\u00f3tesis quir\u00fargica: normal por debajo de 20, posible de 20 a 34, significativa desde 35. DVI \u2014 nativa: severa por debajo de 0,25 y moderada hasta 0,50; pr\u00f3tesis: normal por encima de 0,35 y significativa por debajo de 0,25.',
+    fuente: 'Nativa: EAE/ASE 2009 (Baumgartner), Tabla 3, p\u00e1g. 10. Pr\u00f3tesis: ASE 2024 (Zoghbi), Tabla 5, p\u00e1g. 19.',
+    ojo: 'El \u00e1rea valvular NO grad\u00faa una pr\u00f3tesis: la tabla la expresa en desviaciones est\u00e1ndar respecto del valor de referencia del modelo implantado, y esta aplicaci\u00f3n no registra marca ni modelo. Y para decir «significativa» exige las DOS mitades: un eje que depende del flujo y uno que no.'
   },
   'ea-prot-ppm': {
     tit: 'Desajuste pr\u00f3tesis-paciente de la a\u00f3rtica',
