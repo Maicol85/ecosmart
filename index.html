@@ -2408,11 +2408,38 @@ html.light-mode .amilo-root{
   background:var(--bg2);border-radius:12px 12px 0 0;flex-shrink:0;}
 #v2d-tit{flex:1;font-weight:700;font-size:13px;color:var(--accent2);}
 #v2d-cuerpo{padding:12px 14px;overflow:auto;flex:1;}
-#v2d-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start;}
+/* El dibujo al CENTRO y las dos columnas de tarjetas a los costados. El ORDEN DEL MARCADO es el
+   de una sola columna —dibujo, insuficiencias, estenosis—, que es el que vale en celular y el
+   que lee un lector de pantalla; las tres columnas se arman con posicion EXPLICITA, igual que la
+   grilla del Doppler mitral y la del VD. Con flujo automatico, esconder una tarjeta reacomodaria
+   las otras dos. */
+#v2d-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr) minmax(0,1fr);
+  gap:14px;align-items:start;}
+#v2d-dibujo{grid-column:2;grid-row:1;}
+#v2d-col-insuf{grid-column:1;grid-row:1;}
+#v2d-col-esten{grid-column:3;grid-row:1;}
 @media (max-width:900px){
   #v2d-card{inset:6px;}
   #v2d-cuerpo{padding:10px;}
 }
+.v2d-grp{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text2);
+  margin:0 0 6px;}
+.v2d-lista{margin:0;padding:0;list-style:none;}
+.v2d-lista li{border:1px solid var(--border);border-radius:9px;padding:7px 9px;margin:0 0 6px;
+  background:var(--bg3);font-size:13px;line-height:1.35;}
+.v2d-valv{font-weight:700;color:var(--text);}
+.v2d-morf{color:var(--text2);font-size:12px;}
+.v2d-vacio{color:var(--text2);font-size:12.5px;}
+/* La pastilla del grado REUSA las tres clases de la pastilla de severidad de Valvulas y la del
+   violeta de «Significativa»: el color sigue a la palabra, que es la invariante que
+   `valvSev.refrescar` ya garantiza. Aca solo cambia la forma —chip en vez de boton— porque esto
+   no se toca. */
+.v2d-chip{display:inline-block;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:700;
+  border:1px solid var(--border);background:var(--bg2);color:var(--text);margin-top:4px;}
+.v2d-chip.nivel1{background:#dcfce7;border-color:#16a34a;color:#166534;}
+.v2d-chip.nivel2{background:var(--sev-naranja);border-color:#c2410c;color:#7c2d12;}
+.v2d-chip.nivel3{background:#fee2e2;border-color:#dc2626;color:#7f1d1d;}
+.v2d-chip.nivel-sig{background:#ede9fe;border-color:#7c3aed;color:#4c1d95;}
 #v2d-svg{display:block;width:100%;height:auto;max-height:70vh;margin:0 auto;}
 #v2d-ciclo{margin-top:8px;}
 #v2d-bar{position:relative;height:11px;border-radius:7px;background:var(--bg3);overflow:hidden;display:flex;}
@@ -3010,6 +3037,14 @@ window.cerrarSesionReal = cerrarSesionReal;
             <div id="v2d-bar" aria-hidden="true"><div class="v2d-s"></div><div class="v2d-d"></div><div id="v2d-mark"></div></div>
             <div id="v2d-fase"><span>Fase: <b id="v2d-fase1">&mdash;</b></span><span id="v2d-fase2"></span></div>
           </div>
+        </div>
+        <div id="v2d-col-insuf">
+          <div class="v2d-grp">Insuficiencias</div>
+          <ul class="v2d-lista" id="v2d-insuf"></ul>
+        </div>
+        <div id="v2d-col-esten">
+          <div class="v2d-grp">Estenosis</div>
+          <ul class="v2d-lista" id="v2d-esten"></ul>
         </div>
       </div>
       <p class="v2d-nota">Esquema <b>cualitativo</b>: no est&aacute; a escala y no mide. La apertura de cada
@@ -111343,7 +111378,12 @@ function _v2dVeredictoProt(id){
   const t = _v2dTxt(id);
   if (!t) return '';
   const i = t.indexOf('(');
-  const r = (i > 0 ? t.slice(0, i) : t).trim();
+  let r = (i > 0 ? t.slice(0, i) : t).trim();
+  /* La capsula mitral publica su veredicto en minuscula —«sugiere obstruccion significativa»,
+     porque alla va pegado a un rotulo— y la aortica en mayuscula. En la tarjeta la frase es la
+     oracion entera, asi que arranca con mayuscula. Es formato, no contenido: la palabra no
+     cambia. */
+  if (r) r = r.charAt(0).toUpperCase() + r.slice(1);
   /* ⚠️ «—  (sin criterios medidos)» NO ES UN VEREDICTO. Sin esta guarda la tarjeta publicaba
      una raya pelada como si fuera una conclusion, que es exactamente lo que una tarjeta vacia
      hace: afirmar que se miro. */
@@ -111356,16 +111396,55 @@ function _v2dVeredictoProt(id){
    cuenta: con dos lectores, el dibujo y la tarjeta podrian describir dos pacientes distintos. */
 function v2dEstado(){
   const E = { it:0, iao:0, im:0, et:0, eao:0, em:0, pt:0, pao:0, pm:0,
-              geo:0, dvi:0, dai:0, dvd:0, dad:0, kvi:0, kvd:0 };
+              geo:0, dvi:0, dai:0, dvd:0, dad:0, kvi:0, kvd:0,
+              insuf:[], esten:[] };
 
-  /* Los tramos del dibujo por valvula. Las listas de tarjetas llegan en el commit siguiente. */
   V2D_VALVS.forEach(function(V){
     const morf = sv(V.morf);
     const esProt = (typeof valvEsProtesis === 'function') && valvEsProtesis(morf);
-    /* TAVI se dibuja como la BIOLOGICA: es una protesis de tejido, y el dibujo es cualitativo. */
-    E[V.dibProt] = !esProt ? 0 : (/mec/i.test(morf) ? 2 : 1);
-    E[V.insuf.dib] = _v2dNivel(sv(V.insuf.campo));
-    E[V.esten.dib] = _v2dNivel(sv(V.esten.campo));
+    /* TAVI se dibuja como la BIOLOGICA: es una protesis de tejido, y el dibujo es cualitativo.
+       La tarjeta SI dice «TAVI», porque ahi la palabra es la del medico. */
+    const tipoProt = !esProt ? 0 : (/mec/i.test(morf) ? 2 : 1);
+    E[V.dibProt] = tipoProt;
+    const morfTxt = esProt ? morf : (morf && !/^normal$/i.test(morf) && !/^trivalva normal$/i.test(morf) ? morf : '');
+
+    [['insuf', V.insuf], ['esten', V.esten]].forEach(function(par){
+      const tipo = par[0], L = par[1];
+      const prendida = (typeof pillOn === 'function') && pillOn(V.k, tipo) === true;
+      const crudo = sv(L.campo);
+      const nivel = _v2dNivel(crudo);
+      E[L.dib] = nivel;
+      /* ⚠️ CON PROTESIS, LA COLUMNA DE ESTENOSIS NO DEPENDE DE LA PASTILLA. La app no gradua la
+         estenosis de una protesis con la escala nativa —eso lo retiro el W2-B— y publica en su
+         lugar un VEREDICTO PROPIO, que el informe firma sin mirar ningun cajon de interfaz. La
+         tarjeta hace lo mismo: si hay veredicto publicado, lo muestra. Y por eso tampoco lleva
+         chip de color: con una protesis no hay GRADO que colorear, y pintar el residuo nativo de
+         `ea_grado` seria publicar la escala que el W2-B retiro de esta misma pantalla.
+         La REGURGITACION si sigue a la pastilla, tambien con protesis: la ASE 2024 gradua la
+         regurgitacion protesica con los criterios de la valvula nativa, asi que ahi el grado de
+         la pastilla es el que corresponde. Es la misma asimetria que el narrativo ya aplica. */
+      const vProt = !tipoProt ? '' :
+        (tipo !== 'esten' ? '' :
+         (V.k === 'mitral') ? _v2dVeredictoProt('vm-prot-obstr')
+       : (V.k === 'aortica') ? _v2dVeredictoProt('ea-det-sev') : '');
+      if (vProt) {
+        E[tipo].push({ valv:V.nom, morf:morfTxt, frase:vProt, chip:null, cls:'' });
+        return;
+      }
+      /* SOLO LAS LESIONES QUE EXISTEN. «Existe» es que la pastilla este prendida: es la misma
+         compuerta con la que el informe decide si nombra la lesion, y la unica que distingue
+         «sin estenosis» de «no se evaluo». Una tarjeta vacia afirmaria normalidad sobre una
+         valvula que nadie miro. */
+      if (!prendida) return;
+      const P = _v2dPastilla(tipo, V.k);
+
+      /* Con PROTESIS, el veredicto protesico manda en la columna que le toca: obstruccion en la
+         de estenosis y regurgitacion en la de insuficiencia. La regurgitacion protesica se
+         gradua con los criterios de la valvula nativa (ASE 2024), asi que ahi la pastilla ya
+         dice lo correcto; la obstruccion tiene su propio veredicto y su propia frase. */
+      const frase = P.txt ? L.sigla + ' ' + P.txt.toLowerCase() : L.sigla + ' presente';
+      E[tipo].push({ valv:V.nom, morf:morfTxt, frase:frase, chip:P.txt || 'sin graduar', cls:P.cls });
+    });
   });
 
   /* ── Las camaras: su tramo para el dibujo y su fila para la tabla, de la MISMA lectura ── */
@@ -111709,6 +111788,53 @@ window.v2dSync = v2dSync; window.v2dArrancar = v2dArrancar; window.v2dParar = v2
 window.v2dCorriendo = v2dCorriendo; window.v2dFase = v2dFase;
 })();
 
+/* ══ LAS TARJETAS Y LA TABLA ══════════════════════════════════════════════════════════════════
+   ⚠️ TODO POR `textContent`, NI UN `innerHTML`. Lo que se pinta son categorias y grados que
+   OTRAS funciones de la app escribieron en el DOM, y la regla de la casa es que un dato que ya
+   viajo por el DOM no vuelve a entrar como marcado. Asi el sink no existe, en vez de existir y
+   ser inofensivo — el mismo argumento con que `_eaProtPintar` arma su capsula con la API. */
+function _v2dLi(item){
+  const li = document.createElement('li');
+  const t1 = document.createElement('div');
+  t1.className = 'v2d-valv';
+  t1.textContent = item.valv;
+  li.appendChild(t1);
+  if (item.morf) {
+    const t2 = document.createElement('div');
+    t2.className = 'v2d-morf'; t2.textContent = item.morf;
+    li.appendChild(t2);
+  }
+  const t3 = document.createElement('div');
+  t3.textContent = item.frase;
+  li.appendChild(t3);
+  /* ⚠️ SIN CHIP CUANDO NO HAY GRADO QUE MOSTRAR. Con `chip` en null —el caso de la protesis,
+     donde la app no gradua con la escala nativa— la primera version igual creaba el span y la
+     tarjeta publicaba una pastilla VACIA debajo del veredicto. Lo vio la captura, no la lectura. */
+  if (item.chip) {
+    const chip = document.createElement('span');
+    chip.className = 'v2d-chip' + (item.cls ? ' ' + item.cls : '');
+    chip.textContent = item.chip;
+    li.appendChild(chip);
+  }
+  return li;
+}
+function v2dPintarTarjetas(E){
+  [['v2d-insuf', E.insuf, 'Sin insuficiencias consignadas.'],
+   ['v2d-esten', E.esten, 'Sin estenosis consignadas.']].forEach(function(par){
+    const ul = document.getElementById(par[0]); if (!ul) return;
+    ul.textContent = '';
+    /* SIN TARJETA VACIA: con la lista vacia se publica UNA linea gris que dice que no hay nada
+       consignado, y no una tarjeta con la raya. Una tarjeta sin grado se lee como una lesion
+       que la app no supo graduar. */
+    if (!par[1].length) {
+      const li = document.createElement('li');
+      li.className = 'v2d-vacio'; li.textContent = par[2];
+      ul.appendChild(li); return;
+    }
+    par[1].forEach(function(it){ ul.appendChild(_v2dLi(it)); });
+  });
+}
+
 /* ══ ABRIR Y CERRAR ═══════════════════════════════════════════════════════════════════════════
    ⚠️ EL FOCO ENTRA A LA VISTA Y VUELVE AL BOTON. Es la leccion que el panel de Evidencia pago:
    sin enfocar la tarjeta, el foco queda en el `body`, el primer Tab se va a un control de la
@@ -111721,7 +111847,8 @@ window.v2dCorriendo = v2dCorriendo; window.v2dFase = v2dFase;
    puerta que se desincroniza. */
 function v2dAbrir(){
   const ov = document.getElementById('v2d-ov'); if (!ov) return;
-  if (typeof v2dSync === 'function') v2dSync();
+  const E = (typeof v2dSync === 'function') ? v2dSync() : null;
+  if (E) v2dPintarTarjetas(E);
   ov.style.display = 'block';
   if (typeof v2dArrancar === 'function') v2dArrancar();
   const card = document.getElementById('v2d-card');
@@ -111735,6 +111862,7 @@ function v2dCerrar(){
   if (b) { try { b.focus({ preventScroll:true }); } catch (e) { b.focus(); } }
 }
 window.v2dAbrir = v2dAbrir; window.v2dCerrar = v2dCerrar;
+window.v2dPintarTarjetas = v2dPintarTarjetas;
 
 </script>
 

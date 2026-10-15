@@ -639,7 +639,7 @@ window.__P = {
       if (!ul) return 'NO EXISTE';
       return Array.prototype.slice.call(ul.children).map(function(li){
         var chip = li.querySelector('.v2d-chip');
-        return { txt: (li.textContent || '').replace(/\s+/g, ' ').trim(),
+        return { txt: (li.textContent || '').replace(/\\s+/g, ' ').trim(),
                  vacio: li.className.indexOf('v2d-vacio') > -1,
                  chip: chip ? (chip.textContent || '').trim() : null,
                  chipCls: chip ? String(chip.className || '') : null,
