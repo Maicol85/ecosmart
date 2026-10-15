@@ -730,10 +730,14 @@ async function main() {
   if (hacer('globos')) {
     await escena();
     out.globos = { censo: await ev(`window.__P.globos()`), tarjetas: {} };
+    /* ⚠️ UN GLOBO SIN GEOMETRIA NO ANCLA NADA, Y ESO ES LO CORRECTO. Los tres de la protesis
+       miden 0x0 mientras la morfologia mitral no sea protesica, asi que se miden en una ESCENA
+       PROTESICA aparte: sin ella, «no abre» se lee como «el mecanismo no funciona». Es la misma
+       leccion que el D1 dejo escrita. */
     const CLAVES = ['ia-eroa-pisa', 'it-eroa-pisa', 'ea-ava-cont', 'et-avt-cont',
-                    'prot-eoa', 'prot-dvi', 'prot-ppm',
                     'im-onda-e', 'im-vti-ratio', 'im-vc', 'im-jet-ai'];
-    for (const k of CLAVES) {
+    const PROT = ['prot-eoa', 'prot-dvi', 'prot-ppm'];
+    async function medirGlobo(k) {
       const sel = await ev(`window.__P.globoSel(${JSON.stringify(k)})`);
       const r = { sel };
       if (sel && !sel.err && sel.geo !== '0x0') {
@@ -752,8 +756,17 @@ async function main() {
         await pausa(140);
         r.trasFuera = await ev(`window.__P.tarjeta()`);
       }
-      out.globos.tarjetas[k] = r;
+      return r;
     }
+    for (const k of CLAVES) out.globos.tarjetas[k] = await medirGlobo(k);
+    /* ESCENA PROTESICA: la morfologia mitral decide si el bloque de protesis existe en pantalla. */
+    await ev(`(function(){ var e=document.getElementById('vm_morf');
+      if(e){ e.value='Pr\u00f3tesis mec\u00e1nica'; e.dispatchEvent(new Event('change',{bubbles:true})) }
+      return e ? e.value : null })()`);
+    await pausa(260);
+    await ev(`window.__P.abrirTodo()`);
+    out.globos.morfProtesica = await ev(`window.__P.val('vm_morf')`);
+    for (const k of PROT) out.globos.tarjetas[k] = await medirGlobo(k);
   }
 
   if (hacer('thp')) {
@@ -827,14 +840,67 @@ async function main() {
         await despejar();
         await ev(`window.__P.abrirTodo()`);
         await pausa(180);
-        out.ancho[w + (claro ? '_claro' : '_oscuro')] = {
+        const celda = {
           ia: await ev(`window.__P.maqueta('bloque-insuf-aortica')`),
-          it: await ev(`window.__P.maqueta('campos-insuf-tricuspide', '.valv-cols-3')`)
+          it: await ev(`window.__P.maqueta('campos-insuf-tricuspide', '.valv-cols-3')`),
+          tarjetas: {}
         };
+        /* ⚠️ LA TARJETA SE MIDE A CADA ANCHO, no solo a 1200: la del D1 mas larga TAPABA su propio
+           globo porque se colocaba arriba de todo cuando no entraba, y el SEGUNDO toque no llegaba
+           al boton. Se mide que entra entera en el viewport y que el globo sigue siendo el nodo
+           del punto despues de abrirla. */
+        for (const k of ['ia-eroa-pisa', 'it-eroa-pisa', 'ea-ava-cont', 'et-avt-cont', 'im-jet-ai']) {
+          const sel = await ev(`window.__P.globoSel(${JSON.stringify(k)})`);
+          if (!sel || sel.err || sel.geo === '0x0') { celda.tarjetas[k] = { sel }; continue; }
+          await clicEn(sel.sel); await pausa(140);
+          const t = await ev(`window.__P.tarjeta()`);
+          const tapa = await ev(`window.__P.quienEsta(${JSON.stringify(sel.sel)},
+            ${JSON.stringify(0)}, ${JSON.stringify(0)})`);
+          const c = await ev(`window.__P.centro(${JSON.stringify(sel.sel)})`);
+          const quien = (c && !c.err) ? await ev(`window.__P.quienEsta(${JSON.stringify(sel.sel)}, ${c.x}, ${c.y})`) : null;
+          celda.tarjetas[k] = { geo: sel.geo, abierta: t.abierta, dentro: t.dentro,
+                                w: t.w, h: t.h, vw: t.vw, vh: t.vh,
+                                globoAlcanzable: quien ? quien.esElBlanco : null,
+                                loTapa: quien ? quien.enPunto : null };
+          await tecla('Escape', null); await pausa(100);
+        }
+        out.ancho[w + (claro ? '_claro' : '_oscuro')] = celda;
       }
       await ev(`window.__P.tema(false)`);
     }
     await cdp.send('Emulation.clearDeviceMetricsOverride', {}, sessionId);
+  }
+
+  /* ⚠️ LA CAPTURA NO ES DECORATIVA: el D1 escribio cinco tarjetas SIN ACENTOS y lo vio el PNG, no
+     la lectura. El `clip` de Page.captureScreenshot va en coordenadas de PAGINA y
+     getBoundingClientRect da las del VIEWPORT, asi que se suma el scroll; y el aviso legal
+     oscurece el PNG entero, por eso se despeja JUSTO antes. */
+  if (hacer('captura')) {
+    const dest = arg('--dest') || '/tmp';
+    out.captura = {};
+    for (const claro of [false, true]) {
+      const puesto = await ev(`window.__P.tema(${claro})`);
+      if (puesto !== claro) throw new Error('el tema NO quedo puesto para la captura');
+      for (const k of ['ia-eroa-pisa', 'it-eroa-pisa', 'ea-ava-cont', 'et-avt-cont', 'im-jet-ai', 'im-vc']) {
+        await despejar();
+        const sel = await ev(`window.__P.globoSel(${JSON.stringify(k)})`);
+        if (!sel || sel.err || sel.geo === '0x0') { out.captura[k] = 'sin geometria'; continue; }
+        await clicEn(sel.sel); await pausa(160);
+        await despejar();
+        const g = await ev(`(function(){ var c=document.getElementById('vinfo-card');
+          if(!c) return null; var r=c.getBoundingClientRect();
+          return { x: Math.round(r.left + scrollX), y: Math.round(r.top + scrollY),
+                   w: Math.round(r.width), h: Math.round(r.height) } })()`);
+        if (!g) { out.captura[k] = 'sin tarjeta'; continue; }
+        const shot = await cdp.send('Page.captureScreenshot',
+          { format: 'png', clip: { x: g.x, y: g.y, width: g.w, height: g.h, scale: 2 } }, sessionId);
+        const f = join(dest, 'vinfo_' + k + (claro ? '_claro' : '_oscuro') + '.png');
+        await writeFile(f, Buffer.from(shot.data, 'base64'));
+        out.captura[k + (claro ? '_claro' : '_oscuro')] = { archivo: f, bytes: shot.data.length };
+        await tecla('Escape', null); await pausa(110);
+      }
+    }
+    await ev(`window.__P.tema(false)`);
   }
 
   out.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));

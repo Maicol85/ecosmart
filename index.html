@@ -4834,9 +4834,9 @@ window.cerrarSesionReal = cerrarSesionReal;
              patrón del espesor parietal, pagado tres veces). Por eso la cápsula NOMBRA el campo que
              falta en vez de ofrecer dónde tipearlo de nuevo. -->
         <div id="bloque-prot-vm-res" class="calc-box" style="display:none;margin-top:8px;">
-          <div class="calc-row"><span class="calc-lbl" title="Área efectiva del orificio protésico. ASE 2024 (Zoghbi, JASE 2024;37(1):2-63), Sección III.B: EOA = volumen sistólico del TSVI / VTI a través de la prótesis por CW. Es la ecuación de continuidad, la misma que publica «AVm por continuidad». Tabla 11, pág. 27: &lt;1,0 cm² sugiere obstrucción significativa. El volumen sistólico del TSVI exige ausencia de regurgitación significativa: con IAo o IM moderada o mayor no se calcula. Insumos: Ø TSVI y VTI TSVI (Doppler aórtico) y VTI mitral CW (bloque Estenosis Mitral).">EOA por continuidad <button type="button" class="vinfo-btn" data-vinfo="prot-eoa" aria-expanded="false" aria-label="Información sobre EOA por continuidad" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-eoa">—</span></div>
-          <div class="calc-row"><span class="calc-lbl" title="DVI = VTI de la prótesis mitral (CW) / VTI del TSVI. ASE 2024, Tabla 11, pág. 27: &lt;2,2 normal · 2,2-2,5 posible obstrucción · &gt;2,5 sugiere obstrucción significativa. Es un COCIENTE de dos VTI y no usa el volumen sistólico, así que se CALCULA aunque la salvedad de regurgitación retire el EOA, pero con IAo o IM moderada o mayor —o sin poder verificarla— se muestra y NO concluye obstrucción: el cociente sube igual con la regurgitación (Tabla 13, pág. 30). Se calcula desde los dos VTI; el campo DVI de arriba se usa sólo como respaldo cuando no alcanzan, y la fila dice «consignado» cuando es así.">DVI — VTI prótesis / VTI TSVI <button type="button" class="vinfo-btn" data-vinfo="prot-dvi" aria-expanded="false" aria-label="Información sobre DVI de la protesis mitral" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-dvi">—</span></div>
-          <div class="calc-row"><span class="calc-lbl" title="Desajuste protésico-paciente (PPM): EOA indexada a la superficie corporal. ASE 2024, Tabla 7, pág. 20, TODA indexada — esa tabla no publica valores absolutos en cm². IMC &lt;30: normal &gt;1,2 · moderado 1,2-0,91 · severo ≤0,90 cm²/m². IMC ≥30: normal &gt;1,0 · moderado 1,0-0,76 · severo ≤0,75 cm²/m². La rama de IMC ≥30 está SÓLO en la tabla; el texto narrativo de la pág. 10 la omite. Contesta «¿la prótesis es chica para este paciente?», que es otra pregunta que «¿está obstruida?» — por eso el corte es indexado y el de arriba absoluto.">PPM — EOA indexada <button type="button" class="vinfo-btn" data-vinfo="prot-ppm" aria-expanded="false" aria-label="Información sobre PPM — EOA indexada" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-ppm">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">EOA por continuidad <button type="button" class="vinfo-btn" data-vinfo="prot-eoa" aria-expanded="false" aria-label="Información sobre EOA por continuidad" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-eoa">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">DVI — VTI prótesis / VTI TSVI <button type="button" class="vinfo-btn" data-vinfo="prot-dvi" aria-expanded="false" aria-label="Información sobre DVI de la protesis mitral" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-dvi">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">PPM — EOA indexada <button type="button" class="vinfo-btn" data-vinfo="prot-ppm" aria-expanded="false" aria-label="Información sobre PPM — EOA indexada" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-ppm">—</span></div>
         </div>
         <div id="bloque-prolapso-vm" class="fg" style="display:none;">
           <label style="font-weight:600">🔍 Detalle morfológico — Prolapso / Barlow</label>
@@ -5169,7 +5169,7 @@ window.cerrarSesionReal = cerrarSesionReal;
              numero rancio que esta zona ya pago cuatro veces. -->
         <div data-im-bloque="1">
         <div class="calc-row"><span class="calc-lbl" style="font-weight:700;color:var(--accent2);">Signos y parámetros semicuantitativos — valen para los dos métodos</span></div>
-        <div class="calc-row"><span class="calc-lbl" title="Válido sin estenosis mitral, calcificación anular, anillo protésico ni fibrilación auricular. Menos específico en IM secundaria. La onda A dominante es más aplicable en mayores de 50 años. ASE 2017 (Zoghbi, JASE 30:303-371).">Onda E (parámetro soporte — &ge;120 cm/s apoya IM severa) <button type="button" class="vinfo-btn" data-vinfo="im-onda-e" aria-expanded="false" aria-label="Información sobre Onda E como parametro de soporte" onclick="vInfoClic(this)">&#9432;</button></span><span id="im-ondae-interp">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">Onda E (parámetro soporte — &ge;120 cm/s apoya IM severa) <button type="button" class="vinfo-btn" data-vinfo="im-onda-e" aria-expanded="false" aria-label="Información sobre Onda E como parametro de soporte" onclick="vInfoClic(this)">&#9432;</button></span><span id="im-ondae-interp">—</span></div>
         <!-- ⚠️ EL 1,4 SÍ TIENE FUENTE, Y NO ES LA QUE SE BUSCÓ EN LA FASE 2. Aquella pasada barrió el
              PDF primario de ASE 2017 —«1.4» cero veces, «VTI ratio» y «mitral-to-aortic» tampoco,
              con control de denominador: «1.2» sale 4 veces y «1.5» 3, o sea que la extracción
@@ -5206,7 +5206,7 @@ window.cerrarSesionReal = cerrarSesionReal;
              equivocado; el orden del content stream la pone en «Semi-quantitative». Se resolvió
              RENDERIZANDO la página y mirándola, que es lo único que no se puede discutir. Quien
              vuelva a verificar esto: no le crea a la coordenada. -->
-        <div class="calc-row"><span class="calc-lbl" title="La ASE 2023 lo da en ausencia de insuficiencia aórtica moderada o severa: la IAo aumenta el VTI aórtico, que es el denominador, y el cociente deja de medir lo que dice medir. En válvula NATIVA esta aplicación lo usa IGUAL con IAo moderada y moderada-severa —y lo declara en la propia fila— y lo retira sólo con IAo severa: es criterio EcoSmart (2026-09-30), no lo que dice la guía. En PRÓTESIS se retira desde la IAo moderada. Con un grado de IAo que no se puede interpretar se retira en los dos casos. DOS CORTES SEGÚN LA MORFOLOGÍA: en válvula NATIVA, &gt;1,4 apoya IM severa — ASE 2023, cardiopatía reumática (Pandian, JASE 36:3-28), y también ESC/EACTS 2025 (Figura 10, pág. 4672), entre los criterios semicuantitativos de IM severa; no figura en ASE 2017 ni en ESC/EACTS 2021, y el estudio original (Tribouilloy, Eur Heart J 1994) da 1,3. En PRÓTESIS mitral el corte es ≥2,5 — ASE 2024, Tabla 12, pág. 28 (Zoghbi, JASE 2024;37(1):2-63), «hallazgos de ETT que sugieren IM protésica significativa en válvulas mecánicas con THP normal»: sensibilidad 89 %, especificidad 91 %. Esa tabla lo define para válvulas MECÁNICAS con THP normal, y la app NO verifica ninguna de las dos condiciones: el ≥2,5 se aplica a toda prótesis mitral, biológica incluida, y el THP no se cruza. Ver «Referencia clínica» en la ayuda.">Ratio VTI mitral / VTI TSVI (nativa &gt;1.4 · prótesis ≥2.5) <button type="button" class="vinfo-btn" data-vinfo="im-vti-ratio" aria-expanded="false" aria-label="Información sobre Ratio VTI mitral / VTI TSVI" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="im-vti-ratio">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">Ratio VTI mitral / VTI TSVI (nativa &gt;1.4 · prótesis ≥2.5) <button type="button" class="vinfo-btn" data-vinfo="im-vti-ratio" aria-expanded="false" aria-label="Información sobre Ratio VTI mitral / VTI TSVI" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="im-vti-ratio">—</span></div>
         <!-- ⚠️ FILA NUEVA (2026-10-09) — DECISIÓN DE MAICOL, Y CIERRA UN AGUJERO QUE EL PROPIO
              CÓDIGO DECLARABA. El comentario de `calcIM_ESC` dice, textual, que «la VC es el ÚNICO
              votante sin fila de resultado propia — su valor se ve en su input y nada más»: votaba
@@ -5225,12 +5225,12 @@ window.cerrarSesionReal = cerrarSesionReal;
              hoy: `calcIM_ESC` no tiene rama protésica para la vena contracta —sólo el jet/AI y el
              cociente VTI la tienen—. Queda REPORTADO y NO corregido: inventarle un corte protésico
              sería contenido clínico que ninguna guía leída da. -->
-        <div class="calc-row"><span class="calc-lbl" title="Vena contracta del chorro de IM, en el eje donde se ve más angosta. ASE 2017 (Zoghbi, JASE 2017;30:303-371), Tabla 8. Los cortes salen de la misma tabla que aplica el cálculo. En PRÓTESIS mitral esta aplicación usa IGUAL los cortes de válvula nativa: ninguna de las guías leídas publica un corte de vena contracta para prótesis, así que no se inventa uno. Ver «Referencia clínica» en la ayuda.">Vena contracta (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="vc"></span> <button type="button" class="vinfo-btn" data-vinfo="im-vc" aria-expanded="false" aria-label="Información sobre Vena contracta" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="im-vc-ref">—</span><span class="calc-grado" data-grado-de="im-vc-ref"></span></div>
+        <div class="calc-row"><span class="calc-lbl">Vena contracta (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="vc"></span> <button type="button" class="vinfo-btn" data-vinfo="im-vc" aria-expanded="false" aria-label="Información sobre Vena contracta" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="im-vc-ref">—</span><span class="calc-grado" data-grado-de="im-vc-ref"></span></div>
         <!-- El ⓘ y el `title` publican los DOS regímenes, igual que la fila del cociente VTI: hasta
              hoy esta fila no declaraba su corte en NINGUNA superficie —ni acá, ni en la tarjeta de
              Referencias, ni en el manual—, así que ni el 20/40 nativo ni el 20/50 protésico eran
              consultables desde la app. -->
-        <div class="calc-row"><span class="calc-lbl" title="DOS CORTES SEGÚN LA MORFOLOGÍA. En válvula NATIVA: &lt;20 % leve · ≤40 % moderada · &gt;40 % severa. En PRÓTESIS mitral: &lt;20 % leve · &gt;50 % severa, y entre 20 y 50 la ASE 2024 (Tabla 13, pág. 30 — Zoghbi, JASE 2024;37(1):2-63) dice «Variable», así que el parámetro NO vota y la fila lo declara. Los cortes absolutos de esa tabla (&lt;4 cm² / &gt;8 cm²) no se implementan: la guía los da como alternativa al porcentaje. La tabla exige además un Nyquist de 50-60 cm/s que la app no registra. Ver «Referencia clínica» en la ayuda.">Ratio jet/AI (%) <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="jet"></span> <button type="button" class="vinfo-btn" data-vinfo="im-jet-ai" aria-expanded="false" aria-label="Información sobre Ratio jet / area de la AI" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="im-jet-ratio">—</span><span class="calc-grado" data-grado-de="im-jet-ratio"></span></div>
+        <div class="calc-row"><span class="calc-lbl">Ratio jet/AI (%) <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="jet"></span> <button type="button" class="vinfo-btn" data-vinfo="im-jet-ai" aria-expanded="false" aria-label="Información sobre Ratio jet / area de la AI" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="im-jet-ratio">—</span><span class="calc-grado" data-grado-de="im-jet-ratio"></span></div>
         <div class="calc-row"><span class="calc-lbl">Onda S pulmonar <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="onda_s"></span></span><span id="im-onda-s-interp">—</span></div>
         </div>
         <div data-im-bloque="2">
@@ -5875,7 +5875,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                  el PHT y las dos filas de la aorta descendente: sin el método en el rótulo, «EROA»
                  a secas no dice de qué cadena sale.
                  ⚠️ NO VIAJAN CON EL ESTUDIO: prefijo `vauto-`, ver `_noEsDelEstudio`. -->
-        <div class="fg"><label>EROA por PISA (mm²) (auto)</label><input type="text" id="vauto-ia-eroa" readonly style="font-weight:700;"></div>
+        <div class="fg"><label>EROA por PISA (mm²) (auto) <button type="button" class="vinfo-btn" data-vinfo="ia-eroa-pisa" aria-expanded="false" aria-label="Información sobre EROA, Vol-R y FR por PISA de la insuficiencia aortica" onclick="vInfoClic(this)">&#9432;</button></label><input type="text" id="vauto-ia-eroa" readonly style="font-weight:700;"></div>
         <div class="fg"><label>Vol-R por PISA (ml) (auto)</label><input type="text" id="vauto-ia-volr" readonly></div>
         <div class="fg"><label>FR por PISA (%) (auto)</label><input type="text" id="vauto-ia-fr" readonly></div>
         <div class="fg"><label>VTI IAo Ao desc. (cm)</label><input type="number" id="ia_vti_desc" placeholder="cm" oninput="calcIA_ESC()"></div>
@@ -5958,7 +5958,7 @@ window.cerrarSesionReal = cerrarSesionReal;
             <input type="text" id="ea_dvi_display" tabindex="-1" readonly>
           </div>
           <div class="fg">
-            <label>AVA continuidad (cm&sup2;) &mdash; auto</label>
+            <label>AVA continuidad (cm&sup2;) &mdash; auto <button type="button" class="vinfo-btn" data-vinfo="ea-ava-cont" aria-expanded="false" aria-label="Información sobre el area aortica por ecuacion de continuidad" onclick="vInfoClic(this)">&#9432;</button></label>
             <input type="text" id="ea_ava_display" tabindex="-1" readonly style="font-weight:700;">
           </div>
           <div class="fg">
@@ -6242,7 +6242,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                  PREFIJO hasta el punto medio: la casilla publica la MEDICIÓN y el cuadro la
                  graduación, que es el mismo reparto que el D1 fijó para la mitral.
                  ⚠️ NO VIAJAN CON EL ESTUDIO: prefijo `vauto-`, ver `_noEsDelEstudio`. -->
-        <div class="fg"><label>EROA por PISA (mm²) (auto)</label><input type="text" id="vauto-it-eroa" readonly style="font-weight:700;"></div>
+        <div class="fg"><label>EROA por PISA (mm²) (auto) <button type="button" class="vinfo-btn" data-vinfo="it-eroa-pisa" aria-expanded="false" aria-label="Información sobre EROA y Vol-R por PISA de la insuficiencia tricuspidea" onclick="vInfoClic(this)">&#9432;</button></label><input type="text" id="vauto-it-eroa" readonly style="font-weight:700;"></div>
         <div class="fg"><label>Vol-R por PISA (ml) (auto)</label><input type="text" id="vauto-it-volr" readonly></div>
         </div>
       </div>
@@ -6388,7 +6388,7 @@ window.cerrarSesionReal = cerrarSesionReal;
             <div class="fg"><label>THP tricuspídeo (ms)</label>
               <input type="number" id="et_thp" placeholder="ms" oninput="calcET()">
             </div>
-            <div class="fg"><label>Área valvular tricuspídea — auto (cm²)</label>
+            <div class="fg"><label>Área valvular tricuspídea — auto (cm²) <button type="button" class="vinfo-btn" data-vinfo="et-avt-cont" aria-expanded="false" aria-label="Información sobre el area tricuspidea por ecuacion de continuidad" onclick="vInfoClic(this)">&#9432;</button></label>
               <input type="text" id="et_avt" readonly tabindex="-1" style="color:var(--accent2);" placeholder="— completar Diám. y VTI del TSVD">
             </div>
           </div>
@@ -15676,6 +15676,51 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
             <b>IM Secundaria (COAPT):</b> FEVI 20–50% · DTSVI ≤70mm · Prof. coaptación ≤10mm · Gap de coaptación ≤10mm<br>
             <b>Exclusión ambas:</b> Trombo AI (absoluta) · Calcificación densa zona clip · Clefts en zona agarre<br>
             <b>Advertencia, no exclusión:</b> Velo post ≥7mm (ideal ≥10mm) — factibilidad de agarre; se informa y no modifica el veredicto
+          </div>
+          <!-- ══ LO QUE BAJÓ DE LOS `title` LARGOS AL REESCRIBIR LOS GLOBOS ⓘ (2026-10-14, D2) ═══
+               Las tarjetas nuevas tienen como mucho cuatro bloques cortos, así que el detalle que
+               vivía en el `title` de cada fila se mudó ACÁ en vez de perderse. Es la misma regla
+               que el D1 aplicó con el `title` de 748 caracteres de la EROA por continuidad, que ya
+               estaba en esta pestaña. Nada de esto es nuevo: es el MISMO texto, en la superficie
+               que tiene ancho para leerlo. -->
+          <div style="margin-top:10px;font-size:12px;font-weight:700;color:var(--accent2);">Salvedades de los par&aacute;metros de apoyo</div>
+          <div style="font-size:11px;color:var(--text2);line-height:1.7;margin-top:4px;">
+            <b>Onda E (&ge;120 cm/s):</b> v&aacute;lida sin estenosis mitral, calcificaci&oacute;n anular, anillo
+            prot&eacute;sico ni fibrilaci&oacute;n auricular. Menos espec&iacute;fica en IM secundaria. La onda A dominante
+            es m&aacute;s aplicable en mayores de 50 a&ntilde;os. ASE 2017 (Zoghbi, JASE 2017;30:303-371).<br>
+            <b>Vena contracta:</b> se mide en el eje donde el chorro se ve m&aacute;s angosto. En pr&oacute;tesis
+            mitral EcoSmart aplica los mismos cortes que en v&aacute;lvula nativa: ninguna de las gu&iacute;as
+            le&iacute;das publica un corte de vena contracta para pr&oacute;tesis, as&iacute; que no se inventa uno.<br>
+            <b>Ratio jet/AI:</b> los cortes absolutos de la Tabla 13 de la ASE 2024 (&lt;4 cm&sup2; /
+            &gt;8 cm&sup2;) no se implementan —la gu&iacute;a los da como alternativa al porcentaje— y esa
+            tabla exige adem&aacute;s un Nyquist de 50-60 cm/s que la app no registra.<br>
+            <b>Ratio VTI mitral/TSVI:</b> la ASE 2023 publica el &gt;1,4 «en ausencia de insuficiencia
+            a&oacute;rtica moderada o severa». EcoSmart lo usa igual con IAo moderada y moderada-severa y lo
+            retira s&oacute;lo con la severa —criterio EcoSmart, 2026-09-30, no lo que dice la gu&iacute;a—; en
+            pr&oacute;tesis se retira desde la moderada. El estudio original (Tribouilloy, Eur Heart J 1994)
+            da 1,3.
+          </div>
+          <div style="margin-top:10px;font-size:12px;font-weight:700;color:var(--accent2);">Pr&oacute;tesis mitral &mdash; ASE 2024 (Zoghbi, JASE 2024;37(1):2-63)</div>
+          <div style="font-size:11px;color:var(--text2);line-height:1.7;margin-top:4px;">
+            <b>EOA por continuidad</b> = volumen sist&oacute;lico del TSVI / VTI a trav&eacute;s de la pr&oacute;tesis por
+            CW. Tabla 11, p&aacute;g. 27: &lt;1,0 cm&sup2; sugiere obstrucci&oacute;n significativa. El volumen
+            sist&oacute;lico del TSVI exige ausencia de regurgitaci&oacute;n significativa: con IAo o IM moderada o
+            mayor no se calcula. Insumos: &Oslash; TSVI y VTI TSVI (Doppler a&oacute;rtico) y VTI mitral CW
+            (bloque Estenosis Mitral).<br>
+            <b>DVI</b> = VTI de la pr&oacute;tesis mitral (CW) / VTI del TSVI. Tabla 11, p&aacute;g. 27: &lt;2,2
+            normal &middot; 2,2-2,5 posible obstrucci&oacute;n &middot; &gt;2,5 sugiere obstrucci&oacute;n significativa. Es un
+            cociente de dos VTI y no usa el volumen sist&oacute;lico, as&iacute; que se calcula aunque la salvedad
+            de regurgitaci&oacute;n retire el EOA; pero con IAo o IM moderada o mayor —o sin poder
+            verificarla— se muestra y NO concluye obstrucci&oacute;n: el cociente sube igual con la
+            regurgitaci&oacute;n (Tabla 13, p&aacute;g. 30). El campo DVI se usa s&oacute;lo como respaldo cuando los dos
+            VTI no alcanzan, y la fila dice «consignado» cuando es as&iacute;.<br>
+            <b>PPM (desajuste pr&oacute;tesis-paciente)</b> = EOA indexada a la superficie corporal. Tabla 7,
+            p&aacute;g. 20, TODA indexada —esa tabla no publica valores absolutos en cm&sup2;—. IMC &lt;30:
+            normal &gt;1,2 &middot; moderado 1,2-0,91 &middot; severo &le;0,90 cm&sup2;/m&sup2;. IMC &ge;30: normal &gt;1,0 &middot;
+            moderado 1,0-0,76 &middot; severo &le;0,75 cm&sup2;/m&sup2;. La rama de IMC &ge;30 est&aacute; S&Oacute;LO en la tabla;
+            el texto narrativo de la p&aacute;g. 10 la omite. Contesta «&iquest;la pr&oacute;tesis es chica para este
+            paciente?», que es otra pregunta que «&iquest;est&aacute; obstruida?» —por eso el corte es indexado y
+            el del EOA absoluto—.
           </div>
           <div style="margin-top:10px;font-size:12px;font-weight:700;color:var(--accent2);">Seguimiento eco</div>
           <div style="font-size:12px;color:var(--text);line-height:1.8;margin-top:4px;">• Leve: 3–5 años · Moderada: 1–2 años · Severa asint: 6–12 meses</div>
@@ -34965,6 +35010,98 @@ const VINFO = Object.freeze({
     lee: '\u00c1rea mitral por conservaci\u00f3n del flujo: lo que entra por la mitral en di\u00e1stole es lo que sale por la aorta en s\u00edstole.',
     fuente: 'EAE/ASE 2009 (Baumgartner), folio 13.',
     ojo: 'La gu\u00eda la excluye con fibrilaci\u00f3n auricular y con insuficiencia mitral o a\u00f3rtica significativa: ah\u00ed los dos flujos dejan de ser iguales.'
+  },
+  /* ══ D2 (2026-10-14) — LAS CUATRO NUEVAS ═════════════════════════════════════ */
+  'ia-eroa-pisa': {
+    tit: 'EROA, Vol-R y FR por PISA \u2014 insuficiencia a\u00f3rtica',
+    formula: 'EROA = 2π · r² · V_aliasing ÷ Vmax del chorro\n'
+           + 'Vol-R = EROA × VTI del chorro (CW)\n'
+           + 'FR = Vol-R ÷ Vol eyectado del TSVI',
+    lee: 'Mide el orificio por el que la sangre vuelve al ventr\u00edculo en di\u00e1stole y el volumen que pasa por \u00e9l en un latido.',
+    fuente: 'ASE 2017 (Zoghbi), folios 311 y 312; el m\u00e9todo de la IAo, Tabla 14, folio 339.',
+    ojo: 'En la a\u00f3rtica el denominador de la FR es s\u00f3lo el volumen del TSVI \u2014la v\u00e1lvula regurgitante es la a\u00f3rtica, y ese volumen ya contiene lo que vuelve\u2014; en la mitral se le suma el Vol-R.'
+  },
+  'it-eroa-pisa': {
+    tit: 'EROA y Vol-R por PISA \u2014 insuficiencia tricusp\u00eddea',
+    formula: 'EROA = 2π · r² · V_aliasing ÷ Vmax de la IT\n'
+           + 'Vol-R = EROA × VTI de la IT (CW)',
+    lee: 'Mide el orificio por el que la sangre vuelve a la aur\u00edcula derecha en s\u00edstole y el volumen que pasa por \u00e9l en un latido.',
+    fuente: 'ASE 2017 (Zoghbi), folio 312; los cortes, Tabla 14, folio 350.',
+    ojo: 'La fracci\u00f3n regurgitante no se publica en esta v\u00e1lvula: la tabla de la gu\u00eda no le da una banda y la aplicaci\u00f3n no la calcula.'
+  },
+  'ea-ava-cont': {
+    tit: '\u00c1rea a\u00f3rtica por ecuaci\u00f3n de continuidad',
+    formula: 'AVA = \u00e1rea del TSVI × VTI del TSVI ÷ VTI a\u00f3rtico (CW)\n'
+           + '\u00e1rea del TSVI = π · (\u00d8/2)², con el \u00d8 en cm',
+    lee: '\u00c1rea valvular por conservaci\u00f3n del flujo: todo lo que sale por el tracto de salida cruza la v\u00e1lvula estrechada.',
+    fuente: 'EAE/ASE 2009 (Baumgartner), folios 6 y 7.',
+    ojo: 'El di\u00e1metro del TSVI va al cuadrado: un error de 1 mm mueve el \u00e1rea alrededor de un 10 %, y es la medici\u00f3n menos reproducible de las tres.'
+  },
+  'et-avt-cont': {
+    tit: '\u00c1rea tricusp\u00eddea por ecuaci\u00f3n de continuidad',
+    formula: 'AVT = \u00e1rea del TSVD × VTI del TSVD ÷ VTI de entrada tricusp\u00eddeo (CW)',
+    lee: 'El volumen expulsado en un latido dividido por la integral de la onda de entrada: cuanto m\u00e1s estrecha la v\u00e1lvula, mayor esa integral y menor el \u00e1rea.',
+    fuente: 'EAE/ASE 2009 (Baumgartner), Tabla 10 y su texto, folio 19.',
+    ojo: 'Con insuficiencia tricusp\u00eddea m\u00e1s que leve el \u00e1rea sale subestimada; la gu\u00eda igual considera significativo un valor de 1 cm\u00b2 o menos.'
+  },
+  /* ══ D2 (2026-10-14) — LAS SIETE REESCRITAS ═══════════════════════════════
+     Las siete llevaban el mecanismo del D1 con el `title` LARGO de su fila, leido del DOM. Hoy
+     tienen su tarjeta corta, con el mismo formato que las cinco de la mitral: formula, que mide,
+     fuente con folio y —solo si cambia como se lee el numero— un reparo.
+     ⚠️ NINGUN CORTE SE MOVIO. Los once numeros de estos siete textos se verificaron contra la
+     constante que la app aplica: `IM_CORTES.vc` (3 y 7 mm), `IM_CORTES.jet_nat` (20 y 40 %),
+     `IM_CORTES.jet_prot` (20 y 50 %), `UMBRAL_ONDA_E_APOYO_IM` (120 cm/s), el 1,4 y el 2,5 del
+     cociente de VTI, `VM_PROT_EOA_OBSTR_MAX` (1,0), `VM_PROT_DVI_NORMAL_MAX` (2,2),
+     `VM_PROT_DVI_SIGNIF_MIN` (2,5) y `VM_PROT_PPM_CORTES`.
+     ⚠️ Y LO QUE EL TEXTO LARGO DECIA Y LA TARJETA NO REPITE NO SE PERDIO: bajo a la pestana
+     «Referencia clinica», bloques «Salvedades de los parametros de apoyo» y «Protesis mitral —
+     ASE 2024». La tarjeta NO lleva a esa pestana: el globo ya no abre el manual. */
+  'im-onda-e': {
+    tit: 'Onda E del llenado mitral',
+    lee: 'Es un par\u00e1metro de APOYO y no gradu\u00faa: una onda E dominante, de 120 cm/s o m\u00e1s, acompa\u00f1a a una insuficiencia mitral severa, y una onda A dominante va en contra.',
+    fuente: 'ASE 2017 (Zoghbi), Tabla 8, folio 332.',
+    ojo: 'No vale con estenosis mitral, calcificaci\u00f3n anular, anillo prot\u00e9sico ni fibrilaci\u00f3n auricular, y es menos espec\u00edfica en la insuficiencia secundaria.'
+  },
+  'im-vti-ratio': {
+    tit: 'Cociente VTI mitral / VTI del TSVI',
+    formula: 'VTI mitral (CW) ÷ VTI del TSVI',
+    lee: 'Compara lo que cruza la mitral con lo que sale por la a\u00f3rtica: cuanto m\u00e1s vuelve a la aur\u00edcula, m\u00e1s sube el cociente. Apoya insuficiencia severa por encima de 1,4 en v\u00e1lvula nativa y de 2,5 en pr\u00f3tesis mitral.',
+    fuente: 'Nativa: ASE 2023 (Pandian), folio 12, y ESC/EACTS 2025, Figura 10, folio 4672. Pr\u00f3tesis: ASE 2024, Tabla 12, p\u00e1g. 28.',
+    ojo: 'El denominador es el VTI a\u00f3rtico, que la insuficiencia a\u00f3rtica infla: con IAo severa el cociente se retira, y en pr\u00f3tesis desde la moderada.'
+  },
+  'im-vc': {
+    tit: 'Vena contracta de la insuficiencia mitral',
+    lee: 'Es el ancho m\u00e1s angosto del chorro al salir del orificio, medido en el eje donde se ve m\u00e1s estrecho. Menos de 3 mm es leve y 7 mm o m\u00e1s es severa.',
+    fuente: 'ASE 2017 (Zoghbi), Tabla 8, folio 332.',
+    ojo: 'En pr\u00f3tesis mitral se aplican los mismos cortes: ninguna de las gu\u00edas le\u00eddas publica un corte propio para pr\u00f3tesis.'
+  },
+  'im-jet-ai': {
+    tit: 'Relaci\u00f3n \u00e1rea del jet / \u00e1rea de la aur\u00edcula izquierda',
+    formula: '\u00e1rea del jet de IM ÷ \u00e1rea de la AI × 100',
+    lee: 'Qu\u00e9 proporci\u00f3n de la aur\u00edcula ocupa el chorro en color. En v\u00e1lvula nativa, menos del 20 % es leve y m\u00e1s del 40 % severa.',
+    fuente: 'Nativa: ASE 2017 (Zoghbi), Tabla 8, folio 332. Pr\u00f3tesis: ASE 2024, Tabla 13, p\u00e1g. 30.',
+    ojo: 'En pr\u00f3tesis mitral la gu\u00eda llama «variable» a la banda del 20 al 50 %, as\u00ed que ah\u00ed el par\u00e1metro no gradu\u00faa y la fila lo declara.'
+  },
+  'prot-eoa': {
+    tit: 'EOA por continuidad de la pr\u00f3tesis mitral',
+    formula: 'EOA = Vol eyectado del TSVI ÷ VTI de la pr\u00f3tesis (CW)',
+    lee: '\u00c1rea efectiva del orificio prot\u00e9sico. Por debajo de 1,0 cm\u00b2 sugiere obstrucci\u00f3n significativa.',
+    fuente: 'ASE 2024 (Zoghbi), Tabla 11, p\u00e1g. 27.',
+    ojo: 'El volumen del TSVI exige que no haya regurgitaci\u00f3n significativa: con insuficiencia a\u00f3rtica o mitral moderada o mayor, la aplicaci\u00f3n no lo calcula.'
+  },
+  'prot-dvi': {
+    tit: '\u00cdndice de velocidad Doppler de la pr\u00f3tesis mitral',
+    formula: 'DVI = VTI de la pr\u00f3tesis (CW) ÷ VTI del TSVI',
+    lee: 'Por debajo de 2,2 es normal, entre 2,2 y 2,5 hay posible obstrucci\u00f3n y por encima de 2,5 la obstrucci\u00f3n es significativa.',
+    fuente: 'ASE 2024 (Zoghbi), Tabla 11, p\u00e1g. 27.',
+    ojo: 'El cociente sube igual con la regurgitaci\u00f3n: con insuficiencia moderada o mayor se muestra y no concluye obstrucci\u00f3n.'
+  },
+  'prot-ppm': {
+    tit: 'Desajuste pr\u00f3tesis-paciente de la mitral',
+    formula: 'PPM = EOA ÷ superficie corporal',
+    lee: 'Contesta si la pr\u00f3tesis es chica para este paciente, que es otra pregunta que si est\u00e1 obstruida. Con \u00edndice de masa corporal por debajo de 30, normal por encima de 1,2 y severo en 0,90 cm\u00b2/m\u00b2 o menos.',
+    fuente: 'ASE 2024 (Zoghbi), Tabla 7, p\u00e1g. 20.',
+    ojo: 'Con \u00edndice de masa corporal de 30 o m\u00e1s la tabla usa cortes m\u00e1s bajos \u20141,0 y 0,75 cm\u00b2/m\u00b2\u2014, y esa rama est\u00e1 s\u00f3lo en la tabla: el texto de la gu\u00eda la omite.'
   }
 });
 let _vInfoId = null;

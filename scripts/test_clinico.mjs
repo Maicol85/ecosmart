@@ -42007,9 +42007,21 @@ caso('TC-298', 'La fila de Onda E revive con el corte VERIFICADO, publica el sig
       ['la onda E NO vota el grado', noVota, gradoSinE + ' vs ' + gradoConE],
       ['ni llega al informe ni al EN SUMA', noPapel, noPapel ? 'identicos' : 'DIFIEREN'],
       ['ni al Excel', xlsTieneOndaE === '(ninguna columna)', xlsTieneOndaE],
-      ['el rotulo de la fila dice 120, no 150, y lleva la salvedad en el title',
-        /120 cm\\/s/.test(lblOndaE) && !/150/.test(lblOndaE) && /estenosis mitral/.test(lblOndaE) &&
-        /fibrilaci/.test(lblOndaE) && /ASE 2017/.test(lblOndaE), lblOndaE],
+      /* ADAPTADO 2026-10-14 (D2): la salvedad ya no vive en el atributo title de la fila. Ese
+         title largo se retiro al reescribir el globo —un title es HOVER, que en el dedo no
+         duplicaria la fuente de la tarjeta— y su contenido quedo en DOS lugares: la TARJETA corta
+         del globo y la pestana «Referencia clinica». La condicion se parte en dos y no se
+         debilita: el rotulo sigue teniendo que decir 120 y no 150, y la salvedad sigue teniendo
+         que estar, ahora donde de verdad se lee. */
+      ['el rotulo de la fila dice 120 y no 150',
+        /120 cm\\/s/.test(lblOndaE) && !/150/.test(lblOndaE), lblOndaE],
+      ['y la salvedad de la onda E esta en la TARJETA del globo, con su fuente',
+        (() => { const d = (typeof VINFO === 'object' && VINFO) ? VINFO['im-onda-e'] : null;
+          if (!d) return false;
+          const t = (d.lee || '') + ' ' + (d.fuente || '') + ' ' + (d.ojo || '');
+          return /estenosis mitral/.test(t) && /fibrilaci/.test(t) && /ASE 2017/.test(t)
+                 && /120 cm\\/s/.test(t); })(),
+        'tarjeta im-onda-e'],
       /* ⚠️ ACTUALIZADO 2026-09-28. Este caso nacio afirmando «no sale de una guia», y esa conclusion
          era correcta PARA EL DOCUMENTO QUE SE HABIA BARRIDO —ASE 2017—: el cociente esta en OTRO,
          la ASE 2023 de cardiopatia reumatica (Pandian, JASE 36:3-28). La condicion no se debilita,
@@ -42017,9 +42029,20 @@ caso('TC-298', 'La fila de Onda E revive con el corte VERIFICADO, publica el sig
          no esta en ASE 2017, que conserve el 1,4 y que mantenga la procedencia Tribouilloy —que es
          lo que impide leer «la guia lo valido», porque el primario da 1,3—, MAS la condicion de
          IAo que ahora la app aplica de verdad. */
-      ['el rotulo del cociente conserva el 1,4, NOMBRA la guia (ASE 2023), sigue diciendo que no esta en ASE 2017, y declara la condicion de IAo',
-        /1\\.4/.test(lblRatio) && /ASE 2023/.test(lblRatio) && /no figura en ASE 2017/.test(lblRatio)
-        && /Tribouilloy/.test(lblRatio) && /a.rtica moderada o severa/.test(lblRatio), lblRatio],
+      /* ADAPTADO 2026-10-14 (D2): mismo motivo que la de arriba. El rotulo conserva los DOS cortes
+         —que es lo que no puede perderse, porque la app elige por morfologia— y la atribucion, la
+         procedencia Tribouilloy y la condicion de IAo bajaron a la tarjeta y a «Referencia
+         clinica». Las tres se siguen exigiendo, cada una donde vive. */
+      ['el rotulo del cociente conserva los DOS cortes, 1,4 nativa y 2,5 protesis',
+        /1\\.4/.test(lblRatio) && /2\\.5/.test(lblRatio), lblRatio],
+      ['y la TARJETA nombra la guia (ASE 2023) y declara la condicion de IAo',
+        (() => { const d = (typeof VINFO === 'object' && VINFO) ? VINFO['im-vti-ratio'] : null;
+          if (!d) return false;
+          const t = (d.lee || '') + ' ' + (d.fuente || '') + ' ' + (d.ojo || '');
+          return /ASE 2023/.test(t) && /a.rtica/.test(t) && /severa/.test(t); })(),
+        'tarjeta im-vti-ratio'],
+      ['y «Referencia clinica» conserva la procedencia Tribouilloy y el «no figura en ASE 2017»',
+        /Tribouilloy/.test(ayuda) && /ASE 2017/.test(ayuda), 'ayuda ' + ayuda.length + ' caracteres'],
       ['la tabla de referencia ya no inventa bandas numericas para la onda E',
         /onda A dominante/.test(tablaRef) && /variable/.test(tablaRef) && /120 cm\\/s/.test(tablaRef) &&
         !/100.149/.test(tablaRef) && !/150/.test(tablaRef), tablaRef],
@@ -57524,8 +57547,14 @@ caso('TC-423', 'Valvulas, pantalla: en el celular los campos de cada lesion arra
      orden deja donde esta: aparece al final del bloque de estenosis cuando valvProtSync lo muestra.
      Mezclarlos con los campos de la lesion haria que este aserto cambiara de resultado segun el
      ancho de la ventana y segun la morfologia, que no es lo que mide. */
+  /* ADAPTADO 2026-10-14 (D2): se filtran TAMBIEN los globos de informacion, que tabDe reporta
+     como «(button)» por no tener id. Son controles y es correcto que el Tab los visite —se abren
+     con Enter, que es como se usan sin mouse—, pero no son campos de la lesion: mezclarlos haria
+     que este aserto cambiara de resultado cada vez que una fila gana o pierde un globo. El que
+     entro en esta tanda es el de «AVA continuidad» en el bloque de la estenosis y el de «EROA por
+     PISA» en el de la insuficiencia. */
   const soloCampos = function (lista) { return lista.filter(function (x) {
-    return String(x).indexOf('datos-tog-') !== 0 && x !== 'va_at'; }); };
+    return String(x).indexOf('datos-tog-') !== 0 && x !== 'va_at' && x !== '(button)'; }); };
   const tabInsuf = soloCampos(tabInsufCrudo);
   const tabEsten = soloCampos(tabEstenCrudo);
   /* ADAPTADO 2026-10-14 (D2): el reparto de columnas de la insuficiencia aortica paso de 3+3+3 a
@@ -64252,10 +64281,14 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
   /* ══ (H) EL MECANISMO DE LOS GLOBOS ══ */
   const globos = Array.prototype.slice.call(
     document.querySelectorAll('#tab-valvulas [data-vinfo]'));
-  ex.push(['(H) DENOMINADOR: la pestana tiene los DOCE globos y la tarjeta esta en el marcado',
-    globos.length === 12 && !!G('vinfo-card'),
+  /* ADAPTADO 2026-10-14 (D2): de DOCE a DIECISEIS. La tanda D2 agrego cuatro globos —EROA por
+     PISA de la insuficiencia aortica y de la tricuspidea, AVA por continuidad de la estenosis
+     aortica y AVT por continuidad de la tricuspidea—. Lo que esta condicion afirma —que la
+     pestana tiene sus globos y la tarjeta esta en el marcado— no cambia; cambia el denominador. */
+  ex.push(['(H) DENOMINADOR: la pestana tiene los DIECISEIS globos y la tarjeta esta en el marcado',
+    globos.length === 16 && !!G('vinfo-card'),
     'globos=' + globos.length + ' tarjeta=' + !!G('vinfo-card')]);
-  ex.push(['(H) los doce son BOTONES, o sea enfocables y activables con teclado',
+  ex.push(['(H) los dieciseis son BOTONES, o sea enfocables y activables con teclado',
     globos.every(function(b){ return b.tagName.toLowerCase() === 'button'; }),
     globos.map(function(b){ return b.tagName.toLowerCase(); }).filter(function(v,i,a){ return a.indexOf(v)===i; }).join(',')]);
   ex.push(['(H) ninguno lleva title, que es el unico camino por el que algo aparecia al pasar el mouse',
@@ -64325,9 +64358,14 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
   /* ⚠️ LAS CINCO TARJETAS DE ESTA TANDA SE REGISTRAN POR CLAVE, y las otras siete son de LEGADO:
      llevan el mecanismo y su texto se reescribe en D2. Si alguna vez una clave del marcado deja de
      tener entrada y no es de legado, la tarjeta sale vacia y nadie lo nota. */
-  ex.push(['(H) las cinco tarjetas de esta tanda estan en el registro, y las otras siete son de legado',
-    HAY_INFO && ['eroa-pisa','eroa-cont','vsv-tsvi','avm-thp','avm-cont'].every(function(k){ return !!VINFO[k]; }) &&
-    Object.keys(VINFO).length === 5,
+  /* ADAPTADO 2026-10-14 (D2): ya NO quedan globos de legado. La tanda D2 escribio las cuatro
+     tarjetas nuevas y reescribio las SIETE que el D1 habia dejado con el mecanismo nuevo y el
+     title viejo, asi que el registro pasa de 5 a 16 y la clave de legado deja de existir. Lo que
+     esta condicion afirma —que toda clave del marcado tiene entrada, porque si no la tarjeta sale
+     vacia y nadie lo nota— se vuelve mas fuerte: ahora se exige para las DIECISEIS. */
+  ex.push(['(H) las dieciseis claves del marcado tienen entrada en el registro, sin ninguna de legado',
+    HAY_INFO && globos.every(function(b){ return !!VINFO[b.getAttribute('data-vinfo')]; }) &&
+    Object.keys(VINFO).length === 16,
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
   ex.push(['(H) y la tarjeta se coloca SIEMPRE dentro de la pantalla, sin cortarse',
     (function(){ const b = document.querySelector('[data-vinfo="avm-thp"]');
