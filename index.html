@@ -4629,6 +4629,20 @@ window.cerrarSesionReal = cerrarSesionReal;
       <div class="calc-box" style="margin-top:8px;">
         <div class="calc-row"><span class="calc-lbl">Gradiente VD-AD (4×VRT²)</span><span id="grad-vdad-interp">—</span></div>
         <div class="calc-row"><span class="calc-lbl">PSAP estimada</span><span id="psap-interp">—</span></div>
+        <!-- ⚠️ EL COCIENTE TAPSE/PSAP VA ACÁ Y NO EN LA TARJETA DE LA VÁLVULA TRICÚSPIDE (G1,
+             decisión de Maicol): es un índice hemodinámico de acoplamiento VD-AP y su
+             denominador es la PSAP, que se calcula en esta misma caja, justo arriba.
+             ⚠️ LA FILA NO SE DIBUJA SIN TAPSE O SIN PSAP, y sin mensaje de error: un renglón que
+             dijera «falta el TAPSE» en el cuadro del Doppler mandaría a buscar un campo que vive
+             en OTRA pestaña. La esconde `vdTapsePsapSync`.
+             ⚠️ EL NÚMERO LO CALCULA UN SOLO DUEÑO, `vdTapsePsap`, y `calcTEP` lo lee: hasta hoy
+             esa pantalla hacía su propia división sobre los mismos dos campos. La probabilidad de
+             HTP de Avanzado NO puede leerlo —corre también sobre un estudio GUARDADO y no sobre
+             el DOM— y queda declarado en `docs/PENDIENTES.md`. -->
+        <div class="calc-row" id="row-tapse-psap" style="display:none;">
+          <span class="calc-lbl">TAPSE/PSAP &mdash; acoplamiento VD-AP <button type="button" class="vinfo-btn" data-vinfo="tapse-psap" aria-expanded="false" aria-label="Informaci&oacute;n sobre el cociente TAPSE/PSAP" onclick="vInfoClic(this)">&#9432;</button></span>
+          <span id="tapse-psap-interp">&mdash;</span>
+        </div>
         <div class="calc-row"><span class="calc-lbl">E/A tricuspídeo</span><span id="dt_ea">—</span></div>
         <div class="calc-row"><span class="calc-lbl">E/e' tricuspídeo</span><span id="dt_ee_prime">—</span></div>
         <div class="calc-row"><span class="calc-lbl">TRIV por Doppler tisular</span><span id="dt_triv_ref">—</span></div>
@@ -21742,6 +21756,87 @@ function vdRefVisSync() {
 }
 window.vdRefVisSync = vdRefVisSync;
 
+/* ══ EL COCIENTE TAPSE/PSAP — ACOPLAMIENTO VD-AP (G1, 2026-10-15) ════════════════════════════
+   TAPSE en milímetros sobre PSAP en mmHg. Es un índice fisiológico no invasivo del acople entre
+   la contractilidad del VD y la poscarga que enfrenta (ASE 2025, Recomendación del folio 152).
+
+   ⚠️ LA PSAP NO SE RECALCULA: se LEE de `psap_calc`, que es el campo readonly que escribe
+   `calcPSAP` con `(4·VRT² + PmAD).toFixed(0)`. Una segunda copia de esa cuenta acá divergiría de
+   la de la pantalla en cuanto alguien tocara una, y además el valor que el médico TIENE DELANTE
+   es el redondeado: el cociente que se publica tiene que salir de ese mismo número.
+
+   ⚠️ EL PREDICADO ES EL DE `calcTEP`, LETRA POR LETRA (`if (tapse && psap)`), y no un
+   `> 0` «más correcto». El motivo es que desde esta tanda `calcTEP` LEE esta función, así que
+   cualquier diferencia de guarda movería su fila —que esta orden no autoriza a tocar—. Un TAPSE
+   negativo es inalcanzable con un gesto y los dos lados lo tratarían igual que antes.
+
+   Devuelve el cociente CRUDO. Quien publica redondea a TRES decimales y CLASIFICA SOBRE ESE
+   MISMO NÚMERO: es la lección que `calcVD` tiene escrita para la FAC —clasificar un número y
+   publicar otro es cómo la cápsula termina contradiciéndose sola—.
+   ⚠️ TRES DECIMALES Y NO DOS, Y NO ES COSMÉTICO. Con dos, un cociente de 0,359 se imprime
+   «0,36» y, clasificado sobre lo impreso, deja de ser «mal pronóstico»: el corte de 0,36 se
+   convierte de hecho en 0,355. Con tres, el borde es exactamente el de la fuente y además es la
+   MISMA precisión con la que la pantalla de TEP publica este mismo cociente —dos precisiones
+   distintas para el mismo número es la clase de cosa que termina en una contradicción entre
+   superficies—. `calcTEP` conserva su propio corte de 0,32, que no se toca.
+   ⚠️ Y HAY UNA TERCERA SUPERFICIE QUE YA LO CALCULABA: `cxTP` (índice de acoplamiento VD-AP
+   del módulo de constricción/restricción), con cortes 0,36 y 0,19 y con SUS PROPIOS campos de
+   sobreescritura (`cx_tapse`, `cx_psap`). NO lee este dueño a propósito: con esos dos campos
+   cargados describe OTRO par de números, así que leer el dueño le borraría la sobreescritura.
+   Queda declarado en `docs/PENDIENTES.md`. */
+function vdTapsePsap() {
+  const t = v('tapse'), p = v('psap_calc');
+  if (!t || !p) return null;
+  const x = t / p;
+  return isFinite(x) ? x : null;
+}
+window.vdTapsePsap = vdTapsePsap;
+
+/* ══ LOS TRES TRAMOS (decisión de Maicol) Y SU RESPALDO ══════════════════════════════════════
+   · `< 0,36`  → «mal pronostico en IC con FEVI reducida y preservada». El corte nace de Guazzi
+     y col., Am J Physiol Heart Circ Physiol 2013;305:H1373-H1381 (cohorte mixta de 293
+     pacientes) y el metaanalisis de Heart Fail Rev 2024 lo confirma en FEVI reducida y
+     preservada. ⚠️ NINGUNO DE LOS DOS ESTA EN LA BIBLIOTECA: el 0,36 NO esta verificado al
+     estandar de la casa y por eso la tarjeta del globo NO lo cita. La ASE 2025 lo nombra en su
+     folio 180 («The ESC/ERS guidelines recommend a TAPSE/PASP <0.36 mm/mmHg as suggestive of
+     PH»), que es otro uso del mismo numero. `docs/PENDIENTES.md` → G1-6.
+   · `>= 0,36 y < 0,55` → «elemento de probabilidad para HTP». El 0,55 SI esta verificado:
+     ESC/ERS 2022, Tabla 10, folio 28, signo de la categoria A.
+   · `>= 0,55` → «acoplamiento VD-AP normal». Es el complemento del anterior, y concuerda con el
+     rango de 0,5-0,7 que la ASE 2025 publica para individuos sanos (folio 152).
+   ⚠️ EL 0,32 DE LA PANTALLA DE TEP NO ENTRA ACA. Ese numero existe y esta publicado —ESC/ERS
+   2022, folio 41, umbral de BAJO RIESGO en hipertension arterial pulmonar— pero su fuente no lo
+   define como un signo de tromboembolia, asi que la frase «probabilidad de TEP» que la orden
+   ofrecia NO se agrego: seria atribuirle un significado que ninguna fuente leida le da.
+   `docs/PENDIENTES.md` → G1-2. */
+const VD_TPSP_IC_MAX  = 0.36;   // mm/mmHg — borde `<`  (Guazzi 2013; ver la salvedad de arriba)
+const VD_TPSP_HTP_MAX = 0.55;   // mm/mmHg — borde `<`  (ESC/ERS 2022, Tabla 10, folio 28)
+window.VD_TPSP_IC_MAX  = VD_TPSP_IC_MAX;
+window.VD_TPSP_HTP_MAX = VD_TPSP_HTP_MAX;
+
+/* La fila del Doppler tricuspideo. TRES COLUMNAS: la llaman `calcVD` (dueño del TAPSE) y
+   `calcPSAP` (dueño de la PSAP) —los dos insumos viven en pestañas distintas y ninguna de las
+   dos funciones llama a la otra—, `calcVD` esta en `RECALC_MODULOS`, y se repite al final de
+   `limpiarCampos`, que no pasa por ese embudo y que ademas NO devuelve el `display` de una
+   `.calc-row` a su estado inicial. */
+function vdTapsePsapSync() {
+  const row = document.getElementById('row-tapse-psap');
+  const el  = document.getElementById('tapse-psap-interp');
+  if (!row || !el) return null;
+  const x = vdTapsePsap();
+  if (x === null) { row.style.display = 'none'; el.textContent = '—'; return null; }
+  const r = Math.round(x * 1000) / 1000;
+  const t = (r < VD_TPSP_IC_MAX)
+    ? { cls: 'red',    txt: 'mal pronóstico en IC con FEVI reducida y preservada' }
+    : ((r < VD_TPSP_HTP_MAX)
+        ? { cls: 'orange', txt: 'elemento de probabilidad para HTP' }
+        : { cls: 'green',  txt: 'acoplamiento VD-AP normal' });
+  row.style.display = '';
+  el.innerHTML = badge(t.cls, r.toFixed(3) + ' mm/mmHg — ' + t.txt);
+  return { val: x, r: r, txt: t.txt };
+}
+window.vdTapsePsapSync = vdTapsePsapSync;
+
 /* Área de la AD en 4 cámaras: ≤18 cm² normal (ASE). Estaba como literal en `calcAD` y otro
    literal igual en el informe narrativo — dos copias del mismo corte, que es como la cápsula
    de pantalla y el informe firmado terminan discrepando. */
@@ -21943,6 +22038,9 @@ function calcVD() {
   /* VA AL FINAL, después de que la FAC ya se escribió en su campo: esta función decide la
      visibilidad LEYENDO `vd_fac`, así que con ella arriba mediría el valor del gesto anterior. */
   if (typeof vdRefVisSync === 'function') vdRefVisSync();
+  /* El TAPSE es insumo del cociente TAPSE/PSAP, cuya fila vive en el Doppler tricuspideo: sin
+     esta llamada, cargar el TAPSE aca dejaba esa fila con el valor del gesto anterior. */
+  if (typeof vdTapsePsapSync === 'function') vdTapsePsapSync();
   if (typeof calcTEP === 'function') calcTEP();
   if (typeof calcHTP2022 === 'function') calcHTP2022();
   if (typeof cxTP === 'function') cxTP();
@@ -22008,9 +22106,15 @@ function calcTEP() {
   const criterios = [];
 
   // 1. TAPSE/PSAP
+  /* ⚠️ EL COCIENTE LO CALCULA `vdTapsePsap`, SU DUENO UNICO DESDE EL 2026-10-15 (G1). Esta
+     pantalla hacia su propia division sobre los MISMOS dos campos (`tapse` y `psap_calc`), y dos
+     copias de la misma cuenta divergen en cuanto se toca una. El predicado del dueno es este
+     mismo (`if (tapse && psap)`) y el valor crudo es identico, asi que esta fila publica
+     EXACTAMENTE lo que publicaba: sus TRES decimales y su corte de 0,32 no se tocaron. */
   const tapsePsapEl = document.getElementById('tep-tapse-psap');
-  if (tapse && psap) {
-    const idx = (tapse / psap).toFixed(3);
+  const _tpsp = (typeof vdTapsePsap === 'function') ? vdTapsePsap() : ((tapse && psap) ? (tapse / psap) : null);
+  if (_tpsp !== null) {
+    const idx = _tpsp.toFixed(3);
     const ok  = PF(idx) > 0.32;
     if (tapsePsapEl) tapsePsapEl.innerHTML = ok
       ? badge('green',  idx + ' mm/mmHg — acoplamiento conservado')
@@ -23584,6 +23688,10 @@ function calcPSAP() {
        de abajo. Borrar la velocidad de IT con un TAP cargado tiene que cambiar la fórmula en
        pantalla, no dejar la de Chemla sobre un PSAP que ya no existe. */
     papmEstSync();
+    /* Tambien aca, y no solo al final: esta rama sale por `return`, asi que sin la llamada la
+       fila del cociente se quedaba con la ultima PSAP calculada despues de borrar la velocidad
+       de IT. Es el mismo motivo que el espejo de la PASP del TEER de abajo. */
+    if (typeof vdTapsePsapSync === 'function') vdTapsePsapSync();
     if (typeof calcTEP === 'function') calcTEP();
     if (typeof calcIP  === 'function') calcIP();
     /* También acá, y no sólo al final: esta rama sale por `return`, así que el espejo de la
@@ -23644,6 +23752,9 @@ function calcPSAP() {
     setv('psap_calc', ''); setv('pap_med', '');
     if (psapEl) psapEl.textContent = '— (requiere VCI)';
   }
+  /* El cociente TAPSE/PSAP: esta funcion es la dueña de la PSAP, que es su denominador, y
+     `calcVD` —la otra columna— no corre desde aca. */
+  if (typeof vdTapsePsapSync === 'function') vdTapsePsapSync();
   if (typeof calcTEP    === 'function') calcTEP();
   if (typeof calcHTP2022=== 'function') calcHTP2022();
   if (typeof calcHemo   === 'function') calcHemo();
@@ -35768,6 +35879,20 @@ const VINFO = Object.freeze({
     fuente: 'Nativa: EAE/ASE 2009 (Baumgartner), Tabla 3, p\u00e1g. 10. Pr\u00f3tesis: ASE 2024 (Zoghbi), Tabla 5, p\u00e1g. 19.',
     ojo: 'El \u00e1rea valvular NO grad\u00faa una pr\u00f3tesis: la tabla la expresa en desviaciones est\u00e1ndar respecto del valor de referencia del modelo implantado, y esta aplicaci\u00f3n no registra marca ni modelo. Y para decir «significativa» exige las DOS mitades: un eje que depende del flujo y uno que no.'
   },
+  /* \u26a0\ufe0f LA FUENTE CITA SOLO LO QUE SE LEYO EN EL ORIGINAL (G1, 2026-10-15). Los cortes de
+     insuficiencia cardiaca (0,36), de fraccion levemente reducida, de resincronizacion y de
+     reparacion tricuspidea por cateter que la orden listaba vienen de fuentes SECUNDARIAS que no
+     estan en la biblioteca: por la regla de la casa no se citan, y el bloque \u00aba tener en cuenta\u00bb
+     lo dice en voz alta en vez de callarlo. Lo que SI esta leido en su PDF son los cuatro
+     numeros de abajo. */
+  'tapse-psap': {
+    tit: 'Cociente TAPSE/PSAP \u2014 acoplamiento VD-AP',
+    formula: 'TAPSE (mm) \u00f7 PSAP (mmHg) \u2192 mm/mmHg\n'
+           + '(la PSAP es la que la app ya calcula: 4 \u00d7 VRT\u00b2 + PmAD)',
+    lee: 'Mide el acople entre la funci\u00f3n del ventr\u00edculo derecho y la presi\u00f3n pulmonar que enfrenta: cu\u00e1nto se acorta el anillo tricusp\u00eddeo por cada mmHg de poscarga.',
+    fuente: 'Hipertensi\u00f3n pulmonar: < 0,55 mm/mmHg es signo de la categor\u00eda A (ventr\u00edculos) de la ESC/ERS 2022, Tabla 10, folio 28. En individuos sanos el cociente va de 0,5 a 0,7 (ASE 2025, Mukherjee, folio 152), y entre 0,3 y 0,4 se asocia a desacoplamiento VD-AP y mayor mortalidad (folios 152 y 173); esa misma gu\u00eda atribuye a la ESC/ERS el < 0,36 como sugestivo de hipertensi\u00f3n pulmonar (folio 180). Riesgo en hipertensi\u00f3n arterial pulmonar: > 0,32 bajo, 0,19 a 0,32 intermedio y < 0,19 alto (ESC/ERS 2022, folio 41).',
+    ojo: 'El cociente hereda la incertidumbre de la PSAP, que usa una presi\u00f3n de la aur\u00edcula derecha ESTIMADA. Y no hay un corte \u00fanico: cada uso tiene el suyo. Los cortes de insuficiencia card\u00edaca, de resincronizaci\u00f3n y de reparaci\u00f3n tricusp\u00eddea por cat\u00e9ter no se pudieron leer en su fuente primaria y por eso no se citan ac\u00e1.'
+  },
   'ea-prot-ppm': {
     tit: 'Desajuste pr\u00f3tesis-paciente de la a\u00f3rtica',
     formula: 'AEO indexada = AVA por continuidad \u00f7 superficie corporal',
@@ -46151,7 +46276,7 @@ function RECALC_MODULOS() {
      automaticos con el «requiere …» del formulario vacio al lado de un VDFVI y una FEVI ya
      poblados. No puede migrar nada: no escribe ningun campo del estudio, los dos nodos que
      toca son `vauto-` y el tercero un `<div>` de texto. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','vdTapsePsapSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -46858,6 +46983,9 @@ function limpiarCampos(silencioso) {
      formulario vacio, y la casilla automatica de la FAC dibujada al lado de dos areas borradas.
      `calcVD` es la otra columna y esta en `RECALC_MODULOS`; `limpiarCampos` no pasa por ahi. */
   if (typeof vdRefVisSync === 'function') { try { vdRefVisSync(); } catch (e) {} }
+  /* Y la fila del cociente TAPSE/PSAP del Doppler tricuspideo, por lo mismo: su span lo vacia el
+     barrido generico, pero el `display` de su `.calc-row` no lo toca nadie. */
+  if (typeof vdTapsePsapSync === 'function') { try { vdTapsePsapSync(); } catch (e) {} }
   /* ⚠️ Y LOS NUEVE «(leve)/(moderada)/(severa)» DE LAS FILAS DE REFERENCIA (regla 5, 2026-10-13),
      por el MISMO motivo que las dos líneas de arriba: son `<span>` SIN `id` —a propósito, para que
      el barrido genérico no les escriba «—»— así que ningún barrido los alcanza y el grado del

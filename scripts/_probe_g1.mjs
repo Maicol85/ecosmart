@@ -252,12 +252,19 @@ window.__P = {
   /* El Doppler tricuspideo, donde vive la fila del TAPSE/PSAP. */
   abrirDoppler() {
     try { showTab('doppler') } catch(e) {}
-    var acc = document.getElementById('sacc-doptric');
-    if (acc && !acc.classList.contains('open')) { try { secToggle('doptric') } catch(e) {} }
+    /* ⚠️ NO ES UN sacc- NI UN secToggle: el Doppler tricuspideo es una .card con
+       toggleCard('dop-tricusp'), y su cuerpo nace en display:none. Sin abrirlo la fila y su
+       globo EXISTEN y miden 0x0, asi que la tarjeta no se ancla y «no abre» se lee como «el
+       mecanismo no funciona» — que es exactamente lo que informo la primera corrida. */
+    var c = document.getElementById('dop-tricusp');
+    if (c && getComputedStyle(c).display === 'none') { try { toggleCard('dop-tricusp', null) } catch(e) {} }
     return { tab: window.__P.vis('tab-doppler'),
              psap: window.__P.geo('psap_calc'),
              fila: window.__P.vis('row-tapse-psap'),
-             ok: window.__P.vis('tab-doppler') === true } },
+             globo: (function(){ var b = document.querySelector('[data-vinfo=\"tapse-psap\"]');
+               if (!b) return 'NO EXISTE'; var r = b.getBoundingClientRect();
+               return { w: Math.round(r.width), h: Math.round(r.height) } })(),
+             ok: window.__P.vis('tab-doppler') === true && window.__P.geo('psap_calc').ok } },
 
   /* La seccion de INSUFICIENCIA de la valvula pulmonar: dos puertas, la seccion plegable y el
      cajon «Datos». valvDatosTog recibe el ID DEL CONTENEDOR, no el nombre de la valvula. */
@@ -365,7 +372,10 @@ window.__P = {
              tep: window.__P.txt('tep-tapse-psap'),
              tepAcopl: window.__P.txt('tep-acoplamiento'),
              htpC: window.__P.txt('htp2022-catC'),
-             htpProb: window.__P.txt('htp2022-prob') } },
+             htpProb: window.__P.txt('htp2022-prob'),
+             /* La TERCERA superficie que ya lo calculaba: cxTP, del modulo de
+                constriccion/restriccion, con sus propios cortes y sus campos de sobreescritura. */
+             cx: window.__P.txt('cx-tp-res') } },
 
   /* El campo nuevo del diametro de la arteria pulmonar y su marca. */
   fotoIP() {
@@ -897,6 +907,9 @@ async function main() {
     };
     await montar();
     g.boton = await J('window.__P.botonGlobo("tapse-psap")');
+    /* DENOMINADOR: un globo sin geometria no ancla nada, y medir sus cierres sobre un boton de
+       0x0 informa «no abre» sobre un mecanismo que funciona. */
+    if (g.boton.err || !g.boton.w) throw new Error('ABORTA: el globo del TAPSE/PSAP no tiene geometria: ' + JSON.stringify(g.boton));
     /* Los CUATRO caminos de cierre, uno por uno. */
     await clicEn(g.boton.id); await pausa(170);
     g.abre = await J('window.__P.tarjeta()');
