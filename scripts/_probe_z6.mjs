@@ -793,11 +793,16 @@ async function main() {
       o.dviDisp = window.__P.val('ea_dvi_display');
       return o })()`);
     for (const [nom, morf, tsvi, ao] of [
-      ['savr-normal',  'Prótesis mecánica (SAVR)', '20', '56'],
-      ['savr-posible', 'Prótesis mecánica (SAVR)', '20', '70'],
-      ['savr-signif',  'Prótesis mecánica (SAVR)', '20', '90'],
+      ['savr-normal',  'Prótesis mecánica', '20', '56'],
+      ['savr-posible', 'Prótesis mecánica', '20', '70'],
+      ['savr-signif',  'Prótesis mecánica', '20', '90'],
       ['tavi',         'TAVI',                               '20', '70'],
-      ['bio',          'Prótesis biológica (SAVR)', '20', '56']]) {
+      ['bio',          'Prótesis biológica', '20', '56'],
+      /* EL BORDE DEL REDONDEO: 20/56.4 = 0,35461, que la pantalla publica como «0.35». El camino
+         CRUDO lo lee por encima de 0,35 (normal) y el camino del VEREDICTO lee el publicado
+         (posible). Es la escena donde los dos caminos discrepan. */
+      ['borde-redondeo', 'Prótesis mecánica', '20', '56.4'],
+      ['borde-justo',    'Prótesis mecánica', '20', '57']]) {
       await ev(`window.__P.nuevo()`);
       await ev(`window.__P.abrirValv()`);
       await tipear('peso', '80'); await tipear('talla', '180');
@@ -817,7 +822,7 @@ async function main() {
     await tipear('vmax_ao', '4.2'); await tipear('gmedio_ao', '45');
     g.nativa = await dosCaminos();
     /* FUERA DE BANDA: el VTI aortico en metros. Los dos caminos tienen que decir lo mismo. */
-    await ev(`window.__P.sel('va_morf','Prótesis mecánica (SAVR)')`);
+    await ev(`window.__P.sel('va_morf','Prótesis mecánica')`);
     await tipear('itv_ao', '0.9');
     g.fueraDeBanda = await dosCaminos();
     out.grupos.dviAo = g;
