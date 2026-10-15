@@ -546,13 +546,14 @@
     .vd-grid > .vd-r3 { grid-row: 3; }
     .vd-grid > .vd-r4 { grid-row: 4; }
     .vd-grid > .vd-r5 { grid-row: 5; }
-    /* El diametro de la arteria pulmonar va DEBAJO del «Ancho del jet» (G1, decision de Maicol).
-       Su `.fg` es el TERCER hijo de un `.grid-2`, asi que por flujo caeria en la columna 1 —o sea
-       debajo del THP—: esta regla lo manda a la columna 2, que es la del jet. Deja un hueco
-       debajo del THP, que es lo correcto: un hueco dice «no hay nada ahi» y mover el campo diria
-       otra cosa. Por debajo de 768 px `.grid-2` cae a una columna y la regla no aplica, asi que
-       el orden apilado es el del marcado —THP, ancho, diametro— que es el del Tab. */
-    .ip-ap-col2 { grid-column: 2; }
+    /* ⚠️ LA FILA 6 NACE EN EL G3 (2026-10-15) Y LA USA UNA SOLA COLUMNA. La columna 3 pasa a SEIS
+       campos —el diametro de la arteria pulmonar se mudo aca desde la insuficiencia pulmonar— y
+       las columnas 1 y 2 se quedan con cinco, asi que debajo de la pared del VD y de la FEVD
+       queda un hueco. Es lo correcto y es la razon de ser de la posicion explicita: con flujo
+       automatico el sexto campo de la columna 3 se habria ido a la fila 1 de la columna 1.
+       La regla `.ip-ap-col2` que mandaba ese campo a la columna del «Ancho del jet» se RETIRO
+       con el: su `.grid-2` vuelve a tener DOS hijos, una sola fila y ningun hueco. */
+    .vd-grid > .vd-r6 { grid-row: 6; }
   }
   /* ══ CARD ══ */
   .card {
@@ -3686,25 +3687,28 @@ window.cerrarSesionReal = cerrarSesionReal;
   <div class="card sacc" id="sacc-vd">
     <button type="button" class="sacc-hdr" onclick="secToggle('vd')" aria-expanded="false"><span class="sacc-arrow">▶</span>Ventrículo derecho</button>
     <div class="card-body sacc-body">
-      <!-- ══ LOS QUINCE CAMPOS EN TRES COLUMNAS (G1, 2026-10-15) ═══════════════════════════════
+      <!-- ══ LOS DIECISÉIS CAMPOS EN TRES COLUMNAS (G1, 2026-10-15 · G3, 2026-10-15) ══════════
            Decisión de Maicol: columna 1 = TAP · TAPSE · S' · índice de Tei · FEVD; columna 2 =
            VD basal · medio · longitudinal · relación VD/VI · pared; columna 3 = Diám. TSVD ·
-           VTI TSVD · área telediastólica · área telesistólica · FAC. Las referencias de abajo
-           siguen ESE mismo orden.
+           VTI TSVD · diámetro de la arteria pulmonar · área telediastólica · área telesistólica ·
+           FAC. Las referencias de abajo siguen ESE mismo orden.
+           ⚠️ LA COLUMNA 3 TIENE SEIS Y LAS OTRAS DOS CINCO (G3): el diámetro de la arteria
+           pulmonar se mudó acá desde la insuficiencia de la válvula pulmonar, en TERCER lugar,
+           debajo del VTI TSVD. Debajo de la FEVD y de la pared queda un hueco, que es lo correcto.
            Es el mecanismo de la grilla del Doppler mitral (`docs/mapa/doppler-mitral-grilla.md`)
            y por las MISMAS dos razones:
-             1. EL ORDEN DEL MARCADO ES EL DEL TAB. Los quince `.fg` están acá en orden de
+             1. EL ORDEN DEL MARCADO ES EL DEL TAB. Los dieciséis `.fg` están acá en orden de
                 columnas, así que el navegador los recorre así sin ninguna ayuda. NO hay ni un
                 `tabindex` —ni positivo ni negativo—: uno positivo haría que el Tab dependiera de
                 un número que nadie mantiene sincronizado con el marcado.
-             2. LA POSICIÓN ES EXPLÍCITA Y NO DE FLUJO (`vd-cN` / `vd-rM`, ocho reglas de CSS).
+             2. LA POSICIÓN ES EXPLÍCITA Y NO DE FLUJO (`vd-cN` / `vd-rM`, nueve reglas de CSS).
                 Un `grid-auto-flow: column` daría el mismo dibujo con cero reglas, pero el flujo
-                REACOMODA, y desde esta tanda hay un campo que SE ESCONDE: la casilla de la FAC no
-                se muestra hasta que haya dato. Con el flujo, esconderla haría subir a los de
-                abajo —y como la FAC es el último de su columna, subiría un campo de OTRA—. Con la
-                posición explícita su casilla queda VACÍA, que es lo que corresponde: un hueco
-                dice «no hay dato» y un reacomodo dice «esto es otra grilla».
-           Las ocho reglas viven SÓLO por encima de 768 px. Por debajo `.grid-3` ya cae a una
+                REACOMODA, y acá hay dos columnas de cinco y una de seis: con flujo automático el
+                sexto campo de la columna 3 se iría a la fila 1 de la columna 1.
+                ⚠️ EN EL G1 EL MOTIVO ERA OTRO —la casilla de la FAC se escondía sin dato— y desde
+                el G3 esa casilla está SIEMPRE VISIBLE: lo que la sostiene hoy es el desbalance de
+                columnas, que es igual de real.
+           Las nueve reglas viven SÓLO por encima de 768 px. Por debajo `.grid-3` ya cae a una
            columna y el orden visual es el del marcado, que es el del Tab: no hace falta ninguna
            regla de posición para que coincidan. -->
       <div class="grid-3 vd-grid">
@@ -3805,26 +3809,43 @@ window.cerrarSesionReal = cerrarSesionReal;
           <label>VTI TSVD (cm) <span style="font-weight:400;color:var(--text2);font-size:10px;">RVP (Abbas) · Qp/Qs · Qp</span></label>
           <input type="number" id="vti_tsvd" placeholder="cm" step="0.1" oninput="etTsvdSync('vti_tsvd');calcHemo();eteShuntSyncSiExiste();calcET();calcVD()">
         </div>
+        <!-- ══ DIÁMETRO DE LA ARTERIA PULMONAR — MUDADO ACÁ (G3, 2026-10-15) ════════════════
+             Nació en el G1 dentro de la insuficiencia de la válvula pulmonar, debajo del «Ancho
+             del jet», y el médico lo quiere con el resto de las medidas del corazón derecho. Se
+             MOVIÓ, no se duplicó: MISMO id, MISMO dueño de lectura (`ipApDiamVal`), MISMA banda
+             (`IP_AP_BANDA`), MISMA marca y MISMA columna de Excel del G2.
+             ⚠️ SIGUE SIN VOTAR, Y LO GARANTIZA SU `oninput`: llama SÓLO a `ipApDiamSync` —que
+             pinta la marca— y NO a `calcIP`, que es el dueño del grado de la insuficiencia
+             pulmonar, ni a `calcVD`, que no lo lee. No tiene fila en el cuadro de referencias y
+             no se sincroniza con ningún otro campo. -->
+        <div class="fg vd-c3 vd-r3">
+          <label>Diámetro de la arteria pulmonar (mm)</label>
+          <input type="number" id="ip_ap_diam" placeholder="mm" step="0.1" oninput="ipApDiamSync()">
+          <div id="ip_ap_diam-marca" style="font-size:10px;color:var(--yellow);margin-top:3px;min-height:14px;"></div>
+        </div>
         <!-- FAC — fracción de acortamiento de área del VD (apical 4C). Se CALCULA desde las dos
              áreas y no se tipea: así el informe firma un número que la app puede rehacer y
              auditar, y queda claro de qué par de áreas salió. No confundir con la FEVD de la
              columna 1, que es 3D y lleva otro corte (>45 %); la FAC es 2D y el corte es 35 %. -->
-        <div class="fg vd-c3 vd-r3">
+        <div class="fg vd-c3 vd-r4">
           <label>Área VD telediastólica (cm²) <span style="font-weight:400;color:var(--text2);font-size:10px;">FAC</span></label>
           <input type="number" id="vd_area_d" placeholder="cm²" step="0.1" oninput="calcVD()">
         </div>
-        <div class="fg vd-c3 vd-r4">
+        <div class="fg vd-c3 vd-r5">
           <label>Área VD telesistólica (cm²) <span style="font-weight:400;color:var(--text2);font-size:10px;">FAC</span></label>
           <input type="number" id="vd_area_s" placeholder="cm²" step="0.1" oninput="calcVD()">
         </div>
-        <!-- ⚠️ LA CASILLA DE LA FAC SE ESCONDE HASTA QUE HAYA DATO (G1, decisión de Maicol), y la
-             esconde `vdRefVisSync` moviendo el `display` de ESTE `.fg`. El campo sigue existiendo
-             en el DOM con su id, así que `guardarInforme`, el PDF y el Excel lo leen como siempre;
-             lo único que cambia es que no se dibuja una casilla automática vacía al lado de dos
-             áreas que nadie midió. Es `style.display` y no el atributo `hidden`: en esta app
-             `[hidden]` de la hoja del NAVEGADOR pierde contra reglas de autor, y este archivo ya
-             lo pagó tres veces. -->
-        <div class="fg vd-c3 vd-r5" id="fg-vd-fac" style="display:none;">
+        <!-- ⚠️ LA CASILLA DE LA FAC VUELVE A ESTAR SIEMPRE VISIBLE (G3, 2026-10-15, decisión de
+             Maicol). El G1 la escondía hasta que hubiera dato, y el médico la quiere a la vista
+             como estaba antes del G1: lo que cambia respecto de aquel estado es que, sin las dos
+             áreas, el campo DICE qué le falta en vez de quedar en un «—» mudo — el mecanismo de
+             los dos campos `vauto-` del VI (`viVolAutoSync` con su `_req`). Lo escribe
+             `vdFacReqSync`, que corre dentro de `calcVD`.
+             ⚠️ LA FILA DEL CUADRO DE REFERENCIAS SIGUE ESCONDIÉNDOSE SIN DATO: eso no cambia y lo
+             sigue gobernando `vdRefVisSync`. Son dos cosas distintas —la casilla de carga y la
+             fila que interpreta— y el médico pidió mover sólo la primera.
+             ⚠️ ES READONLY: nunca se le manda una tecla. -->
+        <div class="fg vd-c3 vd-r6" id="fg-vd-fac">
           <label>FAC VD (%) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← áreas</span></label>
           <input type="number" id="vd_fac" readonly placeholder="—">
         </div>
@@ -6874,30 +6895,13 @@ window.cerrarSesionReal = cerrarSesionReal;
                 <option value="ancho">Ancho (&gt;50&ndash;65 % del TSVD)</option>
               </select>
             </div>
-            <!-- ══ DIÁMETRO DE LA ARTERIA PULMONAR (G1, 2026-10-15, decisión de Maicol) ════════
-                 ⚠️ ES UN DATO DE ENTRADA Y NADA MÁS: NO vota el grado de la insuficiencia
-                 pulmonar, NO cambia ningún texto del informe, NO tiene fila en el cuadro de
-                 referencias y NO se sincroniza con ningún otro campo. Lo que lo garantiza es su
-                 `oninput`: llama SÓLO a `ipApDiamSync` —que pinta su marca— y NO a `calcIP`, que
-                 es el dueño del grado. Mientras eso siga así, el campo no puede votar.
-                 ⚠️ QUEDA PREPARADO Y NO CONECTADO. El médico decidió que MÁS ADELANTE la
-                 probabilidad de HTP de Avanzado lo lea para marcar sola su fila «AP > 25 mm o
-                 AP > aorta» (que hoy es el checkbox `htp2022_b3`). Por eso tiene: (a) un id
-                 estable, `ip_ap_diam`; (b) UNA sola lectura, `ipApDiamVal()`, para que ese
-                 trabajo lo conecte sin abrir una segunda copia; y (c) su banda con un dueño
-                 único. ⚠️ LA COMPARACIÓN QUE LA GUÍA PIDE ES CONTRA LA RAÍZ AÓRTICA —«RA: raíz
-                 aórtica» en el pie de la Tabla 10 de la ESC/ERS 2022, folio 28—, que en esta app
-                 es `ao_sin` («Ao sinusal», pestaña AI/VI). NO se conecta acá.
-                 ⚠️ VIAJA CON EL ESTUDIO Y NO AL EXCEL, y eso sale de dos mecanismos que ya
-                 existen: su id va con guión BAJO, así que `_noEsDelEstudio` no lo excluye y el
-                 barrido de `guardarInforme` lo guarda y lo repone; y las columnas del Excel son
-                 una LISTA explícita (`LAB_XLS_COLS`) donde no está. La columna va en el G2. -->
-            <div class="fg ip-ap-col2">
-              <label>Diámetro de la arteria pulmonar (mm)</label>
-              <input type="number" id="ip_ap_diam" placeholder="mm" step="0.1" oninput="ipApDiamSync()">
-              <div id="ip_ap_diam-marca" style="font-size:10px;color:var(--yellow);margin-top:3px;min-height:14px;"></div>
-            </div>
           </div>
+          <!-- ⚠️ EL DIÁMETRO DE LA ARTERIA PULMONAR SE MUDÓ A LA PESTAÑA VD / AD (G3, 2026-10-15,
+               decisión de Maicol). Nació acá en el G1, debajo del «Ancho del jet», y se MOVIÓ —no
+               se duplicó—: conserva su id `ip_ap_diam`, su dueño único `ipApDiamVal`, su banda
+               `IP_AP_BANDA`, su marca «(revisar)» y su columna de Excel del G2. Con él se retiró la
+               regla `.ip-ap-col2`, así que este `.grid-2` vuelve a tener DOS hijos —el THP y el
+               ancho del jet— en una sola fila y SIN el hueco que quedaba debajo del THP. -->
           <div class="grid-2" style="margin-bottom:8px;">
             <div class="fg"><label>Se&ntilde;al CW</label>
               <select id="ip_senal" onchange="calcIP()">
@@ -21782,7 +21786,12 @@ function vdRefVisSync() {
   _ver('row-fevd-interp', v('fevd') !== null);
   const _hayFac = v('vd_fac') !== null;
   _ver('row-fac-interp', _hayFac);
-  _ver('fg-vd-fac', _hayFac);
+  /* ⚠️ LA CASILLA DE LA FAC YA NO SE ESCONDE (G3, 2026-10-15, decision de Maicol). Hasta el G3
+     esta linea decia `_ver('fg-vd-fac', _hayFac)`: el campo desaparecia hasta que hubiera dato, y
+     el medico lo quiere a la vista como estaba ANTES del G1. Lo que la reemplaza no es «nada»:
+     es `vdFacReqSync`, que escribe en el placeholder QUE LE FALTA. Lo que SIGUE escondiendose es
+     la FILA del cuadro de referencias (`row-fac-interp`), que es otra cosa: una casilla vacia
+     invita a cargar, una fila de interpretacion vacia afirma que no hay nada que interpretar. */
   /* ⚠️ LA RELACION VD/VI SE ESCONDE POR SU VEREDICTO Y NO POR FALTA DE DATO: con el cociente
      normal la fila no se dibuja, porque existe para NOMBRAR un signo de probabilidad de HTP y
      no para certificar que no esta. Es la decision de Maicol («mostrada si esta alterada»). */
@@ -21791,6 +21800,51 @@ function vdRefVisSync() {
   return { fevd: v('fevd') !== null, fac: _hayFac, vdvi: !!_vi.alt };
 }
 window.vdRefVisSync = vdRefVisSync;
+
+/* ══ EL MENSAJE «requiere …» DE LA CASILLA DE LA FAC (G3, 2026-10-15) ════════════════════════
+   Decision de Maicol: la casilla de la FAC vuelve a estar SIEMPRE visible —como antes del G1—
+   y, cuando no se puede calcular, DICE que le falta en vez de quedar en un «—» mudo.
+
+   Es el mecanismo de los dos campos `vauto-` del ventriculo izquierdo (`viVolAutoSync`): el
+   valor va en `.value` y el motivo en el `placeholder`, asi que un campo con dato no arrastra
+   el aviso y uno sin dato no publica un numero viejo.
+
+   ⚠️ LAS TRES RAMAS SON DISTINTAS Y HACEN FALTA LAS TRES, porque «no hay FAC» tiene tres
+   motivos que el medico resuelve distinto:
+     · faltan una o las dos areas  -> se nombran las que faltan;
+     · estan las dos pero el par no es utilizable (la telesistolica es cero, o es mayor o igual
+       que la telediastolica) -> no falta un dato, hay un par mal medido o invertido, que es lo
+       que la guarda de `calcVD` ya detecta y lo que un «requiere las dos areas» negaria;
+     · hay FAC -> placeholder vacio.
+   El predicado del par utilizable NO se reescribe aca: se recibe de `calcVD`, que es su dueno.
+
+   ⚠️ NO TOCA EL VALOR. El `.value` lo escribe `calcVD` y esta funcion solo pone el placeholder:
+   si escribiera el valor habria dos duenos del mismo numero, que es el defecto que este archivo
+   ya pago tres veces. Y por eso tampoco entra en `RECALC_MODULOS` por su cuenta —`calcVD` si
+   esta— ni hace falta repetirla en `limpiarCampos`: el barrido generico de esa funcion vacia el
+   `.value` y despues `calcVD` corre por `RECALC_MODULOS`… salvo que NO corre, asi que la llamada
+   al final de `limpiarCampos` SI hace falta, igual que `vdRefVisSync`. */
+function vdFacReqSync(hayFac, utilizable) {
+  const el = document.getElementById('vd_fac');
+  if (!el) return null;
+  const ad = v('vd_area_d'), as = v('vd_area_s');
+  const _hay = (hayFac === undefined) ? (v('vd_fac') !== null) : !!hayFac;
+  const _ut  = (utilizable === undefined)
+    ? (ad !== null && as !== null && ad > 0 && as > 0 && as < ad)
+    : !!utilizable;
+  let ph = '';
+  if (_hay) ph = '';
+  else if (ad !== null && as !== null && !_ut) ph = '— requiere un área telesistólica mayor que cero y menor que la telediastólica';
+  else {
+    const falta = [];
+    if (ad === null) falta.push('área telediastólica');
+    if (as === null) falta.push('área telesistólica');
+    ph = falta.length ? ('— requiere ' + falta.join(' y ')) : '—';
+  }
+  el.placeholder = ph;
+  return ph;
+}
+window.vdFacReqSync = vdFacReqSync;
 
 /* ══ EL COCIENTE TAPSE/PSAP — ACOPLAMIENTO VD-AP (G1, 2026-10-15) ════════════════════════════
    TAPSE en milímetros sobre PSAP en mmHg. Es un índice fisiológico no invasivo del acople entre
@@ -22056,6 +22110,12 @@ function calcVD() {
      `calcGeometriaVI` documenta haber cerrado: clasificar un número y publicar otro. */
   const fac = facUsable ? Math.round((areaD - areaS) / areaD * 100) : null;
   if (facEl) facEl.value = fac === null ? '' : String(fac);
+  /* ⚠️ EL MENSAJE «requiere …» DE LA CASILLA (G3, 2026-10-15). Se le pasan los DOS resultados que
+     esta función ya calculó —hay FAC, y el par es utilizable— en vez de dejar que los recalcule:
+     el predicado de «par utilizable» vive acá y una segunda copia allá se separaría el día que
+     se le agregue una guarda. Va JUSTO después de escribir el valor, porque el placeholder sólo
+     se ve cuando el valor está vacío. */
+  if (typeof vdFacReqSync === 'function') vdFacReqSync(fac !== null, facUsable);
   if (facInt) {
     if (fac === null) {
       facInt.innerHTML = (areaD !== null && areaS !== null)
@@ -47090,6 +47150,11 @@ function limpiarCampos(silencioso) {
      formulario vacio, y la casilla automatica de la FAC dibujada al lado de dos areas borradas.
      `calcVD` es la otra columna y esta en `RECALC_MODULOS`; `limpiarCampos` no pasa por ahi. */
   if (typeof vdRefVisSync === 'function') { try { vdRefVisSync(); } catch (e) {} }
+  /* La casilla de la FAC queda VISIBLE desde el G3, asi que «Nuevo estudio» tiene que reponer
+     su mensaje «requiere …»: el barrido generico vacia el `.value` y NO toca el `placeholder`,
+     que es exactamente la trampa que `vdMarcaSync` y `vdTeiAvisoSync` ya documentan. Y
+     `limpiarCampos` NO pasa por `RECALC_MODULOS`, donde esta `calcVD`. */
+  if (typeof vdFacReqSync === 'function') { try { vdFacReqSync(false, false); } catch (e) {} }
   /* Y la fila del cociente TAPSE/PSAP del Doppler tricuspideo, por lo mismo: su span lo vacia el
      barrido generico, pero el `display` de su `.calc-row` no lo toca nadie. */
   if (typeof vdTapsePsapSync === 'function') { try { vdTapsePsapSync(); } catch (e) {} }

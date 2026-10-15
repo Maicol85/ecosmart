@@ -66028,17 +66028,29 @@ caso('TC-476', 'Tanda G1: el VD en tres columnas con su orden de Tab, las filas 
     const DECL = ['.vd-grid > .vd-c1 { grid-column: 1; }','.vd-grid > .vd-c2 { grid-column: 2; }',
                   '.vd-grid > .vd-c3 { grid-column: 3; }','.vd-grid > .vd-r1 { grid-row: 1; }',
                   '.vd-grid > .vd-r2 { grid-row: 2; }','.vd-grid > .vd-r3 { grid-row: 3; }',
-                  '.vd-grid > .vd-r4 { grid-row: 4; }','.vd-grid > .vd-r5 { grid-row: 5; }'];
+                  '.vd-grid > .vd-r4 { grid-row: 4; }','.vd-grid > .vd-r5 { grid-row: 5; }',
+                  /* ADAPTADO 2026-10-15 (G3): la NOVENA regla. La columna 3 pasa a SEIS campos
+                     —el diametro de la arteria pulmonar se mudo aca desde la insuficiencia
+                     pulmonar— y las otras dos se quedan con cinco. */
+                  '.vd-grid > .vd-r6 { grid-row: 6; }'];
     const faltanDecl = DECL.filter(d => fuente.indexOf(d) < 0);
-    ex.push(['las OCHO reglas de posicion explicita estan en el fuente', faltanDecl.length === 0,
+    ex.push(['las NUEVE reglas de posicion explicita estan en el fuente', faltanDecl.length === 0,
       'faltan: ' + faltanDecl.join(' | ')]);
+    /* ADAPTADO 2026-10-15 (G3): la regla que mandaba el diametro a la columna del «Ancho del
+       jet» se RETIRO con el campo. Si volviera a aparecer, el campo estaria en los dos lados. */
+    ex.push(['y la regla .ip-ap-col2 del G1 YA NO existe: el campo se MOVIO, no se duplico',
+      fuente.indexOf('.ip-ap-col2') < 0, '']);
     ex.push(['y el colapso a UNA columna por debajo de 768 px sigue existiendo',
       fuente.indexOf('.grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }') > -1, '']);
     /* El orden del DOCUMENTO es el del Tab: por columnas, la 1 entera y despues la 2 y la 3. */
+    /* ADAPTADO 2026-10-15 (G3): QUINCE -> DIECISEIS, con ip_ap_diam en el TERCER lugar de la
+       columna 3, debajo del VTI TSVD. El campo se MUDO desde la insuficiencia de la valvula
+       pulmonar: mismo id, mismo dueno de lectura y misma columna de Excel. */
     const ESPERADO = ['tvia','tapse','s_prime','vd_tei','fevd','vd_bas','vd_mid','vd_long',
-                      'vd_vi','vd_pared','tsvd_diametro','vti_tsvd','vd_area_d','vd_area_s','vd_fac'];
+                      'vd_vi','vd_pared','tsvd_diametro','vti_tsvd','ip_ap_diam','vd_area_d',
+                      'vd_area_s','vd_fac'];
     const orden = grid ? Array.prototype.slice.call(grid.querySelectorAll('input[id]')).map(e => e.id) : [];
-    ex.push(['los QUINCE campos estan en el orden de COLUMNAS, que es el que recorre el Tab',
+    ex.push(['los DIECISEIS campos estan en el orden de COLUMNAS, que es el que recorre el Tab',
       orden.join(',') === ESPERADO.join(','), orden.join(',')]);
     /* Cada campo declara su celda, y ninguna celda se repite. */
     const celdas = grid ? Array.prototype.slice.call(grid.querySelectorAll('.fg')).map(fg => {
@@ -66046,9 +66058,10 @@ caso('TC-476', 'Tanda G1: el VD en tres columnas con su orden de Tab, las filas 
       const c = (cl.match(/vd-c(\\d)/) || [])[1] || '?';
       const r = (cl.match(/vd-r(\\d)/) || [])[1] || '?';
       return c + ':' + r; }) : [];
-    ex.push(['las quince casillas estan declaradas y NINGUNA se repite',
-      celdas.length === 15 && celdas.indexOf('?:?') < 0 &&
-      new Set(celdas).size === 15, celdas.join(' ')]);
+    /* ADAPTADO 2026-10-15 (G3): quince -> dieciseis casillas. */
+    ex.push(['las dieciseis casillas estan declaradas y NINGUNA se repite',
+      celdas.length === 16 && celdas.indexOf('?:?') < 0 &&
+      new Set(celdas).size === 16, celdas.join(' ')]);
     /* NI UN tabindex: con uno positivo el Tab deja de seguir el orden del documento. */
     ex.push(['NO hay ni un tabindex en la grilla del VD',
       grid ? grid.querySelectorAll('[tabindex]').length === 0 : false,
@@ -66058,10 +66071,13 @@ caso('TC-476', 'Tanda G1: el VD en tres columnas con su orden de Tab, las filas 
     __t.limpiar();
     try { showTab('vd'); } catch (e) {}
     try { const a = EL('sacc-vd'); if (a && !a.classList.contains('open')) secToggle('vd'); } catch (e) {}
-    S('vd_area_d', '20'); S('vd_area_s', '12');   // para que la casilla de la FAC exista
+    /* ADAPTADO 2026-10-15 (G3): la casilla de la FAC ya NO se esconde, asi que no hace falta
+       cargarle las areas para que exista. Se las deja igual, porque el foco de un campo visible
+       no depende de ellas y quitar el gesto cambiaria la escena por una razon ajena. */
+    S('vd_area_d', '20'); S('vd_area_s', '12');
     const sinFoco = ESPERADO.filter(id => { const e = EL(id); if (!e) return true;
       e.focus(); return document.activeElement !== e; });
-    ex.push(['los quince campos reciben el foco', sinFoco.length === 0, 'no enfocan: ' + sinFoco.join(',')]);
+    ex.push(['los dieciseis campos reciben el foco', sinFoco.length === 0, 'no enfocan: ' + sinFoco.join(',')]);
 
     /* ══ B · LAS FILAS QUE SOLO SE VEN CON DATO ════════════════════════════════════════════ */
     const caja = EL('vd-tam') ? EL('vd-tam').closest('.calc-box') : null;
@@ -66080,8 +66096,16 @@ caso('TC-476', 'Tanda G1: el VD en tres columnas con su orden de Tab, las filas 
       VIS('row-fevd-interp') === false && VIS('row-fac-interp') === false &&
       VIS('row-vd-vi-interp') === false,
       JSON.stringify([VIS('row-fevd-interp'), VIS('row-fac-interp'), VIS('row-vd-vi-interp')])]);
-    ex.push(['  y la CASILLA automatica de la FAC tambien',
-      VIS('fg-vd-fac') === false, String(VIS('fg-vd-fac'))]);
+    /* ADAPTADO 2026-10-15 (G3): la CASILLA de la FAC ya NO se esconde —decision de Maicol: la
+       quiere a la vista como antes del G1— y lo que se esconde sigue siendo su FILA del cuadro.
+       La condicion pasa a afirmar lo CONTRARIO de lo que afirmaba, y ademas el mensaje nuevo:
+       sin las dos areas el campo DICE que le falta en vez de quedar mudo. */
+    ex.push(['  pero la CASILLA de la FAC esta VISIBLE aunque no haya dato (G3)',
+      VIS('fg-vd-fac') === true, String(VIS('fg-vd-fac'))]);
+    ex.push(['  y su placeholder nombra las DOS areas que le faltan',
+      (function(){ const e = EL('vd_fac'); const ph = e ? String(e.placeholder || '') : '';
+        return ph.indexOf('requiere') > -1 && ph.indexOf('telediast') > -1 && ph.indexOf('telesist') > -1; })(),
+      (function(){ const e = EL('vd_fac'); return e ? String(e.placeholder || '') : 'NO EXISTE'; })()]);
     /* FEVD: la fila aparece con el dato, y el corte de la ASE 2025 (folio 145) es >45. */
     S('fevd', '46'); const f46 = { vis: VIS('row-fevd-interp'), txt: T('fevd-interp') };
     S('fevd', '45'); const f45 = T('fevd-interp');
@@ -66096,22 +66120,39 @@ caso('TC-476', 'Tanda G1: el VD en tres columnas con su orden de Tab, las filas 
       VIS('row-fevd-interp') === false, String(VIS('row-fevd-interp'))]);
     /* FAC: la fila Y la casilla aparecen con el par de areas. */
     S('vd_area_d', '20'); S('vd_area_s', '12');
-    ex.push(['con las dos areas, la fila y la casilla de la FAC aparecen',
-      VIS('row-fac-interp') === true && VIS('fg-vd-fac') === true && V('vd_fac') === '40',
-      JSON.stringify([VIS('row-fac-interp'), VIS('fg-vd-fac'), V('vd_fac')])]);
+    /* ADAPTADO 2026-10-15 (G3): la casilla ya estaba visible, asi que lo que aparece es la FILA;
+       y con dato el placeholder se VACIA, que es lo que impide que el aviso quede abajo del
+       numero. */
+    ex.push(['con las dos areas, la fila aparece y la casilla publica el valor sin aviso',
+      VIS('row-fac-interp') === true && VIS('fg-vd-fac') === true && V('vd_fac') === '40' &&
+      String((EL('vd_fac') || {}).placeholder || '') === '',
+      JSON.stringify([VIS('row-fac-interp'), VIS('fg-vd-fac'), V('vd_fac'),
+        String((EL('vd_fac') || {}).placeholder || '')])]);
     S('vd_area_s', '');
-    ex.push(['al borrar un area, las dos se esconden otra vez',
-      VIS('row-fac-interp') === false && VIS('fg-vd-fac') === false,
-      JSON.stringify([VIS('row-fac-interp'), VIS('fg-vd-fac')])]);
+    /* ADAPTADO 2026-10-15 (G3): al borrar UN area se esconde la FILA y la casilla SE QUEDA,
+       nombrando la que falta — y nombra SOLO esa, que es lo que distingue el mensaje de un
+       «requiere las dos areas» generico. */
+    ex.push(['al borrar un area la FILA se esconde, la casilla se queda y nombra la que falta',
+      VIS('row-fac-interp') === false && VIS('fg-vd-fac') === true &&
+      String((EL('vd_fac') || {}).placeholder || '').indexOf('telesist') > -1 &&
+      String((EL('vd_fac') || {}).placeholder || '').indexOf('telediast') < 0,
+      JSON.stringify([VIS('row-fac-interp'), VIS('fg-vd-fac'),
+        String((EL('vd_fac') || {}).placeholder || '')])]);
     /* «Nuevo estudio»: la TERCERA columna de vdRefVisSync. */
     S('fevd', '55'); S('vd_area_d', '20'); S('vd_area_s', '12');
-    const antesLimpiar = [VIS('row-fevd-interp'), VIS('row-fac-interp'), VIS('fg-vd-fac')];
+    /* ADAPTADO 2026-10-15 (G3): la casilla sale del conjunto de lo que se esconde y entra en el
+       de lo que «Nuevo estudio» tiene que REPONER: su placeholder. */
+    const antesLimpiar = [VIS('row-fevd-interp'), VIS('row-fac-interp')];
     __t.limpiar();
-    ex.push(['DENOMINADOR del vaciado: las tres estaban VISIBLES',
-      antesLimpiar.join(',') === 'true,true,true', antesLimpiar.join(',')]);
+    ex.push(['DENOMINADOR del vaciado: las dos filas estaban VISIBLES',
+      antesLimpiar.join(',') === 'true,true', antesLimpiar.join(',')]);
     ex.push(['«Nuevo estudio» las vuelve a esconder — limpiarCampos NO pasa por RECALC_MODULOS',
-      VIS('row-fevd-interp') === false && VIS('row-fac-interp') === false && VIS('fg-vd-fac') === false,
-      JSON.stringify([VIS('row-fevd-interp'), VIS('row-fac-interp'), VIS('fg-vd-fac')])]);
+      VIS('row-fevd-interp') === false && VIS('row-fac-interp') === false,
+      JSON.stringify([VIS('row-fevd-interp'), VIS('row-fac-interp')])]);
+    ex.push(['  y repone el mensaje «requiere …» de la casilla, que ningun barrido generico toca',
+      VIS('fg-vd-fac') === true && V('vd_fac') === '' &&
+      String((EL('vd_fac') || {}).placeholder || '').indexOf('requiere') > -1,
+      JSON.stringify([VIS('fg-vd-fac'), V('vd_fac'), String((EL('vd_fac') || {}).placeholder || '')])]);
 
     /* ══ C · EL VOLUMEN SISTOLICO PULMONAR (Qp) ════════════════════════════════════════════
        Aritmetica cerrada: diametro 20 mm -> area = PI*(20/20)^2 = 3,1416 cm2; por VTI 20 cm da
