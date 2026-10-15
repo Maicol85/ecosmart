@@ -36,7 +36,8 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar un criterio de PRÓTESIS mitral o aórtica**: la Tabla 11, el AEO en tres tramos, el THP directo, el PPM de la Tabla 7, el badge del AVA aórtico, las tarjetas nativa-prótesis o el rótulo AEO | `docs/mapa/protesis-valvular.md` |
 | **Buscar un CORTE o una BANDA de plausibilidad** de cualquier válvula, con su fuente | `docs/mapa/valvulas-constantes.md` |
 | **Tocar la MARCA DE MANUAL de una pastilla, el selector binario de la estenosis mitral, el VIOLETA de «Significativa», el VTI de entrada tricuspídeo, la CASILLA DE PISA de «Incluir en el informe» o lo que «Nuevo estudio» deja vivo** | `docs/mapa/valvulas-manual-binario.md` |
-| **Tocar el VENTRÍCULO DERECHO**: sus campos, el cuadro de referencias, la disfunción sistólica, la pared o el Tei | `docs/mapa/vd-derecho.md` |
+| **Tocar el VENTRÍCULO DERECHO**: sus TRES columnas de campos, el orden del cuadro de referencias, la disfunción sistólica, la pared graduada, el Tei, la FEVD, la relación VD/VI o el Qp | `docs/mapa/vd-derecho.md` |
+| **Tocar el cociente TAPSE/PSAP, el DIÁMETRO DE LA ARTERIA PULMONAR o el color del aviso del Tei** | `docs/mapa/tapse-psap-ap.md` |
 | **Tocar el panel de Evidencia: agregar una cita, una sección o un sub-bloque** | `docs/mapa/panel-evidencia.md` |
 | **Agregar un TÉRMINO al glosario del panel (el ⓘ con tarjeta)** | `docs/mapa/panel-evidencia-terminos.md` |
 | **Tocar el CARTEL DE PÉPTIDOS del HFA-PEFF, su puntaje o el plan Básico/Avanzado**: el espejo del péptido, el ritmo que se lee, los cortes por tipo o por qué `showTab` no chequea el plan | `docs/mapa/hfapeff-peptidos.md` |
@@ -96,7 +97,7 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **7,41 MB / 111.744 líneas**, medido el 2026-10-15 al cierre de la tanda W2-B —el renglón decía «6,13 MB /
+  sin frameworks. Hoy **7,46 MB / 112.433 líneas**, medido el 2026-10-15 al cierre de la tanda G1 —antes decía «6,13 MB /
   90.494 líneas» y llevaba varias tandas sin actualizarse: **medirlo antes de presupuestar contexto**—. Las únicas dependencias son jsPDF, XLSX y
   PptxGenJS por CDN. Se abre como archivo local y corre en Chrome.
 - Lo que produce es un **informe firmado**: narrativo, EN SUMA, PDF, PPT y Excel del Laboratorio.
@@ -250,6 +251,207 @@ impecable.
 ---
 
 ## Estado vigente
+
+### El VENTRÍCULO DERECHO en tres columnas, el TAPSE/PSAP y el diámetro de la ARTERIA PULMONAR — «G1» (2026-10-15)
+
+- **Es la tanda «G1».** Al **empezar**, `main` estaba en **`39475c6`** (sello `v20261015-0547`) y
+  `origin/main` en **`0963d53`**: **los cuatro commits del F estaban SIN PUSHEAR**. La orden
+  mandaba PARAR en el punto 0 y se paró; Maicol autorizó seguir igual, así que los cinco commits
+  de esta tanda se apilaron encima de esos cuatro.
+  ⚠️ **AL CERRAR, `origin/main` YA ESTABA EN `39475c6`: Maicol pusheó los cuatro del F durante la
+  tanda.** Comprobado con un `git fetch` de verdad al final, no con el ref en caché — que es
+  justamente por qué conviene remedirlo al cerrar y no copiar el renglón del arranque. Así que lo
+  que queda local son **los cinco de esta tanda y nada más**. El push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 5 → 4 → 3 → 2 → 1.**
+  ⚠️ **EL 2 CUELGA DEL 1 Y HAY QUE REVERTIRLO ANTES**: el 2 agrega una fila al cuadro que el 1
+  reescribió entero, y su visibilidad la gobierna `vdRefVisSync`, que **nace en el 1**. Revertir
+  el 1 primero deja `vdRefVisSync` sin existir y la fila de la relación VD/VI **visible para
+  siempre**, porque nadie la esconde. **El 3 cuelga del 1 por la misma línea**: su
+  `vdTapsePsapSync` se inserta a continuación de `vdRefVisSync`.
+  ⚠️ **EL 4 ES EL ÚNICO QUE SE REVIERTE SOLO**, y tiene DOS mitades independientes entre sí: el
+  campo del diámetro de la arteria pulmonar y el color del aviso del Tei. Ninguna nombra nada de
+  los otros tres commits.
+  ⚠️ **PERO EL 1 LLEVA LA SONDA** (`scripts/_probe_g1.mjs`), que los otros tres usan: revertirlo
+  los deja sin arnés.
+  **El 5 es TC-476 más documentación y el sello**, y afirma el comportamiento de los cuatro:
+  revertir cualquiera sin el 5 deja TC-476 en rojo —56 de sus 77 condiciones—.
+  ⚠️ **Y EL 1 Y EL 2 ADAPTARON TC-457, LOS DOS LA MISMA LÍNEA**: su conteo de filas del cuadro
+  pasó de 7 a 9 y después a 10. Revertir sin reponer ese número lo deja en rojo por el
+  denominador, no por un defecto.
+
+- **Línea base al cierre: suite 486/490 con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0
+  ERROR, Excel en 436 columnas, celular 43 a 360 px y 52 a 390 px con 1 ALTA cada uno —IDÉNTICO
+  a la línea base—.** **CERO REGRESIONES**: los cuatro rojos son exactamente los de ENTRADA
+  —**TC-223** (el documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**—. **El
+  denominador subió a 490**: esta tanda agregó **TC-476**. La de ENTRADA, medida sobre el árbol
+  limpio antes de tocar nada, fue **485/489** con esos mismos cuatro rojos. El `md5` de
+  `index.html` no se movió durante ninguna de las dos corridas (`437ea7c3…`) y el pendrive estaba
+  montado antes y después.
+  ⚠️ **LA SUITE COMPLETA SE CORRIÓ DOS VECES, Y LA PRIMERA NO ES LA LÍNEA BASE.** Dio **483/490**
+  con **siete** rojos, y los **tres** de más los destapó la suite completa, no la corrida de zona:
+  **TC-428** (el cuadro del Doppler tricuspídeo pasa de 7 filas a 8), **TC-471** (el registro
+  `VINFO` pasa de 21 entradas a 22) y **TC-472**, que es el caso más interesante de los tres: su
+  condición decía textualmente «LÍMITE DECLARADO: el aviso del Tei del VD sigue gris, y queda en
+  PENDIENTES», escrita el 14/10 **para que el día que se arreglara se notara**. Se arregló y lo
+  notó. Los tres se adaptaron y la segunda corrida es la que vale.
+  ⚠️ **`--todo` del chequeo de celular BAJA de 376/385 a 375/384, y el signo importa.** No es que
+  el campo nuevo no cuente: el de la arteria pulmonar vive dentro del cajón «Datos» de la
+  pulmonar, que `check_mobile.js` no abre, y la casilla de la FAC **dejó de contarse porque ahora
+  se esconde sin dato**. **La cuenta VISIBLE, que es la que compara la línea base, no se movió.**
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. Por eso el total es sobre 490 y no sobre 491.
+- **EL SELLO DE VERSIÓN** estaba al día al empezar (`v20261015-0547`) y se volvió a sellar en el
+  commit 5: **`v20261015-0715`**. La suite se midió **DESPUÉS** de sellar, con el `md5` quieto.
+
+- **Dónde está todo:** `docs/mapa/vd-derecho.md` → la sección G1 entera (**27,5 KB**),
+  `docs/mapa/tapse-psap-ap.md` (**mapa NUEVO por PARTICIÓN**, 7,7 KB),
+  `docs/fuentes/FUENTES.md` → `### escErs2022` (**entrada NUEVA**: la Tabla 10 leída POR
+  COORDENADAS y la tabla de riesgo del folio 41) y «`aseVd2025` — lo que esta tanda le agregó»,
+  y `docs/PENDIENTES.md` → **D2-2 marcado CERRADO** más **doce** cosas declaradas (G1-1 a G1-12).
+  ⚠️ **EL MAPA SE PARTIÓ ANTES DE CRUZAR EL TECHO Y NO DESPUÉS.** Con todo junto quedaba en
+  **33,5 KB**, a 1,5 KB de los 35 — la misma situación en la que `valvulas.md` cruzó DOS veces.
+  Lo que salió a archivo propio es lo que **no vive en la pestaña VD/AD**.
+
+- **LOS QUINCE CAMPOS EN TRES COLUMNAS, Y EL ORDEN DEL MARCADO ES EL DEL TAB.** Columna 1: TAP ·
+  TAPSE · S′ · Tei · FEVD; columna 2: VD basal · medio · longitudinal · VD/VI · pared; columna 3:
+  Diám. TSVD · VTI TSVD · área telediastólica · área telesistólica · FAC. Mecanismo de la grilla
+  del Doppler mitral: **cero `tabindex`** y posición EXPLÍCITA (`vd-cN`/`vd-rM`, ocho reglas
+  dentro del `min-width:769px` que ya existía).
+  ⚠️ **ACÁ LA POSICIÓN EXPLÍCITA NO ES PRECAUCIÓN SINO NECESIDAD**, a diferencia del Doppler
+  mitral: la casilla de la FAC **se esconde sin dato desde esta misma tanda**, y con flujo
+  automático eso haría subir un campo de OTRA columna, porque la FAC es el último de la suya.
+  **MEDIDO con teclas reales:** grilla **3×5 a 1200 px** con los quince a 318 px, **cero
+  solapamientos y cero desborde**, una columna a 390 y 360 px, en los **dos temas**; el Tab
+  recorre los quince en orden de columnas.
+  ⚠️ **SIN DATO EN LAS ÁREAS EL TAB SALTA LA CASILLA DE LA FAC** —está escondida—, así que se
+  midieron los **dos** recorridos.
+
+- **EL CUADRO PASA A DIEZ FILAS Y SE LEE EN EL ORDEN DE LAS COLUMNAS.** Tres sólo se ven con
+  dato: la **FEVD**, la **FAC** (y con ella su casilla automática) y la **relación VD/VI**, que
+  se esconde **por su VEREDICTO y no por falta de dato**.
+  ⚠️ **SE ESCONDE LA FILA ENTERA Y NO SÓLO EL TEXTO**: el barrido genérico de
+  `.calc-box .calc-row span[id]` ya pone el span en «—», y lo que **ningún barrido toca** es el
+  `display` de su `.calc-row`. `vdRefVisSync` lleva las TRES columnas.
+  **Tres `oninput` nuevos y ninguno decorativo**: `fevd`, `vd_vi` —que hasta hoy **no repintaba
+  la probabilidad de HTP** al cargarse— y los dos insumos del Qp.
+
+- **EL VOLUMEN SISTÓLICO PULMONAR (Qp) NO ABRE UNA SEGUNDA COPIA DE LA FÓRMULA.** El álgebra
+  vive en **`_vsTsviCalc`**, su dueño único desde el 14/10, y `vdQpCalc` sólo dice de dónde salen
+  los insumos. ⚠️ **`eteQpQs` NO SERVÍA: ese cociente CANCELA la constante** y por eso nunca
+  calcula el volumen. **NO vota, no lleva corte y no lleva color.** Medido: Ø 20 mm + VTI 20 cm
+  → **62,8 ml**.
+
+- **LA RELACIÓN VD/VI SIGUE SIENDO UN CAMPO NUMÉRICO, Y LAS DOS OPCIONES DE LA ORDEN NO ENTRAN.**
+  La propia orden lo condiciona a que el campo no existiera ya en esa forma, y existía: de él
+  leen la categoría A de `_htp2022Core`, el PDF y el PPT. Lo que entra es la FILA, con el
+  **`> 1,0`** de la ESC/ERS 2022 (Tabla 10, folio 28, categoría A) y de la ASE 2025 (Tabla 8,
+  folio 173). **El corte no se movió**: es el mismo literal que ya se aplicaba, y ahora los dos
+  leen `VD_VI_HTP_MIN`. Medido: 0,99 no · **1,00 EXACTO no** · 1,01 sí.
+  ⚠️ **EL `>= 0,9` DE TEP NO SE TOCÓ**: es otro campo (`tep_vdvi`) y otra pregunta.
+  `PENDIENTES.md` → **G1-5**.
+
+- **LA PARED SE GRADÚA CON LA TABLA 1 DE LA ASE 2025 (folio 145), Y COINCIDE CON EL «5-7-9» DEL
+  MÉDICO**: normal `<5` · leve `≥5 a ≤7` · moderada `>7 a ≤9` · severa `>9` mm.
+  ⚠️ **LA ASE 2010 (RUDSKI) NO ESTÁ EN LA BIBLIOTECA** —censo de los 70 PDF— y la ASE/EACVI 2015,
+  que sí está, **no publica grados de RVWT**: la única fuente es la ASE 2025.
+  **El corte de hipertrofia no se movió** (`>= 5 mm`) y **la graduación NO sale del cuadro**: el
+  informe sigue diciendo «hipertrofia del ventrículo derecho (pared de N mm)» y el EN SUMA
+  «HVD», sin grado. Medido con los dos techos incluidos: 5,0 y 7,0 leve, 9,0 moderada.
+  `PENDIENTES.md` → **G1-3**.
+
+- **EL COCIENTE TAPSE/PSAP TIENE UN DUEÑO ÚNICO Y NO RECALCULA LA PSAP: LA LEE.** Fila nueva en
+  el Doppler tricuspídeo, debajo de la PSAP estimada. Tres tramos (decisión de Maicol):
+  `< 0,36` «mal pronóstico en IC con FEVI reducida y preservada» · `0,36 a < 0,55` «elemento de
+  probabilidad para HTP» · `>= 0,55` «acoplamiento VD-AP normal». **Sin TAPSE o sin PSAP la fila
+  NO se dibuja, y sin mensaje de error.**
+  ⚠️ **TRES DECIMALES Y NO DOS, Y NO ES COSMÉTICO.** Con dos, un 0,359 se imprime «0,36» y,
+  clasificado sobre lo impreso, **deja de ser «mal pronóstico»**: el corte se convertiría de
+  hecho en 0,355. Con tres el borde es el de la fuente **y** es la misma precisión con la que la
+  pantalla de TEP publica este mismo cociente.
+  **Medido:** 0,359 · **0,360 exacto** · 0,410 · 0,546 · **0,550 exacto** · 0,564.
+  ⚠️ **HAY CUATRO SUPERFICIES QUE LO CALCULAN, NO DOS.** `calcTEP` (`>0,32`) pasa a **leer al
+  dueño** con su predicado y su valor crudo idénticos —su texto, sus tres decimales y su corte no
+  se tocaron—; `_htp2022Core` (`<0,55`) **no puede**, porque corre también sobre un estudio
+  GUARDADO y no sobre el DOM; y **`cxTP` tampoco** —el índice del módulo de
+  constricción/restricción, con cortes 0,36 y 0,19 y con **campos de sobreescritura propios**—.
+  Las dos quedan declaradas. `PENDIENTES.md` → **G1-8** y **G1-9**.
+
+- ⚠️ **EL COCIENTE ESTÁ EN LA CATEGORÍA C DE LA APP Y LA TABLA LO PONE EN LA A, Y SE MIDIÓ POR
+  COORDENADAS.** En la Tabla 10 de la ESC/ERS 2022 (folio 28) el renglón «Cociente TAPSE/PAPs
+  < 0,55» arranca en **x0 = 316**, la columna de «A: Ventrículos»; los dos del diámetro de la AP
+  en **x0 = 389**, la de «B: Arteria pulmonar». Leído por el orden en que el extractor devuelve
+  el texto, las tres columnas se mezclan. **NO se corrigió**: mover un signo de categoría cambia
+  `nCat` y con él la probabilidad publicada. `PENDIENTES.md` → **G1-1**.
+
+- ⚠️ **PARADA DECLARADA: EL 0,32 DE LA PANTALLA DE TEP TIENE FUENTE PERO NO ES UN CRITERIO DE
+  TEP.** ESC/ERS 2022, **folio 41**: es el umbral de **BAJO RIESGO en hipertensión arterial
+  pulmonar**. Por eso **no se agregó** la frase «mal pronóstico en IC y probabilidad de TEP» que
+  la orden ofrecía. `PENDIENTES.md` → **G1-2**.
+- ⚠️ **Y EL 0,36 EN INSUFICIENCIA CARDÍACA NO ESTÁ VERIFICADO AL ESTÁNDAR DE LA CASA.** Nace de
+  **Guazzi, Am J Physiol Heart Circ Physiol 2013;305:H1373-H1381**, que **no está en la
+  biblioteca**: se leyó a través del metaanálisis de Heart Fail Rev 2024, en línea. Por eso la
+  tarjeta ⓘ **no lo cita** y su bloque «a tener en cuenta» lo dice en voz alta. El número está
+  publicado y la ASE 2025 lo nombra en su folio 180, pero con OTRO significado.
+  `PENDIENTES.md` → **G1-6** y **G1-7**.
+
+- **EL GLOBO ⓘ NO NECESITÓ EXTENDER NINGÚN MECANISMO**: `#vinfo-card` vive FUERA de toda pestaña,
+  así que el de Válvulas del D1 ya funcionaba en el Doppler. Clave `tapse-psap`, cuatro bloques,
+  **22 acentos**, 1147 caracteres. Medido: abre, cierra por los cuatro caminos, es un `<button>`
+  **sin `title` y sin `abrirAyudaEco`**, y entra entero en el viewport a **1200, 390 y 360 px en
+  los dos temas** con el globo alcanzable. Captura PNG en los dos temas, con `md5` distinto.
+
+- **EL DIÁMETRO DE LA ARTERIA PULMONAR NO VOTA, Y LO GARANTIZA SU `oninput`:** llama **sólo** a
+  `ipApDiamSync` y **no** a `calcIP`, que es el dueño del grado. **Medido**: con los cuatro signos
+  de la IP cargados, grado, pastilla, cuadro, informe y EN SUMA salen **idénticos** con y sin él.
+  Banda **`[5, 80]` mm**, de plausibilidad y NO de severidad: 2,5 y 120 quedan marcados
+  «(revisar)» y el valor **no se corrige**; 5 y 80 exactos no se marcan.
+  **SIN columna de Excel** —va en el G2—: 436 columnas en las nueve escenas y **cero encabezados
+  que nombren la arteria pulmonar**. **Y SÍ viaja con el estudio**, porque su id va con guión
+  BAJO y `_noEsDelEstudio` no lo excluye.
+  ⚠️ **LA COMPARACIÓN QUE LA GUÍA PIDE ES CONTRA LA RAÍZ AÓRTICA** —«RA: raíz aórtica» en el pie
+  de la Tabla 10, folio 28—, que en esta app es **`ao_sin`**. **No se conectó**: el censo de las
+  nueve medidas de aorta está en `PENDIENTES.md` → **G1-11**.
+
+- **EL AVISO DEL TEI SE VEÍA GRIS Y AHORA ES NARANJA (el defecto D2-2, cerrado).** Medido en
+  HEAD: `rgb(232,236,244)` de noche y `rgb(26,34,51)` de día, con
+  `getPropertyValue('--amber')` devolviendo **cadena vacía**. Hoy `rgb(245,158,66)` y
+  `rgb(217,123,31)`, **idénticos al control `#diast-excl-aviso`**. Texto y lógica sin tocar.
+
+- **CONTROL NEGATIVO MAYOR, con escenario CARGADO y con el formulario vacío: las ÚNICAS
+  diferencias contra HEAD están DENTRO del cuadro de referencias del VD** —que es lo que esta
+  tanda reordena— **más la clave del campo nuevo en el juego de campos guardados**. Informe en
+  los tres estilos, EN SUMA, **Excel en 436 columnas con el mismo hash**, hash de campos, PPT,
+  Laboratorio, los ocho grados y las ocho pastillas, la función diastólica y el HFA-PEFF salen
+  IDÉNTICOS.
+
+- **Arnés: `scripts/_probe_g1.mjs`** (A/B de solo lectura con `--file`, y `--dest` para las
+  capturas), ocho grupos (`campos`, `refs`, `vdvi`, `tpsp`, `globo`, `pulmo`, `color`,
+  `controles`), con teclas y clics reales y emulación de viewport.
+  **Cobertura: TC-476**, **77 condiciones** —contadas instrumentando el propio caso para que
+  publicara su `ex.length`— con nueve denominadores y nueve controles negativos. **Verificado que
+  sabe fallar contra HEAD en un worktree aparte: 56 de las 77 en rojo, y NINGUNA por excepción.**
+- ⚠️ **CASOS ADAPTADOS: UNO, TC-457**, y **dos veces la misma línea**: su conteo de filas del
+  cuadro del VD pasó de 7 a 9 (commit 1) y de 9 a 10 (commit 2).
+
+- ⚠️ **EL DOPPLER TRICUSPÍDEO NO ES UN `sacc-` Y NO SE ABRE CON `secToggle`.** Es una `.card` con
+  `toggleCard('dop-tricusp')` y su cuerpo nace en `display:none`: sin abrirlo, la fila del
+  cociente y su globo **existen y miden 0×0**, la tarjeta no se ancla y «no abre» se lee como «el
+  mecanismo no funciona» — que es lo que informó la primera corrida del grupo `globo`.
+- ⚠️ **`el.type` DEVUELVE «text» SOBRE UN CAMPO QUE EN EL MARCADO DICE `number`**, y el ATRIBUTO
+  también. Esta app convierte todos sus `input[type=number]` a `type="text"` con
+  `inputmode="decimal"` y la clase **`numdec`** para que Safari acepte la coma —de ahí también que
+  el `step` no restrinja nada, que es lo que el comentario de `vdBasCat` ya documenta—. **Dos
+  condiciones de TC-476 salieron rojas por esto sobre campos perfectos.** Lo que prueba que un
+  campo sigue siendo numérico es que esa maquinaria lo haya tomado.
+- ⚠️ **AL QUITARLE LOS ACENTOS GRAVES A UN RANGO DE LÍNEAS, EL ÍNDICE SE PASÓ UNA LÍNEA Y SE
+  LLEVÓ EL ACENTO DE APERTURA DEL PROPIO `caso(...)`.** El síntoma fue que
+  `scripts/check_backticks.py` señalaba una línea del RUNNER, cientos de líneas después, que es
+  código normal. **El acento grave que FALTA se ve igual que uno que SOBRA.**
+- ⚠️ **Me comí el acento grave CUATRO veces**, todas en comentarios míos: dos en el template de
+  la sonda y dos en el cuerpo de TC-476, con el archivo que documenta la trampa abierto delante.
+  `scripts/check_backticks.py` dio la línea exacta las cuatro; `node --check` apuntaba a la
+  apertura del template.
 
 ### El VSFVI y el VOLUMEN LATIDO automáticos, el GC del PDF y el grado del AVA indexada — «F» (2026-10-15)
 

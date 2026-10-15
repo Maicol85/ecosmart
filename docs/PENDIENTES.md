@@ -432,7 +432,14 @@ denominador —el volumen eyectado del TSVD, que la app sí sabe calcular con `t
 decisiones son clínicas. **Es decisión de Maicol.** Mientras tanto, la columna 3 tiene dos
 casillas y el reparto es 3 + 3 + 2; la tarjeta ⓘ de esa lesión publica DOS fórmulas y lo declara.
 
-### D2-2 · `#vd-tei-aviso` tiene el mismo defecto de color y quedó fuera de alcance
+### [CERRADO 2026-10-15 · G1] D2-2 · `#vd-tei-aviso` tenía el mismo defecto de color
+
+> **CERRADO.** Pasó a `var(--orange)`. Medido en los dos temas: hoy computa `rgb(245, 158, 66)`
+> de noche y `rgb(217, 123, 31)` de día, **idénticos al control `#diast-excl-aviso`**, que ya
+> estaba bien. El texto y la lógica no se tocaron y el cartel sale en las mismas escenas.
+> Captura PNG en los dos temas, con `md5` distinto. Lo fija TC-476.
+
+#### Lo que decía la entrada original (D2-2) · `#vd-tei-aviso` tiene el mismo defecto de color y quedó fuera de alcance
 
 El aviso del índice de Tei del ventrículo derecho lleva `color:var(--amber)` y, como los cinco que
 esta tanda corrigió, **`--amber` no existe fuera de `.amilo-root`**. Medido el 2026-10-14 con
@@ -2682,3 +2689,177 @@ y de **bajo gradiente**, cada uno con su propio texto. Queda a decisión de Maic
 los módulos congénitos y del panel de Evidencia. Son **otra magnitud** —el cociente de flujos
 pulmonar/sistémico— y **otro módulo**: no se tocaron, y ninguno vive en un `<label>`. Medido sobre
 el árbol vivo: **cero rótulos visibles con la sigla**, y TC-475 lo fija.
+
+## Tanda «G1» (2026-10-15) — declarado y NO corregido
+
+> El VD en tres columnas, el Qp, la relación VD/VI, la pared graduada, el cociente TAPSE/PSAP y
+> el diámetro de la arteria pulmonar. Los mapas: `docs/mapa/vd-derecho.md` y
+> `docs/mapa/tapse-psap-ap.md`. Las fuentes: `docs/fuentes/FUENTES.md` → `escErs2022` y la
+> sección «`aseVd2025` — lo que esta tanda (G1) le agregó».
+
+### G1-1 · El cociente TAPSE/PSAP está en la categoría C de la app y la guía lo pone en la A
+
+**Medido por coordenadas sobre el PDF**, no por el orden en que el extractor devuelve el texto:
+en la **Tabla 10 de la ESC/ERS 2022, folio 28**, el renglón «Cociente TAPSE/PAPs < 0,55 mm/mmHg»
+arranca en **x0 = 316**, que es la columna de **«A: Ventrículos»**; los dos renglones del
+diámetro de la AP arrancan en x0 = 389, la de «B: Arteria pulmonar». La app lo tiene en `catC`
+de `_htp2022Core`, junto a la VCI y el área de la AD, y el rótulo de Avanzado lo dice
+(«C · VCI / AD … TAPSE/PSAP < 0.55»).
+
+**No se corrigió**: mover un signo de categoría cambia `nCat` en toda escena donde A ya sea
+positiva y C lo sea sólo por el cociente, o sea cambia la **probabilidad de HTP publicada**. Es
+una regla de integración clínica y esta orden no la autoriza.
+
+**Qué habría que hacer:** mover `(tapsePsap !== null && tapsePsap < 0.55)` de `catC` a `catA` en
+`_htp2022Core`, mover el rótulo de la pantalla de Avanzado al bloque «A · Ventrículos», y
+**medir qué escenas cambian de probabilidad**. Los dos checkbox manuales no se tocan.
+
+### G1-2 · El 0,32 de la pantalla de TEP tiene fuente, pero NO es un criterio de TEP
+
+`calcTEP` publica «TAPSE/PSAP N — conservado (>0.32)». El número existe y está publicado:
+**ESC/ERS 2022, folio 41**, tabla de estratificación de riesgo en **hipertensión arterial
+pulmonar** — `> 0,32` bajo riesgo, `0,19-0,32` intermedio, `< 0,19` alto.
+
+**Ninguna fuente leída lo define como signo de tromboembolia.** Por eso **no se agregó** la frase
+«mal pronóstico en IC y probabilidad de TEP» que la orden ofrecía para los valores por debajo de
+0,32: sería atribuirle un significado que su fuente no le da. Es la **PARADA declarada** de esa
+parte de la orden, y lo demás siguió.
+
+**Qué habría que hacer:** o bien cambiar el rótulo de esa pantalla para que diga de qué tabla
+sale el 0,32 —es un texto de pantalla, decisión del médico—, o bien conseguir una fuente que
+valide el cociente como marcador de TEP agudo y entonces sí agregar la frase.
+
+### G1-3 · La graduación de la pared NO sale al informe ni al EN SUMA
+
+La fila del cuadro dice «7 mm — hipertrofia del VD, leve (≥5 a ≤7 mm)», y el informe firmado
+sigue diciendo «hipertrofia del ventrículo derecho (pared de 7 mm)» y el EN SUMA «HVD», **sin
+grado**. Es deliberado: cambiar una frase del informe firmado es contenido clínico.
+
+**Qué habría que hacer, si el médico lo quiere:** `vdHvdClausula` ya recibe el grado
+(`vdHvdEstado().grado`), así que es interpolarlo; y la cadena del EN SUMA tiene sus nueve frases
+en una tabla. **Hay que medir las nueve y adaptar TC-457**, que las fija letra por letra.
+
+### G1-4 · La FEVD tiene graduación publicada y la app aplica un solo corte
+
+**ASE 2025, Tabla 1, folio 145**, fila `3D RVEF, %`: normal `> 45`, leve `≤45 a <39`, moderada
+`≤39 a ≥32`, severa `<32`. La app publica sólo normal / disfunción, porque lo que esta orden
+pide es que la fila aparezca con el dato.
+
+⚠️ **Y DE PASO: el comentario que vivía al lado del campo decía «(≥45 %)» y la tabla escribe
+`>45`.** No gobernaba nada —la FEVD no se evaluaba en ninguna parte— y se corrigió en el mismo
+movimiento, pero vale la pena saber que estuvo escrito mal.
+
+### G1-5 · Dos cortes de VD/VI conviven, sobre dos campos distintos
+
+| Campo | Pestaña | Corte | Quién lo lee |
+|---|---|---|---|
+| `vd_vi` | VD/AD | **`> 1,0`** | la fila nueva del cuadro y la categoría A de `_htp2022Core`, las dos por `VD_VI_HTP_MIN` |
+| `tep_vdvi` | pantalla de TEP | **`>= 0,9`** | el puntaje de sobrecarga aguda de `calcTEP`, y el PDF y el PPT de ese módulo |
+
+Son dos preguntas distintas —probabilidad de HTP y sobrecarga aguda del VD— y las dos tienen su
+fuente. **No se unificaron.** La cascada de `calcTEP` sigue prefiriendo `tep_vdvi`, después el
+calculado `vd_bas/ddfvi` y sólo al final `vd_vi`.
+
+**Lo que SÍ conviene saber:** un médico que cargue `vd_vi` en VD/AD y no `tep_vdvi` va a ver el
+cociente evaluado con **dos cortes distintos** en dos pantallas, sin que nada lo diga. La salida
+limpia sería que la pantalla de TEP nombre su fuente al lado de su corte.
+
+### G1-6 · El 0,36 en insuficiencia cardíaca NO está verificado al estándar de la casa
+
+El corte que la app aplica en su tramo rojo nace de **Guazzi M, Bandera F, Pelissero G, et al.
+Am J Physiol Heart Circ Physiol 2013;305:H1373-H1381** (cohorte mixta de 293 pacientes), y el
+metaanálisis de **Heart Fail Rev 2024** (PMC10904417) reporta que con ese corte el cociente se
+asocia de forma independiente con la mortalidad por cualquier causa y que vale en FEVI reducida
+y preservada. **Ninguno de los dos está en la biblioteca del Escritorio**: el metaanálisis se
+leyó en línea y el original de Guazzi sólo a través de él.
+
+Por la regla de la casa —«verificada» = texto completo leído, con documento, año, tabla y
+página— **ese corte no está verificado**, y por eso la tarjeta ⓘ **no lo cita**: su bloque «a
+tener en cuenta» dice en voz alta que esos cortes no se pudieron leer en su fuente primaria.
+El número no se inventó acá: está publicado, y la **ASE 2025, folio 180**, lo nombra («The
+ESC/ERS guidelines recommend a TAPSE/PASP <0.36 mm/mmHg as suggestive of PH») — pero con OTRO
+significado, el de sugerir hipertensión pulmonar.
+
+**Qué habría que hacer:** conseguir el PDF de Guazzi 2013 y, con él leído, decidir si el tramo
+rojo se queda con el texto de insuficiencia cardíaca o pasa a nombrar lo que la ASE 2025 le
+atribuye.
+
+⚠️ **Y el 0,36 NO aparece en la traducción española de la ESC/ERS 2022**, barrido el PDF
+completo: su tabla del folio 41 corta en 0,19 y 0,32. O sea que la atribución que la ASE 2025
+hace a «the ESC/ERS guidelines» no se pudo confirmar en el documento que esta biblioteca tiene.
+
+### G1-7 · Tres usos del cociente que la orden pedía y no entraron en la tarjeta
+
+| Uso | Lo que decía la orden | Lo que se encontró |
+|---|---|---|
+| IC con fracción levemente reducida | «alrededor de 0,46» | el metaanálisis de 2024 registra **0,34** para ese fenotipo (Rosa 2020) |
+| Terapia de resincronización | «alrededor de 0,45» | aparece como `< 0,45` por análisis de splines, sin texto completo leído |
+| Reparación o reemplazo tricuspídeo por catéter | «mediana alrededor de 0,406» | coincide con lo publicado (444 pacientes), sin texto completo leído |
+
+Los tres salen de resúmenes y de títulos; **ninguno se leyó en su texto completo**, así que no se
+citan. Y el primero además **no se confirma**: el número de la orden y el del metaanálisis no
+coinciden.
+
+### G1-8 · La probabilidad de HTP de Avanzado no puede leer al dueño del cociente
+
+`_htp2022Core` recibe su fuente como argumento (`{num, txt, chk}`) y corre **también sobre un
+estudio GUARDADO**, no sólo sobre el DOM. `vdTapsePsap()` lee `v('tapse')` y `v('psap_calc')`,
+que son del DOM. Hacerla leer al dueño le rompería la rama de estudio archivado.
+
+**Qué habría que hacer:** darle a `vdTapsePsap` un parámetro `src` opcional con el patrón que
+`emThpValido`, `emContValido` y `hfRitmoEfectivo` ya usan —aceptan una fuente y caen al DOM si
+no se la pasan—, y entonces `_htp2022Core` puede preguntarle. **El corte y el texto de esa
+pantalla no cambian**: es la misma cuenta.
+
+### G1-9 · `cxTP` tampoco lee al dueño, y tiene un motivo distinto
+
+El índice de acoplamiento VD-AP del módulo de constricción/restricción (`cx-tp-res`) calcula el
+mismo cociente con cortes propios (`> 0,36` normal · `0,19-0,36` reducido · `< 0,19` severo) y
+con **campos de sobreescritura** (`cx_tapse`, `cx_psap`): con esos dos cargados describe OTRO par
+de números. Leer al dueño le borraría la sobreescritura.
+
+⚠️ **Su guarda tampoco es la misma** (`psap <= 0` contra el `if (tapse && psap)` del dueño y de
+`calcTEP`) y **publica dos decimales donde las otras dos publican tres**. No se tocó nada de eso.
+
+### G1-10 · El diámetro de la arteria pulmonar no tiene columna de Excel
+
+Decisión de la orden: la columna va en el **G2**. Hoy el campo **viaja con el estudio** (su id va
+con guión bajo, así que `_noEsDelEstudio` no lo excluye y el barrido de `guardarInforme` lo
+guarda y lo repone) pero **un backup a Excel + reimportación lo pierde**, igual que les pasa a
+`vd_pared` y `vd_tei` desde el 2026-10-12.
+
+Cuando se agregue: la columna va en `LAB_XLS_COLS`, su banda en `LAB_XLS_RANGO_PROPIO` —hoy no
+está ahí a propósito, porque ese mapa lo consume el importador y sin columna no hay nada que
+importar— y hay que adaptar los casos que cuentan **436**.
+
+### G1-11 · La comparación «AP > aorta» sigue siendo un checkbox a mano
+
+La **ESC/ERS 2022, Tabla 10, folio 28**, pide dos cosas en su categoría B: «Diámetro de AP
+**> 25 mm**» y «Diámetro de AP **> diámetro de RA**», donde **RA es la RAÍZ AÓRTICA** —así lo
+escribe la lista de abreviaturas del pie—. En la app las dos están juntas en un solo checkbox,
+`htp2022_b3` («Diámetro AP > diámetro Ao o AP > 25 mm»), que el médico tilda a mano.
+
+**Las medidas de aorta que existen hoy**, para el trabajo que las conecte:
+
+| Campo | Rótulo | Pestaña / bloque |
+|---|---|---|
+| **`ao_sin`** | **Ao sinusal (mm)** | AI/VI, acordeón `sacc-aorta` — **es la raíz aórtica, la que la guía usa** |
+| `ao_st` | Ao sinotubular (mm) | AI/VI, `sacc-aorta` |
+| `ao_tub` | Ao tubular (mm) | AI/VI, `sacc-aorta` |
+| `diam_cayado` | Cayado | AI/VI, `sacc-aorta` |
+| `diam_ao_toracica` | Aorta descendente | AI/VI, `sacc-aorta` |
+| `ete_tavi_sv` | Seno de Valsalva (mm) | ETE, módulo TAVI |
+| `ete_tavi_ust` | Unión sinotubular (mm) | ETE, módulo TAVI |
+| `ete_tavi_ao_asc` | Aorta ascendente proximal (mm) | ETE, módulo TAVI |
+| `marfan_ao_ascendente` | Ao ascendente (mm) | Congénitas, módulo Marfan |
+
+El campo nuevo quedó **preparado**: id estable `ip_ap_diam` y una sola lectura, `ipApDiamVal()`.
+⚠️ **Cuando se conecte, hay que decidir qué pasa si el médico ya tildó el checkbox a mano**: hoy
+el tilde es una afirmación suya y un automático que lo pise borraría esa decisión. El patrón que
+esta app usa para eso es `dataset.tocado`.
+
+### G1-12 · TAPSE y S′ siguen sin volver a «—» al borrar el dato (era V1)
+
+No se tocó, y ahora hay **cinco** filas que sí resetean (`vd-tam`, `vd-pared-interp`,
+`vd-tei-interp`, `tap-interp` y, desde esta tanda, el Qp) contra dos que no. Las filas nuevas de
+FEVD y FAC no tienen el problema: se esconden. Sigue abierto como V1.

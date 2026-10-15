@@ -1583,6 +1583,198 @@ FAC (35 %) vienen de la ASE 2015 y **no se compararon ni se movieron**. La **Tab
 diastólicos de la app salen de la ASE 2010 y cambiarlos es otra tanda. Queda en
 `docs/PENDIENTES.md`.
 
+### `escErs2022` — ESC/ERS 2022, hipertensión pulmonar (verificada 2026-10-15)
+
+**Humbert M, Kovacs G, Hoeper MM, et al. «Guía ESC/ERS 2022 sobre el diagnóstico y el
+tratamiento de la hipertensión pulmonar».** Ruta en disco, **abierta y leída**:
+`~/Desktop/EcoSmart_Biblioteca_Fuentes/03_VD_y_corazon_derecho/Humbert_2022_Hipertension_Pulmonar.pdf`
+(129 páginas).
+
+**Regla de folio: folio = página del PDF − 1.** Comprobada en el pie impreso: PDF 29 → «28»,
+PDF 42 → «41».
+
+⚠️ **ES LA TRADUCCIÓN ESPAÑOLA Y EL ORIGINAL INGLÉS NO ESTÁ EN LA BIBLIOTECA**, censados los 70
+PDF. Este archivo ya documenta que la traducción de la SEC se comió una palabra en la ESC/EACTS
+2025 y dio vuelta un hallazgo entero. Acá lo que se cita son **números y nombres de columna**, no
+una frase de wording, y los dos cortes que la app aplica (`> 1,0` y `< 0,55`) están además
+confirmados por la **ASE 2025**, que es un documento independiente y en inglés. Aun así: antes de
+cerrar un hallazgo de REDACCIÓN sobre esta guía hay que conseguir la inglesa.
+
+#### Tabla 10, folio 28 — «Signos ecocardiográficos adicionales indicativos de hipertensión pulmonar»
+
+Las tres columnas se leyeron **por coordenadas** (`pdfplumber`, `x0` de cada palabra) y no por el
+orden en que el extractor devuelve el texto: los encabezados caen en x≈316 (A), x≈389 (B) y x≈467
+(C), y cada renglón se asignó a su columna por esa x. Sin eso, el orden de lectura mezcla las tres.
+
+| Categoría | Signo | Corte y operador |
+|---|---|---|
+| **A · Ventrículos** | Diámetro basal VD/VI o cociente del área | **> 1,0** |
+| **A · Ventrículos** | Aplanamiento del septo interventricular | IEVI > 1,1 en sístole y/o diástole |
+| **A · Ventrículos** | **Cociente TAPSE/PAPs** | **< 0,55 mm/mmHg** |
+| **B · Arteria pulmonar** | TA del TSVD | < 105 ms y/o muesca mesosistólica |
+| **B · Arteria pulmonar** | Regurgitación pulmonar diastólica temprana | > 2,2 m/s |
+| **B · Arteria pulmonar** | **Diámetro de la AP** | **> diámetro de la RAÍZ AÓRTICA** |
+| **B · Arteria pulmonar** | **Diámetro de la AP** | **> 25 mm** |
+| **C · VCI y AD** | Diámetro de la VCI | > 21 mm con colapso inspiratorio disminuido |
+| **C · VCI y AD** | Área de la AD telesistólica | > 18 cm² |
+
+La nota ^a de la tabla: tienen que estar presentes signos de **al menos dos categorías** para
+mover el nivel de probabilidad (concuerda con `nCat >= 2` de `_htp2022Core`).
+
+⚠️ **EL COCIENTE TAPSE/PAPs ES DE LA CATEGORÍA A Y LA APP LO CUENTA EN LA C.** Medido por
+coordenadas: «Cociente TAPSE/PAPs < 0,55 mm/mmHg» arranca en **x0 = 316**, la columna de
+«A: Ventrículos»; los dos renglones del diámetro de la AP arrancan en **x0 = 389**, la de
+«B: Arteria pulmonar». En `_htp2022Core` el cociente está dentro de `catC`, junto a la VCI y el
+área de la AD, y el rótulo de la pantalla de Avanzado lo dice («C · VCI / AD … TAPSE/PSAP < 0.55»).
+**NO se corrigió**: mover un signo de categoría cambia `nCat` en las escenas donde A ya es positiva
+y C lo es sólo por el cociente, o sea cambia la **probabilidad de HTP publicada**, que es una regla
+de integración clínica. `docs/PENDIENTES.md` → **G1-1**.
+
+⚠️ **«RA» EN ESA TABLA ES LA RAÍZ AÓRTICA, NO LA AURÍCULA DERECHA.** La lista de abreviaturas del
+pie lo escribe: «AD: aurícula derecha; … **RA: raíz aórtica**». O sea que la comparación que la
+guía pide es **arteria pulmonar contra raíz aórtica**. En la app la raíz aórtica es **`ao_sin`**
+(«Ao sinusal», pestaña AI/VI, acordeón `sacc-aorta`); los otros dos segmentos de ese bloque son
+`ao_st` (sinotubular) y `ao_tub` (tubular/ascendente), y en el módulo de ETE/TAVI están además
+`ete_tavi_sv` (seno de Valsalva), `ete_tavi_ust` y `ete_tavi_ao_asc`. **Esta tanda no conecta
+ninguna**: el campo nuevo del diámetro de la AP queda preparado y la comparación la hace el prompt
+de HTP.
+
+#### Folio 41 — tabla de estratificación de riesgo en hipertensión arterial pulmonar
+
+| Riesgo | TAPSE/PAPs |
+|---|---|
+| Bajo | **> 0,32 mm/mmHg** |
+| Intermedio | **0,19 – 0,32 mm/mmHg** |
+| Alto | **< 0,19 mm/mmHg** |
+
+⚠️ **ACÁ ESTÁ EL 0,32 QUE LA PANTALLA DE TEP USA, Y NO ES UN CRITERIO DE TEP.** `calcTEP` publica
+«TAPSE/PSAP N — conservado (>0.32)». El número existe y está publicado, pero su fuente lo define
+como el **umbral de BAJO RIESGO en hipertensión arterial pulmonar**, no como un signo de
+tromboembolia. Por eso **no se agregó la frase «probabilidad de TEP»** que la orden ofrecía: sería
+atribuirle al 0,32 un significado que ninguna fuente leída le da. Es la PARADA declarada de esa
+parte. `docs/PENDIENTES.md` → **G1-2**.
+
+⚠️ **EL 0,36 NO APARECE EN ESTA GUÍA.** Barrido del PDF completo buscando `0,36`: cero
+coincidencias. La **ASE 2025, folio 180**, escribe sin embargo «The ESC/ERS guidelines recommend a
+TAPSE/PASP <0.36 mm/mmHg as suggestive of PH, with a ratio of <0.19 mm/mmHg indicating a 1-year
+mortality risk of >20%»: la segunda mitad sí está en esta tabla (el 0,19); la primera no se
+encontró en la traducción española. Queda declarado y el corte de 0,36 que aplica la app se
+sostiene en la literatura de insuficiencia cardíaca (abajo), no en esta guía.
+
+### `aseVd2025` — lo que esta tanda (G1) le agregó
+
+Misma fuente y misma regla de folio que la entrada de más arriba (**folio = página del PDF + 140**).
+
+#### Pared del VD — la GRADUACIÓN, que hasta hoy estaba leída y no aplicada
+
+**Tabla 1, folio 145**, fila `RVWT, cm`. Leída del texto extraído con la codificación que esa
+fuente usa (**`$` = `≥` y `#` = `≤`**, la misma trampa que este archivo ya documenta para la
+Tabla 10 de la EAE/ASE 2009), y validada por una fila VECINA de la misma tabla que la tanda
+anterior ya había leído **renderizando**: `TissueDopplerRVMPI <0.55 $0.55to<0.62 $0.62to<0.70
+$0.70`, que coincide exactamente con lo registrado entonces.
+
+| Grado | Valor (cm, como lo imprime la tabla) | En mm, que es la unidad del campo |
+|---|---|---|
+| Normal | `< 0,5` | **< 5** |
+| Leve | `≥ 0,5 a ≤ 0,7` | **≥ 5 a ≤ 7** |
+| Moderada | `> 0,7 a ≤ 0,9` | **> 7 a ≤ 9** |
+| Severa | `> 0,9` | **> 9** |
+
+⚠️ **COINCIDE EXACTAMENTE CON EL «5-7-9» QUE EL MÉDICO RECORDABA**, y la guía que lo publica es la
+ASE 2025. **La ASE 2010 (Rudski) NO ESTÁ EN LA BIBLIOTECA** —censo de los 70 PDF—, así que no se
+pudo cotejar con ella; la **ASE/EACVI 2015** (`Lang_2015_Cuantificacion_Cavidades.pdf` y
+`Chamber-quantification...ASE-2015.pdf`) sí está y **no publica grados de RVWT**.
+
+⚠️ **EL CORTE DE HIPERTROFIA NO SE MOVIÓ: sigue siendo `≥ 5 mm`**, que es el complemento exacto
+del «normal < 5 mm» del Key Point del folio 144. La graduación entra **sólo en la fila del cuadro
+de referencias**; el informe narrativo y el EN SUMA siguen diciendo «hipertrofia del ventrículo
+derecho (pared de N mm)» y «HVD», sin grado, porque cambiar una frase del informe firmado no está
+autorizado en esta orden. `docs/PENDIENTES.md` → **G1-3**.
+
+#### FEVD por 3D — el corte
+
+**Tabla 1, folio 145**, fila `3D RVEF, %`: normal **`> 45`**; leve `≤45 a <39`; moderada
+`≤39 a ≥32`; severa `<32`.
+
+⚠️ **LA APP APLICA SÓLO EL CORTE, NO LA GRADUACIÓN**, y es deliberado: lo que esta orden pide para
+la FEVD es que su fila aparezca con el dato, no que gradúe. La fila dice normal `> 45 %` o
+disfunción `≤ 45 %`. ⚠️ **Y EL OPERADOR ES `>` Y NO `≥`**: el comentario que vivía al lado del
+campo decía «otro corte (≥45 %)» y la tabla escribe `>45`, así que **45,0 exactos están del lado
+anormal**. Ese comentario no gobernaba nada —la FEVD no se evaluaba en ninguna parte— y se
+corrigió. `docs/PENDIENTES.md` → **G1-4**.
+
+#### Relación VD/VI
+
+**Tabla 8, folio 173**, fenotipo «Group 1 Pre-capillary pulmonary arterial hypertension»:
+*«Dilated right heart: **RV/LV >1**, dilated RA (≥19 cm²), RVH»*. Coincide con la categoría A de
+la Tabla 10 de la ESC/ERS 2022 (`> 1,0`), que es el corte que `_htp2022Core` ya aplicaba.
+
+⚠️ **CONVIVE CON EL `≥ 0,9` DE LA PANTALLA DE TEP Y NO SE UNIFICAN.** Son dos campos distintos y
+dos preguntas distintas: `vd_vi` (pestaña VD/AD) alimenta la probabilidad de HTP con el `> 1,0` de
+las dos guías de arriba, y `tep_vdvi` (pantalla de TEP) alimenta el puntaje de sobrecarga aguda
+con `≥ 0,9`. La cascada de `calcTEP` ya usa `tep_vdvi` primero, después `vd_bas/ddfvi` y sólo al
+final `vd_vi`. **No se tocó ninguno de los dos.** `docs/PENDIENTES.md` → **G1-5**.
+
+#### Diámetro de la arteria pulmonar
+
+**Tabla 1, folio 145**, fila `PA, cm`: normal **`< 2,5`**; leve `≥2,5 a ≤3,0`; moderada
+`>3,0 a ≤3,5`; severa `>3,5`. Y **Tabla 8, folio 173**: *«Dilated PA >25 mm»*.
+Coincide con el `> 25 mm` de la Tabla 10 de la ESC/ERS 2022.
+
+⚠️ **EL CAMPO NUEVO NO APLICA NINGUNO DE ESOS CORTES, Y ES LA ORDEN.** `ip_ap_diam` es un dato de
+entrada: no vota el grado de la insuficiencia pulmonar, no cambia ningún texto y no tiene fila de
+referencia. Lo único que lleva es una **banda de plausibilidad `[5, 80] mm`**, que no es un
+criterio: el piso en 5 caza el diámetro tipeado en CENTÍMETROS —2,5 por 25— y el techo en 80 deja
+entrar con margen el aneurisma de arteria pulmonar, muy por encima del `>3,5 cm` que la tabla
+llama severo. Es el mismo criterio y el mismo trato que `VD_NUEVOS_BANDA` y que
+`ET_BANDA_INSUMO.tsvd_diametro` (`[5, 60]`).
+
+#### TAPSE/PSAP — el cociente, sus cortes y lo que cada fuente dice
+
+| Qué | Valor | Dónde, leído en el original |
+|---|---|---|
+| Signo de HTP, categoría A | **< 0,55 mm/mmHg** | ESC/ERS 2022, **Tabla 10, folio 28** |
+| Sanos | **0,5 – 0,7 mm/mmHg** | ASE 2025, **folio 152** |
+| Desacoplamiento VD-AP y mayor mortalidad, en HTP | **0,3 – 0,4 mm/mmHg** | ASE 2025, **folios 152 y 173** |
+| Sugestivo de HTP, atribuido a la ESC/ERS | **< 0,36 mm/mmHg** | ASE 2025, **folio 180** |
+| Mortalidad a 1 año > 20 % | **< 0,19 mm/mmHg** | ASE 2025, **folio 180**; ESC/ERS 2022, **folio 41** |
+| Riesgo en HAP: bajo / intermedio / alto | **> 0,32 · 0,19–0,32 · < 0,19** | ESC/ERS 2022, **folio 41** |
+
+Literal del folio 152 (ASE 2025): *«the TAPSE/PASP ratio generally falls within the range of
+0.5–0.7 mm/mmHg … However, in PH, a TAPSE/PASP ratio in the range of 0.3-0.4 mm/mmHg is associated
+with RV-PA uncoupling as validated by pressure-volume loops and is linked to an increased mortality
+risk.»* Y su Recomendación del folio 152: *«TAPSE/PASP ratio is a noninvasive physiologic index of
+RV-PA coupling that reflects RV contractile response to pulmonary afterload.»*
+
+**Los tres tramos que la app publica** (decisión de Maicol) y lo que respalda a cada uno:
+
+| Tramo | Texto de la app | Respaldo |
+|---|---|---|
+| `< 0,36` | «mal pronóstico en IC con FEVI reducida y preservada» | ver el párrafo de abajo |
+| `≥ 0,36 y < 0,55` | «elemento de probabilidad para HTP» | ESC/ERS 2022, Tabla 10, folio 28 (`< 0,55`) |
+| `≥ 0,55` | «acoplamiento VD-AP normal» | el complemento del anterior, y los 0,5–0,7 de sanos del folio 152 |
+
+⚠️ **EL 0,36 EN INSUFICIENCIA CARDÍACA NO SE PUDO LEER EN SU FUENTE PRIMARIA, Y HAY QUE DECIRLO.**
+El origen del corte es **Guazzi M, Bandera F, Pelissero G, et al. «Tricuspid annular plane systolic
+excursion and pulmonary arterial systolic pressure relationship in heart failure: an index of right
+ventricular contractile function and prognosis». Am J Physiol Heart Circ Physiol 2013;305:H1373-
+H1381** (cohorte mixta de 293 pacientes), y el metaanálisis **Heart Fail Rev 2024 (PMC10904417)**
+reporta que con ese corte el cociente se asocia de forma independiente con la mortalidad por
+cualquier causa (HR ajustado agrupado 2,84) y que la observación vale en FEVI reducida y en FEVI
+preservada. **Ninguno de los dos está en la biblioteca del Escritorio**: el metaanálisis se leyó en
+línea y el original de Guazzi sólo a través de él. Por la regla de la casa —«verificada» = texto
+completo leído, con documento, año, tabla y página— **el 0,36 en IC NO está verificado al estándar
+del repo**, y por eso la tarjeta ⓘ **no lo cita**: cita sólo lo que salió de los dos PDF.
+El número que la app aplica no se inventó acá —está publicado y la ASE 2025 lo nombra en su folio
+180—, pero la ATRIBUCIÓN clínica de ese tramo queda declarada. `docs/PENDIENTES.md` → **G1-6**.
+
+⚠️ **LOS OTROS TRES USOS QUE LA ORDEN PEDÍA NO ENTRARON EN LA TARJETA, por lo mismo**: el corte de
+**IC con fracción levemente reducida** (la orden decía «alrededor de 0,46»; el metaanálisis de 2024
+registra **0,34** para ese fenotipo, de Rosa 2020, así que además el número de la orden no se
+confirma), el de **terapia de resincronización** (≈ 0,45) y la **mediana de 0,406** de la
+reparación o reemplazo tricuspídeo por catéter. Los tres aparecen en resúmenes y en títulos, y
+ninguno se leyó en su texto completo. `docs/PENDIENTES.md` → **G1-7**.
+
 ### Parámetros complementarios de la función diastólica (verificados 2026-10-12)
 
 Esta entrada cubre lo que la tanda del 2026-10-12 leyó de los **tres** documentos a la vez: el

@@ -58697,9 +58697,14 @@ caso('TC-428', 'Doppler tricuspideo: TAP espejado, TDE, PAP media unica con su f
     // --- Cuadro de referencias ---------------------------------------------------------------
     ['la fila «HTP - clasificacion ESC 2022» ya no existe',
       !document.getElementById('htp-interp') && rotulos.join('|').indexOf('clasificaci') === -1],
-    ['y el cuadro quedo con las siete filas en su orden, la diastolica al final',
-      rotulos.length === 7 && rotulos[6].indexOf('diast') > -1
-      && rotulos[4].indexOf('TRIV') > -1 && rotulos[5].indexOf('TDE') > -1],
+    /* ADAPTADO el 2026-10-15 (G1): el cuadro pasa de SIETE filas a OCHO. La que entra es el
+       cociente TAPSE/PSAP, DEBAJO de la PSAP estimada —decision de Maicol—, asi que todo lo que
+       venia despues corre un lugar. La condicion se conserva entera: lo que afirma es el ORDEN,
+       con la diastolica al final, y eso sigue valiendo. */
+    ['y el cuadro quedo con las OCHO filas en su orden, la diastolica al final',
+      rotulos.length === 8 && rotulos[7].indexOf('diast') > -1
+      && rotulos[2].indexOf('TAPSE/PSAP') > -1
+      && rotulos[5].indexOf('TRIV') > -1 && rotulos[6].indexOf('TDE') > -1],
     ['TRIV 75 va sin comentario', triv75.triv === '75 ms'],
     ['TRIV 76 lo lleva', triv76.triv.indexOf('75 ms: a favor de HTP') > -1],
     ['TDE 119 sale acortado', tde119.tde.indexOf('acortado') > -1],
@@ -64450,12 +64455,17 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
      title viejo, asi que el registro pasa de 5 a 16 y la clave de legado deja de existir. Lo que
      esta condicion afirma —que toda clave del marcado tiene entrada, porque si no la tarjeta sale
      vacia y nadie lo nota— se vuelve mas fuerte: ahora se exige para las DIECISEIS. */
-  /* ADAPTADO el 2026-10-15 (W2-B, commits 4 y 5): veintiuna. La condicion se CONSERVA entera
-     —cada clave del marcado tiene entrada y no hay legado, que es lo que impide una tarjeta
-     VACIA— y lo unico que se mueve es el denominador. */
-  ex.push(['(H) las veintiuna claves del marcado tienen entrada en el registro, sin ninguna de legado',
+  /* ADAPTADO el 2026-10-15 (W2-B, commits 4 y 5): veintiuna.
+     ADAPTADO otra vez el 2026-10-15 (G1, commit 3): el REGISTRO pasa a VEINTIDOS porque entra
+     tapse-psap, pero ese globo NO esta en Valvulas sino en el Doppler tricuspideo. O sea que
+     las dos mitades de esta condicion dejan de tener el mismo numero, y eso es lo que se arregla:
+     se sigue exigiendo que TODA clave del marcado de Valvulas tenga entrada —que es lo que impide
+     una tarjeta VACIA— y que el registro NO tenga claves de legado, pero el conteo pasa a ser el
+     del registro completo. Sin esta separacion, el dia que otro modulo agregue un globo este caso
+     se pone rojo sin que nada de Valvulas haya cambiado. */
+  ex.push(['(H) las claves del marcado tienen entrada en el registro, sin ninguna de legado',
     HAY_INFO && globos.every(function(b){ return !!VINFO[b.getAttribute('data-vinfo')]; }) &&
-    Object.keys(VINFO).length === 21,
+    Object.keys(VINFO).length === 22,
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
   ex.push(['(H) y la tarjeta se coloca SIEMPRE dentro de la pantalla, sin cortarse',
     (function(){ const b = document.querySelector('[data-vinfo="avm-thp"]');
@@ -64826,10 +64836,13 @@ caso('TC-472', 'Valvulas D2: la insuficiencia aortica en TRES columnas de CUATRO
   /* CONTROL NEGATIVO: el de exclusiones ya estaba en --orange y no se movio. */
   ex.push(['(G) CONTROL NEGATIVO: el aviso de exclusiones, que ya estaba bien, no cambio',
     colorDe('diast-excl-aviso') === 'rgb(245, 158, 66)', colorDe('diast-excl-aviso')]);
-  /* ⚠️ LIMITE DECLARADO: #vd-tei-aviso tiene el MISMO defecto y NO se toco en esta tanda, por
-     estar fuera del alcance de la orden. Se fija para que el dia que se arregle se note. */
-  ex.push(['(G) LIMITE DECLARADO: el aviso del Tei del VD sigue gris, y queda en PENDIENTES',
-    colorDe('vd-tei-aviso') !== 'rgb(245, 158, 66)', colorDe('vd-tei-aviso')]);
+  /* ADAPTADO el 2026-10-15 (G1, commit 4): EL LIMITE DECLARADO SE CUMPLIO Y EL CASO LO NOTO,
+     que es exactamente para lo que estaba escrito. #vd-tei-aviso era el sexto aviso con el mismo
+     defecto —var(--amber) fuera de .amilo-root— y quedaba fuera del alcance de la orden del
+     D2; la tanda G1 lo paso a var(--orange). La condicion se DA VUELTA en vez de borrarse: lo
+     que ahora se afirma es que los SEIS computan el mismo naranja. Era el item D2-2. */
+  ex.push(['(G) el aviso del Tei del VD tambien es naranja: el limite declarado del D2 se cerro',
+    colorDe('vd-tei-aviso') === 'rgb(245, 158, 66)', colorDe('vd-tei-aviso')]);
 
   /* ══ (H) CONTROLES: lo que esta tanda NO mueve ══ */
   __t.limpiar();
@@ -65937,6 +65950,376 @@ caso('TC-475', 'Tanda F: el VSFVI y el volumen latido automaticos del VI, el GC 
     ex.push(['«Nuevo estudio» vacia el grado de la fila — es un <span> sin id y ningun barrido lo alcanza',
       antesL === '(severa)' && GAVAI() === '', 'antes=' + antesL + ' despues=«' + GAVAI() + '»']);
     __t.limpiar(); window.esqSevManual = {};
+    return { extra: ex };
+  })();
+`);
+
+caso('TC-476', 'Tanda G1: el VD en tres columnas con su orden de Tab, las filas que solo se ven con dato, el Qp, la relacion VD/VI y la pared graduada, el cociente TAPSE/PSAP en sus tres tramos con su globo, y el diametro de la arteria pulmonar que no vota', `
+  return (function () {
+    const ex = [];
+    const S = (id, v) => __t.set(id, v);
+    const V = (id) => __t.val(id);
+    const T = (id) => (__t.txt(id) || '').trim();
+    /* Todas las lecturas de nodos y de funciones NUEVAS van por un ayudante con CENTINELA.
+       Contra HEAD estos nodos no existen, y un getComputedStyle o un .closest sobre null mata
+       la corrida entera por EXCEPCION: entonces el caso prueba que el arbol es distinto y no
+       que sabe medir. Es la leccion que TC-455, TC-462, TC-465, TC-471, TC-473, TC-474 y
+       TC-475 ya tienen escrita. */
+    const EL = (id) => document.getElementById(id) || null;
+    const VIS = (id) => { const e = EL(id); if (!e) return 'NO EXISTE';
+      return getComputedStyle(e).display !== 'none'; };
+    const FN = (n) => (typeof window[n] === 'function');
+
+    /* ── DENOMINADORES ─────────────────────────────────────────────────────────────────── */
+    const nuevos = ['vd-qp-interp','fevd-interp','vd-vi-interp','row-fevd-interp','row-fac-interp',
+                    'row-vd-vi-interp','fg-vd-fac','row-tapse-psap','tapse-psap-interp',
+                    'ip_ap_diam','ip_ap_diam-marca'].filter(id => !EL(id));
+    ex.push(['DENOMINADOR: los once nodos nuevos existen en el DOM', nuevos.length === 0,
+      'faltan: ' + nuevos.join(',')]);
+    const fns = ['vdQpCalc','vdRefVisSync','vdViEstado','vdTapsePsap','vdTapsePsapSync',
+                 'ipApDiamVal','ipApDiamSync'].filter(n => !FN(n));
+    ex.push(['DENOMINADOR: las siete funciones duenas existen', fns.length === 0,
+      'faltan: ' + fns.join(',')]);
+    const cortes = (typeof VD_VI_HTP_MIN !== 'undefined' && typeof UMBRAL_FEVD_NORMAL !== 'undefined'
+                    && typeof VD_TPSP_IC_MAX !== 'undefined' && typeof VD_TPSP_HTP_MAX !== 'undefined'
+                    && typeof IP_AP_BANDA !== 'undefined' && typeof VD_PARED_GRADOS !== 'undefined')
+      ? { vdvi: VD_VI_HTP_MIN, fevd: UMBRAL_FEVD_NORMAL, ic: VD_TPSP_IC_MAX,
+          htp: VD_TPSP_HTP_MAX, banda: JSON.stringify(IP_AP_BANDA),
+          grados: VD_PARED_GRADOS.map(b => b.lbl).join('/') }
+      : 'SIN CONSTANTES';
+    ex.push(['DENOMINADOR: los cortes y las bandas tienen un dueno unico y son los de la guia',
+      cortes !== 'SIN CONSTANTES' && cortes.vdvi === 1.0 && cortes.fevd === 45 &&
+      cortes.ic === 0.36 && cortes.htp === 0.55 && cortes.banda === '[5,80]' &&
+      cortes.grados === 'leve/moderada/severa', JSON.stringify(cortes)]);
+
+    /* ══ A · LAS TRES COLUMNAS, LA POSICION EXPLICITA Y EL ORDEN DEL TAB ═══════════════════
+       ⚠️ EL ARNES DE LA SUITE MIDE EN 756 px, asi que la grilla de TRES columnas NO esta
+       renderizada mientras este caso corre: por debajo de 769 px es de una sola columna. El
+       caso fija la REGLA que produce las tres columnas —las ocho declaraciones leidas del
+       fuente, mas la casilla que declara cada campo— y el ORDEN DEL DOCUMENTO, que es lo que
+       el Tab recorre sin tabindex positivos. Los tres anchos y las teclas Tab reales los mide
+       scripts/_probe_g1.mjs, que si tiene el canal CDP para emular el viewport. */
+    const grid = document.querySelector('.vd-grid');
+    ex.push(['DENOMINADOR: el contenedor .vd-grid existe', !!grid, grid ? 'si' : 'NO EXISTE']);
+    const fuente = document.documentElement.innerHTML;
+    const DECL = ['.vd-grid > .vd-c1 { grid-column: 1; }','.vd-grid > .vd-c2 { grid-column: 2; }',
+                  '.vd-grid > .vd-c3 { grid-column: 3; }','.vd-grid > .vd-r1 { grid-row: 1; }',
+                  '.vd-grid > .vd-r2 { grid-row: 2; }','.vd-grid > .vd-r3 { grid-row: 3; }',
+                  '.vd-grid > .vd-r4 { grid-row: 4; }','.vd-grid > .vd-r5 { grid-row: 5; }'];
+    const faltanDecl = DECL.filter(d => fuente.indexOf(d) < 0);
+    ex.push(['las OCHO reglas de posicion explicita estan en el fuente', faltanDecl.length === 0,
+      'faltan: ' + faltanDecl.join(' | ')]);
+    ex.push(['y el colapso a UNA columna por debajo de 768 px sigue existiendo',
+      fuente.indexOf('.grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }') > -1, '']);
+    /* El orden del DOCUMENTO es el del Tab: por columnas, la 1 entera y despues la 2 y la 3. */
+    const ESPERADO = ['tvia','tapse','s_prime','vd_tei','fevd','vd_bas','vd_mid','vd_long',
+                      'vd_vi','vd_pared','tsvd_diametro','vti_tsvd','vd_area_d','vd_area_s','vd_fac'];
+    const orden = grid ? Array.prototype.slice.call(grid.querySelectorAll('input[id]')).map(e => e.id) : [];
+    ex.push(['los QUINCE campos estan en el orden de COLUMNAS, que es el que recorre el Tab',
+      orden.join(',') === ESPERADO.join(','), orden.join(',')]);
+    /* Cada campo declara su celda, y ninguna celda se repite. */
+    const celdas = grid ? Array.prototype.slice.call(grid.querySelectorAll('.fg')).map(fg => {
+      const cl = String(fg.className || '');
+      const c = (cl.match(/vd-c(\\d)/) || [])[1] || '?';
+      const r = (cl.match(/vd-r(\\d)/) || [])[1] || '?';
+      return c + ':' + r; }) : [];
+    ex.push(['las quince casillas estan declaradas y NINGUNA se repite',
+      celdas.length === 15 && celdas.indexOf('?:?') < 0 &&
+      new Set(celdas).size === 15, celdas.join(' ')]);
+    /* NI UN tabindex: con uno positivo el Tab deja de seguir el orden del documento. */
+    ex.push(['NO hay ni un tabindex en la grilla del VD',
+      grid ? grid.querySelectorAll('[tabindex]').length === 0 : false,
+      grid ? String(grid.querySelectorAll('[tabindex]').length) : 'sin grid']);
+    /* El foco REAL de cada campo, uno por uno: un caso no puede mandar un Tab de verdad —su
+       cuerpo corre dentro de la pagina— pero si comprobar que los quince son enfocables. */
+    __t.limpiar();
+    try { showTab('vd'); } catch (e) {}
+    try { const a = EL('sacc-vd'); if (a && !a.classList.contains('open')) secToggle('vd'); } catch (e) {}
+    S('vd_area_d', '20'); S('vd_area_s', '12');   // para que la casilla de la FAC exista
+    const sinFoco = ESPERADO.filter(id => { const e = EL(id); if (!e) return true;
+      e.focus(); return document.activeElement !== e; });
+    ex.push(['los quince campos reciben el foco', sinFoco.length === 0, 'no enfocan: ' + sinFoco.join(',')]);
+
+    /* ══ B · LAS FILAS QUE SOLO SE VEN CON DATO ════════════════════════════════════════════ */
+    const caja = EL('vd-tam') ? EL('vd-tam').closest('.calc-box') : null;
+    ex.push(['DENOMINADOR: el cuadro del VD tiene DIEZ filas',
+      caja ? caja.querySelectorAll('.calc-row').length === 10 : false,
+      caja ? String(caja.querySelectorAll('.calc-row').length) : 'NO EXISTE']);
+    /* El orden del cuadro es el de las columnas de campos. */
+    const ORDEN_FILAS = ['tap-interp','tapse-interp','sprime-interp','vd-tei-interp','fevd-interp',
+                         'vd-tam','vd-vi-interp','vd-pared-interp','vd-qp-interp','fac-interp'];
+    const filasReales = caja ? Array.prototype.slice.call(caja.querySelectorAll('.calc-row')).map(r => {
+      const v = r.querySelector('span[id]:not(.calc-lbl)'); return v ? v.id : '?'; }) : [];
+    ex.push(['el cuadro se lee en el MISMO orden que las columnas de campos',
+      filasReales.join(',') === ORDEN_FILAS.join(','), filasReales.join(',')]);
+    __t.limpiar();
+    ex.push(['con el formulario vacio, las TRES filas condicionales estan escondidas',
+      VIS('row-fevd-interp') === false && VIS('row-fac-interp') === false &&
+      VIS('row-vd-vi-interp') === false,
+      JSON.stringify([VIS('row-fevd-interp'), VIS('row-fac-interp'), VIS('row-vd-vi-interp')])]);
+    ex.push(['  y la CASILLA automatica de la FAC tambien',
+      VIS('fg-vd-fac') === false, String(VIS('fg-vd-fac'))]);
+    /* FEVD: la fila aparece con el dato, y el corte de la ASE 2025 (folio 145) es >45. */
+    S('fevd', '46'); const f46 = { vis: VIS('row-fevd-interp'), txt: T('fevd-interp') };
+    S('fevd', '45'); const f45 = T('fevd-interp');
+    S('fevd', '44'); const f44 = T('fevd-interp');
+    ex.push(['la fila de la FEVD aparece con el dato', f46.vis === true, String(f46.vis)]);
+    ex.push(['FEVD 46 %: normal', /normal/.test(f46.txt) && !/disfunci/.test(f46.txt), f46.txt]);
+    ex.push(['FEVD 45,0 EXACTOS: YA es disfuncion — el operador es > y no >=',
+      /disfunci/.test(f45), f45]);
+    ex.push(['FEVD 44 %: disfuncion', /disfunci/.test(f44), f44]);
+    S('fevd', '');
+    ex.push(['al borrar la FEVD la fila vuelve a esconderse',
+      VIS('row-fevd-interp') === false, String(VIS('row-fevd-interp'))]);
+    /* FAC: la fila Y la casilla aparecen con el par de areas. */
+    S('vd_area_d', '20'); S('vd_area_s', '12');
+    ex.push(['con las dos areas, la fila y la casilla de la FAC aparecen',
+      VIS('row-fac-interp') === true && VIS('fg-vd-fac') === true && V('vd_fac') === '40',
+      JSON.stringify([VIS('row-fac-interp'), VIS('fg-vd-fac'), V('vd_fac')])]);
+    S('vd_area_s', '');
+    ex.push(['al borrar un area, las dos se esconden otra vez',
+      VIS('row-fac-interp') === false && VIS('fg-vd-fac') === false,
+      JSON.stringify([VIS('row-fac-interp'), VIS('fg-vd-fac')])]);
+    /* «Nuevo estudio»: la TERCERA columna de vdRefVisSync. */
+    S('fevd', '55'); S('vd_area_d', '20'); S('vd_area_s', '12');
+    const antesLimpiar = [VIS('row-fevd-interp'), VIS('row-fac-interp'), VIS('fg-vd-fac')];
+    __t.limpiar();
+    ex.push(['DENOMINADOR del vaciado: las tres estaban VISIBLES',
+      antesLimpiar.join(',') === 'true,true,true', antesLimpiar.join(',')]);
+    ex.push(['«Nuevo estudio» las vuelve a esconder — limpiarCampos NO pasa por RECALC_MODULOS',
+      VIS('row-fevd-interp') === false && VIS('row-fac-interp') === false && VIS('fg-vd-fac') === false,
+      JSON.stringify([VIS('row-fevd-interp'), VIS('row-fac-interp'), VIS('fg-vd-fac')])]);
+
+    /* ══ C · EL VOLUMEN SISTOLICO PULMONAR (Qp) ════════════════════════════════════════════
+       Aritmetica cerrada: diametro 20 mm -> area = PI*(20/20)^2 = 3,1416 cm2; por VTI 20 cm da
+       62,8 ml. El dueno del algebra es _vsTsviCalc y NO hay una segunda copia. */
+    __t.limpiar();
+    S('tsvd_diametro', '20'); S('vti_tsvd', '20');
+    const qp = T('vd-qp-interp');
+    ex.push(['el Qp con Diam 20 mm y VTI 20 cm da 62,8 ml', qp.indexOf('62.8 ml') === 0, qp]);
+    ex.push(['  y no lleva badge de color ni corte: publica el numero y su formula',
+      qp.indexOf('\\u00d7 VTI TSVD') > -1 && !/leve|moderad|sever|normal/i.test(qp), qp]);
+    ex.push(['el dueno del Qp devuelve el mismo numero que la fila',
+      FN('vdQpCalc') && Math.abs(vdQpCalc() - 62.83185) < 0.001, String(FN('vdQpCalc') ? vdQpCalc() : 'SIN FN')]);
+    S('vti_tsvd', '');
+    ex.push(['sin uno de los dos insumos el Qp vuelve a «—» (no se inventa)',
+      T('vd-qp-interp') === '\\u2014' && (FN('vdQpCalc') ? vdQpCalc() === null : false), T('vd-qp-interp')]);
+
+    /* ══ D · LA RELACION VD/VI ═════════════════════════════════════════════════════════════
+       ESC/ERS 2022, Tabla 10, folio 28, categoria A: > 1,0. ASE 2025, Tabla 8, folio 173:
+       «RV/LV >1». El campo SIGUE SIENDO NUMERICO —las dos opciones de la orden no entran
+       porque el campo ya existia en esa forma— y lo que se agrega es la fila. */
+    __t.limpiar();
+    const vdviEs = EL('vd_vi');
+    /* ⚠️ NO SE PREGUNTA POR type, NI POR LA PROPIEDAD NI POR EL ATRIBUTO. Esta app convierte
+       TODOS sus input number a type=text con inputmode=decimal y la clase numdec, para que
+       Safari acepte la coma; de ahi tambien que el step no restrinja nada, que es lo que el
+       comentario de vdBasCat ya documenta. Asi que lo que prueba que el campo sigue siendo
+       NUMERICO es justamente que esa maquinaria lo haya tomado: clase numdec e inputmode
+       decimal. Y lo que importa es que NO sea un <select>. */
+    ex.push(['el campo VD/VI sigue siendo un input NUMERICO y no un desplegable',
+      !!vdviEs && vdviEs.tagName === 'INPUT' && vdviEs.classList.contains('numdec') &&
+      vdviEs.getAttribute('inputmode') === 'decimal',
+      vdviEs ? (vdviEs.tagName + '/' + vdviEs.className + '/' + vdviEs.getAttribute('inputmode')) : 'NO EXISTE']);
+    S('vd_vi', '0.99'); const vi099 = VIS('row-vd-vi-interp');
+    S('vd_vi', '1');    const vi100 = VIS('row-vd-vi-interp');
+    S('vd_vi', '1.01'); const vi101 = { vis: VIS('row-vd-vi-interp'), txt: T('vd-vi-interp') };
+    ex.push(['VD/VI 0,99: la fila NO se muestra', vi099 === false, String(vi099)]);
+    ex.push(['VD/VI 1,00 EXACTO: tampoco — el operador es > y no >=', vi100 === false, String(vi100)]);
+    ex.push(['VD/VI 1,01: la fila se muestra y nombra la categoria A',
+      vi101.vis === true && vi101.txt.indexOf('categor') > -1, vi101.vis + ' // ' + vi101.txt]);
+    /* El corte lo comparte con la probabilidad de HTP: una sola constante y no dos literales. */
+    ex.push(['la categoria A de la probabilidad de HTP lee la MISMA constante',
+      fuente.indexOf('vdvi > VD_VI_HTP_MIN') > -1, '']);
+    /* Y el corte de TEP sigue siendo OTRO, sobre OTRO campo. */
+    ex.push(['CONTROL NEGATIVO: el corte de TEP (>=0.9) sigue vivo y sobre tep_vdvi',
+      fuente.indexOf('vdvi >= 0.9') > -1 && !!EL('tep_vdvi'), '']);
+
+    /* ══ E · LA PARED GRADUADA — ASE 2025, Tabla 1, folio 145 ═════════════════════════════
+       normal < 5 · leve >=5 a <=7 · moderada >7 a <=9 · severa >9 (en mm). Los dos techos
+       estan INCLUIDOS en su banda, que es lo que imprime la tabla. */
+    __t.limpiar();
+    const PAR = (mm) => { S('vd_pared', mm); return T('vd-pared-interp'); };
+    const p49 = PAR('4.9'), p50 = PAR('5'), p70 = PAR('7'), p71 = PAR('7.1'),
+          p90 = PAR('9'),   p91 = PAR('9.1'), p12 = PAR('12');
+    ex.push(['pared 4,9: normal, y sin grado', /normal/.test(p49) && !/leve|moderada|severa/.test(p49), p49]);
+    ex.push(['pared 5,0 EXACTOS: hipertrofia LEVE — el corte de hipertrofia no se movio',
+      /hipertrofia/.test(p50) && /leve/.test(p50), p50]);
+    ex.push(['pared 7,0 EXACTOS: sigue LEVE — el techo esta incluido', /leve/.test(p70), p70]);
+    ex.push(['pared 7,1: MODERADA', /moderada/.test(p71), p71]);
+    ex.push(['pared 9,0 EXACTOS: sigue MODERADA — el techo esta incluido', /moderada/.test(p90), p90]);
+    ex.push(['pared 9,1: SEVERA', /severa/.test(p91), p91]);
+    ex.push(['pared 12: SEVERA', /severa/.test(p12), p12]);
+    /* ⚠️ LA GRADUACION NO SALE DEL CUADRO: el informe firmado y el EN SUMA no la nombran. */
+    S('vd_pared', '12');
+    const rp = __t.informe();
+    ex.push(['el informe firmado NOMBRA la hipertrofia con su valor y SIN grado',
+      rp.inf.indexOf('hipertrofia (pared de 12 mm)') > -1 &&
+      rp.inf.indexOf('hipertrofia del ventr\\u00edculo derecho, severa') === -1,
+      (rp.inf.match(/[^.]*hipertrofia[^.]*\\./) || [''])[0]]);
+    ex.push(['y el EN SUMA sigue diciendo «HVD.», sin grado', rp.suma === 'HVD.', rp.suma]);
+
+    /* ══ F · EL COCIENTE TAPSE/PSAP ════════════════════════════════════════════════════════
+       PSAP = 4*VRT^2 + PmAD, redondeada a entero. Con VCI 18 mm y colapso >50 % la PmAD es 3,
+       y con VRT 3,0 la PSAP queda en 39 mmHg. */
+    __t.limpiar();
+    const TPSP = (tapse) => { S('vci_diam','18'); S('vci_col','>50'); S('vmax_it','3.0');
+      S('tapse', tapse); return { vis: VIS('row-tapse-psap'), txt: T('tapse-psap-interp'),
+                                  psap: V('psap_calc'), due: FN('vdTapsePsap') ? vdTapsePsap() : null }; };
+    const t14 = TPSP('14'), t1404 = TPSP('14.04'), t16 = TPSP('16'),
+          t2130 = TPSP('21.3'), t2145 = TPSP('21.45'), t22 = TPSP('22');
+    ex.push(['DENOMINADOR: la PSAP quedo en 39 mmHg en las seis escenas', t14.psap === '39', 'psap=' + t14.psap]);
+    ex.push(['TAPSE 14 (0,359): mal pronostico en IC',
+      /mal pron.stico en IC/.test(t14.txt) && t14.txt.indexOf('0.359') === 0, t14.txt]);
+    ex.push(['TAPSE 14,04 (0,360 EXACTO): ya es el tramo de HTP — el borde incluye el 0,36',
+      /probabilidad para HTP/.test(t1404.txt) && t1404.txt.indexOf('0.360') === 0, t1404.txt]);
+    ex.push(['TAPSE 16 (0,410): tramo de HTP', /probabilidad para HTP/.test(t16.txt), t16.txt]);
+    ex.push(['TAPSE 21,3 (0,546): sigue en el tramo de HTP', /probabilidad para HTP/.test(t2130.txt), t2130.txt]);
+    ex.push(['TAPSE 21,45 (0,550 EXACTO): acoplamiento normal — el borde incluye el 0,55',
+      /acoplamiento VD-AP normal/.test(t2145.txt) && t2145.txt.indexOf('0.550') === 0, t2145.txt]);
+    ex.push(['TAPSE 22 (0,564): acoplamiento normal', /acoplamiento VD-AP normal/.test(t22.txt), t22.txt]);
+    /* El mismo numero en las TRES superficies que lo publican. */
+    ex.push(['el MISMO numero en la fila nueva y en la pantalla de TEP',
+      T('tep-tapse-psap').indexOf('0.564') === 0 && t22.txt.indexOf('0.564') === 0,
+      t22.txt.slice(0,20) + ' // ' + T('tep-tapse-psap').slice(0,20)]);
+    ex.push(['y la pantalla de TEP conserva SU corte de 0,32 y SU texto',
+      /acoplamiento conservado/.test(T('tep-tapse-psap')), T('tep-tapse-psap')]);
+    ex.push(['calcTEP LEE al dueno y no recalcula', fuente.indexOf('vdTapsePsap()') > -1 &&
+      fuente.indexOf("const idx = (tapse / psap).toFixed(3)") === -1, '']);
+    /* Sin TAPSE o sin PSAP la fila NO se dibuja, y sin mensaje de error. */
+    S('tapse', '');
+    ex.push(['sin TAPSE la fila NO se dibuja, y sin mensaje de error',
+      VIS('row-tapse-psap') === false && T('tapse-psap-interp') === '\\u2014',
+      VIS('row-tapse-psap') + ' // ' + T('tapse-psap-interp')]);
+    S('tapse', '20'); S('vmax_it', '');
+    ex.push(['sin PSAP tampoco', VIS('row-tapse-psap') === false && V('psap_calc') === '',
+      VIS('row-tapse-psap') + ' // psap=' + V('psap_calc')]);
+    __t.limpiar();
+    ex.push(['CONTROL NEGATIVO: «Nuevo estudio» la deja escondida',
+      VIS('row-tapse-psap') === false, String(VIS('row-tapse-psap'))]);
+
+    /* ══ G · EL GLOBO ⓘ DEL TAPSE/PSAP ════════════════════════════════════════════════════
+       El mecanismo renderizado —abrir, los cuatro cierres y la maqueta a 1200/390/360 px en
+       los dos temas— lo mide la sonda, que tiene clics y teclas reales. Aca se fija la
+       ESTRUCTURA: que es un <button>, sin title y sin enlace al manual, que su clave esta en
+       el registro VINFO y que su texto tiene los cuatro bloques y los acentos. */
+    const gb = document.querySelector('[data-vinfo="tapse-psap"]');
+    ex.push(['el globo existe, es un <button> y no tiene title ni enlace al manual',
+      !!gb && gb.tagName === 'BUTTON' && !gb.getAttribute('title') &&
+      String(gb.getAttribute('onclick') || '').indexOf('abrirAyudaEco') < 0,
+      gb ? (gb.tagName + ' title=' + gb.getAttribute('title')) : 'NO EXISTE']);
+    const reg = (typeof VINFO !== 'undefined' && VINFO) ? VINFO['tapse-psap'] : null;
+    ex.push(['su clave esta en el registro VINFO, con los CUATRO bloques',
+      !!reg && !!reg.tit && !!reg.formula && !!reg.lee && !!reg.fuente && !!reg.ojo,
+      reg ? Object.keys(reg).join(',') : 'SIN ENTRADA']);
+    const txtReg = reg ? [reg.tit, reg.formula, reg.lee, reg.fuente, reg.ojo].join(' ') : '';
+    ex.push(['la tarjeta lleva ACENTOS — la tanda D1 publico cinco sin ellos y lo vio la captura',
+      (txtReg.match(/[\\u00e1\\u00e9\\u00ed\\u00f3\\u00fa\\u00f1]/g) || []).length >= 15,
+      String((txtReg.match(/[\\u00e1\\u00e9\\u00ed\\u00f3\\u00fa\\u00f1]/g) || []).length) + ' acentos']);
+    ex.push(['y cita el 0,55 con su folio, SIN atribuir el 0,36 a una fuente que no se leyo',
+      txtReg.indexOf('folio 28') > -1 && txtReg.indexOf('0,55') > -1 &&
+      txtReg.indexOf('no se pudieron leer en su fuente primaria') > -1, '']);
+
+    /* ══ H · EL DIAMETRO DE LA ARTERIA PULMONAR ════════════════════════════════════════════ */
+    __t.limpiar();
+    const apEl = EL('ip_ap_diam');
+    ex.push(['el campo existe, es numerico y su oninput NO llama a calcIP — por eso no puede votar',
+      !!apEl && apEl.classList.contains('numdec') &&
+      String(apEl.getAttribute('oninput') || '').indexOf('calcIP') < 0 &&
+      String(apEl.getAttribute('oninput') || '').indexOf('ipApDiamSync') > -1,
+      apEl ? apEl.getAttribute('oninput') : 'NO EXISTE']);
+    S('ip_ap_diam', '22');
+    ex.push(['el tecleo queda y el dueno unico lo devuelve',
+      V('ip_ap_diam') === '22' && FN('ipApDiamVal') && ipApDiamVal() === 22,
+      V('ip_ap_diam') + ' // ' + (FN('ipApDiamVal') ? ipApDiamVal() : 'SIN FN')]);
+    ex.push(['dentro de banda NO se marca', T('ip_ap_diam-marca') === '', T('ip_ap_diam-marca')]);
+    S('ip_ap_diam', '2.5');
+    ex.push(['el diametro tipeado en CENTIMETROS queda MARCADO «(revisar)» y NO se corrige',
+      T('ip_ap_diam-marca') === '(revisar)' && V('ip_ap_diam') === '2.5',
+      T('ip_ap_diam-marca') + ' // ' + V('ip_ap_diam')]);
+    S('ip_ap_diam', '5');
+    ex.push(['CONTROL NEGATIVO: el borde 5 EXACTO esta DENTRO de la banda', T('ip_ap_diam-marca') === '', T('ip_ap_diam-marca')]);
+    S('ip_ap_diam', '120');
+    ex.push(['un valor imposible queda marcado', T('ip_ap_diam-marca') === '(revisar)', T('ip_ap_diam-marca')]);
+    /* NO VOTA: con los cuatro signos de la IP cargados, el grado y el informe son los mismos. */
+    __t.limpiar();
+    S('ip_pht','90'); S('ip_ancho','ancho'); S('ip_senal','densa_emp');
+    const sinAp = { grado: V('ip_grado'), sev: T('ip-sev'), r: __t.informe() };
+    S('ip_ap_diam','30');
+    const conAp = { grado: V('ip_grado'), sev: T('ip-sev'), r: __t.informe() };
+    ex.push(['DENOMINADOR: la escena tiene una IP graduada', /severa/i.test(String(sinAp.grado)), String(sinAp.grado)]);
+    ex.push(['el diametro NO mueve el grado, ni el cuadro, ni el informe, ni el EN SUMA',
+      sinAp.grado === conAp.grado && sinAp.sev === conAp.sev &&
+      sinAp.r.inf === conAp.r.inf && sinAp.r.suma === conAp.r.suma,
+      sinAp.grado + ' -> ' + conAp.grado]);
+    /* NO viaja al Excel —la columna va en el G2— y SI viaja con el estudio. */
+    const fila = (typeof _labExcelRow === 'function')
+      ? _labExcelRow({ nombre:'P', ci:'1', fecha_estudio:'2026-10-15', campos: (function(){
+          const c = {}; document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function(el){
+            if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(el.id)) return;
+            c[el.id] = el.value }); return c })() })
+      : null;
+    ex.push(['el Excel sigue en 436 columnas y NINGUNA nombra la arteria pulmonar',
+      !!fila && Object.keys(fila).length === 436 &&
+      Object.keys(fila).filter(k => k.toLowerCase().indexOf('arteria pulmonar') >= 0).length === 0,
+      fila ? String(Object.keys(fila).length) : 'SIN _labExcelRow']);
+    ex.push(['pero SI entra en el juego de campos que se guarda con el estudio',
+      (typeof _noEsDelEstudio === 'function') ? _noEsDelEstudio('ip_ap_diam') === false : false,
+      String((typeof _noEsDelEstudio === 'function') ? _noEsDelEstudio('ip_ap_diam') : 'SIN FN')]);
+    const antesAp = V('ip_ap_diam');
+    __t.limpiar();
+    ex.push(['«Nuevo estudio» lo vacia y borra su marca',
+      antesAp === '30' && V('ip_ap_diam') === '' && T('ip_ap_diam-marca') === '',
+      antesAp + ' -> ' + V('ip_ap_diam') + ' marca=«' + T('ip_ap_diam-marca') + '»']);
+
+    /* ══ I · EL COLOR DEL AVISO DEL TEI ═══════════════════════════════════════════════════
+       Lo que se fija aca es que la DECLARACION sea --orange: el color computado en los dos
+       temas lo mide la sonda, que puede poner la clase light-mode y sacar la captura. */
+    const av = EL('vd-tei-aviso');
+    ex.push(['el aviso del Tei declara --orange y ya no --amber (el defecto D2-2)',
+      !!av && String(av.getAttribute('style') || '').indexOf('var(--orange)') > -1 &&
+      String(av.getAttribute('style') || '').indexOf('var(--amber)') < 0,
+      av ? String(av.getAttribute('style') || '').slice(0, 90) : 'NO EXISTE']);
+    ex.push(['CONTROL NEGATIVO: --amber sigue sin definirse fuera de .amilo-root, asi que el cambio hacia falta',
+      !!av && getComputedStyle(av).getPropertyValue('--amber').trim() === '',
+      av ? ('«' + getComputedStyle(av).getPropertyValue('--amber').trim() + '»') : 'NO EXISTE']);
+    S('vd_tei', '0.62'); S('it_grado', '4');
+    ex.push(['y su TEXTO no cambio: sigue nombrando el folio 159',
+      T('vd-tei-aviso').indexOf('folio 159') > -1, T('vd-tei-aviso').slice(0, 70)]);
+
+    /* ══ J · CONTROLES: lo ajeno no se mueve ══════════════════════════════════════════════ */
+    __t.limpiar();
+    for (const [id, v2] of [['peso','80'],['talla','180'],['sexo','M'],['edad','68'],
+      ['ddfvi','52'],['dsfvi','36'],['siv','11'],['ppvi','11'],['fevi','60'],
+      ['ai_vol','70'],['diam_tsvi','20'],['itv_tsvi','21'],['itv_ao','55'],
+      ['vmax_ao','3.5'],['gmedio_ao','30'],['onda_e','90'],['onda_a','60'],
+      ['e_sep','6'],['e_lat','8'],['im_vc','5'],['avm_cont','1.8'],['em_gmedio','3'],
+      ['vmax_it','3.0'],['tapse','20'],['s_prime','12'],['vci_diam','18']]) S(id, v2);
+    const base = __t.informe();
+    const ctrl = { im: V('im_grado'), ia: V('ia_grado'), it: V('it_grado'), ea: V('ea_grado'),
+                   em: V('em_grado'), ep: V('ep_grado'), ip: V('ip_grado'), et: V('et_grado'),
+                   dd: T('dd-interp') };
+    /* Ahora se cargan SOLO los campos de esta tanda: nada ajeno puede moverse. */
+    S('vd_pared','7'); S('vd_vi','1.3'); S('fevd','40'); S('ip_ap_diam','30');
+    S('tsvd_diametro','22'); S('vti_tsvd','18');
+    const base2 = __t.informe();
+    const ctrl2 = { im: V('im_grado'), ia: V('ia_grado'), it: V('it_grado'), ea: V('ea_grado'),
+                    em: V('em_grado'), ep: V('ep_grado'), ip: V('ip_grado'), et: V('et_grado'),
+                    dd: T('dd-interp') };
+    ex.push(['DENOMINADOR: la escena de control tiene veredicto en las valvulas y en la diastolica',
+      String(ctrl.ea) !== '' && String(ctrl.dd).length > 2, JSON.stringify(ctrl)]);
+    ex.push(['los ocho grados y la funcion diastolica NO se mueven con los campos de esta tanda',
+      JSON.stringify(ctrl) === JSON.stringify(ctrl2),
+      JSON.stringify(ctrl) + ' // ' + JSON.stringify(ctrl2)]);
+    /* ⚠️ EL INFORME SI CAMBIA, y es lo unico autorizado: la hipertrofia del VD ya entraba al
+       narrativo desde el 2026-10-12. Lo que se exige es que cambie SOLO en esa clausula. */
+    const soloHvd = base2.inf.replace(/,? ?con hipertrofia(?: del ventr\\u00edculo derecho)? \\(pared de 7 mm\\)/, '');
+    ex.push(['el informe cambia SOLO por la clausula de hipertrofia, que ya existia',
+      soloHvd === base.inf, 'delta=' + String(base2.inf.length - base.inf.length)]);
+    ex.push(['CONTROL NEGATIVO: ni la relacion VD/VI, ni la FEVD, ni el Qp, ni el diametro de la AP llegan al informe',
+      base2.inf.indexOf('VD/VI') < 0 && base2.inf.indexOf('FEVD') < 0 &&
+      base2.inf.indexOf('Qp') < 0 && base2.inf.indexOf('arteria pulmonar') < 0, '']);
+    __t.limpiar();
     return { extra: ex };
   })();
 `);
