@@ -750,8 +750,13 @@ async function main() {
      con TAPSE y con PSAP) y uno que NO lo es, que es el control negativo. */
   if (corre('libre')) {
     const g = {};
+    /* ⚠️ LOS DOS PARES QUE YA EXISTIAN VAN EN LA MISMA TABLA, Y SON EL CONTROL DE QUE EL AVISO NO
+       CAMBIO DE TEXTO. `_libreCircular` paso a devolver DOS formas en vez del sujeto, asi que el
+       wording de `hfpeff` y de `amil` tiene que salir letra por letra igual que en HEAD. */
     for (const [kx, ky, k] of [['tpsp', 'tapse', 'acopladoTapse'], ['tpsp', 'psap', 'acopladoPsap'],
-                               ['tpsp', 'fevi', 'noAcoplado'], ['fevi', 'psap', 'control']])
+                               ['tpsp', 'fevi', 'noAcoplado'], ['fevi', 'psap', 'control'],
+                               ['hfpeff', 'ee', 'viejoHfpeff'], ['amil', 'tapse', 'viejoAmil'],
+                               ['hfpeff', 'qpqs', 'viejoSinDatos']])
       g[k] = await ev(`window.__P.libre(${JSON.stringify(POB.todos)}, ${JSON.stringify(kx)}, ${JSON.stringify(ky)})`, 30000);
     out.grupos.libre = g;
   }

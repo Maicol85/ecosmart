@@ -100512,8 +100512,13 @@ function labSubTab(id, el) {
   /* Orden de lectura de las categóricas. Cada conjunto cerrado aparece acá en su orden
      clínico; como la comparación es siempre dentro de una misma variable, no importa
      cómo queden posicionados unos conjuntos respecto de otros. */
+  /* Los cuatro grados de regurgitación entraron con el G2 (2026-10-15), para la asociación del
+     TAPSE/PSAP contra el grado de insuficiencia tricuspídea: sin ellos `ordCmp` cae al orden
+     ALFABETICO y los grupos del Kruskal-Wallis salen «Leve · Moderada · Severa · Sin», con el
+     «Sin» al final — o sea una escalera de severidad que arranca por el medio. */
   const ORD = ['Sí','No','≥50','40-49','<40','Normal','I','II','III',
-               'Remodelado conc.','HVI excéntrica','HVI concéntrica','F','M'];
+               'Remodelado conc.','HVI excéntrica','HVI concéntrica','F','M',
+               'Sin','Leve','Moderada','Severa'];
   const ordCmp = (x,y) => { const a=ORD.indexOf(x), b=ORD.indexOf(y);
     return (a<0?999:a)-(b<0?999:b) || String(x).localeCompare(String(y)); };
 
@@ -101237,8 +101242,41 @@ function labSubTab(id, el) {
 
   // Accesores de las variables clínicas de este bloque. Los que derivan de una regla clínica NO
   // se recalculan acá: salen de las funciones de módulo que ya las gobiernan.
+  /* ══ EL COCIENTE TAPSE/PSAP EN LAS ASOCIACIONES (G2, 2026-10-15) ═══════════════════════════
+     ⚠️ NO SE RECALCULA LA DIVISION: se le pregunta a `vdTapsePsapRed`, que es su dueño UNICO
+     desde el G1 y que desde el G2 acepta un objeto `campos` por su rama `src`. La fila del
+     Doppler tricuspideo, la columna del Excel y estas cuatro asociaciones publican el MISMO
+     numero con los MISMOS tres decimales; una segunda division escrita aca se separaria de la
+     pantalla el dia que alguien afine la guarda, que es el defecto que este modulo ya pago con
+     las TRES copias de `_labDiastGrado`.
+     ⚠️ SE USA CRUDO Y CON SPEARMAN, y es el criterio de la casa medido y no supuesto: este
+     modulo NO transforma ni categoriza NINGUNA variable —cero `Math.log`, cero prueba de
+     normalidad— y sus cuatro pruebas son no parametricas (Spearman, Mann-Whitney,
+     Kruskal-Wallis y chi²). Spearman trabaja por RANGOS, asi que es invariante a cualquier
+     transformacion monotona: categorizar el cociente en sus tres tramos le quitaria
+     informacion sin ganar robustez. Los tramos siguen existiendo en la fila de la pantalla. */
+  const A_TPSP = i => { const c = (i && i.campos) || {};
+    return (typeof vdTapsePsapRed === 'function') ? vdTapsePsapRed(c) : null; };
+  /* El grado de IT como GRUPO, por su dueño `_labRegurgSev` y no por una lectura propia: es la
+     misma funcion que cuentan la tabla de las ocho valvulas y el grafico apilado. */
+  const A_ITGRADO = i => (typeof _labRegurgSev === 'function') ? _labRegurgSev(i, 'it_grado') : null;
+  /* ⚠️ EL AVISO DE SESGO DE SELECCION VA EN LA `nota` DE LAS CUATRO, Y ES UNA SOLA CONSTANTE:
+     cuatro copias de la misma advertencia se separan en cuanto alguien corrija una. El detalle de
+     la fila ya publica el `nPob` y el `n` al lado de esta frase, asi que el numero no se repite
+     aca — lo que la frase agrega es POR QUE ese denominador no es el periodo completo. */
+  const A_NOTA_SESGO = 'Solo los estudios con TAPSE y con PSAP estimable: el cociente necesita un '
+    + 'chorro de insuficiencia tricuspidea medible, que no esta en todos los estudios. La columna N '
+    + 'dice cuantos son — y esa es una cohorte SELECCIONADA, no el periodo completo: los estudios '
+    + 'sin IT medible quedan afuera y pueden diferir sistematicamente de los que entran. ';
+
   const A_POBL = {
     todos:  infs => infs,
+    /* ⚠️ POBLACION PROPIA Y NO `todos`, Y ES LO QUE HACE VISIBLE EL SESGO DE SELECCION. El
+       cociente solo existe donde hay un chorro de IT medible —entre el 40 y el 60 % de los
+       estudios, segun la BSE— asi que la fila tiene que poder decir «de los N que lo tienen» y
+       no «de los N del periodo»: con `todos`, el `nPob` del detalle habria contado la cohorte
+       entera y el lector no tendria forma de saber que la mitad nunca entro. */
+    tpsp:   infs => infs.filter(i => A_TPSP(i) !== null),
     mch:    infs => infs.filter(i => _ccSecPred('mch')(i)),
     mca:    infs => infs.filter(i => _ccSecPred('mca')(i)),
     cia:    infs => infs.filter(i => _ccSecPred('cia')(i)),
@@ -101256,6 +101294,37 @@ function labSubTab(id, el) {
     { k:'psap_sprime', pob:'todos', lbl:"PSAP – Onda S'", t:'sp',
       x:{lbl:'PSAP (mmHg)', get:VARS.psap.get}, y:{lbl:"Onda S' (cm/s)", get:VARS.sprime.get},
       nota:"Segunda medida de función longitudinal del VD, independiente del TAPSE." },
+    /* ══ LAS CUATRO DEL TAPSE/PSAP (G2, 2026-10-15) ══════════════════════════════════════════
+       Las cuatro corren sobre la poblacion `tpsp` y las cuatro declaran el sesgo de seleccion en
+       su propia nota, que es donde el detalle de la fila ya publica el `nPob` y el `n`.
+       ⚠️ NINGUNA DE LAS CUATRO ES EL COCIENTE CONTRA UNO DE SUS DOS COMPONENTES, y eso es la
+       decision (c) de la orden: «TAPSE/PSAP – TAPSE» y «TAPSE/PSAP – PSAP» serian correlaciones
+       garantizadas por construccion, asi que el bloque armado NO las ofrece. En la asociacion
+       LIBRE, donde el medico las puede elegir, sale el aviso de par acoplado. */
+    { k:'tpsp_fevi', pob:'tpsp', lbl:'TAPSE/PSAP – FEVI', t:'sp',
+      x:{lbl:'TAPSE/PSAP (mm/mmHg)', get:A_TPSP}, y:{lbl:'FEVI (%)', get:VARS.fevi.get},
+      nota:'El cociente mide acoplamiento VD-arteria pulmonar; la FEVI es del ventriculo IZQUIERDO, '
+         + 'asi que no comparten ninguna medicion. ' + A_NOTA_SESGO },
+    { k:'tpsp_ee', pob:'tpsp', lbl:"TAPSE/PSAP – E/e'", t:'sp',
+      x:{lbl:'TAPSE/PSAP (mm/mmHg)', get:A_TPSP}, y:{lbl:"E/e' (ratio)", get:VARS.ee.get},
+      nota:"El E/e' estima la presion de llenado del VI y el cociente el acoplamiento del VD: la "
+         + 'pregunta es si la poscarga derecha acompania a la congestion izquierda. ' + A_NOTA_SESGO },
+    { k:'tpsp_lavi', pob:'tpsp', lbl:'TAPSE/PSAP – Vol AI indexado', t:'sp',
+      x:{lbl:'TAPSE/PSAP (mm/mmHg)', get:A_TPSP}, y:{lbl:'Vol AI indexado (ml/m²)', get:VARS.lavi.get},
+      nota:'El volumen auricular izquierdo indexado necesita ademas peso y talla, asi que en una '
+         + 'cohorte real es el termino que mas recorta el N. ' + A_NOTA_SESGO },
+    { k:'tpsp_it', pob:'tpsp', lbl:'TAPSE/PSAP – Insuficiencia tricuspidea (grado)', t:'kw',
+      x:{lbl:'TAPSE/PSAP (mm/mmHg)', get:A_TPSP}, grupo:A_ITGRADO, gl:'Grado de insuficiencia tricuspidea',
+      /* ⚠️ ES CIRCULAR Y SE DECLARA. La velocidad del chorro de IT es el insumo de la PSAP
+         (4*VRT² + PmAD), o sea del DENOMINADOR del cociente; y el grado de la IT se grada —entre
+         otros parametros— con esa misma velocidad. No es el mismo campo, pero parte de la
+         relacion esta puesta por construccion, igual que el score ETT con la geometria. */
+      circular:'La velocidad del chorro de IT es el insumo de la PSAP, que es el denominador del '
+         + 'cociente, y tambien uno de los parametros con los que se grada la insuficiencia: parte '
+         + 'de esta relacion esta garantizada por construccion.',
+      nota:'El grado es una variable de CUATRO categorias ordinales, asi que no hay coeficiente de '
+         + 'correlacion ni recta: se compara la distribucion del cociente entre grupos '
+         + '(Kruskal-Wallis). ' + A_NOTA_SESGO },
     { k:'amil_geom', pob:'amil', lbl:'Score ETT de amiloidosis – Geometría del VI', t:'kw',
       x:{lbl:'Score ETT (0–10)', get:i => _labNum(i, 'alg-ett-score')}, grupo:GEOM, gl:'Geometría del VI',
       /* Tan circular como las otras dos, y se había escapado. El score ETT suma cinco términos
@@ -101486,7 +101555,11 @@ function labSubTab(id, el) {
     amil:      { lbl:'Score ETT de amiloidosis',       get:i => _labNum(i, 'alg-ett-score') },
     co_dosis:  { lbl:'Dosis de antraciclinas (mg/m²)', get:i => _labNum(i, 'co_dosis_antrac') },
     co_dfevi:  { lbl:'Caída de FEVI (puntos)',         get:_labOncoCaidaFevi },
-    co_dgls:   { lbl:'Caída relativa de GLS (%)',      get:_labOncoCaidaGls }
+    co_dgls:   { lbl:'Caída relativa de GLS (%)',      get:_labOncoCaidaGls },
+    /* G2 (2026-10-15). Mismo dueño que las cuatro armadas y que la columna del Excel: aca NO se
+       recalcula nada. Su `get` devuelve null donde el cociente no existe, igual que las otras
+       22 entradas — asi que el N de la fila es el real y no hace falta compuerta de poblacion. */
+    tpsp:      { lbl:'TAPSE/PSAP (mm/mmHg)',          get:A_TPSP }
   });
 /* ── Puntajes compuestos y sus propios componentes ──────────────────────────────────────
    El bloque A se toma el trabajo de marcar dos asociaciones circulares y el libre dejaba armar
@@ -101507,10 +101580,34 @@ const _LIBRE_COMPONENTES = {
   amil:   { lbl:'el score ETT de amiloidosis', de:['ee','tapse','gls','pp','ddvi'] },
   hfpeff: { lbl:'el puntaje HFA-PEFF',         de:['ee','lavi','masa','siv','pp','ddvi','gls','psap','edad'] }
 };
+/* ── PARES ACOPLADOS POR CONSTRUCCION (G2, 2026-10-15) ──────────────────────────────────────
+   Un COCIENTE contra uno de sus dos factores no es un puntaje contra su componente: la frase que
+   los dos consumidores interpolaban —«es uno de los criterios que PUNTUAN X»— seria falsa sobre
+   el TAPSE/PSAP contra el TAPSE. Por eso esta familia es APARTE y `_libreCircular` pasa a
+   devolver la frase ARMADA en vez del sujeto.
+   ⚠️ DEVUELVE DOS FORMAS, `corta` y `larga`, y no una. Los dos sitios que publican el aviso
+   usaban textos DISTINTOS —el de «no se pudo calcular» corta en el punto y el de «hay
+   resultado» sigue con «asi que parte de esta correlacion…»— asi que una sola frase le habria
+   cambiado el texto a uno de los dos pares que ya existian. Con las dos formas, el wording
+   visible de `amil` y de `hfpeff` no cambia ni una letra.
+   El bloque ARMADO no ofrece estos dos pares (decision (c) de la orden); aca el medico los puede
+   elegir, y entonces el aviso tiene que salir. */
+const _LIBRE_ACOPLADOS = {
+  tpsp: { de:['tapse','psap'],
+          corta:'Asociacion esperable por construccion: el cociente TAPSE/PSAP incluye esa medida.',
+          larga:'Asociacion esperable por construccion: el cociente TAPSE/PSAP INCLUYE esa medida '
+              + '—es su numerador o su denominador—, asi que la relacion no es un hallazgo de la cohorte.' }
+};
 function _libreCircular(kx, ky){
   const mira = (a, b) => {
     const c = Object.prototype.hasOwnProperty.call(_LIBRE_COMPONENTES, a) ? _LIBRE_COMPONENTES[a] : null;
-    return (c && c.de.indexOf(b) >= 0) ? c.lbl : null;
+    if (c && c.de.indexOf(b) >= 0) return {
+      corta: 'La otra variable es uno de los criterios que PUNT\u00daAN ' + c.lbl + '.',
+      larga: 'La otra variable es uno de los criterios que PUNT\u00daAN ' + c.lbl + ', as\u00ed que parte de esta '
+           + 'correlaci\u00f3n est\u00e1 garantizada por construcci\u00f3n y no es un hallazgo de la cohorte.' };
+    const d = Object.prototype.hasOwnProperty.call(_LIBRE_ACOPLADOS, a) ? _LIBRE_ACOPLADOS[a] : null;
+    if (d && d.de.indexOf(b) >= 0) return { corta: d.corta, larga: d.larga };
+    return null;
   };
   return mira(kx, ky) || mira(ky, kx);
 }
@@ -101676,7 +101773,7 @@ function _libreCircular(kx, ky){
          que el problema aparece y desaparece. */
       res.innerHTML = (circ ? '<div style="font-size:.78rem;color:var(--text);background:var(--bg3);border-left:3px solid var(--orange,#f0a500);' +
         'border-radius:6px;padding:8px 10px;line-height:1.55;margin-bottom:10px;"><b>⚠ Correlación parcialmente tautológica.</b> ' +
-        'La otra variable es uno de los criterios que PUNTÚAN ' + escHtml(circ) + '.</div>' : '') +
+        escHtml(circ.corta) + '</div>' : '') +
         '<div style="color:var(--text2);font-size:.85rem;">' + (pairs.length >= 3
         ? ('Hay <b>' + pairs.length + '</b> estudio(s) con las dos variables, pero <b>una de las dos es constante</b> ' +
            'en esta cohorte (varianza cero): no hay correlación que medir. No falta N — falta variabilidad.')
@@ -101710,8 +101807,7 @@ function _libreCircular(kx, ky){
     res.innerHTML =
       (circ ? '<div style="font-size:.78rem;color:var(--text);background:var(--bg3);border-left:3px solid var(--orange,#f0a500);' +
               'border-radius:6px;padding:8px 10px;line-height:1.55;margin-bottom:10px;"><b>⚠ Correlación parcialmente tautológica.</b> ' +
-              'La otra variable es uno de los criterios que PUNTÚAN ' + escHtml(circ) + ', así que parte de esta correlación está ' +
-              'garantizada por construcción y no es un hallazgo de la cohorte.</div>' : '') +
+              escHtml(circ.larga) + '</div>' : '') +
       '<div style="display:flex;flex-wrap:wrap;gap:18px;font-size:.9rem;align-items:baseline;">' +
       '<div><b>ρ de Spearman</b> ' + r.rho.toFixed(2) + ' <span style="color:var(--text2);font-size:.82rem;">(' + fuerzaTxt(r.rho) + ', ' + dirTxt(r.rho, true) + ')</span></div>' +
       '<div><b>N</b> ' + r.n + '</div>' +
