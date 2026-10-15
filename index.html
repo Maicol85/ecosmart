@@ -79,6 +79,21 @@
     --purple: #9b7fe8;
     --section-head: #232840;
     --ete-traza: #e2e8f0;
+    /* ══ PALETA DEL ESQUEMA 2D DE LAS VALVULAS (Y1, 2026-10-15) ════════════════════
+       Son colores de ANATOMIA, no de interfaz: miocardio rosado, cavidades izquierdas rosadas y
+       derechas azuladas, valvas color hueso, protesis en metal o en tejido. Por eso no reusan
+       `--red`, `--accent` ni `--purple`, que son colores de senal y cambian con la identidad de
+       la app. Van ACA, en el ambito global, y no dentro de la caja del dibujo: una variable que
+       no existe en el ambito donde se usa cae al heredado en silencio, que es como cinco avisos
+       de esta app se vieron grises durante semanas. Cada una tiene su gemela en `light-mode`. */
+    --v2d-myo1: #a14257;   --v2d-myo2: #5b2237;   --v2d-myoline: #e48ba0;
+    --v2d-bl1: #4b2b37;    --v2d-bl2: #6d3544;
+    --v2d-br1: #262c58;    --v2d-br2: #374687;
+    --v2d-stroke: #e7a1b3; --v2d-leaf: #4a3d24;   --v2d-leafstroke: #f0cf8a;
+    --v2d-jetder: #6fb7ff; --v2d-jetao: #ff6b6b;  --v2d-names: #f2b8c8;
+    --v2d-sys: #ff6b81;    --v2d-dia: #8aa6ff;
+    --v2d-pcuff: #cbbfd3;  --v2d-pmetal: #aab3c0; --v2d-pmetalhi: #f2f5fa;
+    --v2d-bcuff: #a99bb0;  --v2d-brod: #e6b9ae;   --v2d-brodhi: #fff3f0;
   }
   html.light-mode {
     --bg: #f4f6f9;
@@ -96,6 +111,16 @@
     --purple: #7457c9;
     --section-head: #e4e9f2;
     --ete-traza: #334155;
+    /* La gemela clara de la paleta del esquema 2D. Las VEINTIDOS existen en los dos temas: una
+       sola que falte deja ese trazo con el color del otro tema, que es invisible o estridente. */
+    --v2d-myo1: #f7bdb4;   --v2d-myo2: #e2707f;   --v2d-myoline: #b24a5e;
+    --v2d-bl1: #fff6f4;    --v2d-bl2: #ffd3cc;
+    --v2d-br1: #f3f4ff;    --v2d-br2: #cfd6fb;
+    --v2d-stroke: #8a3a4d; --v2d-leaf: #fff2d1;   --v2d-leafstroke: #8a5a1f;
+    --v2d-jetder: #1457c7; --v2d-jetao: #b3201f;  --v2d-names: #7d3550;
+    --v2d-sys: #c2354f;    --v2d-dia: #3b5fc4;
+    --v2d-pcuff: #3b3441;  --v2d-pmetal: #59606b; --v2d-pmetalhi: #d3d9e2;
+    --v2d-bcuff: #8d7f92;  --v2d-brod: #c4857a;   --v2d-brodhi: #fff3f0;
   }
   /* ⚠️ LAS CUATRO PROYECCIONES DEL ETE MITRAL SON SVG DE MATPLOTLIB Y NACIERON CON EL COLOR
      CABLEADO en `#e2e8f0`, o sea un gris casi blanco: sobre el fondo de la tarjeta en modo Día
@@ -2358,6 +2383,75 @@ html.light-mode .amilo-root{
   .tab-btn { font-size: 13px; padding: 7px 14px; }
   .rail .tab-btn { font-size: 14.5px; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════
+   VISTA 2D DE LAS VALVULAS  —  #v2d-ov  (Y1, 2026-10-15)
+
+   Esquema animado del corazon con las cuatro cavidades, las tres valvulas de la vista apical
+   de cinco camaras y sus chorros. Es SOLO LECTURA: no calcula nada, no escribe ningun campo y
+   no toca ninguna superficie firmada. Todo lo que dibuja sale de `v2dEstado()`, el unico lector,
+   que junta lo que la app YA calculo.
+
+   ⚠️ LA PALETA DEL DIBUJO VIVE EN `:root` Y EN `html.light-mode`, Y NO DENTRO DE ESTA CAJA.
+   Es la regla de la casa y esta escrita con sangre: `--amber` se declaraba SOLO dentro de
+   `.amilo-root`, asi que cinco avisos que decian `color:var(--amber)` se veian GRISES. Una
+   variable que no existe en el ambito donde se usa no falla: cae al heredado. Estas nacen en los
+   dos temas, al lado de las del resto de la app, y TC-482 mide el color REAL resuelto en ambos.
+   ⚠️ Y SON PROPIAS (`--v2d-*`) Y NO LAS DE LA APP, salvo el marco. El dibujo necesita rosado de
+   miocardio y azul de cavidades derechas, que no son colores de interfaz: reusar `--red` o
+   `--accent` ataria la anatomia al dia que alguien repunte un color de la app. El MARCO —fondo,
+   bordes, titulos y texto— si usa las de la app, que es lo que lo hace parte de la pantalla. */
+#v2d-ov{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.6);display:none;}
+#v2d-card{position:absolute;inset:10px;display:flex;flex-direction:column;background:var(--bg2);
+  border:1px solid var(--border);border-radius:12px;box-shadow:0 18px 50px rgba(0,0,0,.6);}
+#v2d-head{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);
+  background:var(--bg2);border-radius:12px 12px 0 0;flex-shrink:0;}
+#v2d-tit{flex:1;font-weight:700;font-size:13px;color:var(--accent2);}
+#v2d-cuerpo{padding:12px 14px;overflow:auto;flex:1;}
+#v2d-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start;}
+@media (max-width:900px){
+  #v2d-card{inset:6px;}
+  #v2d-cuerpo{padding:10px;}
+}
+#v2d-svg{display:block;width:100%;height:auto;max-height:70vh;margin:0 auto;}
+#v2d-ciclo{margin-top:8px;}
+#v2d-bar{position:relative;height:11px;border-radius:7px;background:var(--bg3);overflow:hidden;display:flex;}
+#v2d-bar .v2d-s{background:var(--v2d-sys);opacity:.6;width:36%;}
+#v2d-bar .v2d-d{background:var(--v2d-dia);opacity:.4;width:64%;}
+#v2d-mark{position:absolute;top:-2px;width:3px;height:15px;border-radius:2px;background:var(--text);}
+#v2d-fase{display:flex;justify-content:space-between;gap:8px;font-size:12px;margin-top:5px;color:var(--text2);}
+#v2d-fase b{color:var(--text);}
+/* Objetivos tactiles comodos: el boton de cerrar y el del pie de Valvulas. Sin hover. */
+#v2d-cerrar{min-height:38px;min-width:38px;}
+.v2d-pie{margin:14px 0 2px;text-align:center;}
+#v2d-abrir{min-height:44px;padding:9px 18px;font-weight:700;}
+.v2d-nota{font-size:11.5px;color:var(--text2);line-height:1.45;margin:10px 2px 0;}
+/* Las clases del propio dibujo. Todas con prefijo `v2d-`: `.lbl` ya existe en esta app con otro
+   significado (89 usos), y una colision de nombre en una hoja de 2.400 lineas no avisa. */
+#v2d-svg .v2d-sector{fill:url(#v2dgMyo);stroke:var(--v2d-myoline);stroke-width:.6;}
+#v2d-svg .v2d-shine{fill:url(#v2dgShine);pointer-events:none;}
+#v2d-svg .v2d-chamL{fill:url(#v2dgBL);stroke:var(--v2d-stroke);stroke-width:.5;}
+#v2d-svg .v2d-chamR{fill:url(#v2dgBR);stroke:var(--v2d-stroke);stroke-width:.5;}
+#v2d-svg .v2d-leaf{fill:var(--v2d-leaf);stroke:var(--v2d-leafstroke);stroke-width:1;
+  vector-effect:non-scaling-stroke;stroke-linejoin:round;}
+#v2d-svg .v2d-leafpat{stroke:var(--v2d-leafstroke);stroke-width:.8;vector-effect:non-scaling-stroke;
+  stroke-linejoin:round;}
+#v2d-svg .v2d-cuff{fill:var(--v2d-pcuff);stroke:var(--text);stroke-width:.5px;vector-effect:non-scaling-stroke;}
+#v2d-svg .v2d-cuff.v2d-bio{fill:var(--v2d-bcuff);}
+#v2d-svg .v2d-cuffi{fill:var(--v2d-pmetalhi);opacity:.5;}
+#v2d-svg .v2d-rod{stroke:var(--v2d-pmetal);stroke-width:2.4px;stroke-linecap:round;}
+#v2d-svg .v2d-rod.v2d-bio{stroke:var(--v2d-brod);stroke-width:1.8px;}
+#v2d-svg .v2d-rodhi{stroke:var(--v2d-pmetalhi);stroke-width:.75px;stroke-linecap:round;}
+#v2d-svg .v2d-rodhi.v2d-bio{stroke:var(--v2d-brodhi);stroke-width:.45px;}
+#v2d-svg .v2d-piv{fill:var(--v2d-pmetalhi);stroke:var(--v2d-pmetal);stroke-width:.4px;}
+#v2d-svg .v2d-lbl{font-size:5.2px;font-weight:700;fill:var(--text);text-anchor:middle;
+  paint-order:stroke;stroke:var(--v2d-bl1);stroke-width:1.2px;stroke-linejoin:round;}
+#v2d-svg .v2d-cn{font-size:5.2px;font-weight:700;fill:var(--v2d-names);text-anchor:middle;
+  letter-spacing:.3px;paint-order:stroke;stroke:var(--v2d-bl1);stroke-width:1.3px;
+  stroke-linejoin:round;opacity:.85;}
+#v2d-svg .v2d-jet-it,#v2d-svg .v2d-jet-im{fill:var(--v2d-jetder);}
+#v2d-svg .v2d-jet-iao{fill:var(--v2d-jetao);}
+@media print{#v2d-ov{display:none!important;}}
 </style>
 </head>
 <body>
@@ -2856,6 +2950,75 @@ window.cerrarSesionReal = cerrarSesionReal;
        style="display:none;position:fixed;z-index:310;box-sizing:border-box;overflow:auto;background:var(--bg2);border:1px solid var(--border);border-radius:10px;box-shadow:0 14px 40px rgba(0,0,0,.55);padding:11px 13px;"></div>
 </div>
 
+
+<!-- ══ VISTA 2D DE LAS VALVULAS (Y1, 2026-10-15) — DECISION DE MAICOL ══════════════════════════
+     Esquema animado, CUALITATIVO y de SOLO LECTURA. No calcula nada: todo lo que dibuja y todo
+     lo que escriben las tarjetas sale de `v2dEstado()`, que junta lo que la app ya publico.
+     Nada se guarda en el estudio ni en el navegador, y ninguna superficie firmada lo nombra.
+
+     ⚠️ `role="dialog"` CON `aria-modal="true"`, al reves que la tarjeta de los globos: esto SI es
+     un modal —toma la pantalla entera y atrapa el foco—, asi que entra en las dos piezas del
+     bloque de accesibilidad: la trampa de Tab, que cicla el foco adentro, y el oyente generico
+     de Escape, que le clickea el primer boton cuyo `onclick` matchee /cerrar/. Por eso el boton
+     de cerrar se llama `v2dCerrar()` y no hace falta un segundo oyente de teclado: uno solo
+     cierra, y `v2dCerrar` es idempotente.
+     ⚠️ EL SVG NACE VACIO DE DATOS y lo puebla `v2dAbrir`. Mientras la vista esta cerrada no corre
+     ningun temporizador ni ningun cuadro de animacion: el bucle se arma al abrir y se desarma al
+     cerrar, que es lo que la orden pide y lo que evita que una pestana en segundo plano siga
+     repintando un dibujo que nadie mira. -->
+<div id="v2d-ov" onclick="if(event.target===this)v2dCerrar();">
+  <div id="v2d-card" role="dialog" aria-modal="true" aria-labelledby="v2d-tit" tabindex="-1">
+    <div id="v2d-head">
+      <span id="v2d-tit">&#129728; V&aacute;lvulas en 2D</span>
+      <button type="button" class="btn btn-ghost" id="v2d-cerrar" aria-label="Cerrar la vista 2D"
+              style="font-size:12px;padding:3px 12px;font-weight:700;" onclick="v2dCerrar()">&#10005; Cerrar</button>
+    </div>
+    <div id="v2d-cuerpo">
+      <div id="v2d-grid">
+        <div id="v2d-dibujo">
+          <svg id="v2d-svg" viewBox="24 36 154 242" xmlns="http://www.w3.org/2000/svg" role="img"
+               aria-label="Esquema animado del coraz&oacute;n con las v&aacute;lvulas y sus chorros">
+      <defs>
+      <linearGradient id="v2dgMyo" x1="0" y1="0" x2="0.35" y2="1"><stop offset="0" style="stop-color:var(--v2d-myo1)" stop-color="#f7bdb4"/><stop offset="1" style="stop-color:var(--v2d-myo2)" stop-color="#e2707f"/></linearGradient>
+      <linearGradient id="v2dgBL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--v2d-bl1)" stop-color="#fff6f4"/><stop offset="1" style="stop-color:var(--v2d-bl2)" stop-color="#ffd3cc"/></linearGradient>
+      <linearGradient id="v2dgBR" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--v2d-br1)" stop-color="#f3f4ff"/><stop offset="1" style="stop-color:var(--v2d-br2)" stop-color="#cfd6fb"/></linearGradient>
+      <radialGradient id="v2dgShine" cx="0.3" cy="0.18" r="0.7"><stop offset="0" stop-color="#ffffff" stop-opacity=".38"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></radialGradient>
+      <pattern id="v2dpt1" width="4" height="4" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="0.6" style="fill:var(--v2d-leafstroke)" fill="#8a5a1f"/></pattern>
+      <pattern id="v2dpt2" width="4" height="4" patternUnits="userSpaceOnUse"><line x1="0" y1="2" x2="4" y2="2" style="stroke:var(--v2d-leafstroke)" stroke="#8a5a1f" stroke-width="0.55"/></pattern>
+      <pattern id="v2dpt3" width="4" height="4" patternUnits="userSpaceOnUse"><line x1="0" y1="2" x2="4" y2="2" style="stroke:var(--v2d-leafstroke)" stroke="#8a5a1f" stroke-width="0.55"/><line x1="2" y1="0" x2="2" y2="4" style="stroke:var(--v2d-leafstroke)" stroke="#8a5a1f" stroke-width="0.55"/></pattern>
+      <pattern id="v2dflw-it" width="9" height="11" patternUnits="userSpaceOnUse"><rect x="1" y="1" width="7" height="2.4" rx="1.2" fill="#ffffff" fill-opacity=".8"/><rect x="3" y="6.4" width="5" height="1.8" rx=".9" fill="#ffffff" fill-opacity=".55"/></pattern>
+      <pattern id="v2dflw-im" width="9" height="11" patternUnits="userSpaceOnUse"><rect x="1" y="1" width="7" height="2.4" rx="1.2" fill="#ffffff" fill-opacity=".8"/><rect x="3" y="6.4" width="5" height="1.8" rx=".9" fill="#ffffff" fill-opacity=".55"/></pattern>
+      <pattern id="v2dflw-iao" width="9" height="11" patternUnits="userSpaceOnUse"><rect x="1" y="1" width="7" height="2.4" rx="1.2" fill="#ffffff" fill-opacity=".8"/><rect x="3" y="6.4" width="5" height="1.8" rx=".9" fill="#ffffff" fill-opacity=".55"/></pattern>
+      </defs>
+            <path id="v2d-out" class="v2d-sector"/>
+            <path id="v2d-shine" class="v2d-shine"/>
+            <path id="v2d-cl" class="v2d-chamR"/>
+            <path id="v2d-cr" class="v2d-chamL"/>
+            <g id="v2d-jets"></g>
+            <g id="v2d-valves"></g>
+            <g id="v2d-names">
+              <text id="v2d-n-vd" class="v2d-cn" x="72" y="92">VD</text><text id="v2d-n-vi" class="v2d-cn" x="124" y="92">VI</text>
+              <text id="v2d-n-ad" class="v2d-cn" x="62" y="238">AD</text><text id="v2d-n-ai" class="v2d-cn" x="122" y="238">AI</text>
+            </g>
+            <g id="v2d-labels">
+              <text id="v2d-l-tv" class="v2d-lbl" x="64" y="201">VT</text>
+              <text id="v2d-l-av" class="v2d-lbl" x="97" y="199">VA</text>
+              <text id="v2d-l-mv" class="v2d-lbl" x="128" y="185">VM</text>
+            </g>
+          </svg>
+          <div id="v2d-ciclo">
+            <div id="v2d-bar" aria-hidden="true"><div class="v2d-s"></div><div class="v2d-d"></div><div id="v2d-mark"></div></div>
+            <div id="v2d-fase"><span>Fase: <b id="v2d-fase1">&mdash;</b></span><span id="v2d-fase2"></span></div>
+          </div>
+        </div>
+      </div>
+      <p class="v2d-nota">Esquema <b>cualitativo</b>: no est&aacute; a escala y no mide. La apertura de cada
+      v&aacute;lvula, el tama&ntilde;o de los chorros y de las c&aacute;maras muestran s&oacute;lo el grado que la aplicaci&oacute;n ya
+      public&oacute;. La vista apical de cinco c&aacute;maras no incluye la v&aacute;lvula pulmonar. Coraz&oacute;n izquierdo en
+      tonos rosados y derecho en tonos azulados.</p>
+    </div>
+  </div>
+</div>
 <!-- ══ LA TARJETA DE LOS GLOBOS «i» DE VALVULAS (2026-10-14) — DECISION DE MAICOL ════════════
      UNA sola tarjeta para los ocho globos de la pestana: el contenido lo escribe `_vInfoAbrir` y
      cual esta abierto lo dice `_vInfoId`. Ocho tarjetas en el marcado serian ocho nodos que se
@@ -7148,6 +7311,19 @@ window.cerrarSesionReal = cerrarSesionReal;
   </div>
   </div>
 
+
+  <!-- ══ EL PIE DE VALVULAS: LA VISTA 2D (Y1, 2026-10-15) ════════════════════════
+       Va al PIE de la pantalla, debajo de las ocho pestanas de valvula, y es visible para TODOS
+       los usuarios: no cuelga de `data-mod` ni de ninguna compuerta de plan. Es deliberado y es
+       decision de Maicol —la vista no agrega ningun dato, solo muestra lo que ya esta—, y ademas
+       evita el agujero que `showTab` ya tiene declarado: el plan se aplica escondiendo BOTONES,
+       no paneles, asi que un control gateado que igual activa su pestana entra sin pasar por
+       ninguna compuerta. Este no gatea nada, asi que no hay compuerta que saltarse. -->
+  <div class="v2d-pie">
+    <button type="button" class="btn btn-primary" id="v2d-abrir" onclick="v2dAbrir()"
+            aria-haspopup="dialog" aria-controls="v2d-ov"
+            title="Ver el esquema 2D con las valvulas y las cavidades">&#129728; Ver en 2D</button>
+  </div>
 </div>
 
 <!-- ═══════════════════════ TAB: OTROS ═══════════════════════ -->
@@ -20412,6 +20588,31 @@ function calcGeometriaVI(masaIdx, rwt, sexo) {
   return 'Hipertrofia concéntrica';
 }
 window.calcGeometriaVI = calcGeometriaVI;
+/* ══ LA DIMENSION DEL VI — UN SOLO DUENO (Y1, 2026-10-15) ════════════════════════
+   Esta cascada vivia DENTRO de `generarInforme` y no tenia nombre. Sale aca —al lado de
+   `calcGeometriaVI`, que es la otra «unica fuente de verdad» del VI— porque desde el Y1 la lee un
+   segundo consumidor: el esquema 2D, que tiene que dibujar el ventriculo del tamano que el
+   informe dice. Copiar los tres cortes alla seria el segundo dueno que este archivo ya pago
+   cuatro veces; el informe sigue llamando a esta funcion y su texto no cambia ni un byte.
+   ⚠️ NO ES UN CORTE NUEVO NI UNO MOVIDO: 58 y 65 mm de diametro diastolico, y el respaldo por
+   VOLUMEN INDEXADO (61 ml/m2 en la mujer, 75 en el hombre) que solo puede EMPEORAR un «de
+   dimensiones normales». Es exactamente lo que habia, movido de lugar.
+   Devuelve el mismo sintagma que el informe imprime —no un numero— porque es lo que sus dos
+   consumidores necesitan: el papel lo mete en la oracion y el dibujo lo mapea a un tramo. */
+function viDimCat(ddfviN){
+  const d = (ddfviN === undefined) ? v('ddfvi') : ddfviN;
+  if (!d) return null;
+  let dim = d <= 58 ? 'de dimensiones normales' : d <= 65 ? 'levemente dilatado' : 'dilatado';
+  const _vdfviN = v('vdfvi');
+  const _bsaN = (typeof getBSA === 'function') ? getBSA() : null;
+  if (dim === 'de dimensiones normales' && _vdfviN && _bsaN) {
+    const _vidx = _vdfviN / _bsaN;
+    const _limVDF = sv('sexo') === 'F' ? 61 : 75;
+    if (_vidx > _limVDF) dim = 'levemente dilatado (por volumen indexado)';
+  }
+  return dim;
+}
+window.viDimCat = viDimCat;
 function sv(id) {
   const el = document.getElementById(id);
   if (!el) return '';
@@ -42147,15 +42348,10 @@ function generarInforme(opts) {
   // Fragmentos DIMENSIONES VI (para la oración 1)
   let dimVI = null, viFragC = '', viFragE = '', viFragN = '';
   if (ddfvi) {
-    dimVI = ddfvi <= 58 ? 'de dimensiones normales' : ddfvi <= 65 ? 'levemente dilatado' : 'dilatado';
-    const _vdfviN = v('vdfvi');
-    const _bsaN = getBSA();
-    if (dimVI === 'de dimensiones normales' && _vdfviN && _bsaN) {
-      const _vidx = _vdfviN / _bsaN;
-      const _sexoVI = sv('sexo');
-      const _limVDF = _sexoVI === 'F' ? 61 : 75;
-      if (_vidx > _limVDF) dimVI = 'levemente dilatado (por volumen indexado)';
-    }
+    /* La cascada se mudo a `viDimCat` (Y1): el esquema 2D necesita el MISMO tramo que este
+       parrafo publica, y dos copias de tres cortes se separan en cuanto alguien mueva uno. El
+       texto que sale de aca no cambia. */
+    dimVI = viDimCat(ddfvi);
     const normalVI = dimVI === 'de dimensiones normales';
     viFragC = `VI ${dimVI} (DDFVI ${ddfvi} mm)`;
     viFragE = normalVI
@@ -111051,6 +111247,494 @@ window.cerrarEvolucion = cerrarEvolucion;
 window.actualizarGraficaEvol = actualizarGraficaEvol;
 
 // ══ FIN LABORATORIO ══════════════════════════════════════════════
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════════
+   VISTA 2D DE LAS VALVULAS  —  EL LECTOR Y EL DIBUJO   (Y1, 2026-10-15)
+
+   Decision de Maicol. Es SOLO LECTURA de punta a punta: no calcula ningun grado, no mueve ningun
+   corte, no escribe un solo campo del estudio y no toca el informe, el PDF, el PPT, el Excel ni
+   el Laboratorio. El dibujo sale de la demo que el medico aprobo (`docs/3d/Esquema valvular_
+   protesis, geometria y funcion.html`), integrado como codigo propio: sin CDN, sin fuentes
+   externas, sin `localStorage` y sin `IndexedDB`.
+
+   ⚠️ UN SOLO LECTOR DEL ESTADO, Y NO RECALCULA NADA. `v2dEstado()` junta lo que la app YA
+   publico y lo devuelve como DATOS —nunca HTML—: es el patron de `emCategoria` y de `vmProtEOA`.
+   El tamano de las camaras, la geometria del VI y la contraccion salen de las CATEGORIAS que la
+   app ya pinta en sus cuadros de referencia, leidas por `textContent`; el grado de cada lesion
+   sale de la PASTILLA de severidad, que es el dueno unico de «que grado publica esta valvula»
+   (`valvSev.refrescar`) y el mismo nodo del que cuelga el color. Recalcular cualquiera de las
+   dos cosas aca seria un segundo dueno, que es lo que este archivo ya pago cuatro veces.
+   ⚠️ Y POR ESO EL GRADO DE LA TARJETA NO PUEDE DISCREPAR DEL INFORME: los dos leen el mismo
+   `*_grado`. Si el medico fijo un grado a mano, manda lo que puso, porque eso es lo que el campo
+   tiene. TC-482 lo mide escena por escena contra el informe y contra el EN SUMA.
+
+   ⚠️ NADA DE LO QUE SE LEE ENTRA POR `innerHTML`. Todo el texto de las tarjetas y de la tabla se
+   escribe con `textContent` o con `createTextNode`: el nombre del paciente no llega hasta aca,
+   pero las categorias que se leen vienen de nodos que OTRAS funciones pintan, y la regla de la
+   casa es que un dato que viajo por el DOM no vuelve a entrar como marcado. */
+
+/* Las tres valvulas de la vista apical de cinco camaras. La PULMONAR no esta a proposito: esa
+   vista no la incluye, y dibujarla seria inventar una proyeccion. */
+const V2D_VALVS = Object.freeze([
+  Object.freeze({ k:'mitral',     nom:'Mitral',     morf:'vm_morf',
+                  insuf:Object.freeze({ campo:'im_grado', sigla:'IM',  dib:'im'  }),
+                  esten:Object.freeze({ campo:'em_grado', sigla:'EM',  dib:'em'  }), dibProt:'pm' }),
+  Object.freeze({ k:'aortica',    nom:'Aórtica',    morf:'va_morf',
+                  insuf:Object.freeze({ campo:'ia_grado', sigla:'IAo', dib:'iao' }),
+                  esten:Object.freeze({ campo:'ea_grado', sigla:'EAo', dib:'eao' }), dibProt:'pao' }),
+  Object.freeze({ k:'tricuspide', nom:'Tricuspídea', morf:'vt_morf',
+                  insuf:Object.freeze({ campo:'it_grado', sigla:'IT',  dib:'it'  }),
+                  esten:Object.freeze({ campo:'et_grado', sigla:'ET',  dib:'et'  }), dibProt:'pt' })
+]);
+window.V2D_VALVS = V2D_VALVS;
+
+/* El texto de un nodo que la app ya pinto, sin el badge ni el blanco de mas. Devuelve '' cuando
+   el nodo no existe o esta en la raya: «no hay categoria» y «no se midio» son lo mismo para
+   este consumidor, y los dos se dibujan igual. */
+function _v2dTxt(id){
+  const e = document.getElementById(id);
+  if (!e) return '';
+  const t = String(e.textContent || '').replace(/\s+/g, ' ').trim();
+  return (t === '—' || t === '-') ? '' : t;
+}
+/* El tramo 0..3 de una categoria PUBLICADA, por la palabra que la app imprime. Se lee el texto y
+   no se recalculan los cortes: el numero ya lo clasifico su dueno, y una segunda tabla de cortes
+   aca se separaria del cuadro de referencias el dia que uno se mueva. Es el mismo argumento con
+   que `eaProtVeredicto` lee `dvi-val` y `ava-idx` en vez de recalcularlos. */
+function _v2dTramo(txt, mapa){
+  const t = String(txt || '').toLowerCase();
+  if (!t) return 0;
+  for (let i = 0; i < mapa.length; i++) if (t.indexOf(mapa[i][0]) > -1) return mapa[i][1];
+  return 0;
+}
+/* El grado de una lesion, en el 0..3 del dibujo. Acepta las DOS formas que conviven en la app:
+   el numero 0..4 de las insuficiencias y el token de texto de las estenosis.
+   ⚠️ «no significativa» SE PREGUNTA ANTES QUE «significativa», porque la contiene. Al reves, la
+   estenosis mitral o la tricuspide NO significativas se dibujarian como severas. */
+function _v2dNivel(raw){
+  const t = String(raw == null ? '' : raw).trim();
+  if (!t) return 0;
+  if (/^\d+$/.test(t)) { const n = parseInt(t, 10) || 0; return n >= 3 ? 3 : n; }
+  const l = t.toLowerCase();
+  if (l.indexOf('no significativa') > -1) return 1;
+  if (l.indexOf('significativa') > -1) return 3;
+  if (l.indexOf('sin') === 0 || l === 'esclerosis') return 0;
+  if (l.indexOf('severa') > -1) return 3;
+  if (l.indexOf('moderada') > -1) return 2;
+  if (l.indexOf('leve') > -1) return 1;
+  return 0;
+}
+/* La PASTILLA de severidad: su palabra y su color. Es el dueno unico de las dos cosas desde
+   `valvSev.refrescar`, que las deriva de UNA lectura de UN campo — asi la tarjeta no puede decir
+   una palabra y pintar otro color, ni discrepar con el informe. Sin grado devuelve `txt` en
+   null, que es el estado «la lesion existe y no se gradua». */
+function _v2dPastilla(tipo, valv){
+  const b = document.getElementById('sevbtn-' + tipo + '-' + valv);
+  if (!b) return { txt:null, cls:'' };
+  const cls = ['nivel1', 'nivel2', 'nivel3', 'nivel-sig']
+    .filter(function(c){ return b.classList.contains(c) });
+  if (!cls.length) return { txt:null, cls:'' };
+  const t = String(b.textContent || '').replace(/\s*▼\s*$/, '').trim();
+  return { txt:t, cls:cls.join(' ') };
+}
+/* El veredicto PROTESICO que la pantalla ya publica, sin su parentesis de criterios: la tarjeta
+   dice QUE concluye la app, y el porque con sus valores es el Y2. */
+function _v2dVeredictoProt(id){
+  const t = _v2dTxt(id);
+  if (!t) return '';
+  const i = t.indexOf('(');
+  const r = (i > 0 ? t.slice(0, i) : t).trim();
+  /* ⚠️ «—  (sin criterios medidos)» NO ES UN VEREDICTO. Sin esta guarda la tarjeta publicaba
+     una raya pelada como si fuera una conclusion, que es exactamente lo que una tarjeta vacia
+     hace: afirmar que se miro. */
+  return (r === '—' || r === '-') ? '' : r;
+}
+
+/* ══ EL LECTOR UNICO ══════════════════════════════════════════════════════════════════════════
+   Devuelve DATOS: el estado del dibujo (los quince tramos que la demo ya usaba) y las listas que
+   las tarjetas y la tabla pintan. Lo consumen los tres y ninguno vuelve a leer el DOM por su
+   cuenta: con dos lectores, el dibujo y la tarjeta podrian describir dos pacientes distintos. */
+function v2dEstado(){
+  const E = { it:0, iao:0, im:0, et:0, eao:0, em:0, pt:0, pao:0, pm:0,
+              geo:0, dvi:0, dai:0, dvd:0, dad:0, kvi:0, kvd:0 };
+
+  /* Los tramos del dibujo por valvula. Las listas de tarjetas llegan en el commit siguiente. */
+  V2D_VALVS.forEach(function(V){
+    const morf = sv(V.morf);
+    const esProt = (typeof valvEsProtesis === 'function') && valvEsProtesis(morf);
+    /* TAVI se dibuja como la BIOLOGICA: es una protesis de tejido, y el dibujo es cualitativo. */
+    E[V.dibProt] = !esProt ? 0 : (/mec/i.test(morf) ? 2 : 1);
+    E[V.insuf.dib] = _v2dNivel(sv(V.insuf.campo));
+    E[V.esten.dib] = _v2dNivel(sv(V.esten.campo));
+  });
+
+  /* ── Las camaras: su tramo para el dibujo y su fila para la tabla, de la MISMA lectura ── */
+  const geoTxt = _v2dTxt('geom-val');
+  E.geo = _v2dTramo(geoTxt, [['remodelado', 1], ['excentrica', 3], ['excéntrica', 3],
+                             ['concentrica', 2], ['concéntrica', 2]]);
+  const dimVI = (typeof viDimCat === 'function') ? viDimCat() : null;
+  E.dvi = !dimVI ? 0 : (dimVI.indexOf('normales') > -1 ? 0 : (dimVI.indexOf('levemente') > -1 ? 1 : 2));
+  const aiTxt = _v2dTxt('ai-interp');
+  E.dai = _v2dTramo(aiTxt, [['severa', 3], ['moderada', 2], ['leve', 1]]);
+  const vdTxt = _v2dTxt('vd-tam');
+  E.dvd = _v2dTramo(vdTxt, [['dilatación leve', 1], ['dilatado', 2]]);
+  const adTxt = _v2dTxt('ad-interp');
+  E.dad = _v2dTramo(adTxt, [['dilatada', 2]]);
+  const feviTxt = _v2dTxt('fevi-interp');
+  E.kvi = _v2dTramo(feviTxt, [['severamente', 2], ['moderadamente', 1], ['levemente', 1]]);
+  /* La contraccion del VD sigue a TAPSE, S' y FAC, que son los tres que la app ya interpreta en
+     su cuadro. Se CUENTAN los que dicen disfuncion en vez de inventar un puntaje: uno alterado
+     dibuja una contraccion reducida y dos o mas, muy reducida. */
+  const vdDisf = ['tapse-interp', 'sprime-interp', 'fac-interp']
+    .filter(function(id){ return _v2dTxt(id).toLowerCase().indexOf('disfunci') > -1 }).length;
+  E.kvd = vdDisf >= 2 ? 2 : (vdDisf ? 1 : 0);
+
+  return E;
+}
+window.v2dEstado = v2dEstado;
+
+/* ══ EL MOTOR DEL DIBUJO ══════════════════════════════════════════════════════════════════════
+   Portado de la demo aprobada, con tres cambios y ninguno de forma: los ids y las clases llevan
+   prefijo `v2d-` (en esta app `.lbl` ya existe con otro significado), el estado sale del estudio
+   en vez de los controles de la demo, y el latido solo corre con la vista abierta. La geometria,
+   las curvas del ciclo y el dibujo de las protesis quedan letra por letra como los aprobo el
+   medico: no se exagero nada.
+   Va dentro de una IIFE para que sus veinte ayudantes de nombre corto —`$`, `el`, `clamp`,
+   `ramp`, `poly`, `render`— no toquen el espacio global de una app de 114.000 lineas. */
+(function(){
+'use strict';
+var NS='http://www.w3.org/2000/svg';
+var D={"OUT":[[44.18,176.71],[44.18,152.31],[44.84,135.83],[51.43,107.47],[59.34,86.38],[68.57,61.98],[79.78,48.79],[94.29,44.18],[115.39,43.52],[125.28,54.07],[133.85,65.28],[143.74,85.72],[151.65,111.43],[154.95,139.12],[155.61,166.82],[155.61,186.6],[153.63,219.56],[138.46,249.89],[118.02,253.85],[102.86,253.85],[99.56,251.21],[87.69,253.85],[76.48,254.51],[62.64,248.58],[54.73,238.69],[48.79,230.11],[43.52,215.61],[44.18,197.81]],"CL":[[52.75,174.73],[52.75,150.33],[58.02,124.62],[67.91,93.63],[77.8,71.21],[89.67,60.0],[93.63,73.85],[94.95,106.16],[90.33,137.15],[88.35,156.27],[86.38,171.43],[75.83,181.32],[69.23,182.64],[74.51,195.83],[78.46,201.1],[83.08,202.42],[95.61,205.06],[98.24,214.95],[94.95,235.39],[89.01,243.3],[77.14,247.26],[61.98,239.35],[55.39,227.48],[51.43,213.63],[50.77,198.47],[52.75,185.94]],"CR":[[85.72,178.03],[77.8,183.3],[75.83,191.21],[79.12,196.49],[84.4,199.12],[90.33,199.78],[96.27,196.49],[102.86,189.89],[106.82,183.96],[104.84,178.68],[104.18,172.09],[106.82,174.07],[106.82,174.07],[106.82,177.37],[108.79,177.37],[110.11,183.3],[113.41,180.66],[116.71,183.96],[104.18,193.85],[99.56,201.1],[104.18,214.29],[102.86,227.48],[100.88,241.98],[112.09,248.58],[133.19,241.32],[145.06,219.56],[147.7,193.19],[139.78,180.0],[147.04,184.62],[148.35,184.62],[149.01,168.14],[147.04,144.4],[145.06,118.68],[138.46,96.27],[128.57,73.85],[114.73,55.39],[108.13,54.07],[100.22,61.32],[98.9,78.46],[101.54,103.52],[98.24,127.91],[95.61,156.93],[92.31,169.45],[90.79,171.53],[87.92,173.51]],"JET":{"it":["m 63.062881,168.72453 -2.088174,17.12304 -1.252905,8.77033 1.252905,3.34108 2.505811,0.83527 2.50581,-0.83527 2.088174,-2.92344 -0.835271,-8.3527 -0.417634,-6.68216 -1.67054,-7.51743 z","m 63.898152,168.72453 7.099795,24.64047 1.670539,17.54067 1.67054,8.3527 -4.593984,4.17635 -5.84689,1.67054 -4.593984,-3.34109 -4.17635,-7.93506 v -11.27614 l 0.417634,-8.77034 3.758716,-9.18797 z","m 64.315786,171.23034 14.617227,39.25769 2.923444,17.54067 -0.835271,11.69378 -10.440873,2.50581 -9.187971,-9.6056 -8.770335,-14.61723 -2.088173,-15.03486 3.341079,-17.12303 z"],"iao":["m 89.373886,181.67122 6.264524,-17.54067 6.68216,-3.75872 2.92344,0.41764 -0.83526,3.75871 -5.429259,8.77034 -8.3527,12.52905 z","m 89.79152,178.74777 6.682161,-15.45249 2.088176,-9.18797 4.593983,-15.87013 4.59399,-4.17635 4.17635,2.08817 3.34107,8.77034 -0.83526,11.27614 -10.85851,13.78196 -9.60561,9.18797 z","m 89.373886,178.74777 6.264524,-12.94668 3.341081,-9.18797 1.252909,-10.44088 0.41763,-17.54066 4.59398,-13.78196 10.44088,-7.93507 8.3527,8.77034 1.2529,15.4525 -6.68215,22.13465 -14.61723,17.54067 z"],"im":["m 125.29049,170.39507 -2.5058,10.85851 0.83526,6.26453 4.17635,3.75871 4.59399,-4.59398 -0.83527,-7.0998 -2.50581,-7.93506 z","m 126.12576,168.72453 -7.51742,17.95831 v 10.85851 l 2.5058,10.02324 6.68216,3.34108 6.68216,-5.84689 4.17635,-10.02324 -2.08817,-10.02324 -5.01162,-7.51743 z","m 125.70813,169.14217 -6.68216,15.45249 -4.59398,12.94669 -0.41764,19.62884 9.6056,9.18797 -1.67054,12.52905 1.67054,4.59399 10.02324,-3.34109 6.68216,-14.61722 4.17635,-9.18797 2.50581,-14.19959 -0.83527,-10.44087 -6.68216,-12.52905 z"]},"LEAF":{"tv":[{"poly":[[52.75,185.94],[57.36,182.64],[61.32,178.03],[62.64,172.09],[63.3,167.48],[61.32,158.9],[58.68,158.9],[56.7,168.14],[52.75,174.73]],"b1":[52.75,185.94],"b2":[52.75,174.73],"tip":[60.0,158.9],"side":"L"},{"poly":[[75.83,181.32],[69.23,162.2],[65.94,169.45],[69.23,182.64]],"b1":[75.83,181.32],"b2":[69.23,182.64],"tip":[69.23,162.2],"side":"L"}],"mv":[{"poly":[[113.41,180.66],[120.0,172.09],[124.62,168.14],[124.62,173.41],[116.71,183.96]],"b1":[113.41,180.66],"b2":[116.71,183.96],"tip":[124.62,170.77],"side":"R"},{"poly":[[139.78,180.0],[133.19,173.41],[127.91,168.14],[133.85,168.79],[140.44,174.07],[145.72,181.32],[146.38,181.98],[147.04,184.62]],"b1":[139.78,180.0],"b2":[147.04,184.62],"tip":[130.88,168.46],"side":"R"}],"av":[{"poly":[[90.79,171.53],[90.43,178.17],[90.43,182.12],[90.07,184.81],[87.2,188.4],[86.84,184.81],[87.56,181.58],[87.74,177.81],[87.92,174.04],[87.92,173.51]],"b1":[87.92,173.51],"b2":[90.79,171.53],"tip":[87.2,188.4],"side":"R"},{"poly":[[104.84,178.68],[100.88,180.0],[96.27,187.26],[92.97,191.21],[89.67,190.55],[90.99,185.94],[97.58,178.03],[100.22,174.07],[104.18,172.09]],"b1":[104.18,172.09],"b2":[104.84,178.68],"tip":[91.32,190.88],"side":"R"}]},"BOW":{"tv":1.5,"mv":1.5,"av":-1.5}};
+function $(id){return document.getElementById(id);}
+function el(n,a,p){var e=document.createElementNS(NS,n);for(var k in a){e.setAttribute(k,a[k]);}if(p){p.appendChild(e);}return e;}
+function clamp(x,a,b){return x<a?a:(x>b?b:x);}
+function sstep(x){x=clamp(x,0,1);return x*x*(3-2*x);}
+function ramp(a,b,x){return sstep((x-a)/(b-a));}
+function f(n){return Math.round(n*100)/100;}
+function bump(phi,c,w){var d=Math.abs(phi-c);d=Math.min(d,1-d);return d<w?0.5*(1+Math.cos(Math.PI*d/w)):0;}
+
+/* ---------- configuración geométrica (coordenadas del dibujo original) ---------- */
+var CFG={yTop:54,yAVL:185,yAVR:172,yBot:250,sept:96,
+  cxLV:111,cxRV:100,cxLA:128,cxRA:64,
+  ampLV:0.30,ampRV:0.22,outK:0.93,shift:4.2,apex:3.4,atrX:0.06,atrKick:0.04,
+  x0LV:99,x0RV:95,x0LA:116,x0RA:76};
+var DIL={lv:[0,0.12,0.26,0.45],la:[0,0.18,0.38,0.65],rv:[0,0.14,0.30,0.50],ra:[0,0.18,0.38,0.65]};
+var AMP=[1,0.55,0.25];
+var FR=[1,0.72,0.5,0.3];        /* fracción de apertura según estenosis */
+var CFAC=[1,0.97,0.92,0.82];    /* acortamiento de hojas según insuficiencia (defecto de coaptación) */
+var JORG={it:[64,169],im:[127.5,169.5],iao:[89.8,181]};
+var JALPHA=[0,0.55,0.75,0.92];
+
+/* ---------- estado ---------- */
+/* El estado del dibujo lo escribe `v2dSync()` desde `v2dEstado()`; aca solo nace en cero. Los
+   parametros por URL de la demo NO se portaron: en la app el estado sale del estudio y nada mas.
+   `aoup` —el volteo de la valvula aortica— queda en 0: era un control de la demo. */
+var S={it:0,iao:0,im:0,et:0,eao:0,em:0,dvi:0,dai:0,dvd:0,dad:0,kvi:0,kvd:0,pt:0,pao:0,pm:0,geo:0,aoup:0,play:true,dur:2.6,phi:0};
+var THK=[0,0.11,0.24,0.05];
+/* ⚠️ `prefers-reduced-motion` SE RESPETA, Y LA DEMO YA LO CONTEMPLABA: con la preferencia puesta
+   el latido no corre y el dibujo se queda en un cuadro FIJO de la sistole (phi 0,30), que es el
+   que muestra las valvulas auriculo-ventriculares cerradas y la aortica abierta. No es una
+   animacion mas lenta: es ninguna. */
+var reduce=false;try{reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){}
+if(reduce){S.phi=0.30;S.play=false;}
+
+
+/* ---------- deformación: dilatación estática + contracción ---------- */
+function region(x,y,side){
+  var right=(side==='R')||(side==='O'&&x>=CFG.sept);
+  if(right){return y<CFG.yAVR?'LV':'LA';}
+  return y<CFG.yAVL?'RV':'RA';
+}
+function dilate(x,y,r){
+  var d,u,w,v,mx;
+  if(r==='LV'){d=DIL.lv[S.dvi]+(S.geo===3?0.16:0);if(d){u=clamp((y-CFG.yTop)/(CFG.yAVR-CFG.yTop),0,1);w=Math.pow(Math.sin(Math.PI*u),0.6);x=CFG.x0LV+(x-CFG.x0LV)*(1+d*w);}}
+  else if(r==='RV'){d=DIL.rv[S.dvd];if(d){u=clamp((y-CFG.yTop)/(CFG.yAVL-CFG.yTop),0,1);w=Math.pow(Math.sin(Math.PI*u),0.6);x=CFG.x0RV+(x-CFG.x0RV)*(1+d*w);}}
+  else if(r==='LA'){d=DIL.la[S.dai];if(d){v=clamp((y-CFG.yAVR)/(CFG.yBot-CFG.yAVR),0,1);w=sstep(v*3);mx=sstep((x-110)/14);x=x+(x-CFG.x0LA)*d*w*mx*0.9;y=y+d*32*sstep(v)*mx;}}
+  else{d=DIL.ra[S.dad];if(d){v=clamp((y-CFG.yAVL)/(CFG.yBot-CFG.yAVL),0,1);w=sstep(v*3);mx=1-sstep((x-68)/14);x=x-(CFG.x0RA-x)*d*w*mx*0.9;y=y+d*32*sstep(v)*mx;}}
+  return [x,y];
+}
+function deform(pt,side,cv){
+  var r=region(pt[0],pt[1],side),p=dilate(pt[0],pt[1],r),x=p[0],y=p[1];
+  if(S.geo&&r==='LV'&&side==='R'){var tg=THK[S.geo],ug=clamp((p[1]-CFG.yTop)/(CFG.yAVR-CFG.yTop),0,1),wg=Math.pow(Math.sin(Math.PI*ug),0.6);x=CFG.cxLV+(x-CFG.cxLV)*(1-tg*wg);}
+  var isL=(r==='LV'||r==='LA'),c=isL?cv.l:cv.r;
+  var cx=isL?CFG.cxLV:CFG.cxRV,yAV=isL?CFG.yAVR:CFG.yAVL;
+  var amp=(isL?CFG.ampLV:CFG.ampRV)*(side==='O'?CFG.outK:1);
+  var nx=x,ny=y;
+  if(r==='LV'||r==='RV'){
+    var u=clamp((y-CFG.yTop)/(yAV-CFG.yTop),0,1),w=Math.max(Math.pow(Math.sin(Math.PI*u),0.7),0.55*(1-u));
+    nx=cx+(x-cx)*(1-amp*c*w);
+    ny=y-CFG.shift*c*u+CFG.apex*c*Math.pow(1-u,1.4);
+  }else{
+    var v=clamp((y-yAV)/(CFG.yBot-yAV),0,1);
+    ny=y-CFG.shift*c*(1-sstep(v));
+    var wa=sstep((y-yAV)/22)*(1-sstep((y-(CFG.yBot-8))/8));
+    var cxa=isL?CFG.cxLA:CFG.cxRA;
+    nx=cxa+(x-cxa)*(1+CFG.atrX*c*wa-CFG.atrKick*cv.ak*wa);
+  }
+  return [nx,ny];
+}
+function poly(arr,side,cv){
+  var s='';
+  for(var i=0;i<arr.length;i++){var p=deform(arr[i],side,cv);s+=(i?'L':'M')+f(p[0])+' '+f(p[1]);}
+  return s+'Z';
+}
+
+/* ---------- válvulas: las hojas del propio dibujo, recortadas de las cavidades y animadas ---------- */
+var gV=$('v2d-valves'), gJ=$('v2d-jets');
+function deg(a){return a*180/Math.PI;}
+function adiff(from,to){return ((to-from+540)%360)-180;}
+var VK={tv:{lbl:'v2d-l-tv',lx:64,ly:201},mv:{lbl:'v2d-l-mv',lx:128,ly:185},av:{lbl:'v2d-l-av',lx:97,ly:199}};
+var PRO={tv:'pt',av:'pao',mv:'pm'};
+function pstr(poly){var s='';for(var i=0;i<poly.length;i++){s+=(i?'L':'M')+poly[i][0]+' '+poly[i][1];}return s+'Z';}
+Object.keys(VK).forEach(function(k){
+  var v=VK[k];v.g=el('g',{},gV);v.lf=[];v.sh=[0,0];
+  D.LEAF[k].forEach(function(L){
+    var hh={L:L},d=pstr(L.poly);
+    hh.path=el('path',{'class':'v2d-leaf',d:d},v.g);
+    hh.pat=el('path',{'class':'v2d-leafpat',d:d,fill:'none'},v.g);
+    hh.Ho=[(L.b1[0]+L.b2[0])/2,(L.b1[1]+L.b2[1])/2];
+    hh.b=deg(Math.atan2(L.tip[1]-hh.Ho[1],L.tip[0]-hh.Ho[0]));
+    hh.len=Math.sqrt(Math.pow(L.tip[0]-hh.Ho[0],2)+Math.pow(L.tip[1]-hh.Ho[1],2));
+    hh.base0={d:d,b:hh.b};
+    if(k==='av'){
+      var hy=hh.Ho[1],mp=[],ti=[L.tip[0],2*hy-L.tip[1]];
+      for(var j=0;j<L.poly.length;j++){mp.push([L.poly[j][0],f(2*hy-L.poly[j][1])]);}
+      hh.alt={d:pstr(mp),b:deg(Math.atan2(ti[1]-hh.Ho[1],ti[0]-hh.Ho[0]))};
+    }
+    v.lf.push(hh);
+  });
+  v.pg=el('g',{display:'none'},v.g.parentNode);
+  v.rd=[el('line',{'class':'v2d-rod'},v.pg),el('line',{'class':'v2d-rod'},v.pg)];
+  v.rh=[el('line',{'class':'v2d-rodhi'},v.pg),el('line',{'class':'v2d-rodhi'},v.pg)];
+  v.cf=[el('rect',{'class':'v2d-cuff',rx:1.4,ry:1.4,width:7,height:3.5},v.pg),el('rect',{'class':'v2d-cuff',rx:1.4,ry:1.4,width:7,height:3.5},v.pg)];
+  v.ci=[el('rect',{'class':'v2d-cuffi',rx:.6,ry:.6,width:4.8,height:1.3},v.pg),el('rect',{'class':'v2d-cuffi',rx:.6,ry:.6,width:4.8,height:1.3},v.pg)];
+  v.pv=[el('circle',{'class':'v2d-piv',r:1.15},v.pg),el('circle',{'class':'v2d-piv',r:1.15},v.pg)];
+  v.lb=$(v.lbl);
+});
+var aoLast=0;
+function applyAo(){
+  if(S.aoup===aoLast){return;}
+  aoLast=S.aoup;
+  VK.av.lf.forEach(function(hh){
+    var V=S.aoup?hh.alt:hh.base0;
+    hh.path.setAttribute('d',V.d);hh.pat.setAttribute('d',V.d);hh.b=V.b;
+  });
+}
+function updValve(k,o,sten,reg,cv){
+  var v=VK[k],oe=o*FR[sten],pro=S[PRO[k]],pat=(sten>0&&pro===0)?'url(#v2dpt'+sten+')':'none',i,hh,H=[],acs=[];
+  for(i=0;i<v.lf.length;i++){
+    hh=v.lf[i];var L=hh.L,p1=deform(L.b1,L.side,cv),p2=deform(L.b2,L.side,cv);
+    hh.Hn=[(p1[0]+p2[0])/2,(p1[1]+p2[1])/2];H.push(hh.Hn);
+  }
+  var bow=D.BOW[k]*((k==='av'&&S.aoup)?-1:1);
+  var mid=[(H[0][0]+H[1][0])/2,(H[0][1]+H[1][1])/2],M=[mid[0],mid[1]+bow];
+  var m0=[(v.lf[0].Ho[0]+v.lf[1].Ho[0])/2,(v.lf[0].Ho[1]+v.lf[1].Ho[1])/2];
+  v.sh=[mid[0]-m0[0],mid[1]-m0[1]];
+  for(i=0;i<v.lf.length;i++){
+    hh=v.lf[i];
+    var dx=M[0]-hh.Hn[0],dy=M[1]-hh.Hn[1],dist=Math.sqrt(dx*dx+dy*dy);
+    var ac=deg(Math.atan2(dy,dx)),da=adiff(ac,hh.b);
+    var sc=clamp(dist/hh.len*1.1,0.5,0.97)*CFAC[reg];
+    var a=ac+da*oe,s=sc+(1-sc)*oe;
+    var tr='translate('+f(hh.Hn[0])+' '+f(hh.Hn[1])+') rotate('+f(a)+') scale('+f(s)+' 1) rotate('+f(-hh.b)+') translate('+f(-hh.Ho[0])+' '+f(-hh.Ho[1])+')';
+    hh.path.setAttribute('transform',tr);hh.pat.setAttribute('transform',tr);hh.pat.setAttribute('fill',pat);
+    acs.push(ac);
+  }
+  for(i=0;i<v.lf.length;i++){
+    hh=v.lf[i];var vis=(pro>=1)?'none':'inline';
+    hh.path.setAttribute('display',vis);hh.pat.setAttribute('display',vis);
+  }
+  if(pro===0){v.pg.setAttribute('display','none');}
+  else{drawPro(v,pro,H,M,oe,acs);}
+  v.lb.setAttribute('x',f(v.lx+v.sh[0]));v.lb.setAttribute('y',f(v.ly+v.sh[1]+((pro>0&&k!=='av')?6:0)));
+}
+/* prótesis: anillo de sutura + dos hemidiscos que pivotan; la biológica es igual pero más fina y más clara */
+function drawPro(v,pro,H,M,oe,acs){
+  var i,ax=0,ay=0,br,al,axA,ang,h,cls=(pro===1)?' v2d-bio':'';
+  ang=deg(Math.atan2(H[1][1]-H[0][1],H[1][0]-H[0][0]));
+  for(i=0;i<2;i++){br=v.lf[i].b*Math.PI/180;ax+=Math.cos(br);ay+=Math.sin(br);}
+  al=Math.sqrt(ax*ax+ay*ay)||1;ax/=al;ay/=al;axA=deg(Math.atan2(ay,ax));
+  v.pg.setAttribute('display','inline');
+  for(i=0;i<2;i++){
+    h=H[i];
+    v.cf[i].setAttribute('class','v2d-cuff'+cls);
+    v.cf[i].setAttribute('transform','translate('+f(h[0])+' '+f(h[1])+') rotate('+f(ang)+') translate(-3.5 -1.75)');
+    v.ci[i].setAttribute('transform','translate('+f(h[0])+' '+f(h[1])+') rotate('+f(ang)+') translate(-2.4 -.65)');
+    var toC=acs[i],dd=adiff(axA,toC),ao=axA+(dd>0?1:-1)*8;
+    var rl=Math.sqrt(Math.pow(M[0]-h[0],2)+Math.pow(M[1]-h[1],2));
+    var a=(toC+adiff(toC,ao)*oe)*Math.PI/180,ex=h[0]+rl*Math.cos(a),ey=h[1]+rl*Math.sin(a);
+    v.rd[i].setAttribute('class','v2d-rod'+cls);v.rh[i].setAttribute('class','v2d-rodhi'+cls);
+    v.rd[i].setAttribute('x1',f(h[0]));v.rd[i].setAttribute('y1',f(h[1]));v.rd[i].setAttribute('x2',f(ex));v.rd[i].setAttribute('y2',f(ey));
+    v.rh[i].setAttribute('x1',f(h[0]));v.rh[i].setAttribute('y1',f(h[1]));v.rh[i].setAttribute('x2',f(ex));v.rh[i].setAttribute('y2',f(ey));
+    v.pv[i].setAttribute('cx',f(h[0]));v.pv[i].setAttribute('cy',f(h[1]));
+    v.pv[i].setAttribute('display',pro===2?'inline':'none');
+  }
+}
+
+/* ---------- chorros ---------- */
+var J={};
+['it','im','iao'].forEach(function(k){
+  var g=el('g',{},gJ);
+  var base=el('path',{'class':'v2d-jet-'+k},g);
+  var sh=el('path',{fill:'url(#v2dflw-'+k+')'},g);
+  J[k]={g:g,base:base,sh:sh,pat:$('v2dflw-'+k)};
+});
+var JANG={it:0,im:0,iao:0};
+(function(){var v=[0.43,-0.9];JANG.iao=Math.atan2(-v[0],v[1])*180/Math.PI;})();
+function updJet(k,sev,I,sh,t){
+  var j=J[k];
+  if(sev<1||I<0.01){j.g.setAttribute('opacity','0');return;}
+  var o=JORG[k],sx,sy;
+  if(k==='iao'){sx=I;sy=I;}else{sx=0.6+0.4*I;sy=I;}
+  j.base.setAttribute('d',D.JET[k][sev-1]);j.sh.setAttribute('d',D.JET[k][sev-1]);
+  j.g.setAttribute('transform','translate('+f(o[0]+sh[0])+' '+f(o[1]+sh[1])+') scale('+f(sx)+' '+f(sy)+') translate('+f(-o[0])+' '+f(-o[1])+')');
+  j.g.setAttribute('opacity',f(JALPHA[sev]*Math.pow(I,0.8)));
+  j.sh.setAttribute('fill-opacity','0.55');
+  var off=(t*26)%11;
+  j.pat.setAttribute('patternTransform','rotate('+f(JANG[k])+') translate(0 '+f(off)+')');
+}
+
+/* ---------- ciclo cardíaco ---------- */
+function cc(p){return ramp(0.12,0.34,p)*(1-ramp(0.46,0.64,p));}
+function atrialKick(p){var qq=p<0.5?p+1:p;return ramp(0.88,0.94,qq)*(1-ramp(1.0,1.08,qq));}
+function avOpen(p){
+  var o;
+  if(p<0.10){o=1;}else if(p<0.15){o=1-ramp(0.10,0.15,p);}else if(p<0.50){o=0;}else if(p<0.58){o=ramp(0.50,0.58,p);}else{o=1;}
+  var mod=0.7+0.3*Math.max(bump(p,0.64,0.10),bump(p,0.96,0.08),bump(p,0.02,0.07));
+  return o*mod;
+}
+function aoOpen(p){return ramp(0.14,0.20,p)*(1-ramp(0.40,0.48,p))*(0.8+0.2*bump(p,0.27,0.14));}
+function sysI(p){return ramp(0.15,0.21,p)*(1-ramp(0.44,0.52,p));}
+function diaI(p){var qq=p<0.15?p+1:p;return ramp(0.50,0.57,qq)*(1-ramp(1.08,1.14,qq))*(1-0.3*ramp(0.57,1.08,qq));}
+function faseTxt(p){
+  if(p<0.10||p>=0.88){return ['Diástole','contracción auricular'];}
+  if(p<0.14){return ['Sístole','contracción isovolumétrica'];}
+  if(p<0.46){return ['Sístole','eyección'];}
+  if(p<0.52){return ['Diástole','relajación isovolumétrica'];}
+  return ['Diástole','llenado ventricular'];
+}
+
+var pOut=$('v2d-out'),pShine=$('v2d-shine'),pCl=$('v2d-cl'),pCr=$('v2d-cr'),mark=$('v2d-mark'),fase=$('v2d-fase1'),fase2=$('v2d-fase2'),svgEl=$('v2d-svg');
+var nVD=$('v2d-n-vd'),nVI=$('v2d-n-vi'),nAD=$('v2d-n-ad'),nAI=$('v2d-n-ai');
+var lastTxt='';
+function fitView(){
+  var cv={l:0,r:0,ak:0},mnx=1e9,mxx=-1e9,mny=1e9,mxy=-1e9,i,p;
+  for(i=0;i<D.OUT.length;i++){p=deform(D.OUT[i],'O',cv);mnx=Math.min(mnx,p[0]);mxx=Math.max(mxx,p[0]);mny=Math.min(mny,p[1]);mxy=Math.max(mxy,p[1]);}
+  var m=5;svgEl.setAttribute('viewBox',f(mnx-m)+' '+f(mny-m)+' '+f(mxx-mnx+2*m)+' '+f(mxy-mny+2*m));
+}
+function render(t){
+  var p=S.phi,base=cc(p),ak=atrialKick(p);
+  var cv={l:base*AMP[S.kvi],r:base*AMP[S.kvd],ak:ak};
+  var dOut=poly(D.OUT,'O',cv);
+  pOut.setAttribute('d',dOut);pShine.setAttribute('d',dOut);
+  pCl.setAttribute('d',poly(D.CL,'L',cv));
+  pCr.setAttribute('d',poly(D.CR,'R',cv));
+  var oAV=avOpen(p),oAo=aoOpen(p);
+  updValve('tv',oAV,S.et,S.it,cv);
+  updValve('mv',oAV,S.em,S.im,cv);
+  updValve('av',oAo,S.eao,S.iao,cv);
+  var si=sysI(p),di=diaI(p);
+  updJet('it',S.it,si,VK.tv.sh,t);
+  updJet('im',S.im,si,VK.mv.sh,t);
+  updJet('iao',S.iao,di,VK.av.sh,t);
+  nVI.setAttribute('x',f(124+(DIL.lv[S.dvi]+(S.geo===3?0.16:0))*45));nVD.setAttribute('x',f(72-DIL.rv[S.dvd]*32));
+  nAI.setAttribute('x',f(122+DIL.la[S.dai]*32));nAI.setAttribute('y',f(238+DIL.la[S.dai]*22));
+  nAD.setAttribute('x',f(62-DIL.ra[S.dad]*24));nAD.setAttribute('y',f(238+DIL.ra[S.dad]*22));
+  mark.style.left='calc('+f(p*100)+'% - 1px)';
+  var tx=faseTxt(p);if(tx[0]+tx[1]!==lastTxt){lastTxt=tx[0]+tx[1];fase.textContent=tx[0];fase2.textContent=tx[1];}
+}
+
+
+/* ---------- el estado del estudio entra al dibujo ---------- */
+/* Un solo lector (`v2dEstado`) y un solo escritor: aca. Las quince claves del dibujo se copian
+   tal cual; nada se recalcula. */
+function v2dSync(){
+  var E = (typeof v2dEstado === 'function') ? v2dEstado() : null;
+  if (!E) return null;
+  ['it','iao','im','et','eao','em','pt','pao','pm','geo','dvi','dai','dvd','dad','kvi','kvd']
+    .forEach(function(k){ S[k] = E[k] || 0; });
+  applyAo(); fitView();
+  return E;
+}
+
+/* ---------- el latido ---------- */
+/* ⚠️ EL BUCLE SOLO EXISTE MIENTRAS LA VISTA ESTA ABIERTA. Se arma al abrir y se DESARMA al
+   cerrar: `cancelAnimationFrame` sobre el id guardado, y la bandera `vivo` corta la cola por si
+   un cuadro ya estaba encolado. Sin esto, una pestana en segundo plano seguiria repintando un
+   dibujo que nadie mira — que es lo que la orden pide evitar y lo que un `setInterval` olvidado
+   hace para siempre. */
+var _v2dRaf = null, _v2dVivo = false, _v2dLast = null;
+function _v2dLoop(ts){
+  if (!_v2dVivo) return;
+  if (_v2dLast === null) _v2dLast = ts;
+  var dt = Math.min((ts - _v2dLast) / 1000, 0.1); _v2dLast = ts;
+  if (S.play) S.phi = (S.phi + dt / S.dur) % 1;
+  render(ts / 1000);
+  _v2dRaf = (window.requestAnimationFrame || function(cb){ return setTimeout(function(){ cb(Date.now()); }, 16); })(_v2dLoop);
+}
+function v2dArrancar(){
+  if (_v2dVivo) return;
+  _v2dVivo = true; _v2dLast = null;
+  /* ⚠️ UN CUADRO SINCRONICO ANTES DEL BUCLE, Y NO ES COSMETICO. `requestAnimationFrame` pinta
+     en el cuadro SIGUIENTE, asi que sin esto la vista se abria con el dibujo del paciente
+     ANTERIOR durante un cuadro —y una sonda que lee justo despues de abrir mide ese dibujo
+     viejo: la primera corrida informo «cero protesis dibujadas» sobre un arbol que las dibuja
+     bien—. Pintar una vez de entrada es ademas lo correcto para el que mira. */
+  try { render(0); } catch (e) {}
+  if (S.play) {
+    _v2dRaf = (window.requestAnimationFrame || function(cb){ return setTimeout(function(){ cb(Date.now()); }, 16); })(_v2dLoop);
+  } else {
+    /* Con `prefers-reduced-motion` no hay bucle: un solo cuadro, dibujado una vez. */
+    render(0);
+  }
+}
+function v2dParar(){
+  _v2dVivo = false;
+  if (_v2dRaf != null) { try { (window.cancelAnimationFrame || window.clearTimeout)(_v2dRaf); } catch (e) {} }
+  _v2dRaf = null; _v2dLast = null;
+}
+function v2dCorriendo(){ return _v2dVivo; }
+/* Deja el latido en una fase FIJA y dibuja ese cuadro. Es el mismo mecanismo con el que
+   `prefers-reduced-motion` muestra un cuadro quieto, expuesto para poder mirar una fase
+   concreta —la sistole, donde se ven los chorros de IM y de IT— sin esperar a que el ciclo
+   pase por ahi. No cambia ningun dato: la fase es del dibujo. */
+function v2dFase(p){
+  const x = Number(p);
+  if (!isFinite(x)) return S.phi;
+  S.phi = ((x % 1) + 1) % 1;
+  try { render(0); } catch (e) {}
+  return S.phi;
+}
+window.v2dSync = v2dSync; window.v2dArrancar = v2dArrancar; window.v2dParar = v2dParar;
+window.v2dCorriendo = v2dCorriendo; window.v2dFase = v2dFase;
+})();
+
+/* ══ ABRIR Y CERRAR ═══════════════════════════════════════════════════════════════════════════
+   ⚠️ EL FOCO ENTRA A LA VISTA Y VUELVE AL BOTON. Es la leccion que el panel de Evidencia pago:
+   sin enfocar la tarjeta, el foco queda en el `body`, el primer Tab se va a un control de la
+   pagina que esta DETRAS del overlay, y la trampa de Tab del bloque de accesibilidad no matchea
+   —solo actua con el foco ya dentro del dialogo—. Se enfoca la TARJETA, que para eso lleva
+   `tabindex="-1"`, y al cerrar se devuelve al boton que abrio.
+   ⚠️ Y EL ESCAPE NO NECESITA UN OYENTE PROPIO: el generico del bloque de accesibilidad busca el
+   `[role="dialog"][aria-modal="true"]` visible mas alto y le clickea el primer boton cuyo
+   `onclick` matchee /cerrar/. `v2dCerrar()` lo matchea. Un segundo oyente seria una segunda
+   puerta que se desincroniza. */
+function v2dAbrir(){
+  const ov = document.getElementById('v2d-ov'); if (!ov) return;
+  if (typeof v2dSync === 'function') v2dSync();
+  ov.style.display = 'block';
+  if (typeof v2dArrancar === 'function') v2dArrancar();
+  const card = document.getElementById('v2d-card');
+  if (card) { try { card.focus({ preventScroll:true }); } catch (e) { card.focus(); } }
+}
+function v2dCerrar(){
+  const ov = document.getElementById('v2d-ov');
+  if (ov) ov.style.display = 'none';
+  if (typeof v2dParar === 'function') v2dParar();
+  const b = document.getElementById('v2d-abrir');
+  if (b) { try { b.focus({ preventScroll:true }); } catch (e) { b.focus(); } }
+}
+window.v2dAbrir = v2dAbrir; window.v2dCerrar = v2dCerrar;
 
 </script>
 
