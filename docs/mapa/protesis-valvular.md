@@ -325,3 +325,107 @@ cuántos hacen falta, **no hay figura de algoritmo** para la estenosis protésic
 Points no agregan nada. **Sin regla explícita no se inventa una**: el veredicto queda como estaba.
 
 ---
+
+---
+
+## El VOTO de la prótesis mitral, el PPM de las dos y sus frases — tanda «Z5» (2026-10-15)
+
+Cierra **Z1** (con una regla de integración que es de Maicol y no de la guía), **Z2-1** y
+**Z2-2**. Lo del **DVI aórtico** y el **renglón integrado** vive en `docs/mapa/aortica-cortes.md`.
+
+### 1 · La regla de conteo — criterio EcoSmart, declarado
+
+| Pieza | Dueño | Qué hace |
+|---|---|---|
+| el umbral | `VM_PROT_OBSTR_MIN` (= 2) | dos o más positivos → significativa |
+| quiénes votan | `VM_PROT_OBSTR_VOTAN` | `eoa`, `dvi`, `gmed`, `thp` — **la velocidad pico NO** |
+| el veredicto | `R.obstr` dentro de `vmProtEOA` | la cascada de abajo |
+| los positivos | `R.obstrPos` / `R.obstrMed` | arrays de claves, para contar y para nombrar |
+| cómo se nombran | `vmProtObstrCrit(R)` | lista con el valor de cada positivo |
+| la fila | `#vm-prot-obstr`, la pinta `vmProtEOAPintar` | veredicto + criterios + conteo |
+| la tarjeta ⓘ | `VINFO['prot-obstr']` | la regla, la nota de la guía, los cuatro cortes |
+
+```
+n positivos >= 2  ->  'significativa'
+n positivos == 1  ->  'posible'   (hallazgo aislado, NO sube al papel)
+n positivos == 0  ->  ningun criterio medido ? null
+                      : algun medido en banda intermedia ? 'posible' : 'normal'
+```
+
+⚠️ **CON CERO POSITIVOS EL VEREDICTO NO SE VACÍA, y es deliberado.** Lo que la Tabla 11 publica
+para un parámetro en la banda del medio es literalmente *«possible stenosis»*, así que ese estado
+se conserva. `null` queda **sólo** sin ningún criterio medido, que es «no se pudo evaluar» y no
+«no hay obstrucción».
+
+⚠️ **«ENTRE LOS MEDIDOS» SE LEE DEL NIVEL Y NO DEL CAMPO.** `porDvi` y `porEoa` quedan en `null`
+con regurgitación significativa y `porGmed`/`porThp` fuera de banda: un criterio retirado no cuenta
+ni como positivo ni como negativo, y por eso el denominador del conteo es el de los que de verdad
+se pudieron leer. Medido: con IM moderada, «2 de 2» alcanza.
+
+⚠️ **EL ORDEN DE `VM_PROT_OBSTR_VOTAN` ES EL DEL TEXTO QUE SE FIRMA**, no el de la tabla. El
+informe ya publicaba «(AEO …, DVI …)» desde la Fase 2; empezar por el gradiente le cambiaría la
+oración a todo estudio que hoy la emite sin que ningún veredicto se mueva.
+
+### 2 · Qué dice la guía, y qué no
+
+- **Tabla 11, folio 27** (folio = página 1-based + 1, comprobado en el pie impreso), leída
+  **renderizando a 400 dpi** porque la fuente codifica `≥` como `$` y `≤` como `#`.
+- **Folio 24, prosa**: enumera **cuatro** criterios principales —gradiente medio `>10`, THP `>200`,
+  DVI `>2,5`, AEO `<1`— y **omite la velocidad pico**, que la tabla sí incluye. Ésa es la única
+  diferencia entre las dos, y es la que decide quién vota.
+- **Nota `*`**: la exactitud diagnóstica es mejor cuando la mayoría de los parámetros coincide. Es
+  una afirmación sobre la **confianza**, no un umbral de conteo.
+- **Nota `‡`**: marca velocidad pico, gradiente medio y DVI como también anormales con
+  regurgitación protésica significativa. **No marca el AEO ni el THP.**
+- **Ningún corte se movió**: los cuatro de la app coinciden letra por letra con la tabla.
+
+⚠️ **PARADA DE SUB-PARTE (Z5-1): el gradiente medio NO se retira con regurgitación.** La orden
+autorizaba retirarlo **sólo si** el umbral con que la app ya retira el DVI fuera «severa». Medido:
+`EM_CONT_REGURG_MIN` vale **2**, o sea **moderada**. No se tocó nada del gradiente, y TC-480 lo
+fija como límite declarado para que el día que se decida se note.
+
+### 3 · El PPM: la fila y las dos frases
+
+| Pieza | Dueño | Para |
+|---|---|---|
+| el texto de la fila | `ppmFilaTxt(indexada, grado, faltan, cortesAltos)` | las **dos** prótesis |
+| qué falta | `ppmFaltan(hayArea, nomArea, src)` | pregunta a `getBSA`, su dueño único |
+| el repintado aórtico | `eaProtPpmSync(P)` | llamado por `_eaProtPintar` **y por la cola de `calcAo`** |
+| las dos frases | `ppmFrases(valv, grado, indexada)` → `{inf, suma}` | informe y EN SUMA |
+| los adjetivos | `PPM_VALV` | `mitral` / `aórtico`, y la sigla del EN SUMA |
+
+⚠️ **Z2-2 NO ERA UN PROBLEMA DE TEXTO.** Medido en HEAD con el orden del médico —los VTI primero y
+el peso después—: la fila aórtica decía «requiere el AVA por continuidad y la superficie corporal»
+con `eaProtVeredicto()` devolviendo `ppm:'severo'` y `avai:0.55`. `_eaProtPintar` había corrido
+cuando `ava-idx` seguía en «—» y **después nadie repintaba la fila**. Por eso `eaProtPpmSync` se
+llama también desde la cola de `calcAo`, que es el dueño de `ava-idx`.
+
+⚠️ **EL MOTIVO DEL INDEXADO VIAJA CON EL VALOR** (`P.avaiMotivo`), derivado en `eaProtVeredicto`,
+que es el único lugar que lee el nodo. Con el indexado marcado «(revisar)» la fila **no pide
+datos**: el AVA y la superficie están los dos cargados y pedirlos manda al médico a corregir el
+campo equivocado.
+
+⚠️ **EL EN SUMA LLEVA LA SIGLA Y EL CUERPO LA FRASE LARGA** (decisión de Maicol). Lo que el EN SUMA
+pierde es el valor de la AEO indexada, que sigue entero en el informe, en la fila y en el Excel.
+
+### 4 · Las trampas medidas en esta tanda
+
+1. **`im_grado` es un `input type=hidden`, no un `<select>`.** El ayudante `sel()` de las sondas
+   busca `e.options` y devuelve un error: las cuatro escenas de regurgitación midieron el **mismo**
+   grado. El gesto real es el menú de la pastilla, cuyo `onchange` llama a `valvSev.aplicar`.
+2. **La opción nativa se llama distinto en cada válvula**: `vm_morf` → «Normal», `va_morf` →
+   «Trivalva normal». Con el literal cableado, el control negativo midió la **prótesis anterior**
+   creyendo que medía una nativa, e informó una diferencia que era suya. Se deriva de la lista.
+3. **Un denominador que mira sólo el `display` del nodo no ve a sus ancestros.** `bloque-prot-vm-res`
+   vive dentro de `#ete-seccion-valv-mitral`, que nace oculto: la caja informaba «visible» con el
+   globo midiendo 0×0, y «no abre» se leía como «el mecanismo no funciona».
+4. **`_vInfoColocar` se ancla al rect del botón y sale por su guarda sin geometría**, así que la
+   pestaña tiene que estar activa antes de medir la tarjeta.
+5. **Semgrep caza un error de sintaxis que `check_backticks.py` no puede ver.** Al reemplazar una
+   cascada, un párrafo quedó **fuera** del comentario que lo precedía: `PartialParsing — 5 líneas`
+   donde HEAD daba 127 limpio, y la sonda fallaba con «SIN GEOMETRIA diam_tsvi», que es como se ve
+   un `<script>` abortado desde afuera.
+6. **Toda constante nueva se lee por `window` en un caso de la suite.** TC-480 nombraba
+   `VM_PROT_OBSTR_MIN` pelada y contra HEAD moría con un `ReferenceError` que se llevaba las otras
+   46 condiciones. Las dos que **no** están en `window` —`EM_CONT_REGURG_MIN` y `VINFO`— existen en
+   HEAD, así que ahí `typeof` alcanza.

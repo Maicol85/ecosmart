@@ -3059,7 +3059,7 @@ directo.
 > `docs/mapa/tapse-psap-ap.md`, `docs/mapa/aortica-cortes.md` y `docs/mapa/protesis-valvular.md`.
 > Las fuentes: `docs/fuentes/FUENTES.md` → «La tanda Z — el cociente TAPSE/PSAP, uso por uso».
 
-### Z1 · PARADA · La ASE 2024 NO da una regla de integración para la estenosis protésica mitral
+### [CERRADA 2026-10-15 · Z5 — con una regla que es de MAICOL y no de la guía] Z1 · PARADA · La ASE 2024 NO da una regla de integración para la estenosis protésica mitral
 
 **Qué pedía la orden:** que la velocidad pico de E, el gradiente medio y el THP **voten** el
 veredicto de obstrucción **si la guía lo respalda**, implementando la regla **exactamente**; y que
@@ -3102,7 +3102,7 @@ reabriría el defecto que ese gate cerró — y esa decisión tampoco está en l
 hay regurgitación protésica significativa»— y entonces sí implementarla, como criterio **EcoSmart**
 declarado y no como criterio de la ASE 2024.
 
-### Z2-1 · La línea del PPM aórtico dice «aórtico» y la del mitral no nombra su válvula
+### [CERRADA 2026-10-15 · Z5, opción (b)] Z2-1 · La línea del PPM aórtico dice «aórtico» y la del mitral no nombra su válvula
 
 El mitral publica «Desajuste protésico-paciente severo (AEO indexada 0,79 cm²/m²)» desde la Fase 2
 y el aórtico, desde el Z, «Desajuste protésico-paciente **aórtico** severo (…)». La asimetría es
@@ -3111,7 +3111,7 @@ que sólo se distinguen por el número**. El adjetivo es lo mínimo que las sepa
 **Las dos salidas, para que las decida Maicol:** (a) dejarlo así; (b) agregarle «mitral» a la línea
 del mitral, que es un texto del informe firmado y esta orden no lo autorizaba.
 
-### Z2-2 · La fila de pantalla del PPM aórtico se queda en «requiere …» con el veredicto calculado
+### [CERRADA 2026-10-15 · Z5] Z2-2 · La fila de pantalla del PPM aórtico se queda en «requiere …» con el veredicto calculado
 
 `ea-prot-ppm` publica «— (requiere el AVA por continuidad y la superficie corporal)» en escenas
 donde `eaProtVeredicto()` **sí** devuelve un PPM: `_eaProtPintar` corrió en un momento en que
@@ -3123,7 +3123,7 @@ que es **PREEXISTENTE** y no lo trae esta tanda.
 hacer que `eaProtVeredicto` derive el indexado en vez de parsear el `textContent`. Lo segundo es
 lo que el W2-B eligió NO hacer, y por un motivo (el nodo lleva la marca «(revisar)»).
 
-### Z3-1 · El renglón integrado etiqueta por el AVA por continuidad y nombra el criterio GLOBAL
+### [CERRADA 2026-10-15 · Z5, salida (a)] Z3-1 · El renglón integrado etiqueta por el AVA por continuidad y nombra el criterio GLOBAL
 
 Con Ø TSVI 20 · VTI TSVI 20 · VTI Ao 56 · G. medio 30 · planimetría 0,90, el renglón dice
 **«Moderada — por AVA por planimetría»** mientras el `<select>`, el informe y la fila de la
@@ -3136,7 +3136,7 @@ Z cambia es que ahora se **ve**, porque la fila de la planimetría publica su «
 qué palabra firma esa pantalla. **Las dos salidas:** (a) que la etiqueta salga de `_RCalc.grado`,
 como ya hace la rama `if (vmax)`; (b) dejar la etiqueta y quitar el sufijo en esa rama.
 
-### Z3-2 · PARADA · El DVI no se calcula sin el diámetro del TSVI, y matemáticamente no lo necesita
+### [CERRADA 2026-10-15 · Z5, salida (a)] Z3-2 · PARADA · El DVI no se calcula sin el diámetro del TSVI, y matemáticamente no lo necesita
 
 El médico lo reportó: con VTI TSVI 20 y VTI Ao 56 **sin** diámetro, el campo del DVI queda sin
 resultado. **El cociente es `VTI TSVI / VTI Ao` y no usa el diámetro.**
@@ -3216,3 +3216,74 @@ cuatro de la estenosis tricuspídea, que sí están declaradas (`ET grad medio`,
 `ET VTI diast`, `ET área`). **Es PREEXISTENTE** y no lo trae esta tanda; se arregla agregando
 `'ET grado'` a los nombres del bloque 8, que es una línea, y `_labXlsAssertBloques` lo verificaría.
 No se tocó porque mueve la posición de una columna que esta orden no nombra.
+
+---
+
+## Tanda «Z5» (2026-10-15) — declarado y NO corregido
+
+> El voto de los cuatro criterios de la prótesis mitral, el DVI aórtico sin el diámetro, la fila y
+> las frases del PPM y el renglón integrado de la estenosis aórtica. Los mapas:
+> `docs/mapa/protesis-valvular.md` y `docs/mapa/aortica-cortes.md`. Las fuentes:
+> `docs/fuentes/FUENTES.md` → «La tanda Z5 — la Tabla 11 completa, criterio por criterio».
+
+### Z5-1 · PARADA · El gradiente medio NO se retira con regurgitación protésica, y la nota ‡ lo marca
+
+**Qué pedía la orden:** que con regurgitación protésica **severa** el gradiente medio y el DVI no
+se cuenten (nota `‡` de la Tabla 11), **aplicando el MISMO retiro que la app ya hace con el DVI** —
+y que si el umbral de ese retiro **no** es «severa», no se cambie nada del gradiente y se reporte.
+
+**Medido:** el umbral es `EM_CONT_REGURG_MIN = 2`, o sea **moderada**, y lo decide
+`emContMotivoNoVota`, que es el dueño compartido con el aviso de la continuidad. **No es severa**,
+así que la sub-parte queda **sin hacer** y el gradiente medio **sigue contando**.
+
+⚠️ **Y ESO TIENE CONSECUENCIA EN EL INFORME FIRMADO, con la regla de conteo nueva.** Con IM
+moderada o mayor el AEO y el DVI se retiran, el denominador baja a **2 de 2**, y basta que el
+gradiente medio y el THP sean positivos para publicar «Prótesis mitral con hallazgos sugestivos de
+obstrucción». Medido contra HEAD, que en esa escena no decía nada:
+
+| escena | HEAD | hoy |
+|---|---|---|
+| IM severa + gradiente 12 + THP 250 | sin línea (`R.obstr = null`) | «… obstrucción (gradiente medio 12.0 mmHg, THP 250 ms).» |
+
+El THP **no** está marcado con `‡`, así que su voto ahí es legítimo; el que la guía marca es el
+gradiente. TC-480 lo fija como **límite declarado** para que el día que se decida se note.
+
+**Las tres salidas, para que las decida Maicol:** (a) dejarlo así; (b) retirar el gradiente medio
+con el mismo umbral que el DVI (moderada o mayor), que es lo más parecido a lo que la nota `‡`
+dice y lo conservador; (c) bajar el umbral del retiro a «severa» para los tres, que cambiaría
+además cuándo vota el DVI y el AEO en toda la app.
+
+### Z5-2 · La velocidad pico está marcada con `‡` y tampoco se retira — pero no vota, así que no se ve
+
+La nota `‡` marca **tres** parámetros y la app sólo gatea el DVI. La velocidad pico no entra en el
+conteo (la prosa del folio 24 la omite), así que su no-retiro no cambia ningún veredicto: lo único
+que hace es que su **banda** se siga publicando en la cápsula con regurgitación significativa.
+Queda dicho junto a Z5-1, porque la decisión es la misma.
+
+### Z5-3 · La fila del PPM mitral dice «falta el AEO» también cuando el AEO está RETIRADO
+
+Con el AEO fuera de banda o retirado por regurgitación, la fila del PPM publica «falta el AEO por
+continuidad». No es falso —el AEO no está disponible— pero el motivo real lo dice la fila del AEO
+dos renglones más arriba, y «falta» se lee como «cargalo». La alternativa es propagar `R.motivo` /
+`R.fuera` al texto del PPM, que duplicaría el motivo en dos filas contiguas.
+
+### Z5-4 · El EN SUMA del PPM perdió el valor de la AEO indexada
+
+Decisión de la orden: la sigla en el EN SUMA y la frase larga en el cuerpo. El número sigue en el
+informe, en la fila de pantalla y en la columna del Excel, pero un resumen que se lea solo ya no
+lo trae. Si se quisiera, la salida es «PPM mitral severo (0.54).».
+
+### Z5-5 · `_eaDviProtNivel` calcula el DVI por su cuenta y no lo lee de `eaProtVeredicto`
+
+La referencia protésica de la fila usa `_eaCritDvi()` + `_eaProtNivel()`, mientras el **veredicto**
+lee el DVI de `dvi-val` o de `ea_dvi_display`. Son dos caminos al mismo número y hoy coinciden
+—medido en las ocho escenas de la tabla—, pero el día que uno de los dos cambie de redondeo la
+fila y el veredicto podrían discrepar. La salida es que `eaProtVeredicto` devuelva el **nivel** del
+DVI y la fila lo lea de ahí.
+
+### Z5-6 · Las otras cuatro filas del cuadro aórtico siguen mudas con prótesis
+
+La Tabla 5 no publica cortes absolutos de AVA ni de AVA indexada para una prótesis, así que sólo
+la fila del DVI gana referencia protésica. El gradiente medio protésico **sí** tiene banda en esa
+tabla (`<20` / 20-34 / `≥35` en SAVR) y hoy lo publica el veredicto, no la fila. Si se quisiera
+que la fila lo publique, el corte ya existe en `EA_PROT_CRIT.savr_gmed_*`.

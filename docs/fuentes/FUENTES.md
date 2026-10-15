@@ -2509,3 +2509,66 @@ El número está publicado y verificado: es el umbral de **riesgo bajo en hipert
 pulmonar** de la **Tabla 16**, no un criterio de tromboembolia. Eso ya estaba dicho (G1-2). Lo que
 el Z agrega es una **medición nueva**: ese corte **participa de un VEREDICTO** en esa pantalla.
 Ver `docs/PENDIENTES.md` → **Z4-TEP**.
+
+---
+
+## La tanda Z5 — la Tabla 11 completa, criterio por criterio, y qué NO dice la guía (2026-10-15)
+
+**Documento:** Zoghbi WA *et al.*, *Guidelines for the Evaluation of Prosthetic Valve Function
+With Cardiovascular Imaging*, J Am Soc Echocardiogr 2024;37(1).
+Archivo: `05_Protesis_valvulares/Zoghbi_2024_Protesis.pdf`.
+**Regla de folio: folio = página 1-based del PDF + 1**, comprobada en el pie impreso de cuatro
+páginas (PDF 23 → 24, PDF 24 → 25, PDF 25 → 26, PDF 26 → 27).
+
+### Tabla 11, folio 27 — leída RENDERIZANDO a 400 dpi
+
+⚠️ **EL TEXTO EXTRAÍDO NO SIRVE PARA LEER LOS OPERADORES, y no es porque sea una imagen:** la
+fuente del PDF codifica `≥` como **`$`** y `≤` como **`#`**, así que el extractor devuelve
+«`$2.5`» y «`#5`». Hay que renderizar la página.
+
+| Parámetro | Normal* | Possible stenosis† | Suggests significant stenosis*† | nota ‡ |
+|---|---|---|---|---|
+| Peak velocity, m/sec | `<1.9` | 1.9-2.5 | `≥2.5` | sí |
+| Mean gradient, mm Hg | `≤5` | 6-10 | `>10` | sí |
+| VTI(PrMv)/VTI(LVOT) | `<2.2` | 2.2-2.5 | `>2.5` | sí |
+| EOA, cm² | `≥2.0` | 1-2 | `<1` | **no** |
+| PHT, msec | `<130` | 130-200 | `>200` | **no** |
+
+- **Nota `*`** — para válvulas mecánicas o biológicas; la exactitud diagnóstica es mejor cuando la
+  mayoría de los parámetros son normales o anormales, respectivamente.
+- **Nota `†`** — los valores intermedios motivan una evaluación más detallada: flujo aumentado,
+  frecuencia cardíaca elevada o desajuste prótesis-paciente.
+- **Nota `‡`** — esos parámetros **también** son anormales con regurgitación protésica
+  significativa. **Marca tres: velocidad pico, gradiente medio y DVI. NO marca el AEO ni el THP.**
+- **Nota `§`** — algunas prótesis biológicas pueden mostrar cortes algo más altos.
+
+### Folio 24, prosa — los CUATRO criterios principales
+
+Verificado en el texto corrido de la página cuyo pie impreso dice «24»: los criterios principales
+para el diagnóstico de estenosis mitral significativa son un **gradiente medio `>10` mmHg a
+frecuencia normal, un THP `>200` ms, un DVI `>2,5` y un AEO `<1` cm²`**.
+
+⚠️ **ESA ENUMERACIÓN OMITE LA VELOCIDAD PICO**, que la Tabla 11 sí incluye. Es la única diferencia
+entre la tabla y la prosa, y es la que decide **quién vota** en la app: la velocidad pico se
+muestra con su banda y no entra en el conteo.
+⚠️ **Los cuatro cortes coinciden letra por letra entre la prosa y la tabla**, así que no hubo
+ninguna contradicción que dirimir y **ningún corte se movió**.
+
+### Lo que la guía NO publica, y por eso el umbral es criterio EcoSmart
+
+**No hay regla de integración.** Censado en el Z y re-verificado acá: la nota `*` habla de
+**confianza** diagnóstica y no define un umbral de conteo; la prosa del folio 24 dice **cuáles**
+son los criterios y no **cuántos** hacen falta; **no hay figura de algoritmo** para la estenosis
+protésica mitral —las tres que existen son la 13 (velocidad pico aórtica), la 16 (IAo protésica) y
+la 21 (IM protésica)—; y los Key Points del folio 29 no agregan ninguna.
+
+Por eso el umbral de **dos o más** es **decisión de Maicol** y la tarjeta ⓘ lo declara como
+criterio EcoSmart, con la nota de la guía al lado. **No se le atribuye a la ASE 2024.**
+
+### Lo que esta tanda NO agregó
+
+- **Ninguna cita nueva** en el panel de Evidencia.
+- **Ningún corte nuevo**: los cuatro de la mitral y los dos juegos del DVI aórtico ya estaban
+  verificados y registrados (ESC/EACTS 2025 folio 4663 y EAE/ASE 2009 Tabla 3 para la nativa;
+  ASE 2024 Tabla 5 para la prótesis).
+- **Ninguna fuente nueva en la biblioteca.**

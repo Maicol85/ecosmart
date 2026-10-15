@@ -1052,7 +1052,11 @@ async function main() {
     await tipear('vci_diam', '22');
     await tipear('tapse', '15');
     await tipear('onda_e', '95'); await tipear('onda_a', '45');
-    await tipear('ee_sept', '7'); await tipear('ee_lat', '9');
+    /* ⚠️ LOS IDS DE LOS ANILLOS SON `e_sep` Y `e_lat`, NO `ee_sept`: con el inventado la sonda
+       ABORTA con «NO EXISTE», que es lo correcto —sin eso la escena habria medido una funcion
+       diastolica sin el e-prima y el control habria salido «identico» sobre dos arboles que no
+       llegaron al veredicto—. */
+    await tipear('e_sep', '7'); await tipear('e_lat', '9');
     await tipear('ai_vol', '45');
     g.cargado = {};
     for (const est of ['conciso', 'estandar', 'narrativo']) g.cargado['inf_' + est] = await ev(`window.__P.informe('${est}')`);

@@ -261,6 +261,162 @@ impecable.
 
 ## Estado vigente
 
+### El VOTO de la prótesis MITRAL, el DVI AÓRTICO sin diámetro, el PPM de las dos prótesis y la LÍNEA INTEGRADA — «Z5» (2026-10-15)
+
+- **Es la tanda «Z5».** Al **empezar**, `main` y `origin/main` estaban los dos en **`6b7030e`**
+  (sello `v20261015-1639`), **sin nada sin pushear** —confirmado con un `git fetch` de verdad—,
+  con los cinco commits del Z ya incluidos **y pusheados**. Los **cinco** commits de esta tanda
+  quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 5 → 4 → 3 → 2 → 1.**
+  ⚠️ **EL 1, EL 2 Y EL 4 SE REVIERTEN SOLOS Y EN CUALQUIER ORDEN ENTRE SÍ**: el 1 es el voto de la
+  prótesis mitral (`VM_PROT_OBSTR_*`, `vmProtObstrCrit`, la fila `vm-prot-obstr` y su tarjeta), el
+  2 el DVI aórtico (`_eaDviProtNivel`, `EA_DVI_PROT_TXT` y el `if` propio del DVI) y el 4 la línea
+  integrada (`_avaNoValuable` y la etiqueta por `gradoStr`). Ninguno nombra nada de los otros.
+  ⚠️ **PERO EL 3 CUELGA DEL 2 POR UNA LÍNEA**: `eaProtPpmSync` se llama desde la cola de `calcAo`,
+  que el 2 no tocó pero sí reordenó alrededor del DVI. Revertir el 2 sin revertir antes el 3 no
+  rompe nada —la llamada va en `try`— pero deja Z2-2 reabierto a medias.
+  ⚠️ **EL 1 LLEVA LA SONDA** (`scripts/_probe_z5.mjs`), que los commits 2, 3 y 4 usan.
+  **El 5 es TC-480 más documentación y el sello**, y afirma el comportamiento de los cuatro:
+  revertir cualquiera sin el 5 deja TC-480 en rojo.
+
+- **Línea base al cierre: suite 490/494 con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0
+  ERROR, Excel en 440 columnas, celular 43 a 360 px y 52 a 390 px con 1 ALTA cada uno —IDÉNTICO
+  a la línea base—. CERO REGRESIONES.** Los **CUATRO** rojos son exactamente los de ENTRADA
+  —**TC-223** (el documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**—, y no
+  apareció ninguno fuera de esa lista. **El denominador sube a 494**: esta tanda agregó
+  **TC-480**. El `md5` de `index.html` no se movió durante la corrida (`723f0a6c…`, el del sello)
+  y el pendrive estaba montado antes y después. Al terminar no quedó ningún Chrome mío —los que
+  siguen vivos son del usuario, arrancados cinco horas antes de esta sesión y sin puerto de
+  depuración—.
+  ⚠️ **LA SUITE COMPLETA SE CORRIÓ DOS VECES, Y LA PRIMERA NO ES LA LÍNEA BASE.** Dio **488/494**
+  con **SEIS** rojos, y los dos de más —**TC-471** y **TC-472**— los destapó la suite completa:
+  ninguna corrida de zona podía verlos, porque lo que afirman es el **conteo de globos ⓘ de la
+  pestaña Válvulas** (21 → 22) y el del registro `VINFO` (22 → 23). Se adaptaron con el motivo
+  escrito y la segunda corrida es la que vale. **Es la sexta tanda seguida en que la suite
+  completa destapa algo que la de zona no ve.**
+  ⚠️ **`--todo` del chequeo de celular da 378 a 360 px y 387 a 390 px, EL MISMO PAR QUE DEJÓ EL
+  Z**: ni la fila del veredicto, ni el DVI que ahora se publica, ni el globo nuevo agregan un
+  solo hallazgo, porque ninguno es un control de formulario.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **494 ids** sobre los 495 casos del archivo.
+- **EL SELLO DE VERSIÓN** estaba al día al empezar (`v20261015-1639`) y se volvió a sellar:
+  **`v20261015-1850`**. Todo lo medido —la suite completa, Semgrep y el chequeo de celular— salió
+  **DESPUÉS** de sellar, con el `md5` quieto, y `index.html` no se tocó ni una vez durante la
+  corrida (las dos adaptaciones de casos son de `scripts/test_clinico.mjs`).
+
+- **Dónde está todo:** `docs/mapa/protesis-valvular.md` → la sección Z5 (el voto, el PPM y las seis
+  trampas), `docs/mapa/aortica-cortes.md` → el DVI sin diámetro y el renglón integrado,
+  `docs/fuentes/FUENTES.md` → «La tanda Z5 — la Tabla 11 completa, criterio por criterio, y qué NO
+  dice la guía», y `docs/PENDIENTES.md` → **Z1, Z2-1, Z2-2, Z3-1 y Z3-2 marcados CERRADAS** más
+  **seis** cosas declaradas (Z5-1 a Z5-6). **NINGÚN mapa cruzó el techo**, medido con `wc -c`
+  ANTES de escribir: `protesis-valvular.md` 20,1 → **27,0 KB** y `aortica-cortes.md` 19,1 → **23,7 KB**.
+
+- **EL VOTO DE LA PRÓTESIS MITRAL: CUATRO CRITERIOS Y UNA REGLA DE CONTEO QUE ES DE MAICOL.** La
+  ASE 2024 **no publica regla de integración** —censado en el Z y re-verificado— así que los cuatro
+  criterios y sus cortes son de la guía y el umbral es **criterio EcoSmart declarado en la tarjeta**.
+  Los cuatro salen de la prosa del **folio 24**: gradiente medio `>10` mmHg, THP `>200` ms,
+  DVI `>2,5` y AEO `<1` cm². **NINGÚN CORTE SE MOVIÓ.**
+  ⚠️ **LA VELOCIDAD PICO NO VOTA, y la diferencia es de la fuente**: la Tabla 11 la publica y la
+  prosa del folio 24 la **omite**. Es la única diferencia entre las dos y es la que decide quién
+  vota. Medido por los dos lados: sola no alcanza, y sumada a dos positivos no cambia el conteo.
+  ⚠️ **CON CERO POSITIVOS EL VEREDICTO NO SE VACÍA**: lo que la Tabla 11 publica para un parámetro
+  en la banda del medio es literalmente «possible stenosis», así que ese estado se conserva. `null`
+  queda **sólo** sin ningún criterio medido.
+
+- **LAS CINCO ESCENAS QUE CAMBIAN DE VEREDICTO, una por una, medidas con teclas reales:**
+  · **1 solo positivo (DVI)** → de `significativa` a `posible`: **SALE del informe firmado**.
+  · **2 positivos (gradiente + THP)** → de `posible` a `significativa`: **ENTRA al informe**.
+  · **1 pos. gradiente, resto sin medir** → de `null` a `posible` (no toca el papel).
+  · **2 pos. gradiente + THP, resto sin medir** → de `null` a `significativa`: **ENTRA**.
+  · **IM moderada o mayor con gradiente y THP positivos** → de `null` a `significativa`: **ENTRA**.
+    Es consecuencia directa de la PARADA de abajo.
+
+- ⚠️ **PARADA Z5-1, MEDIDA: EL GRADIENTE MEDIO NO SE RETIRA CON REGURGITACIÓN, Y LA NOTA `‡` LO
+  MARCA.** La orden autorizaba retirarlo **sólo si** el umbral con que la app ya retira el DVI
+  fuera «severa». Medido: `EM_CONT_REGURG_MIN` vale **2**, o sea **moderada**. No se tocó nada del
+  gradiente. **Y tiene consecuencia**: con IM ≥ moderada el AEO y el DVI se retiran, el denominador
+  baja a «2 de 2» y el gradiente + el THP publican la línea donde HEAD callaba. El THP **no** está
+  marcado con `‡`, así que su voto ahí es legítimo; el que la guía marca es el gradiente. TC-480 lo
+  fija como límite declarado y `PENDIENTES.md` → **Z5-1** tiene las tres salidas.
+
+- **EL DVI AÓRTICO SE PUBLICA CON LOS DOS VTI Y SIN EL DIÁMETRO — cierra Z3-2 con la salida (a).**
+  ⚠️ **EL SÍNTOMA ERA PEOR QUE UNA FILA VACÍA**: medido en HEAD, sin el diámetro la fila publicaba
+  **«— (moderada)»**, o sea un GRADO sin número, porque `_eaCritDvi` ya votaba sin él.
+  ⚠️ **ESCENAS QUE CAMBIAN DE VEREDICTO EN LA PRÓTESIS: NINGUNA**, medido en las ocho de la tabla —
+  `dvi-val`, que `calcAo` escribe sin diámetro, se lee **primero** y ya estaba poblado.
+  **La referencia se adapta a la morfología sin ningún corte nuevo**: nativa 0,25 / 0,50 y prótesis
+  los de la Tabla 5 que la app ya aplica. **Medido: el mismo 0,36 es «(moderada)» en nativa y
+  «(sin criterios)» en prótesis**, que es el punto. Las palabras son otras a propósito: en nativa
+  el DVI gradúa una **severidad** y en prótesis declara un **nivel de sospecha**.
+
+- **LA FILA DEL PPM DICE LO QUE FALTA, Y SÓLO CUANDO FALTA — cierra Z2-2, y la causa NO era el
+  texto.** Medido en HEAD con el orden del médico —los VTI primero y el peso después—: la fila
+  aórtica decía «requiere el AVA por continuidad y la superficie corporal» con el veredicto
+  devolviendo `ppm:'severo'` y `avai:0.55`, o sea pidiendo **dos datos que estaban cargados**.
+  `_eaProtPintar` había corrido con `ava-idx` todavía en «—» y después **nadie repintaba la fila**.
+  Hoy `eaProtPpmSync` se llama **también desde la cola de `calcAo`**, el dueño de `ava-idx`.
+  Y el texto pasa a nombrar lo que de verdad falta, con un dueño para las dos prótesis: la mitral
+  publicaba «—» pelado y la aórtica pedía los dos insumos aunque sobrara uno. Con el indexado
+  marcado «(revisar)» ya **no pide datos**.
+
+- **LAS DOS FRASES DEL PPM NOMBRAN SU VÁLVULA — cierra Z2-1 con la opción (b).**
+  · informe, antes: «Desajuste protésico-paciente severo (AEO indexada 0.54 cm²/m²).»
+  · informe, ahora: «Desajuste protésico-paciente **mitral** severo (AEO indexada 0.54 cm²/m²).»
+  · EN SUMA, antes: la misma frase larga en las dos válvulas.
+  · EN SUMA, ahora: **«PPM mitral severo.»** y **«PPM aórtico severo.»**
+  ⚠️ **EL EN SUMA PIERDE EL VALOR DE LA AEO INDEXADA**, que sigue entero en el cuerpo del informe,
+  en la fila de pantalla y en la columna del Excel. `PENDIENTES.md` → Z5-4.
+
+- **EL RENGLÓN INTEGRADO NOMBRA EL CRITERIO QUE DE VERDAD DECIDE — cierra Z3-1 con la salida (a).**
+  La rama `else if (ava)` armaba la etiqueta con la banda del AVA por **continuidad** y le pegaba el
+  sufijo del criterio **global**: con la escena del médico publicaba **«Moderada — por AVA por
+  planimetría»** mientras el `<select>`, el informe y la fila de la planimetría decían **severa**.
+  **NINGÚN CORTE SE MOVIÓ, la regla del peor no se tocó y EL GRADO PUBLICADO ES EL MISMO** en las
+  cinco escenas. Y lo que arregló el Z3 no se rompió: **12 de 12** órdenes y gestos de borrado
+  vuelven a «sin dato».
+  ⚠️ **QUE DOS FILAS DISCREPEN NO SE TOCÓ**: TC-480 lo fija como control negativo —la fila del AVA
+  sigue diciendo «(moderada)»—. El error era una línea que nombra un criterio y le pone el grado de
+  **otro**.
+
+- **Arnés: `scripts/_probe_z5.mjs`** (A/B de solo lectura con `--file`), seis grupos
+  (`votoMitral`, `tarjeta`, `dviAo`, `ppm`, `integrada`, `controles`), con teclas y clics reales,
+  emulación de viewport y de tema, y el informe generado de verdad.
+  **Cobertura: TC-480**, **47 condiciones** —contadas instrumentando el propio caso para que
+  publicara su `ex.length`— con ocho denominadores y nueve controles negativos. **Verificado que
+  sabe fallar contra HEAD en un worktree aparte: 30 de las 47 en rojo, y NINGUNA por excepción.**
+
+- ⚠️ **CASOS ADAPTADOS: CINCO, con el motivo escrito en cada uno.** **TC-474** —su condición (E)
+  era el **LÍMITE DECLARADO** del W2-B, «los tres parámetros nuevos NO entran en el veredicto de
+  obstrucción», escrita para que el día que entraran se notara, **y lo notó**: hoy afirma lo
+  CONTRARIO por el gradiente y el THP y **conserva** la afirmación sobre la velocidad pico, que es
+  el límite que sigue vigente—, **TC-315** —con un solo positivo la línea ya no sube al papel—,
+  **TC-479** —sus dos condiciones del PPM aórtico exigían la frase larga en las DOS superficies y
+  hoy exigen cada una por separado, que es lo que distingue el cambio de un borrado— y **TC-471**
+  y **TC-472**, los dos por el conteo de globos.
+
+- ⚠️ **TC-480 MORÍA POR EXCEPCIÓN CONTRA HEAD EN SUS DOS PRIMERAS VERSIONES**, y las dos veces se
+  llevaba las otras 46 condiciones: primero `VM_PROT_OBSTR_MIN` nombrada pelada
+  (`ReferenceError`), después `r.txt.match` sobre un `undefined` que queda cuando el globo no
+  existe (`TypeError`). Toda constante nueva se lee por `window` y toda clave del lector nace con
+  centinela. Misma lección que TC-455, TC-462, TC-465, TC-471, TC-473, TC-474 y TC-477.
+- ⚠️ **SEMGREP CAZÓ UN ERROR DE SINTAXIS QUE `check_backticks.py` NO PODÍA VER.** Al reemplazar la
+  cascada muerta del renglón integrado, el párrafo nuevo quedó **fuera** del comentario que lo
+  precede, porque ese comentario ya cerraba con su propio fin de bloque: `PartialParsing — 5 líneas
+  sin analizar` donde HEAD daba 127 limpio. **Desde afuera se ve como «SIN GEOMETRIA diam_tsvi»**,
+  que es cómo se ve un `<script>` abortado — y no como un error de sintaxis.
+- ⚠️ **TRES DENOMINADORES ROTOS, Y LOS TRES DABAN FALSOS PLAUSIBLES.** (1) La opción **nativa** se
+  llama «Normal» en `vm_morf` y **«Trivalva normal»** en `va_morf`: con el literal cableado, `sel`
+  devolvía «NO HAY OPCION Normal» y el control negativo midió la **prótesis anterior** creyendo que
+  medía una nativa — informó una diferencia que era suya. (2) `im_grado` es un **`input
+  type=hidden`**, no un `<select>`: el ayudante `sel()` falla y las cuatro escenas de regurgitación
+  midieron el **mismo** grado; el gesto real es `valvSev.aplicar`. (3) Un denominador que mira sólo
+  el `display` del nodo **no ve a sus ancestros**: la cápsula informaba «visible» con el globo
+  midiendo 0×0, dentro de `#ete-seccion-valv-mitral`, que nace oculto.
+- ⚠️ **Me comí el acento grave CUATRO veces**, todas en comentarios míos dentro del cuerpo de un
+  caso o del template de la sonda, con el archivo que documenta la trampa abierto delante.
+  `scripts/check_backticks.py` dio la línea exacta las cuatro.
+
 ### El PPM AÓRTICO al informe, la columna de la VELOCIDAD DE LA IT con la ida y vuelta del TAPSE/PSAP, el BORRADO de la estenosis aórtica y los DOS ESTADOS del cociente — «Z» (2026-10-15)
 
 - **Es la tanda «Z».** Al **empezar**, `main` y `origin/main` estaban los dos en **`85c2aa6`**

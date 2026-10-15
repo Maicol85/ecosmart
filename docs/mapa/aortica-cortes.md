@@ -297,3 +297,72 @@ veredictos**: `ea-sev` pasa de «—» a su texto explicativo («— sin Vmax ni
 cargados»), e `im-discordancia` e `it-discordancia` de «—» a cadena vacía.
 
 ---
+
+---
+
+## El DVI sin el diámetro y el renglón integrado que nombra su criterio — tanda «Z5» (2026-10-15)
+
+Cierra **Z3-1** y **Z3-2**. Lo de la prótesis **mitral** y el **PPM** vive en
+`docs/mapa/protesis-valvular.md`.
+
+### 1 · El DVI se publica con los dos VTI, sin el diámetro
+
+| Pieza | Dueño | Nota |
+|---|---|---|
+| la cuenta y los dos nodos | el `if (itsvi && itvao)` propio dentro de `_eaDetCuentaPura` | antes compartía el `if` del AVA |
+| la banda | `_eaDetDviDud` (los **dos VTI**) | el diámetro ya no entra en la cuenta |
+| el criterio que vota | `_eaCritDvi()` | **ya votaba sin el diámetro**, y eso era el síntoma |
+| la referencia nativa | `EA_DVI_SEV_MAX` 0,25 · `EA_DVI_MOD_MAX` 0,50 | ESC/EACTS 2025 f. 4663 · EAE/ASE 2009 Tabla 3 |
+| la referencia protésica | `EA_PROT_CRIT.savr_dvi_*` vía `_eaDviProtNivel()` | ASE 2024, Tabla 5 |
+| las palabras protésicas | `EA_DVI_PROT_TXT` | `sin criterios` / `posible` / `significativa` |
+
+⚠️ **EL SÍNTOMA ERA PEOR QUE UNA FILA VACÍA.** Medido en HEAD: sin el diámetro la fila publicaba
+**«— (moderada)»**, o sea un GRADO sin número, porque `_eaCritDvi` no necesita el diámetro y
+`eaAvaiGradoPintar` sí lo publicaba. Las dos mitades del mismo cálculo, en la misma fila.
+
+⚠️ **SE ELIGIÓ LA SALIDA (a) DE `PENDIENTES.md` Y NO LA CONSERVADORA**, que es la que la orden
+autoriza: se despega también `ea_dvi_display`, que viaja en `campos` y es la **segunda** fuente que
+lee `eaProtVeredicto`. **Escenas que cambian de veredicto en la prótesis: NINGUNA**, medido en las
+ocho de la tabla — `dvi-val`, que `calcAo` escribe sin diámetro, se lee **primero** y ya estaba
+poblado. Lo que cambia es que las dos superficies dejan de contradecirse.
+
+⚠️ **LAS PALABRAS DE LOS DOS REGÍMENES SON DISTINTAS A PROPÓSITO.** En nativa el DVI gradúa una
+**severidad** («moderada», «severa») y en prótesis declara un **nivel de sospecha**, que es lo que
+la Tabla 5 publica. Traducir uno al vocabulario del otro diría que una prótesis tiene estenosis
+«severa», que es la escala que el W2-B retiró de esta pantalla. **Medido: el mismo 0,36 es
+«(moderada)» en nativa y «(sin criterios)» en prótesis.**
+
+⚠️ **CON PRÓTESIS SÓLO LA FILA DEL DVI PUBLICA REFERENCIA.** Las otras cuatro siguen mudas: la
+Tabla 5 no da cortes absolutos de AVA ni de AVA indexada para una prótesis —es el defecto W1-4 que
+el W2-B cerró en el badge de al lado— y el gradiente medio protésico lo publica el veredicto.
+
+### 2 · El renglón integrado dice el grado que de verdad se publica
+
+La rama `else if (ava)` de `calcEADetalle` —la que corre **sin Vmax**— armaba la etiqueta con la
+banda del AVA por **continuidad** (`avaEsModerada(avaR)`) y le pegaba el sufijo del criterio
+**global** (`_eaPorCriterio(_RCalc)`), que es otro.
+
+| escena (sin Vmax) | HEAD | hoy |
+|---|---|---|
+| planimetría severa + continuidad moderada | «Moderada — por AVA por planimetría» | **«Severa — por AVA por planimetría»** |
+| planimetría severa + continuidad severa | «Moderada — por AVA por planimetría» | **«Severa — …»** |
+| planimetría moderada + continuidad moderada | «Moderada — por gradiente» | idéntica |
+| sin planimetría | «Moderada — por gradiente» | idéntica |
+
+Hoy la etiqueta sale de `gradoStr`, que es `_RCalc.grado`, igual que la rama con Vmax.
+**Ningún corte se movió, la regla del peor no se tocó y el grado publicado es el mismo** (el
+`<select>` queda en severa en las dos escenas que cambian, igual que en HEAD).
+
+⚠️ **LO QUE NO SE TOCÓ: que dos FILAS discrepen entre sí.** El aviso de discordancia existe y se
+queda; TC-480 lo fija como control negativo —la fila del AVA sigue diciendo «(moderada)»—. El
+error era una línea que nombra un criterio y le pone el grado de **otro**.
+
+⚠️ **LAS DOS ETIQUETAS PROPIAS DE LA RAMA SE CONSERVAN**, y ninguna es decorativa:
+- **«Sin estenosis / leve»** lleva los dos nombres porque un AVA normal no distingue entre no tener
+  estenosis y tenerla leve; va en verde, su color de siempre.
+- **«AVA no valuable»** es el fail-closed del AVA que redondea a 0, que **además retira el grado**.
+  Esa abstención sigue definida por la banda del AVA por continuidad (`_avaNoValuable`, la misma
+  condición escrita por su complemento), porque es la validez de **ese** número lo que falla.
+
+⚠️ **Y LO QUE ARREGLÓ EL Z3 NO SE ROMPIÓ**: la línea vuelve a «sin dato» en **12 de 12** órdenes y
+gestos de borrado, medido con los dos gestos y las seis permutaciones.
