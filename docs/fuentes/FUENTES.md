@@ -512,6 +512,16 @@ misma p. 10 lo llama *«the dimensionless velocity ratio»* en el texto de la co
 | **AVA indexada** | `>0,85` → **se abstiene** | — | `>0,6` y `≤0,85` | **`≤0,6`** | 2009 p.10 · severa ESC 2025 f.4663 |
 | **DVI** | `>0,50` → **se abstiene** | — | `0,25` a `0,50` | **`<0,25`** | ESC 2025 f.4663 · 2009 p.10 |
 
+⚠️ **RE-VERIFICADO EL 2026-10-15 (tanda F, bloque F2), ANTES DE PUBLICAR EL GRADO DEL AVA
+INDEXADA EN LA PANTALLA DE VÁLVULAS.** Lo que esa tanda hace es MOSTRAR el grado con el que el
+criterio ya votaba desde el 2026-10-13: no mueve ningún corte ni ningún operador. Los dos números
+que publica la fila salen de `EA_AVAI_SEV_MAX = 0.6` (`≤`, severa) y `EA_AVAI_MOD_MAX = 0.85`
+(`≤`, moderada), que son exactamente los de la fila de arriba. **No hizo falta reabrir ningún
+PDF**: el corte severo ya estaba verificado en la ESC/EACTS 2025, folio **4663**, con el folio
+comprobado en el pie impreso, y el de moderada en la Tabla 3 de la EAE/ASE 2009, p. 10. Lo que sí
+se midió por sus **tres tramos y su borde exacto** —0,55 · **0,60** · 0,61 · 0,93— es que la
+pantalla publica el mismo grado que el voto.
+
 ⚠️ **NINGUNA VARIABLE SALVO LA Vmax VOTA «LEVE», Y NO ES UN OLVIDO.** La banda «Mild» de las otras
 cinco **no tiene cota inferior que la separe de lo NORMAL**: un gradiente de 3 mmHg, un DVI de 0,9,
 un área de 3,5 cm² y un AVA indexada de 1,8 son los de un corazón sano y caen todos en esa columna.
@@ -2145,3 +2155,30 @@ to conclude elevated LAP in patients with depressed LV EF)`.
 una sola casilla de la figura: la sub-caja «1 positive and 1 negative» de los dos criterios
 disponibles y el pie «only 1 of 3 parameters available». El título de la caja nombra las dos y el
 renglón de resultado de la ventana dice cuál fue.
+
+---
+
+### VSFVI automático y volumen latido del VI — por qué NO llevan cita (F1, 2026-10-15)
+
+Los dos campos automáticos de la pestaña AI/VI (`vauto-vsfvi` y `vauto-vol-lat`) calculan
+`VDFVI × (1 − FEVI/100)` y `VDFVI − VSFVI`. **No llevan corchete, y es deliberado**: no son un
+criterio ni un corte, son **álgebra de la definición de fracción de eyección**
+(`FEVI = (VDF − VSF) / VDF × 100`, despejada). Un corchete sobre una identidad aritmética se lee
+como si hubiera una guía detrás eligiendo un número, que es lo contrario de lo que pasa acá. Es
+la misma regla por la que una banda de plausibilidad va **sin cita**.
+
+**No hizo falta abrir la ASE/EACVI 2015 de cuantificación de cámaras.** La relación entre los dos
+volúmenes y la FEVI no es un dato que una guía aporte, y la app ya la implementa en el panel del
+**VI 3D** con las mismas dos guardas desde antes de esta tanda. Lo que **sí** sale de la ASE/EACVI
+2015 —y no se tocó— son los cortes del **VSFVI indexado** por sexo que clasifica `vsfviInterp`
+(Tabla 2 y Tabla suplementaria 3, método biplano de discos; varón normal ≤31 ml/m², mujer ≤24),
+que ya estaban registrados en el comentario de esa función.
+
+### El GASTO CARDÍACO del PDF — qué frecuencia cardíaca usa (F1, 2026-10-15)
+
+No hay ninguna guía detrás: el gasto es `área TSVI × VTI TSVI × FC`, y lo que esta tanda decide es
+**de dónde sale la FC**. Hasta hoy, sin FC cargada el PDF suponía **70 lpm** y lo marcaba con un
+`*` que **no tiene pie de página en ningún lado del documento** —censo del archivo, cero
+apariciones de una nota que lo explique—. Hoy sin FC usable no hay fila. La banda de la FC
+(`HEMO_FC_BANDA = [20, 250]`, exclusiva en los dos extremos) es una **banda de plausibilidad** y
+por eso va sin cita, igual que las demás.

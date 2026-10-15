@@ -2592,3 +2592,93 @@ comparten las cinco guías-vía. Renombrarlos a algo neutro obligaría a adaptar
 `scripts/_probe_bsediag.mjs` enteros sin cambiar una línea de comportamiento, así que se reusaron
 tal cual. Si alguna vez se renombra, es un cambio mecánico de atributos y conviene hacerlo en un
 commit propio que no toque nada más.
+
+---
+
+## Tanda «F» (2026-10-15) — declarado y NO corregido
+
+### Bloque F1 — los dos automáticos del VI y el GC del PDF
+
+**F1 · El volumen latido MANUAL (`vol_lat`) y el automático son dos datos que nadie concilia.**
+El manual lo tipea el médico, viaja con el estudio y es el que sale en la fila «Vol. lat.» del
+PDF; el automático se deriva del VDFVI y del VSFVI y **no viaja**. Hoy pueden decir cosas
+distintas sin que nada lo señale. La orden pedía explícitamente que los consumidores actuales
+siguieran leyendo lo que leían, así que no se tocó. Tres salidas posibles: (a) dejarlo como está
+y que el médico compare; (b) un aviso cuando difieran más de un umbral —que sería un número
+clínico nuevo, decisión de Maicol—; (c) espejarlos, que **cambiaría un dato guardado** y es lo
+que esta orden prohíbe. La conservadora es la (a), que es la que quedó.
+
+**F2 · El VSFVI automático no viaja al Excel, y el manual tampoco tenía columna.** `vsfvi` y
+`vol_lat` no están en `LAB_XLS_MAP` —nunca lo estuvieron—, así que un backup a Excel y su
+reimportación pierden los dos. No es de esta tanda; lo que esta tanda agrega es que ahora se ve
+que hay un tercer número derivado de ellos. Agregar columnas es lo que la orden prohíbe
+expresamente.
+
+**F3 · El automático se muestra también con el VSFVI manual cargado.** Es lo que permite
+compararlos y lo que hace que la casilla de abajo tenga que decir cuál usó. La alternativa
+—esconderlo cuando hay manual— ocultaría justamente la comparación que el médico pidió. Queda
+declarado por si la preferencia cambia.
+
+**F4 · El `*` del gasto cardíaco supuesto se fue, y no hacía falta un pie de página.** Censo del
+archivo: ese asterisco **nunca tuvo una nota que lo explicara** en ningún lado del PDF. Hoy la
+rama que lo producía ya no existe. Si alguna vez vuelve a hacer falta marcar un valor supuesto en
+esa tabla, hay que agregar la nota **en el mismo commit**.
+
+**F5 · El ÍNDICE CARDÍACO desaparece del PDF junto con el GC, y la orden sólo nombraba el GC.**
+Es consecuencia aritmética: `IC = GC / ASC`, con la misma FC. Publicar el índice de una magnitud
+que la app acaba de negarse a imprimir sería conservar el defecto por la puerta de al lado. Si
+Maicol quiere el IC con una FC declarada, es una línea.
+
+**F6 · Sin AVA y sin FC, la sección «AVA / GC / IC» desaparece entera del PDF**, header incluido,
+porque el GC y el IC son sus dos únicas filas y `drawTablaCompacta` descarta las secciones
+vacías. Es el filtro que esa función **ya** tenía y no un cambio de esta tanda —medido: con el AVA
+cargado la sección se queda—, pero conviene saberlo antes de leerlo como una pérdida.
+
+**F7 · Los otros dos sitios que imprimen un gasto cardíaco no se tocaron.** La fila `GC` del
+bloque GTP (lee el span `cx-gtp-gc` de la pantalla) y las líneas «GC termodilución» / «GC
+ecocardiográfico» de la hoja adjunta hemodinámica. Son otras superficies, con otros insumos, y
+esta orden nombra sólo la del PDF.
+
+### Bloque F2 — el AVA indexada y la auditoría de las filas sin grado
+
+**F8 · AUDITORÍA: tres filas del cuadro de Válvulas publican un criterio que VOTA y no muestran
+su grado.** Medido sobre el árbol vivo con las ocho lesiones cargadas. **NO se corrigieron**: la
+orden autoriza sólo la del AVA indexada.
+
+| fila | criterio y sus cortes | escena medida |
+|---|---|---|
+| `ea-det-gmedio` | G. medio, `EA_BANDAS.gmedModMin` 20 / `gmedSevMin` 40 | 30 mmHg → «30 mmHg», sin «(moderada)» |
+| `ea-det-ava` | AVA por continuidad, `AVA_SEVERA_MAX` 1,0 / `avaSinMin` 1,5 | 1,20 cm² → «1.20 cm²», sin «(moderada)» |
+| `ea-det-dvi` | DVI, `EA_DVI_SEV_MAX` 0,25 / `EA_DVI_MOD_MAX` 0,50 | 0,38 → «0.38», sin «(moderada)» |
+
+Y **dos criterios que votan y no tienen fila** en ese cuadro: el **AVA por planimetría** —vota
+desde el 13/10, su campo está en la grilla y lo único que publica es el aviso de plausibilidad— y
+la **Vmax aórtica**, que sí tiene fila con su grado en el cuadro del **Doppler**.
+
+**Lo que NO es un hallazgo, y está medido por qué:** las cuatro filas de la estenosis mitral
+publican su clase en una columna aparte (`.em-clase`: «· significativa (≤1,5 cm²)»); las nueve de
+la IM y las cuatro de la IAo llevan su `<span class="calc-grado">` desde D1 y D2; las tres de la
+IT y las tres de la ET llevan la leyenda pegada con ` · ` o entre paréntesis; el **G. máximo**
+aórtico no es criterio y no vota; y **`ep-ref-gmax` sin grado es una decisión documentada de
+Maicol del 2026-10-07** (punto 5d): el gradiente es el número **del que sale** el grado y la
+velocidad es la que lo lleva, así que ponerle grado a los dos daría dos veredictos para un solo
+cálculo.
+
+**F9 · El valor del AVA indexada se imprime redondeado a dos decimales y su grado se decide sobre
+el índice SIN redondear.** Es herencia de `_eaCritAvai` y de la fila gemela del cuadro del
+Doppler, que hace exactamente lo mismo desde el 13/10. En una ventana de un centésimo alrededor
+del corte, el número impreso puede quedar del otro lado del que el grado afirma. Unificarlo es
+cambiar qué escenas gradúan severo, o sea contenido clínico.
+
+**F10 · El cartel `ea-ava-badge` NO se acortó.** La orden lo autorizaba «si resulta redundante».
+Lo único que se superpone con el renglón integrado nuevo es su primera cláusula («Grado
+calculado: Severa — el peor de los criterios cargados, por AVA indexada»); su contenido real —la
+enumeración criterio por criterio con el valor y el grado de cada uno— no está en ninguna otra
+superficie. Además ese mismo nodo lo comparten los estados de **prótesis**, de **fuera de banda**
+y de **bajo gradiente**, cada uno con su propio texto. Queda a decisión de Maicol.
+
+**F11 · «QS» sigue existiendo en el archivo, fuera de los rótulos visibles.** Censo completo:
+`CIV_QPQS_CIERRE` (la constante del cierre de la CIV, Qp/Qs ≥ 1,5) y los textos de **Qp/Qs** de
+los módulos congénitos y del panel de Evidencia. Son **otra magnitud** —el cociente de flujos
+pulmonar/sistémico— y **otro módulo**: no se tocaron, y ninguno vive en un `<label>`. Medido sobre
+el árbol vivo: **cero rótulos visibles con la sigla**, y TC-475 lo fija.

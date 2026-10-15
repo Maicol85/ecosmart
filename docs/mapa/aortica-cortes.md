@@ -63,6 +63,55 @@ mm²— votaría como si fuera legible.
   dejaba en el informe firmado una severidad sostenida por un peso que ya no existe. Sólo puede
   **bajar** el grado, nunca subirlo, así que no reabre lo que aquella regla protegía.
 
+### El cuadro de referencias de la pestaña VÁLVULAS — el AVA indexada con su grado (F2, 2026-10-15)
+
+Son **dos cuadros distintos** y conviene no confundirlos: `ao-ref-*` es el del **Doppler** —once
+filas, cada una con su grado desde el 2026-10-13— y `ea-det-*` es el de **Válvulas**, dentro de
+`bloque-ea-detalle`. Este último publicaba sus cinco filas **sin grado**.
+
+| nodo | qué publica | ¿grado? |
+|---|---|---|
+| `ea-det-gmax` | G. máximo (4×Vmax²) | no — **no es criterio**, no vota |
+| `ea-det-gmedio` | G. medio | **no, y vota** → auditoría |
+| `ea-det-ava` | AVA continuidad | **no, y vota** → auditoría |
+| `ea-det-avai` | AVA indexada | **sí, desde esta tanda** |
+| `ea-det-dvi` | DVI | **no, y vota** → auditoría |
+| `ea-det-sev` | ⚖️ Severidad EA — el renglón integrado | es el veredicto, y desde hoy dice **por qué** |
+
+**`eaAvaiGradoPintar()`** es el dueño del grado de esa fila. Lee `eaGradoCalculado().gAvai` —el
+mismo dueño único que vota— y escribe un `<span class="calc-grado" data-grado-de="ea-det-avai">`
+**hermano y sin `id`**, el patrón de las nueve filas de la IM y las cuatro de la IAo. Tres
+columnas: `_eaDetCuentaPura` (las dos ramas), `limpiarCampos` y `RECALC_MODULOS`.
+
+**`_eaPorCriterio(R)`** devuelve `' — por ' + R.criterio` y lo usan las **tres** ramas que
+escriben `ea-det-sev`. Las palabras son las de `R.criterio`, que es lo que `_eaBadgeAuto` ya
+imprime detrás de «por »: `velocidad` · `gradiente` · `AVA` · `DVI` · `AVA por planimetría` ·
+`AVA indexada`.
+
+⚠️ **NO LO DICE CON «sin estenosis» NI CON «esclerosis» NI CON EL GRADO EN `null`.** «Sin
+estenosis — por velocidad» se lee como si la velocidad hubiera afirmado algo, y la rama de «AVA
+no valuable» es la que TC-344 fija: tiene que seguir diciendo eso y nada más.
+
+⚠️ **LA RAMA DE BAJO GRADIENTE NO LLEVA SUFIJO**: reemplaza `sev` por «Severa por AVA ⚠️ bajo
+gradiente», que ya nombra su criterio.
+
+⚠️ **CON PRÓTESIS LA FILA NO PUBLICA NINGÚN GRADO**, y es el defecto **W1-4** que la tanda W2-B
+cerró en el recuadro de al lado: los cortes del AVA indexada son de válvula NATIVA y la Tabla 5
+de la ASE 2024 no publica ningún corte absoluto de área en prótesis. El predicado pasó a tener
+un solo dueño, **`_eaEsProtesisAo()`**, extraído tal cual de `_eaPintarRecuadroDoppler`.
+
+⚠️ **EL VALOR SE MUESTRA REDONDEADO A DOS DECIMALES Y EL GRADO SE DECIDE SOBRE EL ÍNDICE SIN
+REDONDEAR.** Es herencia de `_eaCritAvai` y de la fila gemela del Doppler, que hace exactamente
+lo mismo desde el 13/10; en una ventana de un centésimo alrededor del corte el número impreso
+puede quedar del otro lado del que el grado afirma. Declarado, no corregido: `PENDIENTES.md`.
+
+⚠️ **EL CARTEL `ea-ava-badge` NO SE ACORTÓ.** Lo único que se superpone con el renglón nuevo es
+su primera cláusula; su contenido —la enumeración criterio por criterio con el valor y el grado
+de cada uno— no está en ninguna otra superficie, y el mismo texto lo comparten los estados de
+prótesis y de fuera de banda.
+
+---
+
 ⚠️ **EL CUADRO DE REFERENCIAS DEL DOPPLER PASÓ DE OCHO FILAS A ONCE** (`ao-ref-plan`,
 `ao-ref-avai`, `ao-ref-dvi`). Es sólo pantalla —ningún emisor lee esos nodos— y **no recalculan
 nada**: le preguntan a `eaGradoCalculado()`. Cuando un criterio se abstiene, la fila **dice** «no

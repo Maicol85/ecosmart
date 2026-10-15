@@ -341,3 +341,16 @@ presentador)`, `_pptEnSuma` (lee `campos.en_suma`), `_pptAgregarImagenes`, `_ppt
   `scripts/detectar_huerfanos.py`.
 - **Las ramas de `labImpEjecutar`** (modos de duplicado, fusión) no se leyeron — ⚠️ no verificado:
   sólo se confirmó que existe y que es el confirmador del import de Excel.
+
+---
+
+## El GASTO CARDÍACO del PDF — está en otro mapa (F1, 2026-10-15)
+
+La fila `GC` del bloque 4 («AVA / GC / IC») se publica **sólo con frecuencia cardíaca cargada** y
+su rótulo dice con qué FC se calculó: «GC (con FC de 72 lpm): 4.5 L/min». Sin FC usable no hay
+fila de GC **ni de IC**. Antes el respaldo era una FC de **70** marcada con un `*` que no tiene
+pie de página en ningún lado del documento.
+
+Todo eso —la medición en HEAD, por qué el rótulo va en `ref` y no en `lbl`, por qué el IC se va
+con el GC, y la trampa de que el rótulo y el valor de una fila son **dos `doc.text` distintos**—
+está en **`docs/mapa/vi-volumenes-automaticos.md`**, que es además el mapa de la pestaña AI/VI.

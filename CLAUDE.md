@@ -41,6 +41,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Agregar un TÉRMINO al glosario del panel (el ⓘ con tarjeta)** | `docs/mapa/panel-evidencia-terminos.md` |
 | **Tocar el CARTEL DE PÉPTIDOS del HFA-PEFF, su puntaje o el plan Básico/Avanzado**: el espejo del péptido, el ritmo que se lee, los cortes por tipo o por qué `showTab` no chequea el plan | `docs/mapa/hfapeff-peptidos.md` |
 | **Tocar un CRITERIO o un CORTE del puntaje HFA-PEFF**: la tabla contra el original, las tres contradicciones del artículo, la PSAP o el operador del IMVI | `docs/mapa/hfapeff-criterios.md` |
+| **Tocar los VOLÚMENES del VI en AI/VI**: el VSFVI automático, el volumen latido automático, quién lee el VSFVI, o el GASTO CARDÍACO del PDF y su frecuencia cardíaca | `docs/mapa/vi-volumenes-automaticos.md` |
 | **Ver por dónde sale un dato** (informe narrativo, EN SUMA, PDF, Excel) | `docs/mapa/informe-pdf-excel.md` |
 | **Agregar o correr un caso de prueba; A/B; mutación** | `docs/mapa/tests.md` |
 | **Visor de cineloop, medición, calibración, IndexedDB** | `docs/mapa/imagenes-visor.md` |
@@ -249,6 +250,174 @@ impecable.
 ---
 
 ## Estado vigente
+
+### El VSFVI y el VOLUMEN LATIDO automáticos, el GC del PDF y el grado del AVA indexada — «F» (2026-10-15)
+
+- **Es la tanda «F» y tiene DOS BLOQUES INDEPENDIENTES.** **F1** (pestaña AI/VI y PDF): los dos
+  campos automáticos del VI y el gasto cardíaco del PDF sólo con frecuencia cardíaca. **F2**
+  (pestaña Válvulas): la fila «AVA indexada» publica su grado y el renglón integrado dice cuál
+  criterio decide. **NO cambia ninguna cuenta clínica, ningún corte, ninguna regla de integración
+  ni ningún texto del informe firmado**, y el **Excel queda en 436 columnas con el MISMO hash**
+  (medido con el escenario cargado y con el formulario vacío). Al **empezar**, `main` y
+  `origin/main` estaban los dos en **`0963d53`**, sin nada sin pushear —confirmado con un
+  `git fetch` de verdad—, con los siete commits del W2-B ya incluidos **y pusheados**. Los
+  **cuatro** commits de esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 4 → 3 → 2 → 1.**
+  ⚠️ **EL 1, EL 2 Y EL 3 NO SE LLAMAN ENTRE SÍ Y SE REVIERTEN EN CUALQUIER ORDEN**, que en esta
+  serie es raro y conviene decirlo: el 1 crea `viVolAutoSync` y los dos campos `vauto-`, el 2 son
+  **cuatro líneas** de `generarPDFReal` (el `_fcUso`, el `coV`, el `_fcRef` y el `ref` de la fila)
+  y el 3 crea `eaAvaiGradoPintar`, `_eaPorCriterio` y `_eaEsProtesisAo`. Ninguno nombra nada de
+  los otros dos.
+  ⚠️ **PERO EL 1 LLEVA LA SONDA** (`scripts/_probe_f.mjs`), que los otros dos también usan:
+  revertirlo deja al 2 y al 3 sin arnés.
+  ⚠️ **Y EL 3 EXTRAJO `_eaEsProtesisAo` DE `_eaPintarRecuadroDoppler`**, que pasó a llamarla:
+  revertirlo deja esa función nombrando algo que ya no existe, y un `ReferenceError` ahí se lleva
+  el recuadro del Doppler. **Es la única dependencia de la serie, y va en el sentido contrario al
+  habitual: lo que hay que revertir ENTERO es el 3, no «el 3 después del 1».**
+  **El 4 es TC-475 más documentación y el sello**, y afirma el comportamiento de los tres:
+  revertir cualquiera sin el 4 deja TC-475 en rojo —25 de sus 37 condiciones—.
+
+- **Línea base al cierre: suite 485/489 con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0 ERROR,
+  Excel en 436 columnas, celular 43 a 360 px y 52 a 390 px con 1 ALTA cada uno —IDÉNTICO a la
+  línea base—.** **CERO REGRESIONES**: los cuatro rojos son exactamente los de ENTRADA —**TC-223**
+  (el documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**—. **El denominador
+  subió a 489**: esta tanda agregó **TC-475**. El `md5` de `index.html` no se movió durante la
+  corrida (`f3769b1a…`) y el pendrive estaba montado antes y después.
+  ⚠️ **LA CORRIDA COMPLETA DIO 483/489 CON SEIS ROJOS, Y DOS NO SON REGRESIONES: SON LOS
+  INESTABLES POR ORDEN DE CORRIDA.** **TC-246** y **TC-252** salieron **VERDES corridos solos**
+  sobre el mismo árbol, que es exactamente lo que este archivo ya documenta para ellos dos.
+  **Repetir antes de sospechar.**
+  ⚠️ **`--todo` del chequeo de celular pasa de 374/383 a 376/385: +2 `input-chico` (BAJA)**, que
+  son los dos campos nuevos contados igual que los otros ~330 `input` de la app. Es el mismo
+  precedente que la tanda del VD. **La cuenta VISIBLE, que es la que compara la línea base, no se
+  movió.**
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. Por eso el total es sobre 489 y no sobre 490.
+- **EL SELLO DE VERSIÓN** estaba al día al empezar (`v20261015-0432`) y se volvió a sellar en el
+  commit 4. La suite se midió **DESPUÉS** de sellar, con el `md5` quieto.
+
+- **Dónde está todo:** `docs/mapa/vi-volumenes-automaticos.md` (**mapa NUEVO**, 10,5 KB: los dos
+  campos con sus guardas una por una, las tres columnas del cableado, por qué NO hay circularidad,
+  el censo de quién lee el VSFVI y el volumen latido, el gasto cardíaco del PDF con su medición en
+  HEAD y las cinco trampas); `docs/mapa/aortica-cortes.md` → la sección de F2 (**13,3 KB**, bajo el
+  techo); `docs/mapa/informe-pdf-excel.md` → un puntero (**23,1 KB**); `docs/fuentes/FUENTES.md` →
+  por qué los dos automáticos **no llevan cita** y la re-verificación de los cortes del AVA
+  indexada; `docs/PENDIENTES.md` → **once** cosas declaradas (**F1 a F11**), con la auditoría de
+  las filas sin grado.
+
+- **F1 · LOS DOS CAMPOS AUTOMÁTICOS NO VOTAN, NO ESCRIBEN NINGÚN GRADO Y NO VIAJAN.** Prefijo
+  `vauto-` con guión MEDIO, que `_noEsDelEstudio` ya excluía. **Medido: 1022 campos con el MISMO
+  hash y CERO claves `vauto-`**, Excel en 436 con el mismo hash.
+  **Dueño único `viVolAutoSync`, con las TRES columnas**: `calcVI`, `RECALC_MODULOS` y el final de
+  `limpiarCampos` —el barrido genérico borra el `value` de un `input[type=text]` pero **no** el
+  placeholder, y el renglón de origen es un `<div>` que ningún barrido alcanza—.
+  ⚠️ **NO HAY CIRCULARIDAD, Y ESTÁ MEDIDO: `fevi` es un campo TIPEADO.** Censo del archivo: nadie
+  le escribe `.value` ni pasa por un `setv('fevi', …)`, y `fevi_met` sólo DECLARA el método. El
+  panel del VI 3D sí deriva una FEVI de los dos volúmenes cuando falta, pero **no escribe el
+  campo**.
+  ⚠️ **LA FÓRMULA NO ES NUEVA**: el VI 3D ya hace `VDF × (1 − FEVI/100)` y `VDF − VSF` con las
+  mismas dos guardas. Ningún corte, ninguna banda y ninguna constante nueva, y **por eso no lleva
+  cita**: es álgebra de la definición de fracción de eyección.
+  ⚠️ **EL AUTOMÁTICO SE VE TAMBIÉN CON EL VSFVI MANUAL CARGADO**, a propósito, y la casilla de
+  abajo DICE cuál de los dos usó la resta. Lo que nunca pasa es que el automático le gane al
+  manual.
+  **MEDIDO con teclas reales, 12 escenas:** VDFVI 140 + FEVI 60 → **56 ml** y **84 ml** «con el
+  VSFVI automático»; con el manual en 60 → **80 ml** «con el VSFVI manual»; una FEVI de 95 y un
+  VSFVI de 0,06 —fuera de sus bandas `[5,90]` y `[3,500]`— se tratan como **ausentes**; un VSFVI
+  mayor que el VDFVI **no publica** la resta y dice por qué; y borrando cada insumo con Backspace
+  reales los dos se vacían. **Los dos son readonly y la sonda se NIEGA a mandarles Backspace.**
+  ⚠️ **«QS» NO APARECE EN NINGÚN ROTULO VISIBLE DE LA APP**, medido sobre el árbol vivo: cero
+  `<label>` con esa sigla, así que **no hubo nada que sacar**. Las únicas apariciones en el archivo
+  son `CIV_QPQS_CIERRE` y los textos de **Qp/Qs** de Congénitas —otra magnitud, otro módulo— y no
+  se tocaron. TC-475 lo fija.
+
+- **F1 (PDF) · EL GASTO CARDÍACO SÓLO CON FRECUENCIA CARDÍACA, Y EL ROTULO DICE CUÁL.** Medido en
+  HEAD con Ø TSVI 20 mm y VTI TSVI 20 cm: **sin FC el papel imprimía «GC: 4.4 L/min*» y «IC: 2.20
+  L/min/m2»**, dos números sostenidos por una frecuencia de 70 que nadie midió, en un informe
+  FIRMADO — y **el `*` no tiene pie de página en ningún lado del documento**, censado.
+  ⚠️ **NO ES LA PARADA QUE LA ORDEN PREVÉ, Y SE MIDIÓ ANTES DE SEGUIR.** La condición de parada es
+  «el GC del PDF usa una FC distinta de la cargada», y **no se cumple**: con FC cargada el papel
+  usa EXACTAMENTE esa FC —72 lpm da 4,5 L/min y 110 da 6,9, idénticos a HEAD—. La única rama con
+  una FC por defecto es la que NO tiene FC cargada, que es precisamente la que la orden manda
+  retirar.
+  ⚠️ **EL ÍNDICE CARDÍACO SE VA CON ÉL**, y es consecuencia y no una decisión aparte: `icV` es
+  `coV / ASC`, con la MISMA FC inventada. `PENDIENTES.md` → **F5**.
+  ⚠️ **SIN AVA Y SIN FC DESAPARECE LA SECCIÓN «AVA / GC / IC» ENTERA**, header incluido, porque
+  esas dos son sus únicas filas y `drawTablaCompacta` descarta las secciones vacías. Es el filtro
+  que esa función **ya** tenía: **medido con el AVA cargado, la sección se queda** y sólo faltan
+  las dos filas del gasto. Sin esa escena, eso se lee como una pérdida de la tanda.
+  **LA PANTALLA NO CAMBIA**: `calcHemo` ya dejaba el GC, el IC, la RVS y los dos perfiles en `null`
+  con la FC vacía o fuera de banda, con el MISMO predicado.
+
+- **F2 · LA FILA DEL AVA INDEXADA PUBLICA SU GRADO, Y EL RENGLÓN INTEGRADO DICE CUÁL CRITERIO
+  DECIDE.** Medido en HEAD: con AVA por continuidad 1,10 cm² (moderada) y AVA indexada 0,55 cm²/m²
+  (severa) la fila decía «0.55 cm²/m²» a secas y el renglón «Severa» sin decir por qué, mientras el
+  AVA indexada es la que vota desde el 13/10.
+  **NO SE MOVIÓ NINGÚN CORTE NI EL GRADO QUE SE PUBLICA**: A/B en las seis escenas, `ea_grado`,
+  `ava_cont`, las filas del AVA y del DVI, el cartel y el cuadro del Doppler **idénticos**.
+  ⚠️ **EL GRADO VA EN UN `<span>` HERMANO SIN `id`**, el patrón de las nueve filas de la IM, y acá
+  con dos razones propias: **TC-436 compara el textContent de `ea-det-avai` por igualdad EXACTA**
+  —medido, sigue siendo «0.60 cm²/m²», así que **no hubo que adaptar ningún caso**— y sin `id` el
+  barrido de `limpiarCampos` le escribiría «—» donde la regla pide blanco.
+  ⚠️ **CON PRÓTESIS NO PUBLICA NINGÚN GRADO**: es el defecto **W1-4** que W2-B cerró en el recuadro
+  de al lado. El predicado pasó a tener un dueño único, **`_eaEsProtesisAo`**.
+  **MEDIDO con aritmética cerrada** (Ø TSVI 20 mm, BSA **2,00 exacta**, AVA por continuidad siempre
+  en rango MODERADO): 0,55 → (severa) · **0,60 exacto** → (severa) · 0,61 → (moderada) · 0,93 →
+  **sin grado** · prótesis → sin grado · sin AVA → «—». Renglón: «Severa — por AVA indexada» /
+  «Moderada — por velocidad».
+  **COLOR**: el grado usa `--text2`, que **existe** en esa zona en los dos temas —`rgb(154,163,188)`
+  de noche y `rgb(91,100,120)` de día—, así que no repite el defecto del ámbar que no era ámbar.
+  **Captura PNG de los dos temas**, con los `md5` distintos y los acentos completos.
+  ⚠️ **EL CARTEL `ea-ava-badge` NO SE ACORTÓ, y se reporta.** Sólo se superpone su primera
+  cláusula; la enumeración criterio por criterio no está en ninguna otra superficie, y ese mismo
+  nodo lo comparten los estados de prótesis, fuera de banda y bajo gradiente. `PENDIENTES.md` →
+  **F10**.
+
+- **AUDITORÍA DE SOLO LECTURA (F2), medida sobre el árbol vivo con las ocho lesiones cargadas y
+  NADA corregido:** tres filas publican un criterio que VOTA sin su grado —`ea-det-gmedio` (30
+  mmHg), `ea-det-ava` (1,20 cm²) y `ea-det-dvi` (0,38)— y **dos criterios votan sin tener fila** en
+  ese cuadro: el AVA por **planimetría** y la **Vmax**. `PENDIENTES.md` → **F8**.
+  ⚠️ **TRES COSAS QUE PARECÍAN HALLAZGOS Y NO LO SON, Y HUBO QUE MEDIRLAS PARA SABERLO.** Las
+  cuatro filas de la **estenosis mitral** publican su clase en una **columna aparte** (`.em-clase`)
+  que el primer barrido de la sonda no veía —las informó como «sin grado» sobre filas que sí lo
+  publican—; el **G. máximo** aórtico no es criterio y no vota; y **`ep-ref-gmax` sin grado es una
+  decisión documentada de Maicol del 2026-10-07** (punto 5d).
+
+- **CONTROL NEGATIVO MAYOR, con escenario CARGADO: las ÚNICAS 14 diferencias contra HEAD son los
+  dos campos nuevos existiendo.** Informe en los tres estilos, EN SUMA, **Excel en 436 columnas con
+  el mismo hash**, los **1022 campos** con su hash, los ocho grados y las ocho pastillas, el
+  Laboratorio, la franja del PPT, la función diastólica y el HFA-PEFF salen IDÉNTICOS, con el
+  escenario cargado y con el formulario vacío.
+
+- **Arnés: `scripts/_probe_f.mjs`** (A/B de solo lectura con `--file`, y `--dest` para las dos
+  capturas), cinco grupos (`vol`, `gc`, `avai`, `auditoria`, `controles`), con teclas y clics
+  reales y el **PDF generado de verdad** interceptando jsPDF. **Cobertura: TC-475**, **37
+  condiciones** —contadas instrumentando el propio caso para que publicara su `ex.length`— con
+  cinco denominadores y siete controles negativos. **Verificado que sabe fallar contra HEAD en un
+  worktree aparte: 25 de las 37 en rojo, y NINGUNA por excepción.**
+- ⚠️ **CASOS ADAPTADOS: NINGUNO**, y eso es consecuencia de dos decisiones de diseño, no suerte: el
+  grado de la fila va en un nodo HERMANO —así `ea-det-avai` conserva su textContent exacto, que es
+  lo que TC-436 compara— y los dos campos nuevos son `vauto-`, así que no entran en ningún conteo
+  de campos del estudio ni de columnas del Excel.
+- ⚠️ **`J()` DE UNA SONDA STRINGIFICA ANTES DE AWAITEAR**, así que sobre una **promesa** devuelve
+  `{}` — y eso se lee igual que «el PDF salió vacío». La primera corrida del grupo `gc` informó las
+  cuatro escenas con el objeto vacío sobre un jsPDF que **sí** había cargado. Para una promesa hay
+  que resolverla DENTRO de la página (`JP()`).
+- ⚠️ **EL ROTULO Y EL VALOR DE UNA FILA DEL PDF SON DOS `doc.text` DISTINTOS**, así que un espía
+  que registre sólo el texto deja la fila del GC como «GC» pelado: la primera corrida informó eso
+  en las cuatro escenas. Hay que registrar también las coordenadas y recomponer la fila por su `y`.
+- ⚠️ **LA TARJETA DEL VI ES UN ACORDEÓN QUE NACE CERRADO** (`#sacc-vi`): sin `secToggle('vi')` los
+  tres campos no tienen caja, `focus()` falla en silencio y la escena mide un tecleo que nunca
+  ocurrió. El denominador de arranque de la sonda aborta nombrándolo.
+- ⚠️ **UN PARÉNTESIS ESCAPADO DENTRO DEL TEMPLATE DE LA SONDA SE COCINA Y DEJA EL GRUPO SIN
+  CERRAR**: `\(` en el archivo llega al regex como `(` y la corrida murió con «Invalid regular
+  expression: Unterminated group». Se reemplazó por `indexOf`, que es lo que este repo ya hace para
+  los saltos de línea.
+- ⚠️ **Me comí el acento grave CUATRO veces**, todas en comentarios míos dentro del cuerpo de la
+  sonda, con el archivo que documenta la trampa abierto delante. `scripts/check_backticks.py` dio
+  la línea exacta; `node --check` apuntaba a `_noEsDelEstudio`, dentro del template. **Correr los
+  dos.**
 
 ### Los CRITERIOS PROPIOS de la PRÓTESIS mitral y aórtica — «W2-B» (2026-10-15)
 

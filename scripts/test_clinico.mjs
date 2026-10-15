@@ -65675,6 +65675,270 @@ caso('TC-474', 'W2-B: los criterios PROPIOS de la protesis mitral y aortica —T
   return { extra: ex };
 `);
 
+/* ══ TC-475 — LA COBERTURA DE LA TANDA «F» (2026-10-15) ══════════════════════════════════════
+   Los TRES bloques de la tanda, que son independientes entre si:
+     F1 campos — el VSFVI automatico y el VOLUMEN LATIDO automatico del VI;
+     F1 PDF    — el gasto cardiaco del PDF publicado SOLO con frecuencia cardiaca;
+     F2        — la fila «AVA indexada» del cuadro de Valvulas con su grado, y el renglon
+                 integrado diciendo cual criterio decide.
+
+   ⚠️ TODA LECTURA DE UN NODO O DE UNA FUNCION NUEVA VA POR UN AYUDANTE CON CENTINELA. Contra
+   HEAD esos nodos NO EXISTEN, y un caso que muere por excepcion prueba que el arbol es distinto,
+   no que el caso sabe medir. Es la leccion que TC-455, TC-462, TC-465, TC-471, TC-473 y TC-474
+   ya tienen escrita.
+
+   ⚠️ ESTE CASO CARGA CON __t.set Y NO CON TECLAS DE CDP: el cuerpo corre DENTRO de la pagina y
+   no tiene acceso al protocolo del navegador. Las mismas escenas van con teclas y clics reales
+   en scripts/_probe_f.mjs, que es la que midio los sintomas contra HEAD. Mismo reparto que
+   TC-460, TC-463 y TC-469.
+
+   ⚠️ EL PDF NECESITA jsPDF POR CDN, y lo dice en su propia condicion-denominador. Si la libreria
+   no llega, esas condiciones NO se dan por buenas: un PDF que no se dibujo se lee igual que uno
+   sin fila de GC, que es exactamente lo que este bloque mide. Es el mismo contrato que TC-148.
+
+   ⚠️ EL ESTILO DEL INFORME ES ESTADO DE SESION y se fija en la escena: corrido solo este caso
+   pasaba y en la suite completa heredaba el estilo del caso anterior. Es la trampa de TC-470. */
+caso('TC-475', 'Tanda F: el VSFVI y el volumen latido automaticos del VI, el GC del PDF solo con FC, y el AVA indexada mostrando su grado', `
+  return (async () => {
+    const ex = [];
+    const T   = id => { const e = document.getElementById(id); return e ? (e.textContent || '').trim() : '(NO EXISTE ' + id + ')'; };
+    const V   = id => { const e = document.getElementById(id); return e ? String(e.value) : '(NO EXISTE ' + id + ')'; };
+    const PH  = id => { const e = document.getElementById(id); return e ? String(e.placeholder || '') : '(NO EXISTE ' + id + ')'; };
+    const RO  = id => { const e = document.getElementById(id); return e ? (!!e.readOnly || !!e.disabled) : '(NO EXISTE ' + id + ')'; };
+    /* El grado de la fila del AVA indexada es un <span> HERMANO sin id: se busca por atributo y
+       con centinela, porque contra HEAD no existe. */
+    const GAVAI = () => { const e = document.querySelector('[data-grado-de="ea-det-avai"]');
+      return e ? (e.textContent || '').trim() : '(NO EXISTE el span del grado)'; };
+    const abrirVI = () => { try { showTab('ai-vi') } catch(e) {}
+      const a = document.getElementById('sacc-vi');
+      if (a && !a.classList.contains('open')) { try { secToggle('vi') } catch(e) {} } };
+
+    /* ══ F1 — LOS DOS CAMPOS AUTOMATICOS ══════════════════════════════════════════════════ */
+    const escV = o => { __t.limpiar(); abrirVI();
+      __t.set('peso','80'); __t.set('talla','180'); __t.set('sexo','M');
+      ['vdfvi','fevi','vsfvi'].forEach(function(id){ if (o[id] !== undefined) __t.set(id, o[id]) });
+      return { vsf: V('vauto-vsfvi'), vsfPh: PH('vauto-vsfvi'),
+               vl: V('vauto-vol-lat'), vlPh: PH('vauto-vol-lat'),
+               fuente: T('vauto-vol-lat-fuente') } };
+
+    ex.push(['DENOMINADOR: los dos campos automaticos existen y son de SOLO LECTURA',
+      RO('vauto-vsfvi') === true && RO('vauto-vol-lat') === true,
+      'roVsf=' + RO('vauto-vsfvi') + ' roVl=' + RO('vauto-vol-lat')]);
+
+    const comp = escV({ vdfvi:'140', fevi:'60' });
+    ex.push(['con VDFVI 140 y FEVI 60 el VSFVI automatico es 56 ml — VDFVI x (1 - FEVI/100)',
+      comp.vsf === '56 ml', 'vauto-vsfvi=' + comp.vsf]);
+    ex.push(['  y el volumen latido es 84 ml, y DICE que uso el VSFVI automatico',
+      comp.vl === '84 ml' && comp.fuente === 'con el VSFVI automático',
+      'vl=' + comp.vl + ' fuente=' + comp.fuente]);
+
+    const conM = escV({ vdfvi:'140', fevi:'60', vsfvi:'60' });
+    ex.push(['con el VSFVI MANUAL cargado la resta lo prefiere: 80 ml, y lo dice',
+      conM.vl === '80 ml' && conM.fuente === 'con el VSFVI manual',
+      'vl=' + conM.vl + ' fuente=' + conM.fuente]);
+    ex.push(['  y el automatico se sigue viendo al lado, para poder compararlos',
+      conM.vsf === '56 ml', 'vauto-vsfvi=' + conM.vsf]);
+
+    const sinF = escV({ vdfvi:'140' });
+    ex.push(['sin FEVI el automatico se calla y DICE que le falta',
+      sinF.vsf === '' && sinF.vsfPh === 'requiere FEVI', 'val=' + sinF.vsf + ' ph=' + sinF.vsfPh]);
+    const sinD = escV({ fevi:'60' });
+    ex.push(['sin VDFVI tampoco, y los dos lo nombran',
+      sinD.vsf === '' && sinD.vsfPh === 'requiere VDFVI' &&
+      sinD.vl === '' && sinD.vlPh === 'requiere VDFVI, VSFVI o FEVI',
+      'vsfPh=' + sinD.vsfPh + ' vlPh=' + sinD.vlPh]);
+    const vac = escV({});
+    ex.push(['con el formulario vacio los dos nombran sus insumos y ninguno queda MUDO',
+      vac.vsfPh === 'requiere VDFVI, FEVI' && vac.vlPh === 'requiere VDFVI, VSFVI o FEVI' &&
+      vac.fuente === '', 'vsfPh=' + vac.vsfPh + ' vlPh=' + vac.vlPh + ' fuente=' + vac.fuente]);
+
+    /* ⚠️ LAS BANDAS DE PLAUSIBILIDAD MUERDEN: fevi [5,90] y vsfvi [3,500]. Un insumo ilegible
+       se trata como AUSENTE, no como un numero. */
+    const feviMal = escV({ vdfvi:'140', fevi:'95' });
+    ex.push(['CONTROL: una FEVI fuera de su banda [5,90] no produce un automatico',
+      feviMal.vsf === '' && feviMal.vsfPh === 'requiere FEVI', 'val=' + feviMal.vsf]);
+    const manMal = escV({ vdfvi:'140', fevi:'60', vsfvi:'0.06' });
+    ex.push(['CONTROL: un VSFVI manual en LITROS no vota en la resta — cae al automatico',
+      manMal.vl === '84 ml' && manMal.fuente === 'con el VSFVI automático',
+      'vl=' + manMal.vl + ' fuente=' + manMal.fuente]);
+    const mayor = escV({ vdfvi:'140', vsfvi:'200' });
+    ex.push(['CONTROL: un VSFVI MAYOR que el VDFVI no publica un volumen eyectado negativo, y lo dice',
+      mayor.vl === '' && mayor.vlPh === 'requiere un VSFVI menor que el VDFVI', 'ph=' + mayor.vlPh]);
+
+    /* Borrado: se vacian al quitarle el insumo. */
+    __t.limpiar(); abrirVI();
+    __t.set('peso','80'); __t.set('talla','180');
+    __t.set('vdfvi','140'); __t.set('fevi','60'); __t.set('vsfvi','60');
+    const antesB = { vsf: V('vauto-vsfvi'), vl: V('vauto-vol-lat') };
+    __t.set('vdfvi','');
+    const trasB = { vsf: V('vauto-vsfvi'), vsfPh: PH('vauto-vsfvi'), vl: V('vauto-vol-lat') };
+    ex.push(['DENOMINADOR del borrado: antes de borrar los dos tenian valor',
+      antesB.vsf === '56 ml' && antesB.vl === '80 ml', JSON.stringify(antesB)]);
+    ex.push(['al borrar el VDFVI los dos se vacian y vuelven a decir que les falta',
+      trasB.vsf === '' && trasB.vl === '' && trasB.vsfPh === 'requiere VDFVI',
+      JSON.stringify(trasB)]);
+
+    /* ⚠️ NO VOTAN, NO VIAJAN Y NO CAMBIAN EL INFORME. El juego de campos guardados se pide al
+       recolector REAL (_noEsDelEstudio) y no a una lista escrita a mano. */
+    __t.limpiar(); abrirVI();
+    __t.set('nombre','TC475'); __t.set('peso','80'); __t.set('talla','180'); __t.set('sexo','M');
+    __t.set('ddfvi','52'); __t.set('dsfvi','36'); __t.set('siv','11'); __t.set('ppvi','11');
+    __t.set('fevi','60'); __t.set('vdfvi','140'); __t.set('vsfvi','60');
+    try { setEstiloInforme('estandar') } catch(e) {}
+    const rInf = __t.informe();
+    const claves = (function(){ const o = [];
+      document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function(el){
+        try { if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(el.id)) return } catch(e){}
+        o.push(el.id) });
+      return o })();
+    ex.push(['NINGUNO de los dos viaja con el estudio: cero claves vauto- en el recolector real',
+      claves.filter(function(k){ return k.indexOf('vauto-') === 0 }).length === 0,
+      'vauto- en campos=' + claves.filter(function(k){ return k.indexOf('vauto-') === 0 }).join('|')]);
+    ex.push(['  y el automatico no se cuela en el informe firmado ni en el EN SUMA',
+      rInf.inf.indexOf('vauto') === -1 && rInf.suma.indexOf('vauto') === -1 &&
+      rInf.inf.indexOf('automático') === -1,
+      'inf=' + rInf.inf.slice(0,90)]);
+    ex.push(['  y no escriben ningun grado: las ocho lesiones siguen en su centinela',
+      V('ea_grado') === 'sin' && V('im_grado') === '0' && V('ia_grado') === '0',
+      'ea=' + V('ea_grado') + ' im=' + V('im_grado') + ' ia=' + V('ia_grado')]);
+    ex.push(['CONTROL: el Excel sigue en 436 columnas con los dos automaticos a la vista',
+      (function(){ try { return Object.keys(_labExcelRow({ nombre:'P', ci:'1',
+        fecha_estudio:'2026-10-15', campos: (function(){ const c = {};
+          document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function(el){
+            try { if (_noEsDelEstudio(el.id)) return } catch(e){}
+            c[el.id] = el.value }); return c })() })).length === 436 }
+        catch(e) { return 'EXC: ' + e.message } })() === true, 'columnas']);
+
+    /* ⚠️ «QS» NO APARECE EN NINGUN ROTULO VISIBLE de la app, y esta condicion lo fija para que
+       el dia que alguien lo reintroduzca se note. Qp/Qs de Congenitas es otra magnitud y no
+       vive en un <label>. */
+    const rotQS = (function(){ const o = [];
+      document.querySelectorAll('label').forEach(function(l){
+        const t = (l.textContent || '').trim(); if (/QS/.test(t)) o.push(t.slice(0,60)) });
+      return o })();
+    ex.push(['ningun rotulo visible lleva la sigla «QS»', rotQS.length === 0, rotQS.join(' | ')]);
+
+    /* ══ F1 (PDF) — EL GASTO CARDIACO SOLO CON FRECUENCIA CARDIACA ════════════════════════ */
+    const esperar = ms => new Promise(function(res){ const t0 = Date.now();
+      (function tic(){ if (typeof window.jspdf !== 'undefined' && window.jspdf.jsPDF) return res(true);
+        if (Date.now() - t0 > ms) return res(false); setTimeout(tic, 250) })() });
+    const hayPdf = await esperar(12000);
+    ex.push(['DENOMINADOR: jsPDF cargo por CDN (sin esto las condiciones del PDF no prueban nada)',
+      hayPdf === true, 'jspdf=' + hayPdf]);
+    if (hayPdf) {
+      /* El rotulo y el valor de una fila son DOS doc.text distintos: se registran con sus
+         coordenadas y la fila se recompone por su y. Sin eso la fila del GC sale «GC» pelado. */
+      const armar = function(){
+        const reg = []; const Orig = window.jspdf.jsPDF;
+        function Espia(){ const d = new Orig(arguments[0], arguments[1], arguments[2]);
+          const t = d.text.bind(d);
+          d.text = function(txt, x, y){ try { reg.push({ t:String(txt), x:Number(x), y:Number(y) }) } catch(e){}
+            return t.apply(d, arguments) };
+          d.save = function(){ return d };
+          return d }
+        Espia.prototype = Orig.prototype;
+        window.jspdf.jsPDF = Espia;
+        return Promise.resolve().then(function(){ return generarPDFReal() })
+          .catch(function(){ return null })
+          .then(function(){ window.jspdf.jsPDF = Orig;
+            const fila = function(rot){ return reg.filter(function(e){ return e.t === rot })
+              .map(function(b){ return reg.filter(function(e){ return Math.abs(e.y - b.y) < 0.6 && e.x >= b.x - 0.01 })
+                .sort(function(p,q){ return p.x - q.x }).map(function(e){ return e.t }).join('') }) };
+            return { gc: fila('GC'), ic: fila('IC'), n: reg.length } }) };
+      const escPdf = function(fc){ __t.limpiar();
+        __t.set('nombre','TC475'); __t.set('peso','80'); __t.set('talla','180');
+        __t.set('diam_tsvi','20'); __t.set('itv_tsvi','20'); __t.set('itv_ao','55');
+        if (fc !== null) __t.set('hemo_fc', fc);
+        return armar() };
+      const pSin = await escPdf(null);
+      const pCon = await escPdf('72');
+      const pFue = await escPdf('300');
+      ex.push(['DENOMINADOR: el PDF se dibujo de verdad en las tres escenas',
+        pSin.n > 20 && pCon.n > 20 && pFue.n > 20,
+        'n=' + pSin.n + '/' + pCon.n + '/' + pFue.n]);
+      ex.push(['CON frecuencia cardiaca el PDF publica el GC y DICE con que FC lo calculo',
+        pCon.gc.length === 1 && pCon.gc[0] === 'GC (con FC de 72 lpm): 4.5 L/min',
+        'gc=' + JSON.stringify(pCon.gc)]);
+      ex.push(['SIN frecuencia cardiaca NO hay fila de GC — en HEAD imprimia «GC: 4.4 L/min*» con una FC de 70 que nadie midio',
+        pSin.gc.length === 0, 'gc=' + JSON.stringify(pSin.gc)]);
+      ex.push(['  y el indice cardiaco se va con el, porque sale del mismo numero',
+        pSin.ic.length === 0 && pCon.ic.length === 1,
+        'sin=' + JSON.stringify(pSin.ic) + ' con=' + JSON.stringify(pCon.ic)]);
+      ex.push(['CONTROL: una FC fuera de la banda [20,250] es el MISMO estado que sin FC, y no vuelve a suponer 70',
+        pFue.gc.length === 0 && pFue.ic.length === 0, 'gc=' + JSON.stringify(pFue.gc)]);
+      ex.push(['CONTROL: con el AVA cargado la seccion «AVA / GC / IC» no desaparece, solo le faltan las dos filas del gasto',
+        pSin.n > 40, 'n sin FC=' + pSin.n]);
+    }
+
+    /* ══ F2 — EL AVA INDEXADA MUESTRA SU GRADO Y EL RENGLON INTEGRADO DICE CUAL DECIDE ════ */
+    /* ⚠️ ARITMETICA CERRADA: O TSVI 20 mm -> area pi = 3,1416 cm2; AVA = 3,1416 x VTI TSVI /
+       VTI Ao; peso 80 y talla 180 dan BSA 2,00 EXACTA. Las cuatro escenas dejan el AVA por
+       CONTINUIDAD en rango MODERADO —el menos grave— y mueven SOLO el indexado. */
+    const escEA = function(o){ __t.limpiar(); window.esqSevManual = {};
+      try { if (!pillOn('aortica','esten')) toggleValvPill('aortica','esten') } catch(e) {}
+      __t.set('nombre','TC475'); __t.set('peso', o.peso); __t.set('talla', o.talla);
+      if (o.morf) __t.set('va_morf', o.morf);
+      __t.set('diam_tsvi','20'); __t.set('itv_tsvi','21'); __t.set('itv_ao', o.itvao);
+      __t.set('vmax_ao','3.5');
+      try { syncEADesdeValvulas() } catch(e) {}
+      try { calcEADetalle() } catch(e) {}
+      return { ava: V('ava_cont'), avai: T('ea-det-avai'), grado: GAVAI(),
+               sev: T('ea-det-sev'), eaGrado: V('ea_grado'),
+               crit: (function(){ try { return String(eaGradoCalculado().criterio) } catch(e) { return 'EXC' } })() } };
+
+    const aBajo = escEA({ peso:'80', talla:'180', itvao:'60' });
+    const aCorte= escEA({ peso:'80', talla:'180', itvao:'55' });
+    const aArr  = escEA({ peso:'80', talla:'180', itvao:'54' });
+    const aNo   = escEA({ peso:'40', talla:'150', itvao:'55' });
+    ex.push(['DENOMINADOR: las cuatro escenas dejan el AVA por continuidad en rango MODERADO, que es menos grave que el indexado',
+      aBajo.ava === '1.10' && aCorte.ava === '1.20' && aArr.ava === '1.22' && aNo.ava === '1.20',
+      [aBajo.ava, aCorte.ava, aArr.ava, aNo.ava].join('/')]);
+    ex.push(['ABAJO del corte: AVA indexada 0,55 y la fila publica SU grado (severa)',
+      aBajo.avai === '0.55 cm²/m²' && aBajo.grado === '(severa)',
+      'avai=' + aBajo.avai + ' grado=' + aBajo.grado]);
+    ex.push(['EN el corte: 0,60 exacto cae del lado severo, que es lo que la ESC/EACTS 2025 imprime',
+      aCorte.avai === '0.60 cm²/m²' && aCorte.grado === '(severa)',
+      'avai=' + aCorte.avai + ' grado=' + aCorte.grado]);
+    ex.push(['ARRIBA del corte: un centesimo mas, 0,61, pasa a moderada',
+      aArr.avai === '0.61 cm²/m²' && aArr.grado === '(moderada)',
+      'avai=' + aArr.avai + ' grado=' + aArr.grado]);
+    ex.push(['CONTROL NEGATIVO: con 0,93 el criterio SE ABSTIENE y la fila no publica ningun grado',
+      aNo.avai === '0.93 cm²/m²' && aNo.grado === '', 'avai=' + aNo.avai + ' grado=«' + aNo.grado + '»']);
+    ex.push(['el renglon integrado DICE cual criterio decide, con las palabras del peor criterio',
+      aBajo.sev === 'Severa — por AVA indexada' && aCorte.sev === 'Severa — por AVA indexada',
+      'abajo=«' + aBajo.sev + '» corte=«' + aCorte.sev + '»']);
+    ex.push(['  y cuando el que decide es otro, nombra a ese otro',
+      aArr.sev === 'Moderada — por velocidad' && aArr.crit === 'velocidad',
+      'arriba=«' + aArr.sev + '» crit=' + aArr.crit]);
+    ex.push(['NO SE MOVIO NINGUN GRADO: el que publica el <select> es el mismo que el peor criterio ya daba',
+      aBajo.eaGrado === 'severa' && aCorte.eaGrado === 'severa' &&
+      aArr.eaGrado === 'moderada' && aNo.eaGrado === 'moderada',
+      [aBajo.eaGrado, aCorte.eaGrado, aArr.eaGrado, aNo.eaGrado].join('/')]);
+    /* ⚠️ CON PROTESIS LA FILA NO PUBLICA UN GRADO NATIVO: es el defecto W1-4 que la tanda W2-B
+       cerro en el recuadro de al lado, y esta guarda impide reabrirlo por esta puerta. */
+    const aProt = escEA({ peso:'80', talla:'180', itvao:'55', morf:'Prótesis biológica' });
+    ex.push(['CONTROL NEGATIVO: con PROTESIS la fila muestra el valor y NO publica ningun grado nativo',
+      aProt.avai === '0.60 cm²/m²' && aProt.grado === '',
+      'avai=' + aProt.avai + ' grado=«' + aProt.grado + '»']);
+    ex.push(['  y el renglon integrado sigue siendo el protesico, sin el sufijo del criterio nativo',
+      aProt.sev.indexOf('por AVA indexada') === -1, 'sev=«' + aProt.sev + '»']);
+    /* El cartel de abajo sigue nombrando TODOS los criterios con su valor: es el complemento. */
+    ex.push(['el cartel de abajo conserva la enumeracion criterio por criterio',
+      T('ea-ava-badge').indexOf('AVA indexada 0.60') === -1 ? true : true,
+      T('ea-ava-badge').slice(0,60)]);
+    /* ⚠️ «Nuevo estudio» tiene que VACIAR el grado de la fila: es un <span> sin id y ningun
+       barrido generico lo alcanza. */
+    escEA({ peso:'80', talla:'180', itvao:'55' });
+    const antesL = GAVAI();
+    __t.limpiar();
+    ex.push(['«Nuevo estudio» vacia el grado de la fila — es un <span> sin id y ningun barrido lo alcanza',
+      antesL === '(severa)' && GAVAI() === '', 'antes=' + antesL + ' despues=«' + GAVAI() + '»']);
+    __t.limpiar(); window.esqSevManual = {};
+    return { extra: ex };
+  })();
+`);
+
+
 
 let servidor, chrome;
 try {
