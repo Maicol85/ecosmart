@@ -3566,6 +3566,53 @@ window.cerrarSesionReal = cerrarSesionReal;
           <label>VSFVI (ml)</label>
           <input type="number" id="vsfvi" placeholder="ml" oninput="calcVI()">
         </div>
+        <!-- ══ LOS DOS AUTOMÁTICOS DEL VI (F1, 2026-10-15) ═══════════════════════════════════
+             Decisión de Maicol. Son `vauto-`, con guión MEDIO, así que `_noEsDelEstudio` los
+             saca del estudio guardado: ver su comentario. NO viajan en `campos`, NO tienen
+             columna de Excel, NO votan, no escriben ningún grado y no los lee ningún emisor
+             —ni el informe narrativo, ni el EN SUMA, ni el PDF, ni el PPT, ni el Laboratorio—.
+             Es el mismo reparto que las nueve casillas `vauto-` de la IM, la IAo y la IT.
+
+             ⚠️ NO HAY CIRCULARIDAD, Y ESTÁ MEDIDO: `fevi` es un campo TIPEADO. Censo del
+             archivo: NADIE le escribe `.value` ni pasa por `setv('fevi', …)`, y `fevi_met`
+             sólo DECLARA con qué método lo midió el médico; no calcula nada. Así que el
+             automático nunca se alimenta de un VSFVI que a su vez venga de él.
+             El panel del VI 3D sí deriva una FEVI de los dos volúmenes cuando falta, pero eso
+             vive dentro del panel y NO escribe el campo, así que tampoco cierra el lazo.
+
+             ⚠️ EL AUTOMÁTICO SE MUESTRA TAMBIÉN CON EL VSFVI MANUAL CARGADO, a propósito: es
+             la comparación que el médico pidió poder hacer, y la casilla de abajo DICE cuál de
+             los dos usó. Lo que nunca pasa es que el automático le gane al manual en la resta.
+
+             ⚠️ LA FÓRMULA NO ES NUEVA EN ESTA APP: el panel del VI 3D ya hace exactamente
+             `VDF × (1 − FEVI/100)` y `VDF − VSF`, con las mismas dos guardas —lo cargado gana
+             sobre lo calculado y un volumen eyectado negativo se calla—. Acá se repiten esas
+             dos reglas sobre los mismos campos; ningún corte, ninguna banda y ninguna
+             constante nueva. Es álgebra de la definición de fracción de eyección, no un
+             criterio: por eso no lleva cita.
+
+             ⚠️ NINGUNO DE LOS DOS RÓTULOS LLEVA LA SIGLA «QS». Censo del archivo: «QS» sólo
+             aparece en `CIV_QPQS_CIERRE` y en los textos de Qp/Qs de los módulos congénitos
+             —otra magnitud, otro módulo— y en NINGÚN rótulo visible de esta zona, así que no
+             hubo nada que sacar de acá. La lista está en el reporte. -->
+        <div class="fg">
+          <label>VSFVI automático (ml) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← VDFVI y FEVI</span></label>
+          <input type="text" id="vauto-vsfvi" readonly tabindex="-1">
+        </div>
+        <!-- ⚠️ VA EN LA CELDA SIGUIENTE Y NO «DEBAJO», POR LO MISMO QUE EL VSFVI MANUAL: en un
+             `grid-4` «debajo de X» es la celda de cuatro después, y la posición se corre sola
+             según el viewport. Lo estable es que los dos automáticos son un par y se leen
+             juntos — ver el comentario del VSFVI manual, unas líneas más arriba. -->
+        <div class="fg">
+          <label>Volumen latido (ml) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← VDFVI − VSFVI</span></label>
+          <input type="text" id="vauto-vol-lat" readonly tabindex="-1">
+          <!-- «El propio campo dice cuál usó»: el origen del VSFVI de la resta va acá, debajo del
+               número, con el patrón de `ava-plan-aviso`. NO va dentro del `value`, porque la regla
+               del D1 es que la casilla publica la MEDICIÓN. No termina en `-aviso`, así que
+               ningún barrido genérico lo alcanza: lo vacía `viVolAutoSync`, que está en
+               `limpiarCampos` y en `RECALC_MODULOS`. -->
+          <div id="vauto-vol-lat-fuente" style="font-size:10px;color:var(--text2);margin-top:4px;min-height:0;"></div>
+        </div>
       </div>
       <div class="calc-box">
         <div class="calc-row">
@@ -20506,6 +20553,72 @@ function vsfviInterp(idx, sexo) {
   return {txt:'normal', cls:'green'};
 }
 
+/* ══ LOS DOS CAMPOS AUTOMÁTICOS DEL VI (F1, 2026-10-15) ═══════════════════════════════════
+   Decisión de Maicol. `vauto-vsfvi` = VDFVI × (1 − FEVI/100) y `vauto-vol-lat` = VDFVI − VSFVI,
+   los dos de SOLO LECTURA. No votan, no escriben ningún grado, no tocan ningún texto del
+   informe y no viajan: el prefijo `vauto-` con guión MEDIO los saca de `_noEsDelEstudio`, igual
+   que las nueve casillas de la IM, la IAo y la IT.
+
+   ⚠️ SE LEE POR `vPlaus(...).val`, QUE ES `null` FUERA DE BANDA, y eso es la mitad del diseño:
+   `vdfvi [3,500]`, `vsfvi [3,500]` y `fevi [5,90]`. Un VSFVI tipeado en litros (0,06) o una FEVI
+   de 920 no producen un automático «plausible» — el campo dice qué le falta en vez de publicar
+   un número sostenido por un insumo ilegible. Es el mismo criterio que el panel del VI 3D ya
+   usa sobre estos mismos cuatro campos.
+
+   ⚠️ EL VOLUMEN LATIDO PREFIERE EL VSFVI MANUAL Y LO DICE. «Lo cargado gana sobre lo
+   calculado» es la regla que el VI 3D ya tiene escrita; lo que se agrega acá es que el origen
+   se PUBLIQUE, porque con los dos VSFVI a la vista en pantalla una resta muda no deja saber
+   cuál de los dos entró.
+
+   ⚠️ UN VOLUMEN EYECTADO NEGATIVO NO SE PUBLICA. Significa VSFVI > VDFVI, o sea que uno de los
+   dos está mal cargado; en vez de callar el campo —que se lee igual que «falta un dato», el
+   defecto D2-4— se nombra la condición que no se cumple.
+
+   ⚠️ NO HAY UN SEGUNDO NÚMERO QUE MANTENER SINCRONIZADO: el `vol_lat` MANUAL de al lado no se
+   toca, no se espeja y sigue siendo el único que viaja al estudio, al PDF («Vol. lat.») y a la
+   tarjeta previa al PDF. Espejarlo habría cambiado un dato guardado. */
+function viVolAutoSync() {
+  const _vp = (id) => { try { return (typeof vPlaus === 'function') ? vPlaus(id) : null; } catch (e) { return null; } };
+  const _val = (id) => { const p = _vp(id); return (p && p.val !== null && p.val !== undefined) ? p.val : null; };
+  const vdf  = _val('vdfvi');
+  const vsfM = _val('vsfvi');
+  const fevi = _val('fevi');
+
+  /* El VSFVI automático. La FEVI entra en porcentaje, que es la unidad del campo. */
+  let vsfA = null;
+  if (vdf !== null && fevi !== null) {
+    const x = vdf * (1 - fevi / 100);
+    if (isFinite(x) && x >= 0) vsfA = x;
+  }
+  const _pon = (id, txt, falta) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.value = txt || '';
+    el.placeholder = txt ? '' : (falta || '');
+  };
+  const _req = (l) => l.length ? 'requiere ' + l.join(', ') : '';
+  const _f = (cond, nom) => cond ? null : nom;
+  _pon('vauto-vsfvi', vsfA === null ? '' : vsfA.toFixed(0) + ' ml',
+    _req([_f(vdf !== null, 'VDFVI'), _f(fevi !== null, 'FEVI')].filter(Boolean)));
+
+  /* El volumen latido. Usa el MANUAL si está cargado y, si no, el automático. */
+  const vsfUsa = (vsfM !== null) ? vsfM : vsfA;
+  let vl = null, neg = false;
+  if (vdf !== null && vsfUsa !== null) {
+    const x = vdf - vsfUsa;
+    if (isFinite(x) && x >= 0) vl = x; else neg = true;
+  }
+  _pon('vauto-vol-lat', vl === null ? '' : vl.toFixed(0) + ' ml',
+    neg ? 'requiere un VSFVI menor que el VDFVI'
+        : _req([_f(vdf !== null, 'VDFVI'),
+                _f(vsfUsa !== null, 'VSFVI o FEVI')].filter(Boolean)));
+
+  const fu = document.getElementById('vauto-vol-lat-fuente');
+  if (fu) fu.textContent = (vl === null) ? ''
+    : ((vsfM !== null) ? 'con el VSFVI manual' : 'con el VSFVI automático');
+}
+window.viVolAutoSync = viVolAutoSync;
+
 function calcVI() {
   /* Lectura CON banda de plausibilidad (`vPlaus`): un número fuera de lo físicamente posible
      deja de CLASIFICARSE, pero se sigue mostrando. Antes, un SIV de 110 mm —dedazo por 11,0—
@@ -20640,6 +20753,12 @@ function calcVI() {
     else fi = badge('red', 'Severamente reducida (<30%)');
     document.getElementById('fevi-interp').innerHTML = P.fevi.fuera ? badge('yellow','revisar la unidad') : fi;
   } else _viVacio('fevi-interp');
+
+  /* Los dos automaticos del VI. Van ACA y no colgados de cada `oninput` porque los tres
+     insumos —`vdfvi`, `vsfvi` y `fevi`— ya llaman a `calcVI`: colgarse de esta funcion es lo
+     que hace que se repinten mientras el medico tipea sin agregarle un listener a cada campo,
+     que es como uno se queda sin cablear. Ver `viVolAutoSync`. */
+  if (typeof viVolAutoSync === 'function') { try { viVolAutoSync(); } catch (e) {} }
 
   if (typeof calcHemo === 'function') calcHemo();
   /* La FEVI es la PREMISA del HFA-PEFF, no uno de sus insumos: corregirla puede volver el score
@@ -45713,7 +45832,13 @@ function RECALC_MODULOS() {
      `.value`, que no dispara `input`, así que un cartel abierto durante una restauración —o
      el texto del ritmo y del corte— se quedaba con el paciente ANTERIOR. Ninguno de los dos
      puede migrar nada: el espejo no se persiste y el pintor sólo escribe texto. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar'];
+  /* `viVolAutoSync` repinta los DOS campos automaticos del VI (F1, 2026-10-15). Entra aca
+     porque las cinco rutas de restauracion pueblan asignando `.value`, que no dispara `input`,
+     asi que `calcVI` —su unico llamador en vivo— no corre: reabrir un estudio dejaba los dos
+     automaticos con el «requiere …» del formulario vacio al lado de un VDFVI y una FEVI ya
+     poblados. No puede migrar nada: no escribe ningun campo del estudio, los dos nodos que
+     toca son `vauto-` y el tercero un `<div>` de texto. */
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -46425,6 +46550,13 @@ function limpiarCampos(silencioso) {
      donde falta todo. No hay dato del paciente anterior en ese texto —es generico— pero nombra el
      insumo equivocado, que es lo que esta zona ya documenta para `im_eroa_cont`. */
   if (typeof _imAutosSync === 'function') { try { _imAutosSync(); } catch (e) {} }
+  /* Y los DOS automaticos del VI (F1, 2026-10-15), por el MISMO motivo que las cuatro de la
+     IM: el barrido generico les borra el `value` —son `input[type=text]`— pero no el
+     PLACEHOLDER, asi que el formulario nuevo arrancaba diciendo «requiere FEVI» sobre un
+     paciente donde falta todo; y el renglon de origen del volumen latido es un `<div>` que no
+     termina en `-aviso`, asi que ningun barrido lo alcanza y «con el VSFVI manual» del paciente
+     anterior sobrevivia a «Nuevo estudio». */
+  if (typeof viVolAutoSync === 'function') { try { viVolAutoSync(); } catch (e) {} }
   /* Las TRES de la IAo, por el mismo motivo y en el mismo lugar (2026-10-14, D2). */
   if (typeof _iaAutosSync === 'function') { try { _iaAutosSync(); } catch (e) {} }
   /* Y las DOS de la IT. */
