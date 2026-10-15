@@ -399,7 +399,11 @@ window.__P = {
      Se intercepta PptxGenJS y se registran las TABLAS y los TEXTOS que cada slide recibe. Sin
      esto habria que leer el archivo, que es lo que ninguna sonda de esta casa hace. */
   pptLab(regs) {
-    if (typeof labPPTEstadistico !== 'function') return Promise.resolve('SIN labPPTEstadistico');
+    /* ⚠️ labPPTEstadistico ABRE UN MODAL y exige que haya tarjetas tildadas con «☐ PPT»: medir
+       por ahi seria automatizar esa cadena. El generador es _labPPTGenerar(infs, opts), que
+       toma la poblacion directo — y sus diapositivas las decide _labPptGruposActivos(), que se
+       sustituye para que la de valvulopatias exista. */
+    if (typeof _labPPTGenerar !== 'function') return Promise.resolve('SIN _labPPTGenerar');
     if (typeof PptxGenJS === 'undefined') return Promise.resolve('SIN PptxGenJS');
     var infs = regs.map(function(c, i){ return window.__P.reg(c, String(i)) });
     var tablas = [], textos = [];
@@ -423,11 +427,15 @@ window.__P = {
     var oG = window.labGetInformes, oI = window.getInformes;
     window.labGetInformes = function(){ return infs };
     window.getInformes = function(){ return infs };
+    var oGr = window._labPptGruposActivos;
+    window._labPptGruposActivos = function(){ return { valv: true } };
     var err = null;
-    try { var r = labPPTEstadistico(); } catch (e) { err = 'EXC: ' + e.message }
+    try { _labPPTGenerar(infs, { tema: 'dark', presentador: 'sonda', institucion: 'x' }) }
+    catch (e) { err = 'EXC: ' + e.message }
     return new Promise(function(res){
       setTimeout(function(){
         window.PptxGenJS = Orig;
+        window._labPptGruposActivos = oGr;
         window.labGetInformes = oG; window.getInformes = oI;
         /* La tabla de valvulopatias es la que tiene «Valvula» en su encabezado. */
         var valv = tablas.filter(function(t){
@@ -443,7 +451,9 @@ window.__P = {
      el texto deja la fila como un rotulo pelado. Se registran tambien las coordenadas y la fila
      se recompone por su y. Es la trampa que la tanda F documenta. */
   pdfLab(regs) {
-    if (typeof labPDFAuditoria !== 'function') return Promise.resolve('SIN labPDFAuditoria');
+    /* labAnalisisPDF() lee labGetInformes y avisa por toast; el generador es
+       _labAnalisisPDFReal(infs), que toma la poblacion directo. */
+    if (typeof _labAnalisisPDFReal !== 'function') return Promise.resolve('SIN _labAnalisisPDFReal');
     var NS = window.jspdf;
     if (!NS || !NS.jsPDF) return Promise.resolve('SIN jsPDF');
     var infs = regs.map(function(c, i){ return window.__P.reg(c, String(i)) });
@@ -462,7 +472,7 @@ window.__P = {
     window.labGetInformes = function(){ return infs };
     window.getInformes = function(){ return infs };
     var err = null;
-    try { labPDFAuditoria() } catch (e) { err = 'EXC: ' + e.message }
+    try { _labAnalisisPDFReal(infs) } catch (e) { err = 'EXC: ' + e.message }
     return new Promise(function(res){
       setTimeout(function(){
         NS.jsPDF = Orig;

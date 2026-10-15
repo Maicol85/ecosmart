@@ -66552,9 +66552,13 @@ caso('TC-477', 'Tanda G2: el Excel pasa a 438 columnas con el cociente TAPSE/PSA
     let vc = null; try { vc = _labValvCounts(pob); } catch (e) { vc = null; }
     ex.push(['DENOMINADOR: _labValvCounts devuelve sus ocho columnas y su estructura binaria',
       !!vc && vc.bases.length === 8 && !!vc.bin, vc ? (JSON.stringify(vc.bases) + ' bin=' + !!vc.bin) : 'SIN vc']);
-    /* ⚠️ LO QUE PROTEGE AL PPT Y A LA MINI-TABLA DEL PDF ES QUE \`counts\` NO SE MUEVA: los dos
-       leen esos dos campos y NO \`bin\`. Si alguien mete la lectura binaria dentro de \`counts\`,
-       esta condicion se pone roja. */
+    /* ⚠️ ADAPTADO 2026-10-15 (G3): ESTE COMENTARIO DECIA QUE EL PPT Y LA MINI-TABLA DEL PDF
+       LEEN counts Y NO bin, Y DESDE EL G3 YA NO ES CIERTO. Aquella era la decision del G2 —su
+       orden no los autorizaba— y quedo declarada en PENDIENTES -> G2-3; el G3 los alinea con
+       la pantalla, y los tres leen hoy el MISMO dueño, _labValvFila.
+       Lo que la condicion de abajo sigue protegiendo NO cambia: que counts y bases salgan con
+       el TOKEN crudo. Si alguien metiera la lectura binaria DENTRO de counts, el conteo de las
+       otras seis lesiones se moveria y esta condicion se pone roja igual. */
     const iEM = _LAB_VALV_LABELS.indexOf('Esten. Mitral');
     const iET = _LAB_VALV_LABELS.indexOf('Esten. Tricusp.');
     /* ⚠️ CENTINELA SOBRE bin, Y LA PRIMERA VERSION NO LO TENIA: contra HEAD vc.bin es
