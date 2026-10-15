@@ -4153,7 +4153,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                la primera superficie que lo renderice concatenando `innerHTML` —o el primer CSV— lo
                toca sin que nadie se acuerde. La etiqueta legible sale de `VENP_SD_TXT`.
                Sigue sin columna de Excel: los cuatro campos `venp_` no están en `LAB_XLS_MAP`, así
-               que el importador nunca les pregunta y la planilla queda en 436 columnas. -->
+               que el importador nunca les pregunta y la planilla queda en 438 columnas (436 hasta el G2). -->
           <label>S/D pulmonar</label>
           <select id="venp_sd" onchange="calcVenaPulm();calcDiastol()">
             <option value="">—</option>
@@ -6851,7 +6851,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                el estudio porque `guardarInforme` barre `input[id]`/`select[id]` de TODO el documento, y
                «Nuevo estudio» los limpia por los mismos barridos (`input[type=number]`, `select` →
                `selectedIndex = 0`, `input[type=checkbox][id]` → `checked = false`). El Excel se queda
-               en 436 columnas porque sus columnas son una LISTA explícita (`LAB_XLS_COLS`) y ninguno
+               en 438 columnas (436 hasta el G2) porque sus columnas son una LISTA explícita (`LAB_XLS_COLS`) y ninguno
                de los cuatro ids está en ella; y `_labXlsAssertListas` sólo compara los `<select>` cuyo
                id es una CLAVE de `LAB_XLS_LISTAS`, así que los dos desplegables nuevos no la tocan.
                ⚠️ LA OPCIÓN 0 DE LOS DOS DESPLEGABLES ES «—» CON `value=""`, y no es cosmético: es el
@@ -21820,13 +21820,41 @@ window.vdRefVisSync = vdRefVisSync;
    sobreescritura (`cx_tapse`, `cx_psap`). NO lee este dueño a propósito: con esos dos campos
    cargados describe OTRO par de números, así que leer el dueño le borraría la sobreescritura.
    Queda declarado en `docs/PENDIENTES.md`. */
-function vdTapsePsap() {
-  const t = v('tapse'), p = v('psap_calc');
+/* ⚠️ `src` OPCIONAL, Y ES EL PATRON DE `emContFueraBanda(src)` / `emThpValido(src)`: sin el
+   argumento lee el FORMULARIO —que es lo que hacen la fila del Doppler y `calcTEP`— y con un
+   objeto `campos` lee un estudio ARCHIVADO, que es lo que necesitan el Excel del Laboratorio y
+   las asociaciones (G2, 2026-10-15). Un segundo cociente escrito aparte habria dejado la
+   columna del Excel y la fila de la pantalla divergiendo el dia que se afine la guarda — el
+   defecto que este archivo ya pago cuando el cuadro gris y la ventana de la diastolica
+   calculaban por separado.
+   EL PREDICADO NO CAMBIA: `!t || !p` letra por letra en las dos ramas, porque `calcTEP` lee
+   esta funcion desde la tanda G1 y cualquier diferencia de guarda moveria su fila. */
+function vdTapsePsap(src) {
+  let t, p;
+  if (src) {
+    const PFx = (x) => { const n = parseFloat(String(x == null ? '' : x).replace(',', '.')); return isNaN(n) ? null : n; };
+    t = PFx(src['tapse']); p = PFx(src['psap_calc']);
+  } else {
+    t = v('tapse'); p = v('psap_calc');
+  }
   if (!t || !p) return null;
   const x = t / p;
   return isFinite(x) ? x : null;
 }
 window.vdTapsePsap = vdTapsePsap;
+
+/* La PRECISION del cociente tiene un dueño unico y son TRES decimales, no dos: con dos, un
+   0,359 se imprime «0,36» y deja de ser «mal pronostico» si se clasifica sobre lo impreso —el
+   corte de 0,36 se convertiria de hecho en 0,355—. `vdTapsePsapSync` ya redondeaba asi en
+   pantalla y `calcTEP` publica el mismo numero con la misma precision; la columna del Excel y
+   las asociaciones del Laboratorio preguntan aca para no abrir una cuarta copia del redondeo. */
+const VD_TPSP_DEC = 3;
+window.VD_TPSP_DEC = VD_TPSP_DEC;
+function vdTapsePsapRed(src) {
+  const x = vdTapsePsap(src);
+  return x === null ? null : Math.round(x * Math.pow(10, VD_TPSP_DEC)) / Math.pow(10, VD_TPSP_DEC);
+}
+window.vdTapsePsapRed = vdTapsePsapRed;
 
 /* ══ LOS TRES TRAMOS (decisión de Maicol) Y SU RESPALDO ══════════════════════════════════════
    · `< 0,36`  → «mal pronostico en IC con FEVI reducida y preservada». El corte nace de Guazzi
@@ -21861,7 +21889,10 @@ function vdTapsePsapSync() {
   if (!row || !el) return null;
   const x = vdTapsePsap();
   if (x === null) { row.style.display = 'none'; el.textContent = '—'; return null; }
-  const r = Math.round(x * 1000) / 1000;
+  /* `vdTapsePsapRed` y no un `Math.round(x * 1000)` repetido: desde el G2 la columna del Excel y
+     las asociaciones del Laboratorio publican este MISMO numero, y tres copias del redondeo son
+     tres numeros que se separan el dia que alguien toque uno. El valor impreso no cambia. */
+  const r = vdTapsePsapRed();
   const t = (r < VD_TPSP_IC_MAX)
     ? { cls: 'red',    txt: 'mal pronóstico en IC con FEVI reducida y preservada' }
     : ((r < VD_TPSP_HTP_MAX)
@@ -94176,6 +94207,22 @@ function _labExcelRow(inf) {
        ⚠️ NO HAY COLUMNA GEMELA PARA EL VI, y es la decisión de la orden: una sola columna nueva.
        El VI nunca tuvo una. Queda declarado en `docs/PENDIENTES.md`. */
     'DisfSist_VD': _labDisfSistVent(inf).vd ? 1 : 0,
+    /* ⚠️ COLUMNA NUEVA (G2, 2026-10-15), AUTORIZADA: el Excel pasa de 436 a 438 con esta y con
+       «Diámetro arteria pulmonar (mm)» de la pulmonar. El numero lo da `vdTapsePsapRed`, el
+       dueño UNICO del cociente desde el G1, con sus TRES decimales — no se reescribe la division
+       aca: la fila del Doppler tricuspideo, `calcTEP` y esta columna leen la misma funcion, y la
+       rama `src` existe justamente porque el exportador no tiene formulario que leer.
+       Es DERIVADA y por eso NO entra en `LAB_XLS_MAP`, igual que `FAC VD (%)`, `DD_I`,
+       `Geom_Normal` y `DisfSist_VD`: el importador la ignora y EcoSmart la rehace desde el TAPSE
+       y la PSAP, que sí viajan. El criterio es el de `PSAP (mmHg)`, que la orden nombra: aquella
+       SÍ está en el mapa porque tiene campo (`psap_calc`) y se aparta por
+       `LAB_XLS_SOLO_EXPORT`; este cociente NO tiene campo, así que no hay destino que declarar.
+       VA EN EL BLOQUE 5 porque está declarada en `LAB_XLS_BLOQUES`, que es lo que decide la
+       posición: `_labOrdenarCols` manda al final lo que el mapa no conoce y después reagrupa por
+       bloque, así que sin esa declaración habría caído al bloque «18 · OTRAS COLUMNAS».
+       VACIA —y no 0— cuando falta el TAPSE o la PSAP: `rnd` devuelve cadena vacía con null, y un
+       cero se leería como «lo medimos y dio cero». */
+    'TAPSE/PSAP (mm/mmHg)': rnd(vdTapsePsapRed(c), VD_TPSP_DEC),
     'VCI diám (mm)': rnd(num('vci_diam'),0), 'Colapso VCI': c.vci_col || '', 'PmAD (mmHg)': rnd(num('pmad'),0),
     'VEXUS suprahepática': c.vexus_sh || '', 'VEXUS porta': c.vexus_pv || '', 'VEXUS intrarrenal': c.vexus_ir || '',
     /* DVI y AT de prótesis, Fase 1 (2026-09-27). Van al Excel y al PDF porque son MEDICIONES que
@@ -94223,7 +94270,7 @@ function _labExcelRow(inf) {
     'V. max Ao (m/s)': rnd(num('vmax_ao','va_vmax'),2), 'G. máx Ao (mmHg)': rnd(num('gmax_calc','va_gmax'),0), 'G. medio Ao (mmHg)': rnd(num('gmedio_ao','va_gmed'),0),
     'IAo grado': gIA,
     'IAo_I (Leve)': bin(gIA,'leve'), 'IAo_II (Moderada)': bin(gIA,'moderada'), 'IAo_III (Severa)': bin(gIA,'severa'),
-    'VC IAo (mm)': rnd(num('ia_vc','vc_aortica'),1), 'PHT IAo (ms)': rnd(num('ia_pht'),0),
+    'VC IAo (mm)': rnd(num('ia_vc','vc_aortica'),1), 'THP IAo (ms)': rnd(num('ia_pht'),0),
     'DVI tricuspídeo': rnd(valvProtDato('vt_morf','vt_dvi',c),2),
     'Morfología tricúspide': c.vt_morf || '', 'IT grado': gIT,
     'IT_I (Leve)': bin(gIT,'leve'), 'IT_II (Moderada)': bin(gIT,'moderada'), 'IT_III (Severa)': bin(gIT,'severa'),
@@ -94246,6 +94293,16 @@ function _labExcelRow(inf) {
     'Morfología pulmonar': c.vp_morf || '',
     'EP grado': c.ep_grado || '', 'EP nivel': c.ep_nivel || '', 'EP etiología': c.ep_etiologia || '',
     'IP grado': c.ip_grado || '', 'IP etiología': c.ip_etiologia || '',
+    /* ⚠️ SEGUNDA COLUMNA NUEVA (G2, 2026-10-15), AUTORIZADA, y la contracara de la del cociente:
+       ésta SÍ es un campo de ENTRADA —`ip_ap_diam`, el diametro de la arteria pulmonar que nacio
+       en el G1— así que entra en `LAB_XLS_MAP` y SÍ se reimporta. Sin eso un backup a Excel y su
+       reimportación perdían el dato en silencio, que es el huérfano declarado como G1-10.
+       Va PEGADA a las dos filas de la insuficiencia pulmonar porque es su medición, y en el
+       BLOQUE 8 por su nombre declarado — un prefijo corto como «Diám» se habría llevado por
+       delante «Diám. basal VD», que es el defecto que «Morfología » ya pagó con la orejuela.
+       NO VOTA y no gradúa nada: su `oninput` llama sólo a `ipApDiamSync`. La banda `[5, 80]` mm
+       es de plausibilidad y vive en `IP_AP_BANDA`; acá no se repite ningún corte. */
+    'Diámetro arteria pulmonar (mm)': rnd(num('ip_ap_diam'),1),
     'Grad VD-AD (mmHg)': rnd(gradVDAD,0), 'PSAP (mmHg)': rnd(psapV,0),
     /* Rangos, no grados, y con la constante: era el ÚNICO lugar que seguía diciendo «Leve /
        Moderada / Severa» sobre una PSAP estimada, y el que más lejos viaja —el nombre de la
@@ -94319,7 +94376,7 @@ function _labExcelRow(inf) {
     'TAVI AVA (cm²)': rnd(num('ete_tavi_ava'),2), 'TAVI AVAi (cm²/m²)': rnd(num('ete_tavi_avai'),2),
     'TAVI RPV extensión (%)': rnd(num('ete_tavi_ext_circ'),0),
     'TAVI RPV vena contracta (cm)': rnd(num('ete_tavi_vc_ancho'),2),
-    'TAVI RPV PHT (ms)': rnd(num('ete_tavi_pht'),0),
+    'TAVI RPV THP (ms)': rnd(num('ete_tavi_pht'),0),   /* renombre G2; alias de entrada en LAB_XLS_MAP */
     'TAVI jet (horas)': String(c.ete_tavi_jet_horas || ''),
     /* Los dos checkboxes de «Integrar al informe». Sin estas columnas el ida y vuelta
        recuperaba las mediciones pero NO el permiso para imprimirlas: el estudio reimportado
@@ -95098,9 +95155,14 @@ const LAB_XLS_BLOQUES = [
       'Vol AI (LAVI) (ml/m²)'] },
   { n:'4 · VENTRÍCULO IZQUIERDO', cols:['SIV (mm)','DDVI (mm)','DSVI (mm)','PP (mm)','FEVI Simpson (%)','GLS (%)',
       'Masa VI (g/m²)','RWT','VDFVI idx (ml/m²)','FA (%)'], pre:['Geometría VI','Geom_','Trastornos sectoriales','TS_'] },
+  /* «TAPSE/PSAP (mm/mmHg)» va NOMBRADA (G2, 2026-10-15) y no por prefijo: el bloque 8 se lleva
+     por delante todo lo que empiece con «PSAP», y declararla acá es lo que la mantiene al lado
+     del TAPSE en vez de caer al bloque «18 · OTRAS COLUMNAS» — `_labOrdenarCols` manda al final
+     lo que el mapa no conoce y recién después reagrupa por bloque. */
   { n:'5 · VENTRÍCULO DERECHO', cols:['TAPSE (mm)',"S' (cm/s)",'TAP (ms)','Diám. basal VD (mm)',
       'Diám. medio VD (mm)','Long. VD (mm)',
-      'Área VD telediast. (cm²)','Área VD telesist. (cm²)','FAC VD (%)','FEVD (%)','DisfSist_VD'] },
+      'Área VD telediast. (cm²)','Área VD telesist. (cm²)','FAC VD (%)','FEVD (%)','DisfSist_VD',
+      'TAPSE/PSAP (mm/mmHg)'] },
   { n:'6 · AURÍCULA DERECHA / VCI', cols:['Área AD (cm²)','VCI diám (mm)','Colapso VCI','PmAD (mmHg)'] },
   { n:'7 · DOPPLER Y DIASTÓLICA', cols:['Onda E (cm/s)','Onda A (cm/s)',"e' septal (cm/s)","e' lateral (cm/s)",
       'E/A',"e' promedio (cm/s)","E/e'",'Grado disfunción diastólica'], pre:['DD_'] },
@@ -95115,11 +95177,19 @@ const LAB_XLS_BLOQUES = [
          bloque 8 ya se lleva por delante todo lo que empiece con «AVA» o «AVm», y agregar un
          prefijo corto más es cómo se coló «Morfología » sobre la orejuela. */
       'VLI (ml/m²)',
-      'G. medio Ao','PHT IAo','EROA','Vol R IM','Wilkins','Score Wilkins','PSAP','PAP media','Grad VD-AD','Pericardio',
+      /* «THP IAo» desde el G2 (2026-10-15): el encabezado se renombró y este prefijo tiene que
+         seguirlo, porque si no la columna cae al bloque «18 · OTRAS COLUMNAS». Lo caza
+         `_labXlsAssertBloques`, que es para lo que está. */
+      'G. medio Ao','THP IAo','EROA','Vol R IM','Wilkins','Score Wilkins','PSAP','PAP media','Grad VD-AD','Pericardio',
       /* Pulmonar: nombrados y no por prefijo corto. «EP » y «IP » son dos letras y este bloque
          ya se lleva por delante todo lo que empiece con «IM» o «IT» — agregar un prefijo de dos
          caracteres es exactamente cómo «Morfología » se tragó «Morfología orejuela». */
       'Morfología pulmonar','EP grado','EP nivel','EP etiología','IP grado','IP etiología',
+      /* «Diámetro arteria pulmonar» con el nombre COMPLETO y no «Diám»: ese prefijo corto se
+         llevaría «Diám. basal VD», «Diám. medio VD» y «Diám. AP AI», que son de otros bloques y
+         están ANTES en el array — o sea que las tres caerían acá. Es exactamente cómo
+         «Morfología » se tragó «Morfología orejuela». */
+      'Diámetro arteria pulmonar',
       'ET grad medio','ET THP','ET VTI diast','ET área'] },
   { n:'9 · INFORME', cols:['Informe (texto completo)','EN SUMA (texto completo)'] },
 
@@ -95696,7 +95766,11 @@ const LAB_XLS_MAP = [
   ['G. medio Ao (mmHg)',     'gmedio_ao',      'num'],
   ['IAo grado',              'ia_grado',       'vocab'],
   ['VC IAo (mm)',            'ia_vc',          'num'],
-  ['PHT IAo (ms)',           'ia_pht',         'num'],
+  /* ⚠️ RENOMBRE «PHT» -> «THP» (G2, 2026-10-15), CON ALIAS DE ENTRADA. El cuarto elemento es
+     exactamente el mecanismo que existe para esto: el importador matchea por NOMBRE de
+     encabezado, así que sin el alias todo Excel ya exportado perdía este dato en silencio al
+     reimportarse. El numero de columnas NO cambia por el renombre. Era el pendiente D2-3. */
+  ['THP IAo (ms)',           'ia_pht',         'num', ['PHT IAo (ms)']],
 
   // 12 · Válvula tricúspide y presiones pulmonares
   ['Morfología tricúspide',  'vt_morf',        'opcion'],
@@ -95710,6 +95784,11 @@ const LAB_XLS_MAP = [
   ['EP etiología',           'ep_etiologia',   'opcion'],
   ['IP grado',               'ip_grado',       'opcion'],
   ['IP etiología',           'ip_etiologia',   'opcion'],
+  /* ⚠️ COLUMNA NUEVA (G2, 2026-10-15). Es un campo de ENTRADA, así que entra en el mapa y SÍ se
+     reimporta — a diferencia de «TAPSE/PSAP (mm/mmHg)», que es derivada y no tiene campo. Va
+     pegada a las dos de la insuficiencia pulmonar porque es su medición, y el ORDEN de este
+     array es lo que decide el orden de la columna en el export y en la plantilla. */
+  ['Diámetro arteria pulmonar (mm)', 'ip_ap_diam', 'num'],
   ['IT grado',               'it_grado',       'vocab'],
   ['VC IT (mm)',             'it_vc',          'num'],
   /* EL GRADO faltaba mientras el THP, el VTI y el área SÍ viajaban: la planilla traía los tres
@@ -95753,7 +95832,7 @@ const LAB_XLS_MAP = [
   ['TAVI AVAi (cm²/m²)',     'ete_tavi_avai',      'num'],
   ['TAVI RPV extensión (%)', 'ete_tavi_ext_circ',  'num'],
   ['TAVI RPV vena contracta (cm)','ete_tavi_vc_ancho','num'],
-  ['TAVI RPV PHT (ms)',      'ete_tavi_pht',       'num'],
+  ['TAVI RPV THP (ms)',      'ete_tavi_pht',       'num', ['TAVI RPV PHT (ms)']],   /* renombre G2 con alias */
   ['TAVI jet (horas)',       'ete_tavi_jet_horas', 'horas'],
 
   /* 15b · Ductus y coartación. Van en el mapa por la misma razón que CIA/CIV: sin columnas,
@@ -97175,7 +97254,7 @@ function labPlantillaXLSX(vacia, sel) {
     'EM grado': 'sin', 'AVm (cm²)': 4.2,
     'Morfología aórtica': 'Trivalva normal', 'EA grado': 'sin',
     'V. max Ao (m/s)': 1.3, 'G. máx Ao (mmHg)': 7, 'G. medio Ao (mmHg)': 4,
-    'IAo grado': 0, 'VC IAo (mm)': '', 'PHT IAo (ms)': '',
+    'IAo grado': 0, 'VC IAo (mm)': '', 'THP IAo (ms)': '',
     'Morfología tricúspide': 'Normal', 'IT grado': 1, 'VC IT (mm)': 2,
     'PSAP (mmHg)': 28, 'PAP media (mmHg)': 16, 'Ao sinusal (mm)': 34, 'Ao sinotubular (mm)': 29, 'Ao tubular (mm)': 32,
     'Pericardio': 'Normal, sin derrame',

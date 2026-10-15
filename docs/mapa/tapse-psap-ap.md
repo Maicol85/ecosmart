@@ -98,7 +98,7 @@ pastilla, cuadro, informe y EN SUMA salen **idénticos** con y sin el diámetro.
 | Lectura única | **`ipApDiamVal()`**, para que el prompt de HTP lo conecte sin copias |
 | Banda | **`IP_AP_BANDA = [5, 80]` mm** — plausibilidad, **no** severidad |
 | Marca | `ip_ap_diam-marca`, con `ipApDiamSync` en **dos columnas** (`RECALC_MODULOS` y `limpiarCampos`) |
-| Excel | **NO** tiene columna: 436, y cero encabezados que nombren la arteria pulmonar. Va en el G2 |
+| Excel | **SÍ, desde el G2 (2026-10-15)**: «Diámetro arteria pulmonar (mm)», bloque 8, pegada a «IP etiología». Es campo de ENTRADA, así que entra en `LAB_XLS_MAP` y **se reimporta**. En el G1 no tenía ninguna (436) |
 | Estudio guardado | **SÍ** viaja: su id va con guión BAJO y `_noEsDelEstudio` no lo excluye |
 
 La banda: el piso en 5 caza el diámetro tipeado en **centímetros** (2,5 por 25) y el techo en 80
