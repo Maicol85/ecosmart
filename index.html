@@ -5848,7 +5848,7 @@ window.cerrarSesionReal = cerrarSesionReal;
             <div>
         <div class="fg"><label>Vena contracta (mm)</label><input type="number" id="ia_vc" placeholder="mm" oninput="calcIA_ESC()"></div>
         <div class="fg"><label>Diám jet IAo en TSVI (mm)</label><input type="number" id="ia_jet_diam" placeholder="mm" oninput="calcIA_ESC()"></div>
-        <div class="fg"><label>PHT (ms)</label><input type="number" id="ia_pht" placeholder="ms" oninput="calcIA_ESC()"></div>
+        <div class="fg"><label>THP (ms)</label><input type="number" id="ia_pht" placeholder="ms" oninput="calcIA_ESC()"></div>
         <div class="fg"><label>Vmax telediast. Ao desc. (cm/s)</label><input type="number" id="ia_vmax_td" placeholder="cm/s" oninput="calcIA_ESC()"></div>
             </div>
             <div>
@@ -5889,7 +5889,7 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="calc-row"><span class="calc-lbl">EROA — PISA (mm²)</span><span class="calc-val" id="ia-eroa">—</span><span class="calc-grado" data-grado-de="ia-eroa"></span></div>
         <div class="calc-row"><span class="calc-lbl">Vol regurgitante (ml)</span><span class="calc-val" id="ia-volr">—</span><span class="calc-grado" data-grado-de="ia-volr"></span></div>
         <div class="calc-row"><span class="calc-lbl">Fracción regurgitante (%)</span><span class="calc-val" id="ia-freg">—</span><span class="calc-grado" data-grado-de="ia-freg"></span></div>
-        <div class="calc-row"><span class="calc-lbl">PHT — interpretación</span><span id="ia-pht-interp">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">THP — interpretación</span><span id="ia-pht-interp">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Vmax telediastólica</span><span id="ia-vtd-interp">—</span></div>
         <div class="calc-row"><span class="calc-lbl">VTI Ao desc. — inversión diastólica</span><span id="ia-vti-desc-interp">—</span></div>
         <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">⚖️ Severidad IAo integrada (ESC/EACTS 2025)</span><span id="ia-sev">—</span></div>
@@ -6671,7 +6671,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                «Ancho» lleva un rango adentro («>50–65 % del TSVD») y atar la lógica a ese texto haría
                que corregir una coma del rótulo cambiara el grado. -->
           <div class="grid-2" style="margin-bottom:8px;">
-            <div class="fg"><label>PHT de la IP (ms)</label>
+            <div class="fg"><label>THP de la IP (ms)</label>
               <input type="number" id="ip_pht" placeholder="ms" oninput="calcIP()">
             </div>
             <div class="fg"><label>Ancho del jet</label>
@@ -6716,7 +6716,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                describen los signos; ninguna de las dos publica una escala que los integre en un
                número. La línea lo dice en voz alta para que el cuadro no se lea como si la tuviera. -->
           <div class="calc-box">
-            <div class="calc-row"><span class="calc-lbl">PHT de la IP</span><span class="calc-val" id="ip-ref-pht">&mdash;</span></div>
+            <div class="calc-row"><span class="calc-lbl">THP de la IP</span><span class="calc-val" id="ip-ref-pht">&mdash;</span></div>
             <div class="calc-row"><span class="calc-lbl">Ancho del jet</span><span class="calc-val" id="ip-ref-ancho">&mdash;</span></div>
             <div class="calc-row"><span class="calc-lbl">Se&ntilde;al CW</span><span class="calc-val" id="ip-ref-senal">&mdash;</span></div>
             <div class="calc-row"><span class="calc-lbl">Reversi&oacute;n en ramas</span><span class="calc-val" id="ip-ref-rev">&mdash;</span></div>
@@ -12383,7 +12383,7 @@ z
       <div class="grid-4">
         <div class="fg"><label>Ancho vena contracta (cm)</label><input type="number" id="ete_tavi_vc_ancho" step="0.01" placeholder="cm" oninput="eteTaviSync()"></div>
         <div class="fg"><label>Área vena contracta (cm²)</label><input type="number" id="ete_tavi_vc_area" step="0.01" placeholder="cm² (2D/3D)" oninput="eteTaviSync()"></div>
-        <div class="fg"><label>PHT (ms)</label><input type="number" id="ete_tavi_pht" step="1" placeholder="ms" oninput="eteTaviSync()"></div>
+        <div class="fg"><label>THP (ms)</label><input type="number" id="ete_tavi_pht" step="1" placeholder="ms" oninput="eteTaviSync()"></div>
         <div class="fg"><label>Flujo reverso diastólico Ao desc.</label>
           <select id="ete_tavi_flujo_rev" onchange="eteTaviSync()">
             <option value="">—</option><option value="ausente">Ausente</option>
@@ -15789,7 +15789,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
             <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Parámetro</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Leve</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Moderada</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Severa</th></tr>
             <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">Vena contracta (mm)</td><td style="padding:5px 8px;text-align:center;">&lt;3</td><td style="padding:5px 8px;text-align:center;">3–6</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">&gt;6</td></tr>
             <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">Ratio jet/TSVI (%)</td><td style="padding:5px 8px;text-align:center;">&lt;25</td><td style="padding:5px 8px;text-align:center;">25–64</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">≥65</td></tr>
-            <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">PHT (ms)</td><td style="padding:5px 8px;text-align:center;">&gt;500</td><td style="padding:5px 8px;text-align:center;">200–500</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">&lt;200</td></tr>
+            <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">THP (ms)</td><td style="padding:5px 8px;text-align:center;">&gt;500</td><td style="padding:5px 8px;text-align:center;">200–500</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">&lt;200</td></tr>
             <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">EROA (mm²)</td><td style="padding:5px 8px;text-align:center;">&lt;10</td><td style="padding:5px 8px;text-align:center;">10–29</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">≥30</td></tr>
             <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">Vol-R (ml)</td><td style="padding:5px 8px;text-align:center;">&lt;30</td><td style="padding:5px 8px;text-align:center;">30–59</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">≥60</td></tr>
             <!-- Las dos primeras celdas van con «—» Y CON EL MOTIVO AL PIE, no en blanco: una celda
@@ -36214,7 +36214,7 @@ function calcIA_ESC() {
   const _iaFuera = [
     _aoFuera(_pVc,  'VC',               'mm'),
     _aoFuera(_pJet, 'Ø jet en TSVI',    'mm'),
-    _aoFuera(_pPht, 'PHT',              'ms'),
+    _aoFuera(_pPht, 'THP',              'ms'),
     _aoFuera(_pVtd, 'Vmax telediast.',  'cm/s'),
     _aoFuera(_pVtiD,'VTI Ao desc.',     'cm'),
     _aoFuera(_pPr,  'radio PISA',       'mm'),
@@ -36259,10 +36259,10 @@ function calcIA_ESC() {
        unidad equivocada afirma un hallazgo que nadie midió, y el verde es la dirección peligrosa
        —el corte de leve es `>500`, justo donde cae un PHT inflado—. Mismo criterio que el gris
        que la Vmax telediastólica ya usa cuando la guía no gradúa. */
-    if (_pPht.fuera) _iaSetH('ia-pht-interp', badge('gray','PHT ' + _pPht.crudo + ' ms fuera de rango medible (' + _pPht.b[0] + '–' + _pPht.b[1] + ' ms) — no gradúa; verificar la unidad'));
-    else if (pht > 500) { scores.leve++; params.push({p:'PHT',sev:'leve'}); _iaSetH('ia-pht-interp', badge('green','Leve (>500ms)')); }
-    else if (pht >= 200) { scores.moderada++; params.push({p:'PHT',sev:'moderada'}); _iaSetH('ia-pht-interp', badge('yellow','Moderada (200-500ms)')); }
-    else { scores.severa++; params.push({p:'PHT',sev:'severa'}); _iaSetH('ia-pht-interp', badge('red','Severa (<200ms)')); }
+    if (_pPht.fuera) _iaSetH('ia-pht-interp', badge('gray','THP ' + _pPht.crudo + ' ms fuera de rango medible (' + _pPht.b[0] + '–' + _pPht.b[1] + ' ms) — no gradúa; verificar la unidad'));
+    else if (pht > 500) { scores.leve++; params.push({p:'THP',sev:'leve'}); _iaSetH('ia-pht-interp', badge('green','Leve (>500ms)')); }
+    else if (pht >= 200) { scores.moderada++; params.push({p:'THP',sev:'moderada'}); _iaSetH('ia-pht-interp', badge('yellow','Moderada (200-500ms)')); }
+    else { scores.severa++; params.push({p:'THP',sev:'severa'}); _iaSetH('ia-pht-interp', badge('red','Severa (<200ms)')); }
   } else { _iaSetH('ia-pht-interp', '—'); }
 
   /* ⚠️ ESTE PARÁMETRO VOTA SÓLO SEVERA, Y ÉSA ES LA FORMA DE LA FUENTE, no una abstención
@@ -37669,7 +37669,7 @@ function ipSignos() {
   const txt = (id) => { const e = document.getElementById(id); return e ? String(e.value || '').trim() : ''; };
   const out = [];
   const pht = v('ip_pht');
-  if (pht !== null) out.push({ clave:'pht', rotulo:'PHT <' + IP_PHT_SEVERA + ' ms',
+  if (pht !== null) out.push({ clave:'pht', rotulo:'THP <' + IP_PHT_SEVERA + ' ms',
     valor: pht, grado: (pht < IP_PHT_SEVERA) ? 'Severa' : null });
   const an = txt('ip_ancho');
   if (an) out.push({ clave:'ancho', rotulo:'ancho del jet', valor: an, grado: IP_ANCHO_GRADO[an] || null });
@@ -43881,7 +43881,7 @@ function generarInforme(opts) {
            porque `taviRpvNarrativa` sólo devuelve `negativa` con `eteTaviRPV()` en null. */
         const _nar = (typeof taviRpvNarrativa==='function') ? taviRpvNarrativa() : null;
         if(_nar) p.push(_nar.txt);
-        if(f1(pht)) p.push('PHT '+f1(pht)+' ms');
+        if(f1(pht)) p.push('THP '+f1(pht)+' ms');
         if(flujo) p.push('Flujo reverso diastólico en aorta descendente '+(TAVI_TXT.flujo[flujo]||flujo));
         etePars.push(p.join('. ')+'.');
         /* La nota del médico va en su propio párrafo y al final, debajo de los hallazgos, que es
@@ -50555,7 +50555,7 @@ function generarPDFReal(_aj) {
       {lbl:'G. medio',      ref:'(<20 / 20–40 / ≥' + EA_CRIT.gmed + ') mmHg', val:eaReal?vPdf('gmedio_ao',' mmHg'):null},
       {lbl:'IAo',           ref:'', val:iaG?GT[iaG]:null},
       {lbl:'VC IAo',        ref:'(<3 / 3–6 / >6) mm', val:vPdf('ia_vc',' mm')},
-      {lbl:'PHT',           ref:'(>500 / 200–500 / <200) ms', val:vPdf('ia_pht',' ms')},
+      {lbl:'THP',           ref:'(>500 / 200–500 / <200) ms', val:vPdf('ia_pht',' ms')},
       /* El DVI aórtico NO tiene fila propia acá: ya se publica desde el cálculo único de la
          continuidad, y una fila tipeada a mano al lado sería el segundo valor. */
       {lbl:'AT',            ref:'', val:_protPdf('va_morf','va_at',' ms',0)},
@@ -64452,7 +64452,7 @@ function eteTaviRPV(){
   /* El área de vena contracta también gradúa: es la medida 3D recomendada, y quien la mide
      en vez del ancho se quedaba sin severidad y sin línea de RPV en el informe. */
   if(vcA) (vcA>=0.30?sev:(vcA>=0.10?mod:triv)).push('área de vena contracta '+vcA+' cm²');
-  if(pht!=null) (pht<200?sev:(pht<=500?mod:triv)).push('PHT '+pht+' ms');
+  if(pht!=null) (pht<200?sev:(pht<=500?mod:triv)).push('THP '+pht+' ms');
   if(holoSevero) sev.push('flujo holodiastólico con velocidad tele-diastólica '+velT+' cm/s');
   if(sev.length) return {sev:'Severa',   cls:'red',    motivo:sev.join(' · ')};
   if(mod.length) return {sev:'Moderada', cls:'orange', motivo:mod.join(' · ')};
@@ -88379,10 +88379,10 @@ const _DOP_ROT = {
   'gen.vel':'Velocidad', 'gen.grad':'Gradiente', 'gen.tiempo':'Tiempo', 'gen.fc':'FC',
   'gen.vti':'VTI',
   'ao.vmax':'Vmax VAo', 'ao.gradMedio':'Grad Medio', 'ao.vtiAo':'VTI VAo',
-  'ao.vtiTsvi':'VTI TSVI', 'ao.diam':'Diam TSVI', 'ao.pht':'PHT IAo',
+  'ao.vtiTsvi':'VTI TSVI', 'ao.diam':'Diam TSVI', 'ao.pht':'THP IAo',
   'mit.ondaE':'Onda E', 'mit.ondaA':'Onda A', 'mit.ePrimaSept':"e' septal",
   'mit.ePrimaLat':"e' lateral", 'mit.vmaxIm':'Vmax IM', 'mit.vtiVm':'VTI VM',
-  'mit.vtiIm':'VTI IM', 'mit.gradMedioVm':'Grad Medio VM', 'mit.pht':'PHT VM',
+  'mit.vtiIm':'VTI IM', 'mit.gradMedioVm':'Grad Medio VM', 'mit.pht':'THP VM',
   'tri.vmaxIt':'Vmax IT', 'tri.vmaxEt':'Vmax ET',
   'pul.vmaxIp':'Vmax IP', 'pul.vmaxEp':'Vmax EP', 'pul.tap':'TAP', 'pul.vp':'VP',
   'pul.diamTsvd':'Diam TSVD', 'pul.vtiPul':'VTI Pulmonar (TSVD)'
@@ -88411,14 +88411,14 @@ const _DOP_DISC = {
     { txt:'Gradientes por Bernoulli simplificada.', si:['Gradiente'] }
   ],
   ao: [
-    { txt:'PHT para severidad de IAo: orientativo. Requiere correlación clínica. No usar como único criterio. (ASE/EACVI 2017)',
+    { txt:'THP para severidad de IAo: orientativo. Requiere correlación clínica. No usar como único criterio. (ASE/EACVI 2017)',
       si:['Severidad IAo'] },
     { txt:'AVA por ecuación de continuidad: requiere TSVI correctamente medido.',
       si:['AVA', 'AVAi'] }
   ],
   mit: [
-    { txt:'PHT puede subestimar AVM en IAo severa o post-valvuloplastia. En esos casos preferir AVM por continuidad. (ASE/EACVI 2021)',
-      si:['AVM por PHT'] },
+    { txt:'THP puede subestimar AVM en IAo severa o post-valvuloplastia. En esos casos preferir AVM por continuidad. (ASE/EACVI 2021)',
+      si:['AVM por THP'] },
     { txt:'AVM por continuidad: usa el VTI del TSVI y el diámetro del TSVI cargados en el acordeón Aórtica.',
       si:['AVM por continuidad'] }
   ],
@@ -88547,7 +88547,7 @@ function _dopFilas(modo) {
     L('Grad Medio', n(E.ao.gradMedio, 1), 'mmHg', 'ao.gradMedio', false);
     /* El PHT y su severidad quedan a la IZQUIERDA: son el par de la insuficiencia aórtica, que es
        la lectura de gravedad de esta válvula — la misma familia que la Vmax y los gradientes. */
-    L('PHT IAo',    n(E.ao.pht, 0),       'ms',   'ao.pht',    true);
+    L('THP IAo',    n(E.ao.pht, 0),       'ms',   'ao.pht',    true);
     if (D.sev) L('Severidad IAo', D.sev.txt + ' (orientativo)', '', null, false, ['ao.pht']);
     R('Diam TSVI',  n(E.ao.diam, 1),      'mm',   'ao.diam',   false);
     R('VTI TSVI',   n(E.ao.vtiTsvi, 1),   'cm',   'ao.vtiTsvi', true);
@@ -88573,8 +88573,8 @@ function _dopFilas(modo) {
     if (D.epromCual === 'prom') L("e' promedio", n(D.eprom, 1), 'cm/s', null, false, ['mit.ePrimaSept','mit.ePrimaLat']);
     L('VTI VM',     n(M.vtiVm, 1),        'cm',   'mit.vtiVm', true);
     L('Grad Medio VM', n(M.gradMedioVm, 1), 'mmHg', 'mit.gradMedioVm', false);
-    L('PHT VM',     n(M.pht, 0),          'ms',   'mit.pht',   true);
-    if (D.avmPht != null)  L('AVM por PHT',  n(D.avmPht, 2),  'cm²', null, false, ['mit.pht']);
+    L('THP VM',     n(M.pht, 0),          'ms',   'mit.pht',   true);
+    if (D.avmPht != null)  L('AVM por THP',  n(D.avmPht, 2),  'cm²', null, false, ['mit.pht']);
     if (D.avmCont != null) L('AVM por continuidad', n(D.avmCont, 2), 'cm²', null, false, ['ao.diam','ao.vtiTsvi','mit.vtiVm']);
     /* E/A y E/e' APARECEN SOLOS cuando hay con qué, y NO SE GRADÚAN: esta app borró a propósito
        la graduación del SGL porque convivían tres escalas, y una banda inventada acá sería la
@@ -96151,7 +96151,7 @@ function labPlantillaXLSX(vacia, sel) {
     ['PmAD, AVm, G. máx Ao, PSAP y PAP media salen de otras mediciones. Se exportan para'],
     ['el análisis, pero al importar se ignoran y se vuelven a calcular: escribirlos dejaba'],
     ['un número que se veía un instante y desaparecía al guardar. Para cambiarlos, corregí'],
-    ['las mediciones que los alimentan (VCI y colapso, PHT mitral, V. max Ao, V. max IT).'],
+    ['las mediciones que los alimentan (VCI y colapso, THP mitral, V. max Ao, V. max IT).'],
     ['Lo mismo con MCH TVNS en Holter, TdF taquicardia ventricular, MCA TV eje superior,'],
     ['MCA TV eje inferior/indet. y MCA >500 EV/24h: se derivan del bloque de arritmia ventricular.'],
     ['Para cambiarlos, corregí TV documentada, TV tipo, TV morfología y eje y TV extrasístoles 24h.'],
@@ -97945,7 +97945,7 @@ const CHM_MAPA = {
      normalizador de legado, para que las cuatro puertas no puedan desincronizarse. */
   'AR Vmax':            { campo:'ia_vmax_cw', etiq:'Vmax IAo (CW)',
                           ucum:{ 'cm/s':1/CMS_POR_MS, 'm/s':1 } },
-  'AR PHT':             { campo:'ia_pht',     etiq:'PHT de la IAo', ucum:{ 'ms':1 } },
+  'AR PHT':             { campo:'ia_pht',     etiq:'THP de la IAo', ucum:{ 'ms':1 } },
   // ── Doppler tricuspídeo ──
   'TR Vmax':            { campo:'vmax_it' },
   'TV E Velocity':      { campo:'dt_onda_e', etiq:'Onda E tricuspídea', ucum:{ 'cm/s':1, 'm/s':100 } },

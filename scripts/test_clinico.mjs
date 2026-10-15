@@ -49355,7 +49355,9 @@ caso('TC-354', 'IAo: los ONCE campos con banda, dirigido por tabla — por debaj
   const TABLA = [
     ['ia_vc','VC',1,20,{},{}],
     ['ia_jet_diam','Ø jet en TSVI',1,45,{diam_tsvi:'20'},{}],
-    ['ia_pht','PHT',50,1500,{},{}],
+    /* ADAPTADO 2026-10-14 (D2): el rotulo de este campo paso de «PHT» a «THP» en toda la app.
+       El par de banda (50, 1500) y lo que la condicion mide no cambian. */
+    ['ia_pht','THP',50,1500,{},{}],
     /* ⚠️ EXCEPCION DECLARADA — el PISO de ia_vmax_td esta EN banda y NO vota, y no es un defecto:
        el unico corte que la ESC/EACTS 2025 publica para este parametro es el de severa (>= 20
        cm/s) y por debajo NO gradua. O sea «en banda» y «vota» son dos cosas distintas solo aca.

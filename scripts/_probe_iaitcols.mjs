@@ -788,6 +788,57 @@ async function main() {
     };
   }
 
+  /* ══ EL INFORME FIRMADO DEL TAVI ══ es la UNICA superficie del informe narrativo que imprime
+     este rotulo, y la escena base no la alcanza: su bloque entero cuelga de que conste la
+     protesis implantada (`hayProtesis`). Sin esta escena, «0 PHT en el informe» se lee como «el
+     rotulo no estaba ahi» cuando lo que pasa es que el bloque no se emitio. */
+  if (hacer('tavi')) {
+    await despejar();
+    await ev(`window.__P.limpiar()`);
+    await pausa(140);
+    /* TRES puertas, y las tres con el gesto de la app: la pestana ETE, la seccion plegable del
+       TAVI y su solapa «post». `tipear` aborta si el valor no queda, asi que si alguna no se
+       abriera la escena lo diria en vez de informar «no cambia» sobre un tecleo que no ocurrio. */
+    out.taviPuertas = await ev(`(function(){
+      try { showTab('ete') } catch(e) {}
+      var sec = document.getElementById('ete-seccion-tavi');
+      if (sec && getComputedStyle(sec).display === 'none') {
+        try { toggleEteSeccion('tavi', document.querySelector('[onclick*="tavi"]')); eteTaviSync() } catch(e) {}
+      }
+      try { eteTaviTab('post') } catch(e) {}
+      return { sec: sec ? getComputedStyle(sec).display : 'NO EXISTE',
+               pane: (document.getElementById('ete-tavi-pane-post')||{}).style
+                     ? getComputedStyle(document.getElementById('ete-tavi-pane-post')).display : 'NO EXISTE' } })()`);
+    await pausa(200);
+    /* Y una CUARTA: el bloque entero cuelga de su propia casilla «incluir en el informe».
+       ⚠️ ENTER NO ACTIVA UN CHECKBOX; LA TECLA ES ESPACIO, y el respaldo por tecla de `clicEn`
+       manda Enter: la primera version de esta escena informo «el informe no cambia» con la
+       casilla en false, o sea sobre un gesto que nunca ocurrio. Es la trampa que CLAUDE.md ya
+       documenta. Se intenta el raton y, si no prospera, Espacio sobre el nodo enfocado; y se
+       ABORTA si no quedo tildada. */
+    /* ⚠️ Y EL CHECKBOX NO ES EL CONTROL: esta en display:none con tabindex -1, y el control real
+       es el boton «Integrar al informe» que lo gobierna por `eteInclToggle`. Clickear el input
+       oculto no es un gesto posible, y por eso la primera version de esta escena informo
+       «el informe no cambia» con la casilla en false. Se clickea el BOTON. */
+    const _btnIncl = await ev(`(function(){
+      var b = document.querySelector('[data-ete-chk="ete_tavi_incluir_chk"]');
+      if (!b) return null; if (!b.id) b.id = '__incl_tavi'; return b.id })()`);
+    if (!_btnIncl) throw new Error('no esta el boton «Integrar al informe» del TAVI');
+    await clicEn(_btnIncl);
+    await pausa(150);
+    let _chk = await ev(`(function(){ var c=document.getElementById('ete_tavi_incluir_chk');
+      return c ? c.checked : 'NO EXISTE' })()`);
+    if (_chk !== true) throw new Error('la casilla ete_tavi_incluir_chk NO quedo tildada: ' + _chk);
+    out.taviChk = _chk;
+    await pausa(160);
+    await tipear('ete_tavi_pro_tam', '26');
+    await tipear('ete_tavi_pht', '180');
+    await pausa(160);
+    out.tavi = { tam: await ev(`window.__P.val('ete_tavi_pro_tam')`),
+                 pht: await ev(`window.__P.val('ete_tavi_pht')`),
+                 textos: await textos() };
+  }
+
   if (hacer('color')) {
     out.color = {};
     const AVISOS = ['im-pdf-metodo-aviso', 'diast-algo-aviso', 'diast-fc-aviso',
