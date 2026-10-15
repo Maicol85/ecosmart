@@ -43804,9 +43804,15 @@ caso('TC-315', 'Protesis mitral: EOA por continuidad, DVI y PPM (ASE 2024, Secci
     ['y esa linea nombra los DOS numeros que la dispararon',
       obstr.obstrInf[0].indexOf('AEO 0.90') > -1 && obstr.obstrInf[0].indexOf('DVI 3.50') > -1,
       obstr.obstrInf[0]],
-    ['con el DVI solo, la linea nombra SOLO el DVI',
-      dviSol.obstrInf.length === 1 && dviSol.obstrInf[0].indexOf('AEO') === -1,
-      dviSol.obstrInf[0]],
+    /* ADAPTADO el 2026-10-15 (Z5): con UN solo criterio positivo el veredicto pasa a ser
+       «posible» —hallazgo aislado— y NO sube al informe firmado. La condicion afirmaba que la
+       linea salia nombrando solo el DVI; hoy afirma que no sale, que es la regla de conteo del
+       medico vista por su borde de abajo. La escena no se toco: sigue siendo DVI 2.60 positivo
+       con el AEO en la banda del medio. */
+    ['con el DVI solo —UN criterio positivo— la linea NO sube al informe, y el veredicto lo dice',
+      dviSol.obstrInf.length === 0 && dviSol.P.obstr === 'posible' &&
+      (dviSol.P.obstrPos || []).join(',') === 'dvi',
+      'n=' + dviSol.obstrInf.length + ' obstr=' + dviSol.P.obstr + ' pos=' + (dviSol.P.obstrPos || []).join(',')],
     ['y el rotulo viejo ya no aparece en ninguna de las dos lineas del papel',
       obstr.obstrInf[0].indexOf('EOA') === -1 && obstr.ppmInf.join(' ').indexOf('EOA') === -1,
       obstr.obstrInf[0] + ' // ' + obstr.ppmInf.join(' ')],
@@ -65588,13 +65594,21 @@ caso('TC-474', 'W2-B: los criterios PROPIOS de la protesis mitral y aortica —T
       const V = PA();
       return !!V && V.via === 'SAVR' && V.nivel === 'faltan' && V.falta.length > 0; })(),
     JSON.stringify((PA()||{}).falta)]);
-  ex.push(['(E) LIMITE DECLARADO: los tres parametros nuevos NO entran en el veredicto de obstruccion',
+  // ADAPTADO el 2026-10-15 (Z5): esta condicion era el LIMITE DECLARADO del W2-B —«los tres
+  // parametros nuevos NO entran en el veredicto»— escrita para que el dia que entraran se
+  // notara, y lo noto. Desde el Z5 el gradiente medio y el THP SI votan (decision del medico,
+  // criterio EcoSmart) y la velocidad pico NO: la condicion pasa a afirmar lo CONTRARIO por el
+  // lado del gradiente y del THP, y CONSERVA la afirmacion sobre la velocidad pico, que es el
+  // limite que sigue vigente. Lo cubre ademas TC-480 en sus cinco niveles de conteo.
+  ex.push(['(E) el gradiente medio y el THP VOTAN y la velocidad pico NO (Z5)',
     (function(){ base('Pr\\u00f3tesis mec\\u00e1nica');
       __t.set('em_gmedio','12'); __t.set('em_vmax','3.0'); __t.set('thp','250');
       const P = PV(); const i = __t.informe();
       return !!P && P.porGmed === 'significativa' && P.porVmax === 'significativa' &&
-             P.porThp === 'significativa' && P.obstr == null &&
-             i.inf.indexOf('sugestivos de obstrucci') === -1; })(),
+             P.porThp === 'significativa' && P.obstr === 'significativa' &&
+             (P.obstrPos || []).indexOf('gmed') >= 0 && (P.obstrPos || []).indexOf('thp') >= 0 &&
+             (P.obstrPos || []).indexOf('vmax') === -1 &&
+             i.inf.indexOf('sugestivos de obstrucci') >= 0; })(),
     'obstr=' + JSON.stringify((PV()||{}).obstr)]);
 
   /* ══ (F) EL ROTULO «AEO» EN TODAS LAS SUPERFICIES, Y EL EXCEL INTACTO ════════════════════ */
@@ -65673,7 +65687,10 @@ caso('TC-474', 'W2-B: los criterios PROPIOS de la protesis mitral y aortica —T
       return k + ':' + (t.match(/[\\u00e1\\u00e9\\u00ed\\u00f3\\u00fa\\u00f1]/g) || []).length; }).join(' ') : '']);
   const globos = Array.from(document.querySelectorAll('#tab-valvulas [data-vinfo]'));
   ex.push(['(G) los globos de la pestania son BOTONES, sin atributo title y sin llevar al manual, y ninguno es de legado',
-    globos.length === 21 &&
+    // ADAPTADO el 2026-10-15 (Z5): 21 -> 22. El globo nuevo es el del veredicto de obstruccion
+    // protesica mitral (clave prot-obstr), que nace con la regla de conteo. Lo que este caso
+    // vigila no es el numero sino que NINGUNO sea de legado, y eso se conserva entero.
+    globos.length === 22 &&
     globos.every(function(b){ return b.tagName.toLowerCase() === 'button'; }) &&
     globos.every(function(b){ return !b.getAttribute('title'); }) &&
     globos.every(function(b){ return (b.getAttribute('onclick') || '').indexOf('abrirAyudaEco') === -1; }) &&

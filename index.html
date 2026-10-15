@@ -5048,6 +5048,14 @@ window.cerrarSesionReal = cerrarSesionReal;
           <div class="calc-row"><span class="calc-lbl">AEO por continuidad <button type="button" class="vinfo-btn" data-vinfo="prot-eoa" aria-expanded="false" aria-label="Información sobre AEO por continuidad" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-eoa">—</span></div>
           <div class="calc-row"><span class="calc-lbl">DVI — VTI prótesis / VTI TSVI <button type="button" class="vinfo-btn" data-vinfo="prot-dvi" aria-expanded="false" aria-label="Información sobre DVI de la protesis mitral" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-dvi">—</span></div>
           <div class="calc-row"><span class="calc-lbl">THP &mdash; tiempo de hemipresi&oacute;n <button type="button" class="vinfo-btn" data-vinfo="prot-thp" aria-expanded="false" aria-label="Informaci&oacute;n sobre el THP de la pr&oacute;tesis mitral" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-thp">&mdash;</span></div>
+          <!-- ⚠️ FILA NUEVA (Z5, 2026-10-15): EL VEREDICTO DE OBSTRUCCION TIENE FILA PROPIA.
+               Hasta hoy `R.obstr` se publicaba PEGADO al valor del AEO, y con la regla de conteo
+               eso seria engañoso: el veredicto ya no es del AEO sino del conjunto, y un
+               «sugiere obstruccion significativa» al lado de un AEO que no es positivo se lee
+               como si lo fuera. Cada fila publica AHORA su propio nivel y el veredicto va aparte,
+               con la lista de los criterios que lo decidieron. Va DEBAJO de los cinco parametros
+               —es su conclusion— y ARRIBA del PPM, que es otra pregunta. -->
+          <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Obstrucci&oacute;n prot&eacute;sica <button type="button" class="vinfo-btn" data-vinfo="prot-obstr" aria-expanded="false" aria-label="Informaci&oacute;n sobre el veredicto de obstrucci&oacute;n prot&eacute;sica mitral" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-obstr">&mdash;</span></div>
           <div class="calc-row"><span class="calc-lbl">PPM — AEO indexada <button type="button" class="vinfo-btn" data-vinfo="prot-ppm" aria-expanded="false" aria-label="Información sobre PPM — AEO indexada" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-ppm">—</span></div>
         </div>
         <div id="bloque-prolapso-vm" class="fg" style="display:none;">
@@ -36272,6 +36280,20 @@ const VINFO = Object.freeze({
     fuente: 'ASE 2024 (Zoghbi), Tabla 11, p\u00e1g. 27.',
     ojo: 'El cociente sube igual con la regurgitaci\u00f3n: con insuficiencia moderada o mayor se muestra y no concluye obstrucci\u00f3n.'
   },
+  /* ⚠️ LA TARJETA DECLARA QUE EL UMBRAL ES CRITERIO ECOSMART Y NO DE LA GUIA, porque no lo es:
+     la ASE 2024 no publica regla de integracion para la estenosis protesica mitral. Lo que si es
+     de la guia son los cuatro criterios, sus cortes y la nota de confianza diagnostica.
+     ⚠️ Y EL BLOQUE DEL RETIRO DICE «moderada o mayor», QUE ES LO QUE LA APP HACE, y no «severa»:
+     el umbral vive en `EM_CONT_REGURG_MIN` y vale 2. Escribir «severa» aca pondria en pantalla
+     una regla que la app no aplica, que es peor que la diferencia que declara. El gradiente medio
+     NO se retira hoy y la tarjeta lo dice: queda en `docs/PENDIENTES.md`. */
+  'prot-obstr': {
+    tit: 'Obstrucción de la prótesis mitral: cómo se integra',
+    lee: 'Criterio EcoSmart: la obstrucción se informa como significativa cuando DOS o más criterios caen en la banda sugestiva, contando sólo los que se pudieron medir. Con uno solo queda como hallazgo aislado y no sube al informe; con ninguno no se afirma obstrucción.',
+    formula: 'Gradiente medio mayor de 10 mmHg\nTHP mayor de 200 ms\nDVI mayor de 2,5\nAEO menor de 1 cm²',
+    fuente: 'ASE 2024 (Zoghbi), Tabla 11 y texto de la pág. 24. La guía enumera esos cuatro criterios y avisa que la exactitud diagnóstica es mejor cuando la mayoría de los parámetros coincide, pero no publica cuántos hacen falta: el umbral de dos es de la aplicación.',
+    ojo: 'La velocidad pico se muestra con su banda y no cuenta: la enumeración de la guía no la incluye. Con regurgitación protésica moderada o mayor, el AEO y el DVI se muestran y no concluyen, porque suben igual con la regurgitación; el gradiente medio sigue contando.'
+  },
   'prot-ppm': {
     tit: 'Desajuste pr\u00f3tesis-paciente de la mitral',
     formula: 'PPM = AEO ÷ superficie corporal',
@@ -43138,14 +43160,13 @@ function generarInforme(opts) {
       const _pe = (typeof vmProtEOA === 'function') ? vmProtEOA() : null;
       if (_pe && _pe.esProt) {
         if (_pe.obstr === 'significativa') {
-          const _q = [];
-          if (_pe.porEoa === 'significativa') _q.push('AEO ' + _pe.eoa.toFixed(2) + ' cm²');
-          /* La procedencia va TAMBIÉN al papel. La cápsula agrega «· consignado» y su comentario
-             lo justifica; el emisor lo imprimía pelado, así que la regla que el módulo declara se
-             cumplía en la pantalla y se perdía en la superficie que se firma — una obstrucción
-             atribuida a un cociente que puede venir del informe de otro laboratorio. */
-          if (_pe.porDvi === 'significativa')
-            _q.push('DVI ' + _pe.dvi.toFixed(2) + (_pe.dviFuente === 'consignado' ? ' consignado' : ''));
+          /* ⚠️ LA LISTA SALE DE `vmProtObstrCrit`, EL MISMO DUEÑO QUE PINTA LA CÁPSULA (Z5). Acá
+             vivía una copia que nombraba sólo el AEO y el DVI; con los cuatro criterios votando,
+             una segunda lista habría dejado el papel diciendo menos que la pantalla sobre el
+             mismo paciente —un veredicto sostenido por el gradiente y el THP se habría firmado
+             con el paréntesis VACÍO—. La procedencia del DVI viaja al papel desde ese dueño,
+             igual que antes. La FRASE no cambia: lo que cambia es qué entra en el paréntesis. */
+          const _q = (typeof vmProtObstrCrit === 'function') ? vmProtObstrCrit(_pe) : [];
           const _t = 'Prótesis mitral con hallazgos sugestivos de obstrucción (' + _q.join(', ') + ').';
           inf.push(_t); suma.push(_t);
         }
@@ -48617,6 +48638,51 @@ window.VM_PROT_DVI_SIGNIF_MIN = VM_PROT_DVI_SIGNIF_MIN;
 window.VM_PROT_PPM_CORTES = VM_PROT_PPM_CORTES;
 window.VM_PROT_EOA_NORMAL_MIN = VM_PROT_EOA_NORMAL_MIN;
 window.VM_PROT_T11 = VM_PROT_T11;
+/* ══ LA REGLA DE INTEGRACION DEL VEREDICTO DE OBSTRUCCION — CRITERIO ECOSMART (Z5, 2026-10-15)
+   Decision de Maicol. ⚠️ NO ES DE LA GUIA, Y ESO NO ES UN MATIZ: la ASE 2024 **no publica una
+   regla de integracion** para la estenosis protesica mitral, y eso esta censado en la entrada Z1
+   de `docs/PENDIENTES.md` —la nota `*` de la Tabla 11 habla de CONFIANZA diagnostica («diagnostic
+   accuracy is best if most of the parameters listed are normal or abnormal»), la prosa del folio
+   24 enumera los criterios sin decir cuantos hacen falta, no hay figura de algoritmo y los Key
+   Points del folio 29 no agregan ninguna—. Lo que SI es de la guia son los CUATRO criterios y sus
+   cortes; el umbral de conteo lo fija el medico y la tarjeta lo declara como criterio EcoSmart.
+
+   LOS CUATRO QUE VOTAN salen de la prosa del folio 24, que los nombra uno por uno: «a mean
+   gradient >10 mm Hg at a normal heart rate, a PHT >200 msec, a DVI >2.5, and an EOA <1 cm2».
+   ⚠️ LA VELOCIDAD PICO NO VOTA aunque la Tabla 11 la publique: esa enumeracion la OMITE, y es la
+   unica diferencia entre la tabla y la prosa. Se sigue mostrando con su banda, que es lo que la
+   tabla manda, y no entra en el conteo.
+
+   ⚠️ EL ORDEN DE LA LISTA ES EL DEL TEXTO QUE SE FIRMA, y no el de la tabla. El informe ya
+   publicaba «(AEO …, DVI …)» desde la Fase 2, asi que empezar por el gradiente le cambiaria la
+   oracion a todo estudio que HOY la emite sin que ningun veredicto se mueva. Los dos criterios
+   nuevos van detras. El conteo no depende del orden; el texto si. */
+const VM_PROT_OBSTR_MIN = 2;   // criterio EcoSmart: DOS o mas positivos -> significativa
+const VM_PROT_OBSTR_VOTAN = Object.freeze([
+  Object.freeze({ k: 'eoa',  nivel: 'porEoa'  }),
+  Object.freeze({ k: 'dvi',  nivel: 'porDvi'  }),
+  Object.freeze({ k: 'gmed', nivel: 'porGmed' }),
+  Object.freeze({ k: 'thp',  nivel: 'porThp'  })
+]);
+window.VM_PROT_OBSTR_MIN = VM_PROT_OBSTR_MIN;
+window.VM_PROT_OBSTR_VOTAN = VM_PROT_OBSTR_VOTAN;
+/* Los criterios POSITIVOS nombrados con su valor, en un solo dueño. Lo consumen la capsula de
+   pantalla y la linea del informe firmado: dos listas armadas por separado son dos oraciones
+   distintas sobre el mismo paciente, que es el defecto que `vmProtEOA` ya evita devolviendo
+   DATOS en vez de HTML. Devuelve [] cuando no hay ninguno. */
+function vmProtObstrCrit(R) {
+  if (!R || !R.obstrPos || !R.obstrPos.length) return [];
+  const F = {
+    eoa:  function(){ return 'AEO ' + R.eoa.toFixed(2) + ' cm²' },
+    /* La PROCEDENCIA viaja al papel, igual que en la capsula: una obstruccion atribuida a un
+       cociente que puede venir del informe de otro laboratorio tiene que decirlo. */
+    dvi:  function(){ return 'DVI ' + R.dvi.toFixed(2) + (R.dviFuente === 'consignado' ? ' consignado' : '') },
+    gmed: function(){ return 'gradiente medio ' + R.gmed.toFixed(1) + ' mmHg' },
+    thp:  function(){ return 'THP ' + R.thp.toFixed(0) + ' ms' }
+  };
+  return R.obstrPos.map(function (k) { return F[k] ? F[k]() : k; });
+}
+window.vmProtObstrCrit = vmProtObstrCrit;
 /* Un solo lector de los tres tramos. `normalIncl` dice si el corte bajo cae en NORMAL y
    `signifIncl` si el corte alto cae en SIGNIFICATIVA: los dos salen de la tabla y no de una
    convencion, porque las tres filas los combinan distinto. */
@@ -48806,8 +48872,34 @@ function vmProtEOA(src) {
   const porDvi = (R.dvi == null || R.motivo !== '') ? null
                : (R.dvi > VM_PROT_DVI_SIGNIF_MIN ? 'significativa'
                : (R.dvi < VM_PROT_DVI_NORMAL_MAX ? 'normal' : 'posible'));
-  R.obstr = ['significativa','posible','normal'].find(function (k) { return porEoa === k || porDvi === k; }) || null;
   R.porEoa = porEoa; R.porDvi = porDvi;
+  /* ══ LA REGLA DE CONTEO (Z5, 2026-10-15) — ver `VM_PROT_OBSTR_VOTAN` ═════════════════
+     Hasta hoy el veredicto salia del PEOR entre el AEO y el DVI, asi que UN solo criterio en la
+     columna de «suggests significant stenosis» publicaba «hallazgos sugestivos de obstruccion» en
+     el informe FIRMADO, y el gradiente medio y el THP —que la prosa del folio 24 nombra entre los
+     criterios principales— no contaban nunca.
+     Hoy: DOS o mas positivos -> significativa; UNO -> posible, que es un hallazgo aislado y NO
+     sube al papel; CERO -> no se afirma obstruccion.
+     ⚠️ CON CERO POSITIVOS EL VEREDICTO NO SE VACIA, y es deliberado: lo que la Tabla 11 publica
+     para un parametro en la banda del medio es LITERALMENTE «possible stenosis», asi que ese
+     estado se conserva —«posible» si algun criterio medido cae ahi, «normal» si todos los medidos
+     son normales—. Vaciarlo seria perder lo que la guia si dice. `null` queda SOLO cuando no hay
+     ningun criterio medido, que es «no se pudo evaluar» y no «no hay obstruccion»: son dos cosas
+     distintas y confundirlas es como una app afirma normalidad sobre lo que nadie midio.
+     ⚠️ «ENTRE LOS MEDIDOS» SE LEE DEL NIVEL Y NO DEL CAMPO: `porDvi` y `porEoa` quedan en `null`
+     con regurgitacion significativa —la colision de las Tablas 11 y 13— y `porGmed`/`porThp`
+     quedan en `null` fuera de banda. Un criterio retirado no cuenta ni como positivo ni como
+     negativo, que es lo que hace que el denominador del conteo sea el de los que de verdad se
+     pudieron leer. */
+  const _nivObstr = VM_PROT_OBSTR_VOTAN.map(function (c) { return R[c.nivel]; });
+  R.obstrPos = VM_PROT_OBSTR_VOTAN.filter(function (c) { return R[c.nivel] === 'significativa'; })
+                                  .map(function (c) { return c.k; });
+  R.obstrMed = VM_PROT_OBSTR_VOTAN.filter(function (c) { return R[c.nivel] != null; })
+                                  .map(function (c) { return c.k; });
+  R.obstr = (R.obstrPos.length >= VM_PROT_OBSTR_MIN) ? 'significativa'
+          : (R.obstrPos.length === 1) ? 'posible'
+          : (!R.obstrMed.length) ? null
+          : (_nivObstr.indexOf('posible') >= 0 ? 'posible' : 'normal');
 
   /* ── Tabla 7: PPM. AUTOMÁTICO (decisión de Maicol) y sólo con EOA válido. ── */
   R.bsa = (typeof getBSA === 'function') ? getBSA(src) : null;
@@ -48878,7 +48970,11 @@ function vmProtEOAPintar() {
      significativa» retiran el EOA por razones distintas y el médico tiene que poder distinguirlas
      para saber qué corregir. El de la regurgitación sale de `emContMotivoNoVota`, compartido. */
   let eoaTxt;
-  if (R.eoa != null)        eoaTxt = R.eoa.toFixed(2) + ' cm²' + (R.obstr ? '  (' + OBSTR_TXT[R.obstr] + ')' : '');
+  /* ⚠️ LA FILA DEL AEO PUBLICA SU PROPIO NIVEL Y NO EL VEREDICTO GLOBAL (Z5). Hasta hoy pegaba
+     `R.obstr`, que era lo mismo mientras el veredicto saliera del peor entre el AEO y el DVI; con
+     la regla de conteo son dos cosas distintas y la fila diria el veredicto del conjunto al lado
+     de un numero que puede no ser positivo. El veredicto tiene fila propia. */
+  if (R.eoa != null)        eoaTxt = R.eoa.toFixed(2) + ' cm²' + (R.porEoa ? '  (' + OBSTR_TXT[R.porEoa] + ')' : '');
   else if (R.faltan.length) eoaTxt = '—  (falta ' + R.faltan.join(', ') + ')';
   else if (R.fuera)         eoaTxt = '—  (revisar la unidad de los insumos)';
   else if (R.motivo)        eoaTxt = '—  (' + R.motivo + ')';
@@ -48890,6 +48986,25 @@ function vmProtEOAPintar() {
       (R.porDvi ? '  (' + OBSTR_TXT[R.porDvi] + ')'
                 : (R.motivo ? '  (no concluye: ' + R.motivo + ')' : '')) +
       (R.dviFuente === 'consignado' ? '  · consignado' : ''));
+
+  /* ══ EL VEREDICTO, CON LOS CRITERIOS QUE LO DECIDIERON (Z5) ═════════════════════
+     El texto NOMBRA los positivos —esa lista la arma `vmProtObstrCrit`, el mismo dueño que usa
+     el informe— y declara el conteo, que es lo que permite entender por que un solo criterio en
+     la columna de significativa no alcanza. Con el conteo en cero no se inventa una conclusion:
+     se publica el estado de las bandas, que es lo que la Tabla 11 si dice. */
+  const _cr = vmProtObstrCrit(R);
+  const _nPos = (R.obstrPos || []).length, _nMed = (R.obstrMed || []).length;
+  /* El plural del denominador: «1 de 1 criterios» se lee como un error de la app en la pantalla
+     que publica el veredicto, que es donde menos conviene. */
+  const _nMedTxt = _nMed + (_nMed === 1 ? ' criterio' : ' criterios');
+  put('vm-prot-obstr',
+    R.obstr === 'significativa'
+      ? OBSTR_TXT.significativa + '  (' + _cr.join(', ') + ' · ' + _nPos + ' de ' + _nMedTxt + ')'
+    : R.obstr === 'posible' && _nPos === 1
+      ? 'hallazgo aislado — ' + OBSTR_TXT.posible + '  (' + _cr.join(', ') + ' · 1 de ' + _nMedTxt + ')'
+    : R.obstr
+      ? OBSTR_TXT[R.obstr] + '  (' + _nMedTxt + (_nMed === 1 ? ' medido' : ' medidos') + ')'
+      : '—  (sin criterios medidos' + (R.motivo ? ' · ' + R.motivo : '') + ')');
 
   put('vm-prot-ppm', R.eoaI == null
     ? (R.eoa != null && !R.bsa ? '—  (falta peso o talla)' : '—')
