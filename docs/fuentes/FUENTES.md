@@ -2402,3 +2402,31 @@ No hay ninguna guía detrás: el gasto es `área TSVI × VTI TSVI × FC`, y lo q
 apariciones de una nota que lo explique—. Hoy sin FC usable no hay fila. La banda de la FC
 (`HEMO_FC_BANDA = [20, 250]`, exclusiva en los dos extremos) es una **banda de plausibilidad** y
 por eso va sin cita, igual que las demás.
+
+---
+
+## La tanda «G3» (2026-10-15) — por qué NO lleva ninguna cita nueva
+
+Las tres partes de esta tanda son de **disposición, de reparto y de mensaje**, y ninguna
+establece un corte clínico.
+
+- **La FAC visible y su mensaje «requiere …»** no tocan la cuenta ni el corte. Siguen siendo
+  `UMBRAL_FAC_VD_NORMAL = 35 %` y `UMBRAL_FAC_VD_SEVERA = 25 %`, de la ASE 2015 y del criterio
+  de la app, ya registrados. El texto que se agrega nombra las dos áreas que faltan: no afirma
+  nada clínico.
+- **El diámetro de la arteria pulmonar** cambia de lugar en la pantalla y nada más. Su banda
+  `IP_AP_BANDA = [5, 80]` mm es **de plausibilidad y no de severidad**, así que va sin cita
+  —regla de la casa: un rango de lo medible no es un criterio—; su registro del G1, con la
+  Tabla 1 de la ASE 2025 (folio 145) como referencia de lo que ese diámetro significa, no se
+  tocó.
+- **El selector de la relación VD/VI** publica el MISMO corte que ya aplicaba el campo
+  numérico: `VD_VI_HTP_MIN = 1,0`, borde `>`, de la **ESC/ERS 2022, Tabla 10, folio 28**
+  (categoría A, «Ventrículos») y de la **ASE 2025, Tabla 8, folio 173** («Dilated right heart:
+  RV/LV >1»). Las dos entradas ya están verificadas y **no se movió ni el número ni el
+  operador**: el borde exacto 1,00 sigue cayendo del lado no alterado, y el selector corta
+  igual para que los dos controles no puedan discrepar.
+- **El PPT estadístico y la mini-tabla del PDF de auditoría** cambian cómo PUBLICAN lo que ya
+  contaban. Las dos estenosis binarias salen de decisiones de la app ya registradas —la mitral
+  del 2026-10-13 y la tricuspídea del 2026-10-05— y ningún conteo se movió.
+- **El mensaje del importador** es texto de interfaz sobre columnas calculadas. Los datos de
+  origen que nombra se leyeron del propio código, no de una guía.

@@ -2911,7 +2911,13 @@ ya hacía al tipearlo. Si se decide que el importador lo rechace, la entrada va 
 `LAB_XLS_RANGO_PROPIO` **leyendo `IP_AP_BANDA` por referencia**, nunca repitiendo los números —
 el patrón que `_labRangoValor` usa con `_DIAST_STRAIN_ABS_MARCA` desde el 2026-10-12.
 
-### G2-2 · El mensaje del importador para el cociente es el de «campo no editable», no el de «calculado»
+### G2-2 · [CERRADO 2026-10-15 · G3] El mensaje del importador para el cociente es el de «campo no editable», no el de «calculado»
+
+> **CERRADO por el G3.** Las DOS familias de columna calculada —las 18 con campo y las 75 sin
+> campo— reciben hoy el MISMO mensaje, con los datos de origen de cada una, por un dueño único
+> (`_labXlsCalcMsg`) que publican el modal del importador y el comentario de celda de la
+> plantilla. Cero columnas quedan en «no corresponde a un campo editable». El censo de las 75 se
+> CALCULA y no se cablea. Ver `docs/mapa/informe-pdf-excel.md`.
 
 La casa tiene **dos** criterios de columna derivada y el cociente cayó en el que le corresponde
 —el de `FAC VD (%)` y `DisfSist_VD`, las derivadas **sin campo**— así que el importador lo lista
@@ -2922,7 +2928,13 @@ Para igualarlos habría que inventarle un `dest` que no existe en el DOM, o part
 «ignoradas» en dos. **No se hizo**: es cosmético y el cambio tocaría el mensaje de las OTRAS
 cuatro derivadas sin campo. Declarado.
 
-### G2-3 · El PPT estadístico y la mini-tabla del PDF de auditoría siguen sin contar la tricúspide binaria
+### G2-3 · [CERRADO 2026-10-15 · G3] El PPT estadístico y la mini-tabla del PDF de auditoría siguen sin contar la tricúspide binaria
+
+> **CERRADO por el G3.** Las tres superficies de tabla leen hoy el MISMO dueño,
+> `_labValvFila`, y la frase que declara las dos binarias es UNA constante
+> (`LAB_VALV_BIN_NOTA`). Medido con el PPT y el PDF generados de verdad: las seis lesiones
+> ajenas IDÉNTICAS a HEAD, y la tricúspide pasa de «(n = 3) 2 | 1 | 0 | 0» a «(n = 6) — | — | —
+> | 2». Ver `docs/mapa/laboratorio-asociaciones-valvulas.md`.
 
 Los dos leen `counts`/`bases` de `_labValvCounts` y **no** `bin`, que es lo que mantiene su salida
 idéntica a HEAD — y es lo que la orden del G2 autorizaba. Consecuencia: ahí la estenosis
@@ -2965,3 +2977,74 @@ La orden pedía las cuatro del cociente y nada más. El diámetro **es insumo de
 HTP** (categoría B de la ESC/ERS 2022), así que si algún día entra en el bloque libre hay que
 sumarle su propia entrada en `_LIBRE_ACOPLADOS` contra las variables de HTP — el mecanismo ya está
 y admite una entrada más sin tocar nada.
+
+---
+
+## La tanda «G3» (2026-10-15) — lo declarado y NO tocado
+
+### G3-1 · PARADA · La ida y vuelta del TAPSE/PSAP no se reproduce: la velocidad de la IT no tiene columna
+
+**Medido**, exportando la fila COMPLETA de 438 columnas de un estudio y reimportándola tal cual:
+el cociente **no se puede recalcular**. La cadena es `TAPSE/PSAP ← TAPSE + PSAP ← VRT + PmAD`, y
+el eslabón que falta es la **velocidad máxima de la insuficiencia tricuspídea**: `vmax_it` no
+está en `LAB_XLS_MAP` —censado— y las dos columnas que la contienen, `PSAP (mmHg)` y
+`Grad VD-AD (mmHg)`, son CALCULADAS y no se importan. El TAPSE sí viaja, y la PmAD la app la
+deriva de `vci_diam` + `vci_col`, que también viajan.
+
+La orden del G3 lo declara como PARADA y prohíbe arreglarlo. **Las dos alternativas, para que
+las decida el médico:**
+
+- **(a) Agregar una columna de ORIGEN** — «Vmax IT (m/s)», campo de entrada, en el bloque del
+  Doppler tricuspídeo. Reproduce la ida y vuelta del cociente **y** de la PSAP, y es el único
+  camino que no inventa una segunda fuente. **Es una PARADA de columna**: el Excel pasaría de
+  438 a 439.
+- **(b) Aceptar el valor del archivo marcado como «importado»** — el cociente entraría como
+  dato y no como derivado. Deja DOS fuentes del mismo número, que es exactamente lo que esa
+  columna existe para evitar, y además no arregla la PSAP.
+
+Lo que **sí** se hizo: el modal del importador lo DICE con todas las letras —«falta la
+velocidad máxima de la insuficiencia tricuspídea, que NO tiene columna en este Excel»— en vez
+de informar un faltante genérico. TC-478 lo fija para que el día que entre una columna de
+origen se note.
+
+### G3-2 · El selector de VD/VI no tiene columna de Excel
+
+El NÚMERO sigue viajando por la suya; **la elección manual no viaja**. Un estudio cuya relación
+VD/VI se consignó sólo por tramo exporta esa columna vacía, así que la cohorte del Laboratorio
+—que lee el Excel por nombre de encabezado— no la ve. **Sí** viaja con el estudio guardado, así
+que la pantalla, la probabilidad de HTP, el PDF y el PPT la leen. Agregarla es una PARADA de
+columna (439) y la orden del G3 la prohíbe.
+
+### G3-3 · El n por fila no entró en la tabla de válvulas del PPT
+
+Su tabla no lo lleva en ninguna de las ocho lesiones y agregarlo cambiaría también las SEIS que
+esta orden congela. El n del grupo sigue en el pie, y las bases por válvula pueden diferir entre
+filas —la tricúspide binaria cuenta 6 donde `counts` cuenta 3—. En el PDF de auditoría la fila
+**ya** lo llevaba. Unificarlo es un trabajo del PPT entero, no de las dos binarias.
+
+### G3-4 · El origen de 93 columnas calculadas está nombrado sólo en parte
+
+`LAB_XLS_CALC_ORIGEN` nombra el origen de las que se pueden nombrar **con certeza** —el cociente,
+la PSAP, la PmAD, el gradiente VD-AD, la FAC, la masa, el RWT, la geometría, los cocientes
+diastólicos, las áreas valvulares, el Qp/Qs y una docena más— y las familias de indicadoras van
+por prefijo. **Lo que no está no se inventa**: cae al texto común «se recalcula desde las
+mediciones que la alimentan», que sigue siendo verdadero. Las que hoy quedan ahí son sobre todo
+los bloques `DPT `/`CVR ` ya cubiertos por prefijo y las cinco de arritmia ventricular
+(`MCH TVNS en Holter`, `TdF taquicardia ventricular`, las tres `MCA`). Nombrarlas pide leer el
+`tvSync` que las espeja.
+
+### G3-5 · El mapa del VD quedó a 600 bytes del techo
+
+`docs/mapa/vd-derecho.md` cerró el G3 en **34,4 KB** sobre un techo de 35. La sección del
+selector ya salió a archivo propio (`docs/mapa/vd-vi-selector.md`, 8,7 KB) justamente por eso.
+**La próxima tanda que lo toque tiene que partirlo**, midiendo con `wc -c` ANTES de escribir —la
+regla que `valvulas.md` aprendió pagándola dos veces.
+
+### G3-6 · El PPT clínico no se genera en la sonda del G3
+
+`generarPPT(id)` exige un estudio GUARDADO, un informe narrativo ya escrito y DOS modales
+encadenados —tema y presentador—, así que medirlo de verdad es automatizar esa cadena entera. La
+fila «VD/VI» del PPT se mide **por el fuente** —que llame a `vdViTexto`— y el valor por el dueño,
+que sí se mide con teclas reales; la del PDF se genera de verdad. El PPT **estadístico** del
+Laboratorio sí se genera de verdad, porque su generador (`_labPPTGenerar`) toma la población
+directo.

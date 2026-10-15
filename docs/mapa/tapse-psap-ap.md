@@ -90,10 +90,16 @@ alta** en vez de callarlo. `docs/PENDIENTES.md` → **G1-6** y **G1-7**.
 
 ## El diámetro de la arteria pulmonar — `ip_ap_diam`
 
-Campo nuevo en la sección de **insuficiencia de la válvula pulmonar**, **debajo del «Ancho del
-jet»**: una regla `.ip-ap-col2 { grid-column: 2; }` dentro del mismo `min-width: 769px` lo manda
-a la columna del jet, porque por flujo caería en la columna 1 (debajo del THP). **Deja un hueco
-debajo del THP, y es lo correcto**: un hueco dice «no hay nada ahí».
+⚠️ **SE MUDÓ A LA PESTAÑA VD / AD EN EL G3 (2026-10-15, decisión de Maicol).** Nació acá, en la
+sección de insuficiencia de la válvula pulmonar y debajo del «Ancho del jet», y hoy es el
+**tercer campo de la columna 3 del VD**, debajo del VTI TSVD. **Se MOVIÓ, no se duplicó**: todo
+lo de abajo —el id, el dueño de lectura, la banda, la marca y la columna de Excel— vale igual.
+Con él se retiró la regla `.ip-ap-col2`, y ese `.grid-2` volvió a tener DOS hijos en una sola
+fila, **sin el hueco** que quedaba debajo del THP. Ver `docs/mapa/vd-derecho.md`.
+
+Lo que el G1 dejó escrito y que el G3 deja sin efecto: _«una regla `.ip-ap-col2 { grid-column:
+2; }` dentro del mismo `min-width: 769px` lo manda a la columna del jet, porque por flujo caería
+en la columna 1 (debajo del THP). Deja un hueco debajo del THP, y es lo correcto.»_
 
 ⚠️ **ES UN DATO DE ENTRADA Y NADA MÁS, Y LO QUE LO GARANTIZA ES SU `oninput`:** llama **sólo** a
 `ipApDiamSync` —que pinta su marca— y **no** a `calcIP`, que es el dueño del grado. Mientras eso

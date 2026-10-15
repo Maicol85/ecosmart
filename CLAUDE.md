@@ -37,7 +37,8 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Buscar un CORTE o una BANDA de plausibilidad** de cualquier válvula, con su fuente | `docs/mapa/valvulas-constantes.md` |
 | **Tocar la MARCA DE MANUAL de una pastilla, el selector binario de la estenosis mitral, el VIOLETA de «Significativa», el VTI de entrada tricuspídeo, la CASILLA DE PISA de «Incluir en el informe» o lo que «Nuevo estudio» deja vivo** | `docs/mapa/valvulas-manual-binario.md` |
 | **Tocar el VENTRÍCULO DERECHO**: sus TRES columnas de campos, el orden del cuadro de referencias, la disfunción sistólica, la pared graduada, el Tei, la FEVD, la relación VD/VI o el Qp | `docs/mapa/vd-derecho.md` |
-| **Tocar el cociente TAPSE/PSAP, el DIÁMETRO DE LA ARTERIA PULMONAR o el color del aviso del Tei** | `docs/mapa/tapse-psap-ap.md` |
+| **Tocar el cociente TAPSE/PSAP o el color del aviso del Tei** (el DIÁMETRO DE LA ARTERIA PULMONAR se mudó al VD en el G3) | `docs/mapa/tapse-psap-ap.md` |
+| **Tocar la RELACIÓN VD/VI**: el campo numérico, el selector de tramo, las cuatro reglas que los sincronizan, la función dueña o cualquiera de sus CUATRO lectores | `docs/mapa/vd-vi-selector.md` |
 | **Tocar el panel de Evidencia: agregar una cita, una sección o un sub-bloque** | `docs/mapa/panel-evidencia.md` |
 | **Agregar un TÉRMINO al glosario del panel (el ⓘ con tarjeta)** | `docs/mapa/panel-evidencia-terminos.md` |
 | **Tocar el CARTEL DE PÉPTIDOS del HFA-PEFF, su puntaje o el plan Básico/Avanzado**: el espejo del péptido, el ritmo que se lee, los cortes por tipo o por qué `showTab` no chequea el plan | `docs/mapa/hfapeff-peptidos.md` |
@@ -90,6 +91,12 @@ de los cortes de la aórtica lo llevó a **40,8 KB**; su sección nueva salió a
 `docs/mapa/aortica-cortes.md` (9,8 KB) y `valvulas.md` volvió a **32,0 KB** con un puntero de cinco
 líneas. Es la primera vez que la regla se aplica **después** de cruzar el techo y no antes: conviene
 medir con `wc -c` **antes** de escribir, no después.
+
+⚠️ **Al 2026-10-15, tras el G3, `vd-derecho.md` quedó en 34,4 KB: a 600 bytes del techo.** La
+sección del selector de VD/VI ya salió a archivo propio (`docs/mapa/vd-vi-selector.md`, 8,7 KB)
+justamente por eso, y aun así el mapa pasó de 27,5 a 34,4. **La próxima tanda que lo toque tiene
+que partirlo.** `informe-pdf-excel.md` quedó en 29,7 KB y `laboratorio-asociaciones-valvulas.md`
+en 13,6. Siguen esperando `panel-evidencia.md` (35,3 KB) y `diastolica.md` (35,2).
 
 Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la ventana.
 
@@ -252,6 +259,198 @@ impecable.
 ---
 
 ## Estado vigente
+
+### La FAC VISIBLE, el DIÁMETRO DE LA ARTERIA PULMONAR mudado al VD, el SELECTOR de la relación VD/VI, el PPT y el PDF de auditoría alineados y el MENSAJE del importador — «G3» (2026-10-15)
+
+- **Es la tanda «G3».** Al **empezar**, `main` y `origin/main` estaban los dos en **`91c5fe9`**
+  (sello `v20261015-1336`), **sin nada sin pushear** —confirmado con un `git fetch` de verdad—,
+  con los cuatro commits del G2 y su commit de documentación ya incluidos **y pusheados**. Los
+  **cinco** commits de esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 5 → 4 → 3 → 2 → 1.**
+  ⚠️ **EL 1 Y EL 2 TOCAN LA MISMA GRILLA Y EL 2 TIENE QUE REVERTIRSE ANTES.** El 2 mete el
+  `<select>` DENTRO del `.fg` de `vd_vi`, que el 1 no creó pero sí renumeró; y sobre todo el 2
+  reescribe la línea de `limpiarCampos` que el 1 agregó para `vdFacReqSync` —las dos llamadas
+  quedaron contiguas—. Revertir el 1 primero deja la del selector apuntando a un bloque que ya
+  no está.
+  ⚠️ **EL 3 Y EL 4 SE REVIERTEN SOLOS Y EN CUALQUIER ORDEN ENTRE SÍ**, que en esta serie es
+  raro y conviene decirlo: el 3 es el Laboratorio (`_labValvFila`, `LAB_VALV_BIN_NOTA` y sus
+  tres consumidores) y el 4 el importador (`LAB_XLS_CALC_ORIGEN`, `_labXlsCalcMsg`, el censo de
+  derivadas y el detalle). Ninguno nombra nada del otro ni de los dos primeros.
+  ⚠️ **PERO EL 2 LLEVA LA SONDA** (`scripts/_probe_g3.mjs`), que los commits 3, 4 y 5 usan:
+  revertirlo los deja sin arnés. Nació en el 2 y no en el 1 porque el 1 se cerró antes de
+  escribirla — está dicho para que nadie la busque en el 1.
+  **El 5 es TC-478 más documentación y el sello**, y afirma el comportamiento de los cuatro:
+  revertir cualquiera sin el 5 deja TC-478 en rojo.
+  ⚠️ **Y EL 1, EL 2 Y EL 3 ADAPTARON TC-476 Y TC-477**: el conteo de campos de la grilla (15 →
+  16), las reglas de posición (8 → 9), las tres condiciones de la casilla de la FAC, el literal
+  de la categoría A de la probabilidad de HTP y el límite declarado (J) del G2. Revertir sin
+  reponer esas afirmaciones los deja en rojo o midiendo lo contrario.
+
+- **Línea base al cierre: suite 488/492 con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0
+  ERROR, Excel en 438 columnas, celular 43 a 360 px y 52 a 390 px con 1 ALTA cada uno —IDÉNTICO
+  a la línea base—.** **CERO REGRESIONES**: los cuatro rojos son exactamente los de ENTRADA
+  —**TC-223** (el documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**—, y no
+  apareció ninguno fuera de esa lista. La de ENTRADA, medida en un worktree aparte sobre el
+  árbol limpio antes de tocar nada, fue **487/491** con esos mismos cuatro. **El denominador
+  sube a 492**: esta tanda agregó **TC-478**. El `md5` de `index.html` no se movió durante la
+  corrida (`131f8c5e…`, el del sello) y el pendrive estaba montado antes y después —los
+  diecisiete de **TC-181…TC-197** salieron verdes, que es la prueba—. Al terminar no quedó
+  ningún Chrome mío.
+  ⚠️ **`--todo` del chequeo de celular pasa de 375/384 a 378/387: +3 `input-chico` (BAJA)**, y
+  los tres tienen nombre. Dos son controles nuevos a la vista —el **selector de VD/VI** y la
+  **casilla de la FAC**, que desde el G3 ya no se esconde— y el tercero es el **diámetro de la
+  arteria pulmonar**, que no es nuevo: se mudó del cajón «Datos» de la pulmonar, que
+  `check_mobile.js` **no abre**, a la pestaña VD, que sí. Es el espejo exacto de lo que el G1
+  documentó al bajar la cuenta. **La cuenta VISIBLE, que es la que compara la línea base, no se
+  movió**, y se midió HEAD el MISMO día para poder restar (375/384, `input-chico` 332).
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **492 ids** sobre los 493 casos del archivo.
+- **EL SELLO DE VERSIÓN** estaba al día al empezar (`v20261015-1336`) y se volvió a sellar en el
+  commit 5: **`v20261015-1459`**. Todo lo medido —la suite completa, Semgrep y el chequeo de
+  celular— salió **DESPUÉS** de sellar, con el `md5` quieto.
+
+- **Dónde está todo:** `docs/mapa/vd-vi-selector.md` (**mapa NUEVO por PARTICIÓN**, 8,7 KB),
+  `docs/mapa/vd-derecho.md` → la sección G3 entera (**34,4 KB**),
+  `docs/mapa/laboratorio-asociaciones-valvulas.md` → el PPT y el PDF alineados (**13,6 KB**),
+  `docs/mapa/informe-pdf-excel.md` → el mensaje del importador y la parada (**29,7 KB**),
+  `docs/mapa/tapse-psap-ap.md` → el puntero del campo que se mudó, `docs/fuentes/FUENTES.md` →
+  por qué esta tanda **no lleva ninguna cita nueva**, y `docs/PENDIENTES.md` → **G2-2 y G2-3
+  marcados CERRADOS** más **seis** cosas declaradas (**G3-1 a G3-6**).
+  ⚠️ **`vd-derecho.md` QUEDÓ A 600 BYTES DEL TECHO** (34,4 de 35 KB) y eso es **con** la
+  partición ya hecha: la sección del selector salió a archivo propio justamente porque con todo
+  junto cruzaba. **La próxima tanda que lo toque tiene que partirlo.** `PENDIENTES.md` → G3-5.
+
+- **LA FAC VUELVE A ESTAR VISIBLE, COMO ANTES DEL G1, Y AHORA DICE QUÉ LE FALTA.** El G1 la
+  escondía hasta que hubiera dato; lo que entra con ella es `vdFacReqSync`, que escribe el
+  motivo en el **placeholder** —mecanismo de los dos campos `vauto-` del VI— con **tres ramas**:
+  las áreas que faltan nombradas **una por una**, el par no utilizable con su propio texto, y
+  vacío cuando hay FAC. **El predicado de «par utilizable» no se reescribe: se lo pasa `calcVD`**,
+  que es su dueño.
+  ⚠️ **LA FILA DEL CUADRO SIGUE ESCONDIÉNDOSE SIN DATO**, y es otra cosa: una casilla vacía
+  invita a cargar, una fila de interpretación vacía afirma que no hay nada que interpretar.
+  **Cómo se guardaba antes del G1: igual que hoy** —el campo nunca dejó de existir con su id, el
+  G1 sólo movía el `display` de su `.fg`— y **la columna «FAC VD (%)» del Excel queda idéntica**,
+  porque la calcula el exportador desde las dos áreas y no lee el campo.
+  **Medido con teclas reales:** sin áreas nombra las dos · con una nombra **sólo** la que falta ·
+  con las dos publica 40 y **vacía** el mensaje · con el par invertido lleva el texto propio ·
+  «Nuevo estudio» lo repone. **`vd_fac` es READONLY y la sonda se niega a mandarle una tecla.**
+
+- **EL DIÁMETRO DE LA ARTERIA PULMONAR SE MUEVE, NO SE DUPLICA.** Del `.grid-2` de la
+  insuficiencia pulmonar al **tercer lugar de la columna 3** del VD. Conserva el id
+  `ip_ap_diam`, el dueño `ipApDiamVal`, la banda `IP_AP_BANDA` `[5,80]`, la marca, la columna de
+  Excel del G2 y su `oninput`, que llama **sólo** a `ipApDiamSync` — ni `calcIP` ni `calcVD`.
+  **Medido: con los cuatro signos de la IP cargados, grado, referencia e informe IDÉNTICOS con
+  y sin él**, con el denominador comprobado (la escena produce «Severa» de verdad).
+  ⚠️ **CON ÉL SE RETIRÓ LA REGLA `.ip-ap-col2`**: ese `.grid-2` vuelve a **DOS hijos** en una
+  sola fila y **sin el hueco** que quedaba debajo del THP. Medido.
+
+- **LA GRILLA PASA A DIECISÉIS CAMPOS Y GANA LA NOVENA REGLA (`vd-r6`).** La columna 3 tiene
+  SEIS y las otras dos CINCO, así que debajo de la FEVD y de la pared queda un hueco.
+  ⚠️ **ES LO QUE HACE IMPRESCINDIBLE LA POSICIÓN EXPLÍCITA HOY, Y POR OTRO MOTIVO QUE EN EL G1**:
+  allá era que la casilla de la FAC se escondía, y hoy esa casilla está siempre visible — lo que
+  la sostiene ahora es el desbalance de columnas.
+  **Medido a 1200 / 390 / 360 px en los DOS temas**: 3 columnas arriba de 768 px y 1 abajo, los
+  dieciséis a **318 / 328 / 298 px, los MISMOS anchos que HEAD**, cero solapamientos, cero
+  desbordes y sin scroll horizontal. Tab con **teclas reales**, y **hoy el recorrido es el MISMO
+  con y sin las áreas cargadas**: en HEAD, sin ellas, saltaba la casilla de la FAC.
+
+- **EL SELECTOR DE VD/VI CONVIVE CON EL NÚMERO Y TIENE UN DUEÑO ÚNICO.** Cuatro reglas, todas en
+  `vdViSelSync`: con número muestra el derivado y queda `disabled`; sin número el médico elige;
+  escribir un número pisa la elección; borrarlo devuelve a «—» **si lo había escrito la app** y
+  respeta la del médico si fue suya —lo distingue `dataset.auto`, que no se persiste—.
+  `vdViEstado(src)` devuelve «alterada» / «no alterada» / «sin dato» y lo leen los **cuatro**
+  consumidores: la categoría A de `_htp2022Core`, la fila del cuadro, el PDF y el PPT.
+  ⚠️ **LA RAMA `src` NO ES UN ADORNO**: `_htp2022Core` corre también sobre estudios ARCHIVADOS
+  —el panel de cohorte— y ahí no hay formulario que leer. Medido sobre registros: las dos
+  fuentes, y **con los dos cargados manda el NÚMERO**.
+  **El corte no se movió** (`VD_VI_HTP_MIN`, `>`) y **el borde 1,00 EXACTO es «≤ 1» en los dos
+  controles**, que es lo que impide que discrepen. **Con número, los cuatro lectores salen
+  IDÉNTICOS a HEAD** en las cinco escenas, con el PDF generado de verdad.
+  ⚠️ **DOS FORMAS DEL RÓTULO**, `≤ 1` y `<= 1`: el PDF se dibuja en helvetica y esa tabla ya
+  escribe sus referencias en ASCII.
+  **SIN columna de Excel** (438 con y sin él); **sí** se guarda con el estudio.
+  ⚠️ **UN DEFECTO QUE ENCONTRÓ LA SONDA Y NO LA LECTURA**: `limpiarCampos` dejaba el selector
+  `disabled` PARA SIEMPRE tras un «Nuevo estudio», porque borra el número sin pasar por
+  `RECALC_MODULOS` ni por `calcVD`. Es la **cuarta** vez que esta pestaña paga la misma trampa.
+
+- **EL PPT ESTADÍSTICO Y LA MINI-TABLA DEL PDF DE AUDITORÍA, ALINEADOS — cierra G2-3.** Medido
+  en HEAD con el PPT y el PDF **generados de verdad**: el PPT publicaba `Esten. Mitral …
+  Moderada 0 (0 %)` y `Esten. Tricusp. 2 | 1 | 0 | 0`, y el PDF `Esten. Tricusp. (n = 3) 2 | 1 |
+  0 | 0` — «1 leve» sobre una válvula que la app no gradúa, con **las dos significativas FUERA
+  de la fila**, mientras la pantalla decía `ET | — | — | — | 2` sobre esos MISMOS estudios.
+  Hoy las **tres** superficies leen el mismo dueño, **`_labValvFila`**, y la frase que declara
+  las binarias es **una** constante, `LAB_VALV_BIN_NOTA`, donde había tres literales.
+  ⚠️ **`counts` Y `bases` NO SE TOCAN**, y por eso las **SEIS lesiones ajenas salen IDÉNTICAS a
+  HEAD** en el PPT y en el PDF —medido—: sin entrada binaria el dueño devuelve exactamente lo
+  que cada consumidor calculaba. El `n` de la tricúspide pasa de **3 a 6** en el PDF, que es el
+  conteo correcto.
+  ⚠️ **EL n POR FILA NO SE AGREGÓ AL PPT**: su tabla no lo lleva en ninguna de las ocho y
+  agregarlo cambiaría las SEIS que la orden congela. `PENDIENTES.md` → G3-3.
+
+- **EL IMPORTADOR DA UN MENSAJE COMÚN PARA LAS 93 COLUMNAS CALCULADAS — cierra G2-2.** Medido en
+  HEAD: las **75 derivadas SIN campo** caían en «no corresponde a un campo editable» —que suena
+  a «no la reconozco» sobre una columna que la propia app exporta— y las **18 CON campo** en «un
+  valor que la app calcula sola». Hoy las dos familias reciben el mismo texto, con los **datos
+  de origen** de cada una, y **cero columnas** quedan en «ignoradas».
+  ⚠️ **EL CENSO DE LAS 75 SE CALCULA Y NO SE CABLEA**: se pregunta por lo que `_labExcelRow`
+  emite y se le resta el mapa. Una lista de 75 nombres se desactualiza con la primera columna
+  derivada que entre.
+  **Un solo dueño, `_labXlsCalcMsg`**, que publican el modal y el comentario de celda de la
+  plantilla, que decían lo mismo con dos redacciones.
+  ⚠️ **LO QUE NO ESTÁ EN `LAB_XLS_CALC_ORIGEN` NO SE INVENTA**: cae al texto común sin la lista.
+  Inventar un origen manda al médico a corregir el campo equivocado. `PENDIENTES.md` → G3-4.
+
+- ⚠️ **PARADA MEDIDA Y NO ARREGLADA: LA IDA Y VUELTA DEL TAPSE/PSAP NO SE REPRODUCE.** Se
+  exportó la fila COMPLETA de **438 columnas** de un estudio y se la reimportó tal cual: el
+  cociente **no se puede recalcular**, porque la **velocidad máxima de la insuficiencia
+  tricuspídea no tiene columna** —censado: `vmax_it` no está en `LAB_XLS_MAP`, y las dos que la
+  contienen, `PSAP (mmHg)` y `Grad VD-AD (mmHg)`, son CALCULADAS y no se importan—. La cadena es
+  `TAPSE/PSAP ← TAPSE + PSAP ← VRT + PmAD`; el TAPSE viaja y la PmAD se deriva de la VCI, que
+  también viaja. Las dos alternativas —una columna de origen (PARADA de columna, 439) o aceptar
+  el valor del archivo marcado como «importado»— van a `PENDIENTES.md` → **G3-1**, para que las
+  decida Maicol. **Lo que sí se hizo** es que el modal lo DIGA con todas las letras: «falta la
+  velocidad máxima de la insuficiencia tricuspídea, que NO tiene columna en este Excel».
+
+- **CONTROL NEGATIVO MAYOR, con el formulario vacío y con escenario CARGADO: 0 diferencias
+  contra HEAD** en informe (tres estilos), EN SUMA, **Excel en 438 columnas con su hash y clave
+  por clave**, grados y pastillas de las ocho lesiones, diastólica, HFA-PEFF, PPT y el **PDF del
+  informe generado de verdad**. Medido en los commits 2, 3 y 4.
+
+- **Arnés: `scripts/_probe_g3.mjs`** (A/B de solo lectura con `--file`, `--dest` para capturas),
+  ocho grupos (`campos`, `fac`, `apd`, `vdvi`, `valv`, `import`, `controles`, `captura`), con
+  teclas y clics reales, emulación de viewport y el **PPT estadístico, el PDF de auditoría, el
+  PDF del informe y el importador ejecutados de verdad**.
+  **Cobertura: TC-478**, **66 condiciones** —contadas instrumentando el propio caso para que
+  publicara su `ex.length`— con siete denominadores y seis controles negativos. **Verificado que
+  sabe fallar contra HEAD en un worktree aparte: 41 de las 66 en rojo, y NINGUNA por excepción.**
+- ⚠️ **CASOS ADAPTADOS: DOS, con el motivo escrito en cada condición.** **TC-476** (las reglas
+  de posición 8 → 9, los campos 15 → 16 en tres condiciones, y las **tres** de la casilla de la
+  FAC, que pasan a afirmar lo CONTRARIO de lo que afirmaban; más el literal
+  `vdvi > VD_VI_HTP_MIN`, que ya no existe) y **TC-477** (su condición **(J)** era un **límite
+  declarado** del G2 —«el PPT y la mini-tabla leen counts y no bin»— escrito para que el día que
+  se cerrara se notara, **y lo notó**).
+
+- ⚠️ **UNA REGLA DE CSS RETIRADA SIGUE EN EL FUENTE SI LA NOMBRA UN COMENTARIO.** La primera
+  condición nueva de TC-476 buscaba `.ip-ap-col2` y salía roja porque el comentario que explica
+  el retiro la nombra. Lo que hay que buscar es la **declaración** completa.
+- ⚠️ **NO HAY UN `recolectarCampos` GLOBAL.** La primera versión de TC-478 lo llamaba y dos
+  condiciones salieron rojas con «EXC» y «SIN FILA» **sobre un árbol perfecto**. El patrón de la
+  casa es el barrido de `input[id], select[id], textarea[id]`, que es lo que usa TC-316.
+- ⚠️ **`labPPTEstadistico` Y `labAnalisisPDF` NO SE PUEDEN MEDIR DIRECTO**: el primero exige
+  tarjetas tildadas con «☐ PPT» y abre un modal, y el segundo lee `labGetInformes` y avisa por
+  toast. Los generadores que toman la población directo son **`_labPPTGenerar(infs, opts)`** y
+  **`_labAnalisisPDFReal(infs)`**, y `_labPptGruposActivos` se sustituye para que la diapositiva
+  de valvulopatías exista. La primera corrida informó **`nTablas: 0`** sobre un PPT que sí sabe
+  generarse.
+- ⚠️ **EL PPT CLÍNICO SÍ QUEDÓ SIN GENERAR, Y SE DECLARA.** `generarPPT(id)` exige un estudio
+  guardado, un informe narrativo ya escrito y DOS modales encadenados. Su fila «VD/VI» se mide
+  **por el fuente** —que llame a `vdViTexto`— y el valor por el dueño; la del PDF se genera de
+  verdad. `PENDIENTES.md` → G3-6.
+- ⚠️ **Me comí el acento grave TRES veces**, todas en comentarios míos dentro del cuerpo de un
+  caso o del template de la sonda, con el archivo que documenta la trampa abierto delante.
+  `scripts/check_backticks.py` dio la línea exacta las tres; `node --check` apuntaba a la
+  apertura del template.
 
 ### El EXCEL en 438 columnas, el ALIAS «PHT»→«THP», las asociaciones del TAPSE/PSAP y las dos estenosis BINARIAS del Laboratorio — «G2» (2026-10-15)
 

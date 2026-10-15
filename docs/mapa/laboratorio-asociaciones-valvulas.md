@@ -162,6 +162,59 @@ dos dieron cero».
 
 ---
 
+## El G3 (2026-10-15) cierra el límite: las CUATRO superficies leen el MISMO dueño
+
+El G2 dejó la lectura binaria **sólo** en la tabla de pantalla y en el apilado —su orden no
+autorizaba las otras dos— y la declaró en `docs/PENDIENTES.md` → **G2-3**. El G3 la cierra.
+
+### El defecto reproduce en los dos, y el segundo es peor — medido en HEAD
+
+Con la misma población de seis estudios:
+
+| Superficie | HEAD | Hoy |
+|---|---|---|
+| PPT, `Esten. Mitral` | `1 (17 %) · 2 (33 %) · **0 (0 %)** · 3 (50 %)` | `1 · 2 · **—** · 3` |
+| PPT, `Esten. Tricusp.` | `2 (67 %) · **1 (33 %)** · 0 · **0 (0 %)**` | `**—** · — · — · **2 (33 %)**` |
+| PDF, `Esten. Mitral` | `(n = 6) 1 \| 2 \| **0** \| 3` | `(n = 6) 1 \| 2 \| **-** \| 3` |
+| PDF, `Esten. Tricusp.` | `**(n = 3)** 2 \| **1** \| 0 \| **0**` | `**(n = 6)** - \| - \| - \| **2**` |
+
+Un «0 (0 %)» sobre una cubeta vacía POR CONSTRUCCIÓN la rotula como una medición que dio cero.
+Y lo de la tricúspide es peor que un rótulo equivocado: `_labEstenSev` devuelve `null` sobre
+«Significativa», así que las **dos significativas quedaban FUERA de la fila** y el n era 3 en
+vez de 6 — mientras la pantalla, a dos clics, decía `ET | — | — | — | 2` sobre esos MISMOS
+estudios.
+
+### El dueño único — `_labValvFila(vc, i)`
+
+Contesta, para una válvula: **qué cuentas publico, sobre qué base y qué cubetas NO aplican**.
+
+```
+{ cuentas: {Sin, Leve, Moderada, Severa}, base, na: [...], bin: bool }
+```
+
+Lo leen las **tres** superficies de tabla, así que no pueden volver a separarse — que es
+exactamente lo que pasó entre el G2 y hoy, con la resolución escrita en cada una.
+
+⚠️ **LAS OTRAS SEIS LESIONES NO CAMBIAN, Y LO GARANTIZA LA FORMA DE LA FUNCIÓN**, no una
+medición a posteriori: sin entrada en `bin` devuelve EXACTAMENTE lo que los tres consumidores
+calculaban —«Sin» derivado por resta sobre la base de esa válvula— y `na` vacío. Medido: las
+seis idénticas a HEAD en el PPT y en el PDF, y `counts`/`bases` sin moverse.
+
+### Una sola frase para las tres — `LAB_VALV_BIN_NOTA`
+
+El pie de la tabla de pantalla, el del PPT y la nota del PDF decían lo mismo con tres
+literales. Hoy salen de una constante: con tres, el día que uno se corrija los otros dos
+siguen diciendo lo de ayer.
+
+### Lo que NO entró, y por qué
+
+⚠️ **EL n POR FILA NO SE AGREGÓ AL PPT.** Su tabla no lo lleva en ninguna de las ocho lesiones y
+agregarlo cambiaría también las SEIS que la orden congela. El n del grupo sigue en el pie. En el
+PDF la fila **ya** lo llevaba, así que el de la tricúspide pasa de 3 a 6 — que es el conteo
+correcto y es parte del cambio autorizado.
+
+---
+
 ## Trampas medidas en esta tanda
 
 - **`_labImpDatos` es una `let` DE MÓDULO**, no una propiedad de `window`. La sonda informó

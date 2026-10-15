@@ -66757,12 +66757,432 @@ caso('TC-477', 'Tanda G2: el Excel pasa a 438 columnas con el cociente TAPSE/PSA
       __t.val('ea_grado') === 'severa' && __t.val('em_grado') === 'severa',
       'ea=' + __t.val('ea_grado') + ' em=' + __t.val('em_grado')]);
     /* ⚠️ LIMITE DECLARADO, para que el dia que cambie se note: la mini-tabla del PDF de
-       auditoria y el PPT estadistico leen \`counts\`/\`bases\` y NO \`bin\`, asi que la estenosis
-       tricuspidea BINARIA sigue sin contarse ahi. Esta tanda no lo toca. */
-    ex.push(['(J) LIMITE DECLARADO: el PPT y la mini-tabla del PDF leen counts y no bin, asi que la tricuspide binaria sigue sin contarse ahi',
+       auditoria y el PPT estadistico leian counts/bases y NO bin, asi que la estenosis
+       tricuspidea BINARIA no se contaba ahi.
+       ⚠️ ADAPTADO 2026-10-15 (G3): ESE LIMITE SE CERRO. El G3 alinea las dos superficies con
+       la pantalla por un dueño comun (_labValvFila), asi que la tricuspide binaria SI se cuenta
+       hoy en el PPT y en el PDF — el caso nuevo del G3 lo mide generando los dos de verdad.
+       Lo que esta condicion sigue midiendo, y que NO cambio, es que counts y bases salgan con
+       el TOKEN crudo: si alguien metiera la lectura binaria ahi dentro, el conteo de las otras
+       seis lesiones se moveria. El limite estaba escrito para que el dia que se cerrara se
+       notara, y lo noto. */
+    ex.push(['(J) counts y bin siguen separados: la lectura binaria NO entro en counts (el limite del G2 lo cerro el G3)',
       !!vc && vc.counts.Severa[iET] === 0 && !!BIN(vc, iET) && BIN(vc, iET).cuentas.Severa === 2,
       vc ? ('counts=' + vc.counts.Severa[iET] + ' bin=' +
             (BIN(vc, iET) ? BIN(vc, iET).cuentas.Severa : 'SIN bin')) : 'SIN vc']);
+    __t.limpiar();
+
+    return { extra: ex };
+  })();
+`);
+
+/* ⚠️ TODA LECTURA DE UN NODO O DE UNA FUNCION QUE NACE EN EL G3 VA POR UN AYUDANTE CON
+   CENTINELA. Contra HEAD estos no existen, y un .placeholder sobre null o un vdViEstado()
+   suelto matan la corrida entera por excepcion: entonces el caso prueba que el arbol es
+   distinto y no que sabe medir. Misma leccion que TC-455, TC-462, TC-465, TC-471, TC-473,
+   TC-474, TC-475 y TC-477.
+   ⚠️ LAS ESCENAS CARGAN CON __t.set Y NO CON TECLAS DE CDP: el cuerpo de un caso corre DENTRO
+   de la pagina y no tiene el canal del protocolo. Las mismas escenas van con teclas y clics
+   reales en scripts/_probe_g3.mjs, que es la que midio los sintomas contra HEAD. Mismo reparto
+   que TC-460, TC-463 y TC-469. */
+caso('TC-478', 'Tanda G3: la casilla de la FAC vuelve a estar VISIBLE con su mensaje «requiere …», el diametro de la arteria pulmonar se MUEVE a la columna 3 del VD, la relacion VD/VI gana un selector de tramo con una funcion dueña unica que leen sus cuatro consumidores, el PPT estadistico y la mini-tabla del PDF de auditoria cuentan las dos estenosis BINARIAS, y el importador da UN mensaje comun con los datos de origen de cada columna calculada', `
+  return (async function(){
+    const ex = [];
+    const EL  = (id) => document.getElementById(id);
+    const V   = (id) => { const e = EL(id); return e ? e.value : null; };
+    const PH  = (id) => { const e = EL(id); return e ? String(e.placeholder || '') : 'NO EXISTE'; };
+    const T   = (id) => { const e = EL(id); return e ? (e.textContent || '').trim() : 'NO EXISTE'; };
+    const FN  = (n) => typeof window[n] === 'function';
+    const S   = (id, v) => { try { __t.set(id, v); } catch (e) {} };
+    const VIS = (id) => { const e = EL(id); if (!e) return null;
+      let n = e; while (n && n.nodeType === 1) {
+        if (getComputedStyle(n).display === 'none') return false; n = n.parentNode; }
+      return true; };
+    const GUION = String.fromCharCode(8212);
+    const fuente = document.documentElement.innerHTML;
+    /* ⚠️ NO HAY UN recolectarCampos GLOBAL, Y LA PRIMERA VERSION LO LLAMABA: dos condiciones
+       salieron rojas con «EXC» y «SIN FILA» sobre un arbol perfecto. El patron de la casa es
+       este barrido, el mismo que usa TC-316. */
+    const CAMPOS = () => { const c = {};
+      document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function (el) {
+        if (el.type === 'checkbox') c[el.id + '__chk'] = el.checked ? '1' : '0';
+        else c[el.id] = el.value; });
+      return c; };
+
+    /* ══ A · LA COLUMNA 3 DEL VD CON SUS SEIS CAMPOS ═══════════════════════════════════════
+       ⚠️ EL NOMBRE DE LA PESTAÑA ES «vd» Y NO «vd-ad»: showTab('vd-ad') tira una excepcion y el
+       denominador queda en falso. El acordeon es sacc-vd y nace cerrado. */
+    __t.limpiar();
+    try { showTab('vd'); } catch (e) {}
+    try { const a = EL('sacc-vd'); if (a && !a.classList.contains('open')) secToggle('vd'); } catch (e) {}
+    const grid = document.querySelector('.vd-grid');
+    ex.push(['DENOMINADOR: el contenedor .vd-grid existe', !!grid, grid ? 'si' : 'NO EXISTE']);
+    const campos = grid ? Array.prototype.slice.call(grid.querySelectorAll('input[id]')).map(e => e.id) : [];
+    const ESPERADO = ['tvia','tapse','s_prime','vd_tei','fevd','vd_bas','vd_mid','vd_long',
+                      'vd_vi','vd_pared','tsvd_diametro','vti_tsvd','ip_ap_diam','vd_area_d',
+                      'vd_area_s','vd_fac'];
+    ex.push(['(A) los DIECISEIS campos estan en el orden de COLUMNAS, que es el que recorre el Tab',
+      campos.join(',') === ESPERADO.join(','), campos.join(',')]);
+    ex.push(['(A) el diametro de la arteria pulmonar es el TERCERO de la columna 3',
+      (function(){ const e = EL('ip_ap_diam'); if (!e) return false;
+        const fg = e.closest('.fg'); const cl = fg ? String(fg.className) : '';
+        return cl.indexOf('vd-c3') > -1 && cl.indexOf('vd-r3') > -1 && !!e.closest('.vd-grid'); })(),
+      (function(){ const e = EL('ip_ap_diam'); const fg = e && e.closest('.fg');
+        return fg ? fg.className : 'NO EXISTE'; })()]);
+    /* La columna 3 tiene SEIS y las otras dos CINCO: ese desbalance es lo que hace necesaria la
+       posicion explicita, porque con flujo automatico el sexto se iria a la columna 1. */
+    const porCol = { 1: 0, 2: 0, 3: 0 };
+    if (grid) Array.prototype.slice.call(grid.querySelectorAll('.fg')).forEach(fg => {
+      const m = String(fg.className || '').match(/vd-c(\\d)/); if (m) porCol[m[1]]++; });
+    ex.push(['(A) la columna 3 tiene SEIS campos y las otras dos CINCO',
+      porCol[1] === 5 && porCol[2] === 5 && porCol[3] === 6, JSON.stringify(porCol)]);
+    ex.push(['(A) la NOVENA regla de posicion (vd-r6) esta en el fuente',
+      fuente.indexOf('.vd-grid > .vd-r6 { grid-row: 6; }') > -1, '']);
+    ex.push(['(A) y la DECLARACION .ip-ap-col2 del G1 ya no existe: el campo se MOVIO, no se duplico',
+      fuente.indexOf('.ip-ap-col2 { grid-column: 2; }') < 0, '']);
+    ex.push(['(A) NO hay ni un tabindex en la grilla del VD',
+      grid ? grid.querySelectorAll('[tabindex]').length === 0 : false,
+      grid ? String(grid.querySelectorAll('[tabindex]').length) : 'sin grid']);
+    /* El foco REAL de los dieciseis, uno por uno. Un caso no puede mandar un Tab de verdad
+       —las posiciones a 1200, 390 y 360 px y el Tab con teclas los mide la sonda— pero si
+       comprobar que los dieciseis son enfocables, que es lo que el Tab necesita. */
+    const sinFoco = ESPERADO.filter(id => { const e = EL(id); if (!e) return true;
+      e.focus(); return document.activeElement !== e; });
+    ex.push(['(A) los dieciseis campos reciben el foco', sinFoco.length === 0, 'no enfocan: ' + sinFoco.join(',')]);
+    /* La seccion de la insuficiencia pulmonar quedo ordenada: su .grid-2 con DOS hijos. */
+    ex.push(['(A) la seccion de la IP quedo con DOS campos en su grid y sin el hueco del G1',
+      (function(){ const t = EL('ip_pht'); if (!t) return false;
+        const gr = t.closest('.grid-2'); if (!gr) return false;
+        const ids = Array.prototype.slice.call(gr.children).map(f => {
+          const i = f.querySelector('input[id],select[id]'); return i ? i.id : '?'; });
+        return ids.length === 2 && ids[0] === 'ip_pht' && ids[1] === 'ip_ancho'; })(),
+      (function(){ const t = EL('ip_pht'); const gr = t && t.closest('.grid-2');
+        return gr ? Array.prototype.slice.call(gr.children).map(f => {
+          const i = f.querySelector('input[id],select[id]'); return i ? i.id : '?'; }).join(',') : 'NO HAY'; })()]);
+
+    /* ══ B · LA CASILLA DE LA FAC, VISIBLE, CON SU MENSAJE «requiere …» ════════════════════
+       ⚠️ vd_fac ES READONLY: nunca se le manda una tecla. Se cargan y se borran las AREAS. */
+    __t.limpiar();
+    try { showTab('vd'); } catch (e) {}
+    try { const a = EL('sacc-vd'); if (a && !a.classList.contains('open')) secToggle('vd'); } catch (e) {}
+    ex.push(['(B) DENOMINADOR: la casilla de la FAC existe y es de SOLO LECTURA',
+      !!EL('vd_fac') && EL('vd_fac').hasAttribute('readonly'), String(!!EL('vd_fac'))]);
+    ex.push(['(B) con el formulario vacio la casilla esta VISIBLE (en el G1 se escondia)',
+      VIS('fg-vd-fac') === true, String(VIS('fg-vd-fac'))]);
+    const phVacio = PH('vd_fac');
+    ex.push(['(B) y su mensaje nombra las DOS areas que faltan',
+      phVacio.indexOf('requiere') > -1 && phVacio.indexOf('telediast') > -1 &&
+      phVacio.indexOf('telesist') > -1, phVacio]);
+    S('vd_area_d', '20');
+    const phUna = PH('vd_fac');
+    ex.push(['(B) con UNA area nombra SOLO la que falta, no las dos',
+      phUna.indexOf('telesist') > -1 && phUna.indexOf('telediast') < 0, phUna]);
+    S('vd_area_s', '12');
+    ex.push(['(B) con las dos publica el valor y VACIA el mensaje',
+      V('vd_fac') === '40' && PH('vd_fac') === '' && VIS('row-fac-interp') === true,
+      JSON.stringify([V('vd_fac'), PH('vd_fac'), VIS('row-fac-interp')])]);
+    /* El par INVERTIDO no es un dato que falta: es un par mal medido, y lleva su propio texto. */
+    S('vd_area_s', '25');
+    const phInv = PH('vd_fac');
+    ex.push(['(B) con el par INVERTIDO el mensaje es OTRO: no falta un dato, el par no sirve',
+      V('vd_fac') === '' && phInv.indexOf('menor que la telediast') > -1, V('vd_fac') + ' // ' + phInv]);
+    S('vd_area_s', '12');
+    ex.push(['(B) y al reponerla vuelve el valor', V('vd_fac') === '40', V('vd_fac')]);
+    /* La FILA del cuadro sigue escondiendose: son dos cosas distintas y solo se movio una. */
+    S('vd_area_s', '');
+    ex.push(['(B) al borrar un area la FILA se esconde y la CASILLA se queda',
+      VIS('row-fac-interp') === false && VIS('fg-vd-fac') === true,
+      JSON.stringify([VIS('row-fac-interp'), VIS('fg-vd-fac')])]);
+    /* «Nuevo estudio»: ningun barrido generico toca un placeholder. */
+    S('vd_area_s', '12');
+    const antesLimpiar = [VIS('fg-vd-fac'), V('vd_fac'), PH('vd_fac')];
+    __t.limpiar();
+    ex.push(['(B) DENOMINADOR del vaciado: antes habia valor y el mensaje estaba vacio',
+      antesLimpiar[1] === '40' && antesLimpiar[2] === '', JSON.stringify(antesLimpiar)]);
+    ex.push(['(B) «Nuevo estudio» repone el mensaje: limpiarCampos NO pasa por RECALC_MODULOS',
+      V('vd_fac') === '' && PH('vd_fac').indexOf('requiere') > -1 && VIS('fg-vd-fac') === true,
+      JSON.stringify([V('vd_fac'), PH('vd_fac'), VIS('fg-vd-fac')])]);
+
+    /* ══ C · EL DIAMETRO DE LA ARTERIA PULMONAR EN SU LUGAR NUEVO ══════════════════════════ */
+    __t.limpiar();
+    const apEl = EL('ip_ap_diam');
+    ex.push(['(C) su oninput sigue llamando SOLO a ipApDiamSync — por eso no puede votar',
+      !!apEl && String(apEl.getAttribute('oninput') || '').indexOf('calcIP') < 0 &&
+      String(apEl.getAttribute('oninput') || '').indexOf('calcVD') < 0 &&
+      String(apEl.getAttribute('oninput') || '').indexOf('ipApDiamSync') > -1,
+      apEl ? apEl.getAttribute('oninput') : 'NO EXISTE']);
+    ex.push(['(C) sigue siendo un campo NUMERICO: la maquinaria numdec/inputmode lo tomo',
+      !!apEl && apEl.classList.contains('numdec') && apEl.getAttribute('inputmode') === 'decimal',
+      apEl ? (apEl.className + '/' + apEl.getAttribute('inputmode')) : 'NO EXISTE']);
+    S('ip_ap_diam', '22');
+    ex.push(['(C) el dato queda y su dueño unico lo devuelve',
+      V('ip_ap_diam') === '22' && FN('ipApDiamVal') && ipApDiamVal() === 22 &&
+      T('ip_ap_diam-marca') === '', V('ip_ap_diam') + ' // marca=' + T('ip_ap_diam-marca')]);
+    S('ip_ap_diam', '2.5');
+    ex.push(['(C) la banda sigue siendo la misma: 2,5 queda MARCADO y el valor NO se corrige',
+      T('ip_ap_diam-marca') === '(revisar)' && V('ip_ap_diam') === '2.5',
+      T('ip_ap_diam-marca') + ' // ' + V('ip_ap_diam')]);
+    S('ip_ap_diam', '5');
+    ex.push(['(C) CONTROL NEGATIVO: el borde 5 EXACTO esta DENTRO de la banda',
+      T('ip_ap_diam-marca') === '', T('ip_ap_diam-marca')]);
+    /* La columna de Excel del G2 no se movio, y el campo sigue viajando con el estudio. */
+    S('ip_ap_diam', '30');
+    let filaAp = null;
+    try { filaAp = _labExcelRow({ id:'x', nombre:'x', fecha_estudio:'2026-10-15',
+      campos: CAMPOS() }); } catch (e) {}
+    const COL_AP = 'Di' + String.fromCharCode(225) + 'metro arteria pulmonar (mm)';
+    ex.push(['(C) el Excel sigue en 438 columnas y la suya trae el valor tipeado',
+      !!filaAp && Object.keys(filaAp).length === 438 && String(filaAp[COL_AP]) === '30',
+      filaAp ? (Object.keys(filaAp).length + ' // ' + filaAp[COL_AP]) : 'SIN FILA']);
+    ex.push(['(C) y sigue viajando con el estudio',
+      FN('_noEsDelEstudio') ? _noEsDelEstudio('ip_ap_diam') === false : false,
+      String(FN('_noEsDelEstudio') ? _noEsDelEstudio('ip_ap_diam') : 'SIN FN')]);
+    /* NO VOTA: con los cuatro signos de la IP cargados, el grado sale igual con y sin el. */
+    __t.limpiar();
+    S('ip_pht', '99'); S('ip_ancho', 'ancho'); S('ip_senal', 'densa_emp');
+    try { calcIP(); } catch (e) {}
+    const ipSin = { g: V('ip_grado'), r: T('ip-ref-pht'), i: __t.informe() };
+    S('ip_ap_diam', '30');
+    try { calcIP(); } catch (e) {}
+    const ipCon = { g: V('ip_grado'), r: T('ip-ref-pht'), i: __t.informe() };
+    ex.push(['(C) NO VOTA: grado, referencia e informe IDENTICOS con y sin el diametro',
+      ipSin.g === ipCon.g && ipSin.r === ipCon.r &&
+      JSON.stringify(ipSin.i) === JSON.stringify(ipCon.i),
+      JSON.stringify([ipSin.g, ipCon.g, ipSin.r, ipCon.r])]);
+    ex.push(['(C) DENOMINADOR: la escena producia un grado de verdad, no un vacio',
+      String(ipSin.g || '').length > 0 && ipSin.g !== 'Sin insuficiencia', String(ipSin.g)]);
+    __t.limpiar();
+    ex.push(['(C) «Nuevo estudio» lo vacia y apaga su marca',
+      V('ip_ap_diam') === '' && T('ip_ap_diam-marca') === '',
+      V('ip_ap_diam') + ' // ' + T('ip_ap_diam-marca')]);
+
+    /* ══ D · EL SELECTOR DE LA RELACION VD/VI ══════════════════════════════════════════════
+       El borde se prueba con el valor que cae ENTRE los dos lados: 0,99 / 1,00 EXACTO / 1,01.
+       El 1,00 cae del lado «no alterada», que es donde lo deja el operador > de la constante. */
+    __t.limpiar();
+    try { showTab('vd'); } catch (e) {}
+    try { const a = EL('sacc-vd'); if (a && !a.classList.contains('open')) secToggle('vd'); } catch (e) {}
+    const sl = EL('vd_vi_sel');
+    ex.push(['(D) DENOMINADOR: el selector existe, es un <select> HERMANO y ofrece TRES opciones',
+      !!sl && sl.tagName === 'SELECT' && sl.options.length === 3 &&
+      Array.prototype.slice.call(sl.options).map(o => o.value).join(',') === ',le1,gt1',
+      sl ? Array.prototype.slice.call(sl.options).map(o => o.value).join(',') : 'NO EXISTE']);
+    const EST = () => FN('vdViEstado') ? vdViEstado() : { estado: 'SIN FN', alt: null, fuente: null };
+    const TXT = () => FN('vdViTexto') ? vdViTexto(false) : 'SIN FN';
+    /* (a) CON NUMERO: el selector muestra el derivado y no se puede contradecir. */
+    S('vd_vi', '0.99');
+    ex.push(['(D) 0,99: no alterada, el selector deriva «le1» y queda BLOQUEADO',
+      EST().estado === 'no alterada' && sl && sl.value === 'le1' && sl.disabled === true &&
+      VIS('row-vd-vi-interp') === false,
+      JSON.stringify([EST().estado, sl && sl.value, sl && sl.disabled, VIS('row-vd-vi-interp')])]);
+    S('vd_vi', '1');
+    ex.push(['(D) 1,00 EXACTO: sigue «no alterada» — el operador es > y no >=',
+      EST().estado === 'no alterada' && sl && sl.value === 'le1',
+      EST().estado + ' // ' + (sl && sl.value)]);
+    S('vd_vi', '1.01');
+    ex.push(['(D) 1,01: alterada, el selector deriva «gt1» y la fila del cuadro se muestra',
+      EST().estado === 'alterada' && sl && sl.value === 'gt1' && VIS('row-vd-vi-interp') === true,
+      JSON.stringify([EST().estado, sl && sl.value, VIS('row-vd-vi-interp')])]);
+    ex.push(['(D) y con numero el texto publicable es el NUMERO, no el tramo',
+      TXT() === '1.01', String(TXT())]);
+    /* (c) y (d): el numero pisa la eleccion manual, y borrarlo devuelve el selector a «—». */
+    S('vd_vi', '');
+    ex.push(['(D) al borrar el numero el selector vuelve a «—» y se desbloquea',
+      sl && sl.value === '' && sl.disabled === false && EST().estado === 'sin dato',
+      JSON.stringify([sl && sl.value, sl && sl.disabled, EST().estado])]);
+    /* (b) SIN numero: el medico elige, y la funcion dueña lo lee. */
+    const elegir = (v2) => { const e = EL('vd_vi_sel'); if (!e || e.disabled) return false;
+      e.value = v2; e.dispatchEvent(new Event('change', { bubbles: true })); return e.value === v2; };
+    const ok1 = elegir('gt1');
+    ex.push(['(D) SIN numero el medico elige «> 1» y el dueño lo lee como ALTERADA',
+      ok1 && EST().estado === 'alterada' && EST().fuente === 'selector' && TXT() === '> 1',
+      JSON.stringify([ok1, EST().estado, EST().fuente, TXT()])]);
+    ex.push(['(D) y la fila del cuadro se dibuja con el TRAMO y no con un null',
+      VIS('row-vd-vi-interp') === true && T('vd-vi-interp').indexOf('null') < 0 &&
+      T('vd-vi-interp').indexOf('> 1') === 0,
+      T('vd-vi-interp').slice(0, 80)]);
+    const ok2 = elegir('le1');
+    ex.push(['(D) «≤ 1» lo lee como NO alterada y esconde la fila',
+      ok2 && EST().estado === 'no alterada' && VIS('row-vd-vi-interp') === false,
+      JSON.stringify([ok2, EST().estado, VIS('row-vd-vi-interp')])]);
+    /* (c): escribir un numero PISA la eleccion del medico. */
+    S('vd_vi', '1.3');
+    ex.push(['(C/D) escribir un numero PISA la eleccion manual',
+      sl && sl.value === 'gt1' && sl.dataset.auto === '1' && EST().fuente === 'numero',
+      JSON.stringify([sl && sl.value, sl && sl.dataset.auto, EST().fuente])]);
+    S('vd_vi', '');
+    ex.push(['(D) y borrarlo devuelve el selector a «—» porque lo habia escrito la app',
+      sl && sl.value === '' && EST().estado === 'sin dato', JSON.stringify([sl && sl.value, EST().estado])]);
+    /* LOS CUATRO LECTORES. La probabilidad de HTP, la fila, el PDF y el PPT. */
+    elegir('gt1');
+    const catAsel = (function(){
+      if (!FN('_htp2022Core')) return 'SIN FN';
+      try { return _htp2022Core({ num: (i) => v(i), txt: (i) => sv(i),
+        chk: (i) => { const e = EL(i); return !!(e && e.checked); } }).catA; } catch (e) { return 'EXC'; }
+    })();
+    ex.push(['(D) la probabilidad de HTP prende su categoria A con el SELECTOR, sin numero',
+      catAsel === true, String(catAsel)]);
+    elegir('le1');
+    const catAno = (function(){
+      if (!FN('_htp2022Core')) return 'SIN FN';
+      try { return _htp2022Core({ num: (i) => v(i), txt: (i) => sv(i),
+        chk: (i) => { const e = EL(i); return !!(e && e.checked); } }).catA; } catch (e) { return 'EXC'; }
+    })();
+    ex.push(['(D) CONTROL NEGATIVO: con «≤ 1» NO la prende',
+      catAno === false, String(catAno)]);
+    ex.push(['(D) el PDF y el PPT leen al dueño y no el campo pelado',
+      fuente.indexOf('vdViTexto(true)') > -1 && fuente.indexOf('vdViTexto(false)') > -1, '']);
+    /* El dueño sobre un REGISTRO archivado: es el camino del panel de cohorte del Laboratorio,
+       que no tiene formulario que leer. Y el NUMERO manda siempre que exista. */
+    const deReg = (c) => (FN('vdViEstado') && FN('_hfSrcCampos'))
+      ? vdViEstado(_hfSrcCampos(c)).estado : 'SIN FN';
+    ex.push(['(D) sobre un estudio ARCHIVADO el dueño lee las DOS fuentes',
+      deReg({ vd_vi: '1.3' }) === 'alterada' && deReg({ vd_vi_sel: 'gt1' }) === 'alterada' &&
+      deReg({ vd_vi_sel: 'le1' }) === 'no alterada' && deReg({}) === 'sin dato',
+      [deReg({ vd_vi:'1.3' }), deReg({ vd_vi_sel:'gt1' }), deReg({ vd_vi_sel:'le1' }), deReg({})].join(' / ')]);
+    ex.push(['(D) y con los DOS cargados manda el NUMERO, no el selector',
+      deReg({ vd_vi: '0.8', vd_vi_sel: 'gt1' }) === 'no alterada',
+      deReg({ vd_vi: '0.8', vd_vi_sel: 'gt1' })]);
+    /* SIN columna de Excel: la eleccion manual no viaja al libro, y el selector si al estudio. */
+    __t.limpiar();
+    try { showTab('vd'); } catch (e) {}
+    try { const a = EL('sacc-vd'); if (a && !a.classList.contains('open')) secToggle('vd'); } catch (e) {}
+    elegir('gt1');
+    let filaSel = null;
+    try { filaSel = _labExcelRow({ id:'x', nombre:'x', fecha_estudio:'2026-10-15',
+      campos: CAMPOS() }); } catch (e) {}
+    ex.push(['(D) SIN columna de Excel: sigue en 438 y ninguna nombra el selector',
+      !!filaSel && Object.keys(filaSel).length === 438 &&
+      Object.keys(filaSel).filter(k => /vd_vi_sel/i.test(k)).length === 0,
+      filaSel ? String(Object.keys(filaSel).length) : 'SIN FILA']);
+    ex.push(['(D) pero SI se guarda con el estudio',
+      CAMPOS().vd_vi_sel === 'gt1' &&
+      (FN('_noEsDelEstudio') ? _noEsDelEstudio('vd_vi_sel') === false : false),
+      String(CAMPOS().vd_vi_sel)]);
+    __t.limpiar();
+    ex.push(['(D) «Nuevo estudio» lo devuelve a «—» y lo desbloquea',
+      (function(){ const e = EL('vd_vi_sel'); return !!e && e.value === '' && e.disabled === false; })(),
+      (function(){ const e = EL('vd_vi_sel'); return e ? (e.value + '/' + e.disabled) : 'NO EXISTE'; })()]);
+    /* CONTROL NEGATIVO: el corte de TEP es OTRO campo y OTRA pregunta. */
+    ex.push(['(D) CONTROL NEGATIVO: el >= 0,9 de TEP sigue vivo y sobre tep_vdvi',
+      fuente.indexOf('vdvi >= 0.9') > -1 && !!EL('tep_vdvi'), '']);
+
+    /* ══ E · EL PPT ESTADISTICO Y LA MINI-TABLA DEL PDF, ALINEADOS ═════════════════════════
+       Las TRES superficies leen el MISMO dueño, _labValvFila. Lo que el caso mide es ese
+       reparto; el PPT y el PDF generados DE VERDAD los mide scripts/_probe_g3.mjs. */
+    const REG = (c) => ({ id:'p', nombre:'p', ci:'1', fecha_estudio:'2026-10-15', campos:c });
+    const baseV = { im_grado:'0', ia_grado:'0', it_grado:'0', ip_grado:'Sin insuficiencia',
+                    ea_grado:'sin', ep_grado:'sin' };
+    const mkV = (o) => REG(Object.assign({}, baseV, o));
+    const pobV = [mkV({ em_grado:'severa', et_grado:'Significativa' }),
+                  mkV({ em_grado:'leve',   et_grado:'No significativa' }),
+                  mkV({ em_grado:'sin',    et_grado:'sin' }),
+                  mkV({ em_grado:'severa', et_grado:'Significativa' }),
+                  mkV({ em_grado:'severa', et_grado:'Leve' }),
+                  mkV({ im_grado:'2', ia_grado:'1', it_grado:'4', ea_grado:'Moderada',
+                        ip_grado:'Severa', ep_grado:'Leve', em_grado:'leve', et_grado:'sin' })];
+    let vcE = null; try { vcE = _labValvCounts(pobV); } catch (e) { vcE = null; }
+    ex.push(['(E) DENOMINADOR: _labValvCounts devuelve sus ocho columnas y su estructura binaria',
+      !!vcE && vcE.bases.length === 8 && !!vcE.bin, vcE ? JSON.stringify(vcE.bases) : 'SIN vc']);
+    const iEM = _LAB_VALV_LABELS.indexOf('Esten. Mitral');
+    const iET = _LAB_VALV_LABELS.indexOf('Esten. Tricusp.');
+    const FILA = (i) => FN('_labValvFila') ? _labValvFila(vcE, i) : null;
+    ex.push(['(E) el dueño del reparto existe y lo usan las TRES superficies',
+      FN('_labValvFila') &&
+      (fuente.match(/_labValvFila\\(/g) || []).length >= 3,
+      String((fuente.match(/_labValvFila\\(/g) || []).length)]);
+    ex.push(['(E) la MITRAL publica «Moderada» como cubeta que NO aplica, no como cero',
+      !!FILA(iEM) && FILA(iEM).na.indexOf('Moderada') >= 0 && FILA(iEM).bin === true,
+      FILA(iEM) ? JSON.stringify(FILA(iEM).na) : 'SIN FILA']);
+    ex.push(['(E) la TRICUSPIDE publica SOLO «Severa», con las otras TRES sin aplicar y base 6',
+      !!FILA(iET) && FILA(iET).na.length === 3 && FILA(iET).cuentas.Severa === 2 &&
+      FILA(iET).base === 6,
+      FILA(iET) ? (JSON.stringify(FILA(iET).na) + ' sev=' + FILA(iET).cuentas.Severa +
+                   ' base=' + FILA(iET).base) : 'SIN FILA']);
+    ex.push(['(E) CONTROL NEGATIVO: las otras SEIS lesiones NO tienen cubetas sin aplicar y su «Sin» sale por resta',
+      [0,2,3,4,6,7].every(i => { const f = FILA(i);
+        return !!f && f.bin === false && f.na.length === 0 &&
+               f.cuentas.Sin === Math.max(0, vcE.bases[i] - vcE.counts.Leve[i] - vcE.counts.Moderada[i] - vcE.counts.Severa[i]); }),
+      JSON.stringify([0,2,3,4,6,7].map(i => { const f = FILA(i); return f ? f.na.length : 'X'; }))]);
+    ex.push(['(E) counts y bases NO se tocaron: siguen leyendo el TOKEN crudo',
+      !!vcE && vcE.counts.Severa[iET] === 0 && vcE.counts.Leve[iET] === 1 && vcE.bases[iET] === 3,
+      vcE ? JSON.stringify({ S: vcE.counts.Severa[iET], L: vcE.counts.Leve[iET], b: vcE.bases[iET] }) : '']);
+    /* La frase que declara las dos binarias tiene UN dueño y la publican las tres. */
+    ex.push(['(E) la nota de las dos binarias es UNA constante y no tres literales',
+      typeof LAB_VALV_BIN_NOTA === 'string' && LAB_VALV_BIN_NOTA.indexOf('BINARIAS') > -1 &&
+      (fuente.match(/LAB_VALV_BIN_NOTA/g) || []).length >= 4,
+      String((fuente.match(/LAB_VALV_BIN_NOTA/g) || []).length)]);
+
+    /* ══ F · EL IMPORTADOR: UN MENSAJE COMUN CON LOS DATOS DE ORIGEN ═══════════════════════ */
+    const MSG = (c) => FN('_labXlsCalcMsg') ? _labXlsCalcMsg(c) : 'SIN FN';
+    ex.push(['(F) el mensaje comun nombra los datos de origen del cociente',
+      MSG('TAPSE/PSAP (mm/mmHg)').indexOf('se recalcula con TAPSE y PSAP estimada') > -1 &&
+      MSG('TAPSE/PSAP (mm/mmHg)').indexOf('no se importa') > -1,
+      MSG('TAPSE/PSAP (mm/mmHg)')]);
+    ex.push(['(F) y los de la PSAP, que es la que la casa ya explicaba mejor',
+      MSG('PSAP (mmHg)').indexOf('insuficiencia tricusp') > -1 &&
+      MSG('PSAP (mmHg)').indexOf('presi' + String.fromCharCode(243) + 'n media de la AD') > -1,
+      MSG('PSAP (mmHg)')]);
+    ex.push(['(F) las familias de indicadoras van por PREFIJO y no una por una',
+      MSG('DD_II (Grado II)').indexOf('grado de disfunci') > -1 &&
+      MSG('Geom_HVI_Concentrica').indexOf('geometr') > -1,
+      MSG('DD_II (Grado II)') + ' // ' + MSG('Geom_HVI_Concentrica')]);
+    ex.push(['(F) lo que NO tiene origen declarado NO se inventa: cae al texto comun',
+      MSG('Columna Inventada XZ') === 'columna calculada por la app: se recalcula desde las mediciones que la alimentan; no se importa',
+      MSG('Columna Inventada XZ')]);
+    /* Las DOS familias de calculada, con su predicado real. */
+    ex.push(['(F) DENOMINADOR: hay calculadas de los DOS tipos — con campo y sin campo',
+      FN('_labXlsEsCalculado') && _labXlsEsCalculado('psap_calc') === true &&
+      (function(){ try { const enMapa = {}; LAB_XLS_MAP.forEach(m => { enMapa[m[0]] = 1; });
+        return !enMapa['TAPSE/PSAP (mm/mmHg)'] && !enMapa['FAC VD (%)']; } catch (e) { return false; } })(),
+      '']);
+    /* ⚠️ LA VELOCIDAD DE LA IT NO TIENE COLUMNA, Y POR ESO LA IDA Y VUELTA DEL COCIENTE NO SE
+       REPRODUCE. Es la PARADA declarada del G3: el cociente sale de TAPSE y PSAP, la PSAP de la
+       VRT y la PmAD, y la VRT no viaja. Las dos columnas que la contienen —PSAP y Grad VD-AD—
+       son CALCULADAS y no se importan. El caso lo fija para que el dia que entre una columna de
+       origen se note. */
+    ex.push(['(F) PARADA DECLARADA: la velocidad de la IT NO tiene columna de Excel, asi que el cociente no se puede recalcular al reimportar',
+      (function(){ try {
+        const enMapa = LAB_XLS_MAP.filter(m => m[1] === 'vmax_it').length;
+        const fila = _labExcelRow(REG({}));
+        const nombran = Object.keys(fila).filter(k => /VRT|Vmax IT/i.test(k));
+        return enMapa === 0 && nombran.length === 0; } catch (e) { return false; } })(),
+      (function(){ try { return 'enMapa=' + LAB_XLS_MAP.filter(m => m[1] === 'vmax_it').length; }
+        catch (e) { return 'EXC'; } })()]);
+
+    /* ══ G · CONTROLES ════════════════════════════════════════════════════════════════════
+       Lo que esta tanda no toca no puede moverse. El estilo del informe es estado de sesion:
+       se fija en la escena. */
+    __t.limpiar();
+    try { setEstiloInforme('estandar'); } catch (e) {}
+    ['fevi','ddfvi','dsfvi','siv','ppvi','peso','talla','edad','sexo','tapse','s_prime','vd_bas',
+     'onda_e','onda_a','e_sep','e_lat','ai_vol','tde','vmax_it','vci_diam','vci_col',
+     'im_vmax','im_itv','pisa_r','pisa_val','ia_vc','ia_pht','it_vc','vmax_ao','gmedio_ao',
+     'avm_plan','em_gmedio','diam_tsvi_ao','itv_tsvi']
+      .forEach((id, k) => { const vv = { fevi:'45', ddfvi:'58', dsfvi:'42', siv:'13', ppvi:'12',
+        peso:'80', talla:'172', edad:'68', sexo:'M', tapse:'18', s_prime:'10', vd_bas:'38',
+        onda_e:'95', onda_a:'45', e_sep:'5', e_lat:'7', ai_vol:'90', tde:'150', vmax_it:'3.2',
+        vci_diam:'22', vci_col:'<50', im_vmax:'5.5', im_itv:'140', pisa_r:'6', pisa_val:'40',
+        ia_vc:'7', ia_pht:'220', it_vc:'8', vmax_ao:'4.2', gmedio_ao:'45', avm_plan:'1.2',
+        em_gmedio:'12', diam_tsvi_ao:'20', itv_tsvi:'20' }[id]; if (vv !== undefined) S(id, vv); });
+    try { calcVD(); calcPSAP(); calcDiastol(); calcIM_ESC(); calcIA_ESC(); calcIT_ESC();
+          calcEM(); calcAo(); calcIP(); } catch (e) {}
+    const infG = __t.informe();
+    ex.push(['(G) DENOMINADOR: la escena produce un informe de verdad y no un formulario vacio',
+      String(infG.inf || infG || '').length > 200, String(infG.inf || infG || '').slice(0, 60)]);
+    let filaG = null;
+    try { filaG = _labExcelRow({ id:'x', nombre:'x', fecha_estudio:'2026-10-15',
+      campos: CAMPOS() }); } catch (e) {}
+    ex.push(['(G) el Excel sigue en 438 columnas con el escenario cargado',
+      !!filaG && Object.keys(filaG).length === 438,
+      filaG ? String(Object.keys(filaG).length) : 'SIN FILA']);
+    ex.push(['(G) la funcion diastolica y el HFA-PEFF siguen publicando su veredicto',
+      T('dd-interp') !== 'NO EXISTE' && String(T('dd-interp')).length > 3, T('dd-interp').slice(0, 60)]);
+    ex.push(['(G) y las ocho lesiones siguen teniendo su grado',
+      ['im_grado','ia_grado','it_grado','ea_grado','em_grado','et_grado','ip_grado','ep_grado']
+        .every(id => EL(id) !== null),
+      ['im_grado','ia_grado','it_grado','ea_grado','em_grado','et_grado','ip_grado','ep_grado']
+        .map(id => id + '=' + V(id)).join(' ')]);
     __t.limpiar();
 
     return { extra: ex };
