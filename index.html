@@ -34877,39 +34877,39 @@ const VINFO = Object.freeze({
     formula: 'EROA = 2π · r² · V_aliasing ÷ Vmax del chorro\n'
            + 'Vol-R = EROA × VTI del chorro (CW)\n'
            + 'FR = Vol-R ÷ (Vol-R + Vol eyectado TSVI)',
-    lee: 'Mide el orificio regurgitante en el instante de velocidad maxima y el volumen que pasa por el en un latido.',
+    lee: 'Mide el orificio regurgitante en el instante de velocidad m\u00e1xima y el volumen que pasa por \u00e9l en un latido.',
     fuente: 'ASE 2017 (Zoghbi), folio 312; los cortes, Tabla 8, folio 332.',
-    ojo: 'El radio se mide en el pico de velocidad: con un chorro que no ocupa toda la sistole, la EROA sale sobreestimada.'
+    ojo: 'El radio se mide en el pico de velocidad: con un chorro que no ocupa toda la s\u00edstole, la EROA sale sobreestimada.'
   },
   'eroa-cont': {
     tit: 'EROA, Vol-R y FR por continuidad',
     formula: 'Vol-R = Vol mitral / latido − Vol eyectado TSVI\n'
            + 'EROA = Vol-R ÷ VTI del chorro (CW)\n'
            + 'FR = Vol-R ÷ Vol mitral / latido',
-    lee: 'Mide lo que vuelve a la auricula como diferencia entre el flujo que entra por la mitral y el que sale por el tracto de salida.',
+    lee: 'Mide lo que vuelve a la aur\u00edcula como diferencia entre el flujo que entra por la mitral y el que sale por el tracto de salida.',
     fuente: 'ASE 2017 (Zoghbi), folios 311 y 312; los cortes, Tabla 8, folio 332.',
-    ojo: 'La banda de severidad de la EROA la guia la define para PISA 2D; aplicarla a esta EROA es criterio de la aplicacion.'
+    ojo: 'La banda de severidad de la EROA la gu\u00eda la define para PISA 2D; aplicarla a esta EROA es criterio de la aplicaci\u00f3n.'
   },
   'vsv-tsvi': {
     tit: 'Volumen eyectado del TSVI',
     formula: 'Ø² × 0,785 × VTI del TSVI, con el Ø en cm\n(0,785 = π/4; la app guarda el Ø en mm y lo convierte)',
-    lee: 'Es el volumen que el ventriculo expulsa por el tracto de salida en un latido, y el denominador de las dos cuentas que lo usan.',
+    lee: 'Es el volumen que el ventr\u00edculo expulsa por el tracto de salida en un latido, y el denominador de las dos cuentas que lo usan.',
     fuente: 'EAE/ASE 2009 (Baumgartner), folio 13.',
-    ojo: 'El diametro va al cuadrado: un error de 1 mm mueve el volumen alrededor de un 10 %.'
+    ojo: 'El di\u00e1metro va al cuadrado: un error de 1 mm mueve el volumen alrededor de un 10 %.'
   },
   'avm-thp': {
-    tit: 'Area mitral por tiempo de hemipresion',
+    tit: '\u00c1rea mitral por tiempo de hemipresi\u00f3n',
     formula: 'AVm = 220 ÷ THP (ms)',
-    lee: 'Estima el area mitral por lo rapido que cae el gradiente en diastole: cuanto mas estrecha la valvula, mas lento cae.',
-    fuente: 'EAE/ASE 2009 (Baumgartner), folio 12. La constante 220 es empirica.',
-    ojo: 'La guia dice que debe EVITARSE en la estenosis calcificada degenerativa, y el THP se acorta con insuficiencia aortica.'
+    lee: 'Estima el \u00e1rea mitral por lo r\u00e1pido que cae el gradiente en di\u00e1stole: cuanto m\u00e1s estrecha la v\u00e1lvula, m\u00e1s lento cae.',
+    fuente: 'EAE/ASE 2009 (Baumgartner), folio 12. La constante 220 es emp\u00edrica.',
+    ojo: 'La gu\u00eda dice que debe EVITARSE en la estenosis calcificada degenerativa, y el THP se acorta con insuficiencia a\u00f3rtica.'
   },
   'avm-cont': {
-    tit: 'Area mitral por ecuacion de continuidad',
+    tit: '\u00c1rea mitral por ecuaci\u00f3n de continuidad',
     formula: 'AVm = Vol eyectado TSVI ÷ VTI mitral (CW)',
-    lee: 'Area mitral por conservacion del flujo: lo que entra por la mitral en diastole es lo que sale por la aorta en sistole.',
+    lee: '\u00c1rea mitral por conservaci\u00f3n del flujo: lo que entra por la mitral en di\u00e1stole es lo que sale por la aorta en s\u00edstole.',
     fuente: 'EAE/ASE 2009 (Baumgartner), folio 13.',
-    ojo: 'La guia la excluye con fibrilacion auricular y con insuficiencia mitral o aortica significativa: ahi los dos flujos dejan de ser iguales.'
+    ojo: 'La gu\u00eda la excluye con fibrilaci\u00f3n auricular y con insuficiencia mitral o a\u00f3rtica significativa: ah\u00ed los dos flujos dejan de ser iguales.'
   }
 });
 let _vInfoId = null;
@@ -108096,8 +108096,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261014-1743';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1792010605864;                 /* eco-build-ms */
+const ECO_BUILD    = '20261014-2125';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1792023951969;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -108183,7 +108183,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261014-1743</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261014-2125</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

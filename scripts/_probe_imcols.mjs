@@ -409,6 +409,38 @@ window.__P = {
     return { title: e.getAttribute('title'), onmouseover: e.getAttribute('onmouseover'),
              onmouseenter: e.getAttribute('onmouseenter') } },
 
+  /* ══ LA MAQUETA ══ posicion y tamano de cada campo, para ver desbordes y solapamientos.
+     Se mide la caja REAL de cada .fg, no la clase: una rejilla que colapsa a una columna lo
+     dice en las coordenadas y no en el marcado. */
+  maqueta(idBloque) {
+    var b = document.getElementById(idBloque); if (!b) return { err: 'NO EXISTE ' + idBloque };
+    var g = b.querySelector('.valv-cols-3'); if (!g) return { err: 'sin rejilla' };
+    var rg = g.getBoundingClientRect();
+    var filas = [];
+    Array.from(g.children).forEach(function(col, ci){
+      Array.from(col.querySelectorAll('.fg')).forEach(function(f){
+        var e = f.querySelector('input[id], select[id]'); if (!e) return;
+        if (getComputedStyle(e).display === 'none') return;
+        var r = f.getBoundingClientRect();
+        filas.push({ id: e.id, col: ci + 1, x: Math.round(r.left), y: Math.round(r.top),
+                     w: Math.round(r.width), h: Math.round(r.height) });
+      });
+    });
+    /* Solapamientos: dos cajas que se pisan de verdad (no las que solo comparten borde). */
+    var choques = [];
+    for (var i = 0; i < filas.length; i++) for (var j = i + 1; j < filas.length; j++) {
+      var a = filas[i], c = filas[j];
+      if (a.x < c.x + c.w - 1 && c.x < a.x + a.w - 1 &&
+          a.y < c.y + c.h - 1 && c.y < a.y + a.h - 1) choques.push(a.id + '/' + c.id);
+    }
+    var desborda = filas.filter(function(f){ return f.x + f.w > rg.right + 1 || f.x < rg.left - 1 })
+                        .map(function(f){ return f.id });
+    /* Columnas VISUALES: cuantas coordenadas x distintas hay. A 360 px la rejilla colapsa a una. */
+    var xs = filas.map(function(f){ return f.x }).filter(function(v,i,a){ return a.indexOf(v)===i });
+    return { n: filas.length, colsVisuales: xs.length, choques: choques, desborda: desborda,
+             scrollH: document.documentElement.scrollWidth > window.innerWidth + 1,
+             rejilla: Math.round(rg.width), filas: filas } },
+
   tema(claro) {
     var r = document.documentElement;
     if (claro) r.classList.add('light-mode'); else r.classList.remove('light-mode');
@@ -775,6 +807,89 @@ async function main() {
     out.controles.colorAvisoClaro = await ev(`window.__P.color('#im-pdf-metodo-aviso','color')`);
     out.controles.temaClaro = await ev(`window.__P.tema(true)`);
     await ev(`window.__P.tema(false)`);
+  }
+
+  if (hacer('ancho')) {
+    /* ⚠️ EL ANCHO SE EMULA POR CDP Y NO REDIMENSIONANDO LA VENTANA: `setDeviceMetricsOverride` es
+       lo que mueve de verdad el media feature `width` en headless. Y se vuelve a 1400 al final:
+       un override que queda puesto contamina el grupo siguiente. */
+    async function ancho(px) {
+      await cdp.send('Emulation.setDeviceMetricsOverride',
+        { width: px, height: 900, deviceScaleFactor: 1, mobile: false }, sessionId);
+      await pausa(260);
+    }
+    await escena();
+    out.ancho = [];
+    for (const px of [1200, 390, 360]) {
+      for (const claro of [false, true]) {
+        await ancho(px);
+        /* ⚠️ EL TEMA SE PONE POR LA CLASE `light-mode` DEL ELEMENTO RAIZ, que es el mecanismo de
+           esta app; escribir `data-theme` fue el falso que la tanda del cartel de pepticos pago,
+           con las dos capturas saliendo identicas byte por byte. Se COMPRUEBA que quedo puesta. */
+        const t = await ev(`window.__P.tema(${claro})`);
+        await pausa(140);
+        /* ⚠️ Y LA TARJETA EN ESE ANCHO: el pedido dice que no se corte a 390 ni a 360 px. Se abre
+           una de las nuevas con un clic real y se mide si su caja entra en el viewport. */
+        const _s = await ev(`window.__P.globoSel('eroa-pisa')`);
+        let tar = null;
+        if (!_s.err) { await clicEn(_s.sel); tar = await ev(`window.__P.tarjeta()`);
+                       await clicEn(_s.sel); }
+        out.ancho.push({ px, claro, claseOk: (t === claro),
+          im: await ev(`window.__P.maqueta('bloque-insuf-mitral')`),
+          em: await ev(`window.__P.maqueta('bloque-em-detalle')`),
+          tarjeta: tar ? { abierta: tar.abierta, dentro: tar.dentro, w: tar.w, h: tar.h,
+                           x: tar.x, y: tar.y, vw: tar.vw, vh: tar.vh,
+                           entraAlto: (tar.y >= 0 && tar.y + tar.h <= tar.vh) } : null });
+      }
+    }
+    await ev(`window.__P.tema(false)`);
+    await cdp.send('Emulation.setDeviceMetricsOverride',
+      { width: 1400, height: 900, deviceScaleFactor: 1, mobile: false }, sessionId);
+  }
+
+  if (hacer('captura')) {
+    /* ⚠️ EL `clip` DE Page.captureScreenshot VA EN COORDENADAS DE PAGINA y getBoundingClientRect da
+       las del VIEWPORT: con la pagina scrolleada el PNG sale en negro. La tarjeta es
+       `position:fixed`, asi que se le suma el scroll para pasar de una a la otra.
+       ⚠️ Y SE COMPRUEBA QUE LA CLASE `light-mode` QUEDO PUESTA: escribir `data-theme` fue el falso
+       que dejo dos capturas identicas byte por byte en la tanda del cartel de pepticos. */
+    const DEST = arg('--dest') || '/tmp';
+    async function ancho2(px) {
+      await cdp.send('Emulation.setDeviceMetricsOverride',
+        { width: px, height: 900, deviceScaleFactor: 1, mobile: false }, sessionId);
+      await pausa(260);
+    }
+    await escena();
+    out.captura = [];
+    for (const px of [1200, 360]) {
+      for (const claro of [false, true]) {
+        await ancho2(px);
+        const t = await ev(`window.__P.tema(${claro})`);
+        await pausa(160);
+        for (const k of ['eroa-pisa', 'eroa-cont', 'vsv-tsvi', 'avm-thp', 'avm-cont']) {
+          const sel = await ev(`window.__P.globoSel(${JSON.stringify(k)})`);
+          if (sel.err) { out.captura.push({ k, px, claro, err: sel.err }); continue; }
+          await clicEn(sel.sel);
+          const g = await ev(`(function(){ var c=document.getElementById('vinfo-card');
+            if(!c || getComputedStyle(c).display==='none') return null;
+            var r=c.getBoundingClientRect();
+            return { x:Math.round(r.left+scrollX), y:Math.round(r.top+scrollY),
+                     w:Math.round(r.width), h:Math.round(r.height) } })()`);
+          if (!g) { out.captura.push({ k, px, claro, err: 'no abrio' }); continue; }
+          const shot = await cdp.send('Page.captureScreenshot',
+            { format: 'png', clip: { x: g.x, y: g.y, width: g.w, height: g.h, scale: 2 },
+              captureBeyondViewport: true }, sessionId);
+          const nom = `${DEST}/vinfo_${k}_${px}_${claro ? 'claro' : 'oscuro'}.png`;
+          await writeFile(nom, Buffer.from(shot.data, 'base64'));
+          out.captura.push({ k, px, claro, claseOk: (t === claro), png: nom,
+                             bytes: Buffer.from(shot.data, 'base64').length, geo: g });
+          await clicEn(sel.sel);
+        }
+      }
+    }
+    await ev(`window.__P.tema(false)`);
+    await cdp.send('Emulation.setDeviceMetricsOverride',
+      { width: 1400, height: 900, deviceScaleFactor: 1, mobile: false }, sessionId);
   }
 
   out.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));

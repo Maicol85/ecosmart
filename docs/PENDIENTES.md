@@ -1,5 +1,72 @@
 # EcoSmart — pendientes vivos
 
+
+## Rediseño de Válvulas · D1 — la mitral en pantalla (2026-10-14) — DECLARADO y NO arreglado
+
+### D1-1 · El aviso del selector de método de la IM dice `--amber` y se ve GRIS
+
+`#im-pdf-metodo-aviso` —el renglón que explica por qué la última casilla de «Incluir en el informe»
+no se destilda— lleva `color:var(--amber)`, y **`--amber` sólo existe dentro de `.amilo-root`**.
+Medido el 2026-10-14 con `getComputedStyle`: computa **`rgb(232, 236, 244)`** en tema oscuro y
+**`rgb(26, 34, 51)`** en claro, o sea el gris del texto normal en los dos. Es **exactamente el mismo
+defecto** que `X1` declara para los cuatro avisos de la diastólica, en otro módulo.
+**No se tocó**: cambiarle el color es una diferencia visible que esta orden no autorizaba, y la
+salida limpia sigue siendo la de `X1` —definir `--amber` en `:root` como alias de `--orange` arregla
+los cinco de una vez—. **Decisión de Maicol.**
+⚠️ Los elementos **nuevos** de esta tanda **no** usan `--amber`: la tarjeta usa `--orange`, `--text2`
+y `--accent2`, y los tres se verificaron **computados** en los dos temas (la línea «a tener en
+cuenta» da `rgb(245,158,66)` oscuro y `rgb(217,123,31)` claro).
+
+### D1-2 · Los SIETE globos de legado muestran su texto viejo hasta D2
+
+El mecanismo nuevo —toque, tarjeta corta, sin hover, sin manual— rige para los **doce** globos de la
+pestaña desde esta tanda, pero sólo **cinco** tienen tarjeta escrita. Los otros siete
+(`prot-eoa`, `prot-dvi`, `prot-ppm`, `im-onda-e`, `im-vti-ratio`, `im-vc`, `im-jet-ai`) muestran el
+`title` que su fila ya tenía, leído del DOM. Son textos **largos** —de 231 a 1319 caracteres— y
+algunos cuentan historia y atribución, que es justo lo que las tarjetas cortas vienen a sacar.
+**Es lo que la orden pide**: sus textos se reescriben en **D2**.
+
+### D1-3 · El `title` largo de la fila sigue existiendo en escritorio
+
+Lo que se sacó es el `title` **del globo**; el de la **fila** (`span.calc-lbl[title]`) sigue ahí y
+sigue apareciendo al pasar el mouse por el rótulo. No es el globo —el globo ya no muestra nada al
+hover, medido: cero `title` en los doce— y es la fuente de la que los siete de legado leen su
+tarjeta, así que sacarlo ahora dejaría esas siete tarjetas **vacías**. Se va con D2, cuando sus
+textos pasen al registro.
+
+### D1-4 · La continuidad mitral: la guía la excluye con FIBRILACIÓN AURICULAR y la app no
+
+EAE/ASE 2009, **p. 14**, literal: *«The continuity equation cannot be used in cases of atrial
+fibrillation or associated significant MR or AR»*. `emContMotivoNoVota` retira el voto con **IM o
+IAo significativa** y **no mira el ritmo**, así que en fibrilación auricular el AVm por continuidad
+sigue votando la categoría de la estenosis. **Reportado y no corregido**: cambiar cuándo vota un
+método es contenido clínico y esta orden lo prohíbe. El dato para decidirlo ya está en la app
+(`diast_ritmo`, con `hfRitmoEfectivo()` como dueño único). **Decisión de Maicol.**
+⚠️ La **tarjeta** del AVm por continuidad **sí** publica la salvedad de la guía, que es lo que el
+médico necesita para leer el número; no afirma que la app la aplique.
+
+### D1-5 · El «requiere …» de la FR por PISA es largo con el formulario vacío
+
+Con todo vacío, el placeholder de `vauto-fr-pisa` dice *«requiere radio PISA, Valiasing, Vmax IM,
+VTI del jet de IM, Diám. TSVI, VTI TSVI (en Estenosis)»* —seis insumos, porque la FR está al final
+de la cadena—. Es exacto y nombra lo que falta, que es la regla de esta zona, pero no entra de una
+línea en un campo angosto. Las alternativas son acortarlo a los dos o tres primeros («requiere los
+insumos de PISA y los del TSVI») o dejarlo. **Se dejó**, que es el lado que no pierde información.
+
+### D1-6 · El VTI Ao de la estenosis mitral: no había nada que sacar
+
+La orden decía «el VTI Ao NO va en la estenosis mitral». **Censado: no estaba.** La columna 1 tiene
+`em_vtimit`, que es el VTI **mitral** por CW, y el VTI del TSVI vive en la columna 2 con su nombre
+(`em_vtitsvi`). No se quitó ningún campo.
+
+### D1-7 · Las copias de la fórmula del volumen eyectado que QUEDAN
+
+`_vsTsviCalc` unificó las **tres** de la mitral. Quedan dos más, las dos de otra lesión y por eso
+fuera de D1: `calcIA_ESC` (volumen sistólico del TSVI para la FR de la **insuficiencia aórtica**) y
+el AVA aórtica por continuidad de `calcAo`. Las dos escriben `Math.PI*((dtsvi/20)**2)` a mano.
+**Van en D2**, que es la tanda de las lesiones aórtica y tricuspídea.
+
+
 ## Aviso de exclusiones mitrales y disfunción sistólica del VD (2026-10-14) — DECLARADO y NO arreglado
 
 ### X1 · Los otros TRES avisos ámbar de la diastólica NO son ámbar

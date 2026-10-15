@@ -22,6 +22,18 @@ deja grado**.
 
 ## Mitral
 
+### La PANTALLA de las dos lesiones mitrales → `docs/mapa/valvulas-mitral-pantalla.md`
+
+Los **18 campos de la insuficiencia en tres columnas de seis**, las **cinco casillas automáticas
+nuevas** y por qué no viajan con el estudio, el **cuadro de referencias en tres bloques** con los
+cuantitativos en dos columnas por método, la **columna 2 de la estenosis** con el volumen eyectado
+del TSVI y su dueño único `_vsTsviCalc`, y el **mecanismo de los globos ⓘ** de toda la pestaña
+(toque, tarjeta corta, sin hover y sin llevar al manual). Tanda D1 del 2026-10-14.
+
+⚠️ **Eso es PANTALLA: ni un corte, ni un grado, ni una regla de integración cambió ahí.** Lo que
+gradúa sigue estando en este archivo y en `valvulas-manual-binario.md`.
+
+
 `calcEM` — severidad integrada: Gmax `4V²` + categoría de `emCategoria`; el THP entra por `avm_thp_val`,
 no como criterio aparte — lee: `em_vmax`, `em_gmedio`, `avm_plan`; escribe: `em_gmax`,
 `em-gmax-row`, `em_grado` — llamada por: `calcTHP`, `emContRefrescar`.

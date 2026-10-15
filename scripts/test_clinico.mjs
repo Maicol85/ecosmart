@@ -61392,9 +61392,17 @@ caso('TC-448', 'Mitral: una grilla reparte las dos lesiones y las APILA en el ce
   const cajones = { mitral_em: !!g('em-tsvi-box'), mitral_im: !!g('im-tsvi-estimado-box'),
                     aivi: !!g('tsvi-estimado-box') };
 
-  const COL1 = ['im_vc/1', 'im_jet_area/1', 'im_onda_s/1', 'diam_mit/1', 'vtim/1'];
-  const COL2 = ['pisa_r/2', 'pisa_val/2', 'im_vmax/2', 'im_itv/2', 'im_ai_area/2'];
-  const COL3 = ['im_eroa_cont/3', 'vr_cont/3', 'im_fr_cont/3', 'vm_lat/3'];
+  /* ⚠️ ADAPTADO 2026-10-14 (D1 del rediseno de Valvulas). El bloque pasa de CATORCE campos
+     repartidos 5+5+4 a DIECIOCHO en TRES COLUMNAS DE SEIS: el volumen mitral por latido BAJA de la
+     columna 3 a la 1 —no es un resultado de ningun metodo, es el volumen de base que los dos usan
+     y sus dos insumos estan justo encima—, la columna 2 gana la relacion jet/AI y la 3 gana el
+     trio de PISA, asi que los dos metodos se leen uno al lado del otro. Este caso seguia midiendo
+     lo mismo —el reparto por columna y que el Tab BAJA por la columna—: lo que cambio es el
+     reparto que se espera. El caso de esta tanda es TC-471. */
+  const COL1 = ['im_vc/1', 'im_jet_area/1', 'im_onda_s/1', 'diam_mit/1', 'vtim/1', 'vm_lat/1'];
+  const COL2 = ['pisa_r/2', 'pisa_val/2', 'im_vmax/2', 'im_itv/2', 'im_ai_area/2', 'vauto-jet-ai/2'];
+  const COL3 = ['vauto-eroa-pisa/3', 'vauto-volr-pisa/3', 'vauto-fr-pisa/3',
+                'im_eroa_cont/3', 'vr_cont/3', 'im_fr_cont/3'];
   const TAB_ESPERADO = COL1.concat(COL2).concat(COL3);
   const tabSoloGrid = tabIM.filter(function (x) { return x.indexOf('/null') === -1; });
 
@@ -61433,13 +61441,13 @@ caso('TC-448', 'Mitral: una grilla reparte las dos lesiones y las APILA en el ce
       !!pistasIM && pistasIM.hijos === 3 && pistasIM.clase.indexOf('valv-cols-3') > -1 &&
       pistasIM.clase.indexOf('valv-cols-4') === -1,
       JSON.stringify(pistasIM)],
-    ['y el reparto de los catorce campos es el aprobado, columna por columna',
+    ['y el reparto de los DIECIOCHO campos es el aprobado, columna por columna',
       JSON.stringify(pistasIM.porCol) === JSON.stringify([
-        'im_vc+im_jet_area+im_onda_s+diam_mit+vtim',
-        'pisa_r+pisa_val+im_vmax+im_itv+im_ai_area',
-        'im_eroa_cont+vr_cont+im_fr_cont+vm_lat']),
+        'im_vc+im_jet_area+im_onda_s+diam_mit+vtim+vm_lat',
+        'pisa_r+pisa_val+im_vmax+im_itv+im_ai_area+vauto-jet-ai',
+        'vauto-eroa-pisa+vauto-volr-pisa+vauto-fr-pisa+im_eroa_cont+vr_cont+im_fr_cont']),
       JSON.stringify(pistasIM.porCol)],
-    ['el Tab BAJA por la columna: 1,1,1,1,1 luego 2,2,2,2,2 luego 3,3,3,3, en ese orden',
+    ['el Tab BAJA por la columna: seis de la 1, seis de la 2 y seis de la 3, en ese orden',
       JSON.stringify(tabSoloGrid) === JSON.stringify(TAB_ESPERADO),
       'esperado=' + JSON.stringify(TAB_ESPERADO) + ' obtenido=' + JSON.stringify(tabSoloGrid)],
 
@@ -64020,6 +64028,354 @@ caso('TC-470', 'Aviso de exclusiones mitrales en las TRES guias y los DOS ritmos
 
   return { extra: ex };
 `);
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════════
+   TC-471 — D1 del rediseno de Valvulas (2026-10-14)
+   ⚠️ SIN ACENTOS GRAVES EN ESTE CUERPO: es un template literal y uno solo lo cierra.
+   ⚠️ ESTE CASO CARGA CON __t.set Y NO CON TECLAS DE CDP, y hay que decirlo: el cuerpo corre DENTRO
+   de la pagina, no tiene acceso al protocolo del navegador y un KeyboardEvent construido a mano no
+   es de confianza. Las mismas escenas van con teclas y clics REALES en scripts/_probe_imcols.mjs,
+   que es la que midio los sintomas contra HEAD. Mismo reparto que TC-460, TC-463 y TC-469.
+   ⚠️ Y EL ANCHO DE LA VENTANA NO SE PUEDE FINGIR DESDE ACA: este caso fija la REGLA que produce
+   el comportamiento —el orden del DOM, que es el del Tab porque no hay un solo tabindex, y la
+   media query que colapsa la rejilla a una columna—; el renderizado a 390 y 360 px lo mide la
+   sonda, que si tiene el canal para emular el viewport. */
+caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS con los seis automaticos de la columna 3, el cuadro en TRES bloques con los cuantitativos por metodo, el volumen eyectado del TSVI en la estenosis, y los globos que abren una tarjeta corta sin hover y sin llevar al manual', `
+  const ex = [];
+  const HAY_SYNC = typeof _imAutosSync === 'function';
+  const HAY_VS   = typeof _vsTsviCalc === 'function';
+  const HAY_INFO = typeof vInfoClic === 'function' && typeof VINFO !== 'undefined';
+
+  /* ── (0) DENOMINADORES. Sin ellos todo lo de abajo compara contra 'SIN FN' y sale rojo por la
+       razon equivocada, que no es lo mismo que cazar el defecto. ── */
+  ex.push(['(0) DENOMINADOR: existe el duenio UNICO de las casillas automaticas de la IM', HAY_SYNC,
+    'typeof _imAutosSync=' + typeof _imAutosSync]);
+  ex.push(['(0) DENOMINADOR: existe el duenio UNICO del volumen eyectado del TSVI', HAY_VS,
+    'typeof _vsTsviCalc=' + typeof _vsTsviCalc]);
+  ex.push(['(0) DENOMINADOR: existe el mecanismo de los globos y su registro', HAY_INFO,
+    'typeof vInfoClic=' + typeof vInfoClic]);
+
+  const G = (id) => document.getElementById(id);
+  const TX = (id) => { const e = G(id); return e ? (e.textContent || '').trim() : 'NO EXISTE'; };
+  const VL = (id) => { const e = G(id); return e ? e.value : 'NO EXISTE'; };
+  /* ⚠️ TODA LECTURA DE UN NODO DE ESTA TANDA VA POR UN AYUDANTE QUE DEVUELVE UN CENTINELA, y no
+     es defensa decorativa: contra el arbol de HEAD esos nodos NO EXISTEN, y leer .placeholder
+     sobre null mata la corrida entera —medido: el caso moria en TypeError y entonces probaba que
+     el arbol es distinto, no que sabe medir—. Es la misma leccion que TC-455 y TC-462 ya tienen
+     escrita. */
+  const PH = (id) => { const e = G(id); return e ? (e.placeholder || '') : 'NO EXISTE'; };
+  const num = (s) => { const m = String(s == null ? '' : s).match(/-?[0-9]+(?:[.,][0-9]+)?/);
+                       return m ? m[0].replace(',', '.') : null; };
+
+  /* ══ (A) LOS 18 CAMPOS DE LA IM, EN TRES COLUMNAS DE SEIS ══
+     La columna sale del indice del contenedor dentro de la rejilla y NO de una lista cableada que
+     se desactualiza. El orden del DOM ES el del Tab: se comprueba que no haya un solo tabindex. */
+  const rej = document.querySelector('#bloque-insuf-mitral .valv-cols-3');
+  const cols = rej ? Array.prototype.slice.call(rej.children) : [];
+  const mapa = [];
+  cols.forEach(function(col, ci){
+    Array.prototype.slice.call(col.querySelectorAll('input[id], select[id]')).forEach(function(e){
+      mapa.push({ id: e.id, col: ci + 1, auto: e.hasAttribute('readonly') });
+    });
+  });
+  const ESPERADO = [
+    ['im_vc',1], ['im_jet_area',1], ['im_onda_s',1], ['diam_mit',1], ['vtim',1], ['vm_lat',1],
+    ['pisa_r',2], ['pisa_val',2], ['im_vmax',2], ['im_itv',2], ['im_ai_area',2], ['vauto-jet-ai',2],
+    ['vauto-eroa-pisa',3], ['vauto-volr-pisa',3], ['vauto-fr-pisa',3],
+    ['im_eroa_cont',3], ['vr_cont',3], ['im_fr_cont',3]
+  ];
+  const puesto = mapa.map(function(m){ return m.id + ':' + m.col; }).join(' ');
+  const quiero = ESPERADO.map(function(e){ return e[0] + ':' + e[1]; }).join(' ');
+  ex.push(['(A) DENOMINADOR: la rejilla de la IM tiene TRES columnas', cols.length === 3,
+    'columnas=' + cols.length]);
+  ex.push(['(A) los 18 campos estan en el orden y la columna pedidos, seis por columna',
+    puesto === quiero, puesto]);
+  ex.push(['(A) las seis casillas de la columna 3 son de SOLO LECTURA, y las de las columnas 1 y 2 no lo son salvo el volumen mitral',
+    mapa.filter(function(m){ return m.col === 3; }).every(function(m){ return m.auto; }) &&
+    mapa.filter(function(m){ return m.col !== 3 && m.auto; }).map(function(m){ return m.id; }).join(',') === 'vm_lat,vauto-jet-ai',
+    'auto fuera de la col 3: ' + mapa.filter(function(m){ return m.col !== 3 && m.auto; }).map(function(m){ return m.id; }).join(',')]);
+  /* ⚠️ EL ORDEN DEL TAB NO SE AFIRMA CON UN tabindex: se afirma con su AUSENCIA. Un solo tabindex
+     en el bloque daria vuelta el recorrido sin que el orden del DOM cambiara. */
+  ex.push(['(A) el orden del Tab es el del DOM: no hay un solo tabindex en el bloque de la IM',
+    document.querySelectorAll('#bloque-insuf-mitral [tabindex]:not([tabindex="-1"])').length === 0,
+    'tabindex=' + document.querySelectorAll('#bloque-insuf-mitral [tabindex]:not([tabindex="-1"])').length]);
+
+  /* ══ (B) LA COLUMNA 2 DE LA ESTENOSIS MITRAL ══ */
+  const rejEM = document.querySelector('#bloque-em-detalle .valv-cols-3');
+  const colsEM = rejEM ? Array.prototype.slice.call(rejEM.children) : [];
+  const col2EM = colsEM[1]
+    ? Array.prototype.slice.call(colsEM[1].querySelectorAll('input[id], select[id]'))
+        .filter(function(e){ return getComputedStyle(e).display !== 'none'; })
+        .map(function(e){ return e.id; }).join(',')
+    : 'SIN COLUMNA';
+  ex.push(['(B) la columna 2 de la estenosis mitral son CUATRO campos, con el volumen eyectado entre el VTI del TSVI y el THP',
+    col2EM === 'em_dtsvi,em_vtitsvi,vauto-vsv-tsvi,em_thp_display', col2EM]);
+  ex.push(['(B) CONTROL NEGATIVO: el VTI Ao NO entra en la estenosis mitral',
+    col2EM.indexOf('vti_ao') < 0 && col2EM.indexOf('itvao') < 0, col2EM]);
+
+  /* ══ (C) CADA CASILLA AUTOMATICA PUBLICA LO MISMO QUE SU FILA DE REFERENCIAS ══
+     Se compara el NUMERO y no el string entero: la fila del jet puede llevar pegada la leyenda del
+     regimen protesico, que es una afirmacion sobre la BANDA y no sobre la medicion. */
+  __t.limpiar();
+  __t.set('im_vc','7'); __t.set('im_jet_area','12'); __t.set('im_ai_area','26');
+  __t.set('pisa_r','10'); __t.set('pisa_val','40'); __t.set('im_vmax','5'); __t.set('im_itv','130');
+  __t.set('diam_mit','30'); __t.set('vtim','13');
+  __t.set('em_dtsvi','20'); __t.set('em_vtitsvi','20'); __t.set('em_vtimit','15');
+  calcContIM(); calcIM_ESC(); calcEM();
+  const PARES = [['vauto-eroa-pisa','eroa-val'], ['vauto-volr-pisa','volr-val'],
+                 ['vauto-fr-pisa','freg-val'], ['vauto-jet-ai','im-jet-ratio'],
+                 ['vauto-vsv-tsvi','vsvtsvi-val']];
+  const disc = PARES.filter(function(p){ return num(VL(p[0])) !== num(TX(p[1])); })
+                    .map(function(p){ return p[0] + '=' + VL(p[0]) + ' vs ' + TX(p[1]); });
+  ex.push(['(C) DENOMINADOR: las cinco filas publicaron un numero',
+    PARES.every(function(p){ return num(TX(p[1])) !== null; }),
+    PARES.map(function(p){ return p[1] + '=' + TX(p[1]); }).join(' | ')]);
+  ex.push(['(C) las CINCO casillas automaticas publican el MISMO valor que su fila de referencias',
+    disc.length === 0, disc.length ? disc.join(' ; ') : 'las cinco coinciden']);
+
+  /* El grado y el informe no se mueven por la casilla: lo que se escribe es lo que la fila ya
+     decia. Se guarda el estado para el control de mas abajo. */
+  const gradoCon = VL('im_grado');
+  generarInforme();
+  const infCon = VL('informe_texto'), sumaCon = VL('en_suma');
+
+  /* ══ (D) CON UN INSUMO BORRADO, LA CASILLA SE VACIA Y DICE CUAL FALTA ══ */
+  __t.set('im_itv','');
+  calcContIM(); calcIM_ESC();
+  ex.push(['(D) sin el VTI del jet, el Vol-R por PISA se vacia y el mensaje NOMBRA el insumo que falta',
+    VL('vauto-volr-pisa') === '' && /requiere/.test(PH('vauto-volr-pisa')) &&
+    /VTI del jet/.test(PH('vauto-volr-pisa')),
+    'v=' + VL('vauto-volr-pisa') + ' ph=' + PH('vauto-volr-pisa')]);
+  ex.push(['(D) y la EROA por PISA, que NO depende de ese insumo, sigue publicando su numero',
+    num(VL('vauto-eroa-pisa')) !== null && num(VL('vauto-eroa-pisa')) === num(TX('eroa-val')),
+    'eroa=' + VL('vauto-eroa-pisa') + ' fila=' + TX('eroa-val')]);
+  __t.set('em_vtitsvi','');
+  calcEM();
+  ex.push(['(D) sin el VTI del TSVI, el volumen eyectado se vacia y lo dice',
+    VL('vauto-vsv-tsvi') === '' && /VTI TSVI/.test(PH('vauto-vsv-tsvi')),
+    'v=' + VL('vauto-vsv-tsvi') + ' ph=' + PH('vauto-vsv-tsvi')]);
+  __t.set('im_itv','130'); __t.set('em_vtitsvi','20');
+  calcContIM(); calcIM_ESC(); calcEM();
+  ex.push(['(D) y al reponerlos vuelven los tres numeros, identicos a los de antes de borrar',
+    num(VL('vauto-volr-pisa')) === num(TX('volr-val')) &&
+    num(VL('vauto-vsv-tsvi')) === num(TX('vsvtsvi-val')) && VL('im_grado') === gradoCon,
+    'volr=' + VL('vauto-volr-pisa') + ' vsv=' + VL('vauto-vsv-tsvi') + ' grado=' + VL('im_grado')]);
+
+  /* ══ (E) LAS CASILLAS NUEVAS NO VIAJAN CON EL ESTUDIO NI AGREGAN UNA COLUMNA DE EXCEL ══ */
+  const delEstudio = Array.prototype.slice.call(
+    document.querySelectorAll('input[id], select[id], textarea[id]'))
+    .map(function(e){ return e.id; })
+    .filter(function(id){ return typeof _noEsDelEstudio === 'function' ? !_noEsDelEstudio(id) : true; });
+  ex.push(['(E) ninguna de las cinco casillas nuevas viaja con el estudio',
+    delEstudio.filter(function(id){ return id.indexOf('vauto-') === 0; }).length === 0,
+    'vauto en el estudio: ' + delEstudio.filter(function(id){ return id.indexOf('vauto-') === 0; }).join(',')]);
+  const colsXls = Object.keys(_labExcelRow({ id: 0, campos: {} }));
+  ex.push(['(E) el Excel sigue en 436 columnas y no gano ninguna', colsXls.length === 436,
+    'n=' + colsXls.length]);
+
+  /* ══ (F) EL CUADRO EN TRES BLOQUES, CON LAS DOS COLUMNAS DEL BLOQUE 2 ══
+     Se cuentan por ATRIBUTO y no por el texto de un rotulo, que es la leccion que el panel de
+     Evidencia pago con sus details. */
+  const bloques = Array.prototype.slice.call(
+    document.querySelectorAll('#bloque-insuf-mitral .calc-box [data-im-bloque]'))
+    .map(function(b){ return b.getAttribute('data-im-bloque'); }).join(',');
+  ex.push(['(F) el cuadro tiene TRES bloques marcados por atributo', bloques === '1,2,3', bloques]);
+  const b1 = document.querySelector('[data-im-bloque="1"]');
+  const b2 = document.querySelector('[data-im-bloque="2"]');
+  const b3 = document.querySelector('[data-im-bloque="3"]');
+  ex.push(['(F) el bloque 1 lleva los cinco signos y semicuantitativos, que valen para los dos metodos',
+    !!(b1 && b1.querySelector('#im-ondae-interp') && b1.querySelector('#im-vti-ratio') &&
+       b1.querySelector('#im-vc-ref') && b1.querySelector('#im-jet-ratio') &&
+       b1.querySelector('#im-onda-s-interp')),
+    'b1=' + (b1 ? b1.querySelectorAll('.calc-row').length : 'NO EXISTE')]);
+  ex.push(['(F) el bloque 2 lleva las tres filas por metodo, con la columna de PISA y la de continuidad',
+    !!(b2 && b2.querySelector('#eroa-val') && b2.querySelector('#im-eroa-cont-ref') &&
+       b2.querySelector('#volr-val') && b2.querySelector('#im-volr-cont-ref') &&
+       b2.querySelector('#freg-val') && b2.querySelector('#im-fr-cont-ref')),
+    'b2=' + (b2 ? b2.querySelectorAll('.calc-row').length : 'NO EXISTE')]);
+  ex.push(['(F) y debajo, en una sola columna, los dos volumenes de base comunes a los dos metodos',
+    !!(b2 && b2.querySelector('#im-vmlat-ref') && b2.querySelector('#vsvtsvi-val')),
+    'vmlat=' + TX('im-vmlat-ref') + ' vsv=' + TX('vsvtsvi-val')]);
+  ex.push(['(F) el bloque 3 lleva la integracion, los discordantes y la capsula de continuidad',
+    !!(b3 && b3.querySelector('#im-sev') && b3.querySelector('#im-discordancia') &&
+       b3.querySelector('#im-cont-severidad')),
+    'b3=' + (b3 ? b3.querySelectorAll('.calc-row').length : 'NO EXISTE')]);
+  /* ⚠️ LAS FILAS DE LA TABLA LLEVAN LAS DOS CLASES, Y NO ES COSMETICO: el barrido de
+     limpiarCampos es .calc-box .calc-row span[id], asi que sin calc-row los seis numeros del
+     bloque 2 dejarian de volver a la raya con «Nuevo estudio». */
+  ex.push(['(F) las filas de la tabla de metodos llevan calc-row ademas de su clase propia',
+    document.querySelectorAll('[data-im-bloque="2"] .im-m2').length ===
+    document.querySelectorAll('[data-im-bloque="2"] .calc-row.im-m2').length &&
+    document.querySelectorAll('[data-im-bloque="2"] .im-m2').length === 4,
+    'im-m2=' + document.querySelectorAll('[data-im-bloque="2"] .im-m2').length +
+    ' con calc-row=' + document.querySelectorAll('[data-im-bloque="2"] .calc-row.im-m2').length]);
+  ex.push(['(F) la linea de formulas salio de debajo del cuadro',
+    !/EROA = Vol-R . VTI del chorro/.test(
+      (document.querySelector('#bloque-insuf-mitral') || {}).textContent || ''),
+    'formulas visibles=' + /EROA = Vol-R/.test((document.querySelector('#bloque-insuf-mitral') || {}).textContent || '')]);
+
+  /* ══ (G) CADA CELDA DEL BLOQUE 2 LLEVA SU GRADO, Y LAS DOS COLUMNAS NO SE PISAN ══ */
+  calcContIM(); calcIM_ESC();
+  const gr = (id) => { const e = document.querySelector('[data-grado-de="' + id + '"]');
+                       return e ? (e.textContent || '').trim() : 'NO EXISTE'; };
+  ex.push(['(G) DENOMINADOR: las seis celdas del bloque 2 publican un numero',
+    ['eroa-val','volr-val','freg-val'].every(function(i){ return num(TX(i)) !== null; }) &&
+    ['im-eroa-cont-ref','im-volr-cont-ref','im-fr-cont-ref'].every(function(i){ return num(TX(i)) !== null; }),
+    'pisa=' + TX('eroa-val') + '/' + TX('volr-val') + '/' + TX('freg-val') +
+    ' cont=' + TX('im-eroa-cont-ref') + '/' + TX('im-volr-cont-ref') + '/' + TX('im-fr-cont-ref')]);
+  ex.push(['(G) las seis celdas llevan su grado entre parentesis',
+    ['eroa-val','volr-val','freg-val','im-eroa-cont-ref','im-volr-cont-ref','im-fr-cont-ref']
+      .every(function(i){ return /^\\((leve|moderada|severa)\\)$/.test(gr(i)); }),
+    'pisa=' + gr('eroa-val') + gr('volr-val') + gr('freg-val') +
+    ' cont=' + gr('im-eroa-cont-ref') + gr('im-volr-cont-ref') + gr('im-fr-cont-ref')]);
+  /* ⚠️ CONTROL NEGATIVO DEL PINTOR: los votos de continuidad NO pueden escribirse al lado del
+     numero de PISA. En esta escena los dos metodos dan grados DISTINTOS, asi que un pintor que
+     mezclara las listas lo diria aca. */
+  ex.push(['(G) CONTROL NEGATIVO: el grado de la continuidad NO se escribe al lado del numero de PISA',
+    gr('eroa-val') !== gr('im-eroa-cont-ref'),
+    'pisa=' + gr('eroa-val') + ' cont=' + gr('im-eroa-cont-ref')]);
+  /* Con el formulario vacio vuelven las seis a la raya y SIN grado. */
+  __t.limpiar();
+  ex.push(['(G) con el formulario vacio las seis celdas vuelven a la raya y sin grado',
+    ['eroa-val','volr-val','freg-val','im-eroa-cont-ref','im-volr-cont-ref','im-fr-cont-ref']
+      .every(function(i){ return TX(i) === '\\u2014' && gr(i) === ''; }),
+    ['eroa-val','im-eroa-cont-ref'].map(function(i){ return i + '=' + TX(i) + gr(i); }).join(' ')]);
+
+  /* ══ (H) EL MECANISMO DE LOS GLOBOS ══ */
+  const globos = Array.prototype.slice.call(
+    document.querySelectorAll('#tab-valvulas [data-vinfo]'));
+  ex.push(['(H) DENOMINADOR: la pestana tiene los DOCE globos y la tarjeta esta en el marcado',
+    globos.length === 12 && !!G('vinfo-card'),
+    'globos=' + globos.length + ' tarjeta=' + !!G('vinfo-card')]);
+  ex.push(['(H) los doce son BOTONES, o sea enfocables y activables con teclado',
+    globos.every(function(b){ return b.tagName.toLowerCase() === 'button'; }),
+    globos.map(function(b){ return b.tagName.toLowerCase(); }).filter(function(v,i,a){ return a.indexOf(v)===i; }).join(',')]);
+  ex.push(['(H) ninguno lleva title, que es el unico camino por el que algo aparecia al pasar el mouse',
+    globos.filter(function(b){ return b.getAttribute('title'); }).length === 0 &&
+    globos.filter(function(b){ return b.getAttribute('onmouseover') || b.getAttribute('onmouseenter'); }).length === 0,
+    'con title=' + globos.filter(function(b){ return b.getAttribute('title'); }).length]);
+  ex.push(['(H) ninguno lleva al manual',
+    globos.filter(function(b){ return /abrirAyudaEco/.test(b.getAttribute('onclick') || ''); }).length === 0,
+    'al manual=' + globos.filter(function(b){ return /abrirAyudaEco/.test(b.getAttribute('onclick') || ''); }).length]);
+  /* El toque abre, el segundo toque cierra, Escape cierra. Se usa un click() sintetico a
+     proposito: no scrollea nada, que es lo que destapo el acote de la tarjeta del glosario. */
+  /* ⚠️ UN GLOBO SIN GEOMETRIA NO ABRE SU TARJETA, Y ESO ES LO CORRECTO: anclarla contra un rect
+     de 0x0 la mandaria a la esquina de la pantalla. Asi que hay que abrir las DOS puertas que
+     tapan estos campos —la seccion plegable de la mitral y el cajon «Datos» de cada lesion—
+     antes de clickear. Sin esto, las tres condiciones de abajo salen rojas sobre un mecanismo que
+     funciona, que es la trampa del denominador aplicada a un gesto.
+     ⚠️ Y showTab('valvulas') SOLO SI LA PESTANA NO ESTA ACTIVA: corre valvCerrarTarjetas, o sea
+     CIERRA lo que el clic acaba de abrir. Es la trampa que CLAUDE.md ya documenta. */
+  (function(){
+    const tv = document.getElementById('tab-valvulas');
+    if (!tv || !tv.classList.contains('active')) { try { showTab('valvulas'); } catch (e) {} }
+    const sec = document.getElementById('ete-seccion-valv-mitral');
+    if (sec && getComputedStyle(sec).display === 'none') {
+      try { toggleEteSeccion('valv-mitral', document.querySelector('[onclick*="valv-mitral"]')); } catch (e) {}
+      if (getComputedStyle(sec).display === 'none') sec.style.display = 'block';
+    }
+    ['caja-insuf-mitral','caja-esten-mitral'].forEach(function(id){
+      const c = document.getElementById(id);
+      if (c && !c.classList.contains('valv-datos-abierto')) { try { valvDatosTog(id); } catch (e) {} }
+    });
+    ['bloque-insuf-mitral','bloque-em-detalle'].forEach(function(id){
+      const b = document.getElementById(id);
+      if (b && getComputedStyle(b).display === 'none') b.style.display = 'block';
+    });
+  })();
+  const gEroa = document.querySelector('[data-vinfo="eroa-pisa"]');
+  ex.push(['(H) DENOMINADOR: el globo de la EROA por PISA tiene geometria, o sea que se puede tocar',
+    !!gEroa && gEroa.getBoundingClientRect().width > 0,
+    gEroa ? (Math.round(gEroa.getBoundingClientRect().width) + 'x' +
+             Math.round(gEroa.getBoundingClientRect().height)) : 'NO EXISTE']);
+  const card = G('vinfo-card');
+  const abierto = () => card && getComputedStyle(card).display !== 'none';
+  const toque = () => { if (gEroa) gEroa.click(); };
+  toque();
+  const tras1 = abierto(), txt1 = card ? (card.textContent || '') : '';
+  toque();
+  const tras2 = abierto();
+  toque();
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  const trasEsc = abierto();
+  toque();
+  document.body.click();
+  const trasFuera = abierto();
+  ex.push(['(H) el toque ABRE la tarjeta y el segundo toque la CIERRA',
+    tras1 === true && tras2 === false, 'tras1=' + tras1 + ' tras2=' + tras2]);
+  ex.push(['(H) Escape la cierra, y tocar afuera tambien',
+    trasEsc === false && trasFuera === false, 'esc=' + trasEsc + ' fuera=' + trasFuera]);
+  ex.push(['(H) la tarjeta es CORTA y no lleva al manual: a lo sumo cuatro bloques y sin enlace',
+    !!card && txt1.length > 0 && txt1.length < 700 && !/abrirAyudaEco|manual/i.test(card.innerHTML),
+    'largo=' + txt1.length]);
+  toque();
+  const nb = card ? card.querySelectorAll('[data-vinfo-b]').length : 0;
+  ex.push(['(H) la tarjeta de la EROA por PISA trae sus CUATRO bloques, con las TRES formulas de su metodo',
+    nb === 4 && /EROA =/.test(txt1) && /Vol-R =/.test(txt1) && /FR =/.test(txt1) && /ASE 2017/.test(txt1),
+    'bloques=' + nb]);
+  if (HAY_INFO) vInfoCerrar(true);
+  /* ⚠️ LAS CINCO TARJETAS DE ESTA TANDA SE REGISTRAN POR CLAVE, y las otras siete son de LEGADO:
+     llevan el mecanismo y su texto se reescribe en D2. Si alguna vez una clave del marcado deja de
+     tener entrada y no es de legado, la tarjeta sale vacia y nadie lo nota. */
+  ex.push(['(H) las cinco tarjetas de esta tanda estan en el registro, y las otras siete son de legado',
+    HAY_INFO && ['eroa-pisa','eroa-cont','vsv-tsvi','avm-thp','avm-cont'].every(function(k){ return !!VINFO[k]; }) &&
+    Object.keys(VINFO).length === 5,
+    'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
+  ex.push(['(H) y la tarjeta se coloca SIEMPRE dentro de la pantalla, sin cortarse',
+    (function(){ const b = document.querySelector('[data-vinfo="avm-thp"]');
+      if (!b || !card) return false; b.click();
+      const r = card.getBoundingClientRect();
+      const ok = r.left >= -1 && r.right <= innerWidth + 1 && r.top >= -1 && r.bottom <= innerHeight + 1;
+      if (HAY_INFO) vInfoCerrar(true); return ok; })(),
+    'viewport=' + innerWidth + 'x' + innerHeight]);
+  /* ⚠️ LA REGLA QUE COLAPSA LA REJILLA A UNA COLUMNA EN CELULAR SE FIJA ACA, porque el ancho de la
+     ventana no se puede fingir desde el cuerpo de un caso: lo que se afirma es que la regla EXISTE
+     y que es UNA sola. Con dos, bajar el corte para el iPad obligaria a cambiar dos numeros y el
+     que se olvida deja media pantalla en tres columnas y media en una. */
+  ex.push(['(H) hay UNA sola media query que colapsa la rejilla de las valvulas a una columna',
+    (function(){ const t = document.documentElement.innerHTML;
+      const m = t.match(/@media[^{]*\\(max-width:\\s*768px\\)[^{]*\\{[^@]*?\\.valv-cols-3\\s*\\{\\s*grid-template-columns:\\s*1fr/g);
+      return !!m && m.length === 1; })(),
+    'reglas=' + (document.documentElement.innerHTML.match(/\\.valv-cols-3\\s*\\{\\s*grid-template-columns:\\s*1fr/g) || []).length]);
+
+  /* ══ (I) CONTROLES: NADA DE LO QUE ESTA TANDA NO TOCA SE MOVIO ══
+     Se reconstruye la misma escena y se compara contra lo que quedo guardado arriba. */
+  __t.limpiar();
+  __t.set('im_vc','7'); __t.set('im_jet_area','12'); __t.set('im_ai_area','26');
+  __t.set('pisa_r','10'); __t.set('pisa_val','40'); __t.set('im_vmax','5'); __t.set('im_itv','130');
+  __t.set('diam_mit','30'); __t.set('vtim','13');
+  __t.set('em_dtsvi','20'); __t.set('em_vtitsvi','20'); __t.set('em_vtimit','15');
+  calcContIM(); calcIM_ESC(); calcEM();
+  generarInforme();
+  ex.push(['(I) CONTROL: el grado integrado, el informe y el EN SUMA son los mismos que antes de borrar y reponer',
+    VL('im_grado') === gradoCon && VL('informe_texto') === infCon && VL('en_suma') === sumaCon,
+    'grado=' + VL('im_grado') + '/' + gradoCon]);
+  /* El volumen eyectado tiene UN SOLO DUENIO desde esta tanda: la fila de la IM, la casilla de la
+     EM y el numerador del AVm por continuidad tienen que salir del mismo numero. */
+  const vsvDue = HAY_VS ? _vsTsviCalc(20, 20) : null;
+  ex.push(['(I) el volumen eyectado sale de UN SOLO DUENIO: la fila, la casilla y el AVm por continuidad concuerdan',
+    vsvDue !== null && num(TX('vsvtsvi-val')) === vsvDue.toFixed(1) &&
+    num(VL('vauto-vsv-tsvi')) === vsvDue.toFixed(1) &&
+    num(VL('avm_cont')) === (vsvDue / 15).toFixed(2),
+    'duenio=' + (vsvDue === null ? 'null' : vsvDue.toFixed(1)) + ' fila=' + TX('vsvtsvi-val') +
+    ' casilla=' + VL('vauto-vsv-tsvi') + ' avm=' + VL('avm_cont')]);
+  /* ⚠️ Y EL DUENIO USA pi/4 CON EL DIAMETRO EN MILIMETROS, que es lo que la guia escribe en cm:
+     pi (d/20)^2 es exactamente (pi/4)(d/10)^2. Si alguna vez alguien le saca la conversion, este
+     numero se va por un factor de 100. */
+  ex.push(['(I) el duenio aplica pi/4 y convierte el diametro de mm a cm',
+    vsvDue !== null && Math.abs(vsvDue - (Math.PI / 4) * Math.pow(20 / 10, 2) * 20) < 1e-9,
+    'dueno=' + (vsvDue === null ? 'SIN FN' : vsvDue.toFixed(4))]);
+  ex.push(['(I) CONTROL: el aviso de exclusiones de la funcion diastolica no cambia por esta tanda',
+    typeof diastExclTexto === 'function', 'typeof=' + typeof diastExclTexto]);
+  ex.push(['(I) CONTROL: las otras siete lesiones conservan su grado',
+    VL('ia_grado') === '0' && VL('it_grado') === '0' && VL('ea_grado') === 'sin' &&
+    VL('et_grado') === 'sin' && VL('ep_grado') === 'sin',
+    'ia=' + VL('ia_grado') + ' it=' + VL('it_grado') + ' ea=' + VL('ea_grado') +
+    ' et=' + VL('et_grado') + ' ep=' + VL('ep_grado')]);
+
+  return { extra: ex };
+`);
+
 
 let servidor, chrome;
 try {

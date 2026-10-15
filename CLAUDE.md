@@ -31,6 +31,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar un DIAGRAMA DE FLUJO de la ventana 🧭** (BSE 2024, ASE 2025 en ritmo sinusal o en FA, ASE/EACVI 2016 8A y 8B): los planos, el motor del SVG, el umbral de ancho o la tabla compacta | `docs/mapa/diastolica-diagrama.md` |
 | **Tocar la GRILLA del Doppler mitral**: el orden de los 16 campos, el Tab por columnas, los puntos de corte o el selector del S/D | `docs/mapa/doppler-mitral-grilla.md` |
 | **Tocar el BORRADO de una lesión valvular**: el retiro del grado, quién prendió una pastilla, los dos métodos de la IM, la continuidad de la IT o el grado de cada fila | `docs/mapa/valvulas-borrado.md` |
+| **Tocar la PANTALLA de las dos lesiones MITRALES**: las tres columnas de la insuficiencia, las casillas automáticas, el cuadro de referencias en tres bloques, la columna 2 de la estenosis o el mecanismo de los globos ⓘ | `docs/mapa/valvulas-mitral-pantalla.md` |
 | **Tocar la MARCA DE MANUAL de una pastilla, el selector binario de la estenosis mitral, el VIOLETA de «Significativa», el VTI de entrada tricuspídeo, la CASILLA DE PISA de «Incluir en el informe» o lo que «Nuevo estudio» deja vivo** | `docs/mapa/valvulas-manual-binario.md` |
 | **Tocar el VENTRÍCULO DERECHO**: sus campos, el cuadro de referencias, la disfunción sistólica, la pared o el Tei | `docs/mapa/vd-derecho.md` |
 | **Tocar el panel de Evidencia: agregar una cita, una sección o un sub-bloque** | `docs/mapa/panel-evidencia.md` |
@@ -85,7 +86,7 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **7,31 MB / 110.490 líneas**, medido el 2026-10-14 al cierre de la tanda del aviso de exclusiones —el renglón decía «6,13 MB /
+  sin frameworks. Hoy **7,35 MB / 110.999 líneas**, medido el 2026-10-14 al cierre de la tanda D1 del rediseño de Válvulas —el renglón decía «6,13 MB /
   90.494 líneas» y llevaba varias tandas sin actualizarse: **medirlo antes de presupuestar contexto**—. Las únicas dependencias son jsPDF, XLSX y
   PptxGenJS por CDN. Se abre como archivo local y corre en Chrome.
 - Lo que produce es un **informe firmado**: narrativo, EN SUMA, PDF, PPT y Excel del Laboratorio.
@@ -239,6 +240,156 @@ impecable.
 ---
 
 ## Estado vigente
+
+### La MITRAL EN PANTALLA: tres columnas de seis, el cuadro en tres bloques y los globos ⓘ (2026-10-14)
+
+- **Es la PRIMERA MITAD («D1») del rediseño de Válvulas.** La segunda («D2»: insuficiencia aórtica y
+  tricuspídea, estenosis aórtica y tricuspídea, el rótulo «PHT» → «THP» y los textos de los demás
+  ⓘ) va en otro prompt y **depende de ésta**.
+- Al **empezar**, `main` local y `origin/main` estaban los dos en **`0584e29`**, sin nada sin pushear
+  —confirmado con un `git fetch` de verdad—, con los **cuatro** commits de la tanda del aviso de
+  exclusiones ya incluidos **y pusheados por Maicol**. Los **cinco** commits de esta tanda quedan
+  locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 5 → 4 → 3 → 2 → 1.**
+  ⚠️ **EL 1 ES LA BASE DE TODOS**: crea las cuatro casillas `vauto-` de la IM, `_imAutoDeFila`,
+  `_imAutosSync` y el prefijo `vauto-` de `_noEsDelEstudio`. El **2** reescribe el cuadro y **le
+  agrega** `IM_FILA_GRADO_CONT` y el tercer argumento de `sevFilaGradoPintar`; el **3** cuelga de
+  `_imAutosSync` sólo por vecindad —su JS es independiente— pero **el 4 SÍ cuelga del 3**: la
+  casilla del volumen eyectado nace con su globo `data-vinfo="vsv-tsvi"`, y sin el mecanismo del 3
+  ese `onclick` llama a una función que no existe.
+  ⚠️ **Y REVERTIR EL 2 SIN EL 1 ROMPE EL CUADRO, NO LA APP**: el bloque 2 nombra `im-eroa-cont-ref`,
+  que nace en el 2, así que revertir sólo el 1 deja `_imAutosSync` sin existir y la llamada va con
+  `typeof`… pero la llamada a `_celda` vive DENTRO de `_imAutosSync`, así que se va con ella: las
+  tres celdas de continuidad quedarían mudas. Orden: **2 antes que 1**.
+  **El 5 es TC-471 más documentación y el sello** y afirma el comportamiento de los cuatro:
+  revertir cualquiera sin el 5 deja TC-471 en rojo —32 de sus 45 condiciones—.
+
+- **Línea base al cierre: suite 481/485 con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0 ERROR,
+  Excel en 436 columnas, celular 43 a 360 px y 52 a 390 px con 1 ALTA cada uno —IDÉNTICO a la línea
+  base, y `--todo` da 374 y 383, el mismo par—.** **CERO REGRESIONES**: los cuatro rojos son
+  exactamente los de ENTRADA —**TC-223** (el documentado, falla por la fecha), **TC-376**,
+  **TC-390** y **TC-406**—. **El denominador subió a 485**: esta tanda agregó **TC-471**. La de
+  ENTRADA, medida en HEAD limpio en un worktree aparte, fue **480/484** con los mismos cuatro rojos.
+  El `md5` de `index.html` no se movió durante ninguna de las dos corridas.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**.
+- **EL SELLO DE VERSIÓN ESTABA AL DÍA AL EMPEZAR** (`v20261014-1743`, o sea que **L7 quedó cerrado**
+  por la tanda anterior) y se volvió a sellar en el commit 5: **`v20261014-2125`**. La suite se midió
+  **DESPUÉS** de sellar, con el `md5` quieto.
+
+- **Dónde está todo:** `docs/mapa/valvulas-mitral-pantalla.md` (**mapa NUEVO**, 15,9 KB: la tabla de
+  los 18 campos, las cinco casillas automáticas, los tres bloques, la columna 2 de la estenosis, el
+  mecanismo de los globos y las seis trampas medidas), `docs/mapa/valvulas.md` → un **puntero**
+  —⚠️ **se partió por eso**: estaba en 33,8 KB y hoy queda en **34,5**, todavía bajo el techo—,
+  `docs/fuentes/FUENTES.md` → «Las CINCO TARJETAS de los globos ⓘ de la mitral», y
+  `docs/PENDIENTES.md` → **siete** cosas declaradas y no tocadas (D1-1 a D1-7).
+
+- **NO CAMBIA NINGUNA CUENTA, NINGÚN CORTE, NINGÚN GRADO, NINGUNA REGLA DE INTEGRACIÓN NI NINGÚN
+  TEXTO DEL INFORME, Y ESTÁ MEDIDO.** A/B contra HEAD en los cuatro commits: **0 diferencias** en
+  informe (tres estilos), EN SUMA, grados de las ocho lesiones, pastillas, token del Laboratorio,
+  Excel en **436** columnas y los **893 campos del estudio** con el mismo hash y el mismo juego de
+  claves. **Escenas que cambian de veredicto: NINGUNA.**
+
+- **LAS CASILLAS AUTOMÁTICAS NO CALCULAN NADA: COPIAN SU FILA.** Las cinco nuevas —EROA, Vol-R y FR
+  por PISA, la relación jet/AI y el volumen eyectado del TSVI— leen el texto que su fila del cuadro
+  acaba de publicar, marca «(revisar)» incluida. Dueño único `_imAutosSync` + `_imAutoDeFila`.
+  **Medido con teclas reales: 6 escenas × 4 casillas = 24 de 24 coinciden**, y la quinta coincide en
+  las dos escenas de la estenosis.
+  ⚠️ **LA LEYENDA DEL RÉGIMEN PROTÉSICO DEL JET SE RECORTA, por DOS espacios**, que es como esa fila
+  la separa; `MARCA_REVISAR` lleva **uno solo**, así que sobrevive al recorte — que es lo que tiene
+  que pasar, porque advierte sobre el número y no sobre su banda.
+- ⚠️ **NINGUNA VIAJA CON EL ESTUDIO**: el prefijo `vauto-` entra en `_noEsDelEstudio` por el mismo
+  argumento que `hfpep-`. **Medido: 893 campos, mismo hash, cero claves `vauto-`.** Y **no** hacía
+  falta una columna de Excel, que era una de las paradas posibles de la orden.
+
+- **EL CUADRO EN TRES BLOQUES, marcados por ATRIBUTO (`data-im-bloque`) y no por el texto de un
+  rótulo** —la lección que el panel de Evidencia pagó con sus `<details>`—. El bloque 2 es una tabla
+  de DOS columnas, PISA y continuidad, con el valor **y el grado** de cada celda.
+  ⚠️ **LAS FILAS LLEVAN LAS DOS CLASES, `calc-row im-m2`**: el barrido de `limpiarCampos` es
+  `.calc-box .calc-row span[id]`, así que sin `calc-row` los seis números dejarían de volver a «—».
+  ⚠️ **LOS `id` DE LOS SPAN DE PISA NO SE TOCAN**: `eroa-val`, `volr-val` y `freg-val` son
+  literalmente lo que el PDF publica y lo que `_imPisaSellar` congela.
+  **La línea de fórmulas SALE** (pasa a las tarjetas) y **la cápsula «Severidad (continuidad)» SE
+  CONSERVA**, subida al bloque 3: no es redundante —ahí va el grado de cada parámetro y acá la
+  lectura volumétrica combinada más sus dos avisos, que no tienen otra superficie—.
+
+- **LOS GLOBOS ⓘ: DOCE EN LA PESTAÑA, CINCO CON TARJETA NUEVA Y SIETE DE LEGADO.** Toque abre, toque
+  cierra, afuera cierra, Escape cierra; son `<button>`, cero `title` y cero `abrirAyudaEco`.
+  Los siete de legado muestran el `title` que su fila ya tenía, **leído del DOM**: ni una palabra
+  duplicada, y sus textos se reescriben en D2.
+  **El `title` de 748 caracteres de la EROA por continuidad se fue y NO se perdió**: vive —y ya
+  vivía— en «Referencia clínica», fila «IM — EROA por continuidad y Vol-R».
+- ⚠️ **LA TARJETA MÁS LARGA TAPABA SU PROPIO GLOBO, Y LO ENCONTRÓ LA SONDA.** Con el tope de altura
+  en la caja entera, una tarjeta más alta que la pantalla se colocaba arriba de todo y cubría su
+  ancla: el **segundo toque** no llegaba al botón —Escape y el clic afuera sí cerraban, así que no
+  dejaba a nadie encerrado, pero una de las tres puertas no funcionaba—. La altura se acota al hueco
+  del lado donde se abre.
+- ⚠️ **EL GLOBO VIEJO MEDÍA 12×15 px Y NO 44×44, Y HUBO QUE MEDIR LOS DOS ÁRBOLES PARA SABERLO.** La
+  regla global de 44 px lo matcheaba por su `onclick` **y no lo agrandaba**: era un `<span>`, o sea
+  **inline**, y a ésos `min-height` no se les aplica. Un `<button>` es `inline-block`, así que la
+  misma regla lo saltaba a 44 en ocho filas. El piso se acota a `pointer: coarse` —el precedente del
+  glosario del panel—: escritorio **16×12** y el dedo gana los 44 px que el `<span>` **nunca tuvo**.
+
+- **LA ESTENOSIS MITRAL: columna 2 en CUATRO campos** —Diám. TSVI · VTI TSVI · **Vol eyectado TSVI
+  (nuevo)** · THP—. **El VTI Ao no estaba y sigue sin estar**, censado.
+  **`_vsTsviCalc` es el dueño único** de `π·(d/20)²·vti`, que vivía duplicado en `calcIM_ESC` y en
+  `calcContIM`, con una tercera copia dentro de `calcEM`. **El orden de operaciones se conserva letra
+  por letra**, así que ningún número se mueve ni un bit — medido.
+  ⚠️ **VERIFICADO CONTRA EL ORIGINAL, que era la parada de esa parte:** EAE/ASE 2009, folio 13,
+  §B.1.4, **leída RENDERIZANDO a 700 dpi** porque el texto extraído devuelve los glifos partidos
+  (`'MVA \x02 \x05\x01' / 'D2' / '4\x02\x01'`). Dice **`MVA = π (D²/4) (VTI_Aortic/VTI_mitral)`,
+  con D en cm**: la app usa `π(d/20)²` con el Ø en mm, que es exactamente `(π/4)(d/10)²`. **COINCIDE.**
+- **LAS NUEVE FÓRMULAS DE LAS CINCO TARJETAS SE VERIFICARON EN EL PDF ORIGINAL y ninguna difiere.**
+  ASE 2017 folio 312 (`EROA = (6.28 × r² × Va)/PeakV_RegJet` y `RVol = EROA × VTI_RegJet`), folio 311
+  (`RF = RVol/SV_RegValv` — y en la IM el SV de la válvula regurgitante **es** `Vol-R + SV del TSVI`,
+  así que el denominador de la app ES el de la guía), y EAE/ASE 2009 folios 12 y 13.
+- ⚠️ **UNA DIFERENCIA ENTRE LA APP Y LA GUÍA, REPORTADA Y NO CORREGIDA:** la EAE/ASE 2009 (p. 14)
+  excluye la continuidad mitral **con fibrilación auricular** además de con IM o IAo significativa, y
+  `emContMotivoNoVota` **no mira el ritmo**. Cambiar cuándo vota un método es contenido clínico y
+  esta orden lo prohíbe. `PENDIENTES.md` → **D1-4**. La **tarjeta** sí publica la salvedad de la guía.
+
+- **MAQUETA MEDIDA a 1200, 390 y 360 px en los DOS temas** (con la clase `light-mode` comprobada, que
+  es el falso que la tanda del cartel de péptidos pagó): **18 campos en la IM y 12 en la EM, tres
+  columnas visuales a 1200 px y una a 390 y 360, cero solapamientos, cero desbordes y sin barra
+  horizontal**; la tarjeta entra entera en el viewport en las seis combinaciones.
+- ⚠️ **EL COLOR SE MIDIÓ COMPUTADO Y APARECIÓ UN DEFECTO AJENO.** Lo nuevo usa `--orange`, `--text2`
+  y `--accent2`, los tres globales: la línea «a tener en cuenta» da `rgb(245,158,66)` en oscuro y
+  `rgb(217,123,31)` en claro. Pero **`#im-pdf-metodo-aviso` dice `var(--amber)` y se ve GRIS**
+  —`rgb(232,236,244)` y `rgb(26,34,51)`—, que es el MISMO defecto que `X1` ya declara para los cuatro
+  avisos de la diastólica. **No se tocó**: `PENDIENTES.md` → **D1-1**.
+
+- **Arnés: `scripts/_probe_imcols.mjs`** (A/B de solo lectura con `--file`), ocho grupos (`campos`,
+  `autos`, `refs`, `globos`, `em`, `superficies`, `controles`, `ancho`).
+  **Cobertura: TC-471**, **45 condiciones** con seis denominadores y cuatro controles negativos.
+  **Verificado que sabe fallar contra HEAD en un worktree aparte: 32 de las 45 en rojo, y NINGUNA
+  por excepción**; las trece que pasan son lo que esta tanda no mueve.
+- ⚠️ **TC-471 MORÍA POR EXCEPCIÓN EN SU PRIMERA VERSIÓN** (`.placeholder` sobre `null`), que prueba
+  que el árbol es distinto y no que el caso sabe medir. Toda lectura de un nodo nuevo va por un
+  ayudante con centinela. Es la misma lección que TC-455 y TC-462 ya tienen escrita.
+- ⚠️ **CASOS ADAPTADOS: CUATRO**, con el motivo escrito en cada uno. **TC-335** (dos veces: el rótulo
+  pasó a «EROA POR continuidad» y después su `title` largo desapareció), **TC-297** (exigía la línea
+  de fórmulas, que esta tanda saca), **TC-298** (exigía que el ⓘ fuera un `<span onclick>` que
+  llevara al manual) y **TC-448** (fijaba el reparto viejo de 5+5+4 campos).
+  ⚠️ **TC-448 LO DESTAPÓ LA SUITE COMPLETA**, no la corrida de zona: ninguna de mis listas de zona lo
+  incluía.
+- ⚠️ **UN GLOBO SIN GEOMETRÍA NO ANCLA NADA, y eso es lo correcto.** Los tres de la prótesis miden
+  **0×0** mientras la morfología no sea protésica. Se mide con una **escena protésica aparte**; sin
+  ella, «no abre» se lee como «el mecanismo no funciona».
+- ⚠️ **EL HASH DE LOS CAMPOS HAY QUE ORDENARLO ANTES DE HASHEAR.** El objeto se arma en orden del
+  DOM, así que **mover un campo de columna** cambia el string de JSON sin cambiar un solo valor: la
+  primera corrida informó «893 campos iguales, hash distinto» y el hash era el único que hablaba.
+- ⚠️ **LAS CINCO TARJETAS SALIERON SIN ACENTOS Y LO VIO LA CAPTURA, NO LA LECTURA.** Escribí sus
+  textos con el reflejo de los cuerpos de sonda —donde un acento grave rompe el template— y se me
+  fueron también los acentos NORMALES: «velocidad maxima», «por el en un latido», «la sistole»,
+  «Area mitral por ecuacion de continuidad». Es **texto clínico de cara al médico**, no un
+  comentario. Lo delató **mirar el PNG** de una tarjeta, que es para lo que están las capturas.
+  Corregidos los trece textos, re-sellado (`v20261014-2125`) y la suite re-medida después.
+- ⚠️ **Me comí el acento grave CINCO veces**, todas en comentarios míos dentro del cuerpo de un caso
+  o del template de la sonda, con el archivo que documenta la trampa abierto delante.
+  `scripts/check_backticks.py` dio la línea exacta las cinco; `node --check` apuntaba a la apertura
+  del template, decenas de líneas antes. **Correr los dos, siempre.**
+
 
 ### El AVISO DE EXCLUSIONES MITRALES en las TRES guías, y la disfunción sistólica del VD en el LABORATORIO (2026-10-14)
 

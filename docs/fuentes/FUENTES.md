@@ -270,6 +270,59 @@ Vol-R `<30` / `30-44` / `≥45` ml.**
 `≥0,7 cm` severa y `calcIT_ESC` aplicaba `<= 7` moderada. La EROA y el volumen regurgitante
 **coinciden exactamente** con esta tabla.
 
+### Las CINCO TARJETAS de los globos ⓘ de la mitral — fórmula y folio (verificadas 2026-10-14)
+
+Las cinco se verificaron **en el PDF original**, que es la condición de parada de la tanda D1: si una
+fórmula de la app difiriera de la guía, esa parte se dejaba sin hacer. **Ninguna difiere.**
+
+| Tarjeta | Fórmula que la app aplica | Fuente verificada |
+|---|---|---|
+| **EROA por PISA** | `EROA = 2π·r²·V_aliasing ÷ Vmax del chorro` | ASE 2017 (Zoghbi), **folio 312**, literal: *«EROA = (6.28 × r² × Va)/PeakV_RegJet, where PeakV_RegJet is the peak velocity of the regurgitant jet by CWD»*. 6,28 = 2π |
+| **Vol-R por PISA** | `Vol-R = EROA × VTI del chorro` | ASE 2017, **folio 312**: *«RVol = EROA × VTI_RegJet»* |
+| **FR por PISA** | `FR = Vol-R ÷ (Vol-R + Vol eyectado TSVI)` | ASE 2017, **folio 311**: *«RVol = SV_RegValv − SV_CompValv; RF = RVol/SV_RegValv»*. En la IM la válvula regurgitante es la mitral, y su SV **es** `Vol-R + SV del TSVI`: el denominador de la app ES el de la guía |
+| **EROA por continuidad** | `EROA = Vol-R ÷ VTI del chorro` | ASE 2017, **folio 312**, apartado *b. Quantitative volumetric method*: *«EROA = RVol/VTI_RegJet»* |
+| **Vol-R por continuidad** | `Vol-R = Vol mitral/latido − Vol eyectado TSVI` | ASE 2017, **folio 311** (la misma definición general) |
+| **FR por continuidad** | `FR = Vol-R ÷ Vol mitral/latido` | ASE 2017, **folio 311** |
+| **Vol eyectado del TSVI** | `π·(Ø/20)² × VTI`, con el Ø en **mm** | EAE/ASE 2009 (Baumgartner), **folio 13**, §B.1.4 — es el **numerador** de la ecuación de continuidad de abajo |
+| **AVm por THP** | `AVm = 220 ÷ THP` | EAE/ASE 2009, **folio 12**, §B.1.3: *«MVA is derived using the empirical formula: MVA ≈ 220/T½»*. También en la Tabla 8, p. 17 |
+| **AVm por continuidad** | `AVm = Vol eyectado TSVI ÷ VTI mitral (CW)` | EAE/ASE 2009, **folio 13**, §B.1.4 |
+
+⚠️ **LA ECUACIÓN DE CONTINUIDAD MITRAL SE LEYÓ RENDERIZANDO, y hay que decirlo.** El texto extraído
+de ese PDF devuelve `'MVA \x02 \x05\x01' / 'D2' / '4\x02\x01' / 'VTIAortic' / 'VTImitral\x02'`, o
+sea los glifos partidos y sin el símbolo. Renderizada a 700 dpi dice, literal:
+
+> **MVA = π (D²/4) (VTI_Aortic / VTI_mitral)** — *«where D is the diameter of the LVOT (in cm) and
+> VTI is in cm»*
+
+**La app usa `π·(d/20)²·vti` con el diámetro en MILÍMETROS, que es exactamente `(π/4)·(d/10)²`:
+COINCIDE con la guía, π/4 y conversión de mm a cm incluidas.** Es lo que la orden pedía verificar
+antes de escribir la tarjeta del volumen eyectado, y es por lo que esa parte **no** se detuvo.
+
+⚠️ **TRES SALVEDADES QUE LAS TARJETAS PUBLICAN, las tres literales de la fuente.**
+
+- **PISA:** ASE 2017, folio 312 — *«since the PISA calculation provides an instantaneous peak flow
+  rate, the EROA calculated by this approach may not be [representative]»*; la tarjeta lo dice en
+  palabras propias: con un chorro que no ocupa toda la sístole la EROA sale sobreestimada.
+- **THP:** EAE/ASE 2009, **p. 13** — *«the use of T1/2 in degenerative calcific MS may be unreliable
+  and should be avoided»*. ⚠️ **Es más fuerte que «puede no ser confiable»: dice que DEBE EVITARSE**,
+  y así va en la tarjeta, sin suavizar.
+- **Continuidad mitral:** EAE/ASE 2009, **p. 14** — *«The continuity equation cannot be used in cases
+  of atrial fibrillation or associated significant MR or AR»*.
+  ⚠️ **LA APP RETIRA EL VOTO CON IM O IAo SIGNIFICATIVA Y *NO* CON FIBRILACIÓN AURICULAR**
+  (`emContMotivoNoVota` mira `im_grado` e `ia_grado` y nada más). **REPORTADO Y NO CORREGIDO** —es un
+  criterio clínico y esta orden no lo autoriza—: `docs/PENDIENTES.md` → **D1-4**. La tarjeta publica
+  la salvedad **de la guía**, que es lo que el médico necesita saber para leer el número; no afirma
+  que la app la aplique.
+
+⚠️ **LA BANDA DE LA EROA POR CONTINUIDAD SIGUE SIENDO CRITERIO ECOSMART**, y la tarjeta lo dice: la
+fila de la Tabla 8 está calificada «EROA, 2D PISA (cm²)» y la guía **no publica una banda propia**
+para la EROA obtenida por el método volumétrico. Ya estaba declarado desde el 2026-10-13; lo nuevo es
+que ahora se lee desde la app.
+
+**Ninguna tarjeta copia una guía literalmente**: las nueve fórmulas son notación y los textos son
+palabras propias.
+
+
 ### `ahaVc2020` — ACC/AHA 2020, valvulopatías (válvula nativa)
 Otto CM, Nishimura RA, Bonow RO, et al. *Circulation* 2021;143:e72-e227.
 doi:10.1161/CIR.0000000000000923.
