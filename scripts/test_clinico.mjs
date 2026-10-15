@@ -68069,6 +68069,247 @@ caso('TC-480', 'Tanda Z5: el veredicto de obstruccion de la protesis mitral vota
   })();
 `);
 
+caso('TC-481', 'Tanda Z6: el gradiente medio de la protesis mitral se retira con regurgitacion significativa (nota ‡ de la Tabla 11) y, en una protesis MECANICA con el THP normal, deja de votar estenosis (Tabla 12); la fila del PPM no pide un AEO retirado y el DVI protesico aortico sale por UN solo camino', `
+  return (async function(){
+    const ex = [];
+    const EL  = (id) => document.getElementById(id);
+    const V   = (id) => { const e = EL(id); return e ? e.value : null; };
+    const T   = (id) => { const e = EL(id); return e ? (e.textContent || '').trim() : 'NO EXISTE'; };
+    const FN  = (n) => typeof window[n] === 'function';
+    const S   = (id, v) => { try { __t.set(id, v); } catch (e) {} };
+    const K   = (n) => window[n];
+    const INF = (estilo) => { try { if (FN('setEstiloInforme')) setEstiloInforme(estilo); } catch (e) {}
+      try { if (FN('generarInforme')) generarInforme(); } catch (e) {}
+      return { inf: V('informe_texto') || '', suma: V('en_suma') || '' }; };
+    /* ⚠️ TODA LECTURA DE UN CAMPO NUEVO VA POR UN AYUDANTE CON CENTINELA. Contra HEAD
+       \`gmedRetiro\`, \`mecanica\` y \`dviNivel\` NO existen: un \`.indexOf\` sobre undefined mata la
+       corrida entera con un TypeError, y eso prueba que el arbol es distinto, no que el caso
+       sabe medir. Misma leccion que TC-455, TC-462, TC-465, TC-471, TC-473, TC-474, TC-477 y
+       TC-480. Toda constante nueva se lee por window, nunca por su nombre pelado. */
+    const PV  = () => { try { return FN('vmProtEOA') ? vmProtEOA() : null; } catch (e) { return null; } };
+    const POS = (P) => (P && P.obstrPos) ? P.obstrPos.slice() : [];
+    const MED = (P) => (P && P.obstrMed) ? P.obstrMed.slice() : [];
+    const RET = (P) => (P && typeof P.gmedRetiro === 'string') ? P.gmedRetiro : 'SIN CAMPO';
+    const PA  = () => { try { return FN('eaProtVeredicto') ? eaProtVeredicto() : null; } catch (e) { return null; } };
+    const NIVEL_FILA = () => { try { return FN('_eaDviProtNivel') ? _eaDviProtNivel() : 'SIN FN'; }
+      catch (e) { return 'EXC'; } };
+    const OPC = (id) => { const e = EL(id);
+      return e ? Array.prototype.slice.call(e.options || []).map(function(o){ return o.value }) : []; };
+    /* ⚠️ LAS DOS MORFOLOGIAS SE DERIVAN Y NO SE CABLEAN, y aca no alcanza con «la primera que
+       diga protesis»: esta tanda distingue MECANICA de BIOLOGICA, asi que cada una se busca por
+       su palabra. Con el literal cableado —o con la primera— la escena mecanica mediria una
+       biologica y la rama del Z6-2 saldria «no se aplica» sobre un arbol que la aplica bien. */
+    const MEC_VM = () => OPC('vm_morf').filter(function(o){ return /mec/i.test(o) })[0];
+    const BIO_VM = () => OPC('vm_morf').filter(function(o){ return /biol/i.test(o) })[0];
+    const MEC_VA = () => OPC('va_morf').filter(function(o){ return /mec/i.test(o) })[0];
+    const NAT = (id) => OPC(id).filter(function(o){ return o && !/tesis|TAVI/i.test(o) })[0];
+    const NUEVO = () => { try { if (FN('limpiarCampos')) limpiarCampos(true); } catch (e) {} };
+
+    ex.push(['DENOMINADOR: las piezas de la tanda existen y las dos morfologias se distinguen',
+      FN('vmProtEOA') && FN('vmProtEOAPintar') && !!MEC_VM() && !!BIO_VM() && MEC_VM() !== BIO_VM(),
+      String(MEC_VM()) + ' / ' + String(BIO_VM())]);
+    ex.push(['los cortes de la Tabla 11 NO se movieron: el gradiente sigue siendo normal hasta 5 y significativo por encima de 10, y el THP normal por debajo de 130',
+      (K('VM_PROT_T11') || {}).gmedNormalMax === 5 && (K('VM_PROT_T11') || {}).gmedSignifMin === 10 &&
+      (K('VM_PROT_T11') || {}).thpNormalMax === 130,
+      JSON.stringify(K('VM_PROT_T11') || {})]);
+
+    /* ══ A · Z6-1 · EL GRADIENTE MEDIO CON REGURGITACION ════════════════════════════════
+       AEO 1,57 (posible) · DVI 2,00 (normal) · gradiente 12 (significativo) · THP 250
+       (significativo). Con el THP ANORMAL a proposito: asi la rama del Z6-2 no participa y lo
+       que se mide es SOLO el retiro por regurgitacion. */
+    const ESC_IM = (morf, gr) => {
+      NUEVO();
+      S('peso', '80'); S('talla', '180');
+      S('vm_morf', morf);
+      S('em_dtsvi', '20'); S('em_vtitsvi', '20'); S('em_vtimit', '40');
+      S('em_gmedio', '12'); S('thp', '250');
+      if (gr != null) { try { if (typeof valvSev === 'object' && valvSev) valvSev.aplicar('insuf', 'mitral', gr); } catch (e) {} }
+      try { if (FN('calcIM_ESC')) calcIM_ESC(); } catch (e) {}
+      try { if (FN('calcEM')) calcEM(); } catch (e) {}
+      try { if (FN('vmProtEOAPintar')) vmProtEOAPintar(); } catch (e) {}
+      return { P: PV(), inf: INF('estandar'), fila: T('vm-prot-gmed'), ver: T('vm-prot-obstr') };
+    };
+    const aSin = ESC_IM(MEC_VM(), null), aLeve = ESC_IM(MEC_VM(), '1');
+    const aMod = ESC_IM(MEC_VM(), '2'),  aSev  = ESC_IM(MEC_VM(), '4');
+    ex.push(['DENOMINADOR: la escena base es protesica, calcula el AEO y tiene DOS positivos',
+      !!aSin.P && aSin.P.esProt === true && aSin.P.eoa != null && aSin.P.gmed === 12 &&
+      POS(aSin.P).length === 2 && aSin.P.obstr === 'significativa',
+      'eoa=' + (aSin.P ? aSin.P.eoa : '?') + ' pos=' + POS(aSin.P).join('+')]);
+    ex.push(['CONTROL NEGATIVO: sin regurgitacion y con IM LEVE el gradiente SIGUE contando, y el informe publica la linea',
+      [aSin, aLeve].every(function(e){ return e.P.porGmed === 'significativa' &&
+        MED(e.P).indexOf('gmed') > -1 && e.P.obstr === 'significativa' &&
+        e.inf.inf.indexOf('sugestivos de obstrucci') > -1 && RET(e.P) === ''; }),
+      [aSin.P.porGmed, aLeve.P.porGmed].join('/')]);
+    ex.push(['con IM MODERADA o SEVERA el gradiente se RETIRA: no vota ni como positivo ni como medido',
+      [aMod, aSev].every(function(e){ return e.P.porGmed == null && MED(e.P).indexOf('gmed') === -1 &&
+        POS(e.P).indexOf('gmed') === -1 && e.P.gmed === 12; }),
+      'mod med=' + MED(aMod.P).join('+') + ' sev med=' + MED(aSev.P).join('+')]);
+    ex.push(['y con eso la linea SALE del informe firmado: queda UN solo criterio y el veredicto es «posible»',
+      [aMod, aSev].every(function(e){ return e.P.obstr === 'posible' && POS(e.P).length === 1 &&
+        POS(e.P)[0] === 'thp' && e.inf.inf.indexOf('sugestivos de obstrucci') === -1; }),
+      String(aSev.P.obstr) + ' pos=' + POS(aSev.P).join('+')]);
+    ex.push(['la fila del gradiente MUESTRA su valor y dice por que no concluye, con un motivo PROPIO y no el del area',
+      aSev.fila.indexOf('12.0 mmHg') > -1 && aSev.fila.indexOf('no concluye') > -1 &&
+      aSev.fila.indexOf('regurgitaci') > -1 && aSev.fila.indexOf('AVm por continuidad') === -1 &&
+      aSev.fila.indexOf('undefined') === -1, aSev.fila]);
+    ex.push(['CONTROL NEGATIVO: el THP NO se retira con regurgitacion —la nota ‡ no lo marca— y sigue siendo el positivo que queda',
+      [aMod, aSev].every(function(e){ return e.P.porThp === 'significativa' && e.P.thp === 250; }),
+      String(aSev.P.porThp)]);
+
+    /* ══ B · Z6-2 · EL THP NORMAL, Y SOLO EN LA MECANICA ════════════════════════════════
+       VTI mitral 52 -> DVI 2,60 (significativo) y AEO 1,21 (posible): asi el veredicto tiene un
+       SEGUNDO positivo y retirar el gradiente se ve como un cambio de veredicto, no de conteo. */
+    const ESC_THP = (morf, thp, gmed) => {
+      NUEVO();
+      S('peso', '80'); S('talla', '180');
+      S('vm_morf', morf);
+      S('em_dtsvi', '20'); S('em_vtitsvi', '20'); S('em_vtimit', '52');
+      S('em_gmedio', gmed == null ? '12' : gmed);
+      S('thp', thp == null ? '' : thp);
+      try { if (FN('calcEM')) calcEM(); } catch (e) {}
+      try { if (FN('vmProtEOAPintar')) vmProtEOAPintar(); } catch (e) {}
+      return { P: PV(), inf: INF('estandar'), fila: T('vm-prot-gmed') };
+    };
+    const bSin = ESC_THP(MEC_VM(), ''), bNor = ESC_THP(MEC_VM(), '100'), bAno = ESC_THP(MEC_VM(), '250');
+    ex.push(['DENOMINADOR: la escena del THP tiene el DVI positivo y el AEO en la banda del medio',
+      !!bSin.P && bSin.P.porDvi === 'significativa' && bSin.P.porEoa === 'posible' && bSin.P.gmed === 12,
+      'dvi=' + String(bSin.P.porDvi) + ' eoa=' + String(bSin.P.porEoa)]);
+    ex.push(['CONTROL NEGATIVO: sin THP medido y con el THP ANORMAL el gradiente vota, y la linea esta en el informe',
+      [bSin, bAno].every(function(e){ return e.P.porGmed === 'significativa' &&
+        e.P.obstr === 'significativa' && e.inf.inf.indexOf('sugestivos de obstrucci') > -1; }),
+      [bSin.P.porGmed, bAno.P.porGmed].join('/')]);
+    ex.push(['con el THP NORMAL el gradiente deja de votar, el veredicto baja a «posible» y la linea SALE del informe',
+      bNor.P.porGmed == null && MED(bNor.P).indexOf('gmed') === -1 && bNor.P.gmed === 12 &&
+      bNor.P.obstr === 'posible' && POS(bNor.P).join('+') === 'dvi' &&
+      bNor.inf.inf.indexOf('sugestivos de obstrucci') === -1,
+      String(bNor.P.obstr) + ' pos=' + POS(bNor.P).join('+')]);
+    ex.push(['la fila lo dice con su motivo propio, y NO es el de la regurgitacion',
+      bNor.fila.indexOf('12.0 mmHg') > -1 && bNor.fila.indexOf('THP normal') > -1 &&
+      bNor.fila.indexOf('undefined') === -1, bNor.fila]);
+    const b129 = ESC_THP(MEC_VM(), '129'), b130 = ESC_THP(MEC_VM(), '130');
+    ex.push(['el borde del THP separa: 129 es normal y retira el gradiente, 130 ya es «posible» y no lo retira',
+      b129.P.porGmed == null && b129.P.porThp === 'normal' &&
+      b130.P.porGmed === 'significativa' && b130.P.porThp === 'posible',
+      [String(b129.P.porGmed), String(b130.P.porGmed)].join('/')]);
+    const bBio = ESC_THP(BIO_VM(), '100');
+    ex.push(['CONTROL NEGATIVO: en la protesis BIOLOGICA el gradiente vota igual con el THP normal — la Tabla 12 es de valvulas MECANICAS',
+      bBio.P.porGmed === 'significativa' && bBio.P.obstr === 'significativa' &&
+      bBio.inf.inf.indexOf('sugestivos de obstrucci') > -1 && bBio.P.mecanica === false,
+      String(bBio.P.porGmed) + ' mec=' + String(bBio.P.mecanica)]);
+    const bNormal = ESC_THP(MEC_VM(), '100', '4');
+    ex.push(['CONTROL NEGATIVO: con el gradiente en la banda NORMAL (4 mmHg) no se retira nada — no hay nada que reinterpretar',
+      bNormal.P.porGmed === 'normal' && MED(bNormal.P).indexOf('gmed') > -1,
+      String(bNormal.P.porGmed)]);
+
+    /* ══ C · Z6-3a · LA FILA DEL PPM NO PIDE UN DATO QUE YA EXISTE ══════════════════════ */
+    const PPM = () => T('vm-prot-ppm');
+    const cCon = (function(){ ESC_IM(MEC_VM(), null); return { ppm: PPM(), P: PV() }; })();
+    const cRet = (function(){ ESC_IM(MEC_VM(), '4'); return { ppm: PPM(), P: PV() }; })();
+    ex.push(['DENOMINADOR: con el AEO calculado la fila publica el PPM y no pide nada',
+      cCon.ppm.indexOf('cm²/m²') > -1 && cCon.ppm.indexOf('falta') === -1, cCon.ppm]);
+    ex.push(['con el AEO RETIRADO por regurgitacion la fila NO pide el AEO: el motivo ya esta en la fila de arriba',
+      cRet.P.eoa == null && cRet.ppm.indexOf('falta el AEO') === -1, cRet.ppm]);
+    const cFalta = (function(){
+      NUEVO(); S('peso', '80'); S('talla', '180'); S('vm_morf', MEC_VM());
+      S('em_dtsvi', '20'); S('em_vtitsvi', '20');
+      try { if (FN('calcEM')) calcEM(); } catch (e) {}
+      try { if (FN('vmProtEOAPintar')) vmProtEOAPintar(); } catch (e) {}
+      return { ppm: PPM(), P: PV() }; })();
+    ex.push(['CONTROL NEGATIVO: el AEO que de verdad FALTA se sigue pidiendo — eso es lo que el Z5 arreglo y no hay que deshacer',
+      cFalta.P.eoa == null && cFalta.ppm.indexOf('falta el AEO por continuidad') > -1, cFalta.ppm]);
+
+    /* ══ D · Z6-3b · EL DVI PROTESICO AORTICO POR UN SOLO CAMINO ════════════════════════ */
+    const ESC_AO = (morf, itvAo) => {
+      NUEVO();
+      S('peso', '80'); S('talla', '180');
+      S('va_morf', morf);
+      S('ea_dtsvi', '20'); S('itv_tsvi', '20'); S('itv_ao', itvAo);
+      S('vmax_ao', '4.2'); S('gmedio_ao', '45');
+      try { if (FN('calcAo')) calcAo(); } catch (e) {}
+      try { if (FN('eaAvaiGradoPintar')) eaAvaiGradoPintar(); } catch (e) {}
+      const g = document.querySelector('[data-grado-de="ea-det-dvi"]');
+      return { fila: NIVEL_FILA(), P: PA(), txt: g ? (g.textContent || '').trim() : 'SIN SPAN',
+               pub: T('dvi-val') }; };
+    const dNor = ESC_AO(MEC_VA(), '56'), dPos = ESC_AO(MEC_VA(), '70'), dSig = ESC_AO(MEC_VA(), '90');
+    const dTavi = ESC_AO('TAVI', '70');
+    ex.push(['DENOMINADOR: el veredicto protesico aortico existe y publica el NIVEL del DVI',
+      !!dNor.P && dNor.P.dviNivel !== undefined && dNor.P.dvi != null,
+      'dviNivel=' + String((dNor.P || {}).dviNivel) + ' dvi=' + String((dNor.P || {}).dvi)]);
+    ex.push(['la fila y el veredicto salen del MISMO lugar en las cuatro escenas, TAVI incluida',
+      [dNor, dPos, dSig, dTavi].every(function(e){ return !!e.P && e.fila === e.P.dviNivel && e.fila != null; }),
+      [dNor.fila, dPos.fila, dSig.fila, dTavi.fila].join('/')]);
+    ex.push(['y los tres tramos de la Tabla 5 siguen siendo los mismos: normal, posible y significativa',
+      dNor.fila === 'normal' && dPos.fila === 'posible' && dSig.fila === 'signif' &&
+      dTavi.fila === 'posible',
+      [dNor.fila, dPos.fila, dSig.fila, dTavi.fila].join('/')]);
+    /* EL BORDE DEL REDONDEO, que es donde los dos caminos discrepaban: 20/56.4 da 0,35461
+       crudo y la pantalla publica «0.35». El camino crudo lo leia por encima del 0,35
+       estricto (normal) y el veredicto leia el publicado (posible). */
+    const dBorde = ESC_AO(MEC_VA(), '56.4');
+    ex.push(['el borde del REDONDEO ya no discrepa: la fila clasifica el numero PUBLICADO, igual que el veredicto',
+      dBorde.pub === '0.35' && dBorde.fila === 'posible' && dBorde.P.dviNivel === 'posible' &&
+      dBorde.txt.indexOf('posible') > -1,
+      'pub=' + dBorde.pub + ' fila=' + String(dBorde.fila) + ' txt=' + dBorde.txt]);
+    const dNat = (function(){ const n = NAT('va_morf'); return ESC_AO(n, '70'); })();
+    ex.push(['CONTROL NEGATIVO: con valvula NATIVA no hay veredicto protesico y la fila publica el grado NATIVO',
+      dNat.P == null && dNat.txt.indexOf('moderada') > -1, dNat.txt]);
+
+    /* ══ E · LA TARJETA DICE LO QUE LA APP HACE ═════════════════════════════════════════
+       ⚠️ UN GLOBO SIN GEOMETRIA NO ANCLA NADA, y la primera version de este bloque informo
+       «no abre» sobre un mecanismo perfecto. Hay TRES puertas: la pestana activa, la seccion
+       del ETE —que nace oculta— y el cajon de la estenosis mitral. Es la misma trampa que
+       TC-480 ya documenta para estos tres globos. */
+    ESC_IM(MEC_VM(), null);
+    try { if (FN('showTab')) showTab('valvulas'); } catch (e) {}
+    try { const sec = EL('ete-seccion-valv-mitral');
+      if (sec && getComputedStyle(sec).display === 'none' && FN('toggleEteSeccion'))
+        toggleEteSeccion('valv-mitral'); } catch (e) {}
+    try { const cj = EL('caja-esten-mitral');
+      if (cj && getComputedStyle(cj).display === 'none' && FN('valvDatosTog'))
+        valvDatosTog('caja-esten-mitral'); } catch (e) {}
+    { const bObs = document.querySelector('[data-vinfo="prot-obstr"]');
+      { const rb = bObs ? bObs.getBoundingClientRect() : null;
+        ex.push(['DENOMINADOR: el globo del veredicto TIENE geometria antes de medirlo',
+          !!rb && rb.width > 0 && rb.height > 0,
+          rb ? Math.round(rb.width) + 'x' + Math.round(rb.height) : 'SIN BOTON']); }
+      const card = EL('vinfo-card');
+      const abierto = () => !!card && getComputedStyle(card).display !== 'none';
+      const r = { abre: false, txt: '' };
+      if (bObs) { bObs.click(); r.abre = abierto(); r.txt = (abierto() ? (card.textContent || '') : '') || ''; }
+      ex.push(['DENOMINADOR: la tarjeta del veredicto abre y trae texto',
+        r.abre === true && r.txt.length > 100, 'abre=' + String(r.abre) + ' n=' + r.txt.length]);
+      ex.push(['la tarjeta declara los DOS retiros del gradiente: el de la regurgitacion y el del THP normal en la mecanica',
+        r.txt.indexOf('el AEO, el DVI y el gradiente medio se muestran y no concluyen') > -1 &&
+        r.txt.indexOf('mec') > -1 && r.txt.indexOf('THP normal') > -1 &&
+        r.txt.indexOf('gradiente medio sigue contando') === -1, '']);
+      if (bObs) { bObs.click(); }
+    }
+
+    /* ══ F · CONTROLES: NADA FUERA DE LA PROTESIS SE MUEVE ══════════════════════════════ */
+    { NUEVO();
+      const n = NAT('vm_morf'); if (n) S('vm_morf', n);
+      S('peso', '80'); S('talla', '180');
+      S('em_dtsvi', '20'); S('em_vtitsvi', '20'); S('em_vtimit', '40');
+      S('em_gmedio', '12'); S('thp', '250');
+      try { if (FN('calcEM')) calcEM(); } catch (e) {}
+      const Pn = PV(), iN = INF('estandar');
+      ex.push(['CONTROL NEGATIVO: con valvula mitral NATIVA y los MISMOS datos no hay veredicto protesico ni linea en el papel',
+        !!Pn && Pn.esProt === false && Pn.porGmed == null && Pn.obstr == null &&
+        iN.inf.indexOf('sugestivos de obstrucci') === -1, String(n)]);
+      const fila = (function(){ try { return _labExcelRow({ nombre:'P', ci:'1', fecha_estudio:'2026-10-15',
+        campos: (function(){ const c = {};
+          document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function(el){
+            try { if (FN('_noEsDelEstudio') && _noEsDelEstudio(el.id)) return; } catch (e) {}
+            c[el.id] = el.value; });
+          return c; })() }); } catch (e) { return null; } })();
+      ex.push(['el Excel sigue en 440 columnas: esta tanda no agrega ninguna',
+        !!fila && Object.keys(fila).length === 440,
+        fila ? String(Object.keys(fila).length) : 'EXC']); }
+
+    return { extra: ex };
+  })();
+`);
+
 
 
 let servidor, chrome;
