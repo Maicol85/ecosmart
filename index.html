@@ -28156,7 +28156,34 @@ function calcTHP() {
   thpMarcaPintar();
   /* Las dos salidas del área por THP se vacían ACÁ y no sólo en `calcEM`: esta salida temprana
      es la que toma el borrado del THP, y hasta hoy dejaba el área del paso anterior en pantalla. */
-  if (!thp) { setv('avm_thp',''); emThpSalidasLimpiar(); return; }
+  /* ⚠️ ESTA SALIDA TEMPRANA ES LA QUE DEJABA EL INFORME FIRMADO AFIRMANDO SIN NÚMERO (W1-1,
+     censo del 2026-10-15), y por eso ahora llama a `calcEM()` antes de volver. El defecto, medido
+     con teclas reales: con el THP como ÚNICA fuente de área, cargar 160 ms y borrarlo
+     seleccionando todo y pulsando Backspace una vez dejaba CINCO nodos con el estado del paciente
+     anterior —`avm_idx` («0.76 cm²/m²», que **viaja al Excel**), `#em-clase-thp`,
+     `#em-sev-integrada`, `#em-thp-badge` y, el peor, `em_grado` en «severa»— con la pastilla
+     prendida, el informe diciendo «con estenosis significativa» SIN el paréntesis del área y el
+     EN SUMA «EM significativa.» sobre un formulario sin un solo dato de la válvula.
+     La causa no era una regla: era un recálculo que no ocurría. `calcEM` es el dueño único de
+     todos esos nodos —escribe `em_grado` por `emGradoAuto`, vacía `avm_idx` en su `else`, repinta
+     el cuadro por `emCuadroRefSync` y corre el par `valvAutoPrenderEsten` / `_emApagarAuto`— y
+     tiene desde el 2026-10-09 el `else` que vacía el indexado: **existía y nadie lo ejecutaba**.
+     Llamarlo acá es exactamente la REGLA DEL BORRADO del 13/10 que las otras lesiones ya aplican
+     —al desaparecer el último dato que producía un grado, el grado AUTOMÁTICO se retira, la marca
+     y la pastilla vuelven al estado inicial y el informe vuelve a «sin dato»— y el grado fijado A
+     MANO se respeta por la misma puerta de siempre: `emGradoAuto` sale temprano con
+     `esqSevManual.em` puesto y `_emApagarAuto` sale por su tercera guarda.
+     ⚠️ NO HAY RECURSIÓN: `calcEM` no llama a `calcTHP`. Lee `v('thp')` y, con el campo vacío, pasa
+     por `emThpSalidasLimpiar`, `thpEspejar` y `thpMarcaPintar`, que tampoco lo llaman. Las dos
+     líneas de arriba se CONSERVAN aunque `calcEM` las repita: si `calcEM` lanzara, el área y la
+     marca ya quedaron al día, que es el motivo por el que estaban acá.
+     ⚠️ ES EL ÚNICO CAMPO CON ESTE PATRÓN, Y ESTÁ MEDIDO: censo de doce campos editables de los
+     bloques mitral y aórtico, cargados y borrados uno por uno con teclas reales; los otros once
+     (`avm_plan`, `em_vtimit`, `em_dtsvi`, `em_vtitsvi`, `em_gmedio`, `vmax_ao`, `gmedio_ao`,
+     `itv_ao`, `ea_dtsvi`, `ea_vtitsvi`, `ava_plan`) dejan CERO nodos rancios, porque sus `oninput`
+     sí terminan en `calcEM`. Y borrar el PESO sigue limpiando SÓLO `avm_idx`, que es la conducta
+     deliberada de `_emAvmiSinBSA` y el control negativo de este arreglo. */
+  if (!thp) { setv('avm_thp',''); emThpSalidasLimpiar(); calcEM(); return; }
   /* Extracción pura: el `toFixed(2)` se conserva y se cae a la expresión anterior si el helper
      devolviera `null`, para que sacar la fórmula de acá no pueda cambiar lo que se publica. */
   const _a = (typeof _avmPorPHT === 'function') ? _avmPorPHT(thp) : null;
