@@ -448,7 +448,12 @@ window.__P = {
     function Espia() {
       var d = new Orig(arguments[0], arguments[1], arguments[2]);
       var t = d.text.bind(d);
-      d.text = function(txt) { try { reg.push(String(txt)) } catch (e) {} return t.apply(d, arguments) };
+      /* ⚠️ EL ROTULO Y EL VALOR DE UNA FILA SE ESTAMPAN EN DOS doc.text DISTINTOS:
+         drawTablaCompacta dibuja el rotulo en negrita en (cx, ry+2,6) y el sufijo
+         «(ref): valor» en (cx+anchoRotulo, ry+3,0). Registrar solo el texto deja la fila del GC
+         como «GC» pelado —la primera corrida informo eso en las cuatro escenas— asi que se
+         guardan tambien las coordenadas y la fila se recompone por su y. */
+      d.text = function(txt, x, y) { try { reg.push({ t: String(txt), x: Number(x), y: Number(y) }) } catch (e) {} return t.apply(d, arguments) };
       d.save = function(){ try { window.__P._uri = d.output('datauristring') } catch (e) {} return d };
       return d;
     }
@@ -459,12 +464,23 @@ window.__P = {
       .catch(function(e){ return { err: 'EXC: ' + e.message, lineas: reg } })
       .then(function(r){ window.jspdf.jsPDF = Orig;
         r.uri = window.__P._uri || null; window.__P._uri = null;
-        /* Las filas de la tabla compacta se estampan como «rotulo (ref): valor», asi que el
-           renglon del GC se busca por su prefijo y se devuelve COMPLETO. */
-        r.gc = (r.lineas || []).filter(function(s){ return /(^|[^A-Za-z])GC\\b/.test(s) });
-        r.ic = (r.lineas || []).filter(function(s){ return /(^|[^A-Za-z])IC\\b/.test(s) });
-        r.vs = (r.lineas || []).filter(function(s){ return s.indexOf('Vol. sist') === 0 });
-        r.n  = (r.lineas || []).length;
+        /* La fila COMPLETA: el rotulo mas todo lo estampado a su derecha en la MISMA banda de
+           y (el sufijo va 0,4 mm mas abajo y las continuaciones cada 3,5 mm bajo el rotulo). */
+        var LN = r.lineas || [];
+        var fila = function(rot) {
+          return LN.filter(function(e){ return e.t === rot }).map(function(b){
+            return LN.filter(function(e){ return Math.abs(e.y - b.y) < 0.6 && e.x >= b.x - 0.01 })
+                     .sort(function(p,q){ return p.x - q.x })
+                     .map(function(e){ return e.t }).join('');
+          });
+        };
+        r.gc = fila('GC');
+        r.ic = fila('IC');
+        r.vsist = fila('Vol. sistol.');
+        r.n  = LN.length;
+        /* TODO el texto estampado, en orden: es el control de que lo UNICO que se mueve en el
+           PDF son las dos filas del gasto. Son ~43 entradas, asi que entra en el JSON. */
+        r.textos = LN.map(function(e){ return e.t });
         return r });
   },
 
@@ -513,6 +529,12 @@ async function main() {
     return r.result.value;
   }
   const J = async (expr) => JSON.parse(await ev('JSON.stringify(' + expr + ')'));
+  /* ⚠️ `J` STRINGIFICA ANTES DE AWAITEAR, asi que sobre una PROMESA devuelve «{}» — y eso se lee
+     igual que «el PDF salio vacio». La primera corrida del grupo `gc` informo las cuatro escenas
+     con el objeto vacio sobre un jsPDF que SI habia cargado. `JP` resuelve la promesa DENTRO de
+     la pagina y stringifica el resultado. */
+  const JP = async (expr) => JSON.parse(await ev(
+    'Promise.resolve(' + expr + ').then(function(r){ return JSON.stringify(r) })'));
 
   const VK = { Backspace: 8, Delete: 46, Tab: 9, Enter: 13, End: 35, Home: 36, Space: 32 };
   async function tecla(k, text) {
@@ -710,7 +732,7 @@ async function main() {
     paso('gc');
     const g = {};
     g.jspdf = await ev('window.__P.esperarJspdf(12000)');
-    const escGC = async (nom, fc) => {
+    const escGC = async (nom, fc, conAva) => {
       await J('window.__P.limpiar()');
       /* Montaje del gasto: el GC del PDF lee `diam_tsvi` y `itv_tsvi` directo. O TSVI 20 mm da
          area 3,1416 cm2 y con VTI 20 cm el volumen sistolico es 62,83 ml. */
@@ -719,12 +741,23 @@ async function main() {
       await J('window.__P.set("nombre", "F-GC")');
       await J('window.__P.set("diam_tsvi", 20)');
       await J('window.__P.set("itv_tsvi", 20)');
+      /* ⚠️ CONTROL NEGATIVO IMPRESCINDIBLE: las filas de GC e IC son las DOS unicas de la
+         seccion «AVA / GC / IC» cuando no hay AVA, asi que al retirarlas desaparece la COLUMNA
+         entera del PDF —header incluido—. Con el AVA cargado la seccion se queda con sus filas y
+         lo unico que falta son las dos del gasto. Sin esta escena, «desaparece la columna» se
+         lee como una perdida de este commit y no como el filtro que drawTablaCompacta ya tenia. */
+      if (conAva) await J('window.__P.set("itv_ao", 55)');
       if (fc !== null) { g['tecleo_' + nom] = await tipear('hemo_fc', String(fc)); }
       await pausa(150);
-      const pdf = await J('window.__P.armarPdf()');
+      const pdf = await JP('window.__P.armarPdf()');
       delete pdf.lineas; delete pdf.uri;
       g[nom] = { fcCampo: await ev('window.__P.val("hemo_fc")'),
+                 /* DENOMINADOR del gasto: sin estos dos el GC no existe en NINGUN arbol, y
+                    «no hay linea de GC» se leeria como el cambio de este commit. */
+                 dtsvi: await ev('window.__P.val("diam_tsvi")'),
+                 itsvi: await ev('window.__P.val("itv_tsvi")'),
                  vs: await ev('window.__P.val("vs_calc")'),
+                 hemoVs: await ev('window.__P.val("hemo_vs")'),
                  pdf };
       return g[nom];
     };
@@ -734,6 +767,8 @@ async function main() {
     /* FC fuera de la banda [20,250]: el predicado `hemoFCUsable` la rechaza, asi que es el
        MISMO estado que «sin FC» — control negativo de que no vuelve a suponer 70. */
     await escGC('fcFuera', 300);
+    await escGC('sinFCconAva', null, true);
+    await escGC('conFCconAva', 72, true);
     out.grupos.gc = g;
   }
 

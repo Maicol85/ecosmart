@@ -50074,18 +50074,40 @@ function generarPDFReal(_aj) {
   // Aortic
   const avaC   = v('ava_cont');
   const avaIdx = (avaC&&bsa)?(avaC/bsa).toFixed(2)+' cm2/m2':null;
-  /* FC REAL del estudio, con 70 sólo como respaldo. Estaba fija en 70 mientras `calcHemo` usaba
-     el valor cargado, así que el mismo paciente tenía dos gastos cardíacos distintos: uno en
-     pantalla y otro —inventado— en el informe firmado, sin nota de que la FC era supuesta. Con
-     FC 110 el impreso quedaba 36 % por debajo del real; con FC 50, un 40 % por encima.
-     El respaldo se marca con «*» para que no se lea como medido. */
-  /* La banda pasó a `HEMO_FC_BANDA` / `hemoFCUsable` el 2026-10-06: estaba acá como dos literales
-     sueltos repetidos en estas dos líneas, y la PANTALLA no la tenía. Mismo predicado para los dos
-     ahora. El comportamiento de ESTE lado no cambia en ningún valor. */
+  /* ══ EL GASTO CARDÍACO DEL PDF SE PUBLICA SÓLO CON FRECUENCIA CARDÍACA (F1, 2026-10-15) ════
+     Decisión de Maicol. Antes el respaldo era una FC de 70 marcada con «*»; medido en HEAD con
+     Ø TSVI 20 mm y VTI TSVI 20 cm, el PDF SIN FC imprimía «GC: 4.4 L/min*» y «IC: 2.20
+     L/min/m2» — dos números sostenidos por una frecuencia que nadie midió, en un informe
+     FIRMADO, y el «*» no tiene pie de página en ningún lado del documento: censo del archivo,
+     cero apariciones de una nota que lo explique. Hoy sin FC usable no hay fila.
+
+     ⚠️ CON LA FC CARGADA NO CAMBIA NI UN NÚMERO, y eso está medido: el `_fcUso` de HEAD ya era
+     la FC real cuando `hemoFCUsable` la aceptaba. Con FC 72 el papel decía y sigue diciendo
+     «4.5 L/min»; con 110, «6.9 L/min». Lo único que se retira es la rama del respaldo.
+
+     ⚠️ EL ROTULO DICE QUÉ FC SE USÓ, y va en el campo `ref` de la fila —no en `lbl`— porque esa
+     es la ranura que `drawTablaCompacta` tiene para el calificador: estampa «rotulo (ref):
+     valor», o sea «GC (con FC de 72 lpm): 4.5 L/min», que es el texto pedido. En `lbl` habría
+     entrado en negrita y le habría comido el ancho que la función reserva para envolver el
+     valor, porque el presupuesto de cada celda se mide sobre el rótulo en negrita.
+
+     ⚠️ EL ÍNDICE CARDÍACO SE VA CON ÉL, y es consecuencia y no decisión aparte: `icV` es
+     `coV / ASC`, así que publicarlo sin el GC sería publicar el índice de una magnitud que la
+     app acaba de negarse a imprimir, calculado con la MISMA FC inventada. La orden nombra sólo
+     el GC; dejar el IC sería conservar el defecto por la puerta de al lado.
+
+     ⚠️ LA PANTALLA NO CAMBIA: `calcHemo` ya dejaba el GC, el IC, la RVS y los dos perfiles en
+     `null` con la FC vacía o fuera de banda, con el MISMO predicado. Lo que esta línea cierra es
+     justamente que las dos superficies dejen de discrepar.
+
+     La banda pasó a `HEMO_FC_BANDA` / `hemoFCUsable` el 2026-10-06; el predicado sigue siendo el
+     mismo para la pantalla y para el papel, así que una FC fuera de banda (medido: 300) es el
+     MISMO estado que una FC vacía y tampoco vuelve a suponer 70. */
   const _fcReal = v('hemo_fc');
-  const _fcUso  = hemoFCUsable(_fcReal) ? _fcReal : 70;
-  const _fcSup  = !hemoFCUsable(_fcReal);
-  const coV    = (v('diam_tsvi')&&v('itv_tsvi'))?(Math.PI*((v('diam_tsvi')/20)**2)*v('itv_tsvi')*_fcUso/1000).toFixed(1)+' L/min'+(_fcSup?'*':''):null;
+  const _fcUso  = hemoFCUsable(_fcReal) ? _fcReal : null;
+  const coV    = (_fcUso !== null && v('diam_tsvi') && v('itv_tsvi'))
+    ? (Math.PI*((v('diam_tsvi')/20)**2)*v('itv_tsvi')*_fcUso/1000).toFixed(1)+' L/min' : null;
+  const _fcRef = (_fcUso !== null) ? 'con FC de ' + _fcUso + ' lpm' : '';
   const icV    = (coV&&bsa)?(PF(coV)/bsa).toFixed(2)+' L/min/m2':null;
 
   // PSAP
@@ -51001,7 +51023,10 @@ function generarPDFReal(_aj) {
          verificar la frase que sostiene el escenario. Sale de `vliCalc`, la misma función que
          pinta la cápsula: no se recalcula acá. */
       {lbl:'VLI',         ref:'>' + UMBRAL_VLI_BAJO + ' ml/m2', val:(()=>{const x=(typeof vliCalc==='function')?vliCalc():null;return x===null?null:x.toFixed(0)+' ml/m2';})()},
-      {lbl:'GC',          ref:'',             val:coV},
+      /* El `ref` lleva la FC que entró en la cuenta — ver el comentario de `coV`. Sin FC usable
+         `coV` es `null` y `drawTablaCompacta` NO dibuja la fila, que es el comportamiento pedido;
+         `_fcRef` queda en cadena vacía, o sea exactamente el `ref:''` de antes. */
+      {lbl:'GC',          ref:_fcRef,         val:coV},
       {lbl:'IC',          ref:'',             val:icV},
     ]},
   ]);
