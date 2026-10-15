@@ -10964,7 +10964,7 @@ caso('TC-142', 'Laboratorio: ocho subtabs, orden nuevo y la tabla de valvulopati
     it_grado:'0', et_grado:'Sin estenosis', ip_grado:'Sin insuficiencia', ep_grado:'sin' };
     Object.keys(o).forEach(function(k){ c[k] = o[k]; }); return { campos:c }; };
   const infs = [mk({}), mk({ im_grado:'2' }), mk({ ip_grado:'Severa' }),
-                mk({ ep_grado:'Moderada' }), mk({ et_grado:'Severa' })];
+                mk({ ep_grado:'Moderada' }), mk({ et_grado:'Significativa' })];
   labRenderExtras(infs, infs.length);
   const tab = document.getElementById('lab-valv-tabla');
   const filas = tab ? [].slice.call(tab.querySelectorAll('tbody tr')).map(function(tr){
@@ -11035,12 +11035,21 @@ caso('TC-142', 'Laboratorio: ocho subtabs, orden nuevo y la tabla de valvulopati
     ['y va ANTES de los graficos', antesQueBarras],
     ['el denominador es el total del periodo: no marcar cuenta como «Sin»',
       celda('EM', 1) === '5' && celda('IA', 1) === '5', celda('EM',1) + ' / ' + celda('IA',1)],
+    /* ADAPTADO 2026-10-15 (G2, opcion A): LA ESTENOSIS TRICUSPIDEA ES BINARIA Y SOLO PUBLICA
+       «Sev» = «Significativa»; «Sin», «Leve» y «Mod» van con un GUION porque esa lesion no se
+       gradua. Y su celda cuenta SOLO el token vigente: la escena pasa de et_grado:'Severa'
+       —un legado de antes del 2026-10-05— a 'Significativa', porque traducir los grados
+       viejos seria inventar una equivalencia que la guia no hace, que es el mismo argumento con
+       el que esa tanda decidio NO migrarlos. El hallazgo de la ET se mide en la columna «Sev» y
+       el de las otras tres valvulas no se mueve. */
     ['cada hallazgo cae en su fila y su columna',
       celda('IM', 3) === '1' && celda('ET', 4) === '1' &&
       celda('IP', 4) === '1' && celda('EP', 3) === '1',
       'IMmod=' + celda('IM',3) + ' ETsev=' + celda('ET',4) + ' IPsev=' + celda('IP',4) + ' EPmod=' + celda('EP',3)],
-    ['y los que no tienen el hallazgo quedan en «Sin»',
-      celda('IM', 1) === '4' && celda('ET', 1) === '4', celda('IM',1) + ' / ' + celda('ET',1)],
+    ['y los que no tienen el hallazgo quedan en «Sin» — salvo las dos BINARIAS, que llevan guion',
+      celda('IM', 1) === '4' && celda('ET', 1) === String.fromCharCode(8212) &&
+      celda('EM', 3) === String.fromCharCode(8212),
+      celda('IM',1) + ' / ET=' + celda('ET',1) + ' / EMmod=' + celda('EM',3)],
     ['el pie declara el denominador',
       (tab.querySelector('div') || {}).textContent.indexOf('total de estudios del período (n=5)') > -1,
       (tab.querySelector('div') || {}).textContent]

@@ -93856,23 +93856,38 @@ function labRenderExtras(infs, n) {
     thead.appendChild(htr); tab.appendChild(thead);
     const tb = document.createElement('tbody');
     let sinDato = 0;
+    const CUB = ['Sin','Leve','Moderada','Severa'];
+    let hayBin = false;
     SIGLA.forEach((sig, i) => {
-      const L = vc.counts.Leve[i], M = vc.counts.Moderada[i], S = vc.counts.Severa[i];
+      /* ⚠️ LAS DOS BINARIAS LEEN `vc.bin` Y LAS OTRAS SEIS `vc.counts`, y no al reves: la
+         estructura paralela existe justo para que el PPT y la mini-tabla del PDF —que leen
+         `counts`— no se muevan. Ver el comentario de `LAB_VALV_BIN`. */
+      const b = (vc.bin && vc.bin[i]) ? vc.bin[i] : null;
+      if (b) hayBin = true;
+      const cuentas = b ? b.cuentas
+        : { Sin: null, Leve: vc.counts.Leve[i], Moderada: vc.counts.Moderada[i], Severa: vc.counts.Severa[i] };
+      const base = b ? b.base : vc.bases[i];
       /* «Sin» sobre la BASE de esa válvula, no sobre N: los estudios donde el campo no existe
          no se pueden contar como normales. */
-      const sin = Math.max(0, vc.bases[i] - L - M - S);
+      if (!b) cuentas.Sin = Math.max(0, base - cuentas.Leve - cuentas.Moderada - cuentas.Severa);
       sinDato += (N - vc.bases[i]);
       const tr = document.createElement('tr');
       const td0 = document.createElement('td');
       td0.textContent = sig + '  ' + _LAB_VALV_LABELS[i].replace(/^(Insuf\.|Esten\.)\s*/, '');
       td0.setAttribute('style','padding:5px 8px;border-bottom:1px solid var(--border);font-weight:700;');
       tr.appendChild(td0);
-      [sin, L, M, S].forEach((n, k) => {
+      CUB.forEach((cub, k) => {
         const td = document.createElement('td');
-        /* Base 0 imprime «—» y no «0»: un cero se lee como «lo medimos y dio cero», que es el
-           defecto de `pctOf(n, 0)` que este archivo ya cerró en el PDF de auditoría. */
-        td.textContent = vc.bases[i] === 0 ? '—' : String(n);
+        /* ⚠️ UNA CUBETA QUE NO APLICA LLEVA UN GUION, NO UN CERO, y es la decision 5 de la orden:
+           «Moderada» de la mitral esta vacia POR CONSTRUCCION —su selector es binario— y un cero
+           ahi se lee como «lo medimos y dio cero». Es el mismo criterio que la base 0 de abajo y
+           que `pctOf(n, 0)` en el PDF de auditoria. El `title` dice por que. */
+        const na = !!(b && b.na.indexOf(cub) >= 0);
+        td.textContent = (base === 0 || na) ? '—' : String(cuentas[cub]);
+        if (na) td.title = 'No aplica: esta lesión no se gradúa, su regla es binaria.';
+        const n = na ? 0 : cuentas[cub];
         td.setAttribute('style','padding:5px 8px;border-bottom:1px solid var(--border);text-align:right;' +
+          (na ? 'color:var(--text2);' : '') +
           (k === 3 && n > 0 ? 'color:var(--red-fuerte,#f05454);font-weight:700;' : ''));
         tr.appendChild(td);
       });
@@ -93887,11 +93902,21 @@ function labRenderExtras(infs, n) {
        2026-10-13 tiene un selector BINARIO: su columna «Mod» esta vacia por construccion. El
        desglose por categoria —y el que distingue el area del gradiente— vive en el grafico de
        distribucion propio de la EM, que esta unas lineas mas abajo en la misma tarjeta. */
+    /* ⚠️ EL PIE DECLARA LAS DOS LECTURAS Y SUS DOS DENOMINADORES, que NO son el mismo y no se
+       unifican (decision de la orden): esta tabla cuenta sobre el total del periodo —no marcar
+       una valvula indica que fue valorada como normal— y el grafico propio de la estenosis
+       mitral, unas lineas mas abajo en la misma tarjeta, deja FUERA los estudios sin dato. Cada
+       uno dice su n en su propio pie; mezclarlos daria un numero que no es de ninguno de los
+       dos. */
     pie.textContent = 'Sobre el total de estudios del período (n=' + N + '). No marcar una válvula ' +
       'indica que fue valorada como normal.' +
       (sinDato ? ' Los estudios sin el campo —importados sin esa columna— no se cuentan como «Sin».' : '') +
-      ' En la estenosis mitral «Leve» se lee «no significativa» y «Sev» «significativa» (la regla ' +
-      'es binaria): el desglose por categoría está en su gráfico de distribución.';
+      (hayBin ? ' Las dos ESTENOSIS BINARIAS no se gradúan y sus cubetas que no aplican van con un ' +
+        'guion, no con un cero: en la MITRAL «Leve» se lee «no significativa» y «Sev» ' +
+        '«significativa», y de la TRICÚSPIDE sólo se publica «Sev» = «significativa» —los ' +
+        'estudios anteriores a su regla binaria cuentan en la base y no se traducen a ningún ' +
+        'grado—. El desglose por categoría de la estenosis mitral está en su gráfico de ' +
+        'distribución, que tiene su PROPIO n: deja fuera los estudios sin dato de esa válvula.' : '');
     cont.appendChild(pie);
   })();
   sevTable('lab-valv-im', i => _labRegurgSev(i,'im_grado'));
@@ -102559,6 +102584,75 @@ function _labRgba(hex, a) {
    declaraba que este laboratorio no tiene una sola tricúspide valorada, cuando las 95 lo
    estaban. `_labEstenSev` ya sabía leerlo: su rama `/sin|esclerosis/` matchea «Sin estenosis»
    sin tocar nada. Era una línea. */
+/* ══ LAS DOS ESTENOSIS BINARIAS EN EL LABORATORIO (G2, 2026-10-15) ═══════════════════════════
+   Decision 5 de Maicol, «opcion A»: la estenosis MITRAL y la TRICUSPIDEA no se graduan —sus
+   selectores son BINARIOS desde el 2026-10-13 y el 2026-10-05— asi que las cuatro cubetas
+   Sin/Leve/Moderada/Severa no pueden representarlas. Lo que entra es COMO SE PUBLICAN, no un
+   conteo nuevo.
+
+   ⚠️ `counts` Y `bases` NO SE TOCAN, Y ESA ES LA DECISION DE FONDO. Los comparten CUATRO
+   consumidores: la tabla de la pantalla, el grafico apilado (que es el MISMO para la pantalla y
+   para el PDF), el PPT estadistico y la mini-tabla del PDF de auditoria. La orden autoriza los
+   tres primeros y NO el PPT ni la mini-tabla, asi que la lectura binaria viaja en una estructura
+   PARALELA (`bin`) que solo consumen los autorizados: el PPT y la mini-tabla salen IDENTICOS a
+   HEAD por construccion y no por una medicion a posteriori.
+
+   ⚠️ LA CELDA DE LA TRICUSPIDE CUENTA SOLO EL TOKEN VIGENTE, Y LOS TRES LEGADOS NO SE TRADUCEN.
+   `_labEstenSev` devuelve `null` sobre «Significativa» y «No significativa» —medido: su cascada
+   no matchea ninguno de los dos— asi que hasta hoy una estenosis tricuspidea significativa
+   quedaba FUERA de la fila, y un estudio anterior al 2026-10-05 con «Leve» se rotulaba «leve»
+   sobre una valvula que la app ya no gradua. Mapear «Severa» o «Moderada» legados a
+   «Significativa» seria inventar una equivalencia que la guia no hace, que es el argumento con
+   el que esa tanda decidio NO migrar esos estudios. Los tres legados cuentan en la BASE —la
+   valvula fue valorada— y no se afirman en ninguna celda. El pie de la tabla lo declara. */
+const LAB_VALV_BIN = Object.freeze({
+  /* Indices de `_LAB_VALV_LABELS`. Se verifican con `indexOf` en `_labValvCounts`, no se
+     confian: era `length - 1` cuando la pulmonar entro como septima y el caso siguio verde
+     midiendo OTRA valvula. */
+  em: { i: 1, key: 'em_grado',
+        /* La mitral ya se lee bien con `_labEstenSev` —sus tokens son `sin` / `leve` / `severa`—
+           asi que la lectura no cambia: lo que cambia es el ROTULO y que «Moderada» quede con un
+           guion en vez de un cero, porque esta vacia POR CONSTRUCCION y no por medicion. */
+        lee: (inf) => _labEstenSev(inf, 'em_grado'),
+        vis: { Sin: 'Sin estenosis', Leve: 'No significativa', Severa: 'Significativa' },
+        na:  ['Moderada'] },
+  et: { i: 5, key: 'et_grado',
+        lee: (inf) => {
+          const raw = String((inf.campos || {})[/* et_grado */ 'et_grado'] ?? '').trim();
+          if (!raw) return null;
+          if (raw.toLowerCase() === 'significativa') return 'Severa';
+          /* Todo lo demas —el centinela `sin`, «No significativa» y los tres grados legados—
+             cuenta en la base y no se afirma. `'legado'` no es una cubeta: `_labValvBin` lo usa
+             para sumar la base sin tocar ninguna celda. */
+          return 'legado'; },
+        vis: { Severa: 'Significativa' },
+        na:  ['Sin', 'Leve', 'Moderada'] }
+});
+/* Las dos lecturas binarias, por indice de valvula. Devuelve `null` para las otras SEIS, que es
+   lo que hace que la tabla y el apilado sigan leyendo `counts`/`bases` para ellas. */
+function _labValvBin(infs) {
+  const out = {};
+  Object.keys(LAB_VALV_BIN).forEach((k) => {
+    const d = LAB_VALV_BIN[k];
+    const i = _LAB_VALV_LABELS.indexOf(k === 'em' ? 'Esten. Mitral' : 'Esten. Tricusp.');
+    /* Si el rotulo cambiara de nombre, mejor NO publicar la lectura binaria que publicarla en la
+       columna de otra valvula: se devuelve sin entrada y los dos consumidores caen a `counts`. */
+    if (i < 0 || i !== d.i) return;
+    const c = { Sin: 0, Leve: 0, Moderada: 0, Severa: 0 };
+    let base = 0;
+    (infs || []).forEach((inf) => {
+      let s = null;
+      try { s = d.lee(inf); } catch (e) { s = null; }
+      if (s === null) return;
+      base++;
+      if (c[s] !== undefined) c[s]++;
+    });
+    out[i] = { cuentas: c, base, na: d.na.slice(), vis: Object.assign({}, d.vis) };
+  });
+  return out;
+}
+window.LAB_VALV_BIN = LAB_VALV_BIN; window._labValvBin = _labValvBin;
+
 function _labValvCounts(infs) {
   const defs = [
     i => _labRegurgSev(i, 'im_grado'),
@@ -102596,7 +102690,10 @@ function _labValvCounts(infs) {
     counts.Leve.push(c.Leve); counts.Moderada.push(c.Moderada); counts.Severa.push(c.Severa);
     bases.push(base);
   });
-  return { counts, bases, N: infs.length };
+  /* `bin` es ADITIVO: `counts` y `bases` salen byte por byte como antes, asi que el PPT
+     estadistico y la mini-tabla del PDF de auditoria —que leen esos dos y nada mas— no se
+     mueven. Ver el comentario de `LAB_VALV_BIN`. */
+  return { counts, bases, N: infs.length, bin: _labValvBin(infs) };
 }
 // Plugin de etiquetas dentro/fuera del segmento según su alto en px
 const _LAB_VALV_DATALABELS = {
@@ -102644,13 +102741,31 @@ const _LAB_VALV_DATALABELS = {
 function _labValvChartCfg(infs, opts) {
   opts = opts || {};
   const off = !!opts.offscreen;
-  const { counts, bases } = _labValvCounts(infs);
+  const { counts, bases, bin } = _labValvCounts(infs);
   const OP = { Leve: 0.38, Moderada: 0.68, Severa: 1.0 };
+  /* ⚠️ LAS DOS COLUMNAS BINARIAS LEEN `bin` Y PONEN `null` —no 0— EN LA CUBETA QUE NO APLICA
+     (G2, 2026-10-15). Con 0, Chart.js dibuja un segmento de alto cero que el plugin de etiquetas
+     igual puede rotular, y la leyenda sigue prometiendo tres niveles de severidad sobre dos
+     lesiones que no se graduan; con `null` el segmento no existe. El `_rawN` va en 0 para que el
+     plugin no imprima su «n=».
+     `counts`/`bases` siguen alimentando las otras SEIS columnas, y el PPT y la mini-tabla del
+     PDF de auditoria no se mueven porque no leen `bin`. */
+  const _datoDe = (sev, k) => {
+    const b = bin && bin[k];
+    if (!b) return bases[k] > 0 ? +(counts[sev][k] / bases[k] * 100).toFixed(2) : 0;
+    if (b.na.indexOf(sev) >= 0) return null;
+    return b.base > 0 ? +(b.cuentas[sev] / b.base * 100).toFixed(2) : 0;
+  };
+  const _nDe = (sev, k) => {
+    const b = bin && bin[k];
+    if (!b) return counts[sev][k];
+    return b.na.indexOf(sev) >= 0 ? 0 : b.cuentas[sev];
+  };
   const datasets = ['Leve', 'Moderada', 'Severa'].map(sev => ({
     label: sev,
     // Cada barra sobre SU base, la misma que usan las tablas del PDF. Ver _labValvCounts.
-    data: counts[sev].map((nn, k) => bases[k] > 0 ? +(nn / bases[k] * 100).toFixed(2) : 0),
-    _rawN: counts[sev].slice(),
+    data: counts[sev].map((nn, k) => _datoDe(sev, k)),
+    _rawN: counts[sev].map((nn, k) => _nDe(sev, k)),
     backgroundColor: _LAB_VALV_BASE.map(c => _labRgba(c, OP[sev])),
     borderWidth: 0, stack: 'sev', categoryPercentage: 0.66, barPercentage: 0.9
   }));
@@ -102703,9 +102818,17 @@ function _labValvLegendHTML() {
   const sev = [['Leve', 0.38], ['Moderada', 0.68], ['Severa', 1.0]];
   const r1 = valv.map(([n, c]) => `${sw(c)}<span style="font-size:.74rem;color:var(--text2);margin-right:14px;">${n}</span>`).join('');
   const r2 = sev.map(([n, a]) => `${sw(_labRgba('#5b6b7a', a))}<span style="font-size:.74rem;color:var(--text2);margin-right:14px;">${n}</span>`).join('');
+  /* ⚠️ LA LEYENDA DECLARA LAS DOS BINARIAS (G2, 2026-10-15), y no es decoracion: la fila de
+     «Severidad» promete tres niveles, y sobre la estenosis mitral y la tricuspidea eso seria
+     falso —no se graduan—. Sus segmentos que no aplican no se dibujan, asi que sin este renglon
+     una columna con una sola banda se lee como «las otras dos dieron cero». */
   return `<div style="text-align:center;line-height:2;">
     <div><span style="font-size:.7rem;font-weight:700;color:var(--text2);margin-right:8px;">Válvula:</span>${r1}</div>
     <div><span style="font-size:.7rem;font-weight:700;color:var(--text2);margin-right:8px;">Severidad:</span>${r2}</div>
+    <div style="font-size:.68rem;color:var(--text2);line-height:1.5;max-width:560px;margin:2px auto 0;">
+      Las dos <b>estenosis binarias</b> no se gradúan: en la <b>mitral</b> la banda clara es
+      «no significativa» y la oscura «significativa», y de la <b>tricúspide</b> sólo se dibuja
+      «significativa». Las bandas que no aplican no se dibujan.</div>
   </div>`;
 }
 

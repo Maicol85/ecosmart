@@ -96,6 +96,8 @@ const FARG = arg('--file') || 'index.html';
 const EXTERNO = isAbsolute(FARG);
 const FILE = EXTERNO ? '__ab__' + basename(FARG) : FARG;
 const SOLO = arg('--solo');
+/* --dest <dir>: el grupo `captura` guarda PNG de la tabla en los dos temas. */
+const DEST = arg('--dest');
 const hacer = (g) => !SOLO || SOLO.split(',').indexOf(g) > -1;
 
 const CHROMES = [
@@ -449,6 +451,16 @@ window.__P = {
                ds: cfg.data.datasets.map(function(d){ return { lbl: d.label, data: d.data, n: d._rawN } }) };
     } catch (e) { return 'EXC: ' + e.message } },
 
+  tema(claro) {
+    var r = document.documentElement;
+    if (claro) r.classList.add('light-mode'); else r.classList.remove('light-mode');
+    return { claro: !!claro, tieneClase: r.classList.contains('light-mode') } },
+  color(sel) {
+    var e = document.querySelector(sel); if (!e) return 'NO EXISTE ' + sel;
+    var cs = getComputedStyle(e);
+    return { color: cs.color, display: cs.display, fontSize: cs.fontSize,
+             varText2: cs.getPropertyValue('--text2').trim() } },
+
   /* ══ CONTROLES ═══════════════════════════════════════════════════════════════════════════ */
   limpiar() {
     try { limpiarCampos(true) } catch(e) {}
@@ -797,6 +809,91 @@ async function main() {
     g.otras = { counts: await ev(`window.__P.valvCounts(${JSON.stringify(pobOtras)})`),
                 tabla: await ev(`window.__P.tabla(${JSON.stringify(pobOtras)})`, 30000) };
     out.grupos.valv = g;
+  }
+
+  /* ── captura ── La tabla y el apilado en los DOS temas, a 1200 px. `getComputedStyle` lee el
+     ESTILO y no el pixel: la captura es lo que caza un color que se ve gris o un acento que
+     falta, que es como la tanda D1 encontro sus trece textos sin acentos. */
+  if (corre('captura')) {
+    const g = {};
+    const base = { im_grado: '0', ia_grado: '0', it_grado: '0', ip_grado: 'Sin insuficiencia',
+                   ea_grado: 'sin', ep_grado: 'sin' };
+    const mk = (o) => Object.assign({}, base, o);
+    const pob = [mk({ em_grado: 'severa', et_grado: 'Significativa', avm_plan: '0.9' }),
+                 mk({ em_grado: 'leve',   et_grado: 'No significativa', avm_plan: '2.0' }),
+                 mk({ em_grado: 'sin',    et_grado: 'sin' }),
+                 mk({ em_grado: 'severa', et_grado: 'Significativa', avm_plan: '1.2', em_gmedio: '12' }),
+                 mk({ im_grado: '2', ia_grado: '1', it_grado: '4', ea_grado: 'Moderada',
+                      ip_grado: 'Severa', ep_grado: 'Leve', em_grado: 'leve', et_grado: 'Leve' })];
+    for (const claro of [false, true]) {
+      const tema = await ev(`window.__P.tema(${claro})`);
+      /* ⚠️ ABORTA SI LA CLASE NO QUEDO PUESTA: el tema de esta app es la clase `light-mode` sobre
+         documentElement, y un barrido de «dos temas» que no la pone saca las DOS capturas
+         IDENTICAS byte por byte — la firma de que el cambio nunca ocurrio. */
+      if (tema.tieneClase !== !!claro) throw new Error('ABORTA: la clase light-mode no quedo puesta');
+      await cdp.send('Emulation.setDeviceMetricsOverride',
+        { width: 1200, height: 1100, deviceScaleFactor: 1, mobile: false }, sessionId);
+      /* ⚠️ `labRenderExtras` PINTA PERO NO NAVEGA: la primera captura salio de la pestaña
+         Paciente, con la tabla pintada en un panel con `display:none`. Hay que abrir el
+         Laboratorio —que es lo que hace el boton— y EXIGIR que la tabla tenga geometria antes
+         de disparar la camara: un nodo sin caja no se ve, y la foto de otra pantalla pasa por
+         una medicion buena. */
+      /* ⚠️ `labSubTab(id, el)` EXIGE EL BOTON: sin `el` revienta en `el.classList.add`. Y la
+         tarjeta de Valvulopatias es un ACORDEON que nace en `display:none` —y que ademas
+         `labAccCerrarTodos` vuelve a cerrar en cada cambio de subtab—, asi que hay que abrirlo
+         DESPUES de entrar. Se clickean los controles reales. */
+      await ev(`(function(){
+        try { showTab('lab') } catch(e) {}
+        /* ⚠️ LA TARJETA DE VALVULOPATIAS VIVE EN LA SUBTAB «MEDICIONES», NO EN «GENERAL». La
+           primera version clickeaba General y la tabla seguia en 0x0: la cadena de padres lo
+           delato —lab-sub-mediciones=none— cuando el aborto imprimio su diagnostico. */
+        var b = Array.from(document.querySelectorAll('#tab-lab .lab-subtab'))
+          .filter(function(x){ return (x.textContent||'').trim() === 'Mediciones' })[0];
+        if (b) b.click();
+        var h = document.querySelector('[aria-controls="lab-acc-valvulas"]');
+        var p = document.getElementById('lab-acc-valvulas');
+        if (h && p && getComputedStyle(p).display === 'none') h.click();
+        return 1 })()`);
+      const t = await ev(`window.__P.tabla(${JSON.stringify(pob)})`, 30000);
+      const geo = await ev(`(function(){ var n = document.getElementById('lab-valv-tabla');
+        if (!n) return { err: 'NO EXISTE lab-valv-tabla' };
+        if (n.scrollIntoView) n.scrollIntoView({ block: 'center' });
+        var r = n.getBoundingClientRect();
+        return { w: Math.round(r.width), h: Math.round(r.height), y: Math.round(r.top),
+                 ok: r.width > 0 && r.height > 0, tab: window.__P.vis('tab-lab') } })()`);
+      if (!geo || !geo.ok) {
+        const diag = await ev(`(function(){
+          var n = document.getElementById('lab-valv-tabla');
+          var cad = [], x = n;
+          while (x && x.nodeType === 1 && cad.length < 14) {
+            cad.push((x.id || x.className || x.tagName) + '=' + getComputedStyle(x).display);
+            x = x.parentNode; }
+          return { cadena: cad,
+            subtabs: Array.from(document.querySelectorAll('#tab-lab .lab-subtab')).map(function(b){
+              return (b.textContent||'').trim() + (b.classList.contains('active') ? '*' : '') }),
+            paneles: Array.from(document.querySelectorAll('#tab-lab .lab-subpanel')).map(function(p){
+              return p.id + (p.classList.contains('active') ? '*' : '') }),
+            acc: (function(){ var a = document.getElementById('lab-acc-valvulas');
+              return a ? getComputedStyle(a).display : 'NO EXISTE' })() } })()`);
+        throw new Error('ABORTA: la tabla no tiene geometria ' + JSON.stringify(geo) + ' | ' + JSON.stringify(diag));
+      }
+      await ev(`window.__P.despejar()`);
+      await pausa(400);
+      const k = claro ? 'claro' : 'oscuro';
+      g[k] = { filas: t.filas, pie: t.pie, leyenda: t.leyenda, geo: geo,
+               colorTabla: await ev(`window.__P.color('#lab-valv-tabla table td')`),
+               tema };
+      if (DEST) {
+        const png = await cdp.send('Page.captureScreenshot', { format: 'png' }, sessionId);
+        const nom = 'g2-valv-' + k + '.png';
+        await writeFile(join(DEST, nom), Buffer.from(png.data, 'base64'));
+        g[k].png = nom;
+        g[k].pngMd5 = createHash('md5').update(Buffer.from(png.data, 'base64')).digest('hex');
+      }
+    }
+    await ev(`window.__P.tema(false)`);
+    await cdp.send('Emulation.clearDeviceMetricsOverride', {}, sessionId);
+    out.grupos.captura = g;
   }
 
   /* ── teclas ── De punta a punta: un estudio TIPEADO con teclas reales produce las dos columnas
