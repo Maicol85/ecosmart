@@ -6190,12 +6190,37 @@ window.cerrarSesionReal = cerrarSesionReal;
            «Densidad jet CW» en un `.fg` aparte. Ahora son 3 + 3, con la densidad cerrando la
            segunda fila: sigue siendo el mismo insumo cualitativo de la IT, con el mismo `id`, el
            mismo `onchange` y las mismas cuatro opciones. -->
-      <div class="grid-3" style="margin-bottom:8px;">
+      <!-- ══ TRES COLUMNAS (2026-10-14, D2) — DECISIÓN DE MAICOL ════════════════════════
+           Eran DOS filas de `grid-3` con los seis campos repartidos por filas, así que el Tab
+           cruzaba la fila. Ahora es una `.valv-cols-3` —la misma clase de las dos lesiones
+           aórticas y de la mitral— con cada columna en su propio contenedor: la columna 1 lleva
+           lo que se mide directo sobre el chorro (vena contracta, densidad y su VTI), la
+           columna 2 los tres insumos de la cadena de PISA y la columna 3 sus resultados.
+           Se movieron WRAPPERS: ni un `id`, `oninput`, `onchange`, `step`, `placeholder`,
+           rótulo ni `<option>` de los seis campos cambió.
+           ⚠️ LA COLUMNA 3 TIENE DOS CASILLAS Y NO TRES, Y ES UNA PARADA DECLARADA. La orden pedía
+           EROA, Vol-R y **FR**; la fracción regurgitante de la IT **no la calcula ninguna función
+           de esta app** —`calcIT_ESC` produce `eroa` y `volR` y nada más, e `itRefPintar` tiene
+           tres filas: vena contracta, EROA y Vol-R— y la **Tabla 14 de la ASE 2017 (folio 350)
+           tampoco publica una banda de FR para la IT**: sus filas son VCW, EROA, RVol, densidad
+           del chorro por CW, radio PISA y área del jet color. Inventar la cuenta o la banda es
+           justo lo que esta orden prohíbe. Queda en `docs/PENDIENTES.md`. -->
+      <div class="valv-cols-3" style="margin-bottom:8px;">
+        <div>
         <div class="fg"><label>Vena contracta (mm)</label><input type="number" id="it_vc" placeholder="mm" oninput="calcIT_ESC()"></div>
+        <div class="fg"><label>Densidad jet CW</label>
+          <select id="it_densidad" onchange="calcIT_ESC()">
+            <option value="">—</option>
+            <option value="debil">Débil / incompleto</option>
+            <option value="moderado">Moderado</option>
+            <option value="denso">Denso / triangular</option>
+          </select>
+        </div>
+        <div class="fg"><label>VTI IT (cm)</label><input type="number" id="it_vti" placeholder="cm" oninput="calcIT_ESC()"></div>
+        </div>
+        <div>
         <div class="fg"><label>Radio PISA IT (mm)</label><input type="number" id="it_pisa_r" placeholder="mm" oninput="calcIT_ESC()"></div>
         <div class="fg"><label>Valiasing IT (cm/s)</label><input type="number" id="it_pisa_val" placeholder="cm/s" oninput="calcIT_ESC()"></div>
-      </div>
-      <div class="grid-3" style="margin-bottom:8px;">
         <!-- ⚠️ ESTE CAMPO PASO DE cm/s A m/s (2026-10-05) Y ES EL MISMO DATO QUE `vmax_it` DEL
              DOPPLER. La regla de unidades de la app es: todo lo medido con Doppler CONTINUO va en
              m/s (Vmax IT, Vmax aortica, Vmax IP, Vmax pulmonar anterograda); lo pulsado va en cm/s
@@ -6208,14 +6233,17 @@ window.cerrarSesionReal = cerrarSesionReal;
              que es tambien lo que PRENDE el boton Insuficiencia. Ver `itVmaxSync`.
              ⚠️ El Valiasing IT de al lado se queda en cm/s: es Doppler COLOR, no continuo. -->
         <div class="fg"><label>Vmax IT CW (m/s)</label><input type="number" id="it_vmax_cw" placeholder="m/s" step="0.1" oninput="itVmaxSync('it_vmax_cw');calcIT_ESC();calcPSAP();calcDiastol()"></div>
-        <div class="fg"><label>VTI IT (cm)</label><input type="number" id="it_vti" placeholder="cm" oninput="calcIT_ESC()"></div>
-        <div class="fg"><label>Densidad jet CW</label>
-          <select id="it_densidad" onchange="calcIT_ESC()">
-            <option value="">—</option>
-            <option value="debil">Débil / incompleto</option>
-            <option value="moderado">Moderado</option>
-            <option value="denso">Denso / triangular</option>
-          </select>
+        </div>
+        <div>
+            <!-- ══ LAS DOS CASILLAS AUTOMÁTICAS DE LA IT (2026-10-14, D2) ═══════════════════
+                 ⚠️ NO CALCULAN NADA: COPIAN su fila del cuadro de referencias —`it-eroa` y
+                 `it-volr`, que escribe `itRefPintar`—. Y la fila de esta lesión trae su leyenda
+                 de grado pegada («18.1 mm² · Leve (<20 mm²)»), así que la casilla se queda con el
+                 PREFIJO hasta el punto medio: la casilla publica la MEDICIÓN y el cuadro la
+                 graduación, que es el mismo reparto que el D1 fijó para la mitral.
+                 ⚠️ NO VIAJAN CON EL ESTUDIO: prefijo `vauto-`, ver `_noEsDelEstudio`. -->
+        <div class="fg"><label>EROA por PISA (mm²) (auto)</label><input type="text" id="vauto-it-eroa" readonly style="font-weight:700;"></div>
+        <div class="fg"><label>Vol-R por PISA (ml) (auto)</label><input type="text" id="vauto-it-volr" readonly></div>
         </div>
       </div>
       <!-- ── 3) UN SOLO CUADRO de cálculo y referencia ────────────────────────────────────────
@@ -35203,6 +35231,26 @@ function _iaAutosSync() {
 }
 window._iaAutosSync = _iaAutosSync;
 
+/* ══ LAS DOS CASILLAS AUTOMATICAS DE LA INSUFICIENCIA TRICUSPIDEA (2026-10-14, D2) ═══════
+   Mismo mecanismo: COPIAN la fila que `itRefPintar` acaba de escribir. Ni una formula nueva.
+   ⚠️ EL SEPARADOR ES EL PUNTO MEDIO Y NO DOS ESPACIOS, que es la unica diferencia con la IAo
+   y con la IM: las filas de esta lesion traen la leyenda de grado pegada al valor
+   («18.1 mm2 · Leve (<20 mm2)»), asi que sin ese corte la casilla publicaria la GRADUACION.
+   ⚠️ SON DOS Y NO TRES. La FRACCION REGURGITANTE de la IT no la calcula ninguna funcion de
+   esta app y la Tabla 14 de la ASE 2017 (folio 350) tampoco publica una banda de FR para esta
+   valvula: ver el comentario del marcado y `docs/PENDIENTES.md`. */
+function _itAutosSync() {
+  const SEP = ' \u00b7 ';
+  const _f = (cond, nom) => cond ? null : nom;
+  const _req = l => l.length ? 'requiere ' + l.join(', ') : '';
+  const _pisa = [_f(v('it_pisa_r'), 'radio PISA'), _f(v('it_pisa_val'), 'Valiasing'),
+                 _f(v('it_vmax_cw'), 'Vmax IT CW')].filter(Boolean);
+  const _vti = _f(v('it_vti'), 'VTI IT');
+  _imAutoDeFila('vauto-it-eroa', 'it-eroa', _req(_pisa), SEP);
+  _imAutoDeFila('vauto-it-volr', 'it-volr', _req(_pisa.concat(_vti || [])), SEP);
+}
+window._itAutosSync = _itAutosSync;
+
 
 function calcIM_ESC() {
   /* El aviso de mecanismo secundario, ARRIBA de todo: no depende de un solo parámetro medido y el
@@ -38693,6 +38741,10 @@ function calcIT_ESC() {
      después no correría nunca y las filas se quedarían con el paciente anterior. Es la misma razón
      por la que `itIncongruenciaSync` está arriba de todo. */
   itRefPintar({ vc: vc, eroa: eroa, volr: volR });
+  /* ⚠️ LAS DOS CASILLAS VAN ACÁ, pegadas al pintor de las filas y ANTES del `return` temprano
+     de `params.length === 0`: por ese `return` se sale cuando nadie cuantificó, que es justo el
+     estado en el que las casillas tienen que vaciarse y decir qué falta. */
+  if (typeof _itAutosSync === 'function') { try { _itAutosSync(); } catch (e) {} }
   if (params.length === 0) {
     /* ⚠️ ESTA SALIDA ERA UN `return` PELADO Y ES LA CAUSA DEL SÍNTOMA DE LA IT. `it-sev` y
        `it_grado` se escriben más abajo, así que al borrar el último votante los dos se quedaban
@@ -45998,6 +46050,8 @@ function limpiarCampos(silencioso) {
   if (typeof _imAutosSync === 'function') { try { _imAutosSync(); } catch (e) {} }
   /* Las TRES de la IAo, por el mismo motivo y en el mismo lugar (2026-10-14, D2). */
   if (typeof _iaAutosSync === 'function') { try { _iaAutosSync(); } catch (e) {} }
+  /* Y las DOS de la IT. */
+  if (typeof _itAutosSync === 'function') { try { _itAutosSync(); } catch (e) {} }
   /* ⚠️ VENA PULMONAR, POR EL MISMO MOTIVO QUE `ccSegSync` Y AL FINAL COMO ÉL. El barrido de
      arriba vacía los cuatro `value`, pero las dos filas del cuadro gris se esconden por `display`
      y el color va en `style` en línea: sin esto el paciente siguiente arrancaba con los renglones
