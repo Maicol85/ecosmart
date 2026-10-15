@@ -359,7 +359,7 @@ window.__P = {
           clearInterval(tic);
           console.error = ce; window.toast = tOrig;
           var txt = m ? (m.textContent || '').replace(/\\s+/g, ' ').trim() : null;
-          res({ hay: lleno, txt: txt ? txt.slice(0, 2200) : null,
+          res({ hay: lleno, txt: txt ? txt.slice(0, 12000) : null,
                 errs: errs.slice(0, 4), toasts: toasts.slice(0, 4) });
         }
       }, 150);
@@ -917,16 +917,41 @@ async function main() {
     /* Un Excel con las CINCO derivadas sin campo mas la PSAP, que SI tiene campo: los dos
        caminos del mensaje en una sola corrida. */
     const H = ['Nombre', 'CI', 'Fecha estudio', 'TAPSE (mm)', 'PSAP (mmHg)',
-               'TAPSE/PSAP (mm/mmHg)', 'FAC VD (%)', 'DisfSist_VD', 'DD_I', 'Geom_Normal',
+               'TAPSE/PSAP (mm/mmHg)', 'FAC VD (%)', 'DisfSist_VD', 'DD_I (Grado I)', 'Geom_Normal',
                'Grad VD-AD (mmHg)', 'PmAD (mmHg)', 'VCI diám (mm)', 'Colapso VCI'];
     const F = { 'Nombre': 'Ida y vuelta', 'CI': '77777', 'Fecha estudio': '2026-10-15',
                 'TAPSE (mm)': '18', 'PSAP (mmHg)': '50', 'TAPSE/PSAP (mm/mmHg)': '0.36',
-                'FAC VD (%)': '40', 'DisfSist_VD': '0', 'DD_I': '0', 'Geom_Normal': '1',
+                'FAC VD (%)': '40', 'DisfSist_VD': '0', 'DD_I (Grado I)': '0', 'Geom_Normal': '1',
                 'Grad VD-AD (mmHg)': '36', 'PmAD (mmHg)': '14',
                 'VCI diám (mm)': '22', 'Colapso VCI': '<50' };
+    /* El CENSO de las derivadas sin campo: todo lo que `_labExcelRow` emite y que no esta en
+       `LAB_XLS_MAP`. Es el conjunto que hoy cae en «no corresponde a un campo editable». */
+    g.censo = await ev(`(function(){
+      if (typeof _labExcelRow !== 'function' || typeof LAB_XLS_MAP === 'undefined') return 'SIN FN';
+      var enMapa = {}; LAB_XLS_MAP.forEach(function(m){ enMapa[m[0]] = 1 });
+      var r = _labExcelRow(window.__P.reg({}));
+      var der = Object.keys(r).filter(function(k){ return !enMapa[k] });
+      var conCampo = LAB_XLS_MAP.filter(function(m){
+        return (typeof _labXlsEsCalculado === 'function') && _labXlsEsCalculado(m[1]) }).map(function(m){ return m[0] });
+      return { nTotal: Object.keys(r).length, nDerivadasSinCampo: der.length, derivadas: der,
+               nConCampo: conCampo.length, conCampo: conCampo };
+    })()`);
     g.mensajes = await ev(`window.__P.importar(${JSON.stringify(H)}, ${JSON.stringify(F)})`, 25000);
-    /* IDA Y VUELTA de verdad: se exporta la fila de un estudio y se reimporta ESA fila, con
-       TODOS sus encabezados. Lo que se compara es el cociente recalculado contra el del archivo. */
+    /* ══ IDA Y VUELTA DE VERDAD ══════════════════════════════════════════════════════════
+       Se exporta la fila COMPLETA de un estudio —las 438 columnas, las mismas que escribe el
+       exportador— y se la reimporta tal cual. Lo que se compara es el cociente recalculado
+       contra el que trae el archivo. Con una escena de catorce columnas no alcanzaria: podria
+       faltar un dato por la escena y no por el Excel. */
+    g.idaVuelta = await ev(`(function(){
+      if (typeof _labExcelRow !== 'function') return Promise.resolve('SIN FN');
+      var r = _labExcelRow(window.__P.reg(${JSON.stringify({ tapse: '18', vmax_it: '3.0',
+        vci_diam: '22', vci_col: '<50', psap_calc: '50', pmad: '14' })}));
+      var H = Object.keys(r);
+      var F = {}; H.forEach(function(h){ F[h] = (r[h] === null || r[h] === undefined) ? '' : r[h] });
+      F['Nombre'] = 'Ida y vuelta completa'; F['CI'] = '99999'; F['Fecha estudio'] = '2026-10-15';
+      return window.__P.importar(H, F);
+    })()`, 40000);
+    /* El mismo A/B con TODOS los encabezados. */
     const EST = { tapse: '18', vmax_it: '3.0', vci_diam: '22', vci_col: '<50',
                   psap_calc: '50', pmad: '14', nombre: 'Vuelta' };
     g.filaIda = await ev(`window.__P.excel(${JSON.stringify(EST)})`);

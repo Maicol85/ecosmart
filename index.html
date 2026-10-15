@@ -95893,6 +95893,96 @@ function _labXlsEsCalculado(dest) {
   return !!(el && el.hasAttribute('readonly'));
 }
 
+/* ══ EL ORIGEN DE CADA COLUMNA CALCULADA (G3, 2026-10-15) ════════════════════════════════════
+   Decision de Maicol: UN mensaje comun para todas las columnas que la app calcula, del estilo
+   «columna calculada por la app: se recalcula con A, B y C; no se importa», con los nombres de
+   los DATOS DE ORIGEN de cada una.
+
+   ⚠️ HASTA HOY HABIA DOS MENSAJES Y EL REPARTO NO SE ENTENDIA DESDE AFUERA. La casa tiene dos
+   criterios de columna derivada —(a) CON campo, que se aparta por `LAB_XLS_SOLO_EXPORT` o por
+   `readonly`, y (b) SIN campo, que ni siquiera esta en `LAB_XLS_MAP`— y el importador les daba
+   mensajes distintos: las del grupo (a) «un valor que la app calcula sola» y las del (b) «no
+   corresponde a un campo editable», que suena a «no la reconozco». Medido en HEAD con un Excel
+   de catorce columnas: el cociente TAPSE/PSAP, la FAC del VD, DisfSist_VD, DD_I, Geom_Normal y
+   el gradiente VD-AD caian en el segundo, y la PSAP y la PmAD en el primero. Es el defecto que
+   `docs/PENDIENTES.md` declaro como G2-2.
+
+   ⚠️ SON NOVENTA Y TRES COLUMNAS —setenta y cinco sin campo y dieciocho con campo, censadas— y
+   esta tabla nombra el origen de las que se pueden nombrar CON CERTEZA. Lo que no esta aca NO
+   se inventa: cae al texto comun sin la lista, que sigue siendo verdadero. Inventar un origen
+   es peor que no darlo, porque manda al medico a corregir el campo equivocado.
+   Las familias de indicadoras binarias (DD_, Geom_, IM_, PSAP_…) van por PREFIJO: su origen es
+   siempre la misma columna de la que derivan, y una entrada por cada una seria una lista que se
+   desactualiza con cada grado nuevo. */
+const LAB_XLS_CALC_ORIGEN = Object.freeze({
+  'TAPSE/PSAP (mm/mmHg)': ['TAPSE', 'PSAP estimada'],
+  'PSAP (mmHg)':          ['velocidad m\u00e1xima de la insuficiencia tricusp\u00eddea', 'presi\u00f3n media de la AD'],
+  'PmAD (mmHg)':          ['di\u00e1metro de la VCI', 'colapso inspiratorio de la VCI'],
+  'Grad VD-AD (mmHg)':    ['velocidad m\u00e1xima de la insuficiencia tricusp\u00eddea'],
+  'FAC VD (%)':           ['\u00e1rea telediast\u00f3lica del VD', '\u00e1rea telesist\u00f3lica del VD'],
+  'DisfSist_VD':          ['el texto del informe'],
+  'Masa VI (g/m\u00b2)':      ['DDVI', 'septo', 'pared posterior', 'peso', 'talla'],
+  'RWT':                  ['DDVI', 'pared posterior'],
+  'Geometr\u00eda VI':        ['masa indexada', 'RWT'],
+  'VDFVI idx (ml/m\u00b2)':   ['VDFVI', 'peso', 'talla'],
+  'FA (%)':               ['DDVI', 'DSVI'],
+  'E/A':                  ['onda E mitral', 'onda A mitral'],
+  "e' promedio (cm/s)":   ["e' septal", "e' lateral"],
+  "E/e'":                 ['onda E mitral', "e' septal", "e' lateral"],
+  'Grado disfunci\u00f3n diast\u00f3lica': ['el texto del informe'],
+  'Vol AI (LAVI) (ml/m\u00b2)': ['volumen de la AI', 'peso', 'talla'],
+  'AVA (cm\u00b2)':           ['\u00d8 del TSVI', 'VTI del TSVI', 'VTI a\u00f3rtico'],
+  'AVm (cm\u00b2)':           ['tiempo de hemipresi\u00f3n mitral'],
+  'AVm continuidad (cm\u00b2)': ['\u00d8 del TSVI', 'VTI del TSVI', 'VTI mitral'],
+  'AVA continuidad (cm\u00b2)': ['\u00d8 del TSVI', 'VTI del TSVI', 'VTI a\u00f3rtico'],
+  'AVm indexada (cm\u00b2/m\u00b2)': ['\u00e1rea mitral', 'peso', 'talla'],
+  'G. m\u00e1x Ao (mmHg)':    ['velocidad m\u00e1xima a\u00f3rtica'],
+  'ET \u00e1rea (cm\u00b2)':      ['\u00d8 del TSVD', 'VTI del TSVD', 'VTI de entrada tricusp\u00eddeo'],
+  'DVI mitral':           ['VTI de la pr\u00f3tesis mitral', 'VTI del TSVI'],
+  'PAP media (mmHg)':     ['velocidad de la insuficiencia pulmonar', 'presi\u00f3n media de la AD'],
+  'Qp/Qs':                ['\u00d8 y VTI del TSVD', '\u00d8 y VTI del TSVI'],
+  'EROA IM (mm\u00b2)':       ['radio de PISA', 'velocidad de aliasing', 'velocidad pico del jet'],
+  'Vol R IM (ml)':        ['EROA', 'VTI del jet de regurgitaci\u00f3n'],
+  'PVC (mmHg)':           ['di\u00e1metro de la VCI', 'colapso inspiratorio de la VCI'],
+  'VLI (ml/m\u00b2)':         ['volumen latido', 'peso', 'talla'],
+  'Score Wilkins total':  ['los cuatro componentes del score de Wilkins'],
+  'TAVI AVA (cm\u00b2)':      ['\u00d8 del TSVI', 'VTI del TSVI', 'VTI a\u00f3rtico'],
+  'TAVI AVAi (cm\u00b2/m\u00b2)': ['AVA', 'peso', 'talla']
+});
+/* Las familias de indicadoras: su origen es la columna de la que derivan. El orden importa —
+   `EAo_` tiene que probarse antes que un prefijo mas corto que lo contenga. */
+const LAB_XLS_CALC_ORIGEN_PREFIJO = Object.freeze([
+  ['DD_',    ['el grado de disfunci\u00f3n diast\u00f3lica']],
+  ['Geom_',  ['la geometr\u00eda del VI']],
+  ['TS_',    ['los trastornos sectoriales del informe']],
+  ['PSAP_',  ['la PSAP estimada']],
+  ['IM_',    ['el grado de insuficiencia mitral']],
+  ['EM_',    ['el grado de estenosis mitral']],
+  ['EAo_',   ['el grado de estenosis a\u00f3rtica']],
+  ['IAo_',   ['el grado de insuficiencia a\u00f3rtica']],
+  ['IT_',    ['el grado de insuficiencia tricusp\u00eddea']],
+  ['DPT ',   ['los campos de derrame peric\u00e1rdico y taponamiento']],
+  ['CVR ',   ['los campos de constricci\u00f3n/restricci\u00f3n']]
+]);
+/* El mensaje de UNA columna calculada. Devuelve la frase entera, con la lista de origenes
+   cuando se la puede nombrar y sin ella cuando no. UN solo dueño para las tres superficies que
+   lo publican: el modal del importador, el comentario de celda de la plantilla y la hoja de
+   instrucciones. */
+function _labXlsCalcMsg(nombre) {
+  let o = LAB_XLS_CALC_ORIGEN[nombre] || null;
+  if (!o) {
+    const pre = LAB_XLS_CALC_ORIGEN_PREFIJO.filter((x) => String(nombre).indexOf(x[0]) === 0)[0];
+    if (pre) o = pre[1];
+  }
+  return 'columna calculada por la app' +
+    (o ? (': se recalcula con ' + (o.length > 1 ? (o.slice(0, -1).join(', ') + ' y ' + o[o.length - 1]) : o[0])) 
+       : ': se recalcula desde las mediciones que la alimentan') +
+    '; no se importa';
+}
+window.LAB_XLS_CALC_ORIGEN = LAB_XLS_CALC_ORIGEN;
+window.LAB_XLS_CALC_ORIGEN_PREFIJO = LAB_XLS_CALC_ORIGEN_PREFIJO;
+window._labXlsCalcMsg = _labXlsCalcMsg;
+
 const LAB_XLS_MAP = [
   /* [columna del Excel, destino, tipo, aliasesOpcionales]  ·  destino '@x' = campo de primer nivel
      El ORDEN de este array define el orden de columnas de la plantilla Y del export: la
@@ -97545,7 +97635,12 @@ function labPlantillaXLSX(vacia, sel) {
        continuidad, AVm indexada y PVC omitía el aviso, mientras el comentario de la fila 1, en la
        MISMA columna, decía «sólo lectura». Dos frases contradictorias a un renglón de distancia,
        y la que se lee al llenar es ésta. */
-    if (_labXlsEsCalculado(dest.replace(/__chk$/, ''))) ayuda += ' ⚠ Esta columna NO se reimporta: es un valor calculado y EcoSmart lo rehace desde sus mediciones.';
+    /* ⚠️ EL MISMO DUEÑO QUE EL MODAL DEL IMPORTADOR (G3, 2026-10-15): la ayuda de la celda y el
+       aviso al importar decían lo mismo con dos redacciones, y la que el médico lee al llenar
+       es ésta. Ahora las dos salen de `_labXlsCalcMsg`, que además nombra los datos de origen. */
+    if (_labXlsEsCalculado(dest.replace(/__chk$/, '')))
+      ayuda += ' ⚠ ' + (typeof _labXlsCalcMsg === 'function' ? _labXlsCalcMsg(h)
+                        : 'Esta columna NO se reimporta: es un valor calculado y EcoSmart lo rehace desde sus mediciones.') + '.';
     const ref = XLSX.utils.encode_cell({ c: i, r: 1 });
     if (!ws[ref]) { ws[ref] = { t:'s', v:'' }; }
     ws[ref].c = [{ a:'EcoSmart', t: h + '\n' + ayuda }];
@@ -97716,6 +97811,28 @@ function labImportarXLSX(file) {
        listan en la vista previa con el motivo, porque la columna existe en el Excel que la
        propia app exporta y el médico razonablemente espera que vuelva a entrar. */
     const calculadas = _presentes.filter(m => _labXlsEsCalculado(m[1])).map(m => m[0]);
+    /* ⚠️ LAS DERIVADAS SIN CAMPO ENTRAN ACA DESDE EL G3 (2026-10-15), Y SON SETENTA Y CINCO.
+       Son las que `_labExcelRow` emite y que ni siquiera estan en `LAB_XLS_MAP` —`FAC VD (%)`,
+       `TAPSE/PSAP (mm/mmHg)`, `DisfSist_VD`, las familias `DD_`, `Geom_`, `PSAP_`…— y hasta hoy
+       caian en «no corresponde a un campo editable», que suena a «no la reconozco» sobre una
+       columna que la PROPIA app exporta. Las dos familias de calculada reciben desde hoy el
+       MISMO mensaje, que es la decision de Maicol.
+       ⚠️ EL CENSO SE CALCULA, NO SE CABLEA: una lista de setenta y cinco nombres se
+       desactualiza con la primera columna derivada que entre. Se pregunta por lo que el
+       exportador EMITE sobre una fila vacia —que son todas las columnas, porque `_labExcelRow`
+       escribe cada una vacia o no— y se le resta el mapa. */
+    const _derivadasSinCampo = (function () {
+      try {
+        const enMapa = Object.create(null);
+        LAB_XLS_MAP.forEach((m) => { enMapa[m[0]] = 1; (m[3] || []).forEach((a2) => { enMapa[a2] = 1; }); });
+        const fila = _labExcelRow({ id: '_x', nombre: '_x', fecha_estudio: '2000-01-01', campos: {} });
+        return Object.keys(fila).filter((k) => !enMapa[k]);
+      } catch (e) { return []; }
+    })();
+    _derivadasSinCampo.forEach((nom) => {
+      const real = porNorm.get(normCab(nom));
+      if (real && calculadas.indexOf(real) < 0) calculadas.push(real);
+    });
     const conocidas = _presentes.filter(m => !_labXlsEsCalculado(m[1]))
       .map(m => [_cabsDe(m), m[1], m[2], m[0]]);
     if (!conocidas.length) {
@@ -97975,7 +98092,12 @@ function labImportarXLSX(file) {
           errs:['ya hay MÁS DE UN estudio guardado con esta identidad: actualizar tocaría sólo uno. Resolvelo en Guardados antes de importar'] });
         return;
       }
-      ok.push({ inf, fila:nFila, dup:!!kExist });
+      /* ⚠️ `crudo` ES LA FILA DEL ARCHIVO, Y SE GUARDA DESDE EL G3 (2026-10-15). El detalle de
+         las dos columnas calculadas que el medico corrige a mano —el cociente TAPSE/PSAP y la
+         PSAP— compara el valor RECALCULADO contra el que trae el archivo, y sin la fila cruda
+         no hay con que comparar: `inf.campos` ya tiene las columnas calculadas DESCARTADAS,
+         que es justamente lo que hace el importador con ellas. */
+      ok.push({ inf, fila:nFila, dup:!!kExist, datos: row });
     });
 
     if (!ok.length && !errores.length) { toast('⚠️ No hay filas con datos para importar'); return; }
@@ -97990,7 +98112,89 @@ function labImportarXLSX(file) {
     LAB_XLS_BIN.forEach(g => g.cols.forEach(alias => alias.forEach(a3 => {
       const c = porNorm.get(normCab(a3)); if (c) usadas.add(c);
     })));
-    _labImpDatos = { filas:ok, errores, ejemplos, hoja:nom, calculadas,
+    /* ══ EL DETALLE DEL COCIENTE Y DE LA PSAP (G3, 2026-10-15, decision de Maicol) ══════════
+       Para estas DOS el mensaje comun no alcanza: son las que el medico corrige a mano en la
+       planilla, asi que el modal dice si el valor que la app RECALCULA de esa fila coincide
+       con el que trae el archivo, y cuando no se puede recalcular dice CUAL dato de origen
+       falta. No se acepta el valor del archivo en ningun caso: eso dejaria dos fuentes del
+       mismo numero, que es justo lo que estas columnas existen para evitar.
+       ⚠️ SE RECALCULA SOBRE LA FILA YA LEIDA (`f.inf.campos`) y con los MISMOS dueños que usa
+       el exportador —`vdTapsePsapRed` para el cociente—: una segunda copia de la cuenta aca
+       divergiria el dia que se mueva un decimal. */
+    const _detalleCalc = (function () {
+      const out = [];
+      const _n = (x) => { const y = parseFloat(String(x == null ? '' : x).replace(',', '.')); return isFinite(y) ? y : null; };
+      const colReal = (nom) => porNorm.get(normCab(nom));
+      const prim = ok[0];
+      if (!prim) return out;
+      const c = (prim.inf && prim.inf.campos) || {};
+      /* 1 · TAPSE/PSAP. Sus dos insumos son el TAPSE y la PSAP; la PSAP, a su vez, es
+            calculada. Si falta alguno, se nombra. */
+      const colTP = colReal('TAPSE/PSAP (mm/mmHg)');
+      if (colTP) {
+        let rec = null;
+        try { rec = (typeof vdTapsePsapRed === 'function') ? vdTapsePsapRed(c) : null; } catch (e) { rec = null; }
+        const delArch = _n(prim.datos ? prim.datos[colTP] : null);
+        if (rec === null) {
+          /* ⚠️ SE NOMBRA EL DATO DE ORIGEN QUE DE VERDAD FALTA, Y NO EL ESLABON INTERMEDIO. La
+             PSAP es ella misma calculada —`4 x VRT^2 + PmAD`— asi que decir «falta la PSAP»
+             manda al medico a llenar una columna que el importador descarta igual. Lo que
+             falta es la VELOCIDAD DE LA IT, que no tiene columna en este Excel, o la PmAD, que
+             la app deriva de la VCI cuando esos dos campos vienen. */
+          const falta = [];
+          if (_n(c.tapse) === null) falta.push('TAPSE');
+          if (_n(c.psap_calc) === null) {
+            if (_n(c.vmax_it) === null)
+              falta.push('la velocidad m\u00e1xima de la insuficiencia tricusp\u00eddea, que NO tiene columna en este Excel');
+            else if (_n(c.pmad) === null && !(String(c.vci_col || '').trim() && _n(c.vci_diam) !== null))
+              falta.push('la presi\u00f3n media de la AD (o el di\u00e1metro y el colapso de la VCI, de los que se deriva)');
+            else falta.push('la PSAP estimada');
+          }
+          out.push({ col: colTP, estado: 'no recalculable',
+                     txt: 'no se pudo recalcular en la primera fila: falta ' +
+                          (falta.length ? falta.join(' y ') : 'alg\u00fan dato de origen') + '.' });
+        } else if (delArch !== null && Math.abs(delArch - rec) > 0.0005) {
+          out.push({ col: colTP, estado: 'difiere',
+                     txt: 'el archivo trae ' + delArch + ' y la app recalcula ' + rec +
+                          ' en la primera fila; vale el recalculado.' });
+        } else {
+          out.push({ col: colTP, estado: 'coincide', txt: 'el recalculado coincide con el del archivo (' + rec + ').' });
+        }
+      }
+      /* 2 · PSAP. `4 x VRT^2 + PmAD`, con los MISMOS dos insumos que el campo de pantalla. */
+      const colPS = colReal('PSAP (mmHg)');
+      if (colPS) {
+        const vrt = _n(c.vmax_it), pm = _n(c.pmad);
+        const delArch = _n(prim.datos ? prim.datos[colPS] : null);
+        const _vciOk = String(c.vci_col || '').trim() !== '' && _n(c.vci_diam) !== null;
+        if (vrt === null || (pm === null && !_vciOk)) {
+          const falta = [];
+          if (vrt === null) falta.push('la velocidad m\u00e1xima de la insuficiencia tricusp\u00eddea, que NO tiene columna en este Excel');
+          if (pm === null && !_vciOk) falta.push('la presi\u00f3n media de la AD (o el di\u00e1metro y el colapso de la VCI, de los que se deriva)');
+          out.push({ col: colPS, estado: 'no recalculable',
+                     txt: 'no se pudo recalcular en la primera fila: falta ' + falta.join(' y ') + '.' });
+        } else {
+          /* Con la PmAD ausente pero la VCI presente se usa el dueño de esa estimacion
+             (`calcPmADDe` si existe); si no, no se inventa y se informa el eslabon. */
+          const pmUsa = (pm !== null) ? pm
+            : ((typeof _labPmADDeVCI === 'function') ? _labPmADDeVCI(c) : null);
+          if (pmUsa === null) {
+            out.push({ col: colPS, estado: 'no recalculable',
+                       txt: 'no se pudo recalcular en la primera fila: la presi\u00f3n media de la AD se ' +
+                            'deriva del di\u00e1metro y el colapso de la VCI al abrir el estudio, no al importar.' });
+            return out;
+          }
+          const rec = Math.round(4 * vrt * vrt + pmUsa);
+          if (delArch !== null && Math.abs(delArch - rec) > 0.5)
+            out.push({ col: colPS, estado: 'difiere',
+                       txt: 'el archivo trae ' + delArch + ' y la app recalcula ' + rec +
+                            ' en la primera fila; vale el recalculado.' });
+          else out.push({ col: colPS, estado: 'coincide', txt: 'el recalculado coincide con el del archivo (' + rec + ').' });
+        }
+      }
+      return out;
+    })();
+    _labImpDatos = { filas:ok, errores, ejemplos, hoja:nom, calculadas, detalleCalc:_detalleCalc,
                      ignoradas: cabeceras.filter(c => !usadas.has(c) && String(c).trim() !== '') };
     labImpRender();
   };
@@ -98025,12 +98229,39 @@ function labImpRender() {
           escHtml(d.ignoradas.slice(0,8).join(', ')) + (d.ignoradas.length>8?', …':'') + '</span>' : '') +
         /* Se dice explícitamente, y en ámbar: la columna viene en el Excel que exporta la
            propia app, así que el médico espera que vuelva a entrar. Callarlo dejaba que
-           corrigiera una PSAP en la planilla y creyera que se importó. */
+           corrigiera una PSAP en la planilla y creyera que se importó.
+           ⚠️ DESDE EL G3 (2026-10-15) ES UN MENSAJE COMUN PARA LAS DOS FAMILIAS DE CALCULADA
+           —las que tienen campo y las que no— y NOMBRA LOS DATOS DE ORIGEN de cada una, con
+           `_labXlsCalcMsg`, que es su dueño único. Hasta hoy las que no tienen campo caían en
+           «no corresponde a un campo editable», que suena a «no la reconozco» sobre una columna
+           que la propia app exporta. Se listan UNA POR LINEA con su origen: en una sola línea
+           separada por comas, setenta y cinco nombres no se pueden leer. */
         ((d.calculadas && d.calculadas.length) ? '<br><span style="color:var(--orange)">' +
           (d.calculadas.length===1 ? '1 columna es un valor que la app calcula sola, así que no se importa'
                                    : d.calculadas.length + ' columnas son valores que la app calcula sola, así que no se importan') +
-          ': <b>' + escHtml(d.calculadas.join(', ')) + '</b>. Se exportan para el análisis, pero se recalculan ' +
-          'desde las mediciones que los alimentan. Para cambiarlos, corregí esas mediciones.</span>' : '') +
+          '. Se exportan para el análisis y se recalculan al abrir el estudio; para cambiarlas, ' +
+          'corregí las mediciones que las alimentan.' +
+          /* ⚠️ LAS QUE LLEVAN DETALLE VAN PRIMERO. La lista se recorta en cuarenta —con 93
+             columnas calculadas, listarlas todas tapa el resto del modal— y el orden natural
+             es el del mapa, asi que el cociente y la PSAP podian quedar fuera de lo visible
+             justo cuando el renglon de abajo habla de ellas. */
+          '<div style="margin-top:5px;max-height:150px;overflow:auto;font-size:11.5px;line-height:1.5">' +
+          (function(){ var det = (d.detalleCalc || []).map(function(x){ return x.col });
+            return d.calculadas.slice().sort(function(a2, b2){
+              return (det.indexOf(b2) >= 0 ? 1 : 0) - (det.indexOf(a2) >= 0 ? 1 : 0) }); })()
+          .slice(0, 40).map(function(c){
+            return '<div><b>' + escHtml(c) + '</b> — ' +
+              escHtml(typeof _labXlsCalcMsg === 'function' ? _labXlsCalcMsg(c) : 'columna calculada por la app; no se importa') + '</div>';
+          }).join('') +
+          (d.calculadas.length > 40 ? '<div>…y ' + (d.calculadas.length - 40) + ' más</div>' : '') +
+          '</div></span>' : '') +
+        /* ⚠️ EL DETALLE DE LAS DOS QUE EL MEDICO CORRIGE A MANO. Va aparte y DESPUES de la
+           lista: es lo único que compara el valor del archivo contra el que la app recalcula
+           sobre esa misma fila, y lo que dice cuál dato de origen falta cuando no se puede. */
+        ((d.detalleCalc && d.detalleCalc.length) ? '<div style="margin-top:7px;font-size:11.5px;line-height:1.55">' +
+          d.detalleCalc.map(function(x){
+            return '<div><b>' + escHtml(x.col) + '</b>: ' + escHtml(x.txt) + '</div>';
+          }).join('') + '</div>' : '') +
       '</div>' +
       errHTML +
       /* Vista previa de filas, como la del importador JSON. Confirmar 300 filas sin haber
