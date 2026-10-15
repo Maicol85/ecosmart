@@ -57528,8 +57528,16 @@ caso('TC-423', 'Valvulas, pantalla: en el celular los campos de cada lesion arra
     return String(x).indexOf('datos-tog-') !== 0 && x !== 'va_at'; }); };
   const tabInsuf = soloCampos(tabInsufCrudo);
   const tabEsten = soloCampos(tabEstenCrudo);
-  const ESPERADO_INSUF = ['ia_vc','ia_jet_diam','ia_pht','ia_pisa_r','ia_pisa_val','ia_vmax_cw',
-                          'ia_vti','ia_vmax_td','ia_vti_desc'];
+  /* ADAPTADO 2026-10-14 (D2): el reparto de columnas de la insuficiencia aortica paso de 3+3+3 a
+     4+4+4 por decision de Maicol. La columna 1 gana abajo la Vmax telediastolica de la aorta
+     descendente, la columna 2 gana abajo el VTI del jet, y la columna 3 pasa a ser las TRES
+     casillas automaticas de PISA mas el VTI de la aorta descendente. Lo que esta condicion
+     afirma —que el Tab BAJA por columna y no cruza la fila— no cambia; lo que cambia es que
+     columna tiene cada campo. Las tres casillas vauto- SI entran en el recorrido: son readonly
+     sin tabindex, igual que las cuatro de la insuficiencia mitral del D1. */
+  const ESPERADO_INSUF = ['ia_vc','ia_jet_diam','ia_pht','ia_vmax_td',
+                          'ia_pisa_r','ia_pisa_val','ia_vmax_cw','ia_vti',
+                          'vauto-ia-eroa','vauto-ia-volr','vauto-ia-fr','ia_vti_desc'];
   const ESPERADO_ESTEN = ['ea_vmax','ea_gmedio','ea_dtsvi','ea_vtitsvi','ea_vtiao','ava_plan'];
   /* Orden entre bloques: insuficiencia ANTES de estenosis en el DOM. */
   const ci = g('caja-insuf-aortica'), ce = g('caja-esten-aortica');

@@ -5833,11 +5833,23 @@ window.cerrarSesionReal = cerrarSesionReal;
                 onclick="valvDatosTog('caja-insuf-aortica')" aria-expanded="false"
                 aria-controls="bloque-insuf-aortica">Datos <span class="valv-datos-flecha">&#9662;</span></button>
         <div id="bloque-insuf-aortica" style="display:none;">
+          <!-- ══ TRES COLUMNAS DE CUATRO (2026-10-14, D2) — DECISIÓN DE MAICOL ══════════════
+               Eran tres columnas de TRES con los nueve campos tipeables. El reparto nuevo deja en
+               la columna 1 lo que se mide directo sobre el chorro más la reversión de la aorta
+               descendente, en la columna 2 los CUATRO insumos de la cadena de PISA —radio,
+               Valiasing, Vmax del chorro y su VTI— y en la columna 3 los TRES resultados de esa
+               cadena, automáticos, con el VTI de la aorta descendente cerrando abajo.
+               Se movieron WRAPPERS: ni un `id`, `oninput`, `step`, `placeholder` ni rótulo de los
+               nueve campos tipeables cambió. Lo único nuevo son las tres casillas `vauto-ia-*`.
+               ⚠️ CADA COLUMNA ES UN CONTENEDOR PROPIO, y eso es lo que hace que el Tab BAJE por la
+               columna en vez de cruzar la fila: no hay un solo `tabindex` en el bloque, así que el
+               orden del DOM ES el orden de tabulación. -->
           <div class="valv-cols-3">
             <div>
         <div class="fg"><label>Vena contracta (mm)</label><input type="number" id="ia_vc" placeholder="mm" oninput="calcIA_ESC()"></div>
         <div class="fg"><label>Diám jet IAo en TSVI (mm)</label><input type="number" id="ia_jet_diam" placeholder="mm" oninput="calcIA_ESC()"></div>
         <div class="fg"><label>PHT (ms)</label><input type="number" id="ia_pht" placeholder="ms" oninput="calcIA_ESC()"></div>
+        <div class="fg"><label>Vmax telediast. Ao desc. (cm/s)</label><input type="number" id="ia_vmax_td" placeholder="cm/s" oninput="calcIA_ESC()"></div>
             </div>
             <div>
         <div class="fg"><label>Radio PISA IAo (mm)</label><input type="number" id="ia_pisa_r" placeholder="mm" oninput="calcIA_ESC()"></div>
@@ -5847,10 +5859,25 @@ window.cerrarSesionReal = cerrarSesionReal;
              del spinner mueven de 1 en 1 m/s, que sobre una banda de 0,5 a 8 es inusable.
              El Valiasing de al lado SIGUE en cm/s: es Doppler COLOR. -->
         <div class="fg"><label>Vmax IAo CW (m/s)</label><input type="number" id="ia_vmax_cw" placeholder="m/s" step="0.1" oninput="calcIA_ESC()"></div>
+        <div class="fg"><label>VTI IAo (cm)</label><input type="number" id="ia_vti" placeholder="cm" oninput="calcIA_ESC()"></div>
             </div>
             <div>
-        <div class="fg"><label>VTI IAo (cm)</label><input type="number" id="ia_vti" placeholder="cm" oninput="calcIA_ESC()"></div>
-        <div class="fg"><label>Vmax telediast. Ao desc. (cm/s)</label><input type="number" id="ia_vmax_td" placeholder="cm/s" oninput="calcIA_ESC()"></div>
+            <!-- ══ LAS TRES CASILLAS AUTOMÁTICAS DE LA IAo (2026-10-14, D2) ══════════════════
+                 ⚠️ NO CALCULAN NADA, igual que las cuatro de la insuficiencia mitral. Cada una
+                 COPIA el texto que su fila del cuadro de referencias acaba de publicar —`ia-eroa`,
+                 `ia-volr` y `ia-freg`, que escribe `calcIA_ESC` unas líneas más abajo—. Hasta hoy
+                 esos tres números existían SÓLO en el cuadro de referencias y no como campo.
+                 Recalcularlos acá sería una SEGUNDA copia de tres fórmulas con sus propias bandas
+                 de plausibilidad y su propia marca «revisar»: copiando el string, la casilla y la
+                 fila NO SE PUEDEN desincronizar.
+                 ⚠️ EL RÓTULO LLEVA EL MÉTODO en las tres. En esta válvula hay un solo método
+                 cuantitativo —PISA— pero el cuadro de abajo publica además la relación jet/TSVI,
+                 el PHT y las dos filas de la aorta descendente: sin el método en el rótulo, «EROA»
+                 a secas no dice de qué cadena sale.
+                 ⚠️ NO VIAJAN CON EL ESTUDIO: prefijo `vauto-`, ver `_noEsDelEstudio`. -->
+        <div class="fg"><label>EROA por PISA (mm²) (auto)</label><input type="text" id="vauto-ia-eroa" readonly style="font-weight:700;"></div>
+        <div class="fg"><label>Vol-R por PISA (ml) (auto)</label><input type="text" id="vauto-ia-volr" readonly></div>
+        <div class="fg"><label>FR por PISA (%) (auto)</label><input type="text" id="vauto-ia-fr" readonly></div>
         <div class="fg"><label>VTI IAo Ao desc. (cm)</label><input type="number" id="ia_vti_desc" placeholder="cm" oninput="calcIA_ESC()"></div>
             </div>
           </div>
@@ -35086,12 +35113,19 @@ function _vsTsviCalc(dMm, vtiCm) {
 }
 window._vsTsviCalc = _vsTsviCalc;
 
-function _imAutoDeFila(idCampo, idSpan, falta) {
+/* El cuarto argumento es OPCIONAL y su omision deja el comportamiento IDENTICO al de los cuatro
+   llamadores de la IM: el corte por DOS espacios. Existe porque las filas de la IT separan su
+   leyenda de grado con ` \u00b7 ` y no con dos espacios —`itRefPintar` escribe
+   «18.1 mm\u00b2 \u00b7 Leve (<20 mm\u00b2)»—, y sin el la casilla publicaria la GRADUACION y no la
+   MEDICION, que es exactamente lo que la casilla no hace. Un copiador por lesion seria la segunda
+   copia de la misma regla. */
+function _imAutoDeFila(idCampo, idSpan, falta, sep) {
   const el = document.getElementById(idCampo);
   if (!el) return;
   const sp = document.getElementById(idSpan);
   let t = sp ? String(sp.textContent || '').trim() : '';
-  if (t.indexOf('  ') > -1) t = t.slice(0, t.indexOf('  ')).trim();
+  const _s = sep || '  ';
+  if (t.indexOf(_s) > -1) t = t.slice(0, t.indexOf(_s)).trim();
   const hay = !!t && t !== '\u2014';
   el.value = hay ? t : '';
   el.placeholder = hay ? '' : (falta || '');
@@ -35135,6 +35169,39 @@ function _imAutosSync() {
       + (_tsvi.length ? ' (en Estenosis)' : ''));
 }
 window._imAutosSync = _imAutosSync;
+
+/* ══ LAS TRES CASILLAS AUTOMATICAS DE LA INSUFICIENCIA AORTICA (2026-10-14, D2) ══════════
+   Mismo mecanismo y mismo dueno que las cuatro de la IM: COPIAN la fila del cuadro de
+   referencias que `calcIA_ESC` acaba de escribir. Ni una formula nueva.
+   ⚠️ EL TEXTO DE «requiere …» SIGUE LA MISMA PRECEDENCIA CON QUE LA CUENTA LEE CADA INSUMO:
+   la EROA pide los tres del PISA, el Vol-R les suma el VTI del chorro y la FR les suma los dos
+   del TSVI. Los dos del TSVI llevan «(en Estenosis)» porque su puerta visible en esta pestana
+   es el bloque de la estenosis aortica (`ea_dtsvi` / `ea_vtitsvi`), no este —mismo texto y
+   mismo motivo que en `_imAutosSync`—.
+   ⚠️ LA FILA DE LA FR PUBLICA SUS TRES EXPLICACIONES SEPARADAS POR DOS ESPACIOS
+   («\u2014  (… imposible…)»), asi que el corte por omision de `_imAutoDeFila` las recorta y la
+   casilla queda vacia: la explicacion vive en la fila, que es donde hay ancho para leerla. */
+function _iaAutosSync() {
+  const _f = (cond, nom) => cond ? null : nom;
+  const _req = l => l.length ? 'requiere ' + l.join(', ') : '';
+  const _pisa = [_f(v('ia_pisa_r'), 'radio PISA'), _f(v('ia_pisa_val'), 'Valiasing'),
+                 _f(v('ia_vmax_cw'), 'Vmax IAo CW')].filter(Boolean);
+  const _tsvi = [_f(v('diam_tsvi'), 'Di\u00e1m. TSVI'), _f(v('itv_tsvi'), 'VTI TSVI')].filter(Boolean);
+  const _vti = _f(v('ia_vti'), 'VTI del jet de IAo');
+  /* ⚠️ EL VOL-R DE LA IAo PIDE TAMBIEN LOS DOS DEL TSVI, Y NO ES UN DESCUIDO DEL TEXTO: en
+     `calcIA_ESC` las dos filas viven dentro del MISMO `if (vtiIA && itsvi && dtsvi)`, asi que sin
+     el diametro o el VTI del TSVI la fila del Vol-R se va a su `else` y queda en guion. La
+     primera version de esta funcion no los nombraba y la sonda informo la casilla vacia con el
+     placeholder vacio al lado: un campo mudo que no dice que le falta. */
+  _imAutoDeFila('vauto-ia-eroa', 'ia-eroa', _req(_pisa));
+  _imAutoDeFila('vauto-ia-volr', 'ia-volr',
+    _req(_pisa.concat(_vti || []).concat(_tsvi))
+      + (_tsvi.length ? ' (en Estenosis)' : ''));
+  _imAutoDeFila('vauto-ia-fr', 'ia-freg',
+    _req(_pisa.concat(_vti || []).concat(_tsvi))
+      + (_tsvi.length ? ' (en Estenosis)' : ''));
+}
+window._iaAutosSync = _iaAutosSync;
 
 
 function calcIM_ESC() {
@@ -36172,6 +36239,13 @@ function calcIA_ESC() {
       }
     } else { _iaSet('ia-volr', '—'); _iaSet('ia-freg', '—'); }
   } else { _iaSet('ia-eroa', '—'); _iaSet('ia-volr', '—'); _iaSet('ia-freg', '—'); }
+
+  /* ⚠️ LAS TRES CASILLAS VAN ACÁ, ANTES DEL `return` TEMPRANO de `params.length === 0`, y es
+     la única posición correcta: por ese `return` se sale cuando nadie cuantificó —o cuando todo
+     lo cargado quedó fuera de banda—, que es justo el estado en el que las casillas tienen que
+     vaciarse y decir qué falta. Colgarlas del final las dejaría con el valor del paciente
+     anterior, que es el defecto que las tres filas de arriba ya pagaron con su `else`. */
+  if (typeof _iaAutosSync === 'function') { try { _iaAutosSync(); } catch (e) {} }
 
   /* ⚠️ EL AVISO DE FUERA DE BANDA SE PUBLICA ANTES DEL `return` TEMPRANO, y ése es el punto.
      `params.length === 0` significa «nadie cuantificó esta válvula», y con las bandas puestas hay
@@ -45922,6 +45996,8 @@ function limpiarCampos(silencioso) {
      donde falta todo. No hay dato del paciente anterior en ese texto —es generico— pero nombra el
      insumo equivocado, que es lo que esta zona ya documenta para `im_eroa_cont`. */
   if (typeof _imAutosSync === 'function') { try { _imAutosSync(); } catch (e) {} }
+  /* Las TRES de la IAo, por el mismo motivo y en el mismo lugar (2026-10-14, D2). */
+  if (typeof _iaAutosSync === 'function') { try { _iaAutosSync(); } catch (e) {} }
   /* ⚠️ VENA PULMONAR, POR EL MISMO MOTIVO QUE `ccSegSync` Y AL FINAL COMO ÉL. El barrido de
      arriba vacía los cuatro `value`, pero las dos filas del cuadro gris se esconden por `display`
      y el color va en `style` en línea: sin esto el paciente siguiente arrancaba con los renglones
