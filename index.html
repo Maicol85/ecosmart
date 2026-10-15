@@ -3863,6 +3863,15 @@ window.cerrarSesionReal = cerrarSesionReal;
           <span class="calc-lbl">VD basal — tamaño</span>
           <span id="vd-tam">—</span>
         </div>
+        <!-- ⚠️ LA FILA DE LA RELACIÓN VD/VI SÓLO SE VE CUANDO ESTÁ ALTERADA (G1, decisión de
+             Maicol: «mostrada en las referencias si está alterada»). Es la única de las tres
+             condicionales que no se esconde por falta de dato sino por el VEREDICTO: con la
+             relación normal no se dibuja nada, porque la fila existe para nombrar un signo de
+             probabilidad de hipertensión pulmonar y no para certificar su ausencia. -->
+        <div class="calc-row" id="row-vd-vi-interp" style="display:none;">
+          <span class="calc-lbl">Relación VD/VI — probabilidad de HTP</span>
+          <span id="vd-vi-interp">—</span>
+        </div>
         <!-- La PARED va con el tamaño porque las dos son estructura y las dos viven en la
              columna 2; el Tei subió con los parámetros sistólicos de la columna 1. -->
         <div class="calc-row">
@@ -21492,6 +21501,40 @@ window.UMBRAL_FAC_VD_SEVERA = UMBRAL_FAC_VD_SEVERA;
    esta zona nombra sólo las dos advertencias que la guía escribe Y la app puede detectar: IT
    severa y ritmo irregular. */
 const VD_PARED_HVD_MIN   = 5;     // mm — hipertrofia del VD, borde `>=` (Tabla 1 folio 145 · Key Point folio 144)
+/* ══ LA GRADUACIÓN DE LA PARED (G1, 2026-10-15) ══════════════════════════════════════════════
+   ASE 2025, **Tabla 1, folio 145**, fila `RVWT, cm`: normal `< 0,5` · leve `≥0,5 a ≤0,7` ·
+   moderada `>0,7 a ≤0,9` · severa `>0,9`. En milímetros, que es la unidad del campo: **5 · 7 ·
+   9**, que es exactamente el índice que el médico recordaba y que hasta hoy la app tenía LEÍDO
+   —está escrito en el comentario de `calcVD` desde el 2026-10-12— y NO aplicado.
+   ⚠️ LA ASE 2010 (Rudski) NO ESTÁ EN LA BIBLIOTECA (censo de los 70 PDF del Escritorio) y la
+   ASE/EACVI 2015, que SÍ está, no publica grados de RVWT. La única fuente de la graduación es
+   ésta, y por eso es la única que se cita.
+   ⚠️ EL CORTE DE HIPERTROFIA NO SE MUEVE: sigue siendo `>= 5 mm`, el complemento exacto del
+   «normal < 5 mm» del Key Point del folio 144. Lo único que entra es CÓMO se nombra la banda.
+   ⚠️ Y LA GRADUACIÓN NO SALE DEL CUADRO DE REFERENCIAS. El informe narrativo y el EN SUMA
+   siguen diciendo «hipertrofia del ventrículo derecho (pared de N mm)» y «HVD», sin grado:
+   cambiar una frase del informe FIRMADO es contenido clínico y esta orden no lo autoriza.
+   El operador de cada tramo es el de la tabla: el leve INCLUYE su techo (`<= 7`) y el moderado
+   también (`<= 9`), así que 7,0 es leve y 9,0 es moderada. */
+const VD_PARED_GRADOS = Object.freeze([
+  Object.freeze({ max: 7, lbl: 'leve',     rango: '≥5 a ≤7 mm' }),
+  Object.freeze({ max: 9, lbl: 'moderada', rango: '>7 a ≤9 mm'  }),
+  Object.freeze({ max: Infinity, lbl: 'severa', rango: '>9 mm'  })
+]);
+window.VD_PARED_GRADOS = VD_PARED_GRADOS;
+/* ══ LA RELACIÓN VD/VI (G1, 2026-10-15) ══════════════════════════════════════════════════════
+   Corte `> 1,0`, con DOS fuentes que coinciden: ESC/ERS 2022, **Tabla 10, folio 28**, categoría
+   **A (Ventrículos)** —«Diámetro basal VD/VI / cociente del área > 1,0»— y ASE 2025, **Tabla 8,
+   folio 173** —«Dilated right heart: RV/LV >1»—.
+   ⚠️ NO ES UN CORTE NUEVO: es EXACTAMENTE el que `_htp2022Core` ya aplicaba como literal en su
+   `catA`. Lo que esta constante hace es darle un dueño, para que la fila del cuadro y la
+   probabilidad de HTP no puedan separarse. El número no se movió.
+   ⚠️ Y NO ES EL CORTE DE TEP. La pantalla de TEP usa `>= 0,9` sobre `tep_vdvi`, que es OTRO
+   campo y otra pregunta —sobrecarga aguda del VD, no probabilidad de HTP—. Los dos conviven y
+   ninguno se tocó; la cascada de `calcTEP` sigue prefiriendo `tep_vdvi`, después `vd_bas/ddfvi`
+   y sólo al final `vd_vi`. */
+const VD_VI_HTP_MIN = 1.0;        // cociente — borde `>` (ESC/ERS 2022 Tabla 10 f. 28 · ASE 2025 Tabla 8 f. 173)
+window.VD_VI_HTP_MIN = VD_VI_HTP_MIN;
 const VD_TEI_DTI_ALT_MIN = 0.55;  // cociente — Tei por DTI alterado, borde `>=` (Tabla 1 folio 145 · texto folio 158)
 const VD_TEI_PW_ALT_MIN  = 0.40;  // cociente — el corte del Doppler PULSADO. Declarado y NO aplicado: el campo es DTI.
 window.VD_PARED_HVD_MIN   = VD_PARED_HVD_MIN;
@@ -21523,9 +21566,21 @@ window.VD_NUEVOS_BANDA = VD_NUEVOS_BANDA;
    imprimen al lado. */
 function vdHvdEstado() {
   const x = v('vd_pared');
-  return { val: x, hvd: (x !== null) ? x >= VD_PARED_HVD_MIN : false };
+  const hvd = (x !== null) ? x >= VD_PARED_HVD_MIN : false;
+  /* El GRADO es SÓLO de la fila del cuadro: ni `vdHvdClausula` ni la cadena del EN SUMA lo
+     leen, y por eso el informe firmado sale letra por letra como salía. Se devuelve acá, y no
+     en una segunda función, porque es la misma comparación sobre el mismo número. */
+  const g = hvd ? VD_PARED_GRADOS.find((b) => x <= b.max) : null;
+  return { val: x, hvd: hvd, grado: g ? g.lbl : null, rango: g ? g.rango : null };
 }
 window.vdHvdEstado = vdHvdEstado;
+/* El dueño de la relación VD/VI, con el mismo patrón que los dos de arriba: UNA comparación
+   contra la constante, el valor al lado del veredicto. */
+function vdViEstado() {
+  const x = v('vd_vi');
+  return { val: x, alt: (x !== null) ? x > VD_VI_HTP_MIN : false };
+}
+window.vdViEstado = vdViEstado;
 function vdTeiEstado() {
   const x = v('vd_tei');
   /* El corte es el de DTI. `VD_TEI_PW_ALT_MIN` (0,40) es el del Doppler PULSADO y no entra acá:
@@ -21678,7 +21733,12 @@ function vdRefVisSync() {
   const _hayFac = v('vd_fac') !== null;
   _ver('row-fac-interp', _hayFac);
   _ver('fg-vd-fac', _hayFac);
-  return { fevd: v('fevd') !== null, fac: _hayFac };
+  /* ⚠️ LA RELACION VD/VI SE ESCONDE POR SU VEREDICTO Y NO POR FALTA DE DATO: con el cociente
+     normal la fila no se dibuja, porque existe para NOMBRAR un signo de probabilidad de HTP y
+     no para certificar que no esta. Es la decision de Maicol («mostrada si esta alterada»). */
+  const _vi = (typeof vdViEstado === 'function') ? vdViEstado() : { alt: false };
+  _ver('row-vd-vi-interp', !!_vi.alt);
+  return { fevd: v('fevd') !== null, fac: _hayFac, vdvi: !!_vi.alt };
 }
 window.vdRefVisSync = vdRefVisSync;
 
@@ -21822,8 +21882,19 @@ function calcVD() {
   if (_parEl) {
     if (_hvdSt.val === null) _parEl.textContent = '—';
     else _parEl.innerHTML = _hvdSt.hvd
-      ? badge('red',   `${_hvdSt.val} mm — hipertrofia del VD (≥${VD_PARED_HVD_MIN} mm)`)
+      ? badge(_hvdSt.grado === 'leve' ? 'orange' : 'red',
+              `${_hvdSt.val} mm — hipertrofia del VD, ${_hvdSt.grado} (${_hvdSt.rango})`)
       : badge('green', `${_hvdSt.val} mm — normal (<${VD_PARED_HVD_MIN} mm)`);
+  }
+  /* ── RELACIÓN VD/VI (G1) — ESC/ERS 2022 Tabla 10 folio 28 (categoría A) y ASE 2025 Tabla 8
+     folio 173. La fila la esconde `vdRefVisSync` cuando el cociente no está alterado; acá sólo
+     se escribe el texto, que es el patrón de las otras tres condicionales. */
+  const _viSt = vdViEstado();
+  const _viEl = document.getElementById('vd-vi-interp');
+  if (_viEl) {
+    _viEl.innerHTML = _viSt.alt
+      ? badge('red', `${_viSt.val} — dilatación del VD (>${VD_VI_HTP_MIN}): signo de la categoría A (ventrículos) de la probabilidad de HTP`)
+      : '—';
   }
   /* ── ÍNDICE DE TEI por DTI (ASE 2025, Tabla 1 folio 145 y texto folio 158: normal < 0,55) ──
      ⚠️ EL CORTE QUE SE APLICA ES EL DE DTI, Y EL CAMPO LO DICE EN SU RÓTULO. El del Doppler
@@ -22085,7 +22156,12 @@ function _htp2022Core(S) {
   const tapse = S.num('tapse'), psap = S.num('psap_calc');
   const tapsePsap = (tapse && psap) ? tapse / psap : null;
 
-  const catA = (vdBas !== null && vdBas > 41) || (vdvi !== null && vdvi > 1.0) || S.chk('htp2022_a3');
+  /* `VD_VI_HTP_MIN` y no el literal `1.0` (G1, 2026-10-15): es EL MISMO NUMERO —el corte no se
+     movio— y lo unico que cambia es que la fila del cuadro del VD y esta categoria leen la misma
+     constante. Con dos literales, el dia que uno se mueva la pantalla y la probabilidad de HTP
+     dirian cosas distintas del mismo cociente, que es el defecto que este archivo ya pago tres
+     veces. El `vdBas > 41` de al lado queda como literal: es otro criterio y no es de esta tanda. */
+  const catA = (vdBas !== null && vdBas > 41) || (vdvi !== null && vdvi > VD_VI_HTP_MIN) || S.chk('htp2022_a3');
   const catB = (tap !== null && tap < 105) || S.chk('htp2022_b1muesca') || S.chk('htp2022_b2') || S.chk('htp2022_b3');
   const catC = (vciD !== null && vciD > 21 && vciCol === '<50') || (adA !== null && adA > 18) || (tapsePsap !== null && tapsePsap < 0.55);
   const nCat = (catA ? 1 : 0) + (catB ? 1 : 0) + (catC ? 1 : 0);
