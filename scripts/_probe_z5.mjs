@@ -955,6 +955,31 @@ async function main() {
                          inf: await ev(`window.__P.informe('estandar')`),
                          infNarr: await ev(`window.__P.informe('narrativo')`) };
     }
+    /* ⚠️ EL ORDEN DE TIPEADO ES PARTE DE LA ESCENA, Y ES LO QUE REPRODUCE Z2-2. La fila
+       aortica se queda en «requiere …» con el veredicto YA calculado cuando `_eaProtPintar`
+       corrio en un momento en que `ava-idx` todavia no estaba pintado: eso pasa cuando el peso
+       y la talla se cargan DESPUES de los VTI, que es el orden natural del medico que mide
+       primero y pesa despues. Las escenas de arriba cargan al reves y no lo alcanzan. */
+    g.ordenInverso = {};
+    await ev(`window.__P.nuevo()`);
+    await ev(`window.__P.abrirValv()`);
+    await ev(`window.__P.sel('va_morf', ${JSON.stringify(protAo)})`);
+    await ev(`window.__P.sel('vm_morf', ${JSON.stringify(protVm)})`);
+    for (const [id, val] of [['diam_tsvi', '20'], ['itv_tsvi', '20'], ['itv_ao', '63'],
+                             ['em_dtsvi', '20'], ['em_vtitsvi', '20'], ['em_vtimit', '64']]) await tipear(id, val);
+    g.ordenInverso.antesDelPeso = { filas: await ev(`window.__P.ppmFilas()`),
+                                    protAo: await ev(`window.__P.protAo()`) };
+    await tipear('peso', '70'); await tipear('talla', '170');
+    g.ordenInverso.conPeso = { filas: await ev(`window.__P.ppmFilas()`),
+                               protAo: await ev(`window.__P.protAo()`),
+                               prot: await ev(`window.__P.prot()`) };
+    /* Y la escena del indexado marcado «(revisar)»: el O TSVI tipeado en CENTIMETROS deja el
+       AVA fuera de banda, asi que el indexado existe y la app lo declara ilegible. Lo que NO
+       falta ahi es ningun dato: pedirlos manda al medico a corregir el campo equivocado. */
+    await tipear('diam_tsvi', '2');
+    g.ordenInverso.revisar = { filas: await ev(`window.__P.ppmFilas()`),
+                               protAo: await ev(`window.__P.protAo()`) };
+
     /* CONTROL NEGATIVO: con las DOS valvulas nativas no hay fila de PPM ni frase. */
     g.volverANativas = [await ev(`window.__P.sel('va_morf', ${JSON.stringify(nativaDe(opsA))})`),
                         await ev(`window.__P.sel('vm_morf', ${JSON.stringify(nativaDe(opsM))})`)];

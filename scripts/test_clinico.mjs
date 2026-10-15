@@ -67357,15 +67357,19 @@ caso('TC-479', 'Tanda Z: el PPM aortico llega al informe y al EN SUMA con su col
     ex.push(['DENOMINADOR: la escena protesica produce los tres estados del PPM',
       sev.ppm === 'severo' && mod.ppm === 'moderado' && nada.ppm === 'no',
       [sev.ppm, mod.ppm, nada.ppm].join('/')]);
-    ex.push(['con PPM SEVERO el informe y el EN SUMA publican la linea, con la AEO indexada que la disparo',
+    /* ADAPTADO el 2026-10-15 (Z5): el EN SUMA pasa a llevar la SIGLA —«PPM aortico severo.»— y
+       la frase larga con la AEO indexada queda solo en el cuerpo del informe, que es la
+       decision del medico y como funciona el resto del resumen. Las dos condiciones pasan a
+       exigir cada superficie por separado, que es lo que distingue el cambio de un borrado. */
+    ex.push(['con PPM SEVERO el informe publica la frase larga con la AEO indexada y el EN SUMA la sigla',
       /Desajuste prot.sico-paciente a.rtico severo/.test(sev.inf.inf) &&
-      /Desajuste prot.sico-paciente a.rtico severo/.test(sev.inf.suma) &&
-      sev.inf.inf.indexOf('AEO indexada') > -1, sev.inf.suma.slice(0, 90)]);
-    ex.push(['con PPM MODERADO tambien, y dice «moderado»',
+      sev.inf.inf.indexOf('AEO indexada') > -1 &&
+      /PPM a.rtico severo\./.test(sev.inf.suma), sev.inf.suma.slice(0, 90)]);
+    ex.push(['con PPM MODERADO tambien, y las dos superficies dicen «moderado»',
       /Desajuste prot.sico-paciente a.rtico moderado/.test(mod.inf.inf) &&
-      /Desajuste prot.sico-paciente a.rtico moderado/.test(mod.inf.suma), mod.inf.suma.slice(0, 90)]);
+      /PPM a.rtico moderado\./.test(mod.inf.suma), mod.inf.suma.slice(0, 90)]);
     ex.push(['CONTROL: SIN desajuste no se escribe NADA en ninguna de las dos superficies',
-      nada.inf.inf.indexOf('Desajuste prot') === -1 && nada.inf.suma.indexOf('Desajuste prot') === -1, '']);
+      nada.inf.inf.indexOf('Desajuste prot') === -1 && nada.inf.suma.indexOf('PPM a') === -1, '']);
     /* La columna del Excel, con su valor y su bloque. */
     const fPpm = FILA(CAMPOS());
     ex.push(['la columna «PPM aortico» existe, cae en el bloque de VALVULAS y publica la categoria',
