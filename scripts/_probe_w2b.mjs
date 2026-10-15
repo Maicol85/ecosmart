@@ -1104,6 +1104,68 @@ async function main() {
     out.grupos.tarjetas = g;
   }
 
+  /* ══ GRUPO controles — EL CONTROL NEGATIVO MAYOR ════════════════════════════════════════
+     Un escenario CARGADO en las dos valvulas y en la diastolica, con morfologia NATIVA en las
+     dos, para que tenga DENOMINADOR: sin datos, «0 diferencias» no prueba nada. Se enumeran las
+     superficies UNA POR UNA —informe en tres estilos, EN SUMA en tres, Excel con su cuenta de
+     columnas y su hash, franja del PPT, token del Laboratorio y el hash de los campos—. */
+  if (corre('controles')) {
+    paso('controles');
+    const g = {};
+    async function escenaCompleta() {
+      await base('Normal');
+      await J('window.__P.set("va_morf","Trivalva normal")');
+      /* MITRAL nativa: area por THP, por planimetria y por continuidad, mas el gradiente. */
+      await tipear('thp', '160');
+      await tipear('avm_plan', '1.2');
+      await tipear('em_gmedio', '12');
+      await cont({ d:20, tsvi:20, prmv:40 });
+      /* IM nativa: vena contracta, PISA y jet. */
+      await tipear('im_vc', '8');
+      await tipear('im_ai_area', '40');
+      await tipear('im_jet_area', '18');
+      /* AORTICA nativa. */
+      await tipear('vmax_ao', '4.2');
+      await tipear('gmedio_ao', '42');
+      await tipear('ea_dtsvi', '20');
+      await tipear('ea_vtitsvi', '20');
+      await tipear('itv_ao', '70');
+      /* DIASTOLICA y HFA-PEFF, que esta tanda no toca. */
+      await J('window.__P.set("onda_e", 100)');
+      await J('window.__P.set("onda_a", 50)');
+      await J('window.__P.set("e_prima_septal", 6)');
+      await J('window.__P.set("e_prima_lateral", 8)');
+      await J('window.__P.set("ai_vol", 40)');
+      await J('window.__P.set("fevi", 60)');
+      await J('window.__P.set("vmax_it", 3.0)');
+      await J('window.__P.set("hf_ntprobnp", 450)');
+      await J('window.__P.abrirTodo()');
+      await pausa(300);
+      return 1;
+    }
+    await escenaCompleta();
+    g.nativa = {
+      ajenos: await J('window.__P.ajenos()'),
+      excel:  await J('window.__P.excel()'),
+      campos: await J('window.__P.camposHash()'),
+      ppt:    await J('window.__P.ppt()'),
+      protVM: await J('window.__P.fotoProtVM()'),
+      protVA: await J('window.__P.fotoProtVA()'),
+      cortes: await J('window.__P.cortesIM()'),
+      inf: {}
+    };
+    for (const est of ['estandar', 'narrativo', 'conciso']) {
+      g.nativa.inf[est] = await J('window.__P.informe(' + JSON.stringify(est) + ')');
+    }
+    /* Y el formulario VACIO, que es la otra punta: el Excel tiene que seguir en 436 columnas. */
+    await base('Normal');
+    await pausa(200);
+    g.vacio = { excel: await J('window.__P.excel()'),
+                campos: await J('window.__P.camposHash()'),
+                inf: await J('window.__P.informe("estandar")') };
+    out.grupos.controles = g;
+  }
+
   out.dialogos = dialogos;
   out.avisoFin = await J('window.__P.despejar()');
   out.md5Fin = await md5(rutaViva);

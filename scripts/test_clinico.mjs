@@ -65288,6 +65288,393 @@ caso('TC-473', 'W2-A: borrar el ULTIMO dato de cada fuente de area mitral retira
   return { extra: ex };
 `);
 
+caso('TC-474', 'W2-B: los criterios PROPIOS de la protesis mitral y aortica —Tabla 11 completa, AEO en tres tramos, el cuadro que ya no gradua una protesis, la fila del AVA aortico y el PPM de la Tabla 7 con su rama de IMC—, el rotulo AEO en todas las superficies y las tarjetas de diferencia nativa-protesis', `
+  const ex = [];
+  const VL = (id) => __t.val(id);
+  const TX = (id) => String(__t.txt(id) || '').trim();
+  const limpiarTodo = () => {
+    __t.limpiar();
+    window.esqSevManual = {}; window._sevCalcAlFijar = {};
+    ['aortica','mitral','tricuspide','pulmonar'].forEach(function(v){
+      ['esten','insuf'].forEach(function(t){
+        try { localStorage.removeItem('valv-pill-' + t + '-' + v); } catch (e) {}
+        try { if (typeof pillOn === 'function' && pillOn(v,t) === true) toggleValvPill(v,t); } catch (e) {}
+      });
+    });
+    try { if (window.VALV_ESTEN_AUTO) window.VALV_ESTEN_AUTO.clear(); } catch (e) {}
+    try { if (window.VALV_INSUF_AUTO) window.VALV_INSUF_AUTO.clear(); } catch (e) {}
+  };
+  /* El estilo del informe es estado de SESION y se hereda del caso anterior: se fija en la
+     escena, que es la trampa que TC-470 y TC-473 ya documentan. */
+  const base = (morfM, morfA, peso, talla) => { limpiarTodo();
+    try { setEstiloInforme('estandar'); } catch (e) {}
+    __t.set('peso', peso == null ? 80 : peso);
+    __t.set('talla', talla == null ? 180 : talla);
+    __t.set('edad', 70);
+    __t.set('diast_ritmo', 'sinusal');
+    __t.set('vm_morf', morfM || 'Normal');
+    __t.set('va_morf', morfA || 'Trivalva normal'); };
+  /* ⚠️ TODA LECTURA DE UN NODO O DE UNA FUNCION NUEVA VA POR UN AYUDANTE CON CENTINELA. Contra
+     HEAD estos nodos no existen y una excepcion mata la corrida entera: eso prueba que el arbol
+     es distinto, no que el caso sabe medir. Es la leccion que TC-455, TC-462, TC-465, TC-471 y
+     TC-473 ya tienen escrita, y que la PRIMERA version de varios de ellos pago. */
+  const PV = () => { try { return (typeof vmProtEOA === 'function') ? vmProtEOA() : null; }
+    catch (e) { return null; } };
+  const PA = () => { try { return (typeof eaProtVeredicto === 'function') ? eaProtVeredicto() : null; }
+    catch (e) { return null; } };
+  const T11 = () => { try { return window.VM_PROT_T11 || null; } catch (e) { return null; } };
+  /* ⚠️ __t.campos NO EXISTE: ese ayudante es de las sondas, no del arnes de la suite. Los
+     campos se recolectan como lo hace el resto de los casos del Excel, que es ademas como los
+     recolecta guardarInforme. */
+  const camposDe = () => { const c = {};
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function(el){
+      try { if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(el.id)) return; } catch (e) {}
+      c[el.id] = el.value; });
+    document.querySelectorAll('input[type=checkbox][id]').forEach(function(el){
+      c[el.id + '__chk'] = el.checked ? '1' : '0'; });
+    return c; };
+  const filaXls = () => _labExcelRow({ nombre:'P', ci:'1', fecha_estudio:'2026-10-15',
+    campos: camposDe() });
+  const excelCols = () => { try { return Object.keys(filaXls()).length; } catch (e) { return 'EXC'; } };
+
+  /* ══ (A) LA TABLA 11, LOS TRES PARAMETROS DIRECTOS, POR SUS SEIS BORDES ═══════════════════
+     Los tres operadores son DISTINTOS entre si y salen de la tabla renderizada: la velocidad
+     pico incluye su corte alto y los otros dos no; el gradiente incluye su corte bajo y los
+     otros dos no. Un helper con un solo par de operadores publicaria el veredicto contrario en
+     los seis bordes exactos, que son justo los numeros que se tipean. */
+  ex.push(['(A) DENOMINADOR: la tabla de cortes de la Tabla 11 existe y trae sus seis valores',
+    !!T11() && T11().vmaxNormalMax === 1.9 && T11().vmaxSignifMin === 2.5 &&
+    T11().gmedNormalMax === 5 && T11().gmedSignifMin === 10 &&
+    T11().thpNormalMax === 130 && T11().thpSignifMin === 200,
+    JSON.stringify(T11())]);
+  const unParam = (campo, valor) => { base('Pr\\u00f3tesis mec\\u00e1nica');
+    __t.set(campo, String(valor));
+    const P = PV(); return P ? P : {}; };
+  const nivVmax = (v) => unParam('em_vmax', v).porVmax;
+  const nivGmed = (v) => unParam('em_gmedio', v).porGmed;
+  const nivThp  = (v) => unParam('thp', v).porThp;
+  ex.push(['(A) velocidad pico de E: normal por debajo de 1,9 y significativa DESDE 2,5 inclusive',
+    nivVmax(1.8) === 'normal' && nivVmax(1.9) === 'posible' && nivVmax(2.4) === 'posible' &&
+    nivVmax(2.5) === 'significativa' && nivVmax(3.0) === 'significativa',
+    [nivVmax(1.8), nivVmax(1.9), nivVmax(2.4), nivVmax(2.5), nivVmax(3.0)].join(' ')]);
+  ex.push(['(A) gradiente medio: normal HASTA 5 inclusive y significativa POR ENCIMA de 10',
+    nivGmed(4) === 'normal' && nivGmed(5) === 'normal' && nivGmed(6) === 'posible' &&
+    nivGmed(10) === 'posible' && nivGmed(11) === 'significativa',
+    [nivGmed(4), nivGmed(5), nivGmed(6), nivGmed(10), nivGmed(11)].join(' ')]);
+  ex.push(['(A) THP como parametro DIRECTO: normal por debajo de 130 y significativa por encima de 200',
+    nivThp(120) === 'normal' && nivThp(129) === 'normal' && nivThp(130) === 'posible' &&
+    nivThp(200) === 'posible' && nivThp(201) === 'significativa',
+    [nivThp(120), nivThp(129), nivThp(130), nivThp(200), nivThp(201)].join(' ')]);
+  ex.push(['(A) CONTROL NEGATIVO: con morfologia NATIVA los tres quedan mudos, con los MISMOS datos',
+    (function(){ base('Normal'); __t.set('em_vmax','3.0'); __t.set('em_gmedio','12');
+      __t.set('thp','250'); const P = PV();
+      return !!P && P.esProt === false && P.porVmax == null && P.porGmed == null && P.porThp == null; })(),
+    'esProt=' + (PV()||{}).esProt]);
+  ex.push(['(A) CONTROL NEGATIVO: fuera de banda NO clasifica — el THP en segundos y la Vmax en cm/s',
+    (function(){ base('Pr\\u00f3tesis mec\\u00e1nica'); __t.set('thp','0.12'); __t.set('em_vmax','250');
+      const P = PV();
+      return !!P && P.thpFuera === true && P.vmaxFuera === true &&
+             P.porThp == null && P.porVmax == null; })(),
+    JSON.stringify({ t: (PV()||{}).porThp, v: (PV()||{}).porVmax })]);
+
+  /* ══ (B) EL AEO Y SUS TRES TRAMOS, CON LOS DOS BORDES EXACTOS (W1-6) ══════════════════════
+     AEO = area del TSVI x VTI del TSVI / VTI mitral, y por lo tanto AEO = area / DVI: fijado el
+     AEO, el DVI queda determinado por el O del TSVI. Por eso los dos bordes se arman con el DVI
+     deliberadamente NORMAL: si no, lo que se mide es el peor de los DOS votantes y no el tramo. */
+  const escAeo = (d, tsvi, prmv) => { base('Pr\\u00f3tesis biol\\u00f3gica');
+    __t.set('diam_tsvi', String(d)); __t.set('itv_tsvi', String(tsvi));
+    __t.set('em_vtimit', String(prmv));
+    const P = PV(); return P ? P : {}; };
+  const aSig = escAeo(20, 20, 70), aPos = escAeo(20, 20, 40), aNor = escAeo(30, 20, 30);
+  const aB1 = escAeo(16, 20, 40.2), aB2 = escAeo(20, 20, 31.4);
+  ex.push(['(B) DENOMINADOR: las cinco escenas producen el AEO que la aritmetica predice',
+    aSig.eoa === 0.90 && aPos.eoa === 1.57 && aNor.eoa === 4.71 &&
+    aB1.eoa === 1.00 && aB2.eoa === 2.00,
+    [aSig.eoa, aPos.eoa, aNor.eoa, aB1.eoa, aB2.eoa].join(' ')]);
+  ex.push(['(B) el AEO tiene TRES tramos: significativa por debajo de 1, normal desde 2 y POSIBLE en el medio',
+    aSig.porEoa === 'significativa' && aPos.porEoa === 'posible' && aNor.porEoa === 'normal',
+    [aSig.porEoa, aPos.porEoa, aNor.porEoa].join(' ')]);
+  ex.push(['(B) y los DOS bordes caen del lado que la tabla imprime: 1,00 es POSIBLE y 2,00 es NORMAL',
+    aB1.porEoa === 'posible' && aB2.porEoa === 'normal' &&
+    aB1.porDvi === 'normal' && aB2.porDvi === 'normal',
+    'b1=' + aB1.porEoa + '/' + aB1.porDvi + ' b2=' + aB2.porEoa + '/' + aB2.porDvi]);
+  ex.push(['(B) CONTROL NEGATIVO: el DVI conserva sus TRES tramos de siempre, sin tocar',
+    aSig.porDvi === 'significativa' && aPos.porDvi === 'normal' &&
+    window.VM_PROT_DVI_NORMAL_MAX === 2.2 && window.VM_PROT_DVI_SIGNIF_MIN === 2.5,
+    'dvi=' + aSig.dvi + '/' + aSig.porDvi + ' ' + aPos.dvi + '/' + aPos.porDvi]);
+
+  /* ══ (C) EL CUADRO DE REFERENCIAS YA NO GRADUA UNA PROTESIS (W1-3 y W1-8) ═════════════════ */
+  const cuadro = (morf) => { base(morf);
+    __t.set('thp','160'); __t.set('avm_plan','1.2'); __t.set('em_gmedio','12');
+    __t.set('diam_tsvi','20'); __t.set('itv_tsvi','20'); __t.set('em_vtimit','40');
+    return { thp: TX('em-clase-thp'), cont: TX('em-clase-cont'), plan: TX('em-clase-plan'),
+             gm: TX('em-clase-gm'), vThp: TX('em-thp-row'), vCont: TX('em-cont-row'),
+             vPlan: TX('em-plan-row'), vGm: TX('em-gmedio-row'),
+             sev: TX('em-sev-integrada'), grado: VL('em_grado'),
+             inf: __t.informe() }; };
+  const cNat = cuadro('Normal'), cBio = cuadro('Pr\\u00f3tesis biol\\u00f3gica'),
+        cMec = cuadro('Pr\\u00f3tesis mec\\u00e1nica');
+  ex.push(['(C) DENOMINADOR: con valvula NATIVA las cuatro filas siguen publicando su corte nativo',
+    cNat.thp.indexOf('significativa') > -1 && cNat.plan.indexOf('significativa') > -1 &&
+    cNat.gm.indexOf('significativo') > -1 && cNat.cont.indexOf('no significativa') > -1,
+    JSON.stringify([cNat.thp, cNat.cont, cNat.plan, cNat.gm])]);
+  ex.push(['(C) con las DOS protesis las cuatro filas declaran que el corte nativo no aplica',
+    [cBio, cMec].every(function(c){
+      return c.cont.indexOf('no aplica en pr') > -1 && c.plan.indexOf('no aplica en pr') > -1 &&
+             c.gm.indexOf('no aplica en pr') > -1 &&
+             c.cont.indexOf('significativa') === -1 && c.gm.indexOf('significativo') === -1; }),
+    JSON.stringify([cBio.cont, cBio.plan, cBio.gm])]);
+  ex.push(['(C) W1-8: la fila del THP dice que ese METODO no calcula el area en protesis, con su folio',
+    [cBio, cMec].every(function(c){
+      return c.thp.indexOf('THP no calcula') > -1 && c.thp.indexOf('folio 10') > -1 &&
+             c.thp.indexOf('significativa') === -1; }),
+    cBio.thp]);
+  ex.push(['(C) MARCAR SIN BORRAR: los CUATRO valores medidos siguen en pantalla, identicos a la nativa',
+    cBio.vThp === cNat.vThp && cBio.vCont === cNat.vCont &&
+    cBio.vPlan === cNat.vPlan && cBio.vGm === cNat.vGm,
+    JSON.stringify([cBio.vThp, cBio.vCont, cBio.vPlan, cBio.vGm])]);
+  ex.push(['(C) y la capsula publica la lectura PROTESICA del mismo gradiente y del mismo THP',
+    TX('vm-prot-gmed').indexOf('significativa') > -1 &&
+    TX('vm-prot-thp').indexOf('posible') > -1 &&
+    TX('vm-prot-eoa').indexOf('posible') > -1,
+    'gmed=«' + TX('vm-prot-gmed') + '» thp=«' + TX('vm-prot-thp') + '»']);
+  ex.push(['(C) CONTROL: con protesis el grado sigue en el centinela y el informe NO afirma estenosis',
+    cBio.grado === 'sin' && cBio.sev.indexOf('No graduada') > -1 &&
+    cBio.inf.inf.indexOf('estenosis significativa') === -1,
+    'grado=' + cBio.grado + ' sev=«' + cBio.sev + '»']);
+
+  /* ══ (D) LA AORTICA: la fila del AVA (W1-4) y el PPM de la Tabla 7 (W1-5) ═════════════════ */
+  const escAo = (morfA, itvAo, peso, talla) => { base('Normal', morfA, peso, talla);
+    __t.set('ea_dtsvi','20'); __t.set('ea_vtitsvi','20'); __t.set('itv_ao', String(itvAo));
+    __t.set('vmax_ao','4.2'); __t.set('gmedio_ao','42');
+    const V = PA();
+    return { eaSev: TX('ea-sev'), ppm: TX('ea-prot-ppm'), V: V ? V : null,
+             avaCont: VL('ava_cont'), avaIdx: TX('ava-idx'),
+             ppmDisp: (function(){ const e = document.getElementById('ea-prot-ppm-row');
+               return e ? getComputedStyle(e).display : 'NO EXISTE'; })(),
+             inf: __t.informe() }; };
+  const oNat = escAo('Trivalva normal', 70), oBio = escAo('Pr\\u00f3tesis biol\\u00f3gica', 70),
+        oMec = escAo('Pr\\u00f3tesis mec\\u00e1nica', 70), oTav = escAo('TAVI', 70);
+  ex.push(['(D) DENOMINADOR: con valvula NATIVA el recuadro Doppler sigue publicando su badge de AVA',
+    oNat.eaSev.indexOf('Severa') > -1 && oNat.eaSev.indexOf('1.0cm') > -1,
+    oNat.eaSev]);
+  ex.push(['(D) W1-4: con las TRES protesis el badge del corte absoluto de AVA desaparece y se declara',
+    [oBio, oMec, oTav].every(function(o){
+      return o.eaSev.indexOf('1.0cm') === -1 &&
+             o.eaSev.indexOf('no se grad') > -1 && o.eaSev.indexOf('absoluto de AVA') > -1; }),
+    JSON.stringify([oBio.eaSev, oMec.eaSev, oTav.eaSev])]);
+  ex.push(['(D) y el NUMERO no se pierde: el AVA por continuidad sigue calculandose igual en las cuatro',
+    oNat.avaCont === oBio.avaCont && oBio.avaCont === oMec.avaCont && oMec.avaCont === oTav.avaCont,
+    'ava=' + oBio.avaCont]);
+  ex.push(['(D) W1-5: la fila del PPM aortico se muestra con las TRES protesis y NO existe en nativa',
+    oNat.ppmDisp === 'none' && oBio.ppmDisp !== 'none' &&
+    oMec.ppmDisp !== 'none' && oTav.ppmDisp !== 'none',
+    JSON.stringify([oNat.ppmDisp, oBio.ppmDisp, oMec.ppmDisp, oTav.ppmDisp])]);
+  const ppmDe = (itv, peso, talla) => { const o = escAo('Pr\\u00f3tesis biol\\u00f3gica', itv, peso, talla);
+    return o.V ? { avai: o.V.avai, ppm: o.V.ppm, imc: o.V.imc, fila: o.ppm } : {}; };
+  const p060 = ppmDe(52.4), p065 = ppmDe(48.3), p066 = ppmDe(47.6),
+        p085 = ppmDe(37.0), p086 = ppmDe(36.5);
+  ex.push(['(D) DENOMINADOR: las cinco escenas del PPM producen el AEO indexada que la aritmetica predice',
+    p060.avai === 0.60 && p065.avai === 0.65 && p066.avai === 0.66 &&
+    p085.avai === 0.85 && p086.avai === 0.86,
+    [p060.avai, p065.avai, p066.avai, p085.avai, p086.avai].join(' ')]);
+  ex.push(['(D) W1-5: los TRES tramos de la Tabla 7 con sus DOS bordes — 0,65 severo y 0,85 moderado',
+    p060.ppm === 'severo' && p065.ppm === 'severo' && p066.ppm === 'moderado' &&
+    p085.ppm === 'moderado' && p086.ppm === 'no',
+    [p060.ppm, p065.ppm, p066.ppm, p085.ppm, p086.ppm].join(' ')]);
+  const pBajo = ppmDe(48.3, 80, 180), pAlto = ppmDe(48.3, 100, 170);
+  ex.push(['(D) W1-5: la rama de IMC decide con el MISMO AVA — severo con IMC 24,7 y moderado con 34,6',
+    pBajo.ppm === 'severo' && pAlto.ppm === 'moderado' &&
+    pBajo.imc < 30 && pAlto.imc >= 30 &&
+    String(pAlto.fila).indexOf('IMC') > -1 && String(pBajo.fila).indexOf('IMC') === -1,
+    'bajo=' + pBajo.imc + '/' + pBajo.ppm + ' alto=' + pAlto.imc + '/' + pAlto.ppm]);
+  ex.push(['(D) CONTROL NEGATIVO: con el AVA marcada «(revisar)» el PPM NO clasifica',
+    (function(){ base('Normal', 'Pr\\u00f3tesis mec\\u00e1nica');
+      __t.set('ea_dtsvi','2'); __t.set('ea_vtitsvi','20'); __t.set('itv_ao','48.3');
+      const V = PA(); return !!V && V.avai == null && V.ppm == null; })(),
+    JSON.stringify((PA()||{}).ppm)]);
+  ex.push(['(D) W1-13: cambiar la morfologia aortica RECALCULA — protesis llena la fila y nativa la apaga',
+    (function(){ base('Normal', 'Pr\\u00f3tesis mec\\u00e1nica');
+      __t.set('ea_dtsvi','20'); __t.set('ea_vtitsvi','20'); __t.set('itv_ao','48.3');
+      const conProt = TX('ea-prot-ppm');
+      __t.set('va_morf', 'Trivalva normal');
+      const conNat = TX('ea-prot-ppm');
+      const disp = (function(){ const e = document.getElementById('ea-prot-ppm-row');
+        return e ? getComputedStyle(e).display : 'NO EXISTE'; })();
+      return conProt.indexOf('severo') > -1 && conNat === '\\u2014' && disp === 'none'; })(),
+    'ver el cuerpo']);
+
+  /* ══ (E) DATOS INSUFICIENTES O CONTRADICTORIOS: SIN VEREDICTO ════════════════════════════ */
+  ex.push(['(E) protesis mitral SIN un solo parametro: ningun nivel, ningun veredicto y el informe calla',
+    (function(){ base('Pr\\u00f3tesis mec\\u00e1nica'); const P = PV(); const i = __t.informe();
+      return !!P && P.esProt === true && P.obstr == null && P.porEoa == null &&
+             P.porDvi == null && P.porVmax == null && P.porGmed == null && P.porThp == null &&
+             i.inf.indexOf('sugestivos de obstrucci') === -1; })(),
+    JSON.stringify(PV())]);
+  ex.push(['(E) con REGURGITACION significativa el AEO se retira y el DVI se muestra sin concluir',
+    (function(){ base('Pr\\u00f3tesis mec\\u00e1nica');
+      __t.set('diam_tsvi','20'); __t.set('itv_tsvi','20'); __t.set('em_vtimit','70');
+      __t.set('im_grado','4');
+      if (typeof emContRefrescar === 'function') emContRefrescar();
+      const P = PV(); const i = __t.informe();
+      return !!P && P.eoa == null && P.motivo !== '' && P.dvi != null && P.porDvi == null &&
+             i.inf.indexOf('sugestivos de obstrucci') === -1; })(),
+    JSON.stringify({ eoa: (PV()||{}).eoa, dvi: (PV()||{}).dvi, porDvi: (PV()||{}).porDvi })]);
+  ex.push(['(E) protesis AORTICA con un solo eje: la tabla no se aplica y se dice cual falta',
+    (function(){ base('Normal', 'Pr\\u00f3tesis mec\\u00e1nica'); __t.set('vmax_ao','4.2');
+      const V = PA();
+      return !!V && V.via === 'SAVR' && V.nivel === 'faltan' && V.falta.length > 0; })(),
+    JSON.stringify((PA()||{}).falta)]);
+  ex.push(['(E) LIMITE DECLARADO: los tres parametros nuevos NO entran en el veredicto de obstruccion',
+    (function(){ base('Pr\\u00f3tesis mec\\u00e1nica');
+      __t.set('em_gmedio','12'); __t.set('em_vmax','3.0'); __t.set('thp','250');
+      const P = PV(); const i = __t.informe();
+      return !!P && P.porGmed === 'significativa' && P.porVmax === 'significativa' &&
+             P.porThp === 'significativa' && P.obstr == null &&
+             i.inf.indexOf('sugestivos de obstrucci') === -1; })(),
+    'obstr=' + JSON.stringify((PV()||{}).obstr)]);
+
+  /* ══ (F) EL ROTULO «AEO» EN TODAS LAS SUPERFICIES, Y EL EXCEL INTACTO ════════════════════ */
+  base('Pr\\u00f3tesis mec\\u00e1nica');
+  __t.set('diam_tsvi','20'); __t.set('itv_tsvi','20'); __t.set('em_vtimit','70');
+  const fInf = __t.informe();
+  ex.push(['(F) DENOMINADOR: la escena publica las DOS lineas protesicas del papel',
+    fInf.inf.indexOf('sugestivos de obstrucci') > -1 &&
+    fInf.inf.indexOf('Desajuste prot') > -1,
+    fInf.inf.split(String.fromCharCode(10)).filter(function(l){ return /prot/i.test(l); }).join(' | ')]);
+  ex.push(['(F) el informe firmado y el EN SUMA dicen AEO y ya no dicen EOA',
+    fInf.inf.indexOf('AEO ') > -1 && fInf.inf.indexOf('AEO indexada') > -1 &&
+    fInf.inf.indexOf('EOA') === -1 && fInf.suma.indexOf('EOA') === -1,
+    fInf.inf.split(String.fromCharCode(10)).filter(function(l){ return /AEO|EOA/.test(l); }).join(' | ')]);
+  ex.push(['(F) la pantalla, la ayuda y las tarjetas dicen AEO: cero «EOA» sueltos fuera de las citas en ingles',
+    (function(){
+      const vis = [TX('bloque-prot-vm-res'), TX('ref-pm'), TX('ref-pao')].join(' ');
+      const reg = (function(){ try { return JSON.stringify(VINFO); } catch (e) { return ''; } })();
+      /* En el registro «EOA» solo puede aparecer precedido de un parentesis: es la equivalencia
+         «(EOA en las guias anglosajonas)» que la orden pidio declarar en cada tarjeta del AEO. */
+      const sueltos = (reg.match(/EOA/g) || []).length - (reg.match(/[(]EOA[^)]*[)]/g) || []).length;
+      return vis.indexOf('EOA') === -1 && sueltos === 0; })(),
+    'reg=' + (function(){ try { return (JSON.stringify(VINFO).match(/EOA/g) || []).length; } catch (e) { return 'EXC'; } })()]);
+  ex.push(['(F) el Excel sigue en 436 columnas y NINGUN encabezado cambio de nombre',
+    (function(){ const k = Object.keys(filaXls());
+      return k.length === 436 && k.filter(function(c){ return /EOA|AEO/.test(c); }).length === 0 &&
+             k.indexOf('DVI mitral') > -1; })(),
+    'cols=' + excelCols()]);
+
+  /* ══ (G) LAS TARJETAS DE DIFERENCIA NATIVA-PROTESIS ══════════════════════════════════════
+     ⚠️ LA GEOMETRIA A 390 Y 360 px NO SE PUEDE MEDIR DESDE ACA: el cuerpo de un caso corre
+     DENTRO de la pagina y un media query no se puede fingir. Lo renderizado lo mide
+     scripts/_probe_w2b.mjs (grupo tarjetas, 30 celdas de ancho x tema, con captura PNG);
+     aca se fija la REGLA — el registro, el tipo de nodo, la ausencia de legado y el mecanismo. */
+  base('Pr\\u00f3tesis mec\\u00e1nica', 'Pr\\u00f3tesis mec\\u00e1nica');
+  try { showTab('valvulas'); } catch (e) {}
+  ['valv-mitral','valv-aortica'].forEach(function(tok){
+    const s = document.getElementById('ete-seccion-' + tok);
+    if (s && getComputedStyle(s).display === 'none') { try { toggleEteSeccion(tok); } catch (e) {} }
+  });
+  ['caja-esten-mitral','caja-insuf-mitral','caja-esten-aortica','caja-insuf-aortica'].forEach(function(cid){
+    const c = document.getElementById(cid);
+    if (c && !c.classList.contains('valv-datos-abierto')) { try { valvDatosTog(cid); } catch (e) {} }
+  });
+  const NUEVAS = ['prot-vmax','prot-gmed','prot-thp','ea-prot-sev','ea-prot-ppm'];
+  const REG = (function(){ try { return VINFO; } catch (e) { return null; } })();
+  /* ⚠️ CENTINELA SOBRE CADA ENTRADA DEL REGISTRO, Y NO ES DECORATIVO. Contra HEAD estas cinco
+     claves NO existen, y leer su fuente tira un TypeError que mata la corrida entera: eso
+     prueba que el arbol es distinto, no que el caso sabe medir. La primera version de este
+     caso murio asi, igual que las primeras de TC-455, TC-462, TC-465, TC-471 y TC-473. */
+  const RK = (k) => (REG && REG[k]) ? REG[k] : {};
+  ex.push(['(G) DENOMINADOR: las CINCO claves nuevas tienen entrada en el registro de tarjetas',
+    !!REG && NUEVAS.every(function(k){ return !!REG[k]; }),
+    REG ? Object.keys(REG).join(',') : 'SIN REGISTRO']);
+  ex.push(['(G) las cinco traen su fuente con FOLIO o PAGINA y una linea de «a tener en cuenta»',
+    !!REG && NUEVAS.every(function(k){
+      return /folio|p\\u00e1g\\./i.test(RK(k).fuente || '') && (RK(k).ojo || '').length > 20; }),
+    REG ? NUEVAS.map(function(k){ return RK(k).fuente; }).join(' || ') : '']);
+  /* Las CUATRO de diferencia publican los dos regimenes. La quinta —el PPM aortico— NO tiene
+     contraparte nativa: el desajuste protesis-paciente no existe en una valvula nativa, asi que
+     exigirle un «Nativa:» seria pedirle que invente un corte. Se afirma por separado. */
+  const DIF = ['prot-vmax','prot-gmed','prot-thp','ea-prot-sev'];
+  ex.push(['(G) las CUATRO de diferencia publican los DOS regimenes, con el formato nativa / protesis',
+    !!REG && DIF.every(function(k){
+      return /[Nn]ativa/.test(RK(k).lee || '') && /[Pp]r.tesis/.test(RK(k).lee || ''); }),
+    REG ? DIF.map(function(k){ return String(RK(k).lee).slice(0, 40); }).join(' || ') : '']);
+  ex.push(['(G) y las TRES del AEO declaran la equivalencia con EOA, que es lo que la orden pidio',
+    !!REG && ['ea-prot-ppm','prot-eoa','prot-ppm'].every(function(k){
+      return String(RK(k).lee || '').indexOf('(EOA') > -1; }),
+    REG ? String(RK('ea-prot-ppm').lee).slice(0, 90) : '']);
+  ex.push(['(G) y llevan ACENTOS: son texto clinico, no un comentario de codigo',
+    !!REG && NUEVAS.every(function(k){
+      const t = [RK(k).tit, RK(k).lee, RK(k).fuente, RK(k).ojo].join(' ');
+      return (t.match(/[\\u00e1\\u00e9\\u00ed\\u00f3\\u00fa\\u00f1]/g) || []).length >= 5; }),
+    REG ? NUEVAS.map(function(k){ const t = [RK(k).tit, RK(k).lee, RK(k).ojo].join(' ');
+      return k + ':' + (t.match(/[\\u00e1\\u00e9\\u00ed\\u00f3\\u00fa\\u00f1]/g) || []).length; }).join(' ') : '']);
+  const globos = Array.from(document.querySelectorAll('#tab-valvulas [data-vinfo]'));
+  ex.push(['(G) los globos de la pestania son BOTONES, sin atributo title y sin llevar al manual, y ninguno es de legado',
+    globos.length === 21 &&
+    globos.every(function(b){ return b.tagName.toLowerCase() === 'button'; }) &&
+    globos.every(function(b){ return !b.getAttribute('title'); }) &&
+    globos.every(function(b){ return (b.getAttribute('onclick') || '').indexOf('abrirAyudaEco') === -1; }) &&
+    !!REG && globos.every(function(b){ return !!REG[b.getAttribute('data-vinfo')]; }),
+    'n=' + globos.length]);
+  const card = document.getElementById('vinfo-card');
+  const abierto = () => !!card && getComputedStyle(card).display !== 'none';
+  const mec = {};
+  NUEVAS.forEach(function(k){
+    const b = document.querySelector('#tab-valvulas [data-vinfo="' + k + '"]');
+    if (!b) { mec[k] = 'SIN BOTON'; return; }
+    b.click(); const a1 = abierto();
+    b.click(); const a2 = abierto();
+    b.click();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    const a3 = abierto();
+    b.click(); document.body.click();
+    const a4 = abierto();
+    mec[k] = (a1 === true && a2 === false && a3 === false && a4 === false) ? 'ok'
+           : ('abre=' + a1 + ' 2do=' + a2 + ' esc=' + a3 + ' fuera=' + a4);
+  });
+  ex.push(['(G) las cinco abren al toque y cierran por los CUATRO caminos',
+    NUEVAS.every(function(k){ return mec[k] === 'ok'; }), JSON.stringify(mec)]);
+
+  /* ══ (H) LOS CONTROLES: lo que esta tanda NO puede mover ═════════════════════════════════ */
+  base('Normal', 'Trivalva normal');
+  __t.set('thp','160'); __t.set('avm_plan','1.2'); __t.set('em_gmedio','12');
+  __t.set('diam_tsvi','20'); __t.set('itv_tsvi','20'); __t.set('em_vtimit','40');
+  __t.set('im_vc','8'); __t.set('im_ai_area','40'); __t.set('im_jet_area','18');
+  __t.set('vmax_ao','4.2'); __t.set('gmedio_ao','42');
+  __t.set('ea_dtsvi','20'); __t.set('ea_vtitsvi','20'); __t.set('itv_ao','70');
+  __t.set('onda_e','100'); __t.set('onda_a','50');
+  __t.set('e_prima_septal','6'); __t.set('e_prima_lateral','8');
+  __t.set('ai_vol','40'); __t.set('fevi','60'); __t.set('vmax_it','3.0');
+  const hInf = __t.informe();
+  ex.push(['(H) DENOMINADOR: la escena NATIVA tiene veredicto en las dos valvulas y en la diastolica',
+    VL('em_grado') === 'severa' && VL('im_grado') === '4' && VL('ea_grado') === 'severa' &&
+    TX('dd-interp').length > 3,
+    'em=' + VL('em_grado') + ' im=' + VL('im_grado') + ' ea=' + VL('ea_grado') +
+    ' dd=«' + TX('dd-interp') + '»']);
+  ex.push(['(H) CONTROL: con valvula NATIVA las tres filas protesicas quedan en blanco y la aortica escondida',
+    TX('vm-prot-vmax') === '\\u2014' && TX('vm-prot-gmed') === '\\u2014' &&
+    TX('vm-prot-thp') === '\\u2014' && TX('ea-prot-ppm') === '\\u2014',
+    JSON.stringify([TX('vm-prot-vmax'), TX('vm-prot-gmed'), TX('vm-prot-thp'), TX('ea-prot-ppm')])]);
+  ex.push(['(H) CONTROL: el Excel sigue en 436 columnas con el escenario cargado',
+    excelCols() === 436, 'cols=' + excelCols()]);
+  ex.push(['(H) CONTROL: el informe, el EN SUMA y el Laboratorio siguen nombrando las lesiones nativas',
+    hInf.inf.indexOf('estenosis significativa') > -1 &&
+    hInf.suma.indexOf('IM severa') > -1 && hInf.suma.indexOf('EAo severa') > -1 &&
+    (function(){ try { return _labEstenSev({ campos: camposDe() }, 'em_grado') === 'Severa'; }
+      catch (e) { return 'EXC'; } })() === true,
+    hInf.suma.split(String.fromCharCode(10)).join(' | ')]);
+  ex.push(['(H) CONTROL: la funcion diastolica y el HFA-PEFF no los toca esta tanda',
+    TX('dd-interp').indexOf('iast') > -1 || TX('dd-interp').length > 3,
+    TX('dd-interp')]);
+  limpiarTodo();
+
+  /* El caso publica su PROPIO numero de condiciones en vez de que se cuenten a ojo: varias
+     viven dentro de un forEach y contar los ex.push a mano ya dio mal tres veces en este repo. */
+  ex.push(['CONTEO: el caso trae sus CUARENTA Y SEIS condiciones', ex.length + 1 === 46,
+    'n=' + (ex.length + 1)]);
+  return { extra: ex };
+`);
+
 
 let servidor, chrome;
 try {
