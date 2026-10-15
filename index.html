@@ -2418,7 +2418,14 @@ html.light-mode .amilo-root{
 #v2d-dibujo{grid-column:2;grid-row:1;}
 #v2d-col-insuf{grid-column:1;grid-row:1;}
 #v2d-col-esten{grid-column:3;grid-row:1;}
+#v2d-cav{grid-column:1 / -1;grid-row:2;margin-top:4px;}
+/* PANTALLAS ANGOSTAS: TODO EN UNA COLUMNA, y en el orden del marcado —dibujo, insuficiencias,
+   estenosis, cavidades—. Se apagan las tres posiciones explicitas en vez de reordenar: con
+   `order` el orden VISUAL y el de LECTURA se separan, que es como una tabla de datos clinicos
+   termina diciendo una cosa al ojo y otra al lector de pantalla. */
 @media (max-width:900px){
+  #v2d-grid{grid-template-columns:minmax(0,1fr);}
+  #v2d-dibujo,#v2d-col-insuf,#v2d-col-esten,#v2d-cav{grid-column:1;grid-row:auto;}
   #v2d-card{inset:6px;}
   #v2d-cuerpo{padding:10px;}
 }
@@ -2448,6 +2455,11 @@ html.light-mode .amilo-root{
 #v2d-mark{position:absolute;top:-2px;width:3px;height:15px;border-radius:2px;background:var(--text);}
 #v2d-fase{display:flex;justify-content:space-between;gap:8px;font-size:12px;margin-top:5px;color:var(--text2);}
 #v2d-fase b{color:var(--text);}
+#v2d-cav table{width:100%;border-collapse:collapse;font-size:12.5px;}
+#v2d-cav th,#v2d-cav td{text-align:left;padding:4px 7px;border-bottom:1px solid var(--border);
+  vertical-align:top;}
+#v2d-cav th{color:var(--text2);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.4px;}
+#v2d-cav td:first-child{color:var(--text2);white-space:nowrap;}
 /* Objetivos tactiles comodos: el boton de cerrar y el del pie de Valvulas. Sin hover. */
 #v2d-cerrar{min-height:38px;min-width:38px;}
 .v2d-pie{margin:14px 0 2px;text-align:center;}
@@ -3045,6 +3057,10 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div id="v2d-col-esten">
           <div class="v2d-grp">Estenosis</div>
           <ul class="v2d-lista" id="v2d-esten"></ul>
+        </div>
+        <div id="v2d-cav">
+          <div class="v2d-grp">Cavidades</div>
+          <div id="v2d-cav-tabla"></div>
         </div>
       </div>
       <p class="v2d-nota">Esquema <b>cualitativo</b>: no est&aacute; a escala y no mide. La apertura de cada
@@ -111397,7 +111413,7 @@ function _v2dVeredictoProt(id){
 function v2dEstado(){
   const E = { it:0, iao:0, im:0, et:0, eao:0, em:0, pt:0, pao:0, pm:0,
               geo:0, dvi:0, dai:0, dvd:0, dad:0, kvi:0, kvd:0,
-              insuf:[], esten:[] };
+              insuf:[], esten:[], cav:[] };
 
   V2D_VALVS.forEach(function(V){
     const morf = sv(V.morf);
@@ -111468,6 +111484,23 @@ function v2dEstado(){
     .filter(function(id){ return _v2dTxt(id).toLowerCase().indexOf('disfunci') > -1 }).length;
   E.kvd = vdDisf >= 2 ? 2 : (vdDisf ? 1 : 0);
 
+  /* La tabla: SOLO lo cargado. Una fila con la raya afirma que se miro y no se encontro nada. */
+  const fila = function(grupo, rot, valor, uni, cat){
+    const x = (valor == null) ? '' : String(valor).trim();
+    if (!x && !cat) return;
+    E.cav.push({ grupo:grupo, rot:rot, val:(x ? x + (uni ? ' ' + uni : '') : ''), cat:cat || '' });
+  };
+  fila('VI', 'Diámetro diastólico', sv('ddfvi'), 'mm', dimVI || '');
+  fila('VI', 'Volumen telediastólico', sv('vdfvi'), 'ml', '');
+  fila('VI', 'Geometría', '', '', geoTxt);
+  fila('VI', 'FEVI', sv('fevi'), '%', feviTxt);
+  fila('VD', 'Diámetro basal', sv('vd_bas'), 'mm', vdTxt);
+  fila('VD', 'TAPSE', sv('tapse'), 'mm', _v2dTxt('tapse-interp'));
+  fila('VD', 'Onda S′', sv('s_prime'), 'cm/s', _v2dTxt('sprime-interp'));
+  fila('VD', 'Índice de Tei (DTI)', sv('vd_tei'), '', _v2dTxt('vd-tei-interp'));
+  fila('AI', 'Volumen indexado', _v2dTxt('ai-idx'), '', aiTxt);
+  fila('AI', 'LARS', sv('lars'), '%', '');
+  fila('AD', 'Área', sv('ad_area'), 'cm²', adTxt);
   return E;
 }
 window.v2dEstado = v2dEstado;
@@ -111835,6 +111868,33 @@ function v2dPintarTarjetas(E){
   });
 }
 
+function v2dPintarCav(E){
+  const host = document.getElementById('v2d-cav-tabla'); if (!host) return;
+  host.textContent = '';
+  if (!E.cav.length) {
+    const p = document.createElement('div');
+    p.className = 'v2d-vacio'; p.textContent = 'Sin mediciones de cavidades cargadas.';
+    host.appendChild(p); return;
+  }
+  const tb = document.createElement('table');
+  const thead = document.createElement('thead');
+  const trh = document.createElement('tr');
+  ['', 'Medición', 'Valor', 'Interpretación'].forEach(function(h){
+    const th = document.createElement('th'); th.textContent = h; trh.appendChild(th); });
+  thead.appendChild(trh); tb.appendChild(thead);
+  const tbody = document.createElement('tbody');
+  let grupoPrev = '';
+  E.cav.forEach(function(f){
+    const tr = document.createElement('tr');
+    [f.grupo === grupoPrev ? '' : f.grupo, f.rot, f.val, f.cat].forEach(function(x){
+      const td = document.createElement('td'); td.textContent = x; tr.appendChild(td); });
+    grupoPrev = f.grupo;
+    tbody.appendChild(tr);
+  });
+  tb.appendChild(tbody);
+  host.appendChild(tb);
+}
+
 /* ══ ABRIR Y CERRAR ═══════════════════════════════════════════════════════════════════════════
    ⚠️ EL FOCO ENTRA A LA VISTA Y VUELVE AL BOTON. Es la leccion que el panel de Evidencia pago:
    sin enfocar la tarjeta, el foco queda en el `body`, el primer Tab se va a un control de la
@@ -111848,7 +111908,7 @@ function v2dPintarTarjetas(E){
 function v2dAbrir(){
   const ov = document.getElementById('v2d-ov'); if (!ov) return;
   const E = (typeof v2dSync === 'function') ? v2dSync() : null;
-  if (E) v2dPintarTarjetas(E);
+  if (E) { v2dPintarTarjetas(E); v2dPintarCav(E); }
   ov.style.display = 'block';
   if (typeof v2dArrancar === 'function') v2dArrancar();
   const card = document.getElementById('v2d-card');
@@ -111862,7 +111922,7 @@ function v2dCerrar(){
   if (b) { try { b.focus({ preventScroll:true }); } catch (e) { b.focus(); } }
 }
 window.v2dAbrir = v2dAbrir; window.v2dCerrar = v2dCerrar;
-window.v2dPintarTarjetas = v2dPintarTarjetas;
+window.v2dPintarTarjetas = v2dPintarTarjetas; window.v2dPintarCav = v2dPintarCav;
 
 </script>
 
