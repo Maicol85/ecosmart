@@ -484,6 +484,45 @@ window.__P = {
         return r });
   },
 
+  /* ══ AUDITORIA DE SOLO LECTURA (F2): las filas del cuadro de referencias de CADA lesion de
+     Valvulas, con su rotulo, su valor y si publican un grado. Se mide el ARBOL VIVO y no una
+     lista escrita a mano: una lista se desactualiza el dia que entre una fila. «Publica grado»
+     es cualquiera de las tres formas que esta app usa: un <span class=calc-grado> hermano (IM,
+     IAo y, desde hoy, el AVA indexada), la leyenda pegada al valor con un separador (las filas
+     de la IT y las clases de la EM), o el badge dentro del propio valor. */
+  auditoria() {
+    var secs = ['valv-mitral','valv-aortica','valv-tricuspide','valv-pulmonar'];
+    var o = {};
+    secs.forEach(function(tok){
+      var sec = document.getElementById('ete-seccion-' + tok);
+      if (!sec) { o[tok] = 'NO EXISTE'; return }
+      var filas = [];
+      sec.querySelectorAll('.calc-row').forEach(function(r){
+        var lbl = r.querySelector('.calc-lbl');
+        var gr  = r.querySelector('.calc-grado');
+        var val = r.querySelector('[id]:not(.calc-lbl)');
+        if (!lbl || !val) return;
+        var txt = (val.textContent || '').trim();
+        filas.push({ id: val.id, lbl: (lbl.textContent || '').trim().slice(0, 44),
+                     val: txt.slice(0, 48),
+                     spanGrado: !!gr,
+                     gradoEnSpan: gr ? (gr.textContent || '').trim() : '',
+                     /* la leyenda pegada: dos espacios, un punto medio o un parentesis con una
+                        palabra de severidad adentro */
+                     /* Sin regex: un parentesis escapado dentro de un template literal se
+                        cocina y deja el grupo sin cerrar — la primera corrida murio con
+                        «Unterminated group». Se pregunta por indexOf, que es lo que este repo
+                        ya hace para los saltos de linea. */
+                     pegada: (function(){ var b = txt.toLowerCase();
+                       if (txt.indexOf(' \u00b7 ') > -1) return true;
+                       if (txt.indexOf('  ') > -1) return true;
+                       return ['leve','moderada','severa','significativa','sin estenosis']
+                         .some(function(w){ return b.indexOf('(' + w) > -1 }) })() });
+      });
+      o[tok] = filas;
+    });
+    return o },
+
   despejar() {
     var o = {};
     ['modalAvisoEco','login-overlay'].forEach(function(id){
@@ -835,6 +874,53 @@ async function main() {
     }
     await J('window.__P.tema(false)');
     out.grupos.avai = g;
+  }
+
+  /* ── auditoria ── SOLO LECTURA: que filas publican su grado y cuales no ───────────────── */
+  if (corre('auditoria')) {
+    paso('auditoria');
+    const g = {};
+    await J('window.__P.limpiar()');
+    await ev('(function(){ try { ["aortica","mitral","tricuspide","pulmonar"].forEach(function(v){'
+      + ' ["esten","insuf"].forEach(function(t){ if (!pillOn(v,t)) toggleValvPill(v,t) }) }) } catch(e){} return 1 })()');
+    /* Escena con las OCHO lesiones cargadas: sin datos las filas estan en «—» y no se puede
+       distinguir «no publica grado» de «no hay nada que graduar». */
+    for (const [id, v] of [['peso', 80], ['talla', 180], ['sexo', 'M'],
+      ['diam_tsvi', 20], ['itv_tsvi', 21], ['itv_ao', 55], ['vmax_ao', 3.5], ['gmedio_ao', 30],
+      ['ava_plan', 1.1],
+      ['im_vc', 7], ['im_jet_area', 9], ['im_ai_area', 20],
+      ['pisa_r', 0.9], ['pisa_val', 40], ['im_vmax', 500], ['im_itv', 120],
+      ['ia_pisa_r', 0.6], ['ia_pisa_val', 40], ['ia_vmax_cw', 400], ['ia_vti', 120],
+      ['ia_jet', 8], ['ia_tsvi_diam', 20], ['thp_ia', 250],
+      ['it_vc', 8], ['it_pisa_r', 0.9], ['it_pisa_val', 40], ['it_vmax_cw', 3.0], ['it_vti', 60],
+      ['thp', 160], ['avm_plan', 1.2], ['em_gmedio', 8], ['em_vtimit', 90],
+      ['et_gmedio', 6], ['et_thp', 200], ['et_vti_diast', 70],
+      ['ep_vmax', 3.5], ['ip_vmax', 2.5], ['ip_thp', 90]]) {
+      await J('window.__P.set(' + JSON.stringify(id) + ', ' + JSON.stringify(v) + ')');
+    }
+    await J('window.__P.abrirValv()');
+    await ev('(function(){ try { showTab("valvulas") } catch(e) {}'
+      + ' ["valv-mitral","valv-aortica","valv-tricuspide","valv-pulmonar"].forEach(function(t){'
+      + '   var s = document.getElementById("ete-seccion-" + t);'
+      + '   if (s && getComputedStyle(s).display === "none") { try { toggleEteSeccion(t) } catch(e) {} } });'
+      + ' ["caja-esten-mitral","caja-insuf-mitral","caja-esten-aortica","caja-insuf-aortica"].forEach(function(c){'
+      + '   try { var e = document.getElementById(c);'
+      + '     if (e && !e.classList.contains("valv-datos-abierto")) valvDatosTog(c) } catch(x){} });'
+      + ' ["bloque-em-detalle","bloque-ea-detalle"].forEach(function(b){'
+      + '   var e = document.getElementById(b); if (e && getComputedStyle(e).display === "none") e.style.display = "block" });'
+      + ' return 1 })()');
+    await pausa(400);
+    g.filas = await J('window.__P.auditoria()');
+    /* ⚠️ LAS CUATRO FILAS DE LA ESTENOSIS MITRAL LLEVAN SU GRADO EN UNA COLUMNA APARTE
+       (`.em-clase`, dentro de un `.em-clase-wrap`), que el barrido de arriba NO ve porque toma el
+       primer nodo con id de la fila. Sin medirlas por separado, el censo las informaria como «sin
+       grado» sobre filas que SI lo publican — un falso con pinta de hallazgo. */
+    g.clasesEM = await J('(function(){ var o = {};'
+      + ' ["em-clase-gm","em-clase-thp","em-clase-cont","em-clase-plan"].forEach(function(id){'
+      + '   var e = document.getElementById(id); o[id] = e ? (e.textContent || "").trim() : "NO EXISTE" });'
+      + ' return o })()');
+    g.ajenos = await J('window.__P.ajenos()');
+    out.grupos.auditoria = g;
   }
 
   /* ── controles ── NADA AJENO SE MUEVE, con un escenario CARGADO para que haya denominador ─ */

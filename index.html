@@ -6056,7 +6056,15 @@ window.cerrarSesionReal = cerrarSesionReal;
           <div class="calc-row"><span class="calc-lbl">G. m&aacute;ximo (4&times;Vmax&sup2;)</span><span class="calc-val" id="ea-det-gmax">&#8212;</span></div>
           <div class="calc-row"><span class="calc-lbl">G. medio</span><span class="calc-val" id="ea-det-gmedio">&#8212;</span></div>
           <div class="calc-row"><span class="calc-lbl">AVA continuidad</span><span class="calc-val" id="ea-det-ava">&#8212;</span></div>
-          <div class="calc-row"><span class="calc-lbl">AVA indexada (cm&sup2;/m&sup2;)</span><span class="calc-val" id="ea-det-avai">&#8212;</span></div>
+          <!-- ⚠️ EL GRADO VA EN UN <span> HERMANO, SIN `id`, Y NO DENTRO DE `ea-det-avai` (F2,
+               2026-10-15). Es el patron de las nueve filas de la IM y la IAo del 13/10, y aca hay
+               dos razones propias: (1) TC-436 compara el textContent de `ea-det-avai` por igualdad
+               EXACTA («0.57 cm&sup2;/m&sup2;»), asi que un grado adentro lo pondria en rojo sobre un
+               arreglo correcto; (2) sin `id`, el barrido
+               `.calc-box .calc-row span[id]:not(.calc-lbl)` de `limpiarCampos` no le escribe
+               «&#8212;» donde la regla pide blanco — se vacia con la llamada explicita a
+               `eaAvaiGradoPintar`, igual que los nueve de la IM. -->
+          <div class="calc-row"><span class="calc-lbl">AVA indexada (cm&sup2;/m&sup2;)</span><span class="calc-val" id="ea-det-avai">&#8212;</span><span class="calc-grado" data-grado-de="ea-det-avai"></span></div>
           <div class="calc-row"><span class="calc-lbl">DVI</span><span class="calc-val" id="ea-det-dvi">&#8212;</span></div>
           <!-- ⚠️ EL PPM AORTICO (W1-5). Se esconde con valvula nativa por la misma regla que la
                fila del AT: sin protesis no hay desajuste protesis-paciente que medir. Lo gobierna
@@ -30958,6 +30966,9 @@ function _eaDetCuentaPura() {
          con `display:none`—, así que es el que le mentía al médico en la cara. */
       if (typeof _eaAvaiSinBSA === 'function') _eaAvaiSinBSA();
     }
+    /* El grado de la fila va JUNTO al valor que la fila acaba de publicar, en la misma funcion,
+       para que no haya un camino que escriba uno y no el otro. Ver `eaAvaiGradoPintar`. */
+    if (typeof eaAvaiGradoPintar === 'function') eaAvaiGradoPintar();
     const dvi = (itsvi/itvao).toFixed(2);
     /* El MISMO argumento que en `calcAo` para `dvi-val`, y acá pesa más: de este `input` sale el
        «DI» del informe narrativo firmado y es la PRIMERA fuente que lee `eaProtVeredicto`, con
@@ -30971,6 +30982,10 @@ function _eaDetCuentaPura() {
     document.getElementById('ea-det-dvi').textContent = dvi + (_eaDetDviDud ? MARCA_REVISAR : '');
   } else {
     ['ea-det-ava','ea-det-avai','ea-det-dvi'].forEach(id => { document.getElementById(id).textContent = '—'; });
+    /* Y el grado de la fila del AVA indexada con ellos: es un `<span>` sin `id`, asi que el
+       barrido generico no lo alcanza y el grado del paciente anterior sobrevivia al lado de una
+       fila ya en «—». Mismo motivo que los nueve de la IM. */
+    if (typeof eaAvaiGradoPintar === 'function') eaAvaiGradoPintar();
     /* ⚠️ LOS DOS `input readonly` TAMBIÉN SE LIMPIAN. Esta rama vaciaba los tres `<span>` y dejaba
        `ea_ava_display` y `ea_dvi_display` con el valor de la medición anterior. Son `input[id]`, así
        que `guardarInforme` los persiste y viajan en `campos`; y el espejo del TAVI leía
@@ -31055,7 +31070,11 @@ function calcEADetalle() {
   const _RCalc = eaGradoCalculado();
   if (vmax) {
     gradoStr = _RCalc.grado;
-    sev = gradoStr ? EA_GRADO_LBL[gradoStr] : 'Sin datos para graduar';
+    /* ⚠️ EL RENGLON INTEGRADO DICE CUAL CRITERIO DECIDE (F2, 2026-10-15). Va PEGADO al grado y
+       antes de las dos anotaciones del AVA, que son alarmas y van al final. La rama de bajo
+       gradiente de abajo REEMPLAZA `sev` por «Severa por AVA ⚠️ bajo gradiente», que ya nombra su
+       criterio, asi que no se duplica. Ver `_eaPorCriterio`. */
+    sev = gradoStr ? (EA_GRADO_LBL[gradoStr] + _eaPorCriterio(_RCalc)) : 'Sin datos para graduar';
     color = gradoStr ? EA_GRADO_COLOR[gradoStr] : 'var(--text2)';
     // Confirmar con AVA si disponible
     /* ECOS-12: el caso central del bajo gradiente —AVA <1.0 con Vmax 3.0–3.9 o gradiente
@@ -31142,6 +31161,10 @@ function calcEADetalle() {
        `sugerirSeveridadEA`, para que las dos mitades sigan diciendo lo mismo carácter por carácter. */
     else if (avaEsSevera(avaR)) { sev='Severa';          color='var(--red)'; }
     else { sev='AVA no valuable'; color='var(--text2)'; gradoStr=null; }
+    /* Y el criterio tambien por esta rama. Con `gradoStr` en `null` —«AVA no valuable»— y con
+       `'sin'` —«Sin estenosis / leve»— `_eaPorCriterio` devuelve cadena vacia, asi que las dos
+       etiquetas que esta rama tiene para «no afirmo nada» salen intactas. */
+    sev += _eaPorCriterio(_RCalc);
     if (sevEl) sevEl.innerHTML = `<span style="color:${color};font-weight:700;">${sev}</span>`;
     if (!gradoStr) { const _b = document.getElementById('ea-ava-badge');
       if (_b) _b.textContent = 'AVA no valuable — el grado NO se actualizó automáticamente; revisá la severidad aórtica antes de firmar.'; }
@@ -31160,7 +31183,8 @@ function calcEADetalle() {
        `<select>`, la pastilla y el recuadro de Doppler decian «Severa» y ESTE recuadro seguia en
        «—», o sea el mismo desfase del sintoma (1) movido de lugar. Pinta el grado calculado y nada
        mas: no hay AVA ni Vmax que anotar, asi que no hay anotacion que agregar. */
-    sev = EA_GRADO_LBL[_RCalc.grado]; color = EA_GRADO_COLOR[_RCalc.grado]; gradoStr = _RCalc.grado;
+    sev = EA_GRADO_LBL[_RCalc.grado] + _eaPorCriterio(_RCalc);
+    color = EA_GRADO_COLOR[_RCalc.grado]; gradoStr = _RCalc.grado;
     if (sevEl) sevEl.innerHTML = `<span style="color:${color};font-weight:700;">${sev}</span>`;
     const _bG = document.getElementById('ea-ava-badge');
     if (_bG && !_eaDetDud) _bG.textContent = _eaBadgeAuto(_RCalc);
@@ -33421,6 +33445,72 @@ function eaGradoCalculado() {
 }
 window.eaGradoCalculado = eaGradoCalculado;
 window.EA_GRADO_ORDEN = EA_GRADO_ORDEN;
+/* ¿La aórtica de este estudio es una PRÓTESIS? UN solo dueño del predicado. Vivía inline dentro
+   de `_eaPintarRecuadroDoppler` y lo necesita además el pintor del grado del AVA indexada: dos
+   copias del mismo `try` sobre `va_morf` son dos cosas que se separan el día que la lista de
+   morfologías protésicas cambie. No cambia el comportamiento de aquel recuadro ni un byte — es la
+   misma expresión, movida. */
+function _eaEsProtesisAo() {
+  try { const m = document.getElementById('va_morf');
+    return !!(m && typeof valvEsProtesis === 'function' && valvEsProtesis(String(m.value || '')));
+  } catch (e) { return false; }
+}
+window._eaEsProtesisAo = _eaEsProtesisAo;
+
+/* ══ EL GRADO DE LA FILA «AVA INDEXADA» DEL CUADRO DE VÁLVULAS (F2, 2026-10-15) ══════════════
+   Decisión de Maicol. El AVA indexada VOTA desde el 2026-10-13 y su fila publicaba el valor y
+   callaba: medido en HEAD, con AVA por continuidad 1,10 cm² (moderada) y AVA indexada 0,55 cm²/m²
+   (severa) la fila decía «0.55 cm²/m²» a secas, el renglón integrado decía «Severa» sin decir por
+   qué, y lo único que lo explicaba era el cartel chico de abajo. Un criterio que decide el grado y
+   no muestra el suyo se lee como un criterio que no participa.
+
+   ⚠️ EL GRADO SALE DEL DUEÑO ÚNICO (`eaGradoCalculado().gAvai`) Y NO SE RECALCULA ACÁ. Es el grado
+   con el que el criterio VOTA, que es lo que la fila tiene que decir, y es exactamente lo que la
+   fila gemela del cuadro del Doppler (`ao-ref-avai`) ya publica: así las dos no pueden
+   desincronizarse. Consecuencia heredada de esa fila, declarada en `docs/PENDIENTES.md`: el VALOR
+   se muestra redondeado a dos decimales y el grado se decide sobre el índice sin redondear, así
+   que en una ventana de un centésimo alrededor del corte el número impreso puede estar del otro
+   lado del que el grado afirma.
+
+   ⚠️ CON PRÓTESIS NO PUBLICA NINGÚN GRADO, y esa guarda no es cosmética: es el defecto W1-4 que la
+   tanda W2-B acaba de cerrar en el recuadro de al lado. Los cortes del AVA indexada son de válvula
+   NATIVA y la Tabla 5 de la ASE 2024 no publica ningún corte absoluto de área en prótesis;
+   imprimir «(severa)» ahí sería graduar con una escala que no aplica, a dos centímetros de la
+   cápsula que dice que no se gradúa.
+
+   ⚠️ SIN `id`, A PROPÓSITO, igual que los nueve grados de las filas de la IM y la IAo: el barrido
+   `.calc-box .calc-row span[id]:not(.calc-lbl)` de `limpiarCampos` les escribiría «—» donde la
+   regla pide blanco. Se vacía con la llamada explícita, que está en `limpiarCampos` y en
+   `RECALC_MODULOS`. */
+function eaAvaiGradoPintar() {
+  const el = document.querySelector('[data-grado-de="ea-det-avai"]');
+  if (!el) return;
+  let g = null;
+  if (!_eaEsProtesisAo()) {
+    try { g = (typeof eaGradoCalculado === 'function') ? eaGradoCalculado().gAvai : null; }
+    catch (e) { g = null; }
+  }
+  el.textContent = (g && EA_GRADO_TXT[g]) ? '(' + EA_GRADO_TXT[g] + ')' : '';
+}
+window.eaAvaiGradoPintar = eaAvaiGradoPintar;
+
+/* ══ CUÁL CRITERIO DECIDIÓ, PARA EL RENGLÓN INTEGRADO (F2, 2026-10-15) ════════════════════════
+   Decisión de Maicol: «la referencia integrada dice CUÁL criterio decide, con las palabras que la
+   app ya use para el peor criterio». Las palabras son las de `R.criterio`, que es lo que
+   `_eaBadgeAuto` ya imprime detrás de «por » — un segundo juego de nombres sería la copia que se
+   queda atrás el día que entre un séptimo criterio.
+
+   ⚠️ NO LO DICE CON «sin estenosis» NI CON «esclerosis»: ahí no hay un criterio que haya decidido
+   una severidad, y «Sin estenosis — por velocidad» se lee como si la velocidad hubiera afirmado
+   algo. Con el grado en `null` —AVA no valuable, insumo fuera de banda— tampoco: ésa es la rama
+   que TC-344 fija y que tiene que seguir diciendo «AVA no valuable» y nada más. */
+function _eaPorCriterio(R) {
+  if (!R || !R.grado || !R.criterio) return '';
+  if (R.grado === 'sin' || R.grado === 'esclerosis') return '';
+  return ' \u2014 por ' + R.criterio;
+}
+window._eaPorCriterio = _eaPorCriterio;
+
 /* Texto único del badge en modo automático. UNO, y no uno por función, porque la regla de este
    archivo es que las dos mitades del mismo cálculo digan lo mismo carácter por carácter — y antes
    de esto había cuatro redacciones distintas de «sugerido por», cada una nombrando sólo el criterio
@@ -33510,11 +33600,7 @@ function _eaPintarRecuadroDoppler(avaHtml) {
      ⚠️ Y SE PREGUNTA POR LA MORFOLOGIA AORTICA, no por `_bloqueado`: ese predicado mira si hay
      un grado publicable, y con una protesis NORMAL —sin Vmax ni gradiente— tambien es cierto,
      asi que usarlo acá taparia el badge en escenas nativas donde el badge es correcto. */
-  const _esProtAo = (function(){
-    try { const m = document.getElementById('va_morf');
-      return !!(m && typeof valvEsProtesis === 'function' && valvEsProtesis(String(m.value || '')));
-    } catch (e) { return false; }
-  })();
+  const _esProtAo = _eaEsProtesisAo();
   const linea2 = _esProtAo
     ? '<div style="margin-top:3px;color:var(--text2);font-size:10px;">El &aacute;rea valvular no se grad&uacute;a en pr&oacute;tesis: la tabla de pr&oacute;tesis no publica un corte absoluto de AVA. Ver el cuadro de Estenosis A&oacute;rtica.</div>'
     : (avaHtml ? '<div style="margin-top:3px;">' + avaHtml + '</div>' : '');
@@ -45838,7 +45924,7 @@ function RECALC_MODULOS() {
      automaticos con el «requiere …» del formulario vacio al lado de un VDFVI y una FEVI ya
      poblados. No puede migrar nada: no escribe ningun campo del estudio, los dos nodos que
      toca son `vauto-` y el tercero un `<div>` de texto. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -46544,6 +46630,10 @@ function limpiarCampos(silencioso) {
      vacía el pintor hace exactamente eso: vaciar las nueve. */
   if (typeof imGradoFilasPintar === 'function') { try { imGradoFilasPintar([]); } catch (e) {} }
   if (typeof iaGradoFilasPintar === 'function') { try { iaGradoFilasPintar([]); } catch (e) {} }
+  /* Y el grado de la fila del AVA indexada (F2, 2026-10-15), por el MISMO motivo y en el mismo
+     lugar: es un `<span>` sin `id` y ningun barrido lo alcanza. Con el formulario vacio el pintor
+     hace exactamente eso: vaciarlo, porque `eaGradoCalculado` no devuelve ningun grado. */
+  if (typeof eaAvaiGradoPintar === 'function') { try { eaAvaiGradoPintar(); } catch (e) {} }
   /* ⚠️ Y LAS CUATRO CASILLAS AUTOMATICAS DE LA IM, por una razon distinta de la de arriba: su
      VALOR si lo borra el barrido generico (son `input[type=text]`), pero el PLACEHOLDER no, asi
      que el formulario nuevo arrancaba diciendo «requiere VTI del jet de IM» sobre un paciente
