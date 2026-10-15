@@ -6205,8 +6205,15 @@ window.cerrarSesionReal = cerrarSesionReal;
         </div>
         <div class="calc-box">
           <div class="calc-row"><span class="calc-lbl">G. m&aacute;ximo (4&times;Vmax&sup2;)</span><span class="calc-val" id="ea-det-gmax">&#8212;</span></div>
-          <div class="calc-row"><span class="calc-lbl">G. medio</span><span class="calc-val" id="ea-det-gmedio">&#8212;</span></div>
-          <div class="calc-row"><span class="calc-lbl">AVA continuidad</span><span class="calc-val" id="ea-det-ava">&#8212;</span></div>
+          <!-- ⚠️ LOS GRADOS DE LAS FILAS VAN EN UN <span> HERMANO, SIN `id` (Z, 2026-10-15), que es
+               el patron que la fila del AVA indexada estreno en el F y que las nueve de la IM y
+               las cuatro de la IAo usan desde D1 y D2. Las dos razones son las de alli: el
+               textContent del `.calc-val` es lo que comparan los casos de la suite por igualdad
+               EXACTA, y sin `id` el barrido `.calc-box .calc-row span[id]:not(.calc-lbl)` de
+               `limpiarCampos` no le escribe «—» donde la regla pide blanco — se vacia con la
+               llamada explicita a `eaAvaiGradoPintar`. -->
+          <div class="calc-row"><span class="calc-lbl">G. medio</span><span class="calc-val" id="ea-det-gmedio">&#8212;</span><span class="calc-grado" data-grado-de="ea-det-gmedio"></span></div>
+          <div class="calc-row"><span class="calc-lbl">AVA continuidad</span><span class="calc-val" id="ea-det-ava">&#8212;</span><span class="calc-grado" data-grado-de="ea-det-ava"></span></div>
           <!-- ⚠️ EL GRADO VA EN UN <span> HERMANO, SIN `id`, Y NO DENTRO DE `ea-det-avai` (F2,
                2026-10-15). Es el patron de las nueve filas de la IM y la IAo del 13/10, y aca hay
                dos razones propias: (1) TC-436 compara el textContent de `ea-det-avai` por igualdad
@@ -6216,7 +6223,15 @@ window.cerrarSesionReal = cerrarSesionReal;
                «&#8212;» donde la regla pide blanco — se vacia con la llamada explicita a
                `eaAvaiGradoPintar`, igual que los nueve de la IM. -->
           <div class="calc-row"><span class="calc-lbl">AVA indexada (cm&sup2;/m&sup2;)</span><span class="calc-val" id="ea-det-avai">&#8212;</span><span class="calc-grado" data-grado-de="ea-det-avai"></span></div>
-          <div class="calc-row"><span class="calc-lbl">DVI</span><span class="calc-val" id="ea-det-dvi">&#8212;</span></div>
+          <!-- ⚠️ FILA NUEVA (Z, 2026-10-15): el AVA por PLANIMETRIA vota desde el 13/10 y era el
+               unico criterio que graduaba SIN tener fila en este cuadro — su campo esta en la
+               grilla de arriba y lo unico que publicaba era el aviso de plausibilidad. Va debajo
+               de las dos AVA por Doppler porque es la tercera forma de medir la misma magnitud.
+               NO lleva ningun corte propio: `_eaCritPlan` usa los MISMOS predicados que el AVA
+               por continuidad (`avaEsSevera` / `avaEsModerada`), y el valor y el grado los
+               escriben los dos dueños de siempre. -->
+          <div class="calc-row"><span class="calc-lbl">AVA planimetr&iacute;a</span><span class="calc-val" id="ea-det-plan">&#8212;</span><span class="calc-grado" data-grado-de="ea-det-plan"></span></div>
+          <div class="calc-row"><span class="calc-lbl">DVI</span><span class="calc-val" id="ea-det-dvi">&#8212;</span><span class="calc-grado" data-grado-de="ea-det-dvi"></span></div>
           <!-- ⚠️ EL PPM AORTICO (W1-5). Se esconde con valvula nativa por la misma regla que la
                fila del AT: sin protesis no hay desajuste protesis-paciente que medir. Lo gobierna
                `_eaProtPintar` / `_eaProtNotaOcultar`, que son los dos dueños del estado protesico
@@ -31551,6 +31566,23 @@ function _eaDetCuentaPura() {
   }
   document.getElementById('ea-det-gmedio').textContent = gmedio ? gmedio + ' mmHg' : '—';
 
+  /* ⚠️ EL VALOR DEL AVA POR PLANIMETRIA (Z, 2026-10-15). Va en la mitad PURA, al lado de las
+     otras cuatro filas, para que no haya un camino que escriba el valor y otro el grado.
+     La banda se consulta con `aoPlaus`, el MISMO dueño que `_eaCritPlan` usa para decidir si el
+     criterio vota: con el valor fuera de banda la fila lo muestra con la marca y el criterio se
+     abstiene, que es el reparto que este cuadro ya aplica al AVA por continuidad y al DVI.
+     Es un `<span>` de pantalla, asi que se MARCA sin borrar: el numero se ve y la marca dice
+     que no se lo crea. */
+  (function () {
+    const pEl = document.getElementById('ea-det-plan');
+    if (!pEl) return;
+    let p = null;
+    try { p = aoPlaus('ava_plan'); } catch (e) { p = null; }
+    const n = p ? p.val : null;
+    pEl.textContent = (n === null || n === undefined) ? '—'
+      : (n.toFixed(2) + ' cm²' + (p.fuera ? MARCA_REVISAR : ''));
+  })();
+
   // AVA continuidad
   let ava = null;
   /* ⚠️ `avaR` ES EL AVA REDONDEADO, Y ES EL QUE CLASIFICA. Esta función usaba el float CRUDO en sus
@@ -31626,6 +31658,12 @@ function _eaDetCuentaPura() {
     ['ea_ava_display','ea_dvi_display'].forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
   }
 
+  /* ⚠️ EL RENGLON INTEGRADO VUELVE A «SIN DATO» DESDE ACA (Z, 2026-10-15), porque esta mitad es
+     la que corre en las DOS puertas del gesto (`eaParEditado` y `tsviDiamEditado`) y
+     `calcEADetalle` no puede entrar en ellas — ver el comentario de `eaSevVacioSync`. Sin esto,
+     borrar el ultimo dato dejaba la linea congelada con un criterio y un grado sobre valores
+     que ya no existen, sin importar el orden ni el gesto. */
+  if (typeof eaSevVacioSync === 'function') { try { eaSevVacioSync(); } catch (e) {} }
   return { vmax: vmax, gmedio: gmedio, itsvi: itsvi, itvao: itvao, dtsvi: dtsvi, bsa: bsa,
            ava: ava, avaR: avaR, dud: _eaDetDud, fuera: _eaDetFuera };
 }
@@ -31821,6 +31859,35 @@ function calcEADetalle() {
     const _bG = document.getElementById('ea-ava-badge');
     if (_bG && !_eaDetDud) _bG.textContent = _eaBadgeAuto(_RCalc);
     if (sel && gradoStr) { sel.value = gradoStr; _eaMarcarSugerido(sel, gradoStr); }
+  } else {
+    /* ⚠️ LA CUARTA RAMA FALTABA, Y ES LA QUE DEVUELVE EL RENGLON A «SIN DATO» (Z, 2026-10-15).
+       Las tres de arriba son «hay Vmax», «hay AVA» y «hay grado calculado»; sin un `else`, cuando
+       no hay NINGUNO de los tres nadie reescribe `ea-det-sev` y el renglon se queda con lo ultimo
+       que dijo. Es el defecto que el medico reporto: borrando los tres insumos del AVA la linea
+       integrada queda FIJA, con un criterio y un grado sobre valores que ya no existen.
+       MEDIDO en HEAD, con teclas reales, en las SEIS permutaciones de borrado por los DOS gestos
+       —digito por digito y seleccionando todo— sobre la escena del medico (Ø TSVI 20 · VTI TSVI
+       20 · VTI Ao 56): las DOCE dejan el renglon congelado, y tres de ellas en «Severa — por
+       AVA» sobre un formulario vacio. El paso intermedio del borrado digito a digito produce un
+       AVA de 0,11 cm2 —el «2» de «20»— y la linea se queda con ESE veredicto.
+       ⚠️ NO ES UN DEFECTO DE LA TANDA F: medido tambien contra el arbol anterior (`0963d53`), las
+       doce quedan igual de congeladas. Lo que el F agrego fue el sufijo «— por X», que hace el
+       sintoma mas afirmativo —«Severa» paso a «Severa — por AVA»— pero no lo creo.
+       ⚠️ EL GRADO DEL `<select>`, LA PASTILLA Y EL INFORME YA VOLVIAN SOLOS: `_eaRetirarGradoSugerido`
+       de mas abajo hace su parte y el EN SUMA ya decia «Estudio sin alteraciones…». Lo que mentia
+       era la PANTALLA, que es exactamente la mitad que ningun barrido alcanza.
+       Se escribe «—», que es el valor inicial del marcado y el que `limpiarCampos` deja por su
+       barrido de `.calc-box .calc-row span[id]`: asi el borrado campo por campo y «Nuevo estudio»
+       terminan en el MISMO estado, que es la regla decidida el 13/10.
+       Con un insumo FUERA DE BANDA se conserva el aviso con el texto de la rama de arriba, letra
+       por letra: ahi el renglon tiene algo que decir y callarlo taparia la advertencia. */
+    gradoStr = null;
+    if (sevEl) sevEl.innerHTML = _eaDetDud
+      ? '\u2014<div style="margin-top:4px;color:var(--yellow);font-size:11px;font-weight:600;">⚠️ Fuera de rango: ' +
+        _critEsc(_eaDetFuera.join(' · ')) + ' — el grado NO se actualizó; verificar la unidad</div>'
+      : '\u2014';
+    const _bE = document.getElementById('ea-ava-badge');
+    if (_bE && !_eaDetDud) _bE.textContent = _eaBadgeAuto(_RCalc);
   }
   /* ⚠️ Y HACE FALTA ACA TAMBIEN, aparte del final de `calcAo`, por el orden de los dos
      caminos: `syncEADesdeValvulas` llama `calcAo()` y DESPUES `calcEADetalle()`, asi que el
@@ -34114,15 +34181,77 @@ window._eaEsProtesisAo = _eaEsProtesisAo;
    `.calc-box .calc-row span[id]:not(.calc-lbl)` de `limpiarCampos` les escribiría «—» donde la
    regla pide blanco. Se vacía con la llamada explícita, que está en `limpiarCampos` y en
    `RECALC_MODULOS`. */
-function eaAvaiGradoPintar() {
-  const el = document.querySelector('[data-grado-de="ea-det-avai"]');
-  if (!el) return;
+/* ══ EL ESTADO «SIN DATO» DEL RENGLON INTEGRADO — UN DUEÑO (Z, 2026-10-15) ═══════════════════
+   ⚠️ POR QUE NO ALCANZA CON EL `else` DE `calcEADetalle`, QUE ES LO PRIMERO QUE SE INTENTA.
+   Esa funcion corre desde `syncEADesdeValvulas` y desde `sincronizarEADesdeGlobal`, y la segunda
+   esta DENTRO de la compuerta de `calcAo`: cuando se borra el ultimo dato la compuerta deja de
+   pasar, asi que nadie la llama y el renglon se queda con lo ultimo que dijo. Las puertas del
+   gesto —`eaParEditado` y `tsviDiamEditado`— llaman a `_eaDetCuentaPura`, que es la mitad PURA.
+   ⚠️ Y `calcEADetalle` NO SE PUEDE AGREGAR A ESAS DOS PUERTAS: esta MEDIDO y declarado en el
+   comentario de `tsviDiamEditado` —puesta despues de `calcAo` le PISA el badge a
+   `_eaRetirarGradoSugerido`, y puesta antes el retiro no llega a actuar— y TC-432 verifica esa
+   prohibicion sobre el texto de la funcion. De ahi este dueño chico, que corre en las dos
+   puertas y hace UNA sola cosa.
+   ⚠️ TOCA EL RENGLON Y NO EL BADGE, A PROPOSITO. El badge tiene tres dueños —el retiro,
+   `clasificarEA_Vmax` y `sugerirSeveridadEA`— y escribirlo desde aca reintroduciria exactamente
+   el defecto que el comentario de `tsviDiamEditado` documenta. El `else` de `calcEADetalle` si
+   lo escribe, porque alli ya corre despues de la cola de `calcAo`, que es donde HEAD lo pone.
+   ⚠️ Y SOLO ACTUA CON LA PANTALLA COMPLETAMENTE VACIA —sin Vmax, sin AVA por continuidad y sin
+   grado calculado—, que es la unica condicion en la que el renglon no tiene NADA que decir. Con
+   un insumo fuera de banda hay grado o hay valor, asi que no entra y el aviso se conserva. Con
+   PROTESIS se abstiene: ese renglon lo escribe `_eaProtPintar`, que es su dueño. */
+function eaSevVacioSync() {
+  const sevEl = document.getElementById('ea-det-sev');
+  if (!sevEl) return false;
+  try { if (typeof _eaEsProtesisAo === 'function' && _eaEsProtesisAo()) return false; } catch (e) { return false; }
+  const vmax = v('vmax_ao');
+  const avaCrudo = v('ava_cont');
+  const ava = (typeof avaEsValida === 'function' && avaEsValida(avaCrudo)) ? _avaNum(avaCrudo) : null;
   let g = null;
+  try { g = (typeof eaGradoCalculado === 'function') ? eaGradoCalculado().grado : null; } catch (e) { g = null; }
+  if (vmax !== null || ava !== null || g) return false;
+  sevEl.textContent = '\u2014';
+  return true;
+}
+window.eaSevVacioSync = eaSevVacioSync;
+
+/* ⚠️ CINCO FILAS Y NO UNA DESDE EL Z (2026-10-15), Y EL NOMBRE NO CAMBIA. La auditoria F8
+   midio que TRES filas del cuadro publican un criterio que VOTA y no muestran su grado —el
+   gradiente medio, el AVA por continuidad y el DVI— y que el AVA por PLANIMETRIA votaba sin
+   tener fila. Hoy las cinco salen del MISMO mapa y del MISMO dueño, `eaGradoCalculado`, asi que
+   el grado de una fila no puede discrepar del criterio que el renglon integrado nombra.
+   ⚠️ EL NOMBRE SE CONSERVA a proposito: `eaAvaiGradoPintar` esta en `RECALC_MODULOS` y en los
+   TRES sitios de llamada de `_eaDetCuentaPura` y de `calcEADetalle`. Renombrarla obligaria a
+   tocar los cuatro sin cambiar una linea de comportamiento.
+   ⚠️ NINGUN CORTE NUEVO: cada entrada lee el grado que su criterio YA publicaba —`gGrad`,
+   `gAva`, `gAvai`, `gPlan` y `gDvi`— y lo imprime con `EA_GRADO_TXT`, que es la misma tabla de
+   palabras que usa el badge. Lo que cambia es que el grado se VE al lado de su numero.
+   ⚠️ CON PROTESIS NO SE PUBLICA NINGUNO, igual que antes: los cortes nativos no aplican y el
+   renglon lo escribe `_eaProtPintar`. */
+const EA_FILA_GRADO = Object.freeze({
+  'ea-det-gmedio': 'gGrad',
+  'ea-det-ava':    'gAva',
+  'ea-det-avai':   'gAvai',
+  'ea-det-plan':   'gPlan',
+  'ea-det-dvi':    'gDvi'
+});
+window.EA_FILA_GRADO = EA_FILA_GRADO;
+function eaAvaiGradoPintar() {
+  let R = null;
   if (!_eaEsProtesisAo()) {
-    try { g = (typeof eaGradoCalculado === 'function') ? eaGradoCalculado().gAvai : null; }
-    catch (e) { g = null; }
+    try { R = (typeof eaGradoCalculado === 'function') ? eaGradoCalculado() : null; }
+    catch (e) { R = null; }
   }
-  el.textContent = (g && EA_GRADO_TXT[g]) ? '(' + EA_GRADO_TXT[g] + ')' : '';
+  Object.keys(EA_FILA_GRADO).forEach(function (id) {
+    const el = document.querySelector('[data-grado-de="' + id + '"]');
+    if (!el) return;
+    const g = R ? R[EA_FILA_GRADO[id]] : null;
+    /* ⚠️ «sin estenosis» NO se imprime como grado de una fila. `gAva` vale `'sin'` con un area
+       normal y «(sin estenosis)» al lado de «3.20 cm2» afirma un veredicto que la fila no da:
+       el AVA normal no distingue entre no tener estenosis y tenerla leve, que es por lo que la
+       etiqueta del renglon integrado lleva los DOS nombres. Vacio es la abstencion. */
+    el.textContent = (g && g !== 'sin' && EA_GRADO_TXT[g]) ? '(' + EA_GRADO_TXT[g] + ')' : '';
+  });
 }
 window.eaAvaiGradoPintar = eaAvaiGradoPintar;
 

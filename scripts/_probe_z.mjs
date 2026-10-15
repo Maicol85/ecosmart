@@ -737,6 +737,64 @@ async function main() {
     out.grupos.eafilas = g;
   }
 
+  /* ── Z3(e) · barrido ── El MISMO gesto de borrado en las OTRAS filas de la pantalla de la
+     aortica y en las demas valvulas. Lo que se busca es una linea que quede FIJA: se mide el
+     estado inicial, se carga, se borra, y se compara contra el inicial.
+     ⚠️ EL ESTADO INICIAL SE MIDE CON LOS CALCULADORES YA CORRIDOS Y VOLVIENDO A ENTRAR A LA
+     PESTANA, que es la leccion del 13/10: sin eso un nodo SIN PINTAR se compara contra el mismo
+     nodo ya pintado y ocho escenas salen «no volvio» con todo perfecto. */
+  if (corre('barrido')) {
+    const g = { filas: {} };
+    const LEER = `(function(){
+      var o = {};
+      [['EA linea integrada','ea-det-sev'], ['EA badge','ea-ava-badge'],
+       ['EM cuadro','em-sev-integrada'], ['EM badge','em-thp-badge'],
+       ['IM severidad continuidad','im-cont-severidad'], ['IM discordancia','im-discordancia'],
+       ['IT discordancia','it-discordancia'], ['IP discordancia','ip-discordancia'],
+       ['EP referencia gmax','ep-ref-gmax'], ['ET cuadro','et-sev-integrada'],
+       ['Doppler aortico','ea-sev'], ['TAPSE/PSAP','tapse-psap-interp']
+      ].forEach(function(p){ var e = document.getElementById(p[1]);
+        o[p[0] + ' (' + p[1] + ')'] = e ? (e.textContent || '').trim() : 'NO EXISTE' });
+      return o })()`;
+    await ev(`window.__P.nuevo()`);
+    await ev(`window.__P.abrirValv()`);
+    await ev(`(typeof RECALC_MODULOS !== 'undefined') ? 1 : 0`);
+    g.inicial = await ev(LEER);
+    /* Un dato por valvula, el que sostiene su veredicto, cargado y borrado. */
+    const CASOS = [
+      ['EAo · Vmax', 'vmax_ao', '4.5'],
+      ['EAo · G. medio', 'gmedio_ao', '45'],
+      ['EAo · AVA planimetria', 'ava_plan', '0.8'],
+      ['EM · gradiente medio', 'em_gmedio', '12'],
+      ['EM · THP', 'thp', '160'],
+      ['IM · vena contracta', 'im_vc', '8'],
+      ['IAo · vena contracta', 'ia_vc', '7'],
+      ['IT · vena contracta', 'it_vc', '8'],
+      ['ET · gradiente medio', 'et_gmedio', '7'],
+      ['EP · Vmax', 'vp_vmax', '4.5'],
+      ['IP · THP', 'ip_pht', '90'],
+      ['TAPSE/PSAP · TAPSE', 'tapse', '18']
+    ];
+    for (const [eti, id, val] of CASOS) {
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__P.abrirValv()`);
+      let antes = null, desp = null, err = null;
+      try {
+        await tipear(id, val);
+        antes = await ev(LEER);
+        await borrarSeleccion(id);
+        desp = await ev(LEER);
+      } catch (e) { err = e.message; }
+      const fijas = [];
+      if (desp) Object.keys(desp).forEach((k) => {
+        if (desp[k] !== g.inicial[k]) fijas.push({ nodo: k, inicial: g.inicial[k], tras: desp[k] });
+      });
+      g.filas[eti] = { err, cambioAlCargar: antes ? Object.keys(antes).filter((k) => antes[k] !== g.inicial[k]) : null,
+                       fijas };
+    }
+    out.grupos.barrido = g;
+  }
+
   /* ── Z1 · prot ── Los tres parametros de la Tabla 11 en sus tramos y el veredicto R.obstr.
      ⚠️ DENOMINADOR: la morfologia tiene que quedar PROTESICA. Sin eso `vmProtEOA` devuelve
      esProt:false y las doce escenas informan el mismo objeto vacio, que se lee igual que «los
