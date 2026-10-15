@@ -69803,6 +69803,20 @@ function editarInforme(id) {
        el embudo lo haría correr además en las dos rutas de la REIMPRESIÓN, que es el camino del PDF y
        que esta tanda no toca. Acá alcanza a la única ruta que le faltaba.
        No toca lo guardado ni ninguna cuenta: `calcIP` deriva de los campos ya repuestos. */
+    /* ⚠️ `calcPmAD` VA ANTES, Y FALTABA EN ESTA RUTA TAMBIÉN (Z, 2026-10-15). Mismo argumento que
+       el `calcIP` de abajo y la misma forma: `cargarEstudioPorId` y el autosave ya lo llevan en su
+       lista de `calc*`, y ésta era la única que le faltaba. Para un estudio GUARDADO no se notaba
+       —`pmad` viaja en `campos` y la restauración lo repone— y para uno IMPORTADO sí: `pmad` está
+       en `LAB_XLS_SOLO_EXPORT`, así que NO se importa, y sin esta llamada quedaba vacía, y con
+       ella la PSAP y el cociente TAPSE/PSAP. Es el último eslabón de la ida y vuelta que la
+       columna «Vmax IT (m/s)» vino a cerrar.
+       Medido antes de agregarla: con TAPSE 18, Vmax IT 2,8 y VCI 18 mm / colapso >50 %, la ida
+       publicaba PSAP 34 y cociente 0,529, y la vuelta las dejaba las DOS vacías.
+       No puede pisar nada del médico: `pmad` es un `input readonly` cuyo único dueño es esta
+       función, derivada de `vci_diam` + `vci_col`, que sí viajan y sí se reimportan. Y NO va en
+       `RECALC_MODULOS` por el mismo motivo que `calcIP`: el embudo corre además en las dos rutas
+       de la REIMPRESIÓN, que tiene que reproducir lo firmado. */
+    if (typeof calcPmAD === 'function') calcPmAD();
     if (typeof calcIP === 'function') calcIP();
     /* CIA/CIV y TAVI: los espejos de solo lectura, el Qp/Qs, la severidad de RPV y el bitmap
        del canvas EPC se pintan por JS. Sin esto, un estudio reabierto mostraba los campos
@@ -69908,7 +69922,18 @@ function cargarEstudioPorId(id) {
      inputs— y `E/e'` en «—» al lado, dos renglones que se contradicen. Lo cazó `/sharp-edges`.
      Va DESPUÉS de `calcSGL` y antes de `calcVEXUS` sin ningún requisito de orden propio; con el
      envoltorio puesto, arrastra el pintado del color solo. */
-  ['calcBSA','calcVI','calcAI','calcAorta','calcVD','calcPSAP','calcSGL','calcDiastol','calcVEXUS'].forEach(fn => { if (typeof window[fn] === 'function') { try { window[fn](); } catch(e){} } });
+  /* ⚠️ `calcPmAD` VA ANTES DE `calcPSAP` Y FALTABA EN ESTA RUTA (Z, 2026-10-15). La ruta hermana
+     —la restauración del autosave— ya lo tenía; ésta no, y `calcPSAP` lee `v('pmad')` sin
+     derivarla. Para un estudio GUARDADO no se notaba: `pmad` viaja en `campos` y la restauración
+     lo repone. Para un estudio IMPORTADO sí, y es el último eslabón de la ida y vuelta que la
+     columna «Vmax IT (m/s)» vino a cerrar: `pmad` está en `LAB_XLS_SOLO_EXPORT`, así que NO se
+     importa, y sin esta llamada quedaba vacía — y con ella la PSAP y el cociente TAPSE/PSAP.
+     Medido antes de agregarla: con TAPSE 18, Vmax IT 2,8 y VCI 18 mm / colapso >50 %, la ida
+     publicaba PSAP 34 y cociente 0,529, y la vuelta dejaba las dos VACÍAS.
+     Es idempotente y no puede pisar nada del médico: `pmad` es un `input readonly` cuyo único
+     dueño es `calcPmAD`, derivado de `vci_diam` + `vci_col`, que sí viajan e se reimportan. Y
+     `calcPmAD` llama a `calcPSAP()` al final, así que el orden se corrige solo. */
+  ['calcBSA','calcVI','calcAI','calcAorta','calcVD','calcPmAD','calcPSAP','calcSGL','calcDiastol','calcVEXUS'].forEach(fn => { if (typeof window[fn] === 'function') { try { window[fn](); } catch(e){} } });
   /* ⚠️ `imPdfMetodosUI` VA APARTE DE LA LISTA DE ARRIBA, y es la quinta instancia del defecto que
      TC-GR-13 documentó para `psap-interp`, `sgl-interp`, `bsa-val` y `calcDiastol`: un span que
      escribe UNA sola función que no corría en esta ruta.
@@ -94582,6 +94607,23 @@ function _labExcelRow(inf) {
     'Morfología tricúspide': c.vt_morf || '', 'IT grado': gIT,
     'IT_I (Leve)': bin(gIT,'leve'), 'IT_II (Moderada)': bin(gIT,'moderada'), 'IT_III (Severa)': bin(gIT,'severa'),
     'VC IT (mm)': rnd(num('it_vc','vc_tricusp'),1),
+    /* ⚠️ COLUMNA NUEVA (Z, 2026-10-15), AUTORIZADA, Y ES EL DATO DE ORIGEN QUE FALTABA. El G3
+       midió que la IDA Y VUELTA del TAPSE/PSAP no se reproduce: la cadena es
+       `TAPSE/PSAP <- TAPSE + PSAP <- VRT + PmAD`, el TAPSE viaja, la PmAD se deriva de la VCI
+       —que también viaja— y el eslabón que faltaba era la VELOCIDAD MÁXIMA DE LA IT. Las dos
+       columnas que la contienen, `PSAP (mmHg)` y `Grad VD-AD (mmHg)`, son CALCULADAS y no se
+       importan, así que un backup a Excel y su reimportación perdían la PSAP y el cociente.
+       (`docs/PENDIENTES.md` → G3-1, alternativa (a), que es la que el médico eligió.)
+       Es un campo de ENTRADA, así que entra en `LAB_XLS_MAP` y SÍ se reimporta — la contracara
+       de `TAPSE/PSAP (mm/mmHg)`, que es derivada y no tiene campo.
+       ⚠️ LA CASCADA Y NO EL CAMPO PELADO: `vmax_it` (Doppler) e `it_vmax_cw` (Válvulas) son el
+       MISMO dato en m/s desde el 2026-10-05, espejados por `itVmaxSync`. Un estudio anterior a
+       esa coordinación puede traer sólo uno de los dos, así que se pregunta por los dos, con el
+       mismo patrón que `num('it_vc','vc_tricusp')` de la línea de arriba.
+       ⚠️ DOS DECIMALES, como `V. max Ao (m/s)`: el campo acepta 2,85 y con un decimal la celda
+       publicaría 2,9, o sea una PSAP reimportada distinta de la exportada. Su banda `[0.5, 8]`
+       ya vive en `DCM_RANGO` y el importador la consulta por ahí: no se repite acá. */
+    'Vmax IT (m/s)': rnd(num('vmax_it','it_vmax_cw'),2),
     'ET grado': c.et_grado || '',
     'ET grad medio (mmHg)': rnd(num('et_gmedio'),1), 'ET THP (ms)': rnd(num('et_thp'),0),
     'ET VTI diast (cm)': rnd(num('et_vti_diast'),1),
@@ -95493,6 +95535,11 @@ const LAB_XLS_BLOQUES = [
          COLUMNAS», a decenas de columnas de la aórtica que describe. Lo caza
          `_labXlsAssertBloques`, que es para lo que está. */
       'PPM aórtico',
+      /* «Vmax IT (m/s)» NOMBRADA (Z, 2026-10-15) y no por prefijo: empieza con «Vmax», que no es
+         prefijo de ningún bloque, así que sin esta entrada caería al bloque «18 · OTRAS
+         COLUMNAS» —el mapa la ordena pegada a «VC IT (mm)» y la reagrupación por bloque la
+         mandaría al final—. Lo caza `_labXlsAssertBloques`. */
+      'Vmax IT (m/s)',
       /* Pulmonar: nombrados y no por prefijo corto. «EP » y «IP » son dos letras y este bloque
          ya se lleva por delante todo lo que empiece con «IM» o «IT» — agregar un prefijo de dos
          caracteres es exactamente cómo «Morfología » se tragó «Morfología orejuela». */
@@ -96195,6 +96242,12 @@ const LAB_XLS_MAP = [
   ['Diámetro arteria pulmonar (mm)', 'ip_ap_diam', 'num'],
   ['IT grado',               'it_grado',       'vocab'],
   ['VC IT (mm)',             'it_vc',          'num'],
+  /* ⚠️ COLUMNA NUEVA (Z, 2026-10-15). Campo de ENTRADA: entra en el mapa y SÍ se reimporta. El
+     destino es `vmax_it`, que es el DUEÑO del dato —`it_vmax_cw` es su espejo y `itVmaxSync` lo
+     repone al abrir—; escribir el espejo dejaría dos fuentes del mismo número. El ORDEN de este
+     array decide el de la columna en el export y en la plantilla, y va pegada a la VC de la IT
+     porque es la otra medición de esa válvula. */
+  ['Vmax IT (m/s)',          'vmax_it',        'num'],
   /* EL GRADO faltaba mientras el THP, el VTI y el área SÍ viajaban: la planilla traía los tres
      insumos de la significación y no lo que el médico consignó. Es `opcion` y no `vocab`
      porque su `value` ES la etiqueta —el select no lleva atributo `value`—. */
@@ -98220,20 +98273,43 @@ function labImportarXLSX(file) {
           /* ⚠️ SE NOMBRA EL DATO DE ORIGEN QUE DE VERDAD FALTA, Y NO EL ESLABON INTERMEDIO. La
              PSAP es ella misma calculada —`4 x VRT^2 + PmAD`— asi que decir «falta la PSAP»
              manda al medico a llenar una columna que el importador descarta igual. Lo que
-             falta es la VELOCIDAD DE LA IT, que no tiene columna en este Excel, o la PmAD, que
-             la app deriva de la VCI cuando esos dos campos vienen. */
+             falta es la VELOCIDAD DE LA IT o la PmAD, que la app deriva de la VCI cuando esos dos
+             campos vienen.
+             ⚠️ DESDE EL Z (2026-10-15) LA VELOCIDAD DE LA IT SI TIENE COLUMNA —«Vmax IT (m/s)»,
+             campo de entrada— asi que este mensaje ya no dice que no viaja: cuando falta, falta
+             porque la celda vino vacia. Dejar el texto viejo aca seria el archivo
+             contradiciendose consigo mismo, que es como un arreglo se deshace sin que nadie se
+             entere. */
           const falta = [];
           if (_n(c.tapse) === null) falta.push('TAPSE');
+          /* ⚠️ «SE RECALCULA AL ABRIR» NO ES LO MISMO QUE «FALTA UN DATO», Y DESDE EL Z ES EL CASO
+             NORMAL. La PSAP y la PmAD son CALCULADAS y no se importan, así que en esta vista
+             previa —que corre sobre la fila cruda, antes de abrir el estudio— no existen todavía;
+             pero sus DOS datos de origen sí viajan desde esta tanda: la velocidad máxima de la IT
+             por su columna nueva y la PmAD por el diámetro y el colapso de la VCI. Decir «falta la
+             PSAP estimada» ahí mandaría al médico a llenar una columna que el importador descarta
+             igual, sobre una cadena que la app reconstruye sola.
+             Medido: con TAPSE 18, Vmax IT 2,8 y VCI 18 mm / colapso >50 %, el estudio reabre con
+             PSAP 34 y cociente 0,529 — los mismos que antes de exportar. */
+          let _reconstruible = false;
           if (_n(c.psap_calc) === null) {
+            const _vciOkTP = String(c.vci_col || '').trim() !== '' && _n(c.vci_diam) !== null;
             if (_n(c.vmax_it) === null)
-              falta.push('la velocidad m\u00e1xima de la insuficiencia tricusp\u00eddea, que NO tiene columna en este Excel');
-            else if (_n(c.pmad) === null && !(String(c.vci_col || '').trim() && _n(c.vci_diam) !== null))
+              falta.push('la velocidad m\u00e1xima de la insuficiencia tricusp\u00eddea');
+            else if (_n(c.pmad) === null && !_vciOkTP)
               falta.push('la presi\u00f3n media de la AD (o el di\u00e1metro y el colapso de la VCI, de los que se deriva)');
-            else falta.push('la PSAP estimada');
+            else _reconstruible = true;
           }
+          if (_reconstruible && !falta.length) {
+            out.push({ col: colTP, estado: 'se recalcula al abrir',
+                       txt: 'la PSAP no viaja en el Excel —es calculada— pero sus dos datos de ' +
+                            'origen s\u00ed: el cociente se reconstruye al abrir el estudio.' });
+          } else {
           out.push({ col: colTP, estado: 'no recalculable',
                      txt: 'no se pudo recalcular en la primera fila: falta ' +
-                          (falta.length ? falta.join(' y ') : 'alg\u00fan dato de origen') + '.' });
+                          (falta.length ? falta.join(' y ')
+                           : 'la PSAP estimada') + '.' });
+          }
         } else if (delArch !== null && Math.abs(delArch - rec) > 0.0005) {
           out.push({ col: colTP, estado: 'difiere',
                      txt: 'el archivo trae ' + delArch + ' y la app recalcula ' + rec +
@@ -98250,7 +98326,7 @@ function labImportarXLSX(file) {
         const _vciOk = String(c.vci_col || '').trim() !== '' && _n(c.vci_diam) !== null;
         if (vrt === null || (pm === null && !_vciOk)) {
           const falta = [];
-          if (vrt === null) falta.push('la velocidad m\u00e1xima de la insuficiencia tricusp\u00eddea, que NO tiene columna en este Excel');
+          if (vrt === null) falta.push('la velocidad m\u00e1xima de la insuficiencia tricusp\u00eddea');
           if (pm === null && !_vciOk) falta.push('la presi\u00f3n media de la AD (o el di\u00e1metro y el colapso de la VCI, de los que se deriva)');
           out.push({ col: colPS, estado: 'no recalculable',
                      txt: 'no se pudo recalcular en la primera fila: falta ' + falta.join(' y ') + '.' });
@@ -98260,9 +98336,12 @@ function labImportarXLSX(file) {
           const pmUsa = (pm !== null) ? pm
             : ((typeof _labPmADDeVCI === 'function') ? _labPmADDeVCI(c) : null);
           if (pmUsa === null) {
-            out.push({ col: colPS, estado: 'no recalculable',
-                       txt: 'no se pudo recalcular en la primera fila: la presi\u00f3n media de la AD se ' +
-                            'deriva del di\u00e1metro y el colapso de la VCI al abrir el estudio, no al importar.' });
+            /* ⚠️ MISMO CAMBIO QUE EN EL COCIENTE (Z, 2026-10-15): con la VCI presente esto NO es
+               un faltante, es una derivación que ocurre al abrir. El texto lo dice en vez de
+               informar un dato que no falta. */
+            out.push({ col: colPS, estado: 'se recalcula al abrir',
+                       txt: 'la presi\u00f3n media de la AD se deriva del di\u00e1metro y el colapso de la ' +
+                            'VCI al abrir el estudio; los dos vienen en este Excel.' });
             return out;
           }
           const rec = Math.round(4 * vrt * vrt + pmUsa);

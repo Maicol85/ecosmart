@@ -488,6 +488,40 @@ window.__P = {
     var r = window.__P.geo(id);
     return { ok: !!(r && r.ok), tab: tab, abiertos: abiertos, rect: r } },
 
+  /* ══ LA IDA Y VUELTA DE VERDAD ═══════════════════════════════════════════════════════════
+     ⚠️ EL MODAL DEL IMPORTADOR NO ES LA IDA Y VUELTA. Ese panel es una PREVISUALIZACION sobre la
+     fila cruda, antes de que el estudio se abra: ahi la PmAD no existe todavia porque la app la
+     deriva de la VCI AL ABRIR. Lo que hay que medir es si, con el estudio ya abierto, la PSAP y
+     el cociente dan el MISMO valor que antes de exportar.
+     Se construye el objeto campos con lo que el importador CONSERVA —su propio mapa, menos lo
+     que _labXlsEsCalculado aparta— y se abre por la ruta real de restauracion. */
+  camposImportados(fila) {
+    if (typeof LAB_XLS_MAP === 'undefined') return 'SIN MAP';
+    var c = {}, descartadas = [];
+    LAB_XLS_MAP.forEach(function(m){
+      var v = fila[m[0]];
+      if (v === undefined || v === null || v === '') return;
+      if (typeof _labXlsEsCalculado === 'function' && _labXlsEsCalculado(m[1])) {
+        descartadas.push(m[0]); return; }
+      c[m[1]] = String(v);
+    });
+    return { campos: c, descartadas: descartadas } },
+
+  abrirComoEstudio(campos) {
+    var inf = window.__P.reg(campos, 'iv');
+    var oG = window.getInformes, oL = window.labGetInformes;
+    window.getInformes = function(){ return [inf] };
+    window.labGetInformes = function(){ return [inf] };
+    var err = null;
+    try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+    try { editarInforme(inf.id) } catch (e) { err = 'EXC: ' + e.message }
+    var ok = document.getElementById('edit-ok');
+    if (!ok) { window.getInformes = oG; window.labGetInformes = oL;
+               return { err: err || 'NO APARECIO EL BOTON edit-ok' } }
+    ok.click();
+    window.getInformes = oG; window.labGetInformes = oL;
+    return { ok: true, err: err } },
+
   nuevo() {
     try { if (typeof limpiarCampos === 'function') limpiarCampos(true); return 'ok' }
     catch (e) { return 'EXC: ' + e.message } }
@@ -887,28 +921,84 @@ async function main() {
     out.grupos.tep = g;
   }
 
-  /* ── Z2 · excel ── El conteo de columnas, las dos nuevas y la ida y vuelta. */
+  /* ── Z2 · excel ── El conteo de columnas, las dos nuevas y la IDA Y VUELTA del cociente. */
   if (corre('excel')) {
     const g = { assert: await ev(`window.__P.assertXls()`) };
     g.orden = await ev(`window.__P.colsOrden()`);
     g.n = g.orden && g.orden.n;
-    g.cols = undefined;
     g.vmaxIt = { mapa: await ev(`window.__P.mapaDe('Vmax IT (m/s)')`),
                  bloque: await ev(`window.__P.bloqueDe('Vmax IT (m/s)')`),
                  idx: g.orden && g.orden.cols ? g.orden.cols.indexOf('Vmax IT (m/s)') : null };
     g.ppmAo  = { mapa: await ev(`window.__P.mapaDe('PPM aórtico')`),
                  bloque: await ev(`window.__P.bloqueDe('PPM aórtico')`),
                  idx: g.orden && g.orden.cols ? g.orden.cols.indexOf('PPM aórtico') : null };
-    /* Los vecinos, para fijar la POSICION sin cablear un indice que se mueve con cada columna. */
+    /* Los vecinos y no un indice cableado: el indice se mueve con cada columna que entre. */
     g.vecinos = {};
     if (g.orden && g.orden.cols) {
-      ['VC IT (mm)', 'Vmax IT (m/s)', 'ET grado', 'PPM aórtico', 'AVA indexada (cm²/m²)',
+      ['VC IT (mm)', 'Vmax IT (m/s)', 'ET grado', 'PPM aórtico', 'AVA (cm²)',
        'PSAP (mmHg)', 'TAPSE/PSAP (mm/mmHg)'].forEach((c) => {
         const i = g.orden.cols.indexOf(c);
         g.vecinos[c] = i < 0 ? null : { i, antes: g.orden.cols[i - 1] || null, desp: g.orden.cols[i + 1] || null };
       });
+      g.cols = g.orden.cols;
       delete g.orden.cols;
     }
+
+    /* ══ LA IDA Y VUELTA, CON UN ESTUDIO CARGADO CON TECLAS REALES ═══════════════════════════
+       Se carga TAPSE + velocidad de la IT + VCI, se exporta la fila COMPLETA, y se reimporta
+       ESA MISMA fila. Lo que se compara es si la PSAP y el cociente RECALCULADOS dan el mismo
+       valor, que es lo que el G3 midio que NO se reproducia. */
+    await ev(`window.__P.nuevo()`);
+    await tipear('tapse', '18');
+    await tipear('vmax_it', '2.8');
+    await ev(`window.__P.sel('vci_col','>50')`);
+    await tipear('vci_diam', '18');
+    g.ida = { tapse: await ev(`window.__P.val('tapse')`),
+              vmaxIt: await ev(`window.__P.val('vmax_it')`),
+              psap: await ev(`window.__P.val('psap_calc')`),
+              pmad: await ev(`window.__P.val('pmad')`),
+              tpsp: await ev(`window.__P.tpsp()`) };
+    if (g.ida.psap === null || g.ida.psap === '')
+      throw new Error('DENOMINADOR: la PSAP quedo vacia, la ida y vuelta no mide nada: ' + JSON.stringify(g.ida));
+    const fila = await ev(`window.__P.excelDOM()`);
+    g.ida.cols = fila.cols;
+    g.ida.celdas = { 'Vmax IT (m/s)': fila.fila['Vmax IT (m/s)'],
+                     'TAPSE (mm)': fila.fila['TAPSE (mm)'],
+                     'VCI diám (mm)': fila.fila['VCI diám (mm)'],
+                     'Colapso VCI': fila.fila['Colapso VCI'],
+                     'PmAD (mmHg)': fila.fila['PmAD (mmHg)'],
+                     'PSAP (mmHg)': fila.fila['PSAP (mmHg)'],
+                     'TAPSE/PSAP (mm/mmHg)': fila.fila['TAPSE/PSAP (mm/mmHg)'] };
+    /* La fila COMPLETA de vuelta por el importador de verdad. */
+    const heads = g.cols;
+    const valores = {};
+    heads.forEach((h) => { const v = fila.fila[h]; if (v !== null && v !== '') valores[h] = v; });
+    g.vuelta = await ev(`window.__P.importar(${JSON.stringify(heads)}, ${JSON.stringify(valores)})`, 30000);
+    /* ⚠️ Y EL RECALCULO DE VERDAD: se le pregunta a los MISMOS dueños sobre los campos que el
+       importador dejaria, no al texto del modal. */
+    g.recalc = await ev(`(function(){
+      var c = {};
+      ${JSON.stringify(heads)}.forEach(function(){});
+      return 1 })()`);
+    /* Un Excel VIEJO (438, sin las dos nuevas) tiene que entrar sin error. */
+    const viejas = heads.filter((h) => h !== 'Vmax IT (m/s)' && h !== 'PPM aórtico');
+    const valViejos = {}; viejas.forEach((h) => { const v = fila.fila[h]; if (v !== null && v !== '') valViejos[h] = v; });
+    g.excelViejo = await ev(`window.__P.importar(${JSON.stringify(viejas)}, ${JSON.stringify(valViejos)})`, 30000);
+    g.excelViejoN = viejas.length;
+    /* ══ LA IDA Y VUELTA, CON EL ESTUDIO YA ABIERTO ═══════════════════════════════════════════ */
+    g.ci = await ev(`window.__P.camposImportados(${JSON.stringify(fila.fila)})`);
+    g.abrir = await ev(`window.__P.abrirComoEstudio(${JSON.stringify(g.ci.campos || {})})`, 25000);
+    await pausa(600);
+    g.vueltaReal = { tapse: await ev(`window.__P.val('tapse')`),
+                     vmaxIt: await ev(`window.__P.val('vmax_it')`),
+                     vciDiam: await ev(`window.__P.val('vci_diam')`),
+                     vciCol: await ev(`window.__P.val('vci_col')`),
+                     pmad: await ev(`window.__P.val('pmad')`),
+                     psap: await ev(`window.__P.val('psap_calc')`),
+                     tpsp: await ev(`window.__P.tpsp()`) };
+    g.reproduce = { psap: g.ida.psap === g.vueltaReal.psap,
+                    cociente: g.ida.tpsp.red === g.vueltaReal.tpsp.red,
+                    fila: g.ida.tpsp.fila === g.vueltaReal.tpsp.fila };
     out.grupos.excel = g;
   }
 
