@@ -227,6 +227,87 @@ una escena protésica aparte**; si no, «no abre» se lee como «el mecanismo no
 
 ---
 
+## 5b · El aviso de FIBRILACIÓN AURICULAR de la continuidad (W1-7, 2026-10-15)
+
+**La fuente.** EAE/ASE 2009, **folio 14, §B.1.4** —folio comprobado en el pie impreso de la página
+(«14 · Baumgartner et al»)—, literal: *«The continuity equation cannot be used in cases of atrial
+fibrillation or associated significant MR or AR»*. La app retiraba el voto por las **dos
+regurgitaciones** (`emContMotivoNoVota`) y **no miraba el ritmo**: medido en HEAD con un gesto real
+sobre `#diast_ritmo`, el área por continuidad votaba idéntico en los dos ritmos (0,93 cm²,
+categoría «severa», informe «con estenosis significativa (AVm 0.93 cm² por continuidad)») y
+`#em-cont-aviso` quedaba vacío en los dos.
+
+**Decisión de Maicol (15/10/2026): entra sólo el cartel.** No se retira el voto, no se mueve el
+grado y no cambia una letra del informe, del EN SUMA, del PDF, del PPT, del Laboratorio ni del
+Excel.
+
+### Los dueños, por nombre
+
+| Pieza | Qué hace |
+|---|---|
+| `EM_CONT_FA_TXT` | el texto, en palabras propias, con la guía y el folio |
+| `emContRitmoFA(src)` | ¿el ritmo efectivo es fibrilación auricular? |
+| `emContAvisoFA(src)` | el texto o cadena vacía |
+| `emContFaAvisoSync()` | **el único escritor** del nodo `#em-cont-fa-aviso` |
+
+⚠️ **EL TEXTO NO VA DENTRO DE `emContMotivoNoVota`, Y ÉSA ES LA DECISIÓN DE FONDO.** Esa función es
+la dueña de `emContValido`, o sea de **quién vota**: sumarle una condición habría cambiado el grado
+y el papel firmado. Son dos preguntas distintas con dos dueños y dos nodos.
+
+⚠️ **EL SPAN ES HERMANO DE `#em-cont-aviso` Y NO UN HIJO SUYO.** `limpiarCampos` barre
+`[id$="-aviso"]` con `el.textContent = ''`: un hijo adentro se **destruiría** en el primer «Nuevo
+estudio» —el nodo desaparece, no se vacía— y no volvería nunca. Van los dos en la **misma**
+`.calc-row`, así que no se agrega un renglón.
+
+⚠️ **EL COLOR ES `--orange` Y NO `--amber`.** Medido computado en los dos temas: `rgb(245,158,66)`
+de noche y `rgb(217,123,31)` de día, idénticos a `#diast-excl-aviso`, que es el control.
+`getPropertyValue('--amber')` devuelve **cadena vacía** en este nodo —esa variable se define sólo
+dentro de `.amilo-root` y de `#sp-root`—, así que con `--amber` el aviso se habría visto **gris**:
+es el defecto que la tanda D2 cerró en cinco avisos.
+
+⚠️ **EL RITMO ENTRA POR `src`, REPITIENDO LA CASCADA DE `hfRitmoEfectivo()`** (el `hf_ritmo` fijado
+a mano gana; si no, manda `diast_ritmo`). `emContMotivoNoVota(src)` tiene fuente inyectable porque
+la consumen el Laboratorio y la fila del Excel sobre `inf.campos` de un estudio archivado; leyendo
+el DOM a secas, la pantalla y el libro dirían cosas distintas sobre el mismo paciente el día que
+alguien lo consuma desde allá. Hoy **ningún** consumidor pasa `src`: queda declarado.
+
+⚠️ **EL INSUMO VIVE EN OTRA PESTAÑA Y SU `onchange` NO PASA POR `calcEM`.** `#diast_ritmo` está en
+el cuadro de función diastólica del Doppler mitral y llama a `calcDiastol` y a `hfRitmoCambio`. El
+cartel lleva **tres columnas**: la llamada desde `calcEM` (después del motivo, porque el separador
+` · ` se decide leyendo si el motivo tiene texto), un **oyente de documento** sobre `change` de
+`diast_ritmo` y de `hf_ritmo`, y la entrada en `RECALC_MODULOS`. La cuarta no hace falta: el
+barrido de `limpiarCampos` ya le vacía el texto y el nodo no tiene `display` que reponer.
+
+### La tabla medida
+
+| Ritmo | AVm por continuidad | Aviso de FA |
+|---|---|---|
+| sinusal | 0,93 cm² | — |
+| sinusal | sin calcular | — |
+| **fibrilación auricular** | **0,93 cm²** | **sale** |
+| fibrilación auricular | sin calcular | — |
+
+**Se suma sin pisar:** con IM moderada y FA se leen **los dos** textos en el mismo renglón,
+separados por ` · `; en sinusal el motivo de la regurgitación se lee solo. Y el voto, el grado, la
+categoría, la pastilla, las líneas de la mitral del informe, su EN SUMA y el Excel en **436**
+columnas salen **idénticos** en los dos ritmos.
+
+⚠️ **AL MEDIR, NO COMPARAR EL INFORME ENTERO ENTRE LOS DOS RITMOS.** Cambiar el ritmo mueve la
+**función diastólica** —otra rama de la guía, otras frases—, así que exigir el informe completo
+idéntico pone la condición en rojo por un párrafo que esta tanda no toca y que **debe** cambiar con
+el ritmo. La primera versión de TC-473 lo hizo y salió en rojo por eso.
+
+⚠️ **LA ESC/EACTS 2025 NO CONTRADICE NADA**, censado el PDF completo: sus tres menciones de la
+ecuación de continuidad hablan de flujo transmitral aumentado por IM (Tabla 9, pág. 55:
+*«Continuity equation unreliable (increased transmitral flow)»*) y de flujos desiguales en
+valvulopatía múltiple; **ninguna nombra la fibrilación auricular** para el área mitral.
+
+⚠️ **CON PRÓTESIS MITRAL EL AVISO TAMBIÉN PUEDE SALIR, y se dejó así.** Si alguien carga los tres
+insumos de la continuidad sobre una prótesis, el área se calcula y el cartel aparece: la salvedad es
+del **método** y la cápsula protésica lee esa misma continuidad. No cambia nada de la prótesis
+—medido: con prótesis y FA el grado queda en el centinela, la cápsula sigue diciendo «No graduada» y
+el informe no afirma estenosis— y queda declarado.
+
 ## 6 · Cómo medir esta zona
 
 **Arnés: `scripts/_probe_imcols.mjs`** (A/B de solo lectura con `--file`), ocho grupos:

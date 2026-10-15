@@ -12,7 +12,18 @@
 > escribir fuera de `docs/censo/` y de este archivo. **El W2 que toque la estenosis mitral
 > protésica tiene que medir con `wc -c` antes de agregarle una sección a cualquiera de los dos.**
 
-### W1-1 · `calcTHP()` sale temprano sin llamar a `calcEM()`, y el informe FIRMADO queda afirmando
+### [CERRADO 2026-10-15 · W2-A] W1-1 · `calcTHP()` salía temprano sin llamar a `calcEM()`
+
+> **CERRADO.** `calcTHP()` llama a `calcEM()` también en su salida temprana del THP vacío. Los
+> cinco nodos vuelven a su estado inicial, la pastilla se apaga y suelta su clave y su dueño, el
+> informe pasa a «sin estenosis ni insuficiencia» y el EN SUMA a la frase de normalidad, con el
+> Excel exportando el centinela. **El grado fijado a mano se respeta** por la puerta de siempre.
+> Cobertura: **TC-473** (bloque A). Mapa: `docs/mapa/valvulas-borrado.md` → sección 6b.
+> ⚠️ **Al medir, los DOS gestos de borrado dan resultados distintos** y los dos están en el arnés:
+> dígito por dígito el paso intermedio recalcula con un THP fuera de banda y deja `avm_idx` en
+> `121.00 cm²/m² (revisar)`; de una vez queda rancio todo, el grado incluido.
+
+### El defecto, como se midió
 
 Es el defecto que reportó Maicol, y es **mayor** que lo reportado. Con el THP como única fuente de
 área, borrarlo con teclas reales deja `avm_thp`, `em_avm_thp_display` y la fila del cuadro limpios,
@@ -38,7 +49,32 @@ es el comportamiento deliberado de `_emAvmiSinBSA`.
 
 **Esfuerzo: chico.** No necesita columna de Excel ni tocar el Laboratorio.
 
-### W1-2 · El Laboratorio cuenta «Sin estenosis» lo que el informe llama «Gradiente elevado»
+### [CERRADO 2026-10-15 · W2-A] W1-2 · El Laboratorio contaba «Sin estenosis» lo que el informe llama «Gradiente elevado»
+
+> **CERRADO con una línea:** `gmElev` dejó de estar gateado por `gradCuenta`. Lo que sigue gateado
+> es `porGrad`, la banda que **afirma** estenosis (`≥ 10`), que es el mismo reparto de
+> `emCategoria`. Cambian **cuatro** estudios de `sin` a `grad_elev` —gradiente `≥ 5` con IM
+> moderada o severa— y **ninguna otra categoría se mueve**: siguen siendo seis, siguen siendo
+> excluyentes, su suma sigue dando el total de estudios con dato (11 de 11), y las dos casillas
+> del filtro quedan iguales. **Sin columna nueva y sin categoría nueva.**
+> Cobertura: **TC-473** (bloque C) y **TC-469** adaptado en su condición (11).
+> Mapa: `docs/mapa/laboratorio-estenosis-mitral.md` → «⚠️ W1-2».
+>
+> **ALTERNATIVAS CONSIDERADAS Y DESCARTADAS, con el motivo:**
+> 1. **Una SÉPTIMA categoría** («gradiente elevado con insuficiencia mitral significativa»): diría
+>    la causa en voz alta, pero suma una barra al gráfico, una fila a la mini-tabla del PDF de
+>    auditoría y una entrada al PPT, obliga a adaptar TC-469 —que cuenta seis— y toca
+>    `_labHallazgosCuenta`, que **corta en ocho** (X5). Más invasiva y con más superficies.
+> 2. **Renombrar `grad_elev`** para que diga lo mismo que el papel: movería el rótulo también para
+>    los estudios **sin** IM, que es el caso para el que ese nombre se escribió.
+> 3. **Dejar la categoría `gradiente_im` de `emCategoria` entrar al Laboratorio tal cual**: exige
+>    poder llamar a `emCategoria()` sobre un registro archivado, y esa función **lee el DOM**
+>    (`v(id)`, `protNoGradua`). Era el camino largo y ya estaba descartado por el diseño de
+>    `_labEmLectura`.
+> **Queda declarado** que el rótulo dice «No significativa con gradiente elevado» mientras el
+> informe de esos estudios dice sólo «Gradiente transmitral elevado».
+
+### El defecto, como se midió
 
 `_labEmLectura()` **sí respeta** la excepción de la IM —llama a `emImSignificativa()` y
 `gradCuenta = !imSig`—, y los conteos por área están bien: con IM severa el **área sigue votando**
@@ -91,7 +127,29 @@ en ninguna superficie. El AVAi ya se calcula (`ava-idx`) y el patrón está escr
 con DVI 2,10 publica «sin criterios de obstrucción», donde la guía dice «possible stenosis».
 No sobre-afirma —**sub-afirma**— y es **un tramo más** en una expresión que ya existe.
 
-### W1-7 · La continuidad mitral no mira el ritmo (cierra D1-4 cuando se haga)
+### [CERRADO 2026-10-15 · W2-A, en lo que la orden autorizaba] W1-7 · La continuidad mitral y el ritmo
+
+> **CERRADO el AVISO, que es lo que la orden autorizaba.** `EM_CONT_FA_TXT` en
+> `#em-cont-fa-aviso`, ámbar (`--orange`, medido `rgb(245,158,66)` de noche y `rgb(217,123,31)` de
+> día), sale cuando el ritmo efectivo es fibrilación auricular **y** hay un AVm por continuidad
+> calculado, y **se suma** al motivo de IM/IAo sin pisarlo. Dueños: `emContRitmoFA(src)`,
+> `emContAvisoFA(src)` y `emContFaAvisoSync`. El ritmo entra **por `src`**, repitiendo la cascada
+> de `hfRitmoEfectivo()`. Tres columnas: `calcEM`, un oyente de documento sobre `diast_ritmo` y
+> `hf_ritmo`, y `RECALC_MODULOS`.
+> Cobertura: **TC-473** (bloque B). Mapa: `docs/mapa/valvulas-mitral-pantalla.md` → sección 5b.
+> Fuente: `docs/fuentes/FUENTES.md` → «Continuidad mitral», folio **14** comprobado en el pie
+> impreso. La ESC/EACTS 2025 **no lo contradice** (censado el PDF completo).
+>
+> ⚠️ **LO QUE SIGUE ABIERTO ES EL VOTO, Y ES CONTENIDO CLÍNICO — es D1-4.** El área por continuidad
+> **sigue votando** en fibrilación auricular: el grado, el informe, el EN SUMA, el PDF, el PPT, el
+> Laboratorio y el Excel salen idénticos en los dos ritmos, y eso está medido. Retirar el voto es
+> decisión de Maicol y sería otra tanda; el lugar es la misma función
+> (`emContMotivoNoVota`), que ya tiene el predicado del ritmo escrito al lado.
+> ⚠️ **Y NINGÚN CONSUMIDOR PASA `src` HOY**: la rama existe para que el día que el Laboratorio o el
+> Excel pregunten por esta salvedad no divergan de la pantalla. Es código declarado, no muerto por
+> descuido.
+
+### El defecto, como se midió
 
 Medido con un gesto real sobre `#diast_ritmo`: el área por continuidad vota **idéntico** en ritmo
 sinusal y en fibrilación auricular (`avm_cont = 1.26 cm²`, `em_grado = severa` en los dos), con
@@ -192,7 +250,44 @@ cerrar junto con cualquier cambio del veredicto protésico aórtico.
   se retira la afirmación.
 - **El PPM mitral** aplica la Tabla 7 con su rama de IMC, verificado contra la imagen.
 - **El Laboratorio** respeta la excepción de la IM y los conteos por área son correctos
-  (salvo W1-2).
+  (W1-2 **cerrado** el 2026-10-15: el gradiente elevado con IM significativa ya no cuenta como
+  «Sin estenosis»).
+
+
+## Tanda W2-A · las tres correcciones de la mitral nativa (2026-10-15) — DECLARADO y NO arreglado
+
+### Y1 · El VOTO de la continuidad en fibrilación auricular sigue abierto
+
+Es **D1-4**, y es contenido clínico: la EAE/ASE 2009 (folio 14) dice que la ecuación **no puede
+usarse** en fibrilación auricular, y el área por continuidad **sigue votando**. Lo que entró el
+15/10 es el cartel. El lugar para cerrarlo es `emContMotivoNoVota`, que ya tiene el predicado del
+ritmo escrito al lado (`emContRitmoFA`): es una condición más en esa función, y cambiaría el grado,
+el informe, el EN SUMA, el PDF, el PPT, el Laboratorio y el Excel. **Decisión de Maicol.**
+
+### Y2 · El aviso de FA puede salir sobre una PRÓTESIS mitral, y se dejó así
+
+Si se cargan los tres insumos de la continuidad con morfología protésica, el área se calcula y el
+cartel aparece. Se conservó porque la salvedad es del **método** y la cápsula protésica lee esa
+misma continuidad (`vmProtEOA`), así que advertir ahí es si acaso más pertinente. **Medido que no
+cambia nada de la prótesis:** con prótesis y FA el grado queda en el centinela, la cápsula sigue
+diciendo «No graduada: los cortes de válvula nativa no aplican a prótesis» y el informe no afirma
+estenosis. Si Maicol prefiere que el cartel se calle sobre una prótesis, es una guarda
+`protNoGradua('vm_morf')` en `emContFaAvisoSync`.
+
+### Y3 · El rótulo de `grad_elev` no dice exactamente lo que dice el papel
+
+El Laboratorio llama a esa categoría «No significativa con gradiente elevado» y el informe de los
+estudios con IM significativa dice sólo «Gradiente transmitral elevado», sin la mitad «no
+significativa». Las dos afirmaciones son compatibles, pero no son la misma frase. Renombrarla
+movería el rótulo también para los estudios **sin** IM, que es el caso para el que ese nombre se
+escribió. Las tres alternativas están en el cierre de **W1-2**.
+
+### Y4 · `#em-thp-badge` sólo se nota rancio cuando su texto difiere
+
+De los cinco nodos del censo, el badge es el único cuyo contenido **puede coincidir** antes y
+después: su rama por omisión imprime la misma frase explicativa en los dos estados. Se nota rancio
+cuando el THP intermedio cayó fuera de banda (el badge se queda con el mensaje de la banda). TC-473
+lo fija exigiendo cadena vacía tras el borrado, que es el estado inicial.
 
 
 ## Rediseño de Válvulas · D2 — aórtica, tricúspide, tarjetas, THP y color (2026-10-14) — DECLARADO y NO arreglado
@@ -294,6 +389,10 @@ método es contenido clínico y esta orden lo prohíbe. El dato para decidirlo y
 (`diast_ritmo`, con `hfRitmoEfectivo()` como dueño único). **Decisión de Maicol.**
 ⚠️ La **tarjeta** del AVm por continuidad **sí** publica la salvedad de la guía, que es lo que el
 médico necesita para leer el número; no afirma que la app la aplique.
+⚠️ **ACTUALIZADO 2026-10-15 (W2-A):** desde la tanda W2-A hay además un **aviso en pantalla** al
+lado del número (`#em-cont-fa-aviso`, ver **W1-7**, cerrado). **Lo que sigue pendiente es
+exactamente esto: el VOTO.** El aviso no lo cambia, y está medido que el grado y las cuatro
+superficies firmadas salen idénticos en los dos ritmos.
 
 ### D1-5 · El «requiere …» de la FR por PISA es largo con el formulario vacío
 

@@ -306,13 +306,24 @@ antes de escribir la tarjeta del volumen eyectado, y es por lo que esa parte **n
 - **THP:** EAE/ASE 2009, **p. 13** — *«the use of T1/2 in degenerative calcific MS may be unreliable
   and should be avoided»*. ⚠️ **Es más fuerte que «puede no ser confiable»: dice que DEBE EVITARSE**,
   y así va en la tarjeta, sin suavizar.
-- **Continuidad mitral:** EAE/ASE 2009, **p. 14** — *«The continuity equation cannot be used in cases
-  of atrial fibrillation or associated significant MR or AR»*.
+- **Continuidad mitral:** EAE/ASE 2009, **folio 14, §B.1.4** — *«The continuity equation cannot be
+  used in cases of atrial fibrillation or associated significant MR or AR»*.
+  **Folio comprobado en el pie impreso** de la página («14 · Baumgartner et al»), que es la regla
+  de folio de este documento: folio = página del PDF, sin offset.
   ⚠️ **LA APP RETIRA EL VOTO CON IM O IAo SIGNIFICATIVA Y *NO* CON FIBRILACIÓN AURICULAR**
-  (`emContMotivoNoVota` mira `im_grado` e `ia_grado` y nada más). **REPORTADO Y NO CORREGIDO** —es un
-  criterio clínico y esta orden no lo autoriza—: `docs/PENDIENTES.md` → **D1-4**. La tarjeta publica
-  la salvedad **de la guía**, que es lo que el médico necesita saber para leer el número; no afirma
-  que la app la aplique.
+  (`emContMotivoNoVota` mira `im_grado` e `ia_grado` y nada más). **Sigue siendo así y es una
+  decisión**: el 15/10/2026 (W1-7) entró **sólo un AVISO** de pantalla —`EM_CONT_FA_TXT`, en
+  `#em-cont-fa-aviso`, ámbar, que sale cuando el ritmo efectivo es fibrilación auricular **y** hay
+  un AVm por continuidad calculado— y el voto, el grado y las cuatro superficies firmadas quedaron
+  **sin tocar**, medido. Cambiar cuándo vota un método es contenido clínico. El aviso publica la
+  salvedad **de la guía**, que es lo que el médico necesita saber para leer el número; no afirma que
+  la app la aplique. `docs/PENDIENTES.md` → **D1-4 y W1-7, los dos CERRADOS** en lo que la orden
+  autorizaba, con el voto declarado como pendiente clínico.
+  ⚠️ **LA ESC/EACTS 2025 NO LO CONTRADICE, y está censado el PDF completo.** Sus **tres** menciones
+  de la ecuación de continuidad hablan de **flujo transmitral aumentado por IM** —Tabla 9, pág. 55:
+  *«Continuity equation unreliable (increased transmitral flow)»*— y de flujos desiguales en
+  valvulopatía múltiple (pág. 54); **ninguna nombra la fibrilación auricular** para el área mitral.
+  O sea que la guía más nueva no deroga la salvedad: simplemente no la repite.
 
 ⚠️ **LA BANDA DE LA EROA POR CONTINUIDAD SIGUE SIENDO CRITERIO ECOSMART**, y la tarjeta lo dice: la
 fila de la Tabla 8 está calificada «EROA, 2D PISA (cm²)» y la guía **no publica una banda propia**

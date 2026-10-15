@@ -235,6 +235,58 @@ tercera — un informe anterior reimprime exactamente lo que imprimía, sin la f
 
 ---
 
+## 6b · El THP: la salida temprana que no recalculaba (W1-1, 2026-10-15)
+
+**El defecto.** `calcTHP()` salía temprano con el campo vacío —`if (!thp) { setv('avm_thp','');
+emThpSalidasLimpiar(); return; }`— **antes** del `calcEM()` que tiene al final. `calcEM` es el
+dueño único de todo lo que la estenosis mitral publica, así que con el THP como **única fuente de
+área** borrarlo dejaba cinco nodos con el estado del paciente anterior.
+
+Medido con teclas reales (THP 160 ms, peso 70, talla 170, mitral normal), por las **dos** puertas
+del dato —`thp` en el Doppler y `em_thp_display` en Válvulas—:
+
+| Nodo | antes | después, en HEAD | hoy |
+|---|---|---|---|
+| `avm_thp` | `1.38` | `''` | `''` |
+| `em_avm_thp_display` | `1.38 cm²` | `''` | `''` |
+| `#em-thp-row` | `1.38 cm²` | `—` | `—` |
+| **`avm_idx`** | `0.76 cm²/m²` | **igual** ❌ | `''` |
+| **`#em-clase-thp`** | `· significativa (≤1,5 cm²) · peor` | **igual** ❌ | `''` |
+| **`#em-sev-integrada`** | `Estenosis mitral significativa AVm 1.38 cm² por THP` | **igual** ❌ | `—` |
+| **`em_grado`** | `severa` | **`severa`** ❌ | `sin` |
+| **`#em-thp-badge`** | el de la banda | **igual** ❌ | `''` |
+| pastilla de estenosis | prendida | **prendida** ❌ | apagada |
+| clave `valv-pill-esten-mitral` | `'1'` | **`'1'`** ❌ | borrada |
+| informe | «con estenosis significativa (AVm 1.38 cm² por THP)» | «con estenosis **significativa**», **sin el número** | «sin estenosis ni insuficiencia» |
+| EN SUMA | «EM significativa.» | **igual** ❌ | la frase de normalidad |
+| Excel, `EM grado` | `severa` | **`severa`** ❌ | `sin` |
+
+**El arreglo es llamar al dueño**, no reimplementar nada: la salida temprana corre `calcEM()` antes
+de volver. Con eso la cadena entera —`emGradoAuto`, el `else` que vacía `avm_idx`,
+`emCuadroRefSync`, `valvAutoPrenderEsten` y `_emApagarAuto`— se ejecuta, que es exactamente la
+regla de la sección 1 de este mapa. **No hay recursión:** `calcEM` no llama a `calcTHP`.
+
+⚠️ **LOS DOS GESTOS DE BORRADO DAN RESULTADOS DISTINTOS, Y HAY QUE MEDIR LOS DOS.** Borrando
+**dígito por dígito** desde el final, el paso intermedio («1» de «160») vuelve a correr la cadena
+con un THP **fuera de banda**, así que el grado se recalcula ahí y lo que queda rancio es el AVm
+indexado del paso anterior —medido: `121.00 cm²/m² (revisar)`, un área mitral imposible que
+**viaja al Excel**—. Borrando **de una vez** (seleccionar todo y un Backspace) la cadena no corre
+ningún paso intermedio y queda rancio **todo**, el grado incluido: ésa es la escena del censo W1 y
+la que llega al papel firmado. El arnés tiene las dos (`borrar` y `borrarSeleccion`).
+
+⚠️ **EL GRADO FIJADO A MANO SE RESPETA POR LA PUERTA DE SIEMPRE, y está medido.** `emGradoAuto`
+sale temprano con `esqSevManual.em` puesto y `_emApagarAuto` sale por su tercera guarda: con
+«severa» elegido por el médico, borrar el THP deja el grado, la pastilla prendida y el badge
+diciendo «Grado fijado a mano — el autocálculo no lo pisa.».
+
+⚠️ **ES EL ÚNICO CAMPO CON ESTE PATRÓN.** Censo de doce campos editables de los bloques mitral y
+aórtico, cargados y borrados uno por uno con teclas reales: los otros once —`avm_plan`,
+`em_vtimit`, `em_dtsvi`, `em_vtitsvi`, `em_gmedio`, `em_vmax`, `vmax_ao`, `gmedio_ao`, `itv_ao`,
+`ea_dtsvi`, `ea_vtitsvi`, `ava_plan`— dejan **cero** nodos rancios, porque sus `oninput` sí
+terminan en `calcEM`. **Control negativo:** borrar el **peso** sigue limpiando **sólo** `avm_idx` y
+no mueve el grado, la cápsula ni la pastilla — es la conducta deliberada de `_emAvmiSinBSA`, para
+que borrar el peso no pueda mover una afirmación de severidad.
+
 ## 7 · Cómo se mide
 
 **`scripts/_probe_valvborra.mjs`** — A/B de solo lectura, con `--file` para correr contra una copia

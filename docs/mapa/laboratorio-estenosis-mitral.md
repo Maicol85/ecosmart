@@ -47,12 +47,59 @@ que es una **regex sobre el token guardado**. Eso alcanza para las otras siete l
 | `sig_area_1` | Significativa, AVm ≤1,0 cm² | el peor AVm que vota es `≤ 1,0` |
 | `sig_area_15` | Significativa, AVm >1,0 a ≤1,5 cm² | el peor AVm que vota está en `(1,0 , 1,5]` |
 | `sig_grad` | Significativa solo por gradiente | ningún AVm alcanza el corte (o no hay) **y** gradiente `≥ 10` |
-| `grad_elev` | No significativa con gradiente elevado | no es significativa **y** gradiente `≥ 5` y `< 10` |
+| `grad_elev` | No significativa con gradiente elevado | no es significativa **y** gradiente `≥ 5` (ver W1-2) |
 | `sin` | Sin estenosis | hay datos de EM y ningún criterio se cumple |
 | `sig_sin_num` | Significativa sin dato numérico | `em_grado` significativa **y** ningún valor numérico |
 
 **El orden de la cascada es el de la tabla**, y por eso el área va primero: con AVm ≤1,5 **y**
 gradiente ≥10 la categoría es por área, que es lo que el médico midió.
+
+### ⚠️ W1-2 (2026-10-15) · `grad_elev` existía y no se alcanzaba con IM significativa
+
+Hasta el 2026-10-15 `gmElev` estaba gateado por `gradCuenta`, igual que `porGrad`, así que con
+**IM moderada o severa** la categoría `grad_elev` **no se alcanzaba nunca**: ese estudio caía en
+`sin` y el Laboratorio lo contaba como «Sin estenosis» mientras su informe **firmado** decía
+«con gradiente transmitral elevado» —la clave `gradiente_im` de `emCategoria`, cuyo texto no lleva
+la palabra estenosis—. Dos lecturas del mismo dato en la misma app, y del lado que **sub-afirma**:
+el espejo del defecto que la tanda B3 vino a evitar.
+
+**El arreglo es una línea:** `gmElev` deja de preguntar por `gradCuenta`. Lo que **sigue** gateado
+es `porGrad`, que es la banda que **afirma** estenosis (`≥ 10`), y ése es exactamente el reparto
+que `emCategoria` ya tiene: con gradiente elevado e IM significativa devuelve `gradiente_im`, y
+recién **sin** IM llega a `severa` por el gradiente.
+
+| Estudio armado | antes | después |
+|---|---|---|
+| gm 12, sin IM | `sig_grad` | `sig_grad` |
+| gm 12 + IM moderada | `sin` | **`grad_elev`** |
+| gm 12 + IM severa | `sin` | **`grad_elev`** |
+| gm 7, sin IM | `grad_elev` | `grad_elev` |
+| gm 7 + IM moderada | `sin` | **`grad_elev`** |
+| gm 7 + IM severa | `sin` | **`grad_elev`** |
+| gm 4,9 + IM severa | `sin` | `sin` (control negativo) |
+| AVm 1,2 + gm 12 + IM severa | `sig_area_15` | `sig_area_15` (el área sigue votando) |
+| AVm 0,8 | `sig_area_1` | `sig_area_1` |
+| AVm 2,0 + gm 7 | `grad_elev` | `grad_elev` |
+| sin ningún dato · prótesis | `null` | `null` |
+| token `severa` solo | `sig_sin_num` | `sig_sin_num` |
+
+**Lo que NO se movió, medido:** las categorías siguen siendo **seis** y siguen siendo excluyentes
+—su suma da el total de estudios con dato de esta válvula, 11 de 11 antes y después—; las **dos
+casillas no cambian** (área 2, gradiente 1, los dos 0, base 11) porque son `porArea` y `porGrad`;
+`_labValvCounts` y la lectura del token viejo (`_labEstenSev`) salen idénticas; `LAB_EM_CAT` y
+`LAB_EM_CAT_ORDEN` no se tocan.
+
+⚠️ **NO SE AGREGÓ UNA SÉPTIMA CATEGORÍA, Y ERA LA OTRA SALIDA.** Una categoría propia diría la
+causa en voz alta, pero sumaría una barra al gráfico, una fila a la mini-tabla del PDF y una
+entrada al PPT, obligaría a adaptar TC-469 —que cuenta **seis**— y tocaría `_labHallazgosCuenta`,
+que **corta en ocho** (ver X5). La opción de una línea es la conservadora y es la que hace coincidir
+las dos superficies. La alternativa queda en `docs/PENDIENTES.md`.
+
+⚠️ **EL RÓTULO NO SE CAMBIÓ.** «No significativa con gradiente elevado» describe bien el estado
+—no hay estenosis significativa y el gradiente está elevado—, pero el informe de esos estudios dice
+sólo «Gradiente transmitral elevado», sin la mitad «no significativa». Renombrar la categoría
+movería el rótulo también para los estudios **sin** IM, que es el caso para el que ese nombre se
+escribió. Queda declarado.
 
 ### Las dos casillas (B) — se superponen
 

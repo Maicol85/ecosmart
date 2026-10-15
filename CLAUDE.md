@@ -30,8 +30,8 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar el S/D venoso pulmonar, el LARS, los suplementarios de la ASE 2025, el E/e′ por sitio de la ASE 2016, los rótulos del cuadro o el rojo del E/e′** | `docs/mapa/diastolica-complementarios.md` |
 | **Tocar un DIAGRAMA DE FLUJO de la ventana 🧭** (BSE 2024, ASE 2025 en ritmo sinusal o en FA, ASE/EACVI 2016 8A y 8B): los planos, el motor del SVG, el umbral de ancho o la tabla compacta | `docs/mapa/diastolica-diagrama.md` |
 | **Tocar la GRILLA del Doppler mitral**: el orden de los 16 campos, el Tab por columnas, los puntos de corte o el selector del S/D | `docs/mapa/doppler-mitral-grilla.md` |
-| **Tocar el BORRADO de una lesión valvular**: el retiro del grado, quién prendió una pastilla, los dos métodos de la IM, la continuidad de la IT o el grado de cada fila | `docs/mapa/valvulas-borrado.md` |
-| **Tocar la PANTALLA de las dos lesiones MITRALES**: las tres columnas de la insuficiencia, las casillas automáticas, el cuadro de referencias en tres bloques, la columna 2 de la estenosis o el mecanismo de los globos ⓘ | `docs/mapa/valvulas-mitral-pantalla.md` |
+| **Tocar el BORRADO de una lesión valvular**: el retiro del grado, quién prendió una pastilla, los dos métodos de la IM, la continuidad de la IT, el grado de cada fila o **la salida temprana de `calcTHP`** | `docs/mapa/valvulas-borrado.md` |
+| **Tocar la PANTALLA de las dos lesiones MITRALES**: las tres columnas de la insuficiencia, las casillas automáticas, el cuadro de referencias en tres bloques, la columna 2 de la estenosis, el mecanismo de los globos ⓘ o **el aviso de fibrilación auricular de la continuidad** | `docs/mapa/valvulas-mitral-pantalla.md` |
 | **Tocar la PANTALLA de las insuficiencias AÓRTICA o TRICUSPÍDEA**: sus columnas, las cinco casillas automáticas, las once tarjetas ⓘ, el rótulo THP o el color de los avisos | `docs/mapa/valvulas-ia-it-pantalla.md` |
 | **Buscar un CORTE o una BANDA de plausibilidad** de cualquier válvula, con su fuente | `docs/mapa/valvulas-constantes.md` |
 | **Tocar la MARCA DE MANUAL de una pastilla, el selector binario de la estenosis mitral, el VIOLETA de «Significativa», el VTI de entrada tricuspídeo, la CASILLA DE PISA de «Incluir en el informe» o lo que «Nuevo estudio» deja vivo** | `docs/mapa/valvulas-manual-binario.md` |
@@ -94,7 +94,7 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **7,37 MB / 111.272 líneas**, medido el 2026-10-14 al cierre de la tanda D2 del rediseño de Válvulas —el renglón decía «6,13 MB /
+  sin frameworks. Hoy **7,38 MB / 111.425 líneas**, medido el 2026-10-15 al cierre de la tanda W2-A —el renglón decía «6,13 MB /
   90.494 líneas» y llevaba varias tandas sin actualizarse: **medirlo antes de presupuestar contexto**—. Las únicas dependencias son jsPDF, XLSX y
   PptxGenJS por CDN. Se abre como archivo local y corre en Chrome.
 - Lo que produce es un **informe firmado**: narrativo, EN SUMA, PDF, PPT y Excel del Laboratorio.
@@ -248,6 +248,151 @@ impecable.
 ---
 
 ## Estado vigente
+
+### Las TRES correcciones de la MITRAL NATIVA del censo W1 — «W2-A» (2026-10-15)
+
+- **Es la tanda «W2-A»** y sale del censo W1 (`docs/censo/protesis_valvular.md`): cierra **W1-1**,
+  **W1-7** y **W1-2**. **NO toca prótesis ni sus criterios** —eso es el «W2-B», posterior—, no
+  cambia ningún corte, ninguna regla de integración ni ningún texto del informe firmado fuera de lo
+  autorizado, y el **Excel queda en 436 columnas, idéntico**.
+  Al **empezar**, `main` local y `origin/main` estaban los dos en **`0e3b51d`**, sin nada sin
+  pushear —confirmado con un `git fetch` de verdad—, con el commit del censo W1 ya incluido **y
+  pusheado**. Los **cuatro** commits de esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 4 → 3 → 2 → 1.**
+  ⚠️ **EL 1, EL 2 Y EL 3 NO SE LLAMAN ENTRE SÍ Y SE REVIERTEN EN CUALQUIER ORDEN**, que en esta
+  serie es raro y conviene decirlo: el 1 es **una línea** de `calcTHP` (más la sonda), el 2 crea
+  `EM_CONT_FA_TXT`, `emContRitmoFA`, `emContAvisoFA`, `emContFaAvisoSync`, el span nuevo, el oyente
+  de documento y la entrada en `RECALC_MODULOS`, y el 3 es **una línea** de `_labEmLectura` (más la
+  adaptación de TC-469 y el comentario que decía «las dos bandas»). Ninguno nombra nada de los
+  otros dos.
+  ⚠️ **PERO EL 1 LLEVA LA SONDA** (`scripts/_probe_w2a.mjs`), que los otros dos también usan:
+  revertirlo deja al 2 y al 3 sin arnés. ⚠️ **Y EL 3 LLEVA LA ADAPTACIÓN DE TC-469**: revertirlo
+  sin reponer esa condición la deja midiendo lo contrario, no en rojo.
+  **El 4 es TC-473 más documentación y el sello**, y afirma el comportamiento de los tres: revertir
+  cualquiera sin el 4 deja TC-473 en rojo —21 de sus 51 condiciones—.
+
+- **Línea base al cierre: suite 483/487 con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0 ERROR,
+  Excel en 436 columnas, celular 43 a 360 px y 52 a 390 px con 1 ALTA cada uno —IDÉNTICO a la línea
+  base, y `--todo` da 374 y 383, el mismo par—.** **CERO REGRESIONES**: los cuatro rojos son
+  exactamente los de ENTRADA —**TC-223** (el documentado, falla por la fecha), **TC-376**,
+  **TC-390** y **TC-406**—. **El denominador subió a 487**: esta tanda agregó **TC-473**. La de
+  ENTRADA, medida en HEAD limpio en un worktree aparte, fue **482/486** con los mismos cuatro
+  rojos. El `md5` de `index.html` no se movió durante ninguna de las corridas.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. Por eso el total es sobre 487 y no sobre 488.
+  ⚠️ **LA SUITE COMPLETA SE CORRIÓ DOS VECES, Y LA PRIMERA NO ES LA LÍNEA BASE.** Dio **482/487**
+  con **cinco** rojos, y el quinto era **TC-473**, el caso nuevo: pasaba corrido solo y caía en la
+  suite completa porque el **estilo del informe es estado de sesión** y lo heredaba del caso
+  anterior. Es la cuarta tanda seguida en que la suite completa destapa algo que la zona no ve.
+- **EL SELLO DE VERSIÓN** estaba al día al empezar (`v20261015-0019`) y se volvió a sellar en el
+  commit 4: **`v20261015-0234`**. La suite se midió **DESPUÉS** de sellar, con el `md5` quieto.
+
+- **Dónde está todo:** **NO se creó ningún mapa nuevo** —los tres que tocaba esta tanda tenían
+  margen, medido con `wc -c` ANTES de escribir—: `docs/mapa/valvulas-borrado.md` → sección **6b**
+  (de 15,8 a **19,5 KB**), `docs/mapa/valvulas-mitral-pantalla.md` → sección **5b** (de 15,9 a
+  **21,2 KB**) y `docs/mapa/laboratorio-estenosis-mitral.md` → el bloque **⚠️ W1-2** (de 10,2 a
+  **13,2 KB**). `docs/fuentes/FUENTES.md` → «Continuidad mitral» reescrita con el folio y el censo
+  de la ESC/EACTS 2025. `docs/PENDIENTES.md` → **W1-1, W1-2 y W1-7 marcados CERRADOS** (W1-7 en lo
+  que la orden autorizaba), **D1-4 actualizado** y **cuatro** cosas nuevas declaradas (Y1 a Y4).
+
+- **W1-1 · EL BORRADO DEL THP DEJABA CINCO NODOS RANCIOS Y UN INFORME QUE AFIRMA SIN NÚMERO.**
+  `calcTHP()` salía temprano con el campo vacío **antes** del `calcEM()` que tiene al final, y
+  `calcEM` es el dueño único de todo lo que la estenosis mitral publica. Medido con teclas reales
+  por las **dos** puertas del dato: `avm_idx` (que **viaja al Excel**), `#em-clase-thp`,
+  `#em-sev-integrada`, `#em-thp-badge` y **`em_grado` en «severa»**, con la pastilla prendida, el
+  informe diciendo «con estenosis **significativa**» **sin el paréntesis del área** y el EN SUMA
+  «EM significativa.» sobre un formulario sin un solo dato de la válvula. **El arreglo es llamar al
+  dueño**: una línea. **NO HAY RECURSIÓN** —`calcEM` no llama a `calcTHP`—.
+  ⚠️ **LOS DOS GESTOS DE BORRADO DAN RESULTADOS DISTINTOS, Y HAY QUE MEDIR LOS DOS.** Dígito por
+  dígito, el paso intermedio («1» de «160») recalcula con un THP **fuera de banda** y lo que queda
+  rancio es `avm_idx` con **`121.00 cm²/m² (revisar)`** —un área mitral imposible que va al Excel—;
+  seleccionando todo y borrando de una, queda rancio **todo**, el grado incluido. Ésa es la escena
+  del censo, y el arnés tiene las dos (`borrar` y `borrarSeleccion`, que manda el `selectAll` como
+  **comando de edición** del propio evento de tecla).
+  **EL GRADO FIJADO A MANO SE RESPETA**, medido: queda «severa», la pastilla prendida y el badge
+  diciendo «Grado fijado a mano — el autocálculo no lo pisa.».
+  ⚠️ **ES EL ÚNICO CAMPO CON ESE PATRÓN, RE-VERIFICADO**: los otros **once** campos derivados de
+  los bloques mitral y aórtico dejan **cero** nodos rancios, y borrar el **peso** sigue limpiando
+  **sólo** `avm_idx` —la conducta deliberada de `_emAvmiSinBSA`—. **A/B contra HEAD: 0 diferencias**
+  en los once, en el control del peso y en el borrado de continuidad y planimetría.
+
+- **W1-7 · EL AVISO DE FIBRILACIÓN AURICULAR EN LA CONTINUIDAD, Y NADA MÁS.** EAE/ASE 2009,
+  **folio 14, §B.1.4** —comprobado en el pie impreso—: *«The continuity equation cannot be used in
+  cases of atrial fibrillation…»*. La app retiraba el voto por las dos regurgitaciones y **no
+  miraba el ritmo**. Decisión de Maicol: entra **sólo el cartel**.
+  ⚠️ **EL TEXTO NO VA DENTRO DE `emContMotivoNoVota`, Y ÉSA ES LA DECISIÓN DE FONDO**: esa función
+  es la dueña de `emContValido`, o sea de **quién vota**, y sumarle una condición habría cambiado
+  el grado y el papel firmado. **Medido: voto, grado, categoría, pastilla, líneas de la mitral del
+  informe, su EN SUMA y el Excel en 436 columnas con el MISMO hash salen idénticos en los dos
+  ritmos.** Tabla: con FA **y** área por continuidad calculada **sale**; en sinusal nunca; en FA sin
+  continuidad tampoco. **Se suma al motivo de IM/IAo sin pisarlo**, con su separador.
+  ⚠️ **EL SPAN ES HERMANO Y NO HIJO DE `#em-cont-aviso`**: el barrido genérico de `[id$="-aviso"]`
+  de `limpiarCampos` hace `textContent=''`, así que un hijo se **destruiría** en el primer «Nuevo
+  estudio» y no volvería nunca.
+  ⚠️ **EL COLOR ES `--orange` Y NO `--amber`**: medido, `getPropertyValue('--amber')` devuelve
+  **cadena vacía** en ese nodo, así que con `--amber` se habría visto gris. Hoy computa
+  `rgb(245,158,66)` de noche y `rgb(217,123,31)` de día, idénticos al control `#diast-excl-aviso`.
+  **Y CON CAPTURA PNG en los dos temas**, con el `md5` distinto —o sea que la clase `light-mode`
+  quedó puesta de verdad— porque `getComputedStyle` lee el estilo y no el píxel: es como la tanda
+  del violeta descubrió que el aviso legal le oscurecía la imagen entera. Los dos PNG muestran el
+  ámbar y **los acentos completos** («fibrilación auricular», «ecuación», «área», «médico»), que es
+  lo que la tanda D1 cazó mirando un PNG y no leyendo el texto.
+  ⚠️ **EL RITMO ENTRA POR `src`**, repitiendo la cascada de `hfRitmoEfectivo()`, para que el día
+  que el Laboratorio o el Excel lo consuman no divergan de la pantalla; hoy ningún consumidor lo
+  pasa y queda declarado. Y el insumo vive en otra pestaña: **tres columnas** (`calcEM`, un oyente
+  de documento sobre `diast_ritmo` y `hf_ritmo`, y `RECALC_MODULOS`).
+  ⚠️ **LA ESC/EACTS 2025 NO CONTRADICE NADA**, censado el PDF completo: sus tres menciones de la
+  ecuación de continuidad hablan de **flujo transmitral aumentado por IM** (Tabla 9, pág. 55) y de
+  flujos desiguales en valvulopatía múltiple; **ninguna nombra la fibrilación auricular** para el
+  área mitral.
+  ⚠️ **LO QUE SIGUE ABIERTO ES EL VOTO, que es D1-4 y es contenido clínico.** `PENDIENTES.md` → Y1.
+
+- **W1-2 · EL LABORATORIO CONTABA «SIN ESTENOSIS» LO QUE EL INFORME LLAMA «GRADIENTE ELEVADO».**
+  `gmElev` estaba gateado por `gradCuenta`, así que la categoría `grad_elev` **existía y no se
+  alcanzaba** con IM significativa. **El arreglo es una línea**, y lo que **sigue** gateado es
+  `porGrad`, la banda que **afirma** estenosis (`≥ 10`) — el mismo reparto de `emCategoria`, que
+  con gradiente elevado e IM significativa devuelve `gradiente_im`, cuyo texto no lleva la palabra
+  estenosis. **Cambian exactamente cuatro estudios** de `sin` a `grad_elev`; **ninguna otra
+  categoría se mueve**, siguen siendo **seis** y excluyentes —su suma da el total de estudios con
+  dato, 11 de 11 antes y después—, las **dos casillas quedan iguales** (área 2, gradiente 1, los
+  dos 0, base 11) porque son `porArea` y `porGrad`, y `_labValvCounts` y `_labEstenSev` salen
+  idénticas. **SIN COLUMNA NUEVA Y SIN CATEGORÍA NUEVA.**
+  **Y SE COMPARÓ CONTRA EL INFORME GENERADO DE VERDAD sobre el MISMO estudio**, que es lo que el
+  defecto rompía: el papel dice «con gradiente transmitral elevado» y el Laboratorio ahora dice «No
+  significativa con gradiente elevado».
+  ⚠️ **LA SÉPTIMA CATEGORÍA SE DESCARTÓ A PROPÓSITO**: sumaría una barra al gráfico, una fila al
+  PDF de auditoría y una entrada al PPT, obligaría a adaptar TC-469 —que cuenta seis— y tocaría
+  `_labHallazgosCuenta`, que corta en OCHO (X5). Las tres alternativas están en `PENDIENTES.md`.
+
+- **Arnés: `scripts/_probe_w2a.mjs`** (A/B de solo lectura con `--file`, y `--dest` para las dos
+  capturas), siete grupos (`thp`,
+  `fuentes`, `otros`, `fa`, `color`, `lab`, `controles`), con teclas y clics reales y **dos**
+  helpers de borrado. **Cobertura: TC-473**, **51 condiciones** —contadas instrumentando el propio
+  caso para que publicara su `ex.length`, no a ojo— con seis denominadores y once controles
+  negativos. **Verificado que sabe fallar contra HEAD en un worktree aparte: 21 de las 51 en rojo,
+  y NINGUNA por excepción.**
+- ⚠️ **TC-473 MORÍA POR EXCEPCIÓN CONTRA HEAD EN SU PRIMERA VERSIÓN** (`getComputedStyle` sobre un
+  nodo que allá no existe), que prueba que el árbol es distinto y no que el caso sabe medir. Toda
+  lectura de un nodo o de una función nueva va por un ayudante con centinela. Es la misma lección
+  que TC-455, TC-462, TC-465 y TC-471 ya tienen escrita.
+- ⚠️ **CASOS ADAPTADOS: UNO. TC-469**, condición (11): exigía `'sin'` en las dos bandas con IM
+  significativa, que **era el defecto**; hoy exige `porGrad` en false y la categoría `grad_elev`, y
+  se le agregó el control negativo de los **4,9 mmHg**. Y el comentario de cabecera de
+  `_labEmLectura` que decía «las dos bandas» se corrigió: dejar el archivo contradiciéndose consigo
+  mismo es cómo un arreglo se deshace sin que nadie se entere.
+- ⚠️ **EL ESTILO DEL INFORME ES ESTADO DE SESIÓN, Y ASÍ LA SUITE COMPLETA PUSO TC-473 EN ROJO.**
+  Corrido solo pasaba; en la suite completa llegaba en «narrativo», donde la frase de normalidad
+  dice «sin estenosis ni insuficiencia **significativas**», así que la condición que exigía que la
+  palabra «significativa» desapareciera salía roja sobre un informe perfecto. Se fija
+  `setEstiloInforme('estandar')` en la escena **y** se pregunta por «estenosis significativa», no
+  por la palabra sola. Es la trampa que TC-470 ya documenta.
+- ⚠️ **AL MEDIR EL AVISO DE FA, NO COMPARAR EL INFORME ENTERO ENTRE LOS DOS RITMOS**: cambiar el
+  ritmo mueve la **función diastólica**, que esta tanda no toca y que **debe** cambiar con el
+  ritmo. Se comparan las líneas de la mitral y la parte mitral del EN SUMA.
+- ⚠️ **Me comí el acento grave UNA vez**, en comentarios míos dentro del cuerpo de TC-469, con el
+  archivo que documenta la trampa abierto delante. `scripts/check_backticks.py` dio la línea exacta;
+  `node --check` apuntaba a la apertura del template, cientos de líneas antes. **Correr los dos.**
 
 ### La AÓRTICA y la TRICÚSPIDE en pantalla, las once tarjetas ⓘ, el rótulo THP y el color de los avisos (2026-10-14)
 

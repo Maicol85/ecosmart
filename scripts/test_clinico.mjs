@@ -64826,6 +64826,435 @@ caso('TC-472', 'Valvulas D2: la insuficiencia aortica en TRES columnas de CUATRO
 `);
 
 
+/* ══ TC-473 · W2-A: las TRES correcciones de la mitral nativa que salieron del censo W1 ═══════
+   ⚠️ EL CUERPO DE UN CASO CORRE DENTRO DE LA PAGINA, asi que carga con __t.set y no con teclas
+   de CDP: no tiene acceso al protocolo del navegador y un KeyboardEvent construido a mano no es
+   de confianza. Las MISMAS escenas van con teclas y clics reales en scripts/_probe_w2a.mjs, que
+   es la que midio los sintomas contra HEAD. Mismo reparto que TC-463, TC-469 y TC-470.
+   ⚠️ Y __t.set DISPARA input Y change, que es exactamente lo que hace una tecla en estos campos:
+   el borrado entra por thpEditado -> calcTHP con el campo vacio, que es la ruta del defecto. */
+caso('TC-473', 'W2-A: borrar el ULTIMO dato de cada fuente de area mitral retira el grado automatico y respeta el fijado a mano (W1-1); el aviso de fibrilacion auricular de la continuidad avisa sin cambiar el voto (W1-7); y el Laboratorio cuenta «gradiente elevado» donde el informe lo dice (W1-2)', `
+  const ex = [];
+  const VL = (id) => __t.val(id);
+  const TX = (id) => String(__t.txt(id) || '').trim();
+  /* Estado de partida SIN DUENO: __t.limpiar no vacia los dos Set ni las claves de localStorage,
+     asi que sin esto la escena siguiente arranca con la mitral ya «de la app» — la leccion que
+     las sondas de esta serie tienen escrita. */
+  const limpiarTodo = () => {
+    __t.limpiar();
+    window.esqSevManual = {}; window._sevCalcAlFijar = {};
+    ['aortica','mitral','tricuspide','pulmonar'].forEach(function(v){
+      ['esten','insuf'].forEach(function(t){
+        try { localStorage.removeItem('valv-pill-' + t + '-' + v); } catch (e) {}
+        try { if (typeof pillOn === 'function' && pillOn(v,t) === true) toggleValvPill(v,t); } catch (e) {}
+      });
+    });
+    try { if (window.VALV_ESTEN_AUTO) window.VALV_ESTEN_AUTO.clear(); } catch (e) {}
+    try { if (window.VALV_INSUF_AUTO) window.VALV_INSUF_AUTO.clear(); } catch (e) {}
+  };
+  /* ⚠️ EL ESTILO DEL INFORME SE FIJA EN LA ESCENA, Y SIN ESO LA SUITE COMPLETA PONE EL CASO EN
+     ROJO. El estilo es estado de sesion y lo hereda del caso anterior: corrido solo, este caso
+     pasaba; en la suite completa llegaba en «narrativo», donde la frase de normalidad dice «sin
+     estenosis ni insuficiencia SIGNIFICATIVAS» y la condicion que exige que la palabra
+     «significativa» desaparezca salia en rojo sobre un informe perfecto. Es la misma trampa que
+     TC-470 ya documenta para el censo de la disfuncion del VD. */
+  const base = () => { limpiarTodo();
+    try { setEstiloInforme('estandar'); } catch (e) {}
+    __t.set('peso', 70); __t.set('talla', 170); __t.set('edad', 62);
+    __t.set('diast_ritmo', 'sinusal'); };
+  /* LA FOTO: los CINCO nodos que el censo W1 midio rancios, mas el grado, la pastilla y su dueno. */
+  const foto = () => ({
+    avm_thp:  VL('avm_thp'),
+    avm_idx:  VL('avm_idx'),
+    claseThp: TX('em-clase-thp'),
+    sev:      TX('em-sev-integrada'),
+    grado:    VL('em_grado'),
+    badge:    TX('em-thp-badge'),
+    pill:     (function(){ try { return pillOn('mitral','esten'); } catch (e) { return 'EXC'; } })(),
+    clave:    (function(){ try { return localStorage.getItem('valv-pill-esten-mitral'); } catch (e) { return 'EXC'; } })(),
+    cat:      (function(){ try { return emCategoria().clave; } catch (e) { return 'EXC'; } })(),
+    cont:     VL('avm_cont'),
+    plan:     VL('avm_plan'),
+    manual:   !!(window.esqSevManual && window.esqSevManual.em)
+  });
+  const lineaVM = (txt) => String(txt || '').split(String.fromCharCode(10))
+    .map(function(s){ return s.trim(); })
+    .filter(function(s){ return s && /mitral|AVm/i.test(s); }).join(' ');
+  const excelCols = () => {
+    if (typeof _labExcelRow !== 'function') return 'SIN EXPORTADOR';
+    const campos = {};
+    Array.prototype.slice.call(document.querySelectorAll('input[id], select[id], textarea[id]'))
+      .forEach(function(e){
+        if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(e.id)) return;
+        campos[e.id] = e.value; });
+    try { return Object.keys(_labExcelRow({ nombre:'P', ci:'1', fecha_estudio:'2026-10-15',
+      campos: campos })).length; } catch (e) { return 'EXC'; }
+  };
+  const excelEm = () => {
+    if (typeof _labExcelRow !== 'function') return 'SIN EXPORTADOR';
+    const campos = {};
+    Array.prototype.slice.call(document.querySelectorAll('input[id], select[id], textarea[id]'))
+      .forEach(function(e){
+        if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(e.id)) return;
+        campos[e.id] = e.value; });
+    try { return _labExcelRow({ nombre:'P', ci:'1', fecha_estudio:'2026-10-15', campos: campos })['EM grado']; }
+    catch (e) { return 'EXC'; }
+  };
+
+  /* ══ DENOMINADOR 1 · las piezas de las tres correcciones existen ══ */
+  const faltan = ['calcTHP','calcEM','emCategoria','emGradoAuto','_emApagarAuto','pillOn',
+                  'toggleValvPill','hfRitmoEfectivo','emContMotivoNoVota','emContAvisoFA',
+                  'emContRitmoFA','emContFaAvisoSync','_labEmLectura','_labEmCasillas',
+                  'setEstiloInforme','generarInforme']
+    .filter(function(n){ return typeof window[n] !== 'function'; });
+  ex.push(['DENOMINADOR: las dieciseis funciones de las tres correcciones existen',
+    faltan.length === 0, 'faltan: ' + faltan.join(', ')]);
+  ex.push(['DENOMINADOR: el nodo del aviso de fibrilacion auricular existe y es un span propio',
+    !!document.getElementById('em-cont-fa-aviso'), 'em-cont-fa-aviso']);
+
+  /* ══ (A) W1-1 · EL THP COMO UNICA FUENTE DE AREA ══════════════════════════════════════════ */
+  base();
+  __t.set('thp', '160');
+  const aCarg = foto();
+  const aCargInf = __t.informe();
+  ex.push(['DENOMINADOR (A): con el THP como unica fuente el area da 1,38 cm2, la app completa «severa» y prende la pastilla',
+    aCarg.avm_thp === '1.38' && aCarg.grado === 'severa' && aCarg.pill === true &&
+    aCarg.avm_idx.indexOf('0.76') > -1 && aCarg.sev.indexOf('significativa') > -1,
+    'avm=' + aCarg.avm_thp + ' grado=' + aCarg.grado + ' pill=' + aCarg.pill +
+    ' idx=' + aCarg.avm_idx + ' sev=' + aCarg.sev]);
+  ex.push(['DENOMINADOR (A): y el informe lo AFIRMA con su numero entre parentesis',
+    lineaVM(aCargInf.inf).indexOf('estenosis significativa (AVm 1.38 cm') > -1,
+    lineaVM(aCargInf.inf)]);
+  __t.set('thp', '');
+  const aBorr = foto();
+  const aBorrInf = __t.informe();
+  /* LOS CINCO NODOS DEL CENSO, uno por uno: antes quedaban con el estado del paciente anterior. */
+  ex.push(['(A) W1-1: al borrar el THP el AVm INDEXADO se vacia — es el que viaja al Excel',
+    aBorr.avm_idx === '', 'avm_idx=«' + aBorr.avm_idx + '»']);
+  ex.push(['(A) W1-1: la clasificacion de la fila del THP se vacia',
+    aBorr.claseThp === '', 'em-clase-thp=«' + aBorr.claseThp + '»']);
+  ex.push(['(A) W1-1: la capsula de categoria vuelve a la raya',
+    aBorr.sev === String.fromCharCode(8212), 'em-sev-integrada=«' + aBorr.sev + '»']);
+  ex.push(['(A) W1-1: el GRADO automatico se retira al centinela',
+    aBorr.grado === 'sin', 'em_grado=«' + aBorr.grado + '»']);
+  ex.push(['(A) W1-1: el badge del THP se vacia',
+    aBorr.badge === '', 'em-thp-badge=«' + aBorr.badge + '»']);
+  ex.push(['(A) W1-1: la pastilla que prendio la APP se apaga y suelta su clave y su dueno',
+    aBorr.pill === false && aBorr.clave === null,
+    'pill=' + aBorr.pill + ' clave=' + String(aBorr.clave)]);
+  /* ⚠️ SE PREGUNTA POR «estenosis significativa» Y NO POR «significativa» A SECAS: la frase de
+     normalidad del estilo narrativo contiene la palabra («sin estenosis ni insuficiencia
+     significativas»), asi que el predicado corto depende del estilo y no del defecto. */
+  ex.push(['(A) W1-1: el informe deja de afirmar —y ya no afirma SIN el numero, que era el defecto',
+    lineaVM(aBorrInf.inf).indexOf('sin estenosis') > -1 &&
+    lineaVM(aBorrInf.inf).indexOf('estenosis significativa') === -1 &&
+    lineaVM(aBorrInf.inf).indexOf('AVm') === -1,
+    lineaVM(aBorrInf.inf)]);
+  ex.push(['(A) W1-1: y el EN SUMA deja de decir «EM significativa.»',
+    aBorrInf.suma.indexOf('EM significativa') === -1, aBorrInf.suma.split(String.fromCharCode(10)).join(' | ')]);
+  ex.push(['(A) W1-1: el Excel exporta el centinela y sigue en 436 columnas',
+    excelEm() === 'sin' && excelCols() === 436,
+    'EM grado=' + excelEm() + ' cols=' + excelCols()]);
+
+  /* EL OTRO LADO DE LA REGLA DEL 13/10: un grado que el MEDICO fijo no se retira. */
+  base();
+  __t.set('thp', '160');
+  __t.set('em_grado', 'severa');     // el onchange del select es emGradoManual()
+  const mCarg = foto();
+  __t.set('thp', '');
+  const mBorr = foto();
+  const mBorrInf = __t.informe();
+  ex.push(['DENOMINADOR (A): el gesto del medico dejo la marca de grado manual puesta',
+    mCarg.manual === true, 'manual=' + mCarg.manual]);
+  ex.push(['(A) W1-1: el grado FIJADO A MANO se respeta al borrar el THP, con su pastilla y su badge',
+    mBorr.grado === 'severa' && mBorr.pill === true &&
+    mBorr.badge.indexOf('fijado a mano') > -1,
+    'grado=' + mBorr.grado + ' pill=' + mBorr.pill + ' badge=' + mBorr.badge]);
+  ex.push(['(A) W1-1: y el informe sigue afirmando lo que el medico firmo',
+    mBorrInf.suma.indexOf('EM significativa') > -1,
+    mBorrInf.suma.split(String.fromCharCode(10)).join(' | ')]);
+
+  /* LAS OTRAS DOS FUENTES DE AREA: ya se vaciaban bien, y son el control de que el arreglo no
+     invento un comportamiento nuevo sino que le dio a la del THP el que las otras ya tenian. */
+  base();
+  __t.set('em_dtsvi', '20'); __t.set('em_vtitsvi', '18'); __t.set('em_vtimit', '60.8');
+  const cCarg = foto();
+  __t.set('em_vtimit', '');
+  const cBorr = foto();
+  ex.push(['DENOMINADOR (A): la continuidad da 0,93 cm2 y completa «severa»',
+    String(cCarg.cont).indexOf('0.93') > -1 && cCarg.grado === 'severa',
+    'cont=' + cCarg.cont + ' grado=' + cCarg.grado]);
+  ex.push(['(A) CONTROL: borrar el ultimo insumo de la CONTINUIDAD retira grado, capsula, indexado y pastilla',
+    cBorr.cont === '' && cBorr.grado === 'sin' && cBorr.avm_idx === '' &&
+    cBorr.sev === String.fromCharCode(8212) && cBorr.pill === false,
+    'cont=«' + cBorr.cont + '» grado=' + cBorr.grado + ' idx=«' + cBorr.avm_idx +
+    '» sev=«' + cBorr.sev + '» pill=' + cBorr.pill]);
+  base();
+  __t.set('avm_plan', '1.2');
+  const pCarg = foto();
+  __t.set('avm_plan', '');
+  const pBorr = foto();
+  ex.push(['DENOMINADOR (A): la planimetria de 1,2 cm2 completa «severa»',
+    pCarg.grado === 'severa', 'grado=' + pCarg.grado]);
+  ex.push(['(A) CONTROL: borrar la PLANIMETRIA retira grado, capsula, indexado y pastilla',
+    pBorr.plan === '' && pBorr.grado === 'sin' && pBorr.avm_idx === '' &&
+    pBorr.sev === String.fromCharCode(8212) && pBorr.pill === false,
+    'plan=«' + pBorr.plan + '» grado=' + pBorr.grado + ' idx=«' + pBorr.avm_idx + '» pill=' + pBorr.pill]);
+  /* ⚠️ CONTROL NEGATIVO MAYOR: borrar el PESO limpia SOLO el indexado y NO mueve una afirmacion de
+     severidad. Es la conducta deliberada de _emAvmiSinBSA y es lo que distingue «el arreglo llama
+     al dueno cuando corresponde» de «el arreglo recalcula todo ante cualquier cosa». */
+  base();
+  __t.set('thp', '160');
+  __t.set('peso', '');
+  const wBorr = foto();
+  ex.push(['(A) CONTROL NEGATIVO: borrar el PESO vacia SOLO el AVm indexado y deja el grado, la capsula y la pastilla',
+    wBorr.avm_idx === '' && wBorr.grado === 'severa' && wBorr.pill === true &&
+    wBorr.sev.indexOf('significativa') > -1 && wBorr.avm_thp === '1.38',
+    'idx=«' + wBorr.avm_idx + '» grado=' + wBorr.grado + ' pill=' + wBorr.pill +
+    ' avm=' + wBorr.avm_thp]);
+
+  /* ══ (B) W1-7 · EL AVISO DE FIBRILACION AURICULAR EN LA CONTINUIDAD ═══════════════════════ */
+  const escenaCont = () => { base();
+    __t.set('em_dtsvi', '20'); __t.set('em_vtitsvi', '18'); __t.set('em_vtimit', '60.8'); };
+  const fa = () => TX('em-cont-fa-aviso');
+  const motivo = () => TX('em-cont-aviso');
+  escenaCont();
+  const rsFoto = foto(); const rsFa = fa(); const rsInf = __t.informe();
+  const rsExcel = excelCols(); const rsEm = excelEm();
+  __t.set('diast_ritmo', 'fa');
+  const faFoto = foto(); const faFa = fa(); const faInf = __t.informe();
+  const faExcel = excelCols(); const faEm = excelEm();
+  ex.push(['DENOMINADOR (B): el ritmo efectivo lo decide hfRitmoEfectivo y el gesto quedo puesto',
+    (function(){ try { return hfRitmoEfectivo() === 'fa'; } catch (e) { return 'EXC'; } })() === true &&
+    VL('diast_ritmo') === 'fa', 'select=' + VL('diast_ritmo')]);
+  ex.push(['(B) W1-7: con FIBRILACION AURICULAR y un AVm por continuidad calculado sale el aviso, con su guia y su folio',
+    faFa.indexOf('fibrilaci') > -1 && faFa.indexOf('EAE/ASE 2009') > -1 &&
+    faFa.indexOf('folio 14') > -1 && faFa.indexOf('continuidad') > -1, faFa]);
+  ex.push(['(B) CONTROL NEGATIVO: en ritmo sinusal, con la MISMA escena, el aviso no sale',
+    rsFa === '', 'sinusal=«' + rsFa + '»']);
+  ex.push(['(B) W1-7: el aviso NO cambia el voto ni el grado ni la pastilla ni la categoria',
+    faFoto.cont === rsFoto.cont && faFoto.grado === rsFoto.grado &&
+    faFoto.pill === rsFoto.pill && faFoto.cat === rsFoto.cat,
+    'rs: cont=' + rsFoto.cont + ' grado=' + rsFoto.grado + ' cat=' + rsFoto.cat +
+    ' | fa: cont=' + faFoto.cont + ' grado=' + faFoto.grado + ' cat=' + faFoto.cat]);
+  /* ⚠️ SE COMPARAN LAS LINEAS DE LA MITRAL Y NO EL INFORME ENTERO, y el motivo es una medicion:
+     cambiar el ritmo mueve la FUNCION DIASTOLICA —otra rama de la guia, otras frases—, asi que
+     exigir el informe completo identico pone la condicion en rojo por un parrafo que esta tanda no
+     toca y que DEBE cambiar con el ritmo. Lo que esta tanda promete es que la mitral no se mueve. */
+  const sumaEM = (t) => String(t || '').split(String.fromCharCode(10))
+    .map(function(x){ return x.trim(); })
+    .filter(function(x){ return x && /\bEM\b|\bIM\b|mitral|Gradiente transmitral/i.test(x); }).join(' | ');
+  ex.push(['(B) W1-7: las lineas de la MITRAL del informe, su EN SUMA y la celda del Excel salen IDENTICAS en los dos ritmos, y el Excel sigue en 436',
+    lineaVM(faInf.inf) === lineaVM(rsInf.inf) && sumaEM(faInf.suma) === sumaEM(rsInf.suma) &&
+    faExcel === rsExcel && faExcel === 436 && faEm === rsEm && faEm === 'severa',
+    'rs=«' + lineaVM(rsInf.inf) + ' || ' + sumaEM(rsInf.suma) + '» fa=«' + lineaVM(faInf.inf) +
+    ' || ' + sumaEM(faInf.suma) + '» cols=' + faExcel + ' EM grado=' + faEm]);
+  ex.push(['(B) W1-7: el texto del aviso NO se filtra al informe ni al EN SUMA',
+    faInf.inf.indexOf('EAE/ASE 2009') === -1 && faInf.suma.indexOf('EAE/ASE 2009') === -1,
+    'sin la cita en el papel']);
+  /* SIN CONTINUIDAD CALCULADA NO HAY NADA SOBRE LO QUE ADVERTIR. */
+  base();
+  __t.set('em_gmedio', '12');
+  __t.set('diast_ritmo', 'fa');
+  ex.push(['(B) CONTROL NEGATIVO: en FIBRILACION AURICULAR sin AVm por continuidad el aviso no sale',
+    fa() === '' && VL('avm_cont') === '', 'aviso=«' + fa() + '» cont=«' + VL('avm_cont') + '»']);
+  /* SE SUMA SIN PISAR: el motivo de IM/IAo y la salvedad del ritmo son dos cosas distintas. */
+  escenaCont();
+  __t.set('im_grado', '2');
+  const motRs = motivo(); const faRs = fa();
+  __t.set('diast_ritmo', 'fa');
+  const motFa = motivo(); const faFa2 = fa();
+  ex.push(['DENOMINADOR (B): con IM moderada el motivo de la continuidad ya estaba, en los dos ritmos',
+    motRs.indexOf('regurgitaci') > -1 && motFa.indexOf('regurgitaci') > -1,
+    'rs=«' + motRs + '» fa=«' + motFa + '»']);
+  ex.push(['(B) W1-7: el aviso de FA SE SUMA sin pisar el motivo de IM/IAo, con su separador',
+    motFa === motRs && faFa2.indexOf('fibrilaci') > -1 &&
+    faFa2.indexOf(String.fromCharCode(183)) > -1 && faRs === '',
+    'motivo=«' + motFa + '» fa=«' + faFa2 + '»']);
+  /* ⚠️ ESTRUCTURAL, Y NO ES COSMETICO: si el aviso fuera HIJO de em-cont-aviso, el barrido
+     generico de [id$="-aviso"] de limpiarCampos haria textContent='' sobre el padre y DESTRUIRIA
+     el nodo — no se vaciaria, desapareceria y no volveria nunca. */
+  ex.push(['(B) W1-7: el aviso es un span HERMANO de em-cont-aviso y no un hijo suyo',
+    (function(){ const a = document.getElementById('em-cont-fa-aviso'),
+                       b = document.getElementById('em-cont-aviso');
+      return !!(a && b && a.parentNode === b.parentNode && !b.contains(a)); })(),
+    'hermano']);
+  limpiarTodo();
+  ex.push(['(B) W1-7: tras «Nuevo estudio» el nodo SIGUE EXISTIENDO y queda vacio',
+    !!document.getElementById('em-cont-fa-aviso') && fa() === '',
+    'existe=' + !!document.getElementById('em-cont-fa-aviso') + ' txt=«' + fa() + '»']);
+  /* EL COLOR: ambar de verdad y no el gris heredado. --amber no existe en esta zona —se define
+     solo dentro de .amilo-root y de #sp-root— y por eso se uso --orange, que es global. */
+  escenaCont();
+  __t.set('diast_ritmo', 'fa');
+  /* ⚠️ TODA LECTURA DE UN NODO NUEVO VA POR UN AYUDANTE CON CENTINELA, y no es una comodidad:
+     la primera version llamaba getComputedStyle directo y contra HEAD —donde el nodo no existe—
+     el caso MORIA POR EXCEPCION, o sea probaba que el arbol es distinto y no que sabe medir. Es
+     la misma leccion que TC-455, TC-462 y TC-465 ya tienen escrita. */
+  const estiloDe = (id, prop) => { const e = document.getElementById(id);
+    if (!e) return 'NO EXISTE'; const cs = getComputedStyle(e);
+    return prop ? String(cs.getPropertyValue(prop) || '').trim() : cs.color; };
+  ex.push(['(B) W1-7: el color del aviso es el AMBAR global y no el gris heredado, y --amber sigue sin existir en esta zona',
+    estiloDe('em-cont-fa-aviso') === 'rgb(245, 158, 66)' &&
+    estiloDe('em-cont-fa-aviso', '--orange') === '#f59e42' &&
+    estiloDe('em-cont-fa-aviso', '--amber') === '',
+    'color=' + estiloDe('em-cont-fa-aviso') + ' --orange=«' + estiloDe('em-cont-fa-aviso', '--orange') +
+    '» --amber=«' + estiloDe('em-cont-fa-aviso', '--amber') + '»']);
+  ex.push(['(B) CONTROL NEGATIVO: el aviso de MOTIVO de al lado conserva su amarillo',
+    estiloDe('em-cont-aviso') === 'rgb(245, 200, 66)', estiloDe('em-cont-aviso')]);
+  /* EL RITMO ENTRA POR src, que es lo que impide que la pantalla y el libro se separen. */
+  /* MISMO CENTINELA para la funcion nueva: contra HEAD no existe y un ReferenceError mata la
+     corrida entera. */
+  const avisoFA = (src) => { try {
+      return (typeof emContAvisoFA === 'function') ? emContAvisoFA(src) : 'SIN FN'; }
+    catch (e) { return 'EXC'; } };
+  ex.push(['(B) W1-7: el predicado del ritmo acepta src y repite la cascada de hfRitmoEfectivo',
+    avisoFA({ diast_ritmo: 'fa' }) !== '' && avisoFA({ diast_ritmo: 'fa' }) !== 'SIN FN' &&
+    avisoFA({ diast_ritmo: 'sinusal' }) === '' &&
+    avisoFA({ hf_ritmo: 'fa', diast_ritmo: 'sinusal' }) !== '' &&
+    avisoFA({ hf_ritmo: 'rs', diast_ritmo: 'fa' }) === '' &&
+    avisoFA({}) === '',
+    'fa=' + avisoFA({ diast_ritmo: 'fa' }) +
+    ' rs=«' + avisoFA({ diast_ritmo: 'sinusal' }) +
+    '» manualFa=' + (avisoFA({ hf_ritmo: 'fa', diast_ritmo: 'sinusal' }) !== '') +
+    ' manualRs=' + (avisoFA({ hf_ritmo: 'rs', diast_ritmo: 'fa' }) !== '')]);
+  /* ⚠️ UN SOLO ESCRITOR DEL NODO: el id aparece DOS veces en el archivo, el marcado y el pintor.
+     Con un segundo escritor, el aviso y su separador se desincronizan. */
+  ex.push(['(B) W1-7: el nodo tiene UN solo escritor — su id aparece dos veces en el archivo',
+    (function(){ const s = document.documentElement.innerHTML;
+      return (s.split('em-cont-fa-aviso').length - 1) === 2; })(),
+    'apariciones=' + (document.documentElement.innerHTML.split('em-cont-fa-aviso').length - 1)]);
+
+  /* ══ (C) W1-2 · EL LABORATORIO CLASIFICA IGUAL QUE EL INFORME ═════════════════════════════ */
+  const reg = (c) => ({ id:'T', nombre:'T', ci:'1', fecha_estudio:'2026-10-15', campos: c || {} });
+  const CAT = (c) => { try { const r = _labEmLectura(reg(c)); return r === null ? null : r.cat; }
+    catch (e) { return 'EXC'; } };
+  const GRAD = (c) => { try { const r = _labEmLectura(reg(c)); return r === null ? null : r.porGrad; }
+    catch (e) { return 'EXC'; } };
+  const POB = [
+    { em_gmedio:'12' }, { em_gmedio:'12', im_grado:'2' }, { em_gmedio:'12', im_grado:'4' },
+    { em_gmedio:'7' },  { em_gmedio:'7',  im_grado:'2' }, { em_gmedio:'7',  im_grado:'4' },
+    { em_gmedio:'4.9', im_grado:'4' },
+    { avm_plan:'1.2', em_gmedio:'12', im_grado:'4' }, { avm_plan:'0.8' },
+    { avm_plan:'2.0', em_gmedio:'7' }, { em_grado:'severa' },
+    {}, { vm_morf:'Pr\\u00f3tesis mec\\u00e1nica', em_gmedio:'12' }
+  ];
+  const cnt = {}; LAB_EM_CAT_ORDEN.forEach(function(k){ cnt[k] = 0; });
+  let conDato = 0, fuera = 0;
+  POB.forEach(function(c){ const k = CAT(c); if (k === null) { fuera++; return; }
+    conDato++; if (cnt[k] !== undefined) cnt[k]++; });
+  let suma = 0; LAB_EM_CAT_ORDEN.forEach(function(k){ suma += cnt[k]; });
+  ex.push(['DENOMINADOR (C): de los trece estudios armados, once tienen dato de esta valvula y dos quedan fuera (el vacio y la protesis)',
+    conDato === 11 && fuera === 2, 'conDato=' + conDato + ' fuera=' + fuera]);
+  ex.push(['(C) W1-2: con IM moderada o severa y gradiente elevado el estudio cae en «No significativa con gradiente elevado» y NO en «Sin estenosis»',
+    CAT({ em_gmedio:'12', im_grado:'4' }) === 'grad_elev' &&
+    CAT({ em_gmedio:'12', im_grado:'2' }) === 'grad_elev' &&
+    CAT({ em_gmedio:'7',  im_grado:'4' }) === 'grad_elev' &&
+    CAT({ em_gmedio:'7',  im_grado:'2' }) === 'grad_elev',
+    'g12sev=' + CAT({ em_gmedio:'12', im_grado:'4' }) + ' g12mod=' + CAT({ em_gmedio:'12', im_grado:'2' }) +
+    ' g7sev=' + CAT({ em_gmedio:'7', im_grado:'4' }) + ' g7mod=' + CAT({ em_gmedio:'7', im_grado:'2' })]);
+  ex.push(['(C) W1-2: lo que la IM significativa sigue retirando es la banda que AFIRMA — porGrad en false y nunca «Significativa solo por gradiente»',
+    GRAD({ em_gmedio:'12', im_grado:'4' }) === false &&
+    CAT({ em_gmedio:'12', im_grado:'4' }) !== 'sig_grad',
+    'porGrad=' + GRAD({ em_gmedio:'12', im_grado:'4' })]);
+  ex.push(['(C) CONTROL NEGATIVO: sin IM el gradiente de 12 mmHg sigue afirmando y el de 7 sigue en la banda media',
+    CAT({ em_gmedio:'12' }) === 'sig_grad' && CAT({ em_gmedio:'7' }) === 'grad_elev',
+    'g12=' + CAT({ em_gmedio:'12' }) + ' g7=' + CAT({ em_gmedio:'7' })]);
+  ex.push(['(C) CONTROL NEGATIVO: por DEBAJO de los 5 mmHg no hay gradiente elevado que declarar, asi que con IM severa sigue en «Sin estenosis»',
+    CAT({ em_gmedio:'4.9', im_grado:'4' }) === 'sin',
+    String(CAT({ em_gmedio:'4.9', im_grado:'4' }))]);
+  ex.push(['(C) CONTROL NEGATIVO: con IM severa el AREA sigue votando y manda sobre el gradiente',
+    CAT({ avm_plan:'1.2', em_gmedio:'12', im_grado:'4' }) === 'sig_area_15' &&
+    CAT({ avm_plan:'0.8' }) === 'sig_area_1',
+    'area12=' + CAT({ avm_plan:'1.2', em_gmedio:'12', im_grado:'4' }) + ' area08=' + CAT({ avm_plan:'0.8' })]);
+  ex.push(['(C) W1-2: las categorias siguen siendo SEIS y excluyentes — su suma da el total de estudios con dato',
+    LAB_EM_CAT_ORDEN.length === 6 && Object.keys(LAB_EM_CAT).length === 6 && suma === conDato,
+    'n=' + LAB_EM_CAT_ORDEN.length + ' suma=' + suma + ' conDato=' + conDato +
+    ' reparto=' + JSON.stringify(cnt)]);
+  ex.push(['(C) W1-2: las DOS casillas superponibles no se mueven — son porArea y porGrad',
+    (function(){ try { const c = _labEmCasillas(POB.map(reg));
+      return c.base === 11 && c.area === 2 && c.grad === 1 && c.ambos === 0; }
+      catch (e) { return 'EXC'; } })() === true,
+    JSON.stringify((function(){ try { return _labEmCasillas(POB.map(reg)); } catch (e) { return 'EXC'; } })())]);
+  ex.push(['(C) CONTROL NEGATIVO: el estudio sin ningun dato y la PROTESIS siguen fuera de todas las categorias',
+    CAT({}) === null && CAT({ vm_morf:'Pr\\u00f3tesis mec\\u00e1nica', em_gmedio:'12' }) === null,
+    'vacio=' + String(CAT({})) + ' protesis=' + String(CAT({ vm_morf:'Pr\\u00f3tesis mec\\u00e1nica', em_gmedio:'12' }))]);
+  ex.push(['(C) CONTROL NEGATIVO: el token antiguo se sigue leyendo y «Significativa sin dato numerico» no se movio',
+    CAT({ em_grado:'severa' }) === 'sig_sin_num' &&
+    (function(){ try { return _labEstenSev(reg({ em_grado:'severa' }), 'em_grado'); }
+      catch (e) { return 'EXC'; } })() === 'Severa',
+    'cat=' + CAT({ em_grado:'severa' })]);
+  /* ⚠️ LAS DOS SUPERFICIES SOBRE EL MISMO ESTUDIO, que es lo que el defecto rompia: se monta la
+     escena en el formulario, se genera el informe DE VERDAD y se le pregunta al Laboratorio por
+     los campos recolectados. Sin esto, «clasifica igual que el informe» seria una afirmacion
+     sobre dos mediciones de dos escenas distintas. */
+  base();
+  __t.set('em_gmedio', '12'); __t.set('im_grado', '4');
+  const dosInf = __t.informe();
+  const dosLab = (function(){
+    const campos = {};
+    Array.prototype.slice.call(document.querySelectorAll('input[id], select[id], textarea[id]'))
+      .forEach(function(e){
+        if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(e.id)) return;
+        campos[e.id] = e.value; });
+    try { const r = _labEmLectura(reg(campos)); return r === null ? null : r.cat; }
+    catch (e) { return 'EXC'; } })();
+  ex.push(['(C) W1-2: el MISMO estudio — informe «con gradiente transmitral elevado» y Laboratorio «No significativa con gradiente elevado»',
+    lineaVM(dosInf.inf).indexOf('gradiente transmitral elevado') > -1 &&
+    dosInf.suma.indexOf('Gradiente transmitral elevado') > -1 &&
+    dosLab === 'grad_elev' && LAB_EM_CAT[dosLab].indexOf('gradiente elevado') > -1,
+    'informe=«' + lineaVM(dosInf.inf) + '» lab=' + String(dosLab)]);
+
+  /* ══ (D) CONTROLES: lo que esta tanda NO mueve ════════════════════════════════════════════ */
+  base();
+  __t.set('im_grado', '4'); __t.set('ia_grado', '2'); __t.set('it_grado', '2');
+  __t.set('vmax_ao', '4.5'); __t.set('ea_dtsvi', '20'); __t.set('ea_vtitsvi', '18');
+  __t.set('itv_ao', '110');
+  __t.set('onda_e', '100'); __t.set('onda_a', '50');
+  __t.set('e_prima_septal', '6'); __t.set('e_prima_lateral', '8');
+  __t.set('ai_vol', '40'); __t.set('fevi', '60');
+  __t.set('diast_ritmo', 'fa');
+  const dInf = __t.informe();
+  ex.push(['(D) CONTROL: con el escenario cargado los grados ajenos no se mueven y el aviso de FA no aparece sin continuidad',
+    VL('im_grado') === '4' && VL('ia_grado') === '2' && VL('it_grado') === '2' &&
+    VL('ea_grado') === 'severa' && fa() === '',
+    'im=' + VL('im_grado') + ' ia=' + VL('ia_grado') + ' it=' + VL('it_grado') +
+    ' ea=' + VL('ea_grado') + ' faAviso=«' + fa() + '»']);
+  ex.push(['(D) CONTROL: el EN SUMA sigue nombrando las lesiones ajenas y el Excel sigue en 436 columnas',
+    dInf.suma.indexOf('IM severa') > -1 && dInf.suma.indexOf('EAo severa') > -1 &&
+    excelCols() === 436,
+    'cols=' + excelCols() + ' suma=' + dInf.suma.split(String.fromCharCode(10)).join(' | ')]);
+  /* LA PROTESIS: no se gradua, y esta tanda no la toca. */
+  base();
+  __t.set('vm_morf', 'Pr\\u00f3tesis mec\\u00e1nica');
+  __t.set('em_gmedio', '12');
+  __t.set('diast_ritmo', 'fa');
+  const prInf = __t.informe();
+  ex.push(['(D) CONTROL: con PROTESIS mitral la capsula sigue diciendo que no se gradua, el grado queda en el centinela y el informe no afirma estenosis',
+    TX('em-sev-integrada').indexOf('No graduada') > -1 && VL('em_grado') === 'sin' &&
+    prInf.inf.indexOf('estenosis significativa') === -1,
+    'capsula=«' + TX('em-sev-integrada') + '» grado=' + VL('em_grado')]);
+  /* LOS TRES ESTILOS: ninguna de las tres correcciones toca una frase del informe firmado con el
+     dato cargado — lo que cambia es que al BORRARLO la frase se retira. */
+  base();
+  __t.set('thp', '160');
+  const est = {};
+  ['estandar','narrativo','conciso'].forEach(function(e){
+    try { setEstiloInforme(e); } catch (x) {}
+    const r = __t.informe();
+    est[e] = lineaVM(r.inf) + ' || ' + r.suma.split(String.fromCharCode(10)).join(' | ');
+  });
+  try { setEstiloInforme('estandar'); } catch (x) {}
+  ex.push(['(D) CONTROL: con el THP cargado los TRES estilos siguen afirmando la estenosis con su numero',
+    ['estandar','narrativo','conciso'].every(function(e){
+      return est[e].indexOf('1.38') > -1 || est[e].indexOf('significativa') > -1; }),
+    JSON.stringify(est).slice(0, 320)]);
+  limpiarTodo();
+
+  return { extra: ex };
+`);
+
+
 let servidor, chrome;
 try {
   const s = await servir(); servidor = s.srv;

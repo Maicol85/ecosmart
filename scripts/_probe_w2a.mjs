@@ -34,7 +34,7 @@
 
 import { createServer } from 'node:http';
 import { spawn } from 'node:child_process';
-import { readFile, mkdtemp, rm } from 'node:fs/promises';
+import { readFile, writeFile, mkdtemp, rm } from 'node:fs/promises';
 import { rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname, extname, isAbsolute, basename } from 'node:path';
@@ -93,6 +93,8 @@ const FARG = arg('--file') || 'index.html';
 const EXTERNO = isAbsolute(FARG);
 const FILE = EXTERNO ? '__ab__' + basename(FARG) : FARG;
 const SOLO = arg('--solo');
+/* --dest <dir>: si esta, el grupo `color` guarda el PNG del renglon del aviso en los dos temas. */
+const DEST = arg('--dest');
 
 const CHROMES = [
   '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
@@ -462,6 +464,20 @@ window.__P = {
     try { var vc = _labValvCounts(regs.map(function(c){ return window.__P.reg(c) }));
       return { bases: vc.bases, L: vc.counts.Leve, M: vc.counts.Moderada, S: vc.counts.Severa, N: vc.N };
     } catch(e) { return 'EXC: ' + e.message } },
+
+  /* El rectangulo de la fila del aviso, en coordenadas de PAGINA. ⚠️ El clip de
+     Page.captureScreenshot va en coordenadas de PAGINA y getBoundingClientRect da las del
+     VIEWPORT: con la pagina scrolleada, la captura de la tanda del violeta salio EN NEGRO. Se
+     suma el scroll, y antes se scrollea el nodo al centro. */
+  recorte(id) {
+    var e = document.getElementById(id); if (!e) return { err: 'NO EXISTE ' + id };
+    e.scrollIntoView({ block: 'center', inline: 'center' });
+    var fila = e.closest('.calc-row') || e;
+    var r = fila.getBoundingClientRect();
+    if (r.width === 0 || r.height === 0) return { err: 'sin geometria' };
+    return { x: Math.max(0, Math.round(r.left + window.scrollX) - 6),
+             y: Math.max(0, Math.round(r.top + window.scrollY) - 6),
+             width: Math.round(r.width) + 12, height: Math.round(r.height) + 12 } },
 
   despejar() {
     var o = {};
@@ -886,6 +902,28 @@ async function main() {
       };
     }
     await J('window.__P.tema(false)');
+    /* ⚠️ Y LA CAPTURA, PORQUE getComputedStyle LEE EL ESTILO Y NO EL PIXEL. La tanda del violeta
+       informo `rgb(237,233,254)` sobre un PNG gris: el aviso legal vuelve a mitad de corrida y
+       OSCURECE la imagen entera. Se despeja DENTRO del medidor y se informa su estado al lado. */
+    if (DEST) {
+      g.captura = [];
+      for (const claro of [false, true]) {
+        const t = await J('window.__P.tema(' + (claro ? 'true' : 'false') + ')');
+        if (t.tieneClase !== claro) throw new Error('ABORTA: la clase light-mode no quedo en ' + claro);
+        const desp = await J('window.__P.despejar()');
+        const rec = await J('window.__P.recorte("em-cont-fa-aviso")');
+        if (rec.err) { g.captura.push({ claro, err: rec.err }); continue; }
+        const png = await cdp.send('Page.captureScreenshot',
+          { format: 'png', clip: { x: rec.x, y: rec.y, width: rec.width, height: rec.height, scale: 2 } },
+          sessionId);
+        const f = join(DEST, 'w2a-fa-' + (claro ? 'claro' : 'oscuro') + '.png');
+        const buf = Buffer.from(png.data, 'base64');
+        await writeFile(f, buf);
+        g.captura.push({ claro, archivo: f, bytes: buf.length, recorte: rec, despejado: desp,
+                         md5: createHash('md5').update(buf).digest('hex') });
+      }
+      await J('window.__P.tema(false)');
+    }
     out.grupos.color = g;
   }
 
