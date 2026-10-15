@@ -45,6 +45,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar un CRITERIO o un CORTE del puntaje HFA-PEFF**: la tabla contra el original, las tres contradicciones del artículo, la PSAP o el operador del IMVI | `docs/mapa/hfapeff-criterios.md` |
 | **Tocar los VOLÚMENES del VI en AI/VI**: el VSFVI automático, el volumen latido automático, quién lee el VSFVI, o el GASTO CARDÍACO del PDF y su frecuencia cardíaca | `docs/mapa/vi-volumenes-automaticos.md` |
 | **Ver por dónde sale un dato** (informe narrativo, EN SUMA, PDF, Excel) | `docs/mapa/informe-pdf-excel.md` |
+| **Tocar una COLUMNA del Excel, el criterio de «derivada», la IDA Y VUELTA de un dato calculado o el mensaje del importador** | `docs/mapa/excel-origen-ida-vuelta.md` |
 | **Tocar las ASOCIACIONES del Laboratorio o la TABLA DE LAS OCHO VÁLVULAS**: el cociente TAPSE/PSAP en el bloque A, el aviso de par acoplado, las dos estenosis BINARIAS y sus dos denominadores | `docs/mapa/laboratorio-asociaciones-valvulas.md` |
 | **Agregar o correr un caso de prueba; A/B; mutación** | `docs/mapa/tests.md` |
 | **Visor de cineloop, medición, calibración, IndexedDB** | `docs/mapa/imagenes-visor.md` |
@@ -259,6 +260,242 @@ impecable.
 ---
 
 ## Estado vigente
+
+### El PPM AÓRTICO al informe, la columna de la VELOCIDAD DE LA IT con la ida y vuelta del TAPSE/PSAP, el BORRADO de la estenosis aórtica y los DOS ESTADOS del cociente — «Z» (2026-10-15)
+
+- **Es la tanda «Z».** Al **empezar**, `main` y `origin/main` estaban los dos en **`85c2aa6`**
+  (sello `v20261015-1459`), **sin nada sin pushear** —confirmado con un `git fetch` de verdad—,
+  con los cinco commits del G3 ya incluidos **y pusheados**. Los **cinco** commits de esta tanda
+  quedan locales; el push lo corre Maicol.
+  ⚠️ **LA ORDEN PEDÍA SIETE COMMITS Y SON CINCO, PORQUE DOS PARTES SON PARADAS**: el voto de los
+  tres parámetros de la prótesis mitral (**Z1**) y el corte de la pantalla de TEP (**Z4-TEP**).
+  Las dos se midieron y se reportan; ninguna toca una línea de código.
+  **El orden de revertido seguro es el inverso del de aplicación: 5 → 4 → 3 → 2 → 1.**
+  ⚠️ **EL 1, EL 3 Y EL 4 SE REVIERTEN SOLOS Y EN CUALQUIER ORDEN ENTRE SÍ**, que en esta serie es
+  raro y conviene decirlo: el 1 es el PPM aórtico (`_eaPpmAoClasificar`, la línea del informe y
+  su columna), el 3 la estenosis aórtica (`eaSevVacioSync`, el `else` de `calcEADetalle`,
+  `EA_FILA_GRADO` y la fila de planimetría) y el 4 el cociente (los dos estados y la tarjeta).
+  Ninguno nombra nada de los otros dos.
+  ⚠️ **PERO EL 2 CUELGA DEL 1 POR EL CONTEO DE COLUMNAS**: el 1 lleva el Excel de 438 a **439** y
+  el 2 a **440**, y el 2 adaptó **80 renglones** de la suite (101 ocurrencias de «438»).
+  Revertir el 1 sin revertir antes el 2 deja la suite entera en rojo por el denominador del
+  Excel, no por un defecto. **Orden: 2 antes que 1.**
+  ⚠️ **EL MENSAJE DEL COMMIT 2 DICE «73 renglones» Y SON 80**, medido con
+  `git show … | grep -c '^-.*438'`. El 73 salió de un diff que compara línea contra línea por
+  POSICIÓN, que subcuenta en cuanto el archivo cambia de largo. El mensaje queda como está —no se
+  reescribe historia— y el número bueno es éste.
+  ⚠️ **Y EL 2 LLEVA LA ADAPTACIÓN DE TC-478 (F)**, cuya condición era el **límite declarado** del
+  G3 —«la velocidad de la IT NO tiene columna»— escrito para que el día que entrara se notara.
+  Lo notó. Revertir el 2 sin reponer esa afirmación lo deja midiendo lo contrario.
+  **El 5 es TC-479 más documentación y el sello**, y afirma el comportamiento de los cuatro:
+  revertir cualquiera sin el 5 deja TC-479 en rojo.
+  ⚠️ **EL 1 LLEVA LA SONDA** (`scripts/_probe_z.mjs`), que los commits 2, 3 y 4 usan.
+
+- **Línea base al cierre: suite 489/493 con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0
+  ERROR, Excel en 440 columnas, celular 43 a 360 px y 52 a 390 px con 1 ALTA cada uno —IDÉNTICO
+  a la línea base—. CERO REGRESIONES.** Los **CUATRO** rojos son exactamente los de ENTRADA —**TC-223** (el
+  documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**—, y no apareció ninguno
+  fuera de esa lista. **El denominador sube a 493**: esta tanda agregó **TC-479**. El `md5` de
+  `index.html` no se movió durante la corrida (`0929c853…`, el del sello) y el pendrive estaba
+  montado antes y después. Al terminar no quedó ningún Chrome mío.
+  ⚠️ **LA SUITE COMPLETA SE CORRIÓ DOS VECES, Y LA PRIMERA NO ES LA LÍNEA BASE.** Dio **488/493**
+  con **CINCO** rojos, y el quinto —**TC-302**— lo trajo esta tanda: su condición «UNA sola
+  oración por válvula» cuenta como «frase de más» la línea nueva del PPM aórtico. **Ninguna
+  corrida de zona podía verlo**: ese caso no está en la zona de la prótesis aórtica, sino en la
+  de «el informe protésico no lleva justificación metodológica». Es la quinta tanda seguida en
+  que la suite completa destapa algo que la de zona no ve.
+  ⚠️ **`--todo` del chequeo de celular da 378 a 360 px y 387 a 390 px, EL MISMO PAR QUE DEJÓ EL
+  G3**: ni las dos columnas nuevas ni la fila de planimetría agregan un solo hallazgo, porque
+  ninguna de las dos cosas es un control de formulario.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **493 ids** sobre los 494 casos del archivo.
+- **EL SELLO DE VERSIÓN** estaba al día al empezar (`v20261015-1459`) y se volvió a sellar:
+  **`v20261015-1639`**. Todo lo medido —la suite completa, Semgrep y el chequeo de celular— salió
+  **DESPUÉS** de sellar, con el `md5` quieto.
+  ⚠️ **SE SELLÓ DOS VECES, Y HAY QUE DECIR POR QUÉ.** El primer sello (`v20261015-1633`) quedó
+  invalidado porque **edité tres comentarios de `index.html` con la suite ya corriendo**: el
+  `md5` se movió a mitad de la medición, que es exactamente lo que la regla de la casa prohíbe.
+  Se cortó la corrida, se volvió a sellar y se volvió a medir sobre un árbol quieto. La primera
+  corrida **no se usó para nada**.
+
+- **Dónde está todo:** `docs/mapa/excel-origen-ida-vuelta.md` (**mapa NUEVO por PARTICIÓN**, 7,3 KB:
+  los tres criterios de columna, la cadena de la ida y vuelta, el segundo eslabón que faltaba y
+  los tres cambios del importador), `docs/mapa/tapse-psap-ap.md` → los dos estados, la tarjeta y
+  la parada de TEP (**13,7 KB**), `docs/mapa/aortica-cortes.md` → el borrado y las cinco filas
+  (**18,7 KB**), `docs/mapa/protesis-valvular.md` → el PPM aórtico (**19,6 KB**),
+  `docs/mapa/informe-pdf-excel.md` → el puntero (**29,9 KB**), `docs/fuentes/FUENTES.md` → «La
+  tanda Z — el cociente TAPSE/PSAP, uso por uso», y `docs/PENDIENTES.md` → **Z2, G3-1 y G1-6
+  marcados CERRADOS**, **Z1 confirmada como PARADA**, más **siete** cosas declaradas.
+  ⚠️ **EL MAPA DEL EXCEL SE PARTIÓ ANTES DE CRUZAR EL TECHO Y NO DESPUÉS.** `informe-pdf-excel.md`
+  estaba en **29,7 KB** y esta sección lo cruzaba: medido con `wc -c` **ANTES** de escribir. Es la
+  tercera vez que la regla se aplica, y la primera en que el mapa de destino no llega a cruzar.
+
+- ⚠️ **PARADA Z1: LA ASE 2024 NO DA UNA REGLA DE INTEGRACIÓN, Y SE BUSCÓ EN CINCO LUGARES.** La
+  **Tabla 11 (folio 27)** da cinco parámetros con tres bandas —leída **renderizando a 400 dpi**,
+  porque la fuente codifica `≥` como `$` y `≤` como `#`—; su **nota `*`** dice que «diagnostic
+  accuracy is best if **most** of the parameters listed are normal or abnormal», que es una
+  afirmación sobre la **confianza** y no un umbral de conteo; el **folio 24** enumera cuatro «main
+  criteria» **sin decir cuántos** hacen falta —y **omite la velocidad pico**, que la tabla sí
+  incluye—; **no hay figura de algoritmo** para la estenosis protésica mitral (censadas las 27
+  figuras: la 13 es la aórtica, la 16 la IAo y la 21 la IM); y los **Key Points del folio 29** no
+  agregan ninguna regla. **Sin regla explícita no se inventa una**: `R.obstr` queda como estaba.
+  ⚠️ **Y HAY UNA SEGUNDA RAZÓN QUE LA LECTURA DESTAPÓ:** la **nota `‡`** marca la velocidad pico,
+  el gradiente medio **y el DVI** como «also abnormal in the presence of significant prosthetic
+  MR». La app **ya gatea el DVI** por eso; hacer votar a los otros dos sin decidir si se los gatea
+  igual reabriría el defecto que ese gate cerró — y eso tampoco está en la guía.
+
+- **EL PPM AÓRTICO VA AL INFORME Y AL EN SUMA, CON LA FORMA DEL MITRAL.** Dueño único
+  `_eaPpmAoClasificar(avai, imc)`, que **no lee nada**: sale a función propia porque
+  `eaProtVeredicto` lee el DOM y la columna del Excel trabaja sobre un estudio **ARCHIVADO**.
+  **NINGÚN CORTE SE MOVIÓ** —`ppm` idéntico a HEAD en las seis escenas—. Sale sólo con desajuste
+  **moderado o severo**; sin desajuste no se escribe nada.
+  ⚠️ **CON OBESIDAD LOS DOS CORTES BAJAN, ASÍ QUE EL MISMO INDEXADO ES MENOS GRAVE**: 0,60 es
+  **severo con IMC 24** y **moderado con IMC 34**. La primera versión de la condición de TC-479 lo
+  tenía al revés y el caso lo cazó.
+  ⚠️ **ÚNICA DIFERENCIA CON EL MITRAL, DECLARADA: la frase dice «aórtico».** El mitral no nombra
+  su válvula, y con las dos prótesis desajustadas el EN SUMA publicaría **dos oraciones idénticas
+  que sólo se distinguen por el número**. `PENDIENTES.md` → Z2-1.
+  ⚠️ **CON TAVI TAMBIÉN SALE**, y es correcto: la Tabla 7 no abre ramas por tipo de prótesis. Por
+  eso la línea **no** cuelga de `_eaProtN.resumen`, que es `null` en la TAVI.
+  **Medido con teclas reales, seis escenas por los dos IMC**, más el **control negativo** con
+  válvula NATIVA y el **mismo** AVA indexada de 0,55: fila escondida, celda vacía y el informe sin
+  una sola mención.
+
+- **EL EXCEL PASA DE 438 A 440, Y LAS 438 ANTERIORES SALEN CON EL MISMO VALOR** —comparadas
+  **clave por clave** en siete escenas: cero faltantes, cero sobrantes, **cero valores distintos**,
+  y las dos únicas celdas que cambian son los dos textos, que llevan la línea nueva autorizada—.
+  · **`Vmax IT (m/s)`**, campo de **ENTRADA**: en `LAB_XLS_MAP`, bloque 8, **índice 106**, pegada
+    a `VC IT (mm)`. Dos decimales, como la Vmax aórtica.
+  · **`PPM aórtico`**, **derivada SIN campo** (criterio (b) del G2): fuera del mapa, declarada por
+    NOMBRE, bloque 8, **índice 124**, pegada a `AVA (cm²)`.
+  **Los tres asserts de arranque del Excel corren limpios.**
+
+- **LA IDA Y VUELTA DEL TAPSE/PSAP SE REPRODUCE — cierra G3-1 con su alternativa (a).** Medido
+  exportando la fila COMPLETA y reabriendo el estudio por la ruta real de restauración, con TAPSE
+  18 · Vmax IT 2,8 · VCI 18 mm / colapso >50 %: **IDA** PmAD 3 · PSAP 34 · cociente **0,529** →
+  **VUELTA** PmAD 3 · PSAP 34 · cociente **0,529**, con la fila del Doppler tricuspídeo **idéntica
+  letra por letra**. Un Excel **VIEJO de 438** entra «1 fila válida» y sin un error.
+  ⚠️ **Y FALTABA UN SEGUNDO ESLABÓN, QUE LA MEDICIÓN DESTAPÓ Y LA LECTURA NO: `calcPmAD` no corría
+  en DOS de las rutas de restauración** —`editarInforme` y `cargarEstudioPorId`— y `calcPSAP` lee
+  `v('pmad')` sin derivarla. Para un estudio GUARDADO no se notaba (`pmad` viaja en `campos`); para
+  uno IMPORTADO sí, porque está en `LAB_XLS_SOLO_EXPORT`. **Con la columna puesta y sin esa
+  llamada, la vuelta seguía dejando la PSAP y el cociente VACÍOS.** Es idempotente —`pmad` es un
+  `input readonly` con un solo dueño— y **NO va en `RECALC_MODULOS`**, por el mismo motivo que
+  `calcIP`: el embudo corre además en las dos rutas de la REIMPRESIÓN.
+  ⚠️ **EL MODAL DEL IMPORTADOR NO ES LA IDA Y VUELTA**: es una previsualización sobre la fila
+  cruda, donde la PmAD todavía no existe. Su detalle pasó de «no se pudo recalcular: falta la PSAP
+  estimada» a «se recalcula al abrir el estudio», que es lo que de verdad pasa.
+
+- **EL RENGLÓN INTEGRADO DE LA ESTENOSIS AÓRTICA VUELVE A «SIN DATO»: 12 de 12 contra 0 de 12 en
+  HEAD.** Las SEIS permutaciones de borrado por los DOS gestos, con teclas reales, sobre la escena
+  del médico (Ø TSVI 20 · VTI TSVI 20 · VTI Ao 56).
+  ⚠️ **ES PEOR QUE LO REPORTADO:** el borrado dígito a dígito pasa por un AVA de **0,11 cm²** —el
+  «2» de «20»— y la línea se congela en **«Severa — por AVA» sobre un formulario VACÍO**.
+  ⚠️ **Y NO ES UN DEFECTO DE LA TANDA F**: medido contra el árbol anterior (`0963d53`), las doce
+  quedan igual de congeladas. El F sólo agregó el sufijo «— por X», que lo hace más afirmativo.
+  **La causa:** `calcEADetalle` no tenía `else`, y corre dentro de la compuerta de `calcAo`, que
+  deja de pasar justo cuando se borra el último dato.
+  ⚠️ **Y NO SE PUEDE ARREGLAR AGREGANDO `calcEADetalle` A LAS PUERTAS DEL GESTO**: está MEDIDO y
+  declarado en el comentario de `tsviDiamEditado` —después de `calcAo` le pisa el badge al retiro,
+  antes el retiro no llega a actuar— y **TC-432 verifica esa prohibición sobre el texto de la
+  función**. De ahí `eaSevVacioSync`, que corre en la mitad PURA y **toca el renglón y NO el
+  badge**, que tiene tres dueños.
+  **CONTROL NEGATIVO:** un grado fijado A MANO se respeta —queda «severa», la pastilla prendida—.
+
+- **LAS CINCO FILAS DEL CUADRO PUBLICAN SU GRADO, Y LA PLANIMETRÍA GANA SU FILA — cierra F8.**
+  Un mapa (`EA_FILA_GRADO`) y un dueño (`eaGradoCalculado`). **NINGÚN CORTE SE MOVIÓ**, medido por
+  sus bordes: gradiente 19 **sin grado** / 20 moderada / 39 moderada / 40 severa; planimetría 0,90
+  severa / 1,00 severa / 1,40 moderada / 1,50 **sin grado**.
+  ⚠️ **«sin estenosis» NO SE IMPRIME COMO GRADO DE UNA FILA**: un AVA normal no distingue entre no
+  tener estenosis y tenerla leve. Vacío es la abstención.
+  ⚠️ **UNA CONTRADICCIÓN QUE ESTA TANDA HACE VISIBLE Y NO CREA**: el renglón dice «Moderada — por
+  AVA por planimetría» mientras el `<select>` dice severa. **Medido IDÉNTICO en HEAD** — la rama
+  `else if (ava)` etiqueta por la banda del AVA por continuidad y le pega el criterio global.
+  `PENDIENTES.md` → **Z3-1**.
+  ⚠️ **PARADA Z3-2: el DVI no se calcula sin el diámetro y matemáticamente no lo necesita.** El
+  **criterio** (`_eaCritDvi`) **ya vota sin él**; lo que exige el diámetro es el bloque que escribe
+  las filas y los dos `input readonly`. Y `ea_dvi_display` es la **primera fuente que lee
+  `eaProtVeredicto`**: despegarlo cambia cuándo vota el veredicto protésico aórtico.
+
+- **LA FILA DEL COCIENTE PASA A DOS ESTADOS**, con el corte y el operador de la **ESC/ERS 2022,
+  Tabla 10** («Cociente TAPSE/PAPs < 0,55 mm/mmHg», columna «A: Ventrículos»). Tres decimales
+  intactos. Medido por su borde: 0,529 y 0,544 → signo · **0,550 EXACTO** → sin signo · 0,559 → sin
+  signo.
+  ⚠️ **SE CITA POR NÚMERO DE TABLA Y NO POR FOLIO**: la biblioteca tiene la traducción de la SEC,
+  que **pagina distinto** que el original inglés.
+  ⚠️ **EL TRAMO DE 0,36 SE FUE ENTERO, CON SU CONSTANTE Y SU `window.*`.** Su corte nacía de Guazzi
+  2013, que **no está en la biblioteca**: **la línea afirmaba en pantalla lo que la tarjeta ya se
+  negaba a afirmar**. `PENDIENTES.md` → **G1-6 cerrado POR RETIRO**, no por verificación. Sacar el
+  valor y dejar viva la línea `window.X = X` aborta el `<script>` COMPLETO — se cuentan los
+  `window.X = X`, no los `grep` de X.
+
+- **LA TARJETA ⓘ PUBLICA LOS CINCO USOS, TODOS VERIFICADOS EN TEXTO COMPLETO**, una línea por uso:
+  ESC/ERS 2022 **Tabla 10** (< 0,55) · **Tabla 16** (> 0,32 / 0,19-0,32 / < 0,19, con la mortalidad
+  a un año) · **ASE 2025** folios 152 y 173, los dos **comprobados en el pie impreso** (0,5-0,7 y
+  0,3-0,4) · **Stassen 2022** ESC Heart Fail (TRC, < 0,45, HR 1,437) · **Wang 2024** Clin Cardiol
+  (ICFEp hospitalizada, < 0,45) y **Burgos 2025** Arch Peru Cardiol Cir Cardiovasc (IC aguda con
+  FEVI > 40 %, < 0,38, HR 2,21).
+  ⚠️ **LA TARJETA NO LLEVA NINGUNA NOTA DE VERIFICACIÓN NI RESERVA**: la del G1 declaraba ahí mismo
+  que tres cortes no se pudieron leer en su fuente primaria, y eso es estado interno del proceso.
+  ⚠️ **LA SERIE DE EMBOLIA PULMONAR SE OMITE POR DECISIÓN DEL MÉDICO** (Lyhne 2024, registro RIETE,
+  4.478 pacientes), **aunque SÍ está en la biblioteca y SÍ se verificó**: queda en `FUENTES.md`
+  como fuente **disponible y no usada**.
+  **Medido:** abre, cierra por los cuatro caminos, `<button>` sin `title` y sin `abrirAyudaEco`,
+  30 acentos, cuatro bloques, y a **1200 / 390 / 360 px en los dos temas** entra entera en el
+  viewport con el globo alcanzable (6 de 6). El badge resuelve naranja REAL —`rgb(245,158,66)` de
+  noche y `rgb(217,123,31)` de día—, no la variable gris.
+
+- ⚠️ **PARADA Z4-TEP, MEDIDA: EL 0,32 DE ESA PANTALLA PARTICIPA DE UN VEREDICTO.** La orden
+  corregida mandaba quitar la etiqueta **sólo si** el corte no participaba del score, de la
+  interpretación ni del riesgo. **No suma al score** —su bloque no tiene ni un `score++` ni un
+  `criterios.push`— y **no entra en la interpretación** —`interpEl` ramifica sólo sobre `score`—
+  **pero SÍ decide el riesgo**: `score >= 2 && desacoplado`. Medido con dos criterios positivos
+  fijos y la PSAP en 61 mmHg: cociente **0,320** → «🔴 Disfunción VD significativa» y **0,328** →
+  «🟠 Riesgo INTERMEDIO-ALTO». **El rótulo viaja además al PDF de TEP.** No se tocó nada; las
+  escenas que cambiarían están una por una en `PENDIENTES.md` → **Z4-TEP**.
+
+- **Arnés: `scripts/_probe_z.mjs`** (A/B de solo lectura con `--file`, `--dest` para capturas),
+  diez grupos (`prot`, `ppm`, `excel`, `eaborra`, `eafilas`, `barrido`, `tpsp`, `tarjeta`, `tep`,
+  `controles`), con teclas y clics reales, emulación de viewport y de tema, y el **importador y la
+  restauración de un estudio ejecutados de verdad**.
+  **Cobertura: TC-479**, **56 condiciones** —contadas instrumentando el propio caso para que
+  publicara su `ex.length`— con ocho denominadores y seis controles negativos. **Verificado que
+  sabe fallar contra HEAD en un worktree aparte: 35 de las 56 en rojo, y NINGUNA por excepción.**
+
+- ⚠️ **DOS TRAMPAS DEL MEDIDOR, NO DEL ÁRBOL, Y LAS DOS DABAN FALSOS PLAUSIBLES.** (1) El globo
+  del cociente vive dentro de `row-tapse-psap`, que **nace en `display:none` y sólo se dibuja con
+  cociente**: sin cargar TAPSE y PSAP el botón mide 0×0 y «no abre» se lee como «el mecanismo no
+  funciona». (2) El cuadro del Doppler tricuspídeo está al fondo de una página larga, así que el
+  botón tiene tamaño pero su centro cae **fuera del viewport**: la medición de «el globo sigue
+  alcanzable» informó **FUERA** sobre un globo que el médico ve perfectamente. Se lleva al viewport
+  antes de clickear.
+- ⚠️ **Y UNA TRAMPA DE MI PROPIO CASO:** una condición buscaba el literal «mal pronóstico en IC con
+  FEVI» en `documentElement.innerHTML` para probar que el tramo se retiró — y **el comentario que
+  explica el retiro NOMBRA esa frase**, así que salía roja sobre un arreglo correcto. Es la trampa
+  que TC-476 ya pagó con la regla `.ip-ap-col2`: lo que hay que medir es la **declaración** y el
+  texto **renderizado**, no una mención en prosa.
+- ⚠️ **Me comí el acento grave TRES veces**, todas en comentarios míos: una en el template de la
+  sonda y dos en el cuerpo de un caso, con el archivo que documenta la trampa abierto delante.
+  `scripts/check_backticks.py` dio la línea exacta las tres; `node --check` apuntaba a la apertura
+  del template, cientos de líneas antes.
+
+- ⚠️ **CASOS ADAPTADOS: CINCO, con el motivo escrito en cada uno.** **TC-477 (J)** —su resta de
+  columnas pasa de DOS a CUATRO; sin eso salía rojo por el denominador—, **TC-135** —las dos
+  nuevas caen como BÁSICAS: 138/438 → **140/440**—, **TC-478 (F)** —era el **límite declarado**
+  del G3 («la velocidad de la IT NO tiene columna»), escrito para que el día que entrara se
+  notara, **y lo notó**: hoy afirma lo CONTRARIO—, **TC-476** en TRES lugares —el denominador de
+  constantes, que ahora afirma que `VD_TPSP_IC_MAX` ya **no** existe; las seis escenas de los
+  tramos, de las que las dos del 0,36 pasan a exigir el MISMO texto que las de arriba; y la
+  condición de la tarjeta, que pasa a exigir cita por TABLA y la **ausencia** de la nota de
+  verificación— y **TC-302**, arriba.
+  **Más 80 renglones** de «438» a «440» (101 ocurrencias).
+- ⚠️ **TC-302 SE ADAPTÓ SIN PERDER COBERTURA, Y ESO ES LA MITAD DEL ARREGLO.** Su condición de
+  «UNA sola oración» es un **proxy**: existe para cazar una frase metodológica que no use
+  ninguna de las nueve marcas. Descontar la línea del PPM y no agregar nada habría dejado el
+  proxy más flojo, así que entró además una condición que **afirma** lo que se descontó: que la
+  línea del PPM esté, que diga «aórtico» y «AEO indexada», y que **no** traiga ninguna de las
+  nueve marcas.
 
 ### La FAC VISIBLE, el DIÁMETRO DE LA ARTERIA PULMONAR mudado al VD, el SELECTOR de la relación VD/VI, el PPT y el PDF de auditoría alineados y el MENSAJE del importador — «G3» (2026-10-15)
 

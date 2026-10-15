@@ -2430,3 +2430,82 @@ establece un corte clínico.
   del 2026-10-13 y la tricuspídea del 2026-10-05— y ningún conteo se movió.
 - **El mensaje del importador** es texto de interfaz sobre columnas calculadas. Los datos de
   origen que nombra se leyeron del propio código, no de una guía.
+
+---
+
+## La tanda «Z» (2026-10-15) — el cociente TAPSE/PSAP, uso por uso
+
+> Todo lo de esta sección se leyó en el **texto completo** del PDF que está en la biblioteca del
+> Escritorio. Lo que no se pudo verificar, y lo que se verificó y **no** se usó, está más abajo.
+
+### Por qué la ESC/ERS 2022 se cita por NÚMERO DE TABLA y no por folio
+
+La biblioteca tiene **sólo la traducción de la SEC** (`Humbert_2022_Hipertension_Pulmonar.pdf`).
+Las entradas anteriores de este archivo citaban «folio 28» y «folio 41» para esta guía, y **los
+dos números se re-verificaron en el Z y siguen siendo correctos para ESE documento**: la Tabla 10
+está en el folio 28 y la Tabla 16 en el 41.
+
+⚠️ **LO QUE NO SE PUDO COMPROBAR ES LA PAGINACIÓN DEL ORIGINAL INGLÉS, porque no está en la
+biblioteca.** La orden del médico advierte que difiere, y no hay con qué verificarlo acá. Por eso
+la **tarjeta del globo** —que es lo que el médico lee— cita por **número de tabla**, que es lo
+único que vale en las dos ediciones; este archivo conserva además el folio de la traducción, que
+es el documento que sí se leyó. Un folio que el lector no puede comprobar en el documento que
+tiene delante parece verificable y no lo es.
+
+⚠️ Es un primo de la trampa que `ecosmart/CLAUDE.md` ya documenta para la ESC/EACTS 2025 —allá la
+traducción de la SEC se comió una palabra y dio vuelta un hallazgo entero—, con la diferencia de
+que **acá no se detectó ninguna palabra faltante**: lo único declarado es que la paginación no
+coincide, y eso no se midió sino que se tomó de la orden.
+
+### Los CINCO usos que la tarjeta publica
+
+| Uso | Población | Corte | Resultado | Fuente | Dónde se leyó |
+|---|---|---|---|---|---|
+| (i) | Hipertensión pulmonar | **< 0,55** | signo de la categoría **A: Ventrículos** | ESC/ERS 2022, **Tabla 10** | «Signos ecocardiográficos adicionales indicativos de hipertensión pulmonar»; el renglón dice «Cociente TAPSE/PAPs < 0,55 mm/mmHg». Folio 28 de la traducción de la SEC |
+| (ii) | Hipertensión arterial **pulmonar**, riesgo | **> 0,32** bajo · **0,19-0,32** intermedio · **< 0,19** alto | mortalidad estimada a **un año** < 5 %, 5-20 % y > 20 % | ESC/ERS 2022, **Tabla 16** | «Evaluación completa del riesgo en la hipertensión arterial pulmonar (modelo en tres niveles)», fila «Ecocardiografía». Folio 41 de la traducción |
+| (iii) | Adultos sanos / hipertensión pulmonar | **0,5 a 0,7** / **0,3 a 0,4** | rango habitual / desacoplamiento VD-AP y más mortalidad | **ASE 2025** (Mukherjee), **folios 152 y 173** | folio 152: «the TAPSE/PASP ratio generally falls within the range of 0.5–0.7 mm/mmHg» y «in PH, a TAPSE/PASP ratio in the range of 0.3-0.4 mm/mm Hg is associated with RV-PA uncoupling». Folio 173: la fila de la tabla. **Los dos folios comprobados en el pie impreso** (PDF 12 → 152, PDF 33 → 173) |
+| (iv) | Terapia de resincronización | **< 0,45** | más mortalidad por cualquier causa, **HR 1,44** | **Stassen J, y col., ESC Heart Failure 2022** | n = 807; el corte sale de **análisis de splines**; HR 1,437 (IC 95 % 1,145-1,805; p = 0,002) en multivariable, mientras el TAPSE < 17 mm **no** fue independiente (HR 1,237; p = 0,061) |
+| (v-a) | Insuficiencia cardíaca con fracción preservada, **hospitalizada** | **< 0,45** | más muerte o reingreso por insuficiencia cardíaca | **Wang J, y col., Clinical Cardiology 2024** (47:e24308) | n = 414 analizados de 648; el corte es el **óptimo por curva ROC** para muerte por cualquier causa; asociación independiente con el compuesto muerte o rehospitalización por IC |
+| (v-b) | Insuficiencia cardíaca **aguda** con FEVI **> 40 %** | **< 0,38** | más mortalidad a largo plazo, **HR 2,21** | **Burgos LM, y col., Arch Peru Cardiol Cir Cardiovasc 2025;6(2):83-89** | n = 361 de 465; seguimiento mediano 20,9 meses; HR 2,21 (IC 95 % 1,26-3,81; p = 0,005) ajustado |
+
+**La tarjeta no lleva ninguna nota de verificación ni reserva**: eso es estado interno del proceso
+y vive acá y en `docs/PENDIENTES.md`. Lo que el médico lee en la tarjeta son los cortes que la app
+puede respaldar, y nada más.
+
+### VERIFICADA Y NO USADA — la serie de embolia pulmonar
+
+**Lyhne MD, y col. «Right ventricular-pulmonary artery coupling for prognostication in acute
+pulmonary embolism». Eur Heart J Acute Cardiovasc Care 2024;13:817-825.** Está en la biblioteca
+(`13_Tromboembolia_pulmonar/zuae120.pdf`) y **se leyó**: registro **RIETE**, **4.478 pacientes**
+(1.326 de riesgo bajo, 2.425 intermedio-bajo y 727 intermedio-alto), con **TAPSE/PASP < 0,44** y
+**< 0,34** en los de riesgo intermedio-alto (aOR 4,37; IC 95 % 1,27-15,0) asociados a mortalidad a
+30 días.
+
+**Decisión de Maicol (15/10/2026): NO entra en la tarjeta.** Queda registrada acá como **fuente
+disponible y no usada**, para que la próxima tanda que la necesite no tenga que volver a buscarla
+ni vuelva a creer que falta.
+
+### LO QUE SIGUE SIN PODERSE CITAR
+
+- **El 0,36 en insuficiencia cardíaca.** Nace de **Guazzi M, y col., Am J Physiol Heart Circ
+  Physiol 2013;305:H1373-H1381**, que **no está en la biblioteca**; se leyó sólo a través del
+  metaanálisis de Heart Fail Rev 2024, en línea. Por la regla de la casa **no está verificado**.
+  ⚠️ **Y desde el Z ese corte ya no se aplica en ninguna parte**: el tramo de 0,36 de la fila del
+  Doppler tricuspídeo se retiró con su constante. La app dejó de afirmar en pantalla lo que la
+  tarjeta se negaba a afirmar. `docs/PENDIENTES.md` → G1-6 queda **cerrado por retiro**, no por
+  verificación.
+- **La discrepancia que anotó Cowork, confirmada.** La **ASE 2025, folio 180**, escribe «The
+  ESC/ERS guidelines recommend a TAPSE/PASP <0.36 mm/mm Hg as suggestive of PH» — y **la Tabla 10
+  de la ESC/ERS 2022 no tiene ese número**: corta en **0,55**, y su Tabla 16 en 0,19 y 0,32.
+  Barrido el PDF completo de la traducción: **el 0,36 no aparece en ninguna de las dos tablas**.
+  O sea que la atribución de la ASE 2025 **no se pudo confirmar en el documento que esta
+  biblioteca tiene**. No se corrige nada: se reporta.
+- **El 0,46 de la IC con fracción levemente reducida** y el **0,406 de la reparación tricuspídea
+  por catéter** siguen apareciendo **sólo en resúmenes**, sin texto completo leído. No se citan.
+
+### El 0,32 de la pantalla de TEP — lo que cambió del diagnóstico, y lo que NO
+
+El número está publicado y verificado: es el umbral de **riesgo bajo en hipertensión arterial
+pulmonar** de la **Tabla 16**, no un criterio de tromboembolia. Eso ya estaba dicho (G1-2). Lo que
+el Z agrega es una **medición nueva**: ese corte **participa de un VEREDICTO** en esa pantalla.
+Ver `docs/PENDIENTES.md` → **Z4-TEP**.

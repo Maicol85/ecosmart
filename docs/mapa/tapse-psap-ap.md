@@ -143,3 +143,91 @@ valor computado y caía al heredado. **El texto y la lógica no se tocaron.** Ca
 dos temas, con `md5` distinto.
 
 ---
+
+---
+
+## ⚠️ LA FILA PASÓ A DOS ESTADOS EN EL Z (2026-10-15), Y LA TARJETA SE REESCRIBIÓ
+
+Lo de arriba —tres tramos, el 0,36, los textos «mal pronóstico en IC» / «elemento de probabilidad
+para HTP» / «acoplamiento VD-AP normal» y la constante `VD_TPSP_IC_MAX`— **ya no existe**. Se
+conserva escrito porque explica de dónde venía el 0,36 y por qué se fue.
+
+### Los dos estados (decisión de Maicol)
+
+| Tramo | Texto | Color | Respaldo |
+|---|---|---|---|
+| `< 0,55` | «signo de probabilidad de HTP» | naranja | **ESC/ERS 2022, Tabla 10** |
+| `>= 0,55` | «sin signo de HTP» | verde | el complemento |
+
+El corte y el operador son los de la **Tabla 10** —«Signos ecocardiográficos adicionales
+indicativos de hipertensión pulmonar», columna **«A: Ventrículos»**, renglón «Cociente TAPSE/PAPs
+< 0,55 mm/mmHg»—. **El valor sigue con TRES decimales** y el predicado `!t || !p` no se tocó,
+porque `calcTEP` lee este mismo dueño.
+
+⚠️ **SE CITA POR NÚMERO DE TABLA Y NO POR FOLIO.** La biblioteca tiene **sólo** la traducción de
+la SEC; la orden advierte que el original inglés pagina distinto y **no hay con qué comprobarlo
+acá**. El número de tabla vale en las dos ediciones. (El folio de la traducción —28 para la Tabla
+10 y 41 para la 16— se re-verificó y queda en `docs/fuentes/FUENTES.md`.)
+
+**Medido por su borde, con teclas reales y la PSAP fija en 34 mmHg:** 0,529 y 0,544 → signo ·
+**0,550 EXACTO** → sin signo · 0,553 y 0,559 → sin signo. El operador estricto deja el 0,55 del
+lado «sin signo», que es lo que la tabla escribe.
+**Sin TAPSE o sin PSAP la fila NO se dibuja, y sin mensaje de error** — eso no cambió.
+
+### ⚠️ POR QUÉ SE FUE EL 0,36, Y POR QUÉ SE FUE ENTERO
+
+Su texto decía «mal pronóstico en IC con FEVI reducida y preservada» y el corte nacía de **Guazzi
+2013**, que **no está en la biblioteca**: nunca estuvo verificado al estándar de la casa, y por eso
+la tarjeta del G1 **ya se negaba a citarlo**. O sea que **la línea afirmaba en pantalla lo que la
+tarjeta no afirmaba**. Los cortes de insuficiencia cardíaca que SÍ se verificaron —0,45 y 0,38—
+viven hoy en la tarjeta, con su población y su fuente, que es donde una serie pronóstica pertenece.
+
+⚠️ **LA CONSTANTE SE VA CON SU `window.*`.** Sacar el valor y dejar viva la línea `window.X = X`
+es un `ReferenceError` de **nivel superior** que aborta el `<script>` **COMPLETO** —la app con cero
+pestañas—, que es lo que la tanda de la estenosis mitral binaria pagó el 2026-10-11. **Se cuentan
+los `window.X = X`, no los `grep` de X.**
+
+### La tarjeta: los CINCO usos verificados
+
+Formato decidido por Maicol: **una línea por uso**, «población · corte · resultado · fuente (autor,
+año, revista)», y **sólo** lo verificado en el **texto completo** de un PDF de la biblioteca.
+
+| # | Población | Corte | Fuente |
+|---|---|---|---|
+| i | hipertensión pulmonar | < 0,55 | ESC/ERS 2022, **Tabla 10** |
+| ii | HAP, riesgo | > 0,32 · 0,19-0,32 · < 0,19 | ESC/ERS 2022, **Tabla 16** |
+| iii | sanos / con HTP | 0,5-0,7 / 0,3-0,4 | **ASE 2025** (Mukherjee), folios 152 y 173 |
+| iv | resincronización | < 0,45 (HR 1,44) | **Stassen 2022**, ESC Heart Failure |
+| v | ICFEp hospitalizada / IC aguda con FEVI > 40 % | < 0,45 / < 0,38 (HR 2,21) | **Wang 2024**, Clin Cardiol / **Burgos 2025**, Arch Peru Cardiol Cir Cardiovasc |
+
+⚠️ **LA TARJETA NO LLEVA NINGUNA NOTA DE VERIFICACIÓN NI RESERVA.** La del G1 decía ahí mismo que
+tres cortes «no se pudieron leer en su fuente primaria»: eso es **estado interno del proceso** y
+va SÓLO a `docs/fuentes/FUENTES.md` y a `docs/PENDIENTES.md`.
+⚠️ **Y LA SERIE DE EMBOLIA PULMONAR SE OMITE POR DECISIÓN DEL MÉDICO** (Lyhne 2024, registro
+RIETE, EHJ ACC), **aunque SÍ está en la biblioteca y SÍ se verificó**. Queda registrada en
+`FUENTES.md` como fuente **disponible y no usada**, para que nadie la vuelva a buscar ni crea que
+falta.
+
+**Medido:** abre, cierra por los **cuatro** caminos, es un `<button>` sin `title` y sin
+`abrirAyudaEco`, 30 acentos, cuatro bloques; a **1200 / 390 / 360 px en los DOS temas** entra
+entera en el viewport con el globo alcanzable (6 de 6); el badge resuelve naranja **real**
+—`rgb(245,158,66)` de noche y `rgb(217,123,31)` de día—, no la variable gris.
+
+### ⚠️ EL 0,32 DE LA PANTALLA DE TEP: LA PARADA, CON UNA MEDICIÓN NUEVA
+
+El G1 ya había declarado que ese número **no es un criterio de tromboembolia** (es el umbral de
+riesgo bajo en HAP de la Tabla 16). El Z midió algo más, y es lo que lo vuelve intocable:
+
+| Pregunta | Respuesta, medida |
+|---|---|
+| ¿suma al **score** de criterios del VD? | **NO** — su bloque no tiene ni un `score++` ni un `criterios.push` |
+| ¿entra en la **interpretación**? | **NO** — `interpEl` ramifica sólo sobre `score` |
+| ¿entra en el **riesgo**? | **SÍ** — `score >= 2 && desacoplado` |
+
+**Escena medida** (dos criterios positivos fijos, PSAP 61 mmHg): TAPSE 19,5 → cociente **0,320** →
+«🔴 Disfunción VD significativa»; TAPSE 20 → **0,328** → «🟠 Riesgo INTERMEDIO-ALTO». El veredicto
+**se da vuelta** sobre el 0,32. Y el rótulo que lo lleva (`tep-acoplamiento`) **viaja al PDF de
+TEP**.
+Por eso la etiqueta **no se retiró**. `docs/PENDIENTES.md` → **Z4-TEP**.
+
+---

@@ -456,3 +456,22 @@ pie de página en ningún lado del documento.
 Todo eso —la medición en HEAD, por qué el rótulo va en `ref` y no en `lbl`, por qué el IC se va
 con el GC, y la trampa de que el rótulo y el valor de una fila son **dos `doc.text` distintos**—
 está en **`docs/mapa/vi-volumenes-automaticos.md`**, que es además el mapa de la pestaña AI/VI.
+
+---
+
+## ⚠️ EL EXCEL PASÓ A 440 COLUMNAS EN EL Z (2026-10-15) — y la ida y vuelta tiene mapa propio
+
+Las dos nuevas son **`Vmax IT (m/s)`** (campo de ENTRADA, se reimporta, bloque 8, pegada a
+`VC IT (mm)`) y **`PPM aórtico`** (derivada SIN campo, no se reimporta, bloque 8, pegada a
+`AVA (cm²)`).
+
+**Todo lo demás vive en `docs/mapa/excel-origen-ida-vuelta.md`**: los tres criterios de columna
+(derivada con campo, derivada sin campo, campo de entrada), la cadena entera de la ida y vuelta
+del TAPSE/PSAP, el segundo eslabón que faltaba (`calcPmAD` en las dos rutas de restauración) y
+los tres cambios del mensaje del importador.
+
+⚠️ **SE SACÓ A ARCHIVO PROPIO PORQUE ESTE MAPA ESTABA EN 29,7 KB Y LA SECCIÓN LO CRUZABA.** Medido
+con `wc -c` **ANTES** de escribir, que es lo que `ecosmart/CLAUDE.md` pide desde la D2 y lo que
+`valvulas.md` aprendió pagándolo **dos** veces.
+
+---

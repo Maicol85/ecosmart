@@ -22043,9 +22043,10 @@ window.vdTapsePsapRed = vdTapsePsapRed;
    · `>= 0,55` → «sin signo de HTP»
    El corte y el operador son los de la **ESC/ERS 2022, Tabla 10** —«Signos ecocardiográficos
    adicionales indicativos de hipertensión pulmonar», columna «A: Ventrículos»: «Cociente
-   TAPSE/PAPs < 0,55 mm/mmHg»—. Se cita por NÚMERO DE TABLA y no por folio: la traducción de la
-   SEC que hay en la biblioteca pagina distinto que el original inglés, y un folio que no se
-   puede comprobar en el documento que se tiene es peor que ninguno.
+   TAPSE/PAPs < 0,55 mm/mmHg»—. Se cita por NÚMERO DE TABLA y no por folio: la biblioteca tiene
+   SÓLO la traducción de la SEC, la orden advierte que el original inglés pagina distinto y no hay
+   con qué comprobarlo. El número de tabla vale en las dos ediciones. El folio de la traducción
+   (28) se re-verificó y queda en `docs/fuentes/FUENTES.md`.
 
    ⚠️ EL TRAMO DE 0,36 SE RETIRÓ, Y CON ÉL SU CONSTANTE. Decía «mal pronóstico en IC con FEVI
    reducida y preservada» y nacía de Guazzi y col. 2013, que NO está en la biblioteca: el corte
@@ -36320,8 +36321,8 @@ const VINFO = Object.freeze({
      su cuarto bloque que tres cortes «no se pudieron leer en su fuente primaria»: eso es estado
      interno del proceso y va SÓLO a `docs/fuentes/FUENTES.md` y a `docs/PENDIENTES.md`. Lo que
      el médico lee acá son los cortes que la app puede respaldar, y nada más.
-     ⚠️ SE CITA POR NÚMERO DE TABLA Y NO POR FOLIO en la ESC/ERS 2022: la traducción de la SEC
-     que hay en la biblioteca pagina distinto que el original inglés.
+     ⚠️ SE CITA POR NÚMERO DE TABLA Y NO POR FOLIO en la ESC/ERS 2022: la biblioteca tiene sólo
+     la traducción de la SEC y el número de tabla vale en las dos ediciones.
      ⚠️ LO QUE SE OMITE Y POR QUÉ: la serie de embolia pulmonar (Lyhne y col., 2024, registro
      RIETE) SÍ está en la biblioteca y SÍ se verificó, y el médico decidió dejarla fuera de la
      tarjeta. Queda registrada en `FUENTES.md` como fuente disponible y no usada. */
@@ -110651,8 +110652,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261015-1459';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1792087172808;                 /* eco-build-ms */
+const ECO_BUILD    = '20261015-1639';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1792093152223;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -110738,7 +110739,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261015-1459</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261015-1639</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

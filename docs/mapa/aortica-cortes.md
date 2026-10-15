@@ -191,3 +191,109 @@ pico `[0,200]`), severa con `>= EASV_MEDIO_SEVERO` → alertas + `SEGUIMIENTO`; 
 `easv_estenosis_pulmonar`, `easv_gradiente_medio`, `easv_gradiente_mmhg`.
 
 `easvSync()` — pintor de `easvEstado` (por `createElement`) — escribe: `easv-resultado`.
+
+---
+
+## El BORRADO del renglón integrado y las CINCO filas con su grado — tanda «Z» (2026-10-15)
+
+### El defecto, como se midió
+
+El médico reportó que la línea integrada de Válvulas **depende del orden en que se borra**.
+Reproducido ANTES de tocar nada, con **teclas reales**, en las **seis permutaciones** de borrado
+por los **dos gestos** —dígito por dígito y seleccionando todo— sobre su escena (Ø TSVI 20 · VTI
+TSVI 20 · VTI Ao 56, que da AVA 1,12 cm² y DVI 0,357):
+
+| | vuelven a «sin dato» |
+|---|---|
+| HEAD | **0 de 12** |
+| hoy | **12 de 12** |
+
+**Y es peor que lo reportado.** El borrado dígito a dígito pasa por un AVA de **0,11 cm²** —el «2»
+de «20»— y la línea se congela en **«Severa — por AVA» sobre un formulario VACÍO**. El grado del
+`<select>`, la pastilla y el EN SUMA **ya volvían solos**; lo que mentía era la pantalla.
+
+⚠️ **NO ES UN DEFECTO DE LA TANDA F.** Medido también contra el árbol anterior (`0963d53`): las
+doce quedan igual de congeladas. Lo que el F agregó fue el sufijo «— por X», que hace el síntoma
+**más afirmativo** —«Severa» pasó a «Severa — por AVA»— pero no lo creó.
+
+### La causa, con nombre
+
+`calcEADetalle` tiene **tres** ramas —`if (vmax)`, `else if (ava)`, `else if (_RCalc.grado)`— y
+**no tenía `else`**: con los tres vacíos nadie reescribía `ea-det-sev`. Y la función corre **dentro
+de la compuerta de `calcAo`**, que deja de pasar justo cuando se borra el último dato.
+
+### ⚠️ POR QUÉ NO ALCANZA CON EL `else`, Y DE DÓNDE SALE `eaSevVacioSync`
+
+`calcEADetalle` **no se puede agregar a las puertas del gesto** (`eaParEditado`,
+`tsviDiamEditado`). Está **medido y declarado** en el comentario de `tsviDiamEditado`:
+
+- **puesta DESPUÉS** de `calcAo`, le **pisa el badge** a `_eaRetirarGradoSugerido`, que corre
+  última en su cola a propósito porque es el único lugar que SABE que hubo retiro;
+- **puesta ANTES**, el retiro **no llega a actuar**: su guarda es
+  `sel.value !== sel.dataset.sugerido` y `calcEADetalle` ya reescribió las dos cosas.
+
+Y **TC-432 verifica esa prohibición** sobre el texto de las dos funciones.
+
+De ahí **`eaSevVacioSync`**, un dueño chico que corre desde `_eaDetCuentaPura` —la mitad PURA, que
+**sí** corre en las dos puertas— y hace **una** sola cosa:
+
+```
+eaSevVacioSync()  ->  con PROTESIS se abstiene (ese renglon lo escribe _eaProtPintar)
+                      sin Vmax, sin AVA por continuidad y sin grado calculado -> escribe «—»
+                      en cualquier otro caso devuelve false y no toca nada
+```
+
+⚠️ **TOCA EL RENGLÓN Y NO EL BADGE.** El badge tiene **tres** dueños —el retiro,
+`clasificarEA_Vmax` y `sugerirSeveridadEA`— y escribirlo desde acá reintroduciría exactamente el
+defecto de arriba. El `else` nuevo de `calcEADetalle` **sí** lo escribe, porque allí ya corre
+después de la cola de `calcAo`, que es donde HEAD lo pone.
+⚠️ **Y SÓLO ACTÚA CON LA PANTALLA COMPLETAMENTE VACÍA.** Con un insumo fuera de banda hay grado o
+hay valor, así que no entra y el aviso se conserva — con su texto **letra por letra** el de la
+rama de arriba.
+
+### Las CINCO filas con su grado
+
+La auditoría **F8** midió tres filas que publican un criterio que VOTA sin mostrar su grado, y un
+criterio que votaba **sin tener fila**. Hoy las cinco salen del MISMO mapa y del MISMO dueño:
+
+```
+EA_FILA_GRADO = { 'ea-det-gmedio':'gGrad', 'ea-det-ava':'gAva', 'ea-det-avai':'gAvai',
+                  'ea-det-plan':'gPlan', 'ea-det-dvi':'gDvi' }   ->  eaGradoCalculado()
+```
+
+**`eaAvaiGradoPintar` conserva su nombre** aunque ahora pinte cinco: está en `RECALC_MODULOS` y en
+los tres sitios de llamada de `_eaDetCuentaPura` y `calcEADetalle`.
+
+**NINGÚN CORTE SE MOVIÓ.** Medido por sus bordes:
+
+| Criterio | bordes |
+|---|---|
+| G. medio | 19 **sin grado** · 20 moderada · 39 moderada · 40 severa |
+| AVA planimetría | 0,90 severa · 1,00 severa · 1,40 moderada · 1,50 **sin grado** |
+
+⚠️ **«sin estenosis» NO SE IMPRIME COMO GRADO DE UNA FILA.** `gAva` vale `'sin'` con un área
+normal, y «(sin estenosis)» al lado de «3.20 cm²» afirma un veredicto que la fila no da: un AVA
+normal no distingue entre no tener estenosis y tenerla leve, que es por lo que la etiqueta del
+renglón integrado lleva los **dos** nombres. Vacío es la abstención.
+⚠️ **EL GRADO VA EN UN `<span>` HERMANO SIN `id`**, el patrón del F: `TC-436` compara el
+`textContent` de `ea-det-avai` por igualdad **EXACTA**, y sin `id` el barrido de `limpiarCampos`
+no le escribe «—» donde la regla pide blanco.
+
+### ⚠️ UNA CONTRADICCIÓN QUE ESTA TANDA HACE VISIBLE Y NO CREA
+
+Con esa escena más G. medio 30 y planimetría 0,90, el renglón dice **«Moderada — por AVA por
+planimetría»** mientras el `<select>` y el informe dicen **severa** y la fila de la planimetría
+ahora publica **(severa)**. **Medido IDÉNTICO en HEAD**: la rama `else if (ava)` etiqueta por la
+banda del AVA **por continuidad** y le pega el sufijo del criterio **global**. Lo que el Z cambia
+es que ahora se **ve**. No se corrigió: es el texto que la línea publica en un estado cargado, y
+esta orden no lo autoriza. `docs/PENDIENTES.md` → **Z3-1**.
+
+### El barrido de las otras filas y de las demás válvulas
+
+A/B contra HEAD, cargando y borrando un dato por válvula: **lo único que quedaba fijo con un
+veredicto rancio era la línea y el badge de la aórtica**, y hoy vuelven los tres insumos (Vmax,
+gradiente medio y planimetría). Los tres residuos que quedan son **idénticos en HEAD** y **no son
+veredictos**: `ea-sev` pasa de «—» a su texto explicativo («— sin Vmax ni gradiente medio
+cargados»), e `im-discordancia` e `it-discordancia` de «—» a cadena vacía.
+
+---

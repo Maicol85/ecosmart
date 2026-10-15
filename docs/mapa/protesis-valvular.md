@@ -237,3 +237,91 @@ porque el desajuste prótesis-paciente **no existe en una válvula nativa**.
    dos votantes y no el tramo.
 7. **Una condición que busca «no grad» en un texto que dice «no SE gradúa»** sale roja sobre un
    badge perfecto. Lo delató instrumentar la propia condición para que publicara sus `indexOf`.
+
+---
+
+## El PPM AÓRTICO entra al informe y gana su columna — tanda «Z» (2026-10-15)
+
+Cierra la propuesta **Z2** del censo W1, con la **opción 2** de las dos que esa entrada ofrecía: el
+PPM mitral publicaba su línea en el papel desde la Fase 2 y el aórtico se calculaba y se veía
+**sólo en pantalla**.
+
+### El dueño único de la cascada
+
+```
+_eaPpmAoClasificar(avai, imc)  ->  { ppm: 'no' | 'moderado' | 'severo' | null, cortes }
+```
+
+**Sale a función propia y no es un refactor de estilo.** `eaProtVeredicto` lee el DOM —toma el AVA
+indexada del `textContent` de `ava-idx`— y desde el Z el mismo veredicto lo necesita
+`_labExcelRow`, que trabaja sobre los `campos` de un estudio **ARCHIVADO** y no tiene formulario
+que leer. Con la cascada adentro, la celda habría publicado el PPM del paciente **abierto en
+pantalla** repetido en las N filas — y eso se ve perfectamente correcto. Es la lección que
+`vmProtEOA(src)` y `valvProtDato` ya tienen escrita, resuelta acá con la variante más barata: la
+función **no lee nada**, recibe los dos números ya calculados.
+
+**NINGÚN CORTE SE MOVIÓ** — medido: `ppm` idéntico a HEAD en las seis escenas. Los de la **Tabla 7
+de la ASE 2024, folio 20**, siguen siendo:
+
+| IMC | normal | moderado | severo |
+|---|---|---|---|
+| **< 30** | > 0,85 | 0,66 a 0,85 | **≤ 0,65** |
+| **≥ 30** | > 0,70 | 0,56 a 0,70 | **≤ 0,55** |
+
+⚠️ **CON OBESIDAD LOS DOS CORTES BAJAN, ASÍ QUE EL MISMO INDEXADO ES MENOS GRAVE**: la tabla
+tolera un área efectiva menor en un paciente con más superficie corporal. Medido: **0,60 es SEVERO
+con IMC 24 y MODERADO con IMC 34**. (La primera versión de la condición de TC-479 lo tenía al
+revés, y el caso lo cazó.)
+⚠️ **SIN IMC SE USA LA RAMA DE < 30, QUE ES LA MÁS EXIGENTE.** Suponer obesidad sobre un paciente
+sin peso ni talla sería el lado permisivo — y la rama es casi inalcanzable, porque el indexado
+necesita la BSA, que sale de los mismos dos campos.
+
+### La línea del informe y del EN SUMA
+
+Con la forma del mitral, tal cual: sale **sólo** con desajuste **moderado o severo** —sin desajuste
+no se escribe nada—, nombra la AEO indexada que lo disparó, y el **mismo texto** va al cuerpo y al
+EN SUMA.
+
+> «Desajuste protésico-paciente aórtico severo (AEO indexada 0.55 cm²/m²).»
+
+⚠️ **ÚNICA DIFERENCIA CON EL MITRAL, Y ESTÁ DECLARADA: esta frase dice «aórtico».** El mitral no
+nombra su válvula, y con las **dos** prótesis desajustadas el EN SUMA publicaría dos oraciones
+idénticas que sólo se distinguen por el número. El adjetivo es lo mínimo que las separa; la forma
+de la oración es la misma. `docs/PENDIENTES.md` → **Z2-1**.
+⚠️ **Y ES OTRA PREGUNTA QUE LA ESTENOSIS**, así que va en su propia línea: una prótesis puede estar
+obstruida sin PPM y tener PPM sin estar obstruida.
+⚠️ **CON TAVI TAMBIÉN SALE**, y es correcto: la Tabla 7 **no abre ramas por tipo de prótesis** —lo
+que el W2-B ya midió para la pantalla— y la TAVI, que **no** se gradúa por estenosis, sí publica
+su PPM. Por eso la línea **no** cuelga de `_eaProtN.resumen`, que es `null` justamente en la TAVI.
+
+### La columna de Excel
+
+`PPM aórtico`, **derivada sin campo** (criterio (b) del G2): no entra en `LAB_XLS_MAP`, no se
+reimporta, se declara por NOMBRE en `LAB_XLS_BLOQUES` y cae en el **bloque 8 · VÁLVULAS**, pegada a
+`AVA (cm²)`. Con su fila en la hoja **Leyenda** y su origen en `LAB_XLS_CALC_ORIGEN`. El
+vocabulario de la celda es **uno** (`PPM_AO_XLS_TXT`), al lado de los cortes.
+Ver `docs/mapa/excel-origen-ida-vuelta.md`.
+
+**Medido con teclas reales, seis escenas por los dos IMC (24,2 y 32,9):** imc24 → 0,55 severo /
+0,67 moderado / 0,91 sin desajuste; imc33 → 0,41 severo / 0,51 severo / 0,74 sin desajuste.
+**CONTROL NEGATIVO:** válvula NATIVA con el **mismo** AVA indexada de 0,55 → fila escondida, celda
+**vacía** y el informe sin una sola mención.
+
+### ⚠️ UN DEFECTO PREEXISTENTE QUE SE MIDIÓ DE PASO Y NO SE TOCÓ
+
+La **fila de pantalla** `ea-prot-ppm` se queda en «— (requiere el AVA por continuidad y la
+superficie corporal)» en escenas donde el veredicto **sí** está calculado: `_eaProtPintar` corrió
+cuando `ava-idx` todavía no estaba pintado. **Medido IDÉNTICO en HEAD** en las seis escenas. La
+línea del informe y la celda del Excel **no** dependen de ese nodo —leen el objeto de
+`eaProtVeredicto`— así que el papel sale bien. `docs/PENDIENTES.md` → **Z2-2**.
+
+### Z1 — los tres parámetros de la Tabla 11 siguen SIN votar: la guía no da la regla
+
+Ver `docs/fuentes/FUENTES.md` y `docs/PENDIENTES.md` → **Z1**. En una línea: la **Tabla 11** da
+bandas por parámetro, su nota `*` dice que «diagnostic accuracy is best if **most** of the
+parameters listed are normal or abnormal» —una afirmación sobre la **confianza**, sin umbral de
+conteo ni regla para el desacuerdo—, el **folio 24** enumera cuatro «main criteria» sin decir
+cuántos hacen falta, **no hay figura de algoritmo** para la estenosis protésica mitral, y los Key
+Points no agregan nada. **Sin regla explícita no se inventa una**: el veredicto queda como estaba.
+
+---

@@ -273,7 +273,7 @@ toca sin orden expresa.** Se reporta porque la fila cita una guía que dice otra
 
 ## Declarado y NO tocado por la tanda W2-B (2026-10-15)
 
-### Z1 · Los tres parámetros nuevos de la Tabla 11 NO votan en el veredicto de obstrucción
+### [REVISADO 2026-10-15 · Z · PARADA CONFIRMADA] Z1 · Los tres parámetros nuevos de la Tabla 11 NO votan en el veredicto de obstrucción
 `R.obstr` de `vmProtEOA` sigue saliendo del **AEO y del DVI**, como desde la Fase 2. La velocidad
 pico de E, el gradiente medio y el THP se publican en la cápsula con su banda y **no entran**.
 Sumarlos cambiaría qué escenas publican «Prótesis mitral con hallazgos sugestivos de obstrucción
@@ -283,7 +283,7 @@ La nota `*` de la Tabla 11 dice que la exactitud diagnóstica es mejor cuando **
 parámetros son normales o anormales a la vez, así que una regla de mayoría es la candidata obvia
 — pero es una regla de integración nueva y la decide Maicol.
 
-### Z2 · El PPM AÓRTICO no entra en el informe firmado, y el MITRAL sí
+### [CERRADO 2026-10-15 · Z] Z2 · El PPM AÓRTICO no entra en el informe firmado, y el MITRAL sí
 El mitral publica «Desajuste protésico-paciente severo (AEO indexada 0,79 cm²/m²)» en el cuerpo y
 en el EN SUMA desde la Fase 2; el aórtico se calcula y se muestra **sólo en pantalla**. Es la
 opción conservadora: agregar una frase automática al papel es un texto del informe firmado que la
@@ -2775,7 +2775,7 @@ calculado `vd_bas/ddfvi` y sólo al final `vd_vi`.
 cociente evaluado con **dos cortes distintos** en dos pantallas, sin que nada lo diga. La salida
 limpia sería que la pantalla de TEP nombre su fuente al lado de su corte.
 
-### G1-6 · El 0,36 en insuficiencia cardíaca NO está verificado al estándar de la casa
+### [CERRADO POR RETIRO 2026-10-15 · Z] G1-6 · El 0,36 en insuficiencia cardíaca NO está verificado al estándar de la casa
 
 El corte que la app aplica en su tramo rojo nace de **Guazzi M, Bandera F, Pelissero G, et al.
 Am J Physiol Heart Circ Physiol 2013;305:H1373-H1381** (cohorte mixta de 293 pacientes), y el
@@ -2982,7 +2982,7 @@ y admite una entrada más sin tocar nada.
 
 ## La tanda «G3» (2026-10-15) — lo declarado y NO tocado
 
-### G3-1 · PARADA · La ida y vuelta del TAPSE/PSAP no se reproduce: la velocidad de la IT no tiene columna
+### [CERRADO 2026-10-15 · Z] G3-1 · La ida y vuelta del TAPSE/PSAP no se reproducía: la velocidad de la IT no tenía columna
 
 **Medido**, exportando la fila COMPLETA de 438 columnas de un estudio y reimportándola tal cual:
 el cociente **no se puede recalcular**. La cadena es `TAPSE/PSAP ← TAPSE + PSAP ← VRT + PmAD`, y
@@ -3048,3 +3048,171 @@ fila «VD/VI» del PPT se mide **por el fuente** —que llame a `vdViTexto`— y
 que sí se mide con teclas reales; la del PDF se genera de verdad. El PPT **estadístico** del
 Laboratorio sí se genera de verdad, porque su generador (`_labPPTGenerar`) toma la población
 directo.
+
+---
+
+## Tanda «Z» (2026-10-15) — DECLARADO y NO arreglado
+
+> El PPM aórtico al informe, la columna de la velocidad de la IT y la ida y vuelta del TAPSE/PSAP,
+> el borrado de la estenosis aórtica con sus cinco filas graduadas, y la fila y la tarjeta del
+> cociente. Los mapas: `docs/mapa/excel-origen-ida-vuelta.md` (**nuevo**),
+> `docs/mapa/tapse-psap-ap.md`, `docs/mapa/aortica-cortes.md` y `docs/mapa/protesis-valvular.md`.
+> Las fuentes: `docs/fuentes/FUENTES.md` → «La tanda Z — el cociente TAPSE/PSAP, uso por uso».
+
+### Z1 · PARADA · La ASE 2024 NO da una regla de integración para la estenosis protésica mitral
+
+**Qué pedía la orden:** que la velocidad pico de E, el gradiente medio y el THP **voten** el
+veredicto de obstrucción **si la guía lo respalda**, implementando la regla **exactamente**; y que
+si no hay regla explícita, **no se invente una**.
+
+**Lo que la guía da, leído en el PDF (`Zoghbi_2024_Protesis.pdf`, folio = página + 1):**
+
+1. **Tabla 11, folio 27** — «Doppler findings suggestive of prosthetic mitral valve stenosis»,
+   **cinco** parámetros con tres bandas cada uno (normal / possible stenosis / suggests significant
+   stenosis). **Leída renderizando a 400 dpi**, porque la fuente del PDF codifica `≥` como `$` y
+   `≤` como `#`. La app ya aplica esas cinco bandas y publica las tres nuevas en la cápsula.
+2. **Su nota `*`** — «For either mechanical or bioprosthetic valves; **diagnostic accuracy is best
+   if most of the parameters listed are normal or abnormal, respectively**.» Es una afirmación
+   sobre la **confianza diagnóstica**: no define un umbral de conteo, no dice cuántos hacen falta
+   y **no dice qué hacer cuando los parámetros se contradicen**.
+3. **Folio 24, prosa** — «The main criteria for the diagnosis of significant mitral stenosis are a
+   mean gradient >10 mm Hg at a normal heart rate, a PHT >200 msec, a DVI >2.5, and an EOA <1
+   cm2.» Enumera **cuáles** son los criterios principales; **no dice cuántos** tienen que
+   cumplirse. Y **omite la velocidad pico**, que la Tabla 11 sí incluye.
+4. **No hay figura de algoritmo** para la estenosis protésica mitral. Las tres que existen son la
+   **Figura 13** (evaluación inicial de la velocidad pico AÓRTICA), la **16** (severidad de la
+   insuficiencia aórtica protésica) y la **21** (severidad de la insuficiencia **mitral**
+   protésica). Censadas las 27 figuras del documento.
+5. **Los «Key Points for Assessing Prosthetic Mitral Valves» (folio 29)** enumeran qué medir y
+   reportar; **ninguno** da una regla de combinación. Tampoco los de PHV ni los generales.
+
+**Conclusión: la guía NO da una regla de integración.** Convertir «most of the parameters» en un
+«≥ 3 de 5» es inventar un umbral que el documento no publica, y es contenido clínico. **El
+veredicto `R.obstr` queda como estaba** —del AEO y del DVI, el peor— y TC-474 lo sigue fijando.
+
+⚠️ **Y HAY UNA SEGUNDA RAZÓN, QUE LA LECTURA DESTAPÓ Y QUE AGRAVA LA PRIMERA.** La **nota `‡`** de
+la misma Tabla 11 marca que la velocidad pico, el gradiente medio **y el DVI** «are also abnormal
+in the presence of significant prosthetic MR». La app **ya gatea el DVI** con
+`emContMotivoNoVota` por exactamente eso (la colisión de las Tablas 11 y 13, que el W2-B
+documentó). Hacer votar al gradiente y a la velocidad **sin decidir si se los gatea igual**
+reabriría el defecto que ese gate cerró — y esa decisión tampoco está en la guía.
+
+**Qué habría que hacer:** que Maicol fije la regla de integración —por ejemplo «significativa si
+≥ N de los cinco caen en la columna de significativa, con los tres marcados `‡` retirados cuando
+hay regurgitación protésica significativa»— y entonces sí implementarla, como criterio **EcoSmart**
+declarado y no como criterio de la ASE 2024.
+
+### Z2-1 · La línea del PPM aórtico dice «aórtico» y la del mitral no nombra su válvula
+
+El mitral publica «Desajuste protésico-paciente severo (AEO indexada 0,79 cm²/m²)» desde la Fase 2
+y el aórtico, desde el Z, «Desajuste protésico-paciente **aórtico** severo (…)». La asimetría es
+deliberada: con las **dos** prótesis desajustadas el EN SUMA publicaría **dos oraciones idénticas
+que sólo se distinguen por el número**. El adjetivo es lo mínimo que las separa.
+**Las dos salidas, para que las decida Maicol:** (a) dejarlo así; (b) agregarle «mitral» a la línea
+del mitral, que es un texto del informe firmado y esta orden no lo autorizaba.
+
+### Z2-2 · La fila de pantalla del PPM aórtico se queda en «requiere …» con el veredicto calculado
+
+`ea-prot-ppm` publica «— (requiere el AVA por continuidad y la superficie corporal)» en escenas
+donde `eaProtVeredicto()` **sí** devuelve un PPM: `_eaProtPintar` corrió en un momento en que
+`ava-idx` todavía no estaba pintado. **Medido IDÉNTICO en HEAD** en las seis escenas del A/B, así
+que es **PREEXISTENTE** y no lo trae esta tanda.
+**No afecta al papel:** la línea del informe y la celda del Excel leen el OBJETO de
+`eaProtVeredicto`, no ese nodo. Lo que está mal es lo que el médico ve en pantalla.
+**Qué habría que hacer:** repintar la fila desde la cola de `calcAo` —después de `ava-idx`— o
+hacer que `eaProtVeredicto` derive el indexado en vez de parsear el `textContent`. Lo segundo es
+lo que el W2-B eligió NO hacer, y por un motivo (el nodo lleva la marca «(revisar)»).
+
+### Z3-1 · El renglón integrado etiqueta por el AVA por continuidad y nombra el criterio GLOBAL
+
+Con Ø TSVI 20 · VTI TSVI 20 · VTI Ao 56 · G. medio 30 · planimetría 0,90, el renglón dice
+**«Moderada — por AVA por planimetría»** mientras el `<select>`, el informe y la fila de la
+planimetría dicen **severa**. La rama `else if (ava)` de `calcEADetalle` arma su etiqueta con la
+banda del **AVA por continuidad** (`avaEsModerada(avaR)` → «Moderada») y le pega el sufijo del
+criterio **global** (`_eaPorCriterio(_RCalc)`), que es otro.
+**Medido IDÉNTICO en HEAD**: es **PREEXISTENTE desde la tanda F**, que agregó el sufijo. Lo que el
+Z cambia es que ahora se **ve**, porque la fila de la planimetría publica su «(severa)» al lado.
+**No se corrigió**: es el texto que la línea publica en un estado cargado y cambiarlo es cambiar
+qué palabra firma esa pantalla. **Las dos salidas:** (a) que la etiqueta salga de `_RCalc.grado`,
+como ya hace la rama `if (vmax)`; (b) dejar la etiqueta y quitar el sufijo en esa rama.
+
+### Z3-2 · PARADA · El DVI no se calcula sin el diámetro del TSVI, y matemáticamente no lo necesita
+
+El médico lo reportó: con VTI TSVI 20 y VTI Ao 56 **sin** diámetro, el campo del DVI queda sin
+resultado. **El cociente es `VTI TSVI / VTI Ao` y no usa el diámetro.**
+
+**Por qué no calcula, medido:** el bloque que escribe las filas del cuadro —y los dos `input
+readonly` `ea_ava_display` y `ea_dvi_display`— vive dentro de `if (itsvi && itvao && dtsvi)` en
+`_eaDetCuentaPura`, porque comparte el `if` con el AVA por continuidad, que **sí** necesita el
+diámetro. El **criterio** no tiene ese problema: `_eaCritDvi()` lee `itv_tsvi` e `itv_ao` y **ya
+vota sin el diámetro** — por eso borrando sólo el Ø TSVI la línea dice «Moderada — por DVI» con la
+fila del DVI en «—», que es el síntoma 2 del reporte, visto por el otro lado.
+
+**NO SE CAMBIÓ, y es PARADA**: `ea_dvi_display` es un `input[id]`, así que `guardarInforme` lo
+barre y viaja en `campos`, y es además **la primera fuente que lee `eaProtVeredicto`** con
+`parseFloat`. Despegarlo del diámetro cambia qué número lee el veredicto protésico aórtico en los
+estudios donde hoy queda vacío — o sea cambia cuándo vota.
+**Las dos salidas:** (a) sacar el DVI de ese `if` y darle el suyo (`itsvi && itvao`), aceptando que
+el veredicto protésico empiece a leerlo en más escenas; (b) dejar el campo y pintar **sólo la
+fila** `ea-det-dvi` desde `_eaCritDvi`, que no toca ningún `input` ni ninguna fuente del veredicto
+— **es la conservadora** y la que este archivo marcaría si tuviera que elegir.
+
+### Z4-TEP · PARADA · El 0,32 de la pantalla de TEP participa de un VEREDICTO
+
+La orden corregida mandaba **quitar la etiqueta con el corte** y dejar el valor sin corte **sólo
+si** el 0,32 fuera una etiqueta que no participa del score, de la interpretación ni del riesgo.
+**Medido, con dos criterios positivos fijos y la PSAP en 61 mmHg:**
+
+| | score de criterios del VD | interpretación | riesgo |
+|---|---|---|---|
+| ¿usa el 0,32? | **NO** — su bloque no tiene ni un `score++` ni un `criterios.push` | **NO** — `interpEl` ramifica sólo sobre `score` | **SÍ** — `score >= 2 && desacoplado` |
+
+**Las escenas que cambiarían si se retirara, una por una** (todas con `score >= 2`):
+
+| cociente | hoy | si se quita el corte |
+|---|---|---|
+| 0,311 | 🔴 Disfunción VD significativa | 🟠 Riesgo INTERMEDIO-ALTO |
+| **0,320 EXACTO** | 🔴 Disfunción VD significativa | 🟠 Riesgo INTERMEDIO-ALTO |
+| 0,328 | 🟠 Riesgo INTERMEDIO-ALTO | 🟠 Riesgo INTERMEDIO-ALTO (no cambia) |
+| 0,344 | 🟠 Riesgo INTERMEDIO-ALTO | 🟠 Riesgo INTERMEDIO-ALTO (no cambia) |
+
+O sea: **todo estudio con dos o más criterios del VD positivos y un cociente ≤ 0,32** perdería el
+veredicto rojo. Y **el rótulo viaja al PDF de TEP** (`tep-acoplamiento` está en la lista que el
+armador recorre), así que no es sólo pantalla.
+
+⚠️ **Y LA SALIDA INTERMEDIA ES PEOR QUE LAS DOS.** Retirar SÓLO la etiqueta —dejar
+«TAPSE/PSAP 0,320 mm/mmHg» a secas y no tocar `desacoplado`— no cambiaría ningún veredicto, pero
+dejaría el veredicto rojo colgando de un corte que **ya no se ve en ninguna parte**: el médico
+leería «Disfunción VD significativa» sin un solo número en pantalla que explique por qué esa
+escena es roja y la de al lado naranja. Por eso la etiqueta tampoco se retiró sola.
+
+**No se tocó NADA de esa pantalla.** Lo que sigue abierto es lo de G1-2: el 0,32 es el umbral de
+**riesgo bajo en hipertensión arterial pulmonar** (ESC/ERS 2022, **Tabla 16**) y **ninguna fuente
+leída lo define como criterio de tromboembolia**, pero la app lo usa para decidir un veredicto de
+sobrecarga del VD. **Qué habría que hacer:** decidir si ese veredicto se queda con el 0,32
+—rotulándolo por lo que es— o si el cociente sale de la estratificación de esa pantalla. Las dos
+son decisiones clínicas.
+
+### Z4-1 · La serie de embolia pulmonar quedó verificada y sin usar
+
+**Lyhne MD y col., Eur Heart J Acute Cardiovasc Care 2024;13:817-825**, registro RIETE, 4.478
+pacientes: TAPSE/PASP **< 0,44**, y **< 0,34** en los de riesgo intermedio-alto (aOR 4,37; IC 95 %
+1,27-15,0), asociados a mortalidad a 30 días. **Está en la biblioteca y se leyó en texto completo.**
+Decisión de Maicol: **no entra en la tarjeta**. Queda en `FUENTES.md` como fuente disponible y no
+usada, para que la próxima tanda no la vuelva a buscar ni crea que falta.
+
+### Z4-2 · Las otras tres superficies del cociente siguen con sus propios cortes
+
+`_htp2022Core` (`< 0,55`, categoría C), `cxTP` (`> 0,36` · `0,19-0,36` · `< 0,19`, con campos de
+sobreescritura propios) y `calcTEP` (`> 0,32`) **no** leen la fila nueva. Las dos primeras ya
+estaban declaradas en **G1-8** y **G1-9** y no cambian; lo que cambia es que la fila del Doppler
+tricuspídeo ya **no** usa el 0,36, así que hoy `cxTP` es el **único** lugar de la app que lo
+aplica — y ahí sale de otra fuente y con otro significado.
+
+### Z5 · «ET grado» cae en el bloque «18 · OTRAS COLUMNAS» del Excel
+
+Medido de paso: `_labXlsBloqueDe('ET grado')` devuelve el bloque 18, a 250 columnas de las otras
+cuatro de la estenosis tricuspídea, que sí están declaradas (`ET grad medio`, `ET THP`,
+`ET VTI diast`, `ET área`). **Es PREEXISTENTE** y no lo trae esta tanda; se arregla agregando
+`'ET grado'` a los nombres del bloque 8, que es una línea, y `_labXlsAssertBloques` lo verificaría.
+No se tocó porque mueve la posición de una columna que esta orden no nombra.

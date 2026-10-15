@@ -40801,12 +40801,25 @@ caso('TC-302', 'Con protesis, el informe firmado, el EN SUMA y el PDF no llevan 
     ESC.forEach(function(E){
       const conP = correr(E[1]), nat = correr(E[2]);
       const dInf = dif(conP.inf, nat.inf), dSum = dif(conP.suma, nat.suma);
-      nLineas.push(E[0] + '=' + dInf.length);
+      /* ⚠️ ADAPTADO 2026-10-15 (Z): LA LINEA DEL PPM AORTICO NO CUENTA COMO «FRASE DE MAS».
+         Desde el Z el informe publica «Desajuste protesico-paciente aortico <grado> (AEO indexada
+         X cm2/m2)» cuando hay desajuste moderado o severo, con el MISMO tratamiento que el PPM
+         mitral, que viene haciendolo desde la Fase 2. Es un HALLAZGO CLINICO —otra pregunta que
+         la estenosis: una protesis puede estar obstruida sin PPM y tener PPM sin estar
+         obstruida— y no la justificacion metodologica que este caso existe para prohibir.
+         Lo que la condicion sigue vigilando NO cambia: que no vuelva ninguna de las ocho frases
+         retiradas el 2026-09-28, que las nueve MARC sigan en cero, y que ninguna OTRA oracion se
+         cuele en el parrafo de la valvula. */
+      const _esPpm = (l) => l.indexOf('Desajuste prot') > -1;
+      nLineas.push(E[0] + '=' + dInf.filter(l => !_esPpm(l)).length);
       dInf.concat(dSum).forEach(function(l){
         const m = MARC.filter(k => l.indexOf(k) > -1);
         if (m.length) malas.push(E[0] + ' · ' + m.join('/') + ' :: ' + l.slice(0, 80));
       });
-      if (E[0] === 'TAVI severa') lineaTavi = dInf.join(' ⏎ ') || '(sin linea)';
+      /* El caso TAVI SI publica su PPM —la Tabla 7 de la ASE 2024 no abre ramas por tipo de
+         protesis, que es lo que el W2-B ya habia medido para la pantalla—, asi que la linea del
+         desajuste se descuenta tambien aca antes de exigir que la del veredicto sea UNA. */
+      if (E[0] === 'TAVI severa') lineaTavi = dInf.filter(l => !_esPpm(l)).join(' ⏎ ') || '(sin linea)';
     });
     /* La otra mitad del pedido: UNA oracion clinica por valvula. Sin esto, una frase metodologica
        que no use ninguna de las nueve marcas —«…y tampoco vota por si solo»— pasaria invisible. */
@@ -40854,7 +40867,18 @@ caso('TC-302', 'Con protesis, el informe firmado, el EN SUMA y el PDF no llevan 
         deMas.length === 0, deMas.join(' | ') || '(una por valvula en los ocho)'],
       ['CERO en el PDF, que es la superficie que se firma',
         String(pdfSucio).indexOf('limpio') === 0, String(pdfSucio)],
-      ['el caso TAVI queda en UNA linea, como el modelo del pedido', lineaTavi.indexOf('⏎') === -1, lineaTavi],
+      ['el caso TAVI queda en UNA linea de veredicto, como el modelo del pedido', lineaTavi.indexOf('⏎') === -1, lineaTavi],
+      /* ⚠️ Y LO QUE SE DESCUENTA ARRIBA SE AFIRMA ACA, para que descontarlo no sea perder
+         cobertura: la linea del PPM tiene que ESTAR, decir lo que dice y no traer metodologia. */
+      ['la linea del PPM aortico (Z) SI esta, con su AEO indexada y sin justificacion metodologica',
+        (function(){ try {
+          const d = dif(correr(ESC.filter(x => x[0] === 'TAVI severa')[0][1]).inf,
+                        correr(ESC.filter(x => x[0] === 'TAVI severa')[0][2]).inf);
+          const ppm = d.filter(l => l.indexOf('Desajuste prot') > -1);
+          return ppm.length === 1 && ppm[0].indexOf('a\u00f3rtico') > -1 &&
+                 ppm[0].indexOf('AEO indexada') > -1 &&
+                 MARC.every(k => ppm[0].indexOf(k) === -1);
+        } catch (e) { return false; } })(), ''],
       ['los valores medidos siguen impresos', valores.length === 4, valores.join(',') + ' :: ' + lV],
       ['y la severidad que el informe afirma sigue impresa', severidad, lV]
     ] };
@@ -66314,8 +66338,8 @@ caso('TC-476', 'Tanda G1: el VD en tres columnas con su orden de Tab, las filas 
     /* ⚠️ ADAPTADA 2026-10-15 (Z): LA TARJETA SE REESCRIBIO Y AFIRMA LO CONTRARIO EN SU SEGUNDA
        MITAD. La version del G1 citaba el 0,55 POR FOLIO y declaraba EN LA TARJETA que tres
        cortes «no se pudieron leer en su fuente primaria». Decision de Maicol: (1) la ESC/ERS
-       2022 se cita por NUMERO DE TABLA, porque la traduccion de la SEC que hay en la biblioteca
-       pagina distinto que el original ingles; (2) la tarjeta NO lleva ninguna nota de
+       2022 se cita por NUMERO DE TABLA, porque la biblioteca tiene SOLO la traduccion de la SEC
+       y el numero de tabla vale en las dos ediciones; (2) la tarjeta NO lleva ninguna nota de
        verificacion ni reserva — eso vive SOLO en FUENTES.md y en PENDIENTES.md. Lo que la
        condicion sigue protegiendo es lo mismo: que el 0,55 este citado y que la tarjeta no
        atribuya a nadie un corte que no se leyo. */
@@ -67228,6 +67252,378 @@ caso('TC-478', 'Tanda G3: la casilla de la FAC vuelve a estar VISIBLE con su men
       ['im_grado','ia_grado','it_grado','ea_grado','em_grado','et_grado','ip_grado','ep_grado']
         .map(id => id + '=' + V(id)).join(' ')]);
     __t.limpiar();
+
+    return { extra: ex };
+  })();
+`);
+
+/* ⚠️ TC-479 CARGA CON __t.set Y NO CON TECLAS DE CDP, y hay que decirlo: el cuerpo de un caso
+   corre DENTRO de la pagina, no tiene acceso al protocolo del navegador y un KeyboardEvent
+   construido a mano no es de confianza. Las MISMAS escenas van con teclas y clics reales en
+   scripts/_probe_z.mjs, que es la que midio los sintomas contra HEAD. Mismo reparto que TC-460,
+   TC-463 y TC-469.
+   ⚠️ Y TODA LECTURA DE UN NODO O UNA FUNCION NUEVA VA POR UN AYUDANTE CON CENTINELA: contra un
+   arbol que no los tiene, un acceso directo mata la corrida por EXCEPCION y eso prueba que el
+   arbol es distinto, no que el caso sabe medir. Es la leccion de TC-455, TC-462, TC-465, TC-471,
+   TC-473, TC-474, TC-475 y TC-477. */
+caso('TC-479', 'Tanda Z: el PPM aortico llega al informe y al EN SUMA con su columna de Excel, la columna «Vmax IT (m/s)» cierra la ida y vuelta del TAPSE/PSAP en 440 columnas, el renglon integrado de la estenosis aortica vuelve a «sin dato» en todos los ordenes y gestos de borrado con las cinco filas publicando su grado, y la fila del cociente pasa a DOS estados con la tarjeta de los cinco usos verificados', `
+  return (async function(){
+    const ex = [];
+    const EL  = (id) => document.getElementById(id);
+    const V   = (id) => { const e = EL(id); return e ? e.value : null; };
+    const T   = (id) => { const e = EL(id); return e ? (e.textContent || '').trim() : 'NO EXISTE'; };
+    const FN  = (n) => typeof window[n] === 'function';
+    const S   = (id, v) => { try { __t.set(id, v); } catch (e) {} };
+    const VIS = (id) => { const e = EL(id); if (!e) return null;
+      let n = e; while (n && n.nodeType === 1) {
+        if (getComputedStyle(n).display === 'none') return false; n = n.parentNode; }
+      return true; };
+    const GUION = String.fromCharCode(8212);
+    const fuente = document.documentElement.innerHTML;
+    /* El grado hermano de una fila: un <span> sin id, asi que se busca por su atributo. */
+    const GRADO = (id) => { const e = document.querySelector('[data-grado-de="' + id + '"]');
+      return e ? (e.textContent || '').trim() : 'SIN SPAN'; };
+    const REG = (c) => ({ id: 'z1', nombre: 'Z', ci: '1', fecha_estudio: '2026-10-15', campos: c || {} });
+    const FILA = (c) => { try { return FN('_labExcelRow') ? _labExcelRow(REG(c)) : null; }
+      catch (e) { return null; } };
+    const CAMPOS = () => { const c = {};
+      document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function (el) {
+        if (el.type === 'checkbox') c[el.id + '__chk'] = el.checked ? '1' : '0';
+        else c[el.id] = el.value; });
+      return c; };
+    const INF = (estilo) => { try { if (FN('setEstiloInforme')) setEstiloInforme(estilo); } catch (e) {}
+      try { if (FN('generarInforme')) generarInforme(); } catch (e) {}
+      return { inf: V('informe_texto') || '', suma: V('en_suma') || '' }; };
+
+    /* ══ A · EL PPM AORTICO EN EL INFORME Y EN EL EN SUMA ══════════════════════════════════
+       ⚠️ DENOMINADOR: HACEN FALTA PESO, TALLA, MORFOLOGIA PROTESICA Y LOS TRES INSUMOS DE LA
+       CONTINUIDAD. Sin la superficie corporal no hay AVA indexada y el veredicto queda nulo:
+       las seis escenas informarian «sin PPM» sobre una cascada que funciona. */
+    ex.push(['DENOMINADOR: las funciones dueñas del PPM aortico existen',
+      FN('_eaPpmAoClasificar') && FN('eaProtVeredicto') && typeof EA_PROT_PPM_CORTES !== 'undefined' &&
+      typeof PPM_AO_XLS_TXT !== 'undefined', '']);
+    /* La cascada de la Tabla 7, por sus dos ramas de IMC, sin tocar el DOM. */
+    const PPM = (avai, imc) => { try { return FN('_eaPpmAoClasificar') ? _eaPpmAoClasificar(avai, imc).ppm : 'SIN FN'; }
+      catch (e) { return 'EXC'; } };
+    ex.push(['Tabla 7, IMC < 30: 0,65 severo / 0,66 moderado / 0,85 moderado / 0,86 sin desajuste',
+      PPM(0.65, 24) === 'severo' && PPM(0.66, 24) === 'moderado' &&
+      PPM(0.85, 24) === 'moderado' && PPM(0.86, 24) === 'no',
+      [PPM(0.65,24), PPM(0.66,24), PPM(0.85,24), PPM(0.86,24)].join('/')]);
+    ex.push(['Tabla 7, IMC >= 30: los DOS cortes bajan — 0,55 severo / 0,56 moderado / 0,70 moderado / 0,71 sin desajuste',
+      PPM(0.55, 34) === 'severo' && PPM(0.56, 34) === 'moderado' &&
+      PPM(0.70, 34) === 'moderado' && PPM(0.71, 34) === 'no',
+      [PPM(0.55,34), PPM(0.56,34), PPM(0.70,34), PPM(0.71,34)].join('/')]);
+    /* ⚠️ CON OBESIDAD LOS DOS CORTES BAJAN, asi que el MISMO indexado es MENOS grave: la Tabla 7
+       tolera un area efectiva menor en un paciente con mas superficie corporal. La primera version
+       de esta condicion lo tenia al reves, y el caso lo cazo. */
+    ex.push(['la rama de IMC discrimina sobre el MISMO indexado: 0,60 es SEVERO con IMC 24 y MODERADO con IMC 34',
+      PPM(0.60, 24) === 'severo' && PPM(0.60, 34) === 'moderado',
+      PPM(0.60,24) + ' / ' + PPM(0.60,34)]);
+    ex.push(['CONTROL: sin indexada no clasifica, y sin IMC usa la rama MAS exigente (la de < 30)',
+      PPM(null, 24) === null && PPM(0, 24) === null && PPM(0.80, null) === 'moderado',
+      JSON.stringify([PPM(null,24), PPM(0,24), PPM(0.80,null)])]);
+
+    /* La linea del informe, con el escenario de verdad. */
+    const ESC_PPM = (peso, vtiAo) => { __t.limpiar();
+      S('peso', peso); S('talla', '170');
+      S('va_morf', 'Protesis biologica');
+      const sel = EL('va_morf');
+      if (sel && sel.value !== 'Protesis biologica') {
+        const o = Array.prototype.slice.call(sel.options).filter(x => /tesis/i.test(x.value) && !/TAVI/i.test(x.value))[0];
+        if (o) { sel.value = o.value; sel.dispatchEvent(new Event('change', { bubbles: true })); }
+      }
+      S('diam_tsvi', '20'); S('itv_tsvi', '20'); S('itv_ao', vtiAo);
+      try { if (FN('calcAo')) calcAo(); if (FN('calcEADetalle')) calcEADetalle(); } catch (e) {}
+      const P = (function(){ try { return FN('eaProtVeredicto') ? eaProtVeredicto() : null; } catch (e) { return null; } })();
+      return { ppm: P ? P.ppm : 'SIN P', avai: P ? P.avai : null, inf: INF('estandar') }; };
+    const sev = ESC_PPM('70', '63'), mod = ESC_PPM('70', '52'), nada = ESC_PPM('70', '38');
+    ex.push(['DENOMINADOR: la escena protesica produce los tres estados del PPM',
+      sev.ppm === 'severo' && mod.ppm === 'moderado' && nada.ppm === 'no',
+      [sev.ppm, mod.ppm, nada.ppm].join('/')]);
+    ex.push(['con PPM SEVERO el informe y el EN SUMA publican la linea, con la AEO indexada que la disparo',
+      /Desajuste prot.sico-paciente a.rtico severo/.test(sev.inf.inf) &&
+      /Desajuste prot.sico-paciente a.rtico severo/.test(sev.inf.suma) &&
+      sev.inf.inf.indexOf('AEO indexada') > -1, sev.inf.suma.slice(0, 90)]);
+    ex.push(['con PPM MODERADO tambien, y dice «moderado»',
+      /Desajuste prot.sico-paciente a.rtico moderado/.test(mod.inf.inf) &&
+      /Desajuste prot.sico-paciente a.rtico moderado/.test(mod.inf.suma), mod.inf.suma.slice(0, 90)]);
+    ex.push(['CONTROL: SIN desajuste no se escribe NADA en ninguna de las dos superficies',
+      nada.inf.inf.indexOf('Desajuste prot') === -1 && nada.inf.suma.indexOf('Desajuste prot') === -1, '']);
+    /* La columna del Excel, con su valor y su bloque. */
+    const fPpm = FILA(CAMPOS());
+    ex.push(['la columna «PPM aortico» existe, cae en el bloque de VALVULAS y publica la categoria',
+      !!fPpm && fPpm['PPM aórtico'] !== undefined &&
+      (FN('_labXlsBloqueDe') ? String(_labXlsBloqueDe('PPM aórtico')).indexOf('VÁLVULAS') > -1 : false),
+      fPpm ? String(fPpm['PPM aórtico']) : 'SIN FILA']);
+    ex.push(['y es DERIVADA: no esta en LAB_XLS_MAP, asi que no se reimporta',
+      typeof LAB_XLS_MAP !== 'undefined' &&
+      LAB_XLS_MAP.filter(m => m[0] === 'PPM aórtico').length === 0, '']);
+    /* CONTROL NEGATIVO: valvula NATIVA con la MISMA AVA indexada severa. */
+    __t.limpiar();
+    S('peso', '70'); S('talla', '170'); S('va_morf', 'Trivalva normal');
+    S('diam_tsvi', '20'); S('itv_tsvi', '20'); S('itv_ao', '63');
+    try { if (FN('calcAo')) calcAo(); if (FN('calcEADetalle')) calcEADetalle(); } catch (e) {}
+    const infNat = INF('estandar'), fNat = FILA(CAMPOS());
+    ex.push(['CONTROL NEGATIVO: con valvula NATIVA y la MISMA indexada, ni linea ni celda',
+      infNat.inf.indexOf('Desajuste prot') === -1 && infNat.suma.indexOf('Desajuste prot') === -1 &&
+      !!fNat && String(fNat['PPM aórtico']) === '',
+      fNat ? JSON.stringify(fNat['PPM aórtico']) : 'SIN FILA']);
+
+    /* ══ B · EL EXCEL EN 440 COLUMNAS Y LA IDA Y VUELTA ════════════════════════════════════ */
+    __t.limpiar();
+    const base = FILA({});
+    const cols = (function(){ try { return FN('_labOrdenarCols') && base ? _labOrdenarCols(Object.keys(base)) : []; }
+      catch (e) { return []; } })();
+    ex.push(['el Excel pasa a 440 columnas', cols.length === 440, 'n=' + cols.length]);
+    ex.push(['las DOS columnas nuevas existen con esos nombres exactos',
+      cols.indexOf('Vmax IT (m/s)') > -1 && cols.indexOf('PPM aórtico') > -1,
+      JSON.stringify(cols.filter(c => /Vmax IT|PPM a/.test(c)))]);
+    /* La POSICION por sus VECINOS y no por un indice, que se mueve con cada columna que entre. */
+    const iv = cols.indexOf('Vmax IT (m/s)');
+    ex.push(['«Vmax IT (m/s)» va PEGADA a «VC IT (mm)», que es la otra medicion de esa valvula',
+      iv > 0 && cols[iv - 1] === 'VC IT (mm)', (cols[iv - 1] || '?') + ' | ' + (cols[iv + 1] || '?')]);
+    const ip = cols.indexOf('PPM aórtico');
+    ex.push(['«PPM aortico» va PEGADA a «AVA (cm2)», que es de donde deriva',
+      ip > 0 && cols[ip - 1] === 'AVA (cm²)', (cols[ip - 1] || '?') + ' | ' + (cols[ip + 1] || '?')]);
+    ex.push(['«Vmax IT (m/s)» SI esta en el mapa, con destino vmax_it, y NO es calculada',
+      typeof LAB_XLS_MAP !== 'undefined' &&
+      LAB_XLS_MAP.filter(m => m[0] === 'Vmax IT (m/s)' && m[1] === 'vmax_it' && m[2] === 'num').length === 1 &&
+      (FN('_labXlsEsCalculado') ? _labXlsEsCalculado('vmax_it') === false : false), '']);
+    /* Los TRES asserts de arranque del Excel, limpios. */
+    ex.push(['los asserts de arranque del Excel no gritan con las dos columnas nuevas',
+      (FN('_labXlsAssertBloques') ? _labXlsAssertBloques().length === 0 : false) &&
+      (FN('_labXlsAssertListas') ? _labXlsAssertListas().length === 0 : true), '']);
+    /* LA IDA Y VUELTA: se exporta y se vuelve a entrar por los campos que el importador CONSERVA. */
+    __t.limpiar();
+    S('tapse', '18'); S('vmax_it', '2.8'); S('vci_diam', '18'); S('vci_col', '>50');
+    try { if (FN('calcPmAD')) calcPmAD(); if (FN('calcPSAP')) calcPSAP(); if (FN('vdTapsePsapSync')) vdTapsePsapSync(); } catch (e) {}
+    const idaPsap = V('psap_calc');
+    const idaCoc = (function(){ try { return FN('vdTapsePsapRed') ? vdTapsePsapRed() : null; } catch (e) { return null; } })();
+    ex.push(['DENOMINADOR: la ida produce PSAP y cociente — sin eso la vuelta no mide nada',
+      idaPsap === '34' && idaCoc === 0.529, 'psap=' + idaPsap + ' coc=' + idaCoc]);
+    const filaIda = FILA(CAMPOS());
+    ex.push(['los CUATRO datos de origen viajan en el Excel: TAPSE, Vmax IT, diametro y colapso de la VCI',
+      !!filaIda && String(filaIda['TAPSE (mm)']) === '18' && String(filaIda['Vmax IT (m/s)']) === '2.8' &&
+      String(filaIda['VCI diám (mm)']) === '18' && String(filaIda['Colapso VCI']) === '>50',
+      filaIda ? JSON.stringify([filaIda['TAPSE (mm)'], filaIda['Vmax IT (m/s)'], filaIda['VCI diám (mm)'], filaIda['Colapso VCI']]) : 'SIN FILA']);
+    /* Lo que el importador CONSERVA: su propio mapa, menos lo que _labXlsEsCalculado aparta. */
+    const camposVuelta = (function(){ const c = {};
+      if (typeof LAB_XLS_MAP === 'undefined' || !filaIda) return c;
+      LAB_XLS_MAP.forEach(function (m) { const val = filaIda[m[0]];
+        if (val === undefined || val === null || val === '') return;
+        if (FN('_labXlsEsCalculado') && _labXlsEsCalculado(m[1])) return;
+        c[m[1]] = String(val); });
+      return c; })();
+    ex.push(['la PSAP y la PmAD NO viajan —son calculadas— pero la velocidad de la IT y la VCI SI',
+      camposVuelta.psap_calc === undefined && camposVuelta.pmad === undefined &&
+      camposVuelta.vmax_it === '2.8' && camposVuelta.vci_diam === '18' && camposVuelta.tapse === '18',
+      JSON.stringify({ psap: camposVuelta.psap_calc, pmad: camposVuelta.pmad, vrt: camposVuelta.vmax_it })]);
+    __t.limpiar();
+    Object.keys(camposVuelta).forEach(function (k) { S(k, camposVuelta[k]); });
+    try { if (FN('calcPmAD')) calcPmAD(); if (FN('calcPSAP')) calcPSAP(); if (FN('vdTapsePsapSync')) vdTapsePsapSync(); } catch (e) {}
+    const vuPsap = V('psap_calc');
+    const vuCoc = (function(){ try { return FN('vdTapsePsapRed') ? vdTapsePsapRed() : null; } catch (e) { return null; } })();
+    ex.push(['LA IDA Y VUELTA REPRODUCE: la PSAP y el cociente recalculados dan el MISMO valor',
+      vuPsap === idaPsap && vuCoc === idaCoc, 'psap=' + vuPsap + ' coc=' + vuCoc]);
+    ex.push(['y calcPmAD corre en las DOS rutas de restauracion, que es lo que lo hace posible',
+      FN('editarInforme') && FN('cargarEstudioPorId') &&
+      String(editarInforme).indexOf('calcPmAD') > -1 &&
+      String(cargarEstudioPorId).indexOf('calcPmAD') > -1, '']);
+    /* Un Excel VIEJO, sin las dos columnas nuevas, no puede romper nada. */
+    ex.push(['CONTROL: un Excel VIEJO de 438 columnas sigue teniendo todas sus cabeceras conocidas',
+      cols.filter(c => c !== 'Vmax IT (m/s)' && c !== 'PPM aórtico').length === 438, '']);
+
+    /* ══ C · LA ESTENOSIS AORTICA: EL BORRADO Y LAS CINCO FILAS ════════════════════════════
+       Las escenas del medico: O TSVI 20 · VTI TSVI 20 · VTI Ao 56 (AVA 1,12 cm2, DVI 0,357). */
+    const CARGAR = () => { __t.limpiar(); S('peso', '70'); S('talla', '170');
+      S('diam_tsvi', '20'); S('itv_tsvi', '20'); S('itv_ao', '56');
+      try { if (FN('calcAo')) calcAo(); if (FN('calcEADetalle')) calcEADetalle(); } catch (e) {} };
+    CARGAR();
+    const sevBase = T('ea-det-sev');
+    ex.push(['DENOMINADOR: la escena del medico produce un renglon integrado con criterio',
+      sevBase.indexOf('Moderada') === 0 && sevBase.indexOf('por') > -1, sevBase]);
+    /* Los SEIS ordenes de borrado. Un solo gesto —vaciar el campo— porque el cuerpo de un caso
+       no manda teclas; los DOS gestos reales los mide la sonda. */
+    const ORDENES = [['diam_tsvi','itv_tsvi','itv_ao'], ['diam_tsvi','itv_ao','itv_tsvi'],
+                     ['itv_tsvi','diam_tsvi','itv_ao'], ['itv_tsvi','itv_ao','diam_tsvi'],
+                     ['itv_ao','diam_tsvi','itv_tsvi'], ['itv_ao','itv_tsvi','diam_tsvi']];
+    const fijas = [];
+    ORDENES.forEach(function (ord) {
+      CARGAR();
+      ord.forEach(function (id) { S(id, '');
+        try { if (FN('calcAo')) calcAo(); if (FN('calcEADetalle')) calcEADetalle(); } catch (e) {} });
+      const t = T('ea-det-sev');
+      if (t !== GUION) fijas.push(ord.join('>') + ' -> ' + t);
+    });
+    ex.push(['el renglon integrado vuelve a «sin dato» en los SEIS ordenes de borrado',
+      fijas.length === 0, JSON.stringify(fijas).slice(0, 220)]);
+    /* Y los otros tres insumos que gradúan solos. */
+    const SOLO = (id, val) => { __t.limpiar(); S(id, val);
+      try { if (FN('calcAo')) calcAo(); if (FN('calcEADetalle')) calcEADetalle(); } catch (e) {}
+      const antes = T('ea-det-sev');
+      S(id, '');
+      try { if (FN('calcAo')) calcAo(); if (FN('calcEADetalle')) calcEADetalle(); } catch (e) {}
+      return { antes: antes, desp: T('ea-det-sev') }; };
+    const sVmax = SOLO('vmax_ao', '4.5'), sGmed = SOLO('gmedio_ao', '45'), sPlan = SOLO('ava_plan', '0.8');
+    ex.push(['DENOMINADOR: los tres insumos sueltos SI producen veredicto al cargarse',
+      sVmax.antes !== GUION && sGmed.antes !== GUION && sPlan.antes !== GUION,
+      [sVmax.antes, sGmed.antes, sPlan.antes].join(' | ').slice(0, 120)]);
+    ex.push(['y los tres devuelven el renglon a «sin dato» al borrarse',
+      sVmax.desp === GUION && sGmed.desp === GUION && sPlan.desp === GUION,
+      [sVmax.desp, sGmed.desp, sPlan.desp].join(' | ')]);
+    ex.push(['el dueño del estado vacio existe y es el que corre en las puertas del gesto',
+      FN('eaSevVacioSync') && FN('_eaDetCuentaPura') &&
+      String(_eaDetCuentaPura).indexOf('eaSevVacioSync') > -1, '']);
+    /* ⚠️ LA PROHIBICION DE TC-432 SIGUE VIGENTE: calcEADetalle NO puede entrar en las dos
+       puertas del gesto. Si alguna vez entra, el badge del retiro deja de explicarse. */
+    ex.push(['LIMITE CONSERVADO: calcEADetalle sigue FUERA de las dos puertas del gesto',
+      FN('eaParEditado') && FN('tsviDiamEditado') &&
+      String(eaParEditado).indexOf('calcEADetalle') === -1 &&
+      String(tsviDiamEditado).indexOf('calcEADetalle') === -1, '']);
+    /* CONTROL NEGATIVO: un grado fijado A MANO se respeta al borrar. */
+    __t.limpiar(); S('vmax_ao', '4.5');
+    try { if (FN('calcAo')) calcAo(); if (FN('calcEADetalle')) calcEADetalle(); } catch (e) {}
+    S('ea_grado', 'severa');
+    try { const g = EL('ea_grado'); if (g) g.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {}
+    S('vmax_ao', '');
+    try { if (FN('calcAo')) calcAo(); if (FN('calcEADetalle')) calcEADetalle(); } catch (e) {}
+    ex.push(['CONTROL NEGATIVO: un grado fijado A MANO se respeta al borrar el ultimo dato',
+      V('ea_grado') === 'severa', V('ea_grado')]);
+
+    /* Las CINCO filas con su grado, y la de planimetria que antes no existia. */
+    __t.limpiar(); S('peso', '70'); S('talla', '170');
+    S('diam_tsvi', '20'); S('itv_tsvi', '20'); S('itv_ao', '56');
+    S('gmedio_ao', '30'); S('ava_plan', '0.9');
+    try { if (FN('calcAo')) calcAo(); if (FN('calcEADetalle')) calcEADetalle(); } catch (e) {}
+    ex.push(['DENOMINADOR: la fila del AVA por planimetria EXISTE y publica su valor',
+      T('ea-det-plan') === '0.90 cm²', T('ea-det-plan')]);
+    ex.push(['las CINCO filas publican su grado entre parentesis',
+      GRADO('ea-det-gmedio') === '(moderada)' && GRADO('ea-det-ava') === '(moderada)' &&
+      GRADO('ea-det-avai') === '(moderada)' && GRADO('ea-det-plan') === '(severa)' &&
+      GRADO('ea-det-dvi') === '(moderada)',
+      ['ea-det-gmedio','ea-det-ava','ea-det-avai','ea-det-plan','ea-det-dvi'].map(GRADO).join(' ')]);
+    /* Los bordes de los dos criterios que esta tanda hace visibles por primera vez. */
+    const BORDE = (id, val) => { S(id, val);
+      try { if (FN('calcAo')) calcAo(); if (FN('calcEADetalle')) calcEADetalle(); } catch (e) {}
+      return { g: GRADO('ea-det-gmedio'), p: GRADO('ea-det-plan') }; };
+    const g19 = BORDE('gmedio_ao','19'), g20 = BORDE('gmedio_ao','20'),
+          g39 = BORDE('gmedio_ao','39'), g40 = BORDE('gmedio_ao','40');
+    ex.push(['el gradiente medio por sus bordes: 19 sin grado, 20 moderada, 39 moderada, 40 severa',
+      g19.g === '' && g20.g === '(moderada)' && g39.g === '(moderada)' && g40.g === '(severa)',
+      [g19.g, g20.g, g39.g, g40.g].join('/')]);
+    S('gmedio_ao','30');
+    const p09 = BORDE('ava_plan','0.9'), p10 = BORDE('ava_plan','1.0'),
+          p14 = BORDE('ava_plan','1.4'), p15 = BORDE('ava_plan','1.5');
+    ex.push(['la planimetria por sus bordes: 0,90 severa, 1,00 severa, 1,40 moderada, 1,50 sin grado',
+      p09.p === '(severa)' && p10.p === '(severa)' && p14.p === '(moderada)' && p15.p === '',
+      [p09.p, p10.p, p14.p, p15.p].join('/')]);
+    ex.push(['«sin estenosis» NO se imprime como grado de una fila — vacio es la abstencion',
+      typeof EA_FILA_GRADO !== 'undefined' && Object.keys(EA_FILA_GRADO).length === 5 &&
+      p15.p === '', JSON.stringify(p15)]);
+
+    /* ══ D · LA FILA DEL TAPSE/PSAP: DOS ESTADOS ═══════════════════════════════════════════
+       ⚠️ LA PSAP NO SALE SOLO DE LA VMAX: es 4 x VRT^2 + PmAD, y sin el diametro y el colapso
+       de la VCI queda VACIA — la fila diria «—» y se leeria como «el cociente no funciona». */
+    const TPSP = (tapse) => { __t.limpiar();
+      S('vci_diam','18'); S('vci_col','>50'); S('vmax_it','2.8'); S('tapse', tapse);
+      try { if (FN('calcPmAD')) calcPmAD(); if (FN('calcPSAP')) calcPSAP();
+            if (FN('vdTapsePsapSync')) vdTapsePsapSync(); } catch (e) {}
+      return { vis: VIS('row-tapse-psap'), txt: T('tapse-psap-interp'), psap: V('psap_calc') }; };
+    const b054 = TPSP('18.4'), b055 = TPSP('18.7'), b056 = TPSP('19');
+    ex.push(['DENOMINADOR: la PSAP quedo en 34 mmHg en las tres escenas', b055.psap === '34', 'psap=' + b055.psap]);
+    ex.push(['0,541 (por debajo de 0,55): signo de probabilidad de HTP',
+      /signo de probabilidad de HTP/.test(b054.txt) && b054.txt.indexOf('0.541') === 0, b054.txt]);
+    ex.push(['0,550 EXACTO: sin signo de HTP — el operador estricto de la Tabla 10 lo deja afuera',
+      /sin signo de HTP/.test(b055.txt) && b055.txt.indexOf('0.550') === 0, b055.txt]);
+    ex.push(['0,559: sin signo de HTP', /sin signo de HTP/.test(b056.txt), b056.txt]);
+    /* ⚠️ NO SE BUSCA EL LITERAL EN EL FUENTE: el comentario que explica el retiro NOMBRA la
+       frase vieja, asi que un indexOf sobre documentElement.innerHTML sale ROJO sobre un arreglo
+       correcto. Es la trampa que TC-476 ya pago con la regla .ip-ap-col2 — lo que hay que medir
+       es la DECLARACION y el texto RENDERIZADO, no una mencion en prosa. */
+    ex.push(['SOLO dos estados: la constante del 0,36 ya no existe y ninguna escena publica su texto',
+      typeof VD_TPSP_IC_MAX === 'undefined' &&
+      [b054.txt, b055.txt, b056.txt].every(t => t.indexOf('mal pron') === -1) &&
+      [b054.txt, b055.txt, b056.txt].every(t => t.indexOf('acoplamiento VD-AP normal') === -1),
+      [b054.txt, b055.txt, b056.txt].join(' | ')]);
+    /* Sin TAPSE o sin PSAP la fila NO se dibuja, y sin mensaje de error. */
+    __t.limpiar(); S('vci_diam','18'); S('vci_col','>50'); S('vmax_it','2.8');
+    try { if (FN('calcPmAD')) calcPmAD(); if (FN('vdTapsePsapSync')) vdTapsePsapSync(); } catch (e) {}
+    const sinT = { vis: VIS('row-tapse-psap'), txt: T('tapse-psap-interp') };
+    __t.limpiar(); S('tapse','18');
+    try { if (FN('vdTapsePsapSync')) vdTapsePsapSync(); } catch (e) {}
+    const sinP = { vis: VIS('row-tapse-psap'), txt: T('tapse-psap-interp') };
+    ex.push(['sin TAPSE o sin PSAP la fila NO se dibuja, y sin mensaje de error',
+      sinT.vis === false && sinP.vis === false && sinT.txt === GUION && sinP.txt === GUION,
+      JSON.stringify([sinT, sinP])]);
+
+    /* La TARJETA: el mecanismo, los cinco usos y lo que NO lleva. */
+    const gb = document.querySelector('[data-vinfo="tapse-psap"]');
+    ex.push(['el globo sigue siendo un <button>, sin title y sin enlace al manual',
+      !!gb && gb.tagName === 'BUTTON' && !gb.getAttribute('title') &&
+      String(gb.getAttribute('onclick') || '').indexOf('abrirAyudaEco') < 0,
+      gb ? gb.tagName : 'NO EXISTE']);
+    const reg = (typeof VINFO !== 'undefined' && VINFO) ? VINFO['tapse-psap'] : null;
+    const txtReg = reg ? [reg.tit, reg.formula, reg.lee, reg.fuente, reg.ojo].join(' ') : '';
+    ex.push(['la tarjeta conserva sus CUATRO bloques',
+      !!reg && !!reg.tit && !!reg.formula && !!reg.lee && !!reg.fuente && !!reg.ojo,
+      reg ? Object.keys(reg).join(',') : 'SIN ENTRADA']);
+    ex.push(['publica los CINCO usos verificados, cada uno con su fuente nombrada',
+      ['Tabla 10','Tabla 16','Mukherjee','Stassen','Wang','Burgos'].every(f => txtReg.indexOf(f) > -1),
+      '']);
+    ex.push(['los cortes de cada uso: 0,55 · 0,32/0,19 · 0,5 a 0,7 y 0,3 a 0,4 · 0,45 · 0,38',
+      ['0,55','0,32','0,19','0,5 a 0,7','0,3 a 0,4','0,45','0,38'].every(c => txtReg.indexOf(c) > -1),
+      '']);
+    ex.push(['la ESC/ERS se cita por NUMERO DE TABLA y no por folio — el numero vale en las dos ediciones',
+      txtReg.indexOf('ESC/ERS 2022, Tabla 10') > -1 && txtReg.indexOf('ESC/ERS 2022, Tabla 16') > -1 &&
+      txtReg.indexOf('folio 28') === -1 && txtReg.indexOf('folio 41') === -1, '']);
+    ex.push(['la tarjeta NO lleva ninguna nota de verificacion ni reserva',
+      txtReg.indexOf('no se pudieron leer') === -1 && txtReg.indexOf('fuente primaria') === -1 &&
+      txtReg.indexOf('no verificad') === -1, '']);
+    ex.push(['y NO nombra la serie de embolia pulmonar, que el medico dejo fuera a proposito',
+      txtReg.indexOf('Lyhne') === -1 && txtReg.indexOf('RIETE') === -1 &&
+      txtReg.indexOf('embolia') === -1, '']);
+    ex.push(['el texto lleva acentos — es texto clinico de cara al medico, no un comentario',
+      (txtReg.match(/[áéíóúñ]/g) || []).length > 20,
+      String((txtReg.match(/[áéíóúñ]/g) || []).length)]);
+
+    /* ══ E · TEP: LA PARADA DECLARADA ══════════════════════════════════════════════════════
+       ⚠️ ESTA CONDICION AFIRMA UN LIMITE Y NO UN ARREGLO, y esta escrita para que el dia que
+       alguien toque el 0,32 de esa pantalla se note. MEDIDO: el cociente NO suma al score de
+       criterios del VD —su bloque no tiene ni un score++ ni un criterios.push— pero el 0,32 SI
+       participa del VEREDICTO DE RIESGO —el predicado score >= 2 && desacoplado—, que elige entre
+       «Disfuncion VD significativa» y «Riesgo INTERMEDIO-ALTO». Por eso la etiqueta no se
+       retiro. docs/PENDIENTES.md → G1-2 y Z4. */
+    ex.push(['PARADA DECLARADA: el 0,32 de TEP no suma al score pero SI decide el riesgo',
+      FN('calcTEP') &&
+      (function(){ const s = String(calcTEP);
+        const i = s.indexOf('1. TAPSE/PSAP'), j = s.indexOf('2. VD/VI');
+        const bloque = (i >= 0 && j > i) ? s.slice(i, j) : '';
+        return bloque.indexOf('score++') === -1 && bloque.indexOf('criterios.push') === -1 &&
+               s.indexOf('score >= 2 && desacoplado') > -1; })(),
+      '']);
+    ex.push(['y la pantalla de TEP conserva SU corte de 0,32 y SU texto',
+      fuente.indexOf('conservado (&gt;0.32)') > -1 || fuente.indexOf('conservado (>0.32)') > -1, '']);
+
+    /* ══ F · CONTROLES ════════════════════════════════════════════════════════════════════
+       Lo que esta tanda no toca no puede moverse. El estilo del informe es estado de sesion. */
+    __t.limpiar();
+    S('fevi','45'); S('ddfvi','58'); S('dsfvi','42'); S('siv','13'); S('ppvi','12');
+    S('peso','80'); S('talla','172');
+    S('im_grado','2'); S('ia_grado','1'); S('it_grado','4');
+    S('em_grado','severa'); S('et_grado','Significativa');
+    S('onda_e','95'); S('onda_a','55'); S('e_sep','5'); S('e_lat','7'); S('ai_vol','45');
+    try { ['calcBSA','calcVI','calcAI','calcDiastol','calcIM_ESC','calcIA_ESC','calcIT_ESC','calcEM']
+      .forEach(f => { if (FN(f)) window[f](); }); } catch (e) {}
+    const ctl = INF('estandar');
+    ex.push(['CONTROL: las lesiones ajenas conservan su grado',
+      V('im_grado') === '2' && V('ia_grado') === '1' && V('it_grado') === '4' &&
+      V('em_grado') === 'severa' && V('et_grado') === 'Significativa',
+      [V('im_grado'), V('ia_grado'), V('it_grado'), V('em_grado'), V('et_grado')].join('/')]);
+    ex.push(['CONTROL: la funcion diastolica sigue publicando su veredicto',
+      T('dd-interp') !== 'NO EXISTE' && T('dd-interp') !== GUION, T('dd-interp').slice(0, 50)]);
+    ex.push(['CONTROL: el informe y el EN SUMA siguen emitiendo con un escenario cargado',
+      ctl.inf.length > 100 && ctl.suma.length > 10, String(ctl.inf.length) + '/' + String(ctl.suma.length)]);
+    ex.push(['CONTROL: el HFA-PEFF sigue en pie', FN('hfapeffScore'), '']);
 
     return { extra: ex };
   })();
