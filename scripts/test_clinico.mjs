@@ -43727,7 +43727,21 @@ caso('TC-315', 'Protesis mitral: EOA por continuidad, DVI y PPM (ASE 2024, Secci
       base.P.eoa + ' vs ' + _avaContinuidad(20, 20, 40)],
     ['EOA < 1 cm²: avisa obstruccion significativa (Tabla 11)',
       obstr.P.eoa === 0.90 && obstr.P.porEoa === 'significativa', 'eoa=' + obstr.P.eoa + ' ' + obstr.P.porEoa],
-    ['EOA 1.57: NO avisa', base.P.porEoa === 'normal', base.P.porEoa],
+    /* ADAPTADO el 2026-10-15 (W2-B, W1-6): la Tabla 11 tiene TRES tramos y la app tenia DOS.
+       1,57 cm2 cae en la banda del medio —«1-2» en el original, «possible stenosis»— y hasta
+       hoy se publicaba como «sin criterios de obstruccion». No sobre-afirmaba: SUB-afirmaba.
+       El caso ahora fija los TRES tramos y sus DOS bordes exactos, que es lo que un solo valor
+       no puede probar: con la condicion de «posible» sola, una cascada que devolviera «posible»
+       para TODO pasaria igual. */
+    ['AEO 1.57 cae en la banda del medio de la Tabla 11: POSIBLE estenosis, no normal',
+      base.P.porEoa === 'posible', base.P.porEoa],
+    ['y el AEO de 2,72 cm2 del otro escenario SI es normal: el tramo alto arranca en 2,0',
+      dviSol.P.eoa === 2.72 && dviSol.P.porEoa === 'normal',
+      'eoa=' + dviSol.P.eoa + ' ' + dviSol.P.porEoa],
+    ['CONTROL NEGATIVO del tramo nuevo: el corte de significativa sigue siendo menor-estricto que 1',
+      (function(){ var e = esc({ d:16, tsvi:20, prmv:40.2 });
+        return e.P.eoa === 1.00 && e.P.porEoa === 'posible' })(),
+      'AEO 1.00 exacto'],
 
     // ── DVI: Tabla 11 ──
     ['DVI = VTI protesis / VTI TSVI, calculado', obstr.P.dvi === 3.5 && obstr.P.dviFuente === 'calculado',
@@ -43744,12 +43758,18 @@ caso('TC-315', 'Protesis mitral: EOA por continuidad, DVI y PPM (ASE 2024, Secci
     ['EOA < 1 Y DVI > 2.5 en el mismo estudio: UNA sola linea, no dos',
       obstr.obstrInf.length === 1 && obstr.obstrSuma.length === 1,
       'inf=' + obstr.obstrInf.length + ' suma=' + obstr.obstrSuma.length],
+    /* ADAPTADO el 2026-10-15 (W2-B, commit 1): el informe firmado dice «AEO» y no «EOA».
+       Decision de Maicol: «EOA» se confundia con «EROA», que es el area del orificio
+       REGURGITANTE y NO se renombra. El NUMERO y la regla no se tocaron. */
     ['y esa linea nombra los DOS numeros que la dispararon',
-      obstr.obstrInf[0].indexOf('EOA 0.90') > -1 && obstr.obstrInf[0].indexOf('DVI 3.50') > -1,
+      obstr.obstrInf[0].indexOf('AEO 0.90') > -1 && obstr.obstrInf[0].indexOf('DVI 3.50') > -1,
       obstr.obstrInf[0]],
     ['con el DVI solo, la linea nombra SOLO el DVI',
-      dviSol.obstrInf.length === 1 && dviSol.obstrInf[0].indexOf('EOA') === -1,
+      dviSol.obstrInf.length === 1 && dviSol.obstrInf[0].indexOf('AEO') === -1,
       dviSol.obstrInf[0]],
+    ['y el rotulo viejo ya no aparece en ninguna de las dos lineas del papel',
+      obstr.obstrInf[0].indexOf('EOA') === -1 && obstr.ppmInf.join(' ').indexOf('EOA') === -1,
+      obstr.obstrInf[0] + ' // ' + obstr.ppmInf.join(' ')],
 
     // ── PPM: Tabla 7, y las DOS ramas ──
     ['PPM automatico, sin que el medico lo pida: EOA 1.57 / BSA 2.00 = 0.79 cm²/m² -> severo',
@@ -46995,7 +47015,11 @@ caso('TC-331', 'Protesis mitral: la seccion publica los cortes de la ASE 2024 y 
     R.normVmax  = (fila(oNorm, 'velocidad pico') || {}).marca;
     R.normGmed  = (fila(oNorm, 'gradiente medio') || {}).marca;
     R.normThp   = (fila(oNorm, 'thp') || {}).marca;
-    R.normEoa   = (fila(oNorm, 'eoa por continuidad') || {}).marca;
+    /* ADAPTADO el 2026-10-15 (W2-B, commit 1): la fila del panel se llama «AEO por
+       continuidad». El buscador es por ROTULO, asi que el renombre la dejaba en undefined
+       —que NO es rojo por si mismo: tres condiciones leian el valor indefinido y pasaban por
+       «no cumple»—. Es la trampa del denominador aplicada a un renombre. */
+    R.normEoa   = (fila(oNorm, 'aeo por continuidad') || {}).marca;
     R.normTipo  = (fila(oNorm, 'valvula mitral') || {}).val;
 
     // ── (2) ESTENOSIS PROTESICA — Tabla 11, los tres parametros que la guia lista ─────────────
@@ -47006,7 +47030,7 @@ caso('TC-331', 'Protesis mitral: la seccion publica los cortes de la ASE 2024 y 
     R.estVmax = (fila(oEst, 'velocidad pico') || {}).marca;
     R.estGmed = (fila(oEst, 'gradiente medio') || {}).marca;
     R.estThp  = (fila(oEst, 'thp') || {}).marca;
-    R.estEoa  = (fila(oEst, 'eoa por continuidad') || {}).marca;
+    R.estEoa  = (fila(oEst, 'aeo por continuidad') || {}).marca;
 
     // ── (3) REGURGITACION CENTRAL — la fila de la Tabla 12, que es la que cambia el diagnostico ─
     /* Gradiente y velocidad altos CON EL THP NORMAL: eso orienta a regurgitacion y no a estenosis.
@@ -47022,7 +47046,7 @@ caso('TC-331', 'Protesis mitral: la seccion publica los cortes de la ASE 2024 y 
     R.regIm   = (fila(oReg, 'grado de insuficiencia') || {}).marca;
     /* El EOA se RETIRA con regurgitacion significativa: el volumen sistolico del TSVI deja de medir
        el flujo anterogrado. Lo decide vmProtEOA, y la seccion lo lee en vez de recalcularlo. */
-    R.regEoaVal = (fila(oReg, 'eoa por continuidad') || {}).val;
+    R.regEoaVal = (fila(oReg, 'aeo por continuidad') || {}).val;
 
     // ── (4) FUGA PERIPROTESICA — las DOS filas, no la de mejor clase ──────────────────────────
     const oPeri = escenario(Object.assign({}, PROT, {

@@ -4840,8 +4840,16 @@ window.cerrarSesionReal = cerrarSesionReal;
              patrón del espesor parietal, pagado tres veces). Por eso la cápsula NOMBRA el campo que
              falta en vez de ofrecer dónde tipearlo de nuevo. -->
         <div id="bloque-prot-vm-res" class="calc-box" style="display:none;margin-top:8px;">
+          <!-- ⚠️ LAS TRES FILAS DE LA TABLA 11 QUE FALTABAN (W1-9 y W1-8 del censo W1). Los tres
+               campos ya existian —`em_vmax`, `em_gmedio` y `thp`— y ninguno se leia con el corte
+               PROTESICO: el cuadro de referencias de mas abajo los rotulaba con el corte NATIVO.
+               No hay un campo nuevo ni una columna nueva: la capsula NOMBRA donde se carga cada
+               uno, igual que ya lo hace con el VTI mitral. -->
+          <div class="calc-row"><span class="calc-lbl">Velocidad pico de E</span><span class="calc-val" id="vm-prot-vmax">&mdash;</span></div>
+          <div class="calc-row"><span class="calc-lbl">Gradiente medio</span><span class="calc-val" id="vm-prot-gmed">&mdash;</span></div>
           <div class="calc-row"><span class="calc-lbl">AEO por continuidad <button type="button" class="vinfo-btn" data-vinfo="prot-eoa" aria-expanded="false" aria-label="Información sobre AEO por continuidad" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-eoa">—</span></div>
           <div class="calc-row"><span class="calc-lbl">DVI — VTI prótesis / VTI TSVI <button type="button" class="vinfo-btn" data-vinfo="prot-dvi" aria-expanded="false" aria-label="Información sobre DVI de la protesis mitral" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-dvi">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">THP &mdash; tiempo de hemipresi&oacute;n</span><span class="calc-val" id="vm-prot-thp">&mdash;</span></div>
           <div class="calc-row"><span class="calc-lbl">PPM — AEO indexada <button type="button" class="vinfo-btn" data-vinfo="prot-ppm" aria-expanded="false" aria-label="Información sobre PPM — AEO indexada" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-ppm">—</span></div>
         </div>
         <div id="bloque-prolapso-vm" class="fg" style="display:none;">
@@ -28868,6 +28876,27 @@ function emCategoria(){
        corte es un hecho; que no decida es otro, y el motivo ya lo dicen el badge del THP y
        `em-cont-aviso`. Mostrar sólo la clasificación lo haría pasar por votante;
      · vota                      → la clasificación, más «· peor» si es el menor. */
+/* ══ EL CUADRO DE REFERENCIAS NO GRADUA UNA PROTESIS (W1-3 del censo W1) ═══════════════════
+   Medido con las dos prótesis mitrales: las tres filas de área rotulaban «· significativa
+   (≤1,5 cm²)» y la del gradiente «· significativo (≥10 mmHg)» —los cortes de válvula NATIVA— a
+   dos centímetros de la cápsula que dice «No graduada: los cortes de válvula nativa no aplican a
+   prótesis» y de la que lee LA MISMA continuidad como «posible obstrucción» con la Tabla 11. Dos
+   lecturas del mismo número en la misma pantalla, y las dos firmadas por la misma app.
+   ⚠️ LA FILA DECLARA Y NO TRADUCE, y es una decisión. La otra salida que el censo ofrecía era
+   publicar acá los cortes de la Tabla 11, pero eso dejaría el gradiente medio y el área por
+   continuidad leídos DOS veces en la misma pestaña —una acá y otra en la cápsula protésica, que
+   es su dueño desde la Fase 2—, que es el defecto que este cambio viene a cerrar, no a mover.
+   ⚠️ Y EL VALOR NO SE BORRA: es «marcar sin borrar», la regla de la casa. El médico midió el
+   número y tiene derecho a verlo; lo que se retira es la CLASIFICACIÓN con una escala ajena.
+   ⚠️ EL DUEÑO DE «¿esta mitral es protésica?» ES `_imVmProt()`, que falla CERRADO sobre un
+   `#vm_morf` ausente. Un predicado propio acá sería un segundo dueño que diverge sin que nada lo
+   señale, que es lo que `vmProtEOA` ya declara para la misma pregunta. */
+const EM_CUADRO_PROT_TXT     = '\u00b7 no aplica en pr\u00f3tesis: el corte es de v\u00e1lvula nativa';
+const EM_CUADRO_PROT_THP_TXT = '\u00b7 el THP no calcula el \u00e1rea en pr\u00f3tesis (ASE 2024, folio 10)';
+function _emCuadroEsProt(){
+  try { return (typeof _imVmProt === 'function') ? !!_imVmProt() : false; }
+  catch (e) { return false; }
+}
 const _emComa = n => String(n).replace('.', ',');
 const EM_CLASE_SIG   = () => 'significativa (\u2264' + _emComa(AVM_SEVERA_MAX) + ' cm\u00b2)';
 const EM_CLASE_NOSIG = () => 'no significativa (>' + _emComa(AVM_SEVERA_MAX) + ' cm\u00b2)';
@@ -28877,6 +28906,13 @@ function _emCuadroFila(idSpan, idCampo, idChk, valida, cat) {
   el.className = 'em-clase';
   const x = v(idCampo);
   if (x == null || !(x > 0)) { el.textContent = ''; return; }
+  /* VA ANTES DE LA CASILLA Y DE LA BANDA: con una prótesis no hay veredicto nativo que dar, así
+     que «no incluido» o «revisar unidad» hablarían de una clasificación que de todos modos no se
+     va a emitir. El THP lleva su propio texto porque lo que no aplica ahí no es el corte sino el
+     MÉTODO (ASE 2024, folio 10). */
+  if (_emCuadroEsProt()) {
+    el.textContent = (idCampo === 'avm_thp') ? EM_CUADRO_PROT_THP_TXT : EM_CUADRO_PROT_TXT;
+    return; }
   if (typeof emMetodoIncluido === 'function' && idChk && !emMetodoIncluido(idChk)) {
     el.textContent = '\u00b7 no incluido'; return; }
   if (emFueraBanda(idCampo)) { el.textContent = '\u00b7 revisar unidad'; return; }
@@ -28903,6 +28939,10 @@ function _emCuadroGm(cat) {
   el.className = 'em-clase';
   const g = v('em_gmedio');
   if (g == null) { el.textContent = ''; return; }
+  /* La banda protésica del gradiente —«≤5 / 6-10 / >10», Tabla 11— la publica la cápsula de la
+     prótesis, que es su dueño. Acá sólo se retira el corte nativo, que difiere por el OPERADOR en
+     los dos bordes: a 5 y a 10 exactos los dos regímenes dan veredictos opuestos. */
+  if (_emCuadroEsProt()) { el.textContent = EM_CUADRO_PROT_TXT; return; }
   if (emFueraBanda('em_gmedio')) { el.textContent = '\u00b7 revisar unidad'; return; }
   if (g >= EM_GMEDIO_SIGNIF_MIN) {
     el.textContent = '\u00b7 significativo (\u2265' + EM_GMEDIO_SIGNIF_MIN + ' mmHg)';
@@ -47399,10 +47439,57 @@ const VM_PROT_PPM_CORTES = {
   imcBajo:  { normalMin: 1.2, severoMax: 0.90 },
   imcAlto:  { normalMin: 1.0, severoMax: 0.75 }
 };
+/* El AEO normal de la Tabla 11, que FALTABA: la cascada tenia dos tramos —«< 1,0 significativa» y
+   «todo lo demas normal»— y la tabla tiene TRES. Medido antes de cerrarlo: AEO 1,50 cm2 con DVI
+   2,10 publicaba «sin criterios de obstruccion» donde la guia dice «possible stenosis». No
+   sobre-afirmaba: sub-afirmaba, que tambien es un hallazgo perdido. (W1-6 del censo W1.) */
+const VM_PROT_EOA_NORMAL_MIN = 2.0;   // AEO >= 2,0 cm2 es NORMAL (Tabla 11)
+/* ══ TABLA 11 DE LA ASE 2024, FOLIO 27 — LOS TRES PARAMETROS QUE LA CAPSULA NO LEIA ═══════════
+   «Doppler findings suggestive of prosthetic mitral valve stenosis», leida RENDERIZANDO a 400 dpi
+   porque la fuente del PDF codifica el mayor-o-igual como `$` y el menor-o-igual como `#`: el
+   texto extraido devuelve «$2.5» y «#5». Folio comprobado en el pie impreso (PDF 26 -> 27).
+   ⚠️ LOS TRES OPERADORES SON DISTINTOS ENTRE SI, Y ES DE LA TABLA, NO UN DESCUIDO:
+     · velocidad pico   «<1.9»  normal · «1.9-2.5» posible · «>=2.5» significativa
+     · gradiente medio  «<=5»   normal · «6-10»    posible · «>10»   significativa
+     · THP              «<130»  normal · «130-200» posible · «>200»  significativa
+   O sea que la velocidad pico incluye su corte alto y los otros dos no, y el gradiente incluye su
+   corte bajo y los otros dos no. Un helper con un solo par de operadores publicaria el veredicto
+   contrario en los tres bordes exactos, que son justamente los numeros que se tipean.
+   ⚠️ Y EL GRADIENTE MEDIO DIFIERE DEL NATIVO POR EL OPERADOR EN LOS DOS BORDES: en valvula nativa
+   la app usa `<5` / `5-9` / `>=10` (ASE 2023, Tabla 1, folio 8), asi que a 5 y a 10 EXACTOS los
+   dos regimenes dan veredictos opuestos. Es lo que la tarjeta de diferencia nativa-protesis
+   declara.
+   ⚠️ LA BANDA DEL MEDIO DEL GRADIENTE TIENE UN HUECO IMPRESO: la tabla escribe «<=5» y «6-10», asi
+   que un 5,5 no cae en ninguna columna. Se resuelve por COMPLEMENTO —normal hasta 5, significativa
+   por encima de 10, posible en el medio— que es lo unico que no deja un valor sin leer.
+   ⚠️ LOS TRES SE PUBLICAN EN LA CAPSULA Y **NO** ENTRAN EN EL VEREDICTO `R.obstr`, que sigue
+   saliendo del AEO y del DVI como desde la Fase 2. Sumarlos cambiaria que escenas publican
+   «hallazgos sugestivos de obstruccion» en el INFORME FIRMADO, y que parametros votan es contenido
+   clinico. Queda declarado en `docs/PENDIENTES.md`. */
+const VM_PROT_T11 = Object.freeze({
+  vmaxNormalMax: 1.9,   // m/s  — normal con `<`
+  vmaxSignifMin: 2.5,   // m/s  — significativa con `>=`
+  gmedNormalMax: 5,     // mmHg — normal con `<=`
+  gmedSignifMin: 10,    // mmHg — significativa con `>`
+  thpNormalMax: 130,    // ms   — normal con `<`
+  thpSignifMin: 200     // ms   — significativa con `>`
+});
 window.VM_PROT_EOA_OBSTR_MAX = VM_PROT_EOA_OBSTR_MAX;
 window.VM_PROT_DVI_NORMAL_MAX = VM_PROT_DVI_NORMAL_MAX;
 window.VM_PROT_DVI_SIGNIF_MIN = VM_PROT_DVI_SIGNIF_MIN;
 window.VM_PROT_PPM_CORTES = VM_PROT_PPM_CORTES;
+window.VM_PROT_EOA_NORMAL_MIN = VM_PROT_EOA_NORMAL_MIN;
+window.VM_PROT_T11 = VM_PROT_T11;
+/* Un solo lector de los tres tramos. `normalIncl` dice si el corte bajo cae en NORMAL y
+   `signifIncl` si el corte alto cae en SIGNIFICATIVA: los dos salen de la tabla y no de una
+   convencion, porque las tres filas los combinan distinto. */
+function _vmProtNivelT11(x, normalMax, signifMin, normalIncl, signifIncl) {
+  if (x == null || !isFinite(x)) return null;
+  if (signifIncl ? (x >= signifMin) : (x > signifMin)) return 'significativa';
+  if (normalIncl ? (x <= normalMax) : (x < normalMax)) return 'normal';
+  return 'posible';
+}
+window._vmProtNivelT11 = _vmProtNivelT11;
 /* ⚠️ ESTABA DECLARADA Y NO EXPORTADA, y el panel resuelve por `window`: el assert de la sección de
    prótesis mitral la habría leído `undefined` y GRITADO EN CADA ARRANQUE sobre una app sana. Un
    assert que avisa sin motivo deja de leerse, que es la forma de fallar de un chequeo. Es el mismo
@@ -47531,9 +47618,38 @@ function vmProtEOA(src) {
     if (eoaN != null) R.eoa = PF(eoaN.toFixed(2));
   }
 
+  /* ── Tabla 11, los TRES parámetros directos (W1-9 y W1-8 del censo W1). Se LEEN y se publican
+        en la cápsula; NO entran en `R.obstr` — ver la nota de `VM_PROT_T11`. ──
+     ⚠️ LA BANDA DE PLAUSIBILIDAD VA PRIMERO Y RETIRA EL NIVEL, no sólo el valor. Un `thp` de 0,12
+     —segundos donde van ms— cumpliría «< 130 ms, normal» y un `em_vmax` de 250 —cm/s donde van
+     m/s— cumpliría «≥ 2,5, significativa»: las dos son afirmaciones clínicas sobre un número
+     ilegible, y es el mismo defecto que el panel de Evidencia ya documenta para estas dos filas.
+     ⚠️ Y SE CONSULTAN LAS DOS TABLAS, en el mismo orden que `_indBanda`: la mergeada
+     (`_plausDe` → `_labRango`) y, cuando ésa no conoce el campo, la LOCAL `EM_BANDA_PLAUS`, que es
+     la única que tiene `em_vmax` y `thp`. Con una sola, dos de los tres quedarían sin banda. */
+  const _plT11 = function (id, x) {
+    try { const b = _plausDe(id, x); if (!b.sinBanda) return !!b.fuera; } catch (e) {}
+    try { return !!(typeof emFueraBandaLocal === 'function' && emFueraBandaLocal(id, x)); }
+    catch (e) { return false; }
+  };
+  [['vmax', 'em_vmax', VM_PROT_T11.vmaxNormalMax, VM_PROT_T11.vmaxSignifMin, false, true],
+   ['gmed', 'em_gmedio', VM_PROT_T11.gmedNormalMax, VM_PROT_T11.gmedSignifMin, true, false],
+   ['thp',  'thp',      VM_PROT_T11.thpNormalMax,  VM_PROT_T11.thpSignifMin,  false, false]
+  ].forEach(function (f) {
+    const x = nv(f[1]);
+    const fuera = _plT11(f[1], x);
+    R[f[0]] = x;
+    R[f[0] + 'Fuera'] = fuera;
+    R['por' + f[0].charAt(0).toUpperCase() + f[0].slice(1)] =
+      fuera ? null : _vmProtNivelT11(x, f[2], f[3], f[4], f[5]);
+  });
+
   /* ── Tabla 11: obstrucción. El EOA y el DVI votan por SEPARADO y el peor manda, sin duplicar el
         aviso: son dos ventanas al mismo hecho, no dos hallazgos. ── */
-  const porEoa = (R.eoa != null && R.eoa < VM_PROT_EOA_OBSTR_MAX) ? 'significativa' : (R.eoa != null ? 'normal' : null);
+  /* TRES tramos y no dos: `< 1` significativa, `>= 2` normal y el medio POSIBLE (W1-6). */
+  const porEoa = R.eoa == null ? null
+               : (R.eoa < VM_PROT_EOA_OBSTR_MAX ? 'significativa'
+               : (R.eoa >= VM_PROT_EOA_NORMAL_MIN ? 'normal' : 'posible'));
   /* ⚠️⚠️ LA MISMA RAZÓN, EL MISMO 2,5, DOS CONCLUSIONES OPUESTAS — y la app publica las dos.
      La ASE 2024 usa `VTI_PrMV / VTI_TSVI` en DOS tablas:
        · **Tabla 11, p. 27** — > 2,5 sugiere **ESTENOSIS** protésica (esto).
@@ -47591,6 +47707,34 @@ function vmProtEOAPintar() {
   const put = (id, txt) => { const e = document.getElementById(id); if (e) e.textContent = txt; };
   const OBSTR_TXT = { normal:'sin criterios de obstrucción', posible:'posible obstrucción',
                       significativa:'sugiere obstrucción significativa' };
+  /* Las tres filas directas de la Tabla 11. El texto de la banda se DERIVA de las constantes —no
+     se teclea— por la misma razón que el cuadro de referencias de la EM: un rótulo escrito a mano
+     al lado de un corte es la segunda fuente de verdad, y el día que el corte se mueva la pantalla
+     publica la escala anterior al lado del veredicto nuevo.
+     ⚠️ EL OPERADOR DEL ROTULO SALE DE LA MISMA TABLA QUE EL VOTO, y por eso va por parámetro: con
+     un símbolo fijo, la fila del gradiente imprimiría «< 5» donde la guía escribe «≤ 5» y el
+     renglón contradiría al veredicto de al lado en el borde exacto. Es la lección que el VTI de
+     entrada tricuspídeo dejó escrita cuando su ternario imprimía el signo contrario. */
+  const _t11Fila = function (id, val, fuera, nivel, uni, dec, normalMax, signifMin, normalIncl, signifIncl, donde) {
+    const e = document.getElementById(id); if (!e) return;
+    if (val == null)  { e.textContent = '—  (sin medir — se carga en ' + donde + ')'; return; }
+    if (fuera)        { e.textContent = val.toFixed(dec) + ' ' + uni + '  (revisar la unidad)'; return; }
+    const esc = (normalIncl ? '≤' : '<') + normalMax + ' normal · ' +
+                (signifIncl ? '≥' : '>') + signifMin + ' significativa';
+    e.textContent = val.toFixed(dec) + ' ' + uni + '  (' + OBSTR_TXT[nivel] + ' · ' + esc + ')';
+  };
+  _t11Fila('vm-prot-vmax', R.vmax, R.vmaxFuera, R.porVmax, 'm/s', 2,
+           VM_PROT_T11.vmaxNormalMax, VM_PROT_T11.vmaxSignifMin, false, true, 'Estenosis Mitral');
+  _t11Fila('vm-prot-gmed', R.gmed, R.gmedFuera, R.porGmed, 'mmHg', 1,
+           VM_PROT_T11.gmedNormalMax, VM_PROT_T11.gmedSignifMin, true, false, 'Estenosis Mitral');
+  /* ⚠️ EL THP ES UN PARAMETRO DIRECTO Y NO UN INSUMO DE AREA, y esa distinción es de la guía: la
+     ASE 2024, folio 10, dice que calcular el área por el método del tiempo de hemipresión es
+     frecuentemente inexacto y SOBREESTIMA el área, sobre todo en válvulas normales, y que el área
+     de una prótesis mitral se calcula mejor por la ecuación de continuidad —que es exactamente lo
+     que la fila del AEO de arriba hace—. Por eso acá el THP se lee contra sus propios tres tramos
+     y el cuadro de referencias de más abajo declara que su área no gradúa una prótesis. (W1-8.) */
+  _t11Fila('vm-prot-thp', R.thp, R.thpFuera, R.porThp, 'ms', 0,
+           VM_PROT_T11.thpNormalMax, VM_PROT_T11.thpSignifMin, false, false, 'Doppler Mitral');
   const PPM_TXT   = { no:'sin desajuste', moderado:'moderado', severo:'severo' };
 
   /* El MOTIVO y no un texto fijo: «falta un insumo», «fuera de banda» y «hay regurgitación
@@ -60588,13 +60732,20 @@ function _imAssertUmbrales(){
    al panel publicando el otro, y los dos se ven perfectamente correctos. Lo que se declara acá es
    SÓLO lo que la Tabla 11 tiene y la app no tenía: velocidad pico, gradiente medio y THP.
    `_protmAssertUmbrales` vigila que la PROSA de esta sección no se quede vieja respecto de ellos. */
+/* ⚠️ DESDE EL W2-B LOS SEIS PRIMEROS SALEN DE `VM_PROT_T11`, QUE ES EL DUEÑO. El comentario de
+   arriba decía que acá se declaraba «sólo lo que la Tabla 11 tiene y la app no tenía», y eso dejó
+   de ser cierto: la cápsula de la prótesis mitral los aplica desde este trabajo. Con dos copias,
+   mover un corte en un lado deja al otro publicando el anterior, y los dos se ven correctos.
+   `_protmAssertUmbrales` sigue vigilando los mismos seis valores, así que la derivación no afloja
+   el chequeo: lo hace sobre el dueño. `VM_PROT_T11` se declara ANTES en el mismo bloque
+   `<script>`, así que no hay zona muerta. */
 const PROTM_EST_2024 = Object.freeze({
-  vmax_norm: 1.9,   // m/s — «<1.9» normal
-  vmax_sig:  2.5,   // m/s — «≥2.5» sugiere estenosis significativa
-  gmed_norm: 5,     // mmHg — «≤5» normal
-  gmed_sig:  10,    // mmHg — «>10» sugiere estenosis significativa
-  thp_norm:  130,   // ms — «<130» normal
-  thp_sig:   200,   // ms — «>200» sugiere estenosis significativa
+  vmax_norm: VM_PROT_T11.vmaxNormalMax,   // m/s — «<1.9» normal
+  vmax_sig:  VM_PROT_T11.vmaxSignifMin,   // m/s — «≥2.5» sugiere estenosis significativa
+  gmed_norm: VM_PROT_T11.gmedNormalMax,   // mmHg — «≤5» normal
+  gmed_sig:  VM_PROT_T11.gmedSignifMin,   // mmHg — «>10» sugiere estenosis significativa
+  thp_norm:  VM_PROT_T11.thpNormalMax,    // ms — «<130» normal
+  thp_sig:   VM_PROT_T11.thpSignifMin,    // ms — «>200» sugiere estenosis significativa
   /* ⚠️ EL CORTE DE VELOCIDAD DE LA TABLA **12** ES OTRO, y no es un detalle: 1,9 m/s (S 90 %,
      E 89 %), no los 2,5 de la Tabla 11. La primera versión de la fila del patrón de regurgitación
      usaba el 2,5, o sea que se contradecía con la entrada bibliográfica que este mismo cambio
@@ -60839,6 +60990,7 @@ function _indProtM(){
   try { const f = _indFn('vmProtEOA'); if (f) P = f(); } catch (e) { P = null; }
 
   const E = PROTM_EST_2024;
+  const UON = _indUmb('VM_PROT_EOA_NORMAL_MIN');
   const UO = _indUmb('VM_PROT_EOA_OBSTR_MAX'), UDN = _indUmb('VM_PROT_DVI_NORMAL_MAX'), UDS = _indUmb('VM_PROT_DVI_SIGNIF_MIN');
   /* ⚠️ LOS CUATRO PASAN POR SU BANDA DESDE EL 2026-09-30, y `em_vmax` y `thp` no la tenían. Esta
      sección fue la que los delató: los dos VOTABAN CRUDOS en la compuerta `disf` y en el predicado
@@ -60896,8 +61048,14 @@ function _indProtM(){
       eoa == null ? 'ask' : (eoa < UO ? 'ok' : 'none'),
       eoa == null ? ((P && P.faltan && P.faltan.length) ? 'falta ' + P.faltan.join(', ')
                      : (P && P.motivo ? P.motivo : (P && P.fuera ? 'revisar la unidad de los insumos' : 'sin calcular')))
+      /* Los TRES tramos de la Tabla 11, no dos (W1-6): la banda del medio —de 1 a 2 cm²— es
+         «possible stenosis» en el original y la fila la decía «no cumple», que es cierto como
+         criterio y sub-afirma como lectura. La marca sigue siendo binaria a propósito: ✅ es
+         «este dato alcanza un criterio de la guía», y «posible» no lo es. */
       : (eoa < UO ? 'menor que ' + UO + ' cm² — sugiere estenosis protésica significativa'
-         : 'alcanza ' + UO + ' cm² — no cumple el criterio de estenosis significativa'),
+         : ((UON != null && eoa >= UON)
+            ? 'alcanza ' + UON + ' cm² — normal'
+            : 'entre ' + UO + ' y ' + (UON == null ? 2 : UON) + ' cm² — posible estenosis, no alcanza el criterio de significativa')),
       [PROTM_REF_ASE]));
   /* ⚠️ EL THP ES UNA FILA COMPARATIVA Y NO UN INSUMO DE ÁREA, y esa distinción es de la guía, no
      de esta app: «calculation of EOA using the pressure half-time (PHT) method is frequently
