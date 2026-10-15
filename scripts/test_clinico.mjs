@@ -63676,11 +63676,28 @@ caso('TC-469', 'Laboratorio · estenosis mitral nativa: seis categorias excluyen
   })();
 
   /* ── LO QUE LA REGLA VIGENTE RETIRA, Y QUE EL LABORATORIO TIENE QUE RESPETAR IGUAL ── */
-  ex.push(['(11) con IM significativa el gradiente NO vota —las dos bandas— igual que en la pantalla',
-    CAT({ em_gmedio: '12', im_grado: '4' }) === 'sin' &&
-    CAT({ em_gmedio: '7',  im_grado: '4' }) === 'sin' &&
+  /* ⚠️ ADAPTADO el 2026-10-15 (W1-2). Esta condicion decia «el gradiente NO vota —las dos
+     bandas—» y exigia 'sin' en las dos, y eso era el DEFECTO: la categoria grad_elev existia y
+     no se alcanzaba con IM significativa, asi que el Laboratorio contaba como «Sin estenosis» un
+     estudio cuyo informe FIRMADO dice «con gradiente transmitral elevado» (la clave
+     gradiente_im de emCategoria). Lo que la IM significativa retira es la banda que AFIRMA
+     —porGrad, el >= 10— y eso se sigue exigiendo aca; la banda MEDIA cuenta, y por eso los dos
+     estudios caen en grad_elev, que es la categoria que dice lo mismo que el papel. El caso no
+     estaba mal escrito: describia la app de ayer. */
+  ex.push(['(11) con IM significativa el gradiente no AFIRMA estenosis —porGrad en false y nunca sig_grad— pero el estudio cae en grad_elev, que es lo que su informe firmado dice',
+    CAT({ em_gmedio: '12', im_grado: '4' }) === 'grad_elev' &&
+    CAT({ em_gmedio: '7',  im_grado: '4' }) === 'grad_elev' &&
+    CAT({ em_gmedio: '12', im_grado: '2' }) === 'grad_elev' &&
     GRAD({ em_gmedio: '12', im_grado: '4' }) === false,
-    'g12=' + CAT({ em_gmedio: '12', im_grado: '4' }) + ' g7=' + CAT({ em_gmedio: '7', im_grado: '4' })]);
+    'g12=' + CAT({ em_gmedio: '12', im_grado: '4' }) + ' g7=' + CAT({ em_gmedio: '7', im_grado: '4' }) +
+    ' g12mod=' + CAT({ em_gmedio: '12', im_grado: '2' }) +
+    ' porGrad=' + String(GRAD({ em_gmedio: '12', im_grado: '4' }))]);
+  /* CONTROL NEGATIVO del arreglo: por DEBAJO de los 5 mmHg no hay gradiente elevado que declarar,
+     asi que con IM significativa el estudio sigue en «Sin estenosis». Sin esta condicion,
+     «clasifica igual que el informe» no distingue de «cuenta cualquier gradiente». */
+  ex.push(['(11) CONTROL NEGATIVO: con IM significativa y gradiente de 4,9 mmHg el estudio sigue en «Sin estenosis»',
+    CAT({ em_gmedio: '4.9', im_grado: '4' }) === 'sin',
+    String(CAT({ em_gmedio: '4.9', im_grado: '4' }))]);
   ex.push(['(11) CONTROL NEGATIVO: con IM significativa el AREA sigue votando',
     CAT({ avm_plan: '1.2', em_gmedio: '12', im_grado: '4' }) === 'sig_area_15',
     String(CAT({ avm_plan: '1.2', em_gmedio: '12', im_grado: '4' }))]);

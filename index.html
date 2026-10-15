@@ -91642,11 +91642,15 @@ function _labEstenSev(inf, key) {   // ea_grado/em_grado: select sin/esclerosis/
    chocan entre guias y el mismo 1,2 cm² es «moderada» en una y «severa» en las otras tres
    (ver `docs/fuentes/FUENTES.md` → «Los nombres de los rangos de area de la EM»).
 
-   ⚠️ CON IM SIGNIFICATIVA EL GRADIENTE NO VOTA, LAS DOS BANDAS, igual que `emCategoria`. Es la
+   ⚠️ CON IM SIGNIFICATIVA EL GRADIENTE NO AFIRMA ESTENOSIS, igual que `emCategoria`. Es la
    decision de Maicol del 2026-10-11: el gradiente transmitral sube por VOLUMEN y no por
    obstruccion. Si el Laboratorio lo contara igual, diria «significativa solo por gradiente» sobre
    un estudio cuyo informe firmado dice «Gradiente transmitral elevado» SIN la palabra estenosis
-   — dos lecturas del mismo dato en la misma app. El AREA sigue votando. */
+   — dos lecturas del mismo dato en la misma app. El AREA sigue votando.
+   ⚠️ ESTE RENGLON DECIA «LAS DOS BANDAS» Y DEJO DE SER CIERTO EL 2026-10-15 (W1-2). Lo que la IM
+   significativa retira es la banda que AFIRMA —`porGrad`, el `>= 10`—; la banda MEDIA sigue
+   contando, y por eso esos estudios ya no caen en «Sin estenosis» sino en «No significativa con
+   gradiente elevado», que es lo que su informe firmado dice. Ver el comentario de `gmElev`. */
 const LAB_EM_AVM_SUBRANGO = 1.0;   // cm² — borde <=; parte el rotulo, no gradua
 const LAB_EM_CAT = Object.freeze({
   sig_area_1:  'Significativa, AVm ≤1,0 cm²',
@@ -91757,7 +91761,32 @@ function _labEmLectura(inf) {
 
   const porArea = avm !== null && avm <= _max;
   const porGrad = gm !== null && gm >= _sig && gradCuenta;
-  const gmElev  = gm !== null && gm >= _elev && gradCuenta;
+  /* ⚠️ `gmElev` NO ESTA GATEADO POR `gradCuenta`, Y ESO ES EL ARREGLO DE W1-2 (2026-10-15).
+     Hasta hoy lo estaba, asi que la categoria `grad_elev` EXISTIA Y NO SE ALCANZABA con IM
+     significativa: un estudio con gradiente medio de 7 o de 12 mmHg e IM moderada o severa caia en
+     `sin` y el Laboratorio lo contaba como «Sin estenosis» mientras su propio informe FIRMADO
+     decia «con gradiente transmitral elevado» —la clave `gradiente_im` de `emCategoria`—. Medido
+     sobre estudios armados y contra el informe generado de verdad: dos lecturas del mismo dato en
+     la misma app, y del lado que SUB-afirma. Es el espejo del defecto que la tanda B3 vino a
+     evitar: alli se evito sobre-afirmar y aca habia quedado una sub-afirmacion.
+     ⚠️ LO QUE SIGUE GATEADO ES `porGrad`, Y NO SE TOCA: esa es la banda que AFIRMA estenosis
+     («Significativa solo por gradiente»), y con IM significativa el gradiente sube por VOLUMEN y
+     no por obstruccion —decision de Maicol del 2026-10-11, la misma que `emCategoria` aplica—.
+     `emCategoria` tiene exactamente este reparto: con `_gmElev` e IM significativa devuelve
+     `gradiente_im` —cuyo texto NO lleva la palabra estenosis— y recien sin IM llega a `severa` por
+     el gradiente. O sea que esta linea no inventa una regla: le copia el escalon a la funcion que
+     firma el papel.
+     ⚠️ LAS DOS CASILLAS DEL FILTRO NO SE MUEVEN, porque son `porArea` y `porGrad` y ninguna cambia.
+     Y EL RECUENTO TOTAL TAMPOCO: las seis categorias siguen siendo mutuamente excluyentes sobre el
+     mismo denominador —los estudios CON dato de esta valvula— y lo unico que pasa es que cuatro
+     estudios se mueven de `sin` a `grad_elev`. Medido: la suma de las seis sigue dando el total.
+     ⚠️ NO SE AGREGA NINGUNA CATEGORIA, y era la otra salida posible. Una septima (por ejemplo
+     «gradiente elevado con IM significativa») diria la causa en voz alta, pero sumaria una barra al
+     grafico, una fila a la mini-tabla del PDF y una entrada al PPT, obligaria a adaptar TC-469 —que
+     cuenta SEIS— y tocaria `_labHallazgosCuenta`, que corta en OCHO (ver X5). La opcion de una
+     linea es la conservadora y es la que hace coincidir las dos superficies. La alternativa queda
+     reportada en `docs/PENDIENTES.md`. */
+  const gmElev  = gm !== null && gm >= _elev;
 
   let cat;
   if (porArea)      cat = (avm <= LAB_EM_AVM_SUBRANGO) ? 'sig_area_1' : 'sig_area_15';
