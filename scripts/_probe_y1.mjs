@@ -714,7 +714,7 @@ window.__P = {
     catch (e) { return 'EXC' } },
 
   v2dJorg() {
-    try { return (typeof window.V2D_JORG === 'object') ? window.V2D_JORG : 'SIN CONST' }
+    try { return { jorg: window.V2D_JORG || 'SIN CONST', joff: window.V2D_JOFF || 'SIN CONST' } }
     catch (e) { return 'EXC' } }
 };
 1;
@@ -1009,6 +1009,20 @@ async function main() {
         await ev(`window.__P.v2dCerrarBoton()`);
       }
     }
+    /* El chorro de la IAo es DIASTOLICO: con la fase en sistole no se ve, y «no se movio» se
+       leeria igual que «no hay chorro». Se captura una escena propia en diastole. */
+    await escena({ sev: [['insuf','aortica','4']] });
+    await viewport(1200, 900);
+    await ev(`window.__P.v2dAbrir()`);
+    await ev(`window.__P.v2dFase(0.80)`);
+    await pausa(200);
+    { const r = await cdp.send('Page.captureScreenshot', { format: 'png' }, sessionId);
+      const f = join(DEST, 'y1_iao_diastole.png');
+      await writeFile(f, Buffer.from(r.data, 'base64'));
+      g.archivos.push(f);
+      g.jets = await ev(`window.__P.v2dJorg()`);
+      g.dibujo = await ev(`window.__P.v2dDibujo()`);
+      await ev(`window.__P.v2dCerrarBoton()`); }
     await ev(`window.__P.tema(false)`); await viewport(1200, 900);
     out.grupos.captura = g;
   }

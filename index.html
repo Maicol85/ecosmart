@@ -111535,6 +111535,30 @@ var AMP=[1,0.55,0.25];
 var FR=[1,0.72,0.5,0.3];        /* fracción de apertura según estenosis */
 var CFAC=[1,0.97,0.92,0.82];    /* acortamiento de hojas según insuficiencia (defecto de coaptación) */
 var JORG={it:[64,169],im:[127.5,169.5],iao:[89.8,181]};
+/* ══ Y1-4 — CADA CHORRO NACE DONDE SE UNEN LAS VALVAS AL CERRARSE ═════════════════
+   Correccion del medico sobre el dibujo de la demo: los chorros de la IM y de la IT nacian por
+   ENCIMA de sus valvas —o sea dentro del ventriculo— y el de la IAo por debajo de las suyas.
+   Medido en la captura: el de la IM arrancaba unas once unidades mas arriba que la linea de
+   coaptacion.
+   ⚠️ EL DESPLAZAMIENTO SE CALCULA DE LA MISMA DATA QUE DIBUJA LAS VALVAS, no se teclea. El punto
+   de coaptacion es el medio de las dos bisagras mas la curvatura (`D.BOW`), que es EXACTAMENTE lo
+   que `updValve` usa para cerrar las hojas: con un numero a mano, el dia que una valva se mueva
+   el chorro se queda donde estaba y nadie se entera. Sale negativo en la aortica porque su `BOW`
+   apunta al otro lado —sus valvas cierran hacia arriba—, que es la razon por la que el medico
+   pidio lo contrario para ese chorro.
+   ⚠️ ES UNA TRASLACION PURA Y NADA MAS: no cambia el tamano, ni el color, ni la opacidad, ni una
+   sola curva de la animacion. El origen de ESCALADO (`JORG`) se mueve con el chorro, asi que el
+   crecimiento con la severidad sigue anclado en el mismo punto del dibujo. */
+var JOFF=(function(){
+  var o={};
+  [['it','tv'],['im','mv'],['iao','av']].forEach(function(par){
+    var L=D.LEAF[par[1]];
+    var h0y=(L[0].b1[1]+L[0].b2[1])/2, h1y=(L[1].b1[1]+L[1].b2[1])/2;
+    var coap=(h0y+h1y)/2+D.BOW[par[1]];
+    o[par[0]]=[0,f(coap-JORG[par[0]][1])];
+  });
+  return o;
+})();
 var JALPHA=[0,0.55,0.75,0.92];
 
 /* ---------- estado ---------- */
@@ -111699,7 +111723,8 @@ function updJet(k,sev,I,sh,t){
   var o=JORG[k],sx,sy;
   if(k==='iao'){sx=I;sy=I;}else{sx=0.6+0.4*I;sy=I;}
   j.base.setAttribute('d',D.JET[k][sev-1]);j.sh.setAttribute('d',D.JET[k][sev-1]);
-  j.g.setAttribute('transform','translate('+f(o[0]+sh[0])+' '+f(o[1]+sh[1])+') scale('+f(sx)+' '+f(sy)+') translate('+f(-o[0])+' '+f(-o[1])+')');
+  var off=JOFF[k]||[0,0];
+  j.g.setAttribute('transform','translate('+f(o[0]+sh[0]+off[0])+' '+f(o[1]+sh[1]+off[1])+') scale('+f(sx)+' '+f(sy)+') translate('+f(-o[0])+' '+f(-o[1])+')');
   j.g.setAttribute('opacity',f(JALPHA[sev]*Math.pow(I,0.8)));
   j.sh.setAttribute('fill-opacity','0.55');
   var off=(t*26)%11;
@@ -111819,6 +111844,9 @@ function v2dFase(p){
 }
 window.v2dSync = v2dSync; window.v2dArrancar = v2dArrancar; window.v2dParar = v2dParar;
 window.v2dCorriendo = v2dCorriendo; window.v2dFase = v2dFase;
+/* Los dos origenes, expuestos para poder MEDIR la correccion de los chorros contra el dibujo
+   viejo: sin esto, «el chorro se movio» solo se puede mirar, y mirar no es medir. */
+window.V2D_JORG = JORG; window.V2D_JOFF = JOFF;
 })();
 
 /* ══ LAS TARJETAS Y LA TABLA ══════════════════════════════════════════════════════════════════
