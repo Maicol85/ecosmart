@@ -3776,6 +3776,32 @@ window.cerrarSesionReal = cerrarSesionReal;
                tres lectores es el mismo; lo que cambia es CUÁNDO se repinta. -->
           <label>VD/VI ratio</label>
           <input type="number" id="vd_vi" placeholder="ratio" step="0.01" oninput="calcVD()">
+          <!-- ══ EL SELECTOR DE LA RELACIÓN VD/VI (G3, 2026-10-15, decisión de Maicol) ═════════
+               CONVIVE con el número, no lo reemplaza: el médico pidió poder ELEGIR cuando no
+               midió el cociente, y el campo numérico sigue siendo el dato cuando existe.
+               Las cuatro reglas, todas en `vdViSelSync`:
+                 (a) con número, el selector MUESTRA el valor derivado y queda `disabled`, así
+                     que no se puede contradecir al dato medido;
+                 (b) sin número, el médico elige;
+                 (c) escribir un número limpia la elección manual —el derivado la pisa—;
+                 (d) borrar el número devuelve el selector a «—» SI lo había escrito la app, y
+                     respeta la elección del médico si fue suya. Eso lo distingue
+                     `dataset.auto`, que no se persiste.
+               ⚠️ UNA SOLA FUNCIÓN DUEÑA, `vdViEstado`, devuelve «alterada» / «no alterada» /
+               «sin dato», y la LEEN los cuatro consumidores: la probabilidad de HTP
+               (`_htp2022Core`, categoría A), la fila `vd-vi-interp` del cuadro, el PDF y el
+               PPT. Con el número cargado los cuatro salen idénticos a HEAD.
+               ⚠️ SIN COLUMNA DE EXCEL: el NÚMERO sigue viajando por la suya y la elección
+               manual no viaja. El selector sí se guarda con el estudio —su id va con guión
+               BAJO, así que `_noEsDelEstudio` no lo excluye— y «Nuevo estudio» lo devuelve a
+               «—» por el barrido de `select` a `selectedIndex = 0`.
+               ⚠️ EL `>= 0,9` DE LA PANTALLA DE TEP ES OTRO CAMPO (`tep_vdvi`) Y NO SE TOCA. -->
+          <label style="font-weight:400;color:var(--text2);font-size:10px;margin-top:4px;">Sin medición, elegí el tramo</label>
+          <select id="vd_vi_sel" onchange="vdViSelClic(this)">
+            <option value="">&mdash;</option>
+            <option value="le1">&le; 1</option>
+            <option value="gt1">&gt; 1</option>
+          </select>
         </div>
         <div class="fg vd-c2 vd-r5">
           <label>Pared del VD (mm)</label>
@@ -21628,13 +21654,100 @@ function vdHvdEstado() {
   return { val: x, hvd: hvd, grado: g ? g.lbl : null, rango: g ? g.rango : null };
 }
 window.vdHvdEstado = vdHvdEstado;
-/* El dueño de la relación VD/VI, con el mismo patrón que los dos de arriba: UNA comparación
-   contra la constante, el valor al lado del veredicto. */
-function vdViEstado() {
-  const x = v('vd_vi');
-  return { val: x, alt: (x !== null) ? x > VD_VI_HTP_MIN : false };
+/* ══ EL DUEÑO DE LA RELACIÓN VD/VI (G1 · ampliado en el G3, 2026-10-15) ══════════════════════
+   Mismo patrón que `vdHvdEstado` y `vdTeiEstado`: UNA comparación contra la constante, con el
+   valor al lado del veredicto. Lo que agrega el G3 es la SEGUNDA fuente —el selector de tramo—
+   y la RAMA `src`, con el patrón de `emContFueraBanda(src)` y `vdTapsePsapRed(src)`.
+
+   ⚠️ LA RAMA `src` NO ES UN ADORNO: `_htp2022Core` corre también sobre un estudio ARCHIVADO
+   —el panel de cohorte del Laboratorio clasifica la probabilidad de HTP de cada uno— y ahí no
+   hay formulario que leer. Sin ella, este dueño serviría sólo para la pantalla y la
+   probabilidad de HTP tendría que reabrir su propia copia de la regla, que es el defecto que
+   este archivo ya pagó tres veces.
+
+   ⚠️ EL NÚMERO MANDA SIEMPRE QUE EXISTA, y el selector sólo habla en su ausencia: son dos
+   formas de decir lo MISMO y una contradicción entre ellas no se puede resolver a favor de la
+   menos precisa. Por eso `vdViSelSync` además deja el selector `disabled` con el número
+   cargado: la regla se aplica en el dato y también se ve en la pantalla.
+
+   ⚠️ EL BORDE EXACTO 1,00 ES «≤ 1», que es el mismo lado en el que lo deja el operador `>` de
+   `VD_VI_HTP_MIN` — las dos fuentes cortan igual, y eso es lo que impide que elegir «≤ 1» y
+   tipear 1,00 den veredictos distintos.
+
+   Devuelve `alt` (lo que leían los consumidores del G1) MÁS `estado`, `fuente` y `sel`. */
+const VD_VI_SEL_LE = 'le1';
+const VD_VI_SEL_GT = 'gt1';
+/* Dos formas del mismo rótulo, y hacen falta las dos: el PDF se dibuja en helvetica y esta app
+   ya escribe sus referencias en ASCII ahí (`'<=' + VD_BAS_NORMAL_MAX + ' mm'`), mientras la
+   pantalla y el PPT publican el signo. Una sola forma obligaría a elegir entre un «≤» que el
+   papel puede no dibujar y un «<=» en la pantalla. */
+const VD_VI_SEL_TXT   = Object.freeze({ le1: '\u2264 1', gt1: '> 1' });
+const VD_VI_SEL_ASCII = Object.freeze({ le1: '<= 1',      gt1: '> 1' });
+window.VD_VI_SEL_LE = VD_VI_SEL_LE; window.VD_VI_SEL_GT = VD_VI_SEL_GT;
+window.VD_VI_SEL_TXT = VD_VI_SEL_TXT; window.VD_VI_SEL_ASCII = VD_VI_SEL_ASCII;
+function vdViEstado(S) {
+  const _S = S || { num: (id) => v(id), txt: (id) => sv(id) };
+  let x = null;
+  try { x = _S.num('vd_vi'); } catch (e) { x = null; }
+  if (x !== null && x !== undefined && isFinite(x)) {
+    const alt = x > VD_VI_HTP_MIN;
+    return { val: x, sel: '', fuente: 'numero', alt: alt, estado: alt ? 'alterada' : 'no alterada' };
+  }
+  let sel = '';
+  try { sel = String(_S.txt('vd_vi_sel') || '').trim(); } catch (e) { sel = ''; }
+  if (sel === VD_VI_SEL_GT) return { val: null, sel: sel, fuente: 'selector', alt: true,  estado: 'alterada' };
+  if (sel === VD_VI_SEL_LE) return { val: null, sel: sel, fuente: 'selector', alt: false, estado: 'no alterada' };
+  return { val: null, sel: '', fuente: null, alt: false, estado: 'sin dato' };
 }
 window.vdViEstado = vdViEstado;
+
+/* El TEXTO publicable de la relación, para las superficies que hasta el G3 imprimían el número
+   pelado. Con número devuelve lo de siempre y con selector el rótulo del tramo; sin ninguno de
+   los dos, `null`, que es lo que esas superficies ya saben descartar. `ascii` para el PDF. */
+function vdViTexto(ascii, S) {
+  const r = vdViEstado(S);
+  if (r.fuente === 'numero')   return r.val.toFixed(2);
+  if (r.fuente === 'selector') return (ascii ? VD_VI_SEL_ASCII : VD_VI_SEL_TXT)[r.sel] || null;
+  return null;
+}
+window.vdViTexto = vdViTexto;
+
+/* ══ LAS CUATRO REGLAS DEL SELECTOR (G3, 2026-10-15) ═════════════════════════════════════════
+   `vdViSelSync` es el único que escribe el `<select>`, y `vdViSelClic` el único que registra
+   que la elección fue del médico. La marca va en `dataset.auto` y NO se persiste: un estudio
+   reabierto trae el `value` del selector y no quién lo escribió, así que al abrirlo el sync lo
+   vuelve a derivar del número cuando hay número y lo respeta cuando no.
+   ⚠️ `limpiarCampos` ya devuelve todo `<select>` a `selectedIndex = 0`, así que «Nuevo estudio»
+   lo deja en «—» sin una línea más; lo que sí hace falta es soltar el `disabled`, y de eso se
+   ocupa el propio sync, que `calcVD` corre. */
+function vdViSelSync() {
+  const el = document.getElementById('vd_vi_sel');
+  if (!el) return null;
+  const x = v('vd_vi');
+  if (x !== null && isFinite(x)) {
+    /* (a) y (c): con número manda el número. Se escribe el derivado y se marca que lo escribió
+       la app, para que borrar el número sepa que ese valor no era del médico. */
+    const der = (x > VD_VI_HTP_MIN) ? VD_VI_SEL_GT : VD_VI_SEL_LE;
+    if (el.value !== der) el.value = der;
+    el.dataset.auto = '1';
+    el.disabled = true;
+    el.title = 'Derivado de la relación medida: con el número cargado no se puede elegir otro tramo.';
+    return der;
+  }
+  /* (d): sin número, lo que la app había escrito se retira y lo que eligió el médico se queda. */
+  if (el.dataset.auto === '1') { el.value = ''; delete el.dataset.auto; }
+  el.disabled = false;
+  el.title = '';
+  return el.value || '';
+}
+window.vdViSelSync = vdViSelSync;
+function vdViSelClic(el) {
+  /* El gesto del médico borra la marca de «lo escribió la app»: desde acá el valor es suyo y
+     sobrevive a que se borre un número que ya no está. */
+  if (el && el.dataset) delete el.dataset.auto;
+  if (typeof calcVD === 'function') calcVD();
+}
+window.vdViSelClic = vdViSelClic;
 function vdTeiEstado() {
   const x = v('vd_tei');
   /* El corte es el de DTI. `VD_TEI_PW_ALT_MIN` (0,40) es el del Doppler PULSADO y no entra acá:
@@ -22151,11 +22264,18 @@ function calcVD() {
   /* ── RELACIÓN VD/VI (G1) — ESC/ERS 2022 Tabla 10 folio 28 (categoría A) y ASE 2025 Tabla 8
      folio 173. La fila la esconde `vdRefVisSync` cuando el cociente no está alterado; acá sólo
      se escribe el texto, que es el patrón de las otras tres condicionales. */
+  /* ⚠️ VA ANTES DE LEER EL DUEÑO: el sync escribe el selector derivado del número, y si
+     corriera después, la fila y la probabilidad de HTP medirían el gesto ANTERIOR. Es la misma
+     razón por la que `vdRefVisSync` va al final, después de que la FAC ya se escribió. */
+  if (typeof vdViSelSync === 'function') vdViSelSync();
   const _viSt = vdViEstado();
   const _viEl = document.getElementById('vd-vi-interp');
   if (_viEl) {
+    /* ⚠️ EL VALOR QUE SE IMPRIME SALE DEL DUEÑO Y NO DE `_viSt.val` A SECAS (G3): con el
+       selector y sin número medido, `val` es `null` y la fila decía «null — dilatación del
+       VD». `vdViTexto` publica el número cuando lo hay y el rótulo del tramo cuando no. */
     _viEl.innerHTML = _viSt.alt
-      ? badge('red', `${_viSt.val} — dilatación del VD (>${VD_VI_HTP_MIN}): signo de la categoría A (ventrículos) de la probabilidad de HTP`)
+      ? badge('red', `${vdViTexto()} — dilatación del VD (>${VD_VI_HTP_MIN}): signo de la categoría A (ventrículos) de la probabilidad de HTP`)
       : '—';
   }
   /* ── ÍNDICE DE TEI por DTI (ASE 2025, Tabla 1 folio 145 y texto folio 158: normal < 0,55) ──
@@ -22432,7 +22552,14 @@ function _htp2022Core(S) {
      constante. Con dos literales, el dia que uno se mueva la pantalla y la probabilidad de HTP
      dirian cosas distintas del mismo cociente, que es el defecto que este archivo ya pago tres
      veces. El `vdBas > 41` de al lado queda como literal: es otro criterio y no es de esta tanda. */
-  const catA = (vdBas !== null && vdBas > 41) || (vdvi !== null && vdvi > VD_VI_HTP_MIN) || S.chk('htp2022_a3');
+  /* ⚠️ EL COCIENTE VD/VI SE LE PREGUNTA AL DUEÑO (G3, 2026-10-15) y no se compara acá. Desde
+     el G3 tiene DOS fuentes —el número medido y el selector de tramo— y la regla de cuál manda
+     vive en `vdViEstado`, que recibe esta MISMA fuente `S`: así el panel de cohorte, que corre
+     sobre estudios archivados, lee lo mismo que la pantalla. Con el número cargado el
+     resultado es idéntico al literal que había acá: es la misma constante y el mismo operador.
+     El `vdBas > 41` de al lado queda como literal: es otro criterio y no es de esta tanda. */
+  const _viCatA = (typeof vdViEstado === 'function') ? vdViEstado(S).alt : (vdvi !== null && vdvi > VD_VI_HTP_MIN);
+  const catA = (vdBas !== null && vdBas > 41) || _viCatA || S.chk('htp2022_a3');
   const catB = (tap !== null && tap < 105) || S.chk('htp2022_b1muesca') || S.chk('htp2022_b2') || S.chk('htp2022_b3');
   const catC = (vciD !== null && vciD > 21 && vciCol === '<50') || (adA !== null && adA > 18) || (tapsePsap !== null && tapsePsap < 0.55);
   const nCat = (catA ? 1 : 0) + (catB ? 1 : 0) + (catC ? 1 : 0);
@@ -46443,7 +46570,7 @@ function RECALC_MODULOS() {
      automaticos con el «requiere …» del formulario vacio al lado de un VDFVI y una FEVI ya
      poblados. No puede migrar nada: no escribe ningun campo del estudio, los dos nodos que
      toca son `vauto-` y el tercero un `<div>` de texto. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','vdTapsePsapSync','ipApDiamSync'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -47155,6 +47282,13 @@ function limpiarCampos(silencioso) {
      que es exactamente la trampa que `vdMarcaSync` y `vdTeiAvisoSync` ya documentan. Y
      `limpiarCampos` NO pasa por `RECALC_MODULOS`, donde esta `calcVD`. */
   if (typeof vdFacReqSync === 'function') { try { vdFacReqSync(false, false); } catch (e) {} }
+  /* ⚠️ LA TERCERA COLUMNA DEL SELECTOR DE VD/VI, Y LA ENCONTRO LA SONDA, NO LA LECTURA. El sync
+     lo deja `disabled` mientras hay numero, y `limpiarCampos` borra el numero SIN pasar por
+     `RECALC_MODULOS` —donde esta `vdViSelSync`— ni por `calcVD`: medido, despues de cargar una
+     relacion y apretar «Nuevo estudio» el desplegable quedaba BLOQUEADO para siempre, sobre un
+     formulario vacio. Es exactamente la trampa que `vdMarcaSync` y `vdTeiAvisoSync` ya
+     documentan: lo que ningun barrido generico toca. */
+  if (typeof vdViSelSync === 'function') { try { vdViSelSync(); } catch (e) {} }
   /* Y la fila del cociente TAPSE/PSAP del Doppler tricuspideo, por lo mismo: su span lo vacia el
      barrido generico, pero el `display` de su `.calc-row` no lo toca nadie. */
   if (typeof vdTapsePsapSync === 'function') { try { vdTapsePsapSync(); } catch (e) {} }
@@ -51523,7 +51657,13 @@ function generarPDFReal(_aj) {
          constante. */
       {lbl:'FAC',         ref:'>=' + UMBRAL_FAC_VD_NORMAL + '%', val:vPdf('vd_fac','%')},
       {lbl:'FEVD',        ref:'>=45%',       val:vPdf('fevd','%')},
-      {lbl:'VD/VI',       ref:'',           val:vPdf('vd_vi','',2)},
+      /* ⚠️ CON NÚMERO SALE EXACTAMENTE LO DE HEAD —`vPdf` con sus dos decimales y su marca
+         «(revisar)»— y sólo cuando NO hay número el papel publica el tramo que eligió el
+         médico (G3, 2026-10-15). `vdViTexto(true)` da la forma ASCII, que es la que esta
+         tabla ya usa en sus referencias (`'<=' + VD_BAS_NORMAL_MAX + ' mm'`). */
+      {lbl:'VD/VI',       ref:'',           val:(function(){ const _n = vPdf('vd_vi','',2);
+        if (_n !== null) return _n;
+        return (typeof vdViTexto === 'function') ? vdViTexto(true) : null; })()},
     ]},
   ]);
 
@@ -76846,7 +76986,12 @@ function _pptDesdeFormulario(inf, tema, presentador){
       fila(HEMO, 'PCP', _cf(R.pcp, R.pcpFuente, ' mmHg'));
       fila(HEMO, 'RVS', _cf(R.rvs, R.rvsFuente, ' dyn·s·cm⁻⁵'));
       fila(HEMO, 'TAPSE', _pptNum('tapse'), ' mm');
-      fila(HEMO, 'VD/VI', _pptNum('vd_vi'));
+      /* Mismo reparto que el PDF (G3, 2026-10-15): con número, lo de HEAD; sin número, el
+         tramo del selector. `fila` descarta el `null`, así que sin ninguno de los dos la
+         franja sigue sin la línea, igual que antes. */
+      fila(HEMO, 'VD/VI', (function(){ const _n = _pptNum('vd_vi');
+        if (_n !== null) return _n;
+        return (typeof vdViTexto === 'function') ? vdViTexto(false) : null; })());
       grupo(HEMO, 'Hemodinámica', n0);
 
       const _colW = (W - 1.15) / 2;

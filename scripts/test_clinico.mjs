@@ -66038,8 +66038,8 @@ caso('TC-476', 'Tanda G1: el VD en tres columnas con su orden de Tab, las filas 
       'faltan: ' + faltanDecl.join(' | ')]);
     /* ADAPTADO 2026-10-15 (G3): la regla que mandaba el diametro a la columna del «Ancho del
        jet» se RETIRO con el campo. Si volviera a aparecer, el campo estaria en los dos lados. */
-    ex.push(['y la regla .ip-ap-col2 del G1 YA NO existe: el campo se MOVIO, no se duplico',
-      fuente.indexOf('.ip-ap-col2') < 0, '']);
+    ex.push(['y la DECLARACION .ip-ap-col2 del G1 YA NO existe: el campo se MOVIO, no se duplico',
+      fuente.indexOf('.ip-ap-col2 { grid-column: 2; }') < 0, '']);
     ex.push(['y el colapso a UNA columna por debajo de 768 px sigue existiendo',
       fuente.indexOf('.grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }') > -1, '']);
     /* El orden del DOCUMENTO es el del Tab: por columnas, la 1 entera y despues la 2 y la 3. */
@@ -66171,8 +66171,11 @@ caso('TC-476', 'Tanda G1: el VD en tres columnas con su orden de Tab, las filas 
 
     /* ══ D · LA RELACION VD/VI ═════════════════════════════════════════════════════════════
        ESC/ERS 2022, Tabla 10, folio 28, categoria A: > 1,0. ASE 2025, Tabla 8, folio 173:
-       «RV/LV >1». El campo SIGUE SIENDO NUMERICO —las dos opciones de la orden no entran
-       porque el campo ya existia en esa forma— y lo que se agrega es la fila. */
+       «RV/LV >1». El campo SIGUE SIENDO NUMERICO y lo que se agrega es la fila.
+       ⚠️ ADAPTADO 2026-10-15 (G3): el campo numerico CONVIVE desde hoy con un selector de
+       tramo (vd_vi_sel), que NO lo reemplaza y solo habla cuando no hay numero. Las
+       condiciones de abajo siguen midiendo el numero, que es lo que esta tanda no mueve; el
+       selector y sus cuatro reglas los mide el caso nuevo del G3. */
     __t.limpiar();
     const vdviEs = EL('vd_vi');
     /* ⚠️ NO SE PREGUNTA POR type, NI POR LA PROPIEDAD NI POR EL ATRIBUTO. Esta app convierte
@@ -66185,6 +66188,13 @@ caso('TC-476', 'Tanda G1: el VD en tres columnas con su orden de Tab, las filas 
       !!vdviEs && vdviEs.tagName === 'INPUT' && vdviEs.classList.contains('numdec') &&
       vdviEs.getAttribute('inputmode') === 'decimal',
       vdviEs ? (vdviEs.tagName + '/' + vdviEs.className + '/' + vdviEs.getAttribute('inputmode')) : 'NO EXISTE']);
+    /* ADAPTADO 2026-10-15 (G3): y el selector de tramo es un HERMANO con su propio id, no una
+       conversion del campo. Si algun dia el numero se convirtiera en desplegable, la condicion
+       de arriba lo caza; esta caza lo contrario, que el hermano desaparezca. */
+    ex.push(['  y el selector de tramo del G3 es un <select> HERMANO con su propio id',
+      (function(){ const sl = EL('vd_vi_sel');
+        return !!sl && sl.tagName === 'SELECT' && sl.id !== 'vd_vi'; })(),
+      (function(){ const sl = EL('vd_vi_sel'); return sl ? sl.tagName : 'NO EXISTE'; })()]);
     S('vd_vi', '0.99'); const vi099 = VIS('row-vd-vi-interp');
     S('vd_vi', '1');    const vi100 = VIS('row-vd-vi-interp');
     S('vd_vi', '1.01'); const vi101 = { vis: VIS('row-vd-vi-interp'), txt: T('vd-vi-interp') };
@@ -66192,9 +66202,15 @@ caso('TC-476', 'Tanda G1: el VD en tres columnas con su orden de Tab, las filas 
     ex.push(['VD/VI 1,00 EXACTO: tampoco — el operador es > y no >=', vi100 === false, String(vi100)]);
     ex.push(['VD/VI 1,01: la fila se muestra y nombra la categoria A',
       vi101.vis === true && vi101.txt.indexOf('categor') > -1, vi101.vis + ' // ' + vi101.txt]);
-    /* El corte lo comparte con la probabilidad de HTP: una sola constante y no dos literales. */
-    ex.push(['la categoria A de la probabilidad de HTP lee la MISMA constante',
-      fuente.indexOf('vdvi > VD_VI_HTP_MIN') > -1, '']);
+    /* El corte lo comparte con la probabilidad de HTP: una sola constante y no dos literales.
+       ⚠️ ADAPTADO 2026-10-15 (G3): la categoria A ya no compara el numero ella misma —desde el
+       G3 el cociente tiene DOS fuentes y la regla de cual manda vive en el dueno—, asi que lo
+       que se exige es que le PREGUNTE al dueno pasandole su propia fuente S. Eso es lo que
+       hace que el panel de cohorte, que corre sobre estudios archivados, lea lo mismo que la
+       pantalla. Y el literal viejo tiene que haber DESAPARECIDO: si quedara, serian dos. */
+    ex.push(['la categoria A de la probabilidad de HTP le pregunta al dueno con su fuente',
+      fuente.indexOf('vdViEstado(S).alt') > -1 && fuente.indexOf('(vdvi !== null && vdvi > VD_VI_HTP_MIN) || S.chk') < 0,
+      '']);
     /* Y el corte de TEP sigue siendo OTRO, sobre OTRO campo. */
     ex.push(['CONTROL NEGATIVO: el corte de TEP (>=0.9) sigue vivo y sobre tep_vdvi',
       fuente.indexOf('vdvi >= 0.9') > -1 && !!EL('tep_vdvi'), '']);
