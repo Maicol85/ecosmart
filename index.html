@@ -3856,7 +3856,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                18 px en todas las pantallas, también con el protocolo recomendado, que es el caso
                normal. El texto SÍ entra: a 360 px ocupa 298 px en una línea de 14 px, sin corte
                (`scrollWidth == clientWidth`), con el borde derecho en 329 y sin barra horizontal. -->
-          <div id="diast-algo-aviso" style="display:none;font-size:11px;font-weight:700;color:var(--amber);margin-top:4px;line-height:1.3;overflow-wrap:break-word;"></div>
+          <div id="diast-algo-aviso" style="display:none;font-size:11px;font-weight:700;color:var(--orange);margin-top:4px;line-height:1.3;overflow-wrap:break-word;"></div>
           <!-- ⚠️ EL AVISO DE EXCLUSIONES. SÓLO AVISA: no cambia ni un veredicto, y eso es
                deliberado. El pie de la Figura 3 de la ASE 2025 (folio 554) dice que ese
                algoritmo NO se aplica con estenosis mitral de cualquier grado, insuficiencia
@@ -3875,9 +3875,15 @@ window.cerrarSesionReal = cerrarSesionReal;
                computaban `rgb(232,236,244)`, o sea el gris del texto normal, con el comentario
                diciendo «ámbar» al lado. `--orange` es global y theme-aware (`#f59e42` de noche,
                `#d97b1f` de día), que es exactamente a lo que `--amber` resuelve en su módulo.
-               ⚠️ LOS OTROS TRES AVISOS DE ABAJO SIGUEN CON `--amber` A PROPÓSITO: son de la BSE y
-               del protocolo, no de esta tanda, y cambiarles el color es una diferencia visible
-               que esta orden no autoriza. Queda declarado en `docs/PENDIENTES.md`. -->
+               ✅ CERRADO EL 2026-10-14 (D2): LOS CUATRO AVISOS DE ESTA ZONA PASARON A `--orange`.
+               Este párrafo decía que los otros tres seguían con `--amber` «a propósito, son de la
+               BSE y del protocolo y no son de esa tanda». Ya no: esta tanda los cierra junto con
+               el del método de la insuficiencia mitral. Medido en HEAD, los cuatro computaban
+               `rgb(232,236,244)` de noche y `rgb(26,34,51)` de día —el gris del texto normal— con
+               el comentario diciendo «ámbar» al lado. Es cambio de COLOR y nada más: ni el texto,
+               ni la lógica, ni cuándo aparecen.
+               ⚠️ QUEDA UN QUINTO CON EL MISMO DEFECTO Y **NO SE TOCÓ**: `#vd-tei-aviso`, en el
+               bloque del ventrículo derecho. Está en `docs/PENDIENTES.md`. -->
           <div id="diast-excl-aviso" style="display:none;font-size:11px;font-weight:700;color:var(--orange);margin-top:4px;line-height:1.3;overflow-wrap:break-word;"></div>
           <!-- ⚠️ EL AVISO DE FRECUENCIA CARDIACA DE LA BSE. SÓLO AVISA: no cambia ni un veredicto,
                igual que el de exclusiones de arriba. La Figura 19 (pág. 39) encabeza su algoritmo
@@ -3890,15 +3896,15 @@ window.cerrarSesionReal = cerrarSesionReal;
                se apila y un aviso al lado del rótulo compite por ancho. `--amber` y no `--red`:
                no es un error del médico ni de la app, es el alcance de la guía.
                Su único dueño es `diastFcAvisoSync`. -->
-          <div id="diast-fc-aviso" style="display:none;font-size:11px;font-weight:700;color:var(--amber);margin-top:4px;line-height:1.3;overflow-wrap:break-word;"></div>
+          <div id="diast-fc-aviso" style="display:none;font-size:11px;font-weight:700;color:var(--orange);margin-top:4px;line-height:1.3;overflow-wrap:break-word;"></div>
           <!-- Aviso ambar del paso del e' de la BSE 2024: la Tabla 2 (pag. 13) necesita EDAD y,
                en 18-40 anios, SEXO. Si faltan, el e' no se valora y se dice; la presion de
                llenado se muestra igual. Su unico dueno es `diastBseEprimaAvisoSync`. -->
-          <div id="diast-bse-eprima-aviso" style="display:none;font-size:11px;font-weight:700;color:var(--amber);margin-top:4px;line-height:1.3;overflow-wrap:break-word;"></div>
+          <div id="diast-bse-eprima-aviso" style="display:none;font-size:11px;font-weight:700;color:var(--orange);margin-top:4px;line-height:1.3;overflow-wrap:break-word;"></div>
           <!-- Aviso ambar de la zona gris de FEVI/GLS de la BSE 2024 (pag. 35). NO mueve ningun
                veredicto: la app conserva su regla de HEAD y esto solo lo dice.
                Su unico dueno es `diastBseGrisAvisoSync`. -->
-          <div id="diast-bse-gris-aviso" style="display:none;font-size:11px;font-weight:700;color:var(--amber);margin-top:4px;line-height:1.3;overflow-wrap:break-word;"></div>
+          <div id="diast-bse-gris-aviso" style="display:none;font-size:11px;font-weight:700;color:var(--orange);margin-top:4px;line-height:1.3;overflow-wrap:break-word;"></div>
         </div>
         <div class="fg"><label>Ritmo</label>
           <select id="diast_ritmo" onchange="calcDiastol();hfRitmoCambio()">
@@ -5337,7 +5343,7 @@ window.cerrarSesionReal = cerrarSesionReal;
              un `<div>`. Lo vacia el barrido de `[id^="im-pdf-"]` de `limpiarCampos`, el mismo que
              ya limpia los dos span de valor —el prefijo con guion MEDIO solo lo usan estos tres;
              las casillas van con guion BAJO y ese selector no las alcanza—. -->
-        <div id="im-pdf-metodo-aviso" style="font-size:10px;color:var(--amber);margin-top:4px;"></div>
+        <div id="im-pdf-metodo-aviso" style="font-size:10px;color:var(--orange);margin-top:4px;"></div>
       </div>
       </div><!-- fin bloque-insuf-mitral -->
       </div><!-- fin caja-insuf-mitral -->
