@@ -4840,9 +4840,9 @@ window.cerrarSesionReal = cerrarSesionReal;
              patrón del espesor parietal, pagado tres veces). Por eso la cápsula NOMBRA el campo que
              falta en vez de ofrecer dónde tipearlo de nuevo. -->
         <div id="bloque-prot-vm-res" class="calc-box" style="display:none;margin-top:8px;">
-          <div class="calc-row"><span class="calc-lbl">EOA por continuidad <button type="button" class="vinfo-btn" data-vinfo="prot-eoa" aria-expanded="false" aria-label="Información sobre EOA por continuidad" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-eoa">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">AEO por continuidad <button type="button" class="vinfo-btn" data-vinfo="prot-eoa" aria-expanded="false" aria-label="Información sobre AEO por continuidad" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-eoa">—</span></div>
           <div class="calc-row"><span class="calc-lbl">DVI — VTI prótesis / VTI TSVI <button type="button" class="vinfo-btn" data-vinfo="prot-dvi" aria-expanded="false" aria-label="Información sobre DVI de la protesis mitral" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-dvi">—</span></div>
-          <div class="calc-row"><span class="calc-lbl">PPM — EOA indexada <button type="button" class="vinfo-btn" data-vinfo="prot-ppm" aria-expanded="false" aria-label="Información sobre PPM — EOA indexada" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-ppm">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">PPM — AEO indexada <button type="button" class="vinfo-btn" data-vinfo="prot-ppm" aria-expanded="false" aria-label="Información sobre PPM — AEO indexada" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-ppm">—</span></div>
         </div>
         <div id="bloque-prolapso-vm" class="fg" style="display:none;">
           <label style="font-weight:600">🔍 Detalle morfológico — Prolapso / Barlow</label>
@@ -15722,7 +15722,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
           </div>
           <div style="margin-top:10px;font-size:12px;font-weight:700;color:var(--accent2);">Pr&oacute;tesis mitral &mdash; ASE 2024 (Zoghbi, JASE 2024;37(1):2-63)</div>
           <div style="font-size:11px;color:var(--text2);line-height:1.7;margin-top:4px;">
-            <b>EOA por continuidad</b> = volumen sist&oacute;lico del TSVI / VTI a trav&eacute;s de la pr&oacute;tesis por
+            <b>AEO por continuidad</b> = volumen sist&oacute;lico del TSVI / VTI a trav&eacute;s de la pr&oacute;tesis por
             CW. Tabla 11, p&aacute;g. 27: &lt;1,0 cm&sup2; sugiere obstrucci&oacute;n significativa. El volumen
             sist&oacute;lico del TSVI exige ausencia de regurgitaci&oacute;n significativa: con IAo o IM moderada o
             mayor no se calcula. Insumos: &Oslash; TSVI y VTI TSVI (Doppler a&oacute;rtico) y VTI mitral CW
@@ -15730,17 +15730,17 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
             <b>DVI</b> = VTI de la pr&oacute;tesis mitral (CW) / VTI del TSVI. Tabla 11, p&aacute;g. 27: &lt;2,2
             normal &middot; 2,2-2,5 posible obstrucci&oacute;n &middot; &gt;2,5 sugiere obstrucci&oacute;n significativa. Es un
             cociente de dos VTI y no usa el volumen sist&oacute;lico, as&iacute; que se calcula aunque la salvedad
-            de regurgitaci&oacute;n retire el EOA; pero con IAo o IM moderada o mayor —o sin poder
+            de regurgitaci&oacute;n retire el AEO; pero con IAo o IM moderada o mayor —o sin poder
             verificarla— se muestra y NO concluye obstrucci&oacute;n: el cociente sube igual con la
             regurgitaci&oacute;n (Tabla 13, p&aacute;g. 30). El campo DVI se usa s&oacute;lo como respaldo cuando los dos
             VTI no alcanzan, y la fila dice «consignado» cuando es as&iacute;.<br>
-            <b>PPM (desajuste pr&oacute;tesis-paciente)</b> = EOA indexada a la superficie corporal. Tabla 7,
+            <b>PPM (desajuste pr&oacute;tesis-paciente)</b> = AEO indexada a la superficie corporal. Tabla 7,
             p&aacute;g. 20, TODA indexada —esa tabla no publica valores absolutos en cm&sup2;—. IMC &lt;30:
             normal &gt;1,2 &middot; moderado 1,2-0,91 &middot; severo &le;0,90 cm&sup2;/m&sup2;. IMC &ge;30: normal &gt;1,0 &middot;
             moderado 1,0-0,76 &middot; severo &le;0,75 cm&sup2;/m&sup2;. La rama de IMC &ge;30 est&aacute; S&Oacute;LO en la tabla;
             el texto narrativo de la p&aacute;g. 10 la omite. Contesta «&iquest;la pr&oacute;tesis es chica para este
             paciente?», que es otra pregunta que «&iquest;est&aacute; obstruida?» —por eso el corte es indexado y
-            el del EOA absoluto—.
+            el del AEO absoluto—.
           </div>
           <div style="margin-top:10px;font-size:12px;font-weight:700;color:var(--accent2);">Seguimiento eco</div>
           <div style="font-size:12px;color:var(--text);line-height:1.8;margin-top:4px;">• Leve: 3–5 años · Moderada: 1–2 años · Severa asint: 6–12 meses</div>
@@ -35213,9 +35213,9 @@ const VINFO = Object.freeze({
     ojo: 'En pr\u00f3tesis mitral la gu\u00eda llama «variable» a la banda del 20 al 50 %, as\u00ed que ah\u00ed el par\u00e1metro no gradu\u00faa y la fila lo declara.'
   },
   'prot-eoa': {
-    tit: 'EOA por continuidad de la pr\u00f3tesis mitral',
-    formula: 'EOA = Vol eyectado del TSVI ÷ VTI de la pr\u00f3tesis (CW)',
-    lee: '\u00c1rea efectiva del orificio prot\u00e9sico. Por debajo de 1,0 cm\u00b2 sugiere obstrucci\u00f3n significativa.',
+    tit: 'AEO por continuidad de la pr\u00f3tesis mitral',
+    formula: 'AEO = Vol eyectado del TSVI ÷ VTI de la pr\u00f3tesis (CW)',
+    lee: 'AEO = \u00e1rea efectiva del orificio prot\u00e9sico (EOA en las gu\u00edas anglosajonas). No es la EROA, que es el \u00e1rea del orificio REGURGITANTE. Por debajo de 1,0 cm\u00b2 sugiere obstrucci\u00f3n significativa.',
     fuente: 'ASE 2024 (Zoghbi), Tabla 11, p\u00e1g. 27.',
     ojo: 'El volumen del TSVI exige que no haya regurgitaci\u00f3n significativa: con insuficiencia a\u00f3rtica o mitral moderada o mayor, la aplicaci\u00f3n no lo calcula.'
   },
@@ -35228,8 +35228,8 @@ const VINFO = Object.freeze({
   },
   'prot-ppm': {
     tit: 'Desajuste pr\u00f3tesis-paciente de la mitral',
-    formula: 'PPM = EOA ÷ superficie corporal',
-    lee: 'Contesta si la pr\u00f3tesis es chica para este paciente, que es otra pregunta que si est\u00e1 obstruida. Con \u00edndice de masa corporal por debajo de 30, normal por encima de 1,2 y severo en 0,90 cm\u00b2/m\u00b2 o menos.',
+    formula: 'PPM = AEO ÷ superficie corporal',
+    lee: 'AEO indexada = AEO dividida por la superficie corporal (EOA indexada en las gu\u00edas anglosajonas). Contesta si la pr\u00f3tesis es chica para este paciente, que es otra pregunta que si est\u00e1 obstruida. Con \u00edndice de masa corporal por debajo de 30, normal por encima de 1,2 y severo en 0,90 cm\u00b2/m\u00b2 o menos.',
     fuente: 'ASE 2024 (Zoghbi), Tabla 7, p\u00e1g. 20.',
     ojo: 'Con \u00edndice de masa corporal de 30 o m\u00e1s la tabla usa cortes m\u00e1s bajos \u20141,0 y 0,75 cm\u00b2/m\u00b2\u2014, y esa rama est\u00e1 s\u00f3lo en la tabla: el texto de la gu\u00eda la omite.'
   }
@@ -42026,7 +42026,7 @@ function generarInforme(opts) {
       if (_pe && _pe.esProt) {
         if (_pe.obstr === 'significativa') {
           const _q = [];
-          if (_pe.porEoa === 'significativa') _q.push('EOA ' + _pe.eoa.toFixed(2) + ' cm²');
+          if (_pe.porEoa === 'significativa') _q.push('AEO ' + _pe.eoa.toFixed(2) + ' cm²');
           /* La procedencia va TAMBIÉN al papel. La cápsula agrega «· consignado» y su comentario
              lo justifica; el emisor lo imprimía pelado, así que la regla que el módulo declara se
              cumplía en la pantalla y se perdía en la superficie que se firma — una obstrucción
@@ -42038,7 +42038,7 @@ function generarInforme(opts) {
         }
         if (_pe.ppm === 'moderado' || _pe.ppm === 'severo') {
           const _t = 'Desajuste protésico-paciente ' + _pe.ppm +
-                     ' (EOA indexada ' + _pe.eoaI.toFixed(2) + ' cm²/m²).';
+                     ' (AEO indexada ' + _pe.eoaI.toFixed(2) + ' cm²/m²).';
           inf.push(_t); suma.push(_t);
         }
       }
@@ -48219,7 +48219,7 @@ function eaAtPintar(){
   if (nota && at >= AT_PROT_NORMAL_MAX) {
     nota.style.display = '';
     nota.textContent = 'El AT solo NO establece estenosis protésica: la guía exige además un ' +
-      'parámetro dependiente del flujo (velocidad o gradiente medio) y uno independiente (EOA o DVI). ' +
+      'parámetro dependiente del flujo (velocidad o gradiente medio) y uno independiente (AEO o DVI). ' +
       'Se afecta por la función ventricular izquierda y por la frecuencia cardíaca. ' +
       'Corte de la Tabla 5 — el algoritmo de la Figura 13 de la misma guía usa 100 ms como único ' +
       'punto de corte, así que la banda ' + AT_PROT_NORMAL_MAX + '–' + AT_PROT_POSIBLE_MAX + ' ms no es sospechosa por ese camino.';
@@ -56670,7 +56670,7 @@ const IND_REFS = Object.freeze([
          'doi:10.1016/j.echo.2023.10.004. Prótesis MITRAL. Folio de revista = página del PDF + 1. ' +
          'Tabla 11 «Doppler findings suggestive of prosthetic mitral valve stenosis», p. 27 — ' +
          'velocidad pico < 1,9 / 1,9-2,5 / ≥ 2,5 m/s; gradiente medio ≤ 5 / 6-10 / > 10 mmHg; ' +
-         'VTI prótesis/VTI TSVI < 2,2 / 2,2-2,5 / > 2,5; EOA ≥ 2,0 / 1-2 / < 1 cm²; THP < 130 / ' +
+         'VTI prótesis/VTI TSVI < 2,2 / 2,2-2,5 / > 2,5; AEO ≥ 2,0 / 1-2 / < 1 cm²; THP < 130 / ' +
          '130-200 / > 200 ms. Tabla 12 «TTE findings suggestive of significant prosthetic MR in ' +
          'mechanical valves with normal PHT», p. 28 — velocidad pico ≥ 1,9 m/s (S 90 %, E 89 %), ' +
          'relación VTI ≥ 2,5 (S 89 %, E 91 %), gradiente medio ≥ 5 mmHg (S 90 %, E 70 %); con la ' +
@@ -60762,7 +60762,7 @@ function _protmRecom(D){
      ⚠️ CORTA HACIA `falta`, NUNCA HACIA `no`. Con la prótesis sin medir, «sin fila de intervención
      para este paciente» sería una negación publicada sobre cero evidencia —el defecto de los tres
      selects del TEER— y encima la más tranquilizadora posible. «Falta el dato» es lo que es. */
-  if (!D.disf) return fal('Las filas de reoperación y de valve-in-valve exigen, en su propio texto, DISFUNCIÓN PROTÉSICA SIGNIFICATIVA, y este estudio no la documenta: ni obstrucción por EOA o relación VTI, ni regurgitación severa, ni velocidad pico, gradiente medio o THP por encima del corte. Sin eso ninguna de las cuatro aplica — y no haberla medido no es haberla descartado.',
+  if (!D.disf) return fal('Las filas de reoperación y de valve-in-valve exigen, en su propio texto, DISFUNCIÓN PROTÉSICA SIGNIFICATIVA, y este estudio no la documenta: ni obstrucción por AEO o relación VTI, ni regurgitación severa, ni velocidad pico, gradiente medio o THP por encima del corte. Sin eso ninguna de las cuatro aplica — y no haberla medido no es haberla descartado.',
     ['Disfunción protésica significativa']);
 
   if (sx == null) return fal('Las filas de reoperación y de valve-in-valve son del paciente SINTOMÁTICO; la de reoperación en el asintomático es otra fila, con otra clase.',
@@ -60891,8 +60891,8 @@ function _indProtM(){
         + (P && P.dviFuente === 'consignado' ? '. Valor consignado a mano, no calculado' : ''),
       [PROTM_REF_ASE]));
   const eoa = P && P.eoa != null ? P.eoa : null;
-  filas.push(UO == null ? _indSinUmbral('EOA por continuidad')
-    : _indFila('EOA por continuidad', _indNum(eoa, 2, 'cm²'),
+  filas.push(UO == null ? _indSinUmbral('AEO por continuidad')
+    : _indFila('AEO por continuidad', _indNum(eoa, 2, 'cm²'),
       eoa == null ? 'ask' : (eoa < UO ? 'ok' : 'none'),
       eoa == null ? ((P && P.faltan && P.faltan.length) ? 'falta ' + P.faltan.join(', ')
                      : (P && P.motivo ? P.motivo : (P && P.fuera ? 'revisar la unidad de los insumos' : 'sin calcular')))
@@ -60981,10 +60981,10 @@ function _indProtM(){
   /* ── Tabla 7 y texto de la p. 10: PPM, las DOS versiones ── */
   const eoaI = P && P.eoaI != null ? P.eoaI : null;
   const PPM_TXT = { no:'sin desajuste', moderado:'moderado', severo:'severo' };
-  filas.push(_indFila('PPM — EOA indexada',
+  filas.push(_indFila('PPM — AEO indexada',
     eoaI == null ? '—' : (_indNum(eoaI, 2, 'cm²/m²') + (P.ppm ? '  (' + PPM_TXT[P.ppm] + ')' : '')),
     eoaI == null ? 'ask' : (P.ppm === 'severo' ? 'ok' : 'none'),
-    eoaI == null ? 'requiere el EOA por continuidad y la superficie corporal'
+    eoaI == null ? 'requiere el AEO por continuidad y la superficie corporal'
     : 'la calculadora aplica la Tabla 7, estratificada por IMC' + (P.imc != null ? ' (IMC ' + _indNum(P.imc, 1) + ')' : ''),
     [PROTM_REF_ASE]));
 
@@ -61092,7 +61092,7 @@ function _indProtM(){
   return { filas: filas, clinica: clinica,
     aviso: _protDom ? '' :
       'El ETE consigna una prótesis mitral y la pestaña Válvulas no (' + (_indS('vm_morf') || 'sin morfología consignada') +
-      '). Con esa discordancia el EOA, la relación VTI y el PPM no se calculan, y el grado de insuficiencia se graduó con los cortes de válvula NATIVA. Corregir la morfología en Válvulas.',
+      '). Con esa discordancia el AEO, la relación VTI y el PPM no se calculan, y el grado de insuficiencia se graduó con los cortes de válvula NATIVA. Corregir la morfología en Válvulas.',
     recom: _protmRecom({ tipo: tipo, disf: disf }),
     guia: { ref:PROTM_REF_ESC,
       txt:'En la disfunción protésica significativa la reoperación es Clase I · Nivel C en el paciente sintomático, y el valve-in-valve transvenoso mitral es Clase IIa · Nivel B con riesgo quirúrgico intermedio o alto. Ninguna de las dos domina a la otra.' },
@@ -61113,7 +61113,7 @@ function _indProtM(){
         refs:[PROTM_REF_ASE] },
       { txt:'Las dos definiciones de desajuste protésico-paciente mitral de la misma guía no coinciden. El texto define moderado por debajo de 1,2 cm²/m² y severo hasta 0,90 cm²/m², sin estratificar por IMC. La Tabla 7 sí estratifica: con IMC menor de 30, normal por encima de 1,2 y severo hasta 0,90; con IMC de 30 o más, normal por encima de 1,0 y severo hasta 0,75.',
         refs:[PROTM_REF_ASE] },
-      'La calculadora de esta aplicación aplica la TABLA 7, la estratificada por IMC. Para un IMC de 30 o más las dos versiones se contradicen: una EOA indexada de 1,1 cm²/m² es moderada por el texto y normal por la tabla.',
+      'La calculadora de esta aplicación aplica la TABLA 7, la estratificada por IMC. Para un IMC de 30 o más las dos versiones se contradicen: una AEO indexada de 1,1 cm²/m² es moderada por el texto y normal por la tabla.',
       { txt:'Y hay una tercera voz: la ESC/EACTS 2025 dice que se sabe poco sobre la prevalencia y las consecuencias del desajuste en posición mitral, y que «faltan definiciones establecidas». El desajuste es un hallazgo, no una indicación: no tiene fila en la tabla de recomendaciones.',
         refs:[PROTM_REF_ESC] },
       { txt:'La ACC/AHA 2020 coincide con la europea en la estenosis protésica sintomática severa: reintervención quirúrgica indicada, Clase 1 · Nivel B-NR, salvo riesgo alto o prohibitivo. Su fila de valve-in-valve percutáneo está escrita para la prótesis AÓRTICA y no se aplica acá.',
