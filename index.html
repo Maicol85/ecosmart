@@ -546,6 +546,13 @@
     .vd-grid > .vd-r3 { grid-row: 3; }
     .vd-grid > .vd-r4 { grid-row: 4; }
     .vd-grid > .vd-r5 { grid-row: 5; }
+    /* El diametro de la arteria pulmonar va DEBAJO del «Ancho del jet» (G1, decision de Maicol).
+       Su `.fg` es el TERCER hijo de un `.grid-2`, asi que por flujo caeria en la columna 1 —o sea
+       debajo del THP—: esta regla lo manda a la columna 2, que es la del jet. Deja un hueco
+       debajo del THP, que es lo correcto: un hueco dice «no hay nada ahi» y mover el campo diria
+       otra cosa. Por debajo de 768 px `.grid-2` cae a una columna y la regla no aplica, asi que
+       el orden apilado es el del marcado —THP, ancho, diametro— que es el del Tab. */
+    .ip-ap-col2 { grid-column: 2; }
   }
   /* ══ CARD ══ */
   .card {
@@ -3853,8 +3860,14 @@ window.cerrarSesionReal = cerrarSesionReal;
              `vdTeiAvisoSync`, que lleva las TRES columnas —lo llama `calcVD`, esta en
              `RECALC_MODULOS` y se repite al final de `limpiarCampos`—. Sin la tercera, el
              barrido generico de `[id$="-aviso"]` le vacia el texto y le deja el `display:block`
-             puesto: un renglon ambar vacio sobre un formulario recien limpiado. -->
-        <div id="vd-tei-aviso" style="display:none;font-size:11px;font-weight:700;color:var(--amber);margin-top:4px;line-height:1.3;overflow-wrap:break-word;"></div>
+             puesto: un renglon ambar vacio sobre un formulario recien limpiado.
+             ⚠️ EL COLOR ES `--orange` Y NO `--amber` (G1, 2026-10-15). `--amber` se define SOLO
+             dentro de `.amilo-root` y de `#sp-root`, asi que aca `color: var(--amber)` era
+             INVALIDO en tiempo de valor computado y caia al heredado: el cartel se veia GRIS, con
+             el comentario diciendo «ambar» al lado. Es el defecto que el D2 dejo declarado como
+             D2-2 y el mismo arreglo que recibieron los otros cinco avisos de la app. NO cambia ni
+             el texto ni la logica: el cartel sale en las mismas escenas. -->
+        <div id="vd-tei-aviso" style="display:none;font-size:11px;font-weight:700;color:var(--orange);margin-top:4px;line-height:1.3;overflow-wrap:break-word;"></div>
         <div class="calc-row" id="row-fevd-interp" style="display:none;">
           <span class="calc-lbl">FEVD (3D) — función sistólica VD</span>
           <span id="fevd-interp">—</span>
@@ -6860,6 +6873,29 @@ window.cerrarSesionReal = cerrarSesionReal;
                 <option value="intermedio">Intermedio</option>
                 <option value="ancho">Ancho (&gt;50&ndash;65 % del TSVD)</option>
               </select>
+            </div>
+            <!-- ══ DIÁMETRO DE LA ARTERIA PULMONAR (G1, 2026-10-15, decisión de Maicol) ════════
+                 ⚠️ ES UN DATO DE ENTRADA Y NADA MÁS: NO vota el grado de la insuficiencia
+                 pulmonar, NO cambia ningún texto del informe, NO tiene fila en el cuadro de
+                 referencias y NO se sincroniza con ningún otro campo. Lo que lo garantiza es su
+                 `oninput`: llama SÓLO a `ipApDiamSync` —que pinta su marca— y NO a `calcIP`, que
+                 es el dueño del grado. Mientras eso siga así, el campo no puede votar.
+                 ⚠️ QUEDA PREPARADO Y NO CONECTADO. El médico decidió que MÁS ADELANTE la
+                 probabilidad de HTP de Avanzado lo lea para marcar sola su fila «AP > 25 mm o
+                 AP > aorta» (que hoy es el checkbox `htp2022_b3`). Por eso tiene: (a) un id
+                 estable, `ip_ap_diam`; (b) UNA sola lectura, `ipApDiamVal()`, para que ese
+                 trabajo lo conecte sin abrir una segunda copia; y (c) su banda con un dueño
+                 único. ⚠️ LA COMPARACIÓN QUE LA GUÍA PIDE ES CONTRA LA RAÍZ AÓRTICA —«RA: raíz
+                 aórtica» en el pie de la Tabla 10 de la ESC/ERS 2022, folio 28—, que en esta app
+                 es `ao_sin` («Ao sinusal», pestaña AI/VI). NO se conecta acá.
+                 ⚠️ VIAJA CON EL ESTUDIO Y NO AL EXCEL, y eso sale de dos mecanismos que ya
+                 existen: su id va con guión BAJO, así que `_noEsDelEstudio` no lo excluye y el
+                 barrido de `guardarInforme` lo guarda y lo repone; y las columnas del Excel son
+                 una LISTA explícita (`LAB_XLS_COLS`) donde no está. La columna va en el G2. -->
+            <div class="fg ip-ap-col2">
+              <label>Diámetro de la arteria pulmonar (mm)</label>
+              <input type="number" id="ip_ap_diam" placeholder="mm" step="0.1" oninput="ipApDiamSync()">
+              <div id="ip_ap_diam-marca" style="font-size:10px;color:var(--yellow);margin-top:3px;min-height:14px;"></div>
             </div>
           </div>
           <div class="grid-2" style="margin-bottom:8px;">
@@ -21836,6 +21872,46 @@ function vdTapsePsapSync() {
   return { val: x, r: r, txt: t.txt };
 }
 window.vdTapsePsapSync = vdTapsePsapSync;
+
+/* ══ EL DIÁMETRO DE LA ARTERIA PULMONAR (G1, 2026-10-15) ═════════════════════════════════════
+   Dato de entrada de la sección de insuficiencia de la válvula pulmonar. NO vota, no se
+   sincroniza con nada y no tiene fila de referencia: lo único que lleva es su banda.
+
+   ⚠️ `ipApDiamVal` ES LA ÚNICA LECTURA DEL VALOR, y existe para el trabajo que viene: la
+   probabilidad de HTP de Avanzado va a leer este campo para marcar sola su fila «AP > 25 mm o
+   AP > aorta», y el día que lo haga tiene que preguntar acá y no abrir un `v('ip_ap_diam')`
+   suyo. Devuelve el número tal como está, SIN aplicar la banda: la banda MARCA y no corrige, que
+   es la decisión de «marcar sin borrar» que esta app aplica a los otros campos con banda.
+
+   ⚠️ LA BANDA ES DE PLAUSIBILIDAD Y NO DE SEVERIDAD, y no debe reusarse como corte. [5, 80] mm:
+   el piso en 5 caza el diámetro tipeado en CENTÍMETROS —2,5 por 25—, que es el dedazo que esta
+   zona tiene que cazar, y el techo en 80 deja entrar con margen el aneurisma de arteria
+   pulmonar, muy por encima del `> 3,5 cm` que la Tabla 1 de la ASE 2025 (folio 145) llama
+   severo. Mismo criterio y mismo trato que `VD_NUEVOS_BANDA` y que `ET_BANDA_INSUMO`.
+   NO entra en `LAB_XLS_RANGO_PROPIO` porque ese mapa lo consume el IMPORTADOR de Excel y este
+   campo no tiene columna: sin columna no hay nada que importar, y una entrada ahí sería un
+   segundo número que se desincroniza. */
+const IP_AP_BANDA = Object.freeze([5, 80]);   // mm — plausibilidad, NO severidad
+window.IP_AP_BANDA = IP_AP_BANDA;
+function ipApDiamVal() {
+  const x = v('ip_ap_diam');
+  return (x !== null && isFinite(x)) ? x : null;
+}
+window.ipApDiamVal = ipApDiamVal;
+/* La marca «(revisar)», con el mecanismo de `vdMarcaSync`: el `div` de marca no es
+   `.calc-box .calc-row span[id]` ni termina en `-aviso`, así que no lo alcanza NINGÚN barrido
+   genérico y la marca del paciente anterior sobreviviría a «Nuevo estudio». DOS columnas:
+   `RECALC_MODULOS` y el final de `limpiarCampos`. */
+function ipApDiamSync() {
+  const n = document.getElementById('ip_ap_diam-marca');
+  const el = document.getElementById('ip_ap_diam');
+  const hay = !!(el && String(el.value).trim() !== '');
+  const x = ipApDiamVal();
+  const mal = hay && x !== null && (x < IP_AP_BANDA[0] || x > IP_AP_BANDA[1]);
+  if (n) n.textContent = mal ? MARCA_REVISAR.trim() : '';
+  return { val: x, fuera: !!mal };
+}
+window.ipApDiamSync = ipApDiamSync;
 
 /* Área de la AD en 4 cámaras: ≤18 cm² normal (ASE). Estaba como literal en `calcAD` y otro
    literal igual en el informe narrativo — dos copias del mismo corte, que es como la cápsula
@@ -46276,7 +46352,7 @@ function RECALC_MODULOS() {
      automaticos con el «requiere …» del formulario vacio al lado de un VDFVI y una FEVI ya
      poblados. No puede migrar nada: no escribe ningun campo del estudio, los dos nodos que
      toca son `vauto-` y el tercero un `<div>` de texto. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','vdTapsePsapSync'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','vdTapsePsapSync','ipApDiamSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -46986,6 +47062,9 @@ function limpiarCampos(silencioso) {
   /* Y la fila del cociente TAPSE/PSAP del Doppler tricuspideo, por lo mismo: su span lo vacia el
      barrido generico, pero el `display` de su `.calc-row` no lo toca nadie. */
   if (typeof vdTapsePsapSync === 'function') { try { vdTapsePsapSync(); } catch (e) {} }
+  /* Y la marca del diametro de la arteria pulmonar (G1), por el mismo motivo que la de la pared
+     del VD: su `div` no lo alcanza ningun barrido generico. */
+  if (typeof ipApDiamSync === 'function') { try { ipApDiamSync(); } catch (e) {} }
   /* ⚠️ Y LOS NUEVE «(leve)/(moderada)/(severa)» DE LAS FILAS DE REFERENCIA (regla 5, 2026-10-13),
      por el MISMO motivo que las dos líneas de arriba: son `<span>` SIN `id` —a propósito, para que
      el barrido genérico no les escriba «—»— así que ningún barrido los alcanza y el grado del
