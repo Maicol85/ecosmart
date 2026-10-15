@@ -274,22 +274,35 @@ impecable.
   números deja la suite entera en rojo por el denominador del Excel, no por un defecto. **El 3
   adaptó TC-142.**
 
-- ⚠️ **LA LÍNEA BASE DE CIERRE NO SE PUDO MEDIR: EL PENDRIVE `DISK_IMG` SE DESMONTÓ A MITAD DE LA
-  TANDA.** Estaba **MONTADO** al abrir —y con él se midió la de ENTRADA, **486/490 con los cuatro
-  rojos de siempre** (**TC-223**, **TC-376**, **TC-390**, **TC-406**), `md5` `437ea7c3…` quieto—
-  y al ir a correr la de cierre ya no estaba (`/Volumes` sólo tiene `Macintosh HD`). La orden
-  manda **PARAR** en ese caso, así que la corrida se detuvo antes de empezar y **queda
-  PENDIENTE**: con el pendrive afuera caerían además los **diecisiete** de **TC-181…TC-197**, que
-  son ENTORNO y no prueban nada — restar esas dos cifras daría una «regresión» de 17 casos que no
-  existe, que es el falso que este archivo ya documenta dos veces.
-  **Lo que SÍ está medido después de sellar**, y ninguno necesita el pendrive:
-  **16/16 en la zona** (TC-131, TC-135, TC-137, TC-139, TC-142, TC-253, TC-254, TC-255, TC-469,
-  TC-470, TC-472, TC-473, TC-474, TC-475, TC-476 y **TC-477**), **Semgrep 127 / 0 ERROR**,
-  **Excel en 438 columnas** y **celular 43 a 360 px y 52 a 390 px con 1 ALTA cada uno —IDÉNTICO a
-  la línea base—**. **El denominador sube a 491**: esta tanda agregó **TC-477**.
+- **Línea base al cierre: suite 487/491 con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0
+  ERROR, Excel en 438 columnas, celular 43 a 360 px y 52 a 390 px con 1 ALTA cada uno —IDÉNTICO
+  a la línea base—.** **CERO REGRESIONES**: los cuatro rojos son exactamente los de ENTRADA
+  —**TC-223** (el documentado, falla por la fecha: su condición informa «2026-10-15»),
+  **TC-376**, **TC-390** y **TC-406**—, y **no apareció ninguno fuera de esa lista**, así que no
+  hubo nada que repetir solo por CDN ni por orden de corrida. La de ENTRADA, medida sobre el
+  árbol limpio antes de tocar nada, fue **486/490** con esos mismos cuatro. **El denominador sube
+  a 491**: esta tanda agregó **TC-477**. El `md5` de `index.html` no se movió durante la corrida
+  (`4d95fd14…`, idéntico al empezar y al terminar) y el pendrive estaba montado antes y después.
+  ⚠️ **`--todo` del chequeo de celular da 375 a 360 px y 384 a 390 px, EL MISMO PAR QUE DEJÓ EL
+  G1**: ni las dos columnas del Excel ni la lectura binaria agregan un solo hallazgo, porque
+  ninguna de las dos cosas es un control de formulario. **La cuenta VISIBLE tampoco se movió.**
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **491 ids** sobre los 492 casos del archivo, y
+  por eso el total es sobre 491 y no sobre 492.
+  ⚠️ **ESTA CIFRA SE MIDIÓ EN UNA SEGUNDA SESIÓN, Y HAY QUE DECIR POR QUÉ.** Al cerrar la tanda
+  el pendrive **se había desmontado** —estaba MONTADO al abrir, y con él se midió la de entrada—
+  así que la corrida se detuvo **antes de empezar**, como manda la regla, y la línea base quedó
+  pendiente. Con el pendrive afuera habrían caído además los **diecisiete** de **TC-181…TC-197**,
+  que son ENTORNO: restar esas dos cifras daría una «regresión» de 17 casos que no existe, que es
+  el falso que este archivo ya documenta dos veces. Se volvió a medir con el pendrive puesto,
+  sobre el MISMO árbol (`md5` `4d95fd14…`, sello `v20261015-1336`, los cuatro commits intactos).
+  **Lo que ya se había medido al cerrar la tanda**, y que esta corrida confirma: **16/16 en la
+  zona**, Semgrep y el chequeo de celular.
 - **EL SELLO DE VERSIÓN** estaba al día al empezar (`v20261015-0715`) y se volvió a sellar en el
-  commit 4: **`v20261015-1336`**. Los 16 casos, Semgrep y el chequeo de celular se midieron
-  **DESPUÉS** de sellar, con el `md5` quieto (`4d95fd14…`).
+  commit 4: **`v20261015-1336`**. Todo lo medido —los 16 casos de la zona, la suite completa,
+  Semgrep y el chequeo de celular— salió **DESPUÉS** de sellar, con el `md5` quieto
+  (`4d95fd14…`).
 
 - **Dónde está todo:** `docs/mapa/laboratorio-asociaciones-valvulas.md` (**mapa NUEVO**, 10,9 KB:
   el dueño del cociente, qué hace el módulo con una variable sesgada, las cuatro entradas, la

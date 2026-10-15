@@ -2889,6 +2889,18 @@ FEVD y FAC no tienen el problema: se esconden. Sigue abierto como V1.
 
 # Tanda G2 (2026-10-15) — lo declarado y NO tocado
 
+> **Línea base de CIERRE, medida el 2026-10-15 con el pendrive `DISK_IMG` MONTADO:**
+> **suite 487/491**, **Semgrep 127 / 0 ERROR**, **Excel en 438 columnas**, **celular 43 a 360 px
+> y 52 a 390 px con 1 ALTA cada uno** (y `--todo` en **375/384**, el mismo par que dejó el G1).
+> **CERO REGRESIONES**: los cuatro rojos son exactamente los de entrada —**TC-223**, **TC-376**,
+> **TC-390** y **TC-406**— y no apareció ninguno fuera de esa lista. `md5` de `index.html`
+> `4d95fd14…`, idéntico al empezar y al terminar; sello `v20261015-1336`.
+>
+> ⚠️ **Se midió en una segunda sesión**: al cerrar la tanda el pendrive se había desmontado y la
+> corrida se detuvo antes de empezar, como manda la regla — con él afuera habrían caído además
+> los diecisiete de TC-181…TC-197, que son ENTORNO, y restar esas dos cifras daría una
+> «regresión» de 17 casos que no existe. Se remidió sobre el MISMO árbol, sin tocar nada.
+
 ### G2-1 · La banda del diámetro de la AP no entró en `LAB_XLS_RANGO_PROPIO`
 
 `G1-10` preveía meterla ahí al darle columna. **No se hizo, a propósito**: `IP_AP_BANDA` ya es su
