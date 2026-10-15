@@ -22038,26 +22038,31 @@ function vdTapsePsapRed(src) {
 }
 window.vdTapsePsapRed = vdTapsePsapRed;
 
-/* ══ LOS TRES TRAMOS (decisión de Maicol) Y SU RESPALDO ══════════════════════════════════════
-   · `< 0,36`  → «mal pronostico en IC con FEVI reducida y preservada». El corte nace de Guazzi
-     y col., Am J Physiol Heart Circ Physiol 2013;305:H1373-H1381 (cohorte mixta de 293
-     pacientes) y el metaanalisis de Heart Fail Rev 2024 lo confirma en FEVI reducida y
-     preservada. ⚠️ NINGUNO DE LOS DOS ESTA EN LA BIBLIOTECA: el 0,36 NO esta verificado al
-     estandar de la casa y por eso la tarjeta del globo NO lo cita. La ASE 2025 lo nombra en su
-     folio 180 («The ESC/ERS guidelines recommend a TAPSE/PASP <0.36 mm/mmHg as suggestive of
-     PH»), que es otro uso del mismo numero. `docs/PENDIENTES.md` → G1-6.
-   · `>= 0,36 y < 0,55` → «elemento de probabilidad para HTP». El 0,55 SI esta verificado:
-     ESC/ERS 2022, Tabla 10, folio 28, signo de la categoria A.
-   · `>= 0,55` → «acoplamiento VD-AP normal». Es el complemento del anterior, y concuerda con el
-     rango de 0,5-0,7 que la ASE 2025 publica para individuos sanos (folio 152).
-   ⚠️ EL 0,32 DE LA PANTALLA DE TEP NO ENTRA ACA. Ese numero existe y esta publicado —ESC/ERS
-   2022, folio 41, umbral de BAJO RIESGO en hipertension arterial pulmonar— pero su fuente no lo
-   define como un signo de tromboembolia, asi que la frase «probabilidad de TEP» que la orden
-   ofrecia NO se agrego: seria atribuirle un significado que ninguna fuente leida le da.
-   `docs/PENDIENTES.md` → G1-2. */
-const VD_TPSP_IC_MAX  = 0.36;   // mm/mmHg — borde `<`  (Guazzi 2013; ver la salvedad de arriba)
-const VD_TPSP_HTP_MAX = 0.55;   // mm/mmHg — borde `<`  (ESC/ERS 2022, Tabla 10, folio 28)
-window.VD_TPSP_IC_MAX  = VD_TPSP_IC_MAX;
+/* ══ DOS ESTADOS, NO TRES (decisión de Maicol, Z · 2026-10-15) ═══════════════════════════════
+   · `< 0,55`  → «signo de probabilidad de HTP»
+   · `>= 0,55` → «sin signo de HTP»
+   El corte y el operador son los de la **ESC/ERS 2022, Tabla 10** —«Signos ecocardiográficos
+   adicionales indicativos de hipertensión pulmonar», columna «A: Ventrículos»: «Cociente
+   TAPSE/PAPs < 0,55 mm/mmHg»—. Se cita por NÚMERO DE TABLA y no por folio: la traducción de la
+   SEC que hay en la biblioteca pagina distinto que el original inglés, y un folio que no se
+   puede comprobar en el documento que se tiene es peor que ninguno.
+
+   ⚠️ EL TRAMO DE 0,36 SE RETIRÓ, Y CON ÉL SU CONSTANTE. Decía «mal pronóstico en IC con FEVI
+   reducida y preservada» y nacía de Guazzi y col. 2013, que NO está en la biblioteca: el corte
+   nunca estuvo verificado al estándar de la casa y la tarjeta del globo ya no lo citaba
+   (`docs/PENDIENTES.md` → G1-6). La línea del cuadro afirmaba en pantalla lo que la tarjeta se
+   negaba a afirmar. Los cortes de insuficiencia cardíaca que SÍ se pudieron verificar —0,45 y
+   0,38— viven en la tarjeta, con su población y su fuente, que es donde una serie pronóstica
+   pertenece: no son cortes de esta pantalla.
+   ⚠️ Y LA CONSTANTE SE VA ENTERA, CON SU `window.*`. Sacar el valor y dejar viva la línea
+   `window.X = X` es un `ReferenceError` de nivel superior que ABORTA el `<script>` COMPLETO —la
+   app con cero pestañas—, que es exactamente lo que la tanda de la estenosis mitral binaria pagó
+   el 2026-10-11. Se cuentan los `window.X = X`, no los `grep` de X.
+
+   ⚠️ EL 0,32 DE LA PANTALLA DE TEP SIGUE SIN ENTRAR ACÁ, y hoy se sabe además que PARTICIPA DE
+   UN VEREDICTO allá: `calcTEP` lo usa en `score >= 2 && desacoplado` para elegir entre
+   «🔴 Disfunción VD significativa» y «🟠 Riesgo INTERMEDIO-ALTO». `docs/PENDIENTES.md` → G1-2. */
+const VD_TPSP_HTP_MAX = 0.55;   // mm/mmHg — borde `<`  (ESC/ERS 2022, Tabla 10)
 window.VD_TPSP_HTP_MAX = VD_TPSP_HTP_MAX;
 
 /* La fila del Doppler tricuspideo. TRES COLUMNAS: la llaman `calcVD` (dueño del TAPSE) y
@@ -22075,11 +22080,11 @@ function vdTapsePsapSync() {
      las asociaciones del Laboratorio publican este MISMO numero, y tres copias del redondeo son
      tres numeros que se separan el dia que alguien toque uno. El valor impreso no cambia. */
   const r = vdTapsePsapRed();
-  const t = (r < VD_TPSP_IC_MAX)
-    ? { cls: 'red',    txt: 'mal pronóstico en IC con FEVI reducida y preservada' }
-    : ((r < VD_TPSP_HTP_MAX)
-        ? { cls: 'orange', txt: 'elemento de probabilidad para HTP' }
-        : { cls: 'green',  txt: 'acoplamiento VD-AP normal' });
+  /* Los dos colores son los que esta fila ya usaba para esos dos lados —`orange` por debajo del
+     0,55 y `green` por encima—: no entra ninguna variable de color nueva. */
+  const t = (r < VD_TPSP_HTP_MAX)
+    ? { cls: 'orange', txt: 'signo de probabilidad de HTP' }
+    : { cls: 'green',  txt: 'sin signo de HTP' };
   row.style.display = '';
   el.innerHTML = badge(t.cls, r.toFixed(3) + ' mm/mmHg — ' + t.txt);
   return { val: x, r: r, txt: t.txt };
@@ -36308,13 +36313,30 @@ const VINFO = Object.freeze({
      estan en la biblioteca: por la regla de la casa no se citan, y el bloque \u00aba tener en cuenta\u00bb
      lo dice en voz alta en vez de callarlo. Lo que SI esta leido en su PDF son los cuatro
      numeros de abajo. */
+  /* ⚠️ REESCRITA EN EL Z (2026-10-15). Decisión de Maicol: los USOS, UNA línea por uso, con el
+     formato «población · corte · resultado · fuente (autor, año, revista)», y SÓLO los que se
+     verificaron en el TEXTO COMPLETO de un PDF de la biblioteca.
+     ⚠️ LA TARJETA NO LLEVA NINGUNA NOTA DE VERIFICACIÓN NI RESERVA. La versión del G1 decía en
+     su cuarto bloque que tres cortes «no se pudieron leer en su fuente primaria»: eso es estado
+     interno del proceso y va SÓLO a `docs/fuentes/FUENTES.md` y a `docs/PENDIENTES.md`. Lo que
+     el médico lee acá son los cortes que la app puede respaldar, y nada más.
+     ⚠️ SE CITA POR NÚMERO DE TABLA Y NO POR FOLIO en la ESC/ERS 2022: la traducción de la SEC
+     que hay en la biblioteca pagina distinto que el original inglés.
+     ⚠️ LO QUE SE OMITE Y POR QUÉ: la serie de embolia pulmonar (Lyhne y col., 2024, registro
+     RIETE) SÍ está en la biblioteca y SÍ se verificó, y el médico decidió dejarla fuera de la
+     tarjeta. Queda registrada en `FUENTES.md` como fuente disponible y no usada. */
   'tapse-psap': {
     tit: 'Cociente TAPSE/PSAP \u2014 acoplamiento VD-AP',
     formula: 'TAPSE (mm) \u00f7 PSAP (mmHg) \u2192 mm/mmHg\n'
            + '(la PSAP es la que la app ya calcula: 4 \u00d7 VRT\u00b2 + PmAD)',
     lee: 'Mide el acople entre la funci\u00f3n del ventr\u00edculo derecho y la presi\u00f3n pulmonar que enfrenta: cu\u00e1nto se acorta el anillo tricusp\u00eddeo por cada mmHg de poscarga.',
-    fuente: 'Hipertensi\u00f3n pulmonar: < 0,55 mm/mmHg es signo de la categor\u00eda A (ventr\u00edculos) de la ESC/ERS 2022, Tabla 10, folio 28. En individuos sanos el cociente va de 0,5 a 0,7 (ASE 2025, Mukherjee, folio 152), y entre 0,3 y 0,4 se asocia a desacoplamiento VD-AP y mayor mortalidad (folios 152 y 173); esa misma gu\u00eda atribuye a la ESC/ERS el < 0,36 como sugestivo de hipertensi\u00f3n pulmonar (folio 180). Riesgo en hipertensi\u00f3n arterial pulmonar: > 0,32 bajo, 0,19 a 0,32 intermedio y < 0,19 alto (ESC/ERS 2022, folio 41).',
-    ojo: 'El cociente hereda la incertidumbre de la PSAP, que usa una presi\u00f3n de la aur\u00edcula derecha ESTIMADA. Y no hay un corte \u00fanico: cada uso tiene el suyo. Los cortes de insuficiencia card\u00edaca, de resincronizaci\u00f3n y de reparaci\u00f3n tricusp\u00eddea por cat\u00e9ter no se pudieron leer en su fuente primaria y por eso no se citan ac\u00e1.'
+    fuente: 'Hipertensi\u00f3n pulmonar \u00b7 < 0,55 \u00b7 signo de la categor\u00eda de ventr\u00edculos \u00b7 ESC/ERS 2022, Tabla 10.\n'
+          + 'Hipertensi\u00f3n arterial pulmonar, riesgo \u00b7 > 0,32 bajo, 0,19 a 0,32 intermedio, < 0,19 alto \u00b7 mortalidad estimada a un a\u00f1o < 5 %, 5 a 20 % y > 20 % \u00b7 ESC/ERS 2022, Tabla 16.\n'
+          + 'Adultos sanos \u00b7 0,5 a 0,7 \u00b7 rango habitual; con hipertensi\u00f3n pulmonar, 0,3 a 0,4 indica desacoplamiento VD-AP y m\u00e1s mortalidad \u00b7 ASE 2025 (Mukherjee), folios 152 y 173.\n'
+          + 'Terapia de resincronizaci\u00f3n \u00b7 < 0,45 \u00b7 m\u00e1s mortalidad por cualquier causa (HR 1,44) \u00b7 Stassen, 2022, ESC Heart Failure.\n'
+          + 'Insuficiencia card\u00edaca con fracci\u00f3n preservada, hospitalizada \u00b7 < 0,45 \u00b7 m\u00e1s muerte o reingreso por insuficiencia card\u00edaca \u00b7 Wang, 2024, Clinical Cardiology.\n'
+          + 'Insuficiencia card\u00edaca aguda con FEVI > 40 % \u00b7 < 0,38 \u00b7 m\u00e1s mortalidad a largo plazo (HR 2,21) \u00b7 Burgos, 2025, Archivos Peruanos de Cardiolog\u00eda y Cirug\u00eda Cardiovascular.',
+    ojo: 'El cociente hereda la incertidumbre de la PSAP, que usa una presi\u00f3n de la aur\u00edcula derecha ESTIMADA. Y no hay un corte \u00fanico: cada uso tiene el suyo, as\u00ed que el n\u00famero se lee contra la pregunta que se est\u00e1 haciendo.'
   },
   'ea-prot-ppm': {
     tit: 'Desajuste pr\u00f3tesis-paciente de la a\u00f3rtica',

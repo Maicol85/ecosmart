@@ -66003,16 +66003,23 @@ caso('TC-476', 'Tanda G1: el VD en tres columnas con su orden de Tab, las filas 
                  'ipApDiamVal','ipApDiamSync'].filter(n => !FN(n));
     ex.push(['DENOMINADOR: las siete funciones duenas existen', fns.length === 0,
       'faltan: ' + fns.join(',')]);
+    /* ⚠️ ADAPTADO 2026-10-15 (Z): VD_TPSP_IC_MAX YA NO EXISTE. El tramo de 0,36 se retiro de la
+       fila del cociente —su corte nacia de Guazzi 2013, que NO esta en la biblioteca, asi que
+       nunca estuvo verificado al estandar de la casa y la tarjeta ya no lo citaba—, y la
+       constante se fue con el. Hoy la fila tiene DOS estados y un solo corte, el 0,55 de la
+       ESC/ERS 2022, Tabla 10. La condicion AFIRMA ademas que la constante del 0,36 desaparecio:
+       dejarla declarada sin aplicar seria un segundo dueño de un numero que ya no se usa. */
     const cortes = (typeof VD_VI_HTP_MIN !== 'undefined' && typeof UMBRAL_FEVD_NORMAL !== 'undefined'
-                    && typeof VD_TPSP_IC_MAX !== 'undefined' && typeof VD_TPSP_HTP_MAX !== 'undefined'
+                    && typeof VD_TPSP_HTP_MAX !== 'undefined'
                     && typeof IP_AP_BANDA !== 'undefined' && typeof VD_PARED_GRADOS !== 'undefined')
-      ? { vdvi: VD_VI_HTP_MIN, fevd: UMBRAL_FEVD_NORMAL, ic: VD_TPSP_IC_MAX,
+      ? { vdvi: VD_VI_HTP_MIN, fevd: UMBRAL_FEVD_NORMAL,
           htp: VD_TPSP_HTP_MAX, banda: JSON.stringify(IP_AP_BANDA),
+          sinIc: (typeof VD_TPSP_IC_MAX === 'undefined'),
           grados: VD_PARED_GRADOS.map(b => b.lbl).join('/') }
       : 'SIN CONSTANTES';
     ex.push(['DENOMINADOR: los cortes y las bandas tienen un dueno unico y son los de la guia',
       cortes !== 'SIN CONSTANTES' && cortes.vdvi === 1.0 && cortes.fevd === 45 &&
-      cortes.ic === 0.36 && cortes.htp === 0.55 && cortes.banda === '[5,80]' &&
+      cortes.sinIc === true && cortes.htp === 0.55 && cortes.banda === '[5,80]' &&
       cortes.grados === 'leve/moderada/severa', JSON.stringify(cortes)]);
 
     /* ══ A · LAS TRES COLUMNAS, LA POSICION EXPLICITA Y EL ORDEN DEL TAB ═══════════════════
@@ -66249,15 +66256,23 @@ caso('TC-476', 'Tanda G1: el VD en tres columnas con su orden de Tab, las filas 
     const t14 = TPSP('14'), t1404 = TPSP('14.04'), t16 = TPSP('16'),
           t2130 = TPSP('21.3'), t2145 = TPSP('21.45'), t22 = TPSP('22');
     ex.push(['DENOMINADOR: la PSAP quedo en 39 mmHg en las seis escenas', t14.psap === '39', 'psap=' + t14.psap]);
-    ex.push(['TAPSE 14 (0,359): mal pronostico en IC',
-      /mal pron.stico en IC/.test(t14.txt) && t14.txt.indexOf('0.359') === 0, t14.txt]);
-    ex.push(['TAPSE 14,04 (0,360 EXACTO): ya es el tramo de HTP — el borde incluye el 0,36',
-      /probabilidad para HTP/.test(t1404.txt) && t1404.txt.indexOf('0.360') === 0, t1404.txt]);
-    ex.push(['TAPSE 16 (0,410): tramo de HTP', /probabilidad para HTP/.test(t16.txt), t16.txt]);
-    ex.push(['TAPSE 21,3 (0,546): sigue en el tramo de HTP', /probabilidad para HTP/.test(t2130.txt), t2130.txt]);
-    ex.push(['TAPSE 21,45 (0,550 EXACTO): acoplamiento normal — el borde incluye el 0,55',
-      /acoplamiento VD-AP normal/.test(t2145.txt) && t2145.txt.indexOf('0.550') === 0, t2145.txt]);
-    ex.push(['TAPSE 22 (0,564): acoplamiento normal', /acoplamiento VD-AP normal/.test(t22.txt), t22.txt]);
+    /* ⚠️ ADAPTADAS 2026-10-15 (Z): LA FILA TIENE DOS ESTADOS Y NO TRES, asi que estas seis
+       escenas afirman ahora otra cosa. El tramo de 0,36 —«mal pronostico en IC»— se retiro, de
+       modo que las dos escenas que lo fijaban (0,359 y el 0,360 EXACTO) pasan a exigir el MISMO
+       texto que las dos de arriba del corte. Lo que la tanda conserva intacto es el 0,55 y su
+       operador, y por eso las dos escenas del borde se quedan como estaban: el 0,550 EXACTO cae
+       del lado «sin signo», que es lo que la Tabla 10 escribe con su operador estricto. Los TRES decimales
+       tampoco se tocan. */
+    ex.push(['TAPSE 14 (0,359): signo de probabilidad de HTP — el tramo de 0,36 ya no existe',
+      /signo de probabilidad de HTP/.test(t14.txt) && t14.txt.indexOf('0.359') === 0 &&
+      !/mal pron.stico/.test(t14.txt), t14.txt]);
+    ex.push(['TAPSE 14,04 (0,360 EXACTO): el MISMO estado que el 0,359 — el 0,36 dejo de separar nada',
+      /signo de probabilidad de HTP/.test(t1404.txt) && t1404.txt.indexOf('0.360') === 0, t1404.txt]);
+    ex.push(['TAPSE 16 (0,410): signo de probabilidad de HTP', /signo de probabilidad de HTP/.test(t16.txt), t16.txt]);
+    ex.push(['TAPSE 21,3 (0,546): sigue por debajo del 0,55', /signo de probabilidad de HTP/.test(t2130.txt), t2130.txt]);
+    ex.push(['TAPSE 21,45 (0,550 EXACTO): sin signo de HTP — el operador estricto deja el 0,55 afuera',
+      /sin signo de HTP/.test(t2145.txt) && t2145.txt.indexOf('0.550') === 0, t2145.txt]);
+    ex.push(['TAPSE 22 (0,564): sin signo de HTP', /sin signo de HTP/.test(t22.txt), t22.txt]);
     /* El mismo numero en las TRES superficies que lo publican. */
     ex.push(['el MISMO numero en la fila nueva y en la pantalla de TEP',
       T('tep-tapse-psap').indexOf('0.564') === 0 && t22.txt.indexOf('0.564') === 0,
@@ -66296,9 +66311,26 @@ caso('TC-476', 'Tanda G1: el VD en tres columnas con su orden de Tab, las filas 
     ex.push(['la tarjeta lleva ACENTOS — la tanda D1 publico cinco sin ellos y lo vio la captura',
       (txtReg.match(/[\\u00e1\\u00e9\\u00ed\\u00f3\\u00fa\\u00f1]/g) || []).length >= 15,
       String((txtReg.match(/[\\u00e1\\u00e9\\u00ed\\u00f3\\u00fa\\u00f1]/g) || []).length) + ' acentos']);
-    ex.push(['y cita el 0,55 con su folio, SIN atribuir el 0,36 a una fuente que no se leyo',
-      txtReg.indexOf('folio 28') > -1 && txtReg.indexOf('0,55') > -1 &&
-      txtReg.indexOf('no se pudieron leer en su fuente primaria') > -1, '']);
+    /* ⚠️ ADAPTADA 2026-10-15 (Z): LA TARJETA SE REESCRIBIO Y AFIRMA LO CONTRARIO EN SU SEGUNDA
+       MITAD. La version del G1 citaba el 0,55 POR FOLIO y declaraba EN LA TARJETA que tres
+       cortes «no se pudieron leer en su fuente primaria». Decision de Maicol: (1) la ESC/ERS
+       2022 se cita por NUMERO DE TABLA, porque la traduccion de la SEC que hay en la biblioteca
+       pagina distinto que el original ingles; (2) la tarjeta NO lleva ninguna nota de
+       verificacion ni reserva — eso vive SOLO en FUENTES.md y en PENDIENTES.md. Lo que la
+       condicion sigue protegiendo es lo mismo: que el 0,55 este citado y que la tarjeta no
+       atribuya a nadie un corte que no se leyo. */
+    ex.push(['cita el 0,55 por NUMERO DE TABLA y la tarjeta no lleva nota de verificacion',
+      txtReg.indexOf('Tabla 10') > -1 && txtReg.indexOf('0,55') > -1 &&
+      txtReg.indexOf('no se pudieron leer en su fuente primaria') === -1 &&
+      txtReg.indexOf('folio 28') === -1, '']);
+    /* Los CINCO usos verificados, uno por uno, con su fuente nombrada. Y el que se OMITIO por
+       decision de Maicol —la serie de embolia pulmonar de Lyhne 2024— NO puede estar. */
+    ex.push(['publica los CINCO usos verificados, cada uno con su fuente',
+      ['Tabla 10', 'Tabla 16', 'Mukherjee', 'Stassen', 'Wang', 'Burgos']
+        .every(f => txtReg.indexOf(f) > -1), txtReg.slice(0, 120)]);
+    ex.push(['y NO nombra la serie de embolia pulmonar, que se dejo fuera a proposito',
+      txtReg.indexOf('Lyhne') === -1 && txtReg.indexOf('RIETE') === -1 &&
+      txtReg.indexOf('embolia') === -1, '']);
 
     /* ══ H · EL DIAMETRO DE LA ARTERIA PULMONAR ════════════════════════════════════════════ */
     __t.limpiar();

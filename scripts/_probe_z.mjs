@@ -352,13 +352,29 @@ window.__P = {
                var el = document.elementFromPoint(x, y);
                return !!(el && (el === b || b.contains(el))) })() } },
 
+  /* ⚠️ SE LLEVA EL BOTON AL VIEWPORT ANTES DE CLICKEAR. El cuadro del Doppler tricuspideo esta
+     abajo de una pagina larga: sin esto el boton tiene tamaño pero su centro cae fuera de la
+     pantalla, y la medicion de «el globo sigue alcanzable» informa FUERA sobre un globo que el
+     medico ve perfectamente. Es un denominador del medidor, no del arbol. */
   clicVinfo(clave) {
     var b = document.querySelector('[data-vinfo="' + clave + '"]');
     if (!b) return { err: 'NO EXISTE globo ' + clave };
     var r = b.getBoundingClientRect();
     if (!(r.width > 0 && r.height > 0)) return { err: 'SIN GEOMETRIA ' + clave };
+    if (r.top < 0 || r.bottom > window.innerHeight) {
+      b.scrollIntoView({ block: 'center' });
+      r = b.getBoundingClientRect();
+    }
     b.click();
-    return { ok: true } },
+    return { ok: true, y: Math.round(r.top) } },
+
+  /* El color REAL del badge de la fila, resuelto, no la variable: lo que se ve es el span de
+     adentro y no el contenedor, que hereda el color del texto normal. */
+  colorBadge() {
+    var e = document.querySelector('#tapse-psap-interp .badge');
+    if (!e) return 'SIN BADGE';
+    return { color: getComputedStyle(e).color, bg: getComputedStyle(e).backgroundColor,
+             cls: String(e.className || '') } },
 
   cerrarAfuera() {
     document.body.click();
@@ -907,6 +923,18 @@ async function main() {
   /* ── Z4 · tarjeta ── El globo, su texto, sus cuatro cierres y su maqueta. */
   if (corre('tarjeta')) {
     const g = { abrir: await ev(`window.__P.abrirDoppler()`) };
+    /* ⚠️ DENOMINADOR: EL GLOBO VIVE DENTRO DE `row-tapse-psap`, QUE NACE EN `display:none` Y SOLO
+       SE DIBUJA CON COCIENTE. Sin cargar TAPSE y PSAP el boton existe y mide 0 x 0, la tarjeta no
+       se ancla, y «no abre» se lee como «el mecanismo no funciona». */
+    await ev(`window.__P.nuevo()`);
+    await tipear('vmax_it', '2.8');
+    await ev(`window.__P.sel('vci_col','>50')`);
+    await tipear('vci_diam', '18');
+    await tipear('tapse', '18');
+    await ev(`window.__P.abrirDoppler()`);
+    g.denominador = await ev(`window.__P.tpsp()`);
+    if (!g.denominador || !g.denominador.filaVis)
+      throw new Error('DENOMINADOR: la fila del cociente no esta visible, el globo no tiene geometria: ' + JSON.stringify(g.denominador));
     g.cerrada = await ev(`window.__P.tarjeta('tapse-psap')`);
     g.abrir1 = await ev(`window.__P.clicVinfo('tapse-psap')`);
     g.abierta = await ev(`window.__P.tarjeta('tapse-psap')`);
@@ -924,9 +952,19 @@ async function main() {
         const tema = await ev(`window.__P.tema(${claro})`);
         if (!!tema.claro !== claro) throw new Error('EL TEMA NO QUEDO: ' + JSON.stringify(tema));
         await ev(`window.__P.abrirDoppler()`);
-        await ev(`window.__P.despejar()`);
+        /* ⚠️ EL AVISO LEGAL VUELVE A MITAD DE CORRIDA y tapa con z-index 9999: con el puesto,
+           `elementFromPoint` devuelve ESE nodo y la escena informa «tapada» sobre una tarjeta
+           perfecta. Se despeja DENTRO del medidor y su estado va al lado del veredicto. */
+        const _desp = await ev(`window.__P.despejar()`);
+        const _vis = await ev(`window.__P.tpsp()`);
+        if (!_vis || !_vis.filaVis)
+          throw new Error('DENOMINADOR: la fila del cociente se escondio al cambiar el viewport: ' + JSON.stringify(_vis));
         await ev(`window.__P.clicVinfo('tapse-psap')`);
-        g.maqueta[w + 'px/' + (claro ? 'claro' : 'oscuro')] = await ev(`window.__P.tarjeta('tapse-psap')`);
+        const _t = await ev(`window.__P.tarjeta('tapse-psap')`);
+        _t.aviso = _desp;
+        _t.colorFila = await ev(`window.__P.color('#tapse-psap-interp')`);
+        _t.colorBadge = await ev(`window.__P.colorBadge()`);
+        g.maqueta[w + 'px/' + (claro ? 'claro' : 'oscuro')] = _t;
         await tecla('Escape');
       }
     }
