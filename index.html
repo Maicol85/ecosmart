@@ -43360,6 +43360,27 @@ function generarInforme(opts) {
       /* El EN SUMA sólo afirma cuando hay veredicto: con TAVI —que no se gradúa— y con un dato
          faltante NO se resume nada, porque cualquier línea ahí se leería como una conclusión. */
       if (_eaProtN.resumen) suma.push(`Prótesis aórtica: ${_eaProtN.resumen}.`);
+      /* ══ PPM AÓRTICO — UNA LÍNEA, CON EL MISMO TRATAMIENTO QUE EL MITRAL (Z, 2026-10-15) ════
+         Decisión de Maicol: el aórtico se calculaba y se veía SÓLO en pantalla mientras el mitral
+         ya iba al papel desde la Fase 2. Se replica la forma del mitral tal cual: sale sólo con
+         desajuste MODERADO o SEVERO —sin desajuste no se escribe nada—, nombra la AEO indexada
+         que lo disparó, y el MISMO texto va al cuerpo y al EN SUMA.
+         ⚠️ Y ES OTRA PREGUNTA QUE LA ESTENOSIS, así que va en su propia línea: una prótesis puede
+         estar obstruida sin PPM y tener PPM sin estar obstruida. Fundirlas diría que son el mismo
+         hallazgo — el argumento que el bloque gemelo de la mitral ya tiene escrito.
+         ⚠️ ÚNICA DIFERENCIA CON EL MITRAL, Y ESTÁ DECLARADA: esta frase dice «aórtico». El mitral
+         no nombra su válvula, y con las DOS prótesis desajustadas el EN SUMA publicaría dos
+         oraciones idénticas que sólo se distinguen por el número. El adjetivo es lo mínimo que
+         las separa; la forma de la oración es la misma.
+         ⚠️ CON TAVI TAMBIÉN SALE, y es correcto: la Tabla 7 de la ASE 2024 no abre ramas por tipo
+         de prótesis —es lo que el W2-B ya midió para la pantalla— y la TAVI, que NO se gradúa por
+         estenosis, sí publica su PPM. Por eso la línea NO cuelga de `_eaProtN.resumen`, que es
+         `null` justamente en la TAVI. */
+      if (_eaProtP && (_eaProtP.ppm === 'moderado' || _eaProtP.ppm === 'severo')) {
+        const _tPpmAo = 'Desajuste protésico-paciente aórtico ' + _eaProtP.ppm +
+                        ' (AEO indexada ' + _eaProtP.avai.toFixed(2) + ' cm²/m²).';
+        inf.push(_tPpmAo); suma.push(_tPpmAo);
+      }
       ccMarcarParrafo();
     } else if (esclerosis && !estE && !insE) {
       inf.push(estiloPick(
@@ -48945,6 +48966,31 @@ const EA_PROT_PPM_CORTES = Object.freeze({
   imcBajo: Object.freeze({ normalMin: 0.85, severoMax: 0.65 }),
   imcAlto: Object.freeze({ normalMin: 0.70, severoMax: 0.55 })
 });
+/* ⚠️ LA CLASIFICACIÓN SALE A UNA FUNCIÓN PROPIA (Z, 2026-10-15) Y NO ES UN REFACTOR DE ESTILO.
+   `eaProtVeredicto` lee el DOM —el AVA indexada la toma del textContent de `ava-idx`— y desde
+   esta tanda el mismo veredicto lo necesita `_labExcelRow`, que trabaja sobre los `campos` de un
+   estudio ARCHIVADO y no tiene formulario que leer. Con la cascada dentro de aquélla, la columna
+   del Excel habría publicado el PPM del paciente ABIERTO EN PANTALLA repetido en las N filas —y
+   eso se ve perfectamente correcto—. Es la misma lección que `vmProtEOA(src)` y `valvProtDato`
+   ya tienen escrita, resuelta acá con la variante más barata: la función no lee nada, recibe los
+   dos NÚMEROS ya calculados.
+   ⚠️ SIN IMC SE USA LA RAMA DE IMC < 30, QUE ES LA MÁS EXIGENTE, igual que las dos superficies
+   que la llaman. Suponer obesidad sobre un paciente sin peso ni talla sería el lado permisivo.
+   El valor de retorno es el de siempre: 'no' / 'moderado' / 'severo', o `null` sin indexada. */
+function _eaPpmAoClasificar(avai, imc) {
+  if (avai == null || !isFinite(avai) || !(avai > 0)) return { ppm: null, cortes: null };
+  const c = (imc != null && imc >= VM_PROT_IMC_OBESIDAD)
+          ? EA_PROT_PPM_CORTES.imcAlto : EA_PROT_PPM_CORTES.imcBajo;
+  return { cortes: c,
+           ppm: avai <= c.severoMax ? 'severo' : (avai > c.normalMin ? 'no' : 'moderado') };
+}
+window._eaPpmAoClasificar = _eaPpmAoClasificar;
+/* Las tres palabras que publica la columna del Excel. Son las MISMAS que la fila de pantalla
+   imprime (`PPM_AO_TXT` dentro de `_eaProtPintar`): un segundo juego de etiquetas sería el que
+   se queda atrás el día que una cambie. Vive acá, al lado de los cortes, porque `_labExcelRow`
+   corre miles de líneas más abajo y aquél es local de una función. */
+const PPM_AO_XLS_TXT = Object.freeze({ no:'sin desajuste', moderado:'moderado', severo:'severo' });
+window.PPM_AO_XLS_TXT = PPM_AO_XLS_TXT;
 /* Volumen sistólico que la nota `‡` de la Tabla 5 exige para que la velocidad pico valga:
    «Valid with normal stroke volume (50-90 mL) and flow rates (200-300 mL).» La app SÍ calcula el
    volumen sistólico —`vs_calc`— así que la condición se puede verificar en vez de suponerse.
@@ -49073,10 +49119,11 @@ function eaProtVeredicto(){
        MAS ALTO—. Suponer obesidad sobre un paciente sin peso ni talla sería el lado permisivo. Y
        la rama sin IMC es casi inalcanzable: el indexado necesita la BSA, que sale de los mismos
        dos campos que el IMC. Mismo criterio que la mitral. */
-    ppmCortesAo = (imcAo != null && imcAo >= VM_PROT_IMC_OBESIDAD)
-                ? EA_PROT_PPM_CORTES.imcAlto : EA_PROT_PPM_CORTES.imcBajo;
-    ppmAo = avai <= ppmCortesAo.severoMax ? 'severo'
-          : (avai > ppmCortesAo.normalMin ? 'no' : 'moderado');
+    /* La cascada vive en `_eaPpmAoClasificar`, su dueño único desde el Z: la columna del Excel
+       publica este MISMO veredicto sobre un estudio archivado y dos copias de la misma tabla
+       divergen en cuanto alguien mueva un corte. El número que se publica no cambia. */
+    const _ppmR = _eaPpmAoClasificar(avai, imcAo);
+    ppmCortesAo = _ppmR.cortes; ppmAo = _ppmR.ppm;
   }
 
   /* ── Bloque general: vale para las dos vías ── */
@@ -94500,6 +94547,33 @@ function _labExcelRow(inf) {
     'Morfología aórtica': c.va_morf || '', 'EA grado': gEA,
     'EAo_I (Leve)': bin(gEA,'leve'), 'EAo_II (Moderada)': bin(gEA,'moderada'), 'EAo_III (Severa)': bin(gEA,'severa'),
     'AVA (cm²)': rnd(ava,2),
+    /* ⚠️ COLUMNA NUEVA (Z, 2026-10-15), AUTORIZADA, y es DERIVADA: no tiene campo en el DOM, así
+       que NO entra en `LAB_XLS_MAP` y no se reimporta — el criterio (b) de columna derivada que
+       el G2 declaró para `FAC VD (%)` y `DisfSist_VD`. Su bloque se declara en `LAB_XLS_BLOQUES`
+       por NOMBRE, porque `_labOrdenarCols` manda al final lo que el mapa no conoce.
+       El veredicto sale de `_eaPpmAoClasificar`, el MISMO dueño que pinta la fila de pantalla y
+       que ahora escribe la línea del informe: tres superficies y una sola tabla de cortes.
+       ⚠️ SE EXIGE PRÓTESIS AÓRTICA, igual que la fila de pantalla: el desajuste protésico-paciente
+       es una pregunta sobre una prótesis, y clasificar una válvula nativa publicaría un PPM sobre
+       un paciente que no tiene prótesis. `valvEsProtesis` es el dueño de ese predicado sobre un
+       token —`_imVmProt` pregunta por el DOM y acá no hay—, el mismo reparto que `vmProtEOA(src)`.
+       ⚠️ Y SE INDEXA EL AVA REDONDEADO A DOS DECIMALES, que es el número que la pantalla clasifica
+       y el que la columna «AVA (cm²)» de al lado publica. Con el crudo, la celda y la fila de
+       pantalla podrían pararse a los lados del corte sobre el mismo estudio — la regla de la casa
+       desde el AVA de 1,00. */
+    'PPM aórtico': (function(){
+      try {
+        if (typeof valvEsProtesis !== 'function' ||
+            !valvEsProtesis(String(c.va_morf == null ? '' : c.va_morf))) return '';
+        if (ava == null || !bsa || !(bsa > 0)) return '';
+        const _avaR = Math.round(ava * 100) / 100;
+        if (!(_avaR > 0)) return '';
+        const _avaiX = Math.round((_avaR / bsa) * 100) / 100;
+        const _imcX = (typeof getIMC === 'function') ? getIMC(c) : null;
+        const _r = _eaPpmAoClasificar(_avaiX, _imcX == null ? null : Math.round(_imcX * 10) / 10);
+        return _r.ppm ? PPM_AO_XLS_TXT[_r.ppm] : '';
+      } catch (e) { return ''; }
+    })(),
     'V. max Ao (m/s)': rnd(num('vmax_ao','va_vmax'),2), 'G. máx Ao (mmHg)': rnd(num('gmax_calc','va_gmax'),0), 'G. medio Ao (mmHg)': rnd(num('gmedio_ao','va_gmed'),0),
     'IAo grado': gIA,
     'IAo_I (Leve)': bin(gIA,'leve'), 'IAo_II (Moderada)': bin(gIA,'moderada'), 'IAo_III (Severa)': bin(gIA,'severa'),
@@ -95414,6 +95488,11 @@ const LAB_XLS_BLOQUES = [
          seguirlo, porque si no la columna cae al bloque «18 · OTRAS COLUMNAS». Lo caza
          `_labXlsAssertBloques`, que es para lo que está. */
       'G. medio Ao','THP IAo','EROA','Vol R IM','Wilkins','Score Wilkins','PSAP','PAP media','Grad VD-AD','Pericardio',
+      /* «PPM aórtico» NOMBRADA (Z, 2026-10-15): es DERIVADA, así que el mapa no la conoce y
+         `_labOrdenarCols` la mandaría al final; sin esta entrada caería al bloque «18 · OTRAS
+         COLUMNAS», a decenas de columnas de la aórtica que describe. Lo caza
+         `_labXlsAssertBloques`, que es para lo que está. */
+      'PPM aórtico',
       /* Pulmonar: nombrados y no por prefijo corto. «EP » y «IP » son dos letras y este bloque
          ya se lleva por delante todo lo que empiece con «IM» o «IT» — agregar un prefijo de dos
          caracteres es exactamente cómo «Morfología » se tragó «Morfología orejuela». */
@@ -95666,6 +95745,7 @@ function _labExportarXLSXReal(infs, anon, sel, origen) {
     ['Geom_HVI_Excentrica',     'Hipertrofia VI excéntrica (leve/mod/severa)',  V],
     ['TS_Presente',             'Trastornos sectoriales de la motilidad presentes', V],
     ['DisfSist_VD',             'Disfunción sistólica del VD afirmada en el texto del informe', V],
+    ['PPM aórtico',             'Desajuste prótesis-paciente aórtico (AEO indexada; ASE 2024, Tabla 7)', 'sin desajuste / moderado / severo'],
   ];
   const wsLeg = XLSX.utils.aoa_to_sheet(leyenda);
   wsLeg['!cols'] = [{ wch: 22 }, { wch: 44 }, { wch: 30 }];
@@ -95921,6 +96001,7 @@ const LAB_XLS_CALC_ORIGEN = Object.freeze({
   'Grad VD-AD (mmHg)':    ['velocidad m\u00e1xima de la insuficiencia tricusp\u00eddea'],
   'FAC VD (%)':           ['\u00e1rea telediast\u00f3lica del VD', '\u00e1rea telesist\u00f3lica del VD'],
   'DisfSist_VD':          ['el texto del informe'],
+  'PPM a\u00f3rtico':       ['AVA por continuidad', 'superficie corporal', '\u00edndice de masa corporal'],
   'Masa VI (g/m\u00b2)':      ['DDVI', 'septo', 'pared posterior', 'peso', 'talla'],
   'RWT':                  ['DDVI', 'pared posterior'],
   'Geometr\u00eda VI':        ['masa indexada', 'RWT'],
