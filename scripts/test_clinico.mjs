@@ -1793,8 +1793,11 @@ caso('TC-457', 'Pared del VD e indice de Tei (DTI): los dos cortes por sus dos l
     ? { pared: VD_PARED_HVD_MIN, tei: VD_TEI_DTI_ALT_MIN,
         pw: (typeof VD_TEI_PW_ALT_MIN !== 'undefined') ? VD_TEI_PW_ALT_MIN : 'SIN CONSTANTE' }
     : 'SIN CONSTANTES';
-  /* El cuadro del VD tiene que seguir teniendo SIETE filas: cinco de HEAD mas las dos nuevas.
-     Un conteo es lo unico que caza una fila que se duplico o que se fue. */
+  /* ADAPTADO el 2026-10-15 (G1, commit 1): el cuadro pasa de SIETE filas a NUEVE. Las dos que
+     entran son la FEVD y el volumen sistolico pulmonar (Qp), y el orden del cuadro pasa a ser el
+     de las tres columnas de campos. El conteo sigue siendo lo unico que caza una fila que se
+     duplico o que se fue, y por eso se actualiza en vez de borrarse.
+     Las filas de FEVD y de FAC nacen escondidas y se cuentan igual: siguen en el DOM. */
   const cajaVD = (() => { const e = document.getElementById('vd-tam');
     const c = e ? e.closest('.calc-box') : null;
     return c ? c.querySelectorAll('.calc-row').length : 'NO EXISTE' })();
@@ -1900,7 +1903,7 @@ caso('TC-457', 'Pared del VD e indice de Tei (DTI): los dos cortes por sus dos l
     // ── DENOMINADORES ────────────────────────────────────────────────────────────────────────
     ['DENOMINADOR: los dos campos nuevos existen en el DOM', existen.length === 0, 'faltan: ' + existen.join(',')],
     ['DENOMINADOR: las dos filas nuevas del cuadro existen', filasNuevas.length === 0, 'faltan: ' + filasNuevas.join(',')],
-    ['DENOMINADOR: el cuadro del VD tiene SIETE filas (5 de HEAD + 2)', cajaVD === 7, 'filas=' + cajaVD],
+    ['DENOMINADOR: el cuadro del VD tiene NUEVE filas (7 + FEVD + Qp)', cajaVD === 9, 'filas=' + cajaVD],
     ['DENOMINADOR: los cortes son los de la guia, y el del Doppler PULSADO esta declarado aparte',
       cortes !== 'SIN CONSTANTES' && cortes.pared === 5 && cortes.tei === 0.55 && cortes.pw === 0.40,
       JSON.stringify(cortes)],

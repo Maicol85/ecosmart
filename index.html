@@ -527,6 +527,26 @@
     .dm-grid > .dm-r3 { grid-row: 3; }
     .dm-grid > .dm-r4 { grid-row: 4; }
   }
+  /* La MISMA mecanica para los quince campos del bloque «Ventriculo derecho» (G1, 2026-10-15):
+     tres columnas de cinco, el orden del MARCADO es el del Tab y la posicion es EXPLICITA.
+     ⚠️ ACA LA POSICION EXPLICITA NO ES PRECAUCION SINO NECESIDAD: la casilla de la FAC SE
+     ESCONDE hasta que haya dato, y con un flujo automatico esconderla haria subir a los campos
+     de abajo — y como la FAC es el ultimo de su columna, subiria uno de OTRA columna. Con la
+     posicion explicita su casilla queda VACIA, que es lo que corresponde.
+     Mismo corte que `.dm-grid` y por el mismo motivo: `min-width: 769px` es el complemento
+     exacto del `max-width: 768px` que ya colapsa `.grid-3` a una columna, asi que no se agrega
+     ningun breakpoint nuevo. Y abajo del corte la fila explicita tiene que quedar AFUERA: a una
+     columna, tres campos de `vd-r1` caerian en la misma celda. */
+  @media (min-width: 769px) {
+    .vd-grid > .vd-c1 { grid-column: 1; }
+    .vd-grid > .vd-c2 { grid-column: 2; }
+    .vd-grid > .vd-c3 { grid-column: 3; }
+    .vd-grid > .vd-r1 { grid-row: 1; }
+    .vd-grid > .vd-r2 { grid-row: 2; }
+    .vd-grid > .vd-r3 { grid-row: 3; }
+    .vd-grid > .vd-r4 { grid-row: 4; }
+    .vd-grid > .vd-r5 { grid-row: 5; }
+  }
   /* ══ CARD ══ */
   .card {
     background: var(--bg2);
@@ -3659,90 +3679,44 @@ window.cerrarSesionReal = cerrarSesionReal;
   <div class="card sacc" id="sacc-vd">
     <button type="button" class="sacc-hdr" onclick="secToggle('vd')" aria-expanded="false"><span class="sacc-arrow">▶</span>Ventrículo derecho</button>
     <div class="card-body sacc-body">
-      <div class="grid-3">
-        <div class="fg">
+      <!-- ══ LOS QUINCE CAMPOS EN TRES COLUMNAS (G1, 2026-10-15) ═══════════════════════════════
+           Decisión de Maicol: columna 1 = TAP · TAPSE · S' · índice de Tei · FEVD; columna 2 =
+           VD basal · medio · longitudinal · relación VD/VI · pared; columna 3 = Diám. TSVD ·
+           VTI TSVD · área telediastólica · área telesistólica · FAC. Las referencias de abajo
+           siguen ESE mismo orden.
+           Es el mecanismo de la grilla del Doppler mitral (`docs/mapa/doppler-mitral-grilla.md`)
+           y por las MISMAS dos razones:
+             1. EL ORDEN DEL MARCADO ES EL DEL TAB. Los quince `.fg` están acá en orden de
+                columnas, así que el navegador los recorre así sin ninguna ayuda. NO hay ni un
+                `tabindex` —ni positivo ni negativo—: uno positivo haría que el Tab dependiera de
+                un número que nadie mantiene sincronizado con el marcado.
+             2. LA POSICIÓN ES EXPLÍCITA Y NO DE FLUJO (`vd-cN` / `vd-rM`, ocho reglas de CSS).
+                Un `grid-auto-flow: column` daría el mismo dibujo con cero reglas, pero el flujo
+                REACOMODA, y desde esta tanda hay un campo que SE ESCONDE: la casilla de la FAC no
+                se muestra hasta que haya dato. Con el flujo, esconderla haría subir a los de
+                abajo —y como la FAC es el último de su columna, subiría un campo de OTRA—. Con la
+                posición explícita su casilla queda VACÍA, que es lo que corresponde: un hueco
+                dice «no hay dato» y un reacomodo dice «esto es otra grilla».
+           Las ocho reglas viven SÓLO por encima de 768 px. Por debajo `.grid-3` ya cae a una
+           columna y el orden visual es el del marcado, que es el del Tab: no hace falta ninguna
+           regla de posición para que coincidan. -->
+      <div class="grid-3 vd-grid">
+        <!-- ── COLUMNA 1 ───────────────────────────────────────────────────────────────────── -->
+        <div class="fg vd-c1 vd-r1">
           <label>TAP (ms)</label>
           <!-- `dtTapSync` PRIMERO, igual que `itVmaxSync` en la Vmax IT: el espejo del Doppler
                tricuspídeo se actualiza antes de que corran los cálculos de atrás. -->
           <input type="number" id="tvia" placeholder="ms" oninput="dtTapSync('tvia');calcVD();papmEstSync()">
         </div>
-        <div class="fg">
+        <div class="fg vd-c1 vd-r2">
           <label>TAPSE (mm)</label>
           <input type="number" id="tapse" placeholder="mm" oninput="calcVD()">
         </div>
-        <div class="fg">
+        <div class="fg vd-c1 vd-r3">
           <label>S' tricuspídeo (cm/s)</label>
           <input type="number" id="s_prime" placeholder="cm/s" oninput="calcVD()">
         </div>
-      </div>
-      <div class="grid-3" style="margin-top:8px;">
-        <div class="fg">
-          <label>VD basal (mm)</label>
-          <input type="number" id="vd_bas" placeholder="mm" oninput="calcVD()">
-        </div>
-        <!-- `oninput` en los tres: desde que el medio y el longitudinal deciden «VD dilatado»
-             en el informe firmado, un campo sin recálculo deja la cápsula diciendo «Normal
-             (basal 38)» mientras el informe dice «dilatado (medio 44)». Antes eran decorativos
-             y la omisión no se notaba. -->
-        <div class="fg">
-          <label>VD medio (mm)</label>
-          <input type="number" id="vd_mid" placeholder="mm" oninput="calcVD()">
-        </div>
-        <div class="fg">
-          <label>VD longitudinal (mm)</label>
-          <input type="number" id="vd_long" placeholder="mm" oninput="calcVD()">
-        </div>
-      </div>
-      <div class="grid-3" style="margin-top:8px;">
-        <div class="fg">
-          <!-- ⚠️ `etTsvdSync` PRIMERO, igual que `itVmaxSync` en la Vmax IT y `dtTapSync` en el TAP:
-               el espejo de la tarjeta de estenosis tricuspídea tiene que estar escrito ANTES de que
-               recalcule cualquiera de los lectores. Este campo sigue siendo el DUEÑO del dato.
-               ⚠️ EL RÓTULO PASÓ DE «VTI-TSVD (cm)» A «VTI TSVD (cm)» (2026-10-07, orden de Maicol):
-               es el mismo rótulo que el espejo de Válvulas, para que el médico vea un solo nombre
-               del mismo dato en los dos lados. Es SÓLO pantalla — el encabezado del Excel («VTI
-               TSVD (cm)»), el PDF, el PPT y los dos espejos read-only de Congénitas no se tocaron. -->
-          <label>VTI TSVD (cm) <span style="font-weight:400;color:var(--text2);font-size:10px;">RVP (Abbas) · Qp/Qs</span></label>
-          <input type="number" id="vti_tsvd" placeholder="cm" step="0.1" oninput="etTsvdSync('vti_tsvd');calcHemo();eteShuntSyncSiExiste();calcET()">
-        </div>
-        <div class="fg">
-          <!-- Diámetro del TSVD: vive ACÁ, con el resto de las medidas del ventrículo derecho,
-               y CIA/CIV lo muestra como espejo de solo lectura — igual que ya hace con el TSVI
-               y el VTI-TSVI del lado izquierdo. Una sola fuente por medición: con el campo
-               editable en los dos lados, un paciente podía terminar con un diámetro
-               alimentando el Qp/Qs y otro distinto acá, los dos en el informe firmado. -->
-          <!-- ⚠️ EL RÓTULO PASÓ DE «Diámetro TSVD (mm)» A «Diám. TSVD (mm)» (2026-10-07, orden de
-               Maicol), por lo mismo que el VTI de al lado: un solo nombre del mismo dato en los dos
-               lados. SÓLO pantalla; el Excel sigue diciendo «Ø TSVD (mm)» y no se tocó.
-               `etTsvdSync` primero — ver el comentario del VTI. -->
-          <label>Diám. TSVD (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">Qp/Qs</span></label>
-          <input type="number" id="tsvd_diametro" placeholder="mm" step="0.1" oninput="etTsvdSync('tsvd_diametro');eteShuntSyncSiExiste();calcET()">
-        </div>
-        <div class="fg">
-          <label>FEVD (%)</label>
-          <input type="number" id="fevd" placeholder="%">
-        </div>
-        <div class="fg">
-          <label>VD/VI ratio</label>
-          <input type="number" id="vd_vi" placeholder="ratio" step="0.01">
-        </div>
-        <!-- ⚠️ ESTOS DOS CAMPOS OCUPAN LOS DOS HUECOS QUE DEJA `vd_vi` EN LA SEGUNDA FILA DEL
-             `grid-3`, y la posición es decisión de Maicol: la pared debajo de «Diám. TSVD» y el
-             Tei debajo de «FEVD (%)». El `grid-3` tiene CUATRO hijos desde antes de esta tanda,
-             así que `vd_vi` arrancaba la fila 2 y las columnas 2 y 3 quedaban vacías; con estos
-             dos la fila se completa y no se agrega ninguna fila nueva a 1200 px.
-             El rótulo, el `placeholder` y la ausencia de `for`/`aria-label` son los de los
-             vecinos (`fevd`, `vd_vi`): el barrido de accesibilidad de esta app no cablea
-             `label[for]` en ningún `.fg`, así que un par distinto acá sería el único del bloque.
-             `calcVD()` en el `oninput` de los dos — es lo que llaman `tapse`, `s_prime` y los
-             tres diámetros— y `vdMarcaSync()` ANTES, con el mismo orden que `diastStrainEditado`:
-             la marca «(revisar)» y el badge tienen que salir del mismo gesto. -->
-        <div class="fg">
-          <label>Pared del VD (mm)</label>
-          <input type="number" id="vd_pared" placeholder="mm" step="0.1" oninput="vdMarcaSync();calcVD()">
-          <div id="vd_pared-marca" style="font-size:10px;color:var(--yellow);margin-top:3px;min-height:14px;"></div>
-        </div>
-        <div class="fg">
+        <div class="fg vd-c1 vd-r4">
           <!-- ⚠️ SE TIPEA COMO COCIENTE Y NO EN PORCENTAJE: el RV MPI es ADIMENSIONAL (nota de
                la Tabla 3 de la ASE 2025, folio 156) y su corte por DTI es 0,55. De ahí el
                `placeholder` «0,55»: es el valor del corte, puesto a la vista justamente para que
@@ -3752,39 +3726,115 @@ window.cerrarSesionReal = cerrarSesionReal;
           <input type="number" id="vd_tei" placeholder="0,55" step="0.01" oninput="vdMarcaSync();calcVD()">
           <div id="vd_tei-marca" style="font-size:10px;color:var(--yellow);margin-top:3px;min-height:14px;"></div>
         </div>
-      </div>
-      <!-- FAC — fracción de acortamiento de área del VD (apical 4C). Se CALCULA desde las dos
-           áreas y no se tipea: así el informe firma un número que la app puede rehacer y
-           auditar, y queda claro de qué par de áreas salió. No confundir con la FEVD de arriba,
-           que es 3D y lleva otro corte (≥45 %); la FAC es 2D y el corte es 35 %. -->
-      <div class="grid-3" style="margin-top:8px;">
-        <div class="fg">
+        <div class="fg vd-c1 vd-r5">
+          <!-- ⚠️ `calcVD()` EN EL `oninput` ES NUEVO (G1) Y NO ES DECORATIVO: desde esta tanda la
+               FILA de referencia de la FEVD aparece y desaparece con el dato, y sin el manejador
+               el campo se cargaba sin que nada repintara el cuadro. El campo NO cambia de id, no
+               entra en el narrativo y sigue viajando al PDF y al Excel como hasta hoy. -->
+          <label>FEVD (%)</label>
+          <input type="number" id="fevd" placeholder="%" oninput="calcVD()">
+        </div>
+        <!-- ── COLUMNA 2 ───────────────────────────────────────────────────────────────────── -->
+        <div class="fg vd-c2 vd-r1">
+          <label>VD basal (mm)</label>
+          <input type="number" id="vd_bas" placeholder="mm" oninput="calcVD()">
+        </div>
+        <!-- `oninput` en los tres: desde que el medio y el longitudinal deciden «VD dilatado»
+             en el informe firmado, un campo sin recálculo deja la cápsula diciendo «Normal
+             (basal 38)» mientras el informe dice «dilatado (medio 44)». Antes eran decorativos
+             y la omisión no se notaba. -->
+        <div class="fg vd-c2 vd-r2">
+          <label>VD medio (mm)</label>
+          <input type="number" id="vd_mid" placeholder="mm" oninput="calcVD()">
+        </div>
+        <div class="fg vd-c2 vd-r3">
+          <label>VD longitudinal (mm)</label>
+          <input type="number" id="vd_long" placeholder="mm" oninput="calcVD()">
+        </div>
+        <div class="fg vd-c2 vd-r4">
+          <!-- ⚠️ ES UN CAMPO NUMÉRICO Y SE QUEDA NUMÉRICO (G1, 2026-10-15). La orden proponía dos
+               opciones —«menor de 1» y «mayor de 1»— SÓLO si el campo no existía ya en esa forma,
+               y existe: es este `input[type=number]`, y de él leen la categoría A de la
+               probabilidad de HTP (`_htp2022Core`, corte > 1,0), el PDF y el PPT. Reemplazarlo por
+               un desplegable perdería el valor medido y rompería esos tres lectores, así que lo
+               único que entra es la FILA de referencia, que se muestra cuando está ALTERADO.
+               ⚠️ EL OTRO CORTE, EL DE TEP (≥ 0,9), NO VIVE ACÁ: es `tep_vdvi`, un campo propio de
+               la pantalla de TEP, con su propia cascada. Los dos conviven y no se tocan.
+               ⚠️ `calcVD()` EN EL `oninput` ES NUEVO (G1): sin él, cargar la relación no repintaba
+               ni la fila nueva ni la probabilidad de HTP, que la lee. El valor que publican los
+               tres lectores es el mismo; lo que cambia es CUÁNDO se repinta. -->
+          <label>VD/VI ratio</label>
+          <input type="number" id="vd_vi" placeholder="ratio" step="0.01" oninput="calcVD()">
+        </div>
+        <div class="fg vd-c2 vd-r5">
+          <label>Pared del VD (mm)</label>
+          <input type="number" id="vd_pared" placeholder="mm" step="0.1" oninput="vdMarcaSync();calcVD()">
+          <div id="vd_pared-marca" style="font-size:10px;color:var(--yellow);margin-top:3px;min-height:14px;"></div>
+        </div>
+        <!-- ── COLUMNA 3 ───────────────────────────────────────────────────────────────────── -->
+        <div class="fg vd-c3 vd-r1">
+          <!-- Diámetro del TSVD: vive ACÁ, con el resto de las medidas del ventrículo derecho,
+               y CIA/CIV lo muestra como espejo de solo lectura — igual que ya hace con el TSVI
+               y el VTI-TSVI del lado izquierdo. Una sola fuente por medición: con el campo
+               editable en los dos lados, un paciente podía terminar con un diámetro
+               alimentando el Qp/Qs y otro distinto acá, los dos en el informe firmado. -->
+          <!-- ⚠️ EL RÓTULO PASÓ DE «Diámetro TSVD (mm)» A «Diám. TSVD (mm)» (2026-10-07, orden de
+               Maicol), por lo mismo que el VTI de al lado: un solo nombre del mismo dato en los dos
+               lados. SÓLO pantalla; el Excel sigue diciendo «Ø TSVD (mm)» y no se tocó.
+               `etTsvdSync` primero — ver el comentario del VTI. -->
+          <label>Diám. TSVD (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">Qp/Qs · Qp</span></label>
+          <input type="number" id="tsvd_diametro" placeholder="mm" step="0.1" oninput="etTsvdSync('tsvd_diametro');eteShuntSyncSiExiste();calcET();calcVD()">
+        </div>
+        <div class="fg vd-c3 vd-r2">
+          <!-- ⚠️ `etTsvdSync` PRIMERO, igual que `itVmaxSync` en la Vmax IT y `dtTapSync` en el TAP:
+               el espejo de la tarjeta de estenosis tricuspídea tiene que estar escrito ANTES de que
+               recalcule cualquiera de los lectores. Este campo sigue siendo el DUEÑO del dato.
+               ⚠️ EL RÓTULO PASÓ DE «VTI-TSVD (cm)» A «VTI TSVD (cm)» (2026-10-07, orden de Maicol):
+               es el mismo rótulo que el espejo de Válvulas, para que el médico vea un solo nombre
+               del mismo dato en los dos lados. Es SÓLO pantalla — el encabezado del Excel («VTI
+               TSVD (cm)»), el PDF, el PPT y los dos espejos read-only de Congénitas no se tocaron.
+               ⚠️ `calcVD()` AL FINAL ES NUEVO (G1): este campo y el Ø del TSVD son los DOS insumos
+               del volumen sistólico pulmonar, que desde hoy tiene fila en el cuadro de abajo. -->
+          <label>VTI TSVD (cm) <span style="font-weight:400;color:var(--text2);font-size:10px;">RVP (Abbas) · Qp/Qs · Qp</span></label>
+          <input type="number" id="vti_tsvd" placeholder="cm" step="0.1" oninput="etTsvdSync('vti_tsvd');calcHemo();eteShuntSyncSiExiste();calcET();calcVD()">
+        </div>
+        <!-- FAC — fracción de acortamiento de área del VD (apical 4C). Se CALCULA desde las dos
+             áreas y no se tipea: así el informe firma un número que la app puede rehacer y
+             auditar, y queda claro de qué par de áreas salió. No confundir con la FEVD de la
+             columna 1, que es 3D y lleva otro corte (>45 %); la FAC es 2D y el corte es 35 %. -->
+        <div class="fg vd-c3 vd-r3">
           <label>Área VD telediastólica (cm²) <span style="font-weight:400;color:var(--text2);font-size:10px;">FAC</span></label>
           <input type="number" id="vd_area_d" placeholder="cm²" step="0.1" oninput="calcVD()">
         </div>
-        <div class="fg">
+        <div class="fg vd-c3 vd-r4">
           <label>Área VD telesistólica (cm²) <span style="font-weight:400;color:var(--text2);font-size:10px;">FAC</span></label>
           <input type="number" id="vd_area_s" placeholder="cm²" step="0.1" oninput="calcVD()">
         </div>
-        <div class="fg">
+        <!-- ⚠️ LA CASILLA DE LA FAC SE ESCONDE HASTA QUE HAYA DATO (G1, decisión de Maicol), y la
+             esconde `vdRefVisSync` moviendo el `display` de ESTE `.fg`. El campo sigue existiendo
+             en el DOM con su id, así que `guardarInforme`, el PDF y el Excel lo leen como siempre;
+             lo único que cambia es que no se dibuja una casilla automática vacía al lado de dos
+             áreas que nadie midió. Es `style.display` y no el atributo `hidden`: en esta app
+             `[hidden]` de la hoja del NAVEGADOR pierde contra reglas de autor, y este archivo ya
+             lo pagó tres veces. -->
+        <div class="fg vd-c3 vd-r5" id="fg-vd-fac" style="display:none;">
           <label>FAC VD (%) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← áreas</span></label>
           <input type="number" id="vd_fac" readonly placeholder="—">
         </div>
       </div>
+      <!-- ══ EL CUADRO DE REFERENCIAS SIGUE EL ORDEN DE LAS COLUMNAS (G1, 2026-10-15) ═════════
+           Columna 1 (TAP · TAPSE · S' · Tei · FEVD), después columna 2 (tamaño · pared) y por
+           último columna 3 (el volumen sistólico pulmonar, que sale del Ø y el VTI del TSVD, y la
+           FAC). Antes el orden era semántico —estructura, función, aceleración pulmonar— y lo que
+           pidió Maicol es que el cuadro se lea en el mismo orden en que se cargan los campos.
+           ⚠️ TRES FILAS SÓLO SE VEN CON DATO, y las gobierna `vdRefVisSync`: la FEVD y la FAC
+           cuando su número existe. Se esconde la FILA entera y no sólo el texto: el barrido
+           genérico de `.calc-box .calc-row span[id]` de `limpiarCampos` ya pone el span en «—»,
+           y lo que ningún barrido toca es el `display` de su `.calc-row`. -->
       <div class="calc-box">
         <div class="calc-row">
-          <span class="calc-lbl">VD basal — tamaño</span>
-          <span id="vd-tam">—</span>
-        </div>
-        <!-- La PARED va pegada al tamaño porque las dos son estructura; el Tei va DESPUÉS de los
-             tres parámetros sistólicos, que es el grupo al que se suma. -->
-        <div class="calc-row">
-          <span class="calc-lbl">Pared del VD — hipertrofia</span>
-          <span id="vd-pared-interp">—</span>
-        </div>
-        <div class="calc-row">
-          <span class="calc-lbl">FAC — función sistólica VD</span>
-          <span id="fac-interp">—</span>
+          <span class="calc-lbl">TAP — aceleración pulmonar</span>
+          <span id="tap-interp">—</span>
         </div>
         <div class="calc-row">
           <span class="calc-lbl">TAPSE — función sistólica VD</span>
@@ -3805,9 +3855,27 @@ window.cerrarSesionReal = cerrarSesionReal;
              barrido generico de `[id$="-aviso"]` le vacia el texto y le deja el `display:block`
              puesto: un renglon ambar vacio sobre un formulario recien limpiado. -->
         <div id="vd-tei-aviso" style="display:none;font-size:11px;font-weight:700;color:var(--amber);margin-top:4px;line-height:1.3;overflow-wrap:break-word;"></div>
+        <div class="calc-row" id="row-fevd-interp" style="display:none;">
+          <span class="calc-lbl">FEVD (3D) — función sistólica VD</span>
+          <span id="fevd-interp">—</span>
+        </div>
         <div class="calc-row">
-          <span class="calc-lbl">TAP — aceleración pulmonar</span>
-          <span id="tap-interp">—</span>
+          <span class="calc-lbl">VD basal — tamaño</span>
+          <span id="vd-tam">—</span>
+        </div>
+        <!-- La PARED va con el tamaño porque las dos son estructura y las dos viven en la
+             columna 2; el Tei subió con los parámetros sistólicos de la columna 1. -->
+        <div class="calc-row">
+          <span class="calc-lbl">Pared del VD — hipertrofia</span>
+          <span id="vd-pared-interp">—</span>
+        </div>
+        <div class="calc-row">
+          <span class="calc-lbl">Volumen sistólico pulmonar (Qp)</span>
+          <span id="vd-qp-interp">—</span>
+        </div>
+        <div class="calc-row" id="row-fac-interp" style="display:none;">
+          <span class="calc-lbl">FAC — función sistólica VD</span>
+          <span id="fac-interp">—</span>
         </div>
       </div>
     </div>
@@ -21365,6 +21433,16 @@ const VD_BAS_LEVE_MAX   = 45;   // mm — 42-45 dilatación leve;  >45 dilatado
    que trabaja esta app y por eso vive acá y no repartido en literales. */
 const UMBRAL_FAC_VD_NORMAL = 35;   // %
 const UMBRAL_FAC_VD_SEVERA = 25;   // %
+/* FEVD por 3D (G1, 2026-10-15). ASE 2025, Tabla 1, folio 145, fila `3D RVEF, %`: **normal > 45**.
+   ⚠️ EL OPERADOR ES `>` Y NO `>=`, y hasta hoy el comentario de al lado del campo decia «(>=45 %)».
+   No gobernaba nada —la FEVD no se evaluaba en ninguna parte de la app— pero con el corte aplicado
+   la diferencia es real: 45,0 EXACTOS caen del lado anormal, que es donde la tabla los pone (su
+   banda leve arranca en `<=45`). El comentario se corrigio en el mismo movimiento.
+   ⚠️ LA APP NO GRADUA LA FEVD aunque la Tabla 1 la gradue (`<=45 a <39` leve, `<=39 a >=32`
+   moderada, `<32` severa): lo que esta orden pide es que la FILA aparezca con el dato, no una
+   banda. Queda en `docs/PENDIENTES.md`. */
+const UMBRAL_FEVD_NORMAL = 45;     // % — normal `> 45`, ASE 2025 Tabla 1 folio 145
+window.UMBRAL_FEVD_NORMAL = UMBRAL_FEVD_NORMAL;
 /* Exportados 2026-09-27: el panel de Evidencia los LEE por `_indUmb` —que resuelve sobre
    `window`— para poder decir que su corte de la Figura 15 (≤ 22 %) no es el de esta cápsula
    (< 25 %) cuando los dos discrepan. Sin el export, `_indUmb` devolvía `null`, `_lt(fac, null)`
@@ -21556,6 +21634,54 @@ function vdMarcaSync() {
 }
 window.vdMarcaSync = vdMarcaSync;
 
+/* ══ EL VOLUMEN SISTÓLICO PULMONAR (Qp) — G1, 2026-10-15 ═════════════════════════════════════
+   El volumen que sale por el tracto de salida del VD en un latido: área del TSVD por el VTI del
+   TSVD. Es la MITAD DERECHA de lo que `eteQpQs` ya hace para el cociente Qp/Qs, pero ese
+   cociente CANCELA la constante —divide un producto por el otro— y por eso nunca calcula el
+   volumen: no había dónde leerlo.
+   ⚠️ NO HAY UNA SEGUNDA COPIA DE LA FÓRMULA. El álgebra vive en `_vsTsviCalc`, su dueño único
+   desde el 2026-10-14, y es exactamente la misma cuenta: diámetro en MILÍMETROS, VTI en
+   CENTÍMETROS, `PI*(d/20)^2*vti` —dividir por 20 pasa a cm y saca el radio en un paso—, o sea
+   área en cm² por VTI en cm = ml. Lo único que aporta esta función es DE DÓNDE salen los dos
+   insumos. Si algún día cambia la conversión, cambia en un solo lugar y los dos lados la heredan.
+   ⚠️ NO VOTA NADA Y NO LLEVA CORTE. No hay un valor «normal» de Qp aislado —se interpreta
+   indexado por superficie corporal y contra el Qs—, así que la fila publica el número y nada
+   más: ni badge de color ni banda de severidad. Poner un corte acá sería inventar un criterio.
+   Devuelve `null` si falta cualquiera de los dos insumos. */
+function vdQpCalc() {
+  const d = v('tsvd_diametro'), vti = v('vti_tsvd');
+  if (d === null || vti === null || !(d > 0) || !(vti > 0)) return null;
+  const q = (typeof _vsTsviCalc === 'function') ? _vsTsviCalc(d, vti) : null;
+  return (q !== null && isFinite(q)) ? q : null;
+}
+window.vdQpCalc = vdQpCalc;
+
+/* ══ LAS FILAS DEL CUADRO QUE SÓLO SE VEN CON DATO (G1, 2026-10-15) ══════════════════════════
+   Decisión de Maicol: la FEVD y la FAC —y la CASILLA automática de la FAC, que es la única que
+   se esconde porque es la única que la app calcula sola— no se muestran hasta que haya dato.
+   ⚠️ SE ESCONDE LA FILA ENTERA Y NO SÓLO EL TEXTO. El barrido genérico de
+   `.calc-box .calc-row span[id]` de `limpiarCampos` ya pone el span en «—»; lo que ningún
+   barrido toca es el `display` de su `.calc-row`, que es justamente lo que esta orden gobierna.
+   ⚠️ TRES COLUMNAS, igual que `vdMarcaSync` y `vdTeiAvisoSync`: la llama `calcVD` —que está en
+   `RECALC_MODULOS`, así que un estudio reabierto repinta— y se repite al final de
+   `limpiarCampos`, que NO pasa por ese embudo. Sin la tercera, «Nuevo estudio» dejaba las dos
+   filas del paciente anterior VISIBLES con su span ya en «—»: un renglón que dice «FEVD —»
+   sobre un formulario vacío, que es peor que no tener la fila.
+   `display = ''` y no `'block'`: un `.calc-row` es `flex` por CSS y un `.fg` es `block`, así que
+   lo correcto es RETIRAR el `display` en línea y dejar que la hoja decida. */
+function vdRefVisSync() {
+  const _ver = (id, on) => {
+    const e = document.getElementById(id);
+    if (e) e.style.display = on ? '' : 'none';
+  };
+  _ver('row-fevd-interp', v('fevd') !== null);
+  const _hayFac = v('vd_fac') !== null;
+  _ver('row-fac-interp', _hayFac);
+  _ver('fg-vd-fac', _hayFac);
+  return { fevd: v('fevd') !== null, fac: _hayFac };
+}
+window.vdRefVisSync = vdRefVisSync;
+
 /* Área de la AD en 4 cámaras: ≤18 cm² normal (ASE). Estaba como literal en `calcAD` y otro
    literal igual en el informe narrativo — dos copias del mismo corte, que es como la cápsula
    de pantalla y el informe firmado terminan discrepando. */
@@ -21712,6 +21838,28 @@ function calcVD() {
       : badge('green', `${_teiSt.val} — normal (<${VD_TEI_DTI_ALT_MIN} por DTI)`);
   }
   if (typeof vdTeiAvisoSync === 'function') vdTeiAvisoSync();
+  /* ── FEVD por 3D (G1) — ASE 2025, Tabla 1 folio 145: normal > 45 % ──
+     La fila sólo existe cuando hay dato; de esconderla se ocupa `vdRefVisSync`, acá sólo se
+     escribe el texto. UN SOLO corte y ninguna banda: la tabla gradúa y esta orden no lo pide. */
+  const _fevd = v('fevd');
+  const _fevdEl = document.getElementById('fevd-interp');
+  if (_fevdEl) {
+    if (_fevd === null) _fevdEl.textContent = '—';
+    else _fevdEl.innerHTML = _fevd > UMBRAL_FEVD_NORMAL
+      ? badge('green', `${_fevd}% — normal (>${UMBRAL_FEVD_NORMAL}%)`)
+      : badge('red',   `${_fevd}% — disfunción sistólica VD (≤${UMBRAL_FEVD_NORMAL}%)`);
+  }
+  /* ── VOLUMEN SISTÓLICO PULMONAR (Qp) (G1) ──
+     SIN badge de color y SIN corte: no hay un valor normal de Qp aislado, así que la fila
+     publica el número y los dos insumos de los que salió. El `toFixed(1)` es el mismo formato
+     con el que la casilla del volumen eyectado del TSVI publica su gemelo del lado izquierdo. */
+  const _qp = (typeof vdQpCalc === 'function') ? vdQpCalc() : null;
+  const _qpEl = document.getElementById('vd-qp-interp');
+  if (_qpEl) {
+    _qpEl.textContent = (_qp === null)
+      ? '—'
+      : `${_qp.toFixed(1)} ml — π × (Ø TSVD/2)² × VTI TSVD`;
+  }
   // TAP — aceleración pulmonar (elemento indirecto de HTP si < 105 ms)
   const tap = v('tvia');
   const tapEl = document.getElementById('tap-interp');
@@ -21721,6 +21869,9 @@ function calcVD() {
       ? badge('red', `${tap} ms — elemento indirecto de HTP (<105 ms)`)
       : badge('green', `${tap} ms — normal (≥105 ms)`);
   }
+  /* VA AL FINAL, después de que la FAC ya se escribió en su campo: esta función decide la
+     visibilidad LEYENDO `vd_fac`, así que con ella arriba mediría el valor del gesto anterior. */
+  if (typeof vdRefVisSync === 'function') vdRefVisSync();
   if (typeof calcTEP === 'function') calcTEP();
   if (typeof calcHTP2022 === 'function') calcHTP2022();
   if (typeof cxTP === 'function') cxTP();
@@ -46623,6 +46774,14 @@ function limpiarCampos(silencioso) {
      generico de `[id$="-aviso"]` le vacia el texto y le deja el `display:block` puesto, asi que
      sin esta linea «Nuevo estudio» dejaba un renglon ambar vacio en el cuadro del VD. */
   if (typeof vdTeiAvisoSync === 'function') { try { vdTeiAvisoSync(); } catch (e) {} }
+  /* Y LA TERCERA COLUMNA de las filas del cuadro del VD que solo se ven con dato (G1,
+     2026-10-15), por un motivo que ninguno de los barridos de arriba cubre: el barrido generico
+     de `.calc-box .calc-row span[id]` pone el span en «—», pero el `display` de la `.calc-row`
+     —y el del `.fg` de la casilla de la FAC— no lo toca nadie. Sin esta linea, «Nuevo estudio»
+     dejaba las dos filas del paciente anterior VISIBLES diciendo «FEVD —» y «FAC —» sobre un
+     formulario vacio, y la casilla automatica de la FAC dibujada al lado de dos areas borradas.
+     `calcVD` es la otra columna y esta en `RECALC_MODULOS`; `limpiarCampos` no pasa por ahi. */
+  if (typeof vdRefVisSync === 'function') { try { vdRefVisSync(); } catch (e) {} }
   /* ⚠️ Y LOS NUEVE «(leve)/(moderada)/(severa)» DE LAS FILAS DE REFERENCIA (regla 5, 2026-10-13),
      por el MISMO motivo que las dos líneas de arriba: son `<span>` SIN `id` —a propósito, para que
      el barrido genérico no les escriba «—»— así que ningún barrido los alcanza y el grado del
