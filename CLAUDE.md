@@ -33,6 +33,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar el BORRADO de una lesión valvular**: el retiro del grado, quién prendió una pastilla, los dos métodos de la IM, la continuidad de la IT, el grado de cada fila o **la salida temprana de `calcTHP`** | `docs/mapa/valvulas-borrado.md` |
 | **Tocar la PANTALLA de las dos lesiones MITRALES**: las tres columnas de la insuficiencia, las casillas automáticas, el cuadro de referencias en tres bloques, la columna 2 de la estenosis, el mecanismo de los globos ⓘ o **el aviso de fibrilación auricular de la continuidad** | `docs/mapa/valvulas-mitral-pantalla.md` |
 | **Tocar la PANTALLA de las insuficiencias AÓRTICA o TRICUSPÍDEA**: sus columnas, las cinco casillas automáticas, las once tarjetas ⓘ, el rótulo THP o el color de los avisos | `docs/mapa/valvulas-ia-it-pantalla.md` |
+| **Tocar un criterio de PRÓTESIS mitral o aórtica**: la Tabla 11, el AEO en tres tramos, el THP directo, el PPM de la Tabla 7, el badge del AVA aórtico, las tarjetas nativa-prótesis o el rótulo AEO | `docs/mapa/protesis-valvular.md` |
 | **Buscar un CORTE o una BANDA de plausibilidad** de cualquier válvula, con su fuente | `docs/mapa/valvulas-constantes.md` |
 | **Tocar la MARCA DE MANUAL de una pastilla, el selector binario de la estenosis mitral, el VIOLETA de «Significativa», el VTI de entrada tricuspídeo, la CASILLA DE PISA de «Incluir en el informe» o lo que «Nuevo estudio» deja vivo** | `docs/mapa/valvulas-manual-binario.md` |
 | **Tocar el VENTRÍCULO DERECHO**: sus campos, el cuadro de referencias, la disfunción sistólica, la pared o el Tei | `docs/mapa/vd-derecho.md` |
@@ -94,7 +95,7 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **7,38 MB / 111.425 líneas**, medido el 2026-10-15 al cierre de la tanda W2-A —el renglón decía «6,13 MB /
+  sin frameworks. Hoy **7,41 MB / 111.744 líneas**, medido el 2026-10-15 al cierre de la tanda W2-B —el renglón decía «6,13 MB /
   90.494 líneas» y llevaba varias tandas sin actualizarse: **medirlo antes de presupuestar contexto**—. Las únicas dependencias son jsPDF, XLSX y
   PptxGenJS por CDN. Se abre como archivo local y corre en Chrome.
 - Lo que produce es un **informe firmado**: narrativo, EN SUMA, PDF, PPT y Excel del Laboratorio.
@@ -248,6 +249,167 @@ impecable.
 ---
 
 ## Estado vigente
+
+### Los CRITERIOS PROPIOS de la PRÓTESIS mitral y aórtica — «W2-B» (2026-10-15)
+
+- **Es la tanda «W2-B»** y cierra el censo W1 (`docs/censo/protesis_valvular.md`): **W1-3, W1-4,
+  W1-5, W1-6, W1-8, W1-9, W1-10 y W1-13**, más la **decisión** de W1-11 y el renombre **EOA → AEO**.
+  **NO toca la válvula NATIVA** —ningún corte, ninguna regla de integración— y el **Excel queda en
+  436 columnas con el MISMO hash** (`971489995`, medido con el escenario cargado y con el
+  formulario vacío). Al **empezar**, `main` y `origin/main` estaban los dos en **`9242483`**, sin
+  nada sin pushear —confirmado con un `git fetch` de verdad—, con los cuatro commits del W2-A ya
+  incluidos **y pusheados**. Los **siete** commits de esta tanda quedan locales; el push lo corre
+  Maicol. **El orden de revertido seguro es el inverso del de aplicación: 7 → 6 → 5 → 4 → 3 → 2 → 1.**
+  ⚠️ **EL 2 TIENE QUE REVERTIRSE ANTES QUE EL 1**, aunque el 1 sea sólo el renombre: las
+  adaptaciones de **TC-315** y **TC-331** que el renombre provocó viajan en el commit 2.
+  ⚠️ **EL 5 CUELGA DEL 2 Y DEL 4 POR EL MARCADO**: los tres globos ⓘ de la cápsula mitral viven en
+  las filas que nacen en el 2, y el de la severidad aórtica en el rótulo que el 4 anida. Revertir
+  el 2 o el 4 sin revertir antes el 5 deja un `data-vinfo` sin su fila —inocuo— y, peor, deja
+  entradas del registro sin globo.
+  ⚠️ **EL 3 Y EL 4 SE REVIERTEN EN CUALQUIER ORDEN ENTRE SÍ**: el 3 es el rótulo del jet/AI y el 4
+  la aórtica, y ninguno nombra nada del otro. **El 6 es TC-474 más el grupo `controles` de la
+  sonda**, y **el 7 es documentación más el sello**: revertir cualquiera sin el 6 deja TC-474 en
+  rojo —27 de sus 46 condiciones—.
+
+- **Línea base al cierre: suite 484/488 con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0 ERROR,
+  Excel en 436 columnas, celular 43 a 360 px y 52 a 390 px con 1 ALTA cada uno —IDÉNTICO a la línea
+  base, y `--todo` da 374 y 383, el mismo par—.** **CERO REGRESIONES**: los cuatro rojos son
+  exactamente los de ENTRADA —**TC-223** (el documentado, falla por la fecha), **TC-376**,
+  **TC-390** y **TC-406**—. **El denominador subió a 488**: esta tanda agregó **TC-474**. La de
+  ENTRADA, medida en HEAD limpio en un worktree aparte, fue **483/487** con los mismos cuatro
+  rojos. El `md5` de `index.html` no se movió durante la corrida (`c966d315…`), el pendrive estaba
+  montado antes y después, y al terminar no quedó ningún Chrome.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. Por eso el total es sobre 488 y no sobre 489.
+- **EL SELLO DE VERSIÓN** estaba al día al empezar (`v20261015-0234`) y se volvió a sellar en el
+  commit 7: **`v20261015-0432`**. La suite se midió **DESPUÉS** de sellar, con el `md5` quieto.
+
+- **Dónde está todo:** `docs/mapa/protesis-valvular.md` (**mapa NUEVO**, 15,0 KB: qué activa la
+  lógica protésica por válvula, el TAVI, la nomenclatura AEO, las cinco tablas con sus cortes, el
+  cuadro que ya no gradúa, el PPM aórtico, las tarjetas y las siete trampas medidas);
+  `docs/mapa/valvulas.md` → un puntero (**28,6 KB**, bajo el techo) y `docs/mapa/aortica-cortes.md`
+  → otro (**10,3 KB**); `docs/fuentes/FUENTES.md` → «PRÓTESIS valvular — los criterios de la ASE
+  2024, criterio por criterio», con las cinco tablas transcritas y la regla de folio comprobada;
+  `docs/censo/protesis_valvular.md` → la sección 7 con qué fila pasó a «coincide»;
+  `docs/PENDIENTES.md` → **ocho propuestas CERRADAS**, la W1-11 **decidida** y **ocho** cosas
+  nuevas declaradas (**Z1 a Z8**).
+
+- **EL RENOMBRE «EOA» → «AEO» (decisión de Maicol).** Censo de las **122** apariciones: **23 se
+  leen y cambian** (la cápsula protésica mitral con sus dos `aria-label`, los cuatro párrafos de
+  «Referencia clínica», tres tarjetas ⓘ, las **dos** líneas del informe firmado y del EN SUMA, la
+  salvedad de la cápsula aórtica, la entrada bibliográfica del panel y siete filas y notas del
+  panel de Evidencia); las **99** restantes son identificadores y comentarios de código, que
+  quedan como están con el mismo criterio del renombre PHT → THP (**Z3**).
+  ⚠️ **LAS DOS CITAS LITERALES EN INGLÉS NO SE TOCAN**: alterar una cita la falsifica.
+  ⚠️ **EL EXCEL Y EL IMPORTADOR NO NECESITARON TABLA DE ALIAS**: censados, **ningún encabezado dice
+  «EOA»** —los de la zona son `DVI mitral` y `DVI mitral (fuente)`—, así que la lectura por nombre
+  de encabezado no se mueve.
+  ⚠️ **APARICIONES DE «EOA» QUE HABLARAN DE REGURGITACIÓN: CERO.** Las siete que nombran
+  regurgitación en su línea se refieren al orificio PROTÉSICO. **No hubo nada que corregir a
+  «EROA».** Lo que sí apareció es que el panel usa **«AEOR»** en cuatro citas suyas: tercera
+  nomenclatura, declarada en **Z4**.
+
+- **LA ESTENOSIS DE LA PRÓTESIS MITRAL: LA TABLA 11 COMPLETA.** ASE 2024, folio 27, leída
+  **RENDERIZANDO** a 400 dpi porque la fuente codifica `≥` como `$` y `≤` como `#`.
+  ⚠️ **LOS TRES OPERADORES NUEVOS SON DISTINTOS ENTRE SÍ Y ES DE LA TABLA**: la velocidad pico
+  incluye su corte alto (`≥2,5`) y los otros dos no; el gradiente incluye su corte bajo (`≤5`) y
+  los otros dos no. Medido con teclas reales por sus **SEIS** bordes: 1,8 / 1,9 / 2,4 / 2,5 / 3,0
+  m/s · 4 / 5 / 6 / 10 / 11 mmHg · 120 / 129 / 130 / 200 / 201 ms.
+  ⚠️ **LA BANDA DEL MEDIO DEL GRADIENTE TIENE UN HUECO IMPRESO** (`≤5` y después `6-10`): un 5,5 no
+  cae en ninguna columna del original. Se resuelve por **complemento**.
+  ⚠️ **LOS TRES NO ENTRAN EN EL VEREDICTO `R.obstr`, Y ESO ES UNA PARADA DECLARADA (Z1).** Sumarlos
+  cambiaría qué escenas publican «hallazgos sugestivos de obstrucción» en el **informe FIRMADO**, y
+  qué parámetros votan es **contenido clínico**. TC-474 lo fija: los tres pueden estar en
+  «significativa» a la vez y el veredicto sigue en nulo.
+  **El AEO gana su banda del medio** (`≥2,0` normal · `1-2` posible · `<1` significativa): medido,
+  1,57 pasa de «sin criterios» a «posible» y los **dos bordes exactos** caen del lado que la tabla
+  imprime. ⚠️ **Los bordes se miden con el DVI deliberadamente NORMAL**, porque `AEO = área / DVI`:
+  sin eso lo que se mide es el peor de los dos votantes.
+
+- **EL CUADRO DE REFERENCIAS YA NO GRADÚA UNA PRÓTESIS (W1-3 y W1-8).** Las cuatro filas rotulaban
+  con el corte NATIVO a dos centímetros de la cápsula que dice «No graduada» y de la que lee **la
+  misma continuidad** con la Tabla 11. Hoy **declaran** que no aplica, la del THP con su propio
+  texto y el folio 10 —el área por el tiempo de hemipresión **sobreestima** en una prótesis—, y los
+  **cuatro VALORES no se tocan**: marcar sin borrar.
+  ⚠️ **SE ELIGIÓ DECLARAR Y NO TRADUCIR**: publicar ahí los cortes de la Tabla 11 dejaría el
+  gradiente y el área por continuidad leídos **dos veces** en la misma pestaña, que es el defecto
+  que esto cierra, no uno que mover.
+
+- **LA AÓRTICA: EL BADGE DEL AVA Y EL PPM.** Con las **tres** prótesis el recuadro Doppler deja de
+  publicar «Severa (≤1.0cm²)» —la Tabla 5 no usa ningún corte absoluto de AVA en prótesis— y con
+  «Trivalva normal» sale **idéntico a HEAD**. Y el **PPM aórtico** se calcula con la **Tabla 7,
+  folio 20**, con su rama de IMC: medido por sus tres tramos y sus **dos bordes** (0,65 severo y
+  0,85 moderado), y con la **rama de IMC discriminando sobre el MISMO AVA** —0,65 con IMC 24,7 da
+  severo y el mismo AVA con IMC 34,6 da moderado—. Se **LEE** `ava-idx` y no se recalcula; con el
+  AVA marcada «(revisar)» **no clasifica**.
+  ⚠️ **EL PPM AÓRTICO NO ENTRA EN EL INFORME FIRMADO Y EL MITRAL SÍ: es Z2, la opción
+  conservadora.** Y **no se agregó ninguna columna de Excel**.
+  **El TAVI no cambia su graduación** —sigue sin veredicto de estenosis, por el basal— pero **sí
+  publica el PPM**: la Tabla 7 no abre ramas por tipo de prótesis.
+  **W1-13 cerrado de paso**: `valvProtSync` recalcula el cuadro aórtico, porque la fila del PPM
+  aparece y desaparece con la morfología.
+
+- **EL JET/AI NO CAMBIA DE CORTE (W1-11, decisión de Maicol), Y SE VERIFICÓ QUE FUNCIONA.** Con
+  prótesis, **51 % y 60 % dan `im_grado = 4`** y EN SUMA «IM severa.»; el **50 % exacto no vota**
+  («Variable»); en nativa el 45 % sigue siendo severa. **A/B: las 14 escenas idénticas a HEAD.**
+  Lo que se corrigió es el **RÓTULO**: la ASE 2017 publica severa **>50 %** y **no publica ni el 20
+  ni el 40**, así que las dos superficies que se lo atribuían lo declaran.
+
+- **ONCE TARJETAS ⓘ TOCADAS, CINCO NUEVAS Y SEIS REESCRITAS.** El registro pasa de 16 a **21** y la
+  pestaña de 16 a **21 globos**, los 21 `<button>`, **cero `title`** y **cero `abrirAyudaEco`**:
+  cero legado. Las cuatro de diferencia publican los **dos regímenes**. **Medido**: las cinco
+  abren, cierran por los **cuatro** caminos y entran enteras en el viewport a **1200, 390 y 360 px
+  en los DOS temas** (30 celdas), con el globo **alcanzable** después de abrirlas y los acentos
+  contados. **Captura PNG de las cinco a 1200 y 360 px en los dos temas: 20 archivos, los 20 `md5`
+  distintos entre temas**, y dos miradas al PNG ampliado.
+
+- **CONTROL NEGATIVO MAYOR, con escenario CARGADO en las dos válvulas, la IM, la diastólica y el
+  HFA-PEFF: 0 diferencias contra HEAD** en el Excel (**436 columnas, hash idéntico**), los **1022
+  campos** con su hash, los grados y pastillas de las ocho lesiones, la franja del PPT, el token
+  del Laboratorio, las filas de corte de la IM y el informe y el EN SUMA en los **tres** estilos.
+  Y el formulario vacío, también idéntico. **La ÚNICA diferencia en una superficie firmada es el
+  renombre autorizado**: «EOA indexada 0.79» → «AEO indexada 0.79».
+
+- **Arnés: `scripts/_probe_w2b.mjs`** (A/B de solo lectura con `--file`, y `--dest` para las 20
+  capturas), cinco grupos (`mitral`, `jet`, `aorta`, `tarjetas`, `controles`), con teclas y clics
+  reales. **Cobertura: TC-474**, **46 condiciones** —contadas instrumentando el propio caso para
+  que publicara su `ex.length`— con nueve denominadores y nueve controles negativos. **Verificado
+  que sabe fallar contra HEAD en un worktree aparte: 27 de las 46 en rojo, y NINGUNA por
+  excepción.**
+- ⚠️ **TC-474 MORÍA POR EXCEPCIÓN CONTRA HEAD EN SU PRIMERA VERSIÓN** (`REG[k].fuente` sobre una
+  clave que allá no existe), que prueba que el árbol es distinto y no que el caso sabe medir. Toda
+  lectura del registro va por un ayudante con centinela. Misma lección que TC-455, TC-462, TC-465,
+  TC-471 y TC-473.
+- ⚠️ **CASOS ADAPTADOS: CUATRO.** **TC-315** (el rótulo AEO en el papel, y la condición «AEO 1.57
+  NO avisa», que afirmaba el defecto de W1-6), **TC-331** (su buscador de filas del panel va por
+  ROTULO y el renombre lo dejaba leyendo indefinido: **tres condiciones pasaban por «no cumple»
+  sin medir nada**), y **TC-471** y **TC-472**, los dos **dos veces**, por el denominador de globos
+  (16 → 17 en el commit 4, 17 → 21 en el 5).
+- ⚠️ **`diam_tsvi` E `itv_tsvi` NO SON CAMPOS TIPEABLES** —viven en un `.fg` con `display:none`
+  desde que la medición se mudó a AI/VI— y la sonda **abortó nombrándolos**, que estuvo bien. Las
+  puertas visibles son **`em_dtsvi`** y **`em_vtitsvi`**, que son además las que `calcEM` y
+  `vmProtEOA` prefieren.
+- ⚠️ **`valvDatosTog` RECIBE EL ID DEL CONTENEDOR** (`caja-esten-aortica`), no el nombre de la
+  válvula: con el nombre devuelve `null` y no abre nada. En escritorio no se nota por un respaldo
+  que escribe `display:block` en línea; **a 390 y 360 px ese respaldo no gana** —el CSS del celular
+  usa la clase con `!important`— y los **dos globos aórticos salieron «sin geometría» en las seis
+  combinaciones de ancho × tema**.
+- ⚠️ **TRES DENOMINADORES ROTOS MÁS, LOS TRES CON PINTA DE MEDICIÓN BUENA.** (1) El área de la AI en
+  **100 cm²** cae fuera de la banda `[3,60]`: el cociente sale «(revisar)», el jet no vota y las
+  **catorce** escenas informaron grado 0 con el EN SUMA vacío. (2) Medir la visibilidad **desde la
+  pestaña equivocada**: `itv_ao`, `vmax_ao` y `gmedio_ao` viven en Doppler, así que `vis()` informó
+  «oculto por `tab-valvulas`» sobre una fila perfecta, en las cuatro morfologías. (3) Una condición
+  que buscaba **«no grad»** en un texto que dice **«no SE gradúa»** salía roja sobre un badge
+  perfecto; lo delató instrumentar la propia condición para que publicara sus `indexOf`.
+- ⚠️ **UNA INSERCIÓN ATERRIZÓ EN OTRO OBJETO.** Hay **dos** mapas con la clave `ett-sparkling` y el
+  reemplazo tomó el primero: la entrada `ea-prot-ppm` quedó fuera de `VINFO`. Se verificó por
+  número de línea que estuviera dentro. **Un `replace` sobre una clave que se repite no es único.**
+- ⚠️ **ME COMÍ EL ACENTO GRAVE SIETE VECES**, todas en comentarios míos dentro del cuerpo de un caso
+  o del template de la sonda, con el archivo que documenta la trampa abierto delante.
+  `scripts/check_backticks.py` dio la línea exacta las siete; `node --check` apuntaba a la apertura
+  del template. **Correr los dos.**
+
 
 ### Las TRES correcciones de la MITRAL NATIVA del censo W1 — «W2-A» (2026-10-15)
 

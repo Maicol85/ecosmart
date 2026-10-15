@@ -89,7 +89,15 @@ se evitó sobre-afirmar, acá quedó una **sub-afirmación**.
 
 ⚠️ **Si se agrega una categoría, mirar `_labHallazgosCuenta`, que corta en OCHO** (X5).
 
-### W1-3 · El cuadro de referencias de la EM publica cortes NATIVOS sobre una prótesis
+### [CERRADO 2026-10-15 · W2-B] W1-3 · El cuadro de referencias de la EM publica cortes NATIVOS sobre una prótesis
+
+> **CERRADO.** Las cuatro filas DECLARAN que el corte nativo no aplica (`EM_CUADRO_PROT_TXT`, y
+> la del THP con `EM_CUADRO_PROT_THP_TXT`, que nombra el folio 10). Dueño: `_emCuadroEsProt()`,
+> consultado por `_emCuadroFila` y `_emCuadroGm` **antes** de la casilla y de la banda. **Los
+> cuatro VALORES no se tocan** —marcar sin borrar—. Se eligió DECLARAR y no traducir: publicar
+> acá los cortes de la Tabla 11 dejaría el gradiente y el área por continuidad leídos DOS veces
+> en la misma pestaña, que es el defecto que esto cierra. Cobertura: **TC-474**, bloque (C).
+
 
 Medido con las dos prótesis mitrales: las tres filas de área rotulan «· significativa
 (≤1,5 cm²)» y la del gradiente «· significativo (≥10 mmHg)», **a dos centímetros** de la cápsula
@@ -100,7 +108,14 @@ número en la misma pantalla.
 El patrón para arreglarlo **ya existe en el archivo**: `imCortesPintar()` conmuta el jet/AI
 preguntando a `_imVmProt()` en un `try`, y publica los DOS regímenes si no puede decidir.
 
-### W1-4 · La fila del AVA del recuadro Doppler aórtico, con prótesis, dice «Severa (≤1.0cm²)»
+### [CERRADO 2026-10-15 · W2-B] W1-4 · La fila del AVA del recuadro Doppler aórtico, con prótesis
+
+> **CERRADO.** `_eaPintarRecuadroDoppler` pregunta por la MORFOLOGÍA aórtica —no por
+> `_bloqueado`, que también es cierto con una prótesis normal— y reemplaza el badge por la
+> declaración de que el área no gradúa una prótesis. El número no se pierde: lo sigue
+> publicando la fila «AVA continuidad». Medido en las TRES morfologías protésicas y con el
+> control nativo idéntico a HEAD. Cobertura: **TC-474**, bloque (D).
+
 
 Medido en las **tres** morfologías protésicas: `#ea-sev` publica «— no se gradúa con estos datos —
 ver el aviso del cuadro de Estenosis Aórtica» y **justo debajo** «Severa (≤1.0cm²)». El comentario
@@ -108,7 +123,17 @@ de `_eaPintarRecuadroDoppler` lo declara («la línea del AVA se sigue pintando:
 propias guardas»). La **Tabla 5 de la ASE 2024 no usa ningún corte absoluto de AVA** en prótesis.
 **Esfuerzo: chico.**
 
-### W1-5 · El PPM AÓRTICO no se calcula, y el mitral sí
+### [CERRADO 2026-10-15 · W2-B, en pantalla] W1-5 · El PPM AÓRTICO no se calcula
+
+> **CERRADO en pantalla.** `EA_PROT_PPM_CORTES` implementa la **Tabla 7, folio 20** con su rama
+> de IMC (>0,85 / ≤0,65 con IMC<30; >0,70 / ≤0,55 con IMC≥30), `eaProtVeredicto` lo calcula
+> leyendo `ava-idx` —no recalcula el cociente— y `_eaProtPintar` publica la fila
+> `#ea-prot-ppm-row` con las TRES prótesis, TAVI incluida. Medido por sus tres tramos y sus dos
+> bordes, con la rama de IMC discriminando sobre el MISMO AVA. La línea del PPM de la ayuda
+> `#ref-pao` se reescribió con los cortes de la Tabla 7 y su folio.
+> ⚠️ **LO QUE QUEDA ABIERTO ES EL INFORME: ver Z2.** Y **no se agregó ninguna columna de
+> Excel**: el libro sigue en 436.
+
 
 `VM_PROT_PPM_CORTES` implementa la **Tabla 7, folio 20** para la mitral con su rama de IMC
 (>1,2 / ≤0,90 con IMC<30; >1,0 / ≤0,75 con IMC≥30), y está verificado contra la imagen del PDF.
@@ -120,7 +145,14 @@ Medido: con AVAi **0,40 cm²/m²** —que por la Tabla 7 es PPM severo— la app
 en ninguna superficie. El AVAi ya se calcula (`ava-idx`) y el patrón está escrito (`vmProtEOA`).
 ⚠️ **Si se quiere en el libro, es una columna nueva** (hoy 436).
 
-### W1-6 · Falta la banda intermedia del EOA protésico mitral (1 a 2 cm²)
+### [CERRADO 2026-10-15 · W2-B] W1-6 · Falta la banda intermedia del AEO protésico mitral
+
+> **CERRADO.** `VM_PROT_EOA_NORMAL_MIN = 2.0` y `porEoa` con sus TRES tramos. Medido: AEO 1,57
+> pasa de «sin criterios de obstrucción» a «posible obstrucción», el borde de **1,00 exacto**
+> también —significativa sigue siendo menor-estricto que 1— y **2,00 exacto es normal**. No
+> cambia el informe firmado: ése sólo publica con `obstr === 'significativa'`. El panel de
+> Evidencia también publica la banda del medio. Cobertura: **TC-474**, bloque (B).
+
 
 `porEoa` tiene dos tramos: `< 1,0` significativa y todo lo demás «normal». La **Tabla 11, folio
 27** tiene **tres**: `≥2,0` normal, **`1-2` posible**, `<1` significativa. Medido: EOA **1,50 cm²**
@@ -166,7 +198,13 @@ la fila del Excel sobre `inf.campos` de un estudio archivado. El ritmo tiene que
 `src`**, igual que `im_grado` e `ia_grado`: leyéndolo del DOM, la pantalla y el libro dirían cosas
 distintas sobre el mismo paciente.
 
-### W1-8 · El THP sigue publicando `220/THP` con rótulo nativo sobre una prótesis
+### [CERRADO 2026-10-15 · W2-B] W1-8 · El THP con rótulo nativo sobre una prótesis
+
+> **CERRADO.** El THP es ahora un **parámetro directo** con sus tres tramos de la Tabla 11
+> (`<130` / `130-200` / `>200`), publicado en la cápsula, y el cuadro de referencias declara
+> que ese MÉTODO no calcula el área de una prótesis, con el folio 10. El valor del área por
+> THP se sigue mostrando: marcar sin borrar. Cobertura: **TC-474**, bloques (A) y (C).
+
 
 Medido: con prótesis mitral el cuadro muestra «AVm por THP 1.38 cm² · significativa (≤1,5 cm²)».
 La **ASE 2024, folio 10**, dice que el EOA calculado por el método del THP es **frecuentemente
@@ -175,7 +213,14 @@ inexacto y sobreestima** el área, y que el EOA indexado de una prótesis mitral
 prótesis es un **parámetro directo**: `<130` / `130-200` / `>200` ms (Tabla 11, folio 27).
 Conviene hacerlo junto con **W1-3**.
 
-### W1-9 · La velocidad pico de E y el gradiente medio, con bandas protésicas
+### [CERRADO 2026-10-15 · W2-B] W1-9 · La velocidad pico de E y el gradiente medio protésicos
+
+> **CERRADO.** `VM_PROT_T11` y `_vmProtNivelT11`, con los tres operadores que la tabla imprime
+> distintos entre sí. Medido por sus SEIS bordes con teclas reales, más el control negativo de
+> la morfología nativa y el de fuera de banda. `PROTM_EST_2024` pasa a DERIVAR de esas
+> constantes, así que el panel de Evidencia y la cápsula no pueden divergir.
+> ⚠️ **LOS TRES NO VOTAN EN EL VEREDICTO: ver Z1.**
+
 
 Los dos campos existen (`em_vmax` en m/s, `em_gmedio`) y **ninguno se evalúa con el corte
 protésico**. Tabla 11, folio 27: velocidad pico `<1.9` / `1.9-2.5` / `≥2.5` m/s; gradiente medio
@@ -183,7 +228,14 @@ protésico**. Tabla 11, folio 27: velocidad pico `<1.9` / `1.9-2.5` / `≥2.5` m
 operador**: en nativa la app usa `<5` / `5-9` / `≥10` (ASE 2023), así que a **5 y a 10 exactos** el
 veredicto se invierte entre los dos regímenes.
 
-### W1-10 · La atribución de la IM protésica: citar la Tabla 13 y su nota `††`
+### [CERRADO 2026-10-15 · W2-B] W1-10 · La atribución de la IM protésica
+
+> **CERRADO.** Las tarjetas `im-vc`, `eroa-pisa` y `eroa-cont` citan la **ASE 2024, Tabla 13,
+> pág. 30** para la prótesis y publican su nota: esos parámetros cuantitativos están **menos
+> validados** que en la IM nativa. El «a tener en cuenta» de `im-vc` dejó de decir que ninguna
+> guía leída publica un corte propio para prótesis, que era falso desde que se leyó la Tabla 13.
+> **Ningún número cambió**: los cuatro cortes coinciden con los nativos.
+
 
 ⚠️ **La nota del 09/10 es literalmente cierta y clínicamente INOCUA en cuatro de sus cinco filas**,
 y conviene que quede escrito para que nadie la reabra como defecto. Vena contracta, EROA, Vol-R y
@@ -198,7 +250,17 @@ Lo que falta es **la fuente que se cita**: con la mitral protésica, la tarjeta 
 deberían nombrar la Tabla 13 y su nota `††` —«estos parámetros cuantitativos están **menos
 validados** que en la IM nativa»—, que hoy no aparece en ninguna superficie.
 
-### W1-11 · El jet/AI NATIVO usa `>40 %` y la ASE 2017 publica `>50 %` — CONTENIDO CLÍNICO
+### [DECIDIDO 2026-10-15 · W2-B — el número NO se mueve] W1-11 · El jet/AI NATIVO usa `>40 %`
+
+> **DECISIÓN DE MAICOL (15/10/2026): el corte NO cambia.** Nativa por encima del 40 % y
+> prótesis por encima del 50 % siguen siendo severa. Lo que se corrigió es el **RÓTULO de la
+> fuente** en las dos superficies que lo publicaban —la fila «Ratio jet/AI (%)» de
+> «Referencia clínica» y la tarjeta `im-jet-ai`—, que atribuían a la ASE 2017 un corte que
+> esa guía no escribe, más el comentario de `IM_CORTES.jet_nat`. Y se VERIFICÓ que con
+> prótesis un jet por encima del 50 % cuenta como criterio de severidad: 51 % y 60 % dan
+> `im_grado = 4`; el 50 % exacto no vota. Cobertura: **TC-474** y la sonda, grupo `jet`.
+>
+> **Sigue abierto el número**, que es contenido clínico nativo:
 
 `IM_CORTES.jet_nat` vota severa por encima del **40 %** del área de la AI y cita a la ASE 2017. La
 **ASE 2017, Tabla 8, folio 332**, y el **folio 333** escriben severa **`>50 %` del área de la AI**,
@@ -209,6 +271,64 @@ y **no publican ni el 20 ni el 40** —el 20/40 es de guías previas—. Censado
 insuficiencia mitral de pacientes con un jet entre el 40 y el 50 %, en el informe firmado. **No se
 toca sin orden expresa.** Se reporta porque la fila cita una guía que dice otra cosa.
 
+## Declarado y NO tocado por la tanda W2-B (2026-10-15)
+
+### Z1 · Los tres parámetros nuevos de la Tabla 11 NO votan en el veredicto de obstrucción
+`R.obstr` de `vmProtEOA` sigue saliendo del **AEO y del DVI**, como desde la Fase 2. La velocidad
+pico de E, el gradiente medio y el THP se publican en la cápsula con su banda y **no entran**.
+Sumarlos cambiaría qué escenas publican «Prótesis mitral con hallazgos sugestivos de obstrucción
+(…)» en el **informe FIRMADO**, y **qué parámetros votan es contenido clínico**. Medido y fijado
+por TC-474: los tres pueden estar en «significativa» a la vez y el veredicto sigue en nulo.
+La nota `*` de la Tabla 11 dice que la exactitud diagnóstica es mejor cuando **la mayoría** de los
+parámetros son normales o anormales a la vez, así que una regla de mayoría es la candidata obvia
+— pero es una regla de integración nueva y la decide Maicol.
+
+### Z2 · El PPM AÓRTICO no entra en el informe firmado, y el MITRAL sí
+El mitral publica «Desajuste protésico-paciente severo (AEO indexada 0,79 cm²/m²)» en el cuerpo y
+en el EN SUMA desde la Fase 2; el aórtico se calcula y se muestra **sólo en pantalla**. Es la
+opción conservadora: agregar una frase automática al papel es un texto del informe firmado que la
+orden del W2-B no autorizaba explícitamente. **Dos alternativas**, con la conservadora marcada:
+1. **(conservadora, la de hoy)** dejarlo en pantalla y que el médico lo escriba si quiere;
+2. publicarlo con la misma forma que el mitral, que es una línea en `generarInforme`.
+⚠️ Y en los dos casos **el Excel no lo lleva**: haría falta una **columna nueva** (hoy 436), que la
+orden prohibía abrir sin parar y reportar.
+
+### Z3 · Los identificadores y los comentarios de código siguen diciendo «EOA»
+`vmProtEOA`, `VM_PROT_EOA_OBSTR_MAX`, `VM_PROT_EOA_NORMAL_MIN`, `porEoa`, `eoaI` y ~90 comentarios.
+**No se renombraron a propósito**, con el mismo criterio con que el renombre PHT → THP dejó sus 44
+comentarios: lo que la orden pide cambiar es lo que **se lee**. Renombrar `VM_PROT_EOA_OBSTR_MAX`
+además obligaría a tocar el panel de Evidencia, que lo resuelve por `window` con un `_indUmb`, y
+su propio assert de arranque.
+
+### Z4 · El panel de Evidencia usa «AEOR» para el orificio REGURGITANTE
+Cuatro citas del panel escriben **«AEOR»** (área efectiva del orificio regurgitante) donde el
+resto de la app escribe «EROA». Con el renombre del W2-B quedan **tres** nomenclaturas conviviendo
+—AEO protésica, EROA regurgitante y AEOR regurgitante—, y **AEO y AEOR difieren en una letra**, que
+es la misma clase de confusión que el renombre vino a cerrar. No se tocó: son textos del panel que
+citan guías y cambiarlos no estaba en la orden.
+
+### Z5 · Con prótesis y SIN dato cuantitativo, la fila del jet publica el régimen NATIVO
+`imCortesPintar` cuelga del **final** de `calcIM_ESC`, que sale temprano cuando no hay parámetros
+cuantitativos: la fila de referencia del jet/AI se queda con lo que dejó `limpiarCampos`. Es
+**PREEXISTENTE** —medido igual en HEAD— y la sonda lo fija como control negativo. El arreglo sería
+llamar al pintor antes de ese `return`, o desde `valvProtSync`.
+
+### Z6 · Cuatro de los cinco hallazgos de la Tabla 12 siguen sin implementar
+De la Tabla 12, folio 28, la app aplica **sólo** el cociente VTI `≥2,5`. Faltan la velocidad pico
+`≥1,9 m/s`, el gradiente medio `≥5 mmHg`, la Vmax del chorro de IT `>3 m/s` —los tres tienen campo
+en la app— y el volumen sistólico del VI por 2D/3D comparado con el sistémico, que no lo tiene. El
+panel de Evidencia sí dibuja la fila del patrón de regurgitación con THP normal.
+
+### Z7 · La nota `§` de la Tabla 11: las bioprótesis pueden tener cortes «algo más altos»
+La guía lo dice y **no publica cuáles**. La app aplica los mismos cortes a mecánicas y biológicas,
+que es lo que la nota `*` autoriza. Queda como está.
+
+### Z8 · El resto de la ayuda `#ref-pao` sigue atribuido a «ESC 2021 · VARC-3»
+Esa tarjeta publica además gradiente medio, Vmax, AVA y DVI por tipo de prótesis bajo el título
+«Prótesis Aórtica — ESC 2021», y **«ESC/EACTS 2021» tiene CERO entradas en `FUENTES.md`**. En el
+W2-B se reescribió **sólo la línea del PPM**, que es la que contradecía al cálculo nuevo; el resto
+de la tarjeta es contenido clínico y una revisión aparte.
+
 ### W1-12 · La regurgitación paravalvular de una SAVR no tiene dónde cargarse
 
 `eteTaviRPV()` implementa la **Tabla 8, folio 23** con sus tres filas exactas —extensión
@@ -217,7 +337,13 @@ circunferencial `<10`/`10-29`/`≥30 %`, VC `<0,3`/`0,3-0,6`/`>0,6` cm, área de
 pestaña ETE/TAVI: una bioprótesis o una mecánica quirúrgicas con un jet paravalvular **no tienen
 campo**. La Tabla 8 aplica a toda prótesis aórtica. **Pide campos nuevos.**
 
-### W1-13 · `onchange` de `#va_morf` no recalcula
+### [CERRADO 2026-10-15 · W2-B] W1-13 · `onchange` de `#va_morf` no recalcula
+
+> **CERRADO.** `valvProtSync()` llama a `calcEADetalle()`, igual que ya llamaba a `eaAtPintar()`.
+> Va ahí y no en el atributo por el mismo argumento que el resto de esa función: es el dueño
+> único de «cambió la morfología». Medido el ida y vuelta: prótesis llena la fila del PPM y
+> nativa la esconde Y la vacía. Cobertura: **TC-474**, bloque (D).
+
 
 Es `valvProtSync()` y nada más; el de `#vm_morf` llama además a `calcIM_ESC()` y `calcEM()`.
 **No está medido como defecto** —el censo forzó el recálculo— pero es una asimetría que conviene

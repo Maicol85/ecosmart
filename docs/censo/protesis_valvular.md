@@ -463,3 +463,40 @@ categoría propia que diga lo mismo que el papel, sin la palabra estenosis.
   el módulo ETE).
 - **Safari**: la comprobación de que un `<option>` oculto no aparece sólo se puede hacer ahí, y
   este entorno no lo tiene. No aplica a nada de este censo.
+
+---
+
+## 7 · ESTADO DESPUÉS DEL W2-B (2026-10-15) — qué fila pasó a «coincide»
+
+La tanda **W2-B** implementó las propuestas W2-3, W2-4, W2-5, W2-6, W2-8, W2-9, W2-10 y W2-13 (que
+en `docs/PENDIENTES.md` llevan el prefijo **W1-**), decidió la W2-11 y dejó la W2-12 para después.
+Mapa de la zona: `docs/mapa/protesis-valvular.md`. Cobertura: **TC-474**, 46 condiciones.
+
+| # | Antes | Ahora | Qué se hizo |
+|---|---|---|---|
+| **E6** · velocidad pico de E, prótesis | **FALTA** | **SÍ** | `VM_PROT_T11.vmax*`, tres tramos en la cápsula. Medido por sus dos bordes: 1,9 y 2,5 |
+| **E7** · gradiente medio, prótesis | **PARCIAL** | **SÍ** | `VM_PROT_T11.gmed*` con los operadores de la tabla (`≤5` / `>10`); el cuadro retira el corte nativo |
+| **E9** · AEO por continuidad | **PARCIAL** | **SÍ** | `VM_PROT_EOA_NORMAL_MIN = 2.0`: los TRES tramos. El 1,00 y el 2,00 exactos, medidos |
+| **E10** · THP como parámetro directo | **FALTA** | **SÍ** | `VM_PROT_T11.thp*`; y el cuadro declara que el método no calcula el área en prótesis (folio 10) |
+| **E12** · rótulos del cuadro de referencias | **NO** | **SÍ** (declaran) | Las cuatro filas dicen que el corte nativo no aplica; los cuatro valores se conservan |
+| **A9** · PPM aórtico | **NO** | **SÍ** en pantalla | `EA_PROT_PPM_CORTES` (Tabla 7, folio 20) con su rama de IMC; la ayuda `#ref-pao` corregida. **No entra en el informe ni en el Excel** → Z2 |
+| **A11** · fila del AVA del recuadro Doppler | **NO** | **SÍ** | Con las tres prótesis se retira el badge del corte absoluto y se declara por qué |
+| **R8/R9** · jet/AI y cociente VTI protésicos | **SÍ** | **SÍ**, verificado | Medido: con prótesis, >50 % vota severa; el 50 % exacto no vota |
+| **R10-R14** · VC, EROA, Vol-R, FR, onda S | **SÍ** (números) | **SÍ** + atribución | Las tarjetas citan la Tabla 13 y su nota `††`. Ningún número cambió |
+| **A8** · TAVI | declarado | declarado **+ PPM** | Sigue sin graduar la estenosis; desde el W2-B **sí publica el PPM**, porque la Tabla 7 no abre ramas por tipo |
+
+**Siguen como estaban, y por qué:**
+
+| # | Estado | Motivo |
+|---|---|---|
+| **E3**, **E4** · THP y PSAP como criterio de severidad en la EM **NATIVA** | **FALTA** | Son cortes de válvula **nativa** y el W2-B tenía prohibido tocarlos |
+| **R2** · el jet/AI nativo usa 20/40 | **NO** (el número) | Decisión de Maicol: el corte no se mueve. Se corrigió el **rótulo** de la fuente |
+| **R15** · cuatro de los cinco hallazgos de la Tabla 12 | **FALTA** | Declarado en `PENDIENTES.md` → **Z6** |
+| **A7** · AEO aórtica contra su referencia | declarado | Pide marca, modelo y tamaño de la prótesis: es el cambio más grande del censo |
+| **A14** · regurgitación paravalvular de una SAVR | **NO** | Pide campos nuevos: es la **W1-12**, fuera de esta tanda |
+
+**Lo que el W2-B agregó al censo y no estaba previsto:** el **renombre EOA → AEO** (decisión de
+Maicol del 15/10), con su censo de las 122 apariciones; la verificación de que **ninguna aparición
+de «EOA» hablaba de regurgitación** —no hubo nada que corregir a «EROA»—; y la comprobación de que
+**ningún encabezado del Excel dice «EOA»**, así que no hizo falta ninguna tabla de alias de entrada
+y el libro sigue en **436 columnas** con el mismo hash.

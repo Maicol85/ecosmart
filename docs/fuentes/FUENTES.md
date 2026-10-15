@@ -1906,6 +1906,114 @@ Maicol:
 Una **banda de plausibilidad** es un rango de lo medible, no un criterio: va **sin cita**. Un
 corchete sobre «no pude verificar» se lee como si hubiera un criterio detrás.
 
+## PRÓTESIS valvular — los criterios de la ASE 2024, criterio por criterio (W2-B, 2026-10-15)
+
+**Documento:** Zoghbi WA, Jone PN, Chamsi-Pasha MA y cols. *Guidelines for the Evaluation of
+Prosthetic Valve Function With Cardiovascular Imaging: A Report From the American Society of
+Echocardiography.* J Am Soc Echocardiogr 2024;37(1):2-63. doi:10.1016/j.echo.2023.10.004.
+Archivo: `05_Protesis_valvulares/Zoghbi_2024_Protesis.pdf` (62 páginas; hay una segunda copia del
+mismo documento, `ASE Evaluacion protesis valvular.pdf`, con otro `md5` por metadatos).
+
+**Regla de folio: folio = página del PDF + 1**, **comprobada en el pie impreso** y no por
+aritmética: PDF 1 → 2, PDF 18 → 19, PDF 26 → 27.
+
+⚠️ **EL TEXTO EXTRAÍDO PIERDE LOS OPERADORES Y HAY QUE RENDERIZAR.** La fuente del PDF codifica
+`≥` como **`$`** y `≤` como **`#`**: `pdftotext` devuelve «Peak velocity … $2.5» y «Mean gradient
+… #5». **Las Tablas 5, 7, 11, 12 y 13 se leyeron RENDERIZANDO** a 400 dpi; los operadores de abajo
+son los de la imagen.
+
+### Tabla 11, folio 27 — «Doppler findings suggestive of prosthetic mitral valve stenosis»
+
+| Parámetro | Normal | Posible estenosis | Sugiere estenosis significativa |
+|---|---|---|---|
+| Velocidad pico, m/s `‡§` | `<1.9` | `1.9-2.5` | `≥2.5` |
+| Gradiente medio, mmHg `‡§` | `≤5` | `6-10` | `>10` |
+| VTI prótesis / VTI TSVI `‡§` | `<2.2` | `2.2-2.5` | `>2.5` |
+| AEO (*EOA*), cm² | `≥2.0` | `1-2` | `<1` |
+| THP (*PHT*), ms | `<130` | `130-200` | `>200` |
+
+Notas: `*` vale para mecánicas **y** biológicas, y la exactitud diagnóstica es mejor cuando la
+mayoría de los parámetros son normales o anormales a la vez. `†` la columna del medio obliga a
+mirar más de cerca y a pensar en flujo aumentado, taquicardia o PPM. **`‡` esos tres parámetros
+también están alterados con IM protésica significativa** —y el THP y el AEO **no** llevan esa
+marca—. `§` algunas bioprótesis pueden tener cortes algo más altos; la guía **no publica cuáles**,
+así que eso queda sin implementar.
+
+⚠️ **La banda del medio del gradiente tiene un HUECO IMPRESO** (`≤5` y después `6-10`): un 5,5 no
+cae en ninguna columna del original. La app lo resuelve **por complemento**.
+
+**Folio 10** — el reparo del método del THP, verificado: calcular el AEO por el tiempo de
+hemipresión es **frecuentemente inexacto y lleva a sobreestimar** el AEO, sobre todo en válvulas
+normales; el AEO indexado de una prótesis mitral se calcula mejor **por la ecuación de
+continuidad**. Esa misma página define el PPM mitral **sin** estratificar por IMC y **contradice a
+la Tabla 7** para IMC ≥ 30: la app aplica la **tabla**, que es la que estratifica.
+
+### Tabla 12, folio 28 — IM protésica significativa en válvulas mecánicas **con THP normal**
+
+Velocidad pico `≥1.9 m/s` (S 90 % / E 89 %) · **relación VTI `≥2.5` (S 89 % / E 91 %)** ·
+gradiente medio `≥5 mmHg` (S 90 % / E 70 %) · Vmax del chorro de IT `>3 m/s` (80 % / 71 %) ·
+volumen sistólico del VI por 2D/3D más de un 30 % mayor que el sistémico por Doppler. Con la
+velocidad pico y la relación VTI elevadas a la vez, la especificidad se acerca al 100 %.
+**Implementado: sólo el cociente VTI.** Los otros cuatro quedan declarados.
+
+### Tabla 13, folio 30 — severidad de la regurgitación mitral protésica
+
+Vena contracta `<0.3 / 0.3-0.69 / ≥0.7` cm · volumen regurgitante `<30 / 30-59 / ≥60` mL ·
+fracción regurgitante `<30 / 30-49 / ≥50` % · EROA `<0.20 / 0.20-0.39 / ≥0.40` cm².
+Área del jet en color: leve «pequeño, central, habitualmente < 4 cm² o < 20 % del área de la AI»,
+severa «grande y central, habitualmente > 8 cm² o > 50 %», **moderada «variable»**.
+Flujo venoso pulmonar: dominancia sistólica / embotamiento sistólico / inversión sistólica.
+Nota **`††`**: esos parámetros cuantitativos están **menos validados** que en la IM nativa.
+
+⚠️ **LOS CUATRO CORTES CUANTITATIVOS COINCIDEN NÚMERO POR NÚMERO CON LOS DE LA NATIVA** (ASE 2017,
+Tabla 8, folio 332). **Ningún paciente cambia de grado** por el régimen. Lo único distinto es el
+área del jet, que la app ya conmutaba.
+
+### Tabla 7, folio 20 — «Doppler parameter criteria of aortic valve and mitral valve PPM»
+
+| | Normal | Moderado | Severo |
+|---|---|---|---|
+| **AEO aórtica**, IMC `<30` | `>0.85` | `0.85-0.66` | `≤0.65` cm²/m² |
+| **AEO aórtica**, IMC `≥30` | `>0.70` | `0.70-0.56` | `≤0.55` cm²/m² |
+| **AEO mitral**, IMC `<30` | `>1.2` | `1.2-0.91` | `≤0.90` cm²/m² |
+| **AEO mitral**, IMC `≥30` | `>1.0` | `1.0-0.76` | `≤0.75` cm²/m² |
+
+Nota `*`: la estructura y la motilidad de la válvula son normales y el AEO medido está dentro de
+1 SD del AEO de referencia. **La tabla no abre ramas por tipo de prótesis**, así que la fila
+aórtica vale también para la TAVI.
+
+### Tabla 5, folio 19 — parámetros Doppler de la prótesis en posición aórtica
+
+Bloque «todas las prótesis aórticas»: velocidad pico `<3 / 3-4 / ≥4` m/s · AT/tiempo de eyección
+`<0.32 / 0.32-0.37 / >0.37` · tiempo de aceleración `<80 / 80-100 / >100` ms.
+Bloque SAVR: gradiente medio `<20 / 20-34 / ≥35` mmHg · DVI `>0.35 / 0.25-0.35 / <0.25`.
+**AEO**: la tabla la expresa en **desviaciones estándar respecto del valor de referencia del
+MODELO implantado** —«reference ± 1 SD», «1 SD smaller», «2 SDs smaller»—, así que **no es
+evaluable** sin marca y modelo; está declarado en la app.
+Bloque TAVI: **cambio respecto de un basal post-implante** —gradiente `≥20 mmHg`, DVI `≥0.2` o
+`≥40 %`, AEO `≥0.6 cm²` o `≥50 %`—, que la app **no gradúa** porque no elige ese basal.
+Nota de integración: para decir «significativa» hacen falta **un parámetro dependiente del flujo
+y uno independiente** del flujo.
+
+### Tabla 8, folio 23 — regurgitación paravalvular aórtica
+
+Extensión circunferencial `<10 / 10-29 / ≥30 %` · vena contracta `<0.3 / 0.3-0.6 / >0.6` cm ·
+área de la vena contracta `<0.10 / 0.10-0.29 / ≥0.30` cm². **Implementada sólo en el módulo
+TAVI**; una SAVR con jet paravalvular no tiene dónde cargarla (W1-12, pide campos nuevos).
+
+### Lo que esta tanda NO pudo atribuir, y por qué
+
+- **El 20 % y el 40 % del jet/AI NATIVO.** La ASE 2017, Tabla 8, folio 332, y el folio 333
+  publican severa **por encima del 50 %** del área de la aurícula y **no publican ni el 20 ni el
+  40** —censado el PDF entero—. El 20/40 viene de guías previas que este repo no tiene
+  verificadas. **El número no se tocó** (decisión de Maicol); lo que se corrigió es el rótulo, que
+  ya no se lo atribuye a la ASE 2017.
+- **Los cortes de la ayuda `#ref-pao`** seguían atribuidos a «ESC 2021 · VARC-3», y
+  **«ESC/EACTS 2021» tiene CERO entradas en este registro**. La línea del PPM se reescribió con la
+  Tabla 7 y su folio; el resto de esa tarjeta queda como estaba y declarado.
+
+---
+
 ## Lo que falta y lo que no se pudo abrir
 
 En `docs/fuentes/PENDIENTES_FUENTES.md`: las fuentes que **no se pudieron verificar** (Hatle 1979,

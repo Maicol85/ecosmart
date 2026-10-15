@@ -367,6 +367,20 @@ gradúa?» (una SAVR es prótesis y la aórtica sí se gradúa); cuerpo no leíd
 
 ---
 
+## PRÓTESIS valvular mitral y aórtica → `docs/mapa/protesis-valvular.md`
+
+Los criterios **propios de las prótesis** —Tabla 11 de la ASE 2024 para la estenosis mitral
+(velocidad pico de E, gradiente medio, DVI, AEO en tres tramos y THP como parámetro **directo**),
+Tabla 7 para el PPM de las dos válvulas, Tabla 5 para la estenosis aórtica protésica y Tablas 12 y
+13 para la regurgitación mitral protésica— viven en ese mapa desde la tanda **W2-B** (2026-10-15),
+junto con la nomenclatura **AEO** y las cinco tarjetas ⓘ de diferencia nativa-prótesis.
+
+⚠️ **Lo que hay que saber antes de tocar algo de acá:** con morfología protésica el **cuadro de
+referencias de la estenosis mitral ya no clasifica** —sus cuatro filas declaran que el corte
+nativo no aplica— y el **recuadro Doppler aórtico ya no publica «Severa (≤1.0cm²)»**. Mover un
+corte NATIVO no mueve ninguno de los dos; mover la lógica de esas dos superficies sí toca la
+nativa, porque el mismo código la pinta.
+
 ## Constantes de cortes y bandas → `docs/mapa/valvulas-constantes.md`
 
 Los cortes de las cuatro válvulas, los de prótesis, las tres tablas de bandas de plausibilidad y

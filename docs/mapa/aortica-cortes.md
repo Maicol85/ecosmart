@@ -9,6 +9,12 @@ edición, el nombre no.
 
 ---
 
+> ⚠️ **ESTE MAPA ES DE LA VÁLVULA NATIVA.** Con morfología protésica —biológica, mecánica o
+> TAVI— la aórtica se gradúa con la **Tabla 5 de la ASE 2024** y no con nada de acá, y desde la
+> tanda **W2-B** (2026-10-15) el recuadro Doppler **deja de publicar el badge del corte absoluto
+> de AVA** y la app calcula el **PPM** con la Tabla 7. Todo eso está en
+> `docs/mapa/protesis-valvular.md`.
+
 ### Los SEIS votantes de la estenosis aórtica (2026-10-13)
 
 `eaGradoCalculado()` es el **dueño único** y la regla de integración es **el peor de los votos**
