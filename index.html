@@ -5525,7 +5525,21 @@ window.cerrarSesionReal = cerrarSesionReal;
           <!-- Renglón propio y NO dentro de `em-cont-row`: el valor se sigue mostrando —el médico
                lo midió y tiene derecho a verlo— y lo que se declara es que NO vota. Mezclarlos en
                la misma celda haría elegir entre publicar el número o publicar la salvedad. -->
-          <div class="calc-row"><span id="em-cont-aviso" style="color:var(--yellow);font-size:11px;"></span></div>
+          <!-- ⚠️ EL AVISO DE FIBRILACIÓN AURICULAR ES UN SPAN HERMANO Y NO UN HIJO DE
+               `em-cont-aviso` (W1-7, 2026-10-15). Tres razones medidas:
+               (1) `limpiarCampos` barre `[id$="-aviso"]` con `el.textContent = ''`, así que un
+                   hijo adentro de `em-cont-aviso` se DESTRUIRÍA en el primer «Nuevo estudio» y no
+                   volvería nunca — el nodo desaparece, no se vacía;
+               (2) el motivo de IM/IAo y la salvedad del ritmo son dos cosas distintas y el aviso
+                   de FA **se suma sin pisarlo**: con IM moderada y FA se leen LOS DOS;
+               (3) el color es otro a propósito: el motivo retira el voto y va en `--yellow`; esta
+                   salvedad NO retira nada y va en `--orange`, que es el ámbar GLOBAL. ⚠️ NO se usa
+                   `--amber`: esa variable se define sólo dentro de `.amilo-root` y de `#sp-root`,
+                   así que acá `color:var(--amber)` es inválido en tiempo de valor computado y cae
+                   al heredado — medido en HEAD, `getPropertyValue('--amber')` devuelve cadena
+                   VACÍA en este nodo y `--orange` devuelve `#f59e42` de noche y `#d97b1f` de día.
+                   Es el defecto que la tanda D2 cerró en cinco avisos. -->
+          <div class="calc-row"><span id="em-cont-aviso" style="color:var(--yellow);font-size:11px;"></span><span id="em-cont-fa-aviso" style="color:var(--orange);font-size:11px;"></span></div>
           <div class="calc-row"><span class="calc-lbl">AVm por planimetría</span><span class="em-clase-wrap"><span class="calc-val" id="em-plan-row">&mdash;</span><span class="em-clase" id="em-clase-plan"></span></span></div>
           <!-- ⚠️ YA NO ES UNA SEVERIDAD GRADUADA. Publica la CATEGORIA que devuelve `emCategoria()`
                —la unica funcion duena, la misma que alimenta el informe, el EN SUMA y el PDF—. El
@@ -28316,6 +28330,86 @@ function emContMotivoNoVota(src){
   return '';
 }
 function emContRegurgSignif(src){ return emContMotivoNoVota(src) !== ''; }
+
+/* ══ LA CONTINUIDAD MITRAL EN FIBRILACIÓN AURICULAR — SÓLO UN AVISO (W1-7, 2026-10-15) ════════
+   La **EAE/ASE 2009, folio 14, §B.1.4** dice, literal: *«The continuity equation cannot be used
+   in cases of atrial fibrillation or associated significant MR or AR»* —folio comprobado en el
+   pie impreso de la página («14 · Baumgartner et al»)—. La app retira el voto con IM o IAo
+   significativa (`emContMotivoNoVota`) y **no mira el ritmo**: medido en HEAD con un gesto real
+   sobre `#diast_ritmo`, el área por continuidad vota IDÉNTICO en ritmo sinusal y en fibrilación
+   auricular (0,93 cm², categoría «severa», informe «con estenosis significativa (AVm 0.93 cm² por
+   continuidad)») y `#em-cont-aviso` quedaba VACÍO en los dos.
+
+   ⚠️ DECISIÓN DE MAICOL (15/10/2026): ENTRA SÓLO EL CARTEL. No se retira el voto, no se mueve el
+   grado, no cambia una letra del informe, del EN SUMA, del PDF, del PPT, del Laboratorio ni del
+   Excel. Por eso este texto **NO** va dentro de `emContMotivoNoVota`: esa función es la dueña de
+   `emContValido`, o sea de QUIÉN VOTA, y sumarle una condición habría cambiado el grado y el papel
+   firmado — exactamente lo que esta orden prohíbe. Son dos preguntas distintas con dos dueños.
+
+   ⚠️ LA ESC/EACTS 2025 NO CONTRADICE NADA, y está censado en el PDF completo: sus tres menciones
+   de la ecuación de continuidad hablan de **flujo transmitral aumentado por IM** (Tabla 9, pág. 55:
+   *«Continuity equation unreliable (increased transmitral flow)»*) y de flujos desiguales en
+   valvulopatía múltiple; **ninguna nombra la fibrilación auricular** para el área mitral. O sea
+   que la guía más nueva no deroga la salvedad, simplemente no la repite.
+
+   ⚠️ EL RITMO ENTRA POR `src`, Y NO SE LEE DEL DOM A SECAS. `emContMotivoNoVota(src)` tiene fuente
+   inyectable porque la consumen el Laboratorio y la fila del Excel sobre `inf.campos` de un estudio
+   ARCHIVADO; si este predicado leyera el formulario, la pantalla y el libro dirían cosas distintas
+   sobre el mismo paciente el día que alguien lo consuma desde allá. Sin `src` se delega en
+   `hfRitmoEfectivo()`, que es el dueño único del ritmo efectivo —lo usan el HFA-PEFF y los tres
+   algoritmos de función diastólica—; con `src` se repite SU cascada (el `hf_ritmo` fijado a mano
+   gana; si no, manda `diast_ritmo`), que es lo que impide que las dos lecturas se separen.
+   Hoy ningún consumidor pasa `src`: queda declarado y es de una línea el día que haga falta. */
+const EM_CONT_FA_TXT = 'En fibrilación auricular la EAE/ASE 2009 (folio 14) no admite la ecuación de continuidad: el área se sigue mostrando y sigue contando, y la salvedad queda a criterio del médico.';
+function emContRitmoFA(src){
+  if (!src) {
+    try { return (typeof hfRitmoEfectivo === 'function') ? hfRitmoEfectivo() === 'fa' : false; }
+    catch (e) { return false; }
+  }
+  const h = String(src['hf_ritmo'] == null ? '' : src['hf_ritmo']).trim().toLowerCase();
+  if (h === 'fa') return true;
+  if (h === 'rs') return false;
+  return String(src['diast_ritmo'] == null ? '' : src['diast_ritmo']).trim().toLowerCase() === 'fa';
+}
+function emContAvisoFA(src){ return emContRitmoFA(src) ? EM_CONT_FA_TXT : ''; }
+/* El ÚNICO escritor del nodo, y la compuerta es que HAYA un área por continuidad calculada: sin
+   número no hay nada sobre lo que advertir, y el cartel del paciente anterior no se queda colgado.
+   Se lee el CAMPO y no una variable local de `calcEM` porque este pintor corre también desde el
+   oyente de documento y desde `RECALC_MODULOS`, donde esa variable no existe; el campo vale
+   exactamente lo que `calcEM` acaba de escribir (`setv('avm_cont', …)` o cadena vacía).
+   El separador ` · ` sale SÓLO si el motivo de al lado tiene texto, que es lo que hace que los dos
+   avisos convivan en un renglón sin inventar un punto colgando. Se LEE el nodo del motivo en vez
+   de volver a derivarlo: una segunda lectura de `emContMotivoNoVota` podría caer en otro instante
+   del formulario y poner el separador sin su motivo. */
+function emContFaAvisoSync(){
+  const el = document.getElementById('em-cont-fa-aviso');
+  if (!el) return null;
+  const c = document.getElementById('avm_cont');
+  const hay = !!(c && String(c.value == null ? '' : c.value).trim() !== '');
+  const txt = hay ? emContAvisoFA() : '';
+  const mot = document.getElementById('em-cont-aviso');
+  const hayMot = !!(mot && String(mot.textContent || '').trim() !== '');
+  el.textContent = txt ? ((hayMot ? ' \u00b7 ' : '') + txt) : '';
+  return txt;
+}
+/* ⚠️ EL INSUMO VIVE EN OTRA PESTAÑA Y SU `onchange` NO PASA POR `calcEM`. `#diast_ritmo` está en
+   el cuadro de función diastólica del Doppler mitral y su `onchange` llama a `calcDiastol` y a
+   `hfRitmoCambio`: sin este oyente, el cartel se quedaba con el estado del gesto ANTERIOR —el
+   mismo defecto que `vdTeiAvisoSync` documenta para la IT y el ritmo, y que el cuadro gris de la
+   diastólica pagó cuando la edad y el sexo pasaron a ser insumos—.
+   Es un oyente de DOCUMENTO y no una llamada suelta dentro del `onchange` ajeno: así no se toca la
+   cadena de `calcDiastol`, que esta orden no autoriza. La tercera columna es `RECALC_MODULOS`; la
+   cuarta no hace falta, porque el barrido genérico de `[id$="-aviso"]` de `limpiarCampos` ya le
+   vacía el texto y este nodo no tiene `display` que reponer. */
+document.addEventListener('change', function (e) {
+  const id = e && e.target && e.target.id;
+  if (id !== 'diast_ritmo' && id !== 'hf_ritmo') return;
+  try { emContFaAvisoSync(); } catch (x) {}
+}, true);
+window.EM_CONT_FA_TXT = EM_CONT_FA_TXT;
+window.emContRitmoFA = emContRitmoFA;
+window.emContAvisoFA = emContAvisoFA;
+window.emContFaAvisoSync = emContFaAvisoSync;
 /* ⚠️ EL CONSUMIDOR NUEVO NECESITA SU DISPARADOR, y esta serie ya lo pagó tres veces (`im_itv`,
    `im_dtsvi`/`im_itv_tsvi`, y el PISA del selector del PDF). Desde la Fase B la severidad
    integrada de la EM depende de `im_grado` y de `ia_grado`, que viven en OTROS módulos: sin esto,
@@ -29157,6 +29251,9 @@ function calcEM() {
        distinguirlas — con un solo texto, un backup con el grado en palabras se leía como una IM
        moderada real. */
     if (_avisoEl) _avisoEl.textContent = avm_cont_val ? emContMotivoNoVota() : '';
+    /* ⚠️ VA DESPUÉS DEL MOTIVO Y NO ANTES: el separador ` · ` del cartel de FA se decide leyendo
+       si el motivo tiene texto, así que invertirlo lo pondría con el motivo del gesto anterior. */
+    try { emContFaAvisoSync(); } catch (e) { console.warn('[emContFaAviso]', e); }
   }
 
   // AVm planimetría
@@ -45506,7 +45603,7 @@ function RECALC_MODULOS() {
      `.value`, que no dispara `input`, así que un cartel abierto durante una restauración —o
      el texto del ritmo y del corte— se quedaba con el paciente ANTERIOR. Ninguno de los dos
      puede migrar nada: el espejo no se persiste y el pintor sólo escribe texto. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
