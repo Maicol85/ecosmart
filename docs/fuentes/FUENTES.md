@@ -2216,6 +2216,34 @@ TAVI**; una SAVR con jet paravalvular no tiene dónde cargarla (W1-12, pide camp
 
 ---
 
+## La tanda G2 (2026-10-15) NO ESTABLECE NINGÚN CORTE CLÍNICO — por qué no lleva citas nuevas
+
+El G2 es Excel, importador y Laboratorio. **No mueve un solo umbral, ni un operador, ni una regla
+de integración, ni una frase del informe firmado**, así que no hay nada que verificar contra una
+guía y **ninguna de sus piezas lleva corchete**.
+
+Lo que cada pieza nueva usa, y de dónde sale:
+
+| Pieza del G2 | Qué número usa | Fuente |
+|---|---|---|
+| Columna `TAPSE/PSAP (mm/mmHg)` | **ninguno**: publica la división `TAPSE / PSAP` | es aritmética; el valor lo da `vdTapsePsapRed`, el dueño del **G1** |
+| Columna `Diámetro arteria pulmonar (mm)` | **ninguno**: publica el valor tipeado | el campo y su banda `[5, 80]` mm nacieron en el **G1** |
+| Las cuatro asociaciones | **ninguno**: Spearman y Kruskal-Wallis no llevan corte | las pruebas ya estaban en el módulo |
+| Tabla de válvulas binaria | **ninguno**: reparte lo que el token guardado dice | los tokens binarios son del 2026-10-13 (EM) y del 2026-10-05 (ET) |
+
+⚠️ **LOS TRES TRAMOS DEL COCIENTE SIGUEN SIENDO LOS DEL G1, CON SU RESERVA INTACTA.** El `0,55`
+está verificado —ESC/ERS 2022, Tabla 10, folio 28— y el **`0,36` NO está verificado al estándar
+de la casa**: nace de Guazzi 2013, que **no está en la biblioteca**, y se leyó a través de un
+metaanálisis en línea. El G2 **no los usa para nada**: la columna del Excel publica el número y
+no su tramo, y Spearman trabaja por rangos. La reserva vive donde ya estaba —la tarjeta ⓘ del
+cociente la dice en voz alta— y en `docs/PENDIENTES.md` → **G1-6** y **G1-7**.
+
+⚠️ **Y LA COMPARACIÓN «AP > RAÍZ AÓRTICA» SIGUE SIN CONECTAR**, que es lo que la Tabla 10 de la
+ESC/ERS 2022 pide en su categoría B. El G2 le dio columna de Excel al diámetro, no un criterio:
+`docs/PENDIENTES.md` → **G1-11**.
+
+---
+
 ## Lo que falta y lo que no se pudo abrir
 
 En `docs/fuentes/PENDIENTES_FUENTES.md`: las fuentes que **no se pudieron verificar** (Hatle 1979,

@@ -452,9 +452,20 @@ TC-472 lo fija como límite declarado, de modo que el día que se arregle el cas
 ⚠️ La otra lectura de `--amber` fuera de esos contenedores (`var(--amber, #f59e0b)`) lleva valor de
 respaldo y resuelve bien: no hay un tercer caso.
 
-### D2-3 · El Excel conserva dos encabezados que dicen PHT
+### [CERRADO 2026-10-15 · G2] D2-3 · El Excel conserva dos encabezados que dicen PHT
 
-`PHT IAo (ms)` y `TAVI RPV PHT (ms)` siguen con el nombre viejo —y el prefijo de ordenamiento
+> **CERRADO con el mecanismo que esta entrada proponía.** `PHT IAo (ms)` → **`THP IAo (ms)`** y
+> `TAVI RPV PHT (ms)` → **`TAVI RPV THP (ms)`**, las dos con el nombre viejo en el **cuarto
+> elemento** de su entrada de `LAB_XLS_MAP` — los alias de ENTRADA que `_cabsDe` ya consultaba.
+> **El número de columnas no cambia por el renombre**, y el libro queda con una sola
+> nomenclatura: `ET THP (ms)` ya decía THP.
+> ⚠️ **El prefijo del bloque 8 tuvo que seguir el renombre** (`'PHT IAo'` → `'THP IAo'`): sin eso
+> la columna caía al bloque «18 · OTRAS COLUMNAS». Lo caza `_labXlsAssertBloques`.
+> **Medido con el importador de verdad:** un Excel con los dos encabezados viejos entra con «1
+> fila válida» y **sin ninguna columna ignorada**; con los nombres nuevos, también. TC-477 (D) lo
+> fija por los dos lados.
+
+Texto original, para la historia: `PHT IAo (ms)` y `TAVI RPV PHT (ms)` seguían con el nombre viejo —y el prefijo de ordenamiento
 `PHT IAo` con ellos— porque **el importador lee por NOMBRE DE ENCABEZADO**: renombrarlos descarta
 esas columnas en todo backup ya exportado, y eso es un cambio del Excel que la orden manda parar.
 `ET THP (ms)`, en cambio, **ya decía THP**, así que el libro queda con dos nomenclaturas.
@@ -2821,9 +2832,19 @@ de números. Leer al dueño le borraría la sobreescritura.
 ⚠️ **Su guarda tampoco es la misma** (`psap <= 0` contra el `if (tapse && psap)` del dueño y de
 `calcTEP`) y **publica dos decimales donde las otras dos publican tres**. No se tocó nada de eso.
 
-### G1-10 · El diámetro de la arteria pulmonar no tiene columna de Excel
+### [CERRADO 2026-10-15 · G2] G1-10 · El diámetro de la arteria pulmonar no tiene columna de Excel
 
-Decisión de la orden: la columna va en el **G2**. Hoy el campo **viaja con el estudio** (su id va
+> **CERRADO.** `Diámetro arteria pulmonar (mm)` entró en el **bloque 8 · VÁLVULAS**, pegada a
+> «IP etiología», y **SÍ se reimporta**: su entrada en `LAB_XLS_MAP` es
+> `['Diámetro arteria pulmonar (mm)', 'ip_ap_diam', 'num']`, o sea un campo de ENTRADA y no una
+> derivada. El Excel pasó de 436 a **438** columnas (la otra es `TAPSE/PSAP (mm/mmHg)`).
+> ⚠️ **Su banda NO entró en `LAB_XLS_RANGO_PROPIO`, a diferencia de lo que esta entrada preveía**:
+> `IP_AP_BANDA` sigue siendo su único dueño, y un segundo lugar con los mismos dos números es
+> exactamente la clase de copia que este repo persigue. El importador la valida por el rango
+> general de `num`. Queda declarado abajo (**G2-1**).
+> Se adaptaron los 65 renglones que contaban **436**, más TC-135 y TC-476 con motivo propio.
+
+Texto original, para la historia. Decisión de la orden: la columna va en el **G2**. Hoy el campo **viaja con el estudio** (su id va
 con guión bajo, así que `_noEsDelEstudio` no lo excluye y el barrido de `guardarInforme` lo
 guarda y lo repone) pero **un backup a Excel + reimportación lo pierde**, igual que les pasa a
 `vd_pared` y `vd_tei` desde el 2026-10-12.
@@ -2863,3 +2884,72 @@ esta app usa para eso es `dataset.tocado`.
 No se tocó, y ahora hay **cinco** filas que sí resetean (`vd-tam`, `vd-pared-interp`,
 `vd-tei-interp`, `tap-interp` y, desde esta tanda, el Qp) contra dos que no. Las filas nuevas de
 FEVD y FAC no tienen el problema: se esconden. Sigue abierto como V1.
+
+---
+
+# Tanda G2 (2026-10-15) — lo declarado y NO tocado
+
+### G2-1 · La banda del diámetro de la AP no entró en `LAB_XLS_RANGO_PROPIO`
+
+`G1-10` preveía meterla ahí al darle columna. **No se hizo, a propósito**: `IP_AP_BANDA` ya es su
+dueño único y un segundo lugar con los mismos dos números (`[5, 80]` mm) es la clase de copia que
+se separa en cuanto alguien afine uno. Consecuencia **medida**: el importador acepta un valor
+fuera de banda —no lo rechaza por rango— y la app lo marca «(revisar)» al abrirlo, que es lo que
+ya hacía al tipearlo. Si se decide que el importador lo rechace, la entrada va en
+`LAB_XLS_RANGO_PROPIO` **leyendo `IP_AP_BANDA` por referencia**, nunca repitiendo los números —
+el patrón que `_labRangoValor` usa con `_DIAST_STRAIN_ABS_MARCA` desde el 2026-10-12.
+
+### G2-2 · El mensaje del importador para el cociente es el de «campo no editable», no el de «calculado»
+
+La casa tiene **dos** criterios de columna derivada y el cociente cayó en el que le corresponde
+—el de `FAC VD (%)` y `DisfSist_VD`, las derivadas **sin campo**— así que el importador lo lista
+como «no corresponde a un campo editable» y no como «un valor que la app calcula sola», que es el
+mensaje más informativo y el que recibe `PSAP (mmHg)`.
+
+Para igualarlos habría que inventarle un `dest` que no existe en el DOM, o partir la lista de
+«ignoradas» en dos. **No se hizo**: es cosmético y el cambio tocaría el mensaje de las OTRAS
+cuatro derivadas sin campo. Declarado.
+
+### G2-3 · El PPT estadístico y la mini-tabla del PDF de auditoría siguen sin contar la tricúspide binaria
+
+Los dos leen `counts`/`bases` de `_labValvCounts` y **no** `bin`, que es lo que mantiene su salida
+idéntica a HEAD — y es lo que la orden del G2 autorizaba. Consecuencia: ahí la estenosis
+tricuspídea **significativa sigue sin contarse** (`_labEstenSev` devuelve `null` sobre su token), y
+la mini-tabla del PDF por lesión la tiene cableada a `() => null` desde antes.
+
+Es el pendiente que la tanda del 2026-10-05 ya había declarado, ahora acotado a esas dos
+superficies. **TC-477 (J) lo fija como límite declarado**, de modo que el día que se arregle el
+caso lo note. Para cerrarlo hay que decidir si el PPT y el PDF de auditoría adoptan las categorías
+binarias — y eso cambia dos documentos firmados.
+
+### G2-4 · La fila «EM» de la tabla general y el gráfico propio de la EM siguen contando distinto
+
+No se unificó, por decisión de la orden: la **tabla** cuenta por el TOKEN guardado sobre el total
+del período, y el **gráfico de distribución** de la estenosis mitral por las seis categorías
+calculadas desde los DATOS, dejando fuera los estudios sin dato. Un estudio con AVm 2,0 cm² y el
+botón en «Significativa» cuenta «Sev» arriba y «Sin estenosis» abajo.
+
+Lo que el G2 agregó es que **cada uno declara su propio n** y que el pie de la tabla nombra al del
+otro. Es la misma asimetría que `L1` declara desde el 2026-10-14.
+
+### G2-5 · El p ajustado de las asociaciones vecinas se movió, y es correcto
+
+El ajuste **BH** corre sobre la familia del bloque A, que pasó de 9 a **13** entradas. Medido: el
+`pAdj` de «PSAP – TAPSE» pasó de **0,449 a 0,829** en la población de la sonda. **No es un
+defecto** —«la multiplicidad la genera el haber mirado, no el haber mostrado», dice el comentario
+de `_bh`— y el **p crudo no se mueve**. Se declara porque un lector que compare dos capturas de
+distintas fechas va a ver el número cambiado sin que nada más lo explique.
+
+### G2-6 · El panel de ayuda sigue diciendo «429 columnas»
+
+Preexistente y ya declarado en `docs/mapa/informe-pdf-excel.md`: la ayuda de la app declara **429
+columnas en 17 bloques** y **129 básicas**, y el conteo real de `_labExcelRow` da **438** (y 138
+básicas). La discrepancia no nació en esta tanda —era 434 cuando se registró— y corregirla
+significa auditar de dónde salió el 429. **No se tocó.**
+
+### G2-7 · El diámetro de la arteria pulmonar no está en las asociaciones
+
+La orden pedía las cuatro del cociente y nada más. El diámetro **es insumo de la probabilidad de
+HTP** (categoría B de la ESC/ERS 2022), así que si algún día entra en el bloque libre hay que
+sumarle su propia entrada en `_LIBRE_ACOPLADOS` contra las variables de HTP — el mecanismo ya está
+y admite una entrada más sin tocar nada.

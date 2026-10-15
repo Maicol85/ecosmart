@@ -209,3 +209,18 @@ node scripts/test_clinico.mjs --solo TC-469
 nueve controles negativos. **Verificado que sabe fallar contra HEAD en un worktree aparte: 51 de
 las 55 en rojo, y ninguna por excepción**; las cuatro que pasan son exactamente los cuatro
 controles negativos, o sea lo que esta tanda no mueve.
+
+---
+
+## ⚠️ G2 (2026-10-15) — la fila «EM» de la tabla de las ocho válvulas pasó a ser BINARIA
+
+La celda «Mod» de esa fila lleva un **guion** y no un cero —está vacía por construcción— y sus
+otras dos se leen «no significativa» y «significativa». La **estenosis tricuspídea** se sumó al
+mismo tratamiento, publicando sólo «Sev».
+
+Esto **no toca** nada de este mapa: las seis categorías de `_labEmLectura`, el gráfico de
+distribución propio de la EM y las dos casillas del filtro siguen igual. Lo que cambió es la
+**tabla de las ocho filas**, que cuenta por el TOKEN y no por los datos, y que ahora declara en
+su pie que el gráfico de abajo tiene su **propio n** — los dos denominadores no se unifican.
+
+Dónde: **`docs/mapa/laboratorio-asociaciones-valvulas.md`**, sección 2.

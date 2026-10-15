@@ -66353,6 +66353,361 @@ caso('TC-476', 'Tanda G1: el VD en tres columnas con su orden de Tab, las filas 
   })();
 `);
 
+/* ══ TANDA G2 (2026-10-15) ════════════════════════════════════════════════════════════════════
+   Las tres partes de la tanda: el Excel con sus DOS columnas nuevas y el alias de entrada, las
+   cuatro asociaciones del cociente TAPSE/PSAP en el Laboratorio, y la estenosis MITRAL y la
+   TRICUSPIDEA con categorias BINARIAS en la tabla de las ocho valvulas y en el apilado.
+
+   ⚠️ EL LABORATORIO LEE REGISTROS Y NO EL FORMULARIO, asi que casi todas las escenas de abajo
+   son objetos de estudio archivado. Lo que SI va con teclas reales —el tecleo de los dos
+   insumos del cociente y del diametro de la arteria pulmonar— lo corre
+   `scripts/_probe_g2.mjs`, que es la que midio los sintomas contra HEAD. Mismo reparto que
+   TC-460, TC-463 y TC-469. */
+caso('TC-477', 'Tanda G2: el Excel pasa a 438 columnas con el cociente TAPSE/PSAP y el diametro de la arteria pulmonar, los dos encabezados PHT pasan a THP con alias de ENTRADA, el cociente entra en cuatro asociaciones con su n real y su aviso de par acoplado, y las dos estenosis BINARIAS dejan de graduarse en la tabla de valvulas', `
+  return (function () {
+    const ex = [];
+    /* Toda lectura de un nodo o de una funcion NUEVA va por un ayudante con CENTINELA: contra
+       HEAD no existen, y una excepcion mata la corrida entera — entonces el caso prueba que el
+       arbol es distinto y no que sabe medir. Leccion de TC-455, TC-462, TC-465, TC-471, TC-473,
+       TC-474, TC-475 y TC-476. */
+    const FN = (n) => (typeof window[n] === 'function');
+    const REG = (campos) => ({ id:'G2', nombre:'P G2', ci:'1', fecha_estudio:'2026-10-15',
+                               campos: campos || {} });
+    const FILA = (campos) => { if (!FN('_labExcelRow')) return null;
+      try { return _labExcelRow(REG(campos)); } catch (e) { return null; } };
+    const COL_T = 'TAPSE/PSAP (mm/mmHg)';
+    const COL_A = 'Di' + String.fromCharCode(225) + 'metro arteria pulmonar (mm)';
+    const GUION = String.fromCharCode(8212);
+
+    /* ══ DENOMINADORES ═══════════════════════════════════════════════════════════════════ */
+    const fns = ['vdTapsePsap','vdTapsePsapRed','_labExcelRow','_labOrdenarCols','_labValvCounts',
+                 '_labValvBin','_labEstenSev','labAsocARender'].filter(n => !FN(n));
+    ex.push(['DENOMINADOR: las ocho funciones duenas existen', fns.length === 0,
+      'faltan: ' + fns.join(',')]);
+    const base = FILA({});
+    ex.push(['DENOMINADOR: la fila del Excel se arma', !!base && Object.keys(base).length > 400,
+      base ? String(Object.keys(base).length) : 'SIN FILA']);
+
+    /* ══ A · EL EXCEL: 438 COLUMNAS Y LAS DOS NUEVAS ═════════════════════════════════════ */
+    ex.push(['(A) el Excel pasa a 438 columnas', !!base && Object.keys(base).length === 438,
+      base ? String(Object.keys(base).length) : 'SIN FILA']);
+    ex.push(['(A) y las dos columnas nuevas existen, con esos nombres exactos',
+      !!base && base[COL_T] !== undefined && base[COL_A] !== undefined,
+      JSON.stringify(Object.keys(base || {}).filter(k => /TAPSE\\/PSAP|arteria pulmonar/.test(k)))]);
+    /* VACIAS —no 0— con el formulario sin datos: un cero se lee como «lo medimos y dio cero». */
+    ex.push(['(A) con el estudio vacio las dos salen VACIAS, no en cero',
+      !!base && base[COL_T] === '' && base[COL_A] === '',
+      JSON.stringify({ t: base && base[COL_T], a: base && base[COL_A] })]);
+
+    /* El cociente por sus DOS bordes. PSAP = 4*VRT^2 + PmAD y aca se escribe directo en
+       \`psap_calc\`, que es lo que el registro archivado trae. */
+    const coc = (tapse, psap) => { const f = FILA({ tapse: tapse, psap_calc: psap });
+      return f ? f[COL_T] : 'SIN FILA'; };
+    ex.push(['(A) 18/50 publica el cociente con TRES decimales de precision', coc('18','50') === 0.36,
+      String(coc('18','50'))]);
+    ex.push(['(A) 18/51 publica 0,353 — tres decimales y no dos', coc('18','51') === 0.353,
+      String(coc('18','51'))]);
+    ex.push(['(A) 22/40 publica 0,55', coc('22','40') === 0.55, String(coc('22','40'))]);
+    ex.push(['(A) sin TAPSE la celda queda VACIA', coc('', '40') === '', JSON.stringify(coc('','40'))]);
+    ex.push(['(A) y sin PSAP tambien', coc('20','') === '', JSON.stringify(coc('20',''))]);
+    /* El dueño UNICO: la columna no reimplementa la division. */
+    ex.push(['(A) la columna le pregunta al dueno del cociente, no recalcula',
+      FN('vdTapsePsapRed') && vdTapsePsapRed({ tapse:'20', psap_calc:'40' }) === 0.5,
+      String(FN('vdTapsePsapRed') ? vdTapsePsapRed({ tapse:'20', psap_calc:'40' }) : 'SIN FN')]);
+    /* ⚠️ LA RAMA \`src\` NO PUEDE PISAR LA DEL FORMULARIO: sin argumento sigue leyendo el DOM. */
+    ex.push(['(A) y sin argumento el dueno sigue leyendo el FORMULARIO',
+      FN('vdTapsePsap') && vdTapsePsap() === null, String(FN('vdTapsePsap') ? vdTapsePsap() : 'SIN FN')]);
+    const fAp = FILA({ ip_ap_diam: '26' });
+    ex.push(['(A) el diametro de la arteria pulmonar publica el valor tipeado',
+      !!fAp && fAp[COL_A] === 26, String(fAp && fAp[COL_A])]);
+
+    /* ══ B · LA POSICION Y EL BLOQUE ═════════════════════════════════════════════════════ */
+    /* Una columna que el mapa no conoce cae al bloque RESTO del final, y eso se ve igual que
+       «esta en su lugar» si solo se mira que exista. */
+    const ord = (FN('_labOrdenarCols') && base) ? _labOrdenarCols(Object.keys(base)) : [];
+    const iT = ord.indexOf(COL_T), iA = ord.indexOf(COL_A);
+    ex.push(['(B) el cociente va en el bloque del VD, pegado a «DisfSist_VD»',
+      iT > 0 && ord[iT - 1] === 'DisfSist_VD' &&
+      (!FN('_labXlsBloqueDe') || /VENTR.CULO DERECHO/.test(_labXlsBloqueDe(COL_T))),
+      'i=' + iT + ' antes=' + ord[iT - 1] + ' bloque=' +
+        (FN('_labXlsBloqueDe') ? _labXlsBloqueDe(COL_T) : 'SIN FN')]);
+    ex.push(['(B) el diametro va en VALVULAS, pegado a «IP etiologia»',
+      iA > 0 && ord[iA - 1] === 'IP etiolog' + String.fromCharCode(237) + 'a' &&
+      (!FN('_labXlsBloqueDe') || /V.LVULAS/.test(_labXlsBloqueDe(COL_A))),
+      'i=' + iA + ' antes=' + ord[iA - 1] + ' bloque=' +
+        (FN('_labXlsBloqueDe') ? _labXlsBloqueDe(COL_A) : 'SIN FN')]);
+    ex.push(['(B) NINGUNA de las dos cae en el bloque «OTRAS COLUMNAS»',
+      !FN('_labXlsBloqueDe') ||
+      (_labXlsBloqueDe(COL_T).indexOf('OTRAS') === -1 && _labXlsBloqueDe(COL_A).indexOf('OTRAS') === -1),
+      '']);
+
+    /* ══ C · EL IMPORTADOR: QUE SE REIMPORTA Y QUE NO ════════════════════════════════════ */
+    const enMapa = (nom) => (typeof LAB_XLS_MAP === 'undefined') ? 'SIN MAPA'
+      : (LAB_XLS_MAP.filter(m => m[0] === nom)[0] || null);
+    /* El cociente es DERIVADO y NO tiene campo, asi que sigue el criterio de \`FAC VD (%)\` y de
+       \`DisfSist_VD\` —fuera del mapa— y no el de \`PSAP (mmHg)\`, que SI tiene campo readonly. */
+    ex.push(['(C) el cociente NO entra en el mapa del importador: es derivado y no tiene campo',
+      enMapa(COL_T) === null, JSON.stringify(enMapa(COL_T))]);
+    ex.push(['(C) CONTROL: la PSAP calculada SI esta en el mapa, pero marcada como calculada',
+      !!enMapa('PSAP (mmHg)') && FN('_labXlsEsCalculado') && _labXlsEsCalculado('psap_calc') === true,
+      JSON.stringify(enMapa('PSAP (mmHg)'))]);
+    const mA = enMapa(COL_A);
+    ex.push(['(C) el diametro SI se reimporta: es un campo de entrada',
+      !!mA && mA[1] === 'ip_ap_diam' && mA[2] === 'num' &&
+      FN('_labXlsEsCalculado') && _labXlsEsCalculado('ip_ap_diam') === false,
+      JSON.stringify(mA)]);
+
+    /* ══ D · EL ALIAS «PHT» -> «THP» ═════════════════════════════════════════════════════ */
+    const mThp = enMapa('THP IAo (ms)'), mTavi = enMapa('TAVI RPV THP (ms)');
+    ex.push(['(D) los dos encabezados dicen THP y ninguno dice PHT',
+      !!mThp && !!mTavi && enMapa('PHT IAo (ms)') === null && enMapa('TAVI RPV PHT (ms)') === null &&
+      !!base && base['THP IAo (ms)'] !== undefined && base['PHT IAo (ms)'] === undefined,
+      JSON.stringify(Object.keys(base || {}).filter(k => /PHT|THP/.test(k)))]);
+    ex.push(['(D) pero el importador SIGUE aceptando los dos nombres viejos por alias de ENTRADA',
+      !!mThp && (mThp[3] || []).indexOf('PHT IAo (ms)') > -1 &&
+      !!mTavi && (mTavi[3] || []).indexOf('TAVI RPV PHT (ms)') > -1,
+      JSON.stringify([mThp && mThp[3], mTavi && mTavi[3]])]);
+    ex.push(['(D) y el renombre NO cambio el numero de columnas: siguen 438',
+      !!base && Object.keys(base).length === 438, String(Object.keys(base || {}).length)]);
+
+    /* ══ E · LOS TRES ASSERTS DE ARRANQUE DEL EXCEL ══════════════════════════════════════
+       Un prefijo mal escrito no da error: da una columna fuera de lugar. Para eso estan. */
+    const gritos = [];
+    const _ce = console.error;
+    console.error = function () { gritos.push(Array.prototype.slice.call(arguments).join(' ')); };
+    ['_labXlsAssertBloques','_labXlsAssertVocab','_labXlsAssertListas'].forEach(f => {
+      if (FN(f)) { try { window[f](); } catch (e) { gritos.push('EXC ' + f + ': ' + e.message); } }
+    });
+    console.error = _ce;
+    ex.push(['(E) los tres asserts de arranque del Excel corren LIMPIOS', gritos.length === 0,
+      gritos.slice(0, 3).join(' // ')]);
+
+    /* ══ F · LA TABLA DE LAS OCHO VALVULAS, CON LAS DOS BINARIAS ═════════════════════════ */
+    const mkV = (o) => { const c = { im_grado:'0', ia_grado:'0', it_grado:'0', ea_grado:'sin',
+      ip_grado:'Sin insuficiencia', ep_grado:'sin' };
+      Object.keys(o).forEach(k => { c[k] = o[k]; }); return REG(c); };
+    const pob = [mkV({ em_grado:'severa', et_grado:'Significativa' }),
+                 mkV({ em_grado:'leve',   et_grado:'No significativa' }),
+                 mkV({ em_grado:'sin',    et_grado:'sin' }),
+                 mkV({ em_grado:'severa', et_grado:'Significativa' }),
+                 mkV({ im_grado:'2', ia_grado:'1', it_grado:'4', ea_grado:'Moderada',
+                       ip_grado:'Severa', ep_grado:'Leve', em_grado:'leve', et_grado:'Leve' })];
+    let vc = null; try { vc = _labValvCounts(pob); } catch (e) { vc = null; }
+    ex.push(['DENOMINADOR: _labValvCounts devuelve sus ocho columnas y su estructura binaria',
+      !!vc && vc.bases.length === 8 && !!vc.bin, vc ? (JSON.stringify(vc.bases) + ' bin=' + !!vc.bin) : 'SIN vc']);
+    /* ⚠️ LO QUE PROTEGE AL PPT Y A LA MINI-TABLA DEL PDF ES QUE \`counts\` NO SE MUEVA: los dos
+       leen esos dos campos y NO \`bin\`. Si alguien mete la lectura binaria dentro de \`counts\`,
+       esta condicion se pone roja. */
+    const iEM = _LAB_VALV_LABELS.indexOf('Esten. Mitral');
+    const iET = _LAB_VALV_LABELS.indexOf('Esten. Tricusp.');
+    /* ⚠️ CENTINELA SOBRE bin, Y LA PRIMERA VERSION NO LO TENIA: contra HEAD vc.bin es
+       undefined y un vc.bin[iET].cuentas mata la corrida entera por TypeError — entonces el
+       caso prueba que el arbol es distinto y no que sabe medir. Verificado: asi moria. Es la
+       misma leccion que TC-455, TC-462, TC-465, TC-471, TC-473, TC-474 y TC-475 ya tienen
+       escrita, y la cabecera de ESTE caso la anuncia. */
+    const BIN = (v, i) => (v && v.bin && v.bin[i]) ? v.bin[i] : null;
+    ex.push(['(F) counts sigue leyendo el TOKEN crudo: la tricuspide binaria NO entra ahi',
+      !!vc && vc.counts.Severa[iET] === 0 && vc.counts.Leve[iET] === 1 && vc.bases[iET] === 2,
+      vc ? JSON.stringify({ S: vc.counts.Severa[iET], L: vc.counts.Leve[iET], b: vc.bases[iET] }) : ''],);
+    ex.push(['(F) y la lectura BINARIA si: dos significativas sobre una base de cinco',
+      !!BIN(vc, iET) && BIN(vc, iET).cuentas.Severa === 2 && BIN(vc, iET).base === 5,
+      BIN(vc, iET) ? (JSON.stringify(BIN(vc, iET).cuentas) + ' base=' + BIN(vc, iET).base) : 'SIN bin']);
+    ex.push(['(F) la tricuspide declara TRES cubetas que no aplican y la mitral UNA',
+      !!BIN(vc, iET) && BIN(vc, iET).na.length === 3 &&
+      !!BIN(vc, iEM) && BIN(vc, iEM).na.length === 1 && BIN(vc, iEM).na[0] === 'Moderada',
+      BIN(vc, iET) ? JSON.stringify([BIN(vc, iET).na, BIN(vc, iEM) && BIN(vc, iEM).na]) : 'SIN bin']);
+    /* Los tres LEGADOS no se traducen: cuentan en la base y no se afirman en ninguna celda. */
+    let legado = null;
+    try { legado = _labValvCounts([mkV({ et_grado:'Leve' }), mkV({ et_grado:'Severa' }),
+                                   mkV({ et_grado:'Moderada' })]); } catch (e) { legado = null; }
+    ex.push(['(F) los tres grados LEGADOS de la tricuspide cuentan en la base y NO se traducen',
+      !!BIN(legado, iET) && BIN(legado, iET).base === 3 && BIN(legado, iET).cuentas.Severa === 0,
+      BIN(legado, iET) ? JSON.stringify(BIN(legado, iET)) : 'SIN bin']);
+    /* La tabla pintada. \`labRenderExtras\` pinta pero no navega: el caso lee el DOM, no la foto. */
+    if (FN('labRenderExtras')) { try { labRenderExtras(pob, pob.length); } catch (e) {} }
+    const cont = document.getElementById('lab-valv-tabla');
+    const filas = cont ? [].slice.call(cont.querySelectorAll('tbody tr')).map(tr =>
+      [].slice.call(tr.children).map(td => (td.textContent || '').trim())) : [];
+    const cel = (sig, k) => { for (let i = 0; i < filas.length; i++)
+      if (filas[i][0].indexOf(sig) === 0) return filas[i][k]; return 'NO HAY FILA'; };
+    ex.push(['DENOMINADOR: la tabla pinto sus ocho filas', filas.length === 8, 'n=' + filas.length]);
+    ex.push(['(F) la MITRAL publica «Mod» con un GUION y no con un cero',
+      cel('EM', 3) === GUION, 'EM mod=' + cel('EM', 3)]);
+    ex.push(['(F) y sus otras tres celdas siguen siendo numeros',
+      cel('EM', 1) === '1' && cel('EM', 2) === '2' && cel('EM', 4) === '2',
+      [cel('EM',1), cel('EM',2), cel('EM',4)].join(' / ')]);
+    ex.push(['(F) la TRICUSPIDE publica SOLO «Sev», con las otras tres en guion',
+      cel('ET', 1) === GUION && cel('ET', 2) === GUION && cel('ET', 3) === GUION &&
+      cel('ET', 4) === '2',
+      [cel('ET',1), cel('ET',2), cel('ET',3), cel('ET',4)].join(' / ')]);
+    /* CONTROL NEGATIVO: las otras SEIS lesiones no cambian de forma. */
+    const seisOk = ['IM','IA','EA','IT','IP','EP'].every(s =>
+      [1,2,3,4].every(k => /^\\d+$/.test(cel(s, k))));
+    ex.push(['(F) CONTROL: las otras SEIS lesiones siguen con sus cuatro cubetas numericas',
+      seisOk, ['IM','IA','EA','IT','IP','EP'].map(s => s + '=' + [1,2,3,4].map(k => cel(s,k)).join(',')).join(' | ')]);
+    /* Los dos denominadores, declarados y NO unificados. */
+    const tabEl = cont ? cont.querySelector('table') : null;
+    const pie = (tabEl && tabEl.nextElementSibling) ? (tabEl.nextElementSibling.textContent || '') : '';
+    ex.push(['(F) el pie declara el n de ESTA tabla y que el grafico de la EM tiene el SUYO',
+      pie.indexOf('total de estudios del per' + String.fromCharCode(237) + 'odo (n=5)') > -1 &&
+      pie.indexOf('PROPIO n') > -1, pie.slice(0, 160)]);
+    ex.push(['(F) y declara como se leen las dos binarias',
+      pie.indexOf('BINARIAS') > -1 && pie.indexOf('no significativa') > -1 &&
+      pie.indexOf('no se traducen') > -1, pie.slice(-220)]);
+
+    /* ══ G · EL APILADO: LA CUBETA QUE NO APLICA NO SE DIBUJA ════════════════════════════ */
+    let cfg = null; if (FN('_labValvChartCfg')) { try { cfg = _labValvChartCfg(pob, {}); } catch (e) {} }
+    const dsDe = (lbl) => (cfg ? (cfg.data.datasets.filter(d => d.label === lbl)[0] || null) : null);
+    ex.push(['(G) la MITRAL no dibuja «Moderada» —null, no 0— y la TRICUSPIDE no dibuja «Leve»',
+      !!dsDe('Moderada') && dsDe('Moderada').data[iEM] === null &&
+      !!dsDe('Leve') && dsDe('Leve').data[iET] === null,
+      JSON.stringify({ m: dsDe('Moderada') && dsDe('Moderada').data[iEM],
+                       l: dsDe('Leve') && dsDe('Leve').data[iET] })]);
+    ex.push(['(G) y la TRICUSPIDE si dibuja «Severa», con su n',
+      !!dsDe('Severa') && dsDe('Severa').data[iET] === 40 && dsDe('Severa')._rawN[iET] === 2,
+      JSON.stringify({ d: dsDe('Severa') && dsDe('Severa').data[iET],
+                       n: dsDe('Severa') && dsDe('Severa')._rawN[iET] })]);
+    ex.push(['(G) CONTROL: las columnas de las otras seis no tienen ningun null',
+      !!cfg && cfg.data.datasets.every(d => [0,2,3,4,6,7].every(k => d.data[k] !== null)),
+      cfg ? JSON.stringify(cfg.data.datasets.map(d => d.data)) : '']);
+    const ley = FN('_labValvLegendHTML') ? _labValvLegendHTML() : '';
+    ex.push(['(G) la leyenda declara las dos binarias: sin eso, una columna con una sola banda se lee como «las otras dieron cero»',
+      ley.indexOf('binarias') > -1 && ley.indexOf('no se dibujan') > -1, ley.slice(-200)]);
+
+    /* ══ H · LAS CUATRO ASOCIACIONES DEL COCIENTE ════════════════════════════════════════
+       \`labAsocARender\` lee \`labGetInformes\`: se sustituye, se pinta y se repone. */
+    const conCoc = [], sinCoc = [];
+    const Z = [0, 2, -1, 3, -2, 1, 4, -3, 2, 0, -1, 3, 1, -2];
+    for (let i = 0; i < 14; i++) conCoc.push(REG({
+      tapse: String(15 + (i % 7) * 2 + Z[i]), psap_calc: String(30 + ((i * 5) % 29) + Z[(i + 3) % 14]),
+      fevi: String(38 + ((i * 7) % 25)), onda_e: String(80 + (i % 5) * 6),
+      e_sep: String(5 + (i % 6) * 0.5), e_lat: String(7 + (i % 5) * 0.6),
+      ai_vol: String(55 + ((i * 11) % 45)), peso:'70', talla:'170',
+      it_grado: (i % 3 === 0 ? '4' : (i % 3 === 1 ? '2' : '1')) }));
+    for (let i = 0; i < 6; i++) sinCoc.push(REG({ fevi: String(52 + i * 2), peso:'70', talla:'170',
+      onda_e:'80', e_sep:'8', e_lat:'10', ai_vol: String(58 + i * 3), it_grado:'1' }));
+    const pintarAsoc = (pobl) => {
+      const oG = window.labGetInformes, oI = window.getInformes;
+      window.labGetInformes = function () { return pobl; };
+      window.getInformes = function () { return pobl; };
+      try { labAsocARender(); } catch (e) {}
+      window.labGetInformes = oG; window.getInformes = oI;
+      const h = document.getElementById('lab-asocA-tabla');
+      return h ? [].slice.call(h.querySelectorAll('tr.asocA-fila')).map(tr =>
+        [].slice.call(tr.children).map(td => (td.textContent || '').replace(/\\s+/g, ' ').trim())) : [];
+    };
+    const fA = pintarAsoc(conCoc.concat(sinCoc));
+    const filaDe = (et) => fA.filter(f => f[0].indexOf(et) > -1)[0] || null;
+    ex.push(['DENOMINADOR: el bloque de asociaciones pinto sus trece filas', fA.length === 13,
+      'n=' + fA.length]);
+    const CUATRO = ['TAPSE/PSAP ' + String.fromCharCode(8211) + ' FEVI',
+                    'TAPSE/PSAP ' + String.fromCharCode(8211) + " E/e'",
+                    'TAPSE/PSAP ' + String.fromCharCode(8211) + ' Vol AI indexado',
+                    'TAPSE/PSAP ' + String.fromCharCode(8211) + ' Insuficiencia tricuspidea'];
+    ex.push(['(H) las cuatro asociaciones del cociente existen', CUATRO.every(e => !!filaDe(e)),
+      JSON.stringify(CUATRO.filter(e => !filaDe(e)))]);
+    /* ⚠️ EL n ES EL DE LOS QUE TIENEN EL COCIENTE —14— Y NO EL DE LA COHORTE —20—: ahi esta el
+       sesgo de seleccion que la nota declara. Con 20 el caso estaria midiendo otra cosa. */
+    ex.push(['(H) el n de las cuatro es 14 —los que tienen el cociente— y no 20, que es la cohorte',
+      CUATRO.every(e => filaDe(e) && filaDe(e)[1] === '14'),
+      JSON.stringify(CUATRO.map(e => filaDe(e) ? filaDe(e)[1] : '?'))]);
+    ex.push(['(H) las tres numericas usan Spearman y la del grado de IT Kruskal-Wallis',
+      CUATRO.slice(0, 3).every(e => filaDe(e) && filaDe(e)[2] === 'Spearman') &&
+      filaDe(CUATRO[3]) && filaDe(CUATRO[3])[2] === 'Kruskal-Wallis',
+      JSON.stringify(CUATRO.map(e => filaDe(e) ? filaDe(e)[2] : '?'))]);
+    ex.push(['(H) solo la del grado de IT lleva la marca de circularidad',
+      filaDe(CUATRO[3]) && filaDe(CUATRO[3])[0].indexOf(String.fromCharCode(9888)) > -1 &&
+      CUATRO.slice(0, 3).every(e => filaDe(e) && filaDe(e)[0].indexOf(String.fromCharCode(9888)) === -1),
+      JSON.stringify(CUATRO.map(e => filaDe(e) ? filaDe(e)[0] : '?'))]);
+    /* CONTROL NEGATIVO: con SOLO los seis que no tienen cociente, las cuatro se abstienen. */
+    const fSin = pintarAsoc(sinCoc);
+    const filaSin = (et) => fSin.filter(f => f[0].indexOf(et) > -1)[0] || null;
+    ex.push(['(H) CONTROL NEGATIVO: con los seis SIN cociente, las cuatro dan n=0 y NO publican resultado',
+      CUATRO.every(e => filaSin(e) && filaSin(e)[1] === '0' && filaSin(e)[4] === GUION),
+      JSON.stringify(CUATRO.map(e => filaSin(e) ? filaSin(e)[1] + '/' + filaSin(e)[4] : '?'))]);
+    /* ⚠️ EL BLOQUE ARMADO NO OFRECE EL COCIENTE CONTRA SUS DOS COMPONENTES (decision (c)). */
+    ex.push(['(H) y el bloque armado NO ofrece el cociente contra el TAPSE ni contra la PSAP',
+      fA.filter(f => /TAPSE\\/PSAP/.test(f[0]) &&
+        (/TAPSE\\/PSAP.*TAPSE$|TAPSE\\/PSAP.*PSAP$/.test(f[0].replace(/[^A-Za-z\\/ ]/g, '')))).length === 0,
+      JSON.stringify(fA.filter(f => /TAPSE\\/PSAP/.test(f[0])).map(f => f[0]))]);
+
+    /* ══ I · LA ASOCIACION LIBRE Y EL AVISO DE PAR ACOPLADO ══════════════════════════════ */
+    const libre = (kx, ky) => {
+      if (!FN('labAsocLibreCalcular')) return 'SIN FN';
+      const oG = window.labGetInformes, oI = window.getInformes;
+      const pobl = conCoc.concat(sinCoc);
+      window.labGetInformes = function () { return pobl; };
+      window.getInformes = function () { return pobl; };
+      let txt = 'SIN RESULTADO';
+      try {
+        if (FN('labAsocLibreReset')) labAsocLibreReset(true);
+        if (FN('labAsocLibreInit')) labAsocLibreInit();
+        const sx = document.getElementById('asocL-x'), sy = document.getElementById('asocL-y');
+        if (sx && sy) {
+          const hay = [].slice.call(sx.options).map(o => o.value);
+          if (hay.indexOf(kx) < 0 || hay.indexOf(ky) < 0) txt = 'FALTA LA OPCION';
+          else { sx.value = kx; sy.value = ky; labAsocLibreCalcular();
+            const r = document.getElementById('lab-asocL-resultado');
+            txt = r ? (r.textContent || '').replace(/\\s+/g, ' ').trim() : 'SIN NODO'; }
+        }
+      } catch (e) { txt = 'EXC: ' + e.message; }
+      window.labGetInformes = oG; window.getInformes = oI;
+      return txt;
+    };
+    const lT = libre('tpsp', 'tapse'), lP = libre('tpsp', 'psap'), lF = libre('tpsp', 'fevi');
+    ex.push(['(I) el selector de la asociacion libre ofrece el cociente', lT.indexOf('FALTA') === -1, lT.slice(0, 60)]);
+    ex.push(['(I) el cociente contra el TAPSE avisa que la asociacion es esperable por construccion',
+      lT.indexOf('por construccion') > -1 && lT.indexOf('INCLUYE esa medida') > -1, lT.slice(0, 190)]);
+    ex.push(['(I) y contra la PSAP tambien', lP.indexOf('por construccion') > -1, lP.slice(0, 190)]);
+    ex.push(['(I) CONTROL NEGATIVO: contra la FEVI NO avisa — no es un par acoplado',
+      lF.indexOf('por construccion') === -1 && lF.indexOf('tautol') === -1, lF.slice(0, 160)]);
+    /* ⚠️ LOS DOS PARES QUE YA EXISTIAN CONSERVAN SU WORDING: \`_libreCircular\` paso a devolver
+       dos formas en vez del sujeto, y una sola frase le habria cambiado el texto a uno. */
+    const lH = libre('hfpeff', 'ee');
+    ex.push(['(I) CONTROL: el par de un PUNTAJE con su componente conserva su frase de siempre',
+      lH.indexOf('uno de los criterios que PUNT') > -1 && lH.indexOf('INCLUYE esa medida') === -1,
+      lH.slice(0, 190)]);
+
+    /* ══ J · LOS CONTROLES ═══════════════════════════════════════════════════════════════ */
+    /* Las 436 columnas anteriores con su MISMO valor. El renombre cambia DOS claves, asi que se
+       mapean antes de comparar: sin eso el control dice «distinto» por un renombre autorizado. */
+    const REN = { 'PHT IAo (ms)':'THP IAo (ms)', 'TAVI RPV PHT (ms)':'TAVI RPV THP (ms)' };
+    const esperadas = Object.keys(base || {}).filter(k => k !== COL_T && k !== COL_A);
+    ex.push(['(J) las 436 columnas anteriores siguen ahi: 438 menos las dos nuevas',
+      esperadas.length === 436, 'n=' + esperadas.length]);
+    ex.push(['(J) y los dos nombres renombrados estan presentes una sola vez cada uno',
+      Object.keys(REN).every(v => esperadas.indexOf(REN[v]) > -1 && esperadas.indexOf(v) === -1),
+      JSON.stringify(esperadas.filter(k => /PHT|THP/.test(k)))]);
+    /* CONTROLES de las superficies que esta tanda NO toca. */
+    __t.limpiar();
+    __t.set('fevi','45'); __t.set('ddfvi','58'); __t.set('dsfvi','42'); __t.set('siv','13');
+    __t.set('ppvi','12'); __t.set('peso','80'); __t.set('talla','172');
+    __t.set('vmax_ao','4.2'); __t.set('gmedio_ao','45');
+    __t.set('avm_plan','1.2'); __t.set('em_gmedio','12');
+    __t.set('ip_ap_diam','26');
+    const inf = __t.informe();
+    ex.push(['(J) CONTROL: el informe sigue graduando la aortica y la mitral, y el diametro de la AP NO aparece',
+      /estenosis/i.test(inf.inf) && inf.inf.indexOf('arteria pulmonar') === -1 &&
+      inf.inf.indexOf('26 mm') === -1,
+      (inf.inf.match(/[^.]*estenosis[^.]*\\./) || [''])[0].slice(0, 130)]);
+    ex.push(['(J) CONTROL: el EN SUMA tampoco lo nombra',
+      inf.suma.indexOf('arteria pulmonar') === -1 && inf.suma.length > 0, inf.suma.slice(0, 120)]);
+    ex.push(['(J) CONTROL: los ocho grados se siguen consignando',
+      __t.val('ea_grado') === 'severa' && __t.val('em_grado') === 'severa',
+      'ea=' + __t.val('ea_grado') + ' em=' + __t.val('em_grado')]);
+    /* ⚠️ LIMITE DECLARADO, para que el dia que cambie se note: la mini-tabla del PDF de
+       auditoria y el PPT estadistico leen \`counts\`/\`bases\` y NO \`bin\`, asi que la estenosis
+       tricuspidea BINARIA sigue sin contarse ahi. Esta tanda no lo toca. */
+    ex.push(['(J) LIMITE DECLARADO: el PPT y la mini-tabla del PDF leen counts y no bin, asi que la tricuspide binaria sigue sin contarse ahi',
+      !!vc && vc.counts.Severa[iET] === 0 && !!BIN(vc, iET) && BIN(vc, iET).cuentas.Severa === 2,
+      vc ? ('counts=' + vc.counts.Severa[iET] + ' bin=' +
+            (BIN(vc, iET) ? BIN(vc, iET).cuentas.Severa : 'SIN bin')) : 'SIN vc']);
+    __t.limpiar();
+
+    return { extra: ex };
+  })();
+`);
+
 
 
 let servidor, chrome;

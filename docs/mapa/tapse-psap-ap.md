@@ -61,6 +61,13 @@ bordes del lado que publica la fuente.
 
 `docs/PENDIENTES.md` → **G1-8** y **G1-9**.
 
+⚠️ **DESDE EL G2 (2026-10-15) EL DUEÑO ACEPTA UN `src`** —un objeto `campos` de un estudio
+ARCHIVADO— y tiene un segundo nombre, **`vdTapsePsapRed(src)`**, que es el dueño único del
+redondeo a `VD_TPSP_DEC` (= 3) decimales. Lo leen la fila de la pantalla, la columna del Excel y
+las cuatro asociaciones del Laboratorio, así que las tres publican el MISMO número. El predicado
+`!t || !p` no cambió en ninguna de las dos ramas, porque `calcTEP` lee esta función.
+Ver `docs/mapa/laboratorio-asociaciones-valvulas.md` y `docs/mapa/informe-pdf-excel.md`.
+
 ⚠️ **EL 0,32 DE LA PANTALLA DE TEP TIENE FUENTE PERO NO ES UN CRITERIO DE TEP.** ESC/ERS 2022,
 folio 41: es el umbral de **BAJO RIESGO en hipertensión arterial pulmonar**. Por eso **no** se
 agregó la frase «probabilidad de TEP» que la orden ofrecía. `docs/PENDIENTES.md` → **G1-2**.

@@ -44,6 +44,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar un CRITERIO o un CORTE del puntaje HFA-PEFF**: la tabla contra el original, las tres contradicciones del artículo, la PSAP o el operador del IMVI | `docs/mapa/hfapeff-criterios.md` |
 | **Tocar los VOLÚMENES del VI en AI/VI**: el VSFVI automático, el volumen latido automático, quién lee el VSFVI, o el GASTO CARDÍACO del PDF y su frecuencia cardíaca | `docs/mapa/vi-volumenes-automaticos.md` |
 | **Ver por dónde sale un dato** (informe narrativo, EN SUMA, PDF, Excel) | `docs/mapa/informe-pdf-excel.md` |
+| **Tocar las ASOCIACIONES del Laboratorio o la TABLA DE LAS OCHO VÁLVULAS**: el cociente TAPSE/PSAP en el bloque A, el aviso de par acoplado, las dos estenosis BINARIAS y sus dos denominadores | `docs/mapa/laboratorio-asociaciones-valvulas.md` |
 | **Agregar o correr un caso de prueba; A/B; mutación** | `docs/mapa/tests.md` |
 | **Visor de cineloop, medición, calibración, IndexedDB** | `docs/mapa/imagenes-visor.md` |
 | **Tocar la ESTENOSIS MITRAL en el LABORATORIO**: las seis categorías, las dos casillas del filtro, el gráfico de distribución, el PDF de auditoría o el PPT | `docs/mapa/laboratorio-estenosis-mitral.md` |
@@ -251,6 +252,208 @@ impecable.
 ---
 
 ## Estado vigente
+
+### El EXCEL en 438 columnas, el ALIAS «PHT»→«THP», las asociaciones del TAPSE/PSAP y las dos estenosis BINARIAS del Laboratorio — «G2» (2026-10-15)
+
+- **Es la tanda «G2».** Al **empezar**, `main` y `origin/main` estaban los dos en **`1e8125f`**
+  (sello `v20261015-0715`), **sin nada sin pushear** —confirmado con un `git fetch` de verdad—,
+  con los cinco commits del G1 ya incluidos **y pusheados**. Los **cuatro** commits de esta tanda
+  quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 4 → 3 → 2 → 1.**
+  ⚠️ **EL 2 Y EL 3 CUELGAN DEL 1, Y POR PIEZAS DISTINTAS.** El 2 usa `vdTapsePsapRed`, que **nace
+  en el 1**: revertir el 1 primero deja las cuatro asociaciones llamando a una función que no
+  existe, y como `A_TPSP` se evalúa al construir `ASSOC_A`, eso es un **`ReferenceError` de nivel
+  superior que aborta el `<script>` COMPLETO** —la app sin pestañas—. El 3 cuelga del 1 sólo por
+  la sonda.
+  ⚠️ **EL 3 SE REVIERTE SOLO respecto del 2** (uno es el Laboratorio-asociaciones y el otro el
+  Laboratorio-válvulas, y no se nombran), **pero el 1 LLEVA LA SONDA** (`scripts/_probe_g2.mjs`),
+  que los tres usan.
+  **El 4 es TC-477 más documentación y el sello**, y afirma el comportamiento de los tres:
+  revertir cualquiera sin el 4 deja TC-477 en rojo.
+  ⚠️ **Y EL 1 ADAPTÓ 65 RENGLONES DE «436» MÁS TC-135 Y TC-476**: revertirlo sin reponer esos
+  números deja la suite entera en rojo por el denominador del Excel, no por un defecto. **El 3
+  adaptó TC-142.**
+
+- ⚠️ **LA LÍNEA BASE DE CIERRE NO SE PUDO MEDIR: EL PENDRIVE `DISK_IMG` SE DESMONTÓ A MITAD DE LA
+  TANDA.** Estaba **MONTADO** al abrir —y con él se midió la de ENTRADA, **486/490 con los cuatro
+  rojos de siempre** (**TC-223**, **TC-376**, **TC-390**, **TC-406**), `md5` `437ea7c3…` quieto—
+  y al ir a correr la de cierre ya no estaba (`/Volumes` sólo tiene `Macintosh HD`). La orden
+  manda **PARAR** en ese caso, así que la corrida se detuvo antes de empezar y **queda
+  PENDIENTE**: con el pendrive afuera caerían además los **diecisiete** de **TC-181…TC-197**, que
+  son ENTORNO y no prueban nada — restar esas dos cifras daría una «regresión» de 17 casos que no
+  existe, que es el falso que este archivo ya documenta dos veces.
+  **Lo que SÍ está medido después de sellar**, y ninguno necesita el pendrive:
+  **16/16 en la zona** (TC-131, TC-135, TC-137, TC-139, TC-142, TC-253, TC-254, TC-255, TC-469,
+  TC-470, TC-472, TC-473, TC-474, TC-475, TC-476 y **TC-477**), **Semgrep 127 / 0 ERROR**,
+  **Excel en 438 columnas** y **celular 43 a 360 px y 52 a 390 px con 1 ALTA cada uno —IDÉNTICO a
+  la línea base—**. **El denominador sube a 491**: esta tanda agregó **TC-477**.
+- **EL SELLO DE VERSIÓN** estaba al día al empezar (`v20261015-0715`) y se volvió a sellar en el
+  commit 4: **`v20261015-1336`**. Los 16 casos, Semgrep y el chequeo de celular se midieron
+  **DESPUÉS** de sellar, con el `md5` quieto (`4d95fd14…`).
+
+- **Dónde está todo:** `docs/mapa/laboratorio-asociaciones-valvulas.md` (**mapa NUEVO**, 10,9 KB:
+  el dueño del cociente, qué hace el módulo con una variable sesgada, las cuatro entradas, la
+  población propia, el aviso de par acoplado, el reparto `counts`/`bin`, los dos defectos que
+  cierra y las siete trampas), `docs/mapa/informe-pdf-excel.md` → las dos columnas, los **dos
+  criterios de derivada** y el alias (**25,6 KB**), `docs/mapa/tapse-psap-ap.md` y
+  `docs/mapa/laboratorio-estenosis-mitral.md` → sendos punteros, `docs/fuentes/FUENTES.md` → por
+  qué esta tanda **no lleva ninguna cita nueva**, y `docs/PENDIENTES.md` → **D2-3 y G1-10
+  marcados CERRADOS** más **siete** cosas declaradas (**G2-1 a G2-7**).
+
+- **EL EXCEL PASA DE 436 A 438, Y LAS 436 ANTERIORES SALEN CON EL MISMO VALOR.** Comparadas
+  **CLAVE POR CLAVE** con el renombre mapeado, con escenario cargado y con el formulario vacío:
+  cero faltantes, cero sobrantes y **CERO valores distintos**.
+  · **`TAPSE/PSAP (mm/mmHg)`**, bloque **5**, índice **51**, tras `DisfSist_VD`.
+  · **`Diámetro arteria pulmonar (mm)`**, bloque **8**, índice **100**, tras `IP etiología`.
+  **Los tres asserts de arranque del Excel corren limpios.**
+  ⚠️ **NINGÚN CONSUMIDOR LEE ESTE EXCEL POR POSICIÓN, Y SE RE-VERIFICÓ:** el export arma un
+  objeto y lo ordena `_labOrdenarCols`, el importador lee por **nombre de encabezado**, y
+  CeiboAnalytics no lo lee (cero `XLSX.read`). Las cinco apps hermanas que sí leen Excel tienen el
+  suyo: `ergosmart` y `ecoestres` por nombre, y `datasmart`, `ecovoz` y `Resistsmart` con
+  `header:1` pero sobre **su propio** dataset genérico, nombrando columnas por la fila 1. Por eso
+  las dos nuevas pudieron ir **junto al VD y a la pulmonar** y no al final.
+
+- ⚠️ **HAY DOS CRITERIOS DE COLUMNA DERIVADA EN LA CASA Y HABÍA QUE ELEGIR.** (a) con CAMPO
+  —`PSAP (mmHg)`, `AVm THP`, `AVA`— están en `LAB_XLS_MAP` y se apartan por
+  `LAB_XLS_SOLO_EXPORT`; (b) SIN campo —`FAC VD (%)`, `DisfSist_VD`, `DD_I`— **no** están en el
+  mapa y se declaran en `LAB_XLS_BLOQUES`. **El cociente no tiene campo en el DOM, así que sigue
+  el (b)**; el diámetro es un campo de ENTRADA y **sí se reimporta**. La diferencia menor queda
+  declarada: el mensaje del importador para el cociente es «no corresponde a un campo editable» y
+  no el más informativo de la PSAP. `PENDIENTES.md` → **G2-2**.
+
+- **EL DUEÑO DEL COCIENTE GANÓ UNA RAMA `src` Y UN DUEÑO DE PRECISIÓN**, con el patrón de
+  `emContFueraBanda(src)`: sin argumento lee el FORMULARIO, con un objeto `campos` lee un estudio
+  ARCHIVADO. **El predicado `!t || !p` no cambió en ninguna de las dos ramas**, porque `calcTEP`
+  lo lee desde el G1. Y `vdTapsePsapRed` + `VD_TPSP_DEC` son hoy el único dueño del redondeo a
+  tres decimales: la fila de la pantalla dejó de repetir su `Math.round(x * 1000)`. **Medido por
+  sus bordes**: 18/50 → `0.36`, 18/51 → `0.353`, 22/40 → `0.55`; **vacía —no 0— sin TAPSE o sin
+  PSAP**.
+
+- **EL ALIAS «PHT» → «THP» CIERRA D2-3, Y NO CAMBIA EL NÚMERO DE COLUMNAS.** Los dos encabezados
+  pasan al nombre nuevo con el viejo en el **cuarto elemento** de `LAB_XLS_MAP`, que es el
+  mecanismo que esa entrada proponía. **Medido con el importador de verdad**: un Excel con los dos
+  nombres viejos entra con «1 fila válida» y **sin ninguna columna ignorada**; con los nuevos
+  también; y un Excel VIEJO de 436 sin las dos columnas entra sin error.
+  ⚠️ **EL PREFIJO DEL BLOQUE 8 TUVO QUE SEGUIR EL RENOMBRE** (`'PHT IAo'` → `'THP IAo'`): sin eso
+  la columna caía al bloque «18 · OTRAS COLUMNAS». Lo caza `_labXlsAssertBloques`.
+
+- **QUÉ HACE ESTE MÓDULO CON UNA VARIABLE SESGADA — MEDIDO, NO SUPUESTO: NO LA TRANSFORMA NI LA
+  CATEGORIZA.** Censo del bloque: **cero `Math.log`, cero prueba de normalidad**, y sus cuatro
+  pruebas son no paramétricas (Spearman, Mann-Whitney, Kruskal-Wallis y chi²). Spearman trabaja
+  por RANGOS, así que es invariante a cualquier transformación monótona: categorizar el cociente
+  en sus tres tramos le quitaría información sin ganar robustez. Entra **crudo**.
+
+- **LAS CUATRO ASOCIACIONES, CON SU n REAL.** FEVI, E/e′ y Vol AI indexado por **Spearman**; el
+  **grado de IT** por **Kruskal-Wallis**, porque son cuatro categorías ordinales —y sus grupos
+  salen de `_labRegurgSev`, el mismo dueño que cuenta la tabla de válvulas—. **Medido con 14
+  estudios CON cociente y 6 SIN: las cuatro publican n = 14 y no 20.**
+  ⚠️ **POBLACIÓN PROPIA (`A_POBL.tpsp`) Y NO `todos`, Y ESO ES LO QUE HACE VISIBLE EL SESGO:** con
+  `todos`, el `nPob` del detalle habría contado la cohorte entera y el lector no tendría forma de
+  saber que la mitad nunca entró. La advertencia es **una sola constante** (`A_NOTA_SESGO`) y no
+  cuatro copias.
+  **CONTROL NEGATIVO:** con los SEIS que no tienen cociente, las cuatro dan **n = 0** y no
+  publican resultado.
+
+- **EL AVISO DE PAR ACOPLADO: EL BLOQUE ARMADO NO OFRECE ESOS PARES Y EL LIBRE SÍ LOS AVISA.**
+  Familia nueva `_LIBRE_ACOPLADOS`, **aparte** de `_LIBRE_COMPONENTES`, porque un COCIENTE contra
+  uno de sus factores no es un puntaje contra su componente y la frase «es uno de los criterios
+  que PUNTÚAN X» sería falsa. Medido: avisa con el cociente contra el TAPSE (ρ 0,72) y contra la
+  PSAP (ρ −0,34), y **NO** avisa contra la FEVI ni en el par de control FEVI-PSAP.
+  ⚠️ **`_libreCircular` DEVUELVE DOS FORMAS, `corta` y `larga`, Y NO UNA**: los dos sitios que
+  publican el aviso usaban textos **distintos**, así que una sola frase le habría cambiado el
+  wording a uno de los dos pares que ya existían. **Medido: el texto de `hfpeff – E/e′`, el de
+  `amil – TAPSE` y el del par sin datos salen IDÉNTICOS a HEAD.**
+
+- ⚠️ **ESCENA QUE CAMBIA CONTRA HEAD, DECLARADA: el p AJUSTADO de «PSAP – TAPSE» pasa de 0,449 a
+  0,829** en la población de la sonda. **No es un defecto**: el ajuste BH corre sobre la familia
+  del bloque, que pasó de 9 a 13 entradas — «la multiplicidad la genera el haber mirado, no el
+  haber mostrado», dice el propio comentario de `_bh`. **El p CRUDO no se mueve.**
+  `PENDIENTES.md` → **G2-5**.
+
+- **LAS DOS ESTENOSIS BINARIAS, Y `counts` NO SE TOCÓ.** La MITRAL publica «Mod» con un **guion**
+  y no con un cero, y la TRICÚSPIDE sólo «Sev» = «Significativa». La lectura binaria viaja en una
+  estructura **PARALELA** (`bin`, aditiva) que consumen **sólo** la tabla y el apilado: **el PPT
+  estadístico y la mini-tabla del PDF de auditoría salen IDÉNTICOS a HEAD por CONSTRUCCIÓN**, no
+  por una medición a posteriori. **Medido: `counts` y `bases` byte por byte iguales en las tres
+  escenas**, y las SEIS lesiones ajenas con sus cuatro cubetas numéricas intactas.
+  ⚠️ **`_labEstenSev` NO SE TOCA**: lo leen además el filtro de cohorte, el buscador y la
+  mini-tabla del PDF por lesión.
+
+- ⚠️ **EL CASO DEL MÉDICO REPRODUCE, Y HAY DOS DEFECTOS Y NO UNO.** Medido en HEAD: (1) con un
+  `et_grado` **LEGADO** «Leve» la fila decía `ET | 2 | 1 | 0 | 0`, o sea el Laboratorio rotulaba
+  «leve» una válvula que la app ya no gradúa — exactamente lo que el médico vio; (2) **peor, y
+  nadie lo había visto**: con los tokens **VIGENTES**, `_labEstenSev('Significativa')` devuelve
+  **`null`** —«significativa» no contiene la subcadena «sin»— así que **dos estenosis
+  tricuspídeas significativas quedaban FUERA de la fila**. No es un rótulo equivocado: es una
+  pérdida silenciosa. Hoy la fila dice `ET | — | — | — | 2`.
+  ⚠️ **LOS TRES GRADOS LEGADOS NO SE TRADUCEN**: mapear «Severa» a «Significativa» sería inventar
+  una equivalencia que la guía no hace, que es el mismo argumento con el que la tanda del
+  2026-10-05 decidió **no migrar** esos estudios. Cuentan en la base y no se afirman.
+
+- **LOS DOS DENOMINADORES SE DECLARAN Y NO SE UNIFICAN** (decisión de la orden): la tabla cuenta
+  sobre el **total del período** y el gráfico propio de la estenosis mitral deja **fuera** los
+  estudios sin dato. Cada uno publica su `n` en su propio pie, y el de la tabla nombra el del
+  otro. **CAPTURA PNG en los DOS temas, con `md5` distinto** —o sea que `light-mode` quedó puesta
+  de verdad— y mirada: los guiones se ven y los acentos del pie están completos.
+
+- **CONTROL NEGATIVO MAYOR, con escenario CARGADO y con el formulario vacío: informe en los tres
+  estilos, EN SUMA, PPT, PDF (865 textos, idénticos) y los ocho grados con sus ocho pastillas
+  salen IDÉNTICOS a HEAD** en los tres commits.
+
+- **Arnés: `scripts/_probe_g2.mjs`** (A/B de solo lectura con `--file`, y `--dest` para las
+  capturas), nueve grupos (`excel`, `import`, `alias`, `asoc`, `libre`, `valv`, `captura`,
+  `teclas`, `controles`), con el importador y el PDF **ejecutados de verdad**.
+  **Cobertura: TC-477**, **57 condiciones** —contadas instrumentando el propio caso para que
+  publicara su `ex.length`— con seis denominadores y seis controles negativos. **Verificado que
+  sabe fallar contra HEAD en un worktree aparte: 40 de las 57 en rojo, y NINGUNA por excepción.**
+- ⚠️ **TC-477 MORÍA POR EXCEPCIÓN CONTRA HEAD EN SU PRIMERA VERSIÓN** (`vc.bin[iET]` sobre un
+  `bin` que allá no existe), **con la lección escrita en su propia cabecera**. Toda lectura de
+  `bin` va por un ayudante con centinela. Misma lección que TC-455, TC-462, TC-465, TC-471,
+  TC-473, TC-474 y TC-475.
+- ⚠️ **CASOS ADAPTADOS: TRES**, con el motivo escrito en cada uno, más **65 renglones** de «436» a
+  «438». **TC-135** (las dos nuevas caen como BÁSICAS: 136/436 → **138/438**, y las dos cuentas
+  crecen igual, que es lo que ese caso vigila), **TC-476** (su condición «NINGUNA nombra la
+  arteria pulmonar» era el **límite declarado del G1**, escrito para que el día que entrara se
+  notara — y lo notó) y **TC-142** (su escena usaba el token legado `'Severa'` de la tricúspide y
+  pasa al vigente; su condición «quedan en Sin» pasa a exigir el guion). **TC-472** pasa a afirmar
+  lo contrario de lo que afirmaba, **por los dos lados**: los tres encabezados dicen THP **y** el
+  importador sigue encontrando los dos nombres viejos por alias.
+  ⚠️ **El título de TC-470 conserva su «(436 columnas)»**: es un renglón histórico de esa tanda.
+
+- ⚠️ **TRES TRAMPAS DEL MISMO TIPO, Y LAS TRES DABAN MEDICIONES FALSAS Y PLAUSIBLES: UNA `let` DE
+  MÓDULO NO ES UNA PROPIEDAD DE `window`.** (1) `_labImpDatos` — la sonda informó «hay: false» en
+  las cuatro escenas del importador sobre un importador que funcionaba; se lee el **modal** que
+  `labImpRender` pinta. (2) `valvSevConfirmada` — `generarPDF` abría la tarjeta de severidad y el
+  PDF salía con **0 textos**; se entra por `_pdfAjustarA4`, que el comentario de `generarPDF`
+  declara como el único camino de todos sus llamadores. (3) Es la misma trampa que `ECO_AYUDA` ya
+  tiene escrita.
+- ⚠️ **UN `ReferenceError` DE NIVEL SUPERIOR ABORTA EL `<script>` COMPLETO, Y SEMGREP NO LO VE.**
+  La primera versión de la nota de sesgo nombraba una constante **sin declarar**: `labAsocARender`
+  quedaba `undefined` y la app cargaba sin asociaciones. Semgrep dio **127 / 0 ERROR** igual —no
+  es un error de sintaxis—. Lo dieron la **sonda** (con «SIN labAsocARender» en las once escenas,
+  en vez de reventar) y la **consola del navegador**, con la línea exacta.
+- ⚠️ **LA TARJETA «VALVULOPATÍAS» VIVE EN LA SUBTAB «MEDICIONES», NO EN «GENERAL».** Una captura
+  tomada tras `labSubTab('general')` sale de **otra pantalla**, con la tabla pintada en un panel
+  con `display:none`. Lo delató la cadena de padres que imprime el aborto. Y **`labSubTab(id, el)`
+  exige el botón** —sin `el` revienta— y además corre `labAccCerrarTodos`, así que el acordeón hay
+  que abrirlo **después** de entrar. **`labRenderExtras` pinta pero no navega: pintar no es
+  mostrar.**
+- ⚠️ **LA PSAP NO SALE SÓLO DE LA VMAX**: es `4·VRT² + PmAD`, y sin el diámetro y el colapso de la
+  VCI queda VACÍA — la fila del cociente decía «—» y se leía como «el cociente no funciona».
+- ⚠️ **EL HASH DE «las 436 anteriores» NO ALCANZA CUANDO HAY UN RENOMBRE**: el de «PHT»→«THP»
+  cambia DOS claves, así que el hash difiere de forma legítima y deja de distinguir «se renombró
+  algo» de «cambió un valor». Hay que comparar **clave por clave** con el renombre mapeado.
+- ⚠️ **UN A/B CON GRUPOS DISTINTOS NO SE COMPARA**: el conteo de campos del grupo `teclas` dio 201
+  en una corrida completa y 199 en una de dos grupos, **sobre el mismo árbol**. Es estado de
+  sesión, no un cambio del commit. Remedir HEAD **con los mismos grupos** antes de sospechar.
+- ⚠️ **Me comí el acento grave DIEZ veces**, todas en comentarios míos dentro del template de la
+  sonda o del cuerpo de un caso, con el archivo que documenta la trampa abierto delante.
+  `scripts/check_backticks.py` dio la línea exacta las diez; `node --check` apuntaba a la apertura
+  del template. **Y esta vez SÍ alcanzó a un `ev(\`…\`)` inline de la sonda**, que es lo que la
+  tanda del cartel de péptidos declaraba fuera de su cobertura.
+- ⚠️ **UN `heredoc` DE PYTHON QUE NO LLEGA A EJECUTARSE DEJA EL ARCHIVO SIN TOCAR Y EL `assert`
+  NO AVISA:** una edición de TC-142 «se aplicó» en el reporte y el archivo seguía con el valor
+  viejo. **Verificar con `grep` que la edición quedó, no confiar en el `ok` impreso.**
 
 ### El VENTRÍCULO DERECHO en tres columnas, el TAPSE/PSAP y el diámetro de la ARTERIA PULMONAR — «G1» (2026-10-15)
 

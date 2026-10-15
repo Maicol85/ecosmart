@@ -240,6 +240,46 @@ vuelta: por eso no se puede reusar para derivadas. `LAB_XLS_TRAS` — derivadas 
 pegadas a la suya (`DVI mitral` → `DVI mitral (fuente)`).
 `LAB_XLS_SOLO_EXPORT` — campos que salen y no vuelven. `_labXlsEsCalculado(dest)` — el predicado
 real de «no se reimporta»: está en `LAB_XLS_SOLO_EXPORT` **o** el input es `readonly`.
+
+### Las DOS columnas del G2 (2026-10-15), y los DOS criterios de «derivada»
+
+| Columna | Bloque | Posición | ¿Se reimporta? |
+|---|---|---|---|
+| **`TAPSE/PSAP (mm/mmHg)`** | 5 · VENTRÍCULO DERECHO | tras `DisfSist_VD` | **no** |
+| **`Diámetro arteria pulmonar (mm)`** | 8 · VÁLVULAS | tras `IP etiología` | **sí** |
+
+El valor del cociente lo da **`vdTapsePsapRed(c)`**, el dueño único desde el G1, con sus **tres
+decimales**; la rama `src` existe porque el exportador no tiene formulario que leer. **Vacía —no
+0— sin TAPSE o sin PSAP.** El diámetro es el campo `ip_ap_diam`.
+
+⚠️ **EN LA CASA HAY DOS CRITERIOS DE COLUMNA DERIVADA Y HAY QUE ELEGIR EL QUE CORRESPONDE:**
+
+- **(a) con CAMPO** — `PSAP (mmHg)` (`psap_calc`), `AVm THP`, `AVA`: **están** en `LAB_XLS_MAP` y
+  se apartan por `LAB_XLS_SOLO_EXPORT`; el importador las lista como «un valor que la app calcula
+  sola».
+- **(b) SIN campo** — `FAC VD (%)`, `DisfSist_VD`, `DD_I`, `Geom_Normal`, `TS_Presente`: **no**
+  están en el mapa y se declaran en `LAB_XLS_BLOQUES`; el importador las lista como «no
+  corresponde a un campo editable».
+
+El cociente **no tiene campo en el DOM**, así que sigue el criterio **(b)**. Es la diferencia
+menor que el G2 declaró: su mensaje en el importador es el de (b) y no el de (a), más informativo.
+
+⚠️ **LA POSICIÓN LA DECIDE `LAB_XLS_BLOQUES` Y NO EL OBJETO LITERAL**: `_labOrdenarCols` manda al
+final lo que el mapa no conoce y **después** reagrupa por bloque, así que sin su declaración el
+cociente habría caído al bloque «18 · OTRAS COLUMNAS».
+
+### El alias «PHT» → «THP» (G2), que cierra D2-3
+
+`PHT IAo (ms)` → **`THP IAo (ms)`** y `TAVI RPV PHT (ms)` → **`TAVI RPV THP (ms)`**, las dos con
+el nombre viejo en el **cuarto elemento** de su entrada de `LAB_XLS_MAP` — el mecanismo de alias
+de ENTRADA que ya existía y que `_cabsDe` consulta. **El número de columnas no cambia.**
+
+⚠️ **EL PREFIJO DEL BLOQUE 8 TUVO QUE SEGUIR EL RENOMBRE.** Era `'PHT IAo'`; sin cambiarlo a
+`'THP IAo'`, la columna renombrada caía al bloque «18 · OTRAS COLUMNAS». Lo caza
+`_labXlsAssertBloques`, que es para lo que está.
+
+> Las asociaciones y la tabla de válvulas del Laboratorio, en
+> **`docs/mapa/laboratorio-asociaciones-valvulas.md`**.
 `_labXlsImportables()` — el set de cabeceras que el importador acepta, calculado desde esas mismas
 estructuras. Vocabularios y validación: `LAB_XLS_VOCAB`, `_NUEVOS`, `_3E`, `LAB_XLS_OPCIONES`,
 `LAB_XLS_LISTAS`, `LAB_XLS_MAX_TXT`, `LAB_XLS_ETIQ` (+ `_labXlsEtiq`), `LAB_XLS_RANGO_PROPIO`,
