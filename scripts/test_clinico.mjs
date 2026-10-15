@@ -67817,21 +67817,27 @@ caso('TC-480', 'Tanda Z5: el veredicto de obstruccion de la protesis mitral vota
     const imLeve = CON_IM('1'), imMod = CON_IM('2'), imSev = CON_IM('4');
     ex.push(['CONTROL NEGATIVO: con IM LEVE los cuatro criterios siguen contando',
       POS(imLeve.P).length === 4 && MED(imLeve.P).length === 4, POS(imLeve.P).join('+')]);
+    /* ADAPTADO el 2026-10-15 (tanda Z6, commit 1): el denominador pasa de DOS criterios medidos a
+       UNO. Lo que cambio NO es el retiro del AEO ni el del DVI —siguen igual— sino que el
+       GRADIENTE MEDIO se retira con ellos, por la nota ‡ de la Tabla 11. La condicion conserva
+       las dos afirmaciones que si son de este caso y mueve el conteo. */
     ex.push(['con IM MODERADA o mayor, el AEO y el DVI se retiran: no cuentan ni como positivos ni como medidos',
       [imMod, imSev].every(function(e){ return e.P.porEoa == null && e.P.porDvi == null &&
         MED(e.P).indexOf('eoa') === -1 && MED(e.P).indexOf('dvi') === -1 &&
-        MED(e.P).length === 2 && e.P.motivo !== ''; }),
+        MED(e.P).length === 1 && e.P.motivo !== ''; }),
       'mod med=' + MED(imMod.P).join('+') + ' sev med=' + MED(imSev.P).join('+')]);
-    /* LIMITE DECLARADO (Z5, PARADA de sub-parte): la nota ‡ de la Tabla 11 marca el gradiente
-       medio junto al DVI y a la velocidad pico, pero la app retira el DVI con regurgitacion
-       MODERADA o mayor (EM_CONT_REGURG_MIN = 2) y la orden solo autorizaba retirar el gradiente
-       si ese umbral fuera SEVERA. No lo es, asi que el gradiente SIGUE contando y la diferencia
-       queda escrita aca para que el dia que se decida se note. Ver PENDIENTES -> Z5-1. */
-    ex.push(['LIMITE DECLARADO: el gradiente medio SIGUE contando con regurgitacion, y el umbral del retiro es MODERADA',
+    /* ADAPTADO el 2026-10-15 (tanda Z6, commit 1), Y ESTA CONDICION ERA EL LIMITE DECLARADO DEL
+       Z5: decia «el gradiente medio SIGUE contando con regurgitacion», escrita para que el dia
+       que se decidiera se notara. Se decidio y lo noto. Hoy afirma lo CONTRARIO por el gradiente
+       —se retira con el MISMO umbral que el DVI— y CONSERVA la parte que no cambio: que ese
+       umbral es MODERADA (EM_CONT_REGURG_MIN vale 2) y no severa. La escena es la misma. */
+    ex.push(['con regurgitacion el GRADIENTE MEDIO tambien se retira, con el MISMO umbral que el DVI (moderada)',
       (typeof EM_CONT_REGURG_MIN !== 'undefined' && EM_CONT_REGURG_MIN === 2) &&
-      MED(imSev.P).indexOf('gmed') > -1 && imSev.P.obstr === 'significativa',
+      MED(imSev.P).indexOf('gmed') === -1 && imSev.P.porGmed == null &&
+      imSev.P.gmed === 12 && imSev.P.obstr !== 'significativa' &&
+      imSev.inf.inf.indexOf('sugestivos de obstrucci') === -1,
       'umbral=' + String(typeof EM_CONT_REGURG_MIN !== 'undefined' ? EM_CONT_REGURG_MIN : '?') +
-      ' med=' + MED(imSev.P).join('+')]);
+      ' med=' + MED(imSev.P).join('+') + ' obstr=' + String(imSev.P.obstr)]);
 
     /* ══ D · LA VALVULA NATIVA NO TIENE VEREDICTO PROTESICO ══════════════════════════════ */
     { const nat = NAT('vm_morf'); if (nat) S('vm_morf', nat);
@@ -67908,9 +67914,14 @@ caso('TC-480', 'Tanda Z5: el veredicto de obstruccion de la protesis mitral vota
       ex.push(['declara el umbral como criterio EcoSmart y dice que la guia no publica cuantos hacen falta',
         r.txt.indexOf('Criterio EcoSmart') > -1 && r.txt.indexOf('no publica cu') > -1 &&
         r.txt.indexOf('Tabla 11') > -1, '']);
-      ex.push(['dice que la velocidad pico no cuenta y que el gradiente SIGUE contando con regurgitacion',
+      /* ADAPTADO el 2026-10-15 (tanda Z6, commit 1): la tarjeta tiene que describir EXACTAMENTE
+         lo que la app hace, y desde hoy el gradiente medio se retira con el AEO y el DVI. La
+         condicion afirma el texto nuevo Y que el viejo ya no esta, que es lo que distingue un
+         cambio de un agregado. */
+      ex.push(['dice que la velocidad pico no cuenta y que el gradiente medio se retira con el AEO y el DVI',
         r.txt.indexOf('velocidad pico se muestra') > -1 && r.txt.indexOf('no cuenta') > -1 &&
-        r.txt.indexOf('gradiente medio sigue contando') > -1, '']);
+        r.txt.indexOf('el AEO, el DVI y el gradiente medio se muestran y no concluyen') > -1 &&
+        r.txt.indexOf('gradiente medio sigue contando') === -1, '']);
       ex.push(['CONTROL NEGATIVO: NO lleva ninguna nota interna de verificacion ni reserva',
         r.txt.indexOf('PENDIENTES') === -1 && r.txt.indexOf('no se pudo verificar') === -1 &&
         r.txt.indexOf('reserva') === -1 && r.txt.toLowerCase().indexOf('verificada en texto completo') === -1,

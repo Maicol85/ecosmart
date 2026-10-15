@@ -36366,14 +36366,17 @@ const VINFO = Object.freeze({
      de la guia son los cuatro criterios, sus cortes y la nota de confianza diagnostica.
      ⚠️ Y EL BLOQUE DEL RETIRO DICE «moderada o mayor», QUE ES LO QUE LA APP HACE, y no «severa»:
      el umbral vive en `EM_CONT_REGURG_MIN` y vale 2. Escribir «severa» aca pondria en pantalla
-     una regla que la app no aplica, que es peor que la diferencia que declara. El gradiente medio
-     NO se retira hoy y la tarjeta lo dice: queda en `docs/PENDIENTES.md`. */
+     una regla que la app no aplica, que es peor que la diferencia que declara.
+     ⚠️ DESDE EL Z6 (2026-10-15) EL GRADIENTE MEDIO TAMBIEN SE RETIRA, y la tarjeta lo dice: la
+     nota `‡` de la Tabla 11 lo marca junto con el DVI y la velocidad pico. La tarjeta tiene que
+     describir EXACTAMENTE lo que la app hace, asi que esta linea y el `if` de `vmProtEOA` se
+     mueven juntos. La velocidad pico sigue sin retirarse porque no vota (Z5-2). */
   'prot-obstr': {
     tit: 'Obstrucción de la prótesis mitral: cómo se integra',
     lee: 'Criterio EcoSmart: la obstrucción se informa como significativa cuando DOS o más criterios caen en la banda sugestiva, contando sólo los que se pudieron medir. Con uno solo queda como hallazgo aislado y no sube al informe; con ninguno no se afirma obstrucción.',
     formula: 'Gradiente medio mayor de 10 mmHg\nTHP mayor de 200 ms\nDVI mayor de 2,5\nAEO menor de 1 cm²',
     fuente: 'ASE 2024 (Zoghbi), Tabla 11 y texto de la pág. 24. La guía enumera esos cuatro criterios y avisa que la exactitud diagnóstica es mejor cuando la mayoría de los parámetros coincide, pero no publica cuántos hacen falta: el umbral de dos es de la aplicación.',
-    ojo: 'La velocidad pico se muestra con su banda y no cuenta: la enumeración de la guía no la incluye. Con regurgitación protésica moderada o mayor, el AEO y el DVI se muestran y no concluyen, porque suben igual con la regurgitación; el gradiente medio sigue contando.'
+    ojo: 'La velocidad pico se muestra con su banda y no cuenta: la enumeración de la guía no la incluye. Con regurgitación protésica moderada o mayor, el AEO, el DVI y el gradiente medio se muestran y no concluyen, porque suben igual con la regurgitación.'
   },
   'prot-ppm': {
     tit: 'Desajuste pr\u00f3tesis-paciente de la mitral',
@@ -48702,10 +48705,11 @@ const VM_PROT_EOA_NORMAL_MIN = 2.0;   // AEO >= 2,0 cm2 es NORMAL (Tabla 11)
    ⚠️ LA BANDA DEL MEDIO DEL GRADIENTE TIENE UN HUECO IMPRESO: la tabla escribe «<=5» y «6-10», asi
    que un 5,5 no cae en ninguna columna. Se resuelve por COMPLEMENTO —normal hasta 5, significativa
    por encima de 10, posible en el medio— que es lo unico que no deja un valor sin leer.
-   ⚠️ LOS TRES SE PUBLICAN EN LA CAPSULA Y **NO** ENTRAN EN EL VEREDICTO `R.obstr`, que sigue
-   saliendo del AEO y del DVI como desde la Fase 2. Sumarlos cambiaria que escenas publican
-   «hallazgos sugestivos de obstruccion» en el INFORME FIRMADO, y que parametros votan es contenido
-   clinico. Queda declarado en `docs/PENDIENTES.md`. */
+   ⚠️ ESTE PARRAFO DECIA QUE LOS TRES SE PUBLICAN Y **NO** ENTRAN EN EL VEREDICTO, Y CADUCO EN EL
+   Z5: desde entonces el gradiente medio y el THP VOTAN —la prosa del folio 24 los nombra entre
+   los criterios principales— y lo que sigue sin votar es la velocidad pico, que esa misma prosa
+   omite. Ver `VM_PROT_OBSTR_VOTAN` mas abajo. Dejar el comentario viejo es como un arreglo se
+   deshace sin que nadie se entere. */
 const VM_PROT_T11 = Object.freeze({
   vmaxNormalMax: 1.9,   // m/s  — normal con `<`
   vmaxSignifMin: 2.5,   // m/s  — significativa con `>=`
@@ -48739,6 +48743,11 @@ window.VM_PROT_T11 = VM_PROT_T11;
    publicaba «(AEO …, DVI …)» desde la Fase 2, asi que empezar por el gradiente le cambiaria la
    oracion a todo estudio que HOY la emite sin que ningun veredicto se mueva. Los dos criterios
    nuevos van detras. El conteo no depende del orden; el texto si. */
+/* El motivo con que la fila del gradiente declara su retiro (Z6-1). Es texto de PANTALLA y de
+   nadie mas: este renglon no viaja al informe, al PDF ni al Excel —censado—, asi que no toca
+   ninguna superficie firmada. */
+const VM_PROT_GMED_RETIRO_TXT = 'sube igual con la regurgitación protésica significativa';
+window.VM_PROT_GMED_RETIRO_TXT = VM_PROT_GMED_RETIRO_TXT;
 const VM_PROT_OBSTR_MIN = 2;   // criterio EcoSmart: DOS o mas positivos -> significativa
 const VM_PROT_OBSTR_VOTAN = Object.freeze([
   Object.freeze({ k: 'eoa',  nivel: 'porEoa'  }),
@@ -48929,6 +48938,38 @@ function vmProtEOA(src) {
       fuera ? null : _vmProtNivelT11(x, f[2], f[3], f[4], f[5]);
   });
 
+  /* ══ Z6-1 — EL GRADIENTE MEDIO SE RETIRA CON REGURGITACION PROTESICA, COMO EL DVI ═════
+     Decision de Maicol, condicionada a la guia y VERIFICADA en el original: la nota `‡` de la
+     Tabla 11 (folio 27, renderizada a 400 dpi) marca TRES parametros —velocidad pico, gradiente
+     medio y DVI— y dice que tambien son anormales en presencia de una regurgitacion protesica
+     SIGNIFICATIVA. El AEO y el THP NO llevan esa marca. La orden autorizaba aplicar al gradiente
+     el MISMO retiro y el MISMO umbral que la app ya aplica al DVI si la guia hablaba de
+     regurgitacion «significativa», «moderada o mayor» o sin precisar grado: dice «significativa»,
+     asi que se aplica.
+     ⚠️ EL UMBRAL NO ES UNO NUEVO: es `emContMotivoNoVota`, el mismo dueno que retira el DVI y el
+     AEO y que pinta el aviso de la continuidad (`EM_CONT_REGURG_MIN` = 2, o sea moderada). Un
+     segundo umbral aca seria la lista paralela que este bloque ya pago, y ademas la pantalla
+     diria dos cosas distintas sobre el mismo paciente.
+     ⚠️ LA VELOCIDAD PICO NO SE TOCA aunque la nota la marque: no vota (la prosa del folio 24 la
+     omite), asi que retirarla no cambiaria ningun veredicto y solo le quitaria al medico la banda
+     que la tabla si publica. Es la entrada Z5-2 de `docs/PENDIENTES.md`, y la orden lo prohibe
+     expresamente.
+     ⚠️ EL MOTIVO VIAJA CON EL NIVEL, y no se deduce en el pintor: la fila tiene que poder decir
+     POR QUE no concluye —«falta», «fuera de banda» y «hay regurgitacion» se corrigen distinto— y
+     derivarlo alla seria un segundo lector del mismo estado. Es el patron de la fila del AEO. */
+  /* ⚠️ EL MOTIVO DE ESTA FILA NO ES EL DE LA CONTINUIDAD, y copiarlo era un texto falso sobre el
+     renglon equivocado: `EM_CONT_AVISO_TXT` dice «AVm por continuidad no valida con regurgitacion
+     significativa», que es cierto del AREA y no del GRADIENTE —el gradiente no se calcula por
+     continuidad—. Medido en la fila: «12.0 mmHg (no concluye: AVm por continuidad no valida …)».
+     Lo que le pasa al gradiente es otra cosa, y es lo que la nota `‡` dice: SUBE igual con la
+     regurgitacion. La rama de «no se pudo verificar» conserva el texto de la continuidad, porque
+     ahi lo que falta es la lectura del grado y el reparo es el mismo. */
+  R.gmedRetiro = '';
+  if (R.motivo !== '' && R.gmed != null && !R.gmedFuera) {
+    R.gmedRetiro = (R.motivo === EM_CONT_AVISO_TXT) ? VM_PROT_GMED_RETIRO_TXT : R.motivo;
+    R.porGmed = null;
+  }
+
   /* ── Tabla 11: obstrucción. El EOA y el DVI votan por SEPARADO y el peor manda, sin duplicar el
         aviso: son dos ventanas al mismo hecho, no dos hallazgos. ── */
   /* TRES tramos y no dos: `< 1` significativa, `>= 2` normal y el medio POSIBLE (W1-6). */
@@ -49086,10 +49127,15 @@ function vmProtEOAPintar() {
      un símbolo fijo, la fila del gradiente imprimiría «< 5» donde la guía escribe «≤ 5» y el
      renglón contradiría al veredicto de al lado en el borde exacto. Es la lección que el VTI de
      entrada tricuspídeo dejó escrita cuando su ternario imprimía el signo contrario. */
-  const _t11Fila = function (id, val, fuera, nivel, uni, dec, normalMax, signifMin, normalIncl, signifIncl, donde) {
+  const _t11Fila = function (id, val, fuera, nivel, uni, dec, normalMax, signifMin, normalIncl, signifIncl, donde, retiro) {
     const e = document.getElementById(id); if (!e) return;
     if (val == null)  { e.textContent = '—  (sin medir — se carga en ' + donde + ')'; return; }
     if (fuera)        { e.textContent = val.toFixed(dec) + ' ' + uni + '  (revisar la unidad)'; return; }
+    /* ⚠️ UN CRITERIO RETIRADO MUESTRA SU VALOR Y DICE POR QUE NO CONCLUYE, igual que la fila del
+       DVI de mas abajo. Sin esta rama el renglon imprimia «undefined» —`OBSTR_TXT[null]`— al lado
+       del numero, que es como una pantalla clinica publica un error de programa donde iba un
+       veredicto. El numero NO se borra: lo que se retira es la afirmacion. */
+    if (retiro)       { e.textContent = val.toFixed(dec) + ' ' + uni + '  (no concluye: ' + retiro + ')'; return; }
     const esc = (normalIncl ? '≤' : '<') + normalMax + ' normal · ' +
                 (signifIncl ? '≥' : '>') + signifMin + ' significativa';
     e.textContent = val.toFixed(dec) + ' ' + uni + '  (' + OBSTR_TXT[nivel] + ' · ' + esc + ')';
@@ -49097,7 +49143,8 @@ function vmProtEOAPintar() {
   _t11Fila('vm-prot-vmax', R.vmax, R.vmaxFuera, R.porVmax, 'm/s', 2,
            VM_PROT_T11.vmaxNormalMax, VM_PROT_T11.vmaxSignifMin, false, true, 'Estenosis Mitral');
   _t11Fila('vm-prot-gmed', R.gmed, R.gmedFuera, R.porGmed, 'mmHg', 1,
-           VM_PROT_T11.gmedNormalMax, VM_PROT_T11.gmedSignifMin, true, false, 'Estenosis Mitral');
+           VM_PROT_T11.gmedNormalMax, VM_PROT_T11.gmedSignifMin, true, false, 'Estenosis Mitral',
+           R.gmedRetiro);
   /* ⚠️ EL THP ES UN PARAMETRO DIRECTO Y NO UN INSUMO DE AREA, y esa distinción es de la guía: la
      ASE 2024, folio 10, dice que calcular el área por el método del tiempo de hemipresión es
      frecuentemente inexacto y SOBREESTIMA el área, sobre todo en válvulas normales, y que el área
