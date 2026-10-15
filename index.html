@@ -36376,7 +36376,7 @@ const VINFO = Object.freeze({
     lee: 'Criterio EcoSmart: la obstrucción se informa como significativa cuando DOS o más criterios caen en la banda sugestiva, contando sólo los que se pudieron medir. Con uno solo queda como hallazgo aislado y no sube al informe; con ninguno no se afirma obstrucción.',
     formula: 'Gradiente medio mayor de 10 mmHg\nTHP mayor de 200 ms\nDVI mayor de 2,5\nAEO menor de 1 cm²',
     fuente: 'ASE 2024 (Zoghbi), Tabla 11 y texto de la pág. 24. La guía enumera esos cuatro criterios y avisa que la exactitud diagnóstica es mejor cuando la mayoría de los parámetros coincide, pero no publica cuántos hacen falta: el umbral de dos es de la aplicación.',
-    ojo: 'La velocidad pico se muestra con su banda y no cuenta: la enumeración de la guía no la incluye. Con regurgitación protésica moderada o mayor, el AEO, el DVI y el gradiente medio se muestran y no concluyen, porque suben igual con la regurgitación.'
+    ojo: 'La velocidad pico se muestra con su banda y no cuenta: la enumeración de la guía no la incluye. Con regurgitación protésica moderada o mayor, el AEO, el DVI y el gradiente medio se muestran y no concluyen, porque suben igual con la regurgitación. Y en una prótesis mecánica con el THP normal, un gradiente por encima de 5 mmHg orienta a regurgitación más que a estenosis, así que tampoco cuenta.'
   },
   'prot-ppm': {
     tit: 'Desajuste pr\u00f3tesis-paciente de la mitral',
@@ -48747,7 +48747,10 @@ window.VM_PROT_T11 = VM_PROT_T11;
    nadie mas: este renglon no viaja al informe, al PDF ni al Excel —censado—, asi que no toca
    ninguna superficie firmada. */
 const VM_PROT_GMED_RETIRO_TXT = 'sube igual con la regurgitación protésica significativa';
+/* El segundo motivo de retiro del gradiente (Z6-2). Misma naturaleza: texto de PANTALLA. */
+const VM_PROT_GMED_THP_TXT = 'con el THP normal, un gradiente elevado orienta a regurgitación';
 window.VM_PROT_GMED_RETIRO_TXT = VM_PROT_GMED_RETIRO_TXT;
+window.VM_PROT_GMED_THP_TXT = VM_PROT_GMED_THP_TXT;
 const VM_PROT_OBSTR_MIN = 2;   // criterio EcoSmart: DOS o mas positivos -> significativa
 const VM_PROT_OBSTR_VOTAN = Object.freeze([
   Object.freeze({ k: 'eoa',  nivel: 'porEoa'  }),
@@ -48820,6 +48823,15 @@ function vmProtEOA(src) {
     : (typeof _imVmProt === 'function' && _imVmProt());
   if (!_esProt) return R;
   R.esProt = true;
+  /* ⚠️ MECANICA O BIOLOGICA, PORQUE LA TABLA 12 ABRE ESA RAMA Y LA 11 NO. Se lee `vm_morf`
+     directo —la misma fuente y el mismo criterio que la primera rama de `_protmTipo`, que es el
+     dueno de esta pregunta en el panel de Evidencia— y con `src` el campo del estudio archivado,
+     igual que `_esProt` dos lineas arriba. FALLA HACIA BIOLOGICA: sin la palabra «mecanica» no se
+     aplica la regla del Z6-2, que es el lado que NO retira un criterio. */
+  const _morfVM = src ? String(src.vm_morf == null ? '' : src.vm_morf).trim()
+                      : (function(){ const e = document.getElementById('vm_morf');
+                                     return e ? String(e.value || '').trim() : ''; })();
+  R.mecanica = /mec/i.test(_morfVM);
 
   /* ⚠️ LA MISMA CASCADA QUE `calcEM`, NO LOS CAMPOS PELADOS. `em_dtsvi` y `em_vtitsvi` son campos
      VISIBLES Y TIPEABLES —espejos por `_syncDerivado` que dejan de seguir al origen en cuanto el
@@ -48967,6 +48979,33 @@ function vmProtEOA(src) {
   R.gmedRetiro = '';
   if (R.motivo !== '' && R.gmed != null && !R.gmedFuera) {
     R.gmedRetiro = (R.motivo === EM_CONT_AVISO_TXT) ? VM_PROT_GMED_RETIRO_TXT : R.motivo;
+    R.porGmed = null;
+  }
+  /* ══ Z6-2 — CON EL THP NORMAL, UN GRADIENTE ELEVADO ORIENTA A REGURGITACION ═══════════
+     Verificado en el original antes de aplicarlo: la **Tabla 12, folio 28** —«Transthoracic
+     echocardiographic findings suggestive of significant prosthetic MR in mechanical valves with
+     normal PHT»— publica el gradiente medio `≥ 5` mmHg como hallazgo sugestivo de REGURGITACION
+     protesica significativa (sensibilidad 90 %, especificidad 70 %, a frecuencias fisiologicas),
+     junto con la velocidad pico `≥ 1,9` y el DVI `≥ 2,5`; y el pie de su Figura 20 (folio 29)
+     describe el mismo razonamiento sobre un caso: un DVI de 3 alerta sobre una regurgitacion
+     concomitante EN AUSENCIA de estenosis, inferida del THP normal. O sea que el mismo numero que
+     la Tabla 11 lee como estenosis, la Tabla 12 lo lee como regurgitacion cuando el THP es normal.
+     ⚠️ LA GUIA LO ACOTA A LAS PROTESIS MECANICAS Y LA APP TAMBIEN, aunque la orden no lo pidiera:
+     el titulo de la Tabla 12 dice «in mechanical valves» con todas las letras. Extenderlo a las
+     biologicas seria aplicar un corte fuera del alcance de su fuente, que es lo que la regla de la
+     casa prohibe. Con protesis biologica el gradiente cuenta como hasta hoy.
+     ⚠️ SOLO SE RETIRA LO QUE ESTA POR ENCIMA DE LA BANDA NORMAL. Con el gradiente en `≤ 5` mmHg
+     —la columna «Normal» de la Tabla 11— no hay nada que reinterpretar: ese valor no sugiere ni
+     estenosis ni regurgitacion, y retirarlo le quitaria al veredicto un criterio NEGATIVO
+     legitimo. El 5 exacto es el unico punto donde las dos tablas se pisan (la 11 lo llama normal y
+     la 12 arranca en `≥ 5`): se conserva la lectura de la Tabla 11, que es la que esta pantalla
+     publica y la mas conservadora de las dos.
+     ⚠️ NO SE AGREGA NINGUN HALLAZGO AL INFORME. La orden lo prohibe expresamente: la app no
+     escribe «sugiere regurgitacion» en ningun lado —eso seria un hallazgo clinico nuevo—; lo
+     unico que pasa es que el gradiente deja de votar estenosis, y la fila lo dice en pantalla. Que
+     la guia ADEMAS proponga mostrar ese mensaje queda como propuesta en `docs/PENDIENTES.md`. */
+  if (R.mecanica && R.porThp === 'normal' && R.porGmed != null && R.porGmed !== 'normal') {
+    R.gmedRetiro = VM_PROT_GMED_THP_TXT;
     R.porGmed = null;
   }
 
