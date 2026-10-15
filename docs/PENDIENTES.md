@@ -1,6 +1,200 @@
 # EcoSmart — pendientes vivos
 
 
+## Censo W1 · PRÓTESIS mitral y aórtica (2026-10-15) — DECLARADO y NO arreglado
+
+> El censo completo, con sus tablas, sus folios y sus mediciones, vive en
+> **`docs/censo/protesis_valvular.md`**. Acá quedan sólo los hallazgos y el orden sugerido.
+> ⚠️ **El W1 fue de SOLO LECTURA sobre el código**: no se tocó `index.html`, ni `scripts/`, ni los
+> casos de la suite. Lo que sigue lo implementa el W2, con lo que decida Maicol.
+> ⚠️ **No se tocó ningún mapa de `docs/mapa/`**: `valvulas.md` está en 27,6 KB y
+> `valvulas-mitral-pantalla.md` en 15,9 KB, los dos con margen, pero la orden del W1 prohíbe
+> escribir fuera de `docs/censo/` y de este archivo. **El W2 que toque la estenosis mitral
+> protésica tiene que medir con `wc -c` antes de agregarle una sección a cualquiera de los dos.**
+
+### W1-1 · `calcTHP()` sale temprano sin llamar a `calcEM()`, y el informe FIRMADO queda afirmando
+
+Es el defecto que reportó Maicol, y es **mayor** que lo reportado. Con el THP como única fuente de
+área, borrarlo con teclas reales deja `avm_thp`, `em_avm_thp_display` y la fila del cuadro limpios,
+pero **cinco** nodos rancios: `em_grado` (que se queda en `severa`), `avm_idx`,
+`#em-sev-integrada`, `#em-clase-thp` y `#em-thp-badge`.
+
+**Y llega al papel.** Medido en los tres estilos: el informe pasa de «con estenosis significativa
+(AVm 1.38 cm² por THP)» a «con estenosis **significativa**», o sea **conserva la afirmación y
+pierde el número que la sostenía** —el paréntesis sale de `emCategoria()`, que es pura y se
+recalcula sola; la afirmación sale de `em_grado`, que nadie reescribe—. El EN SUMA sigue diciendo
+«EM significativa.» y el Excel exporta `em_grado = severa`.
+
+**Causa:** `calcTHP()` hace `if (!thp) { setv('avm_thp',''); emThpSalidasLimpiar(); return; }`
+**antes** del `calcEM()` que tiene al final. El `else` que vacía `avm_idx` (agregado el 2026-10-09)
+**existe y es correcto**: lo que falla es que nadie lo ejecuta.
+
+**Es el ÚNICO campo con ese patrón, y está medido.** Censo de **doce** campos editables de los dos
+bloques, cargados y borrados uno por uno con teclas reales: el THP deja cinco rancios y los otros
+once (`avm_plan`, `em_vtimit`, `em_dtsvi`, `em_vtitsvi`, `em_gmedio`, `vmax_ao`, `gmedio_ao`,
+`itv_ao`, `ea_dtsvi`, `ea_vtitsvi`, `ava_plan`) **cero**. Tres controles negativos limpios: borrar
+la planimetría y borrar el VTI mitral limpian todo; borrar el **peso** limpia sólo `avm_idx`, que
+es el comportamiento deliberado de `_emAvmiSinBSA`.
+
+**Esfuerzo: chico.** No necesita columna de Excel ni tocar el Laboratorio.
+
+### W1-2 · El Laboratorio cuenta «Sin estenosis» lo que el informe llama «Gradiente elevado»
+
+`_labEmLectura()` **sí respeta** la excepción de la IM —llama a `emImSignificativa()` y
+`gradCuenta = !imSig`—, y los conteos por área están bien: con IM severa el **área sigue votando**
+(AVm 1,2 → `sig_area_15`), la prótesis y el estudio sin datos quedan fuera de todas las categorías.
+
+Pero `gmElev` **también** está gateado por `gradCuenta`, así que la categoría
+`grad_elev` («No significativa con gradiente elevado») **existe y no se alcanza** cuando hay IM
+significativa. Resultado medido sobre estudios armados: un estudio con gradiente 12 mmHg e IM
+moderada o severa clasifica como **«Sin estenosis»**, mientras su informe firmado dice
+**«Gradiente transmitral elevado»**. Es el espejo del defecto que la tanda B3 vino a evitar: allí
+se evitó sobre-afirmar, acá quedó una **sub-afirmación**.
+
+⚠️ **Si se agrega una categoría, mirar `_labHallazgosCuenta`, que corta en OCHO** (X5).
+
+### W1-3 · El cuadro de referencias de la EM publica cortes NATIVOS sobre una prótesis
+
+Medido con las dos prótesis mitrales: las tres filas de área rotulan «· significativa
+(≤1,5 cm²)» y la del gradiente «· significativo (≥10 mmHg)», **a dos centímetros** de la cápsula
+que dice «No graduada: los cortes de válvula nativa no aplican a prótesis» y de la que lee **la
+misma continuidad** como «posible obstrucción» con el corte de la ASE 2024. Dos lecturas del mismo
+número en la misma pantalla.
+
+El patrón para arreglarlo **ya existe en el archivo**: `imCortesPintar()` conmuta el jet/AI
+preguntando a `_imVmProt()` en un `try`, y publica los DOS regímenes si no puede decidir.
+
+### W1-4 · La fila del AVA del recuadro Doppler aórtico, con prótesis, dice «Severa (≤1.0cm²)»
+
+Medido en las **tres** morfologías protésicas: `#ea-sev` publica «— no se gradúa con estos datos —
+ver el aviso del cuadro de Estenosis Aórtica» y **justo debajo** «Severa (≤1.0cm²)». El comentario
+de `_eaPintarRecuadroDoppler` lo declara («la línea del AVA se sigue pintando: ese badge tiene sus
+propias guardas»). La **Tabla 5 de la ASE 2024 no usa ningún corte absoluto de AVA** en prótesis.
+**Esfuerzo: chico.**
+
+### W1-5 · El PPM AÓRTICO no se calcula, y el mitral sí
+
+`VM_PROT_PPM_CORTES` implementa la **Tabla 7, folio 20** para la mitral con su rama de IMC
+(>1,2 / ≤0,90 con IMC<30; >1,0 / ≤0,75 con IMC≥30), y está verificado contra la imagen del PDF.
+**Para la aórtica no hay nada**: sólo un texto de ayuda estático (`#ref-pao`) atribuido a
+«ESC 2021 · VARC-3» que dice «AVAi >0.85 normal · 0.65–0.85 mod · <0.65 severo», **sin la rama de
+IMC** que la Tabla 7 publica (>0,85 si IMC<30, >0,70 si IMC≥30; severo ≤0,65 / ≤0,55).
+
+Medido: con AVAi **0,40 cm²/m²** —que por la Tabla 7 es PPM severo— la app **no dice nada de PPM**
+en ninguna superficie. El AVAi ya se calcula (`ava-idx`) y el patrón está escrito (`vmProtEOA`).
+⚠️ **Si se quiere en el libro, es una columna nueva** (hoy 436).
+
+### W1-6 · Falta la banda intermedia del EOA protésico mitral (1 a 2 cm²)
+
+`porEoa` tiene dos tramos: `< 1,0` significativa y todo lo demás «normal». La **Tabla 11, folio
+27** tiene **tres**: `≥2,0` normal, **`1-2` posible**, `<1` significativa. Medido: EOA **1,50 cm²**
+con DVI 2,10 publica «sin criterios de obstrucción», donde la guía dice «possible stenosis».
+No sobre-afirma —**sub-afirma**— y es **un tramo más** en una expresión que ya existe.
+
+### W1-7 · La continuidad mitral no mira el ritmo (cierra D1-4 cuando se haga)
+
+Medido con un gesto real sobre `#diast_ritmo`: el área por continuidad vota **idéntico** en ritmo
+sinusal y en fibrilación auricular (`avm_cont = 1.26 cm²`, `em_grado = severa` en los dos), con
+`#em-cont-aviso` **vacío en los dos**, y `hfRitmoEfectivo()` devolviendo `rs` y `fa` correctamente
+—o sea que **el dato está y nadie lo consulta**—. La **EAE/ASE 2009, folio 14, §B.1.4** dice que la
+ecuación de continuidad **no puede usarse** en fibrilación auricular.
+
+**Dónde iría:** `emContMotivoNoVota()` es el dueño único del motivo y `#em-cont-aviso` la
+superficie; el ritmo sale de `hfRitmoEfectivo()` / `#diast_ritmo`, que tiene exactamente dos
+opciones. **No hace falta ningún campo nuevo.**
+
+⚠️ **PERO `emContMotivoNoVota(src)` TIENE FUENTE INYECTABLE**, porque la consumen el Laboratorio y
+la fila del Excel sobre `inf.campos` de un estudio archivado. El ritmo tiene que entrar **por
+`src`**, igual que `im_grado` e `ia_grado`: leyéndolo del DOM, la pantalla y el libro dirían cosas
+distintas sobre el mismo paciente.
+
+### W1-8 · El THP sigue publicando `220/THP` con rótulo nativo sobre una prótesis
+
+Medido: con prótesis mitral el cuadro muestra «AVm por THP 1.38 cm² · significativa (≤1,5 cm²)».
+La **ASE 2024, folio 10**, dice que el EOA calculado por el método del THP es **frecuentemente
+inexacto y sobreestima** el área, y que el EOA indexado de una prótesis mitral se calcula mejor
+**por la ecuación de continuidad** —que es, correctamente, lo que `vmProtEOA` ya hace—. El THP en
+prótesis es un **parámetro directo**: `<130` / `130-200` / `>200` ms (Tabla 11, folio 27).
+Conviene hacerlo junto con **W1-3**.
+
+### W1-9 · La velocidad pico de E y el gradiente medio, con bandas protésicas
+
+Los dos campos existen (`em_vmax` en m/s, `em_gmedio`) y **ninguno se evalúa con el corte
+protésico**. Tabla 11, folio 27: velocidad pico `<1.9` / `1.9-2.5` / `≥2.5` m/s; gradiente medio
+`≤5` / `6-10` / `>10` mmHg. ⚠️ **Los dos bordes del gradiente difieren del nativo por el
+operador**: en nativa la app usa `<5` / `5-9` / `≥10` (ASE 2023), así que a **5 y a 10 exactos** el
+veredicto se invierte entre los dos regímenes.
+
+### W1-10 · La atribución de la IM protésica: citar la Tabla 13 y su nota `††`
+
+⚠️ **La nota del 09/10 es literalmente cierta y clínicamente INOCUA en cuatro de sus cinco filas**,
+y conviene que quede escrito para que nadie la reabra como defecto. Vena contracta, EROA, Vol-R y
+FR **no** preguntan por `_imVmProt()` —aplican el camino nativo— pero la **ASE 2024, Tabla 13,
+folio 30, publica exactamente los mismos números** que la ASE 2017, Tabla 8, folio 332: VC
+`<0,3`/`≥0,7` cm, EROA `<0,20`/`≥0,40` cm², Vol-R `<30`/`≥60` ml, FR `<30`/`≥50` %. La onda S dice
+lo mismo con otras palabras. **Ningún paciente cambia de grado.** Lo único que la Tabla 13 pide
+distinto es el **área del jet**, y eso la app **ya lo conmuta** (`IM_CORTES.jet_prot`, 20 y 50 %),
+igual que el cociente VTI (`≥2,5`, Tabla 12 folio 28).
+
+Lo que falta es **la fuente que se cita**: con la mitral protésica, la tarjeta ⓘ y el manual
+deberían nombrar la Tabla 13 y su nota `††` —«estos parámetros cuantitativos están **menos
+validados** que en la IM nativa»—, que hoy no aparece en ninguna superficie.
+
+### W1-11 · El jet/AI NATIVO usa `>40 %` y la ASE 2017 publica `>50 %` — CONTENIDO CLÍNICO
+
+`IM_CORTES.jet_nat` vota severa por encima del **40 %** del área de la AI y cita a la ASE 2017. La
+**ASE 2017, Tabla 8, folio 332**, y el **folio 333** escriben severa **`>50 %` del área de la AI**,
+y **no publican ni el 20 ni el 40** —el 20/40 es de guías previas—. Censado el PDF entero: las dos
+únicas apariciones de un porcentaje de área de AI para la IM dicen `>50 %`.
+
+⚠️ **Es contenido clínico NATIVO y lo decide Maicol**: mover ese corte cambia el grado de la
+insuficiencia mitral de pacientes con un jet entre el 40 y el 50 %, en el informe firmado. **No se
+toca sin orden expresa.** Se reporta porque la fila cita una guía que dice otra cosa.
+
+### W1-12 · La regurgitación paravalvular de una SAVR no tiene dónde cargarse
+
+`eteTaviRPV()` implementa la **Tabla 8, folio 23** con sus tres filas exactas —extensión
+circunferencial `<10`/`10-29`/`≥30 %`, VC `<0,3`/`0,3-0,6`/`>0,6` cm, área de VC
+`<0,10`/`0,10-0,29`/`≥0,30` cm²— y **los tres coinciden**. Pero el módulo vive **sólo** en la
+pestaña ETE/TAVI: una bioprótesis o una mecánica quirúrgicas con un jet paravalvular **no tienen
+campo**. La Tabla 8 aplica a toda prótesis aórtica. **Pide campos nuevos.**
+
+### W1-13 · `onchange` de `#va_morf` no recalcula
+
+Es `valvProtSync()` y nada más; el de `#vm_morf` llama además a `calcIM_ESC()` y `calcEM()`.
+**No está medido como defecto** —el censo forzó el recálculo— pero es una asimetría que conviene
+cerrar junto con cualquier cambio del veredicto protésico aórtico.
+
+### Lo que NO se puede hacer sin un campo nuevo
+
+- **EOA aórtico protésico contra su referencia.** La Tabla 5 lo expresa en desviaciones estándar
+  respecto del EOA de referencia **del modelo implantado**: haría falta **marca, modelo y tamaño**
+  de la prótesis más una tabla de referencia (el Apéndice de la ASE 2024 la trae, Tablas A1 a A9).
+  La app lo declara hoy en la cápsula, y la declaración es correcta.
+- **Criterio específico de TAVI.** Es un cambio respecto de un **basal post-implante en condiciones
+  hemodinámicas estables**: hace falta marcar cuál estudio es ese basal. Ya declarado en el código.
+- **Regurgitación paravalvular de una SAVR** (W1-12).
+- **Dos filas de la Tabla 12**: volumen sistólico del VI por 2D/3D comparado con el sistémico, y
+  convergencia sistólica en el VI hacia la prótesis.
+
+### Lo que el censo CONFIRMÓ que está bien, para que nadie lo reabra
+
+- **La aórtica protésica SÍ gradúa con la ASE 2024**, Tabla 5 folio 19, y los **seis** cortes
+  coinciden con la imagen del PDF: Vmax `<3`/`3-4`/`≥4`, AT `<80`/`80-100`/`>100`, AT/ET
+  `<0,32`/`0,32-0,37`/`>0,37`, gradiente medio SAVR `<20`/`20-34`/`≥35`, DVI
+  `>0,35`/`0,25-0,35`/`<0,25`, más la regla de integración de un eje dependiente y uno
+  independiente del flujo.
+- **La insuficiencia aórtica protésica usa la cascada nativa a propósito**, y la ASE 2024, **folio
+  20**, lo respalda: la clasificación de la regurgitación protésica intra y paravalvular es similar
+  a la de la válvula nativa (Tabla 8). Verificado renderizando la página.
+- **El DVI protésico mitral no concluye con regurgitación significativa**, porque el mismo 2,5
+  sugiere **estenosis** en la Tabla 11 y **regurgitación** en la Tabla 13. El número se muestra y
+  se retira la afirmación.
+- **El PPM mitral** aplica la Tabla 7 con su rama de IMC, verificado contra la imagen.
+- **El Laboratorio** respeta la excepción de la IM y los conteos por área son correctos
+  (salvo W1-2).
+
+
 ## Rediseño de Válvulas · D2 — aórtica, tricúspide, tarjetas, THP y color (2026-10-14) — DECLARADO y NO arreglado
 
 ### D2-1 · La FRACCIÓN REGURGITANTE de la insuficiencia tricuspídea no existe — PARADA
