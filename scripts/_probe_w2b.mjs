@@ -522,6 +522,13 @@ window.__P = {
       detAvai:  window.__P.txt('ea-det-avai'),
       ppmAo:    window.__P.txt('ea-prot-ppm'),
       ppmVis:   window.__P.vis('ea-prot-ppm-row'),
+      ppmGeo:   window.__P.geo('ea-prot-ppm-row'),
+      ppmDisp:  (function(){ var e = document.getElementById('ea-prot-ppm-row');
+                   return e ? e.style.display + '|' + getComputedStyle(e).display : 'NO EXISTE' })(),
+      ppmOculto:(function(){ var e = document.getElementById('ea-prot-ppm-row'); if (!e) return 'NO EXISTE';
+                   var n = e; while (n && n.nodeType === 1) {
+                     if (getComputedStyle(n).display === 'none') return (n.id || n.className || '?');
+                     n = n.parentNode } return null })(),
       ava_cont: window.__P.val('ava_cont'),
       ea_grado: window.__P.val('ea_grado'),
       V: (function(){ try { var p = eaProtVeredicto();
@@ -915,6 +922,86 @@ async function main() {
       + ' var f = Array.from(t.querySelectorAll("tr")).find(function(r){ return /jet\\/AI/.test(r.textContent) });'
       + ' return f ? f.textContent.replace(/\\s+/g, " ").trim() : "SIN FILA" })()');
     out.grupos.jet = g;
+  }
+
+  /* ══ GRUPO aorta — W1-4 (la fila del AVA) y W1-5 (el PPM de la Tabla 7) ══════════════════
+     ARITMETICA CERRADA: O TSVI 20 mm y VTI TSVI 20 cm dan un volumen sistolico de 62,83 ml, asi
+     que AVA = 62,83 / VTI aortico. Peso 80 y talla 180 dan BSA 2,00 EXACTA (Mosteller) e IMC
+     24,7; peso 100 y talla 170 dan BSA 2,173 e IMC 34,6. Cada escena cae de un lado del borde. */
+  if (corre('aorta')) {
+    paso('aorta');
+    const g = { ava: {}, ppm: {}, imc: {} };
+    async function baseAo(morf, peso, talla) {
+      await ev('window.__P.limpiar()');
+      await J('window.__P.abrirTodo()');
+      await J('window.__P.set("peso", ' + (peso || 80) + ')');
+      await J('window.__P.set("talla", ' + (talla || 180) + ')');
+      await J('window.__P.set("edad", 70)');
+      await J('window.__P.set("va_morf", ' + JSON.stringify(morf) + ')');
+      await J('window.__P.abrirTodo()');
+      return 1;
+    }
+    /* (a) W1-4: la fila del AVA del recuadro Doppler, en las CUATRO morfologias. */
+    for (const m of ['Trivalva normal', 'Prótesis biológica', 'Prótesis mecánica', 'TAVI']) {
+      await baseAo(m);
+      await tipear('ea_dtsvi', '20');
+      await tipear('ea_vtitsvi', '20');
+      await tipear('itv_ao', '70');     // AVA 0,90 -> severa por el corte NATIVO
+      await tipear('vmax_ao', '4.2');
+      await tipear('gmedio_ao', '42');
+      /* ⚠️ SE VUELVE A VALVULAS ANTES DE MEDIR LA VISIBILIDAD. `itv_ao`, `vmax_ao` y
+         `gmedio_ao` viven en la pestania Doppler, asi que al terminar de tipear la pestania
+         ACTIVA es esa y `vis()` informa «oculto por tab-valvulas» sobre una fila perfecta. La
+         primera corrida dio `ppmVis:false` en las cuatro morfologias por esto: un denominador
+         roto con pinta de medicion buena. */
+      await J('window.__P.abrirTodo()');
+      await pausa(200);
+      const f = await J('window.__P.fotoProtVA()');
+      g.ava[m] = { eaSev: f.eaSev, avaCont: f.ava_cont, avaIdx: f.avaIdx,
+                   eaSevLbl: f.eaSevLbl, eaDetSev: f.eaDetSev, ppmAo: f.ppmAo,
+                   ppmVis: f.ppmVis, ppmGeo: f.ppmGeo, ppmDisp: f.ppmDisp,
+                   ppmOculto: f.ppmOculto, V: f.V, eaGrado: f.ea_grado,
+                   inf: await J('window.__P.informe("estandar")') };
+    }
+    /* (b) W1-5: los TRES tramos del PPM aortico y sus DOS bordes, con IMC < 30. */
+    for (const [k, itv] of [['severo_060', '52.4'], ['severo_065', '48.3'],
+                            ['moderado_066', '47.6'], ['moderado_085', '37.0'],
+                            ['normal_086', '36.5']]) {
+      await baseAo('Prótesis biológica');
+      await tipear('ea_dtsvi', '20');
+      await tipear('ea_vtitsvi', '20');
+      await tipear('itv_ao', itv);
+      await pausa(180);
+      const f = await J('window.__P.fotoProtVA()');
+      g.ppm[k] = { avai: f.V && f.V.avai, ppm: f.V && f.V.ppm, imc: f.V && f.V.imc,
+                   fila: f.ppmAo, avaIdx: f.avaIdx };
+    }
+    /* (c) LA RAMA DE IMC, con el MISMO AVA: el discriminador es el peso, no la medicion. */
+    for (const [k, peso, talla] of [['imc24', 80, 180], ['imc34', 100, 170]]) {
+      await baseAo('Prótesis mecánica', peso, talla);
+      await tipear('ea_dtsvi', '20');
+      await tipear('ea_vtitsvi', '20');
+      await tipear('itv_ao', '48.3');
+      await pausa(180);
+      const f = await J('window.__P.fotoProtVA()');
+      g.imc[k] = { avai: f.V && f.V.avai, ppm: f.V && f.V.ppm, imc: f.V && f.V.imc, fila: f.ppmAo };
+    }
+    /* (d) CONTROL NEGATIVO: con valvula NATIVA la fila del PPM no existe y el badge del AVA si. */
+    await baseAo('Trivalva normal');
+    await tipear('ea_dtsvi', '20');
+    await tipear('ea_vtitsvi', '20');
+    await tipear('itv_ao', '48.3');
+    await pausa(180);
+    g.nativaPpm = await J('window.__P.fotoProtVA()');
+    /* (e) Y EL IDA Y VUELTA: protesis -> nativa tiene que APAGAR la fila, no dejarla rancia.
+       Es la asimetria W1-13: el `onchange` de `va_morf` no recalculaba. */
+    await J('window.__P.set("va_morf", "Prótesis mecánica")');
+    await pausa(200);
+    g.vuelta = { aProtesis: await J('window.__P.fotoProtVA()') };
+    await J('window.__P.set("va_morf", "Trivalva normal")');
+    await pausa(200);
+    g.vuelta.aNativa = await J('window.__P.fotoProtVA()');
+    out.grupos.aorta = g;
   }
 
   out.dialogos = dialogos;
