@@ -853,6 +853,59 @@ async function main() {
   }
 
 
+  /* ── masa: el 115 y el 95 EXACTOS, y las bandas sin huecos ni solapes ── */
+  if (corre('masa')) {
+    const t0 = Date.now(); const g = {};
+    /* La masa de Devereux con DDVI 50, SIV y PP iguales, sobre una superficie corporal de 2,00:
+       se busca por biseccion el par que deja la masa indexada en el valor exacto pedido. */
+    const PAR = { 95: null, 96: null, 115: null, 116: null };
+    try {
+      await montar({ ddfvi: '50' }, { sexo: 'M' });
+      for (const obj of Object.keys(PAR)) {
+        let lo = 5, hi = 20, best = null;
+        for (let i = 0; i < 60; i++) {
+          const mid = (lo + hi) / 2;
+          const idx = await ev('(function(){ var dd=50, t=' + mid + ';'
+            + ' var mm = 0.8*(1.04*((dd/10+t/10+t/10)**3-(dd/10)**3))+0.6;'
+            + ' return Math.round(mm/2.0) })()');
+          if (idx === +obj) { best = mid; break }
+          if (idx < +obj) lo = mid; else hi = mid;
+        }
+        PAR[obj] = best;
+      }
+      g.pares = PAR;
+      for (const sx of ['M', 'F', '']) {
+        for (const obj of Object.keys(PAR)) {
+          const k = 'sexo=' + (sx || 'SIN') + ' masaIdx=' + obj;
+          if (PAR[obj] == null) { g[k] = { ABORTO: 'no se encontro el par' }; continue }
+          await montar({ ddfvi: '50', siv: String(PAR[obj]), ppvi: String(PAR[obj]) }, { sexo: sx });
+          await ev('(function(){ try { calcVI() } catch(e) {} return 1 })()');
+          g[k] = { vi: await J('JSON.stringify(window.__P.vi())'),
+                   geom: await ev('(function(){ try { return String(calcGeometriaVI(' + obj + ', 0.30, '
+                     + JSON.stringify(sx) + ')) } catch(e){ return "EXC" } })()'),
+                   sev: await ev('(function(){ try { return String(hviSeveridad(' + obj + ', '
+                     + JSON.stringify(sx) + ')) } catch(e){ return "EXC" } })()'),
+                   inf: await J("JSON.stringify(window.__P.lineaVI('estandar'))") };
+        }
+      }
+      /* Las bandas, sondeadas de punta a punta: ninguna masa entre 40 y 200 puede quedar sin
+         categoria ni con dos. El hueco se mide comparando el dueño de la normalidad contra el
+         dueño de la gravedad, que son dos funciones distintas. */
+      g.huecos = await J(`JSON.stringify((function(){
+        var out = { M: [], F: [] };
+        ['M','F'].forEach(function(sx){
+          for (var m = 40; m <= 200; m++) {
+            var geo = calcGeometriaVI(m, 0.30, sx);
+            var sev = hviSeveridad(m, sx);
+            var hip = String(geo).indexOf('Hipertrofia') === 0;
+            if (hip && !sev) out[sx].push({ m: m, caso: 'hipertrofia SIN gravedad' });
+            if (!hip && sev)  out[sx].push({ m: m, caso: 'gravedad SIN hipertrofia' });
+          } });
+        return out })())`);
+    } catch (e) { g.ABORTO = e.message; abortos.push('masa: ' + e.message); }
+    out.grupos.masa = g; parcial('masa', t0);
+  }
+
   /* ── tarjeta: las tres tarjetas i (AI, VI y geometria) con sexo y SIN sexo. Lo que DICEN y lo
      que DIBUJAN, por separado: un grafico perfecto con el texto equivocado pasa una lectura que
      solo mire el SVG, y al reves. ── */

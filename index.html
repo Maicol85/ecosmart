@@ -21523,7 +21523,16 @@ function calcGeometriaVI(masaIdx, rwt, sexo) {
   /* El sexo pasa por el dueño único: sin sexo cargado la regla es el corte MÁS ALTO, que
      en la masa del VI es el del varón. Ver `sexoEfectivo`. */
   const esMujer = sexoLeido(sexo) === 'F';
-  const masaNormal = m < (esMujer ? UMBRAL_MASA_HVI_M : UMBRAL_MASA_HVI_H);
+  /* ⚠️ EL OPERADOR PASÓ DE `<` A `<=` (LS6, 2026-10-16), y era el defecto L-5. Las dos tablas
+     de la ASE/EACVI 2015 publican la masa indexada normal como un RANGO QUE INCLUYE SU TECHO
+     —Tabla 6, folio 17: «LV mass/BSA (g/m2): Women 43-95 / Men 49-115», y la Tabla suplementaria
+     3, folio 39.e8, lo repite y hace empezar la banda LEVE en 116 y 96—, así que 115 y 95
+     exactos son NORMALES. Con el `<` anterior, 115 g/m² justos daban «Hipertrofia» en el informe
+     firmado mientras `hviSeveridad` devolvía null —sus bandas empiezan en 116—: o sea
+     hipertrofia SIN gravedad, que es lo que PENDIENTES tenía declarado como L-5.
+     Las bandas no quedan con hueco ni con solape: 115 normal y 116 leve en el varón, 95 y 96 en
+     la mujer. */
+  const masaNormal = m <= (esMujer ? UMBRAL_MASA_HVI_M : UMBRAL_MASA_HVI_H);
   if (masaNormal && r < 0.42) return 'Normal';
   if (masaNormal) return 'Remodelado concéntrico';
   if (r < 0.42) return 'Hipertrofia excéntrica';
@@ -22295,12 +22304,12 @@ const EV_REG = Object.freeze([
   }),
   Object.freeze({
     id: 'MAS-VI-001', zona: 'AI/VI — Ventriculo izquierdo', dato: 'Masa indexada — limite de normalidad',
-    valor: 'Normal por debajo de 115 g/m2 en el varon y de 95 g/m2 en la mujer (metodo lineal)',
+    valor: 'Normal hasta 115 g/m2 en el varon y hasta 95 g/m2 en la mujer; la hipertrofia empieza por encima de esos valores (metodo lineal)',
     duenio: 'UMBRAL_MASA_HVI_H / UMBRAL_MASA_HVI_M, via calcGeometriaVI',
-    guia: EV_GUIA_ASE2015, ubicacion: 'Tabla 6', folio: '17', hoja_pdf: 17,
+    guia: EV_GUIA_ASE2015, ubicacion: 'Tabla 6 y Tabla suplementaria 3', folio: '17', hoja_pdf: 17,
     doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
     estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
-    fuente_una_linea: 'ASE/EACVI 2015, Tabla 6 (folio 17)',
+    fuente_una_linea: 'ASE/EACVI 2015, Tabla 6 (folio 17) y Tabla suplementaria 3 (folio 39.e8)',
   }),
   Object.freeze({
     id: 'MAS-VI-002', zona: 'AI/VI — Ventriculo izquierdo', dato: 'Gravedad de la hipertrofia por masa indexada',
@@ -22689,7 +22698,10 @@ function calcVI() {
     const mass = 0.8 * (1.04 * ((dd/10 + siv/10 + pp/10) ** 3 - (dd/10) ** 3)) + 0.6;
     if (bsa) {
       const idx = (mass / bsa).toFixed(0);
-      const hvi = (sexo === 'F' && idx > UMBRAL_MASA_HVI_M) || (sexo !== 'F' && idx > UMBRAL_MASA_HVI_H);
+      /* El operador ya era `>` —o sea 115 y 95 exactos normales, que es lo que la guía dice— y
+         no se toca; lo que cambia es que el sexo pasa por el dueño único, así que esta cápsula
+         y `calcGeometriaVI` no pueden discrepar ante un valor que no sea exactamente 'F'. */
+      const hvi = idx > (sexoLeido(sexo) === 'F' ? UMBRAL_MASA_HVI_M : UMBRAL_MASA_HVI_H);
       /* El NÚMERO sale siempre; lo que se suprime con un insumo dudoso es el veredicto. */
       const _masaDud = _viFuera(['dd','siv','pp']);
       document.getElementById('devereux-val').innerHTML = _masaDud
@@ -38908,11 +38920,10 @@ function evTarjetaVI() {
      el texto completo repetido en las tres barras que dependen del sexo, la tarjeta crecia a
      522 px y a 1200 x 700 —donde el hueco util son 486— aparecia scroll INTERNO. Cada barra
      sigue diciendo que quedo sin ubicar, que es lo que hace falta saber barra por barra. */
-  const AV_SEXO = 'Sin sexo: no se ubica el punto; se muestran los cortes del varón.';
-  /* ⚠️ DOS TEXTOS Y NO UNO, Y ES POR ETAPAS. Desde LS4 el diámetro sistólico SÍ ubica su punto
-     sin sexo —con el corte del varón—, así que decirle «no se ubica el punto» sería falso sobre
-     una barra que lo tiene. Los dos volúmenes indexados siguen con el texto anterior hasta que
-     LS6 los pase a esta misma regla. */
+  /* ⚠️ LA REGLA «SIN SEXO, SIN PUNTO» SE RETIRÓ EN LS6, Y CON ELLA SU TEXTO. Decía «Sin sexo:
+     no se ubica el punto; se muestran los cortes del varón», y desde que las tres barras que
+     dependen del sexo ubican el punto con el corte MÁS ALTO esa frase afirmaba algo falso sobre
+     una barra que lo tiene. Queda UNA sola línea corta, la misma en las tres. */
   const AV_SEXO_ALTO = 'Sin sexo cargado: se usó el corte más alto.';
 
   /* Diametro diastolico — un corte unico para los dos sexos en esta aplicacion. */
@@ -38944,25 +38955,31 @@ function evTarjetaVI() {
   /* Los dos volumenes indexados: dependen del sexo Y de la superficie corporal. */
   const idxD = (pVDF.val != null && !pVDF.fuera && bsa) ? +(pVDF.val / bsa).toFixed(1) : null;
   const idxS = (pVSF.val != null && !pVSF.fuera && bsa) ? +(pVSF.val / bsa).toFixed(1) : null;
+  /* ⚠️ SIN SEXO LOS DOS VOLÚMENES AHORA UBICAN SU PUNTO (LS6), con los cortes del varón, y la
+     barra lo dice en una línea corta. Con esto la regla «sin sexo, sin punto» se retira de la
+     tarjeta entera: la decisión de Maicol del 2026-10-16 es que se publique el corte MÁS ALTO
+     en vez de retener el punto. El aviso de falta de dato se conserva y se suma. */
   const _avVol = (p, idx, que, ml) => {
-    if (!sx) return AV_SEXO;
     if (p.fuera) return 'Valor fuera de rango medible: verificar ' + que + '.';
     if (p.val == null) return 'Cargar ' + que + '.';
     if (!bsa) return 'Volumen de ' + p.val + ' ml, sin indexar: cargar peso y talla.';
     return '';
   };
+  const _avSx = (p) => (!sx && p.val != null && !p.fuera && bsa) ? AV_SEXO_ALTO : (!sx ? AV_SEXO_ALTO : '');
   fr.appendChild(_evBarra({ clave: 'vi-vdfvi', rotulo: 'Volumen telediastólico indexado (ml/m²)',
     bandas: C.vdfvi, lo: 20, hi: 130, unidad: 'ml/m²', dec: 0,
-    valor: sx ? idxD : null,
-    cat: (sx && idxD !== null && typeof vdfviInterp === 'function')
-      ? ('Volumen telediastólico indexado ' + vdfviInterp(idxD, sx).txt + ' (' + _evNum(idxD, 1) + ' ml/m²).') : '',
-    aviso: _avVol(pVDF, idxD, 'el volumen telediastólico'), ficha: 'DIM-VI-003' }));
+    valor: idxD,
+    cat: (idxD !== null && typeof vdfviInterp === 'function')
+      ? ('Volumen telediastólico indexado ' + vdfviInterp(idxD, sexoEfectivo(sx)).txt + ' (' + _evNum(idxD, 1) + ' ml/m²).') : '',
+    aviso: [_avVol(pVDF, idxD, 'el volumen telediastólico'), _avSx(pVDF)].filter(Boolean).join(' '),
+    ficha: 'DIM-VI-003' }));
   fr.appendChild(_evBarra({ clave: 'vi-vsfvi', rotulo: 'Volumen telesistólico indexado (ml/m²)',
     bandas: C.vsfvi, lo: 5, hi: 70, unidad: 'ml/m²', dec: 0,
-    valor: sx ? idxS : null,
-    cat: (sx && idxS !== null && typeof vsfviInterp === 'function')
-      ? ('Volumen telesistólico indexado ' + vsfviInterp(idxS, sx).txt + ' (' + _evNum(idxS, 1) + ' ml/m²).') : '',
-    aviso: _avVol(pVSF, idxS, 'el volumen telesistólico'), ficha: 'DIM-VI-004' }));
+    valor: idxS,
+    cat: (idxS !== null && typeof vsfviInterp === 'function')
+      ? ('Volumen telesistólico indexado ' + vsfviInterp(idxS, sexoEfectivo(sx)).txt + ' (' + _evNum(idxS, 1) + ' ml/m²).') : '',
+    aviso: [_avVol(pVSF, idxS, 'el volumen telesistólico'), _avSx(pVSF)].filter(Boolean).join(' '),
+    ficha: 'DIM-VI-004' }));
 
   /* Fraccion de eyeccion — la categoria se COPIA de la capsula, que es lo que la app publica. */
   fr.appendChild(_evBarra({ clave: 'vi-fevi', rotulo: 'Fracción de eyección (%)',
@@ -39140,7 +39157,9 @@ function evTarjetaGeo() {
     if (bsa) masaIdx = Math.round(mm / bsa);
     rwt = +(2 * pPP.val / pDD.val).toFixed(2);
   }
-  const g = evGraficoGeometria(sx || 'M', (sx ? masaIdx : null), (sx ? rwt : null));
+  /* ⚠️ SIN SEXO EL PUNTO AHORA SE UBICA (LS6), con las bandas del varón, que son las del corte
+     MÁS ALTO: `sexoEfectivo` ya devuelve 'M' cuando el sexo falta. */
+  const g = evGraficoGeometria(sexoEfectivo(sx), masaIdx, rwt);
   const w = document.createElement('div');
   w.className = 'ev-bl';
   w.appendChild(_evDiv('ev-rot', 'Masa indexada y espesor parietal relativo'));
@@ -39150,20 +39169,20 @@ function evTarjetaGeo() {
 
   /* La geometria y su gravedad las dice el DUENO, con las mismas palabras que el informe. */
   let cat = '', avi = '';
-  if (!sx) avi = 'Sin sexo cargado: no se ubica el punto. Se muestran los cortes del varón; en la mujer son otros (ver Referencias).';
-  else if (rwt === null) avi = 'Cargar el diámetro diastólico, el septum y la pared posterior.';
+  if (rwt === null) avi = 'Cargar el diámetro diastólico, el septum y la pared posterior.';
   else if (masaIdx === null) avi = 'Masa sin indexar por falta de superficie corporal: no se ubica el punto. Cargar peso y talla.';
-  else {
+  else if (!sx) avi = AV_SEXO_GEO;
+  if (rwt !== null && masaIdx !== null) {
     /* ⚠️ EL TEXTO ES EL DEL INFORME, NO UNO PROPIO: el informe escribe «Geometría normal.» para
        la normal y, para las otras tres, el patron que devuelve el dueno con la gravedad entre
        parentesis. Redactarlo aparte seria una segunda version de la misma frase sobre el mismo
        paciente, que es lo que esta tanda existe para no hacer. */
-    const geo = calcGeometriaVI(masaIdx, rwt, sx);
+    const geo = calcGeometriaVI(masaIdx, rwt, sexoEfectivo(sx));
     if (geo === 'Normal') cat = 'Geometría normal';
     else if (geo && geo !== '—') {
       cat = geo;
       if (geo.indexOf('Hipertrofia') === 0) {
-        const sev = hviSeveridad(masaIdx, sx);
+        const sev = hviSeveridad(masaIdx, sexoEfectivo(sx));
         if (sev) cat += ' (' + sev + ')';
       }
     }
@@ -39766,7 +39785,7 @@ function evRefPintar(id) {
       { ficha: 'DIM-VI-004', rot: 'Telesistólico — severo', h: '> 45 ml/m²', m: '> 40 ml/m²' },
       { ficha: 'FUN-VI-001', rot: 'Fracción de eyección — normal', h: '≥ 50 %', m: '≥ 50 %' },
       { ficha: 'FUN-VI-001', rot: 'FEVI — leve / moderada / severa', h: '40 a 49 · 30 a 39 · < 30 %', m: '40 a 49 · 30 a 39 · < 30 %' },
-      { ficha: 'MAS-VI-001', rot: 'Masa indexada — normal', h: '< 115 g/m²', m: '< 95 g/m²' },
+      { ficha: 'MAS-VI-001', rot: 'Masa indexada — normal', h: '≤ ' + UMBRAL_MASA_HVI_H + ' g/m²', m: '≤ ' + UMBRAL_MASA_HVI_M + ' g/m²' },
       { ficha: 'MAS-VI-002', rot: 'Hipertrofia — leve / moderada', h: '116 a 131 · 132 a 148 g/m²', m: '96 a 108 · 109 a 121 g/m²' },
       { ficha: 'MAS-VI-002', rot: 'Hipertrofia — severa', h: '> 148 g/m²', m: '> 121 g/m²' },
       { ficha: 'GEO-VI-001', rot: 'Espesor parietal relativo aumentado', h: '≥ 0,42', m: '≥ 0,42' },
@@ -55678,7 +55697,7 @@ function generarPDFReal(_aj) {
          que no haga la tabla. `_suf` ya contempla ref vacía: sale «SGL: -18%». */
       {lbl:'SGL',       ref:'',                val:sglS},
       {lbl:'Vol. lat.', ref:'55-100 ml',       val:vPdf('vol_lat',' ml')},
-      {lbl:'Masa idx',  ref:'H<' + UMBRAL_MASA_HVI_H + ' M<' + UMBRAL_MASA_HVI_M + ' g/m2', val:masaIdx},
+      {lbl:'Masa idx',  ref:'H<=' + UMBRAL_MASA_HVI_H + ' M<=' + UMBRAL_MASA_HVI_M + ' g/m2', val:masaIdx},
       {lbl:'RWT',       ref:'<=0.42',          val:rwtStr},
       {lbl:'Geometria', ref:'',                val:geomStr},
     ]},
