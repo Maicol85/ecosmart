@@ -21047,6 +21047,44 @@ window.AVM_SEVERA_MAX = AVM_SEVERA_MAX; window.AVM_MODERADA_MAX = AVM_MODERADA_M
    criterios diastólicos ASE 2016, el HFA-PEFF y el score de amiloidosis, así que vivía en
    ocho lugares. */
 const UMBRAL_LAVI_DILATADO = 34;   // ml/m² — LAVI >34 → aurícula izquierda dilatada
+
+/* ══ EL SEXO EFECTIVO — UN SOLO DUEÑO (LS1, 2026-10-16) ══════════════════════════
+   Decisión de Maicol. En la aurícula y el ventrículo izquierdos los cortes de la ASE/EACVI 2015
+   son POR SEXO, y el campo del sexo puede estar vacío: el `<select>` nace en «—» y un estudio
+   importado puede traer cualquier cosa. La regla es que, sin sexo cargado, se aplica el CORTE
+   MÁS ALTO —que en los seis parámetros de esta zona es el del varón—, o sea el lado que NO
+   sobre-afirma: un diámetro de 39 mm sale «normal» en vez de «dilatada».
+
+   ⚠️ LA NORMALIZACIÓN VIVE ACA Y EN NINGUN OTRO LADO. Antes cada clasificador escribía su
+   propia comparación —`sv('sexo') === 'F'`, `sexo === 'F'`,
+   `String(sexo || '').charAt(0).toUpperCase() === 'F'`— o sea tres lecturas del mismo dato que
+   no coinciden ante un valor que no sea exactamente 'F': las dos primeras mandan una mujer a
+   los cortes del varón si el valor guardado dice 'Femenino' o 'f'. Es el defecto que este
+   archivo ya pagó cuatro veces con dos juegos de números para la misma pregunta.
+
+   `sexoLeido` normaliza UN valor dado y devuelve 'M', 'F' o null; `sexoCargado` lee el
+   formulario o un objeto de campos de un estudio archivado; `sexoEfectivo` aplica la regla del
+   corte más alto. Un valor que no sea masculino ni femenino cuenta como SIN SEXO, que es lo
+   conservador: inventarle un sexo a un dato que no lo dice es peor que no ubicar el punto. */
+const SEXO_CORTE_ALTO = 'M';
+function sexoLeido(valor) {
+  const c = String(valor == null ? '' : valor).trim().charAt(0).toUpperCase();
+  return (c === 'M' || c === 'F') ? c : null;
+}
+/* `src` opcional: sin argumento lee el formulario; con un objeto lee su clave `sexo` —que es
+   como viajan los estudios archivados del Laboratorio—; con un texto lo normaliza. */
+function sexoCargado(src) {
+  if (src === undefined) return sexoLeido((typeof sv === 'function') ? sv('sexo') : '');
+  if (src && typeof src === 'object') return sexoLeido(src.sexo);
+  return sexoLeido(src);
+}
+function sexoEfectivo(src) { return sexoCargado(src) || SEXO_CORTE_ALTO; }
+/* Verdadero cuando el sexo NO está cargado o no es masculino ni femenino. Lo consultan el
+   aviso de pantalla y las tarjetas, que con el sexo ausente dicen con qué corte ubicaron. */
+function sexoFalta(src) { return sexoCargado(src) === null; }
+window.SEXO_CORTE_ALTO = SEXO_CORTE_ALTO;
+window.sexoLeido = sexoLeido; window.sexoCargado = sexoCargado;
+window.sexoEfectivo = sexoEfectivo; window.sexoFalta = sexoFalta;
 /* ⚠️ EL DIÁMETRO Y EL ÁREA DICEN «DILATADA», NUNCA CUÁNTO — y eso no es una simplificación
    nuestra, es lo que la guía publica. Lang et al. 2015 (JASE 28:1-39) gradúa en leve/moderada/severa
    SÓLO el volumen indexado; el diámetro AP y el área son valores de referencia heredados de la
@@ -21472,7 +21510,9 @@ function calcGeometriaVI(masaIdx, rwt, sexo) {
   const m = Math.round(PF(masaIdx));
   const r = Math.round(PF(rwt) * 100) / 100;
   if (!m || !r || isNaN(m) || isNaN(r)) return '—';
-  const esMujer = String(sexo || '').charAt(0).toUpperCase() === 'F';
+  /* El sexo pasa por el dueño único: sin sexo cargado la regla es el corte MÁS ALTO, que
+     en la masa del VI es el del varón. Ver `sexoEfectivo`. */
+  const esMujer = sexoLeido(sexo) === 'F';
   const masaNormal = m < (esMujer ? UMBRAL_MASA_HVI_M : UMBRAL_MASA_HVI_H);
   if (masaNormal && r < 0.42) return 'Normal';
   if (masaNormal) return 'Remodelado concéntrico';
@@ -21499,7 +21539,7 @@ function viDimCat(ddfviN){
   const _bsaN = (typeof getBSA === 'function') ? getBSA() : null;
   if (dim === 'de dimensiones normales' && _vdfviN && _bsaN) {
     const _vidx = _vdfviN / _bsaN;
-    const _limVDF = sv('sexo') === 'F' ? 61 : 75;
+    const _limVDF = sexoEfectivo() === 'F' ? 61 : 75;
     if (_vidx > _limVDF) dim = 'levemente dilatado (por volumen indexado)';
   }
   return dim;
@@ -22031,13 +22071,15 @@ function calcAI() {
    queda con hipertrofia sin grado. */
 function hviSeveridad(idx, sexo) {
   idx = PF(idx);
-  if (sexo === 'F') { if (idx >= 122) return 'severa'; if (idx >= 109) return 'moderada'; if (idx >= 96) return 'leve'; return null; }
+  /* `sexoLeido` y no `sexo === 'F'`: normaliza el valor y, sin sexo, deja la rama del varón,
+     que es el corte MÁS ALTO. Ver `sexoEfectivo`. */
+  if (sexoLeido(sexo) === 'F') { if (idx >= 122) return 'severa'; if (idx >= 109) return 'moderada'; if (idx >= 96) return 'leve'; return null; }
   if (idx >= 149) return 'severa'; if (idx >= 132) return 'moderada'; if (idx >= 116) return 'leve'; return null;
 }
 // Interpretación de VDFVI indexado (cortes ASE, por sexo)
 function vdfviInterp(idx, sexo) {
   idx = PF(idx);
-  const c = sexo === 'F' ? [61,70,80] : [74,89,100];
+  const c = sexoLeido(sexo) === 'F' ? [61,70,80] : [74,89,100];
   if (idx > c[2]) return {txt:'severamente dilatado', cls:'red'};
   if (idx > c[1]) return {txt:'moderadamente dilatado', cls:'orange'};
   if (idx > c[0]) return {txt:'levemente dilatado', cls:'yellow'};
@@ -22061,7 +22103,7 @@ function vdfviInterp(idx, sexo) {
    número, y fundirlas haría que mover un umbral de guía cambie la clasificación de normalidad. */
 function vsfviInterp(idx, sexo) {
   idx = PF(idx);
-  const c = sexo === 'F' ? [24,32,40] : [31,38,45];
+  const c = sexoLeido(sexo) === 'F' ? [24,32,40] : [31,38,45];
   if (idx > c[2]) return {txt:'severamente dilatado', cls:'red'};
   if (idx > c[1]) return {txt:'moderadamente dilatado', cls:'orange'};
   if (idx > c[0]) return {txt:'levemente dilatado', cls:'yellow'};
@@ -22107,6 +22149,17 @@ const EV_DOI_ASE2015  = '10.1016/j.echo.2014.10.003';
    en el pie de la hoja 1 del propio PDF, no afuera. */
 const EV_GUIA_ASE2025VD = 'Mukherjee M y col., Guía para la evaluación ecocardiográfica del corazón derecho en el adulto y consideraciones especiales en la hipertensión pulmonar, ASE, 2025';
 const EV_DOI_ASE2025VD  = '10.1016/j.echo.2025.01.006';
+/* Las dos fuentes que entran con la tanda LS. La de 2005 es la edición anterior de la misma
+   guía y se usa SOLO donde la de 2015 no publica el dato —el área absoluta de la aurícula
+   izquierda—, que es la regla de la casa: manda la más nueva, y si no trae el dato se usa la
+   anterior. La de insuficiencia cardiaca es la que define las categorías de fracción de
+   eyección; en la biblioteca está la traducción oficial de la Sociedad Española de
+   Cardiología, y así se cita. Los dos identificadores se leyeron en el pie de la hoja 1 de su
+   propio PDF. */
+const EV_GUIA_ASE2005 = 'Lang RM y col., Recomendaciones para la cuantificacion de las camaras cardiacas, ASE y Asociacion Europea de Ecocardiografia, 2005';
+const EV_DOI_ASE2005  = '10.1016/j.echo.2005.10.005';
+const EV_GUIA_ESC2021IC = 'McDonagh TA y col., Guia ESC 2021 sobre el diagnostico y tratamiento de la insuficiencia cardiaca aguda y cronica (traduccion de la Sociedad Espanola de Cardiologia)';
+const EV_DOI_ESC2021IC  = '10.1016/j.recesp.2021.11.012';
 const EV_FECHA_VER    = '2026-10-16';
 
 const EV_REG = Object.freeze([
@@ -22122,12 +22175,12 @@ const EV_REG = Object.freeze([
   }),
   Object.freeze({
     id: 'DIM-AI-002', zona: 'AI/VI — Auricula izquierda', dato: 'Area',
-    valor: 'Dilatada por encima de 20 cm2; un solo corte para los dos sexos',
+    valor: 'Normal hasta 20 cm2; dilatada por encima de 20. Los mismos valores en los dos sexos',
     duenio: 'aiAreaDilatada / UMBRAL_AI_AREA_DILATADA',
-    guia: EV_GUIA_ASE2015, ubicacion: '', folio: '', hoja_pdf: null,
-    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'criterio propio de EcoSmart',
-    estado: 'por verificar', fecha_verificacion: EV_FECHA_VER,
-    fuente_una_linea: '',
+    guia: EV_GUIA_ASE2005, ubicacion: 'Tabla 9', folio: '1456', hoja_pdf: 17,
+    doi: EV_DOI_ASE2005, fuente_original: '', tipo: 'guia',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
+    fuente_una_linea: 'ASE y Asociacion Europea de Ecocardiografia 2005, Tabla 9 (folio 1456)',
   }),
   Object.freeze({
     id: 'DIM-AI-003', zona: 'AI/VI — Auricula izquierda', dato: 'Volumen indexado por superficie corporal',
@@ -22150,12 +22203,21 @@ const EV_REG = Object.freeze([
   }),
   Object.freeze({
     id: 'DIM-VI-002', zona: 'AI/VI — Ventriculo izquierdo', dato: 'Diametro sistolico (DSVI)',
-    valor: 'Varon: normal 25 a 40; leve 41 a 43; moderado 44 a 45; severo por encima de 45 mm. Mujer: normal 22 a 35; leve 36 a 38; moderado 39 a 41; severo por encima de 41 mm',
-    duenio: '',
+    valor: 'Varon: normal hasta 40; leve 41 a 43; moderado 44 a 45; severo por encima de 45 mm. Mujer: normal hasta 35; leve 36 a 38; moderado 39 a 41; severo por encima de 41 mm',
+    duenio: 'EV_BANDAS_REF.dsviM y EV_BANDAS_REF.dsviF',
     guia: EV_GUIA_ASE2015, ubicacion: 'Tabla suplementaria 3', folio: '39.e8', hoja_pdf: 47,
     doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
     estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
     fuente_una_linea: 'ASE/EACVI 2015, Tabla suplementaria 3 (folio 39.e8)',
+  }),
+  Object.freeze({
+    id: 'DIM-VI-005', zona: 'AI/VI — Ventriculo izquierdo', dato: 'Espesor del septum y de la pared posterior',
+    valor: 'Varon: normal hasta 10; leve 11 a 13; moderado 14 a 16; severo por encima de 16 mm. Mujer: normal hasta 9; leve 10 a 12; moderado 13 a 15; severo por encima de 15 mm. Los mismos valores para el septum y para la pared posterior',
+    duenio: '',
+    guia: EV_GUIA_ASE2015, ubicacion: 'Tabla suplementaria 3 y Tabla 6', folio: '39.e8', hoja_pdf: 47,
+    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
+    fuente_una_linea: 'ASE/EACVI 2015, Tabla suplementaria 3 (folio 39.e8) y Tabla 6 (folio 17)',
   }),
   Object.freeze({
     id: 'DIM-VI-003', zona: 'AI/VI — Ventriculo izquierdo', dato: 'Volumen telediastolico indexado',
@@ -22206,7 +22268,7 @@ const EV_REG = Object.freeze([
     id: 'GEO-VI-001', zona: 'AI/VI — Ventriculo izquierdo', dato: 'Espesor parietal relativo (RWT)',
     valor: 'Normal por debajo de 0,42; con 0,42 o mas el espesor parietal relativo esta aumentado. El mismo corte en los dos sexos',
     duenio: 'calcGeometriaVI',
-    guia: EV_GUIA_ASE2015, ubicacion: 'Tabla 6 y Figura 6', folio: '17', hoja_pdf: 17,
+    guia: EV_GUIA_ASE2015, ubicacion: 'Figura 6', folio: '17', hoja_pdf: 17,
     doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
     estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
     fuente_una_linea: 'ASE/EACVI 2015, Tabla 6 y Figura 6 (folio 17)',
@@ -22421,7 +22483,7 @@ function _evBandas(fn, lo, hi, paso, dec) {
 /* El mapa completo, por sexo. Lo consumen las tarjetas, la pestana Referencias y el caso de la
    suite que compara ficha contra dueno. */
 function evCortes(sexo) {
-  const sx = (String(sexo || '').charAt(0).toUpperCase() === 'F') ? 'F' : 'M';
+  const sx = sexoEfectivo(sexo);
   const r = {};
   if (typeof aiDiamDilatado === 'function')  r.aiDiam = _evBandas(aiDiamDilatado, 20, 80, 0.1, 1);
   if (typeof aiAreaDilatada === 'function')  r.aiArea = _evBandas(aiAreaDilatada, 5, 50, 0.1, 1);
@@ -38731,7 +38793,9 @@ window.EV_BANDAS_REF = EV_BANDAS_REF;
    que no dependen —el diametro diastolico y la fraccion de eyeccion, que en esta aplicacion son
    un corte unico— siguen con su punto: esconderlo seria retener una informacion que no depende
    del dato que falta. */
-function _evSexoCargado() { const x = String(sv('sexo') || '').trim(); return x ? x : null; }
+/* Devuelve 'M', 'F' o null por el dueño único: un valor que no sea masculino ni femenino
+   cuenta como SIN SEXO, igual que el campo vacío. */
+function _evSexoCargado() { return sexoCargado(); }
 function evTarjetaVI() {
   const fr = document.createDocumentFragment();
   const h = document.createElement('h4');
@@ -38862,7 +38926,7 @@ function _evEjeTramos(tramos) {
   };
 }
 function evGraficoGeometria(sexo, valorMasa, valorRwt) {
-  const sx = (String(sexo || '').charAt(0).toUpperCase() === 'F') ? 'F' : 'M';
+  const sx = sexoEfectivo(sexo);
   const W = 326, H = 190, MI = 40, MD = 6, MS = 6, MB = 20;
   const X0 = MI, X1 = W - MD, Y0 = MS, Y1 = H - MB;
   const lim = (sx === 'F') ? UMBRAL_MASA_HVI_M : UMBRAL_MASA_HVI_H;
