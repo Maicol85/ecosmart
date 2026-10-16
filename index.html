@@ -113980,6 +113980,26 @@ var M3D_PI  = Math.PI;
 /* Constantes de forma de la demo. `A_`/`B_` son los semiejes del anillo y se mueven con el
    diametro anular MEDIDO, que es el unico numero del paciente que cambia la forma. */
 var _m3dA = 1.7, _m3dB = 1.45, M3D_HS = 0.25, M3D_S = 46, M3D_DD = 34;
+/* ⚠️ EL TOPE DEL LARGO DEL CHORRO, EN UNIDADES DEL MODELO — «K0a» (2026-10-16).
+   La formula de la demo es `len = 0.8 + 3.4*sev`, que con una IM severa da 4,2. En la demo eso
+   cabia porque dibuja en los 680 x 380 completos; aca `m3dCtx` encuadra una VENTANA de 462 x 408
+   —mas cerrada, para que el modelo no quede diminuto en un cuadro de 340 px—, asi que el chorro
+   se salia por arriba del lienzo en el CORTE LATERAL, que es una de las ocho camaras que el
+   medico usa sin girar nada.
+   ⚠️ EL 3,6 NO SE ELIGIO A OJO: es el valor MAS GRANDE —o sea el que menos cambia el dibujo— con
+   el que el borde SUPERIOR queda limpio en las 360 orientaciones del barrido (ocho camaras x yaw
+   -180..180 x pitch -90..90). Medido con el chorro de una IM severa: con 4,2 recortan 102 de 360
+   orientaciones y 38 pixeles quedan sobre la fila 0; con 3,6 el borde de arriba queda en CERO.
+   ⚠️ SE ELIGIO ACOTAR EL LARGO Y NO AMPLIAR EL ENCUADRE: ampliar la ventana achica el modelo
+   entero, que es justo lo que el Y3b-2 habia agrandado midiendo. Acotar el largo toca solo el
+   extremo del chorro, y `sf` —la apertura del abanico— baja con el por la propia formula de la
+   demo. NI EL ORIGEN, NI EL CUELLO, NI EL COLOR, NI EL GROSOR, NI LA ANIMACION CAMBIAN.
+   ⚠️ VA ACA, CON LAS OTRAS CONSTANTES DEL MODELO, y no al lado de la rama que lo usa: `_m3dBuild`
+   lo lee y un `var` declarado despues se IZA con `undefined`, asi que `Math.min(x, undefined)`
+   daria NaN y el chorro desapareceria sin un solo error en consola. Es la leccion que
+   `WILK_9_11` ya tiene escrita en este archivo. */
+var M3D_JET_LEN_MAX = 3.6;
+var _m3dJet = null;
 var M3D_CEN = Object.freeze([0, 0, -2.1]);
 /* El estado del DIBUJO. Todo se escribe desde `m3dSync` y NADA se calcula aca. */
 var _m3dSt = { seg: [0, 0, 0, 0, 0, 0], im: 0, em: 0, dai: 0, vc: null, avm: null,
@@ -114154,6 +114174,7 @@ function _m3dBuild(o){
      medida cuando la hay. Sin grado no hay chorro: no se dibuja una insuficiencia que la app no
      afirma. ── */
   var sev = Math.min(1, _m3dSt.eroa / 0.6);
+  _m3dJet = null;
   if (_m3dSt.im > 0 && _m3dSt.gap > 0.01 && o < 0.7) {
     var sw = 0, st = 0, N2 = 60, tt, ww, sd = 0, wt = 0, wdt, sgn, jy, dl, o0, o1, orig, len, al, rr2, xi, hw, sf, nr = 9;
     for (k = 0; k <= N2; k++) { tt = k/N2; ww = _m3dWg(tt); sw += ww; st += ww*tt; }
@@ -114166,8 +114187,11 @@ function _m3dBuild(o){
     dl = Math.sqrt(jy*jy + 1);
     o0 = _m3dEdge(0, tj, o); o1 = _m3dEdge(1, tj, o);
     orig = [(o0[0]+o1[0])/2, (o0[1]+o1[1])/2, (o0[2]+o1[2])/2];
-    len = 0.8 + 3.4*sev; al = (0.3 + 0.45*sev)*Math.pow(1 - o/0.7, 1.2);
+    len = Math.min(0.8 + 3.4*sev, M3D_JET_LEN_MAX); al = (0.3 + 0.45*sev)*Math.pow(1 - o/0.7, 1.2);
     hw = Math.max(0.05, _m3dVC()/20); sf = 1 + len*(0.4 + 0.9*sev);
+    /* Para MEDIR que el chorro sigue pegado a la valvula hace falta saber donde nace: el hook
+       `m3dChorroOrigen` lo publica en pixeles del lienzo. Es de solo lectura y no dibuja nada. */
+    _m3dJet = { orig: orig, len: len, hw: hw, sf: sf };
     for (rr2 = 0; rr2 < nr; rr2++) { xi = hw*(2*rr2/(nr-1) - 1);
       ln([orig[0]+xi, orig[1], orig[2]],
          [orig[0]+xi*sf, orig[1]+len*(jy/dl), orig[2]+len*(1/dl)],
@@ -114195,6 +114219,17 @@ var M3D_AC = Object.freeze([0, 1.75, 0.35]), M3D_AU = Object.freeze([1, 0, 0]),
 /* El tamano de la auricula por TRAMO de la categoria publicada (normal, leve, moderada, severa).
    Son parametros de DIBUJO y no mediciones: el esquema es cualitativo y lo dice su pie. */
 var M3D_AI = Object.freeze([34, 44, 56, 72]);
+/* Hook de MEDICION, de solo lectura: el origen del chorro en pixeles del lienzo, o null si no hay
+   chorro. Sin el, «el chorro sigue conectado a la valvula» no se puede comprobar: habria que
+   reconstruir la proyeccion desde afuera, o sea medir la propia reconstruccion. */
+window.m3dChorroOrigen = function(){
+  if (!_m3dJet) return null;
+  var C = m3dCtx(); if (!C) return null;
+  var s = _m3dScr(_m3dAp(_m3dJet.orig));
+  return { x: C.bw/2 - C.k*M3D_W/2 + C.k*s[0],
+           y: C.bh/2 - C.k*M3D_H/2 + C.k*M3D_AIRE + C.k*s[1],
+           len: _m3dJet.len, hw: _m3dJet.hw, sf: _m3dJet.sf, bw: C.bw, bh: C.bh };
+};
 /* La vena contracta del dibujo: la MEDIDA si existe, y si no una proporcional al grado. Se
    declara cual se uso en la descripcion de texto, para que nadie lea el dibujo como una medida. */
 function _m3dVC(){
@@ -114271,7 +114306,27 @@ function m3dPintar(){
   var tcl = (cs.getPropertyValue('--text2') || '#888').trim(),
       tpr = (cs.getPropertyValue('--text') || '#222').trim(),
       sfc = (cs.getPropertyValue('--bg3') || '#fff').trim();
-  ctx.clearRect(0, 0, M3D_W, M3D_H);
+  /* ⚠️ EL LIENZO SE LIMPIA ENTERO, Y NO EN COORDENADAS DEL DIBUJO — «K0a» (2026-10-16).
+     Esta linea decia `clearRect(0, 0, M3D_W, M3D_H)`, o sea el rectangulo del ESPACIO DE DIBUJO
+     (680 x 380) con el transform de `m3dCtx` ya puesto. Ese transform encuadra una VENTANA de
+     462 x 408 y ademas corre el modelo `M3D_AIRE` hacia abajo, asi que la franja de arriba del
+     lienzo —todo lo que cae por encima de `y = 0` del espacio de dibujo— QUEDABA FUERA DEL
+     BORRADO. Medido en un lienzo de 340 x 300: una banda de 51 px de alto que no se limpiaba
+     nunca, y en la que lo pintado en un cuadro cualquiera se quedaba PARA SIEMPRE.
+     Es el artefacto que el medico describe: una masa roja arriba del cuadro que termina en un
+     BORDE RECTO HORIZONTAL —la linea donde empezaba el borrado— y queda SEPARADA de la valvula,
+     con un hueco entre las dos, porque de esa linea para abajo si se limpiaba. Medido en HEAD:
+     38 pixeles del chorro en la fila 0 del lienzo que NO cambiaban ni al girar el modelo ni al
+     cambiar de vista —un resto fijo no puede ser el dibujo de este cuadro—.
+     El defecto NO viene de la demo, que limpia su lienzo entero (`ctx.setTransform(dpr,0,0,dpr,
+     0,0); ctx.clearRect(0,0,W,H)`): nace con la ventana de encuadre de `m3dCtx` y crecio con el
+     `M3D_AIRE` del Y3b-2.
+     Se limpia con el transform NEUTRO y las medidas REALES del lienzo. Ni un pixel del dibujo
+     cambia: lo unico que cambia es que lo de cuadros anteriores deja de quedarse. */
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, C.bw, C.bh);
+  ctx.restore();
   /* La apertura de la valvula a lo largo del ciclo: cerrada en sistole, abierta en diastole. */
   var o = 0.5 - 0.5 * Math.cos(2 * Math.PI * _m3dFase);
   _m3dUpdG();
