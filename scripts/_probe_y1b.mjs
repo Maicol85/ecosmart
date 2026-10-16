@@ -844,6 +844,8 @@ window.__P = {
         var b = li.querySelector('.v2d-vercrit');
         var box = li.querySelector('.v2d-pq');
         var dec = li.querySelector('.v2d-pq-decide');
+        var man = li.querySelector('.v2d-pq-manual');
+        var fun = li.querySelector('.v2d-pq-fund');
         var filas = [];
         /* ⚠️ EL BUCLE AVANZA DE TRES EN TRES PERO EL AVISO ES UNA CELDA SOLA, asi que no se
            puede recorrer con un for de paso fijo: la primera version tenia la condicion de corte
@@ -880,6 +882,8 @@ window.__P = {
         }
         return { valv: (li.querySelector('.v2d-valv') || {}).textContent || null,
                  decide: dec ? (dec.textContent || '').replace(/\\s+/g, ' ').trim() : null,
+                 manual: man ? (man.textContent || '').replace(/\\s+/g, ' ').trim() : null,
+                 fund: fun ? (fun.textContent || '').replace(/\\s+/g, ' ').trim() : null,
                  hayBoton: !!b,
                  btnTxt: b ? (b.textContent || '').trim() : null,
                  aria: b ? b.getAttribute('aria-expanded') : null,
@@ -1030,6 +1034,9 @@ async function main() {
     }
     for (const g of (sp.sev || [])) await ev(`window.__P.setSev(${JSON.stringify(g[0])}, ${JSON.stringify(g[1])}, ${JSON.stringify(g[2])})`);
     for (const f of (sp.fn || [])) await ev(`(function(){ try { ${f}; return 1 } catch(e){ return 'EXC: '+e.message } })()`);
+    /* ⚠️ EL CAJON DEL FUNDAMENTO SE ABRE SOLO CON LA DISCREPANCIA YA PUESTA, asi que su campo se
+       tipea DESPUES de los gestos de severidad: antes no tiene geometria y la sonda abortaria. */
+    for (const id of (sp.fn2 || [])) await tipear(id, 'jet excentrico, vena contracta no medible');
     return ev(`window.__P.informe('estandar')`);
   }
 
@@ -1083,6 +1090,16 @@ async function main() {
         vmax_ao: '4.2', gmedio_ao: '45' }) },
     manual: { campos: Object.assign({}, BSA, { im_vc: '8' }), fn: ['calcIM_ESC()'],
       sev: [['insuf', 'mitral', '2']] },
+    /* El MISMO ajuste manual, con el fundamento escrito en el cajon que la pantalla abre. */
+    manualFund: { campos: Object.assign({}, BSA, { im_vc: '8' }), fn: ['calcIM_ESC()'],
+      sev: [['insuf', 'mitral', '2']],
+      fn2: ['im_fund_nota'] },
+    /* CONTROL NEGATIVO: fijar a mano el MISMO grado que el calculo NO es una discrepancia, asi
+       que la lista de criterios tiene que seguir estando. */
+    manualIgual: { campos: Object.assign({}, BSA, { im_vc: '8' }), fn: ['calcIM_ESC()'],
+      sev: [['insuf', 'mitral', '4']] },
+    /* Lesion SIN GRADUAR: la pastilla prendida a mano y ningun dato. */
+    sinGraduar: { fn: ['if (pillOn("mitral","insuf") !== true) toggleValvPill("mitral","insuf")'] },
     /* ⚠️ LA ESCENA MAS ALTA DE TODAS, y hace falta para el denominador del alto: carga los ONCE
        campos que pueden producir fila en la tabla de cavidades. Con una escena de nueve filas el
        panel entra sin desplazamiento y eso NO prueba que entre con la tabla completa. */
@@ -1202,7 +1219,8 @@ async function main() {
     await viewport(1200, 900);
     for (const nom of ['imDisc', 'imSevera', 'imLeve', 'iao', 'it', 'eaoDisc', 'eaoModerada',
                        'em', 'et', 'protMitralMec', 'protMitralRegurg', 'protMitralThpNormal',
-                       'protMitralBioThp', 'protMitralVmax', 'protAoBio', 'manual', 'vacio']) {
+                       'protMitralBioThp', 'protMitralVmax', 'protAoBio', 'manual', 'manualFund',
+                       'manualIgual', 'sinGraduar', 'vacio']) {
       await escena(ESCY[nom]);
       await ev(`window.__P.abrirTodasValv()`);
       await ev(`window.__P.v2dAbrir()`);
