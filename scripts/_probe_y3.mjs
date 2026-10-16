@@ -912,6 +912,51 @@ window.__P = {
              foco: document.activeElement === b,
              cx: Math.round(r.left + r.width / 2), cy: Math.round(r.top + r.height / 2) } },
 
+  /* Pone un feston en un estado concreto por el GESTO REAL: eteClick cicla, asi que se lo
+     llama las veces que haga falta. Devuelve el estado que quedo, no el que se pidio. */
+  seg(nom, n) {
+    if (typeof eteClick !== 'function') return 'SIN FN';
+    var h = document.getElementById('ete_seg_' + nom);
+    if (!h) return 'NO EXISTE ete_seg_' + nom;
+    for (var k = 0; k < 7; k++) {
+      if (parseInt(h.value || '0', 10) === n) break;
+      eteClick(nom);
+    }
+    return parseInt(h.value || '0', 10) },
+
+  m3dEstadoLeido() {
+    if (typeof m3dEstado !== 'function') return 'SIN FN';
+    try { var S = m3dEstado();
+      return { seg: S.seg, im: S.im, em: S.em, dai: S.dai, vc: S.vc, avm: S.avm,
+               anillo: S.anillo, trombo: S.trombo, eroa: S.eroa,
+               insuf: S.insuf ? { frase: S.insuf.frase, chip: S.insuf.chip, cls: S.insuf.cls,
+                                  decide: (S.insuf.pq && S.insuf.pq.decide) || '',
+                                  manual: !!(S.insuf.pq && S.insuf.pq.manual) } : null,
+               esten: S.esten ? { frase: S.esten.frase, chip: S.esten.chip, cls: S.esten.cls,
+                                  decide: (S.esten.pq && S.esten.pq.decide) || '',
+                                  manual: !!(S.esten.pq && S.esten.pq.manual) } : null };
+    } catch (e) { return 'EXC: ' + e.message } },
+
+  /* Las tarjetas PINTADAS, para compararlas contra las de la vista 2D. */
+  m3dTarjetasLeidas() {
+    var h = document.getElementById('m3d-grados');
+    if (!h) return 'NO EXISTE';
+    return Array.prototype.slice.call(h.children).map(function(d){
+      var ch = d.querySelector('.m3d-chip');
+      return { txt: (d.textContent || '').replace(/[ \\t\\n]+/g, ' ').trim(),
+               chipCls: ch ? ch.className : null,
+               chipColor: ch ? getComputedStyle(ch).backgroundColor : null } }) },
+
+  /* Firma DENSA del lienzo: todos los bytes. Una firma rala da falsos de los dos signos. */
+  m3dFirma() {
+    var cv = document.getElementById('m3d-cv');
+    if (!cv) return 'NO EXISTE';
+    try { var c = cv.getContext('2d');
+      var d = c.getImageData(0, 0, cv.width, cv.height).data, h = 5381, i, n = 0;
+      for (i = 0; i < d.length; i++) { h = ((h * 33) ^ d[i]) >>> 0; if (d[i]) n++; }
+      return { h: h, pintados: n, w: cv.width, h2: cv.height };
+    } catch (e) { return 'EXC: ' + e.message } },
+
   /* ══ Y3-1 · LA VISTA QUIRURGICA Y SUS COMISURAS ══════════════════════════════════════════
      Se leen los rotulos CON SU COORDENADA, no sueltos: «hay un AL y un PM» es cierto tambien
      con los dos invertidos. Y se leen ADEMAS los festones y la orejuela, para poder afirmar que
@@ -1666,10 +1711,15 @@ async function main() {
     /* VEINTE aperturas y cierres: oyentes y memoria no se acumulan. */
     const antes = await ev(`(function(){ return { nodos: document.getElementsByTagName('*').length,
       mem: (performance && performance.memory) ? performance.memory.usedJSHeapSize : null } })()`);
+    const traza = [];
     for (let i = 0; i < 20; i++) {
-      await ev(`window.__P.m3dClic('m3d-btn')`);
-      await ev(`window.__P.m3dClic('m3d-btn')`);
+      const r1 = await ev(`window.__P.m3dClic('m3d-btn')`);
+      const v1 = await ev(`window.__P.m3d().visible`);
+      const r2 = await ev(`window.__P.m3dClic('m3d-btn')`);
+      const v2 = await ev(`window.__P.m3d().visible`);
+      traza.push([r1.ok ? 1 : (r1.err || 0), v1, r2.ok ? 1 : (r2.err || 0), v2]);
     }
+    g.traza = traza;
     await pausa(380);
     g.veinte = { antes: antes,
       despues: await ev(`(function(){ return { nodos: document.getElementsByTagName('*').length,
@@ -1707,27 +1757,67 @@ async function main() {
         const r = await cdp.send('Page.captureScreenshot', par, sessionId);
         const f = join(DEST, nom + '.png');
         await writeFile(f, Buffer.from(r.data, 'base64')); g.archivos.push(f); };
+      const recorte = async (sel) => ev('(function(){ var e = document.getElementById(' +
+        JSON.stringify(sel) + '); if (!e) return null; e.scrollIntoView({ block: "center" });' +
+        ' var r = e.getBoundingClientRect();' +
+        ' return { x: Math.max(0, Math.round(r.left + window.scrollX) - 6),' +
+        '          y: Math.max(0, Math.round(r.top + window.scrollY) - 6),' +
+        '          width: Math.round(r.width) + 12, height: Math.round(r.height) + 12 } })()');
+      /* LAS SIETE ESCENAS QUE PIDE LA VERIFICACION. */
+      const ESCAP = {
+        normal:    {},
+        prolapsoP2:{ campos: Object.assign({}, BSA, { im_vc: '4' }), seg: [['P2', 1]], sev: [['insuf','mitral','2']] },
+        flailSev:  { campos: Object.assign({}, BSA, { im_vc: '8' }), seg: [['P2', 2]], sev: [['insuf','mitral','4']] },
+        restrMod:  { campos: Object.assign({}, BSA, { im_vc: '5' }), seg: [['P3', 3]], sev: [['insuf','mitral','2']] },
+        emSignif:  { campos: Object.assign({}, BSA, { em_gmedio: '12', avm_plan: '1.2' }) },
+        trombo:    { campos: Object.assign({}, BSA, { im_vc: '4' }), seg: [['P2', 1]],
+                     sev: [['insuf','mitral','2']], selects: [['oai_trombo', 'si']] },
+        manual:    { campos: Object.assign({}, BSA, { im_vc: '8' }), seg: [['P2', 2]], sev: [['insuf','mitral','1']] }
+      };
+      const cargar = async (sp) => {
+        await ev('window.__P.nuevo()');
+        await ev('window.__P.abrirValv()');
+        await ev('window.__P.despejar()');
+        for (const k of Object.keys(sp.campos || {})) await tipear(k, sp.campos[k]);
+        for (const s2 of (sp.selects || [])) {
+          const r2 = await ev('window.__P.sel(' + JSON.stringify(s2[0]) + ',' + JSON.stringify(s2[1]) + ')');
+          if (r2 && r2.err) throw new Error('DENOMINADOR ' + s2[0] + ': ' + JSON.stringify(r2));
+        }
+        for (const gg of (sp.sev || [])) await ev('window.__P.setSev(' + JSON.stringify(gg[0]) + ',' +
+          JSON.stringify(gg[1]) + ',' + JSON.stringify(gg[2]) + ')');
+        await ev('window.__P.abrirEte()');
+        for (const sg of (sp.seg || [])) await ev('window.__P.seg(' + JSON.stringify(sg[0]) + ',' + sg[1] + ')');
+        await ev('window.__P.despejar()');
+        if (!(await ev('window.__P.m3d()')).visible) await ev("window.__P.m3dClic('m3d-btn')");
+        await pausa(420);
+      };
+      /* Las siete escenas, a 1200x700 en los dos temas. */
       for (const claro of [false, true]) {
-        await ev(`window.__P.tema(${claro})`);
-        for (const [w, h] of [[1200,700],[768,1024],[390,844]]) {
-          await viewport(w, h);
-          await ev(`window.__P.nuevo()`);
-          await ev(`window.__P.abrirEte()`);
-          await ev(`window.__P.despejar()`);
-          if (!(await ev(`window.__P.m3d()`)).visible) await ev(`window.__P.m3dClic('m3d-btn')`);
-          await pausa(420);
-          /* La fila al viewport, y el clip en coordenadas de PAGINA. */
-          const c = await ev(`(function(){ var e = document.getElementById('m3d-fila');
-            if (!e) return null; e.scrollIntoView({ block: 'center' });
-            var r = e.getBoundingClientRect();
-            return { x: Math.max(0, Math.round(r.left + window.scrollX) - 6),
-                     y: Math.max(0, Math.round(r.top + window.scrollY) - 6),
-                     width: Math.round(r.width) + 12, height: Math.round(r.height) + 12 } })()`);
+        await ev('window.__P.tema(' + claro + ')');
+        await viewport(1200, 700);
+        for (const nom of Object.keys(ESCAP)) {
+          await cargar(ESCAP[nom]);
+          await ev('window.m3dFaseFijar(0.08)');
           await pausa(140);
-          await PNG('m3d_' + w + '_' + (claro ? 'claro' : 'oscuro'), c);
+          await PNG('esc_' + nom + '_' + (claro ? 'claro' : 'oscuro'), await recorte('m3d-fila'));
         }
       }
-      await ev(`window.__P.tema(false)`); await viewport(1200, 700);
+      /* Las tres vistas y los cinco angulos, sobre la escena del flail. */
+      await ev('window.__P.tema(false)'); await viewport(1200, 700);
+      await cargar(ESCAP.flailSev);
+      for (const c of [['v','cirujano'],['v','ventriculo'],['v','lateral'],
+                       ['a','0'],['a','45'],['a','60'],['a','90'],['a','120']]) {
+        await ev("window.__P.m3dClic('m3d-" + c[0] + '-' + c[1] + "')");
+        await pausa(760);
+        await ev('window.m3dFaseFijar(0.08)');
+        await PNG('cam_' + c[0] + '_' + c[1], await recorte('m3d-lienzo'));
+      }
+      /* Los cuatro anchos restantes, sobre el flail. */
+      for (const [w, h] of [[1440,800],[768,1024],[390,844],[360,740]]) {
+        await viewport(w, h); await pausa(220);
+        await PNG('ancho_' + w, await recorte('m3d-fila'));
+      }
+      await ev('window.__P.tema(false)'); await viewport(1200, 700);
       out.grupos.cap3d = g;
     }
   }

@@ -2441,16 +2441,16 @@ html.light-mode .amilo-root{
 #m3d-nota-ang{min-height:14px;margin:0 0 5px;}
 #m3d-cuerpo{display:flex;gap:8px;align-items:flex-start;}
 /* ALTO FIJO, no `auto` ni `%`: es el ancla que impide que el latido mueva el layout. */
-#m3d-lienzo{position:relative;width:324px;height:181px;flex:0 0 324px;
+#m3d-lienzo{position:relative;width:324px;height:228px;flex:0 0 324px;
   background:var(--bg3);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
-#m3d-cv{display:block;width:324px;height:181px;}
+#m3d-cv{display:block;width:324px;height:228px;}
 #m3d-nodisp{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   text-align:center;padding:8px;}
 #m3d-grados{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:5px;}
 .m3d-card{background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:5px 7px;}
 .m3d-card b{display:block;font-size:11px;color:var(--accent2);}
 .m3d-card span{display:block;font-size:10px;color:var(--text2);line-height:1.35;}
-.m3d-card .m3d-chip{display:inline-block;margin-top:3px;padding:1px 6px;border-radius:9px;font-size:9px;font-weight:700;}
+.m3d-card .m3d-chip{margin-top:3px;font-size:9px;}
 #m3d-ciclo{display:flex;align-items:center;gap:7px;margin:7px 0 0;}
 #m3d-bar{position:relative;flex:1 1 auto;height:8px;border-radius:4px;overflow:hidden;
   background:linear-gradient(90deg,var(--accent) 0 38%,var(--bg3) 38% 100%);}
@@ -112711,7 +112711,7 @@ function m3dVisible(){
    píxeles de uno de dpr 1 para un dibujo esquemático que no gana nada con eso, y cada cuadro
    los vuelve a pintar. El espacio de coordenadas del dibujo sigue siendo el 680x380 de la demo:
    lo que cambia es la escala con que se vuelca, así que ni una coordenada del dibujo se toca. */
-var M3D_W = 680, M3D_H = 380, M3D_DPR_MAX = 2;
+var M3D_W = 680, M3D_H = 380, M3D_DPR_MAX = 2, M3D_VW = 440, M3D_VH = 310;
 function m3dCtx(){
   var cv = m3dEl('m3d-cv');
   if (!cv || typeof cv.getContext !== 'function') return null;
@@ -112723,9 +112723,14 @@ function m3dCtx(){
   var d = Math.min(window.devicePixelRatio || 1, M3D_DPR_MAX);
   var bw = Math.round(w * d), bh = Math.round(h * d);
   if (cv.width !== bw || cv.height !== bh) { cv.width = bw; cv.height = bh; }
-  /* El 680x380 del dibujo entra completo en la caja, sin deformarlo. */
-  var k = Math.min(bw / M3D_W, bh / M3D_H);
-  ctx.setTransform(k, 0, 0, k, (bw - M3D_W * k) / 2, (bh - M3D_H * k) / 2);
+  /* ⚠️ EL ENCUADRE ES MÁS CERRADO QUE EL LIENZO DE LA DEMO, y el número sale de mirar el PNG.
+     La demo dibuja en 680x380 y su válvula ocupa el centro: volcado entero en una caja de 324 px
+     el modelo quedaba diminuto, con la mitad del área en vacío. Se encuadra una VENTANA de
+     440x310 centrada en el mismo punto, que es el área que el dibujo de verdad usa —la aurícula,
+     el anillo aórtico y la orejuela incluidos—. NI UNA COORDENADA DEL DIBUJO CAMBIA: lo que
+     cambia es el recorte. */
+  var k = Math.min(bw / M3D_VW, bh / M3D_VH);
+  ctx.setTransform(k, 0, 0, k, bw / 2 - k * M3D_W / 2, bh / 2 - k * M3D_H / 2);
   return { ctx: ctx, k: k, bw: bw, bh: bh };
 }
 
@@ -112737,29 +112742,6 @@ function m3dSinLienzo(){
   if (n) n.hidden = false;
   if (c) c.style.display = 'none';
   _m3dSinCtx = true;
-}
-
-/* El dibujo. En este commit es PROVISORIO —el anillo y la línea de coaptación— y lo reemplaza el
-   modelo de la demo en el commit siguiente: lo que este commit fija es el marco, los controles y
-   que el bucle sólo exista con el panel abierto. */
-function m3dPintar(){
-  if (_m3dSinCtx) return;
-  var C = m3dCtx();
-  if (!C) { m3dSinLienzo(); return; }
-  var ctx = C.ctx, cs = getComputedStyle(document.documentElement);
-  ctx.clearRect(0, 0, M3D_W, M3D_H);
-  ctx.strokeStyle = (cs.getPropertyValue('--text2') || '#888').trim();
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.ellipse(M3D_W / 2, M3D_H / 2, 150, 95, 0, 0, 2 * Math.PI);
-  ctx.stroke();
-  var ap = 0.5 - 0.5 * Math.cos(2 * Math.PI * _m3dFase);
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(M3D_W / 2 - 150, M3D_H / 2);
-  ctx.bezierCurveTo(M3D_W / 2 - 50, M3D_H / 2 + 40 * ap, M3D_W / 2 + 50, M3D_H / 2 + 40 * ap,
-                    M3D_W / 2 + 150, M3D_H / 2);
-  ctx.stroke();
 }
 
 /* ══ EL LATIDO ════════════════════════════════════════════════════════════════════════════════
@@ -112777,7 +112759,16 @@ function _m3dLoop(ts){
   if (_m3dLast === null) _m3dLast = ts;
   var dt = Math.min((ts - _m3dLast) / 1000, 0.1); _m3dLast = ts;
   if (_m3dPlay) _m3dFase = (_m3dFase + dt / M3D_DUR) % 1;
+  /* La interpolacion de camara avanza en el mismo bucle. */
+  if (_m3dAnim) { if (_m3dAnim.t0 === null) _m3dAnim.t0 = ts;
+    var au = Math.min(1, (ts - _m3dAnim.t0) / _m3dAnim.ms); au = au * au * (3 - 2 * au);
+    _m3dR = _m3dQ2m(_m3dSlerp(_m3dAnim.q0, _m3dAnim.q1, au));
+    _m3dZM = _m3dAnim.z0 + (_m3dAnim.z1 - _m3dAnim.z0) * au;
+    if (au >= 1) _m3dAnim = null; }
   m3dPintar(); m3dFaseSync();
+  /* ⚠️ CON EL LATIDO EN PAUSA EL BUCLE SE CORTA EN CUANTO LA CAMARA LLEGO. Sin esto, mover la
+     camara con el dibujo pausado dejaba el bucle vivo para siempre. */
+  if (!_m3dPlay && !_m3dAnim) { _m3dVivo = false; _m3dRaf = null; return; }
   _m3dRaf = requestAnimationFrame(_m3dLoop);
 }
 function m3dArrancar(){
@@ -112837,13 +112828,15 @@ function m3dBotonesSync(){
 function m3dVista(k){
   if (M3D_VISTAS.indexOf(k) < 0) return;
   _m3dVista = k; _m3dAng = null;
-  m3dBotonesSync(); m3dPintar();
+  m3dBotonesSync();
+  if (typeof m3dCamaraAplicar === 'function') m3dCamaraAplicar(); else m3dPintar();
 }
 function m3dAngulo(a){
   a = Number(a);
   if (M3D_ANGS.indexOf(a) < 0) return;
   _m3dAng = a;
-  m3dBotonesSync(); m3dPintar();
+  m3dBotonesSync();
+  if (typeof m3dCamaraAplicar === 'function') m3dCamaraAplicar(); else m3dPintar();
 }
 
 /* ══ ABRIR, CERRAR Y LA COMPUERTA DE LA PRÓTESIS ══════════════════════════════════════════════ */
@@ -112854,10 +112847,16 @@ function m3dAbrir(){
   p.hidden = false;
   /* El `hidden` se saca ANTES que la clase, en dos vueltas, para que la transición de ancho
      tenga un estado de partida: puesto en el mismo cuadro, el navegador no anima nada. */
-  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(function(){ p.classList.add('m3d-on'); });
+  /* ⚠️ LA GUARDA DE ADENTRO NO ES DECORATIVA: entre este cuadro y el siguiente el panel puede
+     haberse CERRADO —un segundo clic, un cambio de pestaña, el paso a prótesis—, y sin ella la
+     clase se le agregaba igual a un panel ya oculto. Medido: veinte pares de clics dejaban el
+     panel cerrado pero CON la clase puesta, así que la apertura siguiente no tenía transición. */
+  if (typeof requestAnimationFrame === 'function')
+    requestAnimationFrame(function(){ if (m3dVisible()) p.classList.add('m3d-on'); });
   else p.classList.add('m3d-on');
   if (b) { b.setAttribute('aria-expanded', 'true'); b.textContent = '✕ 3D'; }
   if (typeof m3dSync === 'function') m3dSync();
+  if (typeof m3dCamaraAplicar === 'function') m3dCamaraAplicar();
   m3dArrancar();
 }
 function m3dCerrar(){
@@ -112897,6 +112896,472 @@ window.m3dEstadoCamara = function(){ return { vista: _m3dVista, ang: _m3dAng, pl
                                               fase: _m3dFase, vivo: _m3dVivo }; };
 window.m3dFaseFijar = function(p){ var x = Number(p); if (!isFinite(x)) return _m3dFase;
   _m3dFase = ((x % 1) + 1) % 1; m3dPintar(); m3dFaseSync(); return _m3dFase; };
+/* ══ EL MODELO 3D — PORTADO DE LA DEMO APROBADA (Y3-3, 2026-10-16) ═════════════════════════════
+   Sale de `docs/3d/2b_demo_mitral_vistas_ete.html` (26 KB, 267 lineas, 2026-10-05; es el UNICO
+   archivo de esa carpeta cuyo nombre contiene «mitral_vistas_ete»). La demo es canvas 2D con un
+   proyector propio —matriz 3x3 mas perspectiva—: SIN WebGL, sin CDN, sin fuentes externas, sin
+   `localStorage` ni IndexedDB. Por eso no hubo ninguna dependencia que quitar ni ninguna parada
+   que declarar, y el plan B del lienzo es la rama estrecha de `m3dSinLienzo`.
+
+   QUE SE CONSERVO DE LA DEMO, sin tocarle un numero: la geometria del anillo (`ann`), la linea de
+   coaptacion (`coap`), el borde libre (`edgeAt`), la malla de cada valva (`vtx`), las cuerdas, el
+   chorro con su cuello, el orificio de la estenosis con su engrosamiento y su domo, la auricula,
+   el proyector, las tres vistas, los cinco angulos y la interpolacion de camara por cuaterniones.
+
+   QUE SE SACO: sus OCHO controles propios —los cinco deslizadores, los cuatro botones de escena y
+   las cinco casillas—. En la app NADA de eso se elige: todo sale del lector.
+
+   ⚠️ NO HAY UN SOLO CALCULO CLINICO NUEVO. El dibujo no decide ningun grado: los LEE.  */
+var M3D_SG  = Object.freeze(['A1', 'A2', 'A3', 'P1', 'P2', 'P3']);
+/* ⚠️ LOS COLORES DE LESION SON LOS DE LA LEYENDA QUE LA PANTALLA YA IMPRIME debajo de la vista
+   quirurgica, no los de la demo: con dos juegos, el mismo flail seria rojo en un dibujo y naranja
+   en el de al lado, con una sola leyenda para los dos. El «Normal» es el unico que no se toma de
+   ahi —ahi la muestra es BLANCA, que como color de tejido no se lee— y usa el tono de valva de la
+   demo. */
+var M3D_COL = Object.freeze(['#d9b49c', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6', '#22c55e']);
+var M3D_RNG = Object.freeze([[0, 0.30], [0.30, 0.70], [0.70, 1], [0, 0.28], [0.28, 0.72], [0.72, 1]]);
+var M3D_PI  = Math.PI;
+/* Constantes de forma de la demo. `A_`/`B_` son los semiejes del anillo y se mueven con el
+   diametro anular MEDIDO, que es el unico numero del paciente que cambia la forma. */
+var _m3dA = 1.7, _m3dB = 1.45, M3D_HS = 0.25, M3D_S = 46, M3D_DD = 34;
+var M3D_CEN = Object.freeze([0, 0, -2.1]);
+/* El estado del DIBUJO. Todo se escribe desde `m3dSync` y NADA se calcula aca. */
+var _m3dSt = { seg: [0, 0, 0, 0, 0, 0], im: 0, em: 0, dai: 0, vc: null, avm: null,
+               anillo: null, trombo: false, insuf: null, esten: null, eroa: 0, gap: 0 };
+var _m3dR = [[1, 0, 0], [0, 1, 0], [0, 0, 1]], _m3dZM = 1, _m3dAnim = null;
+var M3D_LG = Object.freeze([-0.4, 0.5, 0.75]);
+
+function _m3dSm(a, b, x){ var u = Math.max(0, Math.min(1, (x - a) / (b - a))); return u * u * (3 - 2 * u); }
+function _m3dW(i, t){ var r = M3D_RNG[i]; return _m3dSm(r[0] - 0.04, r[0] + 0.04, t) * (1 - _m3dSm(r[1] - 0.04, r[1] + 0.04, t)); }
+function _m3dSegIdx(L, t){ var j = L === 0 ? (t < 0.30 ? 0 : (t < 0.70 ? 1 : 2)) : (t < 0.28 ? 0 : (t < 0.72 ? 1 : 2)); return L * 3 + j; }
+/* La apertura que deja la estenosis: 1 es una valvula libre. El area se normaliza contra 4 cm2,
+   que es el area normal con la que la demo escala. */
+function _m3dKst(){ return _m3dSt.em ? Math.max(0.2, Math.min(1, (_m3dSt.avm || 1.2) / 4.0)) : 1; }
+function _m3dThick(){ return 1 - _m3dKst(); }
+function _m3dMc(t){ return _m3dSm(0, 0.35, t) * _m3dSm(0, 0.35, 1 - t); }
+function _m3dHayLes(){ for (var i = 0; i < 6; i++) if (_m3dSt.seg[i] >= 1 && _m3dSt.seg[i] <= 3) return true; return false; }
+function _m3dWg(t){
+  var w = 0, i, s;
+  if (!_m3dHayLes()) return Math.pow(Math.max(0, Math.sin(M3D_PI * t)), 0.8);
+  for (i = 0; i < 6; i++) { s = _m3dSt.seg[i];
+    if (s >= 1 && s <= 3) w = Math.max(w, _m3dW(i, t) * Math.pow(Math.max(0, Math.sin(M3D_PI * t)), 0.5)); }
+  return w;
+}
+/* La separacion entre valvas que produce la insuficiencia. Se deriva de `eroa`, que NO es una
+   medicion: lo escribe `m3dSync` a partir del GRADO publicado (ver su nota). */
+function _m3dUpdG(){
+  var k, t, lw = 0, N = 60;
+  for (k = 0; k <= N; k++) { t = k / N; lw += _m3dWg(t) * _m3dA * M3D_PI * Math.sin(M3D_PI * t) / N; }
+  _m3dSt.gap = lw > 0.001 ? Math.min(0.75, _m3dSt.eroa / (2 * lw)) : 0;
+}
+function _m3dAnn(th){ var s = Math.sin(th); return [_m3dA * Math.cos(th), (s > 0 ? 0.6 : 1) * _m3dB * s, -M3D_HS * Math.cos(2 * th)]; }
+function _m3dAnnAt(L, t){ return _m3dAnn(L === 0 ? M3D_PI * (1 - t) : M3D_PI * (1 + t)); }
+function _m3dCoap(t){ var s = Math.sin(M3D_PI * t); return [-_m3dA * Math.cos(M3D_PI * t), -0.15 + 0.12 * s, -0.2 - 0.45 * s]; }
+function _m3dOpenF(L, t){
+  var f = 1, j, i, w, s, k = _m3dKst();
+  for (j = 0; j < 3; j++) { i = L * 3 + j; w = _m3dW(i, t); s = _m3dSt.seg[i];
+    if (s === 3) f *= 1 - 0.65 * w; else if (s === 5) f *= 1 - 0.3 * w; }
+  if (k < 1) f *= (0.15 + 0.85 * k) * (1 - (1 - k) * (1 - _m3dMc(t))) * (L === 1 ? 0.6 : 1);
+  return f;
+}
+function _m3dEdge(L, t, o){
+  var a = _m3dAnnAt(L, t), c = _m3dCoap(t), sn = Math.pow(Math.max(0, Math.sin(M3D_PI * t)), 0.7), dz = L === 0 ? 2.2 : 1.7;
+  var e = [a[0] * 0.92, a[1] * 0.85, a[2] - dz * sn], of = o * _m3dOpenF(L, t), ss = of * of * (3 - 2 * of);
+  var f = [c[0] + ss * (e[0] - c[0]), c[1] + ss * (e[1] - c[1]), c[2] + ss * (e[2] - c[2])];
+  var tp = Math.pow(Math.max(0, Math.sin(M3D_PI * t)), 0.6), j, i, w, s;
+  for (j = 0; j < 3; j++) { i = L * 3 + j; w = _m3dW(i, t); s = _m3dSt.seg[i];
+    if (s === 1) f[2] += 0.95 * w * tp * (1 - o);
+    else if (s === 2) f[2] += 1.7 * w * tp * (1 - o);
+    else if (s === 3) f[2] -= 0.7 * w * tp * (1 - o); }
+  if (_m3dSt.gap > 0) f[1] += (L === 0 ? _m3dSt.gap : -_m3dSt.gap) * _m3dWg(t) * (1 - o);
+  return f;
+}
+function _m3dVtx(L, t, v, o){
+  var a = _m3dAnnAt(L, t), f = _m3dEdge(L, t, o), dz = 0, j, i, w;
+  for (j = 0; j < 3; j++) { i = L * 3 + j;
+    if (_m3dSt.seg[i] === 5) { w = _m3dW(i, t); dz += 0.07 * Math.sin(19 * t) * Math.sin(27 * v) * w; } }
+  if (L === 0 && _m3dSt.em) dz -= 0.9 * _m3dThick() * Math.sin(M3D_PI * v) * Math.sin(M3D_PI * t) * o;
+  return [a[0] + v * (f[0] - a[0]), a[1] + v * (f[1] - a[1]),
+          a[2] + v * (f[2] - a[2]) + 0.12 * Math.sin(M3D_PI * v) * (1 - 0.7 * o) + dz];
+}
+/* ── El proyector: matriz 3x3 mas perspectiva, igual que la demo ── */
+function _m3dMul(A, B){ var r = [[0,0,0],[0,0,0],[0,0,0]], i, j, k;
+  for (i = 0; i < 3; i++) for (j = 0; j < 3; j++) for (k = 0; k < 3; k++) r[i][j] += A[i][k] * B[k][j];
+  return r; }
+function _m3dMrx(f){ var c = Math.cos(f), s = Math.sin(f); return [[1,0,0],[0,c,-s],[0,s,c]]; }
+function _m3dMry(t){ var c = Math.cos(t), s = Math.sin(t); return [[c,0,s],[0,1,0],[-s,0,c]]; }
+function _m3dDr(v){ var R = _m3dR;
+  return { x: R[0][0]*v[0] + R[0][1]*v[1] + R[0][2]*v[2],
+           y: R[1][0]*v[0] + R[1][1]*v[1] + R[1][2]*v[2],
+           d: R[2][0]*v[0] + R[2][1]*v[1] + R[2][2]*v[2] }; }
+function _m3dAp(v){ return _m3dDr([v[0] - M3D_CEN[0], v[1] - M3D_CEN[1], v[2] - M3D_CEN[2]]); }
+function _m3dScr(p){ var f = M3D_DD / (M3D_DD - p.d);
+  return [M3D_W/2 + p.x * M3D_S * _m3dZM * f, M3D_H/2 - p.y * M3D_S * _m3dZM * f]; }
+function _m3dTeeAng(a){ return (240 - a) * M3D_PI / 180; }
+function _m3dTeeR(a){ var g = _m3dTeeAng(a), c = Math.cos(g), s = Math.sin(g); return [[c,s,0],[0,0,1],[s,-c,0]]; }
+/* Los segmentos que cada corte de ETE atraviesa — la tabla de la demo, sin cambios. */
+var M3D_VIS = Object.freeze({ 0:['A2','A3','P1','P2'], 45:['P3','A2','P1'], 60:['P3','A2','P1'],
+                              90:['P3','A1','A2','A3'], 120:['A2','P2'] });
+function _m3dSegVis(n){ return _m3dAng === null || M3D_VIS[_m3dAng].indexOf(n) >= 0; }
+/* Interpolacion de camara por cuaterniones, de la demo. Con `prefers-reduced-motion` salta. */
+function _m3dOrth(M){ var a = M[0].slice(), b = M[1].slice(), n = Math.sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]), d, i;
+  for (i = 0; i < 3; i++) a[i] /= n;
+  d = a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
+  for (i = 0; i < 3; i++) b[i] -= d * a[i];
+  n = Math.sqrt(b[0]*b[0]+b[1]*b[1]+b[2]*b[2]);
+  for (i = 0; i < 3; i++) b[i] /= n;
+  return [a, b, [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]]]; }
+function _m3dM2q(M){ var t = M[0][0] + M[1][1] + M[2][2], s;
+  if (t > 0) { s = Math.sqrt(t + 1) * 2; return [0.25*s, (M[2][1]-M[1][2])/s, (M[0][2]-M[2][0])/s, (M[1][0]-M[0][1])/s]; }
+  if (M[0][0] > M[1][1] && M[0][0] > M[2][2]) { s = Math.sqrt(1 + M[0][0] - M[1][1] - M[2][2]) * 2;
+    return [(M[2][1]-M[1][2])/s, 0.25*s, (M[0][1]+M[1][0])/s, (M[0][2]+M[2][0])/s]; }
+  if (M[1][1] > M[2][2]) { s = Math.sqrt(1 + M[1][1] - M[0][0] - M[2][2]) * 2;
+    return [(M[0][2]-M[2][0])/s, (M[0][1]+M[1][0])/s, 0.25*s, (M[1][2]+M[2][1])/s]; }
+  s = Math.sqrt(1 + M[2][2] - M[0][0] - M[1][1]) * 2;
+  return [(M[1][0]-M[0][1])/s, (M[0][2]+M[2][0])/s, (M[1][2]+M[2][1])/s, 0.25*s]; }
+function _m3dQ2m(q){ var w = q[0], x = q[1], y = q[2], z = q[3];
+  return [[1-2*(y*y+z*z), 2*(x*y-z*w), 2*(x*z+y*w)],
+          [2*(x*y+z*w), 1-2*(x*x+z*z), 2*(y*z-x*w)],
+          [2*(x*z-y*w), 2*(y*z+x*w), 1-2*(x*x+y*y)]]; }
+function _m3dSlerp(a, b, u){ var d = a[0]*b[0]+a[1]*b[1]+a[2]*b[2]+a[3]*b[3], k, s0, s1, th, q, n;
+  b = b.slice();
+  if (d < 0) { d = -d; for (k = 0; k < 4; k++) b[k] = -b[k]; }
+  if (d > 0.9995) { s0 = 1 - u; s1 = u; }
+  else { th = Math.acos(d); s0 = Math.sin((1-u)*th)/Math.sin(th); s1 = Math.sin(u*th)/Math.sin(th); }
+  q = []; for (k = 0; k < 4; k++) q.push(s0*a[k] + s1*b[k]);
+  n = Math.sqrt(q[0]*q[0]+q[1]*q[1]+q[2]*q[2]+q[3]*q[3]);
+  return q.map(function(v){ return v / n; }); }
+function _m3dGoTo(Rt, zt){
+  if (m3dCalmo()) { _m3dR = Rt; _m3dZM = zt; _m3dAnim = null; m3dPintar(); return; }
+  _m3dAnim = { q0: _m3dM2q(_m3dOrth(_m3dR)), q1: _m3dM2q(Rt), z0: _m3dZM, z1: zt, t0: null, ms: 600 };
+  /* Con el latido en PAUSA el bucle esta desarmado, asi que la camara no se moveria: se arranca
+     por el tiempo que dure la interpolacion y se vuelve a parar sola. */
+  if (!_m3dVivo && m3dVisible()) { _m3dVivo = true; _m3dLast = null; _m3dRaf = requestAnimationFrame(_m3dLoop); }
+}
+
+/* ══ EL DIBUJO ════════════════════════════════════════════════════════════════════════════════
+   Arma la lista de primitivas, la ordena por profundidad y la pinta. Es el `build()` + `draw()`
+   de la demo sin sus casillas: lo que alla eran `el('jt').checked` y companía, aca son datos. */
+function _m3dBuild(o){
+  var P = [], L, i, j, g, tc, vc, sg, r, tcs, wd, q, ux, uy, uz, vx, vy, vz, nx, ny, nz, nn, k, m, t, e, tip, aa;
+  function ln(a, b, c, w, off){ var pa = _m3dAp(a), pb = _m3dAp(b);
+    P.push({ k:'l', a:pa, b:pb, d:(pa.d + pb.d)/2 + (off || 0), c:c, w:w }); }
+  for (L = 0; L < 2; L++) {
+    g = []; for (i = 0; i <= 40; i++) { g.push([]); for (j = 0; j <= 10; j++) g[i].push(_m3dAp(_m3dVtx(L, i/40, j/10, o))); }
+    for (i = 0; i < 40; i++) for (j = 0; j < 10; j++) {
+      tc = (i + 0.5)/40; vc = (j + 0.5)/10; sg = _m3dSegIdx(L, tc);
+      /* La PERFORACION es un agujero: no se dibuja ese trozo de malla. */
+      if (_m3dSt.seg[sg] === 4) { r = M3D_RNG[sg]; tcs = (r[0] + r[1])/2; wd = r[1] - r[0];
+        if (Math.pow((tc - tcs)/(0.25*wd), 2) + Math.pow((vc - 0.5)/0.16, 2) < 1) continue; }
+      q = [g[i][j], g[i+1][j], g[i+1][j+1], g[i][j+1]];
+      ux = q[1].x-q[0].x; uy = q[1].y-q[0].y; uz = q[1].d-q[0].d;
+      vx = q[3].x-q[0].x; vy = q[3].y-q[0].y; vz = q[3].d-q[0].d;
+      nx = uy*vz-uz*vy; ny = uz*vx-ux*vz; nz = ux*vy-uy*vx;
+      nn = Math.sqrt(nx*nx+ny*ny+nz*nz) || 1;
+      P.push({ k:'q', q:q, n:[nx/nn, ny/nn, nz/nn], d:(q[0].d+q[1].d+q[2].d+q[3].d)/4, sg:sg }); } }
+  /* El anillo mitral. */
+  var ang = []; for (k = 0; k <= 72; k++) ang.push(_m3dAnn(2*M3D_PI*k/72));
+  for (k = 0; k < 72; k++) ln(ang[k], ang[k+1], 'RING', 3.5, 0.06);
+  /* Las cuerdas y los dos musculos papilares. Un FLAIL es una cuerda rota: se dibuja corta. */
+  var TIPS = [[-1.25,-0.1,-3.8], [1.15,-0.3,-3.8]], BASES = [[-1.9,-0.2,-6.2], [1.7,-0.6,-6.2]],
+      CH = [[0.08,0.2,0.32,0.44], [0.56,0.68,0.8,0.92]], cw = 1 + 2.5*_m3dThick();
+  for (m = 0; m < 2; m++) { tip = TIPS[m]; ln(BASES[m], tip, 'PAP', 9, 0);
+    for (L = 0; L < 2; L++) for (k = 0; k < CH[m].length; k++) { t = CH[m][k]; e = _m3dVtx(L, t, 0.93, o);
+      if (_m3dSt.seg[_m3dSegIdx(L, t)] === 2)
+        ln(e, [e[0] + 0.3*(tip[0]-e[0]), e[1] + 0.3*(tip[1]-e[1]), e[2] + 0.3*(tip[2]-e[2])], 'CHORD', 1.2, 0);
+      else ln(e, tip, 'CHORD', cw, 0); } }
+  /* El anillo aortico y la orejuela, como referencias de orientacion. Las VALVAS aorticas que se
+     mueven y las siglas de sus senos entran en el commit siguiente. */
+  var ac = M3D_AC, u = M3D_AU, w2 = M3D_AW, pts = [];
+  for (k = 0; k <= 40; k++) { aa = 2*M3D_PI*k/40;
+    pts.push([ac[0] + 0.95*(Math.cos(aa)*u[0] + Math.sin(aa)*w2[0]),
+              ac[1] + 0.95*(Math.cos(aa)*u[1] + Math.sin(aa)*w2[1]),
+              ac[2] + 0.95*(Math.cos(aa)*u[2] + Math.sin(aa)*w2[2])]); }
+  for (k = 0; k < 40; k++) ln(pts[k], pts[k+1], 'AO', 2.2, 0);
+  var lc = M3D_LC, lp = [];
+  for (k = 0; k <= 30; k++) { aa = 2*M3D_PI*k/30; lp.push([lc[0] + 0.55*Math.cos(aa), lc[1] + 0.85*Math.sin(aa), lc[2]]); }
+  for (k = 0; k < 30; k++) ln(lp[k], lp[k+1], 'AO', 2.2, 0);
+  /* ⚠️ LA AURICULA SE AGRANDA CON LA CATEGORIA QUE LA APP YA PUBLICA, no con el grado de la IM.
+     La demo la derivaba de su deslizador de EROA; aca el tamano de la auricula izquierda es un
+     dato que la app ya clasifico (`ai-interp`), y usar el grado del chorro en su lugar seria
+     dibujar una auricula que contradice la fila que el medico tiene delante. */
+  var R0 = 3.0 * Math.pow(M3D_AI[_m3dSt.dai] / 34, 1/3),
+      lv = [[0.2,1],[1.2,0.93],[2.1,0.78],[2.8,0.5]], rr, pp;
+  for (j = 0; j < 4; j++) { rr = R0 * lv[j][1]; pp = [];
+    for (k = 0; k <= 48; k++) { aa = 2*M3D_PI*k/48; pp.push([rr*Math.cos(aa), 0.2 + 0.8*rr*Math.sin(aa), lv[j][0]]); }
+    for (k = 0; k < 48; k++) ln(pp[k], pp[k+1], 'LA', 1.5, 0); }
+  /* ── EL CHORRO. Su largo y su ancho salen del GRADO publicado; el CUELLO, de la vena contracta
+     medida cuando la hay. Sin grado no hay chorro: no se dibuja una insuficiencia que la app no
+     afirma. ── */
+  var sev = Math.min(1, _m3dSt.eroa / 0.6);
+  if (_m3dSt.im > 0 && _m3dSt.gap > 0.01 && o < 0.7) {
+    var sw = 0, st = 0, N2 = 60, tt, ww, sd = 0, wt = 0, wdt, sgn, jy, dl, o0, o1, orig, len, al, rr2, xi, hw, sf, nr = 9;
+    for (k = 0; k <= N2; k++) { tt = k/N2; ww = _m3dWg(tt); sw += ww; st += ww*tt; }
+    var tj = sw > 0 ? st/sw : 0.5;
+    for (i = 0; i < 6; i++) { if (_m3dSt.seg[i] >= 1 && _m3dSt.seg[i] <= 3) {
+      wdt = M3D_RNG[i][1] - M3D_RNG[i][0];
+      sgn = (_m3dSt.seg[i] === 3) ? (i < 3 ? 1 : -1) : (i < 3 ? -1 : 1);
+      sd += sgn*wdt; wt += wdt; } }
+    jy = wt > 0 ? Math.max(-1, Math.min(1, sd/wt))*0.9 : 0;
+    dl = Math.sqrt(jy*jy + 1);
+    o0 = _m3dEdge(0, tj, o); o1 = _m3dEdge(1, tj, o);
+    orig = [(o0[0]+o1[0])/2, (o0[1]+o1[1])/2, (o0[2]+o1[2])/2];
+    len = 0.8 + 3.4*sev; al = (0.3 + 0.45*sev)*Math.pow(1 - o/0.7, 1.2);
+    hw = Math.max(0.05, _m3dVC()/20); sf = 1 + len*(0.4 + 0.9*sev);
+    for (rr2 = 0; rr2 < nr; rr2++) { xi = hw*(2*rr2/(nr-1) - 1);
+      ln([orig[0]+xi, orig[1], orig[2]],
+         [orig[0]+xi*sf, orig[1]+len*(jy/dl), orig[2]+len*(1/dl)],
+         'rgba(226,75,74,' + al.toFixed(2) + ')', 2 + 2.4*sev, 0.3); }
+    /* El CUELLO: la vena contracta, en el origen del chorro. */
+    ln([orig[0]-hw, orig[1], orig[2]], [orig[0]+hw, orig[1], orig[2]],
+       'rgba(120,20,20,' + (0.95*Math.pow(1 - o/0.7, 0.6)).toFixed(2) + ')', 5, 0.35); }
+  /* ── EL FLUJO DE ENTRADA DE LA ESTENOSIS, en diastole ── */
+  if (_m3dSt.em && o > 0.3) {
+    var o2 = _m3dEdge(0, 0.5, o), o3 = _m3dEdge(1, 0.5, o),
+        oc = [(o2[0]+o3[0])/2, (o2[1]+o3[1])/2, (o2[2]+o3[2])/2],
+        kk = _m3dKst(), dxs = [-0.5,-0.25,0,0.25,0.5], a2 = (0.55*_m3dSm(0.3, 0.8, o)).toFixed(2), dx;
+    for (k = 0; k < 5; k++) { dx = dxs[k]*(0.5 + 1.6*kk);
+      ln([oc[0]+dx*2.4, oc[1], 1.9], [oc[0]+dx*0.4, oc[1], oc[2]], 'rgba(59,125,216,' + a2 + ')', 2.4, 0.3);
+      ln([oc[0]+dx*0.4, oc[1], oc[2]], [oc[0]+dx*0.2, oc[1], oc[2]-2.6], 'rgba(59,125,216,' + a2 + ')', 2.4, 0.3); } }
+  /* El PLANO de corte del angulo de ETE. */
+  if (_m3dAng !== null) { var pg = _m3dTeeAng(_m3dAng), pu = [Math.cos(pg), Math.sin(pg)], PL = 2.9, PN = 22, pk, p0, p1;
+    for (pk = 0; pk < PN; pk++) { p0 = -PL + 2*PL*pk/PN; p1 = p0 + 2*PL/PN*0.55;
+      ln([pu[0]*p0, pu[1]*p0, 0.05], [pu[0]*p1, pu[1]*p1, 0.05], 'rgba(47,95,179,0.95)', 2.2, 0.5); } }
+  return P;
+}
+var M3D_AC = Object.freeze([0, 1.75, 0.35]), M3D_AU = Object.freeze([1, 0, 0]),
+    M3D_AW = Object.freeze([0, 0.96, -0.28]), M3D_NAO = Object.freeze([0, 0.28, 0.96]),
+    M3D_LC = Object.freeze([-3.0, 0.35, 0.25]);
+/* El tamano de la auricula por TRAMO de la categoria publicada (normal, leve, moderada, severa).
+   Son parametros de DIBUJO y no mediciones: el esquema es cualitativo y lo dice su pie. */
+var M3D_AI = Object.freeze([34, 44, 56, 72]);
+/* La vena contracta del dibujo: la MEDIDA si existe, y si no una proporcional al grado. Se
+   declara cual se uso en la descripcion de texto, para que nadie lea el dibujo como una medida. */
+function _m3dVC(){
+  if (_m3dSt.vc !== null && isFinite(_m3dSt.vc)) return Math.max(0, Math.min(14, _m3dSt.vc));
+  return [0, 2.5, 5, 8][_m3dSt.im] || 0;
+}
+function _m3dRgb(h){ return [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)]; }
+
+/* El pintor. Reemplaza al provisorio del commit anterior. */
+function m3dPintar(){
+  if (_m3dSinCtx) return;
+  var C = m3dCtx();
+  if (!C) { m3dSinLienzo(); return; }
+  var ctx = C.ctx, cs = getComputedStyle(document.documentElement);
+  /* ⚠️ LOS COLORES SALEN DE LAS VARIABLES DE LA APP y se leen en cada cuadro, asi que el cambio
+     de tema no necesita ni un oyente: el proximo cuadro ya sale con la paleta nueva. */
+  var tcl = (cs.getPropertyValue('--text2') || '#888').trim(),
+      tpr = (cs.getPropertyValue('--text') || '#222').trim(),
+      sfc = (cs.getPropertyValue('--bg3') || '#fff').trim();
+  ctx.clearRect(0, 0, M3D_W, M3D_H);
+  /* La apertura de la valvula a lo largo del ciclo: cerrada en sistole, abierta en diastole. */
+  var o = 0.5 - 0.5 * Math.cos(2 * Math.PI * _m3dFase);
+  _m3dUpdG();
+  var P = _m3dBuild(o);
+  P.sort(function(a, b){ return a.d - b.d; });
+  var i, p, k, xy, c, sh, dot, col, pa, pb, base, lw = 0.7 + 4 * _m3dThick();
+  for (i = 0; i < P.length; i++) { p = P[i];
+    if (p.k === 'q') {
+      p.s = []; ctx.beginPath();
+      for (k = 0; k < 4; k++) { xy = _m3dScr(p.q[k]); p.s.push(xy);
+        if (k === 0) ctx.moveTo(xy[0], xy[1]); else ctx.lineTo(xy[0], xy[1]); }
+      ctx.closePath();
+      dot = Math.abs(p.n[0]*M3D_LG[0] + p.n[1]*M3D_LG[1] + p.n[2]*M3D_LG[2]);
+      sh = 0.58 + 0.42 * dot;
+      /* Con estenosis la valva sin lesion se dibuja ENGROSADA: es el aspecto de la valva
+         reumatica, y es la misma decision de la demo. */
+      base = (_m3dSt.em && _m3dSt.seg[p.sg] === 0) ? '#e9d9b5' : M3D_COL[_m3dSt.seg[p.sg]];
+      col = _m3dRgb(base).map(function(v){ return Math.round(Math.min(255, v * sh)); });
+      ctx.fillStyle = 'rgb(' + col[0] + ',' + col[1] + ',' + col[2] + ')';
+      ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = lw; ctx.fill(); ctx.stroke();
+    } else {
+      pa = _m3dScr(p.a); pb = _m3dScr(p.b);
+      c = p.c === 'RING' ? tcl
+        : (p.c === 'CHORD' ? 'rgba(150,150,150,0.75)'
+        : (p.c === 'PAP' ? '#a4635c'
+        : (p.c === 'AO' ? 'rgba(130,135,150,0.9)'
+        : (p.c === 'LA' ? 'rgba(130,135,150,0.4)' : p.c))));
+      ctx.strokeStyle = c; ctx.lineWidth = p.w; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(pa[0], pa[1]); ctx.lineTo(pb[0], pb[1]); ctx.stroke(); } }
+  /* ── Los rotulos. Se separan entre si para que no se pisen, con el mismo barrido de la demo ── */
+  ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.lineWidth = 3; ctx.strokeStyle = sfc; ctx.fillStyle = tpr;
+  var sl = [], L2, tm, s0, nx2 = _m3dAng === null ? 0 : Math.sin(_m3dTeeAng(_m3dAng));
+  function pushL(t3, v3){ var s1 = _m3dScr(_m3dAp(v3)); sl.push({ t:t3, x:s1[0], y:s1[1] }); }
+  for (i = 0; i < 6; i++) { L2 = i < 3 ? 0 : 1; tm = (M3D_RNG[i][0] + M3D_RNG[i][1]) / 2;
+    if (_m3dSegVis(M3D_SG[i])) { s0 = _m3dScr(_m3dAp(_m3dVtx(L2, tm, 0.55, o)));
+      sl.push({ t:M3D_SG[i], x:s0[0] + 14*nx2*(L2 === 0 ? 1 : -1), y:s0[1] }); } }
+  pushL('Ao', [0, 2.95, 0.35]); pushL('LAA', [-3.0, 1.4, 0.25]);
+  m3dRotulosExtra(pushL, o);
+  for (i = 0; i < sl.length; i++) sl[i].w = ctx.measureText(sl[i].t).width + 6;
+  (function spread(a){ var it, i2, j2, dx, dy, ox, oy, mv, s2;
+    for (it = 0; it < 40; it++) { mv = false;
+      for (i2 = 0; i2 < a.length; i2++) for (j2 = i2 + 1; j2 < a.length; j2++) {
+        dx = a[j2].x - a[i2].x; dy = a[j2].y - a[i2].y;
+        ox = ((a[i2].w || 30) + (a[j2].w || 30)) / 2 - Math.abs(dx); oy = 16 - Math.abs(dy);
+        if (ox > 0 && oy > 0) { mv = true;
+          if (oy <= ox) { s2 = (dy >= 0 ? 1 : -1) * (oy/2 + 0.5); a[j2].y += s2; a[i2].y -= s2; }
+          else { s2 = (dx >= 0 ? 1 : -1) * (ox/2 + 0.5); a[j2].x += s2; a[i2].x -= s2; } } }
+      if (!mv) break; } })(sl);
+  for (i = 0; i < sl.length; i++) { ctx.strokeText(sl[i].t, sl[i].x, sl[i].y); ctx.fillText(sl[i].t, sl[i].x, sl[i].y); }
+}
+/* Los rotulos que agrega el commit de los detalles. Vacia en este: existe para que ese commit
+   agregue UNA funcion y no tenga que entrar al pintor. */
+function m3dRotulosExtra(pushL, o){ return; }
+
+/* ══ EL LECTOR ÚNICO ══════════════════════════════════════════════════════════════════════════
+   ⚠️ NO VUELVE A CALCULAR NADA: le PREGUNTA a `v2dEstado()`, que es el lector de la vista 2D, y
+   le agrega lo que vive en ETE y la vista 2D no mira —los festones, la vena contracta, el area
+   que la pantalla usa para su grado, el diametro anular y el trombo de orejuela—. Con dos
+   lectores, el dibujo y la tarjeta podrian describir dos pacientes distintos; con este, el grado
+   del 3D ES el de la vista 2D, que a su vez ES el del informe. */
+function m3dEstado(){
+  var E = null;
+  try { E = (typeof v2dEstado === 'function') ? v2dEstado() : null; } catch (e) { E = null; }
+  var S = { seg:[0,0,0,0,0,0], im:0, em:0, dai:0, vc:null, avm:null, anillo:null,
+            trombo:false, insuf:null, esten:null, eroa:0, gap:0 };
+  if (E) {
+    S.im = E.im || 0; S.em = E.em || 0; S.dai = E.dai || 0;
+    var mit = function(a){ return (a || []).filter(function(x){ return x.valv === 'Mitral'; })[0] || null; };
+    S.insuf = mit(E.insuf); S.esten = mit(E.esten);
+  }
+  /* Los festones, tal cual los tiene la vista quirurgica: se leen sus ESPEJOS, que son el unico
+     estado persistido del diagrama desde el 2026-09-18. */
+  for (var i = 0; i < 6; i++) {
+    var h = document.getElementById('ete_seg_' + M3D_SG[i]);
+    var n = h ? parseInt(h.value, 10) : 0;
+    S.seg[i] = (isFinite(n) && n >= 0 && n <= 5) ? n : 0;
+  }
+  /* ⚠️ `eroa` NO ES LA EROA MEDIDA: es el tamano del chorro, PROPORCIONAL AL GRADO PUBLICADO, que
+     es lo que la orden pide. Se escribe en la misma variable que la demo usaba para su
+     deslizador, asi que toda su geometria queda sin tocar. Un grado 0 da 0: sin grado no hay
+     chorro. */
+  S.eroa = [0, 0.18, 0.36, 0.62][S.im] || 0;
+  var vc = (typeof v === 'function') ? v('im_vc') : null;
+  S.vc = (vc !== null && isFinite(vc)) ? vc : null;
+  /* El AREA con la que la pantalla gradua: la PEOR de las fuentes que `emCategoria` dejo votar.
+     No se eligen fuentes aca ni se aplica ningun corte — se le pregunta al dueno cual uso. */
+  try {
+    if (typeof emCategoria === 'function') {
+      var cat = emCategoria();
+      var fs = (cat && cat.fuentes) ? cat.fuentes : [];
+      for (var f = 0; f < fs.length; f++)
+        if (fs[f] && isFinite(fs[f].avm) && (S.avm === null || fs[f].avm < S.avm)) S.avm = fs[f].avm;
+    }
+  } catch (e) { S.avm = null; }
+  /* Sin area medible, el orificio sale del grado CUALITATIVO. */
+  if (S.avm === null && S.em > 0) S.avm = (S.em >= 3) ? 1.2 : 2.4;
+  var an = (typeof v === 'function') ? v('ete_diam_anular') : null;
+  S.anillo = (an !== null && isFinite(an) && an >= 15 && an <= 60) ? an : null;
+  var tr = (typeof sv === 'function') ? sv('oai_trombo') : '';
+  S.trombo = (tr === 'si' || tr === 'sospecha');
+  return S;
+}
+window.m3dEstado = m3dEstado;
+
+/* ══ SINCRONÍA EN VIVO ════════════════════════════════════════════════════════════════════════
+   El 3D no guarda una copia del paciente: cada vez que algo cambia vuelve a preguntar. Se llama
+   al abrir, al tocar un festón, al cambiar un grado y desde «Limpiar». */
+function m3dSync(){
+  var S = m3dEstado();
+  _m3dSt.seg = S.seg; _m3dSt.im = S.im; _m3dSt.em = S.em; _m3dSt.dai = S.dai;
+  _m3dSt.vc = S.vc; _m3dSt.avm = S.avm; _m3dSt.trombo = S.trombo;
+  _m3dSt.insuf = S.insuf; _m3dSt.esten = S.esten; _m3dSt.eroa = S.eroa;
+  /* El diámetro anular MEDIDO cambia la forma del anillo, que es lo único del paciente que la
+     cambia. Sin medición queda el valor de la demo. */
+  _m3dA = S.anillo ? S.anillo / 20 : 1.7;
+  _m3dB = 1.45 * (_m3dA / 1.7);
+  _m3dUpdG();
+  m3dTarjetas(S);
+  m3dDescribir(S);
+  if (typeof m3dTabla === 'function') m3dTabla(S);
+  m3dPintar();
+  return S;
+}
+/* ⚠️ UN SOLO OYENTE DE DOCUMENTO Y NO UNA LLAMADA EN CADA `onchange` AJENO. Los insumos del 3D
+   viven en tres lugares —el diagrama de festones de ETE (que se pinta con clics sobre un SVG y
+   no tiene ningún `change` del que colgarse), los grados de Válvulas y los campos de ETE—, así
+   que colgarse de cada uno serían decenas de puertas que se desincronizan de a una. El oyente
+   sólo trabaja con el panel ABIERTO. */
+document.addEventListener('click', function(){
+  if (m3dVisible()) setTimeout(function(){ if (m3dVisible()) m3dSync(); }, 0);
+}, true);
+['change', 'input'].forEach(function(ev){
+  document.addEventListener(ev, function(){
+    if (m3dVisible()) m3dSync();
+  }, true);
+});
+
+/* ══ LA COLUMNA DE GRADOS ═════════════════════════════════════════════════════════════════════
+   ⚠️ SON LAS TARJETAS DE LA VISTA 2D, LEÍDAS DEL MISMO LECTOR: el mismo texto, la misma pastilla
+   con su misma clase de color y la misma línea «Decide». No se duplica ni una regla — lo que
+   llega es el objeto que `v2dEstado` ya arma para esas tarjetas.
+   ⚠️ Y SÓLO LA QUE EXISTE: sin insuficiencia no hay tarjeta de insuficiencia. Una tarjeta vacía
+   afirmaría normalidad sobre una lesión que nadie evaluó.
+   ⚠️ TODO POR `textContent`, ni un `innerHTML`: lo que se pinta son grados que otras funciones
+   de la app escribieron en el DOM, y un dato que ya viajó por el DOM no vuelve a entrar como
+   marcado. Así el sink no existe, en vez de existir y ser inofensivo. */
+function m3dTarjetas(S){
+  var host = m3dEl('m3d-grados');
+  if (!host) return;
+  while (host.firstChild) host.removeChild(host.firstChild);
+  [S.insuf, S.esten].forEach(function(it){
+    if (!it) return;
+    var d = document.createElement('div'); d.className = 'm3d-card';
+    var b = document.createElement('b'); b.textContent = it.valv; d.appendChild(b);
+    var s = document.createElement('span'); s.textContent = it.frase; d.appendChild(s);
+    if (it.chip) {
+      var c = document.createElement('span');
+      /* ⚠️ SE REUSA LA CLASE `v2d-chip`, NO SE COPIAN SUS CUATRO COLORES. Con una paleta propia,
+         el mismo grado saldría de un color en la vista 2D y de otro acá el día que uno se mueva
+         —y los dos se leen uno al lado del otro—. `m3d-chip` queda sólo para el tamaño.
+         Medido antes de esto: el chip salía TRANSPARENTE porque la clase propia no tenía ninguna
+         regla de fondo; las clases de nivel ya coincidían, lo que faltaba era el color. */
+      c.className = 'v2d-chip m3d-chip ' + (it.cls || '');
+      c.textContent = it.chip; d.appendChild(c);
+    }
+    /* La línea «Decide», sólo donde la pantalla nombra el criterio — y el aviso de ajuste manual
+       cuando el médico fijó el grado a mano, que es lo que la vista 2D publica en ese estado. */
+    if (it.pq && it.pq.manual && it.pq.aviso) {
+      var m = document.createElement('span'); m.textContent = it.pq.aviso; d.appendChild(m);
+    } else if (it.pq && it.pq.decide) {
+      var e = document.createElement('span'); e.textContent = 'Decide: ' + it.pq.decide; d.appendChild(e);
+    }
+    host.appendChild(d);
+  });
+}
+
+/* ══ LA DESCRIPCIÓN EN TEXTO ══════════════════════════════════════════════════════════════════
+   Corta, para quien no ve el dibujo; la tabla de abajo es su alternativa completa. Dice además
+   de dónde salió el cuello del chorro, para que nadie lea el dibujo como una medición. */
+function m3dDescribir(S){
+  var d = m3dEl('m3d-desc'), cv = m3dEl('m3d-cv');
+  var les = [], i;
+  for (i = 0; i < 6; i++) if (S.seg[i] > 0) les.push(M3D_SG[i] + ': ' + ETE_ESTADOS_3D[S.seg[i]]);
+  var p = [];
+  if (S.insuf) p.push(S.insuf.frase);
+  if (S.esten) p.push(S.esten.frase);
+  p.push(les.length ? 'Festones: ' + les.join(' · ') : 'Sin lesiones por festón.');
+  if (S.im > 0) p.push('Cuello del chorro ' + (S.vc !== null ? 'según la vena contracta medida.'
+                                                             : 'proporcional al grado, sin vena contracta medida.'));
+  if (S.trombo) p.push('Trombo de orejuela consignado.');
+  var txt = p.join(' ');
+  if (d) d.textContent = 'Esquema cualitativo: no está a escala y no mide. ' + txt;
+  if (cv) cv.setAttribute('aria-label', 'Modelo 3D de la válvula mitral. ' + txt);
+}
+var ETE_ESTADOS_3D = Object.freeze(['Normal', 'Prolapso', 'Flail', 'Restricción', 'Perforación', 'Calcificación']);
+
+/* Las tres vistas y los cinco ángulos, con las matrices de la demo. */
+function m3dCamaraAplicar(){
+  if (_m3dAng !== null) { _m3dGoTo(_m3dTeeR(_m3dAng), 0.78); return; }
+  if (_m3dVista === 'ventriculo') { _m3dGoTo(_m3dMry(M3D_PI), 1); return; }
+  if (_m3dVista === 'lateral') { _m3dGoTo(_m3dMrx(-80 * M3D_PI / 180), 1); return; }
+  _m3dGoTo([[1, 0, 0], [0, 1, 0], [0, 0, 1]], 1);
+}
+window.m3dSync = m3dSync; window.m3dTarjetas = m3dTarjetas; window.m3dDescribir = m3dDescribir;
+window.m3dCamaraAplicar = m3dCamaraAplicar;
+
 
 </script>
 
