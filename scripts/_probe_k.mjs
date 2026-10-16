@@ -258,6 +258,40 @@ const SONDA = `window.__P = {
     return { w: cv.width, h: cv.height, hash: h, pintados: pint,
              caja: pint ? { x0:x0, y0:y0, x1:x1, y1:y1,
                             margenArr:y0, margenAba:cv.height - 1 - y1 } : null } },
+  /* La estructura de la zona de la mitral de ETE: ids, orden y tamanios. */
+  eteZona() {
+    var ids = ['m3d-fila','m3d-col-izq','m3d-qx','ete-svg-qx','ete-seg-resumen','m3d-panel',
+               'm3d-btn','m3d-lienzo','m3d-tabla'];
+    var o = {};
+    ids.forEach(function(i){ o[i] = window.__P.rect('#' + i.replace(/^/, '')) }, this);
+    var f = document.getElementById('m3d-fila');
+    o._hijosFila = f ? Array.prototype.slice.call(f.children).map(function(c){ return c.id || c.tagName }) : null;
+    var c = document.getElementById('m3d-col-izq');
+    o._hijosCol = c ? Array.prototype.slice.call(c.children).map(function(x){
+      return x.id || (x.className ? ('.' + String(x.className).split(' ')[0]) : x.tagName) }) : null;
+    /* La leyenda y la botonera no tienen id: se ubican por su contenido. */
+    var ley = null, i, d = document.querySelectorAll('#tab-ete div');
+    for (i = 0; i < d.length; i++) {
+      var t = String(d[i].textContent || '');
+      if (!ley && t.indexOf('Prolapso') > -1 && t.indexOf('Calcificaci') > -1 && t.length < 140) { ley = d[i]; break }
+    }
+    /* ⚠️ LA BOTONERA SE UBICA POR EL PADRE DEL BOTON, no barriendo divs que lo CONTENGAN: el
+       primer div que lo contiene es la fila m3d-fila, que tiene dos hijos y pasaba el filtro, asi que
+       la sonda informaba «los botones no estan en la columna» sobre un marcado correcto. */
+    var bt = document.getElementById('m3d-btn');
+    var bot = bt ? bt.parentElement : null;
+    function r(e){ if (!e) return null; var x = e.getBoundingClientRect();
+      return { w:+x.width.toFixed(1), h:+x.height.toFixed(1), x:+x.left.toFixed(1), y:+x.top.toFixed(1) } }
+    o._leyenda = r(ley); o._botonera = r(bot);
+    o._leyDentroCol = !!(ley && c && c.contains(ley));
+    o._botDentroCol = !!(bot && c && c.contains(bot));
+    o._avisoDentroCol = !!(c && c.contains(document.getElementById('ete-seg-resumen')));
+    o._scrollH = document.documentElement.scrollWidth;
+    o._clientW = document.documentElement.clientWidth;
+    o._docH = document.documentElement.scrollHeight;
+    o._avisoTxt = this.txt('#ete-seg-resumen');
+    o._avisoColor = this.css('#ete-seg-resumen', 'color');
+    return o },
   scrollY() { return window.scrollY },
   docH() { return document.documentElement.scrollHeight }
 };`;
@@ -496,6 +530,33 @@ for (const motor of MOTORES) {
     await pg.close();
     G.tope = g;
     await parcial('tope.' + motor, g);
+  }
+
+
+  /* ── maqueta ── K0b: donde estan la leyenda, el aviso y los botones. ─────────────────── */
+  if (corre('maqueta')) {
+    const g = {};
+    for (const [W, H] of [[1200, 700], [1440, 800], [1920, 1080], [768, 1024], [390, 844], [360, 740]]) {
+      for (const [tn, claro] of [['oscuro', false], ['claro', true]]) {
+        const pg = await nuevaPagina(b, W, H, false, true);
+        await montarEscena(pg, ESC.severa);
+        await pg.evaluate((c) => window.__P.tema(c), claro);
+        /* ⚠️ UNA VUELTA DESPUES DE CAMBIAR EL TEMA: sin la espera, la primera lectura de
+           `getComputedStyle` devolvia el color del tema ANTERIOR y la tabla informaba el aviso
+           en gris oscuro sobre una pantalla en tema claro. */
+        await pg.waitForTimeout(150);
+        const cerrado = await pg.evaluate(() => window.__P.eteZona());
+        await pg.evaluate(() => window.__P.abrir3d());
+        await pg.evaluate(() => window.__P.congelar(0));
+        await pg.waitForTimeout(450);
+        const abierto = await pg.evaluate(() => window.__P.eteZona());
+        g[W + 'x' + H + '-' + tn] = { cerrado, abierto };
+        if (DEST) { try { await pg.locator('#m3d-fila').screenshot({ path: join(DEST, 'fila-' + motor + '-' + W + '-' + tn + '.png') }) } catch (e) {} }
+        await pg.close();
+      }
+    }
+    G.maqueta = g;
+    await parcial('maqueta.' + motor, g);
   }
 
   await b.close();

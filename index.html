@@ -2465,7 +2465,19 @@ html.light-mode .amilo-root{
    ⚠️ Y LA TRANSICIÓN VA SOBRE EL ANCHO DEL PANEL, no sobre columnas de grid: `grid-template-
    columns` se anima recién en Safari 16+ y el médico usa Safari. El ancho se anima en todos. */
 #m3d-fila{display:flex;justify-content:center;align-items:flex-start;gap:0;}
-#m3d-qx{flex:0 1 500px;min-width:0;}
+/* ══ LA COLUMNA IZQUIERDA —«K0b» (2026-10-16)—: la vista quirurgica Y las tres cosas que la
+   acompanan (leyenda de colores, aviso de hallazgos y botones).
+   ⚠️ SIN EL PANEL ABIERTO LA COLUMNA OCUPA TODO EL ANCHO, y eso es lo que hace que con el 3D
+   cerrado no cambie NADA: la leyenda y el aviso siguen midiendo lo que median (978 px a 1200) y
+   la vista quirurgica sigue centrada por su propio `max-width:500px;margin:0 auto`.
+   ⚠️ CON EL PANEL ABIERTO la columna toma el MISMO flex que tenia `#m3d-qx` —`0 1 500px`—, asi
+   que se encoge exactamente igual que antes y las tres cosas bajan con ella. El ancho lo decide
+   una CLASE en la fila y no un selector de hermano: `:has()` no esta en todos los motores que
+   este repo mide, y un selector de hermano no puede alcanzar a un elemento ANTERIOR.
+   NI UN PORCENTAJE NI UN `vh` EN LA CADENA, que es la leccion de WebKit del Y1c. */
+#m3d-col-izq{flex:1 1 auto;min-width:0;}
+#m3d-fila.m3d-abierta #m3d-col-izq{flex:0 1 500px;}
+#m3d-qx{max-width:500px;min-width:0;}
 #m3d-panel{flex:0 0 auto;width:0;overflow:hidden;opacity:0;
   transition:width .24s ease, opacity .24s ease, margin-left .24s ease;
   margin-left:0;text-align:left;}
@@ -2540,7 +2552,10 @@ html.light-mode .amilo-root{
 /* ══ ANGOSTO: UNA COLUMNA —vista quirúrgica, panel, tabla—, en el ORDEN DEL MARCADO.
    El panel deja de animar su ancho (ahí no hay a dónde correrse) y pasa a ocupar la línea. */
 @media (max-width:768px){
+  /* UNA COLUMNA, EN EL ORDEN DEL MARCADO: vista quirurgica, leyenda, aviso, botones y recien ahi
+     el panel 3D con su tabla. El boton «3D» queda a mano ANTES de que aparezca el panel. */
   #m3d-fila{display:block;}
+  #m3d-fila.m3d-abierta #m3d-col-izq,#m3d-col-izq{width:auto;}
   #m3d-panel{width:auto;margin-left:0;transition:none;}
   #m3d-panel.m3d-on{width:auto;margin-left:0;}
   #m3d-panel>*{width:auto;}
@@ -12626,6 +12641,21 @@ z
            ancho se anima en todos los navegadores, mientras que animar columnas de grid pide
            Safari 16+. El desplazamiento de la vista es la CONSECUENCIA del ancho creciendo. -->
       <div id="m3d-fila">
+      <!-- ⚠️ LA COLUMNA IZQUIERDA — «K0b» (2026-10-16). La vista quirurgica y las TRES cosas que
+           la acompanan —la leyenda de colores, el aviso de hallazgos y los botones— eran hermanas
+           de la fila y quedaban al fondo de la pantalla, lejos de la vista, con un hueco grande
+           debajo. Hoy son una COLUMNA: con el panel 3D abierto bajan con la vista quirurgica y la
+           acompanan, y con el panel cerrado la columna ocupa el ancho entero de la tarjeta, asi
+           que todo queda EXACTAMENTE como estaba.
+           ⚠️ EL ANCHO LO DECIDE UNA CLASE EN LA FILA Y NO UN SELECTOR DE HERMANO: con el panel
+           cerrado la columna va a `flex:1 1 auto` (978 px a 1200) y con el abierto a
+           `flex:0 1 500px`, que es el mismo flex que `#m3d-qx` tenia. Sin la clase habria que
+           elegir entre dejar la leyenda y el aviso en 500 px tambien con el 3D cerrado —un cambio
+           visible donde la orden pide que no cambie nada— o no moverlos nunca.
+           ⚠️ EN ANGOSTO SALE SOLO: `#m3d-fila` pasa a `display:block`, asi que el orden es el del
+           marcado —vista, leyenda, aviso, botones y recien ahi el panel—, que es lo que deja el
+           boton «3D» a mano ANTES de que aparezca el panel. -->
+      <div id="m3d-col-izq">
       <!-- Vista Quirúrgica -->
       <div id="m3d-qx" style="max-width:500px;margin:0 auto 10px;text-align:center;">
         <div style="font-size:9px;font-weight:700;color:var(--accent2);margin-bottom:3px;">Vista Quirúrgica — Válvula Mitral</div>
@@ -12675,6 +12705,43 @@ z
         </svg>
       </div>
 
+
+      <!-- Leyenda -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:6px;">
+        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2);"><span style="width:10px;height:10px;border-radius:2px;background:#ffffff;display:inline-block;"></span>Normal</div>
+        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2);"><span style="width:10px;height:10px;border-radius:2px;background:#f59e0b;display:inline-block;"></span>Prolapso</div>
+        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2);"><span style="width:10px;height:10px;border-radius:2px;background:#ef4444;display:inline-block;"></span>Flail</div>
+        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2);"><span style="width:10px;height:10px;border-radius:2px;background:#3b82f6;display:inline-block;"></span>Restricción</div>
+        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2);"><span style="width:10px;height:10px;border-radius:2px;background:#8b5cf6;display:inline-block;"></span>Perforación</div>
+        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2);"><span style="width:10px;height:10px;border-radius:2px;background:#22c55e;display:inline-block;"></span>Calcificación</div>
+      </div>
+
+      <!-- Resumen hallazgos -->
+      <div id="ete-seg-resumen" style="font-size:11px;color:var(--text2);text-align:center;padding:6px;background:rgba(255,255,255,0.04);border-radius:6px;min-height:24px;">
+        ✅ Sin lesiones valvulares mitrales detectadas
+      </div>
+
+      <!-- Espejos del diagrama de segmentos. El estado vivía SÓLO en claves globales de
+           localStorage (`ete_seg_A1`…`ete_seg_P3`), que `guardarInforme` no alcanza porque
+           barre `input[id], select[id], textarea[id]`: al reabrir un estudio para editarlo el
+           diagrama volvía en blanco y el PDF salía sin los hallazgos que el médico había
+           marcado. Con un input por segmento el estado entra al barrido genérico, viaja en el
+           backup JSON y lo repone `eteSegSync` desde RECALC_MODULOS. Son `hidden`, no
+           `readonly`: no hay nada que leer acá, el dato se ve en el diagrama. -->
+      <input type="hidden" id="ete_seg_A1" data-espejo><input type="hidden" id="ete_seg_A2" data-espejo><input type="hidden" id="ete_seg_A3" data-espejo>
+      <input type="hidden" id="ete_seg_P1" data-espejo><input type="hidden" id="ete_seg_P2" data-espejo><input type="hidden" id="ete_seg_P3" data-espejo>
+      <div style="text-align:center;margin-top:10px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+        <button class="btn btn-ghost" onclick="eteLimpiarSegmentos()">🧹 Limpiar</button>
+        <button class="btn btn-ghost" id="ete-qx-pdf" onclick="eteQxIncluirPDF()">📄 Incluir en PDF</button>
+        <!-- ⚠️ SÓLO CON VÁLVULA MITRAL NATIVA. Con una prótesis el botón no existe y el panel
+             abierto se cierra: el modelo dibuja valvas, festones y un orificio de válvula nativa,
+             y ponerle encima el grado de una prótesis sería dibujar una cosa y rotular otra. Lo
+             gobierna `m3dBotonSync`, que pregunta por `valvEsProtesis` —el mismo dueño del
+             predicado que usa `protNoGradua`— y no por una segunda lista de opciones. -->
+        <button class="btn btn-ghost" id="m3d-btn" hidden aria-expanded="false"
+                aria-controls="m3d-panel" onclick="m3dTog()">🔮 3D</button>
+      </div>
+      </div><!-- fin m3d-col-izq -->
       <!-- ══ EL PANEL DEL 3D (Y3-2) ═════════════════════════════════════════
            ⚠️ ALTURAS EXPLÍCITAS EN PX Y NI UN PORCENTAJE, y no es una preferencia de estilo. La
            vista 2D del Y1b se ve COLAPSADA en Safari —la tarjeta queda en unos 60 px de alto— por
@@ -12737,44 +12804,8 @@ z
         </div>
         <!-- La nota del dibujo queda a todo el ancho del panel, debajo de las dos columnas. -->
         <div id="m3d-desc" class="m3d-nota"></div>
-      </div>
+      </div><!-- fin m3d-panel -->
       </div><!-- fin m3d-fila -->
-
-      <!-- Leyenda -->
-      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:6px;">
-        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2);"><span style="width:10px;height:10px;border-radius:2px;background:#ffffff;display:inline-block;"></span>Normal</div>
-        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2);"><span style="width:10px;height:10px;border-radius:2px;background:#f59e0b;display:inline-block;"></span>Prolapso</div>
-        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2);"><span style="width:10px;height:10px;border-radius:2px;background:#ef4444;display:inline-block;"></span>Flail</div>
-        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2);"><span style="width:10px;height:10px;border-radius:2px;background:#3b82f6;display:inline-block;"></span>Restricción</div>
-        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2);"><span style="width:10px;height:10px;border-radius:2px;background:#8b5cf6;display:inline-block;"></span>Perforación</div>
-        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2);"><span style="width:10px;height:10px;border-radius:2px;background:#22c55e;display:inline-block;"></span>Calcificación</div>
-      </div>
-
-      <!-- Resumen hallazgos -->
-      <div id="ete-seg-resumen" style="font-size:11px;color:var(--text2);text-align:center;padding:6px;background:rgba(255,255,255,0.04);border-radius:6px;min-height:24px;">
-        ✅ Sin lesiones valvulares mitrales detectadas
-      </div>
-
-      <!-- Espejos del diagrama de segmentos. El estado vivía SÓLO en claves globales de
-           localStorage (`ete_seg_A1`…`ete_seg_P3`), que `guardarInforme` no alcanza porque
-           barre `input[id], select[id], textarea[id]`: al reabrir un estudio para editarlo el
-           diagrama volvía en blanco y el PDF salía sin los hallazgos que el médico había
-           marcado. Con un input por segmento el estado entra al barrido genérico, viaja en el
-           backup JSON y lo repone `eteSegSync` desde RECALC_MODULOS. Son `hidden`, no
-           `readonly`: no hay nada que leer acá, el dato se ve en el diagrama. -->
-      <input type="hidden" id="ete_seg_A1" data-espejo><input type="hidden" id="ete_seg_A2" data-espejo><input type="hidden" id="ete_seg_A3" data-espejo>
-      <input type="hidden" id="ete_seg_P1" data-espejo><input type="hidden" id="ete_seg_P2" data-espejo><input type="hidden" id="ete_seg_P3" data-espejo>
-      <div style="text-align:center;margin-top:10px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
-        <button class="btn btn-ghost" onclick="eteLimpiarSegmentos()">🧹 Limpiar</button>
-        <button class="btn btn-ghost" id="ete-qx-pdf" onclick="eteQxIncluirPDF()">📄 Incluir en PDF</button>
-        <!-- ⚠️ SÓLO CON VÁLVULA MITRAL NATIVA. Con una prótesis el botón no existe y el panel
-             abierto se cierra: el modelo dibuja valvas, festones y un orificio de válvula nativa,
-             y ponerle encima el grado de una prótesis sería dibujar una cosa y rotular otra. Lo
-             gobierna `m3dBotonSync`, que pregunta por `valvEsProtesis` —el mismo dueño del
-             predicado que usa `protNoGradua`— y no por una segunda lista de opciones. -->
-        <button class="btn btn-ghost" id="m3d-btn" hidden aria-expanded="false"
-                aria-controls="m3d-panel" onclick="m3dTog()">🔮 3D</button>
-      </div>
 
     </div>
   </div>
@@ -113891,14 +113922,28 @@ function m3dAbrir(){
   if (typeof requestAnimationFrame === 'function')
     requestAnimationFrame(function(){ if (m3dVisible()) p.classList.add('m3d-on'); });
   else p.classList.add('m3d-on');
+  /* ⚠️ LA CLASE DE LA FILA VA EN EL MISMO CUADRO QUE EL `hidden`, no en el siguiente: es la que
+     angosta la COLUMNA IZQUIERDA de 978 a 500 px (K0b), y el ancho de la columna es el estado de
+     partida contra el que el panel anima el suyo. Puesta en el rAF, la vista quirurgica saltaba
+     un cuadro despues que el panel. */
+  m3dFilaSync(true);
   if (b) { b.setAttribute('aria-expanded', 'true'); b.textContent = '✕ 3D'; }
   if (typeof m3dSync === 'function') m3dSync();
   if (typeof m3dCamaraAplicar === 'function') m3dCamaraAplicar();
   m3dCablearGiro();
   m3dArrancar();
 }
+/* ══ EL ANCHO DE LA COLUMNA IZQUIERDA — «K0b» (2026-10-16) ═══════════════════════════════
+   Un solo duenio de la clase, llamado desde las DOS puertas. Con el panel cerrado la columna
+   vuelve a ocupar el ancho entero de la tarjeta, que es lo que deja la pantalla exactamente como
+   estaba antes de esta tanda. */
+function m3dFilaSync(abierta){
+  var f = m3dEl('m3d-fila');
+  if (f) f.classList.toggle('m3d-abierta', !!abierta);
+}
 function m3dCerrar(){
   var p = m3dEl('m3d-panel'), b = m3dEl('m3d-btn');
+  m3dFilaSync(false);
   m3dParar();
   m3dDescablearGiro();
   /* ⚠️ EL GIRO SE LIMPIA AL CERRAR, y es decision de la orden: al reabrir vuelve la vista del
