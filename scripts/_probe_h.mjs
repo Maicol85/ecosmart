@@ -353,9 +353,58 @@ const SONDA = `window.__P = {
     return { vci: pick(/Colapso VCI|>50|<50/), sexo: pick(/Masculino|Femenino|a[nñ]os/),
              doc: pick(/\\|(CI|DNI|CPF|C[eé]dula):/) } },
 
+  /* El PDF REIMPRESO de un estudio guardado, por su camino REAL: se guarda, se limpia el
+     formulario y se llama a pdfDeInformeGuardado, que repone los campos del estudio y pone
+     window._pdfReimpresion. Simularlo con el flag a mano NO es el reimpreso: ahi los campos
+     siguen siendo los de la pantalla. La promesa se resuelve cuando jsPDF guarda. */
+  async reimprimir(id) {
+    if (typeof window.jspdf === 'undefined') return { err:'SIN jsPDF' };
+    if (typeof pdfDeInformeGuardado !== 'function') return { err:'SIN pdfDeInformeGuardado' };
+    var orig = window.jspdf.jsPDF;
+    var textos = [], figs = [], listo = null;
+    var espera = new Promise(function(res){ listo = res });
+    function Envuelto(){
+      var d = new orig(arguments[0]);
+      var oText = d.text, oCirc = d.circle, oLine = d.line;
+      d.text = function(t, x, y){
+        var ss = (typeof t === 'string') ? t : (Array.isArray(t) ? t.join(String.fromCharCode(1)) : String(t));
+        var pg = 0; try { pg = d.internal.getCurrentPageInfo().pageNumber } catch (e) {}
+        textos.push(pg + '|' + (+x).toFixed(2) + '|' + (+y).toFixed(2) + '|' + ss);
+        return oText.apply(d, arguments) };
+      d.circle = function(x, y, r){ figs.push('C'); return oCirc.apply(d, arguments) };
+      d.line = function(){ figs.push('L'); return oLine.apply(d, arguments) };
+      d.save = function(){ try { listo(1) } catch (e) {} return d };
+      return d }
+    Envuelto.API = orig.API; Envuelto.version = orig.version;
+    window.jspdf.jsPDF = Envuelto;
+    try { pdfDeInformeGuardado(id, 'abrir', 'PDF') } catch (e) { return { err:String(e && e.message) } }
+    await Promise.race([espera, new Promise(function(r){ setTimeout(function(){ r(0) }, 25000) })]);
+    window.jspdf.jsPDF = orig;
+    return { nTextos: textos.length, nFigs: figs.length, textos: textos, figs: figs } },
+
+  /* ⚠️ EL ID SE BUSCA POR DOCUMENTO Y NO ES «EL ULTIMO DE LA LISTA»: con el ultimo, las tres
+     escenas devolvieron el MISMO id y las dos de abajo reimprimieron el estudio de la primera
+     —un denominador roto con pinta de medicion buena—. Cada escena usa su propio documento. */
+  idPorDoc(ci) { try {
+    var l = (typeof getInformes === 'function') ? getInformes() : [];
+    for (var i = l.length - 1; i >= 0; i--) {
+      var c = l[i].campos || {};
+      if (String(c.ci || '') === String(ci)) return l[i].id || null }
+    return null } catch (e) { return 'EXC' } },
+
+  /* ⚠️ guardarInforme DEVUELVE false Y NO GUARDA si las severidades valvulares no estan
+     confirmadas: abre la tarjeta de revision y espera un clic. Y valvSevConfirmada es un let
+     de MODULO, no una propiedad de window, asi que no se puede poner a mano —la trampa que este
+     repo ya tiene escrita para _labImpDatos y ECO_AYUDA—. Se confirma clickeando el boton
+     real de la tarjeta, que es el gesto del medico. */
   guardarEstudio() {
-    try { if (typeof guardarInforme !== 'function') return { err:'SIN guardarInforme' };
-      guardarInforme(); return { ok:true } } catch (e) { return { err:String(e && e.message) } } },
+    try {
+      if (typeof guardarInforme !== 'function') return { err:'SIN guardarInforme' };
+      var r1 = guardarInforme();
+      var b = document.getElementById('rev-confirm');
+      if (b) { b.click(); return { ok:true, viaTarjeta:true } }
+      return { ok: r1 !== false, viaTarjeta:false, r1: r1 };
+    } catch (e) { return { err:String(e && e.message) } } },
 
   listo() {
     var faltan = ['generarPDFReal','limpiarCampos','showTab','getBSA','generarInforme','calcAI']
@@ -444,12 +493,29 @@ async function main() {
     const ro = await ev(`(function(){ var e = document.getElementById(${JSON.stringify(id)});
       return !!(e.readOnly || e.disabled) })()`);
     if (ro) throw new Error('CAMPO DE SOLO LECTURA, no se le manda una tecla: ' + id);
+    /* ⚠️ UN input[type=date] NO SOPORTA setSelectionRange y tira InvalidStateError, que mata
+       la escena entera: se protege con try y se deja el foco puesto igual. */
     await ev(`(function(){ var e = document.getElementById(${JSON.stringify(id)}); e.focus();
-      e.setSelectionRange ? e.setSelectionRange(0, (e.value||'').length) : 0; return 1 })()`);
+      try { if (e.setSelectionRange) e.setSelectionRange(0, (e.value||'').length) } catch (x) {}
+      return 1 })()`);
     const f = await ev('document.activeElement ? document.activeElement.id : null');
     if (f !== id) throw new Error('EL FOCO NO LLEGO a ' + id + ', esta en ' + f);
   }
   async function tipear(id, texto) {
+    /* ⚠️ LA FECHA NO SE PUEDE TECLEAR: es un input[type=date], el navegador no acepta
+       insercion de texto plano y el campo queda vacio. Se fija por valor Y SE DECLARA, que es
+       el unico campo de estas escenas donde el gesto no es una tecla real. */
+    const esFecha = await ev(`(function(){ var e = document.getElementById(${JSON.stringify(id)});
+      return e ? e.type : 'NO EXISTE' })()`);
+    if (esFecha === 'date') {
+      await ev(`(function(){ var e = document.getElementById(${JSON.stringify(id)});
+        e.value = ${JSON.stringify(String(texto))};
+        e.dispatchEvent(new Event('input', { bubbles: true }));
+        e.dispatchEvent(new Event('change', { bubbles: true })); return 1 })()`);
+      const q = await ev(`window.__P.val(${JSON.stringify(id)})`);
+      if (String(q) !== String(texto)) throw new Error('LA FECHA NO QUEDO en ' + id + ': ' + q);
+      return;
+    }
     await foco(id);
     for (let i = 0; i < 24; i++) await tecla('Backspace');
     if (String(texto).length) await cdp.send('Input.insertText', { text: String(texto) }, sessionId);
@@ -538,7 +604,7 @@ async function main() {
           const r = await J(`JSON.stringify(window.__P.pdf(${JSON.stringify(pl)}, false))`);
           g[k] = { err: r.err, nTextos: r.nTextos, nFigs: r.nFigs, largoB64: r.largoB64,
                    celdas: await J(`JSON.stringify(window.__P.celdas(${JSON.stringify(r.textos)}))`),
-                   figs: r.figs };
+                   textos: r.textos, figs: r.figs };
           if (DEST && pl === 'clasico') {
             await writeFile(join(DEST, 'pdf_' + E.n.split(' ')[0] + '.b64'), r.b64 || '', 'utf8');
           }
@@ -546,6 +612,31 @@ async function main() {
       }
     }
     out.grupos.pdf = g;
+  }
+
+  /* ── reimp: el PDF de un estudio GUARDADO, por su camino real ── */
+  if (corre('reimp')) {
+    const g = {};
+    for (const E of [{ n: 'masculino >50', sexo: 'M', vci: '>50', ci: '7000001' },
+                     { n: 'femenino <50',  sexo: 'F', vci: '<50', ci: '7000002' },
+                     { n: 'sin sexo',      sexo: '',  vci: null,  ci: '7000003' }]) {
+      try {
+        await montar({ ai_vol: '98' }, { sexo: E.sexo, vci: E.vci,
+          extra: { nombre: 'REIMP ' + E.ci, ci: E.ci, edad: '55', fecha: '2026-10-16' } });
+        await ev("(function(){ try { setEstiloInforme('estandar'); generarInforme() } catch(e) {} return 1 })()");
+        const gu = await J('JSON.stringify(window.__P.guardarEstudio())');
+        await pausa(900);
+        const id = await ev(`window.__P.idPorDoc(${JSON.stringify(E.ci)})`);
+        await ev('window.__P.limpiar()');
+        /* ⚠️ UN await DE NIVEL SUPERIOR EN Runtime.evaluate TIRA «missing ) after argument
+           list»: la expresion se evalua en una funcion que NO es async. Va en su propia IIFE
+           asincrona, que es lo que este repo ya tiene escrito para el cuerpo de un caso. */
+        const r = await J(`(async function(){ return JSON.stringify(await window.__P.reimprimir(${JSON.stringify(id)})) })()`);
+        g[E.n] = { guardo: gu, id: id, nTextos: r.nTextos, nFigs: r.nFigs, err: r.err,
+                   celdas: await J(`JSON.stringify(window.__P.celdas(${JSON.stringify(r.textos || [])}))`) };
+      } catch (e) { g[E.n] = { ABORTO: e.message }; abortos.push('reimp ' + E.n + ': ' + e.message); }
+    }
+    out.grupos.reimp = g;
   }
 
   /* ── controles ── */

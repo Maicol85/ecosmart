@@ -52012,7 +52012,75 @@ function generarPDFReal(_aj) {
   const imc  = _imcN != null ? _imcN.toFixed(1)+' kg/m2' : null;
   const ascV = bsa ? bsa.toFixed(2)+' m2' : null;
   const sexo = sv('sexo');
-  const sexoTxt = sexo==='M'?'Masculino':sexo==='F'?'Femenino':(sexo||null);
+  /* ══ EL SIMBOLO DEL SEXO SE DIBUJA, NO SE ESCRIBE (H2, 2026-10-16) ═══════════════════════════
+     Decision de Maicol: el PDF muestra el sexo con ♂ / ♀. NO se pueden poner como texto, y hay
+     DOS motivos medidos, no uno:
+       1. `amiloSanPDF` —por donde pasa todo lo que se dibuja, vía `_sanML`— tiene un
+          `.replace(/[^\x20-\xFF]/g, '')` que BORRA en silencio cualquier carácter fuera de
+          WinAnsi. Un ♂ puesto en la cadena simplemente desaparece: ni se rompe ni se ve.
+       2. Y si se lo saltea, es PEOR. Medido generando un PDF con el mismo jsPDF 2.5.1 que la
+          app carga y rasterizando la página: con helvetica el glifo sale como **«&B»** (y ♀
+          como «&@»), y además **la línea ENTERA pasa a UTF-16 y se desmaqueta** — «B :  4 5
+          a n i o s», con un espacio entre cada letra. O sea que el dedazo no se limitaría al
+          símbolo: rompería la celda del informe FIRMADO. jsPDF sólo trae las 14 fuentes
+          estándar (censo: 85 `setFont('helvetica')`, 11 `setFont('times')`, CERO `addFont` y
+          CERO `addFileToVFS`), y ninguna contiene U+2642 ni U+2640. Embeber una fuente
+          exigiría un CDN, que esta orden prohíbe.
+     Así que se dibuja con `circle` y `line`, que es lo que la orden manda.
+
+     ⚠️ EL HUECO ES DE ESPACIOS DUROS Y ESO ES LO QUE HACE QUE NADA SE DESMAQUETE. El texto que
+     se mide con `splitTextToSize` y el que se estampa son EL MISMO string: el hueco se dibuja
+     en blanco y la figura se pinta ENCIMA, dentro de su propio ancho. Así el ancho de la línea
+     es exactamente el que midió el envoltorio y ninguna celda se corre.
+     Van DUROS (\xA0) y no ASCII porque `amiloSanPDF` colapsa `/[ \t]{2,}/` a un espacio y se
+     comería el hueco entero — es el mismo motivo por el que el separador de la firma y los
+     átomos de Minimalista ya los usan. */
+  const PDF_SEXO_HUECO = '\u00A0\u00A0\u00A0';
+  const sexoTxt = sexo==='M' ? PDF_SEXO_HUECO + 'Masculino'
+                : sexo==='F' ? PDF_SEXO_HUECO + 'Femenino'
+                : (sexo||null);
+  /* Dibuja ♂ o ♀ como figura vectorial dentro de la caja [x, x+w] y sobre la línea base `yb`.
+     El alto sale del cuerpo de letra VIGENTE (`getFontSize`), así que el símbolo acompaña a la
+     plantilla que lo pide sin un solo número cableado por plantilla. */
+  function _pdfSexoFig(x, yb, w) {
+    if (sexo !== 'M' && sexo !== 'F') return;
+    const h  = doc.getFontSize() * 0.70 / 2.8346;    // altura de mayúscula, en mm
+    /* ⚠️ LA FIGURA SE ALINEA A LA IZQUIERDA DEL HUECO Y NO AL CENTRO, y el aire que sobra
+       queda del lado de la palabra: centrada, el símbolo salía PEGADO a la «M» de «Masculino»
+       —mirado en el PNG del PDF real, que es lo que esta clase de defecto delata—. */
+    const a  = Math.min(w * 0.70, h * 0.92);         // ancho util de la figura
+    const cx = x + a / 2;
+    doc.setLineWidth(Math.max(0.16, h * 0.10));
+    if (sexo === 'F') {
+      /* Venus: círculo arriba, vástago y barra cruzada abajo. */
+      const r = 0.33 * h, cy = yb - h + r;
+      doc.circle(cx, cy, r);
+      doc.line(cx, cy + r, cx, yb);
+      doc.line(cx - 0.28 * h, yb - 0.22 * h, cx + 0.28 * h, yb - 0.22 * h);
+    } else {
+      /* Marte: círculo apoyado en la línea base y flecha hacia arriba a la derecha, con sus
+         dos barbas. El arranque de la flecha se toma del BORDE del círculo a 45 grados
+         (r·√2/2) y no de su centro, para que la línea no lo cruce por dentro. */
+      const r = 0.36 * h, cx0 = cx - 0.10 * h, cy0 = yb - r;
+      doc.circle(cx0, cy0, r);
+      const d = r * 0.7071;
+      const px = cx + 0.42 * h, py = yb - h;
+      doc.line(cx0 + d, cy0 - d, px, py);
+      doc.line(px, py, px - 0.34 * h, py);
+      doc.line(px, py, px, py + 0.34 * h);
+    }
+    doc.setLineWidth(0.2);
+  }
+  /* El único dibujador de una línea de celda del paciente. Sin hueco —o con una alineación que
+     no sea la izquierda, donde el origen no es el borde del texto— se comporta EXACTAMENTE como
+     `doc.text`, así que todas las demás líneas salen byte por byte como en HEAD. */
+  function _tSexo(txt, x, y, opts) {
+    const s = (typeof txt === 'string') ? txt : null;
+    const i = (s && (sexo === 'M' || sexo === 'F')) ? s.indexOf(PDF_SEXO_HUECO) : -1;
+    if (i < 0 || (opts && opts.align && opts.align !== 'left')) return doc.text(txt, x, y, opts);
+    doc.text(s, x, y, opts);
+    _pdfSexoFig(x + doc.getTextWidth(s.slice(0, i)), y, doc.getTextWidth(PDF_SEXO_HUECO));
+  }
   const rawF = sv('fecha');
   const fecha = rawF ? rawF.split('-').reverse().join('/') : '--';
   const cTipo = sv('centro_tipo'), cNom = sv('centro_nombre');
@@ -52300,7 +52368,17 @@ function generarPDFReal(_aj) {
       const cells = row.map(cell => {
         if (!cell.val) return null;
         fb(7); const lw = doc.getTextWidth(_sanML(cell.lbl) + ': ');
-        fn(7.5); const lines = doc.splitTextToSize(_sanML(cell.val), Math.max(6, colW - lw - 3));
+        fn(7.5);
+        /* ⚠️ EL HUECO DEL SIMBOLO DEL SEXO NO ENTRA EN EL PRESUPUESTO DEL ENVOLTORIO, y eso no
+           es cosmético: medido, «60 años · Masculino» cabía JUSTO en la columna, así que los
+           tres espacios duros la partían en dos renglones y la caja del paciente crecía 3,9 mm
+           en Clásico, Moderno y Elegante — un cambio de maquetación del informe FIRMADO
+           provocado por un símbolo. Se le devuelve al medidor exactamente el ancho del hueco,
+           así que el corte se decide como si el símbolo no existiera y la línea queda 2,2 mm
+           más ancha DENTRO del colchón de 3 mm que esta celda ya reservaba. Las otras tres
+           plantillas no lo necesitan: miden contra el ancho de página entero. */
+        const _hw = (String(cell.val).indexOf(PDF_SEXO_HUECO) >= 0) ? doc.getTextWidth(PDF_SEXO_HUECO) : 0;
+        const lines = doc.splitTextToSize(_sanML(cell.val), Math.max(6, colW - lw - 3 + _hw));
         return { cell, lw, lines, colW };
       });
       const maxLines = Math.max(1, ...cells.map(c => c ? c.lines.length : 1));
@@ -52319,7 +52397,7 @@ function generarPDFReal(_aj) {
         fb(7); tc(colLbl[0],colLbl[1],colLbl[2]); doc.text(_sanML(c.cell.lbl) + ': ', cx, ry + padTop);
         fn(7.5); tc(13,13,13);
         c.lines.forEach((ln, li) => {
-          doc.text(ln, li === 0 ? cx + c.lw : cx, ry + padTop + li * lineH);
+          _tSexo(ln, li === 0 ? cx + c.lw : cx, ry + padTop + li * lineH);
         });
       });
       ry += rc.rowH;
@@ -52457,9 +52535,14 @@ function generarPDFReal(_aj) {
       const _duro = t => { const q = _sanML(t); return q.length <= 24 ? q.replace(/ /g, '\u00A0') : q; };
       const txt = pCeldas.map(c => _duro(c.lbl) + '\u00A0' + _duro(c.val)).join('  ·  ');
       fn(7.8); tc(70,70,70);
-      const lns = doc.splitTextToSize(txt, pgW);
+      /* El ancho del hueco del simbolo del sexo se le devuelve al medidor, por el mismo motivo
+         que en `_hdrCajaPaciente`: sin esto el simbolo CORRE el corte de la tira y un par
+         entero —medido: «ASC 2.00 m2»— se pasa al renglon siguiente. El simbolo no puede
+         remaquetar el informe firmado. */
+      const lns = doc.splitTextToSize(txt,
+        pgW + ((txt.indexOf(PDF_SEXO_HUECO) >= 0) ? doc.getTextWidth(PDF_SEXO_HUECO) : 0));
       y = yy; checkPage(lns.length * 3.8 + 4); yy = y;
-      lns.forEach((ln, i) => doc.text(ln, mL, yy + i * 3.8));
+      lns.forEach((ln, i) => _tSexo(ln, mL, yy + i * 3.8));
       yy += lns.length * 3.8;
     }
     return yy + 2.5;
@@ -52532,7 +52615,7 @@ function generarPDFReal(_aj) {
         y = yy; checkPage(lns.length * 3.7 + 3); yy = y;
         doc.setFont('times','bold'); doc.text(f.p, mL, yy);
         doc.setFont('times','normal');
-        lns.forEach((ln, i) => doc.text(ln, mL + colP, yy + i * 3.7));
+        lns.forEach((ln, i) => _tSexo(ln, mL + colP, yy + i * 3.7));
         yy += Math.max(1, lns.length) * 3.7 + 0.8;
       });
     }
@@ -52588,9 +52671,14 @@ function generarPDFReal(_aj) {
          justamente el punto donde el diseño QUIERE que corte. */
       const txt = pCeldas.map(c => _duro(c.lbl) + '\u00A0' + _duro(c.val)).join('  ·  ');
       fn(7.2); tc(60,60,60);
-      const lns = doc.splitTextToSize(txt, pgW);
+      /* El ancho del hueco del simbolo del sexo se le devuelve al medidor, por el mismo motivo
+         que en `_hdrCajaPaciente`: sin esto el simbolo CORRE el corte de la tira y un par
+         entero —medido: «ASC 2.00 m2»— se pasa al renglon siguiente. El simbolo no puede
+         remaquetar el informe firmado. */
+      const lns = doc.splitTextToSize(txt,
+        pgW + ((txt.indexOf(PDF_SEXO_HUECO) >= 0) ? doc.getTextWidth(PDF_SEXO_HUECO) : 0));
       y = yy; checkPage(lns.length * 3.5 + 3); yy = y;
-      lns.forEach((ln, i) => doc.text(ln, mL, yy + i * 3.5));
+      lns.forEach((ln, i) => _tSexo(ln, mL, yy + i * 3.5));
       yy += lns.length * 3.5;
     }
     return yy + 2;
@@ -52836,7 +52924,18 @@ function generarPDFReal(_aj) {
     {titulo:'Aurícula Derecha / VCI', items:[
       {lbl:'Área AD',     ref:'<18 cm2',  val:v('ad_area') ?v('ad_area') +' cm2':null},
       {lbl:'Diám. VCI',   ref:'16-20 mm', val:v('vci_diam')?v('vci_diam')+' mm' :null},
-      {lbl:'Colapso VCI', ref:'',         val:sv('vci_col')||null},
+      /* ⚠️ EL COLAPSO LLEVA SU UNIDAD (H2, 2026-10-16). El `<select>` guarda los tokens «>50»
+         y «<50» y el papel firmado los imprimía PELADOS, al lado de un diámetro que sí dice
+         «mm»: un «>50» sin unidad en un informe clínico se lee como lo que el lector suponga.
+         Las otras tres superficies ya lo decían: el informe narrativo escribe «colapso mayor al
+         50%», el PPT hace `val + '%'` sobre estos mismos dos tokens y la propia `<option>` se
+         rotula «>50%». El PDF era el único que callaba la unidad, así que se alinea con el
+         MISMO formato que ya usan las otras dos —sin espacio—, no con uno nuevo.
+         La guarda por token y no un `+ '%'` pelado: un valor que no sea uno de los dos sale sin
+         unidad en vez de inventarle una. El EN SUMA no nombra la VCI, censado. */
+      {lbl:'Colapso VCI', ref:'',         val:(function(){
+        const c = sv('vci_col');
+        return c ? (c === '>50' || c === '<50' ? c + '%' : c) : null; })()},
       {lbl:'PmAD',        ref:'',         val:v('pmad')    ?v('pmad')    +' mmHg':null},
       /* VEXUS con el detalle de en qué se basó: "VEXUS 2" a secas obliga a confiar en que
          quien lo cargó usó la regla correcta. Con "(1/3 severo)" el que lee el informe puede
