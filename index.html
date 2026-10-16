@@ -21379,6 +21379,39 @@ function aiVolRotulo(b) {
 window.AI_VOL_BANDAS = AI_VOL_BANDAS;
 window.aiVolClasificar = aiVolClasificar; window.aiVolRotulo = aiVolRotulo;
 
+/* ══ EL VOLUMEN MEDIDO QUE NO SE PUEDE INDEXAR (J1, 2026-10-16) ═════════════════════
+   Decisión de Maicol, y cierra H-1 por la salida (a) de PENDIENTES —declarar la medición sin
+   afirmar—. Medido en la tanda H: con `ai_vol = 98`, SIN peso ni talla y sin área ni diámetro,
+   la cadena del bloque 4 caía en su `else` de normalidad y el informe FIRMADO publicaba
+   «Aurícula izquierda de dimensiones normales.» sobre una aurícula cuyo único dato es un
+   volumen que, indexado, sería severo. Es el reverso de lo que la rama `aiGeoFuera` ya cierra
+   para los valores ilegibles: la negación necesita evidencia de haber podido CLASIFICAR algo.
+
+   ⚠️ NO ES UN CORTE NUEVO NI UNA BANDA NUEVA: es un ESTADO. `aiVolClasificar` sigue siendo el
+   único dueño de los cuatro cortes y no se le tocó una línea; lo que faltaba era un dueño del
+   «hay volumen y no se puede indexar», que vivía implícito en tres `if` distintos —la cápsula
+   (`!vol || !bsa`), el informe (`ai_vol && bsa`) y la fila del PDF (`_pAiVol.crudo && bsa`)—
+   y por eso las tres publicaban cosas distintas del mismo estado: raya, normalidad y fila
+   ausente.
+   ⚠️ EL RÓTULO ES UNA CONSTANTE Y LO COMPARTEN LA CÁPSULA Y EL PDF. Escrito dos veces, cambiar
+   uno deja la pantalla y el papel firmado diciendo cosas distintas del mismo estado, que es
+   exactamente el defecto que el dueño de los cortes vino a cerrar.
+   ⚠️ `!bsa` Y NO `bsa == null`: `getBSA()` devuelve el string de `toFixed(2)` o null, y la
+   rama hermana de arriba decide con la misma truthiness (`ai_vol && bsa`). Con otro predicado
+   las dos ramas podrían ser verdaderas —o falsas— a la vez sobre el mismo paciente. */
+/* ⚠️ ASCII PURO Y SIN EM DASH, Y NO ES ESTÉTICA: este rótulo lo imprime la tabla del PDF,
+   que se dibuja con jsPDF en WinAnsi. El em dash de la pantalla sobrevive en el CUERPO del
+   informe porque `amiloSanPDF` lo TRANSLITERA a '-', pero la tabla no pasa por ahí, y un
+   glífo fuera de la codificación sale como basura —medido en la tanda H con el símbolo del
+   sexo, que jsPDF 2.5.1 imprimió como «&B» y además desmaquetó la línea entera—. Entre
+   paréntesis dice lo mismo y entra igual en las dos superficies. */
+const AI_SIN_IDX_ROT = 'Sin indexar (falta ASC)';
+function aiVolSinIndexar(vol, bsa) {
+  const n = PF(vol);
+  return (n != null && isFinite(n) && n > 0 && !bsa);
+}
+window.AI_SIN_IDX_ROT = AI_SIN_IDX_ROT; window.aiVolSinIndexar = aiVolSinIndexar;
+
 function calcAI() {
   const vol = v('ai_vol');
   const bsa = getBSA();
@@ -21414,7 +21447,17 @@ function calcAI() {
     'Normal (≤' + UMBRAL_AI_AREA_DILATADA + 'cm²)');
   if (!vol || !bsa) {
     document.getElementById('ai-idx').textContent = '—';
-    document.getElementById('ai-interp').innerHTML = '—';
+    /* ⚠️ LA CÁPSULA DICE LO MISMO QUE EL INFORME Y QUE EL PDF (J1, 2026-10-16). Con el volumen
+       medido y sin superficie corporal publicaba la RAYA —o sea «sin dato»— mientras el informe
+       firmado afirmaba «de dimensiones normales»: dos respuestas distintas al mismo estado, que
+       es el defecto que este archivo persigue desde la FAC del VD. El estado lo decide
+       `aiVolSinIndexar`, el único dueño, y el rótulo sale de su constante.
+       El `ai-idx` SIGUE en la raya a propósito: es el valor INDEXADO, y no existe. Lo que la
+       cápsula publica no es un valor sino por qué no se clasifica.
+       `gray` y no `yellow`: los cuatro colores de `AI_VOL_BANDAS` son GRADOS, y amarillo ya
+       significa «dilatación leve» en esta misma cápsula. */
+    document.getElementById('ai-interp').innerHTML =
+      aiVolSinIndexar(vol, bsa) ? badge('gray', AI_SIN_IDX_ROT) : '—';
     return;
   }
   const idx = (vol / bsa).toFixed(1);
@@ -43106,6 +43149,33 @@ function generarInforme(opts) {
        la vía del eco de rutina: el informe decía «dilatada» arriba y «sin alteraciones» abajo—. Lo
        que cambió es que ya no lleva grado. */
     if (aiDilGeo) suma.push(`AI dilatada (${aiGeoDil}).`);
+  } else if (ai_vol) {
+    /* ⚠⚠ EL VOLUMEN MEDIDO QUE NO SE PUEDE INDEXAR SE DECLARA, Y NO SE NIEGA (J1, 2026-10-16).
+       Cierra H-1 por su salida (a). Esta rama no existía: un volumen sin superficie corporal no
+       entra en `ai_vol && bsa` ni en `aiGeoMedido`, así que caía en el `else` de abajo y el
+       informe FIRMADO publicaba «Aurícula izquierda de dimensiones normales.» sobre una aurícula
+       cuyo único dato es un volumen que, indexado, sería severo. Medido en la tanda H con
+       `ai_vol = 98`; TC-487 lo fijaba como límite declarado y esta tanda lo adapta.
+       ⚠️ VA DESPUÉS DE `aiGeoMedido` Y ES LA MITAD DEL ARREGLO: con área o diámetro cargados la
+       cascada los usa como hoy —esas dos sí clasifican, binario y sin grado— y esta línea no
+       sale. Sólo habla cuando NO hay nada más con qué clasificar, que es el caso que negaba.
+       ⚠️ NO AFIRMA NI NIEGA, y por eso no hay `suma.push`: el EN SUMA no menciona la AI en esta
+       escena (decisión de Maicol), igual que hoy. Y NO llama a `ccMarcarParrafo()` —que la rama
+       de `aiGeoFuera` sí llama—: marcar cambiaría el texto GLOBAL del EN SUMA, que esta orden
+       no autoriza. La contrapartida queda declarada en PENDIENTES → J-1: el fallback del EN SUMA
+       sigue pudiendo decir «sin alteraciones significativas» sobre un informe que declara un
+       volumen auricular sin clasificar.
+       ⚠️ NINGUNA DE LAS TRES FRASES DICE «dilatación auricular» NI «AI dilatada», y no es
+       casualidad: el Laboratorio lee la AI con un regex SOBRE EL TEXTO
+       (`/dilataci[oó]n.{0,10}auricular|AI\s+(?:dilata|agrand)/i`) y `_labLavi` recalcula el
+       indexado desde `ai_vol`, `peso` y `talla` —sin peso ni talla da null—. Así que esta frase
+       no entra en ninguna categoría del Laboratorio, que es lo correcto: no hay clasificación.
+       ⚠️ `ai_vol` CRUDO y no `vPlaus`, igual que la rama hermana de arriba: las dos leen el mismo
+       campo por el mismo camino, así que no pueden discrepar sobre qué volumen tienen delante. */
+    const cAI = `AI: volumen ${ai_vol} ml, sin indexar (falta ASC).`;
+    const eAI = `Volumen de la aurícula izquierda de ${ai_vol} ml, sin indexar por falta de superficie corporal; no se informa el tamaño auricular.`;
+    const nAI = `El volumen de la aurícula izquierda es de ${ai_vol} ml. No se puede indexar por superficie corporal —falta el peso o la talla—, así que no se informa el tamaño auricular: la guía lo gradúa sólo por volumen indexado.`;
+    inf.push(estiloPick(cAI, eAI, nAI));
   } else if (!aiGeoFuera) {
     inf.push(estiloPick('AI normal.', 'Aurícula izquierda de dimensiones normales.', 'La aurícula izquierda es de dimensiones normales.'));
   }
@@ -52253,7 +52323,14 @@ function generarPDFReal(_aj) {
 
   // AI
   const _pAiVol = vPlaus('ai_vol');
-  const aiIdx  = (_pAiVol.crudo&&bsa)?(_pAiVol.crudo/bsa).toFixed(1)+' ml/m2'+(_pAiVol.fuera?MARCA_REVISAR:''):null;
+  /* ⚠️ LA FILA DICE POR QUÉ NO HAY ÍNDICE, EN VEZ DE DESAPARECER (J1, 2026-10-16). Con el
+     volumen medido y sin superficie corporal `aiIdx` quedaba en `null` y la fila se caía del
+     filtro de la tabla: el papel firmado no decía nada mientras su propio texto narrativo ya
+     declara el volumen sin indexar. El rótulo sale de `AI_SIN_IDX_ROT`, la MISMA constante
+     que publica la cápsula de la pantalla, así que las dos superficies no pueden
+     desincronizarse. La fila «Volumen AI» de arriba sigue imprimiendo los ml como siempre. */
+  const aiIdx  = (_pAiVol.crudo&&bsa)?(_pAiVol.crudo/bsa).toFixed(1)+' ml/m2'+(_pAiVol.fuera?MARCA_REVISAR:'')
+               : (aiVolSinIndexar(_pAiVol.crudo, bsa) ? AI_SIN_IDX_ROT : null);
 
   /* Doppler mitral. Los cocientes E/A y E/e' se publican SÓLO con los dos insumos legibles: un
      cociente calculado sobre una onda ilegible es un número con la misma pinta que uno bueno. */
