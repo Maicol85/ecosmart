@@ -925,6 +925,14 @@ window.__P = {
     return parseInt(h.value || '0', 10) },
 
   /* La tabla PINTADA, fila por fila, mas el valor crudo de cada campo para poder compararlos. */
+  /* Los ROTULOS que el dibujo pinta, leidos de la lista que el pintor arma. No se puede leer el
+     canvas, asi que se instrumenta el pintor: se espia pushL y se registra que se le pidio. */
+  m3dRotulos() {
+    if (typeof m3dRotulosExtra !== 'function') return 'SIN FN';
+    var out = [];
+    try { m3dRotulosExtra(function(t, v){ out.push({ t: t, x: v[0], y: v[1], z: v[2] }) }, 0.1);
+      return out; } catch (e) { return 'EXC: ' + e.message } },
+
   m3dTablaLeida() {
     var h = document.getElementById('m3d-tabla');
     if (!h) return 'NO EXISTE';
@@ -1891,6 +1899,45 @@ async function main() {
       await ev("window.__P.m3dClic('m3d-btn')");
     }
     out.grupos.tabla = g;
+  }
+
+  /* ══ Y3-5 · LOS DETALLES ════════════════════════════════════════════════════════════════ */
+  if (corre('detalles')) {
+    const g = {};
+    await ev('window.__P.nuevo()');
+    await ev('window.__P.abrirEte()');
+    await ev('window.__P.despejar()');
+    if (!(await ev('window.__P.m3d()')).visible) await ev("window.__P.m3dClic('m3d-btn')");
+    /* Los rotulos por VISTA y por ANGULO: cual se dibuja en cual. */
+    const rot = {};
+    for (const c of [['v','cirujano'],['a','0'],['a','45'],['a','60'],['a','90'],['a','120']]) {
+      await ev("window.__P.m3dClic('m3d-" + c[0] + '-' + c[1] + "')");
+      rot[c[0] + '_' + c[1]] = await ev('window.__P.m3dRotulos()');
+    }
+    await ev("window.__P.m3dClic('m3d-v-cirujano')");
+    g.rotulos = rot;
+    /* LAS VALVAS AORTICAS EN ANTIFASE: la firma del lienzo tiene que cambiar entre sistole y
+       diastole, y el conteo de primitivas 'a' tiene que ser 3 x 8 x 3 = 72. */
+    const fases = {};
+    for (const f of [0.02, 0.25, 0.5, 0.75]) {
+      await ev('window.m3dFaseFijar(' + f + ')');
+      fases['f' + f] = await ev('window.__P.m3dFirma()');
+    }
+    g.fases = fases;
+    /* EL TROMBO: por los dos lados, con su control negativo. */
+    const trb = {};
+    for (const val of ['', 'no', 'sospecha', 'si']) {
+      const r = await ev('window.__P.sel("oai_trombo",' + JSON.stringify(val) + ')');
+      if (r && r.err) throw new Error('DENOMINADOR oai_trombo: ' + JSON.stringify(r));
+      await ev('window.m3dSync()');
+      await ev('window.m3dFaseFijar(0.08)');
+      trb[val || 'vacio'] = { estado: (await ev('window.__P.m3dEstadoLeido()')).trombo,
+                              firma: await ev('window.__P.m3dFirma()'),
+                              desc: await ev("window.__P.txt('m3d-desc')") };
+    }
+    g.trombo = trb;
+    await ev("window.__P.m3dClic('m3d-btn')");
+    out.grupos.detalles = g;
   }
 
   out.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));

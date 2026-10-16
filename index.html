@@ -112688,6 +112688,9 @@ var M3D_ANG_TXT = Object.freeze({
    ante el conflicto, la opción conservadora es reproducir lo que la demo ya hace. */
 var _m3dVista = 'cirujano', _m3dAng = null, _m3dPlay = true, _m3dFase = 0;
 var _m3dRaf = null, _m3dVivo = false, _m3dLast = null, _m3dSinCtx = false;
+/* El reloj del humo de la orejuela, en segundos. Avanza solo con el latido corriendo: en pausa
+   el humo queda quieto, que es lo coherente con un cuadro fijo. */
+var _m3dMs = 0;
 
 function m3dEl(id){ return document.getElementById(id); }
 function m3dEsProtesis(){
@@ -112758,7 +112761,7 @@ function _m3dLoop(ts){
   if (!_m3dVivo) return;
   if (_m3dLast === null) _m3dLast = ts;
   var dt = Math.min((ts - _m3dLast) / 1000, 0.1); _m3dLast = ts;
-  if (_m3dPlay) _m3dFase = (_m3dFase + dt / M3D_DUR) % 1;
+  if (_m3dPlay) { _m3dFase = (_m3dFase + dt / M3D_DUR) % 1; _m3dMs = ts / 1000; }
   /* La interpolacion de camara avanza en el mismo bucle. */
   if (_m3dAnim) { if (_m3dAnim.t0 === null) _m3dAnim.t0 = ts;
     var au = Math.min(1, (ts - _m3dAnim.t0) / _m3dAnim.ms); au = au * au * (3 - 2 * au);
@@ -113078,9 +113081,13 @@ function _m3dBuild(o){
               ac[1] + 0.95*(Math.cos(aa)*u[1] + Math.sin(aa)*w2[1]),
               ac[2] + 0.95*(Math.cos(aa)*u[2] + Math.sin(aa)*w2[2])]); }
   for (k = 0; k < 40; k++) ln(pts[k], pts[k+1], 'AO', 2.2, 0);
+  /* Y3-5: las tres valvas aorticas, en ANTIFASE con la mitral. */
+  _m3dAortica(P, o, ln);
   var lc = M3D_LC, lp = [];
   for (k = 0; k <= 30; k++) { aa = 2*M3D_PI*k/30; lp.push([lc[0] + 0.55*Math.cos(aa), lc[1] + 0.85*Math.sin(aa), lc[2]]); }
   for (k = 0; k < 30; k++) ln(lp[k], lp[k+1], 'AO', 2.2, 0);
+  /* Y3-5: el humo dentro de la orejuela, SOLO con el trombo consignado. */
+  if (_m3dSt.trombo) _m3dOrejuela(P, _m3dMs);
   /* ⚠️ LA AURICULA SE AGRANDA CON LA CATEGORIA QUE LA APP YA PUBLICA, no con el grado de la IM.
      La demo la derivaba de su deslizador de EROA; aca el tamano de la auricula izquierda es un
      dato que la app ya clasifico (`ai-interp`), y usar el grado del chorro en su lugar seria
@@ -113143,6 +113150,63 @@ function _m3dVC(){
 }
 function _m3dRgb(h){ return [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)]; }
 
+/* ══ LOS DETALLES — «Y3-5» (2026-10-16) ════════════════════════════════════════════════════════
+   Las VALVAS aorticas que se mueven coordinadas con la mitral, las siglas de los tres senos, las
+   dos comisuras y el humo dentro de la orejuela cuando hay trombo consignado. Los cuatro salen de
+   la demo; lo unico propio es la ORIENTACION de AL y PM, corregida en el commit Y3-1.
+   ⚠️ LAS VALVAS AORTICAS VAN EN ANTIFASE CON LA MITRAL, que es la fisiologia y es lo que la demo
+   ya hacia: `AOo` sale de `1 - o`, o sea se abren cuando la mitral se cierra. */
+function _m3dAortica(P, o, ln){
+  var ac = M3D_AC, u = M3D_AU, w = M3D_AW, nao = M3D_NAO;
+  var AOo = _m3dSm(0.1, 0.9, 1 - o);
+  var cA = [30, 150, 270, 390].map(function(d){ return d * M3D_PI / 180; });
+  var nA = 8, nJ = 3, ci, ii, jj, sa, Rp, Fp, pp, dm, gg, Ck, Ck1, cm, Mp, q, ux, uy, uz, vx, vy, vz, nx, ny, nz, nn;
+  function rim(a){ return [ac[0] + 0.95*(Math.cos(a)*u[0] + Math.sin(a)*w[0]),
+                           ac[1] + 0.95*(Math.cos(a)*u[1] + Math.sin(a)*w[1]),
+                           ac[2] + 0.95*(Math.cos(a)*u[2] + Math.sin(a)*w[2])]; }
+  function lerp(a, b, t){ return [a[0] + t*(b[0]-a[0]), a[1] + t*(b[1]-a[1]), a[2] + t*(b[2]-a[2])]; }
+  for (ci = 0; ci < 3; ci++) {
+    Ck = rim(cA[ci]); Ck1 = rim(cA[ci+1]); cm = lerp(Ck, Ck1, 0.5); Mp = lerp(ac, cm, 0.9*AOo); gg = [];
+    for (ii = 0; ii <= nA; ii++) { sa = ii/nA; Rp = rim(cA[ci] + (cA[ci+1]-cA[ci])*sa);
+      Fp = sa <= 0.5 ? lerp(Ck, Mp, sa/0.5) : lerp(Mp, Ck1, (sa-0.5)/0.5); gg.push([]);
+      for (jj = 0; jj <= nJ; jj++) { pp = lerp(Rp, Fp, jj/nJ);
+        dm = -0.18 * Math.sin(M3D_PI*jj/nJ) * (1 - 0.8*AOo);
+        gg[ii].push(_m3dAp([pp[0] + dm*nao[0], pp[1] + dm*nao[1], pp[2] + dm*nao[2]])); } }
+    for (ii = 0; ii < nA; ii++) for (jj = 0; jj < nJ; jj++) {
+      q = [gg[ii][jj], gg[ii+1][jj], gg[ii+1][jj+1], gg[ii][jj+1]];
+      ux = q[1].x-q[0].x; uy = q[1].y-q[0].y; uz = q[1].d-q[0].d;
+      vx = q[3].x-q[0].x; vy = q[3].y-q[0].y; vz = q[3].d-q[0].d;
+      nx = uy*vz-uz*vy; ny = uz*vx-ux*vz; nz = ux*vy-uy*vx;
+      nn = Math.sqrt(nx*nx+ny*ny+nz*nz) || 1;
+      P.push({ k:'a', q:q, n:[nx/nn, ny/nn, nz/nn],
+               d:(q[0].d+q[1].d+q[2].d+q[3].d)/4, col:'#aeb8c9' }); } }
+}
+/* ⚠️ EL HUMO DE LA OREJUELA SOLO SALE CON EL TROMBO CONSIGNADO, y lo consignado incluye la
+   SOSPECHA: en un ETE esa distincion la hace el texto del informe, y el dibujo no puede decir
+   «no hay trombo» sobre una orejuela que el medico marco como dudosa. El campo es `oai_trombo`,
+   el mismo que lee el panel de Evidencia. */
+function _m3dOrejuela(P, ms){
+  var lc = M3D_LC, lw = 0.55, lh = 0.85, tq, h1, h2, hr, ha, hrad, hal;
+  function poly(cx, cy, rx, ry, n, wob, sd){ var o = [], z, w;
+    for (z = 0; z < n; z++) { w = 2*M3D_PI*z/n;
+      o.push(_m3dAp([cx + rx*(1 + wob*Math.sin(3*w + sd))*Math.cos(w),
+                     cy + ry*(1 + wob*Math.sin(3*w + sd))*Math.sin(w), lc[2] + 0.04])); }
+    return o; }
+  function addF(pts, fill, off){ var dd = 0, z;
+    for (z = 0; z < pts.length; z++) dd += pts[z].d;
+    P.push({ k:'f', pts:pts, d:dd/pts.length + off, fill:fill }); }
+  addF(poly(lc[0], lc[1], lw*0.92, lh*0.92, 28, 0, 0), 'rgba(55,50,65,0.30)', 0.05);
+  addF(poly(lc[0]-0.1, lc[1]+0.3, 0.27, 0.3, 18, 0.25, 1.3), 'rgba(96,74,64,0.80)', 0.1);
+  addF(poly(lc[0]-0.08, lc[1]+0.28, 0.17, 0.19, 14, 0.3, 2.1), 'rgba(70,52,46,0.85)', 0.12);
+  for (tq = 0; tq < 16; tq++) {
+    h1 = ((tq*37 + 11) % 97)/97; h2 = ((tq*53 + 7) % 89)/89;
+    hr = 0.25 + 0.7*h1; ha = 2*M3D_PI*h2 + ms*(0.35 + 0.25*(tq % 3))*(tq % 2 ? 1 : -1);
+    hrad = 0.08 + 0.09*((tq*13) % 7)/7; hal = 0.24 + 0.2*((tq*5) % 4)/4;
+    addF(poly(lc[0] + 0.8*lw*hr*Math.cos(ha), lc[1] + 0.8*lh*hr*Math.sin(ha), hrad, hrad, 10, 0.2, tq),
+         'rgba(110,102,125,' + hal.toFixed(2) + ')', 0.2);
+  }
+}
+
 /* El pintor. Reemplaza al provisorio del commit anterior. */
 function m3dPintar(){
   if (_m3dSinCtx) return;
@@ -113162,7 +113226,13 @@ function m3dPintar(){
   P.sort(function(a, b){ return a.d - b.d; });
   var i, p, k, xy, c, sh, dot, col, pa, pb, base, lw = 0.7 + 4 * _m3dThick();
   for (i = 0; i < P.length; i++) { p = P[i];
-    if (p.k === 'q') {
+    /* El RELLENO plano del humo de la orejuela: sin normal y sin sombreado. */
+    if (p.k === 'f') {
+      ctx.beginPath();
+      for (k = 0; k < p.pts.length; k++) { xy = _m3dScr(p.pts[k]);
+        if (k === 0) ctx.moveTo(xy[0], xy[1]); else ctx.lineTo(xy[0], xy[1]); }
+      ctx.closePath(); ctx.fillStyle = p.fill; ctx.fill();
+    } else if (p.k === 'q' || p.k === 'a') {
       p.s = []; ctx.beginPath();
       for (k = 0; k < 4; k++) { xy = _m3dScr(p.q[k]); p.s.push(xy);
         if (k === 0) ctx.moveTo(xy[0], xy[1]); else ctx.lineTo(xy[0], xy[1]); }
@@ -113171,10 +113241,12 @@ function m3dPintar(){
       sh = 0.58 + 0.42 * dot;
       /* Con estenosis la valva sin lesion se dibuja ENGROSADA: es el aspecto de la valva
          reumatica, y es la misma decision de la demo. */
-      base = (_m3dSt.em && _m3dSt.seg[p.sg] === 0) ? '#e9d9b5' : M3D_COL[_m3dSt.seg[p.sg]];
+      base = (p.k === 'a') ? p.col
+           : ((_m3dSt.em && _m3dSt.seg[p.sg] === 0) ? '#e9d9b5' : M3D_COL[_m3dSt.seg[p.sg]]);
       col = _m3dRgb(base).map(function(v){ return Math.round(Math.min(255, v * sh)); });
       ctx.fillStyle = 'rgb(' + col[0] + ',' + col[1] + ',' + col[2] + ')';
-      ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = lw; ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = (p.k === 'a') ? 0.7 : lw;
+      ctx.fill(); ctx.stroke();
     } else {
       pa = _m3dScr(p.a); pb = _m3dScr(p.b);
       c = p.c === 'RING' ? tcl
@@ -113206,9 +113278,30 @@ function m3dPintar(){
       if (!mv) break; } })(sl);
   for (i = 0; i < sl.length; i++) { ctx.strokeText(sl[i].t, sl[i].x, sl[i].y); ctx.fillText(sl[i].t, sl[i].x, sl[i].y); }
 }
-/* Los rotulos que agrega el commit de los detalles. Vacia en este: existe para que ese commit
-   agregue UNA funcion y no tenga que entrar al pintor. */
-function m3dRotulosExtra(pushL, o){ return; }
+/* ══ LOS ROTULOS DE LOS DETALLES (Y3-5) ═══════════════════════════════════════════════════════
+   Las siglas de los tres senos aorticos y las dos comisuras mitrales.
+   ⚠️ LA ORIENTACION DE AL Y PM ES LA CORREGIDA EN EL Y3-1, y aca es la de la demo, que ya nacio
+   bien: AL va en x NEGATIVO, el mismo lado donde esta la orejuela (x = -3,0). Las dos vistas
+   —la quirurgica 2D y este modelo— dicen hoy lo mismo, que es lo que antes no pasaba.
+   ⚠️ Y SOLO SE DIBUJAN EN LOS CORTES DONDE SE VEN, con la tabla de la demo: los senos en la vista
+   libre y a 120 grados, las comisuras en la libre y a 45 y 60. Rotular una comisura en un corte
+   que no la atraviesa es afirmar que se la vio. */
+function m3dRotulosExtra(pushL, o){
+  var ac = M3D_AC, u = M3D_AU, w = M3D_AW, nao = M3D_NAO, a2, cp;
+  if (_m3dAng === null || _m3dAng === 120) {
+    [[90, 'VCD'], [210, 'VCI'], [330, 'VNC']].forEach(function(cu){
+      /* A 120 grados la coronaria izquierda queda detras del plano y no se rotula. */
+      if (_m3dAng === 120 && cu[1] === 'VCI') return;
+      a2 = cu[0] * M3D_PI / 180;
+      cp = [ac[0] + 0.475*(Math.cos(a2)*u[0] + Math.sin(a2)*w[0]) + 0.14*nao[0],
+            ac[1] + 0.475*(Math.cos(a2)*u[1] + Math.sin(a2)*w[1]) + 0.14*nao[1],
+            ac[2] + 0.475*(Math.cos(a2)*u[2] + Math.sin(a2)*w[2]) + 0.14*nao[2]];
+      pushL(cu[1], cp); });
+  }
+  if (_m3dAng === null || _m3dAng === 45 || _m3dAng === 60) {
+    [['AL', -1], ['PM', 1]].forEach(function(cm){ pushL(cm[0], [cm[1]*(_m3dA + 0.4), 0, -M3D_HS]); });
+  }
+}
 
 /* ══ EL LECTOR ÚNICO ══════════════════════════════════════════════════════════════════════════
    ⚠️ NO VUELVE A CALCULAR NADA: le PREGUNTA a `v2dEstado()`, que es el lector de la vista 2D, y
@@ -113340,9 +113433,12 @@ function m3dDescribir(S){
   var les = [], i;
   for (i = 0; i < 6; i++) if (S.seg[i] > 0) les.push(M3D_SG[i] + ': ' + ETE_ESTADOS_3D[S.seg[i]]);
   var p = [];
-  if (S.insuf) p.push(S.insuf.frase);
-  if (S.esten) p.push(S.esten.frase);
-  p.push(les.length ? 'Festones: ' + les.join(' · ') : 'Sin lesiones por festón.');
+  /* Cada parte termina en PUNTO: sin eso la descripcion salia como una sola linea corrida
+     («IM moderada Festones: P2: Prolapso Cuello...»), que es justo lo que un lector de
+     pantalla lee peor —y esta descripcion existe para el que no ve el dibujo—. */
+  if (S.insuf) p.push(S.insuf.frase + '.');
+  if (S.esten) p.push(S.esten.frase + '.');
+  p.push(les.length ? 'Festones: ' + les.join(' · ') + '.' : 'Sin lesiones por festón.');
   if (S.im > 0) p.push('Cuello del chorro ' + (S.vc !== null ? 'según la vena contracta medida.'
                                                              : 'proporcional al grado, sin vena contracta medida.'));
   if (S.trombo) p.push('Trombo de orejuela consignado.');
