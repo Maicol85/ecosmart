@@ -21097,11 +21097,20 @@ window.sexoEfectivo = sexoEfectivo; window.sexoFalta = sexoFalta;
    probabilidad se confunde con el promedio de volumen indexado normal —22 ± 6 ml/m²—, que es otra
    magnitud y otra unidad. La tabla del PDF imprimía «<22 cm2» y se corrigió en esta misma ronda.
 
-   ⚠️ EL DIÁMETRO ES UN SOLO CORTE PARA LOS DOS SEXOS, y ESO SÍ es una decisión de Maicol
-   (2026-09-27): la guía da 3,9 cm en la mujer y 4,1 cm en el varón, y acá se toma el valor de la
-   mujer —el más sensible— para las dos. No es una cifra que la guía dé directamente y queda dicho
-   para que nadie la cite como si lo fuera. */
-const UMBRAL_AI_DIAM_DILATADO = 40;   // mm  — ≥40 → dilatada, SIN grado (ASE 2015; ver arriba)
+   ⚠️ EL DIÁMETRO PASÓ A TENER UN CORTE POR SEXO (LS2, 2026-10-16), Y EL COMENTARIO QUE ESTABA
+   ACÁ CITABA MAL LA GUÍA. Decía que «la guía da 3,9 cm en la mujer y 4,1 cm en el varón» y que se
+   tomaba el valor de la mujer para los dos; las dos mitades eran falsas. La Tabla suplementaria 9
+   de la ASE/EACVI 2015 —folio 39.e14, hoja 53 del PDF, leída en el original— imprime
+   «AP dimension (cm): Women 2.7–3.8 / Men 3.0–4.0», o sea que el límite superior de normalidad es
+   3,8 cm en la mujer y 4,0 en el varón, y el 40 que la aplicación usaba era el del VARÓN y no el
+   de la mujer. La edición de 2005 (Tabla 9, folio 1456) publica EL MISMO rango normal.
+   Decisión de Maicol (2026-10-16): el corte va por sexo y, sin sexo cargado, se usa el MÁS ALTO
+   —el del varón—, que es el lado que no sobre-afirma. Sigue siendo BINARIO: la guía de 2015 no
+   gradúa el diámetro, sólo publica su rango normal, así que no hay leve, moderada ni severa que
+   «completar». El rango inferior (2,7 y 3,0 cm) NO se aplica: la aplicación no afirma aurícula
+   pequeña por ningún camino. */
+const AI_DIAM_NORMAL_MAX_H = 40;   // mm — varón: normal hasta 40; dilatada por encima de 40
+const AI_DIAM_NORMAL_MAX_M = 38;   // mm — mujer: normal hasta 38; dilatada por encima de 38
 const UMBRAL_AI_AREA_DILATADA = 20;   // cm² — >20 → dilatada, SIN grado (ASE 2015; NO 22)
 /* Onda E como signo de SOPORTE de IM severa. 120 cm/s = 1,2 m/s, verificado contra el PDF primario
    de ASE 2017 (Zoghbi, JASE 30:303-371) por dos vías independientes: la Tabla 8 leída como texto Y
@@ -21307,7 +21316,8 @@ function aorNomoLectura(edad, bsa, diamMm) {
 window.aorNomoPara = aorNomoPara; window.aorNomoBanda = aorNomoBanda;
 window.aorNomoLectura = aorNomoLectura;
 window.UMBRAL_LAVI_DILATADO = UMBRAL_LAVI_DILATADO;
-window.UMBRAL_AI_DIAM_DILATADO = UMBRAL_AI_DIAM_DILATADO;
+window.AI_DIAM_NORMAL_MAX_H = AI_DIAM_NORMAL_MAX_H;
+window.AI_DIAM_NORMAL_MAX_M = AI_DIAM_NORMAL_MAX_M;
 window.UMBRAL_AI_AREA_DILATADA = UMBRAL_AI_AREA_DILATADA;
 /* Masa VI indexada: el corte de HVI es distinto por sexo (ASE/EACVI). Estaban los dos
    números sueltos en el cálculo, en la tabla de referencia del PDF y en el Laboratorio. */
@@ -21876,7 +21886,16 @@ function calcAorta() {
 
 /* ¿Marca dilatación el diámetro AP? Predicado compartido por la cápsula, el informe y el PDF: con
    tres copias del `>=` alcanza con que alguien mueva una para que la pantalla y el papel discrepen. */
-function aiDiamDilatado(d){ d = PF(d); return (d != null && isFinite(d)) ? d >= UMBRAL_AI_DIAM_DILATADO : null; }
+/* El techo de normalidad del diámetro AP, por sexo. Sin sexo devuelve el del varón, que es el
+   corte MÁS ALTO: ver `sexoEfectivo`. */
+function aiDiamNormalMax(sexo){ return sexoEfectivo(sexo) === 'F' ? AI_DIAM_NORMAL_MAX_M : AI_DIAM_NORMAL_MAX_H; }
+/* ⚠️ EL OPERADOR PASÓ DE `>=` A `>` (LS2), y no es un ajuste cosmético: la guía publica un
+   RANGO NORMAL que INCLUYE su límite superior —«3.0–4.0» en el varón—, así que 40,0 mm exactos
+   son normales y la dilatación empieza por encima. Con el `>=` anterior, un diámetro de 40 mm
+   —un valor que se tipea entero— salía «dilatada» en el informe firmado.
+   El `sexo` es OPCIONAL a propósito: sin argumento lee el formulario, que es lo que hace que el
+   informe, el EN SUMA, la cápsula y la tarjeta hereden el corte sin copiarlo. */
+function aiDiamDilatado(d, sexo){ d = PF(d); return (d != null && isFinite(d)) ? d > aiDiamNormalMax(sexo) : null; }
 function aiAreaDilatada(a){ a = PF(a); return (a != null && isFinite(a)) ? a > UMBRAL_AI_AREA_DILATADA : null; }
 window.aiDiamDilatado = aiDiamDilatado; window.aiAreaDilatada = aiAreaDilatada;
 
@@ -22033,9 +22052,12 @@ function calcAI() {
   /* Antes esto graduaba: ≤38 normal · 39-42 leve · 43-46 moderada · >46 SEVERA. Los tres cortes
      eran inventados —la guía no gradúa por diámetro— y el «severa» del >46 mm es lo que esta ronda
      vino a sacar. Hoy es binario y lo dice el rótulo. */
+  /* El rótulo publica el corte DEL SEXO con el que se está clasificando, que es el único que
+     puede contradecir al badge de al lado. */
+  const _aiDMax = aiDiamNormalMax();
   if (dEl) dEl.innerHTML = _cap(pDiam, aiDiamDilatado,
-    'Dilatada (≥' + UMBRAL_AI_DIAM_DILATADO + 'mm) — sin grado',
-    'Normal (<' + UMBRAL_AI_DIAM_DILATADO + 'mm)');
+    'Dilatada (>' + _aiDMax + 'mm) — sin grado',
+    'Normal (≤' + _aiDMax + 'mm)');
   const aEl = document.getElementById('ai-area-interp');
   if (aEl) aEl.innerHTML = _cap(pArea, aiAreaDilatada,
     'Dilatada (>' + UMBRAL_AI_AREA_DILATADA + 'cm²) — sin grado',
@@ -22166,11 +22188,11 @@ const EV_REG = Object.freeze([
   /* ── AURICULA IZQUIERDA ────────────────────────────────────────────────────────────────── */
   Object.freeze({
     id: 'DIM-AI-001', zona: 'AI/VI — Auricula izquierda', dato: 'Diametro anteroposterior',
-    valor: 'Dilatada con 40 mm o mas; un solo corte para los dos sexos',
-    duenio: 'aiDiamDilatado / UMBRAL_AI_DIAM_DILATADO',
+    valor: 'Varon: normal hasta 40 mm; dilatada por encima de 40. Mujer: normal hasta 38 mm; dilatada por encima de 38. Sin grados de dilatacion: la guia publica solo el rango normal',
+    duenio: 'aiDiamDilatado / aiDiamNormalMax',
     guia: EV_GUIA_ASE2015, ubicacion: 'Tabla suplementaria 9', folio: '39.e14', hoja_pdf: 53,
-    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'criterio propio de EcoSmart',
-    estado: 'parcial', fecha_verificacion: EV_FECHA_VER,
+    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
     fuente_una_linea: 'ASE/EACVI 2015, Tabla suplementaria 9 (folio 39.e14)',
   }),
   Object.freeze({
@@ -22485,7 +22507,7 @@ function _evBandas(fn, lo, hi, paso, dec) {
 function evCortes(sexo) {
   const sx = sexoEfectivo(sexo);
   const r = {};
-  if (typeof aiDiamDilatado === 'function')  r.aiDiam = _evBandas(aiDiamDilatado, 20, 80, 0.1, 1);
+  if (typeof aiDiamDilatado === 'function')  r.aiDiam = _evBandas((x) => aiDiamDilatado(x, sx), 20, 80, 0.1, 1);
   if (typeof aiAreaDilatada === 'function')  r.aiArea = _evBandas(aiAreaDilatada, 5, 50, 0.1, 1);
   if (typeof aiVolClasificar === 'function') r.aiVol  = _evBandas(aiVolClasificar, 5, 90, 0.1, 1);
   if (typeof viDimCat === 'function')        r.ddvi   = _evBandas((x) => viDimCat(x), 20, 90, 0.1, 1);
@@ -39499,7 +39521,9 @@ function evRefPintar(id) {
   if (id === 'ai') {
     const B = _evRefBiblio(['DIM-AI-001', 'DIM-AI-002', 'DIM-AI-003']);
     host.appendChild(_evRefTabla([
-      { ficha: 'DIM-AI-001', rot: 'Diámetro AP — dilatada', h: '≥ 40 mm', m: '≥ 40 mm' },
+      { ficha: 'DIM-AI-001', rot: 'Diámetro AP — normal', h: '≤ ' + AI_DIAM_NORMAL_MAX_H + ' mm', m: '≤ ' + AI_DIAM_NORMAL_MAX_M + ' mm' },
+      { ficha: 'DIM-AI-001', rot: 'Diámetro AP — dilatada', h: '> ' + AI_DIAM_NORMAL_MAX_H + ' mm', m: '> ' + AI_DIAM_NORMAL_MAX_M + ' mm' },
+      { ficha: 'DIM-AI-002', rot: 'Área — normal', h: '≤ 20 cm²', m: '≤ 20 cm²' },
       { ficha: 'DIM-AI-002', rot: 'Área — dilatada', h: '> 20 cm²', m: '> 20 cm²' },
       { ficha: 'DIM-AI-003', rot: 'Volumen indexado — normal', h: '≤ 34 ml/m²', m: '≤ 34 ml/m²' },
       { ficha: 'DIM-AI-003', rot: 'Volumen indexado — dilatación leve', h: '35 a 41 ml/m²', m: '35 a 41 ml/m²' },
@@ -39507,10 +39531,16 @@ function evRefPintar(id) {
       { ficha: 'DIM-AI-003', rot: 'Volumen indexado — severa', h: '> 48 ml/m²', m: '> 48 ml/m²' },
     ], B.idx));
     host.appendChild(_evRefBarras([
-      { clave: 'ref-ai-diam', rotulo: 'Diámetro anteroposterior (mm)', banda: 'aiDiam', lo: 25, hi: 60, unidad: 'mm', dec: 0, ficha: 'DIM-AI-001' },
+      { clave: 'ref-ai-diam', rotulo: 'Diámetro anteroposterior — varón (mm)', banda: 'aiDiam', lo: 25, hi: 60, unidad: 'mm', dec: 0, ficha: 'DIM-AI-001' },
       { clave: 'ref-ai-area', rotulo: 'Área (cm²)', banda: 'aiArea', lo: 8, hi: 35, unidad: 'cm²', dec: 0, ficha: 'DIM-AI-002' },
       { clave: 'ref-ai-vol', rotulo: 'Volumen indexado (ml/m²)', banda: 'aiVol', lo: 10, hi: 70, unidad: 'ml/m²', dec: 0, ficha: 'DIM-AI-003' },
     ], 'M'));
+    /* El diámetro AP es el único de los tres que depende del sexo, así que Referencias publica su
+       barra DOS veces —una por sexo— y las otras dos una sola: repetir una barra cuyo corte no
+       cambia diría que depende de un dato del que no depende. */
+    host.appendChild(_evRefBarras([
+      { clave: 'ref-ai-diam-f', rotulo: 'Diámetro anteroposterior — mujer (mm)', banda: 'aiDiam', lo: 25, hi: 60, unidad: 'mm', dec: 0, ficha: 'DIM-AI-001' },
+    ], 'F'));
     host.appendChild(B.nodo);
     host.dataset.evPintado = '1';
   }
@@ -55448,7 +55478,7 @@ function generarPDFReal(_aj) {
          indexado normal (22 ± 6 ml/m²), que es otra magnitud. Los dos cortes salen ahora de las
          constantes, así que la referencia impresa en el papel firmado no puede separarse del
          predicado que usan la cápsula y el informe. */
-      {lbl:'Diám. AP',     ref:'<' + UMBRAL_AI_DIAM_DILATADO + ' mm',  val:v('ai_diam')?v('ai_diam')+' mm':null},
+      {lbl:'Diám. AP',     ref:'H<=' + AI_DIAM_NORMAL_MAX_H + ' M<=' + AI_DIAM_NORMAL_MAX_M + ' mm',  val:v('ai_diam')?v('ai_diam')+' mm':null},
       {lbl:'Área AI',      ref:'<=' + UMBRAL_AI_AREA_DILATADA + ' cm2', val:v('ai_area')?v('ai_area')+' cm2':null},
       {lbl:'Volumen AI',   ref:'',           val:v('ai_vol') ?v('ai_vol') +' ml':null},
       /* `<=` y no `<`: el clasificador trata el 34,0 exacto como NORMAL (`idx <= UMBRAL_LAVI_DILATADO`,
@@ -103303,16 +103333,19 @@ const DCM_RANGO_CLIN = {
      185 ms, el TSVD proximal a 35 mm, y no hay piso de normalidad para el diámetro de AI—, así
      que avisaban sobre estudios sanos: la forma más rápida de que el médico aprenda a ignorar
      el cartel. Los topes de la aorta salen de AO_REF, que es la única definición de dilatada. */
-  /* `ai_diam` DERIVA de `UMBRAL_AI_DIAM_DILATADO` —igual que los tres segmentos de aorta de más
+  /* `ai_diam` DERIVA de `AI_DIAM_NORMAL_MAX_H` —igual que los tres segmentos de aorta de más
      arriba derivan de `AO_REF`, y por el mismo motivo: el 40 estaba escrito a mano acá y en el
      umbral, así que mover el corte dejaba el importador avisando con el número viejo. Se lee con el
      nombre pelado, como `AO_REF.sin`: es un `const` de nivel superior de un bloque anterior, así que
      la ligadura existe, y si ese bloque muriera es mejor que esto falle que que avise de menos.
-     ⚠️ HUECO DE UN VALOR, DECLARADO: el aviso dispara con `conv > rgc[1]` —estricto— y la dilatación
-     es `>= 40`, así que un diámetro de exactamente 40 mm entra SIN advertencia y el informe lo llama
-     dilatado. Corregirlo exige tocar el operador del consumidor, que es compartido por los 40 campos
-     de esta tabla. No es un error de carga: 40 mm es un diámetro real. */
-  tango_tac:[null,185], vti_tsvd:[12,22], tsvd_diametro:[null,35], ai_diam:[null,UMBRAL_AI_DIAM_DILATADO],
+     ⚠️ EL HUECO DE UN VALOR SE CERRÓ SOLO (LS2, 2026-10-16): el aviso dispara con `conv > rgc[1]`
+     —estricto— y la dilatación pasó de `>= 40` a `> 40`, así que los dos bordes coinciden y 40 mm
+     exactos son normales por los dos caminos.
+     ⚠️ SE USA EL TECHO DEL VARÓN y esta tabla no mira el sexo: es el corte MÁS ALTO, así que el
+     aviso nunca avisa de más. En una mujer un diámetro de 39 mm es dilatado y entra sin
+     advertencia; avisar de más sobre un estudio sano es la forma más rápida de que el médico
+     aprenda a ignorar el cartel, y queda declarado en PENDIENTES. */
+  tango_tac:[null,185], vti_tsvd:[12,22], tsvd_diametro:[null,35], ai_diam:[null,AI_DIAM_NORMAL_MAX_H],
   ao_sin:[null,AO_REF.sin], ao_st:[null,AO_REF.st], ao_tub:[null,AO_REF.tub]
 };
 
