@@ -68627,6 +68627,281 @@ caso('TC-482', 'Tanda Y1: la VISTA 2D de las valvulas — el boton al pie de Val
   })();
 `);
 
+caso('TC-483', 'Tanda Y1b: la vista 2D CHICA y DISCRETA — el boton del pie con el color real de una pestana de valvula en reposo en los dos temas, el panel como tarjeta flotante centrada de 900 px y 85 vh con el desplazamiento DENTRO, el interior compacto con las tres zonas agrupadas y el dibujo escalado por el alto, la columna unica a 768 px o menos, y las tarjetas, el informe, el EN SUMA y las 440 columnas del Excel sin moverse', `
+  return (async function(){
+    const ex = [];
+    const EL  = (id) => document.getElementById(id);
+    const V   = (id) => { const e = EL(id); return e ? e.value : null; };
+    const FN  = (n) => typeof window[n] === 'function';
+    const S   = (id, v) => { try { __t.set(id, v); } catch (e) {} };
+    const FUENTE = () => String(document.documentElement.innerHTML || '');
+    /* ⚠️ TODA LECTURA DEL PANEL VA POR UN AYUDANTE CON CENTINELA. Contra el arbol del Y1 varias
+       de estas reglas no existen, y un \`.width\` sobre undefined mata la corrida entera con un
+       TypeError: eso prueba que el arbol es distinto, no que el caso sabe medir. Misma leccion
+       que TC-455, TC-462, TC-465, TC-471, TC-473, TC-474, TC-477, TC-480, TC-481 y TC-482. */
+    const CS = (sel) => { try { const e = document.querySelector(sel);
+      return e ? getComputedStyle(e) : null; } catch (x) { return null; } };
+    const RC = (sel) => { try { const e = document.querySelector(sel);
+      return e ? e.getBoundingClientRect() : null; } catch (x) { return null; } };
+    const PINTA = (sel) => { const c = CS(sel); return c
+      ? c.backgroundColor + ' | ' + c.color + ' | ' + c.borderTopColor : 'NO EXISTE ' + sel; };
+    const TEMA = (claro) => { const r = document.documentElement;
+      if (claro) r.classList.add('light-mode'); else r.classList.remove('light-mode');
+      return r.classList.contains('light-mode') === !!claro; };
+    const ABIERTO = () => { const o = EL('v2d-ov');
+      return !!(o && getComputedStyle(o).display !== 'none'); };
+    const ABRIR = () => { try { if (FN('showTab')) showTab('valvulas'); } catch (e) {}
+      const b = EL('v2d-abrir'); if (b) b.click(); return ABIERTO(); };
+    const CERRAR = () => { const b = EL('v2d-cerrar'); if (b) b.click(); return ABIERTO(); };
+    const TARJ = (id) => { const ul = EL(id); if (!ul) return [];
+      return Array.prototype.slice.call(ul.children).map(function(li){
+        const chip = li.querySelector('.v2d-chip');
+        return { txt: String(li.textContent || '').replace(/ +/g, ' ').trim(),
+                 vacio: String(li.className || '').indexOf('v2d-vacio') > -1,
+                 chip: chip ? String(chip.textContent || '').trim() : null,
+                 bg: chip ? getComputedStyle(chip).backgroundColor : null }; }); };
+    const NUEVO = () => { try { if (FN('limpiarCampos')) limpiarCampos(true); } catch (e) {} };
+    const SEV = (tipo, valv, g) => { try { if (typeof valvSev === 'object' && valvSev) valvSev.aplicar(tipo, valv, g); } catch (e) {} };
+    const INF = (estilo) => { try { if (FN('setEstiloInforme')) setEstiloInforme(estilo); } catch (e) {}
+      try { if (FN('generarInforme')) generarInforme(); } catch (e) {}
+      return { inf: V('informe_texto') || '', suma: V('en_suma') || '' }; };
+    const OPC = (id) => { const e = EL(id);
+      return e ? Array.prototype.slice.call(e.options || []).map(function(o){ return o.value }) : []; };
+    const MEC = (id) => OPC(id).filter(function(o){ return /mec/i.test(o) })[0];
+
+    /* ══ A · EL BOTON DEL PIE: EL COLOR Y EL TAMANO DE UNA PESTANA EN REPOSO ══════════════ */
+    NUEVO();
+    try { if (FN('showTab')) showTab('valvulas'); } catch (e) {}
+    { const b = EL('v2d-abrir'); const r = b ? b.getBoundingClientRect() : null;
+      ex.push(['DENOMINADOR: el boton existe al pie de Valvulas y TIENE geometria',
+        !!b && !!r && r.width > 0 && r.height > 0,
+        r ? Math.round(r.width) + 'x' + Math.round(r.height) : 'SIN BOTON']);
+      /* NEUTRO: el azul de accion se fue. La clase es la de una pestana en reposo. */
+      ex.push(['el boton es NEUTRO: btn-ghost, y ya no btn-primary',
+        !!b && String(b.className).indexOf('btn-ghost') > -1 &&
+        String(b.className).indexOf('btn-primary') === -1, b ? b.className : 'SIN BOTON']);
+      /* ⚠️ LO QUE SE COMPARA ES EL COLOR REAL RESUELTO Y NO EL NOMBRE DE UNA CLASE: dos clases
+         distintas pueden resolver al mismo color y la misma clase puede resolver a dos. La
+         pestana de referencia es #pill-insuf-mitral, una de las OCHO pestanas de valvula, en su
+         estado de REPOSO. */
+      ex.push(['DENOMINADOR: la pestana de referencia existe y esta en REPOSO (sin la clase de prendida)',
+        !!EL('pill-insuf-mitral') && (function(){ let p = null;
+          try { p = FN('pillOn') ? pillOn('mitral','insuf') : null; } catch (e) { p = 'EXC'; }
+          return p !== true; })(),
+        (function(){ try { return String(FN('pillOn') ? pillOn('mitral','insuf') : 'SIN FN'); }
+          catch (e) { return 'EXC'; } })()]);
+      ex.push(['TEMA OSCURO: fondo, texto y borde del boton IDENTICOS a los de una pestana en reposo',
+        TEMA(false) && PINTA('#v2d-abrir') === PINTA('#pill-insuf-mitral'),
+        PINTA('#v2d-abrir') + '   vs   ' + PINTA('#pill-insuf-mitral')]);
+      ex.push(['TEMA CLARO: los mismos tres, tambien IDENTICOS',
+        TEMA(true) && PINTA('#v2d-abrir') === PINTA('#pill-insuf-mitral'),
+        PINTA('#v2d-abrir') + '   vs   ' + PINTA('#pill-insuf-mitral')]);
+      TEMA(false);
+      /* TAMANO DE PESTANA: la tipografia y el relleno son los de .tab-btn. */
+      { const c = CS('#v2d-abrir');
+        ex.push(['tamano de pestana: 11 px, peso 600 y relleno 5/12, los de .tab-btn',
+          !!c && c.fontSize === '11px' && c.fontWeight === '600' &&
+          c.paddingTop === '5px' && c.paddingLeft === '12px',
+          c ? c.fontSize + ' / ' + c.fontWeight + ' / ' + c.padding : 'SIN BOTON']);
+        /* EL PISO TACTIL NO SE BAJA: una pestana de valvula tambien mide 44 px de alto. */
+        ex.push(['el piso tactil de 44 px se conserva, igual que en una pestana',
+          !!c && parseFloat(c.minHeight) >= 44 &&
+          parseFloat((CS('#pill-insuf-mitral') || {}).minHeight || 0) >= 44,
+          c ? c.minHeight : 'SIN BOTON']); }
+      /* CONTROL NEGATIVO: una pestana PRENDIDA no se ve como el boton. Sin esto, la comparacion
+         de arriba pasaria igual si todos los botones de la app fueran del mismo color. */
+      { try { if (FN('toggleValvPill')) toggleValvPill('mitral','insuf'); } catch (e) {}
+        const prendida = PINTA('#pill-insuf-mitral');
+        const distinto = prendida !== PINTA('#v2d-abrir');
+        try { if (FN('toggleValvPill')) toggleValvPill('mitral','insuf'); } catch (e) {}
+        ex.push(['CONTROL NEGATIVO: una pestana PRENDIDA NO se ve como el boton',
+          distinto, prendida + '   vs   ' + PINTA('#v2d-abrir')]); } }
+
+    /* ══ B · EL PANEL: TARJETA FLOTANTE CENTRADA Y NO PANTALLA COMPLETA ═══════════════════ */
+    /* ⚠️ EL ANCHO NO SE PUEDE EMULAR DESDE EL CUERPO DE UN CASO: corre DENTRO de la pagina y una
+       media query no se finge. Y hay algo mas, medido: esta suite lanza Chrome SIN --window-size,
+       asi que el viewport da 756 px y toda la app se mide en modo CELULAR. Aca se afirma la REGLA
+       que produce el comportamiento de escritorio y se mide lo RENDERIZADO a este ancho; los seis
+       anchos los mide la sonda scripts/_probe_y1b.mjs, que si tiene el canal para emular el
+       viewport. Es el reparto que TC-460 y TC-482 ya dejaron escrito. */
+    { const angosto = window.matchMedia('(max-width: 768px)').matches;
+      ex.push(['DENOMINADOR: el viewport de la suite esta por DEBAJO de 768 px, asi que lo renderizado es la columna unica',
+        angosto === true, window.innerWidth + ' px']);
+      const f = FUENTE();
+      ex.push(['la REGLA declara una tarjeta flotante CENTRADA de 900 px y 85 vh, no un panel a pantalla completa',
+        f.indexOf('#v2d-card{position:absolute;inset:0;margin:auto;width:min(900px,94vw);') > -1 &&
+        f.indexOf('height:max-content;max-height:85vh;') > -1, '']);
+      ex.push(['y el inset:10px del Y1 —el que tomaba la ventana entera— ya no esta',
+        f.indexOf('#v2d-card{position:absolute;inset:10px') === -1, '']);
+      /* EL DESPLAZAMIENTO ES DEL CUERPO Y NO DE LA PAGINA. */
+      ex.push(['el desplazamiento es del CUERPO del panel: #v2d-cuerpo lleva overflow:auto',
+        (function(){ const c = CS('#v2d-cuerpo');
+          return !!c && (c.overflowY === 'auto' || c.overflow === 'auto'); })(),
+        (function(){ const c = CS('#v2d-cuerpo'); return c ? c.overflow : 'NO EXISTE'; })()]); }
+    { const abrio = ABRIR();
+      const rc = RC('#v2d-card');
+      ex.push(['DENOMINADOR: la vista abre y la tarjeta tiene geometria',
+        abrio === true && !!rc && rc.width > 0 && rc.height > 0,
+        rc ? Math.round(rc.width) + 'x' + Math.round(rc.height) : 'SIN TARJETA']);
+      ex.push(['la tarjeta NO desborda la ventana y queda centrada en el eje horizontal',
+        !!rc && rc.left >= 0 && rc.right <= window.innerWidth + 1 &&
+        Math.abs((rc.left + rc.right) / 2 - window.innerWidth / 2) <= 2,
+        rc ? 'x=' + Math.round(rc.left) + ' a ' + Math.round(rc.right) + ' de ' + window.innerWidth : 'SIN TARJETA']);
+      ex.push(['con la vista abierta la PAGINA no gana scroll horizontal, ni la pagina ni el cuerpo del panel',
+        document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1 &&
+        (function(){ const c = EL('v2d-cuerpo');
+          return !c || c.scrollWidth <= c.clientWidth + 1; })(),
+        document.documentElement.scrollWidth + '/' + document.documentElement.clientWidth]);
+      /* A ESTE ANCHO —el de celular— el margen es de 8 px por los cuatro lados. */
+      ex.push(['a 768 px o menos la tarjeta vuelve a tomar la pantalla con 8 px de margen',
+        !!rc && Math.round(rc.left) === 8 && Math.round(rc.top) === 8,
+        rc ? Math.round(rc.left) + ',' + Math.round(rc.top) : 'SIN TARJETA']);
+      CERRAR(); }
+
+    /* ══ C · EL INTERIOR COMPACTO ════════════════════════════════════════════════════════ */
+    { const f = FUENTE();
+      ex.push(['la REGLA agrupa las tres zonas en el centro con columnas de 184 px, en vez de estirarlas',
+        f.indexOf('grid-template-columns:184px auto 184px') > -1 &&
+        f.indexOf('justify-content:center;}') > -1, '']);
+      ex.push(['el dibujo se escala por el ALTO, entre 200 y 320 px, y la regla NO le fija el ancho',
+        f.indexOf('height:clamp(200px,calc(100vh - 520px),320px)') > -1 &&
+        f.indexOf('#v2d-svg{display:block;width:auto;') > -1, '']);
+      /* UNA SOLA MEDIA QUERY, Y SU CORTE ES 768. */
+      ex.push(['UNA sola media query apaga las tres posiciones explicitas, y su corte es 768 px',
+        f.indexOf('@media (max-width:768px){') > -1 &&
+        f.indexOf('#v2d-dibujo,#v2d-col-insuf,#v2d-col-esten,#v2d-cav{grid-column:1;grid-row:auto;}') > -1 &&
+        f.indexOf('@media (max-width:900px){') === -1, '']);
+      ex.push(['y en angosto la tarjeta suelta el ancho y el techo de alto, con 8 px de margen',
+        f.indexOf('#v2d-card{inset:8px;margin:0;width:auto;height:auto;max-height:none;}') > -1, '']); }
+    { /* Escena con las cuatro camaras y una lesion, para que la tabla y las tarjetas existan. */
+      NUEVO();
+      S('peso','80'); S('talla','170'); S('ddfvi','66'); S('fevi','30'); S('ai_vol','105');
+      S('vd_bas','47'); S('tapse','14'); S('ad_area','24');
+      try { if (FN('calcVI')) calcVI(); } catch (e) {}
+      try { if (FN('calcVD')) calcVD(); } catch (e) {}
+      try { if (FN('calcAI')) calcAI(); } catch (e) {}
+      SEV('insuf','mitral','4');
+      ABRIR();
+      const rc = RC('#v2d-card'), rs = RC('#v2d-svg');
+      ex.push(['DENOMINADOR: el dibujo esta dibujado y tiene geometria',
+        !!rs && rs.width > 0 && rs.height > 0,
+        rs ? Math.round(rs.width) + 'x' + Math.round(rs.height) : 'SIN DIBUJO']);
+      ex.push(['el dibujo entra en su caja y no pasa de los 320 px de alto',
+        !!rs && !!rc && rs.height <= 320 && rs.left >= rc.left - 1 && rs.right <= rc.right + 1,
+        rs ? Math.round(rs.height) + ' px de alto' : 'SIN DIBUJO']);
+      /* LAS TARJETAS ESTAN SIEMPRE VISIBLES: no se pliegan ni se esconden. */
+      ex.push(['las dos columnas de tarjetas estan VISIBLES, sin plegado y sin details',
+        (function(){ const a = EL('v2d-col-insuf'), b = EL('v2d-col-esten');
+          if (!a || !b) return false;
+          return getComputedStyle(a).display !== 'none' && getComputedStyle(b).display !== 'none' &&
+                 !a.querySelector('details') && !b.querySelector('details'); })(),
+        (function(){ const a = EL('v2d-col-insuf');
+          return a ? getComputedStyle(a).display : 'NO EXISTE'; })()]);
+      /* LA TABLA Y LA NOTA EXISTEN Y ENTRAN A LO ANCHO DE LA TARJETA. */
+      const rt = RC('#v2d-cav table'), rn = RC('.v2d-nota');
+      ex.push(['la tabla de cavidades y la nota al pie estan dibujadas y entran a lo ancho de la tarjeta',
+        !!rt && rt.height > 0 && !!rn && rn.height > 0 && !!rc &&
+        rt.right <= rc.right + 1 && rn.right <= rc.right + 1,
+        (rt ? Math.round(rt.width) + 'x' + Math.round(rt.height) : 'SIN TABLA') + ' · nota ' +
+        (rn ? Math.round(rn.width) + 'x' + Math.round(rn.height) : 'SIN NOTA')]);
+      /* COMPACTO, MEDIDO EN LA TIPOGRAFIA REAL Y NO EN EL FUENTE. */
+      ex.push(['la tabla, la nota, las tarjetas y la pastilla del grado son compactas',
+        (function(){ const t = CS('#v2d-cav table'), n = CS('.v2d-nota'),
+            li = CS('.v2d-lista li'), ch = CS('.v2d-chip');
+          if (!t || !n || !li || !ch) return false;
+          return parseFloat(t.fontSize) <= 12 && parseFloat(n.fontSize) <= 11 &&
+                 parseFloat(li.fontSize) <= 12 && parseFloat(ch.fontSize) <= 11; })(),
+        (function(){ const t = CS('#v2d-cav table'), n = CS('.v2d-nota'),
+            li = CS('.v2d-lista li'), ch = CS('.v2d-chip');
+          return [t && t.fontSize, n && n.fontSize, li && li.fontSize, ch && ch.fontSize].join(' · '); })()]);
+      CERRAR(); }
+
+    /* ══ D · LOS CONTROLES: LA VISTA SIGUE DICIENDO LO MISMO QUE EN EL Y1 ═════════════════ */
+    { NUEVO(); SEV('insuf','mitral','4');
+      const r = INF('estandar');
+      ABRIR();
+      const t = TARJ('v2d-insuf').filter(function(x){ return !x.vacio; });
+      const otra = TARJ('v2d-esten');
+      CERRAR();
+      ex.push(['la tarjeta de la IM severa dice lo mismo que en el Y1, con su pastilla y su color',
+        t.length === 1 && t[0].txt.indexOf('IM severa') > -1 && t[0].chip === 'Severa' &&
+        t[0].bg === 'rgb(254, 226, 226)' && r.suma.indexOf('IM severa.') > -1,
+        (t[0] ? t[0].txt + ' | ' + t[0].chip + ' | ' + t[0].bg : 'SIN TARJETA')]);
+      ex.push(['y la otra columna sigue publicando su linea de «sin ...», sin inventar una tarjeta',
+        otra.length === 1 && otra[0].vacio === true, otra.length ? otra[0].txt : 'VACIA']); }
+    { /* PROTESIS: el veredicto, sin chip de grado — el reparto que el Y1 fijo. */
+      NUEVO();
+      S('vm_morf', MEC('vm_morf')); S('em_dtsvi','20'); S('em_vtitsvi','20');
+      S('em_vtimit','52'); S('em_gmedio','12'); S('thp','250');
+      try { if (FN('valvProtSync')) valvProtSync(); } catch (e) {}
+      try { if (FN('calcEM')) calcEM(); } catch (e) {}
+      ABRIR();
+      const t = TARJ('v2d-esten').filter(function(x){ return !x.vacio; });
+      CERRAR();
+      ex.push(['la PROTESIS mitral sigue publicando su veredicto y su morfologia, y sigue SIN chip de grado',
+        t.length === 1 && t[0].txt.indexOf('tesis mec') > -1 &&
+        t[0].txt.toLowerCase().indexOf('obstrucci') > -1 && t[0].chip === null,
+        (t[0] ? t[0].txt + ' | chip=' + String(t[0].chip) : 'SIN TARJETA')]); }
+    { /* EL PAPEL Y EL EXCEL NO SE MUEVEN CON LA VISTA ABIERTA. */
+      NUEVO(); SEV('insuf','mitral','2'); S('vmax_ao','4.5');
+      try { if (FN('calcAo')) calcAo(); } catch (e) {}
+      const antes = INF('estandar');
+      const cols = function(){ try { if (typeof _labExcelRow !== 'function') return -1;
+        const c = {}; document.querySelectorAll('input[id],select[id],textarea[id]').forEach(function(e){
+          if (e.type === 'checkbox' || e.type === 'radio') c[e.id + '__chk'] = e.checked ? '1' : '0';
+          else c[e.id] = e.value; });
+        return Object.keys(_labExcelRow({ id:'P1', nombre:'P 1', ci:'1', fecha:'2026-10-16', campos:c })).length;
+      } catch (e) { return -2; } };
+      const cAntes = cols();
+      ABRIR();
+      const dur = INF('estandar');
+      const cDur = cols();
+      CERRAR();
+      const desp = INF('estandar');
+      ex.push(['el informe y el EN SUMA salen IDENTICOS con la vista cerrada, abierta y vuelta a cerrar',
+        antes.inf === dur.inf && antes.inf === desp.inf &&
+        antes.suma === dur.suma && antes.suma === desp.suma && antes.inf.length > 50,
+        antes.inf.length + '/' + dur.inf.length + '/' + desp.inf.length]);
+      ex.push(['el Excel sigue en 440 columnas con la vista abierta',
+        cAntes === 440 && cDur === 440, cAntes + ' -> ' + cDur]); }
+    { /* NADA SE ESCRIBE: ni en el estudio ni en el navegador. */
+      NUEVO(); SEV('insuf','mitral','4');
+      const foto = function(){ const o = {};
+        document.querySelectorAll('input[id],select[id],textarea[id]').forEach(function(e){
+          o[e.id] = (e.type === 'checkbox' || e.type === 'radio') ? (e.checked ? '1' : '0') : e.value; });
+        return JSON.stringify(o); };
+      const a = foto(); ABRIR(); CERRAR(); const b = foto();
+      ex.push(['abrir y cerrar la vista no escribe NI UN campo del estudio',
+        a === b, a.length + ' vs ' + b.length]);
+      ex.push(['y no deja NADA en el navegador: ni en localStorage ni en sessionStorage',
+        (function(){ let n = 0;
+          try { for (let i = 0; i < localStorage.length; i++)
+            if (String(localStorage.key(i)).indexOf('v2d') > -1) n++; } catch (e) {}
+          try { for (let i = 0; i < sessionStorage.length; i++)
+            if (String(sessionStorage.key(i)).indexOf('v2d') > -1) n++; } catch (e) {}
+          return n === 0; })(), '']); }
+    { /* CONTROL NEGATIVO: el CONTENIDO del dibujo no se toco — solo su contenedor. */
+      ABRIR();
+      const svg = EL('v2d-svg');
+      const vb = svg ? svg.getAttribute('viewBox') : null;
+      const valvas = svg ? svg.querySelectorAll('.v2d-leaf').length : 0;
+      CERRAR();
+      /* ⚠️ EL viewBox RENDERIZADO NO ES EL DEL MARCADO Y NO SE PUEDE COMPARAR CONTRA EL LITERAL:
+         el motor del dibujo lo REESCRIBE para encuadrar el corazon, y \`FUENTE()\` serializa el DOM
+         vivo, donde ya esta reescrito. La primera version de esta condicion salio roja dos veces
+         sobre un dibujo perfecto. Lo que se afirma es que el CONTENIDO sigue entero. */
+      const nom = svg ? svg.querySelectorAll('.v2d-cn').length : 0;
+      const rot = svg ? svg.querySelectorAll('.v2d-lbl').length : 0;
+      const out = EL('v2d-out');
+      ex.push(['CONTROL NEGATIVO: el dibujo conserva su encuadre, sus valvas, sus cuatro camaras y sus tres rotulos — esta tanda solo cambio el contenedor',
+        !!vb && String(vb).trim().split(/ +/).length === 4 && valvas >= 6 && nom === 4 && rot === 3 &&
+        !!out && String(out.getAttribute('d') || '').length > 200,
+        String(vb) + ' · ' + valvas + ' valvas · ' + nom + ' camaras · ' + rot + ' rotulos']); }
+
+    return { extra: ex };
+  })();
+`);
+
 
 
 let servidor, chrome;
