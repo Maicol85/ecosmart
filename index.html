@@ -113359,6 +113359,128 @@ function m3dCamaraAplicar(){
   if (_m3dVista === 'lateral') { _m3dGoTo(_m3dMrx(-80 * M3D_PI / 180), 1); return; }
   _m3dGoTo([[1, 0, 0], [0, 1, 0], [0, 0, 1]], 1);
 }
+
+/* ══ LA TABLA DE DATOS USADOS — «Y3-4» (2026-10-16) ════════════════════════════════════════════
+   ⚠️ SOLO VALORES, NINGUNA CONCLUSION. Ni una recomendacion, ni un veredicto, ni un «apto» o
+   «no apto»: la tabla dice que se midio y cuanto, y nada mas. Lo que interpreta esos numeros ya
+   esta en la pantalla de Factibilidad plastica y en la de TEER, que esta tanda no toca.
+   ⚠️ NO SE AGREGA NINGUN CAMPO Y NO SE RECALCULA NADA: cada celda es el `.value` de un campo que
+   el medico lleno, o el texto que una fila de la pantalla ya publico.
+   ⚠️ Y EL NOMBRE DE CADA DATO SE LEE DE SU PROPIA ETIQUETA, no se escribe aca. Un segundo juego
+   de nombres se separa del primero el dia que uno se renombre, y la orden pide que los nombres
+   sean los que la app ya usa. De la etiqueta sale tambien la unidad, que es lo que va entre
+   parentesis — el mismo mecanismo con el que `_v2dRotulo` lee los rotulos de las filas. */
+var M3D_TABLA = Object.freeze([
+  Object.freeze({ g:'Válvula', campos: Object.freeze([
+    Object.freeze({ id:'ete_mecanismo', sel:true }),
+    Object.freeze({ id:'ete_etiologia', sel:true }),
+    Object.freeze({ id:'ete_carpentier', sel:true })]) }),
+  /* La severidad vive en Válvulas y no en Mediciones ETE, así que se lee donde está: la orden
+     la pide por nombre («EROA, vena contracta … el volumen regurgitante»). Las tres de PISA son
+     FILAS ya publicadas, con su unidad adentro del texto. */
+  Object.freeze({ g:'Severidad', campos: Object.freeze([
+    Object.freeze({ id:'im_vc' }),
+    Object.freeze({ id:'eroa-val', fila:true, nom:'EROA' }),
+    Object.freeze({ id:'volr-val', fila:true, nom:'Vol. regurgitante' }),
+    Object.freeze({ id:'freg-val', fila:true, nom:'Fracción regurgitante' }),
+    /* Con estenosis, el area y el gradiente medio. El area por planimetria es un campo
+       MEDIDO; las otras dos del cuadro son derivadas y ya se publican en su propia fila. */
+    Object.freeze({ id:'avm_plan' }),
+    Object.freeze({ id:'em_gmedio' })]) }),
+  Object.freeze({ g:'Plástica mitral', campos: Object.freeze([
+    Object.freeze({ id:'ete_diam_anular' }),
+    Object.freeze({ id:'ete_lva' }),
+    Object.freeze({ id:'ete_lvp' }),
+    Object.freeze({ id:'ete_angulo_vp' }),
+    Object.freeze({ id:'ete_altura_tenting' }),
+    Object.freeze({ id:'ete_area_tenting' }),
+    Object.freeze({ id:'ete_prof_coapt' }),
+    Object.freeze({ id:'ete_area_mitral' })]) }),
+  Object.freeze({ g:'TEER', campos: Object.freeze([
+    Object.freeze({ id:'teer_ancho_flail' }),
+    Object.freeze({ id:'teer_flail_gap' }),
+    Object.freeze({ id:'teer_gap' }),
+    Object.freeze({ id:'teer_prof_flail' })]) })
+]);
+/* El nombre y la unidad de un campo, leidos de su `<label>`: «Longitud velo anterior (mm)» da
+   nombre «Longitud velo anterior» y unidad «mm». Sin parentesis, el nombre es la etiqueta entera
+   y no hay unidad — que es lo correcto para un desplegable. */
+function _m3dRotuloCampo(id){
+  var e = m3dEl(id);
+  if (!e) return null;
+  var fg = e.closest ? e.closest('.fg') : null;
+  var l = fg ? fg.querySelector('label') : null;
+  if (!l) return null;
+  var t = String(l.textContent || '').replace(/[ \t\n]+/g, ' ').trim();
+  var i = t.lastIndexOf('(');
+  if (i > 0 && t.charAt(t.length - 1) === ')')
+    return { nom: t.slice(0, i).trim(), uni: t.slice(i + 1, -1).trim() };
+  return { nom: t, uni: '' };
+}
+function m3dTabla(S){
+  var host = m3dEl('m3d-tabla');
+  if (!host) return;
+  while (host.firstChild) host.removeChild(host.firstChild);
+  var filas = [];
+  M3D_TABLA.forEach(function(G){
+    var partes = [];
+    /* El primer grupo arranca por la morfologia y los festones, que no son campos con etiqueta. */
+    if (G.g === 'Válvula') {
+      if (S.insuf) partes.push(S.insuf.frase);
+      if (S.esten) partes.push(S.esten.frase);
+      var les = [], i;
+      for (i = 0; i < 6; i++) if (S.seg[i] > 0) les.push(M3D_SG[i] + ' ' + ETE_ESTADOS_3D[S.seg[i]].toLowerCase());
+      if (les.length) partes.push(les.join(', '));
+    }
+    G.campos.forEach(function(c){
+      var e = m3dEl(c.id);
+      if (!e) return;
+      if (c.fila) {
+        /* Una FILA ya publicada: su texto trae el valor con su unidad. La raya es «no se midio». */
+        var t = String(e.textContent || '').replace(/[ \t\n]+/g, ' ').trim();
+        if (!t || t === '—' || t === '-') return;
+        partes.push((c.nom || c.id) + ' ' + t);
+        return;
+      }
+      var val = String(e.value || '').trim();
+      if (!val) return;
+      var R = _m3dRotuloCampo(c.id);
+      var nom = R ? R.nom : c.id;
+      if (c.sel) {
+        /* En un desplegable el dato es el TEXTO de la opcion, que es lo que el medico eligio. */
+        var o = e.options && e.options[e.selectedIndex];
+        var txt = o ? String(o.textContent || '').trim() : val;
+        if (!txt || txt === '—') return;
+        partes.push(nom + ' ' + txt);
+        return;
+      }
+      partes.push(nom + ' ' + val + (R && R.uni ? ' ' + R.uni : ''));
+    });
+    /* ⚠️ «Nativa» NO ES UN DATO Y NO SOSTIENE SOLA AL GRUPO. Medido antes de esto: con el
+       formulario VACIO la tabla aparecia igual, con una unica fila que decia
+       «Valvula | Nativa» —o sea afirmando que algo se midio sobre una valvula que nadie
+       toco—, que es justo lo que la orden prohibe. Acompana a los datos cuando los hay. */
+    if (G.g === 'V\u00e1lvula' && partes.length) partes.unshift('Nativa');
+    /* UN GRUPO SIN NINGUN DATO NO APARECE. */
+    if (partes.length) filas.push([G.g, partes.join(' · ')]);
+  });
+  /* SIN NINGUN DATO, NO HAY TABLA: un encabezado solo afirmaria que algo se midio. */
+  if (!filas.length) return;
+  var tit = document.createElement('div');
+  tit.className = 'm3d-nota';
+  tit.textContent = 'Datos usados en el dibujo (Mediciones ETE · válvula mitral)';
+  host.appendChild(tit);
+  var tb = document.createElement('table'), tbody = document.createElement('tbody');
+  filas.forEach(function(f){
+    var tr = document.createElement('tr');
+    var td1 = document.createElement('td'); td1.textContent = f[0]; tr.appendChild(td1);
+    var td2 = document.createElement('td'); td2.textContent = f[1]; tr.appendChild(td2);
+    tbody.appendChild(tr);
+  });
+  tb.appendChild(tbody); host.appendChild(tb);
+}
+window.m3dTabla = m3dTabla; window.M3D_TABLA = M3D_TABLA;
+
 window.m3dSync = m3dSync; window.m3dTarjetas = m3dTarjetas; window.m3dDescribir = m3dDescribir;
 window.m3dCamaraAplicar = m3dCamaraAplicar;
 

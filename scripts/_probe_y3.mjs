@@ -924,6 +924,32 @@ window.__P = {
     }
     return parseInt(h.value || '0', 10) },
 
+  /* La tabla PINTADA, fila por fila, mas el valor crudo de cada campo para poder compararlos. */
+  m3dTablaLeida() {
+    var h = document.getElementById('m3d-tabla');
+    if (!h) return 'NO EXISTE';
+    var tit = h.querySelector('.m3d-nota');
+    var tr = Array.prototype.slice.call(h.querySelectorAll('tr'));
+    return { hay: !!h.querySelector('table'),
+             titulo: tit ? (tit.textContent || '').trim() : null,
+             filas: tr.map(function(r){
+               var td = r.querySelectorAll('td');
+               return [ (td[0] ? td[0].textContent : '').trim(),
+                        (td[1] ? td[1].textContent : '').trim() ] }) } },
+  /* Los campos de ETE con su valor crudo y su etiqueta: el denominador de la tabla. */
+  eteCampos() {
+    var o = {};
+    ['ete_mecanismo','ete_etiologia','ete_carpentier','im_vc','em_gmedio','ete_diam_anular',
+     'ete_lva','ete_lvp','ete_angulo_vp','ete_altura_tenting','ete_area_tenting',
+     'ete_prof_coapt','ete_area_mitral','teer_ancho_flail','teer_flail_gap','teer_gap',
+     'teer_prof_flail'].forEach(function(id){
+      var e = document.getElementById(id);
+      o[id] = e ? e.value : 'NO EXISTE' });
+    ['eroa-val','volr-val','freg-val'].forEach(function(id){
+      var e = document.getElementById(id);
+      o[id] = e ? (e.textContent || '').trim() : 'NO EXISTE' });
+    return o },
+
   m3dEstadoLeido() {
     if (typeof m3dEstado !== 'function') return 'SIN FN';
     try { var S = m3dEstado();
@@ -1820,6 +1846,51 @@ async function main() {
       await ev('window.__P.tema(false)'); await viewport(1200, 700);
       out.grupos.cap3d = g;
     }
+  }
+
+  /* ══ Y3-4 · LA TABLA ════════════════════════════════════════════════════════════════════ */
+  if (corre('tabla')) {
+    const g = {};
+    const ESCT = {
+      /* SIN NINGUN DATO: no tiene que haber tabla. */
+      vacio: {},
+      /* Solo severidad: el grupo de plastica y el de TEER NO aparecen. */
+      soloSev: { campos: Object.assign({}, BSA, { im_vc: '7', pisa_r: '9', pisa_val: '40',
+                 im_vmax: '5', im_itv: '150', ea_dtsvi: '20', itv_tsvi: '20' }),
+                 sev: [['insuf','mitral','4']] },
+      /* Solo los campos de ETE: aparecen Plastica y TEER y NO Severidad. */
+      soloEte: { ete: { ete_diam_anular: '34', ete_lva: '24', ete_lvp: '14',
+                        ete_angulo_vp: '42', ete_prof_coapt: '9',
+                        teer_ancho_flail: '12', teer_flail_gap: '8', teer_gap: '5',
+                        teer_prof_flail: '11' } },
+      /* Todo junto. */
+      todo: { campos: Object.assign({}, BSA, { im_vc: '7', em_gmedio: '12', avm_plan: '1.2' }),
+              sev: [['insuf','mitral','4']],
+              ete: { ete_diam_anular: '34', ete_lva: '24', teer_ancho_flail: '12' },
+              seg: [['P2', 2]], selects3: [['ete_mecanismo','flail']] }
+    };
+    for (const nom of Object.keys(ESCT)) {
+      const sp = ESCT[nom];
+      await ev('window.__P.nuevo()');
+      await ev('window.__P.abrirValv()');
+      await ev('window.__P.despejar()');
+      for (const k of Object.keys(sp.campos || {})) await tipear(k, sp.campos[k]);
+      for (const gg of (sp.sev || [])) await ev('window.__P.setSev(' + JSON.stringify(gg[0]) + ',' +
+        JSON.stringify(gg[1]) + ',' + JSON.stringify(gg[2]) + ')');
+      await ev('window.__P.abrirEte()');
+      for (const k of Object.keys(sp.ete || {})) await tipear(k, sp.ete[k]);
+      for (const s2 of (sp.selects3 || [])) {
+        const r2 = await ev('window.__P.sel(' + JSON.stringify(s2[0]) + ',' + JSON.stringify(s2[1]) + ')');
+        if (r2 && r2.err) throw new Error('DENOMINADOR ' + s2[0] + ': ' + JSON.stringify(r2));
+      }
+      for (const sg of (sp.seg || [])) await ev('window.__P.seg(' + JSON.stringify(sg[0]) + ',' + sg[1] + ')');
+      await ev('window.__P.despejar()');
+      if (!(await ev('window.__P.m3d()')).visible) await ev("window.__P.m3dClic('m3d-btn')");
+      g[nom] = { tabla: await ev('window.__P.m3dTablaLeida()'),
+                 campos: await ev('window.__P.eteCampos()') };
+      await ev("window.__P.m3dClic('m3d-btn')");
+    }
+    out.grupos.tabla = g;
   }
 
   out.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
