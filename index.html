@@ -111529,6 +111529,45 @@ const V2D_PORQUE = Object.freeze({
       Object.freeze({ id: 'it-eroa',    sep: 'punto', color: true }),
       Object.freeze({ id: 'it-volr',    sep: 'punto', color: true }),
       Object.freeze({ id: 'it-densidad-interp' })
+    ]) }),
+  /* ══ LAS TRES ESTENOSIS NATIVAS (Y2-2) ══════════════════════════════════════════════════════
+     Cada una con la regla de integracion que la app ya aplica, sin tocarle una condicion.
+     ⚠️ LA AORTICA ES LA UNICA QUE NOMBRA EL CRITERIO QUE DECIDE, y lo hace desde la tanda F con
+     el sufijo «— por X» que el Z5 arreglo para que nombre el que de verdad decide. Se publica ese
+     texto TAL CUAL: recomponerlo como «criterio valor (grado)» obligaria a una tabla de
+     equivalencias entre el nombre que usa el renglon («por gradiente medio») y el rotulo de la
+     fila («G. medio»), que es justo la segunda copia que esta tanda evita.
+     ⚠️ Y LA VMAX VOTA SIN TENER FILA EN ESTE CUADRO —es la mitad de F8 que sigue abierta—, asi que
+     el renglon puede nombrar «por velocidad» y la lista no tener esa fila. No se agrega: inventar
+     la fila seria publicar un valor que ese cuadro no publica. */
+  'esten:aortica': Object.freeze({ decide: 'ea-det-sev', decideModo: 'sufijo', aviso: null,
+    crit: Object.freeze([
+      Object.freeze({ id: 'ea-det-gmedio', color: true }),
+      Object.freeze({ id: 'ea-det-ava',    color: true }),
+      Object.freeze({ id: 'ea-det-avai',   color: true }),
+      Object.freeze({ id: 'ea-det-plan',   color: true }),
+      Object.freeze({ id: 'ea-det-dvi',    color: true })
+    ]) }),
+  /* ⚠️ LA MITRAL MARCA LA FILA QUE DECIDE EN LA PANTALLA, con la palabra «peor» pegada a la clase
+     de esa fila: la tarjeta la LEE y la publica como marca, en vez de deducirla. Por eso aca el
+     «Decide» va en `null` y la marca viaja en la lista — es la misma informacion, dicha donde la
+     pantalla la dice. */
+  'esten:mitral': Object.freeze({ decide: null, aviso: 'em-discordancia',
+    crit: Object.freeze([
+      Object.freeze({ id: 'em-gmedio-row', gid: 'em-clase-gm',   color: true, marca: 'peor' }),
+      Object.freeze({ id: 'em-thp-row',    gid: 'em-clase-thp',  color: true, marca: 'peor' }),
+      Object.freeze({ id: 'em-cont-row',   gid: 'em-clase-cont', color: true, marca: 'peor' }),
+      Object.freeze({ id: 'em-plan-row',   gid: 'em-clase-plan', color: true, marca: 'peor' })
+    ]) }),
+  /* La tricuspide es BINARIA desde el 2026-10-05 y basta con que se cumpla UNO de los cuatro: su
+     renglon publica el veredicto y no nombra cual, asi que la lista los muestra con su banda y no
+     hay linea «Decide». */
+  'esten:tricuspide': Object.freeze({ decide: null, aviso: null,
+    crit: Object.freeze([
+      Object.freeze({ id: 'et-ref-gmedio', sep: 'parentesis', color: true }),
+      Object.freeze({ id: 'et-ref-vti',    sep: 'parentesis', color: true }),
+      Object.freeze({ id: 'et-ref-thp',    sep: 'parentesis', color: true }),
+      Object.freeze({ id: 'et-ref-avt',    sep: 'parentesis', color: true })
     ]) })
 });
 window.V2D_PORQUE = V2D_PORQUE;
@@ -111611,6 +111650,9 @@ function _v2dCrit(c) {
   /* El span hermano publica el grado entre parentesis («(moderada)»); en la tarjeta va como
      palabra, al lado de su pastilla. Es formato y no contenido: la palabra no cambia. */
   if (grado.charAt(0) === '(' && grado.charAt(grado.length - 1) === ')') grado = grado.slice(1, -1).trim();
+  /* Y la estenosis mitral lo publica PEGADO a su valor con un punto medio («· significativa
+     (≤1,5 cm²)»), porque alla va en la misma celda: en la tarjeta el separador no hace falta. */
+  while (grado.charAt(0) === '\u00b7' || grado.charAt(0) === ' ') grado = grado.slice(1).trim();
   if (!val) return null;
   let nom = _v2dRotulo(v.closest ? v.closest('.calc-row') : null);
   if (c.suf) nom += (nom ? ' — ' : '') + c.suf;
@@ -112141,7 +112183,7 @@ window.v2dPorQueTog = v2dPorQueTog;
 function _v2dPqFila(f) {
   const n = document.createElement('span');
   n.className = 'v2d-pq-n';
-  n.textContent = f.nom + (f.decide ? ' ' : '');
+  n.textContent = f.nom + (f.decide ? ' \u00b7 ' : '');
   if (f.decide) { const m = document.createElement('b'); m.className = 'v2d-pq-dec';
     m.textContent = V2D_PQ_MARCA; n.appendChild(m); }
   const v = document.createElement('span');
@@ -112174,8 +112216,12 @@ function _v2dPqFila(f) {
 function _v2dChipCls(pal) {
   const l = String(pal || '').toLowerCase();
   if (!l) return '';
-  if (l.indexOf('no significativa') > -1) return 'nivel1';
-  if (l.indexOf('significativa') > -1) return 'nivel-sig';
+  /* ⚠️ LA RAIZ Y NO LA PALABRA ENTERA: la estenosis mitral publica su gradiente en MASCULINO
+     («significativo (≥10 mmHg)») porque califica al gradiente y no al area, asi que con
+     «significativa» cableado ese chip salia SIN color, con el fondo del marco. Lo vio la
+     medicion, no la lectura. Y «no significativ» se pregunta ANTES, porque lo contiene. */
+  if (l.indexOf('no significativ') > -1) return 'nivel1';
+  if (l.indexOf('significativ') > -1) return 'nivel-sig';
   if (l.indexOf('severa') > -1 || l.indexOf('severo') > -1) return 'nivel3';
   if (l.indexOf('moderada') > -1 || l.indexOf('moderado') > -1) return 'nivel2';
   if (l.indexOf('leve') > -1) return 'nivel1';
