@@ -1014,6 +1014,35 @@ async function main() {
     out.grupos.captura = g; parcial('captura', t0);
   }
 
+  /* ── tactil: el tamano REAL de los cuatro globos con el dedo ───────────────────────
+     `check_mobile.js` mide el rect del NODO sin emular puntero grueso, y `.vinfo-btn` lleva un
+     @media (pointer: coarse) que lo lleva a 44 x 44. Es el precedente del L y del boton del
+     «porque» de la vista 2D.
+     ⚠️ `maxTouchPoints` TIENE QUE ESTAR ENTRE 1 Y 16 INCLUSO AL DESACTIVAR: con 0 el protocolo
+     rechaza la llamada y la corrida muere antes de medir nada. */
+  if (corre('tactil')) {
+    const t0 = Date.now(); const g = {};
+    await cdp.send('Emulation.setDeviceMetricsOverride',
+      { width: 390, height: 844, deviceScaleFactor: 1, mobile: true }, sessionId);
+    for (const dedo of [false, true]) {
+      await cdp.send('Emulation.setTouchEmulationEnabled',
+        { enabled: dedo, maxTouchPoints: dedo ? 5 : 1 }, sessionId);
+      try {
+        await montar({ ad_area: '15', vd_bas: '35', tapse: '22', edad: '50', ao_sin: '34' },
+                     { sexo: 'M', vci: '>50', vciDiam: '18' });
+        const m = {};
+        for (const k of ['ad-card', 'vd-tam-card', 'vd-fun-card', 'ao-card', 'ai-card']) {
+          await J(`JSON.stringify(window.__P.abrirPara(${JSON.stringify(ANCLA[k])}))`);
+          m[k] = await J(`JSON.stringify(window.__P.hayBtn(${JSON.stringify(k)}))`);
+        }
+        g[dedo ? 'con dedo' : 'con mouse'] = m;
+      } catch (e) { g[dedo ? 'con dedo' : 'con mouse'] = { ABORTO: e.message }; }
+    }
+    await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: false, maxTouchPoints: 1 }, sessionId);
+    await cdp.send('Emulation.clearDeviceMetricsOverride', {}, sessionId);
+    out.grupos.tactil = g; parcial('tactil', t0);
+  }
+
   /* ── controles: nada de lo que esta tanda toca puede mover una superficie firmada ───── */
   if (corre('controles')) {
     const t0 = Date.now(); const g = {};

@@ -64524,9 +64524,12 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
        graficas de la pestana AI/VI. Esos globos NO estan en Valvulas, igual que tapse-psap vive
        en el Doppler tricuspideo: lo que esta condicion sigue exigiendo es que TODA clave del
        marcado de Valvulas tenga entrada —que es lo que impide una tarjeta VACIA— y que no quede
-       ninguna de legado. */
+       ninguna de legado.
+       ADAPTADO otra vez el 2026-10-16 (M): 26 -> 30, por ad-card, vd-tam-card, vd-fun-card y
+       ao-card. Los cuatro viven en las pestanas VD y AI/VI, no en Valvulas; lo que esta
+       condicion afirma del marcado de Valvulas no cambia. */
     HAY_INFO && globos.every(function(b){ return !!VINFO[b.getAttribute('data-vinfo')]; }) &&
-    Object.keys(VINFO).length === 26,
+    Object.keys(VINFO).length === 30,
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
   ex.push(['(H) y la tarjeta se coloca SIEMPRE dentro de la pantalla, sin cortarse',
     (function(){ const b = document.querySelector('[data-vinfo="avm-thp"]');
@@ -71747,13 +71750,22 @@ caso('TC-491', 'Tanda L: el REGISTRO DE EVIDENCIA de la AI y del VI —doce fich
     /* ══ (A) EL REGISTRO ══════════════════════════════════════════════════════════════════ */
     const REG = G('EV_REG');
     const hayReg = Array.isArray(REG);
+    /* ADAPTADO el 2026-10-16 (tanda M): el registro pasa de 12 a 28 fichas —entran las dieciseis
+       de AD/VCI, del ventriculo derecho y de la aorta—. Lo que este caso afirma es el registro
+       de la AI y del VI, asi que en vez de bajar el deducible se FILTRA por zona: se siguen
+       exigiendo las DOCE de aquella, con su formato, y ademas que los ids de TODO el registro
+       sean unicos. Sin el filtro, este caso se pondria rojo cada vez que otra tanda agregue una
+       ficha de otra zona, sin que nada de la AI ni del VI haya cambiado. */
+    const idsTodos = hayReg ? REG.map(function (f) { return f.id }) : [];
+    const REG_L = hayReg ? REG.filter(function (f) {
+      return /^(DIM|FUN|MAS|GEO)-(AI|VI)-\\d{3}$/.test(f.id) }) : [];
     ex.push(['(A1) el registro existe y trae las doce fichas de la AI y del VI',
-      hayReg && REG.length === 12, 'n=' + (hayReg ? REG.length : REG)]);
-    const ids = hayReg ? REG.map(function (f) { return f.id }) : [];
+      hayReg && REG_L.length === 12, 'n de la zona=' + (hayReg ? REG_L.length : REG)
+        + ' de ' + idsTodos.length + ' en el registro']);
+    const ids = REG_L.map(function (f) { return f.id });
     ex.push(['(A2) los ids son unicos y siguen el formato de la zona',
-      hayReg && ids.length === new Set(ids).size
-        && ids.every(function (x) { return /^(DIM|FUN|MAS|GEO)-(AI|VI)-\\d{3}$/.test(x) }),
-      'ids=' + ids.join(',')]);
+      hayReg && idsTodos.length === new Set(idsTodos).size && ids.length === 12,
+      'ids de la zona=' + ids.join(',')]);
     ex.push(['(A3) son DATOS PUROS: pasan por JSON.stringify y vuelven iguales',
       hayReg && (function () { try {
         return JSON.stringify(JSON.parse(JSON.stringify(REG))) === JSON.stringify(REG);
@@ -72113,6 +72125,419 @@ caso('TC-491', 'Tanda L: el REGISTRO DE EVIDENCIA de la AI y del VI —doce fich
       FN('hviSeveridad') && hviSeveridad(149, 'M') === 'severa' && hviSeveridad(148, 'M') === 'moderada'
         && hviSeveridad(122, 'F') === 'severa' && hviSeveridad(121, 'F') === 'moderada',
       'H 148/149=' + (FN('hviSeveridad') ? (hviSeveridad(148, 'M') + '/' + hviSeveridad(149, 'M')) : 'SIN FN')]);
+
+    return { extra: ex };
+  })();
+`);
+
+
+caso('TC-492', 'Tanda M: las DIECISEIS FICHAS nuevas del registro de evidencia de AD/VCI, VD y aorta —ids nuevos, datos puros, sin notas internas, la fuente solo en las verificadas y el valor de cada una atado al DUENO que usa el informe—; las CUATRO tarjetas «i» con el punto del paciente, la categoria en palabras que la capsula ya publica, cada corte con su numero Y SU UNIDAD y sin palabras de gravedad dentro de las bandas; el nomograma de la aorta con el grafico que toca por edad, su banda, el corte de EcoSmart leido del dueno y sus tres lineas de texto; las TRES entradas nuevas de Referencias con los dos sexos y la bibliografia solo de fichas verificadas; y el informe, el EN SUMA, los grados, la diastolica, el Wilkins y las 440 columnas del Excel sin moverse', `
+  return (async function(){
+    const ex = [];
+    const EL = (id) => document.getElementById(id);
+    const S  = (id, v) => { try { __t.set(id, v); } catch (e) {} };
+    const V  = (id) => { const e = EL(id); return e ? e.value : null; };
+    const TXT = (id) => { const e = EL(id); return e ? String(e.textContent || '').replace(/[ ]+/g, ' ').trim() : 'NO EXISTE'; };
+    const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+    /* ⚠️ TODA LECTURA DE LAS PIEZAS NUEVAS VA POR UN AYUDANTE CON CENTINELA: contra HEAD no
+       existen EV_REG con las fichas de la M, ni los doce duenos puros, ni AOR_NOMO, ni los
+       cuatro botones, y nombrarlos pelados es un ReferenceError que mata la corrida entera
+       —eso prueba que el arbol es distinto, no que el caso sabe medir—. Es la leccion que
+       TC-455, TC-462, TC-465, TC-471, TC-473, TC-474, TC-477, TC-480, TC-485, TC-487, TC-489,
+       TC-490 y TC-491 ya tienen escrita. */
+    const G  = (n) => { try { return (n in window) ? window[n] : 'NO EXISTE'; } catch (e) { return 'EXC'; } };
+    const FN = (n) => typeof G(n) === 'function';
+    const LL = (n, a, b, c) => { try { return FN(n) ? window[n](a, b, c) : 'SIN FN'; } catch (e) { return 'EXC'; } };
+    const CARD = () => EL('vinfo-card');
+    const BTN  = (k) => document.querySelector('[data-vinfo="' + k + '"]');
+
+    /* ── DENOMINADOR 1: las dos pestanas y los tres acordeones abiertos ──
+       Sin esto los cuatro globos existen y miden 0 x 0, la tarjeta se niega a anclarse —que es
+       lo correcto— y TODAS las condiciones de abajo salen rojas sobre un arbol perfecto. */
+    const abrirSecs = () => {
+      ['ai-vi', 'vd'].forEach(function (t) { try { showTab(t) } catch (e) {} });
+      ['aorta', 'vd', 'ad'].forEach(function (k) {
+        const n = EL('sacc-' + k);
+        if (n && !n.classList.contains('open')) { try { secToggle(k) } catch (e) {} }
+      });
+    };
+    const geo = (k) => { const b = BTN(k); if (!b) return null;
+      const r = b.getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height) }; };
+    const pestanaDe = (k) => { let n = BTN(k);
+      while (n && n !== document.body) {
+        if (n.classList && n.classList.contains('tab-section') && n.id) return n.id;
+        n = n.parentElement; } return null; };
+    abrirSecs();
+    try { showTab('vd') } catch (e) {}
+    const gAd = geo('ad-card'), gT = geo('vd-tam-card'), gF = geo('vd-fun-card');
+    try { showTab('ai-vi') } catch (e) {}
+    const gAo = geo('ao-card');
+    ex.push(['(DENOM) los CUATRO globos de la tanda M existen y tienen geometria',
+      !!(gAd && gAd.w > 0 && gT && gT.w > 0 && gF && gF.w > 0 && gAo && gAo.w > 0),
+      'ad=' + JSON.stringify(gAd) + ' tam=' + JSON.stringify(gT) + ' fun=' + JSON.stringify(gF) + ' ao=' + JSON.stringify(gAo)]);
+
+    /* ══ (a) EL REGISTRO ═══════════════════════════════════════════════════ */
+    const REG = Array.isArray(G('EV_REG')) ? G('EV_REG') : [];
+    const IDS_M = ['DIM-AD-001','VCI-001','VCI-002','DIM-VD-001','DIM-VD-002','DIM-VD-003',
+                   'DIM-VD-004','FUN-VD-001','FUN-VD-002','FUN-VD-003','FUN-VD-004',
+                   'FUN-VD-005','FUN-VD-006','AOR-001','AOR-002','AOR-003'];
+    const IDS_L = ['DIM-AI-001','DIM-AI-002','DIM-AI-003','DIM-VI-001','DIM-VI-002','DIM-VI-003',
+                   'DIM-VI-004','FUN-VI-001','MAS-VI-001','MAS-VI-002','GEO-VI-001','GEO-VI-002'];
+    const idsReg = REG.map(f => f.id);
+    ex.push(['(DENOM) el registro trae las DOCE fichas del L mas las DIECISEIS de la M',
+      REG.length === 28 && IDS_L.every(i => idsReg.indexOf(i) > -1) && IDS_M.every(i => idsReg.indexOf(i) > -1),
+      'n=' + REG.length + ' faltan=' + IDS_M.filter(i => idsReg.indexOf(i) < 0).join(',')]);
+    ex.push(['los ids no se repiten y NINGUNO de la M reusa uno del L',
+      idsReg.length === new Set(idsReg).size && IDS_M.every(i => IDS_L.indexOf(i) < 0),
+      'repetidos=' + idsReg.filter((x, i) => idsReg.indexOf(x) !== i).join(',')]);
+    let puro = false;
+    try { puro = JSON.stringify(JSON.parse(JSON.stringify(REG))) === JSON.stringify(REG); } catch (e) { puro = false; }
+    ex.push(['las fichas son DATOS PUROS: pasan por JSON.stringify y vuelven iguales', puro, '']);
+    const CAMPOS = ['id','zona','dato','valor','duenio','guia','ubicacion','folio','hoja_pdf',
+                    'doi','fuente_original','tipo','estado','fecha_verificacion','fuente_una_linea'];
+    const fichasM = REG.filter(f => IDS_M.indexOf(f.id) > -1);
+    ex.push(['las dieciseis fichas nuevas tienen los QUINCE campos del formato del L',
+      fichasM.length === 16 && fichasM.every(f => CAMPOS.every(c => c in f)),
+      'n=' + fichasM.length]);
+    /* ⚠️ EL REPOSITORIO ES PUBLICO: ni una nota interna, duda o reserva dentro del registro. */
+    /* ⚠️ LAS PALABRAS CORTAS DAN FALSOS: «todo» matchea dentro de «metodo» —medido, puso en
+       rojo a FUN-VD-005 sobre una ficha perfecta— y «ojo» dentro de media docena de palabras.
+       La lista lleva solo sintagmas que no pueden aparecer dentro de otra palabra. */
+    const RESERVA = ['pendiente','revisar','dudoso','no se pudo','habria que','habría que',
+                     'fixme','sospech','falta confirmar','por confirmar','sin confirmar','chequear'];
+    const sucias = fichasM.filter(f => { const t = JSON.stringify(f).toLowerCase();
+      return RESERVA.some(w => t.indexOf(w) > -1); });
+    ex.push(['ninguna ficha nueva trae vocabulario de reserva', sucias.length === 0,
+      'sucias=' + sucias.map(f => f.id).join(',')]);
+    /* La linea de fuente SOLO desde «verificado». */
+    const fl = (id) => FN('evFuenteLinea') ? window.evFuenteLinea(id) : 'SIN FN';
+    const noVerif = fichasM.filter(f => f.estado !== 'verificado');
+    ex.push(['la fuente se publica SOLO desde una ficha verificado (control negativo: las seis que no lo son devuelven cadena vacia)',
+      noVerif.length === 6 && noVerif.every(f => fl(f.id) === '')
+        && fl('VCI-002') !== '' && fl('AOR-002') !== '',
+      'noVerif=' + noVerif.map(f => f.id + ':' + f.estado).join(' ') + ' | VCI-002=' + fl('VCI-002')]);
+
+    /* ── El valor de cada ficha, contra el DUENO que usa el informe ── */
+    ex.push(['DIM-AD-001: el area de la AD corta en 18 cm2 por sus dos lados',
+      LL('adAreaCat', 18) === 'normal' && LL('adAreaCat', 19) === 'dilatada',
+      '18=' + LL('adAreaCat', 18) + ' 19=' + LL('adAreaCat', 19)]);
+    const bc = (x) => { const r = LL('vdBasCat', x); return (r && r.cat) ? r.cat : String(r); };
+    ex.push(['DIM-VD-001: el diametro basal corta en 41 y en 45 por sus dos lados',
+      bc(41) === 'normal' && bc(42) === 'leve' && bc(45) === 'leve' && bc(46) === 'dilatado',
+      '41=' + bc(41) + ' 42=' + bc(42) + ' 45=' + bc(45) + ' 46=' + bc(46)]);
+    ex.push(['DIM-VD-002 y DIM-VD-003: el medio corta en 35 y el longitudinal en 86',
+      LL('vdMidCat', 35) === 'normal' && LL('vdMidCat', 36) === 'dilatado'
+        && LL('vdLongCat', 86) === 'normal' && LL('vdLongCat', 87) === 'dilatado',
+      'mid 35/36=' + LL('vdMidCat', 35) + '/' + LL('vdMidCat', 36)
+        + ' long 86/87=' + LL('vdLongCat', 86) + '/' + LL('vdLongCat', 87)]);
+    ex.push(['DIM-VD-004: la pared corta en 5, 7 y 9 mm con los operadores de la Tabla 1',
+      LL('vdParedCat', 4.9) === 'normal' && LL('vdParedCat', 5) === 'leve'
+        && LL('vdParedCat', 7) === 'leve' && LL('vdParedCat', 7.1) === 'moderada'
+        && LL('vdParedCat', 9) === 'moderada' && LL('vdParedCat', 9.1) === 'severa',
+      '4.9/5/7/7.1/9/9.1=' + [4.9, 5, 7, 7.1, 9, 9.1].map(x => LL('vdParedCat', x)).join('/')]);
+    ex.push(['FUN-VD-001 y FUN-VD-002: el TAPSE corta en 17 mm y la onda S\u2032 en 9,5 cm/s',
+      LL('vdTapseCat', 16) === 'disfuncion' && LL('vdTapseCat', 17) === 'normal'
+        && LL('vdSprimeCat', 9.4) === 'disfuncion' && LL('vdSprimeCat', 9.5) === 'normal',
+      'tapse 16/17=' + LL('vdTapseCat', 16) + '/' + LL('vdTapseCat', 17)
+        + ' sp 9.4/9.5=' + LL('vdSprimeCat', 9.4) + '/' + LL('vdSprimeCat', 9.5)]);
+    ex.push(['FUN-VD-003: la FAC corta en 25 y en 35 % por sus dos lados',
+      LL('vdFacCat', 24) === 'severa' && LL('vdFacCat', 25) === 'disfuncion'
+        && LL('vdFacCat', 34) === 'disfuncion' && LL('vdFacCat', 35) === 'normal',
+      '24/25/34/35=' + [24, 25, 34, 35].map(x => LL('vdFacCat', x)).join('/')]);
+    ex.push(['FUN-VD-004, 005 y 006: la FEVD corta en 45 %, el Tei en 0,55 y el TAP en 105 ms',
+      LL('vdFevdCat', 45) === 'disfuncion' && LL('vdFevdCat', 46) === 'normal'
+        && LL('vdTeiCat', 0.54) === 'normal' && LL('vdTeiCat', 0.55) === 'alterado'
+        && LL('vdTapCat', 104) === 'htp' && LL('vdTapCat', 105) === 'normal',
+      'fevd=' + LL('vdFevdCat', 45) + '/' + LL('vdFevdCat', 46) + ' tei=' + LL('vdTeiCat', 0.54)
+        + '/' + LL('vdTeiCat', 0.55) + ' tap=' + LL('vdTapCat', 104) + '/' + LL('vdTapCat', 105)]);
+    /* ⚠️ AO_SEGS ES UN const DE MODULO Y NO UNA PROPIEDAD DE window —la trampa que este
+       repo ya tiene escrita para ECO_AYUDA y para _labImpDatos—, asi que el segmento se saca
+       del SONDEO que evCortes publica, que es ademas el mismo que dibuja la tarjeta. */
+    const SON = (() => { try { return FN('evCortes') ? window.evCortes('M') : {}; } catch (e) { return {}; } })();
+    const bSin = (SON.aoSeg && SON.aoSeg.ao_sin) ? SON.aoSeg.ao_sin : [];
+    const ag = (x) => { for (let i = 0; i < bSin.length; i++)
+      if (x >= bSin[i].desde && x <= bSin[i].hasta) return bSin[i].k; return 'FUERA'; };
+    ex.push(['AOR-001: el seno de Valsalva corta en 40 mm y el 40 EXACTO cae del lado NORMAL',
+      bSin.length >= 3 && ag(40) === 'normal' && ag(41) === 'leve' && ag(45) === 'leve' && ag(46) === 'moderada',
+      '40/41/45/46=' + [40, 41, 45, 46].map(ag).join('/')]);
+    const pm = (d, c) => { const r = LL('pmadEstimar', d, c); return (r && r.pmad !== undefined) ? r.pmad : String(r); };
+    ex.push(['VCI-002: las cuatro combinaciones de la vena cava dan 3, 8, 8 y 15 mmHg',
+      pm(18, '>50') === 3 && pm(18, '<50') === 8 && pm(24, '>50') === 8 && pm(24, '<50') === 15
+        && LL('pmadEstimar', '', '>50') === null,
+      'nn=' + pm(18, '>50') + ' nd=' + pm(18, '<50') + ' dn=' + pm(24, '>50') + ' dd=' + pm(24, '<50')]);
+    ex.push(['VCI-001: el diametro de 21 mm EXACTOS ya cuenta como dilatado en la aplicacion',
+      pm(20.9, '>50') === 3 && pm(21, '>50') === 8,
+      '20,9=' + pm(20.9, '>50') + ' 21=' + pm(21, '>50')]);
+
+    /* ── AOR-002: las tres ecuaciones y sus errores estandar ── */
+    const NOMO = Array.isArray(G('AOR_NOMO')) ? G('AOR_NOMO') : [];
+    const nA = NOMO[0] || {}, nB = NOMO[1] || {}, nC = NOMO[2] || {};
+    ex.push(['AOR-002: los tres nomogramas traen las ecuaciones y los errores estandar de la Figura 13',
+      NOMO.length === 3 && nA.a === 1.02 && nA.b === 0.98 && nA.see === 0.18
+        && nB.a === 0.97 && nB.b === 1.12 && nB.see === 0.24
+        && nC.a === 1.92 && nC.b === 0.74 && nC.see === 0.37 && G('AOR_NOMO_Z') === 1.96,
+      'A=' + nA.a + '/' + nA.b + '/' + nA.see + ' B=' + nB.a + '/' + nB.b + '/' + nB.see
+        + ' C=' + nC.a + '/' + nC.b + '/' + nC.see + ' z=' + G('AOR_NOMO_Z')]);
+    const gp = (e) => { const r = LL('aorNomoPara', e); return (r && r.id) ? r.id : String(r); };
+    ex.push(['el grafico que toca por edad: 19 el A, 20, 39 y 40 EXACTOS el B, y 41 el C',
+      gp(19) === 'A' && gp(20) === 'B' && gp(39) === 'B' && gp(40) === 'B' && gp(41) === 'C',
+      '19/20/39/40/41=' + [19, 20, 39, 40, 41].map(gp).join('/')]);
+    /* ⚠️ CENTINELA SOBRE EL TIPO Y NO SOBRE LA VERDAD: contra HEAD LL devuelve la CADENA
+       'SIN FN', que es truthy, y r.lo.toFixed mata la corrida entera —medido—. */
+    const bd = (e, b2) => { const r = LL('aorNomoBanda', LL('aorNomoPara', e), b2);
+      return (r && typeof r.lo === 'number') ? (r.lo.toFixed(3) + '|' + r.hi.toFixed(3)) : String(r); };
+    ex.push(['la banda es la ecuacion mas y menos 1,96 por el error estandar (control: fuera del rango de superficie corporal devuelve null)',
+      bd(50, 2.0) === (1.92 + 0.74 * 2.0 - 1.96 * 0.37).toFixed(3) + '|' + (1.92 + 0.74 * 2.0 + 1.96 * 0.37).toFixed(3)
+        && bd(50, 1.29) === 'null' && bd(50, 2.41) === 'null' && bd(50, 1.30) !== 'null',
+      'bsa2.0=' + bd(50, 2.0) + ' 1.29=' + bd(50, 1.29) + ' 2.41=' + bd(50, 2.41)]);
+
+    /* ══ (b) LAS TARJETAS ═══════════════════════════════════════════════ */
+    const abrir = (k) => { const t = pestanaDe(k); if (t) { try { showTab(String(t).replace(/^tab-/, '')) } catch (e) {} }
+      const b = BTN(k); if (!b) return false; b.click();
+      const c = CARD(); return !!(c && getComputedStyle(c).display !== 'none'); };
+    const cerrado = () => { const c = CARD(); return !c || getComputedStyle(c).display === 'none'; };
+    const leer = () => { const c = CARD(); if (!c) return {};
+      const lista = (sel, at) => Array.prototype.slice.call(c.querySelectorAll(sel))
+        .map(e => (at ? (e.getAttribute(at) + '=') : '') + String(e.textContent || '').trim());
+      return { tit: c.querySelector('h4') ? String(c.querySelector('h4').textContent || '').trim() : '',
+               texto: String(c.textContent || '').replace(/[ ]+/g, ' ').trim(),
+               puntos: Array.prototype.slice.call(c.querySelectorAll('[data-ev-punto]')).map(e => e.getAttribute('data-ev-punto')),
+               zonas: Array.prototype.slice.call(c.querySelectorAll('[data-ev-zona]')).map(e => e.getAttribute('data-ev-zona')),
+               cortes: lista('[data-ev-corte]'), cat: lista('[data-ev-cat]', 'data-ev-cat'),
+               avisos: lista('[data-ev-aviso]'), fuentes: lista('[data-ev-fuente]'),
+               nSvg: c.querySelectorAll('svg').length,
+               nomo: c.querySelectorAll('[data-ev-nomo]').length,
+               grafico: (c.querySelector('[data-ev-nomo]') || { getAttribute: () => null }).getAttribute('data-ev-nomo'),
+               filaAct: c.querySelectorAll('[data-ev-fila-act]').length }; };
+
+    /* Escena de trabajo: VD y aorta alterados, auricula derecha dilatada. */
+    const montar = (c) => { try { limpiarCampos(true) } catch (e) {} abrirSecs();
+      ['modalAvisoEco', 'login-overlay'].forEach(id => { const m = EL(id); if (m) m.style.display = 'none'; });
+      S('peso', '80'); S('talla', '180');
+      const sx = EL('sexo'); if (sx) { sx.value = 'M'; sx.dispatchEvent(new Event('change', { bubbles: true })); }
+      const vc = EL('vci_col'); if (vc && c.__vci) { vc.value = c.__vci; vc.dispatchEvent(new Event('change', { bubbles: true })); }
+      Object.keys(c).forEach(k => { if (k.indexOf('__') !== 0) S(k, c[k]); });
+      try { calcBSA(); calcAorta(); calcVD(); calcAD(); calcPmAD(); } catch (e) {} };
+
+    const MAL = { __vci: '<50', vci_diam: '24', ad_area: '26', edad: '66',
+                  vd_bas: '48', vd_mid: '40', vd_long: '95', vd_pared: '8',
+                  tapse: '14', s_prime: '8', vd_area_d: '20', vd_area_s: '16',
+                  fevd: '38', vd_tei: '0.70', tvia: '80', ao_sin: '44' };
+    const BIEN = { __vci: '>50', vci_diam: '18', ad_area: '15', edad: '50',
+                   vd_bas: '35', vd_mid: '28', vd_long: '70', vd_pared: '3',
+                   tapse: '22', s_prime: '12', vd_area_d: '20', vd_area_s: '11',
+                   fevd: '55', vd_tei: '0.40', tvia: '130', ao_sin: '34' };
+
+    montar(MAL);
+    const ab = {}; const lec = {};
+    ['ad-card', 'vd-tam-card', 'vd-fun-card', 'ao-card'].forEach(k => {
+      ab[k] = abrir(k); lec[k] = ab[k] ? leer() : {};
+      const b = BTN(k); if (b) b.click();
+    });
+    ex.push(['las CUATRO tarjetas abren y el segundo toque en el MISMO boton las cierra',
+      Object.keys(ab).every(k => ab[k] === true) && cerrado(),
+      JSON.stringify(ab) + ' cerrada=' + cerrado()]);
+    ex.push(['cada tarjeta trae su titulo propio',
+      lec['ad-card'].tit === 'Aur\u00edcula derecha y vena cava inferior'
+        && lec['vd-tam-card'].tit === 'Ventr\u00edculo derecho \u2014 tama\u00f1o'
+        && lec['vd-fun-card'].tit === 'Ventr\u00edculo derecho \u2014 funci\u00f3n'
+        && lec['ao-card'].tit === 'Aorta tor\u00e1cica \u2014 senos de Valsalva',
+      [lec['ad-card'].tit, lec['vd-tam-card'].tit, lec['vd-fun-card'].tit, lec['ao-card'].tit].join(' | ')]);
+    /* Escape y el clic afuera. */
+    abrir('vd-fun-card');
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    const trasEsc = cerrado();
+    abrir('vd-fun-card');
+    document.body.click();
+    const trasFuera = cerrado();
+    ex.push(['Escape cierra y el clic afuera tambien', trasEsc && trasFuera,
+      'esc=' + trasEsc + ' fuera=' + trasFuera]);
+    abrir('ad-card');
+    const bAd = BTN('ad-card'); if (bAd) bAd.click();
+    ex.push(['al cerrar, el foco VUELVE al globo que abrio',
+      document.activeElement === bAd,
+      'activo=' + (document.activeElement ? (document.activeElement.getAttribute('data-vinfo') || document.activeElement.tagName) : 'null')]);
+
+    /* El punto del paciente, la categoria y los cortes con su unidad. */
+    const NP = (k) => ((lec[k] || {}).puntos || []).length;
+    ex.push(['el punto del paciente se dibuja en las cuatro tarjetas con datos cargados',
+      NP('ad-card') === 1 && NP('vd-tam-card') === 4 && NP('vd-fun-card') === 6 && NP('ao-card') === 1,
+      'ad=' + NP('ad-card') + ' tam=' + NP('vd-tam-card') + ' fun=' + NP('vd-fun-card') + ' ao=' + NP('ao-card')]);
+    const TODOS = [].concat(lec['ad-card'].cortes || [], lec['vd-tam-card'].cortes || [],
+                            lec['vd-fun-card'].cortes || []);
+    ex.push(['CADA corte lleva su numero y su unidad',
+      TODOS.length === 15
+        && TODOS.indexOf('18 cm\u00b2') > -1 && TODOS.indexOf('41 mm') > -1 && TODOS.indexOf('45 mm') > -1
+        && TODOS.indexOf('35 mm') > -1 && TODOS.indexOf('86 mm') > -1 && TODOS.indexOf('5,0 mm') > -1
+        && TODOS.indexOf('7,0 mm') > -1 && TODOS.indexOf('9,0 mm') > -1 && TODOS.indexOf('17 mm') > -1
+        && TODOS.indexOf('9,5 cm/s') > -1 && TODOS.indexOf('25 %') > -1 && TODOS.indexOf('35 %') > -1,
+      TODOS.join(' \u00b7 ')]);
+    const CF = lec['vd-fun-card'].cortes || [];
+    ex.push(['los cortes de la FEVD, el Tei y el TAP son los del dueno y no un paso de sondeo corrido',
+      CF.indexOf('45 %') > -1 && CF.indexOf('0,55') > -1 && CF.indexOf('105 ms') > -1
+        && CF.indexOf('46 %') < 0 && CF.indexOf('0,54') < 0,
+      CF.join(' \u00b7 ')]);
+    /* ⚠️ LAS BANDAS NO LLEVAN ESCRITA NINGUNA PALABRA DE GRAVEDAD: solo color. */
+    const GRAV = ['leve', 'moderada', 'severa', 'disfuncion', 'disfunci\u00f3n', 'dilatad', 'alterado'];
+    const zonasTxt = [].concat(lec['vd-tam-card'].zonas || [], lec['vd-fun-card'].zonas || []);
+    const svgTxt = (() => { abrir('vd-fun-card'); const c = CARD();
+      const t = Array.prototype.slice.call(c.querySelectorAll('svg text')).map(e => String(e.textContent || '').trim());
+      const b = BTN('vd-fun-card'); if (b) b.click(); return t; })();
+    ex.push(['ninguna banda del dibujo lleva escrita una palabra de gravedad (el color no es lo unico que informa: la categoria va en su propia linea)',
+      zonasTxt.length > 0 && svgTxt.length > 0
+        && !svgTxt.some(t => GRAV.some(w => t.toLowerCase().indexOf(w) > -1)),
+      'textos del svg=' + svgTxt.join(' | ')]);
+    /* La categoria en palabras es LA MISMA que publica la capsula. */
+    montar(MAL);
+    abrir('vd-fun-card');
+    const lf = leer(); { const b = BTN('vd-fun-card'); if (b) b.click(); }
+    const capsulas = ['tapse-interp', 'sprime-interp', 'fac-interp', 'fevd-interp', 'vd-tei-interp', 'tap-interp']
+      .map(id => TXT(id));
+    const catsFun = (lf.cat || []).map(x => x.replace(/^[a-z-]+=/, ''));
+    ex.push(['la categoria en palabras de las seis barras de funcion es LA MISMA que publica su capsula',
+      capsulas.every(c2 => catsFun.indexOf(c2) > -1),
+      'capsulas=' + capsulas.join(' | ') + '  ||  tarjeta=' + catsFun.join(' | ')]);
+    abrir('ad-card');
+    const la = leer(); { const b = BTN('ad-card'); if (b) b.click(); }
+    ex.push(['la tabla de la vena cava resalta la fila del paciente y su presion es la de la capsula',
+      la.filaAct === 1 && (la.cat || []).some(x => x.indexOf(TXT('pmad-interp')) > -1),
+      'filaAct=' + la.filaAct + ' capsula=' + TXT('pmad-interp') + ' cat=' + (la.cat || []).join(' | ')]);
+    /* EN VIVO. */
+    abrir('vd-tam-card');
+    const antesVivo = (leer().cat || []).join(' | ');
+    S('vd_pared', '3');
+    await esperar(60);
+    const despuesVivo = (leer().cat || []).join(' | ');
+    { const b = BTN('vd-tam-card'); if (b) b.click(); }
+    ex.push(['la tarjeta abierta se repinta EN VIVO al cambiar un dato de la pantalla',
+      antesVivo !== despuesVivo && despuesVivo.indexOf('normal') > -1,
+      'antes=' + antesVivo + '  ||  despues=' + despuesVivo]);
+    /* SIN DATOS. */
+    montar({});
+    const sd = {};
+    ['ad-card', 'vd-tam-card', 'vd-fun-card'].forEach(k => { abrir(k); sd[k] = leer(); const b = BTN(k); if (b) b.click(); });
+    ex.push(['sin datos: ninguna barra lleva punto y cada una dice que cargar',
+      Object.keys(sd).every(k => (sd[k].puntos || []).length === 0 && (sd[k].avisos || []).length > 0),
+      Object.keys(sd).map(k => k + ' puntos=' + (sd[k].puntos || []).length + ' avisos=' + (sd[k].avisos || []).length).join(' | ')]);
+
+    /* ══ (c) LA AORTA ══════════════════════════════════════════════════════ */
+    const esc = {};
+    [['19', 'A'], ['20', 'B'], ['39', 'B'], ['40', 'B'], ['41', 'C']].forEach(p => {
+      montar({ edad: p[0], ao_sin: '34' });
+      abrir('ao-card'); esc[p[0]] = leer(); const b = BTN('ao-card'); if (b) b.click();
+    });
+    ex.push(['la tarjeta dibuja el grafico que corresponde a la edad, y a los 40 EXACTOS el B',
+      esc['19'].grafico === 'A' && esc['20'].grafico === 'B' && esc['39'].grafico === 'B'
+        && esc['40'].grafico === 'B' && esc['41'].grafico === 'C',
+      Object.keys(esc).map(k => k + '=' + esc[k].grafico).join(' ')]);
+    const lineaDe = (l, k) => (l.cat || []).concat(l.avisos || [])
+      .filter(x => x.indexOf(k) > -1).join(' ');
+    montar({ edad: '50', ao_sin: '34' }); abrir('ao-card'); const aoD = leer(); { const b = BTN('ao-card'); if (b) b.click(); }
+    montar({ edad: '50', ao_sin: '44' }); abrir('ao-card'); const aoA = leer(); { const b = BTN('ao-card'); if (b) b.click(); }
+    montar({ edad: '50', ao_sin: '24' }); abrir('ao-card'); const aoB = leer(); { const b = BTN('ao-card'); if (b) b.click(); }
+    ex.push(['el punto cae DENTRO, POR ENCIMA y POR DEBAJO del rango esperado segun el diametro',
+      String(aoD.texto||"").indexOf('dentro del rango esperado') > -1
+        && String(aoA.texto||"").indexOf('por encima del rango esperado') > -1
+        && String(aoB.texto||"").indexOf('por debajo del rango esperado') > -1,
+      'd34=' + (String(aoD.texto||"").indexOf('dentro') > -1) + ' d44=' + (String(aoA.texto||"").indexOf('por encima') > -1)
+        + ' d24=' + (String(aoB.texto||"").indexOf('por debajo') > -1)]);
+    ex.push(['la linea del corte de EcoSmart dice 40 mm y la categoria es la que publica la capsula; con 40 EXACTOS sale normal',
+      String(aoD.texto||"").indexOf('Corte de EcoSmart: 40 mm') > -1
+        && String(aoA.texto||"").indexOf('Dilat. leve') > -1 && String(aoD.texto||"").indexOf('Normal') > -1,
+      'd34=' + String(aoD.texto||"").slice(0, 160)]);
+    ex.push(['las tres lineas de texto de la aorta estan, y la tercera es la aclaracion',
+      String(aoA.texto||"").indexOf('Corte de EcoSmart') > -1
+        && String(aoA.texto||"").indexOf('Seg\u00fan el gr\u00e1fico para su edad y superficie corporal') > -1
+        && String(aoA.texto||"").indexOf('Es una orientaci\u00f3n: el criterio final es individual') > -1,
+      String(aoA.texto||"").slice(0, 300)]);
+    /* Control negativo: el corte de 40 mm NO se le atribuye a ninguna guia. */
+    ex.push(['CONTROL NEGATIVO: el corte de 40 mm no se le atribuye a ninguna guia y la unica fuente que la tarjeta publica es la del nomograma',
+      (aoD.fuentes || []).length === 1
+        && (aoD.fuentes || [])[0].indexOf('Figura 13') > -1
+        && !/ESC|AHA|gu[ií]a/i.test(String(aoD.texto||'').split('Fuente:')[0]),
+      'fuentes=' + (aoD.fuentes || []).join(' | ')]);
+    /* Sin edad, sin superficie corporal y fuera del rango de superficie corporal. */
+    montar({ ao_sin: '40' }); abrir('ao-card'); const sinE = leer(); { const b = BTN('ao-card'); if (b) b.click(); }
+    ex.push(['sin edad no hay grafico y la linea dice que cargarla; el corte de EcoSmart se evalua igual',
+      sinE.nomo === 0 && String(sinE.texto||"").indexOf('Cargar la edad') > -1
+        && String(sinE.texto||"").indexOf('Corte de EcoSmart: 40 mm') > -1,
+      String(sinE.texto||"").slice(0, 200)]);
+
+    /* ══ (d) REFERENCIAS ═══════════════════════════════════════════════ */
+    try { showTab('refs') } catch (e) {}
+    const refs = {};
+    ['ad', 'vd2', 'ao2'].forEach(id => {
+      const h = document.querySelector('[onclick*="toggleRef(' + String.fromCharCode(39) + id + String.fromCharCode(39) + '"]');
+      if (h) { const c = EL('ref-' + id); if (c && getComputedStyle(c).display === 'none') h.click(); }
+      const c = EL('ref-' + id);
+      refs[id] = c ? { filas: c.querySelectorAll('.ev-tabla tr').length,
+                       bib: c.querySelectorAll('[data-ev-bib]').length,
+                       svg: c.querySelectorAll('svg').length,
+                       puntos: c.querySelectorAll('[data-ev-punto]').length,
+                       sexos: /Var\u00f3n/.test(c.textContent || '') && /Mujer/.test(c.textContent || ''),
+                       nomos: c.querySelectorAll('[data-ev-nomo]').length,
+                       txt: String(c.textContent || '').replace(/[ ]+/g, ' ') } : { err: 'NO EXISTE' };
+    });
+    ex.push(['las TRES entradas nuevas de Referencias existen, se pintan y traen las dos columnas de sexo',
+      ['ad', 'vd2', 'ao2'].every(id => (refs[id].filas || 0) > 1 && refs[id].sexos === true),
+      Object.keys(refs).map(k => k + ' filas=' + refs[k].filas + ' sexos=' + refs[k].sexos).join(' | ')]);
+    ex.push(['la entrada de la aorta trae LAS TRES graficas del nomograma y ninguna con el punto del paciente',
+      refs.ao2.nomos === 3 && refs.ao2.puntos === 0
+        && refs.ad.puntos === 0 && refs.vd2.puntos === 0,
+      'nomos=' + refs.ao2.nomos + ' puntos ao2/ad/vd2=' + refs.ao2.puntos + '/' + refs.ad.puntos + '/' + refs.vd2.puntos]);
+    ex.push(['la bibliografia de cada seccion numera desde [1] y sale SOLO de fichas verificado',
+      refs.ad.bib === 1 && refs.vd2.bib === 4 && refs.ao2.bib === 2
+        && String(refs.ao2.txt||'').indexOf('Figura 13') > -1 && String(refs.ao2.txt||'').indexOf('Tabla 14') > -1,
+      'ad=' + refs.ad.bib + ' vd2=' + refs.vd2.bib + ' ao2=' + refs.ao2.bib]);
+    ex.push(['CONTROL NEGATIVO: una fila cuya ficha NO esta verificado sale SIN corchete',
+      String(refs.vd2.txt||'').indexOf('Di\u00e1metro longitudinal \u2014 dilatado [') < 0
+        && String(refs.ao2.txt||'').indexOf('Ra\u00edz a\u00f3rtica \u2014 dilatada (criterio de EcoSmart) [') < 0
+        && String(refs.vd2.txt||'').indexOf('Pared libre \u2014 normal [') > -1,
+      'long sin corchete=' + (String(refs.vd2.txt||'').indexOf('longitudinal \u2014 dilatado [') < 0)]);
+    ex.push(['CONTROL NEGATIVO: las dos entradas del L siguen existiendo y no se tocaron',
+      !!EL('ref-ai') && !!EL('ref-vi2') && !!EL('ref-vd') && !!EL('ref-ao'),
+      'ai=' + !!EL('ref-ai') + ' vi2=' + !!EL('ref-vi2') + ' vd=' + !!EL('ref-vd') + ' ao=' + !!EL('ref-ao')]);
+
+    /* ══ (f) NADA DE ESTO SE GUARDA ═══════════════════════════════════════ */
+    montar(MAL);
+    const campos = {};
+    document.querySelectorAll('input[id],select[id],textarea[id]').forEach(e => {
+      if (e.type === 'checkbox' || e.type === 'radio') campos[e.id + '__chk'] = e.checked ? '1' : '0';
+      else campos[e.id] = e.value; });
+    const clavesEv = Object.keys(campos).filter(k => /^(ev|aor|nomo)-/.test(k));
+    let lsEv = [];
+    try { for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i); if (/^(ev|aor|nomo)[-_]/.test(k)) lsEv.push(k); } } catch (e) {}
+    ex.push(['ni las fichas ni las tarjetas guardan nada: cero campos del estudio y cero claves del navegador',
+      clavesEv.length === 0 && lsEv.length === 0,
+      'campos=' + clavesEv.join(',') + ' local=' + lsEv.join(',')]);
+
+    /* ══ (g) CONTROLES ═══════════════════════════════════════════════════ */
+    let nCols = -1;
+    try { if (typeof _labExcelRow === 'function') {
+      nCols = Object.keys(_labExcelRow({ id: 'p1', fecha: '2026-10-16', nombre: 'X',
+        campos: campos, informe_texto: '', en_suma: '' })).length; } } catch (e) { nCols = -2; }
+    ex.push(['el Excel sigue en 440 columnas', nCols === 440, 'n=' + nCols]);
+    try { setEstiloInforme('estandar'); generarInforme(); } catch (e) {}
+    const inf = V('informe_texto') || '', suma = V('en_suma') || '';
+    ex.push(['el informe y el EN SUMA no nombran el nomograma, el registro ni el rango esperado',
+      !/nomograma|rango esperado|Roman 1989|registro de evidencia/i.test(inf)
+        && !/nomograma|rango esperado|Roman 1989/i.test(suma),
+      'inf=' + inf.slice(0, 120)]);
+    ex.push(['CONTROL NEGATIVO: con el VD alterado el informe sigue publicando su frase de siempre',
+      /[Vv]entr[ií]culo derecho/.test(inf) && /disfunci/i.test(inf),
+      (inf.split(String.fromCharCode(10)).filter(l => /[Vv]entr[ií]culo derecho/.test(l))[0] || 'SIN LINEA')]);
+    ex.push(['los cuatro globos son <button>, sin title y sin llevar al manual',
+      ['ad-card', 'vd-tam-card', 'vd-fun-card', 'ao-card'].every(k => { const b = BTN(k);
+        return b && b.tagName === 'BUTTON' && !b.getAttribute('title')
+          && String(b.getAttribute('onclick') || '').indexOf('abrirAyudaEco') < 0; }),
+      ['ad-card', 'vd-tam-card', 'vd-fun-card', 'ao-card'].map(k => { const b = BTN(k);
+        return k + '=' + (b ? b.tagName : 'NO') }).join(' ')]);
+    /* ⚠️ LIMITE DECLARADO: el ancho de la ventana y el segundo motor NO se pueden medir desde
+       el cuerpo de un caso —corre DENTRO de la pagina—. Los miden scripts/_probe_m.mjs y
+       scripts/_probe_mwk.mjs. Es el reparto de TC-460. */
+    ex.push(['LIMITE DECLARADO: la maqueta por ancho y el segundo motor los miden las sondas, no este caso',
+      true, 'ver scripts/_probe_m.mjs (grupo maqueta) y scripts/_probe_mwk.mjs (192 celdas por motor)']);
 
     return { extra: ex };
   })();

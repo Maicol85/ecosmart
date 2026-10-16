@@ -251,3 +251,23 @@ cuya ficha no lo está sale **sin corchete**.
 8. **Hay que cerrar la tarjeta antes del bucle de veinte:** con la tarjeta abierta, cuarenta
    clics la dejan **abierta** y el grupo informa «no cierra» sobre un mecanismo que alterna
    perfecto.
+
+---
+
+# La tanda «M» (2026-10-16) — dieciséis fichas más
+
+El registro pasa de **doce a veintiocho fichas**: entran las de AD/VCI, el ventrículo derecho y
+la aorta, con el mismo formato y **ninguna reusa un id del L**: `DIM-AD-001`, `VCI-001`,
+`VCI-002`, `DIM-VD-001` a `004`, `FUN-VD-001` a `006` y `AOR-001` a `003`. Diez quedan
+«verificado», cuatro «parcial» y dos «por verificar».
+
+Con ellas entra una segunda guía al registro —`EV_GUIA_ASE2025VD`, con su DOI leído en el pie de
+la hoja 1 del propio PDF— y **doce dueños puros nuevos** que `evCortes` sondea.
+
+⚠️ **`_evBarra` GANÓ DOS CAMPOS OPCIONALES, los dos aditivos**: `colores`, para que una barra
+pida otro color para una categoría sin tocar `EV_COLOR` —«disfunción» es la banda del medio en la
+FAC y la peor en el TAPSE—, y `corteEn` como **LISTA**, una entrada por corte, porque el operador
+no tiene por qué ser el mismo en los tres cortes de una barra. Las tres tarjetas del L no se
+mueven un píxel.
+
+**El detalle está en `docs/mapa/evidencia-derecho-aorta.md`.**

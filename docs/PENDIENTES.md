@@ -4193,3 +4193,99 @@ para abrir la pestaña en una sección concreta: `toggleRef` no tiene una entrad
 parámetro, y `showTab('refs')` deja todas las secciones como estaban. Construirlo es agregar un
 mecanismo de navegación a una pestaña que un trabajo posterior va a reestructurar en subpestañas.
 **No se construyó**, y la tarjeta nombra «ver Referencias» en palabras donde hace falta.
+
+---
+
+# Tanda «M» (2026-10-16) — las tarjetas ⓘ de AD/VCI, del VD y de la AORTA
+
+Todo lo de abajo está **medido y NO corregido**: son cortes, operadores o mecanismos que la orden
+de esta tanda no autoriza a tocar.
+
+### M-1 · El área de la aurícula derecha: la app corta en 18 cm² y esta guía corta en 19
+La ASE 2025 (Mukherjee), **Tabla 1, folio 145**, fila `RA area, cm2`: normal `< 19`; leve
+`≥19 a ≤22`; moderada `>22 a ≤24`; severa `>24`. Su Key Point del folio 143 lo repite: «Normal
+thresholds are RA area < 19 cm²». La app usa `≤ 18` normal / `> 18` dilatada, sin graduar.
+**El 18 SÍ está en esa guía**, pero en otro contexto: el folio **164** lo nombra como signo de
+presión auricular derecha elevada («RA area > 18 cm2»), junto con la VCI > 2,1 cm.
+Hay dos cosas para decidir: mover el corte a 19 y, si se quiere, **graduar** el área en cuatro
+bandas como la tabla. Las dos cambian el informe firmado.
+
+### M-2 · El diámetro de la vena cava: `< 21` contra «normal ≤ 2,1 cm»
+Folio 160: «A normal IVC diameter is ≤2.1 cm», y el Key Point habla de «an IVC diameter cutoff of
+2.1 cm». La app aplica `diam < 21` para la rama «no dilatada», así que **a 21,0 mm exactos ya la
+trata como dilatada** y la PmAD pasa de 3 a 8 mmHg. Un milímetro entero de diferencia en el valor
+que después entra en la PSAP.
+⚠️ Y el `<select>` del colapso ofrece **«>50 %» y «<50 %»**, mientras la guía escribe
+**«collapses ≥50%»**: el 50 exacto no es expresable con ese control.
+
+### M-3 · El diámetro longitudinal del VD: 86 mm no está en ninguna de las dos guías
+Lang 2015, **Tabla 8, folio 20**: «RV longitudinal diameter (mm): 71 ± 6, **normal range 59-83**».
+ASE 2025, **Tabla 1, folio 145**: «RV diameter longitudinal, cm: **< 8.2**». La app usa **86**.
+Censadas las dos guías completas, no aparece. La ficha `DIM-VD-003` queda «por verificar» y su
+barra sale sin línea de fuente.
+
+### M-4 · La FAC severa en 25 % tampoco está
+Lang 2015, §8.3, folio 19, verifica el **35 %**. El segundo corte —`< 25 %` para «disfunción
+severa», que el EN SUMA usa— no está en ninguna de las dos: la ASE 2025 gradúa `≤35 a >29` leve,
+`≤29 a >22` moderada y `≤22` severa. La ficha `FUN-VD-003` queda «parcial».
+
+### M-5 · Los bordes de TAPSE, onda S′ y FAC: la app es la ASE 2015 y la ASE 2025 corta al revés
+Los tres operadores de la app (`≥17`, `≥9,5`, `≥35` = normal) son **exactamente** los de Lang
+2015, que define el lado anormal con `<`. La **Tabla 1 de la ASE 2025** define el normal con `>`
+(`TAPSE >1.7`, `S′ >9.5`, `FAC >35`), así que **el valor exacto del corte cambia de lado**: un
+TAPSE de 17,0 mm es normal para la app y «leve» para esa tabla. Lo mismo con 9,5 y con 35.
+Y la banda «leve» del **diámetro basal** de la app llega a 45 mm donde la ASE 2025 la corta en
+4,4 cm. No se alineó: un prompt posterior lleva el VD a la ASE 2025 con grados, y **las tarjetas
+leen del dueño, así que se van a actualizar solas**.
+
+### M-6 · La entrada vieja `ref-vd` de Referencias dice «S′ ≥10 cm/s» y la app aplica 9,5
+Es una tabla estática de cinco filas con el rótulo «VD — Parámetros Normales y Disfunción
+(ASE 2015)». Su fila de la onda S′ publica **≥10 / <10** mientras `calcVD` aplica **≥9,5**.
+Es **preexistente** y no se tocó: cambiarla es tocar una tabla de referencia que esta orden no
+nombra. La entrada nueva `ref-vd2` publica el 9,5 leído del dueño, así que hoy las dos conviven.
+
+### M-7 · El operador del corte de 40 mm de la raíz aórtica
+`aoSegGrado` marca dilatación con **`x > sg.ref`**, así que **40,0 mm exactos salen «Normal
+(≤40mm)»**. Maicol decidió que 40 mm exactos cuenten como dilatado. **No se cambió** —es un corte
+que decide el informe firmado y el cambio va en otro prompt—; la tarjeta **lee el operador del
+mismo dueño**, así que el día que se mueva, la línea del gráfico y el texto se mueven con él.
+
+### M-8 · La tarjeta de FUNCIÓN del VD se desplaza por dentro a 1200 × 700
+Medido: mide **594 px** y el hueco útil debajo del globo a 1200 × 700 es de **440**. Ya está
+partida en dos (tamaño | función), que es el remedio que la orden prescribe; con seis barras y su
+línea de categoría cada una, la mitad de función no entra en 440 px sin apretarla. A 1440 × 800
+faltan **4 px** y desde 1920 × 1080 hacia abajo —768, 390 y 360 px incluidos— no se desplaza.
+Las salidas: (a) dejarlo así; (b) partir función en dos globos más; (c) sacar el tiempo de
+aceleración pulmonar, que es una medida de flujo pulmonar y no de función del VD.
+
+### M-9 · Lo que la app NO clasifica y por eso no lleva barra
+* **Relación VD/VI**: tiene corte (`> 1,0`, `VD_VI_HTP_MIN`) pero lo que publica es un **signo de
+  la categoría A de la probabilidad de hipertensión pulmonar**, no un tamaño del ventrículo. Se
+  dejó fuera por indicación de la orden.
+* **Diámetro de la arteria pulmonar**: la app no lo clasifica —sólo tiene la banda de
+  plausibilidad `IP_AP_BANDA [5,80]`—, y la **Tabla 1 de la ASE 2025, folio 145**, sí lo gradúa:
+  `< 2,5 cm` normal · `≥2,5 a ≤3,0` leve · `>3,0 a ≤3,5` moderada · `>3,5` severa.
+* **Diámetro y VTI del tracto de salida del VD**: Lang 2015, Tabla 8, folio 20, da rangos
+  normales (`RVOT PLAX 20-30`, `proximal 21-35`, `distal 17-27` mm) y la ASE 2025 también; la app
+  no los clasifica.
+* **Volumen sistólico pulmonar (Qp)**: no tiene corte y la fila lo dice.
+* **Áreas telediastólica y telesistólica del VD**: alimentan la FAC y no se clasifican por sí
+  mismas, aunque las dos guías publican sus rangos.
+
+### M-10 · Los cuatro globos nuevos suben el chequeo de celular +4 ALTA, y es el artefacto de siempre
+`check_mobile.js` mide el rect del NODO **sin emular puntero grueso**, y `.vinfo-btn` mide
+**16 × 12 px con el mouse y 44 × 44 con el dedo**, por su `@media (pointer: coarse)`. Medido con
+emulación táctil: los cuatro pasan a 44 × 44 exactos, igual que los tres del L. **No se
+agrandaron**: hacerlo desplazaría los campos de la fila. Es el mismo precedente que el botón del
+«porqué» de la vista 2D y los dos marcadores de identificación del J.
+
+### M-11 · No hay botón «Ver referencia» en las tarjetas nuevas
+Por el mismo motivo que en el L (**L-9**): no hay mecanismo para abrir la pestaña Referencias en
+una sección concreta. La orden de esta tanda lo prohíbe expresamente. Queda para el trabajo que
+reestructure esa pestaña en subpestañas.
+
+### M-12 · El informe firmado no publica nada del nomograma, y eso es deliberado
+La lectura del gráfico por edad y superficie corporal vive **sólo en pantalla**. El informe, el
+EN SUMA, el PDF y el PPT siguen diciendo lo de siempre, que sale del corte único de 40 mm. Es la
+regla de la casa —«el panel explica, el papel afirma»— y además agregar una frase al informe
+firmado no está autorizado en esta tanda.

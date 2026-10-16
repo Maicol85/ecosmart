@@ -2963,3 +2963,92 @@ Ninguna barra ni ninguna entrada de Referencias publica una fuente que no esté 
 arriba. Los límites de dibujo de cada barra (`lo` y `hi`) **no llevan fuente a propósito**: son
 el rango de lo medible que el gráfico encuadra, no un criterio — la misma regla que esta casa
 aplica a las bandas de plausibilidad.
+
+---
+
+## La tanda «M» (2026-10-16) — AD/VCI, VENTRÍCULO DERECHO y AORTA
+
+Dieciséis fichas nuevas (`DIM-AD-001`, `VCI-001`, `VCI-002`, `DIM-VD-001` a `004`, `FUN-VD-001`
+a `006` y `AOR-001` a `003`). **Diez verificado · cuatro parcial · dos por verificar.**
+
+### Las dos guías, con su regla de folio comprobada en el pie impreso
+
+| | documento | archivo | regla de folio |
+|---|---|---|---|
+| **ASE 2025** | Mukherjee M y col., *Guidelines for the Echocardiographic Assessment of the Right Heart in Adults…*, ASE, J Am Soc Echocardiogr 2025;38(3):141-186 · DOI **10.1016/j.echo.2025.01.006** (leído en el pie de la hoja 1 del propio PDF) | `03_VD_y_corazon_derecho/Echocardiographic-assessment-of-Right-Heart.-JASE-2025.pdf` (46 hojas) | **folio = hoja + 140**, comprobado en tres pies: hoja 5 → «145», hoja 20 → «160», hoja 24 → «164» |
+| **ASE/EACVI 2015** | Lang RM y col., *Recommendations for Cardiac Chamber Quantification by Echocardiography in Adults*, J Am Soc Echocardiogr 2015;28:1-39 · DOI 10.1016/j.echo.2014.10.003 | `01_VI_y_camaras/Chamber-quantification.-Guidelines-and-standards.-ASE-2015.pdf` (53 hojas) | en el **cuerpo**, folio = hoja (hoja 32 → pie «32 / Lang et al»); en el **apéndice** no |
+
+⚠️ **LA ASE 2025 CODIFICA `≥` COMO `$` Y `≤` COMO `#` EN SU TEXTO EXTRAÍDO.** La Tabla 1 sale
+como «RVWT, cm · <0.5 · $0.5 to #0.7 · >0.7 to #0.9 · >0.9». Hay que traducirlos para leerla, y
+quien no lo sepa lee los operadores al revés.
+
+### Los once datos verificados, uno por uno
+
+| ficha | dato | lo que dice el original | tabla o figura · folio · hoja |
+|---|---|---|---|
+| `VCI-002` | PmAD estimada | «If the IVC diameter is normal and collapses ≥50% … the RAP is normal (3 mm Hg)… An enlarged IVC diameter that does not collapse <50% with a sniff suggests an elevated RAP (15 mm Hg)… In indeterminate cases, an intermediate value of 8 mm Hg» + Key Point «RAP values of 3, 8, or 15 mm Hg are assigned using an IVC diameter cutoff of 2.1 cm» | Presión auricular derecha · **160** · 20 |
+| `DIM-VD-002` | Diámetro medio | «a diameter >41 mm at the base and **>35 mm at the midlevel** … indicates RV dilatation» y la Tabla 8, fila «RV mid diameter (mm): 19-35» | Tabla 8 y §7.1 · **20** y 17 · 20 y 17 |
+| `DIM-VD-004` | Pared libre | Tabla 1, fila `RVWT, cm`: `<0.5 · ≥0.5 a ≤0.7 · >0.7 a ≤0.9 · >0.9` | Tabla 1 · **145** · 5 |
+| `FUN-VD-001` | TAPSE | «generally, **TAPSE < 17 mm** is highly suggestive of RV systolic dysfunction» | §8.2 · **19** · 19 |
+| `FUN-VD-002` | Onda S′ | «An S′ velocity **< 9.5 cm/sec** measured on the free-wall side indicates RV systolic dysfunction» | §8.4 · **20** · 20 |
+| `FUN-VD-004` | FEVD por 3D | Tabla 1, fila `3D RVEF, %`: normal `>45` | Tabla 1 · **145** · 5 |
+| `FUN-VD-005` | Índice de Tei por DTI | Tabla 1, fila `Tissue Doppler RV MPI`: normal `<0.55` (la del Doppler pulsado es `<0.40`) | Tabla 1 · **145** · 5 |
+| `FUN-VD-006` | Tiempo de aceleración pulmonar | Tabla 1, fila `RVOT AccT, ms`: normal `>105` | Tabla 1 · **145** · 5 |
+| `AOR-002` | Nomogramas de los senos de Valsalva | las tres ecuaciones con su SEE y su r, **leídas de la imagen** (ver abajo) | Figura 13 · **32** · 32 |
+| `AOR-003` | Dimensiones normales de la raíz por sexo | Tabla 14: senos 3,4 ± 0,3 (H) y 3,0 ± 0,3 cm (M); indexados 1,7 ± 0,2 y 1,8 ± 0,2 cm/m²; unión sinotubular 2,9 ± 0,3 y 2,6 ± 0,3; aorta ascendente proximal 3,0 ± 0,4 y 2,7 ± 0,4; anillo 2,6 ± 0,3 y 2,3 ± 0,2 | Tabla 14 · **32** · 32 |
+
+### La Figura 13, leída de la IMAGEN y medida
+
+El texto extraído de la hoja 32 trae el pie de la figura y la Tabla 14, pero **ninguna de las
+tres ecuaciones**: están dentro del bitmap. Se renderizó la página a **500 ppp** y se leyeron los
+tres paneles:
+
+| panel | rótulo impreso | ecuación | SEE | r | P |
+|---|---|---|---|---|---|
+| A | «Children and adolescents» | y = 1.02 + 0.98x | 0.18 | 0.93 | < .0005 |
+| B | «Adults 20-39 years» | y = 0.97 + 1.12x | 0.24 | 0.71 | < .0005 |
+| C | «Adults >40 years» | y = 1.92 + 0.74x | 0.37 | 0.40 | < .0005 |
+
+Ejes: X «Body Surface Area (m²)», Y «Sinuses of Valsalva (cm)». Pie de la figura, literal: «The
+95% confidence intervals for aortic root diameter at sinuses of Valsalva on the basis of BSA in
+children and adolescents (A), adults aged 20 to 39 years (B), and adults aged ≥40 years (C).
+Reprinted with permission from Roman et al.¹⁹⁵». Fuente original: **Roman MJ, Devereux RB,
+Kramer-Fox R, O'Loughlin J. Am J Cardiol 1989;64:507-512.**
+
+⚠️ **LA GUÍA NO DICE CÓMO SE CONSTRUYE LA BANDA**, sólo «95% confidence intervals». Se comprobó:
+calibrando los dos ejes con sus marcas impresas y leyendo el borde dibujado columna por columna,
+a superficie corporal 2,0 y 2,2 m² los bordes caen a **0,003 a 0,063 cm** de `ecuación ± 1,96 ×
+SEE` en los paneles B y C. A 1,8 m² el rótulo «SEE = …» corta la lectura del borde superior: esa
+fila no sirve, y hay que saberlo antes de creerle.
+
+⚠️ **EL RANGO DE SUPERFICIE CORPORAL QUE CADA PANEL DIBUJA, MEDIDO EN LA IMAGEN:** A de **0,20 a
+2,02**, B de **1,29 a 2,53** y C de **1,32 a 2,40** m². La app lo guarda redondeado **hacia
+adentro** (0,25-2,00 · 1,30-2,50 · 1,30-2,40), que es el lado conservador.
+
+⚠️ **LA GUÍA SE CONTRADICE EN EL LÍMITE DE 40 AÑOS, y los dos textos están impresos:** el cuerpo
+del folio 32 escribe los tres estratos como «<20, **20 to 40**, and >40 years» y el pie de la
+Figura 13 dice «adults aged **≥40** years (C)»; el rótulo dentro del gráfico C dice «>40».
+Decisión de Maicol: **los 40 exactos van al B**.
+
+⚠️ **DERECHOS: la imagen NO se reproduce.** Su pie dice «Reprinted with permission from Roman et
+al.», o sea derechos del editor y de los autores originales. Lo que se usa son las ecuaciones y
+los errores estándar —datos numéricos— citando a Lang 2015 y a Roman 1989, y el dibujo de la app
+es propio: otros ejes, la unidad en milímetros y el punto del paciente adentro.
+
+### Lo que quedó «parcial» o «por verificar», con el motivo
+
+| ficha | estado | por qué |
+|---|---|---|
+| `DIM-AD-001` · área de la AD | parcial | la app corta en **18 cm²** y la **Tabla 1 (folio 145)** y el Key Point (folio 143) de la ASE 2025 cortan en **19**. El 18 SÍ está en esa guía, pero en otro contexto: el folio **164** lo nombra como *signo de PAD elevada* («RA area > 18 cm2»), no como límite de normalidad del tamaño. |
+| `VCI-001` · diámetro de la VCI | parcial | la guía escribe «A normal IVC diameter is **≤2.1 cm**» y la app aplica **`< 21`**: a 21,0 mm exactos la guía dice normal y la app dilatado. |
+| `DIM-VD-001` · diámetro basal | parcial | el **41** está verificado (Tabla 8, folio 20: «25-41»; §7.1, folio 17: «>41 mm … indicates RV dilatation»), pero **la banda «leve hasta 45» no está en esa guía**: la Tabla 1 de la ASE 2025 corta leve en **4,4 cm**. |
+| `FUN-VD-003` · FAC | parcial | el **35 %** está verificado (§8.3, folio 19: «RV FAC < 35% indicates RV systolic dysfunction»); **el 25 % de «disfunción severa» no está en ninguna de las dos guías** — la Tabla 1 de la ASE 2025 gradúa `≤35 a >29 · ≤29 a >22 · ≤22`. |
+| `DIM-VD-003` · diámetro longitudinal | por verificar | la app usa **86 mm** y **no está en ninguna de las dos**: Lang 2015, Tabla 8, folio 20 da «59-**83**» y la ASE 2025, Tabla 1, folio 145 da «< **8,2** cm». |
+| `AOR-001` · cortes por segmento | por verificar | son **criterio propio de EcoSmart** por decisión de Maicol. El corte de 40 mm **no se le atribuye a ninguna guía** y la ficha no publica fuente. |
+
+### Lo que esta tanda NO cita
+
+Ninguna barra, tabla ni entrada de Referencias publica una fuente que no esté arriba. El corte de
+40 mm de la raíz aórtica sale **sin línea de fuente**, y los cinco cortes por segmento de
+`ref-ao2` salen **sin corchete**. Los límites de dibujo de cada barra y los ejes del nomograma no
+llevan fuente: son el rango que el gráfico encuadra, no un criterio.

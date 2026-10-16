@@ -429,3 +429,21 @@ fila publica «moderada» y el renglón integrado sigue diciendo «Severa — **
 muestra su grado y **no** se lleva la marca de «decide».
 
 **Caso adaptado:** TC-479, cuyo denominador exigía cinco entradas en `EA_FILA_GRADO`.
+
+---
+
+# La tarjeta ⓘ de la AORTA y su nomograma — tanda «M» (2026-10-16)
+
+⚠️ **La aorta torácica tiene un globo ⓘ (`ao-card`) con el NOMOGRAMA de los senos de Valsalva por
+edad y superficie corporal, y una entrada propia en Referencias (`ref-ao2`) con las tres
+gráficas.** Las ecuaciones salen de la Figura 13 de la ASE/EACVI 2015 (folio 32), leídas de la
+imagen; la banda es ecuación ± 1,96 × SEE, comprobado midiendo el dibujo. **Los 40 años exactos
+van al gráfico B** (decisión de Maicol).
+
+⚠️ **LA CASCADA DE GRADOS DE UN SEGMENTO SALIÓ A FUNCIÓN PROPIA Y PURA: `aoSegGrado(sg, x)`.**
+`aoSegsMedidos` pasa a consumirla y no cambió nada; existe porque la tarjeta **sondea** al dueño
+en vez de copiar su número. **El operador del corte del seno de Valsalva es `>`: con 40,0 mm
+exactos el grado es NORMAL**, y Maicol decidió que 40 exactos cuenten como dilatado — está en
+`docs/PENDIENTES.md` → M-7 y **no se cambió**.
+
+**Todo eso está en `docs/mapa/evidencia-derecho-aorta.md`.**

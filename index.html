@@ -22105,7 +22105,7 @@ const EV_GUIA_ASE2015 = 'Lang RM y col., Recomendaciones para la cuantificacion 
 const EV_DOI_ASE2015  = '10.1016/j.echo.2014.10.003';
 /* La segunda guia del registro, que entra con la tanda M (AD/VCI, VD y aorta). El DOI se leyo
    en el pie de la hoja 1 del propio PDF, no afuera. */
-const EV_GUIA_ASE2025VD = 'Mukherjee M y col., Guia para la evaluacion ecocardiografica del corazon derecho en el adulto y consideraciones especiales en la hipertension pulmonar, ASE, 2025';
+const EV_GUIA_ASE2025VD = 'Mukherjee M y col., Guía para la evaluación ecocardiográfica del corazón derecho en el adulto y consideraciones especiales en la hipertensión pulmonar, ASE, 2025';
 const EV_DOI_ASE2025VD  = '10.1016/j.echo.2025.01.006';
 const EV_FECHA_VER    = '2026-10-16';
 
@@ -22237,19 +22237,19 @@ const EV_REG = Object.freeze([
     id: 'VCI-001', zona: 'VD/AD — Vena cava inferior', dato: 'Diametro de la vena cava inferior',
     valor: 'La aplicacion la trata como dilatada desde 21 mm',
     duenio: 'pmadEstimar / VCI_DIAM_DILATADA_MIN',
-    guia: EV_GUIA_ASE2025VD, ubicacion: 'Presion auricular derecha', folio: '160', hoja_pdf: 20,
+    guia: EV_GUIA_ASE2025VD, ubicacion: 'Presión auricular derecha', folio: '160', hoja_pdf: 20,
     doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guia',
     estado: 'parcial', fecha_verificacion: EV_FECHA_VER,
-    fuente_una_linea: 'ASE 2025 (Mukherjee), Presion auricular derecha (folio 160)',
+    fuente_una_linea: 'ASE 2025 (Mukherjee), Presión auricular derecha (folio 160)',
   }),
   Object.freeze({
     id: 'VCI-002', zona: 'VD/AD — Vena cava inferior', dato: 'Presion media de la auricula derecha estimada',
     valor: 'Diametro normal con colapso mayor del 50 %: 3 mmHg. Diametro normal sin colapso, o dilatado con colapso: 8 mmHg. Diametro dilatado sin colapso: 15 mmHg',
     duenio: 'pmadEstimar',
-    guia: EV_GUIA_ASE2025VD, ubicacion: 'Presion auricular derecha y Tabla 1', folio: '160', hoja_pdf: 20,
+    guia: EV_GUIA_ASE2025VD, ubicacion: 'Presión auricular derecha y Tabla 1', folio: '160', hoja_pdf: 20,
     doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guia',
     estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
-    fuente_una_linea: 'ASE 2025 (Mukherjee), Presion auricular derecha (folio 160)',
+    fuente_una_linea: 'ASE 2025 (Mukherjee), Presión auricular derecha (folio 160)',
   }),
   /* ── VENTRICULO DERECHO — TAMANO ───────────────────────────────────────── */
   Object.freeze({
@@ -22293,28 +22293,28 @@ const EV_REG = Object.freeze([
     id: 'FUN-VD-001', zona: 'VD/AD — Ventriculo derecho', dato: 'Excursion sistolica del anillo tricuspideo (TAPSE)',
     valor: 'Normal con 17 mm o mas; por debajo de 17, disfuncion sistolica. Un solo corte para los dos sexos',
     duenio: 'vdTapseCat / UMBRAL_TAPSE_NORMAL',
-    guia: EV_GUIA_ASE2015, ubicacion: 'Seccion 8.2', folio: '19', hoja_pdf: 19,
+    guia: EV_GUIA_ASE2015, ubicacion: 'Sección 8.2', folio: '19', hoja_pdf: 19,
     doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
     estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
-    fuente_una_linea: 'ASE/EACVI 2015, seccion 8.2 (folio 19)',
+    fuente_una_linea: 'ASE/EACVI 2015, sección 8.2 (folio 19)',
   }),
   Object.freeze({
     id: 'FUN-VD-002', zona: 'VD/AD — Ventriculo derecho', dato: 'Onda S′ del anillo tricuspideo',
     valor: 'Normal con 9,5 cm/s o mas; por debajo de 9,5, disfuncion sistolica. Un solo corte para los dos sexos',
     duenio: 'vdSprimeCat / UMBRAL_SPRIME_NORMAL',
-    guia: EV_GUIA_ASE2015, ubicacion: 'Seccion 8.4', folio: '20', hoja_pdf: 20,
+    guia: EV_GUIA_ASE2015, ubicacion: 'Sección 8.4', folio: '20', hoja_pdf: 20,
     doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
     estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
-    fuente_una_linea: 'ASE/EACVI 2015, seccion 8.4 (folio 20)',
+    fuente_una_linea: 'ASE/EACVI 2015, sección 8.4 (folio 20)',
   }),
   Object.freeze({
     id: 'FUN-VD-003', zona: 'VD/AD — Ventriculo derecho', dato: 'Cambio fraccional de area (FAC)',
     valor: 'Normal con 35 % o mas; disfuncion por debajo de 35; disfuncion severa por debajo de 25. Un solo corte para los dos sexos',
     duenio: 'vdFacCat / UMBRAL_FAC_VD_NORMAL y UMBRAL_FAC_VD_SEVERA',
-    guia: EV_GUIA_ASE2015, ubicacion: 'Seccion 8.3', folio: '19', hoja_pdf: 19,
+    guia: EV_GUIA_ASE2015, ubicacion: 'Sección 8.3', folio: '19', hoja_pdf: 19,
     doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
     estado: 'parcial', fecha_verificacion: EV_FECHA_VER,
-    fuente_una_linea: 'ASE/EACVI 2015, seccion 8.3 (folio 19)',
+    fuente_una_linea: 'ASE/EACVI 2015, sección 8.3 (folio 19)',
   }),
   Object.freeze({
     id: 'FUN-VD-004', zona: 'VD/AD — Ventriculo derecho', dato: 'Fraccion de eyeccion del VD por 3D',
@@ -22369,7 +22369,7 @@ const EV_REG = Object.freeze([
     duenio: '',
     guia: EV_GUIA_ASE2015, ubicacion: 'Tabla 14', folio: '32', hoja_pdf: 32,
     doi: EV_DOI_ASE2015,
-    fuente_original: 'Roman MJ y col., Am J Cardiol 1989;64:507-512, y Hiratzka LF y col., guia ACCF/AHA 2010 de enfermedad aortica toracica',
+    fuente_original: 'Roman MJ y col., Am J Cardiol 1989;64:507-512, y Hiratzka LF y col., guía ACCF/AHA 2010 de enfermedad aórtica torácica',
     tipo: 'guia', estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
     fuente_una_linea: 'ASE/EACVI 2015, Tabla 14 (folio 32)',
   }),
@@ -116937,8 +116937,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261016-1748';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1792183705629;                 /* eco-build-ms */
+const ECO_BUILD    = '20261016-1937';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1792190253259;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -117024,7 +117024,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261016-1748</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261016-1937</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

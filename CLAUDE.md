@@ -37,6 +37,8 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Buscar un CORTE o una BANDA de plausibilidad** de cualquier válvula, con su fuente | `docs/mapa/valvulas-constantes.md` |
 | **Tocar la MARCA DE MANUAL de una pastilla, el selector binario de la estenosis mitral, el VIOLETA de «Significativa», el VTI de entrada tricuspídeo, la CASILLA DE PISA de «Incluir en el informe» o lo que «Nuevo estudio» deja vivo** | `docs/mapa/valvulas-manual-binario.md` |
 | **Tocar el VENTRÍCULO DERECHO**: sus TRES columnas de campos, el orden del cuadro de referencias, la disfunción sistólica, la pared graduada, el Tei, la FEVD, la relación VD/VI o el Qp | `docs/mapa/vd-derecho.md` |
+| **Tocar la casilla de la FAC, la mudanza del DIÁMETRO DE LA ARTERIA PULMONAR o el selector de VD/VI** (la tanda G3, partida a archivo propio) | `docs/mapa/vd-g3-campos.md` |
+| **Tocar una TARJETA ⓘ de AD/VCI, del VD o de la AORTA, el NOMOGRAMA de los senos de Valsalva, o sus entradas de Referencias** | `docs/mapa/evidencia-derecho-aorta.md` |
 | **Tocar el cociente TAPSE/PSAP o el color del aviso del Tei** (el DIÁMETRO DE LA ARTERIA PULMONAR se mudó al VD en el G3) | `docs/mapa/tapse-psap-ap.md` |
 | **Tocar la RELACIÓN VD/VI**: el campo numérico, el selector de tramo, las cuatro reglas que los sincronizan, la función dueña o cualquiera de sus CUATRO lectores | `docs/mapa/vd-vi-selector.md` |
 | **Tocar el panel de Evidencia: agregar una cita, una sección o un sub-bloque** | `docs/mapa/panel-evidencia.md` |
@@ -112,8 +114,8 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **7,89 MB / 118.928 líneas**, medido el 2026-10-16 al cierre de la tanda L
-  —el renglón anterior decía «7,74 MB / 116.686 líneas» y era del Y1c: **medirlo antes de
+  sin frameworks. Hoy **7,94 MB / 119.840 líneas**, medido el 2026-10-16 al cierre de la tanda M
+  —el renglón anterior decía «7,89 MB / 118.928 líneas» y era del L: **medirlo antes de
   presupuestar contexto**—. Las únicas dependencias son jsPDF, XLSX y
   PptxGenJS por CDN. Se abre como archivo local y corre en Chrome.
 - Lo que produce es un **informe firmado**: narrativo, EN SUMA, PDF, PPT y Excel del Laboratorio.
@@ -267,6 +269,188 @@ impecable.
 ---
 
 ## Estado vigente
+
+### Las tarjetas ⓘ de AD/VCI, del VENTRÍCULO DERECHO y de la AORTA — «M» (2026-10-16)
+
+- **Son CINCO commits.** Al **empezar**, `main` y `origin/main` estaban los dos en **`f70e9bc`**
+  (sello `v20261016-1748`), **sin nada sin pushear** —confirmado con un `git fetch` de verdad, con
+  el `FETCH_HEAD` fechado al momento—, con los cinco commits del L ya incluidos **y pusheados**.
+  Los **cinco** commits de esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 5 → 4 → 3 → 2 → 1.**
+  ⚠️ **EL 1 ES LA BASE DE TODOS**: crea los **doce dueños puros**, las dos constantes que faltaban,
+  `AOR_NOMO` con sus tres ayudantes, las dieciséis fichas y los doce sondeos de `evCortes`.
+  Revertirlo sin revertir antes los otros deja las cuatro tarjetas llamando a funciones que no
+  existen **y, peor, deja `calcVD`, `calcAD` y `calcPmAD` nombrando dueños que ya no están** — un
+  `ReferenceError` ahí se lleva la cápsula entera.
+  ⚠️ **EL 2, EL 3 Y EL 4 SE REVIERTEN EN CUALQUIER ORDEN ENTRE SÍ**: el 2 es AD/VCI
+  (`evTarjetaAD`, `_evVciTabla`, `ref-ad`), el 3 el VD (`evTarjetaVDTam`, `evTarjetaVDFun`,
+  `ref-vd2`) y el 4 la aorta (`evTarjetaAo`, `_evNomoSvg`, `ref-ao2`). Ninguno nombra una pieza de
+  otro. **PERO el 4 lleva además la corrección del `corteEn` por LISTA**, que afina los cortes
+  publicados de TRES barras del 3: revertir el 4 deja la pared diciendo «4,9 mm», la FEVD «46 %» y
+  el Tei «0,54».
+  ⚠️ **EL 1 LLEVA LA SONDA** (`scripts/_probe_m.mjs`) y **el 5 la de los dos motores**
+  (`scripts/_probe_mwk.mjs`). **El 5 es TC-492 más la documentación y el sello**, y afirma el
+  comportamiento de los cuatro.
+  ⚠️ **CASOS ADAPTADOS: DOS, y los destapó la SUITE COMPLETA.** **TC-471** (su conteo del registro
+  `VINFO` pasa de 26 a **30**; los cuatro globos nuevos **no están en Válvulas**, igual que
+  `tapse-psap` vive en el Doppler tricuspídeo) y **TC-491**, que exigía `EV_REG.length === 12`:
+  en vez de subirle el número se le puso un **filtro por zona**, así que sigue afirmando las doce
+  de la AI y del VI y **no se va a poner rojo** la próxima vez que otra tanda agregue una ficha.
+
+- **Línea base al cierre: suite 502/506 con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0
+  ERROR, Excel en 440 columnas. CERO REGRESIONES.** Los **CUATRO** rojos son exactamente los de
+  ENTRADA —**TC-223** (el documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**—.
+  **El denominador sube a 506**: esta tanda agregó **TC-492**. El `md5` de `index.html` no se movió
+  durante la corrida (`241eddb3…`, el del sello) y el pendrive estaba montado antes y después.
+  ⚠️ **LA SUITE COMPLETA SE CORRIÓ DOS VECES Y LA PRIMERA NO ES LA LÍNEA BASE.** Dio **500/506**
+  con SEIS rojos, y los dos de más eran TC-471 y TC-491, que ninguna corrida de zona podía ver
+  —los dos cuentan registros globales—. Se adaptaron y la segunda corrida es la que vale. **Es la
+  octava tanda en que la suite completa destapa algo que la de zona no ve.**
+  ⚠️ **EL CHEQUEO DE CELULAR SUBE +4 HALLAZGOS Y +4 ALTA, Y SON LOS CUATRO GLOBOS NUEVOS.** Medido
+  el MISMO día contra HEAD en un worktree aparte: HEAD da **48 a 360 px y 57 a 390 px con 6 ALTA**
+  y el árbol nuevo **52 y 61 con 10 ALTA** (`--todo`: 383/392 contra 387/396). La causa tiene
+  nombre y es la de siempre: `check_mobile.js` mide el rect del NODO **sin emular puntero grueso**,
+  y `.vinfo-btn` mide **16 × 12 px con el mouse y 44 × 44 con el dedo**, por su
+  `@media (pointer: coarse)`. **Medido con emulación táctil: los cuatro pasan a 44 × 44 exactos.**
+  No se agrandaron: hacerlo desplazaría los campos de la fila. `PENDIENTES.md` → M-10.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **506 ids** sobre los 507 casos del archivo.
+- **EL SELLO DE VERSIÓN** estaba al día al empezar (`v20261016-1748`) y se volvió a sellar:
+  **`v20261016-1937`**. Todo lo medido salió **DESPUÉS** de sellar, con el `md5` quieto.
+  ⚠️ **SE SELLÓ DOS VECES, Y HAY QUE DECIR POR QUÉ.** El primer sello (`v20261016-1926`) quedó
+  invalidado porque la **captura** destapó que tres cadenas de ficha que el médico LEE salían
+  **sin acentos** («Presion auricular derecha», «seccion 8.2», la guía entera). Se corrigieron, se
+  volvió a sellar y se volvió a medir la suite entera sobre un árbol quieto.
+- **`index.html` pasó de 7,89 MB / 118.928 líneas a 7,94 MB / 119.840 líneas.**
+
+- **Dónde está todo:** `docs/mapa/evidencia-derecho-aorta.md` (**mapa NUEVO**, 15,4 KB: lo que se
+  reusó del L, los doce dueños puros, las dieciséis fichas, las cuatro tarjetas, el nomograma con
+  su medición, las tres entradas de Referencias y nueve trampas); `docs/mapa/vd-g3-campos.md`
+  (**mapa NUEVO por PARTICIÓN**, 7,5 KB); `docs/mapa/vd-derecho.md` → un puntero (**29,1 KB**);
+  `docs/mapa/aortica-cortes.md` → un puntero (**28,4 KB**); `docs/mapa/registro-evidencia.md` → un
+  puntero (**15,8 KB**); `docs/mapa/tests-fichas.md` → la ficha de TC-492 (**29,5 KB**);
+  `docs/fuentes/FUENTES.md` → las dos guías con su regla de folio comprobada, los once datos
+  verificados y los seis que quedaron cortos con el motivo; y `docs/PENDIENTES.md` → **doce** cosas
+  declaradas (M-1 a M-12).
+  ⚠️ **`vd-derecho.md` SE PARTIÓ ANTES DE ESCRIBIR Y NO DESPUÉS.** Estaba en **34,4 KB** —a 600
+  bytes del techo, y este archivo ya pedía partirlo—: su bloque de la tanda G3 salió a archivo
+  propio y el mapa volvió a 27,9 KB antes de recibir el puntero.
+
+- **M1 · DOCE DUEÑOS PUROS, Y NINGUNO INVENTA UN NÚMERO.** Las tarjetas **sondean** al dueño
+  —`_evBandas` barre su dominio y anota dónde cambia de categoría—, así que el dibujo y el papel
+  firmado no se pueden desincronizar. Seis de esas comparaciones vivían **dentro** de funciones que
+  leen el DOM (`calcVD`, `calcAD`, `calcPmAD`, `vdHvdEstado`, `vdTeiEstado`, `vdDiamsMedidos`,
+  `aoSegsMedidos`) y se extrajeron sin tocarles un número ni un operador; sus llamadores pasan a
+  consumirlas, así que sigue habiendo **una sola comparación por corte**.
+  ⚠️ **DOS CORTES VIVÍAN COMO LITERAL DENTRO DE `calcVD`** y ahora tienen constante:
+  `UMBRAL_SPRIME_NORMAL` (9,5 cm/s) y `UMBRAL_TAP_HTP` (105 ms). **El valor no se movió.**
+  **DIECISÉIS FICHAS NUEVAS** (de 12 a 28), con ids que no reusan ninguno del L: **diez
+  «verificado», cuatro «parcial» y dos «por verificar»**. La línea de fuente la publican **sólo**
+  las verificadas.
+  ⚠️ **LA REGLA DE FOLIO DE LA ASE 2025 ES «HOJA + 140», comprobada en el pie impreso** de tres
+  páginas (5 → 145, 20 → 160, 24 → 164). **Y ESA GUÍA CODIFICA `≥` COMO `$` Y `≤` COMO `#`** en su
+  texto extraído: quien no lo sepa lee los operadores al revés.
+
+- ⚠️ **SEIS DIFERENCIAS ENTRE LA APP Y LA GUÍA, MEDIDAS Y NO CORREGIDAS** (`PENDIENTES.md` → M-1 a
+  M-7): el **área de la AD** corta en 18 cm² donde la Tabla 1 corta en 19 —el 18 SÍ está en esa
+  guía, pero en el folio 164 y como signo de PAD elevada, no como límite de tamaño—; el
+  **diámetro de la VCI** usa `< 21` donde la guía escribe «normal ≤ 2,1 cm»; el **diámetro
+  longitudinal del VD** usa **86 mm** y **no está en ninguna de las dos** (Lang 2015 da 59-83 y la
+  ASE 2025 < 8,2 cm); la **FAC severa en 25 %** tampoco está (la ASE 2025 gradúa ≤22); los bordes
+  de **TAPSE, onda S′ y FAC** son los de la ASE 2015 (`≥`) y la ASE 2025 los escribe con `>`, así
+  que **el valor exacto del corte cambia de lado**; y la entrada vieja `ref-vd` de Referencias dice
+  **«S′ ≥10 cm/s»** mientras la app aplica 9,5.
+  **NO SE ALINEÓ NADA, Y ESO ES DELIBERADO:** un prompt posterior lleva el VD a la ASE 2025 con
+  grados, y **como las tarjetas leen del dueño se van a actualizar solas**.
+
+- **M2 · AD/VCI: una barra y una tabla, y NI UN NÚMERO ESCRITO A MANO.** La presión de cada fila
+  sale de llamar a `pmadEstimar`, el corte del diámetro de `VCI_DIAM_DILATADA_MIN` y **los dos
+  rótulos del colapso se LEEN de las `<option>` del propio `<select>`**, así que la tabla no puede
+  decir «>50 %» si alguna vez esa opción cambia de texto. La fila del paciente lleva fondo **y una
+  flecha**: el color nunca es lo único que informa. Medido: 348 × 308 px, sin scroll interno; el
+  borde del área separa (18 normal, 19 dilatada) y **con 21 mm exactos la app ya la trata como
+  dilatada**.
+
+- **M3 · EL VD VA EN DOS GLOBOS, Y ES UNA MEDICIÓN.** Con las diez barras juntas la tarjeta mide
+  **985 px** y a 1200 × 700 el hueco útil debajo del globo es de **440**. Partida en TAMAÑO
+  (4 barras, 391 px) y FUNCIÓN (6 barras, 594 px), la primera entra entera en los seis anchos
+  medidos; **la segunda sigue desplazándose por dentro a 1200 × 700** y, por 4 px, a 1440 × 800.
+  Es la división que la propia orden prescribe. `PENDIENTES.md` → M-8.
+  ⚠️ **LOS TRES DIÁMETROS COMPARTEN UNA SOLA LÍNEA DE CATEGORÍA**, que es la que `vd-tam` ya
+  publica: darle a cada barra una frase propia sería **redactar** una categoría que la app no
+  escribe.
+  ⚠️ **LO QUE LA APP NO CLASIFICA NO LLEVA BARRA, y está declarado**: la relación VD/VI (tiene
+  corte, pero publica un signo de probabilidad de HTP y no un tamaño), el diámetro de la arteria
+  pulmonar (sin corte en la app; la Tabla 1 sí lo gradúa), el TSVD y el Qp. `PENDIENTES.md` → M-9.
+
+- **M4 · EL NOMOGRAMA DE LA AORTA ES UN DIBUJO PROPIO, Y SUS NÚMEROS SE LEYERON DE LA IMAGEN.** La
+  Figura 13 de la ASE/EACVI 2015 (**folio 32, hoja 32**) no trae sus ecuaciones en el texto
+  extraído: están dentro del bitmap. Renderizada a **500 ppp**: A `y = 1,02 + 0,98x · SEE 0,18`,
+  B `y = 0,97 + 1,12x · SEE 0,24`, C `y = 1,92 + 0,74x · SEE 0,37`.
+  ⚠️ **LA BANDA ES ECUACIÓN ± 1,96 × SEE Y ESO NO LO DICE LA GUÍA** —su pie dice «95% confidence
+  intervals» y nada más—: se **comprobó midiendo el dibujo**, y a superficie corporal 2,0 y 2,2 m²
+  los bordes leídos caen a **0,003 a 0,063 cm** de ese cálculo en los paneles B y C. A 1,8 m² el
+  rótulo «SEE = …» corta la lectura: esa fila no sirve.
+  ⚠️ **EL RANGO DE SUPERFICIE CORPORAL SE MIDIÓ EN LA IMAGEN** (A 0,20-2,02 · B 1,29-2,53 ·
+  C 1,32-2,40) y se guarda redondeado **hacia adentro**, que es el lado conservador.
+  ⚠️ **LOS 40 AÑOS EXACTOS VAN AL GRÁFICO B** (decisión de Maicol) porque **la guía se contradice
+  consigo misma**: su texto del folio 32 escribe «<20, 20 to 40, and >40» y el pie de la figura
+  dice «adults aged ≥40 years (C)».
+  ⚠️ **NO SE COPIA LA IMAGEN**: su pie dice «Reprinted with permission from Roman et al.». Lo que
+  se usa son las ecuaciones y los errores estándar, citando a Lang 2015 y a Roman 1989.
+  ⚠️ **EL EJE Y VA EN MILÍMETROS Y LA GUÍA PUBLICA CENTÍMETROS**: el campo y el corte de la app
+  están en milímetros, y dibujar en centímetros obligaría al médico a convertir el único número
+  que le importa.
+  **LA LÍNEA DE 40 mm SALE DEL DUEÑO, SONDEADA** —es el techo de la banda `normal` de
+  `aoSegGrado`— y **no se le atribuye a ninguna guía**: `AOR-001` es criterio propio, está «por
+  verificar» y no publica fuente. **El operador que la app aplica es `>`: con 40,0 mm exactos el
+  grado es NORMAL**, y Maicol decidió que cuenten como dilatado — **no se cambió**
+  (`PENDIENTES.md` → M-7).
+
+- **A/B DEDICADO CONTRA EL ÁRBOL DE ENTRADA, con el formulario vacío y con dos escenarios
+  cargados: 0 DIFERENCIAS** en informe (tres estilos), EN SUMA, grados, pastillas, cuadros del VD,
+  de la AD y de la aorta, diastólica, HFA-PEFF, Laboratorio, PPT, el **PDF generado de verdad** y
+  el **Excel en 440 columnas CLAVE POR CLAVE**. **Cero campos nuevos del estudio y cero claves de
+  almacenamiento** —medido además con 80 aperturas y cierres: 12.584 nodos antes y después, cero
+  oyentes nuevos—.
+
+- **Arneses: `scripts/_probe_m.mjs`** (CDP, teclas reales; diez grupos: `registro`, `advci`, `vd`,
+  `aorta`, `refs`, `ciclo`, `maqueta`, `tactil`, `captura`, `controles`) y
+  **`scripts/_probe_mwk.mjs`** (Playwright, los DOS motores).
+  **EN LOS DOS MOTORES, 192 celdas cada uno —seis viewports × dos temas × cuatro escenas × cuatro
+  tarjetas—: CERO errores, CERO tarjetas fuera de pantalla y CERO scroll horizontal de la
+  página.** Scroll **interno** sólo en `vd-fun-card`.
+  **Cobertura: TC-492**, **49 condiciones** con dos denominadores y cinco controles negativos.
+  **Verificado que sabe fallar contra HEAD en un worktree aparte: 38 de las 49 en rojo, y NINGUNA
+  por excepción.**
+
+- ⚠️ **NUEVE TRAMPAS, Y CUATRO LAS VIO LA CAPTURA Y NO LA MEDICIÓN.**
+  1. **El rótulo del último valor del eje X se dibujaba FUERA del viewBox** —«2,40 m²» cortado a la
+     mitad— y un SVG no lo recorta de una forma que se note: simplemente lo dibuja afuera.
+  2. **La unidad del eje Y se encimaba con la marca de arriba**, y el **rótulo del corte de
+     EcoSmart con el punto del paciente**, que en una aorta dilatada cae justo ahí.
+  3. **Tres cadenas de ficha que el médico LEE salieron sin acentos** —«Presion auricular
+     derecha»—, y eso costó un sello y una corrida entera de la suite. Es la misma lección que las
+     cinco tarjetas del D1 pagaron.
+  4. **El número publicado como corte salía corrido un paso de sondeo en tres barras** —«4,9 mm»,
+     «46 %» y «0,54»— porque `corteEn` era uno solo para toda la barra, y **el operador no tiene
+     por qué ser el mismo en los tres cortes de una**: la pared se nombra «≥0,5 a ≤0,7 a ≤0,9».
+     Ahora acepta una LISTA.
+  5. **El botón de una tarjeta no tiene geometría si su pestaña no está activa**, y las cuatro
+     viven en DOS pestañas: una sonda que abra sólo los acordeones mide 0 × 0 y la tarjeta se
+     niega a anclarse —que es lo correcto—. Se abre por un **campo ancla** de la misma sección.
+  6. **`AO_SEGS` es un `const` de módulo y no una propiedad de `window`**: el caso informó «SIN
+     SEGS» sobre un árbol perfecto. Es la trampa que `ECO_AYUDA` ya tiene escrita.
+  7. **Una lista de palabras de reserva con términos CORTOS da falsos**: «todo» matchea dentro de
+     «método» y puso en rojo a una ficha perfecta.
+  8. **Un centinela sobre la VERDAD no alcanza: tiene que ser sobre el TIPO.** Contra HEAD el
+     ayudante devuelve la cadena `'SIN FN'`, que es *truthy*, y `r.lo.toFixed(3)` mató la corrida
+     entera de TC-492.
+  9. **La barra-ese dentro de un template literal se cocina a la letra `s`** —la sonda informó «ba
+     al 48 mm» y «Di función» sobre textos perfectos— **y la clase de caracteres con el salto
+     escapado tampoco sirve**: el salto se cocina a uno REAL dentro del literal de regex, que no
+     puede cruzar líneas, y la sonda se queda sin definir `window.__P`.
 
 ### El REGISTRO DE EVIDENCIA y las TRES tarjetas ⓘ de AI/VI — «L» (2026-10-16)
 

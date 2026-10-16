@@ -317,3 +317,52 @@ informe firmado—: queda en `PENDIENTES.md` → **L-5** y la condición lo fija
   contra 82** sobre un dibujo simétrico. Las medidas van en campos separados.
 * **`puntoX[2]` no es el punto del volumen**: con una sola barra con punto, el índice 2 no
   existe. Se busca por su clave.
+
+---
+
+## TC-492 — la tanda «M»: el registro de AD/VCI, VD y aorta, sus cuatro tarjetas ⓘ y sus tres entradas de Referencias
+
+**49 condiciones**, con **dos denominadores** y **cinco controles negativos**.
+**Verificado que sabe fallar contra HEAD en un worktree aparte: 38 de las 49 en rojo, y NINGUNA
+por excepción.** Las once que pasan son lo que esta tanda no mueve —los ids del L, la pureza del
+registro, el Excel en 440, el informe, los dos controles de las entradas viejas de Referencias y
+el límite declarado—.
+
+### Qué afirma
+
+| bloque | qué |
+|---|---|
+| denominadores | los cuatro globos existen y tienen geometría; el registro trae las doce del L más las dieciséis de la M |
+| registro | ids únicos y ninguno reusado del L · datos puros (JSON ida y vuelta) · los quince campos · sin vocabulario de reserva · la fuente sólo en «verificado» |
+| dueños | los doce sondeos contra sus bordes: 18/19 · 41/42/45/46 · 35/36 · 86/87 · 4,9/5/7/7,1/9/9,1 · 16/17 · 9,4/9,5 · 24/25/34/35 · 45/46 · 0,54/0,55 · 104/105 · 40/41/45/46 · las cuatro combinaciones de la vena cava · el 21 exacto |
+| nomograma | las tres ecuaciones con su SEE y el z=1,96 · el gráfico por edad (19·20·39·40·41) · la banda = ecuación ± 1,96·SEE · fuera del rango de superficie corporal devuelve `null` |
+| tarjetas | abren y cierran por el mismo botón, por Escape y por el clic afuera · el foco vuelve al globo · el punto en las cuatro · cada corte con su número y su unidad · los cortes de FEVD, Tei y TAP sin el paso de sondeo corrido · ninguna palabra de gravedad dentro de las bandas · la categoría igual a la de la cápsula · la fila del paciente en la tabla de la vena cava · en vivo · sin datos |
+| aorta | el gráfico por edad · dentro / por encima / por debajo del rango · el corte de 40 mm con la categoría de la cápsula y el 40 exacto normal · las tres líneas de texto · sin edad |
+| Referencias | las tres entradas con las dos columnas de sexo · las tres gráficas sin punto · la bibliografía sólo de verificadas |
+| no se guarda | cero campos del estudio y cero claves del navegador |
+| controles | el Excel en 440 · el informe y el EN SUMA sin mención del nomograma · los cuatro globos son `<button>` sin `title` |
+
+### Los cinco controles negativos
+
+1. **las seis fichas que NO son «verificado» devuelven cadena vacía** en `evFuenteLinea`;
+2. **fuera del rango de superficie corporal la banda es `null`** (1,29 y 2,41 m² en el gráfico C,
+   contra 1,30 que sí la devuelve);
+3. **el corte de 40 mm no se le atribuye a ninguna guía**: la tarjeta publica UNA sola línea de
+   fuente y es la del nomograma;
+4. **una fila cuya ficha no está «verificado» sale sin corchete** en Referencias;
+5. **con el VD alterado el informe sigue publicando su frase de siempre**.
+
+### Límite declarado
+
+⚠️ **El ancho de la ventana y el segundo motor NO se pueden medir desde el cuerpo de un caso**:
+corre DENTRO de la página. Los miden `scripts/_probe_m.mjs` (grupo `maqueta`, doce celdas) y
+`scripts/_probe_mwk.mjs` (**192 celdas por motor**, Chrome 155 y WebKit). Es el reparto de
+TC-460.
+
+### Dos trampas que este caso pagó
+
+* **Una lista de palabras de reserva con términos cortos da falsos**: «todo» matchea dentro de
+  «método» y puso en rojo a `FUN-VD-005` sobre una ficha perfecta.
+* **Un centinela sobre la VERDAD no alcanza: tiene que ser sobre el TIPO.** Contra HEAD el
+  ayudante devuelve la cadena `'SIN FN'`, que es *truthy*, y `r.lo.toFixed(3)` mató la corrida
+  entera — que prueba que el árbol es distinto, no que el caso sabe medir.
