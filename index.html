@@ -4489,6 +4489,15 @@ window.cerrarSesionReal = cerrarSesionReal;
   <div class="card sacc" id="sacc-ad">
     <button type="button" class="sacc-hdr" onclick="secToggle('ad')" aria-expanded="false"><span class="sacc-arrow">▶</span>Aurícula derecha y VCI</button>
     <div class="card-body sacc-body">
+      <!-- ⚠️ EL GLOBO VA EN UNA FILA DEL CUERPO Y NO DENTRO DEL ENCABEZADO DEL ACORDEON: ese
+           encabezado ES un <button> con onclick="secToggle('ad')", y un boton dentro de otro no
+           es marcado valido —el navegador lo saca del padre al parsear y el globo deja de estar
+           donde dice el fuente—. Es la misma colocacion que los tres globos de AI/VI. -->
+      <div class="calc-row" style="border:0;padding:0 0 6px;">
+        <span class="calc-lbl">Cortes y referencia de la aurícula derecha y la vena cava
+          <button type="button" class="vinfo-btn" data-vinfo="ad-card" aria-expanded="false"
+                  aria-label="Cortes y referencia de la aurícula derecha y la vena cava inferior" onclick="vInfoClic(this)">&#9432;</button></span>
+      </div>
       <div class="grid-4">
         <div class="fg">
           <label>AD área (cm²)</label>
@@ -17091,6 +17100,18 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
            graficas y la bibliografia salen del registro de evidencia y de los duenos de cada
            corte, no de numeros escritos aca. -->
       <div id="ref-ai-cuerpo"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('ad',this)">
+      ➡️ AD / VCI — Área de la aurícula derecha y presión auricular derecha
+      <span style="float:right;">▶</span>
+    </h2>
+    <div id="ref-ad" style="display:none;" class="card-body">
+      <!-- El cuerpo lo arma `evRefPintar('ad')` la primera vez que se abre. El id es `ad` y no
+           choca con ninguno: `ref-vd` existe y es otra entrada, con otra fuente. -->
+      <div id="ref-ad-cuerpo"></div>
     </div>
   </div>
 
@@ -38239,7 +38260,11 @@ const VINFO = Object.freeze({
      grafico suma unos 240 — a 1200 x 700, donde el hueco util arriba o abajo del globo es menor
      que la ventana, las dos cosas juntas obligaban a scroll INTERNO, que es justo lo que la
      orden de esta tanda manda evitar. Son dos globos, como la propia orden preve. */
-  'vi-geo': { ancho: 360, dyn: function () { return evTarjetaGeo() } }
+  'vi-geo': { ancho: 360, dyn: function () { return evTarjetaGeo() } },
+  /* ══ TANDA M ══ Las tarjetas graficas de AD/VCI, del VD y de la aorta. Mismo mecanismo que
+     las tres del L: `dyn` devuelve NODOS y `ancho` es propio, porque una tarjeta con barras
+     en 300 px deja los numeros de los cortes encimados. */
+  'ad-card': { ancho: 348, dyn: function () { return evTarjetaAD() } }
 });
 let _vInfoId = null;
 function _vInfoBtnDe(clave) {
@@ -38943,6 +38968,97 @@ window.evGraficoGeometria = evGraficoGeometria; window.evTarjetaGeo = evTarjetaG
    2026-09-29, y lista SOLO lo que esa seccion cita. Una ficha que no esta «verificado» no
    aporta entrada y su fila sale SIN corchete: mejor sin numero que con una fuente no
    comprobada. */
+/* ══ LA TABLA DE LA VENA CAVA → PRESION DE LA AURICULA DERECHA (M2, 2026-10-16) ════════
+   Cuatro filas, que son las cuatro combinaciones que el dueno distingue. NI UN NUMERO ESCRITO
+   A MANO: la presion de cada fila sale de llamar a `pmadEstimar` con un diametro y un colapso
+   de ejemplo, el corte del diametro sale de `VCI_DIAM_DILATADA_MIN`, y los dos rotulos del
+   colapso se LEEN DE LAS OPCIONES del propio `<select>` del formulario —asi la tabla no puede
+   decir «>50 %» si alguna vez esa opcion cambia de texto—.
+   La fila del paciente se marca con `data-ev-fila-act` y, ademas del color, lleva una flecha:
+   el color nunca es lo unico que informa. */
+function _evVciTabla(actual) {
+  const sel = document.getElementById('vci_col');
+  const ops = sel ? Array.prototype.slice.call(sel.options).filter(function (o) { return o.value; }) : [];
+  const rotCol = {};
+  ops.forEach(function (o) { rotCol[o.value] = String(o.textContent || o.value).trim(); });
+  const dNor = (typeof VCI_DIAM_DILATADA_MIN === 'number') ? VCI_DIAM_DILATADA_MIN : 21;
+  const rotD = { nor: 'Menos de ' + dNor + ' mm', dil: dNor + ' mm o más' };
+  const casos = [
+    { d: 'nor', c: '>50', dv: dNor - 3 }, { d: 'nor', c: '<50', dv: dNor - 3 },
+    { d: 'dil', c: '>50', dv: dNor + 3 }, { d: 'dil', c: '<50', dv: dNor + 3 },
+  ];
+  const t = document.createElement('table');
+  t.className = 'ev-tabla';
+  const trh = document.createElement('tr');
+  ['Diámetro', 'Colapso', 'PmAD'].forEach(function (x) {
+    const th = document.createElement('th'); th.textContent = x;
+    th.style.color = 'var(--accent2)'; trh.appendChild(th);
+  });
+  t.appendChild(trh);
+  casos.forEach(function (k) {
+    const r = (typeof pmadEstimar === 'function') ? pmadEstimar(k.dv, k.c) : null;
+    if (!r) return;
+    const tr = document.createElement('tr');
+    tr.setAttribute('data-ev-fila', r.fila);
+    const act = (actual === r.fila);
+    if (act) {
+      tr.setAttribute('data-ev-fila-act', '1');
+      tr.style.background = 'var(--bg3)';
+      tr.style.fontWeight = '700';
+    }
+    [(act ? '→ ' : '') + rotD[k.d], (rotCol[k.c] || k.c), r.pmad + ' mmHg'].forEach(function (x, i) {
+      const td = document.createElement('td');
+      td.textContent = x;
+      if (i === 0) td.style.textAlign = 'left';
+      if (act) td.style.color = 'var(--text)';
+      tr.appendChild(td);
+    });
+    t.appendChild(tr);
+  });
+  return t;
+}
+
+/* ══ LA TARJETA DE LA AURICULA DERECHA Y LA VENA CAVA (M2, 2026-10-16) ═══════════════
+   UNA barra —el area de la AD, que es la unica medida de esta zona que la aplicacion
+   clasifica— y la tabla de la vena cava con la fila del paciente resaltada.
+   ⚠️ NINGUNO de los dos cortes depende del sexo: la Tabla 1 de la ASE 2025 imprime un solo
+   valor para varon y mujer, asi que esta tarjeta no esconde el punto ni avisa por falta de
+   sexo. La regla de «sin sexo, sin punto» se aplica barra por barra.
+   ⚠️ LAS DOS CATEGORIAS EN PALABRAS SE COPIAN DE SU CAPSULA, no se reescriben: son las que el
+   medico tiene delante y las que el informe usa. */
+function evTarjetaAD() {
+  const fr = document.createDocumentFragment();
+  const h = document.createElement('h4');
+  h.id = 'vinfo-tit';
+  h.textContent = 'Aurícula derecha y vena cava inferior';
+  fr.appendChild(h);
+
+  const C = evCortes(sv('sexo'));
+  const pA = vPlaus('ad_area');
+  fr.appendChild(_evBarra({ clave: 'ad-area', rotulo: 'Área de la aurícula derecha (cm²)',
+    bandas: C.adArea, lo: 8, hi: 35, unidad: 'cm²', dec: 0,
+    valor: (pA.val != null && !pA.fuera) ? pA.val : null,
+    cat: _evCapsula('ad-interp'),
+    aviso: pA.fuera ? 'Valor fuera de rango medible: verificar el área.'
+                    : (pA.val == null ? 'Cargar el área de la aurícula derecha.' : ''),
+    ficha: 'DIM-AD-001' }));
+
+  const w = document.createElement('div');
+  w.className = 'ev-bl';
+  w.appendChild(_evDiv('ev-rot', 'Vena cava inferior → presión media de la aurícula derecha'));
+  const lec = (typeof pmadEstimar === 'function') ? pmadEstimar(v('vci_diam'), sv('vci_col')) : null;
+  w.appendChild(_evVciTabla(lec ? lec.fila : null));
+  if (lec) w.appendChild(_evDiv('ev-cat', 'Presión media de la aurícula derecha estimada: '
+    + _evCapsula('pmad-interp') + '.', { 'data-ev-cat': 'vci-pmad' }));
+  else w.appendChild(_evDiv('ev-avi', 'Cargar el diámetro de la vena cava inferior y su colapso.',
+    { 'data-ev-aviso': 'vci-pmad' }));
+  fr.appendChild(w);
+
+  fr.appendChild(_evFuentesPie(['DIM-AD-001', 'VCI-001', 'VCI-002']));
+  return fr;
+}
+window.evTarjetaAD = evTarjetaAD;
+
 function _evRefTabla(filas, refIdx) {
   const t = document.createElement('table');
   t.className = 'ev-tabla';
@@ -39027,6 +39143,29 @@ function evRefPintar(id) {
       { clave: 'ref-ai-area', rotulo: 'Área (cm²)', banda: 'aiArea', lo: 8, hi: 35, unidad: 'cm²', dec: 0, ficha: 'DIM-AI-002' },
       { clave: 'ref-ai-vol', rotulo: 'Volumen indexado (ml/m²)', banda: 'aiVol', lo: 10, hi: 70, unidad: 'ml/m²', dec: 0, ficha: 'DIM-AI-003' },
     ], 'M'));
+    host.appendChild(B.nodo);
+    host.dataset.evPintado = '1';
+  }
+  if (id === 'ad') {
+    const B = _evRefBiblio(['DIM-AD-001', 'VCI-001', 'VCI-002']);
+    host.appendChild(_evRefTabla([
+      { ficha: 'DIM-AD-001', rot: 'Área de la AD — normal', h: '≤ 18 cm²', m: '≤ 18 cm²' },
+      { ficha: 'DIM-AD-001', rot: 'Área de la AD — dilatada', h: '> 18 cm²', m: '> 18 cm²' },
+      { ficha: 'VCI-001', rot: 'Vena cava — diámetro no dilatado', h: '< 21 mm', m: '< 21 mm' },
+      { ficha: 'VCI-002', rot: 'PmAD — cava no dilatada y colapso > 50 %', h: '3 mmHg', m: '3 mmHg' },
+      { ficha: 'VCI-002', rot: 'PmAD — un solo criterio alterado', h: '8 mmHg', m: '8 mmHg' },
+      { ficha: 'VCI-002', rot: 'PmAD — cava dilatada y colapso < 50 %', h: '15 mmHg', m: '15 mmHg' },
+    ], B.idx));
+    host.appendChild(_evRefBarras([
+      { clave: 'ref-ad-area', rotulo: 'Área de la aurícula derecha (cm²)', banda: 'adArea',
+        lo: 8, hi: 35, unidad: 'cm²', dec: 0, ficha: 'DIM-AD-001' },
+    ], 'M'));
+    /* La MISMA tabla de la tarjeta, sin la fila del paciente. */
+    const wv = document.createElement('div');
+    wv.className = 'ev-ref';
+    wv.appendChild(_evDiv('ev-rot', 'Vena cava inferior → presión media de la aurícula derecha'));
+    wv.appendChild(_evVciTabla(null));
+    host.appendChild(wv);
     host.appendChild(B.nodo);
     host.dataset.evPintado = '1';
   }

@@ -738,10 +738,6 @@ async function main() {
         try { secToggle(k) } catch (e) {} } }); return 1 })()`);
     for (const [id, val] of Object.entries(campos || {})) await tipear(id, val);
     if (opts.extra) for (const [id, val] of Object.entries(opts.extra)) await tipear(id, val);
-    await ev(`(function(){ ['tab-vd','tab-ai-vi'].forEach(function(t){
-      var n = document.getElementById(t);
-      if (n && getComputedStyle(n).display === 'none') { try { showTab(t.replace('tab-','')) } catch (e) {} } });
-      return 1 })()`);
     await ev('(function(){ try { calcAI(); calcVD(); calcAD(); calcPmAD(); calcAorta() } catch(e) {} return 1 })()');
   }
 
@@ -754,8 +750,18 @@ async function main() {
 
 
   /* ══ ESCENAS COMPARTIDAS ══════════════════════════════════════════════════ */
+  const ANCLA = { 'ad-card': 'ad_area', 'vd-tam-card': 'vd_bas', 'vd-fun-card': 'tapse',
+                  'ao-card': 'ao_sin', 'ai-card': 'ai_vol', 'vi-card': 'ddfvi' };
   async function tarjeta(clave, campos, opts) {
     await montar(campos, opts || {});
+    /* El boton vive en el cuerpo de un acordeon, dentro de una pestana: sin abrir las dos, el
+       boton existe y mide 0 x 0 y la tarjeta se niega a anclarse —que es lo correcto—. Se abre
+       por un CAMPO de la misma seccion, que es lo que `abrirPara` sabe hacer. */
+    const an = ANCLA[clave];
+    if (an) {
+      const ap = await J(`JSON.stringify(window.__P.abrirPara(${JSON.stringify(an)}))`);
+      if (!ap.ok) return { abrir: { err: 'NO SE PUDO ABRIR LA SECCION de ' + an + ' ' + JSON.stringify(ap) } };
+    }
     const abre = await J(`JSON.stringify(window.__P.abrirTarjeta(${JSON.stringify(clave)}))`);
     if (abre.err) return { abrir: abre };
     const leido = await J('JSON.stringify(window.__P.leerTarjeta())');
