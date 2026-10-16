@@ -12359,8 +12359,19 @@ z
           <text x="400" y="205" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--text)" pointer-events="none">P3</text>
           <text x="265" y="30" text-anchor="middle" font-size="9" fill="var(--text2)" font-style="italic">Anterior</text>
           <text x="265" y="282" text-anchor="middle" font-size="9" fill="var(--text2)" font-style="italic">Posterior</text>
-          <text x="20" y="156" text-anchor="middle" font-size="9" fill="var(--text2)" font-style="italic">PM</text>
-          <text x="510" y="156" text-anchor="middle" font-size="9" fill="var(--text2)" font-style="italic">AL</text>
+          <!-- ⚠️ LOS DOS ROTULOS ESTABAN INVERTIDOS Y SE CORRIGIERON (Y3-1, 2026-10-16).
+               En la vista del cirujano —desde la auricula izquierda, con la aorta arriba— la
+               OREJUELA queda del lado de la comisura ANTEROLATERAL. La fuente lo dice con todas
+               las letras: ASE/SCA/STS 2020 (Nicoara et al, JASE 33:6), folio 695 —comprobado en
+               el pie impreso, NO por aritmetica—, que orienta la valvula con la aortica a las 12
+               y declara que el tabique interauricular queda junto a la comisura MEDIAL y la
+               orejuela junto a la LATERAL. En este dibujo la orejuela esta en x=68 y A1/P1 en
+               x~130, los dos a la IZQUIERDA: ahi va AL, y PM a la derecha, del lado de A3/P3.
+               SE CAMBIAN SOLO LOS DOS ROTULOS: ni los festones, ni la orejuela, ni la aorta se
+               movieron un pixel —sus coordenadas son las mismas—, que es lo que hace que esto
+               sea una correccion de nomenclatura y no un redibujo. -->
+          <text x="20" y="156" text-anchor="middle" font-size="9" fill="var(--text2)" font-style="italic">AL</text>
+          <text x="510" y="156" text-anchor="middle" font-size="9" fill="var(--text2)" font-style="italic">PM</text>
           <circle cx="265" cy="18" r="18" fill="none" stroke="var(--text)" stroke-width="1.8"/>
           <line x1="265" y1="18" x2="265" y2="0" stroke="var(--text)" stroke-width="1.2"/>
           <line x1="265" y1="18" x2="250" y2="28" stroke="var(--text)" stroke-width="1.2"/>
@@ -81321,7 +81332,11 @@ function eteQxDataURL(){
   c.font='bold 15px sans-serif'; c.fillText('A2',265,112);
   c.font='bold 14px sans-serif'; c.fillText('P2',265,218);
   c.fillStyle=INK2; c.font='italic 9px sans-serif';
-  c.fillText('Anterior',265,30); c.fillText('Posterior',265,282); c.fillText('PM',20,156); c.fillText('AL',510,156);
+  /* ⚠️ LOS MISMOS DOS ROTULOS QUE EL SVG, Y HAY QUE CORREGIRLOS EN LOS DOS (Y3-1): esta es la
+     copia en canvas que viaja al PDF, asi que dejar uno solo arreglado publicaria una
+     nomenclatura en pantalla y la contraria en el papel FIRMADO. AL a la izquierda, del lado de
+     la orejuela (x=68) y de A1/P1; PM a la derecha. Las coordenadas no se movieron. */
+  c.fillText('Anterior',265,30); c.fillText('Posterior',265,282); c.fillText('AL',20,156); c.fillText('PM',510,156);
   c.strokeStyle=INK; c.lineWidth=1.8; c.beginPath(); c.arc(265,18,18,0,2*Math.PI); c.stroke();
   c.lineWidth=1.2;
   [[265,18,265,0],[265,18,250,28],[265,18,280,28]].forEach(l=>{ c.beginPath(); c.moveTo(l[0],l[1]); c.lineTo(l[2],l[3]); c.stroke(); });

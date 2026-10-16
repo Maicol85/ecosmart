@@ -912,6 +912,42 @@ window.__P = {
              foco: document.activeElement === b,
              cx: Math.round(r.left + r.width / 2), cy: Math.round(r.top + r.height / 2) } },
 
+  /* ══ Y3-1 · LA VISTA QUIRURGICA Y SUS COMISURAS ══════════════════════════════════════════
+     Se leen los rotulos CON SU COORDENADA, no sueltos: «hay un AL y un PM» es cierto tambien
+     con los dos invertidos. Y se leen ADEMAS los festones y la orejuela, para poder afirmar que
+     no se movieron — una correccion de rotulos que mueve el dibujo no es una correccion. */
+  qx() {
+    var svg = document.getElementById('ete-svg-qx');
+    if (!svg) return 'NO EXISTE ete-svg-qx';
+    var textos = Array.prototype.slice.call(svg.querySelectorAll('text')).map(function(t){
+      return { txt: (t.textContent || '').trim(),
+               x: Math.round(parseFloat(t.getAttribute('x'))),
+               y: Math.round(parseFloat(t.getAttribute('y'))) } });
+    var paths = {};
+    ['A1','A2','A3','P1','P2','P3'].forEach(function(k){
+      var e = document.getElementById('ete-qx-' + k);
+      paths[k] = e ? e.getAttribute('d') : 'NO EXISTE' });
+    var laa = svg.querySelector('ellipse[cx="68"]');
+    return { textos: textos, paths: paths,
+             laa: laa ? laa.getAttribute('cx') + ',' + laa.getAttribute('cy') : 'NO EXISTE',
+             /* El par ordenado por x: lo que de verdad dice de que lado esta cada comisura. */
+             comisuras: textos.filter(function(t){ return t.txt === 'AL' || t.txt === 'PM' })
+                              .sort(function(u,v){ return u.x - v.x })
+                              .map(function(t){ return t.txt + '@' + t.x }).join(' | ') } },
+
+  /* La copia en CANVAS que viaja al PDF: se lee su dataURL para poder compararla, y su largo
+     como denominador —un canvas que no se genera devuelve siempre lo mismo—. */
+  qxPdf() {
+    if (typeof eteQxDataURL !== 'function') return 'SIN FN';
+    try { var u = eteQxDataURL();
+      return { largo: u.length, png: u.indexOf('data:image/png') === 0, url: u };
+    } catch (e) { return 'EXC: ' + e.message } },
+
+  abrirEte() {
+    var o = {};
+    try { showTab('ete'); o.tab = 'ok' } catch (e) { o.tab = 'EXC: ' + e.message }
+    return o },
+
   /* Lo que la PANTALLA de Valvulas publica para una lesion, para el A/B caracter por caracter. */
   pant(clave) {
     var C = (window.V2D_PORQUE || {})[clave];
@@ -1497,6 +1533,17 @@ async function main() {
     }
     g.bordes = bordes;
     out.grupos.vmax = g;
+  }
+
+  /* ══ Y3-1 · LAS COMISURAS ════════════════════════════════════════════════════════════════ */
+  if (corre('comisuras')) {
+    const g = {};
+    await ev(`window.__P.nuevo()`);
+    await ev(`window.__P.abrirEte()`);
+    await ev(`window.__P.despejar()`);
+    g.qx = await ev(`window.__P.qx()`);
+    g.pdf = await ev(`window.__P.qxPdf()`);
+    out.grupos.comisuras = g;
   }
 
   out.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
