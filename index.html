@@ -3869,6 +3869,13 @@ window.cerrarSesionReal = cerrarSesionReal;
     <div class="card sacc" id="sacc-aorta">
       <button type="button" class="sacc-hdr" onclick="secToggle('aorta')" aria-expanded="false"><span class="sacc-arrow">▶</span>Aorta torácica</button>
       <div class="card-body sacc-body">
+        <!-- ⚠️ EL GLOBO VA EN UNA FILA DEL CUERPO Y NO EN EL ENCABEZADO DEL ACORDEON, que es un
+             <button>: un boton dentro de otro no es marcado valido. -->
+        <div class="calc-row" style="border:0;padding:0 0 6px;">
+          <span class="calc-lbl">Cortes y nomograma de la raíz aórtica
+            <button type="button" class="vinfo-btn" data-vinfo="ao-card" aria-expanded="false"
+                    aria-label="Cortes y nomograma de los senos de Valsalva" onclick="vInfoClic(this)">&#9432;</button></span>
+        </div>
         <div class="grid-3">
           <div class="fg">
             <label>Ao sinusal (mm)</label>
@@ -17113,6 +17120,18 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
            graficas y la bibliografia salen del registro de evidencia y de los duenos de cada
            corte, no de numeros escritos aca. -->
       <div id="ref-ai-cuerpo"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('ao2',this)">
+      🩸 Aorta — Cortes por segmento y nomogramas de los senos de Valsalva
+      <span style="float:right;">▶</span>
+    </h2>
+    <div id="ref-ao2" style="display:none;" class="card-body">
+      <!-- ⚠️ EL ID ES `ao2` Y NO `ao` PORQUE `ref-ao` YA EXISTE: es la tabla de aterosclerosis
+           y los umbrales quirurgicos de la ESC 2024, con otra fuente. -->
+      <div id="ref-ao2-cuerpo"></div>
     </div>
   </div>
 
@@ -38294,7 +38313,8 @@ const VINFO = Object.freeze({
      aplicacion clasifica la tarjeta pasa de 700 px, y a 1200 x 700 eso obliga a scroll
      INTERNO. Partida en tamano y funcion, cada mitad entra entera. */
   'vd-tam-card': { ancho: 356, dyn: function () { return evTarjetaVDTam() } },
-  'vd-fun-card': { ancho: 356, dyn: function () { return evTarjetaVDFun() } }
+  'vd-fun-card': { ancho: 356, dyn: function () { return evTarjetaVDFun() } },
+  'ao-card': { ancho: 356, dyn: function () { return evTarjetaAo() } }
 });
 let _vInfoId = null;
 function _vInfoBtnDe(clave) {
@@ -38533,8 +38553,15 @@ function _evBarra(cfg) {
     if (i === (cfg.bandas.length - 1)) return;
     /* `corteEn: 'desde'` publica el PISO de la banda de arriba en vez del techo de la de abajo.
        Lo usa la fraccion de eyeccion, donde mayor es mejor y el numero que el medico busca es el
-       50 %, no el 49,9 que todavia cae del lado de abajo. */
-    cortes.push(cfg.corteEn === 'desde' ? cfg.bandas[i + 1].desde : b.hasta);
+       50 %, no el 49,9 que todavia cae del lado de abajo.
+       ⚠️ PUEDE SER UNA LISTA, UNA ENTRADA POR CORTE, Y NO ES UN LUJO: en una barra con tres
+       cortes el operador NO tiene por que ser el mismo en los tres. El espesor de la pared del
+       VD es el caso: la guia escribe «< 0,5 · >=0,5 a <=0,7 · >0,7 a <=0,9 · >0,9», o sea que
+       el primer corte se nombra por el PISO de la banda de arriba (5) y los otros dos por el
+       TECHO de la de abajo (7 y 9). Con un solo modo, uno de los dos grupos sale corrido un
+       paso de sondeo —«4,9» o «7,1»—, que es un numero que el medico no reconoce. */
+    const _ce = Array.isArray(cfg.corteEn) ? cfg.corteEn[i] : cfg.corteEn;
+    cortes.push(_ce === 'desde' ? cfg.bandas[i + 1].desde : b.hasta);
   });
   /* ⚠️ LOS NUMEROS SE ESCALONAN EN DOS RENGLONES CUANDO NO ENTRAN, Y LO VIO LA CAPTURA, NO LA
      MEDICION: con los tres cortes del volumen indexado a 37 px uno de otro, los rotulos salian
@@ -39132,6 +39159,7 @@ function evTarjetaVDTam() {
 
   fr.appendChild(_evBarra({ clave: 'vd-pared', rotulo: 'Espesor de la pared libre (mm)',
     bandas: C.vdPared, lo: 1, hi: 14, unidad: 'mm', dec: 1, valor: num('vd_pared'),
+    corteEn: ['desde', 'hasta', 'hasta'],
     cat: _evCapsula('vd-pared-interp'),
     aviso: (num('vd_pared') === null) ? 'Cargar el espesor de la pared libre.' : '',
     ficha: 'DIM-VD-004' }));
@@ -39171,12 +39199,12 @@ function evTarjetaVDFun() {
     aviso: (_fac === null) ? 'Cargar las dos áreas del ventrículo derecho.' : '',
     ficha: 'FUN-VD-003' }));
   fr.appendChild(_evBarra({ clave: 'vd-fevd', rotulo: 'Fracción de eyección por 3D (%)',
-    bandas: C.vdFevd, lo: 15, hi: 75, unidad: '%', dec: 0, corteEn: 'desde',
+    bandas: C.vdFevd, lo: 15, hi: 75, unidad: '%', dec: 0,
     valor: num('fevd'), colores: ROJO, cat: _evCapsula('fevd-interp'),
     aviso: (num('fevd') === null) ? 'Cargar la fracción de eyección por 3D.' : '',
     ficha: 'FUN-VD-004' }));
   fr.appendChild(_evBarra({ clave: 'vd-tei', rotulo: 'Índice de Tei por Doppler tisular',
-    bandas: C.vdTei, lo: 0.15, hi: 1.0, unidad: '', dec: 2, valor: num('vd_tei'),
+    bandas: C.vdTei, lo: 0.15, hi: 1.0, unidad: '', dec: 2, corteEn: 'desde', valor: num('vd_tei'),
     cat: _evCapsula('vd-tei-interp'),
     aviso: (num('vd_tei') === null) ? 'Cargar el índice de Tei.' : '', ficha: 'FUN-VD-005' }));
   fr.appendChild(_evBarra({ clave: 'vd-tap', rotulo: 'Tiempo de aceleración pulmonar (ms)',
@@ -39189,6 +39217,150 @@ function evTarjetaVDFun() {
   return fr;
 }
 window.evTarjetaVDFun = evTarjetaVDFun;
+
+/* ══ EL GRAFICO DE LOS SENOS DE VALSALVA (M4, 2026-10-16) ═════════════════════════
+   DIBUJO PROPIO, no la imagen de la Figura 13: ese pie dice «Reprinted with permission from
+   Roman et al.» y la figura tiene derechos del editor y de los autores originales. Lo que se usa
+   son las ECUACIONES y los ERRORES ESTANDAR, que son datos numericos, citando a Lang 2015 y a
+   Roman 1989.
+   ⚠️ EL EJE Y VA EN MILIMETROS Y LA GUIA PUBLICA CENTIMETROS. El campo de la aplicacion y el
+   corte de EcoSmart estan en milimetros, asi que dibujar en centimetros obligaria al medico a
+   convertir el unico numero que le importa. La ecuacion se multiplica por diez y el eje lo dice.
+   ⚠️ LA LINEA DEL CORTE SALE DEL DUENO, SONDEADO, Y NO ESCRITA A MANO: es el techo de la banda
+   «normal» que `aoSegGrado` devuelve para el seno de Valsalva, asi que el dia que ese corte se
+   mueva la linea se mueve con el. */
+const AOR_G = Object.freeze({ W: 316, H: 150, L: 30, R: 6, T: 10, B: 22 });
+function _evNomoSvg(g, bsa, diamMm, corteMm) {
+  const W = AOR_G.W, H = AOR_G.H, L = AOR_G.L, R = AOR_G.R, T = AOR_G.T, B = AOR_G.B;
+  const x0 = g.bsaMin, x1 = g.bsaMax;
+  const yEq = (x) => (g.a + g.b * x) * 10;
+  const d = AOR_NOMO_Z * g.see * 10;
+  const cand = [yEq(x0) - d, yEq(x1) + d];
+  if (corteMm !== null && corteMm !== undefined) cand.push(corteMm);
+  if (diamMm !== null && diamMm !== undefined && isFinite(diamMm)) cand.push(diamMm);
+  let yLo = Math.floor((Math.min.apply(null, cand) - 3) / 5) * 5;
+  let yHi = Math.ceil((Math.max.apply(null, cand) + 3) / 5) * 5;
+  if (yHi - yLo < 10) yHi = yLo + 10;
+  const px = (x) => L + ((x - x0) / (x1 - x0)) * (W - L - R);
+  const py = (y) => (H - B) - ((y - yLo) / (yHi - yLo)) * (H - B - T);
+
+  const svg = _evSvg('svg', { viewBox: '0 0 ' + W + ' ' + H, width: '100%', height: H,
+                              role: 'img', 'data-ev-nomo': g.id });
+  /* La banda esperada, como un poligono de cuatro vertices: las dos rectas son paralelas. */
+  const pts = [[x0, yEq(x0) + d], [x1, yEq(x1) + d], [x1, yEq(x1) - d], [x0, yEq(x0) - d]]
+    .map(function (p) { return px(p[0]).toFixed(1) + ',' + py(p[1]).toFixed(1) }).join(' ');
+  svg.appendChild(_evSvg('polygon', { points: pts, fill: 'var(--green)', 'fill-opacity': 0.22,
+    stroke: 'var(--green)', 'stroke-width': 1, 'data-ev-banda': g.id }));
+  /* La recta esperada, punteada. */
+  svg.appendChild(_evSvg('line', { x1: px(x0).toFixed(1), y1: py(yEq(x0)).toFixed(1),
+    x2: px(x1).toFixed(1), y2: py(yEq(x1)).toFixed(1), stroke: 'var(--green)',
+    'stroke-width': 1, 'stroke-dasharray': '3 3', 'data-ev-esp': g.id }));
+  /* Los dos ejes. */
+  svg.appendChild(_evSvg('line', { x1: L, y1: T, x2: L, y2: H - B, stroke: 'var(--border)', 'stroke-width': 1 }));
+  svg.appendChild(_evSvg('line', { x1: L, y1: H - B, x2: W - R, y2: H - B, stroke: 'var(--border)', 'stroke-width': 1 }));
+  const rot = (x, y, t, anchor) => {
+    const e = _evSvg('text', { x: x.toFixed(1), y: y.toFixed(1), 'text-anchor': anchor || 'middle',
+      'font-size': 8.5, fill: 'var(--text2)' });
+    e.textContent = t; return e;
+  };
+  /* ⚠️ EL ROTULO DEL ULTIMO VALOR DE X SE SALIA POR EL BORDE DERECHO, Y LO VIO LA CAPTURA Y NO
+     LA MEDICION: con el ancla al medio, la mitad de «2,40 m2» queda fuera del viewBox y el SVG
+     no la recorta de una forma que se note, simplemente la dibuja afuera. Se acota el centro
+     igual que en `_evBarra`, con el ancho estimado por caracteres —medir texto en un SVG que
+     todavia no esta en el documento devuelve cero—. */
+  const _an = (t) => String(t).length * 4.4;
+  [x0, (x0 + x1) / 2, x1].forEach(function (x) {
+    svg.appendChild(_evSvg('line', { x1: px(x).toFixed(1), y1: H - B, x2: px(x).toFixed(1), y2: H - B + 3,
+      stroke: 'var(--border)', 'stroke-width': 1 }));
+    const t = _evNum(x, 2).replace(',00', '') + ' m²';
+    svg.appendChild(rot(Math.max(_an(t) / 2, Math.min(W - _an(t) / 2, px(x))), H - B + 12, t));
+  });
+  [yLo, (yLo + yHi) / 2, yHi].forEach(function (y) {
+    svg.appendChild(_evSvg('line', { x1: L - 3, y1: py(y).toFixed(1), x2: L, y2: py(y).toFixed(1),
+      stroke: 'var(--border)', 'stroke-width': 1 }));
+    svg.appendChild(rot(L - 5, py(y) + 3, _evNum(y, 0), 'end'));
+  });
+  /* La linea del corte de EcoSmart, con su numero Y SU UNIDAD. */
+  if (corteMm !== null && corteMm !== undefined && corteMm >= yLo && corteMm <= yHi) {
+    svg.appendChild(_evSvg('line', { x1: L, y1: py(corteMm).toFixed(1), x2: W - R, y2: py(corteMm).toFixed(1),
+      stroke: 'var(--orange)', 'stroke-width': 1.3, 'stroke-dasharray': '5 3',
+      'data-ev-corte-eco': String(corteMm) }));
+    /* ⚠️ A LA IZQUIERDA Y NO A LA DERECHA: con el ancla al final del trazo, el rotulo se
+       encimaba con el punto del paciente, que en una aorta dilatada cae justo ahi. Lo vio la
+       captura. */
+    const tc = _evSvg('text', { x: L + 3, y: (py(corteMm) - 3).toFixed(1), 'text-anchor': 'start',
+      'font-size': 8.5, fill: 'var(--orange)', 'data-ev-corte': 'ao-eco' });
+    tc.textContent = 'Corte de EcoSmart: ' + _evNum(corteMm, 0) + ' mm';
+    svg.appendChild(tc);
+  }
+  /* El punto del paciente. */
+  if (bsa !== null && bsa !== undefined && isFinite(bsa) && bsa >= x0 && bsa <= x1
+      && diamMm !== null && diamMm !== undefined && isFinite(diamMm)) {
+    svg.appendChild(_evSvg('circle', { cx: px(bsa).toFixed(1), cy: py(diamMm).toFixed(1), r: 5,
+      fill: 'var(--text)', stroke: 'var(--bg3)', 'stroke-width': 2, 'data-ev-punto': 'ao-nomo' }));
+  }
+  return svg;
+}
+
+/* ══ LA TARJETA DE LA AORTA (M4, 2026-10-16) ═════════════════════════════════
+   El grafico que corresponde a la EDAD del paciente, con su superficie corporal en el eje X.
+   ⚠️ EL CORTE DE 40 mm ES CRITERIO DE EcoSmart Y NO SE LE ATRIBUYE A NINGUNA GUIA: la linea
+   del grafico y la primera linea de texto lo dicen con esas palabras, y la ficha AOR-001 no
+   publica fuente. La linea de fuente que si sale es la del NOMOGRAMA.
+   ⚠️ LAS DOS LECTURAS SON INDEPENDIENTES Y PUEDEN DISCREPAR, y eso es informacion: el corte
+   unico no mira ni la edad ni el tamano del paciente y el nomograma si. Por eso la tercera
+   linea dice que es una orientacion. */
+function evTarjetaAo() {
+  const fr = document.createDocumentFragment();
+  const h = document.createElement('h4');
+  h.id = 'vinfo-tit';
+  h.textContent = 'Aorta torácica — senos de Valsalva';
+  fr.appendChild(h);
+
+  /* El corte, SONDEADO al dueno: es el techo de la banda «normal» del seno de Valsalva. */
+  const C = evCortes(sv('sexo'));
+  const bSin = (C.aoSeg && C.aoSeg.ao_sin) ? C.aoSeg.ao_sin : [];
+  let corte = null;
+  for (let i = 0; i < bSin.length; i++) if (bSin[i].k === 'normal') corte = bSin[i].hasta;
+
+  const pS = vPlaus('ao_sin');
+  const diam = (pS.val != null && !pS.fuera) ? pS.val : null;
+  const bsa = getBSA();
+  const lec = aorNomoLectura(v('edad'), bsa, diam);
+
+  const w = document.createElement('div');
+  w.className = 'ev-bl';
+  w.appendChild(_evDiv('ev-rot', lec.g
+    ? ('Rango esperado — ' + lec.g.rot + ' · diámetro en mm')
+    : 'Rango esperado según la edad y la superficie corporal'));
+  if (lec.g) w.appendChild(_evNomoSvg(lec.g, bsa, diam, corte));
+  fr.appendChild(w);
+
+  /* (1) El corte de EcoSmart, con la categoria que la capsula ya publica. */
+  const cap = _evCapsula('ao-interp');
+  fr.appendChild(_evDiv('ev-cat', (corte !== null ? ('Corte de EcoSmart: ' + _evNum(corte, 0) + ' mm. ') : '')
+    + (cap ? cap + '.' : 'Cargar el diámetro de los senos de Valsalva.'),
+    { 'data-ev-cat': 'ao-corte' }));
+  /* (2) La lectura del grafico. */
+  const EST = { dentro: 'dentro del', arriba: 'por encima del', abajo: 'por debajo del' };
+  let l2 = '';
+  if (lec.sinEdad) l2 = 'Cargar la edad para elegir el gráfico que corresponde.';
+  else if (!bsa) l2 = 'Cargar peso y talla: el gráfico necesita la superficie corporal.';
+  else if (lec.fueraRango) l2 = 'La superficie corporal queda fuera del rango que la guía dibuja para este gráfico ('
+    + _evNum(lec.g.bsaMin, 2) + ' a ' + _evNum(lec.g.bsaMax, 2) + ' m²).';
+  else if (!lec.estado) l2 = 'Cargar el diámetro de los senos de Valsalva.';
+  else l2 = 'Según el gráfico para su edad y superficie corporal: ' + EST[lec.estado]
+    + ' rango esperado (' + _evNum(lec.banda.lo * 10, 0) + ' a ' + _evNum(lec.banda.hi * 10, 0) + ' mm).';
+  fr.appendChild(_evDiv(lec.estado ? 'ev-cat' : 'ev-avi', l2,
+    lec.estado ? { 'data-ev-cat': 'ao-nomo' } : { 'data-ev-aviso': 'ao-nomo' }));
+  /* (3) La aclaracion, siempre. */
+  fr.appendChild(_evDiv('ev-cat', 'Es una orientación: el criterio final es individual (edad, sexo, superficie corporal).',
+    { 'data-ev-cat': 'ao-aclara' }));
+
+  fr.appendChild(_evFuentesPie(['AOR-001', 'AOR-002']));
+  return fr;
+}
+window.evTarjetaAo = evTarjetaAo;
 
 function _evRefTabla(filas, refIdx) {
   const t = document.createElement('table');
@@ -39252,7 +39424,8 @@ function _evRefBarras(defs, sexo) {
   w.className = 'ev-ref';
   defs.forEach(function (d) {
     w.appendChild(_evBarra({ clave: d.clave, rotulo: d.rotulo, bandas: C[d.banda],
-      lo: d.lo, hi: d.hi, unidad: d.unidad, dec: d.dec, valor: null, ficha: d.ficha, W: 520 }));
+      lo: d.lo, hi: d.hi, unidad: d.unidad, dec: d.dec, valor: null, ficha: d.ficha, W: 520,
+      corteEn: d.corteEn, colores: d.colores }));
   });
   return w;
 }
@@ -39300,6 +39473,40 @@ function evRefPintar(id) {
     host.appendChild(B.nodo);
     host.dataset.evPintado = '1';
   }
+  if (id === 'ao2') {
+    const B = _evRefBiblio(['AOR-001', 'AOR-002', 'AOR-003']);
+    host.appendChild(_evRefTabla([
+      { ficha: 'AOR-001', rot: 'Raíz aórtica — dilatada (criterio de EcoSmart)', h: '> 40 mm', m: '> 40 mm' },
+      { ficha: 'AOR-001', rot: 'Unión sinotubular — dilatada', h: '> 38 mm', m: '> 38 mm' },
+      { ficha: 'AOR-001', rot: 'Aorta ascendente — dilatada', h: '> 40 mm', m: '> 40 mm' },
+      { ficha: 'AOR-001', rot: 'Cayado — dilatado', h: '> 40 mm', m: '> 40 mm' },
+      { ficha: 'AOR-001', rot: 'Aorta torácica descendente — dilatada', h: '> 35 mm', m: '> 35 mm' },
+      { ficha: 'AOR-003', rot: 'Senos de Valsalva — normales', h: '3,4 ± 0,3 cm', m: '3,0 ± 0,3 cm' },
+      { ficha: 'AOR-003', rot: 'Senos de Valsalva — indexados', h: '1,7 ± 0,2 cm/m²', m: '1,8 ± 0,2 cm/m²' },
+      { ficha: 'AOR-003', rot: 'Unión sinotubular — normal', h: '2,9 ± 0,3 cm', m: '2,6 ± 0,3 cm' },
+      { ficha: 'AOR-003', rot: 'Aorta ascendente proximal — normal', h: '3,0 ± 0,4 cm', m: '2,7 ± 0,4 cm' },
+      { ficha: 'AOR-003', rot: 'Anillo aórtico — normal', h: '2,6 ± 0,3 cm', m: '2,3 ± 0,2 cm' },
+    ], B.idx));
+    /* LAS TRES GRAFICAS, sin el punto del paciente y con su ecuacion al pie. El numero sale de
+       `AOR_NOMO`, que es el mismo dueno que dibuja la tarjeta. */
+    const nSin = B.idx['AOR-002'];
+    AOR_NOMO.forEach(function (g) {
+      const w = document.createElement('div');
+      w.className = 'ev-ref';
+      w.appendChild(_evDiv('ev-rot', 'Senos de Valsalva — ' + g.rot
+        + (nSin ? (' [' + nSin + ']') : '')));
+      w.appendChild(_evNomoSvg(g, null, null, null));
+      w.appendChild(_evDiv('ev-cat', 'y = ' + _evNum(g.a, 2) + ' + ' + _evNum(g.b, 2)
+        + 'x · error estándar ' + _evNum(g.see, 2) + ' cm · r = ' + _evNum(g.r, 2)
+        + ' · rango dibujado ' + _evNum(g.bsaMin, 2) + ' a ' + _evNum(g.bsaMax, 2) + ' m²',
+        { 'data-ev-cat': 'ref-ao-' + g.id }));
+      host.appendChild(w);
+    });
+    host.appendChild(_evDiv('ev-fte', 'En las tres, y es el diámetro esperado de los senos en centímetros y x la superficie corporal en metros cuadrados; el rango esperado es la ecuación más y menos 1,96 veces el error estándar. El gráfico es propio: la figura original no se reproduce.',
+      { 'data-ev-fuente': 'ao-nota' }));
+    host.appendChild(B.nodo);
+    host.dataset.evPintado = '1';
+  }
   if (id === 'vd2') {
     const B = _evRefBiblio(['DIM-VD-001', 'DIM-VD-002', 'DIM-VD-003', 'DIM-VD-004',
                             'FUN-VD-001', 'FUN-VD-002', 'FUN-VD-003', 'FUN-VD-004',
@@ -39322,13 +39529,13 @@ function evRefPintar(id) {
       { clave: 'ref-vd-bas', rotulo: 'Diámetro basal (mm)', banda: 'vdBas', lo: 20, hi: 65, unidad: 'mm', dec: 0, ficha: 'DIM-VD-001' },
       { clave: 'ref-vd-mid', rotulo: 'Diámetro medio (mm)', banda: 'vdMid', lo: 15, hi: 55, unidad: 'mm', dec: 0, ficha: 'DIM-VD-002' },
       { clave: 'ref-vd-long', rotulo: 'Diámetro longitudinal (mm)', banda: 'vdLong', lo: 45, hi: 120, unidad: 'mm', dec: 0, ficha: 'DIM-VD-003' },
-      { clave: 'ref-vd-pared', rotulo: 'Espesor de la pared libre (mm)', banda: 'vdPared', lo: 1, hi: 14, unidad: 'mm', dec: 1, ficha: 'DIM-VD-004' },
-      { clave: 'ref-vd-tapse', rotulo: 'TAPSE (mm)', banda: 'vdTapse', lo: 5, hi: 32, unidad: 'mm', dec: 0, ficha: 'FUN-VD-001' },
-      { clave: 'ref-vd-sprime', rotulo: 'Onda S′ tricuspídea (cm/s)', banda: 'vdSprime', lo: 4, hi: 18, unidad: 'cm/s', dec: 1, ficha: 'FUN-VD-002' },
-      { clave: 'ref-vd-fac', rotulo: 'Cambio fraccional de área (%)', banda: 'vdFac', lo: 10, hi: 60, unidad: '%', dec: 0, ficha: 'FUN-VD-003' },
+      { clave: 'ref-vd-pared', rotulo: 'Espesor de la pared libre (mm)', banda: 'vdPared', lo: 1, hi: 14, unidad: 'mm', dec: 1, ficha: 'DIM-VD-004', corteEn: ['desde', 'hasta', 'hasta'] },
+      { clave: 'ref-vd-tapse', rotulo: 'TAPSE (mm)', banda: 'vdTapse', lo: 5, hi: 32, unidad: 'mm', dec: 0, ficha: 'FUN-VD-001', corteEn: 'desde' },
+      { clave: 'ref-vd-sprime', rotulo: 'Onda S′ tricuspídea (cm/s)', banda: 'vdSprime', lo: 4, hi: 18, unidad: 'cm/s', dec: 1, ficha: 'FUN-VD-002', corteEn: 'desde' },
+      { clave: 'ref-vd-fac', rotulo: 'Cambio fraccional de área (%)', banda: 'vdFac', lo: 10, hi: 60, unidad: '%', dec: 0, ficha: 'FUN-VD-003', corteEn: 'desde' },
       { clave: 'ref-vd-fevd', rotulo: 'Fracción de eyección por 3D (%)', banda: 'vdFevd', lo: 15, hi: 75, unidad: '%', dec: 0, ficha: 'FUN-VD-004' },
-      { clave: 'ref-vd-tei', rotulo: 'Índice de Tei por Doppler tisular', banda: 'vdTei', lo: 0.15, hi: 1.0, unidad: '', dec: 2, ficha: 'FUN-VD-005' },
-      { clave: 'ref-vd-tap', rotulo: 'Tiempo de aceleración pulmonar (ms)', banda: 'vdTap', lo: 50, hi: 180, unidad: 'ms', dec: 0, ficha: 'FUN-VD-006' },
+      { clave: 'ref-vd-tei', rotulo: 'Índice de Tei por Doppler tisular', banda: 'vdTei', lo: 0.15, hi: 1.0, unidad: '', dec: 2, ficha: 'FUN-VD-005', corteEn: 'desde' },
+      { clave: 'ref-vd-tap', rotulo: 'Tiempo de aceleración pulmonar (ms)', banda: 'vdTap', lo: 50, hi: 180, unidad: 'ms', dec: 0, ficha: 'FUN-VD-006', corteEn: 'desde' },
     ], 'M'));
     host.appendChild(B.nodo);
     host.dataset.evPintado = '1';
