@@ -2473,27 +2473,46 @@ html.light-mode .amilo-root{
   #m3d-lienzo,#m3d-cv{width:100%;flex:0 0 auto;}
 }
 @media (prefers-reduced-motion:reduce){ #m3d-panel{transition:none;} }
-#v2d-ov{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.6);display:none;}
-/* TARJETA FLOTANTE CENTRADA, NO PANTALLA COMPLETA (Y1b-1, 2026-10-16) — DECISION DE MAICOL.
-   Con el `inset:10px` del Y1 el panel tomaba la ventana entera: el dibujo quedaba enorme, las
-   tarjetas pegadas a los bordes y la tabla de cavidades y la nota CORTADAS debajo del borde
-   inferior. Medido en HEAD a 1200x700: panel 1180x680, dibujo 481x490, y la nota y la tabla
-   FUERA de la caja visible, con scroll interno en los seis anchos.
-   ⚠️ SE CENTRA CON `inset:0` + `margin:auto` Y NO CON `transform:translate(-50%,-50%)`, y no es
-   una preferencia: un ancestro con `transform` es BLOQUE CONTENEDOR de cualquier descendiente
-   `position:fixed`, asi que el dia que esta vista necesite una tarjeta flotante adentro —como la
-   del globo ⓘ, que por esto mismo cuelga del body— su rect del viewport y su posicion dejarian de
-   estar en el mismo sistema. Con `margin:auto` no hay un segundo sistema de coordenadas.
-   `height:max-content` acotada por `max-height` es lo que deja que la tarjeta mida lo que su
-   contenido pide y, cuando lo pasa, que el que se desplaza sea el CUERPO y no la pagina. */
-#v2d-card{position:absolute;inset:0;margin:auto;width:min(900px,94vw);
-  height:max-content;max-height:85vh;
-  display:flex;flex-direction:column;background:var(--bg2);
-  border:1px solid var(--border);border-radius:12px;box-shadow:0 14px 40px rgba(0,0,0,.45);}
+/* ══ EL PANEL EN LINEA (Y1c, 2026-10-16) — DECISION DE MAICOL ══════════════════════════════
+   Era un overlay `position:fixed` con fondo tenue y una tarjeta flotante centrada; hoy es un
+   bloque mas de la pantalla de Valvulas, debajo del boton.
+   ⚠️ APAGADO NO OCUPA ESPACIO, Y HACEN FALTA LAS DOS COSAS: el atributo `hidden` —que lo saca
+   del arbol de accesibilidad Y del orden de tabulacion— y esta regla de AUTOR con `!important`,
+   porque el `[hidden]{display:none}` vive en la hoja del NAVEGADOR y cualquier regla de autor le
+   gana. Esta app ya lo pago cinco veces; la ultima fue el boton del 3D de ETE, que media 64x44
+   VISIBLE con `hidden` puesto.
+   ⚠️ NI UNA ALTURA EN PORCENTAJE Y NINGUN `flex:1`, que es el arreglo del DEFECTO DE SAFARI.
+   La tarjeta flotante era `display:flex;flex-direction:column;height:max-content` con el cuerpo
+   en `flex:1` —o sea `flex-basis:0%`, un PORCENTAJE contra un contenedor de altura indefinida—.
+   Medido: `flex-basis` computaba `0%` en los dos motores. En WebKit moderno (27.2) se resuelve
+   bien y el panel mide igual que en Chrome; en el Safari del medico el cuerpo se resolvia a casi
+   cero y quedaba la cabecera de 53 px mas los dos bordes —los «unos 60 px» del reporte, con los
+   rotulos «Insuficiencias» y «Estenosis» asomando por el recorte de `overflow:auto`—. Hoy no hay
+   contenedor de alto indefinido, no hay porcentaje y no hay recorte: el panel crece con su
+   contenido y la que se desplaza es la PAGINA. */
+#v2d-ov{display:block;margin:10px 0 2px;}
+#v2d-ov[hidden]{display:none!important;}
+/* EL PANEL, CENTRADO EN EL FLUJO Y CON UN TECHO DE ANCHO (Y1c) — DECISION DE MAICOL.
+   `margin:0 auto` lo centra dentro de la pantalla de Valvulas y `min(900px,100%)` le pone el
+   techo de los 900 px sin que pueda desbordar en angosto.
+   ⚠️ SE FUERON `position:absolute`, `inset:0`, `height:max-content` Y `max-height:85vh`, las
+   cuatro juntas: eran lo que hacia de esto una ventana. Con el panel en el flujo no hay un
+   segundo sistema de coordenadas que mantener —que es por lo que el Y1b habia evitado
+   `transform:translate(-50%,-50%)`— y tampoco hay techo de alto, asi que no hay desplazamiento
+   interno: la pagina es la que se desplaza, que es lo que la orden pide.
+   ⚠️ EL ANCHO ES UN TECHO FIJO Y NO `fit-content`, y es deliberado: `width:fit-content` sobre un
+   contenedor de columna que adentro tiene una TABLA al 100 % resuelve distinto en cada motor, y
+   el objetivo de esta tanda es justamente que los dos midan lo mismo. La grilla de adentro ya
+   agrupa sus tres zonas en el centro con `justify-content:center`. */
+#v2d-card{width:min(900px,100%);margin:0 auto;background:var(--bg2);
+  border:1px solid var(--border);border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.28);}
 #v2d-head{display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:1px solid var(--border);
-  background:var(--bg2);border-radius:12px 12px 0 0;flex-shrink:0;}
+  background:var(--bg2);border-radius:12px 12px 0 0;}
 #v2d-tit{flex:1;font-weight:700;font-size:13px;color:var(--accent2);}
-#v2d-cuerpo{padding:10px 12px;overflow:auto;flex:1;}
+/* ⚠️ SIN `flex:1` Y SIN `overflow:auto`. El `flex:1` era `flex-basis:0%` —el porcentaje que
+   colapsaba el cuerpo en Safari— y el `overflow:auto` era el desplazamiento interno que la orden
+   retira. El panel no tiene techo de alto, asi que no hay nada que recortar. */
+#v2d-cuerpo{padding:10px 12px;}
 /* El dibujo al CENTRO y las dos columnas de tarjetas a los costados. El ORDEN DEL MARCADO es el
    de una sola columna —dibujo, insuficiencias, estenosis—, que es el que vale en celular y el
    que lee un lector de pantalla; las tres columnas se arman con posicion EXPLICITA, igual que la
@@ -2517,9 +2536,8 @@ html.light-mode .amilo-root{
 @media (max-width:768px){
   #v2d-grid{grid-template-columns:minmax(0,1fr);}
   #v2d-dibujo,#v2d-col-insuf,#v2d-col-esten,#v2d-cav{grid-column:1;grid-row:auto;}
-  /* En angosto la tarjeta vuelve a tomar la pantalla con 8 px de margen: con 94vw de ancho y
-     85vh de alto no entraria la tabla, y el desplazamiento sigue siendo el del CUERPO. */
-  #v2d-card{inset:8px;margin:0;width:auto;height:auto;max-height:none;}
+  /* En angosto el panel toma el 100 % del ancho de la pantalla de Valvulas, sin techo. */
+  #v2d-card{width:auto;margin:0;}
   #v2d-cuerpo{padding:10px;}
   /* En UNA columna el dibujo vuelve a ocupar el ancho y su alto lo da la proporcion: con el alto
      fijo de escritorio quedaria angosto y con aire a los costados. */
@@ -2602,8 +2620,6 @@ html.light-mode .amilo-root{
   vertical-align:top;line-height:1.35;}
 #v2d-cav th{color:var(--text2);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.4px;}
 #v2d-cav td:first-child{color:var(--text2);white-space:nowrap;}
-/* Objetivos tactiles comodos: el boton de cerrar y el del pie de Valvulas. Sin hover. */
-#v2d-cerrar{min-height:38px;min-width:38px;}
 .v2d-pie{margin:14px 0 2px;text-align:center;}
 /* EL BOTON DEL PIE, CHICO Y NEUTRO (Y1b-1) — DECISION DE MAICOL. El color, el borde y el fondo
    los da `btn-ghost`, que es EXACTAMENTE el estado de reposo de las ocho pestanas de valvula
@@ -3143,87 +3159,6 @@ window.cerrarSesionReal = cerrarSesionReal;
        style="display:none;position:fixed;z-index:310;box-sizing:border-box;overflow:auto;background:var(--bg2);border:1px solid var(--border);border-radius:10px;box-shadow:0 14px 40px rgba(0,0,0,.55);padding:11px 13px;"></div>
 </div>
 
-
-<!-- ══ VISTA 2D DE LAS VALVULAS (Y1, 2026-10-15) — DECISION DE MAICOL ══════════════════════════
-     Esquema animado, CUALITATIVO y de SOLO LECTURA. No calcula nada: todo lo que dibuja y todo
-     lo que escriben las tarjetas sale de `v2dEstado()`, que junta lo que la app ya publico.
-     Nada se guarda en el estudio ni en el navegador, y ninguna superficie firmada lo nombra.
-
-     ⚠️ `role="dialog"` CON `aria-modal="true"`, al reves que la tarjeta de los globos: esto SI es
-     un modal —toma la pantalla entera y atrapa el foco—, asi que entra en las dos piezas del
-     bloque de accesibilidad: la trampa de Tab, que cicla el foco adentro, y el oyente generico
-     de Escape, que le clickea el primer boton cuyo `onclick` matchee /cerrar/. Por eso el boton
-     de cerrar se llama `v2dCerrar()` y no hace falta un segundo oyente de teclado: uno solo
-     cierra, y `v2dCerrar` es idempotente.
-     ⚠️ EL SVG NACE VACIO DE DATOS y lo puebla `v2dAbrir`. Mientras la vista esta cerrada no corre
-     ningun temporizador ni ningun cuadro de animacion: el bucle se arma al abrir y se desarma al
-     cerrar, que es lo que la orden pide y lo que evita que una pestana en segundo plano siga
-     repintando un dibujo que nadie mira. -->
-<div id="v2d-ov" onclick="if(event.target===this)v2dCerrar();">
-  <div id="v2d-card" role="dialog" aria-modal="true" aria-labelledby="v2d-tit" tabindex="-1">
-    <div id="v2d-head">
-      <span id="v2d-tit">&#129728; V&aacute;lvulas en 2D</span>
-      <button type="button" class="btn btn-ghost" id="v2d-cerrar" aria-label="Cerrar la vista 2D"
-              style="font-size:12px;padding:3px 12px;font-weight:700;" onclick="v2dCerrar()">&#10005; Cerrar</button>
-    </div>
-    <div id="v2d-cuerpo">
-      <div id="v2d-grid">
-        <div id="v2d-dibujo">
-          <svg id="v2d-svg" viewBox="24 36 154 242" xmlns="http://www.w3.org/2000/svg" role="img"
-               aria-label="Esquema animado del coraz&oacute;n con las v&aacute;lvulas y sus chorros">
-      <defs>
-      <linearGradient id="v2dgMyo" x1="0" y1="0" x2="0.35" y2="1"><stop offset="0" style="stop-color:var(--v2d-myo1)" stop-color="#f7bdb4"/><stop offset="1" style="stop-color:var(--v2d-myo2)" stop-color="#e2707f"/></linearGradient>
-      <linearGradient id="v2dgBL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--v2d-bl1)" stop-color="#fff6f4"/><stop offset="1" style="stop-color:var(--v2d-bl2)" stop-color="#ffd3cc"/></linearGradient>
-      <linearGradient id="v2dgBR" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--v2d-br1)" stop-color="#f3f4ff"/><stop offset="1" style="stop-color:var(--v2d-br2)" stop-color="#cfd6fb"/></linearGradient>
-      <radialGradient id="v2dgShine" cx="0.3" cy="0.18" r="0.7"><stop offset="0" stop-color="#ffffff" stop-opacity=".38"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></radialGradient>
-      <pattern id="v2dpt1" width="4" height="4" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="0.6" style="fill:var(--v2d-leafstroke)" fill="#8a5a1f"/></pattern>
-      <pattern id="v2dpt2" width="4" height="4" patternUnits="userSpaceOnUse"><line x1="0" y1="2" x2="4" y2="2" style="stroke:var(--v2d-leafstroke)" stroke="#8a5a1f" stroke-width="0.55"/></pattern>
-      <pattern id="v2dpt3" width="4" height="4" patternUnits="userSpaceOnUse"><line x1="0" y1="2" x2="4" y2="2" style="stroke:var(--v2d-leafstroke)" stroke="#8a5a1f" stroke-width="0.55"/><line x1="2" y1="0" x2="2" y2="4" style="stroke:var(--v2d-leafstroke)" stroke="#8a5a1f" stroke-width="0.55"/></pattern>
-      <pattern id="v2dflw-it" width="9" height="11" patternUnits="userSpaceOnUse"><rect x="1" y="1" width="7" height="2.4" rx="1.2" fill="#ffffff" fill-opacity=".8"/><rect x="3" y="6.4" width="5" height="1.8" rx=".9" fill="#ffffff" fill-opacity=".55"/></pattern>
-      <pattern id="v2dflw-im" width="9" height="11" patternUnits="userSpaceOnUse"><rect x="1" y="1" width="7" height="2.4" rx="1.2" fill="#ffffff" fill-opacity=".8"/><rect x="3" y="6.4" width="5" height="1.8" rx=".9" fill="#ffffff" fill-opacity=".55"/></pattern>
-      <pattern id="v2dflw-iao" width="9" height="11" patternUnits="userSpaceOnUse"><rect x="1" y="1" width="7" height="2.4" rx="1.2" fill="#ffffff" fill-opacity=".8"/><rect x="3" y="6.4" width="5" height="1.8" rx=".9" fill="#ffffff" fill-opacity=".55"/></pattern>
-      </defs>
-            <path id="v2d-out" class="v2d-sector"/>
-            <path id="v2d-shine" class="v2d-shine"/>
-            <path id="v2d-cl" class="v2d-chamR"/>
-            <path id="v2d-cr" class="v2d-chamL"/>
-            <g id="v2d-jets"></g>
-            <g id="v2d-valves"></g>
-            <g id="v2d-names">
-              <text id="v2d-n-vd" class="v2d-cn" x="72" y="92">VD</text><text id="v2d-n-vi" class="v2d-cn" x="124" y="92">VI</text>
-              <text id="v2d-n-ad" class="v2d-cn" x="62" y="238">AD</text><text id="v2d-n-ai" class="v2d-cn" x="122" y="238">AI</text>
-            </g>
-            <g id="v2d-labels">
-              <text id="v2d-l-tv" class="v2d-lbl" x="64" y="201">VT</text>
-              <text id="v2d-l-av" class="v2d-lbl" x="97" y="199">VA</text>
-              <text id="v2d-l-mv" class="v2d-lbl" x="128" y="185">VM</text>
-            </g>
-          </svg>
-          <div id="v2d-ciclo">
-            <div id="v2d-bar" aria-hidden="true"><div class="v2d-s"></div><div class="v2d-d"></div><div id="v2d-mark"></div></div>
-            <div id="v2d-fase"><span>Fase: <b id="v2d-fase1">&mdash;</b></span><span id="v2d-fase2"></span></div>
-          </div>
-        </div>
-        <div id="v2d-col-insuf">
-          <div class="v2d-grp">Insuficiencias</div>
-          <ul class="v2d-lista" id="v2d-insuf"></ul>
-        </div>
-        <div id="v2d-col-esten">
-          <div class="v2d-grp">Estenosis</div>
-          <ul class="v2d-lista" id="v2d-esten"></ul>
-        </div>
-        <div id="v2d-cav">
-          <div class="v2d-grp">Cavidades</div>
-          <div id="v2d-cav-tabla"></div>
-        </div>
-      </div>
-      <p class="v2d-nota">Esquema <b>cualitativo</b>: no est&aacute; a escala y no mide. La apertura de cada
-      v&aacute;lvula, el tama&ntilde;o de los chorros y de las c&aacute;maras muestran s&oacute;lo el grado que la aplicaci&oacute;n ya
-      public&oacute;. La vista apical de cinco c&aacute;maras no incluye la v&aacute;lvula pulmonar. Coraz&oacute;n izquierdo en
-      tonos rosados y derecho en tonos azulados.</p>
-    </div>
-  </div>
-</div>
 <!-- ══ LA TARJETA DE LOS GLOBOS «i» DE VALVULAS (2026-10-14) — DECISION DE MAICOL ════════════
      UNA sola tarjeta para los ocho globos de la pestana: el contenido lo escribe `_vInfoAbrir` y
      cual esta abierto lo dice `_vInfoId`. Ocho tarjetas en el marcado serian ocho nodos que se
@@ -7534,10 +7469,101 @@ window.cerrarSesionReal = cerrarSesionReal;
        no paneles, asi que un control gateado que igual activa su pestana entra sin pasar por
        ninguna compuerta. Este no gatea nada, asi que no hay compuerta que saltarse. -->
   <div class="v2d-pie">
-    <button type="button" class="btn btn-ghost" id="v2d-abrir" onclick="v2dAbrir()"
-            aria-haspopup="dialog" aria-controls="v2d-ov"
+    <!-- UN SOLO BOTON QUE PRENDE Y APAGA, CON EL MISMO TEXTO SIEMPRE (Y1c) — DECISION DE
+         MAICOL. Lo que cambia es el COLOR: apagado lleva `btn-ghost`, el estado de reposo de las
+         ocho pestanas de valvula; prendido lleva `btn-primary`, el estado ACTIVO de esas mismas
+         pestanas. No se declara ni un color aca —los dos salen de la paleta de la pestana—, asi
+         que el boton y la pestana no se pueden separar el dia que alguien repunte un color.
+         `aria-pressed` y no `aria-expanded`: esto es un interruptor de dos estados, no un
+         desplegable; y `aria-haspopup="dialog"` se fue con el dialogo. -->
+    <button type="button" class="btn btn-ghost" id="v2d-abrir" onclick="v2dTog()"
+            aria-pressed="false" aria-controls="v2d-ov"
             title="Ver el esquema 2D con las valvulas y las cavidades">&#129728; Ver en 2D</button>
   </div>
+  <!-- ══ VISTA 2D DE LAS VALVULAS — PANEL EN LINEA (Y1, 2026-10-15; Y1c, 2026-10-16) ══════════
+       Esquema animado, CUALITATIVO y de SOLO LECTURA. No calcula nada: todo lo que dibuja y todo
+       lo que escriben las tarjetas sale de `v2dEstado()`, que junta lo que la app ya publico.
+       Nada se guarda en el estudio ni en el navegador, y ninguna superficie firmada lo nombra.
+
+       ⚠️ YA NO ES UN DIALOGO, Y POR ESO VIVE ACA (Y1c) — DECISION DE MAICOL. El panel aparece
+       DEBAJO del boton «Ver en 2D», DENTRO de la pantalla de Valvulas, como el 3D de ETE aparece
+       dentro de la suya. Se fue todo lo que era de ventana flotante: el fondo tenue, la tarjeta
+       centrada con `position:absolute`, el boton de cerrar, el cierre al tocar fuera, el atributo
+       de dialogo modal y, con el, las dos piezas del bloque de accesibilidad que lo tomaban —la
+       trampa de Tab y el oyente generico de Escape, que le clickeaba el boton cuyo `onclick`
+       matchea /cerrar/—. Hoy es una REGION con nombre accesible y UN solo boton que la prende y
+       la apaga.
+       ⚠️ `hidden` MAS UNA REGLA DE AUTOR PROPIA, no `hidden` solo. El `[hidden]{display:none}` de
+       la hoja del NAVEGADOR pierde contra cualquier regla de autor, y esta app ya lo pago cinco
+       veces —`.fg`, el banner de version, `.frases-panel`, el boton del panel de Evidencia y el
+       propio boton del 3D de ETE, que media 64x44 VISIBLE con `hidden` puesto—. Ver
+       `#v2d-ov[hidden]` en la hoja.
+       ⚠️ EL SVG NACE VACIO DE DATOS y lo puebla `v2dAbrir`. Mientras el panel esta apagado no
+       corre ningun temporizador ni ningun cuadro de animacion: el bucle se arma al prender y se
+       desarma al apagar, y ademas se frena con la pestana del navegador oculta. -->
+  <div id="v2d-ov" hidden>
+  <div id="v2d-card" role="region" aria-labelledby="v2d-tit">
+    <div id="v2d-head">
+      <span id="v2d-tit">&#129728; V&aacute;lvulas en 2D</span>
+    </div>
+    <div id="v2d-cuerpo">
+      <div id="v2d-grid">
+        <div id="v2d-dibujo">
+          <svg id="v2d-svg" viewBox="24 36 154 242" xmlns="http://www.w3.org/2000/svg" role="img"
+               aria-label="Esquema animado del coraz&oacute;n con las v&aacute;lvulas y sus chorros">
+      <defs>
+      <linearGradient id="v2dgMyo" x1="0" y1="0" x2="0.35" y2="1"><stop offset="0" style="stop-color:var(--v2d-myo1)" stop-color="#f7bdb4"/><stop offset="1" style="stop-color:var(--v2d-myo2)" stop-color="#e2707f"/></linearGradient>
+      <linearGradient id="v2dgBL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--v2d-bl1)" stop-color="#fff6f4"/><stop offset="1" style="stop-color:var(--v2d-bl2)" stop-color="#ffd3cc"/></linearGradient>
+      <linearGradient id="v2dgBR" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--v2d-br1)" stop-color="#f3f4ff"/><stop offset="1" style="stop-color:var(--v2d-br2)" stop-color="#cfd6fb"/></linearGradient>
+      <radialGradient id="v2dgShine" cx="0.3" cy="0.18" r="0.7"><stop offset="0" stop-color="#ffffff" stop-opacity=".38"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></radialGradient>
+      <pattern id="v2dpt1" width="4" height="4" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="0.6" style="fill:var(--v2d-leafstroke)" fill="#8a5a1f"/></pattern>
+      <pattern id="v2dpt2" width="4" height="4" patternUnits="userSpaceOnUse"><line x1="0" y1="2" x2="4" y2="2" style="stroke:var(--v2d-leafstroke)" stroke="#8a5a1f" stroke-width="0.55"/></pattern>
+      <pattern id="v2dpt3" width="4" height="4" patternUnits="userSpaceOnUse"><line x1="0" y1="2" x2="4" y2="2" style="stroke:var(--v2d-leafstroke)" stroke="#8a5a1f" stroke-width="0.55"/><line x1="2" y1="0" x2="2" y2="4" style="stroke:var(--v2d-leafstroke)" stroke="#8a5a1f" stroke-width="0.55"/></pattern>
+      <pattern id="v2dflw-it" width="9" height="11" patternUnits="userSpaceOnUse"><rect x="1" y="1" width="7" height="2.4" rx="1.2" fill="#ffffff" fill-opacity=".8"/><rect x="3" y="6.4" width="5" height="1.8" rx=".9" fill="#ffffff" fill-opacity=".55"/></pattern>
+      <pattern id="v2dflw-im" width="9" height="11" patternUnits="userSpaceOnUse"><rect x="1" y="1" width="7" height="2.4" rx="1.2" fill="#ffffff" fill-opacity=".8"/><rect x="3" y="6.4" width="5" height="1.8" rx=".9" fill="#ffffff" fill-opacity=".55"/></pattern>
+      <pattern id="v2dflw-iao" width="9" height="11" patternUnits="userSpaceOnUse"><rect x="1" y="1" width="7" height="2.4" rx="1.2" fill="#ffffff" fill-opacity=".8"/><rect x="3" y="6.4" width="5" height="1.8" rx=".9" fill="#ffffff" fill-opacity=".55"/></pattern>
+      </defs>
+            <path id="v2d-out" class="v2d-sector"/>
+            <path id="v2d-shine" class="v2d-shine"/>
+            <path id="v2d-cl" class="v2d-chamR"/>
+            <path id="v2d-cr" class="v2d-chamL"/>
+            <g id="v2d-jets"></g>
+            <g id="v2d-valves"></g>
+            <g id="v2d-names">
+              <text id="v2d-n-vd" class="v2d-cn" x="72" y="92">VD</text><text id="v2d-n-vi" class="v2d-cn" x="124" y="92">VI</text>
+              <text id="v2d-n-ad" class="v2d-cn" x="62" y="238">AD</text><text id="v2d-n-ai" class="v2d-cn" x="122" y="238">AI</text>
+            </g>
+            <g id="v2d-labels">
+              <text id="v2d-l-tv" class="v2d-lbl" x="64" y="201">VT</text>
+              <text id="v2d-l-av" class="v2d-lbl" x="97" y="199">VA</text>
+              <text id="v2d-l-mv" class="v2d-lbl" x="128" y="185">VM</text>
+            </g>
+          </svg>
+          <div id="v2d-ciclo">
+            <div id="v2d-bar" aria-hidden="true"><div class="v2d-s"></div><div class="v2d-d"></div><div id="v2d-mark"></div></div>
+            <div id="v2d-fase"><span>Fase: <b id="v2d-fase1">&mdash;</b></span><span id="v2d-fase2"></span></div>
+          </div>
+        </div>
+        <div id="v2d-col-insuf">
+          <div class="v2d-grp">Insuficiencias</div>
+          <ul class="v2d-lista" id="v2d-insuf"></ul>
+        </div>
+        <div id="v2d-col-esten">
+          <div class="v2d-grp">Estenosis</div>
+          <ul class="v2d-lista" id="v2d-esten"></ul>
+        </div>
+        <div id="v2d-cav">
+          <div class="v2d-grp">Cavidades</div>
+          <div id="v2d-cav-tabla"></div>
+        </div>
+      </div>
+      <p class="v2d-nota">Esquema <b>cualitativo</b>: no est&aacute; a escala y no mide. La apertura de cada
+      v&aacute;lvula, el tama&ntilde;o de los chorros y de las c&aacute;maras muestran s&oacute;lo el grado que la aplicaci&oacute;n ya
+      public&oacute;. La vista apical de cinco c&aacute;maras no incluye la v&aacute;lvula pulmonar. Coraz&oacute;n izquierdo en
+      tonos rosados y derecho en tonos azulados.</p>
+    </div>
+  </div>
+</div>
 </div>
 
 <!-- ═══════════════════════ TAB: OTROS ═══════════════════════ -->
@@ -20284,6 +20310,10 @@ function showTab(id) {
      así que al volver tiene que estar como la orden pide —cerrado— y no abierto sobre el
      paciente siguiente. */
   if (typeof m3dCerrar === 'function') m3dCerrar();
+  /* Y el panel en linea de la vista 2D, por lo mismo: vive DENTRO de la pantalla de Valvulas,
+     asi que al volver tiene que estar como la orden pide —apagado— y no prendido sobre el
+     paciente siguiente, con su latido corriendo sobre un dibujo sin geometria. */
+  if (typeof v2dCerrar === 'function') v2dCerrar();
   document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + id).classList.add('active');
@@ -47372,7 +47402,7 @@ function RECALC_MODULOS() {
      automaticos con el «requiere …» del formulario vacio al lado de un VDFVI y una FEVI ya
      poblados. No puede migrar nada: no escribe ningun campo del estudio, los dos nodos que
      toca son `vauto-` y el tercero un `<div>` de texto. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','m3dBotonSync'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','m3dBotonSync','v2dCerrar'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -47838,6 +47868,13 @@ function limpiarCampos(silencioso) {
      atributo `hidden` de un botón, que ningún barrido toca. */
   if (typeof m3dCerrar === 'function') m3dCerrar();
   if (typeof m3dBotonSync === 'function') m3dBotonSync();
+  /* ⚠️ Y LA VISTA 2D SE APAGA, QUE ES UNA DIFERENCIA CON HEAD Y SE DECLARA. Hasta hoy la ventana
+     flotante NO se cerraba con «Nuevo estudio» —nadie llamaba a `v2dCerrar` fuera de sus tres
+     caminos—, pero con el panel EN LINEA dejarlo prendido publicaria las tarjetas, la tabla y el
+     dibujo del paciente ANTERIOR sobre un formulario en blanco: el barrido generico de
+     `limpiarCampos` no alcanza ni a los `<li>` que `v2dPintarTarjetas` crea ni al `<svg>`. Es la
+     misma decision que el panel 3D de ETE, dos lineas arriba. */
+  if (typeof v2dCerrar === 'function') v2dCerrar();
   /* La tabla de Cardio-Oncología está indexada por paciente pero no se repinta sola: con
      «Nuevo Estudio» estando en esa pestaña, seguía mostrando «Seguimiento de <paciente
      anterior> — 3 controles» sobre un formulario ya vacío. */
@@ -112627,33 +112664,130 @@ function v2dPintarCav(E){
   host.appendChild(tb);
 }
 
-/* ══ ABRIR Y CERRAR ═══════════════════════════════════════════════════════════════════════════
-   ⚠️ EL FOCO ENTRA A LA VISTA Y VUELVE AL BOTON. Es la leccion que el panel de Evidencia pago:
-   sin enfocar la tarjeta, el foco queda en el `body`, el primer Tab se va a un control de la
-   pagina que esta DETRAS del overlay, y la trampa de Tab del bloque de accesibilidad no matchea
-   —solo actua con el foco ya dentro del dialogo—. Se enfoca la TARJETA, que para eso lleva
-   `tabindex="-1"`, y al cerrar se devuelve al boton que abrio.
-   ⚠️ Y EL ESCAPE NO NECESITA UN OYENTE PROPIO: el generico del bloque de accesibilidad busca el
-   `[role="dialog"][aria-modal="true"]` visible mas alto y le clickea el primer boton cuyo
-   `onclick` matchee /cerrar/. `v2dCerrar()` lo matchea. Un segundo oyente seria una segunda
-   puerta que se desincroniza. */
+/* ══ PRENDER Y APAGAR ════════════════════════════════════════════════════════════════════════
+   UN solo boton (`#v2d-abrir`) con el MISMO texto siempre; lo que cambia es el color y
+   `aria-pressed`. El panel es una REGION en linea, no un dialogo, asi que no hay foco que
+   atrapar ni devolver: el foco se queda donde el gesto lo dejo —en el boton, si fue un clic o
+   una tecla— y el panel no lo roba.
+   ⚠️ `v2dVisible()` MIRA EL ESTADO QUE ESTA FUNCION ES DUENA (`hidden`) Y NO EL `display`
+   COMPUTADO, y no es un atajo: al cambiar de pestana el `#tab-valvulas` entero pasa a
+   `display:none`, asi que un `getComputedStyle` devolveria «apagado» con el panel prendido y el
+   apagado automatico y la reanudacion del latido quedarian sin disparar. Es la leccion que
+   `m3dVisible` ya pago mirando la clase de la animacion.
+   ⚠️ EL COLOR SE CAMBIA POR CLASE Y NO POR UN COLOR PROPIO: `btn-ghost` es el reposo de una
+   pestana de valvula y `btn-primary` su estado ACTIVO. */
+function v2dVisible(){
+  const ov = document.getElementById('v2d-ov');
+  return !!ov && ov.hidden === false;
+}
+function _v2dBotonSync(){
+  const b = document.getElementById('v2d-abrir');
+  if (!b) return;
+  const on = v2dVisible();
+  b.classList.toggle('btn-primary', on);
+  b.classList.toggle('btn-ghost', !on);
+  b.setAttribute('aria-pressed', on ? 'true' : 'false');
+}
 function v2dAbrir(){
   const ov = document.getElementById('v2d-ov'); if (!ov) return;
   const E = (typeof v2dSync === 'function') ? v2dSync() : null;
   if (E) { v2dPintarTarjetas(E); v2dPintarCav(E); }
-  ov.style.display = 'block';
+  ov.hidden = false;
+  try { _v2dFoto = E ? JSON.stringify(E) : null; } catch (e) { _v2dFoto = null; }
+  _v2dBotonSync();
   if (typeof v2dArrancar === 'function') v2dArrancar();
-  const card = document.getElementById('v2d-card');
-  if (card) { try { card.focus({ preventScroll:true }); } catch (e) { card.focus(); } }
+  /* LA PAGINA BAJA SOLA HASTA MOSTRARLO, SUAVE Y SIN ROBAR EL FOCO. `block:'nearest'` desplaza
+     lo MINIMO necesario: si el panel ya se ve entero no mueve nada, asi que abrir dos veces no
+     salta. Con `prefers-reduced-motion` el salto es instantaneo. */
+  try {
+    let suave = true;
+    try { suave = !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
+    catch (e) {}
+    ov.scrollIntoView({ behavior: suave ? 'smooth' : 'auto', block: 'nearest', inline: 'nearest' });
+  } catch (e) {}
 }
 function v2dCerrar(){
   const ov = document.getElementById('v2d-ov');
-  if (ov) ov.style.display = 'none';
+  if (ov) ov.hidden = true;
+  _v2dFoto = null;
   if (typeof v2dParar === 'function') v2dParar();
-  const b = document.getElementById('v2d-abrir');
-  if (b) { try { b.focus({ preventScroll:true }); } catch (e) { b.focus(); } }
+  _v2dBotonSync();
 }
+function v2dTog(){ if (v2dVisible()) v2dCerrar(); else v2dAbrir(); }
+
+/* ⚠️ EL BUCLE SE APAGA TAMBIEN CON LA PESTANA DEL NAVEGADOR OCULTA. `requestAnimationFrame` ya
+   se frena solo en una pestana de fondo en los navegadores actuales, pero no en todos los
+   estados —una ventana tapada, por ejemplo— y el costo de decirlo explicitamente es una linea.
+   Es el mismo oyente que el panel 3D de ETE. */
+document.addEventListener('visibilitychange', function(){
+  if (document.hidden) { if (typeof v2dParar === 'function') v2dParar(); }
+  else if (v2dVisible() && typeof v2dArrancar === 'function') v2dArrancar();
+});
+
+/* ══ LA SINCRONIA EN VIVO (Y1c) ══════════════════════════════════════════════════════════════
+   ⚠️ LA PREMISA DE LA ORDEN ERA FALSA Y SE MIDIO: hasta hoy NO habia sincronia en vivo. `v2dSync`
+   y los dos pintores corrian SOLO desde `v2dAbrir`, y con la ventana flotante eso no se notaba
+   porque tapaba la pantalla entera: no habia forma de tocar un campo con la vista abierta. Con
+   el panel EN LINEA el medico ve el panel y los campos a la vez, asi que sin esto el panel
+   publicaria el grado del gesto ANTERIOR al lado de una pastilla que ya dice otra cosa.
+   ⚠️ UN OYENTE DE DOCUMENTO, en burbuja, que es el patron de la casa (`emContFaAvisoSync`,
+   `vdTeiAvisoSync`): el manejador EN LINEA del campo corre en la fase de destino, asi que cuando
+   este llega la cadena de calculo ya escribio el DOM que `v2dEstado` lee.
+   ⚠️ SOLO REPINTA SI EL ESTADO CAMBIO, comparado por su JSON. Dos razones: tipear en un campo
+   que esta vista no mira no cuesta nada, y sobre todo el repintado rehace los `<li>` enteros, asi
+   que una lista «Ver criterios» abierta se cerraria con cada tecla. Las que esten abiertas se
+   reponen POR NOMBRE DE VALVULA y no por indice: si la lista cambio de largo, el contenido
+   cambio y cerrarla es lo correcto. */
+let _v2dFoto = null;
+function _v2dPqAbiertas(){
+  const abiertas = [];
+  ['v2d-insuf','v2d-esten'].forEach(function(ulId){
+    const ul = document.getElementById(ulId); if (!ul) return;
+    Array.prototype.slice.call(ul.children).forEach(function(li){
+      const b = li.querySelector('.v2d-vercrit');
+      if (!b || b.getAttribute('aria-expanded') !== 'true') return;
+      const v = li.querySelector('.v2d-valv');
+      abiertas.push(ulId + '|' + String(v ? v.textContent : '').trim());
+    });
+  });
+  return abiertas;
+}
+function _v2dPqReponer(abiertas){
+  if (!abiertas || !abiertas.length) return;
+  ['v2d-insuf','v2d-esten'].forEach(function(ulId){
+    const ul = document.getElementById(ulId); if (!ul) return;
+    Array.prototype.slice.call(ul.children).forEach(function(li){
+      const b = li.querySelector('.v2d-vercrit'); if (!b) return;
+      const v = li.querySelector('.v2d-valv');
+      const k = ulId + '|' + String(v ? v.textContent : '').trim();
+      if (abiertas.indexOf(k) > -1 && b.getAttribute('aria-expanded') !== 'true') v2dPorQueTog(b);
+    });
+  });
+}
+function v2dRefrescar(){
+  if (!v2dVisible()) return false;
+  let E = null;
+  try { E = (typeof v2dEstado === 'function') ? v2dEstado() : null; } catch (e) { return false; }
+  if (!E) return false;
+  let firma = null;
+  try { firma = JSON.stringify(E); } catch (e) { firma = null; }
+  if (firma !== null && firma === _v2dFoto) return false;
+  _v2dFoto = firma;
+  const abiertas = _v2dPqAbiertas();
+  /* `v2dSync` vuelve a leer el estado y lo DEVUELVE: se usa ese, asi que el dibujo y las
+     tarjetas se pintan con la MISMA lectura y no con dos. */
+  let E2 = E;
+  try { if (typeof v2dSync === 'function') E2 = v2dSync() || E; } catch (e) {}
+  try { v2dPintarTarjetas(E2); v2dPintarCav(E2); } catch (e) {}
+  _v2dPqReponer(abiertas);
+  return true;
+}
+document.addEventListener('input',  function(){ try { v2dRefrescar(); } catch (e) {} }, false);
+document.addEventListener('change', function(){ try { v2dRefrescar(); } catch (e) {} }, false);
+
 window.v2dAbrir = v2dAbrir; window.v2dCerrar = v2dCerrar;
+window.v2dTog = v2dTog; window.v2dVisible = v2dVisible;
+window.v2dRefrescar = v2dRefrescar; window._v2dBotonSync = _v2dBotonSync;
 window.v2dPintarTarjetas = v2dPintarTarjetas; window.v2dPintarCav = v2dPintarCav;
 window._v2dPorQue = _v2dPorQue; window._v2dRotulo = _v2dRotulo; window._v2dCrit = _v2dCrit;
 window._v2dChipCls = _v2dChipCls;
