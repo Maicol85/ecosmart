@@ -475,3 +475,28 @@ con `wc -c` **ANTES** de escribir, que es lo que `ecosmart/CLAUDE.md` pide desde
 `valvulas.md` aprendió pagándolo **dos** veces.
 
 ---
+
+---
+
+## La AURÍCULA IZQUIERDA y las dos correcciones del PDF — «H» (2026-10-16) → otro mapa
+
+El dueño único de la clasificación de la AI por volumen indexado (`AI_VOL_BANDAS`,
+`aiVolClasificar`, `aiVolRotulo`), la tabla de qué superficie clasifica y cuál sólo publica el
+valor, el colapso de la VCI con su «%» y el símbolo del sexo dibujado como figura vectorial
+—con el hueco de espacios duros y por qué su ancho se le devuelve al medidor del envoltorio—
+viven en **`docs/mapa/auricula-izquierda-pdf.md`**.
+
+⚠️ **Tres cosas de acá que esa tanda midió y conviene saber antes de tocar el PDF:**
+
+* **Son SEIS plantillas de PDF, no tres** (clásico, moderno, minimalista, académico, compacto,
+  elegante), y el bloque de datos del paciente se maqueta de **tres formas distintas** entre
+  ellas: `_hdrCajaPaciente` (grilla), la tira corrida con `_duro` (Minimalista y Compacto) y la
+  tabla Parámetro\|Valor (Académico). Medir una sola deja cinco sin cubrir.
+* **`amiloSanPDF` borra en silencio todo lo que esté fuera de WinAnsi** (`/[^\x20-\xFF]/`), así
+  que un carácter que no sea WinAnsi puesto en un texto del PDF **no se ve y no avisa**. Y si se
+  lo saltea, jsPDF con las fuentes estándar no sólo lo rompe: **pasa la línea entera a UTF-16 y
+  la desmaqueta**.
+* **El informe de un estudio guardado viaja como TEXTO** (`informe_texto` y `en_suma` son
+  `<textarea>` con id) y el reimpreso lo repone tal cual: un cambio en la redacción del informe
+  **no alcanza** a lo ya guardado. Lo que sí cambia en el reimpreso es la **tabla de datos**, que
+  se arma de `campos`.

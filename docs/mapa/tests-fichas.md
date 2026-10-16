@@ -125,3 +125,49 @@ Es el mismo reparto que TC-460 y TC-483 ya dejaron escrito.
 | **TC-484** | — | sólo el ayudante de cierre y el objetivo táctil, que ahora **lleva el botón al viewport** antes de medir: `elementFromPoint` devuelve `null` fuera de él y el panel en línea cae debajo del borde |
 
 **TC-485 no se tocó**: no nombra la vista 2D ni una sola vez.
+
+---
+
+## TC-487 — la tanda «H» (2026-10-16)
+
+**35 condiciones**, contadas **instrumentando el propio caso** para que publicara su `ex.length`,
+no a ojo. **Tres denominadores** explícitos y **cinco controles negativos**.
+
+**Verificado que sabe fallar contra HEAD en un worktree aparte: 11 de las 35 en rojo, y NINGUNA
+por excepción.**
+
+⚠️ **ONCE DE TREINTA Y CINCO ES POCO, Y ESO ES EL PUNTO.** La regla de la aurícula izquierda —el
+volumen indexado manda, con su grado y con el indexado entre paréntesis— **ya estaba
+implementada** en `generarInforme`: lo que esta tanda hizo fue darle un dueño único. Así que las
+veinte y pico de condiciones que afirman la frase, el EN SUMA y la cápsula **pasan también en
+HEAD**, y eso es exactamente lo que había que demostrar. Las **once** que caen son las del dueño
+(3), el rótulo derivado de las bandas (1), la cascada cableada retirada (1) y las **seis** del
+PDF (la unidad de la VCI, las dos piezas del símbolo, el hueco duro, el ancho devuelto al
+medidor y el control negativo sin sexo).
+
+### Qué cubre
+
+* las **seis escenas** de la AI que la orden enumera, con la frase EXACTA en los tres estilos del
+  informe, el EN SUMA y la cápsula de la pantalla diciendo lo mismo;
+* los **seis bordes** del volumen indexado, por sus dos lados, con la BSA en 2,00 exacta;
+* el **rótulo derivado** de las bandas, carácter por carácter;
+* el **colapso de la VCI con su «%»**, por TOKEN y no con un `+ '%'` pelado;
+* el **símbolo del sexo dibujado** y no escrito, el hueco de espacios duros, el ancho devuelto al
+  medidor en los tres sitios y el control negativo sin sexo;
+* el **límite declarado** de la matrícula: la app no tiene cédula del médico;
+* los controles: informe, EN SUMA, los ocho grados, la diastólica, el HFA-PEFF y el Excel en 440.
+
+### Las dos trampas que este caso pagó
+
+1. **`indexOf('uricula')` NO matchea «Aurícula»**, porque la í lleva tilde: **once** condiciones
+   salieron rojas **por el filtro** y no por el árbol, sobre un informe perfecto. El filtro busca
+   `'cula izquierda'`.
+2. **No se puede buscar el glifo ♂/♀ en el fuente para probar que NO se usa**, porque el
+   comentario que explica por qué no se usa lo NOMBRA. Es la trampa de `.ip-ap-col2` que TC-476
+   ya pagó. Lo que se mide es que el texto del sexo se ARME con la constante del hueco.
+
+### Lo que este caso NO puede medir, y lo mide la sonda
+
+El cuerpo de un caso **no puede generar el PDF y mirarlo**: interceptar jsPDF, generar el
+documento en las **seis** plantillas y rasterizar la página es trabajo de
+`scripts/_probe_h.mjs`. Es el mismo reparto que TC-460 y TC-485 ya usan.

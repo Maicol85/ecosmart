@@ -3722,3 +3722,109 @@ en vez de declarar colores propios, y es lo que la orden pedía.
 una diferencia entre los dos estados del botón, no entre dos cuadros. Si alguna vez molestara, lo
 que se agrega es un borde transparente de 1 px al estado prendido — y entonces el botón deja de
 verse exactamente como una pestaña activa.
+
+---
+
+## Tanda «H» — la AI por volumen y las dos correcciones del PDF (2026-10-16)
+
+### H-1 · El volumen medido SIN superficie corporal, y sin ninguna otra medición, hace que el informe AFIRME normalidad
+
+**Medido, y es PREEXISTENTE.** Con `ai_vol = 98` y sin peso ni talla, el informe firmado publica
+«Aurícula izquierda de dimensiones normales.» sobre una aurícula cuyo único dato es un volumen
+que, indexado, sería **severo**. La cadena del bloque 4 de `generarInforme` es
+`if (ai_vol && bsa) … else if (aiGeoMedido) … else if (!aiGeoFuera) → normalidad`, y un volumen
+sin BSA no entra en las dos primeras.
+
+La orden de esta tanda mandaba **tratarlo como «sin volumen» (la opción conservadora) y
+reportarlo**, que es exactamente lo que la app hace, así que **no se corrigió**. TC-487 lo fija
+como **límite declarado**, para que el día que se decida el caso lo note.
+
+Es el reverso de lo que la rama `aiGeoFuera` ya cierra para los valores ilegibles —«la negación
+necesita evidencia de haber podido leer algo»—.
+
+**Tres salidas, con la conservadora marcada:**
+* **(a) ★** declarar la medición sin afirmar: una línea del tipo «Aurícula izquierda: el volumen
+  está cargado (98 ml) pero no se puede indexar sin peso y talla; no se informa el tamaño
+  auricular por esa vía», con `ccMarcarParrafo()`, calcada de la rama de `aiGeoFuera`. No cambia
+  ninguna otra frase y cierra la negación falsa;
+* **(b)** pedir el dato en vez de declararlo («completar peso y talla para graduar»), que es
+  una instrucción para quien mide y no un hallazgo del paciente — el criterio que la rama del
+  diámetro ya usa para su invitación;
+* **(c)** dejarlo como está. Es lo que hay hoy.
+
+Cualquiera de las tres **cambia una frase del informe firmado**, así que la decide Maicol.
+
+### H-2 · La CÉDULA del médico no existe: la parte de la firma quedó SIN HACER
+
+**La lectura del asistente es incorrecta, y la orden lo preveía.** Censado:
+
+| Dato | id | De quién |
+|---|---|---|
+| Matrícula del **médico** | `med-matricula` / `cfg-medico-matricula` | médico |
+| Nº de documento | `ci` + `doc_tipo` (`CI`/`DNI`/`CPF`) | **paciente** |
+| «Matrícula», placeholder **«Nº mutualista»** | `matricula` | **paciente** |
+
+**No hay ninguna cédula del médico**, así que la regla «si están las dos se imprime la cédula,
+salvo que prefiera la matrícula» no es aplicable: no hay dos datos entre los que elegir. Agregar
+una casilla de preferencia habría sido agregar un control que no gobierna nada.
+
+Además, la identificación que hoy se imprime en la firma va **sin rótulo**: `_num` se une a la
+especialidad con `·`, no como «Matrícula: …».
+
+**Tres salidas:**
+* **(a)** agregar un campo de **cédula del médico** en ⚙️ Config → «👨‍⚕️ Médicos», persistido con
+  el resto de la configuración del médico (nunca con el estudio), más la casilla de preferencia
+  que la orden describe. Es lo que la orden quería;
+* **(b)** sólo **rotular** lo que ya se imprime («Matrícula: 12345») sin agregar ningún campo. Es
+  el cambio más chico y ya mejora el papel;
+* **(c) ★** dejarlo como está hasta que Maicol decida si la cédula del médico tiene que ser un
+  dato de la app.
+
+### H-3 · El Laboratorio clasifica la AI por su cuenta, y NO se tocó
+
+La orden lo prohíbe expresamente y se respetó. Son dos lecturas independientes de la misma
+aurícula:
+* la fila «Dilatación AI» de `_LAB_HALLAZGOS` es un **regex sobre el TEXTO** del informe
+  (`/dilataci[oó]n.{0,10}auricular|AI\s+(?:dilata|agrand)/i`);
+* `_labLavi(inf)` recalcula el indexado desde `ai_vol`, `peso` y `talla` y corta en
+  `> UMBRAL_LAVI_DILATADO` para la fila «Vol AI elevado sin función diastólica documentada».
+
+Como esta tanda **no cambia ni una letra del informe**, el recuento del Laboratorio **no se
+mueve** — verificado: `_labDiastGrado` y las 440 columnas del Excel salen idénticas en las
+cuatro escenas de control. Lo que queda abierto es que un cambio futuro en la redacción de la
+frase de la AI **le cambia la estadística al Laboratorio sin que nada lo avise**.
+
+### H-4 · El Excel no exporta ninguna clasificación de la AI, sólo valores
+
+Cuatro columnas: `Vol AI (LAVI) (ml/m²)` (derivada), `Diám. AP AI (mm)`, `Área AI (cm²)` y
+`Volumen AI (ml)`. **Ninguna dice si la aurícula está dilatada ni con qué grado**, así que la
+clasificación no se puede reconstruir desde el libro sin recalcularla. Una columna nueva es
+**PARADA de columna** y esta orden la prohíbe. Queda declarado.
+
+### H-5 · El PPT publica el volumen de AI en ml y no el indexado
+
+`fila(DER, 'Volumen AI', _pptNum('ai_vol'), ' ml')`. El indexado —que es lo que gradúa— **no
+aparece** en el PPT por ningún camino. No se tocó: agregarlo cambia una diapositiva.
+
+### H-6 · El símbolo del sexo no llega al PPT, al informe ni al EN SUMA
+
+La orden lo acota al PDF y así quedó. Censado: el **informe** y el **EN SUMA** no nombran el sexo
+del paciente en ninguna frase, y el **PPT** lo publica como la palabra entera. O sea que no hay
+ninguna superficie que use una letra sola y quede desalineada.
+
+### H-7 · El hueco del símbolo asume que la celda del sexo no envuelve POR OTRO motivo
+
+El ancho del hueco se le devuelve al medidor del envoltorio en los tres sitios, así que el corte
+se decide como si el símbolo no existiera. Pero si un día esa celda envolviera **por su propio
+contenido** —una edad de cuatro dígitos, un sexo con una palabra más larga—, el hueco podría
+quedar en una línea y la figura dibujarse igual: `_tSexo` la pinta en la línea que lo contiene,
+así que el símbolo acompañaría a la palabra, pero el ancho extra ya no cabría en el colchón.
+Medido hoy: no ocurre en ninguna de las seis plantillas. Declarado.
+
+### H-8 · Los rótulos de las bandas asumen cortes ENTEROS
+
+`aiVolRotulo` arma «Dilat. leve (35-41)» con `banda_anterior.hasta + 1`. El límite real es
+`> 34`, así que un volumen indexado de 34,5 cae en leve y el rótulo lo rotula «35-41». Es
+**preexistente** —el rótulo cableado decía lo mismo— y es la misma trampa que `hviSeveridad` ya
+tiene escrita. Lo que gradúa es la banda, no el rótulo. No se tocó: cambiarlo cambia un texto de
+pantalla.

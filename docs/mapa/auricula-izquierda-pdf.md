@@ -1,0 +1,268 @@
+# Mapa — la AURÍCULA IZQUIERDA y las dos correcciones del PDF (tanda «H», 2026-10-16)
+
+> **Mapa NUEVO por PARTICIÓN.** Medido con `wc -c` **ANTES** de escribir:
+> `docs/mapa/informe-pdf-excel.md` estaba en **30,6 KB** y esta sección lo cruzaba. Lo que entró
+> allá es un puntero.
+> Sin números de línea a propósito: la línea cambia en cada edición, el nombre de la función no.
+
+---
+
+## 1 · Las TRES preguntas de la aurícula izquierda, y sus TRES dueños
+
+La app no tiene **una** clasificación de la AI: tiene tres preguntas que no se mezclan.
+
+| Pregunta | Dueño | Qué devuelve | Cortes |
+|---|---|---|---|
+| ¿El **diámetro AP** marca dilatación? | `aiDiamDilatado(d)` | `true` / `false` / `null` | `>= UMBRAL_AI_DIAM_DILATADO` (40 mm) |
+| ¿El **área** marca dilatación? | `aiAreaDilatada(a)` | `true` / `false` / `null` | `> UMBRAL_AI_AREA_DILATADA` (20 cm²) |
+| ¿**Qué tan severa**? | **`aiVolClasificar(idx)`** | una entrada de `AI_VOL_BANDAS`, o `null` | ver abajo |
+
+Las dos primeras son **binarias y sin grado**: la guía no gradúa por diámetro ni por área. La
+tercera es la única que gradúa, y por eso es la que **manda**.
+
+### `AI_VOL_BANDAS` — el dueño que esta tanda creó
+
+Vive al lado de `aiDiamDilatado`/`aiAreaDilatada`, que ya eran los dueños de las otras dos.
+
+| clave | hasta | color | `adj` (lo que escribe el informe) | rótulo de la cápsula |
+|---|---|---|---|---|
+| `normal` | `UMBRAL_LAVI_DILATADO` (34) | `green` | `de dimensiones normales` | `Normal (≤34 ml/m²)` |
+| `leve` | 41 | `yellow` | `levemente dilatada` | `Dilat. leve (35-41)` |
+| `moderada` | 48 | `orange` | `moderadamente dilatada` | `Dilat. moderada (42-48)` |
+| `severa` | `Infinity` | `red` | `severamente dilatada` | `Dilat. severa (>48)` |
+
+`aiVolRotulo(b)` **deriva** el rótulo de las bandas. Antes estaba cableado (`'Dilat. leve (35-41)'`
+con los números a mano) al lado de un corte que sí era constante: mover `UMBRAL_LAVI_DILATADO`
+dejaba el rótulo mintiendo. El texto que sale hoy es **idéntico carácter por carácter** al de HEAD.
+
+⚠️ **EL `+1` DE LOS RÓTULOS ASUME ENTEROS.** El límite real de «leve» es `> 34`, no `>= 35`, así
+que un 34,5 cae en leve y el rótulo lo rotula «35-41». Es preexistente —el rótulo cableado decía
+lo mismo— y es la misma trampa que `hviSeveridad` ya tiene escrita. **Lo que gradúa es la BANDA,
+no el rótulo.**
+
+⚠️ **LA CLAVE Y NO EL ADJETIVO** decide si la aurícula es normal. El informe lo resolvía con
+`aiStr === 'de dimensiones normales'`, o sea comparando contra una frase del papel firmado:
+cambiar esa redacción habría dado vuelta en silencio la rama de la discordancia y el EN SUMA.
+
+---
+
+## 2 · Dónde se clasifica la AI, superficie por superficie
+
+| Lugar | Quién decide | Qué publica |
+|---|---|---|
+| Cápsula `ai-interp` (pestaña AI/VI) | **`aiVolClasificar`**, desde `calcAI` | el badge con su color y su rótulo |
+| Cápsulas `ai-diam-interp` / `ai-area-interp` | `aiDiamDilatado` / `aiAreaDilatada` | binario, sin grado |
+| Campo `ai-idx` | `calcAI` | `(vol / bsa).toFixed(1) + ' ml/m²'` |
+| **Informe**, los tres estilos | **`aiVolClasificar`**, desde `generarInforme` bloque 4 | la frase, con el indexado entre paréntesis |
+| **EN SUMA** | la misma banda (`adj`) | sólo si NO es normal |
+| **PDF — tabla de datos** | **nadie**: imprime el valor y su referencia | `Vol. indexado` con `ref '<=34 ml/m2'` |
+| **PDF — texto** | el informe ya generado (`sv('informe_texto')`) | lo mismo que el informe |
+| **PPT** | **nadie**: imprime `Volumen AI` en ml | el valor crudo |
+| **Excel** | **nadie**: cuatro columnas de VALOR | `Vol AI (LAVI) (ml/m²)` (derivada, vía `_labLavi`), `Diám. AP AI (mm)`, `Área AI (cm²)`, `Volumen AI (ml)` |
+| **Laboratorio** | **SU PROPIA clasificación** | ver abajo |
+
+⚠️ **EL LABORATORIO CLASIFICA POR SU CUENTA Y NO SE TOCÓ** (la orden lo prohíbe expresamente).
+Son dos lecturas independientes:
+* la fila «Dilatación AI» de `_LAB_HALLAZGOS` es un **regex sobre el TEXTO** del informe
+  (`/dilataci[oó]n.{0,10}auricular|AI\s+(?:dilata|agrand)/i`), no sobre el dato;
+* `_labLavi(inf)` recalcula el indexado desde `ai_vol`, `peso` y `talla` con Mosteller, y la fila
+  «Vol AI elevado sin función diastólica documentada» corta en `> UMBRAL_LAVI_DILATADO`.
+Como esta tanda **no cambia ni una letra del informe**, el recuento del Laboratorio tampoco se
+mueve. `docs/PENDIENTES.md` → **H-3**.
+
+---
+
+## 3 · La regla del informe, escena por escena (no cambió: estaba implementada)
+
+Medido con teclas reales en las 16 escenas de `scripts/_probe_h.mjs --solo ai`.
+
+| Escena | Informe (estilo estándar) | EN SUMA |
+|---|---|---|
+| sin ningún dato | `Aurícula izquierda de dimensiones normales.` | — |
+| volumen normal solo | `… de dimensiones normales (Vol Index 34.0 ml/m²).` | — |
+| volumen normal + DAP dilatado | lo mismo **+ la línea de discordancia** | — |
+| volumen normal + área dilatada | lo mismo **+ la discordancia nombrando el área** | — |
+| volumen normal + los dos | lo mismo **+ la discordancia nombrando las dos** | — |
+| volumen leve / moderado / severo | `… levemente/moderadamente/severamente dilatada (Vol Index N ml/m²).` | `AI … dilatada (Vol Index N ml/m²).` |
+| volumen severo + área normal | el grado, igual | el grado, igual |
+| **sin volumen**, DAP dilatado | `Aurícula izquierda dilatada (diámetro AP 50 mm).` | `AI dilatada (diámetro AP 50 mm).` |
+| **sin volumen**, área dilatada | `Aurícula izquierda dilatada (área 25 cm²).` | `AI dilatada (área 25 cm²).` |
+| **sin volumen**, DAP normal | `… de dimensiones normales (diámetro AP 38 mm).` | — |
+| **volumen SIN superficie corporal** | se trata **como sin volumen** | lo que corresponda al DAP o al área |
+
+⚠️ **CON EL VOLUMEN MEDIDO Y SIN SUPERFICIE CORPORAL, Y SIN NINGUNA OTRA MEDICIÓN, EL INFORME
+AFIRMA NORMALIDAD.** Medido: con `ai_vol = 98` y sin peso ni talla, el informe firmado dice
+«Aurícula izquierda de dimensiones normales.» sobre una aurícula cuyo único dato es un volumen
+que, indexado, sería severo. Es **preexistente** y es el reverso de lo que la rama `aiGeoFuera` ya
+cierra para los valores ilegibles —«la negación necesita evidencia de haber podido leer algo»—.
+La orden mandaba tratarlo como «sin volumen» (que es lo que hace) **y reportarlo**, así que no se
+corrigió. `docs/PENDIENTES.md` → **H-1**. TC-487 lo fija como **límite declarado**, para que el
+día que se arregle el caso lo note.
+
+---
+
+## 4 · El PDF — el colapso de la VCI lleva su unidad
+
+El `<select>` `vci_col` guarda los tokens `>50` y `<50`. El papel firmado los imprimía **pelados**,
+al lado de un diámetro que sí dice «mm».
+
+| Superficie | Antes | Ahora |
+|---|---|---|
+| **PDF, tabla de datos** | `Colapso VCI: >50` | `Colapso VCI: >50%` |
+| Informe narrativo | `con colapso mayor al 50%` | sin cambios |
+| EN SUMA | **no nombra la VCI** (censado) | sin cambios |
+| PPT | `val + '%'` sobre los mismos dos tokens | sin cambios |
+| `<option>` de la pantalla | se rotula `>50%` | sin cambios |
+| Excel, columna `Colapso VCI` | el token crudo | **sin cambios** (no se toca el Excel) |
+
+Se alinea con el **mismo formato** que ya usaban las otras dos superficies —sin espacio—, no con
+uno nuevo. La guarda va **por token**: un valor que no sea uno de los dos sale sin unidad, en vez
+de que se le invente una.
+
+---
+
+## 5 · El PDF — el símbolo del sexo se DIBUJA
+
+### Por qué no se puede escribir, y son DOS motivos medidos
+
+1. **`amiloSanPDF` lo borra.** Todo lo que se dibuja pasa por `_sanML` → `amiloSanPDFml` →
+   `amiloSanPDF`, que tiene un `.replace(/[^\x20-\xFF]/g, '')`: cualquier carácter fuera de
+   WinAnsi desaparece **en silencio**. Un ♂ puesto como texto ni se rompe ni se ve.
+2. **Y si se lo saltea, es PEOR.** Medido generando un PDF con el mismo **jsPDF 2.5.1** que la app
+   carga y **rasterizando la página**: con helvetica el glifo sale como **«&B»** (y ♀ como «&@»),
+   y además **la línea ENTERA pasa a UTF-16 y se desmaqueta** — «B :  4 5  a n i o s», con un
+   espacio entre cada letra. El dedazo no se limitaría al símbolo: **rompe la celda del informe
+   firmado**.
+
+Censo de fuentes del PDF: **85** `setFont('helvetica')`, **11** `setFont('times')`, **CERO**
+`addFont` y **CERO** `addFileToVFS`. No hay fuente propia, y embeber una exigiría un CDN.
+
+### Las piezas
+
+| Pieza | Qué hace |
+|---|---|
+| `PDF_SEXO_HUECO` | **tres** espacios **duros** (` `), el hueco donde cae la figura |
+| `sexoTxt` | `PDF_SEXO_HUECO + 'Masculino'` / `… + 'Femenino'`, o `(sexo||null)` sin sexo |
+| `_pdfSexoFig(x, yb, w)` | dibuja ♂ o ♀ con `circle` y `line`; **sale por la puerta si el sexo no es M ni F** |
+| `_tSexo(txt, x, y, opts)` | el **único** dibujador de una línea de celda del paciente |
+
+`_tSexo` sin hueco —o con una alineación que no sea la izquierda, donde el origen no es el borde
+del texto— se comporta **exactamente** como `doc.text`, así que todas las demás líneas del PDF
+salen byte por byte como en HEAD.
+
+El alto del símbolo sale del **cuerpo de letra vigente** (`doc.getFontSize() * 0.70 / 2.8346` mm,
+la altura de una mayúscula), así que acompaña a la plantilla que lo pide **sin un solo número
+cableado por plantilla**.
+
+⚠️ **LA FIGURA SE ALINEA A LA IZQUIERDA DEL HUECO Y NO AL CENTRO**, y el aire que sobra queda del
+lado de la palabra: centrada salía **pegada a la «M» de «Masculino»**. Lo delató mirar el PNG del
+PDF real, no la medición.
+
+### ⚠️ El hueco y el envoltorio — la corrección que la medición destapó
+
+El texto que se mide con `splitTextToSize` y el que se estampa son **el mismo string**: el hueco
+queda en blanco y la figura se pinta encima, dentro de su propio ancho. Pero medido, el valor
+`60 años · Masculino` **cabía JUSTO** en su columna:
+
+* en `_hdrCajaPaciente` (Clásico, Moderno, Elegante y dos más) los tres duros **partían la celda
+  en dos renglones** y la caja del paciente crecía **3,9 mm**;
+* en la tira corrida (Minimalista y **Compacto**) **corrían el corte** y «ASC 2.00 m2» se pasaba
+  al renglón siguiente.
+
+**Un símbolo no puede remaquetar el informe firmado.** Los **tres** `splitTextToSize` de las
+celdas del paciente reciben el ancho del hueco (`doc.getTextWidth(PDF_SEXO_HUECO)`), así que el
+corte se decide **como si el símbolo no existiera** y la línea queda 2,2 mm más ancha dentro del
+colchón de 3 mm que esa celda ya reservaba.
+
+### Las SEIS plantillas (son seis, no tres) y sus TRES maquetaciones
+
+| Maquetación | Plantillas | Dónde se dibuja el valor |
+|---|---|---|
+| `_hdrCajaPaciente` (grilla de 4 columnas) | Clásico, Moderno, Elegante y las dos que la llaman | `c.lines.forEach` |
+| tira corrida con `_duro` y `join('  ·  ')` | Minimalista, Compacto | `lns.forEach` |
+| tabla Parámetro \| Valor | Académico | `lns.forEach` |
+
+### Lo medido
+
+* **`nTextos` IDÉNTICO a HEAD en las 18 celdas** (3 escenas × 6 plantillas): ninguna cambió de
+  envoltorio.
+* La **única** línea de texto distinta en las doce con sexo es `: >50` → `: >50%`.
+* `nFigs`: **+4** con el masculino (un círculo y tres líneas) y **+3** con el femenino.
+* **CONTROL NEGATIVO:** sin sexo cargado, las seis plantillas salen con **cero** diferencias de
+  texto y **cero** figuras de más.
+* **PDF REIMPRESO** de un estudio guardado, por su camino REAL (guardar → limpiar →
+  `pdfDeInformeGuardado`): masculino «>50%» con 54 figuras, femenino «<50%» con 52, y sin sexo 42
+  figuras y ninguna celda de VCI.
+
+⚠️ **EL INFORME DE UN ESTUDIO GUARDADO NO SE REESCRIBE.** `informe_texto` y `en_suma` son
+`<textarea>` **con id**, así que viajan con el estudio y el barrido de restauración de
+`_pdfDeInformeGuardadoArmar` los repone tal cual; el PDF los lee con `sv('informe_texto')`. Lo que
+**sí** cambia en el reimpreso es la **tabla de datos**, que se arma de `campos` — o sea el «%» de
+la VCI y el símbolo del sexo. Es lo correcto y es lo que la orden pedía verificar. **No se migra
+nada.**
+
+---
+
+## 6 · Lo que NO se hizo: la cédula o la matrícula del médico
+
+**La lectura del asistente es incorrecta, y la orden lo prevé.** Censado:
+
+| Dato | id | De quién | Dónde se carga |
+|---|---|---|---|
+| Matrícula del **médico** | `med-matricula` / `cfg-medico-matricula` | médico | ⚙️ Config → «👨‍⚕️ Médicos» |
+| Nº de documento del **paciente** | `ci` + `doc_tipo` (`CI`/`DNI`/`CPF`) | **paciente** | pestaña Paciente |
+| «Matrícula» del **paciente** | `matricula`, placeholder **«Nº mutualista»** | **paciente** | pestaña Paciente |
+
+**No existe ninguna cédula del médico.** La regla «si están las dos se imprime la cédula, salvo
+que el médico prefiera la matrícula» **no es aplicable**: no hay dos datos entre los que elegir.
+Y la identificación que hoy se imprime en la firma va **sin rótulo** (`_num` unido a la
+especialidad con `·`), no como «Matrícula: …».
+
+Por eso esta parte **queda sin hacer**, que es lo que la orden manda en ese caso. Las tres
+salidas posibles están en `docs/PENDIENTES.md` → **H-2**.
+
+---
+
+## 7 · Ocho trampas, medidas
+
+1. **`amiloSanPDF` borra lo que está fuera de WinAnsi**, así que un símbolo puesto como texto
+   desaparece sin aviso. Un `grep` del glifo en el fuente **no** prueba que se imprima.
+2. **Y jsPDF, si se lo saltea, no sólo rompe el glifo: desmaqueta la línea entera.** El modo de
+   falla no es «un carácter feo», es una celda del informe firmado con un espacio entre cada
+   letra.
+3. **El hueco mueve el envoltorio.** Dos de las tres maquetaciones estaban al límite. Medir
+   `nTextos` contra HEAD es lo que lo delata; mirar el PNG, lo que lo confirma.
+4. **Son SEIS plantillas de PDF, no tres**, repartidas en tres maquetaciones distintas del bloque
+   del paciente. Medir una sola deja cinco sin cubrir.
+5. **`guardarInforme` devuelve `false` y no guarda** si las severidades valvulares no están
+   confirmadas: abre una tarjeta y espera un clic. Y `valvSevConfirmada` es un `let` de MÓDULO,
+   no una propiedad de `window` — la trampa que `_labImpDatos` y `ECO_AYUDA` ya tienen escrita.
+   Se confirma clickeando `#rev-confirm`, que es el gesto del médico.
+6. **`getInformes()` no devuelve «el último guardado» en la última posición.** Las tres escenas
+   del reimpreso devolvieron el **mismo id** y las dos de abajo reimprimieron el estudio de la
+   primera: un denominador roto con pinta de medición buena. Se busca por documento.
+7. **`showTab('valvulas')` corre `valvCerrarTarjetas` y cierra lo que el clic acaba de abrir**, así
+   que llamarlo con la pestaña ya activa deshace las dos puertas de la mitral y el campo vuelve a
+   medir 0×0. Se llama **sólo si la pestaña no está activa**.
+8. **`indexOf('uricula')` NO matchea «Aurícula»**, porque la í lleva tilde: once condiciones de
+   TC-487 salieron rojas **por el filtro** y no por el árbol, sobre un informe perfecto.
+   ⚠️ Y una novena, del mismo tipo: **un `input[type=date]` no soporta `setSelectionRange`** y tira
+   `InvalidStateError`, que mata la escena entera. La fecha se fija por valor y **se declara**:
+   es el único campo de estas escenas donde el gesto no es una tecla real.
+
+---
+
+## 8 · Cómo medir esta zona
+
+```bash
+node scripts/_probe_h.mjs --solo ai,bordes          # la AI y los seis bordes
+node scripts/_probe_h.mjs --solo pdf --dest /tmp    # el PDF real en las seis plantillas
+node scripts/_probe_h.mjs --solo reimp              # el PDF de un estudio guardado
+node scripts/_probe_h.mjs --solo controles          # informe, EN SUMA, grados, Excel 440
+node scripts/test_clinico.mjs --solo TC-487
+```
+
+El A/B va con `--file /ruta/index.HEAD.html`. Para **mirar** el PDF hay que rasterizarlo: la sonda
+deja el base64 en `--dest` con `--solo pdf`, y `pymupdf` lo convierte a PNG. **Mirarlo es
+obligatorio**: el defecto del símbolo pegado a la palabra y el de la celda partida en dos
+renglones los vio la captura, no la medición.

@@ -45,6 +45,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar un CRITERIO o un CORTE del puntaje HFA-PEFF**: la tabla contra el original, las tres contradicciones del artículo, la PSAP o el operador del IMVI | `docs/mapa/hfapeff-criterios.md` |
 | **Tocar los VOLÚMENES del VI en AI/VI**: el VSFVI automático, el volumen latido automático, quién lee el VSFVI, o el GASTO CARDÍACO del PDF y su frecuencia cardíaca | `docs/mapa/vi-volumenes-automaticos.md` |
 | **Ver por dónde sale un dato** (informe narrativo, EN SUMA, PDF, Excel) | `docs/mapa/informe-pdf-excel.md` |
+| **Tocar la AURÍCULA IZQUIERDA**: el dueño de su clasificación por volumen indexado, qué superficie clasifica y cuál sólo publica el valor; o **el COLAPSO de la VCI y el SÍMBOLO DEL SEXO en el PDF** | `docs/mapa/auricula-izquierda-pdf.md` |
 | **Tocar una COLUMNA del Excel, el criterio de «derivada», la IDA Y VUELTA de un dato calculado o el mensaje del importador** | `docs/mapa/excel-origen-ida-vuelta.md` |
 | **Tocar las ASOCIACIONES del Laboratorio o la TABLA DE LAS OCHO VÁLVULAS**: el cociente TAPSE/PSAP en el bloque A, el aviso de par acoplado, las dos estenosis BINARIAS y sus dos denominadores | `docs/mapa/laboratorio-asociaciones-valvulas.md` |
 | **Agregar o correr un caso de prueba; A/B; mutación** | `docs/mapa/tests.md` |
@@ -263,6 +264,181 @@ impecable.
 ---
 
 ## Estado vigente
+
+### La AURÍCULA IZQUIERDA con un solo dueño, y las dos correcciones del PDF — «H» (2026-10-16)
+
+- **Son TRES commits.** Al **empezar**, `main` y `origin/main` estaban los dos en **`0e75898`**
+  (sello `v20261016-0433`), **sin nada sin pushear** —confirmado con un `git fetch` de verdad, con
+  el `FETCH_HEAD` fechado al momento—, con los tres commits del Y1c ya incluidos **y pusheados**.
+  Los **tres** commits de esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 3 → 2 → 1.**
+  ⚠️ **EL 1 Y EL 2 NO SE NOMBRAN ENTRE SÍ Y SE REVIERTEN EN CUALQUIER ORDEN**, que en esta serie
+  es raro y conviene decirlo: el 1 vive en `AI_VOL_BANDAS`, `aiVolClasificar`, `aiVolRotulo`, la
+  cápsula `ai-interp` y el bloque 4 de `generarInforme`; el 2 en `PDF_SEXO_HUECO`, `sexoTxt`,
+  `_pdfSexoFig`, `_tSexo`, los tres `splitTextToSize` del bloque del paciente y la fila del
+  colapso de la VCI. Ninguno toca una pieza del otro.
+  ⚠️ **PERO EL 1 LLEVA LA SONDA** (`scripts/_probe_h.mjs`), que el 2 y el 3 usan.
+  **El 3 es TC-487 más la documentación y el sello**, y afirma el comportamiento de los dos:
+  revertir cualquiera sin el 3 lo deja en rojo.
+
+- **Línea base al cierre: suite 497/501 con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0 ERROR,
+  Excel en 440 columnas, celular 43 a 360 px y 52 a 390 px con 1 ALTA cada uno —IDÉNTICO a la
+  línea base—. CERO REGRESIONES.** Los **CUATRO** rojos son exactamente los de ENTRADA —**TC-223**
+  (el documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**— y no apareció ninguno
+  fuera de esa lista. **El denominador sube a 501**: esta tanda agregó **TC-487**. El `md5` de
+  `index.html` no se movió durante la corrida (`e530b055…`, el del sello) y el pendrive estaba
+  montado antes y después.
+  ⚠️ **`--todo` del chequeo de celular da 378 a 360 px y 387 a 390 px, EL MISMO PAR QUE DEJÓ EL
+  Y1c**: ni el dueño de la AI ni las dos correcciones del PDF agregan un solo hallazgo, y no por
+  suerte — ninguna de las tres cosas es un control de formulario, y el símbolo del sexo **no
+  existe en la pantalla**: vive sólo dentro de `generarPDFReal`.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **501 ids** sobre los 502 casos del archivo.
+- **EL SELLO DE VERSIÓN** estaba al día al empezar (`v20261016-0433`) y se volvió a sellar:
+  **`v20261016-0541`**. Todo lo medido salió **DESPUÉS** de sellar, con el `md5` quieto.
+- **`index.html` pasó de 7,74 MB / 116.686 líneas a 7,75 MB / 116.843 líneas.**
+
+- **Dónde está todo:** `docs/mapa/auricula-izquierda-pdf.md` (**mapa NUEVO por PARTICIÓN**,
+  16,0 KB: las tres preguntas de la AI con sus tres dueños, la tabla de qué superficie clasifica
+  y cuál sólo publica el valor, las once escenas con su frase, el colapso de la VCI, el símbolo
+  dibujado con sus seis plantillas y ocho trampas); `docs/mapa/informe-pdf-excel.md` → el puntero
+  (**32,2 KB**); `docs/mapa/tests-fichas.md` → la ficha de TC-487 (**13,2 KB**);
+  `docs/fuentes/FUENTES.md` → `### aseCamaras2015` (la Tabla 4, folio 10, leída en texto completo);
+  y `docs/PENDIENTES.md` → **ocho** cosas declaradas (H-1 a H-8).
+  ⚠️ **EL MAPA SE PARTIÓ ANTES DE CRUZAR EL TECHO Y NO DESPUÉS.** `informe-pdf-excel.md` estaba
+  en **30,6 KB** y esta sección lo cruzaba: medido con `wc -c` **ANTES** de escribir.
+
+- **H1 · LA REGLA DE LA AI YA ESTABA IMPLEMENTADA; LO QUE FALTABA ERA EL DUEÑO.** El informe ya
+  hacía que el volumen indexado mandara —normal aunque el diámetro AP o el área estén dilatados,
+  con el indexado entre paréntesis y la discordancia declarada— desde el 2026-09-27. Lo que vivía
+  **DOS veces**, con los mismos cuatro cortes escritos en los dos lados, era la clasificación: la
+  cápsula `ai-interp` y la rama `if (ai_vol && bsa)` del informe. Es el defecto que este archivo
+  ya pagó con la geometría del VI, y estaba a un descuido de que la pantalla dijera «Dilat. leve»
+  mientras el papel firmado decía «moderadamente dilatada» del mismo número.
+  **NINGÚN CORTE SE MOVIÓ**, y la fuente quedó verificada en texto completo: **ASE/EACVI 2015
+  (Lang), Tabla 4, folio 10** —el pie impreso de esa página dice «10 · Lang et al», así que para
+  ESE PDF **folio = página**, no página + 1—, fila «Maximum LA volume/BSA (mL/m2)»: 16-34 normal,
+  35-41 leve, 42-48 moderada, >48 severa, y **las columnas de varón y mujer imprimen los MISMOS
+  valores**, o sea que esta clasificación **no se separa por sexo**.
+  ⚠️ **LOS RÓTULOS DE LA CÁPSULA DEJAN DE ESTAR CABLEADOS** y se derivan de las bandas: el texto
+  que sale es **idéntico carácter por carácter**, medido. Y `aiNormal` sale de la **CLAVE** y no
+  de comparar contra la frase del papel firmado.
+  **MEDIDO con teclas reales, A/B contra HEAD en 22 escenas (16 de la AI más los 6 bordes): CERO
+  diferencias** en las tres cápsulas, el indexado y la línea del informe en los tres estilos y el
+  EN SUMA. Las 22 «diferencias» que informó la sonda son la clave `banda`, que es ella preguntando
+  por una función que en HEAD no existe. Los seis bordes, por sus dos lados, con la BSA fijada en
+  **2,00 exacta** (80 kg / 180 cm con Mosteller, que es lo que hace que los cortes se alcancen con
+  enteros).
+
+- ⚠️ **UN DEFECTO PREEXISTENTE QUE LA MEDICIÓN DESTAPÓ Y NO SE CORRIGIÓ.** Con el volumen medido,
+  **SIN superficie corporal** y sin ninguna otra medición, el informe firmado publica «Aurícula
+  izquierda de dimensiones normales.» sobre una aurícula cuyo único dato es un volumen que,
+  indexado, sería **severo**. La orden mandaba tratarlo como «sin volumen» —que es lo que la app
+  hace— **y reportarlo**, así que queda declarado: `PENDIENTES.md` → **H-1**, con tres salidas.
+  TC-487 lo fija como límite declarado.
+
+- **H2 · EL COLAPSO DE LA VCI LLEVA SU UNIDAD, Y EL PDF ERA EL ÚNICO QUE CALLABA.** El `<select>`
+  guarda los tokens `>50` y `<50` y el papel los imprimía **pelados**, al lado de un diámetro que
+  sí dice «mm». Censado: el informe narrativo ya escribía «colapso mayor al 50%», el PPT ya hacía
+  `val + '%'` sobre estos mismos dos tokens y la propia `<option>` se rotula «>50%»; **el EN SUMA
+  no nombra la VCI**. Se alinea con el MISMO formato que esas dos, no con uno nuevo, y la guarda
+  va **por token**: un valor que no sea uno de los dos sale sin unidad en vez de que se le invente
+  una.
+
+- **H2 · EL SÍMBOLO DEL SEXO SE DIBUJA, Y HAY DOS MOTIVOS MEDIDOS PARA NO ESCRIBIRLO.**
+  (1) `amiloSanPDF` —por donde pasa todo lo que se dibuja— tiene un `/[^\x20-\xFF]/` que **borra
+  en silencio** cualquier carácter fuera de WinAnsi: un ♂ puesto como texto ni se rompe ni se ve.
+  (2) Y si se lo saltea, **es peor**: medido generando un PDF con el mismo **jsPDF 2.5.1** que la
+  app carga y **rasterizando la página**, el glifo sale como **«&B»** (y ♀ como «&@») y además
+  **la línea ENTERA pasa a UTF-16 y se desmaqueta**, con un espacio entre cada letra. El dedazo no
+  se limita al símbolo: **rompe la celda del informe firmado**. Censo de fuentes: **85**
+  `setFont('helvetica')`, **11** `setFont('times')`, **CERO** `addFont` y **CERO**
+  `addFileToVFS` — no hay fuente propia, y embeber una exigiría un CDN.
+  Entran `_pdfSexoFig` —círculo y líneas, con el alto sacado del **cuerpo de letra vigente**, sin
+  un número cableado por plantilla— y `_tSexo`, el único dibujador de una línea de celda del
+  paciente: **sin hueco, o con una alineación que no sea la izquierda, se comporta exactamente
+  como `doc.text`**, así que todo lo demás sale byte por byte como en HEAD.
+  ⚠️ **EL HUECO ES DE ESPACIOS DUROS Y SU ANCHO SE LE DEVUELVE AL MEDIDOR, y eso NO es
+  cosmético.** El texto que se mide y el que se estampa son el MISMO string —el hueco queda en
+  blanco y la figura se pinta encima—, pero medido, «60 años · Masculino» **cabía JUSTO** en su
+  columna: los tres duros la partían en **dos renglones** y la caja del paciente crecía **3,9 mm**
+  en Clásico, Moderno y Elegante, y en **Compacto** corrían el corte de la tira y «ASC 2.00 m2» se
+  pasaba al renglón siguiente. **Un símbolo no puede remaquetar el informe firmado**: los **tres**
+  `splitTextToSize` de las celdas del paciente reciben el ancho del hueco.
+  ⚠️ **SON SEIS PLANTILLAS DE PDF, NO TRES** —clásico, moderno, minimalista, académico, compacto y
+  elegante— repartidas en **tres maquetaciones distintas** del bloque del paciente. Medir una sola
+  deja cinco sin cubrir.
+  **MEDIDO con el PDF generado de verdad, 3 escenas × 6 plantillas: `nTextos` IDÉNTICO a HEAD en
+  las 18** —ninguna cambió de envoltorio—, la **única** línea de texto distinta en las doce con
+  sexo es `: >50` → `: >50%`, y `nFigs` sube **+4** con el masculino y **+3** con el femenino.
+  **CONTROL NEGATIVO: sin sexo cargado, las SEIS plantillas salen con CERO diferencias de texto y
+  CERO figuras de más.** Y **MIRADO** en el PNG del PDF real a 400 dpi: «60 años · ♂ Masculino» en
+  UNA línea, con el símbolo del alto del texto y separado de la palabra.
+  **PDF REIMPRESO de un estudio guardado, por su camino REAL** (guardar → limpiar →
+  `pdfDeInformeGuardado`): masculino «>50%» con 54 figuras, femenino «<50%» con 52, y sin sexo 42
+  figuras y ninguna celda de VCI.
+  ⚠️ **EL INFORME DE UN ESTUDIO GUARDADO NO SE REESCRIBE**: `informe_texto` y `en_suma` son
+  `<textarea>` **con id**, viajan con el estudio y el reimpreso los repone tal cual. Lo que **sí**
+  cambia en el reimpreso es la **tabla de datos**, que se arma de `campos`. **No se migra nada.**
+
+- ⚠️ **LA CÉDULA DEL MÉDICO NO EXISTE, ASÍ QUE ESA PARTE QUEDÓ SIN HACER — y la orden lo
+  preveía.** Censado: el **médico** tiene `med-matricula` / `cfg-medico-matricula` y **ninguna
+  cédula**; lo que se parece son dos campos del **PACIENTE** —`ci` + `doc_tipo` (CI/DNI/CPF) y
+  `matricula`, cuyo placeholder dice **«Nº mutualista»**—. La regla «si están las dos se imprime
+  la cédula, salvo que prefiera la matrícula» **no es aplicable**: no hay dos datos entre los que
+  elegir, y agregar una casilla de preferencia habría sido agregar un control que no gobierna
+  nada. Además, la identificación que hoy se imprime en la firma va **sin rótulo**. Las tres
+  salidas están en `PENDIENTES.md` → **H-2**.
+
+- **EL LABORATORIO Y EL EXCEL CLASIFICAN POR SU CUENTA Y NO SE TOCARON** (la orden lo prohíbe).
+  El Laboratorio lee la AI de **DOS** formas independientes del dato: un **regex sobre el TEXTO**
+  del informe en la fila «Dilatación AI», y `_labLavi` recalculando el indexado con Mosteller para
+  la fila «Vol AI elevado sin función diastólica documentada». El Excel tiene **cuatro** columnas
+  de la AI y **ninguna clasifica**: son todos valores. Como esta tanda no cambia ni una letra del
+  informe, **ninguno de los dos se mueve** — medido. `PENDIENTES.md` → **H-3** y **H-4**.
+
+- **A/B DEDICADO CONTRA HEAD, con el formulario vacío y con escenario cargado (diastólica grado
+  II, IM severa, EAo severa): 0 DIFERENCIAS** en informe, EN SUMA, los ocho grados, las ocho
+  pastillas, la diastólica, el HFA-PEFF, el token del Laboratorio y el **Excel en 440 columnas
+  CLAVE POR CLAVE**, en las cuatro escenas y en los dos commits.
+
+- **Arnés: `scripts/_probe_h.mjs`**, A/B de solo lectura con `--file` y `--dest`, cinco grupos
+  (`ai`, `bordes`, `pdf`, `reimp`, `controles`), con **teclas reales** y el PDF **generado de
+  verdad** interceptando el constructor de jsPDF —se registran los `text` con su posición **y
+  también** los `circle` y `line`, porque un espía que sólo mire el texto informaría «no hay
+  símbolo» sobre una figura perfecta—.
+  **Cobertura: TC-487**, **35 condiciones** —contadas instrumentando el propio caso para que
+  publicara su `ex.length`— con tres denominadores y cinco controles negativos. **Verificado que
+  sabe fallar contra HEAD en un worktree aparte: 11 de las 35 en rojo, y NINGUNA por excepción.**
+  ⚠️ **ONCE DE TREINTA Y CINCO ES POCO, Y ESO ES EL PUNTO**: la regla de la AI ya estaba
+  implementada, así que las condiciones que afirman la frase, el EN SUMA y la cápsula **pasan
+  también en HEAD** — que es justamente lo que había que demostrar.
+- ⚠️ **CASOS ADAPTADOS: NINGUNO**, y es consecuencia de que no cambió ni un texto del informe.
+
+- ⚠️ **CINCO TRAMPAS, Y TRES DABAN FALSOS PLAUSIBLES.**
+  1. **`indexOf('uricula')` NO MATCHEA «Aurícula»**, porque la í lleva tilde: **once** condiciones
+     de TC-487 salieron rojas **por el filtro** y no por el árbol, sobre un informe perfecto.
+  2. **No se puede buscar el glifo en el fuente para probar que NO se usa**, porque el comentario
+     que explica por qué no se usa lo NOMBRA. Es la trampa de `.ip-ap-col2` que TC-476 ya pagó.
+  3. **`showTab('valvulas')` corre `valvCerrarTarjetas` y cierra lo que el clic acaba de abrir**:
+     llamarlo con la pestaña ya activa deshace las dos puertas de la mitral y el campo vuelve a
+     medir 0×0. Se llama **sólo si la pestaña no está activa**.
+  4. **`guardarInforme` devuelve `false` y NO guarda** si las severidades no están confirmadas, y
+     `valvSevConfirmada` es un `let` de MÓDULO que no se puede poner a mano. Se confirma
+     clickeando `#rev-confirm`, que es el gesto del médico.
+  5. **`getInformes()` no devuelve el último guardado al final**: las tres escenas del reimpreso
+     devolvieron el **mismo id** y las dos de abajo reimprimieron el estudio de la primera. Se
+     busca por documento.
+  ⚠️ **Y DOS DEL MEDIDOR:** un **`input[type=date]` no soporta `setSelectionRange`** y tira
+  `InvalidStateError`, que mata la escena entera —la fecha se fija por valor **y se declara**, es
+  el único campo de estas escenas donde el gesto no es una tecla real—; y **un `await` de nivel
+  superior en `Runtime.evaluate`** tira «missing ) after argument list», porque la expresión se
+  evalúa en una función que no es `async`.
+- ⚠️ **Me comí el acento grave DOS veces**, las dos en comentarios míos dentro del template de la
+  sonda. `scripts/check_backticks.py` dio la línea exacta las dos; **la segunda la vi tarde porque
+  mandé su salida a `/dev/null`** y me quedé con el «ok» del script de edición. **No silenciar el
+  chequeo.**
 
 ### La vista 2D de las válvulas pasa a PANEL EN LÍNEA, y los dos defectos del médico — «Y1c» (2026-10-16)
 

@@ -2743,3 +2743,62 @@ medido contra HEAD:
 
 El panel sigue sin publicar una sola cita, como el Y1 ya dejó escrito: el dibujo es cualitativo y
 su nota al pie lo dice.
+
+---
+
+## La AURÍCULA IZQUIERDA por volumen indexado — la tanda «H» (2026-10-16)
+
+### `aseCamaras2015` — ASE/EACVI, cuantificación de cavidades
+
+**Lang RM, Badano LP, Mor-Avi V, et al. «Recommendations for Cardiac Chamber Quantification by
+Echocardiography in Adults: An Update from the American Society of Echocardiography and the
+European Association of Cardiovascular Imaging.» J Am Soc Echocardiogr 2015;28:1-39.**
+
+En disco: `01_VI_y_camaras/Lang_2015_Cuantificacion_Cavidades.pdf` (**la traducción al
+español**) y `Chamber-quantification.-Guidelines-and-standards.-ASE-2015.pdf` (**el original
+inglés**, 53 páginas).
+
+⚠️ **SE CITA DEL INGLÉS**, por la regla de la casa que la ESC/EACTS 2025 dejó escrita con todas
+las letras: una traducción no cierra un hallazgo de wording.
+⚠️ **Y LA REGLA DE FOLIO DE ESTE PDF NO ES «PÁGINA + 1»: ES «PÁGINA».** Comprobado en el pie
+impreso —la página 11 del PDF termina con `Lang et al` y el número **11**, y la 10 arranca con
+**10** `Lang et al`—. La regla «+1» que traía la orden corresponde al PDF en español, que pagina
+distinto.
+
+#### El volumen indexado de la AI — Tabla 4, folio 10, VERIFICADO EN TEXTO COMPLETO
+
+La tabla se titula literalmente «Normal ranges and severity partition cutoff values for
+2DE-derived LV EF and LA volume», y su fila `Maximum LA volume/BSA (mL/m2)` publica:
+
+| | Normal | Levemente anormal | Moderadamente anormal | Severamente anormal |
+|---|---|---|---|---|
+| **Varón** | `16–34` | `35–41` | `42–48` | `>48` |
+| **Mujer** | `16–34` | `35–41` | `42–48` | `>48` |
+
+⚠️ **LAS DOS COLUMNAS IMPRIMEN LOS MISMOS CUATRO VALORES**, así que esta clasificación **no se
+separa por sexo** —a diferencia de la masa indexada y de los volúmenes del VI, que sí—. Un
+«corte por sexo» para la AI sería inventado.
+
+**NINGÚN CORTE SE MOVIÓ.** Los cuatro son exactamente los que la app ya aplicaba (`<=34` normal,
+`<=41` leve, `<=48` moderada, `>48` severa), en sus dos copias —la cápsula de AI/VI y el bloque 4
+de `generarInforme`—, y lo que esta tanda hizo fue darles **un solo dueño** (`AI_VOL_BANDAS` +
+`aiVolClasificar`). Medido por los seis bordes con la superficie corporal fijada en 2,00 exacta:
+34,0 normal · 34,1 leve · 41,0 leve · 41,1 moderada · 48,0 moderada · 48,1 severa.
+
+El mismo documento respalda, en su prosa del folio 28, el límite superior de normalidad:
+el valor normal alto del volumen de AI por eco 2D es de **34 mL/m²**, que es
+`UMBRAL_LAVI_DILATADO` y es además el corte que las tres guías de función diastólica ya usan
+como criterio morfológico (ver `aseDiast2025`, `bseDiast2024` y `aseDiast2016` en este archivo).
+
+#### Lo que esta tanda NO citó, y por qué
+
+Las otras dos preguntas de la aurícula —«¿el diámetro AP marca dilatación?» (`>= 40 mm`) y «¿el
+área?» (`> 20 cm²`)— **no se tocaron** y su registro sigue siendo el que ya tenían. La tanda del
+2026-09-27 ya había retirado de ahí una graduación por diámetro que la guía **no publica**.
+
+### Las dos correcciones del PDF — SIN NINGUNA CITA NUEVA
+
+Ni el «%» del colapso de la VCI ni el símbolo del sexo tienen fuente clínica: son **notación**.
+El primero alinea el PDF con lo que el informe narrativo, el PPT y la propia `<option>` de la
+pantalla ya escribían; el segundo es una decisión de presentación de Maicol. **No se agregó
+ningún corchete al panel de Evidencia por esta tanda.**

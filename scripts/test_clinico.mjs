@@ -70236,6 +70236,227 @@ caso('TC-486', 'Tanda Y1c: la vista 2D EN LINEA — un solo boton que prende y a
 `);
 
 
+
+caso('TC-487', 'Tanda H: la AURICULA IZQUIERDA con un solo dueno —el volumen indexado manda y va entre parentesis, las seis escenas con su frase exacta en los tres estilos, el EN SUMA y la capsula diciendo lo MISMO, los seis bordes y el control negativo sin volumen—; y el PDF con el colapso de la VCI en «%», el simbolo del sexo DIBUJADO como figura y no escrito como glifo, y sin sexo ningun simbolo; mas el informe, el EN SUMA, los grados, la diastolica, el HFA-PEFF y las 440 columnas del Excel sin moverse', `
+  return (async function(){
+    const ex = [];
+    const EL = (id) => document.getElementById(id);
+    const FN = (n) => typeof window[n] === 'function';
+    const V  = (id) => { const e = EL(id); return e ? e.value : null; };
+    const S  = (id, v) => { try { __t.set(id, v); } catch (e) {} };
+    const FUENTE = () => String(document.documentElement.innerHTML || '');
+    /* ⚠️ TODA LECTURA DEL DUENO NUEVO VA POR UN AYUDANTE CON CENTINELA. Contra HEAD
+       \`aiVolClasificar\`, \`AI_VOL_BANDAS\` y \`_pdfSexoFig\` no existen, y nombrarlas peladas es un
+       ReferenceError que mata la corrida entera: eso prueba que el arbol es distinto, NO que el
+       caso sabe medir. Es la leccion que TC-455, TC-462, TC-465, TC-471, TC-473, TC-474,
+       TC-477, TC-480, TC-481, TC-485 y TC-486 ya tienen escrita. */
+    const TXT = (id) => { const e = EL(id); return e ? String(e.textContent || '').trim() : 'NO EXISTE'; };
+    const BANDA = (idx) => { try { return FN('aiVolClasificar')
+      ? (aiVolClasificar(idx) ? aiVolClasificar(idx).clave : null) : 'SIN FN'; } catch (e) { return 'EXC'; } };
+    const ROT = (idx) => { try { if (!FN('aiVolClasificar') || !FN('aiVolRotulo')) return 'SIN FN';
+      const b = aiVolClasificar(idx); return b ? aiVolRotulo(b) : null; } catch (e) { return 'EXC'; } };
+    const NUEVO = () => { try { if (FN('limpiarCampos')) limpiarCampos(true); } catch (e) {} };
+    const INF = (est) => { try { if (FN('setEstiloInforme')) setEstiloInforme(est); } catch (e) {}
+      try { if (FN('generarInforme')) generarInforme(); } catch (e) {}
+      return { inf: V('informe_texto') || '', suma: V('en_suma') || '' }; };
+    /* La linea de la AI AISLADA: comparar el informe entero entre escenas mezcla la funcion
+       diastolica, que SI tiene que moverse con el volumen de la AI. */
+    const NL = String.fromCharCode(10);
+    /* ⚠️ «Auricula» LLEVA TILDE Y indexOf NO LO SABE: buscar la subcadena sin la tilde da CERO
+       sobre un informe perfecto, y las once condiciones de abajo salian rojas por el filtro y
+       no por el arbol. Se busca el tramo que no tiene acentos. */
+    const LAI = (est) => INF(est).inf.split(NL).filter(function(l){
+      return l.indexOf('cula izquierda') > -1 || l.indexOf('AI ') === 0 ||
+             l.indexOf('El volumen indexado es normal') === 0 ||
+             l.indexOf('La otra medici') === 0; }).join(' // ');
+    const SAI = (est) => INF(est).suma.split(NL).filter(function(l){
+      return l.indexOf('AI ') === 0; }).join(' // ');
+    /* ⚠️ LA SUPERFICIE CORPORAL SE FIJA EN 2,00 EXACTA: con Mosteller, sqrt(80*180/3600) = 2,
+       asi que el indexado es el volumen sobre dos y los seis bordes se alcanzan con enteros.
+       Con una BSA de 1,81 ningun borde cae redondo y un corte que no se puede alcanzar no se
+       puede probar. */
+    const MONTAR = (c, sinBsa) => { NUEVO();
+      if (!sinBsa) { S('peso', '80'); S('talla', '180'); }
+      Object.keys(c || {}).forEach(function(k){ S(k, c[k]); });
+      try { if (FN('calcAI')) calcAI(); } catch (e) {} };
+    const GRADOS = () => { const o = {};
+      ['im_grado','ia_grado','it_grado','ip_grado','ea_grado','em_grado','et_grado','ep_grado']
+        .forEach(function(id){ o[id] = V(id); });
+      o.diast = TXT('dd-interp'); o.hfapeff = TXT('hfapeff-eco'); return o; };
+    const EXCEL = () => { try {
+        if (!FN('_labExcelRow')) return { n: 'SIN FN', fila: {} };
+        const c = {};
+        document.querySelectorAll('input[id],select[id],textarea[id]').forEach(function(e){
+          if (e.type === 'checkbox' || e.type === 'radio') c[e.id + '__chk'] = e.checked ? '1' : '0';
+          else c[e.id] = e.value; });
+        const f = _labExcelRow({ id: 'p1', fecha: '2026-10-16', nombre: 'X', campos: c,
+                                 informe_texto: V('informe_texto') || '', en_suma: V('en_suma') || '' });
+        return { n: Object.keys(f).length, fila: f };
+      } catch (e) { return { n: 'EXC', fila: {} }; } };
+
+    /* ══ DENOMINADORES ════════════════════════════════════════════════════════════════ */
+    ex.push(['DENOMINADOR: existen los tres campos de la AI y las tres capsulas',
+      !!EL('ai_vol') && !!EL('ai_diam') && !!EL('ai_area') &&
+      !!EL('ai-interp') && !!EL('ai-diam-interp') && !!EL('ai-area-interp'), '']);
+    ex.push(['DENOMINADOR: la BSA de 80 kg / 180 cm da 2,00 EXACTA, asi que el indexado es el volumen sobre dos',
+      (function(){ MONTAR({}); try { return FN('getBSA') ? Math.abs(getBSA() - 2) < 1e-9 : false; }
+        catch (e) { return false; } })(), '']);
+    ex.push(['DENOMINADOR: existe el dueno unico de la clasificacion por volumen',
+      FN('aiVolClasificar') && FN('aiVolRotulo') &&
+      (function(){ try { return Array.isArray(window.AI_VOL_BANDAS) && window.AI_VOL_BANDAS.length === 4; }
+        catch (e) { return false; } })(), String(BANDA(40))]);
+
+    /* ══ A · LAS SEIS ESCENAS DE LA AI, con su frase EXACTA ════════════════════════════
+       El volumen indexado manda: con 68 ml y BSA 2,00 el indexado es 34,0 —NORMAL— y la
+       auricula se informa normal AUNQUE el diametro AP y el area marquen dilatacion. */
+    { MONTAR({ ai_vol: '68', ai_diam: '50' });
+      ex.push(['(1) volumen NORMAL con el diametro AP dilatado: la frase dice normal y lleva el indexado entre parentesis',
+        LAI('estandar').indexOf('Aurícula izquierda de dimensiones normales (Vol Index 34.0 ml/m²).') === 0,
+        LAI('estandar').slice(0, 120)]);
+      ex.push(['(1) y la discordancia se DECLARA en el cuerpo, nombrando la medicion que marca dilatacion',
+        LAI('estandar').indexOf('diámetro AP 50 mm marca dilatación') > -1, LAI('estandar').slice(0, 220)]);
+      ex.push(['(1) y NO sube al EN SUMA: el parametro que gradua dice normal',
+        SAI('estandar') === '', JSON.stringify(SAI('estandar'))]);
+      ex.push(['(1) la capsula del volumen dice lo MISMO que el informe, y las otras dos siguen midiendo lo suyo',
+        TXT('ai-interp').indexOf('Normal') === 0 && TXT('ai-diam-interp').indexOf('Dilatada') === 0 &&
+        BANDA(34) === 'normal', TXT('ai-interp') + ' | ' + TXT('ai-diam-interp')]);
+      ex.push(['(1) el indexado publicado es 34.0 ml/m2', TXT('ai-idx') === '34.0 ml/m²', TXT('ai-idx')]); }
+
+    { MONTAR({ ai_vol: '68', ai_area: '25' });
+      ex.push(['(2) volumen NORMAL con el AREA dilatada: tambien manda el volumen',
+        LAI('estandar').indexOf('Aurícula izquierda de dimensiones normales (Vol Index 34.0 ml/m²).') === 0 &&
+        LAI('estandar').indexOf('área 25 cm² marca dilatación') > -1, LAI('estandar').slice(0, 200)]); }
+
+    { MONTAR({ ai_vol: '68', ai_diam: '50', ai_area: '25' });
+      ex.push(['(3) volumen NORMAL con los DOS dilatados: la discordancia nombra a las dos mediciones',
+        LAI('estandar').indexOf('de dimensiones normales (Vol Index 34.0 ml/m²).') > -1 &&
+        LAI('estandar').indexOf('diámetro AP 50 mm, área 25 cm² marca dilatación') > -1,
+        LAI('estandar').slice(0, 240)]); }
+
+    { MONTAR({ ai_vol: '98' });
+      ex.push(['(4) volumen AUMENTADO: se informa dilatada CON el grado que la app ya publica',
+        LAI('estandar') === 'Aurícula izquierda severamente dilatada (Vol Index 49.0 ml/m²).',
+        LAI('estandar')]);
+      ex.push(['(4) y SI sube al EN SUMA, con el indexado',
+        SAI('estandar') === 'AI severamente dilatada (Vol Index 49.0 ml/m²).', SAI('estandar')]);
+      ex.push(['(4) los TRES estilos dicen lo mismo en la clasificacion',
+        LAI('conciso').indexOf('severamente dilatada') > -1 &&
+        LAI('estandar').indexOf('severamente dilatada') > -1 &&
+        LAI('narrativo').indexOf('severamente dilatada') > -1,
+        LAI('conciso') + ' || ' + LAI('narrativo').slice(0, 90)]);
+      ex.push(['(4) y el narrativo lleva el indexado con todas las letras',
+        LAI('narrativo').indexOf('volumen indexado de 49.0 ml/m²') > -1, LAI('narrativo').slice(0, 160)]); }
+
+    /* CONTROL NEGATIVO: SIN volumen, todo queda como estaba —dilatada sin grado, por la
+       medicion que haya—. Esta tanda no toca esa rama. */
+    { MONTAR({ ai_diam: '50' });
+      ex.push(['(5) CONTROL NEGATIVO sin volumen y con el diametro AP dilatado: dilatada SIN grado, por el diametro',
+        LAI('estandar').indexOf('Aurícula izquierda dilatada (diámetro AP 50 mm).') === 0 &&
+        SAI('estandar') === 'AI dilatada (diámetro AP 50 mm).', LAI('estandar').slice(0, 140)]);
+      ex.push(['(5) y la capsula del volumen queda en la raya: sin volumen no hay nada que graduar',
+        TXT('ai-interp') === '—' && TXT('ai-idx') === '—', TXT('ai-interp') + ' | ' + TXT('ai-idx')]); }
+    { MONTAR({ ai_area: '25' });
+      ex.push(['(6) CONTROL NEGATIVO sin volumen y con el AREA dilatada: dilatada SIN grado, por el area',
+        LAI('estandar').indexOf('Aurícula izquierda dilatada (área 25 cm²).') === 0 &&
+        SAI('estandar') === 'AI dilatada (área 25 cm²).', LAI('estandar').slice(0, 140)]); }
+
+    /* ⚠️ VOLUMEN MEDIDO Y SIN SUPERFICIE CORPORAL: no se puede indexar, asi que se trata como
+       «sin volumen», que es la opcion conservadora que pidio la orden. Con el diametro
+       dilatado publica la frase SIN grado; sin ninguna otra medicion cae en la rama de
+       normalidad, que es un limite DECLARADO y queda en PENDIENTES. */
+    { MONTAR({ ai_vol: '98', ai_diam: '50' }, true);
+      ex.push(['(7) volumen SIN superficie corporal: se trata como sin volumen y publica la frase sin grado',
+        LAI('estandar').indexOf('Aurícula izquierda dilatada (diámetro AP 50 mm).') === 0 &&
+        TXT('ai-idx') === '—', LAI('estandar').slice(0, 140) + ' | idx=' + TXT('ai-idx')]); }
+    { MONTAR({ ai_vol: '98' }, true);
+      ex.push(['(7b) LIMITE DECLARADO: con el volumen sin indexar y NADA mas, el informe cae en la rama de normalidad',
+        LAI('estandar').indexOf('de dimensiones normales') > -1, LAI('estandar').slice(0, 120)]); }
+
+    { MONTAR({});
+      ex.push(['(8) sin NINGUN dato de la AI: la frase corta de normalidad, sin numeros',
+        LAI('estandar') === 'Aurícula izquierda de dimensiones normales.' && SAI('estandar') === '',
+        LAI('estandar')]); }
+
+    /* ══ B · LOS SEIS BORDES, POR SUS DOS LADOS, Y NINGUN CORTE SE MOVIO ═══════════════
+       ASE/EACVI 2015, Tabla 4, folio 10: 16-34 normal, 35-41 leve, 42-48 moderada, >48 severa.
+       Con BSA 2,00 los seis se alcanzan tipeando el doble del indexado. */
+    { const B = [['68','34.0','normal'], ['68.2','34.1','leve'], ['82','41.0','leve'],
+                 ['82.2','41.1','moderada'], ['96','48.0','moderada'], ['96.2','48.1','severa']];
+      let ok = 0; const vis = [];
+      B.forEach(function(b){ MONTAR({ ai_vol: b[0] });
+        const bien = TXT('ai-idx') === b[1] + ' ml/m²' && BANDA(parseFloat(b[1])) === b[2];
+        if (bien) ok++;
+        vis.push(b[1] + '=' + BANDA(parseFloat(b[1]))); });
+      ex.push(['los SEIS bordes del volumen indexado caen del lado que la guia imprime',
+        ok === 6, ok + '/6 — ' + vis.join(' · ')]); }
+    ex.push(['y el rotulo de la capsula se DERIVA de las bandas, con el texto de siempre',
+      ROT(34) === 'Normal (≤34 ml/m²)' && ROT(35) === 'Dilat. leve (35-41)' &&
+      ROT(42) === 'Dilat. moderada (42-48)' && ROT(49) === 'Dilat. severa (>48)',
+      [ROT(34), ROT(35), ROT(42), ROT(49)].join(' | ')]);
+    /* ⚠️ SE BUSCA LA CASCADA CABLEADA Y NO UN LITERAL SUELTO: el comentario del dueno NOMBRA
+       los cuatro numeros, asi que buscarlos pelados sale rojo sobre un arreglo correcto. Es la
+       trampa de .ip-ap-col2 que TC-476 ya pago. */
+    ex.push(['la segunda copia de la cascada ya no esta en la capsula',
+      FUENTE().indexOf("interp = badge('yellow','Dilat. leve (35-41)')") === -1, '']);
+
+    /* ══ C · EL PDF ═══════════════════════════════════════════════════════════════════
+       ⚠️ EL CUERPO DE UN CASO NO PUEDE GENERAR EL PDF Y MIRARLO: interceptar jsPDF y
+       rasterizar la pagina es trabajo de la sonda (scripts/_probe_h.mjs), que ademas corre en
+       las SEIS plantillas. Aca se fija lo que SI se puede afirmar desde la pagina: que el
+       colapso lleva su unidad, que el simbolo del sexo se DIBUJA y no se escribe, y que sin
+       sexo no hay simbolo ni hueco. Es el mismo reparto que TC-460 y TC-485 ya usan. */
+    { const f = FUENTE();
+      ex.push(['el colapso de la VCI lleva su unidad en el PDF, y por TOKEN y no con un + pelado',
+        f.indexOf("c === '>50' || c === '<50' ? c + '%' : c") > -1, '']);
+      ex.push(['DENOMINADOR: el select del colapso sigue teniendo sus dos tokens y nada mas',
+        (function(){ const e = EL('vci_col'); if (!e) return false;
+          const v = Array.prototype.slice.call(e.options).map(function(o){ return o.value; });
+          return v.length === 3 && v.indexOf('>50') > -1 && v.indexOf('<50') > -1; })(),
+        (function(){ const e = EL('vci_col'); return e ? e.options.length : 'NO EXISTE'; })()]);
+      ex.push(['el simbolo del sexo se DIBUJA con circulo y lineas, y existe su dueno',
+        f.indexOf('function _pdfSexoFig') > -1 && f.indexOf('function _tSexo') > -1, '']);
+      /* ⚠️ LOS GLIFOS NO PUEDEN ESTAR EN EL TEXTO: amiloSanPDF los borra, y si se lo saltea
+         jsPDF los imprime como «&B» y DESMAQUETA la linea entera —medido en el PDF real—. */
+      /* ⚠️ NO SE PUEDE BUSCAR EL GLIFO EN TODO EL FUENTE: el comentario que explica por que no
+         se usa lo NOMBRA, asi que saldria rojo sobre un arreglo correcto. Es la trampa de
+         .ip-ap-col2 que TC-476 ya pago. Lo que se mide es que el texto del sexo se ARME con la
+         constante del hueco, que es la unica forma de que el simbolo entre dibujado. */
+      ex.push(['y NO se escribe como glifo: el texto del sexo se arma con el hueco',
+        f.indexOf("PDF_SEXO_HUECO + 'Masculino'") > -1 &&
+        f.indexOf("PDF_SEXO_HUECO + 'Femenino'") > -1, '']);
+      ex.push(['el hueco del simbolo va con espacios DUROS, que amiloSanPDF no colapsa',
+        f.indexOf("const PDF_SEXO_HUECO = '") > -1 && f.indexOf('u00A0') > -1, '']);
+      /* ⚠️ EL ANCHO DEL HUECO SE LE DEVUELVE AL MEDIDOR, en los TRES sitios que maquetan el
+         bloque del paciente: sin eso el simbolo parte la celda en dos renglones y corre el
+         corte de la tira, o sea remaqueta el informe firmado. */
+      ex.push(['y su ancho se le devuelve al medidor del envoltorio, en los tres sitios',
+        (f.split('doc.getTextWidth(PDF_SEXO_HUECO)').length - 1) >= 4,
+        String(f.split('doc.getTextWidth(PDF_SEXO_HUECO)').length - 1)]);
+      ex.push(['CONTROL NEGATIVO: sin sexo cargado no hay hueco que dibujar',
+        f.indexOf(': (sexo||null);') > -1 &&
+        f.indexOf("if (sexo !== 'M' && sexo !== 'F') return;") > -1, '']);
+      ex.push(['la firma del PDF imprime la MATRICULA del medico, que es el unico dato que existe',
+        f.indexOf("sv('med-matricula')") > -1 && !EL('med-cedula') && !EL('cfg-medico-cedula'),
+        'LIMITE DECLARADO: la app no tiene cedula del medico; ver PENDIENTES.md']); }
+
+    /* ══ D · LOS CONTROLES ════════════════════════════════════════════════════════════ */
+    { MONTAR({ ai_vol: '98', ai_diam: '44', ai_area: '25', onda_e: '90', onda_a: '60',
+               e_sep: '6', e_lat: '8', vmax_it: '3.0', fevi: '55', ddfvi: '50', siv: '12',
+               ppvi: '11', tapse: '18', vci_diam: '18', vci_col: '>50', sexo: 'M' });
+      const r = INF('estandar'), g = GRADOS(), x = EXCEL();
+      ex.push(['DENOMINADOR: la escena de control produce veredicto de diastolica de verdad',
+        String(g.diast).indexOf('—') > -1 && String(g.diast).length > 8, String(g.diast)]);
+      ex.push(['el Excel sigue en 440 columnas', x.n === 440, String(x.n)]);
+      ex.push(['y el informe sigue nombrando la VCI con su colapso en el cuerpo',
+        r.inf.indexOf('VCI de 18 mm, con colapso mayor al 50%') > -1,
+        r.inf.split(NL).filter(function(l){ return l.indexOf('VCI') > -1; }).join(' // ')]);
+      ex.push(['los ocho grados y las pastillas no quedaron en un estado imposible',
+        Object.keys(g).length === 10, JSON.stringify(g).slice(0, 120)]); }
+
+    return { extra: ex };
+  })();
+`);
+
 let servidor, chrome;
 try {
   const s = await servir(); servidor = s.srv;
