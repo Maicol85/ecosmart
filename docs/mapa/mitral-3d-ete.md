@@ -221,6 +221,169 @@ de nombres se separa del primero el día que uno se renombre.
 
 ---
 
+## 11 · El GIRO MANUAL — tanda «Y3b-1» (2026-10-16)
+
+Hasta el Y3 la cámara se movía **sólo** con los tres botones de vista y los cinco de ángulo. Hoy el
+dibujo se arrastra con el mouse y con el dedo, y se gira con las flechas del teclado.
+
+**La fórmula no se eligió: es la que ya existe dos veces en el repo**, medida en el fuente de las dos:
+
+```
+R = Mry(dx · 0,01) · Mrx(dy · 0,01) · R
+```
+
+| Pieza | Demo (`2b_demo_mitral_vistas_ete.html`, líneas 261-263) | 3D de contractilidad (`lv3dCablear`) | Mitral 3D (hoy) |
+|---|---|---|---|
+| sensibilidad | `0.01` rad/px | `0.01` rad/px | `M3D_GIRO_K = 0.01` |
+| composición | premultiplicación (marco de la PANTALLA) | la misma | la misma |
+| límite de inclinación | **ninguno** | **ninguno** | **ninguno** |
+| zoom por rueda o pellizco | **no** | **no** | **no** |
+| umbral de «toque» | `m < 5` → `pick()` | `m < 10 && dt < 400` → cicla la motilidad | **no hay**: el lienzo no tiene nada que clickear |
+| teclado | **no** | **no** | **sí** (`M3D_GIRO_TECLA`, 9 px equivalentes ≈ 5°) |
+
+⚠️ **LAS DOS PIEZAS NO DIFIEREN EN NADA QUE IMPORTE**, así que no hubo que aplicar la regla de «la
+demo manda». Lo único que difiere es el umbral de toque, y acá no existe porque el 3D de la mitral
+no cicla nada al tocar: un arrastre de un píxel es un arrastre.
+
+⚠️ **EL ZOOM QUEDA EN EL VALOR QUE LA CÁMARA TENÍA.** `pointermove` escribe **sólo** `_m3dR`, igual
+que la demo. Los cinco ángulos dejan `_m3dZM` en 0,78, así que girar a mano desde un ángulo conserva
+ese encuadre; al cerrar se repone en 1.
+
+### Las piezas
+
+| Pieza | Qué hace |
+|---|---|
+| `m3dGirar(dx, dy)` | el giro, y la DESMARCA de los ocho botones la primera vez del gesto |
+| `m3dCablearGiro` / `m3dDescablearGiro` | ponen y quitan los oyentes; los llaman `m3dAbrir` y `m3dCerrar` |
+| `m3dGiroCableado()` | si hay oyentes puestos. Lo leen la sonda y TC-488 |
+| `_m3dDrag` | el estado del arrastre. `_m3dDragFin` lo cierra y saca el cursor |
+
+⚠️ **LOS OYENTES SE PONEN AL ABRIR Y SE QUITAN AL CERRAR, y no una sola vez con una guarda de «ya
+cableado» como hace `lv3dCablear`.** Las dos formas evitan la acumulación; ésta además deja el panel
+cerrado **sin un solo oyente de arrastre**, que es lo que la orden pide y lo único que se puede
+**medir** espiando `addEventListener` y `removeEventListener`. Medido: veinte aperturas y cierres dan
+**100 contra 100** y terminan sin cablear.
+
+⚠️ **`touch-action:none` VA SOLO SOBRE EL LIENZO.** Sin él el navegador se queda el gesto del dedo y
+el arrastre no llega nunca; puesto en el panel, la **página** dejaría de desplazarse con el dedo
+dentro del panel. Medido en los dos motores: `#m3d-cv` → `none`, `#m3d-panel` → `auto`.
+
+⚠️ **LAS FLECHAS LLEVAN `preventDefault`**: sin él la página se desplaza al mismo tiempo que el
+modelo gira. Medido con el lienzo centrado y `scrollY` en 628: igual antes y después.
+
+⚠️ **AL CERRAR SE LIMPIA EL GIRO** —vista del cirujano, ángulo nulo, matriz identidad y zoom 1—
+porque si no el panel reabriría con la cámara que el médico dejó en OTRO paciente y con los ocho
+botones sin marcar, o sea sin ninguna pista de hacia dónde está mirando.
+
+### Lo medido, en los dos motores
+
+| Qué | Chrome 155 | WebKit 27.2 |
+|---|---|---|
+| arrastre con MOUSE cambia el dibujo | sí | sí |
+| arrastre con DEDO cambia el dibujo | sí (CDP) | **no se pudo mandar** |
+| el dedo NO desplaza la página | sí (`scrollY` 628 → 628) | — |
+| las flechas giran y no desplazan | sí | sí |
+| la rueda deja el lienzo IDÉNTICO byte por byte | sí | sí |
+| cuadros con el panel cerrado / abierto / tras cerrar | 0 / 55 / 0 | 0 / 54 / 0 |
+| 20 ciclos: nodos y oyentes | 11924 → 11924, add 100 = rem 100 | 11976 → 11976, 100 = 100 |
+
+⚠️ **EL ARRASTRE CON EL DEDO EN WEBKIT NO SE PUDO MANDAR, y se declara.** La API de táctil de
+Playwright sólo expone `tap`; el arrastre se manda por **CDP** (`Input.dispatchTouchEvent`), que es de
+Chromium. En WebKit lo que queda medido es el `touch-action` resuelto y el arrastre con mouse.
+**WebKit de Playwright no es Safari**: es el motor, con otra capa de integración.
+
+---
+
+## 12 · El CUADRO y la TABLA — tanda «Y3b-2» (2026-10-16)
+
+### El cuadro: 324×228 → 340×300
+
+El alto sube **31,6 %** y el ancho **4,9 %**. La ventana de encuadre crece en la **misma proporción**
+(`M3D_VW`/`M3D_VH`: 440×310 → 462×408), así que **el modelo conserva su escala**: el factor de volcado
+pasa de **0,7355** a **0,7353**, un 0,03 % más chico. Lo que crece es el marco.
+
+`M3D_AIRE = 55` es el aire de arriba **en unidades del dibujo**: desplaza el modelo hacia abajo dentro
+del marco.
+
+⚠️ **EL 55 SALE DE MEDIR LA CAJA DE PÍXELES PINTADOS, no de mirar.** Se miden 24 celdas —tres grados
+de IM × (tres vistas + cinco ángulos)— leyendo el `alpha` del lienzo: `m3dPintar` arranca con
+`clearRect`, así que todo píxel con alpha es dibujo y el fondo gris lo pone el `div` de atrás.
+
+| Vista | margen ARRIBA en HEAD | margen ARRIBA hoy |
+|---|---|---|
+| vista del cirujano, IM severa | **0** | **70** |
+| desde el ventrículo, IM severa | 9 | **86** |
+| las otras 22 celdas | **0 en 20 de ellas** | **nunca menos de 9** |
+
+⚠️ **EL CORTE LATERAL Y LOS CINCO ÁNGULOS SIGUEN TOCANDO EL BORDE DE ABAJO, y ya lo tocaban en
+HEAD.** Medido: su contenido se sale del **propio espacio de dibujo de la demo** (680×380) —con la
+ventana puesta en 680×380, o sea el modelo a la mitad de escala, siguen con el margen de arriba en
+cero—, así que no es algo que un marco pueda arreglar a esta escala. `docs/PENDIENTES.md` → Y3b-1.
+
+⚠️ **LO QUE TOCA LOS BORDES SON LOS RÓTULOS**, no las valvas: los seis festones, `Ao`, `LAA` y las
+siglas de `m3dRotulosExtra` se colocan con `_m3dScr` y después se separan entre sí con el barrido
+`spread()`, que los empuja fuera del modelo. Es por eso que el margen de arriba tiene un piso
+constante en casi todas las celdas.
+
+### La maqueta: dos columnas
+
+```
+#m3d-cuerpo  (598 px)
+  #m3d-izq  (340)         #m3d-der  (250)
+    #m3d-lienzo 340x300     #m3d-grados   (la tarjeta de grado)
+    #m3d-ciclo              #m3d-tabla    (los datos medidos)
+#m3d-desc  (598, a todo el ancho)
+```
+
+El panel pasó de 500 a **610 px** y sus hijos de 488 a **598**. La columna derecha mide
+`598 − 340 − 8 = 250 px`, dentro de los 250 a 280 que pidió la orden, y **crece con su contenido**: no
+lleva alto ni desplazamiento interno.
+
+| Ancho | panel | vista quirúrgica | lienzo | columna derecha | scroll horizontal |
+|---|---|---|---|---|---|
+| 1440 | 610 | 500 | 340×300 | 250 | no |
+| 1200 | 610 | **356** | 340×300 | 250 | no |
+| 768 | 706 | 500 | 704×300 | 706 (una columna) | no |
+| 390 | 328 | 328 | 326×300 | 328 (una columna) | no |
+| 360 | 298 | 298 | 296×300 | 298 (una columna) | no |
+
+⚠️ **A 1200 px LA VISTA QUIRÚRGICA BAJA DE 466 A 356 px**, porque el contenedor de esa tarjeta mide
+978 y `978 − 12 − 610 = 356`. Nada se pisa y no hay scroll. A 1440 vuelve a sus 500.
+
+⚠️ **EL BLOQUE ANGOSTO NECESITA `align-items:stretch`.** En columna el eje transversal es el
+HORIZONTAL, así que con el `flex-start` de escritorio cada columna quedaba del ancho de su contenido:
+medido a 768 px, el dibujo salía en **537 px** al lado de una tabla de **281**.
+
+### La tabla, una línea por dato
+
+Era **una fila por grupo** con todos sus datos pegados por un punto medio, que en una columna de
+250 px queda en un párrafo. Hoy cada grupo lleva su **encabezado** (`th.m3d-g`, a dos columnas) y cada
+dato su propia línea con el rótulo a la izquierda y el valor a la derecha.
+
+**El contenido no cambia**: los mismos datos, en el mismo orden, leídos de los mismos campos, sin una
+sola conclusión.
+
+⚠️ **LA UNIDAD VA PEGADA CUANDO EL SÍMBOLO LO PIDE** (`M3D_UNI_PEGADA`): el grado sexagesimal y el
+porcentaje salen sin espacio (`45°`) y las unidades alfabéticas con él (`12 mm`, `1.4 cm²`), que es
+como las escribe el resto de la app —`_amFila` incluido—. Antes la unidad salía **siempre** con
+espacio y la pantalla publicaba «Ángulo velo posterior 45 °».
+
+### Las dos cosas vistas en la pantalla
+
+- **«Profundidad coaptación» aparece DOS veces y son DOS CAMPOS DISTINTOS**, censado:
+  `ete_prof_coapt` (Mediciones ETE, ayuda «Normal ≤10mm») y `teer_prof_flail` (TEER, IM secundaria,
+  ayuda «Excl: >10mm»). **La pestaña les pone la MISMA etiqueta a los dos**, así que no hay «nombres
+  que ya usa la pestaña» con los que distinguirlos: lo que los distingue es el **encabezado de grupo**
+  que la tabla ahora lleva. Inventarles un nombre sería publicar un rótulo que la pantalla no usa.
+- **«Área planimetría» SE MUDÓ a «Severidad»**, y la condición de la orden se verificó antes de
+  moverla: `ete_area_mitral` es el **área valvular por planimetría**, o sea un parámetro de la
+  estenosis, y así lo consume la app —en el narrativo es uno de los cuatro datos que abren la oración
+  de morfología, junto al score de Wilkins, que es la escala de la estenosis mitral reumática—. Queda
+  al lado de `avm_plan`, que es el **mismo parámetro medido en la pestaña Válvulas**: son dos campos
+  distintos y la tabla publica lo medido, no una sola lectura.
+
+---
+
 ## 10 · Lo que NO entró, y dónde está
 
 - **No hay captura al PDF ni al PPT.** «Incluir en PDF» sigue incluyendo **sólo** la vista

@@ -6,7 +6,22 @@
 
 > Lo implementado está en `docs/mapa/mitral-3d-ete.md`. Acá queda lo que la tanda **no** hizo.
 
-### ⏸️ Y3-7 · PARADA — las DOS calculadoras del Wilkins no se unificaron
+### ✅ Y3-7 · CERRADO el 2026-10-16 — las dos calculadoras del Wilkins SE UNIFICARON
+
+**Resuelto en la tanda «Wilkins».** La regla salió a `_wilkCalc(crudos, delib)`, pura, con dos
+lectores —`wilkinsScore(src)` para la pantalla y `wilkinsScoreDeCampos(campos, src)` para un estudio
+archivado—, y `calcWilkins` y `cxWilkins` pasaron a **sólo pintar**, cada una con su formato. Las
+tres divergencias que esta parada declaraba se resolvieron así:
+
+- **el dominio del centinela** → los dos se tratan igual (el `0` de ETE y la cadena vacía), y el
+  `1/1/1/1` queda «sin puntuar» en las dos salvo que haya una **marca de gesto** (opción C);
+- **la banda >11** → «No favorable para valvuloplastia» en las dos (reemplaza «desfavorable»);
+- **el parcial** → el texto de ETE, que explica el motivo, en las dos.
+
+**Lo medido y lo que sigue abierto está en `docs/mapa/wilkins-unificado.md`.** Lo que queda de esta
+entrada, abajo, es el estado en el que la parada se declaró.
+
+### ⏸️ Y3-7 · PARADA — las DOS calculadoras del Wilkins no se unificaron (estado del 2026-10-16, cerrado)
 
 La orden pedía UN solo cálculo para las dos pantallas y añade: «Si las dos discrepan hoy en un
 corte, un rango o un texto, NO elijas: PARADA de esta sub-parte». **Discrepan.**
@@ -3828,3 +3843,75 @@ Medido hoy: no ocurre en ninguna de las seis plantillas. Declarado.
 **preexistente** —el rótulo cableado decía lo mismo— y es la misma trampa que `hviSeveridad` ya
 tiene escrita. Lo que gradúa es la banda, no el rótulo. No se tocó: cambiarlo cambia un texto de
 pantalla.
+
+---
+
+## Tanda «Y3b + Wilkins + I» (2026-10-16) — DECLARADO y NO arreglado
+
+### Y3b-1 · El «corte lateral» y los cinco ángulos siguen tocando el borde de ABAJO
+
+**Medido en 24 celdas** (tres grados de IM × tres vistas y cinco ángulos): con el cuadro nuevo
+(340×300, ventana 462×408, aire 55) el margen de **arriba** nunca baja de 9 px y en la vista del
+cirujano llega a 70, pero el margen de **abajo** queda en 0 en el corte lateral y en los cinco
+ángulos. **Ya quedaba en 0 en HEAD** (0 a 3 px), así que no es una regresión.
+
+**Por qué no se puede arreglar creciendo el marco:** medido con la ventana puesta en el espacio de
+dibujo COMPLETO de la demo (680×380, o sea el modelo a la mitad de escala), esas mismas celdas siguen
+con el margen de arriba en **cero**. O sea que su contenido —los rótulos que `spread()` separa, y las
+líneas de la aurícula vistas de canto— **se sale del propio espacio de dibujo de la demo**.
+
+**Salidas:** (a) dejarlo como está; (b) acotar el `spread()` de los rótulos al rectángulo del lienzo,
+que es tocar el dibujo y esta orden lo prohíbe; (c) dar a esas seis cámaras un zoom propio más
+cerrado, que achicaría el modelo sólo en ellas. **Es decisión de Maicol.**
+
+### Y3b-2 · A 1200 px la vista quirúrgica baja de 466 a 356 px
+
+El panel pasó de 500 a 610 px de ancho para que la tabla entre en su columna derecha de 250. El
+contenedor de esa tarjeta mide **978 px**, así que `978 − 12 − 610 = 356` para la vista quirúrgica,
+que tiene `flex:0 1 500px` y puede encogerse. **Nada se pisa y no hay scroll horizontal** —medido—,
+y a 1440 px las dos vuelven a sus 500. Si 356 px resulta poco para leer la vista quirúrgica, las
+salidas son bajar la columna derecha a 250 → 230 px, o pasar el panel a ocupar la línea entera por
+debajo de cierto ancho. **No se tocó.**
+
+### Y3b-3 · El Laboratorio sigue contando un 1/1/1/1 legado como un score completo de 4
+
+`_labWilkinsResumen` cuenta sobre registros archivados con `_labNum(i, k) > 0`, así que un estudio
+legado con los cuatro criterios en 1 y sin la marca de gesto entra en su promedio y en su barra de
+«≤8 favorable», mientras la pantalla, el PDF y el Excel del MISMO estudio dicen «sin puntuar».
+**El Laboratorio está en los NO TOQUES de esta orden.** La corrección es una línea: pasarle
+`wilkinsScoreDeCampos(i.campos, 'ete').interpretable`. **Es decisión de Maicol**, porque cambia un
+agregado estadístico ya publicado.
+
+### Y3b-4 · El desglose del PDF de ETE lista los cuatro «1 / 4» con el total en «no calculado»
+
+Con un 1/1/1/1 sin marca, `amiloTextoWilkins` publica «Score de Wilkins | no calculado» y
+«Interpretación | sin puntuar — reingresá los cuatro criterios», y **debajo sigue listando** los
+cuatro criterios en 1/4. Es factual —son los valores que el estudio trae— pero convive con un total
+que la app declara no interpretable. **No se tocó**: cambiar ese desglose es cambiar el papel firmado.
+
+### Y3b-5 · La fórmula de Balik NO está en la biblioteca, y queda sin verificar
+
+`_balikVol` convierte la separación pleural en volumen con `ml = mm × 20` y ya lo publicaba antes de
+esta tanda. **Censada la biblioteca entera**: no hay un solo documento que contenga la fórmula ni el
+nombre. Lo que sí hay es el **método de Capper** (área de sección máxima × longitud axial), en
+*Current Pulmonology Reports* 2024;13:152-172, **folio 167** — otro método, que necesitaría campos que
+no existen. Así que la fórmula **se reusa tal cual, no se escribió de memoria y no se agregó ninguna
+entrada a `FUENTES.md`**. Para cerrarlo hace falta el artículo original (Balik M, et al. *Intensive
+Care Med* 2006) en la biblioteca.
+
+### Y3b-6 · Las dos separaciones de líneas B (≈3 mm y ≈7 mm) quedaron SIN HACER
+
+No hay **ningún protocolo POCUS pulmonar** en la biblioteca. Lo único sobre líneas B es la misma
+revisión de ETE en cuidados críticos, que dice que **tres o más** indican edema o enfermedad
+intersticial (folio 167) y **no menciona ninguna separación en milímetros**. El selector
+`pul_lineasb_pat` sigue ofreciendo focal y difuso y la oración del informe no cambió. Para cerrarlo
+hace falta el protocolo (Volpicelli 2012 o equivalente) en la biblioteca, con su rótulo literal.
+
+### Y3b-7 · Los cinco campos nuevos no se reimportan desde el Excel
+
+`wilkins_delib`, `cx_wilk_delib`, `pericardio_hemo`, `pul_derrame_lado` y `pul_consol_nota` viajan
+con el estudio pero **no están en `LAB_XLS_MAP`**, así que no tienen columna y un backup a Excel con
+su reimportación los pierde: el derrame pleural vuelve sin lado, la consolidación sin nota, el
+pericardio sin su compromiso y el Wilkins sin su marca —o sea un 1/1/1/1 reimportado queda «sin
+puntuar», que es el lado conservador—. Agregarles columna es **PARADA de columna** (el Excel tiene
+440). **Es decisión de Maicol.**

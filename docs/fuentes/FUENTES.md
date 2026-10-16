@@ -2802,3 +2802,50 @@ Ni el «%» del colapso de la VCI ni el símbolo del sexo tienen fuente clínica
 El primero alinea el PDF con lo que el informe narrativo, el PPT y la propia `<option>` de la
 pantalla ya escribían; el segundo es una decisión de presentación de Maicol. **No se agregó
 ningún corchete al panel de Evidencia por esta tanda.**
+
+---
+
+## La tanda «Y3b + Wilkins + I» (2026-10-16) — una CONFIRMACIÓN y dos ausencias
+
+### El score de Wilkins: los cortes se CONFIRMARON y no se movieron
+
+La unificación de las dos calculadoras **no cambió ningún corte**. Los tres siguen siendo los que ya
+están verificados en este archivo:
+
+- `≤ 8` favorable y `> 11` no favorable → **`wilkins1988`**, artículo original, **p. 307**;
+- `9-11` «El score no predice el resultado» → el mismo artículo, misma página, que es el literal del
+  que sale `WILK_9_11`;
+- el `> 8` que la app muestra en el panel de Evidencia sigue atribuido **«según la guía»** y **no** a
+  Wilkins, porque la ESC/EACTS 2025 lo publica sin atribuírselo y remite a su Supplementary Table S3,
+  que **no está en la biblioteca** (ver la entrada de `wilkins1988` y la de la Tabla S3).
+
+**Esta tanda no agrega ninguna cita.**
+
+### ⚠️ La fórmula de BALIK no está en la biblioteca
+
+La app convierte la separación pleural en volumen con `ml = mm × 20` (`_balikVol`) desde antes de esta
+tanda, y lo publica en el informe y en el EN SUMA. **Censada la biblioteca completa** —las dieciocho
+subcarpetas más una búsqueda de texto en los PDF candidatos—: **no hay un solo documento que contenga
+la fórmula ni el nombre**.
+
+Lo que **sí** hay es otro método, verificado de paso:
+
+| Clave | Documento | Folio | Qué dice |
+|---|---|---|---|
+| `boraEteCriticos2024` | Bora V, Pulijal SV. *Transesophageal Echocardiography in Critical Care*. **Current Pulmonology Reports** 2024;13:152-172 | **167** | el **método de Capper**: volumen = área de sección máxima × longitud axial, medidas avanzando la sonda; y que las líneas B **de tres o más** indican edema o enfermedad intersticial |
+
+⚠️ **EL MÉTODO DE CAPPER NO SIRVE PARA REEMPLAZAR A BALIK EN ESTA APP**: pide dos medidas que no
+tienen campo. Así que la fórmula de Balik **se reusó tal cual, NO se escribió de memoria y NO se le
+agregó entrada**: queda **sin verificar al estándar de la casa**, declarada en
+`docs/PENDIENTES.md` → Y3b-5. Para cerrarlo hace falta Balik M, et al. *Intensive Care Med* 2006 en
+la biblioteca.
+
+### ⚠️ El protocolo POCUS pulmonar tampoco está, y las dos separaciones de líneas B quedaron SIN HACER
+
+La orden pedía verificar qué significan las separaciones de **≈3 mm** y **≈7 mm** de las líneas B y
+**cómo las rotula la fuente**, sin inventar nada si no estaba. **No hay ningún protocolo de ecografía
+pulmonar en la biblioteca.** La única mención de líneas B es la de `boraEteCriticos2024`, folio 167,
+que habla de **tres o más** por espacio y **no menciona ninguna separación en milímetros**.
+
+El selector sigue ofreciendo **focal** y **difuso**, como hasta hoy, y la oración del informe no
+cambió. `docs/PENDIENTES.md` → Y3b-6.

@@ -265,6 +265,211 @@ impecable.
 
 ## Estado vigente
 
+### El GIRO MANUAL del 3D de la mitral, el cuadro y la tabla, el WILKINS unificado y la pestaña OTROS — «Y3b + Wilkins + I» (2026-10-16)
+
+- **Son SEIS commits.** Al **empezar**, `main` y `origin/main` estaban los dos en **`c2e14eb`**
+  (sello `v20261016-0541`), **sin nada sin pushear** —confirmado con un `git fetch` de verdad, con
+  el `FETCH_HEAD` fechado al momento—, con los tres commits del H ya incluidos **y pusheados**. Los
+  **seis** commits de esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 6 → 5 → 4 → 3 → 2 → 1.**
+  ⚠️ **EL 3, EL 4 Y EL 5 SE REVIERTEN SOLOS Y EN CUALQUIER ORDEN ENTRE SÍ**, que en esta serie es
+  raro y conviene decirlo: el 3 vive en `_wilkCalc`, `wilkinsScore`, `cxWilkins`, las dos marcas y
+  la columna del Excel; el 4 en el bloque 13 de `generarInforme`, `pericardio_hemo` y
+  `pul_consol_nota`; el 5 en `pul_derrame_lado` y la frase del derrame pleural. Ninguno nombra una
+  pieza de los otros.
+  ⚠️ **PERO EL 2 CUELGA DEL 1, Y POR DOS SITIOS**: su regla de CSS del lienzo **reescribe** la que
+  el 1 acababa de crear (`#m3d-cv{…touch-action:none;cursor:grab;}`), y su marcado mueve el
+  `<canvas>` que el 1 dejó enfocable **dentro** de `#m3d-izq`. Revertir el 1 primero deja el lienzo
+  con el tamaño nuevo y sin `touch-action`, o sea con el panel grande y el arrastre muerto.
+  ⚠️ **EL 1 LLEVA LA SONDA** (`scripts/_probe_y3b.mjs`), que los cinco siguientes usan.
+  **El 6 es TC-488 más las dos adaptaciones, la documentación y el sello**, y afirma el
+  comportamiento de los cinco: revertir cualquiera sin el 6 lo deja en rojo.
+  ⚠️ **Y EL 6 ADAPTÓ DOS CASOS: TC-485 y TC-330.** El primero en tres lugares —el literal del
+  tamaño del lienzo, el helper de la tabla y, sobre todo, su **límite declarado** del Y3-6, que
+  decía «las dos calculadoras publican TEXTOS DISTINTOS para la banda >11» y hoy afirma lo
+  CONTRARIO—. El segundo **lo destapó la SUITE COMPLETA**, no la corrida de zona: su condición
+  exigía el «desfavorable» viejo de Calculadoras.
+
+- **Línea base al cierre: suite 498/502 con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0 ERROR,
+  Excel en 440 columnas, celular 43 a 360 px y 52 a 390 px con 1 ALTA cada uno —IDÉNTICO a la línea
+  base—. CERO REGRESIONES.** Los **CUATRO** rojos son exactamente los de ENTRADA —**TC-223** (el
+  documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**— y no apareció ninguno fuera
+  de esa lista. **El denominador sube a 502**: esta tanda agregó **TC-488**. El `md5` de
+  `index.html` no se movió durante la corrida (`91684964…`, el del sello) y el pendrive estaba
+  montado antes y después.
+  ⚠️ **LA SUITE COMPLETA SE CORRIÓ DOS VECES, Y LA PRIMERA NO ES LA LÍNEA BASE.** Dio **497/502**
+  con **CINCO** rojos, y el quinto era **TC-330**, que la corrida de zona no podía ver: ese caso no
+  está en la zona del Wilkins de ETE sino en la de «Referencias y Calculadoras publican el mismo
+  rótulo». Se adaptó y la segunda corrida es la que vale. **Es la séptima tanda en que la suite
+  completa destapa algo que la de zona no ve.**
+  ⚠️ **`--todo` del chequeo de celular da 378 a 360 px y 387 a 390 px, EL MISMO PAR QUE DEJÓ EL H**:
+  los tres controles nuevos de la pestaña Otros no agregan un solo hallazgo, y no por suerte —dos de
+  los tres (`pul_derrame_lado` y `pul_consol_nota`) nacen dentro de un envoltorio en `display:none`
+  y sólo aparecen con el hallazgo en «Sí», y lo que está en `display:none` no tiene geometría—.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **502 ids** sobre los 503 casos del archivo.
+- **EL SELLO DE VERSIÓN** estaba al día al empezar (`v20261016-0541`) y se volvió a sellar:
+  **`v20261016-0714`**. Todo lo medido salió **DESPUÉS** de sellar, con el `md5` quieto; las dos
+  adaptaciones de casos son de `scripts/test_clinico.mjs` y no tocan `index.html`.
+- **`index.html` pasó de 7,75 MB / 116.843 líneas a 7,78 MB / 117.228 líneas.**
+
+- **Dónde está todo:** `docs/mapa/mitral-3d-ete.md` → las secciones **11 y 12** (el giro con su
+  tabla de tres piezas, el cuadro con su tabla de márgenes medidos, la maqueta a cinco anchos y la
+  tabla de datos), de 12,6 a **21,9 KB**; `docs/mapa/wilkins-unificado.md` (**mapa NUEVO**, 8,4 KB:
+  las dos implementaciones medidas en HEAD, la regla pura y sus dos lectores, los cinco estados de
+  la banda, la marca y la tabla de consumidores); `docs/mapa/otros-pericardio-pulmon.md` (**mapa
+  NUEVO**, 7,2 KB); `docs/mapa/congenitas-otros.md` → dos punteros (**21,8 KB**);
+  `docs/mapa/informe-pdf-excel.md` → un puntero (**33,1 KB**); `docs/mapa/tests-fichas.md` → la
+  ficha de TC-488 (**15,3 KB**); `docs/fuentes/FUENTES.md` → la confirmación de los cortes del
+  Wilkins y las **dos ausencias** (Balik y el protocolo POCUS); y `docs/PENDIENTES.md` → **Y3-7
+  marcado CERRADO** más **siete** cosas declaradas (Y3b-1 a Y3b-7).
+  ⚠️ **NINGÚN MAPA CRUZÓ EL TECHO, medido con `wc -c` ANTES de escribir.** Los dos bloques nuevos
+  salieron a archivo propio en vez de colgarse de `congenitas-otros.md` (20,8 KB) o de
+  `informe-pdf-excel.md`, que está en **33,1 KB** y es el próximo candidato a partirse.
+
+- **Y3b-1 · EL GIRO NO SE INVENTÓ: ES EL QUE YA EXISTE DOS VECES EN EL REPO.** La demo
+  (`2b_demo_mitral_vistas_ete.html`, líneas 261-263) y el 3D de contractilidad (`lv3dCablear`) hacen
+  **exactamente lo mismo**: `R = Mry(dx·0,01) · Mrx(dy·0,01) · R`, premultiplicación, sin límite de
+  inclinación y sin zoom. **No hubo que aplicar la regla de «la demo manda»**: lo único que difiere
+  es el umbral de «toque», y acá no existe porque el lienzo no cicla nada al tocar.
+  **LO NUEVO ES EL TECLADO**: ni la demo ni el 3D de contractilidad lo tienen.
+  ⚠️ **LOS OYENTES SE PONEN AL ABRIR Y SE QUITAN AL CERRAR**, y no una sola vez con una guarda de
+  «ya cableado» como `lv3dCablear`. Las dos formas evitan la acumulación; ésta además deja el panel
+  cerrado **sin un solo oyente de arrastre**, que es lo único que se puede MEDIR espiando
+  `addEventListener`. Medido: 20 ciclos dan **100 contra 100** y terminan sin cablear.
+  **MEDIDO con arrastre REAL en Chrome 155 y WebKit 27.2:** el dibujo cambia por mouse en los dos y
+  por **DEDO** en Chrome, **sin desplazar la página** (`scrollY` 628 antes y después). Las flechas
+  giran y no desplazan. La rueda deja el lienzo **idéntico byte por byte** y no hay un solo oyente
+  de `wheel` ni de `gesture`. Panel cerrado **0** cuadros, abierto **55**, tras cerrar **0**.
+  ⚠️ **EL ARRASTRE CON EL DEDO EN WEBKIT NO SE PUDO MANDAR, y se declara**: la API táctil de
+  Playwright sólo expone `tap`; el arrastre va por **CDP**, que es de Chromium. **WebKit de
+  Playwright no es Safari.**
+
+- **Y3b-2 · EL CUADRO PASA DE 324×228 A 340×300, Y EL AIRE SALE DE MEDIR LA CAJA DE PÍXELES.** El
+  alto sube **31,6 %** y el ancho **4,9 %**; la ventana de encuadre crece en la MISMA proporción
+  (440×310 → 462×408), así que **el modelo conserva su escala**: el factor de volcado pasa de
+  **0,7355** a **0,7353**. Medidas las **24 celdas** (tres grados de IM × tres vistas y cinco
+  ángulos) leyendo el `alpha` del lienzo: en HEAD el margen de **arriba** era **CERO en 22 de las
+  24** y hoy la vista del cirujano llega a **70 px**, desde el ventrículo a **86**, y ninguna baja
+  de **9**.
+  ⚠️ **EL CORTE LATERAL Y LOS CINCO ÁNGULOS SIGUEN TOCANDO EL BORDE DE ABAJO —y ya lo tocaban en
+  HEAD—**, y no es algo que un marco pueda arreglar: medido con la ventana puesta en el espacio de
+  dibujo COMPLETO de la demo (680×380, o sea el modelo a la mitad de escala), esas celdas siguen con
+  el margen de arriba en cero. `PENDIENTES.md` → **Y3b-1**.
+  ⚠️ **LO QUE TOCA LOS BORDES SON LOS RÓTULOOS, no las valvas**: los seis festones, `Ao`, `LAA` y
+  las siglas se colocan con `_m3dScr` y después el barrido `spread()` los empuja fuera del modelo.
+
+- **LA TABLA PASA A LA COLUMNA DERECHA, con una línea por dato.** Panel de 500 a **610 px**, hijos
+  de 488 a **598**, columna derecha **250 px** y creciendo con su contenido. **El contenido no
+  cambia**: los mismos datos, en el mismo orden, de los mismos campos, sin una conclusión.
+  ⚠️ **A 1200 px LA VISTA QUIRÚRGICA BAJA DE 466 A 356 px**, porque su contenedor mide 978. Nada se
+  pisa y no hay scroll; a 1440 vuelve a sus 500. `PENDIENTES.md` → **Y3b-2**.
+  ⚠️ **EL BLOQUE ANGOSTO NECESITA `align-items:stretch`**: en columna el eje transversal es el
+  HORIZONTAL, así que con el `flex-start` de escritorio el dibujo salía en **537 px** al lado de una
+  tabla de **281** a 768 px.
+  **La unidad va PEGADA cuando el símbolo lo pide**: antes la pantalla publicaba «Ángulo velo
+  posterior 45 °».
+  ⚠️ **«PROFUNDIDAD COAPTACIÓN» SON DOS CAMPOS DISTINTOS CON LA MISMA ETIQUETA** —`ete_prof_coapt`
+  y `teer_prof_flail`—, así que **no hay «nombres que ya usa la pestaña» con los que
+  distinguirlos**: lo que los distingue es el encabezado de grupo que la tabla ahora lleva.
+  ⚠️ **«ÁREA PLANIMETRÍA» SÍ ES UN DATO DE LA ESTENOSIS y se mudó a «Severidad»**: es el área
+  valvular por planimetría y así la consume el narrativo, junto al score de Wilkins.
+
+- **WILKINS · UN SOLO CÁLCULO, Y LOS CORTES NO SE MOVIERON.** Había dos implementaciones del mismo
+  score. **Medido en HEAD, combinación por combinación**, discrepaban en **tres** cosas: el
+  **1/1/1/1** (ETE «4/16 favorable» contra «sin puntuar»), la banda **>11** («No favorable» contra
+  «desfavorable») y el **parcial** (dos redacciones). Hoy las ocho combinaciones dan el mismo total
+  y la misma interpretación en las dos pantallas, cada una con su formato.
+  **La regla salió a `_wilkCalc(crudos, delib)`, PURA, con DOS lectores**: `wilkinsScore(src)` lee la
+  pantalla y `wilkinsScoreDeCampos(campos, src)` un estudio archivado —que es lo que usa la columna
+  del Excel—. Reimplementarla del lado del Excel es la trampa de la fórmula duplicada.
+  ⚠️ **LAS CONSTANTES VIVEN CON `WILK_9_11`, 3.800 LÍNEAS ANTES DE LAS FUNCIONES**: `_autosaveInit`
+  llama a `calcWilkins()` durante la carga y un `var` se iza con `undefined`, así que declaradas al
+  lado de `wilkinsScore` el badge del arranque habría dicho «undefined».
+  ⚠️ **SON DOS MARCAS Y NO UNA, declarado contra la letra de la orden**: con una sola, tocar un
+  criterio del Wilkins de **ETE** habría validado el `1/1/1/1` **legado de Calculadoras** del mismo
+  estudio, o sea habría fabricado ahí el veredicto que la regla viene a evitar.
+  ⚠️ **LA FLECHA NO CAMBIA UN `<select>` CERRADO EN NINGUNO DE LOS DOS MOTORES** —medido: ni un
+  `change`—. El gesto real que funciona es la **búsqueda por letra**, que despacha un `change` con
+  `isTrusted` en **true**; y `selectOption` de Playwright lo despacha en **false**, que es el
+  control negativo de que la guarda distingue el gesto del código.
+  **ESCENAS QUE CAMBIAN: UNA SOLA, el 1/1/1/1 SIN marca.** Informe: pierde «Score de Wilkins 4/16».
+  PDF de ETE: «4 / 16 — Favorable para valvuloplastia percutánea» pasa a «no calculado — sin
+  puntuar». Excel: la columna pasa de **4** a vacío. Las otras cuatro escenas medidas salen
+  IDÉNTICAS a HEAD. **No se migra ningún estudio.**
+  ⚠️ **EL LABORATORIO SIGUE CONTANDO UN 1/1/1/1 LEGADO COMO UN SCORE COMPLETO DE 4**, y queda
+  declarado: el Laboratorio está en los NO TOQUES. `PENDIENTES.md` → **Y3b-3**.
+
+- **I1 · CADA TEMA, SU PROPIA ORACIÓN.** El pericardio y las masas salían en UNA entrada de `inf` y,
+  en el estilo **NARRATIVO**, fundidos en **una sola oración**; los tres temas del módulo pulmonar
+  básico salían pegados por un `join`. Hoy son entradas separadas en los tres estilos, con el **EN
+  SUMA sin moverse**. Entran `pericardio_hemo` —un `<select>` de **TRES estados**, porque «sin
+  compromiso hemodinámico» es una AFIRMACIÓN y una casilla desmarcada no distingue «lo busqué y no
+  está» de «no lo busqué»— y `pul_consol_nota`, cuyo texto va **en la misma oración**, entre
+  paréntesis. **Los dos campos NO existían**, censado.
+
+- **I2 · EL DERRAME PLEURAL CON SU LADO; BALIK Y LAS LÍNEAS B, DECLARADOS.** `pul_derrame_lado`
+  (derecho / izquierdo / bilateral, más «sin consignar» de fábrica) y el lado va **antes del
+  tamaño**, que es donde lo pone el módulo avanzado. Sin consignar, la oración sale **idéntica** a
+  la de hoy.
+  ⚠️ **LA FÓRMULA DE BALIK NO ESTÁ EN LA BIBLIOTECA** —censada entera—. Lo que sí hay es el **método
+  de Capper** (área de sección × longitud axial, *Current Pulmonology Reports* 2024;13:152-172, folio
+  167), que es otro y pide campos que no existen. La fórmula ya estaba implementada (`ml = mm × 20`)
+  y se **reusó tal cual**: no se escribió de memoria y **no se agregó entrada a `FUENTES.md`**.
+  `PENDIENTES.md` → **Y3b-5**.
+  ⚠️ **LAS DOS SEPARACIONES DE LÍNEAS B (≈3 mm y ≈7 mm) QUEDARON SIN HACER, por falta de FUENTE.**
+  No hay ningún protocolo POCUS pulmonar en la biblioteca; lo único sobre líneas B dice «tres o más»
+  y **no menciona ninguna separación en milímetros**. `PENDIENTES.md` → **Y3b-6**.
+
+- **A/B DEDICADO CONTRA HEAD, con el formulario vacío y con escenario cargado, en los DOS motores:
+  0 diferencias** en grados, pastillas, campos del estudio, **Excel en 440 columnas CLAVE POR
+  CLAVE**, el **Laboratorio por sus funciones dueñas** (`_labDiastGrado`, `_labGeomCat`,
+  `_labValvCounts`, `_labEmLectura`, `_labDisfSistVent`, `_labEstenSev`, `_labWilkinsResumen`) y el
+  **PPT estadístico generado de verdad**. En el **PDF del informe generado de verdad** la única
+  diferencia es la separación autorizada: `nTextos` sube **+1** y las líneas de abajo bajan 5,5 mm.
+  ⚠️ **EL PDF DE AUDITORÍA NO SE GENERÓ, y se declara**: lo que lo alimenta son las funciones dueñas
+  del Laboratorio, que salen idénticas. Y el PPT midió **21 textos** con el formulario vacío y **0**
+  con el escenario cargado —idéntico en los dos árboles—, así que ese denominador es flojo.
+
+- **Arnés: `scripts/_probe_y3b.mjs`**, A/B de solo lectura con `--file`, `--dest`, `--solo` y
+  `--motor`, siete grupos (`giro`, `marco`, `tabla`, `wilk`, `otros`, `controles`, `captura`).
+  Usa **Playwright** —por la misma necesidad que la sonda del Y1c: hay que medir en dos motores— y
+  lo resuelve **por ruta**, diciéndolo y saliendo con código 2 si no está.
+  **Cobertura: TC-488**, **53 condiciones** —contadas sobre el propio caso— con seis denominadores y
+  siete controles negativos. **Verificado que sabe fallar contra HEAD en un worktree aparte: 37 de
+  las 53 en rojo, y NINGUNA por excepción.**
+  ⚠️ **LAS DOS CONDICIONES DE MAQUETA DECLARAN EL ANCHO EN EL QUE CORRIERON** —la suite corre a
+  **756 px**, o sea una columna— porque el cuerpo de un caso no puede cambiar el ancho de la
+  ventana. Es el reparto de TC-460.
+
+- ⚠️ **SEIS TRAMPAS, Y CUATRO DABAN FALSOS PLAUSIBLES.**
+  1. **`mouse.move` NO DESPLAZA EL NODO A LA VISTA**, a diferencia de `locator.click()`. El panel
+     vive al fondo de la pestaña ETE, así que el puntero aterrizaba donde el lienzo no está: la
+     primera corrida informó **«el arrastre no cambia el dibujo»** en los dos motores sobre un
+     mecanismo que funciona.
+  2. **`scrollIntoViewIfNeeded` DEJA EL NODO PEGADO AL BORDE DE ABAJO** y su centro cae fuera del
+     viewport: el arrastre con el dedo informó «FUERA DEL VIEWPORT». Va con `block:'center'`.
+  3. **EL DESPLAZAMIENTO SE LEE DESPUÉS DE CENTRAR EL LIENZO**: leído antes, el propio
+     `scrollIntoView` de la sonda contaba como «la página bajó con el dedo» y la sonda informó un
+     defecto que no existe.
+  4. **EL HASH DEL LIENZO NO SIRVE PARA «VOLVIÓ AL ORIGEN»**, y lo midió la diferencia entre
+     motores: el botón no repone la identidad, **interpola hasta ella con cuaterniones**, así que
+     `_m3dR` queda reconstruido y no es idéntico bit a bit. En WebKit el hash coincidía y en Chrome
+     no, **sobre la misma cámara**. Se compara la CAJA de píxeles con tolerancia de un píxel.
+  5. **UNA SONDA QUE FILTRA LAS LÍNEAS DEL INFORME POR «derrame peric» NO VE LA ORACIÓN DEL
+     PERICARDIO CON DERRAME**, que dice «Derrame moderado (10-20mm).»: la primera lectura informó
+     que esa oración había desaparecido sobre un informe perfecto. El filtro era del lector.
+  6. **LA TARJETA DEL WILKINS DE CALCULADORAS NACE PLEGADA Y EN OTRA PESTAÑA**: sin
+     `showTab('calculadoras')` **y** `toggleCard('cx-wilkins')` sus cuatro `<select>` miden 0×0 y la
+     sonda informó «el gesto no pone la marca» sobre un `<select>` que nunca se enfocó.
+  ⚠️ **Y DOS DEL TAMAÑO DEL DERRAME**: `pul_derrame_tam` lleva **tilde** (`mínimo`), así que una
+  escena que lo fija como `minimo` no encuentra la opción y mide el valor de fábrica.
+- ⚠️ **Me comí el acento grave DOS veces**, las dos en comentarios míos: una dentro del template de
+  la sonda —que `scripts/check_backticks.py` **no alcanzó**, porque estaba en el objeto `SONDA`, y
+  la dio `node --check`— y otra en el cuerpo de TC-485, que el script sí dio con la línea exacta.
+  **Correr los dos.**
+
 ### La AURÍCULA IZQUIERDA con un solo dueño, y las dos correcciones del PDF — «H» (2026-10-16)
 
 - **Son TRES commits.** Al **empezar**, `main` y `origin/main` estaban los dos en **`0e75898`**

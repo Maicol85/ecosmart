@@ -241,6 +241,69 @@ const SONDA = `window.__P = {
         if (e.id === 'informe_texto' || e.id === 'en_suma') return;
         o[e.id] = (e.type === 'checkbox') ? (e.checked ? '1' : '') : String(e.value == null ? '' : e.value) });
     return o },
+  /* ── EL PDF DEL INFORME, GENERADO DE VERDAD ──
+     Se envuelve el CONSTRUCTOR y no el prototipo: en jsPDF 2.x los metodos del nucleo son
+     propiedades PROPIAS de cada documento. El patron es el de _probe_h.mjs. */
+  pdf() {
+    if (typeof window.jspdf === 'undefined') return { err:'SIN jsPDF' };
+    var orig = window.jspdf.jsPDF;
+    var textos = [], bytes = null, err = null;
+    function Envuelto(){
+      var d = new orig(arguments[0]);
+      var oText = d.text;
+      d.text = function(t, x, y){
+        var ss = (typeof t === 'string') ? t : (Array.isArray(t) ? t.join(String.fromCharCode(1)) : String(t));
+        textos.push((+x).toFixed(1) + '|' + (+y).toFixed(1) + '|' + ss);
+        return oText.apply(d, arguments) };
+      d.save = function(){ try { bytes = d.output('datauristring') } catch (e) {} return d };
+      return d }
+    Envuelto.API = orig.API; Envuelto.version = orig.version;
+    window.jspdf.jsPDF = Envuelto;
+    try { generarPDFReal() } catch (e) { err = String(e && e.message || e) }
+    finally { window.jspdf.jsPDF = orig }
+    return { err:err, guardo:!!bytes, nTextos:textos.length, textos:textos } },
+
+  /* El LABORATORIO por sus funciones duenas, sobre un estudio armado con la pantalla. */
+  lab() {
+    var o = {};
+    var reg = { id:'p1', fecha:'2026-10-16', nombre:'X', campos: this.camposCrudos(),
+                informe_texto: String((document.getElementById('informe_texto')||{}).value||''),
+                en_suma: String((document.getElementById('en_suma')||{}).value||'') };
+    [['diast','_labDiastGrado'], ['geom','_labGeomCat'], ['valv','_labValvCounts'],
+     ['emlec','_labEmLectura'], ['disf','_labDisfSistVent']].forEach(function(par){
+      try { o[par[0]] = (typeof window[par[1]] === 'function') ? window[par[1]]([reg]) : 'SIN FN' }
+      catch (e) { try { o[par[0]] = window[par[1]](reg) } catch (e2) { o[par[0]] = 'EXC' } } });
+    try { o.esten = (typeof _labEstenSev === 'function')
+      ? ['em_grado','ea_grado','et_grado','ep_grado'].map(function(k){ return _labEstenSev(reg, k) })
+      : 'SIN FN' } catch (e) { o.esten = 'EXC' }
+    try { o.wilk = (typeof _labWilkinsResumen === 'function') ? _labWilkinsResumen([reg]) : 'SIN FN' }
+    catch (e) { o.wilk = 'EXC' }
+    return o },
+
+  /* El PPT estadistico, por su generador que toma la poblacion directo. */
+  ppt() {
+    try {
+      if (typeof _labPPTGenerar !== 'function') return 'SIN FN';
+      var reg = { id:'p1', fecha:'2026-10-16', nombre:'X', campos: this.camposCrudos(),
+                  informe_texto: String((document.getElementById('informe_texto')||{}).value||''),
+                  en_suma: String((document.getElementById('en_suma')||{}).value||'') };
+      var tex = [];
+      var orig = window.PptxGenJS;
+      if (!orig) return 'SIN PptxGenJS';
+      function E(){ var d = new orig();
+        var oS = d.addSlide;
+        d.addSlide = function(){ var sl = oS.apply(d, arguments);
+          var oT = sl.addText, oTa = sl.addTable;
+          sl.addText = function(t){ tex.push(typeof t === 'string' ? t : JSON.stringify(t)); return oT.apply(sl, arguments) };
+          if (oTa) sl.addTable = function(t){ tex.push('TABLA:' + JSON.stringify(t)); return oTa.apply(sl, arguments) };
+          return sl };
+        d.writeFile = function(){ return Promise.resolve('ok') };
+        return d }
+      window.PptxGenJS = E;
+      try { _labPPTGenerar([reg], {}) } catch (e) { return 'EXC ' + String(e && e.message).slice(0, 60) }
+      finally { window.PptxGenJS = orig }
+      return { n: tex.length, hash: tex.join(String.fromCharCode(2)).length, tex: tex.slice(0, 40) };
+    } catch (e) { return 'EXC2' } },
   scrollY() { return window.scrollY },
   docH() { return document.documentElement.scrollHeight }
 };`;
@@ -718,6 +781,9 @@ for (const [motor, tipo, op] of MOTORES) {
       e.excel = await pg.evaluate(() => window.__P.excel());
       e.nCols = e.excel && typeof e.excel === 'object' ? Object.keys(e.excel).length : e.excel;
       e.campos = await pg.evaluate(() => window.__P.campos());
+      e.pdf = await pg.evaluate(() => window.__P.pdf());
+      e.lab = await pg.evaluate(() => window.__P.lab());
+      e.ppt = await pg.evaluate(() => window.__P.ppt());
       e.nCampos = e.campos && typeof e.campos === 'object' ? Object.keys(e.campos).length : e.campos;
       g[nom] = e;
     }

@@ -46982,9 +46982,17 @@ caso('TC-330', 'Wilkins: Referencias y la calculadora de Calculadoras publican e
       ['y su rotulo propio «resultado intermedio» no sobrevive en ninguna de las cuatro',
         [R.cx8, R.cx9, R.cx11, R.cx12].every(function(s){ return pl(s).indexOf('resultado intermedio') === -1; }),
         JSON.stringify([R.cx8, R.cx9, R.cx11, R.cx12])],
-      ['las bandas ≤8 y >11 de la calculadora NO se movieron',
+      /* ADAPTADO el 2026-10-16 (tanda Wilkins): los CORTES de las dos bandas siguen siendo los
+         mismos y eso es lo que este caso vigila; lo que cambio es el TEXTO de la banda >11, que
+         pasa de «desfavorable para valvuloplastia» —un rotulo propio de esta segunda
+         implementacion— a «No favorable para valvuloplastia», que es el que la tarjeta de ETE ya
+         publicaba. Es la unificacion que cerro la PARADA Y3-6/Y3-7. La condicion conserva lo que
+         de verdad prueba —que el 8 cae en favorable, que el 12 NO, y que ninguno de los dos usa
+         la constante de la banda del medio— y pasa a exigir el texto unificado. */
+      ['las bandas ≤8 y >11 de la calculadora NO se movieron, y la de >11 usa el texto unificado',
         tiene(R.cx8, 'favorable para valvuloplastia percutanea') &&
-        tiene(R.cx12, 'desfavorable para valvuloplastia') &&
+        tiene(R.cx12, 'no favorable para valvuloplastia') &&
+        !tiene(R.cx12, 'desfavorable') &&
         !tiene(R.cx8, R.K || 'xxx') && !tiene(R.cx12, R.K || 'xxx'),
         '8=«' + R.cx8 + '» 12=«' + R.cx12 + '»'],
       /* Que use la CONSTANTE y no una copia del mismo texto: con un literal propio TODAS las
@@ -69501,11 +69509,19 @@ caso('TC-485', 'Tanda Y3: la fila de la VELOCIDAD PICO en la lista «Ver criteri
         const c = d.querySelector('.m3d-chip');
         return { txt: NORM(d.textContent), cls: c ? c.className : null,
                  color: c ? getComputedStyle(c).backgroundColor : null }; }); };
-    const TABLA3D = () => { const h = EL('m3d-tabla'); if (!h) return { hay:false, tit:'', filas:[] };
+    /* ADAPTADO el 2026-10-16 (tanda Y3b): la tabla paso de UNA fila por grupo, con los datos
+       pegados por un punto medio, a un ENCABEZADO de grupo mas UNA LINEA POR DATO. grupos son
+       los encabezados y filas los pares rotulo/valor; todo es el texto completo, que es lo
+       que miran las condiciones que no dependen del reparto en lineas. */
+    const TABLA3D = () => { const h = EL('m3d-tabla'); if (!h) return { hay:false, tit:'', grupos:[], filas:[], todo:'' };
+      const grupos = [], filas = [];
+      Array.prototype.slice.call(h.querySelectorAll('tr')).forEach(r => {
+        const th = r.querySelectorAll('th'), td = r.querySelectorAll('td');
+        if (th.length) { grupos.push(NORM(th[0].textContent)); return; }
+        filas.push([NORM(td[0] ? td[0].textContent : ''), NORM(td[1] ? td[1].textContent : '')]); });
       return { hay: !!h.querySelector('table'), tit: NORM((h.querySelector('.m3d-nota') || {}).textContent),
-               filas: Array.prototype.slice.call(h.querySelectorAll('tr')).map(r => {
-                 const td = r.querySelectorAll('td');
-                 return [NORM(td[0] ? td[0].textContent : ''), NORM(td[1] ? td[1].textContent : '')]; }) }; };
+               grupos: grupos, filas: filas,
+               todo: filas.map(f => f[0] + ' ' + f[1]).join(' | ') }; };
     const CRUDO = (id) => { const e = EL(id); return e ? String(e.value || '').trim() : ''; };
     const INF = (estilo) => { try { if (FN('setEstiloInforme')) setEstiloInforme(estilo); } catch (e) {}
       try { if (FN('generarInforme')) generarInforme(); } catch (e) {}
@@ -69647,9 +69663,12 @@ caso('TC-485', 'Tanda Y3: la fila de la VELOCIDAD PICO en la lista «Ver criteri
       /* EL LIENZO TIENE ALTO EXPLICITO EN PX, que es lo que impide que el latido mueva el
          layout de al lado — el defecto que la vista 2D tiene en Chrome. */
       const f = FUENTE();
+      /* ADAPTADO el 2026-10-16 (tanda Y3b): el cuadro paso de 324x228 a 340x300 —un 31,6 % mas
+         alto— para que la auricula y el chorro no se corten arriba. Lo que el caso afirma sigue
+         siendo lo mismo: alto EXPLICITO en px y no en porcentaje. */
       ex.push(['el lienzo tiene alto EXPLICITO en px y no en porcentaje: el latido no puede mover el layout',
-        f.indexOf('#m3d-cv{display:block;width:324px;height:228px;}') > -1 &&
-        f.indexOf('#m3d-lienzo{position:relative;width:324px;height:228px;') > -1, '']);
+        f.indexOf('#m3d-cv{display:block;width:340px;height:300px;touch-action:none;cursor:grab;}') > -1 &&
+        f.indexOf('#m3d-lienzo{position:relative;width:340px;height:300px;') > -1, '']);
       /* Y LAS DOS REGLAS [hidden] EXPLICITAS, sin las cuales el boton no se esconde. */
       ex.push(['las reglas [hidden] propias estan declaradas: sin ellas una regla de autor le gana a la del navegador',
         f.indexOf('#m3d-btn[hidden]{display:none;}') > -1 &&
@@ -69802,18 +69821,20 @@ caso('TC-485', 'Tanda Y3: la fila de la VELOCIDAD PICO en la lista «Ver criteri
       S('ete_diam_anular','34'); S('ete_lva','24'); S('teer_ancho_flail','12');
       ABRIR3D();
       const T = TABLA3D();
-      const gs = T.filas.map(f => f[0]);
+      /* ADAPTADO el 2026-10-16 (tanda Y3b): los grupos ya no son la primera celda de cada fila,
+         son encabezados propios; y el valor de cada dato vive en su propia linea. */
+      const gs = T.grupos;
       ex.push(['con solo campos de ETE aparecen Plastica y TEER, y NO Severidad',
         T.hay && gs.indexOf('Plástica mitral') > -1 && gs.indexOf('TEER') > -1 &&
         gs.indexOf('Severidad') === -1, gs.join(' | ')]);
       ex.push(['el titulo nombra la fuente y cada valor sale con su unidad, LEIDOS del campo',
         T.tit.indexOf('Datos usados en el dibujo') > -1 &&
         T.tit.indexOf('Mediciones ETE') > -1 &&
-        T.filas.some(f => f[1].indexOf('Diámetro anular ' + CRUDO('ete_diam_anular') + ' mm') > -1) &&
-        T.filas.some(f => f[1].indexOf('Ancho flail ' + CRUDO('teer_ancho_flail') + ' mm') > -1),
-        T.tit + ' || ' + T.filas.map(f => f[1]).join(' || ')]);
+        T.filas.some(f => f[0] === 'Diámetro anular' && f[1] === CRUDO('ete_diam_anular') + ' mm') &&
+        T.filas.some(f => f[0] === 'Ancho flail' && f[1] === CRUDO('teer_ancho_flail') + ' mm'),
+        T.tit + ' || ' + T.todo]);
       /* ⚠️ NI UNA CONCLUSION: la tabla dice valores y nada mas. */
-      const todo = T.filas.map(f => f[1]).join(' ').toLowerCase();
+      const todo = T.todo.toLowerCase();
       ex.push(['la tabla no publica NINGUNA recomendacion ni veredicto: ni «apto», ni «factible», ni «favorable», ni «recomendada»',
         ['apto','no apto','factible','favorable','recomend','contraindic','sugiere']
           .every(p => todo.indexOf(p) === -1), todo.slice(0, 160)]);
@@ -69855,11 +69876,12 @@ caso('TC-485', 'Tanda Y3: la fila de la VELOCIDAD PICO en la lista «Ver criteri
         claves.length === 0, claves.join(',') || 'ninguna']);
       CERRAR3D(); }
 
-    /* ══ H · WILKINS — LA PARADA, DECLARADA ══════════════════════════════════════════════════
-       ⚠️ LIMITE DECLARADO (Y3-6): las dos calculadoras NO se unificaron porque discrepan en dos
-       textos de interpretacion y en el dominio del centinela. Esta condicion afirma la
-       discrepancia tal como esta HOY, para que el dia que se unifiquen el caso lo note — igual
-       que TC-474 y TC-478 hicieron con sus propios limites. */
+    /* ══ H · WILKINS — LA PARADA, CERRADA
+       ADAPTADO el 2026-10-16 (tanda Wilkins). La condicion de abajo era el LIMITE DECLARADO del
+       Y3-6 —las dos calculadoras publican TEXTOS DISTINTOS para la banda mayor de 11— escrito
+       para que el dia que se unificaran el caso lo notara. Se unificaron y lo noto: hoy afirma
+       lo CONTRARIO, que las dos publican el MISMO texto. Es el mismo reparto con el que TC-474
+       y TC-478 cerraron sus propios limites. El detalle de la unificacion lo cubre TC-488. */
     { const poner = (ids, v) => ids.forEach(id => { const e = EL(id); if (!e) return;
         const hay = Array.prototype.slice.call(e.options || []).map(o => o.value);
         if (hay.indexOf(v) < 0) return;
@@ -69871,9 +69893,10 @@ caso('TC-485', 'Tanda Y3: la fila de la VELOCIDAD PICO en la lista «Ver criteri
       const e1 = TXT('wilkins-interp'), c1 = TXT('cx-wilkins-total');
       ex.push(['los dos Wilkins dan el MISMO puntaje con las mismas entradas: 12 de 16',
         e1.indexOf('12') > -1 && c1.indexOf('12/16') > -1, e1 + ' || ' + c1]);
-      ex.push(['LIMITE DECLARADO: y publican TEXTOS DISTINTOS para esa banda — «No favorable» contra «desfavorable». La unificacion es la PARADA Y3-6',
+      ex.push(['y publican el MISMO texto para esa banda, que es lo que cerro la PARADA Y3-6',
         e1.indexOf('No favorable para valvuloplastia') > -1 &&
-        c1.indexOf('desfavorable para valvuloplastia') > -1, e1 + ' || ' + c1]); }
+        c1.indexOf('No favorable para valvuloplastia') > -1 &&
+        c1.indexOf('desfavorable') === -1, e1 + ' || ' + c1]); }
 
     return { extra: ex };
   })();
@@ -70236,6 +70259,417 @@ caso('TC-486', 'Tanda Y1c: la vista 2D EN LINEA — un solo boton que prende y a
 `);
 
 
+
+caso('TC-488', 'Tanda Y3b + Wilkins + I: el 3D de la mitral se GIRA A MANO —con los ocho botones quedando sin marcar y volviendo al tocar uno, el lienzo enfocable con las flechas, sin zoom y sin un solo oyente con el panel cerrado—; el cuadro mas ALTO con aire arriba y la TABLA en la columna derecha, una linea por dato y cada dato una sola vez; el WILKINS con UN solo calculo para las dos pantallas, sus dos centinelas y la marca de gesto; y la pestana Otros —pericardio, masas, pulmon, derrame pleural con su lado y la nota de la consolidacion— cada tema en su propia oracion', `
+  return (async function(){
+    const ex = [];
+    const EL  = (id) => document.getElementById(id);
+    const FN  = (n) => typeof window[n] === 'function';
+    const S   = (id, v) => { try { __t.set(id, v); } catch (e) {} };
+    const FUENTE = () => String(document.documentElement.innerHTML || '');
+    const NORM = (t) => String(t == null ? '' : t).replace(/[ ]+/g, ' ').trim();
+    /* TODA LECTURA DE UNA PIEZA NUEVA VA POR UN AYUDANTE CON CENTINELA: contra el arbol del H no
+       existen ni el giro, ni las marcas del Wilkins, ni los dos campos de Otros, y un .length o
+       un getComputedStyle sobre null mata la corrida entera con un TypeError, lo que prueba que
+       el arbol es distinto y no que el caso sabe medir. Misma leccion que TC-455, TC-462,
+       TC-465, TC-471, TC-473, TC-474, TC-477, TC-480, TC-481, TC-485, TC-486 y TC-487. */
+    const TXT = (id) => { const e = EL(id); return e ? NORM(e.textContent) : 'NO EXISTE'; };
+    const VAL = (id) => { const e = EL(id); return e ? String(e.value == null ? '' : e.value) : 'NO EXISTE'; };
+    const ATR = (id, a) => { const e = EL(id); return e ? String(e.getAttribute(a)) : 'NO EXISTE'; };
+    const CLIC = (id) => { const e = EL(id); if (!e) return false; e.click(); return true; };
+    const GEO = (id) => { const e = EL(id); if (!e) return { w:0, h:0, x:0, y:0, hay:false };
+      const r = e.getBoundingClientRect();
+      return { w: Math.round(r.width), h: Math.round(r.height),
+               x: Math.round(r.left), y: Math.round(r.top), hay: r.width > 0 && r.height > 0 }; };
+    const CSSV = (id, p) => { const e = EL(id); if (!e) return 'NO EXISTE';
+      try { return getComputedStyle(e).getPropertyValue(p); } catch (e2) { return 'EXC'; } };
+    const NUEVO = () => { try { if (FN('limpiarCampos')) limpiarCampos(true); } catch (e) {} };
+    const SEV = (t, v, g) => { try { if (typeof valvSev === 'object' && valvSev) valvSev.aplicar(t, v, g); } catch (e) {} };
+    const SEL = (id, v) => { const e = EL(id); if (!e) return 'NO EXISTE ' + id;
+      const hay = Array.prototype.slice.call(e.options || []).map(o => o.value);
+      if (hay.indexOf(v) < 0) return 'NO HAY OPCION ' + v;
+      e.value = v; e.dispatchEvent(new Event('change', { bubbles: true }));
+      return e.value === v ? null : 'NO QUEDO'; };
+    const ETE = () => { try { if (FN('showTab')) showTab('ete'); } catch (e) {}
+      ['mitral','mediciones-mitral','wilkins'].forEach(k => { try {
+        const s = EL('ete-seccion-' + k);
+        if (s && getComputedStyle(s).display === 'none' && FN('toggleEteSeccion')) toggleEteSeccion(k, null);
+      } catch (e) {} }); };
+    const ABRIR3D = () => { const b = EL('m3d-btn'); if (!b) return false; if (!(FN('m3dVisible') && m3dVisible())) b.click();
+      return FN('m3dVisible') ? m3dVisible() : false; };
+    const CERRAR3D = () => { try { if (FN('m3dCerrar')) m3dCerrar(); } catch (e) {} };
+    const CAM = () => { try { return FN('m3dEstadoCamara') ? m3dEstadoCamara() : null; } catch (e) { return null; } };
+    const CABLE = () => { try { return FN('m3dGiroCableado') ? m3dGiroCableado() : 'SIN FN'; } catch (e) { return 'EXC'; } };
+    const MARCADOS = () => ['m3d-v-cirujano','m3d-v-ventriculo','m3d-v-lateral',
+      'm3d-a-0','m3d-a-45','m3d-a-60','m3d-a-90','m3d-a-120']
+      .filter(id => EL(id) && EL(id).getAttribute('aria-pressed') === 'true');
+    const GIRAR = (dx, dy) => { try { if (FN('m3dGirar')) { m3dGirar(dx, dy); return true; } } catch (e) {} return false; };
+    /* La caja de pixeles PINTADOS del lienzo: alpha mayor que cero es dibujo, porque m3dPintar
+       arranca con clearRect y el fondo gris lo pone el div de atras. Los margenes dicen si algo
+       quedo recortado contra un borde. */
+    const PIX = () => { const cv = EL('m3d-cv');
+      if (!cv || !cv.getContext) return null;
+      let ctx = null; try { ctx = cv.getContext('2d'); } catch (e) { return null; }
+      if (!ctx) return null;
+      let d = null; try { d = ctx.getImageData(0, 0, cv.width, cv.height); } catch (e) { return null; }
+      const a = d.data; let pint = 0, x0 = 1e9, y0 = 1e9, x1 = -1, y1 = -1;
+      for (let i = 3; i < a.length; i += 4) {
+        if (a[i] > 8) { pint++;
+          const px = ((i - 3) / 4) % cv.width, py = Math.floor(((i - 3) / 4) / cv.width);
+          if (px < x0) x0 = px; if (px > x1) x1 = px; if (py < y0) y0 = py; if (py > y1) y1 = py; } }
+      if (!pint) return { w: cv.width, h: cv.height, pintados: 0, arr: -1, aba: -1, izq: -1, der: -1 };
+      return { w: cv.width, h: cv.height, pintados: pint,
+               arr: y0, aba: cv.height - 1 - y1, izq: x0, der: cv.width - 1 - x1 }; };
+    const TABLA = () => { const h = EL('m3d-tabla'); if (!h) return { hay:false, tit:'', grupos:[], filas:[], todo:'' };
+      const grupos = [], filas = [];
+      Array.prototype.slice.call(h.querySelectorAll('tr')).forEach(r => {
+        const th = r.querySelectorAll('th'), td = r.querySelectorAll('td');
+        if (th.length) { grupos.push(NORM(th[0].textContent)); return; }
+        filas.push([NORM(td[0] ? td[0].textContent : ''), NORM(td[1] ? td[1].textContent : '')]); });
+      return { hay: !!h.querySelector('table'), tit: NORM((h.querySelector('.m3d-nota') || {}).textContent),
+               grupos: grupos, filas: filas, todo: filas.map(f => f[0] + '=' + f[1]).join(' | ') }; };
+    const INF = (estilo) => { try { if (FN('setEstiloInforme')) setEstiloInforme(estilo); } catch (e) {}
+      try { if (FN('generarInforme')) generarInforme(); } catch (e) {}
+      return NORM((EL('informe_texto') || {}).value); };
+    const LINEAS = (estilo) => { try { if (FN('setEstiloInforme')) setEstiloInforme(estilo); } catch (e) {}
+      try { if (FN('generarInforme')) generarInforme(); } catch (e) {}
+      return String((EL('informe_texto') || {}).value || '').split(String.fromCharCode(10)).map(NORM); };
+    const SUMA = () => NORM((EL('en_suma') || {}).value);
+    const WSC = (src) => { try { return FN('wilkinsScore') ? wilkinsScore(src) : null; } catch (e) { return null; } };
+    const PONW = (src, v) => { const ids = (src === 'cx')
+        ? ['cx_wilk_mov','cx_wilk_eng','cx_wilk_cal','cx_wilk_sub']
+        : ['wilkins_movilidad','wilkins_engrosamiento','wilkins_calcificacion','wilkins_subvalvular'];
+      const fallas = [];
+      ids.forEach((id, i) => { const r = SEL(id, v[i]); if (r) fallas.push(id + ':' + r); });
+      try { if (src === 'cx') { if (FN('cxWilkins')) cxWilkins(); } else if (FN('calcWilkins')) calcWilkins(); } catch (e) {}
+      return fallas.join(','); };
+    const MARCA = (src, on) => { const e = EL(src === 'cx' ? 'cx_wilk_delib' : 'wilkins_delib');
+      if (!e) return 'NO EXISTE'; e.value = on ? '1' : ''; return e.value; };
+
+    /* ══ A · EL GIRO MANUAL ═══════════════════════════════════════════════════════════════════ */
+    { NUEVO(); ETE();
+      const f = FUENTE();
+      ex.push(['DENOMINADOR: con valvula nativa el boton del 3D existe y el panel abre',
+        GEO('m3d-btn').hay && ABRIR3D() === true,
+        JSON.stringify(GEO('m3d-btn')) + ' vis=' + (FN('m3dVisible') ? m3dVisible() : 'SIN FN')]);
+      ex.push(['el lienzo declara touch-action:none y cursor grab, y SOLO el lienzo: el resto de la pagina se desplaza',
+        CSSV('m3d-cv', 'touch-action') === 'none' && CSSV('m3d-cv', 'cursor') === 'grab' &&
+        CSSV('m3d-panel', 'touch-action') !== 'none',
+        CSSV('m3d-cv', 'touch-action') + '/' + CSSV('m3d-cv', 'cursor') + ' panel=' + CSSV('m3d-panel', 'touch-action')]);
+      ex.push(['el lienzo es ENFOCABLE y anuncia las cuatro flechas',
+        ATR('m3d-cv', 'tabindex') === '0' && ATR('m3d-cv', 'aria-keyshortcuts').indexOf('ArrowLeft') > -1,
+        ATR('m3d-cv', 'tabindex') + ' || ' + ATR('m3d-cv', 'aria-keyshortcuts')]);
+      ex.push(['la sensibilidad es la MISMA de la demo y la del 3D de contractilidad: 0,01 rad por pixel',
+        f.indexOf('var M3D_GIRO_K = 0.01;') > -1, '']);
+      ex.push(['SIN ZOOM: ni un oyente de rueda ni de gestos de pellizco sobre el lienzo',
+        (f.match(/m3d[^;]{0,40}wheel/g) || []).length === 0 &&
+        (f.match(/m3d[^;]{0,40}gesture/gi) || []).length === 0, '']);
+      ex.push(['con el panel ABIERTO los oyentes de arrastre estan puestos',
+        CABLE() === true, String(CABLE())]);
+      /* EL GIRO DESMARCA LOS OCHO BOTONES Y CAMBIA LA CAMARA. El arrastre con mouse y con dedo
+         de VERDAD lo mide la sonda, que tiene el canal del protocolo; aca se mide lo que el
+         arrastre HACE, que es llamar a m3dGirar. */
+      const antes = MARCADOS().join(','), camA = CAM();
+      ex.push(['DENOMINADOR: al abrir, el unico marcado es la vista del cirujano',
+        antes === 'm3d-v-cirujano' && camA && camA.vista === 'cirujano', antes]);
+      const giro = GIRAR(40, 20);
+      ex.push(['girar a mano deja los OCHO botones SIN marcar y la vista sin elegir',
+        giro && MARCADOS().length === 0 && CAM() && CAM().vista === '' && CAM().ang === null,
+        String(giro) + ' || ' + MARCADOS().join(',') + ' || ' + JSON.stringify(CAM())]);
+      ex.push(['y tocar un boton de vista vuelve a esa posicion y lo marca',
+        CLIC('m3d-v-ventriculo') && MARCADOS().join(',') === 'm3d-v-ventriculo' &&
+        CAM() && CAM().vista === 'ventriculo', MARCADOS().join(',') + ' || ' + JSON.stringify(CAM())]);
+      /* AL CERRAR: ni un oyente, y el giro limpio. */
+      CERRAR3D();
+      ex.push(['al cerrar no queda NINGUN oyente de arrastre y el giro se limpia: vuelve la vista del cirujano',
+        CABLE() === false && CAM() && CAM().vista === 'cirujano' && CAM().ang === null,
+        String(CABLE()) + ' || ' + JSON.stringify(CAM())]);
+      /* VEINTE APERTURAS Y CIERRES. */
+      for (let k = 0; k < 20; k++) { try { m3dAbrir(); m3dCerrar(); } catch (e) {} }
+      ex.push(['veinte aperturas y cierres terminan CERRADO y sin un solo oyente de arrastre',
+        (FN('m3dVisible') ? m3dVisible() === false : false) && CABLE() === false,
+        String(FN('m3dVisible') ? m3dVisible() : 'SIN FN') + ' || ' + String(CABLE())]); }
+
+    /* ══ B · EL CUADRO MAS ALTO Y SU AIRE ═════════════════════════════════════════════════════ */
+    { NUEVO(); ETE();
+      const f = FUENTE();
+      ex.push(['el encuadre crecio en la misma proporcion que el lienzo y declara su aire de arriba',
+        f.indexOf('M3D_VW = 462, M3D_VH = 408, M3D_AIRE = 55;') > -1 &&
+        f.indexOf('bh / 2 - k * M3D_H / 2 + k * M3D_AIRE') > -1, '']);
+      ex.push(['y la columna angosta apila las dos columnas en el orden del marcado',
+        f.indexOf('#m3d-cuerpo{flex-direction:column;align-items:stretch;}') > -1, '']);
+      /* LA CAJA DE PIXELES: con IM SEVERA y la auricula dilatada, nada toca el borde de ARRIBA. */
+      S('peso','80'); S('talla','180'); S('im_vc','8'); S('ai_vol','120'); S('ai_area','28');
+      try { if (FN('calcAI')) calcAI(); } catch (e) {}
+      try { if (FN('calcIM_ESC')) calcIM_ESC(); } catch (e) {}
+      SEV('insuf','mitral','4');
+      ETE(); ABRIR3D();
+      try { if (FN('m3dFaseFijar')) m3dFaseFijar(0.5); } catch (e) {}
+      try { if (FN('m3dPintar')) m3dPintar(); } catch (e) {}
+      const P = PIX();
+      /* EL CUERPO DE UN CASO NO PUEDE CAMBIAR EL ANCHO DE LA VENTANA, asi que se mide la maqueta
+         QUE CORRESPONDE al ancho de esta corrida y se DECLARA cual: arriba de 768 px el lienzo
+         mide 340 px fijos y abajo ocupa la linea entera. El alto es 300 en los dos. La del otro
+         ancho la mide la sonda, que si tiene el canal para emular el viewport. Es el reparto de
+         TC-460 y el que TC-485 ya usa para este mismo panel. */
+      const ANCHO = (() => { try { return window.innerWidth; } catch (e) { return 0; } })();
+      const ANCHA = ANCHO > 768;
+      ex.push(['DENOMINADOR: se mide la maqueta que corresponde al ancho de esta corrida (' + ANCHO + ' px, ' + (ANCHA ? 'dos columnas' : 'una columna') + ')',
+        !!P && P.pintados > 2000 && GEO('m3d-cv').h === 300 &&
+        (ANCHA ? GEO('m3d-cv').w === 340 : GEO('m3d-cv').w > 280),
+        JSON.stringify(P) + ' || ' + JSON.stringify(GEO('m3d-cv'))]);
+      ex.push(['con IM severa y la auricula dilatada, el dibujo NO toca el borde de arriba: hay aire',
+        !!P && P.arr > 0, P ? ('arr=' + P.arr + ' aba=' + P.aba + ' izq=' + P.izq + ' der=' + P.der) : 'SIN PIX']);
+      ex.push(['y el aire de arriba es MAYOR que el de abajo: el encuadre esta sesgado hacia arriba',
+        !!P && P.arr > P.aba, P ? ('arr=' + P.arr + ' aba=' + P.aba) : 'SIN PIX']);
+      CERRAR3D(); }
+
+    /* ══ C · LA TABLA EN LA COLUMNA DERECHA ═══════════════════════════════════════════════════ */
+    { NUEVO(); ETE(); ABRIR3D();
+      ex.push(['CONTROL NEGATIVO: sin ningun dato NO hay tabla',
+        TABLA().hay === false, JSON.stringify(TABLA())]);
+      CERRAR3D(); }
+    { NUEVO(); ETE();
+      S('ete_diam_anular','38'); S('ete_angulo_vp','45'); S('ete_prof_coapt','11');
+      S('ete_area_mitral','1.4'); S('teer_prof_flail','9'); S('teer_ancho_flail','12');
+      try { if (FN('calcETE')) calcETE(); } catch (e) {}
+      try { if (FN('calcTEER')) calcTEER(); } catch (e) {}
+      ETE(); ABRIR3D();
+      const T = TABLA();
+      const cv = GEO('m3d-cv'), tb = GEO('m3d-tabla'), gr = GEO('m3d-grados'), ci = GEO('m3d-ciclo');
+      const AN2 = (() => { try { return window.innerWidth; } catch (e) { return 0; } })();
+      const ANCHA2 = AN2 > 768;
+      ex.push(['DENOMINADOR: la tabla existe y trae sus grupos y sus lineas',
+        T.hay && T.grupos.length >= 2 && T.filas.length >= 4, T.grupos.join(',') + ' || ' + T.todo]);
+      /* MISMO REPARTO POR ANCHO: en dos columnas la tabla va a la DERECHA del dibujo y debajo de
+         la tarjeta de grados; en una columna va DEBAJO de todo, en el orden del marcado
+         —dibujo, barra, tarjeta, tabla, nota—. La sonda mide el otro ancho. */
+      ex.push(['la tabla esta donde corresponde al ancho de esta corrida (' + AN2 + ' px): ' + (ANCHA2 ? 'columna DERECHA, debajo de la tarjeta' : 'una columna, despues del dibujo y de la barra'),
+        ANCHA2 ? (tb.hay && cv.hay && tb.x >= cv.x + cv.w && tb.y >= gr.y - 2)
+               : (tb.hay && cv.hay && tb.y > ci.y && ci.y > cv.y && tb.x < cv.x + 8),
+        JSON.stringify({ cv: cv, ciclo: ci, grados: gr, tabla: tb })]);
+      ex.push(['la tabla crece con su contenido y NO tiene desplazamiento interno, a cualquier ancho',
+        CSSV('m3d-tabla', 'overflow-y') !== 'scroll' && CSSV('m3d-tabla', 'overflow-y') !== 'auto' &&
+        tb.h > 40 && (ANCHA2 ? (tb.w >= 240 && tb.w <= 290) : tb.w > 280),
+        tb.w + 'x' + tb.h + ' || ' + CSSV('m3d-tabla', 'overflow-y')]);
+      /* Y LA REGLA QUE PRODUCE LA COLUMNA ANGOSTA, que es lo unico que el caso puede afirmar
+         para el ancho en el que NO corre. */
+      ex.push(['la columna derecha mide 250 px por declaracion y el bloque angosto la apila',
+        FUENTE().indexOf('#m3d-izq{flex:0 0 340px;min-width:0;}') > -1 &&
+        FUENTE().indexOf('#m3d-panel>*{width:598px;}') > -1, '']);
+      ex.push(['UNA LINEA POR DATO: cada fila trae un rotulo y UN valor, no una lista pegada',
+        T.filas.length >= 4 && T.filas.every(x => x[1].indexOf(String.fromCharCode(183)) === -1),
+        T.todo]);
+      ex.push(['la unidad va PEGADA cuando el simbolo lo pide: el angulo sale como 45 grados sin espacio',
+        T.filas.some(x => x[0] === 'Angulo velo posterior'.replace('A', String.fromCharCode(193)) && x[1] === '45' + String.fromCharCode(176)),
+        T.todo]);
+      /* LAS DOS PROFUNDIDADES DE COAPTACION SON DOS CAMPOS DISTINTOS Y CADA UNO SALE UNA SOLA VEZ,
+         bajo el grupo que los distingue: la pestana les pone la MISMA etiqueta a los dos. */
+      const prof = T.filas.filter(x => x[0].indexOf('Profundidad coapta') > -1);
+      ex.push(['la profundidad de coaptacion aparece dos veces porque son DOS campos, con sus dos valores',
+        prof.length === 2 && prof[0][1] === '11 mm' && prof[1][1] === '9 mm' &&
+        T.grupos.indexOf('TEER') > -1, JSON.stringify(prof) + ' || ' + T.grupos.join(',')]);
+      /* EL AREA POR PLANIMETRIA SE MUDO AL GRUPO DE SEVERIDAD: es un dato de la estenosis. */
+      const iSev = T.grupos.indexOf('Severidad');
+      ex.push(['el area por planimetria esta en el grupo Severidad y no en Plastica mitral',
+        iSev > -1 && T.filas.some(x => x[0] === String.fromCharCode(193) + 'rea planimetr' + String.fromCharCode(237) + 'a' && x[1] === '1.4 cm' + String.fromCharCode(178)),
+        T.grupos.join(',') + ' || ' + T.todo]);
+      ex.push(['y la tabla sigue sin publicar NINGUNA recomendacion ni veredicto',
+        ['apto','factible','favorable','recomend','contraindic','sugiere']
+          .every(pz => T.todo.toLowerCase().indexOf(pz) === -1), T.todo.slice(0, 160)]);
+      CERRAR3D(); }
+
+    /* ══ D · EL WILKINS, UN SOLO CALCULO ══════════════════════════════════════════════════════ */
+    { NUEVO(); ETE();
+      ex.push(['DENOMINADOR: existen las dos marcas de gesto y nacen vacias',
+        VAL('wilkins_delib') === '' && VAL('cx_wilk_delib') === '',
+        VAL('wilkins_delib') + '/' + VAL('cx_wilk_delib')]);
+      /* LA TABLA DE COMBINACIONES: las mismas entradas dan el mismo puntaje y la misma banda en
+         las DOS pantallas. Cada una conserva su formato de presentacion. */
+      const COMB = [['2','2','2','2', 8, 'favorable'], ['3','2','2','2', 9, 'suboptimo'],
+                    ['3','3','3','2', 11, 'suboptimo'], ['3','3','3','3', 12, 'nofavorable'],
+                    ['4','4','4','4', 16, 'nofavorable']];
+      const malas = [];
+      COMB.forEach(c => {
+        const v = c.slice(0, 4), tot = c[4], bnd = c[5];
+        const fe = PONW('ete', v), fc = PONW('cx', v.map(x => x));
+        const We = WSC('ete'), Wc = WSC('cx');
+        if (fe || fc) { malas.push('no se pudo poner ' + v.join('/') + ': ' + fe + fc); return; }
+        if (!We || !Wc) { malas.push('sin lector en ' + v.join('/')); return; }
+        if (We.total !== tot || Wc.total !== tot) malas.push(v.join('/') + ' total ' + We.total + '/' + Wc.total);
+        if (We.banda !== bnd || Wc.banda !== bnd) malas.push(v.join('/') + ' banda ' + We.banda + '/' + Wc.banda);
+      });
+      ex.push(['las cinco combinaciones completas dan el MISMO total y la MISMA banda en las dos pantallas',
+        malas.length === 0, malas.join(' ; ') || 'todas coinciden']);
+      /* EL PARCIAL DE TRES: mismo texto en las dos. */
+      PONW('ete', ['3','2','2','0']); PONW('cx', ['3','2','2','']);
+      const pe = TXT('wilkins-interp'), pc = TXT('cx-wilkins-total');
+      ex.push(['el parcial de tres criterios publica el MISMO texto en las dos pantallas y explica el motivo',
+        pe.indexOf('Score incompleto') > -1 && pc.indexOf('Score incompleto') > -1 &&
+        pe.indexOf('sesgado a favorable') > -1 && pc.indexOf('sesgado a favorable') > -1,
+        pe + ' || ' + pc]);
+      /* LA BANDA DE MAS DE 11: el mismo texto, y la palabra vieja ya no sale. */
+      PONW('ete', ['3','3','3','3']); PONW('cx', ['3','3','3','3']);
+      const ne = TXT('wilkins-interp'), nc = TXT('cx-wilkins-total');
+      ex.push(['la banda de mas de 11 dice «No favorable para valvuloplastia» en las dos, y «desfavorable» ya no existe',
+        ne.indexOf('No favorable para valvuloplastia') > -1 &&
+        nc.indexOf('No favorable para valvuloplastia') > -1 && nc.indexOf('desfavorable') === -1,
+        ne + ' || ' + nc]);
+      /* LOS DOS CENTINELAS: el 0 de ETE y la cadena vacia de Calculadoras. */
+      PONW('ete', ['0','0','0','0']); PONW('cx', ['','','','']);
+      const Ze = WSC('ete'), Zc = WSC('cx');
+      ex.push(['los DOS centinelas se tratan igual: el cero de ETE y la cadena vacia de Calculadoras dan «sin puntuar»',
+        Ze && Zc && Ze.puntuados === 0 && Zc.puntuados === 0 && Ze.banda === '' && Zc.banda === '' &&
+        TXT('wilkins-total') === String.fromCharCode(8212) && TXT('cx-wilkins-total') === String.fromCharCode(8212),
+        JSON.stringify([Ze && Ze.banda, Zc && Zc.banda, TXT('wilkins-total'), TXT('cx-wilkins-total')])]);
+      /* 1/1/1/1 SIN MARCA: sin puntuar en las dos. */
+      MARCA('ete', false); MARCA('cx', false);
+      PONW('ete', ['1','1','1','1']); PONW('cx', ['1','1','1','1']);
+      const Ue = WSC('ete'), Uc = WSC('cx');
+      ex.push(['1/1/1/1 SIN la marca de gesto queda «sin puntuar» en las DOS pantallas, no 4/16 favorable',
+        Ue && Uc && Ue.reingresar === true && Uc.reingresar === true &&
+        Ue.interpretable === false && Uc.interpretable === false &&
+        TXT('wilkins-interp').indexOf('sin puntuar') > -1 &&
+        TXT('cx-wilkins-total').indexOf('sin puntuar') > -1,
+        JSON.stringify([Ue && Ue.banda, Uc && Uc.banda]) + ' || ' + TXT('wilkins-interp') + ' || ' + TXT('cx-wilkins-total')]);
+      /* 1/1/1/1 CON MARCA: un 4/16 valido. */
+      MARCA('ete', true); MARCA('cx', true);
+      PONW('ete', ['1','1','1','1']); PONW('cx', ['1','1','1','1']);
+      const Me = WSC('ete'), Mc = WSC('cx');
+      ex.push(['y CON la marca puesta el mismo 1/1/1/1 vale 4/16 favorable en las dos',
+        Me && Mc && Me.total === 4 && Mc.total === 4 && Me.banda === 'favorable' && Mc.banda === 'favorable' &&
+        TXT('wilkins-total') === '4 / 16' && TXT('cx-wilkins-total').indexOf('4/16') > -1,
+        TXT('wilkins-total') + ' || ' + TXT('cx-wilkins-total')]);
+      /* LA MARCA NO SE PONE POR CODIGO. El gesto REAL lo mide la sonda, que manda teclas de
+         confianza; aca se mide el CONTROL NEGATIVO, que es lo que un cuerpo de caso puede hacer. */
+      MARCA('ete', false);
+      PONW('ete', ['3','2','2','2']);
+      ex.push(['CONTROL NEGATIVO: cambiar un criterio por CODIGO no pone la marca',
+        VAL('wilkins_delib') === '', VAL('wilkins_delib')]);
+      ex.push(['y el guarda es la confianza del evento, no el nombre del campo',
+        FUENTE().indexOf('if (!ev || ev.isTrusted !== true) return false;') > -1, '']);
+      /* RESTAURAR UN ESTUDIO NO PONE LA MARCA, Y LA REPONE SI ESTABA. */
+      MARCA('ete', true);
+      const guard = (() => { const c = {};
+        document.querySelectorAll('input[id],select[id],textarea[id]').forEach(e => { c[e.id] = e.value; });
+        return c; })();
+      NUEVO();
+      const trasLimpiar = VAL('wilkins_delib');
+      Object.keys(guard).forEach(id => { const e = EL(id); if (e) e.value = guard[id]; });
+      try { if (FN('calcWilkins')) calcWilkins(); } catch (e) {}
+      ex.push(['la marca se BORRA al limpiar y se REPONE al restaurar un estudio, sin ponerse sola',
+        trasLimpiar === '' && VAL('wilkins_delib') === '1',
+        'traslimpiar=' + trasLimpiar + ' trasrestaurar=' + VAL('wilkins_delib')]);
+      /* UN LEGADO SIN MARCA CON 1/1/1/1 QUEDA SIN PUNTUAR, Y EL EXCEL NO PUBLICA EL 4. */
+      NUEVO(); ETE(); MARCA('ete', false); PONW('ete', ['1','1','1','1']);
+      const xl = (() => { try { if (typeof _labExcelRow !== 'function') return 'SIN FN';
+          const c = {}; document.querySelectorAll('input[id],select[id],textarea[id]').forEach(e => { c[e.id] = e.value; });
+          return _labExcelRow({ id:'p', fecha:'2026-10-16', nombre:'X', campos:c, informe_texto:'', en_suma:'' });
+        } catch (e) { return 'EXC'; } })();
+      ex.push(['un estudio legado con 1/1/1/1 y SIN marca no publica el 4 en la columna del Excel, y el Excel sigue en 440',
+        xl && typeof xl === 'object' && xl['Score Wilkins total'] === '' && Object.keys(xl).length === 440,
+        JSON.stringify(xl && typeof xl === 'object' ? [xl['Score Wilkins total'], Object.keys(xl).length] : xl)]);
+      /* CONTROL NEGATIVO DEL EXCEL: con la marca, la columna SI publica el 4. */
+      MARCA('ete', true); PONW('ete', ['1','1','1','1']);
+      const xl2 = (() => { try { if (typeof _labExcelRow !== 'function') return 'SIN FN';
+          const c = {}; document.querySelectorAll('input[id],select[id],textarea[id]').forEach(e => { c[e.id] = e.value; });
+          return _labExcelRow({ id:'p', fecha:'2026-10-16', nombre:'X', campos:c, informe_texto:'', en_suma:'' });
+        } catch (e) { return 'EXC'; } })();
+      ex.push(['CONTROL NEGATIVO: con la marca puesta, la columna del Excel SI publica el 4',
+        xl2 && typeof xl2 === 'object' && xl2['Score Wilkins total'] === 4,
+        JSON.stringify(xl2 && typeof xl2 === 'object' ? xl2['Score Wilkins total'] : xl2)]); }
+
+    /* ══ E · OTROS — CADA TEMA EN SU PROPIA ORACION ═══════════════════════════════════════════ */
+    { NUEVO();
+      const L0 = LINEAS('narrativo');
+      ex.push(['CONTROL NEGATIVO: sin hallazgos, el pericardio y las masas van en DOS oraciones propias y ninguna las funde',
+        L0.indexOf('No se observa derrame pericárdico.') > -1 &&
+        L0.indexOf('No se observan masas intracardíacas.') > -1 &&
+        L0.every(x => x.indexOf('ni masas intracard') === -1),
+        L0.filter(x => x.indexOf('pericárdico') > -1 || x.indexOf('masas') > -1).join(' || ')]); }
+    { NUEVO();
+      ex.push(['DENOMINADOR: existe el selector de tres estados del compromiso hemodinamico y nace sin elegir',
+        VAL('pericardio_hemo') === '' &&
+        Array.prototype.slice.call((EL('pericardio_hemo') || { options: [] }).options).length === 3,
+        VAL('pericardio_hemo')]);
+      SEL('pericardio', 'Derrame moderado (10-20mm)');
+      const sinElegir = LINEAS('estandar').filter(x => x.indexOf('Derrame moderado') > -1).join(' || ');
+      ex.push(['sin consignar el compromiso, la oracion del pericardio no dice nada de el',
+        sinElegir === 'Derrame moderado (10-20mm).', sinElegir]);
+      SEL('pericardio_hemo', 'si');
+      const conSi = LINEAS('estandar').filter(x => x.indexOf('Derrame moderado') > -1).join(' || ');
+      SEL('pericardio_hemo', 'no');
+      const conNo = LINEAS('estandar').filter(x => x.indexOf('Derrame moderado') > -1).join(' || ');
+      ex.push(['con el si y con el no, la oracion lo dice con las palabras del selector',
+        conSi === 'Derrame moderado (10-20mm), con compromiso hemodinámico.' &&
+        conNo === 'Derrame moderado (10-20mm), sin compromiso hemodinámico.', conSi + ' // ' + conNo]);
+      const nar = LINEAS('narrativo').filter(x => x.indexOf('derrame moderado') > -1).join(' || ');
+      ex.push(['y en el narrativo el pericardio ya NO arrastra a las masas en la misma oracion',
+        nar.indexOf('sin compromiso hemodinámico') > -1 && nar.indexOf('masas') === -1, nar]); }
+    { NUEVO();
+      SEL('pul_derrame', 'si'); SEL('pul_derrame_tam', 'moderado'); S('pul_balik', '25');
+      SEL('pul_derrame_lado', 'bilateral');
+      SEL('pul_lineasb', 'si'); SEL('pul_lineasb_pat', 'difuso');
+      SEL('pul_consolidacion', 'si'); S('pul_consol_nota', 'base derecha');
+      const L = LINEAS('estandar');
+      const der = L.filter(x => x.indexOf('Derrame pleural') > -1).join(' || ');
+      const lb  = L.filter(x => x.indexOf('Líneas B') > -1).join(' || ');
+      const co  = L.filter(x => x.indexOf('Consolidación') > -1).join(' || ');
+      ex.push(['los tres temas del pulmon van en TRES oraciones separadas y no en un solo parrafo',
+        der && lb && co && der !== lb && lb !== co &&
+        der.indexOf('Líneas B') === -1 && der.indexOf('Consolidación') === -1,
+        der + ' | ' + lb + ' | ' + co]);
+      ex.push(['el derrame pleural nombra su LADO y su volumen por Balik',
+        der === 'Derrame pleural bilateral moderado (Balik 25 mm, aproximadamente 500 ml).', der]);
+      ex.push(['la nota de la consolidacion va EN LA MISMA ORACION, entre parentesis',
+        co === 'Consolidación pulmonar (base derecha).', co]);
+      ex.push(['y al EN SUMA va la conclusion, no el detalle de la nota',
+        SUMA().indexOf('Consolidación pulmonar.') > -1 && SUMA().indexOf('base derecha') === -1,
+        SUMA().split(String.fromCharCode(10)).filter(x => x.indexOf('Consolidación') > -1).join(' || ')]);
+      /* CONTROL NEGATIVO: sin lado, la oracion sale como hasta hoy. */
+      SEL('pul_derrame_lado', '');
+      const sinLado = LINEAS('estandar').filter(x => x.indexOf('Derrame pleural') > -1).join(' || ');
+      ex.push(['CONTROL NEGATIVO: sin consignar el lado, la oracion no inventa ninguno',
+        sinLado === 'Derrame pleural moderado (Balik 25 mm, aproximadamente 500 ml).', sinLado]); }
+    { NUEVO();
+      const L = LINEAS('estandar');
+      ex.push(['CONTROL NEGATIVO: sin hallazgos pulmonares no hay NINGUNA oracion de pulmon',
+        L.every(x => x.indexOf('Derrame pleural') === -1 && x.indexOf('Líneas B') === -1 &&
+                     x.indexOf('Consolidación pulmonar') === -1),
+        L.filter(x => x.indexOf('pleural') > -1 || x.indexOf('Líneas B') > -1).join(' || ') || 'ninguna']); }
+
+    /* ══ F · LOS CONTROLES: NADA MAS SE MOVIO ═════════════════════════════════════════════════ */
+    { NUEVO(); try { if (FN('showTab')) showTab('valvulas'); } catch (e) {}
+      S('peso','80'); S('talla','170'); S('im_vc','8'); S('vmax_ao','4.5'); S('gmedio_ao','45');
+      S('onda_e','90'); S('onda_a','60'); S('e_prima_sep','5'); S('e_prima_lat','7');
+      try { if (FN('calcAo')) calcAo(); } catch (e) {}
+      try { if (FN('calcIM_ESC')) calcIM_ESC(); } catch (e) {}
+      try { if (FN('calcDiastol')) calcDiastol(); } catch (e) {}
+      SEV('insuf','mitral','4');
+      const inf = INF('estandar');
+      ex.push(['los grados de las ocho lesiones y el veredicto diastolico no se movieron',
+        VAL('im_grado') === '4' && TXT('ea-sev').indexOf('Severa') > -1 &&
+        TXT('dd-interp') !== 'NO EXISTE' && TXT('dd-interp').length > 2,
+        VAL('im_grado') + ' || ' + TXT('ea-sev') + ' || ' + TXT('dd-interp')]);
+      ex.push(['el informe sigue publicando la insuficiencia mitral severa y el EN SUMA tambien',
+        inf.indexOf('insuficiencia severa') > -1 && SUMA().indexOf('IM severa.') > -1,
+        SUMA().split(String.fromCharCode(10)).slice(0, 3).join(' || ')]);
+      const fila = (() => { try { if (typeof _labExcelRow !== 'function') return null;
+          const c = {}; document.querySelectorAll('input[id],select[id],textarea[id]').forEach(e => { c[e.id] = e.value; });
+          return _labExcelRow({ id:'p', fecha:'2026-10-16', nombre:'X', campos:c, informe_texto:inf, en_suma:SUMA() });
+        } catch (e) { return null; } })();
+      ex.push(['y el Excel sigue en 440 columnas: ninguno de los campos nuevos agrego una',
+        !!fila && Object.keys(fila).length === 440, fila ? String(Object.keys(fila).length) : 'SIN FILA']);
+      ex.push(['los cuatro campos nuevos del estudio son los dos del Wilkins y los dos de Otros, y ninguno es columna',
+        !!fila && ['wilkins_delib','cx_wilk_delib','pericardio_hemo','pul_derrame_lado','pul_consol_nota']
+          .every(id => !!EL(id)) &&
+        Object.keys(fila).every(k => k.indexOf('delib') === -1 && k.indexOf('Lado') === -1),
+        ['wilkins_delib','cx_wilk_delib','pericardio_hemo','pul_derrame_lado','pul_consol_nota']
+          .map(id => id + '=' + (EL(id) ? 'si' : 'NO')).join(' ')]); }
+
+    return { extra: ex };
+  })();
+`);
 
 caso('TC-487', 'Tanda H: la AURICULA IZQUIERDA con un solo dueno —el volumen indexado manda y va entre parentesis, las seis escenas con su frase exacta en los tres estilos, el EN SUMA y la capsula diciendo lo MISMO, los seis bordes y el control negativo sin volumen—; y el PDF con el colapso de la VCI en «%», el simbolo del sexo DIBUJADO como figura y no escrito como glifo, y sin sexo ningun simbolo; mas el informe, el EN SUMA, los grados, la diastolica, el HFA-PEFF y las 440 columnas del Excel sin moverse', `
   return (async function(){

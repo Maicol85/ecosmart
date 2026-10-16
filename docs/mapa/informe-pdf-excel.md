@@ -500,3 +500,18 @@ viven en **`docs/mapa/auricula-izquierda-pdf.md`**.
   `<textarea>` con id) y el reimpreso lo repone tal cual: un cambio en la redacción del informe
   **no alcanza** a lo ya guardado. Lo que sí cambia en el reimpreso es la **tabla de datos**, que
   se arma de `campos`.
+
+---
+
+## La pestaña OTROS en el informe — tanda «I» (2026-10-16)
+
+⚠️ **El pericardio, las masas y los tres temas del módulo pulmonar básico pasaron a ir cada uno en su
+PROPIA entrada de `inf`**, o sea en su propia oración. Antes el pericardio y las masas compartían una
+entrada —y en el estilo NARRATIVO una sola oración— y los tres temas del pulmón salían pegados por un
+`join(' ')`. El EN SUMA no se movió. **Mapa de la zona, con la tabla de antes y después y los tres
+campos nuevos: `docs/mapa/otros-pericardio-pulmon.md`.**
+
+⚠️ **Y la columna `Score Wilkins total` del Excel dejó de contar por su cuenta**: le pregunta a
+`wilkinsScoreDeCampos`, que es el mismo cálculo que las dos pantallas. La única escena en la que el
+valor cambia es un estudio legado con 1/1/1/1 y sin la marca de gesto, que pasa de `4` a vacío.
+**Mapa: `docs/mapa/wilkins-unificado.md` → sección 5.**

@@ -171,3 +171,30 @@ medidor y el control negativo sin sexo).
 El cuerpo de un caso **no puede generar el PDF y mirarlo**: interceptar jsPDF, generar el
 documento en las **seis** plantillas y rasterizar la página es trabajo de
 `scripts/_probe_h.mjs`. Es el mismo reparto que TC-460 y TC-485 ya usan.
+
+---
+
+### TC-488 — el giro manual del 3D, el cuadro y la tabla, el Wilkins unificado y la pestaña Otros (2026-10-16)
+
+| Caso | Qué fija | Condiciones | Rojas contra HEAD | Sonda |
+|---|---|---|---|---|
+| **TC-488** | Y3b + Wilkins + I: el giro a mano con los ocho botones desmarcándose y volviendo, el lienzo enfocable, sin zoom y sin oyentes con el panel cerrado; el cuadro más alto con aire arriba y la tabla en su columna; el Wilkins con un solo cálculo, sus dos centinelas y la marca de gesto; y los temas de Otros cada uno en su oración | **53** | **37**, ninguna por excepción | `scripts/_probe_y3b.mjs` |
+
+**Las 16 que pasan contra HEAD son lo que esta tanda NO mueve:** que el botón del 3D exista con
+válvula nativa, que el panel abra, que al abrir el único marcado sea la vista del cirujano, que tocar
+un botón la marque, que la tabla no publique veredictos, las cinco combinaciones completas del
+Wilkins —cuyas bandas ya coincidían— y los controles del informe, los grados y las 440 columnas.
+
+⚠️ **EL CUERPO DE UN CASO NO PUEDE CAMBIAR EL ANCHO DE LA VENTANA**, así que las dos condiciones de
+maqueta **declaran el ancho en el que corrieron** —la suite corre a **756 px**, o sea una columna— y
+afirman la conducta que corresponde a ese ancho; la del ancho ancho la mide la sonda, que sí tiene el
+canal para emular el viewport. Es el reparto de TC-460 y el que TC-485 ya usa para este mismo panel.
+
+⚠️ **EL ARRASTRE REAL NO ES COSA DEL CASO.** Lo que el caso mide es lo que el arrastre HACE —llamar a
+`m3dGirar`, que desmarca los ocho botones y mueve la cámara—; el arrastre con mouse y con dedo, en
+los dos motores, lo manda la sonda por el protocolo.
+
+⚠️ **LA MARCA DEL WILKINS, IGUAL.** El caso mide el **control negativo** —un `change` despachado por
+código NO la pone— y la regla del guarda por el fuente; el gesto real (tipear el primer carácter de
+una opción) lo manda la sonda, y ahí se midió además que `selectOption` de Playwright llega con
+`isTrusted` en `false`.

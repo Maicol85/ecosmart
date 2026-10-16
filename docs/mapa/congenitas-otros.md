@@ -160,6 +160,13 @@ Pestaña `tab-cardioOnco`. `showTab('cardioOnco')` corre `_coMigrarNombreACedula
 
 ---
 
+> ⚠️ **La pestaña OTROS —pericardio, masas y el módulo básico de ecografía pulmonar— y cómo salen
+> en el informe tienen mapa propio desde la tanda «I» (2026-10-16):
+> `docs/mapa/otros-pericardio-pulmon.md`.** Ahí están las tres cosas que cambiaron: cada tema en su
+> PROPIA oración (antes el narrativo fundía pericardio y masas en una sola), el selector de tres
+> estados del compromiso hemodinámico, el lado del derrame pleural y la nota de la consolidación. Y
+> lo que quedó sin hacer por falta de fuente: Balik y las dos separaciones de líneas B.
+
 ## Pericardio
 
 Repartido en tres lugares y **sin pestaña propia**.
@@ -262,6 +269,11 @@ dibuja sobre canvas y se anima por `requestAnimationFrame`. El prefijo `fcg-` es
 campos que viajan con el estudio: son controles del visor, no mediciones.
 
 ---
+
+> ⚠️ **El score de WILKINS pasó a tener UN SOLO CÁLCULO para la tarjeta de ETE y la de
+> Calculadoras (tanda «Wilkins», 2026-10-16): `docs/mapa/wilkins-unificado.md`.** Ahí están la regla
+> pura (`_wilkCalc`), sus dos lectores, los dos centinelas, la marca de «puntuado a propósito» y la
+> tabla de dónde se consume el score y qué cambia para un estudio legado con 1/1/1/1.
 
 ## Calculadoras
 
