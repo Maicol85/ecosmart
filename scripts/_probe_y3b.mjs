@@ -102,6 +102,18 @@ const SONDA = `window.__P = {
         if (s && getComputedStyle(s).display !== 'none') abiertas.push(k);
       } catch (e) {} });
     return abiertas },
+  /* La tarjeta del Wilkins de Calculadoras es un toggleCard que nace plegado, dentro de la
+     pestana tab-calculadoras: sin abrir las dos, sus cuatro selects miden 0x0 y un gesto real
+     no tiene donde aterrizar —la primera corrida informo «el gesto no pone la marca» sobre un
+     select que nunca se enfoco—. */
+  calc() {
+    try { if (this.fn('showTab')) showTab('calculadoras') } catch (e) {}
+    try { var c = document.getElementById('cx-wilkins');
+      if (c && getComputedStyle(c).display === 'none' && typeof toggleCard === 'function')
+        toggleCard('cx-wilkins', null) } catch (e) {}
+    var c2 = document.getElementById('cx_wilk_eng');
+    var r = c2 ? c2.getBoundingClientRect() : null;
+    return r ? { w: +r.width.toFixed(1), h: +r.height.toFixed(1) } : 'NO EXISTE' },
   abrir3d() { var b = document.getElementById('m3d-btn'); if (!b) return 'SIN BOTON';
     if (!this.visible3d()) b.click();
     return this.visible3d() },
@@ -179,6 +191,19 @@ const SONDA = `window.__P = {
     try { if (this.fn('cxWilkins')) cxWilkins() } catch (x) {}
     return { total: this.txt('#cx-wilkins-total') } },
   wilkMarca() { return { ete: this.val('wilkins_delib'), cx: this.val('cx_wilk_delib') } },
+  /* Donde se CONSUME el Wilkins: el informe narrativo, la hoja del PDF de ETE, la columna del
+     Excel y el recuento del Laboratorio. Los cuatro sobre el MISMO estado de pantalla. */
+  wilkConsumo() {
+    var o = {};
+    try { if (this.fn('setEstiloInforme')) setEstiloInforme('estandar') } catch (e) {}
+    try { if (this.fn('generarInforme')) generarInforme() } catch (e) {}
+    var inf = String((document.getElementById('informe_texto') || {}).value || '');
+    var li = inf.split(String.fromCharCode(10)).filter(function(x){ return x.indexOf('Wilkins') > -1 });
+    o.informe = li.join(' || ') || 'SIN LINEA DE WILKINS';
+    o.pdfEte = this.fn('amiloTextoWilkins') ? amiloTextoWilkins() : 'SIN FN';
+    var f = this.excel();
+    o.excel = (f && typeof f === 'object') ? f['Score Wilkins total'] : f;
+    return o },
 
   /* ══ SUPERFICIES ══ */
   informe(estilo) { try { if (this.fn('setEstiloInforme')) setEstiloInforme(estilo) } catch (e) {}
@@ -573,13 +598,35 @@ for (const [motor, tipo, op] of MOTORES) {
     await montarEscena(pg, ESC.vacio);
     await pg.evaluate(() => window.__P.ete());
     g.gesto = { marcaAntes: await pg.evaluate(() => window.__P.wilkMarca()) };
-    try {
-      await pg.locator('#wilkins_movilidad').focus();
-      await pg.keyboard.press('ArrowDown');
-      await pg.waitForTimeout(150);
-      g.gesto.valorTrasFlecha = await pg.evaluate(() => window.__P.val('wilkins_movilidad'));
-      g.gesto.marcaTrasFlecha = await pg.evaluate(() => window.__P.wilkMarca());
-    } catch (e) { g.gesto.err = String(e && e.message).slice(0, 90) }
+    /* ⚠️ LA FLECHA NO CAMBIA UN <select> CERRADO EN NINGUNO DE LOS DOS MOTORES —medido: el valor
+       no se movio y no hubo ni un `change`—. Lo que SI es un gesto real es la BUSQUEDA POR LETRA:
+       tipear el primer caracter de una opcion la elige y despacha un `change` con `isTrusted` en
+       true. Y `selectOption` de Playwright lo despacha con `isTrusted` en FALSE, que es lo que
+       prueba que la guarda de la marca distingue el gesto del codigo —tambien medido—. */
+    g.gesto.cajaCalc = await pg.evaluate(() => window.__P.calc());
+    for (const [src, id, tecla] of [['ete', 'wilkins_movilidad', '3'], ['cx', 'cx_wilk_eng', '2']]) {
+      try {
+        if (src === 'ete') await pg.evaluate(() => window.__P.ete());
+        else await pg.evaluate(() => window.__P.calc());
+        await centrar(pg, '#' + id);
+        await pg.locator('#' + id).focus();
+        await pg.keyboard.press(tecla);
+        await pg.waitForTimeout(160);
+        g.gesto[src] = { valor: await pg.evaluate((i) => window.__P.val(i), id),
+                         marca: await pg.evaluate(() => window.__P.wilkMarca()) };
+      } catch (e) { g.gesto[src] = { err: String(e && e.message).slice(0, 90) } }
+    }
+    /* CONTROL NEGATIVO DEL GESTO: el mismo cambio por CODIGO no pone la marca. */
+    await pg.evaluate(() => { try { limpiarCampos(true) } catch (e) {} });
+    await pg.evaluate(() => window.__P.ete());
+    await pg.evaluate(() => { const n = document.getElementById('wilkins_movilidad');
+      n.value = '3'; n.dispatchEvent(new Event('change', { bubbles: true })) });
+    await pg.evaluate(() => window.__P.calc());
+    g.gesto.porCodigo = { valor: await pg.evaluate(() => window.__P.val('wilkins_movilidad')),
+                          marca: await pg.evaluate(() => window.__P.wilkMarca()) };
+    try { await pg.selectOption('#cx_wilk_cal', '3'); await pg.waitForTimeout(120) } catch (e) {}
+    g.gesto.porSelectOption = { valor: await pg.evaluate(() => window.__P.val('cx_wilk_cal')),
+                                marca: await pg.evaluate(() => window.__P.wilkMarca()) };
     /* Con la marca puesta, el 1/1/1/1 es un 4/16 valido en las dos pantallas. */
     await pg.evaluate(() => { ['wilkins_delib','cx_wilk_delib'].forEach(function(i){
       var e = document.getElementById(i); if (e) e.value = '1' }) });
@@ -587,6 +634,20 @@ for (const [motor, tipo, op] of MOTORES) {
       const ete = c.map(x => x === '' ? '0' : x);
       g.conMarca[c.join('/')] = { ete: await pg.evaluate((v) => window.__P.wilkEte(v), ete),
                                   cx: await pg.evaluate((v) => window.__P.wilkCx(v), c) };
+    }
+    /* DONDE SE CONSUME: informe, PDF de ETE y Excel, con y sin la marca, sobre el 1/1/1/1 que es
+       el estado de TODO estudio legado de Calculadoras y el de fabrica de ETE. */
+    g.consumo = {};
+    for (const [nom, v, marca] of [['1/1/1/1 sin marca', ['1','1','1','1'], false],
+                                   ['1/1/1/1 con marca', ['1','1','1','1'], true],
+                                   ['3/2/2/2', ['3','2','2','2'], false],
+                                   ['3/3/3/3', ['3','3','3','3'], false],
+                                   ['sin puntuar', ['0','0','0','0'], false]]) {
+      await pg.evaluate(() => { try { limpiarCampos(true) } catch (e) {} });
+      await pg.evaluate(() => window.__P.ete());
+      await pg.evaluate((m) => { const e = document.getElementById('wilkins_delib'); if (e) e.value = m ? '1' : '' }, marca);
+      await pg.evaluate((x) => window.__P.wilkEte(x), v);
+      g.consumo[nom] = await pg.evaluate(() => window.__P.wilkConsumo());
     }
     /* La marca se borra al limpiar. */
     await pg.evaluate(() => { try { limpiarCampos(true) } catch (e) {} });

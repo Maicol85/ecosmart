@@ -12895,7 +12895,7 @@ z
       <p style="font-size:11px; color:var(--text2); margin-bottom:10px;">Completar solo si hay estenosis mitral. Score ≤8 → favorable para valvuloplastia percutánea.</p>
       <div class="grid-2">
         <div class="fg"><label>Movilidad (1-4)</label>
-          <select id="wilkins_movilidad" onchange="calcWilkins()">
+          <select id="wilkins_movilidad" onchange="wilkMarcarGesto(event,'ete');calcWilkins()">
             <option value="0">—</option>
             <option value="1">1 — Muy móvil, restricción solo en punta</option>
             <option value="2">2 — Reducida en base y punta</option>
@@ -12904,7 +12904,7 @@ z
           </select>
         </div>
         <div class="fg"><label>Engrosamiento (1-4)</label>
-          <select id="wilkins_engrosamiento" onchange="calcWilkins()">
+          <select id="wilkins_engrosamiento" onchange="wilkMarcarGesto(event,'ete');calcWilkins()">
             <option value="0">—</option>
             <option value="1">1 — Casi normal (4-5mm)</option>
             <option value="2">2 — Punta engrosada (5-8mm)</option>
@@ -12913,7 +12913,7 @@ z
           </select>
         </div>
         <div class="fg"><label>Calcificación (1-4)</label>
-          <select id="wilkins_calcificacion" onchange="calcWilkins()">
+          <select id="wilkins_calcificacion" onchange="wilkMarcarGesto(event,'ete');calcWilkins()">
             <option value="0">—</option>
             <option value="1">1 — Área única de brillo aumentado</option>
             <option value="2">2 — Áreas dispersas en punta</option>
@@ -12922,7 +12922,7 @@ z
           </select>
         </div>
         <div class="fg"><label>Compromiso subvalvular (1-4)</label>
-          <select id="wilkins_subvalvular" onchange="calcWilkins()">
+          <select id="wilkins_subvalvular" onchange="wilkMarcarGesto(event,'ete');calcWilkins()">
             <option value="0">—</option>
             <option value="1">1 — Engrosamiento mínimo bajo velos</option>
             <option value="2">2 — Engrosamiento hasta 1/3 de cuerdas</option>
@@ -12931,6 +12931,11 @@ z
           </select>
         </div>
       </div>
+      <!-- ⚠️ LA MARCA DE «PUNTUADO A PROPOSITO». Es un campo del estudio como cualquier otro: lo
+           toma el barrido de `guardarInforme` y se repone al abrir un guardado, y NO agrega
+           ninguna columna al Excel, que es una lista declarada y no un barrido. La escribe
+           `wilkMarcarGesto` solo con un `change` de CONFIANZA. -->
+      <input type="hidden" id="wilkins_delib" value="">
       <div class="calc-box" style="margin-top:10px;">
         <div class="calc-row"><span class="calc-lbl">Score de Wilkins total (/16)</span><span class="calc-val" id="wilkins-total">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Interpretación</span><span id="wilkins-interp">—</span></div>
@@ -15829,28 +15834,28 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
   <div id="cx-wilkins" style="display:none;">
   <div class="card"><div class="card-body">
     <div class="grid-2">
-      <div class="fg"><label>Movilidad valvular</label><select id="cx_wilk_mov" onchange="cxWilkins()">
+      <div class="fg"><label>Movilidad valvular</label><select id="cx_wilk_mov" onchange="wilkMarcarGesto(event,'cx');cxWilkins()">
         <option value="">— sin puntuar —</option>
         <option value="1">1 — Alta movilidad, solo puntas restringidas</option>
         <option value="2">2 — Base y porción media con movilidad normal</option>
         <option value="3">3 — Válvula avanza en diástole desde la base</option>
         <option value="4">4 — Mínima o nula movilidad</option>
       </select></div>
-      <div class="fg"><label>Engrosamiento valvular</label><select id="cx_wilk_eng" onchange="cxWilkins()">
+      <div class="fg"><label>Engrosamiento valvular</label><select id="cx_wilk_eng" onchange="wilkMarcarGesto(event,'cx');cxWilkins()">
         <option value="">— sin puntuar —</option>
         <option value="1">1 — Normal (4-5 mm)</option>
         <option value="2">2 — Bordes engrosados (5-8 mm)</option>
         <option value="3">3 — Engrosamiento de toda la valva</option>
         <option value="4">4 — Engrosamiento severo (&gt;8-10 mm)</option>
       </select></div>
-      <div class="fg"><label>Calcificación</label><select id="cx_wilk_cal" onchange="cxWilkins()">
+      <div class="fg"><label>Calcificación</label><select id="cx_wilk_cal" onchange="wilkMarcarGesto(event,'cx');cxWilkins()">
         <option value="">— sin puntuar —</option>
         <option value="1">1 — Área única de brillo aumentado</option>
         <option value="2">2 — Áreas dispersas en bordes</option>
         <option value="3">3 — Brillo que se extiende al cuerpo</option>
         <option value="4">4 — Calcificación extensa de todo el tejido</option>
       </select></div>
-      <div class="fg"><label>Compromiso subvalvular</label><select id="cx_wilk_sub" onchange="cxWilkins()">
+      <div class="fg"><label>Compromiso subvalvular</label><select id="cx_wilk_sub" onchange="wilkMarcarGesto(event,'cx');cxWilkins()">
         <option value="">— sin puntuar —</option>
         <option value="1">1 — Mínimo engrosamiento subvalvular</option>
         <option value="2">2 — Engrosamiento hasta 1/3 proximal de cuerdas</option>
@@ -15858,6 +15863,9 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         <option value="4">4 — Engrosamiento severo con extensión al tercio distal</option>
       </select></div>
     </div>
+    <!-- La marca de «puntuado a proposito» de ESTA pantalla. Son dos y no una: con una sola,
+         tocar un criterio en ETE validaria el 1/1/1/1 legado de aca. -->
+    <input type="hidden" id="cx_wilk_delib" value="">
     <div class="calc-box" style="margin-top:8px;">
       <div class="calc-row"><span class="calc-lbl">Score total <span style="color:var(--text2);font-size:10px;">/16</span></span><span id="cx-wilkins-total">—</span></div>
     </div>
@@ -20761,6 +20769,25 @@ const AO_SEGS = Object.freeze([
    ⚠️ SIN CITA Y SIN NOTA METODOLÓGICA, por la regla del informe: es una línea de un documento
    firmado. El respaldo con sus dos referencias numeradas vive en el panel de Evidencia. */
 const WILK_9_11 = 'El score no predice el resultado';
+/* ⚠️ LAS CONSTANTES DEL WILKINS VIVEN ACA, CON `WILK_9_11`, Y NO AL LADO DE `wilkinsScore`, por
+   el MISMO motivo que esa: `_autosaveInit` llama a `calcWilkins()` durante la carga y vive en la
+   linea ~50996, o sea 3.800 lineas ANTES de la funcion. Un `var` se iza con valor `undefined`,
+   asi que declaradas alla el badge del arranque habria dicho «undefined» sobre un estudio
+   restaurado. Las funciones de abajo son declaraciones de funcion y se izan enteras. */
+var WILK_CAMPOS = Object.freeze({
+  ete: Object.freeze(['wilkins_movilidad', 'wilkins_engrosamiento', 'wilkins_calcificacion', 'wilkins_subvalvular']),
+  cx:  Object.freeze(['cx_wilk_mov', 'cx_wilk_eng', 'cx_wilk_cal', 'cx_wilk_sub'])
+});
+var WILK_MARCA = Object.freeze({ ete: 'wilkins_delib', cx: 'cx_wilk_delib' });
+/* Los TEXTOS, uno solo para las dos pantallas. `WILK_9_11` ya vivia con las otras constantes. */
+var WILK_TXT_FAV    = 'Favorable para valvuloplastia percutánea';
+var WILK_TXT_NOFAV  = 'No favorable para valvuloplastia';
+var WILK_TXT_REING  = 'sin puntuar — reingresá los cuatro criterios';
+function wilkTxtParcial(n) {
+  return 'Score incompleto — ' + n + ' de 4 criterios puntuados. No se interpreta: faltan '
+       + 'criterios y el total quedaría sesgado a favorable.';
+}
+
 
 /* Assert de arranque: `ref < leve` y, si hay banda moderada, `leve < mod`. Sin esto, un segmento
    nuevo con las bandas invertidas imprime un rango dado vuelta —«Dilat. leve (34-30mm)»— sin
@@ -22092,47 +22119,34 @@ window.cxPisa = cxPisa; window.cxCont = cxCont; window.cxTei = cxTei;
 
 // ── Score de Wilkins ──
 function cxWilkins(){
-  const s = id => { const el = document.getElementById(id); return el ? (parseInt(el.value) || 0) : 0; };
+  /* ⚠️ EL CALCULO ES EL DE `wilkinsScore`, EL MISMO QUE LA TARJETA DE ETE. Esta funcion solo
+     PINTA, y conserva el formato de esta pantalla (N/16 con el badge al lado). Antes reimplementaba
+     el score: los cortes coincidian pero los textos no —«desfavorable» contra «No favorable para
+     valvuloplastia» y dos redacciones distintas del parcial—, y el centinela era otro. */
   const el = document.getElementById('cx-wilkins-total'); if (!el) return;
-  /* Sin ningún criterio puntuado se escribe «—», que es lo que el bloque del PDF descarta.
-     Los cuatro selects arrancaban en «1» y esta función no tenía salida por «—»: con el
-     formulario intacto daba total 4 → «4/16 favorable para valvuloplastia percutánea», un
-     veredicto fabricado sobre una válvula que nadie miró. Sólo estaba dormido porque
-     limpiarCampos dejaba el span en «—»; recalcular al reimprimir un guardado lo despertaba
-     y además contaminaba la sesión del paciente abierto. */
-  const _crudos = ['cx_wilk_mov','cx_wilk_eng','cx_wilk_cal','cx_wilk_sub']
-    .map(id => (document.getElementById(id) || {}).value || '');
-  if (_crudos.every(x => x === '')) { el.textContent = '—'; return; }
-  /* Los cuatro exactamente en «1» se tratan como NO puntuado. Hasta este commit la primera
-     opción de los cuatro selects era value="1", y guardarInforme persiste todos los select
-     por id, así que TODO estudio guardado antes de hoy lleva 1/1/1/1 haya abierto alguien la
-     tarjeta o no: al reimprimirlo salía «4/16 — favorable para valvuloplastia percutánea».
-     No hay forma de distinguirlo de un 4/16 real, y el 4/16 real es una válvula prácticamente
-     indemne, que no es la que se está puntuando para valvuloplastia. Entre pedir que se
-     reingrese un score raro y firmar un veredicto que nadie escribió, se pide reingresarlo. */
-  if (_crudos.every(x => x === '1')) {
-    el.innerHTML = badge('gray', 'sin puntuar — reingresá los cuatro criterios');
-    return;
-  }
-  const total = s('cx_wilk_mov') + s('cx_wilk_eng') + s('cx_wilk_cal') + s('cx_wilk_sub');
-  /* Con menos de los cuatro criterios el total está incompleto y sesgado hacia abajo, o sea
-     hacia «favorable para valvuloplastia». Se muestra el parcial pero no se interpreta —
-     mismo criterio que el Wilkins del módulo ETE. */
-  const _puntuados = _crudos.filter(x => x !== '').length;
-  if (_puntuados < 4) {
-    el.innerHTML = total + '/16 ' + badge('gray', `parcial — ${_puntuados} de 4 criterios; sin interpretación`);
+  const W = wilkinsScore('cx');
+  if (!W.puntuados) { el.textContent = '—'; return; }
+  /* Los cuatro exactamente en 1 SIN la marca de gesto se tratan como NO puntuado. Hasta un
+     commit viejo la primera opcion de los cuatro selects era value=1, y guardarInforme persiste
+     todo select por id, asi que TODO estudio guardado antes de aquello lleva 1/1/1/1 haya abierto
+     alguien la tarjeta o no: al reimprimirlo salia «4/16 — favorable para valvuloplastia
+     percutanea». Con la marca, un 1/1/1/1 elegido a proposito SI vale 4/16. */
+  if (W.reingresar) { el.innerHTML = badge('gray', WILK_TXT_REING); return; }
+  /* Con menos de los cuatro criterios el total esta incompleto y sesgado hacia abajo, o sea
+     hacia «favorable para valvuloplastia». Se muestra el parcial pero no se interpreta — y el
+     texto es el MISMO que el de la tarjeta de ETE, que es el que explica el motivo. */
+  if (W.banda === 'incompleto') {
+    el.innerHTML = W.total + '/16 ' + badge('gray', wilkTxtParcial(W.puntuados));
     return;
   }
   let cls, txt;
-  if (total <= 8) { cls = 'green'; txt = 'favorable para valvuloplastia percutánea'; }
-  /* ⚠️ «resultado intermedio» era un rótulo PROPIO de esta segunda implementación, y afirmaba un
-     punto medio del pronóstico donde la fuente no afirma nada: entre 9 y 11 el score NO predijo el
-     resultado (Wilkins 1988, p. 307). Se reusa `WILK_9_11` —declarada en la línea ~16659, o sea
-     ANTES de esta función y antes de sus tres llamadores de carga (56305, 56528 y 57320), así que no
-     hay TDZ—. Las bandas ≤8 y >11 no se tocan: son las del original. */
-  else if (total <= 11) { cls = 'yellow'; txt = WILK_9_11; }
-  else { cls = 'red'; txt = 'desfavorable para valvuloplastia'; }
-  el.innerHTML = total + '/16 ' + badge(cls, txt);
+  if (W.banda === 'favorable') { cls = 'green'; txt = WILK_TXT_FAV; }
+  /* ⚠️ «resultado intermedio» era un rotulo PROPIO de esta segunda implementacion, y afirmaba un
+     punto medio del pronostico donde la fuente no afirma nada: entre 9 y 11 el score NO predijo el
+     resultado (Wilkins 1988, p. 307). Las bandas <=8 y >11 no se tocan: son las del original. */
+  else if (W.banda === 'suboptimo') { cls = 'yellow'; txt = WILK_9_11; }
+  else { cls = 'red'; txt = WILK_TXT_NOFAV; }
+  el.innerHTML = W.total + '/16 ' + badge(cls, txt);
 }
 // ── Score de Duke ──
 function cxDuke(){
@@ -47660,7 +47674,13 @@ function limpiarCampos(silencioso) {
   /* El dataset.banda de Wilkins tiene vida más larga que el texto del que salió:
      limpiarCampos resetea los spans a «—» pero no los atributos, así que la banda del
      paciente anterior sobrevivía y la salvedad se emitía sobre un score inexistente. */
+  /* ⚠️ LAS DOS MARCAS DEL WILKINS SE BORRAN A MANO: son `input[type=hidden]` y el barrido de
+     arriba solo alcanza a `input[type=text]` y `input[type=number]`. Sin esto, un «Nuevo
+     estudio» dejaria viva la marca del paciente anterior y el 1/1/1/1 de fabrica del siguiente
+     publicaria 4/16. Va ANTES de recalcular, para que el badge se pinte con la marca ya limpia. */
+  if (typeof wilkLimpiarMarca === 'function') { try { wilkLimpiarMarca(); } catch (e) {} }
   if (typeof calcWilkins === 'function') { try { calcWilkins(); } catch (e) {} }
+  if (typeof cxWilkins === 'function') { try { cxWilkins(); } catch (e) {} }
   if (window.esqPills) try { esqPills.refresh(); } catch(e) {}
   // Inputs (incluye readonly calculados)
   document.querySelectorAll('input[type=text], input[type=number]').forEach(el => { el.value = ''; });
@@ -53539,9 +53559,10 @@ function generarPDFReal(_aj) {
        0/4 · … · Total 6/16», sin la palabra «parcial», con ceros que no existen en la escala
        de Wilkins (1-4) y con un total dentro de la banda que la propia app enseña como
        «≤8 → favorable para valvuloplastia percutánea». */
-    const _wcrudos = ['cx_wilk_mov','cx_wilk_eng','cx_wilk_cal','cx_wilk_sub']
-      .map(id => (document.getElementById(id) || {}).value || '');
-    const _wCompleto = _wcrudos.every(x => x !== '') && !_wcrudos.every(x => x === '1');
+    /* ⚠️ LA COMPUERTA SE LE PREGUNTA AL DUENO. Reimplementada aca, un 1/1/1/1 elegido A PROPOSITO
+       —con la marca de gesto puesta— nunca habria llegado al papel, y un parcial de tres se habria
+       colado con ceros que no existen en la escala de Wilkins. */
+    const _wCompleto = (typeof wilkinsScore === 'function') && wilkinsScore('cx').interpretable;
     if (!_cxVacio(_wt) && _wCompleto) {
       const _wv = id => { const el = document.getElementById(id); return el ? (parseInt(el.value) || 0) : 0; };
       const _wmov = _wv('cx_wilk_mov'), _weng = _wv('cx_wilk_eng'), _wcal = _wv('cx_wilk_cal'), _wsub = _wv('cx_wilk_sub');
@@ -54785,47 +54806,127 @@ function updateProyeccion() {
      panel diga la verdad depende de que tres sitios distintos se acuerden de llamar a
      `calcWilkins()` antes — y la restauración por `?estudio=` estuvo sin esa llamada «desde
      siempre», según el comentario de su propio bloque de recálculos. */
-function wilkinsScore() {
-  const m = parseInt(sv('wilkins_movilidad')) || 0;
-  const e = parseInt(sv('wilkins_engrosamiento')) || 0;
-  const c = parseInt(sv('wilkins_calcificacion')) || 0;
-  const s = parseInt(sv('wilkins_subvalvular')) || 0;
-  const puntuados = [m, e, c, s].filter(x => x > 0).length;
-  const total = m + e + c + s;
-  /* Cuatro bandas, no tres: «sin puntuar» y «parcial» NO son un score bajo. El `0` de fábrica de
-     los cuatro selects significa «sin puntuar», así que un total de 0 no es «muy favorable». */
-  const banda = !puntuados ? '' : (puntuados < 4 ? 'incompleto'
-                : (total <= 8 ? 'favorable' : (total <= 11 ? 'suboptimo' : 'nofavorable')));
-  return { m, e, c, s, total, puntuados, banda };
+/* ══ EL DUENO UNICO DEL SCORE, PARA LAS DOS PANTALLAS —«Wilkins» (2026-10-16) ════════════
+   Habia DOS calculos del mismo score: este, de la tarjeta de ETE, y `cxWilkins`, de la pestana
+   Calculadoras. Los cortes ya eran identicos (<=8 / 9-11 / >11) y no se tocan; lo que no
+   coincidia era lo que cada pantalla publicaba. Medido en HEAD, combinacion por combinacion:
+
+     entradas    ETE                                   Calculadoras
+     1/1/1/1     4/16 favorable                        sin puntuar - reingresa los cuatro
+     3/3/3/3     «No favorable para valvuloplastia»    «desfavorable para valvuloplastia»
+     3/2/2/-     «Score incompleto - 3 de 4 ... sesgado a favorable»   «parcial - 3 de 4; sin interpretacion»
+
+   ⚠️ LOS DOS CENTINELAS SE TRATAN IGUAL: ETE usa el `0` de fabrica de sus cuatro `<option>` y
+   Calculadoras la cadena vacia. Los dos significan «sin puntuar» y los dos salen del conteo.
+   ⚠️ Y EL 1/1/1/1 ES UN 4/16 VALIDO SOLO SI EL MEDICO LO ELIGIO A PROPOSITO. Los cuatro selects
+   de Calculadoras arrancaban en value=1 y `guardarInforme` persiste todo select por id, asi que
+   TODO estudio guardado antes de aquel cambio lleva 1/1/1/1 haya abierto alguien la tarjeta o no:
+   al reimprimirlo salia un veredicto que nadie escribio. La marca `wilkins_delib` /
+   `cx_wilk_delib` dice que hubo un GESTO REAL, se guarda con el estudio como cualquier otro campo
+   —es un `input` con id, asi que el barrido de `guardarInforme` lo toma y NO agrega ninguna
+   columna al Excel, que es una lista declarada—, se borra al limpiar y se repone al abrir un
+   guardado. Un estudio SIN marca con 1/1/1/1 queda «sin puntuar», como hoy en Calculadoras.
+   ⚠️ SON DOS MARCAS Y NO UNA, y es una diferencia declarada con la letra de la orden: con una
+   sola, tocar un criterio del Wilkins de ETE habria validado el 1/1/1/1 LEGADO de Calculadoras
+   del mismo estudio, o sea habria fabricado ahi el veredicto que esta regla viene a evitar.
+   ⚠️ NO SE MIGRA NINGUN ESTUDIO GUARDADO: lo que cambia es como se LEE, no lo guardado. */
+function _wilkCrudos(src) {
+  return WILK_CAMPOS[src].map(function(id){
+    var e = document.getElementById(id); return e ? String(e.value == null ? '' : e.value).trim() : ''; });
 }
+function wilkDeliberado(src) {
+  var e = document.getElementById(WILK_MARCA[src]);
+  return !!(e && String(e.value) === '1');
+}
+/* La marca se pone SOLO con un gesto real del medico. Asignar `.value` no dispara ningun evento,
+   asi que la restauracion de un estudio no pasa por aca; y un `change` despachado por codigo
+   llega con `isTrusted` en false, que es lo que separa el gesto del recalculo. */
+function wilkMarcarGesto(ev, src) {
+  if (!ev || ev.isTrusted !== true) return false;
+  var e = document.getElementById(WILK_MARCA[src]);
+  if (!e) return false;
+  e.value = '1';
+  return true;
+}
+function wilkLimpiarMarca() {
+  ['ete', 'cx'].forEach(function(k){
+    var e = document.getElementById(WILK_MARCA[k]); if (e) e.value = ''; });
+}
+window.wilkDeliberado = wilkDeliberado; window.wilkMarcarGesto = wilkMarcarGesto;
+window.wilkLimpiarMarca = wilkLimpiarMarca; window.WILK_CAMPOS = WILK_CAMPOS;
+window.WILK_MARCA = WILK_MARCA; window.wilkTxtParcial = wilkTxtParcial;
+
+/* ══ LA REGLA, PURA: cuatro valores crudos y la marca. ═══════════════════════════════
+   Sale a funcion propia porque tiene DOS lectores con dos fuentes distintas: `wilkinsScore`, que
+   lee la PANTALLA, y la columna del Excel, que trabaja sobre un estudio ARCHIVADO. Reimplementar
+   la regla del lado del Excel es la trampa de la formula duplicada que este archivo ya pago con
+   el bloque diastolico: las dos copias divergen en cuanto se toca una. Mismo patron que
+   `emContFueraBanda(src)`. */
+function _wilkCalc(crudos, delib) {
+  var n = crudos.map(function(x){ var t = String(x == null ? '' : x).trim();
+    return (t === '' || t === '0') ? 0 : (parseInt(t, 10) || 0) });
+  var m = n[0], e = n[1], c = n[2], s = n[3];
+  var puntuados = n.filter(function(x){ return x > 0 }).length;
+  var total = m + e + c + s;
+  var unos = crudos.every(function(x){ return String(x == null ? '' : x).trim() === '1' });
+  /* Cinco estados, no tres: «sin puntuar», «1/1/1/1 sin marca» y «parcial» NO son un score bajo.
+     Un total de 0 no es «muy favorable» y un 4/16 de fabrica tampoco. */
+  var reingresar = unos && !delib;
+  var banda = !puntuados ? '' : (reingresar ? '' : (puntuados < 4 ? 'incompleto'
+              : (total <= 8 ? 'favorable' : (total <= 11 ? 'suboptimo' : 'nofavorable'))));
+  return { m: m, e: e, c: c, s: s, total: total, puntuados: puntuados,
+           banda: banda, delib: !!delib, reingresar: reingresar,
+           /* `interpretable` es lo que miran los consumidores que antes preguntaban por
+              `puntuados === 4`: con un 1/1/1/1 sin marca eso daba cuatro y un veredicto. */
+           interpretable: banda === 'favorable' || banda === 'suboptimo' || banda === 'nofavorable' };
+}
+function wilkinsScore(src) {
+  src = (src === 'cx') ? 'cx' : 'ete';
+  var W = _wilkCalc(_wilkCrudos(src), wilkDeliberado(src));
+  W.src = src;
+  return W;
+}
+/* El mismo calculo sobre un estudio ARCHIVADO: lo usa la columna del Excel. */
+function wilkinsScoreDeCampos(campos, src) {
+  var ids = WILK_CAMPOS[(src === 'cx') ? 'cx' : 'ete'], c = campos || {};
+  return _wilkCalc(ids.map(function(k){ return c[k] }),
+                   String(c[WILK_MARCA[(src === 'cx') ? 'cx' : 'ete']] || '') === '1');
+}
+window._wilkCalc = _wilkCalc; window.wilkinsScoreDeCampos = wilkinsScoreDeCampos;
 window.wilkinsScore = wilkinsScore;
 
 function calcWilkins() {
-  const W = wilkinsScore();
+  const W = wilkinsScore('ete');
   const total = W.total, puntuados = W.puntuados;
   const totEl = document.getElementById('wilkins-total');
   const intEl = document.getElementById('wilkins-interp');
-  if (!puntuados) { if (totEl) totEl.textContent = '—'; if (intEl) { intEl.innerHTML = '—'; intEl.dataset.banda = ''; } return; }
+  if (intEl) intEl.dataset.banda = W.banda;
+  if (!puntuados) { if (totEl) totEl.textContent = '—'; if (intEl) intEl.innerHTML = '—'; return; }
+  /* 1/1/1/1 SIN LA MARCA DE GESTO: el mismo texto que Calculadoras ya publicaba. El total no se
+     muestra, porque mostrarlo al lado de «sin puntuar» es publicar el 4/16 igual. */
+  if (W.reingresar) {
+    if (totEl) totEl.textContent = '—';
+    if (intEl) intEl.innerHTML = badge('gray', WILK_TXT_REING);
+    return;
+  }
   /* El score de Wilkins es la SUMA de los cuatro criterios: con menos de cuatro puntuados el
-     total está incompleto y sesgado hacia abajo, o sea hacia «favorable», que es el veredicto
-     que habilita una valvuloplastia percutánea. Con un solo criterio en 2 salía «Score 2 —
-     Favorable para valvuloplastia percutánea». Se muestra el parcial pero NO se interpreta. */
-  if (puntuados < 4) {
-    if (intEl) intEl.dataset.banda = 'incompleto';
+     total esta incompleto y sesgado hacia abajo, o sea hacia «favorable», que es el veredicto
+     que habilita una valvuloplastia percutanea. Con un solo criterio en 2 salia «Score 2 —
+     Favorable para valvuloplastia percutanea». Se muestra el parcial pero NO se interpreta. */
+  if (W.banda === 'incompleto') {
     if (totEl) totEl.textContent = total + ' / 16 (parcial)';
-    if (intEl) intEl.innerHTML = badge('gray', `Score incompleto — ${puntuados} de 4 criterios puntuados. No se interpreta: faltan criterios y el total quedaría sesgado a favorable.`);
+    if (intEl) intEl.innerHTML = badge('gray', wilkTxtParcial(puntuados));
     return;
   }
   if (totEl) totEl.textContent = total + ' / 16';
-  /* La banda queda EXPLÍCITA en el dataset. Decidirla parseando el texto del badge hacía que
-     /[Ff]avorable/ matcheara dentro de «…el total quedaría sesgado a favorable», que es la
-     frase del score INCOMPLETO: el informe firmado sumaba una salvedad y una contraindicación
+  /* La banda queda EXPLICITA en el dataset. Decidirla parseando el texto del badge hacia que
+     /[Ff]avorable/ matcheara dentro de «...el total quedaria sesgado a favorable», que es la
+     frase del score INCOMPLETO: el informe firmado sumaba una salvedad y una contraindicacion
      sobre un score que la app declara no interpretable. */
-  if (intEl) intEl.dataset.banda = W.banda;
   let interp;
-  if (W.banda === 'favorable')      interp = badge('green',  `Score ${total} — Favorable para valvuloplastia percutánea`);
-  else if (W.banda === 'suboptimo') interp = badge('yellow', `Score ${total} — ${WILK_9_11}`);
-  else                              interp = badge('red',    `Score ${total} — No favorable para valvuloplastia`);
+  if (W.banda === 'favorable')      interp = badge('green',  'Score ' + total + ' — ' + WILK_TXT_FAV);
+  else if (W.banda === 'suboptimo') interp = badge('yellow', 'Score ' + total + ' — ' + WILK_9_11);
+  else                              interp = badge('red',    'Score ' + total + ' — ' + WILK_TXT_NOFAV);
   if (intEl) intEl.innerHTML = interp;
 }
 
@@ -62815,7 +62916,9 @@ function _indEM(){
   const _sx = _indClinGet('em.sintomas'), _clin = _indClinGet('em.clin'), _emb = _indClinGet('em.embolico');
   const _rq = _indClinGet('em.riesgo'), _dec = _indClinGet('em.decomp');
   const W = (_indFn('wilkinsScore') || function(){ return null; })();
-  const scoreOrigen = (W && W.puntuados === 4) ? (W.total > EM_CRIT_2025.score_desfav ? 'desfav' : 'fav') : null;
+  /* ⚠️ EL GATE ES `interpretable` Y NO `puntuados === 4`: con los cuatro criterios en 1 y sin la
+     marca de gesto, lo segundo daba cuatro puntuados y publicaba un «≤ 8 (4 / 16)» fabricado. */
+  const scoreOrigen = (W && W.interpretable) ? (W.total > EM_CRIT_2025.score_desfav ? 'desfav' : 'fav') : null;
   const oScore = _indOrigen(scoreOrigen, 'em.score');
   /* ⚠️ EL ⓘ SE AGREGA POR `Object.assign` SOBRE LA FILA YA ARMADA Y NO POR UN PARÁMETRO NUEVO.
      Las cuatro fábricas de fila (`_indFila`, `_indFilaCtrl`, `_indFilaOrigen`, `_indSinUmbral`)
@@ -62828,7 +62931,7 @@ function _indEM(){
   fAnat.push(Object.assign(_indFilaOrigen('Score ecocardiográfico (anatomía)', oScore,
     [{v:'fav',t:'≤ 8'},{v:'desfav',t:'> 8'}],
     function(val){
-      const detalle = (W && W.puntuados === 4) ? ' (' + W.total + ' / 16)' : '';
+      const detalle = (W && W.interpretable) ? ' (' + W.total + ' / 16)' : '';
       return { txt: val === 'desfav' ? '> ' + EM_CRIT_2025.score_desfav + detalle
                   : val === 'fav' ? '≤ ' + EM_CRIT_2025.score_desfav + detalle : '—',
         marca: val == null ? 'ask' : (val === 'desfav' ? 'warn' : 'none'),
@@ -96360,10 +96463,14 @@ function _labExcelRow(inf) {
        trata el 0 como «sin puntuar», así que sumar parciales publicaría un score bajo sobre una
        válvula a medio evaluar — y ese score decide valvuloplastia. Es el mismo criterio con el
        que la subtab ETE excluye los Wilkins incompletos. */
+    /* ⚠️ LA COLUMNA LE PREGUNTA A LA REGLA Y NO LA REIMPLEMENTA. Con los cuatro criterios en 1 y
+       sin la marca de gesto, el conteo propio publicaba 4 mientras la pantalla y la hoja del PDF
+       del MISMO estudio decian «sin puntuar»: dos lecturas del mismo dato en la misma app. La
+       columna no cambia de nombre y el valor guardado no se toca —lo que cambia es como se LEE
+       un 1/1/1/1 de fabrica—. */
     'Score Wilkins total': (() => {
-      const vs = ['wilkins_movilidad','wilkins_engrosamiento','wilkins_calcificacion','wilkins_subvalvular']
-        .map(k => { const n = num(k); return (n !== null && n > 0) ? n : null; });
-      return vs.every(v => v !== null) ? vs.reduce((a,b) => a+b, 0) : '';
+      const W = (typeof wilkinsScoreDeCampos === 'function') ? wilkinsScoreDeCampos(c, 'ete') : null;
+      return (W && W.interpretable) ? W.total : '';
     })(),
     'FC (lpm)': rnd(num('hemo_fc'),0), 'PAM (mmHg)': rnd(num('hemo_pam'),0), 'PVC (mmHg)': rnd(num('hemo_pvc'),0),
     'Signo McConnell': _labXlsEtiq('tep_mcconnell', c.tep_mcconnell),
