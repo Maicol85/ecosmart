@@ -113688,7 +113688,9 @@ function m3dCtx(){
      cambia es el recorte. */
   var k = Math.min(bw / M3D_VW, bh / M3D_VH);
   ctx.setTransform(k, 0, 0, k, bw / 2 - k * M3D_W / 2, bh / 2 - k * M3D_H / 2 + k * M3D_AIRE);
-  return { ctx: ctx, k: k, bw: bw, bh: bh };
+  /* `d` es la densidad aplicada: la brujula se dibuja en PIXELES CSS del lienzo y la necesita
+     para que su tamanio aparente no dependa de la pantalla. */
+  return { ctx: ctx, k: k, bw: bw, bh: bh, d: d };
 }
 
 /* ⚠️ PLAN B SIN LIENZO. El dibujo es canvas 2D y no WebGL, así que la rama de «este navegador no
@@ -114121,6 +114123,38 @@ function _m3dScr(p){ var f = M3D_DD / (M3D_DD - p.d);
 function _m3dTeeAng(a){ return (240 - a) * M3D_PI / 180; }
 function _m3dTeeR(a){ var g = _m3dTeeAng(a), c = Math.cos(g), s = Math.sin(g); return [[c,s,0],[0,0,1],[s,-c,0]]; }
 /* Los segmentos que cada corte de ETE atraviesa — la tabla de la demo, sin cambios. */
+/* ══ LA ORIENTACION DEL MODELO — DUENIO UNICO — «K0c» (2026-10-16) ════════════════════════════
+   Los CINCO ejes de la brujula de la demo (`2b_demo_mitral_vistas_ete.html`, ultimo bloque de
+   `draw()`), tal cual: anterior, posterior, lateral, medial y auricula.
+   ⚠️ ESTA TABLA ES EL DUENIO DEL LADO EN QUE CAE LO LATERAL, y de ella lo lee tambien
+   `m3dRotulosExtra` para colocar AL y PM. Son dos VOCABULARIOS distintos —la brujula rotula EJES
+   anatomicos (Lat, Med) y el modelo rotula COMISURAS (AL = anterolateral, PM = posteromedial)—,
+   asi que el texto no se puede compartir sin renombrar un rotulo clinico; lo que SI se comparte,
+   que es lo que puede contradecirse, es el SIGNO. Con un solo duenio, dar vuelta la orientacion
+   mueve las dos cosas juntas.
+   ⚠️ Y EL SIGNO ES EL DEL Y3-1: lateral en x NEGATIVO, el mismo lado donde esta la orejuela
+   (x = -3,0), que es lo que la ASE/SCA/STS 2020 (folio 695) declara. */
+var M3D_ORIENT = Object.freeze([
+  Object.freeze({ v: Object.freeze([0, 1, 0]),  l: 'Ant' }),
+  Object.freeze({ v: Object.freeze([0, -1, 0]), l: 'Post' }),
+  Object.freeze({ v: Object.freeze([-1, 0, 0]), l: 'Lat' }),
+  Object.freeze({ v: Object.freeze([1, 0, 0]),  l: 'Med' }),
+  Object.freeze({ v: Object.freeze([0, 0, 1]),  l: 'Aur' })
+]);
+function m3dXLat(){
+  for (var i = 0; i < M3D_ORIENT.length; i++) if (M3D_ORIENT[i].l === 'Lat') return M3D_ORIENT[i].v[0];
+  return -1;
+}
+/* La caja de la brujula, en PIXELES CSS del lienzo y desde su esquina inferior izquierda.
+   ⚠️ NO VA EN COORDENADAS DEL DIBUJO como en la demo: alla el lienzo ES el espacio de dibujo,
+   aca `m3dCtx` encuadra una ventana de 462x408 dentro de 680x380, asi que el (64, H-56) de la
+   demo cae FUERA del recorte por la izquierda. Anclada al lienzo, la brujula queda siempre en el
+   mismo lugar y su tamanio no se escala con el encuadre — que es ademas como la dibuja el 3D del
+   ventriculo, la que el medico dio por buena. */
+/* El 56 sale de medir: con el radio en 26 y la letra en 10 px, el rotulo mas largo de la
+   izquierda («Post», 20 px) termina a 56 - 26 - 3 - 20 = 7 px del borde. Con los 50 de la
+   primera version quedaba pegado. */
+var M3D_BRU = Object.freeze({ x: 56, y: 48, r: 26, fuente: '10px sans-serif' });
 var M3D_VIS = Object.freeze({ 0:['A2','A3','P1','P2'], 45:['P3','A2','P1'], 60:['P3','A2','P1'],
                               90:['P3','A1','A2','A3'], 120:['A2','P2'] });
 function _m3dSegVis(n){ return _m3dAng === null || M3D_VIS[_m3dAng].indexOf(n) >= 0; }
@@ -114430,6 +114464,42 @@ function m3dPintar(){
           else { s2 = (dx >= 0 ? 1 : -1) * (ox/2 + 0.5); a[j2].x += s2; a[i2].x -= s2; } } }
       if (!mv) break; } })(sl);
   for (i = 0; i < sl.length; i++) { ctx.strokeText(sl[i].t, sl[i].x, sl[i].y); ctx.fillText(sl[i].t, sl[i].x, sl[i].y); }
+  /* ── LA BRUJULA, al final de todo: va ENCIMA del dibujo, como en la demo. ── */
+  m3dBrujula(ctx, C, tcl);
+}
+
+/* ══ LA BRUJULA — «K0c» (2026-10-16) ══════════════════════════════════════════════════════════
+   Las cinco lineas con su letra que giran junto con el modelo y dicen hacia donde se esta
+   mirando. Es la de la demo (`2b_demo_mitral_vistas_ete.html`, ultimo bloque de `draw()`), con
+   sus cinco ejes, su radio, su rotulo desplazado segun el signo y su color de texto secundario;
+   es ademas el MISMO mecanismo que el 3D del ventriculo, que el medico dio por bueno.
+
+   TRES DIFERENCIAS CON LA DEMO, y las tres por el encuadre, no por gusto:
+   1) SE DIBUJA EN PIXELES DEL LIENZO, con el transform neutro, y no en coordenadas del espacio
+      de dibujo. El (64, H-56) de la demo cae FUERA de la ventana de 462x408 que `m3dCtx`
+      encuadra, asi que alli la brujula no se veria; y anclada al dibujo su tamanio cambiaria con
+      el factor de encuadre.
+   2) RADIO 26 Y LETRA DE 10 px en vez de 34 y 12: el lienzo mide 340x300 y no 680x380.
+   3) EL ROTULO DE LA IZQUIERDA SE CORRE POR SU ANCHO MEDIDO (`measureText`) en vez de los 26 px
+      fijos de la demo, que con una palabra mas larga se saldria del lienzo.
+   Lo que NO cambia: los cinco ejes, sus nombres, el orden, que giren con `_m3dDr` —la MISMA
+   rotacion del modelo, asi que no puede desincronizarse— y que el rotulo salte de lado segun el
+   signo. La brujula se apaga con el panel porque no hay pintado sin panel abierto. */
+function m3dBrujula(ctx, C, col){
+  if (!ctx || !C) return;
+  ctx.save();
+  ctx.setTransform(C.d, 0, 0, C.d, 0, 0);
+  var ox = M3D_BRU.x, oy = C.bh / C.d - M3D_BRU.y, R = M3D_BRU.r, i, a, r, ex, ey, w;
+  ctx.font = M3D_BRU.fuente; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.lineWidth = 1.6; ctx.strokeStyle = col; ctx.fillStyle = col;
+  for (i = 0; i < M3D_ORIENT.length; i++) {
+    a = M3D_ORIENT[i]; r = _m3dDr(a.v);
+    ex = ox + r.x * R; ey = oy - r.y * R;
+    ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ex, ey); ctx.stroke();
+    w = ctx.measureText(a.l).width;
+    ctx.fillText(a.l, ex + (r.x >= 0 ? 3 : -3 - w), ey + (r.y >= 0 ? -3 : 11));
+  }
+  ctx.restore();
 }
 /* ══ LOS ROTULOS DE LOS DETALLES (Y3-5) ═══════════════════════════════════════════════════════
    Las siglas de los tres senos aorticos y las dos comisuras mitrales.
@@ -114452,7 +114522,9 @@ function m3dRotulosExtra(pushL, o){
       pushL(cu[1], cp); });
   }
   if (_m3dAng === null || _m3dAng === 45 || _m3dAng === 60) {
-    [['AL', -1], ['PM', 1]].forEach(function(cm){ pushL(cm[0], [cm[1]*(_m3dA + 0.4), 0, -M3D_HS]); });
+    /* El signo sale de `M3D_ORIENT` (K0c) y no de un literal: la brujula y estos dos rotulos
+       dicen de que lado esta lo lateral, y con dos literales se pueden contradecir. */
+    [['AL', m3dXLat()], ['PM', -m3dXLat()]].forEach(function(cm){ pushL(cm[0], [cm[1]*(_m3dA + 0.4), 0, -M3D_HS]); });
   }
 }
 

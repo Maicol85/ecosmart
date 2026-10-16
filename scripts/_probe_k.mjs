@@ -292,6 +292,19 @@ const SONDA = `window.__P = {
     o._avisoTxt = this.txt('#ete-seg-resumen');
     o._avisoColor = this.css('#ete-seg-resumen', 'color');
     return o },
+  /* Hash y conteo de pixeles pintados dentro de una zona del lienzo, en px CSS. */
+  zona(z) { var cv = document.getElementById('m3d-cv');
+    if (!cv || !cv.getContext) return null;
+    var ctx = cv.getContext('2d');
+    var r = cv.getBoundingClientRect();
+    var d = cv.width / Math.max(1, r.width);
+    var x0 = Math.round(z.x0 * d), y0 = Math.round(z.y0 * d);
+    var w = Math.max(1, Math.round((z.x1 - z.x0) * d)), h = Math.max(1, Math.round((z.y1 - z.y0) * d));
+    var im = null; try { im = ctx.getImageData(x0, y0, w, h) } catch (e) { return null }
+    var a = im.data, n = a.length, i, hs = 2166136261, p = 0;
+    for (i = 0; i < n; i++) { hs ^= a[i]; hs = (hs * 16777619) >>> 0 }
+    for (i = 3; i < n; i += 4) if (a[i] > 8) p++;
+    return { hash: hs, pintados: p, w: w, h: h } },
   scrollY() { return window.scrollY },
   docH() { return document.documentElement.scrollHeight }
 };`;
@@ -557,6 +570,48 @@ for (const motor of MOTORES) {
     }
     G.maqueta = g;
     await parcial('maqueta.' + motor, g);
+  }
+
+
+  /* ── brujula ── K0c: presente, gira con el modelo, en las tres vistas. ───────────────── */
+  if (corre('brujula')) {
+    const g = { mitral: {}, ventriculo: null };
+    const pg = await nuevaPagina(b, 1440, 900, false, true);
+    await montarEscena(pg, ESC.severa);
+    await pg.evaluate(() => window.__P.abrir3d());
+    await pg.evaluate(() => window.__P.congelar(0));
+    /* La zona de la brujula: cuadrante inferior izquierdo del lienzo, en px CSS. */
+    const zona = await pg.evaluate(() => {
+      var c = window.__P.rect('#m3d-cv');
+      return { x0: 0, y0: Math.round(c.h - 90), x1: 110, y1: Math.round(c.h) } });
+    for (const [v, a] of VISTAS) {
+      await pg.evaluate(([v2, a2]) => window.__P.camaraPoner(v2, a2), [v, a]);
+      g.mitral[a === null ? v : 'ang' + a] = await pg.evaluate((z) => window.__P.zona(z), zona);
+      if (DEST) { try { await pg.locator('#m3d-cv').screenshot({ path: join(DEST, 'bru-' + motor + '-' + (a === null ? v : 'ang' + a) + '.png') }) } catch (e) {} }
+    }
+    /* Gira a mano: la brujula tiene que CAMBIAR. */
+    await pg.evaluate(() => window.__P.camaraPoner('cirujano', null));
+    const antes = await pg.evaluate((z) => window.__P.zona(z), zona);
+    await pg.evaluate(() => window.__P.girar(40, 25));
+    const despues = await pg.evaluate((z) => window.__P.zona(z), zona);
+    g.giro = { antes: antes.hash, despues: despues.hash, cambia: antes.hash !== despues.hash };
+    /* Sin el panel no hay brujula (no hay pintado). */
+    await pg.evaluate(() => window.__P.cerrar3d());
+    g.cerrado = await pg.evaluate(() => window.__P.visible3d());
+    /* Los dos literales de comisura y el signo del duenio. */
+    g.lat = await pg.evaluate(() => {
+      try { return { xLat: m3dXLat(),
+                     ejes: M3D_ORIENT.map(function(e){ return e.l + '@' + e.v.join(',') }) } }
+      catch (e) { return 'EXC' } });
+    await pg.close();
+    /* La brujula del VENTRICULO, intacta. */
+    const pg2 = await nuevaPagina(b, 1440, 900, false, true);
+    g.ventriculo = await pg2.evaluate(() => {
+      var src = String(window.lv3dDibujar || '');
+      return { hayFn: typeof window.lv3dDibujar === 'function' } });
+    await pg2.close();
+    G.brujula = g;
+    await parcial('brujula.' + motor, g);
   }
 
   await b.close();
