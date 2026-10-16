@@ -305,6 +305,80 @@ const SONDA = `window.__P = {
     for (i = 0; i < n; i++) { hs ^= a[i]; hs = (hs * 16777619) >>> 0 }
     for (i = 3; i < n; i += 4) if (a[i] > 8) p++;
     return { hash: hs, pintados: p, w: w, h: h } },
+  /* ══ CONTRACTILIDAD ══════════════════════════════════════════════════════════════════ */
+  contr() {
+    try { if (this.fn('showTab')) showTab('contractilidad') } catch (e) {}
+    try { var c = document.getElementById('sacc-contractilidad');
+      if (c && this.fn('secToggle') && c.className.indexOf('abierta') < 0) secToggle('contractilidad') } catch (e) {}
+    var b = document.getElementById('contr-pdf-toggle');
+    return { hayBoton: !!b, rect: this.rect('#contr-pdf-toggle'),
+             segs: document.querySelectorAll('[data-contrseg]').length } },
+  /* El estado del boton se lee de su CLASE, que es lo que el medico ve, y no de la clave. */
+  bePrendido() { var b = document.getElementById('contr-pdf-toggle');
+    if (!b) return 'NO EXISTE';
+    return b.classList.contains('btn-primary') },
+  beClave() { try { return localStorage.getItem('contractilidad_incluir_pdf') } catch (e) { return 'EXC' } },
+  beCampo() { var e = document.getElementById('contr_be_pdf'); return e ? String(e.value) : 'NO EXISTE' },
+  hayTrastornos() { try { return this.fn('contrHayDatos') ? contrHayDatos() : 'SIN FN' } catch (e) { return 'EXC' } },
+  /* El PDF generado DE VERDAD: se envuelve el constructor de jsPDF y se registran los textos y
+     las IMAGENES, porque el bull's eye entra como imagen y su rotulo como texto. */
+  pdfBE() {
+    if (typeof window.jspdf === 'undefined') return { err:'SIN jsPDF' };
+    var orig = window.jspdf.jsPDF;
+    var textos = [], imgs = 0, err = null, guardo = false;
+    function Envuelto(){
+      var d = new orig(arguments[0]);
+      var oText = d.text, oImg = d.addImage;
+      d.text = function(t){ var ss = (typeof t === 'string') ? t : (Array.isArray(t) ? t.join(' ') : String(t));
+        textos.push(ss); return oText.apply(d, arguments) };
+      d.addImage = function(){ imgs++; return oImg.apply(d, arguments) };
+      d.save = function(){ guardo = true; return d };
+      return d }
+    Envuelto.API = orig.API; Envuelto.version = orig.version;
+    window.jspdf.jsPDF = Envuelto;
+    try { generarPDFReal() } catch (e) { err = String(e && e.message || e) }
+    finally { window.jspdf.jsPDF = orig }
+    var t = textos.join(String.fromCharCode(1));
+    return { err:err, guardo:guardo, nTextos:textos.length, nImgs:imgs,
+             hayBE: t.indexOf('CONTRACTILIDAD') > -1,
+             hayTitBE: t.indexOf('Contractilidad segmentaria') > -1,
+             hayLeyenda: t.indexOf('Hipoquinesia') > -1 } },
+  /* Guarda el estudio con el gesto real: guardarInforme devuelve false y NO guarda si las
+     severidades no estan confirmadas, y valvSevConfirmada es un let de MODULO que no se
+     puede poner a mano. Se confirma clickeando #rev-confirm, que es el gesto del medico. */
+  async guardar(doc) {
+    var d = document.getElementById('ci'); if (d) { d.value = doc;
+      d.dispatchEvent(new Event('input', { bubbles: true })) }
+    var n = document.getElementById('nombre'); if (n) { n.value = 'K ' + doc;
+      n.dispatchEvent(new Event('input', { bubbles: true })) }
+    try { if (this.fn('generarInforme')) generarInforme() } catch (e) {}
+    try { guardarInforme() } catch (e) { return 'EXC ' + String(e && e.message).slice(0, 60) }
+    var ok = document.getElementById('rev-confirm');
+    if (ok) ok.click();
+    await new Promise(function(r){ setTimeout(r, 450) });
+    var li = [];
+    try { li = getInformes().filter(function(i){ return (i.campos || {}).ci === doc }) } catch (e) {}
+    return li.length ? { id: li[li.length - 1].id, guardado: String((li[li.length - 1].campos || {}).contr_be_pdf) }
+                     : { id: null, guardado: 'NO SE GUARDO' } },
+  /* La reimpresion por su camino REAL. La promesa se resuelve en doc.save() y la restauracion
+     del formulario vive en el finally: sin la pausa, la sonda informa sobre un estado que
+     todavia no se repuso. */
+  async reimprimir(id) {
+    if (typeof window.jspdf === 'undefined') return { err:'SIN jsPDF' };
+    var orig = window.jspdf.jsPDF, textos = [], imgs = 0, guardo = false;
+    function Envuelto(){ var d = new orig(arguments[0]), oT = d.text, oI = d.addImage;
+      d.text = function(t){ textos.push((typeof t === 'string') ? t : String(t)); return oT.apply(d, arguments) };
+      d.addImage = function(){ imgs++; return oI.apply(d, arguments) };
+      d.save = function(){ guardo = true; return d };
+      return d }
+    Envuelto.API = orig.API; Envuelto.version = orig.version;
+    window.jspdf.jsPDF = Envuelto;
+    try { await pdfDeInformeGuardado(id, 'descargar', 'K'); } catch (e) {}
+    await new Promise(function(r){ setTimeout(r, 900) });
+    window.jspdf.jsPDF = orig;
+    var t = textos.join(String.fromCharCode(1));
+    return { guardo: guardo, nImgs: imgs, hayBE: t.indexOf('CONTRACTILIDAD') > -1,
+             campoTrasReimprimir: this.beCampo(), botonTrasReimprimir: this.bePrendido() } },
   scrollY() { return window.scrollY },
   docH() { return document.documentElement.scrollHeight }
 };`;
@@ -612,6 +686,85 @@ for (const motor of MOTORES) {
     await pg2.close();
     G.brujula = g;
     await parcial('brujula.' + motor, g);
+  }
+
+
+  /* ── be ── K1: el boton de inclusion y el bull's eye en el PDF. ──────────────────────── */
+  if (corre('be')) {
+    const g = {};
+    const prep = async () => {
+      const pg = await nuevaPagina(b, 1440, 900, false, true);
+      await pg.evaluate(() => window.__P.contr());
+      return pg };
+    /* (1) arranque limpio: el boton no puede estar prendido solo. */
+    let pg = await prep();
+    g.arranque = { boton: await pg.evaluate(() => window.__P.bePrendido()),
+                   clave: await pg.evaluate(() => window.__P.beClave()),
+                   campo: await pg.evaluate(() => window.__P.beCampo()),
+                   zona: await pg.evaluate(() => window.__P.contr()) };
+    /* (2) el medico lo PRENDE con un clic real, sin ningun trastorno cargado. */
+    await pg.locator('#contr-pdf-toggle').scrollIntoViewIfNeeded();
+    await pg.locator('#contr-pdf-toggle').click();
+    g.prendidoSinTrastornos = { boton: await pg.evaluate(() => window.__P.bePrendido()),
+                                clave: await pg.evaluate(() => window.__P.beClave()),
+                                campo: await pg.evaluate(() => window.__P.beCampo()),
+                                hayTrast: await pg.evaluate(() => window.__P.hayTrastornos()),
+                                pdf: await pg.evaluate(() => window.__P.pdfBE()) };
+    /* (3) el mismo estudio, con UN trastorno sectorial puesto con un clic real. */
+    await pg.evaluate(() => { var s = document.querySelector('[data-contrseg]');
+      if (s) s.scrollIntoView({ block:'center' }) });
+    await pg.locator('[data-contrseg]').first().click();
+    g.prendidoConTrastornos = { hayTrast: await pg.evaluate(() => window.__P.hayTrastornos()),
+                                pdf: await pg.evaluate(() => window.__P.pdfBE()) };
+    /* (4) apagar y volver a prender: el bull's eye tiene que seguir el boton. */
+    await pg.locator('#contr-pdf-toggle').click();
+    g.apagado = { boton: await pg.evaluate(() => window.__P.bePrendido()),
+                  pdf: await pg.evaluate(() => window.__P.pdfBE()) };
+    await pg.locator('#contr-pdf-toggle').click();
+    g.reprendido = { boton: await pg.evaluate(() => window.__P.bePrendido()),
+                     pdf: await pg.evaluate(() => window.__P.pdfBE()) };
+    /* (5) «Nuevo estudio»: el boton tiene que quedar APAGADO. */
+    await pg.evaluate(() => { try { limpiarCampos(true) } catch (e) {} });
+    g.trasLimpiar = { boton: await pg.evaluate(() => window.__P.bePrendido()),
+                      clave: await pg.evaluate(() => window.__P.beClave()),
+                      campo: await pg.evaluate(() => window.__P.beCampo()),
+                      pdf: await pg.evaluate(() => window.__P.pdfBE()) };
+    await pg.close();
+    /* (6) una PAGINA NUEVA con la clave de localStorage ya puesta: es el escenario del
+       «al arrancar ya esta prendido solo» que el medico describe. */
+    pg = await nuevaPagina(b, 1440, 900, false, true);
+    await pg.evaluate(() => { try { localStorage.setItem('contractilidad_incluir_pdf', '1') } catch (e) {} });
+    await pg.reload();
+    await pg.waitForTimeout(2600);
+    await pg.evaluate(SONDA);
+    await pg.evaluate(() => window.__P.despejar());
+    await pg.evaluate(() => window.__P.contr());
+    g.conClavePuesta = { boton: await pg.evaluate(() => window.__P.bePrendido()),
+                         campo: await pg.evaluate(() => window.__P.beCampo()),
+                         pdf: await pg.evaluate(() => window.__P.pdfBE()) };
+    await pg.close();
+    /* (7) GUARDAR con el boton prendido y SIN trastornos, y REIMPRIMIR: el papel reimpreso
+       tiene que seguir lo guardado. Y un estudio guardado con el boton APAGADO, tambien. */
+    pg = await prep();
+    for (const [nom, prender] of [['guardadoPrendido', true], ['guardadoApagado', false]]) {
+      await pg.evaluate(() => { try { limpiarCampos(true) } catch (e) {} });
+      await pg.evaluate(() => window.__P.contr());
+      if (prender) { await pg.locator('#contr-pdf-toggle').scrollIntoViewIfNeeded();
+        await pg.locator('#contr-pdf-toggle').click(); }
+      const gu = await pg.evaluate((d) => window.__P.guardar(d), nom === 'guardadoPrendido' ? '7001' : '7002');
+      /* Se limpia la pantalla ANTES de reimprimir: asi lo que salga en el papel sale del
+         estudio y no de lo que quedo en el formulario. */
+      await pg.evaluate(() => { try { limpiarCampos(true) } catch (e) {} });
+      await pg.evaluate(() => window.__P.contr());
+      const antes = { boton: await pg.evaluate(() => window.__P.bePrendido()),
+                      campo: await pg.evaluate(() => window.__P.beCampo()) };
+      const re = gu && gu.id ? await pg.evaluate((i) => window.__P.reimprimir(i), gu.id) : 'SIN ID';
+      g[nom] = { guardado: gu, trasLimpiarAntesDeReimprimir: antes, reimpreso: re };
+      await parcial('be.' + motor + '.' + nom, g[nom]);
+    }
+    await pg.close();
+    G.be = g;
+    await parcial('be.' + motor, g);
   }
 
   await b.close();

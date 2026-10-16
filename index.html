@@ -9160,6 +9160,22 @@ window.cerrarSesionReal = cerrarSesionReal;
       <div style="text-align:center;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
         <button class="btn btn-ghost" onclick="contrReset()">🧹 Limpiar</button>
         <button class="btn btn-ghost" id="contr-pdf-toggle" onclick="toggleContrPDF()">📄 Incluir bull's eye en PDF</button>
+        <!-- ⚠️ EL ESTADO DEL BOTON ES UN CAMPO DEL ESTUDIO, NO UNA PREFERENCIA GLOBAL — «K1»
+             (2026-10-16). Vivia en `localStorage` bajo `contractilidad_incluir_pdf`, que «Nuevo
+             estudio» NO borra: el boton aparecia PRENDIDO solo al abrir la app y al encadenar
+             estudios, que es el sintoma que reporto el medico. Medido en HEAD: una pagina nueva
+             con esa clave en '1' arranca con el boton prendido, y tras `limpiarCampos` queda
+             prendido igual.
+             Con un `input[type=hidden]` de guion BAJO el estado entra al recolector de
+             `guardarInforme` —que barre `input[id], select[id], textarea[id]`— y `_noEsDelEstudio`
+             no lo excluye: viaja con el estudio, la reimpresion lo repone y, lo que importa, las
+             rutas de restauracion lo VACIAN cuando la clave no esta
+             (`el.value = c[el.id] !== undefined ? c[el.id] : ''`), asi que un estudio anterior a
+             esta tanda abre APAGADO sin migrar nada. NO agrega ninguna columna al Excel, que
+             exporta por `LAB_XLS_MAP` y por los bloques declarados y no por el DOM.
+             El barrido de `limpiarCampos` toma text y number, asi que no lo alcanza: lo repone
+             `contrPdfSync()` al final de esa funcion. -->
+        <input type="hidden" id="contr_be_pdf" value="">
         <div style="margin-top:12px;background:var(--bg3);border-radius:8px;padding:10px 14px;font-size:11px;">
           <div style="font-size:12px;color:var(--accent2);font-weight:600;margin-bottom:6px;">Referencia de colores</div>
           <div style="display:flex;flex-direction:column;gap:5px;">
@@ -47934,7 +47950,7 @@ function RECALC_MODULOS() {
      automaticos con el «requiere …» del formulario vacio al lado de un VDFVI y una FEVI ya
      poblados. No puede migrar nada: no escribe ningun campo del estudio, los dos nodos que
      toca son `vauto-` y el tercero un `<div>` de texto. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','m3dBotonSync','v2dCerrar'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','m3dBotonSync','contrPdfSync','v2dCerrar'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -48557,7 +48573,12 @@ function limpiarCampos(silencioso) {
      no salía en ningún informe hasta tocarlo dos veces. Es la explicación más probable del
      «desaparece el bull's eye», y no tiene nada que ver con el ETE: aparece al encadenar
      estudios, que es justo cuando uno hace un ETE después de un ETT. */
-  _pdfToggleBtnState('contr-pdf-toggle', localStorage.getItem('contractilidad_incluir_pdf') === '1');
+  /* ⚠️ K1 (2026-10-16): el barrido de arriba toma text y number, asi que NO vacia el oculto
+     `contr_be_pdf`. Se vacia a mano y se repinta el boton desde el estado real, que ahora es un
+     campo del estudio. Antes esta linea repintaba desde una clave de `localStorage` que «Nuevo
+     estudio» no borraba, y por eso el boton quedaba PRENDIDO sobre un formulario en blanco. */
+  { const _be = document.getElementById('contr_be_pdf'); if (_be) _be.value = ''; }
+  if (typeof contrPdfSync === 'function') { try { contrPdfSync(); } catch (e) {} }
   _pdfToggleBtnState('sgl-pdf-toggle',   localStorage.getItem('sgl_incluir_pdf') === '1');
   /* `ete-qx-pdf` es el tercero, y es el ÚNICO de los tres cuya clave sí se borra unas líneas más
      arriba (`mitral_qx_incluir_pdf`). Sólo se pintaba al arrancar la app (~36727), así que tras
@@ -54216,8 +54237,19 @@ function generarPDFReal(_aj) {
      propósito, así que quedaba prendido del paciente anterior y el PDF firmado del siguiente
      —sin contractilidad evaluada— salía con un bull's eye entero verde. El comentario de
      limpiarCampos aseguraba que este bloque comprobaba que hubiera datos; ahora lo hace. */
-  const _incContr = localStorage.getItem('contractilidad_incluir_pdf') === '1'
-                    && typeof contrHayDatos === 'function' && contrHayDatos();
+  /* ⚠️ LA INCLUSION DEPENDE SOLO DEL BOTON — «K1» (2026-10-16), DECISION DE MAICOL.
+     Esta linea exigia ademas `contrHayDatos()`, y esa era la causa del defecto que el medico
+     reporto: con el boton PRENDIDO y sin ningun trastorno sectorial el bull's eye NO salia en el
+     PDF, y apagar y volver a prender no lo arreglaba porque lo que fallaba era el segundo
+     termino. Medido en HEAD: boton prendido, cero trastornos, PDF SIN bull's eye y sin su
+     leyenda; con un solo segmento tocado, con bull's eye.
+     El gate de datos existia para tapar la fuga del toggle GLOBAL —la preferencia del paciente
+     anterior metia un bull's eye entero normal en el informe del siguiente—. Esa fuga ya no
+     existe: el estado es un campo DEL ESTUDIO que nace vacio y que «Nuevo estudio» apaga, asi
+     que lo unico que puede prender el bull's eye es que el medico lo haya prendido PARA ESTE
+     estudio. Con el boton prendido y sin trastornos el PDF lleva el bull's eye con los 17
+     segmentos normales, que es lo que la pantalla muestra. */
+  const _incContr = (typeof contrPdfOn === 'function') && contrPdfOn();
   /* Además del toggle se exige que HAYA strain cargado. Un estudio viejo no tiene
      `strain_sgl` guardado, así que _restaurarStrain lo deja vacío y strainColor devuelve
      «Normal» para los 17 segmentos: el PDF salía con un bull's eye entero verde al lado del
@@ -82140,7 +82172,23 @@ window.bullseyeDataURL = bullseyeDataURL;
 
 // ══ Toggles de inclusión en PDF ══
 function _pdfToggleBtnState(id, on){ const b=document.getElementById(id); if(b){ b.classList.toggle('btn-primary', on); b.classList.toggle('btn-ghost', !on); } }
-function toggleContrPDF(){ const on = localStorage.getItem('contractilidad_incluir_pdf')!=='1'; localStorage.setItem('contractilidad_incluir_pdf', on?'1':'0'); _pdfToggleBtnState('contr-pdf-toggle', on); toast(on?'📄 Bull\'s eye de contractilidad se incluirá en el PDF':'Bull\'s eye de contractilidad excluido del PDF'); }
+/* ══ EL BOTON «INCLUIR BULL'S EYE EN PDF» — «K1» (2026-10-16) ═════════════════════════════════
+   UN SOLO DUENIO DEL ESTADO: el campo `contr_be_pdf`, que es del ESTUDIO. Antes era la clave
+   `contractilidad_incluir_pdf` de `localStorage`, una preferencia global que sobrevivia a «Nuevo
+   estudio» —por eso el boton aparecia prendido solo— y que no viajaba con el estudio.
+   ⚠️ LA CLAVE VIEJA NO SE LEE MAS Y NO SE MIGRA: un estudio guardado abre como se guardo y uno
+   anterior a esta tanda abre APAGADO, que es el default pedido. */
+function contrPdfOn(){ const e = document.getElementById('contr_be_pdf'); return !!e && e.value === '1'; }
+function contrPdfSync(){ _pdfToggleBtnState('contr-pdf-toggle', contrPdfOn()); }
+function toggleContrPDF(){
+  const e = document.getElementById('contr_be_pdf');
+  if (!e) return;
+  const on = e.value !== '1';
+  e.value = on ? '1' : '';
+  contrPdfSync();
+  toast(on?'📄 Bull\'s eye de contractilidad se incluirá en el PDF':'Bull\'s eye de contractilidad excluido del PDF');
+}
+window.contrPdfOn = contrPdfOn; window.contrPdfSync = contrPdfSync;
 function toggleSglPDF(){ const on = localStorage.getItem('sgl_incluir_pdf')!=='1'; localStorage.setItem('sgl_incluir_pdf', on?'1':'0'); _pdfToggleBtnState('sgl-pdf-toggle', on); toast(on?'📄 Bull\'s eye de strain se incluirá en el PDF':'Bull\'s eye de strain excluido del PDF'); }
 window.toggleContrPDF = toggleContrPDF; window.toggleSglPDF = toggleSglPDF;
 
@@ -82346,7 +82394,8 @@ window.eteQxDataURL=eteQxDataURL;
 
 // Init SGL + estados de los toggles
 sglDibujarBullseye();
-_pdfToggleBtnState('contr-pdf-toggle', localStorage.getItem('contractilidad_incluir_pdf')==='1');
+/* K1: al arrancar, el boton se pinta desde el CAMPO del estudio, que nace vacio. */
+if (typeof contrPdfSync === 'function') contrPdfSync();
 _pdfToggleBtnState('sgl-pdf-toggle', localStorage.getItem('sgl_incluir_pdf')==='1');
 _pdfToggleBtnState('cx-wilkins-pdf', localStorage.getItem('wilkins_incluir_pdf')==='1');
 _pdfToggleBtnState('cx-duke-pdf', localStorage.getItem('duke_incluir_pdf')==='1');
