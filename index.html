@@ -2401,6 +2401,78 @@ html.light-mode .amilo-root{
    miocardio y azul de cavidades derechas, que no son colores de interfaz: reusar `--red` o
    `--accent` ataria la anatomia al dia que alguien repunte un color de la app. El MARCO —fondo,
    bordes, titulos y texto— si usa las de la app, que es lo que lo hace parte de la pantalla. */
+/* ══ EL PANEL DEL 3D DE LA MITRAL — TANDA «Y3» (2026-10-16) ═══════════════════════════
+   ⚠️ NI UNA ALTURA EN PORCENTAJE, Y EL LIENZO CON ALTO FIJO EN PX. Las dos reglas salen de dos
+   defectos MEDIDOS en la vista 2D del Y1b, que esta tanda no toca pero no repite:
+     · en SAFARI esa tarjeta se ve colapsada a unos 60 px —alturas en porcentaje dentro de
+       contenedores de alto automático, que WebKit resuelve a casi cero—;
+     · en CHROME sus carteles laterales e inferiores se mueven con el latido, porque la caja del
+       dibujo cambia de tamaño en cada cuadro y arrastra el layout de al lado.
+   Con el lienzo en un alto fijo, lo que el dibujo haga adentro NO puede mover nada de afuera.
+   ⚠️ Y LA TRANSICIÓN VA SOBRE EL ANCHO DEL PANEL, no sobre columnas de grid: `grid-template-
+   columns` se anima recién en Safari 16+ y el médico usa Safari. El ancho se anima en todos. */
+#m3d-fila{display:flex;justify-content:center;align-items:flex-start;gap:0;}
+#m3d-qx{flex:0 1 500px;min-width:0;}
+#m3d-panel{flex:0 0 auto;width:0;overflow:hidden;opacity:0;
+  transition:width .24s ease, opacity .24s ease, margin-left .24s ease;
+  margin-left:0;text-align:left;}
+#m3d-panel.m3d-on{width:500px;opacity:1;margin-left:12px;}
+#m3d-panel[hidden]{display:none;}
+/* ⚠️ LAS DOS REGLAS `[hidden]` SON OBLIGATORIAS Y NO DECORATIVAS, y lo encontró la medición,
+   no la lectura. El `[hidden]{display:none}` vive en la hoja del NAVEGADOR y cualquier regla
+   de AUTOR le gana, por poca especificidad que tenga: `.btn{display:inline-flex}` dejaba el
+   botón «3D» midiendo 64x44 y VISIBLE con `hidden` puesto —o sea la compuerta de la prótesis
+   no servía de nada— y el `display:flex` de `#m3d-nodisp` publicaba «3D no disponible en este
+   navegador» encima de un dibujo que se estaba dibujando bien. Las dos se vieron en la
+   GEOMETRÍA y en el PNG; preguntar por la propiedad `hidden` las habría dado por buenas, que
+   es exactamente como TC-274 pasó en verde sobre el mismo defecto. Este archivo ya lo tiene
+   escrito para `.fg`, `.frases-panel` y el banner de versión. */
+#m3d-btn[hidden]{display:none;}
+#m3d-nodisp[hidden]{display:none;}
+/* El interior se dibuja sobre un ancho FIJO: así el contenido no reflota mientras el panel
+   crece, que es lo que produce el salto que se ve al abrir. */
+#m3d-panel>*{width:488px;}
+.m3d-btns{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:0 0 5px;}
+.m3d-lbl{font-size:10px;color:var(--text2);margin-right:2px;}
+.m3d-b{font-size:11px;font-weight:600;padding:5px 9px;min-height:30px;border-radius:7px;}
+/* El seleccionado toma el azul de una pestaña prendida: mismas variables, ningún color propio. */
+#m3d-panel .m3d-b[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff;}
+.m3d-nota{font-size:10px;color:var(--text2);line-height:1.4;}
+#m3d-nota-ang{min-height:14px;margin:0 0 5px;}
+#m3d-cuerpo{display:flex;gap:8px;align-items:flex-start;}
+/* ALTO FIJO, no `auto` ni `%`: es el ancla que impide que el latido mueva el layout. */
+#m3d-lienzo{position:relative;width:324px;height:181px;flex:0 0 324px;
+  background:var(--bg3);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+#m3d-cv{display:block;width:324px;height:181px;}
+#m3d-nodisp{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  text-align:center;padding:8px;}
+#m3d-grados{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:5px;}
+.m3d-card{background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:5px 7px;}
+.m3d-card b{display:block;font-size:11px;color:var(--accent2);}
+.m3d-card span{display:block;font-size:10px;color:var(--text2);line-height:1.35;}
+.m3d-card .m3d-chip{display:inline-block;margin-top:3px;padding:1px 6px;border-radius:9px;font-size:9px;font-weight:700;}
+#m3d-ciclo{display:flex;align-items:center;gap:7px;margin:7px 0 0;}
+#m3d-bar{position:relative;flex:1 1 auto;height:8px;border-radius:4px;overflow:hidden;
+  background:linear-gradient(90deg,var(--accent) 0 38%,var(--bg3) 38% 100%);}
+#m3d-mark{position:absolute;top:0;width:2px;height:8px;background:var(--text);left:0;}
+#m3d-tabla{margin:7px 0 0;}
+#m3d-tabla table{width:100%;border-collapse:collapse;font-size:10px;}
+#m3d-tabla th{text-align:left;color:var(--text2);font-weight:700;padding:2px 4px;
+  border-bottom:1px solid var(--border);}
+#m3d-tabla td{padding:2px 4px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:top;}
+#m3d-tabla td:first-child{color:var(--text2);white-space:nowrap;}
+#m3d-desc{margin:5px 0 0;}
+/* ══ ANGOSTO: UNA COLUMNA —vista quirúrgica, panel, tabla—, en el ORDEN DEL MARCADO.
+   El panel deja de animar su ancho (ahí no hay a dónde correrse) y pasa a ocupar la línea. */
+@media (max-width:768px){
+  #m3d-fila{display:block;}
+  #m3d-panel{width:auto;margin-left:0;transition:none;}
+  #m3d-panel.m3d-on{width:auto;margin-left:0;}
+  #m3d-panel>*{width:auto;}
+  #m3d-cuerpo{flex-direction:column;}
+  #m3d-lienzo,#m3d-cv{width:100%;flex:0 0 auto;}
+}
+@media (prefers-reduced-motion:reduce){ #m3d-panel{transition:none;} }
 #v2d-ov{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.6);display:none;}
 /* TARJETA FLOTANTE CENTRADA, NO PANTALLA COMPLETA (Y1b-1, 2026-10-16) — DECISION DE MAICOL.
    Con el `inset:10px` del Y1 el panel tomaba la ventana entera: el dibujo quedaba enorme, las
@@ -5122,7 +5194,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                Con una vena contracta cargada funciona —el voto leve pisa al severo del jet—; con
                el jet como único parámetro, el grado nativo sobrevive. Ver la nota de
                `params.length === 0` en `calcIM_ESC` y la entrada de CLAUDE.md. -->
-          <select id="vm_morf" onchange="showProlapsoPanel();valvProtSync();imOndaESiExiste();eteVmPropagar('vm');calcIM_ESC();calcEM()"><option>Normal</option><option>Mixomatosa / Barlow</option><option>Calcificada</option><option>Reumática</option><option>Prolapso / EVMS</option><option value="Prótesis biológica">Prótesis biológica</option><option value="Prótesis mecánica">Prótesis mecánica</option><option>Endocarditis</option><option>Isquémica (disfunción/rotura músculo papilar)</option></select>
+          <select id="vm_morf" onchange="showProlapsoPanel();valvProtSync();imOndaESiExiste();eteVmPropagar('vm');calcIM_ESC();calcEM();m3dBotonSync()"><option>Normal</option><option>Mixomatosa / Barlow</option><option>Calcificada</option><option>Reumática</option><option>Prolapso / EVMS</option><option value="Prótesis biológica">Prótesis biológica</option><option value="Prótesis mecánica">Prótesis mecánica</option><option>Endocarditis</option><option>Isquémica (disfunción/rotura músculo papilar)</option></select>
           <div id="vm-ete-aviso" style="display:none;font-size:11px;color:var(--red);margin-top:3px;"></div>
         </div>
       </div>
@@ -12335,8 +12407,16 @@ z
 
       </div>
 
+      <!-- ⚠️ LA FILA QUE CONTIENE LAS DOS MITADES (Y3-2, 2026-10-16). Con el panel cerrado tiene
+           UN solo hijo y `justify-content:center` lo deja donde estaba: la vista quirúrgica
+           centrada, igual que antes de esta tanda. Al abrir el panel la fila pasa a tener dos y
+           la vista se corre a la izquierda sola, sin que nadie le escriba una posición.
+           LA TRANSICIÓN ES SOBRE EL ANCHO DEL PANEL y no sobre una propiedad de la vista: el
+           ancho se anima en todos los navegadores, mientras que animar columnas de grid pide
+           Safari 16+. El desplazamiento de la vista es la CONSECUENCIA del ancho creciendo. -->
+      <div id="m3d-fila">
       <!-- Vista Quirúrgica -->
-      <div style="max-width:500px;margin:0 auto 10px;text-align:center;">
+      <div id="m3d-qx" style="max-width:500px;margin:0 auto 10px;text-align:center;">
         <div style="font-size:9px;font-weight:700;color:var(--accent2);margin-bottom:3px;">Vista Quirúrgica — Válvula Mitral</div>
         <svg viewBox="0 0 520 290" style="width:100%;height:auto;" id="ete-svg-qx">
           <ellipse cx="265" cy="152" rx="168" ry="112" fill="none" stroke="var(--text)" stroke-width="2.2"/>
@@ -12384,6 +12464,59 @@ z
         </svg>
       </div>
 
+      <!-- ══ EL PANEL DEL 3D (Y3-2) ═════════════════════════════════════════
+           ⚠️ ALTURAS EXPLÍCITAS EN PX Y NI UN PORCENTAJE, y no es una preferencia de estilo. La
+           vista 2D del Y1b se ve COLAPSADA en Safari —la tarjeta queda en unos 60 px de alto— por
+           alturas en porcentaje dentro de contenedores de alto automático, que WebKit resuelve a
+           casi cero. Y en Chrome sus carteles laterales e inferiores SE MUEVEN con el latido,
+           porque la caja del dibujo cambia de tamaño en cada cuadro y arrastra el layout. Las dos
+           cosas se evitan igual: el panel y el lienzo tienen un alto FIJO en px, así que lo que
+           el dibujo haga adentro no puede mover nada de afuera, ni en un navegador ni en el otro.
+           Las dos quedan declaradas en `docs/PENDIENTES.md` —la vista 2D va en su propio prompt—. -->
+      <div id="m3d-panel" hidden role="group" aria-label="Modelo 3D de la válvula mitral">
+        <div class="m3d-btns" role="group" aria-label="Vista del modelo">
+          <button type="button" class="btn btn-ghost m3d-b" id="m3d-v-cirujano" aria-pressed="true"
+                  onclick="m3dVista('cirujano')">Vista del cirujano</button>
+          <button type="button" class="btn btn-ghost m3d-b" id="m3d-v-ventriculo" aria-pressed="false"
+                  onclick="m3dVista('ventriculo')">Desde el ventrículo</button>
+          <button type="button" class="btn btn-ghost m3d-b" id="m3d-v-lateral" aria-pressed="false"
+                  onclick="m3dVista('lateral')">Corte lateral</button>
+        </div>
+        <!-- ⚠️ LOS ÁNGULOS CONVIVEN CON LAS VISTAS SIENDO EXCLUYENTES, que es como lo resuelve la
+             demo: elegir un ángulo apaga la vista y elegir una vista apaga el ángulo. Son dos
+             formas de poner la misma cámara, no dos ejes que se compongan —en la demo un botón de
+             vista llama a `clearTee()`—. Es además lo conservador: un estado «vista del cirujano
+             a 60°» no existe en la demo y habría que inventar qué significa. Los OCHO llevan
+             `aria-pressed`, así que cuál está puesto se ve y se anuncia. -->
+        <div class="m3d-btns" id="m3d-angs" role="group" aria-label="Ángulo del transductor de ETE">
+          <span class="m3d-lbl">Ángulo ETE</span>
+          <button type="button" class="btn btn-ghost m3d-b" id="m3d-a-0" aria-pressed="false" onclick="m3dAngulo(0)">0°</button>
+          <button type="button" class="btn btn-ghost m3d-b" id="m3d-a-45" aria-pressed="false" onclick="m3dAngulo(45)">45°</button>
+          <button type="button" class="btn btn-ghost m3d-b" id="m3d-a-60" aria-pressed="false" onclick="m3dAngulo(60)">60°</button>
+          <button type="button" class="btn btn-ghost m3d-b" id="m3d-a-90" aria-pressed="false" onclick="m3dAngulo(90)">90°</button>
+          <button type="button" class="btn btn-ghost m3d-b" id="m3d-a-120" aria-pressed="false" onclick="m3dAngulo(120)">120°</button>
+        </div>
+        <div id="m3d-nota-ang" class="m3d-nota"></div>
+        <div id="m3d-cuerpo">
+          <div id="m3d-lienzo">
+            <!-- La descripción corta la escribe `m3dDescribir` y la tabla de abajo es su
+                 alternativa en texto completa. -->
+            <canvas id="m3d-cv" width="680" height="380" role="img" aria-label="Modelo 3D de la válvula mitral"></canvas>
+            <div id="m3d-nodisp" class="m3d-nota" hidden>3D no disponible en este navegador.</div>
+          </div>
+          <div id="m3d-grados" aria-label="Grados publicados"></div>
+        </div>
+        <div id="m3d-ciclo">
+          <button type="button" class="btn btn-ghost m3d-b" id="m3d-play" aria-pressed="true"
+                  onclick="m3dPlay()">Pausar</button>
+          <div id="m3d-bar" aria-hidden="true"><i id="m3d-mark"></i></div>
+          <span id="m3d-fase" class="m3d-nota"></span>
+        </div>
+        <div id="m3d-tabla"></div>
+        <div id="m3d-desc" class="m3d-nota"></div>
+      </div>
+      </div><!-- fin m3d-fila -->
+
       <!-- Leyenda -->
       <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:6px;">
         <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2);"><span style="width:10px;height:10px;border-radius:2px;background:#ffffff;display:inline-block;"></span>Normal</div>
@@ -12411,6 +12544,13 @@ z
       <div style="text-align:center;margin-top:10px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
         <button class="btn btn-ghost" onclick="eteLimpiarSegmentos()">🧹 Limpiar</button>
         <button class="btn btn-ghost" id="ete-qx-pdf" onclick="eteQxIncluirPDF()">📄 Incluir en PDF</button>
+        <!-- ⚠️ SÓLO CON VÁLVULA MITRAL NATIVA. Con una prótesis el botón no existe y el panel
+             abierto se cierra: el modelo dibuja valvas, festones y un orificio de válvula nativa,
+             y ponerle encima el grado de una prótesis sería dibujar una cosa y rotular otra. Lo
+             gobierna `m3dBotonSync`, que pregunta por `valvEsProtesis` —el mismo dueño del
+             predicado que usa `protNoGradua`— y no por una segunda lista de opciones. -->
+        <button class="btn btn-ghost" id="m3d-btn" hidden aria-expanded="false"
+                aria-controls="m3d-panel" onclick="m3dTog()">🔮 3D</button>
       </div>
 
     </div>
@@ -20140,6 +20280,10 @@ function showTab(id) {
      volver a Contractilidad arranca de nuevo si el médico lo había dejado abierto—.
      Mismo patrón que `_cineDetener`: se cancela y se olvida el identificador. */
   if (typeof lv3dDetener === 'function') lv3dDetener();
+  /* Y el panel 3D de la mitral se CIERRA, no solo se frena: vive dentro de la pestaña ETE,
+     así que al volver tiene que estar como la orden pide —cerrado— y no abierto sobre el
+     paciente siguiente. */
+  if (typeof m3dCerrar === 'function') m3dCerrar();
   document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + id).classList.add('active');
@@ -47217,13 +47361,18 @@ function RECALC_MODULOS() {
      `.value`, que no dispara `input`, así que un cartel abierto durante una restauración —o
      el texto del ritmo y del corte— se quedaba con el paciente ANTERIOR. Ninguno de los dos
      puede migrar nada: el espejo no se persiste y el pintor sólo escribe texto. */
+  /* `m3dBotonSync` decide si el boton «3D» existe, y entra aca por la misma razon que los
+     demas: las cinco rutas de restauracion pueblan `vm_morf` asignando `.value`, que NO
+     dispara su `onchange`. Sin esto, reabrir un estudio con PROTESIS mitral dejaba el boton
+     a la vista sobre una valvula que el modelo no sabe dibujar. Lo que gobierna es el
+     atributo `hidden` de un boton, que ningun barrido generico toca. */
   /* `viVolAutoSync` repinta los DOS campos automaticos del VI (F1, 2026-10-15). Entra aca
      porque las cinco rutas de restauracion pueblan asignando `.value`, que no dispara `input`,
      asi que `calcVI` —su unico llamador en vivo— no corre: reabrir un estudio dejaba los dos
      automaticos con el «requiere …» del formulario vacio al lado de un VDFVI y una FEVI ya
      poblados. No puede migrar nada: no escribe ningun campo del estudio, los dos nodos que
      toca son `vauto-` y el tercero un `<div>` de texto. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','m3dBotonSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -47684,6 +47833,11 @@ function limpiarCampos(silencioso) {
      «🔴 Hallazgos: P2: Flail». La función ya existía y hacía lo correcto; no la llamaba nadie
      salvo un botón manual. */
   if (typeof eteLimpiarSegmentos === 'function') eteLimpiarSegmentos();
+  /* El panel 3D se cierra y su botón vuelve al estado que mande la morfología recién
+     limpiada. `m3dBotonSync` no entra en ningún barrido genérico: lo que gobierna es el
+     atributo `hidden` de un botón, que ningún barrido toca. */
+  if (typeof m3dCerrar === 'function') m3dCerrar();
+  if (typeof m3dBotonSync === 'function') m3dBotonSync();
   /* La tabla de Cardio-Oncología está indexada por paciente pero no se repinta sola: con
      «Nuevo Estudio» estando en esa pestaña, seguía mostrando «Seguimiento de <paciente
      anterior> — 3 controles» sobre un formulario ya vacío. */
@@ -112503,6 +112657,246 @@ window.v2dAbrir = v2dAbrir; window.v2dCerrar = v2dCerrar;
 window.v2dPintarTarjetas = v2dPintarTarjetas; window.v2dPintarCav = v2dPintarCav;
 window._v2dPorQue = _v2dPorQue; window._v2dRotulo = _v2dRotulo; window._v2dCrit = _v2dCrit;
 window._v2dChipCls = _v2dChipCls;
+
+/* ══ EL 3D DE LA VÁLVULA MITRAL NATIVA — TANDA «Y3» (2026-10-16) ═══════════════════════════════
+   DECISIÓN DE MAICOL. Dentro de la pantalla de la válvula mitral de ETE, al lado de la vista
+   quirúrgica, un modelo 3D que NO CALCULA NADA: todo lo que dibuja y todo lo que rotula sale de
+   lo que la app ya calculó y ya tiene en pantalla.
+
+   ⚠️ NO HAY NINGÚN CONTROL DE PLAN NUEVO. El panel vive DENTRO de la pestaña ETE, así que lo ve
+   exactamente quien ya ve ETE: el plan lo sigue aplicando `applyViewMode` escondiendo el botón
+   del rail, como hasta hoy.
+   ⚠️ SÓLO VÁLVULA MITRAL NATIVA, y la compuerta es `valvEsProtesis` sobre `vm_morf` —el mismo
+   dueño del predicado que usa `protNoGradua`, no una segunda lista de opciones—.
+   ⚠️ NADA SE GUARDA. Ni en el estudio ni en el navegador: el panel no tiene un solo campo con
+   `id` que `guardarInforme` pueda barrer, y no toca `localStorage` ni `sessionStorage`. La vista
+   es de lectura, igual que la vista 2D del Y1. */
+var M3D_VISTAS = Object.freeze(['cirujano', 'ventriculo', 'lateral']);
+var M3D_ANGS   = Object.freeze([0, 45, 60, 90, 120]);
+/* Los rótulos de cada corte, con las mismas palabras de la demo. */
+var M3D_ANG_TXT = Object.freeze({
+  0:   'ETE 0° · cuatro cámaras',
+  45:  'ETE 45° · transición hacia la bicomisural',
+  60:  'ETE 60° · bicomisural',
+  90:  'ETE 90° · dos cámaras',
+  120: 'ETE 120° · eje largo'
+});
+/* ⚠️ LAS VISTAS Y LOS ÁNGULOS SON EXCLUYENTES, que es como lo resuelve la demo: su botón de
+   vista llama a `clearTee()` y su botón de ángulo deja la vista sin marcar. Son dos formas de
+   poner la MISMA cámara, no dos ejes que se compongan. Elegir la otra lectura —componerlos—
+   obligaría a inventar qué significa «vista del cirujano a 60 grados», que la demo no define:
+   ante el conflicto, la opción conservadora es reproducir lo que la demo ya hace. */
+var _m3dVista = 'cirujano', _m3dAng = null, _m3dPlay = true, _m3dFase = 0;
+var _m3dRaf = null, _m3dVivo = false, _m3dLast = null, _m3dSinCtx = false;
+
+function m3dEl(id){ return document.getElementById(id); }
+function m3dEsProtesis(){
+  var e = m3dEl('vm_morf');
+  if (!e) return false;
+  try { return (typeof valvEsProtesis === 'function') ? !!valvEsProtesis(e.value) : false; }
+  catch (x) { return false; }
+}
+/* ⚠️ ABIERTO SE DECIDE POR `hidden`, NO POR LA CLASE DE LA ANIMACIÓN, y lo encontró la sonda:
+   `m3d-on` se agrega en el cuadro SIGUIENTE para que la transición tenga estado de partida, así
+   que entre el clic y ese cuadro el panel estaba abierto y `m3dVisible()` decía que no. Medido:
+   veinte pares de clics seguidos terminaban con el panel ABIERTO en vez de cerrado, porque el
+   segundo clic de cada par volvía a abrir. La clase queda para lo único que es: animar. */
+function m3dVisible(){
+  var p = m3dEl('m3d-panel');
+  return !!p && !p.hasAttribute('hidden');
+}
+
+/* ══ EL LIENZO ════════════════════════════════════════════════════════════════════════════════
+   ⚠️ LA DENSIDAD SE ACOTA A 2. En una pantalla de dpr 3 el lienzo tendría nueve veces los
+   píxeles de uno de dpr 1 para un dibujo esquemático que no gana nada con eso, y cada cuadro
+   los vuelve a pintar. El espacio de coordenadas del dibujo sigue siendo el 680x380 de la demo:
+   lo que cambia es la escala con que se vuelca, así que ni una coordenada del dibujo se toca. */
+var M3D_W = 680, M3D_H = 380, M3D_DPR_MAX = 2;
+function m3dCtx(){
+  var cv = m3dEl('m3d-cv');
+  if (!cv || typeof cv.getContext !== 'function') return null;
+  var ctx = null;
+  try { ctx = cv.getContext('2d'); } catch (e) { ctx = null; }
+  if (!ctx) return null;
+  var r = cv.getBoundingClientRect();
+  var w = Math.max(1, Math.round(r.width || 324)), h = Math.max(1, Math.round(r.height || 181));
+  var d = Math.min(window.devicePixelRatio || 1, M3D_DPR_MAX);
+  var bw = Math.round(w * d), bh = Math.round(h * d);
+  if (cv.width !== bw || cv.height !== bh) { cv.width = bw; cv.height = bh; }
+  /* El 680x380 del dibujo entra completo en la caja, sin deformarlo. */
+  var k = Math.min(bw / M3D_W, bh / M3D_H);
+  ctx.setTransform(k, 0, 0, k, (bw - M3D_W * k) / 2, (bh - M3D_H * k) / 2);
+  return { ctx: ctx, k: k, bw: bw, bh: bh };
+}
+
+/* ⚠️ PLAN B SIN LIENZO. El dibujo es canvas 2D y no WebGL, así que la rama de «este navegador no
+   puede» es estrecha —un contexto 2D que no se crea—, pero existe igual: se avisa en una línea y
+   la pantalla NO se rompe, porque la tabla de datos de abajo sigue siendo la misma. */
+function m3dSinLienzo(){
+  var n = m3dEl('m3d-nodisp'), c = m3dEl('m3d-cv');
+  if (n) n.hidden = false;
+  if (c) c.style.display = 'none';
+  _m3dSinCtx = true;
+}
+
+/* El dibujo. En este commit es PROVISORIO —el anillo y la línea de coaptación— y lo reemplaza el
+   modelo de la demo en el commit siguiente: lo que este commit fija es el marco, los controles y
+   que el bucle sólo exista con el panel abierto. */
+function m3dPintar(){
+  if (_m3dSinCtx) return;
+  var C = m3dCtx();
+  if (!C) { m3dSinLienzo(); return; }
+  var ctx = C.ctx, cs = getComputedStyle(document.documentElement);
+  ctx.clearRect(0, 0, M3D_W, M3D_H);
+  ctx.strokeStyle = (cs.getPropertyValue('--text2') || '#888').trim();
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.ellipse(M3D_W / 2, M3D_H / 2, 150, 95, 0, 0, 2 * Math.PI);
+  ctx.stroke();
+  var ap = 0.5 - 0.5 * Math.cos(2 * Math.PI * _m3dFase);
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(M3D_W / 2 - 150, M3D_H / 2);
+  ctx.bezierCurveTo(M3D_W / 2 - 50, M3D_H / 2 + 40 * ap, M3D_W / 2 + 50, M3D_H / 2 + 40 * ap,
+                    M3D_W / 2 + 150, M3D_H / 2);
+  ctx.stroke();
+}
+
+/* ══ EL LATIDO ════════════════════════════════════════════════════════════════════════════════
+   ⚠️ EL BUCLE SÓLO EXISTE MIENTRAS EL PANEL ESTÁ ABIERTO, y es la misma regla que la vista 2D:
+   se arma al abrir y se DESARMA al cerrar, al cambiar de pestaña y cuando la pestaña del
+   navegador queda oculta. Sin eso, un panel olvidado repinta para siempre algo que nadie mira.
+   Con `prefers-reduced-motion` no hay bucle: un cuadro fijo, dibujado una vez. */
+function m3dCalmo(){
+  try { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
+  catch (e) { return false; }
+}
+var M3D_DUR = 3.2;
+function _m3dLoop(ts){
+  if (!_m3dVivo) return;
+  if (_m3dLast === null) _m3dLast = ts;
+  var dt = Math.min((ts - _m3dLast) / 1000, 0.1); _m3dLast = ts;
+  if (_m3dPlay) _m3dFase = (_m3dFase + dt / M3D_DUR) % 1;
+  m3dPintar(); m3dFaseSync();
+  _m3dRaf = requestAnimationFrame(_m3dLoop);
+}
+function m3dArrancar(){
+  if (_m3dVivo) return;
+  _m3dVivo = true; _m3dLast = null;
+  /* Un cuadro sincrónico de entrada: `requestAnimationFrame` pinta en el cuadro SIGUIENTE, así
+     que sin esto el panel abre con el dibujo del paciente anterior durante un cuadro. */
+  m3dPintar(); m3dFaseSync();
+  if (m3dCalmo()) { _m3dPlay = false; m3dPlaySync(); _m3dVivo = false; return; }
+  if (!_m3dPlay) { _m3dVivo = false; return; }
+  _m3dRaf = requestAnimationFrame(_m3dLoop);
+}
+function m3dParar(){
+  _m3dVivo = false;
+  if (_m3dRaf != null) { try { cancelAnimationFrame(_m3dRaf); } catch (e) {} }
+  _m3dRaf = null; _m3dLast = null;
+}
+function m3dCorriendo(){ return _m3dVivo; }
+
+/* ⚠️ EN PAUSA EL BUCLE SE DESARMA, no se queda girando en vacío. Medido antes de esto: con
+   el botón en «Reproducir» el espía de `requestAnimationFrame` seguía contando 54 cuadros en
+   900 ms, repintando un dibujo que no cambia. La regla de la orden es sobre el panel cerrado,
+   pero el mismo argumento vale acá: un cuadro que no cambia no hace falta pintarlo. */
+function m3dPlay(){
+  _m3dPlay = !_m3dPlay;
+  m3dPlaySync();
+  if (_m3dPlay) { if (m3dVisible() && !m3dCalmo()) m3dArrancar(); }
+  else { m3dParar(); m3dPintar(); m3dFaseSync(); }
+}
+function m3dPlaySync(){
+  var b = m3dEl('m3d-play');
+  if (!b) return;
+  b.textContent = _m3dPlay ? 'Pausar' : 'Reproducir';
+  b.setAttribute('aria-pressed', _m3dPlay ? 'true' : 'false');
+}
+/* La fase en palabras y la marca sobre la barra. El 38 % de la barra es la sístole, que es la
+   misma proporción con la que la demo reparte el ciclo. */
+function m3dFaseSync(){
+  var m = m3dEl('m3d-mark'), f = m3dEl('m3d-fase');
+  if (m) m.style.left = 'calc(' + (_m3dFase * 100).toFixed(1) + '% - 1px)';
+  if (f) f.textContent = (_m3dFase < 0.38) ? 'Sístole' : 'Diástole';
+}
+
+/* ══ VISTAS Y ÁNGULOS ═════════════════════════════════════════════════════════════════════════ */
+function m3dBotonesSync(){
+  M3D_VISTAS.forEach(function(k){
+    var b = m3dEl('m3d-v-' + k);
+    if (b) b.setAttribute('aria-pressed', (_m3dAng === null && _m3dVista === k) ? 'true' : 'false');
+  });
+  M3D_ANGS.forEach(function(a){
+    var b = m3dEl('m3d-a-' + a);
+    if (b) b.setAttribute('aria-pressed', (_m3dAng === a) ? 'true' : 'false');
+  });
+  var n = m3dEl('m3d-nota-ang');
+  if (n) n.textContent = (_m3dAng === null) ? '' : (M3D_ANG_TXT[_m3dAng] || '');
+}
+function m3dVista(k){
+  if (M3D_VISTAS.indexOf(k) < 0) return;
+  _m3dVista = k; _m3dAng = null;
+  m3dBotonesSync(); m3dPintar();
+}
+function m3dAngulo(a){
+  a = Number(a);
+  if (M3D_ANGS.indexOf(a) < 0) return;
+  _m3dAng = a;
+  m3dBotonesSync(); m3dPintar();
+}
+
+/* ══ ABRIR, CERRAR Y LA COMPUERTA DE LA PRÓTESIS ══════════════════════════════════════════════ */
+function m3dAbrir(){
+  if (m3dEsProtesis()) return;
+  var p = m3dEl('m3d-panel'), b = m3dEl('m3d-btn');
+  if (!p) return;
+  p.hidden = false;
+  /* El `hidden` se saca ANTES que la clase, en dos vueltas, para que la transición de ancho
+     tenga un estado de partida: puesto en el mismo cuadro, el navegador no anima nada. */
+  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(function(){ p.classList.add('m3d-on'); });
+  else p.classList.add('m3d-on');
+  if (b) { b.setAttribute('aria-expanded', 'true'); b.textContent = '✕ 3D'; }
+  if (typeof m3dSync === 'function') m3dSync();
+  m3dArrancar();
+}
+function m3dCerrar(){
+  var p = m3dEl('m3d-panel'), b = m3dEl('m3d-btn');
+  m3dParar();
+  if (p) { p.classList.remove('m3d-on'); p.hidden = true; }
+  if (b) { b.setAttribute('aria-expanded', 'false'); b.textContent = '🔮 3D'; }
+}
+function m3dTog(){ if (m3dVisible()) m3dCerrar(); else m3dAbrir(); }
+
+/* El botón aparece y desaparece con la morfología. Si el médico pasa a prótesis con el panel
+   ABIERTO, el panel se cierra: dejarlo abierto publicaría un modelo de válvula nativa al lado de
+   un veredicto protésico. */
+function m3dBotonSync(){
+  var b = m3dEl('m3d-btn');
+  var prot = m3dEsProtesis();
+  if (b) b.hidden = prot;
+  if (prot && m3dVisible()) m3dCerrar();
+}
+
+/* ⚠️ EL BUCLE SE APAGA TAMBIÉN CON LA PESTAÑA DEL NAVEGADOR OCULTA. `requestAnimationFrame` ya
+   se frena solo en una pestaña de fondo en los navegadores actuales, pero no en todos los
+   estados —una ventana tapada, por ejemplo— y el costo de decirlo explícitamente es una línea. */
+document.addEventListener('visibilitychange', function(){
+  if (document.hidden) m3dParar();
+  else if (m3dVisible() && _m3dPlay && !m3dCalmo()) m3dArrancar();
+});
+
+window.m3dAbrir = m3dAbrir; window.m3dCerrar = m3dCerrar; window.m3dTog = m3dTog;
+window.m3dVista = m3dVista; window.m3dAngulo = m3dAngulo; window.m3dPlay = m3dPlay;
+window.m3dBotonSync = m3dBotonSync; window.m3dVisible = m3dVisible;
+window.m3dCorriendo = m3dCorriendo; window.m3dArrancar = m3dArrancar; window.m3dParar = m3dParar;
+window.m3dPintar = m3dPintar;
+/* Expuestos para poder MEDIR el estado sin leer ocho atributos: una sonda que reconstruye el
+   estado a partir del DOM mide su propia reconstrucción. */
+window.m3dEstadoCamara = function(){ return { vista: _m3dVista, ang: _m3dAng, play: _m3dPlay,
+                                              fase: _m3dFase, vivo: _m3dVivo }; };
+window.m3dFaseFijar = function(p){ var x = Number(p); if (!isFinite(x)) return _m3dFase;
+  _m3dFase = ((x % 1) + 1) % 1; m3dPintar(); m3dFaseSync(); return _m3dFase; };
 
 </script>
 

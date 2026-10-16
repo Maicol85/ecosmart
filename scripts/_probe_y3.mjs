@@ -946,7 +946,72 @@ window.__P = {
   abrirEte() {
     var o = {};
     try { showTab('ete'); o.tab = 'ok' } catch (e) { o.tab = 'EXC: ' + e.message }
+    /* ⚠️ LA SECCION DE LA MITRAL DE ETE NACE PLEGADA (ete-seccion-mitral, display:none). Sin
+       abrirla, el boton «3D», el panel y la vista quirurgica EXISTEN y miden 0x0: la sonda
+       informaria «no abre» sobre un mecanismo perfecto. Es la misma trampa que el Doppler
+       tricuspideo y el cajon de la estenosis mitral ya tienen escrita. */
+    ['mitral','mediciones-mitral'].forEach(function(k){
+      try { var sec = document.getElementById('ete-seccion-' + k);
+        if (sec && getComputedStyle(sec).display === 'none' && typeof toggleEteSeccion === 'function')
+          toggleEteSeccion(k, null);
+        o[k] = sec ? getComputedStyle(sec).display : 'NO EXISTE';
+      } catch (e) { o[k] = 'EXC: ' + e.message } });
+    /* DENOMINADOR: sin geometria del boton la medicion no vale, y hay que decirlo. */
+    var b = document.getElementById('m3d-btn');
+    o.btnGeo = b ? (function(r){ return Math.round(r.width) + 'x' + Math.round(r.height) })(b.getBoundingClientRect()) : 'NO EXISTE';
     return o },
+
+  /* ══ Y3-2 · EL PANEL DEL 3D ═════════════════════════════════════════════════════════════ */
+  m3d() {
+    var g = function(id){ var e = document.getElementById(id); if (!e) return null;
+      var r = e.getBoundingClientRect();
+      return { w: Math.round(r.width), h: Math.round(r.height),
+               x: Math.round(r.left), y: Math.round(r.top),
+               vis: window.__P.vis(id) } };
+    var btn = document.getElementById('m3d-btn');
+    var pan = document.getElementById('m3d-panel');
+    var aria = {};
+    ['m3d-v-cirujano','m3d-v-ventriculo','m3d-v-lateral',
+     'm3d-a-0','m3d-a-45','m3d-a-60','m3d-a-90','m3d-a-120','m3d-play'].forEach(function(id){
+      var e = document.getElementById(id);
+      aria[id] = e ? e.getAttribute('aria-pressed') : 'NO EXISTE' });
+    var cv = document.getElementById('m3d-cv');
+    return {
+      btn: btn ? { hidden: btn.hidden, txt: (btn.textContent||'').trim(),
+                   exp: btn.getAttribute('aria-expanded'), geo: g('m3d-btn') } : 'NO EXISTE',
+      panel: pan ? { hidden: pan.hasAttribute('hidden'),
+                     on: pan.classList.contains('m3d-on'), geo: g('m3d-panel') } : 'NO EXISTE',
+      qx: g('m3d-qx'), lienzo: g('m3d-lienzo'), cuerpo: g('m3d-cuerpo'),
+      grados: g('m3d-grados'), ciclo: g('m3d-ciclo'), tabla: g('m3d-tabla'),
+      cvAttr: cv ? { w: cv.width, h: cv.height, dispW: Math.round(cv.getBoundingClientRect().width),
+                     dispH: Math.round(cv.getBoundingClientRect().height) } : 'NO EXISTE',
+      nodisp: g('m3d-nodisp'),
+      aria: aria,
+      nota: window.__P.txt('m3d-nota-ang'),
+      fase: window.__P.txt('m3d-fase'),
+      camara: (typeof m3dEstadoCamara === 'function') ? m3dEstadoCamara() : 'SIN FN',
+      visible: (typeof m3dVisible === 'function') ? m3dVisible() : 'SIN FN',
+      corriendo: (typeof m3dCorriendo === 'function') ? m3dCorriendo() : 'SIN FN',
+      /* El scroll horizontal de la PAGINA: lo que la orden pide que no aparezca. */
+      scrollX: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      anchoDoc: document.documentElement.scrollWidth,
+      anchoVp: document.documentElement.clientWidth } },
+
+  /* Clic REAL en el boton, por su metodo nativo, con denominador de geometria. */
+  m3dClic(id) {
+    var b = document.getElementById(id);
+    if (!b) return { err: 'NO EXISTE ' + id };
+    var r = b.getBoundingClientRect();
+    if (!(r.width > 0 && r.height > 0)) return { err: 'SIN GEOMETRIA ' + id };
+    b.focus(); b.click();
+    return { ok: true, foco: document.activeElement === b } },
+
+  /* ⚠️ ESPIA DE requestAnimationFrame: la unica forma de afirmar «cero cuadros con el panel
+     cerrado» es CONTARLOS, no mirar una bandera que el propio codigo escribe. */
+  rafEspia(ms) { return new Promise(function(res){
+    var n = 0, orig = window.requestAnimationFrame;
+    window.requestAnimationFrame = function(cb){ n++; return orig.call(window, cb) };
+    setTimeout(function(){ window.requestAnimationFrame = orig; res({ cuadros: n, ms: ms }) }, ms) }) },
 
   /* Lo que la PANTALLA de Valvulas publica para una lesion, para el A/B caracter por caracter. */
   pant(clave) {
@@ -1544,6 +1609,127 @@ async function main() {
     g.qx = await ev(`window.__P.qx()`);
     g.pdf = await ev(`window.__P.qxPdf()`);
     out.grupos.comisuras = g;
+  }
+
+  /* ══ Y3-2 · EL BOTON, EL PANEL Y LA MAQUETA ══════════════════════════════════════════════ */
+  if (corre('panel')) {
+    const g = {};
+    await viewport(1200, 700);
+    await ev(`window.__P.nuevo()`);
+    await ev(`window.__P.abrirEte()`);
+    await ev(`window.__P.despejar()`);
+    g.cerrado = await ev(`window.__P.m3d()`);
+    /* CUADROS CON EL PANEL CERRADO: tienen que ser CERO. */
+    g.rafCerrado = await ev(`window.__P.rafEspia(900)`, 6000);
+    g.clic = await ev(`window.__P.m3dClic('m3d-btn')`);
+    await pausa(420);
+    g.abierto = await ev(`window.__P.m3d()`);
+    g.rafAbierto = await ev(`window.__P.rafEspia(900)`, 6000);
+    /* Las tres vistas y los cinco angulos, con clics reales. */
+    const cam = {};
+    for (const k of ['ventriculo','lateral','cirujano']) {
+      await ev(`window.__P.m3dClic('m3d-v-${k}')`);
+      cam['v_' + k] = await ev(`window.__P.m3d()`);
+    }
+    for (const a of ['0','45','60','90','120']) {
+      await ev(`window.__P.m3dClic('m3d-a-${a}')`);
+      cam['a_' + a] = await ev(`window.__P.m3d()`);
+    }
+    /* Y el teclado: Enter sobre un boton de vista lo activa. */
+    await ev(`(function(){ document.getElementById('m3d-v-lateral').focus(); return 1 })()`);
+    await tecla('Enter');
+    cam.teclado = await ev(`window.__P.m3d()`);
+    g.camara = cam;
+    /* Pausa y reproduccion. */
+    await ev(`window.__P.m3dClic('m3d-play')`);
+    g.pausado = await ev(`window.__P.m3d()`);
+    g.rafPausado = await ev(`window.__P.rafEspia(900)`, 6000);
+    await ev(`window.__P.m3dClic('m3d-play')`);
+    g.reanudado = await ev(`window.__P.m3d()`);
+    /* La maqueta a los cinco anchos pedidos, en los dos temas, con el panel ABIERTO. */
+    const maq = {};
+    for (const claro of [false, true]) {
+      await ev(`window.__P.tema(${claro})`);
+      for (const [w, h] of [[1200,700],[1440,800],[768,1024],[390,844],[360,740]]) {
+        await viewport(w, h);
+        await pausa(130);
+        maq[w + '_' + (claro ? 'claro' : 'oscuro')] = await ev(`window.__P.m3d()`);
+      }
+    }
+    await ev(`window.__P.tema(false)`); await viewport(1200, 700);
+    g.maqueta = maq;
+    /* Cerrar: el panel se va y el bucle con el. */
+    await ev(`window.__P.m3dClic('m3d-btn')`);
+    await pausa(380);
+    g.recerrado = await ev(`window.__P.m3d()`);
+    g.rafRecerrado = await ev(`window.__P.rafEspia(900)`, 6000);
+    /* VEINTE aperturas y cierres: oyentes y memoria no se acumulan. */
+    const antes = await ev(`(function(){ return { nodos: document.getElementsByTagName('*').length,
+      mem: (performance && performance.memory) ? performance.memory.usedJSHeapSize : null } })()`);
+    for (let i = 0; i < 20; i++) {
+      await ev(`window.__P.m3dClic('m3d-btn')`);
+      await ev(`window.__P.m3dClic('m3d-btn')`);
+    }
+    await pausa(380);
+    g.veinte = { antes: antes,
+      despues: await ev(`(function(){ return { nodos: document.getElementsByTagName('*').length,
+        mem: (performance && performance.memory) ? performance.memory.usedJSHeapSize : null } })()`),
+      estado: await ev(`window.__P.m3d()`),
+      raf: await ev(`window.__P.rafEspia(900)`, 6000) };
+    /* LA COMPUERTA DE LA PROTESIS, por los dos lados. */
+    await ev(`window.__P.m3dClic('m3d-btn')`);
+    await pausa(300);
+    const prot = { abiertoNativa: await ev(`window.__P.m3d()`) };
+    await ev(`window.__P.sel('vm_morf','Pr\u00f3tesis mec\u00e1nica')`);
+    prot.conProtesis = await ev(`window.__P.m3d()`);
+    await ev(`window.__P.sel('vm_morf','Normal')`);
+    prot.vuelta = await ev(`window.__P.m3d()`);
+    g.protesis = prot;
+    /* AL CAMBIAR DE PESTANA. */
+    await ev(`window.__P.m3dClic('m3d-btn')`);
+    await pausa(300);
+    const antesTab = await ev(`window.__P.m3d()`);
+    await ev(`(function(){ showTab('valvulas'); return 1 })()`);
+    await ev(`window.__P.abrirEte()`);
+    g.tab = { antes: antesTab, despues: await ev(`window.__P.m3d()`) };
+    out.grupos.panel = g;
+  }
+
+  /* ══ Y3 · CAPTURA DEL PANEL ══════════════════════════════════════════════════════════════
+     ⚠️ EL RECORTE VA EN COORDENADAS DE PAGINA y getBoundingClientRect las da del VIEWPORT: con
+     la pagina desplazada el PNG sale en negro. Se lleva la fila al viewport antes de recortar. */
+  if (corre('cap3d')) {
+    if (!DEST) { out.grupos.cap3d = 'FALTA --dest'; }
+    else {
+      const g = { archivos: [] };
+      const PNG = async (nom, clip) => {
+        const par = { format: 'png' }; if (clip) par.clip = Object.assign({ scale: 2 }, clip);
+        const r = await cdp.send('Page.captureScreenshot', par, sessionId);
+        const f = join(DEST, nom + '.png');
+        await writeFile(f, Buffer.from(r.data, 'base64')); g.archivos.push(f); };
+      for (const claro of [false, true]) {
+        await ev(`window.__P.tema(${claro})`);
+        for (const [w, h] of [[1200,700],[768,1024],[390,844]]) {
+          await viewport(w, h);
+          await ev(`window.__P.nuevo()`);
+          await ev(`window.__P.abrirEte()`);
+          await ev(`window.__P.despejar()`);
+          if (!(await ev(`window.__P.m3d()`)).visible) await ev(`window.__P.m3dClic('m3d-btn')`);
+          await pausa(420);
+          /* La fila al viewport, y el clip en coordenadas de PAGINA. */
+          const c = await ev(`(function(){ var e = document.getElementById('m3d-fila');
+            if (!e) return null; e.scrollIntoView({ block: 'center' });
+            var r = e.getBoundingClientRect();
+            return { x: Math.max(0, Math.round(r.left + window.scrollX) - 6),
+                     y: Math.max(0, Math.round(r.top + window.scrollY) - 6),
+                     width: Math.round(r.width) + 12, height: Math.round(r.height) + 12 } })()`);
+          await pausa(140);
+          await PNG('m3d_' + w + '_' + (claro ? 'claro' : 'oscuro'), c);
+        }
+      }
+      await ev(`window.__P.tema(false)`); await viewport(1200, 700);
+      out.grupos.cap3d = g;
+    }
   }
 
   out.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
