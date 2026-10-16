@@ -772,7 +772,7 @@ async function main() {
     const t0 = Date.now(); const g = {};
     try {
       await montar({ ai_vol: '98', ddfvi: '46', siv: '16', ppvi: '16', fevi: '55' }, { sexo: 'M' });
-      for (const k of ['ai', 'vi']) {
+      for (const k of ['ai', 'vi2']) {
         const r = await J(`JSON.stringify((function(){
           try { showTab('refs') } catch (e) {}
           /* ⚠️ SIN REGEX NI COMILLAS ANIDADAS EN EL SELECTOR: una comilla simple dentro de
