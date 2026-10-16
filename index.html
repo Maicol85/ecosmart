@@ -4036,6 +4036,9 @@ window.cerrarSesionReal = cerrarSesionReal;
         <span class="calc-lbl">Cortes y referencia del ventrículo izquierdo
           <button type="button" class="vinfo-btn" data-vinfo="vi-card" aria-expanded="false"
                   aria-label="Cortes y referencia del ventrículo izquierdo" onclick="vInfoClic(this)">&#9432;</button></span>
+        <span class="calc-lbl" style="flex:0 0 auto;">Geometría
+          <button type="button" class="vinfo-btn" data-vinfo="vi-geo" aria-expanded="false"
+                  aria-label="Gráfico de geometría del ventrículo izquierdo" onclick="vInfoClic(this)">&#9432;</button></span>
       </div>
       <div class="grid-4">
         <div class="fg">
@@ -37838,7 +37841,13 @@ const VINFO = Object.freeze({
      el punto del paciente, que se arma al abrir y se repinta en vivo. No llevan `tit`, `lee`
      ni `fuente` porque su contenido entero —el titulo incluido— lo construye su funcion. */
   'ai-card': { ancho: 348, dyn: function () { return evTarjetaAI() } },
-  'vi-card': { ancho: 360, dyn: function () { return evTarjetaVI() } }
+  'vi-card': { ancho: 360, dyn: function () { return evTarjetaVI() } },
+  /* ⚠️ LA GEOMETRIA VA EN SU PROPIO GLOBO Y NO DENTRO DE LA TARJETA DEL VENTRICULO, y es una
+     MEDICION y no una preferencia: con las cinco barras la tarjeta ya mide hasta 527 px, y el
+     grafico suma unos 240 — a 1200 x 700, donde el hueco util arriba o abajo del globo es menor
+     que la ventana, las dos cosas juntas obligaban a scroll INTERNO, que es justo lo que la
+     orden de esta tanda manda evitar. Son dos globos, como la propia orden preve. */
+  'vi-geo': { ancho: 360, dyn: function () { return evTarjetaGeo() } }
 });
 let _vInfoId = null;
 function _vInfoBtnDe(clave) {
@@ -38290,6 +38299,197 @@ const EV_ADJ = Object.freeze({ normal: 'normal', leve: 'levemente aumentado',
 function _evAdj(k) { return EV_ADJ[k] || k; }
 window.evTarjetaVI = evTarjetaVI;
 
+/* ══ EL GRAFICO DE GEOMETRIA DEL VI — CUATRO CUADRANTES («L5», 2026-10-16) ════════════════════
+   Decision de Maicol: tipo Forrester, con la masa indexada en un eje y el espesor parietal
+   relativo en el otro, y el punto del paciente encima. Los cuatro cuadrantes son los de la
+   Figura 6 de la ASE/EACVI 2015 y los decide `calcGeometriaVI`, que es el MISMO dueno que
+   escribe la geometria en el informe: aca no se reimplementa ninguna regla.
+
+   ⚠️ LOS DOS EJES SON SIMETRICOS Y POR TRAMOS, NO LINEALES. Las dos mitades de cada eje miden lo
+   mismo —masa normal arriba del piso visual y masa aumentada hasta el techo; espesor por debajo
+   y por encima de su corte—, que es lo que pidio Maicol y lo que hace legible el cuadrante
+   chico. La consecuencia hay que saberla: la distancia en pixeles NO es proporcional a la
+   diferencia en gramos. El dibujo es un esquema de clasificacion, no una escala de medida.
+
+   ⚠️ LA MITAD DE LA HIPERTROFIA SE PARTE EN TRES BANDAS DE IGUAL ALTO, por los cortes de
+   gravedad por masa del sexo cargado, SIN rayas entre ellas: lo unico que cambia es el tono, mas
+   oscuro cuanto mas grave. Y las bandas NO llevan escrita la palabra leve, moderada ni severa
+   —el color no es lo unico que informa: los numeros de los cortes van con su unidad y la
+   gravedad se dice EN PALABRAS en la linea de abajo, con las mismas que usa el informe—.
+
+   ⚠️ EL REMODELADO CONCENTRICO Y LA GEOMETRIA NORMAL NO LLEVAN GRAVEDAD, y por eso sus dos
+   cuadrantes son de un solo tono: la gravedad que la app calcula es la de la HIPERTROFIA, por
+   masa indexada, y atribuirsela a una masa normal seria inventar un grado. */
+const EV_GEO_TONO = Object.freeze({
+  'Normal': '--green', 'Remodelado concéntrico': '--yellow',
+  'Hipertrofia excéntrica': '--orange', 'Hipertrofia concéntrica': '--red',
+});
+const EV_GEO_OPAC = Object.freeze([0.40, 0.65, 0.95]);   // leve, moderada, severa
+
+/* La escala por tramos de un eje: devuelve una funcion valor -> pixel. */
+function _evEjeTramos(tramos) {
+  return function (x) {
+    for (let i = 0; i < tramos.length; i++) {
+      const t = tramos[i];
+      if (x <= t.hasta || i === tramos.length - 1) {
+        const f = Math.max(0, Math.min(1, (x - t.desde) / ((t.hasta - t.desde) || 1)));
+        return t.p0 + f * (t.p1 - t.p0);
+      }
+    }
+    return tramos[tramos.length - 1].p1;
+  };
+}
+function evGraficoGeometria(sexo, valorMasa, valorRwt) {
+  const sx = (String(sexo || '').charAt(0).toUpperCase() === 'F') ? 'F' : 'M';
+  const W = 326, H = 190, MI = 40, MD = 6, MS = 6, MB = 20;
+  const X0 = MI, X1 = W - MD, Y0 = MS, Y1 = H - MB;
+  const lim = (sx === 'F') ? UMBRAL_MASA_HVI_M : UMBRAL_MASA_HVI_H;
+  /* Los tres cortes de gravedad salen de SONDEAR a `hviSeveridad`, igual que las barras: aca no
+     hay una tabla con 116, 132 y 149 escritos. */
+  const bm = evCortes(sx).masa || [];
+  const cLeve = (bm[0] && bm[0].hasta) || lim;              // ultimo valor sin hipertrofia
+  const cMod  = (bm[1] && bm[1].hasta) || (cLeve + 16);     // techo de la leve
+  const cSev  = (bm[2] && bm[2].hasta) || (cMod + 17);      // techo de la moderada
+  const techo = cSev + (cSev - cMod);                       // tope VISUAL de la banda severa
+  const piso  = Math.max(20, cLeve - (techo - cLeve) / 3);  // piso VISUAL de la masa normal
+
+  const mitad = (Y0 + Y1) / 2, terc = (mitad - Y0) / 3;
+  const yEsc = _evEjeTramos([
+    { desde: piso,  hasta: cLeve, p0: Y1, p1: mitad },
+    { desde: cLeve, hasta: cMod,  p0: mitad, p1: mitad - terc },
+    { desde: cMod,  hasta: cSev,  p0: mitad - terc, p1: mitad - 2 * terc },
+    { desde: cSev,  hasta: techo, p0: mitad - 2 * terc, p1: Y0 },
+  ]);
+  const medioX = (X0 + X1) / 2;
+  const xEsc = _evEjeTramos([
+    { desde: 0.20, hasta: 0.42, p0: X0, p1: medioX },
+    { desde: 0.42, hasta: 0.70, p0: medioX, p1: X1 },
+  ]);
+
+  const svg = _evSvg('svg', { viewBox: '0 0 ' + W + ' ' + H, width: '100%', height: H,
+                              role: 'img', 'data-ev-barra': 'vi-geom' });
+  const rect = (x, y, w2, h2, geo, op, nivel) => {
+    if (w2 <= 0 || h2 <= 0) return;
+    svg.appendChild(_evSvg('rect', { x: x.toFixed(1), y: y.toFixed(1),
+      width: w2.toFixed(1), height: h2.toFixed(1), fill: 'var(' + EV_GEO_TONO[geo] + ')',
+      'fill-opacity': op, 'data-ev-cuad': geo + (nivel ? ('|' + nivel) : '') }));
+  };
+  /* Mitad de abajo: masa normal. Un solo tono por cuadrante, sin gravedad. */
+  rect(X0, mitad, medioX - X0, Y1 - mitad, 'Normal', 0.45);
+  rect(medioX, mitad, X1 - medioX, Y1 - mitad, 'Remodelado concéntrico', 0.45);
+  /* Mitad de arriba: hipertrofia, en tres bandas de igual alto y sin rayas entre ellas. */
+  for (let i = 0; i < 3; i++) {
+    const y = mitad - (i + 1) * terc;
+    rect(X0, y, medioX - X0, terc, 'Hipertrofia excéntrica', EV_GEO_OPAC[i], i + 1);
+    rect(medioX, y, X1 - medioX, terc, 'Hipertrofia concéntrica', EV_GEO_OPAC[i], i + 1);
+  }
+  svg.appendChild(_evSvg('rect', { x: X0 + 0.5, y: Y0 + 0.5, width: X1 - X0 - 1, height: Y1 - Y0 - 1,
+    fill: 'none', stroke: 'var(--border)', 'stroke-width': 1 }));
+  /* La unica linea del dibujo separa las dos MITADES, que es lo que cambia de cuadrante; entre
+     las tres bandas de gravedad no hay ninguna. */
+  svg.appendChild(_evSvg('line', { x1: X0, y1: mitad, x2: X1, y2: mitad,
+    stroke: 'var(--bg3)', 'stroke-width': 1 }));
+  svg.appendChild(_evSvg('line', { x1: medioX, y1: Y0, x2: medioX, y2: Y1,
+    stroke: 'var(--bg3)', 'stroke-width': 1 }));
+
+  const txt = (x, y, s, anchor, size, fill) => {
+    const t = _evSvg('text', { x: x.toFixed(1), y: y.toFixed(1), 'text-anchor': anchor || 'middle',
+      'font-size': size || 8.5, fill: fill || 'var(--text2)' });
+    t.textContent = s; svg.appendChild(t); return t;
+  };
+  /* Los nombres de los cuadrantes, en dos lineas cuando hacen falta. */
+  txt((X0 + medioX) / 2, Y1 - 8, 'Geometría normal', 'middle', 8.5, 'var(--text)');
+  txt((medioX + X1) / 2, Y1 - 8, 'Remodelado concéntrico', 'middle', 8.5, 'var(--text)');
+  txt((X0 + medioX) / 2, Y0 + 11, 'Hipertrofia excéntrica', 'middle', 8.5, 'var(--text)');
+  txt((medioX + X1) / 2, Y0 + 11, 'Hipertrofia concéntrica', 'middle', 8.5, 'var(--text)');
+  /* Los numeros de los cortes: la masa en su eje y el espesor debajo del suyo, los dos CON su
+     unidad, y repetidos en una linea de texto debajo del dibujo. */
+  [[cLeve, lim], [cMod, null], [cSev, null]].forEach(function (par, i) {
+    const y = yEsc(par[0]);
+    const t = _evSvg('text', { x: X0 - 3, y: (y + 3).toFixed(1), 'text-anchor': 'end',
+      'font-size': 8, fill: 'var(--text2)', 'data-ev-corte': 'vi-geom-masa' });
+    t.textContent = _evNum(par[0], 0) + (i === 0 ? ' g/m²' : '');
+    svg.appendChild(t);
+  });
+  const tx = _evSvg('text', { x: medioX, y: H - 6, 'text-anchor': 'middle', 'font-size': 8,
+    fill: 'var(--text2)', 'data-ev-corte': 'vi-geom-rwt' });
+  tx.textContent = '0,42';
+  svg.appendChild(tx);
+  txt(X0, H - 6, '0,20', 'start', 8);
+  txt(X1, H - 6, '0,70', 'end', 8);
+  txt(X0 - 3, Y0 + 6, 'g/m²', 'end', 7.5);
+
+  /* El punto del paciente. Sin masa o sin espesor no se dibuja. */
+  const m = (valorMasa != null && isFinite(valorMasa)) ? valorMasa : null;
+  const r = (valorRwt != null && isFinite(valorRwt)) ? valorRwt : null;
+  if (m !== null && r !== null) {
+    svg.appendChild(_evSvg('circle', { cx: xEsc(Math.max(0.20, Math.min(0.70, r))).toFixed(1),
+      cy: yEsc(Math.max(piso, Math.min(techo, m))).toFixed(1), r: 5.5,
+      fill: 'var(--text)', stroke: 'var(--bg3)', 'stroke-width': 2, 'data-ev-punto': 'vi-geom' }));
+  }
+  svg.setAttribute('aria-label', 'Geometría del ventrículo izquierdo. '
+    + (m !== null && r !== null ? ('Paciente con masa indexada ' + _evNum(m, 0) + ' g por metro cuadrado y espesor parietal relativo ' + _evNum(r, 2) + '. ') : 'Sin punto del paciente. ')
+    + 'Cortes de masa en ' + _evNum(cLeve, 0) + ', ' + _evNum(cMod, 0) + ' y ' + _evNum(cSev, 0)
+    + ' g por metro cuadrado, y de espesor parietal relativo en 0,42.');
+  return { svg: svg, cortes: [cLeve, cMod, cSev] };
+}
+
+/* La tarjeta de la geometria: el grafico, la linea con lo que dice el informe y la fuente. */
+function evTarjetaGeo() {
+  const fr = document.createDocumentFragment();
+  const h = document.createElement('h4');
+  h.id = 'vinfo-tit';
+  h.textContent = 'Geometría del ventrículo izquierdo';
+  fr.appendChild(h);
+  const sx = _evSexoCargado();
+  const pDD = vPlaus('ddfvi'), pSIV = vPlaus('siv'), pPP = vPlaus('ppvi');
+  const bsa = getBSA();
+  let masaIdx = null, rwt = null;
+  if (pDD.val != null && pSIV.val != null && pPP.val != null
+      && !pDD.fuera && !pSIV.fuera && !pPP.fuera) {
+    const mm = 0.8 * (1.04 * ((pDD.val / 10 + pSIV.val / 10 + pPP.val / 10) ** 3 - (pDD.val / 10) ** 3)) + 0.6;
+    if (bsa) masaIdx = Math.round(mm / bsa);
+    rwt = +(2 * pPP.val / pDD.val).toFixed(2);
+  }
+  const g = evGraficoGeometria(sx || 'M', (sx ? masaIdx : null), (sx ? rwt : null));
+  const w = document.createElement('div');
+  w.className = 'ev-bl';
+  w.appendChild(_evDiv('ev-rot', 'Masa indexada y espesor parietal relativo'));
+  w.appendChild(g.svg);
+  w.appendChild(_evDiv('ev-cat', 'Cortes de masa: ' + g.cortes.map(function (x) { return _evNum(x, 0) }).join(' · ')
+    + ' g/m². Corte de espesor parietal relativo: 0,42.', { 'data-ev-cat': 'vi-geom-cortes' }));
+
+  /* La geometria y su gravedad las dice el DUENO, con las mismas palabras que el informe. */
+  let cat = '', avi = '';
+  if (!sx) avi = 'Sin sexo cargado: no se ubica el punto. Se muestran los cortes del varón; en la mujer son otros (ver Referencias).';
+  else if (rwt === null) avi = 'Cargar el diámetro diastólico, el septum y la pared posterior.';
+  else if (masaIdx === null) avi = 'Masa sin indexar por falta de superficie corporal: no se ubica el punto. Cargar peso y talla.';
+  else {
+    /* ⚠️ EL TEXTO ES EL DEL INFORME, NO UNO PROPIO: el informe escribe «Geometría normal.» para
+       la normal y, para las otras tres, el patron que devuelve el dueno con la gravedad entre
+       parentesis. Redactarlo aparte seria una segunda version de la misma frase sobre el mismo
+       paciente, que es lo que esta tanda existe para no hacer. */
+    const geo = calcGeometriaVI(masaIdx, rwt, sx);
+    if (geo === 'Normal') cat = 'Geometría normal';
+    else if (geo && geo !== '—') {
+      cat = geo;
+      if (geo.indexOf('Hipertrofia') === 0) {
+        const sev = hviSeveridad(masaIdx, sx);
+        if (sev) cat += ' (' + sev + ')';
+      }
+    }
+    if (cat) cat += ' — masa indexada ' + _evNum(masaIdx, 0) + ' g/m², espesor parietal relativo ' + _evNum(rwt, 2) + '.';
+  }
+  if (cat) w.appendChild(_evDiv('ev-cat', cat, { 'data-ev-cat': 'vi-geom' }));
+  if (avi) w.appendChild(_evDiv('ev-avi', avi, { 'data-ev-aviso': 'vi-geom' }));
+  const f1 = evFuenteLinea('GEO-VI-002'), f2 = evFuenteLinea('MAS-VI-002');
+  if (f1) w.appendChild(_evDiv('ev-fte', 'Fuente: ' + f1, { 'data-ev-fuente': 'vi-geom' }));
+  if (f2 && f2 !== f1) w.appendChild(_evDiv('ev-fte', 'Fuente de la gravedad: ' + f2, { 'data-ev-fuente': 'vi-geom-sev' }));
+  fr.appendChild(w);
+  return fr;
+}
+window.evGraficoGeometria = evGraficoGeometria; window.evTarjetaGeo = evTarjetaGeo;
+
 /* ══ LAS ENTRADAS DE AI Y DE VI EN LA PESTANA REFERENCIAS («L2», 2026-10-16) ══════════════════
    La pestana NO se reestructura (un trabajo posterior la ordena en subpestanas): se agregan dos
    tarjetas mas, con la forma que las demas ya tienen —un `card` con su `card-head` plegable—.
@@ -38425,6 +38625,14 @@ function evRefPintar(id) {
       { clave: 'ref-vi-vsfvi-f', rotulo: 'Volumen telesistólico indexado — mujer (ml/m²)', banda: 'vsfvi', lo: 5, hi: 70, unidad: 'ml/m²', dec: 0, ficha: 'DIM-VI-004' },
       { clave: 'ref-vi-masa-f', rotulo: 'Masa indexada — mujer (g/m²)', banda: 'masa', lo: 50, hi: 200, unidad: 'g/m²', dec: 0, ficha: 'MAS-VI-002' },
     ], 'F'));
+    /* El MISMO grafico de la tarjeta, uno por sexo y sin el punto del paciente. */
+    [['M', 'varón'], ['F', 'mujer']].forEach(function (par) {
+      const w = document.createElement('div');
+      w.className = 'ev-ref';
+      w.appendChild(_evDiv('ev-rot', 'Geometría del ventrículo izquierdo — ' + par[1]));
+      w.appendChild(evGraficoGeometria(par[0], null, null).svg);
+      host.appendChild(w);
+    });
     host.appendChild(B.nodo);
     host.dataset.evPintado = '1';
   }

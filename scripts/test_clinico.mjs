@@ -64520,13 +64520,13 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
      se pone rojo sin que nada de Valvulas haya cambiado. */
   ex.push(['(H) las claves del marcado tienen entrada en el registro, sin ninguna de legado',
     /* ADAPTADO el 2026-10-15 (Z5): 22 -> 23 entradas de registro, por prot-obstr.
-       ADAPTADO el 2026-10-16 (L2): 23 -> 24, por ai-card, la tarjeta grafica de la auricula
-       izquierda. Ese globo NO esta en Valvulas sino en la pestana AI/VI, igual que tapse-psap
-       vive en el Doppler tricuspideo: lo que esta condicion sigue exigiendo es que TODA clave
-       del marcado de Valvulas tenga entrada —que es lo que impide una tarjeta VACIA— y que no
-       quede ninguna de legado. */
+       ADAPTADO el 2026-10-16 (L): 23 -> 26, por ai-card, vi-card y vi-geo, las tres tarjetas
+       graficas de la pestana AI/VI. Esos globos NO estan en Valvulas, igual que tapse-psap vive
+       en el Doppler tricuspideo: lo que esta condicion sigue exigiendo es que TODA clave del
+       marcado de Valvulas tenga entrada —que es lo que impide una tarjeta VACIA— y que no quede
+       ninguna de legado. */
     HAY_INFO && globos.every(function(b){ return !!VINFO[b.getAttribute('data-vinfo')]; }) &&
-    Object.keys(VINFO).length === 24,
+    Object.keys(VINFO).length === 26,
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
   ex.push(['(H) y la tarjeta se coloca SIEMPRE dentro de la pantalla, sin cortarse',
     (function(){ const b = document.querySelector('[data-vinfo="avm-thp"]');

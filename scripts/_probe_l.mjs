@@ -729,6 +729,36 @@ async function main() {
     out.grupos.tarjeta = g; parcial('tarjeta', t0);
   }
 
+  /* ── geom: el grafico de cuatro cuadrantes ── */
+  const ESC_GEO = [
+    { n: 'normal H (masa 70, rwt 0,36)', sexo: 'M', c: { ddfvi: '50', siv: '9', ppvi: '9' } },
+    { n: 'remodelado conc. H (rwt 0,52)', sexo: 'M', c: { ddfvi: '42', siv: '10', ppvi: '11' } },
+    { n: 'HVI excentrica H', sexo: 'M', c: { ddfvi: '62', siv: '12', ppvi: '10' } },
+    { n: 'HVI concentrica severa H', sexo: 'M', c: { ddfvi: '46', siv: '18', ppvi: '18' } },
+    { n: 'HVI concentrica M', sexo: 'F', c: { ddfvi: '44', siv: '14', ppvi: '14' } },
+    { n: 'sin sexo', sexo: '', c: { ddfvi: '50', siv: '12', ppvi: '12' } },
+    { n: 'sin datos', sexo: 'M', c: {} },
+    { n: 'sin ASC', sexo: 'M', c: { ddfvi: '50', siv: '12', ppvi: '12' }, sinBsa: true },
+  ];
+  if (corre('geom')) {
+    const t0 = Date.now(); const g = {};
+    for (const E of ESC_GEO) {
+      try {
+        await montar(E.c, { sinBsa: E.sinBsa, sexo: E.sexo });
+        await ev('(function(){ try { calcVI() } catch(e) {} return 1 })()');
+        const nav = await J("JSON.stringify(window.__P.abrirPara('ddfvi'))");
+        if (!nav || !nav.ok) throw new Error('NO SE PUDO LLEGAR A AI/VI');
+        const ab = await J("JSON.stringify(window.__P.abrirTarjeta('vi-geo'))");
+        const le = ab && ab.err ? { err: ab.err } : await J('JSON.stringify(window.__P.leerTarjeta())');
+        g[E.n] = { ab, cuad: le.cuad, puntos: le.puntos, cat: le.cat, avisos: le.avisos,
+                   cortes: le.cortes, fuentes: le.fuentes, scroll: le.scroll,
+                   pantalla: await J('JSON.stringify(window.__P.vi())') };
+        await tecla('Escape');
+      } catch (e) { g[E.n] = { ABORTO: e.message }; abortos.push('geom ' + E.n + ': ' + e.message); }
+    }
+    out.grupos.geom = g; parcial('geom', t0);
+  }
+
   /* ── vivo: Escape, clic afuera, foco, en vivo y 20 aperturas ── */
   if (corre('vivo')) {
     const t0 = Date.now(); const g = {};
