@@ -927,6 +927,45 @@ window.__P = {
   /* La tabla PINTADA, fila por fila, mas el valor crudo de cada campo para poder compararlos. */
   /* Los ROTULOS que el dibujo pinta, leidos de la lista que el pintor arma. No se puede leer el
      canvas, asi que se instrumenta el pintor: se espia pushL y se registra que se le pidio. */
+  /* ══ WILKINS · LAS DOS CALCULADORAS CON LAS MISMAS ENTRADAS ══════════════════════════════
+     Se ponen los cuatro criterios en las dos pantallas y se lee lo que cada una PUBLICA: el
+     puntaje y el texto de interpretacion, sin badge. Comparar el codigo no alcanza — lo que
+     importa es lo que el medico ve. */
+  wilk(m, e, c, su) {
+    var o = {};
+    var poner = function(id, v){ var el = document.getElementById(id);
+      if (!el) return 'NO EXISTE ' + id;
+      var hay = Array.prototype.slice.call(el.options || []).map(function(x){ return x.value });
+      if (hay.indexOf(v) < 0) return 'NO HAY OPCION ' + JSON.stringify(v) + ' en ' + id + ' (hay ' + JSON.stringify(hay) + ')';
+      el.value = v; el.dispatchEvent(new Event('change', { bubbles: true }));
+      return el.value === v ? null : 'NO QUEDO en ' + id };
+    var err = [];
+    /* ⚠️ EL CENTINELA DE «SIN PUNTUAR» NO ES EL MISMO EN LAS DOS PANTALLAS: en ETE es el valor
+       «0» y en Calculadoras la cadena vacia. El «@» de la escena se traduce al de cada una, que
+       es lo que el medico puede elegir ahi. Esa diferencia de dominio ES una de las que la
+       tabla reporta. */
+    var ete0 = function(x){ return x === '@' ? '0' : x };
+    var cx0  = function(x){ return x === '@' ? '' : x };
+    [['wilkins_movilidad', m], ['wilkins_engrosamiento', e],
+     ['wilkins_calcificacion', c], ['wilkins_subvalvular', su]].forEach(function(par){
+      var r = poner(par[0], ete0(par[1])); if (r) err.push(r) });
+    [['cx_wilk_mov', m], ['cx_wilk_eng', e], ['cx_wilk_cal', c], ['cx_wilk_sub', su]].forEach(function(par){
+      var r = poner(par[0], cx0(par[1])); if (r) err.push(r) });
+    try { if (typeof calcWilkins === 'function') calcWilkins() } catch (x) { err.push('EXC calcWilkins: ' + x.message) }
+    try { if (typeof cxWilkins === 'function') cxWilkins() } catch (x) { err.push('EXC cxWilkins: ' + x.message) }
+    /* El regex se ARMA DESDE UNA CADENA: un salto de linea real dentro de un regex literal es
+       ilegal, y el template de la sonda cocina las barras. Es la trampa que este repo ya tiene
+       escrita para los saltos de linea. */
+    var _bl = new RegExp(String.fromCharCode(92) + 's+', 'g');
+    var t = function(id){ var el = document.getElementById(id);
+      return el ? (el.textContent || '').replace(_bl, ' ').trim() : 'NO EXISTE' };
+    o.err = err;
+    o.ete = { total: t('wilkins-total'), interp: t('wilkins-interp'),
+              banda: (document.getElementById('wilkins-interp') || {}).dataset
+                     ? document.getElementById('wilkins-interp').dataset.banda : null };
+    o.cx  = { total: t('cx-wilkins-total') };
+    return o },
+
   m3dRotulos() {
     if (typeof m3dRotulosExtra !== 'function') return 'SIN FN';
     var out = [];
@@ -1938,6 +1977,47 @@ async function main() {
     g.trombo = trb;
     await ev("window.__P.m3dClic('m3d-btn')");
     out.grupos.detalles = g;
+  }
+
+  /* ══ WILKINS · LA TABLA DE DIFERENCIAS ══════════════════════════════════════════════════ */
+  if (corre('wilkins')) {
+    const g = { escenas: {} };
+    await ev('window.__P.nuevo()');
+    await ev('window.__P.abrirEte()');
+    await ev('window.__P.despejar()');
+    /* Abrir las dos tarjetas: sin eso los selects no tienen geometria. */
+    g.puertas = await ev(`(function(){ var o = {};
+      try { if (document.getElementById('ete-seccion-wilkins') &&
+                getComputedStyle(document.getElementById('ete-seccion-wilkins')).display === 'none')
+          toggleEteSeccion('wilkins', null);
+        o.ete = getComputedStyle(document.getElementById('ete-seccion-wilkins')).display;
+      } catch (e) { o.ete = 'EXC: ' + e.message }
+      try { if (document.getElementById('cx-wilkins') &&
+                getComputedStyle(document.getElementById('cx-wilkins')).display === 'none')
+          toggleCard('cx-wilkins', null);
+        o.cx = getComputedStyle(document.getElementById('cx-wilkins')).display;
+      } catch (e) { o.cx = 'EXC: ' + e.message }
+      return o })()`);
+    /* Las escenas: los tres tramos por sus bordes, el parcial y los dos centinelas. */
+    const ESCW = {
+      'todos 1 (4/16)':      ['1','1','1','1'],
+      'favorable 8':         ['2','2','2','2'],
+      'suboptimo 9':         ['3','2','2','2'],
+      'suboptimo 11':        ['3','3','3','2'],
+      'no favorable 12':     ['3','3','3','3'],
+      'no favorable 16':     ['4','4','4','4'],
+      'parcial 3 de 4':      ['2','2','2',null],
+      'sin puntuar':         [null,null,null,null]
+    };
+    for (const nom of Object.keys(ESCW)) {
+      const v = ESCW[nom];
+      /* El centinela de cada pantalla es DISTINTO: «0» en ETE y «» en Calculadoras. Se usa el
+         de cada una, que es lo que el medico puede elegir. */
+      const r = await ev('window.__P.wilk(' +
+        v.map(x => JSON.stringify(x === null ? '@' : x)).join(',') + ')');
+      g.escenas[nom] = r;
+    }
+    out.grupos.wilkins = g;
   }
 
   out.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
