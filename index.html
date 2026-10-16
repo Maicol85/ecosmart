@@ -21828,6 +21828,223 @@ function vsfviInterp(idx, sexo) {
   return {txt:'normal', cls:'green'};
 }
 
+/* Las tres se exportan para que el registro de evidencia y las tarjetas puedan SONDEARLAS en
+   vez de copiar sus numeros. No cambia su comportamiento ni quien las llama. */
+window.hviSeveridad = hviSeveridad;
+window.vdfviInterp = vdfviInterp; window.vsfviInterp = vsfviInterp;
+
+/* ══ EL REGISTRO DE EVIDENCIA DE LA AI Y DEL VI — «L1» (2026-10-16) ═══════════════════════════
+   Decision de Maicol. Es la semilla de un registro que despues van a leer otras tarjetas, la
+   pestana Referencias y un mapa de evidencia: por eso son DATOS PUROS —ni una etiqueta de HTML,
+   ni una funcion, ni un nodo— y pasan por JSON.stringify y vuelven iguales. Un caso de la suite
+   lo verifica.
+
+   ⚠️ LA FICHA NO ES EL DUENO DE NINGUN CORTE, Y ESO ES LO QUE EVITA LA SEGUNDA COPIA. El campo
+   `valor` describe en palabras lo que la app aplica y el campo `duenio` NOMBRA la funcion o la
+   constante que lo decide; lo que las tarjetas DIBUJAN no sale de aca sino de sondear a ese
+   dueno (ver `evCortes`). Es el defecto que este archivo ya pago cuatro veces: dos juegos de
+   numeros para la misma pregunta, y el que se olvida es el que se ve.
+
+   ⚠️ «verificado» SIGNIFICA QUE EL DATO SE VIO EN EL PDF ORIGINAL, no que el documento extenso
+   lo cite. Para cada ficha se anota la tabla o la figura, el FOLIO IMPRESO y la HOJA DEL PDF,
+   que NO coinciden en el apendice: en el cuerpo de la guia el pie dice «Lang et al 7» en la
+   hoja 7, y en el apendice la hoja 47 lleva el folio «39.e8». Comprobado en el pie de cada
+   pagina citada.
+   «parcial» es «el numero esta en el original pero la app lo aplica de otra forma» —por ejemplo
+   un corte unico donde la guia da uno por sexo—; «por verificar» es «no lo encontre en el
+   original». Las tarjetas y Referencias muestran la linea de fuente SOLO de las fichas
+   «verificado»: mejor sin linea que con una fuente no comprobada.
+
+   ⚠️ SIN NOTAS INTERNAS NI RESERVAS ADENTRO DE LA FICHA: este repositorio es PUBLICO. Lo que
+   hay que discutir vive en `docs/PENDIENTES.md` y lo que hubo que leer para verificar, en
+   `docs/fuentes/FUENTES.md`.
+
+   ⚠️ LOS ID NO SE REUSAN NUNCA. Una ficha que se retira deja su id libre y muerto: un id
+   reciclado hace que una cita vieja apunte a otro dato. */
+const EV_GUIA_ASE2015 = 'Lang RM y col., Recomendaciones para la cuantificacion de las camaras cardiacas por ecocardiografia en adultos, ASE/EACVI, 2015';
+const EV_DOI_ASE2015  = '10.1016/j.echo.2014.10.003';
+const EV_FECHA_VER    = '2026-10-16';
+
+const EV_REG = Object.freeze([
+  /* ── AURICULA IZQUIERDA ────────────────────────────────────────────────────────────────── */
+  Object.freeze({
+    id: 'DIM-AI-001', zona: 'AI/VI — Auricula izquierda', dato: 'Diametro anteroposterior',
+    valor: 'Dilatada con 40 mm o mas; un solo corte para los dos sexos',
+    duenio: 'aiDiamDilatado / UMBRAL_AI_DIAM_DILATADO',
+    guia: EV_GUIA_ASE2015, ubicacion: 'Tabla suplementaria 9', folio: '39.e14', hoja_pdf: 53,
+    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'criterio propio de EcoSmart',
+    estado: 'parcial', fecha_verificacion: EV_FECHA_VER,
+    fuente_una_linea: 'ASE/EACVI 2015, Tabla suplementaria 9 (folio 39.e14)',
+  }),
+  Object.freeze({
+    id: 'DIM-AI-002', zona: 'AI/VI — Auricula izquierda', dato: 'Area',
+    valor: 'Dilatada por encima de 20 cm2; un solo corte para los dos sexos',
+    duenio: 'aiAreaDilatada / UMBRAL_AI_AREA_DILATADA',
+    guia: EV_GUIA_ASE2015, ubicacion: '', folio: '', hoja_pdf: null,
+    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'criterio propio de EcoSmart',
+    estado: 'por verificar', fecha_verificacion: EV_FECHA_VER,
+    fuente_una_linea: '',
+  }),
+  Object.freeze({
+    id: 'DIM-AI-003', zona: 'AI/VI — Auricula izquierda', dato: 'Volumen indexado por superficie corporal',
+    valor: 'Normal hasta 34; dilatacion leve 35 a 41; moderada 42 a 48; severa por encima de 48 ml/m2. Los mismos valores en los dos sexos',
+    duenio: 'aiVolClasificar / AI_VOL_BANDAS',
+    guia: EV_GUIA_ASE2015, ubicacion: 'Tabla 4', folio: '10', hoja_pdf: 10,
+    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
+    fuente_una_linea: 'ASE/EACVI 2015, Tabla 4 (folio 10)',
+  }),
+  /* ── VENTRICULO IZQUIERDO ──────────────────────────────────────────────────────────────── */
+  Object.freeze({
+    id: 'DIM-VI-001', zona: 'AI/VI — Ventriculo izquierdo', dato: 'Diametro diastolico (DDVI)',
+    valor: 'De dimensiones normales hasta 58 mm; levemente dilatado hasta 65; dilatado por encima de 65. Un solo corte para los dos sexos, y un volumen telediastolico indexado alto puede elevar la categoria',
+    duenio: 'viDimCat',
+    guia: EV_GUIA_ASE2015, ubicacion: 'Tabla suplementaria 3', folio: '39.e8', hoja_pdf: 47,
+    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'criterio propio de EcoSmart',
+    estado: 'parcial', fecha_verificacion: EV_FECHA_VER,
+    fuente_una_linea: 'ASE/EACVI 2015, Tabla suplementaria 3 (folio 39.e8)',
+  }),
+  Object.freeze({
+    id: 'DIM-VI-002', zona: 'AI/VI — Ventriculo izquierdo', dato: 'Diametro sistolico (DSVI)',
+    valor: 'Varon: normal 25 a 40; leve 41 a 43; moderado 44 a 45; severo por encima de 45 mm. Mujer: normal 22 a 35; leve 36 a 38; moderado 39 a 41; severo por encima de 41 mm',
+    duenio: '',
+    guia: EV_GUIA_ASE2015, ubicacion: 'Tabla suplementaria 3', folio: '39.e8', hoja_pdf: 47,
+    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
+    fuente_una_linea: 'ASE/EACVI 2015, Tabla suplementaria 3 (folio 39.e8)',
+  }),
+  Object.freeze({
+    id: 'DIM-VI-003', zona: 'AI/VI — Ventriculo izquierdo', dato: 'Volumen telediastolico indexado',
+    valor: 'Varon: normal hasta 74; leve 75 a 89; moderado 90 a 100; severo por encima de 100 ml/m2. Mujer: normal hasta 61; leve 62 a 70; moderado 71 a 80; severo por encima de 80 ml/m2',
+    duenio: 'vdfviInterp',
+    guia: EV_GUIA_ASE2015, ubicacion: 'Tabla suplementaria 3', folio: '39.e8', hoja_pdf: 47,
+    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
+    fuente_una_linea: 'ASE/EACVI 2015, Tabla suplementaria 3 (folio 39.e8)',
+  }),
+  Object.freeze({
+    id: 'DIM-VI-004', zona: 'AI/VI — Ventriculo izquierdo', dato: 'Volumen telesistolico indexado',
+    valor: 'Varon: normal hasta 31; leve 32 a 38; moderado 39 a 45; severo por encima de 45 ml/m2. Mujer: normal hasta 24; leve 25 a 32; moderado 33 a 40; severo por encima de 40 ml/m2',
+    duenio: 'vsfviInterp',
+    guia: EV_GUIA_ASE2015, ubicacion: 'Tabla suplementaria 3', folio: '39.e8', hoja_pdf: 47,
+    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
+    fuente_una_linea: 'ASE/EACVI 2015, Tabla suplementaria 3 (folio 39.e8)',
+  }),
+  Object.freeze({
+    id: 'FUN-VI-001', zona: 'AI/VI — Ventriculo izquierdo', dato: 'Fraccion de eyeccion',
+    valor: 'Normal con 50 % o mas; levemente reducida 40 a 49; moderadamente reducida 30 a 39; severamente reducida por debajo de 30. Los mismos valores en los dos sexos',
+    duenio: 'calcVI (capsula) y generarInforme (texto)',
+    guia: '', ubicacion: '', folio: '', hoja_pdf: null,
+    doi: '', fuente_original: '', tipo: 'criterio propio de EcoSmart',
+    estado: 'por verificar', fecha_verificacion: EV_FECHA_VER,
+    fuente_una_linea: '',
+  }),
+  Object.freeze({
+    id: 'MAS-VI-001', zona: 'AI/VI — Ventriculo izquierdo', dato: 'Masa indexada — limite de normalidad',
+    valor: 'Normal por debajo de 115 g/m2 en el varon y de 95 g/m2 en la mujer (metodo lineal)',
+    duenio: 'UMBRAL_MASA_HVI_H / UMBRAL_MASA_HVI_M, via calcGeometriaVI',
+    guia: EV_GUIA_ASE2015, ubicacion: 'Tabla 6', folio: '17', hoja_pdf: 17,
+    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
+    fuente_una_linea: 'ASE/EACVI 2015, Tabla 6 (folio 17)',
+  }),
+  Object.freeze({
+    id: 'MAS-VI-002', zona: 'AI/VI — Ventriculo izquierdo', dato: 'Gravedad de la hipertrofia por masa indexada',
+    valor: 'Varon: leve 116 a 131; moderada 132 a 148; severa por encima de 148 g/m2. Mujer: leve 96 a 108; moderada 109 a 121; severa por encima de 121 g/m2',
+    duenio: 'hviSeveridad',
+    guia: EV_GUIA_ASE2015, ubicacion: 'Tabla suplementaria 3', folio: '39.e8', hoja_pdf: 47,
+    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
+    fuente_una_linea: 'ASE/EACVI 2015, Tabla suplementaria 3 (folio 39.e8)',
+  }),
+  Object.freeze({
+    id: 'GEO-VI-001', zona: 'AI/VI — Ventriculo izquierdo', dato: 'Espesor parietal relativo (RWT)',
+    valor: 'Normal por debajo de 0,42; con 0,42 o mas el espesor parietal relativo esta aumentado. El mismo corte en los dos sexos',
+    duenio: 'calcGeometriaVI',
+    guia: EV_GUIA_ASE2015, ubicacion: 'Tabla 6 y Figura 6', folio: '17', hoja_pdf: 17,
+    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
+    fuente_una_linea: 'ASE/EACVI 2015, Tabla 6 y Figura 6 (folio 17)',
+  }),
+  Object.freeze({
+    id: 'GEO-VI-002', zona: 'AI/VI — Ventriculo izquierdo', dato: 'Geometria del ventriculo izquierdo',
+    valor: 'Geometria normal: masa normal con RWT por debajo de 0,42. Remodelado concentrico: masa normal con RWT de 0,42 o mas. Hipertrofia excentrica: masa aumentada con RWT por debajo de 0,42. Hipertrofia concentrica: masa aumentada con RWT de 0,42 o mas',
+    duenio: 'calcGeometriaVI',
+    guia: EV_GUIA_ASE2015, ubicacion: 'Figura 6', folio: '17', hoja_pdf: 17,
+    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
+    fuente_una_linea: 'ASE/EACVI 2015, Figura 6 (folio 17)',
+  }),
+]);
+window.EV_REG = EV_REG;
+
+/* Devuelve la ficha por su id, o null. */
+function evFicha(id) {
+  for (let i = 0; i < EV_REG.length; i++) if (EV_REG[i].id === id) return EV_REG[i];
+  return null;
+}
+/* ⚠️ LA LINEA DE FUENTE SALE SOLO DE UNA FICHA «verificado», y por eso esta funcion existe en
+   vez de leer el campo directo: con el estado mezclado en cada llamador, el dia que una ficha
+   baje a «parcial» la tarjeta seguiria publicando su fuente. Cadena vacia = la tarjeta no
+   dibuja la linea. */
+function evFuenteLinea(id) {
+  const f = evFicha(id);
+  return (f && f.estado === 'verificado') ? (f.fuente_una_linea || '') : '';
+}
+window.evFicha = evFicha; window.evFuenteLinea = evFuenteLinea;
+
+/* ══ LOS CORTES QUE DIBUJAN LAS TARJETAS SALEN DE SONDEAR AL DUENO ════════════════════════════
+   No hay una tabla de numeros para dibujar: se le PREGUNTA a la misma funcion que clasifica al
+   paciente en el informe, barriendo su dominio y anotando donde cambia de categoria. Con eso la
+   barra y el papel firmado no se pueden desincronizar ni siquiera en un decimal, que es lo que
+   una tabla paralela no puede garantizar.
+   ⚠️ EL PASO DEFINE LA PRECISION DEL CORTE QUE SE PUBLICA: con paso 0,1 un corte en 0,42 se
+   encuentra exacto y uno en 0,425 se publicaria como 0,5. Ningun dueno de esta zona tiene cortes
+   con mas de un decimal —medido—, asi que 0,1 alcanza; el RWT va con 0,01 porque sus cortes son
+   centesimas. */
+function _evBandas(fn, lo, hi, paso, dec) {
+  const nom = (c) => {
+    if (c === null || c === undefined) return '';
+    if (typeof c === 'boolean') return c ? 'si' : 'no';
+    if (typeof c === 'object') return String(c.clave || c.txt || '');
+    return String(c);
+  };
+  const out = []; let prev = null, ini = lo;
+  for (let i = 0; ; i++) {
+    const x = +(lo + i * paso).toFixed(dec);
+    if (x > hi + paso / 2) break;
+    let k; try { k = nom(fn(x)); } catch (e) { k = ''; }
+    if (prev === null) { prev = k; ini = x; continue; }
+    if (k !== prev) { out.push({ k: prev, desde: ini, hasta: +(x - paso).toFixed(dec) }); prev = k; ini = x; }
+  }
+  out.push({ k: prev, desde: ini, hasta: hi });
+  return out;
+}
+/* El mapa completo, por sexo. Lo consumen las tarjetas, la pestana Referencias y el caso de la
+   suite que compara ficha contra dueno. */
+function evCortes(sexo) {
+  const sx = (String(sexo || '').charAt(0).toUpperCase() === 'F') ? 'F' : 'M';
+  const r = {};
+  if (typeof aiDiamDilatado === 'function')  r.aiDiam = _evBandas(aiDiamDilatado, 20, 80, 0.1, 1);
+  if (typeof aiAreaDilatada === 'function')  r.aiArea = _evBandas(aiAreaDilatada, 5, 50, 0.1, 1);
+  if (typeof aiVolClasificar === 'function') r.aiVol  = _evBandas(aiVolClasificar, 5, 90, 0.1, 1);
+  if (typeof viDimCat === 'function')        r.ddvi   = _evBandas((x) => viDimCat(x), 20, 90, 0.1, 1);
+  if (typeof vdfviInterp === 'function')     r.vdfvi  = _evBandas((x) => vdfviInterp(x, sx), 5, 160, 0.1, 1);
+  if (typeof vsfviInterp === 'function')     r.vsfvi  = _evBandas((x) => vsfviInterp(x, sx), 2, 100, 0.1, 1);
+  if (typeof hviSeveridad === 'function')    r.masa   = _evBandas((x) => hviSeveridad(x, sx), 40, 220, 1, 0);
+  /* La geometria es una funcion de DOS variables: se sondea el RWT con la masa fijada a cada
+     lado de su limite, que es exactamente lo que separa las dos filas del cuadro. */
+  if (typeof calcGeometriaVI === 'function') {
+    const mN = (sx === 'F') ? 60 : 70, mA = (sx === 'F') ? 140 : 170;
+    r.rwtMasaNormal   = _evBandas((x) => calcGeometriaVI(mN, x, sx), 0.15, 0.80, 0.01, 2);
+    r.rwtMasaAumentada = _evBandas((x) => calcGeometriaVI(mA, x, sx), 0.15, 0.80, 0.01, 2);
+  }
+  r.sexo = sx;
+  return r;
+}
+window.evCortes = evCortes;
+
 /* ══ LOS DOS CAMPOS AUTOMÁTICOS DEL VI (F1, 2026-10-15) ═══════════════════════════════════
    Decisión de Maicol. `vauto-vsfvi` = VDFVI × (1 − FEVI/100) y `vauto-vol-lat` = VDFVI − VSFVI,
    los dos de SOLO LECTURA. No votan, no escriben ningún grado, no tocan ningún texto del
