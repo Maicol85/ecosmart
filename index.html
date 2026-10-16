@@ -945,6 +945,26 @@
      Desktop: panel lateral fijo al lado del textarea, que se achica por el flex.
      Móvil (<=768px, el mismo corte que usa el resto de la app): drawer desde abajo al 65 %
      de la altura, con el textarea visible arriba. */
+  /* ══ LAS DOS COLUMNAS DEL INFORME CON EL PANEL ABIERTO (J4, 2026-10-16) ═════════════
+     Decisión de Maicol: con el panel ABIERTO el informe y el EN SUMA se angostan y quedan
+     apilados a la izquierda, y las frases ocupan UNA columna alta a la derecha, con la altura
+     de los dos cuadros juntos. Con el panel CERRADO el `.frases-slot` lleva `hidden`, así que
+     la fila tiene un solo item y las dos tarjetas vuelven a todo el ancho —idéntico a hoy—.
+     ⚠️ LA ALTURA LA DECIDE EL BLOQUE IZQUIERDO Y NUNCA EL CONTENIDO DE LAS FRASES, y el
+     mecanismo es el que `.frases-slot` ya usaba dentro de `.inf-wrap`: el SLOT ocupa la
+     columna y el panel va `position:absolute; inset:0` adentro, así que hereda la altura de la
+     fila y su contenido se desplaza por dentro. NI UN PORCENTAJE NI UN `vh` en la cadena —la
+     lección de WebKit del Y1c: un `flex-basis:0%` contra un contenedor de altura indefinida se
+     resuelve a cero en algún motor y la tarjeta colapsa—.
+     ⚠️ `.card` TRAE `margin-bottom:12px`, así que sin la regla del `:last-child` la columna de
+     frases llegaba 12 px más abajo que el borde del EN SUMA. El margen se le devuelve a
+     `.inf-cols`, así que con el panel cerrado el espacio hasta la tarjeta de ETT Avanzado es
+     EXACTAMENTE el de hoy —medido—.
+     ⚠️ `min-width:0` en la columna izquierda o las dos tarjetas no se achican: es la misma
+     razón por la que el textarea del informe lo lleva una regla más abajo. */
+  .inf-cols { display: flex; gap: 10px; align-items: stretch; margin-bottom: 12px; }
+  .inf-cols-izq { flex: 1 1 auto; min-width: 0; }
+  .inf-cols-izq > .card:last-child { margin-bottom: 0; }
   .inf-wrap { display: flex; gap: 10px; align-items: stretch; }
   .inf-wrap > textarea { flex: 1 1 auto; min-width: 0; }   /* min-width:0 o el textarea no se achica */
   /* EL PANEL NO DEFINE LA ALTURA DE LA FILA, LA TOMA. Antes era un flex item con `max-height:420px`
@@ -956,7 +976,9 @@
      `.frases-slot` es el que ocupa la columna, y el panel va `absolute` adentro: así hereda la
      altura de la fila —la del textarea, sea la de arranque o la que el médico arrastró con el
      `resize:vertical`— y su contenido scrollea dentro, sin mover un pixel de lo de abajo. */
-  .frases-slot { flex: 0 0 250px; position: relative; }
+  /* 280 px: la orden pide entre 260 y 320 en pantallas anchas. Era 250 cuando la columna
+     compartía fila con el textarea del informe y nada más. */
+  .frases-slot { flex: 0 0 280px; position: relative; }
   .frases-slot[hidden] { display: none; }
   .frases-panel {
     position: absolute; inset: 0;                          /* la media query de móvil lo reposiciona */
@@ -998,6 +1020,12 @@
                font-size: 13px; padding: 8px 10px; min-height: 44px; min-width: 44px; }
   @media(max-width:768px){
     .inf-wrap { display: block; }                          /* el textarea recupera el ancho completo */
+    /* Las dos tarjetas vuelven a ocupar el ancho entero y el panel vuelve a ser el cajón desde
+       abajo, que es `position:fixed` y no depende del padre. El slot queda en el flujo sin
+       alto —su único hijo es fijo—, que es exactamente lo que ya pasaba cuando vivía dentro de
+       `.inf-wrap`. El cajón de 768 px o menos NO cambia en nada. */
+    .inf-cols { display: block; margin-bottom: 0; }
+    .inf-cols-izq > .card:last-child { margin-bottom: 12px; }
     .frases-panel {
       position: fixed; left: 0; right: 0; bottom: 0; top: auto; width: auto;
       height: 65vh; max-height: 65vh; z-index: 450;
@@ -17859,6 +17887,16 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
 
 <!-- ═══════════════════════ TAB: INFORME ═══════════════════════ -->
 <div id="tab-informe" class="tab-section">
+  <!-- ══ LAS DOS COLUMNAS: informe + EN SUMA a la izquierda, las frases a la derecha (J4) ══
+       Las DOS tarjetas entran en la columna izquierda, así que la columna de frases toma la
+       altura de las dos juntas. El panel SALIÓ de `.inf-wrap` —donde sólo podía tomar la
+       altura del textarea del informe— y es hermano del bloque izquierdo.
+       ⚠️ LOS TEXTAREA SIGUEN SIENDO ALCANZABLES POR ID y nada más cambia: el recolector de
+       `guardarInforme`, `limpiarCampos` y las rutas de restauración barren
+       `input[id], select[id], textarea[id]` de TODO el documento, así que no les importa de
+       qué div cuelgan. Verificado también para `FRASES_TAS`, que busca por id. -->
+  <div class="inf-cols" id="inf-cols">
+   <div class="inf-cols-izq" id="inf-cols-izq">
   <div class="card">
     <h2 class="card-head">📄 Informe Narrativo</h2>
     <div class="card-body">
@@ -17973,36 +18011,6 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         <label>Informe (autogenerado — editable)</label>
         <div class="inf-wrap" id="inf-wrap">
           <textarea id="informe_texto" style="min-height:200px;" placeholder="Presione 'Generar Informe' para autocompletar..."></textarea>
-          <!-- El panel es hermano del textarea, no lo envuelve: envolverlo habría cambiado el
-               selector de guardarInforme, que recorre `input[id], select[id], textarea[id]` de
-               todo el documento y depende de que el textarea siga siendo alcanzable por id.
-               El `.frases-slot` envuelve SÓLO al panel —el textarea sigue siendo hijo directo de
-               `.inf-wrap`, así que ese selector no se entera—. Es la columna que ocupa el lugar;
-               el panel se posiciona absoluto adentro para no imponerle su altura a la fila. Ver
-               el CSS de `.frases-slot`. -->
-          <div class="frases-slot" id="frases-slot" hidden>
-          <aside class="frases-panel" id="frases-panel" hidden aria-label="Mis frases">
-            <div class="frases-grip" id="frases-grip" title="Deslizá hacia abajo para cerrar"></div>
-            <div class="frases-head">
-              <span>💬 Mis frases</span>
-              <button type="button" class="btn btn-ghost frases-x" onclick="frasesToggle()" aria-label="Cerrar panel de frases">✕</button>
-            </div>
-            <button type="button" class="btn btn-primary frases-add" onclick="frasesNuevaAbrir()">+ Agregar frase</button>
-            <div class="frases-form" id="frases-form" hidden>
-              <!-- id con prefijo cfg-: guardarInforme recolecta con un selector de TODO el documento
-                   (`input[id], select[id], textarea[id]`) y sin prefijo registrado este borrador se
-                   guardaba como un campo más del estudio, entraba en el autoguardado y viajaba en
-                   el backup JSON — justo lo contrario de lo que dice el manual. cfg- ya está en la
-                   allowlist _noVaciar. -->
-              <textarea id="cfg-frases-input" rows="3" placeholder="Escribí la frase…" aria-label="Texto de la frase nueva"></textarea>
-              <div class="frases-form-btns">
-                <button type="button" class="btn btn-primary" onclick="frasesGuardar()">Guardar</button>
-                <button type="button" class="btn btn-ghost" onclick="frasesNuevaCerrar()">Cancelar</button>
-              </div>
-            </div>
-            <div class="frases-lista" id="frases-lista"></div>
-          </aside>
-          </div><!-- /.frases-slot -->
         </div>
       </div>
     </div>
@@ -18028,6 +18036,34 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       </div>
     </div>
   </div>
+   </div><!-- /.inf-cols-izq -->
+   <!-- La columna de las frases. `hidden` cuando el panel está cerrado: la fila queda con un
+        solo item y las dos tarjetas vuelven a todo el ancho. El panel va absoluto adentro para
+        no imponerle su altura a la fila —ver el CSS—. -->
+   <div class="frases-slot" id="frases-slot" hidden>
+          <aside class="frases-panel" id="frases-panel" hidden aria-label="Mis frases">
+            <div class="frases-grip" id="frases-grip" title="Deslizá hacia abajo para cerrar"></div>
+            <div class="frases-head">
+              <span>💬 Mis frases</span>
+              <button type="button" class="btn btn-ghost frases-x" onclick="frasesToggle()" aria-label="Cerrar panel de frases">✕</button>
+            </div>
+            <button type="button" class="btn btn-primary frases-add" onclick="frasesNuevaAbrir()">+ Agregar frase</button>
+            <div class="frases-form" id="frases-form" hidden>
+              <!-- id con prefijo cfg-: guardarInforme recolecta con un selector de TODO el documento
+                   (`input[id], select[id], textarea[id]`) y sin prefijo registrado este borrador se
+                   guardaba como un campo más del estudio, entraba en el autoguardado y viajaba en
+                   el backup JSON — justo lo contrario de lo que dice el manual. cfg- ya está en la
+                   allowlist _noVaciar. -->
+              <textarea id="cfg-frases-input" rows="3" placeholder="Escribí la frase…" aria-label="Texto de la frase nueva"></textarea>
+              <div class="frases-form-btns">
+                <button type="button" class="btn btn-primary" onclick="frasesGuardar()">Guardar</button>
+                <button type="button" class="btn btn-ghost" onclick="frasesNuevaCerrar()">Cancelar</button>
+              </div>
+            </div>
+            <div class="frases-lista" id="frases-lista"></div>
+          </aside>
+   </div><!-- /.frases-slot -->
+  </div><!-- /.inf-cols -->
 
   <!-- ═══ ETT AVANZADO — módulos integrados desde Amiloidosis y Hemodinámica ═══ -->
   <!-- Oculta hasta que se integra algún módulo. Cada uno tiene su propio
