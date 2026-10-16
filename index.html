@@ -20798,6 +20798,22 @@ function showTab(id) {
 // Nota: ESC usa ≥55% — se eligió ASE ≥50% para mayor sensibilidad diagnóstica
 const UMBRAL_FEVI_NORMAL = 50;   // %  (FEVI ≥50 = normal)
 const UMBRAL_TAPSE_NORMAL = 17;  // mm (TAPSE ≥17 = normal)
+/* ══ LOS DOS CORTES DEL VD QUE VIVIAN COMO LITERAL DENTRO DE `calcVD` (M1, 2026-10-16) ═══
+   `sp >= 9.5` y `tap < 105` estaban escritos a mano en el cuerpo de la funcion. Mientras la
+   unica superficie que los aplicaba era esa capsula, un literal alcanzaba; desde que la
+   tarjeta i de esta tanda los tiene que DIBUJAR, dejarlos ahi obligaba a escribir el mismo
+   numero una segunda vez en el dibujo, que es exactamente el defecto que este archivo ya pago
+   cuatro veces. El valor no se movio ni un decimal.
+   · ONDA S' del anillo tricuspideo, ASE/EACVI 2015 (Lang), folio 20: «An S' velocity
+     < 9.5 cm/sec measured on the free-wall side indicates RV systolic dysfunction», o sea que
+     normal es `>= 9.5`, que es el operador que la app ya aplicaba.
+   · TIEMPO DE ACELERACION PULMONAR, ASE 2025 (Mukherjee), Tabla 1, folio 145, fila
+     `RVOT AccT, ms`: normal `> 105`. La app lo aplica como `< 105` = elemento indirecto de
+     HTP, asi que el 105 EXACTO cae del lado normal en la app y del lado leve en esa tabla. */
+const UMBRAL_SPRIME_NORMAL = 9.5;  // cm/s — normal `>=` (ASE/EACVI 2015, folio 20)
+const UMBRAL_TAP_HTP       = 105;  // ms   — elemento indirecto de HTP con `<` (ASE 2025, Tabla 1 folio 145)
+window.UMBRAL_SPRIME_NORMAL = UMBRAL_SPRIME_NORMAL;
+window.UMBRAL_TAP_HTP = UMBRAL_TAP_HTP;
 /* PSAP por encima de la cual conviene mirar la probabilidad ecocardiográfica de HTP.
    NO es un umbral de gravedad: la app no gradúa la hipertensión pulmonar por la PSAP
    estimada, porque es un diagnóstico hemodinámico (cateterismo derecho, ESC/ERS 2022).
@@ -21086,17 +21102,107 @@ AO_SEGS.forEach(function(sg){
 });
 /* Devuelve los segmentos MEDIDOS con su grado. Un segmento vacío no entra: no se puede afirmar
    ni negar nada sobre él. Lo usan el narrativo y `calcAorta`, para que no puedan divergir. */
+/* ══ LA CASCADA DE UN SEGMENTO AORTICO, EXTRAIDA Y PURA (M1, 2026-10-16) ═════════════
+   Las mismas tres comparaciones que vivian dentro de `aoSegsMedidos`, movidas sin tocarles una
+   coma. Salen a funcion propia porque `aoSegsMedidos` LEE EL DOM (`v(sg.k)`) y la tarjeta i de
+   esta tanda necesita preguntarle al dueno por un valor cualquiera para dibujar sus cortes:
+   sondear al dueno es lo unico que impide que el dibujo y el informe firmado se desincronicen.
+   ⚠️ EL OPERADOR DEL CORTE DE NORMALIDAD ES `>` Y NO `>=`: con 40,0 mm exactos en el seno de
+   Valsalva el grado es `normal`. No se movio: es el que la app aplica desde siempre. */
+function aoSegGrado(sg, x) {
+  if (x === null || x === undefined || !isFinite(x) || !x) return null;
+  if (x < sg.min || x > sg.max) return 'fuera';
+  if (x > sg.ref) return (x <= sg.leve) ? 'leve' : (sg.mod && x <= sg.mod) ? 'moderada' : 'severa';
+  return 'normal';
+}
+window.aoSegGrado = aoSegGrado;
 function aoSegsMedidos() {
   return AO_SEGS.map(function(sg){
     const x = v(sg.k);
     if (!x) return null;
-    if (x < sg.min || x > sg.max) return { sg: sg, val: x, grado: 'fuera', dil: false, fuera: true };
-    let grado = 'normal';
-    if (x > sg.ref) grado = (x <= sg.leve) ? 'leve' : (sg.mod && x <= sg.mod) ? 'moderada' : 'severa';
+    const grado = aoSegGrado(sg, x);
+    if (grado === 'fuera') return { sg: sg, val: x, grado: 'fuera', dil: false, fuera: true };
     return { sg: sg, val: x, grado: grado, dil: grado !== 'normal', fuera: false };
   }).filter(Boolean);
 }
 window.aoSegsMedidos = aoSegsMedidos;
+/* ══ LOS NOMOGRAMAS DE LOS SENOS DE VALSALVA (M1, 2026-10-16) ══════════════════════
+   ASE/EACVI 2015 (Lang RM y col.), **Figura 13, folio 32, hoja 32 del PDF en ingles** —el pie
+   impreso de esa pagina dice «32 / Lang et al», asi que folio = hoja—. Las tres ecuaciones, sus
+   errores estandar y los rotulos se LEYERON DE LA IMAGEN renderizada a 500 ppp: el texto
+   extraido no los trae porque estan dentro de la figura.
+     A · «Children and adolescents» · y = 1.02 + 0.98x · SEE 0.18 · r 0.93 · P < .0005
+     B · «Adults 20-39 years»       · y = 0.97 + 1.12x · SEE 0.24 · r 0.71 · P < .0005
+     C · «Adults >40 years»         · y = 1.92 + 0.74x · SEE 0.37 · r 0.40 · P < .0005
+   `y` = diametro de los senos en CENTIMETROS; `x` = superficie corporal en m2. Las unidades no
+   figuran al lado de la ecuacion: salen de los rotulos de los ejes de la misma figura.
+
+   ⚠️ LA BANDA ES ECUACION ± 1,96 × SEE, Y ESO NO LO DICE LA GUIA: su pie dice «95% confidence
+   intervals» y nada mas. Se COMPROBO midiendo la imagen: calibrando los dos ejes con sus marcas
+   impresas y leyendo el borde dibujado columna por columna, a superficie corporal 2,0 y 2,2 m2
+   los bordes leidos caen a 0,003 a 0,063 cm de ese calculo en los paneles B y C, que esta
+   dentro del error de lectura. Las columnas donde un rotulo tapa la linea se descartaron.
+
+   ⚠️ EL RANGO DE SUPERFICIE CORPORAL ES EL QUE LA FIGURA DIBUJA, MEDIDO EN LA IMAGEN: A de
+   0,20 a 2,02 · B de 1,29 a 2,53 · C de 1,32 a 2,40 m2. Se guardan redondeados HACIA ADENTRO
+   —A 0,25 a 2,00 · B 1,30 a 2,50 · C 1,30 a 2,40—, que es el lado conservador: un paciente
+   justo en el borde queda sin punto en vez de con un punto sobre una banda extrapolada. La guia
+   no dice nada sobre extrapolar fuera de ese rango.
+
+   ⚠️ LOS 40 ANOS EXACTOS VAN AL GRAFICO B, Y ES UNA DECISION DE MAICOL, porque la propia guia
+   se contradice: su texto del folio 32 escribe los tres estratos como «<20, 20 to 40, and >40
+   years» —o sea 40 en B— y el pie de la Figura 13 dice «adults aged >=40 years (C)». El rotulo
+   dentro del grafico C dice «Adults >40 years».
+
+   ⚠️ NO SE COPIA LA IMAGEN DE LA FIGURA: su pie dice «Reprinted with permission from Roman
+   et al.», asi que tiene derechos del editor y de los autores originales. Lo que se usa son las
+   ecuaciones y los errores estandar, que son datos numericos, citando a Lang 2015 y a Roman
+   1989. El dibujo de la app es propio.
+
+   ⚠️ ESTO NO GRADUA NADA Y NO TOCA NINGUNA SUPERFICIE FIRMADA. El grado de la raiz aortica lo
+   sigue decidiendo `aoSegGrado` con el corte de 40 mm de `AO_REF.sin`, que es criterio propio de
+   la aplicacion. El nomograma es una orientacion que se dibuja al lado. */
+const AOR_NOMO_Z = 1.96;
+const AOR_NOMO = Object.freeze([
+  Object.freeze({ id: 'A', rot: 'Menores de 20 años',  a: 1.02, b: 0.98, see: 0.18,
+                  bsaMin: 0.25, bsaMax: 2.00, edadMax: 19,       r: 0.93 }),
+  Object.freeze({ id: 'B', rot: 'De 20 a 40 años',     a: 0.97, b: 1.12, see: 0.24,
+                  bsaMin: 1.30, bsaMax: 2.50, edadMax: 40,       r: 0.71 }),
+  Object.freeze({ id: 'C', rot: 'Mayores de 40 años',  a: 1.92, b: 0.74, see: 0.37,
+                  bsaMin: 1.30, bsaMax: 2.40, edadMax: Infinity, r: 0.40 }),
+]);
+window.AOR_NOMO = AOR_NOMO; window.AOR_NOMO_Z = AOR_NOMO_Z;
+/* El grafico que le toca a una edad. Sin edad devuelve `null`: elegir uno por omision seria
+   afirmar un estrato que el estudio no tiene. */
+function aorNomoPara(edad) {
+  const e = (typeof PF === 'function') ? PF(edad) : parseFloat(edad);
+  if (e == null || !isFinite(e) || e < 0) return null;
+  for (let i = 0; i < AOR_NOMO.length; i++) if (e <= AOR_NOMO[i].edadMax) return AOR_NOMO[i];
+  return AOR_NOMO[AOR_NOMO.length - 1];
+}
+/* La banda esperada en CENTIMETROS para una superficie corporal. Devuelve `null` fuera del
+   rango que la figura dibuja. */
+function aorNomoBanda(g, bsa) {
+  if (!g) return null;
+  const x = (typeof PF === 'function') ? PF(bsa) : parseFloat(bsa);
+  if (x == null || !isFinite(x) || x < g.bsaMin || x > g.bsaMax) return null;
+  const esp = g.a + g.b * x, d = AOR_NOMO_Z * g.see;
+  return { esp: esp, lo: esp - d, hi: esp + d };
+}
+/* La lectura completa para un paciente: que grafico, la banda y donde cae el diametro MEDIDO EN
+   MILIMETROS. `estado` es 'dentro' | 'arriba' | 'abajo', o `null` cuando falta un dato. */
+function aorNomoLectura(edad, bsa, diamMm) {
+  const g = aorNomoPara(edad);
+  const b = aorNomoBanda(g, bsa);
+  const d = (typeof PF === 'function') ? PF(diamMm) : parseFloat(diamMm);
+  const cm = (d != null && isFinite(d) && d) ? d / 10 : null;
+  let estado = null;
+  if (b && cm !== null) estado = (cm > b.hi) ? 'arriba' : (cm < b.lo) ? 'abajo' : 'dentro';
+  return { g: g, banda: b, cm: cm, estado: estado,
+           fueraRango: !!(g && b === null), sinEdad: !g };
+}
+window.aorNomoPara = aorNomoPara; window.aorNomoBanda = aorNomoBanda;
+window.aorNomoLectura = aorNomoLectura;
 window.UMBRAL_LAVI_DILATADO = UMBRAL_LAVI_DILATADO;
 window.UMBRAL_AI_DIAM_DILATADO = UMBRAL_AI_DIAM_DILATADO;
 window.UMBRAL_AI_AREA_DILATADA = UMBRAL_AI_AREA_DILATADA;
@@ -21932,6 +22038,10 @@ window.vdfviInterp = vdfviInterp; window.vsfviInterp = vsfviInterp;
    reciclado hace que una cita vieja apunte a otro dato. */
 const EV_GUIA_ASE2015 = 'Lang RM y col., Recomendaciones para la cuantificacion de las camaras cardiacas por ecocardiografia en adultos, ASE/EACVI, 2015';
 const EV_DOI_ASE2015  = '10.1016/j.echo.2014.10.003';
+/* La segunda guia del registro, que entra con la tanda M (AD/VCI, VD y aorta). El DOI se leyo
+   en el pie de la hoja 1 del propio PDF, no afuera. */
+const EV_GUIA_ASE2025VD = 'Mukherjee M y col., Guia para la evaluacion ecocardiografica del corazon derecho en el adulto y consideraciones especiales en la hipertension pulmonar, ASE, 2025';
+const EV_DOI_ASE2025VD  = '10.1016/j.echo.2025.01.006';
 const EV_FECHA_VER    = '2026-10-16';
 
 const EV_REG = Object.freeze([
@@ -22045,6 +22155,159 @@ const EV_REG = Object.freeze([
     estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
     fuente_una_linea: 'ASE/EACVI 2015, Figura 6 (folio 17)',
   }),
+  /* ══ TANDA M — AURICULA DERECHA Y VCI, VENTRICULO DERECHO Y AORTA (2026-10-16) ═════════
+     Mismo formato y mismas reglas que las doce de la tanda L. Los ids son NUEVOS y ninguno
+     reusa uno de aquella: un id reciclado hace que una cita vieja apunte a otro dato. */
+  /* ── AURICULA DERECHA Y VENA CAVA INFERIOR ──────────────────────────────────── */
+  Object.freeze({
+    id: 'DIM-AD-001', zona: 'VD/AD — Auricula derecha', dato: 'Area de la auricula derecha en cuatro camaras',
+    valor: 'Normal hasta 18 cm2; dilatada por encima de 18. Un solo corte para los dos sexos',
+    duenio: 'adAreaCat / UMBRAL_AD_AREA_NORMAL',
+    guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1', folio: '145', hoja_pdf: 5,
+    doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guia',
+    estado: 'parcial', fecha_verificacion: EV_FECHA_VER,
+    fuente_una_linea: 'ASE 2025 (Mukherjee), Tabla 1 (folio 145)',
+  }),
+  Object.freeze({
+    id: 'VCI-001', zona: 'VD/AD — Vena cava inferior', dato: 'Diametro de la vena cava inferior',
+    valor: 'La aplicacion la trata como dilatada desde 21 mm',
+    duenio: 'pmadEstimar / VCI_DIAM_DILATADA_MIN',
+    guia: EV_GUIA_ASE2025VD, ubicacion: 'Presion auricular derecha', folio: '160', hoja_pdf: 20,
+    doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guia',
+    estado: 'parcial', fecha_verificacion: EV_FECHA_VER,
+    fuente_una_linea: 'ASE 2025 (Mukherjee), Presion auricular derecha (folio 160)',
+  }),
+  Object.freeze({
+    id: 'VCI-002', zona: 'VD/AD — Vena cava inferior', dato: 'Presion media de la auricula derecha estimada',
+    valor: 'Diametro normal con colapso mayor del 50 %: 3 mmHg. Diametro normal sin colapso, o dilatado con colapso: 8 mmHg. Diametro dilatado sin colapso: 15 mmHg',
+    duenio: 'pmadEstimar',
+    guia: EV_GUIA_ASE2025VD, ubicacion: 'Presion auricular derecha y Tabla 1', folio: '160', hoja_pdf: 20,
+    doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guia',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
+    fuente_una_linea: 'ASE 2025 (Mukherjee), Presion auricular derecha (folio 160)',
+  }),
+  /* ── VENTRICULO DERECHO — TAMANO ───────────────────────────────────────── */
+  Object.freeze({
+    id: 'DIM-VD-001', zona: 'VD/AD — Ventriculo derecho', dato: 'Diametro basal',
+    valor: 'Normal hasta 41 mm; dilatacion leve por encima de 41 y hasta 45; dilatado por encima de 45. Un solo corte para los dos sexos',
+    duenio: 'vdBasCat / VD_BAS_NORMAL_MAX y VD_BAS_LEVE_MAX',
+    guia: EV_GUIA_ASE2015, ubicacion: 'Tabla 8', folio: '20', hoja_pdf: 20,
+    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
+    estado: 'parcial', fecha_verificacion: EV_FECHA_VER,
+    fuente_una_linea: 'ASE/EACVI 2015, Tabla 8 (folio 20)',
+  }),
+  Object.freeze({
+    id: 'DIM-VD-002', zona: 'VD/AD — Ventriculo derecho', dato: 'Diametro medio',
+    valor: 'Normal hasta 35 mm; dilatado por encima de 35. Un solo corte para los dos sexos',
+    duenio: 'vdMidCat / VD_MID_NORMAL_MAX',
+    guia: EV_GUIA_ASE2015, ubicacion: 'Tabla 8', folio: '20', hoja_pdf: 20,
+    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
+    fuente_una_linea: 'ASE/EACVI 2015, Tabla 8 (folio 20)',
+  }),
+  Object.freeze({
+    id: 'DIM-VD-003', zona: 'VD/AD — Ventriculo derecho', dato: 'Diametro longitudinal',
+    valor: 'Normal hasta 86 mm; dilatado por encima de 86. Un solo corte para los dos sexos',
+    duenio: 'vdLongCat / VD_LONG_NORMAL_MAX',
+    guia: EV_GUIA_ASE2015, ubicacion: '', folio: '', hoja_pdf: null,
+    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'criterio propio de EcoSmart',
+    estado: 'por verificar', fecha_verificacion: EV_FECHA_VER,
+    fuente_una_linea: '',
+  }),
+  Object.freeze({
+    id: 'DIM-VD-004', zona: 'VD/AD — Ventriculo derecho', dato: 'Espesor de la pared libre',
+    valor: 'Normal por debajo de 5 mm; hipertrofia leve de 5 a 7; moderada por encima de 7 y hasta 9; severa por encima de 9 mm. Un solo corte para los dos sexos',
+    duenio: 'vdParedCat / VD_PARED_HVD_MIN y VD_PARED_GRADOS',
+    guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1', folio: '145', hoja_pdf: 5,
+    doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guia',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
+    fuente_una_linea: 'ASE 2025 (Mukherjee), Tabla 1 (folio 145)',
+  }),
+  /* ── VENTRICULO DERECHO — FUNCION ─────────────────────────────────────── */
+  Object.freeze({
+    id: 'FUN-VD-001', zona: 'VD/AD — Ventriculo derecho', dato: 'Excursion sistolica del anillo tricuspideo (TAPSE)',
+    valor: 'Normal con 17 mm o mas; por debajo de 17, disfuncion sistolica. Un solo corte para los dos sexos',
+    duenio: 'vdTapseCat / UMBRAL_TAPSE_NORMAL',
+    guia: EV_GUIA_ASE2015, ubicacion: 'Seccion 8.2', folio: '19', hoja_pdf: 19,
+    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
+    fuente_una_linea: 'ASE/EACVI 2015, seccion 8.2 (folio 19)',
+  }),
+  Object.freeze({
+    id: 'FUN-VD-002', zona: 'VD/AD — Ventriculo derecho', dato: 'Onda S′ del anillo tricuspideo',
+    valor: 'Normal con 9,5 cm/s o mas; por debajo de 9,5, disfuncion sistolica. Un solo corte para los dos sexos',
+    duenio: 'vdSprimeCat / UMBRAL_SPRIME_NORMAL',
+    guia: EV_GUIA_ASE2015, ubicacion: 'Seccion 8.4', folio: '20', hoja_pdf: 20,
+    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
+    fuente_una_linea: 'ASE/EACVI 2015, seccion 8.4 (folio 20)',
+  }),
+  Object.freeze({
+    id: 'FUN-VD-003', zona: 'VD/AD — Ventriculo derecho', dato: 'Cambio fraccional de area (FAC)',
+    valor: 'Normal con 35 % o mas; disfuncion por debajo de 35; disfuncion severa por debajo de 25. Un solo corte para los dos sexos',
+    duenio: 'vdFacCat / UMBRAL_FAC_VD_NORMAL y UMBRAL_FAC_VD_SEVERA',
+    guia: EV_GUIA_ASE2015, ubicacion: 'Seccion 8.3', folio: '19', hoja_pdf: 19,
+    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
+    estado: 'parcial', fecha_verificacion: EV_FECHA_VER,
+    fuente_una_linea: 'ASE/EACVI 2015, seccion 8.3 (folio 19)',
+  }),
+  Object.freeze({
+    id: 'FUN-VD-004', zona: 'VD/AD — Ventriculo derecho', dato: 'Fraccion de eyeccion del VD por 3D',
+    valor: 'Normal por encima de 45 %; con 45 o menos, disfuncion sistolica. Un solo corte para los dos sexos',
+    duenio: 'vdFevdCat / UMBRAL_FEVD_NORMAL',
+    guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1', folio: '145', hoja_pdf: 5,
+    doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guia',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
+    fuente_una_linea: 'ASE 2025 (Mukherjee), Tabla 1 (folio 145)',
+  }),
+  Object.freeze({
+    id: 'FUN-VD-005', zona: 'VD/AD — Ventriculo derecho', dato: 'Indice de Tei por Doppler tisular',
+    valor: 'Normal por debajo de 0,55; con 0,55 o mas, alterado. Es el corte del metodo por Doppler tisular; el del Doppler pulsado es 0,40 y no se aplica en este campo',
+    duenio: 'vdTeiCat / VD_TEI_DTI_ALT_MIN',
+    guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1', folio: '145', hoja_pdf: 5,
+    doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guia',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
+    fuente_una_linea: 'ASE 2025 (Mukherjee), Tabla 1 (folio 145)',
+  }),
+  Object.freeze({
+    id: 'FUN-VD-006', zona: 'VD/AD — Ventriculo derecho', dato: 'Tiempo de aceleracion pulmonar',
+    valor: 'Normal con 105 ms o mas; por debajo de 105, elemento indirecto de hipertension pulmonar',
+    duenio: 'vdTapCat / UMBRAL_TAP_HTP',
+    guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1', folio: '145', hoja_pdf: 5,
+    doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guia',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
+    fuente_una_linea: 'ASE 2025 (Mukherjee), Tabla 1 (folio 145)',
+  }),
+  /* ── AORTA TORACICA ──────────────────────────────────────────────── */
+  Object.freeze({
+    id: 'AOR-001', zona: 'AI/VI — Aorta toracica', dato: 'Cortes de dilatacion por segmento',
+    valor: 'Raiz aortica y aorta ascendente: dilatadas por encima de 40 mm. Union sinotubular: por encima de 38. Cayado: por encima de 40. Aorta toracica descendente: por encima de 35. Un solo corte para los dos sexos y sin ajuste por superficie corporal ni por edad',
+    duenio: 'aoSegGrado / AO_SEGS y AO_REF',
+    guia: '', ubicacion: '', folio: '', hoja_pdf: null,
+    doi: '', fuente_original: '', tipo: 'criterio propio de EcoSmart',
+    estado: 'por verificar', fecha_verificacion: EV_FECHA_VER,
+    fuente_una_linea: '',
+  }),
+  Object.freeze({
+    id: 'AOR-002', zona: 'AI/VI — Aorta toracica', dato: 'Nomogramas del diametro de los senos de Valsalva por superficie corporal',
+    valor: 'Menores de 20 anos: y = 1,02 + 0,98x con error estandar 0,18. De 20 a 40: y = 0,97 + 1,12x con error estandar 0,24. Mayores de 40: y = 1,92 + 0,74x con error estandar 0,37. En cada una, y es el diametro esperado en centimetros y x la superficie corporal en metros cuadrados, y el rango esperado es la ecuacion mas y menos 1,96 veces el error estandar',
+    duenio: 'AOR_NOMO / aorNomoBanda',
+    guia: EV_GUIA_ASE2015, ubicacion: 'Figura 13', folio: '32', hoja_pdf: 32,
+    doi: EV_DOI_ASE2015,
+    fuente_original: 'Roman MJ, Devereux RB, Kramer-Fox R, O\u2019Loughlin J. Two-dimensional echocardiographic aortic root dimensions in normal children and adults. Am J Cardiol 1989;64:507-512',
+    tipo: 'guia', estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
+    fuente_una_linea: 'ASE/EACVI 2015, Figura 13 (folio 32), ecuaciones de Roman 1989',
+  }),
+  Object.freeze({
+    id: 'AOR-003', zona: 'AI/VI — Aorta toracica', dato: 'Dimensiones normales de la raiz aortica por sexo',
+    valor: 'Senos de Valsalva: 3,4 mas menos 0,3 cm en el varon y 3,0 mas menos 0,3 en la mujer; indexados, 1,7 mas menos 0,2 y 1,8 mas menos 0,2 cm/m2. Union sinotubular: 2,9 mas menos 0,3 y 2,6 mas menos 0,3 cm. Aorta ascendente proximal: 3,0 mas menos 0,4 y 2,7 mas menos 0,4 cm. Anillo: 2,6 mas menos 0,3 y 2,3 mas menos 0,2 cm',
+    duenio: '',
+    guia: EV_GUIA_ASE2015, ubicacion: 'Tabla 14', folio: '32', hoja_pdf: 32,
+    doi: EV_DOI_ASE2015,
+    fuente_original: 'Roman MJ y col., Am J Cardiol 1989;64:507-512, y Hiratzka LF y col., guia ACCF/AHA 2010 de enfermedad aortica toracica',
+    tipo: 'guia', estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
+    fuente_una_linea: 'ASE/EACVI 2015, Tabla 14 (folio 32)',
+  }),
 ]);
 window.EV_REG = EV_REG;
 
@@ -22108,6 +22371,34 @@ function evCortes(sexo) {
     const mN = (sx === 'F') ? 60 : 70, mA = (sx === 'F') ? 140 : 170;
     r.rwtMasaNormal   = _evBandas((x) => calcGeometriaVI(mN, x, sx), 0.15, 0.80, 0.01, 2);
     r.rwtMasaAumentada = _evBandas((x) => calcGeometriaVI(mA, x, sx), 0.15, 0.80, 0.01, 2);
+  }
+  /* ══ TANDA M — AD/VCI, VD Y AORTA ════════════════════════════════════════
+     NINGUNO de estos cortes depende del sexo —medido: las dos guias publican un solo valor para
+     varon y mujer en los doce—, asi que no entran en la rama de `sx` y sus barras no esconden
+     el punto cuando el sexo falta. El paso es 1 salvo donde el corte tiene decimal: la onda S'
+     corta en 9,5 y el indice de Tei en 0,55.
+     ⚠️ `vdBasCat` DEVUELVE UN OBJETO con la clave en `.cat`, no en `.clave` ni en `.txt`: sin
+     el envoltorio, el sondeo anota la categoria como cadena vacia y la barra sale de un color
+     solo, que se lee como «este dato no se clasifica». */
+  if (typeof adAreaCat === 'function')  r.adArea  = _evBandas(adAreaCat, 5, 45, 1, 0);
+  if (typeof vdBasCat === 'function')   r.vdBas   = _evBandas((x) => (vdBasCat(x) || {}).cat || '', 20, 70, 1, 0);
+  if (typeof vdMidCat === 'function')   r.vdMid   = _evBandas(vdMidCat, 15, 60, 1, 0);
+  if (typeof vdLongCat === 'function')  r.vdLong  = _evBandas(vdLongCat, 40, 130, 1, 0);
+  if (typeof vdParedCat === 'function') r.vdPared = _evBandas(vdParedCat, 1, 16, 0.1, 1);
+  if (typeof vdTapseCat === 'function') r.vdTapse = _evBandas(vdTapseCat, 2, 35, 1, 0);
+  if (typeof vdSprimeCat === 'function')r.vdSprime= _evBandas(vdSprimeCat, 2, 20, 0.1, 1);
+  if (typeof vdFacCat === 'function')   r.vdFac   = _evBandas(vdFacCat, 5, 70, 1, 0);
+  if (typeof vdFevdCat === 'function')  r.vdFevd  = _evBandas(vdFevdCat, 10, 80, 1, 0);
+  if (typeof vdTapCat === 'function')   r.vdTap   = _evBandas(vdTapCat, 40, 200, 1, 0);
+  if (typeof vdTeiCat === 'function')   r.vdTei   = _evBandas(vdTeiCat, 0.1, 1.2, 0.01, 2);
+  /* La aorta se sondea por SEGMENTO, con la misma funcion que clasifica al paciente. El dominio
+     se queda dentro de la banda de plausibilidad del segmento: por fuera el dueno devuelve
+     `fuera`, que no es una categoria de gravedad. */
+  if (typeof aoSegGrado === 'function' && typeof AO_SEGS !== 'undefined') {
+    r.aoSeg = {};
+    AO_SEGS.forEach(function (sg) {
+      r.aoSeg[sg.k] = _evBandas((x) => aoSegGrado(sg, x) || '', 15, 70, 1, 0);
+    });
   }
   r.sexo = sx;
   return r;
@@ -23029,7 +23320,7 @@ window.VD_NUEVOS_BANDA = VD_NUEVOS_BANDA;
    imprimen al lado. */
 function vdHvdEstado() {
   const x = v('vd_pared');
-  const hvd = (x !== null) ? x >= VD_PARED_HVD_MIN : false;
+  const hvd = (x !== null) ? vdParedCat(x) !== 'normal' && vdParedCat(x) !== null : false;
   /* El GRADO es SÓLO de la fila del cuadro: ni `vdHvdClausula` ni la cadena del EN SUMA lo
      leen, y por eso el informe firmado sale letra por letra como salía. Se devuelve acá, y no
      en una segunda función, porque es la misma comparación sobre el mismo número. */
@@ -23131,11 +23422,64 @@ function vdViSelClic(el) {
   if (typeof calcVD === 'function') calcVD();
 }
 window.vdViSelClic = vdViSelClic;
+/* ══ LOS SEIS DUENOS PUROS DEL VD (M1, 2026-10-16) ══════════════════════════════════
+   Cada uno es UNA comparacion contra su constante, con el operador que la app ya aplicaba, y
+   sin tocar el DOM. Existen porque la tarjeta i de esta tanda SONDEA al dueno barriendo su
+   dominio: copiar los numeros al dibujo abriria un segundo juego, y el que se olvida es el que
+   se ve. Los capsulas de `calcVD` pasan a consumirlos, asi que sigue habiendo una sola
+   comparacion por corte.
+   ⚠️ LOS NOMBRES DE CATEGORIA SON LOS QUE EL DIBUJO COLOREA, no los del texto del informe: el
+   texto lo sigue escribiendo cada capsula con sus propias palabras. */
+function vdTapseCat(x) {
+  const n = (typeof PF === 'function') ? PF(x) : parseFloat(x);
+  if (n == null || !isFinite(n) || !n) return null;
+  return (n >= UMBRAL_TAPSE_NORMAL) ? 'normal' : 'disfuncion';
+}
+function vdSprimeCat(x) {
+  const n = (typeof PF === 'function') ? PF(x) : parseFloat(x);
+  if (n == null || !isFinite(n) || !n) return null;
+  return (n >= UMBRAL_SPRIME_NORMAL) ? 'normal' : 'disfuncion';
+}
+/* La FAC tiene TRES bandas y la del medio no tiene nombre propio en la guia: la app la llama
+   «disfuncion» y a la de abajo «disfuncion severa». El corte de 25 % es de la app. */
+function vdFacCat(x) {
+  const n = (typeof PF === 'function') ? PF(x) : parseFloat(x);
+  if (n == null || !isFinite(n)) return null;
+  if (n >= UMBRAL_FAC_VD_NORMAL) return 'normal';
+  return (n < UMBRAL_FAC_VD_SEVERA) ? 'severa' : 'disfuncion';
+}
+function vdFevdCat(x) {
+  const n = (typeof PF === 'function') ? PF(x) : parseFloat(x);
+  if (n == null || !isFinite(n) || !n) return null;
+  return (n > UMBRAL_FEVD_NORMAL) ? 'normal' : 'disfuncion';
+}
+function vdTapCat(x) {
+  const n = (typeof PF === 'function') ? PF(x) : parseFloat(x);
+  if (n == null || !isFinite(n) || !n) return null;
+  return (n < UMBRAL_TAP_HTP) ? 'htp' : 'normal';
+}
+/* La pared devuelve la BANDA de gravedad, que es lo que `vdHvdEstado` ya derivaba de
+   `VD_PARED_GRADOS`. El corte de hipertrofia no se movio: sigue siendo `>= 5 mm`. */
+function vdParedCat(x) {
+  const n = (typeof PF === 'function') ? PF(x) : parseFloat(x);
+  if (n == null || !isFinite(n) || !n) return null;
+  if (n < VD_PARED_HVD_MIN) return 'normal';
+  const g = VD_PARED_GRADOS.find((b) => n <= b.max);
+  return g ? g.lbl : 'severa';
+}
+function vdTeiCat(x) {
+  const n = (typeof PF === 'function') ? PF(x) : parseFloat(x);
+  if (n == null || !isFinite(n)) return null;
+  return (n >= VD_TEI_DTI_ALT_MIN) ? 'alterado' : 'normal';
+}
+window.vdTapseCat = vdTapseCat; window.vdSprimeCat = vdSprimeCat; window.vdFacCat = vdFacCat;
+window.vdFevdCat = vdFevdCat;   window.vdTapCat = vdTapCat;       window.vdParedCat = vdParedCat;
+window.vdTeiCat = vdTeiCat;
 function vdTeiEstado() {
   const x = v('vd_tei');
   /* El corte es el de DTI. `VD_TEI_PW_ALT_MIN` (0,40) es el del Doppler PULSADO y no entra acá:
      aplicar el método equivocado mueve el corte un 27 % sobre un informe firmado. */
-  return { val: x, alt: (x !== null) ? x >= VD_TEI_DTI_ALT_MIN : false };
+  return { val: x, alt: (x !== null) ? vdTeiCat(x) === 'alterado' : false };
 }
 window.vdTeiEstado = vdTeiEstado;
 
@@ -23504,6 +23848,16 @@ window.ipApDiamSync = ipApDiamSync;
    literal igual en el informe narrativo — dos copias del mismo corte, que es como la cápsula
    de pantalla y el informe firmado terminan discrepando. */
 const UMBRAL_AD_AREA_NORMAL = 18;  // cm²
+window.UMBRAL_AD_AREA_NORMAL = UMBRAL_AD_AREA_NORMAL;
+/* La MISMA comparacion que hacia `calcAD` en su cuerpo, movida a funcion propia y PURA: la
+   tarjeta i de esta tanda tiene que preguntarle al dueno por un valor cualquiera, y `calcAD`
+   lee el DOM. No se movio el corte ni el operador. */
+function adAreaCat(x) {
+  const n = (typeof PF === 'function') ? PF(x) : parseFloat(x);
+  if (n == null || !isFinite(n) || !n) return null;
+  return (n <= UMBRAL_AD_AREA_NORMAL) ? 'normal' : 'dilatada';
+}
+window.adAreaCat = adAreaCat;
 function vdBasCat(vd) {
   const n = (typeof PF === 'function') ? PF(vd) : parseFloat(vd);
   if (n == null || !isFinite(n) || n <= 0) return null;
@@ -23532,6 +23886,22 @@ window.vdBasCat = vdBasCat;
    regla que la aorta— y un valor no positivo no cuenta como medición. */
 const VD_MID_NORMAL_MAX  = 35;   // mm — VD medio, ASE 2015
 const VD_LONG_NORMAL_MAX = 86;   // mm — VD longitudinal, ASE 2015
+window.VD_MID_NORMAL_MAX = VD_MID_NORMAL_MAX;
+window.VD_LONG_NORMAL_MAX = VD_LONG_NORMAL_MAX;
+/* Los dos como funcion PURA, por lo mismo que `vdBasCat`: la tarjeta i sondea al dueno en vez
+   de copiar su numero. La comparacion es la que `vdDiamsMedidos` ya hacia —`x > max` es
+   dilatado— y esa funcion pasa a llamarlas, asi que sigue habiendo UNA sola. */
+function vdMidCat(x) {
+  const n = (typeof PF === 'function') ? PF(x) : parseFloat(x);
+  if (n == null || !isFinite(n) || n <= 0) return null;
+  return (n > VD_MID_NORMAL_MAX) ? 'dilatado' : 'normal';
+}
+function vdLongCat(x) {
+  const n = (typeof PF === 'function') ? PF(x) : parseFloat(x);
+  if (n == null || !isFinite(n) || n <= 0) return null;
+  return (n > VD_LONG_NORMAL_MAX) ? 'dilatado' : 'normal';
+}
+window.vdMidCat = vdMidCat; window.vdLongCat = vdLongCat;
 function vdDiamsMedidos() {
   /* `min`/`max`: ventana de plausibilidad, la misma red que llevan los segmentos de la aorta y
      por el mismo motivo. Sin ella la cascada falla ABIERTA: un longitudinal tipeado en
@@ -23552,7 +23922,7 @@ function vdDiamsMedidos() {
        copia de su banda «leve». Los otros dos no tienen bandas: dilatado o no. */
     const cat = (d.k === 'vd_bas' && typeof vdBasCat === 'function')
       ? (vdBasCat(x) || { cat:'normal' }).cat
-      : (x > d.max ? 'dilatado' : 'normal');
+      : (d.k === 'vd_mid' ? vdMidCat(x) : vdLongCat(x));
     return { k:d.k, lbl:d.lbl, lblC:d.lblC, val:x, max:d.max, cat:cat, dil:cat !== 'normal', fuera:false };
   }).filter(Boolean);
 }
@@ -23584,11 +23954,11 @@ function calcVD() {
     }
   }
   if (tapse) {
-    let t = tapse >= UMBRAL_TAPSE_NORMAL ? badge('green','Normal (≥' + UMBRAL_TAPSE_NORMAL + 'mm)') : badge('red','Disfunción (< ' + UMBRAL_TAPSE_NORMAL + 'mm)');
+    let t = vdTapseCat(tapse) === 'normal' ? badge('green','Normal (≥' + UMBRAL_TAPSE_NORMAL + 'mm)') : badge('red','Disfunción (< ' + UMBRAL_TAPSE_NORMAL + 'mm)');
     document.getElementById('tapse-interp').innerHTML = t;
   }
   if (sp) {
-    let t = sp >= 9.5 ? badge('green','Normal (≥9.5 cm/s)') : badge('red','Disfunción (< 9.5 cm/s)');
+    let t = vdSprimeCat(sp) === 'normal' ? badge('green','Normal (≥' + UMBRAL_SPRIME_NORMAL + ' cm/s)') : badge('red','Disfunción (< ' + UMBRAL_SPRIME_NORMAL + ' cm/s)');
     document.getElementById('sprime-interp').innerHTML = t;
   }
   /* FAC = (área telediastólica − área telesistólica) / telediastólica × 100. Se escribe el
@@ -23624,9 +23994,10 @@ function calcVD() {
         ? badge('yellow', 'Áreas no utilizables — la telesistólica debe ser mayor que cero y menor que la telediastólica')
         : '—';
     } else {
-      facInt.innerHTML = fac >= UMBRAL_FAC_VD_NORMAL
+      const _facC = vdFacCat(fac);
+      facInt.innerHTML = _facC === 'normal'
         ? badge('green', `${fac}% — normal (≥${UMBRAL_FAC_VD_NORMAL}%)`)
-        : (fac < UMBRAL_FAC_VD_SEVERA
+        : (_facC === 'severa'
             ? badge('red',    `${fac}% — disfunción severa (<${UMBRAL_FAC_VD_SEVERA}%)`)
             : badge('orange', `${fac}% — disfunción (<${UMBRAL_FAC_VD_NORMAL}%)`));
     }
@@ -23687,7 +24058,7 @@ function calcVD() {
   const _fevdEl = document.getElementById('fevd-interp');
   if (_fevdEl) {
     if (_fevd === null) _fevdEl.textContent = '—';
-    else _fevdEl.innerHTML = _fevd > UMBRAL_FEVD_NORMAL
+    else _fevdEl.innerHTML = vdFevdCat(_fevd) === 'normal'
       ? badge('green', `${_fevd}% — normal (>${UMBRAL_FEVD_NORMAL}%)`)
       : badge('red',   `${_fevd}% — disfunción sistólica VD (≤${UMBRAL_FEVD_NORMAL}%)`);
   }
@@ -23707,9 +24078,9 @@ function calcVD() {
   const tapEl = document.getElementById('tap-interp');
   if (tapEl) {
     if (tap === null) tapEl.textContent = '—';
-    else tapEl.innerHTML = tap < 105
-      ? badge('red', `${tap} ms — elemento indirecto de HTP (<105 ms)`)
-      : badge('green', `${tap} ms — normal (≥105 ms)`);
+    else tapEl.innerHTML = vdTapCat(tap) === 'htp'
+      ? badge('red', `${tap} ms — elemento indirecto de HTP (<${UMBRAL_TAP_HTP} ms)`)
+      : badge('green', `${tap} ms — normal (≥${UMBRAL_TAP_HTP} ms)`);
   }
   /* VA AL FINAL, después de que la FAC ya se escribió en su campo: esta función decide la
      visibilidad LEYENDO `vd_fac`, así que con ella arriba mediría el valor del gesto anterior. */
@@ -23726,7 +24097,7 @@ function calcVD() {
 function calcAD() {
   const ad = v('ad_area');
   if (!ad) return;
-  let t = ad <= UMBRAL_AD_AREA_NORMAL
+  let t = adAreaCat(ad) === 'normal'
     ? badge('green',  `Normal (≤${UMBRAL_AD_AREA_NORMAL}cm²)`)
     : badge('yellow', `Dilatada (>${UMBRAL_AD_AREA_NORMAL}cm²)`);
   document.getElementById('ad-interp').innerHTML = t;
@@ -23998,6 +24369,30 @@ function calcHTP2022() {
 }
 window.calcHTP2022 = calcHTP2022;
 
+/* ══ LA TABLA DE LA PmAD, EXTRAIDA Y PURA (M1, 2026-10-16) ══════════════════════════
+   Las MISMAS cuatro ramas que vivian dentro de `calcPmAD`, movidas sin tocarles un numero ni
+   un operador —incluido el orden de la cascada, que es lo que decide que un token inesperado
+   caiga en 15—. Salen a funcion propia porque `calcPmAD` lee el DOM y escribe en el, y la
+   tabla de la tarjeta i tiene que preguntarle al dueno por las cuatro combinaciones.
+   FUENTE, VERIFICADA EN TEXTO COMPLETO: ASE 2025 (Mukherjee), «Right Atrial Pressure», folio
+   160 —«If the IVC diameter is normal and collapses >=50% … the RAP is normal (3 mm Hg)… An
+   enlarged IVC diameter that does not collapse <50% with a sniff suggests an elevated RAP
+   (15 mm Hg)… In indeterminate cases, an intermediate value of 8 mm Hg…»— y su Key Point:
+   «RAP values of 3, 8, or 15 mm Hg are assigned using an IVC diameter cutoff of 2.1 cm».
+   ⚠️ EL DIAMETRO LO APLICA LA APP CON `< 21` y la guia escribe «normal <= 2,1 cm», asi que a
+   21,0 mm EXACTOS la app ya lo trata como dilatado. No se movio. */
+const VCI_DIAM_DILATADA_MIN = 21;   // mm
+window.VCI_DIAM_DILATADA_MIN = VCI_DIAM_DILATADA_MIN;
+function pmadEstimar(diam, col) {
+  const d = (typeof PF === 'function') ? PF(diam) : parseFloat(diam);
+  const c = (col === null || col === undefined) ? '' : String(col);
+  if (d == null || !isFinite(d) || !d || !c) return null;
+  if (d <  VCI_DIAM_DILATADA_MIN && c === '>50') return { pmad: 3,  interp: '3 mmHg (normal)',            fila: 'nor-col' };
+  if (d <  VCI_DIAM_DILATADA_MIN && c === '<50') return { pmad: 8,  interp: '8 mmHg (levemente elevada)', fila: 'nor-sin' };
+  if (d >= VCI_DIAM_DILATADA_MIN && c === '>50') return { pmad: 8,  interp: '8 mmHg (levemente elevada)', fila: 'dil-col' };
+  return                                                { pmad: 15, interp: '15 mmHg (elevada)',          fila: 'dil-sin' };
+}
+window.pmadEstimar = pmadEstimar;
 function calcPmAD() {
   const diam = v('vci_diam'), col = sv('vci_col');
   const pmadInterp = document.getElementById('pmad-interp');
@@ -24011,11 +24406,8 @@ function calcPmAD() {
     calcVEXUS();
     return;
   }
-  let pmad, interp;
-  if (diam < 21 && col === '>50') { pmad = 3; interp = '3 mmHg (normal)'; }
-  else if (diam < 21 && col === '<50') { pmad = 8; interp = '8 mmHg (levemente elevada)'; }
-  else if (diam >= 21 && col === '>50') { pmad = 8; interp = '8 mmHg (levemente elevada)'; }
-  else { pmad = 15; interp = '15 mmHg (elevada)'; }
+  const _r = pmadEstimar(diam, col);
+  const pmad = _r.pmad, interp = _r.interp;
   setv('pmad', pmad);
   if (pmadInterp) pmadInterp.textContent = interp;
   calcPSAP();
@@ -38028,6 +38420,12 @@ const EV_COLOR = Object.freeze({
   si: '--orange', 'Remodelado concéntrico': '--yellow', 'Hipertrofia excéntrica': '--orange',
   severa: '--red', 'severamente dilatado': '--red', 'Hipertrofia concéntrica': '--red',
   Normal: '--green', '': '--green',
+  /* ══ TANDA M ══ Las categorias que devuelven los duenos de AD/VCI, VD y aorta. «disfuncion»
+     va en naranja porque en la FAC es la banda del MEDIO —debajo esta «severa»—; las barras
+     de dos bandas que la usan (TAPSE, onda S' y FEVD) piden el rojo por `colores`, que es el
+     color con el que su propia capsula las publica. */
+  dilatada: '--yellow', disfuncion: '--orange', alterado: '--red', htp: '--red',
+  fuera: '--text2',
 });
 const EV_NS = 'http://www.w3.org/2000/svg';
 function _evSvg(tag, at) {
@@ -38063,8 +38461,12 @@ function _evBarra(cfg) {
   (cfg.bandas || []).forEach(function (b) {
     const x1 = px(Math.max(b.desde, lo)), x2 = px(Math.min(b.hasta, hi));
     if (x2 <= x1) return;
+    /* `cfg.colores` deja que una barra pida otro color para una categoria concreta sin tocar
+       el mapa global: la misma palabra puede ser la banda del medio en un parametro y la peor
+       en otro. Lo que no se declara sigue saliendo de `EV_COLOR`. */
+    const _f = (cfg.colores && cfg.colores[b.k]) ? ('var(' + cfg.colores[b.k] + ')') : _evColor(b.k);
     svg.appendChild(_evSvg('rect', { x: x1.toFixed(1), y: Y, width: (x2 - x1).toFixed(1),
-      height: HB, fill: _evColor(b.k), 'data-ev-zona': b.k }));
+      height: HB, fill: _f, 'data-ev-zona': b.k }));
   });
   svg.appendChild(_evSvg('rect', { x: 0.5, y: Y, width: W - 1, height: HB, fill: 'none',
     stroke: 'var(--border)', 'stroke-width': 1 }));
