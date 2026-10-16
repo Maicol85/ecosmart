@@ -408,6 +408,97 @@ const SONDA = `window.__P = {
   cerrar3dVI() { var b = document.getElementById('lv3d-btn'); if (!b) return 'SIN BOTON';
     if (b.getAttribute('aria-expanded') === 'true') b.click();
     return b.getAttribute('aria-expanded') === 'true' },
+  /* K3: el interior del 3D del ventriculo, en el ORDEN DEL MARCADO, con los cinco cuadros. */
+  lv3dInterior() {
+    var p = document.getElementById('lv3d-panel');
+    if (!p) return { hay: false };
+    var o = { hay: true };
+    o.orden = Array.prototype.slice.call(p.children).map(function(c){
+      if (c.id) return '#' + c.id;
+      if (c.querySelector && c.querySelector('.lv3d-vista')) return 'VISTAS';
+      if (c.querySelector && c.querySelector('.lv3d-color')) return 'COLORES';
+      if (c.querySelector && c.querySelector('.lv3d-fase')) return 'PLAY+FASE';
+      if (c.querySelector && c.querySelector('.lv3d-fantasma')) return 'CASILLAS';
+      return c.tagName + (c.nodeType === 8 ? '/c' : '') });
+    ['lv3d-dibujo','lv3d-lienzo','lv3d-canvas','lv3d-datos','lv3d-notas','lv3d-cap','lv3d-leyenda']
+      .forEach(function(i){ o[i] = window.__P.rect('#' + i) });
+    var d = document.getElementById('lv3d-datos');
+    o.cuadros = d ? Array.prototype.slice.call(d.querySelectorAll('div > div:first-child'))
+      .map(function(x){ return String(x.textContent || '').trim() }).filter(function(t){ return t.length && t.length < 24 }) : null;
+    o.valores = d ? String(d.textContent || '').replace(/[ ]+/g, ' ').trim() : 'NO EXISTE';
+    o.notas = window.__P.txt('#lv3d-notas');
+    o.ctrl = { vistas: p.querySelectorAll('.lv3d-vista').length,
+               colores: p.querySelectorAll('.lv3d-color').length,
+               fase: p.querySelectorAll('.lv3d-fase').length,
+               play: !!document.getElementById('lv3d-play'),
+               fantasma: p.querySelectorAll('.lv3d-fantasma').length,
+               aparato: p.querySelectorAll('.lv3d-aparato').length,
+               capTomar: p.querySelectorAll('.lv3d-cap-tomar').length,
+               capQuitar: p.querySelectorAll('.lv3d-cap-quitar').length,
+               capPdf: p.querySelectorAll('.lv3d-cap-pdf').length };
+    return o },
+  /* Espia de requestAnimationFrame: cuantos cuadros se piden en una ventana de tiempo. */
+  espiarRaf() { if (window.__raf) return 'YA';
+    window.__raf = { n: 0, orig: window.requestAnimationFrame };
+    window.requestAnimationFrame = function(f){ window.__raf.n++; return window.__raf.orig.call(window, f) };
+    return true },
+  rafN(reset) { if (!window.__raf) return 'SIN ESPIA'; var n = window.__raf.n; if (reset) window.__raf.n = 0; return n },
+  nodos() { return document.getElementsByTagName('*').length },
+  /* El hash del lienzo del VI 3D: TODOS los bytes, no una muestra rala. */
+  lv3dHash() { var cv = document.getElementById('lv3d-canvas');
+    if (!cv || !cv.getContext) return null;
+    var c = cv.getContext('2d'), d = null;
+    try { d = c.getImageData(0, 0, cv.width, cv.height) } catch (e) { return null }
+    var a = d.data, i, h = 2166136261;
+    for (i = 0; i < a.length; i++) { h ^= a[i]; h = (h * 16777619) >>> 0 }
+    return h },
+  /* La sincronia en los dos sentidos: el estado de un segmento. */
+  seg(id) { try { return Number(contrEstado[id] || 0) } catch (e) { return 'EXC' } },
+  clicSeg(n) { var d = document.querySelectorAll('[data-contrseg]');
+    if (!d.length) return 'SIN SEGMENTOS';
+    var e = d[n || 0]; var id = e.getAttribute('data-contrseg');
+    e.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    return { id: id, estado: this.seg(id) } },
+  almacen() { var o = { local: [], sesion: [] }, i;
+    try { for (i = 0; i < localStorage.length; i++) { var k = localStorage.key(i);
+      if (/lv3d|contractilidad|bulls|m3d/i.test(k)) o.local.push(k) } } catch (e) {}
+    try { for (i = 0; i < sessionStorage.length; i++) { var k2 = sessionStorage.key(i);
+      if (/lv3d|contractilidad|bulls|m3d/i.test(k2)) o.sesion.push(k2) } } catch (e) {}
+    return o },
+  /* ══ SUPERFICIES, para los controles A/B ══════════════════════════════════════════════ */
+  informe(estilo) { try { if (this.fn('setEstiloInforme')) setEstiloInforme(estilo) } catch (e) {}
+    try { if (this.fn('generarInforme')) generarInforme() } catch (e) {}
+    return { inf: String((document.getElementById('informe_texto') || {}).value || ''),
+             suma: String((document.getElementById('en_suma') || {}).value || '') } },
+  grados() { var o = {};
+    ['im','ia','it','ip','em','ea','et','ep'].forEach(function(k){
+      var e = document.getElementById(k + '_grado'); o[k] = e ? String(e.value) : 'NO EXISTE' });
+    ['ea-sev','em-sev-integrada','ip-sev','ep-sev','dd-interp','hfapeff-eco','wilkins-total','wilkins-interp']
+      .forEach(function(id){ var e = document.getElementById(id);
+        o[id] = e ? String(e.textContent||'').replace(/[ ]+/g,' ').trim() : 'NO EXISTE' });
+    return o },
+  pastillas() { var o = {};
+    Array.prototype.slice.call(document.querySelectorAll('.valv-pill')).forEach(function(b){
+      o[b.id] = (b.className.indexOf('valv-pill-on') > -1 || b.getAttribute('aria-pressed') === 'true'
+                 || b.className.indexOf('btn-primary') > -1) ? 'on' : 'off' });
+    return o },
+  camposCrudos() { var c = {};
+    Array.prototype.slice.call(document.querySelectorAll('input[id],select[id],textarea[id]'))
+      .forEach(function(e){
+        if (e.type === 'checkbox' || e.type === 'radio') c[e.id + '__chk'] = e.checked ? '1' : '0';
+        else c[e.id] = e.value });
+    return c },
+  excel() { try {
+      if (typeof _labExcelRow !== 'function') return 'SIN FN';
+      return _labExcelRow({ id: 'p1', fecha: '2026-10-16', nombre: 'X', campos: this.camposCrudos(),
+                            informe_texto: '', en_suma: '' });
+    } catch (e) { return 'EXC ' + String(e && e.message).slice(0, 80) } },
+  campos() { var o = {};
+    Array.prototype.slice.call(document.querySelectorAll('input[id], select[id], textarea[id]'))
+      .forEach(function(e){ if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(e.id)) return;
+        if (e.id === 'informe_texto' || e.id === 'en_suma') return;
+        o[e.id] = (e.type === 'checkbox') ? (e.checked ? '1' : '') : String(e.value == null ? '' : e.value) });
+    return o },
   scrollY() { return window.scrollY },
   docH() { return document.documentElement.scrollHeight }
 };`;
@@ -820,6 +911,119 @@ for (const motor of MOTORES) {
     }
     G.tres = g;
     await parcial('tres.' + motor, g);
+  }
+
+
+  /* ── lv3d ── K3: el interior del 3D del ventriculo. ──────────────────────────────────── */
+  if (corre('lv3d')) {
+    const g = {};
+    const ESCV = {
+      vacio: {},
+      volumenes: { ddfvi: '58', vdfvi: '140', vsfvi: '56', fevi: '60' },
+      soloFeviVdf: { vdfvi: '140', fevi: '60', ddfvi: '58' },
+      sinDdvi: { vdfvi: '140', fevi: '60' }
+    };
+    for (const [W, H] of [[1440, 800], [1200, 700], [390, 844]]) {
+      for (const [en, campos] of Object.entries(ESCV)) {
+        const pg = await nuevaPagina(b, W, H, false, true);
+        await pg.evaluate((c) => { try { limpiarCampos(true) } catch (e) {}
+          Object.keys(c).forEach(function(i){ var n = document.getElementById(i); if (!n) return;
+            n.value = c[i]; n.dispatchEvent(new Event('input', { bubbles: true }));
+            n.dispatchEvent(new Event('change', { bubbles: true })) });
+          ['calcVI'].forEach(function(f){ try { window[f]() } catch (e) {} }) }, campos);
+        await pg.evaluate(() => window.__P.contr());
+        await pg.evaluate(() => window.__P.abrir3dVI());
+        await pg.waitForTimeout(600);
+        g[W + '-' + en] = await pg.evaluate(() => window.__P.lv3dInterior());
+        if (DEST && W === 1440) { try { await pg.locator('#lv3d-panel').screenshot({ path: join(DEST, 'lv3d-' + motor + '-' + en + '.png') }) } catch (e) {} }
+        await pg.close();
+      }
+    }
+    G.lv3d = g;
+    await parcial('lv3d.' + motor, g);
+  }
+
+
+  /* ── lv3dcomp ── K3: el comportamiento del 3D del ventriculo no cambia. ─────────────── */
+  if (corre('lv3dcomp')) {
+    const g = {};
+    const pg = await nuevaPagina(b, 1440, 900);
+    /* ⚠️ CON EL FORMULARIO VACIO EL 3D NO DIBUJA: sin DDVI ni VDFVI muestra el cartel «no hay
+       datos» y no arranca el bucle, asi que una sonda sin volumenes informa CERO cuadros, cero
+       cambio de hash y cero ciclado al tocar un segmento — sobre un panel que funciona. */
+    await pg.evaluate(() => { [['ddfvi','58'],['vdfvi','140'],['vsfvi','56'],['fevi','60']].forEach(function(p2){
+      var n = document.getElementById(p2[0]); if (!n) return; n.value = p2[1];
+      n.dispatchEvent(new Event('input', { bubbles: true })); n.dispatchEvent(new Event('change', { bubbles: true })) });
+      try { calcVI() } catch (e) {} });
+    await pg.evaluate(() => window.__P.contr());
+    await pg.evaluate(() => window.__P.espiarRaf());
+    /* Animacion: cerrado / abierto / con la pestania oculta / tras cerrar. */
+    await pg.evaluate(() => window.__P.rafN(true));
+    await pg.waitForTimeout(900);
+    g.rafCerrado = await pg.evaluate(() => window.__P.rafN(true));
+    await pg.evaluate(() => window.__P.abrir3dVI());
+    await pg.waitForTimeout(900);
+    g.rafAbierto = await pg.evaluate(() => window.__P.rafN(true));
+    /* La pestania del navegador oculta. */
+    await pg.evaluate(() => { Object.defineProperty(document, 'hidden', { value: true, configurable: true });
+      Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+      document.dispatchEvent(new Event('visibilitychange')) });
+    await pg.waitForTimeout(900);
+    g.rafOculta = await pg.evaluate(() => window.__P.rafN(true));
+    await pg.evaluate(() => { Object.defineProperty(document, 'hidden', { value: false, configurable: true });
+      Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+      document.dispatchEvent(new Event('visibilitychange')) });
+    await pg.waitForTimeout(600);
+    await pg.evaluate(() => window.__P.cerrar3dVI());
+    await pg.evaluate(() => window.__P.rafN(true));
+    await pg.waitForTimeout(900);
+    g.rafTrasCerrar = await pg.evaluate(() => window.__P.rafN(true));
+    /* 20 aperturas y cierres: nodos. */
+    const n0 = await pg.evaluate(() => window.__P.nodos());
+    for (let i = 0; i < 20; i++) {
+      await pg.evaluate(() => window.__P.abrir3dVI());
+      await pg.evaluate(() => window.__P.cerrar3dVI());
+    }
+    g.ciclos = { antes: n0, despues: await pg.evaluate(() => window.__P.nodos()),
+                 cerrado: await pg.evaluate(() => { const b2 = document.getElementById('lv3d-btn');
+                   return b2 && b2.getAttribute('aria-expanded') !== 'true' }) };
+    /* Sincronia en los dos sentidos: bull's eye -> 3D y 3D -> bull's eye. */
+    await pg.evaluate(() => window.__P.abrir3dVI());
+    await pg.waitForTimeout(500);
+    const h0 = await pg.evaluate(() => window.__P.lv3dHash());
+    const cl = await pg.evaluate(() => window.__P.clicSeg(0));
+    await pg.waitForTimeout(400);
+    g.bullseyeAl3d = { clic: cl, hashCambia: (await pg.evaluate(() => window.__P.lv3dHash())) !== h0,
+                       texto: await pg.evaluate(() => window.__P.txt('#contr-texto-informe')) };
+    /* El 3D al bull's eye: un clic real sobre el canvas cicla la motilidad del segmento. */
+    const r = await pg.evaluate(() => window.__P.rect('#lv3d-canvas'));
+    await pg.evaluate(() => { const c = document.getElementById('lv3d-canvas');
+      if (c) c.scrollIntoView({ block: 'center' }) });
+    const r2 = await pg.evaluate(() => window.__P.rect('#lv3d-canvas'));
+    const antesSeg = await pg.evaluate(() => { const o = {};
+      document.querySelectorAll('[data-contrseg]').forEach(e => { o[e.getAttribute('data-contrseg')] = window.__P.seg(e.getAttribute('data-contrseg')) });
+      return JSON.stringify(o) });
+    await pg.mouse.click(r2.x + r2.w / 2, r2.y + r2.h / 2);
+    await pg.waitForTimeout(400);
+    const despSeg = await pg.evaluate(() => { const o = {};
+      document.querySelectorAll('[data-contrseg]').forEach(e => { o[e.getAttribute('data-contrseg')] = window.__P.seg(e.getAttribute('data-contrseg')) });
+      return JSON.stringify(o) });
+    g.tresDAlBullseye = { cambia: antesSeg !== despSeg, rect: r };
+    /* Arrastre real sobre el canvas: el dibujo gira. */
+    const hA = await pg.evaluate(() => window.__P.lv3dHash());
+    await pg.mouse.move(r2.x + r2.w / 2, r2.y + r2.h / 2);
+    await pg.mouse.down();
+    await pg.mouse.move(r2.x + r2.w / 2 + 60, r2.y + r2.h / 2 + 20);
+    await pg.mouse.up();
+    await pg.waitForTimeout(400);
+    g.arrastre = { cambia: (await pg.evaluate(() => window.__P.lv3dHash())) !== hA };
+    /* Nada del 3D se guarda. */
+    g.almacen = await pg.evaluate(() => window.__P.almacen());
+    g.campos3d = await pg.evaluate(() => { const c = window.__P.campos();
+      return Object.keys(c).filter(k => /lv3d|cap/i.test(k)) });
+    await pg.close();
+    G.lv3dcomp = g;
+    await parcial('lv3dcomp.' + motor, g);
   }
 
   await b.close();

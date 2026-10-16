@@ -2581,6 +2581,21 @@ html.light-mode .amilo-root{
    fila y no como tres cosas sueltas. Son las variables de la app, sin un color propio. */
 #lv3d-bloque-hallazgos,#lv3d-bloque-botones{background:var(--bg3);border-radius:10px;
   padding:10px 12px;min-width:0;}
+/* ══ EL INTERIOR DEL 3D DEL VENTRICULO — «K3» (2026-10-16) ════════════════════════════════════
+   El dibujo y los cinco cuadros de datos, lado a lado. El ancho de la columna de datos va en
+   PIXELES: con una fraccion crece con la pantalla y le come ancho al cuadro gris, y la orden
+   dice que el cuadro gris no se achica. En angosto se apila y la grilla de los cuadros vuelve a
+   repartirse sola con su `auto-fit`. */
+#lv3d-dibujo{display:flex;gap:8px;align-items:flex-start;}
+#lv3d-lienzo{flex:1 1 auto;min-width:0;}
+#lv3d-datos{flex:0 0 110px;}
+#lv3d-notas{margin-top:4px;}
+/* Los colores y sus dos casillas, en la misma fila y separados. */
+#lv3d-colores{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:8px;}
+@media (max-width:768px){
+  #lv3d-dibujo{flex-direction:column;align-items:stretch;}
+  #lv3d-lienzo,#lv3d-datos{flex:0 0 auto;width:auto;}
+}
 /* ══ EL PANEL EN LINEA (Y1c, 2026-10-16) — DECISION DE MAICOL ══════════════════════════════
    Era un overlay `position:fixed` con fondo tenue y una tarjeta flotante centrada; hoy es un
    bloque mas de la pantalla de Valvulas, debajo del boton.
@@ -9110,15 +9125,41 @@ window.cerrarSesionReal = cerrarSesionReal;
                     el acordeón de Contractilidad solo, en todo paciente. Medido contra HEAD.
                  Se los ubica por clase dentro del panel. -->
             <div id="lv3d-panel" style="display:none;min-width:0;">
-              <canvas id="lv3d-canvas" width="680" height="380"
+              <!-- ⚠️ EL INTERIOR REORDENADO — «K3» (2026-10-16). De arriba abajo: botones de PUNTA,
+                   el cuadro gris con los CINCO CUADROS de datos a su derecha, la pausa con la
+                   fase, los colores con sus dos casillas al lado, y la captura. NINGUN CONTROL
+                   ES NUEVO: son exactamente los que ya estaban, cambiados de lugar. -->
+              <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+                <button type="button" class="btn btn-ghost lv3d-vista" data-lv3d-vista="frente" style="min-height:44px;font-size:11px;">Punta hacia mí</button>
+                <button type="button" class="btn btn-ghost lv3d-vista" data-lv3d-vista="der" style="min-height:44px;font-size:11px;">Punta a la derecha</button>
+                <button type="button" class="btn btn-ghost lv3d-vista" data-lv3d-vista="izq" style="min-height:44px;font-size:11px;">Punta a la izquierda</button>
+              </div>
+
+              <!-- ⚠️ EL DIBUJO Y LOS CINCO CUADROS, LADO A LADO. La columna de datos lleva un
+                   ancho EXPLICITO en px: con una fraccion crece con la pantalla y le come ancho
+                   al cuadro gris, que es justo lo que la orden prohibe. En angosto se apila y la
+                   grilla de los cuadros se reparte sola, que es su `auto-fit` de siempre. -->
+              <div id="lv3d-dibujo">
+                <div id="lv3d-lienzo">
+                  <canvas id="lv3d-canvas" width="680" height="380"
                       aria-label="Modelo esquemático del ventrículo izquierdo con los 17 segmentos coloreados según su motilidad. Arrastrá para girar; tocá un segmento para cambiar su estado."
                       style="width:100%;height:auto;display:block;touch-action:none;cursor:grab;background:var(--bg3);border-radius:10px;"></canvas>
-              <!-- Dice que el toque cambia el INFORME, no solo el dibujo. El gesto que el panel
+                  <!-- Dice que el toque cambia el INFORME, no solo el dibujo. El gesto que el panel
                    anuncia es girar, y el rótulo de abajo dice «ilustrativo»: sin esta línea, que
                    tocar un segmento viaje al narrativo, al EN SUMA, al PDF y al PPT es una
                    sorpresa. El rótulo que pidió Maicol queda intacto, debajo del botón. -->
+                </div>
+                <!-- P5: los datos de construccion. El panel SOLO LEE: ni un valor se recalcula. -->
+                <div id="lv3d-datos"></div>
+              </div>
               <div id="lv3d-leido" aria-live="polite" style="font-size:11px;color:var(--text2);margin:6px 0 0;min-height:16px;">Arrastrá para girar. Tocá un segmento para cambiar su motilidad: el cambio va al informe.</div>
-
+              <div style="display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap;">
+                <button type="button" class="btn btn-ghost" id="lv3d-play" style="min-height:44px;font-size:11px;">⏸ Pausa</button>
+                <span style="font-size:11px;color:var(--text2);">Fase</span>
+                <input type="range" class="lv3d-fase" data-ui min="0" max="100" value="0" step="1"
+                       aria-label="Fase del ciclo cardíaco" style="flex:1;min-width:130px;min-height:44px;">
+                <span id="lv3d-fase-txt" style="font-size:11px;font-weight:600;min-width:118px;">Fin de diástole</span>
+              </div>
               <!-- ⚠️ EL SELECTOR DE COLOR ES DOS BOTONES Y NO UN <select>, Y NO ES ESTÉTICA.
                    `limpiarCampos` barre `document.querySelectorAll('select')` COMPLETO, sin
                    filtrar por `id` —a diferencia del barrido de casillas, que sí filtra—, así que
@@ -9127,39 +9168,29 @@ window.cerrarSesionReal = cerrarSesionReal;
                    «territorio» con el motor pintando motilidad, o al revés. Es el mismo motivo por
                    el que el modal de PDF usa botones, y está escrito en este archivo desde antes.
                    Sin `id`, como los tres controles de más abajo: se los ubica por clase. -->
-              <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
-                <button type="button" class="btn btn-primary lv3d-color" data-lv3d-color="motilidad"
-                        aria-pressed="true" style="min-height:44px;font-size:11px;">Color por motilidad</button>
-                <button type="button" class="btn btn-ghost lv3d-color" data-lv3d-color="territorio"
-                        aria-pressed="false" style="min-height:44px;font-size:11px;">Color por territorio coronario</button>
-              </div>
+              <!-- ⚠️ LOS DOS BOTONES DE COLOR Y LAS DOS CASILLAS VAN EN LA MISMA FILA — «K3»
+                   (2026-10-16): la orden pide las casillas «al lado» de los colores, y estaban en
+                   un bloque propio dos renglones mas abajo. El envoltorio solo agrupa; ni los
+                   botones ni las casillas cambian de clase, de marca ni de comportamiento. -->
+              <div id="lv3d-colores">
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                  <button type="button" class="btn btn-primary lv3d-color" data-lv3d-color="motilidad"
+                          aria-pressed="true" style="min-height:44px;font-size:11px;">Color por motilidad</button>
+                  <button type="button" class="btn btn-ghost lv3d-color" data-lv3d-color="territorio"
+                          aria-pressed="false" style="min-height:44px;font-size:11px;">Color por territorio coronario</button>
+                </div>
               <!-- Leyenda del modo territorio. La dibuja `lv3dLeyendaRender` desde
                    `CONTR_TERRITORIO` + `CONTR_MOTILIDAD` + `LV3D_TONO`: ni un nombre ni un color
                    escrito acá, para que no haya una cuarta copia que se desincronice. -->
               <div id="lv3d-leyenda" style="display:none;margin-top:7px;"></div>
-
-              <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
-                <button type="button" class="btn btn-ghost lv3d-vista" data-lv3d-vista="frente" style="min-height:44px;font-size:11px;">Punta hacia mí</button>
-                <button type="button" class="btn btn-ghost lv3d-vista" data-lv3d-vista="der" style="min-height:44px;font-size:11px;">Punta a la derecha</button>
-                <button type="button" class="btn btn-ghost lv3d-vista" data-lv3d-vista="izq" style="min-height:44px;font-size:11px;">Punta a la izquierda</button>
-              </div>
-
-              <div style="display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap;">
-                <button type="button" class="btn btn-ghost" id="lv3d-play" style="min-height:44px;font-size:11px;">⏸ Pausa</button>
-                <span style="font-size:11px;color:var(--text2);">Fase</span>
-                <input type="range" class="lv3d-fase" data-ui min="0" max="100" value="0" step="1"
-                       aria-label="Fase del ciclo cardíaco" style="flex:1;min-width:130px;min-height:44px;">
-                <span id="lv3d-fase-txt" style="font-size:11px;font-weight:600;min-width:118px;">Fin de diástole</span>
-              </div>
-
-              <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:4px;font-size:11px;color:var(--text2);">
+                <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--text2);">
                 <!-- El blanco táctil es el `label` entero —tocarlo conmuta la casilla—, así que es
                      el label el que mide 44 px de alto y de ancho mínimo, no el cuadradito nativo.
                      Igual se le sube a 20 px para que se pueda ver y apuntar con el dedo. -->
                 <label style="display:inline-flex;align-items:center;gap:7px;min-height:44px;min-width:44px;cursor:pointer;"><input type="checkbox" class="lv3d-fantasma" data-ui checked style="width:20px;height:20px;"> Diástole fantasma</label>
                 <label style="display:inline-flex;align-items:center;gap:7px;min-height:44px;min-width:44px;cursor:pointer;"><input type="checkbox" class="lv3d-aparato" data-ui checked style="width:20px;height:20px;"> Cuerdas y papilares</label>
-              </div>
-
+                </div>
+              </div><!-- fin lv3d-colores -->
               <!-- ⚠️ CAPTURA: UNA SOLA, Y SÓLO EN MEMORIA.
                    No entra al estudio, no entra a `localStorage` y no sale al Excel ni al PPT. Al
                    PDF sí, desde el 2026-10-04, y SÓLO si la casilla de acá abajo está marcada: la
@@ -9184,8 +9215,10 @@ window.cerrarSesionReal = cerrarSesionReal;
                 <label class="lv3d-cap-pdf-lbl" style="display:inline-flex;align-items:center;gap:7px;min-height:44px;min-width:44px;cursor:pointer;font-size:10.5px;opacity:0.5;"><input type="checkbox" class="lv3d-cap-pdf" data-ui disabled style="width:20px;height:20px;"> Incluir diagrama 3D en el PDF</label>
               </div>
 
-              <!-- P5: los datos de construcción, debajo del diagrama. El panel SOLO LEE. -->
-              <div id="lv3d-datos" style="margin-top:8px;"></div>
+              <!-- Las notas del panel (que falta cargar, el aviso del preset sin DDVI, la
+                   amplitud) van a todo el ancho y DEBAJO: en la columna de 150 px de los cinco
+                   cuadros, un parrafo de 10 px queda en una tira de dos palabras por renglon. -->
+              <div id="lv3d-notas"></div>
             </div>
           </div>
         </div>
@@ -81208,8 +81241,7 @@ function lv3dRenderDatos(d, aviso){
     if (faltanG.length) notas.push(['n', 'Para completar el panel falta cargar: ' + faltanG.join(', ') + '.']);
     /* La TABLA se deja igual: el médico tiene que poder ver qué cargó y qué no, incluso —sobre
        todo— cuando no alcanza para dibujar. Lo que se recorta son las notas sobre el dibujo. */
-    html += lv3dNotasHTML(notas);
-    box.innerHTML = html;
+    _lv3dPublicar(box, html, notas);
     return;
   }
   /* ⚠️ TRES CAUSAS DISTINTAS, TRES FRASES DISTINTAS, y el orden importa.
@@ -81244,8 +81276,21 @@ function lv3dRenderDatos(d, aviso){
   if (_noCargado(d.dd)) faltan.push('DDVI');
   if (faltan.length) notas.push(['n', 'Para completar el panel falta cargar: ' + faltan.join(', ') + '.']);
 
-  html += lv3dNotasHTML(notas);
+  _lv3dPublicar(box, html, notas);
+}
+/* ══ LOS CINCO CUADROS Y LAS NOTAS, EN DOS NODOS — «K3» (2026-10-16) ══════════════════════════
+   Los cuadros se mudaron a la COLUMNA de la derecha del dibujo y las notas se quedaron a todo el
+   ancho, debajo: en una columna de 150 px un parrafo de 10 px queda en una tira de dos palabras
+   por renglon. Es un solo emisor para que las dos partes no se puedan separar, y si el nodo de
+   las notas no existe caen donde caian —no se pierde ninguna—. */
+function _lv3dPublicar(box, html, notas){
   box.innerHTML = html;
+  /* ⚠️ SIN CONCATENAR EN `innerHTML`: la rama de respaldo escribia `html + n` y Semgrep la cazo
+     sobre codigo recien escrito —128 donde la linea base es 127—. Con el nodo creado al vuelo
+     las notas no se pierden nunca y no hay una segunda forma de armar el HTML. */
+  let nt = document.getElementById('lv3d-notas');
+  if (!nt) { nt = document.createElement('div'); nt.id = 'lv3d-notas'; box.appendChild(nt); }
+  nt.innerHTML = lv3dNotasHTML(notas);
 }
 
 // ── Álgebra de rotación ──
@@ -82016,8 +82061,15 @@ function lv3dMaquetar(){
   fila.style.display = 'grid';
   fila.style.gap = '16px';
   fila.style.alignItems = 'stretch';
+  /* ⚠️ EL PANEL CRECE EXACTAMENTE LO QUE OCUPA LA COLUMNA DE LOS CINCO CUADROS — «K3».
+     Era `46%`, el ancho que el panel tenia cuando el dibujo lo ocupaba entero. Al poner los
+     cinco cuadros A LA DERECHA del dibujo, con el 46% el cuadro gris se achicaba —medido: de
+     531 a 373 px a 1440, y de 436 a 278 a 1200—, y la orden dice que el cuadro gris no se
+     achica. `calc(46% + 118px)` le suma al panel la columna (110 px) mas su hueco (8), asi que
+     el dibujo conserva SU ancho exacto y lo que se angosta es la columna de hallazgos, que es
+     texto. Queda declarado en PENDIENTES: a 1200 px esa columna baja a unos 150 px. */
   fila.style.gridTemplateColumns = angosto ? 'minmax(0,1fr)'
-    : (_lv3d.abierto ? 'minmax(0,1fr) minmax(0,210px) minmax(0,46%)'
+    : (_lv3d.abierto ? 'minmax(0,1fr) minmax(0,210px) minmax(0,calc(46% + 118px))'
                      : 'minmax(0,1fr) minmax(0,210px)');
 }
 
