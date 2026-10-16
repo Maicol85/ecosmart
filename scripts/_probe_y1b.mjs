@@ -983,6 +983,14 @@ async function main() {
         vmax_ao: '4.2', gmedio_ao: '45' }) },
     manual: { campos: Object.assign({}, BSA, { im_vc: '8' }), fn: ['calcIM_ESC()'],
       sev: [['insuf', 'mitral', '2']] },
+    /* ⚠️ LA ESCENA MAS ALTA DE TODAS, y hace falta para el denominador del alto: carga los ONCE
+       campos que pueden producir fila en la tabla de cavidades. Con una escena de nueve filas el
+       panel entra sin desplazamiento y eso NO prueba que entre con la tabla completa. */
+    camarasFull: { campos: Object.assign({}, BSA, { ddfvi: '66', vdfvi: '180', fevi: '30',
+      ai_vol: '105', vd_bas: '47', tapse: '14', s_prime: '8', vd_tei: '0.62',
+      ad_area: '24', lars: '12', siv: '14', ppvi: '14',
+      im_vc: '5', ia_vc: '7', it_vc: '8', vmax_ao: '4.5', gmedio_ao: '45',
+      em_gmedio: '12', thp: '250', et_gmedio: '6' }) },
     rico: { campos: Object.assign({}, BSA, { im_vc: '5', pisa_r: '0.9', pisa_val: '40',
       im_vmax: '5', im_itv: '150', ea_dtsvi: '20', itv_tsvi: '20',
       ia_vc: '7', it_vc: '8', vmax_ao: '4.5', gmedio_ao: '45',
@@ -1011,7 +1019,7 @@ async function main() {
     const g = { celdas: [] };
     await ev(`window.__P.tema(false)`);
     await viewport(1200, 900);
-    await escena(ESCY.rico);
+    await escena(ESCY.camarasFull);
     for (const [w, h] of [[1200, 700], [1440, 800], [1920, 1080], [768, 1024], [390, 844], [360, 740]]) {
       for (const claro of [false, true]) {
         await ev(`window.__P.tema(${claro})`);
@@ -1021,7 +1029,9 @@ async function main() {
         const ab = await ev(`window.__P.v2dAbrir()`);
         await pausa(140);
         const geo = await ev(`window.__P.panelGeo()`);
-        g.celdas.push({ w, h, tema: claro ? 'claro' : 'oscuro', abre: ab, geo });
+        const fil = await ev(`window.__P.v2dCav()`);
+        g.celdas.push({ w, h, tema: claro ? 'claro' : 'oscuro', abre: ab, geo,
+                        nFilas: (fil && fil.filas) ? fil.filas.length : fil });
         await ev(`window.__P.v2dCerrarBoton()`);
       }
     }
