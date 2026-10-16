@@ -2507,6 +2507,9 @@ html.light-mode .amilo-root{
 .v2d-pq-g > * + *{margin-left:4px;}
 .v2d-pq-chip{margin-top:0;font-size:9.5px;padding:0 5px;}
 .v2d-pq-banda{color:var(--text2);}
+/* UN CRITERIO RETIRADO VA EN GRIS, con el motivo que la pantalla ya escribe. No se esconde: que
+   la medicion EXISTE y no cuenta es justamente lo que hay que poder leer. */
+.v2d-pq-ret{opacity:.62;}
 .v2d-pq-dec{color:var(--accent2);font-weight:700;}
 .v2d-pq-nv{color:var(--text2);font-style:normal;}
 .v2d-pq-aviso{grid-column:1 / -1;color:var(--orange);line-height:1.3;margin-top:2px;}
@@ -111568,6 +111571,35 @@ const V2D_PORQUE = Object.freeze({
       Object.freeze({ id: 'et-ref-vti',    sep: 'parentesis', color: true }),
       Object.freeze({ id: 'et-ref-thp',    sep: 'parentesis', color: true }),
       Object.freeze({ id: 'et-ref-avt',    sep: 'parentesis', color: true })
+    ]) }),
+  /* ══ LAS PROTESIS (Y2-3) ═══════════════════════════════════════════════════════════════════
+     ⚠️ SIN PASTILLA DE COLOR EN NINGUNA DE LAS DOS, y es la misma asimetria que el Y1 declaro:
+     la ASE 2024 no publica escala de severidad para la estenosis protesica —el W2-B la retiro de
+     esta pantalla— asi que el grado va como TEXTO, con la banda que la capsula imprime al lado.
+     ⚠️ LA VELOCIDAD PICO SE MARCA «no vota» Y NO SE SACA. La Tabla 11 la publica y la prosa del
+     folio 24 la omite, asi que la app la muestra y no la cuenta (Z5): esconderla aqui dejaria al
+     medico sin saber que esa medicion esta y no pesa.
+     ⚠️ Y EL PPM NO ENTRA, por orden expresa: no es un criterio de obstruccion.
+     Los RETIRADOS —el gradiente medio con regurgitacion significativa y, en una mecanica, con el
+     THP normal— se reconocen por el motivo que la capsula ya escribe. */
+  'prot:mitral': Object.freeze({ decide: 'vm-prot-obstr', decideModo: 'parentesis', aviso: null,
+    crit: Object.freeze([
+      Object.freeze({ id: 'vm-prot-vmax', sep: 'parentesis', noVota: true }),
+      Object.freeze({ id: 'vm-prot-gmed', sep: 'parentesis' }),
+      Object.freeze({ id: 'vm-prot-eoa',  sep: 'parentesis' }),
+      Object.freeze({ id: 'vm-prot-dvi',  sep: 'parentesis' }),
+      Object.freeze({ id: 'vm-prot-thp',  sep: 'parentesis' })
+    ]) }),
+  /* La aortica comparte el cuadro con la nativa y con protesis solo la fila del DVI publica
+     referencia —la Tabla 5 no da cortes absolutos de AVA para una protesis—, asi que las otras
+     muestran su valor sin grado. Su REGLA son dos mitades y no un criterio, y eso lo dice la nota
+     que el renglon ya publica: va al pie de la lista, no en la tarjeta cerrada. */
+  'prot:aortica': Object.freeze({ decide: null, aviso: 'ea-det-sev-nota',
+    crit: Object.freeze([
+      Object.freeze({ id: 'ea-det-gmedio' }),
+      Object.freeze({ id: 'ea-det-ava' }),
+      Object.freeze({ id: 'ea-det-avai' }),
+      Object.freeze({ id: 'ea-det-dvi' })
     ]) })
 });
 window.V2D_PORQUE = V2D_PORQUE;
@@ -111653,7 +111685,11 @@ function _v2dCrit(c) {
   /* Y la estenosis mitral lo publica PEGADO a su valor con un punto medio («· significativa
      (≤1,5 cm²)»), porque alla va en la misma celda: en la tarjeta el separador no hace falta. */
   while (grado.charAt(0) === '\u00b7' || grado.charAt(0) === ' ') grado = grado.slice(1).trim();
-  if (!val) return null;
+  /* ⚠️ Y TAMPOCO SI EL VALOR QUEDA EN LA RAYA DESPUES DE SEPARAR EL GRADO. La velocidad pico de
+     la protesis publica «—  (sin medir — se carga en Estenosis Mitral)»: el texto completo no es
+     una raya, asi que la guarda de arriba lo deja pasar, y sin esta segunda la lista publicaba una
+     fila con la raya y su motivo, que es exactamente el «no medido» que la orden prohibe. */
+  if (!val || val === '—' || val === '-') return null;
   let nom = _v2dRotulo(v.closest ? v.closest('.calc-row') : null);
   if (c.suf) nom += (nom ? ' — ' : '') + c.suf;
   /* ⚠️ LA MARCA DE «DECIDE» SE LEE, NO SE DEDUCE. La estenosis mitral publica en la clase de su
@@ -111664,9 +111700,21 @@ function _v2dCrit(c) {
     decide = true;
     grado = grado.replace(new RegExp('[·\\s]*' + c.marca + '\\s*$', 'i'), '').trim();
   }
-  return { nom: nom, val: val, grado: grado, decide: decide,
+  /* ⚠️ UN CRITERIO RETIRADO SE RECONOCE POR EL MOTIVO QUE LA PANTALLA YA ESCRIBE, no por una
+     segunda copia de la regla que lo retira. Las capsulas protesicas publican «no concluye: …»,
+     «no valida con regurgitacion significativa» y «no aplica en protesis», que son las tres formas
+     con las que el W2-B y el Z6 declararon sus retiros. Un «sin criterios de obstruccion» NO es un
+     retiro: es un criterio medido que dio negativo, y por eso no esta en la lista. */
+  let retiro = false;
+  const gl = grado.toLowerCase();
+  for (let i = 0; i < V2D_PQ_RETIRO.length; i++)
+    if (gl.indexOf(V2D_PQ_RETIRO[i]) > -1) { retiro = true; break; }
+  return { nom: nom, val: val, grado: grado, decide: decide, retiro: retiro,
            noVota: !!c.noVota, color: !!c.color };
 }
+/* Las marcas con las que la pantalla dice que un criterio no concluye. En minusculas y con tilde,
+   porque es el texto que esas capsulas imprimen. */
+const V2D_PQ_RETIRO = Object.freeze(['no concluye', 'no válida', 'no aplica']);
 
 /* La LINEA integrada, tal como la pantalla la publica. Para la protesis mitral lo que explica el
    veredicto es su PARENTESIS —los criterios positivos con su valor y el «N de M»—, que es lo que
@@ -112182,19 +112230,23 @@ window.v2dPorQueTog = v2dPorQueTog;
    dice nada a quien no lo distingue. */
 function _v2dPqFila(f) {
   const n = document.createElement('span');
-  n.className = 'v2d-pq-n';
+  n.className = 'v2d-pq-n' + (f.retiro ? ' v2d-pq-ret' : '');
   n.textContent = f.nom + (f.decide ? ' \u00b7 ' : '');
   if (f.decide) { const m = document.createElement('b'); m.className = 'v2d-pq-dec';
     m.textContent = V2D_PQ_MARCA; n.appendChild(m); }
   const v = document.createElement('span');
-  v.className = 'v2d-pq-v';
+  v.className = 'v2d-pq-v' + (f.retiro ? ' v2d-pq-ret' : '');
   v.textContent = f.val;
   const g = document.createElement('span');
-  g.className = 'v2d-pq-g';
+  g.className = 'v2d-pq-g' + (f.retiro ? ' v2d-pq-ret' : '');
   if (f.noVota) {
     const nv = document.createElement('i'); nv.className = 'v2d-pq-nv';
     nv.textContent = V2D_PQ_NOVOTA; g.appendChild(nv);
-    if (f.grado) { const t = document.createElement('span'); t.className = 'v2d-pq-banda';
+    /* ⚠️ EL SEPARADOR VA COMO NODO DE TEXTO Y NO COMO MARGEN DE CSS. Con el margen, el ojo los ve
+       separados y el `textContent` —que es lo que lee un lector de pantalla y lo que compara el
+       caso— los devuelve PEGADOS: «no votasugiere obstruccion significativa». Lo vio la medicion. */
+    if (f.grado) { g.appendChild(document.createTextNode(' \u00b7 '));
+      const t = document.createElement('span'); t.className = 'v2d-pq-banda';
       t.textContent = f.grado; g.appendChild(t); }
   } else if (f.grado) {
     if (f.color) {

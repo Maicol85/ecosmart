@@ -845,19 +845,26 @@ window.__P = {
         var box = li.querySelector('.v2d-pq');
         var dec = li.querySelector('.v2d-pq-decide');
         var filas = [];
+        /* ⚠️ EL BUCLE AVANZA DE TRES EN TRES PERO EL AVISO ES UNA CELDA SOLA, asi que no se
+           puede recorrer con un for de paso fijo: la primera version tenia la condicion de corte
+           mal (i + 2 < largo + 1) y se comia justo la ultima celda — informo «4 filas» sobre una
+           lista que tenia cuatro Y su nota. Se recorre de a una celda y se arman los trios. */
         if (box) { var hijos = Array.prototype.slice.call(box.children);
-          for (var i = 0; i + 2 < hijos.length + 1; i += 3) {
-            if (!hijos[i] || !hijos[i].classList || !hijos[i].classList.contains('v2d-pq-n')) {
-              /* El aviso de discordancia es una celda sola a lo ancho: no forma trio. */
-              if (hijos[i] && hijos[i].classList && hijos[i].classList.contains('v2d-pq-aviso'))
-                filas.push({ aviso: (hijos[i].textContent || '').trim() });
-              i -= 2; continue; }
+          var i = 0;
+          while (i < hijos.length) {
+            var h = hijos[i];
+            if (h && h.classList && h.classList.contains('v2d-pq-aviso')) {
+              filas.push({ aviso: (h.textContent || '').replace(/\\s+/g, ' ').trim() });
+              i += 1; continue; }
+            if (!h || !h.classList || !h.classList.contains('v2d-pq-n')) { i += 1; continue; }
             var ch = hijos[i + 2] ? hijos[i + 2].querySelector('.v2d-chip') : null;
-            filas.push({ nom: (hijos[i].textContent || '').replace(/\\s+/g, ' ').trim(),
+            filas.push({ nom: (h.textContent || '').replace(/\\s+/g, ' ').trim(),
                          val: hijos[i + 1] ? (hijos[i + 1].textContent || '').trim() : null,
                          grado: hijos[i + 2] ? (hijos[i + 2].textContent || '').replace(/\\s+/g, ' ').trim() : null,
+                         ret: String(h.className || '').indexOf('v2d-pq-ret') > -1,
                          chipCls: ch ? String(ch.className || '') : null,
-                         chipColor: ch ? getComputedStyle(ch).backgroundColor : null }); } }
+                         chipColor: ch ? getComputedStyle(ch).backgroundColor : null });
+            i += 3; } }
         var rb = b ? b.getBoundingClientRect() : null;
         /* El area clicable: se tocan los dos extremos de una caja de 40 px centrada en el boton
            y se pregunta QUE nodo recibe el toque. */
@@ -1054,6 +1061,23 @@ async function main() {
     protMitralMec: { selects: [['vm_morf', 'Prótesis mecánica']],
       campos: Object.assign({}, BSA, { em_dtsvi: '20', em_vtitsvi: '20', em_vtimit: '52',
         em_gmedio: '12', thp: '250' }) },
+    /* Con la velocidad pico CARGADA, que es la unica escena donde esa fila tiene valor y se puede
+       ver su marca «no vota». Sin ella la fila no se publica, que es lo correcto. */
+    protMitralVmax: { selects: [['vm_morf', 'Prótesis mecánica']],
+      campos: Object.assign({}, BSA, { em_dtsvi: '20', em_vtitsvi: '20', em_vtimit: '52',
+        em_gmedio: '12', thp: '250', em_vmax: '2.6' }) },
+    /* ⚠️ LOS DOS RETIROS DEL Z6, cada uno con su control negativo mas abajo: con regurgitacion
+       MODERADA o mayor se retiran el gradiente medio, el DVI y el AEO (nota ‡ de la Tabla 11), y
+       en una protesis MECANICA con el THP normal el gradiente deja de votar estenosis (Tabla 12). */
+    protMitralRegurg: { selects: [['vm_morf', 'Prótesis mecánica']],
+      campos: Object.assign({}, BSA, { em_dtsvi: '20', em_vtitsvi: '20', em_vtimit: '52',
+        em_gmedio: '12', thp: '250' }), sev: [['insuf', 'mitral', '2']] },
+    protMitralThpNormal: { selects: [['vm_morf', 'Prótesis mecánica']],
+      campos: Object.assign({}, BSA, { em_dtsvi: '20', em_vtitsvi: '20', em_vtimit: '52',
+        em_gmedio: '12', thp: '100' }) },
+    protMitralBioThp: { selects: [['vm_morf', 'Prótesis biológica']],
+      campos: Object.assign({}, BSA, { em_dtsvi: '20', em_vtitsvi: '20', em_vtimit: '52',
+        em_gmedio: '12', thp: '100' }) },
     protAoBio: { selects: [['va_morf', 'Prótesis biológica']],
       campos: Object.assign({}, BSA, { ea_dtsvi: '20', itv_tsvi: '20', itv_ao: '90',
         vmax_ao: '4.2', gmedio_ao: '45' }) },
@@ -1120,7 +1144,8 @@ async function main() {
     const g = { escenas: {} };
     await viewport(1200, 900);
     for (const nom of ['vacio', 'imDisc', 'imSevera', 'imLeve', 'iao', 'it', 'eaoDisc',
-                       'eaoModerada', 'em', 'et', 'protMitralMec', 'protAoBio', 'manual']) {
+                       'eaoModerada', 'em', 'et', 'protMitralMec', 'protMitralRegurg',
+                       'protMitralThpNormal', 'protMitralBioThp', 'protAoBio', 'manual']) {
       await escena(ESCY[nom]);
       await ev(`window.__P.abrirTodasValv()`);
       g.escenas[nom] = { censo: await ev(`window.__P.censo()`),
@@ -1176,7 +1201,8 @@ async function main() {
     const g = { escenas: {} };
     await viewport(1200, 900);
     for (const nom of ['imDisc', 'imSevera', 'imLeve', 'iao', 'it', 'eaoDisc', 'eaoModerada',
-                       'em', 'et', 'protMitralMec', 'protAoBio', 'manual', 'vacio']) {
+                       'em', 'et', 'protMitralMec', 'protMitralRegurg', 'protMitralThpNormal',
+                       'protMitralBioThp', 'protMitralVmax', 'protAoBio', 'manual', 'vacio']) {
       await escena(ESCY[nom]);
       await ev(`window.__P.abrirTodasValv()`);
       await ev(`window.__P.v2dAbrir()`);
