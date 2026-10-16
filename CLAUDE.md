@@ -263,6 +263,183 @@ impecable.
 
 ## Estado vigente
 
+### El 3D de la MITRAL en ETE, las comisuras corregidas y la fila de la Vmax — «Y2b + Y3» (2026-10-16)
+
+- **Son DOS bloques en OCHO commits.** Al **empezar**, `main` y `origin/main` estaban los dos en
+  **`c2c127a`** (sello `v20261016-0125`), **sin nada sin pushear** —confirmado con un `git fetch` de
+  verdad—, con los ocho commits del Y1b y del Y2 ya incluidos **y pusheados**. Los **ocho** commits
+  de esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 8 → 7 → … → 1.**
+  ⚠️ **EL Y2b (1) NO SE TOCA CON EL Y3 (2 a 8)**: el 1 vive en `ea-det-vmax`, `EA_FILA_GRADO` y
+  `V2D_PORQUE`; el Y3 en `#ete-svg-qx`, `eteQxDataURL` y el bloque `m3d*`. Ninguno nombra una pieza
+  del otro, y **el 1 se revierte solo** —sólo hay que reponer el denominador de TC-479—.
+  ⚠️ **EL 2 (las comisuras) TAMBIÉN SE REVIERTE SOLO**: son dos rótulos en dos copias.
+  ⚠️ **DENTRO DEL Y3 LA CADENA ES ESTRICTA: 6 → 5 → 4 → 3.** El 3 crea el panel, el botón, el CSS,
+  el bucle y los enganches; el 4 reemplaza su pintor provisorio por el motor de la demo y agrega el
+  lector y las tarjetas; el 5 la tabla; el 6 los detalles. Revertir el 3 sin revertir antes los
+  otros deja `m3dSync` llamando a `m3dTarjetas` y a `m3dTabla` sobre un panel que no existe, y
+  `showTab`, `limpiarCampos` y `RECALC_MODULOS` nombrando `m3dCerrar` y `m3dBotonSync` —inocuo, los
+  tres van con `typeof`— pero deja el `onchange` de `vm_morf` llamando a `m3dBotonSync()` **sin
+  guarda**, y ahí un `ReferenceError` se lleva el cambio de morfología entero.
+  ⚠️ **EL 7 ES UNA PARADA Y NO TOCA `index.html`**: agrega el grupo `wilkins` de la sonda, que es
+  la medición que sostiene la parada.
+  **El 8 es TC-485 más la documentación y el sello**, y afirma el comportamiento de los seis
+  anteriores: revertir cualquiera sin el 8 lo deja en rojo.
+  ⚠️ **EL 1 LLEVA LA SONDA** (`scripts/_probe_y3.mjs`), que los siete siguientes usan.
+
+- **Línea base al cierre: suite 495/499 con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0 ERROR,
+  Excel en 440 columnas, celular 43 a 360 px y 52 a 390 px con 1 ALTA cada uno —IDENTICO a la
+  línea base—. CERO REGRESIONES.** Los **CUATRO** rojos son exactamente los
+  de ENTRADA —**TC-223** (el documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**—
+  y no apareció ninguno fuera de esa lista. **El denominador sube a 499**: esta tanda agregó
+  **TC-485**. El `md5` de `index.html` no se movió durante la corrida (`34379177…`, el del sello) y
+  el pendrive estaba montado antes y después.
+  ⚠️ **`--todo` del chequeo de celular da 378 a 360 px y 387 a 390 px, EL MISMO PAR QUE DEJÓ
+  EL Y2**: ni el botón «3D», ni los ocho controles de cámara, ni la fila nueva de la Vmax agregan
+  un solo hallazgo. Los controles del panel no son controles de formulario, y el panel nace
+  cerrado: lo que está en `display:none` no tiene geometría.
+  ⚠️ **TC-484 SE SUMA A LOS INESTABLES POR ORDEN DE CORRIDA**, al lado de TC-137, TC-246, TC-249,
+  TC-252, TC-260, TC-395 y TC-GR-06. Su condición del objetivo táctil usa `elementFromPoint`, que
+  devuelve el **overlay del aviso legal** cuando éste reaparece a mitad de corrida: el síntoma es
+  `arriba=DIV`. Medido: rojo una vez en una lista de 15 casos, **verde dos veces seguidas** con la
+  misma lista y el mismo árbol, y **15/15 contra HEAD** con esa misma lista. **Repetir antes de
+  sospechar.**
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **499 ids** sobre los 500 casos del archivo.
+- **EL SELLO DE VERSIÓN** estaba al día al empezar (`v20261016-0125`) y se volvió a sellar:
+  **`v20261016-0312`**. Todo lo medido salió **DESPUÉS** de sellar, con el `md5` quieto.
+- **`index.html` pasó de 7,66 MB / 115.387 líneas a 7,73 MB / 116.508 líneas.**
+
+- **Dónde está todo:** `docs/mapa/mitral-3d-ete.md` (**mapa NUEVO**, 12,6 KB: las piezas por
+  nombre, la tabla de de dónde sale cada dato, las vistas y los ángulos, las comisuras con su
+  folio, la maqueta, el rendimiento, la tabla y ocho trampas); `docs/mapa/aortica-cortes.md` → la
+  fila de la Vmax (**27,4 KB**); `docs/mapa/vista-2d-valvulas.md` → el puntero (**27,6 KB**);
+  `docs/fuentes/FUENTES.md` → `### eteQuirurgica2020`; y `docs/PENDIENTES.md` → **siete** cosas
+  declaradas (Y3-1 a Y3-7).
+  ⚠️ **`docs/mapa/tests.md` CRUZÓ EL TECHO Y HUBO QUE PARTIRLO.** Con la ficha de TC-485 quedó en
+  **35,2 KB**: las fichas POR TANDA salieron a `docs/mapa/tests-fichas.md` (7,0 KB) y el mecanismo
+  se quedó en `tests.md`, que volvió a **29,2 KB**. **Es la cuarta vez que la regla se aplica
+  DESPUÉS de cruzar: medir con `wc -c` ANTES de escribir, no después.**
+
+- **Y2b · LA VELOCIDAD PICO ERA EL ÚLTIMO CRITERIO QUE GRADUABA SIN TENER FILA**, o sea el criterio
+  que DECIDÍA era el único invisible: el renglón podía decir «Severa — por velocidad» y la lista no
+  tener esa fila. Es la mitad de **F8** que el AVA por planimetría dejó abierta en el Z.
+  **NINGÚN CORTE NUEVO:** el valor es el mismo `vmax` que `_eaDetCuentaPura` ya elegía y el grado es
+  `gVel`, que `_eaBadgeAuto` ya publicaba con estas mismas palabras. `EA_FILA_GRADO` pasa de cinco
+  entradas a seis. **Medido por los OCHO bordes de la banda**; con 2,49 / 2,50 / 2,51 la fila queda
+  **sin grado** —es `'sin'`, y «sin estenosis» no se imprime como grado de una fila—.
+  **CONTROL NEGATIVO:** con la Vmax moderada y el gradiente severo la fila dice «moderada» y el
+  renglón sigue diciendo «por gradiente».
+
+- **Y3-1 · LAS COMISURAS ESTABAN INVERTIDAS, Y LA FUENTE LO DICE CON TODAS LAS LETRAS.** ASE/SCA/STS
+  2020, Nicoara et al, JASE 33(6), **folio 695**: el tabique interauricular queda junto a la
+  comisura MEDIAL y la orejuela junto a la LATERAL. En ese dibujo la orejuela está en `x=68` y A1/P1
+  en `x≈130`, los dos a la izquierda, y el rótulo de ese lado decía **PM**.
+  ⚠️ **LA REGLA DE FOLIO DE ESE DOCUMENTO NO ES «página + 1»: es página del PDF + 691**, comprobado
+  en el pie impreso de tres páginas. Con el «+1» la cita habría apuntado a otro artículo.
+  ⚠️ **Y EL TEXTO NO SALE CON `pdftotext`** —devuelve 0 bytes en los cuatro PDF de `14- ETE`—: se
+  leyó con `pymupdf`.
+  **SON DOS COPIAS:** el SVG de pantalla y `eteQxDataURL`, la que viaja al PDF. Arreglar una sola
+  publicaría una nomenclatura en pantalla y la contraria en el papel firmado.
+  **Medido: los rótulos por COORDENADA pasan de «PM@20 | AL@510» a «AL@20 | PM@510», los SEIS
+  festones salen con su `d` IDÉNTICO y la orejuela sigue en `68,156`.** Y **mirado** en el PNG real
+  del canvas, recortado a los dos lados.
+  ⚠️ **LA PROYECCIÓN TRANSGÁSTRICA NO SE TOCÓ**: su par ya era coherente (AL junto a A1/P1). Si esa
+  vista entera debería ir espejada es otra pregunta, sobre el dibujo y no sobre los rótulos.
+
+- **Y3 · EL 3D NO CALCULA NADA: `m3dEstado()` LLAMA A `v2dEstado()`.** Le agrega lo que vive en ETE
+  —los seis festones, la vena contracta, el área y el diámetro anular y el trombo— y nada más. Por
+  eso **el grado del 3D ES el de la vista 2D, que a su vez ES el del informe**. Medido en seis
+  escenas: el texto de la tarjeta coincide carácter por carácter con la de la vista 2D.
+  ⚠️ **EL CHIP REUSA LA CLASE `v2d-chip`**, no copia sus cuatro colores: medido antes de arreglarlo,
+  con una clase propia el chip salía **transparente**. Hoy los cuatro colores son idénticos.
+  ⚠️ **EL ÁREA SE LE PIDE A `emCategoria()`**: la PEOR de las fuentes que esa función dejó votar. No
+  se eligen fuentes acá ni se aplica ningún corte.
+  ⚠️ **EL TAMAÑO DEL CHORRO SALE DEL GRADO PUBLICADO** y el CUELLO de la vena contracta MEDIDA
+  cuando la hay; la descripción de texto **dice cuál de las dos se usó**. Sin grado no hay chorro.
+  ⚠️ **LA AURÍCULA SE AGRANDA CON LA CATEGORÍA QUE LA APP YA PUBLICA**, y no con el grado, que es
+  como lo hacía la demo: usar el grado dibujaría una aurícula que contradice la fila de al lado.
+
+- **LA DEMO NO TRAÍA NINGUNA DEPENDENCIA NI ALMACENAMIENTO, así que no hubo PARADA.**
+  `2b_demo_mitral_vistas_ete.html` (26 KB, 267 líneas, 2026-10-05; el único con «mitral_vistas_ete»
+  en el nombre) es **canvas 2D** con un proyector propio: **sin WebGL**, sin CDN, sin fuentes
+  externas, sin `localStorage` ni IndexedDB. Se conservó su geometría sin tocarle un número y se
+  sacaron sus ocho controles propios. **El archivo queda sin versionar**, como estaba.
+  ⚠️ **LAS VISTAS Y LOS ÁNGULOS CONVIVEN SIENDO EXCLUYENTES**, que es como lo resuelve la demo: su
+  botón de vista llama a `clearTee()` y el de ángulo deja la vista sin marcar. Componerlos obligaría
+  a inventar qué significa «vista del cirujano a 60 grados», que la demo no define.
+
+- ⚠️ **ALTURAS EXPLÍCITAS EN PX Y NI UN PORCENTAJE, por dos defectos MEDIDOS en la vista 2D del Y1b
+  que esta tanda NO toca pero no repite**: en **Safari** esa tarjeta se ve colapsada a unos 60 px, y
+  en **Chrome** sus carteles laterales e inferiores **se mueven con el latido**. Con el lienzo en
+  `324×228` fijos, lo que el dibujo haga adentro no puede mover nada de afuera. Los dos quedan en
+  `PENDIENTES.md` → **Y3-2**, con el candidato a mirar primero.
+  ⚠️ **Y LA TRANSICIÓN VA SOBRE EL ANCHO DEL PANEL, no sobre columnas de grid**:
+  `grid-template-columns` se anima recién en Safari 16+ y el médico usa Safari.
+
+- **VERIFICADO EN WEBKIT, el motor de Safari** (Playwright instalado para esto): a 1200×700 la vista
+  quirúrgica pasa de `x=470` a `x=214`, el panel mide 500×375 a `x=749` —sin pisarse—, **el lienzo
+  mide 324×228 exactos, o sea no colapsa**, el dibujo pinta **14.272 píxeles** y no hay scroll
+  horizontal.
+  ⚠️ **Y ESA MEDICIÓN DESTAPÓ UN DEFECTO QUE CHROME NO MOSTRABA: el botón «3D» no aparecía en una
+  CARGA LIMPIA.** Nace con `hidden` y lo enciende `m3dBotonSync`, que corre desde `RECALC_MODULOS` y
+  desde `limpiarCampos` — **ninguna de las dos ocurre al abrir la app**, que es como el médico la usa
+  cada mañana. En Chrome no se veía porque la sonda llama a `limpiarCampos` en cada escena. Se cerró
+  con una llamada al arranque; hoy mide **67×44** en WebKit sin tocar «Nuevo estudio».
+
+- **RENDIMIENTO, espiando `requestAnimationFrame`: 0 cuadros con el panel cerrado, 54 en 900 ms
+  abierto, 0 en PAUSA y 0 tras cerrar.** 20 aperturas y cierres dejan **11725 nodos → 11725** y el
+  panel CERRADO. Densidad de píxeles acotada a 2.
+
+- ⚠️ **CUATRO DEFECTOS QUE ENCONTRÓ LA MEDICIÓN Y NO LA LECTURA:**
+  1. **EL `[hidden]` NO ESCONDÍA NI EL BOTÓN NI EL CARTEL DE PLAN B.** `[hidden]{display:none}` vive
+     en la hoja del NAVEGADOR y cualquier regla de AUTOR le gana: `.btn{display:inline-flex}` dejaba
+     el botón midiendo **64×44 y VISIBLE** con `hidden` puesto —o sea la compuerta de la prótesis no
+     servía de nada— y el `display:flex` del cartel publicaba «3D no disponible» **encima de un
+     dibujo que se dibujaba bien**. Lo vio la GEOMETRÍA y el PNG; preguntar por la propiedad `hidden`
+     las habría dado por buenas, que es como **TC-274 pasó en verde** sobre este mismo defecto.
+  2. **`m3dVisible()` MIRABA LA CLASE DE LA ANIMACIÓN**, que se agrega en el cuadro siguiente: veinte
+     pares de clics terminaban con el panel ABIERTO. Y el callback de ese `requestAnimationFrame`
+     necesitaba su propia guarda, o le agregaba la clase a un panel ya cerrado.
+  3. **EN PAUSA EL BUCLE SEGUÍA GIRANDO EN VACÍO** — 54 cuadros repintando un dibujo que no cambia.
+  4. **CON EL FORMULARIO VACÍO LA TABLA APARECÍA IGUAL**, con una fila que decía «Válvula | Nativa»:
+     afirmando que algo se midió sobre una válvula que nadie tocó. «Nativa» no es un dato.
+
+- ⚠️ **PARADA Y3-6: LAS DOS CALCULADORAS DEL WILKINS NO SE UNIFICARON.** Los cortes son idénticos
+  (≤8 / 9-11 / >11) y `calcWilkins` ya consume `wilkinsScore()`; lo que NO coincide es lo que cada
+  pantalla publica. **Discrepan en DOS textos** —«No favorable» contra «desfavorable» para la banda
+  >11, y el texto del parcial— **y en el DOMINIO del centinela**: con los cuatro criterios en «1»,
+  ETE publica «4/16, favorable para valvuloplastia percutánea» y Calculadoras «sin puntuar». Esa
+  regla extra existe porque todo estudio guardado antes de un cambio viejo lleva 1/1/1/1.
+  **No hay opción neutra**, así que no se eligió. La tabla completa y las tres decisiones que la
+  cierran están en `PENDIENTES.md` → **Y3-7**.
+
+- **A/B DEDICADO CONTRA HEAD, con el formulario vacío y con cuatro escenarios cargados: 22
+  diferencias, y las 22 son la fila nueva de la Vmax** —el cuadro aórtico pasa de 9 a 10 filas y las
+  dos tarjetas aórticas ganan su renglón—. **CERO diferencias** en informe (tres estilos), EN SUMA,
+  **PDF del informe generado de verdad**, **PPT estadístico generado de verdad**, **PDF de auditoría
+  generado de verdad**, Laboratorio, grados, pastillas, cápsulas y el **Excel en 440 columnas**.
+  **Escenas que cambian de veredicto: NINGUNA.**
+
+- **Arnés: `scripts/_probe_y3.mjs`** (A/B de solo lectura con `--file`, `--dest` para las capturas),
+  ocho grupos (`vmax`, `comisuras`, `panel`, `dibujo`, `tabla`, `detalles`, `wilkins`, `cap3d`), más
+  los heredados del Y1b. **Cobertura: TC-485**, **59 condiciones** —**42 en rojo** contra HEAD y
+  **NINGUNA por excepción**—.
+  ⚠️ **MURIÓ POR EXCEPCIÓN DOS VECES** contra HEAD antes de blindarlo: `.click()` sobre null y
+  `T.tit.indexOf` sobre un objeto de respaldo al que le faltaba esa clave, las dos con **cero**
+  condiciones en rojo.
+  ⚠️ **EL CUERPO DE UN CASO NO PUEDE CAMBIAR EL ANCHO DE LA VENTANA**, así que TC-485 mide la
+  maqueta **que corresponde al ancho** de la corrida y lo DECLARA en su denominador; la del otro
+  ancho la mide la sonda. Es el reparto de TC-460.
+- ⚠️ **`\s` DENTRO DEL TEMPLATE DE LA SONDA SE COCINA A LA LETRA `s`**, otra vez: informó «IM severa»
+  como «IM  evera». Y un **salto de línea escapado** dentro de un literal de cadena del cuerpo de un
+  caso deja la cadena sin cerrar («Invalid or unexpected token»); un **regex literal con un salto
+  real adentro** tira «Invalid regular expression: missing /» y hay que armarlo desde una cadena.
+- ⚠️ **Me comí el acento grave TRES veces**, las tres en comentarios míos dentro del template de la
+  sonda o del cuerpo de un caso. `scripts/check_backticks.py` dio la línea exacta las tres.
+- ⚠️ **CASOS ADAPTADOS: UNO.** TC-479, cuyo denominador exigía cinco entradas en `EA_FILA_GRADO`.
+
 ### La vista 2D CHICA y el «POR QUÉ» de cada tarjeta — «Y1b + Y2» (2026-10-16)
 
 - **Son DOS bloques en OCHO commits.** Al **empezar**, `main` y `origin/main` estaban los dos en

@@ -1,6 +1,121 @@
 # EcoSmart — pendientes vivos
 
 
+
+## Tanda Y3 · el 3D de la mitral en ETE y la fila de la Vmax (2026-10-16) — DECLARADO y NO arreglado
+
+> Lo implementado está en `docs/mapa/mitral-3d-ete.md`. Acá queda lo que la tanda **no** hizo.
+
+### ⏸️ Y3-7 · PARADA — las DOS calculadoras del Wilkins no se unificaron
+
+La orden pedía UN solo cálculo para las dos pantallas y añade: «Si las dos discrepan hoy en un
+corte, un rango o un texto, NO elijas: PARADA de esta sub-parte». **Discrepan.**
+
+**Los cortes son idénticos** (≤8 favorable · 9-11 «El score no predice el resultado» · >11 no
+favorable) y los totales también: `calcWilkins` ya consume `wilkinsScore()` y las dos comparten la
+constante `WILK_9_11`. Lo que no coincide es lo que cada pantalla **publica**.
+
+| entradas | ETE (`wilkins-total` / `wilkins-interp`) | Calculadoras (`cx-wilkins-total`) |
+|---|---|---|
+| 1/1/1/1 | `4 / 16` · «Score 4 — **Favorable** para valvuloplastia percutánea» | «**sin puntuar** — reingresá los cuatro criterios» |
+| 2/2/2/2 (8) | «Score 8 — Favorable para valvuloplastia percutánea» | «8/16 favorable para valvuloplastia percutánea» |
+| 3/2/2/2 (9) | «Score 9 — El score no predice el resultado» | «9/16 El score no predice el resultado» |
+| 3/3/3/2 (11) | ídem, 11 | ídem, 11 |
+| 3/3/3/3 (12) | «Score 12 — **No favorable** para valvuloplastia» | «12/16 **desfavorable** para valvuloplastia» |
+| 4/4/4/4 (16) | ídem, 16 | ídem, 16 |
+| parcial, 3 de 4 | `6 / 16 (parcial)` · «Score incompleto — 3 de 4 criterios puntuados. No se interpreta: faltan criterios y el total quedaría sesgado a favorable.» | «6/16 parcial — 3 de 4 criterios; sin interpretación» |
+| sin puntuar | «—» | «—» |
+
+**Las tres discrepancias:**
+
+1. ⚠️ **LA MÁS GRAVE ES DE RANGO Y NO DE REDACCIÓN:** con los cuatro criterios en «1» una pantalla
+   publica un **veredicto** y la otra se niega a puntuar. Calculadoras tiene una regla extra que
+   ETE no tiene, y su comentario explica por qué existe: la primera opción de esos cuatro selects
+   era `value="1"` y `guardarInforme` persiste todo select por id, así que **todo estudio guardado
+   antes de ese cambio lleva 1/1/1/1** haya abierto alguien la tarjeta o no — al reimprimirlo salía
+   «4/16, favorable para valvuloplastia percutánea» sin que nadie lo hubiera escrito.
+2. El texto de la banda >11: «**No favorable** para valvuloplastia» contra «**desfavorable** para
+   valvuloplastia».
+3. El texto del parcial: el de ETE nombra el sesgo hacia favorable y el otro no.
+
+**Y una cuarta, de dominio:** el centinela de «sin puntuar» es el valor `"0"` en los selects de ETE
+y la cadena vacía en los de Calculadoras. Es lo que hace alcanzable la discrepancia 1.
+
+**Qué hace falta para cerrarla — tres decisiones de Maicol:**
+(a) cuál de las dos frases de la banda >11 se publica en las **dos** pantallas;
+(b) cuál texto de parcial;
+(c) si la regla del legado 1/1/1/1 vale para las dos o para ninguna.
+⚠️ **No hay opción neutra:** o ETE adopta esa regla —y entonces un 4/16 **real** deja de
+interpretarse— o Calculadoras la pierde —y vuelve el veredicto fabricado sobre los estudios
+legados—. Las dos cambian una interpretación publicada.
+Con esas tres decididas la unificación es mecánica: `wilkinsScore()` ya existe como dueño del
+puntaje y los cortes ya coinciden.
+
+**Y no hay 3D del Wilkins**, que la orden excluía explícitamente.
+
+### Y3-1 · No hay captura del 3D al PDF ni al PPT
+
+«Incluir en PDF» (`eteQxIncluirPDF`) sigue incluyendo **sólo** la vista quirúrgica, como hasta hoy.
+La orden lo dejaba para después. Si alguna vez entra: el lienzo es un `<canvas>`, así que
+`toDataURL()` alcanza, y el precedente es `eteQxDataURL()` —supermuestreo 2× sobre base blanca—.
+⚠️ **El dibujo depende de la FASE del ciclo**, así que habría que decidir en qué fase se captura:
+la sístole muestra el chorro de la IM y la diástole el orificio de la estenosis. Capturar «la que
+estaba» haría que dos PDF del mismo estudio salieran distintos.
+
+### Y3-2 · La vista 2D del Y1b, en Safari y en Chrome — REPORTADO por Maicol, no tocado
+
+Dos defectos de la **vista 2D** (`#v2d-card`), que esta tanda no toca y que van en su propio
+prompt:
+
+- **Safari:** la tarjeta flotante se ve **colapsada**, con unos 60 px de alto: se ve la cabecera y
+  apenas los rótulos «Insuficiencias» y «Estenosis», y el dibujo y las tarjetas quedan cortados.
+  En Chrome se ve bien. Causa probable, según el reporte: alturas en **porcentaje**, o un SVG con
+  altura automática, dentro de un contenedor sin alto definido, que WebKit resuelve a casi cero.
+- **Chrome:** los carteles de la izquierda, de la derecha y de abajo **se mueven con el latido**.
+  El patrón de fondo es el mismo: la caja del dibujo cambia de tamaño en cada cuadro y arrastra el
+  layout de al lado. ⚠️ **No está diagnosticado**: `fitView()` se llama sólo desde `v2dSync` y no
+  por cuadro, así que la causa no es el `viewBox`; hay que medirlo en el navegador. Candidato a
+  mirar primero: `#v2d-grid{grid-template-columns:184px auto 184px}`, cuya columna del medio es
+  `auto` y la dimensiona el SVG.
+
+⚠️ **EL PANEL 3D DEL Y3 NO REPITE EL PATRÓN**, a propósito: su lienzo tiene alto **fijo en px** y
+no hay una sola altura en porcentaje, así que lo que el dibujo haga adentro no puede mover nada de
+afuera. Ver `docs/mapa/mitral-3d-ete.md` § 6.
+
+### Y3-3 · No se pudo verificar en Safari / WebKit
+
+El médico usa Safari y la verificación corrió en **Chrome**. El dibujo es **canvas 2D** —sin
+WebGL, sin API de Chrome—, y el CSS del panel usa sólo propiedades con soporte universal (se evitó
+a propósito animar `grid-template-columns`, que pide Safari 16+). Aun así, **no está medido en
+WebKit**: ver el intento de instalar Playwright/WebKit en el reporte de la tanda.
+
+### Y3-4 · El chorro severo SALE del cuadro
+
+Con IM severa el chorro se dibuja con un largo de `0.8 + 3.4·sev` y, en la vista del cirujano
+—donde el chorro viene hacia el observador—, su proyección excede el encuadre y se recorta.
+**Es la geometría de la demo aprobada** y la orden manda conservar lo que la demo ya resuelve, así
+que no se tocó. Las salidas, si alguna vez molesta: acortar el chorro (cambia el dibujo aprobado),
+abrir el encuadre sólo con chorro severo (encuadre inconsistente entre pacientes) o dejarlo.
+
+### Y3-5 · Lo que la demo no trae y NO se agregó
+
+La orden decía: «Si la demo no trae alguno de estos elementos, NO lo agregues en este commit:
+reportalo». La demo trae **todos** los elementos que la orden enumera —lesiones por festón con
+separación entre valvas, chorro con cuello, aurícula que se agranda, orificio con valvas
+engrosadas y doming, siglas, valvas aórticas y orejuela con humo—, así que no quedó ninguno sin
+dibujar. Lo único que **no** salió de la demo es la **orientación** de AL y PM, que allá ya era
+correcta y en la app 2D estaba invertida.
+
+### Y3-6 · La proyección transgástrica de ETE
+
+`ETE_PROYECCIONES` → `tg` («TG — eje corto») tiene AL a la izquierda junto a A1/P1 y PM a la
+derecha junto a A3/P3: **su par de rótulos es internamente coherente**, así que la tanda Y3-1 no lo
+tocó. Queda abierta otra pregunta, que es sobre el **dibujo** y no sobre los rótulos: una
+transgástrica de eje corto se mira desde el ápex, o sea desde el lado contrario a la vista del
+cirujano, así que podría corresponderle estar espejada entera. Esta orden prohíbe mover el dibujo.
+
+---
+
 ## Censo W1 · PRÓTESIS mitral y aórtica (2026-10-15) — DECLARADO y NO arreglado
 
 > El censo completo, con sus tablas, sus folios y sus mediciones, vive en

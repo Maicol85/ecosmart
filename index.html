@@ -112891,6 +112891,16 @@ document.addEventListener('visibilitychange', function(){
 window.m3dAbrir = m3dAbrir; window.m3dCerrar = m3dCerrar; window.m3dTog = m3dTog;
 window.m3dVista = m3dVista; window.m3dAngulo = m3dAngulo; window.m3dPlay = m3dPlay;
 window.m3dBotonSync = m3dBotonSync; window.m3dVisible = m3dVisible;
+/* ⚠️ Y UNA LLAMADA AL ARRANCAR, que lo destapó la medición en WEBKIT y no la lectura.
+   El botón nace con `hidden` en el marcado y lo enciende `m3dBotonSync`, que corre desde
+   `RECALC_MODULOS` —las cinco rutas de restauración— y desde `limpiarCampos`. Ninguna de las
+   dos ocurre en una CARGA LIMPIA de la app, que es como el médico la abre cada mañana: el
+   botón medía 0x0 sobre una válvula nativa hasta que alguien tocara «Nuevo estudio».
+   En Chrome no se vio porque la sonda llama a `limpiarCampos` en cada escena.
+   Va con `setTimeout`, como el arranque de `eteSegSync`: en el momento en que se evalúa este
+   `<script>` el `<select>` de la morfología ya existe, pero el patrón de la casa para el
+   estado inicial de esta pestaña es diferirlo. */
+setTimeout(function(){ try { m3dBotonSync(); } catch (e) {} }, 300);
 window.m3dCorriendo = m3dCorriendo; window.m3dArrancar = m3dArrancar; window.m3dParar = m3dParar;
 window.m3dPintar = m3dPintar;
 /* Expuestos para poder MEDIR el estado sin leer ocho atributos: una sonda que reconstruye el
@@ -113595,8 +113605,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261016-0125';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1792124717481;                 /* eco-build-ms */
+const ECO_BUILD    = '20261016-0312';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1792131162641;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -113682,7 +113692,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261016-0125</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261016-0312</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

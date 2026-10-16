@@ -398,3 +398,34 @@ puede moverse es el texto de la fila.
 ⚠️ **EL CAMPO VIVE EN LAS DOS VÍAS, SAVR Y TAVI.** En la TAVI `niveles` **no** tiene `dvi` —su bloque
 general son la velocidad pico, el AT y el AT/ET—, así que leer `P.niveles.dvi` habría dejado la fila
 **muda en toda TAVI**: una pérdida silenciosa. Por eso el nivel viaja aparte.
+
+
+---
+
+## La fila de la VELOCIDAD PICO en el cuadro — «Y2b» (2026-10-16)
+
+Cierra la mitad de **F8** que el AVA por planimetría había dejado abierta en el Z: la Vmax vota el
+grado integrado —el renglón puede decir «Severa — por velocidad»— y era el **último criterio que
+graduaba sin tener fila en este cuadro**. El criterio que decidía era el único invisible.
+
+- **`ea-det-vmax`**, primera fila del `calc-box`, arriba del G. máximo, porque ése deriva de ella.
+- El **valor** lo escribe `_eaDetCuentaPura` con el mismo `vmax` que esa función ya elegía —el
+  campo de Válvulas con el del Doppler de respaldo— y con el mismo formato que `_eaBadgeAuto`
+  publica: `«4.5 m/s»`.
+- El **grado** sale de **`EA_FILA_GRADO`**, que pasa de **cinco entradas a seis**:
+  `'ea-det-vmax': 'gVel'`. Es el grado que `eaGradoCalculado` ya publicaba en el badge.
+- El grado va en el `<span>` hermano **sin `id`**, por las dos razones de las otras cinco filas.
+
+**NINGÚN CORTE NUEVO.** Medido por los ocho bordes de la banda: 2,49 / 2,50 / 2,51 **sin grado**
+—es `'sin'`, y «sin estenosis» no se imprime como grado de una fila—, 2,99 leve, 3,00 y 3,99
+moderada, 4,00 y 4,01 severa. En las ocho, la fila publica exactamente `gVel`.
+
+**La lista «Ver criterios» de la vista 2D la LEE**, como lee a las otras cinco: su entrada en
+`V2D_PORQUE['esten:aortica']` es `{ id:'ea-det-vmax', color:true }` y va primera. No se inventa
+ninguna fila en la tarjeta — eso era justamente lo que no se podía hacer.
+
+⚠️ **CONTROL NEGATIVO, medido:** con la Vmax en 3,2 (moderada) y el gradiente en 45 (severa), la
+fila publica «moderada» y el renglón integrado sigue diciendo «Severa — **por gradiente**». La fila
+muestra su grado y **no** se lleva la marca de «decide».
+
+**Caso adaptado:** TC-479, cuyo denominador exigía cinco entradas en `EA_FILA_GRADO`.

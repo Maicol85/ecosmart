@@ -436,3 +436,28 @@ discrepancia, y ahí la lista sigue teniendo sentido. TC-484 lo fija con su cont
 - ⚠️ **UN BUCLE DE TRÍOS NO SIRVE PARA UNA LISTA CON UNA CELDA A LO ANCHO**: el de la sonda tenía
   la condición de corte mal y se comía la última celda — informó «4 filas» sobre una lista que tenía
   cuatro **y su nota**.
+
+
+---
+
+## 12 · El 3D de la MITRAL dentro de ETE lee este mismo lector (Y3, 2026-10-16)
+
+El panel 3D de la válvula mitral, que vive en la pestaña **ETE** al lado de la vista quirúrgica,
+**no tiene lector propio**: `m3dEstado()` llama a `v2dEstado()` y le agrega lo que vive en ETE —los
+seis festones, la vena contracta, el área que la pantalla usa para graduar, el diámetro anular y el
+trombo de orejuela—.
+
+De acá salen, sin una sola cuenta nueva:
+- el **grado** de la IM y de la EM (`E.im`, `E.em`);
+- las **tarjetas** de esa columna, que son los objetos de `E.insuf` y `E.esten` filtrados a Mitral,
+  con su misma frase, su mismo chip y su misma línea «Decide»;
+- el **tamaño de la aurícula** (`E.dai`).
+
+⚠️ **EL CHIP DEL 3D REUSA LA CLASE `v2d-chip`**, no copia sus cuatro colores: con una paleta propia,
+el mismo grado saldría de un color en esta vista y de otro allá el día que uno se mueva. Medido
+antes de arreglarlo: con una clase propia el chip salía **transparente**.
+
+⚠️ **MOVER UN CRITERIO DE `V2D_PORQUE` MUEVE TAMBIÉN LA TARJETA DEL 3D**, porque la línea «Decide»
+sale de `_v2dPorQue`.
+
+El mapa de esa zona es **`docs/mapa/mitral-3d-ete.md`**.

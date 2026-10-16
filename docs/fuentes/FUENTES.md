@@ -49,6 +49,37 @@ ecocardiográfica > 8» y la de Cormier— **no está incluido** en el archivo e
 de la ESC/EACTS 2025 son de **la traducción española**. Los folios de revista son **4674-4675** y
 **4682**. No son el mismo número con otro offset: son otra edición.
 
+
+### eteQuirurgica2020 — ASE/SCA/STS 2020, la orientación de la vista del cirujano
+
+**Documento:** Nicoara A, Skubas N, Ad N, et al. *Guidelines for the Use of Transesophageal
+Echocardiography to Assist with Surgical Decision-Making in the Operating Room: A Surgery-Based
+Approach*. J Am Soc Echocardiogr 2020;33(6). Archivo:
+`14- ETE/TEE-Surgical-Decision-Making_June2020.pdf`.
+
+⚠️ **LA REGLA DE FOLIO DE ESTE DOCUMENTO ES «página del PDF + 691», NO «+ 1».** Comprobado en el
+pie impreso de TRES páginas: PDF 1 → **692**, PDF 4 → **695**, PDF 5 → **696**. Con el «+1» la cita
+habría apuntado al folio 5, que en esa revista es otro artículo.
+
+⚠️ **EL TEXTO NO SALE CON `pdftotext`** —devuelve 0 bytes— y se leyó con `pymupdf`. Lo mismo pasa
+con los otros tres PDF de la carpeta `14- ETE`.
+
+**VERIFICADO, folio 695 (PDF página 4):** la válvula mitral se orienta con la válvula aórtica
+arriba, en la posición de las 12, mirada desde la aurícula izquierda o desde el ventrículo
+izquierdo; e incluir la aórtica, el tabique interauricular o la orejuela en el volumen 3D ayuda a
+orientarse, porque **el tabique interauricular queda junto a la comisura MEDIAL y la orejuela
+junto a la LATERAL**. Parafraseado; no se copia el literal.
+
+**Qué sostiene:** la corrección de los rótulos AL y PM de la vista quirúrgica de la mitral
+(tanda Y3-1, 2026-10-16). En ese dibujo la orejuela está a la izquierda y A1/P1 también, así que
+ahí va **AL**; PM queda a la derecha, del lado de A3/P3. Hasta esa tanda decían lo contrario, en
+las DOS copias —el SVG de pantalla y el canvas que viaja al PDF—.
+
+**Lo que este documento NO dice, y por eso no se citó para otra cosa:** no publica ningún corte de
+severidad, ningún score ni ninguna regla de integración que esta app aplique.
+
+---
+
 ### Dos trampas al buscar dentro de un PDF
 - **El guión de fin de línea da falsos negativos** — «contrain- dication» (ACC/AHA 2020, p. e114).
   Des-hifenar antes de comparar; este error casi hizo reportar como inventada una cita verdadera.
