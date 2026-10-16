@@ -7735,6 +7735,19 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="fg" id="pul-derrame-balik-wrap" style="display:none;"><label>Balik (mm)</label>
           <input type="number" id="pul_balik" step="1" min="1" max="120" placeholder="mm">
         </div>
+        <!-- ⚠️ EL LADO NO EXISTÍA EN EL MÓDULO BÁSICO y sí en el avanzado (`pua_derrame_lado`), así
+             que un derrame cargado acá llegaba al informe firmado sin decir de qué hemitórax es.
+             Sin consignar, la oración sale exactamente como hasta hoy: no se inventa un lado.
+             Los tres valores son los que pidió la orden; el avanzado escribe «unilateral
+             derecho», que es su propia redacción y no se toca. -->
+        <div class="fg" id="pul-derrame-lado-wrap" style="display:none;"><label>Lado</label>
+          <select id="pul_derrame_lado">
+            <option value="">— sin consignar —</option>
+            <option value="derecho">Derecho</option>
+            <option value="izquierdo">Izquierdo</option>
+            <option value="bilateral">Bilateral</option>
+          </select>
+        </div>
       </div>
       <div class="grid-3" style="margin-top:8px;">
         <div class="fg"><label>Líneas B</label>
@@ -74271,6 +74284,7 @@ function pulBasicoUI() {
   const on = (id, v) => { const e = document.getElementById(id); if (e) e.style.display = v ? '' : 'none'; };
   const der = _amV('pul_derrame') === 'si';
   on('pul-derrame-tam-wrap', der); on('pul-derrame-balik-wrap', der);
+  on('pul-derrame-lado-wrap', der);
   on('pul-lineasb-pat-wrap', _amV('pul_lineasb') === 'si');
   on('pul-consol-nota-wrap', _amV('pul_consolidacion') === 'si');
 }
@@ -74345,16 +74359,33 @@ function pulBasicoTexto() {
   const frases = [], suma = [];
   if (_amV('pul_derrame') === 'si') {
     const tam = _amV('pul_derrame_tam') || 'mínimo';
+    /* ⚠️ EL LADO VA ANTES DEL TAMAÑO, que es donde lo pone el módulo avanzado («Derrame pleural
+       bilateral, de aspecto libre…»). Sin consignar, la oración queda IDENTÉNTICA a la de hoy.
+       ⚠️ LA FÓRMULA DE BALIK NO SE TOCÓ NI SE CITÓ: ya estaba implementada (`_balikVol`, ml = mm
+       × 20) y ya se publicaba. La orden pedía verificarla en la biblioteca con folio y NO
+       escribirla de memoria si no está: censada la biblioteca entera, no hay ningún documento
+       que la contenga —lo que sí hay es el método de Capper (área de sección × longitud axial),
+       que es otro y necesitaría campos que no existen—. Así que la fuente queda SIN VERIFICAR y
+       declarada en PENDIENTES; lo que se reusa es lo que la app ya calculaba. */
+    const lado = _amV('pul_derrame_lado') || '';
     // Balik en mm; el volumen aproximado es mm x 20 en ml.
     const bk = PF(_amV('pul_balik'));
     // El valor se multiplica por 20, así que un error de tipeo se amplifica y sale
     // impreso: 200 en vez de 20 daba "4000 ml". Fuera de rango plausible se omite
     // la estimación en vez de imprimir un volumen imposible.
     const det = _balikDet(bk);
-    frases.push('Derrame pleural ' + tam + det + '.');
-    suma.push('Derrame pleural ' + tam + det + '.');
+    const _dp = 'Derrame pleural ' + (lado ? lado + ' ' : '') + tam + det + '.';
+    frases.push(_dp);
+    suma.push(_dp);
   }
   if (_amV('pul_lineasb') === 'si') {
+    /* ⚠️ LAS DOS SEPARACIONES DE LÍNEAS B (≈3 mm y ≈7 mm) QUEDARON SIN HACER, y es una falta de
+       FUENTE y no una decisión. La orden pedía verificar en el protocolo POCUS pulmonar de la
+       biblioteca qué significa cada una y cómo las rotula la fuente, y no inventar nada si no
+       está: censada la biblioteca completa, no hay ningún protocolo de ecografía pulmonar. Lo
+       único que aparece sobre líneas B es una revisión de ETE en cuidados críticos, que dice que
+       tres o más indican edema o enfermedad intersticial y NO menciona ninguna separación en
+       milímetros. El selector sigue ofreciendo focal y difuso, como hasta hoy. */
     const pat = _amV('pul_lineasb_pat') || 'focal';
     // "distribución" es femenino: difusa / focal, no "difuso".
     frases.push('Líneas B de distribución ' + (pat === 'difuso' ? 'difusa' : 'focal') + '.');
