@@ -21434,6 +21434,64 @@ window.PCP_COEF_A = PCP_COEF_A; window.PCP_COEF_B = PCP_COEF_B;
 window.PCP_FORMULA_TXT = PCP_FORMULA_TXT; window.PCP_DISCLAIMER = PCP_DISCLAIMER;
 window.pcpNagueh = pcpNagueh;
 window.UMBRAL_FEVI_NORMAL = UMBRAL_FEVI_NORMAL;
+
+/* ══ LA FRACCIÓN DE EYECCIÓN — UN SOLO DUEÑO Y CUATRO CATEGORÍAS (LS7, 2026-10-16) ════════
+   Decisión de Maicol: preservada con 50 % o más · levemente reducida 41 a 49 · moderadamente
+   reducida 30 a 40 · severamente reducida por debajo de 30. **Es un criterio de EcoSmart**, no
+   la tabla de una guía: compone el corte de la guía ESC 2021 de insuficiencia cardiaca con el
+   desglose de la ASE/EACVI. El detalle de las fuentes vive en Referencias y la tarjeta publica
+   una sola línea que lo declara SIN nombrar ninguna guía. No distingue sexo.
+
+   ⚠️ LOS 40 Y 30 EXACTOS VAN A «MODERADAMENTE REDUCIDA», Y ANTES EL 40 CAÍA EN LA DE ARRIBA.
+   El corte de arriba es `>= 41` y no `>= 40`, porque la guía ESC 2021 —Tabla 3, folio 523.e11,
+   hoja 11 de la traducción de la Sociedad Española de Cardiología, leída en el original—
+   escribe «FEVI <=40%» para la reducida y «FEVI 41-49%» para la ligeramente reducida: el 40
+   pertenece al grupo de abajo. Y la ASE/EACVI 2015 publica la banda moderada como «30-40» en su
+   Tabla 4 (folio 10) y en su Tabla suplementaria 3 (folio 39.e8), con «<30» severa, lo que
+   cierra el otro borde.
+
+   ⚠️ ANTES VIVÍA EN TRES COPIAS DE CUATRO CATEGORÍAS —la cápsula de `calcVI`, el bloque del
+   informe y `_simpClasificar` del módulo de Simpson— MÁS DOS DE TRES —`FEVICAT`, la variable
+   categórica del módulo de asociaciones, y la distribución del panel del Laboratorio—. Cinco
+   lecturas del mismo dato, y las dos de tres categorías publicaban un «< 40 %» que fundía la
+   moderada con la severa. Las cinco leen ahora esta tabla.
+   `UMBRAL_FEVI_NORMAL` no se duplica: es el piso de la banda de arriba y lo gobierna todo.
+
+   ⚠️ EL CORTE QUE SE PUBLICA ES EL PISO DE CADA BANDA, no su techo: acá mayor es mejor y el
+   «50 %» es el número que el médico busca. En todos los demás datos de esta zona, donde mayor
+   es peor, se publica el techo. */
+const FEVI_LEVE_MIN = 41;        // %
+const FEVI_MODERADA_MIN = 30;    // %
+const FEVI_CATS = Object.freeze([
+  Object.freeze({ clave:'preservada', min: UMBRAL_FEVI_NORMAL, adj:'normal', rot:'Normal',
+    rango:'≥' + UMBRAL_FEVI_NORMAL + '%', color:'green', col:'#22d36a', suma:'FEVI normal',
+    narr:'conservada', tail:', sin evidencia de compromiso de la función sistólica global' }),
+  Object.freeze({ clave:'leve', min: FEVI_LEVE_MIN, adj:'levemente reducida',
+    rot:'Levemente reducida', rango: FEVI_LEVE_MIN + '-' + (UMBRAL_FEVI_NORMAL - 1) + '%',
+    color:'yellow', col:'#fbbf24', suma:'FEVI levemente reducida', narr:'levemente reducida',
+    tail:', compatible con disfunción sistólica leve' }),
+  Object.freeze({ clave:'moderada', min: FEVI_MODERADA_MIN, adj:'moderadamente reducida',
+    rot:'Moderadamente reducida', rango: FEVI_MODERADA_MIN + '-' + (FEVI_LEVE_MIN - 1) + '%',
+    color:'orange', col:'#fb923c', suma:'FEVI moderadamente reducida',
+    narr:'moderadamente reducida', tail:', compatible con disfunción sistólica moderada' }),
+  Object.freeze({ clave:'severa', min: -Infinity, adj:'severamente reducida',
+    rot:'Severamente reducida', rango:'<' + FEVI_MODERADA_MIN + '%', color:'red', col:'#f87171',
+    suma:'FEVI severamente reducida', narr:'severamente comprometida',
+    tail:', compatible con miocardiopatía con disfunción sistólica severa' }),
+]);
+/* La línea que la tarjeta publica. NO nombra ninguna guía a propósito: las cuatro bandas son
+   una composición de la aplicación y atribuirlas a un documento sería citarlo por algo que no
+   dice. El detalle por corte va en Referencias. */
+const FEVI_CRITERIO_TXT = 'Criterio de EcoSmart, orientado según guías clínicas.';
+function feviClasificar(fevi) {
+  const f = PF(fevi);
+  if (f == null || !isFinite(f)) return null;
+  for (let i = 0; i < FEVI_CATS.length; i++) if (f >= FEVI_CATS[i].min) return FEVI_CATS[i];
+  return FEVI_CATS[FEVI_CATS.length - 1];
+}
+window.FEVI_LEVE_MIN = FEVI_LEVE_MIN; window.FEVI_MODERADA_MIN = FEVI_MODERADA_MIN;
+window.FEVI_CATS = FEVI_CATS; window.feviClasificar = feviClasificar;
+window.FEVI_CRITERIO_TXT = FEVI_CRITERIO_TXT;
 window.UMBRAL_TAPSE_NORMAL = UMBRAL_TAPSE_NORMAL;
 
 function v(id) {
@@ -22295,12 +22353,31 @@ const EV_REG = Object.freeze([
   }),
   Object.freeze({
     id: 'FUN-VI-001', zona: 'AI/VI — Ventriculo izquierdo', dato: 'Fraccion de eyeccion',
-    valor: 'Normal con 50 % o mas; levemente reducida 40 a 49; moderadamente reducida 30 a 39; severamente reducida por debajo de 30. Los mismos valores en los dos sexos',
-    duenio: 'calcVI (capsula) y generarInforme (texto)',
+    valor: 'Normal con 50 % o mas; levemente reducida 41 a 49; moderadamente reducida 30 a 40; severamente reducida por debajo de 30. Los mismos valores en los dos sexos',
+    duenio: 'feviClasificar / FEVI_CATS',
     guia: '', ubicacion: '', folio: '', hoja_pdf: null,
     doi: '', fuente_original: '', tipo: 'criterio propio de EcoSmart',
     estado: 'por verificar', fecha_verificacion: EV_FECHA_VER,
     fuente_una_linea: '',
+  }),
+  Object.freeze({
+    id: 'FUN-VI-002', zona: 'AI/VI — Ventriculo izquierdo', dato: 'Fraccion de eyeccion — los cortes de 50 y de 40',
+    valor: 'Fraccion de eyeccion conservada con 50 % o mas; ligeramente reducida entre 41 y 49 %; reducida con 40 % o menos. Los mismos valores en los dos sexos',
+    duenio: 'feviClasificar / FEVI_CATS',
+    guia: EV_GUIA_ESC2021IC, ubicacion: 'Tabla 3', folio: '523.e11', hoja_pdf: 11,
+    doi: EV_DOI_ESC2021IC, fuente_original: '', tipo: 'guia',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
+    fuente_una_linea: 'Guia ESC 2021 de insuficiencia cardiaca, Tabla 3 (folio 523.e11)',
+  }),
+  Object.freeze({
+    id: 'FUN-VI-003', zona: 'AI/VI — Ventriculo izquierdo', dato: 'Fraccion de eyeccion — el corte de 30',
+    valor: 'Moderadamente reducida entre 30 y 40 %; severamente reducida por debajo de 30 %. Los mismos valores en los dos sexos',
+    duenio: 'feviClasificar / FEVI_CATS',
+    guia: EV_GUIA_ASE2015, ubicacion: 'Tabla 4 y Tabla suplementaria 3', folio: '10', hoja_pdf: 10,
+    doi: EV_DOI_ASE2015, fuente_original: 'ASE y Asociacion Europea de Ecocardiografia 2005, Tabla 6 (folio 1448, hoja 9), que publica la misma banda severa',
+    tipo: 'guia',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
+    fuente_una_linea: 'ASE/EACVI 2015, Tabla 4 (folio 10) y Tabla suplementaria 3 (folio 39.e8)',
   }),
   Object.freeze({
     id: 'MAS-VI-001', zona: 'AI/VI — Ventriculo izquierdo', dato: 'Masa indexada — limite de normalidad',
@@ -22788,11 +22865,9 @@ function calcVI() {
   // FEVI (cortes actualizados)
   // FEVI normal ≥50% — criterio ASE Chamber Quantification 2025
   if (fevi !== null) {
-    let fi;
-    if (fevi >= UMBRAL_FEVI_NORMAL) fi = badge('green', 'Normal (≥' + UMBRAL_FEVI_NORMAL + '%)');
-    else if (fevi >= 40) fi = badge('yellow', 'Levemente reducida (40-49%)');
-    else if (fevi >= 30) fi = badge('orange', 'Moderadamente reducida (30-39%)');
-    else fi = badge('red', 'Severamente reducida (<30%)');
+    /* LA CAPSULA LE PREGUNTA AL DUEÑO: acá vivía una de las cinco copias de los cortes. */
+    const _fc = feviClasificar(fevi);
+    const fi = _fc ? badge(_fc.color, _fc.rot + ' (' + _fc.rango + ')') : '—';
     document.getElementById('fevi-interp').innerHTML = P.fevi.fuera ? badge('yellow','revisar la unidad') : fi;
   } else _viVacio('fevi-interp');
 
@@ -38844,8 +38919,18 @@ const EV_BANDAS_REF = Object.freeze({
                         { k: 'moderada', desde: 43.1, hasta: 45 }, { k: 'severa', desde: 45.1, hasta: 60 }]),
   dsviF: Object.freeze([{ k: 'normal', desde: 15, hasta: 35 }, { k: 'leve', desde: 35.1, hasta: 38 },
                         { k: 'moderada', desde: 38.1, hasta: 41 }, { k: 'severa', desde: 41.1, hasta: 60 }]),
-  fevi:  Object.freeze([{ k: 'severa', desde: 10, hasta: 29.9 }, { k: 'moderada', desde: 30, hasta: 39.9 },
-                        { k: 'leve', desde: 40, hasta: 49.9 }, { k: 'normal', desde: 50, hasta: 80 }]),
+  /* ⚠️ LAS BANDAS DE LA FRACCIÓN DE EYECCIÓN SE DERIVAN DEL DUEÑO (LS7) y ya no son una cuarta
+     copia de sus cortes: se arman de `FEVI_CATS`, de mayor a menor, que es el orden en que la
+     barra se dibuja. El techo de cada banda es el piso de la de arriba menos una décima. */
+  fevi:  Object.freeze((function () {
+    const cs = FEVI_CATS.slice().reverse();   // severa, moderada, leve, normal
+    return cs.map(function (c, i) {
+      const desde = (c.min === -Infinity) ? 10 : c.min;
+      const arriba = cs[i + 1];
+      return Object.freeze({ k: c.clave === 'preservada' ? 'normal' : c.clave,
+        desde: desde, hasta: arriba ? +(arriba.min - 0.1).toFixed(1) : 80 });
+    });
+  })()),
 });
 window.EV_BANDAS_REF = EV_BANDAS_REF;
 /* ══ LAS BANDAS DEL DIAMETRO SISTOLICO, POR SEXO Y CON LA REGLA DEL CORTE MAS ALTO (LS4) ═════
@@ -38981,12 +39066,19 @@ function evTarjetaVI() {
     aviso: [_avVol(pVSF, idxS, 'el volumen telesistólico'), _avSx(pVSF)].filter(Boolean).join(' '),
     ficha: 'DIM-VI-004' }));
 
-  /* Fraccion de eyeccion — la categoria se COPIA de la capsula, que es lo que la app publica. */
+  /* Fraccion de eyeccion — la categoria se COPIA de la capsula, que es lo que la app publica.
+     ⚠️ LAS CUATRO BANDAS SON UN CRITERIO DE LA APLICACIÓN y la línea de abajo lo dice SIN
+     nombrar ninguna guía: atribuírselas a un documento sería citarlo por algo que no escribe,
+     porque componen el corte de una guía con el desglose de otra. El detalle por corte —con su
+     tabla, su folio y su hoja— vive en Referencias, en las fichas `FUN-VI-002` y `FUN-VI-003`.
+     Las bandas NO llevan palabras de gravedad adentro: el color las distingue y la categoría va
+     en palabras debajo, que es como se lee sin depender del color. */
   fr.appendChild(_evBarra({ clave: 'vi-fevi', rotulo: 'Fracción de eyección (%)',
     bandas: EV_BANDAS_REF.fevi, lo: 10, hi: 80, unidad: '%', dec: 0, corteEn: 'desde',
     valor: (pFE.val != null && !pFE.fuera) ? pFE.val : null,
     cat: _evCapsula('fevi-interp'),
     aviso: _falta(pFE, 'la fracción de eyección'), ficha: 'FUN-VI-001' }));
+  fr.appendChild(_evDiv('ev-fte', FEVI_CRITERIO_TXT, { 'data-ev-fuente': 'vi-fevi-criterio' }));
 
   /* El aviso de sexo va EN CADA BARRA que lo necesita y no una vez al pie: tres barras sin
      punto con un solo aviso al final dejan al lector sin saber cual de ellas quedo sin ubicar.
@@ -39766,7 +39858,8 @@ function evRefPintar(id) {
   }
   if (id === 'vi2') {
     const B = _evRefBiblio(['DIM-VI-001', 'DIM-VI-002', 'DIM-VI-005', 'DIM-VI-003', 'DIM-VI-004',
-                            'FUN-VI-001', 'MAS-VI-001', 'MAS-VI-002', 'GEO-VI-001', 'GEO-VI-002']);
+                            'FUN-VI-002', 'FUN-VI-003', 'MAS-VI-001', 'MAS-VI-002',
+                            'GEO-VI-001', 'GEO-VI-002']);
     host.appendChild(_evRefTabla([
       { ficha: 'DIM-VI-001', rot: 'Diámetro diastólico — normal', h: '≤ ' + DDVI_NORMAL_MAX_H + ' mm', m: '≤ ' + DDVI_NORMAL_MAX_M + ' mm' },
       { ficha: 'DIM-VI-001', rot: 'Diastólico — leve / moderado', h: (DDVI_NORMAL_MAX_H + 1) + ' a ' + DDVI_LEVE_MAX_H + ' · ' + (DDVI_LEVE_MAX_H + 1) + ' a ' + DDVI_MODERADO_MAX_H + ' mm', m: (DDVI_NORMAL_MAX_M + 1) + ' a ' + DDVI_LEVE_MAX_M + ' · ' + (DDVI_LEVE_MAX_M + 1) + ' a ' + DDVI_MODERADO_MAX_M + ' mm' },
@@ -39783,8 +39876,10 @@ function evRefPintar(id) {
       { ficha: 'DIM-VI-004', rot: 'Volumen telesistólico indexado — normal', h: '≤ 31 ml/m²', m: '≤ 24 ml/m²' },
       { ficha: 'DIM-VI-004', rot: 'Telesistólico — leve / moderado', h: '32 a 38 · 39 a 45 ml/m²', m: '25 a 32 · 33 a 40 ml/m²' },
       { ficha: 'DIM-VI-004', rot: 'Telesistólico — severo', h: '> 45 ml/m²', m: '> 40 ml/m²' },
-      { ficha: 'FUN-VI-001', rot: 'Fracción de eyección — normal', h: '≥ 50 %', m: '≥ 50 %' },
-      { ficha: 'FUN-VI-001', rot: 'FEVI — leve / moderada / severa', h: '40 a 49 · 30 a 39 · < 30 %', m: '40 a 49 · 30 a 39 · < 30 %' },
+      { ficha: 'FUN-VI-002', rot: 'Fracción de eyección — normal', h: '≥ ' + UMBRAL_FEVI_NORMAL + ' %', m: '≥ ' + UMBRAL_FEVI_NORMAL + ' %' },
+      { ficha: 'FUN-VI-002', rot: 'FEVI — levemente reducida', h: FEVI_LEVE_MIN + ' a ' + (UMBRAL_FEVI_NORMAL - 1) + ' %', m: FEVI_LEVE_MIN + ' a ' + (UMBRAL_FEVI_NORMAL - 1) + ' %' },
+      { ficha: 'FUN-VI-003', rot: 'FEVI — moderadamente reducida', h: FEVI_MODERADA_MIN + ' a ' + (FEVI_LEVE_MIN - 1) + ' %', m: FEVI_MODERADA_MIN + ' a ' + (FEVI_LEVE_MIN - 1) + ' %' },
+      { ficha: 'FUN-VI-003', rot: 'FEVI — severamente reducida', h: '< ' + FEVI_MODERADA_MIN + ' %', m: '< ' + FEVI_MODERADA_MIN + ' %' },
       { ficha: 'MAS-VI-001', rot: 'Masa indexada — normal', h: '≤ ' + UMBRAL_MASA_HVI_H + ' g/m²', m: '≤ ' + UMBRAL_MASA_HVI_M + ' g/m²' },
       { ficha: 'MAS-VI-002', rot: 'Hipertrofia — leve / moderada', h: '116 a 131 · 132 a 148 g/m²', m: '96 a 108 · 109 a 121 g/m²' },
       { ficha: 'MAS-VI-002', rot: 'Hipertrofia — severa', h: '> 148 g/m²', m: '> 121 g/m²' },
@@ -39798,6 +39893,16 @@ function evRefPintar(id) {
       { clave: 'ref-vi-vsfvi', rotulo: 'Volumen telesistólico indexado — varón (ml/m²)', banda: 'vsfvi', lo: 5, hi: 70, unidad: 'ml/m²', dec: 0, ficha: 'DIM-VI-004' },
       { clave: 'ref-vi-masa', rotulo: 'Masa indexada — varón (g/m²)', banda: 'masa', lo: 50, hi: 200, unidad: 'g/m²', dec: 0, ficha: 'MAS-VI-002' },
     ], 'M'));
+    /* La fracción de eyección va una sola vez: su criterio NO distingue sexo —y eso es lo que
+       las dos columnas de su tabla ya dicen—, así que repetir la barra por sexo afirmaría que
+       depende de un dato del que no depende. */
+    const _wFe = document.createElement('div');
+    _wFe.className = 'ev-ref';
+    _wFe.appendChild(_evBarra({ clave: 'ref-vi-fevi', rotulo: 'Fracción de eyección (%)',
+      bandas: EV_BANDAS_REF.fevi, lo: 10, hi: 80, unidad: '%', dec: 0, corteEn: 'desde',
+      valor: null, ficha: 'FUN-VI-001', W: 520 }));
+    _wFe.appendChild(_evDiv('ev-fte', FEVI_CRITERIO_TXT, { 'data-ev-fuente': 'ref-vi-fevi-criterio' }));
+    host.appendChild(_wFe);
     host.appendChild(_evRefBarras([
       { clave: 'ref-vi-ddvi-f', rotulo: 'Diámetro diastólico — mujer (mm)', banda: 'ddvi', lo: 35, hi: 80, unidad: 'mm', dec: 0, ficha: 'DIM-VI-001' },
       { clave: 'ref-vi-dsvi-f', rotulo: 'Diámetro sistólico — mujer (mm)', banda: 'dsvi', lo: 15, hi: 60, unidad: 'mm', dec: 0, ficha: 'DIM-VI-002' },
@@ -45419,10 +45524,11 @@ function generarInforme(opts) {
   let feviFragC = '', feviFragE = '', feviFragN = '';
   if (fevi !== null) {
     let feviConcepto, feviSuma, feviNarr, feviTail;
-    if (fevi >= UMBRAL_FEVI_NORMAL) { feviConcepto = 'normal'; feviSuma = `FEVI normal (${feviRangoTexto(fevi)})`; feviNarr = 'conservada'; feviTail = ', sin evidencia de compromiso de la función sistólica global'; }
-    else if (fevi >= 40) { feviConcepto = 'levemente reducida'; feviSuma = `FEVI levemente reducida (${feviRangoTexto(fevi)})`; feviNarr = 'levemente reducida'; feviTail = ', compatible con disfunción sistólica leve'; }
-    else if (fevi >= 30) { feviConcepto = 'moderadamente reducida'; feviSuma = `FEVI moderadamente reducida (${feviRangoTexto(fevi)})`; feviNarr = 'moderadamente reducida'; feviTail = ', compatible con disfunción sistólica moderada'; }
-    else { feviConcepto = 'severamente reducida'; feviSuma = `FEVI severamente reducida (${feviRangoTexto(fevi)})`; feviNarr = 'severamente comprometida'; feviTail = ', compatible con miocardiopatía con disfunción sistólica severa'; }
+    /* EL INFORME LE PREGUNTA AL DUEÑO. Acá vivía la segunda copia de los cuatro cortes, con sus
+       cuatro juegos de texto escritos a mano; los textos son los MISMOS, movidos a `FEVI_CATS`. */
+    const _fcI = feviClasificar(fevi) || FEVI_CATS[FEVI_CATS.length - 1];
+    feviConcepto = _fcI.adj; feviNarr = _fcI.narr; feviTail = _fcI.tail;
+    feviSuma = `${_fcI.suma} (${feviRangoTexto(fevi)})`;
     const metodo = sv('fevi_met') || 'Simpson biplano';
     // Con estimación visual y límite superior cargado se informa el RANGO
     // completo. La clasificación usa el valor inferior, que es el conservador.
@@ -55687,7 +55793,7 @@ function generarPDFReal(_aj) {
     ]},
     {titulo:'VI - Funcion sistolica', items:[
       // FEVI normal ≥50% — criterio ASE Chamber Quantification 2025
-      {lbl:'FEVI',      ref:'>=' + UMBRAL_FEVI_NORMAL + '%',           val:feviS},
+      {lbl:'FEVI',      ref:'>=' + UMBRAL_FEVI_NORMAL + '%',           val:feviS},   // el piso de la banda preservada; las cuatro bandas estan en Referencias
       {lbl:'FA',        ref:'>=28%',           val:faStr},
       /* SIN referencia, a diferencia del resto de la tabla. `>=-18%` era un CUARTO umbral
          para el mismo dato —el badge del formulario cortaba en 20 y 16— y era la mitad
@@ -87629,12 +87735,11 @@ function _simpCalcular() {
   return { vfd:d.ml, vfs:s.ml, fevi:(d.ml - s.ml) / d.ml * 100, Ld:d.Lcm, Ls:s.Lcm, bi, imgs };
 }
 
-/* MISMA cascada que el informe: `UMBRAL_FEVI_NORMAL` y 40/30. Ver la nota de arriba. */
+/* LE PREGUNTA AL DUEÑO (LS7): acá vivía la TERCERA copia de los cuatro cortes y de sus cuatro
+   colores. Devuelve la misma forma que antes para no tocar a sus llamadores. */
 function _simpClasificar(fevi) {
-  if (fevi >= UMBRAL_FEVI_NORMAL) return { txt:'normal', col:'#22d36a' };
-  if (fevi >= 40) return { txt:'levemente reducida', col:'#fbbf24' };
-  if (fevi >= 30) return { txt:'moderadamente reducida', col:'#fb923c' };
-  return { txt:'severamente reducida', col:'#f87171' };
+  const c = feviClasificar(fevi) || FEVI_CATS[FEVI_CATS.length - 1];
+  return { txt: c.adj, col: c.col };
 }
 
 /* Cierra el trazado en curso como paso de Simpson. Devuelve el motivo del rechazo, o null. */
@@ -105286,7 +105391,16 @@ function labSubTab(id, el) {
   const antec = (inf,re) => { const a=inf.campos&&inf.campos.antecedentes_sel; return Array.isArray(a)?(a.some(s=>re.test(String(s)))?1:0):null; };
   const HTA=i=>antec(i,/^HTA$/i), DM=i=>antec(i,/^DM$/i), FA=i=>antec(i,/FA|flutter/i);
   const SEXO=inf=>{ const s=String((inf.campos&&inf.campos.sexo)||'').toLowerCase(); if(/^f|femen|mujer/.test(s))return 'F'; if(/^m|mascul|var|hombre/.test(s))return 'M'; return null; };
-  const FEVICAT=inf=>{ const f=VARS.fevi.get(inf); return f==null?null:(f>=UMBRAL_FEVI_NORMAL?'≥'+UMBRAL_FEVI_NORMAL:(f>=40?'40-49':'<40')); };
+  /* ⚠️ PASÓ DE TRES CATEGORÍAS A CUATRO (LS7) y le pregunta al DUEÑO. Las tres de antes
+     —≥50, 40-49 y «<40»— fundían la moderada con la severa en una sola clase, y el 40 exacto
+     caía en la del medio. La etiqueta es el RANGO de la categoría, que es lo que la tabla de
+     contingencia imprime.
+     ⚠️ CONSECUENCIA DECLARADA: el chi² de los tres pares que usan esta variable se calcula
+     sobre cuatro clases en vez de tres, así que su p CRUDO cambia por el grado de libertad; y el
+     ajuste de Benjamini-Hochberg corre sobre la familia del bloque, así que el p AJUSTADO de sus
+     vecinos puede moverse. No es un defecto: es la variable que cambió. */
+  const FEVICAT=inf=>{ const f=VARS.fevi.get(inf); if (f==null) return null;
+    const c=(typeof feviClasificar==='function')?feviClasificar(f):null; return c?c.rango:null; };
   const HTP=inf=>{ const p=VARS.psap.get(inf); return p==null?null:(p>UMBRAL_PSAP_ELEVADA?1:0); };
   const VALVSIG=inf=>{ const c=inf.campos||{}; let known=false,sig=false; ['im_grado','ia_grado','it_grado','ea_grado','em_grado','et_grado'].forEach(k=>{ const v=c[k]; if(v!=null&&String(v).trim()!==''){ known=true; const s=String(v).toLowerCase(),n=parseInt(v); if(/severa|moderada/.test(s)||(!isNaN(n)&&n>=2))sig=true; } }); return known?(sig?1:0):null; };
   /* Reusa `_labDiastGrado`, que es la implementación con guarda de negación. Acá había una
@@ -113806,9 +113920,15 @@ async function _labAnalisisPDFReal(infs) {
   const feviV = infs.map(_labFevi).filter(v => v !== null);
   if (feviV.length) {
     const uf = (typeof UMBRAL_FEVI_NORMAL === 'number') ? UMBRAL_FEVI_NORMAL : 50;
-    distros.push({ t:'FEVI', labels:['< 40 %','40–49 %','≥ ' + uf + ' %'],
-      values:[feviV.filter(v=>v<40).length, feviV.filter(v=>v>=40&&v<uf).length, feviV.filter(v=>v>=uf).length],
-      colors:['#f05454','#f5c842','#3ecf8e'], base:feviV.length });
+    /* ⚠️ CUATRO BARRAS Y NO TRES (LS7), derivadas del DUEÑO. Las tres de antes fundían la
+       moderada con la severa en un «< 40 %» y el 40 exacto caía en la del medio. El orden va de
+       peor a mejor, que es el que esta tarjeta ya usaba. */
+    const _fcs = (typeof FEVI_CATS !== 'undefined') ? FEVI_CATS.slice().reverse() : [];
+    distros.push({ t:'FEVI', labels: _fcs.map(c => c.rango.replace('-', '–')),
+      values: _fcs.map(c => feviV.filter(v => {
+        const k = (typeof feviClasificar === 'function') ? feviClasificar(v) : null;
+        return k && k.clave === c.clave }).length),
+      colors: _fcs.map(c => c.col), base:feviV.length });
   }
   /* `VARS.psap.get` y NO `_labPsap`: el primero resuelve `psap_calc | psap` y es el que alimenta
      la fila descriptiva; el segundo lee sólo `psap_calc`. Con los dos, un estudio que trae `psap`

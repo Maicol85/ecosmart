@@ -853,6 +853,63 @@ async function main() {
   }
 
 
+  /* ── fevi: los cuatro tramos y sus bordes exactos, con UN solo dueno ── */
+  if (corre('fevi')) {
+    const t0 = Date.now(); const g = {};
+    const VAL = ['29', '30', '39', '40', '41', '49', '50', '51'];
+    for (const f of VAL) {
+      const k = 'fevi=' + f;
+      try {
+        await montar({ fevi: f, ddfvi: '50' }, { sexo: 'M' });
+        await ev('(function(){ try { calcVI() } catch(e) {} return 1 })()');
+        g[k] = {
+          capsula: await ev("window.__P.txt('#fevi-interp')"),
+          duenio: await ev('(function(){ try { var c = feviClasificar(' + f + '); return c ? (c.clave + "|" + c.adj + "|" + c.rango) : "null" } catch(e){ return "EXC" } })()'),
+          simp: await ev('(function(){ try { var c = _simpClasificar(' + f + '); return c.txt + "|" + c.col } catch(e){ return "EXC" } })()'),
+          labCat: await ev('(function(){ try { var c = feviClasificar(' + f + '); return c ? c.rango : "null" } catch(e){ return "EXC" } })()'),
+          inf: await J("JSON.stringify(window.__P.lineaVI('estandar'))"),
+          narr: await J("JSON.stringify(window.__P.lineaVI('narrativo'))"),
+          conc: await J("JSON.stringify(window.__P.lineaVI('conciso'))"),
+        };
+      } catch (e) { g[k] = { ABORTO: e.message }; abortos.push('fevi ' + k + ': ' + e.message); }
+    }
+    /* El sexo no cambia la categoria de la FEVI en ninguna escena: es el control negativo del
+       criterio, que no distingue sexo. */
+    try {
+      const porSexo = {};
+      for (const sx of ['M', 'F', '']) {
+        await montar({ fevi: '45', ddfvi: '50' }, { sexo: sx });
+        await ev('(function(){ try { calcVI() } catch(e) {} return 1 })()');
+        porSexo[sx || 'SIN'] = await ev("window.__P.txt('#fevi-interp')");
+      }
+      g.porSexo = porSexo;
+      /* Las bandas de dibujo tienen que coincidir con el dueno en TODO el dominio: una barra que
+         pinte una banda distinta de la que el informe publica es la copia que se desincroniza. */
+      g.bandasVsDuenio = await J(`JSON.stringify((function(){
+        var mal = [];
+        for (var f = 10; f <= 80; f += 0.5) {
+          var c = feviClasificar(f); if (!c) continue;
+          var esp = (c.clave === 'preservada') ? 'normal' : c.clave;
+          var b = null;
+          for (var i = 0; i < EV_BANDAS_REF.fevi.length; i++) {
+            var x = EV_BANDAS_REF.fevi[i];
+            if (f >= x.desde && f <= x.hasta) { b = x.k; break } }
+          if (b !== esp) mal.push({ f: f, duenio: esp, banda: b });
+        }
+        return { n: mal.length, casos: mal.slice(0, 12),
+                 bandas: EV_BANDAS_REF.fevi.map(function(x){ return x.k + ' ' + x.desde + '-' + x.hasta }) } })())`);
+      /* Censo: ningun lugar del archivo vuelve a comparar la FEVI contra un 40 o un 30 pelados. */
+      g.copias = await J(`JSON.stringify((function(){
+        var t = document.documentElement.innerHTML, out = [];
+        ['fevi >= 40', 'fevi >= 30', 'f>=40', 'f >= 40'].forEach(function(p){
+          var n = 0, i = 0;
+          while ((i = t.indexOf(p, i)) >= 0) { n++; i += p.length }
+          if (n) out.push({ patron: p, n: n }) });
+        return out })())`);
+    } catch (e) { g.ABORTO2 = e.message; abortos.push('fevi sexo: ' + e.message); }
+    out.grupos.fevi = g; parcial('fevi', t0);
+  }
+
   /* ── masa: el 115 y el 95 EXACTOS, y las bandas sin huecos ni solapes ── */
   if (corre('masa')) {
     const t0 = Date.now(); const g = {};
