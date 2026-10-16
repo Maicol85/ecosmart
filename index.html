@@ -21216,6 +21216,65 @@ function aiDiamDilatado(d){ d = PF(d); return (d != null && isFinite(d)) ? d >= 
 function aiAreaDilatada(a){ a = PF(a); return (a != null && isFinite(a)) ? a > UMBRAL_AI_AREA_DILATADA : null; }
 window.aiDiamDilatado = aiDiamDilatado; window.aiAreaDilatada = aiAreaDilatada;
 
+/* ══ LA SEVERIDAD DE LA AI POR VOLUMEN INDEXADO — DUEÑO ÚNICO (H1, 2026-10-16) ══════════════
+   Decisión de Maicol: cuando el VOLUMEN está medido y se puede indexar por la superficie
+   corporal, el volumen indexado MANDA — si es normal la aurícula se informa normal aunque el
+   diámetro AP o el área marquen dilatación, y si está aumentado se informa con su grado. Esa
+   regla ya la aplicaba `generarInforme`; lo que faltaba era que la clasificación tuviera UN
+   dueño. Vivía DOS veces, con los mismos cuatro cortes escritos en los dos lados: la cápsula
+   `ai-interp` de la pestaña AI/VI y la rama `if (ai_vol && bsa)` del informe. Es el defecto
+   que este archivo ya pagó con la geometría del VI —la tabla y el informe calculando por
+   separado—, y acá estaba a un descuido de que la pantalla dijera «Dilat. leve» mientras el
+   papel firmado decía «moderadamente dilatada» del mismo número.
+
+   FUENTE, VERIFICADA EN TEXTO COMPLETO: ASE/EACVI 2015 (Lang RM et al., J Am Soc Echocardiogr
+   2015;28:1-39), **Tabla 4, folio 10** —el pie impreso de esa página dice «10 · Lang et al»,
+   así que para ESTE PDF folio = página del PDF y no página + 1—, fila
+   «Maximum LA volume/BSA (mL/m2)»: normal 16-34 · levemente anormal 35-41 · moderadamente
+   anormal 42-48 · severamente anormal >48, y las dos columnas —varón y mujer— imprimen los
+   MISMOS cuatro valores, así que esta clasificación no se separa por sexo.
+   **NINGÚN CORTE SE MOVIÓ**: los cuatro son exactamente los que las dos copias ya aplicaban.
+
+   ⚠️ LOS RÓTULOS DE LA CÁPSULA SE DERIVAN DE LAS BANDAS Y YA NO ESTÁN CABLEADOS. Decían
+   «Dilat. leve (35-41)» y «Dilat. moderada (42-48)» con los números escritos a mano al lado de
+   un corte que sí era constante: mover `UMBRAL_LAVI_DILATADO` dejaba el rótulo mintiendo. El
+   texto que sale hoy es IDÉNTICO carácter por carácter al de HEAD —medido—, porque los cortes
+   no se movieron.
+   ⚠️ EL `+1` DE LOS RÓTULOS ASUME ENTEROS, y hay que decirlo: el límite real de «leve» es
+   «> 34», no «>= 35», así que un 34,5 cae en leve y el rótulo lo rotula «35-41». Es la misma
+   trampa que `hviSeveridad` ya tiene escrita, y es preexistente: el rótulo cableado decía lo
+   mismo. Lo que gradúa es la BANDA, no el rótulo.
+   ⚠️ LA CLAVE Y NO EL ADJETIVO es lo que decide si la aurícula es normal. El informe lo
+   resolvía con `aiStr === 'de dimensiones normales'`, o sea comparando contra una frase del
+   papel firmado: cambiar esa redacción habría dado vuelta en silencio la rama de la
+   discordancia y el EN SUMA. */
+const AI_VOL_BANDAS = [
+  { clave:'normal',   hasta: UMBRAL_LAVI_DILATADO, color:'green',  adj:'de dimensiones normales' },
+  { clave:'leve',     hasta: 41,                   color:'yellow', adj:'levemente dilatada' },
+  { clave:'moderada', hasta: 48,                   color:'orange', adj:'moderadamente dilatada' },
+  { clave:'severa',   hasta: Infinity,             color:'red',    adj:'severamente dilatada' },
+];
+/* Devuelve la banda, o `null` si el índice no es un número: un volumen indexado ilegible no
+   clasifica, y el `null` deja que cada superficie decida qué hace con eso (la cápsula publica
+   la raya, el informe no entra en la rama). */
+function aiVolClasificar(idx) {
+  const n = PF(idx);
+  if (n == null || !isFinite(n)) return null;
+  for (let i = 0; i < AI_VOL_BANDAS.length; i++) if (n <= AI_VOL_BANDAS[i].hasta) return AI_VOL_BANDAS[i];
+  return AI_VOL_BANDAS[AI_VOL_BANDAS.length - 1];
+}
+/* El rótulo compacto de la cápsula. Vive al lado de las bandas y no dentro de `calcAI` porque
+   es la otra mitad de la misma afirmación: el texto tiene que salir de los mismos números. */
+function aiVolRotulo(b) {
+  if (!b) return '';
+  const i = AI_VOL_BANDAS.indexOf(b);
+  if (b.clave === 'normal')  return 'Normal (≤' + b.hasta + ' ml/m²)';
+  if (b.clave === 'severa')  return 'Dilat. severa (>' + AI_VOL_BANDAS[i - 1].hasta + ')';
+  return 'Dilat. ' + b.clave + ' (' + (AI_VOL_BANDAS[i - 1].hasta + 1) + '-' + b.hasta + ')';
+}
+window.AI_VOL_BANDAS = AI_VOL_BANDAS;
+window.aiVolClasificar = aiVolClasificar; window.aiVolRotulo = aiVolRotulo;
+
 function calcAI() {
   const vol = v('ai_vol');
   const bsa = getBSA();
@@ -21256,12 +21315,10 @@ function calcAI() {
   }
   const idx = (vol / bsa).toFixed(1);
   document.getElementById('ai-idx').textContent = idx + ' ml/m²';
-  let interp;
-  if (idx <= UMBRAL_LAVI_DILATADO) interp = badge('green','Normal (≤' + UMBRAL_LAVI_DILATADO + ' ml/m²)');
-  else if (idx <= 41) interp = badge('yellow','Dilat. leve (35-41)');
-  else if (idx <= 48) interp = badge('orange','Dilat. moderada (42-48)');
-  else interp = badge('red','Dilat. severa (>48)');
-  document.getElementById('ai-interp').innerHTML = interp;
+  /* LA CÁPSULA LE PREGUNTA AL DUEÑO. Acá vivía la segunda copia de los cuatro cortes, con los
+     rangos escritos a mano en el rótulo. El badge que sale es el mismo texto y el mismo color. */
+  const aiB = aiVolClasificar(idx);
+  document.getElementById('ai-interp').innerHTML = aiB ? badge(aiB.color, aiVolRotulo(aiB)) : '—';
 }
 
 // ══ VI ══
@@ -42878,12 +42935,13 @@ function generarInforme(opts) {
                      _pAiArea.val != null ? `área ${_pAiArea.val} cm²` : null].filter(Boolean).join(', ');
   if (ai_vol && bsa) {
     const aiIdx = (ai_vol / bsa).toFixed(1);
-    let aiStr, aiSuma;
-    if (PF(aiIdx) <= UMBRAL_LAVI_DILATADO) { aiStr = 'de dimensiones normales'; aiSuma = null; }
-    else if (PF(aiIdx) <= 41) { aiStr = 'levemente dilatada'; aiSuma = `AI levemente dilatada (Vol Index ${aiIdx} ml/m²).`; }
-    else if (PF(aiIdx) <= 48) { aiStr = 'moderadamente dilatada'; aiSuma = `AI moderadamente dilatada (Vol Index ${aiIdx} ml/m²).`; }
-    else { aiStr = 'severamente dilatada'; aiSuma = `AI severamente dilatada (Vol Index ${aiIdx} ml/m²).`; }
-    const aiNormal = aiStr === 'de dimensiones normales';
+    /* LA SEVERIDAD LE PREGUNTA AL DUEÑO (`aiVolClasificar`), que es el mismo que pinta la
+       cápsula de la pestaña AI/VI: acá vivía la otra copia de los cuatro cortes.
+       `aiNormal` sale de la CLAVE y no de comparar `aiStr` contra la frase del papel. */
+    const aiBanda = aiVolClasificar(aiIdx) || AI_VOL_BANDAS[0];
+    const aiStr   = aiBanda.adj;
+    const aiNormal = aiBanda.clave === 'normal';
+    const aiSuma  = aiNormal ? null : `AI ${aiStr} (Vol Index ${aiIdx} ml/m²).`;
     const cAI = `AI ${aiStr} (Vol AI ${aiIdx}).`;
     const eAI = `Aurícula izquierda ${aiStr} (Vol Index ${aiIdx} ml/m²).`;
     const nAI = aiNormal
