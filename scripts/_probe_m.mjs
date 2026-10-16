@@ -477,6 +477,11 @@ const SONDA = `window.__P = {
              puntos: puntos, barras: barras, cortes: cortes, cuad: cuad, cat: cat,
              fuentes: fu, avisos: av,
              nSvg: c.querySelectorAll('svg').length,
+             alturas: Array.prototype.slice.call(c.querySelectorAll('.ev-bl')).map(function(e){
+               var r = e.getBoundingClientRect();
+               var hijos = Array.prototype.slice.call(e.children).map(function(x){
+                 return x.tagName + ':' + Math.round(x.getBoundingClientRect().height) });
+               return Math.round(r.height) + ' [' + hijos.join(' ') + ']' }),
              scroll: { sh: c.scrollHeight, ch: c.clientHeight } } },
 
   /* ── EL REGISTRO DE EVIDENCIA ── */
@@ -910,6 +915,7 @@ async function main() {
          la diastolica y el HFA-PEFF, que SI agregan nodos. */
       const n0 = await ev('window.__P.nodos()'), o0 = await ev('window.__P.oyentes()');
       for (const k of ['ad-card', 'vd-tam-card', 'vd-fun-card', 'ao-card']) {
+        await J(`JSON.stringify(window.__P.abrirPara(${JSON.stringify(ANCLA[k])}))`);
         for (let i = 0; i < 20; i++) {
           await ev(`(function(){ var b = document.querySelector('[data-vinfo="' + ${JSON.stringify(k)} + '"]'); if (b) { b.click(); b.click() } return 1 })()`);
         }
@@ -942,9 +948,20 @@ async function main() {
                        { sexo: 'M', vci: '<50', vciDiam: '24' });
           const cel = {};
           for (const k of ['ad-card', 'vd-tam-card', 'vd-fun-card', 'ao-card']) {
+            /* El boton se abre por su ANCLA, igual que en el resto de los grupos: sin eso
+               existe y mide 0 x 0 y la tarjeta se niega a anclarse. */
+            const an = ANCLA[k];
+            const ap = await J(`JSON.stringify(window.__P.abrirPara(${JSON.stringify(an)}))`);
+            if (!ap.ok) { cel[k] = { abrir: { err: 'SIN SECCION ' + an } }; continue; }
             const a = await J(`JSON.stringify(window.__P.abrirTarjeta(${JSON.stringify(k)}))`);
             const l = a.err ? null : await J('JSON.stringify(window.__P.leerTarjeta())');
-            cel[k] = { abrir: a, scroll: l ? l.scroll : null,
+            const gb = a.err ? null : await J(`JSON.stringify((function(){
+              var b = document.querySelector('[data-vinfo="' + ${JSON.stringify(k)} + '"]');
+              var r = b.getBoundingClientRect(); var c = document.getElementById('vinfo-card');
+              return { btnTop: Math.round(r.top), btnBot: Math.round(r.bottom),
+                       huecoArriba: Math.round(r.top - 6 - 8), huecoAbajo: Math.round(innerHeight - 8 - (r.bottom + 6)),
+                       maxH: c ? getComputedStyle(c).maxHeight : null } })())`);
+            cel[k] = { abrir: a, scroll: l ? l.scroll : null, geo: gb,
                        dentro: a.err ? null : (a.top >= 0 && (a.top + a.h) <= h + 1) };
             await ev(`(function(){ var b = document.querySelector('[data-vinfo="' + ${JSON.stringify(k)} + '"]'); if (b) b.click(); return 1 })()`);
           }
@@ -976,6 +993,7 @@ async function main() {
       for (const C of CAP) {
         try {
           await montar(C.c, { sexo: 'M', vci: C.vci, vciDiam: C.vciDiam });
+          await J(`JSON.stringify(window.__P.abrirPara(${JSON.stringify(ANCLA[C.k])}))`);
           const a = await J(`JSON.stringify(window.__P.abrirTarjeta(${JSON.stringify(C.k)}))`);
           if (a.err) { g[C.n + (claro ? '-claro' : '-oscuro')] = a; continue; }
           /* ⚠️ EL CLIP VA EN COORDENADAS DE PAGINA aunque el nodo sea position:fixed, y con

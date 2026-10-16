@@ -4223,6 +4223,19 @@ window.cerrarSesionReal = cerrarSesionReal;
   <div class="card sacc" id="sacc-vd">
     <button type="button" class="sacc-hdr" onclick="secToggle('vd')" aria-expanded="false"><span class="sacc-arrow">▶</span>Ventrículo derecho</button>
     <div class="card-body sacc-body">
+      <!-- ⚠️ LOS DOS GLOBOS VAN EN UNA FILA DEL CUERPO Y NO EN EL ENCABEZADO DEL ACORDEON, que
+           es un <button>: un boton dentro de otro no es marcado valido. Son DOS y no uno porque
+           con las diez barras juntas la tarjeta pasa de 700 px y a 1200 x 700 obliga a scroll
+           interno —medido—. El del cociente TAPSE/PSAP vive en el Doppler tricuspideo y no se
+           toca. -->
+      <div class="calc-row" style="border:0;padding:0 0 6px;">
+        <span class="calc-lbl">Cortes y referencia del ventrículo derecho — tamaño
+          <button type="button" class="vinfo-btn" data-vinfo="vd-tam-card" aria-expanded="false"
+                  aria-label="Cortes y referencia del tamaño del ventrículo derecho" onclick="vInfoClic(this)">&#9432;</button></span>
+        <span class="calc-lbl" style="flex:0 0 auto;">Función
+          <button type="button" class="vinfo-btn" data-vinfo="vd-fun-card" aria-expanded="false"
+                  aria-label="Cortes y referencia de la función del ventrículo derecho" onclick="vInfoClic(this)">&#9432;</button></span>
+      </div>
       <!-- ══ LOS DIECISÉIS CAMPOS EN TRES COLUMNAS (G1, 2026-10-15 · G3, 2026-10-15) ══════════
            Decisión de Maicol: columna 1 = TAP · TAPSE · S' · índice de Tei · FEVD; columna 2 =
            VD basal · medio · longitudinal · relación VD/VI · pared; columna 3 = Diám. TSVD ·
@@ -17100,6 +17113,18 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
            graficas y la bibliografia salen del registro de evidencia y de los duenos de cada
            corte, no de numeros escritos aca. -->
       <div id="ref-ai-cuerpo"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('vd2',this)">
+      ➡️ VD — Tamaño y función del ventrículo derecho: cortes
+      <span style="float:right;">▶</span>
+    </h2>
+    <div id="ref-vd2" style="display:none;" class="card-body">
+      <!-- ⚠️ EL ID ES `vd2` Y NO `vd` PORQUE `ref-vd` YA EXISTE: es una tabla estatica de cinco
+           filas con otra fuente. Reusar su id habria fundido dos entradas distintas en una. -->
+      <div id="ref-vd2-cuerpo"></div>
     </div>
   </div>
 
@@ -38264,7 +38289,12 @@ const VINFO = Object.freeze({
   /* ══ TANDA M ══ Las tarjetas graficas de AD/VCI, del VD y de la aorta. Mismo mecanismo que
      las tres del L: `dyn` devuelve NODOS y `ancho` es propio, porque una tarjeta con barras
      en 300 px deja los numeros de los cortes encimados. */
-  'ad-card': { ancho: 348, dyn: function () { return evTarjetaAD() } }
+  'ad-card': { ancho: 348, dyn: function () { return evTarjetaAD() } },
+  /* ⚠️ EL VENTRICULO DERECHO VA EN DOS GLOBOS, y es una MEDICION: con las diez barras que la
+     aplicacion clasifica la tarjeta pasa de 700 px, y a 1200 x 700 eso obliga a scroll
+     INTERNO. Partida en tamano y funcion, cada mitad entra entera. */
+  'vd-tam-card': { ancho: 356, dyn: function () { return evTarjetaVDTam() } },
+  'vd-fun-card': { ancho: 356, dyn: function () { return evTarjetaVDFun() } }
 });
 let _vInfoId = null;
 function _vInfoBtnDe(clave) {
@@ -39059,6 +39089,107 @@ function evTarjetaAD() {
 }
 window.evTarjetaAD = evTarjetaAD;
 
+/* ══ LAS DOS TARJETAS DEL VENTRICULO DERECHO (M3, 2026-10-16) ═════════════════════
+   SON DOS GLOBOS Y NO UNO, y es una MEDICION: con las diez barras que la aplicacion clasifica
+   —cuatro de tamano y seis de funcion— la tarjeta pasa de 700 px, y a 1200 x 700, donde el
+   hueco util arriba o abajo del globo es menor que la ventana, eso obliga a scroll INTERNO.
+   Partida, cada mitad entra entera. Es lo que la propia orden preve.
+
+   ⚠️ LO QUE LA APLICACION NO CLASIFICA NO LLEVA BARRA, y eso NO es un olvido:
+     · la RELACION VD/VI tiene corte (> 1,0) pero lo que publica es un signo de la categoria A
+       de la probabilidad de hipertension pulmonar, no un tamano del ventriculo;
+     · el DIAMETRO DE LA ARTERIA PULMONAR no tiene corte en la aplicacion —solo una banda de
+       plausibilidad, que es el rango de lo medible y no un criterio—;
+     · el diametro y el VTI del tracto de salida y el volumen sistolico pulmonar tampoco
+       producen categoria.
+   Las cuatro estan declaradas en docs/PENDIENTES.md.
+
+   ⚠️ LOS TRES DIAMETROS COMPARTEN UNA SOLA LINEA DE CATEGORIA, y es la que la pantalla ya
+   publica: `vd-tam` resume los tres en una frase. Darle a cada barra una frase propia seria
+   REDACTAR una categoria que la aplicacion no escribe, que es justo lo que esta tanda evita. */
+function evTarjetaVDTam() {
+  const fr = document.createDocumentFragment();
+  const h = document.createElement('h4');
+  h.id = 'vinfo-tit';
+  h.textContent = 'Ventrículo derecho — tamaño';
+  fr.appendChild(h);
+  const C = evCortes(sv('sexo'));
+  const num = (id) => { const x = v(id); return (x !== null && isFinite(x) && x > 0) ? x : null; };
+
+  fr.appendChild(_evBarra({ clave: 'vd-bas', rotulo: 'Diámetro basal (mm)',
+    bandas: C.vdBas, lo: 20, hi: 65, unidad: 'mm', dec: 0, valor: num('vd_bas'),
+    ficha: 'DIM-VD-001' }));
+  fr.appendChild(_evBarra({ clave: 'vd-mid', rotulo: 'Diámetro medio (mm)',
+    bandas: C.vdMid, lo: 15, hi: 55, unidad: 'mm', dec: 0, valor: num('vd_mid'),
+    ficha: 'DIM-VD-002' }));
+  fr.appendChild(_evBarra({ clave: 'vd-long', rotulo: 'Diámetro longitudinal (mm)',
+    bandas: C.vdLong, lo: 45, hi: 120, unidad: 'mm', dec: 0, valor: num('vd_long'),
+    ficha: 'DIM-VD-003' }));
+  const _tam = _evCapsula('vd-tam');
+  if (_tam) fr.appendChild(_evDiv('ev-cat', _tam, { 'data-ev-cat': 'vd-diams' }));
+  else fr.appendChild(_evDiv('ev-avi', 'Cargar al menos uno de los tres diámetros.',
+    { 'data-ev-aviso': 'vd-diams' }));
+
+  fr.appendChild(_evBarra({ clave: 'vd-pared', rotulo: 'Espesor de la pared libre (mm)',
+    bandas: C.vdPared, lo: 1, hi: 14, unidad: 'mm', dec: 1, valor: num('vd_pared'),
+    cat: _evCapsula('vd-pared-interp'),
+    aviso: (num('vd_pared') === null) ? 'Cargar el espesor de la pared libre.' : '',
+    ficha: 'DIM-VD-004' }));
+  fr.appendChild(_evFuentesPie(['DIM-VD-001', 'DIM-VD-002', 'DIM-VD-003', 'DIM-VD-004']));
+  return fr;
+}
+window.evTarjetaVDTam = evTarjetaVDTam;
+
+/* La mitad de FUNCION. Las seis barras que la aplicacion clasifica, cada una con la frase que
+   su propia capsula publica.
+   ⚠️ TAPSE, ONDA S' Y FEVD PIDEN EL ROJO POR `colores`: su unica banda anormal es la peor, y
+   el naranja del mapa global es el de la banda del MEDIO de la FAC. */
+function evTarjetaVDFun() {
+  const fr = document.createDocumentFragment();
+  const h = document.createElement('h4');
+  h.id = 'vinfo-tit';
+  h.textContent = 'Ventrículo derecho — función';
+  fr.appendChild(h);
+  const C = evCortes(sv('sexo'));
+  const num = (id) => { const x = v(id); return (x !== null && isFinite(x) && x > 0) ? x : null; };
+  const ROJO = { disfuncion: '--red' };
+
+  fr.appendChild(_evBarra({ clave: 'vd-tapse', rotulo: 'TAPSE (mm)',
+    bandas: C.vdTapse, lo: 5, hi: 32, unidad: 'mm', dec: 0, corteEn: 'desde',
+    valor: num('tapse'), colores: ROJO, cat: _evCapsula('tapse-interp'),
+    aviso: (num('tapse') === null) ? 'Cargar el TAPSE.' : '', ficha: 'FUN-VD-001' }));
+  fr.appendChild(_evBarra({ clave: 'vd-sprime', rotulo: 'Onda S′ tricuspídea (cm/s)',
+    bandas: C.vdSprime, lo: 4, hi: 18, unidad: 'cm/s', dec: 1, corteEn: 'desde',
+    valor: num('s_prime'), colores: ROJO, cat: _evCapsula('sprime-interp'),
+    aviso: (num('s_prime') === null) ? 'Cargar la onda S′.' : '', ficha: 'FUN-VD-002' }));
+  /* La FAC es un campo de SOLO LECTURA que `calcVD` escribe desde las dos areas: el valor se
+     lee del campo, que es el que la capsula clasifica y el que el informe imprime. */
+  const _fac = v('vd_fac');
+  fr.appendChild(_evBarra({ clave: 'vd-fac', rotulo: 'Cambio fraccional de área (%)',
+    bandas: C.vdFac, lo: 10, hi: 60, unidad: '%', dec: 0, corteEn: 'desde',
+    valor: (_fac !== null && isFinite(_fac)) ? _fac : null, cat: _evCapsula('fac-interp'),
+    aviso: (_fac === null) ? 'Cargar las dos áreas del ventrículo derecho.' : '',
+    ficha: 'FUN-VD-003' }));
+  fr.appendChild(_evBarra({ clave: 'vd-fevd', rotulo: 'Fracción de eyección por 3D (%)',
+    bandas: C.vdFevd, lo: 15, hi: 75, unidad: '%', dec: 0, corteEn: 'desde',
+    valor: num('fevd'), colores: ROJO, cat: _evCapsula('fevd-interp'),
+    aviso: (num('fevd') === null) ? 'Cargar la fracción de eyección por 3D.' : '',
+    ficha: 'FUN-VD-004' }));
+  fr.appendChild(_evBarra({ clave: 'vd-tei', rotulo: 'Índice de Tei por Doppler tisular',
+    bandas: C.vdTei, lo: 0.15, hi: 1.0, unidad: '', dec: 2, valor: num('vd_tei'),
+    cat: _evCapsula('vd-tei-interp'),
+    aviso: (num('vd_tei') === null) ? 'Cargar el índice de Tei.' : '', ficha: 'FUN-VD-005' }));
+  fr.appendChild(_evBarra({ clave: 'vd-tap', rotulo: 'Tiempo de aceleración pulmonar (ms)',
+    bandas: C.vdTap, lo: 50, hi: 180, unidad: 'ms', dec: 0, corteEn: 'desde',
+    valor: num('tvia'), colores: { htp: '--red' }, cat: _evCapsula('tap-interp'),
+    aviso: (num('tvia') === null) ? 'Cargar el tiempo de aceleración pulmonar.' : '',
+    ficha: 'FUN-VD-006' }));
+  fr.appendChild(_evFuentesPie(['FUN-VD-001', 'FUN-VD-002', 'FUN-VD-003', 'FUN-VD-004',
+                                'FUN-VD-005', 'FUN-VD-006']));
+  return fr;
+}
+window.evTarjetaVDFun = evTarjetaVDFun;
+
 function _evRefTabla(filas, refIdx) {
   const t = document.createElement('table');
   t.className = 'ev-tabla';
@@ -39166,6 +39297,39 @@ function evRefPintar(id) {
     wv.appendChild(_evDiv('ev-rot', 'Vena cava inferior → presión media de la aurícula derecha'));
     wv.appendChild(_evVciTabla(null));
     host.appendChild(wv);
+    host.appendChild(B.nodo);
+    host.dataset.evPintado = '1';
+  }
+  if (id === 'vd2') {
+    const B = _evRefBiblio(['DIM-VD-001', 'DIM-VD-002', 'DIM-VD-003', 'DIM-VD-004',
+                            'FUN-VD-001', 'FUN-VD-002', 'FUN-VD-003', 'FUN-VD-004',
+                            'FUN-VD-005', 'FUN-VD-006']);
+    host.appendChild(_evRefTabla([
+      { ficha: 'DIM-VD-001', rot: 'Diámetro basal — normal', h: '≤ 41 mm', m: '≤ 41 mm' },
+      { ficha: 'DIM-VD-001', rot: 'Diámetro basal — dilatación leve / dilatado', h: '42 a 45 · > 45 mm', m: '42 a 45 · > 45 mm' },
+      { ficha: 'DIM-VD-002', rot: 'Diámetro medio — dilatado', h: '> 35 mm', m: '> 35 mm' },
+      { ficha: 'DIM-VD-003', rot: 'Diámetro longitudinal — dilatado', h: '> 86 mm', m: '> 86 mm' },
+      { ficha: 'DIM-VD-004', rot: 'Pared libre — normal', h: '< 5 mm', m: '< 5 mm' },
+      { ficha: 'DIM-VD-004', rot: 'Pared libre — leve / moderada / severa', h: '5 a 7 · > 7 a 9 · > 9 mm', m: '5 a 7 · > 7 a 9 · > 9 mm' },
+      { ficha: 'FUN-VD-001', rot: 'TAPSE — normal', h: '≥ 17 mm', m: '≥ 17 mm' },
+      { ficha: 'FUN-VD-002', rot: 'Onda S′ — normal', h: '≥ 9,5 cm/s', m: '≥ 9,5 cm/s' },
+      { ficha: 'FUN-VD-003', rot: 'FAC — normal / disfunción severa', h: '≥ 35 % · < 25 %', m: '≥ 35 % · < 25 %' },
+      { ficha: 'FUN-VD-004', rot: 'Fracción de eyección por 3D — normal', h: '> 45 %', m: '> 45 %' },
+      { ficha: 'FUN-VD-005', rot: 'Índice de Tei por Doppler tisular — normal', h: '< 0,55', m: '< 0,55' },
+      { ficha: 'FUN-VD-006', rot: 'Tiempo de aceleración pulmonar — normal', h: '≥ 105 ms', m: '≥ 105 ms' },
+    ], B.idx));
+    host.appendChild(_evRefBarras([
+      { clave: 'ref-vd-bas', rotulo: 'Diámetro basal (mm)', banda: 'vdBas', lo: 20, hi: 65, unidad: 'mm', dec: 0, ficha: 'DIM-VD-001' },
+      { clave: 'ref-vd-mid', rotulo: 'Diámetro medio (mm)', banda: 'vdMid', lo: 15, hi: 55, unidad: 'mm', dec: 0, ficha: 'DIM-VD-002' },
+      { clave: 'ref-vd-long', rotulo: 'Diámetro longitudinal (mm)', banda: 'vdLong', lo: 45, hi: 120, unidad: 'mm', dec: 0, ficha: 'DIM-VD-003' },
+      { clave: 'ref-vd-pared', rotulo: 'Espesor de la pared libre (mm)', banda: 'vdPared', lo: 1, hi: 14, unidad: 'mm', dec: 1, ficha: 'DIM-VD-004' },
+      { clave: 'ref-vd-tapse', rotulo: 'TAPSE (mm)', banda: 'vdTapse', lo: 5, hi: 32, unidad: 'mm', dec: 0, ficha: 'FUN-VD-001' },
+      { clave: 'ref-vd-sprime', rotulo: 'Onda S′ tricuspídea (cm/s)', banda: 'vdSprime', lo: 4, hi: 18, unidad: 'cm/s', dec: 1, ficha: 'FUN-VD-002' },
+      { clave: 'ref-vd-fac', rotulo: 'Cambio fraccional de área (%)', banda: 'vdFac', lo: 10, hi: 60, unidad: '%', dec: 0, ficha: 'FUN-VD-003' },
+      { clave: 'ref-vd-fevd', rotulo: 'Fracción de eyección por 3D (%)', banda: 'vdFevd', lo: 15, hi: 75, unidad: '%', dec: 0, ficha: 'FUN-VD-004' },
+      { clave: 'ref-vd-tei', rotulo: 'Índice de Tei por Doppler tisular', banda: 'vdTei', lo: 0.15, hi: 1.0, unidad: '', dec: 2, ficha: 'FUN-VD-005' },
+      { clave: 'ref-vd-tap', rotulo: 'Tiempo de aceleración pulmonar (ms)', banda: 'vdTap', lo: 50, hi: 180, unidad: 'ms', dec: 0, ficha: 'FUN-VD-006' },
+    ], 'M'));
     host.appendChild(B.nodo);
     host.dataset.evPintado = '1';
   }
