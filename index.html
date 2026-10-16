@@ -7652,6 +7652,20 @@ window.cerrarSesionReal = cerrarSesionReal;
       <div class="fg"><label>Pericardio</label>
         <select id="pericardio" onchange="dptCambio()"><option>Normal, sin derrame</option><option>Derrame mínimo</option><option>Derrame leve (5-10mm)</option><option>Derrame moderado (10-20mm)</option><option>Derrame severo (>20mm)</option><option>Engrosamiento / calcificación</option></select>
       </div>
+      <!-- ⚠️ TRES ESTADOS Y NO UN CHECKBOX: «sin compromiso hemodinámico» es una AFIRMACIóN, y una
+           casilla desmarcada no distingue «lo busqué y no está» de «no lo busqué». Es la regla de
+           `coa_diast_anterogrado` y la que el módulo de derrame/taponamiento ya aplica a sus
+           colapsos. Sin consignar, la oración del informe no dice nada del compromiso.
+           ⚠️ Y NO LO LEE EL MÓDULO DE TAPONAMIENTO: ese tiene su propia valoración hemodinámica,
+           con sus tres colapsos y su conclusión. Este campo es la lectura del médico para la
+           oración histórica del pericardio, y sólo sale cuando esa oración sale. -->
+      <div class="fg" style="margin-top:8px;"><label>Compromiso hemodinámico del derrame</label>
+        <select id="pericardio_hemo">
+          <option value="">— sin consignar —</option>
+          <option value="si">Sí — con compromiso hemodinámico</option>
+          <option value="no">No — sin compromiso hemodinámico</option>
+        </select>
+      </div>
       <div class="fg" style="margin-top:8px;"><label>Notas adicionales</label>
         <textarea id="otras_notas" placeholder="Masa, trombo, DSA/DSV, anomalías congénitas..."></textarea>
       </div>
@@ -7734,9 +7748,18 @@ window.cerrarSesionReal = cerrarSesionReal;
           </select>
         </div>
         <div class="fg"><label>Consolidación</label>
-          <select id="pul_consolidacion">
+          <select id="pul_consolidacion" onchange="pulBasicoUI()">
             <option value="no">No</option><option value="si">Sí</option>
           </select>
+        </div>
+      </div>
+      <!-- La nota de la consolidación va al informe EN LA MISMA ORACIÓN, entre paréntesis, y no
+           como una oración aparte. El campo NO existía: el «Notas adicionales» de más arriba es
+           del bloque de pericardio y masas y se imprime como un párrafo propio. -->
+      <div class="grid-3" style="margin-top:8px;">
+        <div class="fg" id="pul-consol-nota-wrap" style="display:none;grid-column:1 / -1;">
+          <label>Consolidación — nota</label>
+          <input type="text" id="pul_consol_nota" placeholder="Localización, broncograma, extensión...">
         </div>
       </div>
     </div>
@@ -45410,37 +45433,48 @@ function generarInforme(opts) {
        pueden compartir predicado porque no cubren los mismos casos. */
     const _dptDescribe = (typeof amiloIntegrado === 'function') && amiloIntegrado('dpt')
       && (typeof dptEstado === 'function') && dptEstado().clave !== 'sin_derrame';
-    let s13;
+    /* ══ CADA TEMA, SU PROPIA ORACION —«I1» (2026-10-16) ═════════════════════════════
+       El pericardio y las masas salian en UNA sola entrada de `inf`, y en el estilo NARRATIVO
+       ademas fundidos en una sola oracion: «Se observa derrame moderado (10-20mm), sin evidencia
+       de masas intracardiacas; hallazgo que requiere correlacion clinica y control evolutivo.»
+       Hoy son dos entradas, cada una una oracion completa, en los tres estilos.
+       ⚠️ EL COMPROMISO HEMODINAMICO SALE SOLO CON DERRAME Y SOLO SI EL MEDICO LO CONSIGNO: es el
+       `<select>` de tres estados `pericardio_hemo`. Sin consignar, la oracion no dice nada —no
+       se afirma ni que lo haya ni que no—. Y no sale cuando el modulo de derrame/taponamiento es
+       el que describe el derrame, porque entonces esta oracion no se emite. */
+    const _periHemo = (function(){
+      const h = sv('pericardio_hemo');
+      return h === 'si' ? ', con compromiso hemodinámico'
+           : h === 'no' ? ', sin compromiso hemodinámico' : '';
+    })();
+    let sPeri, sMasa;
+    if (!peri || peri === 'Normal, sin derrame') {
+      sPeri = estiloPick('Sin derrame pericárdico.', 'Sin derrame pericárdico.',
+                         'No se observa derrame pericárdico.');
+    } else if (_dptDescribe) {
+      /* El derrame lo describe el modulo, con su cuantificacion y su valoracion hemodinamica. */
+      sPeri = '';
+      if (!_dptManda) suma.push(peri + '.');
+    } else {
+      sPeri = estiloPick(peri + _periHemo + '.', peri + _periHemo + '.',
+                         'Se observa ' + peri.toLowerCase() + _periHemo +
+                         '; hallazgo que requiere correlación clínica y control evolutivo.');
+      if (!_dptManda) suma.push(peri + '.');
+    }
     if (hayMasa) {
-      const derrame = (!peri || peri === 'Normal, sin derrame') ? 'Sin derrame pericárdico.'
-        : (_dptDescribe ? '' : `${peri}.`);
-      if (peri && peri !== 'Normal, sin derrame' && !_dptManda) suma.push(peri + '.');
       const _mtam = (document.getElementById('masa_tam_mm') || {}).value || '';
       const _mf = 'Imagen intracardíaca en ' + sv('masa_cavidad') + ', ' + sv('masa_loc').toLowerCase() +
         (_mtam ? ', ' + _mtam + 'mm' : '') + ', morfología ' + sv('masa_morf').toLowerCase() + ', ' +
         sv('masa_movil').toLowerCase() + ', ' + sv('masa_eco').toLowerCase() +
         '. Diagnóstico diferencial: ' + sv('masa_dx').toLowerCase() + '.';
       const _mn = sv('masa_notas');
-      s13 = (derrame ? derrame + ' ' : '') + _mf + (_mn ? ' ' + _mn : '');
+      sMasa = _mf + (_mn ? ' ' + _mn : '');
     } else {
-      if (!peri || peri === 'Normal, sin derrame') {
-        s13 = estiloPick(
-          'Sin derrame pericárdico. Sin masas.',
-          'Sin derrame pericárdico. Sin masas intracardíacas.',
-          'No se observa derrame pericárdico ni masas intracardíacas.');
-      } else if (_dptDescribe) {
-        // El derrame lo describe el módulo, con su cuantificación y su valoración hemodinámica.
-        s13 = estiloPick('Sin masas.', 'Sin masas intracardíacas.', 'No se observan masas intracardíacas.');
-        if (!_dptManda) suma.push(peri + '.');
-      } else {
-        s13 = estiloPick(
-          `${peri}. Sin masas.`,
-          `${peri}. Sin masas intracardíacas.`,
-          `Se observa ${peri.toLowerCase()}, sin evidencia de masas intracardíacas; hallazgo que requiere correlación clínica y control evolutivo.`);
-        if (!_dptManda) suma.push(peri + '.');
-      }
+      sMasa = estiloPick('Sin masas.', 'Sin masas intracardíacas.',
+                         'No se observan masas intracardíacas.');
     }
-    inf.push(s13);
+    if (sPeri) inf.push(sPeri);
+    if (sMasa) inf.push(sMasa);
   }
 
   // ── 13a2) Pericardio: derrame/taponamiento y constricción vs restricción ──
@@ -45482,7 +45516,11 @@ function generarInforme(opts) {
       && !(typeof pulAvanzadoIntegrado === 'function' && pulAvanzadoIntegrado()
            && typeof pulAvanzadoCubreBasico === 'function' && pulAvanzadoCubreBasico())) {
     const _pb = pulBasicoTexto();
-    if (_pb.frases.length) inf.push(_pb.frases.join(' '));
+    /* ⚠️ UNA ENTRADA POR TEMA Y NO LAS TRES PEGADAS. Salian como un solo parrafo —«Derrame
+       pleural moderado (...). Lineas B de distribucion difusa. Consolidacion pulmonar.»— y la
+       orden pide que cada tema vaya en su propia oracion. `pulBasicoTexto` ya devolvia una frase
+       por tema: lo unico que cambiaba era el `join`. */
+    _pb.frases.forEach(x => inf.push(x));
     _pb.suma.forEach(x => suma.push(x));
   }
 
@@ -74234,6 +74272,7 @@ function pulBasicoUI() {
   const der = _amV('pul_derrame') === 'si';
   on('pul-derrame-tam-wrap', der); on('pul-derrame-balik-wrap', der);
   on('pul-lineasb-pat-wrap', _amV('pul_lineasb') === 'si');
+  on('pul-consol-nota-wrap', _amV('pul_consolidacion') === 'si');
 }
 window.pulBasicoUI = pulBasicoUI;
 
@@ -74322,7 +74361,12 @@ function pulBasicoTexto() {
     suma.push(pat === 'difuso' ? 'Edema pulmonar intersticial.' : 'Líneas B focales.');
   }
   if (_amV('pul_consolidacion') === 'si') {
-    frases.push('Consolidación pulmonar.');
+    /* ⚠️ LA NOTA VA EN LA MISMA ORACION, entre parentesis, y no como una oracion aparte: es una
+       precision de ESTE hallazgo —localizacion, broncograma, extension— y suelta se lee como un
+       parrafo sin sujeto. Se le saca el punto final si el medico lo escribio, para no dejar dos.
+       Al EN SUMA no va: ahi la linea es la conclusion, no el detalle. */
+    const _cn = String(_amV('pul_consol_nota') || '').trim().replace(/[.;]+$/, '');
+    frases.push('Consolidación pulmonar' + (_cn ? ' (' + _cn + ')' : '') + '.');
     suma.push('Consolidación pulmonar.');
   }
   return { frases, suma };

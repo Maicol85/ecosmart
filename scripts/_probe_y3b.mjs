@@ -671,7 +671,7 @@ for (const [motor, tipo, op] of MOTORES) {
       pulm: { pul_derrame: 'si', pul_derrame_tam: 'moderado', pul_balik: '25',
               pul_derrame_lado: 'bilateral', pul_lineasb: 'si', pul_lineasb_pat: 'difuso',
               pul_consolidacion: 'si', pul_consol_nota: 'con broncograma aereo en base derecha' },
-      pulmSinLado: { pul_derrame: 'si', pul_derrame_tam: 'minimo', pul_balik: '12',
+      pulmSinLado: { pul_derrame: 'si', pul_derrame_tam: 'mínimo', pul_balik: '12',
                      pul_lineasb: 'si', pul_consolidacion: 'no' },
       todo: { pericardio: 'Derrame severo (>20mm)', pericardio_hemo: 'si',
               masa_presente: 'Masa / imagen intracardíaca presente', masa_tam_mm: '20',
