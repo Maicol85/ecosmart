@@ -453,10 +453,16 @@ valores**. `eteVmAvisoSync` corre en `RECALC_MODULOS` y al final de `limpiarCamp
 ---
 
 ## La VISTA 2D de las válvulas → `docs/mapa/vista-2d-valvulas.md` (Y1, 2026-10-15)
+## El panel EN LÍNEA de esa vista → `docs/mapa/vista-2d-en-linea.md` (Y1c, 2026-10-16)
 
 Al pie de esta pantalla, debajo de las ocho pestañas de válvula, hay un botón **«Ver en 2D»**
-(`#v2d-abrir`) que abre un esquema animado del corazón con las tres válvulas de la vista apical de
-cinco cámaras, dos columnas de tarjetas y una tabla de cavidades.
+(`#v2d-abrir`) que **prende y apaga** —con el mismo texto siempre, gris como una pestaña en reposo
+y azul como una pestaña activa— un panel **EN LÍNEA**, debajo del propio botón, con un esquema
+animado del corazón, dos columnas de tarjetas y una tabla de cavidades.
+
+⚠️ **DESDE EL Y1c YA NO ES UNA VENTANA FLOTANTE** y no hay botón de cerrar, ni fondo tenue, ni
+Escape, ni cierre al tocar fuera. **Y se apaga solo** al salir de Válvulas, al limpiar y por
+`RECALC_MODULOS`, así que no puede quedar publicando el paciente anterior.
 
 **Es SOLO LECTURA**: no calcula ningún grado, no mueve ningún corte, no escribe un campo y no toca
 el informe, el PDF, el PPT, el Excel ni el Laboratorio. Todo lo que muestra sale de **`v2dEstado()`**,

@@ -377,6 +377,19 @@ async function tocar(pg, sel) {
   catch (e) { out.abortos.push('clic ' + sel + ': ' + String(e && e.message).slice(0, 90)); return false }
 }
 
+/* ⚠️ EL CIERRE VA POR EL CONTROL QUE CADA ARBOL TIENE, Y NO ES UN LUJO: en HEAD el boton del pie
+   SOLO abre (es `v2dAbrir`), asi que el overlay quedaba puesto, tapaba la pagina entera y los
+   veintinueve clics siguientes se quedaban sin blanco. La primera corrida del A/B informo 30
+   abortos contra HEAD y «diferencias» en seis escenas que en realidad eran el lado de HEAD
+   VACIO: un denominador roto que se lee igual que un hallazgo. */
+async function apagar(pg) {
+  const hayCerrar = await pg.evaluate(() => !!document.getElementById('v2d-cerrar'));
+  const ok = await tocar(pg, hayCerrar ? '#v2d-cerrar' : '#v2d-abrir');
+  const sigue = await pg.evaluate(() => window.__P.prendido());
+  if (sigue === true) out.abortos.push('el panel sigue prendido tras apagar (hayCerrar=' + hayCerrar + ')');
+  return ok;
+}
+
 const MOTORES = [['chrome', chromium, { channel: 'chrome' }], ['webkit', webkit, {}]];
 if (DEST) await mkdir(DEST, { recursive: true });
 
@@ -472,7 +485,7 @@ for (const [motor, tipo, op] of MOTORES) {
       /* EL DESPLAZAMIENTO DE LA PAGINA: con el panel apagado y la pagina ARRIBA, el pie de
          Valvulas queda muy por debajo del borde; al prender, la pagina baja sola y el panel entra
          en la ventana. */
-      await tocar(pg, '#v2d-abrir');
+      await apagar(pg);
       await pg.evaluate(() => window.scrollTo(0, 0));
       await pg.waitForTimeout(150);
       g.antesDeAbrir = await pg.evaluate(() => {
@@ -504,7 +517,7 @@ for (const [motor, tipo, op] of MOTORES) {
         a[nom] = await pg.evaluate(() => window.__P.maqueta());
         if (DEST && nom) await pg.screenshot({ path: join(DEST,
           (ARCH ? 'HEAD' : 'NEW') + '_' + motor + '_' + nom + '_' + W + 'x' + H + '.png') });
-        await tocar(pg, '#v2d-abrir');
+        await apagar(pg);
       }
       await pg.evaluate(() => window.__P.tema(false));
       g.anchos[W + 'x' + H] = a;
@@ -687,7 +700,7 @@ for (const [motor, tipo, op] of MOTORES) {
       const c = await pg.evaluate(() => window.__P.contenido());
       const crit = await pg.evaluate(() => { const n = window.__P.abrirCriterios();
         return { n: n, cont: window.__P.contenido() } });
-      await tocar(pg, '#v2d-abrir');
+      await apagar(pg);
       g[nom] = { inf: inf, cont: c, crit: crit, grados: await pg.evaluate(() => window.__P.grados()) };
     }
     await pg.close();
@@ -708,7 +721,7 @@ for (const [motor, tipo, op] of MOTORES) {
         const f = join(DEST, (ARCH ? 'HEAD' : 'NEW') + '_crit_' + motor + '_' + nom + '_' + W + 'x' + H + '.png');
         try { await pg.locator('#v2d-ov').screenshot({ path: f }); g[nom + W] = f }
         catch (e) { await pg.screenshot({ path: f }); g[nom + W] = f + ' (pagina)' }
-        await tocar(pg, '#v2d-abrir');
+        await apagar(pg);
       }
       await pg.close();
     }

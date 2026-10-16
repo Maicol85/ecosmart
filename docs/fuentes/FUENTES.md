@@ -2716,3 +2716,30 @@ dependiente del flujo y uno independiente del flujo**. Coincide carácter por ca
 `EA_PROT_CRIT.savr_dvi_normal_min` (0,35, estricto) y `savr_dvi_signif_max` (0,25), que son los que
 la app aplica desde el W2-B. **No se movió ningún corte.** La medición de qué valor compara cada
 consumidor está en `docs/PENDIENTES.md` → **Y2-7**.
+
+---
+
+## La tanda «Y1c» (2026-10-16) — por qué NO lleva ninguna cita nueva
+
+Es **sólo presentación**. La vista 2D pasa de ventana flotante a panel en línea, el botón gana un
+estado prendido, el dibujo recupera su alto y se corrigen dos defectos de maquetación. Censado y
+medido contra HEAD:
+
+- **Ningún corte, ninguna banda, ninguna regla de integración y ningún grado se movieron.** A/B
+  con el **PDF, el PPT y el PDF de auditoría generados de verdad**, en cuatro escenas: informe en
+  los tres estilos, EN SUMA, grados, cápsulas, Laboratorio y las **440 columnas del Excel clave
+  por clave** salen **idénticos**, con **0 diferencias**.
+- **El texto de las tarjetas, de la tabla de cavidades y de la nota tampoco cambia**: A/B en ocho
+  escenas por dos motores, **0 diferencias**, con las listas «Ver criterios» abriendo igual.
+- Lo único que se agrega a la pantalla es el **`title`** de la línea de fase, que repite palabra
+  por palabra el texto que esa misma línea ya imprime («contracción isovolumétrica», «eyección»,
+  «relajación isovolumétrica», «llenado ventricular», «contracción auricular»). No es una
+  afirmación clínica nueva: es el mismo rótulo, disponible para un lector de pantalla cuando el
+  renglón se recorta.
+- Las dos decisiones de esta tanda —los 240 px de la columna central y los 220×300 del lienzo—
+  salen de **medir la app**, no de una guía: 218,25 px es lo que pide el texto de fase más largo a
+  11 px de tipografía, y 196×300 es lo que ocupa el dibujo con el `viewBox` que `fitView` produce.
+  Una medida de maquetación **no lleva cita**, igual que una banda de plausibilidad.
+
+El panel sigue sin publicar una sola cita, como el Y1 ya dejó escrito: el dibujo es cualitativo y
+su nota al pie lo dice.

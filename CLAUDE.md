@@ -50,7 +50,8 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Agregar o correr un caso de prueba; A/B; mutación** | `docs/mapa/tests.md` |
 | **Visor de cineloop, medición, calibración, IndexedDB** | `docs/mapa/imagenes-visor.md` |
 | **Tocar la ESTENOSIS MITRAL en el LABORATORIO**: las seis categorías, las dos casillas del filtro, el gráfico de distribución, el PDF de auditoría o el PPT | `docs/mapa/laboratorio-estenosis-mitral.md` |
-| **Tocar la VISTA 2D de las válvulas**: el botón, el panel, el lector único del estado, las tarjetas, la tabla de cavidades, el dibujo o los chorros | `docs/mapa/vista-2d-valvulas.md` |
+| **Tocar la VISTA 2D de las válvulas**: el lector único del estado, las tarjetas, la tabla de cavidades, el dibujo, los chorros o el «por qué» | `docs/mapa/vista-2d-valvulas.md` |
+| **Tocar el PANEL EN LÍNEA de la vista 2D**: el botón que prende y apaga, el apagado automático, la sincronía en vivo, el alto del dibujo o la línea de fase | `docs/mapa/vista-2d-en-linea.md` |
 | **Orientarse en otro módulo** (Congénitas, Laboratorio, PPT, Cardio-Onco, Pericardio) | `docs/mapa/congenitas-otros.md` |
 | **Citar un dato de una guía** (documento, folio, frase verificada) | `docs/fuentes/FUENTES.md` |
 | **Citar un dato de PRÓTESIS valvular** | `docs/fuentes/FUENTES-protesis.md` |
@@ -107,8 +108,8 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **7,66 MB / 115.387 líneas**, medido el 2026-10-16 al cierre de la tanda Y2
-  —el renglón anterior decía «7,63 MB / 114.869 líneas» y era del Y1: **medirlo antes de
+  sin frameworks. Hoy **7,74 MB / 116.686 líneas**, medido el 2026-10-16 al cierre de la tanda Y1c
+  —el renglón anterior decía «7,66 MB / 115.387 líneas» y era del Y2: **medirlo antes de
   presupuestar contexto**—. Las únicas dependencias son jsPDF, XLSX y
   PptxGenJS por CDN. Se abre como archivo local y corre en Chrome.
 - Lo que produce es un **informe firmado**: narrativo, EN SUMA, PDF, PPT y Excel del Laboratorio.
@@ -262,6 +263,200 @@ impecable.
 ---
 
 ## Estado vigente
+
+### La vista 2D de las válvulas pasa a PANEL EN LÍNEA, y los dos defectos del médico — «Y1c» (2026-10-16)
+
+- **Son TRES commits.** Al **empezar**, `main` y `origin/main` estaban los dos en **`bfdaff6`**
+  (sello `v20261016-0312`), **sin nada sin pushear** —confirmado con un `git fetch` de verdad, con
+  el `FETCH_HEAD` fechado cuatro segundos antes—, con los ocho commits del Y2b y del Y3 ya
+  incluidos **y pusheados**. Los **tres** commits de esta tanda quedan locales; el push lo corre
+  Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 3 → 2 → 1.**
+  ⚠️ **LA CADENA ES ESTRICTA Y NINGUNO SE REVIERTE SOLO.** El 1 mueve el marcado del panel dentro
+  de `#tab-valvulas`, reescribe el bloque de CSS entero y cambia `v2dAbrir`/`v2dCerrar`; el 2 edita
+  **esas mismas reglas** (`#v2d-grid`, `#v2d-svg`, `#v2d-fase` y la media query angosta que el 1
+  acababa de reescribir), así que revertir el 1 primero deja al 2 sin el bloque que modifica. El 3
+  **adaptó TC-482, TC-483 y TC-484**: revertir el 1 o el 2 sin el 3 los deja midiendo lo contrario
+  de lo que afirman, y deja **TC-486** en rojo.
+  ⚠️ **EL 1 LLEVA LA SONDA** (`scripts/_probe_y1c.mjs`), que el 2 y el 3 usan.
+
+- **Línea base al cierre: suite 496/500 con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0 ERROR,
+  Excel en 440 columnas, celular 43 a 360 px y 52 a 390 px con 1 ALTA cada uno —IDÉNTICO a la
+  línea base—. CERO REGRESIONES.** Los **CUATRO** rojos son exactamente los de ENTRADA —**TC-223**
+  (el documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**— y no apareció ninguno
+  fuera de esa lista. **El denominador sube a 500**: esta tanda agregó **TC-486**. El `md5` de
+  `index.html` no se movió durante la corrida (`88a39de9…`, el del sello) y el pendrive estaba
+  montado antes y después.
+  ⚠️ **`--todo` del chequeo de celular da 378 a 360 px y 387 a 390 px, EL MISMO PAR QUE DEJÓ EL
+  Y3**: el panel en línea no agrega un solo hallazgo, y no por suerte: nace con `hidden`, y lo que
+  está en `display:none` no tiene geometría — `check_mobile.js` abre pestañas y secciones, no
+  paneles.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **500 ids** sobre los 501 casos del archivo.
+- **EL SELLO DE VERSIÓN** estaba al día al empezar (`v20261016-0312`) y se volvió a sellar:
+  **`v20261016-0433`**. Todo lo medido salió **DESPUÉS** de sellar, con el `md5` quieto.
+- **`index.html` pasó de 7,73 MB / 116.508 líneas a 7,74 MB / 116.686 líneas.**
+
+- **Dónde está todo:** `docs/mapa/vista-2d-en-linea.md` (**mapa NUEVO por PARTICIÓN**, 17,2 KB: lo
+  que se fue por ser ventana, el botón, los dos defectos con su medición, el tamaño, las cuatro
+  puertas del apagado, la sincronía en vivo, las tablas por motor y nueve trampas);
+  `docs/mapa/vista-2d-valvulas.md` → el puntero, y volvió a **28,8 KB**; `docs/mapa/valvulas.md` →
+  el puntero (**30,0 KB**); `docs/mapa/tests-fichas.md` → la ficha de TC-486 (**10,6 KB**);
+  `docs/fuentes/FUENTES.md` → por qué esta tanda **no lleva ninguna cita nueva**; y
+  `docs/PENDIENTES.md` → **Y3-2 marcado CERRADO** más **ocho** cosas declaradas (Y1c-1 a Y1c-8).
+  ⚠️ **`vista-2d-valvulas.md` CRUZÓ EL TECHO Y HUBO QUE PARTIRLO.** Con la sección del Y1c adentro
+  quedaba en **44,3 KB**. **Es la quinta vez que la regla se aplica DESPUÉS de cruzar: medir con
+  `wc -c` ANTES de escribir, no después.**
+
+- **EL PANEL YA NO ES UNA VENTANA, Y CON ESO SE FUE TODO LO QUE ERA DE VENTANA:** el overlay
+  `position:fixed` con fondo tenue, la tarjeta `position:absolute;inset:0;margin:auto` con
+  `height:max-content` y `max-height:85vh`, el `overflow:auto` del cuerpo, el botón «× Cerrar», el
+  cierre al tocar fuera, el `role="dialog" aria-modal="true"` —y con él las dos piezas del bloque
+  de accesibilidad que lo tomaban, la trampa de Tab y el oyente genérico de Escape— y el foco que
+  entraba a la tarjeta. Hoy es una **región** con nombre accesible, dentro de `#tab-valvulas`, y
+  **un solo botón** la prende y la apaga.
+  ⚠️ **NADA SE CORRE DE LUGAR AL PRENDERLO**: `.v2d-pie` era el último hijo de esa pestaña, así
+  que no hay nada debajo que empujar — medido.
+  ⚠️ **APAGADO NO OCUPA ESPACIO, Y HACEN FALTA LAS DOS COSAS**: el atributo `hidden` y una regla de
+  AUTOR con `!important`, porque el `[hidden]{display:none}` vive en la hoja del NAVEGADOR y
+  cualquier regla de autor le gana. Medido: **0×0, `display:none` y CERO tabulables adentro**.
+
+- **EL BOTÓN NO DECLARA NI UN COLOR PROPIO.** `btn-ghost` apagado es el reposo de una pestaña de
+  válvula y `btn-primary` prendido es su estado **activo**; el texto es **«🫀 Ver en 2D» siempre** y
+  lo que cambia es el color y `aria-pressed`. Medido en los **dos motores** y los **dos temas**,
+  idéntico carácter por carácter a `#pill-insuf-mitral`: noche `rgb(30,35,51)` → `rgb(79,142,247)`,
+  día `rgb(238,241,246)` → `rgb(47,111,224)`. **Control negativo:** apagado y prendido **no** son
+  el mismo color. Clic, Enter y Espacio lo activan, el foco se queda en él, sin `:hover`.
+
+- **DEFECTO DE CHROME · REPRODUCIDO, Y LA CAUSA NO ERA EL `viewBox`.** Medido en los dos motores
+  sobre 120 fases: el `<svg>` da **dw=0 y dh=0** —`fitView()` se llama sólo desde `v2dSync`, no por
+  cuadro—, así que el candidato que Y3-2 dejaba anotado era **correcto a medias**. Lo que se movía
+  era la columna del medio de `#v2d-grid`, que era `auto` y la dimensionaba **la línea de fase**,
+  cuyo techo es **218,25 px** con «contracción isovolumétrica».
+  ⚠️ **LA MAGNITUD DEPENDE DE LA ESCENA Y SE DAN LAS DOS MEDIDAS**: el piso de la columna lo pone
+  lo más ancho que haya en la fase corta —ahí compite el min-content de la tabla de cavidades, que
+  cruza las tres columnas—, así que el recorrido medido es **63,00 px** en la escena de la sonda
+  (piso 155,25; las tarjetas se mueven **31,5 px** cada una) y **87,42** en una de tabla más
+  angosta (piso 130,83; **43,7 px**). Es el mismo defecto con dos números, y por eso lo que se
+  arregla es la causa y no un valor.
+  ⚠️ **Y SÓLO PASA EN ESCRITORIO**: a 390 px la grilla es de UNA columna y su `1fr` no depende del
+  contenido — el recorrido en HEAD a ese ancho es **0,00 px** en los dos motores. Quien mida sólo
+  en angosto concluye que el defecto no existe.
+  **El arreglo son sus dos mitades**, porque con una sola el defecto se muda: la columna pasa a
+  **240 px explícitos** —218,25 del texto más largo y 220 del lienzo, medidos— y la línea de fase a
+  **un renglón de alto fijo** con `nowrap` y recorte, para que un texto más largo no envuelva y
+  cambie el **alto** de la fila. El texto completo va al `title`, escrito en el **mismo guardado**
+  donde `render` ya decidía si el texto cambió.
+  **MEDIDO DESPUÉS: peor delta global 0,00 px** en Chrome 155 y WebKit 27.2, a 1200×700 y a 390 px,
+  sobre 120 fases, para las dos columnas de tarjetas, la tabla, la nota, el botón, el panel, la
+  grilla y la columna central.
+
+- ⚠️ **DEFECTO DE SAFARI · NO REPRODUCE, Y HAY QUE DECIRLO.** WebKit **sí** estaba disponible
+  (Playwright, build **27.2**) y los **ocho** viewports medidos dan números **idénticos** a Chrome
+  155, con la tarjeta del Y1b en 900×550,4 y sin colapso. Lo que **sí** está medido es el
+  mecanismo, y la aritmética cierra con el reporte: `#v2d-cuerpo` computaba **`flex-basis:0%`**
+  —porque `flex:1` es `flex-basis:0%`—, o sea **un PORCENTAJE contra un contenedor de altura
+  indefinida** (`height:max-content`), que es literalmente la hipótesis de Y3-2; un motor que lo
+  resuelva a cero deja **cabecera de 53 px + dos bordes ≈ 55 px**, los «unos 60 px», con los
+  rótulos asomando por el recorte de `overflow:auto`.
+  **El arreglo no depende de haberlo reproducido:** se fueron `flex:1`, `overflow:auto`,
+  `height:max-content`, `max-height:85vh` y `position:absolute`, y **no queda una sola altura en
+  porcentaje ni en `vh`** en la cadena del panel — la regla con la que el 3D de ETE se midió bien
+  en WebKit. Lo que Maicol puede probar a mano está en `PENDIENTES.md` → **Y1c-1**.
+
+- **EL DIBUJO VUELVE A 300 px, CON ANCHO Y ALTO EXPLÍCITOS (220×300)** y 240 px en angosto. El
+  `clamp(200px, calc(100vh - 520px), 320px)` del Y1b existía porque el panel tenía techo de alto;
+  sin techo —hoy la que se desplaza es la **página**— el alto deja de depender de la ventana.
+  ⚠️ **EL `viewBox` ES EL MISMO PARA TODO PACIENTE**, medido idéntico con el formulario vacío y con
+  las cuatro cámaras dilatadas: `fitView` deforma el contorno con `cv` en cero y la dilatación sólo
+  mueve los **rótulos**. Así que el dibujo se encuadra siempre en **196×300** y el
+  `preserveAspectRatio` por omisión no puede recortar nada. **No se toca una curva, un chorro ni un
+  cuadro de la animación.**
+  ⚠️ **LA REGLA ANGOSTA DEL LIENZO TUVO QUE MUDARSE DE BLOQUE**: los dos selectores son `#v2d-svg`,
+  o sea la **misma especificidad**, así que gana el último de la hoja — y el bloque angosto estaba
+  ANTES. Puesta allá, la regla no ganaba y el lienzo medía 220×300 también a 390 y a 360 px. **Una
+  regla que no gana se lee igual que un arreglo aplicado.** En HEAD no se notaba porque su regla
+  angosta acotaba con `max-height`, que gana por cascada de **propiedad** y no por orden.
+
+- **SE APAGA SOLO POR CUATRO PUERTAS:** `showTab` (al salir de Válvulas y al pasar a otra
+  pantalla), `limpiarCampos`, `RECALC_MODULOS` —el embudo de las cinco rutas de restauración— y el
+  propio botón.
+  ⚠️ **LAS DOS DEL MEDIO SON UNA DIFERENCIA CON LA LETRA DE LA ORDEN, Y SE DECLARA.** La orden las
+  condicionaba a «si hoy la vista se cerraba en esos casos», y medido: **no se cerraba**. Se
+  agregaron igual, porque con el panel EN LÍNEA dejarlo prendido publicaría las tarjetas, la tabla
+  y el dibujo del paciente **ANTERIOR** sobre un formulario en blanco, y ningún barrido genérico
+  alcanza a los `<li>` que `v2dPintarTarjetas` crea ni al `<svg>`. Es la misma decisión que el
+  panel 3D de ETE, dos líneas más arriba en el mismo archivo. `PENDIENTES.md` → **Y1c-8**.
+  ⚠️ **`v2dVisible()` MIRA EL `hidden` DEL QUE ES DUEÑO Y NO EL `display` COMPUTADO**: al cambiar
+  de pestaña, `#tab-valvulas` entero pasa a `display:none`, así que el computado diría «apagado»
+  con el panel prendido y el apagado automático se quedaría sin disparar. Es la lección que
+  `m3dVisible` ya pagó mirando la clase de la animación.
+
+- **RENDIMIENTO, espiando `requestAnimationFrame` en los DOS motores: 0 cuadros con el panel
+  apagado, 55 prendido, 0 con la pestaña del navegador oculta y 43 al volver.** 20 aperturas y
+  cierres dejan **11877 nodos → 11877** y el panel apagado. **Nada se escribe** en el estudio ni en
+  el navegador.
+  **El desplazamiento al prender** va con `block:'nearest'`, que mueve **lo mínimo** —si ya se ve
+  entero no mueve nada— e instantáneo con `prefers-reduced-motion`, y **no roba el foco**. Medido a
+  1200×700 con la página arriba: la página baja 379 px y el panel queda en `top=66 · bottom=700`.
+
+- ⚠️ **LA SINCRONÍA EN VIVO NO EXISTÍA, Y LA PREMISA DE LA ORDEN ERA FALSA — MEDIDO.** `v2dSync` y
+  los dos pintores corrían **sólo** desde `v2dAbrir`; con la ventana flotante no se notaba porque
+  tapaba la pantalla entera y no había forma de tocar un campo con la vista abierta. Con el panel
+  en línea el médico ve las dos cosas a la vez, así que entra `v2dRefrescar()` colgado de un
+  **oyente de documento** (`input`/`change`, en burbuja, el patrón de `emContFaAvisoSync`), que
+  **sólo repinta si el estado cambió** —comparado por su JSON— y **repone las listas «Ver
+  criterios» abiertas POR NOMBRE DE VÁLVULA**. Medido en los dos motores: la IM pasa de «Severa» a
+  «Leve» sin reabrir, la lista abierta sigue abierta (1 → 1) y tipear en `nombre` no repinta nada.
+  **Al reabrir el panel las listas siguen naciendo cerradas**, porque `v2dAbrir` no pasa por ahí.
+
+- **A/B DEDICADO CONTRA HEAD, con el formulario vacío y con tres escenarios cargados: 0
+  DIFERENCIAS** en informe (tres estilos), EN SUMA, **PDF del informe generado de verdad**, **PPT
+  estadístico generado de verdad**, **PDF de auditoría generado de verdad**, Laboratorio, grados,
+  pastillas, cápsulas y el **Excel en 440 columnas clave por clave**. Y un A/B propio del contenido
+  del panel en **ocho escenas por dos motores**: **0 diferencias** en las tarjetas, la tabla de
+  cavidades, la nota, las listas «Ver criterios», el informe, el EN SUMA, los ocho grados, la
+  diastólica y el HFA-PEFF. **Escenas que cambian de veredicto: NINGUNA.**
+
+- **Arnés: `scripts/_probe_y1c.mjs`**, A/B de solo lectura con `--file` y `--dest`, ocho grupos
+  (`boton`, `panel`, `estab`, `altura`, `apagado`, `sync`, `tarjetas`, `captura`).
+  ⚠️ **ES LA PRIMERA SONDA DE ESTE REPO QUE NO USA LA INFRA DE CDP**, y es por necesidad: hay que
+  medir en **dos motores** y `cdp.mjs` sólo habla con Chrome. Usa **Playwright**, que manda entrada
+  de confianza igual, y lo resuelve **por ruta** —si no lo encuentra lo DICE y sale con código 2 en
+  vez de reventar—. `PENDIENTES.md` → **Y1c-7**.
+  **Cobertura: TC-486**, **52 condiciones** con seis denominadores y cuatro controles negativos.
+  **Verificado que sabe fallar contra HEAD en un worktree aparte: 32 de las 52 en rojo, y NINGUNA
+  por excepción.**
+- ⚠️ **CASOS ADAPTADOS: TRES.** **TC-482** (el foco que entraba a la tarjeta, el botón de cerrar,
+  el clic afuera y el Escape: las cuatro afirman hoy lo CONTRARIO), **TC-483** (la tarjeta flotante
+  de 900 px y 85 vh, el `overflow:auto` del cuerpo, los 8 px de margen en angosto, la columna
+  `auto` y el `clamp` del dibujo; más una condición NUEVA sobre la línea de fase) y **TC-484**
+  (sólo el ayudante de cierre y el objetivo táctil). **TC-485 no se tocó**: no nombra la vista 2D
+  ni una sola vez.
+
+- ⚠️ **SEIS TRAMPAS, Y CUATRO DABAN FALSOS PLAUSIBLES.**
+  1. **UNA REGLA RETIRADA SIGUE EN EL FUENTE SI LA NOMBRA UN COMENTARIO**, dos veces en la misma
+     tanda: la condición de TC-486 que buscaba el `clamp` salía roja porque el comentario que
+     explica el retiro lo nombra, y un `assert` de mi propio script de edición falló porque el
+     comentario nuevo nombraba `aria-modal`. Lo que se busca es la **declaración completa**.
+  2. **`newPage({viewportSize})` NO EXISTE EN PLAYWRIGHT: LA CLAVE ES `viewport`.** Con la clave
+     equivocada las cuatro corridas midieron **1280×720** y las dos «ventanas» dieron idéntico.
+     ⚠️ **El mismo error está en `/tmp/wk_test.mjs`, la medición de WebKit de la tanda Y3.**
+  3. **EN HEAD EL BOTÓN DEL PIE SÓLO ABRE**, así que un A/B que cierre con él deja el overlay
+     puesto tapando la página: la primera corrida informó **30 abortos** y «diferencias» en seis
+     escenas que eran **el lado de HEAD VACÍO**. El cierre va por el control que cada árbol tiene.
+  4. **`generarInforme()` SALTA A LA PESTAÑA INFORME** y sin volver el botón del pie no tiene
+     geometría: **28 clics abortados** y las siete escenas con las dos columnas vacías.
+  5. **UN CLIC EN UN PUNTO CUALQUIERA NO ES UN «CLIC AFUERA»**: el de (20,400) cayó sobre un botón
+     del rail, `showTab` corrió y el panel se apagó — la sonda informó «el clic afuera cierra»
+     sobre un cambio de pestaña. Va sobre la caja de `#v2d-ov`, comprobando con `elementFromPoint`
+     que el blanco **es** el envoltorio.
+  6. **UN GRADO FORZADO CON `valvSev.aplicar` SOBRE UN FORMULARIO VACÍO NO PRODUCE LISTA «Ver
+     criterios»**: la primera medición de la sincronía informó «1 → 1» sobre **cero** listas.
+- ⚠️ **Y `elementFromPoint` DEVUELVE `null` FUERA DEL VIEWPORT**: desde que el panel es en línea
+  cae debajo del borde, y el objetivo táctil de TC-484 salía rojo con «arriba=NADA» sobre un área
+  clicable perfecta. Es el mismo falso que el globo del cociente TAPSE/PSAP pagó en la tanda Z.
 
 ### El 3D de la MITRAL en ETE, las comisuras corregidas y la fila de la Vmax — «Y2b + Y3» (2026-10-16)
 

@@ -85,3 +85,43 @@ TC-252, TC-260, TC-395 y TC-GR-06. Su condición del objetivo táctil usa `eleme
 devuelve el **overlay del aviso legal** cuando éste reaparece a mitad de corrida: el síntoma es
 `arriba=DIV`. Medido: rojo una vez en una lista de 15 casos y **verde dos veces seguidas** con la
 misma lista y el mismo árbol, y 15/15 contra HEAD con esa lista. **Repetir antes de sospechar.**
+
+---
+
+## TC-486 — la vista 2D EN LÍNEA (tanda «Y1c», 2026-10-16)
+
+**52 condiciones**, con **seis denominadores** y **cuatro controles negativos**. Verificado que
+sabe fallar contra HEAD en un worktree aparte: **32 en rojo y NINGUNA por excepción**.
+
+Seis bloques:
+
+| | Qué afirma |
+|---|---|
+| **A** | El botón: `aria-pressed`/`aria-controls` y sin `aria-haspopup`; el **mismo texto** prendido y apagado; el color **real resuelto** igual al de una pestaña de válvula en **reposo** y **activa**, en los dos temas; y que no declara `:hover` |
+| **B** | El panel: apagado **0×0**, `display:none` por regla de AUTOR con `!important` y **cero** tabulables; prendido **debajo** del botón y dentro de `#tab-valvulas`, en el flujo, sin fondo tenue, sin botón de cerrar, con `role="region"`, sin Escape ni clic afuera, **sin desplazamiento interno**, ≤900 px y centrado en su envoltorio |
+| **C** | El tamaño: ancho y alto del lienzo **explícitos en px**, sin `clamp(100vh)`, sin `max-content`, sin `flex:1`, columna central **explícita**; la línea de fase en un renglón de alto fijo con su `title`; y **ningún** elemento se mueve más de 0,5 px a lo largo del ciclo |
+| **D** | Se apaga solo al salir de Válvulas, al limpiar y por `RECALC_MODULOS` —afirmando además que `v2dCerrar` **está** en ese embudo—; 20 aperturas sin acumular nodos; y que no escribe nada en el estudio ni en el navegador |
+| **E** | La **sincronía en vivo**, con su control negativo (tipear en un campo que la vista no mira no repinta) |
+| **F** | Los controles: informe y EN SUMA en los **tres** estilos, grados, pastillas, diastólica, HFA-PEFF y el **Excel en 440 columnas** con el mismo valor, con el panel apagado y prendido |
+
+### Reparto con la sonda, y por qué
+
+El cuerpo de un caso **no puede emular un ancho** ni **esperar al reloj**, así que:
+- las **reglas** de escritorio y de angosto se afirman por el fuente y lo **renderizado** se mide
+  al ancho de la suite (756 px, o sea modo celular), con el denominador que lo dice;
+- la estabilidad se mide recorriendo **40 fases** con `v2dFase(p)` —que deja el latido en una fase
+  fija y dibuja ese cuadro—, no esperando dos ciclos de reloj;
+- los **dos ciclos completos en los dos motores**, los **siete anchos** y los **dos temas** los
+  mide `scripts/_probe_y1c.mjs`, que sí tiene el canal para emular el viewport.
+
+Es el mismo reparto que TC-460 y TC-483 ya dejaron escrito.
+
+### Casos adaptados por esta tanda: TRES
+
+| Caso | Qué afirmaba | Qué afirma hoy |
+|---|---|---|
+| **TC-482** | el foco entraba a la tarjeta; el botón «× Cerrar» lo cerraba y devolvía el foco; tocar fuera cerraba; Escape cerraba por el oyente genérico | el foco **no** se mueve; el **mismo** botón apaga; tocar fuera **no** apaga; el panel **no entra** en el oyente genérico (es región, sin `aria-modal` y sin botón de cerrar) |
+| **TC-483** | tarjeta flotante de 900 px y 85 vh con `overflow:auto` en el cuerpo; 8 px de margen en angosto; columna central `auto`; dibujo por `clamp(100vh)` | panel en línea con techo de 900 px y **sin** desplazamiento interno; 100 % del ancho en angosto; columna central **240 px**; dibujo **220×300** explícitos; más una condición **nueva** sobre la línea de fase |
+| **TC-484** | — | sólo el ayudante de cierre y el objetivo táctil, que ahora **lleva el botón al viewport** antes de medir: `elementFromPoint` devuelve `null` fuera de él y el panel en línea cae debajo del borde |
+
+**TC-485 no se tocó**: no nombra la vista 2D ni una sola vez.

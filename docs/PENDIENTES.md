@@ -62,7 +62,7 @@ La orden lo dejaba para después. Si alguna vez entra: el lienzo es un `<canvas>
 la sístole muestra el chorro de la IM y la diástole el orificio de la estenosis. Capturar «la que
 estaba» haría que dos PDF del mismo estudio salieran distintos.
 
-### Y3-2 · La vista 2D del Y1b, en Safari y en Chrome — REPORTADO por Maicol, no tocado
+### [CERRADO 2026-10-16 · Y1c] Y3-2 · La vista 2D del Y1b, en Safari y en Chrome
 
 Dos defectos de la **vista 2D** (`#v2d-card`), que esta tanda no toca y que van en su propio
 prompt:
@@ -81,6 +81,19 @@ prompt:
 ⚠️ **EL PANEL 3D DEL Y3 NO REPITE EL PATRÓN**, a propósito: su lienzo tiene alto **fijo en px** y
 no hay una sola altura en porcentaje, así que lo que el dibujo haga adentro no puede mover nada de
 afuera. Ver `docs/mapa/mitral-3d-ete.md` § 6.
+
+**CERRADO el 2026-10-16 por la tanda Y1c, y el candidato que este ítem dejaba anotado era el
+correcto a medias.** El de Chrome **reproduce** y la causa **no** es el `viewBox` —el `<svg>` da
+dw=0 y dh=0 a lo largo de 120 fases—: es la columna `auto` de `#v2d-grid`, pero dimensionada por la
+**línea de fase** y no por el SVG. Su techo es siempre 218,25 px y el piso depende de la escena
+—compite el min-content de la tabla de cavidades—: **63,00 px de recorrido** en la escena de la
+sonda y **87,42** en una de tabla más angosta, con las tarjetas moviéndose 31,5 y 43,7 px. Sólo
+pasa en escritorio: a 390 px la grilla es de una columna y el recorrido en HEAD es **0,00**. Hoy
+la columna mide 240 px fijos y la línea de fase es un renglón de alto fijo: **peor delta 0,00 px**
+en los dos motores. El de Safari **no reproduce** en WebKit 27.2 —los ocho viewports dan números
+idénticos a Chrome— pero su mecanismo está medido: `flex-basis:0%` contra un contenedor de altura
+indefinida. Lo que queda por probar a mano está abajo, en **Y1c-1**.
+Todo en `docs/mapa/vista-2d-en-linea.md`.
 
 ### Y3-3 · No se pudo verificar en Safari / WebKit
 
@@ -3596,3 +3609,116 @@ coinciden**, que es lo que el Z6 arregló: la fila lo toma de `_eaDviProtNivel` 
 **No se tocó nada**: es un corte, y la fila, el veredicto y la tarjeta son coherentes. Lo único que
 queda dicho es que el nivel se decide sobre el valor **publicado** y no sobre el crudo —si algún día
 se quisiera sobre el crudo, el 0,35461 pasaría de «posible» a «normal»—.
+
+---
+
+## La vista 2D EN LÍNEA — tanda «Y1c» (2026-10-16) — DECLARADO y NO arreglado
+
+### Y1c-1 · El colapso de Safari no se pudo REPRODUCIR, y qué probar a mano
+
+WebKit **sí** estaba disponible (Playwright, build 27.2 ≈ Safari 26/27) y se midió en los **ocho**
+viewports de la tabla del mapa: los números son **idénticos** a los de Chrome 155, con la tarjeta
+del Y1b en 900×550,4 y **sin colapso**. O sea que el defecto no está en el WebKit de hoy.
+
+Lo que **sí** quedó medido es el mecanismo, y la aritmética cierra con el reporte: `#v2d-cuerpo`
+computaba `flex-basis: 0%` —un porcentaje contra `#v2d-card{height:max-content}`, de altura
+indefinida—, y un motor que lo resuelva a cero deja la cabecera de 53 px más los dos bordes, que
+son los «unos 60 px» con los rótulos asomando por el recorte de `overflow:auto`.
+
+**El arreglo no depende de haberlo reproducido**: se fueron `flex:1`, `overflow:auto`,
+`height:max-content`, `max-height:85vh` y `position:absolute`, y no queda ninguna altura en
+porcentaje ni en `vh` en toda la cadena. Es la misma regla con la que el panel 3D de ETE se midió
+bien en WebKit.
+
+**Lo que Maicol puede probar a mano, en su Safari**, y lo que hay que anotar si algo falla:
+1. Abrir Válvulas, tocar «Ver en 2D» y mirar si el panel se ve **entero** (dibujo, dos columnas de
+   tarjetas, tabla de cavidades y nota).
+2. Decir la **versión exacta** de Safari (menú Safari → Acerca de Safari). Si el panel se viera
+   bien, eso confirma el mecanismo y el ítem se puede cerrar del todo.
+3. Si se viera mal, medir el alto del panel con el inspector sobre `#v2d-card` y `#v2d-cuerpo`, y
+   mirar si `#v2d-svg` conserva sus **300 px**: eso separa «colapsa el panel» de «colapsa el
+   lienzo», que tienen causas distintas.
+
+### Y1c-2 · El lienzo deja 12 px de aire a cada lado, y es el precio de la caja fija
+
+El lienzo mide **220×300** y el dibujo se encuadra en **196×300** (`preserveAspectRatio` por
+omisión). Los 220 salen de que la columna central tenga un ancho que **no dependa del paciente ni
+de la fase**, que es lo que cierra el defecto de Chrome. Medido: el `viewBox` que `fitView`
+produce es **el mismo para todo paciente** (`25.49 38.52 155.16 237.17`, idéntico con el
+formulario vacío y con las cuatro cámaras dilatadas), así que ese aire es constante y nunca se
+recorta nada.
+
+Si algún día molestara, lo que se mueve es el `width` del lienzo **y** el de la columna central,
+los dos juntos: bajarlo a 200 px dejaría el texto de fase más largo (218,25 px) sin lugar y
+volvería el recorte por puntos suspensivos.
+
+### Y1c-3 · El `title` de la línea de fase es la ÚNICA superficie nueva, y hoy no se usa
+
+El renglón de fase lleva `text-overflow:ellipsis` como red por si un texto creciera, y el texto
+completo viaja en el `title` de `#v2d-fase2`. **Hoy ninguno de los cinco se recorta** a 11 px en
+una columna de 240, así que el `title` duplica lo que ya se lee. Queda declarado para que nadie lo
+lea como información que la pantalla no muestra.
+
+### Y1c-4 · La sincronía en vivo repinta por un oyente de documento, y eso tiene un costo
+
+`v2dRefrescar` cuelga de un oyente de `input` y `change` sobre `document`. Con el panel **apagado**
+sale en la primera línea (`v2dVisible()`); con el panel prendido, cada tecla construye un
+`v2dEstado()` —unas treinta lecturas de DOM más el «por qué» de las ocho lesiones— para comparar
+su JSON contra la foto anterior. Medido: no se nota, y el repintado sólo ocurre cuando el estado
+cambió de verdad. Si algún día pesara, lo que corresponde es **debounce por `requestAnimationFrame`**
+y no sacar la comparación, que es lo que protege a las listas «Ver criterios» abiertas.
+
+### Y1c-5 · Las listas abiertas se reponen por NOMBRE DE VÁLVULA
+
+`_v2dPqReponer` reabre una lista si en la columna repintada hay un `<li>` cuyo `.v2d-valv` dice lo
+mismo. Si dos tarjetas de la misma columna llegaran a tener el mismo nombre de válvula —hoy no
+pasa: las columnas son «Insuficiencias» y «Estenosis», con una entrada por válvula— se reabrirían
+las dos. La salida limpia sería una clave propia por `<li>`, que es lo que `_v2dPqPintar` ya
+recibe y no usa (su tercer argumento `clave`).
+
+### Y1c-6 · Dos sondas archivadas quedaron rotas, y se declara
+
+`scripts/_probe_y1.mjs`, `scripts/_probe_y1b.mjs` y `scripts/_probe_y3.mjs` cierran la vista
+clickeando `#v2d-cerrar`, que ya no existe; `_probe_y3.mjs` además lo usa en cuatro grupos. Son
+sondas **históricas** de tandas cerradas y no se adaptaron. El grupo `controles` de `_probe_y3.mjs`
+**sigue sirviendo** —no toca la vista 2D— y es el que se usó para el A/B de las superficies
+firmadas de esta tanda.
+
+### Y1c-7 · `scripts/_probe_y1c.mjs` necesita Playwright, y no está en el repo
+
+Es la primera sonda de este repo que **no** usa la infra de CDP: necesita medir en **dos motores**
+—Chrome y WebKit, el de Safari—, y `cdp.mjs` sólo habla con Chrome. Resuelve `playwright` por ruta
+(`/tmp/node_modules`, el global de npm o el del `$HOME`) y, si no lo encuentra, **lo dice** y sale
+con código 2 en vez de reventar con un stack. `/tmp` se vacía, así que la próxima tanda que la
+necesite probablemente tenga que reinstalarlo:
+
+```bash
+mkdir -p /tmp/pw && cd /tmp/pw && npm i playwright && npx playwright install webkit
+```
+
+La alternativa limpia sería una carpeta fija fuera de `/tmp`, pero eso es agregarle una dependencia
+instalada a un repo que hoy no tiene ninguna.
+
+### Y1c-8 · El apagado al limpiar y al cargar un estudio es una DIFERENCIA con la orden
+
+La orden decía «al limpiar o cargar un estudio nuevo **si hoy la vista se cerraba en esos casos**»,
+y medido: **no se cerraba** —`v2dCerrar` sólo se llamaba desde sus tres caminos de ventana—. Se
+agregó igual, en `limpiarCampos` y en `RECALC_MODULOS`, porque con el panel **en línea** dejarlo
+prendido publicaría las tarjetas, la tabla y el dibujo del paciente **anterior** sobre un
+formulario en blanco, y ningún barrido genérico alcanza a esos nodos. Es la misma decisión que el
+panel 3D de ETE, dos líneas más arriba en el mismo archivo. Si Maicol prefiere que el panel
+sobreviva a «Nuevo estudio», lo que se saca son esas dos líneas y lo que entra en su lugar es una
+llamada a `v2dRefrescar()` forzada.
+
+### Y1c-9 · El botón mide 2 px menos prendido, y es lo mismo que le pasa a una pestaña
+
+Medido: `btn-ghost` lleva **1 px de borde** y `btn-primary` **0**, así que el botón pasa de
+**93,2 px** a **91,2** al prenderse y, como `.v2d-pie` es `text-align:center`, se corre **1 px**
+hacia la derecha. **La pestaña de válvula hace exactamente lo mismo** —`pill-insuf-mitral` va de
+1 px de borde en reposo a 0 px prendida—, que es la consecuencia de haber reusado sus dos clases
+en vez de declarar colores propios, y es lo que la orden pedía.
+
+**No tiene nada que ver con la estabilidad durante el latido**, que está medida en **0,00 px**: es
+una diferencia entre los dos estados del botón, no entre dos cuadros. Si alguna vez molestara, lo
+que se agrega es un borde transparente de 1 px al estado prendido — y entonces el botón deja de
+verse exactamente como una pestaña activa.

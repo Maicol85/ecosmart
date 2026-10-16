@@ -461,3 +461,22 @@ antes de arreglarlo: con una clase propia el chip salía **transparente**.
 sale de `_v2dPorQue`.
 
 El mapa de esa zona es **`docs/mapa/mitral-3d-ete.md`**.
+
+---
+
+## 13 · El panel pasó a estar **EN LÍNEA** — la tanda «Y1c» (2026-10-16)
+
+La ventana flotante de las secciones 9 y 10 **ya no existe**: el panel vive dentro de la pantalla
+de Válvulas, debajo del botón, y el mismo botón lo prende y lo apaga. Con eso se fueron el fondo
+tenue, el botón «× Cerrar», el cierre al tocar fuera, Escape, `aria-modal`, el foco que entraba a
+la tarjeta, el techo de alto y el desplazamiento interno; y el dibujo volvió a **300 px** con
+altura explícita.
+
+**Todo eso vive en `docs/mapa/vista-2d-en-linea.md`**, junto con los dos defectos que Maicol
+reportó y sus causas medidas: el movimiento de los carteles con el latido —que **no** era el
+`viewBox`, sino la columna `auto` dimensionada por la línea de fase— y el colapso en Safari —el
+`flex-basis:0%` contra un contenedor de altura indefinida—.
+
+⚠️ **LAS TABLAS DE LAS SECCIONES 9 Y 10 DESCRIBEN EL Y1b Y EL Y2, NO LO VIGENTE.** Lo que sigue
+valiendo de ellas es el reparto de columnas, el contenido de las tarjetas y el mecanismo del «por
+qué»; la geometría del panel y el estilo del botón los manda el mapa nuevo.

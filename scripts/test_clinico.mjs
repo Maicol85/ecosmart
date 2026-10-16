@@ -68337,7 +68337,8 @@ caso('TC-482', 'Tanda Y1: la VISTA 2D de las valvulas — el boton al pie de Val
       return !!(o && getComputedStyle(o).display !== 'none'); };
     const ABRIR = () => { try { if (FN('showTab')) showTab('valvulas'); } catch (e) {}
       const b = EL('v2d-abrir'); if (b) b.click(); return ABIERTO(); };
-    const CERRAR = () => { const b = EL('v2d-cerrar'); if (b) b.click(); return ABIERTO(); };
+    /* ADAPTADO el 2026-10-16 (tanda Y1c): la vista 2D dejo de ser una ventana flotante. Ya no hay boton «× Cerrar»: el MISMO boton del pie prende y apaga. */
+    const CERRAR = () => { const b = EL('v2d-abrir'); if (b) b.click(); return ABIERTO(); };
     const TARJ = (id) => { const ul = EL(id); if (!ul) return [];
       return Array.prototype.slice.call(ul.children).map(function(li){
         const chip = li.querySelector('.v2d-chip');
@@ -68380,28 +68381,43 @@ caso('TC-482', 'Tanda Y1: la VISTA 2D de las valvulas — el boton al pie de Val
     ex.push(['con la vista cerrada el latido NO esta corriendo',
       (function(){ try { return FN('v2dCorriendo') ? v2dCorriendo() === false : 'SIN FN'; }
         catch (e) { return 'EXC'; } })() === true, '']);
-    ex.push(['el boton ABRE la vista y el foco entra a la tarjeta',
-      ABRIR() === true && document.activeElement && document.activeElement.id === 'v2d-card',
+    /* ADAPTADO el 2026-10-16 (tanda Y1c): la vista 2D dejo de ser una ventana flotante. El panel es una REGION en linea y no un
+       dialogo, asi que NO roba el foco: la condicion afirma lo CONTRARIO de lo que afirmaba. */
+    ex.push(['el boton PRENDE el panel y el foco NO se mueve a la tarjeta',
+      (function(){ const b = EL('v2d-abrir'); if (b) b.focus();
+        return ABRIR() === true && document.activeElement && document.activeElement.id !== 'v2d-card'; })(),
       'activo=' + String(document.activeElement ? document.activeElement.id : null)]);
     ex.push(['con la vista abierta el latido SI corre',
       (function(){ try { return FN('v2dCorriendo') ? v2dCorriendo() : 'SIN FN'; }
         catch (e) { return 'EXC'; } })() === true, '']);
-    ex.push(['el boton de cerrar la cierra, para el latido y DEVUELVE el foco al boton que abrio',
+    /* ADAPTADO el 2026-10-16 (tanda Y1c): la vista 2D dejo de ser una ventana flotante. El MISMO boton apaga, y el foco ya estaba
+       en el: no hay nada que devolver. */
+    ex.push(['el MISMO boton lo apaga, para el latido y el foco queda en el boton',
       CERRAR() === false &&
       (function(){ try { return v2dCorriendo() === false; } catch (e) { return false; } })() &&
       document.activeElement && document.activeElement.id === 'v2d-abrir',
       'activo=' + String(document.activeElement ? document.activeElement.id : null)]);
-    /* Tocar FUERA cierra: el clic sobre el overlay y no sobre la tarjeta. */
-    ex.push(['tocar fuera de la tarjeta cierra la vista',
-      (function(){ ABRIR(); const o = EL('v2d-ov'); if (o) o.click(); return ABIERTO() === false; })(), '']);
+    /* ADAPTADO el 2026-10-16 (tanda Y1c): la vista 2D dejo de ser una ventana flotante. Tocar
+       fuera YA NO lo apaga: el manejador del envoltorio se retiro con el overlay. La condicion
+       afirma lo CONTRARIO de lo que afirmaba. */
+    ex.push(['tocar el envoltorio, fuera de la tarjeta, NO apaga el panel',
+      (function(){ ABRIR(); const o = EL('v2d-ov'); if (o) o.click();
+        const sigue = ABIERTO() === true; CERRAR(); return sigue; })(),
+      (function(){ const o = EL('v2d-ov'); return 'onclick=' + String(o ? o.getAttribute('onclick') : 'NO EXISTE'); })()]);
     /* ESCAPE: el caso no puede mandar una tecla de confianza, asi que afirma el MECANISMO —el
        dialogo es modal, que es lo que lo mete en el oyente generico, y su boton de cerrar
        matchea el patron que ese oyente busca—. La tecla real la manda la sonda. */
-    { const c = EL('v2d-card'), b = EL('v2d-cerrar');
-      ex.push(['Escape cierra por el oyente generico: el dialogo es modal y su boton matchea el patron /cerrar/',
-        !!c && c.getAttribute('role') === 'dialog' && c.getAttribute('aria-modal') === 'true' &&
-        !!b && /cerrar/i.test(String(b.getAttribute('onclick') || '')),
-        (c ? c.getAttribute('aria-modal') : '?') + ' / ' + (b ? b.getAttribute('onclick') : '?')]); }
+    /* ADAPTADO el 2026-10-16 (tanda Y1c): la vista 2D dejo de ser una ventana flotante. Escape YA NO lo cierra, y la condicion lo
+       afirma por su MECANISMO: el oyente generico del bloque de accesibilidad busca el dialogo
+       con aria-modal visible mas alto y le clickea el primer boton cuyo manejador matchee
+       /cerrar/. Sin aria-modal y sin ese boton, este panel no entra en esa busqueda — ni en la
+       trampa de Tab, que pide lo mismo. La tecla real la manda la sonda. */
+    { const c = EL('v2d-card');
+      ex.push(['el panel NO entra en el oyente generico de Escape: es una region, no un dialogo modal, y no tiene boton de cerrar',
+        !!c && c.getAttribute('role') === 'region' && c.getAttribute('aria-modal') === null &&
+        !EL('v2d-cerrar'),
+        (c ? c.getAttribute('role') + '/' + String(c.getAttribute('aria-modal')) : '?') +
+        ' cerrar=' + String(!!EL('v2d-cerrar'))]); }
 
     /* ══ B · LAS TARJETAS DE LAS SEIS LESIONES NATIVAS ══════════════════════════════════
        Cada escena deja la lesion en un grado que el informe TAMBIEN publica, y la condicion
@@ -68656,7 +68672,8 @@ caso('TC-483', 'Tanda Y1b: la vista 2D CHICA y DISCRETA — el boton del pie con
       return !!(o && getComputedStyle(o).display !== 'none'); };
     const ABRIR = () => { try { if (FN('showTab')) showTab('valvulas'); } catch (e) {}
       const b = EL('v2d-abrir'); if (b) b.click(); return ABIERTO(); };
-    const CERRAR = () => { const b = EL('v2d-cerrar'); if (b) b.click(); return ABIERTO(); };
+    /* ADAPTADO el 2026-10-16 (tanda Y1c): la vista 2D dejo de ser una ventana flotante. Ya no hay boton «× Cerrar»: el MISMO boton del pie prende y apaga. */
+    const CERRAR = () => { const b = EL('v2d-abrir'); if (b) b.click(); return ABIERTO(); };
     const TARJ = (id) => { const ul = EL(id); if (!ul) return [];
       return Array.prototype.slice.call(ul.children).map(function(li){
         const chip = li.querySelector('.v2d-chip');
@@ -68732,51 +68749,80 @@ caso('TC-483', 'Tanda Y1b: la vista 2D CHICA y DISCRETA — el boton del pie con
       ex.push(['DENOMINADOR: el viewport de la suite esta por DEBAJO de 768 px, asi que lo renderizado es la columna unica',
         angosto === true, window.innerWidth + ' px']);
       const f = FUENTE();
-      ex.push(['la REGLA declara una tarjeta flotante CENTRADA de 900 px y 85 vh, no un panel a pantalla completa',
-        f.indexOf('#v2d-card{position:absolute;inset:0;margin:auto;width:min(900px,94vw);') > -1 &&
-        f.indexOf('height:max-content;max-height:85vh;') > -1, '']);
-      ex.push(['y el inset:10px del Y1 —el que tomaba la ventana entera— ya no esta',
+      /* ADAPTADO el 2026-10-16 (tanda Y1c): la vista 2D dejo de ser una ventana flotante. La tarjeta flotante centrada de 900 px y
+         85 vh pasa a un panel EN LINEA con techo de ancho y SIN techo de alto. Las tres
+         condiciones afirman lo CONTRARIO de lo que afirmaban. */
+      ex.push(['la REGLA declara un panel EN LINEA con techo de 900 px y centrado, y NO una tarjeta flotante',
+        f.indexOf('#v2d-card{width:min(900px,100%);margin:0 auto;') > -1 &&
+        f.indexOf('position:absolute;inset:0;margin:auto;width:min(900px,94vw)') === -1 &&
+        f.indexOf('height:max-content;max-height:85vh;') === -1, '']);
+      ex.push(['y el inset:10px del Y1 —el que tomaba la ventana entera— sigue sin estar',
         f.indexOf('#v2d-card{position:absolute;inset:10px') === -1, '']);
-      /* EL DESPLAZAMIENTO ES DEL CUERPO Y NO DE LA PAGINA. */
-      ex.push(['el desplazamiento es del CUERPO del panel: #v2d-cuerpo lleva overflow:auto',
+      /* NO HAY DESPLAZAMIENTO INTERNO: el panel crece con su contenido y la que se desplaza es
+         la PAGINA. Lo que se mide es la DECLARACION, porque un overflow visible computado es
+         ademas el valor por omision y no distingue «se retiro» de «nunca estuvo». */
+      ex.push(['NO hay desplazamiento interno: #v2d-cuerpo ya no lleva overflow:auto',
         (function(){ const c = CS('#v2d-cuerpo');
-          return !!c && (c.overflowY === 'auto' || c.overflow === 'auto'); })(),
+          return !!c && c.overflowY !== 'auto' && c.overflowY !== 'scroll'; })() &&
+        f.indexOf('#v2d-cuerpo{padding:10px 12px;overflow:auto;flex:1;}') === -1,
         (function(){ const c = CS('#v2d-cuerpo'); return c ? c.overflow : 'NO EXISTE'; })()]); }
     { const abrio = ABRIR();
       const rc = RC('#v2d-card');
       ex.push(['DENOMINADOR: la vista abre y la tarjeta tiene geometria',
         abrio === true && !!rc && rc.width > 0 && rc.height > 0,
         rc ? Math.round(rc.width) + 'x' + Math.round(rc.height) : 'SIN TARJETA']);
-      ex.push(['la tarjeta NO desborda la ventana y queda centrada en el eje horizontal',
-        !!rc && rc.left >= 0 && rc.right <= window.innerWidth + 1 &&
-        Math.abs((rc.left + rc.right) / 2 - window.innerWidth / 2) <= 2,
+      /* ADAPTADO el 2026-10-16 (tanda Y1c): la vista 2D dejo de ser una ventana flotante. El panel se centra dentro de su ENVOLTORIO
+         —que es un bloque mas de la pantalla de Valvulas—, no dentro de la ventana. */
+      ex.push(['el panel NO desborda la ventana y queda centrado dentro de su envoltorio',
+        (function(){ const o = EL('v2d-ov'); if (!rc || !o) return false;
+          const ro = o.getBoundingClientRect();
+          return rc.left >= 0 && rc.right <= window.innerWidth + 1 &&
+                 Math.abs((rc.left + rc.right) / 2 - (ro.left + ro.right) / 2) <= 2; })(),
         rc ? 'x=' + Math.round(rc.left) + ' a ' + Math.round(rc.right) + ' de ' + window.innerWidth : 'SIN TARJETA']);
       ex.push(['con la vista abierta la PAGINA no gana scroll horizontal, ni la pagina ni el cuerpo del panel',
         document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1 &&
         (function(){ const c = EL('v2d-cuerpo');
           return !c || c.scrollWidth <= c.clientWidth + 1; })(),
         document.documentElement.scrollWidth + '/' + document.documentElement.clientWidth]);
-      /* A ESTE ANCHO —el de celular— el margen es de 8 px por los cuatro lados. */
-      ex.push(['a 768 px o menos la tarjeta vuelve a tomar la pantalla con 8 px de margen',
-        !!rc && Math.round(rc.left) === 8 && Math.round(rc.top) === 8,
-        rc ? Math.round(rc.left) + ',' + Math.round(rc.top) : 'SIN TARJETA']);
+      /* ADAPTADO el 2026-10-16 (tanda Y1c): la vista 2D dejo de ser una ventana flotante. A 768 px o menos el panel toma el 100 % del
+         ancho de su envoltorio, en vez de los 8 px de margen de la ventana flotante. */
+      ex.push(['a 768 px o menos el panel toma el 100 % del ancho de su envoltorio',
+        (function(){ const o = EL('v2d-ov'); if (!rc || !o) return false;
+          const ro = o.getBoundingClientRect();
+          return Math.abs(rc.width - ro.width) <= 1; })(),
+        (function(){ const o = EL('v2d-ov'); const ro = o ? o.getBoundingClientRect() : null;
+          return rc && ro ? Math.round(rc.width) + ' de ' + Math.round(ro.width) : 'SIN TARJETA'; })()]);
       CERRAR(); }
 
     /* ══ C · EL INTERIOR COMPACTO ════════════════════════════════════════════════════════ */
     { const f = FUENTE();
-      ex.push(['la REGLA agrupa las tres zonas en el centro con columnas de 184 px, en vez de estirarlas',
-        f.indexOf('grid-template-columns:184px auto 184px') > -1 &&
+      /* ADAPTADO el 2026-10-16 (tanda Y1c): la vista 2D dejo de ser una ventana flotante. La columna del medio pasa de auto a 240 px
+         EXPLICITOS, que es el arreglo del movimiento con el latido, y el dibujo pasa a ancho y
+         alto explicitos en px, sin un solo vh. Las dos condiciones afirman lo CONTRARIO. */
+      ex.push(['la REGLA agrupa las tres zonas en el centro y la columna del medio tiene ancho EXPLICITO',
+        f.indexOf('grid-template-columns:184px 240px 184px') > -1 &&
+        f.indexOf('grid-template-columns:184px auto 184px') === -1 &&
         f.indexOf('justify-content:center;}') > -1, '']);
-      ex.push(['el dibujo se escala por el ALTO, entre 200 y 320 px, y la regla NO le fija el ancho',
-        f.indexOf('height:clamp(200px,calc(100vh - 520px),320px)') > -1 &&
-        f.indexOf('#v2d-svg{display:block;width:auto;') > -1, '']);
+      /* Lo que se busca es la DECLARACION completa: el comentario que explica el retiro nombra
+         el clamp, y buscarlo suelto saldria rojo sobre un arreglo correcto. */
+      ex.push(['el dibujo tiene ancho y alto EXPLICITOS en px, y ninguna altura en vh',
+        f.indexOf('#v2d-svg{display:block;width:220px;height:300px;') > -1 &&
+        f.indexOf('#v2d-svg{display:block;width:auto;height:clamp(') === -1, '']);
+      /* LA LINEA DE FASE, UN SOLO RENGLON DE ALTO FIJO Y SIN SALTO: la otra mitad del arreglo. */
+      ex.push(['la linea de fase es UN renglon de alto fijo, sin salto de linea y con recorte',
+        (function(){ const c = CS('#v2d-fase'), e = CS('#v2d-fase > span');
+          return !!c && !!e && parseFloat(c.height) <= 20 && c.overflow === 'hidden' &&
+                 e.whiteSpace === 'nowrap' && e.textOverflow === 'ellipsis'; })(),
+        (function(){ const c = CS('#v2d-fase'); return c ? c.height + '/' + c.overflow : 'NO EXISTE'; })()]);
       /* UNA SOLA MEDIA QUERY, Y SU CORTE ES 768. */
       ex.push(['UNA sola media query apaga las tres posiciones explicitas, y su corte es 768 px',
         f.indexOf('@media (max-width:768px){') > -1 &&
         f.indexOf('#v2d-dibujo,#v2d-col-insuf,#v2d-col-esten,#v2d-cav{grid-column:1;grid-row:auto;}') > -1 &&
         f.indexOf('@media (max-width:900px){') === -1, '']);
-      ex.push(['y en angosto la tarjeta suelta el ancho y el techo de alto, con 8 px de margen',
-        f.indexOf('#v2d-card{inset:8px;margin:0;width:auto;height:auto;max-height:none;}') > -1, '']); }
+      ex.push(['y en angosto el panel suelta el techo de ancho y el lienzo baja a 240 px explicitos',
+        f.indexOf('#v2d-card{width:auto;margin:0;}') > -1 &&
+        f.indexOf('#v2d-svg{width:100%;height:240px;}') > -1 &&
+        f.indexOf('#v2d-card{inset:8px;margin:0;width:auto;height:auto;max-height:none;}') === -1, '']); }
     { /* Escena con las cuatro camaras y una lesion, para que la tabla y las tarjetas existan. */
       NUEVO();
       S('peso','80'); S('talla','170'); S('ddfvi','66'); S('fevi','30'); S('ai_vol','105');
@@ -68790,8 +68836,11 @@ caso('TC-483', 'Tanda Y1b: la vista 2D CHICA y DISCRETA — el boton del pie con
       ex.push(['DENOMINADOR: el dibujo esta dibujado y tiene geometria',
         !!rs && rs.width > 0 && rs.height > 0,
         rs ? Math.round(rs.width) + 'x' + Math.round(rs.height) : 'SIN DIBUJO']);
-      ex.push(['el dibujo entra en su caja y no pasa de los 320 px de alto',
-        !!rs && !!rc && rs.height <= 320 && rs.left >= rc.left - 1 && rs.right <= rc.right + 1,
+      /* ADAPTADO el 2026-10-16 (tanda Y1c): la vista 2D dejo de ser una ventana flotante. El alto vuelve a los 300 px del punto de
+         partida —ya no depende de la altura de la ventana— y sigue entrando en su caja. */
+      ex.push(['el dibujo entra en su caja y mide entre 260 y 320 px de alto, sin depender de la ventana',
+        !!rs && !!rc && rs.height >= 240 && rs.height <= 320 &&
+        rs.left >= rc.left - 1 && rs.right <= rc.right + 1,
         rs ? Math.round(rs.height) + ' px de alto' : 'SIN DIBUJO']);
       /* LAS TARJETAS ESTAN SIEMPRE VISIBLES: no se pliegan ni se esconden. */
       ex.push(['las dos columnas de tarjetas estan VISIBLES, sin plegado y sin details',
@@ -68928,7 +68977,8 @@ caso('TC-484', 'Tanda Y2: el «porque» de cada tarjeta de la vista 2D — los c
       return !!(o && getComputedStyle(o).display !== 'none'); };
     const ABRIR = () => { try { if (FN('showTab')) showTab('valvulas'); } catch (e) {}
       const b = EL('v2d-abrir'); if (b) b.click(); return ABIERTO(); };
-    const CERRAR = () => { const b = EL('v2d-cerrar'); if (b) b.click(); return ABIERTO(); };
+    /* ADAPTADO el 2026-10-16 (tanda Y1c): la vista 2D dejo de ser una ventana flotante. Ya no hay boton «× Cerrar»: el MISMO boton del pie prende y apaga. */
+    const CERRAR = () => { const b = EL('v2d-abrir'); if (b) b.click(); return ABIERTO(); };
     const NUEVO = () => { try { if (FN('limpiarCampos')) limpiarCampos(true); } catch (e) {} };
     const SEV = (tipo, valv, g) => { try { if (typeof valvSev === 'object' && valvSev) valvSev.aplicar(tipo, valv, g); } catch (e) {} };
     const INF = (estilo) => { try { if (FN('setEstiloInforme')) setEstiloInforme(estilo); } catch (e) {}
@@ -69014,9 +69064,16 @@ caso('TC-484', 'Tanda Y2: el «porque» de cada tarjeta de la vista 2D — los c
         !!t0 && t0.hayBoton === true && t0.btn === 'Ver criterios' &&
         t0.aria === 'false' && t0.oculta === true,
         t0 ? t0.btn + ' · aria=' + t0.aria + ' · oculta=' + t0.oculta : 'SIN TARJETA']);
-      /* EL OBJETIVO TACTIL: 40 px de alto de AREA CLICABLE, que puede ser mayor que lo visible. */
+      /* EL OBJETIVO TACTIL: 40 px de alto de AREA CLICABLE, que puede ser mayor que lo visible.
+         ⚠️ ADAPTADO el 2026-10-16 (tanda Y1c): hay que LLEVAR EL BOTON AL VIEWPORT antes de
+         medir. elementFromPoint trabaja en coordenadas del VIEWPORT y devuelve null fuera de
+         el; desde que el panel es EN LINEA —y no una ventana flotante que se centraba sola— cae
+         debajo del borde inferior de la pagina y la condicion salia roja con «arriba=NADA» sobre
+         un area clicable perfecta. Es el mismo falso que el globo del cociente TAPSE/PSAP ya
+         pago en la tanda Z. */
       { const ul = EL('v2d-insuf');
         const b = ul ? ul.querySelector('.v2d-vercrit') : null;
+        try { if (b && b.scrollIntoView) b.scrollIntoView({ block: 'center' }); } catch (e) {}
         const r = b ? b.getBoundingClientRect() : null;
         let arriba = null, abajo = null;
         if (r && r.width > 0) {
@@ -69817,6 +69874,362 @@ caso('TC-485', 'Tanda Y3: la fila de la VELOCIDAD PICO en la lista «Ver criteri
       ex.push(['LIMITE DECLARADO: y publican TEXTOS DISTINTOS para esa banda — «No favorable» contra «desfavorable». La unificacion es la PARADA Y3-6',
         e1.indexOf('No favorable para valvuloplastia') > -1 &&
         c1.indexOf('desfavorable para valvuloplastia') > -1, e1 + ' || ' + c1]); }
+
+    return { extra: ex };
+  })();
+`);
+
+caso('TC-486', 'Tanda Y1c: la vista 2D EN LINEA — un solo boton que prende y apaga con el color real de una pestana de valvula en reposo y ACTIVA en los dos temas, aria-pressed y aria-controls; el panel debajo del boton, apagado sin ocupar espacio ni entrar en el orden de tabulacion, sin fondo tenue, sin boton de cerrar, sin Esc ni clic afuera y sin desplazamiento interno; el apagado automatico al salir de Valvulas, al limpiar y por el embudo de restauracion; el dibujo con alto EXPLICITO y ninguna altura en vh; la linea de fase en UN renglon de alto fijo; la sincronia en vivo; y el informe, el EN SUMA, los grados, la diastolica, el HFA-PEFF y las 440 columnas del Excel sin moverse', `
+  return (async function(){
+    const ex = [];
+    const EL = (id) => document.getElementById(id);
+    const FN = (n) => typeof window[n] === 'function';
+    const V  = (id) => { const e = EL(id); return e ? e.value : null; };
+    const S  = (id, v) => { try { __t.set(id, v); } catch (e) {} };
+    const FUENTE = () => String(document.documentElement.innerHTML || '');
+    /* ⚠️ TODA LECTURA DE LA VISTA VA POR UN AYUDANTE CON CENTINELA. Contra HEAD el panel es un
+       dialogo flotante, el boton no tiene aria-pressed y varias funciones no existen: un
+       \`.getAttribute\` sobre null mata la corrida entera con un TypeError, y eso prueba que el
+       arbol es distinto, NO que el caso sabe medir. Es la leccion que TC-455, TC-462, TC-465,
+       TC-471, TC-473, TC-474, TC-477, TC-480, TC-481 y TC-485 ya tienen escrita. */
+    const AT  = (id, a) => { const e = EL(id); return e ? String(e.getAttribute(a)) : 'NO EXISTE'; };
+    const CS  = (sel) => { const e = document.querySelector(sel); return e ? getComputedStyle(e) : null; };
+    const RC  = (sel) => { const e = document.querySelector(sel); return e ? e.getBoundingClientRect() : null; };
+    const PINTA = (sel) => { const c = CS(sel); return c ? (c.backgroundColor + ' | ' + c.color + ' | ' + c.borderTopColor) : 'NO EXISTE'; };
+    const PRENDIDO = () => { try { return FN('v2dVisible') ? v2dVisible() : 'SIN FN'; } catch (e) { return 'EXC'; } };
+    const CORRE = () => { try { return FN('v2dCorriendo') ? v2dCorriendo() : 'SIN FN'; } catch (e) { return 'EXC'; } };
+    const TOCAR = () => { const b = EL('v2d-abrir'); if (b) b.click(); return PRENDIDO(); };
+    const TEMA = (claro) => { document.documentElement.classList.toggle('light-mode', !!claro);
+      return document.documentElement.classList.contains('light-mode') === !!claro; };
+    const NUEVO = () => { try { if (FN('limpiarCampos')) limpiarCampos(true); } catch (e) {} };
+    const SEV = (t, v, g) => { try { if (typeof valvSev === 'object' && valvSev) valvSev.aplicar(t, v, g); } catch (e) {} };
+    const VALV = () => { try { if (FN('showTab')) showTab('valvulas'); } catch (e) {} };
+    const INF = (est) => { try { if (FN('setEstiloInforme')) setEstiloInforme(est); } catch (e) {}
+      try { if (FN('generarInforme')) generarInforme(); } catch (e) {}
+      return { inf: V('informe_texto') || '', suma: V('en_suma') || '' }; };
+    const TARJ = (id) => { const ul = EL(id); if (!ul) return 'NO EXISTE';
+      return Array.prototype.slice.call(ul.children).map(function(li){
+        const ch = li.querySelector('.v2d-chip');
+        return { txt: String(li.textContent || '').trim(),
+                 chip: ch ? String(ch.textContent || '').trim() : null }; }); };
+    const EXCEL = () => { try {
+        if (!FN('_labExcelRow')) return { n: 'SIN FN', fila: {} };
+        const c = {};
+        document.querySelectorAll('input[id],select[id],textarea[id]').forEach(function(e){
+          if (e.type === 'checkbox' || e.type === 'radio') c[e.id + '__chk'] = e.checked ? '1' : '0';
+          else c[e.id] = e.value; });
+        const f = _labExcelRow({ id: 'p1', fecha: '2026-10-16', nombre: 'X', campos: c,
+                                 informe_texto: V('informe_texto') || '', en_suma: V('en_suma') || '' });
+        return { n: Object.keys(f).length, fila: f };
+      } catch (e) { return { n: 'EXC', fila: {} }; } };
+    const GRADOS = () => { const o = {};
+      ['im_grado','ia_grado','it_grado','ip_grado','ea_grado','em_grado','et_grado','ep_grado']
+        .forEach(function(id){ const e = EL(id); o[id] = e ? e.value : 'NO EXISTE'; });
+      o.diast = (function(){ const e = EL('dd-interp'); return e ? String(e.textContent || '').trim() : 'NO EXISTE'; })();
+      o.hfapeff = (function(){ const e = EL('hfapeff-eco'); return e ? String(e.textContent || '').trim() : 'NO EXISTE'; })();
+      return o; };
+
+    /* ══ A · EL BOTON: UNO SOLO, MISMO TEXTO, DOS COLORES ══════════════════════════════ */
+    NUEVO(); VALV();
+    { const b = EL('v2d-abrir');
+      const r = b ? b.getBoundingClientRect() : null;
+      ex.push(['DENOMINADOR: el boton existe al pie de Valvulas y TIENE geometria',
+        !!b && !!r && r.width > 0 && r.height > 0,
+        r ? Math.round(r.width) + 'x' + Math.round(r.height) : 'SIN BOTON']);
+      ex.push(['DENOMINADOR: el panel arranca APAGADO', PRENDIDO() === false, String(PRENDIDO())]);
+      /* YA NO ANUNCIA UN DIALOGO: es un interruptor de dos estados sobre una region. */
+      ex.push(['el boton lleva aria-pressed y aria-controls, y ya no aria-haspopup de dialogo',
+        AT('v2d-abrir', 'aria-pressed') === 'false' &&
+        AT('v2d-abrir', 'aria-controls') === 'v2d-ov' &&
+        AT('v2d-abrir', 'aria-haspopup') === 'null',
+        AT('v2d-abrir', 'aria-pressed') + ' / ' + AT('v2d-abrir', 'aria-controls') +
+        ' / haspopup=' + AT('v2d-abrir', 'aria-haspopup')]);
+      const txtApagado = b ? String(b.textContent || '').trim() : 'NO EXISTE';
+      TOCAR();
+      const txtPrendido = b ? String(b.textContent || '').trim() : 'NO EXISTE';
+      ex.push(['el TEXTO es el mismo prendido y apagado',
+        txtApagado === txtPrendido && txtApagado !== 'NO EXISTE', txtApagado + ' vs ' + txtPrendido]);
+      ex.push(['al prender, aria-pressed pasa a true y la clase a btn-primary',
+        AT('v2d-abrir', 'aria-pressed') === 'true' &&
+        String(b.className).indexOf('btn-primary') > -1 &&
+        String(b.className).indexOf('btn-ghost') === -1,
+        AT('v2d-abrir', 'aria-pressed') + ' / ' + (b ? b.className : '?')]);
+      TOCAR();
+      ex.push(['y al apagar vuelve a false y a btn-ghost',
+        AT('v2d-abrir', 'aria-pressed') === 'false' &&
+        String(b.className).indexOf('btn-ghost') > -1 &&
+        String(b.className).indexOf('btn-primary') === -1,
+        AT('v2d-abrir', 'aria-pressed') + ' / ' + (b ? b.className : '?')]); }
+    /* ⚠️ LO QUE SE COMPARA ES EL COLOR REAL RESUELTO Y NO EL NOMBRE DE LA CLASE: dos clases
+       distintas pueden resolver al mismo color y la misma clase a dos. La referencia es
+       #pill-insuf-mitral, una de las OCHO pestanas de valvula. */
+    { const pillOnOff = (q) => { try { return FN('pillOn') ? pillOn('mitral','insuf') === q : 'SIN FN'; } catch (e) { return 'EXC'; } };
+      const ponerPestana = (q) => { try { if (FN('pillOn') && pillOn('mitral','insuf') !== q && FN('toggleValvPill'))
+          toggleValvPill('mitral','insuf'); } catch (e) {} };
+      ex.push(['DENOMINADOR: la pestana de referencia existe', !!EL('pill-insuf-mitral'), '']);
+      for (const par of [['OSCURO', false], ['CLARO', true]]) {
+        TEMA(par[1]);
+        ponerPestana(false);
+        const apag = (PRENDIDO() === true) ? (TOCAR(), PINTA('#v2d-abrir')) : PINTA('#v2d-abrir');
+        const reposo = PINTA('#pill-insuf-mitral');
+        ex.push(['TEMA ' + par[0] + ': el boton APAGADO se ve igual que una pestana en REPOSO',
+          apag === reposo, apag + '   vs   ' + reposo]);
+        TOCAR();
+        const prend = PINTA('#v2d-abrir');
+        ponerPestana(true);
+        const activa = PINTA('#pill-insuf-mitral');
+        ex.push(['TEMA ' + par[0] + ': el boton PRENDIDO se ve igual que una pestana ACTIVA',
+          prend === activa, prend + '   vs   ' + activa]);
+        /* CONTROL NEGATIVO: los dos estados NO se ven iguales entre si. */
+        ex.push(['CONTROL NEGATIVO ' + par[0] + ': apagado y prendido NO son el mismo color',
+          apag !== prend, apag + '   vs   ' + prend]);
+        ponerPestana(false);
+        TOCAR();
+      }
+      TEMA(false); }
+    /* SIN HOVER, como el resto de esta vista. Lo que se mide es la DECLARACION. */
+    { const f = FUENTE();
+      ex.push(['ni el boton ni el panel declaran un estado de hover',
+        (f.match(/#v2d-abrir[^{};]*:hover/g) || []).length === 0 &&
+        (f.match(/#v2d-ov[^{};]*:hover/g) || []).length === 0 &&
+        (f.match(/#v2d-card[^{};]*:hover/g) || []).length === 0, '']); }
+
+    /* ══ B · EL PANEL: APAGADO NO EXISTE, PRENDIDO VA DEBAJO Y NO ES UN DIALOGO ════════ */
+    NUEVO(); VALV();
+    { const r = RC('#v2d-ov'), c = CS('#v2d-ov');
+      ex.push(['APAGADO: el panel mide 0x0 y su display computado es none',
+        !!r && r.width === 0 && r.height === 0 && !!c && c.display === 'none',
+        (r ? Math.round(r.width) + 'x' + Math.round(r.height) : 'NO EXISTE') + ' / ' + (c ? c.display : '?')]);
+      /* ⚠️ EL display:none TIENE QUE GANARLE A UNA REGLA DE AUTOR, y por eso la declaracion
+         lleva !important: el [hidden]{display:none} vive en la hoja del NAVEGADOR y cualquier
+         regla de autor le gana — esta app ya lo pago cinco veces, la ultima con el boton del 3D
+         de ETE, que medía 64x44 VISIBLE con hidden puesto. */
+      ex.push(['y la regla que lo apaga es de AUTOR y explicita, no la del navegador',
+        FUENTE().indexOf('#v2d-ov[hidden]{display:none!important;}') > -1, '']);
+      ex.push(['APAGADO: no hay NI UN control tabulable dentro del panel',
+        (function(){ const o = EL('v2d-ov'); if (!o) return false;
+          return Array.prototype.slice.call(o.querySelectorAll('a[href],button,input,select,textarea,[tabindex]'))
+            .filter(function(e){ return e.offsetParent !== null; }).length === 0; })(),
+        (function(){ const o = EL('v2d-ov'); return o ? String(o.querySelectorAll('button').length) + ' botones en el marcado' : '?'; })()]);
+      ex.push(['APAGADO: el latido NO corre', CORRE() === false, String(CORRE())]); }
+    { TOCAR();
+      const rb = RC('#v2d-abrir'), ro = RC('#v2d-ov'), rc = RC('#v2d-card');
+      ex.push(['DENOMINADOR: el panel prende y tiene geometria',
+        PRENDIDO() === true && !!ro && ro.width > 0 && ro.height > 0,
+        ro ? Math.round(ro.width) + 'x' + Math.round(ro.height) : 'SIN PANEL']);
+      ex.push(['el panel aparece DEBAJO del boton, dentro de la pantalla de Valvulas',
+        !!rb && !!ro && ro.top >= rb.bottom - 1 &&
+        (function(){ const o = EL('v2d-ov'); return !!(o && o.closest('#tab-valvulas')); })(),
+        (rb && ro) ? 'boton hasta ' + Math.round(rb.bottom) + ', panel desde ' + Math.round(ro.top) : '?']);
+      ex.push(['NO es flotante: la tarjeta esta en el flujo y el envoltorio no es position:fixed',
+        (function(){ const a = CS('#v2d-card'), b = CS('#v2d-ov');
+          return !!a && !!b && a.position === 'static' && b.position !== 'fixed'; })(),
+        (function(){ const a = CS('#v2d-card'), b = CS('#v2d-ov');
+          return (a ? a.position : '?') + ' / ' + (b ? b.position : '?'); })()]);
+      ex.push(['NO hay fondo tenue: el envoltorio es transparente',
+        (function(){ const b = CS('#v2d-ov');
+          return !!b && (b.backgroundColor === 'rgba(0, 0, 0, 0)' || b.backgroundColor === 'transparent'); })(),
+        (function(){ const b = CS('#v2d-ov'); return b ? b.backgroundColor : '?'; })()]);
+      ex.push(['NO hay boton «Cerrar» y el panel es una REGION con nombre accesible, no un dialogo',
+        !EL('v2d-cerrar') && AT('v2d-card', 'role') === 'region' &&
+        AT('v2d-card', 'aria-modal') === 'null' &&
+        AT('v2d-card', 'aria-labelledby') === 'v2d-tit' &&
+        (function(){ const t = EL('v2d-tit'); return !!t && /2D/.test(String(t.textContent || '')); })(),
+        AT('v2d-card', 'role') + ' / modal=' + AT('v2d-card', 'aria-modal') +
+        ' / cerrar=' + String(!!EL('v2d-cerrar'))]);
+      /* ⚠️ ESCAPE: el cuerpo de un caso no puede mandar una tecla de confianza, asi que afirma
+         el MECANISMO —que es por lo que el panel ya no entra en el oyente generico— y la tecla
+         real la manda la sonda. Lo mismo con el clic afuera: lo que se mide es que el envoltorio
+         ya no tiene manejador. */
+      ex.push(['Escape no lo apaga: no es un dialogo modal y no tiene boton cuyo manejador diga «cerrar»',
+        AT('v2d-card', 'aria-modal') === 'null' &&
+        (function(){ const o = EL('v2d-ov'); if (!o) return false;
+          return Array.prototype.slice.call(o.querySelectorAll('[onclick]'))
+            .filter(function(e){ return /cerrar/i.test(String(e.getAttribute('onclick') || '')); }).length === 0; })(), '']);
+      ex.push(['tocar fuera no lo apaga: el envoltorio ya no tiene manejador de clic',
+        AT('v2d-ov', 'onclick') === 'null', AT('v2d-ov', 'onclick')]);
+      /* SIN DESPLAZAMIENTO INTERNO: el panel crece con su contenido y la pagina es la que baja. */
+      ex.push(['NO hay desplazamiento interno ni en el cuerpo ni en la tarjeta',
+        (function(){ const c = EL('v2d-cuerpo'), a = EL('v2d-card');
+          if (!c || !a) return false;
+          return c.scrollHeight <= c.clientHeight + 1 && a.scrollHeight <= a.clientHeight + 1; })(),
+        (function(){ const c = EL('v2d-cuerpo');
+          return c ? c.scrollHeight + '/' + c.clientHeight : '?'; })()]);
+      ex.push(['y la pagina no gana scroll horizontal con el panel prendido',
+        document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+        document.documentElement.scrollWidth + '/' + document.documentElement.clientWidth]);
+      /* EL TECHO DE ANCHO Y EL CENTRADO, sobre el envoltorio y no sobre la ventana. */
+      ex.push(['el panel no pasa de 900 px y queda centrado dentro de su envoltorio',
+        (function(){ if (!rc || !ro) return false;
+          return rc.width <= 901 &&
+                 Math.abs((rc.left + rc.right) / 2 - (ro.left + ro.right) / 2) <= 2; })(),
+        rc ? Math.round(rc.width) + ' px' : 'SIN TARJETA']);
+      ex.push(['con el panel prendido el latido SI corre', CORRE() === true, String(CORRE())]);
+      TOCAR();
+      ex.push(['el segundo toque lo apaga y detiene el latido',
+        PRENDIDO() === false && CORRE() === false, String(PRENDIDO()) + '/' + String(CORRE())]); }
+
+    /* ══ C · EL TAMANO: ALTURA EXPLICITA Y NINGUNA EN vh ═══════════════════════════════ */
+    { const f = FUENTE();
+      /* ⚠️ SE BUSCA LA DECLARACION COMPLETA Y NO EL LITERAL DEL CLAMP: el comentario que explica
+         el retiro NOMBRA ese clamp, asi que buscarlo suelto sale ROJO sobre un arreglo correcto.
+         Es la trampa de .ip-ap-col2 que TC-476 ya pago. */
+      ex.push(['el lienzo tiene ancho y alto EXPLICITOS en px, y la declaracion con 100vh ya no esta',
+        f.indexOf('#v2d-svg{display:block;width:220px;height:300px;') > -1 &&
+        f.indexOf('#v2d-svg{display:block;width:auto;height:clamp(') === -1, '']);
+      ex.push(['en angosto el lienzo baja a 240 px, tambien explicitos',
+        f.indexOf('#v2d-svg{width:100%;height:240px;}') > -1, '']);
+      /* ⚠️ NI UNA ALTURA EN PORCENTAJE NI UN flex:1 EN LA CADENA DEL PANEL: ese era el
+         porcentaje (flex-basis:0%) contra un contenedor de altura indefinida que colapsaba el
+         cuerpo en Safari. Se mide la DECLARACION, porque el computado de la que ya no esta no
+         distingue «se retiro» de «nunca estuvo». */
+      ex.push(['la cadena del panel no declara height:max-content, max-height:85vh ni flex:1',
+        f.indexOf('height:max-content;max-height:85vh;') === -1 &&
+        f.indexOf('#v2d-cuerpo{padding:10px 12px;overflow:auto;flex:1;}') === -1, '']);
+      ex.push(['la columna del medio de la grilla tiene ancho EXPLICITO, no auto',
+        f.indexOf('grid-template-columns:184px 240px 184px') > -1 &&
+        f.indexOf('grid-template-columns:184px auto 184px') === -1, '']); }
+    { TOCAR();
+      const rs = RC('#v2d-svg'), rc2 = RC('#v2d-card');
+      ex.push(['DENOMINADOR: el dibujo esta dibujado y tiene geometria',
+        !!rs && rs.width > 0 && rs.height > 0,
+        rs ? Math.round(rs.width) + 'x' + Math.round(rs.height) : 'SIN DIBUJO']);
+      ex.push(['el dibujo entra en el panel y su caja no depende de la fase del latido',
+        (function(){ if (!rs || !rc2) return false;
+          if (!FN('v2dFase')) return false;
+          const a = RC('#v2d-svg'); let ok = true;
+          for (let k = 0; k < 24; k++) { v2dFase(k / 24);
+            const b = RC('#v2d-svg');
+            if (Math.abs(b.width - a.width) > 0.5 || Math.abs(b.height - a.height) > 0.5) ok = false; }
+          return ok && a.left >= rc2.left - 1 && a.right <= rc2.right + 1; })(),
+        rs ? Math.round(rs.width) + 'x' + Math.round(rs.height) : 'SIN DIBUJO']);
+      /* ⚠️ LA ESTABILIDAD DE TODO EL PANEL SE MIDE RECORRIENDO LAS FASES CON v2dFase, que deja
+         el latido en una fase FIJA y dibuja ese cuadro: asi se recorren TODAS las fases sin
+         depender del reloj, que es lo que un caso no puede hacer. El recorrido de los dos
+         ciclos completos en los dos motores lo mide la sonda. */
+      ex.push(['NINGUN elemento del panel se mueve ni cambia de tamano a lo largo del ciclo (0,5 px)',
+        (function(){
+          if (!FN('v2dFase')) return 'SIN FN';
+          const sels = ['#v2d-col-insuf','#v2d-col-esten','#v2d-cav table','.v2d-nota',
+                        '#v2d-abrir','#v2d-grid','#v2d-dibujo','#v2d-fase','#v2d-card'];
+          const base = {}; sels.forEach(function(s){ const r = RC(s); base[s] = r ? [r.width, r.height, r.left, r.top] : null; });
+          let peor = 0, quien = '';
+          for (let k = 0; k < 40; k++) { v2dFase(k / 40);
+            sels.forEach(function(s){ const r = RC(s); if (!r || !base[s]) return;
+              const d = Math.max(Math.abs(r.width - base[s][0]), Math.abs(r.height - base[s][1]),
+                                 Math.abs(r.left - base[s][2]), Math.abs(r.top - base[s][3]));
+              if (d > peor) { peor = d; quien = s; } }); }
+          return { peor: peor, quien: quien };
+        })().peor <= 0.5,
+        (function(){ const e = EL('v2d-fase2'); return 'fase=' + (e ? String(e.textContent || '') : '?'); })()]);
+      /* LA LINEA DE FASE: UN renglon de alto fijo, sin salto y con el texto completo accesible. */
+      ex.push(['la linea de fase es UN renglon de alto fijo, sin salto de linea y con recorte',
+        (function(){ const c = CS('#v2d-fase'), s2 = CS('#v2d-fase > span');
+          return !!c && !!s2 && parseFloat(c.height) <= 20 && c.overflow === 'hidden' &&
+                 s2.whiteSpace === 'nowrap' && s2.textOverflow === 'ellipsis'; })(),
+        (function(){ const c = CS('#v2d-fase'); return c ? c.height + ' / ' + c.overflow : 'NO EXISTE'; })()]);
+      ex.push(['y el texto completo de la fase viaja en el nombre accesible del renglon',
+        (function(){ const e = EL('v2d-fase2'); if (!e) return false;
+          return String(e.getAttribute('title') || '') === String(e.textContent || '') &&
+                 String(e.textContent || '').length > 0; })(),
+        AT('v2d-fase2', 'title')]);
+      /* LAS TARJETAS SIEMPRE VISIBLES. */
+      ex.push(['las dos columnas de tarjetas estan VISIBLES, sin plegado',
+        (function(){ const a = EL('v2d-col-insuf'), b = EL('v2d-col-esten');
+          return !!a && !!b && getComputedStyle(a).display !== 'none' &&
+                 getComputedStyle(b).display !== 'none' &&
+                 !a.querySelector('details') && !b.querySelector('details'); })(), '']);
+      TOCAR(); }
+
+    /* ══ D · SE APAGA SOLO, Y AL VOLVER ESTA APAGADO ═══════════════════════════════════ */
+    NUEVO(); VALV(); TOCAR();
+    { const antes = PRENDIDO();
+      try { if (FN('showTab')) showTab('datos'); } catch (e) {}
+      const tras = PRENDIDO();
+      VALV();
+      ex.push(['se apaga solo al salir de Valvulas, y al volver sigue apagado',
+        antes === true && tras === false && PRENDIDO() === false && CORRE() === false,
+        String(antes) + ' -> ' + String(tras) + ' -> ' + String(PRENDIDO())]); }
+    { TOCAR();
+      const antes = PRENDIDO();
+      NUEVO();
+      ex.push(['se apaga solo al limpiar o cargar un estudio nuevo, y el boton vuelve a apagado',
+        antes === true && PRENDIDO() === false && AT('v2d-abrir', 'aria-pressed') === 'false',
+        String(antes) + ' -> ' + String(PRENDIDO()) + ' / ' + AT('v2d-abrir', 'aria-pressed')]); }
+    /* ⚠️ EL EMBUDO DE LAS CINCO RUTAS DE RESTAURACION: si no estuviera ahi, abrir un estudio
+       guardado dejaria el panel del paciente ANTERIOR publicado al lado del nuevo. */
+    { VALV(); TOCAR();
+      const antes = PRENDIDO();
+      let enEmbudo = 'SIN FN';
+      try { enEmbudo = FN('RECALC_MODULOS') && RECALC_MODULOS().indexOf('v2dCerrar') > -1; } catch (e) { enEmbudo = 'EXC'; }
+      try { if (FN('_recalcModulos')) _recalcModulos(); } catch (e) {}
+      ex.push(['v2dCerrar esta en RECALC_MODULOS, el embudo de las cinco rutas de restauracion, y apaga el panel',
+        enEmbudo === true && antes === true && PRENDIDO() === false,
+        'enEmbudo=' + String(enEmbudo) + ' / ' + String(antes) + ' -> ' + String(PRENDIDO())]); }
+    /* 20 APERTURAS Y CIERRES: ni nodos de mas ni el panel colgado. */
+    { VALV();
+      const n0 = document.querySelectorAll('*').length;
+      for (let k = 0; k < 20; k++) { TOCAR(); TOCAR(); }
+      ex.push(['20 aperturas y cierres no acumulan nodos y dejan el panel APAGADO',
+        document.querySelectorAll('*').length === n0 && PRENDIDO() === false && CORRE() === false,
+        n0 + ' -> ' + document.querySelectorAll('*').length]); }
+    /* NADA SE ESCRIBE: ni en el estudio ni en el navegador. */
+    { VALV();
+      const campos = () => { const c = {};
+        document.querySelectorAll('input[id],select[id],textarea[id]').forEach(function(e){
+          if (e.type === 'checkbox' || e.type === 'radio') c[e.id + '__chk'] = e.checked ? '1' : '0';
+          else c[e.id] = e.value; }); return JSON.stringify(c); };
+      const claves = (st) => { const a = []; for (let i = 0; i < st.length; i++) a.push(st.key(i)); return a.sort().join(','); };
+      const c0 = campos(), l0 = claves(localStorage), s0 = claves(sessionStorage);
+      TOCAR(); TOCAR();
+      ex.push(['prender y apagar el panel no escribe NI UN campo del estudio ni nada en el navegador',
+        c0 === campos() && l0 === claves(localStorage) && s0 === claves(sessionStorage), '']); }
+
+    /* ══ E · LA SINCRONIA EN VIVO ══════════════════════════════════════════════════════ */
+    { NUEVO(); S('peso', '80'); S('talla', '170'); S('im_vc', '7');
+      try { if (FN('calcIM_ESC')) calcIM_ESC(); } catch (e) {}
+      VALV(); TOCAR();
+      const antes = TARJ('v2d-insuf');
+      SEV('insuf', 'mitral', '1');
+      const tras = TARJ('v2d-insuf');
+      ex.push(['DENOMINADOR: con el panel prendido la tarjeta de la IM esta publicada',
+        Array.isArray(antes) && antes.length === 1 && !!antes[0].chip,
+        JSON.stringify(antes).slice(0, 110)]);
+      ex.push(['SINCRONIA EN VIVO: cambiar el grado con el panel PRENDIDO lo actualiza sin reabrirlo',
+        Array.isArray(antes) && Array.isArray(tras) && antes.length === 1 && tras.length === 1 &&
+        antes[0].chip !== tras[0].chip && tras[0].chip === 'Leve',
+        String(antes[0] && antes[0].chip) + ' -> ' + String(tras[0] && tras[0].chip)]);
+      /* CONTROL NEGATIVO: tipear en un campo que esta vista NO mira no repinta nada. */
+      const a2 = JSON.stringify(TARJ('v2d-insuf'));
+      S('nombre', 'Zz');
+      ex.push(['CONTROL NEGATIVO: tipear en un campo que la vista no mira no repinta la tarjeta',
+        a2 === JSON.stringify(TARJ('v2d-insuf')), '']);
+      TOCAR(); }
+
+    /* ══ F · LOS CONTROLES: NADA DE LO FIRMADO SE MUEVE ════════════════════════════════ */
+    { NUEVO(); S('peso', '80'); S('talla', '170'); S('ddfvi', '66'); S('fevi', '30');
+      S('ai_vol', '105'); S('vd_bas', '47'); S('tapse', '14'); S('ad_area', '24');
+      ['calcVI','calcVD','calcAI'].forEach(function(f){ try { if (FN(f)) window[f](); } catch (e) {} });
+      SEV('insuf', 'mitral', '4'); SEV('insuf', 'aortica', '2'); SEV('esten', 'aortica', 'severa');
+      VALV();
+      const i0 = {}; ['estandar','narrativo','conciso'].forEach(function(e){ i0[e] = INF(e); });
+      INF('estandar');
+      const g0 = GRADOS(), x0 = EXCEL();
+      VALV(); TOCAR();
+      const i1 = {}; ['estandar','narrativo','conciso'].forEach(function(e){ i1[e] = INF(e); });
+      INF('estandar'); VALV();
+      const g1 = GRADOS(), x1 = EXCEL();
+      TOCAR();
+      ex.push(['DENOMINADOR: la escena tiene veredicto en las ocho lesiones y el Excel sale con sus 440 columnas',
+        x0.n === 440, String(x0.n)]);
+      ex.push(['el informe y el EN SUMA salen IDENTICOS con el panel apagado y prendido, en los TRES estilos',
+        JSON.stringify(i0) === JSON.stringify(i1),
+        JSON.stringify(i0.estandar).slice(0, 110)]);
+      ex.push(['los grados, las pastillas, la diastolica y el HFA-PEFF no se mueven',
+        JSON.stringify(g0) === JSON.stringify(g1), JSON.stringify(g0).slice(0, 140)]);
+      ex.push(['el Excel sigue en 440 columnas y con el MISMO valor en cada una',
+        x1.n === 440 && JSON.stringify(x0.fila) === JSON.stringify(x1.fila),
+        String(x0.n) + ' -> ' + String(x1.n)]); }
 
     return { extra: ex };
   })();
