@@ -252,6 +252,133 @@ salidas posibles están en `docs/PENDIENTES.md` → **H-2**.
 
 ---
 
+## 9 · El volumen que NO se puede indexar — la tanda «J» (2026-10-16)
+
+Cierra **H-1** por su salida **(a)**: declarar la medición sin afirmar.
+
+> ⚠️ **El prompt de la tanda J la llamó «opción B» y describió la (a).** Lo que manda es la
+> descripción —«dice el volumen medido sin indexar y que no se clasifica»—, que es la (a) de
+> este archivo; la (b) era «pedir el dato». Queda anotado para que la letra no confunda.
+
+### El dueño del ESTADO, al lado del dueño de los cortes
+
+| Pieza | Qué es |
+|---|---|
+| `aiVolSinIndexar(vol, bsa)` | el predicado: hay volumen legible y no hay superficie corporal |
+| `AI_SIN_IDX_ROT` | `'Sin indexar (falta ASC)'`, el rótulo que comparten la cápsula y el PDF |
+
+**Ningún corte se movió**: `aiVolClasificar` y `AI_VOL_BANDAS` no se tocaron. Lo que faltaba era
+un dueño del estado, que vivía implícito en **tres** `if` distintos —`!vol || !bsa` en la
+cápsula, `ai_vol && bsa` en el informe y `_pAiVol.crudo && bsa` en la fila del PDF— y por eso las
+tres publicaban cosas distintas del mismo paciente: raya, normalidad y fila ausente.
+
+⚠️ **EL RÓTULO ES ASCII PURO Y SIN EM DASH.** Lo imprime la tabla del PDF, que se dibuja con
+jsPDF en WinAnsi y **no** pasa por `amiloSanPDF` —que es la que transliteraría el em dash a `-`—.
+Un glifo fuera de la codificación sale como basura: medido en la tanda H con el símbolo del sexo,
+que jsPDF 2.5.1 imprimió como «&B» y además desmaquetó la línea entera.
+
+### La rama nueva del informe, y dónde va en la cascada
+
+```
+if (ai_vol && bsa)        → el grado por volumen indexado        (sin cambios)
+else if (aiGeoMedido)     → área / diámetro, binario y sin grado  (sin cambios)
+else if (ai_vol)          → DECLARA el volumen sin indexar       ← NUEVA
+else if (!aiGeoFuera)     → la frase de normalidad               (sin cambios)
+```
+
+Va **después** de `aiGeoMedido` y eso es la mitad del arreglo: con área o diámetro cargados la
+cascada los sigue usando como hoy, y la línea nueva sólo habla cuando no hay nada más con qué
+clasificar —que es exactamente el caso que negaba—.
+
+| Estilo | Frase |
+|---|---|
+| conciso | `AI sin graduar (volumen 98 ml, sin indexar).` |
+| estándar | `Volumen de la aurícula izquierda de 98 ml, sin indexar por falta de superficie corporal; no se informa el tamaño auricular.` |
+| narrativo | `El volumen de la aurícula izquierda es de 98 ml. No se puede indexar por superficie corporal —falta el peso o la talla—, así que no se informa el tamaño auricular: la guía lo gradúa sólo por volumen indexado.` |
+
+⚠️ **EL CONCISO SIGUE EL PATRÓN «AI \<algo\> (\<dato\>).»** y no «AI: …». La primera versión con
+dos puntos quedó fuera del filtro de la sonda —que ancla al comienzo de línea— e informó «la
+línea desapareció del conciso» sobre un informe perfecto: **el filtro era del lector, pero la
+inconsistencia de estilo era real**.
+
+### Las cuatro superficies, y el EN SUMA que NO cambia
+
+| Superficie | Antes | Ahora |
+|---|---|---|
+| informe, 3 estilos | afirmaba normalidad | declara el volumen sin indexar |
+| **EN SUMA** | no nombra la AI | **sin cambios** (decisión de Maicol) |
+| cápsula `ai-interp` | `—` | `Sin indexar (falta ASC)`, badge **gris** |
+| campo `ai-idx` | `—` | **sin cambios**: es el valor INDEXADO, y no existe |
+| PDF, fila `Vol. indexado` | la fila **desaparecía** del filtro de la tabla | `(<=34 ml/m2): Sin indexar (falta ASC)` |
+| PDF, fila `Volumen AI` | los ml | **sin cambios** |
+
+`gray` y no `yellow`: los cuatro colores de `AI_VOL_BANDAS` son GRADOS y el amarillo ya significa
+«dilatación leve» en esa misma cápsula.
+
+⚠️ **NO LLAMA A `ccMarcarParrafo()`**, a diferencia de la rama de `aiGeoFuera`. Marcar cambiaría
+el texto GLOBAL del EN SUMA, que esta orden no autoriza. La contrapartida queda declarada:
+`docs/PENDIENTES.md` → **J-1**.
+
+### El Laboratorio no la lee como categoría — medido
+
+La fila «Dilatación AI» de `_LAB_HALLAZGOS` es un **regex sobre el TEXTO**
+(`/dilataci[oó]n.{0,10}auricular|AI\s+(?:dilata|agrand)/i`) y `_labLavi` recalcula el indexado
+desde `ai_vol`, `peso` y `talla` —sin peso ni talla da `null`—. Medido en las 18 escenas: la
+frase nueva da `dilat:false` **y** `normal:false`, o sea que no entra en ninguna categoría. **No
+se tocó una línea del Laboratorio ni del Excel.**
+
+### Escenas que cambian contra HEAD: **4 de 18**
+
+| Escena | Qué cambia |
+|---|---|
+| volumen sin ASC | la frase en los tres estilos, la cápsula, el Laboratorio deja de leer «normal» |
+| volumen sin ASC + DAP dilatado | **sólo la cápsula**: el informe sigue usando el diámetro, como hoy |
+| volumen sin ASC y nada más | igual que la primera |
+| el PDF de esa escena | la fila `Vol. indexado` aparece con su motivo |
+
+Las otras **14** salen idénticas: los cuatro grados por volumen, los cuatro de discordancia, las
+cuatro sin volumen y los dos controles.
+
+---
+
+## 10 · La UNA línea de la AI en el PPT — «J2»
+
+⚠️ **LA PREMISA DE LA ORDEN ERA PARCIALMENTE FALSA.** El PPT no publicaba «Volumen AI» en ml y
+nada más: publicaba **DOS** filas —`Volumen AI` en ml y `Vol. AI indexado` leído del span
+`ai-idx`— y **ninguna de las dos tenía fallback**: sin volumen, con el área o el diámetro
+cargados, la AI no salía en la diapositiva por ningún camino.
+
+Dueño: **`aiResumenUno()`**, al lado del de los cortes. Devuelve `{lbl, val, suf}` o `null`.
+
+| Rama | Condición | Lo que publica (medido) |
+|---|---|---|
+| (a) | volumen indexable | `Vol. AI indexado` · `49.0` · ` ml/m²` |
+| (b) | sin volumen, con área | `Área AI` · `25` · ` cm²` |
+| (c) | sin volumen ni área, con diámetro | `Diám. AP AI` · `44` · ` mm` |
+| (d) | volumen que no se puede indexar | `Volumen AI` · `98` · ` ml (sin indexar)` |
+| — | sin ningún dato | `null`: **no hay fila**, como hoy |
+
+Controles negativos medidos: con área **y** diámetro manda el área; con volumen indexable y área
+manda el indexado; y con el **área fuera de banda** (250 cm²) cae al diámetro.
+
+⚠️ **EL ÁREA Y EL DIÁMETRO SE LEEN POR SU BANDA DE PLAUSIBILIDAD y el volumen crudo**, que es
+como los lee la rama del informe de cada uno. Acá la banda no decide sólo si se imprime un
+número: decide **cuál de los tres se publica**, así que un área de 250 cm² —mm² tipeados por
+cm²— elegiría la línea y dejaría afuera al diámetro bien medido.
+
+⚠️ **DEVUELVE EL VALOR Y EL SUFIJO POR SEPARADO** para que el PPT lo pase por su propio
+`fila(arr, k, val, suf)`. Así el texto de la rama (a) sale **idéntico** al de HEAD: `_pptTxt` no
+toca el `²` y el sufijo se concatena después de él.
+
+⚠️ **NO LEE EL SPAN `ai-idx`** aunque el texto sea el mismo: ese span lo pinta `calcAI`, así que
+leerlo ataba la diapositiva a que la cápsula estuviera pintada.
+
+⚠️ **SIN PARÁMETRO `src`**: el PPT clínico lee el DOM —`_pptNum` y `_pptSpan` leen el DOM— y no
+hay otro consumidor. El fuente se verifica por la **declaración completa** y no por una mención:
+un comentario que nombre lo retirado se lee igual que el código retirado (la trampa de TC-476).
+
+---
+
 ## 8 · Cómo medir esta zona
 
 ```bash

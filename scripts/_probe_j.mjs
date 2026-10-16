@@ -1061,11 +1061,18 @@ async function main() {
       const antesRec = await J('JSON.stringify(window.__P.ident())');
       await cdp.send('Page.enable', {}, sessionId);
       await cdp.send('Page.reload', { ignoreCache: false }, sessionId);
-      await pausa(2500);
-      for (let i = 0; i < 60; i++) {
-        try { await ev(SONDA); const l = await J('JSON.stringify(window.__P.listo())'); if (l.listo) break } catch (e) {}
-        await pausa(400);
+      /* ⚠️ 60 s DE ESPERA Y NO 24, y es por el tamanio del archivo: son 8 MB de HTML con el JS
+         inline, asi que una recarga tarda bastante mas que la carga inicial —que la sonda ya
+         espera con su propio bucle de 120 intentos—. Con 24 s el bucle se agotaba sin exito y
+         el `ev()` siguiente moria con «no resolvio», y la escena abortaba sin medir. */
+      await pausa(5000);
+      let recargo = false;
+      for (let i = 0; i < 120; i++) {
+        try { await ev(SONDA, 8000); const l = await J('JSON.stringify(window.__P.listo())');
+          if (l.listo) { recargo = true; break } } catch (e) {}
+        await pausa(500);
       }
+      if (!recargo) throw new Error('LA PAGINA NO VOLVIO A CARGAR tras el reload');
       await ev('JSON.stringify(window.__P.despejar())');
       g['19 recargar vuelve al documento'] = { antes: antesRec,
         despues: await J('JSON.stringify(window.__P.ident())'),

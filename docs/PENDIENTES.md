@@ -3742,7 +3742,23 @@ verse exactamente como una pestaña activa.
 
 ## Tanda «H» — la AI por volumen y las dos correcciones del PDF (2026-10-16)
 
-### H-1 · El volumen medido SIN superficie corporal, y sin ninguna otra medición, hace que el informe AFIRME normalidad
+### ✅ H-1 · CERRADO el 2026-10-16 (tanda J, commit 1) — por la salida (a)
+
+**Resuelto.** El informe ya no afirma normalidad: **declara** el volumen medido sin indexar y
+dice que no se clasifica, con su frase en los tres estilos; la cápsula publica
+«Sin indexar (falta ASC)» donde tenía la raya, y la fila «Vol. indexado» del PDF dice por qué no
+hay índice en vez de desaparecer de la tabla. **Con área o diámetro cargados la cascada los usa
+como antes** —la línea nueva sólo habla cuando no hay nada más con qué clasificar—.
+Medido: **4 escenas de 18 cambian** contra HEAD. Lo implementado está en
+`docs/mapa/auricula-izquierda-pdf.md` § 9. **TC-487 (7b) se adaptó**: era el límite declarado y
+hoy afirma lo contrario.
+
+⚠️ **El prompt de la tanda J la llamó «opción B» y describió la (a).** Lo que manda es la
+descripción; la (b) de abajo era «pedir el dato». Queda anotado para que la letra no confunda.
+
+Lo que sigue es el estado en el que la parada se declaró.
+
+### ⏸️ H-1 · El volumen medido SIN superficie corporal hacía que el informe AFIRMARA normalidad (estado del 2026-10-16, cerrado)
 
 **Medido, y es PREEXISTENTE.** Con `ai_vol = 98` y sin peso ni talla, el informe firmado publica
 «Aurícula izquierda de dimensiones normales.» sobre una aurícula cuyo único dato es un volumen
@@ -3915,3 +3931,105 @@ su reimportación los pierde: el derrame pleural vuelve sin lado, la consolidaci
 pericardio sin su compromiso y el Wilkins sin su marca —o sea un 1/1/1/1 reimportado queda «sin
 puntuar», que es el lado conservador—. Agregarles columna es **PARADA de columna** (el Excel tiene
 440). **Es decisión de Maicol.**
+
+---
+
+## Tanda «J» (2026-10-16) — DECLARADO y NO arreglado
+
+> Lo implementado está en `docs/mapa/auricula-izquierda-pdf.md` §§ 9-10,
+> `docs/mapa/identificacion-paciente.md` y `docs/mapa/panel-frases.md`.
+> Cierra **H-1** por su salida (a).
+
+### J-1 · La línea nueva de la AI NO marca párrafo, así que el EN SUMA puede seguir negando
+
+Con el volumen medido, sin superficie corporal y sin nada más, el informe declara
+«Volumen de la aurícula izquierda de 98 ml, sin indexar…» **y el EN SUMA puede caer en su
+fallback** —«Estudio sin alteraciones estructurales ni funcionales significativas»— sobre un
+informe que dos renglones arriba declara un volumen auricular sin clasificar.
+
+**No se corrigió a propósito.** La rama hermana de `aiGeoFuera` sí llama a `ccMarcarParrafo()`
+por este mismo argumento —«negar *sin alteraciones* cuando una medición no se pudo leer deja al
+lector sin saber si se perdió un hallazgo»—, pero marcar cambia el texto **GLOBAL** del EN SUMA
+y la orden de esta tanda dice que el EN SUMA **no menciona la AI en ese caso** y no autoriza
+tocar sus demás frases. Es **menos grave que antes**: hoy el cuerpo declara el volumen, donde
+antes afirmaba normalidad.
+
+**Dos salidas, con la conservadora marcada:**
+* **(a) ★** dejarlo como está, y que el cuerpo sea el que informa;
+* **(b)** llamar a `ccMarcarParrafo()` en la rama nueva: el EN SUMA pasa a «Sin OTRAS
+  alteraciones significativas — ver los hallazgos descritos en el cuerpo». **Una línea.**
+
+### J-2 · El PDF de los módulos de amiloidosis sigue imprimiendo sólo el documento
+
+`amiloImprimirPDF` dibuja su encabezado con `_s('ci')` y `_s('doc_tipo')` en **dos** lugares
+—el encabezado y el `titPagina` de las hojas de continuación— y **no** le pregunta a
+`pacIdImpreso`. Así que el médico que elige la matrícula la ve en el informe y **no** en la hoja
+de ETT Avanzado del mismo taco.
+
+**No se tocó**: la orden autoriza «el PDF» y «el PPT», y esto es otro generador. Es **una línea
+por sitio** y el dueño ya existe.
+
+### J-3 · El `aria-label` de los marcadores no dice el estado en palabras
+
+Los dos marcadores anuncian su estado con `aria-pressed`, que es el patrón estándar de un botón
+de alternancia y lo que un lector de pantalla lee como «pulsado». El botón del panel de
+Evidencia, en cambio, **declara su estado en el `aria-label`** porque ahí el estado vive sólo en
+el color y no hay `aria-pressed`.
+
+Se eligió `aria-pressed` por ser el mecanismo nativo; queda anotado que las dos superficies de
+esta app resuelven lo mismo de dos maneras distintas.
+
+### J-4 · El nombre del ARCHIVO del PDF no sigue la elección
+
+`_fmtOpts` ya ofrece cinco formatos de nombre de archivo —dos con el documento y dos con la
+matrícula— y los gobierna `localStorage ett_filename_fmt`, una preferencia aparte. **No se
+tocó**: es el nombre del archivo, no la identificación impresa, y la orden habla de lo que se
+imprime. Hoy un médico puede tener el PDF llamado por el documento y la matrícula impresa
+adentro.
+
+### J-5 · El importador de Excel no trae la elección
+
+Un estudio importado desde Excel no trae `pac_id_print` en `campos`, así que al abrirlo
+`pacIdRestaurar` lo deja en el **documento**, que es el default. Es el comportamiento correcto y
+queda declarado. **No se agregó ninguna columna al Excel** (la orden lo marca como PARADA): el
+libro sigue en **440**.
+
+La **exportación e importación JSON sí conservan la elección**, por construcción: `campos` viaja
+entero y el validador de `_INF_CAMPOS_PERMITIDOS` acota las claves de **nivel superior**, no las
+de `campos`.
+
+### J-6 · El formato del rótulo impreso no se unificó entre el PDF y el PPT
+
+El PDF imprime el rótulo en su **propia celda** («CI» / «Matrícula» en una columna y el valor en
+otra) y el PPT lo pega al valor en una tira («CI 4455667»). Y con `doc_tipo` vacío el PDF escribe
+«Cédula» y el PPT «CI». **Las dos diferencias ya existían** y cada superficie conserva su
+literal: unificarlas cambiaría uno de los dos papeles sin que nadie lo haya pedido.
+
+### J-7 · La columna de frases a 1200 px angosta el informe a su mínimo cómodo
+
+Con el panel abierto a 1200 px el informe y el EN SUMA pierden 290 px de ancho. Es lo pedido
+—«el informe y el EN SUMA conservan un ancho cómodo»— y a ese ancho quedan en unos 630 px, que
+sigue siendo más que el ancho de lectura de un párrafo. **A 1440 y 1920 px no hay nada que
+declarar.** Los números medidos están en `docs/mapa/panel-frases.md`.
+
+### J-8 · Los dos marcadores suman 2 hallazgos y 2 ALTAS al chequeo de celular
+
+`node scripts/check_mobile.js` pasa de **43 / 52 con 1 ALTA** a **45 a 360 px y 54 a 390 px, con
+3 ALTA cada uno**. Los dos de más son los marcadores: `check_mobile.js` mide el **rect del
+nodo** y los dos `<button>` miden **7 × 11 px**; su área táctil real la da un `::after` absoluto,
+que el chequeo no ve. Es el mismo precedente que el botón del «porqué» de la vista 2D ya dejó
+declarado. La severidad sale ALTA porque la excepción del «label envolvente» de ese script sólo
+alcanza a `checkbox` y `radio`.
+
+**No se corrigió, y el motivo está medido:** el `.fg` mide 44-49 px de alto entre el rótulo y el
+campo, así que un botón de 44 × 44 **o desplaza el campo** —lo que la orden prohíbe— **o tapa
+el input**. El área efectiva medida con `elementFromPoint` es **35 × 41 px**, y **18 de 18**
+toques llegan al botón a 1200, 768 y 390 px en los dos temas.
+
+**Tres salidas, con la conservadora marcada:**
+* **(a) ★** dejarlo y declararlo, que es lo que hay;
+* **(b)** ensanchar el `::after` de 14 a 16,5 px por lado para llegar a **40 × 41**, el número
+  que el botón del «porqué» usa. **No cambia el conteo** —el chequeo sigue midiendo el nodo—
+  pero mejora el área real. Dos valores de CSS;
+* **(c)** enseñarle a `check_mobile.js` a mirar el `::after` cuando existe. Toca el arnés, no el
+  producto, y le cambiaría el conteo a los otros botones que usan el mismo recurso.

@@ -2849,3 +2849,29 @@ que habla de **tres o más** por espacio y **no menciona ninguna separación en 
 
 El selector sigue ofreciendo **focal** y **difuso**, como hasta hoy, y la oración del informe no
 cambió. `docs/PENDIENTES.md` → Y3b-6.
+
+---
+
+## La tanda «J» (2026-10-16) — por qué NO lleva ninguna cita nueva
+
+Las cuatro partes se midieron y **ninguna agrega, mueve ni retira un corte clínico**, así que no
+hay nada que verificar contra una guía:
+
+* **J1 — la AI con volumen que no se puede indexar.** No es un corte nuevo: es un **estado**. Los
+  cuatro cortes del volumen indexado siguen siendo los de **ASE/EACVI 2015 (Lang), Tabla 4, folio
+  10**, verificados en texto completo en la tanda H, y `aiVolClasificar` —su único dueño— no se
+  tocó. Lo que entra es la frase que **declara** la medición sin clasificarla, y la guía no tiene
+  nada que decir sobre un paciente al que no se le midieron el peso y la talla.
+  ⚠️ La frase nueva **no afirma ni niega dilatación**, así que tampoco invoca a esa tabla. La
+  única cláusula con contenido de guía es «la guía lo gradúa sólo por volumen indexado», que es
+  exactamente lo que la rama de `aiGeoMedido` ya decía desde la tanda H y que esa Tabla 4
+  respalda: el diámetro AP y el área no tienen bandas de grado en ella.
+* **J2 — la UNA línea de la AI en el PPT.** Elige **cuál de tres valores ya medidos se publica**
+  y no clasifica nada. Las bandas de plausibilidad que usa (`ai_area [3,60]`, `ai_diam [10,90]`)
+  son las que ya existían vía `_labRango`, y **son rangos de lo medible, no criterios**: por la
+  regla de la casa van **sin cita**.
+* **J3 — la identificación del paciente.** Es administrativo, no clínico.
+* **J4 — la disposición del panel de frases.** Es maqueta.
+
+**Ninguna entrada de este archivo se modificó**, y la única que esta tanda consulta —
+`aseCamaras2015`— queda como la dejó el H.

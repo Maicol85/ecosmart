@@ -198,3 +198,39 @@ los dos motores, lo manda la sonda por el protocolo.
 código NO la pone— y la regla del guarda por el fuente; el gesto real (tipear el primer carácter de
 una opción) lo manda la sonda, y ahí se midió además que `selectOption` de Playwright llega con
 `isTrusted` en `false`.
+
+---
+
+## TC-489 — tanda «J» (2026-10-16)
+
+**56 condiciones**, contadas sobre el propio caso (`grep -c 'ex.push(\['` en su rango), con
+**seis denominadores** y **once controles negativos**.
+**Verificado que sabe fallar contra HEAD en un worktree aparte: 35 de las 56 en rojo, y NINGUNA
+por excepción.** Las 21 que pasan son lo que esta tanda no mueve: las escenas de la AI con área,
+con diámetro y con volumen indexable, la frase de normalidad sin datos, el gesto de guardar, el
+almacenamiento, las cuatro condiciones del panel que ya existían y los cinco controles.
+
+| Bloque | Qué fija |
+|---|---|
+| **A** (10) | la AI con volumen sin ASC: la frase en los tres estilos, el EN SUMA mudo, la cápsula, el rótulo ASCII, el predicado por sus cuatro estados y **cuatro controles negativos** (área, diámetro, volumen indexable y sin datos) |
+| **B** (8) | la UNA línea del PPT: sus cuatro ramas, el caso sin datos y **tres controles** (área+diámetro, indexado+área, área fuera de banda), más que la diapositiva ya no arma dos filas |
+| **C** (20) | la identificación: el default, los dos gestos, el segundo toque, la memoria de sesión, el dato vacío por los dos lados, los dos vacíos, el guardado, las dos reaperturas, el estudio viejo, el almacenamiento, el oculto y las dos superficies por el fuente |
+| **D** (13) | el panel de frases: las cuatro reglas de CSS, la estructura del DOM, los ids alcanzables, la accesibilidad, el cajón a 756 px, el cursor en los dos textarea y 20 ciclos |
+| **E** (5) | los controles: el denominador del escenario, la AI indexable, **el Excel en 440 clave por clave**, la diastólica con las ocho severidades y el dueño del Wilkins |
+
+⚠️ **EL CUERPO DE UN CASO NO PUEDE MANDAR UN CLIC DE CONFIANZA NI CAMBIAR EL ANCHO DE LA
+VENTANA.** Los marcadores se tocan con un `.click()` sintético —que sí dispara el oyente
+delegado— y la maqueta de dos columnas **no es medible** a los 756 px de la suite: el caso fija
+**la regla** que la produce y **la estructura**, y mide el cajón angosto, que es lo que la orden
+congela. La maqueta renderizada a 1200, 1440 y 1920 px y el clic real los mide
+`scripts/_probe_j.mjs` y `scripts/_probe_jwk.mjs`. Es el reparto de TC-460, TC-463 y TC-485.
+
+⚠️ **MURIÓ POR EXCEPCIÓN CONTRA HEAD EN SU PRIMERA VERSIÓN**, con CERO condiciones en rojo y un
+stack en vez de una medición: `EL('pac-id-mk-ci').getAttribute('onclick')` sobre un nodo que allá
+no existe. Toda lectura de los marcadores va por un ayudante con centinela (`MKAT`, `MKCS`,
+`MKTAG`). Es la lección que TC-455, TC-473, TC-477, TC-480 y TC-487 ya tenían escrita.
+
+⚠️ **Y UNA CONDICIÓN SALIÓ ROJA POR UN REDONDEO**: `height` y `maxHeight` del cajón salen del
+MISMO `65vh` y el motor las devuelve como `304.844px` y `304.85px`, así que la igualdad de
+cadena daba rojo sobre un cajón perfecto. Se comparan con tolerancia, y además contra el 65 % del
+viewport.

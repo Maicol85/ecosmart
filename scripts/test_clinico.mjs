@@ -70794,17 +70794,24 @@ caso('TC-487', 'Tanda H: la AURICULA IZQUIERDA con un solo dueno —el volumen i
         LAI('estandar').indexOf('Aurícula izquierda dilatada (área 25 cm²).') === 0 &&
         SAI('estandar') === 'AI dilatada (área 25 cm²).', LAI('estandar').slice(0, 140)]); }
 
-    /* ⚠️ VOLUMEN MEDIDO Y SIN SUPERFICIE CORPORAL: no se puede indexar, asi que se trata como
-       «sin volumen», que es la opcion conservadora que pidio la orden. Con el diametro
-       dilatado publica la frase SIN grado; sin ninguna otra medicion cae en la rama de
-       normalidad, que es un limite DECLARADO y queda en PENDIENTES. */
+    /* ⚠️ VOLUMEN MEDIDO Y SIN SUPERFICIE CORPORAL. Con el diametro dilatado se sigue tratando
+       como «sin volumen» y publica la frase SIN grado, igual que en la tanda H.
+       ADAPTADO el 2026-10-16 (tanda J, commit 1): LA CONDICION (7b) ERA EL LIMITE DECLARADO DEL
+       H —«con el volumen sin indexar y NADA mas, el informe cae en la rama de normalidad»,
+       escrita para que el dia que se decidiera se notara— Y LO NOTO. Hoy afirma lo CONTRARIO:
+       el informe DECLARA el volumen sin indexar y ya no afirma normalidad. Es H-1 cerrado por
+       su salida (a). */
     { MONTAR({ ai_vol: '98', ai_diam: '50' }, true);
       ex.push(['(7) volumen SIN superficie corporal: se trata como sin volumen y publica la frase sin grado',
         LAI('estandar').indexOf('Aurícula izquierda dilatada (diámetro AP 50 mm).') === 0 &&
         TXT('ai-idx') === '—', LAI('estandar').slice(0, 140) + ' | idx=' + TXT('ai-idx')]); }
     { MONTAR({ ai_vol: '98' }, true);
-      ex.push(['(7b) LIMITE DECLARADO: con el volumen sin indexar y NADA mas, el informe cae en la rama de normalidad',
-        LAI('estandar').indexOf('de dimensiones normales') > -1, LAI('estandar').slice(0, 120)]); }
+      ex.push(['(7b) ADAPTADO (J1): con el volumen sin indexar y NADA mas, el informe DECLARA el volumen y NO afirma normalidad',
+        LAI('estandar').indexOf('de dimensiones normales') === -1 &&
+        LAI('estandar').indexOf('sin indexar por falta de superficie corporal') > -1 &&
+        SAI('estandar') === '' &&
+        TXT('ai-interp').indexOf('Sin indexar') > -1,
+        LAI('estandar').slice(0, 150) + ' | suma=' + SAI('estandar') + ' | cap=' + TXT('ai-interp')]); }
 
     { MONTAR({});
       ex.push(['(8) sin NINGUN dato de la AI: la frase corta de normalidad, sin numeros',
@@ -70886,6 +70893,351 @@ caso('TC-487', 'Tanda H: la AURICULA IZQUIERDA con un solo dueno —el volumen i
         r.inf.split(NL).filter(function(l){ return l.indexOf('VCI') > -1; }).join(' // ')]);
       ex.push(['los ocho grados y las pastillas no quedaron en un estado imposible',
         Object.keys(g).length === 10, JSON.stringify(g).slice(0, 120)]); }
+
+    return { extra: ex };
+  })();
+`);
+
+caso('TC-489', 'Tanda J: la AURICULA IZQUIERDA con volumen que NO se puede indexar —declara el volumen sin indexar en los tres estilos, la capsula y el PDF dicen lo MISMO, el EN SUMA no la menciona y el Laboratorio no la lee como categoria—; la UNA linea de la AI en el PPT con sus cuatro ramas; la IDENTIFICACION del paciente con los dos marcadores, la memoria de sesion, el guardado, la reimpresion y el PDF; y el panel de FRASES como columna alta con el informe y el EN SUMA apilados a la izquierda; mas el informe, el EN SUMA, los grados, la diastolica, el Wilkins y las 440 columnas del Excel sin moverse', `
+  return (async function(){
+    const ex = [];
+    const EL = (id) => document.getElementById(id);
+    const FN = (n) => typeof window[n] === 'function';
+    const V  = (id) => { const e = EL(id); return e ? e.value : null; };
+    const S  = (id, v) => { try { __t.set(id, v); } catch (e) {} };
+    const TXT = (id) => { const e = EL(id); return e ? String(e.textContent || '').trim() : 'NO EXISTE'; };
+    const FUENTE = () => String(document.documentElement.innerHTML || '');
+    const NL = String.fromCharCode(10);
+    /* ⚠️ TODA LECTURA DE LAS PIEZAS NUEVAS VA POR UN AYUDANTE CON CENTINELA. Contra HEAD
+       aiVolSinIndexar, AI_SIN_IDX_ROT, aiResumenUno, pacIdImpreso y pacIdElegido NO existen, y
+       nombrarlas peladas es un ReferenceError que mata la corrida entera: eso prueba que el
+       arbol es distinto, NO que el caso sabe medir. Es la leccion que TC-455, TC-462, TC-465,
+       TC-471, TC-473, TC-474, TC-477, TC-480, TC-481, TC-485, TC-486 y TC-487 ya tienen escrita. */
+    const SINIDX = (vol, bsa) => { try { return FN('aiVolSinIndexar') ? !!aiVolSinIndexar(vol, bsa) : 'SIN FN'; }
+      catch (e) { return 'EXC'; } };
+    const AIUNO = () => { try { if (!FN('aiResumenUno')) return 'SIN FN';
+      const r = aiResumenUno(); return r ? (r.lbl + '|' + String(r.val) + '|' + r.suf) : null; } catch (e) { return 'EXC'; } };
+    const IMPR = () => { try { if (!FN('pacIdImpreso')) return 'SIN FN';
+      const r = pacIdImpreso(null, 'Cedula'); return r ? (r.clave + '|' + r.lbl + '|' + r.val) : null; } catch (e) { return 'EXC'; } };
+    const ELEG = () => { try { return FN('pacIdElegido') ? pacIdElegido() : 'SIN FN'; } catch (e) { return 'EXC'; } };
+    const MK = (k) => { const b = EL('pac-id-mk-' + k); return b ? b.getAttribute('aria-pressed') : 'NO EXISTE'; };
+    /* ⚠️ Y TODO LO DEMAS DEL MARCADOR TAMBIEN POR AYUDANTE: contra HEAD estos dos nodos NO
+       existen, y un .getAttribute pelado es un TypeError que mata la corrida entera —paso en
+       la primera version de este caso, con CERO condiciones en rojo y un stack en vez de una
+       medicion—. Es la leccion que TC-455, TC-473, TC-477, TC-480 y TC-487 ya tienen escrita. */
+    const MKAT = (k, at) => { const b = EL('pac-id-mk-' + k); return b ? b.getAttribute(at) : 'NO EXISTE'; };
+    const MKCS = (k, pr) => { const b = EL('pac-id-mk-' + k);
+      return b ? getComputedStyle(b).getPropertyValue(pr) : 'NO EXISTE'; };
+    const MKTAG = (k) => { const b = EL('pac-id-mk-' + k); return b ? b.tagName : 'NO EXISTE'; };
+    const TOCAR = (k) => { const b = EL('pac-id-mk-' + k); if (!b) return 'NO EXISTE'; b.click(); return MK(k); };
+    const NUEVO = () => { try { if (FN('limpiarCampos')) limpiarCampos(true); } catch (e) {} };
+    const INF = (est) => { try { if (FN('setEstiloInforme')) setEstiloInforme(est); } catch (e) {}
+      try { if (FN('generarInforme')) generarInforme(); } catch (e) {}
+      return { inf: V('informe_texto') || '', suma: V('en_suma') || '' }; };
+    /* ⚠️ «Auricula» LLEVA TILDE y indexOf no lo sabe: el filtro va con un regex que la acepta
+       con y sin tilde, y ancla «AI» al comienzo de linea ADMITIENDO los dos puntos y la coma
+       —el conciso de esta tanda abre con «AI sin graduar (...)»—. Es la trampa que TC-487 pago
+       con once condiciones rojas sobre un informe perfecto. */
+    const RE_AI = new RegExp('[Aa]ur[i' + String.fromCharCode(237) + ']cula izquierda|^AI[ :,]');
+    const LAI = (est) => INF(est).inf.split(NL).filter(l => RE_AI.test(l)).join(' / ');
+    const SAI = (est) => INF(est).suma.split(NL).filter(l => /AI |[Aa]ur/.test(l)).join(' / ');
+    /* La escena: BSA 2,00 exacta (80 kg / 180 cm con Mosteller) para que el indexado sea
+       aritmetica cerrada, o SIN peso ni talla cuando se mide el estado nuevo. */
+    const MONTAR = (c, sinBsa) => { NUEVO();
+      if (!sinBsa) { S('peso', '80'); S('talla', '180'); }
+      Object.keys(c || {}).forEach(k => S(k, c[k]));
+      try { if (FN('calcAI')) calcAI(); } catch (e) {} };
+
+    /* ══ (A) J1 — LA AI CON VOLUMEN QUE NO SE PUEDE INDEXAR ══════════════════════════════ */
+    { MONTAR({ ai_vol: '98' }, true);
+      const c = LAI('conciso'), e = LAI('estandar'), n = LAI('narrativo');
+      ex.push(['(A1) el informe DECLARA el volumen sin indexar en los TRES estilos, y ninguno afirma normalidad',
+        c === 'AI sin graduar (volumen 98 ml, sin indexar).' &&
+        e === 'Volumen de la aurícula izquierda de 98 ml, sin indexar por falta de superficie corporal; no se informa el tamaño auricular.' &&
+        n.indexOf('No se puede indexar por superficie corporal') > -1 &&
+        c.indexOf('normal') === -1 && e.indexOf('normal') === -1 && n.indexOf('dimensiones normales') === -1,
+        c + ' || ' + e + ' || ' + n.slice(0, 120)]);
+      ex.push(['(A2) y NO afirma dilatacion por ningun lado: el Laboratorio no la lee como categoria',
+        !/dilataci[oó]n.{0,10}auricular|AI\\s+(?:dilata|agrand)/i.test(e + ' ' + n + ' ' + c),
+        e.slice(0, 90)]);
+      ex.push(['(A3) el EN SUMA NO menciona la AI en esta escena',
+        SAI('estandar') === '' && SAI('conciso') === '' && SAI('narrativo') === '',
+        JSON.stringify([SAI('estandar'), SAI('conciso'), SAI('narrativo')])]);
+      ex.push(['(A4) la capsula dice LO MISMO que el papel, y el indexado sigue en la raya',
+        TXT('ai-interp').indexOf('Sin indexar') > -1 && TXT('ai-idx') === '—',
+        TXT('ai-interp') + ' | ' + TXT('ai-idx')]);
+      ex.push(['(A5) el rotulo de la capsula sale de la CONSTANTE y es ASCII (lo imprime la tabla del PDF)',
+        (function(){ try { return FN('aiVolSinIndexar') && typeof window.AI_SIN_IDX_ROT === 'string'
+          && TXT('ai-interp').indexOf(window.AI_SIN_IDX_ROT) > -1
+          && !/[^\\x20-\\x7E]/.test(window.AI_SIN_IDX_ROT); } catch (e) { return false; } })(),
+        String(window.AI_SIN_IDX_ROT)]); }
+    /* DENOMINADOR: el predicado existe y distingue los dos lados. */
+    ex.push(['(A6) DENOMINADOR: aiVolSinIndexar distingue «hay volumen sin ASC» de los otros tres estados',
+      SINIDX(98, null) === true && SINIDX(98, '2.00') === false &&
+      SINIDX(null, null) === false && SINIDX(0, null) === false,
+      JSON.stringify([SINIDX(98, null), SINIDX(98, '2.00'), SINIDX(null, null), SINIDX(0, null)])]);
+    /* CONTROL NEGATIVO 1: con AREA cargada manda el area, como hoy. */
+    { MONTAR({ ai_vol: '98', ai_area: '25' }, true);
+      ex.push(['(A7) CONTROL NEGATIVO: con el AREA cargada la cascada la usa como hoy y la linea nueva NO sale',
+        LAI('estandar').indexOf('dilatada (área 25 cm²)') > -1 &&
+        LAI('estandar').indexOf('sin indexar') === -1, LAI('estandar').slice(0, 130)]); }
+    /* CONTROL NEGATIVO 2: con DIAMETRO cargado, idem. */
+    { MONTAR({ ai_vol: '98', ai_diam: '50' }, true);
+      ex.push(['(A8) CONTROL NEGATIVO: con el DIAMETRO cargado tampoco sale, y la capsula SI lo dice',
+        LAI('estandar').indexOf('diámetro AP 50 mm') > -1 &&
+        LAI('estandar').indexOf('sin indexar') === -1 &&
+        TXT('ai-interp').indexOf('Sin indexar') > -1,
+        LAI('estandar').slice(0, 130) + ' | cap=' + TXT('ai-interp')]); }
+    /* CONTROL NEGATIVO 3: con volumen INDEXABLE, el grado de siempre. */
+    { MONTAR({ ai_vol: '98' }, false);
+      ex.push(['(A9) CONTROL NEGATIVO: con superficie corporal gradua como siempre y la capsula vuelve a su banda',
+        LAI('estandar') === 'Aurícula izquierda severamente dilatada (Vol Index 49.0 ml/m²).' &&
+        TXT('ai-interp').indexOf('Dilat. severa') > -1 && TXT('ai-idx') === '49.0 ml/m²',
+        LAI('estandar') + ' | ' + TXT('ai-interp') + ' | ' + TXT('ai-idx')]); }
+    /* CONTROL NEGATIVO 4: sin NINGUN dato, la frase de normalidad no se movio. */
+    { MONTAR({}, false);
+      ex.push(['(A10) CONTROL NEGATIVO: sin ningun dato de AI la frase de normalidad es la de siempre',
+        LAI('estandar') === 'Aurícula izquierda de dimensiones normales.', LAI('estandar')]); }
+
+    /* ══ (B) J2 — LA UNA LINEA DE LA AI EN EL PPT ════════════════════════════════════════ */
+    { MONTAR({ ai_vol: '98' }, false);
+      ex.push(['(B1) con volumen indexable la UNA linea es el INDEXADO',
+        AIUNO() === 'Vol. AI indexado|49.0| ml/m²', String(AIUNO())]); }
+    { MONTAR({ ai_area: '25' }, false);
+      ex.push(['(B2) sin volumen, el AREA', AIUNO() === 'Área AI|25| cm²', String(AIUNO())]); }
+    { MONTAR({ ai_diam: '44' }, false);
+      ex.push(['(B3) sin volumen ni area, el DIAMETRO AP', AIUNO() === 'Diám. AP AI|44| mm', String(AIUNO())]); }
+    { MONTAR({ ai_vol: '98' }, true);
+      ex.push(['(B4) con volumen que no se puede indexar, los ml con «sin indexar»',
+        AIUNO() === 'Volumen AI|98| ml (sin indexar)', String(AIUNO())]); }
+    { MONTAR({}, false);
+      ex.push(['(B5) sin ningun dato de AI no hay linea, como hoy', AIUNO() === null, String(AIUNO())]); }
+    { MONTAR({ ai_area: '25', ai_diam: '44' }, false);
+      ex.push(['(B6) CONTROL NEGATIVO: con area Y diametro manda el AREA', AIUNO() === 'Área AI|25| cm²', String(AIUNO())]); }
+    { MONTAR({ ai_area: '250', ai_diam: '44' }, false);
+      ex.push(['(B7) CONTROL NEGATIVO: un area FUERA de banda no elige la linea y cae al diametro',
+        AIUNO() === 'Diám. AP AI|44| mm', String(AIUNO())]); }
+    ex.push(['(B8) y la diapositiva ya no arma DOS filas: llama al dueno y las dos viejas no estan',
+      FUENTE().indexOf('aiResumenUno(); if (_ai) fila(DER') > -1 &&
+      FUENTE().indexOf("fila(DER,'Volumen AI', _pptNum('ai_vol')") === -1 &&
+      FUENTE().indexOf("fila(DER,'Vol. AI indexado', _pptSpan('ai-idx'))") === -1, '']);
+
+    /* ══ (C) J3 — LA IDENTIFICACION DEL PACIENTE ═════════════════════════════════════════
+       ⚠️ EL CUERPO DE UN CASO NO PUEDE MANDAR UN CLIC DE CONFIANZA: corre DENTRO de la pagina
+       y no tiene el canal del navegador. Aca se usa un .click() sintetico sobre el boton, que SI dispara
+       el oyente delegado; el gesto REAL —raton por CDP, con elementFromPoint comprobando que
+       el blanco es el boton— lo mide scripts/_probe_j.mjs --solo ident. Es el mismo reparto
+       que TC-460 y TC-463 ya declaran. */
+    { MONTAR({}, false); S('nombre', 'IDENT'); S('ci', '4455667'); S('matricula', 'M-909090');
+      ex.push(['(C1) DENOMINADOR: los dos marcadores existen, son <button> y arrancan en el DOCUMENTO',
+        MKTAG('ci') === 'BUTTON' && MKTAG('matricula') === 'BUTTON' &&
+        MK('ci') === 'true' && MK('matricula') === 'false' && ELEG() === 'ci',
+        JSON.stringify([MK('ci'), MK('matricula'), ELEG()])]);
+      ex.push(['(C2) por defecto se imprime el DOCUMENTO, con el rotulo del tipo',
+        IMPR() === 'ci|CI|4455667', String(IMPR())]);
+      ex.push(['(C3) tocar el marcador de la matricula la ELIGE, y el otro se apaga',
+        TOCAR('matricula') === 'true' && MK('ci') === 'false' && ELEG() === 'matricula' &&
+        IMPR() === 'matricula|Matrícula|M-909090',
+        JSON.stringify([MK('ci'), MK('matricula'), String(IMPR())])]);
+      ex.push(['(C4) y volver a tocar el del documento lo DEVUELVE',
+        TOCAR('ci') === 'true' && MK('matricula') === 'false' && IMPR() === 'ci|CI|4455667',
+        String(IMPR())]);
+      ex.push(['(C5) CONTROL NEGATIVO: un segundo toque en el que YA esta elegido no lo apaga',
+        TOCAR('ci') === 'true' && ELEG() === 'ci', MK('ci')]);
+      /* El marcador NO lleva onclick: la regla tactil global matchea por el atributo y
+         estiraria el rotulo a 44 px, desplazando el campo. */
+      ex.push(['(C6) ninguno de los dos lleva el atributo onclick, y por eso no entran en el piso de 44 px',
+        MKAT('ci', 'onclick') === null && MKAT('matricula', 'onclick') === null &&
+        MKCS('ci', 'min-height') === '0px',
+        String(MKAT('ci', 'onclick')) + ' | ' + MKCS('ci', 'min-height')]);
+      ex.push(['(C7) y cada uno tiene nombre accesible propio',
+        String(MKAT('ci', 'aria-label') || '').indexOf('documento') > -1 &&
+        String(MKAT('matricula', 'aria-label') || '').indexOf('matr') > -1,
+        String(MKAT('ci', 'aria-label'))]); }
+    /* La MEMORIA DE SESION: se elige la matricula y «Nuevo estudio» NO la reinicia. */
+    { MONTAR({}, false); S('ci', '1'); S('matricula', 'M-1'); TOCAR('matricula');
+      NUEVO();
+      ex.push(['(C8) «Nuevo estudio» CONSERVA la eleccion de la sesion',
+        ELEG() === 'matricula' && MK('matricula') === 'true' && V('pac_id_print') === 'matricula',
+        ELEG() + ' | ' + V('pac_id_print')]); }
+    /* El dato elegido VACIO imprime el otro; los dos vacios, nada. */
+    { MONTAR({}, false); S('ci', ''); S('matricula', 'M-77'); TOCAR('ci');
+      ex.push(['(C9) el documento elegido y VACIO imprime la matricula',
+        IMPR() === 'matricula|Matrícula|M-77', String(IMPR())]); }
+    { MONTAR({}, false); S('ci', '999'); S('matricula', ''); TOCAR('matricula');
+      ex.push(['(C10) la matricula elegida y VACIA imprime el documento',
+        IMPR() === 'ci|CI|999', String(IMPR())]); }
+    { MONTAR({}, false); S('ci', ''); S('matricula', '');
+      ex.push(['(C11) los DOS vacios no imprimen nada, como hoy', IMPR() === null, String(IMPR())]); }
+    /* El estudio guarda la eleccion, reabrir usa la DEL ESTUDIO sin tocar la de la sesion, y
+       un estudio VIEJO sin la clave usa el documento. */
+    { MONTAR({ ai_vol: '68' }, false);
+      S('nombre', 'GUARD J'); S('ci', '4455668'); S('matricula', 'M-777'); S('fecha', '2026-10-16');
+      TOCAR('matricula');
+      INF('estandar');
+      const gu = await __t.guardar();
+      ex.push(['(C12) DENOMINADOR: el estudio se guardo',
+        gu && gu.ok === true && !!gu.estudioId, JSON.stringify(gu)]);
+      const reg = getInformes().find(i => i.estudioId === (gu && gu.estudioId));
+      ex.push(['(C13) y la eleccion viaja DENTRO del estudio, sin columna nueva en el Excel',
+        !!reg && reg.campos && reg.campos.pac_id_print === 'matricula' &&
+        reg.campos.matricula === 'M-777',
+        reg ? JSON.stringify({ p: reg.campos.pac_id_print, m: reg.campos.matricula }) : 'SIN REGISTRO']);
+      /* La sesion se pone en DOCUMENTO: reabrir tiene que usar la del ESTUDIO. */
+      NUEVO(); TOCAR('ci');
+      __t.reabrir(gu.estudioId);
+      ex.push(['(C14) al reabrir, los marcadores muestran la eleccion DEL ESTUDIO',
+        ELEG() === 'matricula' && MK('matricula') === 'true' && IMPR() === 'matricula|Matrícula|M-777',
+        ELEG() + ' | ' + String(IMPR())]);
+      /* Y la de la SESION no cambio: «Nuevo estudio» vuelve al documento. */
+      NUEVO();
+      ex.push(['(C15) y la eleccion de la SESION no cambio: el proximo estudio arranca con el documento',
+        ELEG() === 'ci' && MK('ci') === 'true', ELEG()]);
+      /* Un estudio VIEJO: se le quita la clave y se lo reabre. */
+      const lst = getInformes();
+      lst.forEach(i => { if (i.estudioId === gu.estudioId && i.campos) delete i.campos.pac_id_print; });
+      await CeiboStore.setLocal(lst);
+      TOCAR('matricula');
+      __t.reabrir(gu.estudioId);
+      ex.push(['(C16) un estudio VIEJO sin la marca usa el DOCUMENTO, no la eleccion de la pantalla',
+        ELEG() === 'ci' && MK('ci') === 'true' && V('pac_id_print') === 'ci',
+        ELEG() + ' | ' + V('pac_id_print')]);
+      await __t.borrar(gu.estudioId); }
+    /* Nada en el navegador: la eleccion vive SOLO en la memoria de la pagina. */
+    { const claves = []; try { for (let i = 0; i < localStorage.length; i++) claves.push(localStorage.key(i)); } catch (e) {}
+      const ses = []; try { for (let i = 0; i < sessionStorage.length; i++) ses.push(sessionStorage.key(i)); } catch (e) {}
+      ex.push(['(C17) la eleccion NO se persiste: ninguna clave de localStorage ni de sessionStorage la nombra',
+        claves.filter(k => /pac_id|pacid/i.test(k)).length === 0 &&
+        ses.filter(k => /pac_id|pacid/i.test(k)).length === 0,
+        JSON.stringify(claves.filter(k => /pac/i.test(k)).concat(ses.filter(k => /pac/i.test(k))))]); }
+    /* El oculto viaja con el estudio y NO esta excluido por prefijo. */
+    ex.push(['(C18) el oculto es input[type=hidden] con guion BAJO, asi que el recolector lo toma',
+      (EL('pac_id_print') || {}).type === 'hidden' &&
+      (!FN('_noEsDelEstudio') || _noEsDelEstudio('pac_id_print') === false),
+      String((EL('pac_id_print') || {}).type)]);
+    /* La celda del PDF la arma el dueno, y es UNA sola para las SEIS plantillas. */
+    ex.push(['(C19) el bloque del paciente del PDF le pregunta al dueno, y la celda vieja no esta',
+      FUENTE().indexOf('pacIdImpreso(null, ') > -1 &&
+      FUENTE().indexOf("{lbl:sv('doc_tipo')||'Cédula', val:sv('ci')||null}") === -1, '']);
+    ex.push(['(C20) y el PPT tambien, con los datos del ESTUDIO y no de la sesion',
+      FUENTE().indexOf('pacIdImpreso({ ci: inf.ci, doc_tipo: inf.doc_tipo') > -1 &&
+      FUENTE().indexOf("const dTipo = _pptTxt(inf.doc_tipo || 'CI');") === -1, '']);
+
+    /* ══ (D) J4 — EL PANEL DE FRASES COMO COLUMNA ALTA ═══════════════════════════════════
+       ⚠️ EL CUERPO DE UN CASO NO PUEDE CAMBIAR EL ANCHO DE LA VENTANA, y la suite corre a
+       756 px: a ese ancho manda la media query de 768 y el panel ES el cajon desde abajo, o
+       sea que las dos columnas NO son medibles desde aca. Este caso fija LA REGLA que las
+       produce y la ESTRUCTURA del DOM, y mide el cajon angosto —que la orden congela—; la
+       maqueta renderizada a 1200, 1440 y 1920 la mide scripts/_probe_j.mjs --solo frases, que
+       si tiene el canal para emular el viewport. Es el reparto de TC-460 y TC-485. */
+    { const f = FUENTE();
+      ex.push(['(D1) la REGLA de las dos columnas existe, con flex y sin un solo porcentaje ni vh',
+        f.indexOf('.inf-cols { display: flex; gap: 10px; align-items: stretch; margin-bottom: 12px; }') > -1 &&
+        f.indexOf('.inf-cols-izq { flex: 1 1 auto; min-width: 0; }') > -1, '']);
+      ex.push(['(D2) y la columna de frases entra en el rango que pidio la orden (260 a 320 px)',
+        f.indexOf('.frases-slot { flex: 0 0 280px; position: relative; }') > -1, '']);
+      ex.push(['(D3) la media query de 768 px devuelve la fila a bloque: el cajon angosto no cambia',
+        f.indexOf('.inf-cols { display: block; margin-bottom: 0; }') > -1, '']);
+      /* ⚠️ LA ALTURA LA DECIDE EL BLOQUE IZQUIERDO: el panel va absoluto dentro del slot, que
+         es lo que ya hacia cuando vivia en .inf-wrap. Se busca la DECLARACION completa. */
+      ex.push(['(D4) el panel sigue siendo absolute dentro de su slot, asi que no impone su altura a la fila',
+        f.indexOf('position: absolute; inset: 0;') > -1, '']); }
+    ex.push(['(D5) ESTRUCTURA: las DOS tarjetas viven en la columna izquierda y el slot es su HERMANO',
+      (function(){ const izq = EL('inf-cols-izq'), slot = EL('frases-slot'), cols = EL('inf-cols');
+        if (!izq || !slot || !cols) return false;
+        const ta = EL('informe_texto'), su = EL('en_suma');
+        return izq.parentElement === cols && slot.parentElement === cols &&
+               !!ta && izq.contains(ta) && !!su && izq.contains(su) && !izq.contains(slot); })(),
+      '']);
+    ex.push(['(D6) y los dos textarea siguen siendo alcanzables por id, que es de lo que dependen el recolector y las rutas de restauracion',
+      !!EL('informe_texto') && !!EL('en_suma') &&
+      document.querySelectorAll('#informe_texto, #en_suma').length === 2, '']);
+    ex.push(['(D7) el boton conserva aria-expanded y aria-controls, y el panel su nombre accesible',
+      (EL('frases-btn') || {}).getAttribute && EL('frases-btn').getAttribute('aria-controls') === 'frases-panel' &&
+      EL('frases-btn').getAttribute('aria-expanded') !== null &&
+      (EL('frases-panel') || {}).tagName === 'ASIDE' &&
+      !!EL('frases-panel').getAttribute('aria-label'), '']);
+    /* El cajon a 756 px: abrir, medir, cerrar. Lo que la orden congela es que no cambie. */
+    { try { localStorage.setItem('ecosmart_frases', JSON.stringify(['Frase uno de prueba','Frase dos de prueba'])); } catch (e) {}
+      try { if (FN('showTab')) showTab('informe'); } catch (e) {}
+      try { if (FN('frasesCerrar')) frasesCerrar(); } catch (e) {}
+      const slotCerrado = EL('frases-slot') ? EL('frases-slot').hidden : 'NO EXISTE';
+      try { if (FN('frasesToggle')) frasesToggle(); } catch (e) {}
+      const p = EL('frases-panel'), cs = p ? getComputedStyle(p) : null;
+      /* ⚠️ height Y maxHeight SE COMPARAN CON TOLERANCIA y no por igualdad de cadena: las dos
+         salen del MISMO 65vh y el motor las redondea distinto —medido: 304.844px contra
+         304.85px—, asi que la igualdad exacta daba rojo sobre un cajon perfecto. */
+      const _h = parseFloat(cs ? cs.height : 'x'), _mh = parseFloat(cs ? cs.maxHeight : 'y');
+      ex.push(['(D8) a 756 px el panel sigue siendo el CAJON desde abajo: fixed, al 65 % del alto',
+        !!cs && cs.position === 'fixed' && isFinite(_h) && isFinite(_mh) && Math.abs(_h - _mh) < 0.5 &&
+        Math.abs(_h - innerHeight * 0.65) < 1.5 &&
+        EL('frases-btn').getAttribute('aria-expanded') === 'true',
+        cs ? (cs.position + ' | ' + cs.height + ' | ' + cs.maxHeight + ' | 65vh=' + (innerHeight * 0.65).toFixed(2)) : 'SIN PANEL']);
+      ex.push(['(D9) DENOMINADOR: el slot nace cerrado y se abre CON el panel',
+        slotCerrado === true && EL('frases-slot').hidden === false,
+        String(slotCerrado) + ' -> ' + String(EL('frases-slot').hidden)]);
+      ex.push(['(D10) el panel se desplaza POR DENTRO: overflow-y auto',
+        cs && cs.overflowY === 'auto', cs ? cs.overflowY : '']);
+      /* El cursor y el texto escrito: insertar una frase no se los lleva. */
+      const ta = EL('informe_texto');
+      ta.value = 'ABCDEFGHIJ texto del medico'; ta.focus(); ta.setSelectionRange(5, 5);
+      ta.dispatchEvent(new Event('select', { bubbles: true }));
+      const b1 = document.querySelector('.frases-lista .frase-txt');
+      if (b1) b1.click();
+      ex.push(['(D11) insertar una frase en el INFORME conserva el texto escrito y pone el cursor donde estaba',
+        ta.value.indexOf('ABCDE') > -1 && ta.value.indexOf('Frase uno') > -1 &&
+        ta.value.indexOf('Frase uno') <= 8,
+        ta.value.slice(0, 60) + ' | sel=' + ta.selectionStart]);
+      const su = EL('en_suma');
+      su.value = 'ZYXWVU conclusion'; su.focus(); su.setSelectionRange(3, 3);
+      su.dispatchEvent(new Event('select', { bubbles: true }));
+      const b2 = document.querySelector('.frases-lista .frase-txt');
+      if (b2) b2.click();
+      ex.push(['(D12) y en el EN SUMA tambien, sin llevarse lo que el otro textarea tenia escrito',
+        su.value.indexOf('ZYX') > -1 && su.value.indexOf('Frase uno') > -1 &&
+        ta.value.indexOf('ABCDE') > -1,
+        su.value.slice(0, 60)]);
+      /* 20 aperturas y cierres: no acumula nodos y termina cerrado. */
+      const n0 = document.getElementsByTagName('*').length;
+      for (let i = 0; i < 20; i++) { try { frasesToggle(); frasesCerrar(); } catch (e) {} }
+      const n1 = document.getElementsByTagName('*').length;
+      ex.push(['(D13) 20 aperturas y cierres no acumulan nodos y el panel queda CERRADO',
+        n0 === n1 && EL('frases-panel').hidden === true && EL('frases-slot').hidden === true &&
+        EL('frases-btn').getAttribute('aria-expanded') === 'false',
+        n0 + ' -> ' + n1]);
+      try { localStorage.removeItem('ecosmart_frases'); if (FN('frasesRender')) frasesRender(); } catch (e) {}
+      NUEVO(); }
+
+    /* ══ (E) CONTROLES: lo que esta tanda NO toca ════════════════════════════════════════ */
+    { MONTAR({ ai_vol: '98', ai_diam: '44', ai_area: '25', onda_e: '90', onda_a: '60',
+               e_sep: '6', e_lat: '8', vmax_it: '3.0', fevi: '55', ddfvi: '50', siv: '12',
+               ppvi: '11', tapse: '18', im_vc: '7', vmax_ao: '4.2', gmedio_ao: '45' }, false);
+      S('nombre', 'CTRL J'); S('ci', '1234567');
+      const r = INF('estandar');
+      ex.push(['(E1) DENOMINADOR: el escenario produce veredictos de verdad en las otras zonas',
+        TXT('dd-interp') !== '—' && V('im_grado') !== null && V('ea_grado') !== null,
+        TXT('dd-interp') + ' | im=' + V('im_grado') + ' | ea=' + V('ea_grado')]);
+      ex.push(['(E2) la AI con volumen indexable publica su grado de siempre, con el indexado entre parentesis',
+        r.inf.indexOf('Vol Index 49.0 ml/m²') > -1, '']);
+      /* El Excel sigue en 440 columnas: el campo nuevo NO agrega ninguna. */
+      const fila = (function(){ try { return FN('_labExcelRow')
+        ? _labExcelRow({ id:'p1', fecha:'2026-10-16', nombre:'X',
+            campos:(function(){ const c={}; document.querySelectorAll('input[id],select[id],textarea[id]').forEach(e=>{
+              if (e.type==='checkbox'||e.type==='radio') c[e.id+'__chk']=e.checked?'1':'0'; else c[e.id]=e.value; });
+              return c; })(), informe_texto:r.inf, en_suma:r.suma })
+        : null; } catch (e) { return null; } })();
+      ex.push(['(E3) el Excel sigue en 440 columnas y NINGUNA nombra la eleccion de identificacion',
+        !!fila && Object.keys(fila).length === 440 &&
+        Object.keys(fila).filter(k => /pac_id|imprimir/i.test(k)).length === 0,
+        fila ? String(Object.keys(fila).length) : 'SIN FILA']);
+      /* El Wilkins y la diastolica, que vienen de las tandas anteriores. */
+      ex.push(['(E4) CONTROL: la funcion diastolica y las ocho severidades siguen publicando lo suyo',
+        TXT('dd-interp').length > 2 &&
+        ['im_grado','ia_grado','it_grado','ip_grado','ea_grado','em_grado','et_grado','ep_grado']
+          .every(id => EL(id) !== null),
+        TXT('dd-interp').slice(0, 60)]);
+      ex.push(['(E5) CONTROL: el Wilkins conserva su dueno unico de la tanda anterior',
+        FN('_wilkCalc') && FN('wilkinsScore'), '']); }
 
     return { extra: ex };
   })();

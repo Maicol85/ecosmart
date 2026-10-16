@@ -265,6 +265,207 @@ impecable.
 
 ## Estado vigente
 
+### La AI SIN INDEXAR, la AI en el PPT, la IDENTIFICACIÓN del paciente y la COLUMNA de frases — «J» (2026-10-16)
+
+- **Son CINCO commits.** Al **empezar**, `main` y `origin/main` estaban los dos en **`489df34`**
+  (sello `v20261016-0714`), **sin nada sin pushear** —confirmado con un `git fetch` de verdad, con
+  el `FETCH_HEAD` fechado al momento—, con los seis commits del Y3b ya incluidos **y pusheados**.
+  Los **cinco** commits de esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 5 → 4 → 3 → 2 → 1.**
+  ⚠️ **EL 3 Y EL 4 SE REVIERTEN SOLOS Y EN CUALQUIER ORDEN ENTRE SÍ**: el 3 vive en
+  `pacIdImpreso` y su familia, el marcado de los dos marcadores, la celda de `pRows` y la portada
+  del PPT; el 4 es CSS (`.inf-cols`) más el marcado del informe. Ninguno nombra una pieza del otro
+  ni de los dos primeros.
+  ⚠️ **PERO EL 2 CUELGA DEL 1**: `aiResumenUno` llama a `aiVolSinIndexar`, que nace en el 1.
+  Revertir el 1 primero no aborta el `<script>` —el revert se lleva también su `window.*`— pero
+  deja la fila de la AI del PPT tirando `ReferenceError` al generar la presentación.
+  ⚠️ **EL 3 LLEVA LA SONDA PRINCIPAL** (`scripts/_probe_j.mjs`), con la que se verificaron también
+  el 1 y el 2, **y el 4 lleva la de los dos motores** (`scripts/_probe_jwk.mjs`).
+  ⚠️ **Y EL 3 LLEVA ADEMÁS LA CORRECCIÓN DEL TEXTO CONCISO DE J1**, que la sonda destapó después
+  de cerrado el commit 1: con «AI: …» la frase quedaba fuera del patrón «AI \<algo\> (\<dato\>).»
+  de las otras dos ramas de ese bloque. **Revertir el 3 revierte también esa corrección.**
+  **El 5 es TC-489 más la adaptación de TC-487, la documentación y el sello**, y afirma el
+  comportamiento de los cuatro: revertir cualquiera sin el 5 lo deja en rojo.
+  ⚠️ **CASOS ADAPTADOS: UNO, TC-487.** Su condición **(7b)** era el **límite declarado del H**
+  —«con el volumen sin indexar y NADA más, el informe cae en la rama de normalidad», escrita para
+  que el día que se decidiera se notara— **y lo notó**: hoy afirma lo CONTRARIO.
+
+- **Línea base al cierre: suite 499/503 con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0
+  ERROR, Excel en 440 columnas. CERO REGRESIONES.** Los **CUATRO** rojos son exactamente los
+  de ENTRADA —**TC-223** (el documentado, falla por la fecha), **TC-376**, **TC-390** y
+  **TC-406**— y no apareció ninguno fuera de esa lista. **El denominador sube a 503**: esta
+  tanda agregó **TC-489**.
+  ⚠️ **EL CHEQUEO DE CELULAR SUBE +2 HALLAZGOS Y +2 ALTAS POR ANCHO, Y SON LOS DOS
+  MARCADORES.** Pasa de **43 / 52 con 1 ALTA** a **45 a 360 px y 54 a 390 px, con 3 ALTA cada
+  uno** (`--todo` da 380 y 389). La causa tiene nombre: `check_mobile.js` mide el rect del
+  NODO, y los dos `<button>` miden **7 × 11 px**; su área táctil real la da un `::after`
+  absoluto, que el chequeo **no ve** —es el precedente que este archivo ya tiene escrito para
+  el botón del «porqué» de la vista 2D—. Y la severidad es ALTA porque la excepción del
+  «label envolvente» de ese script sólo alcanza a `checkbox` y `radio`.
+  **NO se corrigió agrandándolos, y el motivo está medido**: el `.fg` mide 44-49 px de alto
+  entre el rótulo y el campo, así que un botón de 44 × 44 **o desplaza el campo** —lo que la
+  orden prohíbe expresamente— **o tapa el input**, que es peor. El área efectiva es
+  **35 × 41 px** y está medida con `elementFromPoint`: **18 de 18 toques** llegan al botón a
+  1200, 768 y 390 px en los dos temas. `PENDIENTES.md` → **J-8**. El `md5` de `index.html` no se movió durante la corrida
+  (`be45e604…`, el del sello) y el pendrive estaba montado antes y después.
+  ⚠️ **EL PENDRIVE `DISK_IMG` ESTABA AFUERA AL EMPEZAR y Maicol lo conectó a pedido**, así que la
+  línea base de ENTRADA —medida en un worktree aparte sobre HEAD limpio— ya salió con él puesto:
+  **498/502**, con los **CUATRO** rojos documentados (**TC-223**, **TC-376**, **TC-390** y
+  **TC-406**) y ninguno fuera de esa lista.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **503 ids** sobre los 504 casos del archivo.
+- **EL SELLO DE VERSIÓN** estaba al día al empezar (`v20261016-0714`) y se volvió a sellar:
+  **`v20261016-1419`**. Todo lo medido salió **DESPUÉS** de sellar, con el `md5` quieto.
+- **`index.html` pasó de 7,78 MB / 117.228 líneas a 7,80 MB / 117.585 líneas.**
+
+- **Dónde está todo:** `docs/mapa/auricula-izquierda-pdf.md` → las secciones **9 y 10** (de 16,0 a
+  **23,2 KB**); `docs/mapa/identificacion-paciente.md` (**mapa NUEVO**, 9,7 KB);
+  `docs/mapa/panel-frases.md` (**mapa NUEVO**, 5,8 KB); `docs/mapa/informe-pdf-excel.md` → tres
+  punteros (**34,6 KB**); `docs/mapa/tests-fichas.md` → la ficha de TC-489 (**18,2 KB**);
+  `docs/fuentes/FUENTES.md` → por qué esta tanda **no lleva ninguna cita nueva**; y
+  `docs/PENDIENTES.md` → **H-1 marcado CERRADO** más **siete** cosas declaradas (J-1 a J-7).
+  ⚠️ **`informe-pdf-excel.md` QUEDÓ EN 34,6 KB, o sea a 435 BYTES DEL TECHO**, y eso es **sólo con
+  los tres punteros**: los dos bloques nuevos salieron a archivo propio justamente por eso, medido
+  con `wc -c` ANTES de escribir. **La próxima tanda que lo toque tiene que partirlo.**
+
+- **J1 · EL VOLUMEN QUE NO SE PUEDE INDEXAR SE DECLARA, Y YA NO SE NIEGA.** Cierra **H-1** por su
+  salida **(a)**. Medido en la tanda H: con `ai_vol = 98`, sin peso ni talla y sin área ni
+  diámetro, el informe FIRMADO publicaba «Aurícula izquierda de dimensiones normales.» sobre una
+  aurícula cuyo único dato es un volumen que, indexado, sería **severo**.
+  **NINGÚN CORTE SE MOVIÓ**: `aiVolClasificar` y `AI_VOL_BANDAS` no se tocaron. Lo que faltaba era
+  un dueño del **ESTADO** (`aiVolSinIndexar` + `AI_SIN_IDX_ROT`), que vivía implícito en **tres**
+  `if` distintos —la cápsula, el informe y la fila del PDF— y por eso las tres publicaban cosas
+  distintas del mismo paciente: raya, normalidad y fila ausente.
+  **La rama nueva va DESPUÉS de `aiGeoMedido`, y eso es la mitad del arreglo**: con área o
+  diámetro cargados la cascada los usa como hoy.
+  **MEDIDO con teclas reales, A/B contra HEAD en 18 escenas: CAMBIAN 4.** La del volumen sin ASC
+  (la frase en los tres estilos, la cápsula y el Laboratorio, que deja de leer «normal»), la del
+  volumen sin ASC **con DAP dilatado** —donde **sólo cambia la cápsula**, porque el informe sigue
+  usando el diámetro—, la del volumen sin ASC y nada más, y la fila `Vol. indexado` del PDF.
+  ⚠️ **EL EN SUMA NO LA MENCIONA** (decisión de Maicol) y **no se llama a `ccMarcarParrafo()`**,
+  a diferencia de la rama de `aiGeoFuera`: marcar cambiaría el texto GLOBAL del EN SUMA, que esta
+  orden no autoriza. `PENDIENTES.md` → **J-1**.
+  ⚠️ **EL RÓTULO DE LA CÁPSULA ES ASCII PURO**, porque lo imprime también la tabla del PDF, que
+  se dibuja con jsPDF en WinAnsi y **no** pasa por `amiloSanPDF` —la que transliteraría un em
+  dash—. Es la lección que el símbolo del sexo del H pagó saliendo como «&B».
+  ⚠️ **EL PROMPT LA LLAMÓ «OPCIÓN B» Y DESCRIBIÓ LA (a)** de `PENDIENTES.md`. Manda la
+  descripción; la (b) era «pedir el dato».
+
+- **J2 · LA AI EN EL PPT PASA A UNA SOLA LÍNEA, Y LA PREMISA DE LA ORDEN ERA PARCIALMENTE FALSA.**
+  El PPT no publicaba «Volumen AI» en ml y nada más: publicaba **DOS** filas —los ml y el
+  indexado leído del span `ai-idx`— y **ninguna tenía fallback**: sin volumen, con el área o el
+  diámetro cargados, la AI **no salía en la diapositiva por ningún camino**.
+  Dueño `aiResumenUno()`. **Medido en las ocho escenas**: indexado `Vol. AI indexado 49.0 ml/m²`,
+  área `Área AI 25 cm²`, diámetro `Diám. AP AI 44 mm`, sin indexar `Volumen AI 98 ml (sin
+  indexar)`, sin datos `null`, y los **tres controles negativos** (área+diámetro manda el área,
+  indexado+área manda el indexado, y un **área fuera de banda cae al diámetro**).
+  ⚠️ **EL ÁREA Y EL DIÁMETRO SE LEEN POR SU BANDA y el volumen crudo**: acá la banda no decide
+  sólo si se imprime un número, decide **cuál de los tres se publica**.
+  ⚠️ **DEVUELVE VALOR Y SUFIJO POR SEPARADO** para que pasen por el `fila(arr,k,val,suf)` del
+  propio PPT: el texto de la rama del indexado sale **idéntico** al de HEAD.
+
+- **J3 · AL PAPEL VA UNO SOLO DE LOS DOS IDENTIFICADORES, Y LO ELIGE EL MÉDICO.** Antes el PDF
+  imprimía el documento y nada más: la **matrícula del paciente** existía como campo, viajaba con
+  el estudio y **no salía en ningún PDF ni PPT por ningún camino** —censado—.
+  **TRES ESTADOS QUE NO SE MEZCLAN**: `_pacIdSesion` (memoria de la página; sobrevive a «Nuevo
+  estudio» y **no** a recargar), `pac_id_print` (el formulario, que se guarda con el estudio) y lo
+  que trae un estudio al abrirlo. **Un estudio viejo sin la clave usa el DOCUMENTO**, y
+  `pacIdRestaurar` **escribe siempre**, con el default cuando la clave falta.
+  **MEDIDO con CLICS REALES**: el default es el documento; tocar el marcador de la matrícula la
+  elige y volver a tocar el del documento lo devuelve; un segundo toque en el elegido **no lo
+  apaga**; «Nuevo estudio» conserva la elección; el dato elegido **vacío imprime el otro** por los
+  dos lados; los dos vacíos no imprimen nada; el estudio guarda la elección en `campos`; **las dos
+  rutas de reapertura usan la del ESTUDIO sin cambiar la de la sesión**; un estudio **viejo** usa
+  el documento; y el **PDF reimpreso** de un estudio guardado con matrícula imprime
+  «Matrícula: M-777».
+  **LAS SEIS PLANTILLAS DEL PDF, con las dos elecciones**: `CI`/`Matrícula` en académico,
+  `CI: `/`Matrícula: ` en clásico, moderno y elegante, y `CI N`/`Matrícula N` en la tira corrida
+  de compacto y minimalista. **`nTextos` IDÉNTICO entre las dos elecciones en las seis** —o sea
+  que ninguna cambió de envoltorio ni de maquetación—. Y **MIRADO** en el PNG del PDF real a
+  330 dpi.
+  ⚠️ **LOS MARCADORES NO LLEVAN `onclick`**, y es deliberado: la regla táctil global matchea
+  **por el atributo** (`[onclick]{min-height:44px}`), así que un `onclick` ahí estira el rótulo a
+  44 px y **desplaza el campo**. Es el defecto que `#ig-img-storage` ya documenta. Los cablea un
+  **oyente delegado**; `min-height:0` gana **por especificidad**, sin `!important`; el área táctil
+  la extiende un `::after` absoluto; y **el glifo sale del CSS**, derivado de `aria-pressed`.
+  **Medido: `18 de 18` toques llegan al botón a 1200, 768 y 390 px en los dos temas, y el `.fg`
+  del campo mide IGUAL que en HEAD en los seis casos.**
+  ⚠️ **NADA EN `localStorage` NI EN IndexedDB**, y el **Excel sigue en 440 columnas**: el oculto
+  es `input[type=hidden]` con guión BAJO, así que lo toma el recolector y **el mapa del Excel no
+  lo nombra**. La exportación e importación **JSON conservan la elección por construcción**.
+
+- **J4 · EL PANEL DE FRASES ES UNA COLUMNA ALTA, Y LA ALTURA LA DECIDE EL BLOQUE IZQUIERDO.** El
+  panel **salió** de `.inf-wrap` —donde sólo podía tomar la altura del textarea del informe— y es
+  hermano de `.inf-cols-izq`, que contiene las DOS tarjetas.
+  **MEDIDO EN LOS DOS MOTORES** (Chrome 155 por el canal del sistema y **WebKit 27.2** de
+  Playwright), seis anchos × dos temas:
+
+  | ancho | informe cerrado → abierto | panel | `dTop`/`dBottom` |
+  |---|---|---|---|
+  | 1200×700 | 978 → **688** | 280 × 642 | 0 / 0 |
+  | 1440×800 | 1194 → **904** | 280 × 662 | 0 / 0 |
+  | 1920×1080 | 1656 → **1366** | 280 × 674 | 0 / 0 |
+  | 768 / 390 / 360 | **sin cambio** | el cajón, `fixed` | n/a |
+
+  **Con 40 frases el alto del panel NO cambia** (642/662/674 iguales) y su `scrollHeight` sube a
+  3074: se desplaza **por dentro**, y **el alto de la página no se mueve**.
+  **A/B contra HEAD: CERRADO es idéntico en los seis anchos**, y abierto lo único que cambia es
+  que el EN SUMA pasa de todo el ancho a angostarse igual que el informe, con el panel de 250 a
+  280 px. **A 768, 390 y 360 px todo idéntico, abierto y cerrado.**
+  **Insertar conserva las DOS MITADES del texto** y mete la frase en el cursor; **20 aperturas
+  dejan 11660 nodos → 11660** y el panel cerrado, en los dos motores.
+  ⚠️ **NI UN PORCENTAJE NI UN `vh` EN LA CADENA** —la lección de WebKit del Y1c— y **WebKit de
+  Playwright NO es Safari**, que se declara.
+
+- **A/B DEDICADO CONTRA HEAD, con el formulario vacío y con escenario cargado: 0 DIFERENCIAS** en
+  informe (tres estilos), EN SUMA, los ocho grados, las ocho pastillas, la diastólica, el
+  HFA-PEFF, el Laboratorio y el **Excel en 440 columnas CLAVE POR CLAVE** (cero faltantes, cero
+  sobrantes, cero valores distintos) en las cuatro escenas.
+
+- **Arneses: `scripts/_probe_j.mjs`** (CDP, teclas y clics reales, el PDF generado de verdad;
+  ocho grupos: `ai`, `ppt`, `identg`, `identm`, `identu`, `identp`, `identr`, `frases`,
+  `controles`) y **`scripts/_probe_jwk.mjs`** (Playwright, los DOS motores, sólo J4).
+  **Cobertura: TC-489**, **56 condiciones** con seis denominadores y once controles negativos.
+  **Verificado que sabe fallar contra HEAD en un worktree aparte: 35 de las 56 en rojo, y NINGUNA
+  por excepción.**
+
+- ⚠️ **NUEVE TRAMPAS, Y SIETE DABAN FALSOS PLAUSIBLES.**
+  1. **UN GRUPO DE SONDA SIN SALIDA PARCIAL NO SE PUEDE DIAGNOSTICAR.** El primer `ident` juntó
+     dieciocho escenas y doce PDF y pasó de los **65 minutos** sin escribir una línea: no había
+     forma de saber si avanzaba o estaba colgada. Se partió en **cinco subgrupos**.
+  2. **A 390 px LA TARJETA DEL PACIENTE ES UN ACORDEÓN QUE COLAPSA CON `overflow:hidden`**, así
+     que sus hijos **conservan su rect y NO son alcanzables**. La sonda informó **cuatro veces**
+     «el área táctil no llega» y un clic real que no cambiaba nada. **La condición decisiva fue
+     el INPUT del campo**: con la tarjeta colapsada tampoco era alcanzable, y ese campo existe
+     desde antes de esta tanda. Con el acordeón abierto: **18 de 18**.
+  3. **`elementFromPoint` HAY QUE DESPEJARLO ANTES DE LEER EL RECT, no después**: al esconder el
+     aviso legal la página recupera el scroll y un rect leído antes queda viejo.
+  4. **`editarInforme` ABRE UN MODAL DE CONFIRMACIÓN** y no carga nada hasta que se clickea
+     `#edit-ok`. Sin eso la sonda informó «al reabrir, la elección no se repone» **con los campos
+     del paciente VACÍOS**: lo delató el denominador. Y el overlay quedaba puesto, así que el clic
+     siguiente abortaba la escena.
+  5. **LA PROMESA DE LA REIMPRESIÓN SE RESUELVE EN `doc.save()`, y la restauración vive en el
+     `finally`**: sin una pausa, la sonda informó «quedó la elección del OTRO estudio pegada»
+     sobre una restauración que todavía no había corrido.
+  6. **EL TEXTO PREVIO QUEDA PARTIDO EN EL CURSOR al insertar una frase**, que es lo que tiene que
+     pasar: buscar el previo entero dio «se perdió el texto del médico» sobre una inserción
+     perfecta. Se comprueban **las dos mitades**.
+  7. **EL CONCISO DE J1 QUEDÓ FUERA DEL FILTRO DE LA SONDA** por abrir con «AI: …» en vez de
+     «AI …». El filtro era del lector, **pero la inconsistencia de estilo era real** y se
+     corrigió.
+  8. **`Page.reload` POR CDP NO DEVUELVE EL CONTEXTO EN 60 s** sobre este archivo de 8 MB. La
+     condición «recargar vuelve al documento» se mide con una **página nueva** en la sonda de
+     Playwright, que es el mismo hecho por el camino limpio: al arrancar, `ci`, y **cero claves de
+     almacenamiento que la nombren**.
+  9. **EL CHROMIUM QUE TRAE PLAYWRIGHT NO ARRANCA** —espera `chromium_headless_shell-1248` y en el
+     caché está el `-1234`—. Se usa el **canal del sistema** (`channel:'chrome'`), que es además
+     el Chrome con el que mide el resto de este repo. **WebKit 27.2 sí arranca.**
+- ⚠️ **Me comí el acento grave CINCO veces**, todas en comentarios míos dentro del template de
+  una sonda o del cuerpo del caso. `scripts/check_backticks.py` dio la línea exacta las cinco, y
+  **una de ellas cortó la cadena `&&` y dejó la corrida sin arrancar**, que es por qué no se le
+  manda la salida a `/dev/null`.
+
 ### El GIRO MANUAL del 3D de la mitral, el cuadro y la tabla, el WILKINS unificado y la pestaña OTROS — «Y3b + Wilkins + I» (2026-10-16)
 
 - **Son SEIS commits.** Al **empezar**, `main` y `origin/main` estaban los dos en **`c2e14eb`**

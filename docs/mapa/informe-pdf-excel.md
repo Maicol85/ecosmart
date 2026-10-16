@@ -515,3 +515,26 @@ campos nuevos: `docs/mapa/otros-pericardio-pulmon.md`.**
 `wilkinsScoreDeCampos`, que es el mismo cálculo que las dos pantallas. La única escena en la que el
 valor cambia es un estudio legado con 1/1/1/1 y sin la marca de gesto, que pasa de `4` a vacío.
 **Mapa: `docs/mapa/wilkins-unificado.md` → sección 5.**
+
+---
+
+## La IDENTIFICACIÓN del paciente y el PANEL DE FRASES — tanda «J» (2026-10-16)
+
+⚠️ **AL PDF Y AL PPT VA UNO SOLO DE LOS DOS IDENTIFICADORES del paciente —el documento o la
+matrícula— y lo elige el médico** con un marcador al lado de cada rótulo, en la pestaña
+Paciente. Por omisión el documento. El dueño único es **`pacIdImpreso(src, docLblDef)`**, y la
+celda del bloque del paciente del PDF —**UNA sola para las SEIS plantillas**— y la portada del
+PPT le preguntan a él. **El Excel sigue en 440 columnas**: la elección viaja en un
+`input[type=hidden]` que el mapa del Excel no nombra.
+**Mapa de la zona, con los tres estados, las cinco puertas y las ocho trampas medidas:
+`docs/mapa/identificacion-paciente.md`.**
+
+⚠️ **Y EL PANEL DE FRASES PASA A SER UNA COLUMNA ALTA a la derecha**, con el informe y el EN
+SUMA apilados y angostados a la izquierda. Sólo cambia la DISPOSICIÓN: la inserción en el cursor,
+el guardado y el cajón de 768 px o menos no se tocaron, y **los dos textarea siguen siendo
+alcanzables por id**, que es de lo que dependen el recolector, `limpiarCampos`, las rutas de
+restauración y la ventana de reimpresión. **Mapa: `docs/mapa/panel-frases.md`.**
+
+⚠️ **Y la fila `Vol. indexado` del PDF dice por qué no hay índice** cuando el volumen de la AI
+está medido y no hay superficie corporal, en vez de caerse del filtro de la tabla.
+**Mapa: `docs/mapa/auricula-izquierda-pdf.md` § 9.**
