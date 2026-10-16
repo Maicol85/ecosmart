@@ -2443,7 +2443,14 @@ html.light-mode .amilo-root{
 /* ALTO FIJO, no `auto` ni `%`: es el ancla que impide que el latido mueva el layout. */
 #m3d-lienzo{position:relative;width:324px;height:228px;flex:0 0 324px;
   background:var(--bg3);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
-#m3d-cv{display:block;width:324px;height:228px;}
+/* ⚠️ `touch-action:none` VA SOLO SOBRE EL LIENZO, no sobre el panel ni sobre la pagina:
+   el navegador se queda el gesto del dedo (desplazar) y el arrastre no llega nunca, pero
+   ponerselo al contenedor dejaria la PAGINA sin poder desplazarse con el dedo dentro del
+   panel. Es la regla del lienzo del 3D de contractilidad, que lo lleva en linea. */
+#m3d-cv{display:block;width:324px;height:228px;touch-action:none;cursor:grab;}
+#m3d-cv.m3d-girando{cursor:grabbing;}
+/* El lienzo es enfocable (las flechas lo giran), asi que necesita anillo de foco visible. */
+#m3d-cv:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
 #m3d-nodisp{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   text-align:center;padding:8px;}
 #m3d-grados{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:5px;}
@@ -12563,11 +12570,17 @@ z
           <button type="button" class="btn btn-ghost m3d-b" id="m3d-a-120" aria-pressed="false" onclick="m3dAngulo(120)">120°</button>
         </div>
         <div id="m3d-nota-ang" class="m3d-nota"></div>
+        <!-- La instruccion del giro va en una linea PROPIA y estatica: el `aria-label` del
+             lienzo lo reescribe `m3dDescribir` en cada repintado, asi que meterla ahi la
+             haria depender de una funcion que describe el PACIENTE y no el control. -->
+        <div id="m3d-giro-ayuda" class="m3d-nota">Arrastrá sobre el dibujo —o enfocalo y usá las flechas— para girarlo.</div>
         <div id="m3d-cuerpo">
           <div id="m3d-lienzo">
             <!-- La descripción corta la escribe `m3dDescribir` y la tabla de abajo es su
                  alternativa en texto completa. -->
-            <canvas id="m3d-cv" width="680" height="380" role="img" aria-label="Modelo 3D de la válvula mitral"></canvas>
+            <canvas id="m3d-cv" width="680" height="380" role="img" tabindex="0"
+                    aria-label="Modelo 3D de la válvula mitral"
+                    aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown"></canvas>
             <div id="m3d-nodisp" class="m3d-nota" hidden>3D no disponible en este navegador.</div>
           </div>
           <div id="m3d-grados" aria-label="Grados publicados"></div>
@@ -113177,6 +113190,117 @@ function m3dAngulo(a){
   if (typeof m3dCamaraAplicar === 'function') m3dCamaraAplicar(); else m3dPintar();
 }
 
+/* ══ EL GIRO MANUAL — «Y3b-1» (2026-10-16) ═══════════════════════════════════
+   Hasta hoy la camara se movia SOLO con los tres botones de vista y los cinco de angulo. Lo que
+   entra es el gesto de la demo (`2b_demo_mitral_vistas_ete.html`, lineas 261-263), que es
+   exactamente el mismo que el 3D de contractilidad ya usa (`lv3dCablear`):
+
+     R = Mry(dx * 0.01) * Mrx(dy * 0.01) * R
+
+   ⚠️ LA SENSIBILIDAD Y EL ORDEN DE COMPOSICION NO SE ELIGIERON: SON LOS DE LAS DOS PIEZAS QUE YA
+   EXISTEN, medidos en el fuente de las dos. Los 0,01 rad por pixel y la premultiplicacion (giro
+   en el marco de la PANTALLA, no del modelo) son identicos en la demo y en `lv3dCablear`, asi
+   que los dos 3D de la app se sienten iguales sin que haya que elegir cual manda.
+   ⚠️ NINGUNA DE LAS DOS ACOTA LA INCLINACION y ninguna ofrece zoom —ni rueda ni pellizco—, asi
+   que aca tampoco: acotar el cabeceo seria inventar un limite que la demo no define, y la demo
+   manda. Lo que SI se acota es el zoom, que queda en el valor que la camara tenia: `_m3dZM` no
+   se toca, igual que en la demo, donde `pointermove` solo escribe `R`.
+   ⚠️ LAS FLECHAS SON NUEVAS: ni la demo ni el 3D de contractilidad tienen teclado. El lienzo es
+   enfocable y cada pulsacion gira un paso fijo, que es la unica forma de que el gesto exista sin
+   mouse y sin dedo.
+   ⚠️ Y EL GESTO NO ES UN TOQUE: en el 3D de contractilidad un arrastre corto se interpreta como
+   un clic que CICLA la motilidad de un segmento, y por eso alla hay umbral de distancia y de
+   tiempo. Aca el lienzo no tiene nada que clickear, asi que no hay umbral y un arrastre de un
+   pixel es un arrastre. */
+var M3D_GIRO_K = 0.01;     /* rad por pixel — el de la demo y el de lv3dCablear */
+var M3D_GIRO_TECLA = 9;    /* pixeles equivalentes por pulsacion de flecha: 0,09 rad, unos 5 grados */
+var _m3dDrag = null, _m3dOy = null;
+
+/* El giro, con los botones quedando SIN MARCAR. Es lo que hace la demo por el otro lado —su
+   boton de vista llama a `clearTee()` y su boton de angulo deja la vista sin marcar—: girar a
+   mano es una TERCERA forma de poner la camara, asi que no puede dejar marcada ninguna de las
+   dos primeras. Con `_m3dAng` en nulo vuelven a verse los seis festones, que es lo que
+   corresponde a una vista libre. */
+function m3dGirar(dx, dy){
+  _m3dAnim = null;
+  _m3dR = _m3dMul(_m3dMry(dx * M3D_GIRO_K), _m3dMul(_m3dMrx(dy * M3D_GIRO_K), _m3dR));
+  /* La desmarca va SOLO la primera vez del gesto: `m3dBotonesSync` toca ocho atributos y el
+     repintado de los festones cambia, pero nada de eso depende de cuanto se giro. */
+  if (_m3dVista !== '' || _m3dAng !== null) { _m3dVista = ''; _m3dAng = null; m3dBotonesSync(); }
+  /* ⚠️ EN PAUSA EL BUCLE ESTA DESARMADO, asi que sin este repintado el arrastre no se veria.
+     Es la misma razon por la que `_m3dGoTo` arranca el bucle para su interpolacion. */
+  if (!_m3dVivo) m3dPintar();
+}
+window.m3dGirar = m3dGirar;
+
+function _m3dDragFin(cv){
+  _m3dDrag = null;
+  if (cv) cv.classList.remove('m3d-girando');
+}
+/* ⚠️ LOS OYENTES SE PONEN AL ABRIR Y SE QUITAN AL CERRAR, y no una sola vez con una guarda de
+   «ya cableado» como hace `lv3dCablear`. Las dos formas evitan la acumulacion; esta ademas deja
+   el panel cerrado SIN un solo oyente de arrastre, que es lo que la orden pide y lo unico que se
+   puede MEDIR espiando `addEventListener` y `removeEventListener`. */
+function m3dCablearGiro(){
+  var cv = m3dEl('m3d-cv');
+  if (!cv || _m3dOy) return;
+  var oy = {};
+  oy.down = function(e){
+    if (e.button !== undefined && e.button !== 0) return;
+    _m3dAnim = null;
+    _m3dDrag = { x: e.clientX, y: e.clientY };
+    /* El `catch` deja rastro: sin captura, soltar FUERA del lienzo no dispara el `pointerup` de
+       aca, y la guarda de `e.buttons` de abajo es la que impide que el arrastre quede pegado. */
+    try { cv.setPointerCapture(e.pointerId); } catch (err) { console.warn('[m3d] sin captura de puntero', err); }
+    cv.classList.add('m3d-girando');
+  };
+  oy.move = function(e){
+    if (!_m3dDrag) return;
+    if (e.buttons === 0) { _m3dDragFin(cv); return; }
+    var dx = e.clientX - _m3dDrag.x, dy = e.clientY - _m3dDrag.y;
+    _m3dDrag.x = e.clientX; _m3dDrag.y = e.clientY;
+    m3dGirar(dx, dy);
+  };
+  oy.up = function(){ _m3dDragFin(cv); };
+  oy.cancel = function(){ _m3dDragFin(cv); };
+  /* El puntero puede soltarse afuera del lienzo si la captura no se consiguio. */
+  oy.winup = function(){ if (_m3dDrag) _m3dDragFin(cv); };
+  oy.key = function(e){
+    var k = e.key, dx = 0, dy = 0;
+    if (k === 'ArrowLeft') dx = -M3D_GIRO_TECLA;
+    else if (k === 'ArrowRight') dx = M3D_GIRO_TECLA;
+    else if (k === 'ArrowUp') dy = -M3D_GIRO_TECLA;
+    else if (k === 'ArrowDown') dy = M3D_GIRO_TECLA;
+    else return;
+    /* Sin esto la pagina se desplaza al mismo tiempo que el modelo gira. */
+    e.preventDefault();
+    m3dGirar(dx, dy);
+  };
+  cv.addEventListener('pointerdown', oy.down);
+  cv.addEventListener('pointermove', oy.move);
+  cv.addEventListener('pointerup', oy.up);
+  cv.addEventListener('pointercancel', oy.cancel);
+  cv.addEventListener('keydown', oy.key);
+  window.addEventListener('pointerup', oy.winup);
+  _m3dOy = oy;
+}
+function m3dDescablearGiro(){
+  var cv = m3dEl('m3d-cv'), oy = _m3dOy;
+  if (!oy) return;
+  if (cv) {
+    cv.removeEventListener('pointerdown', oy.down);
+    cv.removeEventListener('pointermove', oy.move);
+    cv.removeEventListener('pointerup', oy.up);
+    cv.removeEventListener('pointercancel', oy.cancel);
+    cv.removeEventListener('keydown', oy.key);
+  }
+  window.removeEventListener('pointerup', oy.winup);
+  _m3dOy = null;
+  _m3dDragFin(cv);
+}
+/* Cuantos oyentes de arrastre hay puestos: lo lee la sonda y el caso de la suite. */
+window.m3dGiroCableado = function(){ return !!_m3dOy; };
+
 /* ══ ABRIR, CERRAR Y LA COMPUERTA DE LA PRÓTESIS ══════════════════════════════════════════════ */
 function m3dAbrir(){
   if (m3dEsProtesis()) return;
@@ -113195,11 +113319,20 @@ function m3dAbrir(){
   if (b) { b.setAttribute('aria-expanded', 'true'); b.textContent = '✕ 3D'; }
   if (typeof m3dSync === 'function') m3dSync();
   if (typeof m3dCamaraAplicar === 'function') m3dCamaraAplicar();
+  m3dCablearGiro();
   m3dArrancar();
 }
 function m3dCerrar(){
   var p = m3dEl('m3d-panel'), b = m3dEl('m3d-btn');
   m3dParar();
+  m3dDescablearGiro();
+  /* ⚠️ EL GIRO SE LIMPIA AL CERRAR, y es decision de la orden: al reabrir vuelve la vista del
+     cirujano. Si no, el panel reabria con la camara que el medico dejo en OTRO paciente y con
+     los ocho botones sin marcar —o sea sin ninguna pista de donde esta mirando—. Se repone
+     ademas el zoom, que los angulos dejan en 0,78. */
+  _m3dVista = 'cirujano'; _m3dAng = null;
+  _m3dR = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]; _m3dZM = 1; _m3dAnim = null;
+  m3dBotonesSync();
   if (p) { p.classList.remove('m3d-on'); p.hidden = true; }
   if (b) { b.setAttribute('aria-expanded', 'false'); b.textContent = '🔮 3D'; }
 }
