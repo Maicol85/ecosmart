@@ -3344,11 +3344,12 @@ del Z6 comparó las 440 columnas con el formulario abierto, no con un estudio ar
 prótesis mecánica y THP normal. No hay motivo para que difiera —es el mismo dueño— pero no está
 medido por ese camino.
 
-### Y1-1 · El «por qué» de cada tarjeta es el Y2 y no está
+### ✅ [CERRADO 2026-10-16 · Y2] Y1-1 · El «por qué» de cada tarjeta es el Y2 y no está
 
-Las tarjetas publican la frase cualitativa corta **sin los valores**: «IM severa», no «IM severa
-(EROA 45 mm²)». Fue la decisión de la orden y el valor sigue en el informe, en la pantalla de
-Válvulas y en el Excel. El **Y2** es agregarle a cada tarjeta el dato que la clasificó.
+Las tarjetas publicaban la frase cualitativa corta **sin los valores**: «IM severa», no «IM severa
+(EROA 45 mm²)». **Lo cierra la tanda Y2**: cada tarjeta lleva ahora la lista de criterios con su
+valor y su grado, y —donde la pantalla lo nombra— la línea «Decide». Lo que queda abierto de ese
+trabajo está en **Y2-1 a Y2-6**, abajo.
 
 ### Y1-2 · Una prótesis sin lesión ni veredicto no tiene tarjeta
 
@@ -3392,3 +3393,91 @@ sugerirlo si el archivo no lo contemplaba, y lo contempla.
 Nada de lo que se ve se persiste: ni la fase del latido, ni el estado del panel. Reabrir la vista la
 arma de nuevo desde el estudio. Es lo que la orden pedía y lo que evita que un dibujo viejo
 sobreviva a un cambio de datos.
+
+
+## Vista 2D de las válvulas — tandas «Y1b» y «Y2» (2026-10-16)
+
+### Y1b-1 · El dibujo queda en 200 px a 1200×700, y no en los 300 del punto de partida
+
+La orden proponía «unos 300 px de alto a 1200×700» y, medido, con 300 la **tabla de cavidades
+completa —sus once filas— no entra** en el 85 % de una ventana de 700 px: aparece desplazamiento
+interno, que es justo lo que esa tanda vino a cerrar. La condición que manda es «todo se ve sin
+desplazamiento a 1200×700», así que el alto del dibujo es la variable que se ajustó:
+`clamp(200px, calc(100vh - 520px), 320px)` da **200** a 700 px de ventana, **280** a 800 y **320**
+desde 840. Si algún día la tabla pierde filas —o el médico prefiere el dibujo más grande que la
+tabla completa— lo que se mueve es el restador del `clamp`.
+
+### Y1b-2 · El piso táctil de 44 px del botón NO se bajó
+
+La orden pedía un botón «más chico». La regla global de la app (`button, .btn, .tab-btn …
+{ min-height:44px }`) **no está acotada a `pointer`**, así que una pestaña de válvula en reposo
+también mide 44 px de alto en escritorio: bajarlo haría que el botón dejara de tener el tamaño de
+una pestaña —que es lo que la misma orden pide— y revertiría la decisión de Maicol del 2026-09-25.
+Lo que bajó es el peso visual: el azul se fue, la tipografía y el relleno pasaron a los de una
+pestaña y el ancho cayó de 109 a 93 px. **Si se quisiera un botón de 27 px en escritorio**, hay que
+acotar el piso a `pointer:coarse` sólo para ese id, y entonces deja de coincidir con la pestaña.
+
+### Y2-1 · Cuatro lesiones no tienen línea «Decide», y no se inventa
+
+La IM, la IAo, la IT y la ET publican en su renglón integrado **el grado** («Severa», «Moderada»,
+«Significativa») y **no nombran el criterio** que lo produjo: su regla es un conteo —«una severa
+manda», «dos moderadas mandan», «basta con que se cumpla uno»— y atribuírselo a una fila sería una
+segunda lectura de esa regla escrita en la vista. Esas cuatro tarjetas llevan la **lista** y no
+llevan la línea. **La salida limpia es que la pantalla lo diga**: el día que uno de esos cuatro
+renglones gane su sufijo «— por X», como lo ganó la aórtica en la tanda F, la tarjeta lo publica
+sin tocar una línea de la vista.
+
+### Y2-2 · La Vmax de la estenosis aórtica vota y no tiene fila en ese cuadro
+
+Es la mitad de **F8** que sigue abierta: la velocidad máxima es criterio y el cuadro de referencias
+de la aórtica **no tiene fila para ella**, así que el renglón integrado puede decir «Severa — por
+velocidad» y la lista de la tarjeta no tener esa fila. No se inventó la fila: sería publicar un
+valor que ese cuadro no publica. **Agregarla al cuadro de Válvulas cierra las dos cosas a la vez.**
+
+### Y2-3 · La prótesis aórtica no lleva línea «Decide»
+
+Su veredicto no sale de un criterio sino de **dos mitades** —un eje dependiente del flujo y uno
+independiente— y eso lo dice la nota que el renglón ya publica, que va **al pie de la lista** y no
+en la tarjeta cerrada. Nombrar un criterio ahí sería inventar una atribución que la Tabla 5 no
+hace.
+
+### Y2-4 · El grado de cada fila llega con el formato de SU pantalla, y no son iguales
+
+La IM, la IAo y la EAo publican el grado como una palabra en un span hermano («moderada»); la IT y
+la ET lo publican **con su corte pegado al valor** («Severa (≥7 mm)», «significativa (≥5 mmHg)»); la
+EM, con su corte y a veces con la marca «peor»; y las cápsulas protésicas, con su banda entera. La
+tarjeta publica lo que cada pantalla imprime, así que **el formato de la lista no es el mismo en
+todas las lesiones**. Unificarlo sería reformatear un texto clínico, que es lo que esta tanda no
+hace. Lo que lo haría uniforme es unificarlo **en la pantalla**.
+
+### Y2-5 · El PPM no entra en la lista de la prótesis mitral
+
+Decisión de la orden: no es un criterio de obstrucción. La fila sigue en la cápsula y en el informe.
+
+### Y2-6 · Las listas de las prótesis no llevan pastilla de color
+
+La ASE 2024 no publica escala de severidad para la estenosis protésica —el W2-B la retiró de esa
+pantalla— así que el grado va como texto con su banda al lado. Es la misma asimetría que el Y1 ya
+declaró para el chip de la tarjeta. Pintarlo sería republicar la escala retirada.
+
+### Y2-7 · Control de SOLO LECTURA del DVI protésico aórtico — medido, SIN cambios
+
+Pedido por la orden del Y2 como verificación. **La Tabla 5 de la ASE 2024, folio 19** —folio
+comprobado en el pie impreso («Journal of the American Society of Echocardiography · Volume 37
+Number 1 · Zoghbi et al · 19»)— publica el DVI de la prótesis aórtica como **`>0.35` normal ·
+`0.25-0.35` posible · `<0.25` sugiere estenosis significativa**, que es exactamente lo que
+`EA_PROT_CRIT.savr_dvi_normal_min` (0,35, estricto) y `savr_dvi_signif_max` (0,25) aplican.
+**Los dos consumidores comparan el MISMO valor —el PUBLICADO, redondeado a dos decimales— y por eso
+coinciden**, que es lo que el Z6 arregló: la fila lo toma de `_eaDviProtNivel` → `eaProtVeredicto`
+→ `dvi-val`/`ea_dvi_display`, y el veredicto del mismo lugar. Medido con cuatro VTI aórticos:
+
+| VTI Ao | DVI crudo | publicado | fila | veredicto |
+|---|---|---|---|---|
+| 56,4 | 0,35461 | **0.35** | (posible) | Posible estenosis protésica |
+| 57 | 0,35088 | **0.35** | (posible) | Posible estenosis protésica |
+| 56 | 0,35714 | **0.36** | (sin criterios) | Posible estenosis protésica *(por otro eje, no por el DVI)* |
+| 90 | 0,22222 | **0.22** | (significativa) | Posible estenosis protésica |
+
+**No se tocó nada**: es un corte, y la fila, el veredicto y la tarjeta son coherentes. Lo único que
+queda dicho es que el nivel se decide sobre el valor **publicado** y no sobre el crudo —si algún día
+se quisiera sobre el crudo, el 0,35461 pasaría de «posible» a «normal»—.

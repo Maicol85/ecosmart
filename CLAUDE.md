@@ -107,8 +107,8 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **7,63 MB / 114.869 líneas**, medido el 2026-10-15 al cierre de la tanda Y1
-  —el renglón anterior decía «7,46 MB / 112.433 líneas» y era del G1: **medirlo antes de
+  sin frameworks. Hoy **7,66 MB / 115.387 líneas**, medido el 2026-10-16 al cierre de la tanda Y2
+  —el renglón anterior decía «7,63 MB / 114.869 líneas» y era del Y1: **medirlo antes de
   presupuestar contexto**—. Las únicas dependencias son jsPDF, XLSX y
   PptxGenJS por CDN. Se abre como archivo local y corre en Chrome.
 - Lo que produce es un **informe firmado**: narrativo, EN SUMA, PDF, PPT y Excel del Laboratorio.
@@ -262,6 +262,146 @@ impecable.
 ---
 
 ## Estado vigente
+
+### La vista 2D CHICA y el «POR QUÉ» de cada tarjeta — «Y1b + Y2» (2026-10-16)
+
+- **Son DOS bloques en OCHO commits.** Al **empezar**, `main` y `origin/main` estaban los dos en
+  **`65b4531`** (sello `v20261015-2055`), **sin nada sin pushear** —confirmado con un `git fetch` de
+  verdad—, con los nueve commits del Z6 y del Y1 ya incluidos **y pusheados**. Los **ocho** commits
+  de esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 8 → 7 → … → 1.**
+  ⚠️ **EL Y1b (1 a 3) Y EL Y2 (4 a 8) NO SE TOCAN ENTRE SÍ**: el Y1b es CSS y el marcado de un
+  botón, el Y2 es JS nuevo (`V2D_PORQUE`, `_v2dPorQue`, `_v2dPqPintar`, `v2dPorQueTog`) más su CSS.
+  Ninguno nombra una pieza del otro.
+  ⚠️ **DENTRO DEL Y1b: el 2 cuelga del 1 por el breakpoint.** El 1 mueve la media query de 900 a
+  768 px y el 2 le agrega adentro la regla del dibujo en angosto: revertir el 1 sin revertir antes
+  el 2 deja esa regla en una media query que ya no existe. **Orden: 2 antes que 1.**
+  ⚠️ **EL 1 LLEVA LA SONDA** (`scripts/_probe_y1b.mjs`), que los siete commits siguientes usan.
+  ⚠️ **DENTRO DEL Y2 LA CADENA ES ESTRICTA: 7 → 6 → 5 → 4.** El 4 crea la tabla, el lector y el
+  pintor; el 5, el 6 y el 7 agregan **entradas** a esa tabla y, el 6 y el 7, dos ramas del pintor.
+  Revertir el 4 sin revertir antes los otros tres deja `v2dEstado` llamando a `_v2dPorQue`, que no
+  existiría, y un `ReferenceError` ahí se lleva la vista entera.
+  **El 8 es TC-484 más la documentación y el sello**, y afirma el comportamiento de los cuatro:
+  revertir cualquiera sin el 8 lo deja en rojo. **El 3 es TC-483** y hace lo mismo con el Y1b.
+  ⚠️ **CASOS ADAPTADOS: NINGUNO.** TC-482 quedó verde sin tocarle una línea —su condición del piso
+  de 44 px sigue siendo cierta porque el piso NO se bajó, y los cuatro literales de la grilla no
+  cambiaron—.
+
+- **Línea base al cierre: suite 494/498 con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0 ERROR,
+  Excel en 440 columnas, celular 43 a 360 px y 52 a 390 px con 1 ALTA cada uno —IDÉNTICO a la línea
+  base—. CERO REGRESIONES.** Los **CUATRO** rojos son exactamente los de ENTRADA —**TC-223** (el
+  documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**— y no apareció ninguno fuera
+  de esa lista. **El denominador sube a 498**: esta tanda agregó **TC-483** y **TC-484**. El `md5`
+  de `index.html` no se movió durante la corrida (`6b4783e0…`, el del sello) y el pendrive estaba
+  montado antes y después.
+  ⚠️ **`--todo` del chequeo de celular da 378 a 360 px y 387 a 390 px, EL MISMO PAR QUE DEJÓ EL Y1**:
+  ni el botón más chico, ni el panel flotante, ni el desplegable del «porqué» agregan un solo
+  hallazgo. El botón del «porqué» no entra en el conteo de objetivos táctiles chicos porque su área
+  clicable llega a 40 px por un `::after` y `check_mobile.js` mide el rect del nodo, no el del
+  pseudo-elemento — declarado, y medido aparte con `elementFromPoint`.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **498 ids** sobre los 499 casos del archivo.
+- **EL SELLO DE VERSIÓN** estaba al día al empezar (`v20261015-2055`) y se volvió a sellar:
+  **`v20261016-0125`**. Todo lo medido salió **DESPUÉS** de sellar, con el `md5` quieto.
+- **`index.html` pasó de 7,63 MB / 114.869 líneas a 7,66 MB / 115.387 líneas.**
+
+- **Dónde está todo:** `docs/mapa/vista-2d-valvulas.md` → las secciones **9, 10 y 11** (la maqueta
+  chica con su tabla de antes y después, el «porqué» con su tabla de fuentes por lesión, y once
+  trampas), de 11,7 a **26,4 KB**; `docs/mapa/tests.md` → los dos casos nuevos (**31,9 KB**);
+  `docs/fuentes/FUENTES.md` → por qué estas dos tandas **no llevan ninguna cita nueva** y la
+  re-verificación del DVI protésico aórtico en la Tabla 5, folio 19; y `docs/PENDIENTES.md` →
+  **Y1-1 marcado CERRADO** más **nueve** cosas declaradas (Y1b-1, Y1b-2 e Y2-1 a Y2-7).
+  **NINGÚN mapa cruzó el techo**, medido con `wc -c` ANTES de escribir.
+
+- **Y1b · EL PROBLEMA ERA REAL Y ESTÁ MEDIDO EN HEAD.** A 1200×700 el panel del Y1 medía
+  **1180×680** en `@10,10` —la ventana entera—, el dibujo **481×490**, y **la nota y la tabla de
+  cavidades quedaban FUERA de la caja visible**, con scroll interno en los seis anchos. Hoy el panel
+  es una **tarjeta flotante centrada de 900 px y 85 vh**: a 1200×700 mide **900×587** y **todo entra
+  sin desplazamiento** —con la tabla de **ONCE** filas, que es la más alta que la app puede producir—.
+  ⚠️ **SE CENTRA CON `inset:0` + `margin:auto` Y NO CON `transform`**: un ancestro con `transform` es
+  bloque contenedor de cualquier `position:fixed` de adentro, que es por lo que la tarjeta del globo
+  ⓘ ya cuelga del `body`.
+- **EL BOTÓN DEL PIE TIENE EL COLOR REAL DE UNA PESTAÑA DE VÁLVULA EN REPOSO, EN LOS DOS TEMAS.**
+  `btn btn-ghost` —la clase exacta de las ocho pestañas apagadas— **sin declarar un solo color
+  propio**, con la tipografía y el relleno de `.tab-btn` (11 px, 600, 5/12). Pasó de 109×44 a
+  **93×44** y del azul `rgb(79,142,247)` al `rgb(30,35,51)` de noche y `rgb(238,241,246)` de día,
+  **idénticos** a `#pill-insuf-mitral`. Control negativo: una pestaña **prendida** no se ve así.
+  ⚠️ **EL PISO DE 44 px NO SE BAJÓ, Y ES DELIBERADO**: la regla global de la app no está acotada a
+  `pointer`, así que una pestaña en reposo **también** mide 44 px en escritorio. Bajarlo habría
+  hecho que el botón dejara de tener el tamaño de una pestaña y habría revertido la decisión de
+  Maicol del 2026-09-25. `PENDIENTES.md` → **Y1b-2**.
+- ⚠️ **EL DIBUJO QUEDÓ EN 200 px A 1200×700 Y NO EN LOS 300 DEL PUNTO DE PARTIDA, Y EL NÚMERO SALE
+  DE MEDIR.** Con 300 la tabla completa no entra en el 85 % de una ventana de 700 px y vuelve el
+  desplazamiento, que es lo que esta tanda cierra. El `clamp(200px, calc(100vh - 520px), 320px)` da
+  **200** a 700 px de ventana, **280** a 800 y **320** desde 840. `PENDIENTES.md` → **Y1b-1**.
+
+- **Y2 · NADA SE RECALCULA, Y POR ESO LA TARJETA Y LA PANTALLA NO PUEDEN DIFERIR.** Cada valor, su
+  unidad, su redondeo, su marca «(revisar)» y su grado se LEEN del mismo nodo que el médico tiene
+  delante. **El nombre del criterio sale de los NODOS DE TEXTO de su `.calc-lbl`** —sin los cortes
+  ni el globo— así que tampoco es una copia: el rótulo completo trae los tres cortes pegados, que en
+  184 px no entran. TC-484 compara cada fila contra la **fila completa** de la pantalla.
+- **EL GRADO DE UNA FILA SE PUBLICA DE TRES FORMAS DISTINTAS SEGÚN LA LESIÓN, y las tres se
+  declaran por criterio:** el span hermano `data-grado-de` (IM, IAo, EAo), un id propio (las cuatro
+  `.em-clase-*` de la EM) o **dentro del valor** (la IT, la ET y las cápsulas protésicas). Ninguna
+  se adivina. `PENDIENTES.md` → **Y2-4**.
+- ⚠️ **CUATRO LESIONES QUEDAN SIN LÍNEA «DECIDE», Y NO SE INVENTA.** La IM, la IAo, la IT y la ET
+  publican en su renglón **el grado** y **no nombran el criterio**: su regla es un conteo, y
+  atribuírselo a una fila sería una segunda lectura de esa regla escrita en la vista. Llevan la
+  lista y no llevan la línea. Las que sí la llevan: la **EAo nativa** —su renglón dice «Severa — por
+  velocidad» desde la tanda F, publicado TAL CUAL— y la **prótesis mitral**, con el paréntesis que
+  su veredicto ya escribe («DVI 2.60, gradiente medio 12.0 mmHg, THP 250 ms · 3 de 4 criterios»).
+  La **EM** no lleva línea pero **sí la marca «decide» en la fila**, leída de la palabra «peor» que
+  la pantalla ya pega a esa clase. `PENDIENTES.md` → **Y2-1**.
+- **LAS PRÓTESIS: la velocidad pico se marca «no vota» y no se saca, el PPM no entra, y los
+  RETIRADOS van en gris con el motivo que la cápsula ya escribe.** Las tres marcas de retiro —«no
+  concluye», «no válida», «no aplica»— se leen; un «sin criterios de obstrucción» **no** es retiro,
+  es un criterio medido que dio negativo. Medido en las cuatro escenas del Z6, **con su control
+  negativo**: en una BIOLÓGICA con el mismo THP normal el gradiente **no** se retira.
+- **EL GRADO FIJADO A MANO MANDA Y NO LLEVA CRITERIOS.** Con `sevDiscrepa` —el mismo dueño del aviso
+  rojo y del cajón, y no `esqSevManual` pelado— la tarjeta publica ese grado, el **aviso de ajuste
+  manual que la pantalla ya escribe** (que además nombra el calculado) y, si está escrito, el
+  **fundamento** del cajón. Sin lista y sin botón. **Control negativo:** fijar a mano el MISMO grado
+  que el cálculo no es discrepancia y la lista sigue estando.
+- **EL DESPLEGABLE:** `<button>` real con `aria-expanded`, **objetivo táctil de 40 px** por un
+  `::after` que extiende el área clicable sin agrandar lo que se ve —medido con `elementFromPoint` a
+  19 px arriba y abajo—, **sin hover**, cerrado por defecto y **cerrado de nuevo al reabrir la
+  vista** sin guardar ni limpiar un estado.
+
+- **A/B DEDICADO CONTRA HEAD, con el formulario vacío y con tres escenarios cargados: 0
+  DIFERENCIAS** en informe (tres estilos), EN SUMA, **PDF del informe generado de verdad**, **PPT
+  estadístico generado de verdad**, **PDF de auditoría generado de verdad**, **Laboratorio por sus
+  funciones dueñas** (`_labDiastGrado`, `_labGeomCat`, `_labDisfSistVent`, `_labValvCounts`,
+  `_labEstenSev`, `_labEmLectura`), grados y pastillas de las ocho lesiones, diastólica, HFA-PEFF y
+  el **Excel en 440 columnas comparado CLAVE POR CLAVE**. **Escenas que cambian de veredicto:
+  NINGUNA.** El PDF, el PPT y el Laboratorio tuvieron esta vez **volcado dedicado**, que es la
+  salvedad que el Y1 había dejado abierta.
+
+- **Arnés: `scripts/_probe_y1b.mjs`** (A/B de solo lectura con `--file`, `--dest` para las
+  capturas), siete grupos (`estilo`, `maqueta`, `censo`, `dvi`, `controles`, `porque`, `captura`).
+  **Cobertura: TC-483**, **33 condiciones** —**14 en rojo** contra HEAD— y **TC-484**, **51
+  condiciones** —**36 en rojo**—, las dos contadas sobre el propio caso y **ninguna roja por
+  excepción**.
+- ⚠️ **SEMGREP CAZÓ EL HANDLER COMO CADENA SOBRE CÓDIGO RECIÉN ESCRITO**: `setAttribute('onclick',
+  'v2dPorQueTog(this)')` daba **128 / 0 ERROR** donde la línea base es 127. Pasa por propiedad.
+- ⚠️ **Y EL SCANNER HAY QUE CORRERLO DESDE `~/Desktop/APLICACIONES`** con la ruta
+  `ecosmart/index.html`: desde dentro de `ecosmart` informa **«0 hallazgos en 0 apps»**, que se lee
+  idéntico a «limpio».
+- ⚠️ **TC-484 MURIÓ POR EXCEPCIÓN CONTRA HEAD EN SU PRIMERA VERSIÓN**, por un
+  `JSON.stringify(undefined).slice(…)` en el **tercer** elemento del `push` —el texto de
+  «encontrado», que se evalúa siempre—. Misma lección que TC-482 pagó dos veces.
+- ⚠️ **LA PRIMERA VERSIÓN DE TC-484 COMPARABA CONTRA EL NODO DEL VALOR Y SALÍA ROJA EN CINCO
+  LESIONES A LA VEZ**: el valor y el grado viven en nodos DISTINTOS. Se compara contra la **fila
+  completa** (`.calc-row`), que además es una lectura independiente del lector.
+- ⚠️ **`\s` DENTRO DEL TEMPLATE DE LA SONDA SE COCINA A LA LETRA `s`**, otra vez: informó «Vmax
+  teledia tólica» sobre un rótulo perfecto.
+- ⚠️ **DOS DEFECTOS QUE VIO LA CAPTURA Y NO LA MEDICIÓN.** (1) En 184 px la tercera columna mide
+  unos 55: una banda protésica entera caía partida en cinco renglones de dos palabras, con el texto
+  completo y **ilegible** — un grado de más de 12 caracteres pasa a su propia fila, a lo ancho.
+  (2) El separador entre «no vota» y la banda era un **margen de CSS**: el ojo los veía separados y
+  el `textContent` los devolvía pegados.
+- ⚠️ **EL `viewBox` RENDERIZADO NO ES EL DEL MARCADO** —el motor lo reescribe para encuadrar— y el
+  control negativo de TC-483 salió rojo **dos veces** sobre un dibujo perfecto.
 
 ### La VISTA 2D de las válvulas y el gradiente medio de la prótesis mitral — «Z6 + Y1» (2026-10-15)
 

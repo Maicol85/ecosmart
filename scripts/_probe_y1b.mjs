@@ -919,6 +919,152 @@ window.__P = {
                return { id: c.id, fila: f } }),
              pq: (typeof _v2dPorQue === 'function') ? _v2dPorQue(clave) : 'SIN FN' } },
 
+  /* ══ EL PPT ESTADISTICO, GENERADO DE VERDAD ══════════════════════════════════════════════
+     Se intercepta PptxGenJS y se registran las TABLAS y los TEXTOS que cada slide recibe. Sin
+     esto habria que leer el archivo, que es lo que ninguna sonda de esta casa hace. */
+  pptLab(regs) {
+    /* ⚠️ labPPTEstadistico ABRE UN MODAL y exige que haya tarjetas tildadas con «☐ PPT»: medir
+       por ahi seria automatizar esa cadena. El generador es _labPPTGenerar(infs, opts), que
+       toma la poblacion directo — y sus diapositivas las decide _labPptGruposActivos(), que se
+       sustituye para que la de valvulopatias exista. */
+    if (typeof _labPPTGenerar !== 'function') return Promise.resolve('SIN _labPPTGenerar');
+    if (typeof PptxGenJS === 'undefined') return Promise.resolve('SIN PptxGenJS');
+    var infs = regs.map(function(c, i){ return window.__P.reg(c, String(i)) });
+    var tablas = [], textos = [];
+    var Orig = window.PptxGenJS;
+    function Espia() {
+      var p = new Orig();
+      var oAdd = p.addSlide.bind(p);
+      p.addSlide = function(){
+        var s = oAdd.apply(p, arguments);
+        var oT = s.addTable.bind(s), oX = s.addText.bind(s);
+        s.addTable = function(rows){
+          try { tablas.push((rows||[]).map(function(r){ return (r||[]).map(function(c){
+            return (c && typeof c === 'object') ? String(c.text) : String(c) }) })) } catch(e) {}
+          return oT.apply(s, arguments) };
+        s.addText = function(t){ try { textos.push(String(t)) } catch(e) {} return oX.apply(s, arguments) };
+        return s };
+      p.writeFile = function(){ return Promise.resolve('x') };
+      p.write = function(){ return Promise.resolve('x') };
+      return p }
+    window.PptxGenJS = Espia;
+    var oG = window.labGetInformes, oI = window.getInformes;
+    window.labGetInformes = function(){ return infs };
+    window.getInformes = function(){ return infs };
+    var oGr = window._labPptGruposActivos;
+    window._labPptGruposActivos = function(){ return { valv: true } };
+    var err = null;
+    try { _labPPTGenerar(infs, { tema: 'dark', presentador: 'sonda', institucion: 'x' }) }
+    catch (e) { err = 'EXC: ' + e.message }
+    return new Promise(function(res){
+      setTimeout(function(){
+        window.PptxGenJS = Orig;
+        window._labPptGruposActivos = oGr;
+        window.labGetInformes = oG; window.getInformes = oI;
+        /* La tabla de valvulopatias es la que tiene «Valvula» en su encabezado. */
+        var valv = tablas.filter(function(t){
+          return t.length && t[0].length && String(t[0][0]).indexOf('lvula') >= 0 })[0] || null;
+        res({ err: err, nTablas: tablas.length, valv: valv,
+              pie: textos.filter(function(t){ return t.indexOf('No marcar') >= 0 })[0] || null,
+              textos: textos.slice(0, 40) });
+      }, 2500);
+    }) },
+
+  /* ══ EL PDF DE AUDITORIA, GENERADO DE VERDAD ═════════════════════════════════════════════
+     ⚠️ EL ROTULO Y EL VALOR DE UNA FILA SON DOS doc.text DISTINTOS: un espia que registre solo
+     el texto deja la fila como un rotulo pelado. Se registran tambien las coordenadas y la fila
+     se recompone por su y. Es la trampa que la tanda F documenta. */
+  pdfLab(regs) {
+    /* labAnalisisPDF() lee labGetInformes y avisa por toast; el generador es
+       _labAnalisisPDFReal(infs), que toma la poblacion directo. */
+    if (typeof _labAnalisisPDFReal !== 'function') return Promise.resolve('SIN _labAnalisisPDFReal');
+    var NS = window.jspdf;
+    if (!NS || !NS.jsPDF) return Promise.resolve('SIN jsPDF');
+    var infs = regs.map(function(c, i){ return window.__P.reg(c, String(i)) });
+    var filas = [];
+    var Orig = NS.jsPDF;
+    NS.jsPDF = function(){
+      var d = new Orig(arguments[0], arguments[1], arguments[2]);
+      var ot = d.text.bind(d);
+      d.text = function(t, x, y){ try { filas.push({ t: String(t), x: Math.round(x), y: Math.round(y) }) } catch(e) {}
+        return ot.apply(d, arguments) };
+      d.save = function(){ return d };
+      d.output = function(){ return '' };
+      return d };
+    NS.jsPDF.API = Orig.API;
+    var oG = window.labGetInformes, oI = window.getInformes;
+    window.labGetInformes = function(){ return infs };
+    window.getInformes = function(){ return infs };
+    var err = null;
+    try { _labAnalisisPDFReal(infs) } catch (e) { err = 'EXC: ' + e.message }
+    return new Promise(function(res){
+      setTimeout(function(){
+        NS.jsPDF = Orig;
+        window.labGetInformes = oG; window.getInformes = oI;
+        var porY = {};
+        filas.forEach(function(f){ var k = f.y; (porY[k] = porY[k] || []).push(f) });
+        var lineas = Object.keys(porY).sort(function(a,b){ return a - b }).map(function(k){
+          return porY[k].sort(function(a,b){ return a.x - b.x }).map(function(f){ return f.t }).join(' | ') });
+        res({ err: err, n: filas.length,
+              valv: lineas.filter(function(l){ return /Insuf\\.|Esten\\./.test(l) }),
+              nota: lineas.filter(function(l){ return l.indexOf('No marcar') >= 0 })[0] || null,
+              lineas: lineas.slice(0, 160) });
+      }, 3500);
+    }) },
+  /* ══ EL PDF DEL INFORME, GENERADO DE VERDAD ══════════════════════════════════════════════
+     Para el A/B alcanza con el CONTEO y el hash de lo que el papel estampa: si una sola linea
+     cambia, el hash cambia. ⚠️ jsPDF llega por CDN y a veces no llega: se informa «sin jsPDF» en
+     vez de medir un PDF vacio, porque comparar una corrida sin libreria contra una con libreria
+     es comparar una tabla que no se dibujo contra una que si. */
+  esperarJspdf(ms) {
+    var t0 = Date.now();
+    return new Promise(function(res){
+      (function tic(){
+        if (typeof window.jspdf !== 'undefined' && window.jspdf.jsPDF) return res(true);
+        if (Date.now() - t0 > (ms || 12000)) return res(false);
+        setTimeout(tic, 250);
+      })();
+    }) },
+  pdfInforme() {
+    if (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF) return Promise.resolve({ err: 'sin jsPDF' });
+    if (typeof generarPDFReal !== 'function') return Promise.resolve({ err: 'sin generarPDFReal' });
+    var reg = [];
+    var Orig = window.jspdf.jsPDF;
+    function Espia() {
+      var d = new Orig(arguments[0], arguments[1], arguments[2]);
+      var t = d.text.bind(d);
+      d.text = function(txt, x, y) { try { reg.push(String(txt) + '@' + Math.round(Number(x)) + ',' + Math.round(Number(y))) } catch (e) {} return t.apply(d, arguments) };
+      d.save = function(){ return d };
+      return d;
+    }
+    Espia.prototype = Orig.prototype;
+    window.jspdf.jsPDF = Espia;
+    return Promise.resolve().then(function(){ return generarPDFReal() })
+      .catch(function(e){ return { err: 'EXC: ' + e.message } })
+      .then(function(){ window.jspdf.jsPDF = Orig;
+        var h = 0, str = reg.join('|');
+        for (var i = 0; i < str.length; i++) { h = ((h << 5) - h + str.charCodeAt(i)) | 0 }
+        return { n: reg.length, hash: h, primeras: reg.slice(0, 6) } }) },
+
+  /* ══ EL LABORATORIO, POR SUS FUNCIONES DUENAS ════════════════════════════════════════════
+     El Laboratorio lee el TEXTO del informe guardado, asi que se le pasa el registro del
+     formulario abierto —el mismo camino que la fila del Excel— y se preguntan sus duenos. */
+  lab() {
+    var c = {};
+    document.querySelectorAll('input[id],select[id],textarea[id]').forEach(function(e){
+      if (e.type === 'checkbox' || e.type === 'radio') c[e.id + '__chk'] = e.checked ? '1' : '0';
+      else c[e.id] = e.value; });
+    var r = window.__P.reg(c);
+    var f = function(n, a){ try { return (typeof window[n] === 'function') ? window[n].apply(null, a || []) : 'SIN FN' }
+      catch (e) { return 'EXC: ' + e.message } };
+    return { diast: f('_labDiastGrado', [r]),
+             geom: f('_labGeomCat', [r]),
+             disfVent: f('_labDisfSistVent', [r]),
+             counts: f('_labValvCounts', [[r]]),
+             esten: ['em_grado','ea_grado','et_grado','ep_grado'].map(function(k){
+               return k + '=' + JSON.stringify(f('_labEstenSev', [r, k])) }).join(' · '),
+             emLect: f('_labEmLectura', [r]) } },
+
   /* Abre las ocho secciones de valvula y sus cajones, para que los cuadros tengan geometria. */
   abrirTodasValv() {
     var o = {};
@@ -1199,6 +1345,8 @@ async function main() {
   if (corre('controles')) {
     const g = { escenas: {} };
     await viewport(1200, 900);
+    g.jspdf = await ev(`window.__P.esperarJspdf(15000)`, 20000);
+    g.pptLib = await ev(`typeof PptxGenJS !== 'undefined'`);
     for (const nom of ['vacio', 'rico', 'protMitralMec', 'manual']) {
       await escena(ESCY[nom]);
       const c = {};
@@ -1208,6 +1356,16 @@ async function main() {
       c.grados = await ev(`window.__P.grados()`);
       c.caps = await ev(`window.__P.caps()`);
       c.censo = await ev(`window.__P.censo()`);
+      c.lab = await ev(`window.__P.lab()`);
+      /* EL PDF, EL PPT Y EL PDF DE AUDITORIA, GENERADOS DE VERDAD. En el Y1 quedaron como
+         salvedad —sin volcado dedicado—; aca se generan con el papel interceptado. */
+      c.pdf = await ev(`window.__P.pdfInforme()`, 40000);
+      const regs = [await ev(`(function(){ var c={};
+        document.querySelectorAll('input[id],select[id],textarea[id]').forEach(function(e){
+          if (e.type === 'checkbox' || e.type === 'radio') c[e.id + '__chk'] = e.checked ? '1' : '0';
+          else c[e.id] = e.value; }); return c })()`)];
+      c.ppt = await ev(`window.__P.pptLab(${JSON.stringify(regs)})`, 40000);
+      c.pdfAud = await ev(`window.__P.pdfLab(${JSON.stringify(regs)})`, 40000);
       g.escenas[nom] = c;
     }
     out.grupos.controles = g;
@@ -1243,6 +1401,59 @@ async function main() {
       g.escenas[nom] = e;
     }
     out.grupos.porque = g;
+  }
+
+  /* ── 7 · captura ── PNG de la vista, para mirar el pixel y no el estilo computado. ── */
+  if (corre('captura')) {
+    if (!DEST) { out.grupos.captura = 'FALTA --dest'; }
+    else {
+      const g = { archivos: [] };
+      const PNG = async (nom) => { const r = await cdp.send('Page.captureScreenshot', { format: 'png' }, sessionId);
+        const f = join(DEST, nom + '.png');
+        await writeFile(f, Buffer.from(r.data, 'base64')); g.archivos.push(f); };
+      /* ANTES/DESPUES: la vista con una escena rica, a los tres anchos extremos y en los dos temas. */
+      for (const [nom, sp] of [['sana', ESCY.vacio], ['varias', ESCY.camarasFull]]) {
+        await ev(`window.__P.tema(false)`); await viewport(1200, 900);
+        await escena(sp);
+        for (const [w, h] of [[1200, 700], [390, 844], [360, 740]]) {
+          for (const claro of [false, true]) {
+            await ev(`window.__P.tema(${claro})`);
+            await viewport(w, h);
+            await ev(`window.__P.despejar()`);
+            await ev(`window.__P.v2dAbrir()`);
+            await ev(`window.__P.v2dFase(0.30)`);
+            await pausa(170);
+            await PNG('vista_' + nom + '_' + w + '_' + (claro ? 'claro' : 'oscuro'));
+            await ev(`window.__P.v2dCerrarBoton()`);
+          }
+        }
+      }
+      /* LAS LISTAS ABIERTAS, en las cuatro escenas representativas que la orden pide. */
+      for (const [nom, sp] of [['im-discordancia', ESCY.imDisc], ['eao-discordancia', ESCY.eaoDisc],
+                               ['prot-retirado', ESCY.protMitralRegurg], ['grado-a-mano', ESCY.manualFund]]) {
+        await ev(`window.__P.tema(false)`); await viewport(1200, 900);
+        await escena(sp);
+        for (const [w, h] of [[1200, 700], [768, 1024], [390, 844], [360, 740]]) {
+          for (const claro of [false, true]) {
+            if ((w === 768 || w === 390) && claro) continue;
+            await ev(`window.__P.tema(${claro})`);
+            await viewport(w, h);
+            await ev(`window.__P.despejar()`);
+            await ev(`window.__P.v2dAbrir()`);
+            await ev(`window.__P.v2dPqClic('insuf', 0)`);
+            await ev(`window.__P.v2dPqClic('esten', 0)`);
+            await ev(`window.__P.v2dFase(0.30)`);
+            await pausa(170);
+            g.geo = g.geo || {};
+            g.geo[nom + '_' + w + '_' + (claro ? 'claro' : 'oscuro')] = await ev(`window.__P.panelGeo()`);
+            await PNG('lista_' + nom + '_' + w + '_' + (claro ? 'claro' : 'oscuro'));
+            await ev(`window.__P.v2dCerrarBoton()`);
+          }
+        }
+      }
+      await ev(`window.__P.tema(false)`); await viewport(1200, 900);
+      out.grupos.captura = g;
+    }
   }
 
   out.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));

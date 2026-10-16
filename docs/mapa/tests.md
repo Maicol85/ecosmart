@@ -392,3 +392,34 @@ Estas son las que cuestan sesiones enteras.
 ⚠️ **TC-482 MURIÓ POR EXCEPCIÓN CONTRA HEAD EN SUS DOS PRIMERAS VERSIONES**, y la segunda vez en el
 **tercer elemento** del `push` —el texto de «encontrado»—, que se evalúa **siempre**, pase o falle la
 condición. Un centinela en la condición no alcanza: hay que blindar también lo que se imprime.
+
+
+### TC-483 y TC-484 — la vista 2D chica y el «porqué» de cada tarjeta (2026-10-16)
+
+- **TC-483** (33 condiciones) fija el **Y1b**: el botón del pie con el color REAL de una pestaña de
+  válvula en reposo en los dos temas y con tamaño de pestaña —con su denominador (la pestaña está
+  en reposo) y su control negativo (una pestaña PRENDIDA no se ve así)—; la REGLA de la tarjeta
+  flotante centrada de 900 px y 85 vh y que el `inset:10px` del Y1 ya no está; las tres zonas
+  agrupadas en columnas de 184 px; el `clamp` del dibujo entre 200 y 320 px; UNA sola media query
+  con corte en 768 px; las tarjetas siempre visibles y sin `<details>`; y los controles.
+  **Sabe fallar contra el árbol del Y1: 14 de 33 en rojo, ninguna por excepción.**
+- **TC-484** (51 condiciones) fija el **Y2**: que cada fila de cada tarjeta diga lo MISMO que la
+  **fila completa** de la pantalla —en IM, IAo, IT, EAo, EM, ET y las dos prótesis—, que «Decide»
+  publique el mismo texto que el renglón integrado, el botón con `aria-expanded`, su objetivo
+  táctil de 40 px medido con `elementFromPoint`, sin hover, cerrado por defecto y cerrado de nuevo
+  al reabrir la vista; la prótesis mitral con 0 a 4 positivos, la velocidad pico «no vota» y los
+  dos retiros del Z6 **con sus dos controles negativos**; el grado fijado a mano sin lista y con su
+  fundamento, con el control negativo del mismo grado; la lesión sin graduar; que no haya ninguna
+  fila vacía; y los controles.
+  **Sabe fallar contra el árbol del Y1: 36 de 51 en rojo, ninguna por excepción.**
+
+⚠️ **LA COMPARACIÓN DE TC-484 ES CONTRA LA FILA COMPLETA DE LA PANTALLA (`.calc-row`), y es así por
+dos razones.** La primera: el valor y el grado viven en **nodos distintos** —el span hermano, un id
+propio o el propio valor, según la lesión— así que buscar los dos en el nodo del valor da rojo
+sobre tarjetas perfectas; le pasó a la primera versión del caso **en cinco lesiones a la vez**. La
+segunda: leer la fila entera es una lectura **independiente** — comparar contra los mismos nodos
+que el lector usa, uno por uno, sería compararlo consigo mismo.
+
+⚠️ **TC-484 MURIÓ POR EXCEPCIÓN CONTRA HEAD EN SU PRIMERA VERSIÓN**, por un
+`JSON.stringify(undefined).slice(...)` en el **tercer** elemento del `push` —el texto de
+«encontrado», que se evalúa siempre—. Misma lección que TC-482 pagó dos veces.

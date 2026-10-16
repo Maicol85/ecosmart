@@ -2652,3 +2652,36 @@ cavidades, geometría y veredictos protésicos— lo calcularon y lo citaron otr
 con su fuente registrada en este archivo. **Por eso no lleva ni una cita: no hay en la vista una
 sola afirmación clínica propia que citar.** Es el mismo criterio con que el panel de Evidencia
 declara que una banda de plausibilidad va sin cita.
+
+
+---
+
+## Las tandas «Y1b» y «Y2» (2026-10-16) — por qué NO llevan ninguna cita nueva
+
+El **Y1b** es tamaño, estilo y disposición de la vista 2D: no toca un corte, un grado ni un texto
+clínico, así que no hay nada que citar.
+
+El **Y2** agrega a cada tarjeta de esa vista el «porqué» de su grado, y **todo lo que publica lo
+LEE de la pantalla de Válvulas**: el nombre del criterio sale de su propio rótulo, el valor con su
+unidad y su redondeo del span que la app ya pintó, el grado del nodo que su fila ya publica, la
+línea «Decide» del renglón integrado, el aviso de discordancia de su propio nodo y el fundamento
+del cajón del ajuste manual. **No hay un solo corte nuevo, ninguna banda nueva y ninguna frase
+clínica nueva**: los únicos textos que esta tanda escribe son los rótulos de interfaz «Ver
+criterios», «Ocultar criterios», «Decide: », «Fundamento: », «no vota» y «decide». Por eso ninguna
+fila de ninguna tarjeta lleva corchete de cita: lo que afirma ya lo afirma la pantalla, con la
+fuente que esa pantalla declara.
+
+### Lo único que se volvió a verificar en el original: el DVI protésico aórtico
+
+Pedido como control de solo lectura. **ASE 2024 (Zoghbi), Tabla 5 — «Doppler parameters of
+prosthetic valves in the aortic valve position», folio 19** (página 18 del PDF; folio = página + 1,
+**comprobado en el pie impreso**: «Journal of the American Society of Echocardiography · Volume 37
+Number 1 · Zoghbi et al · 19»). La fila `DVI` publica, en sus tres columnas:
+
+> Normal `>0.35` · Possible stenosis `0.25-0.35` · Suggests significant stenosis `<0.25`
+
+y la nota de la tabla declara que la estenosis significativa pide **al menos un parámetro
+dependiente del flujo y uno independiente del flujo**. Coincide carácter por carácter con
+`EA_PROT_CRIT.savr_dvi_normal_min` (0,35, estricto) y `savr_dvi_signif_max` (0,25), que son los que
+la app aplica desde el W2-B. **No se movió ningún corte.** La medición de qué valor compara cada
+consumidor está en `docs/PENDIENTES.md` → **Y2-7**.

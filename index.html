@@ -2495,7 +2495,7 @@ html.light-mode .amilo-root{
 .v2d-pq-decide{margin-top:3px;font-size:10.5px;color:var(--text2);line-height:1.3;}
 .v2d-pq-manual{margin-top:3px;font-size:10.5px;color:var(--orange);font-weight:700;line-height:1.3;}
 .v2d-pq-fund{margin-top:2px;font-size:10.5px;color:var(--text2);line-height:1.3;}
-.v2d-vercrit{display:inline-block;position:relative;margin:4px 0 0;padding:1px 0;
+.v2d-vercrit{display:block;width:fit-content;position:relative;margin:4px 0 0;padding:1px 0;
   background:none;border:0;min-height:0;min-width:0;color:var(--accent2);font-family:inherit;
   font-size:10.5px;font-weight:700;text-decoration:underline;cursor:pointer;}
 .v2d-vercrit::after{content:'';position:absolute;left:-8px;right:-8px;top:50%;
@@ -2509,6 +2509,7 @@ html.light-mode .amilo-root{
 .v2d-pq-g > * + *{margin-left:4px;}
 .v2d-pq-chip{margin-top:0;font-size:9.5px;padding:0 5px;}
 .v2d-pq-banda{color:var(--text2);}
+.v2d-pq-ancho{grid-column:1 / -1;text-align:left;margin:-1px 0 2px;}
 /* UN CRITERIO RETIRADO VA EN GRIS, con el motivo que la pantalla ya escribe. No se esconde: que
    la medicion EXISTE y no cuenta es justamente lo que hay que poder leer. */
 .v2d-pq-ret{opacity:.62;}
@@ -112263,7 +112264,14 @@ function _v2dPqFila(f) {
   v.className = 'v2d-pq-v' + (f.retiro ? ' v2d-pq-ret' : '');
   v.textContent = f.val;
   const g = document.createElement('span');
-  g.className = 'v2d-pq-g' + (f.retiro ? ' v2d-pq-ret' : '');
+  /* ⚠️ UN GRADO LARGO SE VA A SU PROPIA FILA, A LO ANCHO. En una tarjeta de 184 px la tercera
+     columna mide unos 55: una banda protesica entera («no concluye: sube igual con la
+     regurgitacion protesica significativa») caia ahi partida en cinco renglones de dos palabras.
+     Lo vio la CAPTURA, no la medicion: el texto estaba completo y era ilegible. El corte es por
+     LARGO y no por lesion, asi que una palabra de grado —«severa», «moderada»— sigue al lado de
+     su valor y una frase baja. */
+  const largo = String(f.grado || '').length > 12;
+  g.className = 'v2d-pq-g' + (f.retiro ? ' v2d-pq-ret' : '') + (largo ? ' v2d-pq-ancho' : '');
   if (f.noVota) {
     const nv = document.createElement('i'); nv.className = 'v2d-pq-nv';
     nv.textContent = V2D_PQ_NOVOTA; g.appendChild(nv);
@@ -112476,8 +112484,8 @@ window._v2dChipCls = _v2dChipCls;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261015-2055';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1792108552514;                 /* eco-build-ms */
+const ECO_BUILD    = '20261016-0125';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1792124717481;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -112563,7 +112571,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261015-2055</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261016-0125</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
