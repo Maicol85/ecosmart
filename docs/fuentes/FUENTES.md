@@ -2875,3 +2875,28 @@ hay nada que verificar contra una guía:
 
 **Ninguna entrada de este archivo se modificó**, y la única que esta tanda consulta —
 `aseCamaras2015`— queda como la dejó el H.
+
+---
+
+## La tanda K (2026-10-16) — por qué NO lleva ninguna cita nueva
+
+Los seis commits son **disposición, corrección de dibujo y un defecto de estado**. No entra ni un
+corte, ni una banda, ni una regla de integración, ni una frase del informe firmado:
+
+- **K0a** limpia el lienzo entero y acota el largo del chorro. `M3D_JET_LEN_MAX = 3.6` es un
+  **parámetro de DIBUJO**, elegido midiendo el recorte en 360 orientaciones, no un umbral
+  clínico: el esquema es cualitativo y su pie lo dice. Va **sin cita**, por la misma regla con la
+  que una banda de plausibilidad va sin corchete.
+- **K0b** y **K2** mueven bloques de pantalla.
+- **K0c** reproduce la brújula de `docs/3d/2b_demo_mitral_vistas_ete.html`, que es material propio
+  de la app. Sus cinco ejes —anterior, posterior, lateral, medial y auricular— son nomenclatura
+  anatómica corriente, y **el único hecho con fuente es de qué lado cae lo lateral**, que ya está
+  citado: ASE/SCA/STS 2020 (Nicoara et al, JASE 33:6), **folio 695**, la entrada del Y3-1. Lo que
+  esta tanda hace es darle a ese hecho **un dueño único** (`M3D_ORIENT`), no cambiarlo.
+- **K1** corrige de qué depende que el bull's eye entre al PDF. Los colores y los nombres de la
+  escala de motilidad no se tocaron: siguen saliendo de `CONTR_MOTILIDAD`.
+- **K3** reordena controles que ya existían y no mueve un solo valor.
+
+⚠️ **LA TABLA «REFERENCIA DE COLORES» QUE SE RETIRÓ NO ERA UNA FUENTE Y ADEMÁS DISCREPABA DEL
+DUEÑO:** su «Normal» decía `#2a2f3f` donde `CONTR_MOTILIDAD[0].color` es `#22C55E`. Lo que queda
+en pantalla (`#contr-leyenda`) deriva del dueño.

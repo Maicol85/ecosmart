@@ -234,3 +234,43 @@ no existe. Toda lectura de los marcadores va por un ayudante con centinela (`MKA
 MISMO `65vh` y el motor las devuelve como `304.844px` y `304.85px`, así que la igualdad de
 cadena daba rojo sobre un cajón perfecto. Se comparan con tolerancia, y además contra el 65 % del
 viewport.
+
+---
+
+## TC-490 — tanda «K» (2026-10-16)
+
+**51 condiciones**, siete bloques. **Sabe fallar contra HEAD en un worktree aparte: 32 de las 51
+en rojo, y NINGUNA por excepción.** Las 19 que pasan son los controles y lo que esta tanda no
+mueve.
+
+| Bloque | Qué fija |
+|---|---|
+| **(A)** K0a | el tope del chorro vale 3,6; el lienzo se limpia **entero**; cero píxeles del chorro en los cuatro bordes en las ocho cámaras; el chorro **conectado** a la válvula; control negativo sin IM |
+| **(B)** K0b | la leyenda, el aviso y la botonera **dentro** de la columna izquierda; la clase de la fila al abrir y al cerrar; el panel **después** de la columna en el marcado |
+| **(C)** K0c | `m3dBrujula`; los cinco ejes de `M3D_ORIENT`; `m3dXLat()` = −1; los rótulos de comisura leen el dueño; la brújula **gira**; la del ventrículo intacta; 20 ciclos sin acumular |
+| **(D)** K1 | el campo nace vacío; el toque lo prende; **el PDF lleva el bull's eye SIN trastornos**; con trastornos también; apagado no va; «Nuevo estudio» lo apaga; la clave vieja de `localStorage` no prende nada; un estudio sin la clave abre apagado |
+| **(E)** K2 | los tres bloques en orden; los botones en el del medio; «Ver en 3D» **no** se movió; la tabla de colores **no** está; la leyenda del dueño sí; el PDF y el PPT siguen leyendo `CONTR_MOTILIDAD`; el panel cerrado mide 0×0 |
+| **(F)** K3 | el orden del interior; los cinco cuadros **a la derecha** con sus valores; las notas en su nodo; los mismos controles y ninguno nuevo; las casillas al lado de los colores; la regla que conserva el cuadro gris; nada guardado |
+| **(G)** controles | el informe y el EN SUMA salen y no nombran los 3D; **Excel en 440**; el campo nuevo no está en el mapa del Excel |
+
+### Los DENOMINADORES, uno por uno
+
+- **(A0)** la sección de la mitral de ETE abre y el panel queda visible — sin eso el botón y el
+  panel miden 0×0 y una sonda informa «no abre» sobre un mecanismo perfecto.
+- **(A2)** con el chorro **alargado a propósito** el corte lateral SÍ ensucia la fila 0. Sin
+  ensuciarla, «la fila 0 está limpia» no prueba nada: podría estarlo porque nunca se pintó ahí.
+- **(A4)** con IM severa hay chorro dibujado en las ocho cámaras.
+- **(D3)** la escena no tiene ningún trastorno sectorial y el PDF se genera sin error.
+- **(F7)** el dibujo, el lienzo y la columna de datos tienen geometría.
+
+### Las trampas que este caso pagó
+
+1. ⚠️ **LA BRÚJULA DEL VENTRÍCULO VIVE EN `lv3dPintar`, NO EN `lv3dDibujar`.** La primera versión
+   miraba la función equivocada y salía roja sobre una brújula intacta.
+2. ⚠️ **EL PPT NO NOMBRA `CONTR_MOTILIDAD` EN SU LLAMADA:** se la pasa a su columna como `esc`.
+   Buscar el nombre en la llamada da rojo sobre un PPT que sí la usa.
+3. ⚠️ **EL CUERPO DE UN CASO NO PUEDE CAMBIAR EL ANCHO DE LA VENTANA** (el reparto de TC-460): la
+   condición del cuadro gris afirma la **regla** que lo garantiza —`calc(46% + 118px)` con la
+   columna en 110 px— y los píxeles a seis anchos los mide la sonda.
+4. ⚠️ **LAS CONDICIONES VAN EN `{ extra: ex }`**, no en una cadena devuelta: el runner marca
+   «el caso no declara NINGUNA condición» y la corrida sale roja con el texto correcto adentro.

@@ -391,3 +391,176 @@ espacio y la pantalla publicaba «Ángulo velo posterior 45 °».
 - **No hay 3D del Wilkins**, y las dos calculadoras **no se unificaron**: es la PARADA Y3-6, con su
   tabla de diferencias. `docs/PENDIENTES.md` → **Y3-7**.
 - **El archivo de la demo queda sin versionar**, como estaba.
+
+---
+
+## 13 · EL ARTEFACTO DEL CHORRO — tanda «K0a» (2026-10-16)
+
+El médico vio, en Safari y con IM severa, **una masa roja en la parte superior del cuadro que
+termina en un BORDE RECTO HORIZONTAL y queda SEPARADA de la válvula**, con un hueco vacío entre
+las dos. Tenía **dos causas** y las dos están medidas.
+
+### Causa 1 — el lienzo no se limpiaba entero
+
+`m3dPintar` limpiaba con `clearRect(0, 0, M3D_W, M3D_H)`, o sea el rectángulo del **espacio de
+dibujo** (680 × 380) **con el transform de `m3dCtx` ya puesto**. Ese transform encuadra una
+ventana de 462 × 408 y corre el modelo `M3D_AIRE` hacia abajo, así que la franja de arriba del
+lienzo **quedaba fuera del borrado**.
+
+| Lienzo | franja que NO se limpiaba |
+|---|---|
+| 340 × 300 | **51 px de alto**, arriba de todo |
+
+En esa franja, lo pintado en un cuadro cualquiera **se quedaba para siempre**. La línea donde
+empezaba el borrado ES el borde recto, y el hueco es lo que sí se limpiaba.
+
+⚠️ **CÓMO SE SUPO QUE ERA UN RESTO Y NO EL DIBUJO DEL CUADRO:** 38 píxeles del chorro en la fila 0
+que **no cambiaban ni al girar el modelo ni al cambiar de vista ni al acortar el chorro**. Un
+valor fijo bajo tres variables distintas no puede ser el dibujo de ese cuadro.
+
+⚠️ **EL DEFECTO NO VIENE DE LA DEMO**, que limpia su lienzo entero
+(`ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,W,H)`): nace con la ventana de encuadre de
+`m3dCtx` y creció con el `M3D_AIRE` del Y3b-2.
+
+Hoy se limpia con el **transform neutro** y las medidas reales del lienzo. **Ni un píxel del
+dibujo cambia**: lo único que cambia es que lo de cuadros anteriores deja de quedarse.
+
+### Causa 2 — el chorro se salía del lienzo
+
+Con eso, 7 de las 8 cámaras quedan limpias. En el **corte lateral** el chorro todavía dejaba
+**36 px sobre la fila 0**: con una IM severa mide 4,2 unidades y la ventana de encuadre es más
+cerrada que el lienzo de la demo.
+
+**`M3D_JET_LEN_MAX = 3.6`**, y el número sale de medir:
+
+| tope | orientaciones que recortan (de 360) | píxeles sobre la fila 0 |
+|---|---|---|
+| 4,2 (sin tope) | 102 | **38** |
+| **3,6** | 60 | **0** |
+| 3,2 | 45 | 0 |
+| 2,8 | 29 | 0 |
+
+Es el valor **más grande** —el que menos cambia el dibujo— con el que el borde superior queda en
+cero. Los recortes que quedan son todos del borde **de abajo**, con el modelo volcado.
+
+⚠️ **SE ELIGIÓ ACOTAR EL LARGO Y NO AMPLIAR EL ENCUADRE:** ampliar la ventana achica el modelo
+entero, que es justo lo que el Y3b-2 había agrandado midiendo. Acotar el largo toca sólo el
+extremo del chorro, y `sf` —la apertura del abanico— baja con él por la propia fórmula de la demo.
+**Ni el origen, ni el cuello, ni el color, ni el grosor, ni la animación cambian.**
+
+⚠️ **LA CONSTANTE VA CON LAS OTRAS DEL MODELO Y NO AL LADO DE LA RAMA QUE LA USA:** `_m3dBuild` la
+lee y un `var` declarado después se **iza con `undefined`**, así que `Math.min(x, undefined)` daría
+NaN y el chorro desaparecería sin un solo error en consola. Es la lección de `WILK_9_11`.
+
+### El criterio de aceptación, declarado y medido
+
+1. **Cero píxeles del chorro en los cuatro bordes del lienzo** en las ocho cámaras × cuatro
+   escenas (32 celdas): **cumplido en las 32**.
+2. **Cero píxeles en el borde SUPERIOR** en el barrido de giros (yaw −180..180, pitch −90..90):
+   **1794 orientaciones, cero**.
+3. **El chorro CONECTADO a la válvula**: hay píxeles del chorro a ≤ 8 px del origen que publica el
+   hook `m3dChorroOrigen()`. **Cumplido en las 32 cámaras**; en el barrido quedan **4 de 1703** sin
+   conexión detectada, todas con pitch ±90 (el modelo de canto, con el origen tapado por las
+   valvas).
+4. **Control negativo:** la escena de estenosis sin IM no dibuja un solo píxel de chorro.
+
+⚠️ **LO QUE QUEDA, DECLARADO:** 479 de 1794 orientaciones todavía recortan el borde de **abajo**,
+todas con el modelo volcado (pitch ≥ 45 o ≤ −75) — el mismo borde que el modelo ya tocaba en HEAD
+y que el Y3b-1 declaró. `docs/PENDIENTES.md` → **K-1**.
+
+⚠️ **Y UNA FORMA QUE NO ES UN RECORTE Y CONVIENE NO CONFUNDIR:** en la **vista del cirujano** se
+mira a lo largo del eje del chorro, y sus nueve rayas son **coplanares** (el abanico se abre sólo
+en x), así que se proyectan como un **segmento recto horizontal** que cruza por encima de la
+válvula. Es la geometría de la demo, no un recorte: el chorro está entero y conectado. Con el tope
+en 3,6 ese segmento pasa de 5,8 a 5,1 unidades de ancho, contra 3,4 del anillo.
+`docs/PENDIENTES.md` → **K-2**.
+
+### Cómo medirlo
+
+El chorro se aísla **por color**: rojo dominante con holgura (`r > 70`, `r > 1,75·g`,
+`r > 1,75·b`). Ningún otro elemento del dibujo es rojizo — el músculo papilar es `#a4635c`, cuyo
+cociente r/g es **1,66**, por debajo del umbral.
+
+⚠️ **EL BARRIDO DE GIROS SE HACE CON `prefers-reduced-motion`**, que hace `m3dCalmo()` verdadero:
+`_m3dGoTo` fija la cámara de una vez en vez de interpolarla 600 ms y `m3dGirar` repinta
+sincrónicamente. Sin eso, cada punto exigiría esperar la animación y la matriz leída a medio
+camino **no es la pedida**.
+
+---
+
+## 14 · LA COLUMNA IZQUIERDA — tanda «K0b» (2026-10-16)
+
+La vista quirúrgica y las **tres cosas que la acompañan** —la leyenda de colores de las lesiones,
+el aviso de hallazgos (`#ete-seg-resumen`) y los tres botones— eran hermanas de `#m3d-fila` y
+quedaban al fondo de la pantalla, lejos de la vista y con un hueco grande debajo. Hoy son
+**`#m3d-col-izq`**.
+
+| Estado | `#m3d-col-izq` | Resultado |
+|---|---|---|
+| panel **cerrado** | `flex:1 1 auto` | el ancho entero de la tarjeta: **todo queda como estaba** |
+| panel **abierto** | `flex:0 1 500px` | el **mismo** flex que tenía `#m3d-qx`: las tres bajan con la vista |
+
+El dueño de la clase es **`m3dFilaSync`**, llamado desde `m3dAbrir` y `m3dCerrar`.
+
+⚠️ **LA CLASE VA EN LA FILA Y NO SE RESUELVE CON UN SELECTOR DE HERMANO:** `:has()` no está en
+todos los motores que este repo mide, y un selector de hermano no puede alcanzar a un elemento
+**anterior**.
+
+⚠️ **LA CLASE SE PONE EN EL MISMO CUADRO QUE EL `hidden`, no en el `requestAnimationFrame`:** el
+ancho de la columna es el estado de partida contra el que el panel anima el suyo. Puesta en el
+rAF, la vista quirúrgica saltaba un cuadro después que el panel.
+
+**En angosto sale solo:** `#m3d-fila` pasa a `display:block`, así que el orden es el del marcado
+—vista, leyenda, aviso, botones y recién ahí el panel—, que es lo que deja el botón «3D» a mano
+**antes** de que aparezca el panel.
+
+### Lo medido, seis viewports × dos temas
+
+| Ancho | 3D cerrado (A/B contra el commit anterior) | 3D abierto |
+|---|---|---|
+| 1200 | **IDÉNTICO** (vista 500×295, leyenda y aviso en 978) | leyenda y aviso a **356**, suben 248 px |
+| 1440 / 1920 | **IDÉNTICO** | a **500** |
+| 768 / 390 / 360 | **IDÉNTICO** | una columna, leyenda y aviso **antes** del panel |
+
+**El alto de la página baja 102 px** a 1200, 1440 y 1920 con el panel abierto. Cero scroll
+horizontal en las doce celdas. Medido también en **WebKit 27.2**, con los mismos resultados.
+
+---
+
+## 15 · LA BRÚJULA — tanda «K0c» (2026-10-16)
+
+Las cinco líneas con su letra que giran junto con el modelo. Es la de la demo (último bloque de su
+`draw()`), y es además el mismo mecanismo que el 3D del ventrículo, que el médico dio por bueno.
+
+### El dueño único de la orientación
+
+`M3D_ORIENT` —cinco ejes: `Ant@0,1,0`, `Post@0,-1,0`, `Lat@-1,0,0`, `Med@1,0,0`, `Aur@0,0,1`— es
+**el dueño del lado en que cae lo lateral**, y de ahí lo lee también `m3dRotulosExtra` (vía
+`m3dXLat()`) para colocar **AL** y **PM**, que antes iban con dos literales `-1` y `1`.
+
+⚠️ **SON DOS VOCABULARIOS DISTINTOS Y NO SE PUEDEN UNIFICAR:** la brújula rotula **ejes**
+anatómicos (`Lat`, `Med`) y el modelo rotula **comisuras** (`AL` = anterolateral, `PM` =
+posteromedial). Compartir el texto obligaría a renombrar un rótulo clínico. Lo que se comparte es
+el **signo**, que es lo único que puede contradecirse. Medido: `m3dXLat()` = **−1**, el lado de la
+orejuela, que es la corrección del Y3-1.
+
+### Tres diferencias con la demo, las tres por el encuadre
+
+1. **Se dibuja en píxeles del lienzo**, con el transform neutro, y no en coordenadas del espacio
+   de dibujo: el `(64, H−56)` de la demo cae **fuera** de la ventana de 462 × 408 que `m3dCtx`
+   encuadra, así que allí no se vería; y anclada al dibujo su tamaño cambiaría con el factor de
+   encuadre.
+2. **Radio 26 y letra de 10 px** en vez de 34 y 12: el lienzo mide 340 × 300 y no 680 × 380.
+3. **El rótulo de la izquierda se corre por su ancho medido** (`measureText`) en vez de los 26 px
+   fijos de la demo, que con una palabra más larga se saldría del lienzo.
+
+`M3D_BRU = { x: 56, y: 48, r: 26 }`. El **56** sale de medir: con el rótulo más largo de la
+izquierda («Post», 20 px) el extremo queda a **7 px** del borde.
+
+Lo que no cambia: los cinco ejes, sus nombres, el orden, que giren con **`_m3dDr`** —la misma
+rotación del modelo, así que no puede desincronizarse— y que el rótulo salte de lado según el
+signo.
+
+**Medido:** aparece en las **ocho** cámaras; un giro a mano le cambia el hash de su esquina
+(345583108 → 2251815900); con el panel cerrado no hay pintado, así que no hay brújula. **La del
+ventrículo no se tocó.**

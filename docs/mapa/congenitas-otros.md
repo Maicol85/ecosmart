@@ -369,3 +369,12 @@ Pestaña `tab-guardados`, desde el botón al pie
 | `valv*` · `vp*` · `em*` · `_sev*` | válvulas (`valvulas.md`) |
 | `eeEval*` · `eeBull*` · `eeEcg*` | Eco Estrés — **sin pestaña**, ver «No confirmado» |
 | `frases*` · `generarInforme` | informe narrativo |
+
+---
+
+## CONTRACTILIDAD y el 3D del VENTRÍCULO → tienen mapa propio
+
+Desde la tanda **K** (2026-10-16): el botón «Incluir bull's eye en PDF» y de qué depende que el
+bull's eye entre al papel, la fila de tres bloques bajo el bull's eye, la tabla «Referencia de
+colores» retirada y el interior del 3D del ventrículo están en
+**`docs/mapa/contractilidad-3d-vi.md`**.

@@ -117,13 +117,19 @@ WebGL, sin API de Chrome—, y el CSS del panel usa sólo propiedades con soport
 a propósito animar `grid-template-columns`, que pide Safari 16+). Aun así, **no está medido en
 WebKit**: ver el intento de instalar Playwright/WebKit en el reporte de la tanda.
 
-### Y3-4 · El chorro severo SALE del cuadro
+### ✅ Y3-4 · CERRADO el 2026-10-16 — el chorro severo ya no sale del cuadro
 
-Con IM severa el chorro se dibuja con un largo de `0.8 + 3.4·sev` y, en la vista del cirujano
-—donde el chorro viene hacia el observador—, su proyección excede el encuadre y se recorta.
-**Es la geometría de la demo aprobada** y la orden manda conservar lo que la demo ya resuelve, así
-que no se tocó. Las salidas, si alguna vez molesta: acortar el chorro (cambia el dibujo aprobado),
-abrir el encuadre sólo con chorro severo (encuadre inconsistente entre pacientes) o dejarlo.
+**Resuelto en la tanda «K0a», y la causa principal era OTRA.** Lo que producía la masa roja con
+borde recto que el médico reportó no era el largo del chorro sino que `m3dPintar` **no limpiaba
+el lienzo entero**: `clearRect(0, 0, M3D_W, M3D_H)` corría con el transform del encuadre puesto y
+dejaba sin borrar una franja de 51 px arriba, donde lo pintado en un cuadro cualquiera se quedaba
+para siempre. Medido en HEAD: 38 píxeles del chorro en la fila 0 que no cambiaban ni al girar ni
+al cambiar de vista ni al acortar el chorro.
+Corregido eso, 7 de las 8 cámaras quedan limpias y el **corte lateral** todavía recortaba: entra
+`M3D_JET_LEN_MAX = 3.6`, el valor **más grande** con el que el borde superior queda en cero en las
+360 orientaciones del barrido —se eligió midiendo, no a ojo—. De las tres salidas que esta entrada
+ofrecía se tomó la primera (acortar), y se descartó abrir el encuadre porque achica el modelo
+entero. Todo en `docs/mapa/mitral-3d-ete.md` → sección 13.
 
 ### Y3-5 · Lo que la demo no trae y NO se agregó
 
@@ -4033,3 +4039,61 @@ toques llegan al botón a 1200, 768 y 390 px en los dos temas.
   pero mejora el área real. Dos valores de CSS;
 * **(c)** enseñarle a `check_mobile.js` a mirar el `::after` cuando existe. Toca el arnés, no el
   producto, y le cambiaría el conteo a los otros botones que usan el mismo recurso.
+
+
+## Tanda K · el 3D de la mitral, el bull's eye al PDF y el 3D del ventrículo (2026-10-16) — DECLARADO y NO arreglado
+
+> Lo implementado está en `docs/mapa/mitral-3d-ete.md` (secciones 13, 14 y 15) y en
+> `docs/mapa/contractilidad-3d-vi.md`. Acá queda lo que la tanda **no** hizo.
+
+### K-1 · El chorro todavía recorta el borde de ABAJO con el modelo volcado
+
+Con el tope en 3,6 el borde **superior** queda en cero en las 1794 orientaciones del barrido, que
+es donde el médico vio el artefacto. Quedan **479 de 1794** que recortan el borde **inferior**, y
+todas tienen el modelo volcado (pitch ≥ 45 o ≤ −75). Es el mismo borde que el modelo ya tocaba en
+HEAD y que el Y3b-1 declaró para el corte lateral y los cinco ángulos.
+Las salidas: bajar más el tope (2,4 deja 18 de 360 en el barrido grueso, pero acorta el chorro un
+43 % respecto de la demo), subir `M3D_AIRE` (mueve el modelo y rehace la medición del Y3b-2), o
+dejarlo. **No se tocó**: el síntoma reportado es el de arriba.
+
+### K-2 · En la vista del cirujano el chorro se proyecta como una RAYA RECTA
+
+Las nueve rayas del chorro son **coplanares** —el abanico se abre sólo en x—, así que mirándolo a
+lo largo de su eje (la vista del cirujano) se proyecta como un segmento recto horizontal que cruza
+por encima de la válvula. **No es un recorte**: el chorro está entero y conectado. Con el tope de
+K0a ese segmento pasa de 5,8 a **5,1 unidades** de ancho, contra **3,4** del anillo mitral.
+Que un chorro sea más ancho que el anillo es una decisión sobre el MODELO, que esta orden prohíbe
+tocar. Las salidas: abrir el abanico en un cono en vez de un plano (cambia la geometría de la
+demo), acotar `sf`, o dejarlo. **No se tocó.**
+
+### K-3 · Los otros dos toggles de PDF siguen en `localStorage`
+
+K1 movió el estado del bull's eye de contractilidad a un campo DEL ESTUDIO (`contr_be_pdf`). Sus
+dos hermanos —`sgl_incluir_pdf` (bull's eye del strain) y `mitral_qx_incluir_pdf` (vista
+quirúrgica)— **siguen siendo preferencias globales de `localStorage`**, con exactamente el mismo
+modo de falla: aparecen prendidos solos al encadenar estudios. `mitral_qx_incluir_pdf` sí se borra
+en `limpiarCampos`; `sgl_incluir_pdf` no. Quedaron fuera de esta orden.
+
+### K-4 · A 1200 px la columna de hallazgos de motilidad baja a unos 150 px
+
+Para que el cuadro gris del 3D del ventrículo **no se achicara** —la orden lo pide— el panel pasó
+a `calc(46% + 118px)`, o sea creció exactamente lo que ocupa la columna de los cinco cuadros. Lo
+que se angosta es la columna de hallazgos: **151 px a 1200**, 264 a 1440 y 511 a 1920. Es texto y
+se lee, pero a 1200 queda apretado. Las salidas: bajar la columna de botones de 210 a 180 px,
+achicar la columna de datos, o que a 1200 la fila pase a dos columnas con el panel abajo (deja de
+ser la fila de tres que la orden pide). **No se tocó.**
+
+### K-5 · La leyenda «modelo esquemático» de la CAPTURA no existe
+
+La orden la enumera entre los controles del bloque de captura del 3D del ventrículo. **No existe**:
+la única con ese texto («Modelo esquemático, ilustrativo: no es una imagen del paciente») está
+debajo del botón «Ver en 3D», en la columna del bull's eye, y ese botón no se movió. El bloque de
+captura tiene su propio rótulo («Sin captura.»). **No se creó nada**, como manda la orden.
+
+### K-6 · Con la pestaña del navegador oculta el 3D del ventrículo sigue pidiendo cuadros
+
+Medido con la emulación de `document.hidden`: 54 cuadros en 900 ms con la pestaña oculta, contra 0
+con el panel cerrado. **Es PREEXISTENTE** —HEAD da el mismo 54 con la misma emulación—, así que no
+es una regresión de esta tanda. El 3D de la MITRAL sí se detiene con la pestaña oculta.
+Puede ser además un artefacto del medidor: redefinir `document.hidden` con `defineProperty` no es
+lo mismo que ocultar la pestaña de verdad. **No se tocó.**

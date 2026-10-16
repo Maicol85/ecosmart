@@ -71242,6 +71242,433 @@ caso('TC-489', 'Tanda J: la AURICULA IZQUIERDA con volumen que NO se puede index
     return { extra: ex };
   })();
 `);
+caso('TC-490', 'Tanda K: el 3D de la MITRAL —el lienzo se limpia ENTERO y el chorro ya no deja una masa roja con borde recto arriba, el chorro acotado no toca ningun borde y sigue pegado a la valvula, la leyenda, el aviso y los botones bajan con la vista del cirujano, y la BRUJULA con su duenio unico de orientacion—; y CONTRACTILIDAD —el bull-s eye al PDF depende SOLO del boton y el boton nace apagado, la fila de TRES bloques sin la tabla de colores, y el interior del 3D del ventriculo reordenado con los cinco cuadros a la derecha del dibujo—; mas el informe, el EN SUMA, los grados, el PDF y las 440 columnas del Excel sin moverse', `
+  return (async function(){
+    const ex = [];
+    const EL = (id) => document.getElementById(id);
+    const FN = (n) => typeof window[n] === 'function';
+    const V  = (id) => { const e = EL(id); return e ? e.value : null; };
+    const S  = (id, v) => { try { __t.set(id, v); } catch (e) {} };
+    const TXT = (sel) => { const e = document.querySelector(sel); return e ? String(e.textContent || '').replace(/[ ]+/g, ' ').trim() : 'NO EXISTE'; };
+    const NL = String.fromCharCode(10);
+    const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+    /* ⚠️ TODA LECTURA DE LAS PIEZAS NUEVAS VA POR UN AYUDANTE CON CENTINELA. Contra HEAD
+       m3dChorroOrigen, M3D_JET_LEN_MAX, M3D_ORIENT, m3dXLat, m3dBrujula, contrPdfOn,
+       contrPdfSync y los nodos m3d-col-izq, lv3d-bloque-botones, lv3d-dibujo y lv3d-notas NO
+       existen, y nombrarlos pelados es un ReferenceError o un TypeError que mata la corrida
+       entera: eso prueba que el arbol es distinto, NO que el caso sabe medir. Es la leccion que
+       TC-455, TC-462, TC-465, TC-471, TC-473, TC-474, TC-477, TC-480, TC-481, TC-485, TC-486,
+       TC-487 y TC-489 ya tienen escrita. */
+    const G = (n) => { try { return (n in window) ? window[n] : 'NO EXISTE'; } catch (e) { return 'EXC'; } };
+    const RECT = (sel) => { const e = document.querySelector(sel); if (!e) return null;
+      const r = e.getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height) }; };
+    const DENTRO = (padreSel, hijo) => { const p = document.querySelector(padreSel);
+      return !!(p && hijo && p.contains(hijo)); };
+
+    /* ══ EL LIENZO DEL 3D DE LA MITRAL, leido pixel por pixel ══════════════════════════════
+       Un pixel es «del chorro» si el rojo domina con holgura: el chorro va en rgba(226,75,74)
+       y su cuello en rgba(120,20,20), y ningun otro elemento del dibujo es rojizo —el musculo
+       papilar es #a4635c, cuyo cociente r/g es 1,66, por debajo del umbral de 1,75—. */
+    const CV = () => EL('m3d-cv');
+    const PIX = () => { const cv = CV(); if (!cv || !cv.getContext) return null;
+      let c = null; try { c = cv.getContext('2d'); } catch (e) { return null; }
+      if (!c) return null;
+      let d = null; try { d = c.getImageData(0, 0, cv.width, cv.height); } catch (e) { return null; }
+      const a = d.data, W = cv.width, H = cv.height;
+      const es = (i, j) => { const p = (j * W + i) * 4;
+        return a[p + 3] >= 40 && a[p] > 70 && a[p] > 1.75 * (a[p + 1] + 1) && a[p] > 1.75 * (a[p + 2] + 1); };
+      let n = 0, arr = 0, aba = 0, izq = 0, der = 0;
+      for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) if (es(i, j)) { n++;
+        if (j === 0) arr++; if (j === H - 1) aba++; if (i === 0) izq++; if (i === W - 1) der++; }
+      return { n, arr, aba, izq, der, W, H }; };
+    /* ¿Hay chorro a menos de 8 px del origen que la app publica? Sin el hook habria que
+       reconstruir la proyeccion desde afuera, o sea medir la propia reconstruccion. */
+    const PEGADO = () => { let o = null; try { o = FN('m3dChorroOrigen') ? m3dChorroOrigen() : null; } catch (e) { return 'EXC'; }
+      if (!o || typeof o !== 'object') return 'SIN ORIGEN';
+      const cv = CV(); if (!cv) return 'SIN LIENZO';
+      const R = 8, x0 = Math.max(0, Math.round(o.x - R)), y0 = Math.max(0, Math.round(o.y - R));
+      const w = Math.min(cv.width - x0, 2 * R + 1), h = Math.min(cv.height - y0, 2 * R + 1);
+      if (w <= 0 || h <= 0) return 'ORIGEN FUERA';
+      let d = null; try { d = cv.getContext('2d').getImageData(x0, y0, w, h).data; } catch (e) { return 'EXC2'; }
+      let n = 0;
+      for (let i = 0; i < d.length; i += 4)
+        if (d[i + 3] >= 40 && d[i] > 70 && d[i] > 1.75 * (d[i + 1] + 1) && d[i] > 1.75 * (d[i + 2] + 1)) n++;
+      return n; };
+    const ABRIR3D = () => { const b = EL('m3d-btn'); if (!b) return 'SIN BOTON';
+      let vis = 'SIN FN'; try { vis = FN('m3dVisible') ? m3dVisible() : 'SIN FN'; } catch (e) {}
+      if (vis !== true) b.click();
+      try { return FN('m3dVisible') ? m3dVisible() : 'SIN FN'; } catch (e) { return 'EXC'; } };
+    const CERRAR3D = () => { try { if (FN('m3dCerrar')) m3dCerrar(); } catch (e) {}
+      try { return FN('m3dVisible') ? m3dVisible() : 'SIN FN'; } catch (e) { return 'EXC'; } };
+    const ETE = () => { try { if (FN('showTab')) showTab('ete'); } catch (e) {}
+      ['mitral', 'mediciones-mitral'].forEach(k => { try {
+        const s = EL('ete-seccion-' + k);
+        if (s && getComputedStyle(s).display === 'none' && FN('toggleEteSeccion')) toggleEteSeccion(k, null);
+      } catch (e) {} }); };
+    const CONTR = () => { try { if (FN('showTab')) showTab('contractilidad'); } catch (e) {}
+      try { const c = EL('sacc-contractilidad');
+        if (c && FN('secToggle') && String(c.className).indexOf('abierta') < 0) secToggle('contractilidad');
+      } catch (e) {} };
+    const NUEVO = () => { try { if (FN('limpiarCampos')) limpiarCampos(true); } catch (e) {} };
+
+    /* ══ (A) K0a — EL LIENZO SE LIMPIA ENTERO Y EL CHORRO NO SE SALE ════════════════════ */
+    NUEVO();
+    S('peso', '80'); S('talla', '180'); S('im_vc', '9'); S('ete_diam_anular', '30');
+    S('ai_vol', '120'); S('ai_area', '28');
+    try { if (FN('calcAI')) calcAI(); } catch (e) {}
+    try { if (FN('calcIM_ESC')) calcIM_ESC(); } catch (e) {}
+    try { if (FN('valvSev')) valvSev.aplicar('insuf', 'mitral', '4'); } catch (e) {}
+    ETE();
+    const vis3d = ABRIR3D();
+    ex.push(['(A0) DENOMINADOR: la seccion de la mitral de ETE abre y el panel 3D queda VISIBLE',
+      vis3d === true, 'visible=' + String(vis3d)]);
+    try { const c0 = FN('m3dEstadoCamara') ? m3dEstadoCamara() : null;
+      if (c0 && c0.play === true && FN('m3dPlay')) m3dPlay();
+      if (FN('m3dFaseFijar')) m3dFaseFijar(0); } catch (e) {}
+
+    ex.push(['(A1) el tope del largo del chorro existe y vale 3.6 —el valor mas grande con el que el borde superior queda limpio en las 360 orientaciones del barrido—',
+      G('M3D_JET_LEN_MAX') === 3.6, 'M3D_JET_LEN_MAX=' + String(G('M3D_JET_LEN_MAX'))]);
+
+    /* El DENOMINADOR del borrado: se ensucia la franja de arriba a proposito, con un chorro
+       largo en la vista que lo manda hacia el borde superior. Sin ensuciarla, «la fila 0 esta
+       limpia» no prueba nada: podria estarlo porque nunca se pinto ahi. */
+    let suciaAntes = null, limpiaDespues = null;
+    try {
+      window.M3D_JET_LEN_MAX = 6;
+      if (FN('m3dVista')) m3dVista('lateral');
+      await esperar(900);
+      suciaAntes = PIX();
+      window.M3D_JET_LEN_MAX = 3.6;
+      if (FN('m3dVista')) m3dVista('cirujano');
+      await esperar(900);
+      limpiaDespues = PIX();
+    } catch (e) {}
+    ex.push(['(A2) DENOMINADOR: con el chorro alargado a proposito, el corte lateral SI deja pixeles del chorro sobre la fila 0 del lienzo',
+      !!(suciaAntes && suciaAntes.arr > 0), 'arr=' + String(suciaAntes && suciaAntes.arr)]);
+    ex.push(['(A3) al volver a la vista del cirujano la franja de arriba queda LIMPIA: el lienzo se borra entero y no conserva nada del cuadro anterior —era el borde recto horizontal con la masa roja separada de la valvula—',
+      !!(limpiaDespues && limpiaDespues.arr === 0), 'arr=' + String(limpiaDespues && limpiaDespues.arr)]);
+
+    /* Las OCHO camaras: ni un pixel del chorro en los cuatro bordes, y el chorro PEGADO. */
+    const CAMS = [['cirujano', null], ['ventriculo', null], ['lateral', null],
+                  [null, 0], [null, 45], [null, 60], [null, 90], [null, 120]];
+    const bordes = [], sueltos = [], conChorro = [];
+    for (const [v, a] of CAMS) {
+      try { if (a === null) { if (FN('m3dVista')) m3dVista(v); } else { if (FN('m3dAngulo')) m3dAngulo(a); } } catch (e) {}
+      await esperar(820);
+      const p = PIX(), nom = a === null ? v : ('ang' + a);
+      if (!p) continue;
+      if (p.n > 0) conChorro.push(nom);
+      if (p.arr + p.aba + p.izq + p.der > 0) bordes.push(nom + ':' + p.arr + '/' + p.aba + '/' + p.izq + '/' + p.der);
+      const pg = PEGADO();
+      if (!(typeof pg === 'number' && pg > 0)) sueltos.push(nom + '=' + String(pg));
+    }
+    ex.push(['(A4) DENOMINADOR: con IM severa hay chorro dibujado en las OCHO camaras',
+      conChorro.length === 8, 'con chorro: ' + conChorro.join(',')]);
+    ex.push(['(A5) el chorro NO toca ninguno de los cuatro bordes del lienzo en ninguna de las ocho camaras',
+      bordes.length === 0, 'bordes: ' + (bordes.join(' | ') || 'ninguno')]);
+    ex.push(['(A6) el chorro sigue CONECTADO a la valvula en las ocho: hay pixeles del chorro a 8 px del origen que publica m3dChorroOrigen',
+      sueltos.length === 0, 'sueltos: ' + (sueltos.join(' | ') || 'ninguno')]);
+
+    /* CONTROL NEGATIVO: sin insuficiencia mitral no hay chorro que dibujar. */
+    try { if (FN('valvSev')) valvSev.aplicar('insuf', 'mitral', '0'); } catch (e) {}
+    S('im_vc', '');
+    try { if (FN('calcIM_ESC')) calcIM_ESC(); } catch (e) {}
+    try { if (FN('m3dSync')) m3dSync(); } catch (e) {}
+    await esperar(400);
+    const sinIM = PIX();
+    ex.push(['(A7) CONTROL NEGATIVO: sin insuficiencia mitral el lienzo NO tiene un solo pixel de chorro',
+      !!(sinIM && sinIM.n === 0), 'n=' + String(sinIM && sinIM.n)]);
+
+    /* ══ (B) K0b — LA LEYENDA, EL AVISO Y LOS BOTONES BAJAN CON LA VISTA ════════════════ */
+    const colIzq = EL('m3d-col-izq'), fila = EL('m3d-fila');
+    ex.push(['(B1) existe la columna izquierda y es hija de la fila del 3D',
+      !!(colIzq && fila && fila.contains(colIzq)), 'col=' + String(!!colIzq) + ' fila=' + String(!!fila)]);
+    const btn3d = EL('m3d-btn');
+    const botonera = btn3d ? btn3d.parentElement : null;
+    ex.push(['(B2) la BOTONERA —Limpiar, Incluir en PDF y 3D— esta DENTRO de la columna izquierda',
+      DENTRO('#m3d-col-izq', botonera), 'padre=' + String(botonera && botonera.id)]);
+    ex.push(['(B3) el AVISO de hallazgos esta DENTRO de la columna izquierda',
+      DENTRO('#m3d-col-izq', EL('ete-seg-resumen')), 'hay=' + String(!!EL('ete-seg-resumen'))]);
+    /* La leyenda no tiene id: se la ubica por su contenido, que son los seis nombres. */
+    let leyenda = null;
+    try { const ds = document.querySelectorAll('#tab-ete div');
+      for (let i = 0; i < ds.length; i++) { const t = String(ds[i].textContent || '');
+        if (t.indexOf('Prolapso') > -1 && t.indexOf('Calcificaci') > -1 && t.length < 140) { leyenda = ds[i]; break; } }
+    } catch (e) {}
+    ex.push(['(B4) la LEYENDA de colores de las lesiones esta DENTRO de la columna izquierda',
+      DENTRO('#m3d-col-izq', leyenda), 'leyenda=' + String(!!leyenda)]);
+    ex.push(['(B5) con el panel ABIERTO la fila lleva la clase que angosta la columna a 500 px',
+      !!(fila && String(fila.className).indexOf('m3d-abierta') > -1), 'clase=' + String(fila && fila.className)]);
+    CERRAR3D();
+    ex.push(['(B6) con el panel CERRADO la clase se va: la columna vuelve al ancho entero y la pantalla queda como estaba',
+      !!(fila && String(fila.className).indexOf('m3d-abierta') < 0), 'clase=' + String(fila && fila.className)]);
+    /* EL ORDEN DEL MARCADO es lo que en una columna deja el boton «3D» ANTES del panel. */
+    const hijosFila = fila ? Array.prototype.slice.call(fila.children).map(c => c.id || c.tagName) : [];
+    ex.push(['(B7) la fila tiene exactamente DOS hijos y el panel 3D va DESPUES de la columna: en una sola columna eso deja el boton «3D» a mano antes de que aparezca el panel',
+      hijosFila.length === 2 && hijosFila[0] === 'm3d-col-izq' && hijosFila[1] === 'm3d-panel',
+      'hijos=' + hijosFila.join(',')]);
+
+    /* ══ (C) K0c — LA BRUJULA Y EL DUENIO DE LA ORIENTACION ═════════════════════════════ */
+    ex.push(['(C1) la brujula del 3D de la mitral existe como funcion propia',
+      FN('m3dBrujula'), 'm3dBrujula=' + typeof window.m3dBrujula]);
+    let ejes = 'NO EXISTE';
+    try { ejes = Array.isArray(window.M3D_ORIENT)
+      ? M3D_ORIENT.map(e => e.l + '@' + e.v.join(',')).join(' ') : 'NO EXISTE'; } catch (e) { ejes = 'EXC'; }
+    ex.push(['(C2) los CINCO ejes son los de la demo: anterior, posterior, lateral, medial y auricula',
+      ejes === 'Ant@0,1,0 Post@0,-1,0 Lat@-1,0,0 Med@1,0,0 Aur@0,0,1', 'ejes=' + ejes]);
+    let xlat = 'NO EXISTE';
+    try { xlat = FN('m3dXLat') ? m3dXLat() : 'NO EXISTE'; } catch (e) { xlat = 'EXC'; }
+    ex.push(['(C3) el DUENIO del lado lateral dice x NEGATIVO —el lado de la orejuela, que es la correccion del Y3-1—',
+      xlat === -1, 'm3dXLat=' + String(xlat)]);
+    /* Los dos rotulos de comisura leen ese signo y no un literal: si estuvieran cableados, el
+       fuente seguiria teniendo el par [-1] y [1] escritos a mano en esa linea. */
+    const fnRot = String((window.m3dRotulosExtra || '').toString());
+    ex.push(['(C4) los rotulos AL y PM toman el signo del duenio y no un literal: la linea nombra m3dXLat',
+      fnRot.indexOf('m3dXLat') > -1, 'usa m3dXLat=' + String(fnRot.indexOf('m3dXLat') > -1)]);
+    /* La brujula gira con el modelo: cambiar la camara le cambia los pixeles de su esquina. */
+    ABRIR3D();
+    try { if (FN('m3dVista')) m3dVista('cirujano'); } catch (e) {}
+    await esperar(850);
+    const zonaHash = () => { const cv = CV(); if (!cv) return null;
+      let d = null; try { d = cv.getContext('2d').getImageData(0, Math.max(0, cv.height - 90), 115, 90).data; } catch (e) { return null; }
+      let h = 2166136261;
+      for (let i = 0; i < d.length; i++) { h ^= d[i]; h = (h * 16777619) >>> 0; }
+      return h; };
+    const hb1 = zonaHash();
+    try { if (FN('m3dVista')) m3dVista('lateral'); } catch (e) {}
+    await esperar(850);
+    const hb2 = zonaHash();
+    ex.push(['(C5) la brujula GIRA con el modelo: su esquina del lienzo cambia al cambiar de vista',
+      !!(hb1 !== null && hb2 !== null && hb1 !== hb2), 'h1=' + String(hb1) + ' h2=' + String(hb2)]);
+    /* La del VENTRICULO no se toco. */
+    /* ⚠️ LA BRUJULA DEL VENTRICULO VIVE EN lv3dPintar Y NO EN lv3dDibujar, que es la que
+       prepara el contexto: la primera version de esta condicion miraba la funcion equivocada y
+       salia roja sobre una brujula intacta. */
+    const fnLv = String((window.lv3dPintar || '').toString());
+    ex.push(['(C6) CONTROL NEGATIVO: la brujula del 3D del VENTRICULO queda intacta, con sus cinco ejes propios',
+      fnLv.indexOf('Punta') > -1 && fnLv.indexOf('Sep') > -1 && fnLv.indexOf('Inf') > -1,
+      'lv3dPintar nombra Punta/Sep/Inf=' + String(fnLv.indexOf('Punta') > -1)]);
+    /* 20 aperturas y cierres del panel de la mitral. */
+    const n0 = document.getElementsByTagName('*').length;
+    for (let i = 0; i < 20; i++) { ABRIR3D(); CERRAR3D(); }
+    ex.push(['(C7) 20 aperturas y cierres no acumulan nodos y el panel termina CERRADO',
+      document.getElementsByTagName('*').length === n0 && CERRAR3D() === false,
+      'nodos ' + n0 + ' -> ' + document.getElementsByTagName('*').length]);
+
+    /* ══ (D) K1 — EL BULL-S EYE AL PDF DEPENDE SOLO DEL BOTON ═══════════════════════════ */
+    NUEVO();
+    CONTR();
+    const beCampo = () => { const e = EL('contr_be_pdf'); return e ? String(e.value) : 'NO EXISTE'; };
+    const bePrend = () => { const b = EL('contr-pdf-toggle');
+      return b ? b.classList.contains('btn-primary') : 'NO EXISTE'; };
+    const beOn = () => { try { return FN('contrPdfOn') ? contrPdfOn() : 'SIN FN'; } catch (e) { return 'EXC'; } };
+    const TOCAR_BE = () => { const b = EL('contr-pdf-toggle'); if (b) b.click(); return bePrend(); };
+    ex.push(['(D1) el estado del boton es un CAMPO del estudio y nace VACIO, o sea apagado',
+      beCampo() === '' && bePrend() === false && beOn() === false,
+      'campo=' + beCampo() + ' boton=' + String(bePrend()) + ' on=' + String(beOn())]);
+    ex.push(['(D2) un toque del medico lo prende y escribe el campo',
+      TOCAR_BE() === true && beCampo() === '1' && beOn() === true, 'campo=' + beCampo()]);
+
+    /* El PDF, generado de verdad. El bull-s eye entra como IMAGEN y su rotulo como texto. */
+    const PDFBE = () => { if (typeof window.jspdf === 'undefined') return { err: 'SIN jsPDF' };
+      const orig = window.jspdf.jsPDF; const textos = []; let imgs = 0, err = null;
+      function Envuelto(){ const d = new orig(arguments[0]); const oT = d.text, oI = d.addImage;
+        d.text = function(t){ textos.push(typeof t === 'string' ? t : String(t)); return oT.apply(d, arguments); };
+        d.addImage = function(){ imgs++; return oI.apply(d, arguments); };
+        d.save = function(){ return d; };
+        return d; }
+      Envuelto.API = orig.API; Envuelto.version = orig.version;
+      window.jspdf.jsPDF = Envuelto;
+      try { generarPDFReal(); } catch (e) { err = String(e && e.message || e); }
+      finally { window.jspdf.jsPDF = orig; }
+      const t = textos.join(String.fromCharCode(1));
+      return { err, imgs, be: t.indexOf('CONTRACTILIDAD') > -1, ley: t.indexOf('Hipoquinesia') > -1 }; };
+    const hayTr = () => { try { return FN('contrHayDatos') ? contrHayDatos() : 'SIN FN'; } catch (e) { return 'EXC'; } };
+    const pdfSinTr = PDFBE();
+    ex.push(['(D3) DENOMINADOR: la escena no tiene NINGUN trastorno sectorial cargado y el PDF se genera sin error',
+      hayTr() === false && !pdfSinTr.err, 'trastornos=' + String(hayTr()) + ' err=' + String(pdfSinTr.err)]);
+    ex.push(['(D4) con el boton PRENDIDO y SIN trastornos el bull-s eye SI va al PDF, con su leyenda —era el defecto: el papel salia sin el y apagar y prender no lo arreglaba—',
+      pdfSinTr.be === true && pdfSinTr.ley === true && pdfSinTr.imgs > 0,
+      'be=' + String(pdfSinTr.be) + ' ley=' + String(pdfSinTr.ley) + ' imgs=' + String(pdfSinTr.imgs)]);
+    /* Con un trastorno cargado sigue yendo. */
+    let segId = null;
+    try { const sg = document.querySelector('[data-contrseg]');
+      if (sg) { segId = sg.getAttribute('data-contrseg'); sg.dispatchEvent(new MouseEvent('click', { bubbles: true })); } } catch (e) {}
+    const pdfConTr = PDFBE();
+    ex.push(['(D5) con un trastorno sectorial cargado tambien va, igual que antes de esta tanda',
+      hayTr() === true && pdfConTr.be === true, 'trastornos=' + String(hayTr()) + ' be=' + String(pdfConTr.be)]);
+    /* Apagarlo lo saca, con trastornos y todo: la inclusion sigue AL BOTON. */
+    TOCAR_BE();
+    const pdfApag = PDFBE();
+    ex.push(['(D6) apagado NO va, haya o no trastornos: la inclusion depende SOLO del boton',
+      bePrend() === false && beCampo() === '' && pdfApag.be === false && hayTr() === true,
+      'boton=' + String(bePrend()) + ' be=' + String(pdfApag.be) + ' trastornos=' + String(hayTr())]);
+    TOCAR_BE();
+    const pdfRe = PDFBE();
+    ex.push(['(D7) volver a prenderlo lo devuelve al papel',
+      bePrend() === true && pdfRe.be === true, 'be=' + String(pdfRe.be)]);
+    /* «Nuevo estudio» lo deja APAGADO: el estado es del estudio y no una preferencia global. */
+    NUEVO(); CONTR();
+    ex.push(['(D8) tras «Nuevo estudio» el boton queda APAGADO y el campo vacio —antes quedaba PRENDIDO porque el estado vivia en localStorage, que ese gesto no borra—',
+      bePrend() === false && beCampo() === '' && beOn() === false,
+      'boton=' + String(bePrend()) + ' campo=' + beCampo()]);
+    /* Y la clave vieja de localStorage ya no prende nada. */
+    try { localStorage.setItem('contractilidad_incluir_pdf', '1'); } catch (e) {}
+    try { if (FN('contrPdfSync')) contrPdfSync(); } catch (e) {}
+    ex.push(['(D9) la clave vieja de localStorage NO se lee mas: ponerla en «1» no prende el boton ni mete el bull-s eye en el papel',
+      bePrend() === false && beOn() === false && PDFBE().be === false,
+      'boton=' + String(bePrend())]);
+    try { localStorage.removeItem('contractilidad_incluir_pdf'); } catch (e) {}
+    /* Un estudio GUARDADO abre como se guardo: la clave ausente deja el campo vacio. */
+    let restAusente = 'NO SE PUDO';
+    try { const e2 = EL('contr_be_pdf'); if (e2) { e2.value = '1';
+      const c = {}; /* un estudio ANTERIOR a esta tanda no trae la clave */
+      e2.value = (c['contr_be_pdf'] !== undefined ? c['contr_be_pdf'] : '');
+      if (FN('contrPdfSync')) contrPdfSync();
+      restAusente = beCampo() + '|' + String(bePrend()); } } catch (e) {}
+    ex.push(['(D10) un estudio anterior a esta tanda —sin la clave— abre APAGADO: la restauracion VACIA el campo cuando la clave no esta, asi que no se migra nada',
+      restAusente === '|false', 'estado=' + restAusente]);
+
+    /* ══ (E) K2 — LA FILA DE TRES BLOQUES Y LA TABLA DE COLORES ═════════════════════════ */
+    const filaC = EL('lv3d-fila');
+    const hijosC = filaC ? Array.prototype.slice.call(filaC.children).map(c => c.id || c.tagName) : [];
+    ex.push(['(E1) la fila tiene TRES bloques en orden: hallazgos, botones y el panel 3D',
+      hijosC.length === 3 && hijosC[0] === 'lv3d-bloque-hallazgos'
+        && hijosC[1] === 'lv3d-bloque-botones' && hijosC[2] === 'lv3d-panel',
+      'hijos=' + hijosC.join(',')]);
+    ex.push(['(E2) los DOS botones viven en el bloque del medio y no al fondo de la pantalla',
+      DENTRO('#lv3d-bloque-botones', EL('contr-pdf-toggle')) && DENTRO('#lv3d-bloque-botones', EL('contr_be_pdf')),
+      'toggle dentro=' + String(DENTRO('#lv3d-bloque-botones', EL('contr-pdf-toggle')))]);
+    /* El boton «Ver en 3D» NO se movio: sigue en la columna del bull-s eye. */
+    const btnVI = EL('lv3d-btn');
+    ex.push(['(E3) el boton «Ver en 3D» NO se movio: sigue FUERA de la fila, en la columna del bull-s eye',
+      !!(btnVI && filaC && !filaC.contains(btnVI)), 'dentro de la fila=' + String(!!(btnVI && filaC && filaC.contains(btnVI)))]);
+    /* La tabla «Referencia de colores» se fue de la pantalla. */
+    let hayTabla = false;
+    try { const ds = document.querySelectorAll('#tab-contractilidad div');
+      for (let i = 0; i < ds.length; i++) { const t = String(ds[i].textContent || '');
+        if (t.indexOf('Referencia de colores') > -1 && t.indexOf('Aneurisma') > -1 && t.length < 200) { hayTabla = true; break; } }
+    } catch (e) {}
+    ex.push(['(E4) la tabla «Referencia de colores» YA NO esta en la pantalla de contractilidad',
+      hayTabla === false, 'hay tabla=' + String(hayTabla)]);
+    /* Y el significado de los colores SIGUE viendose, desde el duenio. */
+    const leyIzq = TXT('#contr-leyenda');
+    ex.push(['(E5) el significado de los colores sigue en pantalla: la leyenda de la izquierda del bull-s eye publica los CINCO nombres, derivados de CONTR_MOTILIDAD',
+      ['Normal', 'Hipoquinesia', 'Aquinesia', 'Discinesia', 'Aneurisma'].every(n => leyIzq.indexOf(n) > -1),
+      'leyenda=' + leyIzq.replace(new RegExp(NL, 'g'), ' ')]);
+    /* Ni el PDF ni el PPT la usaban: los dos arman la suya desde el duenio. */
+    const fuente = String(document.documentElement.innerHTML || '');
+    /* ⚠️ EL PPT NO NOMBRA CONTR_MOTILIDAD EN SU LLAMADA: se la pasa a su columna como esc
+       y su ayudante la recibe por argumento. La primera version de esta condicion la buscaba
+       en la llamada y salia roja sobre un PPT que si la usa. */
+    ex.push(['(E6) el PDF y el PPT siguen armando su leyenda desde CONTR_MOTILIDAD, que es el duenio',
+      fuente.indexOf('leyenda: CONTR_MOTILIDAD') > -1 && fuente.indexOf('esc:CONTR_MOTILIDAD') > -1,
+      'pdf=' + String(fuente.indexOf('leyenda: CONTR_MOTILIDAD') > -1)
+        + ' ppt=' + String(fuente.indexOf('esc:CONTR_MOTILIDAD') > -1)]);
+    /* Con el 3D cerrado el bloque de la derecha no ocupa altura. */
+    const rPanelCerrado = RECT('#lv3d-panel');
+    ex.push(['(E7) con el 3D CERRADO el bloque de la derecha mide 0x0: no ocupa altura propia ni deja hueco',
+      !!(rPanelCerrado && rPanelCerrado.w === 0 && rPanelCerrado.h === 0),
+      'panel=' + JSON.stringify(rPanelCerrado)]);
+
+    /* ══ (F) K3 — EL INTERIOR DEL 3D DEL VENTRICULO ═════════════════════════════════════ */
+    S('ddfvi', '58'); S('vdfvi', '140'); S('vsfvi', '56'); S('fevi', '60');
+    try { if (FN('calcVI')) calcVI(); } catch (e) {}
+    CONTR();
+    try { if (btnVI && btnVI.getAttribute('aria-expanded') !== 'true') btnVI.click(); } catch (e) {}
+    await esperar(700);
+    const panelVI = EL('lv3d-panel');
+    const ordenVI = panelVI ? Array.prototype.slice.call(panelVI.children).map(c => {
+      if (c.id) return c.id;
+      if (c.querySelector && c.querySelector('.lv3d-vista')) return 'VISTAS';
+      return c.tagName; }) : [];
+    ex.push(['(F1) de arriba abajo: botones de PUNTA, el dibujo con sus datos, la pausa con la fase, los colores y la captura',
+      ordenVI[0] === 'VISTAS' && ordenVI[1] === 'lv3d-dibujo'
+        && ordenVI.indexOf('lv3d-colores') > ordenVI.indexOf('lv3d-dibujo')
+        && ordenVI.indexOf('lv3d-cap') > ordenVI.indexOf('lv3d-colores')
+        && ordenVI[ordenVI.length - 1] === 'lv3d-notas',
+      'orden=' + ordenVI.join(',')]);
+    ex.push(['(F2) los cinco cuadros estan A LA DERECHA del dibujo, dentro del bloque del dibujo',
+      DENTRO('#lv3d-dibujo', EL('lv3d-datos')) && DENTRO('#lv3d-dibujo', EL('lv3d-canvas')),
+      'datos dentro=' + String(DENTRO('#lv3d-dibujo', EL('lv3d-datos')))]);
+    const txtDatos = TXT('#lv3d-datos');
+    ex.push(['(F3) los CINCO cuadros son los mismos de antes, con sus valores, rotulos y unidades: VDFVI 140 ml, VSFVI 56 ml, FEVI 60 %, DDVI 58 mm y volumen sistolico 84 ml',
+      ['VDFVI', 'VSFVI', 'FEVI', 'DDVI', 'Volumen sist'].every(n => txtDatos.indexOf(n) > -1)
+        && txtDatos.indexOf('140') > -1 && txtDatos.indexOf('56') > -1
+        && txtDatos.indexOf('60') > -1 && txtDatos.indexOf('58') > -1 && txtDatos.indexOf('84') > -1,
+      'datos=' + txtDatos.replace(new RegExp(NL, 'g'), ' ').slice(0, 160)]);
+    ex.push(['(F4) las NOTAS salen a su propio nodo, a todo el ancho y debajo —en la columna de 110 px un parrafo de 10 px queda en una tira de dos palabras por renglon—',
+      !!EL('lv3d-notas') && TXT('#lv3d-notas').length > 10 && !DENTRO('#lv3d-datos', EL('lv3d-notas')),
+      'notas=' + TXT('#lv3d-notas').slice(0, 90)]);
+    /* Los controles son los de siempre: ninguno nuevo y ninguno perdido. */
+    const ctrl = panelVI ? {
+      vistas: panelVI.querySelectorAll('.lv3d-vista').length,
+      colores: panelVI.querySelectorAll('.lv3d-color').length,
+      fase: panelVI.querySelectorAll('.lv3d-fase').length,
+      fantasma: panelVI.querySelectorAll('.lv3d-fantasma').length,
+      aparato: panelVI.querySelectorAll('.lv3d-aparato').length,
+      capTomar: panelVI.querySelectorAll('.lv3d-cap-tomar').length,
+      capQuitar: panelVI.querySelectorAll('.lv3d-cap-quitar').length,
+      capPdf: panelVI.querySelectorAll('.lv3d-cap-pdf').length,
+      play: !!EL('lv3d-play') } : null;
+    ex.push(['(F5) estan los MISMOS controles de antes y ninguno nuevo: tres botones de punta, dos de color, la fase con su pausa, las dos casillas y los tres de la captura',
+      !!ctrl && ctrl.vistas === 3 && ctrl.colores === 2 && ctrl.fase === 1 && ctrl.play === true
+        && ctrl.fantasma === 1 && ctrl.aparato === 1 && ctrl.capTomar === 1
+        && ctrl.capQuitar === 1 && ctrl.capPdf === 1,
+      'ctrl=' + JSON.stringify(ctrl)]);
+    ex.push(['(F6) las dos casillas —diastole fantasma y cuerdas— van AL LADO de los botones de color, en el mismo bloque',
+      DENTRO('#lv3d-colores', panelVI ? panelVI.querySelector('.lv3d-fantasma') : null)
+        && DENTRO('#lv3d-colores', panelVI ? panelVI.querySelector('.lv3d-color') : null),
+      'fantasma dentro=' + String(DENTRO('#lv3d-colores', panelVI ? panelVI.querySelector('.lv3d-fantasma') : null))]);
+    /* EL CUADRO GRIS NO SE ACHICA: el panel crece exactamente lo que ocupa la columna nueva.
+       ⚠️ La medida absoluta depende del ancho de la ventana, que el cuerpo de un caso NO puede
+       cambiar —es el reparto de TC-460—: lo que se afirma aca es la RELACION que lo garantiza,
+       y la sonda mide los pixeles a seis anchos. */
+    const rDib = RECT('#lv3d-dibujo'), rCv = RECT('#lv3d-canvas'), rDat = RECT('#lv3d-datos');
+    ex.push(['(F7) DENOMINADOR: el dibujo, el lienzo y la columna de datos tienen geometria',
+      !!(rDib && rCv && rDat && rDib.w > 0 && rCv.w > 0 && rDat.w > 0),
+      'dib=' + JSON.stringify(rDib) + ' cv=' + JSON.stringify(rCv) + ' datos=' + JSON.stringify(rDat)]);
+    ex.push(['(F8) el cuadro gris NO se achica: el panel crece lo que ocupa la columna de los cinco cuadros, asi que el lienzo conserva su ancho —la regla dice calc(46% + 118px) y la columna mide 110—',
+      fuente.indexOf('calc(46% + 118px)') > -1 && fuente.indexOf('#lv3d-datos{flex:0 0 110px;}') > -1,
+      'regla=' + String(fuente.indexOf('calc(46% + 118px)') > -1)]);
+    /* Nada del 3D se guarda. */
+    let claves = [];
+    try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i);
+      if (/lv3d|contractilidad_incluir|m3d/i.test(k)) claves.push(k); } } catch (e) {}
+    ex.push(['(F9) nada del 3D ni de la captura se guarda en el navegador',
+      claves.length === 0, 'claves=' + claves.join(',')]);
+
+    /* ══ (G) CONTROLES: nada fuera de la zona se mueve ══════════════════════════════════ */
+    NUEVO();
+    S('peso', '80'); S('talla', '180'); S('ddfvi', '66'); S('fevi', '30');
+    S('onda_e', '95'); S('onda_a', '45'); S('tde', '150'); S('e_sept', '5'); S('e_lat', '7');
+    S('ai_vol', '105'); S('vmax_it', '3.2');
+    ['calcVI', 'calcAI', 'calcVD', 'calcDiastol'].forEach(f => { try { window[f](); } catch (e) {} });
+    try { if (FN('setEstiloInforme')) setEstiloInforme('estandar'); } catch (e) {}
+    try { if (FN('generarInforme')) generarInforme(); } catch (e) {}
+    const inf = String(V('informe_texto') || ''), suma = String(V('en_suma') || '');
+    ex.push(['(G1) el informe y el EN SUMA siguen saliendo y no nombran nada de los dos 3D ni del bull-s eye',
+      inf.length > 50 && suma.length > 5
+        && inf.indexOf('bull') < 0 && inf.indexOf('3D') < 0 && suma.indexOf('3D') < 0,
+      'inf=' + String(inf.length) + ' suma=' + String(suma.length)]);
+    let cols = 'EXC';
+    try { if (typeof _labExcelRow === 'function') { const c = {};
+      document.querySelectorAll('input[id],select[id],textarea[id]').forEach(e => {
+        if (e.type === 'checkbox' || e.type === 'radio') c[e.id + '__chk'] = e.checked ? '1' : '0';
+        else c[e.id] = e.value; });
+      cols = Object.keys(_labExcelRow({ id: 'p1', fecha: '2026-10-16', nombre: 'X', campos: c,
+        informe_texto: '', en_suma: '' })).length; } } catch (e) { cols = 'EXC'; }
+    ex.push(['(G2) el Excel sigue en 440 columnas: el campo nuevo del boton no agrega ninguna',
+      cols === 440, 'columnas=' + String(cols)]);
+    ex.push(['(G3) el campo del boton NO esta en el mapa del Excel y viaja igual con el estudio',
+      fuente.indexOf('id="contr_be_pdf"') > -1
+        && (typeof LAB_XLS_MAP === 'undefined' || !LAB_XLS_MAP['contr_be_pdf']),
+      'en el mapa=' + String(typeof LAB_XLS_MAP !== 'undefined' && !!LAB_XLS_MAP['contr_be_pdf'])]);
+
+    return { extra: ex };
+  })();
+`);
+
 
 let servidor, chrome;
 try {

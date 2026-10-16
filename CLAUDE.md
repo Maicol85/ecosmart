@@ -45,6 +45,8 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar un CRITERIO o un CORTE del puntaje HFA-PEFF**: la tabla contra el original, las tres contradicciones del artículo, la PSAP o el operador del IMVI | `docs/mapa/hfapeff-criterios.md` |
 | **Tocar los VOLÚMENES del VI en AI/VI**: el VSFVI automático, el volumen latido automático, quién lee el VSFVI, o el GASTO CARDÍACO del PDF y su frecuencia cardíaca | `docs/mapa/vi-volumenes-automaticos.md` |
 | **Ver por dónde sale un dato** (informe narrativo, EN SUMA, PDF, Excel) | `docs/mapa/informe-pdf-excel.md` |
+| **Tocar la IMPORTACIÓN del Excel**: el guardián de columnas, las listas de valores, los rangos, el mensaje de las columnas calculadas o la exportación JSON | `docs/mapa/importacion-excel.md` |
+| **Tocar CONTRACTILIDAD**: el botón «Incluir bull's eye en PDF» y de qué depende que el bull's eye entre al papel, la fila de tres bloques, la tabla de colores o el interior del 3D del VENTRÍCULO | `docs/mapa/contractilidad-3d-vi.md` |
 | **Tocar la AURÍCULA IZQUIERDA**: el dueño de su clasificación por volumen indexado, qué superficie clasifica y cuál sólo publica el valor; o **el COLAPSO de la VCI y el SÍMBOLO DEL SEXO en el PDF** | `docs/mapa/auricula-izquierda-pdf.md` |
 | **Tocar una COLUMNA del Excel, el criterio de «derivada», la IDA Y VUELTA de un dato calculado o el mensaje del importador** | `docs/mapa/excel-origen-ida-vuelta.md` |
 | **Tocar las ASOCIACIONES del Laboratorio o la TABLA DE LAS OCHO VÁLVULAS**: el cociente TAPSE/PSAP en el bloque A, el aviso de par acoplado, las dos estenosis BINARIAS y sus dos denominadores | `docs/mapa/laboratorio-asociaciones-valvulas.md` |
@@ -264,6 +266,213 @@ impecable.
 ---
 
 ## Estado vigente
+
+### El ARTEFACTO DEL CHORRO, la COLUMNA de ETE, la BRÚJULA, el BOTÓN del bull's eye, la FILA DE TRES y el 3D del VI — «K» (2026-10-16)
+
+- **Son SIETE commits.** Al **empezar**, `main` y `origin/main` estaban los dos en **`3997f57`**
+  (sello `v20261016-1419`), **sin nada sin pushear** —confirmado con un `git fetch` de verdad, con
+  el `FETCH_HEAD` fechado al momento—, con los cinco commits del J ya incluidos **y pusheados**.
+  Los **siete** commits de esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 7 → 6 → … → 1.**
+  ⚠️ **EL 1, EL 2 Y EL 3 SON DE ETE Y EL 4, EL 5 Y EL 6 DE CONTRACTILIDAD: los dos bloques NO se
+  tocan entre sí.** El 1 vive en `m3dPintar`, `M3D_JET_LEN_MAX`, `_m3dJet` y `m3dChorroOrigen`; el
+  2 en `#m3d-col-izq`, `m3dFilaSync` y el CSS de la fila; el 3 en `M3D_ORIENT`, `M3D_BRU`,
+  `m3dXLat` y `m3dBrujula`; el 4 en `contr_be_pdf`, `contrPdfOn`/`contrPdfSync` y el gate del PDF;
+  el 5 en `#lv3d-bloque-botones`, `lv3dMaquetar` y la tabla de colores retirada; el 6 en
+  `#lv3d-dibujo`, `#lv3d-notas` y `_lv3dPublicar`.
+  ⚠️ **PERO EL 3 CUELGA DEL 1**: `m3dBrujula` usa el `C.d` que `m3dCtx` empezó a devolver en el 1.
+  Revertir el 1 primero deja la brújula dibujando con `setTransform(undefined,…)`, o sea el lienzo
+  entero en blanco a partir de ese punto del pintado.
+  ⚠️ **Y EL 6 CUELGA DEL 5**: su `calc(46% + 118px)` reescribe la línea de `lv3dMaquetar` que el 5
+  acababa de crear, y `#lv3d-dibujo` vive dentro del bloque que el 5 ordenó. Revertir el 5 sin
+  revertir antes el 6 deja la fila de tres sin su regla de ancho y el cuadro gris achicado.
+  ⚠️ **EL 1 LLEVA LA SONDA** (`scripts/_probe_k.mjs`), con la que se verificaron los seis.
+  **El 7 es TC-490 más la documentación y el sello**, y afirma el comportamiento de los seis:
+  revertir cualquiera sin el 7 lo deja en rojo.
+  ⚠️ **CASOS ADAPTADOS: NINGUNO.** `grep lv3d scripts/test_clinico.mjs` daba **cero** antes de
+  TC-490 —la zona del 3D del ventrículo no tenía una sola condición en la suite— y ningún caso
+  afirmaba el toggle del bull's eye, la tabla de colores ni la posición de la leyenda de ETE.
+
+- **Línea base al cierre: suite 500/504 con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0
+  ERROR, Excel en 440 columnas. CERO REGRESIONES.** Los **CUATRO** rojos son exactamente los de
+  ENTRADA —**TC-223** (el documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**—.
+  **El denominador sube a 504**: esta tanda agregó **TC-490**.
+  ⚠️ **EL CHEQUEO DE CELULAR DA EXACTAMENTE LO MISMO QUE LA LÍNEA BASE DEL J: 45 a 360 px y 54 a
+  390 px, con 3 ALTA cada uno** (`--todo` da 380 y 389, el mismo par). **Cero hallazgos nuevos**, y
+  no por suerte: lo que esta tanda agrega a la pantalla son dos bloques de maqueta y un
+  `input[type=hidden]`, y lo que SACA —la tabla «Referencia de colores»— no tenía ningún control.
+  Los tres ALTA siguen siendo los dos marcadores de identificación del J y el `#caso_interes`.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **504 ids** sobre los 505 casos del archivo.
+- **EL SELLO DE VERSIÓN** estaba al día al empezar (`v20261016-1419`) y se volvió a sellar:
+  **`v20261016-1605`**. Todo lo medido salió **DESPUÉS** de sellar, con el `md5` quieto
+  (`3a2c377e…`).
+- **`index.html` pasó de 7,80 MB / 117.585 líneas a 7,82 MB / 117.897 líneas.**
+
+- **Dónde está todo:** `docs/mapa/mitral-3d-ete.md` → las secciones **13, 14 y 15** (de 21,9 a
+  **31,2 KB**); `docs/mapa/contractilidad-3d-vi.md` (**mapa NUEVO**, 10,1 KB: el botón de
+  inclusión con su defecto reproducido, la fila de tres bloques, el interior del 3D del VI y cinco
+  trampas); `docs/mapa/importacion-excel.md` (**mapa NUEVO por PARTICIÓN**, 7,2 KB);
+  `docs/mapa/informe-pdf-excel.md` → dos punteros (**28,7 KB**); `docs/mapa/congenitas-otros.md` →
+  un puntero (**22,2 KB**); `docs/mapa/tests-fichas.md` → la ficha de TC-490 (**21,4 KB**);
+  `docs/fuentes/FUENTES.md` → por qué esta tanda **no lleva ninguna cita nueva**; y
+  `docs/PENDIENTES.md` → **Y3-4 marcado CERRADO** más **seis** cosas declaradas (K-1 a K-6).
+  ⚠️ **`informe-pdf-excel.md` SE PARTIÓ ANTES DE ESCRIBIR, NO DESPUÉS.** Estaba en **34,6 KB**, a
+  435 bytes del techo, y K1 tenía que nombrar el PDF: su bloque «Importación y reimportación»
+  —6,6 KB, el más grande y el más autónomo, porque no comparte una sola función con los emisores—
+  salió a archivo propio y el mapa volvió a **28,2 KB**. Es la primera vez en varias tandas que la
+  regla se aplica a tiempo.
+
+- **K0a · EL ARTEFACTO TENÍA DOS CAUSAS Y LA PRINCIPAL NO ERA EL CHORRO.** `m3dPintar` limpiaba con
+  `clearRect(0, 0, M3D_W, M3D_H)` **con el transform del encuadre puesto**, así que la franja de
+  arriba del lienzo —**51 px** en 340×300— no entraba en el borrado y conservaba lo pintado en
+  cualquier cuadro anterior **para siempre**. La línea donde empezaba el borrado ES el borde recto
+  horizontal que el médico describe, y el hueco es lo que sí se limpiaba.
+  ⚠️ **CÓMO SE SUPO QUE ERA UN RESTO: 38 píxeles del chorro en la fila 0 que NO cambiaban ni al
+  girar, ni al cambiar de vista, ni al acortar el chorro.** Un valor fijo bajo tres variables
+  distintas no puede ser el dibujo de ese cuadro. **El defecto no viene de la demo**, que limpia su
+  lienzo entero: nace con la ventana de encuadre de `m3dCtx` y creció con el `M3D_AIRE` del Y3b-2.
+  Con eso, **7 de las 8 cámaras** quedan limpias; el **corte lateral** todavía dejaba 36 px sobre
+  la fila 0, y entra `M3D_JET_LEN_MAX = 3.6`.
+  ⚠️ **EL 3,6 SE ELIGIÓ MIDIENDO, no a ojo: es el valor MÁS GRANDE —el que menos cambia el
+  dibujo— con el que el borde superior queda en CERO en las 360 orientaciones del barrido.** Con
+  4,2 recortan 102 de 360; con 3,6, ninguna por arriba. Se descartó ampliar el encuadre porque
+  achica el modelo entero, que es lo que el Y3b-2 había agrandado midiendo.
+  **CRITERIO DE ACEPTACIÓN, declarado y medido:** cero píxeles del chorro en los cuatro bordes en
+  las **8 cámaras × 4 escenas = 32 celdas**; cero en el borde **superior** en el barrido de
+  **1794 orientaciones** (yaw −180..180, pitch −90..90); el chorro **conectado** a la válvula
+  —píxeles a ≤8 px del origen que publica el hook `m3dChorroOrigen`— en las 32; y **control
+  negativo**: la escena de estenosis sin IM no dibuja un solo píxel de chorro.
+  ⚠️ **LO QUE QUEDA: 479 de 1794 orientaciones recortan el borde de ABAJO, todas con el modelo
+  volcado** (pitch ≥ 45 o ≤ −75) — el mismo borde que el modelo ya tocaba en HEAD.
+  `PENDIENTES.md` → **K-1**.
+  ⚠️ **Y UNA FORMA QUE NO ES UN RECORTE:** en la vista del cirujano se mira a lo largo del eje del
+  chorro y sus nueve rayas son **coplanares**, así que se proyectan como un segmento recto
+  horizontal que cruza por encima de la válvula. Es la geometría de la demo; el chorro está entero
+  y conectado. `PENDIENTES.md` → **K-2**.
+  ⚠️ **EL BARRIDO SE MIDE CON `prefers-reduced-motion`**, que hace `m3dCalmo()` verdadero: sin eso
+  cada punto exigiría esperar 600 ms de animación y **la matriz leída a medio camino no es la
+  pedida**.
+
+- **K0b · LA LEYENDA, EL AVISO Y LOS BOTONES BAJAN CON LA VISTA DEL CIRUJANO.** Eran hermanos de la
+  fila y quedaban al fondo de la pantalla; hoy son `#m3d-col-izq`, con `flex:1 1 auto` con el panel
+  cerrado y `flex:0 1 500px` —el **mismo** flex que tenía `#m3d-qx`— con el panel abierto, decidido
+  por una clase con un solo dueño (`m3dFilaSync`).
+  **MEDIDO, seis viewports × dos temas, A/B contra el commit anterior: con el 3D CERRADO todo es
+  IDÉNTICO** —vista 500×295, leyenda y aviso en 978/1194/1656/706/328/298 px, misma `y`, mismo alto
+  de página—; con el 3D abierto la leyenda y el aviso pasan a 356/500/500 px y **el alto de la
+  página BAJA 102 px** a 1200, 1440 y 1920. A 768, 390 y 360 una columna en el orden del marcado,
+  así que **el botón «3D» queda a mano ANTES del panel**. Cero scroll horizontal en las doce
+  celdas. Medido también en **WebKit 27.2**.
+  ⚠️ **LA CLASE VA EN EL MISMO CUADRO QUE EL `hidden`, no en el rAF:** el ancho de la columna es el
+  estado de partida contra el que el panel anima el suyo.
+
+- **K0c · LA BRÚJULA, CON UN DUEÑO ÚNICO DE LA ORIENTACIÓN.** `M3D_ORIENT` —`Ant`, `Post`, `Lat`,
+  `Med`, `Aur`, los cinco ejes de la demo— es el dueño del **lado en que cae lo lateral**, y de ahí
+  lo lee también `m3dRotulosExtra` para colocar AL y PM, que iban con dos literales.
+  ⚠️ **SON DOS VOCABULARIOS Y NO SE PUEDEN UNIFICAR:** la brújula rotula **ejes** anatómicos y el
+  modelo rotula **comisuras**; compartir el texto obligaría a renombrar un rótulo clínico. Lo que
+  se comparte es el **signo**, que es lo único que puede contradecirse. Medido: `m3dXLat()` = −1,
+  el lado de la orejuela, que es la corrección del Y3-1.
+  **TRES DIFERENCIAS CON LA DEMO, las tres por el encuadre:** se dibuja en píxeles del lienzo con
+  el transform neutro —el `(64, H−56)` de la demo cae FUERA de la ventana de 462×408—, radio 26 y
+  letra de 10 px en vez de 34 y 12, y el rótulo de la izquierda se corre por su ancho **medido**.
+  **Medido:** aparece en las ocho cámaras, un giro le cambia el hash de su esquina, y con el panel
+  cerrado no hay pintado. **La del ventrículo no se tocó.**
+
+- **K1 · EL BULL'S EYE AL PDF DEPENDE SOLO DEL BOTÓN, Y EL BOTÓN NACE APAGADO.** Los tres síntomas
+  se **reprodujeron con clics reales contra HEAD** antes de tocar nada, y las escenas que cambian
+  son estas:
+
+  | escena | HEAD | hoy |
+  |---|---|---|
+  | botón prendido, SIN trastornos | botón ON, **PDF sin bull's eye** | **PDF con bull's eye** |
+  | tras «Nuevo estudio» | botón **ON** | botón OFF |
+  | página nueva con la clave vieja en `'1'` | botón **ON** | botón OFF |
+
+  **DOS CAUSAS:** (1) el PDF exigía `localStorage === '1' && contrHayDatos()`, y por eso apagar y
+  prender no lo arreglaba —lo que fallaba era el segundo término—; (2) el estado era una preferencia
+  **global** que «Nuevo estudio» no borra. Hoy el estado es un campo **del estudio**
+  (`contr_be_pdf`, guión BAJO) con un solo dueño, y el gate de datos sobra: existía justamente para
+  tapar la fuga de esa preferencia global.
+  ⚠️ **NO SE MIGRA NADA:** las rutas de restauración **vacían** un campo cuya clave no está, así que
+  un estudio anterior abre y reimprime APAGADO. **Medido por el camino real** (guardar con
+  `#rev-confirm`, limpiar y reimprimir): guardado prendido → el reimpreso lleva el bull's eye;
+  guardado apagado → no lo lleva; y en los dos casos la pantalla vuelve a su estado.
+  ⚠️ **EL PPT NO DEPENDE DE ESTO Y NO SE TOCÓ:** su diapositiva se decide por `contrHayDatos()` y no
+  mira ningún toggle, como dice su propio comentario. Los otros dos toggles hermanos siguen en
+  `localStorage`: `PENDIENTES.md` → **K-3**.
+
+- **K2 · LA FILA DE TRES BLOQUES, Y LA TABLA DE COLORES SALE.** Hallazgos | botones | panel 3D, con
+  `align-items:stretch` —que es lo que los hace de la misma altura— y el tercero en `display:none`
+  con el 3D cerrado, así que no ocupa caja.
+  ⚠️ **EL UMBRAL DE UNA COLUMNA PASA DE `< 768` A `<= 768`:** con tres bloques, a 768 px exactos la
+  grilla quedaba en **123 + 210 + 311 px**.
+  ⚠️ **EL OYENTE DE `resize` SALE DE `lv3dCablear`**, que corre sólo al abrir el panel: con la fila
+  de tres, la maqueta importa también con el 3D cerrado.
+  **ANTES DE SACAR LA TABLA SE VERIFICÓ QUIÉN LA USABA: NADIE.** El PDF arma su leyenda con
+  `leyenda: CONTR_MOTILIDAD` y el PPT con `esc:CONTR_MOTILIDAD`. **Era una TERCERA copia con los
+  colores escritos a mano y discrepaba del dueño: su «Normal» decía `#2a2f3f` donde
+  `CONTR_MOTILIDAD[0]` es `#22C55E`.** El significado sigue en pantalla: `#contr-leyenda` publica
+  los cinco nombres derivados del dueño.
+  **Medido** a 1200/1440/1920 abierto: los tres bloques con la **misma altura**; con el 3D cerrado
+  el panel en 0×0; a 768/390/360 una columna; cero scroll horizontal en las 24 celdas.
+
+- **K3 · EL INTERIOR DEL 3D DEL VENTRÍCULO, REORDENADO.** Botones de punta arriba, el cuadro gris
+  con los **cinco cuadros a su derecha**, la pausa con la fase, los colores con las dos casillas al
+  lado y la captura. **Ningún control es nuevo.**
+  ⚠️ **EL CUADRO GRIS NO SE ACHICA, Y ESO OBLIGÓ A ENSANCHAR EL PANEL.** Con la columna al lado y el
+  panel en su 46 %, el canvas pasaba de **531 a 373 px** a 1440 y de **436 a 278** a 1200. El panel
+  pasa a `calc(46% + 118px)` —la columna (110) más su hueco (8)— y el lienzo conserva su ancho **al
+  píxel**: 531×297, 436×243 y 298×166, idénticos al árbol del inicio, en Chrome **y en WebKit**.
+  Lo que se angosta es la columna de hallazgos: 151 px a 1200. `PENDIENTES.md` → **K-4**.
+  **LAS NOTAS SALEN A SU PROPIO NODO** y si faltara se crea al vuelo, así que no se pierde ninguna.
+  ⚠️ **SEMGREP CAZÓ LA PRIMERA VERSIÓN SOBRE CÓDIGO RECIÉN ESCRITO:** `box.innerHTML = html + n`
+  daba **128** donde la línea base es 127.
+  **LO QUE LA ORDEN PIDE Y NO EXISTE, declarado y NO creado: la leyenda «modelo esquemático» DE LA
+  CAPTURA.** `PENDIENTES.md` → **K-5**.
+  **COMPORTAMIENTO, A/B contra el árbol del inicio: IDÉNTICO** —0 cuadros con el panel cerrado, 56
+  abierto (HEAD 57), 0 tras cerrar; 20 aperturas dejan 11818 nodos → 11818 y el panel cerrado; la
+  sincronía con el bull's eye en los **dos** sentidos; el giro con arrastre real; y **cero** claves
+  de almacenamiento y **cero** campos del estudio que nombren el 3D o la captura—.
+  ⚠️ **Con la pestaña oculta la sonda cuenta 54 cuadros, y es PREEXISTENTE:** HEAD da el mismo 54.
+  `PENDIENTES.md` → **K-6**.
+
+- **A/B DEDICADO CONTRA EL ÁRBOL DEL INICIO, con el formulario vacío y con escenario cargado: 0
+  DIFERENCIAS** en informe (tres estilos), EN SUMA, grados, pastillas, el Laboratorio por sus
+  funciones dueñas, el **PDF del informe generado de verdad** (32 y 169 textos, idénticos) y el
+  **Excel en 440 columnas CLAVE POR CLAVE** (cero faltantes, cero sobrantes, cero valores
+  distintos). **El único campo nuevo del estudio es `contr_be_pdf`**, que es el autorizado.
+
+- **Arnés: `scripts/_probe_k.mjs`** (Playwright, los DOS motores, con salida parcial por grupo; diez
+  grupos: `repro`, `barrido`, `tope`, `arrastre`, `cap0`, `maqueta`, `brujula`, `be`, `tres`,
+  `lv3d`, `lv3dcomp`, `controles`).
+  **Cobertura: TC-490**, **51 condiciones** con cinco denominadores y cuatro controles negativos.
+  **Verificado que sabe fallar contra HEAD en un worktree aparte: 32 de las 51 en rojo, y NINGUNA
+  por excepción.**
+
+- ⚠️ **SEIS TRAMPAS, Y CUATRO DABAN FALSOS PLAUSIBLES.**
+  1. **UN RESTO FIJO SE LEE COMO UN DIBUJO.** Los 38 píxeles de la fila 0 parecían el chorro
+     recortado; lo que los delató fue que **no cambiaban con la cámara ni con el largo del chorro**.
+     La primera medición del tope dio «728 de 728 orientaciones recortan con cualquier longitud»,
+     que es imposible y era el resto.
+  2. **SIN VOLÚMENES EL 3D DEL VENTRÍCULO NO DIBUJA** —muestra el cartel «no hay datos» y no arranca
+     el bucle—, así que una sonda sin DDVI ni VDFVI informa **cero cuadros, cero cambio de hash y
+     cero ciclado** al tocar un segmento, sobre un panel que funciona.
+  3. **EL DETECTOR DE LA BOTONERA DE ETE BARRÍA DIVS QUE *CONTUVIERAN* EL BOTÓN**, y el primero es
+     la fila entera: informaba «los botones no están en la columna» sobre un marcado correcto.
+  4. **EL COLOR COMPUTADO SE LEE DEL TEMA ANTERIOR** sin una vuelta de espera tras cambiar
+     `light-mode`.
+  5. **LA BRÚJULA DEL VENTRÍCULO VIVE EN `lv3dPintar`, NO EN `lv3dDibujar`**, y **el PPT no nombra
+     `CONTR_MOTILIDAD` en su llamada**: dos condiciones de TC-490 salían rojas sobre un árbol
+     perfecto.
+  6. **LAS CONDICIONES DE UN CASO VAN EN `{ extra: ex }`**, no en una cadena devuelta: el runner
+     marca «el caso no declara NINGUNA condición» con el texto correcto adentro.
+- ⚠️ **Me comí el acento grave TRES veces**, todas en comentarios míos dentro del template de la
+  sonda o del cuerpo del caso. `scripts/check_backticks.py` dio la línea exacta las tres — y **una
+  se me pasó por mandar su salida a `/dev/null`**, que es exactamente lo que este archivo prohíbe.
+
 
 ### La AI SIN INDEXAR, la AI en el PPT, la IDENTIFICACIÓN del paciente y la COLUMNA de frases — «J» (2026-10-16)
 

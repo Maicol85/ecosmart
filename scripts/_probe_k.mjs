@@ -499,6 +499,28 @@ const SONDA = `window.__P = {
         if (e.id === 'informe_texto' || e.id === 'en_suma') return;
         o[e.id] = (e.type === 'checkbox') ? (e.checked ? '1' : '') : String(e.value == null ? '' : e.value) });
     return o },
+  /* El Laboratorio por sus funciones duenias, sobre un estudio armado con la pantalla. */
+  lab() { var o = {}, reg = { id:'p1', fecha:'2026-10-16', nombre:'X', campos: this.camposCrudos(),
+      informe_texto: String((document.getElementById('informe_texto')||{}).value||''),
+      en_suma: String((document.getElementById('en_suma')||{}).value||'') };
+    ['_labDiastGrado','_labGeomCat','_labDisfSistVent','_labEmLectura','_labWilkinsResumen']
+      .forEach(function(f){ try { o[f] = (typeof window[f] === 'function') ? JSON.stringify(window[f](reg)) : 'SIN FN' }
+        catch (e) { o[f] = 'EXC' } });
+    try { o._labEstenSev = String(_labEstenSev(reg, 'em_grado')) } catch (e) { o._labEstenSev = 'EXC' }
+    return o },
+  /* El PDF del informe, generado de verdad: textos con su posicion. */
+  pdfTextos() {
+    if (typeof window.jspdf === 'undefined') return { err:'SIN jsPDF' };
+    var orig = window.jspdf.jsPDF, textos = [], err = null;
+    function Envuelto(){ var d = new orig(arguments[0]), oT = d.text;
+      d.text = function(t, x, y){ var ss = (typeof t === 'string') ? t : (Array.isArray(t) ? t.join(String.fromCharCode(1)) : String(t));
+        textos.push((+x).toFixed(1) + '|' + (+y).toFixed(1) + '|' + ss); return oT.apply(d, arguments) };
+      d.save = function(){ return d }; return d }
+    Envuelto.API = orig.API; Envuelto.version = orig.version;
+    window.jspdf.jsPDF = Envuelto;
+    try { generarPDFReal() } catch (e) { err = String(e && e.message || e) }
+    finally { window.jspdf.jsPDF = orig }
+    return { err:err, n:textos.length, t:textos } },
   scrollY() { return window.scrollY },
   docH() { return document.documentElement.scrollHeight }
 };`;
@@ -1024,6 +1046,40 @@ for (const motor of MOTORES) {
     await pg.close();
     G.lv3dcomp = g;
     await parcial('lv3dcomp.' + motor, g);
+  }
+
+
+  /* ── controles ── A/B: nada fuera de la zona cambia. ────────────────────────────────── */
+  if (corre('controles')) {
+    const g = {};
+    for (const en of ['vacio', 'rico']) {
+      const pg = await nuevaPagina(b, 1440, 900, false, true);
+      if (en === 'rico') {
+        await montarEscena(pg, { campos: Object.assign({}, BSA, { ddfvi:'66', dsfvi:'52', siv:'13',
+          ppvi:'13', fevi:'30', ai_vol:'105', ai_area:'26', vd_bas:'47', tapse:'14', s_prime:'8',
+          im_vc:'7', vmax_it:'3.2', onda_e:'95', onda_a:'45', tde:'150', e_sept:'5', e_lat:'7',
+          lars:'12', ea_vmax:'4.5', gmedio_ao:'45', itv_ao:'120', ea_dtsvi:'20', itv_tsvi:'20',
+          hf_ntprobnp:'450', vdfvi:'140', vsfvi:'56', avm_plan:'1.4', em_gmedio:'8' }),
+          sev: [['insuf','mitral','4'],['insuf','aortica','2'],['insuf','tricuspide','1'],
+                ['esten','aortica','severa']] });
+      } else {
+        await pg.evaluate(() => { try { limpiarCampos(true) } catch (e) {} });
+      }
+      const o = {};
+      for (const est of ['estandar', 'narrativo', 'conciso'])
+        o['inf-' + est] = await pg.evaluate((e) => window.__P.informe(e), est);
+      o.grados = await pg.evaluate(() => window.__P.grados());
+      o.pastillas = await pg.evaluate(() => window.__P.pastillas());
+      o.campos = await pg.evaluate(() => window.__P.campos());
+      o.excel = await pg.evaluate(() => window.__P.excel());
+      o.lab = await pg.evaluate(() => window.__P.lab());
+      o.pdf = await pg.evaluate(() => window.__P.pdfTextos());
+      g[en] = o;
+      await pg.close();
+      await parcial('controles.' + motor + '.' + en, { listo: true });
+    }
+    G.controles = g;
+    await parcial('controles.' + motor, { listo: true });
   }
 
   await b.close();
