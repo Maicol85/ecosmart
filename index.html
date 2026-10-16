@@ -2481,6 +2481,35 @@ html.light-mode .amilo-root{
    el 85 % de una ventana de 700 px y aparecia desplazamiento interno, que es exactamente lo que
    esta tanda viene a cerrar. La condicion que manda es «todo se ve sin desplazamiento a
    1200x700»; el alto del dibujo es la variable que se ajusta. */
+/* EL «POR QUE» DE CADA TARJETA (Y2, 2026-10-16). Una linea corta con el criterio que decide y un
+   desplegable con la lista: tres columnas —nombre, valor, grado— con `align-items:start`, asi una
+   celda que envuelve en dos lineas no empuja a las otras dos hacia abajo.
+   ⚠️ `.v2d-pq[hidden]{display:none}` EXPLICITO. El `[hidden]{display:none}` de la hoja del
+   NAVEGADOR pierde contra cualquier regla de autor, y esta app ya lo pago cuatro veces —`.fg`, el
+   banner de version, `.frases-panel` y el propio boton del panel de Evidencia, que se veia con
+   `hidden` puesto—. Con el grid declarado, sin esta linea la lista nacia ABIERTA.
+   ⚠️ EL BOTON SE SALE DEL PISO GLOBAL DE 44 px A PROPOSITO (`min-height:0`) y recupera el objetivo
+   tactil con un `::after` de 40 px que extiende el AREA CLICABLE sin agrandar lo que se ve: en una
+   tarjeta de 184 px un control de 44 px de alto se come la tarjeta. Es el patron del glosario del
+   panel de Evidencia. SIN `:hover`, como el resto de esta vista. */
+.v2d-pq-decide{margin-top:3px;font-size:10.5px;color:var(--text2);line-height:1.3;}
+.v2d-vercrit{display:inline-block;position:relative;margin:4px 0 0;padding:1px 0;
+  background:none;border:0;min-height:0;min-width:0;color:var(--accent2);font-family:inherit;
+  font-size:10.5px;font-weight:700;text-decoration:underline;cursor:pointer;}
+.v2d-vercrit::after{content:'';position:absolute;left:-8px;right:-8px;top:50%;
+  transform:translateY(-50%);height:40px;}
+.v2d-pq{display:grid;grid-template-columns:1fr auto auto;gap:2px 5px;align-items:start;
+  margin-top:4px;padding-top:4px;border-top:1px solid var(--border);font-size:10px;}
+.v2d-pq[hidden]{display:none;}
+.v2d-pq-n{color:var(--text2);line-height:1.25;}
+.v2d-pq-v{color:var(--text);font-weight:700;white-space:nowrap;line-height:1.25;}
+.v2d-pq-g{line-height:1.25;text-align:right;}
+.v2d-pq-g > * + *{margin-left:4px;}
+.v2d-pq-chip{margin-top:0;font-size:9.5px;padding:0 5px;}
+.v2d-pq-banda{color:var(--text2);}
+.v2d-pq-dec{color:var(--accent2);font-weight:700;}
+.v2d-pq-nv{color:var(--text2);font-style:normal;}
+.v2d-pq-aviso{grid-column:1 / -1;color:var(--orange);line-height:1.3;margin-top:2px;}
 #v2d-svg{display:block;width:auto;height:clamp(200px,calc(100vh - 520px),320px);
   max-width:100%;margin:0 auto;}
 #v2d-ciclo{margin-top:6px;}
@@ -111453,6 +111482,186 @@ function _v2dVeredictoProt(id){
   return (r === '—' || r === '-') ? '' : r;
 }
 
+
+/* ══ LA TABLA DE CRITERIOS, POR LESION ════════════════════════════════════════════════════════
+   Una entrada por columna de tarjeta. `crit` es la lista de criterios EN EL ORDEN EN QUE LA
+   PANTALLA LOS PUBLICA; de cada uno se declara SOLO de donde sale su grado y nada mas:
+     (sin campo)        — del span hermano `data-grado-de`
+     `gid`              — de un nodo con id propio
+     `sep:'punto'`      — dentro del valor, despues del separador «·»
+     `sep:'parentesis'` — dentro del valor, en el primer parentesis
+     `color:true`       — el grado lleva pastilla de color, porque su palabra es de la escala de
+                          severidad nativa. En las protesis NO: la ASE 2024 no publica escala de
+                          severidad para la estenosis protesica —es lo que el W2-B retiro de esta
+                          misma pantalla— y pintarla aca seria republicarla.
+     `suf`              — el nombre lleva el metodo, porque la fila tiene DOS columnas (la IM
+                          publica PISA y continuidad en la misma fila, desde la tanda D1).
+   ⚠️ `decide` ES EL ID DE LA LINEA INTEGRADA Y SOLO SE DECLARA DONDE LA PANTALLA NOMBRA EL
+   CRITERIO. En las cuatro insuficiencias y en la estenosis tricuspidea queda en `null` a
+   proposito: ver la nota de arriba. */
+const V2D_PORQUE = Object.freeze({
+  'insuf:mitral': Object.freeze({ decide: null, aviso: 'im-discordancia',
+    crit: Object.freeze([
+      Object.freeze({ id: 'im-vc-ref',          color: true }),
+      Object.freeze({ id: 'im-jet-ratio',       color: true }),
+      Object.freeze({ id: 'im-vti-ratio' }),
+      Object.freeze({ id: 'im-onda-s-interp' }),
+      Object.freeze({ id: 'eroa-val',           color: true, suf: 'PISA' }),
+      Object.freeze({ id: 'volr-val',           color: true, suf: 'PISA' }),
+      Object.freeze({ id: 'freg-val',           color: true, suf: 'PISA' }),
+      Object.freeze({ id: 'im-eroa-cont-ref',   color: true, suf: 'continuidad' }),
+      Object.freeze({ id: 'im-volr-cont-ref',   color: true, suf: 'continuidad' }),
+      Object.freeze({ id: 'im-fr-cont-ref',     color: true, suf: 'continuidad' })
+    ]) }),
+  'insuf:aortica': Object.freeze({ decide: null, aviso: 'ia-discordancia',
+    crit: Object.freeze([
+      Object.freeze({ id: 'ia-jet-ratio',       color: true }),
+      Object.freeze({ id: 'ia-eroa',            color: true }),
+      Object.freeze({ id: 'ia-volr',            color: true }),
+      Object.freeze({ id: 'ia-freg',            color: true }),
+      Object.freeze({ id: 'ia-pht-interp' }),
+      Object.freeze({ id: 'ia-vtd-interp' }),
+      Object.freeze({ id: 'ia-vti-desc-interp' })
+    ]) }),
+  'insuf:tricuspide': Object.freeze({ decide: null, aviso: 'it-discordancia',
+    crit: Object.freeze([
+      Object.freeze({ id: 'it-ref-vc',  sep: 'punto', color: true }),
+      Object.freeze({ id: 'it-eroa',    sep: 'punto', color: true }),
+      Object.freeze({ id: 'it-volr',    sep: 'punto', color: true }),
+      Object.freeze({ id: 'it-densidad-interp' })
+    ]) })
+});
+window.V2D_PORQUE = V2D_PORQUE;
+
+/* ══ EL «POR QUE» DE CADA TARJETA — TANDA «Y2» (2026-10-16) ════════════════════════════════════
+   DECISION DE MAICOL. Cada tarjeta de la vista 2D dice ahora POR QUE la lesion tiene ese grado:
+   que criterios votaron, con su valor y con el grado que da cada uno, y —cuando la PANTALLA lo
+   nombra— cual decide.
+
+   ⚠️ NO SE RECALCULA NADA Y NO HAY UN SOLO CORTE NUEVO. Cada valor, su unidad, su redondeo, su
+   marca «(revisar)» y su grado se LEEN del mismo nodo que el medico tiene delante en la pestana
+   Valvulas. Por eso la tarjeta y la pantalla no pueden decir cosas distintas: es el mismo texto.
+   Es el argumento del Y1 llevado un paso mas: alla se leia el GRADO de la pastilla, aca se leen
+   tambien las FILAS de criterios.
+
+   ⚠️ Y POR ESO HAY LESIONES SIN «DECIDE», Y NO SE INVENTA. La linea integrada de la IM, de la IAo,
+   de la IT y de la ET publica el grado (<<Severa>>, <<Moderada>>) y NO nombra el criterio que lo
+   produjo: su regla es un conteo («una severa manda» / «dos moderadas mandan») y atribuirselo a
+   una fila seria una segunda lectura de esa regla, escrita aca. Esas cuatro tarjetas llevan la
+   lista y no llevan la linea «Decide». Las que SI la llevan son la estenosis aortica nativa —cuyo
+   renglon integrado dice «Severa — por velocidad» desde la tanda F, y el Z5 lo arreglo— y la
+   estenosis mitral, que publica sus fuentes con el valor de cada una.
+
+   De donde sale el grado de cada fila, que no es igual en todas las lesiones:
+     · `data-grado-de="<id>"`  — el span hermano de la IM, la IAo y la EAo (tandas D1, D2 y F2).
+     · un id propio            — las cuatro `.em-clase` de la estenosis mitral.
+     · dentro del valor        — la IT («8 mm · Severa (≥7 mm)»), la ET y las capsulas protesicas
+                                 («12.0 mmHg (sugiere obstruccion significativa · ≤5 normal …)»).
+   Las tres formas se declaran por criterio y ninguna se adivina. */
+
+/* El NOMBRE del criterio: los nodos de TEXTO directos de su `.calc-lbl`, sin los `<span>` de
+   cortes ni el `<button>` del globo. Asi el nombre es LITERALMENTE el que la pantalla imprime y
+   no una segunda copia que se desactualiza —el rotulo completo trae los tres cortes pegados
+   («Vena contracta (mm) <3 · 3–<7 · ≥7 mm»), que en una tarjeta de 184 px no entran—. */
+function _v2dRotulo(row) {
+  if (!row) return '';
+  const l = row.querySelector('.calc-lbl');
+  if (!l) return '';
+  let t = '';
+  for (let i = 0; i < l.childNodes.length; i++) {
+    const n = l.childNodes[i];
+    if (n.nodeType === 3) t += n.nodeValue;
+  }
+  t = t.replace(/\s+/g, ' ').trim();
+  /* Sin nodos de texto propios —un rotulo que es todo `<span>`— se cae al texto completo, que es
+     peor pero nunca vacio: una fila sin nombre no se puede leer. */
+  if (!t) t = String(l.textContent || '').replace(/\s+/g, ' ').trim();
+  return t;
+}
+
+/* El valor y el grado de UN criterio, en el formato en que su propia fila los publica. Devuelve
+   `null` cuando no hay valor: una fila con la raya afirma que se miro y no se encontro nada, y la
+   orden pide que no aparezca ninguna fila vacia ni ningun «no medido» inventado. */
+function _v2dCrit(c) {
+  const v = document.getElementById(c.id);
+  if (!v) return null;
+  let val = String(v.textContent || '').replace(/\s+/g, ' ').trim();
+  if (!val || val === '—' || val === '-' || val === '—  (sin medir)') return null;
+  let grado = '';
+  if (c.gid) {
+    const g = document.getElementById(c.gid);
+    grado = g ? String(g.textContent || '').replace(/\s+/g, ' ').trim() : '';
+  } else if (c.sep === 'punto') {
+    /* «8 mm · Severa (≥7 mm)» — el separador de la IT. */
+    const i = val.indexOf('·');
+    if (i > -1) { grado = val.slice(i + 1).trim(); val = val.slice(0, i).trim(); }
+  } else if (c.sep === 'parentesis') {
+    /* «6 mmHg (significativa (≥5 mmHg))» y «12.0 mmHg (sugiere obstruccion …)»: el grado es lo
+       que va dentro del PRIMER parentesis, y se le saca el que lo cierra al final. */
+    const i = val.indexOf('(');
+    if (i > -1) {
+      grado = val.slice(i + 1).trim();
+      if (grado.charAt(grado.length - 1) === ')') grado = grado.slice(0, -1).trim();
+      val = val.slice(0, i).trim();
+    }
+  } else {
+    const g = document.querySelector('[data-grado-de="' + c.id + '"]');
+    grado = g ? String(g.textContent || '').replace(/\s+/g, ' ').trim() : '';
+  }
+  /* El span hermano publica el grado entre parentesis («(moderada)»); en la tarjeta va como
+     palabra, al lado de su pastilla. Es formato y no contenido: la palabra no cambia. */
+  if (grado.charAt(0) === '(' && grado.charAt(grado.length - 1) === ')') grado = grado.slice(1, -1).trim();
+  if (!val) return null;
+  let nom = _v2dRotulo(v.closest ? v.closest('.calc-row') : null);
+  if (c.suf) nom += (nom ? ' — ' : '') + c.suf;
+  /* ⚠️ LA MARCA DE «DECIDE» SE LEE, NO SE DEDUCE. La estenosis mitral publica en la clase de su
+     fila la palabra con la que la pantalla dice cual manda; donde la pantalla no la publica, la
+     tarjeta no la pone. */
+  let decide = false;
+  if (c.marca && grado.toLowerCase().indexOf(c.marca) > -1) {
+    decide = true;
+    grado = grado.replace(new RegExp('[·\\s]*' + c.marca + '\\s*$', 'i'), '').trim();
+  }
+  return { nom: nom, val: val, grado: grado, decide: decide,
+           noVota: !!c.noVota, color: !!c.color };
+}
+
+/* La LINEA integrada, tal como la pantalla la publica. Para la protesis mitral lo que explica el
+   veredicto es su PARENTESIS —los criterios positivos con su valor y el «N de M»—, que es lo que
+   el Y1 recortaba a proposito porque el porque era esta tanda. */
+function _v2dDecide(C) {
+  if (!C || !C.decide) return '';
+  const e = document.getElementById(C.decide);
+  if (!e) return '';
+  const t = String(e.textContent || '').replace(/\s+/g, ' ').trim();
+  if (!t || t === '—' || t === '-') return '';
+  if (C.decideModo === 'parentesis') {
+    const i = t.indexOf('(');
+    if (i < 0) return '';
+    let r = t.slice(i + 1).trim();
+    if (r.charAt(r.length - 1) === ')') r = r.slice(0, -1).trim();
+    return r;
+  }
+  if (C.decideModo === 'sufijo') {
+    /* «Severa — por velocidad»: sin el sufijo no hay criterio nombrado y no se publica nada. */
+    return (t.indexOf('— por ') > -1 || t.indexOf('—por ') > -1) ? t : '';
+  }
+  return t;
+}
+
+/* El «porque» completo de una lesion: la linea que decide, las filas con valor y el aviso de
+   discordancia que la pantalla ya publica. */
+function _v2dPorQue(clave) {
+  const C = V2D_PORQUE[clave];
+  if (!C) return null;
+  const filas = [];
+  (C.crit || []).forEach(function (c) { const f = _v2dCrit(c); if (f) filas.push(f); });
+  const aviso = C.aviso ? _v2dTxt(C.aviso) : '';
+  const decide = _v2dDecide(C);
+  if (!filas.length && !decide) return null;
+  return { decide: decide, filas: filas, aviso: aviso };
+}
+
 /* ══ EL LECTOR UNICO ══════════════════════════════════════════════════════════════════════════
    Devuelve DATOS: el estado del dibujo (los quince tramos que la demo ya usaba) y las listas que
    las tarjetas y la tabla pintan. Lo consumen los tres y ninguno vuelve a leer el DOM por su
@@ -111491,7 +111700,8 @@ function v2dEstado(){
          (V.k === 'mitral') ? _v2dVeredictoProt('vm-prot-obstr')
        : (V.k === 'aortica') ? _v2dVeredictoProt('ea-det-sev') : '');
       if (vProt) {
-        E[tipo].push({ valv:V.nom, morf:morfTxt, frase:vProt, chip:null, cls:'' });
+        E[tipo].push({ valv:V.nom, morf:morfTxt, frase:vProt, chip:null, cls:'',
+                       pq:_v2dPorQue('prot:' + V.k) });
         return;
       }
       /* SOLO LAS LESIONES QUE EXISTEN. «Existe» es que la pastilla este prendida: es la misma
@@ -111506,7 +111716,8 @@ function v2dEstado(){
          gradua con los criterios de la valvula nativa (ASE 2024), asi que ahi la pastilla ya
          dice lo correcto; la obstruccion tiene su propio veredicto y su propia frase. */
       const frase = P.txt ? L.sigla + ' ' + P.txt.toLowerCase() : L.sigla + ' presente';
-      E[tipo].push({ valv:V.nom, morf:morfTxt, frase:frase, chip:P.txt || 'sin graduar', cls:P.cls });
+      E[tipo].push({ valv:V.nom, morf:morfTxt, frase:frase, chip:P.txt || 'sin graduar', cls:P.cls,
+                     pq:_v2dPorQue(tipo + ':' + V.k) });
     });
   });
 
@@ -111901,6 +112112,111 @@ window.V2D_JORG = JORG; window.V2D_JOFF = JOFF;
    OTRAS funciones de la app escribieron en el DOM, y la regla de la casa es que un dato que ya
    viajo por el DOM no vuelve a entrar como marcado. Asi el sink no existe, en vez de existir y
    ser inofensivo — el mismo argumento con que `_eaProtPintar` arma su capsula con la API. */
+/* ══ EL «POR QUE» EN LA TARJETA — EL DESPLEGABLE (Y2) ═════════════════════════════════════════
+   ⚠️ TODO POR `textContent`. Lo que se pinta son valores y grados que OTRAS funciones escribieron
+   en el DOM de Valvulas: la regla de la casa es que un dato que ya viajo por el DOM no vuelve a
+   entrar como marcado, asi el sink no existe en vez de existir y ser inofensivo.
+   ⚠️ NACE CERRADO Y NO RECUERDA NADA. Las tarjetas se repintan enteras en cada `v2dAbrir`, asi que
+   al cerrar y volver a abrir la vista todas las listas vuelven a estar cerradas sin que haga falta
+   guardar ni limpiar un estado — que es exactamente lo que la orden pide. */
+const V2D_PQ_VER      = 'Ver criterios';
+const V2D_PQ_OCULTAR  = 'Ocultar criterios';
+const V2D_PQ_DECIDE   = 'Decide: ';
+const V2D_PQ_NOVOTA   = 'no vota';
+const V2D_PQ_MARCA    = 'decide';
+function v2dPorQueTog(btn) {
+  if (!btn) return;
+  const box = btn.nextElementSibling;
+  if (!box) return;
+  const abierto = btn.getAttribute('aria-expanded') === 'true';
+  btn.setAttribute('aria-expanded', abierto ? 'false' : 'true');
+  if (abierto) box.setAttribute('hidden', ''); else box.removeAttribute('hidden');
+  btn.textContent = abierto ? V2D_PQ_VER : V2D_PQ_OCULTAR;
+}
+window.v2dPorQueTog = v2dPorQueTog;
+
+/* Las tres celdas de un criterio: nombre, valor y grado. El grado lleva pastilla SOLO cuando su
+   palabra es de la escala nativa (`color:true`); la palabra va SIEMPRE, porque un color solo no
+   dice nada a quien no lo distingue. */
+function _v2dPqFila(f) {
+  const n = document.createElement('span');
+  n.className = 'v2d-pq-n';
+  n.textContent = f.nom + (f.decide ? ' ' : '');
+  if (f.decide) { const m = document.createElement('b'); m.className = 'v2d-pq-dec';
+    m.textContent = V2D_PQ_MARCA; n.appendChild(m); }
+  const v = document.createElement('span');
+  v.className = 'v2d-pq-v';
+  v.textContent = f.val;
+  const g = document.createElement('span');
+  g.className = 'v2d-pq-g';
+  if (f.noVota) {
+    const nv = document.createElement('i'); nv.className = 'v2d-pq-nv';
+    nv.textContent = V2D_PQ_NOVOTA; g.appendChild(nv);
+    if (f.grado) { const t = document.createElement('span'); t.className = 'v2d-pq-banda';
+      t.textContent = f.grado; g.appendChild(t); }
+  } else if (f.grado) {
+    if (f.color) {
+      const ch = document.createElement('span');
+      const cls = _v2dChipCls(f.grado);
+      ch.className = 'v2d-chip v2d-pq-chip' + (cls ? ' ' + cls : '');
+      ch.textContent = f.grado;
+      g.appendChild(ch);
+    } else {
+      const t = document.createElement('span'); t.className = 'v2d-pq-banda';
+      t.textContent = f.grado; g.appendChild(t);
+    }
+  }
+  return [n, v, g];
+}
+/* La clase de color de una PALABRA de grado ya publicada. No es clasificar un numero: es traducir
+   a color la palabra que la pantalla imprimio, con el mismo reparto que `_v2dNivel` usa para el
+   dibujo. Una palabra que no es de la escala no lleva pastilla de color. */
+function _v2dChipCls(pal) {
+  const l = String(pal || '').toLowerCase();
+  if (!l) return '';
+  if (l.indexOf('no significativa') > -1) return 'nivel1';
+  if (l.indexOf('significativa') > -1) return 'nivel-sig';
+  if (l.indexOf('severa') > -1 || l.indexOf('severo') > -1) return 'nivel3';
+  if (l.indexOf('moderada') > -1 || l.indexOf('moderado') > -1) return 'nivel2';
+  if (l.indexOf('leve') > -1) return 'nivel1';
+  return '';
+}
+function _v2dPqPintar(li, pq, clave) {
+  if (!pq) return;
+  if (pq.decide) {
+    const d = document.createElement('div');
+    d.className = 'v2d-pq-decide';
+    d.textContent = V2D_PQ_DECIDE + pq.decide;
+    li.appendChild(d);
+  }
+  if (!pq.filas.length) return;
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'v2d-vercrit';
+  b.setAttribute('aria-expanded', 'false');
+  /* ⚠️ EL MANEJADOR VA POR PROPIEDAD Y NO POR `setAttribute('onclick', …)`. Dos razones: un
+     `onclick` escrito como CADENA es lo que la regla `ceibo-interp-en-string-de-handler` vigila
+     —aca el literal es constante, pero el patron es el que un dia se interpola—, y ademas el
+     oyente generico de Escape del bloque de accesibilidad busca botones por su ATRIBUTO
+     `onclick`: sin atributo, este boton no entra en esa busqueda. */
+  b.onclick = function(){ v2dPorQueTog(b); };
+  b.textContent = V2D_PQ_VER;
+  li.appendChild(b);
+  const box = document.createElement('div');
+  box.className = 'v2d-pq';
+  box.setAttribute('hidden', '');
+  pq.filas.forEach(function (f) {
+    _v2dPqFila(f).forEach(function (celda) { box.appendChild(celda); });
+  });
+  if (pq.aviso) {
+    const a = document.createElement('div');
+    a.className = 'v2d-pq-aviso';
+    a.textContent = pq.aviso;
+    box.appendChild(a);
+  }
+  li.appendChild(box);
+}
+
 function _v2dLi(item){
   const li = document.createElement('li');
   const t1 = document.createElement('div');
@@ -111924,6 +112240,9 @@ function _v2dLi(item){
     chip.textContent = item.chip;
     li.appendChild(chip);
   }
+  /* EL «POR QUE» (Y2): la linea que decide, el boton y la lista. Va DESPUES del grado, que es el
+     orden en que se lee: primero que grado tiene, despues por que. */
+  if (item.pq) _v2dPqPintar(li, item.pq);
   return li;
 }
 function v2dPintarTarjetas(E){
@@ -111998,6 +112317,8 @@ function v2dCerrar(){
 }
 window.v2dAbrir = v2dAbrir; window.v2dCerrar = v2dCerrar;
 window.v2dPintarTarjetas = v2dPintarTarjetas; window.v2dPintarCav = v2dPintarCav;
+window._v2dPorQue = _v2dPorQue; window._v2dRotulo = _v2dRotulo; window._v2dCrit = _v2dCrit;
+window._v2dChipCls = _v2dChipCls;
 
 </script>
 

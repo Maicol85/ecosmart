@@ -832,6 +832,82 @@ window.__P = {
                cajonVis: caj ? (getComputedStyle(caj).display !== 'none') : 'SIN CAJON' } });
     return o },
 
+  /* ══ Y2 — EL «PORQUE» DE CADA TARJETA ════════════════════════════════════════════════════
+     Cada tarjeta con su linea «Decide», su boton y su lista, y el AREA CLICABLE del boton
+     medida con elementFromPoint: lo que la orden pide son 40 px de alto de objetivo tactil, y
+     el area puede ser mayor que lo visible. */
+  v2dPq() {
+    var lee = function(id){
+      var ul = document.getElementById(id);
+      if (!ul) return 'NO EXISTE';
+      return Array.prototype.slice.call(ul.children).map(function(li){
+        var b = li.querySelector('.v2d-vercrit');
+        var box = li.querySelector('.v2d-pq');
+        var dec = li.querySelector('.v2d-pq-decide');
+        var filas = [];
+        if (box) { var hijos = Array.prototype.slice.call(box.children);
+          for (var i = 0; i + 2 < hijos.length + 1; i += 3) {
+            if (!hijos[i] || !hijos[i].classList || !hijos[i].classList.contains('v2d-pq-n')) {
+              /* El aviso de discordancia es una celda sola a lo ancho: no forma trio. */
+              if (hijos[i] && hijos[i].classList && hijos[i].classList.contains('v2d-pq-aviso'))
+                filas.push({ aviso: (hijos[i].textContent || '').trim() });
+              i -= 2; continue; }
+            var ch = hijos[i + 2] ? hijos[i + 2].querySelector('.v2d-chip') : null;
+            filas.push({ nom: (hijos[i].textContent || '').replace(/\\s+/g, ' ').trim(),
+                         val: hijos[i + 1] ? (hijos[i + 1].textContent || '').trim() : null,
+                         grado: hijos[i + 2] ? (hijos[i + 2].textContent || '').replace(/\\s+/g, ' ').trim() : null,
+                         chipCls: ch ? String(ch.className || '') : null,
+                         chipColor: ch ? getComputedStyle(ch).backgroundColor : null }); } }
+        var rb = b ? b.getBoundingClientRect() : null;
+        /* El area clicable: se tocan los dos extremos de una caja de 40 px centrada en el boton
+           y se pregunta QUE nodo recibe el toque. */
+        var area = null;
+        if (rb && rb.width > 0) {
+          var cx = Math.round(rb.left + rb.width / 2);
+          var cy = Math.round(rb.top + rb.height / 2);
+          var top = document.elementFromPoint(cx, cy - 19);
+          var bot = document.elementFromPoint(cx, cy + 19);
+          area = { arriba: top === b, abajo: bot === b,
+                   arribaEs: top ? (top.className || top.tagName) : 'NADA',
+                   abajoEs: bot ? (bot.className || bot.tagName) : 'NADA' };
+        }
+        return { valv: (li.querySelector('.v2d-valv') || {}).textContent || null,
+                 decide: dec ? (dec.textContent || '').replace(/\\s+/g, ' ').trim() : null,
+                 hayBoton: !!b,
+                 btnTxt: b ? (b.textContent || '').trim() : null,
+                 aria: b ? b.getAttribute('aria-expanded') : null,
+                 btnGeo: rb ? { w: Math.round(rb.width), h: Math.round(rb.height) } : null,
+                 btnColor: b ? getComputedStyle(b).color : null,
+                 area: area,
+                 oculta: box ? (getComputedStyle(box).display === 'none') : null,
+                 nFilas: filas.length, filas: filas }; }) };
+    return { insuf: lee('v2d-insuf'), esten: lee('v2d-esten') } },
+
+  /* Clic REAL en el boton de la tarjeta numero i de una columna. Devuelve el estado despues. */
+  v2dPqClic(col, i) {
+    var ul = document.getElementById('v2d-' + col);
+    if (!ul || !ul.children[i]) return { err: 'NO HAY TARJETA ' + col + ' ' + i };
+    var b = ul.children[i].querySelector('.v2d-vercrit');
+    if (!b) return { err: 'NO HAY BOTON en ' + col + ' ' + i };
+    var r = b.getBoundingClientRect();
+    if (!(r.width > 0 && r.height > 0)) return { err: 'BOTON SIN GEOMETRIA' };
+    b.focus(); b.click();
+    var box = ul.children[i].querySelector('.v2d-pq');
+    return { aria: b.getAttribute('aria-expanded'), txt: (b.textContent || '').trim(),
+             abierta: box ? (getComputedStyle(box).display !== 'none') : null,
+             foco: document.activeElement === b,
+             cx: Math.round(r.left + r.width / 2), cy: Math.round(r.top + r.height / 2) } },
+
+  /* Lo que la PANTALLA de Valvulas publica para una lesion, para el A/B caracter por caracter. */
+  pant(clave) {
+    var C = (window.V2D_PORQUE || {})[clave];
+    if (!C) return 'SIN ENTRADA ' + clave;
+    return { decide: (typeof _v2dDecide === 'function') ? 'FN' : 'SIN FN',
+             crit: (C.crit || []).map(function(c){
+               var f = (typeof _v2dCrit === 'function') ? _v2dCrit(c) : 'SIN FN';
+               return { id: c.id, fila: f } }),
+             pq: (typeof _v2dPorQue === 'function') ? _v2dPorQue(clave) : 'SIN FN' } },
+
   /* Abre las ocho secciones de valvula y sus cajones, para que los cuadros tengan geometria. */
   abrirTodasValv() {
     var o = {};
@@ -958,14 +1034,14 @@ async function main() {
   const ESCY = {
     vacio: {},
     /* IM: vena contracta MODERADA y PISA SEVERA — la discordancia que la orden pide. */
-    imDisc: { campos: Object.assign({}, BSA, { im_vc: '5', pisa_r: '0.9', pisa_val: '40',
+    imDisc: { campos: Object.assign({}, BSA, { im_vc: '5', pisa_r: '9', pisa_val: '40',
       im_vmax: '5', im_itv: '150', ea_dtsvi: '20', itv_tsvi: '20',
       im_jet_area: '12', im_ai_area: '30' }) },
     imSevera: { campos: Object.assign({}, BSA, { im_vc: '8', im_jet_area: '20', im_ai_area: '30' }) },
     imLeve: { campos: Object.assign({}, BSA, { im_vc: '2' }) },
-    iao: { campos: Object.assign({}, BSA, { ia_vc: '7', ia_pisa_r: '0.9', ia_pisa_val: '40',
-      ia_vmax_cw: '4', ia_vti: '200', ia_pht: '180', ia_vmax_td: '0.3' }) },
-    it: { campos: Object.assign({}, BSA, { it_vc: '8', it_pisa_r: '0.9', it_pisa_val: '40',
+    iao: { campos: Object.assign({}, BSA, { ia_vc: '7', ia_pisa_r: '9', ia_pisa_val: '40',
+      ia_vmax_cw: '4', ia_vti: '200', ia_pht: '180', ia_vmax_td: '25' }) },
+    it: { campos: Object.assign({}, BSA, { it_vc: '8', it_pisa_r: '9', it_pisa_val: '40',
       it_vmax_cw: '3', it_vti: '90' }) },
     /* EAo: gradiente medio SEVERO y AVA por continuidad MODERADA — discordancia declarada. */
     eaoDisc: { campos: Object.assign({}, BSA, { vmax_ao: '4.5', gmedio_ao: '45',
@@ -992,7 +1068,7 @@ async function main() {
       im_vc: '5', ia_vc: '7', it_vc: '8', vmax_ao: '4.5', gmedio_ao: '45',
       em_gmedio: '12', thp: '250', et_gmedio: '6' }) },
     rico: { campos: Object.assign({}, BSA, { im_vc: '5', pisa_r: '0.9', pisa_val: '40',
-      im_vmax: '5', im_itv: '150', ea_dtsvi: '20', itv_tsvi: '20',
+      im_vmax: '5', im_itv: '150', ea_dtsvi: '20', itv_tsvi: '20', pisa_r: '9', pisa_val: '40',
       ia_vc: '7', it_vc: '8', vmax_ao: '4.5', gmedio_ao: '45',
       em_gmedio: '12', thp: '250', et_gmedio: '6',
       ddfvi: '66', fevi: '30', ai_vol: '105', vd_bas: '47', tapse: '14', s_prime: '8',
@@ -1093,6 +1169,36 @@ async function main() {
       g.escenas[nom] = c;
     }
     out.grupos.controles = g;
+  }
+
+  /* ── 6 · porque ── La linea «Decide», el boton y la lista, tarjeta por tarjeta. ── */
+  if (corre('porque')) {
+    const g = { escenas: {} };
+    await viewport(1200, 900);
+    for (const nom of ['imDisc', 'imSevera', 'imLeve', 'iao', 'it', 'eaoDisc', 'eaoModerada',
+                       'em', 'et', 'protMitralMec', 'protAoBio', 'manual', 'vacio']) {
+      await escena(ESCY[nom]);
+      await ev(`window.__P.abrirTodasValv()`);
+      await ev(`window.__P.v2dAbrir()`);
+      const e = { cerrada: await ev(`window.__P.v2dPq()`) };
+      /* El gesto: clic REAL en el primer boton de cada columna, y despues el segundo clic. */
+      e.clicInsuf = await ev(`window.__P.v2dPqClic('insuf', 0)`);
+      e.clicEsten = await ev(`window.__P.v2dPqClic('esten', 0)`);
+      e.abierta = await ev(`window.__P.v2dPq()`);
+      e.cierraInsuf = await ev(`window.__P.v2dPqClic('insuf', 0)`);
+      e.geo = await ev(`window.__P.panelGeo()`);
+      await ev(`window.__P.v2dCerrarBoton()`);
+      /* Y al REABRIR la vista las listas tienen que volver a estar cerradas. */
+      await ev(`window.__P.v2dAbrir()`);
+      e.alReabrir = await ev(`window.__P.v2dPq()`);
+      await ev(`window.__P.v2dCerrarBoton()`);
+      e.pant = {};
+      for (const k of ['insuf:mitral', 'insuf:aortica', 'insuf:tricuspide', 'esten:aortica',
+                       'esten:mitral', 'esten:tricuspide', 'prot:mitral', 'prot:aortica'])
+        e.pant[k] = await ev(`window.__P.pant(${JSON.stringify(k)})`);
+      g.escenas[nom] = e;
+    }
+    out.grupos.porque = g;
   }
 
   out.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
