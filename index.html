@@ -2570,6 +2570,17 @@ html.light-mode .amilo-root{
   #m3d-lienzo,#m3d-cv{width:100%;flex:0 0 auto;}
 }
 @media (prefers-reduced-motion:reduce){ #m3d-panel{transition:none;} }
+/* ══ LA FILA DE TRES BLOQUES DE CONTRACTILIDAD — «K2» (2026-10-16) ════════════════════════════
+   El bloque de los botones: apilados, estirados al ancho de su columna de 210 px y arriba de
+   todo. «Incluir bull's eye en PDF» no entra en una linea a ese ancho, asi que el boton se deja
+   envolver (`white-space:normal`) en vez de desbordar; el piso tactil de 44 px se conserva. */
+#lv3d-bloque-botones{display:flex;flex-direction:column;gap:8px;align-items:stretch;
+  align-content:flex-start;}
+#lv3d-bloque-botones .btn{white-space:normal;min-height:44px;text-align:center;}
+/* Los dos bloques de texto llevan el mismo fondo que el panel para que la fila se lea como una
+   fila y no como tres cosas sueltas. Son las variables de la app, sin un color propio. */
+#lv3d-bloque-hallazgos,#lv3d-bloque-botones{background:var(--bg3);border-radius:10px;
+  padding:10px 12px;min-width:0;}
 /* ══ EL PANEL EN LINEA (Y1c, 2026-10-16) — DECISION DE MAICOL ══════════════════════════════
    Era un overlay `position:fixed` con fondo tenue y una tarjeta flotante centrada; hoy es un
    bloque mas de la pantalla de Valvulas, debajo del boton.
@@ -9059,9 +9070,32 @@ window.cerrarSesionReal = cerrarSesionReal;
                Al abrir, `lv3dToggle` le pone `display:grid` con dos columnas: texto a la
                izquierda, diagrama a la derecha. Lo mide TC-408. -->
           <div id="lv3d-fila" style="display:block;">
-            <div>
+            <div id="lv3d-bloque-hallazgos">
               <div style="font-size:12px;color:var(--accent2);font-weight:600;margin-bottom:6px;">Hallazgos de motilidad</div>
               <div id="contr-texto-informe" style="font-size:12px;color:var(--text);line-height:1.6;"></div>
+            </div>
+            <!-- ⚠️ EL BLOQUE DE BOTONES ES EL SEGUNDO DE LA FILA — «K2» (2026-10-16). Estaban
+                 FUERA de la tarjeta, al fondo de la pantalla, y con la tabla «Referencia de
+                 colores» metida DENTRO de su propio flex —de ahi el hueco raro que se veia—.
+                 Hoy son el bloque del medio de la fila de tres: hallazgos | botones | 3D.
+                 Los botones van APILADOS y no en fila: «Incluir bull's eye en PDF» no entra en
+                 una columna de 210 px, y partirlo en dos renglones dentro de un boton de 44 px
+                 lo deformaria. -->
+            <div id="lv3d-bloque-botones">
+              <button class="btn btn-ghost" onclick="contrReset()">🧹 Limpiar</button>
+              <button class="btn btn-ghost" id="contr-pdf-toggle" onclick="toggleContrPDF()">📄 Incluir bull's eye en PDF</button>
+              <!-- ⚠️ EL ESTADO DEL BOTON ES UN CAMPO DEL ESTUDIO, NO UNA PREFERENCIA GLOBAL — «K1»
+                   (2026-10-16). Vivia en `localStorage` bajo `contractilidad_incluir_pdf`, que
+                   «Nuevo estudio» NO borra: el boton aparecia PRENDIDO solo al abrir la app y al
+                   encadenar estudios, que es el sintoma que reporto el medico.
+                   Con un `input[type=hidden]` de guion BAJO el estado entra al recolector de
+                   `guardarInforme` y `_noEsDelEstudio` no lo excluye: viaja con el estudio, la
+                   reimpresion lo repone y las rutas de restauracion lo VACIAN cuando la clave no
+                   esta, asi que un estudio anterior abre APAGADO sin migrar nada. NO agrega
+                   ninguna columna al Excel, que exporta por `LAB_XLS_MAP`.
+                   El barrido de `limpiarCampos` toma text y number, asi que no lo alcanza: lo
+                   repone `contrPdfSync()` al final de esa funcion. -->
+              <input type="hidden" id="contr_be_pdf" value="">
             </div>
             <!-- ⚠️ LOS CONTROLES DE ACÁ LLEVAN DOS MARCAS, Y NINGUNA ES DECORATIVA.
                  1) SIN `id`. El estudio y el Excel se arman con barridos genéricos de
@@ -9157,36 +9191,15 @@ window.cerrarSesionReal = cerrarSesionReal;
         </div>
       </div>
 
-      <div style="text-align:center;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
-        <button class="btn btn-ghost" onclick="contrReset()">🧹 Limpiar</button>
-        <button class="btn btn-ghost" id="contr-pdf-toggle" onclick="toggleContrPDF()">📄 Incluir bull's eye en PDF</button>
-        <!-- ⚠️ EL ESTADO DEL BOTON ES UN CAMPO DEL ESTUDIO, NO UNA PREFERENCIA GLOBAL — «K1»
-             (2026-10-16). Vivia en `localStorage` bajo `contractilidad_incluir_pdf`, que «Nuevo
-             estudio» NO borra: el boton aparecia PRENDIDO solo al abrir la app y al encadenar
-             estudios, que es el sintoma que reporto el medico. Medido en HEAD: una pagina nueva
-             con esa clave en '1' arranca con el boton prendido, y tras `limpiarCampos` queda
-             prendido igual.
-             Con un `input[type=hidden]` de guion BAJO el estado entra al recolector de
-             `guardarInforme` —que barre `input[id], select[id], textarea[id]`— y `_noEsDelEstudio`
-             no lo excluye: viaja con el estudio, la reimpresion lo repone y, lo que importa, las
-             rutas de restauracion lo VACIAN cuando la clave no esta
-             (`el.value = c[el.id] !== undefined ? c[el.id] : ''`), asi que un estudio anterior a
-             esta tanda abre APAGADO sin migrar nada. NO agrega ninguna columna al Excel, que
-             exporta por `LAB_XLS_MAP` y por los bloques declarados y no por el DOM.
-             El barrido de `limpiarCampos` toma text y number, asi que no lo alcanza: lo repone
-             `contrPdfSync()` al final de esa funcion. -->
-        <input type="hidden" id="contr_be_pdf" value="">
-        <div style="margin-top:12px;background:var(--bg3);border-radius:8px;padding:10px 14px;font-size:11px;">
-          <div style="font-size:12px;color:var(--accent2);font-weight:600;margin-bottom:6px;">Referencia de colores</div>
-          <div style="display:flex;flex-direction:column;gap:5px;">
-            <div style="display:flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;border-radius:3px;background:#2a2f3f;display:inline-block;border:1px solid #ccc;"></span>Normal</div>
-            <div style="display:flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;border-radius:3px;background:#d4c430;display:inline-block;"></span>Hipoquinesia</div>
-            <div style="display:flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;border-radius:3px;background:#e08a30;display:inline-block;"></span>Aquinesia</div>
-            <div style="display:flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;border-radius:3px;background:#e04545;display:inline-block;"></span>Discinesia</div>
-            <div style="display:flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;border-radius:3px;background:#8a5fd4;display:inline-block;"></span>Aneurisma</div>
-          </div>
-        </div>
-      </div>
+      <!-- ⚠️ ACA ESTABAN LOS DOS BOTONES Y LA TABLA «REFERENCIA DE COLORES» — «K2» (2026-10-16).
+           Los botones se mudaron al bloque del medio de la fila de arriba. La TABLA SE RETIRO de
+           la pantalla, y no se pierde nada: `#contr-leyenda`, a la izquierda del bull's eye,
+           publica los MISMOS cinco nombres con su cuadradito derivados de `CONTR_MOTILIDAD`, que
+           es el duenio. La que se va era una TERCERA copia con los colores escritos a mano, y
+           encima discrepaba del duenio: su «Normal» decia #2a2f3f donde `CONTR_MOTILIDAD[0]` es
+           #22C55E. El PDF y el PPT no la usaban —los dos arman su leyenda desde `CONTR_MOTILIDAD`
+           (`leyenda: CONTR_MOTILIDAD` y `_leyenda(...)`)—, asi que ninguna superficie firmada
+           cambia. -->
     </div>
   </div>
 </div>
@@ -81979,17 +81992,33 @@ window.lv3dCapturaParaPDF = function(){
   return window.lv3dCaptura();
 };
 
+/* ══ LA FILA DE TRES BLOQUES — «K2» (2026-10-16) ══════════════════════════════════════════════
+   Bajo el bull's eye: hallazgos de motilidad | botones | panel 3D. El tercero existe en el DOM
+   siempre y esta en `display:none` con el 3D cerrado, asi que NO ocupa caja ni deja hueco: por
+   eso con el panel cerrado la grilla declara DOS columnas y no tres.
+   ⚠️ `align-items:stretch` Y NO EL `start` DE ANTES, y es lo que hace que los tres bloques midan
+   lo mismo de alto: con `start` cada uno quedaba del alto de su contenido y el de los botones
+   terminaba siendo una franja fina al lado de un panel de 600 px. La altura de la fila la fija
+   el bloque mas alto —el 3D cuando esta abierto, los dos primeros cuando no—.
+   ⚠️ LA COLUMNA DE LOS BOTONES VA EN PIXELES (210) y no en una fraccion: su contenido son dos
+   botones de ancho conocido, y una fraccion la haria crecer con el ancho de la pantalla dejando
+   los botones nadando. El 46 % del panel es ancho —no alto— y es el que ya tenia. */
 function lv3dMaquetar(){
   const fila = document.getElementById('lv3d-fila');
   if (!fila) return;
-  if (!_lv3d.abierto){ fila.style.display = 'block'; fila.style.gap = ''; fila.style.gridTemplateColumns = ''; return; }
-  /* Por debajo de 768 px se apila en una sola columna. Se mide el viewport porque es el umbral
-     del pedido y el que usa `scripts/check_mobile.js`. */
-  const angosto = window.innerWidth < 768;
+  /* ⚠️ EL UMBRAL INCLUYE EL 768 — «K2» (2026-10-16). Era `< 768`, y con la fila de TRES bloques
+     eso dejaba a 768 px exactos una grilla de 123 + 210 + 311 px: la columna de hallazgos en 123
+     px, medido. Con `<= 768` queda UNA columna, que es lo que la orden pide y ademas el mismo
+     borde que usa la media query `max-width:768px` del panel 3D de la mitral, que si lo
+     incluye. Se mide el viewport porque es el umbral del pedido y el que usa
+     `scripts/check_mobile.js`. */
+  const angosto = window.innerWidth <= 768;
   fila.style.display = 'grid';
   fila.style.gap = '16px';
-  fila.style.alignItems = 'start';
-  fila.style.gridTemplateColumns = angosto ? 'minmax(0,1fr)' : 'minmax(0,1fr) minmax(0,46%)';
+  fila.style.alignItems = 'stretch';
+  fila.style.gridTemplateColumns = angosto ? 'minmax(0,1fr)'
+    : (_lv3d.abierto ? 'minmax(0,1fr) minmax(0,210px) minmax(0,46%)'
+                     : 'minmax(0,1fr) minmax(0,210px)');
 }
 
 function lv3dCablear(){
@@ -82053,7 +82082,10 @@ function lv3dCablear(){
   window.addEventListener('pointerup', () => {
     if (_lv3d.arrastre){ _lv3d.arrastre = null; cv.style.cursor = 'grab'; }
   });
-  window.addEventListener('resize', () => { if (_lv3d.abierto) lv3dMaquetar(); });
+  /* ⚠️ EL OYENTE DE `resize` SE FUE DE ACA — «K2» (2026-10-16). `lv3dCablear` corre SOLO al
+     abrir el panel, y desde que la fila tiene tres bloques su maqueta importa tambien con el 3D
+     CERRADO: cablearlo aca dejaba la fila sin recalcular hasta que alguien abriera el 3D una
+     vez. Hay un unico oyente, al final del modulo, sin la guarda de `abierto`. */
 }
 
 function lv3dAbrir(){
@@ -82095,6 +82127,13 @@ function lv3dCerrar(){
   _lv3d.polis = [];
 }
 function lv3dToggle(){ if (_lv3d.abierto) lv3dCerrar(); else lv3dAbrir(); }
+/* ══ LA MAQUETA DE LA FILA VIVE AUNQUE EL 3D ESTE CERRADO — «K2» (2026-10-16) ═════════════════
+   El unico oyente de `resize` de este modulo y la primera llamada, que es la que convierte el
+   `display:block` del marcado en la grilla de dos columnas. Van fuera de `lv3dCablear` porque
+   esa funcion solo corre al abrir el panel. */
+window.addEventListener('resize', function(){ try { lv3dMaquetar(); } catch (e) {} });
+setTimeout(function(){ try { lv3dMaquetar(); } catch (e) {} }, 0);
+window.lv3dMaquetar = lv3dMaquetar;
 window.lv3dToggle = lv3dToggle;
 window.lv3dCerrar = lv3dCerrar;
 window.lv3dDetener = lv3dDetener;

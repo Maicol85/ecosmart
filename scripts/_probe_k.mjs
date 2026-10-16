@@ -379,6 +379,35 @@ const SONDA = `window.__P = {
     var t = textos.join(String.fromCharCode(1));
     return { guardo: guardo, nImgs: imgs, hayBE: t.indexOf('CONTRACTILIDAD') > -1,
              campoTrasReimprimir: this.beCampo(), botonTrasReimprimir: this.bePrendido() } },
+  /* ══ K2 / K3: la fila de tres bloques y el interior del 3D. ══ */
+  tres() {
+    var o = {};
+    ['lv3d-fila','lv3d-bloque-hallazgos','lv3d-bloque-botones','lv3d-panel','lv3d-btn',
+     'contr-svg-bullseye','contr-leyenda','lv3d-canvas','lv3d-datos','lv3d-notas','contr-texto-informe']
+      .forEach(function(i){ o[i] = window.__P.rect('#' + i) });
+    var f = document.getElementById('lv3d-fila');
+    o._hijos = f ? Array.prototype.slice.call(f.children).map(function(c){ return c.id || c.tagName }) : null;
+    o._cols = f ? getComputedStyle(f).gridTemplateColumns : 'NO EXISTE';
+    o._display = f ? getComputedStyle(f).display : 'NO EXISTE';
+    o._align = f ? getComputedStyle(f).alignItems : 'NO EXISTE';
+    o._scrollW = document.documentElement.scrollWidth;
+    o._clientW = document.documentElement.clientWidth;
+    o._docH = document.documentElement.scrollHeight;
+    /* La tabla «Referencia de colores» de contractilidad: NO la del SGL, que es otra pestania. */
+    var hay = false, d = document.querySelectorAll('#tab-contractilidad div'), i;
+    for (i = 0; i < d.length; i++) {
+      var t = String(d[i].textContent || '');
+      if (t.indexOf('Referencia de colores') > -1 && t.indexOf('Aneurisma') > -1 && t.length < 200) { hay = true; break } }
+    o._tablaColores = hay;
+    /* Los cinco nombres de la leyenda que QUEDA, a la izquierda del bull's eye. */
+    o._leyendaIzq = this.txt('#contr-leyenda');
+    return o },
+  abrir3dVI() { var b = document.getElementById('lv3d-btn'); if (!b) return 'SIN BOTON';
+    if (b.getAttribute('aria-expanded') !== 'true') b.click();
+    return b.getAttribute('aria-expanded') === 'true' },
+  cerrar3dVI() { var b = document.getElementById('lv3d-btn'); if (!b) return 'SIN BOTON';
+    if (b.getAttribute('aria-expanded') === 'true') b.click();
+    return b.getAttribute('aria-expanded') === 'true' },
   scrollY() { return window.scrollY },
   docH() { return document.documentElement.scrollHeight }
 };`;
@@ -765,6 +794,32 @@ for (const motor of MOTORES) {
     await pg.close();
     G.be = g;
     await parcial('be.' + motor, g);
+  }
+
+
+  /* ── tres ── K2: la fila de tres bloques y la tabla de colores. ──────────────────────── */
+  if (corre('tres')) {
+    const g = {};
+    for (const [W, H] of [[1200, 700], [1440, 800], [1920, 1080], [768, 1024], [390, 844], [360, 740]]) {
+      for (const [tn, claro] of [['oscuro', false], ['claro', true]]) {
+        const pg = await nuevaPagina(b, W, H, false, true);
+        await pg.evaluate(() => window.__P.contr());
+        await pg.evaluate((c) => window.__P.tema(c), claro);
+        await pg.waitForTimeout(150);
+        const cerrado = await pg.evaluate(() => window.__P.tres());
+        await pg.evaluate(() => window.__P.abrir3dVI());
+        await pg.waitForTimeout(500);
+        const abierto = await pg.evaluate(() => window.__P.tres());
+        g[W + 'x' + H + '-' + tn] = { cerrado, abierto };
+        if (DEST) {
+          try { await pg.locator('#lv3d-fila').screenshot({ path: join(DEST, 'tres-' + motor + '-' + W + '-' + tn + '.png') }) } catch (e) {}
+          try { await pg.locator('#tab-contractilidad').screenshot({ path: join(DEST, 'contr-' + motor + '-' + W + '-' + tn + '.png') }) } catch (e) {}
+        }
+        await pg.close();
+      }
+    }
+    G.tres = g;
+    await parcial('tres.' + motor, g);
   }
 
   await b.close();
