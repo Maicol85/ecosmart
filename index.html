@@ -22260,7 +22260,7 @@ const EV_REG = Object.freeze([
   Object.freeze({
     id: 'DIM-VI-005', zona: 'AI/VI — Ventriculo izquierdo', dato: 'Espesor del septum y de la pared posterior',
     valor: 'Varon: normal hasta 10; leve 11 a 13; moderado 14 a 16; severo por encima de 16 mm. Mujer: normal hasta 9; leve 10 a 12; moderado 13 a 15; severo por encima de 15 mm. Los mismos valores para el septum y para la pared posterior',
-    duenio: '',
+    duenio: 'espesorBandas / EV_BANDAS_ESPESOR',
     guia: EV_GUIA_ASE2015, ubicacion: 'Tabla suplementaria 3 y Tabla 6', folio: '39.e8', hoja_pdf: 47,
     doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
     estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
@@ -22539,6 +22539,7 @@ function evCortes(sexo) {
   /* El diámetro sistólico no sale de un sondeo porque no tiene dueño que sondear —nada lo
      clasifica—: sus bandas son las de la guía, verificadas, y las entrega `dsviBandas`. */
   if (typeof dsviBandas === 'function')      r.dsvi   = dsviBandas(sx);
+  if (typeof espesorBandas === 'function')   r.espesor = espesorBandas(sx);
   if (typeof vdfviInterp === 'function')     r.vdfvi  = _evBandas((x) => vdfviInterp(x, sx), 5, 160, 0.1, 1);
   if (typeof vsfviInterp === 'function')     r.vsfvi  = _evBandas((x) => vsfviInterp(x, sx), 2, 100, 0.1, 1);
   if (typeof hviSeveridad === 'function')    r.masa   = _evBandas((x) => hviSeveridad(x, sx), 40, 220, 1, 0);
@@ -38851,6 +38852,33 @@ function dsviBandas(sexo) {
   return (sexoEfectivo(sexo) === 'F') ? EV_BANDAS_REF.dsviF : EV_BANDAS_REF.dsviM;
 }
 window.dsviBandas = dsviBandas;
+/* ══ EL ESPESOR DEL SEPTUM Y DE LA PARED POSTERIOR, POR SEXO (LS5, 2026-10-16) ═════════════
+   La ASE/EACVI 2015 publica el rango normal POR SEXO y los MISMOS valores para el septum y para
+   la pared posterior, en dos tablas que coinciden: la Tabla 6 (folio 17, hoja 17) da
+   «Septal thickness (cm): Women 0.6-0.9 / Men 0.6-1.0» y lo mismo para la posterior, y la Tabla
+   suplementaria 3 (folio 39.e8, hoja 47) agrega las tres bandas de gravedad:
+     varón — normal 0,6-1,0 · leve 1,1-1,3 · moderado 1,4-1,6 · severo > 1,6 cm
+     mujer — normal 0,6-0,9 · leve 1,0-1,2 · moderado 1,3-1,5 · severo > 1,5 cm
+   O sea que el techo de normalidad es 10 mm en el varón y 9 en la mujer.
+   ⚠️ EL «< 13 mm» QUE LA APP PUBLICABA NO ERA UN LÍMITE DE NORMALIDAD: es el techo de la banda
+   LEVEMENTE ANORMAL del varón, y vivía únicamente como RÓTULO de dos filas de la tabla del PDF.
+   ⚠️ NINGUNA SUPERFICIE CLASIFICA EL ESPESOR AISLADO, censado igual que el diámetro
+   sistólico: no hay cápsula `siv-interp` ni `pp-interp` —cero ocurrencias— y el informe no lo
+   categoriza por ningún camino; lo que el informe publica es la HIPERTROFIA POR MASA, que esta
+   tanda no toca. Por eso LS5 no agrega una clasificación nueva al papel: lo que gana el sexo es
+   la referencia impresa y una barra en la tarjeta de geometría, que es donde el espesor ya
+   participa —el espesor parietal relativo es 2 × pared / diámetro—.
+   Sin sexo devuelve las del varón, que son las del corte MÁS ALTO. */
+const EV_BANDAS_ESPESOR = Object.freeze({
+  M: Object.freeze([{ k: 'normal', desde: 4, hasta: 10 }, { k: 'leve', desde: 10.1, hasta: 13 },
+                    { k: 'moderada', desde: 13.1, hasta: 16 }, { k: 'severa', desde: 16.1, hasta: 25 }]),
+  F: Object.freeze([{ k: 'normal', desde: 4, hasta: 9 }, { k: 'leve', desde: 9.1, hasta: 12 },
+                    { k: 'moderada', desde: 12.1, hasta: 15 }, { k: 'severa', desde: 15.1, hasta: 25 }]),
+});
+function espesorBandas(sexo) {
+  return (sexoEfectivo(sexo) === 'F') ? EV_BANDAS_ESPESOR.F : EV_BANDAS_ESPESOR.M;
+}
+window.EV_BANDAS_ESPESOR = EV_BANDAS_ESPESOR; window.espesorBandas = espesorBandas;
 
 /* ══ LA TARJETA DEL VENTRICULO IZQUIERDO ══════════════════════════════════════════════════════
    Cinco barras: diametro diastolico, diametro sistolico, los dos volumenes indexados y la
@@ -39104,6 +39132,7 @@ function evTarjetaGeo() {
   const sx = _evSexoCargado();
   const pDD = vPlaus('ddfvi'), pSIV = vPlaus('siv'), pPP = vPlaus('ppvi');
   const bsa = getBSA();
+  const AV_SEXO_GEO = 'Sin sexo cargado: se usó el corte más alto.';
   let masaIdx = null, rwt = null;
   if (pDD.val != null && pSIV.val != null && pPP.val != null
       && !pDD.fuera && !pSIV.fuera && !pPP.fuera) {
@@ -39146,6 +39175,35 @@ function evTarjetaGeo() {
   if (f1) w.appendChild(_evDiv('ev-fte', 'Fuente: ' + f1, { 'data-ev-fuente': 'vi-geom' }));
   if (f2 && f2 !== f1) w.appendChild(_evDiv('ev-fte', 'Fuente de la gravedad: ' + f2, { 'data-ev-fuente': 'vi-geom-sev' }));
   fr.appendChild(w);
+  /* ⚠️ LAS DOS BARRAS DE ESPESOR VAN ACÁ Y NO EN LA TARJETA DEL VENTRÍCULO, y es una medición:
+     esa tarjeta ya mide 475 a 507 px con sus cinco barras y el hueco útil a 1200 × 700 es de
+     486, así que sumarle dos la manda al scroll interno en todas las escenas. El espesor
+     pertenece a esta tarjeta por contenido: el espesor parietal relativo que su gráfico dibuja
+     es 2 × pared posterior / diámetro diastólico.
+     ⚠️ SON DOS BARRAS Y NO UNA porque son dos mediciones: una sola obligaría a elegir entre los
+     dos campos —o a tomar el mayor, que es un criterio que la guía no escribe—. Comparten
+     bandas y ficha porque la guía imprime los MISMOS cuatro rangos para los dos. */
+  const _espB = espesorBandas(sx);
+  const _espCat = (p) => {
+    if (p.val == null || p.fuera) return '';
+    const b = _evBandaDe(_espB, p.val);
+    return b ? ('Espesor ' + _evAdj(b.k) + ' según la guía.') : '';
+  };
+  [['vi-siv', 'Septum interventricular (mm)', pSIV, 'el septum'],
+   ['vi-pp', 'Pared posterior (mm)', pPP, 'la pared posterior']].forEach(function (d) {
+    fr.appendChild(_evBarra({ clave: d[0], rotulo: d[1], bandas: _espB,
+      lo: 5, hi: 20, unidad: 'mm', dec: 0,
+      valor: (d[2].val != null && !d[2].fuera) ? d[2].val : null,
+      cat: _espCat(d[2]),
+      aviso: [(d[2].fuera ? ('Valor fuera de rango medible: verificar ' + d[3] + '.')
+                          : (d[2].val == null ? ('Cargar ' + d[3] + '.') : '')),
+              sx ? '' : AV_SEXO_GEO].filter(Boolean).join(' '),
+      ficha: 'DIM-VI-005' }));
+  });
+  /* La fuente del espesor se publica aparte y DESPUÉS de sus dos barras: su ficha es otra que
+     la del gráfico, y `_evBarra` no publica fuente —la publica el pie—. */
+  const _fEsp = evFuenteLinea('DIM-VI-005');
+  if (_fEsp) fr.appendChild(_evDiv('ev-fte', 'Fuente del espesor: ' + _fEsp, { 'data-ev-fuente': 'vi-esp' }));
   return fr;
 }
 window.evGraficoGeometria = evGraficoGeometria; window.evTarjetaGeo = evTarjetaGeo;
@@ -39688,7 +39746,7 @@ function evRefPintar(id) {
     host.dataset.evPintado = '1';
   }
   if (id === 'vi2') {
-    const B = _evRefBiblio(['DIM-VI-001', 'DIM-VI-002', 'DIM-VI-003', 'DIM-VI-004',
+    const B = _evRefBiblio(['DIM-VI-001', 'DIM-VI-002', 'DIM-VI-005', 'DIM-VI-003', 'DIM-VI-004',
                             'FUN-VI-001', 'MAS-VI-001', 'MAS-VI-002', 'GEO-VI-001', 'GEO-VI-002']);
     host.appendChild(_evRefTabla([
       { ficha: 'DIM-VI-001', rot: 'Diámetro diastólico — normal', h: '≤ ' + DDVI_NORMAL_MAX_H + ' mm', m: '≤ ' + DDVI_NORMAL_MAX_M + ' mm' },
@@ -39697,6 +39755,9 @@ function evRefPintar(id) {
       { ficha: 'DIM-VI-002', rot: 'Diámetro sistólico — normal', h: '≤ 40 mm', m: '≤ 35 mm' },
       { ficha: 'DIM-VI-002', rot: 'Diámetro sistólico — leve / moderado', h: '41 a 43 · 44 a 45 mm', m: '36 a 38 · 39 a 41 mm' },
       { ficha: 'DIM-VI-002', rot: 'Diámetro sistólico — severo', h: '> 45 mm', m: '> 41 mm' },
+      { ficha: 'DIM-VI-005', rot: 'Espesor del septum y de la pared — normal', h: '≤ 10 mm', m: '≤ 9 mm' },
+      { ficha: 'DIM-VI-005', rot: 'Espesor — leve / moderado', h: '11 a 13 · 14 a 16 mm', m: '10 a 12 · 13 a 15 mm' },
+      { ficha: 'DIM-VI-005', rot: 'Espesor — severo', h: '> 16 mm', m: '> 15 mm' },
       { ficha: 'DIM-VI-003', rot: 'Volumen telediastólico indexado — normal', h: '≤ 74 ml/m²', m: '≤ 61 ml/m²' },
       { ficha: 'DIM-VI-003', rot: 'Telediastólico — leve / moderado', h: '75 a 89 · 90 a 100 ml/m²', m: '62 a 70 · 71 a 80 ml/m²' },
       { ficha: 'DIM-VI-003', rot: 'Telediastólico — severo', h: '> 100 ml/m²', m: '> 80 ml/m²' },
@@ -39713,6 +39774,7 @@ function evRefPintar(id) {
     host.appendChild(_evRefBarras([
       { clave: 'ref-vi-ddvi', rotulo: 'Diámetro diastólico — varón (mm)', banda: 'ddvi', lo: 35, hi: 80, unidad: 'mm', dec: 0, ficha: 'DIM-VI-001' },
       { clave: 'ref-vi-dsvi', rotulo: 'Diámetro sistólico — varón (mm)', banda: 'dsvi', lo: 15, hi: 60, unidad: 'mm', dec: 0, ficha: 'DIM-VI-002' },
+      { clave: 'ref-vi-esp', rotulo: 'Espesor del septum y de la pared — varón (mm)', banda: 'espesor', lo: 5, hi: 20, unidad: 'mm', dec: 0, ficha: 'DIM-VI-005' },
       { clave: 'ref-vi-vdfvi', rotulo: 'Volumen telediastólico indexado — varón (ml/m²)', banda: 'vdfvi', lo: 20, hi: 130, unidad: 'ml/m²', dec: 0, ficha: 'DIM-VI-003' },
       { clave: 'ref-vi-vsfvi', rotulo: 'Volumen telesistólico indexado — varón (ml/m²)', banda: 'vsfvi', lo: 5, hi: 70, unidad: 'ml/m²', dec: 0, ficha: 'DIM-VI-004' },
       { clave: 'ref-vi-masa', rotulo: 'Masa indexada — varón (g/m²)', banda: 'masa', lo: 50, hi: 200, unidad: 'g/m²', dec: 0, ficha: 'MAS-VI-002' },
@@ -39720,6 +39782,7 @@ function evRefPintar(id) {
     host.appendChild(_evRefBarras([
       { clave: 'ref-vi-ddvi-f', rotulo: 'Diámetro diastólico — mujer (mm)', banda: 'ddvi', lo: 35, hi: 80, unidad: 'mm', dec: 0, ficha: 'DIM-VI-001' },
       { clave: 'ref-vi-dsvi-f', rotulo: 'Diámetro sistólico — mujer (mm)', banda: 'dsvi', lo: 15, hi: 60, unidad: 'mm', dec: 0, ficha: 'DIM-VI-002' },
+      { clave: 'ref-vi-esp-f', rotulo: 'Espesor del septum y de la pared — mujer (mm)', banda: 'espesor', lo: 5, hi: 20, unidad: 'mm', dec: 0, ficha: 'DIM-VI-005' },
       { clave: 'ref-vi-vdfvi-f', rotulo: 'Volumen telediastólico indexado — mujer (ml/m²)', banda: 'vdfvi', lo: 20, hi: 130, unidad: 'ml/m²', dec: 0, ficha: 'DIM-VI-003' },
       { clave: 'ref-vi-vsfvi-f', rotulo: 'Volumen telesistólico indexado — mujer (ml/m²)', banda: 'vsfvi', lo: 5, hi: 70, unidad: 'ml/m²', dec: 0, ficha: 'DIM-VI-004' },
       { clave: 'ref-vi-masa-f', rotulo: 'Masa indexada — mujer (g/m²)', banda: 'masa', lo: 50, hi: 200, unidad: 'g/m²', dec: 0, ficha: 'MAS-VI-002' },
@@ -55582,10 +55645,10 @@ function generarPDFReal(_aj) {
          Medido: con SIV 110 la fila se borraba entera mientras «Masa idx» decía «fuera de
          rango», o sea que el informe acusaba al derivado y escondía el insumo que lo causó.
          Se consume el objeto de `vPlaus`, que distingue «no hay dato» de «hay dato ilegible». */
-      {lbl:'SIV',       ref:'<13 mm',   val:sivV?sivV+' mm'+(_pSiv.fuera?MARCA_REVISAR:''):null},
+      {lbl:'SIV',       ref:'H<=10 M<=9 mm',   val:sivV?sivV+' mm'+(_pSiv.fuera?MARCA_REVISAR:''):null},
       {lbl:'DDVI',      ref:'H<=' + DDVI_NORMAL_MAX_H + ' M<=' + DDVI_NORMAL_MAX_M + ' mm', val:dd  ?dd  +' mm'+(_pDd.fuera ?MARCA_REVISAR:''):null},
       {lbl:'DSVI',      ref:'H<=40 M<=35 mm',   val:ds  ?ds  +' mm'+(_pDs.fuera ?MARCA_REVISAR:''):null},
-      {lbl:'PP',        ref:'<13 mm',   val:pp  ?pp  +' mm'+(_pPp.fuera ?MARCA_REVISAR:''):null},
+      {lbl:'PP',        ref:'H<=10 M<=9 mm',   val:pp  ?pp  +' mm'+(_pPp.fuera ?MARCA_REVISAR:''):null},
       /* ⚠️ «H<75 M<61» ERA FALSO EN LAS DOS DIRECCIONES, Y EL CÓDIGO NUNCA ESTUVO MAL.
          `vdfviInterp` clasifica con `> 74` y `> 61` desde siempre —medido: 74,0 normal y 74,1
          levemente dilatado; 61,0 normal en la mujer—, que es exactamente lo que dice la ASE 2015
