@@ -1561,6 +1561,28 @@
     text-transform: uppercase; letter-spacing: .4px; color: var(--text2); margin-bottom: 1px; }
   #vinfo-card [data-vinfo-b="formula"] { font-family: ui-monospace, Menlo, monospace; font-size: 10.5px; }
   #vinfo-card [data-vinfo-b="ojo"] { color: var(--orange); }
+  /* ══ LAS TARJETAS GRAFICAS DE AI/VI (L2, 2026-10-16) ═════════════════════════════════
+     Ni un porcentaje ni un vh en la cadena de alto: es la leccion de WebKit del Y1c. El SVG
+     va a ancho 100 % con viewBox, asi que escala con la tarjeta y su alto lo fija el atributo
+     `height` en px. */
+  #vinfo-card .ev-bl { margin-top: 9px; }
+  #vinfo-card .ev-bl:first-of-type { margin-top: 4px; }
+  #vinfo-card .ev-rot { font-size: 9.5px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .3px; color: var(--text2); }
+  #vinfo-card .ev-cat { font-size: 11px; color: var(--text); margin-top: 1px; }
+  #vinfo-card .ev-avi { font-size: 10.5px; color: var(--orange); margin-top: 2px; }
+  #vinfo-card .ev-fte { font-size: 9.5px; color: var(--text2); margin-top: 2px; font-style: italic; }
+  #vinfo-card .ev-tabla { width: 100%; border-collapse: collapse; font-size: 10px; margin-top: 4px; }
+  #vinfo-card .ev-tabla td, #vinfo-card .ev-tabla th { padding: 2px 4px; text-align: center;
+    border-bottom: 1px solid var(--border); color: var(--text2); }
+  /* La misma pinta dentro de la pestana Referencias, donde las graficas se repiten sin el
+     punto del paciente. */
+  .ev-ref .ev-bl { margin-top: 10px; }
+  .ev-ref .ev-rot { font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .3px; color: var(--text2); }
+  .ev-ref .ev-cat { font-size: 11px; color: var(--text); margin-top: 1px; }
+  .ev-ref .ev-avi { font-size: 11px; color: var(--orange); margin-top: 2px; }
+  .ev-ref .ev-fte { font-size: 10px; color: var(--text2); margin-top: 2px; font-style: italic; }
 
   /* ══ LA TABLA DE DOS METODOS DEL BLOQUE 2 DE LA IM (2026-10-14) ═══════════════════════════
      Tres columnas: el parametro con su corte, el valor por PISA y el valor por continuidad.
@@ -3915,6 +3937,16 @@ window.cerrarSesionReal = cerrarSesionReal;
     <div class="card sacc" id="sacc-ai">
       <button type="button" class="sacc-hdr" onclick="secToggle('ai')" aria-expanded="false"><span class="sacc-arrow">▶</span>Aurícula izquierda</button>
       <div class="card-body sacc-body">
+        <!-- ⚠️ EL GLOBO VA EN UNA FILA DEL CUERPO Y NO DENTRO DEL ENCABEZADO DEL ACORDEON, y es
+             por una razon estructural: ese encabezado ES un <button> con onclick="secToggle('ai')",
+             y un boton dentro de otro boton no es marcado valido — el navegador lo saca del
+             padre al parsear y el globo deja de estar donde dice el fuente. Queda inmediatamente
+             debajo del titulo, que es donde el medico lo busca. -->
+        <div class="calc-row" style="border:0;padding:0 0 6px;">
+          <span class="calc-lbl">Cortes y referencia de la aurícula izquierda
+            <button type="button" class="vinfo-btn" data-vinfo="ai-card" aria-expanded="false"
+                    aria-label="Cortes y referencia de la aurícula izquierda" onclick="vInfoClic(this)">&#9432;</button></span>
+        </div>
         <div class="grid-3">
           <div class="fg">
             <label>Diámetro AP (mm)</label>
@@ -17035,6 +17067,19 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         </div>
       </div>
 
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('ai',this)">
+      🫀 AI — Aurícula izquierda: cortes por sexo
+      <span style="float:right;">▶</span>
+    </h2>
+    <div id="ref-ai" style="display:none;" class="card-body">
+      <!-- El cuerpo lo arma `evRefPintar('ai')` la primera vez que se abre: las tablas, las
+           graficas y la bibliografia salen del registro de evidencia y de los duenos de cada
+           corte, no de numeros escritos aca. -->
+      <div id="ref-ai-cuerpo"></div>
     </div>
   </div>
 
@@ -37767,7 +37812,11 @@ const VINFO = Object.freeze({
     lee: 'AEO indexada = \u00e1rea efectiva del orificio prot\u00e9sico dividida por la superficie corporal (EOA indexada en las gu\u00edas anglosajonas). Contesta si la pr\u00f3tesis es chica para este paciente, que es otra pregunta que si est\u00e1 obstruida. Con \u00edndice de masa corporal por debajo de 30, normal por encima de 0,85 y severo en 0,65 cm\u00b2/m\u00b2 o menos.',
     fuente: 'ASE 2024 (Zoghbi), Tabla 7, p\u00e1g. 20.',
     ojo: 'Con \u00edndice de masa corporal de 30 o m\u00e1s la tabla baja los dos cortes a 0,70 y 0,55 cm\u00b2/m\u00b2. El desajuste no es obstrucci\u00f3n: una pr\u00f3tesis sin criterios de estenosis puede ser chica para el paciente, y al rev\u00e9s.'
-  }
+  },
+  /* ⚠️ LAS DOS TARJETAS DE AI/VI SON DE LAS QUE TRAEN `dyn`: lo que muestran es un grafico con
+     el punto del paciente, que se arma al abrir y se repinta en vivo. No llevan `tit`, `lee`
+     ni `fuente` porque su contenido entero —el titulo incluido— lo construye su funcion. */
+  'ai-card': { ancho: 348, dyn: function () { return evTarjetaAI() } }
 });
 let _vInfoId = null;
 function _vInfoBtnDe(clave) {
@@ -37810,7 +37859,11 @@ function _vInfoColocar(clave) {
   if (r0.width === 0 || r0.height === 0) return null;
   const vw = innerWidth, vh = innerHeight, M = VINFO_MARGEN;
   const L = M, T = M, R = vw - M, B = vh - M;
-  const w = Math.max(150, Math.min(VINFO_ANCHO, Math.floor(R - L)));
+  /* ⚠️ EL ANCHO PUEDE SER PROPIO DE LA CLAVE, y no es estetica: una tarjeta con barras
+     graficas en 300 px deja los numeros de los cortes encimados. Lo que no se declara sigue
+     en VINFO_ANCHO, asi que las once tarjetas anteriores no se mueven ni un pixel. */
+  const _dAn = (VINFO[clave] && VINFO[clave].ancho) ? VINFO[clave].ancho : VINFO_ANCHO;
+  const w = Math.max(150, Math.min(_dAn, Math.floor(R - L)));
   c.style.width = w + 'px';
   /* ⚠️ LA ALTURA SE ACOTA AL LADO DONDE VA, Y NO A LA CAJA ENTERA — LO ENCONTRO LA SONDA. Con el
      tope en la caja completa, una tarjeta mas alta que la pantalla terminaba colocada arriba de
@@ -37824,7 +37877,24 @@ function _vInfoColocar(clave) {
   const _abajo = B - (r0.bottom + 6), _arriba = (r0.top - 6) - T;
   const _lado = (_abajo >= _arriba) ? 'abajo' : 'arriba';
   c.style.maxHeight = Math.max(80, Math.floor(_lado === 'abajo' ? _abajo : _arriba)) + 'px';
-  c.innerHTML = _vInfoHTML(clave, btn);
+  /* ⚠️ UNA CLAVE CON `dyn` SE PINTA POR NODOS Y NO POR innerHTML. Lo que entra ahi son valores
+     del paciente y un dibujo: construirlo concatenando HTML es la regla de Semgrep que esta
+     tanda tiene escrita, y ademas un SVG puesto por innerHTML no hereda el espacio de nombres
+     si el navegador lo parsea como HTML. */
+  if (VINFO[clave] && typeof VINFO[clave].dyn === 'function') {
+    c.replaceChildren();
+    try { c.appendChild(VINFO[clave].dyn()); }
+    catch (e) { c.appendChild(document.createTextNode('No se pudo construir la tarjeta.')); }
+    /* ⚠️ LA CLAVE VIVA SE MARCA EN EL PROPIO NODO Y NO SE DEDUCE DE `_vInfoId`. El repintado en
+       vivo tiene que seguir LO QUE ESTA EN PANTALLA: medido, con la guarda colgada de la
+       variable de modulo el repintado NO ocurria —la tarjeta se quedaba con la categoria del
+       gesto anterior mientras el campo ya tenia el valor nuevo— y el defecto es invisible,
+       porque una tarjeta con el numero viejo se ve igual de bien que una al dia. */
+    c.setAttribute('data-ev-dyn', clave);
+  } else {
+    c.removeAttribute('data-ev-dyn');
+    c.innerHTML = _vInfoHTML(clave, btn);
+  }
   /* Se pinta y se mide EN EL MISMO CUADRO: entre el display y la escritura de top/left no hay
      ningun await ni setTimeout, asi que no hay salto visible. */
   c.style.left = '0px'; c.style.top = '0px';
@@ -37845,7 +37915,7 @@ function vInfoCerrar(sinFoco) {
   const c = document.getElementById('vinfo-card');
   const prev = _vInfoId;
   _vInfoId = null;
-  if (c) { c.style.display = 'none'; c.innerHTML = ''; }
+  if (c) { c.style.display = 'none'; c.innerHTML = ''; c.removeAttribute('data-ev-dyn'); }
   const btn = prev ? _vInfoBtnDe(prev) : null;
   if (btn) {
     btn.setAttribute('aria-expanded', 'false');
@@ -37896,6 +37966,317 @@ document.addEventListener('click', function (ev) {
 document.addEventListener('keydown', function (ev) {
   if (ev.key === 'Escape' && _vInfoId) { ev.stopPropagation(); vInfoCerrar(); }
 });
+
+/* ══ LAS TARJETAS i DE LA AI Y DEL VI — EL MOTOR DE DIBUJO («L2», 2026-10-16) ═════════════════
+   Decision de Maicol. Mismo mecanismo y mismo aspecto que los globos i que ya existen: toque
+   abre, otro toque cierra, tocar afuera cierra y Escape tambien, sin hover y sin llevar al
+   manual. Lo unico que se extiende es que una clave del registro puede traer `dyn`, una funcion
+   que devuelve NODOS en vez de texto — un grafico no se puede escribir en el campo `lee`.
+
+   ⚠️ SE CONSTRUYE POR NODOS Y NO CONCATENANDO HTML. Es la regla de Semgrep que esta tanda tiene
+   escrita en su orden, y acá no es formalismo: lo que entra en la tarjeta son valores del
+   paciente y rotulos del registro.
+
+   ⚠️ LAS BANDAS NO LLEVAN ESCRITA LA PALABRA DE GRAVEDAD, SOLO COLOR —decision de Maicol—, y el
+   color NUNCA es lo unico que informa: cada corte lleva su numero CON SU UNIDAD debajo, la
+   categoria del paciente va en PALABRAS en su propia linea, y el `aria-label` del dibujo repite
+   el valor, la categoria y los cortes para quien no lo ve.
+
+   ⚠️ LOS LIMITES DEL DIBUJO (`lo` y `hi`) NO SON CORTES Y NO LLEVAN FUENTE: son el rango de lo
+   medible que la barra encuadra, igual que una banda de plausibilidad. Un valor por fuera se
+   dibuja pegado al borde y el texto dice el numero real. */
+const EV_COLOR = Object.freeze({
+  normal: '--green', 'de dimensiones normales': '--green', no: '--green',
+  leve: '--yellow', 'levemente dilatado': '--yellow', 'levemente dilatada': '--yellow',
+  moderada: '--orange', 'moderadamente dilatado': '--orange', dilatado: '--orange',
+  si: '--orange', 'Remodelado concéntrico': '--yellow', 'Hipertrofia excéntrica': '--orange',
+  severa: '--red', 'severamente dilatado': '--red', 'Hipertrofia concéntrica': '--red',
+  Normal: '--green', '': '--green',
+});
+const EV_NS = 'http://www.w3.org/2000/svg';
+function _evSvg(tag, at) {
+  const e = document.createElementNS(EV_NS, tag);
+  for (const k in at) if (at[k] !== null && at[k] !== undefined) e.setAttribute(k, String(at[k]));
+  return e;
+}
+function _evDiv(cls, txt, data) {
+  const d = document.createElement('div');
+  if (cls) d.className = cls;
+  if (txt != null) d.textContent = String(txt);
+  if (data) for (const k in data) d.setAttribute(k, String(data[k]));
+  return d;
+}
+/* El color de una banda por su nombre. Lo que no este en el mapa cae a gris, que es «no se
+   clasifica»: inventarle un color a una categoria desconocida es afirmar una gravedad. */
+function _evColor(k) { return 'var(' + (EV_COLOR[k] || '--text2') + ')'; }
+
+/* UNA barra. `bandas` viene de sondear al dueno, asi que sus cortes son los del informe. */
+function _evBarra(cfg) {
+  const W = cfg.W || 316, HB = 13, Y = 3, HT = 32;
+  const lo = cfg.lo, hi = cfg.hi, rango = (hi - lo) || 1;
+  const px = (x) => Math.max(0, Math.min(W, ((x - lo) / rango) * W));
+  const wrap = document.createElement('div');
+  wrap.className = 'ev-bl';
+  const rot = _evDiv('ev-rot', cfg.rotulo);
+  wrap.appendChild(rot);
+
+  const svg = _evSvg('svg', { viewBox: '0 0 ' + W + ' ' + HT, width: '100%', height: HT,
+                              role: 'img', 'data-ev-barra': cfg.clave });
+  /* Las bandas, de izquierda a derecha. Se recorta cada una al dominio dibujado: una banda que
+     empieza antes de `lo` o termina despues de `hi` igual tiene que pintar su tramo visible. */
+  (cfg.bandas || []).forEach(function (b) {
+    const x1 = px(Math.max(b.desde, lo)), x2 = px(Math.min(b.hasta, hi));
+    if (x2 <= x1) return;
+    svg.appendChild(_evSvg('rect', { x: x1.toFixed(1), y: Y, width: (x2 - x1).toFixed(1),
+      height: HB, fill: _evColor(b.k), 'data-ev-zona': b.k }));
+  });
+  svg.appendChild(_evSvg('rect', { x: 0.5, y: Y, width: W - 1, height: HB, fill: 'none',
+    stroke: 'var(--border)', 'stroke-width': 1 }));
+
+  /* Los numeros de los cortes, con su unidad, DEBAJO. El ultimo `hasta` de cada banda es el
+     corte: es el mayor valor que todavia cae de ese lado. */
+  const cortes = [];
+  (cfg.bandas || []).forEach(function (b, i) {
+    if (i === (cfg.bandas.length - 1)) return;
+    cortes.push(b.hasta);
+  });
+  cortes.forEach(function (c) {
+    if (c < lo || c > hi) return;
+    const x = px(c);
+    svg.appendChild(_evSvg('line', { x1: x.toFixed(1), y1: Y, x2: x.toFixed(1), y2: Y + HB,
+      stroke: 'var(--bg3)', 'stroke-width': 1 }));
+    const t = _evSvg('text', { x: Math.max(12, Math.min(W - 12, x)).toFixed(1), y: HT - 2,
+      'text-anchor': 'middle', 'font-size': 9, fill: 'var(--text2)', 'data-ev-corte': cfg.clave });
+    t.textContent = _evNum(c, cfg.dec) + ' ' + cfg.unidad;
+    svg.appendChild(t);
+  });
+
+  /* El punto del paciente. Sin valor utilizable no se dibuja: un punto en el borde izquierdo
+     se lee como «este paciente esta en lo mas bajo de la escala». */
+  if (cfg.valor !== null && cfg.valor !== undefined && isFinite(cfg.valor)) {
+    const x = px(cfg.valor);
+    svg.appendChild(_evSvg('circle', { cx: x.toFixed(1), cy: Y + HB / 2, r: 5,
+      fill: 'var(--text)', stroke: 'var(--bg3)', 'stroke-width': 2, 'data-ev-punto': cfg.clave }));
+  }
+  svg.setAttribute('aria-label', _evAria(cfg, cortes));
+  wrap.appendChild(svg);
+  if (cfg.cat) wrap.appendChild(_evDiv('ev-cat', cfg.cat, { 'data-ev-cat': cfg.clave }));
+  if (cfg.aviso) wrap.appendChild(_evDiv('ev-avi', cfg.aviso, { 'data-ev-aviso': cfg.clave }));
+  const f = cfg.ficha ? evFuenteLinea(cfg.ficha) : '';
+  if (f) wrap.appendChild(_evDiv('ev-fte', 'Fuente: ' + f, { 'data-ev-fuente': cfg.clave }));
+  return wrap;
+}
+function _evNum(n, dec) {
+  const d = (dec === undefined || dec === null) ? 0 : dec;
+  return Number(n).toFixed(d).replace('.', ',');
+}
+/* El texto que lee un lector de pantalla: el valor del paciente, su categoria y los cortes. */
+function _evAria(cfg, cortes) {
+  const p = (cfg.valor !== null && cfg.valor !== undefined && isFinite(cfg.valor))
+    ? ('Paciente ' + _evNum(cfg.valor, cfg.dec) + ' ' + cfg.unidad + '. ') : 'Sin valor del paciente. ';
+  const c = cortes.length ? ('Cortes en ' + cortes.map(function (x) { return _evNum(x, cfg.dec) }).join(', ') + ' ' + cfg.unidad + '.') : '';
+  return cfg.rotulo + '. ' + p + (cfg.cat ? (cfg.cat + '. ') : '') + c;
+}
+/* Lee el texto que una capsula de la pantalla acaba de publicar. NO se reescribe la categoria:
+   copiarla seria una segunda redaccion de lo que la app ya dice del mismo paciente, que es el
+   defecto que este archivo documenta. */
+function _evCapsula(id) {
+  const e = document.getElementById(id);
+  const t = e ? String(e.textContent || '').trim() : '';
+  return (t && t !== '—') ? t : '';
+}
+
+/* ══ LA TARJETA DE LA AURICULA IZQUIERDA ══════════════════════════════════════════════════════
+   Tres barras: diametro anteroposterior, area y volumen indexado. NINGUNO de sus tres cortes
+   depende del sexo —la Tabla 4 de la ASE/EACVI 2015 imprime los MISMOS cuatro valores en las
+   columnas de varon y de mujer, y los otros dos son un corte unico de la aplicacion—, asi que
+   esta tarjeta no esconde el punto ni avisa por falta de sexo: hacerlo seria retener una
+   informacion que no depende del dato que falta. La regla de «sin sexo, sin punto» se aplica
+   barra por barra, y en el ventriculo izquierdo si actua.
+
+   ⚠️ LA CATEGORIA EN PALABRAS NO SE REESCRIBE. La del volumen sale del `adj` de `AI_VOL_BANDAS`,
+   que es LITERALMENTE lo que el informe imprime; las del diametro y el area se COPIAN del texto
+   que su capsula de pantalla acaba de publicar, igual que las casillas automaticas de la
+   insuficiencia mitral copian su fila. Asi la tarjeta y el papel firmado no se pueden
+   desincronizar ni en una palabra.
+
+   ⚠️ SIN SUPERFICIE CORPORAL EL VOLUMEN NO SE UBICA, y lo dice: es la misma regla que el informe
+   aplica desde J1 —el volumen se declara en mililitros y no se clasifica—. */
+function evTarjetaAI() {
+  const fr = document.createDocumentFragment();
+  const h = document.createElement('h4');
+  h.id = 'vinfo-tit';
+  h.textContent = 'Aurícula izquierda';
+  fr.appendChild(h);
+
+  const C = evCortes(sv('sexo'));
+  const pD = vPlaus('ai_diam'), pA = vPlaus('ai_area');
+  const vol = v('ai_vol'), bsa = getBSA();
+  const idx = (vol && bsa) ? +(vol / bsa).toFixed(1) : null;
+
+  /* Sin dato utilizable la barra no lleva punto y DICE que cargar: una barra muda se lee como
+     «este dato no importa». Un valor fuera de la banda de plausibilidad cuenta como sin dato
+     para el punto —es lo que hace la capsula— y lo dice con sus palabras. */
+  const _falta = (p, que) => (p.fuera ? ('Valor fuera de rango medible: verificar ' + que + '.')
+                                      : (p.val == null ? ('Cargar ' + que + '.') : ''));
+  fr.appendChild(_evBarra({ clave: 'ai-diam', rotulo: 'Diámetro anteroposterior (mm)',
+    bandas: C.aiDiam, lo: 25, hi: 60, unidad: 'mm', dec: 0,
+    valor: (pD.val != null && !pD.fuera) ? pD.val : null,
+    cat: _evCapsula('ai-diam-interp'),
+    aviso: _falta(pD, 'el diámetro anteroposterior'), ficha: 'DIM-AI-001' }));
+
+  fr.appendChild(_evBarra({ clave: 'ai-area', rotulo: 'Área (cm²)',
+    bandas: C.aiArea, lo: 8, hi: 35, unidad: 'cm²', dec: 0,
+    valor: (pA.val != null && !pA.fuera) ? pA.val : null,
+    cat: _evCapsula('ai-area-interp'),
+    aviso: _falta(pA, 'el área'), ficha: 'DIM-AI-002' }));
+
+  const bVol = (idx !== null) ? aiVolClasificar(idx) : null;
+  let catVol = '', aviVol = '';
+  if (bVol) catVol = 'Aurícula izquierda ' + bVol.adj + ' (' + _evNum(idx, 1) + ' ml/m²).';
+  else if (aiVolSinIndexar(vol, bsa)) aviVol = 'Volumen de ' + vol + ' ml, sin indexar por falta de superficie corporal: no se clasifica. Cargar peso y talla.';
+  else if (!vol) aviVol = 'Cargar el volumen de la aurícula izquierda.';
+  fr.appendChild(_evBarra({ clave: 'ai-vol', rotulo: 'Volumen indexado (ml/m²)',
+    bandas: C.aiVol, lo: 10, hi: 70, unidad: 'ml/m²', dec: 0,
+    valor: idx, cat: catVol, aviso: aviVol, ficha: 'DIM-AI-003' }));
+  return fr;
+}
+window.evTarjetaAI = evTarjetaAI;
+
+/* ══ LAS ENTRADAS DE AI Y DE VI EN LA PESTANA REFERENCIAS («L2», 2026-10-16) ══════════════════
+   La pestana NO se reestructura (un trabajo posterior la ordena en subpestanas): se agregan dos
+   tarjetas mas, con la forma que las demas ya tienen —un `card` con su `card-head` plegable—.
+   Lo que cambia es que su cuerpo NO es HTML estatico: se arma desde el registro de evidencia y
+   desde los mismos duenos que la tarjeta i, asi que no hay un tercer juego de numeros que se
+   pudra. Es la leccion de las tres tablas de colores del K.
+
+   ⚠️ LOS DOS SEXOS SIEMPRE, aunque la app no distinga: esta pestana es la referencia, no el
+   informe de un paciente. Cuando un corte es el mismo para los dos, la fila lo repite en las
+   dos columnas en vez de fundirlas, para que no haya que adivinar si falta un dato.
+   ⚠️ LA BIBLIOGRAFIA ES POR SECCION Y ARRANCA EN [1], que es la regla de esta casa desde el
+   2026-09-29, y lista SOLO lo que esa seccion cita. Una ficha que no esta «verificado» no
+   aporta entrada y su fila sale SIN corchete: mejor sin numero que con una fuente no
+   comprobada. */
+function _evRefTabla(filas, refIdx) {
+  const t = document.createElement('table');
+  t.className = 'ev-tabla';
+  const trh = document.createElement('tr');
+  ['Parámetro', 'Varón', 'Mujer'].forEach(function (x) {
+    const th = document.createElement('th'); th.textContent = x;
+    th.style.color = 'var(--accent2)'; trh.appendChild(th);
+  });
+  t.appendChild(trh);
+  filas.forEach(function (f) {
+    const tr = document.createElement('tr');
+    const td0 = document.createElement('td');
+    td0.style.textAlign = 'left';
+    const n = refIdx[f.ficha];
+    td0.textContent = f.rot + (n ? (' [' + n + ']') : '');
+    tr.appendChild(td0);
+    [f.h, f.m].forEach(function (x) {
+      const td = document.createElement('td'); td.textContent = x;
+      td.style.color = 'var(--text)'; tr.appendChild(td);
+    });
+    t.appendChild(tr);
+  });
+  return t;
+}
+/* Numera las fichas VERIFICADAS de la seccion por orden de primera aparicion y devuelve el
+   indice y la lista. La numeracion es propia de cada seccion: el mismo documento puede ser [1]
+   en una y [2] en otra, que es exactamente lo que esa decision acepta. */
+function _evRefBiblio(fichas) {
+  const idx = {}, lista = [];
+  fichas.forEach(function (id) {
+    const f = evFicha(id);
+    if (!f || f.estado !== 'verificado') return;
+    const cita = f.guia + (f.ubicacion ? (', ' + f.ubicacion) : '')
+      + (f.folio ? (', folio ' + f.folio) : '') + (f.doi ? (' · DOI ' + f.doi) : '')
+      + (f.fuente_original ? (' · fuente original: ' + f.fuente_original) : '');
+    let n = lista.indexOf(cita);
+    if (n < 0) { lista.push(cita); n = lista.length - 1; }
+    idx[id] = n + 1;
+  });
+  const cont = document.createElement('div');
+  cont.style.cssText = 'margin-top:10px;font-size:11px;color:var(--text2);line-height:1.6;';
+  if (!lista.length) return { idx: idx, nodo: cont };
+  const tit = document.createElement('div');
+  tit.style.cssText = 'font-weight:700;color:var(--accent2);margin-bottom:2px;';
+  tit.textContent = 'Bibliografía de esta sección';
+  cont.appendChild(tit);
+  lista.forEach(function (c, i) {
+    const d = document.createElement('div');
+    d.setAttribute('data-ev-bib', String(i + 1));
+    d.textContent = '[' + (i + 1) + '] ' + c;
+    cont.appendChild(d);
+  });
+  return { idx: idx, nodo: cont };
+}
+/* Las graficas de Referencias son las MISMAS del paciente, sin su punto: el motor es uno solo
+   (`_evBarra`), asi que una barra nueva aparece en los dos lados o en ninguno. */
+function _evRefBarras(defs, sexo) {
+  const C = evCortes(sexo);
+  const w = document.createElement('div');
+  w.className = 'ev-ref';
+  defs.forEach(function (d) {
+    w.appendChild(_evBarra({ clave: d.clave, rotulo: d.rotulo, bandas: C[d.banda],
+      lo: d.lo, hi: d.hi, unidad: d.unidad, dec: d.dec, valor: null, ficha: d.ficha, W: 520 }));
+  });
+  return w;
+}
+function evRefPintar(id) {
+  const host = document.getElementById('ref-' + id + '-cuerpo');
+  if (!host || host.dataset.evPintado === '1') return;
+  if (id === 'ai') {
+    const B = _evRefBiblio(['DIM-AI-001', 'DIM-AI-002', 'DIM-AI-003']);
+    host.appendChild(_evRefTabla([
+      { ficha: 'DIM-AI-001', rot: 'Diámetro AP — dilatada', h: '≥ 40 mm', m: '≥ 40 mm' },
+      { ficha: 'DIM-AI-002', rot: 'Área — dilatada', h: '> 20 cm²', m: '> 20 cm²' },
+      { ficha: 'DIM-AI-003', rot: 'Volumen indexado — normal', h: '≤ 34 ml/m²', m: '≤ 34 ml/m²' },
+      { ficha: 'DIM-AI-003', rot: 'Volumen indexado — dilatación leve', h: '35 a 41 ml/m²', m: '35 a 41 ml/m²' },
+      { ficha: 'DIM-AI-003', rot: 'Volumen indexado — moderada', h: '42 a 48 ml/m²', m: '42 a 48 ml/m²' },
+      { ficha: 'DIM-AI-003', rot: 'Volumen indexado — severa', h: '> 48 ml/m²', m: '> 48 ml/m²' },
+    ], B.idx));
+    host.appendChild(_evRefBarras([
+      { clave: 'ref-ai-diam', rotulo: 'Diámetro anteroposterior (mm)', banda: 'aiDiam', lo: 25, hi: 60, unidad: 'mm', dec: 0, ficha: 'DIM-AI-001' },
+      { clave: 'ref-ai-area', rotulo: 'Área (cm²)', banda: 'aiArea', lo: 8, hi: 35, unidad: 'cm²', dec: 0, ficha: 'DIM-AI-002' },
+      { clave: 'ref-ai-vol', rotulo: 'Volumen indexado (ml/m²)', banda: 'aiVol', lo: 10, hi: 70, unidad: 'ml/m²', dec: 0, ficha: 'DIM-AI-003' },
+    ], 'M'));
+    host.appendChild(B.nodo);
+    host.dataset.evPintado = '1';
+  }
+}
+window.evRefPintar = evRefPintar;
+
+/* ══ LAS TARJETAS CON `dyn` SE ACTUALIZAN EN VIVO ════════════════════════════════════════════
+   Decision de Maicol: la tarjeta sigue los datos de la pantalla. Va por un OYENTE DE DOCUMENTO
+   en burbuja —el patron de `emContFaAvisoSync`— y no colgado de cada campo: los insumos de las
+   dos tarjetas son once campos repartidos en dos acordeones, y colgarse de cada uno es como uno
+   se queda sin cablear.
+   ⚠️ SE REPINTA EL CONTENIDO Y NO SE RECOLOCA LA TARJETA: mover la caja mientras el medico
+   tipea la hace saltar bajo el dedo. El tamano puede cambiar —una barra gana su linea de
+   categoria— y eso es lo que el `overflow:auto` de la tarjeta absorbe. */
+document.addEventListener('input', _evTarjetaViva, true);
+document.addEventListener('change', _evTarjetaViva, true);
+function _evTarjetaViva() {
+  const c = document.getElementById('vinfo-card');
+  if (!c || c.style.display === 'none') return;
+  const k = c.getAttribute('data-ev-dyn');
+  const d = k ? VINFO[k] : null;
+  if (!d || typeof d.dyn !== 'function') return;
+  /* EN EL TURNO SIGUIENTE, y no en el mismo: este oyente va en CAPTURA, asi que corre ANTES
+     que el `oninput` del propio campo —el que recalcula las capsulas—, y leer ahora daria la
+     categoria del gesto anterior.
+     ⚠️ CON setTimeout Y NO CON requestAnimationFrame, Y ESTA MEDIDO: en Chrome sin ventana
+     visible rAF NO se dispara —una sonda lo esperó 1,5 s y nunca llegó—, asi que el repintado
+     quedaba sin hacer y la tarjeta se veia perfecta con el numero del gesto anterior. Un
+     temporizador de cero corre igual en los dos casos y, como es una macrotarea, ocurre despues
+     de que el despacho del evento termino, que es exactamente lo que hace falta. */
+  setTimeout(function () {
+    if (c.getAttribute('data-ev-dyn') !== k || c.style.display === 'none') return;
+    try { c.replaceChildren(d.dyn()); }
+    catch (e) { c.replaceChildren(document.createTextNode('No se pudo actualizar la tarjeta.')); }
+  }, 0);
+}
 
 
 /* ══ LAS CUATRO CASILLAS AUTOMATICAS DE LA INSUFICIENCIA MITRAL (2026-10-14) ═══════════════════
@@ -55987,6 +56368,10 @@ function toggleRef(id, headEl) {
   sec.style.display = visible ? 'none' : 'block';
   const arrow = headEl ? headEl.querySelector('span:last-child') : null;
   if (arrow) arrow.textContent = visible ? '▶' : '▼';
+  /* Las entradas de AI y de VI arman su cuerpo la PRIMERA vez que se abren: su contenido sale
+     del registro de evidencia y de los duenos, no del marcado. Con `typeof` porque esta funcion
+     corre tambien en arboles donde el pintor no existe. */
+  if (!visible && typeof evRefPintar === 'function') { try { evRefPintar(id) } catch (e) {} }
 }
 
 // ══ ETE MITRAL — Módulo interactivo de segmentos ══

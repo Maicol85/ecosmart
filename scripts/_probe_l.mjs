@@ -623,6 +623,13 @@ async function main() {
       await tipear('vci_diam', opts.vciDiam || '18');
     }
     await ev('window.__P.abrirValvulas()');
+    /* ⚠️ LAS DOS TARJETAS SON ACORDEONES Y NACEN CERRADOS: sin abrirlos, el globo existe y mide
+       0 x 0, la tarjeta se niega a anclarse —que es lo correcto— y la escena «sin datos» se
+       queda sin medir. Se abren SIEMPRE, no solo cuando hay campos que tipear. */
+    await ev(`(function(){ ['ai','vi'].forEach(function(k){
+      var n = document.getElementById('sacc-' + k);
+      if (n && getComputedStyle(n.querySelector('.sacc-body')).display === 'none') {
+        try { secToggle(k) } catch (e) {} } }); return 1 })()`);
     for (const [id, val] of Object.entries(campos || {})) await tipear(id, val);
     if (opts.extra) for (const [id, val] of Object.entries(opts.extra)) await tipear(id, val);
     await ev('(function(){ try { calcAI() } catch(e) {} return 1 })()');
@@ -700,6 +707,13 @@ async function main() {
       try {
         await montar(E.c, { sinBsa: E.sinBsa, sexo: E.sexo });
         await ev('(function(){ try { calcVI() } catch(e) {} return 1 })()');
+        /* ⚠️ HAY QUE ESTAR EN LA PESTANA AI/VI: el ultimo tecleo pudo dejar la pantalla en
+           Datos (peso y talla viven alla), y con #tab-ai-vi en display:none el globo existe y
+           mide 0 x 0 — la tarjeta se niega a anclarse, que es lo correcto, y la escena se
+           queda sin medir. La escena «sin datos» no tipea nada en AI/VI, asi que sin esto
+           nunca llega. */
+        const nav = await J(`JSON.stringify(window.__P.abrirPara(${JSON.stringify(E.k === 'ai-card' ? 'ai_vol' : 'ddfvi')}))`);
+        if (!nav || !nav.ok) throw new Error('NO SE PUDO LLEGAR A AI/VI ' + JSON.stringify(nav));
         const btn = await J(`JSON.stringify(window.__P.hayBtn(${JSON.stringify(E.k)}))`);
         const ab  = await J(`JSON.stringify(window.__P.abrirTarjeta(${JSON.stringify(E.k)}))`);
         const le  = ab && ab.err ? { err: ab.err } : await J('JSON.stringify(window.__P.leerTarjeta())');
@@ -720,6 +734,8 @@ async function main() {
     const t0 = Date.now(); const g = {};
     try {
       await montar({ ai_vol: '68' }, { sexo: 'M' });
+      const nav0 = await J("JSON.stringify(window.__P.abrirPara('ai_vol'))");
+      if (!nav0 || !nav0.ok) throw new Error('NO SE PUDO LLEGAR A AI/VI ' + JSON.stringify(nav0));
       const n0 = await ev('window.__P.nodos()');
       g.abre = await J("JSON.stringify(window.__P.abrirTarjeta('ai-card'))");
       await tecla('Escape');
@@ -729,8 +745,11 @@ async function main() {
       await J("JSON.stringify(window.__P.abrirTarjeta('ai-card'))");
       g.antesVivo = await J('JSON.stringify(window.__P.leerTarjeta())');
       await tipear('ai_vol', '98');
+      /* El repintado va en el cuadro SIGUIENTE —el oyente corre antes de que el oninput del
+         campo haya recalculado las capsulas—, asi que leer en el mismo turno da el estado
+         anterior y se lee como «no sigue a la pantalla» sobre un mecanismo que funciona. */
+      await pausa(120);
       g.despuesVivo = await J('JSON.stringify(window.__P.leerTarjeta())');
-      await tecla('Escape');
       /* 20 aperturas y cierres: ni nodos ni oyentes acumulados. */
       for (let i = 0; i < 20; i++) {
         await J("JSON.stringify(window.__P.abrirTarjeta('ai-card'))");
@@ -746,6 +765,45 @@ async function main() {
         return { ls: ls, campos: cs } })())`);
     } catch (e) { g.ABORTO = e.message; abortos.push('vivo: ' + e.message); }
     out.grupos.vivo = g; parcial('vivo', t0);
+  }
+
+  /* ── refs: las entradas nuevas de la pestana Referencias ── */
+  if (corre('refs')) {
+    const t0 = Date.now(); const g = {};
+    try {
+      await montar({ ai_vol: '98', ddfvi: '46', siv: '16', ppvi: '16', fevi: '55' }, { sexo: 'M' });
+      for (const k of ['ai', 'vi']) {
+        const r = await J(`JSON.stringify((function(){
+          try { showTab('refs') } catch (e) {}
+          /* ⚠️ SIN REGEX NI COMILLAS ANIDADAS EN EL SELECTOR: una comilla simple dentro de
+             un atributo dentro de un template literal es como se rompe un selector sin que se
+             note. Se filtran los encabezados por el texto de su onclick. */
+          var pat = 'toggleRef(' + String.fromCharCode(39) + ${JSON.stringify(k)} + String.fromCharCode(39);
+          var h = Array.prototype.slice.call(document.querySelectorAll('[onclick]'))
+            .filter(function(e){ return String(e.getAttribute('onclick')||'').indexOf(pat) >= 0 })[0];
+          if (!h) return { err: 'NO EXISTE encabezado ref-' + ${JSON.stringify(k)} };
+          var sec = document.getElementById('ref-' + ${JSON.stringify(k)});
+          if (sec && sec.style.display !== 'none') h.click();
+          h.click();
+          var cu = document.getElementById('ref-' + ${JSON.stringify(k)} + '-cuerpo');
+          if (!cu) return { err: 'NO EXISTE cuerpo' };
+          var filas = Array.prototype.slice.call(cu.querySelectorAll('.ev-tabla tr'))
+            .map(function(tr){ return Array.prototype.slice.call(tr.children)
+              .map(function(td){ return String(td.textContent||'').trim() }).join(' | ') });
+          var bib = Array.prototype.slice.call(cu.querySelectorAll('[data-ev-bib]'))
+            .map(function(e){ return String(e.textContent||'').trim() });
+          return { visible: sec ? (sec.style.display !== 'none') : null,
+                   filas: filas, bib: bib,
+                   nSvg: cu.querySelectorAll('svg').length,
+                   puntos: cu.querySelectorAll('[data-ev-punto]').length,
+                   cortes: Array.prototype.slice.call(cu.querySelectorAll('[data-ev-corte]'))
+                     .map(function(e){ return String(e.textContent||'').trim() }),
+                   pintadoDosVeces: cu.querySelectorAll('.ev-tabla').length };
+        })())`);
+        g[k] = r;
+      }
+    } catch (e) { g.ABORTO = e.message; abortos.push('refs: ' + e.message); }
+    out.grupos.refs = g; parcial('refs', t0);
   }
 
   /* ── maqueta: anchos y los dos temas ── */
