@@ -2416,7 +2416,7 @@ html.light-mode .amilo-root{
 #m3d-panel{flex:0 0 auto;width:0;overflow:hidden;opacity:0;
   transition:width .24s ease, opacity .24s ease, margin-left .24s ease;
   margin-left:0;text-align:left;}
-#m3d-panel.m3d-on{width:500px;opacity:1;margin-left:12px;}
+#m3d-panel.m3d-on{width:610px;opacity:1;margin-left:12px;}
 #m3d-panel[hidden]{display:none;}
 /* ⚠️ LAS DOS REGLAS `[hidden]` SON OBLIGATORIAS Y NO DECORATIVAS, y lo encontró la medición,
    no la lectura. El `[hidden]{display:none}` vive en la hoja del NAVEGADOR y cualquier regla
@@ -2431,7 +2431,7 @@ html.light-mode .amilo-root{
 #m3d-nodisp[hidden]{display:none;}
 /* El interior se dibuja sobre un ancho FIJO: así el contenido no reflota mientras el panel
    crece, que es lo que produce el salto que se ve al abrir. */
-#m3d-panel>*{width:488px;}
+#m3d-panel>*{width:598px;}
 .m3d-btns{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:0 0 5px;}
 .m3d-lbl{font-size:10px;color:var(--text2);margin-right:2px;}
 .m3d-b{font-size:11px;font-weight:600;padding:5px 9px;min-height:30px;border-radius:7px;}
@@ -2439,15 +2439,25 @@ html.light-mode .amilo-root{
 #m3d-panel .m3d-b[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff;}
 .m3d-nota{font-size:10px;color:var(--text2);line-height:1.4;}
 #m3d-nota-ang{min-height:14px;margin:0 0 5px;}
+/* ══ DOS COLUMNAS: a la izquierda el dibujo con su barra de ciclo, a la derecha la tarjeta de
+   grados y la TABLA de datos —«Y3b-2» (2026-10-16)—. La tabla estaba abajo, a todo el ancho.
+   La columna derecha mide 598 - 340 - 8 = 250 px, dentro de los 250 a 280 que pidio la orden, y
+   CRECE con su contenido: no lleva alto ni desplazamiento interno. */
 #m3d-cuerpo{display:flex;gap:8px;align-items:flex-start;}
-/* ALTO FIJO, no `auto` ni `%`: es el ancla que impide que el latido mueva el layout. */
-#m3d-lienzo{position:relative;width:324px;height:228px;flex:0 0 324px;
+#m3d-izq{flex:0 0 340px;min-width:0;}
+#m3d-der{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:6px;}
+/* ALTO FIJO, no `auto` ni `%`: es el ancla que impide que el latido mueva el layout.
+   ⚠️ EL CUADRO PASO DE 324x228 A 340x300, Y LOS DOS NUMEROS SALEN DE MEDIR. El alto sube un
+   31,6 % —los «unos 30 %» de la orden— y el ancho un 4,9 %. El encuadre crece en la MISMA
+   proporcion (`M3D_VW`/`M3D_VH`), asi que el modelo CONSERVA su escala: el factor de volcado
+   pasa de 0,7355 a 0,7353, o sea 0,03 % mas chico. Lo que crece es el marco. */
+#m3d-lienzo{position:relative;width:340px;height:300px;flex:0 0 auto;
   background:var(--bg3);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
 /* ⚠️ `touch-action:none` VA SOLO SOBRE EL LIENZO, no sobre el panel ni sobre la pagina:
    el navegador se queda el gesto del dedo (desplazar) y el arrastre no llega nunca, pero
    ponerselo al contenedor dejaria la PAGINA sin poder desplazarse con el dedo dentro del
    panel. Es la regla del lienzo del 3D de contractilidad, que lo lleva en linea. */
-#m3d-cv{display:block;width:324px;height:228px;touch-action:none;cursor:grab;}
+#m3d-cv{display:block;width:340px;height:300px;touch-action:none;cursor:grab;}
 #m3d-cv.m3d-girando{cursor:grabbing;}
 /* El lienzo es enfocable (las flechas lo giran), asi que necesita anillo de foco visible. */
 #m3d-cv:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
@@ -2462,7 +2472,12 @@ html.light-mode .amilo-root{
 #m3d-bar{position:relative;flex:1 1 auto;height:8px;border-radius:4px;overflow:hidden;
   background:linear-gradient(90deg,var(--accent) 0 38%,var(--bg3) 38% 100%);}
 #m3d-mark{position:absolute;top:0;width:2px;height:8px;background:var(--text);left:0;}
-#m3d-tabla{margin:7px 0 0;}
+/* En la columna angosta la tabla va pegada a la tarjeta de grados: el hueco lo pone el `gap`
+   de la columna, no un margen propio que se sumaria al del vecino. */
+#m3d-tabla{margin:0;}
+#m3d-tabla th{font-size:10px;}
+/* El encabezado de grupo ocupa las dos columnas y NO lleva valor: es un rotulo. */
+#m3d-tabla th.m3d-g{color:var(--accent2);padding-top:5px;}
 #m3d-tabla table{width:100%;border-collapse:collapse;font-size:10px;}
 #m3d-tabla th{text-align:left;color:var(--text2);font-weight:700;padding:2px 4px;
   border-bottom:1px solid var(--border);}
@@ -2476,7 +2491,14 @@ html.light-mode .amilo-root{
   #m3d-panel{width:auto;margin-left:0;transition:none;}
   #m3d-panel.m3d-on{width:auto;margin-left:0;}
   #m3d-panel>*{width:auto;}
-  #m3d-cuerpo{flex-direction:column;}
+  /* UNA COLUMNA, EN EL ORDEN DEL MARCADO: dibujo, barra, tarjeta, tabla, nota. Sale solo de
+     apilar las dos columnas, porque la izquierda lleva el dibujo y la barra y la derecha la
+     tarjeta y la tabla —en ese orden—. */
+  /* `align-items:stretch` y no el `flex-start` de escritorio: en columna el eje transversal es el
+     HORIZONTAL, asi que con `flex-start` cada columna quedaba del ancho de su contenido y el
+     dibujo medido a 768 px salia en 537 px al lado de una tabla de 281. */
+  #m3d-cuerpo{flex-direction:column;align-items:stretch;}
+  #m3d-izq,#m3d-der{flex:0 0 auto;width:auto;}
   #m3d-lienzo,#m3d-cv{width:100%;flex:0 0 auto;}
 }
 @media (prefers-reduced-motion:reduce){ #m3d-panel{transition:none;} }
@@ -12575,23 +12597,29 @@ z
              haria depender de una funcion que describe el PACIENTE y no el control. -->
         <div id="m3d-giro-ayuda" class="m3d-nota">Arrastrá sobre el dibujo —o enfocalo y usá las flechas— para girarlo.</div>
         <div id="m3d-cuerpo">
-          <div id="m3d-lienzo">
-            <!-- La descripción corta la escribe `m3dDescribir` y la tabla de abajo es su
-                 alternativa en texto completa. -->
-            <canvas id="m3d-cv" width="680" height="380" role="img" tabindex="0"
-                    aria-label="Modelo 3D de la válvula mitral"
-                    aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown"></canvas>
-            <div id="m3d-nodisp" class="m3d-nota" hidden>3D no disponible en este navegador.</div>
+          <div id="m3d-izq">
+            <div id="m3d-lienzo">
+              <!-- La descripción corta la escribe `m3dDescribir` y la tabla de la derecha es su
+                   alternativa en texto completa. -->
+              <canvas id="m3d-cv" width="680" height="380" role="img" tabindex="0"
+                      aria-label="Modelo 3D de la válvula mitral"
+                      aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown"></canvas>
+              <div id="m3d-nodisp" class="m3d-nota" hidden>3D no disponible en este navegador.</div>
+            </div>
+            <!-- La barra del ciclo y «Pausar» van DEBAJO DEL CUADRO, no debajo del panel. -->
+            <div id="m3d-ciclo">
+              <button type="button" class="btn btn-ghost m3d-b" id="m3d-play" aria-pressed="true"
+                      onclick="m3dPlay()">Pausar</button>
+              <div id="m3d-bar" aria-hidden="true"><i id="m3d-mark"></i></div>
+              <span id="m3d-fase" class="m3d-nota"></span>
+            </div>
           </div>
-          <div id="m3d-grados" aria-label="Grados publicados"></div>
+          <div id="m3d-der">
+            <div id="m3d-grados" aria-label="Grados publicados"></div>
+            <div id="m3d-tabla"></div>
+          </div>
         </div>
-        <div id="m3d-ciclo">
-          <button type="button" class="btn btn-ghost m3d-b" id="m3d-play" aria-pressed="true"
-                  onclick="m3dPlay()">Pausar</button>
-          <div id="m3d-bar" aria-hidden="true"><i id="m3d-mark"></i></div>
-          <span id="m3d-fase" class="m3d-nota"></span>
-        </div>
-        <div id="m3d-tabla"></div>
+        <!-- La nota del dibujo queda a todo el ancho del panel, debajo de las dos columnas. -->
         <div id="m3d-desc" class="m3d-nota"></div>
       </div>
       </div><!-- fin m3d-fila -->
@@ -113062,7 +113090,15 @@ function m3dVisible(){
    píxeles de uno de dpr 1 para un dibujo esquemático que no gana nada con eso, y cada cuadro
    los vuelve a pintar. El espacio de coordenadas del dibujo sigue siendo el 680x380 de la demo:
    lo que cambia es la escala con que se vuelca, así que ni una coordenada del dibujo se toca. */
-var M3D_W = 680, M3D_H = 380, M3D_DPR_MAX = 2, M3D_VW = 440, M3D_VH = 310;
+/* ⚠️ LA VENTANA DE ENCUADRE CRECIO EN LA MISMA PROPORCION QUE EL LIENZO (440x310 -> 462x408),
+   asi que el modelo NO SE ACHICA: con 340x300 de lienzo el factor de volcado queda en 0,7353
+   contra los 0,7355 de 324x228 sobre 440x310. Lo que crece es el marco.
+   ⚠️ Y `M3D_AIRE` ES EL AIRE DE ARRIBA, EN UNIDADES DEL DIBUJO: desplaza el modelo hacia abajo
+   dentro del marco. El numero sale de MEDIR la caja de pixeles pintados en 24 celdas (tres
+   grados de IM x tres vistas y cinco angulos): en HEAD el margen de arriba era CERO en 22 de las
+   24 —o sea el dibujo tocaba el borde— y con 55 queda en 70 px en la vista del cirujano, que es
+   la que muestra la auricula y el chorro, y nunca baja de 9 px. */
+var M3D_W = 680, M3D_H = 380, M3D_DPR_MAX = 2, M3D_VW = 462, M3D_VH = 408, M3D_AIRE = 55;
 function m3dCtx(){
   var cv = m3dEl('m3d-cv');
   if (!cv || typeof cv.getContext !== 'function') return null;
@@ -113070,7 +113106,7 @@ function m3dCtx(){
   try { ctx = cv.getContext('2d'); } catch (e) { ctx = null; }
   if (!ctx) return null;
   var r = cv.getBoundingClientRect();
-  var w = Math.max(1, Math.round(r.width || 324)), h = Math.max(1, Math.round(r.height || 181));
+  var w = Math.max(1, Math.round(r.width || 340)), h = Math.max(1, Math.round(r.height || 300));
   var d = Math.min(window.devicePixelRatio || 1, M3D_DPR_MAX);
   var bw = Math.round(w * d), bh = Math.round(h * d);
   if (cv.width !== bw || cv.height !== bh) { cv.width = bw; cv.height = bh; }
@@ -113081,7 +113117,7 @@ function m3dCtx(){
      el anillo aórtico y la orejuela incluidos—. NI UNA COORDENADA DEL DIBUJO CAMBIA: lo que
      cambia es el recorte. */
   var k = Math.min(bw / M3D_VW, bh / M3D_VH);
-  ctx.setTransform(k, 0, 0, k, bw / 2 - k * M3D_W / 2, bh / 2 - k * M3D_H / 2);
+  ctx.setTransform(k, 0, 0, k, bw / 2 - k * M3D_W / 2, bh / 2 - k * M3D_H / 2 + k * M3D_AIRE);
   return { ctx: ctx, k: k, bw: bw, bh: bh };
 }
 
@@ -113960,6 +113996,15 @@ var M3D_TABLA = Object.freeze([
     /* Con estenosis, el area y el gradiente medio. El area por planimetria es un campo
        MEDIDO; las otras dos del cuadro son derivadas y ya se publican en su propia fila. */
     Object.freeze({ id:'avm_plan' }),
+    /* ⚠️ «AREA PLANIMETRIA» SE MUDO DE «PLASTICA MITRAL» A «SEVERIDAD», y la condicion de la
+       orden se verifico antes de moverla: `ete_area_mitral` es el AREA DE LA VALVULA por
+       planimetria, o sea un parametro de la ESTENOSIS, y asi lo consume la app —en el narrativo
+       es uno de los cuatro datos que abren la oracion de morfologia junto al score de Wilkins,
+       que es la escala de la estenosis mitral reumatica—. Vivia en la grilla «Mediciones de la
+       valvula mitral» de ETE, que mezcla los datos de plastia con este. Queda al lado de
+       `avm_plan`, que es el MISMO parametro medido en la pestana Valvulas: son dos campos
+       distintos y la tabla publica lo medido, no una sola lectura. */
+    Object.freeze({ id:'ete_area_mitral' }),
     Object.freeze({ id:'em_gmedio' })]) }),
   Object.freeze({ g:'Plástica mitral', campos: Object.freeze([
     Object.freeze({ id:'ete_diam_anular' }),
@@ -113968,8 +114013,13 @@ var M3D_TABLA = Object.freeze([
     Object.freeze({ id:'ete_angulo_vp' }),
     Object.freeze({ id:'ete_altura_tenting' }),
     Object.freeze({ id:'ete_area_tenting' }),
-    Object.freeze({ id:'ete_prof_coapt' }),
-    Object.freeze({ id:'ete_area_mitral' })]) }),
+    /* ⚠️ «PROFUNDIDAD COAPTACION» APARECE DOS VECES Y SON DOS CAMPOS DISTINTOS, censado: este es
+       `ete_prof_coapt` (Mediciones ETE, con su ayuda «Normal <=10mm») y el de abajo es
+       `teer_prof_flail` (TEER, IM secundaria, con su ayuda «Excl: >10mm»). La pestana les pone
+       la MISMA etiqueta a los dos, asi que no hay «nombres que ya usa la pestana» con los que
+       distinguirlos: lo que los distingue es el ENCABEZADO DE GRUPO, y por eso la tabla pasa a
+       llevar uno. Inventarles un nombre seria publicar un rotulo que la pantalla no usa. */
+    Object.freeze({ id:'ete_prof_coapt' })]) }),
   Object.freeze({ g:'TEER', campos: Object.freeze([
     Object.freeze({ id:'teer_ancho_flail' }),
     Object.freeze({ id:'teer_flail_gap' }),
@@ -113991,20 +114041,35 @@ function _m3dRotuloCampo(id){
     return { nom: t.slice(0, i).trim(), uni: t.slice(i + 1, -1).trim() };
   return { nom: t, uni: '' };
 }
+/* El valor con su unidad PEGADA cuando el simbolo lo pide. El grado sexagesimal se escribe sin
+   espacio (45°) y las unidades alfabeticas con el (12 mm, 1.4 cm2), que es como las escribe el
+   resto de la app —`_amFila` incluido—. Antes la unidad salia siempre con espacio y la pantalla
+   publicaba «Angulo velo posterior 45 °». */
+var M3D_UNI_PEGADA = Object.freeze(['°', '%']);
+function _m3dConUnidad(val, uni){
+  if (!uni) return val;
+  return (M3D_UNI_PEGADA.indexOf(uni) > -1) ? (val + uni) : (val + ' ' + uni);
+}
+/* ══ LA TABLA, UNA LINEA POR DATO —«Y3b-2» ═══════════════════════════════════════
+   Era una fila por GRUPO con todos sus datos pegados por un punto medio, que a 250 px de ancho
+   quedaba en un parrafo. Hoy cada grupo lleva su encabezado y cada dato su propia linea con el
+   rotulo a la izquierda y el valor con su unidad a la derecha.
+   ⚠️ EL CONTENIDO NO CAMBIA: los mismos datos, en el mismo orden, leidos de los mismos campos y
+   sin una sola conclusion. Lo que cambia es como se reparten en lineas. */
 function m3dTabla(S){
   var host = m3dEl('m3d-tabla');
   if (!host) return;
   while (host.firstChild) host.removeChild(host.firstChild);
-  var filas = [];
+  var grupos = [];
   M3D_TABLA.forEach(function(G){
-    var partes = [];
+    var items = [];
     /* El primer grupo arranca por la morfologia y los festones, que no son campos con etiqueta. */
     if (G.g === 'Válvula') {
-      if (S.insuf) partes.push(S.insuf.frase);
-      if (S.esten) partes.push(S.esten.frase);
+      if (S.insuf) items.push(['Insuficiencia', S.insuf.frase]);
+      if (S.esten) items.push(['Estenosis', S.esten.frase]);
       var les = [], i;
       for (i = 0; i < 6; i++) if (S.seg[i] > 0) les.push(M3D_SG[i] + ' ' + ETE_ESTADOS_3D[S.seg[i]].toLowerCase());
-      if (les.length) partes.push(les.join(', '));
+      if (les.length) items.push(['Festones', les.join(', ')]);
     }
     G.campos.forEach(function(c){
       var e = m3dEl(c.id);
@@ -114013,7 +114078,7 @@ function m3dTabla(S){
         /* Una FILA ya publicada: su texto trae el valor con su unidad. La raya es «no se midio». */
         var t = String(e.textContent || '').replace(/[ \t\n]+/g, ' ').trim();
         if (!t || t === '—' || t === '-') return;
-        partes.push((c.nom || c.id) + ' ' + t);
+        items.push([c.nom || c.id, t]);
         return;
       }
       var val = String(e.value || '').trim();
@@ -114025,31 +114090,36 @@ function m3dTabla(S){
         var o = e.options && e.options[e.selectedIndex];
         var txt = o ? String(o.textContent || '').trim() : val;
         if (!txt || txt === '—') return;
-        partes.push(nom + ' ' + txt);
+        items.push([nom, txt]);
         return;
       }
-      partes.push(nom + ' ' + val + (R && R.uni ? ' ' + R.uni : ''));
+      items.push([nom, _m3dConUnidad(val, R ? R.uni : '')]);
     });
     /* ⚠️ «Nativa» NO ES UN DATO Y NO SOSTIENE SOLA AL GRUPO. Medido antes de esto: con el
        formulario VACIO la tabla aparecia igual, con una unica fila que decia
        «Valvula | Nativa» —o sea afirmando que algo se midio sobre una valvula que nadie
        toco—, que es justo lo que la orden prohibe. Acompana a los datos cuando los hay. */
-    if (G.g === 'V\u00e1lvula' && partes.length) partes.unshift('Nativa');
+    if (G.g === 'Válvula' && items.length) items.unshift(['Morfología', 'Nativa']);
     /* UN GRUPO SIN NINGUN DATO NO APARECE. */
-    if (partes.length) filas.push([G.g, partes.join(' · ')]);
+    if (items.length) grupos.push({ g: G.g, items: items });
   });
   /* SIN NINGUN DATO, NO HAY TABLA: un encabezado solo afirmaria que algo se midio. */
-  if (!filas.length) return;
+  if (!grupos.length) return;
   var tit = document.createElement('div');
   tit.className = 'm3d-nota';
   tit.textContent = 'Datos usados en el dibujo (Mediciones ETE · válvula mitral)';
   host.appendChild(tit);
   var tb = document.createElement('table'), tbody = document.createElement('tbody');
-  filas.forEach(function(f){
-    var tr = document.createElement('tr');
-    var td1 = document.createElement('td'); td1.textContent = f[0]; tr.appendChild(td1);
-    var td2 = document.createElement('td'); td2.textContent = f[1]; tr.appendChild(td2);
-    tbody.appendChild(tr);
+  grupos.forEach(function(G){
+    var trg = document.createElement('tr');
+    var th = document.createElement('th'); th.className = 'm3d-g'; th.colSpan = 2;
+    th.textContent = G.g; trg.appendChild(th); tbody.appendChild(trg);
+    G.items.forEach(function(it){
+      var tr = document.createElement('tr');
+      var td1 = document.createElement('td'); td1.textContent = it[0]; tr.appendChild(td1);
+      var td2 = document.createElement('td'); td2.textContent = it[1]; tr.appendChild(td2);
+      tbody.appendChild(tr);
+    });
   });
   tb.appendChild(tbody); host.appendChild(tb);
 }

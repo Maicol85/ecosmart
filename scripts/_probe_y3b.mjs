@@ -334,7 +334,9 @@ async function arrastrarDedo(pg, sel) {
   return 'OK'
 }
 
-const MOTORES = [['chrome', chromium, { channel: 'chrome' }], ['webkit', webkit, {}]];
+const UNM = arg('--motor');
+const MOTORES = [['chrome', chromium, { channel: 'chrome' }], ['webkit', webkit, {}]]
+  .filter(([n]) => !UNM || n === UNM);
 if (DEST) await mkdir(DEST, { recursive: true });
 
 for (const [motor, tipo, op] of MOTORES) {
@@ -478,6 +480,9 @@ for (const [motor, tipo, op] of MOTORES) {
     const pg = await nuevaPagina(b, 1200, 700);
     await montarEscena(pg, ESC.imSevera);
     await pg.evaluate(() => window.__P.abrir3d());
+    /* ⚠️ EL PANEL ANIMA SU ANCHO .24s: medido sin esperar, su rect daba 0 y la vista quirurgica
+       seguia en 500 px, o sea la maqueta de un estado intermedio. */
+    await pg.waitForTimeout(500);
     g.medidas = { lienzo: await pg.evaluate(() => window.__P.rect('#m3d-lienzo')),
                   cv: await pg.evaluate(() => window.__P.rect('#m3d-cv')),
                   panel: await pg.evaluate(() => window.__P.rect('#m3d-panel')),
@@ -516,6 +521,7 @@ for (const [motor, tipo, op] of MOTORES) {
       const pg = await nuevaPagina(b, 1200, 700);
       await montarEscena(pg, ESC.imSevera);
       await pg.evaluate(() => window.__P.abrir3d());
+      await pg.waitForTimeout(500);
       g.conDatos = { tabla: await pg.evaluate(() => window.__P.tabla3d()),
                      tarjetas: await pg.evaluate(() => window.__P.tarjetas3d()),
                      rects: { cv: await pg.evaluate(() => window.__P.rect('#m3d-cv')),
@@ -533,6 +539,7 @@ for (const [motor, tipo, op] of MOTORES) {
       const pg = await nuevaPagina(b, W, 900);
       await montarEscena(pg, ESC.imSevera);
       await pg.evaluate(() => window.__P.abrir3d());
+      await pg.waitForTimeout(500);
       g.anchos[W] = { cv: await pg.evaluate(() => window.__P.rect('#m3d-cv')),
                       lienzo: await pg.evaluate(() => window.__P.rect('#m3d-lienzo')),
                       panel: await pg.evaluate(() => window.__P.rect('#m3d-panel')),
