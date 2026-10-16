@@ -67546,8 +67546,12 @@ caso('TC-479', 'Tanda Z: el PPM aortico llega al informe y al EN SUMA con su col
     ex.push(['la planimetria por sus bordes: 0,90 severa, 1,00 severa, 1,40 moderada, 1,50 sin grado',
       p09.p === '(severa)' && p10.p === '(severa)' && p14.p === '(moderada)' && p15.p === '',
       [p09.p, p10.p, p14.p, p15.p].join('/')]);
+    /* ADAPTADO el 2026-10-16 (Y2b): el mapa pasa de CINCO entradas a SEIS porque la VELOCIDAD
+       PICO gano su fila en el cuadro aortico —era el ultimo criterio que graduaba sin tenerla,
+       la mitad de F8 que quedaba abierta—. Lo que el caso afirma no cambia: que un AVA normal
+       no imprima «sin estenosis» como grado de su fila. */
     ex.push(['«sin estenosis» NO se imprime como grado de una fila — vacio es la abstencion',
-      typeof EA_FILA_GRADO !== 'undefined' && Object.keys(EA_FILA_GRADO).length === 5 &&
+      typeof EA_FILA_GRADO !== 'undefined' && Object.keys(EA_FILA_GRADO).length === 6 &&
       p15.p === '', JSON.stringify(p15)]);
 
     /* ══ D · LA FILA DEL TAPSE/PSAP: DOS ESTADOS ═══════════════════════════════════════════

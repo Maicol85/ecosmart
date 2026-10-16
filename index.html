@@ -6508,6 +6508,15 @@ window.cerrarSesionReal = cerrarSesionReal;
           </div>
         </div>
         <div class="calc-box">
+          <!-- ⚠️ FILA NUEVA (Y2b, 2026-10-16): la VELOCIDAD PICO vota el grado integrado
+               —el renglón puede decir «— por velocidad»— y era el ÚLTIMO criterio que graduaba
+               SIN tener fila en este cuadro: la otra mitad de F8, que el AVA por planimetría
+               cerró en el Z. Va PRIMERA porque el G. máximo de abajo deriva de ella.
+               NINGÚN CORTE NUEVO: el valor es el mismo `vmax` que `_eaDetCuentaPura` ya eligió
+               —el campo de Válvulas con el del Doppler de respaldo— y el grado es `gVel`, el que
+               `eaGradoCalculado` ya publicaba en el badge con estas mismas palabras. El grado va
+               en el `<span>` hermano sin `id`, por las dos razones de las otras cinco filas. -->
+          <div class="calc-row"><span class="calc-lbl">Vmax</span><span class="calc-val" id="ea-det-vmax">&#8212;</span><span class="calc-grado" data-grado-de="ea-det-vmax"></span></div>
           <div class="calc-row"><span class="calc-lbl">G. m&aacute;ximo (4&times;Vmax&sup2;)</span><span class="calc-val" id="ea-det-gmax">&#8212;</span></div>
           <!-- ⚠️ LOS GRADOS DE LAS FILAS VAN EN UN <span> HERMANO, SIN `id` (Z, 2026-10-15), que es
                el patron que la fila del AVA indexada estreno en el F y que las nueve de la IM y
@@ -31895,6 +31904,11 @@ function _eaDetCuentaPura() {
     _aoFuera(_pdDtsvi, 'Ø TSVI', 'mm')
   ].filter(Boolean);
 
+  /* La VELOCIDAD PICO (Y2b). Mismo formato con el que `_eaBadgeAuto` ya la publica —«4.5 m/s»—,
+     así que las dos superficies dicen el mismo texto carácter por carácter. Sin valor vuelve a la
+     raya, igual que el G. medio de dos filas más abajo. */
+  (function () { const _vEl = document.getElementById('ea-det-vmax');
+    if (_vEl) _vEl.textContent = vmax ? vmax + ' m/s' : '—'; })();
   // G. máximo
   if (vmax) {
     const gmax = (4*vmax*vmax).toFixed(0);
@@ -34625,6 +34639,7 @@ window.eaSevVacioSync = eaSevVacioSync;
    ⚠️ CON PROTESIS NO SE PUBLICA NINGUNO, igual que antes: los cortes nativos no aplican y el
    renglon lo escribe `_eaProtPintar`. */
 const EA_FILA_GRADO = Object.freeze({
+  'ea-det-vmax':   'gVel',
   'ea-det-gmedio': 'gGrad',
   'ea-det-ava':    'gAva',
   'ea-det-avai':   'gAvai',
@@ -111543,11 +111558,15 @@ const V2D_PORQUE = Object.freeze({
      texto TAL CUAL: recomponerlo como «criterio valor (grado)» obligaria a una tabla de
      equivalencias entre el nombre que usa el renglon («por gradiente medio») y el rotulo de la
      fila («G. medio»), que es justo la segunda copia que esta tanda evita.
-     ⚠️ Y LA VMAX VOTA SIN TENER FILA EN ESTE CUADRO —es la mitad de F8 que sigue abierta—, asi que
-     el renglon puede nombrar «por velocidad» y la lista no tener esa fila. No se agrega: inventar
-     la fila seria publicar un valor que ese cuadro no publica. */
+     ⚠️ LA VMAX YA TIENE FILA (Y2b, 2026-10-16), y con eso se cierra la mitad de F8 que quedaba.
+     Hasta hoy el renglon podia nombrar «por velocidad» y la lista no tener esa fila: el criterio
+     que DECIDIA era el unico invisible. Lo que entro no es una fila inventada aca —eso era
+     justamente lo que no se podia hacer— sino una fila en el CUADRO de Valvulas, escrita por los
+     mismos dos duenos que las otras cinco (`_eaDetCuentaPura` el valor, `EA_FILA_GRADO` el grado),
+     que esta lista LEE como lee a las demas. */
   'esten:aortica': Object.freeze({ clave: 'ea', decide: 'ea-det-sev', decideModo: 'sufijo', aviso: null,
     crit: Object.freeze([
+      Object.freeze({ id: 'ea-det-vmax',   color: true }),
       Object.freeze({ id: 'ea-det-gmedio', color: true }),
       Object.freeze({ id: 'ea-det-ava',    color: true }),
       Object.freeze({ id: 'ea-det-avai',   color: true }),
