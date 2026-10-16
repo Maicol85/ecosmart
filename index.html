@@ -21412,6 +21412,41 @@ function aiVolSinIndexar(vol, bsa) {
 }
 window.AI_SIN_IDX_ROT = AI_SIN_IDX_ROT; window.aiVolSinIndexar = aiVolSinIndexar;
 
+/* ══ LA UNA LÍNEA DE LA AURÍCULA IZQUIERDA PARA EL PPT (J2, 2026-10-16) ══════════════
+   Decisión de Maicol: la AI se publica con UNA sola línea por estudio, y la jerarquía es la
+   MISMA con la que la app clasifica —volumen indexado, después la geometría, y el volumen sin
+   indexar como último recurso—.
+   ⚠️ LA PREMISA DE LA ORDEN ERA PARCIALMENTE FALSA Y HAY QUE DECIRLO: el PPT no publicaba
+   «Volumen AI» en ml y nada más —publicaba DOS filas, «Volumen AI» en ml y «Vol. AI
+   indexado»—, y ninguna de las dos tenía fallback: sin volumen, con el área o el diámetro
+   cargados, la AI no salía en la diapositiva por ningún camino.
+   ⚠️ EL ÁREA VA ANTES DEL DIÁMETRO porque lo dice la orden, y coincide con el criterio del
+   informe: el diámetro AP mide UN eje y sobrestima en el remodelado asimétrico.
+   ⚠️ EL ÁREA Y EL DIÁMETRO SE LEEN POR SU BANDA DE PLAUSIBILIDAD y el volumen CRUDO, que es
+   exactamente como los lee la rama del informe de cada uno. Acá la banda no decide sólo si se
+   imprime un número: decide CUÁL de los tres se publica, así que un área de 250 cm² —mm²
+   tipeados por cm²— elegiría la línea y dejaría afuera al diámetro bien medido. Con la banda
+   cae al siguiente nivel, que es lo que el informe ya hace al negarse a clasificarlo.
+   ⚠️ DEVUELVE EL VALOR Y EL SUFIJO POR SEPARADO para que el PPT lo pase por su propio
+   `fila(arr, k, val, suf)`: el texto que sale es IDÉNTICO al de HEAD en la rama del indexado
+   —medido— porque `_pptTxt` no toca el ² y el sufijo se concatena después de él.
+   ⚠️ NO LEE EL SPAN `ai-idx` sino que recalcula, aunque el texto sea el mismo: ese span lo
+   pinta `calcAI`, así que leerlo ataba la diapositiva a que la cápsula estuviera pintada.
+   ⚠️ SIN PARÁMETRO `src`: el PPT clínico lee el DOM —`_pptNum` y `_pptSpan` leen el DOM— y no
+   hay otro consumidor. Agregarle una rama de estudio archivado sería un control que hoy no
+   gobierna nada. */
+function aiResumenUno() {
+  const vol = v('ai_vol'), bsa = getBSA();
+  if (vol && bsa) return { lbl:'Vol. AI indexado', val:(vol / bsa).toFixed(1), suf:' ml/m²' };
+  const ar = vPlaus('ai_area').val;
+  if (ar != null) return { lbl:'Área AI', val:ar, suf:' cm²' };
+  const di = vPlaus('ai_diam').val;
+  if (di != null) return { lbl:'Diám. AP AI', val:di, suf:' mm' };
+  if (aiVolSinIndexar(vol, bsa)) return { lbl:'Volumen AI', val:vol, suf:' ml (sin indexar)' };
+  return null;
+}
+window.aiResumenUno = aiResumenUno;
+
 function calcAI() {
   const vol = v('ai_vol');
   const bsa = getBSA();
@@ -77970,8 +78005,12 @@ function _pptDesdeFormulario(inf, tema, presentador){
     grupo(DER,'Ventrículo derecho / AD', n);
     n = DER.length;
     fila(DER,'Seno de Valsalva', _pptNum('ao_sin'), ' mm');
-    fila(DER,'Volumen AI', _pptNum('ai_vol'), ' ml');
-    fila(DER,'Vol. AI indexado', _pptSpan('ai-idx'));
+    /* ⚠️ UNA SOLA FILA DE AI, Y LA ELIGE SU DUEÑO (J2, 2026-10-16). Eran DOS —los ml y el
+       indexado— y ninguna tenía fallback: sin volumen, un área o un diámetro cargados no
+       salían en la diapositiva por ningún camino. La jerarquía vive en `aiResumenUno`, al lado
+       del dueño de los cortes, y no acá: escrita en la diapositiva sería una tercera copia de
+       «qué parámetro manda». Sin ningún dato de AI devuelve `null` y no hay fila, como hoy. */
+    { const _ai = aiResumenUno(); if (_ai) fila(DER, _ai.lbl, _ai.val, _ai.suf); }
     grupo(DER,'Aorta / aurícula izquierda', n);
 
     const _colW = (W - 1.15) / 2;
