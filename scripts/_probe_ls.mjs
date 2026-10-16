@@ -853,6 +853,43 @@ async function main() {
   }
 
 
+  /* ── tarjeta: las tres tarjetas i (AI, VI y geometria) con sexo y SIN sexo. Lo que DICEN y lo
+     que DIBUJAN, por separado: un grafico perfecto con el texto equivocado pasa una lectura que
+     solo mire el SVG, y al reves. ── */
+  if (corre('tarjeta')) {
+    const t0 = Date.now(); const g = {};
+    const ESC = { ai_diam: '39', ai_area: '19', ai_vol: '80', ddfvi: '53', dsfvi: '36',
+                  vdfvi: '124', vsfvi: '50', fevi: '40', siv: '10', ppvi: '10' };
+    for (const sx of ['M', 'F', '']) {
+      for (const cl of ['ai-card', 'vi-card', 'vi-geo']) {
+        const k = 'sexo=' + (sx || 'SIN') + ' ' + cl;
+        try {
+          await montar(ESC, { sexo: sx });
+          await ev('(function(){ try { calcVI() } catch(e) {} return 1 })()');
+          const b = await J('JSON.stringify(window.__P.hayBtn(' + JSON.stringify(cl) + '))');
+          const ab = await J('JSON.stringify(window.__P.abrirTarjeta(' + JSON.stringify(cl) + '))');
+          const le = await J('JSON.stringify(window.__P.leerTarjeta())');
+          await ev('(function(){ var b=document.querySelector(' + JSON.stringify('[data-vinfo="' + cl + '"]') + '); if(b) b.click(); return 1 })()');
+          g[k] = { btn: b, abrir: ab, cerrada: await ev('window.__P.cerrarTarjeta()'),
+                   barras: le.barras, puntos: le.puntos, cortes: le.cortes, cat: le.cat,
+                   avisos: le.avisos, fuentes: le.fuentes, nSvg: le.nSvg, scroll: le.scroll,
+                   tit: le.tit };
+        } catch (e) { g[k] = { ABORTO: e.message }; abortos.push('tarjeta ' + k + ': ' + e.message); }
+      }
+    }
+    out.grupos.tarjeta = g; parcial('tarjeta', t0);
+  }
+
+  /* ── refs: las dos entradas de Referencias, con los dos sexos siempre ── */
+  if (corre('refs')) {
+    const t0 = Date.now(); const g = {};
+    try {
+      await montar({}, { sexo: '' });
+      for (const id of ['ai', 'vi2']) g[id] = await J('JSON.stringify(window.__P.refs(' + JSON.stringify(id) + '))');
+    } catch (e) { g.ABORTO = e.message; abortos.push('refs: ' + e.message); }
+    out.grupos.refs = g; parcial('refs', t0);
+  }
+
   /* ── controles: lo que esta tanda NO toca. Informe en los tres estilos, EN SUMA, los ocho
      grados con sus pastillas, la diastolica, el HFA-PEFF, el token del Laboratorio, la fila del
      Excel CLAVE POR CLAVE y el conteo de campos del estudio. ── */

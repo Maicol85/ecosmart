@@ -22251,7 +22251,7 @@ const EV_REG = Object.freeze([
   Object.freeze({
     id: 'DIM-VI-002', zona: 'AI/VI — Ventriculo izquierdo', dato: 'Diametro sistolico (DSVI)',
     valor: 'Varon: normal hasta 40; leve 41 a 43; moderado 44 a 45; severo por encima de 45 mm. Mujer: normal hasta 35; leve 36 a 38; moderado 39 a 41; severo por encima de 41 mm',
-    duenio: 'EV_BANDAS_REF.dsviM y EV_BANDAS_REF.dsviF',
+    duenio: 'dsviBandas / EV_BANDAS_REF',
     guia: EV_GUIA_ASE2015, ubicacion: 'Tabla suplementaria 3', folio: '39.e8', hoja_pdf: 47,
     doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
     estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
@@ -22536,6 +22536,9 @@ function evCortes(sexo) {
   if (typeof aiAreaDilatada === 'function')  r.aiArea = _evBandas(aiAreaDilatada, 5, 50, 0.1, 1);
   if (typeof aiVolClasificar === 'function') r.aiVol  = _evBandas(aiVolClasificar, 5, 90, 0.1, 1);
   if (typeof viDimCat === 'function')        r.ddvi   = _evBandas((x) => viDimCat(x, sx), 20, 90, 0.1, 1);
+  /* El diámetro sistólico no sale de un sondeo porque no tiene dueño que sondear —nada lo
+     clasifica—: sus bandas son las de la guía, verificadas, y las entrega `dsviBandas`. */
+  if (typeof dsviBandas === 'function')      r.dsvi   = dsviBandas(sx);
   if (typeof vdfviInterp === 'function')     r.vdfvi  = _evBandas((x) => vdfviInterp(x, sx), 5, 160, 0.1, 1);
   if (typeof vsfviInterp === 'function')     r.vsfvi  = _evBandas((x) => vsfviInterp(x, sx), 2, 100, 0.1, 1);
   if (typeof hviSeveridad === 'function')    r.masa   = _evBandas((x) => hviSeveridad(x, sx), 40, 220, 1, 0);
@@ -38832,6 +38835,22 @@ const EV_BANDAS_REF = Object.freeze({
                         { k: 'leve', desde: 40, hasta: 49.9 }, { k: 'normal', desde: 50, hasta: 80 }]),
 });
 window.EV_BANDAS_REF = EV_BANDAS_REF;
+/* ══ LAS BANDAS DEL DIAMETRO SISTOLICO, POR SEXO Y CON LA REGLA DEL CORTE MAS ALTO (LS4) ═════
+   Los cuatro valores de cada sexo estan VERIFICADOS en la Tabla suplementaria 3 de la ASE/EACVI
+   2015 (folio 39.e8, hoja 47 del PDF): varón 2,5-4,0 · 4,1-4,3 · 4,4-4,5 · > 4,5 cm, y mujer
+   2,2-3,5 · 3,6-3,8 · 3,9-4,1 · > 4,1 cm. La ficha `DIM-VI-002` los respalda.
+   ⚠️ ESTE DATO NO LO CLASIFICA NINGUNA SUPERFICIE FIRMADA, y está censado: el campo alimenta la
+   fracción de acortamiento y el módulo de TEER, y no produce categoría en la pantalla —no hay
+   cápsula `dsvi-interp`—, ni en el informe, ni en el EN SUMA, ni en el PPT, ni en el
+   Laboratorio. Lo único que publicaba un número era la REFERENCIA impresa de la tabla del PDF,
+   que decía «<40 mm» sin sexo —el techo del varón— y ahora dice los dos.
+   LS4 NO agrega una clasificación nueva al papel: eso sería inventar un texto que la orden no
+   autoriza. Lo que gana el sexo es la TARJETA, que ya publicaba la banda de la guía.
+   Sin sexo cargado devuelve las del varón, que son las del corte MÁS ALTO. */
+function dsviBandas(sexo) {
+  return (sexoEfectivo(sexo) === 'F') ? EV_BANDAS_REF.dsviF : EV_BANDAS_REF.dsviM;
+}
+window.dsviBandas = dsviBandas;
 
 /* ══ LA TARJETA DEL VENTRICULO IZQUIERDO ══════════════════════════════════════════════════════
    Cinco barras: diametro diastolico, diametro sistolico, los dos volumenes indexados y la
@@ -38862,6 +38881,11 @@ function evTarjetaVI() {
      522 px y a 1200 x 700 —donde el hueco util son 486— aparecia scroll INTERNO. Cada barra
      sigue diciendo que quedo sin ubicar, que es lo que hace falta saber barra por barra. */
   const AV_SEXO = 'Sin sexo: no se ubica el punto; se muestran los cortes del varón.';
+  /* ⚠️ DOS TEXTOS Y NO UNO, Y ES POR ETAPAS. Desde LS4 el diámetro sistólico SÍ ubica su punto
+     sin sexo —con el corte del varón—, así que decirle «no se ubica el punto» sería falso sobre
+     una barra que lo tiene. Los dos volúmenes indexados siguen con el texto anterior hasta que
+     LS6 los pase a esta misma regla. */
+  const AV_SEXO_ALTO = 'Sin sexo cargado: se usó el corte más alto.';
 
   /* Diametro diastolico — un corte unico para los dos sexos en esta aplicacion. */
   fr.appendChild(_evBarra({ clave: 'vi-ddvi', rotulo: 'Diámetro diastólico (mm)',
@@ -38871,19 +38895,23 @@ function evTarjetaVI() {
       ? ('Ventrículo izquierdo ' + (viDimCat(pDD.val) || '') + '.') : '',
     aviso: _falta(pDD, 'el diámetro diastólico'), ficha: 'DIM-VI-001' }));
 
-  /* Diametro sistolico — la aplicacion no lo clasifica en ninguna superficie firmada. */
-  const bandasDS = sx ? (sx.charAt(0).toUpperCase() === 'F' ? EV_BANDAS_REF.dsviF : EV_BANDAS_REF.dsviM)
-                      : EV_BANDAS_REF.dsviM;
+  /* Diametro sistolico — la aplicacion no lo clasifica en ninguna superficie firmada.
+     ⚠️ SIN SEXO EL PUNTO AHORA SE UBICA (LS4), con los cortes del VARÓN, y la barra lo DICE en
+     una línea corta. La regla anterior —«sin sexo, sin punto»— retenía una información que la
+     decisión de Maicol del 2026-10-16 manda publicar: con el corte más alto, lo que se afirma
+     es el lado que no sobre-afirma. */
+  const bandasDS = dsviBandas(sx);
   let catDS = '';
-  if (sx && pDS.val != null && !pDS.fuera) {
+  if (pDS.val != null && !pDS.fuera) {
     const b = _evBandaDe(bandasDS, pDS.val);
     catDS = b ? ('Diámetro sistólico ' + _evAdj(b.k) + ' según la guía.') : '';
   }
   fr.appendChild(_evBarra({ clave: 'vi-dsvi', rotulo: 'Diámetro sistólico (mm)',
     bandas: bandasDS, lo: 15, hi: 60, unidad: 'mm', dec: 0,
-    valor: (sx && pDS.val != null && !pDS.fuera) ? pDS.val : null,
+    valor: (pDS.val != null && !pDS.fuera) ? pDS.val : null,
     cat: catDS,
-    aviso: !sx ? AV_SEXO : _falta(pDS, 'el diámetro sistólico'), ficha: 'DIM-VI-002' }));
+    aviso: [_falta(pDS, 'el diámetro sistólico'), sx ? '' : AV_SEXO_ALTO].filter(Boolean).join(' '),
+    ficha: 'DIM-VI-002' }));
 
   /* Los dos volumenes indexados: dependen del sexo Y de la superficie corporal. */
   const idxD = (pVDF.val != null && !pVDF.fuera && bsa) ? +(pVDF.val / bsa).toFixed(1) : null;
@@ -39684,12 +39712,14 @@ function evRefPintar(id) {
     ], B.idx));
     host.appendChild(_evRefBarras([
       { clave: 'ref-vi-ddvi', rotulo: 'Diámetro diastólico — varón (mm)', banda: 'ddvi', lo: 35, hi: 80, unidad: 'mm', dec: 0, ficha: 'DIM-VI-001' },
+      { clave: 'ref-vi-dsvi', rotulo: 'Diámetro sistólico — varón (mm)', banda: 'dsvi', lo: 15, hi: 60, unidad: 'mm', dec: 0, ficha: 'DIM-VI-002' },
       { clave: 'ref-vi-vdfvi', rotulo: 'Volumen telediastólico indexado — varón (ml/m²)', banda: 'vdfvi', lo: 20, hi: 130, unidad: 'ml/m²', dec: 0, ficha: 'DIM-VI-003' },
       { clave: 'ref-vi-vsfvi', rotulo: 'Volumen telesistólico indexado — varón (ml/m²)', banda: 'vsfvi', lo: 5, hi: 70, unidad: 'ml/m²', dec: 0, ficha: 'DIM-VI-004' },
       { clave: 'ref-vi-masa', rotulo: 'Masa indexada — varón (g/m²)', banda: 'masa', lo: 50, hi: 200, unidad: 'g/m²', dec: 0, ficha: 'MAS-VI-002' },
     ], 'M'));
     host.appendChild(_evRefBarras([
       { clave: 'ref-vi-ddvi-f', rotulo: 'Diámetro diastólico — mujer (mm)', banda: 'ddvi', lo: 35, hi: 80, unidad: 'mm', dec: 0, ficha: 'DIM-VI-001' },
+      { clave: 'ref-vi-dsvi-f', rotulo: 'Diámetro sistólico — mujer (mm)', banda: 'dsvi', lo: 15, hi: 60, unidad: 'mm', dec: 0, ficha: 'DIM-VI-002' },
       { clave: 'ref-vi-vdfvi-f', rotulo: 'Volumen telediastólico indexado — mujer (ml/m²)', banda: 'vdfvi', lo: 20, hi: 130, unidad: 'ml/m²', dec: 0, ficha: 'DIM-VI-003' },
       { clave: 'ref-vi-vsfvi-f', rotulo: 'Volumen telesistólico indexado — mujer (ml/m²)', banda: 'vsfvi', lo: 5, hi: 70, unidad: 'ml/m²', dec: 0, ficha: 'DIM-VI-004' },
       { clave: 'ref-vi-masa-f', rotulo: 'Masa indexada — mujer (g/m²)', banda: 'masa', lo: 50, hi: 200, unidad: 'g/m²', dec: 0, ficha: 'MAS-VI-002' },
@@ -55554,7 +55584,7 @@ function generarPDFReal(_aj) {
          Se consume el objeto de `vPlaus`, que distingue «no hay dato» de «hay dato ilegible». */
       {lbl:'SIV',       ref:'<13 mm',   val:sivV?sivV+' mm'+(_pSiv.fuera?MARCA_REVISAR:''):null},
       {lbl:'DDVI',      ref:'H<=' + DDVI_NORMAL_MAX_H + ' M<=' + DDVI_NORMAL_MAX_M + ' mm', val:dd  ?dd  +' mm'+(_pDd.fuera ?MARCA_REVISAR:''):null},
-      {lbl:'DSVI',      ref:'<40 mm',   val:ds  ?ds  +' mm'+(_pDs.fuera ?MARCA_REVISAR:''):null},
+      {lbl:'DSVI',      ref:'H<=40 M<=35 mm',   val:ds  ?ds  +' mm'+(_pDs.fuera ?MARCA_REVISAR:''):null},
       {lbl:'PP',        ref:'<13 mm',   val:pp  ?pp  +' mm'+(_pPp.fuera ?MARCA_REVISAR:''):null},
       /* ⚠️ «H<75 M<61» ERA FALSO EN LAS DOS DIRECCIONES, Y EL CÓDIGO NUNCA ESTUVO MAL.
          `vdfviInterp` clasifica con `> 74` y `> 61` desde siempre —medido: 74,0 normal y 74,1
