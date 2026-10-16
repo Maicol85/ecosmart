@@ -2402,8 +2402,22 @@ html.light-mode .amilo-root{
    `--accent` ataria la anatomia al dia que alguien repunte un color de la app. El MARCO —fondo,
    bordes, titulos y texto— si usa las de la app, que es lo que lo hace parte de la pantalla. */
 #v2d-ov{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.6);display:none;}
-#v2d-card{position:absolute;inset:10px;display:flex;flex-direction:column;background:var(--bg2);
-  border:1px solid var(--border);border-radius:12px;box-shadow:0 18px 50px rgba(0,0,0,.6);}
+/* TARJETA FLOTANTE CENTRADA, NO PANTALLA COMPLETA (Y1b-1, 2026-10-16) — DECISION DE MAICOL.
+   Con el `inset:10px` del Y1 el panel tomaba la ventana entera: el dibujo quedaba enorme, las
+   tarjetas pegadas a los bordes y la tabla de cavidades y la nota CORTADAS debajo del borde
+   inferior. Medido en HEAD a 1200x700: panel 1180x680, dibujo 481x490, y la nota y la tabla
+   FUERA de la caja visible, con scroll interno en los seis anchos.
+   ⚠️ SE CENTRA CON `inset:0` + `margin:auto` Y NO CON `transform:translate(-50%,-50%)`, y no es
+   una preferencia: un ancestro con `transform` es BLOQUE CONTENEDOR de cualquier descendiente
+   `position:fixed`, asi que el dia que esta vista necesite una tarjeta flotante adentro —como la
+   del globo ⓘ, que por esto mismo cuelga del body— su rect del viewport y su posicion dejarian de
+   estar en el mismo sistema. Con `margin:auto` no hay un segundo sistema de coordenadas.
+   `height:max-content` acotada por `max-height` es lo que deja que la tarjeta mida lo que su
+   contenido pide y, cuando lo pasa, que el que se desplaza sea el CUERPO y no la pagina. */
+#v2d-card{position:absolute;inset:0;margin:auto;width:min(900px,94vw);
+  height:max-content;max-height:85vh;
+  display:flex;flex-direction:column;background:var(--bg2);
+  border:1px solid var(--border);border-radius:12px;box-shadow:0 14px 40px rgba(0,0,0,.45);}
 #v2d-head{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);
   background:var(--bg2);border-radius:12px 12px 0 0;flex-shrink:0;}
 #v2d-tit{flex:1;font-weight:700;font-size:13px;color:var(--accent2);}
@@ -2423,10 +2437,12 @@ html.light-mode .amilo-root{
    estenosis, cavidades—. Se apagan las tres posiciones explicitas en vez de reordenar: con
    `order` el orden VISUAL y el de LECTURA se separan, que es como una tabla de datos clinicos
    termina diciendo una cosa al ojo y otra al lector de pantalla. */
-@media (max-width:900px){
+@media (max-width:768px){
   #v2d-grid{grid-template-columns:minmax(0,1fr);}
   #v2d-dibujo,#v2d-col-insuf,#v2d-col-esten,#v2d-cav{grid-column:1;grid-row:auto;}
-  #v2d-card{inset:6px;}
+  /* En angosto la tarjeta vuelve a tomar la pantalla con 8 px de margen: con 94vw de ancho y
+     85vh de alto no entraria la tabla, y el desplazamiento sigue siendo el del CUERPO. */
+  #v2d-card{inset:8px;margin:0;width:auto;height:auto;max-height:none;}
   #v2d-cuerpo{padding:10px;}
 }
 .v2d-grp{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text2);
@@ -2463,7 +2479,19 @@ html.light-mode .amilo-root{
 /* Objetivos tactiles comodos: el boton de cerrar y el del pie de Valvulas. Sin hover. */
 #v2d-cerrar{min-height:38px;min-width:38px;}
 .v2d-pie{margin:14px 0 2px;text-align:center;}
-#v2d-abrir{min-height:44px;padding:9px 18px;font-weight:700;}
+/* EL BOTON DEL PIE, CHICO Y NEUTRO (Y1b-1) — DECISION DE MAICOL. El color, el borde y el fondo
+   los da `btn-ghost`, que es EXACTAMENTE el estado de reposo de las ocho pestanas de valvula
+   (`#pill-insuf-mitral` y las siete hermanas son `btn btn-ghost valv-pill`): no se declara ni un
+   color aca, asi que los dos no se pueden separar el dia que alguien repunte la paleta. Lo que si
+   se declara es la TIPOGRAFIA y el RELLENO de una pestana (`.tab-btn`: 11 px, 600, 5/12).
+   ⚠️ EL PISO DE 44 px NO SE BAJA, Y NO ES UN DESCUIDO. La regla global de esta app
+   (`button, [role=button], .btn, .tab-btn … { min-height:44px }`) no esta acotada a `pointer`, asi
+   que una pestana de valvula en reposo TAMBIEN mide 44 px de alto en escritorio: bajarlo aca
+   haria que el boton dejara de tener el tamano de una pestana, que es justo lo que la orden pide,
+   y ademas revertiria la decision de Maicol del 2026-09-25 —«se conserva el piso y lo que baja es
+   el peso visual»—. Lo que baja es el peso visual: el azul se va, la tipografia y el relleno pasan
+   a los de una pestana y el ancho cae de 109 a 93 px. Medido en los dos temas. */
+#v2d-abrir{font-size:11px;font-weight:600;padding:5px 12px;}
 .v2d-nota{font-size:11.5px;color:var(--text2);line-height:1.45;margin:10px 2px 0;}
 /* Las clases del propio dibujo. Todas con prefijo `v2d-`: `.lbl` ya existe en esta app con otro
    significado (89 usos), y una colision de nombre en una hoja de 2.400 lineas no avisa. */
@@ -7371,7 +7399,7 @@ window.cerrarSesionReal = cerrarSesionReal;
        no paneles, asi que un control gateado que igual activa su pestana entra sin pasar por
        ninguna compuerta. Este no gatea nada, asi que no hay compuerta que saltarse. -->
   <div class="v2d-pie">
-    <button type="button" class="btn btn-primary" id="v2d-abrir" onclick="v2dAbrir()"
+    <button type="button" class="btn btn-ghost" id="v2d-abrir" onclick="v2dAbrir()"
             aria-haspopup="dialog" aria-controls="v2d-ov"
             title="Ver el esquema 2D con las valvulas y las cavidades">&#129728; Ver en 2D</button>
   </div>
