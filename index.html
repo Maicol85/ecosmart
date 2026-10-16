@@ -916,6 +916,31 @@
   }
   input[readonly] { color: var(--accent2); font-weight: 600; }
   textarea { resize: vertical; min-height: 60px; }
+  /* ══ MARCADORES «este dato va al PDF» — documento / matrícula (J3, 2026-10-16) ══
+     Van PEGADOS al rótulo de «Nº documento» y de «Matrícula», dentro del `<label>`.
+     ⚠️ `min-height:0` NO ES OPCIONAL, Y NO LLEVA `!important`. La regla táctil global de este
+     archivo es `button, [role=button], .btn, …, [onclick] { min-height:44px; min-width:44px }`,
+     así que un `<button>` dentro de un rótulo estira la línea entera a 44 px y DESPLAZA el
+     campo —que es justo lo que la orden prohíbe—. `.pac-id-mk` es (0,1,0) y `button` es
+     (0,0,1): gana por especificidad, igual que la excepción del header doce reglas más arriba.
+     ⚠️ Y EL ÁREA TÁCTIL NO SE PIERDE: la extiende un `::after` absoluto, que no ocupa lugar en
+     el flujo —el patrón que el botón del «porqué» de la vista 2D ya usa—. Queda en 40 × 40,
+     medible con `elementFromPoint`, sin agrandar un píxel de lo que se ve.
+     ⚠️ EL GLIFO SALE DEL CSS Y NO DE JS: así el círculo y el `aria-pressed` no pueden
+     desincronizarse —uno es el estado y el otro lo deriva—, que es el defecto que este archivo
+     ya pagó con los rótulos cableados al lado de una constante.
+     Colores: `--accent` el elegido y `--text2` el otro, las dos globales y de los dos temas. */
+  .pac-id-mk {
+    min-height: 0; min-width: 0;
+    background: none; border: none; padding: 0; margin: 0 0 0 5px;
+    cursor: pointer; line-height: 1; font-size: 11px;
+    color: var(--text2); position: relative; vertical-align: baseline;
+  }
+  .pac-id-mk::before { content: '○'; }
+  .pac-id-mk[aria-pressed="true"] { color: var(--accent); }
+  .pac-id-mk[aria-pressed="true"]::before { content: '●'; }
+  .pac-id-mk::after { content: ''; position: absolute; left: -14px; right: -14px; top: -15px; bottom: -15px; }
+  .pac-id-mk:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px; }
   /* ══ FRASES RÁPIDAS ══
      Desktop: panel lateral fijo al lado del textarea, que se achica por el flex.
      Móvil (<=768px, el mismo corte que usa el resto de la app): drawer desde abajo al 65 %
@@ -3594,12 +3619,39 @@ window.cerrarSesionReal = cerrarSesionReal;
           </select>
         </div>
         <div class="fg">
-          <label>Nº documento</label>
+          <!-- ⚠️ EL MARCADOR NO LLEVA `onclick`, Y ES DELIBERADO (J3, 2026-10-16). La regla táctil
+               global matchea por el ATRIBUTO (`[onclick]{min-height:44px}`), así que un `onclick`
+               acá estiraría el rótulo a 44 px y desplazaría el campo —el mismo defecto que
+               `#ig-img-storage` ya documenta en la cabecera de Informes Guardados—. Lo cablea un
+               oyente DELEGADO en el documento (`data-pac-id`), así que abrir y cerrar pestañas no
+               acumula oyentes y el teclado funciona gratis: un `<button>` despacha `click` con
+               Enter y con Espacio.
+               El estado vive en `aria-pressed` y el círculo lo deriva el CSS. -->
+          <label>Nº documento
+            <button type="button" class="pac-id-mk" id="pac-id-mk-ci" data-pac-id="ci"
+                    aria-pressed="true"
+                    aria-label="Imprimir el documento en el PDF y en el PPT"
+                    title="Imprimir el documento en el PDF y en el PPT"></button>
+          </label>
           <input type="text" id="ci" placeholder="Número" oninput="hcSync()">
         </div>
         <div class="fg">
-          <label>Matrícula</label>
+          <label>Matrícula
+            <button type="button" class="pac-id-mk" id="pac-id-mk-matricula" data-pac-id="matricula"
+                    aria-pressed="false"
+                    aria-label="Imprimir la matrícula en el PDF y en el PPT"
+                    title="Imprimir la matrícula en el PDF y en el PPT"></button>
+          </label>
           <input type="text" id="matricula" placeholder="Nº mutualista">
+          <!-- ⚠️ QUÉ DATO SE IMPRIME, PERSISTIDO CON EL ESTUDIO. Es `input[type=hidden]` con id y
+               guión BAJO, así que lo toma el recolector de `guardarInforme` —que barre
+               `input[id], select[id], textarea[id]`— y `_noEsDelEstudio` no lo excluye: viaja con
+               el estudio y la reimpresión lo repone. NO agrega ninguna columna al Excel, que
+               exporta por `LAB_XLS_MAP` y por los bloques declarados, no por el DOM —verificado:
+               sigue en 440—.
+               El barrido de `limpiarCampos` toma text y number, así que no lo alcanza: lo repone
+               `pacIdNuevoEstudio()` desde la elección de la SESIÓN, al final de esa función. -->
+          <input type="hidden" id="pac_id_print" value="ci">
         </div>
       </div>
       <div class="grid-2" style="margin-top:8px;">
@@ -21262,6 +21314,105 @@ function calcBSA() {
      orden en que se llena una ficha cuando el paciente llega ya estudiado. */
   if (typeof _vliPintar === 'function') _vliPintar();
 }
+
+/* ══ QUÉ IDENTIFICACIÓN DEL PACIENTE VA AL PDF Y AL PPT (J3, 2026-10-16) ══════════════
+   Decisión de Maicol: el paciente tiene DOS datos —el documento (`ci` + `doc_tipo`) y la
+   matrícula (`matricula`, «Nº mutualista»)— y al papel va UNO SOLO. Por omisión el documento;
+   el médico elige con el marcador que vive al lado de cada rótulo, en la pestaña Paciente.
+
+   TRES ESTADOS DISTINTOS, Y NO SE MEZCLAN —es lo que hace que un estudio reimprima como se
+   firmó sin congelar la elección de los pacientes nuevos—:
+   • `_pacIdSesion` — la elección para un estudio NUEVO. Vive sólo en la memoria de la página:
+     NO en `localStorage`, NO en IndexedDB y NO en Configuración (orden expresa). Recargar la
+     app vuelve al documento. «Nuevo estudio» la CONSERVA.
+   • `pac_id_print` — la elección del formulario que se tiene delante, que es la que se guarda
+     con el estudio y la que leen el PDF y el PPT.
+   • lo que trae un estudio al abrirlo — lo repone `pacIdRestaurar`, SIN tocar la de la sesión.
+   ⚠️ UN ESTUDIO VIEJO NO TRAE LA CLAVE Y ESO NO ES «la elección de la pantalla»: es el
+   documento. Por eso `pacIdRestaurar` escribe SIEMPRE, con el default cuando la clave falta,
+   y no condicionalmente —el mismo motivo por el que la ventana de reimpresión escribe el
+   médico con '' cuando el estudio no lo registra: que el estudio no lo diga significa que no
+   lo tiene, no que se herede el de al lado—.
+   ⚠️ TOCAR UN MARCADOR MUEVE LAS DOS COSAS —el formulario y la sesión— y es deliberado: la
+   orden dice que la elección se conserva entre pacientes «hasta que el médico la cambie», y
+   tocar el marcador es cambiarla. Sobre un estudio abierto eso deja la elección nueva en ESE
+   estudio, que es lo pedido; no hace falta mirar `_ettEditandoId`, y por eso no se mira.
+   ⚠️ SI EL DATO ELEGIDO ESTÁ VACÍO SE IMPRIME EL OTRO. Nunca sale la identificación en blanco
+   existiendo una: un PDF firmado sin forma de atribuirlo es peor que uno con el dato que el
+   médico no prefirió. Con los dos vacíos no se imprime nada, como hoy.
+   ⚠️ EL RÓTULO POR OMISIÓN DEL DOCUMENTO LO PASA CADA SUPERFICIE, y no es un descuido: el PDF
+   escribe «Cédula» y el PPT «CI» cuando `doc_tipo` viene vacío, y los dos literales ya
+   existían. Unificarlos cambiaría uno de los dos papeles sin que nadie lo haya pedido. */
+const PAC_ID_DOC = 'ci', PAC_ID_MATR = 'matricula';
+const PAC_ID_MATR_LBL = 'Matrícula';
+let _pacIdSesion = PAC_ID_DOC;
+
+/* Lector único: sin `src` lee el DOM —la rama de la pantalla y del PDF— y con `src` un estudio
+   archivado, que es lo que necesita el PPT clínico. Mismo patrón que `getBSA(src)`. */
+function _pacIdLeer(src, k) {
+  if (src) return String(src[k] == null ? '' : src[k]).trim();
+  return (typeof sv === 'function') ? String(sv(k) || '').trim() : '';
+}
+/* Normaliza a uno de los dos tokens. Cualquier otra cosa —clave ausente, valor de un estudio
+   anterior a esta tanda, un dedazo en un backup JSON editado a mano— es el DOCUMENTO. */
+function pacIdElegido(src) {
+  return _pacIdLeer(src, 'pac_id_print') === PAC_ID_MATR ? PAC_ID_MATR : PAC_ID_DOC;
+}
+/* El ÚNICO dueño de «qué se imprime». Devuelve `{lbl, val, clave}` o `null`. */
+function pacIdImpreso(src, docLblDef) {
+  const docu = { clave: PAC_ID_DOC,  lbl: _pacIdLeer(src, 'doc_tipo') || docLblDef || 'Cédula',
+                 val: _pacIdLeer(src, 'ci') };
+  const matr = { clave: PAC_ID_MATR, lbl: PAC_ID_MATR_LBL, val: _pacIdLeer(src, 'matricula') };
+  const pri = pacIdElegido(src) === PAC_ID_MATR ? matr : docu;
+  const alt = (pri === matr) ? docu : matr;
+  if (pri.val) return pri;
+  if (alt.val) return alt;
+  return null;
+}
+/* Pinta los dos marcadores desde el oculto. El círculo lo deriva el CSS de `aria-pressed`, así
+   que acá no hay ningún glifo escrito: el estado vive en UN lugar. */
+function pacIdPintar() {
+  const el = pacIdElegido();
+  [PAC_ID_DOC, PAC_ID_MATR].forEach(k => {
+    const b = document.getElementById('pac-id-mk-' + k);
+    if (b) b.setAttribute('aria-pressed', k === el ? 'true' : 'false');
+  });
+}
+/* El gesto del médico. Escribe el formulario Y la sesión —ver arriba—. */
+function pacIdElegir(clave) {
+  const k = (clave === PAC_ID_MATR) ? PAC_ID_MATR : PAC_ID_DOC;
+  const h = document.getElementById('pac_id_print');
+  if (h) h.value = k;
+  _pacIdSesion = k;
+  pacIdPintar();
+}
+/* Lo que repone un estudio al abrirlo, y la reimpresión. NO toca `_pacIdSesion`. */
+function pacIdRestaurar(campos) {
+  const h = document.getElementById('pac_id_print');
+  const c = campos || {};
+  if (h) h.value = (String(c['pac_id_print'] || '').trim() === PAC_ID_MATR) ? PAC_ID_MATR : PAC_ID_DOC;
+  pacIdPintar();
+}
+/* «Nuevo estudio»: el oculto vuelve a la elección de la SESIÓN y no al default. */
+function pacIdNuevoEstudio() {
+  const h = document.getElementById('pac_id_print');
+  if (h) h.value = _pacIdSesion;
+  pacIdPintar();
+}
+/* Un oyente DELEGADO y no un `onclick` por botón: ver el comentario del marcado. Se registra
+   una sola vez, al arrancar, así que abrir y cerrar pestañas no acumula nada. */
+(function _pacIdArranque() {
+  document.addEventListener('click', e => {
+    const b = e.target && e.target.closest ? e.target.closest('[data-pac-id]') : null;
+    if (b) pacIdElegir(b.dataset.pacId);
+  });
+  const init = () => pacIdPintar();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+window.pacIdElegir = pacIdElegir; window.pacIdImpreso = pacIdImpreso;
+window.pacIdElegido = pacIdElegido; window.pacIdRestaurar = pacIdRestaurar;
+window.pacIdPintar = pacIdPintar; window.pacIdNuevoEstudio = pacIdNuevoEstudio;
 
 /* `src` opcional: con un estudio guardado el peso y la talla salen de ahi. Sin el, `v()` — la
    rama de siempre, literal, porque la usan decenas de llamadores en pantalla. Existe porque los
@@ -43207,7 +43358,12 @@ function generarInforme(opts) {
        no entra en ninguna categoría del Laboratorio, que es lo correcto: no hay clasificación.
        ⚠️ `ai_vol` CRUDO y no `vPlaus`, igual que la rama hermana de arriba: las dos leen el mismo
        campo por el mismo camino, así que no pueden discrepar sobre qué volumen tienen delante. */
-    const cAI = `AI: volumen ${ai_vol} ml, sin indexar (falta ASC).`;
+    /* ⚠️ EL CONCISO SIGUE EL PATRÓN DE LOS OTROS DOS DE ESTE BLOQUE —«AI <algo> (<dato>).»—
+       y no «AI: …». No es estética: el conciso de la app abre siempre con la sigla y un
+       espacio, y la primera versión con dos puntos quedó fuera del filtro de la sonda —que
+       busca el comienzo de línea— e informó «la línea desapareció del conciso» sobre un
+       informe perfecto. El filtro era del lector, pero la inconsistencia era real. */
+    const cAI = `AI sin graduar (volumen ${ai_vol} ml, sin indexar).`;
     const eAI = `Volumen de la aurícula izquierda de ${ai_vol} ml, sin indexar por falta de superficie corporal; no se informa el tamaño auricular.`;
     const nAI = `El volumen de la aurícula izquierda es de ${ai_vol} ml. No se puede indexar por superficie corporal —falta el peso o la talla—, así que no se informa el tamaño auricular: la guía lo gradúa sólo por volumen indexado.`;
     inf.push(estiloPick(cAI, eAI, nAI));
@@ -48253,6 +48409,13 @@ function limpiarCampos(silencioso) {
      exactamente el estado de un paciente sin PISA—. Es el mismo escenario de dos pacientes que el
      `else` de los span cerró, entrando por la puerta del oculto. */
   { const _imP = document.getElementById('im_pisa'); if (_imP) _imP.value = ''; }
+  /* ⚠️ LA ELECCIÓN DE IDENTIFICACIÓN SE CONSERVA ENTRE PACIENTES (J3, 2026-10-16), que es
+     lo que pide la orden: «Nuevo estudio» NO la reinicia. `pac_id_print` es `hidden`, así que
+     el barrido de esta función —que toma text y number— no lo alcanza y bastaría con no hacer
+     nada; se repone EXPLÍCITAMENTE desde `_pacIdSesion` porque el estudio que se acaba de
+     cerrar pudo haber traído otra elección, y lo que vale para el paciente nuevo es la de la
+     sesión. Con la página recargada `_pacIdSesion` vuelve al documento. */
+  { if (typeof pacIdNuevoEstudio === 'function') { try { pacIdNuevoEstudio(); } catch (e) {} } }
   _estudioEpoca++;
   /* ⚠️ Y LA COLA DE CINELOOPS PENDIENTES, por el MISMO motivo que la época: es memoria de
      sesión que sobrevive al cambio de estudio. Sin esta línea, un cineloop que el médico pidió
@@ -51143,6 +51306,10 @@ function _autosaveRestore(){
     let _espejosRepuestos = false;
     if (typeof imEspejosRestaurar === 'function') { try { imEspejosRestaurar(data); _espejosRepuestos = true; } catch (e) { console.warn('[imEspejos/autosave]', e); } }
     if (typeof sevFundRestaurar === 'function') { try { sevFundRestaurar(data); } catch (e) { console.warn('[sevFund/autosave]', e); } }
+    /* ⚠️ Y LA ELECCIÓN DE IDENTIFICACIÓN, QUE ESCRIBE SIEMPRE: un estudio anterior a esta tanda
+    no trae la clave, y eso NO significa «dejá la de la pantalla» sino «el documento». NO toca
+    `_pacIdSesion`: abrir un estudio no cambia la elección con la que se arma el próximo. */
+    if (typeof pacIdRestaurar === 'function') { try { pacIdRestaurar(data); } catch (e) { console.warn('[pacId/autosave]', e); } }
     /* Y se SELLA: el borrador se persiste entero cada vez, así que si el oculto no queda escrito
        acá, una sesión que no toca ninguno de los cinco orígenes de IM lo guarda vacío y el propio
        borrador vuelve pareciendo anterior al mecanismo — el fallback inferiría sobre datos que
@@ -52552,9 +52719,18 @@ function generarPDFReal(_aj) {
      asumen adulto. `!= null` cubre null y undefined y deja pasar el cero. */
   const _edadV = v('edad');
   const edadSexo  = [_edadV != null ? _edadV + ' años' : '', sexoTxt].filter(Boolean).join(' · ') || null;
+  /* ⚠️ LA IDENTIFICACIÓN LA ELIGE SU DUEÑO (J3, 2026-10-16), y esta celda es la ÚNICA de las
+     SEIS plantillas: las tres maquetaciones del bloque del paciente arman todas desde `pRows`.
+     Antes imprimía el documento y nada más, y la matrícula no salía en ningún PDF por ningún
+     camino. `pacIdImpreso` decide cuál va y con qué rótulo; el rótulo por omisión sigue siendo
+     el literal de ESTE papel («Cédula»), que es el que ya imprimía.
+     El `|| null` de `val` se conserva: es lo que hace que la celda se caiga del filtro
+     `pRows.filter(r => r.some(c=>c.val))` cuando no hay ninguno de los dos datos. */
+  const _pacIdPdf = (typeof pacIdImpreso === 'function') ? pacIdImpreso(null, 'Cédula') : null;
   const pRows = [
     [{lbl:'Nombre',            val:sv('nombre')||null},
-     {lbl:sv('doc_tipo')||'Cédula', val:sv('ci')||null},
+     {lbl:(_pacIdPdf && _pacIdPdf.lbl) || sv('doc_tipo') || 'Cédula',
+      val:(_pacIdPdf && _pacIdPdf.val) || null},
      {lbl:'Edad / Sexo',       val:edadSexo},
      {lbl:'Fecha realización', val:rawF?fecha:null}],
     [{lbl:'Peso',  val:peso  != null ? peso  + ' kg':null},
@@ -71448,6 +71624,10 @@ function editarInforme(id) {
        sincronías que corren ahí adentro son las que pueden dejar el oculto sellado. */
     if (typeof imEspejosRestaurar === 'function') { try { imEspejosRestaurar(inf.campos); } catch (e) { console.warn('[imEspejos/editar]', e); } }
     if (typeof sevFundRestaurar === 'function') { try { sevFundRestaurar(inf.campos); } catch (e) { console.warn('[sevFund/editar]', e); } }
+    /* ⚠️ Y LA ELECCIÓN DE IDENTIFICACIÓN, QUE ESCRIBE SIEMPRE: un estudio anterior a esta tanda
+    no trae la clave, y eso NO significa «dejá la de la pantalla» sino «el documento». NO toca
+    `_pacIdSesion`: abrir un estudio no cambia la elección con la que se arma el próximo. */
+    if (typeof pacIdRestaurar === 'function') { try { pacIdRestaurar(inf.campos); } catch (e) { console.warn('[pacId/editar]', e); } }
     // Guardar id del informe siendo editado
     window._ettEditandoId = id;
     eeCurrentInformeId = inf.estudioId || null;   // el QR del PDF apuntará a este estudio
@@ -71577,6 +71757,10 @@ function cargarEstudioPorId(id) {
      sincronías que corren ahí adentro son las que pueden dejar el oculto sellado. */
   if (typeof imEspejosRestaurar === 'function') { try { imEspejosRestaurar(inf.campos); } catch (e) { console.warn('[imEspejos/cargar]', e); } }
   if (typeof sevFundRestaurar === 'function') { try { sevFundRestaurar(inf.campos); } catch (e) { console.warn('[sevFund/cargar]', e); } }
+  /* ⚠️ Y LA ELECCIÓN DE IDENTIFICACIÓN, QUE ESCRIBE SIEMPRE: un estudio anterior a esta tanda
+     no trae la clave, y eso NO significa «dejá la de la pantalla» sino «el documento». NO toca
+     `_pacIdSesion`: abrir un estudio no cambia la elección con la que se arma el próximo. */
+  if (typeof pacIdRestaurar === 'function') { try { pacIdRestaurar(inf.campos); } catch (e) { console.warn('[pacId/cargar]', e); } }
   window._ettEditandoId = inf.id;
   infBaseDesdeDOM(inf.campos);   // ver nota en editarInforme: base = la guardada, o lo que quedó
   if (typeof imgRestaurar === 'function') imgRestaurar(inf.uuid);
@@ -77929,9 +78113,19 @@ function _pptDesdeFormulario(inf, tema, presentador){
        blanco fijo: ése sí cae dentro de la banda teal en los tres temas. */
     s.addText(_pptTxt(inf.nombre).toUpperCase(), { x:0.5, y:1.42, w:W-1, h:0.6, fontSize:32,
       bold:true, color:PPT_C.txt, fontFace:PPT_FONT });
-    const dTipo = _pptTxt(inf.doc_tipo || 'CI');
+    /* ⚠️ LA MISMA ELECCIÓN QUE EL PDF, Y DEL ESTUDIO (J3, 2026-10-16). El PPT clínico corre
+       sobre un estudio GUARDADO, así que la elección sale de `inf.campos` —no de la sesión— y
+       la presentación de un estudio viejo, que no trae la clave, imprime el documento.
+       La matrícula viaja en `campos`: es un `input` con id y guión BAJO, así que el recolector
+       de `guardarInforme` la toma. El rótulo por omisión sigue siendo el de ESTA superficie
+       («CI»), que es el que ya imprimía, y el formato «rótulo valor» tampoco cambia. */
+    const _pacIdPpt = (typeof pacIdImpreso === 'function')
+      ? pacIdImpreso({ ci: inf.ci, doc_tipo: inf.doc_tipo,
+                       matricula: c['matricula'], pac_id_print: c['pac_id_print'] }, 'CI')
+      : null;
     const edad = _pptTxt(c.edad), sexo = _pptSel('sexo') || _pptTxt(c.sexo);
-    const l1 = [ (inf.ci ? dTipo+' '+_pptTxt(inf.ci) : ''), (edad ? edad+' años' : ''), sexo ].filter(Boolean).join('  ·  ');
+    const l1 = [ (_pacIdPpt ? _pptTxt(_pacIdPpt.lbl)+' '+_pptTxt(_pacIdPpt.val) : ''),
+                 (edad ? edad+' años' : ''), sexo ].filter(Boolean).join('  ·  ');
     const fEst = _pptFecha(inf.fecha_estudio);
     const meta = [];
     if (l1) meta.push(l1);
@@ -79568,6 +79762,10 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
      consultaba era inocuo; desde el 2026-10-14 decide la fila del papel, así que sin esta línea la
      reimpresión de todo informe anterior saldría sin EROA ni Vol-R. */
   if (typeof imPdfPisaRestaurar === 'function') imPdfPisaRestaurar(c);
+  /* ⚠️ Y LA ELECCIÓN DE IDENTIFICACIÓN, QUE ESCRIBE SIEMPRE: un estudio anterior a esta tanda
+     no trae la clave, y eso NO significa «dejá la de la pantalla» sino «el documento». NO toca
+     `_pacIdSesion`: abrir un estudio no cambia la elección con la que se arma el próximo. */
+  if (typeof pacIdRestaurar === 'function') pacIdRestaurar(c);
   /* Se escribe SIEMPRE, con '' cuando el estudio no trae la clave. Con la asignación
      condicional, un guardado sin médico —toda la base anterior a que guardarInforme lo
      persistiera— dejaba en el encabezado al médico del paciente que estuviera en pantalla, y
@@ -79710,6 +79908,13 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
     document.querySelectorAll('input[type=checkbox][id]').forEach(el => {
       if (chkEstado[el.id] !== undefined) el.checked = chkEstado[el.id];
     });
+    /* ⚠️ Y LOS DOS MARCADORES DE IDENTIFICACIÓN SE REPINTAN (J3, 2026-10-16). El `.value` del
+       oculto `pac_id_print` lo repone el barrido de arriba —es un `input[id]`, así que entra en
+       `backup`—, pero el círculo sale de `aria-pressed`, que ningún barrido toca: sin esta
+       línea el médico volvía a su paciente con el marcador del OTRO estudio pintado al lado de
+       su propio campo. Es la misma clase de fuga que las tres filas de IM de abajo, y se cierra
+       con el mismo recurso: repintar desde el estado ya repuesto. */
+    { if (typeof pacIdPintar === 'function') { try { pacIdPintar(); } catch (e) {} } }
     _PDF_METODO_IDS.forEach(id => {
       const el = document.getElementById(id);
       if (!el) return;
