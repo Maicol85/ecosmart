@@ -21536,25 +21536,50 @@ window.calcGeometriaVI = calcGeometriaVI;
    segundo consumidor: el esquema 2D, que tiene que dibujar el ventriculo del tamano que el
    informe dice. Copiar los tres cortes alla seria el segundo dueno que este archivo ya pago
    cuatro veces; el informe sigue llamando a esta funcion y su texto no cambia ni un byte.
-   ⚠️ NO ES UN CORTE NUEVO NI UNO MOVIDO: 58 y 65 mm de diametro diastolico, y el respaldo por
-   VOLUMEN INDEXADO (61 ml/m2 en la mujer, 75 en el hombre) que solo puede EMPEORAR un «de
-   dimensiones normales». Es exactamente lo que habia, movido de lugar.
-   Devuelve el mismo sintagma que el informe imprime —no un numero— porque es lo que sus dos
+   ⚠️ LOS CORTES PASARON A SER POR SEXO Y A SER CUATRO (LS3, 2026-10-16). Antes eran dos
+   numeros — 58 y 65 mm — iguales para los dos sexos: el 58 es el techo normal DEL VARON de la
+   Tabla suplementaria 3 de la ASE/EACVI 2015 (folio 39.e8, hoja 47 del PDF, leida en el
+   original) y el 65 no estaba en ninguna de las dos columnas. Esa tabla publica CUATRO
+   categorias por sexo, en centimetros:
+     varon — normal 4,2-5,8 · leve 5,9-6,3 · moderado 6,4-6,8 · severo > 6,8
+     mujer — normal 3,8-5,2 · leve 5,3-5,6 · moderado 5,7-6,1 · severo > 6,1
+   Decision de Maicol: se aplican las cuatro, con el corte del VARON cuando el sexo falta.
+   Los adjetivos no son vocabulario nuevo: son los mismos cuatro que `vdfviInterp` y
+   `vsfviInterp` ya publican para los volumenes del mismo ventriculo.
+   El rango INFERIOR (4,2 y 3,8 cm) no se aplica: la aplicacion no afirma ventriculo pequeno
+   por ningun camino.
+   ⚠️ EL RESPALDO POR VOLUMEN INDEXADO NO SE TOCO: 61 ml/m2 en la mujer y 75 en el varon, y
+   solo puede EMPEORAR un «de dimensiones normales».
+   Devuelve el mismo sintagma que el informe imprime —no un numero— porque es lo que sus
    consumidores necesitan: el papel lo mete en la oracion y el dibujo lo mapea a un tramo. */
-function viDimCat(ddfviN){
+const DDVI_NORMAL_MAX_H = 58, DDVI_LEVE_MAX_H = 63, DDVI_MODERADO_MAX_H = 68;   // mm — varon
+const DDVI_NORMAL_MAX_M = 52, DDVI_LEVE_MAX_M = 56, DDVI_MODERADO_MAX_M = 61;   // mm — mujer
+function ddviCortes(sexo) {
+  return (sexoEfectivo(sexo) === 'F')
+    ? [DDVI_NORMAL_MAX_M, DDVI_LEVE_MAX_M, DDVI_MODERADO_MAX_M]
+    : [DDVI_NORMAL_MAX_H, DDVI_LEVE_MAX_H, DDVI_MODERADO_MAX_H];
+}
+function viDimCat(ddfviN, sexo){
   const d = (ddfviN === undefined) ? v('ddfvi') : ddfviN;
   if (!d) return null;
-  let dim = d <= 58 ? 'de dimensiones normales' : d <= 65 ? 'levemente dilatado' : 'dilatado';
+  const c = ddviCortes(sexo);
+  let dim = d <= c[0] ? 'de dimensiones normales'
+          : d <= c[1] ? 'levemente dilatado'
+          : d <= c[2] ? 'moderadamente dilatado' : 'severamente dilatado';
   const _vdfviN = v('vdfvi');
   const _bsaN = (typeof getBSA === 'function') ? getBSA() : null;
   if (dim === 'de dimensiones normales' && _vdfviN && _bsaN) {
     const _vidx = _vdfviN / _bsaN;
-    const _limVDF = sexoEfectivo() === 'F' ? 61 : 75;
+    const _limVDF = sexoEfectivo(sexo) === 'F' ? 61 : 75;
     if (_vidx > _limVDF) dim = 'levemente dilatado (por volumen indexado)';
   }
   return dim;
 }
-window.viDimCat = viDimCat;
+window.viDimCat = viDimCat; window.ddviCortes = ddviCortes;
+window.DDVI_NORMAL_MAX_H = DDVI_NORMAL_MAX_H; window.DDVI_LEVE_MAX_H = DDVI_LEVE_MAX_H;
+window.DDVI_MODERADO_MAX_H = DDVI_MODERADO_MAX_H;
+window.DDVI_NORMAL_MAX_M = DDVI_NORMAL_MAX_M; window.DDVI_LEVE_MAX_M = DDVI_LEVE_MAX_M;
+window.DDVI_MODERADO_MAX_M = DDVI_MODERADO_MAX_M;
 function sv(id) {
   const el = document.getElementById(id);
   if (!el) return '';
@@ -22216,11 +22241,11 @@ const EV_REG = Object.freeze([
   /* ── VENTRICULO IZQUIERDO ──────────────────────────────────────────────────────────────── */
   Object.freeze({
     id: 'DIM-VI-001', zona: 'AI/VI — Ventriculo izquierdo', dato: 'Diametro diastolico (DDVI)',
-    valor: 'De dimensiones normales hasta 58 mm; levemente dilatado hasta 65; dilatado por encima de 65. Un solo corte para los dos sexos, y un volumen telediastolico indexado alto puede elevar la categoria',
-    duenio: 'viDimCat',
+    valor: 'Varon: normal hasta 58; levemente dilatado 59 a 63; moderadamente 64 a 68; severamente por encima de 68 mm. Mujer: normal hasta 52; levemente 53 a 56; moderadamente 57 a 61; severamente por encima de 61 mm. Un volumen telediastolico indexado alto puede elevar la categoria de un diametro normal',
+    duenio: 'viDimCat / ddviCortes',
     guia: EV_GUIA_ASE2015, ubicacion: 'Tabla suplementaria 3', folio: '39.e8', hoja_pdf: 47,
-    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'criterio propio de EcoSmart',
-    estado: 'parcial', fecha_verificacion: EV_FECHA_VER,
+    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
     fuente_una_linea: 'ASE/EACVI 2015, Tabla suplementaria 3 (folio 39.e8)',
   }),
   Object.freeze({
@@ -22510,7 +22535,7 @@ function evCortes(sexo) {
   if (typeof aiDiamDilatado === 'function')  r.aiDiam = _evBandas((x) => aiDiamDilatado(x, sx), 20, 80, 0.1, 1);
   if (typeof aiAreaDilatada === 'function')  r.aiArea = _evBandas(aiAreaDilatada, 5, 50, 0.1, 1);
   if (typeof aiVolClasificar === 'function') r.aiVol  = _evBandas(aiVolClasificar, 5, 90, 0.1, 1);
-  if (typeof viDimCat === 'function')        r.ddvi   = _evBandas((x) => viDimCat(x), 20, 90, 0.1, 1);
+  if (typeof viDimCat === 'function')        r.ddvi   = _evBandas((x) => viDimCat(x, sx), 20, 90, 0.1, 1);
   if (typeof vdfviInterp === 'function')     r.vdfvi  = _evBandas((x) => vdfviInterp(x, sx), 5, 160, 0.1, 1);
   if (typeof vsfviInterp === 'function')     r.vsfvi  = _evBandas((x) => vsfviInterp(x, sx), 2, 100, 0.1, 1);
   if (typeof hviSeveridad === 'function')    r.masa   = _evBandas((x) => hviSeveridad(x, sx), 40, 220, 1, 0);
@@ -39638,9 +39663,9 @@ function evRefPintar(id) {
     const B = _evRefBiblio(['DIM-VI-001', 'DIM-VI-002', 'DIM-VI-003', 'DIM-VI-004',
                             'FUN-VI-001', 'MAS-VI-001', 'MAS-VI-002', 'GEO-VI-001', 'GEO-VI-002']);
     host.appendChild(_evRefTabla([
-      { ficha: 'DIM-VI-001', rot: 'Diámetro diastólico — normal', h: '≤ 58 mm', m: '≤ 58 mm' },
-      { ficha: 'DIM-VI-001', rot: 'Diámetro diastólico — levemente dilatado', h: '59 a 65 mm', m: '59 a 65 mm' },
-      { ficha: 'DIM-VI-001', rot: 'Diámetro diastólico — dilatado', h: '> 65 mm', m: '> 65 mm' },
+      { ficha: 'DIM-VI-001', rot: 'Diámetro diastólico — normal', h: '≤ ' + DDVI_NORMAL_MAX_H + ' mm', m: '≤ ' + DDVI_NORMAL_MAX_M + ' mm' },
+      { ficha: 'DIM-VI-001', rot: 'Diastólico — leve / moderado', h: (DDVI_NORMAL_MAX_H + 1) + ' a ' + DDVI_LEVE_MAX_H + ' · ' + (DDVI_LEVE_MAX_H + 1) + ' a ' + DDVI_MODERADO_MAX_H + ' mm', m: (DDVI_NORMAL_MAX_M + 1) + ' a ' + DDVI_LEVE_MAX_M + ' · ' + (DDVI_LEVE_MAX_M + 1) + ' a ' + DDVI_MODERADO_MAX_M + ' mm' },
+      { ficha: 'DIM-VI-001', rot: 'Diámetro diastólico — severo', h: '> ' + DDVI_MODERADO_MAX_H + ' mm', m: '> ' + DDVI_MODERADO_MAX_M + ' mm' },
       { ficha: 'DIM-VI-002', rot: 'Diámetro sistólico — normal', h: '≤ 40 mm', m: '≤ 35 mm' },
       { ficha: 'DIM-VI-002', rot: 'Diámetro sistólico — leve / moderado', h: '41 a 43 · 44 a 45 mm', m: '36 a 38 · 39 a 41 mm' },
       { ficha: 'DIM-VI-002', rot: 'Diámetro sistólico — severo', h: '> 45 mm', m: '> 41 mm' },
@@ -39658,12 +39683,13 @@ function evRefPintar(id) {
       { ficha: 'GEO-VI-001', rot: 'Espesor parietal relativo aumentado', h: '≥ 0,42', m: '≥ 0,42' },
     ], B.idx));
     host.appendChild(_evRefBarras([
-      { clave: 'ref-vi-ddvi', rotulo: 'Diámetro diastólico (mm)', banda: 'ddvi', lo: 35, hi: 80, unidad: 'mm', dec: 0, ficha: 'DIM-VI-001' },
+      { clave: 'ref-vi-ddvi', rotulo: 'Diámetro diastólico — varón (mm)', banda: 'ddvi', lo: 35, hi: 80, unidad: 'mm', dec: 0, ficha: 'DIM-VI-001' },
       { clave: 'ref-vi-vdfvi', rotulo: 'Volumen telediastólico indexado — varón (ml/m²)', banda: 'vdfvi', lo: 20, hi: 130, unidad: 'ml/m²', dec: 0, ficha: 'DIM-VI-003' },
       { clave: 'ref-vi-vsfvi', rotulo: 'Volumen telesistólico indexado — varón (ml/m²)', banda: 'vsfvi', lo: 5, hi: 70, unidad: 'ml/m²', dec: 0, ficha: 'DIM-VI-004' },
       { clave: 'ref-vi-masa', rotulo: 'Masa indexada — varón (g/m²)', banda: 'masa', lo: 50, hi: 200, unidad: 'g/m²', dec: 0, ficha: 'MAS-VI-002' },
     ], 'M'));
     host.appendChild(_evRefBarras([
+      { clave: 'ref-vi-ddvi-f', rotulo: 'Diámetro diastólico — mujer (mm)', banda: 'ddvi', lo: 35, hi: 80, unidad: 'mm', dec: 0, ficha: 'DIM-VI-001' },
       { clave: 'ref-vi-vdfvi-f', rotulo: 'Volumen telediastólico indexado — mujer (ml/m²)', banda: 'vdfvi', lo: 20, hi: 130, unidad: 'ml/m²', dec: 0, ficha: 'DIM-VI-003' },
       { clave: 'ref-vi-vsfvi-f', rotulo: 'Volumen telesistólico indexado — mujer (ml/m²)', banda: 'vsfvi', lo: 5, hi: 70, unidad: 'ml/m²', dec: 0, ficha: 'DIM-VI-004' },
       { clave: 'ref-vi-masa-f', rotulo: 'Masa indexada — mujer (g/m²)', banda: 'masa', lo: 50, hi: 200, unidad: 'g/m²', dec: 0, ficha: 'MAS-VI-002' },
@@ -55527,7 +55553,7 @@ function generarPDFReal(_aj) {
          rango», o sea que el informe acusaba al derivado y escondía el insumo que lo causó.
          Se consume el objeto de `vPlaus`, que distingue «no hay dato» de «hay dato ilegible». */
       {lbl:'SIV',       ref:'<13 mm',   val:sivV?sivV+' mm'+(_pSiv.fuera?MARCA_REVISAR:''):null},
-      {lbl:'DDVI',      ref:'42-58 mm', val:dd  ?dd  +' mm'+(_pDd.fuera ?MARCA_REVISAR:''):null},
+      {lbl:'DDVI',      ref:'H<=' + DDVI_NORMAL_MAX_H + ' M<=' + DDVI_NORMAL_MAX_M + ' mm', val:dd  ?dd  +' mm'+(_pDd.fuera ?MARCA_REVISAR:''):null},
       {lbl:'DSVI',      ref:'<40 mm',   val:ds  ?ds  +' mm'+(_pDs.fuera ?MARCA_REVISAR:''):null},
       {lbl:'PP',        ref:'<13 mm',   val:pp  ?pp  +' mm'+(_pPp.fuera ?MARCA_REVISAR:''):null},
       /* ⚠️ «H<75 M<61» ERA FALSO EN LAS DOS DIRECCIONES, Y EL CÓDIGO NUNCA ESTUVO MAL.
