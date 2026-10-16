@@ -442,20 +442,53 @@ for (const [motor, tipo, op] of MOTORES) {
       await tocar(pg, '#v2d-abrir');
       await pg.keyboard.press('Escape');
       await pg.waitForTimeout(150);
-      g.trasEscape = await pg.evaluate(() => window.__P.prendido());
-      await pg.mouse.click(20, 400);
-      await pg.waitForTimeout(150);
-      g.trasClicAfuera = await pg.evaluate(() => window.__P.prendido());
-      /* EL DESPLAZAMIENTO DE LA PAGINA: el panel entra en la ventana al prender. */
+      g.sigueTrasEscape = await pg.evaluate(() => window.__P.prendido());
+      /* ⚠️ EL CLIC «AFUERA» VA SOBRE LA PROPIA CAJA DE `#v2d-ov`, AL COSTADO DE LA TARJETA
+         CENTRADA, que es EXACTAMENTE el gesto que la ventana flotante interpretaba como cerrar.
+         Un clic en un punto cualquiera de la pagina no sirve de denominador: la primera corrida
+         clickeo en (20,400), eso cayo sobre un boton del rail, `showTab` corrio y el panel se
+         apago —asi que la sonda informo «el clic afuera cierra» sobre un gesto que en realidad
+         era un cambio de pestana—. Y encima dejaba la pagina en otra pestana, con lo que los dos
+         clics siguientes abortaban. */
+      g.clicAfuera = await pg.evaluate(() => {
+        const ov = document.getElementById('v2d-ov'), ca = document.getElementById('v2d-card');
+        if (!ov || !ca) return { err: 'NO EXISTE' };
+        const ro = ov.getBoundingClientRect(), rc = ca.getBoundingClientRect();
+        const x = Math.round(ro.left + Math.max(4, (rc.left - ro.left) / 2));
+        const y = Math.round(rc.top + rc.height / 2);
+        const blanco = document.elementFromPoint(x, y);
+        return { x: x, y: y, hueco: Math.round(rc.left - ro.left),
+                 blancoId: blanco ? (blanco.id || blanco.tagName) : null,
+                 esElOv: blanco === ov,
+                 onclickOv: ov.getAttribute('onclick') };
+      });
+      if (g.clicAfuera && g.clicAfuera.esElOv) {
+        await pg.mouse.click(g.clicAfuera.x, g.clicAfuera.y);
+        await pg.waitForTimeout(150);
+        g.sigueTrasClicAfuera = await pg.evaluate(() => window.__P.prendido());
+      } else {
+        g.sigueTrasClicAfuera = 'SIN DENOMINADOR: el punto no cae sobre #v2d-ov';
+      }
+      /* EL DESPLAZAMIENTO DE LA PAGINA: con el panel apagado y la pagina ARRIBA, el pie de
+         Valvulas queda muy por debajo del borde; al prender, la pagina baja sola y el panel entra
+         en la ventana. */
       await tocar(pg, '#v2d-abrir');
       await pg.evaluate(() => window.scrollTo(0, 0));
-      await tocar(pg, '#v2d-abrir');
-      await pg.waitForTimeout(900);
+      await pg.waitForTimeout(150);
+      g.antesDeAbrir = await pg.evaluate(() => {
+        const b = document.getElementById('v2d-abrir'); if (!b) return 'NO EXISTE';
+        const r = b.getBoundingClientRect();
+        return { scrollY: Math.round(window.scrollY), botonTop: Math.round(r.top),
+                 vh: window.innerHeight, botonFueraDeLaVentana: r.top >= window.innerHeight };
+      });
+      await pg.evaluate(() => { const b = document.getElementById('v2d-abrir'); if (b) b.click() });
+      await pg.waitForTimeout(1100);
       g.desplazo = await pg.evaluate(() => {
         const o = document.getElementById('v2d-ov'); if (!o) return 'NO EXISTE';
         const r = o.getBoundingClientRect();
-        return { scrollY: Math.round(window.scrollY), top: Math.round(r.top),
-                 bottom: Math.round(r.bottom), vh: window.innerHeight,
+        return { prendido: window.__P.prendido(), scrollY: Math.round(window.scrollY),
+                 top: Math.round(r.top), bottom: Math.round(r.bottom), h: Math.round(r.height),
+                 vh: window.innerHeight,
                  dentro: r.top >= -1 && r.top < window.innerHeight };
       });
       await pg.close();

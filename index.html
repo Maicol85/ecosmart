@@ -2523,9 +2523,20 @@ html.light-mode .amilo-root{
    las dos columnas de tarjetas tienen ANCHO FIJO (dentro de los 170-190 px que la orden pide), la
    del dibujo mide lo que el dibujo pide, y `justify-content:center` agrupa las tres en el medio en
    vez de estirarlas. El gap baja de 14 a 10 px: las tarjetas quedan PEGADAS al dibujo. */
-#v2d-grid{display:grid;grid-template-columns:184px auto 184px;
+/* ⚠️ LA COLUMNA DEL MEDIO TIENE ANCHO EXPLICITO, Y ES EL ARREGLO DEL DEFECTO DE CHROME (Y1c).
+   Era `auto`, o sea que se dimensionaba por el MAX-CONTENT de lo que tuviera adentro — y lo mas
+   ancho de esa columna no es el dibujo sino la LINEA DE FASE, cuyo texto cambia en cada fase del
+   latido. Medido en los dos motores sobre 120 fases: la columna oscilaba entre 130,83 px
+   («Sístole / eyección») y 218,25 px («Sístole / contracción isovolumétrica»), 87,42 px de
+   recorrido, y con ella se movian las dos columnas de tarjetas (43,7 px de desplazamiento
+   horizontal cada una) y la tabla de cavidades (87,42 px de ancho y 43,7 de desplazamiento).
+   ⚠️ EL `viewBox` NO ERA LA CAUSA, y eso tambien esta medido: el `<svg>` daba dw=0 y dh=0 en las
+   120 fases. `fitView()` se llama solo desde `v2dSync`, no por cuadro.
+   Los 240 px salen de medir: el texto de fase mas largo pide 218,25 px a 11 px de tipografia y el
+   lienzo del dibujo mide 220. No es un numero redondo. */
+#v2d-grid{display:grid;grid-template-columns:184px 240px 184px;
   gap:8px 10px;align-items:start;justify-content:center;}
-#v2d-dibujo{grid-column:2;grid-row:1;}
+#v2d-dibujo{grid-column:2;grid-row:1;min-width:0;}
 #v2d-col-insuf{grid-column:1;grid-row:1;}
 #v2d-col-esten{grid-column:3;grid-row:1;}
 #v2d-cav{grid-column:1 / -1;grid-row:2;}
@@ -2539,9 +2550,6 @@ html.light-mode .amilo-root{
   /* En angosto el panel toma el 100 % del ancho de la pantalla de Valvulas, sin techo. */
   #v2d-card{width:auto;margin:0;}
   #v2d-cuerpo{padding:10px;}
-  /* En UNA columna el dibujo vuelve a ocupar el ancho y su alto lo da la proporcion: con el alto
-     fijo de escritorio quedaria angosto y con aire a los costados. */
-  #v2d-svg{width:100%;height:auto;max-height:240px;}
 }
 .v2d-grp{font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text2);
   margin:0 0 4px;}
@@ -2606,14 +2614,46 @@ html.light-mode .amilo-root{
 .v2d-pq-dec{color:var(--accent2);font-weight:700;}
 .v2d-pq-nv{color:var(--text2);font-style:normal;}
 .v2d-pq-aviso{grid-column:1 / -1;color:var(--orange);line-height:1.3;margin-top:2px;}
-#v2d-svg{display:block;width:auto;height:clamp(200px,calc(100vh - 520px),320px);
-  max-width:100%;margin:0 auto;}
+/* ⚠️ EL LIENZO TIENE ANCHO Y ALTO EXPLICITOS EN PX, LOS DOS (Y1c) — DECISION DE MAICOL.
+   El Y1b lo escalaba con `height:clamp(200px,calc(100vh - 520px),320px)`, que dependia de la
+   ALTURA DE LA VENTANA porque el panel tenia techo de alto: con 300 px la tabla de cavidades
+   completa no entraba en el 85 vh de una ventana de 700 px. Sin techo de alto —hoy la que se
+   desplaza es la pagina— el alto vuelve a los 300 px que la orden pide y deja de depender del
+   viewport.
+   ⚠️ Y NO HAY UNA SOLA ALTURA EN `vh` NI EN PORCENTAJE en toda la cadena, que es la regla del
+   panel 3D de ETE y el arreglo de raiz del defecto de Safari: lo que WebKit resolvia a casi cero
+   eran los porcentajes contra contenedores de altura indefinida.
+   ⚠️ SE ESCALA SOLO EL CONTENEDOR: con la caja fija, el `preserveAspectRatio` por omision
+   (`xMidYMid meet`) encuadra el dibujo adentro y lo centra. NO se toca una curva, un chorro ni un
+   cuadro de la animacion, y el dibujo de un corazon dilatado —que tiene otro `viewBox`— se
+   acomoda en la MISMA caja en vez de agrandarla. */
+#v2d-svg{display:block;width:220px;height:300px;max-width:100%;margin:0 auto;}
+/* ⚠️ EL ANGOSTO VA EN SU PROPIA MEDIA QUERY Y DESPUES DE LA REGLA DE ESCRITORIO, NO DENTRO DEL
+   BLOQUE DE ARRIBA, y es una leccion pagada en esta misma tanda: los dos selectores son `#v2d-svg`,
+   o sea la MISMA especificidad, asi que gana el que va ultimo en la hoja — y el bloque angosto de
+   `#v2d-card` esta ANTES. Puesto alla, la regla no ganaba y el lienzo medía 220x300 tambien a 390
+   y a 360 px: una regla que no gana se lee igual que un arreglo aplicado.
+   En HEAD esto pasaba desapercibido porque su regla angosta acotaba con `max-height`, que le gana
+   a `height` por cascada de propiedad y no por orden. */
+@media (max-width:768px){
+  #v2d-svg{width:100%;height:240px;}
+}
 #v2d-ciclo{margin-top:6px;}
 #v2d-bar{position:relative;height:11px;border-radius:7px;background:var(--bg3);overflow:hidden;display:flex;}
 #v2d-bar .v2d-s{background:var(--v2d-sys);opacity:.6;width:36%;}
 #v2d-bar .v2d-d{background:var(--v2d-dia);opacity:.4;width:64%;}
 #v2d-mark{position:absolute;top:-2px;width:3px;height:15px;border-radius:2px;background:var(--text);}
-#v2d-fase{display:flex;justify-content:space-between;gap:8px;font-size:11px;margin-top:4px;color:var(--text2);}
+/* ⚠️ UN SOLO RENGLON DE ALTO FIJO Y SIN SALTO DE LINEA (Y1c). Es la otra mitad del arreglo del
+   defecto de Chrome: con la columna de ancho fijo, un texto mas largo que la columna envolveria
+   en dos renglones y el ALTO de la fila cambiaria con la fase, moviendo la tabla de abajo. Con
+   `nowrap`, `height` fijo y el recorte por puntos suspensivos, ni el ancho ni el alto pueden
+   moverse. El texto completo viaja en el `title` del renglon, que `render` escribe en el mismo
+   sitio donde ya decidia si el texto cambio. Medido: a 11 px el texto mas largo pide 218,25 px y
+   la columna mide 240, asi que HOY no se recorta ninguno de los cinco; el recorte es la red por
+   si alguna vez un texto crece. */
+#v2d-fase{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:11px;
+  height:15px;line-height:15px;margin-top:4px;color:var(--text2);overflow:hidden;}
+#v2d-fase > span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
 #v2d-fase b{color:var(--text);}
 #v2d-cav table{width:100%;border-collapse:collapse;font-size:11.5px;}
 #v2d-cav th,#v2d-cav td{text-align:left;padding:1px 6px;border-bottom:1px solid var(--border);
@@ -112376,7 +112416,11 @@ function render(t){
   nAI.setAttribute('x',f(122+DIL.la[S.dai]*32));nAI.setAttribute('y',f(238+DIL.la[S.dai]*22));
   nAD.setAttribute('x',f(62-DIL.ra[S.dad]*24));nAD.setAttribute('y',f(238+DIL.ra[S.dad]*22));
   mark.style.left='calc('+f(p*100)+'% - 1px)';
-  var tx=faseTxt(p);if(tx[0]+tx[1]!==lastTxt){lastTxt=tx[0]+tx[1];fase.textContent=tx[0];fase2.textContent=tx[1];}
+  /* ⚠️ EL `title` VA EN EL MISMO GUARDADO QUE EL TEXTO, no en cada cuadro: es el texto completo
+     para el caso en que el renglon se recorte con puntos suspensivos (el nombre accesible que la
+     orden pide). Escribirlo por cuadro seria trabajo en 60 Hz para un valor que cambia cinco
+     veces por ciclo. */
+  var tx=faseTxt(p);if(tx[0]+tx[1]!==lastTxt){lastTxt=tx[0]+tx[1];fase.textContent=tx[0];fase2.textContent=tx[1];fase2.title=tx[1];}
 }
 
 
