@@ -429,3 +429,79 @@ pierde es el valor de la AEO indexada, que sigue entero en el informe, en la fil
    `VM_PROT_OBSTR_MIN` pelada y contra HEAD moría con un `ReferenceError` que se llevaba las otras
    46 condiciones. Las dos que **no** están en `window` —`EM_CONT_REGURG_MIN` y `VINFO`— existen en
    HEAD, así que ahí `typeof` alcanza.
+
+---
+
+## La tanda Z6 (2026-10-15) — el gradiente medio deja de votar en dos escenas
+
+### Z6-1 · Con regurgitación protésica significativa, el gradiente medio se retira
+
+La nota `‡` de la **Tabla 11 (folio 27)** marca **tres** parámetros —velocidad pico, gradiente medio
+y DVI— y dice que también son anormales con una regurgitación protésica **significativa**. El AEO y
+el THP no la llevan. Hasta el Z5 la app retiraba el AEO y el DVI y el gradiente seguía contando: era
+la entrada **Z5-1** de `PENDIENTES`, declarada como límite en TC-480.
+
+**Hoy el gradiente se retira con el MISMO dueño y el MISMO umbral que el DVI**:
+`emContMotivoNoVota` (`EM_CONT_REGURG_MIN` vale 2, o sea **moderada**). Un segundo umbral acá sería
+la lista paralela que este bloque ya pagó, y la pantalla diría dos cosas sobre el mismo paciente.
+
+| escena (prótesis mecánica, AEO 1,57 · DVI 2,00 · gradiente 12 · THP 250) | HEAD | hoy |
+|---|---|---|
+| sin IM | significativa (2 de 4) | **igual** |
+| IM leve | significativa (2 de 4) | **igual** |
+| **IM moderada** | significativa (2 de 2) + línea en el informe | **posible (1 de 1), la línea SALE** |
+| **IM severa** | significativa (2 de 2) + línea en el informe | **posible (1 de 1), la línea SALE** |
+
+⚠️ **LA VELOCIDAD PICO NO SE TOCA** aunque la nota la marque: no vota —la prosa del folio 24 la
+omite— así que retirarla no cambiaría ningún veredicto y sólo le quitaría al médico la banda que la
+tabla sí publica. Es la entrada **Z5-2**, y la orden lo prohíbe.
+
+### Z6-2 · Con el THP normal y prótesis MECÁNICA, el gradiente no vota estenosis
+
+**Tabla 12, folio 28**: hallazgos sugestivos de regurgitación protésica significativa **en válvulas
+mecánicas con THP normal**, y el gradiente medio `≥ 5` mmHg es uno de ellos (sensibilidad 90 %,
+especificidad 70 %). El mismo número que la Tabla 11 lee como estenosis, la Tabla 12 lo lee como
+regurgitación cuando el THP es normal.
+
+| escena (mecánica, AEO 1,21 · DVI 2,60 · gradiente 12) | HEAD | hoy |
+|---|---|---|
+| sin THP | significativa | **igual** |
+| **THP 100 (normal)** | significativa + línea | **posible (1 de 3), la línea SALE** |
+| **THP 129** | significativa | **posible** |
+| THP 130 (ya «posible») | significativa | **igual** — el borde separa |
+| THP 250 (anormal) | significativa | **igual** |
+| **biológica, THP 100** | significativa | **igual** — la Tabla 12 es de mecánicas |
+| mecánica, THP 100, gradiente 4 (banda normal) | — | **no se retira**: no hay nada que reinterpretar |
+
+⚠️ **LA ACOTACIÓN A LAS MECÁNICAS ES DE LA GUÍA Y NO DE LA ORDEN**, que no la pedía: el título de la
+Tabla 12 dice «in mechanical valves». Extenderlo a las biológicas sería aplicar un corte fuera del
+alcance de su fuente.
+⚠️ **NO SE AGREGA NINGÚN HALLAZGO AL INFORME.** La guía propone además *decir* que eso orienta a
+regurgitación; la orden lo prohíbe y queda como propuesta en `PENDIENTES` → **Y1-5**.
+
+### Las dos filas y sus motivos
+
+`R.gmedRetiro` viaja con el nivel y la fila lo publica: «12.0 mmHg (no concluye: …)».
+⚠️ **EL MOTIVO ES PROPIO Y NO EL DE LA CONTINUIDAD.** Copiar `EM_CONT_AVISO_TXT` publicaba «AVm por
+continuidad no válida con regurgitación significativa» en la fila del **gradiente**, que no se
+calcula por continuidad. Hoy dice «sube igual con la regurgitación protésica significativa»
+(`VM_PROT_GMED_RETIRO_TXT`) o «con el THP normal, un gradiente elevado orienta a regurgitación»
+(`VM_PROT_GMED_THP_TXT`). Son textos de **pantalla**: ese renglón no viaja al informe, al PDF ni al
+Excel.
+⚠️ **Y `_t11Fila` GANÓ LA RAMA DEL RETIRO**: sin ella imprimía **«undefined»** al lado del número,
+que es como una pantalla clínica publica un error de programa donde iba un veredicto.
+
+### Z6-3a · La fila del PPM no pide un AEO que ya existe
+
+Con el AEO **retirado** —por regurgitación o por un insumo fuera de banda— la fila publicaba «falta
+el AEO por continuidad»: no era falso, pero «falta» se lee como «cargalo» sobre un área que sí se
+midió. **Se eligió no decir nada** (la conservadora de las dos salidas de la orden): el motivo real
+ya lo publica la fila del AEO dos renglones más arriba, y repetirlo serían dos filas contiguas con
+el mismo texto. **El pedido legítimo se conserva**: con el AEO de verdad ausente la fila lo sigue
+pidiendo, y la superficie corporal también.
+
+### La tarjeta ⓘ describe exactamente lo que la app hace
+
+`VINFO['prot-obstr']`, bloque «a tener en cuenta», nombra hoy **los dos retiros** del gradiente y ya
+no dice «el gradiente medio sigue contando». TC-481 lo exige por los dos lados: que el texto nuevo
+esté y que el viejo **no**.

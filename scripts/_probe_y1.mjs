@@ -956,6 +956,11 @@ async function main() {
     await tipear('ai_vol', '45');
     g.cargado = {};
     for (const est of ['conciso', 'estandar', 'narrativo']) g.cargado['inf_' + est] = await ev(`window.__P.informe('${est}')`);
+    /* ⚠️ EL ESTILO DEL INFORME ES ESTADO DE SESION: el bucle de arriba deja el NARRATIVO puesto,
+       asi que la fila del Excel se llevaria ese texto y la comparacion de mas abajo —que
+       regenera en estandar— informaria dos diferencias que son del estilo y no de la vista. Se
+       vuelve a estandar ANTES de leer el Excel. */
+    await ev(`window.__P.informe('estandar')`);
     g.cargado.grados = await ev(`window.__P.grados()`);
     g.cargado.excel = await ev(`window.__P.excelDOM()`);
     g.cargado.diast = await ev(`window.__P.txt('dd-interp')`);
@@ -1023,6 +1028,50 @@ async function main() {
       g.jets = await ev(`window.__P.v2dJorg()`);
       g.dibujo = await ev(`window.__P.v2dDibujo()`);
       await ev(`window.__P.v2dCerrarBoton()`); }
+    /* LAS ESCENAS REPRESENTATIVAS que la verificacion de la orden pide, cada una en los DOS
+       temas: sana, una lesion nativa de cada valvula, las dos protesis, varias a la vez y un
+       grado fijado A MANO. Se capturan a 1200 y a 390 px, que son los dos extremos de la
+       maqueta; los otros dos anchos se miden numericamente en el grupo `maqueta`. */
+    const REPRE = [
+      ['sana',        {}],
+      ['im-severa',   { sev: [['insuf','mitral','4']] }],
+      ['iao-severa',  { sev: [['insuf','aortica','4']] }],
+      ['it-moderada', { sev: [['insuf','tricuspide','2']] }],
+      ['eao-severa',  { campos: { vmax_ao: '4.6' } }],
+      ['em-signif',   { selects: [['em_grado','severa']] }],
+      ['et-signif',   { selects: [['et_grado','Significativa']] }],
+      ['prot-mec-mitral', { selects: [['vm_morf','Prótesis mecánica']],
+        campos: { em_dtsvi:'20', em_vtitsvi:'20', em_vtimit:'52', em_gmedio:'12', thp:'250' } }],
+      ['prot-bio-aortica', { selects: [['va_morf','Prótesis biológica']],
+        campos: { ea_dtsvi:'20', itv_tsvi:'20', itv_ao:'90', vmax_ao:'4.2', gmedio_ao:'45' } }],
+      ['prot-bio-tricusp', { selects: [['vt_morf','Prótesis biológica']] }],
+      ['varias',      { sev: [['insuf','mitral','2'],['insuf','aortica','4'],['insuf','tricuspide','2']],
+        campos: { peso:'80', talla:'170', ddfvi:'66', fevi:'30', ai_vol:'105', vd_bas:'47',
+                  tapse:'14', s_prime:'8', ad_area:'24', siv:'14', ppvi:'14' } }],
+      ['grado-a-mano', { campos: { im_vc: '8' }, fn: ['calcIM_ESC()'],
+        sev: [['insuf','mitral','2']] }]
+    ];
+    for (const [nom, sp] of REPRE) {
+      /* ⚠️ SE VUELVE A 1200 px Y AL TEMA OSCURO ANTES DE CARGAR LA ESCENA. A 390 px varios campos
+         de Valvulas quedan sin geometria —la pantalla colapsa sus cajas— y la sonda ABORTA al
+         tipear, que es lo correcto: a esa altura la escena no se cargo y la captura seria de otro
+         paciente. Se carga ancho y se captura despues. */
+      await ev(`window.__P.tema(false)`);
+      await viewport(1200, 900);
+      await escena(sp);
+      for (const claro of [false, true]) {
+        await ev(`window.__P.tema(${claro})`);
+        await viewport(claro ? 390 : 1200, 900);
+        await ev(`window.__P.v2dAbrir()`);
+        await ev(`window.__P.v2dFase(0.30)`);
+        await pausa(150);
+        const r = await cdp.send('Page.captureScreenshot', { format: 'png' }, sessionId);
+        const f = join(DEST, 'esc_' + nom + '_' + (claro ? 'claro390' : 'oscuro1200') + '.png');
+        await writeFile(f, Buffer.from(r.data, 'base64'));
+        g.archivos.push(f);
+        await ev(`window.__P.v2dCerrarBoton()`);
+      }
+    }
     await ev(`window.__P.tema(false)`); await viewport(1200, 900);
     out.grupos.captura = g;
   }

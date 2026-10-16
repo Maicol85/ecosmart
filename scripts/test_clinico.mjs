@@ -68310,6 +68310,323 @@ caso('TC-481', 'Tanda Z6: el gradiente medio de la protesis mitral se retira con
   })();
 `);
 
+caso('TC-482', 'Tanda Y1: la VISTA 2D de las valvulas — el boton al pie de Valvulas visible para todos, el panel que abre y cierra por sus tres caminos con el foco de ida y vuelta y SIN animacion mientras esta cerrada, un lector unico del estado, las tarjetas de las seis lesiones y de las protesis con el MISMO grado que el informe y el EN SUMA, la tabla de cavidades con lo cargado, y nada escrito en el estudio ni en el navegador', `
+  return (async function(){
+    const ex = [];
+    const EL  = (id) => document.getElementById(id);
+    const V   = (id) => { const e = EL(id); return e ? e.value : null; };
+    const T   = (id) => { const e = EL(id); return e ? (e.textContent || '').trim() : 'NO EXISTE'; };
+    const FN  = (n) => typeof window[n] === 'function';
+    const S   = (id, v) => { try { __t.set(id, v); } catch (e) {} };
+    const INF = (estilo) => { try { if (FN('setEstiloInforme')) setEstiloInforme(estilo); } catch (e) {}
+      try { if (FN('generarInforme')) generarInforme(); } catch (e) {}
+      return { inf: V('informe_texto') || '', suma: V('en_suma') || '' }; };
+    /* ⚠️ TODA LECTURA DE LA VISTA VA POR UN AYUDANTE CON CENTINELA. Contra HEAD ni el boton ni
+       el overlay ni \`v2dEstado\` existen, y un \`.length\` sobre undefined mata la corrida entera
+       con un TypeError: eso prueba que el arbol es distinto, no que el caso sabe medir. Es la
+       leccion que TC-455, TC-462, TC-465, TC-471, TC-473, TC-474, TC-477, TC-480 y TC-481 ya
+       tienen escrita. */
+    const E2D = () => { try { return FN('v2dEstado') ? v2dEstado() : null; } catch (e) { return null; } };
+    const LISTA = (E, k) => (E && Array.isArray(E[k])) ? E[k] : [];
+    const CAV = (E) => (E && Array.isArray(E.cav)) ? E.cav : [];
+    const ABIERTO = () => { const o = EL('v2d-ov');
+      return !!(o && getComputedStyle(o).display !== 'none'); };
+    const ABRIR = () => { try { if (FN('showTab')) showTab('valvulas'); } catch (e) {}
+      const b = EL('v2d-abrir'); if (b) b.click(); return ABIERTO(); };
+    const CERRAR = () => { const b = EL('v2d-cerrar'); if (b) b.click(); return ABIERTO(); };
+    const TARJ = (id) => { const ul = EL(id); if (!ul) return [];
+      return Array.prototype.slice.call(ul.children).map(function(li){
+        const chip = li.querySelector('.v2d-chip');
+        return { txt: String(li.textContent || '').trim(),
+                 vacio: String(li.className || '').indexOf('v2d-vacio') > -1,
+                 chip: chip ? String(chip.textContent || '').trim() : null,
+                 cls: chip ? String(chip.className || '') : '',
+                 bg: chip ? getComputedStyle(chip).backgroundColor : null }; }); };
+    const OPC = (id) => { const e = EL(id);
+      return e ? Array.prototype.slice.call(e.options || []).map(function(o){ return o.value }) : []; };
+    const NAT = (id) => OPC(id).filter(function(o){ return o && !/tesis|TAVI/i.test(o) })[0];
+    const MEC = (id) => OPC(id).filter(function(o){ return /mec/i.test(o) })[0];
+    const BIO = (id) => OPC(id).filter(function(o){ return /biol/i.test(o) })[0];
+    const NUEVO = () => { try { if (FN('limpiarCampos')) limpiarCampos(true); } catch (e) {} };
+    const SEV = (tipo, valv, g) => { try { if (typeof valvSev === 'object' && valvSev) valvSev.aplicar(tipo, valv, g); } catch (e) {} };
+    const PILL = (v, t) => { try { return FN('pillOn') ? pillOn(v, t) : null; } catch (e) { return null; } };
+    const FUENTE = () => String(document.documentElement.innerHTML || '');
+
+    /* ══ A · EL BOTON Y EL PANEL ════════════════════════════════════════════════════════ */
+    NUEVO();
+    try { if (FN('showTab')) showTab('valvulas'); } catch (e) {}
+    { const b = EL('v2d-abrir');
+      const r = b ? b.getBoundingClientRect() : null;
+      ex.push(['DENOMINADOR: el boton existe al pie de Valvulas y TIENE geometria',
+        !!b && !!r && r.width > 0 && r.height > 0,
+        r ? Math.round(r.width) + 'x' + Math.round(r.height) : 'SIN BOTON']);
+      /* VISIBLE PARA TODOS: no cuelga de ninguna compuerta de plan. \`data-mod\` es el atributo
+         con el que \`applyViewMode\` esconde los botones del rail; este no lo lleva. */
+      ex.push(['es visible para TODOS los usuarios: no lleva data-mod ni ninguna compuerta de plan',
+        !!b && !b.getAttribute('data-mod') &&
+        String((b.closest('[data-mod]') || {}).tagName || '') === '',
+        b ? 'mod=' + String(b.getAttribute('data-mod')) : 'SIN BOTON']);
+      /* OBJETIVO TACTIL COMODO: el piso de 44 px que esta app ya aplica a sus controles. */
+      ex.push(['el objetivo tactil es comodo: 44 px de alto minimo',
+        !!b && parseFloat(getComputedStyle(b).minHeight) >= 44,
+        b ? getComputedStyle(b).minHeight : 'SIN BOTON']); }
+    ex.push(['DENOMINADOR: la vista arranca CERRADA', ABIERTO() === false, String(ABIERTO())]);
+    /* ⚠️ NADA CORRE CON LA VISTA CERRADA, y se mide preguntandole al dueno del bucle. El conteo
+       de cuadros reales lo hace la sonda, que puede esperar; un caso no puede dormir. */
+    ex.push(['con la vista cerrada el latido NO esta corriendo',
+      (function(){ try { return FN('v2dCorriendo') ? v2dCorriendo() === false : 'SIN FN'; }
+        catch (e) { return 'EXC'; } })() === true, '']);
+    ex.push(['el boton ABRE la vista y el foco entra a la tarjeta',
+      ABRIR() === true && document.activeElement && document.activeElement.id === 'v2d-card',
+      'activo=' + String(document.activeElement ? document.activeElement.id : null)]);
+    ex.push(['con la vista abierta el latido SI corre',
+      (function(){ try { return FN('v2dCorriendo') ? v2dCorriendo() : 'SIN FN'; }
+        catch (e) { return 'EXC'; } })() === true, '']);
+    ex.push(['el boton de cerrar la cierra, para el latido y DEVUELVE el foco al boton que abrio',
+      CERRAR() === false &&
+      (function(){ try { return v2dCorriendo() === false; } catch (e) { return false; } })() &&
+      document.activeElement && document.activeElement.id === 'v2d-abrir',
+      'activo=' + String(document.activeElement ? document.activeElement.id : null)]);
+    /* Tocar FUERA cierra: el clic sobre el overlay y no sobre la tarjeta. */
+    ex.push(['tocar fuera de la tarjeta cierra la vista',
+      (function(){ ABRIR(); const o = EL('v2d-ov'); if (o) o.click(); return ABIERTO() === false; })(), '']);
+    /* ESCAPE: el caso no puede mandar una tecla de confianza, asi que afirma el MECANISMO —el
+       dialogo es modal, que es lo que lo mete en el oyente generico, y su boton de cerrar
+       matchea el patron que ese oyente busca—. La tecla real la manda la sonda. */
+    { const c = EL('v2d-card'), b = EL('v2d-cerrar');
+      ex.push(['Escape cierra por el oyente generico: el dialogo es modal y su boton matchea el patron /cerrar/',
+        !!c && c.getAttribute('role') === 'dialog' && c.getAttribute('aria-modal') === 'true' &&
+        !!b && /cerrar/i.test(String(b.getAttribute('onclick') || '')),
+        (c ? c.getAttribute('aria-modal') : '?') + ' / ' + (b ? b.getAttribute('onclick') : '?')]); }
+
+    /* ══ B · LAS TARJETAS DE LAS SEIS LESIONES NATIVAS ══════════════════════════════════
+       Cada escena deja la lesion en un grado que el informe TAMBIEN publica, y la condicion
+       compara las dos superficies: la tarjeta no puede discrepar del papel. */
+    const ESC = (f) => { NUEVO(); S('peso', '80'); S('talla', '170');
+      f(); try { if (FN('showTab')) showTab('valvulas'); } catch (e) {}
+      const inf = INF('estandar'); ABRIR();
+      const E = E2D();
+      const r = { E: E, inf: inf, insuf: TARJ('v2d-insuf'), esten: TARJ('v2d-esten') };
+      CERRAR(); return r; };
+    const SEIS = [
+      ['IM severa',        function(){ SEV('insuf','mitral','4'); },     'insuf', 'IM severa'],
+      ['IAo moderada',     function(){ SEV('insuf','aortica','2'); },    'insuf', 'IAo moderada'],
+      ['IT leve',          function(){ SEV('insuf','tricuspide','1'); }, 'insuf', 'IT leve'],
+      ['EAo severa',       function(){ SEV('esten','aortica','severa'); },  'esten', 'EAo severa'],
+      ['EM significativa', function(){ SEV('esten','mitral','severa'); },   'esten', 'EM significativa'],
+      ['ET significativa', function(){ SEV('esten','tricuspide','Significativa'); }, 'esten', 'ET significativa']
+    ];
+    SEIS.forEach(function(e){
+      const r = ESC(e[1]);
+      const col = r[e[2]], otra = r[e[2] === 'insuf' ? 'esten' : 'insuf'];
+      const hay = col.filter(function(x){ return !x.vacio; });
+      const frase = e[3];
+      ex.push(['tarjeta de ' + e[0] + ': la publica su columna, con el MISMO grado que el EN SUMA',
+        hay.length === 1 && hay[0].txt.indexOf(frase) > -1 &&
+        r.inf.suma.indexOf(frase + '.') > -1,
+        (hay[0] ? hay[0].txt : 'SIN TARJETA') + ' || suma=' +
+        r.inf.suma.split(String.fromCharCode(10)).filter(function(l){ return l.indexOf(frase.split(' ')[0]) === 0 }).join(' ')]);
+      ex.push(['y la otra columna NO inventa una tarjeta: publica su linea de «sin ...»',
+        otra.length === 1 && otra[0].vacio === true, otra.length ? otra[0].txt : 'VACIA']);
+    });
+
+    /* ══ C · EL GRADO FIJADO A MANO MANDA, Y UNA LESION SIN GRADUAR DICE LO MISMO QUE EL PAPEL ══ */
+    { /* El calculo daria SEVERA por la vena contracta; el medico consigna MODERADA. */
+      const r = ESC(function(){ S('im_vc', '8'); try { if (FN('calcIM_ESC')) calcIM_ESC(); } catch (e) {}
+        SEV('insuf','mitral','2'); });
+      const hay = r.insuf.filter(function(x){ return !x.vacio; });
+      ex.push(['con un grado fijado A MANO la tarjeta publica lo que el medico puso, igual que el informe',
+        hay.length === 1 && hay[0].txt.indexOf('IM moderada') > -1 && hay[0].chip === 'Moderada' &&
+        r.inf.suma.indexOf('IM moderada.') > -1 && r.inf.suma.indexOf('IM severa.') === -1,
+        (hay[0] ? hay[0].txt : 'SIN TARJETA')]); }
+    { /* Pastilla PRENDIDA y sin grado: la lesion existe y no se gradua. */
+      const r = ESC(function(){ try { if (PILL('mitral','insuf') !== true && FN('toggleValvPill'))
+        toggleValvPill('mitral','insuf'); } catch (e) {} });
+      const hay = r.insuf.filter(function(x){ return !x.vacio; });
+      ex.push(['una lesion SIN GRADUAR dice lo mismo que el informe: «presente», no un grado inventado',
+        hay.length === 1 && hay[0].txt.indexOf('IM presente') > -1 &&
+        r.inf.suma.indexOf('IM presente.') > -1,
+        (hay[0] ? hay[0].txt : 'SIN TARJETA') ]); }
+
+    /* ══ D · LAS PROTESIS ═══════════════════════════════════════════════════════════════ */
+    { const rM = ESC(function(){ S('vm_morf', MEC('vm_morf'));
+        S('em_dtsvi','20'); S('em_vtitsvi','20'); S('em_vtimit','52');
+        S('em_gmedio','12'); S('thp','250');
+        try { if (FN('calcEM')) calcEM(); } catch (e) {}
+        try { if (FN('vmProtEOAPintar')) vmProtEOAPintar(); } catch (e) {} });
+      const h = rM.esten.filter(function(x){ return !x.vacio; });
+      ex.push(['PROTESIS MITRAL: la columna de estenosis publica el VEREDICTO PROTESICO y la morfologia, SIN chip de grado',
+        h.length === 1 && h[0].txt.indexOf('obstrucci') > -1 && h[0].txt.indexOf('mec') > -1 &&
+        h[0].chip === null,
+        (h[0] ? h[0].txt : 'SIN TARJETA')]);
+      ex.push(['y el dibujo la dibuja como MECANICA',
+        !!rM.E && rM.E.pm === 2, 'pm=' + String((rM.E || {}).pm)]); }
+    { const rA = ESC(function(){ S('va_morf', BIO('va_morf'));
+        S('ea_dtsvi','20'); S('itv_tsvi','20'); S('itv_ao','90');
+        S('vmax_ao','4.2'); S('gmedio_ao','45');
+        try { if (FN('calcAo')) calcAo(); } catch (e) {} });
+      const h = rA.esten.filter(function(x){ return !x.vacio; });
+      ex.push(['PROTESIS AORTICA: publica su veredicto protesico, sin la escala nativa',
+        h.length === 1 && h[0].txt.indexOf('prot') > -1 && h[0].chip === null &&
+        !!rA.E && rA.E.pao === 1,
+        (h[0] ? h[0].txt : 'SIN TARJETA') + ' pao=' + String((rA.E || {}).pao)]); }
+    { const rT = ESC(function(){ S('vt_morf', BIO('vt_morf')); });
+      ex.push(['PROTESIS TRICUSPIDE: el dibujo la dibuja, y sin lesion NO se inventa una tarjeta',
+        !!rT.E && rT.E.pt === 1 &&
+        rT.esten.filter(function(x){ return !x.vacio; }).length === 0,
+        'pt=' + String((rT.E || {}).pt)]); }
+    /* LIMITE DECLARADO: la vista es la apical de CINCO camaras y no incluye la pulmonar, asi
+       que la cuarta protesis no se dibuja ni tiene tarjeta. Escrito para que el dia que se
+       agregue se note. */
+    ex.push(['LIMITE DECLARADO: la valvula PULMONAR no esta en esta vista —la apical de 5 camaras no la incluye—',
+      (function(){ const E = E2D();
+        return !!E && E.pp === undefined && (window.V2D_VALVS || []).length === 3; })(),
+      'valvulas=' + String((window.V2D_VALVS || []).length)]);
+
+    /* ══ E · LA TABLA DE CAVIDADES ══════════════════════════════════════════════════════ */
+    { const r = ESC(function(){ S('ddfvi','68'); S('fevi','28'); S('ai_vol','110');
+        S('vd_bas','48'); S('tapse','14'); S('s_prime','8'); S('ad_area','25');
+        S('siv','14'); S('ppvi','14');
+        ['calcVI','calcAI','calcVD','calcAD'].forEach(function(f){ try { if (FN(f)) window[f](); } catch (e) {} }); });
+      const c = CAV(r.E);
+      const rot = c.map(function(f){ return f.rot; }).join('|');
+      ex.push(['la tabla de cavidades trae las CUATRO camaras con los rotulos y las categorias que la app ya publica',
+        c.length >= 7 && rot.indexOf('FEVI') > -1 &&
+        c.filter(function(f){ return f.grupo === 'VI' }).length >= 2 &&
+        c.filter(function(f){ return f.grupo === 'VD' }).length >= 2 &&
+        c.filter(function(f){ return f.grupo === 'AI' }).length >= 1 &&
+        c.filter(function(f){ return f.grupo === 'AD' }).length >= 1,
+        c.length + ' filas: ' + rot]);
+      /* ⚠️ CON CENTINELA: contra HEAD la tabla no existe y la lista viene VACIO, asi que un indice directo
+         mata la corrida entera con un TypeError —y eso prueba que el arbol es distinto, no que
+         el caso sabe medir—. La primera version de este caso murio exactamente aca. */
+      const CATDE = function(pred){ const f = c.filter(pred)[0];
+        return f ? f.cat : 'SIN FILA'; };
+      ex.push(['y las categorias son las del cuadro de referencias, no una segunda clasificacion',
+        CATDE(function(f){ return f.rot === 'FEVI' }) === T('fevi-interp') &&
+        CATDE(function(f){ return f.grupo === 'AD' }) === T('ad-interp'),
+        CATDE(function(f){ return f.rot === 'FEVI' }) + ' / ' + T('fevi-interp')]);
+      /* Los tramos del dibujo salen de esas MISMAS categorias. */
+      ex.push(['el dibujo achica y agranda las camaras con esas mismas categorias',
+        !!r.E && r.E.dvi > 0 && r.E.dai === 3 && r.E.dvd > 0 && r.E.dad > 0 && r.E.kvi === 2,
+        JSON.stringify(r.E || {})]); }
+
+    /* ══ F · EL FORMULARIO VACIO ════════════════════════════════════════════════════════ */
+    { const r = ESC(function(){});
+      ex.push(['con el formulario VACIO la vista abre sin lesiones y sin tarjetas, y sin tabla',
+        !!r.E && LISTA(r.E,'insuf').length === 0 && LISTA(r.E,'esten').length === 0 &&
+        CAV(r.E).length === 0 &&
+        r.insuf.length === 1 && r.insuf[0].vacio === true &&
+        r.esten.length === 1 && r.esten[0].vacio === true,
+        JSON.stringify({ i:LISTA(r.E,'insuf').length, e:LISTA(r.E,'esten').length, c:CAV(r.E).length })]);
+      ex.push(['y el dibujo abre SIN lesiones: los quince tramos en cero',
+        !!r.E && ['it','iao','im','et','eao','em','pt','pao','pm','geo','dvi','dai','dvd','dad','kvi','kvd']
+          .every(function(k){ return r.E[k] === 0; }), JSON.stringify(r.E || {})]); }
+
+    /* ══ G · NO SE ESCRIBE NADA ═════════════════════════════════════════════════════════ */
+    { const campos = function(){ const c = {};
+        document.querySelectorAll('input[id],select[id],textarea[id]').forEach(function(e){
+          if (e.type === 'checkbox' || e.type === 'radio') return;
+          c[e.id] = e.value; });
+        return JSON.stringify(c); };
+      NUEVO(); S('peso','80'); S('talla','170'); SEV('insuf','mitral','4');
+      INF('estandar');
+      const antes = campos();
+      ABRIR(); const dentro = campos(); CERRAR(); const despues = campos();
+      ex.push(['abrir y cerrar la vista no escribe NI UN campo del estudio',
+        antes === dentro && antes === despues,
+        'antes=' + antes.length + ' dentro=' + dentro.length + ' despues=' + despues.length]);
+      const claves = function(st){ const o = []; try { for (let i = 0; i < st.length; i++) {
+        const k = st.key(i); if (String(k).indexOf('v2d') > -1) o.push(k); } } catch (e) { return ['EXC']; }
+        return o; };
+      ex.push(['y no deja NADA en el navegador: ni en localStorage ni en sessionStorage',
+        claves(localStorage).length === 0 && claves(sessionStorage).length === 0,
+        JSON.stringify(claves(localStorage)) + JSON.stringify(claves(sessionStorage))]);
+      ex.push(['la vista no toca el informe ni el EN SUMA: el papel sale igual con la vista abierta',
+        (function(){ const a = INF('estandar'); ABRIR(); const b = INF('estandar'); CERRAR();
+          return a.inf === b.inf && a.suma === b.suma; })(), '']); }
+
+    /* ══ H · LA MAQUETA Y LOS COLORES ═══════════════════════════════════════════════════
+       ⚠️ EL ANCHO NO SE PUEDE EMULAR DESDE EL CUERPO DE UN CASO: corre DENTRO de la pagina y
+       una media query no se finge. Aca se afirma la REGLA que produce el comportamiento —una
+       sola media query, con las cuatro posiciones explicitas apagadas— y el ancho RENDERIZADO
+       lo mide la sonda, que si tiene el canal para emular el viewport. Es el reparto que
+       TC-460 dejo escrito para el diagrama de la BSE. */
+    { const f = FUENTE();
+      ex.push(['la grilla arma TRES columnas con posicion explicita y UNA sola media query las apaga',
+        f.indexOf('#v2d-dibujo{grid-column:2') > -1 &&
+        f.indexOf('#v2d-col-insuf{grid-column:1') > -1 &&
+        f.indexOf('#v2d-col-esten{grid-column:3') > -1 &&
+        f.indexOf('#v2d-dibujo,#v2d-col-insuf,#v2d-col-esten,#v2d-cav{grid-column:1;grid-row:auto;}') > -1,
+        '']);
+      ex.push(['y el ORDEN DEL MARCADO es el de una columna: dibujo, insuficiencias, estenosis, cavidades',
+        (function(){ const g = EL('v2d-grid'); if (!g) return false;
+          return Array.prototype.slice.call(g.children).map(function(e){ return e.id })
+            .join(',') === 'v2d-dibujo,v2d-col-insuf,v2d-col-esten,v2d-cav'; })(),
+        (function(){ const g = EL('v2d-grid'); return g ? Array.prototype.slice.call(g.children)
+          .map(function(e){ return e.id }).join(',') : 'SIN GRILLA'; })()]);
+      /* LAS 21 VARIABLES DE LA PALETA EXISTEN EN LOS DOS TEMAS. Una que falte deja su trazo con
+         el color del otro tema, que es invisible o estridente — el defecto de \`--amber\`. */
+      const VARS = ['--v2d-myo1','--v2d-myo2','--v2d-myoline','--v2d-bl1','--v2d-bl2','--v2d-br1',
+        '--v2d-br2','--v2d-stroke','--v2d-leaf','--v2d-leafstroke','--v2d-jetder','--v2d-jetao',
+        '--v2d-names','--v2d-sys','--v2d-dia','--v2d-pcuff','--v2d-pmetal','--v2d-pmetalhi',
+        '--v2d-bcuff','--v2d-brod','--v2d-brodhi'];
+      const leer = function(){ const cs = getComputedStyle(document.documentElement);
+        return VARS.map(function(v){ return cs.getPropertyValue(v).trim(); }); };
+      const raiz = document.documentElement;
+      const eraClaro = raiz.classList.contains('light-mode');
+      raiz.classList.remove('light-mode'); const osc = leer();
+      raiz.classList.add('light-mode');    const clr = leer();
+      if (!eraClaro) raiz.classList.remove('light-mode');
+      ex.push(['las 21 variables de la paleta del dibujo RESUELVEN en los dos temas y ninguna queda vacia',
+        osc.every(function(x){ return !!x; }) && clr.every(function(x){ return !!x; }) &&
+        osc.length === 21, osc.filter(function(x){ return !x; }).length + '/' +
+        clr.filter(function(x){ return !x; }).length + ' vacias']);
+      /* ⚠️ VEINTE DE LAS 21 CAMBIAN CON EL TEMA, Y LA QUE NO ES A PROPOSITO. la variable --v2d-brodhi es el
+         BRILLO especular del vastago de la protesis biologica y vale el mismo blanco rosado en
+         los dos temas, exactamente como lo define el dibujo que el medico aprobo: un reflejo no
+         cambia de color con el modo. La condicion lo nombra para que el dia que otra se quede
+         pegada a un solo modo se note, que es lo que esta condicion existe para cazar. */
+      ex.push(['VEINTE de las 21 cambian con el tema; la unica que no es el brillo del vastago biologico',
+        osc.filter(function(x, i){ return x === clr[i]; }).length === 1 &&
+        VARS[osc.map(function(x, i){ return x === clr[i] ? i : -1; })
+               .filter(function(i){ return i >= 0; })[0]] === '--v2d-brodhi',
+        osc.filter(function(x, i){ return x === clr[i]; }).join(',') || 'todas distintas']); }
+
+    /* ══ I · CONTROLES: NADA DE LA APP SE MUEVE ═════════════════════════════════════════ */
+    { NUEVO(); S('peso','70'); S('talla','170');
+      S('vmax_ao','4.2'); S('gmedio_ao','45'); S('vmax_it','3.0');
+      S('onda_e','95'); S('onda_a','45'); S('e_sep','7'); S('e_lat','9'); S('ai_vol','45');
+      ['calcAo','calcIT_ESC','calcDiastol','calcAI'].forEach(function(f){ try { if (FN(f)) window[f](); } catch (e) {} });
+      const i1 = INF('estandar');
+      const fila = (function(){ try { return _labExcelRow({ nombre:'P', ci:'1', fecha_estudio:'2026-10-15',
+        campos: (function(){ const c = {};
+          document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function(el){
+            try { if (FN('_noEsDelEstudio') && _noEsDelEstudio(el.id)) return; } catch (e) {}
+            c[el.id] = el.value; });
+          return c; })() }); } catch (e) { return null; } })();
+      ex.push(['el Excel sigue en 440 columnas: la vista 2D no agrega ninguna',
+        !!fila && Object.keys(fila).length === 440,
+        fila ? String(Object.keys(fila).length) : 'EXC']);
+      ex.push(['la valvula NATIVA sigue graduando igual y el informe la publica',
+        i1.inf.indexOf('estenosis severa') > -1 && V('ea_grado') === 'severa',
+        String(V('ea_grado'))]);
+      ex.push(['la funcion diastolica y el HFA-PEFF siguen publicando lo suyo',
+        T('dd-interp') !== 'NO EXISTE' && T('hfapeff-eco') !== 'NO EXISTE', T('dd-interp')]);
+      /* Y los dos generadores pesados siguen armandose: la vista no los nombra. */
+      ex.push(['CONTROL NEGATIVO: ni el PDF ni el PPT ni el Laboratorio nombran la vista 2D',
+        (function(){ const f = FUENTE();
+          const i = f.indexOf('function generarPDFReal');
+          const j = f.indexOf('function _labExcelRow');
+          const k = f.indexOf('function _pptGenerar');
+          const trozo = [i, j, k].filter(function(x){ return x > 0; })
+            .map(function(x){ return f.slice(x, x + 20000); }).join(' ');
+          return trozo.length > 1000 && trozo.indexOf('v2d') === -1; })(), '']); }
+
+    return { extra: ex };
+  })();
+`);
+
 
 
 let servidor, chrome;

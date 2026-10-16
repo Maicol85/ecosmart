@@ -381,3 +381,14 @@ Estas son las que cuestan sesiones enteras.
   lo re-verifiqué — `grep` cuenta 356 registros `caso('TC-…')` en el archivo a 5137c30 — ⚠️ no
   verificado: no corrí la suite en este pase, así que no sé si la diferencia con el 352 son casos
   agregados después de esa medición.*
+
+## TC-481 y TC-482 — las dos tandas del 2026-10-15 por la tarde
+
+| Caso | Qué fija | Condiciones | Rojas contra HEAD | Sonda |
+|---|---|---|---|---|
+| **TC-481** | Z6: el gradiente medio de la prótesis mitral se retira con regurgitación (nota `‡`) y con THP normal en la mecánica (Tabla 12); la fila del PPM; el DVI aórtico por un camino | **28** | **13**, ninguna por excepción | `scripts/_probe_z6.mjs` |
+| **TC-482** | Y1: la vista 2D entera — botón, panel, lector único, tarjetas, tabla, formulario vacío, dos temas y nada escrito | **45** | **36**, ninguna por excepción | `scripts/_probe_y1.mjs` |
+
+⚠️ **TC-482 MURIÓ POR EXCEPCIÓN CONTRA HEAD EN SUS DOS PRIMERAS VERSIONES**, y la segunda vez en el
+**tercer elemento** del `push` —el texto de «encontrado»—, que se evalúa **siempre**, pase o falle la
+condición. Un centinela en la condición no alcanza: hay que blindar también lo que se imprime.

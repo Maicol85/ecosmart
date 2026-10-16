@@ -3226,7 +3226,17 @@ No se tocó porque mueve la posición de una columna que esta orden no nombra.
 > `docs/mapa/protesis-valvular.md` y `docs/mapa/aortica-cortes.md`. Las fuentes:
 > `docs/fuentes/FUENTES.md` → «La tanda Z5 — la Tabla 11 completa, criterio por criterio».
 
-### Z5-1 · PARADA · El gradiente medio NO se retira con regurgitación protésica, y la nota ‡ lo marca
+### [CERRADO 2026-10-15 · Z6] Z5-1 · El gradiente medio NO se retira con regurgitación protésica
+
+> **CERRADO con la salida (b), la conservadora de las tres.** Re-leída la nota `‡` en el original
+> —folio 27, renderizado a 400 dpi— dice regurgitación **«significativa»**, sin graduarla, así que
+> la rama que la orden del Z6 condicionaba quedó habilitada: el gradiente medio se retira con el
+> MISMO dueño y el MISMO umbral que el DVI (`emContMotivoNoVota`, moderada o mayor). Cambian DOS
+> escenas: con IM moderada o severa el veredicto baja de «significativa» a «posible» y la línea
+> SALE del informe firmado. La velocidad pico sigue sin retirarse (Z5-2): no vota.
+> Ver `docs/mapa/protesis-valvular.md` → «La tanda Z6» y `docs/fuentes/FUENTES.md` → «La tanda Z6».
+
+### Z5-1 (texto original) · PARADA · El gradiente medio NO se retira con regurgitación protésica, y la nota ‡ lo marca
 
 **Qué pedía la orden:** que con regurgitación protésica **severa** el gradiente medio y el DVI no
 se cuenten (nota `‡` de la Tabla 11), **aplicando el MISMO retiro que la app ya hace con el DVI** —
@@ -3260,7 +3270,14 @@ conteo (la prosa del folio 24 la omite), así que su no-retiro no cambia ningún
 que hace es que su **banda** se siga publicando en la cápsula con regurgitación significativa.
 Queda dicho junto a Z5-1, porque la decisión es la misma.
 
-### Z5-3 · La fila del PPM mitral dice «falta el AEO» también cuando el AEO está RETIRADO
+### [CERRADO 2026-10-15 · Z6] Z5-3 · La fila del PPM mitral pedía un AEO que ya existe
+
+> **CERRADO sin decir nada**, que es la conservadora de las dos salidas: con el AEO retirado —por
+> regurgitación o por un insumo fuera de banda— la fila ya no lo pide, y el motivo real sigue
+> publicándose en la fila del AEO dos renglones más arriba. El pedido legítimo se conserva: con el
+> AEO de verdad ausente lo sigue pidiendo, y la superficie corporal también.
+
+### Z5-3 (texto original) · La fila del PPM mitral dice «falta el AEO» también cuando el AEO está RETIRADO
 
 Con el AEO fuera de banda o retirado por regurgitación, la fila del PPM publica «falta el AEO por
 continuidad». No es falso —el AEO no está disponible— pero el motivo real lo dice la fila del AEO
@@ -3273,7 +3290,16 @@ Decisión de la orden: la sigla en el EN SUMA y la frase larga en el cuerpo. El 
 informe, en la fila de pantalla y en la columna del Excel, pero un resumen que se lea solo ya no
 lo trae. Si se quisiera, la salida es «PPM mitral severo (0.54).».
 
-### Z5-5 · `_eaDviProtNivel` calcula el DVI por su cuenta y no lo lee de `eaProtVeredicto`
+### [CERRADO 2026-10-15 · Z6] Z5-5 · `_eaDviProtNivel` calculaba el DVI por su cuenta
+
+> **CERRADO por donde esta entrada proponía:** `eaProtVeredicto` devuelve el NIVEL del DVI
+> (`dviNivel`) en sus dos vías —SAVR y TAVI— y la fila lo lee de ahí. **Y los dos caminos SÍ
+> discrepaban**, medido: con VTI TSVI 20 y VTI aórtico 56,4 (crudo 0,35461) o 57 (0,35088) la
+> pantalla publica «0.35» en los dos, así que la fila decía «(sin criterios)» —el crudo supera el
+> 0,35 estricto— mientras el veredicto decía «posible». Hoy las dos dicen «posible», que es la
+> lectura del número publicado. Ver `docs/mapa/aortica-cortes.md`.
+
+### Z5-5 (texto original) · `_eaDviProtNivel` calcula el DVI por su cuenta y no lo lee de `eaProtVeredicto`
 
 La referencia protésica de la fila usa `_eaCritDvi()` + `_eaProtNivel()`, mientras el **veredicto**
 lee el DVI de `dvi-val` o de `ea_dvi_display`. Son dos caminos al mismo número y hoy coinciden
@@ -3287,3 +3313,82 @@ La Tabla 5 no publica cortes absolutos de AVA ni de AVA indexada para una próte
 la fila del DVI gana referencia protésica. El gradiente medio protésico **sí** tiene banda en esa
 tabla (`<20` / 20-34 / `≥35` en SAVR) y hoy lo publica el veredicto, no la fila. Si se quisiera
 que la fila lo publique, el corte ya existe en `EA_PROT_CRIT.savr_gmed_*`.
+
+---
+
+## Lo que dejan abiertas las tandas Z6 y Y1 (2026-10-15)
+
+### Z6-1 · La guía propone MOSTRAR que el gradiente orienta a regurgitación, y la app no lo dice
+
+La **Tabla 12, folio 28** no sólo dice que el gradiente medio `≥ 5` mmHg con el THP normal no es
+estenosis: dice que **sugiere regurgitación protésica significativa**, con sensibilidad 90 % y
+especificidad 70 %. La orden del Z6 prohibía expresamente agregar ese texto —«NO agregues ningún
+texto ni hallazgo nuevo al informe»— así que la app **retira el voto y calla**. Queda como propuesta
+para el médico: la fila podría decirlo en pantalla (no en el informe), con la forma «con el THP
+normal, un gradiente de N mmHg orienta a regurgitación», y las otras dos filas que la Tabla 12
+publica —la velocidad pico `≥ 1,9` y el DVI `≥ 2,5`— podrían sumarse a la misma lectura.
+**Decisión de Maicol.**
+
+### Z6-2 · La regla del THP normal se aplica sólo a la prótesis MECÁNICA
+
+Es lo que dice el título de la Tabla 12 («in mechanical valves») y es el lado que no inventa nada.
+Si el médico quisiera extenderla a las biológicas, es **una condición** (`R.mecanica` sale del
+predicado) y cambia las escenas de la tabla del mapa. Hoy, con una biológica y el THP normal, el
+gradiente vota como siempre.
+
+### Z6-3 · El retiro del gradiente no llega al EXCEL de un estudio archivado por el camino del THP
+
+`vmProtEOA(src)` lee `vm_morf` del registro para decidir mecánica/biológica, así que la columna
+derivada del Excel aplica la misma regla. **Medido en pantalla y no en la columna**: la verificación
+del Z6 comparó las 440 columnas con el formulario abierto, no con un estudio archivado que tenga
+prótesis mecánica y THP normal. No hay motivo para que difiera —es el mismo dueño— pero no está
+medido por ese camino.
+
+### Y1-1 · El «por qué» de cada tarjeta es el Y2 y no está
+
+Las tarjetas publican la frase cualitativa corta **sin los valores**: «IM severa», no «IM severa
+(EROA 45 mm²)». Fue la decisión de la orden y el valor sigue en el informe, en la pantalla de
+Válvulas y en el Excel. El **Y2** es agregarle a cada tarjeta el dato que la clasificó.
+
+### Y1-2 · Una prótesis sin lesión ni veredicto no tiene tarjeta
+
+La mitral y la aórtica publican su veredicto protésico aunque no haya lesión, porque la app lo
+calcula. La **tricuspídea no tiene veredicto protésico** en esta app, así que una prótesis
+tricuspídea normal se **dibuja** y no se nombra en ninguna tarjeta. No es falso —no hay lesión que
+declarar— pero el médico ve una prótesis dibujada y ninguna línea que la mencione. La salida sería
+una tarjeta de «morfología» sin grado, que es justamente la tarjeta sin grado que la orden pedía
+evitar. **Decisión de Maicol.**
+
+### Y1-3 · La válvula PULMONAR no está en la vista
+
+La apical de cinco cámaras no la incluye, así que ni la EP ni la IP ni la prótesis pulmonar
+aparecen. Está declarado en el pie de la vista y lo fija TC-482 como límite. Agregarla es otra
+proyección, no una válvula más en ésta.
+
+### Y1-4 · Sin captura y sin inclusión al PDF
+
+La orden las deja para después. Hoy la vista no se puede llevar al informe ni al PPT, y no hay
+botón de captura. El dibujo es un SVG en el DOM, así que la ruta natural es la que `_svgToPng` ya
+usa para otras figuras — con la salvedad que este archivo ya documenta: **`currentColor` no
+sobrevive a serializar un SVG suelto**, y acá el color sale de 21 variables de tema, que tampoco.
+
+### Y1-5 · El tramo del dibujo se lee de la PALABRA que publica el cuadro de referencias
+
+`_v2dTramo` busca «leve», «moderada», «severa», «dilatado»… en el `textContent` del cuadro. Es lo
+que evita una segunda tabla de cortes —y es el mismo criterio con que `eaProtVeredicto` lee
+`dvi-val`— pero tiene un precio declarado: **si alguien cambia la palabra de una categoría sin
+avisar, el tramo cae a 0 y el dibujo se ve normal**. TC-482 compara la categoría de la tabla contra
+el `textContent` del cuadro, así que un cambio de palabra lo pone en rojo; lo que no cubre es un
+cambio de palabra en una categoría que la tabla no lista.
+
+### Y1-6 · `prefers-reduced-motion` ya estaba contemplado, y conviene decirlo
+
+La demo aprobada lo respeta y la vista lo conserva: con la preferencia puesta **no hay bucle**, hay
+un cuadro fijo en la sístole. **No hay nada que hacer acá** — queda escrito porque la orden pedía
+sugerirlo si el archivo no lo contemplaba, y lo contempla.
+
+### Y1-7 · La vista no se guarda ni se exporta, a propósito
+
+Nada de lo que se ve se persiste: ni la fase del latido, ni el estado del panel. Reabrir la vista la
+arma de nuevo desde el estudio. Es lo que la orden pedía y lo que evita que un dibujo viejo
+sobreviva a un cambio de datos.

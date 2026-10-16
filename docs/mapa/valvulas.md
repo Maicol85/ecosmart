@@ -449,3 +449,19 @@ valores**. `eteVmAvisoSync` corre en `RECALC_MODULOS` y al final de `limpiarCamp
 - **Las cuatro superficies de salida**: este documento cubre quién **calcula** la severidad, no quién
   la **imprime** → `docs/mapa/informe-pdf-excel.md`. La punta del hilo acá son `emPdfValsSync` y
   `_emPdfThpSpanSync`.
+
+---
+
+## La VISTA 2D de las válvulas → `docs/mapa/vista-2d-valvulas.md` (Y1, 2026-10-15)
+
+Al pie de esta pantalla, debajo de las ocho pestañas de válvula, hay un botón **«Ver en 2D»**
+(`#v2d-abrir`) que abre un esquema animado del corazón con las tres válvulas de la vista apical de
+cinco cámaras, dos columnas de tarjetas y una tabla de cavidades.
+
+**Es SOLO LECTURA**: no calcula ningún grado, no mueve ningún corte, no escribe un campo y no toca
+el informe, el PDF, el PPT, el Excel ni el Laboratorio. Todo lo que muestra sale de **`v2dEstado()`**,
+el lector único, que junta lo que esta pantalla ya publicó — incluidas **las pastillas de severidad**,
+que son las dueñas del grado y del color de cada tarjeta.
+
+⚠️ **TOCAR UNA PASTILLA O UN GRADO DE ESTA PANTALLA MUEVE LA VISTA 2D**, y al revés no: la vista no
+escribe nada. El mapa de arriba tiene la tabla completa de qué nodo alimenta cada cosa.

@@ -366,3 +366,35 @@ error era una línea que nombra un criterio y le pone el grado de **otro**.
 
 ⚠️ **Y LO QUE ARREGLÓ EL Z3 NO SE ROMPIÓ**: la línea vuelve a «sin dato» en **12 de 12** órdenes y
 gestos de borrado, medido con los dos gestos y las seis permutaciones.
+
+---
+
+## El DVI protésico, por UN solo camino (Z6-3b, 2026-10-15)
+
+`_eaDviProtNivel()` —la función que escribe el grado hermano de la fila `ea-det-dvi` con prótesis—
+**recalculaba el cociente por su cuenta** (`_eaCritDvi()` sobre los dos VTI crudos) mientras el
+**veredicto** (`eaProtVeredicto`) lo lee del número que `calcAo` ya publicó en `dvi-val`. Era la
+entrada **Z5-5** de `PENDIENTES`.
+
+**Los dos caminos DISCREPABAN, y está medido:**
+
+| VTI TSVI / VTI Ao | crudo | publicado | FILA (antes) | VEREDICTO | FILA (hoy) |
+|---|---|---|---|---|---|
+| 20 / 56 | 0,35714 | 0.36 | sin criterios | normal | sin criterios |
+| 20 / 70 | 0,28571 | 0.29 | posible | posible | posible |
+| 20 / 90 | 0,22222 | 0.22 | significativa | signif | significativa |
+| **20 / 56,4** | **0,35461** | **0.35** | **sin criterios** | **posible** | **posible** |
+| **20 / 57** | **0,35088** | **0.35** | **sin criterios** | **posible** | **posible** |
+| TAVI, 20 / 70 | 0,28571 | 0.29 | posible | — | posible |
+
+El corte es `> 0,35` **estricto**, así que el crudo lo supera y el publicado no: la fila y el
+veredicto se contradecían en el mismo cuadro. Hoy el dueño es `eaProtVeredicto`, que devuelve el
+**nivel ya clasificado** (`dviNivel`), y la fila lo lee de ahí. Se clasifica el número **publicado**,
+que es la regla de la casa desde el AVA de 1,00.
+
+⚠️ **SE ELIGIÓ ESE SENTIDO Y NO EL CONTRARIO.** Hacer que el veredicto llame a `_eaCritDvi()`
+cambiaría el **veredicto**, que es contenido clínico y está fuera de esa orden; así, lo único que
+puede moverse es el texto de la fila.
+⚠️ **EL CAMPO VIVE EN LAS DOS VÍAS, SAVR Y TAVI.** En la TAVI `niveles` **no** tiene `dvi` —su bloque
+general son la velocidad pico, el AT y el AT/ET—, así que leer `P.niveles.dvi` habría dejado la fila
+**muda en toda TAVI**: una pérdida silenciosa. Por eso el nivel viaja aparte.

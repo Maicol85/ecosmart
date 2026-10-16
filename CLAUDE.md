@@ -50,6 +50,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Agregar o correr un caso de prueba; A/B; mutación** | `docs/mapa/tests.md` |
 | **Visor de cineloop, medición, calibración, IndexedDB** | `docs/mapa/imagenes-visor.md` |
 | **Tocar la ESTENOSIS MITRAL en el LABORATORIO**: las seis categorías, las dos casillas del filtro, el gráfico de distribución, el PDF de auditoría o el PPT | `docs/mapa/laboratorio-estenosis-mitral.md` |
+| **Tocar la VISTA 2D de las válvulas**: el botón, el panel, el lector único del estado, las tarjetas, la tabla de cavidades, el dibujo o los chorros | `docs/mapa/vista-2d-valvulas.md` |
 | **Orientarse en otro módulo** (Congénitas, Laboratorio, PPT, Cardio-Onco, Pericardio) | `docs/mapa/congenitas-otros.md` |
 | **Citar un dato de una guía** (documento, folio, frase verificada) | `docs/fuentes/FUENTES.md` |
 | **Citar un dato de PRÓTESIS valvular** | `docs/fuentes/FUENTES-protesis.md` |
@@ -106,8 +107,9 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **7,46 MB / 112.433 líneas**, medido el 2026-10-15 al cierre de la tanda G1 —antes decía «6,13 MB /
-  90.494 líneas» y llevaba varias tandas sin actualizarse: **medirlo antes de presupuestar contexto**—. Las únicas dependencias son jsPDF, XLSX y
+  sin frameworks. Hoy **7,63 MB / 114.869 líneas**, medido el 2026-10-15 al cierre de la tanda Y1
+  —el renglón anterior decía «7,46 MB / 112.433 líneas» y era del G1: **medirlo antes de
+  presupuestar contexto**—. Las únicas dependencias son jsPDF, XLSX y
   PptxGenJS por CDN. Se abre como archivo local y corre en Chrome.
 - Lo que produce es un **informe firmado**: narrativo, EN SUMA, PDF, PPT y Excel del Laboratorio.
   Un dato que se carga y no sale en ninguno de esos destinos desapareció sin aviso.
@@ -261,6 +263,158 @@ impecable.
 
 ## Estado vigente
 
+### La VISTA 2D de las válvulas y el gradiente medio de la prótesis mitral — «Z6 + Y1» (2026-10-15)
+
+- **Son DOS bloques en NUEVE commits.** Al **empezar**, `main` y `origin/main` estaban los dos en
+  **`72bacee`** (sello `v20261015-1850`), **sin nada sin pushear** —confirmado con un `git fetch` de
+  verdad—, con los cinco commits del Z5 ya incluidos **y pusheados**. Los **nueve** commits de esta
+  tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 9 → 8 → … → 1.**
+  ⚠️ **EL Z6 (1 a 4) Y EL Y1 (5 a 9) NO SE TOCAN ENTRE SÍ**: el Z6 vive en `vmProtEOA`,
+  `vmProtEOAPintar`, `eaProtVeredicto` y `_eaDviProtNivel`; el Y1 en el bloque `v2d-*`, que no
+  nombra ninguna de las cuatro. Los dos bloques se revierten por separado.
+  ⚠️ **DENTRO DEL Z6: el 1, el 2 y el 3 se revierten solos y en cualquier orden entre sí.** El 1 es
+  el retiro por regurgitación (`R.gmedRetiro`, `VM_PROT_GMED_RETIRO_TXT`, la rama de `_t11Fila`), el
+  2 el del THP normal (`R.mecanica`, `VM_PROT_GMED_THP_TXT`) y el 3 son dos cosas independientes
+  entre sí —la fila del PPM y el DVI aórtico—. **PERO el 2 cuelga del 1 por la fila**: su motivo
+  usa `R.gmedRetiro`, que nace en el 1; revertir el 1 sin revertir antes el 2 deja ese campo sin
+  existir y la fila vuelve a imprimir «undefined» al lado del número. **Orden: 2 antes que 1.**
+  ⚠️ **Y EL 1 ADAPTÓ TRES CONDICIONES DE TC-480**, una de ellas el **límite declarado** del Z5
+  —«el gradiente medio SIGUE contando con regurgitación»—, escrita para que el día que se decidiera
+  se notara. Se decidió y lo notó. Revertir el 1 sin reponerlas deja TC-480 midiendo lo contrario.
+  **El 4 es TC-481** y afirma el comportamiento de los tres: revertir cualquiera sin el 4 lo deja
+  en rojo.
+  ⚠️ **DENTRO DEL Y1 LA CADENA ES ESTRICTA: 8 → 7 → 6 → 5.** El 5 crea el panel, el lector y el
+  dibujo; el 6 agrega las dos columnas de tarjetas (marcado, CSS de tres columnas, las listas del
+  lector y su pintor); el 7 la tabla de cavidades y la regla de UNA columna; el 8 los chorros.
+  Cada uno nombra piezas del anterior: revertir el 5 sin revertir antes el 6 y el 7 deja
+  `v2dAbrir` llamando a dos pintores que no existen —inocuo, van con `if (E)`— pero deja el panel
+  con las tarjetas y la tabla **vacías para siempre**, que es peor que no tenerlas.
+  **El 9 es TC-482 más la documentación y el sello.**
+  ⚠️ **EL 5 LLEVA LA SONDA** (`scripts/_probe_y1.mjs`), que los commits 6, 7, 8 y 9 usan.
+
+- **Línea base al cierre: suite 492/496 con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0 ERROR,
+  Excel en 440 columnas, celular 43 a 360 px y 52 a 390 px con 1 ALTA cada uno —IDÉNTICO a la línea
+  base—. CERO REGRESIONES.** Los **CUATRO** rojos son exactamente los de ENTRADA —**TC-223** (el
+  documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**—, y no apareció ninguno
+  fuera de esa lista. **El denominador sube a 496**: esta tanda agregó **TC-481** y **TC-482**. El
+  `md5` de `index.html` no se movió durante la corrida (`cf6900ad…`, el del sello) y el pendrive
+  estaba montado antes y después.
+  ⚠️ **`--todo` del chequeo de celular da 378 a 360 px y 387 a 390 px, EL MISMO PAR QUE DEJÓ EL
+  Z5**: la vista 2D no agrega un solo hallazgo, y no por suerte: `check_mobile.js` abre pestañas y
+  secciones pero **no modales**, que es lo que el cartel de péptidos ya dejó escrito. Su maqueta se
+  mide con la sonda, a cuatro anchos por dos temas.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **496 ids** sobre los 497 casos del archivo.
+- **EL SELLO DE VERSIÓN** estaba al día al empezar (`v20261015-1850`) y se volvió a sellar:
+  **`v20261015-2055`**. Todo lo medido salió **DESPUÉS** de sellar, con el `md5` quieto, y
+  `index.html` no se tocó durante la corrida.
+- **`index.html` pasó de 7,46 MB / 112.433 líneas a 7,63 MB / 114.869 líneas.**
+
+- **Dónde está todo:** `docs/mapa/vista-2d-valvulas.md` (**mapa NUEVO**, 11,7 KB: las piezas por
+  nombre, la tabla de qué nodo alimenta cada cosa, las tarjetas, la tabla, el latido, los chorros,
+  la maqueta, la accesibilidad y las seis trampas), `docs/mapa/protesis-valvular.md` → «La tanda
+  Z6» (**31,7 KB**), `docs/mapa/aortica-cortes.md` → el DVI por un camino (**25,5 KB**),
+  `docs/mapa/valvulas.md` → el puntero a la vista (**29,5 KB**), `docs/mapa/tests.md` → los dos
+  casos nuevos (**29,5 KB**), `docs/fuentes/FUENTES.md` → «La tanda Z6 — la nota `‡` y la Tabla 12»
+  y por qué la vista 2D **no lleva ninguna cita**, y `docs/PENDIENTES.md` → **Z5-1, Z5-3 y Z5-5
+  marcados CERRADOS** más **diez** cosas declaradas (Z6-1 a Z6-3 e Y1-1 a Y1-7).
+  **NINGÚN mapa cruzó el techo**, medido con `wc -c` ANTES de escribir.
+
+- **Z6-1 · EL GRADIENTE MEDIO SE RETIRA CON REGURGITACIÓN, Y LA DECISIÓN LA TOMÓ LA GUÍA.** La
+  nota `‡` de la Tabla 11 (folio 27, renderizada a 400 dpi) marca **tres** parámetros —velocidad
+  pico, gradiente medio y DVI— y dice que también son anormales con una regurgitación protésica
+  **«significativa»**, sin graduarla. La orden autorizaba el retiro si la guía decía eso y lo
+  prohibía si decía **sólo severa**: dice significativa. Se aplica con el **mismo dueño y el mismo
+  umbral que el DVI** (`emContMotivoNoVota`, moderada o mayor).
+  **DOS escenas cambian:** con IM moderada o severa el veredicto baja de «significativa (2 de 2)» a
+  «posible (1 de 1)» y **la línea SALE del informe firmado**. Sin IM y con IM leve, idénticas.
+  ⚠️ **LA VELOCIDAD PICO NO SE TOCA** aunque la nota la marque: no vota, así que retirarla no
+  cambiaría ningún veredicto (Z5-2, y la orden lo prohíbe).
+
+- **Z6-2 · CON EL THP NORMAL Y PRÓTESIS MECÁNICA, EL GRADIENTE NO VOTA ESTENOSIS.** La afirmación
+  de Cowork **está en el original**, pero no en la Tabla 11: en la **Tabla 12, folio 28**, cuyo
+  título dice «in mechanical valves with normal PHT» y publica el gradiente medio `≥ 5` mmHg como
+  hallazgo sugestivo de **regurgitación** (sens. 90 %, esp. 70 %). El pie de la Figura 20 razona
+  igual sobre un caso.
+  ⚠️ **DIFERENCIA CON LA LETRA DE LA ORDEN, DECLARADA: la app lo acota a las MECÁNICAS**, porque la
+  guía lo acota. Con una biológica el gradiente cuenta como hasta hoy — medido.
+  ⚠️ **Y SÓLO SE RETIRA LO QUE ESTÁ POR ENCIMA DE LA BANDA NORMAL.** Con el gradiente en `≤ 5` no
+  hay nada que reinterpretar y retirarlo le quitaría al veredicto un criterio NEGATIVO legítimo. El
+  5 exacto es el único punto donde las dos tablas se pisan y gana la Tabla 11.
+  **Escenas que cambian:** mecánica con THP 100 y con THP 129 —el borde 129/130 separa—. Sin THP,
+  con THP 250 y con biológica, idénticas.
+  ⚠️ **NO SE AGREGA NINGÚN TEXTO AL INFORME.** La guía además propone decirlo; la orden lo prohíbe.
+  `PENDIENTES.md` → **Z6-1**.
+
+- **Z6-3 · LA FILA DEL PPM Y EL DVI AÓRTICO.** (a) Con el AEO retirado la fila ya **no pide** el
+  AEO —se eligió no decir nada, que es lo conservador: el motivo ya está dos renglones arriba— y el
+  pedido legítimo se conserva. (b) **El DVI protésico aórtico sale por UN camino**, y los dos **SÍ
+  discrepaban**: con VTI TSVI 20 y VTI aórtico 56,4 (crudo 0,35461) o 57 (0,35088) la pantalla
+  publica «0.35» en los dos, así que la fila decía «(sin criterios)» —el crudo supera el 0,35
+  estricto— mientras el veredicto decía «posible». Hoy las dos dicen «posible».
+  ⚠️ **EL NIVEL VIAJA APARTE Y NO EN `niveles`**: en la TAVI ese objeto no tiene `dvi`, así que leer
+  de ahí habría dejado la fila **muda en toda TAVI**.
+
+- **Y1 · LA VISTA 2D ES SOLO LECTURA, Y ESO ESTÁ MEDIDO.** Abrir y cerrar no escribe **ni un campo**
+  del estudio, no deja **nada** en `localStorage` ni en `sessionStorage`, y con la vista abierta el
+  informe, el EN SUMA y las **440 columnas** del Excel salen idénticos. A/B contra HEAD con el
+  formulario vacío y con un escenario cargado: **0 diferencias**.
+- **UN SOLO LECTOR (`v2dEstado`) Y NINGÚN CÁLCULO NUEVO.** Los tramos de las cámaras salen de las
+  CATEGORÍAS que los cuadros de referencia ya pintan, leídas por `textContent`; el grado y el COLOR
+  de cada tarjeta, de la **pastilla de severidad**, que es el dueño único de los dos desde
+  `valvSev.refrescar`. **Por eso la tarjeta no puede discrepar del informe**: los dos leen el mismo
+  `*_grado`. Medido en las seis lesiones nativas, con un grado fijado a mano y con una lesión sin
+  graduar: la tarjeta dice lo mismo que el EN SUMA en todas.
+- **LA DIMENSIÓN DEL VI SALIÓ A SU PROPIO DUEÑO** (`viDimCat`), al lado de `calcGeometriaVI`: el
+  dibujo necesita el MISMO tramo que el informe publica. El texto del informe no cambia ni un byte.
+- **CON PRÓTESIS, LA COLUMNA DE ESTENOSIS NO SIGUE A LA PASTILLA** sino al veredicto protésico, y
+  **sin chip de color**: con una prótesis no hay grado que colorear, y pintar el residuo nativo de
+  `ea_grado` sería republicar la escala que el W2-B retiró. La **regurgitación** sí sigue a la
+  pastilla, también con prótesis (la ASE 2024 la gradúa con los criterios nativos).
+- **EL LATIDO SÓLO CORRE CON LA VISTA ABIERTA, MEDIDO ESPIANDO `requestAnimationFrame`:** 0 cuadros
+  pedidos en 900 ms con la vista cerrada, 55 con la vista abierta, 0 otra vez al cerrar.
+  `prefers-reduced-motion` ya estaba contemplado en la demo y se conserva: un cuadro fijo, sin bucle.
+  ⚠️ **UN CUADRO SINCRÓNICO AL ABRIR, y no es cosmético**: `requestAnimationFrame` pinta en el
+  cuadro SIGUIENTE, así que sin él la vista abría con el dibujo del paciente anterior durante un
+  cuadro — y la primera corrida de la sonda informó «cero prótesis dibujadas» sobre un árbol que
+  las dibuja bien.
+- **LOS CHORROS NACEN DONDE SE UNEN LAS VALVAS, y el desplazamiento se CALCULA de la misma data que
+  dibuja las valvas** (IT +13,66 · IM +14,31 · IAo −8,55, sólo en y). Es una traslación pura.
+  Verificado **mirando el PNG** antes y después, en sístole para la IM y la IT y en **diástole**
+  para la IAo —con la fase en sístole ese chorro no se ve, y «no se movió» se leería igual que «no
+  hay chorro»—.
+- **MAQUETA MEDIDA a 1200, 768, 390 y 360 px en los DOS temas:** tres columnas a 1200 y UNA en los
+  otros tres, **cero scroll horizontal** en las ocho celdas y el dibujo siempre dentro de su caja.
+  **Las 21 variables de la paleta resuelven en los dos temas**, ninguna queda vacía y **veinte
+  cambian**; la única que no es `--v2d-brodhi`, el brillo especular del vástago biológico, que es el
+  mismo en los dos modos **en el dibujo aprobado**.
+- ⚠️ **EL ARCHIVO DEL DIBUJO QUEDA SIN VERSIONAR**, como pedía la orden: `docs/3d/Esquema valvular_
+  prótesis, geometría y función.html` sigue fuera del commit. No trae **ninguna** dependencia
+  externa ni almacenamiento del navegador, así que no hubo parada que declarar.
+
+- **Arneses: `scripts/_probe_z6.mjs`** (seis grupos: `gmedRegurg`, `thpNormal`, `aeoPpm`, `dviAo`,
+  `tarjeta`, `controles`) y **`scripts/_probe_y1.mjs`** (cinco: `boton`, `estado`, `maqueta`,
+  `controles`, `captura`), los dos A/B de solo lectura con `--file`.
+  **Cobertura: TC-481**, **28 condiciones** —**13 en rojo** contra HEAD— y **TC-482**, **45
+  condiciones** —**36 en rojo**—, las dos contadas instrumentando el propio caso y **ninguna roja
+  por excepción**.
+- ⚠️ **TC-482 MURIÓ POR EXCEPCIÓN CONTRA HEAD DOS VECES, y la segunda en el TERCER elemento del
+  `push`** —el texto de «encontrado»—, que se evalúa **siempre**, pase o falle la condición. Un
+  centinela en la condición no alcanza: hay que blindar también lo que se imprime.
+- ⚠️ **`\s` DENTRO DE UN TEMPLATE LITERAL SE COCINA A LA LETRA `s`**, y la sonda informó
+  «in uficiencia » en vez de «insuficiencias» sobre tarjetas perfectas. Es la trampa que este
+  archivo ya tiene escrita, pagada otra vez.
+- ⚠️ **UN CHIP VACÍO LO VIO LA CAPTURA Y NO LA LECTURA**: con prótesis —que no lleva grado— la
+  primera versión creaba el span igual y publicaba una pastilla en blanco debajo del veredicto.
+- ⚠️ **EL ESTILO DEL INFORME ES ESTADO DE SESIÓN**, y el control negativo lo pagó: el bucle de los
+  tres estilos deja el NARRATIVO puesto, así que la fila del Excel se llevaba ese texto y la
+  comparación informó dos diferencias que eran del estilo y no de la vista.
+- ⚠️ **Me comí el acento grave TRES veces**, las tres en comentarios míos dentro del cuerpo de un
+  caso, con el archivo que documenta la trampa abierto delante. `scripts/check_backticks.py` dio la
+  línea exacta las tres.
+- ⚠️ **CASOS ADAPTADOS: UNO. TC-480**, en tres condiciones y con el motivo escrito en cada una.
 ### El VOTO de la prótesis MITRAL, el DVI AÓRTICO sin diámetro, el PPM de las dos prótesis y la LÍNEA INTEGRADA — «Z5» (2026-10-15)
 
 - **Es la tanda «Z5».** Al **empezar**, `main` y `origin/main` estaban los dos en **`6b7030e`**

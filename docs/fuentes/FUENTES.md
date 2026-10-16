@@ -2572,3 +2572,83 @@ criterio EcoSmart, con la nota de la guía al lado. **No se le atribuye a la ASE
   verificados y registrados (ESC/EACTS 2025 folio 4663 y EAE/ASE 2009 Tabla 3 para la nativa;
   ASE 2024 Tabla 5 para la prótesis).
 - **Ninguna fuente nueva en la biblioteca.**
+
+## La tanda Z6 — la nota `‡` de la Tabla 11 y la Tabla 12, leídas en el original (2026-10-15)
+
+**Documento:** Zoghbi WA *et al.*, *Guidelines for the Evaluation of Prosthetic Valve Function With
+Cardiovascular Imaging*, J Am Soc Echocardiogr 2024;37(1).
+Archivo: `05_Protesis_valvulares/Zoghbi_2024_Protesis.pdf`.
+**Regla de folio: folio = página 1-based del PDF + 1**, comprobada otra vez en el pie impreso de la
+página del PDF 26, que dice «27».
+
+### La nota `‡` de la Tabla 11, folio 27 — qué marca y qué NO marca
+
+Leída **renderizando la página a 400 dpi** —la fuente del PDF codifica `≥` como `$` y `≤` como `#`,
+así que el texto extraído no sirve para los operadores— y confirmada además en el texto extraído,
+que sí conserva los marcadores de nota:
+
+| Parámetro de la Tabla 11 | ¿lleva `‡`? |
+|---|---|
+| Peak velocity, m/sec | **sí** |
+| Mean gradient, mm Hg | **sí** |
+| VTI(PrMv)/VTI(LVOT) — el DVI | **sí** |
+| EOA, cm² | no |
+| PHT, msec | no |
+
+La nota dice, parafraseada: **esos parámetros también resultan anormales en presencia de una
+regurgitación protésica significativa.** Habla de regurgitación **«significativa»**, sin graduarla.
+
+⚠️ **ESO ES LO QUE DECIDIÓ LA RAMA DEL Z6-1.** La orden autorizaba retirar el gradiente medio del
+voto —con el mismo umbral que la app ya aplica al DVI— si la guía hablaba de regurgitación
+«significativa», «moderada o mayor» o sin precisar grado, y la obligaba a parar si hablaba **sólo de
+regurgitación severa**. Dice «significativa», así que se aplicó. La **velocidad pico** lleva la misma
+marca y **no se tocó**: no vota (la prosa del folio 24 la omite de los criterios principales), de
+modo que retirarla no cambiaría ningún veredicto y sólo le quitaría al médico la banda que la tabla
+sí publica.
+
+### La Tabla 12, folio 28 — el gradiente con el THP normal
+
+**Título, parafraseado:** hallazgos ecocardiográficos transtorácicos sugestivos de regurgitación
+protésica mitral significativa **en válvulas mecánicas con THP normal**. Sus cuatro filas:
+
+| Hallazgo | Sensibilidad | Especificidad | Comentario de la tabla |
+|---|---|---|---|
+| Velocidad pico mitral `≥ 1,9` m/s | 90 % | 89 % | considerar también flujo alto y PPM |
+| VTI(PrMV)/VTI(LVOT) `≥ 2,5` | 89 % | 91 % | el error de medición crece en fibrilación auricular |
+| **Gradiente medio `≥ 5` mmHg** | **90 %** | **70 %** | **a frecuencias fisiológicas; considerar flujo alto y PPM** |
+| Velocidad máxima del chorro de IT `> 3` m/s | 80 % | — | — |
+
+Su nota `*` atribuye los datos a Olmos *et al.* y agrega que, con la velocidad pico **y** el DVI
+elevados y el THP normal, la especificidad se acerca al 100 %.
+
+El pie de la **Figura 20, folio 29**, razona igual sobre un caso: un cociente de VTI de 3 alerta
+sobre una regurgitación concomitante **en ausencia de estenosis**, inferida de un THP normal.
+
+⚠️ **LA AFIRMACIÓN DE COWORK QUEDA VERIFICADA, CON UNA ACOTACIÓN QUE LA GUÍA PONE Y LA ORDEN NO
+TENÍA.** Es cierto que con el THP normal un gradiente medio de 5 mmHg o más orienta a regurgitación
+y no a estenosis — pero el título de la Tabla 12 dice **«in mechanical valves»** con todas las
+letras. La app lo aplica sólo a las prótesis **mecánicas**; con una biológica el gradiente cuenta
+como hasta hoy. Extenderlo sería aplicar un corte fuera del alcance de su fuente.
+
+⚠️ **Y SÓLO SE RETIRA LO QUE ESTÁ POR ENCIMA DE LA BANDA NORMAL DE LA TABLA 11** (`≤ 5` mmHg). El 5
+exacto es el único punto donde las dos tablas se pisan —la 11 lo llama normal y la 12 arranca en
+`≥ 5`— y se conserva la lectura de la Tabla 11, que es la que esta pantalla publica.
+
+### Lo que esta tanda NO agregó
+
+- **Ninguna cita nueva** en el panel de Evidencia.
+- **Ningún corte nuevo ni movido**: los cinco de la Tabla 11 y los dos juegos del DVI aórtico siguen
+  exactamente donde estaban.
+- **Ninguna fuente nueva en la biblioteca.**
+- **Ningún texto nuevo en el informe firmado.** La guía propone además *mostrar* que el hallazgo
+  orienta a regurgitación; la orden lo prohíbe expresamente y queda como propuesta en
+  `docs/PENDIENTES.md`.
+
+### La tanda Y1 — la vista 2D no lleva ninguna cita
+
+El esquema 2D es **cualitativo** y **de sólo lectura**: no aplica ningún corte propio, no gradúa
+nada y no afirma nada que la app no haya publicado antes. Todo lo que muestra —grados, categorías de
+cavidades, geometría y veredictos protésicos— lo calcularon y lo citaron otras funciones, cada una
+con su fuente registrada en este archivo. **Por eso no lleva ni una cita: no hay en la vista una
+sola afirmación clínica propia que citar.** Es el mismo criterio con que el panel de Evidencia
+declara que una banda de plausibilidad va sin cita.
