@@ -4097,3 +4097,99 @@ con el panel cerrado. **Es PREEXISTENTE** —HEAD da el mismo 54 con la misma em
 es una regresión de esta tanda. El 3D de la MITRAL sí se detiene con la pestaña oculta.
 Puede ser además un artefacto del medidor: redefinir `document.hidden` con `defineProperty` no es
 lo mismo que ocultar la pestaña de verdad. **No se tocó.**
+
+---
+
+## Tanda «L» — el registro de evidencia y las tarjetas ⓘ de AI/VI (2026-10-16)
+
+Nada de lo de abajo se tocó: todo es contenido clínico, un corte o un texto del informe firmado,
+y esta orden no lo autoriza.
+
+### L-1 · El diámetro AP de la AI usa un corte único donde la guía da uno por sexo
+La app marca dilatación con **≥ 40 mm** para los dos sexos. La ASE/EACVI 2015, **Tabla
+suplementaria 9, folio 39.e14**, da el techo de normalidad en **4,0 cm en el varón y 3,8 cm en la
+mujer**; el comentario de `UMBRAL_AI_DIAM_DILATADO` declara que el valor único es una decisión de
+Maicol del 2026-09-27, tomada sobre la edición 2006. La ficha `DIM-AI-001` queda «parcial» y su
+barra **no publica línea de fuente**.
+Salidas: (a) dejarlo como está y documentarlo en la tarjeta; (b) separar por sexo, que mueve el
+informe de toda mujer con un diámetro entre 38 y 39 mm.
+
+### L-2 · El diámetro diastólico del VI tampoco separa por sexo
+`viDimCat` usa **58 y 65 mm** para los dos, más un respaldo por volumen telediastólico indexado
+(61 en la mujer, 75 en el varón). La guía, **Tabla suplementaria 3, folio 39.e8**, da cuatro
+bandas por sexo, y su techo de normalidad es 5,8 cm en el varón y **5,2 en la mujer**. Ficha
+`DIM-VI-001`, «parcial».
+
+### L-3 · Las categorías de FEVI viven en DOS copias y no se verificaron
+Los cortes **≥ 50 / 40-49 / 30-39 / < 30** están escritos dos veces —la cápsula de `calcVI` y el
+bloque de `generarInforme`— y **ninguno de los dos es reutilizable**. Además no coinciden con la
+ASE/EACVI 2015, que corta por sexo en 52 y 54 % con bandas 41-51 y 41-53, y no se encontró en la
+biblioteca el documento que publique la partición que la app usa. Ficha `FUN-VI-001`, «por
+verificar»; su barra sale sin fuente.
+Esta tanda **no agregó una tercera copia**: la tarjeta dibuja con las bandas de `EV_BANDAS_REF` y
+**copia** la categoría de la cápsula, y TC-491 las ata a lo que la app publica.
+Salidas: (a) extraer un dueño único sin cambiar los números —no cambia nada visible—; (b)
+además, decidir si se adoptan los cortes por sexo de la guía, que sí mueve el informe.
+
+### L-4 · El diámetro sistólico del VI no se clasifica en ninguna superficie
+Censado: `dsfvi` alimenta la fracción de acortamiento y el módulo de TEER, y **no produce
+categoría** en la pantalla, el informe, el PDF, el PPT ni el Laboratorio. La barra de la tarjeta
+publica la banda de la **guía** (Tabla suplementaria 3, folio 39.e8, verificada) y lo dice con
+esas palabras, porque no hay dueño al que preguntarle. Decidir si la app debe clasificarlo.
+
+### L-5 · En el valor exacto del umbral de masa, la app dice «hipertrofia» SIN gravedad
+`calcGeometriaVI` llama hipertrofia a la masa que **no es menor** que el umbral —o sea **115 g/m²
+exactos ya son hipertrofia en el varón, y 95 en la mujer**— mientras `hviSeveridad` empieza a
+graduar en 116 y en 96. En ese valor exacto la pantalla y el informe publican «HVI» sin grado.
+El comentario de `hviSeveridad` ya lo anticipaba. TC-491 lo fija como **límite declarado**, para
+que el día que se decida el caso lo note.
+Y la Figura 6 de la guía escribe `≥ 0,42` y `≤ 0,42`, que **se solapan en el 0,42 exacto**: la
+app lo resuelve del lado concéntrico.
+
+### L-6 · J-1 sigue abierto, y esta tanda lo volvió a medir
+Reproducido con teclas reales en los **tres** estilos, con el volumen de la AI medido y **sin
+superficie corporal**:
+
+| escena | informe (estándar) | EN SUMA |
+|---|---|---|
+| volumen 98 y nada más | «Volumen de la aurícula izquierda de 98 ml, sin indexar por falta de superficie corporal; no se informa el tamaño auricular.» | **vacío** |
+| volumen 98 + diámetro **normal** 38 | «Aurícula izquierda de dimensiones normales (diámetro AP 38 mm).» | vacío |
+| volumen 98 + área **normal** 15 | «Aurícula izquierda de dimensiones normales (área 15 cm²).» | vacío |
+| volumen 98 + diámetro dilatado 50 | «Aurícula izquierda dilatada (diámetro AP 50 mm).» | «AI dilatada (diámetro AP 50 mm).» |
+| volumen 98 + área dilatada 25 | «Aurícula izquierda dilatada (área 25 cm²).» | «AI dilatada (área 25 cm²).» |
+| CONTROL, el mismo 98 **con** ASC 2,00 | «Aurícula izquierda severamente dilatada (Vol Index 49.0 ml/m²).» | «AI severamente dilatada…» |
+
+**El EN SUMA no contradice al informe en ninguna escena**, y eso es lo que J-1 declaraba. Lo que
+sigue abierto son dos cosas, las dos **preexistentes**:
+1. el EN SUMA **calla** la declaración del volumen sin indexar, así que un resumen leído solo
+   deja fuera el único dato de esa aurícula (es la decisión de la tanda J, que no llama a
+   `ccMarcarParrafo()`);
+2. con un diámetro o un área **normales**, el informe afirma **«de dimensiones normales»** y la
+   declaración del volumen sin indexar **desaparece**, sobre una aurícula cuyo volumen medido,
+   indexado, sería severo. La rama que J1 cerró es la de «volumen y nada más».
+
+La tarjeta ⓘ de la AI **sí** lo dice en los dos casos, porque cada barra publica su propio
+estado: el aviso «Volumen de 98 ml, sin indexar: cargar peso y talla» aparece aunque el diámetro
+sea normal. Es pantalla, no papel.
+
+### L-7 · Lo que la tarjeta del VI deja en scroll interno
+A **1200 × 700** —el viewport que la orden fija— **ninguna** de las tres tarjetas tiene scroll
+interno, en Chrome ni en WebKit. En **390 × 844 y 360 × 740** la del ventrículo sí lo tiene en
+algunas escenas, y en Chrome también a **1920 × 1080** cuando el globo queda a 550 px del borde:
+en los dos casos lo que manda no es el alto de la tarjeta sino el **hueco** que queda del lado
+donde se abre, y el `overflow:auto` es lo que corresponde. Si se quisiera evitar también ahí,
+habría que partir la tarjeta del VI en dos más.
+
+### L-8 · El botón ⓘ va en el cuerpo del acordeón, no pegado al título
+La orden pedía el globo «junto al título». El encabezado de esos dos acordeones **es** un
+`<button>` con `onclick="secToggle(...)"`, y un botón dentro de otro botón no es marcado válido:
+el navegador lo saca del padre al parsear. Quedó en una fila propia inmediatamente **debajo** del
+título, con su rótulo. Si se quisiera a la derecha del título habría que reestructurar la
+cabecera del acordeón, que gobierna todas las secciones de la app.
+
+### L-9 · No hay botón «Ver referencia» en la tarjeta
+La orden lo pedía **sólo si abrir Referencias en esa entrada costaba poco**. No hay mecanismo
+para abrir la pestaña en una sección concreta: `toggleRef` no tiene una entrada por URL ni por
+parámetro, y `showTab('refs')` deja todas las secciones como estaban. Construirlo es agregar un
+mecanismo de navegación a una pestaña que un trabajo posterior va a reestructurar en subpestañas.
+**No se construyó**, y la tarjeta nombra «ver Referencias» en palabras donde hace falta.

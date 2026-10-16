@@ -47,6 +47,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Ver por dónde sale un dato** (informe narrativo, EN SUMA, PDF, Excel) | `docs/mapa/informe-pdf-excel.md` |
 | **Tocar la IMPORTACIÓN del Excel**: el guardián de columnas, las listas de valores, los rangos, el mensaje de las columnas calculadas o la exportación JSON | `docs/mapa/importacion-excel.md` |
 | **Tocar CONTRACTILIDAD**: el botón «Incluir bull's eye en PDF» y de qué depende que el bull's eye entre al papel, la fila de tres bloques, la tabla de colores o el interior del 3D del VENTRÍCULO | `docs/mapa/contractilidad-3d-vi.md` |
+| **Tocar una TARJETA ⓘ de AI/VI, el REGISTRO DE EVIDENCIA o una entrada de Referencias**: las fichas, los estados, el sondeo del dueño, el gráfico de geometría | `docs/mapa/registro-evidencia.md` |
 | **Tocar la AURÍCULA IZQUIERDA**: el dueño de su clasificación por volumen indexado, qué superficie clasifica y cuál sólo publica el valor; o **el COLAPSO de la VCI y el SÍMBOLO DEL SEXO en el PDF** | `docs/mapa/auricula-izquierda-pdf.md` |
 | **Tocar una COLUMNA del Excel, el criterio de «derivada», la IDA Y VUELTA de un dato calculado o el mensaje del importador** | `docs/mapa/excel-origen-ida-vuelta.md` |
 | **Tocar las ASOCIACIONES del Laboratorio o la TABLA DE LAS OCHO VÁLVULAS**: el cociente TAPSE/PSAP en el bloque A, el aviso de par acoplado, las dos estenosis BINARIAS y sus dos denominadores | `docs/mapa/laboratorio-asociaciones-valvulas.md` |
@@ -111,8 +112,8 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **7,74 MB / 116.686 líneas**, medido el 2026-10-16 al cierre de la tanda Y1c
-  —el renglón anterior decía «7,66 MB / 115.387 líneas» y era del Y2: **medirlo antes de
+  sin frameworks. Hoy **7,89 MB / 118.928 líneas**, medido el 2026-10-16 al cierre de la tanda L
+  —el renglón anterior decía «7,74 MB / 116.686 líneas» y era del Y1c: **medirlo antes de
   presupuestar contexto**—. Las únicas dependencias son jsPDF, XLSX y
   PptxGenJS por CDN. Se abre como archivo local y corre en Chrome.
 - Lo que produce es un **informe firmado**: narrativo, EN SUMA, PDF, PPT y Excel del Laboratorio.
@@ -266,6 +267,208 @@ impecable.
 ---
 
 ## Estado vigente
+
+### El REGISTRO DE EVIDENCIA y las TRES tarjetas ⓘ de AI/VI — «L» (2026-10-16)
+
+- **Son CINCO commits y la orden pedía SEIS: el L4 se OMITE**, y es la propia orden la que lo
+  prevé. `hviSeveridad(idx, sexo)` **ya era** un dueño puro y reutilizable —lo llaman la cápsula
+  de `calcVI` y `generarInforme`— así que no había nada que extraer; lo único que hizo falta fue
+  **exportarlo**, y eso entró en L1.
+  Al **empezar**, `main` y `origin/main` estaban los dos en **`a3e95bc`** (sello
+  `v20261016-1605`), **sin nada sin pushear** —confirmado con un `git fetch` de verdad, con el
+  `FETCH_HEAD` fechado al momento—, con los siete commits del K ya incluidos **y pusheados**. Los
+  **cinco** commits de esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 5 → 4 → 3 → 2 → 1.**
+  ⚠️ **EL 1 ES LA BASE DE TODOS**: crea `EV_REG`, `evFicha`, `evFuenteLinea` y `evCortes`, y
+  exporta `hviSeveridad`, `vdfviInterp` y `vsfviInterp`. Revertirlo sin revertir antes los otros
+  deja las tres tarjetas llamando a funciones que no existen.
+  ⚠️ **EL 3 CUELGA DEL 2** por el motor de dibujo (`_evBarra`, `_evFuentesPie`, `EV_COLOR`) y por
+  el soporte de `dyn`/`ancho` en `_vInfoColocar`, que nacen en el 2; **y el 4 cuelga del 3** por
+  `_evSexoCargado` y por `_evRefTabla`/`_evRefBiblio`/`_evRefBarras`, que el 3 creó.
+  ⚠️ **EL 1 LLEVA LA SONDA** (`scripts/_probe_l.mjs`), con la que se verificaron los cuatro, y el
+  **5** la de los dos motores (`scripts/_probe_lwk.mjs`).
+  **El 5 es TC-491 más la documentación y el sello**, y afirma el comportamiento de los cuatro.
+  ⚠️ **CASOS ADAPTADOS: UNO, TC-471**, dos veces la misma línea: su conteo del registro `VINFO`
+  pasó de 23 a 24 (commit 2) y de 24 a **26** (commit 4). Los tres globos nuevos **no están en
+  Válvulas**, igual que `tapse-psap` vive en el Doppler tricuspídeo; lo que esa condición sigue
+  exigiendo es que toda clave del marcado de Válvulas tenga entrada y que no quede ninguna de
+  legado.
+
+- **Línea base al cierre: suite 501/505 con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0
+  ERROR, Excel en 440 columnas. CERO REGRESIONES.** Los **CUATRO** rojos son exactamente los de
+  ENTRADA —**TC-223** (el documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**—.
+  **El denominador sube a 505**: esta tanda agregó **TC-491**. El `md5` de `index.html` no se
+  movió durante la corrida (`b7e67432…`, el del sello) y el pendrive estaba montado antes y
+  después.
+  ⚠️ **EL CHEQUEO DE CELULAR SUBE +3 HALLAZGOS Y +3 ALTA POR ANCHO, Y SON LOS TRES GLOBOS
+  NUEVOS.** Pasa de **45 / 54 con 3 ALTA** a **383 a 360 px y 392 a 390 px con 6 ALTA cada uno**
+  (`--todo`; la línea base del K daba 380 y 389). La causa tiene nombre y es la de siempre:
+  `check_mobile.js` mide el rect del NODO **sin emular puntero grueso**, y `.vinfo-btn` mide
+  16 × 12 px con el mouse y **44 × 44 con el dedo**, por su `@media (pointer: coarse)`.
+  **Medido con emulación táctil: los tres pasan a 44 × 44 exactos.** Es el mismo precedente que
+  el botón del «porqué» de la vista 2D y los dos marcadores del J. `PENDIENTES.md` → L-10.
+  ⚠️ **Y LA COMPROBACIÓN POR `elementFromPoint` TIENE UN ARTEFACTO PROPIO:** con
+  `Emulation.setDeviceMetricsOverride` puesto, el punto y el rect **no coinciden** y los tres
+  globos informan «0 de 5 (centro=DIV.card)». **Sin emulación el centro devuelve el propio
+  `BUTTON.vinfo-btn`.** La fila «sin emulación» del grupo `tactil` existe para distinguir el
+  artefacto del defecto.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **505 ids** sobre los 506 casos del archivo.
+- **EL SELLO DE VERSIÓN** estaba al día al empezar (`v20261016-1605`) y se volvió a sellar:
+  **`v20261016-1748`**. Todo lo medido salió **DESPUÉS** de sellar, con el `md5` quieto.
+- **`index.html` pasó de 7,82 MB / 117.897 líneas a 7,89 MB / 118.928 líneas.**
+
+- **Dónde está todo:** `docs/mapa/registro-evidencia.md` (**mapa NUEVO**, 14,8 KB: el formato de
+  la ficha, los tres estados, las doce fichas con su folio, el mecanismo de las tarjetas, el
+  sondeo del dueño, el gráfico de geometría, Referencias y ocho trampas);
+  `docs/mapa/auricula-izquierda-pdf.md` → un puntero (**24,2 KB**);
+  `docs/mapa/vi-volumenes-automaticos.md` → un puntero (**11,5 KB**);
+  `docs/mapa/tests-fichas.md` → la ficha de TC-491 (**25,9 KB**); `docs/fuentes/FUENTES.md` → la
+  tabla de los once datos con su tabla, su folio IMPRESO y su hoja del PDF, más lo que quedó «por
+  verificar» con el motivo; y `docs/PENDIENTES.md` → **diez** cosas declaradas (L-1 a L-10).
+  ⚠️ **NINGÚN MAPA CRUZÓ EL TECHO, medido con `wc -c` ANTES de escribir**: los dos que esta tanda
+  toca quedaban a más de 10 KB con un puntero, así que el contenido salió a archivo propio.
+
+- **L1 · EL REGISTRO NO ES EL DUEÑO DE NINGÚN CORTE, Y ESO ES LO QUE EVITA LA SEGUNDA COPIA.**
+  `EV_REG` son doce fichas de **datos puros** —pasan por `JSON.stringify` y vuelven iguales— con
+  id, zona, dato, valor, **el dueño que lo decide**, guía, tabla o figura, folio impreso, hoja
+  del PDF, DOI, tipo, estado, fecha y la línea de fuente. Lo que las tarjetas **dibujan** no sale
+  de la ficha: `evCortes(sexo)` **SONDEA** a la función dueña barriendo su dominio, así que la
+  barra y el papel firmado no se pueden desincronizar ni en un decimal.
+  ⚠️ **EL DOI SE LEYÓ EN EL PIE DE LA HOJA 1 DEL PROPIO PDF** (`10.1016/j.echo.2014.10.003`): no
+  hizo falta buscarlo afuera.
+  ⚠️ **LA REGLA DE FOLIO NO ES «página + N» NI ES ÚNICA, Y SE COMPROBÓ EN EL PIE IMPRESO:** en el
+  **cuerpo** de la ASE/EACVI 2015 el folio **coincide** con la hoja del PDF (la hoja 7 dice «Lang
+  et al 7»), y en el **APÉNDICE no** —la hoja 47 lleva el folio **39.e8** y la 53 el **39.e14**—.
+  **OCHO fichas quedan «verificado», DOS «parcial» y DOS «por verificar»**, y las tarjetas
+  publican la línea de fuente **sólo** de las verificadas: mejor sin línea que con una fuente no
+  comprobada.
+  ⚠️ **NI UNA NOTA INTERNA DENTRO DE LA FICHA** —el repositorio es público—: TC-491 barre el
+  vocabulario de reserva sobre cada una.
+  **LO VERIFICADO COINCIDE DÍGITO POR DÍGITO con lo que la app aplica** en el volumen indexado de
+  la AI (Tabla 4, folio 10), la masa indexada y su gravedad (Tabla 6 folio 17 y Tabla
+  suplementaria 3 folio 39.e8), el espesor parietal relativo, los cuatro cuadrantes y los dos
+  volúmenes indexados del VI.
+
+- ⚠️ **CINCO DIFERENCIAS ENTRE LA APP Y LA GUÍA, MEDIDAS Y NO CORREGIDAS** (`PENDIENTES.md` → L-1
+  a L-5): el **diámetro AP de la AI** usa 40 mm para los dos sexos donde la Tabla suplementaria 9
+  da 4,0 cm en el varón y **3,8 en la mujer**; el **DDVI** usa 58 y 65 mm sin sexo; las
+  **categorías de FEVI** (≥50 / 40-49 / 30-39 / <30, iguales en los dos sexos) **no son las de
+  esta guía** —que corta por sexo en 52 y 54— y **no se encontró su fuente en la biblioteca**; el
+  **área de la AI** (>20 cm²) tampoco está en esta guía, que dice que informar el área es
+  innecesario; y en el **valor exacto del umbral de masa** la app publica «hipertrofia» **SIN
+  gravedad**, porque `calcGeometriaVI` llama hipertrofia al 115 exacto mientras `hviSeveridad`
+  empieza a graduar en 116. **Eso último lo destapó TC-491**, no la lectura.
+
+- **L2 y L3 · LAS TRES TARJETAS REUSAN EL MECANISMO QUE YA EXISTÍA** (`VINFO` + `vInfoClic` +
+  `#vinfo-card`, el de los veintitrés globos de Válvulas y del TAPSE/PSAP). Lo único que se
+  extiende son **dos campos opcionales**: `dyn`, una función que devuelve **NODOS** —un gráfico
+  no se escribe en el campo `lee`, y un SVG por `innerHTML` no hereda su espacio de nombres— y
+  `ancho` propio. Las veintitrés anteriores **no se mueven un píxel**.
+  **NINGUNA CATEGORÍA SE REESCRIBE:** la del volumen de la AI es el `adj` de `AI_VOL_BANDAS`
+  —literalmente lo que imprime el informe—, las del diámetro, el área y la FEVI se **copian** del
+  texto que su cápsula publica, y las del DDVI y los volúmenes indexados salen de `viDimCat`,
+  `vdfviInterp` y `vsfviInterp`.
+  ⚠️ **EL REPINTADO EN VIVO NO PUEDE IR EN `requestAnimationFrame`, Y ESTÁ MEDIDO: en Chrome sin
+  ventana visible rAF NO SE DISPARA** —una sonda lo esperó 1,5 s y nunca llegó—, así que la
+  tarjeta se quedaba con la categoría del gesto **anterior** mientras el campo ya tenía el valor
+  nuevo, y **eso no se ve**. Va con un `setTimeout(…, 0)`, que además es una macrotarea y corre
+  después del despacho del evento — que es lo que hace falta, porque el oyente va en captura y
+  corre ANTES que el `oninput` del propio campo. **Y la clave viva se marca en el PROPIO NODO**
+  (`data-ev-dyn`) en vez de deducirse de la variable de módulo.
+  ⚠️ **EL GLOBO VA EN UNA FILA DEL CUERPO DEL ACORDEÓN Y NO DENTRO DE SU ENCABEZADO**: ese
+  encabezado **es** un `<button>` con `onclick="secToggle(...)"`, y un botón dentro de otro no es
+  marcado válido — el navegador lo saca del padre al parsear. `PENDIENTES.md` → L-8.
+  ⚠️ **LA REGLA «SIN SEXO, SIN PUNTO» SE APLICA POR BARRA Y NO POR TARJETA:** existe porque los
+  cortes dependen del sexo, así que aplicarla a una barra cuyo corte no depende de él escondería
+  una información que no falta. En la **AI ninguno de los tres** depende del sexo —la Tabla 4
+  imprime los mismos valores en las dos columnas— y en el **VI** el DDVI y la FEVI conservan su
+  punto.
+  ⚠️ **DOS DATOS NO TIENEN DUEÑO Y SUS NÚMEROS VIVEN EN UN SOLO LUGAR** (`EV_BANDAS_REF`): el
+  **DSVI**, que **ninguna superficie de la app clasifica** —censado—, y la **FEVI**, cuyos cortes
+  ya viven en **dos copias** y a las que esta tanda **no agregó una tercera**: dibuja con esas
+  bandas, copia la categoría de la cápsula, y TC-491 las ata con teclas reales a lo que la app
+  publica en cada borde.
+
+- **L5 · EL GRÁFICO DE GEOMETRÍA VA EN UN GLOBO PROPIO, Y ES UNA MEDICIÓN.** Con sus cinco barras
+  la tarjeta del VI mide hasta **488 px** y el gráfico suma **365**: a 1200 × 700 —donde el hueco
+  útil arriba o abajo del globo es menor que la ventana— las dos juntas obligaban a scroll
+  **interno**. Son dos globos, como la propia orden prevé.
+  **SIMÉTRICO: los dos ejes van POR TRAMOS**, de modo que las dos mitades miden lo mismo; la
+  consecuencia queda escrita —la distancia en píxeles **no** es proporcional a la diferencia en
+  gramos—. La mitad de la hipertrofia se parte en **tres bandas de igual alto** por los cortes de
+  gravedad del sexo —sondeados—, **sin rayas entre ellas**: lo único que cambia es el tono. El
+  remodelado concéntrico y la geometría normal van de un solo tono, porque la gravedad que la app
+  calcula es la de la **hipertrofia**.
+  **Las bandas no llevan escrita ninguna palabra de gravedad: sólo color** —y el color nunca es
+  lo único que informa: cada corte lleva su número **con su unidad**, la categoría va en palabras
+  y el `aria-label` repite valor, categoría y cortes—.
+
+- **REFERENCIAS gana DOS entradas**, `ref-ai` y **`ref-vi2`** —el id es `vi2` porque `ref-vi` ya
+  existe y es la tarjeta de la ASE 2016, con otra fuente—. Su cuerpo **no es HTML estático**: lo
+  arma `evRefPintar` desde el registro y los mismos dueños, con las dos columnas de sexo
+  **siempre**, las mismas gráficas **sin el punto del paciente** y la bibliografía **por sección
+  numerada desde [1]**, sólo con fichas «verificado». **Una fila cuya ficha no lo está sale sin
+  corchete**, y ése es el control negativo de TC-491.
+  ⚠️ **NO HAY BOTÓN «Ver referencia» Y SE DECLARA:** la orden lo pedía sólo si costaba poco, y no
+  hay mecanismo para abrir la pestaña en una sección concreta. `PENDIENTES.md` → L-9.
+
+- ⚠️ **J-1, REPRODUCIDO CON TECLAS REALES EN LOS TRES ESTILOS Y NO CORREGIDO.** Con el volumen de
+  la AI medido y **sin superficie corporal**: con el volumen **y nada más**, el informe declara
+  «Volumen de la aurícula izquierda de 98 ml, sin indexar…» y el **EN SUMA calla**; con un
+  diámetro o un área **NORMALES**, el informe afirma **«de dimensiones normales»** y la
+  declaración del volumen **desaparece**. **El EN SUMA no contradice al informe en ninguna
+  escena**, que es lo que J-1 declaraba; lo que sigue abierto son esas dos cosas, las dos
+  preexistentes. La tarjeta ⓘ **sí** lo dice en los dos casos, porque cada barra publica su
+  propio estado — pero es pantalla, no papel. `PENDIENTES.md` → L-6.
+
+- **A/B DEDICADO CONTRA EL ÁRBOL DE ENTRADA, con el formulario vacío y con escenario cargado: 0
+  DIFERENCIAS** en informe (tres estilos), EN SUMA, los ocho grados, las ocho pastillas, la
+  diastólica, el HFA-PEFF, el Laboratorio, el **Excel en 440 columnas CLAVE POR CLAVE** y el
+  **PDF generado de verdad en las SEIS plantillas por tres escenas** (18 celdas, `nTextos`,
+  `nFigs` y la lista de textos idénticos). **Cero campos nuevos del estudio y cero claves de
+  almacenamiento.**
+
+- **Arneses: `scripts/_probe_l.mjs`** (CDP, teclas reales, salida parcial por grupo; nueve
+  grupos: `j1`, `registro`, `tarjeta`, `vivo`, `geom`, `refs`, `maqueta`, `tactil`, `captura`,
+  `controles`) y **`scripts/_probe_lwk.mjs`** (Playwright, los DOS motores).
+  **EN LOS DOS MOTORES, 192 celdas cada uno —seis viewports × dos temas × cinco escenas × tres
+  tarjetas—: CERO errores, CERO tarjetas fuera de pantalla y CERO scroll horizontal de la
+  página.** Scroll **interno** sólo en celular (390 y 360 px) y, en Chrome, a 1920 × 1080 en una
+  escena: ahí lo que manda no es el alto de la tarjeta sino el **hueco** del lado donde se abre.
+  **A 1200 × 700 —el viewport que la orden fija— no hay scroll interno en ninguna de las tres, en
+  ninguno de los dos motores.**
+  **Cobertura: TC-491**, **51 condiciones** con dos denominadores y cuatro controles negativos.
+  **Verificado que sabe fallar contra el árbol de entrada en un worktree aparte: 42 de las 51 en
+  rojo, y NINGUNA por excepción.**
+
+- ⚠️ **OCHO TRAMPAS, Y SEIS DABAN FALSOS PLAUSIBLES.**
+  1. **`requestAnimationFrame` NO CORRE en Chrome sin ventana visible** —1,5 s de espera y nunca
+     llegó—, así que el repintado en vivo quedaba sin hacer y la tarjeta se veía perfecta con el
+     número del gesto anterior.
+  2. **El `clip` de `Page.captureScreenshot` va en coordenadas de PÁGINA** aunque el nodo sea
+     `position:fixed`: sin sumarle el desplazamiento, el PNG salió con la botonera de la app y
+     **se ve perfectamente bien**.
+  3. **Y con `deviceScaleFactor: 2` ese `clip` se interpreta en píxeles de DISPOSITIVO**, así que
+     el recorte cae a la mitad de la coordenada pedida. El factor va en 1 y la escala en el clip.
+  4. **Los rótulos de los cortes se encimaban y lo vio la CAPTURA, no la medición**: «34 ml/m²41
+     ml/m²48 ml/m²». Se escalonan en dos renglones, y la detección de choque compara **la mitad
+     de cada uno** —con medio ancho solo decía «no chocan» sobre rótulos pegados—.
+  5. **Los valores del selector de sexo son `M` y `F`**, no «Masculino» y «Femenino»: con el
+     texto de la opción el `<select>` queda en `selectedIndex -1` y toda la corrida se mide como
+     «sin sexo». La captura de la mujer salió con los cortes del varón.
+  6. **El conteo de nodos hay que tomarlo justo antes del bucle**: entre medio se cambia el
+     volumen de la aurícula, y eso repinta la diastólica y el HFA-PEFF, que **sí** agregan nodos.
+     Informó 36 de más sobre una tarjeta que no acumula ninguno.
+  7. **Hay que cerrar la tarjeta antes del bucle de veinte**: con la tarjeta abierta, cuarenta
+     clics la dejan **abierta**.
+  8. **`maxTouchPoints` tiene que estar entre 1 y 16 incluso al DESACTIVAR** la emulación táctil:
+     con 0 el protocolo rechaza la llamada y la corrida muere antes de medir nada.
+- ⚠️ **Me comí el acento grave CINCO veces**, todas en comentarios míos dentro del cuerpo de un
+  caso o del template de una sonda. `scripts/check_backticks.py` dio la línea exacta cuatro, y la
+  quinta —dentro del template `MONTAR` de la sonda de los dos motores, que ese script **no
+  alcanza**— la dio `node --check`. **Correr los dos.**
 
 ### El ARTEFACTO DEL CHORRO, la COLUMNA de ETE, la BRÚJULA, el BOTÓN del bull's eye, la FILA DE TRES y el 3D del VI — «K» (2026-10-16)
 

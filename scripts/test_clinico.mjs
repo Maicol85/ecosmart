@@ -71674,6 +71674,450 @@ caso('TC-490', 'Tanda K: el 3D de la MITRAL —el lienzo se limpia ENTERO y el c
   })();
 `);
 
+caso('TC-491', 'Tanda L: el REGISTRO DE EVIDENCIA de la AI y del VI —doce fichas de datos puros, con sus ids unicos, su estado y su valor atado al dueno que usa el informe—; las TRES tarjetas «i» graficas de AI/VI con el punto del paciente, la categoria en palabras que ya publica la app, cada corte con su unidad, sin palabras de gravedad en las bandas, en vivo, por sexo, sin superficie corporal y sin datos; el grafico de GEOMETRIA de cuatro cuadrantes simetrico con sus tres bandas; y las dos entradas nuevas de REFERENCIAS con los dos sexos y la bibliografia solo de fichas verificadas; mas el informe, el EN SUMA, los grados, la diastolica, el Wilkins y las 440 columnas del Excel sin moverse', `
+  return (async function(){
+    const ex = [];
+    const EL = (id) => document.getElementById(id);
+    const S  = (id, v) => { try { __t.set(id, v); } catch (e) {} };
+    const V  = (id) => { const e = EL(id); return e ? e.value : null; };
+    const TXT = (id) => { const e = EL(id); return e ? String(e.textContent || '').replace(/[ ]+/g, ' ').trim() : 'NO EXISTE'; };
+    const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+    /* ⚠️ TODA LECTURA DE LAS PIEZAS NUEVAS VA POR UN AYUDANTE CON CENTINELA: contra HEAD no
+       existen EV_REG, evCortes, evFicha, evFuenteLinea, EV_BANDAS_REF, evTarjetaAI,
+       evTarjetaVI, evGraficoGeometria ni los tres botones, y nombrarlos pelados es un
+       ReferenceError que mata la corrida entera — eso prueba que el arbol es distinto, no que
+       el caso sabe medir. Es la leccion que TC-455, TC-462, TC-465, TC-471, TC-473, TC-474,
+       TC-477, TC-480, TC-485, TC-487, TC-489 y TC-490 ya tienen escrita. */
+    const G = (n) => { try { return (n in window) ? window[n] : 'NO EXISTE'; } catch (e) { return 'EXC'; } };
+    const FN = (n) => typeof G(n) === 'function';
+    const CARD = () => EL('vinfo-card');
+    const BTN  = (k) => document.querySelector('[data-vinfo="' + k + '"]');
+
+    /* ── DENOMINADOR 1: la pestana AI/VI abierta, con sus dos acordeones ──
+       Sin esto los tres globos existen y miden 0 x 0, la tarjeta se niega a anclarse —que es lo
+       correcto— y TODAS las condiciones de abajo salen rojas sobre un arbol perfecto. */
+    try { showTab('ai-vi'); } catch (e) {}
+    ['ai', 'vi'].forEach(function (k) {
+      const n = EL('sacc-' + k);
+      if (n && !n.classList.contains('open')) { try { secToggle(k); } catch (e) {} }
+    });
+    const geoBtn = (k) => { const b = BTN(k); if (!b) return null;
+      const r = b.getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height) }; };
+    const g1 = geoBtn('ai-card'), g2 = geoBtn('vi-card'), g3 = geoBtn('vi-geo');
+    ex.push(['(DENOM) los TRES globos de AI/VI existen y tienen geometria',
+      !!(g1 && g1.w > 0 && g2 && g2.w > 0 && g3 && g3.w > 0),
+      'ai=' + JSON.stringify(g1) + ' vi=' + JSON.stringify(g2) + ' geo=' + JSON.stringify(g3)]);
+
+    const abrir = (k) => { const b = BTN(k); if (!b) return false; b.click();
+      const c = CARD(); return !!(c && getComputedStyle(c).display !== 'none'); };
+    const cerrar = () => { const c = CARD(); if (c && getComputedStyle(c).display !== 'none') {
+      try { vInfoCerrar(true); } catch (e) {} } };
+    const leerCard = () => { const c = CARD(); if (!c) return { err: 'NO EXISTE' };
+      const q = (sel) => Array.prototype.slice.call(c.querySelectorAll(sel));
+      return { txt: String(c.textContent || '').replace(/\\s+/g, ' ').trim(),
+        puntos: q('[data-ev-punto]').map(function (e) { return e.getAttribute('data-ev-punto') }),
+        cortes: q('[data-ev-corte]').map(function (e) { return String(e.textContent || '').trim() }),
+        cat: q('[data-ev-cat]').map(function (e) { return String(e.textContent || '').trim() }),
+        avisos: q('[data-ev-aviso]').map(function (e) { return String(e.textContent || '').trim() }),
+        fuentes: q('[data-ev-fuente]').map(function (e) { return String(e.textContent || '').trim() }),
+        /* ⚠️ LA GEOMETRIA VA EN CAMPOS SEPARADOS Y NO CONCATENADA AL NOMBRE: el atributo
+           data-ev-cuad de una banda YA lleva su nivel con una barra adentro
+           («Hipertrofia excéntrica|2»), asi que pegarle las cuatro medidas detras y partir por
+           barra las corre un lugar — medido: la primera version leyo el ANCHO como alto y la
+           condicion de simetria informo 420 contra 82 sobre un dibujo simetrico. */
+        cuad: q('[data-ev-cuad]').map(function (e) { return { k: e.getAttribute('data-ev-cuad'),
+          x: +e.getAttribute('x'), y: +e.getAttribute('y'),
+          w: +e.getAttribute('width'), h: +e.getAttribute('height') } }),
+        zonas: q('[data-ev-zona]').map(function (e) { return e.getAttribute('data-ev-zona') + '|'
+          + e.getAttribute('x') + '|' + e.getAttribute('width') }),
+        puntoX: q('[data-ev-punto]').map(function (e) { return parseFloat(e.getAttribute('cx')) }),
+        nSvg: c.querySelectorAll('svg').length }; };
+    const escena = (campos, sexo) => {
+      try { limpiarCampos(true); } catch (e) {}
+      try { showTab('ai-vi'); } catch (e) {}
+      ['ai', 'vi'].forEach(function (k) { const n = EL('sacc-' + k);
+        if (n && !n.classList.contains('open')) { try { secToggle(k); } catch (e) {} } });
+      const s = EL('sexo');
+      if (s) { s.value = sexo; s.dispatchEvent(new Event('change', { bubbles: true })); }
+      Object.keys(campos).forEach(function (id) { S(id, campos[id]); });
+      try { calcAI(); calcVI(); } catch (e) {}
+    };
+    const BSA2 = { peso: '80', talla: '180' };   // Mosteller -> 2,00 exacta
+
+    /* ══ (A) EL REGISTRO ══════════════════════════════════════════════════════════════════ */
+    const REG = G('EV_REG');
+    const hayReg = Array.isArray(REG);
+    ex.push(['(A1) el registro existe y trae las doce fichas de la AI y del VI',
+      hayReg && REG.length === 12, 'n=' + (hayReg ? REG.length : REG)]);
+    const ids = hayReg ? REG.map(function (f) { return f.id }) : [];
+    ex.push(['(A2) los ids son unicos y siguen el formato de la zona',
+      hayReg && ids.length === new Set(ids).size
+        && ids.every(function (x) { return /^(DIM|FUN|MAS|GEO)-(AI|VI)-\\d{3}$/.test(x) }),
+      'ids=' + ids.join(',')]);
+    ex.push(['(A3) son DATOS PUROS: pasan por JSON.stringify y vuelven iguales',
+      hayReg && (function () { try {
+        return JSON.stringify(JSON.parse(JSON.stringify(REG))) === JSON.stringify(REG);
+      } catch (e) { return false } })(), 'pureza']);
+    ex.push(['(A4) cada ficha trae los campos del formato, con su folio y su hoja del PDF',
+      hayReg && REG.every(function (f) {
+        return ['id','zona','dato','valor','duenio','guia','ubicacion','folio','hoja_pdf','doi',
+                'fuente_original','tipo','estado','fecha_verificacion','fuente_una_linea']
+          .every(function (k) { return k in f }); }),
+      'campos=' + (hayReg ? Object.keys(REG[0]).join(',') : '')]);
+    ex.push(['(A5) los tres estados son los del formato y no hay otros',
+      hayReg && REG.every(function (f) { return ['verificado','parcial','por verificar'].indexOf(f.estado) >= 0 })
+        && REG.every(function (f) { return ['guia','consenso de expertos','criterio propio de EcoSmart'].indexOf(f.tipo) >= 0 }),
+      'estados=' + (hayReg ? REG.map(function (f) { return f.estado }).join(',') : '')]);
+    /* ⚠️ NINGUNA FICHA LLEVA NOTA INTERNA: el repositorio es PUBLICO. Se busca el vocabulario
+       con el que se escribe una reserva, no una palabra suelta. */
+    ex.push(['(A6) ninguna ficha trae notas internas ni reservas',
+      hayReg && REG.every(function (f) {
+        const t = JSON.stringify(f).toLowerCase();
+        return ['pendiente','revisar','dudoso','no se pudo','habria que','ojo:','todo:','fixme']
+          .every(function (p) { return t.indexOf(p) < 0 }); }),
+      'barrido de vocabulario de reserva']);
+    ex.push(['(A7) una ficha «verificado» tiene linea de fuente y las otras NO la publican',
+      FN('evFuenteLinea') && hayReg && REG.every(function (f) {
+        const l = evFuenteLinea(f.id);
+        return (f.estado === 'verificado') ? (l && l.length > 0) : (l === ''); }),
+      'verificadas=' + (hayReg ? REG.filter(function (f) { return f.estado === 'verificado' }).length : '-')]);
+    ex.push(['(A8) toda ficha verificada cita tabla o figura, folio y DOI',
+      hayReg && REG.filter(function (f) { return f.estado === 'verificado' })
+        .every(function (f) { return f.ubicacion && f.folio && f.doi && f.hoja_pdf; }),
+      'ok']);
+
+    /* ── El valor de cada ficha contra el DUENO, sondeando ──
+       Es la condicion que impide que el registro y el informe se separen: si alguien mueve un
+       corte en la funcion, la ficha deja de coincidir y esto se pone rojo. */
+    const CM = FN('evCortes') ? evCortes('M') : null;
+    const CF = FN('evCortes') ? evCortes('F') : null;
+    const cortesDe = (bandas) => (bandas || []).slice(0, -1).map(function (b) { return b.hasta });
+    ex.push(['(A9) el volumen indexado de la AI: el dueno corta en 34, 41 y 48, los mismos de la ficha DIM-AI-003',
+      !!CM && JSON.stringify(cortesDe(CM.aiVol)) === JSON.stringify([34, 41, 48]),
+      'cortes=' + JSON.stringify(CM && cortesDe(CM.aiVol))]);
+    ex.push(['(A10) el diametro AP y el area de la AI: 40 y 20, los de DIM-AI-001 y DIM-AI-002',
+      !!CM && JSON.stringify(cortesDe(CM.aiDiam)) === JSON.stringify([39.9])
+          && JSON.stringify(cortesDe(CM.aiArea)) === JSON.stringify([20]),
+      'diam=' + JSON.stringify(CM && cortesDe(CM.aiDiam)) + ' area=' + JSON.stringify(CM && cortesDe(CM.aiArea))]);
+    ex.push(['(A11) los volumenes indexados del VI por sexo: 74/89/100 en el varon y 61/70/80 en la mujer',
+      !!CM && !!CF && JSON.stringify(cortesDe(CM.vdfvi)) === JSON.stringify([74, 89, 100])
+          && JSON.stringify(cortesDe(CF.vdfvi)) === JSON.stringify([61, 70, 80]),
+      'H=' + JSON.stringify(CM && cortesDe(CM.vdfvi)) + ' M=' + JSON.stringify(CF && cortesDe(CF.vdfvi))]);
+    ex.push(['(A12) el telesistolico indexado: 31/38/45 en el varon y 24/32/40 en la mujer',
+      !!CM && !!CF && JSON.stringify(cortesDe(CM.vsfvi)) === JSON.stringify([31, 38, 45])
+          && JSON.stringify(cortesDe(CF.vsfvi)) === JSON.stringify([24, 32, 40]),
+      'H=' + JSON.stringify(CM && cortesDe(CM.vsfvi))]);
+    ex.push(['(A13) la gravedad de la hipertrofia: 115/131/148 en el varon y 95/108/121 en la mujer',
+      !!CM && !!CF && JSON.stringify(cortesDe(CM.masa)) === JSON.stringify([115, 131, 148])
+          && JSON.stringify(cortesDe(CF.masa)) === JSON.stringify([95, 108, 121]),
+      'H=' + JSON.stringify(CM && cortesDe(CM.masa)) + ' M=' + JSON.stringify(CF && cortesDe(CF.masa))]);
+    ex.push(['(A14) el espesor parietal relativo corta en 0,42 con la masa normal Y con la masa aumentada',
+      !!CM && JSON.stringify(cortesDe(CM.rwtMasaNormal)) === JSON.stringify([0.41])
+          && JSON.stringify(cortesDe(CM.rwtMasaAumentada)) === JSON.stringify([0.41]),
+      'normal=' + JSON.stringify(CM && cortesDe(CM.rwtMasaNormal))]);
+    ex.push(['(A15) el diametro diastolico corta en 58 y 65, los de DIM-VI-001',
+      !!CM && JSON.stringify(cortesDe(CM.ddvi)) === JSON.stringify([58, 65]),
+      'ddvi=' + JSON.stringify(CM && cortesDe(CM.ddvi))]);
+
+    /* ══ (B) LAS TARJETAS ═════════════════════════════════════════════════════════════════ */
+    escena(Object.assign({}, BSA2, { ai_vol: '68', ai_diam: '38', ai_area: '15' }), 'M');
+    const abAI = abrir('ai-card');
+    const tAI = leerCard();
+    ex.push(['(B1) la tarjeta de la AI abre y dibuja sus TRES barras con el punto del paciente',
+      abAI && tAI.nSvg === 3 && tAI.puntos.length === 3,
+      'svg=' + tAI.nSvg + ' puntos=' + JSON.stringify(tAI.puntos)]);
+    ex.push(['(B2) cada corte lleva su numero CON su unidad',
+      tAI.cortes.length === 5 && tAI.cortes.every(function (c) { return /^[0-9][0-9,.]*\\s(mm|cm²|ml\\/m²|%|g\\/m²)$/.test(c) }),
+      'cortes=' + JSON.stringify(tAI.cortes)]);
+    /* ⚠️ LAS BANDAS NO LLEVAN PALABRA DE GRAVEDAD: se mira el ATRIBUTO de cada zona, que es el
+       nombre interno, y que NINGUN texto del dibujo lo repita. */
+    const svgTxt = (function () { const c = CARD(); if (!c) return '';
+      return Array.prototype.slice.call(c.querySelectorAll('svg text'))
+        .map(function (e) { return String(e.textContent || '') }).join(' | '); })();
+    ex.push(['(B3) ninguna banda escribe leve, moderada ni severa dentro del dibujo',
+      !/leve|moderad|sever|dilat|normal/i.test(svgTxt), 'textos del svg=' + svgTxt]);
+    ex.push(['(B4) la categoria en palabras es la del informe, leida del dueno',
+      tAI.cat.join(' ').indexOf('de dimensiones normales') >= 0
+        && tAI.cat.join(' ').indexOf('34,0 ml/m²') >= 0,
+      'cat=' + JSON.stringify(tAI.cat)]);
+    ex.push(['(B5) la fuente se publica una sola vez y solo la de la ficha verificada',
+      tAI.fuentes.length === 1 && tAI.fuentes[0].indexOf('Tabla 4 (folio 10)') > 0,
+      'fuentes=' + JSON.stringify(tAI.fuentes)]);
+    /* Segundo toque, clic afuera y Escape: las tres puertas de cierre. */
+    /* ⚠️ CENTINELA EN CADA CLIC: contra HEAD el boton NO existe, y un .click() sobre null mata
+       la corrida entera — eso prueba que el arbol es distinto, no que el caso sabe medir. */
+    const CLIC = (k) => { const b = BTN(k); if (!b) return false; b.click(); return true; };
+    const CERRADA = () => { const c = CARD(); return !c || getComputedStyle(c).display === 'none'; };
+    const b1 = BTN('ai-card');
+    CLIC('ai-card');
+    const cerroToque = CERRADA();
+    abrir('ai-card');
+    document.body.click();
+    const cerroAfuera = CERRADA();
+    abrir('ai-card');
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    const cerroEsc = CERRADA();
+    const focoVuelve = !!b1 && document.activeElement === b1;
+    ex.push(['(B6) cierra por las TRES puertas: segundo toque, clic afuera y Escape',
+      cerroToque && cerroAfuera && cerroEsc,
+      'toque=' + cerroToque + ' afuera=' + cerroAfuera + ' escape=' + cerroEsc]);
+    ex.push(['(B7) y el foco vuelve al globo que abrio',
+      focoVuelve, 'foco=' + (document.activeElement ? (document.activeElement.getAttribute('data-vinfo') || document.activeElement.tagName) : 'null')]);
+    ex.push(['(B8) el globo es un <button> con aria-expanded y sin title ni enlace al manual',
+      !!b1 && b1.tagName === 'BUTTON' && b1.hasAttribute('aria-expanded') && !b1.hasAttribute('title')
+        && String(b1.getAttribute('onclick') || '').indexOf('abrirAyudaEco') < 0,
+      'tag=' + (b1 && b1.tagName) + ' title=' + (b1 && b1.getAttribute('title'))]);
+
+    /* El punto, categoria por categoria. Con la superficie corporal en 2,00 el indexado es el
+       volumen sobre dos y los tres cortes se alcanzan con enteros. */
+    const catVolDe = () => { const t = leerCard();
+      const l = t.cat.filter(function (x) { return x.indexOf('Aurícula izquierda') === 0 })[0] || ''; return l; };
+    const esc4 = [['68', 'de dimensiones normales'], ['76', 'levemente dilatada'],
+                  ['90', 'moderadamente dilatada'], ['98', 'severamente dilatada']];
+    let okCat = 0, detCat = [];
+    for (const par of esc4) {
+      escena(Object.assign({}, BSA2, { ai_vol: par[0] }), 'M');
+      abrir('ai-card');
+      const l = catVolDe();
+      if (l.indexOf(par[1]) >= 0) okCat++;
+      detCat.push(par[0] + '->' + l.slice(0, 48));
+      cerrar();
+    }
+    ex.push(['(B9) el punto y la categoria siguen al volumen en las CUATRO bandas',
+      okCat === 4, detCat.join(' ; ')]);
+    /* El punto se MUEVE a la derecha con el volumen: con mirar solo la categoria, un dibujo que
+       pintara el punto siempre en el mismo lugar pasaria igual. */
+    escena(Object.assign({}, BSA2, { ai_vol: '68' }), 'M'); abrir('ai-card');
+    const xDe = (t, k) => { const i = t.puntos.indexOf(k); return i < 0 ? NaN : t.puntoX[i] };
+    const x1 = xDe(leerCard(), 'ai-vol'); cerrar();
+    escena(Object.assign({}, BSA2, { ai_vol: '98' }), 'M'); abrir('ai-card');
+    const x2 = xDe(leerCard(), 'ai-vol'); cerrar();
+    ex.push(['(B10) y el punto se corre a la derecha cuando el volumen sube',
+      isFinite(x1) && isFinite(x2) && x2 > x1 + 10, 'x(34)=' + x1 + ' x(49)=' + x2]);
+
+    /* EN VIVO: con la tarjeta abierta se cambia el dato y la categoria lo sigue. */
+    escena(Object.assign({}, BSA2, { ai_vol: '68' }), 'M');
+    abrir('ai-card');
+    const antes = catVolDe();
+    S('ai_vol', '98');
+    await esperar(80);
+    const despues = catVolDe();
+    cerrar();
+    ex.push(['(B11) la tarjeta se actualiza EN VIVO al cambiar el dato de la pantalla',
+      antes.indexOf('de dimensiones normales') >= 0 && despues.indexOf('severamente dilatada') >= 0,
+      'antes=' + antes.slice(0, 40) + ' | despues=' + despues.slice(0, 40)]);
+
+    /* Sin superficie corporal y sin datos. */
+    escena({ ai_vol: '98' }, 'M');
+    abrir('ai-card');
+    const tSinAsc = leerCard();
+    cerrar();
+    ex.push(['(B12) sin superficie corporal el volumen no se ubica y la linea lo dice en ml',
+      tSinAsc.puntos.indexOf('ai-vol') < 0 && tSinAsc.avisos.join(' ').indexOf('98 ml') >= 0
+        && tSinAsc.avisos.join(' ').indexOf('sin indexar') >= 0,
+      'puntos=' + JSON.stringify(tSinAsc.puntos) + ' avisos=' + JSON.stringify(tSinAsc.avisos)]);
+    escena(Object.assign({}, BSA2), 'M');
+    abrir('ai-card');
+    const tVacia = leerCard();
+    cerrar();
+    ex.push(['(B13) sin datos no hay punto y las TRES barras dicen que cargar',
+      tVacia.puntos.length === 0 && tVacia.avisos.length === 3
+        && tVacia.avisos.every(function (a) { return a.indexOf('Cargar') === 0 }),
+      'puntos=' + tVacia.puntos.length + ' avisos=' + JSON.stringify(tVacia.avisos)]);
+
+    /* ── La tarjeta del VI, por sexo ── */
+    const VIH = { ddfvi: '50', dsfvi: '32', siv: '9', ppvi: '9', fevi: '60', vdfvi: '120', vsfvi: '48' };
+    escena(Object.assign({}, BSA2, VIH), 'M');
+    abrir('vi-card');
+    const tVIH = leerCard();
+    cerrar();
+    escena(Object.assign({}, { peso: '60', talla: '160' }, VIH), 'F');
+    abrir('vi-card');
+    const tVIM = leerCard();
+    cerrar();
+    ex.push(['(B14) la tarjeta del VI trae CINCO barras con el punto en las cinco',
+      tVIH.nSvg === 5 && tVIH.puntos.length === 5,
+      'svg=' + tVIH.nSvg + ' puntos=' + JSON.stringify(tVIH.puntos)]);
+    ex.push(['(B15) y los cortes cambian con el SEXO: el varon ve 74 y la mujer 61',
+      tVIH.cortes.join(' ').indexOf('74 ml/m²') >= 0 && tVIM.cortes.join(' ').indexOf('61 ml/m²') >= 0
+        && tVIM.cortes.join(' ').indexOf('74 ml/m²') < 0,
+      'H=' + JSON.stringify(tVIH.cortes.slice(3, 6)) + ' M=' + JSON.stringify(tVIM.cortes.slice(3, 6))]);
+    ex.push(['(B16) la categoria de la FEVI es la MISMA que publica la capsula de la pantalla',
+      tVIH.cat.join(' ').indexOf(TXT('fevi-interp')) >= 0 && TXT('fevi-interp') !== 'NO EXISTE',
+      'capsula=' + TXT('fevi-interp')]);
+    /* Sin sexo: las barras que dependen de el pierden el punto y lo dicen; las que no dependen
+       lo conservan. */
+    escena(Object.assign({}, BSA2, VIH), '');
+    abrir('vi-card');
+    const tSinSexo = leerCard();
+    cerrar();
+    ex.push(['(B17) sin sexo las tres barras que dependen de el quedan SIN punto, y el diametro diastolico y la FEVI lo conservan',
+      tSinSexo.puntos.length === 2 && tSinSexo.puntos.indexOf('vi-ddvi') >= 0
+        && tSinSexo.puntos.indexOf('vi-fevi') >= 0
+        && tSinSexo.avisos.filter(function (a) { return a.indexOf('Sin sexo') === 0 }).length === 3,
+      'puntos=' + JSON.stringify(tSinSexo.puntos) + ' avisos=' + tSinSexo.avisos.length]);
+
+    /* ══ (C) LA GEOMETRIA ═════════════════════════════════════════════════════════════════ */
+    escena(Object.assign({}, BSA2, { ddfvi: '46', siv: '18', ppvi: '18' }), 'M');
+    abrir('vi-geo');
+    const tGeo = leerCard();
+    cerrar();
+    ex.push(['(C1) el grafico trae los CUATRO cuadrantes, con la mitad de la hipertrofia en TRES bandas',
+      tGeo.cuad.length === 8
+        && tGeo.cuad.filter(function (c) { return c.k.indexOf('Hipertrofia excéntrica|') === 0 }).length === 3
+        && tGeo.cuad.filter(function (c) { return c.k.indexOf('Hipertrofia concéntrica|') === 0 }).length === 3
+        && tGeo.cuad.filter(function (c) { return c.k === 'Normal' }).length === 1
+        && tGeo.cuad.filter(function (c) { return c.k === 'Remodelado concéntrico' }).length === 1,
+      'cuad=' + JSON.stringify(tGeo.cuad.map(function (c) { return c.k }))]);
+    /* ⚠️ SIMETRICO: las dos mitades del eje de la masa miden lo mismo, y las dos del espesor
+       tambien. Se compara el ALTO del cuadrante normal contra la suma de las tres bandas de la
+       hipertrofia excentrica, y el ANCHO de los dos cuadrantes de abajo. */
+    const cz = (pref) => tGeo.cuad.filter(function (c) { return c.k.indexOf(pref) === 0 });
+    const qN = tGeo.cuad.filter(function (c) { return c.k === 'Normal' })[0];
+    const qR = tGeo.cuad.filter(function (c) { return c.k === 'Remodelado concéntrico' })[0];
+    const qE = cz('Hipertrofia excéntrica|'), qC = cz('Hipertrofia concéntrica|');
+    const altoHip = qE.reduce(function (a, b) { return a + b.h }, 0);
+    ex.push(['(C2) las dos mitades miden lo mismo: alto de la masa normal contra el de la hipertrofia, y ancho de los dos cuadrantes',
+      !!qN && !!qR && qE.length === 3 && Math.abs(qN.h - altoHip) <= 1 && Math.abs(qN.w - qR.w) <= 1,
+      'altoNormal=' + (qN && qN.h) + ' altoHip=' + altoHip + ' anchos=' + (qN && qN.w) + '/' + (qR && qR.w)]);
+    ex.push(['(C3) las tres bandas de la hipertrofia miden lo mismo entre si y NO llevan raya que las separe',
+      qE.length === 3 && Math.abs(qE[0].h - qE[1].h) <= 1 && Math.abs(qE[1].h - qE[2].h) <= 1
+        && qE.every(function (q) { return !q.stroke; }),
+      'altos=' + JSON.stringify(qE.map(function (q) { return q.h }))]);
+    ex.push(['(C4) el remodelado concentrico y la geometria normal NO se parten en bandas de gravedad',
+      tGeo.cuad.filter(function (c) { return c.k === 'Normal' }).length === 1
+        && tGeo.cuad.filter(function (c) { return c.k === 'Remodelado concéntrico' }).length === 1,
+      'normal=' + tGeo.cuad.filter(function (c) { return c.k === 'Normal' }).length]);
+    ex.push(['(C5) la linea dice la geometria y su gravedad con las palabras del informe',
+      tGeo.cat.join(' ').indexOf('Hipertrofia concéntrica (severa)') >= 0,
+      'cat=' + JSON.stringify(tGeo.cat)]);
+    /* ⚠️ EL BORDE EXACTO DEL ESPESOR: con la masa normal, 0,41 es geometria normal y 0,42 es
+       remodelado concentrico. Es el operador que la app aplica, leido del dueno. */
+    const geoEn = (m, r) => (FN('calcGeometriaVI') ? calcGeometriaVI(m, r, 'M') : 'SIN FN');
+    ex.push(['(C6) el corte del espesor parietal relativo cae del lado del remodelado en 0,42 exacto',
+      geoEn(70, 0.41) === 'Normal' && geoEn(70, 0.42) === 'Remodelado concéntrico'
+        && geoEn(170, 0.41) === 'Hipertrofia excéntrica' && geoEn(170, 0.42) === 'Hipertrofia concéntrica',
+      '0,41=' + geoEn(70, 0.41) + ' 0,42=' + geoEn(70, 0.42)]);
+    /* ⚠️ LIMITE DECLARADO, Y LO DESTAPO ESTE CASO: calcGeometriaVI llama hipertrofia a la
+       masa que NO es menor que el umbral —o sea 115 ya es hipertrofia en el varon— mientras
+       hviSeveridad empieza a graduar en 116. En el valor exacto del umbral la app publica
+       «hipertrofia» SIN gravedad, que es lo que el comentario de hviSeveridad ya anticipaba.
+       Esta tanda NO lo toca: mover cualquiera de los dos cambia el informe firmado. Queda en
+       PENDIENTES, y esta condicion lo fija para que el dia que se decida el caso lo note. */
+    ex.push(['(C7) el corte de masa del varon: 114 es normal y 115 ya es hipertrofia, y en 115 exacto la app NO le pone gravedad',
+      FN('hviSeveridad') && geoEn(114, 0.30) === 'Normal' && geoEn(115, 0.30) === 'Hipertrofia excéntrica'
+        && hviSeveridad(115, 'M') === null && hviSeveridad(116, 'M') === 'leve',
+      '114=' + geoEn(114, 0.30) + ' 115=' + geoEn(115, 0.30)
+        + ' sev(115)=' + (FN('hviSeveridad') ? String(hviSeveridad(115, 'M')) : 'SIN FN')]);
+
+    /* ══ (D) REFERENCIAS ══════════════════════════════════════════════════════════════════ */
+    try { showTab('refs'); } catch (e) {}
+    const refAbrir = (k) => { const pat = 'toggleRef(' + String.fromCharCode(39) + k + String.fromCharCode(39);
+      const h = Array.prototype.slice.call(document.querySelectorAll('[onclick]'))
+        .filter(function (e) { return String(e.getAttribute('onclick') || '').indexOf(pat) >= 0 })[0];
+      if (!h) return null;
+      const sec = EL('ref-' + k);
+      if (sec && sec.style.display !== 'none') h.click();
+      h.click();
+      return EL('ref-' + k + '-cuerpo'); };
+    const cuAI = refAbrir('ai'), cuVI = refAbrir('vi2');
+    const filasDe = (cu) => cu ? Array.prototype.slice.call(cu.querySelectorAll('.ev-tabla tr')).length : 0;
+    const bibDe = (cu) => cu ? Array.prototype.slice.call(cu.querySelectorAll('[data-ev-bib]'))
+      .map(function (e) { return String(e.textContent || '').trim() }) : [];
+    ex.push(['(D1) Referencias tiene las dos entradas nuevas, con su tabla de los DOS sexos y sus graficas',
+      !!cuAI && !!cuVI && filasDe(cuAI) >= 4 && filasDe(cuVI) >= 10
+        && cuAI.querySelectorAll('svg').length === 3 && cuVI.querySelectorAll('svg').length === 9,
+      'filas=' + filasDe(cuAI) + '/' + filasDe(cuVI) + ' svg=' + (cuAI ? cuAI.querySelectorAll('svg').length : '-')
+        + '/' + (cuVI ? cuVI.querySelectorAll('svg').length : '-')]);
+    ex.push(['(D2) sus graficas NO llevan el punto del paciente',
+      !!cuAI && !!cuVI && cuAI.querySelectorAll('[data-ev-punto]').length === 0
+        && cuVI.querySelectorAll('[data-ev-punto]').length === 0,
+      'puntos=' + (cuAI ? cuAI.querySelectorAll('[data-ev-punto]').length : '-')]);
+    ex.push(['(D3) la bibliografia de cada seccion arranca en [1] y solo lista fichas verificadas',
+      bibDe(cuAI).length === 1 && bibDe(cuAI)[0].indexOf('[1]') === 0
+        && bibDe(cuVI).length === 4 && bibDe(cuVI)[0].indexOf('[1]') === 0
+        && bibDe(cuAI).concat(bibDe(cuVI)).every(function (b) { return b.indexOf('folio') > 0 && b.indexOf('DOI') > 0 }),
+      'ai=' + bibDe(cuAI).length + ' vi=' + bibDe(cuVI).length]);
+    /* ⚠️ UNA FICHA QUE NO ESTA «verificado» NO APORTA CORCHETE: el diametro AP de la AI es
+       «parcial», asi que su fila sale sin numero. Es el control negativo de D3. */
+    ex.push(['(D4) CONTROL NEGATIVO: la fila de una ficha que no es «verificado» sale SIN corchete',
+      (function () { if (!cuAI) return false;
+        const f = Array.prototype.slice.call(cuAI.querySelectorAll('.ev-tabla tr'))
+          .filter(function (tr) { return String(tr.textContent || '').indexOf('Diámetro AP') >= 0 })[0];
+        return !!f && String(f.textContent || '').indexOf('[') < 0; })(),
+      'fila del diametro AP']);
+    try { showTab('ai-vi'); } catch (e) {}
+
+    /* ══ (E) NO SE ACUMULA NADA Y NADA SE GUARDA ══════════════════════════════════════════ */
+    escena(Object.assign({}, BSA2, { ai_vol: '68' }), 'M');
+    const n0 = document.getElementsByTagName('*').length;
+    for (let i = 0; i < 20; i++) { abrir('ai-card'); CLIC('ai-card'); }
+    cerrar();
+    const n1 = document.getElementsByTagName('*').length;
+    ex.push(['(E1) veinte aperturas y cierres no acumulan nodos y la tarjeta queda cerrada',
+      !!BTN('ai-card') && n1 === n0 && CERRADA(), 'nodos ' + n0 + ' -> ' + n1]);
+    ex.push(['(E2) nada de esto se guarda en el navegador ni en el estudio',
+      (function () {
+        let ls = 0;
+        try { for (let i = 0; i < localStorage.length; i++) if (/^ev[-_]|vinfo|tarjeta/i.test(localStorage.key(i))) ls++; } catch (e) {}
+        const campos = Array.prototype.slice.call(document.querySelectorAll('input[id],select[id],textarea[id]'))
+          .filter(function (e) { return /^ev-|^evg-/.test(e.id) }).length;
+        return ls === 0 && campos === 0; })(),
+      'claves y campos propios']);
+    /* El color se lee COMPUTADO y en los dos temas: una variable que no existe en esa zona cae
+       al heredado y la banda se ve gris, que es el defecto que esta casa ya pago cinco veces. */
+    const colorZona = () => { abrir('ai-card');
+      const z = document.querySelector('[data-ev-zona]');
+      const c = z ? getComputedStyle(z).fill : 'NO EXISTE'; cerrar(); return c; };
+    const raiz = document.documentElement;
+    const eraClaro = raiz.classList.contains('light-mode');
+    raiz.classList.remove('light-mode');
+    const colOsc = colorZona();
+    raiz.classList.add('light-mode');
+    const colCla = colorZona();
+    if (!eraClaro) raiz.classList.remove('light-mode');
+    ex.push(['(E3) las bandas resuelven un color REAL en los dos temas, y no el mismo',
+      /^rgb/.test(colOsc) && /^rgb/.test(colCla) && colOsc !== colCla,
+      'oscuro=' + colOsc + ' claro=' + colCla]);
+
+    /* ══ (F) LOS CONTROLES: nada de esta tanda puede mover una superficie firmada ═════════ */
+    escena(Object.assign({}, BSA2, { ai_vol: '98', ai_diam: '44', ai_area: '25', ddfvi: '50',
+      dsfvi: '34', siv: '12', ppvi: '11', fevi: '55', vdfvi: '150', vsfvi: '70',
+      onda_e: '90', onda_a: '60', e_sep: '6', e_lat: '8', vmax_it: '3.0', im_vc: '7' }), 'M');
+    try { setEstiloInforme('estandar'); generarInforme(); } catch (e) {}
+    const inf = V('informe_texto') || '', suma = V('en_suma') || '';
+    ex.push(['(F1) el informe sigue publicando la AI y el VI, y ninguna tarjeta escribe en el',
+      inf.indexOf('Aurícula izquierda severamente dilatada') >= 0
+        && inf.indexOf('data-ev-') < 0 && suma.indexOf('data-ev-') < 0,
+      'linea AI=' + (inf.split(String.fromCharCode(10)).filter(function (l) { return l.indexOf('Aurícula') === 0 })[0] || '')]);
+    const colsExcel = (function () { try {
+      if (typeof _labExcelRow !== 'function') return -1;
+      const c = {};
+      document.querySelectorAll('input[id],select[id],textarea[id]').forEach(function (e) {
+        if (e.type === 'checkbox' || e.type === 'radio') c[e.id + '__chk'] = e.checked ? '1' : '0';
+        else c[e.id] = e.value; });
+      return Object.keys(_labExcelRow({ id: 'p', fecha: '2026-10-16', nombre: 'X', campos: c,
+        informe_texto: '', en_suma: '' })).length;
+    } catch (e) { return -2 } })();
+    ex.push(['(F2) el Excel sigue en 440 columnas',
+      colsExcel === 440, 'columnas=' + colsExcel]);
+    ex.push(['(F3) y ningun encabezado del Excel ni ningun campo del estudio nombra el registro',
+      (function () { try {
+        const c = {};
+        document.querySelectorAll('input[id],select[id],textarea[id]').forEach(function (e) { c[e.id] = e.value; });
+        const f = _labExcelRow({ id: 'p', fecha: '2026-10-16', nombre: 'X', campos: c, informe_texto: '', en_suma: '' });
+        return Object.keys(f).every(function (k) { return !/evidencia|EV_REG|tarjeta/i.test(k) })
+          && Object.keys(c).every(function (k) { return !/^ev-/.test(k) });
+      } catch (e) { return false } })(), 'sin columnas ni campos nuevos']);
+    ex.push(['(F4) el dueno de la gravedad de la hipertrofia es UNO y lo comparten la capsula, el informe y la tarjeta',
+      FN('hviSeveridad') && hviSeveridad(149, 'M') === 'severa' && hviSeveridad(148, 'M') === 'moderada'
+        && hviSeveridad(122, 'F') === 'severa' && hviSeveridad(121, 'F') === 'moderada',
+      'H 148/149=' + (FN('hviSeveridad') ? (hviSeveridad(148, 'M') + '/' + hviSeveridad(149, 'M')) : 'SIN FN')]);
+
+    return { extra: ex };
+  })();
+`);
+
 
 let servidor, chrome;
 try {

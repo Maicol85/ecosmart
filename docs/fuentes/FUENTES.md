@@ -2900,3 +2900,66 @@ corte, ni una banda, ni una regla de integración, ni una frase del informe firm
 ⚠️ **LA TABLA «REFERENCIA DE COLORES» QUE SE RETIRÓ NO ERA UNA FUENTE Y ADEMÁS DISCREPABA DEL
 DUEÑO:** su «Normal» decía `#2a2f3f` donde `CONTR_MOTILIDAD[0].color` es `#22C55E`. Lo que queda
 en pantalla (`#contr-leyenda`) deriva del dueño.
+
+---
+
+## La tanda «L» — la AURÍCULA y el VENTRÍCULO izquierdos, dato por dato (2026-10-16)
+
+### `aseCamaras2015` — ASE/EACVI 2015 (Lang RM y col.), leída en el ORIGINAL inglés
+
+Archivo: `EcoSmart_Biblioteca_Fuentes/01_VI_y_camaras/Chamber-quantification.-Guidelines-and-standards.-ASE-2015.pdf`
+(53 hojas). **DOI `10.1016/j.echo.2014.10.003`, leído en el pie de la hoja 1 del propio
+documento** — no hizo falta buscarlo afuera.
+
+⚠️ **REGLA DE FOLIO, COMPROBADA EN EL PIE IMPRESO Y NO POR ARITMÉTICA:** en el **cuerpo** de la
+guía el folio **coincide** con la hoja del PDF (la hoja 7 dice «Lang et al 7»; la 10, «10 Lang et
+al»; la 17, «Lang et al 17»). En el **APÉNDICE no**: la hoja 47 lleva el folio **39.e8** y la 53
+el **39.e14**. El que cite una tabla suplementaria por su número de hoja apunta a otro lugar.
+
+| Dato | Tabla o figura | Folio | Hoja | Lo que dice, literal |
+|---|---|---|---|---|
+| Volumen AI indexado | Tabla 4 | 10 | 10 | `Maximum LA volume/BSA (mL/m2)` 16-34 · 35-41 · 42-48 · >48, **los mismos valores en las dos columnas de sexo** |
+| FEVI (ASE) | Tabla 4 | 10 | 10 | varón 52-72 · 41-51 · 30-40 · <30; mujer 54-74 · 41-53 · 30-40 · <30 |
+| Masa indexada, límite normal | Tabla 6 | 17 | 17 | `LV mass/BSA (g/m2)` mujeres **43–95**, hombres **49–115** (método lineal) |
+| Espesor parietal relativo | Tabla 6 | 17 | 17 | `Relative wall thickness (cm)` 0,22–0,42 (M) y 0,24–0,42 (H) |
+| Los cuatro cuadrantes | Figura 6 | 17 | 17 | «concentric remodeling (normal LV mass with increased RWT ≥ 0.42) or normal geometry (RWT ≤ 0.42)… increased LV mass can have either concentric (RWT ≥ 0.42) or eccentric (RWT ≤ 0.42) hypertrophy» |
+| Gravedad de la hipertrofia | Tabla supl. 3 | 39.e8 | 47 | `LV mass/BSA (g/m2)` H 49–115 · 116–131 · 132–148 · >148; M 43–95 · 96–108 · 109–121 · >121 |
+| Volumen telediastólico indexado | Tabla supl. 3 | 39.e8 | 47 | H 34–74 · 75–89 · 90–100 · >100; M 29–61 · 62–70 · 71–80 · >80 |
+| Volumen telesistólico indexado | Tabla supl. 3 | 39.e8 | 47 | H 11–31 · 32–38 · 39–45 · >45; M 8–24 · 25–32 · 33–40 · >40 |
+| Diámetro diastólico | Tabla supl. 3 | 39.e8 | 47 | H 4,2–5,8 · 5,9–6,3 · 6,4–6,8 · >6,8 cm; M 3,8–5,2 · 5,3–5,6 · 5,7–6,1 · >6,1 cm |
+| Diámetro sistólico | Tabla supl. 3 | 39.e8 | 47 | H 2,5–4,0 · 4,1–4,3 · 4,4–4,5 · >4,5 cm; M 2,2–3,5 · 3,6–3,8 · 3,9–4,1 · >4,1 cm |
+| Diámetro AP de la AI | Tabla supl. 9 | 39.e14 | 53 | `AP dimension (cm)` mujeres **2,7–3,8**, hombres **3,0–4,0** |
+
+**Lo verificado coincide dígito por dígito con lo que la app aplica** en el volumen indexado de
+la AI, la masa indexada y su gravedad, el espesor parietal relativo, los cuatro cuadrantes y los
+dos volúmenes indexados del VI. Los que **no** coinciden están abajo.
+
+### Lo que quedó «por verificar», con el motivo
+
+* **El área de la AI (> 20 cm²).** Esta guía **no publica ningún corte de área**: en el folio 25
+  dice que el diámetro AP «should not be used as the sole measure of LA size» y que, con la
+  literatura de volúmenes, informar el área es **innecesario**; su Tabla suplementaria 9 da el
+  área **indexada** como media ± DE, no un corte. El 20 cm² viene de la edición 2006 y la app lo
+  declara como criterio propio. **No se le puso fuente** y la tarjeta no publica línea de fuente
+  para esa barra.
+* **Las categorías de FEVI de la app (≥ 50 / 40-49 / 30-39 / < 30, iguales en los dos sexos).**
+  No son las de esta guía, que corta por sexo en 52 y 54 y usa bandas 41-51 y 41-53. No se
+  encontró en la biblioteca un documento que publique esta partición, así que la ficha queda «por
+  verificar» y la barra sale sin fuente.
+
+### Lo que la app aplica distinto de la guía (declarado, NO corregido)
+
+| Dato | La guía | La app | Dónde queda |
+|---|---|---|---|
+| Diámetro AP de la AI | techo normal **4,0 cm** en el varón y **3,8** en la mujer | un corte único de **40 mm** para los dos | `PENDIENTES.md` → L-1 |
+| Diámetro diastólico del VI | por sexo, techo normal 5,8 (H) y 5,2 cm (M) | **58 y 65 mm** sin sexo, con respaldo por volumen indexado | `PENDIENTES.md` → L-2 |
+| FEVI | por sexo, 52 y 54 % | **50 %** para los dos, y bandas distintas | `PENDIENTES.md` → L-3 |
+| Diámetro sistólico del VI | cuatro bandas por sexo | **no lo clasifica en ninguna superficie** | `PENDIENTES.md` → L-4 |
+| Espesor parietal relativo | la Figura 6 escribe `≥ 0,42` y `≤ 0,42`, que **se solapan en el 0,42 exacto** | el 0,42 cae del lado concéntrico | `PENDIENTES.md` → L-5 |
+
+### Lo que esta tanda NO cita
+
+Ninguna barra ni ninguna entrada de Referencias publica una fuente que no esté en la tabla de
+arriba. Los límites de dibujo de cada barra (`lo` y `hi`) **no llevan fuente a propósito**: son
+el rango de lo medible que el gráfico encuadra, no un criterio — la misma regla que esta casa
+aplica a las bandas de plausibilidad.

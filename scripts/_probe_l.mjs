@@ -780,12 +780,20 @@ async function main() {
          anterior y se lee como «no sigue a la pantalla» sobre un mecanismo que funciona. */
       await pausa(120);
       g.despuesVivo = await J('JSON.stringify(window.__P.leerTarjeta())');
-      /* 20 aperturas y cierres: ni nodos ni oyentes acumulados. */
+      /* ⚠️ SE CIERRA ANTES DEL BUCLE: con la tarjeta abierta, cuarenta clics la dejan ABIERTA
+         y el grupo informa «no cierra» sobre un mecanismo que alterna perfecto. */
+      await tecla('Escape');
+      /* 20 aperturas y cierres: ni nodos ni oyentes acumulados.
+         ⚠️ EL CONTEO SE TOMA JUSTO ANTES DEL BUCLE Y NO AL EMPEZAR EL GRUPO: entre medio se
+         cambia el volumen de la auricula, y eso repinta la diastolica y el HFA-PEFF, que SI
+         agregan nodos. Medido: con el conteo del arranque el grupo informaba 36 nodos de mas
+         sobre una tarjeta que no acumula ninguno. */
+      const n0b = await ev('window.__P.nodos()');
       for (let i = 0; i < 20; i++) {
         await J("JSON.stringify(window.__P.abrirTarjeta('ai-card'))");
         await J("JSON.stringify(window.__P.abrirTarjeta('ai-card'))");
       }
-      g.nodos = { antes: n0, despues: await ev('window.__P.nodos()') };
+      g.nodos = { alArrancar: n0, antes: n0b, despues: await ev('window.__P.nodos()') };
       g.finalCerrada = await ev('window.__P.cerrarTarjeta()');
       /* Nada se guarda: ni en el estudio ni en el navegador. */
       g.claves = await J(`JSON.stringify((function(){
@@ -862,9 +870,142 @@ async function main() {
         } catch (e) { g[kk] = { ABORTO: e.message }; abortos.push(kk + ': ' + e.message); }
       }
     }
+    /* ⚠️ LA ESCENA MAS ALTA NO ES LA DEL PACIENTE COMPLETO SINO LA DE SIN SEXO: ahi tres barras
+       suman su aviso y la tarjeta crece. Se mide aparte, a 1200 x 700, que es el viewport donde
+       el hueco util es menor. */
+    try {
+      await cdp.send('Emulation.setDeviceMetricsOverride',
+        { width: 1200, height: 700, deviceScaleFactor: 1, mobile: false }, sessionId);
+      for (const E of [{ n: 'PEOR sin sexo', sexo: '', c: { ai_vol: '90', ddfvi: '50', dsfvi: '34', siv: '12', ppvi: '12', fevi: '55', vdfvi: '150', vsfvi: '70' } },
+                       { n: 'PEOR sin ASC', sexo: 'M', c: { ai_vol: '98', ddfvi: '50', dsfvi: '34', siv: '12', ppvi: '12', fevi: '55', vdfvi: '150' }, sinBsa: true }]) {
+        await montar(E.c, { sinBsa: E.sinBsa, sexo: E.sexo });
+        await ev('(function(){ try { calcVI() } catch(e) {} return 1 })()');
+        await J("JSON.stringify(window.__P.abrirPara('ddfvi'))");
+        const o = {};
+        for (const k of ['ai-card', 'vi-card', 'vi-geo']) {
+          const ab = await J(`JSON.stringify(window.__P.abrirTarjeta(${JSON.stringify(k)}))`);
+          const le = ab && ab.err ? { err: ab.err } : await J('JSON.stringify(window.__P.leerTarjeta())');
+          o[k] = { ab, scroll: le && le.scroll };
+          await tecla('Escape');
+        }
+        g[E.n + ' @1200x700'] = { tarjetas: o };
+      }
+    } catch (e) { g.PEOR = { ABORTO: e.message }; abortos.push('maqueta peor: ' + e.message); }
     await ev('window.__P.temaClaro(false)');
     await cdp.send('Emulation.clearDeviceMetricsOverride', {}, sessionId);
     out.grupos.maqueta = g; parcial('maqueta', t0);
+  }
+
+  /* ── tactil: el area REAL de los tres globos con puntero grueso ──
+     `check_mobile.js` mide el rect del nodo SIN emular puntero grueso, asi que los tres globos
+     le salen 16 x 12 y los cuenta ALTA. La regla `@media (pointer: coarse)` de `.vinfo-btn` los
+     lleva a 44 x 44 en el dedo, y eso es lo que se mide aca. Es el mismo precedente que el
+     boton del «porque» de la vista 2D y los dos marcadores del J. */
+  if (corre('tactil')) {
+    const t0 = Date.now(); const g = {};
+    try {
+      for (const grueso of [false, true, 'sin emulacion']) {
+        if (grueso === 'sin emulacion') await cdp.send('Emulation.clearDeviceMetricsOverride', {}, sessionId);
+        else await cdp.send('Emulation.setDeviceMetricsOverride',
+          { width: 390, height: 844, deviceScaleFactor: 1, mobile: grueso }, sessionId);
+        /* ⚠️ `maxTouchPoints` TIENE QUE ESTAR ENTRE 1 Y 16 incluso al DESACTIVAR: con 0 el
+           protocolo rechaza la llamada y la corrida muere antes de medir nada. */
+        await cdp.send('Emulation.setTouchEmulationEnabled',
+          { enabled: grueso === true, maxTouchPoints: 5 }, sessionId);
+        await montar({ ai_vol: '68', ddfvi: '50', siv: '12', ppvi: '12', fevi: '60' }, { sexo: 'M' });
+        await J("JSON.stringify(window.__P.abrirPara('ai_vol'))");
+        /* ⚠️ EL ACORDEON ANIMA SU `max-height` CON `overflow:hidden` DURANTE 300 ms, y mientras
+           tanto sus hijos CONSERVAN SU RECT y NO son alcanzables: `elementFromPoint` devuelve el
+           contenedor. Medido: sin esta espera los tres globos informaron «0 de 5 (centro=DIV.card)»
+           con un area tactil perfecta. Es la trampa que la tanda J ya tiene escrita para la
+           tarjeta del paciente a 390 px. */
+        await pausa(500);
+        const o = {};
+        for (const k of ['ai-card', 'vi-card', 'vi-geo']) o[k] = await J(`JSON.stringify(window.__P.hayBtn(${JSON.stringify(k)}))`);
+        /* ⚠️ EL TOQUE TIENE QUE LLEGAR AL BOTON, no basta con que el rect mida 44: se comprueba
+           con elementFromPoint en los cuatro bordes del area. */
+        /* ⚠️ SE DESPEJA Y SE CENTRA ANTES DE CADA LECTURA, Y EL RECT SE LEE DESPUES: el aviso
+           legal vuelve a mitad de corrida y envenena elementFromPoint, y un boton fuera del
+           area visible devuelve null — las dos trampas estan escritas en CLAUDE.md.
+           ⚠️ Y HAY UNA TERCERA, QUE ES DEL MEDIDOR: con `Emulation.setDeviceMetricsOverride`
+           puesto, `elementFromPoint` y `getBoundingClientRect` NO coinciden —el punto cae en el
+           contenedor— y los tres globos informan «0 de 5 (centro=DIV.card)». Medido SIN
+           emulacion, el centro devuelve el propio BUTTON.vinfo-btn. Por eso la fila «sin
+           emulacion» esta en la tabla: es la que distingue el artefacto del defecto. */
+        o.alcanzable = await J(`JSON.stringify((function(){
+          var r = {}, ks = ['ai-card','vi-card','vi-geo'];
+          ['modalAvisoEco','login-overlay'].forEach(function(id){
+            var m = document.getElementById(id); if (m) m.style.display = 'none' });
+          ks.forEach(function(k){
+            var b = document.querySelector('[data-vinfo="' + k + '"]');
+            if (!b) { r[k] = 'NO EXISTE'; return }
+            b.scrollIntoView({ block: 'center' });
+            var q = b.getBoundingClientRect(), n = 0, t = 0;
+            var quien = null;
+            [[0,0],[0,-15],[0,15],[-15,0],[15,0]].forEach(function(d){
+              t++;
+              var e = document.elementFromPoint(q.left + q.width/2 + d[0], q.top + q.height/2 + d[1]);
+              if (!quien) quien = e ? (e.tagName + '.' + String(e.className || '').split(' ')[0]) : 'NADA';
+              if (e && e.closest && e.closest('[data-vinfo="' + k + '"]')) n++ });
+            r[k] = n + ' de ' + t + ' (centro=' + quien + ', rect ' + Math.round(q.left) + ',' + Math.round(q.top) + ')' });
+          return r })())`);
+        g[grueso === 'sin emulacion' ? 'sin emulacion' : (grueso ? 'puntero grueso' : 'puntero fino')] = o;
+      }
+    } catch (e) { g.ABORTO = e.message; abortos.push('tactil: ' + e.message); }
+    await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: false, maxTouchPoints: 1 }, sessionId);
+    await cdp.send('Emulation.clearDeviceMetricsOverride', {}, sessionId);
+    out.grupos.tactil = g; parcial('tactil', t0);
+  }
+
+  /* ── captura: PNG de las tres tarjetas, en los dos temas ── */
+  if (corre('captura') && DEST) {
+    const t0 = Date.now(); const g = {};
+    const ESC_CAP = [
+      { n: 'normal-H', sexo: 'M', c: { ai_vol: '68', ai_diam: '38', ai_area: '15',
+          ddfvi: '50', dsfvi: '32', siv: '9', ppvi: '9', fevi: '60', vdfvi: '120', vsfvi: '48' } },
+      { n: 'dilatada-HVI-M', sexo: 'F', c: { ai_vol: '98', ai_diam: '50', ai_area: '25',
+          ddfvi: '44', dsfvi: '30', siv: '14', ppvi: '14', fevi: '38', vdfvi: '130', vsfvi: '70' } },
+      { n: 'sin-sexo', sexo: '', c: { ai_vol: '90', ddfvi: '50', siv: '12', ppvi: '12', fevi: '55' } },
+      { n: 'sin-ASC', sexo: 'M', c: { ai_vol: '98', ddfvi: '50', siv: '12', ppvi: '12', fevi: '55' }, sinBsa: true },
+      { n: 'sin-datos', sexo: 'M', c: {} },
+    ];
+    for (const E of ESC_CAP) {
+      for (const tema of ['oscuro', 'claro']) {
+        try {
+          await cdp.send('Emulation.setDeviceMetricsOverride',
+            /* ⚠️ deviceScaleFactor 1 Y LA ESCALA EN EL CLIP, NO AL REVES: con el factor en 2,
+               `Page.captureScreenshot` interpreta el `clip` en pixeles de DISPOSITIVO mientras
+               `getBoundingClientRect` los da en CSS, asi que el recorte cae a la mitad de la
+               coordenada pedida — medido: la primera corrida capturo la botonera de arriba en
+               vez de la tarjeta, y el PNG se ve perfectamente bien. */
+            { width: 1200, height: 700, deviceScaleFactor: 1, mobile: false }, sessionId);
+          await ev(`window.__P.temaClaro(${tema === 'claro'})`);
+          await montar(E.c, { sinBsa: E.sinBsa, sexo: E.sexo });
+          await ev('(function(){ try { calcVI() } catch(e) {} return 1 })()');
+          await J("JSON.stringify(window.__P.abrirPara('ai_vol'))");
+          for (const k of ['ai-card', 'vi-card', 'vi-geo']) {
+            const ab = await J(`JSON.stringify(window.__P.abrirTarjeta(${JSON.stringify(k)}))`);
+            if (!ab || ab.err) { g[E.n + ' ' + tema + ' ' + k] = ab; continue; }
+            /* ⚠️ EL CLIP VA EN COORDENADAS DE PAGINA Y getBoundingClientRect DA LAS DEL
+               VIEWPORT, asi que hay que sumarle el desplazamiento. La tarjeta es
+               `position:fixed` —se ve pegada a la pantalla— pero el recorte NO lo sabe:
+               medido, sin esta suma el PNG salia con la botonera de arriba de la app en vez
+               de la tarjeta, y la imagen se ve perfectamente bien. Es la trampa que el K ya
+               tiene escrita, pagada otra vez. */
+            const sc = await J('JSON.stringify({ x: window.scrollX, y: window.scrollY })');
+            const sh = await cdp.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false,
+              clip: { x: ab.left + sc.x, y: ab.top + sc.y, width: ab.w, height: ab.h, scale: 2 } }, sessionId);
+            const nom = 'tarj_' + E.n + '_' + tema + '_' + k + '.png';
+            await writeFile(join(DEST, nom), Buffer.from(sh.data, 'base64'));
+            g[E.n + ' ' + tema + ' ' + k] = { w: ab.w, h: ab.h, png: nom };
+            await tecla('Escape');
+          }
+        } catch (e) { g[E.n + ' ' + tema] = { ABORTO: e.message }; abortos.push('cap ' + E.n + ': ' + e.message); }
+      }
+    }
+    await ev('window.__P.temaClaro(false)');
+    await cdp.send('Emulation.clearDeviceMetricsOverride', {}, sessionId);
+    out.grupos.captura = g; parcial('captura', t0);
   }
 
   /* ── controles: nada de lo que esta tanda toca puede mover una superficie firmada ── */

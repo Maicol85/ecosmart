@@ -189,3 +189,21 @@ node scripts/test_clinico.mjs --solo TC-475
 
 **Cobertura: TC-475**, 37 condiciones —contadas instrumentando el propio caso para que publicara
 su `ex.length`, no a ojo—, de las cuales **seis** viven detrás del denominador de jsPDF.
+
+---
+
+## La tarjeta ⓘ del ventrículo izquierdo y el gráfico de geometría — puntero (tanda «L», 2026-10-16)
+
+Desde el 2026-10-16 el título del VI lleva **dos** globos ⓘ: uno abre una tarjeta con cinco
+barras —DDVI, DSVI, los dos volúmenes indexados y la FEVI— y el otro el gráfico de **geometría**
+de cuatro cuadrantes con el punto del paciente. Van separados por una **medición**: juntos
+obligaban a scroll interno a 1200 × 700.
+
+Los cortes se **sondean** de `viDimCat`, `vdfviInterp`, `vsfviInterp`, `hviSeveridad` y
+`calcGeometriaVI`; ninguno se copia. Dos datos no tienen dueño y sus números viven en un solo
+lugar (`EV_BANDAS_REF`): el **DSVI**, que la app no clasifica en ninguna superficie, y la
+**FEVI**, cuyos cortes ya viven en dos copias —la cápsula de `calcVI` y el bloque del informe— y
+a las que esta tanda **no agregó una tercera**.
+
+El registro de evidencia que lo alimenta, el mecanismo entero y sus trampas están en
+**`docs/mapa/registro-evidencia.md`**.

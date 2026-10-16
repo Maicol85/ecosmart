@@ -393,3 +393,21 @@ El A/B va con `--file /ruta/index.HEAD.html`. Para **mirar** el PDF hay que rast
 deja el base64 en `--dest` con `--solo pdf`, y `pymupdf` lo convierte a PNG. **Mirarlo es
 obligatorio**: el defecto del símbolo pegado a la palabra y el de la celda partida en dos
 renglones los vio la captura, no la medición.
+
+---
+
+## 11 · La tarjeta ⓘ de la aurícula izquierda — puntero (tanda «L», 2026-10-16)
+
+Desde el 2026-10-16 el título de la AI lleva un globo ⓘ que abre una tarjeta con **tres barras**
+—diámetro AP, área y volumen indexado— con el punto del paciente, su categoría en palabras y la
+fuente. Y la pestaña Referencias gana la entrada «AI — Aurícula izquierda: cortes por sexo».
+
+**Nada de eso recalcula nada**: los cortes se **sondean** de `aiVolClasificar`, `aiDiamDilatado`
+y `aiAreaDilatada` —los mismos dueños de este mapa—, la categoría del volumen es el `adj` de
+`AI_VOL_BANDAS` y las de diámetro y área se copian del texto que su cápsula publica.
+
+⚠️ **NINGUNO DE LOS TRES CORTES DE LA AI DEPENDE DEL SEXO**, así que esa tarjeta nunca esconde el
+punto por falta de sexo. La Tabla 4 imprime los mismos cuatro valores en las dos columnas.
+
+Todo el mecanismo, el registro de evidencia que lo alimenta y sus ocho trampas medidas están en
+**`docs/mapa/registro-evidencia.md`**.

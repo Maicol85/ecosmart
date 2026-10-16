@@ -274,3 +274,46 @@ mueve.
    columna en 110 px— y los píxeles a seis anchos los mide la sonda.
 4. ⚠️ **LAS CONDICIONES VAN EN `{ extra: ex }`**, no en una cadena devuelta: el runner marca
    «el caso no declara NINGUNA condición» y la corrida sale roja con el texto correcto adentro.
+
+---
+
+## TC-491 — la tanda «L»: el registro de evidencia y las tres tarjetas ⓘ de AI/VI
+
+**51 condiciones**, con **dos denominadores** y **cuatro controles negativos**. Verificado que
+sabe fallar contra el árbol de entrada en un worktree aparte: **42 de las 51 en rojo, y NINGUNA
+por excepción**. Las nueve que pasan son lo que esta tanda no mueve —los cortes de
+`calcGeometriaVI` y `hviSeveridad`, el Excel en 440 columnas, la línea de la AI en el informe y
+los controles—, y eso es justamente lo que había que demostrar.
+
+| bloque | qué fija |
+|---|---|
+| **(DENOM)** | los tres globos existen y tienen geometría. Sin la pestaña AI/VI abierta y sus dos acordeones, los tres miden 0 × 0, la tarjeta se niega a anclarse —que es lo correcto— y **todas** las condiciones de abajo salen rojas sobre un árbol perfecto |
+| **A1-A8** | el registro: doce fichas, ids únicos con su formato, datos puros que sobreviven a `JSON.stringify`, los quince campos, los tres estados, **ninguna nota interna** (barrido de vocabulario de reserva), la línea de fuente **sólo** en las «verificado», y toda ficha verificada con tabla, folio, hoja y DOI |
+| **A9-A15** | el valor de cada ficha contra el **dueño**, sondeado: 34/41/48 en la AI; 40 y 20 en diámetro y área; 74/89/100 y 61/70/80 en el telediastólico; 31/38/45 y 24/32/40 en el telesistólico; 115/131/148 y 95/108/121 en la masa; 0,42 en el espesor con la masa normal **y** con la aumentada; 58/65 en el diámetro diastólico |
+| **B1-B8** | la tarjeta de la AI: tres barras con punto, cada corte con su unidad, **ninguna palabra de gravedad dentro del dibujo**, la categoría del informe, la fuente una sola vez, las **tres** puertas de cierre, el foco que vuelve y el globo como `<button>` sin `title` ni enlace al manual |
+| **B9-B11** | el punto y la categoría en las cuatro bandas, el punto que **se corre** al subir el volumen —con mirar sólo la categoría, un dibujo que pintara el punto siempre en el mismo lugar pasaría igual— y el repintado **en vivo** |
+| **B12-B13** | sin superficie corporal y sin datos |
+| **B14-B17** | la tarjeta del VI: cinco barras, los cortes que cambian con el **sexo**, la categoría de la FEVI igual a la de la cápsula, y sin sexo las tres barras que dependen de él sin punto mientras el diámetro diastólico y la FEVI lo conservan |
+| **C1-C7** | la geometría: cuatro cuadrantes con la hipertrofia en tres bandas, las dos mitades del **mismo** tamaño, las tres bandas iguales entre sí y sin raya, el remodelado y la normal **sin** bandas de gravedad, la línea con las palabras del informe, y los bordes exactos de 0,42 y del umbral de masa |
+| **D1-D4** | Referencias: las dos entradas con sus tablas de los dos sexos y sus gráficas **sin punto**, la bibliografía desde [1] con folio y DOI, y el **control negativo**: la fila de una ficha que no es «verificado» sale **sin corchete** |
+| **E1-E3** | veinte aperturas sin acumular nodos, nada en el navegador ni en el estudio, y el color **computado** en los dos temas |
+| **F1-F4** | los controles: el informe sigue publicando la AI, el Excel en **440** columnas, ninguna columna ni campo nuevo, y el dueño único de la gravedad de la hipertrofia por sus cuatro bordes |
+
+### Lo que este caso destapó
+
+**C7 encontró un límite real**: `calcGeometriaVI` llama hipertrofia a la masa que **no es menor**
+que el umbral, así que **115 g/m² exactos ya son hipertrofia en el varón** mientras `hviSeveridad`
+empieza a graduar en 116 — en ese valor la app publica «hipertrofia» **sin gravedad**. La primera
+versión de la condición afirmaba lo contrario y el caso lo cazó. No se corrigió —es contenido del
+informe firmado—: queda en `PENDIENTES.md` → **L-5** y la condición lo fija.
+
+### Trampas que pagó al escribirlo
+
+* **Murió por excepción contra HEAD** en su primera versión, por un `.click()` sobre `null`: eso
+  prueba que el árbol es distinto, no que el caso sabe medir. Todo clic va por `CLIC(k)`, que
+  devuelve `false` si el botón no está.
+* **`data-ev-cuad` de una banda ya lleva su nivel con una barra adentro**, así que concatenarle
+  las medidas y partir por barra las corre un lugar: la condición de simetría informó **420
+  contra 82** sobre un dibujo simétrico. Las medidas van en campos separados.
+* **`puntoX[2]` no es el punto del volumen**: con una sola barra con punto, el índice 2 no
+  existe. Se busca por su clave.

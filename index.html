@@ -1565,7 +1565,7 @@
      Ni un porcentaje ni un vh en la cadena de alto: es la leccion de WebKit del Y1c. El SVG
      va a ancho 100 % con viewBox, asi que escala con la tarjeta y su alto lo fija el atributo
      `height` en px. */
-  #vinfo-card .ev-bl { margin-top: 9px; }
+  #vinfo-card .ev-bl { margin-top: 7px; }
   #vinfo-card .ev-bl:first-of-type { margin-top: 4px; }
   #vinfo-card .ev-rot { font-size: 9.5px; font-weight: 700; text-transform: uppercase;
     letter-spacing: .3px; color: var(--text2); }
@@ -38048,7 +38048,7 @@ function _evColor(k) { return 'var(' + (EV_COLOR[k] || '--text2') + ')'; }
 
 /* UNA barra. `bandas` viene de sondear al dueno, asi que sus cortes son los del informe. */
 function _evBarra(cfg) {
-  const W = cfg.W || 316, HB = 13, Y = 3, HT = 32;
+  const W = cfg.W || 316, HB = 13, Y = 3, HT = 42;
   const lo = cfg.lo, hi = cfg.hi, rango = (hi - lo) || 1;
   const px = (x) => Math.max(0, Math.min(W, ((x - lo) / rango) * W));
   const wrap = document.createElement('div');
@@ -38079,15 +38079,32 @@ function _evBarra(cfg) {
        50 %, no el 49,9 que todavia cae del lado de abajo. */
     cortes.push(cfg.corteEn === 'desde' ? cfg.bandas[i + 1].desde : b.hasta);
   });
+  /* ⚠️ LOS NUMEROS SE ESCALONAN EN DOS RENGLONES CUANDO NO ENTRAN, Y LO VIO LA CAPTURA, NO LA
+     MEDICION: con los tres cortes del volumen indexado a 37 px uno de otro, los rotulos salian
+     pegados —«34 ml/m²41 ml/m²48 ml/m²»— y el texto se leia como un solo numero largo. La
+     alternativa era sacarle la unidad a los cortes del medio, y eso es justo lo que la orden de
+     esta tanda prohibe: cada corte lleva su numero CON su unidad. El ancho se estima por
+     caracteres porque medir texto en un SVG que todavia no esta en el documento devuelve cero. */
+  const _anchoTxt = (s2) => String(s2).length * 4.7;
+  let _yPrev = null, _xPrev = -1e9, _anPrev = 0;
   cortes.forEach(function (c) {
     if (c < lo || c > hi) return;
     const x = px(c);
     svg.appendChild(_evSvg('line', { x1: x.toFixed(1), y1: Y, x2: x.toFixed(1), y2: Y + HB,
       stroke: 'var(--bg3)', 'stroke-width': 1 }));
-    const t = _evSvg('text', { x: Math.max(12, Math.min(W - 12, x)).toFixed(1), y: HT - 2,
+    const s2 = _evNum(c, cfg.dec) + ' ' + cfg.unidad;
+    const xc = Math.max(_anchoTxt(s2) / 2, Math.min(W - _anchoTxt(s2) / 2, x));
+    /* Chocan cuando la distancia entre centros es menor que la MITAD DE CADA UNO mas un
+       respiro: comparar contra medio ancho solo —que fue la primera version— decia «no chocan»
+       sobre rotulos pegados, y la captura lo mostro. */
+    const an = _anchoTxt(s2);
+    const choca = (xc - _xPrev) < ((an + _anPrev) / 2 + 5);
+    const fila = (choca && _yPrev === 0) ? 1 : 0;
+    const t = _evSvg('text', { x: xc.toFixed(1), y: (Y + HB + 10 + fila * 10).toFixed(1),
       'text-anchor': 'middle', 'font-size': 9, fill: 'var(--text2)', 'data-ev-corte': cfg.clave });
-    t.textContent = _evNum(c, cfg.dec) + ' ' + cfg.unidad;
+    t.textContent = s2;
     svg.appendChild(t);
+    _yPrev = fila; _xPrev = xc; _anPrev = an;
   });
 
   /* El punto del paciente. Sin valor utilizable no se dibuja: un punto en el borde izquierdo
@@ -38101,9 +38118,23 @@ function _evBarra(cfg) {
   wrap.appendChild(svg);
   if (cfg.cat) wrap.appendChild(_evDiv('ev-cat', cfg.cat, { 'data-ev-cat': cfg.clave }));
   if (cfg.aviso) wrap.appendChild(_evDiv('ev-avi', cfg.aviso, { 'data-ev-aviso': cfg.clave }));
-  const f = cfg.ficha ? evFuenteLinea(cfg.ficha) : '';
-  if (f) wrap.appendChild(_evDiv('ev-fte', 'Fuente: ' + f, { 'data-ev-fuente': cfg.clave }));
   return wrap;
+}
+/* ⚠️ LAS FUENTES VAN UNA SOLA VEZ AL PIE Y NO DEBAJO DE CADA BARRA, y es una MEDICION: cuatro
+   de las cinco barras del ventriculo citan la MISMA tabla suplementaria, asi que repetirla
+   debajo de cada una sumaba tres renglones identicos y empujaba la tarjeta a 517 px — con
+   scroll INTERNO a 1200 x 700, que es justo lo que esta tanda tiene que evitar. Deduplicadas al
+   pie, la misma informacion ocupa un renglon. Solo entran las fichas «verificado». */
+function _evFuentesPie(fichas) {
+  const vistas = [], fr = document.createDocumentFragment();
+  fichas.forEach(function (id) {
+    const f = evFuenteLinea(id);
+    if (f && vistas.indexOf(f) < 0) vistas.push(f);
+  });
+  vistas.forEach(function (f, i) {
+    fr.appendChild(_evDiv('ev-fte', (i === 0 ? 'Fuente: ' : '') + f, { 'data-ev-fuente': 'pie' }));
+  });
+  return fr;
 }
 function _evNum(n, dec) {
   const d = (dec === undefined || dec === null) ? 0 : dec;
@@ -38178,6 +38209,7 @@ function evTarjetaAI() {
   fr.appendChild(_evBarra({ clave: 'ai-vol', rotulo: 'Volumen indexado (ml/m²)',
     bandas: C.aiVol, lo: 10, hi: 70, unidad: 'ml/m²', dec: 0,
     valor: idx, cat: catVol, aviso: aviVol, ficha: 'DIM-AI-003' }));
+  fr.appendChild(_evFuentesPie(['DIM-AI-001', 'DIM-AI-002', 'DIM-AI-003']));
   return fr;
 }
 window.evTarjetaAI = evTarjetaAI;
@@ -38230,7 +38262,11 @@ function evTarjetaVI() {
   const bsa = getBSA();
   const _falta = (p, que) => (p.fuera ? ('Valor fuera de rango medible: verificar ' + que + '.')
                                       : (p.val == null ? ('Cargar ' + que + '.') : ''));
-  const AV_SEXO = 'Sin sexo cargado: no se ubica el punto. Se muestran los cortes del varón; en la mujer son otros (ver Referencias).';
+  /* ⚠️ EL AVISO DE SEXO ES CORTO EN CADA BARRA Y LARGO UNA VEZ AL PIE, y es una MEDICION: con
+     el texto completo repetido en las tres barras que dependen del sexo, la tarjeta crecia a
+     522 px y a 1200 x 700 —donde el hueco util son 486— aparecia scroll INTERNO. Cada barra
+     sigue diciendo que quedo sin ubicar, que es lo que hace falta saber barra por barra. */
+  const AV_SEXO = 'Sin sexo: no se ubica el punto; se muestran los cortes del varón.';
 
   /* Diametro diastolico — un corte unico para los dos sexos en esta aplicacion. */
   fr.appendChild(_evBarra({ clave: 'vi-ddvi', rotulo: 'Diámetro diastólico (mm)',
@@ -38261,7 +38297,7 @@ function evTarjetaVI() {
     if (!sx) return AV_SEXO;
     if (p.fuera) return 'Valor fuera de rango medible: verificar ' + que + '.';
     if (p.val == null) return 'Cargar ' + que + '.';
-    if (!bsa) return 'Volumen de ' + p.val + ' ml, sin indexar por falta de superficie corporal: no se clasifica. Cargar peso y talla.';
+    if (!bsa) return 'Volumen de ' + p.val + ' ml, sin indexar: cargar peso y talla.';
     return '';
   };
   fr.appendChild(_evBarra({ clave: 'vi-vdfvi', rotulo: 'Volumen telediastólico indexado (ml/m²)',
@@ -38285,7 +38321,9 @@ function evTarjetaVI() {
     aviso: _falta(pFE, 'la fracción de eyección'), ficha: 'FUN-VI-001' }));
 
   /* El aviso de sexo va EN CADA BARRA que lo necesita y no una vez al pie: tres barras sin
-     punto con un solo aviso al final dejan al lector sin saber cual de ellas quedo sin ubicar. */
+     punto con un solo aviso al final dejan al lector sin saber cual de ellas quedo sin ubicar.
+     Las FUENTES, al reves, van una sola vez: ver `_evFuentesPie`. */
+  fr.appendChild(_evFuentesPie(['DIM-VI-001', 'DIM-VI-002', 'DIM-VI-003', 'DIM-VI-004', 'FUN-VI-001']));
   return fr;
 }
 /* La banda en la que cae un valor dentro de una lista de bandas de referencia. */
@@ -38417,7 +38455,6 @@ function evGraficoGeometria(sexo, valorMasa, valorRwt) {
   svg.appendChild(tx);
   txt(X0, H - 6, '0,20', 'start', 8);
   txt(X1, H - 6, '0,70', 'end', 8);
-  txt(X0 - 3, Y0 + 6, 'g/m²', 'end', 7.5);
 
   /* El punto del paciente. Sin masa o sin espesor no se dibuja. */
   const m = (valorMasa != null && isFinite(valorMasa)) ? valorMasa : null;
@@ -115988,8 +116025,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261016-1605';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1792177531291;                 /* eco-build-ms */
+const ECO_BUILD    = '20261016-1748';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1792183705629;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -116075,7 +116112,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261016-1605</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261016-1748</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
