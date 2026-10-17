@@ -470,3 +470,19 @@ registro y nueve trampas.
 
 La verificación contra el PDF original —folio por folio, con la regla de folio de cada una de las
 tres guías comprobada en el pie impreso— está en `docs/fuentes/FUENTES.md` → «La tanda LS».
+
+---
+
+# La tanda «VS» (2026-10-17) — EL CORAZÓN DERECHO A LA TABLA 1 DE LA ASE 2025
+
+⚠️ **El VD, la AD, la VCI y la raíz aórtica se alinearon a la Tabla 1 de la ASE 2025 de corazón
+derecho, y todo eso vive en `docs/mapa/corazon-derecho-ase2025.md`.** Ahí están el dueño único
+(`ASE25_T1` + `ase25Grado` + `ase25Rango` + `ase25Corte`), las doce filas con su antes y su
+ahora, las tres cosas que la tabla NO dice como uno espera —no distingue sexo, el solape
+tipográfico del TAPSE y de la onda S′, y el hueco del volumen de la AD—, las superficies una por
+una, el 21 mm exacto de la vena cava, el «40 mm o más» del seno de Valsalva, las cuatro tarjetas
+con sus cuatro zonas y las ocho trampas.
+
+**Lo que hay que saber antes de tocar esta zona:** los cortes y los operadores ya NO viven acá.
+Mover uno es editar `ASE25_T1`, y el assert de arranque exige que las cuatro bandas sigan en
+orden y sin hueco.

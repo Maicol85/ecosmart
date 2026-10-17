@@ -3146,3 +3146,101 @@ aplicaban (`> 74` y `> 61`, medido desde siempre).
 | Masa indexada, límite normal | hipertrofia desde `>= 115` y `>= 95` (operador `<` para lo normal) | normal hasta `<= 115` y `<= 95`; la hipertrofia empieza por encima | ASE/EACVI 2015, Table 6 (folio 17) y Supplemental Table 3 | LS6 | 16/10/2026 |
 | FEVI | normal `>= 50`, leve 40-49, moderada 30-39, severa `< 30` | normal `>= 50`, leve 41-49, moderada 30-40, severa `< 30` | ESC 2021 Tabla 3 (folio 523.e11) + ASE/EACVI 2015 Tabla 4 (folio 10) | LS7 | 16/10/2026 |
 | Volúmenes indexados del VI | por sexo, operador `>` | sin cambio; sólo se agregó la regla del corte más alto sin sexo | ASE/EACVI 2015, Supplemental Table 3, folio 39.e8 | LS6 | 16/10/2026 |
+
+---
+
+## La tanda «VS» (2026-10-17) — la Tabla 1 de la ASE 2025 de corazón derecho, fila por fila
+
+### `aseVd2025` — RE-VERIFICADA Y AMPLIADA
+
+**Mukherjee M, Rudski LG, Addetia K, Afilalo J, D'Alto M, Freed BH, y col. «Guidelines for the
+Echocardiographic Assessment of the Right Heart in Adults and Special Considerations in Pulmonary
+Hypertension: Recommendations from the American Society of Echocardiography».
+*J Am Soc Echocardiogr* 2025;38(3):141-186.**
+Archivo: `03_VD_y_corazon_derecho/Echocardiographic-assessment-of-Right-Heart.-JASE-2025.pdf`
+(46 hojas).
+
+**Regla de folio: folio = hoja del PDF + 140.** Comprobada en el **pie impreso** de tres páginas
+—hoja 5 → «Mukherjee, M et al | 145», hoja 9 → 149, hoja 19 → 159— y en el **encabezado** de la
+hoja 20 → 160. No se dedujo por aritmética.
+
+⚠️ **ESTA FUENTE CODIFICA `≥` COMO `$` Y `≤` COMO `#`** en el texto que devuelve el extractor.
+Quien la lea sin saberlo invierte TODOS los operadores. La transcripción de abajo ya está
+traducida.
+
+#### Tabla 1 (folio 145, hoja 5) — las doce filas que esta app aplica, VERIFICADAS
+
+| fila de la tabla | normal | leve | moderada | severa |
+|---|---|---|---|---|
+| RA area, cm² | `<19` | `≥19 a ≤22` | `>22 a ≤24` | `>24` |
+| RV diameter basal, cm | `<4.1` | `≥4.1 a ≤4.4` | `>4.4 a ≤4.9` | `>4.9` |
+| RV diameter midventricular, cm | `<3.5` | `≥3.5 a ≤3.8` | `>3.8 a ≤4.2` | `>4.2` |
+| RV diameter longitudinal, cm | `<8.2` | `≥8.2 a ≤8.9` | `>8.9 a ≤9.6` | `>9.6` |
+| RVWT, cm | `<0.5` | `≥0.5 a ≤0.7` | `>0.7 a ≤0.9` | `>0.9` |
+| RV end-systolic area, cm² | `<14` | `≥14 a ≤16` | `>16 a ≤19` | `>19` |
+| RV end-diastolic area, cm² | `<25` | `≥25 a ≤28` | `>28 a ≤32` | `>32` |
+| TAPSE, cm | `>1.7` | `≤1.7 a ≥1.3` | `≤1.3 a >1.0` | `≤1.0` |
+| Tissue Doppler S′ velocity, cm/s | `>9.5` | `≤9.5 a ≥7.2` | `≤7.2 a >5.0` | `≤5.0` |
+| Tissue Doppler RV MPI | `<0.55` | `≥0.55 a <0.62` | `≥0.62 a <0.70` | `≥0.70` |
+| FAC, % | `>35` | `≤35 a >29` | `≤29 a >22` | `≤22` |
+| 3D RVEF, % | `>45` | `≤45 a <39` | `≤39 a ≥32` | `<32` |
+
+**Otras filas leídas y NO aplicadas:** `RVOT PLAX diameter` `<3.3`, `RVOT PSAX proximal` `<3.4`,
+`RVOT PSAX distal` `<2.9` —la app tiene UN campo de TSVD y su rótulo no dice la vista—;
+`PA, cm` `<2.5`; `Pulsed Doppler RV MPI` `<0.40`; `RVOT AccT, ms` `>105`; y las de volumen
+auricular y ventricular por 3D, que la app no mide.
+
+#### ⚠️ Lo que la tabla NO dice como uno espera
+
+* **NO distingue sexo en ninguna fila.** Se leyó entera: no tiene columnas de varón y mujer.
+* **El TAPSE y la onda S′ SE SOLAPAN en un valor.** La banda leve se escribe «≤1.7 to ≥1.3» y la
+  moderada «≤1.3 to >1.0», así que **1,3 cm está en las dos**; igual con 7,2 cm/s. Se resuelve a
+  favor de la banda MENOS grave, que es la convención de las once filas ascendentes de la MISMA
+  tabla —ahí la moderada excluye el techo de la leve— y es la lectura que no sobre-afirma. La app
+  publica el operador que aplica: `<13` y `<7.2` para la moderada.
+* **«RAV index (area-length method)» tiene un HUECO entre 38 y 39** (leve `≤38`, moderada `>39`).
+  Esa fila no la usa esta app.
+* **La fila leve de la FEVD 3D se imprime «≤45 to <39»**, que parece un rango dado vuelta y no lo
+  es: va de 45 hacia abajo. Con la moderada en «≤39 to ≥32» no hay hueco ni solape.
+
+#### Presión auricular derecha (folio 160, hoja 20) — VERIFICADO en texto completo
+
+> «A normal IVC diameter is **≤2.1 cm**, and the IVC collapses with sniff and quiet respiration.»
+
+Y las cuatro combinaciones, textuales: IVC normal que colapsa ≥50 % → RAP normal (3 mmHg, rango
+0-5); IVC dilatada que no colapsa → RAP elevada (15 mmHg, rango 10-20); casos indeterminados →
+valor intermedio de 8 mmHg (rango 5-10). Key Point: «RAP values of 3, 8, or 15 mm Hg are assigned
+using an IVC diameter cutoff of 2.1 cm».
+
+⚠️ **UNA QUINTA CATEGORÍA QUE LA APP NO IMPLEMENTA, DECLARADA:** «In cases in which the IVC is
+markedly enlarged (**>2.5 cm**) without respirophasic variation and evidence of spontaneous echo
+contrast or color flow reflux, a value of **20 mm Hg** can be considered». La app no tiene campo
+para el contraste espontáneo ni para el reflujo de color.
+
+### Lo que NO se pudo verificar, con el motivo
+
+* **El corte de 40 mm del seno de Valsalva** sigue siendo **criterio propio de EcoSmart**: no se
+  encontró en ninguna guía de la biblioteca y la ficha `AOR-001` queda «por verificar». La
+  decisión de que 40 mm exactos cuenten como dilatado es de Maicol (17/10/2026) y la tarjeta lo
+  dice con esas palabras, sin atribuirlo a ninguna guía.
+* **Las tres vistas del TSVD** están verificadas en la tabla, pero el campo de la app no dice en
+  cuál se mide: no se gradúa y queda declarado.
+
+### Cambios de evidencia
+
+| dato | valor antes | valor ahora | fuente | commit | fecha |
+|---|---|---|---|---|---|
+| TAPSE | normal `≥17 mm` | `>17` · `≤17 a ≥13` · `<13 a >10` · `≤10` mm | ASE 2025, Tabla 1, folio 145 | VS2 | 17/10/2026 |
+| Onda S′ | normal `≥9,5 cm/s` | `>9,5` · `≤9,5 a ≥7,2` · `<7,2 a >5,0` · `≤5,0` cm/s | ASE 2025, Tabla 1, folio 145 | VS2 | 17/10/2026 |
+| FAC | normal `≥35 %`, severa `<25 %` (sin fuente) | `>35` · `≤35 a >29` · `≤29 a >22` · `≤22` % | ASE 2025, Tabla 1, folio 145 | VS2 | 17/10/2026 |
+| FEVD 3D | normal `>45 %`, sin grados | `>45` · `≤45 a >39` · `≤39 a ≥32` · `<32` % | ASE 2025, Tabla 1, folio 145 | VS2 | 17/10/2026 |
+| Índice de Tei (DTI) | normal `<0,55`, sin grados | `<0,55` · `≥0,55 a <0,62` · `≥0,62 a <0,70` · `≥0,70` | ASE 2025, Tabla 1, folio 145 | VS2 | 17/10/2026 |
+| VD basal | `≤41` normal · `42-45` leve · `>45` dilatado | `<41` · `≥41 a ≤44` · `>44 a ≤49` · `>49` mm | ASE 2025, Tabla 1, folio 145 | VS3 | 17/10/2026 |
+| VD medio | `>35` dilatado | `<35` · `≥35 a ≤38` · `>38 a ≤42` · `>42` mm | ASE 2025, Tabla 1, folio 145 | VS3 | 17/10/2026 |
+| VD longitudinal | `>86` dilatado (**sin fuente**) | `<82` · `≥82 a ≤89` · `>89 a ≤96` · `>96` mm | ASE 2025, Tabla 1, folio 145 | VS3 | 17/10/2026 |
+| Pared libre del VD | `<5` · `≥5 a ≤7` · `>7 a ≤9` · `>9` mm | **sin cambio**; se retiró la segunda copia | ASE 2025, Tabla 1, folio 145 | VS3 | 17/10/2026 |
+| Áreas del VD | sin clasificar en ninguna superficie | graduadas SOLO en la tarjeta y en Referencias | ASE 2025, Tabla 1, folio 145 | VS3 | 17/10/2026 |
+| Área de la AD | `≤18` normal, `>18` dilatada | `<19` · `≥19 a ≤22` · `>22 a ≤24` · `>24` cm² | ASE 2025, Tabla 1, folio 145 | VS4 | 17/10/2026 |
+| Diámetro de la VCI | normal `<21 mm` | normal `≤21 mm` | ASE 2025, presión auricular derecha, folio 160 | VS4 | 17/10/2026 |
+| Seno de Valsalva | dilatado `>40 mm` | dilatado `≥40 mm` | criterio de EcoSmart (decisión de Maicol) | VS5 | 17/10/2026 |
+| Tiempo de aceleración pulmonar | `<105 ms` signo indirecto de HTP | **sin cambio** | ASE 2025, Tabla 1, folio 145 | — | 17/10/2026 |

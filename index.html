@@ -23769,7 +23769,11 @@ window.UMBRAL_FAC_VD_SEVERA = UMBRAL_FAC_VD_SEVERA;
    el MPI describe lo contrario —la congestión lo sube—, así que la app no lo afirma. El aviso de
    esta zona nombra sólo las dos advertencias que la guía escribe Y la app puede detectar: IT
    severa y ritmo irregular. */
-const VD_PARED_HVD_MIN   = ase25Corte('vd_pared', 'leve');  // mm — hipertrofia del VD, borde `>=` (Tabla 1 folio 145 · Key Point folio 144)
+/* ⚠️ SE PIDE LA BANDA `normal` Y NO LA `leve`, Y ESTO FUE UN DEFECTO QUE CAZO TC-457. En una
+   fila ASCENDENTE el `v` de cada banda es su TECHO, asi que `ase25Corte('vd_pared','leve')`
+   devuelve 7 —el techo de la banda leve— y no 5, que es donde empieza la hipertrofia. El corte
+   de una fila ascendente es el `v` de la banda `normal`. */
+const VD_PARED_HVD_MIN   = ase25Corte('vd_pared', 'normal');  // mm — hipertrofia del VD, borde `>=` (Tabla 1 folio 145 · Key Point folio 144)
 /* ══ LA GRADUACIÓN DE LA PARED (G1, 2026-10-15) ══════════════════════════════════════════════
    ASE 2025, **Tabla 1, folio 145**, fila `RVWT, cm`: normal `< 0,5` · leve `≥0,5 a ≤0,7` ·
    moderada `>0,7 a ≤0,9` · severa `>0,9`. En milímetros, que es la unidad del campo: **5 · 7 ·
@@ -23807,7 +23811,7 @@ window.VD_PARED_GRADOS = VD_PARED_GRADOS;
    y sólo al final `vd_vi`. */
 const VD_VI_HTP_MIN = 1.0;        // cociente — borde `>` (ESC/ERS 2022 Tabla 10 f. 28 · ASE 2025 Tabla 8 f. 173)
 window.VD_VI_HTP_MIN = VD_VI_HTP_MIN;
-const VD_TEI_DTI_ALT_MIN = ase25Corte('vd_tei', 'leve');  // cociente — Tei por DTI alterado, borde `>=` (Tabla 1 folio 145 · texto folio 158)
+const VD_TEI_DTI_ALT_MIN = ase25Corte('vd_tei', 'normal');  // cociente — Tei por DTI alterado, borde `>=` (Tabla 1 folio 145 · texto folio 158)
 const VD_TEI_PW_ALT_MIN  = 0.40;  // cociente — el corte del Doppler PULSADO. Declarado y NO aplicado: el campo es DTI.
 window.VD_PARED_HVD_MIN   = VD_PARED_HVD_MIN;
 window.VD_TEI_DTI_ALT_MIN = VD_TEI_DTI_ALT_MIN;
@@ -115899,10 +115903,20 @@ function v2dEstado(){
   E.dvi = !dimVI ? 0 : (dimVI.indexOf('normales') > -1 ? 0 : (dimVI.indexOf('levemente') > -1 ? 1 : 2));
   const aiTxt = _v2dTxt('ai-interp');
   E.dai = _v2dTramo(aiTxt, [['severa', 3], ['moderada', 2], ['leve', 1]]);
-  const vdTxt = _v2dTxt('vd-tam');
-  E.dvd = _v2dTramo(vdTxt, [['dilatación leve', 1], ['dilatado', 2]]);
-  const adTxt = _v2dTxt('ad-interp');
-  E.dad = _v2dTramo(adTxt, [['dilatada', 2]]);
+  /* ⚠️ LAS DOS CAMARAS DERECHAS SE LE PREGUNTAN AL DUENO Y YA NO AL TEXTO DE LA CAPSULA
+     (VS3/VS4, 2026-10-17), y es una correccion: desde que el VD y la AD se graduan con las
+     cuatro bandas de la Tabla 1, la capsula dice «Dilatación moderada — basal 48 mm (…)» y
+     «25 cm² — dilatación severa (…)», asi que los sintagmas que esta lectura buscaba —«dilatado»
+     y «dilatada»— dejaron de aparecer y el dibujo dejaba de agrandar las dos camaras EN
+     SILENCIO. Lo cazo TC-482, no la lectura.
+     LA GRANULARIDAD DEL DIBUJO NO CAMBIA: el ventriculo sigue teniendo tres tamanos (0, 1 y 2) y
+     la auricula dos (0 y 2), que es lo que HEAD dibujaba. Lo unico que se mueve son los bordes
+     que esta tanda movio. */
+  const _vdG = (typeof vdTamPeor === 'function' && typeof vdDiamsMedidos === 'function')
+    ? vdTamPeor(vdDiamsMedidos().filter(function(d){ return !d.fuera })) : 'normal';
+  E.dvd = (_vdG === 'leve') ? 1 : ((_vdG === 'moderada' || _vdG === 'severa') ? 2 : 0);
+  const _adG = (typeof adAreaCat === 'function') ? adAreaCat(v('ad_area')) : null;
+  E.dad = (_adG && _adG !== 'normal') ? 2 : 0;
   const feviTxt = _v2dTxt('fevi-interp');
   E.kvi = _v2dTramo(feviTxt, [['severamente', 2], ['moderadamente', 1], ['levemente', 1]]);
   /* La contraccion del VD sigue a TAPSE, S' y FAC, que son los tres que la app ya interpreta en
@@ -115922,13 +115936,16 @@ function v2dEstado(){
   fila('VI', 'Volumen telediastólico', sv('vdfvi'), 'ml', '');
   fila('VI', 'Geometría', '', '', geoTxt);
   fila('VI', 'FEVI', sv('fevi'), '%', feviTxt);
-  fila('VD', 'Diámetro basal', sv('vd_bas'), 'mm', vdTxt);
+  /* ⚠️ LA FILA DE LA TABLA SIGUE PUBLICANDO EL TEXTO DE LA CAPSULA, que es lo que el medico
+     tiene delante; lo que se le pregunta al dueno es el TRAMO DEL DIBUJO, dos lineas mas
+     arriba. Se vuelve a leer aca porque la variable de aquella lectura se retiro con ella. */
+  fila('VD', 'Diámetro basal', sv('vd_bas'), 'mm', _v2dTxt('vd-tam'));
   fila('VD', 'TAPSE', sv('tapse'), 'mm', _v2dTxt('tapse-interp'));
   fila('VD', 'Onda S′', sv('s_prime'), 'cm/s', _v2dTxt('sprime-interp'));
   fila('VD', 'Índice de Tei (DTI)', sv('vd_tei'), '', _v2dTxt('vd-tei-interp'));
   fila('AI', 'Volumen indexado', _v2dTxt('ai-idx'), '', aiTxt);
   fila('AI', 'LARS', sv('lars'), '%', '');
-  fila('AD', 'Área', sv('ad_area'), 'cm²', adTxt);
+  fila('AD', 'Área', sv('ad_area'), 'cm²', _v2dTxt('ad-interp'));
   return E;
 }
 window.v2dEstado = v2dEstado;
@@ -117876,8 +117893,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261016-2123';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1792196602405;                 /* eco-build-ms */
+const ECO_BUILD    = '20261017-0910';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1792239008557;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -117963,7 +117980,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261016-2123</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261017-0910</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

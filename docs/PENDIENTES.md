@@ -4465,3 +4465,96 @@ de `EV_BANDAS_ESPESOR`, y que las dos la lean.
 De paso, `_avSx` de la tarjeta del VI quedó con un ternario redundante
 —`(!sx && hay dato) ? X : (!sx ? X : '')`, que es `!sx ? X : ''`— y se simplifica en el mismo
 movimiento. No cambia su resultado en ninguna escena: está medido en las tres de la tarjeta.
+
+---
+
+## Tanda VS · el corazón derecho y la raíz aórtica a la Tabla 1 de la ASE 2025 (2026-10-17) — DECLARADO y NO arreglado
+
+> Lo implementado está en `docs/mapa/corazon-derecho-ase2025.md`. Acá queda lo que la tanda
+> **no** hizo, y lo que cerró de la tanda M.
+
+### ✅ Cerrados por esta tanda
+
+* **M-3 · CERRADO.** El área de la AD cortaba en 18 cm² donde la Tabla 1 corta en 19. Hoy corta
+  en 19 y gradúa en cuatro bandas.
+* **M-4 · CERRADO.** El diámetro longitudinal del VD usaba 86 mm, que no estaba en ninguna de las
+  dos guías. Hoy usa las cuatro bandas de la Tabla 1 (82 / 89 / 96).
+* **M-5 · CERRADO.** La FAC severa en 25 % no tenía fuente. Hoy es `≤22`, el corte de la Tabla 1.
+* **M-7 · CERRADO.** El seno de Valsalva aplicaba `>` y Maicol había decidido que 40 exactos
+  cuenten como dilatado. Hoy es `≥`, y es el único segmento con esa marca.
+* **M-6 · CERRADO.** La entrada vieja `ref-vd` decía «S′ ≥10 cm/s» mientras la app aplicaba 9,5 —
+  hoy **todas** las filas de `ref-vd2` se derivan del dueño, así que ninguna puede quedar vieja.
+  ⚠️ **`ref-vd` (la tabla estática de cinco filas de la ASE 2015) NO se tocó**, por orden expresa:
+  la reemplaza el trabajo de Referencias. Sigue publicando «S′ ≥10 cm/s».
+* **M-1 y M-2 · CERRADOS en parte.** El diámetro de la VCI pasó a `≤21` como escribe la guía. El
+  resto de M-1 (el 18 cm² como signo de PAD elevada) no era un corte de tamaño.
+
+### VS-1 · El diámetro del TSVD NO se gradúa, y es por falta de la VISTA
+
+La Tabla 1 le da **TRES** filas con cortes distintos —PLAX `<3,3 cm`, PSAX proximal `<3,4`, PSAX
+distal `<2,9`— y el campo de la app (`tsvd_diametro`, rotulado «Diám. TSVD (mm)») **no dice en
+qué vista se mide**. Graduarlo obligaría a elegir una de las tres por el médico.
+**Salidas:** (a) agregar un selector de vista al lado del campo —cambia el juego de campos del
+estudio—; (b) graduar por la vista más conservadora y declararlo; (c) dejarlo como está.
+
+### VS-2 · El diámetro de la arteria pulmonar sigue sin graduarse
+
+La Tabla 1 lo gradúa (`<2,5 cm` normal, hasta `>3,5` severa) y la app sólo tiene una banda de
+plausibilidad. Es el mismo estado que M-9 declaraba; esta orden no lo pide.
+
+### VS-3 · La relación VD/VI sigue sin ser un grado de tamaño
+
+Tiene corte (`> 1,0`) pero lo que publica es un signo de la categoría A de la probabilidad de
+hipertensión pulmonar. No entra en la graduación del tamaño. Igual que M-9.
+
+### VS-4 · La función sistólica del VD NO tiene un GRADO global en el informe
+
+Cada parámetro tiene hoy su grado en la cápsula, en la tarjeta y en Referencias, pero el informe
+y el EN SUMA siguen diciendo «disfunción sistólica» sin graduar. El motivo es que el informe
+nunca publicó una categoría por parámetro —publica UN veredicto combinado por un OR— y graduar
+ESE veredicto pide una regla de integración que la orden difiere expresamente («reportá cómo se
+combinan hoy, para decidirlo después con ejemplos»).
+**Ejemplos para decidir:** TAPSE leve + FAC severa; TAPSE moderado solo; TAPSE normal + Tei
+severo; cuatro parámetros leves. **Salidas:** (a) el PEOR de los medidos; (b) el peor sólo si dos
+o más coinciden; (c) seguir sin graduar.
+
+### VS-5 · La quinta categoría de presión auricular derecha (20 mmHg) no se implementó
+
+La guía la admite con VCI muy dilatada (`>2,5 cm`) **sin variación respirofásica** y **con
+contraste espontáneo o reflujo de color** (folio 160). La app **no tiene campo** para los dos
+últimos insumos. La tabla de 3 / 8 / 15 mmHg no se tocó.
+**Salidas:** (a) dos casillas nuevas en la sección de VCI —cambia el juego de campos—; (b)
+dejarlo declarado.
+
+### VS-6 · El `adA > 18` y el `vciD > 21` de la probabilidad de HTP NO se tocaron
+
+`_htp2022Core` los usa como **signos de categoría C** de la ESC/ERS 2022, con el corte de ESA
+tabla. Son otra pregunta —igual que el `vdBas > 41` de su misma línea, que ya estaba declarado— y
+mover un signo de categoría cambia `nCat` y con él la probabilidad publicada. Consecuencia
+medida: con el área de la AD en 18,5 cm² la app dice «de dimensiones normales» y la categoría C
+cuenta el signo.
+
+### VS-7 · Tres huecos de UN VALOR en los rangos de ADVERTENCIA del importador
+
+`DCM_RANGO_CLIN` es un rango de **advertencia** y no la definición de normalidad, y su disparo es
+estricto. Con los operadores nuevos quedan tres bordes donde la app clasifica y el importador no
+avisa, siempre del lado conservador —avisa de menos sobre un dato que la app ya marca—:
+`tapse` en 17,0 · `s_prime` en 9,5 · `vd_bas` en 41 · `ao_sin` en 40,0.
+**No se tocó**: cambiarlo mueve qué filas entran con advertencia en toda planilla ya exportada.
+
+### VS-8 · El PPT no publica ninguna categoría de esta zona
+
+`_pptNum('vd_bas')` y `_pptNum('ad_area')` publican el VALOR. Agregarles la categoría cambiaría
+seis filas de una diapositiva que esta orden congela.
+
+### VS-9 · `DisfSist_VD` sigue siendo BINARIA
+
+Es la decisión de la orden: «si guarda un binario, SIGUE binario y el grado no se guarda». Sale
+del TEXTO del informe por `_labDisfSistVent` y cambia sólo en las escenas donde el OR cambia.
+Guardar el grado pediría una columna nueva, que es una PARADA.
+
+### VS-10 · Los estudios guardados NO se migran
+
+Un estudio archivado abre con los campos que guardó y se **reclasifica solo** al calcular, porque
+la app no guarda la categoría: guarda el valor. Su `informe_texto` y su `en_suma` ya firmados se
+reponen tal cual y no se reescriben.

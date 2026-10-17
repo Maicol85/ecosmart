@@ -36,6 +36,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar un criterio de PRÓTESIS mitral o aórtica**: la Tabla 11, el AEO en tres tramos, el THP directo, el PPM de la Tabla 7, el badge del AVA aórtico, las tarjetas nativa-prótesis o el rótulo AEO | `docs/mapa/protesis-valvular.md` |
 | **Buscar un CORTE o una BANDA de plausibilidad** de cualquier válvula, con su fuente | `docs/mapa/valvulas-constantes.md` |
 | **Tocar la MARCA DE MANUAL de una pastilla, el selector binario de la estenosis mitral, el VIOLETA de «Significativa», el VTI de entrada tricuspídeo, la CASILLA DE PISA de «Incluir en el informe» o lo que «Nuevo estudio» deja vivo** | `docs/mapa/valvulas-manual-binario.md` |
+| **Tocar un CORTE o un OPERADOR del VD, de la AD, de la VCI o de la RAÍZ AÓRTICA**: la Tabla 1 de la ASE 2025, su evaluador, los cuatro grados de cada parámetro o el «40 mm o más» del seno | `docs/mapa/corazon-derecho-ase2025.md` |
 | **Tocar el VENTRÍCULO DERECHO**: sus TRES columnas de campos, el orden del cuadro de referencias, la disfunción sistólica, la pared graduada, el Tei, la FEVD, la relación VD/VI o el Qp | `docs/mapa/vd-derecho.md` |
 | **Tocar la casilla de la FAC, la mudanza del DIÁMETRO DE LA ARTERIA PULMONAR o el selector de VD/VI** (la tanda G3, partida a archivo propio) | `docs/mapa/vd-g3-campos.md` |
 | **Tocar una TARJETA ⓘ de AD/VCI, del VD o de la AORTA, el NOMOGRAMA de los senos de Valsalva, o sus entradas de Referencias** | `docs/mapa/evidencia-derecho-aorta.md` |
@@ -54,7 +55,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la AURÍCULA IZQUIERDA**: el dueño de su clasificación por volumen indexado, qué superficie clasifica y cuál sólo publica el valor; o **el COLAPSO de la VCI y el SÍMBOLO DEL SEXO en el PDF** | `docs/mapa/auricula-izquierda-pdf.md` |
 | **Tocar una COLUMNA del Excel, el criterio de «derivada», la IDA Y VUELTA de un dato calculado o el mensaje del importador** | `docs/mapa/excel-origen-ida-vuelta.md` |
 | **Tocar las ASOCIACIONES del Laboratorio o la TABLA DE LAS OCHO VÁLVULAS**: el cociente TAPSE/PSAP en el bloque A, el aviso de par acoplado, las dos estenosis BINARIAS y sus dos denominadores | `docs/mapa/laboratorio-asociaciones-valvulas.md` |
-| **Agregar o correr un caso de prueba; A/B; mutación** | `docs/mapa/tests.md` |
+| **Agregar o correr un caso de prueba; A/B; mutación** | `docs/mapa/tests.md` · fichas en `docs/mapa/tests-fichas.md` (TC-491 en adelante) y `docs/mapa/tests-fichas-481-490.md` |
 | **Visor de cineloop, medición, calibración, IndexedDB** | `docs/mapa/imagenes-visor.md` |
 | **Tocar la ESTENOSIS MITRAL en el LABORATORIO**: las seis categorías, las dos casillas del filtro, el gráfico de distribución, el PDF de auditoría o el PPT | `docs/mapa/laboratorio-estenosis-mitral.md` |
 | **Tocar la VISTA 2D de las válvulas**: el lector único del estado, las tarjetas, la tabla de cavidades, el dibujo, los chorros o el «por qué» | `docs/mapa/vista-2d-valvulas.md` |
@@ -115,7 +116,7 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **7,98 MB / 120.328 líneas**, medido el 2026-10-16 al cierre de la tanda LS
+  sin frameworks. Hoy **8,02 MB / 120.796 líneas**, medido el 2026-10-17 al cierre de la tanda VS
   —el renglón anterior decía «7,94 MB / 119.840 líneas» y era del M: **medirlo antes de
   presupuestar contexto**—. Las únicas dependencias son jsPDF, XLSX y
   PptxGenJS por CDN. Se abre como archivo local y corre en Chrome.
@@ -270,6 +271,195 @@ impecable.
 ---
 
 ## Estado vigente
+
+### El VD, la AD, la VCI y la RAÍZ AÓRTICA a la Tabla 1 de la ASE 2025 — «VS» (2026-10-17)
+
+- **Son SIETE commits.** Al **empezar**, `main` y `origin/main` estaban los dos en **`c111a52`**
+  (sello `v20261016-2123`), **sin nada sin pushear** —confirmado con un `git fetch` de verdad, con
+  el `FETCH_HEAD` fechado al momento—, con los nueve commits del LS ya incluidos **y pusheados**.
+  Los **siete** commits de esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 7 → 6 → … → 1.**
+  ⚠️ **EL 1 ES LA BASE DE TODOS**: crea `ASE25_T1`, `ase25Grado`, `ase25Rango` y el assert de
+  arranque, y del 2 al 6 **todos** le piden sus cortes. Revertirlo sin revertir antes los otros
+  deja las doce funciones de categoría llamando a algo que no existe —y un `ReferenceError` en la
+  evaluación de un `<script>` **aborta el bloque COMPLETO**, o sea la app con cero pestañas con
+  geometría—. **Y el 1 NO cambia nada visible**: es el único commit de la serie que se puede
+  revertir solo sin que una superficie se mueva… siempre que se reviertan antes el 2 al 6.
+  ⚠️ **EL 2 MUDÓ DOS CONSTANTES DE SITIO** (`UMBRAL_TAPSE_NORMAL` y `UMBRAL_SPRIME_NORMAL`):
+  estaban declaradas ANTES de la tabla, así que derivarlas en su lugar era un `ReferenceError`
+  por zona muerta de `const`.
+  ⚠️ **EL 3, EL 4 Y EL 5 SE REVIERTEN EN CUALQUIER ORDEN ENTRE SÍ**: el 3 es el tamaño del VD
+  (`vdBasCat`, `vdMidCat`, `vdLongCat`, `vdParedCat`, `vdTamPeor`, `VD_TAM_TXT`), el 4 la AD y la
+  VCI (`adAreaCat`, `pmadEstimar`) y el 5 la aorta (`aoSegDil`, `aoSegSim`, `incRef`). Ninguno
+  nombra una pieza de otro.
+  ⚠️ **PERO EL 6 CUELGA DEL 3, DEL 4 Y DEL 5**: sus `corteEn` por lista y `_evRefFilasT1` suponen
+  las cuatro bandas de los tres.
+  ⚠️ **EL 2 LLEVA LA SONDA** (`scripts/_probe_vs.mjs`), con la que se verificaron los cinco.
+  **El 7 es TC-494 más las trece adaptaciones, la documentación y el sello**, y afirma el
+  comportamiento de los seis: revertir cualquiera sin el 7 lo deja en rojo.
+  ⚠️ **CASOS ADAPTADOS: TRECE** —TC-02, TC-06, TC-33, TC-34, TC-35, TC-36, TC-37, TC-38, TC-136,
+  TC-285, TC-457, TC-470 y TC-492—, cada uno con el motivo escrito en el propio caso. Los trece
+  afirmaban un corte o una palabra que esta tanda movió; **ninguno estaba mal escrito, los trece
+  describían la app de ayer**. Cuatro ganan cobertura: TC-33, TC-34, TC-35 y TC-37 pasan de cuatro
+  bordes a seis, y TC-492 mide hoy las cuatro bandas donde antes medía un corte.
+
+- ⚠️ **LA SUITE COMPLETA QUEDÓ SIN MEDIR Y HAY QUE DECIR POR QUÉ: EL PENDRIVE `DISK_IMG` ESTABA
+  DESMONTADO.** Con él afuera caen además los **diecisiete** de **TC-181…TC-197**, que son
+  ENTORNO, así que la cifra no se puede comparar con la línea base del LS sin restar un número
+  que no existe — el falso que este archivo ya documenta tres veces. La orden manda PARAR y
+  avisar antes de correr la suite, y se paró. **Lo que SÍ está medido**, sobre el árbol sellado:
+  · **la ZONA completa: 122/122 ✓, sin un solo rojo**, con la lista de los **122** casos que
+    nombran el VD, la AD, la VCI, la aorta, el registro o las tarjetas;
+  · **Semgrep 127 / 0 ERROR**, con **1 app escaneada** (corrido desde `~/Desktop/APLICACIONES`);
+  · **Excel en 440 columnas**, comparadas **CLAVE POR CLAVE** contra el inicio de la tanda: cero
+    faltantes, cero sobrantes y **cero valores distintos**, con el formulario vacío y con un
+    escenario ajeno cargado;
+  · **celular IDÉNTICO a la línea base del LS: 52 a 360 px y 61 a 390 px con 10 ALTA cada uno**, y
+    `--todo` **387 y 396**, el mismo par. **Cero hallazgos nuevos**, y no por suerte: esta tanda no
+    agrega un solo control de formulario, y las dos barras nuevas viven dentro de una tarjeta que
+    `check_mobile.js` no abre.
+- **EL SELLO DE VERSIÓN** estaba al día al empezar (`v20261016-2123`) y se volvió a sellar:
+  **`v20261017-0910`**. Todo lo medido salió **DESPUÉS** de sellar, con el `md5` quieto
+  (`3a3a8960…`).
+- **`index.html` pasó de 7,98 MB / 120.328 líneas a 8,02 MB / 120.796 líneas.**
+
+- **Dónde está todo:** `docs/mapa/corazon-derecho-ase2025.md` (**mapa NUEVO**, 20,1 KB: el dueño
+  único con sus doce filas, las tres cosas que la tabla NO dice como uno espera, las constantes
+  derivadas, las superficies una por una, la vena cava, la raíz aórtica, las tarjetas, el registro
+  y ocho trampas); `docs/mapa/tests-fichas-481-490.md` (**archivo NUEVO por PARTICIÓN**, 21,6 KB);
+  seis mapas con un puntero cada uno (`vd-derecho` 30,0 KB · `evidencia-derecho-aorta` 16,4 ·
+  `aortica-cortes` 29,4 · `registro-evidencia` 17,8 · `vista-2d-valvulas` 29,7 ·
+  `informe-pdf-excel` 30,6); `docs/mapa/tests-fichas.md` → la ficha de TC-494 (**17,3 KB**);
+  `docs/fuentes/FUENTES.md` → la Tabla 1 transcrita fila por fila con su folio comprobado, la
+  sección de presión de la AD en texto completo y la tabla de **Cambios de evidencia**; y
+  `docs/PENDIENTES.md` → **M-3, M-4, M-5, M-6 y M-7 marcados CERRADOS** más **diez** cosas
+  declaradas (VS-1 a VS-10).
+  ⚠️ **`tests-fichas.md` SE PARTIÓ ANTES DE ESCRIBIR Y NO DESPUÉS.** Estaba en **33,4 KB** y la
+  ficha de TC-494 lo cruzaba: se midió con `wc -c` ANTES, que es lo que este archivo pide y lo que
+  las tres particiones anteriores tuvieron que hacer DESPUÉS de cruzar. Ningún otro mapa cruzó.
+
+- **VS1 · UN SOLO DUEÑO, Y EL OPERADOR VA AL LADO DEL VALOR.** `ASE25_T1` es la única
+  transcripción de la **Tabla 1 de la ASE 2025** (Mukherjee y Rudski, JASE 2025;38(3):141-186),
+  **folio 145, hoja 5**, con la regla «folio = hoja + 140» comprobada en el **pie impreso** de
+  tres páginas y en el **encabezado** de una cuarta.
+  ⚠️ **ESA FUENTE CODIFICA `≥` COMO `$` Y `≤` COMO `#`**: quien la lea sin saberlo invierte TODOS
+  los operadores.
+  ⚠️ **NO HAY UN JUEGO ÚNICO DE OPERADORES PORQUE CADA FILA ELIGE EL SUYO**: las de dimensión
+  suben con el techo INCLUIDO, la FAC abre su banda leve con `>29` exclusivo y el TAPSE con
+  `≥1,3` inclusivo, la FEVD cierra la moderada con `≥32`, y el Tei sube con el techo EXCLUIDO. Un
+  juego único movería de lado el valor exacto del corte en **cinco de las once filas**.
+  **El assert de arranque barre el dominio de cada fila y exige los CUATRO grados en orden, sin
+  hueco ni solape** — verificado por mutación fuera del árbol.
+
+- ⚠️ **TRES COSAS QUE LA TABLA NO DICE COMO UNO ESPERA, Y DOS ALCANZAN A ESTA APP.**
+  1. **NO distingue sexo en ninguna fila** —se leyó entera—, así que estos cortes **no pasan por
+     `sexoEfectivo`** y sus barras no esconden el punto cuando el sexo falta. Es la diferencia con
+     la zona AI/VI del LS.
+  2. **EL TAPSE Y LA ONDA S′ SE SOLAPAN EN UN VALOR.** Su banda leve se escribe «≤1.7 to ≥1.3» y
+     la moderada «≤1.3 to >1.0», así que **1,3 cm está en las dos** (y 7,2 cm/s igual). Se
+     resuelve a favor de la banda **MENOS grave**, que es la convención de las once filas
+     ascendentes de la MISMA tabla y la lectura que no sobre-afirma. **La app publica el operador
+     que APLICA**: `<13` y `<7.2` para la moderada, no el `≤` del original.
+  3. **«RAV index (area-length method)» tiene un hueco entre 38 y 39.** Esa fila no la usa esta
+     app. Y la fila leve de la FEVD 3D, «≤45 to <39», parece un rango dado vuelta y no lo es.
+
+- **VS2 · LA FUNCIÓN SISTÓLICA, Y LA LÓGICA DE INTEGRACIÓN NO CAMBIA.** Sigue siendo un OR de los
+  parámetros MEDIDOS y **uno alcanza**; la **FEVD sigue FUERA**, como siempre. Lo que cambia es de
+  dónde sale cada «está alterado». **Escenas que cambian contra el inicio: CUATRO**, medidas con
+  teclas reales en 42 escenas de borde: **TAPSE 17,0 · onda S′ 9,5 · FAC 35 %** pasan de normal a
+  disfunción leve —el informe, el EN SUMA y `DisfSist_VD` se mueven— y **FAC 23 y 24 %** pierden la
+  línea de «Disfunción sistólica severa del VD», porque esa banda ahora empieza en 22.
+  ⚠️ **EL `sp < 9.5` ERA UN LITERAL** dentro de `generarInforme`: el último corte de esta zona que
+  vivía escrito a mano en el informe FIRMADO.
+  ⚠️ **EL 25 % DE LA FAC SEVERA NO TENÍA FUENTE** —su propio comentario lo declaraba criterio de la
+  app— y sale. De rebote, el panel de Evidencia dejó de tener dos escalas del mismo dato:
+  `facDiscorda` es hoy estructuralmente falso. **El aviso NO se borra**: es el centinela de que las
+  dos sigan coincidiendo.
+
+- **VS3 · EL TAMAÑO DEL VD PASA DE DOS CATEGORÍAS A CUATRO**, con el vocabulario que la app ya usa
+  para la AI. **La regla de integración es la misma —manda el PEOR de los diámetros medidos— y lo
+  que se va es el caso especial `vdSoloLeve`**, que existía porque el basal era el único con banda
+  intermedia. **Quince escenas cambian** sobre 29 de borde; las tres que cambian de VEREDICTO son
+  los tres valores exactos del corte nuevo (basal 41 · medio 35 · longitudinal 82).
+  ⚠️ **EL 86 DEL LONGITUDINAL NO ESTABA EN NINGUNA GUÍA**: su ficha figuraba «por verificar».
+  ⚠️ **LA PARED ES LA ÚNICA FILA QUE LA APP YA TENÍA EXACTAMENTE COMO LA GUÍA LA PUBLICA**: sus
+  seis escenas de borde salen IDÉNTICAS, así que ahí esto no es un cambio de corte sino el retiro
+  de la segunda copia.
+  ⚠️ **DOS CONSUMIDORES DE FUERA DE LA PESTAÑA PREGUNTABAN POR LA CATEGORÍA `dilatado`, QUE YA NO
+  EXISTE, Y LOS DOS HABRÍAN FALLADO EN SILENCIO**: el panel de Evidencia y la conexión venosa
+  pulmonar anómala.
+  **Las dos ÁREAS del VD ganan dueño y ficha, y su grado se publica SOLO en la tarjeta y en
+  Referencias**: ninguna superficie firmada las clasifica hoy.
+
+- **VS4 · LA AD EN CUATRO GRADOS Y LA VCI CON EL 21 EXACTO NORMAL.** El área de la AD pasa de
+  `≤18` a `<19` y gradúa; **siete de nueve escenas cambian**, y una lo hace en la dirección
+  tranquilizadora —18,9 cm² pasa a normal y **pierde** su línea del EN SUMA—. Acá vivía una
+  **SEGUNDA comparación** contra la constante dentro de `generarInforme`.
+  La VCI: el folio 160 escribe, literal, **«A normal IVC diameter is ≤2.1 cm»**, y la app aplicaba
+  `< 21`. **Cambian DOS escenas de ocho, las dos con 21,0 mm exactos**: la PmAD pasa de 8 a 3 y de
+  15 a 8, y la PSAP estimada baja 5 mmHg.
+  ⚠️ **LA GUÍA TIENE UNA QUINTA CATEGORÍA (20 mmHg) QUE LA APP NO PUEDE IMPLEMENTAR**: pide
+  contraste espontáneo y reflujo de color, y no hay campo para ninguno de los dos.
+
+- **VS5 · EN EL SENO DE VALSALVA, 40 mm EXACTOS SON DILATADOS.** Decisión de Maicol. El corte no
+  se movió: cambió su operador, y es el **ÚNICO** de los cinco segmentos. **Escenas que cambian de
+  veredicto: UNA**, el 40,0 exacto. Los otros cuatro segmentos salen IDÉNTICOS por sus tres
+  valores cada uno.
+  El operador vive **al lado del valor** (`incRef`) y sale a un dueño propio, `aoSegDil`, porque
+  había **TRES copias** del `x > sg.ref` —la cascada, la celda compacta del PDF y la estadística de
+  válvula aórtica bicúspide del Laboratorio—.
+  ⚠️ **LA TARJETA SONDEA EL PISO DE LA BANDA `leve` Y NO EL TECHO DE LA `normal`**: con el
+  operador nuevo ese techo es 39, y la tarjeta habría publicado «Corte de EcoSmart: 39 mm» sobre
+  una app que llama dilatados a los 40.
+
+- **VS6 · LAS CUATRO TARJETAS Y REFERENCIAS, DERIVADAS.** Las once barras pasan a CUATRO zonas sin
+  tocar el motor de dibujo —las bandas se SONDEAN al dueño— y lo que cambia es **cómo se nombra
+  cada corte**: cuatro modos distintos de `corteEn`, uno por familia de fila.
+  **MEDIDO en 48 celdas** —seis viewports × dos temas × cuatro tarjetas—, con la clase
+  `light-mode` COMPROBADA: las cuatro abren, cierran con el segundo toque y entran ENTERAS en el
+  viewport en las 48; **CERO scroll interno y CERO scroll horizontal**; la de función mide **562
+  px** y la de tamaño **526** con sus seis barras; los **cuatro colores** resuelven reales y
+  distintos en los dos temas; las bandas **no llevan palabras de gravedad**; y 20 aperturas y
+  cierres dejan **12.515 nodos → 12.515**.
+  **Referencias era CADENA ESCRITA A MANO en las tres entradas** y habría quedado vieja en bloque,
+  que es lo peor que puede pasarle a la superficie que el médico consulta para saber con qué se
+  graduó. `ref-vd2` pasa de 12 filas a **45**.
+
+- **CONTROL NEGATIVO MAYOR, A/B contra el inicio de la tanda: 0 DIFERENCIAS** con el formulario
+  vacío y con un escenario que carga la AI/VI, la diastólica, el HFA-PEFF, las válvulas y los
+  otros segmentos de la aorta **sin un solo dato del VD, de la AD, de la VCI ni de la raíz** —
+  informe en los tres estilos, EN SUMA, **Excel en 440 columnas CLAVE POR CLAVE**, los ocho
+  grados, las ocho pastillas, la diastólica, el HFA-PEFF, la AI, la probabilidad de HTP y el
+  juego completo de campos del estudio—.
+
+- **Arnés: `scripts/_probe_vs.mjs`** (CDP, teclas y clics reales; ocho grupos: `fun`, `tam`, `ad`,
+  `vci`, `aorta`, `v2d`, `tarjetas`, `maqueta`, `controles`).
+  **Cobertura: TC-494**, **54 condiciones** con tres denominadores y ocho controles negativos.
+  **Verificado que sabe fallar contra el árbol de entrada en un worktree aparte: 38 de las 54 en
+  rojo, y NINGUNA por excepción.**
+
+- ⚠️ **OCHO TRAMPAS, Y DOS DEFECTOS QUE CAZARON LOS CASOS Y NO LA LECTURA.**
+  1. **EN UNA FILA ASCENDENTE, EL `v` DE UNA BANDA ES SU TECHO Y NO SU PISO.** Dos constantes
+     salieron derivadas con la banda equivocada —`VD_PARED_HVD_MIN` en **7** y
+     `VD_TEI_DTI_ALT_MIN` en **0,62**— y lo cazó **TC-457** con el valor a la vista. El corte de
+     una fila ascendente es el `v` de la banda `normal`.
+  2. **LA VISTA 2D LEÍA LAS DOS CÁMARAS DERECHAS POR EL SINTAGMA DE LA CÁPSULA Y DEJÓ DE
+     AGRANDARLAS EN SILENCIO.** Lo cazó **TC-482**. Hoy se le preguntan al dueño.
+  3. **Al retirar una variable de una función hay que mirar TODOS sus usos**: `vdTxt` y `adTxt`
+     seguían vivos en la tabla de cavidades, `v2dEstado` tiraba `ReferenceError` y el panel entero
+     dejaba de abrir — tres casos en rojo que nada tenían que ver.
+  4. **La tarjeta se cierra con `style.display = none` y NO con el atributo `hidden`**: preguntar
+     por el atributo informa «no cerró» sobre un cierre perfecto, en las cuatro.
+  5. **El bucle de veinte aperturas se arranca con la tarjeta CERRADA**, o cuarenta clics la dejan
+     abierta.
+  6. **Un filtro de líneas anclado en «^VD » no ve «… del VD (FAC 23%).»**, que es la línea de la
+     FAC severa del EN SUMA: el A/B informó «el informe no cambia» sobre la escena que SÍ cambia.
+  7. **Los campos de Válvulas viven detrás de DOS puertas y sus nombres no coinciden**: la escena
+     de control abortó con «SIN GEOMETRIA im_vc» hasta reponer el abridor de los controles reales.
+  8. **Me comí el acento grave TRES veces**, las tres en comentarios míos dentro del template de
+     una sonda o del cuerpo de un caso. ⚠️ **`check_backticks.py` NO alcanza los templates inline
+     de una sonda** —su cobertura es el cuerpo de un `caso(...)` y el de la sonda inyectada—: ésos
+     los dio `node --check`. **Correr los dos.**
 
 ### La AI y el VI por SEXO, la FEVI en CUATRO categorías y el aviso de sexo — «LS» (2026-10-16)
 

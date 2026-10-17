@@ -341,12 +341,15 @@ caso('TC-01', 'VD normal (basal 35, TAPSE 22)', `
 /* Basal 45 cae en la banda LEVE de \`vdBasCat\` (>41 y <=45), que es la misma que pinta la
    capsula. El pedido esperaba «VD dilatado»; la app dice «VD levemente dilatado» a proposito —
    ver lecciones 2026-09-14, punto 6: la capsula y el informe tienen que decir lo mismo. */
+/* ADAPTADO en la tanda VS (2026-10-17): el VD, la AD y la VCI pasaron a los cuatro grados
+   de la Tabla 1 de la ASE 2025, asi que los cortes y las palabras que este caso afirmaba son
+   los de la app ANTERIOR. Lo que el caso prueba no cambia: el borde por sus dos lados. */
 caso('TC-02', 'VD dilatado (basal 45) + funcion conservada', `
   __t.limpiar();
   __t.set('vd_bas','45'); __t.set('tapse','18');
   const r = __t.informe();
   return { inf: r.inf, suma: r.suma,
-    debe: ['levemente dilatado'], debeSuma: ['VD levemente dilatado'] };
+    debe: ['moderadamente dilatado'], debeSuma: ['VD moderadamente dilatado'] };
 `);
 
 /* El pedido decia «VD sin datos -> el informe DEBE contener texto del VD». Es al reves de lo
@@ -391,7 +394,7 @@ caso('TC-06', 'AD dilatada llega al EN SUMA', `
   __t.set('ad_area','25');
   const r = __t.informe();
   return { inf: r.inf, suma: r.suma,
-    debe: ['Aurícula derecha dilatada'], debeSuma: ['AD dilatada'] };
+    debe: ['Aurícula derecha severamente dilatada'], debeSuma: ['AD severamente dilatada'] };
 `);
 
 // ═══ GRUPO 4 — HFA-PEFF ═════════════════════════════════════════════════════════════════════
@@ -1920,6 +1923,8 @@ caso('TC-457', 'Pared del VD e indice de Tei (DTI): los dos cortes por sus dos l
     ['DENOMINADOR: los dos campos nuevos existen en el DOM', existen.length === 0, 'faltan: ' + existen.join(',')],
     ['DENOMINADOR: las dos filas nuevas del cuadro existen', filasNuevas.length === 0, 'faltan: ' + filasNuevas.join(',')],
     ['DENOMINADOR: el cuadro del VD tiene DIEZ filas (7 + FEVD + Qp + VD/VI)', cajaVD === 10, 'filas=' + cajaVD],
+    /* ADAPTADO (VS, 2026-10-17): el 0,55 del Tei sigue siendo el corte de la banda LEVE, pero
+       la constante pasa a derivarse de la tabla ASE25_T1: el valor NO se movio. */
     ['DENOMINADOR: los cortes son los de la guia, y el del Doppler PULSADO esta declarado aparte',
       cortes !== 'SIN CONSTANTES' && cortes.pared === 5 && cortes.tei === 0.55 && cortes.pw === 0.40,
       JSON.stringify(cortes)],
@@ -1975,31 +1980,31 @@ caso('TC-457', 'Pared del VD e indice de Tei (DTI): los dos cortes por sus dos l
 
     // ── E · LAS OCHO FRASES DEL EN SUMA ──────────────────────────────────────────────────────
     ['EN SUMA solo hipertrofia: «HVD.»', E.solo.suma === 'HVD.', E.solo.suma],
-    ['EN SUMA dilatado e hipertrofico', E.dil.suma === 'VD dilatado e hipertrófico.', E.dil.suma],
+    ['EN SUMA dilatado e hipertrofico', E.dil.suma === 'VD moderadamente dilatado e hipertrófico.', E.dil.suma],
     ['EN SUMA hipertrofia + sistolica', E.sist.suma === 'HVD con disfunción sistólica.', E.sist.suma],
     ['EN SUMA hipertrofia + diastolica (con el GRADO, que la app ya publicaba)',
       E.diast.suma === 'HVD con disfunción diastólica severa.', E.diast.suma],
     ['EN SUMA hipertrofia + sistolica y diastolica, sin repetir la palabra',
       E.sistDiast.suma === 'HVD con disfunción sistólica y diastólica severa.', E.sistDiast.suma],
     ['EN SUMA dilatado e hipertrofico + sistolica',
-      E.dilSist.suma === 'VD dilatado e hipertrófico, con disfunción sistólica.', E.dilSist.suma],
+      E.dilSist.suma === 'VD moderadamente dilatado e hipertrófico, con disfunción sistólica.', E.dilSist.suma],
     ['EN SUMA dilatado e hipertrofico + sistolica y diastolica',
-      E.dilSistDi.suma === 'VD dilatado e hipertrófico, con disfunción sistólica y diastólica severa.', E.dilSistDi.suma],
+      E.dilSistDi.suma === 'VD moderadamente dilatado e hipertrófico, con disfunción sistólica y diastólica severa.', E.dilSistDi.suma],
     ['EN SUMA dilatado e hipertrofico + solo diastolica',
-      E.dilDiast.suma === 'VD dilatado e hipertrófico, con disfunción diastólica severa.', E.dilDiast.suma],
+      E.dilDiast.suma === 'VD moderadamente dilatado e hipertrófico, con disfunción diastólica severa.', E.dilDiast.suma],
     ['la combinacion que la orden NO nombra conserva «funcion sistolica conservada», que es la regla de HEAD',
-      E.dilConserv.suma === 'VD dilatado e hipertrófico, con función sistólica conservada.', E.dilConserv.suma],
+      E.dilConserv.suma === 'VD moderadamente dilatado e hipertrófico, con función sistólica conservada.', E.dilConserv.suma],
     ['con la diastolica SIN grado se usa el texto de la app y NO se afirma la disfuncion',
       E.sinGrado.suma === 'HVD con disfunción sistólica y patrón sugestivo de disfunción diastólica.', E.sinGrado.suma],
 
     // ── E-bis · CONTROLES NEGATIVOS: sin pared, el EN SUMA es el de HEAD letra por letra ─────
-    ['CONTROL NEGATIVO sin pared: «VD dilatado.»', N.dil.suma === 'VD dilatado.', N.dil.suma],
+    ['CONTROL NEGATIVO sin pared: «VD dilatado.»', N.dil.suma === 'VD moderadamente dilatado.', N.dil.suma],
     ['CONTROL NEGATIVO sin pared: «VD dilatado con disfunción sistólica.»',
-      N.dilSist.suma === 'VD dilatado con disfunción sistólica.', N.dilSist.suma],
+      N.dilSist.suma === 'VD moderadamente dilatado con disfunción sistólica.', N.dilSist.suma],
     ['CONTROL NEGATIVO sin pared: la diastolica va con COMA, no con «y»',
-      N.dilSistDi.suma === 'VD dilatado con disfunción sistólica, disfunción diastólica severa.', N.dilSistDi.suma],
+      N.dilSistDi.suma === 'VD moderadamente dilatado con disfunción sistólica, disfunción diastólica severa.', N.dilSistDi.suma],
     ['CONTROL NEGATIVO sin pared: «VD dilatado con función sistólica conservada.»',
-      N.dilConserv.suma === 'VD dilatado con función sistólica conservada.', N.dilConserv.suma],
+      N.dilConserv.suma === 'VD moderadamente dilatado con función sistólica conservada.', N.dilConserv.suma],
     ['CONTROL NEGATIVO sin pared: «VD de dimensiones normales con disfunción sistólica.»',
       N.sist.suma === 'VD de dimensiones normales con disfunción sistólica.', N.sist.suma],
     ['CONTROL NEGATIVO: un VD normal sin los campos nuevos no sube nada al EN SUMA y su oracion es la de HEAD',
@@ -4805,16 +4810,23 @@ caso('TC-464', 'Estenosis aortica: los cortes de las SEIS variables por sus dos 
   return { extra: ex };
 `);
 
-caso('TC-33', 'AD area 18 normal / 19 dilatada, y sin area no se valora', `
-  __t.limpiar(); __t.set('ad_area','18'); const a = __t.informe();
-  __t.limpiar(); __t.set('ad_area','19'); const b = __t.informe();
-  __t.limpiar();                          const c = __t.informe();
+/* ADAPTADO en la tanda VS (2026-10-17): el VD, la AD y la VCI pasaron a los cuatro grados
+   de la Tabla 1 de la ASE 2025, asi que los cortes y las palabras que este caso afirmaba son
+   los de la app ANTERIOR. Lo que el caso prueba no cambia: el borde por sus dos lados. */
+caso('TC-33', 'AD area: 18,9 normal / 19 leve / 22,1 moderada / 24,1 severa, y sin area no se valora', `
+  function ad(x) { __t.limpiar(); __t.set('ad_area', String(x)); return __t.informe(); }
+  const a = ad(18.9), b = ad(19), c0 = ad(22), d = ad(22.1), e = ad(24), f = ad(24.1);
+  __t.limpiar(); const sin = __t.informe();
   return { extra: [
-    ['18 cm² normal',       /Aurícula derecha de dimensiones normales \\(área 18 cm²\\)/.test(a.inf)],
-    ['18 cm² no va al EN SUMA', a.suma.indexOf('AD dilatada') === -1],
-    ['19 cm² dilatada',     /Aurícula derecha dilatada \\(área 19 cm²\\)/.test(b.inf)],
-    ['19 cm² va al EN SUMA', b.suma.indexOf('AD dilatada (área 19 cm²).') > -1],
-    ['sin area: no valorada, no normal', c.inf.indexOf('Aurícula derecha no valorada.') > -1]
+    ['18,9 cm² normal',        /Aurícula derecha de dimensiones normales \\(área 18.9 cm²\\)/.test(a.inf)],
+    ['18,9 cm² no va al EN SUMA', a.suma.indexOf('AD ') === -1],
+    ['19 cm² dilatación leve', /Aurícula derecha levemente dilatada \\(área 19 cm²\\)/.test(b.inf)],
+    ['19 cm² va al EN SUMA',   b.suma.indexOf('AD levemente dilatada (área 19 cm²).') > -1],
+    ['22 cm² sigue leve',      c0.suma.indexOf('AD levemente dilatada') > -1],
+    ['22,1 cm² moderada',      d.suma.indexOf('AD moderadamente dilatada') > -1],
+    ['24 cm² sigue moderada',  e.suma.indexOf('AD moderadamente dilatada') > -1],
+    ['24,1 cm² severa',        f.suma.indexOf('AD severamente dilatada') > -1],
+    ['sin area: no valorada, no normal', sin.inf.indexOf('Aurícula derecha no valorada.') > -1]
   ] };
 `);
 
@@ -4822,54 +4834,69 @@ caso('TC-33', 'AD area 18 normal / 19 dilatada, y sin area no se valora', `
 /* El basal tiene TRES bandas (<=41 normal, <=45 leve, >45 dilatado); el medio y el longitudinal
    son binarios (VD_MID_NORMAL_MAX 35, VD_LONG_NORMAL_MAX 86). Son los cortes que decidian si el
    VD aparecia o no en el informe firmado. */
-caso('TC-34', 'VD basal: 41 normal / 42 leve / 45 leve / 46 dilatado', `
+/* ADAPTADO en la tanda VS (2026-10-17): el VD, la AD y la VCI pasaron a los cuatro grados
+   de la Tabla 1 de la ASE 2025, asi que los cortes y las palabras que este caso afirmaba son
+   los de la app ANTERIOR. Lo que el caso prueba no cambia: el borde por sus dos lados. */
+caso('TC-34', 'VD basal: 40,9 normal / 41 leve / 44 leve / 44,1 moderada / 49 moderada / 49,1 severa', `
   function vd(mm) { __t.limpiar(); __t.set('vd_bas', String(mm)); __t.set('tapse','22'); return __t.informe(); }
-  const r = [41, 42, 45, 46].map(vd);
+  const r = [40.9, 41, 44, 44.1, 49, 49.1].map(vd);
   return { extra: [
-    ['41 mm normal',         /Ventrículo derecho de dimensiones normales/.test(r[0].inf) && r[0].suma.indexOf('VD ') === -1],
-    ['42 mm levemente dilatado', r[1].suma.indexOf('VD levemente dilatado') > -1],
-    ['45 mm sigue leve',     r[2].suma.indexOf('VD levemente dilatado') > -1],
-    ['46 mm dilatado',       r[3].suma.indexOf('VD dilatado') > -1 && r[3].suma.indexOf('levemente') === -1]
+    ['40,9 mm normal',       /Ventrículo derecho de dimensiones normales/.test(r[0].inf) && r[0].suma.indexOf('VD ') === -1],
+    ['41 mm levemente dilatado', r[1].suma.indexOf('VD levemente dilatado') > -1],
+    ['44 mm sigue leve',     r[2].suma.indexOf('VD levemente dilatado') > -1],
+    ['44,1 mm moderada',     r[3].suma.indexOf('VD moderadamente dilatado') > -1],
+    ['49 mm sigue moderada', r[4].suma.indexOf('VD moderadamente dilatado') > -1],
+    ['49,1 mm severa',       r[5].suma.indexOf('VD severamente dilatado') > -1]
   ] };
 `);
 
-caso('TC-35', 'VD medio 35 normal / 36 dilatado, y VD longitudinal 86 normal / 87 dilatado', `
+/* ADAPTADO en la tanda VS (2026-10-17): el VD, la AD y la VCI pasaron a los cuatro grados
+   de la Tabla 1 de la ASE 2025, asi que los cortes y las palabras que este caso afirmaba son
+   los de la app ANTERIOR. Lo que el caso prueba no cambia: el borde por sus dos lados. */
+caso('TC-35', 'VD medio: 34,9 normal / 35 leve / 42,1 severa. Longitudinal: 81 normal / 82 leve / 96,1 severa', `
   function solo(id, mm) { __t.limpiar(); __t.set(id, String(mm)); return __t.informe(); }
-  const m0 = solo('vd_mid', 35), m1 = solo('vd_mid', 36);
-  const l0 = solo('vd_long', 86), l1 = solo('vd_long', 87);
+  const m0 = solo('vd_mid', 34.9), m1 = solo('vd_mid', 35), m2 = solo('vd_mid', 42.1);
+  const l0 = solo('vd_long', 81), l1 = solo('vd_long', 82), l2 = solo('vd_long', 96.1);
   return { extra: [
-    ['medio 35 normal',        m0.suma.indexOf('VD dilatado') === -1],
-    ['medio 36 dilatado',      m1.suma.indexOf('VD dilatado.') > -1 && /medio 36 mm/.test(m1.inf)],
-    ['longitudinal 86 normal', l0.suma.indexOf('VD dilatado') === -1],
-    ['longitudinal 87 dilatado', l1.suma.indexOf('VD dilatado.') > -1 && /longitudinal 87 mm/.test(l1.inf)]
+    ['medio 34,9 normal',      m0.suma.indexOf('VD ') === -1],
+    ['medio 35 leve',          m1.suma.indexOf('VD levemente dilatado.') > -1 && /medio 35 mm/.test(m1.inf)],
+    ['medio 42,1 severa',      m2.suma.indexOf('VD severamente dilatado.') > -1],
+    ['longitudinal 81 normal', l0.suma.indexOf('VD ') === -1],
+    ['longitudinal 82 leve',   l1.suma.indexOf('VD levemente dilatado.') > -1 && /longitudinal 82 mm/.test(l1.inf)],
+    ['longitudinal 96,1 severa', l2.suma.indexOf('VD severamente dilatado.') > -1]
   ] };
 `);
 
-/* TAPSE < 17 (UMBRAL_TAPSE_NORMAL) y S' < 9,5 son disfuncion. Con el VD de tamano normal el
-   informe tiene que decir las DOS cosas: dimensiones normales Y disfuncion. */
-caso('TC-36', "TAPSE 17 / 16 y S' 9.5 / 9.4 — los cortes de disfuncion del VD", `
+/* ADAPTADO en la tanda VS (2026-10-17): la Tabla 1 de la ASE 2025 da lo NORMAL con `>`, asi que
+   el VALOR EXACTO del corte —17 mm y 9,5 cm/s— pasa a ser disfuncion LEVE. La app aplicaba `>=`.
+   El caso mide el mismo borde por sus dos lados, un paso mas arriba. Con el VD de tamano normal
+   el informe tiene que decir las DOS cosas: dimensiones normales Y disfuncion. */
+caso('TC-36', "TAPSE 17,1 / 17,0 y S' 9,6 / 9,5 — los cortes de disfuncion del VD", `
   function f(id, val) { __t.limpiar(); __t.set('vd_bas','35'); __t.set(id, String(val)); return __t.informe(); }
-  const t0 = f('tapse', 17), t1 = f('tapse', 16), s0 = f('s_prime', 9.5), s1 = f('s_prime', 9.4);
+  const t0 = f('tapse', 17.1), t1 = f('tapse', 17), s0 = f('s_prime', 9.6), s1 = f('s_prime', 9.5);
   return { extra: [
-    ['TAPSE 17 conservada', /función sistólica conservada/.test(t0.inf)],
-    ['TAPSE 16 disfuncion', /con disfunción sistólica/.test(t1.inf) &&
+    ['TAPSE 17,1 conservada', /función sistólica conservada/.test(t0.inf)],
+    ['TAPSE 17,0 EXACTO ya es disfuncion', /con disfunción sistólica/.test(t1.inf) &&
                             t1.suma.indexOf('VD de dimensiones normales con disfunción sistólica.') > -1],
-    ["S' 9.5 conservada",   /función sistólica conservada/.test(s0.inf)],
-    ["S' 9.4 disfuncion",   /con disfunción sistólica/.test(s1.inf)]
+    ["S' 9,6 conservada",   /función sistólica conservada/.test(s0.inf)],
+    ["S' 9,5 EXACTO ya es disfuncion", /con disfunción sistólica/.test(s1.inf)]
   ] };
 `);
 
-/* FAC = (areaD - areaS) / areaD x 100, REDONDEADA. UMBRAL_FAC_VD_NORMAL 35, SEVERA 25. */
-caso('TC-37', 'FAC del VD: 35 normal / 34 disfuncion / 24 severa', `
+/* ADAPTADO en la tanda VS (2026-10-17): FAC = (areaD - areaS) / areaD x 100, REDONDEADA. La
+   Tabla 1 de la ASE 2025 da lo normal con `>35` —asi que 35 EXACTO es disfuncion leve— y corta
+   la banda SEVERA en `<=22`, donde la app usaba un `<25` que no tenia fuente. */
+caso('TC-37', 'FAC del VD: 36 normal / 35 leve / 23 moderada / 22 severa', `
   function fac(d, s) { __t.limpiar(); __t.set('vd_area_d', String(d)); __t.set('vd_area_s', String(s));
     return { fac: __t.val('vd_fac'), r: __t.informe() }; }
-  const a = fac(20, 13), b = fac(20, 13.2), c = fac(20, 15.2);
+  const a = fac(20, 12.8), b = fac(20, 13), c = fac(20, 15.6), d = fac(20, 15.4);
   return { extra: [
-    ['FAC 35 %',        a.fac === '35' && /función sistólica conservada/.test(a.r.inf)],
-    ['FAC 34 disfuncion', b.fac === '34' && /con disfunción sistólica/.test(b.r.inf)],
-    ['FAC 24 severa',   c.fac === '24' &&
-                        c.r.suma.indexOf('Disfunción sistólica severa del VD (FAC 24%).') > -1],
-    ['FAC 34 NO es severa', b.r.suma.indexOf('severa del VD') === -1]
+    ['FAC 36 %',        a.fac === '36' && /función sistólica conservada/.test(a.r.inf)],
+    ['FAC 35 EXACTO ya es disfuncion', b.fac === '35' && /con disfunción sistólica/.test(b.r.inf)],
+    ['FAC 22 EXACTO es severa', c.fac === '22' &&
+                        c.r.suma.indexOf('Disfunción sistólica severa del VD (FAC 22%).') > -1],
+    ['FAC 23 NO es severa', d.fac === '23' && d.r.suma.indexOf('severa del VD') === -1],
+    ['FAC 35 NO es severa', b.r.suma.indexOf('severa del VD') === -1]
   ] };
 `);
 
@@ -4881,10 +4908,12 @@ caso('TC-38', 'FAC 34.5 se publica 35 y se clasifica como 35, no como 34.5', `
   __t.limpiar(); __t.set('vd_area_d','20'); __t.set('vd_area_s','13.1');
   const r = __t.informe();
   return { inf: r.inf,
-    debe: ['FAC 35%', 'función sistólica conservada'],
+    debe: ['FAC 35%', 'con disfunción sistólica'],
     noDebe: ['FAC 34.5'],
     extra: [['el campo guarda el redondeado', __t.val('vd_fac') === '35'],
-            ['la capsula clasifica el mismo numero', /35% — normal/.test(__t.txt('fac-interp') || '')]] };
+            /* ADAPTADO (VS, 2026-10-17): el 35 EXACTO pasa a disfuncion LEVE. Lo que el caso
+               prueba no cambia: la capsula clasifica el numero REDONDEADO y no el crudo. */
+            ['la capsula clasifica el mismo numero', /35 % — disfunción sistólica leve/.test(__t.txt('fac-interp') || '')]] };
 `);
 
 // ═══ GRUPO 14 — Aorta toracica, los cinco segmentos ═════════════════════════════════════════
@@ -8924,7 +8953,8 @@ caso('TC-136', 'Diastolica del VD: el patron sale del E/A, el E/e desempata solo
       dilSev.vd.indexOf('dilatado con disfunción sistólica') > -1 &&
       dilSev.vd.indexOf('patrón restrictivo') > -1, dilSev.vd],
     ['y los tres en el EN SUMA, en una sola linea',
-      dilSev.suma.indexOf('VD dilatado con disfunción sistólica, disfunción diastólica severa.') > -1,
+      /* ADAPTADO (VS, 2026-10-17): el basal de 48 mm pasa a «moderadamente dilatado». */
+      dilSev.suma.indexOf('VD moderadamente dilatado con disfunción sistólica, disfunción diastólica severa.') > -1,
       dilSev.suma],
     ['VD normal con la diastolica alterada tiene linea propia',
       pseudo.suma.indexOf('VD de dimensiones normales, disfunción diastólica moderada.') > -1,
@@ -37085,21 +37115,23 @@ caso('TC-285', 'Valvula tricuspide: la tabla de 2025, el operador del gradiente,
         'FAC22=' + fac22 + ' -> ' + (r22 ? r22.tipo + ' / ' + r22.tit : 'null') +
         ' · FAC23=' + fac23 + ' -> ' + (r23 ? r23.tipo + ' / ' + r23.clase : 'null')]);
 
-      /* ── ⚠️ DOS ESCALAS DEL MISMO DATO, Y EL PANEL LO NOMBRA ──
-         La capsula de la FAC de la app marca severa con < 25 y la guia pide ≤ 22: entre 23 y 24 la
-         pantalla dice severa y el panel no. No se unifico —mover UMBRAL_FAC_VD_SEVERA cambiaria el
-         grado consignado en estudios ya firmados— asi que la unica salida honesta es decirlo donde
-         se publica la conducta. Con 26 % no hay discordancia y no debe avisar. */
+      /* ── ⚠️ ADAPTADO EN LA TANDA VS (2026-10-17): LAS DOS ESCALAS YA NO DISCREPAN ──
+         La capsula de la FAC marcaba severa con < 25 —criterio de la app, sin fuente— y la
+         Figura 15 pide menor-o-igual que 22. Desde el VS2 la capsula gradua con la Tabla 1 de la
+         ASE 2025, que corta la severa en el MISMO 22 y con el MISMO operador, asi que el aviso
+         de «dos escalas del mismo dato» quedo sin escenas: el predicado facDiscorda es estructuralmente
+         falso. El aviso NO se borro —es el centinela de que las dos sigan coincidiendo— y lo
+         que este caso afirma ahora es la otra mitad: que con 23 y con 26 el panel NO avisa,
+         porque ya no hay nada que avisar. */
       const r23b = r23, f23 = filaDe('Funcion del ventriculo derecho');
       esc({ vd_area_d:'20', vd_area_s:'14.8' }, { 'vt.cxizq':'no', 'vt.mecanismo':'prim', 'vt.sintomas':'si' });
       const fac26 = window.v('vd_fac'), r26 = rec();
-      ex.push(['con la FAC en 23 % el panel avisa que la capsula de la app y la guia discrepan y dice cual aplica; con 26 % no hay discordancia y no avisa',
+      ex.push(['las dos escalas de la FAC coinciden (22 % con el mismo operador), asi que el panel NO avisa de discordancia ni con 23 % ni con 26 %',
         fac26 === 26 &&
-        !!r23b && pl(r23b.nota).indexOf('dos escalas del mismo dato') > -1 &&
-        pl(r23b.nota).indexOf('la pantalla dice severa y la guia no') > -1 &&
-        !!f23 && pl(f23.nota).indexOf('dos escalas del mismo dato') > -1 &&
+        !!r23b && pl(r23b.nota).indexOf('dos escalas del mismo dato') === -1 &&
+        !!f23 && pl(f23.nota).indexOf('dos escalas del mismo dato') === -1 &&
         !!r26 && pl(r26.nota).indexOf('dos escalas del mismo dato') === -1,
-        'con 23: ' + (r23b ? String(r23b.nota).slice(-200) : 'null') +
+        'con 23 avisa=' + (r23b ? pl(r23b.nota).indexOf('dos escalas') > -1 : 'null') +
         ' || con 26 avisa=' + (r26 ? pl(r26.nota).indexOf('dos escalas') > -1 : 'null')]);
 
       /* ── ⚠️ LA FAC NO SE USA SI SUS DOS AREAS NO ESTAN EN BANDA ──
@@ -64225,8 +64257,11 @@ caso('TC-470', 'Aviso de exclusiones mitrales en las TRES guias y los DOS ritmos
       typeof _labDiastGrado !== 'function' || _labDiastGrado(REG(r.inf, r.suma)) === null,
       String(typeof _labDiastGrado === 'function' ? _labDiastGrado(REG(r.inf, r.suma)) : 'SIN FN')]);
     /* El EN SUMA del VD no se toco: la frase es la de siempre, letra por letra. */
-    ex.push(['(C) CONTROL: el EN SUMA sigue diciendo «VD dilatado con disfunción sistólica.»',
-      String(r.suma).indexOf('VD dilatado con disfunción sistólica.') > -1,
+    /* ADAPTADO (VS, 2026-10-17): el basal de la escena pasa a «moderadamente dilatado» con los
+       cuatro grados de la Tabla 1. Lo que el control afirma no cambia: la frase del VD sigue
+       saliendo entera y el Laboratorio la cuenta como disfuncion del VD y no del VI. */
+    ex.push(['(C) CONTROL: el EN SUMA sigue diciendo «VD moderadamente dilatado con disfunción sistólica.»',
+      String(r.suma).indexOf('VD moderadamente dilatado con disfunción sistólica.') > -1,
       String(r.suma).replace(/\\s+/g, ' ').trim().slice(0, 120)]);
     /* Y la tabla de valvulopatias del Laboratorio sigue contando sus OCHO lesiones. */
     let vc = null;
@@ -72301,44 +72336,67 @@ caso('TC-492', 'Tanda M: las DIECISEIS FICHAS nuevas del registro de evidencia d
     /* La linea de fuente SOLO desde «verificado». */
     const fl = (id) => FN('evFuenteLinea') ? window.evFuenteLinea(id) : 'SIN FN';
     const noVerif = fichasM.filter(f => f.estado !== 'verificado');
-    ex.push(['la fuente se publica SOLO desde una ficha verificado (control negativo: las seis que no lo son devuelven cadena vacia)',
-      noVerif.length === 6 && noVerif.every(f => fl(f.id) === '')
+    /* ADAPTADO (VS, 2026-10-17): de las seis fichas que no estaban verificadas, cinco pasaron a
+       «verificado» contra la Tabla 1 de la ASE 2025 y queda UNA sola, AOR-001, que es criterio
+       propio de EcoSmart y sigue sin fuente. El control negativo no se debilita: lo que exige
+       es que la que NO esta verificada devuelva cadena vacia. */
+    ex.push(['la fuente se publica SOLO desde una ficha verificado (control negativo: la unica que no lo es devuelve cadena vacia)',
+      noVerif.length === 1 && noVerif[0].id === 'AOR-001' && noVerif.every(f => fl(f.id) === '')
         && fl('VCI-002') !== '' && fl('AOR-002') !== '',
       'noVerif=' + noVerif.map(f => f.id + ':' + f.estado).join(' ') + ' | VCI-002=' + fl('VCI-002')]);
 
     /* ── El valor de cada ficha, contra el DUENO que usa el informe ── */
-    ex.push(['DIM-AD-001: el area de la AD corta en 18 cm2 por sus dos lados',
-      LL('adAreaCat', 18) === 'normal' && LL('adAreaCat', 19) === 'dilatada',
-      '18=' + LL('adAreaCat', 18) + ' 19=' + LL('adAreaCat', 19)]);
+    ex.push(['DIM-AD-001: el area de la AD gradua en 19, 22 y 24 cm2 con los operadores de la Tabla 1',
+      LL('adAreaCat', 18.9) === 'normal' && LL('adAreaCat', 19) === 'leve'
+        && LL('adAreaCat', 22) === 'leve' && LL('adAreaCat', 22.1) === 'moderada'
+        && LL('adAreaCat', 24) === 'moderada' && LL('adAreaCat', 24.1) === 'severa',
+      '18.9/19/22/22.1/24/24.1=' + [18.9, 19, 22, 22.1, 24, 24.1].map(x => LL('adAreaCat', x)).join('/')]);
     const bc = (x) => { const r = LL('vdBasCat', x); return (r && r.cat) ? r.cat : String(r); };
-    ex.push(['DIM-VD-001: el diametro basal corta en 41 y en 45 por sus dos lados',
-      bc(41) === 'normal' && bc(42) === 'leve' && bc(45) === 'leve' && bc(46) === 'dilatado',
-      '41=' + bc(41) + ' 42=' + bc(42) + ' 45=' + bc(45) + ' 46=' + bc(46)]);
-    ex.push(['DIM-VD-002 y DIM-VD-003: el medio corta en 35 y el longitudinal en 86',
-      LL('vdMidCat', 35) === 'normal' && LL('vdMidCat', 36) === 'dilatado'
-        && LL('vdLongCat', 86) === 'normal' && LL('vdLongCat', 87) === 'dilatado',
-      'mid 35/36=' + LL('vdMidCat', 35) + '/' + LL('vdMidCat', 36)
-        + ' long 86/87=' + LL('vdLongCat', 86) + '/' + LL('vdLongCat', 87)]);
+    ex.push(['DIM-VD-001: el diametro basal gradua en 41, 44 y 49 mm con los operadores de la Tabla 1',
+      bc(40.9) === 'normal' && bc(41) === 'leve' && bc(44) === 'leve'
+        && bc(44.1) === 'moderada' && bc(49) === 'moderada' && bc(49.1) === 'severa',
+      '40.9/41/44/44.1/49/49.1=' + [40.9, 41, 44, 44.1, 49, 49.1].map(bc).join('/')]);
+    ex.push(['DIM-VD-002 y DIM-VD-003: el medio gradua en 35, 38 y 42 y el longitudinal en 82, 89 y 96',
+      LL('vdMidCat', 34.9) === 'normal' && LL('vdMidCat', 35) === 'leve'
+        && LL('vdMidCat', 38.1) === 'moderada' && LL('vdMidCat', 42.1) === 'severa'
+        && LL('vdLongCat', 81) === 'normal' && LL('vdLongCat', 82) === 'leve'
+        && LL('vdLongCat', 89.1) === 'moderada' && LL('vdLongCat', 96.1) === 'severa',
+      'mid=' + [34.9, 35, 38.1, 42.1].map(x => LL('vdMidCat', x)).join('/')
+        + ' long=' + [81, 82, 89.1, 96.1].map(x => LL('vdLongCat', x)).join('/')]);
     ex.push(['DIM-VD-004: la pared corta en 5, 7 y 9 mm con los operadores de la Tabla 1',
       LL('vdParedCat', 4.9) === 'normal' && LL('vdParedCat', 5) === 'leve'
         && LL('vdParedCat', 7) === 'leve' && LL('vdParedCat', 7.1) === 'moderada'
         && LL('vdParedCat', 9) === 'moderada' && LL('vdParedCat', 9.1) === 'severa',
       '4.9/5/7/7.1/9/9.1=' + [4.9, 5, 7, 7.1, 9, 9.1].map(x => LL('vdParedCat', x)).join('/')]);
-    ex.push(['FUN-VD-001 y FUN-VD-002: el TAPSE corta en 17 mm y la onda S\u2032 en 9,5 cm/s',
-      LL('vdTapseCat', 16) === 'disfuncion' && LL('vdTapseCat', 17) === 'normal'
-        && LL('vdSprimeCat', 9.4) === 'disfuncion' && LL('vdSprimeCat', 9.5) === 'normal',
-      'tapse 16/17=' + LL('vdTapseCat', 16) + '/' + LL('vdTapseCat', 17)
-        + ' sp 9.4/9.5=' + LL('vdSprimeCat', 9.4) + '/' + LL('vdSprimeCat', 9.5)]);
-    ex.push(['FUN-VD-003: la FAC corta en 25 y en 35 % por sus dos lados',
-      LL('vdFacCat', 24) === 'severa' && LL('vdFacCat', 25) === 'disfuncion'
-        && LL('vdFacCat', 34) === 'disfuncion' && LL('vdFacCat', 35) === 'normal',
-      '24/25/34/35=' + [24, 25, 34, 35].map(x => LL('vdFacCat', x)).join('/')]);
-    ex.push(['FUN-VD-004, 005 y 006: la FEVD corta en 45 %, el Tei en 0,55 y el TAP en 105 ms',
-      LL('vdFevdCat', 45) === 'disfuncion' && LL('vdFevdCat', 46) === 'normal'
-        && LL('vdTeiCat', 0.54) === 'normal' && LL('vdTeiCat', 0.55) === 'alterado'
+    /* OJO: el VALOR EXACTO del corte cae del lado LEVE —la Tabla 1 da lo normal con mayor
+       estricto— y el SOLAPE tipografico de 1,3 cm y 7,2 cm/s se resuelve a favor de la banda
+       MENOS grave, que es la convencion de las once filas ascendentes de la misma tabla. */
+    ex.push(['FUN-VD-001 y FUN-VD-002: el TAPSE gradua en 17, 13 y 10 mm y la onda S\u2032 en 9,5, 7,2 y 5,0 cm/s',
+      LL('vdTapseCat', 17.1) === 'normal' && LL('vdTapseCat', 17) === 'leve'
+        && LL('vdTapseCat', 13) === 'leve' && LL('vdTapseCat', 12.9) === 'moderada'
+        && LL('vdTapseCat', 10.1) === 'moderada' && LL('vdTapseCat', 10) === 'severa'
+        && LL('vdSprimeCat', 9.6) === 'normal' && LL('vdSprimeCat', 9.5) === 'leve'
+        && LL('vdSprimeCat', 7.2) === 'leve' && LL('vdSprimeCat', 7.1) === 'moderada'
+        && LL('vdSprimeCat', 5) === 'severa',
+      'tapse=' + [17.1, 17, 13, 12.9, 10.1, 10].map(x => LL('vdTapseCat', x)).join('/')
+        + ' sp=' + [9.6, 9.5, 7.2, 7.1, 5].map(x => LL('vdSprimeCat', x)).join('/')]);
+    ex.push(['FUN-VD-003: la FAC gradua en 35, 29 y 22 % — el 25 sin fuente salio',
+      LL('vdFacCat', 36) === 'normal' && LL('vdFacCat', 35) === 'leve'
+        && LL('vdFacCat', 30) === 'leve' && LL('vdFacCat', 29) === 'moderada'
+        && LL('vdFacCat', 23) === 'moderada' && LL('vdFacCat', 22) === 'severa',
+      '36/35/30/29/23/22=' + [36, 35, 30, 29, 23, 22].map(x => LL('vdFacCat', x)).join('/')]);
+    /* El TAP es el UNICO de los tres que conserva un solo corte: la Tabla 1 lo gradua y esta
+       orden lo deja como esta. */
+    ex.push(['FUN-VD-004, 005 y 006: la FEVD gradua en 45, 39 y 32 %, el Tei en 0,55, 0,62 y 0,70 y el TAP conserva su unico corte de 105 ms',
+      LL('vdFevdCat', 46) === 'normal' && LL('vdFevdCat', 45) === 'leve'
+        && LL('vdFevdCat', 39) === 'moderada' && LL('vdFevdCat', 32) === 'moderada'
+        && LL('vdFevdCat', 31.9) === 'severa'
+        && LL('vdTeiCat', 0.54) === 'normal' && LL('vdTeiCat', 0.55) === 'leve'
+        && LL('vdTeiCat', 0.62) === 'moderada' && LL('vdTeiCat', 0.7) === 'severa'
         && LL('vdTapCat', 104) === 'htp' && LL('vdTapCat', 105) === 'normal',
-      'fevd=' + LL('vdFevdCat', 45) + '/' + LL('vdFevdCat', 46) + ' tei=' + LL('vdTeiCat', 0.54)
-        + '/' + LL('vdTeiCat', 0.55) + ' tap=' + LL('vdTapCat', 104) + '/' + LL('vdTapCat', 105)]);
+      'fevd=' + [46, 45, 39, 32, 31.9].map(x => LL('vdFevdCat', x)).join('/')
+        + ' tei=' + [0.54, 0.55, 0.62, 0.7].map(x => LL('vdTeiCat', x)).join('/')
+        + ' tap=' + LL('vdTapCat', 104) + '/' + LL('vdTapCat', 105)]);
     /* ⚠️ AO_SEGS ES UN const DE MODULO Y NO UNA PROPIEDAD DE window —la trampa que este
        repo ya tiene escrita para ECO_AYUDA y para _labImpDatos—, asi que el segmento se saca
        del SONDEO que evCortes publica, que es ademas el mismo que dibuja la tarjeta. */
@@ -72346,17 +72404,22 @@ caso('TC-492', 'Tanda M: las DIECISEIS FICHAS nuevas del registro de evidencia d
     const bSin = (SON.aoSeg && SON.aoSeg.ao_sin) ? SON.aoSeg.ao_sin : [];
     const ag = (x) => { for (let i = 0; i < bSin.length; i++)
       if (x >= bSin[i].desde && x <= bSin[i].hasta) return bSin[i].k; return 'FUERA'; };
-    ex.push(['AOR-001: el seno de Valsalva corta en 40 mm y el 40 EXACTO cae del lado NORMAL',
-      bSin.length >= 3 && ag(40) === 'normal' && ag(41) === 'leve' && ag(45) === 'leve' && ag(46) === 'moderada',
-      '40/41/45/46=' + [40, 41, 45, 46].map(ag).join('/')]);
+    /* ADAPTADO (VS5, 2026-10-17): decision de Maicol — en el seno de Valsalva, 40 mm EXACTOS
+       cuentan como DILATADO. El corte no se movio: cambio su operador, y es el UNICO de los
+       cinco segmentos que lo hace. */
+    ex.push(['AOR-001: el seno de Valsalva corta en 40 mm y el 40 EXACTO cae del lado DILATADO',
+      bSin.length >= 3 && ag(39) === 'normal' && ag(40) === 'leve' && ag(45) === 'leve' && ag(46) === 'moderada',
+      '39/40/45/46=' + [39, 40, 45, 46].map(ag).join('/')]);
     const pm = (d, c) => { const r = LL('pmadEstimar', d, c); return (r && r.pmad !== undefined) ? r.pmad : String(r); };
     ex.push(['VCI-002: las cuatro combinaciones de la vena cava dan 3, 8, 8 y 15 mmHg',
       pm(18, '>50') === 3 && pm(18, '<50') === 8 && pm(24, '>50') === 8 && pm(24, '<50') === 15
         && LL('pmadEstimar', '', '>50') === null,
       'nn=' + pm(18, '>50') + ' nd=' + pm(18, '<50') + ' dn=' + pm(24, '>50') + ' dd=' + pm(24, '<50')]);
-    ex.push(['VCI-001: el diametro de 21 mm EXACTOS ya cuenta como dilatado en la aplicacion',
-      pm(20.9, '>50') === 3 && pm(21, '>50') === 8,
-      '20,9=' + pm(20.9, '>50') + ' 21=' + pm(21, '>50')]);
+    /* ADAPTADO (VS4, 2026-10-17): la guia escribe «A normal IVC diameter is <=2.1 cm» (folio
+       160), asi que el 21 EXACTO pasa a NORMAL. El valor no se movio: cambio el operador. */
+    ex.push(['VCI-001: el diametro de 21 mm EXACTOS es NORMAL y la dilatacion empieza por encima',
+      pm(21, '>50') === 3 && pm(21.1, '>50') === 8 && pm(21, '<50') === 8 && pm(21.1, '<50') === 15,
+      '21=' + pm(21, '>50') + '/' + pm(21, '<50') + ' 21,1=' + pm(21.1, '>50') + '/' + pm(21.1, '<50')]);
 
     /* ── AOR-002: las tres ecuaciones y sus errores estandar ── */
     const NOMO = Array.isArray(G('AOR_NOMO')) ? G('AOR_NOMO') : [];
@@ -72449,17 +72512,26 @@ caso('TC-492', 'Tanda M: las DIECISEIS FICHAS nuevas del registro de evidencia d
 
     /* El punto del paciente, la categoria y los cortes con su unidad. */
     const NP = (k) => ((lec[k] || {}).puntos || []).length;
+    /* ADAPTADO (VS3/VS6, 2026-10-17): la tarjeta de TAMANO pasa de cuatro barras a SEIS, porque
+       las dos areas del VD se graduan desde esta tanda y su unico lugar es la tarjeta. */
     ex.push(['el punto del paciente se dibuja en las cuatro tarjetas con datos cargados',
-      NP('ad-card') === 1 && NP('vd-tam-card') === 4 && NP('vd-fun-card') === 6 && NP('ao-card') === 1,
+      NP('ad-card') === 1 && NP('vd-tam-card') === 6 && NP('vd-fun-card') === 6 && NP('ao-card') === 1,
       'ad=' + NP('ad-card') + ' tam=' + NP('vd-tam-card') + ' fun=' + NP('vd-fun-card') + ' ao=' + NP('ao-card')]);
     const TODOS = [].concat(lec['ad-card'].cortes || [], lec['vd-tam-card'].cortes || [],
                             lec['vd-fun-card'].cortes || []);
+    /* ADAPTADO (VS, 2026-10-17): de quince cortes a TREINTA Y SIETE. Las once filas de la Tabla 1
+       pasan de dos o tres bandas a CUATRO —o sea tres cortes cada una— y entran las dos areas del
+       VD; el tiempo de aceleracion pulmonar es el unico que conserva su corte solo. */
     ex.push(['CADA corte lleva su numero y su unidad',
-      TODOS.length === 15
-        && TODOS.indexOf('18 cm\u00b2') > -1 && TODOS.indexOf('41 mm') > -1 && TODOS.indexOf('45 mm') > -1
-        && TODOS.indexOf('35 mm') > -1 && TODOS.indexOf('86 mm') > -1 && TODOS.indexOf('5,0 mm') > -1
-        && TODOS.indexOf('7,0 mm') > -1 && TODOS.indexOf('9,0 mm') > -1 && TODOS.indexOf('17 mm') > -1
-        && TODOS.indexOf('9,5 cm/s') > -1 && TODOS.indexOf('25 %') > -1 && TODOS.indexOf('35 %') > -1,
+      TODOS.length === 37
+        && TODOS.indexOf('19 cm\u00b2') > -1 && TODOS.indexOf('24 cm\u00b2') > -1
+        && TODOS.indexOf('41 mm') > -1 && TODOS.indexOf('49 mm') > -1
+        && TODOS.indexOf('35 mm') > -1 && TODOS.indexOf('82 mm') > -1 && TODOS.indexOf('96 mm') > -1
+        && TODOS.indexOf('5,0 mm') > -1 && TODOS.indexOf('7,0 mm') > -1 && TODOS.indexOf('9,0 mm') > -1
+        && TODOS.indexOf('14 cm\u00b2') > -1 && TODOS.indexOf('25 cm\u00b2') > -1
+        && TODOS.indexOf('17 mm') > -1 && TODOS.indexOf('10 mm') > -1
+        && TODOS.indexOf('9,5 cm/s') > -1 && TODOS.indexOf('5,0 cm/s') > -1
+        && TODOS.indexOf('22 %') > -1 && TODOS.indexOf('35 %') > -1,
       TODOS.join(' \u00b7 ')]);
     const CF = lec['vd-fun-card'].cortes || [];
     ex.push(['los cortes de la FEVD, el Tei y el TAP son los del dueno y no un paso de sondeo corrido',
@@ -72574,15 +72646,23 @@ caso('TC-492', 'Tanda M: las DIECISEIS FICHAS nuevas del registro de evidencia d
       refs.ao2.nomos === 3 && refs.ao2.puntos === 0
         && refs.ad.puntos === 0 && refs.vd2.puntos === 0,
       'nomos=' + refs.ao2.nomos + ' puntos ao2/ad/vd2=' + refs.ao2.puntos + '/' + refs.ad.puntos + '/' + refs.vd2.puntos]);
+    /* ADAPTADO (VS, 2026-10-17): la bibliografia DEDUPLICA por la cita completa. La del VD pasa
+       de CUATRO entradas a UNA —sus doce fichas citan hoy la misma Tabla 1 de la ASE 2025, donde
+       antes venian de tres ubicaciones distintas de Lang 2015 mas la ASE— y la de la AD pasa de
+       UNA a TRES, porque sus tres fichas quedaron verificadas y cada una cita otra ubicacion de
+       la misma guia (Tabla 1, y las dos de la seccion de presion auricular derecha). */
     ex.push(['la bibliografia de cada seccion numera desde [1] y sale SOLO de fichas verificado',
-      refs.ad.bib === 1 && refs.vd2.bib === 4 && refs.ao2.bib === 2
+      refs.ad.bib === 3 && refs.vd2.bib === 1 && refs.ao2.bib === 2
         && String(refs.ao2.txt||'').indexOf('Figura 13') > -1 && String(refs.ao2.txt||'').indexOf('Tabla 14') > -1,
       'ad=' + refs.ad.bib + ' vd2=' + refs.vd2.bib + ' ao2=' + refs.ao2.bib]);
+    /* ADAPTADO (VS, 2026-10-17): el diametro longitudinal pasó de «por verificar» a verificado
+       contra la Tabla 1, asi que la unica ficha sin verificar que queda en estas tres entradas es
+       AOR-001, el criterio propio de EcoSmart. El control negativo sigue siendo el mismo hecho. */
     ex.push(['CONTROL NEGATIVO: una fila cuya ficha NO esta verificado sale SIN corchete',
-      String(refs.vd2.txt||'').indexOf('Di\u00e1metro longitudinal \u2014 dilatado [') < 0
-        && String(refs.ao2.txt||'').indexOf('Ra\u00edz a\u00f3rtica \u2014 dilatada (criterio de EcoSmart) [') < 0
-        && String(refs.vd2.txt||'').indexOf('Pared libre \u2014 normal [') > -1,
-      'long sin corchete=' + (String(refs.vd2.txt||'').indexOf('longitudinal \u2014 dilatado [') < 0)]);
+      String(refs.ao2.txt||'').indexOf('Ra\u00edz a\u00f3rtica \u2014 dilatada (criterio de EcoSmart) [') < 0
+        && String(refs.vd2.txt||'').indexOf('Pared libre \u2014 normal [') > -1
+        && String(refs.vd2.txt||'').indexOf('Di\u00e1metro longitudinal \u2014 normal [') > -1,
+      'raiz sin corchete=' + (String(refs.ao2.txt||'').indexOf('EcoSmart) [') < 0)]);
     ex.push(['CONTROL NEGATIVO: las dos entradas del L siguen existiendo y no se tocaron',
       !!EL('ref-ai') && !!EL('ref-vi2') && !!EL('ref-vd') && !!EL('ref-ao'),
       'ai=' + !!EL('ref-ai') + ' vi2=' + !!EL('ref-vi2') + ' vd=' + !!EL('ref-vd') + ' ao=' + !!EL('ref-ao')]);
@@ -73106,6 +73186,407 @@ caso('TC-493', 'Tanda LS: la AI y el VI alineados a la ASE/EACVI 2015 con CORTES
     return { extra: ex };
   })();
 `);
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════
+   TANDA «VS» (2026-10-17) — el VENTRICULO DERECHO, la AURICULA DERECHA, la VENA CAVA INFERIOR
+   y la RAIZ AORTICA alineados a la Tabla 1 de la ASE 2025 de corazon derecho.
+
+   ⚠️ LAS ESCENAS SE CARGAN CON `__t.set` Y NO CON TECLAS REALES, y hay que decirlo: el cuerpo
+   de un caso corre DENTRO de la pagina y no tiene acceso al protocolo del navegador. Las mismas
+   escenas se miden con TECLAS Y CLICS REALES en `scripts/_probe_vs.mjs`, que es la sonda con la
+   que se midio el A/B contra el inicio de la tanda. Es el reparto de TC-460 y TC-492.
+
+   ⚠️ TODA LECTURA DE LAS PIEZAS NUEVAS VA POR UN AYUDANTE CON CENTINELA: contra el arbol de
+   entrada no existen `ASE25_T1`, ni `ase25Grado`, ni `vdTamPeor`, ni las dos areas graduadas, y
+   nombrarlos pelados es un ReferenceError que mata la corrida entera —eso prueba que el arbol es
+   distinto, no que el caso sabe medir—. Es la leccion que TC-455, TC-462, TC-465, TC-471,
+   TC-473, TC-474, TC-477, TC-480, TC-485, TC-487, TC-489, TC-490, TC-491 y TC-492 ya tienen
+   escrita. */
+caso('TC-494', 'Tanda VS: el VD, la AD, la VCI y la RAIZ AORTICA alineados a la Tabla 1 de la ASE 2025 —los cuatro grados de cada parametro por su borde EXACTO, el informe y el EN SUMA con el vocabulario de la AI, la VCI con el 21 mm exacto NORMAL y el seno de Valsalva con el 40 exacto DILATADO—; la LOGICA de integracion del VD sin cambiar (un OR, uno alcanza, y la FEVD sigue sin votar); las cuatro tarjetas con sus cuatro zonas y Referencias derivadas del dueno; y el informe, el EN SUMA, la diastolica, el HFA-PEFF, las valvulas, la AI/VI y las 440 columnas del Excel sin moverse', `
+  const ex = [];
+  const EL = (id) => document.getElementById(id);
+  const S  = (id, v) => { try { __t.set(id, v); } catch (e) {} };
+  const TXT = (id) => { const e = EL(id); return e ? String(e.textContent || '').replace(/[ ]+/g, ' ').trim() : 'NO EXISTE'; };
+  const G  = (n) => { try { return (n in window) ? window[n] : 'NO EXISTE'; } catch (e) { return 'EXC'; } };
+  const FN = (n) => typeof G(n) === 'function';
+  const LL = (n, a, b, c) => { try { return FN(n) ? window[n](a, b, c) : 'SIN FN'; } catch (e) { return 'EXC'; } };
+  const CARD = () => EL('vinfo-card');
+  const BTN  = (k) => document.querySelector('[data-vinfo="' + k + '"]');
+  const estilo = (e) => { try { setEstiloInforme(e) } catch (x) {} };
+  const inf = (e) => { estilo(e || 'estandar'); try { generarInforme() } catch (x) {}
+    return { inf: String((EL('informe_texto')||{}).value || ''), suma: String((EL('en_suma')||{}).value || '') } };
+  const esc = (o) => { __t.limpiar(); Object.keys(o).forEach(k => S(k, String(o[k]))); return inf('estandar'); };
+
+  /* ══ DENOMINADOR 1 · la tabla y su evaluador existen y traen las ONCE filas ══ */
+  const T1 = G('ASE25_T1');
+  const FILAS = ['ad_area','vd_bas','vd_mid','vd_long','vd_pared','vd_area_s','vd_area_d',
+                 'tapse','s_prime','vd_fac','fevd','vd_tei'];
+  ex.push(['(DENOM) la Tabla 1 de la ASE 2025 tiene dueno y trae las DOCE filas que la app aplica',
+    T1 !== 'NO EXISTE' && FN('ase25Grado') && FN('ase25Rango') && FN('ase25Corte')
+      && FILAS.every(k => T1 && T1[k] && Array.isArray(T1[k].bandas) && T1[k].bandas.length === 4),
+    'faltan=' + (T1 === 'NO EXISTE' ? 'ASE25_T1' : FILAS.filter(k => !(T1 && T1[k])).join(','))]);
+  /* ⚠️ LA TABLA NO DISTINGUE SEXO EN NINGUNA FILA —se leyo entera—, asi que estos cortes NO
+     pasan por el dueno del sexo y sus barras no esconden el punto cuando el sexo falta. Es la
+     diferencia con la zona AI/VI de la tanda LS. */
+  const cortesM = (() => { try { return JSON.stringify(window.evCortes('M').vdBas) } catch (e) { return 'EXC' } })();
+  const cortesF = (() => { try { return JSON.stringify(window.evCortes('F').vdBas) } catch (e) { return 'EXC' } })();
+  ex.push(['ninguna fila de la Tabla 1 depende del sexo: el sondeo da lo MISMO con varon y con mujer',
+    cortesM !== 'EXC' && cortesM === cortesF, 'M=' + String(cortesM).slice(0, 60)]);
+
+  /* ══ (a) y (b) · LOS BORDES EXACTOS DE CADA PARAMETRO, por sus dos lados ══
+     Cada fila: el VALOR DEL CORTE, uno por debajo y uno por encima. El dueno es el mismo que
+     usan el informe, el EN SUMA, la capsula, la tarjeta y Referencias. */
+  const B = (fn, v) => { const r = LL(fn, v); return (r && typeof r === 'object' && r.cat) ? r.cat : String(r) };
+  ex.push(['TAPSE: 17,1 normal · 17,0 EXACTO leve · 13 leve · 12,9 moderada · 10,1 moderada · 10,0 severa',
+    B('vdTapseCat',17.1)==='normal' && B('vdTapseCat',17)==='leve' && B('vdTapseCat',13)==='leve'
+      && B('vdTapseCat',12.9)==='moderada' && B('vdTapseCat',10.1)==='moderada' && B('vdTapseCat',10)==='severa',
+    [17.1,17,13,12.9,10.1,10].map(x => B('vdTapseCat',x)).join('/')]);
+  ex.push(['onda S: 9,6 normal · 9,5 EXACTO leve · 7,2 leve · 7,1 moderada · 5,1 moderada · 5,0 severa',
+    B('vdSprimeCat',9.6)==='normal' && B('vdSprimeCat',9.5)==='leve' && B('vdSprimeCat',7.2)==='leve'
+      && B('vdSprimeCat',7.1)==='moderada' && B('vdSprimeCat',5.1)==='moderada' && B('vdSprimeCat',5)==='severa',
+    [9.6,9.5,7.2,7.1,5.1,5].map(x => B('vdSprimeCat',x)).join('/')]);
+  ex.push(['FAC: 36 normal · 35 EXACTO leve · 30 leve · 29 moderada · 23 moderada · 22 EXACTO severa',
+    B('vdFacCat',36)==='normal' && B('vdFacCat',35)==='leve' && B('vdFacCat',30)==='leve'
+      && B('vdFacCat',29)==='moderada' && B('vdFacCat',23)==='moderada' && B('vdFacCat',22)==='severa',
+    [36,35,30,29,23,22].map(x => B('vdFacCat',x)).join('/')]);
+  ex.push(['FEVD 3D: 46 normal · 45 EXACTO leve · 40 leve · 39 moderada · 32 moderada · 31,9 severa',
+    B('vdFevdCat',46)==='normal' && B('vdFevdCat',45)==='leve' && B('vdFevdCat',40)==='leve'
+      && B('vdFevdCat',39)==='moderada' && B('vdFevdCat',32)==='moderada' && B('vdFevdCat',31.9)==='severa',
+    [46,45,40,39,32,31.9].map(x => B('vdFevdCat',x)).join('/')]);
+  ex.push(['indice de Tei por DTI: 0,54 normal · 0,55 leve · 0,61 leve · 0,62 moderada · 0,69 moderada · 0,70 severa',
+    B('vdTeiCat',0.54)==='normal' && B('vdTeiCat',0.55)==='leve' && B('vdTeiCat',0.61)==='leve'
+      && B('vdTeiCat',0.62)==='moderada' && B('vdTeiCat',0.69)==='moderada' && B('vdTeiCat',0.7)==='severa',
+    [0.54,0.55,0.61,0.62,0.69,0.7].map(x => B('vdTeiCat',x)).join('/')]);
+  ex.push(['diametro basal: 40,9 normal · 41 EXACTO leve · 44 leve · 44,1 moderada · 49 moderada · 49,1 severa',
+    B('vdBasCat',40.9)==='normal' && B('vdBasCat',41)==='leve' && B('vdBasCat',44)==='leve'
+      && B('vdBasCat',44.1)==='moderada' && B('vdBasCat',49)==='moderada' && B('vdBasCat',49.1)==='severa',
+    [40.9,41,44,44.1,49,49.1].map(x => B('vdBasCat',x)).join('/')]);
+  ex.push(['diametro medio: 34,9 normal · 35 leve · 38 leve · 38,1 moderada · 42 moderada · 42,1 severa',
+    B('vdMidCat',34.9)==='normal' && B('vdMidCat',35)==='leve' && B('vdMidCat',38)==='leve'
+      && B('vdMidCat',38.1)==='moderada' && B('vdMidCat',42)==='moderada' && B('vdMidCat',42.1)==='severa',
+    [34.9,35,38,38.1,42,42.1].map(x => B('vdMidCat',x)).join('/')]);
+  ex.push(['diametro longitudinal: 81 normal · 82 leve · 89 leve · 89,1 moderada · 96 moderada · 96,1 severa',
+    B('vdLongCat',81)==='normal' && B('vdLongCat',82)==='leve' && B('vdLongCat',89)==='leve'
+      && B('vdLongCat',89.1)==='moderada' && B('vdLongCat',96)==='moderada' && B('vdLongCat',96.1)==='severa',
+    [81,82,89,89.1,96,96.1].map(x => B('vdLongCat',x)).join('/')]);
+  /* La PARED es la UNICA fila que la app ya tenia EXACTAMENTE como la guia la publica: no es un
+     cambio de corte sino el retiro de la segunda copia. */
+  ex.push(['CONTROL: la pared NO cambio ni un corte — 4,9 normal · 5 leve · 7 leve · 7,1 moderada · 9 moderada · 9,1 severa',
+    B('vdParedCat',4.9)==='normal' && B('vdParedCat',5)==='leve' && B('vdParedCat',7)==='leve'
+      && B('vdParedCat',7.1)==='moderada' && B('vdParedCat',9)==='moderada' && B('vdParedCat',9.1)==='severa',
+    [4.9,5,7,7.1,9,9.1].map(x => B('vdParedCat',x)).join('/')]);
+  ex.push(['area de la AD: 18,9 normal · 19 EXACTO leve · 22 leve · 22,1 moderada · 24 moderada · 24,1 severa',
+    B('adAreaCat',18.9)==='normal' && B('adAreaCat',19)==='leve' && B('adAreaCat',22)==='leve'
+      && B('adAreaCat',22.1)==='moderada' && B('adAreaCat',24)==='moderada' && B('adAreaCat',24.1)==='severa',
+    [18.9,19,22,22.1,24,24.1].map(x => B('adAreaCat',x)).join('/')]);
+  ex.push(['las dos AREAS del VD se graduan: telesistolica 14/16/19 y telediastolica 25/28/32',
+    B('vdAreaSCat',13)==='normal' && B('vdAreaSCat',14)==='leve' && B('vdAreaSCat',16.1)==='moderada'
+      && B('vdAreaSCat',19.1)==='severa' && B('vdAreaDCat',24)==='normal' && B('vdAreaDCat',25)==='leve'
+      && B('vdAreaDCat',28.1)==='moderada' && B('vdAreaDCat',32.1)==='severa',
+    's=' + [13,14,16.1,19.1].map(x => B('vdAreaSCat',x)).join('/') + ' d=' + [24,25,28.1,32.1].map(x => B('vdAreaDCat',x)).join('/')]);
+  /* ⚠️ EL TAP ES EL UNICO QUE CONSERVA SU CORTE SOLO: la Tabla 1 lo gradua y esta orden lo deja
+     como esta. Es el control negativo de que no se gradua lo que no se pidio. */
+  ex.push(['CONTROL NEGATIVO: el tiempo de aceleracion pulmonar conserva su UNICO corte de 105 ms',
+    B('vdTapCat',104)==='htp' && B('vdTapCat',105)==='normal' && (G('ASE25_T1')||{}).tap === undefined,
+    '104/105=' + B('vdTapCat',104) + '/' + B('vdTapCat',105)]);
+
+  /* ══ (a) · EL MISMO RESULTADO EN EL INFORME, EL EN SUMA Y LA CAPSULA ══ */
+  const r17 = esc({ vd_bas:'35', tapse:'17' });
+  const c17 = TXT('tapse-interp');
+  const r171 = esc({ vd_bas:'35', tapse:'17.1' });
+  ex.push(['TAPSE 17,0 EXACTO: el informe dice disfuncion, el EN SUMA la nombra y la capsula dice LEVE con su rango',
+    /con disfunción sistólica/.test(r17.inf) && r17.suma.indexOf('VD de dimensiones normales con disfunción sistólica.') > -1
+      && c17.indexOf('disfunción sistólica leve') > -1 && c17.indexOf('≤17 a ≥13 mm') > -1,
+    'inf=' + /con disfunción sistólica/.test(r17.inf) + ' cap=' + c17]);
+  ex.push(['TAPSE 17,1: funcion conservada por los tres caminos',
+    /función sistólica conservada/.test(r171.inf) && r171.suma.indexOf('disfunción') === -1
+      && TXT('tapse-interp').indexOf('normal (>17 mm)') > -1,
+    TXT('tapse-interp')]);
+  /* Los TRES estilos dicen lo mismo del mismo paciente. */
+  __t.limpiar(); S('vd_bas','35'); S('tapse','17');
+  const e3 = ['conciso','estandar','narrativo'].map(e => inf(e));
+  ex.push(['los TRES estilos publican la disfuncion del 17,0 exacto',
+    e3.every(r => /disfunci[oó]n sist[oó]lica/.test(r.inf)) && e3.every(r => r.suma.indexOf('disfunción sistólica') > -1),
+    e3.map(r => r.inf.split(String.fromCharCode(10)).filter(l => l.indexOf('VD') > -1 || l.indexOf('entrículo derecho') > -1).join('')).join(' || ')]);
+
+  /* El TAMANO en el informe y en el EN SUMA, con el vocabulario de la AI. */
+  const tam = (mm) => esc({ vd_bas: String(mm), tapse:'22' });
+  const t41 = tam(41), t44 = tam(44.1), t50 = tam(49.1);
+  ex.push(['el tamano del VD pasa a CUATRO categorias con el vocabulario de la AI, en el informe y en el EN SUMA',
+    t41.suma.indexOf('VD levemente dilatado') > -1 && t44.suma.indexOf('VD moderadamente dilatado') > -1
+      && t50.suma.indexOf('VD severamente dilatado') > -1
+      && /levemente dilatado/.test(t41.inf) && /moderadamente dilatado/.test(t44.inf) && /severamente dilatado/.test(t50.inf),
+    '41=' + t41.suma.trim() + ' | 44,1=' + t44.suma.trim() + ' | 49,1=' + t50.suma.trim()]);
+  ex.push(['con DOS diametros dilatados manda el PEOR, y cada uno se nombra con su grado en la capsula',
+    (function(){ const r = esc({ vd_bas:'43', vd_mid:'40', tapse:'22' });
+      const c = TXT('vd-tam');
+      return r.suma.indexOf('VD moderadamente dilatado') > -1 && c.indexOf('basal 43 mm (leve') > -1
+        && c.indexOf('medio 40 mm (moderada') > -1; })(),
+    TXT('vd-tam')]);
+  /* El AREA de la AD en el informe y en el EN SUMA. */
+  const ad = (x) => esc({ ad_area: String(x) });
+  const a19 = ad(19), a23 = ad(23), a25 = ad(25), a189 = ad(18.9);
+  ex.push(['el area de la AD pasa a CUATRO categorias en el informe y en el EN SUMA',
+    /Aurícula derecha levemente dilatada \\(área 19 cm²\\)/.test(a19.inf) && a19.suma.indexOf('AD levemente dilatada (área 19 cm²).') > -1
+      && a23.suma.indexOf('AD moderadamente dilatada') > -1 && a25.suma.indexOf('AD severamente dilatada') > -1,
+    a19.suma.trim() + ' | ' + a23.suma.trim() + ' | ' + a25.suma.trim()]);
+  ex.push(['18,9 cm2 pasa a NORMAL y PIERDE su linea del EN SUMA: el corte subio de 18 a 19',
+    /Aurícula derecha de dimensiones normales \\(área 18.9 cm²\\)/.test(a189.inf) && a189.suma.indexOf('AD ') === -1,
+    a189.suma.trim() || '(sin linea)']);
+
+  /* ══ (c) · LA VENA CAVA INFERIOR ══ */
+  const pm = (d, c) => { const r = LL('pmadEstimar', d, c); return (r && r.pmad !== undefined) ? r.pmad : String(r) };
+  ex.push(['VCI: el 21 mm EXACTO es NORMAL y la dilatacion empieza por encima — la PmAD baja 5 mmHg en esas dos escenas',
+    pm(21,'>50') === 3 && pm(21,'<50') === 8 && pm(21.1,'>50') === 8 && pm(21.1,'<50') === 15
+      && pm(22,'>50') === 8 && pm(20,'>50') === 3,
+    '21=' + pm(21,'>50') + '/' + pm(21,'<50') + ' 21,1=' + pm(21.1,'>50') + '/' + pm(21.1,'<50')]);
+  ex.push(['y la PSAP estimada sigue a la PmAD: con 21 mm y colapso mayor del 50 % baja 5 mmHg',
+    (function(){ __t.limpiar(); S('vci_diam','21'); S('vci_col','>50'); S('vmax_it','3.0');
+      const p1 = String((EL('psap_calc')||{}).value || '');
+      __t.limpiar(); S('vci_diam','21.1'); S('vci_col','>50'); S('vmax_it','3.0');
+      const p2 = String((EL('psap_calc')||{}).value || '');
+      return p1 === '39' && p2 === '44'; })(), '']);
+
+  /* ══ (d) · LA RAIZ AORTICA, Y LOS OTROS CUATRO SEGMENTOS SIN TOCAR ══ */
+  const ao = (id, x) => { __t.limpiar(); S(id, String(x)); try { calcAorta() } catch (e) {} ;
+    return TXT({ ao_sin:'ao-interp', ao_st:'ao-st-interp', ao_tub:'ao-tub-interp',
+                 diam_cayado:'ao-cay-interp', diam_ao_toracica:'ao-desc-interp' }[id]) };
+  ex.push(['seno de Valsalva: 39,9 normal · 40,0 EXACTO dilatacion leve · 40,1 leve',
+    ao('ao_sin',39.9).indexOf('Normal') > -1 && ao('ao_sin',40).indexOf('Dilat. leve') > -1
+      && ao('ao_sin',40.1).indexOf('Dilat. leve') > -1,
+    '39,9=' + ao('ao_sin',39.9) + ' | 40=' + ao('ao_sin',40)]);
+  ex.push(['y el 40,0 exacto llega al informe y al EN SUMA',
+    (function(){ const r = esc({ ao_sin:'40' });
+      return /Raíz aórtica 40 mm \\(levemente dilatada\\)/.test(r.inf) && r.suma.indexOf('Dilatación raíz aórtica (40 mm).') > -1; })(),
+    esc({ ao_sin:'40' }).suma.trim()]);
+  ex.push(['CONTROL NEGATIVO: los otros CUATRO segmentos conservan su operador estricto — su corte exacto sigue siendo NORMAL',
+    ao('ao_st',38).indexOf('Normal') > -1 && ao('ao_st',38.1).indexOf('Dilat. leve') > -1
+      && ao('ao_tub',40).indexOf('Normal') > -1 && ao('ao_tub',40.1).indexOf('Dilat. leve') > -1
+      && ao('diam_cayado',40).indexOf('Normal') > -1 && ao('diam_ao_toracica',35).indexOf('Normal') > -1,
+    'st=' + ao('ao_st',38) + ' tub=' + ao('ao_tub',40)]);
+  ex.push(['el simbolo del rotulo sale del dueno: la raiz dice mayor-o-igual y los otros cuatro estricto',
+    ao('ao_sin',42).indexOf('≥40') > -1 && ao('ao_tub',42).indexOf('>40') > -1
+      && ao('ao_sin',39.9).indexOf('<40') > -1 && ao('ao_tub',39.9).indexOf('≤40') > -1,
+    'sin=' + ao('ao_sin',42) + ' tub=' + ao('ao_tub',42)]);
+
+  /* ══ (e) · LA LOGICA DE INTEGRACION DEL VD NO CAMBIO ══
+     Sigue siendo un OR de los parametros MEDIDOS —uno alcanza— y la FEVD sigue FUERA. */
+  const or1 = esc({ vd_bas:'35', tapse:'15' });
+  const or2 = esc({ vd_bas:'35', tapse:'15', s_prime:'8' });
+  const orF = esc({ vd_bas:'35', tapse:'22', s_prime:'12', fevd:'30' });
+  ex.push(['la disfuncion sigue siendo un OR: con UNO alterado y con DOS el informe dice lo MISMO',
+    /con disfunción sistólica/.test(or1.inf) && /con disfunción sistólica/.test(or2.inf)
+      && or1.suma.trim() === or2.suma.trim(),
+    'uno=' + or1.suma.trim() + ' | dos=' + or2.suma.trim()]);
+  ex.push(['CONTROL NEGATIVO: la FEVD alterada NO vota — con TAPSE y onda S normales el informe dice funcion conservada',
+    /función sistólica conservada/.test(orF.inf) && orF.suma.indexOf('disfunción sistólica') === -1
+      && TXT('fevd-interp').indexOf('disfunción sistólica severa') > -1,
+    'suma=' + orF.suma.trim() + ' | capsula=' + TXT('fevd-interp')]);
+  /* La FAC severa es una linea PROPIA y su compuerta bajo a 22 %. */
+  const fac = (d, s) => esc({ vd_area_d: String(d), vd_area_s: String(s) });
+  const f22 = fac(20, 15.6), f23 = fac(20, 15.4);
+  ex.push(['la linea de FAC severa del EN SUMA sigue existiendo y su compuerta bajo de 25 a 22 %',
+    f22.suma.indexOf('Disfunción sistólica severa del VD (FAC 22%).') > -1
+      && f23.suma.indexOf('severa del VD') === -1,
+    '22=' + f22.suma.trim() + ' | 23=' + f23.suma.trim()]);
+  /* Y el Laboratorio: la columna DisfSist_VD sigue siendo BINARIA y derivada del TEXTO. */
+  const disf = (o) => { esc(o);
+    const c = {}; document.querySelectorAll('input[id],select[id],textarea[id]').forEach(e => {
+      if (e.type !== 'checkbox' && e.type !== 'radio') c[e.id] = e.value });
+    const r = LL('_labDisfSistVent', { campos: c });
+    return (r && typeof r === 'object') ? (r.vi ? 1 : 0) + '/' + (r.vd ? 1 : 0) : String(r) };
+  ex.push(['el Laboratorio sigue leyendo la disfuncion del VD del TEXTO, como BINARIO, y cambia SOLO en la escena esperada',
+    disf({ vd_bas:'35', tapse:'17' }) === '0/1' && disf({ vd_bas:'35', tapse:'17.1' }) === '0/0'
+      && disf({ vd_bas:'35', tapse:'15' }) === '0/1',
+    '17=' + disf({ vd_bas:'35', tapse:'17' }) + ' 17,1=' + disf({ vd_bas:'35', tapse:'17.1' })]);
+
+  /* ══ (f) · LAS CUATRO TARJETAS ══ */
+  ['ai-vi','vd'].forEach(t => { try { showTab(t) } catch (e) {} });
+  ['aorta','vd','ad'].forEach(k => { const n = EL('sacc-' + k);
+    if (n && !n.classList.contains('open')) { try { secToggle(k) } catch (e) {} } });
+  esc({ ad_area:'23', vd_bas:'46', vd_mid:'36', vd_long:'92', vd_pared:'8', vd_area_d:'30',
+        vd_area_s:'17', tapse:'12', s_prime:'6', fevd:'35', vd_tei:'0.65', tvia:'90',
+        ao_sin:'42', edad:'55', peso:'80', talla:'180', vci_diam:'24', vci_col:'<50' });
+  try { showTab('vd') } catch (e) {}
+  const abrir = (k) => { const b = BTN(k); if (!b) return null; b.click();
+    const c = CARD(); if (!c || getComputedStyle(c).display === 'none') return null; return c };
+  const leerT = (k) => { const c = abrir(k); if (!c) return { err:'NO ABRIO' };
+    const o = { zonas: [], cortes: [], barras: 0 };
+    Array.prototype.slice.call(c.querySelectorAll('[data-ev-barra]')).forEach(sv => { o.barras++;
+      Array.prototype.slice.call(sv.querySelectorAll('[data-ev-zona]')).forEach(z => o.zonas.push(z.getAttribute('data-ev-zona')));
+      Array.prototype.slice.call(sv.querySelectorAll('text[data-ev-corte]')).forEach(t => o.cortes.push(String(t.textContent||'').trim())); });
+    o.svgTxt = Array.prototype.slice.call(c.querySelectorAll('svg text')).map(e => String(e.textContent||'').trim());
+    o.cats = {}; Array.prototype.slice.call(c.querySelectorAll('[data-ev-cat]')).forEach(d => { o.cats[d.getAttribute('data-ev-cat')] = String(d.textContent||'').trim() });
+    const b = BTN(k); if (b) b.click();
+    o.cerro = getComputedStyle(CARD()).display === 'none';
+    return o };
+  const lTam = leerT('vd-tam-card'), lFun = leerT('vd-fun-card'), lAd = leerT('ad-card');
+  ex.push(['(DENOM) las tres tarjetas con barras abren y CIERRAN con el segundo toque',
+    !lTam.err && !lFun.err && !lAd.err && lTam.cerro && lFun.cerro && lAd.cerro,
+    'tam=' + (lTam.err||'ok') + ' fun=' + (lFun.err||'ok') + ' ad=' + (lAd.err||'ok')]);
+  ex.push(['la tarjeta de TAMANO tiene SEIS barras —los tres diametros, la pared y las dos areas— y la de FUNCION seis',
+    lTam.barras === 6 && lFun.barras === 6 && lAd.barras === 1,
+    'tam=' + lTam.barras + ' fun=' + lFun.barras + ' ad=' + lAd.barras]);
+  const cuatro = (l) => l.zonas.length > 0 && l.zonas.length % 4 === 0
+    && ['normal','leve','moderada','severa'].every(g => l.zonas.indexOf(g) > -1);
+  ex.push(['cada barra graduada dibuja CUATRO zonas: normal, leve, moderada y severa',
+    cuatro(lAd) && lTam.zonas.length === 24 && cuatro(lTam)
+      && lFun.zonas.filter(z => z !== 'htp' && z !== 'normal').length === 15,
+    'ad=' + lAd.zonas.join(',') + ' | tam=' + lTam.zonas.length + ' | fun=' + lFun.zonas.join(',')]);
+  const TODOS = [].concat(lAd.cortes, lTam.cortes, lFun.cortes);
+  ex.push(['CADA corte lleva su numero y su unidad, y son los del dueno',
+    TODOS.length === 37 && TODOS.indexOf('19 cm²') > -1 && TODOS.indexOf('24 cm²') > -1
+      && TODOS.indexOf('41 mm') > -1 && TODOS.indexOf('49 mm') > -1 && TODOS.indexOf('82 mm') > -1
+      && TODOS.indexOf('14 cm²') > -1 && TODOS.indexOf('25 cm²') > -1
+      && TODOS.indexOf('17 mm') > -1 && TODOS.indexOf('10 mm') > -1
+      && TODOS.indexOf('9,5 cm/s') > -1 && TODOS.indexOf('22 %') > -1 && TODOS.indexOf('0,55') > -1,
+    'n=' + TODOS.length + ' · ' + TODOS.join(' · ')]);
+  const GRAV = ['leve','moderada','severa','disfuncion','disfunción','dilatad','alterado'];
+  ex.push(['ninguna banda del dibujo lleva escrita una palabra de gravedad: el color no es lo unico que informa, la categoria va en su propia linea',
+    [].concat(lTam.svgTxt, lFun.svgTxt, lAd.svgTxt).length > 0
+      && ![].concat(lTam.svgTxt, lFun.svgTxt, lAd.svgTxt).some(t => GRAV.some(w => t.toLowerCase().indexOf(w) > -1))
+      && String(lTam.cats['vd-pared']||'').indexOf('moderada') > -1,
+    'pared=' + (lTam.cats['vd-pared']||'')]);
+  ex.push(['la categoria de la tarjeta es la MISMA que publica la capsula, carácter por carácter',
+    String(lFun.cats['vd-tapse']||'') === TXT('tapse-interp')
+      && String(lFun.cats['vd-fac']||'') === TXT('fac-interp')
+      && String(lAd.cats['ad-area']||'') === TXT('ad-interp'),
+    'tarjeta=' + (lFun.cats['vd-tapse']||'') + ' | capsula=' + TXT('tapse-interp')]);
+  /* La tarjeta de la aorta publica el corte LEIDO del dueno, con su operador. */
+  try { showTab('ai-vi') } catch (e) {}
+  const lAo = leerT('ao-card');
+  ex.push(['la tarjeta de la aorta dice «Corte de EcoSmart: 40 mm o mas», leido del dueno',
+    !lAo.err && String(lAo.cats['ao-corte']||'').indexOf('Corte de EcoSmart: 40 mm o más') === 0,
+    String(lAo.cats['ao-corte']||'')]);
+  /* La tabla de la vena cava sigue al operador del dueno. */
+  const tv = (() => { try { const d = document.createElement('div'); d.appendChild(window._evVciTabla(null));
+    return String(d.textContent||'') } catch (e) { return 'EXC' } })();
+  ex.push(['la tabla de la vena cava de la tarjeta sigue al operador: «21 mm o menos» y «Mas de 21 mm»',
+    tv.indexOf('21 mm o menos') > -1 && tv.indexOf('Más de 21 mm') > -1 && tv.indexOf('21 mm o más') < 0,
+    tv.slice(0, 120)]);
+
+  /* ══ (g) · REFERENCIAS ══ */
+  const refs = (() => { const o = {};
+    ['ad','vd2','ao2'].forEach(id => { const h = EL('ref-' + id + '-cuerpo');
+      if (!h) { o[id] = { err:'SIN HOST' }; return }
+      try { window.evRefPintar(id) } catch (e) { o[id] = { err:String(e && e.message) }; return }
+      o[id] = { txt: String(h.textContent||''), filas: h.querySelectorAll('tr').length,
+                bib: h.querySelectorAll('[data-ev-bib]').length,
+                barras: h.querySelectorAll('[data-ev-barra]').length }; });
+    return o })();
+  ex.push(['(DENOM) las tres entradas de Referencias se pintan',
+    !refs.ad.err && !refs.vd2.err && !refs.ao2.err,
+    JSON.stringify({ ad: refs.ad.err, vd2: refs.vd2.err, ao2: refs.ao2.err })]);
+  ex.push(['Referencias publica los cortes NUEVOS, derivados del dueno y no escritos a mano',
+    refs.vd2.txt.indexOf('<41 mm') > -1 && refs.vd2.txt.indexOf('≥41 a ≤44 mm') > -1
+      && refs.vd2.txt.indexOf('>49 mm') > -1 && refs.vd2.txt.indexOf('<82 mm') > -1
+      && refs.vd2.txt.indexOf('≤17 a ≥13 mm') > -1 && refs.vd2.txt.indexOf('≤22 %') > -1
+      && refs.ad.txt.indexOf('<19 cm²') > -1 && refs.ad.txt.indexOf('≤ 21 mm') > -1,
+    'vd2 tiene <41=' + (refs.vd2.txt.indexOf('<41 mm') > -1)]);
+  ex.push(['CONTROL NEGATIVO: Referencias ya NO publica ninguno de los cortes viejos',
+    refs.vd2.txt.indexOf('≥ 17 mm') < 0 && refs.vd2.txt.indexOf('< 25 %') < 0
+      && refs.vd2.txt.indexOf('> 86 mm') < 0 && refs.ad.txt.indexOf('≤ 18 cm²') < 0
+      && refs.ad.txt.indexOf('< 21 mm') < 0,
+    'viejos presentes=' + ['≥ 17 mm','< 25 %','> 86 mm'].filter(x => refs.vd2.txt.indexOf(x) > -1).join(',')]);
+  ex.push(['la raiz aortica publica su operador propio en Referencias y los otros cuatro el suyo',
+    refs.ao2.txt.indexOf('≥ 40 mm') > -1 && refs.ao2.txt.indexOf('> 38 mm') > -1
+      && refs.ao2.txt.indexOf('> 35 mm') > -1,
+    'raiz=' + (refs.ao2.txt.indexOf('≥ 40 mm') > -1)]);
+  ex.push(['Referencias gana las dos barras de las areas del VD y su bibliografia queda en UNA entrada',
+    refs.vd2.barras === 12 && refs.vd2.bib === 1 && refs.ad.bib === 3 && refs.ao2.bib === 2,
+    'barras=' + refs.vd2.barras + ' bib ad/vd2/ao2=' + refs.ad.bib + '/' + refs.vd2.bib + '/' + refs.ao2.bib]);
+
+  /* ══ (h) · EL REGISTRO ══ */
+  const REG = Array.isArray(G('EV_REG')) ? G('EV_REG') : [];
+  const IDS = ['DIM-AD-001','VCI-001','DIM-VD-001','DIM-VD-002','DIM-VD-003','DIM-VD-004',
+               'DIM-VD-005','DIM-VD-006','FUN-VD-001','FUN-VD-002','FUN-VD-003','FUN-VD-004',
+               'FUN-VD-005','AOR-001'];
+  const ids = REG.map(f => f.id);
+  ex.push(['el registro gana las dos fichas de las areas del VD, sin repetir ningun id',
+    REG.length >= 33 && IDS.every(i => ids.indexOf(i) > -1)
+      && ids.length === new Set(ids).size,
+    'n=' + REG.length + ' faltan=' + IDS.filter(i => ids.indexOf(i) < 0).join(',')]);
+  let puro = false;
+  try { puro = JSON.stringify(JSON.parse(JSON.stringify(REG))) === JSON.stringify(REG) } catch (e) { puro = false }
+  ex.push(['las fichas siguen siendo DATOS PUROS y ninguna trae vocabulario de reserva',
+    puro && !REG.filter(f => IDS.indexOf(f.id) > -1).some(f => {
+      const t = JSON.stringify(f).toLowerCase();
+      return ['pendiente','revisar','dudoso','no se pudo','fixme','sospech','por confirmar'].some(w => t.indexOf(w) > -1) }),
+    'puro=' + puro]);
+  /* ⚠️ EL VALOR DE LA FICHA CONTRA EL DUENO: no se compara texto con texto, se le pregunta al
+     dueno por el borde que la ficha declara. */
+  const fich = (id) => { const f = REG.find(x => x.id === id); return f ? String(f.valor) : 'NO EXISTE' };
+  ex.push(['el VALOR de cada ficha coincide con el corte que aplica su dueno',
+    fich('DIM-VD-001').indexOf('por debajo de 41 mm') > -1 && fich('DIM-VD-003').indexOf('por debajo de 82 mm') > -1
+      && fich('FUN-VD-003').indexOf('22 % o menos') > -1 && fich('DIM-AD-001').indexOf('por debajo de 19 cm2') > -1
+      && fich('VCI-001').indexOf('21 mm o menos') > -1,
+    'basal=' + fich('DIM-VD-001').slice(0, 60)]);
+  ex.push(['CONTROL NEGATIVO: AOR-001 sigue siendo criterio propio y NO publica fuente',
+    (function(){ const f = REG.find(x => x.id === 'AOR-001');
+      return !!f && f.estado === 'por verificar' && LL('evFuenteLinea','AOR-001') === ''
+        && LL('evFuenteLinea','DIM-VD-001') !== ''; })(),
+    'AOR-001=' + LL('evFuenteLinea','AOR-001')]);
+
+  /* ══ (i) · VEINTE APERTURAS Y CIERRES, SIN ACUMULAR NODOS ══
+     ⚠️ SE ARRANCA CON LA TARJETA CERRADA: con ella abierta, cuarenta clics la dejan ABIERTA. */
+  const ciclo = (() => { const b = BTN('vd-tam-card'); if (!b) return { err:'SIN BOTON' };
+    try { showTab('vd') } catch (e) {}
+    if (getComputedStyle(CARD()).display !== 'none') b.click();
+    const n0 = document.getElementsByTagName('*').length;
+    for (let i = 0; i < 20; i++) { b.click(); b.click() }
+    return { n0: n0, n1: document.getElementsByTagName('*').length,
+             cerrada: getComputedStyle(CARD()).display === 'none' } })();
+  ex.push(['veinte aperturas y cierres no acumulan nodos y terminan con la tarjeta cerrada',
+    !ciclo.err && ciclo.n0 === ciclo.n1 && ciclo.cerrada, JSON.stringify(ciclo)]);
+
+  /* ══ (j) · NADA DE ESTO SE GUARDA ══ */
+  const claves = (() => { const k = [];
+    try { for (let i = 0; i < localStorage.length; i++) k.push(localStorage.key(i)) } catch (e) {}
+    return k.filter(x => /ase25|vd-tam|vd-fun|ad-card|ao-card|t1/i.test(x)) })();
+  const campos = (() => { const c = [];
+    document.querySelectorAll('input[id],select[id],textarea[id]').forEach(e => c.push(e.id));
+    return c.filter(x => /^ase25|^t1_/.test(x)) })();
+  ex.push(['ni la tabla ni las tarjetas escriben una clave del navegador ni un campo del estudio',
+    claves.length === 0 && campos.length === 0,
+    'claves=' + claves.join(',') + ' campos=' + campos.join(',')]);
+
+  /* ══ (k) · LOS CONTROLES: lo que esta tanda NO toca ══ */
+  __t.limpiar();
+  ['edad','sexo','peso','talla','ddfvi','dsfvi','siv','ppvi','fevi','ai_vol','ai_diam',
+   'onda_e','onda_a','tde','triv','e_sep','e_lat','hf_ntprobnp','sgl','ao_st','ao_tub']
+    .forEach((k, i) => {});
+  S('edad','62'); S('sexo','M'); S('peso','80'); S('talla','180');
+  S('ddfvi','52'); S('dsfvi','34'); S('siv','11'); S('ppvi','10'); S('fevi','45');
+  S('ai_vol','80'); S('ai_diam','42');
+  S('onda_e','90'); S('onda_a','60'); S('tde','180'); S('triv','80'); S('e_sep','6'); S('e_lat','8');
+  S('hf_ntprobnp','450'); S('sgl','-14'); S('ao_st','36'); S('ao_tub','38');
+  const rAj = inf('estandar');
+  ex.push(['CONTROL: con la zona AI/VI, la diastolica, el HFA-PEFF y la aorta cargados y SIN un solo dato del VD, el informe no nombra el VD ni la AD',
+    rAj.inf.indexOf('Ventrículo derecho') < 0 && rAj.inf.indexOf('Aurícula derecha no valorada.') > -1
+      && rAj.inf.indexOf('Aurícula izquierda') > -1,
+    rAj.inf.split(String.fromCharCode(10)).filter(l => l.indexOf('derech') > -1).join(' | ')]);
+  const fila = (() => { try { const c = {};
+      document.querySelectorAll('input[id],select[id],textarea[id]').forEach(e => {
+        if (e.type === 'checkbox' || e.type === 'radio') c[e.id + '__chk'] = e.checked ? '1' : '0'; else c[e.id] = e.value });
+      return window._labExcelRow({ id:'p1', fecha:'2026-10-17', nombre:'X', campos:c,
+                                   informe_texto:c.informe_texto||'', en_suma:c.en_suma||'' }) }
+    catch (e) { return null } })();
+  ex.push(['CONTROL: el Excel sigue en 440 columnas y ninguna nombra la Tabla 1',
+    !!fila && Object.keys(fila).length === 440
+      && !Object.keys(fila).some(k => /ASE25|Tabla 1|grado VD|Grado AD/i.test(k)),
+    'n=' + (fila ? Object.keys(fila).length : 'null')]);
+  ex.push(['CONTROL: la diastolica, el HFA-PEFF y la geometria del VI siguen publicando lo suyo',
+    TXT('dd-interp') !== 'NO EXISTE' && TXT('dd-interp') !== '—'
+      && TXT('ai-interp').indexOf('ilat') > -1,
+    'dd=' + TXT('dd-interp').slice(0, 40) + ' | ai=' + TXT('ai-interp').slice(0, 40)]);
+  /* La tarjeta del cociente TAPSE/PSAP (tanda Z) no se toca. */
+  ex.push(['CONTROL: la tarjeta del cociente TAPSE/PSAP sigue registrada y no es ninguna de las cuatro de esta zona',
+    !!document.querySelector('[data-vinfo="tapse-psap"]'),
+    'existe=' + !!document.querySelector('[data-vinfo="tapse-psap"]')]);
+
+  return { extra: ex };
+`);
+
 
 
 let servidor, chrome;

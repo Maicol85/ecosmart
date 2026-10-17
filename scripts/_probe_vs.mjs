@@ -189,6 +189,10 @@ const SONDA = `window.__P = {
         if (getComputedStyle(n).display === 'none') {
           try { showTab(String(n.id).replace(/^tab-/, '')); pasos.push('tab:' + n.id) } catch (x) {}
         }
+        /* OJO: los campos de Valvulas viven detras de DOS puertas y sus nombres no coinciden
+           —el contenedor es bloque-insuf-mitral y el onclick dice valvDatosTog('caja-insuf-mitral')—
+           asi que ningun buscador por id da con el par. Se clickean los controles reales. */
+        if (n.id === 'tab-valvulas') { pasos.push('valv:' + window.__P.abrirValvulas()) }
       }
       if (n.id && /^sacc-/.test(n.id) && getComputedStyle(n).display === 'none') {
         try { secToggle(String(n.id).replace(/^sacc-/, '')); pasos.push('sacc:' + n.id) } catch (x) {}
@@ -212,6 +216,22 @@ const SONDA = `window.__P = {
     return (e.value === valor) ? { ok:true } : { err:'NO QUEDO', valor:e.value } },
 
   limpiar() { try { limpiarCampos(true) } catch (e) {} return 1 },
+
+  abrirValvulas() {
+    try { showTab('valvulas') } catch (e) {}
+    var n = 0;
+    [0,1].forEach(function(){
+      Array.prototype.slice.call(document.querySelectorAll('[onclick*="toggleEteSeccion("]'))
+        .forEach(function(b){
+          var oc = String(b.getAttribute('onclick')||'');
+          var tr = oc.split(String.fromCharCode(39));
+          if (tr.length < 2) return;
+          var cont = document.getElementById('ete-seccion-' + tr[1]);
+          if (cont && getComputedStyle(cont).display === 'none') { try { b.click(); n++ } catch (x) {} } });
+      Array.prototype.slice.call(document.querySelectorAll('[onclick*="valvDatosTog("]'))
+        .forEach(function(b){
+          if (b.getAttribute('aria-expanded') === 'false') { try { b.click(); n++ } catch (x) {} } }) });
+    return n },
 
   /* ── Las capsulas del cuadro de referencias del VD, de la AD y de la aorta ── */
   capsulas() {
@@ -716,6 +736,56 @@ async function main() {
     await ev("document.documentElement.classList.remove('light-mode')");
     await cdp.send('Emulation.clearDeviceMetricsOverride', {}, sessionId);
     out.grupos.maqueta = g; parcial('maqueta', t0);
+  }
+
+  /* ── grupo controles: todo lo que esta tanda NO toca ── */
+  if (corre('controles')) {
+    const t0 = Date.now(); const g = {};
+    /* Escena VACIA y escena CARGADA con las zonas ajenas: AI/VI, diastolica, HFA-PEFF,
+       valvulas, aorta de los otros segmentos. Ninguna lleva un dato del VD, de la AD ni de la
+       VCI, asi que todo lo de abajo tiene que salir IDENTICO a HEAD. */
+    const AJENA = {
+      edad:'62', sexo:'M', peso:'80', talla:'180',
+      ddfvi:'52', dsfvi:'34', siv:'11', ppvi:'10', fevi:'45', ai_vol:'80', ai_diam:'42',
+      onda_e:'90', onda_a:'60', tde:'180', triv:'80', e_sep:'6', e_lat:'8',
+      vmax_ao:'4.2', gmedio_ao:'45', im_vc:'6', ao_st:'36', ao_tub:'38',
+      hf_ntprobnp:'450', sgl:'-14'
+    };
+    for (const [n, set] of [['vacio', {}], ['ajena', AJENA]]) {
+      try {
+        await escena(set);
+        g[n] = {
+          inf: await J("JSON.stringify(window.__P.informe('estandar'))"),
+          conc: await J("JSON.stringify(window.__P.informe('conciso'))"),
+          narr: await J("JSON.stringify(window.__P.informe('narrativo'))"),
+          excel: await J('JSON.stringify(window.__P.excel())'),
+          grados: await J('JSON.stringify(window.__P.grados())'),
+          pastillas: await J('JSON.stringify(window.__P.pastillas())'),
+          otros: await J('JSON.stringify(window.__P.otros())'),
+          campos: await J('JSON.stringify(window.__P.camposCrudos())'),
+          disf: await ev('window.__P.disfVD()'),
+        };
+      } catch (e) { g[n] = { ABORTO: e.message }; abortos.push('ctrl ' + n + ': ' + e.message); }
+    }
+    out.grupos.controles = g; parcial('controles', t0);
+  }
+
+  /* ── grupo v2d: la vista 2D sigue agrandando las dos camaras derechas ── */
+  if (corre('v2d')) {
+    const t0 = Date.now(); const g = {};
+    for (const [n, set] of [['normal', { vd_bas:'35', ad_area:'15' }],
+                            ['leve',   { vd_bas:'42', ad_area:'20' }],
+                            ['moder',  { vd_bas:'46', ad_area:'23' }],
+                            ['severa', { vd_bas:'52', ad_area:'27' }]]) {
+      try {
+        await escena(set);
+        g[n] = await J(`JSON.stringify((function(){
+          if (typeof v2dEstado !== 'function') return { err:'SIN FN' };
+          try { var E = v2dEstado(); return { dvd: E.dvd, dad: E.dad, kvd: E.kvd } }
+          catch (x) { return { EXC: String(x && x.message) } } })())`);
+      } catch (e) { g[n] = { ABORTO: e.message }; abortos.push('v2d ' + n + ': ' + e.message); }
+    }
+    out.grupos.v2d = g; parcial('v2d', t0);
   }
 
   out.md5_despues = await md5(EXTERNO ? FARG : join(RAIZ, 'index.html'));
