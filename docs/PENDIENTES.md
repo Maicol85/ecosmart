@@ -4635,7 +4635,22 @@ está en `docs/mapa/protesis-pro.md`; lo que falta, acá. **Las seis tablas de l
 commits restantes necesitan ya están VERIFICADAS y transcritas** en
 `docs/fuentes/FUENTES-protesis.md`, con su folio y su hoja: ese trabajo no hay que repetirlo.
 
-### PRO-1 · La FUGA PARAVALVULAR de la prótesis QUIRÚRGICA (aórtica y mitral) — NO hecha
+### PRO-1 · La FUGA PARAVALVULAR de la prótesis QUIRÚRGICA — **CERRADO 17/10/2026 (tanda PRO-B)**
+
+> **Se hizo, y con el diseño que esta entrada recomendaba.** El motor es `eteTaviRPV` con su
+> **fuente inyectable** (`src`), así que no se copió ningún corte y **el camino de la TAVI es el
+> mismo byte por byte**. Las cuatro decisiones que esta entrada dejaba abiertas se resolvieron así:
+> **(1)** la mitral **no** ofrece extensión circunferencial —la conservadora—;
+> **(2)** los **cinco** niveles del motor **no se colapsaron**, porque eso habría movido lo que la
+> TAVI publica; **(3)** manda el **0,3 cm** de la ASE 2024, que el motor ya aplicaba; y **(4)** el
+> rótulo pasó a «aorta descendente» con la autorización de Maicol (PRO-B2).
+> Entraron **tres** campos en la aórtica (`ea_pvl_origen`, `ea_pvl_ext`, `ea_pvl_vc_area`) y
+> **uno** en la mitral (`vm_pvl_origen`), los cuatro **sin columna de Excel**: 440, medido.
+> Dónde está: `docs/mapa/protesis-fuga-pvl.md` · `docs/fuentes/FUENTES-protesis.md` · **TC-497**.
+> Lo que esta tanda **dejó abierto** está en **PRO-B1 a PRO-B5**, al final de este archivo.
+
+El texto original de la entrada, que sigue describiendo el punto de partida:
+
 
 Es el **W1-12** de esta serie y la orden lo marcaba como «MUY IMPORTANTE para Maicol». Hoy **sólo el
 módulo TAVI tiene campos de fuga paravalvular** (`ete_tavi_ext_circ`, `ete_tavi_vc_ancho`,
@@ -4699,7 +4714,13 @@ corresponderían son:
   `IP etiología`.
 **No se crearon**: una columna nueva es PARADA.
 
-### PRO-4 · Cobertura de PRO-1 y PRO-2
+### PRO-4 · Cobertura de PRO-1 y PRO-2 — **la mitad de PRO-1 CERRADA 17/10/2026**
+
+> La fuga de la prótesis quirúrgica tiene su caso: **TC-497**, 51 condiciones, **34 en rojo**
+> contra el inicio de la tanda y ninguna por excepción. Lo que sigue sin cobertura es **PRO-2**,
+> la graduación de las prótesis tricúspide y pulmonar, que es el PRO-C.
+
+### PRO-4 (texto original) · Cobertura de PRO-1 y PRO-2
 
 **TC-496 cubre sólo los commits 1 a 3.** La fuga quirúrgica y las dos prótesis necesitan su propio
 caso (el siguiente número libre es **TC-497**) con los bordes de cada criterio, las capturas en los
@@ -4720,3 +4741,48 @@ día. Unificarlos es decisión clínica de Maicol, no una refactorización.
 salieron completas a `docs/mapa/protesis-z-z5-z6.md` (**20,4 KB**) y el mapa de origen quedó en
 **16,7 KB** con su puntero. El contenido de la tanda PRO ya había salido a archivo propio
 (`docs/mapa/protesis-pro.md`, 17,6 KB) por el mismo motivo.
+
+---
+
+# Tanda PRO-B (2026-10-17) — lo declarado y NO tocado
+
+### PRO-B1 · La extensión circunferencial de la fuga NO se ofrece en la mitral
+
+**Es de la fuente y está censado:** la **Tabla 13 de la ASE 2024 (folio 30, hoja 29)** publica
+ancho de vena contracta, volumen regurgitante, fracción regurgitante, EROA, área del jet,
+convergencia, densidad, contorno y flujo venoso pulmonar — y **ninguna fila de extensión
+circunferencial**. Las dos guías que sí la publican (ASE 2019 y VARC-3) son de la **aórtica**.
+Si alguna vez se quiere ofrecer en la mitral hay que decidir **con qué fuente**, y hoy no hay una.
+TC-497 (d1) lo fija por su ausencia: `vm_pvl_ext` **no existe**.
+
+### PRO-B2 · Tres parámetros de la Tabla 13 no tienen campo en la app
+
+**Convergencia del flujo**, **densidad del chorro** y **contorno del chorro (CW)** son tres de las
+nueve filas de la Tabla 13 y la app no tiene dónde registrarlos. No se inventaron: lo que la app
+aplica son los cuatro cuantitativos más el área del jet y el flujo venoso pulmonar. Agregarlos es
+una decisión de Maicol —son tres campos cualitativos nuevos— y **no cambiaría ningún corte**: la
+tabla los publica sin número.
+
+### PRO-B3 · La fuga aórtica no gana filas en la TABLA DE DATOS del PDF
+
+La oración de la fuga llega al papel **por el narrativo**, que es exactamente como viaja la de la
+TAVI. Lo que **no** se hizo es darle filas propias a `ea_pvl_ext` y `ea_pvl_vc_area` en la tabla
+de datos del PDF: los seis campos de la TAVI tampoco las tienen. Si se quisieran, son dos filas en
+el bloque aórtico y **no mueven ninguna cuenta**.
+
+### PRO-B4 · Dos escenas del Laboratorio cambiaron, y es consecuencia de leer al dueño
+
+`_labTaviResumen` tenía su **propia copia** de los cuatro cortes y divergía del dueño en dos cosas:
+el **reverso de 20 a 29 cm/s** contaba **Severa** (el PRO3 lo partió en dos niveles y esta copia no
+lo siguió) y la **extensión circunferencial de 0 %** contaba **Leve** (el «cero medido» no existía
+acá). Desde el PRO-B3 lee al dueño, así que esas dos escenas pasan a **Moderada** y **Sin RPV**.
+Es la consecuencia buscada de tener **un solo dueño**, está medida y TC-497 (g5) y (g6) la fijan.
+`RPV_L` ganó el rótulo **«Sin RPV»**, que es una categoría nueva de esa distribución.
+
+### PRO-B5 · El mapa `aortica-cortes.md` quedó en 33,2 KB
+
+A **1,8 KB del techo** de 35, medido con `wc -c` DESPUÉS de recibir su puntero de veinte líneas.
+**La próxima tanda que lo toque conviene que lo parta.** Los otros cuatro que esta tanda tocó
+quedaron con margen: `vista-2d-valvulas.md` 32,4 KB · `tests-fichas.md` 28,3 ·
+`valvulas-mitral-pantalla.md` 23,9 · `protesis-pro.md` 19,2 · `laboratorio-asociaciones-valvulas.md`
+16,3. El mapa nuevo, `protesis-fuga-pvl.md`, nació en **15,3 KB**.

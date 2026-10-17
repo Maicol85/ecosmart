@@ -119,8 +119,8 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **8,05 MB / 121.205 líneas**, medido el 2026-10-17 al cierre de la tanda PRO
-  —el renglón anterior decía «8,02 MB / 120.796 líneas» y era del VS, dos tandas antes: **medirlo
+  sin frameworks. Hoy **8,07 MB / 121.605 líneas**, medido el 2026-10-17 al cierre de la tanda PRO-B
+  —el renglón anterior decía «8,05 MB / 121.205 líneas» y era del PRO, una tanda antes: **medirlo
   antes de presupuestar contexto**—. Las únicas dependencias son jsPDF, XLSX y
   PptxGenJS por CDN. Se abre como archivo local y corre en Chrome.
 - Lo que produce es un **informe firmado**: narrativo, EN SUMA, PDF, PPT y Excel del Laboratorio.
@@ -274,6 +274,210 @@ impecable.
 ---
 
 ## Estado vigente
+
+### La FUGA PARAVALVULAR de la prótesis QUIRÚRGICA — «PRO-B» (2026-10-17)
+
+- **Son CINCO commits, y son los cinco que la orden pedía.** Al **empezar**, `main` y
+  `origin/main` estaban los dos en **`7f14781`** (sello `v20261017-1235`), **sin nada sin
+  pushear** —confirmado con un `git fetch` de verdad, con el `FETCH_HEAD` fechado al momento—,
+  con los cuatro commits del PRO ya incluidos **y pusheados por Maicol**. Los **cinco** commits de
+  esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 5 → 4 → 3 → 2 → 1.**
+  ⚠️ **EL 1 ES SÓLO DOCUMENTACIÓN y se revierte solo**: parte el mapa de prótesis y no toca
+  `index.html`.
+  ⚠️ **EL 3 Y EL 4 SE REVIERTEN EN CUALQUIER ORDEN ENTRE SÍ**: el 3 vive en `eteTaviRPV(src)`,
+  `_eaEsProtesisSavr`, `eaProtRPV`, `eaProtPvlTxt`, `eaPvlPintar`, el bloque
+  `bloque-prot-va-pvl` y `_labTaviResumen`; el 4 en `VM_PVL_ORIGEN_PVL`, `VM_PVL_FRASE`,
+  `imPvlOrigenTxt`, `imPvlTxt`, `imPvlPintar` y `bloque-prot-vm-pvl`. **Ninguno nombra una pieza
+  del otro.**
+  ⚠️ **PERO EL 2 LLEVA LA SONDA** (`scripts/_probe_prob.mjs`), que el 3, el 4 y el 5 usan.
+  **El 5 es TC-497 más la adaptación de TC-423, la documentación y el sello**, y afirma el
+  comportamiento de los tres anteriores: revertir cualquiera sin el 5 lo deja en rojo.
+  ⚠️ **CASOS ADAPTADOS: UNO, TC-423**, y lo destapó la **SUITE COMPLETA**: su recorrido de Tab de
+  la insuficiencia aórtica pasa de doce campos a **quince**, porque el bloque de la fuga va al pie
+  de esa columna. Lo que ese caso afirma —que el Tab BAJA por columna— no cambió.
+
+- **Línea base al cierre: suite 507/511 con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0
+  ERROR, Excel en 440 columnas, celular 52 a 360 px y 61 a 390 px con 10 ALTA cada uno —IDÉNTICO
+  a la línea base del PRO—. CERO REGRESIONES.** Los **CUATRO** rojos son exactamente los de
+  ENTRADA —**TC-223** (el documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**—
+  y no apareció ninguno fuera de esa lista. **El denominador sube a 511**: esta tanda agregó
+  **TC-497**. La de ENTRADA es la que el PRO dejó medida el MISMO día en esta máquina y con el
+  pendrive puesto: **506/510**, con esos mismos cuatro rojos. La comparación es 506/510 → 507/511
+  y el delta es el caso nuevo.
+  ⚠️ **LA SUITE COMPLETA SE CORRIÓ DOS VECES Y LA PRIMERA NO ES LA LÍNEA BASE.** Dio **504/511**
+  con SIETE rojos: los cuatro de entrada, **TC-246 y TC-252** —los dos INESTABLES POR ORDEN DE
+  CORRIDA que este archivo ya documenta, que corridos solos dan **2/2 ✓** sobre el mismo árbol— y
+  **TC-423**, que es el único que hubo que adaptar. **Repetir antes de sospechar.**
+  ⚠️ **LOS DIECISIETE DE TC-181…TC-197 SALIERON VERDES, que es la prueba de que el pendrive
+  estuvo montado.** `ls /Volumes/DISK_IMG` ANTES de comparar dos cifras.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **511 ids** sobre los 512 casos del archivo.
+- **EL SELLO DE VERSIÓN** estaba al día al empezar (`v20261017-1235`) y se volvió a sellar:
+  **`v20261017-1412`**. Todo lo medido salió **DESPUÉS** de sellar, con el `md5` quieto
+  (`9854beaa…`, verificado al abrir y al cerrar las dos corridas); lo único que se tocó después
+  fue la adaptación de TC-423 y TC-497, que viven en `scripts/test_clinico.mjs`.
+- **`index.html` pasó de 8,05 MB / 121.205 líneas a 8,07 MB / 121.605 líneas.**
+
+- **PRO-B1 · EL MAPA DE PRÓTESIS SE PARTIÓ ANTES DE ESCRIBIR Y NO DESPUÉS.**
+  `docs/mapa/protesis-valvular.md` estaba en **34.246 bytes**, a **754 del techo**, medido con
+  `wc -c` antes de escribir una línea. Las tres tandas históricas Z, Z5 y Z6 salieron completas a
+  `docs/mapa/protesis-z-z5-z6.md` (**20,4 KB**), **verificado byte por byte con un `diff` contra
+  HEAD**, y el mapa de origen quedó en **16,7 KB** con su puntero.
+  ⚠️ **EL CORTE ES POR TANDA Y NO POR VÁLVULA**: las tres cruzan la mitral y la aórtica, así que
+  partirlas por zona habría obligado a reescribirlas, y **una partición que reescribe deja de ser
+  una partición**.
+
+- **PRO-B2 · EL REVERSO DE LA TAVI SE MIDE EN LA AORTA DESCENDENTE, NO EN LA ABDOMINAL.** Las dos
+  guías escriben el mismo territorio y lo dicen con todas las letras: **ASE 2024, Tabla 8, folio
+  23** («Diastolic flow reversal in the **descending aorta**») y **VARC-3, Tabla 16, folio 1846**
+  («**proximal descending** aorta»). **SÓLO EL RÓTULO**: ni un corte, ni una cuenta.
+  **UN SOLO LUGAR, censado**: el `<label>` de `ete_tavi_vel_tele`. No hay columna de Excel, ni
+  fila de PDF, ni PPT, ni referencia, ni tarjeta con ese texto; el `<select>` hermano ya decía
+  «Ao desc.» y el informe ya imprimía «aorta descendente».
+  **CENSO DE 2119 RÓTULOS RENDERIZADOS**: «aorta abdominal» pasa de **1 a 0**.
+  ⚠️ **Y EL COMENTARIO DE `IA_VMAX_TD_SEVERA` AFIRMABA LO CONTRARIO** —«no son el mismo territorio
+  —acá Ao desc., allá aorta abdominal—»— y el territorio **sí** es el mismo: lo que estaba mal era
+  el rótulo. Se corrigió esa mitad y queda la que sigue siendo cierta: dos fuentes y dos regímenes
+  de válvula.
+
+- **PRO-B3 · LA FUGA PARAVALVULAR DE LA PRÓTESIS AÓRTICA QUIRÚRGICA, CON EL MOTOR DE LA TAVI.**
+  `eteTaviRPV` gana un **`src` opcional**: sin él lee los seis campos de la TAVI por su id —**el
+  camino de la TAVI es el MISMO byte por byte**, así que su veredicto es idéntico **por
+  construcción**— y con él lee un objeto. Es el patrón `src` de `valvProtDato`,
+  `emContMotivoNoVota` y `_htp2022Core`. **CERO cortes copiados.**
+  **LOS CUATRO CORTES SON LOS DE LA TABLA 8 (folio 23, hoja 22) Y NO SE MOVIÓ NINGUNO**,
+  re-verificados en el PDF original antes de extender: extensión `<10 / 10-29 / ≥30 %` · ancho de
+  vena contracta `<0,3 / 0,3-0,6 / >0,6` cm · área de vena contracta `<0,10 / 0,10-0,29 / ≥0,30`
+  cm² · THP `>500 / 200-500 / <200` ms. **Los cuatro separan en su borde exacto**, medido con
+  teclas reales.
+  ⚠️ **TRES CAMPOS NUEVOS Y DOS PRESTADOS**, que es lo que separa esto de una copia del bloque de
+  la TAVI. El ancho de vena contracta sale de **`ia_vc`** y el THP de **`ia_pht`**, que ya existen
+  en la misma pestaña y cuyos cortes **ya coinciden dígito por dígito** con los de la Tabla 8, así
+  que el médico no tipea nada dos veces y los dos parámetros **no pueden** dar un grado acá y otro
+  en el cuadro de arriba.
+  ⚠️ **`ia_vc` ESTÁ EN MILÍMETROS Y EL MOTOR ESPERA CENTÍMETROS**: sin el `/10` un ancho de 5 mm
+  entraría como 5 cm y el motor devolvería **SEVERA** sobre una fuga moderada.
+  ⚠️ **EL REVERSO DIASTÓLICO NO SE LE PASA, y es deliberado**: `IA_VMAX_TD_SEVERA` queda en 20 cm/s
+  de un solo nivel para la nativa y la SAVR (ESC/EACTS 2025) y la lectura en dos niveles es de la
+  VARC-3, un documento de TAVI. **MEDIDO**: con `ia_vmax_td` en 25 cm/s la fuga sigue en **Trivial**
+  mientras `ia_grado` pasa a **severa** — dos números, dos cortes, dos territorios.
+  ⚠️ **DOS COMPUERTAS**: morfología protésica **QUIRÚRGICA** (`_eaEsProtesisSavr` = prótesis Y NO
+  TAVI, derivado de `valvEsProtesis`) y origen consignado como paravalvular o mixto. **Una fuga no
+  se deduce** de los parámetros de una insuficiencia aórtica, que son los mismos de una
+  regurgitación central.
+  ⚠️ **«TRIVIAL» EXIGE TRES DE LOS CUATRO** en banda trivial; con menos, «Leve — faltan
+  parámetros». Con dos parámetros alimentables sería **inalcanzable**: es parte de por qué la fuga
+  alimenta los cuatro.
+  ⚠️ **NO REEMPLAZA LA REGURGITACIÓN CENTRAL**: `ia_grado` lo sigue publicando `calcIA_ESC` y la
+  fuga es una **oración aparte**, que es la lógica que la TAVI aplica desde siempre. El texto es el
+  de la TAVI palabra por palabra.
+  ⚠️ **EL BADGE SE CONSTRUYE POR NODOS Y NO CON `innerHTML`**: una ocurrencia nueva habría llevado
+  Semgrep de 127 a **128**, que es el falso que la tanda Y2 pagó sobre código recién escrito.
+
+- ⚠️ **EL LABORATORIO TENÍA SU PROPIA COPIA DE LOS CUATRO CORTES Y DIVERGÍA DEL DUEÑO EN DOS
+  COSAS, las dos medidas sobre estudios archivados:** (1) el **reverso seguía votando SEVERA desde
+  20 cm/s** —el PRO3 lo partió en dos niveles y esta copia no lo siguió: con 25 cm/s el dueño decía
+  **Moderada** y el Laboratorio **Severa**—; y (2) **el «cero medido» no existía acá**, así que un
+  estudio con extensión circunferencial **0** contaba como **Leve**. Desde el PRO-B3 queda **una
+  llamada**. `RPV_L` gana el rótulo **«Sin RPV»**, que es una categoría nueva de esa distribución:
+  sin él, esos estudios contarían en `nR` y no dibujarían barra. **Las DOS escenas que cambian
+  están declaradas** en `PENDIENTES.md` → PRO-B4.
+
+- **PRO-B4 · EL ORIGEN DE LA REGURGITACIÓN DE LA PRÓTESIS MITRAL — NI UN CORTE MOVIDO.** La
+  **Tabla 13 (folio 30, hoja 29)** ya estaba implementada, verificada fila por fila: sus cuatro
+  cuantitativos —VC `<0,3 / 0,3-0,69 / ≥0,7` cm, RVol `<30 / 30-59 / ≥60` ml, RF `<30 / 30-49 /
+  ≥50` % y EROA `<0,20 / 0,20-0,39 / ≥0,40` cm²— son **exactamente** los de `IM_CORTES`, y el jet
+  sobre área auricular ya tenía su régimen protésico de esa misma tabla.
+  **MEDIDO: `im_grado` vale 4 en los CUATRO estados del origen** con la misma vena contracta de
+  8 mm, que es la prueba de que no se movió un corte.
+  ⚠️ **LA MITRAL NO OFRECE EXTENSIÓN CIRCUNFERENCIAL, Y ES DE LA FUENTE**: la Tabla 13 **no
+  publica** ese parámetro —censada entera—, a diferencia de la Tabla 8. Las dos guías que sí lo
+  publican (ASE 2019 y VARC-3) son de la **aórtica**. TC-497 lo fija por su ausencia.
+  ⚠️ **LA FRASE NO REPITE EL GRADO**: lo publica la oración de arriba y el EN SUMA ya escribió «IM
+  severa.» dos renglones antes. Repetirlo sería una **quinta copia** del vocabulario de severidad
+  —`imTxt`, `GTX`, `_ESC04` y `GRTXT` ya son cuatro, censadas—.
+  ⚠️ **EL ORIGEN «CENTRAL» NO ESCRIBE NADA EN EL INFORME**: se ve en la pantalla y no agrega una
+  oración, porque la insuficiencia ya está graduada.
+  ⚠️ **EL RÓTULO DE LA FILA SALE DE LA `<option>` DEL PROPIO SELECTOR** y no de un mapa paralelo:
+  es el defecto que el ternario del S/D venoso pulmonar ya pagó.
+  **Tres parámetros cualitativos de esa tabla no tienen campo** —convergencia, densidad y contorno
+  del chorro— y quedan **declarados, no inventados** (`PENDIENTES.md` → PRO-B2).
+
+- **A/B DEDICADO contra el inicio de la tanda, con el PDF, el PPT y el PDF de auditoría GENERADOS
+  DE VERDAD: 3163 claves comparadas y CERO DIFERENCIAS.** Las **SEIS plantillas** del PDF con el
+  formulario vacío (32/33/32/35/31/33 textos) y con un escenario **ajeno** cargado
+  (99/100/91/105/90/99), el informe en los tres estilos, el **Excel en 440 columnas CLAVE POR
+  CLAVE** —vacío, cargado y los tres estudios de la población—, los ocho grados con sus ocho
+  pastillas, la diastólica, el HFA-PEFF, el **PPT estadístico** (21 textos) y el **PDF de
+  auditoría** (105).
+  Y un A/B propio de 1128 claves sobre el motor de la TAVI y los controles: **15 diferencias**,
+  **11 el rótulo del PRO-B2 y 4 las dos escenas declaradas del Laboratorio**. Nada más se movió.
+
+- **MEDIDO EN LOS DOS MOTORES, 24 CELDAS CADA UNO** —Chrome **155.0.8059.84** y WebKit **27.2**,
+  seis viewports (1200×700, 1440×800, 1920×1080, 768×1024, 390×844, 360×740) × dos temas—:
+  los **dos** bloques nuevos entran enteros en las 48 celdas, con **tres columnas** arriba de
+  768 px (campos de 153 / 189 / 266 px) y **una columna** abajo (campos a todo el ancho), y
+  **CERO scroll horizontal** en las 48 (`scrollWidth` igual a `clientWidth`). El badge resuelve el
+  color **REAL y DISTINTO** en los dos temas y **idéntico entre motores**. **Cero abortos.**
+  ⚠️ **WebKit de Playwright NO es Safari, y se declara.**
+- **20 APERTURAS Y CIERRES DE LA VISTA 2D: 11.855 nodos → 11.855, delta CERO**, y el panel apagado
+  al final, **en los dos motores**.
+  ⚠️ **LA PRIMERA CORRIDA INFORMÓ +15 NODOS SOBRE UN PANEL QUE NO ACUMULA NINGUNO**: el conteo se
+  tomaba con el panel **nunca abierto**, así que esos quince eran el contenido que el primer
+  pintado crea y después reusa. Va con **una vuelta de calentamiento** antes de contar, que es la
+  lección del L.
+- **MAQUETA por CDP, 8 celdas** (dos temas × 1200/768/390/360 px) con el bloque aórtico en
+  483×180 a 1200 px, y el badge en `rgb(245,158,66)` de noche y `rgb(217,123,31)` de día con el
+  veredicto **moderada**. **Seis capturas PNG con los seis `md5` distintos, MIRADAS**: acentos
+  completos.
+
+- **Arneses: `scripts/_probe_prob.mjs`** (CDP, teclas y clics reales; nueve grupos: `rotulo`,
+  `tavi`, `pvlao`, `bordes`, `pvlvm`, `maqueta`, `captura`, `controles`, `ab`) y
+  **`scripts/_probe_probwk.mjs`** (Playwright, los DOS motores, la maqueta a seis viewports y el
+  ciclo de la vista 2D). El segundo resuelve Playwright **por ruta** y, si no está, lo DICE y sale
+  con código 2 en vez de reventar.
+  **Cobertura: TC-497**, **51 condiciones** —contadas sobre el propio caso— con cuatro
+  denominadores y once controles negativos. **Verificado que sabe fallar contra el inicio de la
+  tanda en un worktree aparte: 34 de las 51 en rojo, y NINGUNA por excepción.**
+
+- **Dónde está todo:** `docs/mapa/protesis-fuga-pvl.md` (**mapa NUEVO**, 15,3 KB: el motor único
+  con su fuente inyectable, los tres campos de la aórtica, la marca de origen de la mitral, el
+  Laboratorio y siete trampas); `docs/mapa/protesis-z-z5-z6.md` (**archivo NUEVO por PARTICIÓN**,
+  20,4 KB); cinco mapas con un puntero cada uno (`aortica-cortes` 33,2 KB ·
+  `vista-2d-valvulas` 32,4 · `valvulas-mitral-pantalla` 23,9 · `protesis-pro` 19,2 ·
+  `laboratorio-asociaciones-valvulas` 16,3); `docs/mapa/tests-fichas.md` → la ficha de TC-497
+  (**28,3 KB**); `docs/fuentes/FUENTES-protesis.md` → **las dos tablas re-verificadas fila por
+  fila** con su folio y su hoja, más la tabla de **Cambios de evidencia**; `docs/fuentes/FUENTES.md`
+  → esa misma tabla; y `docs/PENDIENTES.md` → **PRO-1 y PRO-6 marcados CERRADOS**, la mitad de
+  PRO-4 cerrada, más **cinco** cosas declaradas (PRO-B1 a PRO-B5).
+  ⚠️ **NINGÚN MAPA CRUZÓ EL TECHO, medido con `wc -c` ANTES de escribir.** El que quedó más cerca
+  es `aortica-cortes.md`, en **33,2 KB**, o sea a 1,8 KB: `PENDIENTES.md` → PRO-B5.
+
+- ⚠️ **SIETE TRAMPAS, Y CINCO DABAN FALSOS PLAUSIBLES.**
+  1. **`document.body.innerText` NO SIRVE PARA CENSAR UN RÓTULO**: omite lo que está en
+     `display:none`, así que parado en la pestaña Válvulas devolvió **674 caracteres** y CERO
+     ocurrencias de «abdominal» con el rótulo viejo intacto en la pestaña ETE. Se censan los
+     **`<label>` y `<option>` autorados**, que existen con la pestaña cerrada.
+  2. **EL BLOQUE DE LA INSUFICIENCIA AÓRTICA ESTÁ DETRÁS DE SU PROPIA PUERTA**, y `abrirValv` abre
+     las otras tres cajas pero no ésa: la visibilidad salía `true` o `false` según si la escena
+     tecleaba algo —un tecleo llama a `abrirPara`, que la abre de rebote— y **no según la
+     morfología**.
+  3. **A 768 px Y POR DEBAJO ESE CAJÓN SE CIERRA Y EL RESPALDO EN LÍNEA NO GANA** (el CSS del
+     celular usa la clase con `!important`): las seis celdas angostas midieron el bloque en
+     **0×0** con el bloque perfecto.
+  4. **EL `id` DEL CUERPO DEL CAJÓN ES `bloque-insuf-aortica`**, no `bloque-ia-detalle`.
+  5. **UN `id` EN EL LECTOR Y OTRO EN EL MARCADO DA `null` SIN ERROR**: la sonda leía `ea-pvl-sev`
+     y el marcado decía `ea-pvl-interp`, así que diecinueve escenas informaron la fila en `null`
+     con la fila perfecta.
+  6. **UN CAMPO DE FORMULARIO NO VA DENTRO DEL `.calc-box`**, que es la caja de resultados.
+  7. ⚠️ **AL LIMPIAR LOS ACENTOS GRAVES DE UN RANGO DE LÍNEAS ME LLEVÉ EL QUE ABRE EL CUERPO DEL
+     CASO**: el síntoma fue que `check_backticks.py` señaló una línea **350 líneas después**, en el
+     runner, que es código normal. **El acento grave que FALTA se ve igual que uno que SOBRA.**
+     Me comí el acento grave **seis veces** en total, todas en comentarios míos dentro del template
+     de la sonda o del cuerpo de un caso.
+
 
 ### Las PRÓTESIS alineadas a las guías — «PRO», commits 1 a 3 de SEIS (2026-10-17)
 

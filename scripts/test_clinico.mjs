@@ -57886,9 +57886,20 @@ caso('TC-423', 'Valvulas, pantalla: en el celular los campos de cada lesion arra
      afirma —que el Tab BAJA por columna y no cruza la fila— no cambia; lo que cambia es que
      columna tiene cada campo. Las tres casillas vauto- SI entran en el recorrido: son readonly
      sin tabindex, igual que las cuatro de la insuficiencia mitral del D1. */
+  /* ADAPTADO 2026-10-17 (PRO-B3): el bloque de la FUGA PARAVALVULAR de la protesis AORTICA
+     QUIRURGICA va al pie de la columna de la insuficiencia, que es donde ya viven los parametros
+     que la graduan, asi que sus TRES campos entran al final del recorrido. Lo que esta condicion
+     afirma —que el Tab BAJA por columna y no cruza la fila— no cambia; lo que cambia es que hay
+     tres campos mas, y van DESPUES de los doce de las tres columnas porque su bloque es hermano
+     de ellas y viene despues en el DOM.
+     ⚠️ LOS TRES ESTAN EN EL RECORRIDO AUNQUE EL BLOQUE NAZCA ESCONDIDO: la escena de este caso
+     deja la morfologia aortica en PROTESIS, asi que "eaPvlPintar" lo muestra. Con una valvula
+     nativa el bloque esta en "display:none" y sus campos no tienen geometria, o sea que no se
+     visitan — y eso es lo que mide TC-497 (c4) y (h2). */
   const ESPERADO_INSUF = ['ia_vc','ia_jet_diam','ia_pht','ia_vmax_td',
                           'ia_pisa_r','ia_pisa_val','ia_vmax_cw','ia_vti',
-                          'vauto-ia-eroa','vauto-ia-volr','vauto-ia-fr','ia_vti_desc'];
+                          'vauto-ia-eroa','vauto-ia-volr','vauto-ia-fr','ia_vti_desc',
+                          'ea_pvl_origen','ea_pvl_ext','ea_pvl_vc_area'];
   const ESPERADO_ESTEN = ['ea_vmax','ea_gmedio','ea_dtsvi','ea_vtitsvi','ea_vtiao','ava_plan'];
   /* Orden entre bloques: insuficiencia ANTES de estenosis en el DOM. */
   const ci = g('caja-insuf-aortica'), ce = g('caja-esten-aortica');
@@ -74368,6 +74379,353 @@ caso('TC-496', 'Tanda PRO (1 a 3): el cociente VTI de la protesis mitral solo ap
       && FN('pacIdImpreso'); })(),
     'wilkins=' + FN('wilkinsScore') + ' otros=' + !!EL('pul_derrame_lado')
       + ' frases=' + !!EL('frases-panel') + ' pacId=' + FN('pacIdImpreso')]);
+
+  return { extra: ex };
+`);
+
+caso('TC-497', 'Tanda PRO-B: la FUGA PARAVALVULAR de la protesis AORTICA quirurgica con el motor de la TAVI y su fuente inyectada —los cuatro cortes de la Tabla 8 por su borde exacto, gana el peor, «trivial» exige tres de cuatro, el cero medido niega y el reverso NO entra—; el ORIGEN de la regurgitacion de la protesis MITRAL sin mover un corte de la Tabla 13 y sin ofrecer extension circunferencial; el rotulo «aorta descendente» del reverso de la TAVI; que la TAVI publique EXACTAMENTE lo mismo que antes; y las valvulas nativas, la tricuspide y la pulmonar protesicas, el PPM, el valve-in-valve, el cociente VTI, la diastolica, el HFA-PEFF, el Wilkins, el cuadro de frases y las 440 columnas del Excel sin moverse', `
+  const ex = [];
+  const EL  = (id) => document.getElementById(id);
+  const S   = (id, v) => { try { __t.set(id, v); } catch (e) {} };
+  const V   = (id) => { const e = EL(id); return e ? String(e.value) : 'NO EXISTE'; };
+  const TXT = (id) => { const e = EL(id); return e ? String(e.textContent || '').replace(/[ ]+/g, ' ').trim() : 'NO EXISTE'; };
+  const G   = (n) => { try { return (n in window) ? window[n] : 'NO EXISTE'; } catch (e) { return 'EXC'; } };
+  const FN  = (n) => typeof G(n) === 'function';
+  const estilo = (e) => { try { setEstiloInforme(e) } catch (x) {} };
+  const inf = (e) => { estilo(e || 'estandar'); try { generarInforme() } catch (x) {}
+    return { inf: String((EL('informe_texto')||{}).value || ''), suma: String((EL('en_suma')||{}).value || '') } };
+  /* ⚠️ LOS CALCULADORES SE LLAMAN A MANO porque __t.set no dispara el oninput del marcado: sin
+     eso la escena mide el estado del paciente ANTERIOR. Es la trampa del cuadro gris de la
+     diastolica, que este archivo ya documenta. Los dos pintores NUEVOS van al final, porque
+     leen lo que los calculadores acaban de publicar. */
+  const esc = (o) => { __t.limpiar(); Object.keys(o).forEach(k => S(k, String(o[k])));
+    ['calcAo','calcIA_ESC','calcContIM','calcIM_ESC','calcEM','eteTaviSync','valvProtSync','eaPvlPintar','imPvlPintar']
+      .forEach(f => { try { if (FN(f)) window[f](); } catch (x) {} });
+    return o; };
+  /* Centinelas: contra un arbol sin estas piezas el caso tiene que FALLAR por su condicion y no
+     morir por excepcion, que probaria que el arbol es distinto y no que el caso sabe medir. */
+  const PVLAO = () => { try { return FN('eaProtRPV') ? (window.eaProtRPV() || null) : 'SIN FN'; } catch (e) { return 'EXC'; } };
+  const SEVAO = () => { const r = PVLAO(); return (r && typeof r === 'object') ? String(r.sev) : String(r); };
+  const TXTAO = () => { try { const t = FN('eaProtPvlTxt') ? window.eaProtPvlTxt() : null;
+    return t ? String(t.txt) : (FN('eaProtPvlTxt') ? 'NULL' : 'SIN FN'); } catch (e) { return 'EXC'; } };
+  const TXTVM = () => { try { const t = FN('imPvlTxt') ? window.imPvlTxt() : null;
+    return t ? String(t.txt) : (FN('imPvlTxt') ? 'NULL' : 'SIN FN'); } catch (e) { return 'EXC'; } };
+  const RPV   = () => { try { return FN('eteTaviRPV') ? (window.eteTaviRPV() || null) : 'SIN FN'; } catch (e) { return 'EXC'; } };
+  const SEVRPV = () => { const r = RPV(); return (r && typeof r === 'object') ? String(r.sev) : String(r); };
+  const ROT = (id) => { const e = EL(id); if (!e) return 'NO EXISTE';
+    const fg = e.closest ? e.closest('.fg') : null; const l = fg ? fg.querySelector('label') : null;
+    return l ? String(l.textContent || '').replace(/[ ]+/g, ' ').trim() : 'SIN LABEL'; };
+
+  /* ══ DENOMINADOR 1 · las piezas existen y tienen un solo dueno ════════════════════════════ */
+  ex.push(['(DENOM1) el motor de la fuga acepta su FUENTE por parametro, que es lo que deja que la protesis quirurgica lo reuse sin una segunda copia de los cortes',
+    (function(){ if (!FN('eteTaviRPV')) return false;
+      try { const r = window.eteTaviRPV({ ext: 35 });
+        return !!(r && r.sev === 'Severa'); } catch (e) { return false; } })(),
+    (function(){ try { const r = window.eteTaviRPV({ ext: 35 }); return r ? r.sev : String(r); } catch (e) { return 'EXC'; } })()]);
+  ex.push(['(DENOM2) _eaEsProtesisSavr distingue la protesis QUIRURGICA de la TAVI y de la nativa, y NO es _eaEsProtesisAo',
+    (function(){ if (!FN('_eaEsProtesisSavr')) return false;
+      const r = {};
+      ['Trivalva normal','Prótesis biológica','Prótesis mecánica','TAVI'].forEach(function(m){
+        esc({ va_morf:m }); r[m] = window._eaEsProtesisSavr(); });
+      return r['Trivalva normal'] === false && r['Prótesis biológica'] === true
+          && r['Prótesis mecánica'] === true && r['TAVI'] === false; })(),
+    FN('_eaEsProtesisSavr') ? 'ok' : 'SIN _eaEsProtesisSavr']);
+  ex.push(['(DENOM3) los tres campos NUEVOS de la fuga aortica existen y son los tres, ni uno mas',
+    !!(EL('ea_pvl_origen') && EL('ea_pvl_ext') && EL('ea_pvl_vc_area')),
+    'origen=' + !!EL('ea_pvl_origen') + ' ext=' + !!EL('ea_pvl_ext') + ' vcA=' + !!EL('ea_pvl_vc_area')]);
+  ex.push(['(DENOM4) el ancho de vena contracta y el THP NO se duplican: la fuga los toma de ia_vc y de ia_pht, que ya existen',
+    !!(EL('ia_vc') && EL('ia_pht')) && !EL('ea_pvl_vc_ancho') && !EL('ea_pvl_pht'),
+    'ia_vc=' + !!EL('ia_vc') + ' ea_pvl_vc_ancho=' + !!EL('ea_pvl_vc_ancho') + ' ea_pvl_pht=' + !!EL('ea_pvl_pht')]);
+
+  /* ══ (a1) LOS CUATRO CRITERIOS DE LA TABLA 8, POR SU BORDE EXACTO ═════════════════════════
+     Un parametro por escena, para que el veredicto sea el de ESE parametro y no el del peor de
+     dos. ASE 2024, Tabla 8, folio 23 (hoja 22), verificada en el PDF original. */
+  const escAo = (o) => { const b = { va_morf:'Prótesis biológica', ea_pvl_origen:'paraval' };
+    Object.keys(o || {}).forEach(k => b[k] = o[k]); esc(b); return SEVAO(); };
+
+  ex.push(['(a1) extension circunferencial: 9 % NO llega a moderada, 10 % SI (ASE 2024 T8: <10 / 10-29 / >=30)',
+    escAo({ ea_pvl_ext:'9' }).indexOf('Leve') === 0 && escAo({ ea_pvl_ext:'10' }) === 'Moderada',
+    '9 -> ' + escAo({ ea_pvl_ext:'9' }) + ' | 10 -> ' + escAo({ ea_pvl_ext:'10' })]);
+  ex.push(['(a2) extension circunferencial: 29 % sigue moderada y 30 % ya es SEVERA — el borde separa',
+    escAo({ ea_pvl_ext:'29' }) === 'Moderada' && escAo({ ea_pvl_ext:'30' }) === 'Severa',
+    '29 -> ' + escAo({ ea_pvl_ext:'29' }) + ' | 30 -> ' + escAo({ ea_pvl_ext:'30' })]);
+  ex.push(['(a3) area de vena contracta: 0,09 cm2 no llega a moderada y 0,10 SI (T8: <0,10 / 0,10-0,29 / >=0,30)',
+    escAo({ ea_pvl_vc_area:'0.09' }).indexOf('Leve') === 0 && escAo({ ea_pvl_vc_area:'0.10' }) === 'Moderada',
+    '0.09 -> ' + escAo({ ea_pvl_vc_area:'0.09' }) + ' | 0.10 -> ' + escAo({ ea_pvl_vc_area:'0.10' })]);
+  ex.push(['(a4) area de vena contracta: 0,29 cm2 moderada y 0,30 SEVERA',
+    escAo({ ea_pvl_vc_area:'0.29' }) === 'Moderada' && escAo({ ea_pvl_vc_area:'0.30' }) === 'Severa',
+    '0.29 -> ' + escAo({ ea_pvl_vc_area:'0.29' }) + ' | 0.30 -> ' + escAo({ ea_pvl_vc_area:'0.30' })]);
+  /* ⚠️ "ia_vc" ESTA EN MILIMETROS Y LA TABLA 8 PUBLICA CENTIMETROS: sin el /10 un ancho de 5 mm
+     entraria como 5 cm y el motor devolveria SEVERA sobre una fuga moderada. Los bordes se miden
+     en la unidad del CAMPO, que es lo que el medico tipea. */
+  ex.push(['(a5) ancho de vena contracta PRESTADO de ia_vc, en mm: 2,9 no llega a moderada y 3,0 SI (T8: <0,3 / 0,3-0,6 / >0,6 cm)',
+    escAo({ ia_vc:'2.9' }).indexOf('Leve') === 0 && escAo({ ia_vc:'3' }) === 'Moderada',
+    '2.9 -> ' + escAo({ ia_vc:'2.9' }) + ' | 3 -> ' + escAo({ ia_vc:'3' })]);
+  ex.push(['(a6) ancho de vena contracta: 6,0 mm sigue moderada y 6,1 mm ya es SEVERA — la conversion mm->cm esta puesta',
+    escAo({ ia_vc:'6' }) === 'Moderada' && escAo({ ia_vc:'6.1' }) === 'Severa',
+    '6 -> ' + escAo({ ia_vc:'6' }) + ' | 6.1 -> ' + escAo({ ia_vc:'6.1' })]);
+  ex.push(['(a7) THP PRESTADO de ia_pht: 199 ms SEVERA y 200 ms moderada (T8: >500 / 200-500 / <200)',
+    escAo({ ia_pht:'199' }) === 'Severa' && escAo({ ia_pht:'200' }) === 'Moderada',
+    '199 -> ' + escAo({ ia_pht:'199' }) + ' | 200 -> ' + escAo({ ia_pht:'200' })]);
+  ex.push(['(a8) THP: 500 ms sigue moderada y 501 ms cae en la banda trivial',
+    escAo({ ia_pht:'500' }) === 'Moderada' && escAo({ ia_pht:'501' }).indexOf('Leve') === 0,
+    '500 -> ' + escAo({ ia_pht:'500' }) + ' | 501 -> ' + escAo({ ia_pht:'501' })]);
+
+  /* ══ (b) LA INTEGRACION ══════════════════════════════════════════════════════════════════ */
+  ex.push(['(b1) GANA EL PEOR, por los DOS lados: extension trivial con area severa da SEVERA, y al reves tambien',
+    escAo({ ea_pvl_ext:'5', ea_pvl_vc_area:'0.35' }) === 'Severa'
+      && escAo({ ea_pvl_ext:'35', ea_pvl_vc_area:'0.05' }) === 'Severa',
+    'extTriv+vcaSev -> ' + escAo({ ea_pvl_ext:'5', ea_pvl_vc_area:'0.35' })
+      + ' | extSev+vcaTriv -> ' + escAo({ ea_pvl_ext:'35', ea_pvl_vc_area:'0.05' })]);
+  ex.push(['(b2) «Trivial» exige TRES de los cuatro en banda trivial: con dos sale «Leve — faltan parametros» y con tres, «Trivial»',
+    escAo({ ea_pvl_ext:'5', ea_pvl_vc_area:'0.05' }).indexOf('Leve') === 0
+      && escAo({ ea_pvl_ext:'5', ea_pvl_vc_area:'0.05', ia_vc:'2' }) === 'Trivial',
+    'dos -> ' + escAo({ ea_pvl_ext:'5', ea_pvl_vc_area:'0.05' })
+      + ' | tres -> ' + escAo({ ea_pvl_ext:'5', ea_pvl_vc_area:'0.05', ia_vc:'2' })]);
+  ex.push(['(b3) EL CERO MEDIDO NIEGA: con la extension en 0 el veredicto es «Sin RPV» y el texto NIEGA, en vez de graduar «leve» sobre un 0 %',
+    (function(){ escAo({ ea_pvl_ext:'0' });
+      return SEVAO() === 'Sin RPV' && TXTAO().indexOf('Sin insuficiencia paravalvular significativa') === 0; })(),
+    SEVAO() + ' | ' + TXTAO()]);
+  ex.push(['(b4) LA FUGA NO REEMPLAZA LA REGURGITACION CENTRAL: con la fuga severa, ia_grado lo sigue publicando calcIA_ESC y las dos cosas conviven',
+    (function(){ escAo({ ia_vc:'8' });
+      return SEVAO() === 'Severa' && V('ia_grado') === '4'; })(),
+    'fuga=' + SEVAO() + ' ia_grado=' + V('ia_grado')]);
+  ex.push(['(b5) EL REVERSO DIASTOLICO NO ENTRA EN ESTE MOTOR: con ia_vmax_td en 25 cm/s la fuga sigue TRIVIAL mientras ia_grado pasa a severa — dos cortes y dos territorios',
+    (function(){ escAo({ ea_pvl_ext:'5', ea_pvl_vc_area:'0.05', ia_vc:'2', ia_vmax_td:'25' });
+      return SEVAO() === 'Trivial' && V('ia_grado') === '4'; })(),
+    'fuga=' + SEVAO() + ' ia_grado=' + V('ia_grado')]);
+  ex.push(['(b6) origen consignado y NI UN parametro: se dice el origen y NO se gradua — no se inventa «leve» porque no hay numeros',
+    (function(){ esc({ va_morf:'Prótesis mecánica', ea_pvl_origen:'paraval' });
+      return PVLAO() === null && TXTAO() === 'Insuficiencia de origen paravalvular'; })(),
+    String(PVLAO()) + ' | ' + TXTAO()]);
+
+  /* ══ (b7) LAS DOS COMPUERTAS ═════════════════════════════════════════════════════════════ */
+  ex.push(['(b7) con el origen SIN CONSIGNAR o CENTRAL no se afirma ninguna fuga, aunque los parametros esten cargados',
+    (function(){ esc({ va_morf:'Prótesis biológica', ea_pvl_ext:'15' });
+      const sinOrg = PVLAO();
+      esc({ va_morf:'Prótesis biológica', ea_pvl_origen:'central', ea_pvl_ext:'15' });
+      return sinOrg === null && PVLAO() === null; })(),
+    'central -> ' + String(PVLAO())]);
+  ex.push(['(b8) el origen MIXTO tambien gradua la fuga: la componente paravalvular existe',
+    escAo({ ea_pvl_origen:'mixta', ea_pvl_ext:'15' }) === 'Moderada',
+    escAo({ ea_pvl_origen:'mixta', ea_pvl_ext:'15' })]);
+
+  /* ══ (c) LA TAVI DA EXACTAMENTE LO MISMO ═════════════════════════════════════════════════
+     Las cinco salidas del motor mas los cuatro bordes del reverso del PRO3. Si alguna se movio,
+     el "src" del PRO-B3 cambio el camino de la TAVI, que es lo que NO puede pasar. */
+  const escTavi = (o) => { const b = { ete_tavi_pro_tam:'25' };
+    Object.keys(o || {}).forEach(k => b[k] = o[k]); esc(b); return SEVRPV(); };
+  ex.push(['(c1) TAVI: las cinco salidas del motor siguen siendo las de siempre (sin RPV / trivial / leve / moderada / severa)',
+    escTavi({ ete_tavi_ext_circ:'0' }) === 'Sin RPV'
+      && escTavi({ ete_tavi_ext_circ:'5', ete_tavi_vc_ancho:'0.2', ete_tavi_vc_area:'0.05' }) === 'Trivial'
+      && escTavi({ ete_tavi_ext_circ:'5' }).indexOf('Leve') === 0
+      && escTavi({ ete_tavi_ext_circ:'15' }) === 'Moderada'
+      && escTavi({ ete_tavi_ext_circ:'35' }) === 'Severa',
+    'cero=' + escTavi({ ete_tavi_ext_circ:'0' }) + ' triv=' + escTavi({ ete_tavi_ext_circ:'5', ete_tavi_vc_ancho:'0.2', ete_tavi_vc_area:'0.05' })
+      + ' mod=' + escTavi({ ete_tavi_ext_circ:'15' }) + ' sev=' + escTavi({ ete_tavi_ext_circ:'35' })]);
+  ex.push(['(c2) TAVI: el reverso del PRO3 sigue en DOS niveles — 19 no vota, 20 y 29 moderada, 30 severa, y siempre con el flujo holodiastolico',
+    escTavi({ ete_tavi_flujo_rev:'holo', ete_tavi_vel_tele:'19' }) === 'null'
+      && escTavi({ ete_tavi_flujo_rev:'holo', ete_tavi_vel_tele:'20' }) === 'Moderada'
+      && escTavi({ ete_tavi_flujo_rev:'holo', ete_tavi_vel_tele:'29' }) === 'Moderada'
+      && escTavi({ ete_tavi_flujo_rev:'holo', ete_tavi_vel_tele:'30' }) === 'Severa',
+    '19=' + escTavi({ ete_tavi_flujo_rev:'holo', ete_tavi_vel_tele:'19' })
+      + ' 20=' + escTavi({ ete_tavi_flujo_rev:'holo', ete_tavi_vel_tele:'20' })
+      + ' 30=' + escTavi({ ete_tavi_flujo_rev:'holo', ete_tavi_vel_tele:'30' })]);
+  ex.push(['(c3) TAVI: con el flujo en «proto» o «ausente» el reverso NO vota, por alto que sea la velocidad tele-diastolica',
+    escTavi({ ete_tavi_flujo_rev:'proto', ete_tavi_vel_tele:'45' }) === 'null'
+      && escTavi({ ete_tavi_flujo_rev:'ausente', ete_tavi_vel_tele:'45' }) === 'null',
+    'proto=' + escTavi({ ete_tavi_flujo_rev:'proto', ete_tavi_vel_tele:'45' })]);
+  ex.push(['(c4) la TAVI NO muestra el bloque de la fuga QUIRURGICA: tiene su propio modulo con sus propios seis campos',
+    (function(){ esc({ va_morf:'TAVI', ea_pvl_origen:'paraval', ea_pvl_ext:'35' });
+      const c = EL('bloque-prot-va-pvl');
+      return PVLAO() === null && !!c && getComputedStyle(c).display === 'none'; })(),
+    (function(){ const c = EL('bloque-prot-va-pvl');
+      return String(PVLAO()) + ' display=' + (c ? getComputedStyle(c).display : 'NO EXISTE'); })()]);
+
+  /* ══ (d) LA MITRAL: EL ORIGEN, SIN MOVER UN CORTE Y SIN EXTENSION CIRCUNFERENCIAL ════════ */
+  ex.push(['(d1) LA MITRAL NO OFRECE EXTENSION CIRCUNFERENCIAL — la Tabla 13 de la ASE 2024 no publica ese parametro, censada entera',
+    !EL('vm_pvl_ext') && !EL('vm_pvl_ext_circ'), 'vm_pvl_ext=' + !!EL('vm_pvl_ext')]);
+  ex.push(['(d2) el selector de ORIGEN mitral existe y aparece SOLO con morfologia protesica',
+    (function(){ const c = EL('bloque-prot-vm-pvl'); if (!c) return false;
+      esc({ vm_morf:'Reumática' }); const nat = getComputedStyle(c).display;
+      esc({ vm_morf:'Prótesis mecánica' }); const pro = getComputedStyle(c).display;
+      return nat === 'none' && pro !== 'none'; })(),
+    (function(){ const c = EL('bloque-prot-vm-pvl'); return c ? getComputedStyle(c).display : 'NO EXISTE'; })()]);
+  /* ⚠️ EL MISMO NUMERO EN LOS CUATRO ESTADOS DEL ORIGEN: es la comprobacion de que esta tanda NO
+     movio un solo corte de la mitral. Si alguno difiere, el origen se metio en la cuenta. */
+  ex.push(['(d3) el ORIGEN no mueve el grado: con vena contracta 8 mm, im_grado vale 4 con el origen vacio, central, paravalvular y mixto',
+    (function(){ const r = [];
+      ['', 'central', 'paraval', 'mixta'].forEach(function(o){
+        const b = { vm_morf:'Prótesis mecánica', im_vc:'8' };
+        if (o) b.vm_pvl_origen = o; esc(b); r.push(V('im_grado')); });
+      return r.join(',') === '4,4,4,4'; })(),
+    (function(){ const r = [];
+      ['', 'central', 'paraval', 'mixta'].forEach(function(o){
+        const b = { vm_morf:'Prótesis mecánica', im_vc:'8' };
+        if (o) b.vm_pvl_origen = o; esc(b); r.push(V('im_grado')); });
+      return r.join(','); })()]);
+  const escVm = (vc) => { esc({ vm_morf:'Prótesis mecánica', vm_pvl_origen:'paraval', im_vc:String(vc) }); return V('im_grado'); };
+  ex.push(['(d4) los cortes de la Tabla 13 sobre la PROTESIS siguen siendo los de IM_CORTES: VC 2,9 mm leve, 3,0 moderada, 6,9 moderada y 7,0 severa',
+    escVm('2.9') === '1' && escVm('3') === '2' && escVm('6.9') === '2' && escVm('7') === '4',
+    '2.9=' + escVm('2.9') + ' 3=' + escVm('3') + ' 6.9=' + escVm('6.9') + ' 7=' + escVm('7')]);
+  ex.push(['(d5) la frase mitral dice el ORIGEN y NO repite el grado — el grado ya lo publica la oracion de arriba',
+    (function(){ escVm('8');
+      return TXTVM() === 'Insuficiencia mitral paravalvular'
+        && TXTVM().toLowerCase().indexOf('severa') < 0; })(), TXTVM()]);
+  ex.push(['(d6) el origen CENTRAL no escribe nada en el informe ni en el EN SUMA: no agrega un hallazgo que nombrar',
+    (function(){ esc({ vm_morf:'Prótesis mecánica', vm_pvl_origen:'central', im_vc:'8' });
+      const o = inf('estandar');
+      return TXTVM() === 'NULL' && o.inf.indexOf('paravalvular') < 0 && o.suma.indexOf('paravalvular') < 0; })(),
+    TXTVM()]);
+  ex.push(['(d7) con la mitral NATIVA no se afirma ningun origen, aunque la vena contracta sea severa',
+    (function(){ esc({ vm_morf:'Reumática', im_vc:'8' });
+      return TXTVM() === 'NULL' && V('im_grado') === '4'; })(),
+    TXTVM() + ' im_grado=' + V('im_grado')]);
+
+  /* ══ (e) EL ROTULO «AORTA DESCENDENTE» ═══════════════════════════════════════════════════
+     ⚠️ SE MIDE SOBRE LOS ROTULOS RENDERIZADOS Y NO SOBRE EL FUENTE: el comentario que explica el
+     cambio NOMBRA el texto viejo, asi que un indexOf sobre documentElement.innerHTML da un falso.
+     Es la trampa que TC-476 y TC-479 ya pagaron. */
+  ex.push(['(e1) el rotulo del reverso de la TAVI dice «aorta descendente», que es lo que escriben la ASE 2024 (T8, folio 23) y la VARC-3 (T16, folio 1846)',
+    ROT('ete_tavi_vel_tele').toLowerCase().indexOf('aorta descendente') >= 0,
+    ROT('ete_tavi_vel_tele')]);
+  ex.push(['(e2) NINGUN rotulo ni opcion del modulo TAVI dice ya «aorta abdominal» — censados los <label> y <option> del documento entero',
+    (function(){ let n = 0;
+      document.querySelectorAll('label, option').forEach(function(e){
+        const t = String(e.textContent || '').toLowerCase();
+        if (t.indexOf('aorta abdominal') >= 0 && t.indexOf('tele-diast') >= 0) n++; });
+      return n === 0; })(),
+    (function(){ const l = [];
+      document.querySelectorAll('label, option').forEach(function(e){
+        const t = String(e.textContent || '').toLowerCase();
+        if (t.indexOf('aorta abdominal') >= 0) l.push(t.slice(0, 50)); });
+      return l.join(' | ') || 'ninguno'; })()]);
+  ex.push(['(e3) CONTROL NEGATIVO: el rotulo del campo NATIVO de la IAo y el del <select> del flujo no se tocaron',
+    ROT('ia_vmax_td').indexOf('Ao desc.') >= 0 && ROT('ete_tavi_flujo_rev').indexOf('Ao desc.') >= 0,
+    ROT('ia_vmax_td') + ' | ' + ROT('ete_tavi_flujo_rev')]);
+
+  /* ══ (f) LOS CAMPOS VIAJAN CON EL ESTUDIO Y NO HAY COLUMNA NUEVA ═════════════════════════ */
+  ex.push(['(f1) los CUATRO campos nuevos llevan guion BAJO, asi que guardarInforme los captura y _noEsDelEstudio NO los excluye',
+    (function(){ if (!FN('_noEsDelEstudio')) return false;
+      return ['ea_pvl_origen','ea_pvl_ext','ea_pvl_vc_area','vm_pvl_origen']
+        .every(function(id){ return window._noEsDelEstudio(id) === false; }); })(),
+    FN('_noEsDelEstudio') ? 'ok' : 'SIN _noEsDelEstudio']);
+  ex.push(['(f2) EL EXCEL SIGUE EN 440 COLUMNAS, con el formulario vacio y con los cuatro campos nuevos cargados: ninguno abrio una columna',
+    (function(){ if (!FN('_labExcelRow')) return false;
+      const n = function(c){ try { return Object.keys(window._labExcelRow({ id:0, campos:c || {} })).length; } catch (e) { return -1; } };
+      return n({}) === 440 && n({ va_morf:'Prótesis mecánica', ea_pvl_origen:'paraval', ea_pvl_ext:'15',
+        ea_pvl_vc_area:'0.3', vm_morf:'Prótesis biológica', vm_pvl_origen:'mixta' }) === 440; })(),
+    (function(){ if (!FN('_labExcelRow')) return 'SIN FN';
+      try { return 'vacio=' + Object.keys(window._labExcelRow({ id:0, campos:{} })).length; } catch (e) { return 'EXC'; } })()]);
+  ex.push(['(f3) NINGUN encabezado del Excel nombra la fuga paravalvular de la protesis quirurgica: no se creo la columna que la orden declara PARADA',
+    (function(){ if (!FN('_labExcelRow')) return false;
+      try { return Object.keys(window._labExcelRow({ id:0, campos:{} }))
+        .filter(function(k){ const t = k.toLowerCase();
+          return t.indexOf('paravalv') >= 0 && t.indexOf('tavi') < 0; }).length === 0;
+      } catch (e) { return false; } })(),
+    (function(){ if (!FN('_labExcelRow')) return 'SIN FN';
+      try { return Object.keys(window._labExcelRow({ id:0, campos:{} }))
+        .filter(function(k){ return k.toLowerCase().indexOf('paravalv') >= 0; }).join(' | ') || 'ninguna';
+      } catch (e) { return 'EXC'; } })()]);
+  ex.push(['(f4) un estudio ANTERIOR a esta tanda —sin las cuatro claves— no se migra: los campos abren VACIOS y nada los inventa',
+    (function(){ esc({ va_morf:'Prótesis biológica', vm_morf:'Prótesis mecánica' });
+      return V('ea_pvl_origen') === '' && V('ea_pvl_ext') === '' && V('ea_pvl_vc_area') === ''
+        && V('vm_pvl_origen') === '' && PVLAO() === null && TXTVM() === 'NULL'; })(),
+    'ea_pvl_origen=' + V('ea_pvl_origen') + ' vm_pvl_origen=' + V('vm_pvl_origen')]);
+  ex.push(['(f5) «Nuevo estudio» esconde los dos bloques y deja las filas del cuadro en «—»',
+    (function(){ esc({ va_morf:'Prótesis biológica', ea_pvl_origen:'paraval', ea_pvl_ext:'15',
+      vm_morf:'Prótesis mecánica', vm_pvl_origen:'paraval' });
+      __t.limpiar();
+      ['valvProtSync','eaPvlPintar','imPvlPintar'].forEach(f => { try { if (FN(f)) window[f](); } catch (x) {} });
+      const a = EL('bloque-prot-va-pvl'), m = EL('bloque-prot-vm-pvl');
+      return !!a && !!m && getComputedStyle(a).display === 'none' && getComputedStyle(m).display === 'none'
+        && TXT('ea-pvl-interp') === '—' && TXT('ea-pvl-motivo') === '—' && TXT('im-pvl-interp') === '—'; })(),
+    'ea=' + TXT('ea-pvl-interp') + ' mot=' + TXT('ea-pvl-motivo') + ' im=' + TXT('im-pvl-interp')]);
+
+  /* ══ (g) LAS SUPERFICIES ═════════════════════════════════════════════════════════════════ */
+  ex.push(['(g1) INFORME y EN SUMA en los TRES estilos: la fuga aortica sale como ORACION APARTE y el EN SUMA la nombra con la sigla que la seccion ya usa',
+    (function(){ esc({ va_morf:'Prótesis biológica', ea_pvl_origen:'paraval', ea_pvl_ext:'15' });
+      return ['conciso','estandar','narrativo'].every(function(e){ const o = inf(e);
+        return o.inf.indexOf('Insuficiencia paravalvular moderada, extensión circunferencial 15%.') >= 0
+            && o.suma.indexOf('IAo paravalvular moderada.') >= 0; }); })(),
+    (function(){ const o = inf('estandar');
+      return (o.inf.split('\\n').filter(function(l){ return l.indexOf('paravalvular') >= 0; })[0] || 'SIN LINEA')
+        + ' || ' + (o.suma.split('.').filter(function(l){ return l.indexOf('paravalvular') >= 0; })[0] || 'SIN SUMA'); })()]);
+  ex.push(['(g2) con el cero medido el informe NIEGA y el EN SUMA calla: no se sube al resumen lo que no hay',
+    (function(){ esc({ va_morf:'Prótesis biológica', ea_pvl_origen:'paraval', ea_pvl_ext:'0' });
+      const o = inf('estandar');
+      return o.inf.indexOf('Sin insuficiencia paravalvular significativa.') >= 0
+          && o.suma.indexOf('IAo paravalvular') < 0; })(),
+    (function(){ const o = inf('estandar');
+      return (o.inf.split('\\n').filter(function(l){ return l.indexOf('paravalvular') >= 0; })[0] || 'SIN LINEA'); })()]);
+  ex.push(['(g3) VISTA 2D: las dos filas nuevas entran en las listas «Ver criterios» de la IAo y de la IM, leyendo del dueno',
+    (function(){ const P = G('V2D_PORQUE'); if (P === 'NO EXISTE') return false;
+      const ids = function(k){ return (P[k] && P[k].crit) ? P[k].crit.map(function(c){ return c.id; }) : []; };
+      return ids('insuf:aortica').indexOf('ea-pvl-interp') >= 0
+          && ids('insuf:mitral').indexOf('im-pvl-interp') >= 0; })(),
+    (function(){ const P = G('V2D_PORQUE'); if (P === 'NO EXISTE') return 'SIN V2D_PORQUE';
+      return (P['insuf:aortica'].crit || []).map(function(c){ return c.id; }).join(','); })()]);
+  ex.push(['(g4) VISTA 2D, CONTROL NEGATIVO: con la valvula NATIVA las dos filas dicen «—» y _v2dCrit las descarta, asi que la tarjeta sale identica',
+    (function(){ if (!FN('_v2dCrit')) return false;
+      esc({ va_morf:'Trivalva normal', vm_morf:'Reumática', ia_vc:'8', im_vc:'8' });
+      return window._v2dCrit({ id:'ea-pvl-interp' }) === null
+          && window._v2dCrit({ id:'im-pvl-interp' }) === null; })(),
+    FN('_v2dCrit') ? ('ea=' + TXT('ea-pvl-interp') + ' im=' + TXT('im-pvl-interp')) : 'SIN _v2dCrit']);
+  /* ⚠️ EL LABORATORIO TENIA SU PROPIA COPIA DE LOS CUATRO CORTES Y DIVERGIA DEL DUEnO EN DOS
+     COSAS: el reverso seguia votando SEVERA desde 20 cm/s (el PRO3 lo partio en dos niveles) y el
+     «cero medido» no existia, asi que una extension de 0 % contaba como Leve. Desde el PRO-B3 le
+     pregunta al dueno. */
+  ex.push(['(g5) LABORATORIO: la distribucion de la fuga de la TAVI le pregunta al dueno — un reverso holodiastolico de 25 cm/s cuenta MODERADA y ya no severa',
+    (function(){ if (!FN('_labTaviResumen')) return false;
+      const R = window._labTaviResumen([{ id:1, campos:{ ete_tavi_flujo_rev:'holo', ete_tavi_vel_tele:'25' } }]);
+      return R && R.nR === 1 && R.rpv && R.rpv['Moderada'] === 1; })(),
+    (function(){ if (!FN('_labTaviResumen')) return 'SIN FN';
+      try { return JSON.stringify(window._labTaviResumen([{ id:1, campos:{ ete_tavi_flujo_rev:'holo', ete_tavi_vel_tele:'25' } }]).rpv); } catch (e) { return 'EXC'; } })()]);
+  ex.push(['(g6) LABORATORIO: un estudio con la extension circunferencial en 0 % cuenta «Sin RPV» y ya no «Leve» — el cero medido es ausencia, no gravedad',
+    (function(){ if (!FN('_labTaviResumen')) return false;
+      const R = window._labTaviResumen([{ id:1, campos:{ ete_tavi_ext_circ:'0' } }]);
+      return R && R.nR === 1 && R.rpv && R.rpv['Sin RPV'] === 1; })(),
+    (function(){ if (!FN('_labTaviResumen')) return 'SIN FN';
+      try { return JSON.stringify(window._labTaviResumen([{ id:1, campos:{ ete_tavi_ext_circ:'0' } }]).rpv); } catch (e) { return 'EXC'; } })()]);
+
+  /* ══ (h) LOS CONTROLES — NADA AJENO SE MUEVE ═════════════════════════════════════════════ */
+  ex.push(['(h1) CONTROL: la tricuspide y la pulmonar protesicas siguen SIN graduarse («No graduada») — esta tanda es el PRO-B y no el PRO-C',
+    (function(){ if (!FN('protNoGradua')) return false;
+      esc({ vt_morf:'Prótesis biológica', vp_morf:'Prótesis mecánica' });
+      return window.protNoGradua('vt_morf') === true && window.protNoGradua('vp_morf') === true
+          && window.protNoGradua('va_morf') === false; })(),
+    FN('protNoGradua') ? 'ok' : 'SIN protNoGradua']);
+  ex.push(['(h2) CONTROL: con una valvula NATIVA el bloque de la fuga no existe en pantalla y el informe no nombra «paravalvular» ni una vez',
+    (function(){ esc({ va_morf:'Trivalva normal', ia_vc:'8', ia_pht:'150' });
+      const c = EL('bloque-prot-va-pvl'); const o = inf('estandar');
+      return !!c && getComputedStyle(c).display === 'none' && PVLAO() === null
+        && o.inf.indexOf('paravalvular') < 0 && V('ia_grado') === '4'; })(),
+    'ia_grado=' + V('ia_grado') + ' fuga=' + String(PVLAO())]);
+  ex.push(['(h3) CONTROL: el cociente VTI de la protesis mitral del PRO1 no se movio — mecanica con THP normal sigue apoyando con el corte protesico',
+    (function(){ esc({ vm_morf:'Prótesis mecánica', vtim:'60', em_vtitsvi:'20', em_dtsvi:'20', thp:'100' });
+      const t = TXT('im-vti-ratio');
+      return t.indexOf('3.00') >= 0 && t.indexOf('apoya IM severa') >= 0; })(),
+    TXT('im-vti-ratio')]);
+  ex.push(['(h4) CONTROL: los dos bordes del PRO2 siguen en su lugar — jet/TSVI de 25 % exacto LEVE y fraccion regurgitante de 50 % SEVERA en la protesis aortica',
+    (function(){ esc({ va_morf:'Prótesis biológica', ia_jet_diam:'5', diam_tsvi:'20', ia_vc:'2' });
+      const leve = TXT('ia-jet-ratio').indexOf('25.0%') >= 0 && V('ia_grado') === '1';
+      return leve; })(),
+    'jet=' + TXT('ia-jet-ratio') + ' ia_grado=' + V('ia_grado')]);
+  ex.push(['(h5) CONTROL: con el formulario VACIO el informe y el EN SUMA no nombran la fuga ni el origen, y el Excel sigue en 440',
+    (function(){ __t.limpiar();
+      ['calcAo','calcIA_ESC','calcIM_ESC','valvProtSync','eaPvlPintar','imPvlPintar']
+        .forEach(f => { try { if (FN(f)) window[f](); } catch (x) {} });
+      const o = inf('estandar');
+      const n = FN('_labExcelRow') ? Object.keys(window._labExcelRow({ id:0, campos:{} })).length : -1;
+      return o.inf.indexOf('paravalvular') < 0 && o.suma.indexOf('paravalvular') < 0
+        && o.inf.indexOf('origen') < 0 && n === 440; })(),
+    (function(){ const o = inf('estandar'); return 'inf=' + o.inf.slice(0, 60); })()]);
+  ex.push(['(h6) CONTROL: los tres asserts de arranque del Excel siguen limpios (bloques y listas sin divergencias)',
+    (function(){ const b = FN('_labXlsAssertBloques') ? window._labXlsAssertBloques() : null;
+      const l = FN('_labXlsAssertListas') ? window._labXlsAssertListas() : null;
+      return Array.isArray(b) && b.length === 0 && Array.isArray(l) && l.length === 0; })(),
+    (function(){ const b = FN('_labXlsAssertBloques') ? window._labXlsAssertBloques() : 'SIN FN';
+      return JSON.stringify(b); })()]);
 
   return { extra: ex };
 `);

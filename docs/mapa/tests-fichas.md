@@ -288,3 +288,71 @@ con su medición: el `innerHTML` de `documentElement` devuelve el texto **decodi
 `IA_VMAX_TD_SEVERA` es un `const` de módulo y se mide por **comportamiento**; `ea_grado` guarda un
 **token de texto** (`severa`) y no el 0-4 de las insuficiencias; y los cuatro calculadores hay que
 llamarlos **a mano**, porque `__t.set` no dispara el `oninput` del marcado.
+
+---
+
+## TC-497 — la tanda «PRO-B» (2026-10-17)
+
+**Qué afirma:** la **fuga paravalvular de la prótesis aórtica quirúrgica** con el motor de la TAVI
+y su fuente inyectada; el **origen** de la regurgitación de la prótesis **mitral** sin mover un
+corte de la Tabla 13 y sin ofrecer extensión circunferencial; el rótulo **«aorta descendente»**;
+que la **TAVI publique exactamente lo mismo** que antes; y que no se mueva nada ajeno.
+
+**51 condiciones · 34 en rojo contra el inicio de la tanda** (worktree aparte sobre `7f14781`),
+**ninguna por excepción** —los centinelas `SIN FN` / `NULL` / `'NO EXISTE'` hicieron su trabajo—.
+Las 17 que pasan en los dos árboles son, exactamente, lo que esta tanda **no mueve**: los cinco
+casos del motor de la TAVI y sus bordes del reverso, los cuatro cortes de la Tabla 13, las 440
+columnas del Excel, la ausencia de extensión circunferencial mitral, el control de la vista 2D y
+los seis controles de la zona ajena.
+
+### Los cuatro denominadores
+
+1. el motor acepta su **fuente por parámetro** —`eteTaviRPV({ext:35})` devuelve «Severa»—, que es
+   lo que deja reusarlo sin una segunda copia de los cortes;
+2. **`_eaEsProtesisSavr` NO es `_eaEsProtesisAo`**: dice `false` sobre la nativa **y sobre la
+   TAVI**, y `true` sobre las dos quirúrgicas;
+3. los **tres** campos nuevos de la fuga aórtica existen;
+4. **el ancho de vena contracta y el THP no se duplican**: `ea_pvl_vc_ancho` y `ea_pvl_pht` **no
+   existen**, y `ia_vc` e `ia_pht` sí.
+
+### Lo que cubre, por bloque
+
+- **(a) LOS CUATRO CORTES DE LA TABLA 8 POR SU BORDE EXACTO**, ocho condiciones, un parámetro por
+  escena: extensión 9/10 y 29/30 · área de VC 0,09/0,10 y 0,29/0,30 · **ancho de VC en MILÍMETROS**
+  2,9/3,0 y 6,0/6,1 —que es lo que prueba que la conversión mm→cm está puesta— · THP 199/200 y
+  500/501.
+- **(b) LA INTEGRACIÓN**, ocho: gana el peor **por los dos lados** · «Trivial» exige **tres de
+  cuatro** · el **cero medido niega** · la fuga **no reemplaza** la regurgitación central
+  (`ia_grado` sigue en 4 con la fuga severa) · **el reverso NO entra** (con `ia_vmax_td` en 25 la
+  fuga sigue Trivial y `ia_grado` pasa a severa) · el origen sin parámetros no gradúa · las dos
+  compuertas (sin origen y con «central» no se afirma nada) · y el origen **mixto** sí gradúa.
+- **(c) LA TAVI, IDÉNTICA**, cuatro: sus cinco salidas · los cuatro bordes del reverso del PRO3 ·
+  la compuerta del holodiastólico · y que la TAVI **no muestre** el bloque de la quirúrgica.
+- **(d) LA MITRAL**, siete: **`vm_pvl_ext` NO EXISTE** · el selector aparece sólo con prótesis ·
+  **`im_grado` vale 4 en los cuatro estados del origen** con la misma vena contracta, que es la
+  prueba de que no se movió un corte · los cuatro bordes de la VC de la Tabla 13 · la frase dice el
+  origen y **no repite el grado** · «central» no escribe nada · y la mitral nativa no afirma origen.
+- **(e) EL RÓTULO**, tres: dice «aorta descendente» · **ningún `<label>` ni `<option>` del
+  documento** dice ya «aorta abdominal» en ese campo · y el control negativo del rótulo nativo y
+  del `<select>` del flujo.
+- **(f) EL ESTUDIO Y EL EXCEL**, cinco: los cuatro campos **no están** en `_noEsDelEstudio` ·
+  **440 columnas** vacío y cargado · **ningún encabezado** nombra la fuga quirúrgica · un estudio
+  **anterior** abre con los cuatro campos vacíos · y «Nuevo estudio» esconde los dos bloques.
+- **(g) LAS SUPERFICIES**, seis: informe y EN SUMA en los **tres estilos** · el cero medido niega y
+  el EN SUMA calla · las dos filas entran en las listas de la **vista 2D** · su control negativo
+  con válvula nativa · y las **dos** escenas del Laboratorio que cambian al leer del dueño.
+- **(h) LOS CONTROLES**, seis: la tricúspide y la pulmonar protésicas siguen «No graduada» · la
+  válvula nativa no nombra «paravalvular» · el cociente VTI del PRO1 · el borde del jet del PRO2 ·
+  el formulario vacío · y los tres asserts de arranque del Excel.
+
+### Trampas que este caso pagó al escribirse
+
+- **`__t.set` no dispara el `oninput`**, así que los **dos pintores nuevos** (`eaPvlPintar` y
+  `imPvlPintar`) se llaman a mano **al final** del helper de escena, después de los calculadores:
+  leen lo que ésos acaban de publicar.
+- **El censo del rótulo va sobre los `<label>` y `<option>` renderizados**, no sobre el fuente: el
+  comentario que explica el cambio **nombra** el texto viejo, que es la trampa que TC-476 y TC-479
+  ya pagaron.
+- ⚠️ **AL LIMPIAR LOS ACENTOS GRAVES DE UN RANGO DE LÍNEAS ME LLEVÉ EL QUE ABRE EL CUERPO DEL
+  CASO.** El síntoma fue que `check_backticks.py` señaló una línea **350 líneas después**, dentro
+  del runner, que es código normal. **El acento grave que FALTA se ve igual que uno que SOBRA.**

@@ -516,3 +516,25 @@ Lo que esa tanda movió en esta zona, en una línea cada uno:
 
 Cada corte con su tabla, su folio impreso y su hoja del PDF está en `docs/fuentes/FUENTES.md` →
 «La tanda VAL». Lo declarado y no tocado, en `docs/PENDIENTES.md` → VAL-1 a VAL-8.
+
+---
+
+## La FUGA PARAVALVULAR de la prótesis quirúrgica → `docs/mapa/protesis-fuga-pvl.md`
+
+La tanda **PRO-B** (2026-10-17) extendió el motor de la fuga de la TAVI —`eteTaviRPV`, con su
+**fuente inyectable**— a la **prótesis aórtica quirúrgica**, con los cuatro cortes de la **Tabla 8
+de la ASE 2024 (folio 23, hoja 22)** que ese motor ya aplicaba y **sin mover ninguno**: tres campos
+nuevos (`ea_pvl_origen`, `ea_pvl_ext`, `ea_pvl_vc_area`) y **dos prestados**, el ancho de vena
+contracta de `ia_vc` y el THP de `ia_pht`, cuyos cortes ya coincidían dígito por dígito.
+En la **mitral** no se movió un solo corte —los cuatro cuantitativos de la **Tabla 13 (folio 30)**
+ya eran los de `IM_CORTES`— y lo único que entró es `vm_pvl_origen`, el selector que marca que la
+regurgitación es paravalvular. **La Tabla 13 no publica extensión circunferencial, así que la
+mitral no la ofrece.**
+
+⚠️ **El reverso diastólico NO alimenta el motor de la quirúrgica**: `IA_VMAX_TD_SEVERA` sigue en
+20 cm/s de un solo nivel para la nativa y la SAVR (ESC/EACTS 2025) y la lectura en dos niveles es
+de la VARC-3, que es de TAVI.
+⚠️ **El Laboratorio tenía una segunda copia de los cuatro cortes** y divergía del dueño en dos
+cosas; desde el PRO-B3 le pregunta al dueño, y `RPV_L` ganó el rótulo «Sin RPV».
+
+Cobertura: **TC-497**, 51 condiciones. Fuentes: `docs/fuentes/FUENTES-protesis.md`.

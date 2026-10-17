@@ -1331,6 +1331,50 @@ async function main() {
     out.grupos.controles = g;
   }
 
+  /* ── 10 · ab ── A/B DEDICADO: el PDF en sus SEIS plantillas, el PPT y el PDF de auditoria,
+     GENERADOS DE VERDAD, con el formulario vacio y con escenario cargado. ─────────────────
+     El escenario cargado es AJENO a esta tanda: valvula aortica NATIVA, mitral reumatica,
+     diastolica, HFA-PEFF y las ocho lesiones. Si algo de esto se mueve es un defecto. */
+  if (corre('ab')) {
+    const g = {};
+    const POBL = [
+      { id: 1, nombre: 'P1', ci: '1', fecha_estudio: '2026-10-01',
+        campos: { ia_vc: '4', ia_pht: '300', em_gmedio: '8', it_grado: '2', fevi: '55' } },
+      { id: 2, nombre: 'P2', ci: '2', fecha_estudio: '2026-10-02',
+        campos: { va_morf: 'TAVI', ete_tavi_ext_circ: '15', ete_tavi_pro_tam: '25' } },
+      { id: 3, nombre: 'P3', ci: '3', fecha_estudio: '2026-10-03',
+        campos: { ete_tavi_flujo_rev: 'holo', ete_tavi_vel_tele: '25', ete_tavi_pro_tam: '23' } }
+    ];
+    const PLANT = ['clasico', 'moderno', 'minimalista', 'academico', 'compacto', 'elegante'];
+    /* VACIO */
+    await ev(`window.__P.nuevo()`);
+    g.vacio = { pdf: {}, excel: await ev(`window.__P.excelDOM()`),
+                inf: await ev(`window.__P.informe('estandar')`) };
+    for (const pl of PLANT) g.vacio.pdf[pl] = await ev(`window.__P.pdf('${pl}')`);
+    /* CARGADO, escena AJENA a esta tanda */
+    await ev(`window.__P.nuevo()`);
+    await ev(`window.__P.abrirValv()`);
+    await tipear('peso', '70'); await tipear('talla', '170');
+    await tipear('ia_vc', '4'); await tipear('ia_pht', '300');
+    await tipear('im_vc', '5');
+    await tipear('vmax_ao', '3.2'); await tipear('gmedio_ao', '25');
+    await tipear('vmax_it', '3.0');
+    await tipear('onda_e', '95'); await tipear('onda_a', '45');
+    await tipear('e_sep', '7'); await tipear('e_lat', '9');
+    await tipear('ai_vol', '45');
+    g.cargado = { pdf: {}, excel: await ev(`window.__P.excelDOM()`) };
+    for (const est of ['conciso', 'estandar', 'narrativo']) g.cargado['inf_' + est] = await ev(`window.__P.informe('${est}')`);
+    for (const pl of PLANT) g.cargado.pdf[pl] = await ev(`window.__P.pdf('${pl}')`);
+    g.cargado.grados = await ev(`window.__P.grados()`);
+    /* PPT estadistico y PDF de auditoria del Laboratorio, por sus generadores REALES. */
+    g.labPPT   = await ev(`window.__P.labPPT(${JSON.stringify(POBL)})`);
+    g.labAudit = await ev(`window.__P.labAudit(${JSON.stringify(POBL)})`);
+    /* El Excel de los TRES estudios de la poblacion, clave por clave. */
+    g.excelPobl = {};
+    for (const r of POBL) g.excelPobl['P' + r.id] = await ev(`window.__P.excelFila(${JSON.stringify(r.campos)})`);
+    out.grupos.ab = g;
+  }
+
   out.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
   if (out.md5Fin !== out.md5Ini) out.AVISO = 'EL ARCHIVO SE MOVIO DURANTE LA CORRIDA';
   console.log(JSON.stringify(out, null, 1));

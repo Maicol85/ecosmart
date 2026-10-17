@@ -3354,3 +3354,33 @@ los símbolos sueltos.
 | IM — onda E (apoyo) | `≥ 120` cm/s | **`> 120`** cm/s | ASE 2017 Tabla 8 folio 332 · ESC/EACTS 2025 Figura 10 folio 4672 | VAL4 | 17/10/2026 |
 | IM — cociente VTI, compuerta | se retira con IAo **severa** | se retira desde IAo **moderada** | ASE 2023, Key Points, folio 12 | VAL5 | 17/10/2026 |
 | IM — jet/AI (20 y 40 %) | declarado «sin fuente» | **ACC/AHA 2020, Tabla 17, folio e121**; el número NO cambia | ACC/AHA 2020 (Otto), hoja 50 | VAL6 | 17/10/2026 |
+
+---
+
+## La tanda PRO-B (2026-10-17) — la fuga paravalvular de la prótesis QUIRÚRGICA
+
+Lo verificado en el PDF original —la **Tabla 8 (folio 23, hoja 22)** y la **Tabla 13 (folio 30,
+hoja 29)** de la **ASE 2024**, fila por fila, con sus notas literales— vive en
+**`docs/fuentes/FUENTES-protesis.md`**, que es el registro de esta zona. Acá va sólo la tabla de
+cambios, que es la que se lee de corrido.
+
+⚠️ **EL TEXTO EXTRAÍDO DE LA ASE 2024 CODIFICA `≥` COMO `$` Y `≤` COMO `#`.** Quien la lea sin
+saberlo invierte **todos** los operadores. Regla de folio = **hoja + 1**, comprobada en el **pie
+impreso** (hoja 22 → «23», hoja 29 → «30»).
+
+### Cambios de evidencia — tanda PRO-B
+
+| dato | valor antes | valor ahora | fuente | commit | fecha |
+|---|---|---|---|---|---|
+| Rótulo del campo del reverso diastólico de la TAVI | «aorta **abdominal**» | «aorta **descendente**» | ASE 2024 T8 folio 23 + VARC-3 T16 folio 1846 | PRO-B2 | 17/10/2026 |
+| Fuga paravalvular de la prótesis aórtica **quirúrgica** | **no existía** | los cuatro cortes de la **Tabla 8** por el motor único | ASE 2024 T8 folio 23 | PRO-B3 | 17/10/2026 |
+| Laboratorio, fuga de la TAVI con reverso de 20 a 29 cm/s | **Severa** (segunda copia de los cortes) | **Moderada** — lee al dueño | VARC-3 T16 folio 1846 (vía PRO3) | PRO-B3 | 17/10/2026 |
+| Laboratorio, fuga de la TAVI con extensión circunferencial de 0 % | **Leve** | **Sin RPV** | criterio del motor | PRO-B3 | 17/10/2026 |
+| Origen de la regurgitación de la prótesis **mitral** | **no se registraba** | selector propio y una oración; **ningún corte movido** | ASE 2024 T13 folio 30 | PRO-B4 | 17/10/2026 |
+
+⚠️ **LA MITRAL NO OFRECE EXTENSIÓN CIRCUNFERENCIAL, Y ES DE LA FUENTE:** la **Tabla 13 no publica
+ese parámetro** —censada entera—, a diferencia de la Tabla 8 de la aórtica. Las dos guías que sí
+lo publican (ASE 2019 y VARC-3) son también de la aórtica.
+⚠️ **EL ANCHO DE VENA CONTRACTA DIFIERE ENTRE LA ASE 2024 Y LA VARC-3**: el borde leve/moderada
+está en **3 mm** en la primera y en **4 mm** en la segunda. Manda la ASE 2024, que es la más
+nueva, y es el que el motor aplica.

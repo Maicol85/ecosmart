@@ -216,3 +216,89 @@ dividida por la circunferencia del borde externo de la válvula.
 `IA_VMAX_TD_SEVERA = 20` cm/s de la ESC/EACTS 2025), la regla de «dos o más de cuatro» de la
 prótesis mitral, los cuatro criterios de la Tabla 11 con sus operadores, los otros cuatro
 parámetros de la fuga de la TAVI, el PPM, el valve-in-valve y el deterioro estructural.
+
+---
+
+## La tanda PRO-B (2026-10-17) — la fuga paravalvular de la prótesis QUIRÚRGICA
+
+**Las dos reglas de folio, comprobadas otra vez en el PIE IMPRESO** (no por aritmética):
+ASE 2024 **folio = hoja + 1** (hoja 22 → pie «23», hoja 29 → pie «30»).
+⚠️ Con el reemplazo `$`→`≥` y `#`→`≤`, que esta guía necesita siempre.
+
+### `aseProt2024` — Tabla 8, folio 23, hoja 22 · RE-VERIFICADA en el PDF original
+
+Los **cuatro cortes que el motor aplica**, leídos otra vez antes de extenderlo a la prótesis
+quirúrgica. **Ninguno se movió**:
+
+| parámetro | leve | moderada | severa |
+|---|---|---|---|
+| Circumferential extent of PVL, % (CD) | `<10` | `10-29` | `≥30` |
+| VC width, cm (CD) | `<0,3` | `0,3-0,6` | `>0,6` |
+| VC area, cm² (2D/3D CD) | `<0,10` | `0,10-0,29` | `≥0,30` |
+| Jet deceleration rate (PHT), msec (CW) | Slow (`>500`) | Variable (`200-500`) | Steep (`<200`) |
+
+Frases verificadas literales de esa tabla y sus notas:
+- el título dice **«prosthetic aortic valve regurgitation»**, sin abrir ramas por tipo de prótesis;
+- la nota `*` distingue, **en mecánicas Y en biológicas**, «immobile occluder (valvular
+  regurgitation)» de **«dehiscence or rocking (paravalvular regurgitation)»** — o sea que la tabla
+  cubre la prótesis **quirúrgica** y no sólo la percutánea;
+- la nota de la extensión circunferencial: «best not to be used alone but in combination with VC
+  width and/or area», que es exactamente la integración del motor;
+- la fila del reverso dice **«Diastolic flow reversal in the descending aorta (PW)»** y su columna
+  de severa es «Prominent, holodiastolic», **sin una sola cifra**.
+
+### `aseProt2024` — Tabla 13, folio 30, hoja 29 · RE-VERIFICADA en el PDF original
+
+| parámetro | leve | moderada | severa |
+|---|---|---|---|
+| VC width, cm | `<0,3` | `0,3-0,69` | `≥0,7` |
+| RVol, mL/beat | `<30` | `30-59` | `≥60` |
+| RF, % | `<30` | `30-49` | `≥50` |
+| EROA, cm² | `<0,20` | `0,20-0,39` | `≥0,40` |
+| Color flow jet area | Small, central (`<4 cm²` o `<20 %` del área de la AI) | Variable | Large central (`>8 cm²` o `>50 %`) |
+| Flow convergence | None or minimal | Intermediate | Large |
+| Jet density (CW) | Incomplete or faint | Dense | Dense |
+| Jet contour (CW) | Parabolic | Usually parabolic | Early peaking: triangular |
+| Pulmonary venous flow | Systolic dominance | Systolic blunting | Systolic flow reversal |
+
+⚠️ **LOS CUATRO CUANTITATIVOS Y EL JET SOBRE ÁREA AURICULAR COINCIDEN DÍGITO POR DÍGITO CON LOS
+QUE `IM_CORTES` YA APLICA**, así que la tanda **no movió un solo corte de la mitral**.
+⚠️ **ESA TABLA NO PUBLICA UN PARÁMETRO DE EXTENSIÓN CIRCUNFERENCIAL** —censada entera—, a
+diferencia de la Tabla 8. Por eso la mitral **no lo ofrece**: tomarlo prestado de la Tabla 8 o de
+la VARC-3 sería traerlo de una tabla de **otra válvula**.
+⚠️ **TRES PARÁMETROS DE ESA TABLA NO TIENEN CAMPO EN LA APP** —convergencia, densidad y contorno
+del chorro— y eso queda **declarado, no inventado**. Nota `††` verificada: «These quantitative
+parameters are less well validated than in native MR».
+
+### La diferencia entre la ASE 2024 y la VARC-3 en el ancho de vena contracta
+
+Colapsada a tres clases, la **extensión circunferencial** y el **área de vena contracta** de la
+VARC-3 (Tabla 16, folio 1846) **coinciden** con la Tabla 8; el **ancho de vena contracta NO**: la
+VARC-3 pone el borde leve/moderada en **4 mm** y la ASE 2024 en **3 mm**. **Manda la ASE 2024**,
+que es la más nueva, y es el que el motor aplica. Queda anotado para que mover ese número no deje
+el otro atrás.
+
+### El rótulo «aorta descendente»
+
+Las **dos** guías escriben el mismo territorio y **ninguna** dice abdominal:
+- **ASE 2024, Tabla 8, folio 23**: «Diastolic flow reversal in the **descending aorta** (PW)».
+- **VARC-3, Tabla 16, folio 1846**: «Diastolic flow reversal in **proximal descending** aorta
+  (PW Doppler)».
+
+---
+
+## Cambios de evidencia — tanda PRO-B (commits 1 a 5)
+
+| dato | valor antes | valor ahora | fuente | commit | fecha |
+|---|---|---|---|---|---|
+| Rótulo del campo del reverso diastólico de la TAVI | «Velocidad tele-diastólica **aorta abdominal** (cm/s)» | «Velocidad tele-diastólica **aorta descendente** (cm/s)» | ASE 2024 T8 folio 23 + VARC-3 T16 folio 1846 | PRO-B2 | 17/10/2026 |
+| Fuga paravalvular de la prótesis aórtica **quirúrgica** | **no existía**: ningún campo, ninguna frase, ningún veredicto | los cuatro cortes de la **Tabla 8** por el motor único, con tres campos nuevos y dos prestados | ASE 2024 T8 folio 23 (hoja 22) | PRO-B3 | 17/10/2026 |
+| Distribución de la fuga de la TAVI en el **Laboratorio**, reverso de 20 a 29 cm/s | **Severa** (segunda copia de los cortes, anterior al PRO3) | **Moderada** — lee al dueño | VARC-3 T16 folio 1846 (vía PRO3) | PRO-B3 | 17/10/2026 |
+| Distribución de la fuga de la TAVI en el **Laboratorio**, extensión circunferencial de 0 % | **Leve** | **Sin RPV** — el cero medido es ausencia, no gravedad | criterio del motor (`nula`) | PRO-B3 | 17/10/2026 |
+| Origen de la regurgitación de la prótesis **mitral** | **no se registraba**: el grado salía sin decir si era central o paravalvular | selector `vm_pvl_origen` y una oración propia; **ningún corte movido** | ASE 2024 T13 folio 30 (hoja 29) | PRO-B4 | 17/10/2026 |
+
+**Lo que NO se movió, y está medido:** los cuatro cortes de la Tabla 8 (el motor ya los aplicaba),
+los cuatro de la Tabla 13 (`IM_CORTES` ya los aplicaba), `IM_CORTES.jet_prot`, los dos bordes del
+PRO2, el cociente VTI del PRO1, el reverso del PRO3, `IA_VMAX_TD_SEVERA` (20 cm/s, un solo nivel,
+en nativa y en SAVR), el PPM, el valve-in-valve, y la tricúspide y la pulmonar protésicas, que
+siguen en «No graduada» hasta el PRO-C.
