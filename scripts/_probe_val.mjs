@@ -406,6 +406,9 @@ window.__P = {
     for (var i = 0; i < ids.length; i++) {
       var e = document.getElementById(ids[i]);
       if (!e) continue;
+      /* Se ABRE la pestania del candidato antes de medirlo: un campo detras de una puerta no
+         tiene geometria y la lista entera devolveria null sobre campos que existen. */
+      try { window.__P.abrirDe(ids[i]); } catch(x) {}
       var r = e.getBoundingClientRect();
       if (r.width >= 1 && r.height >= 1 && !e.readOnly) return ids[i];
     }
@@ -717,23 +720,32 @@ async function main() {
   /* ── (3) AVA AORTICO: los bordes 0,99 / 1,00 / 1,01 / 1,49 / 1,50 / 1,51 ─────────────────── */
   if (quiero('ava')) {
     const out = [];
-    /* El AVA por continuidad es PI*(d/20)^2 * VTI_TSVI / VTI_Ao. Con d = 20 mm el area del TSVI
-       es PI cm2 = 3,14159; con VTI TSVI = 20 cm el numerador es 62,832 y el AVA sale
-       62,832 / VTI_Ao. El VTI aortico se despeja para cada borde. */
+    /* El AVA por continuidad es PI*(d/20)^2 * VTI_TSVI / VTI_Ao, y el VTI aortico se despeja para
+       cada borde.
+       ⚠️ EL DIAMETRO DEL TSVI ES 19 mm Y NO 20, Y NO ES UN DETALLE: el DVI es AVA / area del
+       TSVI, asi que con d = 20 (area 3,1416) un AVA de 1,5 da un DVI de 0,477 y el criterio del
+       DVI vota MODERADA por su cuenta — la escena del borde de 1,5 medía el DVI y no el AVA, y
+       los dos lados daban «moderada» sobre un corte que SI se movio. Con d = 19 (area 2,8353) el
+       DVI queda en 0,53 (> 0,50) en los tres valores de esa punta y se ABSTIENE, asi que lo unico
+       que decide ahi es el AVA. En la punta de 1,0 el DVI si vota moderada, pero el AVA vota
+       severa y manda el peor: el borde separa igual. */
     const AVA = [0.99, 1.00, 1.01, 1.49, 1.50, 1.51];
+    const DTSVI = 19, VTITSVI = 20;
+    const ATSVI = Math.PI * Math.pow(DTSVI / 20, 2);
     const puerta = JSON.parse(await ev(`JSON.stringify({
       d: window.__P.puerta(['ea_dtsvi','diam_tsvi_ao','diam_tsvi']),
       i: window.__P.puerta(['itv_tsvi','ea_itvtsvi']) })`));
     for (const a of AVA) {
-      const vtiAo = (Math.PI * 1 * 20 / a).toFixed(2);
+      const vtiAo = (ATSVI * VTITSVI / a).toFixed(2);
       try {
         await reset();
-        await K.tipear(puerta.d, '20');
-        await K.tipear(puerta.i, '20');
+        await K.tipear(puerta.d, String(DTSVI));
+        await K.tipear(puerta.i, String(VTITSVI));
         await K.tipear('itv_ao', vtiAo);
         const r = await foto();
         const ava = await ev(`window.__P.val('ava_cont')`);
-        out.push({ ava_objetivo: a, vtiAo, ava_leido: ava, ...r });
+        const dvi = await ev(`window.__P.txt('ea-det-dvi')`);
+        out.push({ ava_objetivo: a, vtiAo, ava_leido: ava, dvi, ...r });
       } catch (e) { out.push({ ava_objetivo: a, abortada: e.message }); }
     }
     parcial('ava', out);

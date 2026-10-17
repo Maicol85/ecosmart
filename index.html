@@ -16979,7 +16979,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
             <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Parámetro</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Leve</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Moderada</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Severa</th></tr>
             <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">Vmax (m/s)</td><td style="padding:5px 8px;text-align:center;">2.0–2.9</td><td style="padding:5px 8px;text-align:center;">3.0–3.9</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">≥4.0</td></tr>
             <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">Gmedio (mmHg)</td><td style="padding:5px 8px;text-align:center;">&lt;20</td><td style="padding:5px 8px;text-align:center;">20–39</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">≥40</td></tr>
-            <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">AVA (cm²)</td><td style="padding:5px 8px;text-align:center;">&gt;1.5</td><td style="padding:5px 8px;text-align:center;">&gt;1.0–1.49</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">&le;1.0</td></tr>
+            <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">AVA (cm²)</td><td style="padding:5px 8px;text-align:center;">&gt;1.5</td><td style="padding:5px 8px;text-align:center;">&gt;1.0 a &le;1.5</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">&le;1.0</td></tr>
             <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">AVAi (cm²/m²)</td><td style="padding:5px 8px;text-align:center;"></td><td style="padding:5px 8px;text-align:center;"></td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">&lt;0.6</td></tr>
             <tr><td style="padding:5px 8px;color:var(--text2);">DVI</td><td style="padding:5px 8px;text-align:center;"></td><td style="padding:5px 8px;text-align:center;"></td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">&lt;0.25</td></tr>
           </table>
@@ -21103,7 +21103,30 @@ window.UMBRAL_PSAP_ELEVADA = UMBRAL_PSAP_ELEVADA;
    la quinta. Todos derivan hoy de esta constante.
    ⚠️ CAMBIA LO QUE IMPRIME UN INFORME: el mismo estudio reimpreso antes y después de este commit
    puede decir «severa» donde decía «moderada». Es intencional y coincide con la guía. */
-const AVA_SEVERA_MAX = 1.0;   // AVA ≤ 1.0 → severa;  1.0 < AVA < 1.5 → moderada
+const AVA_SEVERA_MAX = 1.0;   // AVA ≤ 1.0 → severa;  1.0 < AVA ≤ 1.5 → moderada
+/* ══ EL TECHO DE LA BANDA MODERADA DEL AVA — 1,5 cm² INCLUSIVE (VAL2, 2026-10-17) ═════════════
+   DECISIÓN DE MAICOL. Hasta hoy el 1,50 exacto salía «sin estenosis»: `avaEsModerada` cortaba con
+   `< 1.5` y la cascada de `eaGradoCalculado` entraba a `'sin'` con `>= 1.5`. Las DOS guías
+   verificadas ponen ese valor en la banda MODERADA:
+     · **EAE/ASE 2009, Tabla 3, folio 10** (hoja 10; folio comprobado en el encabezado impreso,
+       «10 Baumgartner et al»; la tabla es un bitmap y se leyó RENDERIZANDO la página): fila
+       «AVA (cm²)» → Mild `>1.5` · Moderate `1.0–1.5` · Severe `<1.0`.
+     · **ESC/EACTS 2025, folio 4671** (hoja 37), nota ^c de la Recommendation Table 6: «Defined as
+       an AVA of **1.0–1.5 cm²** (or mean aortic gradient of 25–40 mmHg) in normal-flow
+       conditions», que es su definición de estenosis aórtica MODERADA. La misma nota se repite en
+       el folio 4690 (hoja 56).
+   Las dos escriben el rango con guión, o sea con los DOS extremos incluidos: el 1,5 es moderada y
+   lo «leve» empieza estrictamente por encima.
+   ⚠️ EL BORDE DE 1,0 SE VERIFICÓ Y **NO SE TOCÓ** (lo pedía la orden). Ahí las dos guías se
+   contradicen: la EAE/ASE 2009 escribe severa `<1.0` —o sea el 1,0 exacto sería MODERADA— y la
+   ESC/EACTS 2025 escribe «AVA ≤1.0 cm²» para la estenosis severa (folio 4670, hoja 36, y folio
+   4663). La app aplica `<= 1.0` → severa, que es lo que dice la guía MÁS NUEVA y además el lado
+   que no suaviza. Queda declarado en `docs/fuentes/FUENTES.md` y en `docs/PENDIENTES.md`.
+   ⚠️ UN SOLO DUEÑO DEL 1,5: `EA_BANDAS.avaSinMin` se DERIVA de esta constante y no la vuelve a
+   escribir, así que el cuadro de referencias, el badge y la cascada no se pueden separar. Se
+   declara acá y no en `EA_BANDAS` porque `avaEsModerada` vive ~15.000 líneas antes que esa tabla
+   y un `const` nombrado desde arriba caería en su zona muerta. */
+const AVA_MOD_MAX = 1.5;      // 1.0 < AVA ≤ 1.5 → moderada;  AVA > 1.5 → no gradúa
 /* Velocidad TELEDIASTÓLICA del flujo reverso en la aorta descendente, insuficiencia aórtica.
    ESC/EACTS 2025, Figura 4, folio 4659 — recuadro «Criteria for severe AR», viñeta
    «Holodiastolic flow reversal in descending aorta (EDV ≥20 cm/s)». Leída sobre el PDF inglés
@@ -21149,11 +21172,13 @@ function avaEsModerada(ava) {
   const n = _avaNum(ava);
   /* `>` y no `>=`: las dos bandas se mueven JUNTAS o el 1,00 cae en las dos a la vez —que es
      exactamente el defecto que la unificación anterior vino a cerrar, con los rótulos
-     contradiciéndose en la misma pantalla—. */
-  return n !== null && n > AVA_SEVERA_MAX && n < 1.5;
+     contradiciéndose en la misma pantalla—.
+     ⚠️ EL TECHO PASA A `<=` EL 2026-10-17 (VAL2): el 1,50 exacto es MODERADA. Ver `AVA_MOD_MAX`. */
+  return n !== null && n > AVA_SEVERA_MAX && n <= AVA_MOD_MAX;
 }
 function avaEsValida(ava) { return _avaNum(ava) !== null; }
 window.avaEsModerada = avaEsModerada; window.avaEsValida = avaEsValida;
+window.AVA_MOD_MAX = AVA_MOD_MAX;
 window.AVA_SEVERA_MAX = AVA_SEVERA_MAX; window.avaEsSevera = avaEsSevera;
 
 /* ── Estenosis MITRAL: una sola escuela ────────────────────────────────────────────────
@@ -23573,7 +23598,10 @@ function cxCont() {
   const ava = (Math.PI * ((d / 10 / 2) ** 2) * vtitsvi) / vtiao;   // DTSVI mm → cm
   let cls, txt;
   if (ava >= 1.5) { cls = 'green'; txt = 'Sin/leve (≥1.5)'; }
-  else if (avaEsModerada(ava)) { cls = 'yellow'; txt = 'Moderada (>' + AVA_SEVERA_MAX.toFixed(1) + '–1.49)'; }
+  /* ⚠️ EL RÓTULO SE DERIVA DE `AVA_MOD_MAX` Y YA NO DICE «1.49» (VAL2, 2026-10-17): ese 1,49
+     era un número que ninguna guía escribe —el techo es 1,5 INCLUSIVE— y además quedaba fuera de
+     sincronía con el predicado de al lado. */
+  else if (avaEsModerada(ava)) { cls = 'yellow'; txt = 'Moderada (>' + AVA_SEVERA_MAX.toFixed(1) + ' a ≤' + AVA_MOD_MAX.toFixed(1) + ')'; }
   else if (avaEsSevera(ava)) { cls = 'red'; txt = 'Severa (≤' + AVA_SEVERA_MAX.toFixed(1) + ')'; }
   else { cls = 'gray'; txt = 'no valuable — revisá los insumos'; }   // ver nota en calcAo
   el.innerHTML = ava.toFixed(2) + ' cm² ' + badge(cls, txt);
@@ -34237,7 +34265,9 @@ function calcEADetalle() {
          · «AVA no valuable» es el fail-closed del AVA que redondea a 0, que ADEMAS retira el
            grado. Esa abstencion se conserva tal cual: lo que la define es la banda del AVA por
            continuidad y no el grado global, porque es la validez de ESTE numero lo que falla. */
-    const _avaNoValuable = !(avaR >= 1.5) && !avaEsModerada(avaR) && !avaEsSevera(avaR);
+    /* ⚠️ `> AVA_MOD_MAX` Y NO `>= 1.5` (VAL2): con 1,50 exacto hoy hay grado —moderada—, así
+       que seguir llamándolo «no valuable» por ese lado dejaría la rama contradiciendo al dueño. */
+    const _avaNoValuable = !(avaR > AVA_MOD_MAX) && !avaEsModerada(avaR) && !avaEsSevera(avaR);
     if (_avaNoValuable) gradoStr = null;
     sev   = gradoStr ? (EA_GRADO_LBL[gradoStr] || gradoStr) : 'AVA no valuable';
     color = gradoStr ? (EA_GRADO_COLOR[gradoStr] || 'var(--text2)') : 'var(--text2)';
@@ -36121,7 +36151,7 @@ function calcAo() {
        abrir un XSS por el camino de un aviso de unidades. */
     if (_avaDud) sev = badge('gray', 'AVA no graduable — fuera de rango: ' + _critEsc(_fueraLista.join(' · ')) + ' — verificar la unidad de la medición');
     else if (PF(ava) >= 1.5) sev = badge('green', 'Sin estenosis / leve (≥1.5cm²)');
-    else if (avaEsModerada(PF(ava))) sev = badge('yellow', 'Moderada (>' + AVA_SEVERA_MAX.toFixed(1) + '-1.49cm²)');
+    else if (avaEsModerada(PF(ava))) sev = badge('yellow', 'Moderada (>' + AVA_SEVERA_MAX.toFixed(1) + ' a ≤' + AVA_MOD_MAX.toFixed(1) + 'cm²)');
     else if (avaEsSevera(PF(ava))) sev = badge('red', 'Severa (≤' + AVA_SEVERA_MAX.toFixed(1) + 'cm²)');
     /* El `else` incondicional mandaba a «Severa» todo AVA <= 0: con un TSVI tipeado 0,5 el
        badge salía rojo «Severa» al lado de un AVA de 0.00, mientras sugerirSeveridadEA —dos
@@ -36279,7 +36309,8 @@ function calcAo() {
    tocar contenido clínico, que es decisión de Maicol. La consecuencia es la deseada: el gradiente
    puede AGRAVAR el grado y nunca puede suavizarlo, que es el lado seguro de la regla del peor.
 
-   ⚠️ UN AVA ≥1,5 VOTA 'sin' Y NO 'leve'. Las dos escrituras existían y discrepaban: `calcEADetalle`
+   ⚠️ UN AVA >1,5 VOTA 'sin' Y NO 'leve'. (Decía «≥1,5» hasta el 2026-10-17: desde VAL2 el 1,50
+   exacto es MODERADA y la banda de arriba arranca estrictamente por encima — ver `AVA_MOD_MAX`.) Las dos escrituras existían y discrepaban: `calcEADetalle`
    ya usaba 'sin' con el motivo escrito —«la pantalla decía Sin estenosis / leve pero lo que bajaba
    al `<select>` era EAo leve sobre una válvula con área normal»— y `sugerirSeveridadEA` seguía
    escribiendo 'leve'. Se adopta el que el propio archivo documenta como el arreglo. En la regla del
@@ -36369,7 +36400,11 @@ const EA_BANDAS = Object.freeze({
     Object.freeze({ bajo: 4.0,      grado: 'moderada' }),
     Object.freeze({ bajo: Infinity, grado: 'severa' })
   ]),
-  avaSinMin: 1.5,
+  /* ⚠️ SE DERIVA DE `AVA_MOD_MAX` DESDE EL 2026-10-17 (VAL2) y ya no es un literal: el techo de
+     la banda moderada lo decide `avaEsModerada`, y dos copias del mismo 1,5 es como el cuadro de
+     referencias y la cascada empiezan a decir cosas distintas del mismo número. El operador de la
+     cascada pasó a `>` estricto: con 1,50 exacto el grado es MODERADA y no «sin estenosis». */
+  avaSinMin: AVA_MOD_MAX,
   /* Tabla 3 de la EAE/ASE 2009, p. 10, columna AHA/ACC: moderada `20-40`. El borde inferior es
      `>=` por el mismo argumento que el severo: la banda de abajo no vota, así que el 20 exacto
      tiene que caer en alguna y la que lo reclama es ésta. */
@@ -36537,7 +36572,8 @@ function eaGradoCalculado() {
     : null;
   let gAva = null;
   if (ava !== null) {
-    if (ava >= EA_BANDAS.avaSinMin) gAva = 'sin';
+    /* ⚠️ `>` Y NO `>=` DESDE EL 2026-10-17 (VAL2): el 1,50 exacto cae en MODERADA. */
+    if (ava > EA_BANDAS.avaSinMin) gAva = 'sin';
     else if (avaEsModerada(ava)) gAva = 'moderada';
     else if (avaEsSevera(ava))   gAva = 'severa';
   }
@@ -36786,7 +36822,7 @@ function _eaBadgeAuto(R) {
   if (R.dvi  != null)    partes.push('DVI ' + R.dvi.toFixed(2) + ' (' +
     (R.gDvi ? EA_GRADO_TXT[R.gDvi] : 'no gradúa por encima de ' + EA_DVI_MOD_MAX.toFixed(2)) + ')');
   if (R.plan != null)    partes.push('AVA planimetría ' + R.plan.toFixed(2) + ' cm² (' +
-    (R.gPlan ? EA_GRADO_TXT[R.gPlan] : 'no gradúa por encima de ' + EA_BANDAS.avaSinMin.toFixed(1)) + ')');
+    (R.gPlan ? EA_GRADO_TXT[R.gPlan] : 'no gradúa por encima de ' + EA_BANDAS.avaSinMin.toFixed(1)) + ')');  // VAL2: «por encima de 1,5» sigue siendo cierto con el techo inclusive
   if (R.avai != null)    partes.push('AVA indexada ' + R.avai.toFixed(2) + ' cm²/m² (' +
     (R.gAvai ? EA_GRADO_TXT[R.gAvai] : 'no gradúa por encima de ' + EA_AVAI_MOD_MAX.toFixed(2)) + ')');
   return 'Grado calculado: ' + _eaCap(EA_GRADO_TXT[R.grado]) + ' — el peor de los criterios cargados, por ' +
@@ -42285,8 +42321,11 @@ function aoRefPintar() {
     const ava = _avaNum(avaRaw);
     const sinMin = EA_BANDAS.avaSinMin, sevMax = AVA_SEVERA_MAX;
     let g = null, r = '';
-    if (ava >= sinMin)               { g = 'sin';      r = '≥' + _eaNum(sinMin) + ' cm²'; }
-    else if (avaEsModerada(ava))     { g = 'moderada'; r = '>' + _eaNum(sevMax) + ' a <' + _eaNum(sinMin) + ' cm²'; }
+    /* ⚠️ LOS DOS RÓTULOS Y EL OPERADOR SE MUEVEN JUNTOS (VAL2, 2026-10-17): el 1,50 exacto es
+       moderada, así que la banda de arriba arranca ESTRICTAMENTE por encima y la de moderada lo
+       incluye. Con una sola de las dos mitades el 1,5 caería en las dos o en ninguna. */
+    if (ava > sinMin)                { g = 'sin';      r = '>' + _eaNum(sinMin) + ' cm²'; }
+    else if (avaEsModerada(ava))     { g = 'moderada'; r = '>' + _eaNum(sevMax) + ' a ≤' + _eaNum(sinMin) + ' cm²'; }
     else if (avaEsSevera(ava))       { g = 'severa';   r = '≤' + _eaNum(sevMax) + ' cm²'; }
     set('ao-ref-ava', '<b>' + ava.toFixed(2) + ' cm²</b> ' +
       (g ? grado(g) + gris('(' + r + ')') : gris('no valuable')));
@@ -42307,7 +42346,7 @@ function aoRefPintar() {
   };
   if (_Rref) {
     refCrit('ao-ref-plan', _Rref.plan, 'cm²', _Rref.gPlan,
-      'no gradúa (>' + _eaNum(EA_BANDAS.avaSinMin) + ' cm²)', 2);
+      'no gradúa (>' + _eaNum(EA_BANDAS.avaSinMin) + ' cm²)', 2);  // VAL2: el >1,5 sigue sin graduar
     refCrit('ao-ref-avai', _Rref.avai, 'cm²/m²', _Rref.gAvai,
       'no gradúa (>' + EA_AVAI_MOD_MAX.toFixed(2) + ' cm²/m²)', 2);
     refCrit('ao-ref-dvi', _Rref.dvi, '', _Rref.gDvi,
@@ -56647,7 +56686,9 @@ function generarPDFReal(_aj) {
       {lbl:'Ø TSVI',    ref:'', val:vPdf('diam_tsvi',' mm')},
     ]},
     {titulo:'AVA / GC / IC', items:[
-      {lbl:'AVA',         ref:'(>1.5 / >' + AVA_SEVERA_MAX.toFixed(1) + '–1.49 / ≤' + AVA_SEVERA_MAX.toFixed(1) + ') cm²', val:avaC?avaC+' cm2':null},
+      /* ⚠️ LA REFERENCIA IMPRESA SE MUEVE CON EL CORTE (VAL2, 2026-10-17): el techo de la banda
+         moderada es 1,5 INCLUSIVE, así que «>1.0–1.49» era el rango de ayer en un papel FIRMADO. */
+      {lbl:'AVA',         ref:'(>' + AVA_MOD_MAX.toFixed(1) + ' / >' + AVA_SEVERA_MAX.toFixed(1) + ' a ≤' + AVA_MOD_MAX.toFixed(1) + ' / ≤' + AVA_SEVERA_MAX.toFixed(1) + ') cm²', val:avaC?avaC+' cm2':null},
       {lbl:'AVA idx',     ref:'<0.6 cm2/m2', val:avaIdx},
       {lbl:'Vol. sistól.',ref:'55-100 ml',    val:vPdf('vs_calc',' ml')},
       /* VLI: el informe lo cita para decidir entre «paradojal» y «flujo normal», así que el
@@ -56759,7 +56800,7 @@ function generarPDFReal(_aj) {
          MEDIDOS, y son justamente los que sostienen el veredicto protésico de la Tabla 5 — callar
          el grado no es callar la medición. Por eso no se endurece `eaReal`, que gatea las cuatro. */
       {lbl:'EA grado',      ref:'', val:(eaReal && !eaGradoNoPublica(sv('va_morf')))?_cap(sv('ea_grado')):null},
-      {lbl:'AVA',           ref:'(>1.5 / >' + AVA_SEVERA_MAX.toFixed(1) + '–1.49 / ≤' + AVA_SEVERA_MAX.toFixed(1) + ') cm²', val:eaReal&&avaC?avaC+' cm2':null},
+      {lbl:'AVA',           ref:'(>' + AVA_MOD_MAX.toFixed(1) + ' / >' + AVA_SEVERA_MAX.toFixed(1) + ' a ≤' + AVA_MOD_MAX.toFixed(1) + ' / ≤' + AVA_SEVERA_MAX.toFixed(1) + ') cm²', val:eaReal&&avaC?avaC+' cm2':null},
       /* Mismas bandas que las filas del bloque de gradientes: sin esto, un mismo PDF decia
          «V. máx Ao: fuera de rango» arriba y «V. max: 280 m/s» dos bloques mas abajo. */
       /* ⚠️ EL BORDE DEL RANGO SEVERO SALE DE `EA_CRIT`, Y EL OPERADOR ERA EL EQUIVOCADO. El papel
