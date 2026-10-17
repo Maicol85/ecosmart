@@ -7429,7 +7429,7 @@ window.cerrarSesionReal = cerrarSesionReal;
               <div class="calc-row"><span class="calc-lbl">THP &mdash; tiempo de hemipresi&oacute;n</span><span class="calc-val" id="vt-prot-thp">&mdash;</span></div>
               <div class="calc-row"><span class="calc-lbl">AEO por continuidad</span><span class="calc-val" id="vt-prot-aeo">&mdash;</span></div>
               <div class="calc-row"><span class="calc-lbl">DVI &mdash; VTI pr&oacute;tesis / VTI TSVI</span><span class="calc-val" id="vt-prot-dvi">&mdash;</span></div>
-              <div style="font-size:10px;color:var(--text2);line-height:1.45;margin:2px 0 4px;">Criterios: ASE 2024, Tabla 19. La estenosis prot&eacute;sica tricusp&iacute;dea no se grad&uacute;a.</div>
+              <div style="font-size:10px;color:var(--text2);line-height:1.45;margin:2px 0 4px;">Criterios: ASE 2024, Tabla 19. La estenosis prot&eacute;sica tricusp&iacute;dea no se grad&uacute;a. La gu&iacute;a sugiere integrar varios par&aacute;metros y no fija una regla num&eacute;rica: EcoSmart considera sugestivos de estenosis dos o m&aacute;s criterios positivos; con uno solo lo informa como hallazgo aislado. La decisi&oacute;n final es del m&eacute;dico.</div>
               <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Obstrucci&oacute;n prot&eacute;sica</span><span class="calc-val" id="vt-prot-obstr">&mdash;</span></div>
             </div>
           </div>
@@ -44723,10 +44723,14 @@ window.ET_AVT_SIGNIF = ET_AVT_SIGNIF;
 
    ⚠️ LA TABLA NO PUBLICA REGLA DE INTEGRACIÓN —su título dice «parameters suggestive of», y no
    dice cuántos hacen falta—, igual que la Tabla 11 de la mitral (ver `Z1` en
-   `docs/PENDIENTES.md`). Acá el veredicto es un **OR**: basta UNO. Es la regla que esta app ya
-   aplica a todos sus umbrales únicos —la estenosis tricuspídea NATIVA es un `some` de sus tres
-   criterios desde que es binaria— y es la que pidió Maicol para esta tanda. El veredicto NOMBRA
-   los criterios positivos con su valor, así que el médico ve cuántos lo sostienen.
+   `docs/PENDIENTES.md`).
+   ⚠️ DESDE EL CORTOS4 (2026-10-17) HACEN FALTA **DOS O MAS** POSITIVOS, Y ES DECISION DE MAICOL.
+   El PRO-C aplicaba un **OR** —basta uno—, que es la regla de los umbrales unicos de esta app;
+   con un solo criterio positivo entre cinco, el informe FIRMADO afirmaba «hallazgos sugestivos de
+   estenosis» sobre un hallazgo que la propia tabla llama «suggestive», no diagnostico. Hoy el
+   umbral es el MISMO que la protesis mitral ya usa (`VM_PROT_OBSTR_MIN`), y con UNO solo el
+   veredicto es `aislado`: la capsula lo nombra con su valor y **no sube al papel**. El veredicto
+   NOMBRA los criterios positivos con su valor, así que el médico ve cuántos lo sostienen.
 
    ⚠️ TRES PARÁMETROS DE LA TABLA 21 Y UNO DE LA 19 NO ENTRAN, y se declaran en vez de
    inventarse: el flujo de vena hepática (Tabla 21) no tiene campo —orden expresa de no
@@ -44756,6 +44760,13 @@ const VT_PROT_T19 = Object.freeze({
                          nombre: 'DVI', campo: 'vt_dvi' })
 });
 const VT_PROT_ORDEN = Object.freeze(['evmax', 'gmed', 'thp', 'aeo', 'dvi']);
+/* Criterio de EcoSmart, decidido por Maicol el 2026-10-17 (CORTOS4): DOS o mas positivos entre
+   los MEDIDOS para publicar «hallazgos sugestivos de estenosis». Es el mismo numero y el mismo
+   argumento que `VM_PROT_OBSTR_MIN` de la protesis mitral, y por eso se escribe al lado de su
+   tabla y no dentro de la funcion: un umbral suelto en el cuerpo de un calculo es el que la
+   proxima lectura no encuentra. La Tabla 19 no lo publica — ver el comentario de arriba. */
+const VT_PROT_OBSTR_MIN = 2;
+window.VT_PROT_OBSTR_MIN = VT_PROT_OBSTR_MIN;
 /* Bandas de plausibilidad de los DOS campos que esta tanda hace votar y que no tenían una. Las
    de `et_gmedio` y `et_thp` viven en `ET_CRIT` y NO se copian acá: el rango de un campo tiene un
    solo dueño, y los dos tienen además el papel de criterio nativo.
@@ -44840,8 +44851,14 @@ function vtProtObstr(){
     if (positivo) R.pos.push(k);
   });
   /* `null` sin ningún criterio medido —abstenerse— y no «sin criterios», que afirmaría que se
-     buscó. Es el contrato de `calcular()` del resto del archivo. */
-  R.obstr = R.pos.length ? 'estenosis' : (R.med.length ? 'sin' : null);
+     buscó. Es el contrato de `calcular()` del resto del archivo.
+     ⚠️ CUATRO ESTADOS Y NO TRES (CORTOS4): `estenosis` con dos o mas positivos, `aislado` con UNO
+     —que la capsula nombra y el informe NO publica—, `sin` con criterios medidos y ninguno
+     positivo, y `null` sin ninguno medido. El informe pregunta por `'estenosis'` y nada mas, asi
+     que la frase del papel se apaga sola con un solo positivo: no hubo que tocar el emisor. */
+  R.obstr = (R.pos.length >= VT_PROT_OBSTR_MIN) ? 'estenosis'
+          : (R.pos.length === 1) ? 'aislado'
+          : (R.med.length ? 'sin' : null);
   return R;
 }
 window.vtProtObstr = vtProtObstr;
@@ -44868,6 +44885,11 @@ window.vtProtObstrCrit = vtProtObstrCrit;
    mitral ya usa para su obstrucción. */
 const VT_PROT_OBSTR_TXT = 'hallazgos sugestivos de estenosis';
 window.VT_PROT_OBSTR_TXT = VT_PROT_OBSTR_TXT;
+/* El estado de UN solo criterio positivo (CORTOS4). Vive en su propia constante por lo mismo que
+   el de arriba, aunque hoy lo lea una sola superficie: el dia que el informe quiera decir algo de
+   este estado, la palabra ya tiene un dueño. */
+const VT_PROT_AISLADO_TXT = 'hallazgo aislado, sin veredicto';
+window.VT_PROT_AISLADO_TXT = VT_PROT_AISLADO_TXT;
 
 /* Sólo PINTA. El corte evaluación/pintor es el de `vmProtEOA`/`vmProtEOAPintar`.
    ⚠️ EL RÓTULO DE LA BANDA SE DERIVA DE LA TABLA y no se teclea: un rango escrito a mano al lado
@@ -44898,6 +44920,10 @@ function vtProtObstrPintar(){
   put('vt-prot-obstr',
     R.obstr === 'estenosis'
       ? VT_PROT_OBSTR_TXT + '  (' + _cr.join(', ') + ' · ' + R.pos.length + ' de ' + _nMedTxt + ')'
+    /* UN solo positivo: se NOMBRA y no se concluye. El texto no lleva la palabra «estenosis» en
+       una afirmacion —dice que el hallazgo esta aislado— y es el unico estado nuevo del CORTOS4. */
+    : R.obstr === 'aislado'
+      ? VT_PROT_AISLADO_TXT + '  (' + _cr.join(', ') + ' · 1 de ' + _nMedTxt + ')'
     : R.obstr === 'sin'
       ? 'sin criterios de estenosis  (' + _nMedTxt + (_nMed === 1 ? ' medido' : ' medidos') + ')'
       : GUION + '  (sin criterios medidos' + (R.fuera.length ? ' · ' + R.fuera.join(', ') + ' fuera de rango' : '') + ')');
