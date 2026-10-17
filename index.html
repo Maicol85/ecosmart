@@ -6995,9 +6995,28 @@ window.cerrarSesionReal = cerrarSesionReal;
            la insuficiencia ni de la estenosis, es de la PRÓTESIS, y lo gobierna `valvProtSync` por
            la morfología —no las pastillas—. Metido en una de las dos columnas habría quedado
            colgando de un botón que no lo manda. -->
-      <div id="bloque-prot-vt" class="fg" style="display:none;margin-bottom:8px;">
-        <label>DVI <span style="font-weight:400;color:var(--text2);font-size:10px;">— índice de velocidad Doppler</span></label>
-        <input type="number" id="vt_dvi" step="0.01" placeholder="—">
+      <!-- ⚠️ PRO-C1 (2026-10-17): EL BLOQUE PASA DE UN CAMPO A DOS, y el segundo es la
+           VELOCIDAD PICO DE E de la entrada tricuspídea, que la **Tabla 19 de la ASE 2024**
+           (folio 36, hoja 35) pide y la app no tenía. El censo del PRO ya lo había declarado:
+           `it_vmax_cw` es la Vmax de la REGURGITACIÓN por Doppler continuo —otra medición, con
+           otro significado y otro rango—, así que reusarla habría hecho votar el jet de la
+           insuficiencia como si fuera el flujo de entrada.
+           ⚠️ VA ACÁ Y NO EN LA COLUMNA DE LA ESTENOSIS, por el mismo argumento con el que el DVI
+           vive en este bloque: es un dato de la PRÓTESIS y lo gobierna `valvProtSync` por la
+           morfología, no la pastilla. Con morfología nativa el bloque entero está en
+           `display:none`, así que no desplaza ningún campo del camino nativo.
+           ⚠️ EL CONTENEDOR PASA DE `.fg` A `.grid-2` y conserva su `display:none` en línea: `ver()`
+           de `valvProtSync` escribe `''`, que cae al display de la clase. Es el mismo patrón que
+           `#bloque-prot-va`, que ya es un `grid-4` gobernado por esa función. -->
+      <div id="bloque-prot-vt" class="grid-2" style="display:none;margin-bottom:8px;">
+        <div class="fg">
+          <label>DVI <span style="font-weight:400;color:var(--text2);font-size:10px;">— índice de velocidad Doppler</span></label>
+          <input type="number" id="vt_dvi" step="0.01" placeholder="—">
+        </div>
+        <div class="fg">
+          <label>Velocidad pico de E tricuspídea (m/s) <span style="font-weight:400;color:var(--text2);font-size:10px;">— entrada, no el jet de IT</span></label>
+          <input type="number" id="et_e_vmax" step="0.1" placeholder="m/s">
+        </div>
       </div>
       <!-- ═══ LAS DOS LESIONES, UNA BAJO CADA BOTÓN (2026-10-04) ═════════════════════════════════
            Insuficiencia a la IZQUIERDA (bajo su botón) y estenosis a la DERECHA, apiladas por
@@ -7421,10 +7440,45 @@ window.cerrarSesionReal = cerrarSesionReal;
         <select id="vp_morf" onchange="vpSync();valvProtSync()"><option>Normal</option><option>Displásica (congénita)</option><option>Reumática</option><option>Carcinoide</option><option value="Prótesis biológica">Prótesis biológica</option><option value="Prótesis mecánica">Prótesis mecánica</option><option>No especificada</option></select>
       </div>
       </div>
-      <!-- Campos de PRÓTESIS pulmonar (Fase 1). -->
-      <div id="bloque-prot-vp" class="fg" style="display:none;">
-        <label>DVI <span style="font-weight:400;color:var(--text2);font-size:10px;">— índice de velocidad Doppler</span></label>
-        <input type="number" id="vp_dvi" step="0.01" placeholder="—">
+      <!-- Campos de PRÓTESIS pulmonar (Fase 1), con los DOS que agrega el PRO-C1 (2026-10-17).
+           ⚠️ EL GRADIENTE MEDIO NO ES EL MÁXIMO, y por eso hace falta un campo. La app tenía
+           `ep_vmax` y `ep_gmax` —el gradiente MÁXIMO, derivado de 4·V² por `calcVP`— y la
+           **Tabla 15 de la ASE 2024** (folio 33, hoja 32) gradúa la obstrucción protesica por el
+           gradiente MEDIO. Derivarlo del máximo no se puede: el medio es la integral del
+           gradiente instantáneo sobre la sístole y depende de la forma de la curva, no del pico.
+           ⚠️ EL TIPO DE PRÓTESIS ES EL QUE ELIGE LA COLUMNA DE CORTES, y esa columna no se puede
+           deducir de `vp_morf`: sus dos opciones protésicas son «biológica» y «mecánica», y la
+           Tabla 15 reparte sus cortes entre **bioprótesis** y **homoinjerto**, que son las dos
+           biológicas. Sin este campo habría que elegir una de las dos columnas por el médico.
+           La opción 0 es «—» y es el valor de fábrica: un desplegable cuya opción 0 fuera un
+           hallazgo publicaría una afirmación que nadie hizo —el defecto de los tres selects del
+           TEER que este archivo ya pagó—.
+           ⚠️ «Percutánea» ESTÁ EN LA LISTA Y NO GRADÚA. La Tabla 15 publica dos columnas y
+           ninguna es la de una válvula percutánea (Melody, SAPIEN, Harmony, que la Tabla 22 del
+           mismo documento enumera como intervenciones percutáneas): ofrecerla es lo que deja al
+           médico DECLARARLA y a la app abstenerse nombrando el motivo, en vez de aplicarle la
+           columna de otra prótesis.
+           ⚠️ LOS TRES CAMPOS NO TIENEN COLUMNA DE EXCEL —440, medido— y SÍ viajan con el estudio:
+           sus id llevan guión BAJO, así que `guardarInforme` los toma y `_noEsDelEstudio` no los
+           excluye. Es el mismo reparto que los cuatro campos de la fuga paravalvular del PRO-B. -->
+      <div id="bloque-prot-vp" class="grid-3" style="display:none;margin-bottom:8px;">
+        <div class="fg">
+          <label>DVI <span style="font-weight:400;color:var(--text2);font-size:10px;">— índice de velocidad Doppler</span></label>
+          <input type="number" id="vp_dvi" step="0.01" placeholder="—">
+        </div>
+        <div class="fg">
+          <label>Tipo de prótesis pulmonar</label>
+          <select id="vp_tipo_prot">
+            <option value="">&mdash;</option>
+            <option value="bio">Bioprótesis</option>
+            <option value="homo">Homoinjerto</option>
+            <option value="perc">Percutánea</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Gradiente medio pulmonar (mmHg)</label>
+          <input type="number" id="ep_gmedio" step="0.1" placeholder="mmHg">
+        </div>
       </div>
       <!-- ═══ FILA DE PASTILLAS (v2 E5, 2026-10-03) — la pulmonar entra al modelo de botones ════
            Clonada de la mitral (reglas 1-3, 6-11). «Insuficiencia» → IP, «Estenosis» → EP, cada
