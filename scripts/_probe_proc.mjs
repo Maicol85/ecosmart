@@ -1339,12 +1339,22 @@ async function main() {
     /* ⚠️ QUE LA PALABRA «SEVERA» NO APAREZCA POR NINGUN CAMINO, con la escena mas extrema que
        la app admite: la Tabla 15 no tiene columna de severa. Se barre el texto VISIBLE de la
        pestaña Valvulas y las dos superficies firmadas. */
+    /* ADVERTENCIA: NO SE BARRE LA CAJA ENTERA, Y LA PRIMERA VERSION DIO UN FALSO. La linea de
+       fuente de la capsula dice «no gradua la SEVERidad», asi que buscar la subcadena «sever»
+       en el textContent del contenedor informa «dice severa» sobre un texto que afirma
+       exactamente lo contrario. Se barren los nodos que PUBLICAN un veredicto —el del
+       veredicto y las dos filas— y la palabra se busca como palabra, no como subcadena. */
     g.nuncaSevera = await ev(`(function(){
       var caja = document.getElementById('bloque-prot-vp-res');
       var t = caja ? (caja.textContent || '').toLowerCase() : 'NO EXISTE';
+      var veredicto = ['vp-prot-obstr','vp-prot-vmax','vp-prot-gmed','ep-sev','vp-sev-badge']
+        .map(function(id){ return (window.__P.txt(id) || '').toLowerCase() }).join(' | ');
+      var re = /\\bsever[ao]s?\\b/;
       var i = window.__P.val('informe_texto') || '', s = window.__P.val('en_suma') || '';
       return { caja: t,
-               cajaSevera: (typeof t === 'string') ? t.indexOf('sever') >= 0 : null,
+               veredicto: veredicto,
+               veredictoSevera: re.test(veredicto),
+               cajaSeveraCruda: (typeof t === 'string') ? t.indexOf('sever') >= 0 : null,
                infProtPulm: i.split('.').filter(function(f){ return /pulmonar/i.test(f) }),
                sumaProtPulm: s.split('.').filter(function(f){ return /VP |pulmonar/i.test(f) }),
                epSev: window.__P.txt('ep-sev'),

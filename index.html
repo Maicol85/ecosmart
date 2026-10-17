@@ -7492,7 +7492,7 @@ window.cerrarSesionReal = cerrarSesionReal;
         </div>
         <div class="fg">
           <label>Tipo de prótesis pulmonar</label>
-          <select id="vp_tipo_prot">
+          <select id="vp_tipo_prot" onchange="vpProtObstrPintar()">
             <option value="">&mdash;</option>
             <option value="bio">Bioprótesis</option>
             <option value="homo">Homoinjerto</option>
@@ -7501,8 +7501,27 @@ window.cerrarSesionReal = cerrarSesionReal;
         </div>
         <div class="fg">
           <label>Gradiente medio pulmonar (mmHg)</label>
-          <input type="number" id="ep_gmedio" step="0.1" placeholder="mmHg">
+          <input type="number" id="ep_gmedio" step="0.1" placeholder="mmHg" oninput="vpProtObstrPintar()">
         </div>
+      </div>
+      <!-- ⚠️ LA CÁPSULA DEL VEREDICTO PROTÉSICO PULMONAR (PRO-C3, 2026-10-17), calcada de
+           `#bloque-prot-vm-res` y de `#bloque-prot-vt-res`. Las DOS filas de la **Tabla 15 de la
+           ASE 2024** (folio 33, hoja 32) y el veredicto debajo.
+           ⚠️ SON DOS FILAS Y NO CUATRO porque la Tabla 15 publica DOS parámetros cuantitativos y
+           nada más: sus otras entradas son cualitativas (estructura y movimiento de la válvula,
+           flujo laminar, turbulencia) o de comparación seriada con un estudio basal.
+           ⚠️ LA FILA «Estenosis pulmonar — severidad» DEL CUADRO DE ABAJO NO SE TOCA: sigue
+           diciendo `PROT_SIN_GRADO_TXT`, que es literalmente cierto. Y la Tabla 15 **no tiene
+           columna de severa**: su veredicto positivo es «posible obstrucción» y es el único que
+           esta cápsula puede publicar.
+           ⚠️ CÁPSULA DE SÓLO LECTURA y SIN globos ⓘ, por los mismos dos motivos que la
+           tricuspídea: `guardarInforme` barre `input[id]` de todo el documento, y cada
+           `.vinfo-btn` mueve el denominador de TC-471/TC-472 y suma un hallazgo de celular. -->
+      <div id="bloque-prot-vp-res" class="calc-box" style="display:none;margin-bottom:8px;">
+        <div class="calc-row"><span class="calc-lbl">Velocidad pico</span><span class="calc-val" id="vp-prot-vmax">&mdash;</span></div>
+        <div class="calc-row"><span class="calc-lbl">Gradiente medio</span><span class="calc-val" id="vp-prot-gmed">&mdash;</span></div>
+        <div style="font-size:10px;color:var(--text2);line-height:1.45;margin:2px 0 4px;">Criterios: ASE 2024, Tabla 15. Esa tabla distingue flujo normal de posible obstrucci&oacute;n y no grad&uacute;a la severidad.</div>
+        <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Obstrucci&oacute;n prot&eacute;sica</span><span class="calc-val" id="vp-prot-obstr">&mdash;</span></div>
       </div>
       <!-- ═══ FILA DE PASTILLAS (v2 E5, 2026-10-03) — la pulmonar entra al modelo de botones ════
            Clonada de la mitral (reglas 1-3, 6-11). «Insuficiencia» → IP, «Estenosis» → EP, cada
@@ -42649,6 +42668,170 @@ function epRefPintar() {
 }
 window.epRefPintar = epRefPintar;
 
+/* ══ LA OBSTRUCCIÓN DE LA PRÓTESIS PULMONAR — ASE 2024, TABLA 15 (PRO-C3, 2026-10-17) ═════════
+   Mismo reparto que la tricúspide del PRO-C2 y que la prótesis mitral: `calcVP` **no cambia ni
+   una línea**, la fila «Estenosis pulmonar — severidad» sigue diciendo `PROT_SIN_GRADO_TXT` —la
+   escala leve/moderada/severa de la válvula nativa no aplica a una prótesis— y el veredicto
+   protésico vive en su propia cápsula.
+
+   **Tabla 15 — «Parameters for prosthetic pulmonary valve stenosis», folio 33, hoja 32**,
+   verificada en el PDF original con el folio comprobado en el pie impreso («Zoghbi et al · 33»):
+
+     parámetro                  bioprótesis   homoinjerto
+     velocidad pico (m/s)          >= 3,2        >= 2,5
+     gradiente medio (mmHg)        >= 20         >= 15
+
+   ⚠️ ESA TABLA TIENE DOS COLUMNAS Y NINGUNA ES «SEVERA»: son «Normal» y «Possible obstruction».
+   Por eso el veredicto de esta válvula es **«posible obstrucción»** y la app NO afirma «severa»
+   por ningún camino —ni acá, ni en el informe, ni en el EN SUMA, ni en el Laboratorio—. La
+   palabra sale de `VP_PROT_OBSTR_TXT`, que es la misma que `OBSTR_TXT.posible` ya usa para la
+   banda intermedia de la mitral: no hay vocabulario nuevo.
+   ⚠️ LA COLUMNA LA ELIGE `vp_tipo_prot` Y NO LA MORFOLOGÍA, y es de la fuente: `vp_morf` ofrece
+   «biológica» y «mecánica», y la Tabla 15 reparte sus cortes entre **bioprótesis** y
+   **homoinjerto**, que son las dos biológicas.
+   ⚠️ TRES ESTADOS NO SE GRADÚAN Y CADA UNO DICE POR QUÉ, con el molde «No graduada: …» que la
+   app ya usa: la prótesis **mecánica** —la Tabla 15 no publica columna para ella—, la
+   **percutánea** —tampoco, y la Tabla 22 del mismo documento la enumera como una familia
+   aparte (Melody, SAPIEN, Harmony)— y el **tipo sin elegir**, donde aplicar una de las dos
+   columnas sería publicar un veredicto cuya fuente el médico no eligió. Es el principio que
+   `PROT_SIN_GRADO_TXT` ya declara: un informe sin grado es mejor que uno con grado equivocado.
+   ⚠️ EL GRADIENTE MEDIO NO SE DERIVA DEL MÁXIMO. `calcVP` es el dueño de 4·V² y escribe
+   `vp_gmax`/`ep_gmax`; el MEDIO es la integral del gradiente instantáneo sobre la sístole y
+   depende de la forma de la curva. Tiene campo propio desde el PRO-C1.
+
+   ⚠️ LA REGURGITACIÓN PULMONAR NO SE TOCA, Y NO ES UN OLVIDO. La **Tabla 16 (folio 34, hoja
+   33)** y la prosa del **folio 35 (hoja 34)** se censaron enteras y lo que publican con cortes
+   la app ya lo aplica o no tiene campo: el ancho del jet (`≤25 / 26-50 / >50 %` del anillo) lo
+   produce `ip_ancho` con sus tres opciones cualitativas, la densidad y la tasa de desaceleración
+   las combina `ip_senal` en sus tres, el reverso en la AP distal es `ip_reversion`, el THP
+   severo `<100 ms` es `IP_PHT_SEVERA` —con fuente verificada: **ASE 2019, folio 463, hoja 33**,
+   «a pressure half-time of <100 ms has been shown to have good sensitivity and specificity for
+   predicting severe PR»— y la **fracción regurgitante** (`<30 %` leve y `>50 %` severa, folio
+   35) **no tiene campo**. O sea que esta tanda no mueve un solo corte de la insuficiencia
+   pulmonar. Las diferencias que quedan están en `docs/PENDIENTES.md`. */
+const VP_PROT_T15 = Object.freeze({
+  vmax: Object.freeze({ bio: 3.2, homo: 2.5, op: '>=', uni: 'm/s',  dec: 1,
+                        nombre: 'velocidad pico', campo: 'vp_vmax' }),
+  gmed: Object.freeze({ bio: 20,  homo: 15,   op: '>=', uni: 'mmHg', dec: 1,
+                        nombre: 'gradiente medio', campo: 'ep_gmedio' })
+});
+const VP_PROT_ORDEN = Object.freeze(['vmax', 'gmed']);
+/* Bandas de plausibilidad. La de la velocidad caza el dedazo de los cm/s —320 por 3,2— y la del
+   gradiente medio, el gradiente MÁXIMO tipeado en su lugar no se puede cazar con una banda (son
+   el mismo rango), así que ahí lo que protege es que el campo diga «medio» en su rótulo. */
+const VP_PROT_BANDA = Object.freeze({
+  vp_vmax:   Object.freeze([0.2, 8]),
+  ep_gmedio: Object.freeze([0, 100])
+});
+/* ⚠️ VAN ANTES DE SU PRIMER LLAMADOR, POR TDZ: un `const` leído antes de su línea LANZA y se
+   lleva el bloque `<script>` completo. Es la nota de `PROT_SIN_GRADO_TXT`. */
+const VP_PROT_OBSTR_TXT = 'posible obstrucción';
+/* Los tres motivos por los que la Tabla 15 no da columna. Un solo dueño, porque los publica la
+   cápsula y los puede leer cualquier consumidor nuevo. El molde es el de `PROT_SIN_GRADO_TXT`. */
+const VP_PROT_SIN_COL = Object.freeze({
+  mec:    'No graduada: la guía no publica cortes para una prótesis pulmonar mecánica',
+  perc:   'No graduada: la guía no publica cortes para una prótesis pulmonar percutánea',
+  faltaTipo: 'No graduada: falta el tipo de prótesis pulmonar'
+});
+window.VP_PROT_T15 = VP_PROT_T15; window.VP_PROT_BANDA = VP_PROT_BANDA;
+window.VP_PROT_OBSTR_TXT = VP_PROT_OBSTR_TXT; window.VP_PROT_SIN_COL = VP_PROT_SIN_COL;
+
+/* El TIPO, con sus tres estados que no gradúan. Devuelve `null` con válvula nativa —lo que apaga
+   la cápsula entera— y un `motivo` cuando hay prótesis y no hay columna. */
+function vpProtTipo(){
+  const el = document.getElementById('vp_morf');
+  const m = el ? String(el.value || '').trim() : '';
+  if (!m || (typeof valvEsProtesis === 'function' && !valvEsProtesis(m))) return { tipo: null, motivo: '' };
+  if (/mec/i.test(m)) return { tipo: null, motivo: VP_PROT_SIN_COL.mec };
+  const t = document.getElementById('vp_tipo_prot');
+  const v = t ? String(t.value || '').trim() : '';
+  if (v === 'perc') return { tipo: null, motivo: VP_PROT_SIN_COL.perc };
+  if (v !== 'bio' && v !== 'homo') return { tipo: null, motivo: VP_PROT_SIN_COL.faltaTipo };
+  return { tipo: v, motivo: '' };
+}
+window.vpProtTipo = vpProtTipo;
+
+/* El DUEÑO DE DATOS. Datos y no HTML, por el mismo motivo que `vmProtEOA` y `vtProtObstr`.
+   ⚠️ LA VELOCIDAD SE LEE DE `vp_vmax`, QUE ES EL DUEÑO, y no de `ep_vmax`, que es su espejo:
+   `vpVmaxSync` los mantiene iguales en los dos sentidos, pero leer el espejo haría que el
+   veredicto dependiera de cuál de los dos campos tipeó el médico el día que el espejo se
+   rompa. Es el mismo criterio con el que `calcVP` lee `vp_vmax`. */
+function vpProtObstr(){
+  const T = vpProtTipo();
+  const el = document.getElementById('vp_morf');
+  const m = el ? String(el.value || '').trim() : '';
+  const esProt = !!(m && (typeof valvEsProtesis !== 'function' || valvEsProtesis(m)));
+  const R = { tipo: T.tipo, esProt: esProt, motivo: T.motivo, obstr: null,
+              pos: [], med: [], fuera: [], vals: {}, niv: {} };
+  if (!esProt || !T.tipo) return R;
+  const nv = (id) => { const e = document.getElementById(id); if (!e) return null;
+    const n = parseFloat(String(e.value).replace(',', '.')); return isFinite(n) ? n : null; };
+  VP_PROT_ORDEN.forEach(function(k){
+    const C = VP_PROT_T15[k];
+    const x = nv(C.campo);
+    if (x == null) { R.vals[k] = null; R.niv[k] = null; return; }
+    const b = VP_PROT_BANDA[C.campo];
+    if (b && (x < b[0] || x > b[1])) { R.vals[k] = x; R.niv[k] = 'fuera'; R.fuera.push(C.nombre); return; }
+    R.vals[k] = x;
+    R.med.push(k);
+    const positivo = (x >= C[T.tipo]);
+    R.niv[k] = positivo ? 'si' : 'no';
+    if (positivo) R.pos.push(k);
+  });
+  /* ⚠️ `'posible'` ES EL ÚNICO VEREDICTO POSITIVO QUE ESTA VÁLVULA PUEDE DEVOLVER, y eso es lo
+     que hace imposible que la app diga «severa» por este camino: no hay un segundo nivel al que
+     escalar. `null` sin ningún criterio medido —abstenerse— y `'sin'` con criterios medidos y
+     ninguno positivo. */
+  R.obstr = R.pos.length ? 'posible' : (R.med.length ? 'sin' : null);
+  return R;
+}
+window.vpProtObstr = vpProtObstr;
+
+/* Los criterios POSITIVOS nombrados con su valor, en un solo dueño: la cápsula y el informe. */
+function vpProtObstrCrit(R){
+  if (!R || !R.pos || !R.pos.length) return [];
+  return R.pos.map(function(k){
+    const C = VP_PROT_T15[k];
+    const v = R.vals[k];
+    return C.nombre + ' ' + (v == null ? '—' : v.toFixed(C.dec)) + (C.uni ? ' ' + C.uni : '');
+  });
+}
+window.vpProtObstrCrit = vpProtObstrCrit;
+
+/* Sólo PINTA. */
+function vpProtObstrPintar(){
+  const caja = document.getElementById('bloque-prot-vp-res');
+  if (!caja) return null;
+  const R = vpProtObstr();
+  if (!R.esProt) { caja.style.display = 'none'; return R; }
+  caja.style.display = '';
+  const put = (id, t) => { const e = document.getElementById(id); if (e) e.textContent = t; };
+  const GUION = '—';
+  VP_PROT_ORDEN.forEach(function(k){
+    const C = VP_PROT_T15[k];
+    const v = R.vals[k], n = R.niv[k];
+    let t;
+    if (v == null) t = GUION;
+    else if (n === 'fuera') t = v + ' ' + C.uni + '  (fuera de rango: no gradúa)';
+    else if (!R.tipo) t = v.toFixed(C.dec) + ' ' + C.uni;
+    else t = v.toFixed(C.dec) + ' ' + C.uni + '  (' +
+             (n === 'si' ? VP_PROT_OBSTR_TXT : 'no alcanza el criterio') +
+             ' · ' + C.op + ' ' + C[R.tipo] + ' ' + C.uni + ')';
+    put('vp-prot-' + k, t);
+  });
+  const _cr = vpProtObstrCrit(R);
+  const _nMed = R.med.length, _nMedTxt = _nMed + (_nMed === 1 ? ' criterio' : ' criterios');
+  put('vp-prot-obstr',
+    R.motivo ? R.motivo
+    : R.obstr === 'posible'
+      ? VP_PROT_OBSTR_TXT + '  (' + _cr.join(', ') + ' · ' + R.pos.length + ' de ' + _nMedTxt + ')'
+    : R.obstr === 'sin'
+      ? 'sin criterios de obstrucción  (' + _nMedTxt + (_nMed === 1 ? ' medido' : ' medidos') + ')'
+      : GUION + '  (sin criterios medidos' + (R.fuera.length ? ' · ' + R.fuera.join(', ') + ' fuera de rango' : '') + ')');
+  return R;
+}
+window.vpProtObstrPintar = vpProtObstrPintar;
+
 /* ══ VLI — volumen latido indexado ═══════════════════════════════════════════════════════
    VLI = volumen sistólico / superficie corporal. Es el parámetro que separa el BAJO FLUJO del
    flujo normal en la estenosis aórtica de bajo gradiente, y por lo tanto el que decide si el
@@ -43233,6 +43416,12 @@ function calcVP() {
      Con prótesis, `epRefPintar` publica los valores sin grado y la línea de abajo le pisa la fila de
      severidad con `PROT_SIN_GRADO_TXT`. */
   if (typeof epRefPintar === 'function') { try { epRefPintar(); } catch (e) {} }
+  /* ⚠️ LA CÁPSULA PROTÉSICA SE REPINTA ACÁ, ANTES DE LAS DOS SALIDAS TEMPRANAS (PRO-C3), por
+     el mismo motivo que las dos filas de arriba: `protNoGraduaPintar` corta la función y la
+     prótesis es justamente el único estado en que la cápsula se ve. Colgada de acá, el
+     `oninput` de la velocidad —que ya llamaba a `calcVP`— la repinta sin tocar un atributo.
+     ⚠️ NO HAY RECURSIÓN: `vpProtObstr` lee el DOM y no llama a `calcVP`. Censado. */
+  if (typeof vpProtObstrPintar === 'function') { try { vpProtObstrPintar(); } catch (e) {} }
 
   const badgeEl = document.getElementById('vp-sev-badge');
   /* EL AUTO-GRADO ESCRIBE `ep_grado`, NO `vp_morf`. Hasta el 2026-09-16 `vp_morf` era un select
@@ -49528,6 +49717,24 @@ function generarInforme(opts) {
         ccMarcarParrafo();
       }
     }
+    /* ══ LA OBSTRUCCIÓN DE LA PRÓTESIS PULMONAR (PRO-C3, 2026-10-17) ═════════════════
+       UNA ORACIÓN APARTE, con el mismo molde que la obstrucción mitral y la tricuspídea: la
+       misma frase al cuerpo y al EN SUMA, con la lista de los criterios que la sostienen.
+       ⚠️ LA PALABRA ES «POSIBLE OBSTRUCCIÓN» Y NO PUEDE SER OTRA: la Tabla 15 tiene DOS columnas
+       —«Normal» y «Possible obstruction»— y ninguna es «severa». El motor no tiene un segundo
+       nivel al que escalar, así que la app no puede afirmar «severa» por este camino.
+       ⚠️ LOS TRES ESTADOS QUE NO GRADUAN NO ESCRIBEN NADA EN EL PAPEL —la mecánica, la
+       percutánea y el tipo sin elegir—: su motivo se ve en la cápsula, que es donde el médico
+       decide, y un informe firmado no lleva una nota sobre lo que la app no pudo hacer.
+       ⚠️ «SIN CRITERIOS DE OBSTRUCCION» TAMPOCO SUBE, igual que en las otras dos prótesis. */
+    {
+      const _po = (typeof vpProtObstr === 'function') ? vpProtObstr() : null;
+      if (_po && _po.esProt && _po.obstr === 'posible') {
+        const _q = (typeof vpProtObstrCrit === 'function') ? vpProtObstrCrit(_po) : [];
+        const _t = 'Prótesis pulmonar con ' + VP_PROT_OBSTR_TXT + ' (' + _q.join(', ') + ').';
+        inf.push(_t); suma.push(_t);
+      }
+    }
   }
 
   // ── 11) VCI (diámetro + colapso + PmAD estimada) ──
@@ -54304,6 +54511,9 @@ function valvProtSync(){
      se ve. Es el mismo argumento que `eaPvlPintar` y que `imPvlPintar`. */
   if (typeof vtProtObstrPintar === 'function') { try { vtProtObstrPintar(); } catch (e) {} }
   ver('bloque-prot-vp', valvEsProtesis(g('vp_morf')));
+  /* La cápsula del veredicto protésico pulmonar, por el mismo argumento que la tricuspídea: la
+     morfología decide si se ve Y si hay columna de cortes —una mecánica no la tiene—. */
+  if (typeof vpProtObstrPintar === 'function') { try { vpProtObstrPintar(); } catch (e) {} }
   /* La fila del AT en el cuadro de resultados se muestra con la misma regla que su campo, y su
      lectura depende de la morfología: cambiar de prótesis a nativa tiene que apagarla, no dejarla
      con el veredicto del paciente anterior. */
@@ -119059,8 +119269,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261017-1412';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1792257129566;                 /* eco-build-ms */
+const ECO_BUILD    = '20261017-1516';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1792261003868;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -119146,7 +119356,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261017-1412</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261017-1516</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
