@@ -16808,7 +16808,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
      corte no es consultable es el defecto que esta tarjeta existe para cerrar.
      La banda intermedia de la prótesis dice «Variable» porque eso es lo que dice la Tabla 13:
      ahí el parámetro NO gradúa, y la app se abstiene en vez de inventar «moderada». -->
-<tr style="background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">Ratio jet/AI (%) <span style="font-size:10px;">(pr&oacute;tesis ASE 2024 T13 p.30 &middot; los cortes nativos de 20 y 40 % NO figuran en la ASE 2017)</span></td><td style="padding:5px 8px;text-align:center;">&lt;20</td><td style="padding:5px 8px;text-align:center;">nativa 20–40 · <b>prótesis: Variable, no gradúa</b></td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">nativa &gt;40 · prótesis &gt;50</td></tr>
+<tr style="background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">Ratio jet/AI (%) <span style="font-size:10px;">(nativa ACC/AHA 2020 T17 folio e121 &middot; pr&oacute;tesis ASE 2024 T13 p.30)</span></td><td style="padding:5px 8px;text-align:center;">&lt;20</td><td style="padding:5px 8px;text-align:center;">nativa 20–40 · <b>prótesis: Variable, no gradúa</b></td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">nativa &gt;40 · prótesis &gt;50</td></tr>
           </table>
           <!-- Las dos condiciones que la Tabla 12 enuncia y la app NO verifica van juntas acá y no
      dentro de la celda: una celda de tabla con dos salvedades deja de leerse como un corte. -->
@@ -17018,6 +17018,23 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
             • Seguimiento: leve-mod 2–3a · severa asint 12m con función VD
           </div>
         </div>
+      </div>
+
+      <!-- ══ EL TEXTO GENERAL DE INTEGRACIÓN (VAL6, 2026-10-17) ═══════════════════════════════
+           DECISIÓN DE MAICOL, con su redacción textual. Va SÓLO acá: al final de la sección de
+           válvulas nativas de la pestaña Referencias, en letra chica. NO va en el bloque de
+           integración de la pestaña Válvulas, ni en las estenosis, ni en el informe, el PDF o el
+           PPT — el papel afirma y no explica, que es la regla de este repo.
+           ⚠️ EL COLOR ES `--text2`, QUE EXISTE EN ESTA ZONA Y EN LOS DOS TEMAS. Es el mismo que
+           usan las otras cuatro notas al pie de esta pestaña; `--amber` se define sólo dentro de
+           `.amilo-root` y acá se vería GRIS, que es la trampa que este archivo ya pagó cinco
+           veces. Medido: `rgb(154,163,188)` de noche y `rgb(91,100,120)` de día.
+           ⚠️ ES MARCADO ESTÁTICO Y NO DEPENDE DE NINGÚN DATO: no se recalcula, no se limpia y no
+           viaja con el estudio. -->
+      <div id="ref-integracion" style="margin-top:12px;padding:8px 10px;border-top:1px solid var(--border);font-size:11px;color:var(--text2);line-height:1.6;">
+        Las gu&iacute;as piden integrar varios par&aacute;metros y no fijan una regla num&eacute;rica de decisi&oacute;n.
+        EcoSmart aplica una regla simple y declarada, para que el resultado sea reproducible.
+        El m&eacute;dico debe revisarlo.
       </div>
 
     </div>
@@ -38460,17 +38477,25 @@ const IM_CORTES = Object.freeze({
   /* ASE 2017, Tabla 8 (Zoghbi, JASE 2017;30:303-371), folio 332. `<3` leve · `3` a `<7` moderada
      · `>=7` severa, en mm. Los mismos cortes que la ESC/EACTS 2025 da para el borde de severa. */
   vc:       Object.freeze({ leve_max: 3,  sev_min: 7,  uni: 'mm',  forma: 'sev_min' }),
-  /* ⚠️ EL 20 Y EL 40 NO SON DE LA ASE 2017, Y EL COMENTARIO LO DECIA (censo W1, W1-11). La
-     ASE 2017 (Zoghbi), Tabla 8, folio 332, y el folio 333 publican severa por encima del **50 %**
-     del área de la AI y NO publican ni el 20 ni el 40 —censado el PDF entero: las dos únicas
-     apariciones de un porcentaje de área de AI para la IM dicen `>50 %`—. El 20/40 viene de guías
-     previas que este repo no tiene verificadas.
-     ⚠️ EL NUMERO NO SE TOCA, Y ES UNA DECISION DE MAICOL (15/10/2026): mover ese corte cambia el
-     grado de la insuficiencia mitral de los pacientes con un jet entre el 40 y el 50 % en el
-     informe FIRMADO, y eso es contenido clínico nativo. Lo que se corrigió es el RÓTULO de la
-     fuente en las dos superficies que lo publicaban —la tarjeta ⓘ y la fila de «Referencia
-     clínica»—, que atribuían a la ASE 2017 un corte que esa guía no escribe.
-     El `40` cae en la MODERADA (`<=`), que es el borde que la cuenta ya aplicaba. */
+  /* ⚠️ EL 20 Y EL 40 SÍ TIENEN FUENTE, Y ESTE COMENTARIO DECÍA QUE NO (VAL6, 2026-10-17). Lo que
+     seguía siendo cierto es que NO son de la ASE 2017: esa guía (Zoghbi, Tabla 8, folio 332)
+     publica «Large central jet (**>50 % of LA**)» y no escribe ni el 20 ni el 40 —censado el PDF
+     entero—. Lo que faltaba era la otra guía.
+     LA FUENTE, VISTA EN EL PDF ORIGINAL: **ACC/AHA 2020** (Otto et al., *2020 ACC/AHA Guideline
+     for the Management of Patients With Valvular Heart Disease*, Circulation 2021;143:e72-e227),
+     **Tabla 17 «Stages of Chronic Primary MR», folio e121** (hoja 50; folio comprobado en el pie
+     impreso de la página), columna «Valve Hemodynamics»:
+       · estadio A (en riesgo)        → «small central jet area **<20 % LA**»
+       · estadio B (IM progresiva)    → «Central jet MR **20 %–40 % LA**»
+       · estadios C y D (IM severa)   → «Central jet MR **>40 % LA**»
+     Son exactamente los dos cortes que la app aplica, con el 40 INCLUIDO en la banda de abajo
+     —el rango se escribe «20 %–40 %» y la severa arranca estrictamente por encima—, que es el
+     borde que la cuenta ya tenía (`mod_max_incl`).
+     ⚠️ LA GUÍA PUBLICA ESTADIOS Y NO GRADOS, y eso se declara: A / B / C-D no son «leve /
+     moderada / severa». La app los mapea a su vocabulario de tres grados, que es lo que ya hacía;
+     lo que cambia hoy es que el corte deja de figurar como «sin fuente».
+     ⚠️ NO SE TOCA NINGÚN NÚMERO (orden expresa): sólo el rótulo de la fuente en las TRES
+     superficies que lo publicaban —la tarjeta ⓘ, la fila de «Referencia clínica» y el manual—. */
   jet_nat:  Object.freeze({ leve_max: 20, mod_max_incl: 40, uni: '%', forma: 'mod_incl' }),
   /* ASE 2024, Tabla 13, pág. 30: en prótesis mitral `<20` leve y `>50` severa, y entre 20 y 50 la
      guía dice «Variable», así que el parámetro NO vota. No se toca (orden del punto 5c). */
@@ -38785,8 +38810,8 @@ const VINFO = Object.freeze({
     tit: 'Relaci\u00f3n \u00e1rea del jet / \u00e1rea de la aur\u00edcula izquierda',
     formula: '\u00e1rea del jet de IM ÷ \u00e1rea de la AI × 100',
     lee: 'Qu\u00e9 proporci\u00f3n de la aur\u00edcula ocupa el chorro en color. En v\u00e1lvula nativa, menos del 20 % es leve y m\u00e1s del 40 % severa; en pr\u00f3tesis, menos del 20 % es leve y m\u00e1s del 50 % severa.',
-    fuente: 'Pr\u00f3tesis: ASE 2024 (Zoghbi), Tabla 13, p\u00e1g. 30. Nativa: el 20 y el 40 % NO figuran en la ASE 2017 (Zoghbi), Tabla 8, folio 332, que publica severa por encima del 50 % del \u00e1rea de la aur\u00edcula; la aplicaci\u00f3n conserva el 40 % y no se lo atribuye a esa gu\u00eda.',
-    ojo: 'En pr\u00f3tesis mitral la gu\u00eda llama «variable» a la banda del 20 al 50 %, as\u00ed que ah\u00ed el par\u00e1metro no gradu\u00faa y la fila lo declara. El corte nativo del 40 % no se movi\u00f3: cambiarlo es contenido cl\u00ednico y queda para otra decisi\u00f3n.'
+    fuente: 'Nativa: ACC/AHA 2020 (Otto), Tabla 17, folio e121 — chorro central <20 % de la aur\u00edcula en el estadio A, 20-40 % en el progresivo y >40 % en la insuficiencia severa. Pr\u00f3tesis: ASE 2024 (Zoghbi), Tabla 13, p\u00e1g. 30.',
+    ojo: 'En pr\u00f3tesis mitral la gu\u00eda llama «variable» a la banda del 20 al 50 %, as\u00ed que ah\u00ed el par\u00e1metro no gradu\u00faa y la fila lo declara. La ASE 2017 (Zoghbi), Tabla 8, folio 332, usa otro corte para la v\u00e1lvula nativa —severa por encima del 50 % del \u00e1rea de la aur\u00edcula— y la aplicaci\u00f3n sigue el de la ACC/AHA 2020. La tabla de esa gu\u00eda publica ESTADIOS (A, B, C-D) y no grados.'
   },
   'prot-eoa': {
     tit: 'AEO por continuidad de la pr\u00f3tesis mitral',
@@ -120343,7 +120368,7 @@ const ECO_AYUDA = [
 <tr><td>Insuficiencia mitral primaria severa, asintomática</td><td>DTSI ≥ 40 mm o FEVI ≤ 60 % (Clase I)</td><td>ESC/EACTS 2021</td></tr>
 <tr><td>IM — onda E como signo de soporte<br><span style="font-size:11px;color:var(--text2);">Sólo soporte: no gradúa. El signo <b>específico</b> es el opuesto — la onda A dominante prácticamente descarta IM severa. Válido sin estenosis mitral (la guía dice que incluso la leve altera la onda E), calcificación anular, anillo protésico ni fibrilación auricular; menos específico en IM secundaria; más aplicable en mayores de 50 años.</span></td><td>onda E &gt; 120 cm/s apoya severa · onda A dominante la descarta</td><td>ASE 2017 (Zoghbi, JASE 30:303-371, Tabla 8, folio 332) · ESC/EACTS 2025 (Figura 10, folio 4672)</td></tr>
 <tr><td>IM — cociente VTI mitral / VTI TSVI<br><span style="font-size:11px;color:var(--text2);"><b>La guía lo da en ausencia de insuficiencia aórtica moderada o severa:</b> la IAo aumenta el VTI aórtico, que es el denominador, y el cociente deja de medir lo que dice medir.<br>La app se retira desde la IAo <b>moderada</b>, igual que la guía, en válvula <b>nativa</b> y en <b>prótesis</b>: la fila queda en «—». Hasta el 17/10/2026 la nativa calculaba el cociente igual con IAo moderada y moderada-severa y lo retiraba sólo con la severa, con una salvedad pegada al número; esa divergencia —decisión del 30/09/2026— se cerró. Con un grado de IAo que no se puede interpretar se retira en los dos casos, y eso sí es criterio de la aplicación: la guía no contempla un dato ilegible.<br>El corte sale de la <b>ASE 2023 de cardiopatía reumática</b> (Pandian et al., JASE 2023;36:3-28), Key Points de IM reumática: &gt; 1,4 sugiere IM severa y &lt; 1 leve. <b>La ESC/EACTS 2025 también lo publica</b>, con el mismo corte: Figura 10, pág. 4672, recuadro de criterios ecocardiográficos de IM severa, entre los <b>semicuantitativos</b> — «VTI mitral / VTI LVOT &gt; 1,4». <b>No figura en ASE 2017 ni en ESC/EACTS 2021.</b><br>⚠️ Ninguna de las dos guías dice <b>con qué modalidad</b> se mide ese VTI mitral. La app usa el de entrada por Doppler pulsado anterógrado —no el del chorro de la insuficiencia—, que es lo correcto, pero es criterio de la aplicación y no algo que las guías respalden.<br>⚠️ El estudio original que la guía cita (Tribouilloy, Eur Heart J 1994;15:1335-9) da ≥ <b>1,3</b> con sensibilidad 87 % y especificidad 91 %, y el 1,4 se rastrea además a un artículo del E-Journal de la ESC que cita esas mismas dos cifras. O sea que la guía publica 1,4 sobre un primario que dice 1,3, y eso no distingue entre haberlo validado y haber propagado el mismo error. Se conserva el 1,4 que la app venía usando y se declaran las dos cosas.<br>⚠️ <b>Con PRÓTESIS mitral el corte es otro: ≥ 2,5.</b> Sale de la <b>ASE 2024 de prótesis</b> (Zoghbi et al., JASE 2024;37(1):2-63), <b>Tabla 12, pág. 28</b> — «hallazgos de ETT que sugieren IM protésica significativa en válvulas mecánicas con THP normal»: VTI protésico / VTI TSVI ≥ 2,5, sensibilidad 89 %, especificidad 91 %. El 1,4 es de válvula <b>nativa</b> y aplicarlo a una prótesis daba «apoya IM severa» sobre cocientes muy por debajo de lo que la tabla protésica considera sugestivo. La app elige el corte por la morfología de la válvula mitral.<br>⚠️ Esa tabla define el corte <b>para válvulas mecánicas y con THP normal</b>, y la app <b>no verifica ninguna de las dos condiciones</b>: lo aplica a cualquier prótesis mitral y no cruza el tiempo de hemipresión.</span></td><td>nativa &gt; 1,4 · prótesis ≥ 2,5</td><td>nativa: ASE 2023 (Pandian, JASE 36:3-28) y ESC/EACTS 2025 (Figura 10, p. 4672) — el primario da 1,3 · prótesis: ASE 2024 (Zoghbi), Tabla 12 p. 28</td></tr>
-<tr><td>IM — cociente jet/AI (%)<br><span style="font-size:11px;color:var(--text2);">⚠️ <b>Dos cortes según la morfología.</b> En válvula <b>nativa</b>: &lt; 20 % leve, ≤ 40 % moderada, &gt; 40 % severa.<br>⚠️ <b>Con PRÓTESIS mitral el corte de severa es &gt; 50 %</b>, y entre 20 y 50 % la <b>ASE 2024 de prótesis</b> (Zoghbi et al., JASE 2024;37(1):2-63), <b>Tabla 13, pág. 30</b>, dice «<b>Variable</b>»: ahí el parámetro <b>no gradúa</b> y la app se abstiene en vez de inventar una banda moderada. La fila de pantalla lo declara en vez de descontar el parámetro en silencio.<br>⚠️ Los <b>cortes absolutos</b> de esa misma tabla (área del jet &lt; 4 cm² leve / &gt; 8 cm² severa) <b>no se implementan</b>: la guía los da como alternativa al porcentaje («usually … or …») y aplicarlos exigiría decidir qué manda cuando los dos discrepan.<br>⚠️ Y la nota al pie de la tabla exige un <b>Nyquist de 50-60 cm/s</b> para que el porcentaje valga; la app <b>no registra ese dato</b>, así que ninguno de los dos regímenes puede verificar la condición en la que su corte está definido.</span></td><td>nativa &lt; 20 / ≤ 40 / &gt; 40 % · prótesis &lt; 20 % leve · &gt; 50 % severa</td><td>nativa: ASE 2017 (Zoghbi, JASE 30:303-371) · prótesis: ASE 2024 (Zoghbi), Tabla 13 p. 30</td></tr>
+<tr><td>IM — cociente jet/AI (%)<br><span style="font-size:11px;color:var(--text2);">⚠️ <b>Dos cortes según la morfología.</b> En válvula <b>nativa</b>: &lt; 20 % leve, ≤ 40 % moderada, &gt; 40 % severa.<br>⚠️ <b>Con PRÓTESIS mitral el corte de severa es &gt; 50 %</b>, y entre 20 y 50 % la <b>ASE 2024 de prótesis</b> (Zoghbi et al., JASE 2024;37(1):2-63), <b>Tabla 13, pág. 30</b>, dice «<b>Variable</b>»: ahí el parámetro <b>no gradúa</b> y la app se abstiene en vez de inventar una banda moderada. La fila de pantalla lo declara en vez de descontar el parámetro en silencio.<br>⚠️ Los <b>cortes absolutos</b> de esa misma tabla (área del jet &lt; 4 cm² leve / &gt; 8 cm² severa) <b>no se implementan</b>: la guía los da como alternativa al porcentaje («usually … or …») y aplicarlos exigiría decidir qué manda cuando los dos discrepan.<br>⚠️ Y la nota al pie de la tabla exige un <b>Nyquist de 50-60 cm/s</b> para que el porcentaje valga; la app <b>no registra ese dato</b>, así que ninguno de los dos regímenes puede verificar la condición en la que su corte está definido.</span></td><td>nativa &lt; 20 / ≤ 40 / &gt; 40 % · prótesis &lt; 20 % leve · &gt; 50 % severa</td><td>nativa: ACC/AHA 2020 (Otto, Circulation 2021;143:e72-e227), Tabla 17 folio e121 — estadios A (&lt; 20 %), B (20-40 %) y C-D (&gt; 40 %) · prótesis: ASE 2024 (Zoghbi), Tabla 13 p. 30</td></tr>
 <tr><td>IM — EROA por continuidad y Vol-R<br><span style="font-size:11px;color:var(--text2);">La EROA por continuidad es <b>Vol-R ÷ VTI del chorro de IM por CW</b>. Los dos cortes de severidad de la guía —<b>EROA ≥ 40 mm²</b> y <b>Vol-R ≥ 60 ml</b>— describen al mismo paciente sólo cuando el VTI del chorro vale <b>150 cm</b>, porque 60 ÷ 0,40 = 150. Con un VTI de 100 cm, un Vol-R justo en el corte da una EROA de 60 mm², o sea severa con holgura; con 200 cm da 30 mm², por debajo del corte con el Vol-R ya severo.<br>⚠️ Eso es <b>aritmética de la fórmula, no una discrepancia entre guías</b>: los dos cortes son correctos y se refieren al mismo hallazgo medido por dos caminos con distinta sensibilidad a la duración del chorro. Por eso esta fila no lleva atribución de guía.<br>⚠️ <b>Desde el 13/10/2026 esta EROA SÍ vota</b>, junto con el volumen regurgitante y la fracción regurgitante <i>por continuidad</i>: la continuidad se integra como un MÉTODO, con la misma regla que PISA y con los mismos cortes, y los votos comunes a los dos son la vena contracta, el jet sobre área auricular y la onda S pulmonar. Con las dos casillas de «Incluir en el informe» marcadas, al informe va el <b>peor</b> de los dos métodos; con una sola, la de ese método; con ninguna, sólo los comunes. Lo que NO cambió es la cápsula «Severidad (continuidad)» de ese cuadro, que sigue graduando sólo por volumen regurgitante y fracción regurgitante: es una lectura volumétrica de pantalla de dos parámetros, no el método del grado final. El <b>EROA por PISA</b> es otra medición del mismo hallazgo y aparece en la misma pantalla: conviene no confundirlas.</span></td><td>coinciden sólo con VTI del chorro = 150 cm</td><td>aritmética de la fórmula — no es una cita</td></tr>
 <tr><td>Insuficiencia aórtica severa, asintomática</td><td>FEVI ≤ 50 % · DTSI &gt; 50 mm o &gt; 25 mm/m² (Clase I)</td><td>ESC/EACTS 2021</td></tr>
 <tr><td>Estenosis aórtica severa sintomática</td><td>intervención Clase I; modalidad por edad y riesgo (corte 75 años)</td><td>ESC/EACTS 2021</td></tr>

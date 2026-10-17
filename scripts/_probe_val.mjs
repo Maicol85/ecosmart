@@ -516,19 +516,30 @@ window.__P = {
   refsNativas() {
     var e = document.getElementById('ref-nativas');
     if (!e) return 'NO EXISTE ref-nativas';
-    var t = (e.textContent || '').replace(/\s+/g, ' ').trim();
+    var t = (e.textContent || '').replace(/\\s+/g, ' ').trim();
     var n = document.getElementById('ref-integracion');
     var col = null, visible = null;
     if (n) {
       try { col = getComputedStyle(n).color; } catch(x) { col = 'EXC'; }
       visible = window.__P.vis('ref-integracion');
     }
-    return { largo: t.length, integra: n ? (n.textContent||'').replace(/\s+/g,' ').trim() : null,
+    return { largo: t.length, integra: n ? (n.textContent||'').replace(/\\s+/g,' ').trim() : null,
              color: col, vis: visible,
              dentro: !!(n && e.contains(n)),
+             /* ⚠️ VINFO ES UN const DE MODULO Y NO UNA PROPIEDAD DE window —la trampa que
+                ECO_AYUDA ya tiene escrita—, asi que la cita se lee de la TARJETA REAL: se
+                clickea el globo y se mira lo que el medico ve. */
              jetCita: (function(){
-               try { var c = (window.VINFO && window.VINFO['im-jet-ai']) ? window.VINFO['im-jet-ai'].fuente : null;
-                     return c || null } catch(x) { return 'EXC' } })() } },
+               try {
+                 var b = document.querySelector('[data-vinfo="im-jet-ai"]');
+                 if (!b) return 'SIN GLOBO';
+                 try { window.__P.abrirDe('im-jet-ratio'); } catch(y) {}
+                 b.click();
+                 var c = document.getElementById('vinfo-card');
+                 var t = c ? (c.textContent || '').replace(/\\s+/g, ' ').trim() : 'SIN TARJETA';
+                 b.click();
+                 return t;
+               } catch(x) { return 'EXC: ' + x.message } })() } },
 
   listo() {
     var faltan = ['generarInforme','pillOn','toggleEteSeccion','showTab','limpiarCampos',
