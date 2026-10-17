@@ -888,7 +888,12 @@ async function main() {
     const g = { escenas: {} };
     const ab = await ev(`window.__P.abrirTavi()`);
     g.puertas = ab;
-    if (!ab || !ab.geoVel || !ab.geoVel.ok) throw new Error('DENOMINADOR: sin geometria ete_tavi_vel_tele ' + JSON.stringify(ab));
+    /* ⚠️ EL CAMPO DE LA VELOCIDAD TELEDIASTOLICA VIVE EN UN ENVOLTORIO QUE NACE EN display:none
+       (`#ete-tavi-veltele-wrap`) y lo ENCIENDE `eteTaviSync` cuando el flujo reverso es «holo»:
+       sin fijar el select primero el campo existe y mide 0x0. El denominador de arranque mira
+       `ext_circ`, que si esta visible siempre; la geometria del campo de velocidad la garantiza
+       `tipear`, que aborta si el valor no quedo. */
+    if (!ab || !ab.geoExt || !ab.geoExt.ok) throw new Error('DENOMINADOR: sin geometria del panel TAVI ' + JSON.stringify(ab));
     for (const [nom, flujo, vel] of [['holo|19', 'holo', '19'], ['holo|20', 'holo', '20'],
                                      ['holo|29', 'holo', '29'], ['holo|30', 'holo', '30'],
                                      ['holo|45', 'holo', '45'],
@@ -897,7 +902,17 @@ async function main() {
       await ev(`window.__P.abrirTavi()`);
       const s = await ev(`window.__P.sel('ete_tavi_flujo_rev', ${JSON.stringify(flujo)})`);
       if (s && s.err) throw new Error('DENOMINADOR flujo_rev: ' + JSON.stringify(s));
-      await tipear('ete_tavi_vel_tele', vel);
+      /* Con el flujo en «proto» o «ausente» el envoltorio del campo se apaga: la velocidad se
+         carga PRIMERO con el flujo en holo y despues se cambia el select, que es el gesto real
+         del medico que corrige la lectura del Doppler. */
+      const gv = await ev(`window.__P.geo('ete_tavi_vel_tele')`);
+      if (gv && gv.ok) {
+        await tipear('ete_tavi_vel_tele', vel);
+      } else {
+        await ev(`window.__P.sel('ete_tavi_flujo_rev', 'holo')`);
+        await tipear('ete_tavi_vel_tele', vel);
+        await ev(`window.__P.sel('ete_tavi_flujo_rev', ${JSON.stringify(flujo)})`);
+      }
       g.escenas[nom] = await ev(`window.__P.rpv()`);
     }
     /* CONTROL NEGATIVO: los otros cuatro parametros de la fuga NO se mueven. */

@@ -21178,8 +21178,13 @@ const AVA_MOD_MAX = 1.5;      // 1.0 < AVA ≤ 1.5 → moderada;  AVA > 1.5 → 
    ⚠️ EL LITERAL 20 EXISTE EN UN SEGUNDO SITIO y NO deriva de esta constante: `holoSevero` del
    módulo TAVI (`velT >= 20`, regurgitación paravalvular) usa el mismo número para el mismo criterio
    físico. No se unificaron porque no son el mismo territorio —acá «Ao desc.», allá aorta abdominal—
-   ni la misma fuente —ESC/EACTS 2025 contra VARC-3/ASE 2019—, y fundirlos es decisión clínica de
-   Maicol, no una refactorización. Se declara para que mover ESTE número no deje aquél atrás. */
+   ni la misma fuente —ESC/EACTS 2025 contra la VARC-3—, y fundirlos es decisión clínica de
+   Maicol, no una refactorización. Se declara para que mover ESTE número no deje aquél atrás.
+   ⚠️ DESDE EL 2026-10-17 (PRO3) LOS DOS NÚMEROS YA NO COINCIDEN: el del módulo TAVI pasó a dos
+   niveles —moderada de 20 a <30 cm/s y severa con ≥30— por la VARC-3, Tabla 16, folio 1846, que
+   es la única fuente que publica cifras para ese parámetro (la ASE 2024 escribe «prominent,
+   holodiastolic» sin número). ESTE corte, el de la aorta descendente de la nativa y de la SAVR,
+   NO se movió: su fuente es la ESC/EACTS 2025 y la orden lo excluye. Queda en `PENDIENTES.md`. */
 const IA_VMAX_TD_SEVERA = 20;  // cm/s — ≥ 20 → severa; por debajo el parámetro no vota
 /* Mismo endurecimiento que pcpNagueh, y por el mismo motivo: `isNaN('')` es false, así que
    la versión anterior devolvía TRUE —severa— ante un campo vacío. Y `isNaN('0,95')` es true,
@@ -71002,8 +71007,46 @@ function eteTaviRPV(){
   const ext=v('ete_tavi_ext_circ'), vc=v('ete_tavi_vc_ancho'), vcA=v('ete_tavi_vc_area');
   const pht=v('ete_tavi_pht');
   const flujo=sv('ete_tavi_flujo_rev'), velT=v('ete_tavi_vel_tele');
-  const holoSevero = (flujo==='holo' && velT!=null && velT>=20);
-  if(ext==null && vc==null && vcA==null && pht==null && !holoSevero) return null;
+  /* ══ PRO3 — EL REVERSO DIASTOLICO GRADUA EN DOS NIVELES (2026-10-17) ═══════════════════════
+     DECISION DE MAICOL. Hasta hoy este parametro votaba SOLO severa con `velT >= 20` y citaba la
+     ASE 2019; manda la fuente especifica de la TAVI, que es la unica que publica cifras.
+     **VARC-3 2021 (Genereux et al., Eur Heart J 2021;42(19):1825-1857, DOI
+     10.1093/eurheartj/ehaa799), Tabla 16 «Criteria for prosthetic aortic valve regurgitation»,
+     folio 1846, hoja 22** (folio comprobado en el pie impreso de esa pagina y de la siguiente,
+     1847), fila «Diastolic flow reversal in proximal descending aorta (PW Doppler)», leida en el
+     PDF original:
+       None/Trace      : Absent
+       Mild            : Absent or brief early diastolic
+       Mild-moderate   : Intermediate
+       Moderate        : Intermediate
+       Moderate-severe : **Holodiastolic (end-diastolic velocity 20 to <30 cm/s)**
+       Severe          : **Holodiastolic (end-diastolic velocity >=30 cm/s)**
+     La MISMA tabla publica su equivalencia de cinco clases a tres —«Three-class grading scheme»
+     contra «Five-class grading scheme»—, que es la que Maicol fijo: leve = leve y leve-moderada,
+     moderada = moderada y moderada-severa, severa = severa. Asi que la banda de 20 a <30 cae en
+     **MODERADA** y la de >=30 en **SEVERA**.
+     ⚠️ LA ASE 2024 NO DA CIFRA PARA ESTE PARAMETRO, y eso se verifico antes de elegir la fuente:
+     su Tabla 8 (folio 23) escribe «Absent or brief early diastolic | Intermediate | Prominent,
+     holodiastolic», sin un solo numero. Por eso manda la VARC-3 aunque sea anterior: la regla de
+     la casa es «la mas nueva QUE TRAIGA EL DATO».
+     ⚠️ LA VARC-3 EXIGE QUE EL FLUJO SEA HOLODIASTOLICO EN LAS DOS BANDAS —las dos celdas empiezan
+     con la palabra «Holodiastolic»— asi que la compuerta `flujo === 'holo'` se CONSERVA tal cual.
+     Con el flujo en «proto» o «ausente» este parametro no vota, igual que hasta hoy.
+     ⚠️ SIGUE SIENDO UN PARAMETRO MAS DE LA INTEGRACION y no una regla aparte: se empuja a `sev` o
+     a `mod` como cualquier otro y manda el peor presente. Con el reverso moderado y una extension
+     circunferencial trivial, el veredicto es MODERADA —el peor— y no «trivial».
+     ⚠️ EL LITERAL 20 DE `calcIA_ESC` (`IA_VMAX_TD_SEVERA`) NO SE TOCA, y la orden lo prohibe
+     expresamente: ahi el territorio es la aorta DESCENDENTE de una valvula nativa o de una SAVR y
+     la fuente es la ESC/EACTS 2025 (Figura 4, folio 4659, «EDV >=20 cm/s» dentro del recuadro de
+     severa). La asimetria queda declarada en `docs/PENDIENTES.md`: desde hoy los dos numeros ya
+     no coinciden, que es exactamente el motivo por el que el comentario de esa constante pedia
+     que mover uno no dejara al otro atras. */
+  const TAVI_REV_SEV_MIN = 30;   // cm/s — >=30 holodiastolico -> severa  (VARC-3 T16 folio 1846)
+  const TAVI_REV_MOD_MIN = 20;   // cm/s — 20 a <30 holodiastolico -> moderada (misma fila)
+  const holoNivel = (flujo==='holo' && velT!=null)
+    ? (velT >= TAVI_REV_SEV_MIN ? 'sev' : (velT >= TAVI_REV_MOD_MIN ? 'mod' : null))
+    : null;
+  if(ext==null && vc==null && vcA==null && pht==null && !holoNivel) return null;
   /* Un CERO medido es la constancia de que se buscó el jet y no está, no un jet trivial. Antes
      caía en `triv` y, con ese único parámetro, la cascada salía por el `return` final con
      «Leve»: el informe firmado imprimía «Insuficiencia paravalvular leve, extensión
@@ -71019,7 +71062,11 @@ function eteTaviRPV(){
      en vez del ancho se quedaba sin severidad y sin línea de RPV en el informe. */
   if(vcA) (vcA>=0.30?sev:(vcA>=0.10?mod:triv)).push('área de vena contracta '+vcA+' cm²');
   if(pht!=null) (pht<200?sev:(pht<=500?mod:triv)).push('THP '+pht+' ms');
-  if(holoSevero) sev.push('flujo holodiastólico con velocidad tele-diastólica '+velT+' cm/s');
+  /* El TEXTO del motivo no cambia con el nivel: describe la MEDICION —«flujo holodiastólico con
+     velocidad tele-diastólica N cm/s»— y el nivel ya lo publica el veredicto de arriba. Dos
+     redacciones para el mismo hallazgo serían dos frases que hay que mantener sincronizadas. */
+  if(holoNivel==='sev') sev.push('flujo holodiastólico con velocidad tele-diastólica '+velT+' cm/s');
+  else if(holoNivel==='mod') mod.push('flujo holodiastólico con velocidad tele-diastólica '+velT+' cm/s');
   if(sev.length) return {sev:'Severa',   cls:'red',    motivo:sev.join(' · ')};
   if(mod.length) return {sev:'Moderada', cls:'orange', motivo:mod.join(' · ')};
   if(triv.length>=3) return {sev:'Trivial', cls:'green', motivo:triv.join(' · ')};
