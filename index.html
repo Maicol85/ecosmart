@@ -16963,6 +16963,18 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
             (EDV &ge;20 cm/s)&raquo;</i>, y no da bandas de leve ni de moderada. Por debajo de 20 cm/s el
             par&aacute;metro <b>no grad&uacute;a</b> y la severidad la deciden los otros votantes.
           </div>
+          <!-- ⚠️ DOS VALORES DE ESTA TABLA CAMBIAN CON PROTESIS AORTICA, y la celda tiene que
+     decirlo o miente en todo paciente operado: los seis cortes de arriba son de valvula NATIVA y
+     la ASE 2024 tiene su propia tabla. Va al pie y no dentro de las dos celdas porque son DOS
+     filas distintas: repartida, cada celda quedaria con dos numeros y dejaria de leerse como un
+     corte. Es la misma solucion que el bloque de salvedades de la IM. -->
+          <div style="margin-top:6px;font-size:11px;color:var(--text2);line-height:1.6;">
+            &#9888;&#65039; Con <b>pr&oacute;tesis a&oacute;rtica</b> &mdash;biol&oacute;gica, mec&aacute;nica o TAVI&mdash; dos cortes de esta tabla
+            son otros, y salen de la <b>ASE 2024, Tabla 8, folio 23</b>: el <b>ratio jet/TSVI</b> es leve con
+            <b>25 % o menos</b> (en la nativa, menos de 25 %) y la <b>fracci&oacute;n regurgitante</b> es severa con
+            <b>50 % o m&aacute;s</b> (en la nativa, m&aacute;s de 50 %, ESC/EACTS 2025 Figura 4 folio 4659). Los otros
+            cuatro par&aacute;metros coinciden n&uacute;mero por n&uacute;mero en los dos reg&iacute;menes.
+          </div>
           <div style="margin-top:10px;font-size:12px;color:var(--text);line-height:1.8;">
             • <b>Clase I:</b> IAo severa sintomática → cirugía<br>
             • <b>Clase I:</b> IAo severa asintomática con FEVI ≤50% → cirugía<br>
@@ -41583,6 +41595,46 @@ function calcIA_ESC() {
   const pisaR = _pPr.crudo, pisaVal = _pPv.crudo, vmaxCW = _pVcw.crudo, vtiIA = _pVti.crudo;
   const itsvi = _pIts.crudo, dtsvi = _pDts.crudo;
 
+  /* ══ PRO2 — LA INSUFICIENCIA AORTICA PROTESICA USA LA TABLA 8 DE LA ASE 2024 (2026-10-17) ═══
+     DECISION DE MAICOL. Hasta hoy esta cascada corria con los cortes de la valvula NATIVA tambien
+     sobre una protesis, y la ASE 2024 tiene su propia tabla para eso. **ASE 2024 (Zoghbi), Tabla
+     8 «Parameters for evaluation of the severity of prosthetic aortic valve regurgitation», folio
+     23 (hoja 22; folio = hoja + 1, comprobado en el pie impreso)**, leida en el PDF original:
+
+       | parametro                      | Mild            | Moderate      | Severe   |
+       | jet width, % LVOT diameter     | Narrow (≤25 %)  | 26 %-64 %     | ≥65 %    |
+       | regurgitant fraction, %        | <30             | 30-50         | ≥50      |
+
+     (El texto extraido de ese PDF codifica `≥` como `$` y `≤` como `#`.)
+     DOS valores exactos cambian de lado y nada mas: el **25 %** del jet, que pasa de moderada a
+     LEVE, y el **50 %** de la fraccion regurgitante, que pasa de moderada a SEVERA. Los demas
+     tramos coinciden numero por numero con los nativos que la app ya aplicaba.
+     ⚠️ EL 50 % ES UN BORDE AMBIGUO DE LA PROPIA TABLA 8 —escribe moderada «30-50» y severa «≥50»,
+     o sea que el 50 esta en las DOS columnas— y lo DESAMBIGUA la otra fuente de la zona: la
+     **VARC-3 2021, Tabla 16, folio 1846 (hoja 22)**, cuyas bandas de cinco clases son «40 to <50»
+     y «≥50», sin superposicion. O sea que la lectura conservadora —severa— es ademas la que la
+     guia escribe explicito. En la valvula NATIVA el 50 sigue siendo MODERADA, que es lo que el
+     VAL3 decidio el 2026-10-17 con la ESC/EACTS 2025 (Figura 4, folio 4659: «RF >50% (echo)»):
+     son dos documentos y dos regimenes, y el mismo numero cae de distinto lado en cada uno.
+     ⚠️ EL HUECO DE LA TABLA 8 (25,1 a 25,9 %) SE RESUELVE POR COMPLEMENTO, hacia MODERADA. La
+     tabla escribe «≤25» y «26-64», asi que ese tramo no cae en ninguna columna; dejarlo del lado
+     de moderada es lo unico que no deja un valor sin leer y es el lado que no suaviza.
+     ⚠️ ALCANZA A LAS TRES PROTESIS AORTICAS, LA TAVI INCLUIDA, y es de la fuente: el titulo de la
+     Tabla 8 dice «prosthetic aortic valve» sin abrir ramas por tipo, y la TAVI corre EXACTAMENTE
+     esta cascada —`calcIA_ESC` no distingue—, asi que acotarlo a la SAVR habria dejado a la TAVI
+     con los cortes nativos sobre una tabla que la cubre. Medido en las tres.
+     ⚠️ UNA SOLA LECTURA DE LA MORFOLOGIA PARA LAS DOS DECISIONES, que es la leccion que el
+     cociente VTI mitral ya tiene escrita: con dos llamadas, un `#va_morf` que cambiara entre
+     medio daria el jet con un regimen y la FR con el otro.
+     ⚠️ `typeof` Y NO LLAMADA PELADA: `_eaEsProtesisAo` vive en el bloque `<script>` que abre en
+     la 33658 y `calcIA_ESC` en el que abre en la 41096, asi que aca el `typeof` cubre un caso
+     real. FALLA HACIA NATIVA, que es el regimen que la app aplicaba hasta hoy: sin el predicado
+     no se cambia ningun corte, que es la direccion que no introduce un veredicto nuevo. */
+  const _iaProt = (function () {
+    try { return !!(typeof _eaEsProtesisAo === 'function' && _eaEsProtesisAo()); }
+    catch (e) { return false; }
+  })();
+
   let scores = { leve:0, moderada:0, severa:0 };
   let params = [];
   /* Se arma una sola vez y se publica abajo, FUERA del `return` temprano de `params.length === 0`
@@ -41627,7 +41679,13 @@ function calcIA_ESC() {
     const _ratioDud = _pJet.fuera || _pDts.fuera;
     _iaSet('ia-jet-ratio', ratio + '%' + (_ratioDud ? MARCA_REVISAR : ''));
     if (!_ratioDud) {
-      if (ratio < 25) { scores.leve++; params.push({p:'Jet/TSVI',sev:'leve'}); }
+      /* ⚠️ EL OPERADOR DEL BORDE DE LEVE CAMBIA CON EL REGIMEN, Y EL CORTE NO: la Tabla 8 escribe
+         «Narrow (≤25 %)» y la app nativa aplica `< 25`. El 25,0 exacto es el unico valor que se
+         mueve, y es un numero que se tipea redondo. Se compara el valor PUBLICADO (`ratio`, que es
+         `.toFixed(1)`), igual que antes de esta tanda: el numero que vota es el que el medico
+         tiene delante. */
+      const _jetLeve = _iaProt ? (ratio <= 25) : (ratio < 25);
+      if (_jetLeve) { scores.leve++; params.push({p:'Jet/TSVI',sev:'leve'}); }
       else if (ratio < 65) { scores.moderada++; params.push({p:'Jet/TSVI',sev:'moderada'}); }
       else { scores.severa++; params.push({p:'Jet/TSVI',sev:'severa'}); }
     }
@@ -41811,8 +41869,15 @@ function calcIA_ESC() {
          ⚠️ SE COMPARA EL VALOR PUBLICADO (`fr`, que es `frNum.toFixed(0)`) y no el crudo, igual
          que antes de esta tanda: el numero que vota es el que el medico tiene delante. */
       if (frOk) {
+        /* ⚠️ CON PROTESIS EL 50 EXACTO ES SEVERA y en nativa sigue siendo MODERADA: ver la nota de
+           `_iaProt` arriba —la ASE 2024 se superpone en ese valor y la VARC-3 lo desambigua hacia
+           severa; la ESC/EACTS 2025, que es la que gobierna la nativa desde el VAL3, escribe `>50`
+           estricto—. El tramo de moderada es el COMPLEMENTO exacto en los dos regimenes, asi que
+           ningun valor queda sin leer: con `< 50` arriba y `>= 50` abajo el 50 caeria en las dos y
+           el parametro votaria dos veces. */
+        const _frSevera = _iaProt ? (fr >= 50) : (fr > 50);
         if (fr < 30) { scores.leve++; params.push({p:'FR',sev:'leve'}); }
-        else if (fr <= 50) { scores.moderada++; params.push({p:'FR',sev:'moderada'}); }
+        else if (!_frSevera) { scores.moderada++; params.push({p:'FR',sev:'moderada'}); }
         else { scores.severa++; params.push({p:'FR',sev:'severa'}); }
       }
     } else { _iaSet('ia-volr', '—'); _iaSet('ia-freg', '—'); }
