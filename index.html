@@ -8212,6 +8212,79 @@ window.cerrarSesionReal = cerrarSesionReal;
       </div>
   </div>
 
+  <!-- ═══ TEST DE BURBUJA (CORTOS11, 2026-10-17) ═══════════════════════════════════════════════
+       DECISION DE MAICOL. Una casilla que declara que el test SE HIZO y, con pasaje, tres datos:
+       cantidad, momento de aparicion y si fue espontaneo o con Valsalva. Sin pasaje no se
+       pregunta nada mas. La app arma el texto; el informe NO escribe interpretaciones
+       —intracardiaco o intrapulmonar—, que es lo que la orden pide.
+       ⚠️ LOS CORTES NO SE DUPLICAN: las tres bandas de cantidad y los tres tramos de latidos ya
+       estan en la pestaña Referencias (ficha «Test de Burbujas»), y el globo de aca LEE esa ficha
+       en vez de reescribirla.
+       ⚠️ EL TEXTO QUE VA AL INFORME SALE DE LA `<option>` ELEGIDA, no de un mapa paralelo: es la
+       regla que el selector del S/D venoso pulmonar ya pago con un ternario. Por eso los rotulos
+       de las opciones son exactamente las palabras que van al papel.
+       ⚠️ DUPLICACION PREEXISTENTE, DECLARADA Y NO TOCADA: la seccion FOP de «CC frecuentes» tiene
+       sus propios `fop_contraste` y `fop_burbujas`, con OTRA escala (<5 / 5-20 / >20) y su propio
+       parrafo. Unificar los `value` de ese `<select>` dejaria a todo estudio guardado con un valor
+       que su selector ya no ofrece —`selectedIndex -1`, la trampa que `et_grado` pago— y cambiaria
+       el texto del modulo FOP y las barras del Laboratorio, que esta orden no autoriza. Queda en
+       `docs/PENDIENTES.md`. -->
+  <div class="card" style="margin-bottom:6px;">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('burbuja',this)">
+      &#129526; Test de burbuja
+      <span id="ete-burbuja-arrow" style="float:right;transition:transform 0.2s;">&#9654;</span>
+    </h2>
+  </div>
+  <div id="ete-seccion-burbuja" style="display:none;">
+  <div class="card">
+    <div class="card-body">
+      <div class="fg">
+        <label style="display:flex;align-items:center;gap:8px;min-height:44px;font-weight:600;">
+          <input type="checkbox" id="otr_burb" onchange="otrBurbUI();otrHallSync()">
+          <span style="font-size:12px;">Se realiza test de burbuja</span>
+          <button type="button" class="vinfo-btn" data-vinfo="otr-burbujas" aria-expanded="false" aria-label="Informaci&oacute;n sobre el test de burbuja" onclick="vInfoClic(this)">&#9432;</button>
+        </label>
+      </div>
+      <div id="otr-burb-detalle" style="display:none;">
+        <div class="grid-2">
+          <div class="fg"><label>Pasaje de burbujas</label>
+            <select id="otr_burb_pasaje" onchange="otrBurbUI();otrHallSync()">
+              <option value="">&mdash; sin consignar &mdash;</option>
+              <option value="si">S&iacute;, se observa pasaje</option>
+              <option value="no">No se observa pasaje</option>
+            </select>
+          </div>
+        </div>
+        <div id="otr-burb-pos" class="grid-3" style="display:none;margin-top:8px;">
+          <div class="fg"><label>Cantidad</label>
+            <select id="otr_burb_cant" onchange="otrHallSync()">
+              <option value="">&mdash; sin consignar &mdash;</option>
+              <option value="lt10">menos de 10</option>
+              <option value="e1030">entre 10 y 30</option>
+              <option value="gt30">m&aacute;s de 30</option>
+            </select>
+          </div>
+          <div class="fg"><label>Maniobra</label>
+            <select id="otr_burb_man" onchange="otrHallSync()">
+              <option value="">&mdash; sin consignar &mdash;</option>
+              <option value="esp">espont&aacute;neo</option>
+              <option value="val">con Valsalva</option>
+            </select>
+          </div>
+          <div class="fg"><label>Momento de aparici&oacute;n</label>
+            <select id="otr_burb_mom" onchange="otrHallSync()">
+              <option value="">&mdash; sin consignar &mdash;</option>
+              <option value="pre3">antes del tercer latido</option>
+              <option value="e35">entre el tercer y el quinto latido</option>
+              <option value="post5">despu&eacute;s del quinto latido</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+
   <!-- ═══ ECOGRAFÍA PULMONAR — módulo básico ═══ -->
   <!-- Sólo genera texto si hay hallazgos positivos. Si se integra el módulo
        avanzado (tab Eco Pulmonar), este se omite del informe automáticamente. -->
@@ -39485,6 +39558,9 @@ const VINFO = Object.freeze({
   /* ⚠️ LAS DOS TARJETAS DE AI/VI SON DE LAS QUE TRAEN `dyn`: lo que muestran es un grafico con
      el punto del paciente, que se arma al abrir y se repinta en vivo. No llevan `tit`, `lee`
      ni `fuente` porque su contenido entero —el titulo incluido— lo construye su funcion. */
+  /* Los dos globos que LEEN una ficha de Referencias (CORTOS11 y CORTOS12). Van con `dyn` porque
+     lo que muestran son NODOS clonados, no un texto. */
+  'otr-burbujas': { ancho: 360, dyn: function () { return _otrRefClon('ref-burbujas', 'tablas') } },
   'ai-card': { ancho: 348, dyn: function () { return evTarjetaAI() } },
   'vi-card': { ancho: 360, dyn: function () { return evTarjetaVI() } },
   /* ⚠️ LA GEOMETRIA VA EN SU PROPIO GLOBO Y NO DENTRO DE LA TARJETA DEL VENTRICULO, y es una
@@ -39537,6 +39613,40 @@ function _vInfoHTML(clave, btn) {
    ⚠️ DENOMINADOR: UN BOTON SIN GEOMETRIA NO SE ANCLA. Dentro de un cajon cerrado el boton existe
    y mide 0 x 0, y anclar contra ese rect manda la tarjeta a la esquina de la pantalla, lejos del
    numero que explica. Se informa y no se abre. */
+/* ══ UN GLOBO QUE LEE UNA FICHA DE REFERENCIAS (CORTOS11 y CORTOS12, 2026-10-17) ══════════════
+   La orden pide globos que muestren «lo que Referencias ya tiene», SIN texto nuevo. Esto CLONA
+   los nodos de la ficha en vez de reescribirla: una copia del texto seria una segunda version que
+   se separa de la primera el dia que una se toque, y es el defecto que esta suite ya pago con los
+   siete `title` de legado de la mitral.
+   `modo: 'tablas'` clona SOLO los `<table>` de la ficha con el encabezado que cada uno tiene
+   justo encima —en la ficha del test de burbuja son exactamente los dos que la orden nombra,
+   latidos y cantidad—; sin modo, clona la ficha entera. La seleccion es ESTRUCTURAL y no por el
+   texto de un rotulo: un `<table>` es un `<table>` aunque mañana cambie su titulo.
+   ⚠️ SE CLONA, NO SE MUEVE: `cloneNode(true)` deja la ficha intacta en su pestaña. Y no hay
+   `innerHTML` con datos: lo que entra son nodos ya parseados del propio documento. */
+function _otrRefClon(refId, modo) {
+  const cont = document.createElement('div');
+  const r = document.getElementById(refId);
+  if (!r) { cont.appendChild(document.createTextNode('La ficha de Referencias no esta disponible.'));
+            return cont; }
+  let nodos = [];
+  if (modo === 'tablas') {
+    Array.prototype.slice.call(r.querySelectorAll('table')).forEach(function (t) {
+      const h = t.previousElementSibling;
+      if (h && h.tagName === 'DIV') nodos.push(h);
+      nodos.push(t);
+    });
+  }
+  if (!nodos.length) nodos = Array.prototype.slice.call(r.children);
+  nodos.forEach(function (n) { cont.appendChild(n.cloneNode(true)); });
+  const pie = document.createElement('div');
+  pie.style.cssText = 'font-size:10px;color:var(--text2);margin-top:6px;line-height:1.4;';
+  pie.textContent = 'Ficha de la pestaña Referencias.';
+  cont.appendChild(pie);
+  return cont;
+}
+window._otrRefClon = _otrRefClon;
+
 const VINFO_MARGEN = 8, VINFO_ANCHO = 300;
 function _vInfoColocar(clave) {
   const c = document.getElementById('vinfo-card'); if (!c) return null;
@@ -50186,6 +50296,13 @@ function generarInforme(opts) {
       const _oh = (typeof otrHallazgos === 'function') ? otrHallazgos() : [];
       _oh.forEach(function (h) { inf.push(h.inf); if (h.suma) suma.push(h.suma); });
     }
+    /* ══ EL TEST DE BURBUJA (CORTOS11, 2026-10-17) ════════════════════════════════════════════
+       UNA ORACION, armada por su dueño. Al EN SUMA va «positivo» o «negativo» y nada mas: no se
+       inventa un nombre de grado, que es la decision de la orden. */
+    {
+      const _ob = (typeof otrBurbuja === 'function') ? otrBurbuja() : null;
+      if (_ob) { inf.push(_ob.inf); if (_ob.suma) suma.push(_ob.suma); }
+    }
   }
 
   // ── 13a2) Pericardio: derrame/taponamiento y constricción vs restricción ──
@@ -52304,7 +52421,7 @@ function RECALC_MODULOS() {
      automaticos con el «requiere …» del formulario vacio al lado de un VDFVI y una FEVI ya
      poblados. No puede migrar nada: no escribe ningun campo del estudio, los dos nodos que
      toca son `vauto-` y el tercero un `<div>` de texto. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','v2dCerrar','aiviSexoSync'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -52961,6 +53078,11 @@ function limpiarCampos(silencioso) {
      firmado—. Desde el CORTOS9 su estado es un campo del estudio y se pinta desde el. */
   { const _qx = document.getElementById('ete_qx_pdf'); if (_qx) _qx.value = ''; }
   if (typeof eteQxPdfSync === 'function') { try { eteQxPdfSync(); } catch (e) {} }
+  /* ⚠️ EL BLOQUE DEL TEST DE BURBUJA SE CIERRA A MANO (CORTOS11): el barrido de arriba desmarca
+     la casilla, pero el `display` de sus dos envoltorios lo gobierna `otrBurbUI` y ningun barrido
+     generico lo toca. Sin esta linea, los cuatro selectores del paciente anterior quedaban a la
+     vista —vacios— sobre un formulario recien limpiado. */
+  if (typeof otrBurbUI === 'function') { try { otrBurbUI(); } catch (e) {} }
   try { localStorage.removeItem('ecosmart_autosave'); } catch(e) {}
   // Checklists de indicaciones/antecedentes → desmarcar, ocultar "Otro" y resetear resumen
   document.querySelectorAll('.ind-chk, .ant-chk').forEach(c => { c.checked = false; });
@@ -55602,6 +55724,55 @@ window.OTR_HALL = OTR_HALL; window.otrHallazgos = otrHallazgos;
    de nota lo llama por su `oninput` desde el marcado. */
 function otrHallSync() { if (typeof _refrescarInformeSiGenerado === 'function') _refrescarInformeSiGenerado(); }
 window.otrHallSync = otrHallSync;
+
+/* ══ EL TEST DE BURBUJA (CORTOS11, 2026-10-17) ════════════════════════════════════════════════
+   Los tres detalles aparecen SOLO con pasaje, que es lo que la orden pide: sin pasaje no se
+   pregunta nada mas. La casilla gobierna el bloque entero. */
+function otrBurbUI() {
+  const on = !!(document.getElementById('otr_burb') || {}).checked;
+  const det = document.getElementById('otr-burb-detalle');
+  if (det) det.style.display = on ? '' : 'none';
+  const pas = (document.getElementById('otr_burb_pasaje') || {}).value || '';
+  const pos = document.getElementById('otr-burb-pos');
+  if (pos) pos.style.display = (on && pas === 'si') ? '' : 'none';
+}
+window.otrBurbUI = otrBurbUI;
+/* El texto de cada tramo sale de la `<option>` ELEGIDA y no de un mapa paralelo: es la regla que
+   el selector del S/D venoso pulmonar ya pago con un ternario que imprimia el signo contrario.
+   Por eso los rotulos de las opciones son exactamente las palabras que van al papel. */
+function _otrOpt(id, src) {
+  const e = document.getElementById(id);
+  if (src && typeof src === 'object') {
+    const v = String(src[id] == null ? '' : src[id]);
+    if (!v || !e) return '';
+    const o = Array.prototype.slice.call(e.options || []).find(function (x) { return x.value === v });
+    return o ? String(o.textContent || '').trim() : '';
+  }
+  if (!e) return '';
+  return e.value ? String((e.options[e.selectedIndex] || {}).textContent || '').trim() : '';
+}
+/* Datos y no HTML, igual que `otrHallazgos`. Devuelve `null` con la casilla apagada, asi que el
+   informe de hoy no cambia mientras nadie la toque.
+   ⚠️ EL INFORME NO INTERPRETA: no dice «intracardiaco» ni «intrapulmonar». Esa lectura esta en la
+   ficha de Referencias que el globo abre, y es del medico. */
+function otrBurbuja(src) {
+  const on = (src && typeof src === 'object')
+    ? String(src['otr_burb__chk'] || '') === '1'
+    : !!(document.getElementById('otr_burb') || {}).checked;
+  if (!on) return null;
+  const pas = (src && typeof src === 'object')
+    ? String(src['otr_burb_pasaje'] || '')
+    : ((document.getElementById('otr_burb_pasaje') || {}).value || '');
+  if (pas === 'no') return { inf: 'Se realiza test de burbuja, no se observa pasaje de burbujas.',
+                             suma: 'Test de burbuja negativo.' };
+  if (pas !== 'si') return { inf: 'Se realiza test de burbuja.', suma: null };
+  const cant = _otrOpt('otr_burb_cant', src), man = _otrOpt('otr_burb_man', src),
+        mom = _otrOpt('otr_burb_mom', src);
+  return { inf: 'Se realiza test de burbuja, se observa pasaje de burbujas'
+                + (cant ? ' (' + cant + ')' : '') + (man ? ', ' + man : '') + (mom ? ', ' + mom : '') + '.',
+           suma: 'Test de burbuja positivo.' };
+}
+window.otrBurbuja = otrBurbuja;
 
 function showMasaPanel(){
   var v = (document.getElementById('masa_presente') || {}).value || '';
