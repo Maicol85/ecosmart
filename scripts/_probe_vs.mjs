@@ -547,6 +547,43 @@ async function main() {
     out.grupos.vci = g; parcial('vci', t0);
   }
 
+  /* ── grupo aorta: el seno de Valsalva en su borde y los otros cuatro segmentos ── */
+  if (corre('aorta')) {
+    const t0 = Date.now(); const g = {};
+    const RE_AO = 'aorta|a[óo]rtic|sinotubular|cayado';
+    for (const v of [39.9, 40, 40.1, 45, 45.1, 50, 50.1]) {
+      try {
+        await escena({ ao_sin: String(v) });
+        const r = await leer(RE_AO);
+        g['sin ' + v] = { cap: r.caps['ao-interp'], inf: r.txt.estandar.inf, suma: r.txt.estandar.suma };
+      } catch (e) { g['sin ' + v] = { ABORTO: e.message }; abortos.push('aorta sin ' + v + ': ' + e.message); }
+    }
+    /* CONTROL NEGATIVO: los otros cuatro segmentos conservan su operador estricto. */
+    const OTROS = [['ao_st', 38, 'ao-st-interp'], ['ao_tub', 40, 'ao-tub-interp'],
+                   ['diam_cayado', 40, 'ao-cay-interp'], ['diam_ao_toracica', 35, 'ao-desc-interp']];
+    for (const [campo, ref, cap] of OTROS) {
+      for (const d of [-0.1, 0, 0.1]) {
+        const v = +(ref + d).toFixed(1);
+        try {
+          await escena({ [campo]: String(v) });
+          const r = await leer(RE_AO);
+          g[campo + ' ' + v] = { cap: r.caps[cap], inf: r.txt.estandar.inf, suma: r.txt.estandar.suma };
+        } catch (e) { g[campo + ' ' + v] = { ABORTO: e.message }; abortos.push('aorta ' + campo + ' ' + v + ': ' + e.message); }
+      }
+    }
+    /* El corte que PUBLICA la tarjeta, sondeado al dueno. */
+    try {
+      await escena({ ao_sin: '42', edad: '55', peso: '80', talla: '180' });
+      g.tarjeta = await J(`JSON.stringify((function(){
+        if (typeof evTarjetaAo !== 'function') return { err:'SIN FN' };
+        var box = document.createElement('div'); box.appendChild(evTarjetaAo());
+        var o = {}; Array.prototype.slice.call(box.querySelectorAll('[data-ev-cat]')).forEach(function(d){
+          o[d.getAttribute('data-ev-cat')] = String(d.textContent||'').trim() });
+        return o })())`);
+    } catch (e) { g.tarjeta = { ABORTO: e.message }; abortos.push('aorta tarjeta: ' + e.message); }
+    out.grupos.aorta = g; parcial('aorta', t0);
+  }
+
   out.md5_despues = await md5(EXTERNO ? FARG : join(RAIZ, 'index.html'));
   out.index_intacto = out.md5_antes === out.md5_despues;
   out.segundos = +((Date.now() - t00) / 1000).toFixed(1);

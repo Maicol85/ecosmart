@@ -21326,7 +21326,14 @@ const AO_REF = Object.freeze({ sin: 40, st: 38, tub: 40, cay: 40, desc: 35 });
    calibre normal (Raíz aórtica 5.2 mm)». Un valor ilegible tiene que bloquear la NEGACIÓN, no
    colarse como afirmación de normalidad. */
 const AO_SEGS = Object.freeze([
-  Object.freeze({ k:'ao_sin', lbl:'raíz aórtica',        lblC:'Raíz aórtica',        med:'senos de Valsalva',    ref:AO_REF.sin, leve:45, mod:50,   min:10, max:90 }),
+  /* ⚠️ `incRef:true` = EL VALOR DEL CORTE CUENTA COMO DILATADO (VS5, 2026-10-17). Decisión de
+     Maicol: en el seno de Valsalva, 40,0 mm EXACTOS son dilatados. Es el ÚNICO segmento con la
+     marca; los otros cuatro conservan su `>` estricto, o sea que su valor de corte sigue
+     cayendo del lado normal. El número no se movió: lo que cambia es el operador, y vive acá,
+     al lado del valor, para que ninguna superficie tenga que recordarlo.
+     ⚠️ ES CRITERIO DE ECOSMART Y NO SE LE ATRIBUYE A NINGUNA GUÍA: la ficha `AOR-001` figura
+     «por verificar» y no publica fuente desde la tanda M. */
+  Object.freeze({ k:'ao_sin', lbl:'raíz aórtica',        lblC:'Raíz aórtica',        med:'senos de Valsalva',    ref:AO_REF.sin, incRef:true, leve:45, mod:50,   min:10, max:90 }),
   Object.freeze({ k:'ao_st',  lbl:'unión sinotubular',   lblC:'Unión sinotubular',   med:'unión sinotubular',    ref:AO_REF.st,  leve:44, mod:49,   min:10, max:80 }),
   Object.freeze({ k:'ao_tub', lbl:'aorta ascendente',    lblC:'Aorta ascendente',    med:'aorta ascendente',     ref:AO_REF.tub, leve:45, mod:50,   min:10, max:90 }),
   /* `m:true` = sustantivo MASCULINO. Los cuatro segmentos viejos son femeninos («la raíz», «la
@@ -21399,10 +21406,28 @@ AO_SEGS.forEach(function(sg){
    sondear al dueno es lo unico que impide que el dibujo y el informe firmado se desincronicen.
    ⚠️ EL OPERADOR DEL CORTE DE NORMALIDAD ES `>` Y NO `>=`: con 40,0 mm exactos en el seno de
    Valsalva el grado es `normal`. No se movio: es el que la app aplica desde siempre. */
+/* ══ EL PREDICADO «ESTE SEGMENTO ESTA DILATADO», CON UN SOLO DUENO (VS5, 2026-10-17) ══════
+   El operador NO es el mismo en los cinco segmentos desde que el seno de Valsalva cuenta su
+   propio corte como dilatado, asi que la comparacion sale a funcion propia: habia TRES copias
+   del `x > sg.ref` —esta cascada, la celda compacta de la aorta del PDF y la estadistica de
+   valvula aortica bicuspide del Laboratorio— y con el operador partido por segmento, la que se
+   olvidara habria contado distinto que el informe firmado sobre el mismo paciente.
+   ⚠️ LOS ROTULOS TAMBIEN LO LEEN: el simbolo que publica la capsula y el que imprime el PDF se
+   derivan de `incRef`, no se escriben a mano. */
+function aoSegDil(sg, x) {
+  return sg && sg.incRef ? (x >= sg.ref) : (x > sg.ref);
+}
+window.aoSegDil = aoSegDil;
+/* El simbolo del operador de normalidad y el de dilatacion, derivados del mismo `incRef`. */
+function aoSegSim(sg, lado) {
+  const inc = !!(sg && sg.incRef);
+  return (lado === 'normal') ? (inc ? '<' : '≤') : (inc ? '≥' : '>');
+}
+window.aoSegSim = aoSegSim;
 function aoSegGrado(sg, x) {
   if (x === null || x === undefined || !isFinite(x) || !x) return null;
   if (x < sg.min || x > sg.max) return 'fuera';
-  if (x > sg.ref) return (x <= sg.leve) ? 'leve' : (sg.mod && x <= sg.mod) ? 'moderada' : 'severa';
+  if (aoSegDil(sg, x)) return (x <= sg.leve) ? 'leve' : (sg.mod && x <= sg.mod) ? 'moderada' : 'severa';
   return 'normal';
 }
 window.aoSegGrado = aoSegGrado;
@@ -22146,8 +22171,8 @@ function calcAorta() {
        aceptan decimales (los `type=number` pasan a texto con `inputmode=decimal` en runtime), y
        un 40,5 clasificaba «leve» bajo un rótulo que decía que la banda empieza en 41. */
     if (m.grado === 'fuera')         txt = 'Valor fuera de rango (' + sg.min + '-' + sg.max + ' mm) — verificar';
-    else if (m.grado === 'normal')   txt = 'Normal (≤' + sg.ref + 'mm)';
-    else if (m.grado === 'leve')     txt = 'Dilat. leve (>' + sg.ref + ' y ≤' + sg.leve + 'mm)';
+    else if (m.grado === 'normal')   txt = 'Normal (' + aoSegSim(sg, 'normal') + sg.ref + 'mm)';
+    else if (m.grado === 'leve')     txt = 'Dilat. leve (' + aoSegSim(sg, 'dil') + sg.ref + ' y ≤' + sg.leve + 'mm)';
     else if (m.grado === 'moderada') txt = 'Dilat. moderada (>' + sg.leve + ' y ≤' + sg.mod + 'mm)';
     else                             txt = 'Dilat. severa (>' + (sg.mod || sg.leve) + 'mm)';
     el.innerHTML = badge(m.grado === 'fuera' ? 'red' : AO_BADGE_COLOR[m.grado], txt);
@@ -22746,7 +22771,7 @@ const EV_REG = Object.freeze([
   /* ── AORTA TORACICA ──────────────────────────────────────────────── */
   Object.freeze({
     id: 'AOR-001', zona: 'AI/VI — Aorta torácica', dato: 'Cortes de dilatación por segmento',
-    valor: 'Raíz aórtica y aorta ascendente: dilatadas por encima de 40 mm. Unión sinotubular: por encima de 38. Cayado: por encima de 40. Aorta torácica descendente: por encima de 35. Un solo corte para los dos sexos y sin ajuste por superficie corporal ni por edad',
+    valor: 'Raíz aórtica: dilatada con 40 mm o más. Aorta ascendente: por encima de 40. Unión sinotubular: por encima de 38. Cayado: por encima de 40. Aorta torácica descendente: por encima de 35. Un solo corte para los dos sexos y sin ajuste por superficie corporal ni por edad',
     duenio: 'aoSegGrado / AO_SEGS y AO_REF',
     guia: '', ubicacion: '', folio: '', hoja_pdf: null,
     doi: '', fuente_original: '', tipo: 'criterio propio de EcoSmart',
@@ -40055,11 +40080,15 @@ function evTarjetaAo() {
   h.textContent = 'Aorta torácica — senos de Valsalva';
   fr.appendChild(h);
 
-  /* El corte, SONDEADO al dueno: es el techo de la banda «normal» del seno de Valsalva. */
+  /* ⚠️ EL CORTE SE SONDEA COMO EL PISO DE LA BANDA «leve» Y NO COMO EL TECHO DE LA «normal»
+     (VS5, 2026-10-17). Desde que el seno de Valsalva cuenta su propio corte como dilatado, el
+     techo de lo normal es el valor ANTERIOR del barrido —39 con paso 1— y la tarjeta habría
+     publicado «Corte de EcoSmart: 39 mm» sobre una app que llama dilatados a los 40. El piso de
+     la banda leve ES el corte, y es el mismo numero que dibuja la linea del nomograma. */
   const C = evCortes(sv('sexo'));
   const bSin = (C.aoSeg && C.aoSeg.ao_sin) ? C.aoSeg.ao_sin : [];
   let corte = null;
-  for (let i = 0; i < bSin.length; i++) if (bSin[i].k === 'normal') corte = bSin[i].hasta;
+  for (let i = 0; i < bSin.length; i++) if (bSin[i].k === 'leve') { corte = bSin[i].desde; break; }
 
   const pS = vPlaus('ao_sin');
   const diam = (pS.val != null && !pS.fuera) ? pS.val : null;
@@ -40076,7 +40105,7 @@ function evTarjetaAo() {
 
   /* (1) El corte de EcoSmart, con la categoria que la capsula ya publica. */
   const cap = _evCapsula('ao-interp');
-  fr.appendChild(_evDiv('ev-cat', (corte !== null ? ('Corte de EcoSmart: ' + _evNum(corte, 0) + ' mm. ') : '')
+  fr.appendChild(_evDiv('ev-cat', (corte !== null ? ('Corte de EcoSmart: ' + _evNum(corte, 0) + ' mm o más. ') : '')
     + (cap ? cap + '.' : 'Cargar el diámetro de los senos de Valsalva.'),
     { 'data-ev-cat': 'ao-corte' }));
   /* (2) La lectura del grafico. */
@@ -56174,7 +56203,10 @@ function generarPDFReal(_aj) {
       const CORTO = { ao_sin:'SV', ao_st:'ST', ao_tub:'Ao asc', diam_cayado:'Cayado', diam_ao_toracica:'Ao desc' };
       const filas = AO_SEGS.map(function(sg){
         const x = v(sg.k);
-        return { lbl: CORTO[sg.k] || sg.lblC, ref: '<=' + sg.ref + ' mm', val: x ? x + ' mm' : null };
+        /* ⚠️ EL SIMBOLO SALE DE `aoSegSim` Y NO ES `<=` EN LOS CINCO (VS5): el seno de Valsalva
+           cuenta su corte como dilatado, asi que su referencia impresa dice «<40 mm». Se usa la
+           forma ASCII, que es la que esta tabla ya usa en el resto de sus referencias. */
+        return { lbl: CORTO[sg.k] || sg.lblC, ref: (sg.incRef ? '<' : '<=') + sg.ref + ' mm', val: x ? x + ' mm' : null };
       });
       filas.push({ lbl:'Ø TSVI', ref:'', val:v('diam_tsvi_ao')?v('diam_tsvi_ao')+' mm':null });
       return filas;
@@ -56466,7 +56498,7 @@ function generarPDFReal(_aj) {
     const partes = []; let algunoDilatado = false;
     AO_SEGS.forEach(sg => {
       const x = v(sg.k); if (!x) return;
-      const dil = x > sg.ref; if (dil) algunoDilatado = true;
+      const dil = aoSegDil(sg, x); if (dil) algunoDilatado = true;
       partes.push((LBL_CORTO[sg.k] || sg.lblC) + ' ' + x + (dil ? '*' : ''));
     });
     if (!partes.length) return null;
@@ -104069,9 +104101,13 @@ const DCM_RANGO_CLIN = {
      umbral, así que mover el corte dejaba el importador avisando con el número viejo. Se lee con el
      nombre pelado, como `AO_REF.sin`: es un `const` de nivel superior de un bloque anterior, así que
      la ligadura existe, y si ese bloque muriera es mejor que esto falle que que avise de menos.
-     ⚠️ EL HUECO DE UN VALOR SE CERRÓ SOLO (LS2, 2026-10-16): el aviso dispara con `conv > rgc[1]`
-     —estricto— y la dilatación pasó de `>= 40` a `> 40`, así que los dos bordes coinciden y 40 mm
-     exactos son normales por los dos caminos.
+     ⚠️ EL HUECO DE UN VALOR SE VOLVIÓ A ABRIR, Y ES DE LA RAÍZ AÓRTICA (VS5, 2026-10-17). El
+     aviso dispara con `conv > rgc[1]` —estricto— y el seno de Valsalva pasó a contar su propio
+     corte como dilatado: con 40,0 mm EXACTOS la app lo llama dilatado y el importador no avisa.
+     Es UN valor y el lado en que falla es el conservador —avisa de menos sobre un dato que la
+     app ya marca en pantalla y en el informe—, así que no se toca acá: este renglón es un rango
+     de ADVERTENCIA del importador y no la definición de dilatada. `docs/PENDIENTES.md`.
+     Los otros dos segmentos de este renglón conservan su `>` y siguen coincidiendo.
      ⚠️ SE USA EL TECHO DEL VARÓN y esta tabla no mira el sexo: es el corte MÁS ALTO, así que el
      aviso nunca avisa de más. En una mujer un diámetro de 39 mm es dilatado y entra sin
      advertencia; avisar de más sobre un estudio sano es la forma más rápida de que el médico
@@ -112033,22 +112069,29 @@ function labCCRender(infs, n) {
     const maxAo = i => { const r = _labNum(i, 'ao_sin'), a = _labNum(i, 'ao_tub');
       const v = [r, a].filter(x => x !== null && x >= 10 && x <= 90); return v.length ? Math.max.apply(null, v) : null; };
     const aos = vabArr.map(maxAo).filter(v => v !== null);
+    /* ⚠️ EL OPERADOR SE LE PREGUNTA A `aoSegDil` (VS5, 2026-10-17): desde que el seno de
+       Valsalva cuenta su propio corte como dilatado, un `>` escrito acá contaría distinto que
+       el informe firmado sobre el mismo paciente. Es la tercera copia del mismo predicado y la
+       única que quedaba suelta. */
+    const _sgSin = (typeof AO_SEGS !== 'undefined') ? AO_SEGS.find(x => x.k === 'ao_sin') : null;
+    const _sgTub = (typeof AO_SEGS !== 'undefined') ? AO_SEGS.find(x => x.k === 'ao_tub') : null;
     const dil = vabArr.filter(i => {
       const r = _labNum(i, 'ao_sin'), a = _labNum(i, 'ao_tub');
-      return (r !== null && r >= 10 && r <= 90 && r > AO_REF.sin) ||
-             (a !== null && a >= 10 && a <= 90 && a > AO_REF.tub);
+      return (r !== null && r >= 10 && r <= 90 && aoSegDil(_sgSin, r)) ||
+             (a !== null && a >= 10 && a <= 90 && aoSegDil(_sgTub, a));
     }).length;
     setHtml('lab-cc-vab-stats',
       stat('Estudios con bicúspide', vabArr.length + ' (' + pctS(vabArr.length) + ' ' + _labPobDe() + ')') +
       stat('Con aorta medida', deBase(aos.length, vabArr.length)) +
       stat('Diámetro aórtico máximo promedio', _promTxt(_prom(aos), 1, ' mm')) +
-      stat('Con dilatación (> ' + AO_REF.sin + ' mm)', deBase(dil, aos.length)));
+      stat('Con dilatación (' + aoSegSim(_sgSin, 'dil') + ' ' + AO_REF.sin + ' mm)', deBase(dil, aos.length)));
     barrasDe('lab-cc-vab-bars', distrib(vabArr, 'vab_tipo', { fused_rl:'Fused R-L', fused_rn:'Fused R-N', fused_ln:'Fused L-N', dos_senos_ll:'2-sinus L-L', dos_senos_ap:'2-sinus A-P', partial:'Partial', no_clasif:'No clasificable' }), vabArr.length);
     barrasDe('lab-cc-vab-func-bars', distrib(vabArr, 'vab_funcion', { normal:'Normofuncionante', estenosis:'Con estenosis', insuficiencia:'Con insuficiencia', mixta:'Lesión mixta' }), vabArr.length);
     /* La nota describía el corte como propio de esta vista. Ya no lo es: sale de `AO_REF`, la
        misma que usa el informe, así que el Laboratorio y el PDF firmado cuentan lo mismo. */
     setHtml('lab-cc-vab-nota', 'El <b>promedio</b> es del mayor entre raíz y aorta ascendente. La <b>dilatación</b> se ' +
-      'cuenta por segmento: raíz &gt; ' + AO_REF.sin + ' mm o ascendente &gt; ' + AO_REF.tub + ' mm, el mismo corte ' +
+      'cuenta por segmento: raíz ' + aoSegSim(_sgSin, 'dil') + ' ' + AO_REF.sin + ' mm o ascendente ' +
+      aoSegSim(_sgTub, 'dil') + ' ' + AO_REF.tub + ' mm, el mismo corte ' +
       '(ESC 2021) que marca el informe — muy por debajo del umbral quirúrgico, que es otra pregunta.');
   }
 
