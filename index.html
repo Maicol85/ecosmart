@@ -5926,15 +5926,6 @@ window.cerrarSesionReal = cerrarSesionReal;
             </div>
           </div>
         </div>
-        <div id="bloque-prot-vm-pvl" class="fg" style="display:none;margin-top:6px;">
-          <label>Origen de la regurgitaci&oacute;n <span style="font-weight:400;color:var(--text2);font-size:10px;">&mdash; pr&oacute;tesis, ASE 2024 (Tabla 13)</span></label>
-          <select id="vm_pvl_origen" onchange="imPvlPintar()">
-            <option value="">&mdash;</option>
-            <option value="central">Central (intraprot&eacute;sica)</option>
-            <option value="paraval">Paravalvular</option>
-            <option value="mixta">Mixta</option>
-          </select>
-        </div>
       <div class="calc-box" style="margin-top:10px;">
         <!-- ══ EL ORDEN DE LAS FILAS LO FIJÓ MAICOL (2026-10-09) ════════════════════════════
              Primero las dos que APOYAN y NO votan —onda E y cociente VTI mitral/TSVI—, después
@@ -6108,6 +6099,28 @@ window.cerrarSesionReal = cerrarSesionReal;
       <div id="im-cont-severidad" style="font-size:11px;font-weight:700;margin:6px 2px 0;min-height:16px;"></div>
         </div>
       </div>
+      <!-- ══ EL SELECTOR DE ORIGEN BAJO AL PIE DEL CUADRO (CORTOS1, 2026-10-17) ═══════════════
+           DECISION DE MAICOL. El PRO-B4 lo dejo ARRIBA, entre los campos de cuantificacion de la
+           insuficiencia, y ahi se lee como un parametro mas de la IM. Hoy va DEBAJO del cuadro de
+           referencias, que es exactamente donde el PRO-B3 puso el bloque de la fuga paravalvular
+           aortica (`#bloque-prot-va-pvl`): los campos de la PROTESIS despues del cuadro, no
+           mezclados con los de la lesion.
+           ⚠️ ES UNA MUDANZA DE NODO Y NADA MAS: el `id`, la clase, el `style`, el `onchange` y las
+           cuatro `<option>` salen byte por byte iguales. `imPvlPintar` y `valvProtSync` lo buscan
+           por `getElementById`, asi que no dependen de donde cuelgue, y la fila de resultado
+           «Origen de la regurgitacion» (`#im-pvl-interp`) SE QUEDA dentro del cuadro: el valor se
+           carga abajo y se interpreta arriba, que es el reparto de la fuga aortica.
+           ⚠️ NINGUN CORTE, NINGUN VOTO Y NINGUNA SUPERFICIE FIRMADA SE MUEVEN: la regla «dos o mas
+           positivos» de la protesis mitral y los cuatro cortes de la Tabla 13 no se tocan. -->
+        <div id="bloque-prot-vm-pvl" class="fg" style="display:none;margin-top:6px;">
+          <label>Origen de la regurgitaci&oacute;n <span style="font-weight:400;color:var(--text2);font-size:10px;">&mdash; pr&oacute;tesis, ASE 2024 (Tabla 13)</span></label>
+          <select id="vm_pvl_origen" onchange="imPvlPintar()">
+            <option value="">&mdash;</option>
+            <option value="central">Central (intraprot&eacute;sica)</option>
+            <option value="paraval">Paravalvular</option>
+            <option value="mixta">Mixta</option>
+          </select>
+        </div>
 
       <!-- ⚠️ LA LINEA DE FORMULAS SALIO DE ACA (2026-10-14) — DECISION DE MAICOL. Decia
            «EROA = Vol-R ÷ VTI del chorro (CW) · Vol-R = SV mitral (Area_anillo x VTI de entrada)
