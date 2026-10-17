@@ -38532,9 +38532,24 @@ caso('TC-292', 'El empate de la Tabla 8 en 50 por ciento de fraccion regurgitant
     ex.push(['la cascada de la MITRAL manda el 50 exacto a SEVERA: su banda moderada corta ESTRICTO (ASE 2017, Tabla 8)',
       bIm.indexOf('fr < IM_CORTES.fr.sev_min') > -1 && bIm.indexOf('fr <= IM_CORTES.fr.sev_min') === -1,
       'im=' + (bIm.indexOf('fr < IM_CORTES.fr.sev_min') > -1 ? 'estricto' : 'NO')]);
-    ex.push(['y la de la AORTICA manda el 50 exacto a MODERADA: su banda moderada es INCLUSIVE (ESC/EACTS 2025, Figura 4)',
-      bIa.indexOf('fr <= 50') > -1 && bIa.indexOf('fr < 50)') === -1,
-      'ia=' + (bIa.indexOf('fr <= 50') > -1 ? 'inclusive' : 'NO')]);
+    /* ⚠️ ADAPTADA el 2026-10-17 (PRO2): LA AORTICA PASO A TENER DOS REGIMENES Y LA CONDICION
+       MEDIA LA EXPRESION, NO EL COMPORTAMIENTO. Buscaba el literal \`fr <= 50\` del fuente, y esa
+       cadena ya no existe: hoy la banda de moderada es el COMPLEMENTO de severa
+       (\`else if (!_frSevera)\`) y el operador lo elige la morfologia —\`fr >= 50\` con PROTESIS,
+       por la ASE 2024, Tabla 8, folio 23, desambiguada por la VARC-3, Tabla 16, folio 1846; y
+       \`fr > 50\` en NATIVA, por la ESC/EACTS 2025, Figura 4, folio 4659—. La condicion pasa a
+       exigir las DOS ramas del ternario, que es lo que de verdad hay que proteger: con una sola,
+       el dia que alguien unifique los dos regimenes nadie lo nota. El COMPORTAMIENTO por sus dos
+       lados —50 exacto moderada en nativa y severa en protesis— lo mide TC-496 (a4) y (a5). */
+    /* ⚠️ Y SE MIDE SOBRE EL FUENTE COMPLETO Y NO SOBRE LA VENTANA DE 360 CARACTERES de
+       \`banda()\`: el ternario del operador se declara ANTES del \`if (fr < 30)\` en que esa
+       ventana esta anclada, asi que las dos ramas caen fuera de ella. La primera version de esta
+       adaptacion lo midio ahi y salio roja sobre un arbol correcto. La expresion completa es
+       unica e inequivoca en toda la funcion. */
+    const _tern = '_iaProt ? (fr >= 50) : (fr > 50)';
+    ex.push(['y la de la AORTICA manda el 50 exacto a MODERADA en NATIVA y a SEVERA en PROTESIS: el operador lo elige la morfologia, y la banda moderada es el complemento',
+      F.ia.indexOf(_tern) > -1 && bIa.indexOf('!_frSevera') > -1,
+      'ternario=' + (F.ia.indexOf(_tern) > -1) + ' complemento=' + (bIa.indexOf('!_frSevera') > -1)]);
 
     /* La pildora de severidad integrada es OTRA funcion y OTRO operador: alli la severa se afirma
        con «>= sev_min». Un «> sev_min» la mandaria a moderada mientras las dos cascadas de arriba
@@ -43636,7 +43651,14 @@ caso('TC-314', 'IM: la onda S entra en el registro de discordancia, y el jet/AI 
              disc: T('im-discordancia'), suma: r.suma };
   }
   const jet = (morf, pct) => im(morf, { im_ai_area: 50, im_jet_area: pct / 2 });
-  const rat = (morf, vtim) => im(morf, { vtim: vtim, itv_tsvi: 18, diam_tsvi: 20 });
+  /* ⚠️ ADAPTADO el 2026-10-17 (PRO1): EL HELPER CARGA EL THP EN 100 ms. Desde el PRO1 el
+     cociente protesico apoya SOLO en protesis MECANICAS con THP normal (< 130 ms) —ASE 2024,
+     Tabla 12, folio 28, cuyo titulo es la condicion entera—, asi que sin THP la fila publica el
+     numero PELADO y las tres condiciones del cociente de abajo salian rojas sobre un arbol
+     correcto. El THP normal es lo que pone a la escena DENTRO del regimen que la guia valida; la
+     rama NATIVA no lo mira, asi que sus dos condiciones no se mueven. El estado SIN THP lo cubre
+     TC-496 (b3). */
+  const rat = (morf, vtim) => im(morf, { vtim: vtim, itv_tsvi: 18, diam_tsvi: 20, thp: 100 });
   const PROT = 'Prótesis mecánica', NAT = 'Reumática';
 
   // ── (1) ONDA S EN EL REGISTRO DE DISCORDANCIA ──
@@ -46778,6 +46800,12 @@ caso('TC-321', 'Referencias: la tarjeta de protesis mitral ya no publica el coci
       __t.set('nombre','Ratio'); __t.set('ci','88888888'); __t.set('edad','60');
       __t.set('vm_morf', morf);
       __t.set('vtim','60'); __t.set('itv_tsvi','20'); __t.set('ia_grado','0');
+      /* ⚠️ ADAPTADO el 2026-10-17 (PRO1): el THP en 100 ms pone la escena DENTRO del regimen que
+         la ASE 2024 (Tabla 12, folio 28) valida —protesis MECANICA con THP normal—, que es desde
+         hoy la unica poblacion en la que la fila publica el apoyo. Sin el, la condicion de abajo
+         salia roja sobre un arbol correcto: la app publicaba el numero pelado, que es lo que
+         corresponde. La rama NATIVA no mira el THP. */
+      __t.set('thp','100');
       try { calcIM_ESC(); } catch (e) {}
     };
     sembrar('Prótesis mecánica'); R.prot = ratio();
@@ -74043,8 +74071,16 @@ caso('TC-495', 'Tanda VAL: la estenosis tricuspidea con el gradiente >5 estricto
     } catch (e) { return null; } })();
   ex.push(['el Excel sigue en 440 columnas y esta tanda no agrego ninguna',
     !!XLS && Object.keys(XLS).length === 440, 'columnas=' + (XLS ? Object.keys(XLS).length : 'EXC')]);
-  ex.push(['CONTROL: la PROTESIS mitral conserva su cociente >=2,5 y la aortica su Tabla 5 — esta tanda no las toca',
+  /* ⚠️ ADAPTADA el 2026-10-17 (PRO1), Y ERA UN LIMITE DECLARADO DE ESTA MISMA TANDA: decia
+     «CONTROL: la PROTESIS mitral conserva su cociente >=2,5 y la aortica su Tabla 5 — esta tanda
+     no las toca», escrita unas horas antes para que el dia que el cociente protesico se moviera se
+     notara. Y lo noto. El VALOR del corte y su operador NO se movieron —sigue siendo >= 2,5—: lo
+     que cambio es CUANDO se publica, y por eso la escena ahora carga el THP en 100 ms, que es lo
+     que la pone dentro del regimen de la Tabla 12 (protesis MECANICA con THP normal). La condicion
+     sigue afirmando lo mismo que afirmaba sobre el corte, con el regimen explicito. */
+  ex.push(['CONTROL: la PROTESIS mitral conserva su cociente >=2,5 con su operador — el PRO1 movio CUANDO se publica (mecanica con THP normal), no el corte',
     (() => { __t.limpiar(); S('vm_morf','Prótesis mecánica'); S('itv_tsvi','20'); S('vtim','60');
+      S('thp','100');
       try { calcIM_ESC(); } catch (e) {}
       return TXT('im-vti-ratio').indexOf('≥2,5') > -1; })(), TXT('im-vti-ratio')]);
   ex.push(['CONTROL: con PROTESIS mitral el cociente se sigue retirando desde la IAo moderada, sin cambios',
@@ -74075,6 +74111,267 @@ caso('TC-495', 'Tanda VAL: la estenosis tricuspidea con el gradiente >5 estricto
   __t.limpiar();
   return { extra: ex };
 `);
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════════
+   TC-496 — TANDA «PRO», commits 1 a 3 (2026-10-17)
+   Cubre los TRES cambios de corte de las protesis y sus bordes exactos, mas los controles de
+   todo lo que esta tanda NO toca. Las mismas escenas con TECLAS Y CLICS REALES las corre
+   `scripts/_probe_pro.mjs`, que es la que midio los sintomas contra el inicio de la tanda: el
+   cuerpo de un caso corre DENTRO de la pagina y no tiene el canal del navegador.
+   ══════════════════════════════════════════════════════════════════════════════════════════ */
+caso('TC-496', 'Tanda PRO (1 a 3): el cociente VTI de la protesis mitral solo apoya en MECANICAS con THP normal y sin votar, con la regla de «dos o mas» intacta; la insuficiencia aortica PROTESICA con jet/TSVI de 25 % exacto LEVE y fraccion regurgitante de 50 % SEVERA, en las tres protesis y no en la nativa; el reverso diastolico de la TAVI en DOS niveles (20 a <30 moderada, >=30 severa) exigiendo el flujo holodiastolico; y las valvulas nativas, la diastolica, el HFA-PEFF, la AI, el VI, el VD, la AD, la VCI, la aorta, el Wilkins, Otros, el cuadro de frases, la identificacion del paciente y las 440 columnas del Excel sin moverse', `
+  const ex = [];
+  const EL  = (id) => document.getElementById(id);
+  const S   = (id, v) => { try { __t.set(id, v); } catch (e) {} };
+  const V   = (id) => { const e = EL(id); return e ? String(e.value) : 'NO EXISTE'; };
+  const TXT = (id) => { const e = EL(id); return e ? String(e.textContent || '').replace(/[ ]+/g, ' ').trim() : 'NO EXISTE'; };
+  const G   = (n) => { try { return (n in window) ? window[n] : 'NO EXISTE'; } catch (e) { return 'EXC'; } };
+  const FN  = (n) => typeof G(n) === 'function';
+  const estilo = (e) => { try { setEstiloInforme(e) } catch (x) {} };
+  const inf = (e) => { estilo(e || 'estandar'); try { generarInforme() } catch (x) {}
+    return { inf: String((EL('informe_texto')||{}).value || ''), suma: String((EL('en_suma')||{}).value || '') } };
+  /* ⚠️ LOS CUATRO CALCULADORES SE LLAMAN A MANO porque \`__t.set\` no dispara el \`oninput\` del
+     marcado: sin eso la escena mide el estado del paciente ANTERIOR, que es la trampa que este
+     archivo documenta para el cuadro gris de la diastolica. */
+  const esc = (o) => { __t.limpiar(); Object.keys(o).forEach(k => S(k, String(o[k])));
+    ['calcAo','calcIA_ESC','calcContIM','calcIM_ESC','calcEM','eteTaviSync']
+      .forEach(f => { try { if (FN(f)) window[f](); } catch (x) {} });
+    return o; };
+  /* Centinelas: contra un arbol sin estas piezas el caso tiene que FALLAR por su condicion y no
+     morir por excepcion, que probaria que el arbol es distinto y no que el caso sabe medir. */
+  const PROT = () => { try { return FN('vmProtEOA') ? (window.vmProtEOA() || {}) : {}; } catch (e) { return {}; } };
+  const RPV  = () => { try { return FN('eteTaviRPV') ? (window.eteTaviRPV() || null) : 'SIN FN'; } catch (e) { return 'EXC'; } };
+  const SEVRPV = () => { const r = RPV(); return (r && typeof r === 'object') ? String(r.sev) : String(r); };
+  const RATIO = () => TXT('im-vti-ratio');
+  const APOYA = () => RATIO().indexOf('apoya IM severa') >= 0;
+  const HTML = () => { try { return document.documentElement.innerHTML; } catch (e) { return ''; } };
+
+  /* ══ DENOMINADOR 1 · las piezas de las tres zonas existen y tienen un solo dueno ══════════ */
+  const T11 = G('VM_PROT_T11');
+  ex.push(['(DENOM) el dueno del THP normal es VM_PROT_T11.thpNormalMax y vale 130 ms (ASE 2024 Tabla 11, folio 27) — el cociente NO declara un segundo corte',
+    T11 !== 'NO EXISTE' && T11.thpNormalMax === 130,
+    T11 === 'NO EXISTE' ? 'SIN VM_PROT_T11' : 'thpNormalMax=' + T11.thpNormalMax]);
+  ex.push(['(DENOM) vmProtEOA publica las dos preguntas del regimen de la Tabla 12 (mecanica y porThp), que es a quien el cociente le pregunta',
+    (function(){ esc({ vm_morf:'Prótesis mecánica', em_dtsvi:'20', em_vtitsvi:'20', em_vtimit:'40', thp:'100' });
+      const R = PROT(); return R.mecanica === true && R.porThp === 'normal'; })(),
+    (function(){ const R = PROT(); return 'mecanica=' + R.mecanica + ' porThp=' + R.porThp; })()]);
+  ex.push(['(DENOM) _eaEsProtesisAo distingue las TRES protesis aorticas de la nativa',
+    (function(){ if (!FN('_eaEsProtesisAo')) return false;
+      const r = {};
+      ['Trivalva normal','Prótesis biológica','Prótesis mecánica','TAVI'].forEach(function(m){
+        esc({ va_morf:m }); r[m] = window._eaEsProtesisAo(); });
+      return r['Trivalva normal'] === false && r['Prótesis biológica'] === true
+          && r['Prótesis mecánica'] === true && r['TAVI'] === true; })(),
+    FN('_eaEsProtesisAo') ? 'ok' : 'SIN _eaEsProtesisAo']);
+  ex.push(['(DENOM) el motor de la fuga de la TAVI existe y es el unico que gradua ese jet',
+    FN('eteTaviRPV') && FN('taviRpvNarrativa'), 'eteTaviRPV=' + FN('eteTaviRPV')]);
+
+  /* ══ (b) PRO1 — EL COCIENTE VTI: TRES REGIMENES ══════════════════════════════════════════
+     VTI mitral 60 cm / VTI del TSVI 20 cm -> cociente 3,00, por encima del 2,5, asi que el apoyo
+     se ve o no se ve por la REGLA y no por el valor. El 100 de la primera version caia FUERA de
+     la banda de \`vtim\` ([2,80]) y las escenas informaban «VTI de entrada fuera de rango». */
+  const VTIB = { vtim:'60', em_vtitsvi:'20', em_dtsvi:'20' };
+  const escVti = (morf, thp) => { const o = { vm_morf:morf };
+    Object.keys(VTIB).forEach(k => o[k] = VTIB[k]);
+    if (thp !== '') o.thp = thp;
+    esc(o); return RATIO(); };
+
+  ex.push(['(b1) protesis MECANICA con THP normal (100 ms): el cociente APOYA, con el corte protesico',
+    (function(){ const t = escVti('Prótesis mecánica', '100');
+      return t.indexOf('3.00') >= 0 && t.indexOf('≥2,5 — apoya IM severa') >= 0; })(), RATIO()]);
+  ex.push(['(b2) BORDE del THP normal: 129 ms APOYA y 130 ms NO — el corte de la Tabla 11 separa',
+    (function(){ escVti('Prótesis mecánica', '129'); const a = APOYA();
+      escVti('Prótesis mecánica', '130'); const b = APOYA(); return a === true && b === false; })(),
+    (function(){ escVti('Prótesis mecánica', '129'); const a = RATIO();
+      escVti('Prótesis mecánica', '130'); return '129:[' + a + '] 130:[' + RATIO() + ']'; })()]);
+  ex.push(['(b3) MECANICA con THP anormal (250 ms) o SIN THP: el numero se publica PELADO, sin ningun apoyo',
+    (function(){ const a = escVti('Prótesis mecánica', '250');
+      const b = escVti('Prótesis mecánica', '');
+      return a.indexOf('3.00') >= 0 && a.indexOf('apoya') < 0
+          && b.indexOf('3.00') >= 0 && b.indexOf('apoya') < 0; })(),
+    (function(){ const a = escVti('Prótesis mecánica', '250');
+      return '250:[' + a + '] sinTHP:[' + escVti('Prótesis mecánica', '') + ']'; })()]);
+  ex.push(['(b4) protesis BIOLOGICA: la fila NO se publica en ninguno de los tres estados del THP (la Tabla 12 es de MECANICAS)',
+    (function(){ return ['100','250',''].every(function(t){
+      return escVti('Prótesis biológica', t).indexOf('3.00') < 0; }); })(),
+    (function(){ return ['100','250',''].map(function(t){
+      return t + ':[' + escVti('Prótesis biológica', t) + ']'; }).join(' '); })()]);
+  ex.push(['(b5) CONTROL NEGATIVO: en valvula NATIVA el regimen no cambia — sigue el >1,4 de la ASE 2023',
+    (function(){ const t = escVti('Normal', '100');
+      return t.indexOf('3.00') >= 0 && t.indexOf('>1,4 — apoya IM severa') >= 0; })(),
+    escVti('Normal', '100')]);
+  ex.push(['(b6) BORDE del corte protesico: 2,49 no apoya y 2,50 si, sobre una mecanica con THP normal',
+    (function(){ esc({ vm_morf:'Prótesis mecánica', vtim:'49.8', em_vtitsvi:'20', em_dtsvi:'20', thp:'100' });
+      const a = APOYA();
+      esc({ vm_morf:'Prótesis mecánica', vtim:'50', em_vtitsvi:'20', em_dtsvi:'20', thp:'100' });
+      return a === false && APOYA() === true; })(),
+    (function(){ esc({ vm_morf:'Prótesis mecánica', vtim:'49.8', em_vtitsvi:'20', em_dtsvi:'20', thp:'100' });
+      const a = RATIO();
+      esc({ vm_morf:'Prótesis mecánica', vtim:'50', em_vtitsvi:'20', em_dtsvi:'20', thp:'100' });
+      return '2.49:[' + a + '] 2.50:[' + RATIO() + ']'; })()]);
+  ex.push(['(b7) EL COCIENTE NO VOTA: con la MISMA escena, un cociente de 3,00 y uno de 1,00 dejan im_grado identico',
+    (function(){ esc({ vm_morf:'Prótesis mecánica', vtim:'60', em_vtitsvi:'20', em_dtsvi:'20', thp:'100', im_vc:'4' });
+      const a = V('im_grado');
+      esc({ vm_morf:'Prótesis mecánica', vtim:'20', em_vtitsvi:'20', em_dtsvi:'20', thp:'100', im_vc:'4' });
+      return a === V('im_grado') && a !== '0' && a !== 'NO EXISTE'; })(),
+    (function(){ esc({ vm_morf:'Prótesis mecánica', vtim:'60', em_vtitsvi:'20', em_dtsvi:'20', thp:'100', im_vc:'4' });
+      const a = V('im_grado');
+      esc({ vm_morf:'Prótesis mecánica', vtim:'20', em_vtitsvi:'20', em_dtsvi:'20', thp:'100', im_vc:'4' });
+      return 'c3.00:' + a + ' c1.00:' + V('im_grado'); })()]);
+  ex.push(['(b8) LA REGLA DE «DOS O MAS» DE LA PROTESIS MITRAL ESTA INTACTA: con gradiente 12 y THP 250 el veredicto es significativo y los dos positivos son gmed y thp',
+    (function(){ esc({ vm_morf:'Prótesis mecánica', em_dtsvi:'20', em_vtitsvi:'20', em_vtimit:'40',
+                       em_gmedio:'12', thp:'250' });
+      const R = PROT();
+      return R.obstr === 'significativa' && (R.obstrPos || []).length === 2
+          && (R.obstrPos || []).indexOf('gmed') >= 0 && (R.obstrPos || []).indexOf('thp') >= 0; })(),
+    (function(){ const R = PROT(); return 'obstr=' + R.obstr + ' pos=' + JSON.stringify(R.obstrPos || null); })()]);
+  ex.push(['(b9) EL THP DISPARA EL RECALCULO DE LA FILA: thpEditado, el dueno del gesto, llama a calcIM_ESC (sin eso el apoyo desaparece en la escena para la que existe)',
+    FN('thpEditado') && String(window.thpEditado).indexOf('calcIM_ESC') >= 0,
+    FN('thpEditado') ? String(window.thpEditado).replace(/\\s+/g, ' ').slice(0, 150) : 'SIN FN']);
+  ex.push(['(b10) el ROTULO de la fila nombra el regimen y la tarjeta ⓘ ya NO dice que las dos condiciones no se verifican',
+    (function(){ const h = HTML();
+      return h.indexOf('prótesis mecánica con THP normal ≥2.5') >= 0
+          && h.indexOf('EcoSmart no verifica ninguna de las dos') < 0; })(),
+    (function(){ const h = HTML();
+      return 'rotulo=' + (h.indexOf('prótesis mecánica con THP normal ≥2.5') >= 0)
+           + ' frase_vieja=' + (h.indexOf('EcoSmart no verifica ninguna de las dos') >= 0); })()]);
+
+  /* ══ (a) PRO2 — LA INSUFICIENCIA AORTICA PROTESICA ═══════════════════════════════════════
+     O del TSVI 20 mm: O del jet 4,8 / 5,0 / 5,2 mm da 24,0 / 25,0 / 26,0 %. */
+  const escJet = (morf, jet) => { esc({ va_morf:morf, diam_tsvi:'20', ia_jet_diam:jet });
+    return { jet: TXT('ia-jet-ratio'), sev: TXT('ia-sev'), grado: V('ia_grado') }; };
+  ex.push(['(a1) jet/TSVI de 25 % EXACTO: con las TRES protesis es LEVE (ASE 2024 Tabla 8, folio 23: «Narrow (<=25 %)»)',
+    (function(){ return ['Prótesis biológica','Prótesis mecánica','TAVI'].every(function(m){
+      const r = escJet(m, '5');
+      return r.jet.indexOf('25.0') >= 0 && r.grado === '1' && r.sev.indexOf('Leve') >= 0; }); })(),
+    ['Prótesis biológica','Prótesis mecánica','TAVI'].map(function(m){
+      const r = escJet(m, '5'); return m.slice(-9) + ':' + r.jet + '/' + r.grado + '/' + r.sev; }).join(' | ')]);
+  ex.push(['(a2) CONTROL NEGATIVO: el mismo 25 % en valvula NATIVA sigue siendo MODERADA',
+    (function(){ const r = escJet('Trivalva normal', '5');
+      return r.jet.indexOf('25.0') >= 0 && r.grado === '2' && r.sev.indexOf('Moderada') >= 0; })(),
+    (function(){ const r = escJet('Trivalva normal', '5'); return r.jet + '/' + r.grado + '/' + r.sev; })()]);
+  ex.push(['(a3) los DOS vecinos del borde del jet dan lo MISMO en los dos regimenes: 24 % leve y 26 % moderada',
+    (function(){ return ['Trivalva normal','Prótesis mecánica'].every(function(m){
+      return escJet(m, '4.8').grado === '1' && escJet(m, '5.2').grado === '2'; }); })(),
+    ['Trivalva normal','Prótesis mecánica'].map(function(m){
+      return m.slice(-8) + ' 24:' + escJet(m, '4.8').grado + ' 26:' + escJet(m, '5.2').grado; }).join(' | ')]);
+  /* FR: PISA r 5 mm / Valiasing 40 cm/s / Vmax CW 4 m/s -> EROA 15,7 mm2; O TSVI 20 mm y VTI del
+     TSVI 20 cm -> VSV 62,83 ml. El VTI del jet 197 / 200 / 204 cm da FR 49 / 50 / 51 %. */
+  const escFr = (morf, vti) => { esc({ va_morf:morf, diam_tsvi:'20', itv_tsvi:'20',
+      ia_pisa_r:'5', ia_pisa_val:'40', ia_vmax_cw:'4', ia_vti:vti });
+    return { fr: TXT('ia-freg'), sev: TXT('ia-sev'), grado: V('ia_grado') }; };
+  ex.push(['(a4) fraccion regurgitante de 50 % EXACTO: con las TRES protesis es SEVERA (ASE 2024 Tabla 8 superpuesta, desambiguada por la VARC-3 Tabla 16 folio 1846)',
+    (function(){ return ['Prótesis biológica','Prótesis mecánica','TAVI'].every(function(m){
+      const r = escFr(m, '200');
+      return r.fr.indexOf('50%') >= 0 && r.grado === '4' && r.sev.indexOf('Severa') >= 0; }); })(),
+    ['Prótesis biológica','Prótesis mecánica','TAVI'].map(function(m){
+      const r = escFr(m, '200'); return m.slice(-9) + ':' + r.fr + '/' + r.grado; }).join(' | ')]);
+  ex.push(['(a5) CONTROL NEGATIVO: el mismo 50 % en NATIVA sigue siendo MODERADA (ESC/EACTS 2025, Figura 4, folio 4659: «RF >50%»)',
+    (function(){ const r = escFr('Trivalva normal', '200');
+      return r.fr.indexOf('50%') >= 0 && r.grado === '2'; })(),
+    (function(){ const r = escFr('Trivalva normal', '200'); return r.fr + '/' + r.grado + '/' + r.sev; })()]);
+  ex.push(['(a6) los DOS vecinos del borde de la FR dan lo MISMO en los dos regimenes: 49 % moderada y 51 % severa',
+    (function(){ return ['Trivalva normal','Prótesis mecánica'].every(function(m){
+      return escFr(m, '197').grado === '2' && escFr(m, '204').grado === '4'; }); })(),
+    ['Trivalva normal','Prótesis mecánica'].map(function(m){
+      return m.slice(-8) + ' 49:' + escFr(m, '197').grado + ' 51:' + escFr(m, '204').grado; }).join(' | ')]);
+  ex.push(['(a7) el INFORME y el EN SUMA siguen al grado nuevo en los TRES estilos, con el jet de 25 % y protesis mecanica',
+    (function(){ escJet('Prótesis mecánica', '5');
+      return ['conciso','estandar','narrativo'].every(function(e){
+        const r = inf(e); return r.suma.indexOf('IAo leve.') >= 0 && r.suma.indexOf('IAo moderada.') < 0; }); })(),
+    (function(){ escJet('Prótesis mecánica', '5');
+      return ['conciso','estandar','narrativo'].map(function(e){ return e + ':[' + inf(e).suma.slice(0, 60) + ']'; }).join(' '); })()]);
+  ex.push(['(a8) la PASTILLA de la insuficiencia aortica sigue al grado nuevo (leve con el jet de 25 % y protesis)',
+    (function(){ escJet('Prótesis mecánica', '5');
+      try { return FN('pillOn') ? (window.pillOn('aortica','insuf') === true) : false; } catch (e) { return false; } })(),
+    (function(){ escJet('Prótesis mecánica', '5');
+      try { return 'pill=' + (FN('pillOn') ? window.pillOn('aortica','insuf') : 'SIN FN') + ' grado=' + V('ia_grado'); } catch (e) { return 'EXC'; } })()]);
+  ex.push(['(a9) la tabla de «Referencia clinica» de la IAo declara los DOS cortes protesicos con su folio',
+    (function(){ const h = HTML();
+      /* ⚠️ EL innerHTML DE documentElement DEVUELVE EL TEXTO DECODIFICADO, no el fuente: la
+         entidad del marcado llega como la letra con tilde. Buscar la entidad da false sobre una
+         nota perfecta. */
+      return h.indexOf('ASE 2024, Tabla 8, folio 23') >= 0 && h.indexOf('25 % o menos') >= 0
+          && h.indexOf('50 % o m\u00e1s') >= 0; })(),
+    (function(){ const h = HTML();
+      return 'folio=' + (h.indexOf('ASE 2024, Tabla 8, folio 23') >= 0)
+           + ' jet=' + (h.indexOf('25 % o menos') >= 0)
+           + ' fr=' + (h.indexOf('50 % o m\u00e1s') >= 0); })()]);
+
+  /* ══ (c) PRO3 — EL REVERSO DIASTOLICO DE LA TAVI ═════════════════════════════════════════ */
+  const escRev = (flujo, vel) => { esc({ ete_tavi_flujo_rev:flujo, ete_tavi_vel_tele:vel });
+    return SEVRPV(); };
+  ex.push(['(c1) el reverso holodiastolico gradua en DOS niveles: 20 y 29 cm/s MODERADA, 30 y 45 SEVERA (VARC-3 Tabla 16, folio 1846)',
+    (function(){ return escRev('holo','20') === 'Moderada' && escRev('holo','29') === 'Moderada'
+      && escRev('holo','30') === 'Severa' && escRev('holo','45') === 'Severa'; })(),
+    ['20','29','30','45'].map(function(v){ return v + ':' + escRev('holo', v); }).join(' ')]);
+  ex.push(['(c2) BORDE de abajo: con 19 cm/s el parametro NO vota y el motor no emite veredicto',
+    (function(){ const r = escRev('holo','19'); return r === 'null' || r === 'undefined'; })(),
+    escRev('holo','19')]);
+  ex.push(['(c3) LA VARC-3 EXIGE EL FLUJO HOLODIASTOLICO: con «proto» y 45 cm/s el parametro no vota',
+    (function(){ const r = escRev('proto','45'); return r === 'null' || r === 'undefined'; })(),
+    escRev('proto','45')]);
+  ex.push(['(c4) CONTROL NEGATIVO: los otros cuatro parametros de la fuga de la TAVI no se movieron',
+    (function(){ const r = {};
+      esc({ ete_tavi_ext_circ:'35' }); r.ext35 = SEVRPV();
+      esc({ ete_tavi_ext_circ:'15' }); r.ext15 = SEVRPV();
+      esc({ ete_tavi_vc_ancho:'0.7' }); r.vc = SEVRPV();
+      esc({ ete_tavi_vc_area:'0.35' }); r.vcA = SEVRPV();
+      esc({ ete_tavi_pht:'150' }); r.pht = SEVRPV();
+      return r.ext35 === 'Severa' && r.ext15 === 'Moderada' && r.vc === 'Severa'
+          && r.vcA === 'Severa' && r.pht === 'Severa'; })(),
+    (function(){ esc({ ete_tavi_ext_circ:'35' }); const a = SEVRPV();
+      esc({ ete_tavi_ext_circ:'15' }); const b = SEVRPV();
+      esc({ ete_tavi_pht:'150' }); return 'ext35:' + a + ' ext15:' + b + ' pht150:' + SEVRPV(); })()]);
+  ex.push(['(c5) el reverso SIGUE SIENDO UN PARAMETRO MAS DE LA INTEGRACION: con 25 cm/s (moderada) y extension trivial del 5 %, manda el peor y el veredicto es MODERADA',
+    (function(){ esc({ ete_tavi_flujo_rev:'holo', ete_tavi_vel_tele:'25', ete_tavi_ext_circ:'5' });
+      return SEVRPV() === 'Moderada'; })(),
+    (function(){ esc({ ete_tavi_flujo_rev:'holo', ete_tavi_vel_tele:'25', ete_tavi_ext_circ:'5' });
+      const r = RPV(); return SEVRPV() + ' | ' + ((r && r.motivo) || ''); })()]);
+  /* ⚠️ IA_VMAX_TD_SEVERA ES UN const DE MODULO Y NO UNA PROPIEDAD DE window, la trampa que este
+     archivo ya tiene escrita para ECO_AYUDA y para AO_SEGS: preguntar por el nombre informa
+     «NO EXISTE» sobre una constante perfecta. Se mide el COMPORTAMIENTO por sus dos lados, que
+     es ademas lo que de verdad hay que proteger. */
+  ex.push(['(c6) EL CORTE DE LA AORTA DESCENDENTE DE LA NATIVA NO SE TOCO: 20 cm/s sigue votando SEVERA y 19 sigue sin votar (ESC/EACTS 2025, Figura 4, folio 4659)',
+    (function(){ esc({ va_morf:'Trivalva normal', ia_vmax_td:'20' }); const a = V('ia_grado');
+      esc({ va_morf:'Trivalva normal', ia_vmax_td:'19' }); const b = V('ia_grado');
+      return a === '4' && b === '0'; })(),
+    (function(){ esc({ va_morf:'Trivalva normal', ia_vmax_td:'20' }); const a = V('ia_grado');
+      esc({ va_morf:'Trivalva normal', ia_vmax_td:'19' }); return '20:' + a + ' 19:' + V('ia_grado'); })()]);
+
+  /* ══ (g) CONTROLES — nada fuera de las tres zonas se mueve ═══════════════════════════════ */
+  ex.push(['(g1) el Excel sigue en 440 columnas, con el formulario vacio y con escenario cargado',
+    (function(){ if (!FN('_labExcelRow')) return false;
+      const n = function(c){ try { return Object.keys(window._labExcelRow({ id:0, campos:c || {} })).length; } catch (e) { return -1; } };
+      return n({}) === 440 && n({ va_morf:'Prótesis mecánica', vm_morf:'Prótesis biológica',
+        ia_jet_diam:'5', diam_tsvi:'20', vtim:'60', thp:'100' }) === 440; })(),
+    (function(){ if (!FN('_labExcelRow')) return 'SIN FN';
+      try { return 'vacio=' + Object.keys(window._labExcelRow({ id:0, campos:{} })).length; } catch (e) { return 'EXC'; } })()]);
+  ex.push(['(g2) los tres asserts de arranque del Excel siguen limpios (bloques y listas sin divergencias)',
+    (function(){ const b = FN('_labXlsAssertBloques') ? window._labXlsAssertBloques() : null;
+      const l = FN('_labXlsAssertListas') ? window._labXlsAssertListas() : null;
+      return Array.isArray(b) && b.length === 0 && Array.isArray(l) && l.length === 0; })(),
+    (function(){ try { return 'bloques=' + JSON.stringify(FN('_labXlsAssertBloques') ? window._labXlsAssertBloques() : 'SIN FN')
+      + ' listas=' + JSON.stringify(FN('_labXlsAssertListas') ? window._labXlsAssertListas() : 'SIN FN'); } catch (e) { return 'EXC'; } })()]);
+  ex.push(['(g3) CONTROL NEGATIVO MAYOR: con una escena de valvula NATIVA cargada, los ocho grados y la diastolica salen con los valores que esta tanda no toca',
+    (function(){ esc({ peso:'70', talla:'170', va_morf:'Trivalva normal', vm_morf:'Normal',
+        diam_tsvi:'20', itv_tsvi:'20', itv_ao:'56', vmax_ao:'4.2', gmedio_ao:'45',
+        onda_e:'95', onda_a:'45', e_sep:'7', e_lat:'9', ai_vol:'45' });
+      try { if (FN('calcDiastol')) window.calcDiastol(); } catch (x) {}
+      /* ⚠️ ea_grado GUARDA UN TOKEN DE TEXTO (severa) y no el 0-4 de las insuficiencias: la
+         primera version de esta condicion comparaba contra '4' y salia roja sobre un grado
+         perfecto. */
+      return V('ea_grado') === 'severa' && TXT('dd-interp').indexOf('ASE 2025') >= 0; })(),
+    (function(){ return 'ea_grado=' + V('ea_grado') + ' diast=[' + TXT('dd-interp').slice(0, 44) + ']'; })()]);
+  ex.push(['(g4) el Wilkins, la pestana Otros, el cuadro de frases y la identificacion del paciente siguen en pie (ninguno es de esta tanda)',
+    (function(){ return FN('wilkinsScore') && !!EL('pul_derrame_lado') && !!EL('frases-panel')
+      && FN('pacIdImpreso'); })(),
+    'wilkins=' + FN('wilkinsScore') + ' otros=' + !!EL('pul_derrame_lado')
+      + ' frases=' + !!EL('frases-panel') + ' pacId=' + FN('pacIdImpreso')]);
+
+  return { extra: ex };
+`);
+
 
 
 

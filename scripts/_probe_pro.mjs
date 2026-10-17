@@ -441,6 +441,62 @@ window.__P = {
     o.geoExt = window.__P.geo('ete_tavi_ext_circ');
     return o },
 
+  /* ── EL PDF DEL INFORME, GENERADO DE VERDAD ──
+     Se envuelve el CONSTRUCTOR y no el prototipo: en jsPDF 2.x los metodos del nucleo son
+     propiedades PROPIAS de cada documento. Calcado de scripts/_probe_h.mjs. */
+  pdf(plantilla) {
+    if (typeof window.jspdf === 'undefined') return { err:'SIN jsPDF' };
+    if (plantilla) { try { localStorage.setItem('ett_pdf_plantilla', plantilla) } catch (e) {} }
+    var orig = window.jspdf.jsPDF;
+    var textos = [], nfig = 0, guardo = false, err = null;
+    function Envuelto(){
+      var d = new orig(arguments[0]);
+      var oText = d.text, oCirc = d.circle, oLine = d.line;
+      d.text = function(t){
+        var s = (typeof t === 'string') ? t : (Array.isArray(t) ? t.join(String.fromCharCode(1)) : String(t));
+        textos.push(s); return oText.apply(d, arguments) };
+      d.circle = function(){ nfig++; return oCirc.apply(d, arguments) };
+      d.line   = function(){ nfig++; return oLine.apply(d, arguments) };
+      d.save   = function(){ guardo = true; return d };
+      return d }
+    Envuelto.API = orig.API; Envuelto.version = orig.version;
+    window.jspdf.jsPDF = Envuelto;
+    try { generarPDFReal() } catch (e) { err = String(e && e.message || e) }
+    finally { window.jspdf.jsPDF = orig }
+    return { err:err, guardo:guardo, nTextos:textos.length, nFigs:nfig, textos:textos } },
+
+  /* El PPT estadistico y el PDF de auditoria del Laboratorio, por sus generadores REALES —los
+     publicos exigen tarjetas tildadas y abren modales—. Se mide el numero de textos. */
+  labPPT(infs) {
+    if (typeof _labPPTGenerar !== 'function') return 'SIN _labPPTGenerar';
+    if (typeof PptxGenJS === 'undefined') return 'SIN PptxGenJS';
+    var n = 0;
+    try {
+      var P = PptxGenJS; var orig = P.prototype.addSlide;
+      P.prototype.addSlide = function(){ var sl = orig.apply(this, arguments);
+        var oT = sl.addText; sl.addText = function(t){ n++; return oT.apply(sl, arguments) };
+        var oTb = sl.addTable; if (oTb) sl.addTable = function(){ n++; return oTb.apply(sl, arguments) };
+        return sl };
+      try { _labPPTGenerar(infs || [], { guardar:false }); } catch (e) {}
+      P.prototype.addSlide = orig;
+    } catch (e) { return 'EXC: ' + e.message }
+    return n },
+
+  labAudit(infs) {
+    if (typeof _labAnalisisPDFReal !== 'function') return 'SIN _labAnalisisPDFReal';
+    if (typeof window.jspdf === 'undefined') return 'SIN jsPDF';
+    var orig = window.jspdf.jsPDF; var textos = [];
+    function Envuelto(){ var d = new orig(arguments[0]); var oText = d.text;
+      d.text = function(t){ var s = (typeof t === 'string') ? t
+        : (Array.isArray(t) ? t.join(String.fromCharCode(1)) : String(t));
+        textos.push(s); return oText.apply(d, arguments) };
+      d.save = function(){ return d }; return d }
+    Envuelto.API = orig.API; Envuelto.version = orig.version;
+    window.jspdf.jsPDF = Envuelto;
+    try { _labAnalisisPDFReal(infs || []); } catch (e) {}
+    finally { window.jspdf.jsPDF = orig }
+    return { n: textos.length, textos: textos } },
+
   /* ══ SUPERFICIES ═════════════════════════════════════════════════════════════════════════
      ⚠️ EL ESTILO DEL INFORME ES ESTADO DE SESION: se fija en cada escena. */
   informe(estilo) {
@@ -936,6 +992,47 @@ async function main() {
     await tipear('ete_tavi_ext_circ', '5');
     g.escenas['mixto|25+ext5'] = await ev(`window.__P.rpv()`);
     out.grupos.reverso = g;
+  }
+
+  /* ── 5 · pdf ── A/B DEDICADO: el PDF del informe en las SEIS plantillas, el PPT estadistico
+     y el PDF de auditoria, GENERADOS DE VERDAD, con el formulario vacio y con dos escenarios
+     protesicos cargados. ⚠️ Se mide la LISTA DE TEXTOS sin su posicion: con la posicion adentro,
+     un cambio de maquetacion mueve la `y` de todos y esconde el de contenido. */
+  if (corre('pdf')) {
+    const g = {};
+    const PLANT = ['clasico', 'moderno', 'minimalista', 'academico', 'compacto', 'elegante'];
+    const esc = async (nom, fn) => { await ev(`window.__P.nuevo()`); await ev(`window.__P.abrirValv()`);
+      if (fn) await fn(); const o = {};
+      for (const pl of PLANT) { const r = await ev(`window.__P.pdf(${JSON.stringify(pl)})`, 60000);
+        o[pl] = { err: r.err, nTextos: r.nTextos, nFigs: r.nFigs, textos: r.textos }; }
+      g[nom] = o; };
+    await esc('vacio', null);
+    /* Escenario 1: protesis aortica mecanica con el jet en 25 % exacto (PRO2, el borde del jet). */
+    await esc('protJet25', async () => {
+      await ev(`window.__P.sel('va_morf', 'Prótesis mecánica')`);
+      await tipear('diam_tsvi', '20'); await tipear('ia_jet_diam', '5');
+      await tipear('peso', '70'); await tipear('talla', '170'); });
+    /* Escenario 2: protesis mitral mecanica con THP normal y el cociente por encima del 2,5. */
+    await esc('protVti', async () => {
+      await ev(`window.__P.sel('vm_morf', 'Prótesis mecánica')`);
+      await tipear('vtim', '60'); await tipear('em_vtitsvi', '20'); await tipear('em_dtsvi', '20');
+      await tipear('thp', '100'); });
+    /* El PPT estadistico y el PDF de auditoria del Laboratorio, sobre una poblacion fija. */
+    const POBL = `[
+      { id:1, nombre:'A', fecha_estudio:'2026-10-01', campos:{ va_morf:'Prótesis mecánica',
+        diam_tsvi:'20', ia_jet_diam:'5', ia_grado:'1', ea_grado:'severa' } },
+      { id:2, nombre:'B', fecha_estudio:'2026-10-02', campos:{ vm_morf:'Prótesis biológica',
+        vtim:'60', em_vtitsvi:'20', em_dtsvi:'20', thp:'100', im_grado:'2' } },
+      { id:3, nombre:'C', fecha_estudio:'2026-10-03', campos:{ va_morf:'Trivalva normal',
+        diam_tsvi:'20', ia_jet_diam:'5', ia_grado:'2' } }
+    ]`;
+    g.ppt = await ev(`window.__P.labPPT(${POBL})`, 60000);
+    g.audit = await ev(`window.__P.labAudit(${POBL})`, 60000);
+    g.excelPobl = await ev(`(function(){ var P = ${POBL};
+      return P.map(function(r){ try { var f = _labExcelRow(r); var o = {};
+        Object.keys(f).forEach(function(k){ o[k] = (f[k]==null) ? null : String(f[k]) });
+        return { cols: Object.keys(f).length, fila: o } } catch(e){ return 'EXC' } }) })()`, 60000);
+    out.grupos.pdf = g;
   }
 
   /* ── 5 · controles ── Nada fuera de las tres zonas de esta tanda se mueve. ──────────────── */

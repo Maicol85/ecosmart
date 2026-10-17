@@ -249,3 +249,42 @@ demostrar.
    su cuenta y los dos lados del borde de 1,5 dan «moderada» sobre un corte que sí se movió.
 6. **Las unidades del PISA aórtico son las de su banda** (radio en mm, Valiasing en cm/s, Vmax en
    m/s): fuera de banda la FR no se calcula y los tres bordes salen iguales.
+
+---
+
+## TC-496 — la tanda «PRO», commits 1 a 3 (2026-10-17)
+
+**33 condiciones**, cuatro denominadores y cinco controles negativos. **Sabe fallar contra el inicio
+de la tanda (`3188950`) en un worktree aparte: 11 de las 33 en rojo, y NINGUNA por excepción.**
+
+**Qué cubre, bloque por bloque:**
+
+- **DENOM** (4): que `VM_PROT_T11.thpNormalMax` sea el único dueño del THP normal y valga **130**;
+  que `vmProtEOA` publique **las dos** preguntas del régimen de la Tabla 12 (`mecanica` y `porThp`);
+  que `_eaEsProtesisAo` distinga las **tres** prótesis aórticas de la nativa; y que el motor de la
+  fuga de la TAVI exista.
+- **(b) PRO1**, diez condiciones: el apoyo con mecánica y THP normal · el **borde 129/130** del THP ·
+  el número **pelado** con THP anormal y sin THP · la **biológica** sin fila en los tres estados ·
+  el control negativo de la **nativa** · el **borde 2,49/2,50** del corte · que el cociente **no
+  vota** (mismo `im_grado` con 3,00 y con 1,00) · que la regla de **«dos o más»** siga intacta · que
+  **`thpEditado` llame a `calcIM_ESC`** (medido sobre el fuente de la función) · y que el rótulo
+  nuevo esté **y la frase vieja no**.
+- **(a) PRO2**, nueve condiciones: el **25 % exacto** leve en las tres prótesis · el control negativo
+  de la nativa en ese mismo valor · los dos **vecinos** del borde iguales en los dos regímenes · el
+  **50 % exacto** severo en las tres prótesis · su control negativo nativo · los dos vecinos de la FR ·
+  el informe y el EN SUMA en los **tres estilos** · la **pastilla** · y la nota al pie de
+  «Referencia clínica» con su folio.
+- **(c) PRO3**, seis condiciones: los **cuatro niveles** del reverso (20, 29, 30, 45) · el borde de
+  abajo (19 no vota) · la **compuerta del holodiastólico** («proto» no vota) · el control negativo de
+  los **otros cuatro** parámetros de la fuga · que el reverso **siga integrando** (25 cm/s + 5 % de
+  extensión da moderada) · y que el corte de la aorta descendente de la nativa **no se haya movido**.
+- **(g) CONTROLES**, cuatro: las **440 columnas** del Excel con el formulario vacío y con escenario
+  cargado · los **tres asserts** de arranque del Excel limpios · un control negativo mayor con una
+  escena nativa cargada (los ocho grados y la diastólica) · y que el Wilkins, la pestaña Otros, el
+  cuadro de frases y la identificación del paciente sigan en pie.
+
+**Las cuatro trampas del medidor que este caso pagó**, y que están en `docs/mapa/protesis-pro.md`
+con su medición: el `innerHTML` de `documentElement` devuelve el texto **decodificado**;
+`IA_VMAX_TD_SEVERA` es un `const` de módulo y se mide por **comportamiento**; `ea_grado` guarda un
+**token de texto** (`severa`) y no el 0-4 de las insuficiencias; y los cuatro calculadores hay que
+llamarlos **a mano**, porque `__t.set` no dispara el `oninput` del marcado.

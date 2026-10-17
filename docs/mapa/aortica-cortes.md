@@ -483,3 +483,24 @@ Lo que esa tanda movió en esta zona, en una línea cada uno:
 
 Cada corte con su tabla, su folio impreso y su hoja del PDF está en `docs/fuentes/FUENTES.md` →
 «La tanda VAL». Lo declarado y no tocado, en `docs/PENDIENTES.md` → VAL-1 a VAL-8.
+
+---
+
+## La insuficiencia aórtica con PRÓTESIS tiene dos cortes propios — tanda «PRO» (2026-10-17)
+
+Dos valores exactos de la cascada de `calcIA_ESC` cambian cuando `#va_morf` es una prótesis
+—biológica, mecánica o TAVI—, y salen de la **ASE 2024, Tabla 8, folio 23 (hoja 22)**:
+
+| parámetro | nativa | prótesis |
+|---|---|---|
+| ratio jet/TSVI, borde de **leve** | `< 25 %` | **`≤ 25 %`** |
+| fracción regurgitante, borde de **severa** | `> 50 %` (ESC/EACTS 2025, Figura 4, folio 4659) | **`≥ 50 %`** |
+
+Los otros cuatro parámetros de esa tabla —vena contracta, área de VC, THP y volumen regurgitante—
+coinciden número por número con los nativos, así que no hay bifurcación. El dueño del régimen es
+**`_iaProt`**, una IIFE que llama a `_eaEsProtesisAo()` **una sola vez** para las dos decisiones y
+falla hacia **nativa**.
+
+El detalle —el borde ambiguo del 50 % que desambigua la VARC-3, el hueco de 25,1 a 25,9 % resuelto
+por complemento, la nota al pie de «Referencia clínica» y las seis escenas que cambian— está en
+**`docs/mapa/protesis-pro.md`**.

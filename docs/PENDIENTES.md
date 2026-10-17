@@ -4623,3 +4623,97 @@ Ese mapa está en **35,3 KB**, o sea ya cruzado, desde el 2026-10-12. La nota de
 cociente VTI se reescribió en `index.html` y lo que la documenta vive en
 `docs/mapa/valvulas-val.md` §5, para no agrandarlo. **La próxima tanda que lo toque tiene que
 partirlo**, igual que `diastolica.md` (35,2 KB).
+
+---
+
+## Tanda «PRO» (2026-10-17) — commits 1 a 3 hechos, 4 a 6 NO
+
+⚠️ **LA ORDEN PEDÍA SEIS COMMITS Y SE HICIERON LOS TRES PRIMEROS MÁS SU COBERTURA.** El corte es
+uno de los que la propia orden ofrece («commits 1 a 3 / commit 4 / commit 5 / commit 6»). Lo hecho
+está en `docs/mapa/protesis-pro.md`; lo que falta, acá. **Las seis tablas de las guías que los tres
+commits restantes necesitan ya están VERIFICADAS y transcritas** en
+`docs/fuentes/FUENTES-protesis.md`, con su folio y su hoja: ese trabajo no hay que repetirlo.
+
+### PRO-1 · La FUGA PARAVALVULAR de la prótesis QUIRÚRGICA (aórtica y mitral) — NO hecha
+
+Es el **W1-12** de esta serie y la orden lo marcaba como «MUY IMPORTANTE para Maicol». Hoy **sólo el
+módulo TAVI tiene campos de fuga paravalvular** (`ete_tavi_ext_circ`, `ete_tavi_vc_ancho`,
+`ete_tavi_vc_area`, `ete_tavi_pht`, `ete_tavi_flujo_rev`, `ete_tavi_vel_tele`), y viven en la
+pestaña ETE detrás de dos puertas.
+
+**El diseño que la lectura previa recomienda, y por qué:** reusar **`eteTaviRPV()` como dueño
+único** y extenderlo a la prótesis quirúrgica. No es sólo lo más simple: **los cortes de ese motor
+son EXACTAMENTE los de la Tabla 8 de la ASE 2024 para la aórtica**, verificado fila por fila —
+extensión circunferencial `<10 / 10-29 / ≥30 %`, VC width `<0,3 / 0,3-0,6 / >0,6` cm, área de VC
+`<0,10 / 0,10-0,29 / ≥0,30` cm² y THP `>500 / 200-500 / <200` ms—. O sea que el módulo de la TAVI
+**ya implementa la tabla aórtica**, y extenderlo no copia ningún corte.
+
+**Lo que hay que decidir, y que la lectura dejó medido:**
+1. **La MITRAL no tiene parámetro de extensión circunferencial en su tabla.** La **Tabla 13, folio
+   30**, censada entera, publica VC width, RVol, RF, EROA, área de jet, convergencia, densidad,
+   contorno y flujo venoso pulmonar — y **ninguna fila de extensión circunferencial de la fuga**. O
+   el campo no se ofrece en la mitral, o se ofrece citando la ASE 2019 / la VARC-3 (que son de la
+   aórtica). La conservadora es **no ofrecerlo**.
+2. **Los grados del motor son CINCO y la orden pide TRES.** Hoy `eteTaviRPV` devuelve
+   `Sin RPV / Trivial / Leve / Moderada / Severa`. Colapsarlo a tres cambia lo que la TAVI publica
+   hoy, que la orden **congela** salvo lo del reverso: hace falta una decisión explícita de Maicol.
+3. **El ancho de vena contracta difiere entre las dos fuentes**: la ASE 2024 pone el borde
+   leve/moderada en **0,3 cm** y la VARC-3 en **0,4 cm**. Manda la ASE 2024 (más nueva), que es la
+   que el motor ya aplica.
+4. **El rótulo del campo de velocidad telediastólica de la TAVI dice «aorta abdominal»** y las dos
+   guías hablan de la aorta **descendente** (la VARC-3, de la «descendente proximal»). Es un rótulo
+   clínico: se reporta y no se toca.
+
+### PRO-2 · Las prótesis TRICÚSPIDE y PULMONAR siguen sin graduar — NO hecho
+
+Hoy las dos están en `PROT_SIN_GRADO_VALVS` y publican `PROT_SIN_GRADO_TXT` («No graduada: los
+cortes de válvula nativa no aplican a prótesis»). **Las cuatro tablas están verificadas** (ASE 2024
+T15 folio 33, T16 folio 34, T19 folio 36 y T21 folio 39, más la prosa del folio 35 para la fracción
+regurgitante pulmonar).
+
+**Censo de campos, hecho: faltan TRES como mínimo.**
+- **Pulmonar:** existen `ep_vmax` y `ep_gmax` (gradiente **máximo**), y la Tabla 15 pide el gradiente
+  **MEDIO** → falta `ep_gmedio`. Y falta el **tipo de prótesis pulmonar** (bioprótesis u
+  homoinjerto), que es lo que elige la columna de cortes.
+- **Tricúspide:** existen `et_gmedio`, `et_thp`, `et_avt`, `et_vti_diast`, `et_tsvd_diam`,
+  `et_vti_tsvd` y `vt_dvi`; la Tabla 19 pide además la **velocidad pico de E** de entrada
+  tricuspídea, que no tiene campo (`it_vmax_cw` es la Vmax de la **regurgitación**, otra medición).
+- La Tabla 21 pide **flujo de vena hepática**, que tampoco tiene campo.
+
+⚠️ **LA TABLA 15 NO TIENE COLUMNA DE «SEVERA»**: sus dos columnas son «Normal» y «Possible
+obstruction». La app **no debe afirmar «severa»** en la obstrucción pulmonar por ningún camino.
+⚠️ **LA TABLA 19 NO GRADÚA**: es un umbral único por tipo de prótesis, «suggestive of stenosis».
+⚠️ **Las prótesis pulmonares percutáneas y las mecánicas sin criterios propios en la guía quedan sin
+graduar y lo tienen que decir.**
+
+### PRO-3 · Sin columnas nuevas de Excel, y dos propuestas si alguna vez se necesitan
+
+Esta tanda **no agregó ninguna columna**: el Excel sigue en **440**, medido clave por clave. Si
+PRO-1 y PRO-2 entran, los campos nuevos viajan con el estudio (el JSON los conserva) y **no hace
+falta** columna para que la app funcione. Si el Laboratorio los necesitara, las dos que
+corresponderían son:
+- **`Fuga paravalvular (grado)`**, derivada sin campo, en el bloque «8 · VÁLVULAS», pegada a
+  `AVA (cm²)`;
+- **`Tipo prótesis pulmonar`**, campo de entrada, en el bloque de la pulmonar, pegada a
+  `IP etiología`.
+**No se crearon**: una columna nueva es PARADA.
+
+### PRO-4 · Cobertura de PRO-1 y PRO-2
+
+**TC-496 cubre sólo los commits 1 a 3.** La fuga quirúrgica y las dos prótesis necesitan su propio
+caso (el siguiente número libre es **TC-497**) con los bordes de cada criterio, las capturas en los
+dos temas y los dos motores, y el chequeo de celular de los campos nuevos.
+
+### PRO-5 · Los dos cortes del reverso diastólico ya NO coinciden, y es correcto
+
+`IA_VMAX_TD_SEVERA` (aorta descendente de la nativa y de la SAVR) sigue en **20 cm/s** con un solo
+nivel, por la **ESC/EACTS 2025, Figura 4, folio 4659**; el del módulo TAVI pasó a **dos niveles**
+(20 a <30 moderada, ≥30 severa) por la **VARC-3, Tabla 16, folio 1846**. **Son dos territorios y dos
+fuentes**, y el comentario de esa constante ya pedía que mover uno no dejara al otro atrás: quedó al
+día. Unificarlos es decisión clínica de Maicol, no una refactorización.
+
+### PRO-6 · El mapa de prótesis quedó a 754 bytes del techo
+
+`docs/mapa/protesis-valvular.md` quedó en **34,2 KB** y el techo es 35: **la próxima tanda que lo
+toque tiene que partirlo**. El contenido de esta tanda salió a archivo propio
+(`docs/mapa/protesis-pro.md`, 17,6 KB) justamente por eso, medido con `wc -c` ANTES de escribir.

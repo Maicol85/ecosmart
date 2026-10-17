@@ -505,3 +505,36 @@ pidiendo, y la superficie corporal también.
 `VINFO['prot-obstr']`, bloque «a tener en cuenta», nombra hoy **los dos retiros** del gradiente y ya
 no dice «el gradiente medio sigue contando». TC-481 lo exige por los dos lados: que el texto nuevo
 esté y que el viejo **no**.
+
+---
+
+## Los TRES cortes de la tanda «PRO» (2026-10-17) — en su propio mapa
+
+Los commits 1 a 3 de la tanda PRO alinean tres cortes de prótesis a lo que dicen las guías, y
+viven en **`docs/mapa/protesis-pro.md`** (17,6 KB):
+
+- **PRO1 · el cociente VTI de la prótesis mitral** pasa a apoyar **sólo en prótesis MECÁNICAS con
+  THP normal** (ASE 2024, Tabla 12, folio 28: su título es la condición entera). Tres regímenes
+  donde había dos: con **biológica la fila no se publica**, y con mecánica fuera del THP normal se
+  publica el número **pelado**. El dueño del régimen es `_ratioReg` y le pregunta a **`vmProtEOA`**,
+  que ya era el dueño del `/mec/i` y del corte de THP normal (`VM_PROT_T11.thpNormalMax`, `<130` ms).
+  ⚠️ **El cociente NO votaba ni vota** —no entra en `scores` ni en `params`— y **la regla de «dos o
+  más de cuatro» de la obstrucción mitral no se tocó**.
+  ⚠️ Y el THP pasó a ser **insumo de `calcIM_ESC`**: el recálculo se cuelga de `thpEditado`, el dueño
+  del gesto. Sin eso el apoyo desaparecía en la única escena para la que existe.
+- **PRO2 · la insuficiencia aórtica protésica** usa la **Tabla 8, folio 23**: jet/TSVI **≤25 % leve**
+  y fracción regurgitante **≥50 % severa**, en las **tres** prótesis aórticas (la TAVI incluida,
+  porque esa tabla no abre ramas por tipo y la TAVI corre la misma cascada). Los otros cuatro
+  parámetros de la tabla coinciden con los nativos. El dueño es `_iaProt`, leído **una sola vez**.
+  Esto deja a medias el párrafo «La insuficiencia aórtica protésica» de la sección 5 de este mapa:
+  la cascada sigue siendo la nativa en todo **menos** en esos dos bordes.
+- **PRO3 · el reverso diastólico de la TAVI** gradúa en **dos niveles** —`≥30` severa y `20 a <30`
+  moderada— por la **VARC-3, Tabla 16, folio 1846**, que es la única fuente con cifras: la ASE 2024
+  escribe «prominent, holodiastolic» sin número. La compuerta del flujo **holodiastólico** se
+  conserva, porque las dos celdas de la VARC-3 empiezan con esa palabra.
+
+⚠️ **LOS COMMITS 4, 5 Y 6 DE ESA ORDEN NO SE HICIERON**: la fuga paravalvular de la prótesis
+**quirúrgica** (que es el **W1-12** de esta serie), la graduación de las prótesis **tricúspide y
+pulmonar** —que hoy siguen en `PROT_SIN_GRADO_VALVS` con el texto «No graduada»— y su cobertura.
+Están declarados en `docs/PENDIENTES.md` → **PRO-1 a PRO-4**, y **las seis tablas de las guías que
+necesitan ya están verificadas y transcritas** en `docs/fuentes/FUENTES-protesis.md`.

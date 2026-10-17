@@ -62,6 +62,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar el PANEL EN LÍNEA de la vista 2D**: el botón que prende y apaga, el apagado automático, la sincronía en vivo, el alto del dibujo o la línea de fase | `docs/mapa/vista-2d-en-linea.md` |
 | **Orientarse en otro módulo** (Congénitas, Laboratorio, PPT, Cardio-Onco, Pericardio) | `docs/mapa/congenitas-otros.md` |
 | **Citar un dato de una guía** (documento, folio, frase verificada) | `docs/fuentes/FUENTES.md` |
+| **Tocar un CORTE de PRÓTESIS de la tanda PRO**: el cociente VTI mitral por régimen, el jet/TSVI y la FR de la IAo protésica, o el reverso diastólico de la TAVI | `docs/mapa/protesis-pro.md` |
 | **Citar un dato de PRÓTESIS valvular** | `docs/fuentes/FUENTES-protesis.md` |
 | **Empezar una válvula nueva**: qué fuentes faltan y cómo se agrega una | `docs/fuentes/PENDIENTES_FUENTES.md` |
 | Por qué algo está así, historia de una decisión | `grep` en `docs/historial/CLAUDE_historial_2026-10-01.md` |
@@ -116,9 +117,9 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **8,02 MB / 120.796 líneas**, medido el 2026-10-17 al cierre de la tanda VS
-  —el renglón anterior decía «7,94 MB / 119.840 líneas» y era del M: **medirlo antes de
-  presupuestar contexto**—. Las únicas dependencias son jsPDF, XLSX y
+  sin frameworks. Hoy **8,05 MB / 121.205 líneas**, medido el 2026-10-17 al cierre de la tanda PRO
+  —el renglón anterior decía «8,02 MB / 120.796 líneas» y era del VS, dos tandas antes: **medirlo
+  antes de presupuestar contexto**—. Las únicas dependencias son jsPDF, XLSX y
   PptxGenJS por CDN. Se abre como archivo local y corre en Chrome.
 - Lo que produce es un **informe firmado**: narrativo, EN SUMA, PDF, PPT y Excel del Laboratorio.
   Un dato que se carga y no sale en ninguno de esos destinos desapareció sin aviso.
@@ -271,6 +272,199 @@ impecable.
 ---
 
 ## Estado vigente
+
+### Las PRÓTESIS alineadas a las guías — «PRO», commits 1 a 3 de SEIS (2026-10-17)
+
+- ⚠️ **LA ORDEN PEDÍA SEIS COMMITS Y SON CUATRO: los TRES de corte más su cobertura.** El corte es
+  uno de los que la propia orden ofrece («commits 1 a 3 / commit 4 / commit 5 / commit 6»), y lo
+  que falta —la **fuga paravalvular de la prótesis QUIRÚRGICA** y la **graduación de las prótesis
+  TRICÚSPIDE y PULMONAR**— son dos zonas nuevas enteras, con campos nuevos en cuatro válvulas, su
+  cobertura y sus capturas en dos motores. Está declarado en `docs/PENDIENTES.md` → **PRO-1 a
+  PRO-6**, y ⚠️ **LAS SEIS TABLAS DE LAS GUÍAS QUE ESOS COMMITS NECESITAN YA ESTÁN VERIFICADAS Y
+  TRANSCRITAS** en `docs/fuentes/FUENTES-protesis.md`, con su folio y su hoja: **ese trabajo no hay
+  que repetirlo**.
+- Al **empezar**, `main` y `origin/main` estaban los dos en **`3188950`** (sello `v20261017-1125`),
+  **sin nada sin pushear** —confirmado con un `git fetch` de verdad, con el `FETCH_HEAD` fechado al
+  momento—, con los siete commits del VAL ya incluidos **y pusheados**. Los **cuatro** commits de
+  esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 4 → 3 → 2 → 1.**
+  ⚠️ **LOS TRES PRIMEROS NO SE NOMBRAN ENTRE SÍ Y SE REVIERTEN EN CUALQUIER ORDEN**: el 1 vive en
+  `_ratioReg`, el rótulo de la fila del cociente, la tarjeta `im-vti-ratio`, la frase de
+  «Referencia clínica» de la IM y **`thpEditado`**; el 2 en `_iaProt`, los dos operadores de
+  `calcIA_ESC` y la nota al pie de «Referencia clínica» de la IAo; el 3 en `eteTaviRPV` y en el
+  comentario de `IA_VMAX_TD_SEVERA`. **Ninguno nombra una pieza de otro.**
+  ⚠️ **PERO EL 1 LLEVA LA SONDA** (`scripts/_probe_pro.mjs`), que los otros dos usan.
+  **El 4 es TC-496 más la documentación y el sello**, y afirma el comportamiento de los tres:
+  revertir cualquiera sin el 4 lo deja en rojo.
+  ⚠️ **CASOS ADAPTADOS: NINGUNO**, y es consecuencia de que los tres cambios se acotan a la
+  PRÓTESIS: ningún caso de la suite afirmaba el régimen protésico de esos tres cortes. Lo que sí
+  hubo que medir es que la NATIVA no se moviera, y es lo que hacen los cinco controles negativos.
+
+- **Línea base al cierre: suite 506/510 con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0 ERROR,
+  Excel en 440 columnas, celular 52 a 360 px y 61 a 390 px con 10 ALTA cada uno —IDÉNTICO a la
+  línea base del VAL—. CERO REGRESIONES.** Los **CUATRO** rojos son exactamente los de ENTRADA
+  —**TC-223** (el documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**— y no
+  apareció ninguno fuera de esa lista. **El denominador sube a 510**: esta tanda agregó **TC-496**.
+  La de ENTRADA es la que el VAL dejó medida el MISMO día en esta máquina y con el pendrive puesto:
+  **505/509**, con esos mismos cuatro rojos. La comparación es 505/509 → 506/510 y el delta es el
+  caso nuevo.
+  ⚠️ **LA CIFRA MEDIDA FUE 504/510 CON SEIS ROJOS, y los dos de más son TC-246 y TC-252, que este
+  archivo documenta como INESTABLES POR ORDEN DE CORRIDA**: corridos solos sobre el mismo árbol dan
+  **2/2 ✓**. **Repetir antes de sospechar.**
+  ⚠️ **LA SUITE COMPLETA SE CORRIÓ DOS VECES Y LA PRIMERA NO ES LA LÍNEA BASE.** Dio **502/510** con
+  OCHO rojos, y los **cuatro** de más los destapó la suite completa: ninguna corrida de zona ni
+  TC-496 ni las sondas podían verlos. Se adaptaron y la segunda corrida es la que vale.
+  ⚠️ **CASOS ADAPTADOS: CUATRO, con el motivo escrito en cada uno.** **TC-314** y **TC-321** (sus
+  escenas de prótesis mitral no cargaban el THP, así que desde el PRO1 la fila publica el número
+  pelado y eso es lo correcto: se les agrega `thp = 100`, que es lo que pone la escena DENTRO del
+  régimen de la Tabla 12; el estado SIN THP lo cubre TC-496); **TC-495**, que era un **límite
+  declarado de esta misma tanda** —«la PROTESIS mitral conserva su cociente ≥2,5 … esta tanda no
+  las toca», escrito unas horas antes para que el día que se moviera se notara, **y lo notó**: el
+  VALOR del corte y su operador NO se movieron, lo que cambió es CUÁNDO se publica—; y **TC-292**,
+  que **medía la EXPRESIÓN y no el comportamiento** (buscaba el literal `fr <= 50` del fuente, que
+  ya no existe porque la banda de moderada pasó a ser el complemento y el operador lo elige la
+  morfología).
+  ⚠️ **LOS DIECISIETE DE TC-181…TC-197 SALIERON VERDES, que es la prueba de que el pendrive estuvo
+  montado.** `ls /Volumes/DISK_IMG` ANTES de comparar dos cifras.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **510 ids** sobre los 511 casos del archivo.
+- **EL SELLO DE VERSIÓN** estaba al día al empezar (`v20261017-1125`) y se volvió a sellar:
+  **`v20261017-1235`**. Todo lo medido salió **DESPUÉS** de sellar, con el `md5` quieto
+  (`76554ac2…`, verificado al abrir y al cerrar las dos corridas); lo único que se tocó después
+  fueron las cuatro adaptaciones y TC-496, que viven en `scripts/test_clinico.mjs`.
+- **`index.html` pasó de 8,03 MB / 121.028 líneas a 8,05 MB / 121.205 líneas.**
+
+- **A/B DEDICADO contra el inicio de la tanda, con el PDF, el PPT y el PDF de auditoría GENERADOS
+  DE VERDAD.** Con el **formulario vacío las SEIS plantillas del PDF salen IDÉNTICAS** —mismo
+  `nTextos`, mismo `nFigs` y los mismos textos—; con el escenario del **cociente VTI** también
+  **CERO diferencias en las seis**, que es la comprobación de que ese número no viaja al papel; y
+  con el escenario del **jet al 25 %** la diferencia es **UNA sola por plantilla y es la
+  autorizada**: «: Moderada» → «: Leve», con `nTextos` y `nFigs` idénticos en las seis. El **PPT
+  estadístico** da 21 textos en los dos árboles y el **PDF de auditoría** 104, con **cero** textos
+  distintos. **Excel en 440 columnas CLAVE POR CLAVE con CERO valores distintos** en los tres
+  estudios de la población y en el formulario vacío.
+
+- **PRO0 · LAS DOS REGLAS DE FOLIO, COMPROBADAS EN EL PIE IMPRESO.** **ASE 2024** (Zoghbi, JASE
+  2024;37(1):2-63) folio = **hoja + 1**, verificado en las hojas 22, 26, 32 y 38 → 23, 27, 33 y 39.
+  **VARC-3 2021** (Généreux, Eur Heart J 2021;42(19):1825-1857, DOI 10.1093/eurheartj/ehaa799)
+  folio = **hoja + 1824**, verificado en las hojas 22 y 23 → 1846 y 1847.
+  ⚠️ **EL TEXTO EXTRAÍDO DE LA ASE 2024 CODIFICA `≥` COMO `$` Y `≤` COMO `#`**: quien la lea sin
+  saberlo invierte **todos** los operadores. Es la misma trampa que la ASE 2023 ya tiene escrita.
+  **Ninguna de las seis tablas hizo falta renderizarla**, a diferencia de la ASE 2023.
+
+- **PRO1 · EL COCIENTE VTI DE LA PRÓTESIS MITRAL APOYA SÓLO EN MECÁNICAS CON THP NORMAL.** La
+  **Tabla 12, folio 28** tiene la condición entera **en su título**: «findings suggestive of
+  significant prosthetic MR **in mechanical valves with normal PHT**». Hasta hoy la app aplicaba el
+  `≥ 2,5` a toda prótesis mitral y sin mirar el THP. **Tres regímenes donde había dos:** con
+  **biológica la fila no se publica**; con **mecánica fuera del THP normal** el número sale
+  **pelado**; la **nativa** no se mueve (`> 1,4`).
+  ⚠️ **«THP NORMAL» ES `< 130 ms` Y ES EL MISMO NÚMERO EN LA GUÍA Y EN LA APP** —columna «Normal»
+  de la Tabla 11, folio 27—: las dos condiciones **se le preguntan a `vmProtEOA`**, que ya era su
+  dueño con su banda de plausibilidad, así que **esta tanda no declaró un segundo corte**.
+  ⚠️ **EL COCIENTE NO VOTABA NI VOTA, y está medido por los dos lados**: `im_grado` sale idéntico
+  con un cociente de 3,00 y con uno de 1,00 sobre la misma escena. Y **la regla de «dos o más de
+  cuatro» quedó intacta** (`obstr`, `obstrPos` y `obstrMed` iguales), que era la única excepción que
+  la orden protegía.
+  ⚠️ **UN CONSUMIDOR NUEVO SIN SU DISPARADOR, Y LO CAZÓ LA SONDA.** Desde que la fila mira el THP,
+  el THP es insumo de `calcIM_ESC` y ninguna de sus dos puertas lo llamaba: medido, tipeando VTI
+  mitral, VTI del TSVI y **después** el THP en 100 ms, la fila publicaba el número **pelado** sobre
+  una mecánica con THP normal — **el apoyo desaparecía en la única escena para la que existe**. Se
+  cierra en `thpEditado`, el dueño del gesto, que comparten las dos puertas del dato. Sin recursión:
+  `calcIM_ESC` no llama a `calcTHP` (censado).
+  **ESCENAS QUE CAMBIAN: SEIS de diez** —las tres de la biológica, y las de la mecánica con THP 130,
+  250 y sin THP—. El borde **129/130** separa y el del corte, **2,49/2,50**, también.
+  **Tres superficies de texto siguieron al predicado**, y la tercera era la más cara de dejar: la
+  frase de «Referencia clínica» declaraba las dos condiciones como **no verificadas**.
+
+- **PRO2 · LA INSUFICIENCIA AÓRTICA PROTÉSICA USA LA TABLA 8, Y CAMBIAN DOS VALORES EXACTOS.**
+  **ASE 2024, Tabla 8, folio 23**, leída en el original: el **jet/TSVI de 25,0 %** pasa de moderada
+  a **LEVE** («Narrow (≤25 %)») y la **fracción regurgitante de 50 %** de moderada a **SEVERA**. Los
+  otros cuatro parámetros de esa tabla coinciden número por número con los nativos.
+  ⚠️ **EL 50 % ES UN BORDE AMBIGUO DE LA PROPIA TABLA 8** —escribe moderada «30-50» y severa «≥50»,
+  o sea que el 50 está en las **dos** columnas— **y lo desambigua la VARC-3, Tabla 16, folio 1846**,
+  cuyas cinco clases son «40 to <50» y «≥50», **sin solape**: la lectura conservadora es además la
+  que la otra guía escribe explícito.
+  ⚠️ **EN LA NATIVA EL 50 SIGUE SIENDO MODERADA**, que es lo que el VAL3 decidió **ese mismo día**
+  con la ESC/EACTS 2025 (Figura 4, folio 4659: «RF >50% (echo)»). Son dos documentos y dos
+  regímenes, y el mismo número cae de distinto lado en cada uno.
+  ⚠️ **EL HUECO DE LA TABLA 8 (25,1 a 25,9 %) SE RESUELVE POR COMPLEMENTO, HACIA MODERADA**: la
+  tabla escribe «≤25» y «26-64», así que ese tramo no cae en ninguna columna.
+  ⚠️ **ALCANZA A LAS TRES PROTESIS AÓRTICAS, LA TAVI INCLUIDA, y es de la fuente**: el título de la
+  Tabla 8 dice «prosthetic aortic valve» sin abrir ramas por tipo y la TAVI corre **exactamente**
+  esta cascada.
+  **ESCENAS QUE CAMBIAN: SEIS de 24**, y son las seis autorizadas. **La nativa no se mueve en
+  ninguna**, y los cuatro vecinos de los dos bordes (24 y 26 %, 49 y 51 %) salen idénticos en los
+  dos regímenes. El **informe y el EN SUMA** siguen al grado en los **tres estilos** y la
+  **pastilla** también. La tabla de «Referencia clínica» de la IAo gana una **nota al pie** con los
+  dos cortes protésicos y su folio: sus seis filas son de válvula nativa.
+
+- **PRO3 · EL REVERSO DIASTÓLICO DE LA TAVI GRADÚA EN DOS NIVELES.** **VARC-3, Tabla 16, folio
+  1846**, fila «Diastolic flow reversal in proximal descending aorta»: «Holodiastolic (EDV **20 a
+  <30 cm/s**)» en moderada-severa y «Holodiastolic (EDV **≥30 cm/s**)» en severa. **La misma tabla
+  publica su equivalencia de cinco clases a tres**, que es la que Maicol fijó, así que 20 a <30 cae
+  en **moderada** y ≥30 en **severa**.
+  ⚠️ **LA ASE 2024 NO DA CIFRA PARA ESTE PARÁMETRO**, verificado antes de elegir la fuente: su
+  Tabla 8 escribe «Prominent, holodiastolic» sin un solo número. Por eso manda la VARC-3 aunque sea
+  anterior: la regla es «la más nueva **que traiga el dato**».
+  ⚠️ **LA VARC-3 SÍ EXIGE EL FLUJO HOLODIASTÓLICO** —las dos celdas empiezan con esa palabra— así
+  que la compuerta `flujo === 'holo'` se conserva tal cual.
+  **ESCENAS QUE CAMBIAN: TRES de 14** —holo 20, holo 29 y el mixto de 25 cm/s con extensión del
+  5 %—. El **19 sigue sin votar**, el **30 y el 45 siguen severa** (el borde separa), «proto» y
+  «ausente» intactos, y los **seis controles** de los otros cuatro parámetros de la fuga idénticos.
+  ⚠️ **EL CORTE DE LA AORTA DESCENDENTE DE LA NATIVA Y DE LA SAVR NO SE TOCÓ** —`IA_VMAX_TD_SEVERA`
+  sigue en 20 cm/s con un solo nivel, por la ESC/EACTS 2025— y **desde hoy los dos números ya no
+  coinciden**, que es exactamente lo que el comentario de esa constante pedía no dejar atrás.
+  `PENDIENTES.md` → PRO-5.
+
+- **A/B DE CONTROLES contra el inicio de la tanda, medido en los TRES commits: 0 DIFERENCIAS** en
+  informe (tres estilos), EN SUMA, los ocho grados y las ocho pastillas, la diastólica, el HFA-PEFF
+  y el **Excel en 440 columnas CLAVE POR CLAVE**, con el formulario vacío y con escenario cargado.
+  Los tres asserts de arranque del Excel, limpios.
+
+- **Arnés: `scripts/_probe_pro.mjs`** (CDP, teclas y clics reales; cinco grupos: `vti`, `jet`, `fr`,
+  `reverso`, `controles`).
+  **Cobertura: TC-496**, **33 condiciones** —contadas sobre el propio caso— con cuatro
+  denominadores y cinco controles negativos. **Verificado que sabe fallar contra el inicio de la
+  tanda en un worktree aparte: 11 de las 33 en rojo, y NINGUNA por excepción.**
+
+- **Dónde está todo:** `docs/mapa/protesis-pro.md` (**mapa NUEVO**, 17,6 KB: la regla de la tanda y
+  las dos reglas de folio, los tres cambios con sus tablas y sus escenas, y nueve trampas);
+  `docs/mapa/protesis-valvular.md`, `docs/mapa/aortica-cortes.md` y `docs/mapa/valvulas-val.md` →
+  un puntero cada uno; `docs/mapa/tests-fichas.md` → la ficha de TC-496;
+  `docs/fuentes/FUENTES-protesis.md` → **las SEIS tablas de la ASE 2024 y la Tabla 16 de la VARC-3
+  transcritas fila por fila** con su folio y su hoja, más la tabla de **Cambios de evidencia**; y
+  `docs/PENDIENTES.md` → **PRO-1 a PRO-6**.
+  ⚠️ **NINGÚN MAPA CRUZÓ EL TECHO, medido con `wc -c` ANTES de escribir**: `protesis-valvular.md`
+  estaba en **31,7 KB** y con el contenido adentro habría quedado en ~44, así que salió a archivo
+  propio y le entró un puntero de 33 líneas. **Quedó en 34,2 KB, o sea a 754 BYTES del techo: la
+  próxima tanda que lo toque tiene que partirlo** (`PENDIENTES.md` → PRO-6). `aortica-cortes.md`
+  quedó en 31,7 y `tests-fichas.md` en 23,5.
+
+- ⚠️ **NUEVE TRAMPAS, Y CINCO DABAN FALSOS PLAUSIBLES.**
+  1. **EL VTI MITRAL DE 100 cm CAE FUERA DE SU BANDA (`vtim: [2,80]`)** y las ocho primeras escenas
+     de la sonda informaron «VTI de entrada fuera de rango»: un denominador vacío con pinta de «la
+     regla nueva no funciona». Se mide con **60 cm**.
+  2. **`im_itv_tsvi` E `im_dtsvi` NO SON CAMPOS TIPEABLES**: llevan `style="display:none"` **en
+     línea** y el abridor genérico de la sonda abre los **ancestros**, no el campo. La puerta
+     visible es **`em_vtitsvi`**.
+  3. **`#ete_tavi_vel_tele` VIVE EN UN ENVOLTORIO QUE `eteTaviSync` ENCIENDE SÓLO CON EL FLUJO EN
+     «holo»**: sin fijar el `<select>` primero el campo existe y mide 0×0. La sonda **abortó
+     nombrándolo**, que es lo correcto.
+  4. **EL `\s` DENTRO DEL TEMPLATE DE UNA SONDA SE COCINA A LA LETRA `s`**, otra vez: el rótulo
+     salió «próte i ≥2.5» —sin las eses— y aun así la comparación informó una diferencia de dos
+     caracteres, o sea un falso plausible.
+  5. **EL `innerHTML` DE `documentElement` DEVUELVE EL TEXTO DECODIFICADO, no el fuente**: una
+     condición que buscaba la entidad `&aacute;` salía roja sobre una nota perfecta.
+  6. **`IA_VMAX_TD_SEVERA` ES UN `const` DE MÓDULO Y NO UNA PROPIEDAD DE `window`** —la trampa de
+     `ECO_AYUDA` y `AO_SEGS`—: se mide el **comportamiento** por sus dos lados.
+  7. **`ea_grado` GUARDA UN TOKEN DE TEXTO (`severa`) y no el 0-4 de las insuficiencias**: el
+     control negativo mayor comparaba contra `'4'` y salía rojo sobre un grado perfecto.
+  8. **Me comí el acento grave UNA vez**, en un comentario mío dentro del cuerpo de TC-496.
+     `scripts/check_backticks.py` dio la línea exacta (74255) mientras `node --check` apuntaba a la
+     apertura del template, 169 líneas antes.
+  9. ⚠️ **ESCRIBÍ «27 condiciones» ANTES DE CONTARLAS Y SON 33.** Lo cazó contar los `ex.push` del
+     propio caso. **Contar y después escribir**, igual que medir y después escribir.
 
 ### Las VÁLVULAS NATIVAS alineadas a las guías — «VAL» (2026-10-17)
 

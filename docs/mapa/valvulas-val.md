@@ -179,3 +179,16 @@ o el PPT: el papel afirma y no explica.
 ## 8 · Qué quedó declarado y no tocado
 
 Está en `docs/PENDIENTES.md` → **VAL-1 a VAL-7**.
+
+---
+
+## El cociente VTI mitral se volvió a mover el MISMO día — tanda «PRO» (2026-10-17)
+
+El VAL5 de arriba movió la **compuerta de la IAo** de los dos regímenes del cociente (de severa a
+moderada) y dejó escrito que «el `≥ 2,5` protésico NO se tocó». Unas horas después, el **PRO1** de
+la misma jornada sí lo tocó, pero por otro lado: **cuándo se publica**. Hoy el régimen protésico
+apoya **sólo en prótesis MECÁNICAS con THP normal** (ASE 2024, Tabla 12, folio 28), con la
+bioprótesis sin publicar la fila y la mecánica fuera de ese THP publicando el número pelado. **El
+valor del corte sigue siendo 2,5 y el operador sigue siendo `≥`**, y el nativo `> 1,4` no se movió.
+
+Está en **`docs/mapa/protesis-pro.md`**, con su medición y la trampa del disparador que faltaba.
