@@ -6006,7 +6006,7 @@ window.cerrarSesionReal = cerrarSesionReal;
              equivocado; el orden del content stream la pone en «Semi-quantitative». Se resolvió
              RENDERIZANDO la página y mirándola, que es lo único que no se puede discutir. Quien
              vuelva a verificar esto: no le crea a la coordenada. -->
-        <div class="calc-row"><span class="calc-lbl">Ratio VTI mitral / VTI TSVI (nativa &gt;1.4 · prótesis ≥2.5) <button type="button" class="vinfo-btn" data-vinfo="im-vti-ratio" aria-expanded="false" aria-label="Información sobre Ratio VTI mitral / VTI TSVI" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="im-vti-ratio">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">Ratio VTI mitral / VTI TSVI (nativa &gt;1.4 · prótesis mecánica con THP normal ≥2.5) <button type="button" class="vinfo-btn" data-vinfo="im-vti-ratio" aria-expanded="false" aria-label="Información sobre Ratio VTI mitral / VTI TSVI" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="im-vti-ratio">—</span></div>
         <!-- ⚠️ FILA NUEVA (2026-10-09) — DECISIÓN DE MAICOL, Y CIERRA UN AGUJERO QUE EL PROPIO
              CÓDIGO DECLARABA. El comentario de `calcIM_ESC` dice, textual, que «la VC es el ÚNICO
              votante sin fila de resultado propia — su valor se ve en su input y nada más»: votaba
@@ -16813,8 +16813,9 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
           <!-- Las dos condiciones que la Tabla 12 enuncia y la app NO verifica van juntas acá y no
      dentro de la celda: una celda de tabla con dos salvedades deja de leerse como un corte. -->
           <div style="margin-top:6px;font-size:11px;color:var(--text2);line-height:1.6;">
-            ⚠️ El &ge;2,5 del cociente lo define la ASE 2024 para pr&oacute;tesis <b>mec&aacute;nicas con THP normal</b>.
-            EcoSmart no verifica ninguna de las dos: lo aplica a toda pr&oacute;tesis mitral —biol&oacute;gica incluida— y no cruza el THP.
+            ⚠️ El &ge;2,5 del cociente lo define la ASE 2024 para pr&oacute;tesis <b>mec&aacute;nicas con THP normal</b>,
+            y desde el 17/10/2026 EcoSmart verifica las dos: con pr&oacute;tesis biol&oacute;gica la fila no se publica, y en una
+            mec&aacute;nica con el THP de 130 ms o m&aacute;s se muestra el n&uacute;mero sin conclusi&oacute;n.
           </div>
           <div style="margin-top:10px;font-size:12px;font-weight:700;color:var(--accent2);">Indicaciones IM primaria (ESC 2021)</div>
           <div style="font-size:12px;color:var(--text);line-height:1.8;margin-top:4px;">
@@ -34904,6 +34905,20 @@ window._THP_MARCA_NODOS = _THP_MARCA_NODOS;
 function thpEditado(origenId) {
   thpSync(origenId);
   if (typeof calcTHP === 'function') calcTHP();
+  /* ⚠️ UN CONSUMIDOR NUEVO SIN SU DISPARADOR, Y LO CAZO LA SONDA (PRO1, 2026-10-17). Desde que
+     la fila del cociente VTI mira el THP —el regimen de la Tabla 12 es «mecanica con THP
+     normal»—, el THP es insumo de `calcIM_ESC`, y hasta aca ninguna de sus dos puertas lo
+     llamaba: la fila se quedaba con el regimen del gesto ANTERIOR. Medido antes de cerrarlo:
+     tipeando VTI mitral, VTI del TSVI y DESPUES el THP en 100 ms, la fila publicaba el numero
+     pelado —el regimen que corresponde al THP vacio— sobre una mecanica con THP normal, que es
+     justo la unica poblacion en la que la guia respalda el ≥2,5. El apoyo DESAPARECIA en la
+     escena para la que existe.
+     ⚠️ NO HAY RECURSION: `calcIM_ESC` no llama a `calcTHP` ni a `thpEditado` —censado: cero
+     apariciones en su cuerpo— y lo que lee del THP lo lee por `nv('thp')` a traves de
+     `vmProtEOA`, que tampoco los llama.
+     Va en `thpEditado` y no en los dos `oninput`: es el dueno del gesto y lo comparten las dos
+     puertas del dato (`thp` y `em_thp_display`), asi que una puerta nueva lo hereda. */
+  if (typeof calcIM_ESC === 'function') calcIM_ESC();
 }
 window.thpEditado = thpEditado;
 
@@ -38796,9 +38811,9 @@ const VINFO = Object.freeze({
   'im-vti-ratio': {
     tit: 'Cociente VTI mitral / VTI del TSVI',
     formula: 'VTI mitral (CW) ÷ VTI del TSVI',
-    lee: 'Compara lo que cruza la mitral con lo que sale por la a\u00f3rtica: cuanto m\u00e1s vuelve a la aur\u00edcula, m\u00e1s sube el cociente. Apoya insuficiencia severa por encima de 1,4 en v\u00e1lvula nativa y de 2,5 en pr\u00f3tesis mitral.',
+    lee: 'Compara lo que cruza la mitral con lo que sale por la a\u00f3rtica: cuanto m\u00e1s vuelve a la aur\u00edcula, m\u00e1s sube el cociente. En v\u00e1lvula nativa apoya insuficiencia severa por encima de 1,4. En pr\u00f3tesis el 2,5 o m\u00e1s apoya insuficiencia prot\u00e9sica significativa, y s\u00f3lo en pr\u00f3tesis MEC\u00c1NICAS con THP normal \u2014menos de 130 ms\u2014, que es la poblaci\u00f3n en la que la gu\u00eda lo midi\u00f3. Con pr\u00f3tesis biol\u00f3gica la fila no se publica, y en una mec\u00e1nica con el THP alargado se muestra el n\u00famero sin conclusi\u00f3n.',
     fuente: 'Nativa: ASE 2023 (Pandian), folio 12, y ESC/EACTS 2025, Figura 10, folio 4672. Pr\u00f3tesis: ASE 2024, Tabla 12, p\u00e1g. 28.',
-    ojo: 'El denominador es el VTI a\u00f3rtico, que la insuficiencia a\u00f3rtica infla: con IAo severa el cociente se retira, y en pr\u00f3tesis desde la moderada.'
+    ojo: 'El denominador es el VTI a\u00f3rtico, que la insuficiencia a\u00f3rtica infla: desde la IAo moderada el cociente se retira, en los dos reg\u00edmenes. Y el mismo 2,5 aparece en la Tabla 11 como signo de ESTENOSIS prot\u00e9sica: el cociente sube por cualquier flujo transmitral aumentado, as\u00ed que no se le atribuye a una de las dos cosas sin mirar el resto.'
   },
   'im-vc': {
     tit: 'Vena contracta de la insuficiencia mitral',
@@ -41105,10 +41120,49 @@ function calcIM_ESC() {
      morfologías distintas: el régimen protésico decidiendo si la fila sale, y el nativo decidiendo
      con qué corte. Es la fórmula duplicada de siempre, pero sobre el predicado. */
   const _rProt = _imVmProt();
+  /* ══ PRO1 — EL COCIENTE SOLO APOYA EN PROTESIS MECANICAS CON THP NORMAL (2026-10-17) ═══════
+     DECISION DE MAICOL, y es lo que dice la fuente con todas las letras. **ASE 2024 (Zoghbi),
+     Tabla 12, folio 28 (hoja 27; folio = hoja + 1, comprobado en el pie impreso de cuatro
+     paginas)**, cuyo TITULO es la condicion entera: «Transthoracic echocardiographic findings
+     suggestive of significant prosthetic MR **in mechanical valves with normal PHT**» -> fila
+     «VTI_PrMV/VTI_LVOT $ 2.5», sensibilidad 89 %, especificidad 91 %. (El texto extraido de ese
+     PDF codifica `≥` como `$` y `≤` como `#`: quien lo lea sin saberlo invierte los operadores.)
+     Hasta hoy la app aplicaba el ≥2,5 a TODA protesis mitral y sin mirar el THP, y el comentario
+     de abajo ya declaraba las dos cosas como pendientes.
+     ⚠️ TRES REGIMENES Y NO DOS. Con protesis BIOLOGICA la fila no se muestra —la orden es
+     explicita: «para la protesis biologica no se muestra ni se cuenta»— y con MECANICA fuera del
+     THP normal el numero se muestra PELADO: el cociente se midio y es un dato, pero la unica
+     tabla que lo respalda no alcanza a ese paciente, asi que la app publica el valor y no afirma.
+     Es el mismo reparto que el jet/AI usa en su banda «variable».
+     ⚠️ LAS DOS CONDICIONES SE LE PREGUNTAN AL DUENO (`vmProtEOA`) Y NO SE REIMPLEMENTAN ACA. El
+     `/mec/i` sobre `vm_morf` y el corte de THP normal (`VM_PROT_T11.thpNormalMax`, `< 130` ms, la
+     columna «Normal» de la Tabla 11, folio 27) ya viven ahi, con su banda de plausibilidad: un
+     segundo predicado daria dos lecturas del mismo paciente en la misma pantalla, que es el
+     defecto que este archivo documenta una docena de veces.
+     ⚠️ `typeof` Y NO LLAMADA PELADA, al contrario de `_emRegurgGrado` dos lineas abajo: esa es
+     una declaracion del MISMO bloque `<script>` y esta no —`calcIM_ESC` vive en el bloque que
+     abre en la 38421 y `vmProtEOA` en el que abre en la 52668—, asi que aca el `typeof` SI cubre
+     un caso real.
+     ⚠️ FALLA HACIA `bio`, o sea hacia NO MOSTRAR. Sin el dueno, sin morfologia legible o con una
+     excepcion, la app no publica el apoyo: afirmar «apoya IM severa» con un regimen que no se
+     pudo establecer es la direccion cara; omitirlo deja el valor en sus dos insumos, que siguen
+     en pantalla. Es la misma direccion que eligio `emContMotivoNoVota`.
+     ⚠️ EL COCIENTE NO VOTABA NI VOTA, y esta medido: no entra en `scores` ni en `params` de esta
+     funcion, asi que `im_grado` es identico con y sin el. Lo que esta tanda cambia es CUANDO se
+     publica el apoyo, no quien gradua. */
+  const _ratioReg = (function () {
+    if (!_rProt) return 'nativa';
+    try {
+      if (typeof vmProtEOA !== 'function') return 'bio';
+      const R = vmProtEOA();
+      if (!R || !R.mecanica) return 'bio';
+      return R.porThp === 'normal' ? 'mec_normal' : 'mec_otro';
+    } catch (e) { return 'bio'; }
+  })();
   const _ratioNoAplica = (_iaRatio === null ||
                           _iaRatio >= (_rProt ? IM_RATIO_IA_MAX_PROT : IM_RATIO_IA_MAX_NAT));
   if (ratioEl) {
-    if (_ratioNoAplica) {
+    if (_ratioNoAplica || _ratioReg === 'bio') {
       /* ⚠️ LA FILA QUEDA EN «—» PELADO, Y ESO SIGUE SIENDO UNA DECISIÓN, NO UNA DEUDA DE PASO.
          Lo que cambió el 2026-09-30 es CUÁNDO se llega acá, no qué se escribe: en la nativa sólo
          con IAo severa o con un grado ilegible; en la prótesis, desde la moderada.
@@ -41137,11 +41191,15 @@ function calcIM_ESC() {
          protésica considera sugestivo.
          ⚠️ EL OPERADOR CAMBIA CON EL CORTE: la Tabla 12 dice «≥2,5» y la fuente del 1,4 dice
          «>1,4». Unificarlos movería un borde clínico en una de las dos ramas.
-         ⚠️ La condición de la Tabla 12 —«in mechanical valves with **normal PHT**»— NO se
-         verifica: el THP existe (`avm_thp`) pero cruzarlo acá sería un predicado nuevo sobre la
-         estenosis, que este pedido excluye. Queda declarado; el ⓘ de la fila lo dice.
-         ⚠️ Y LA OTRA MITAD DE ESA MISMA CONDICIÓN —«in MECHANICAL valves»— SE EXTIENDE A LA
-         BIOPRÓTESIS, DECLARADO. `_imVmProt()` sale de `valvEsProtesis`, y `VALV_PROT_OPCIONES`
+         ⚠️ LAS DOS CONDICIONES DE LA TABLA 12 SE VERIFICAN DESDE EL 2026-10-17 (PRO1), y este
+         párrafo queda como registro de lo que decía: «La condición —"in mechanical valves with
+         normal PHT"— NO se verifica: el THP existe pero cruzarlo acá sería un predicado nuevo
+         sobre la estenosis, que este pedido excluye». Hoy el régimen lo decide `_ratioReg`
+         preguntándole a `vmProtEOA`, que es el dueño de las dos preguntas.
+         ⚠️ Y LA OTRA MITAD —«in MECHANICAL valves»— TAMBIÉN SE CERRÓ EN PRO1: hoy la
+         bioprótesis NO publica la fila. El párrafo que sigue describe lo que la app hacía hasta
+         el 2026-10-17 y queda como registro, incluido su pronóstico, que es lo que se aplicó.
+         Lo que decía: «SE EXTIENDE A LA BIOPRÓTESIS, DECLARADO.» `_imVmProt()` sale de `valvEsProtesis`, y `VALV_PROT_OPCIONES`
          incluye «Prótesis biológica», así que el ≥2,5 se aplica también ahí aunque la tabla lo
          enuncie para mecánicas. Se eligió ese lado porque el marcador sólo dice «apoya» —no
          gradúa— y un cociente ≥2,5 sobre una bioprótesis mitral es genuinamente anormal: callarlo
@@ -41150,14 +41208,21 @@ function calcIM_ESC() {
          aplicó. **Si Maicol decide restringir el ≥2,5 a mecánicas, la bioprótesis pasa a publicar
          el número pelado, igual que el jet/AI en su banda variable.** */
       const ratio = (_pVtimR.val / _vtsRatio).toFixed(2);
-      const _apoya = _rProt ? (PF(ratio) >= 2.5) : (PF(ratio) > 1.4);
+      /* ⚠️ `mec_otro` NO APOYA POR NINGUN CORTE, y es el tercer estado que esta tanda agrega: ni
+         el ≥2,5 protesico —que la Tabla 12 acota al THP normal— ni el >1,4, que es de mitral
+         REUMATICA NATIVA (ASE 2023, folio 12) y nunca le aplico a una protesis. El numero sale
+         pelado. */
+      const _apoya = _ratioReg === 'mec_normal' ? (PF(ratio) >= 2.5)
+                   : _ratioReg === 'nativa'     ? (PF(ratio) > 1.4)
+                   : false;
       /* ⚠️ LA SALVEDAD DE LA DIVERGENCIA SE FUE EL 2026-10-17 (VAL5) y con ella el único consumidor
          de `IM_RATIO_IA_MOD_TXT`. Desde que los DOS regímenes —nativo y protésico— se retiran a
          partir de la IAo moderada, esa rama era INALCANZABLE: con `_iaRatio >= 2` la fila ya no se
          publica por ninguno de los dos caminos. El párrafo anterior explicaba por qué la salvedad
          se pegaba siempre que hubiera IAo ≥ moderada; queda sin objeto. */
       ratioEl.textContent = ratio
-        + (_apoya ? (_rProt ? '  (≥2,5 — apoya IM severa)' : '  (>1,4 — apoya IM severa)') : '');
+        + (_apoya ? (_ratioReg === 'mec_normal' ? '  (≥2,5 — apoya IM severa)'
+                                                : '  (>1,4 — apoya IM severa)') : '');
     } else {
       ratioEl.textContent = '\u2014';
     }
