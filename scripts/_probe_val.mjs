@@ -755,22 +755,29 @@ async function main() {
   if (quiero('fra')) {
     const out = [];
     /* FR = VolR / VSV * 100, con VolR = EROA(cm2) * VTI del jet y VSV = PI*(d/20)^2 * VTI TSVI.
-       Con d = 20 mm y VTI TSVI = 20 cm, VSV = 62,832 ml. EROA sale del PISA: 2*PI*r^2*Va/Vmax.
-       Se despeja el VTI del jet para cada FR objetivo, dejando el PISA fijo. */
+       Las UNIDADES de los campos son las que declara su propia banda y su rotulo: radio PISA en
+       mm [1,30], Valiasing en cm/s [5,150], Vmax CW en m/s y VTI del jet en cm [20,500]. Con
+       r = 5 mm, Va = 40 cm/s y Vmax = 4 m/s la EROA sale 15,7 mm2; con d TSVI = 19 mm y VTI TSVI
+       = 20 cm el VSV es 56,71 ml. Se despeja el VTI del jet para cada FR objetivo.
+       ⚠️ LA PRIMERA VERSION DE ESTA ESCENA USABA r = 0,5 y Vmax = 400: los dos FUERA de banda,
+       asi que la fila publicaba «revisar la unidad de los insumos del PISA», la FR no se
+       calculaba y los tres bordes salian IDENTICOS en los dos arboles — un denominador vacio con
+       pinta de «el corte no se movio». */
+    const DTSVI = 19, VTITSVI = 20;
+    const VSV = Math.PI * Math.pow(DTSVI / 20, 2) * VTITSVI;
+    const EROA_MM2 = 2 * Math.PI * Math.pow(5 / 10, 2) * 40 / (4 * 100) * 100;
     const puerta = JSON.parse(await ev(`JSON.stringify({
       d: window.__P.puerta(['ea_dtsvi','diam_tsvi_ao','diam_tsvi']),
       i: window.__P.puerta(['itv_tsvi','ea_itvtsvi']) })`));
     for (const fr of [49, 50, 51]) {
       try {
         await reset();
-        await K.tipear(puerta.d, '20');
-        await K.tipear(puerta.i, '20');
-        await K.tipear('ia_pisa_r', '0.5');
+        await K.tipear(puerta.d, String(DTSVI));
+        await K.tipear(puerta.i, String(VTITSVI));
+        await K.tipear('ia_pisa_r', '5');
         await K.tipear('ia_pisa_val', '40');
-        await K.tipear('ia_vmax_cw', '400');
-        /* EROA = 2*PI*0.25*40/400 = 0,15708 cm2. VolR = EROA * VTI_jet.
-           FR objetivo -> VTI_jet = FR/100 * 62,832 / 0,15708. */
-        const vti = ((fr / 100) * (Math.PI * 20) / (2 * Math.PI * 0.25 * 40 / 400)).toFixed(1);
+        await K.tipear('ia_vmax_cw', '4');
+        const vti = (fr * VSV / EROA_MM2).toFixed(1);
         await K.tipear('ia_vti', vti);
         const r = await foto();
         out.push({ fr_objetivo: fr, vti_jet: vti, ...r });

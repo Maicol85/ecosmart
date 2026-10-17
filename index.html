@@ -41702,9 +41702,23 @@ function calcIA_ESC() {
         else if (volR < 60) { scores.moderada++; params.push({p:'Vol-R',sev:'moderada'}); }
         else { scores.severa++; params.push({p:'Vol-R',sev:'severa'}); }
       }
+      /* ══ LA FRACCION REGURGITANTE AORTICA: SEVERA CON `> 50 %` (VAL3, 2026-10-17) ════════════
+         DECISION DE MAICOL. Hasta hoy el 50 exacto votaba SEVERA (`!(fr < 50)`). La guia MAS
+         NUEVA lo escribe estricto: **ESC/EACTS 2025, Figura 4, folio 4659** (hoja 25; folio
+         comprobado en el encabezado impreso; la figura es una IMAGEN y se leyo RENDERIZANDO la
+         pagina), recuadro «Criteria for severe AR» → «Quantitative: EROA ≥30 mm² · RVol ≥60
+         mL/beat · **RF >50% (echo)**».
+         La **ASE 2017, Tabla 11, folio 340** (hoja 38) escribe `≥50` —sus cuatro bandas son
+         `<30 / 30-39 / 40-49 / ≥50`— y la diferencia alcanza a UN valor, el 50 exacto. Gana la
+         de 2025, que es la regla de la casa.
+         ⚠️ EL TRAMO DE MODERADA NO DEJA HUECO: pasa a `30 <= fr <= 50`, o sea el complemento
+         exacto de las otras dos bandas. Con `< 50` en la de moderada y `> 50` en la de severa el
+         50 no habria caido en ninguna y el parametro habria dejado de votar en silencio.
+         ⚠️ SE COMPARA EL VALOR PUBLICADO (`fr`, que es `frNum.toFixed(0)`) y no el crudo, igual
+         que antes de esta tanda: el numero que vota es el que el medico tiene delante. */
       if (frOk) {
         if (fr < 30) { scores.leve++; params.push({p:'FR',sev:'leve'}); }
-        else if (fr < 50) { scores.moderada++; params.push({p:'FR',sev:'moderada'}); }
+        else if (fr <= 50) { scores.moderada++; params.push({p:'FR',sev:'moderada'}); }
         else { scores.severa++; params.push({p:'FR',sev:'severa'}); }
       }
     } else { _iaSet('ia-volr', '—'); _iaSet('ia-freg', '—'); }
