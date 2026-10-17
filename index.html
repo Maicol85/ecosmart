@@ -8117,6 +8117,99 @@ window.cerrarSesionReal = cerrarSesionReal;
       </div>
     </div>
   </div>
+      <!-- ══ TRES BLOQUES NUEVOS: ASIA, VARIANTES ANATOMICAS Y RAC (CORTOS10, 2026-10-17) ═══════
+           DECISION DE MAICOL. Cada elemento lleva UNA CASILLA y UNA CAJA de nota al lado, con la
+           misma regla para los ocho: casilla apagada, el texto de la caja se IGNORA; casilla
+           encendida con la caja vacia, sale el TEXTO POR DEFECTO; con la caja escrita, la nota se
+           suma a ese texto en la MISMA oracion. Es el patron que `pul_consol_nota` ya usa en la
+           seccion de al lado, y es lo que hace que una caja escrita y olvidada con la casilla
+           apagada no pueda entrar al informe firmado.
+           ⚠️ SON TRES BLOQUES Y NO UNO, porque no son la misma pregunta: el aneurisma del septum
+           es un hallazgo del tabique, las seis variantes son estructuras normales prominentes y la
+           circunfleja retroaortica es una anomalia coronaria. Y van SEPARADOS de «Masas», que es
+           lo que la orden pide: una masa intracardiaca no es una variante anatomica.
+           ⚠️ LAS CASILLAS Y LAS CAJAS LLEVAN GUION BAJO, asi que entran al recolector de
+           `guardarInforme` —las casillas como `<id>__chk`— y viajan con el estudio. NO agregan
+           ninguna columna al Excel, que exporta por `LAB_XLS_MAP`.
+           ⚠️ EL TEXTO DE CADA UNO VIVE UNA SOLA VEZ, en `OTR_HALL`: el informe y el EN SUMA leen
+           de esa tabla y la pantalla no lo repite. El rotulo de la casilla es el nombre corto; la
+           oracion del papel es el `def` de la tabla. -->
+      <div class="card">
+        <div class="card-body">
+          <div class="fg" style="margin-bottom:4px;">
+            <label style="font-weight:600">&#129516; Septum interauricular</label>
+          </div>
+          <div class="grid-2">
+          <div class="fg">
+            <label style="display:flex;align-items:center;gap:8px;min-height:44px;font-weight:600;">
+              <input type="checkbox" id="otr_asia" onchange="otrHallSync()">
+              <span style="font-size:12px;">Aneurisma del septum interauricular (ASIA)</span>
+            </label>
+            <input type="text" id="otr_asia_nota" maxlength="120" placeholder="(de &hellip; mm por &hellip; mm en eje L y T)" oninput="_refrescarInformeSiGenerado()">
+          </div>
+          </div>
+          <div class="fg" style="margin:12px 0 4px;border-top:1px solid var(--border);padding-top:10px;">
+            <label style="font-weight:600">&#129520; Variantes anat&oacute;micas</label>
+            <span style="font-size:10px;color:var(--text2);">Estructuras normales prominentes. Van al informe y no al EN SUMA.</span>
+          </div>
+          <div class="grid-2">
+          <div class="fg">
+            <label style="display:flex;align-items:center;gap:8px;min-height:44px;font-weight:600;">
+              <input type="checkbox" id="otr_var_eustaquio" onchange="otrHallSync()">
+              <span style="font-size:12px;">V&aacute;lvula de Eustaquio prominente</span>
+            </label>
+            <input type="text" id="otr_var_eustaquio_nota" maxlength="120" placeholder="Detalle (opcional)" oninput="_refrescarInformeSiGenerado()">
+          </div>
+          <div class="fg">
+            <label style="display:flex;align-items:center;gap:8px;min-height:44px;font-weight:600;">
+              <input type="checkbox" id="otr_var_chiari" onchange="otrHallSync()">
+              <span style="font-size:12px;">Red de Chiari prominente</span>
+            </label>
+            <input type="text" id="otr_var_chiari_nota" maxlength="120" placeholder="Detalle (opcional)" oninput="_refrescarInformeSiGenerado()">
+          </div>
+          <div class="fg">
+            <label style="display:flex;align-items:center;gap:8px;min-height:44px;font-weight:600;">
+              <input type="checkbox" id="otr_var_lipo" onchange="otrHallSync()">
+              <span style="font-size:12px;">Hipertrofia lipomatosa del septum interauricular</span>
+            </label>
+            <input type="text" id="otr_var_lipo_nota" maxlength="120" placeholder="Detalle (opcional)" oninput="_refrescarInformeSiGenerado()">
+          </div>
+          <div class="fg">
+            <label style="display:flex;align-items:center;gap:8px;min-height:44px;font-weight:600;">
+              <input type="checkbox" id="otr_var_tendones" onchange="otrHallSync()">
+              <span style="font-size:12px;">Falsos tendones del VI</span>
+            </label>
+            <input type="text" id="otr_var_tendones_nota" maxlength="120" placeholder="Detalle (opcional)" oninput="_refrescarInformeSiGenerado()">
+          </div>
+          <div class="fg">
+            <label style="display:flex;align-items:center;gap:8px;min-height:44px;font-weight:600;">
+              <input type="checkbox" id="otr_var_lambl" onchange="otrHallSync()">
+              <span style="font-size:12px;">Excrecencias de Lambl</span>
+            </label>
+            <input type="text" id="otr_var_lambl_nota" maxlength="120" placeholder="Detalle (opcional)" oninput="_refrescarInformeSiGenerado()">
+          </div>
+          <div class="fg">
+            <label style="display:flex;align-items:center;gap:8px;min-height:44px;font-weight:600;">
+              <input type="checkbox" id="otr_var_senocor" onchange="otrHallSync()">
+              <span style="font-size:12px;">Seno coronario dilatado</span>
+            </label>
+            <input type="text" id="otr_var_senocor_nota" maxlength="120" placeholder="Detalle (opcional)" oninput="_refrescarInformeSiGenerado()">
+          </div>
+          </div>
+          <div class="fg" style="margin:12px 0 4px;border-top:1px solid var(--border);padding-top:10px;">
+            <label style="font-weight:600">&#129656; Anomal&iacute;as coronarias</label>
+          </div>
+          <div class="grid-2">
+          <div class="fg">
+            <label style="display:flex;align-items:center;gap:8px;min-height:44px;font-weight:600;">
+              <input type="checkbox" id="otr_rac" onchange="otrHallSync()">
+              <span style="font-size:12px;">Arteria circunfleja retroa&oacute;rtica (RAC)</span>
+            </label>
+            <input type="text" id="otr_rac_nota" maxlength="120" placeholder="Detalle (opcional)" oninput="_refrescarInformeSiGenerado()">
+          </div>
+          </div>
+        </div>
+      </div>
   </div>
 
   <!-- ═══ ECOGRAFÍA PULMONAR — módulo básico ═══ -->
@@ -50079,6 +50172,20 @@ function generarInforme(opts) {
     }
     if (sPeri) inf.push(sPeri);
     if (sMasa) inf.push(sMasa);
+    /* ══ ASIA, VARIANTES ANATOMICAS Y RAC (CORTOS10, 2026-10-17) ══════════════════════════════
+       UNA ORACION APARTE POR HALLAZGO y DEBAJO del derrame y de las masas, que es donde la orden
+       las pide. El texto sale de `OTR_HALL` por su dueño, asi que el cuerpo y el EN SUMA no
+       pueden decir cosas distintas del mismo hallazgo.
+       ⚠️ NO HAY `estiloPick`: las ocho oraciones son el NOMBRE del hallazgo mas lo que el medico
+       escribio, y no hay una version «narrativa» de un nombre propio. Las ocho salen iguales en
+       los tres estilos, igual que la oracion de la masa intracardiaca de dos renglones arriba.
+       ⚠️ AL EN SUMA SUBEN SOLO DOS —«ASIA» y «RAC»— y es la decision de la orden: las seis
+       variantes anatomicas son estructuras normales prominentes y no son un hallazgo que cambie
+       la conducta. La tabla lo dice con `suma: null`. */
+    {
+      const _oh = (typeof otrHallazgos === 'function') ? otrHallazgos() : [];
+      _oh.forEach(function (h) { inf.push(h.inf); if (h.suma) suma.push(h.suma); });
+    }
   }
 
   // ── 13a2) Pericardio: derrame/taponamiento y constricción vs restricción ──
@@ -55447,6 +55554,55 @@ function showProlapsoPanel(){
 }
 
 // ══ Módulo Masa intracardíaca: mostrar/ocultar panel ══
+/* ══ LOS OCHO HALLAZGOS DE LA PESTAÑA OTROS — UN SOLO DUEÑO (CORTOS10, 2026-10-17) ════════════
+   DECISION DE MAICOL. `def` es la oracion que va al informe con la caja vacia; `suma` es lo que
+   va al EN SUMA, y `null` significa que ese hallazgo NO sube al resumen —las seis variantes
+   anatomicas son estructuras normales prominentes y la orden las deja solo en el cuerpo—.
+   ⚠️ LA TABLA ES LA UNICA COPIA DE CADA FRASE. El rotulo de la casilla en pantalla es el nombre
+   corto del hallazgo; la oracion del papel sale de aca. Dos literales serian dos oraciones que se
+   separan el dia que una se toque, que es el defecto que esta suite ya pago varias veces.
+   ⚠️ LA NOTA SE SUMA EN LA MISMA ORACION, entre lo que el medico escriba y el punto final, igual
+   que `pul_consol_nota`. No se le agrega un parentesis por codigo: el medico escribe lo que
+   quiere —el placeholder del campo sugiere el formato— y la app no le pone comillas ni parentesis
+   a un texto clinico que no redacto.
+   ⚠️ CON LA CASILLA APAGADA LA NOTA SE IGNORA, que es la regla de la orden: una caja escrita y
+   olvidada no puede entrar al informe firmado por su cuenta. */
+const OTR_HALL = Object.freeze([
+  Object.freeze({ id: 'otr_asia',          def: 'Aneurisma del septum interauricular',                 suma: 'ASIA' }),
+  Object.freeze({ id: 'otr_var_eustaquio', def: 'Válvula de Eustaquio prominente',                     suma: null }),
+  Object.freeze({ id: 'otr_var_chiari',    def: 'Red de Chiari prominente',                            suma: null }),
+  Object.freeze({ id: 'otr_var_lipo',      def: 'Hipertrofia lipomatosa del septum interauricular',    suma: null }),
+  Object.freeze({ id: 'otr_var_tendones',  def: 'Falsos tendones en el ventrículo izquierdo',          suma: null }),
+  Object.freeze({ id: 'otr_var_lambl',     def: 'Excrecencias de Lambl',                               suma: null }),
+  Object.freeze({ id: 'otr_var_senocor',   def: 'Seno coronario dilatado',                             suma: null }),
+  Object.freeze({ id: 'otr_rac',           def: 'Arteria circunfleja retroaórtica',                    suma: 'RAC' })
+]);
+/* Datos y no HTML, por el mismo motivo que `vtProtObstr`: lo consumen el cuerpo del informe y el
+   EN SUMA, y dos derivaciones del mismo hecho se desincronizan. Devuelve `[]` sin ninguna casilla
+   encendida, asi que el informe de hoy no cambia ni un byte mientras nadie toque nada. */
+function otrHallazgos(src) {
+  const chk = (id) => {
+    if (src && typeof src === 'object') return String(src[id + '__chk'] || '') === '1';
+    const e = document.getElementById(id); return !!(e && e.checked);
+  };
+  const nota = (id) => {
+    if (src && typeof src === 'object') return String(src[id + '_nota'] || '').trim();
+    const e = document.getElementById(id + '_nota'); return e ? String(e.value || '').trim() : '';
+  };
+  const out = [];
+  OTR_HALL.forEach(function (h) {
+    if (!chk(h.id)) return;
+    const n = nota(h.id);
+    out.push({ id: h.id, inf: h.def + (n ? ' ' + n : '') + '.', suma: h.suma ? (h.suma + '.') : null });
+  });
+  return out;
+}
+window.OTR_HALL = OTR_HALL; window.otrHallazgos = otrHallazgos;
+/* Un gesto en la casilla repinta el informe si ya estaba generado, igual que `dptCambio`. La caja
+   de nota lo llama por su `oninput` desde el marcado. */
+function otrHallSync() { if (typeof _refrescarInformeSiGenerado === 'function') _refrescarInformeSiGenerado(); }
+window.otrHallSync = otrHallSync;
+
 function showMasaPanel(){
   var v = (document.getElementById('masa_presente') || {}).value || '';
   var bm = document.getElementById('bloque-masa');
