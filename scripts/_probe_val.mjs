@@ -512,6 +512,62 @@ window.__P = {
       return f ? JSON.stringify(f.cuentas) + ' base=' + f.base : 'SIN FILA ' + i;
     } catch(e) { return 'EXC: ' + e.message } },
 
+  /* ── EL PDF DEL INFORME, GENERADO DE VERDAD ──
+     Se envuelve el CONSTRUCTOR y no el prototipo: en jsPDF 2.x los metodos del nucleo son
+     propiedades PROPIAS de cada documento. Calcado de scripts/_probe_h.mjs. */
+  pdf(plantilla) {
+    if (typeof window.jspdf === 'undefined') return { err:'SIN jsPDF' };
+    if (plantilla) { try { localStorage.setItem('ett_pdf_plantilla', plantilla) } catch (e) {} }
+    var orig = window.jspdf.jsPDF;
+    var textos = [], nfig = 0, guardo = false, err = null;
+    function Envuelto(){
+      var d = new orig(arguments[0]);
+      var oText = d.text, oCirc = d.circle, oLine = d.line;
+      d.text = function(t){
+        var s = (typeof t === 'string') ? t : (Array.isArray(t) ? t.join(String.fromCharCode(1)) : String(t));
+        textos.push(s); return oText.apply(d, arguments) };
+      d.circle = function(){ nfig++; return oCirc.apply(d, arguments) };
+      d.line   = function(){ nfig++; return oLine.apply(d, arguments) };
+      d.save   = function(){ guardo = true; return d };
+      return d }
+    Envuelto.API = orig.API; Envuelto.version = orig.version;
+    window.jspdf.jsPDF = Envuelto;
+    try { generarPDFReal() } catch (e) { err = String(e && e.message || e) }
+    finally { window.jspdf.jsPDF = orig }
+    return { err:err, guardo:guardo, nTextos:textos.length, nFigs:nfig, textos:textos } },
+
+  /* El PPT estadistico y el PDF de auditoria del Laboratorio, por sus generadores REALES —los
+     publicos exigen tarjetas tildadas y abren modales—. Se mide el numero de textos. */
+  labPPT(infs) {
+    if (typeof _labPPTGenerar !== 'function') return 'SIN _labPPTGenerar';
+    if (typeof PptxGenJS === 'undefined') return 'SIN PptxGenJS';
+    var n = 0;
+    try {
+      var P = PptxGenJS; var orig = P.prototype.addSlide;
+      P.prototype.addSlide = function(){ var sl = orig.apply(this, arguments);
+        var oT = sl.addText; sl.addText = function(t){ n++; return oT.apply(sl, arguments) };
+        var oTb = sl.addTable; if (oTb) sl.addTable = function(){ n++; return oTb.apply(sl, arguments) };
+        return sl };
+      try { _labPPTGenerar(infs || [], { guardar:false }); } catch (e) {}
+      P.prototype.addSlide = orig;
+    } catch (e) { return 'EXC: ' + e.message }
+    return n },
+
+  labAudit(infs) {
+    if (typeof _labAnalisisPDFReal !== 'function') return 'SIN _labAnalisisPDFReal';
+    if (typeof window.jspdf === 'undefined') return 'SIN jsPDF';
+    var orig = window.jspdf.jsPDF; var textos = [];
+    function Envuelto(){ var d = new orig(arguments[0]); var oText = d.text;
+      d.text = function(t){ var s = (typeof t === 'string') ? t
+        : (Array.isArray(t) ? t.join(String.fromCharCode(1)) : String(t));
+        textos.push(s); return oText.apply(d, arguments) };
+      d.save = function(){ return d }; return d }
+    Envuelto.API = orig.API; Envuelto.version = orig.version;
+    window.jspdf.jsPDF = Envuelto;
+    try { _labAnalisisPDFReal(infs || []); } catch (e) {}
+    finally { window.jspdf.jsPDF = orig }
+    return { n: textos.length, textos: textos } },
+
   /* Texto de la seccion de valvulas nativas de la pestania REFERENCIAS. */
   refsNativas() {
     var e = document.getElementById('ref-nativas');
@@ -864,6 +920,56 @@ async function main() {
                  return v ? (v.textContent||'').indexOf(frase) > -1 : 'NO EXISTE' })() };
     })())`));
     parcial('refs', out);
+  }
+
+  /* ── (7b) EL PDF, EL PPT Y EL PDF DE AUDITORIA, GENERADOS DE VERDAD ─────────────────────── */
+  if (quiero('pdf')) {
+    /* ⚠️ LAS TRES LIBRERIAS LLEGAN POR CDN Y TARDAN MAS QUE EL ARRANQUE. Sin esta espera la
+       primera fase mide «SIN jsPDF» en las seis plantillas y el A/B compara dos nadas, que es el
+       falso que este repo ya documenta para los casos de Excel y PPT. Se espera hasta 60 s y se
+       DECLARA lo que llego. */
+    let libs = null;
+    for (let i = 0; i < 120; i++) {
+      libs = JSON.parse(await ev(`JSON.stringify({
+        jspdf: typeof window.jspdf !== 'undefined', pptx: typeof PptxGenJS !== 'undefined',
+        xlsx: typeof XLSX !== 'undefined' })`));
+      if (libs.jspdf && libs.pptx) break;
+      await new Promise(r => setTimeout(r, 500));
+    }
+    OUT.libs = libs;
+    const PLANT = ['clasico','moderno','minimalista','academico','compacto','elegante'];
+    const out = { vacio: {}, cargado: {} };
+    for (const fase of ['vacio', 'cargado']) {
+      await reset();
+      if (fase === 'cargado') {
+        /* Escenario que toca las CINCO zonas de la tanda a la vez. */
+        for (const [id, val] of Object.entries({
+          peso:'80', talla:'180', edad:'62', fevi:'55',
+          ea_dtsvi:'19', itv_tsvi:'20', itv_ao:'37.80',
+          et_vti_diast:'50', tsvd_diametro:'25', vti_tsvd:'8.1', et_gmedio:'8', et_thp:'200',
+          onda_e:'121', onda_a:'60', vtim:'32' })) {
+          try { await K.tipear(id, val); } catch (e) { out['abort_' + id] = e.message; }
+        }
+        await ev(`(function(){ ['calcAo','calcET','calcIM_ESC','calcIA_ESC']
+          .forEach(function(f){ try{ if(typeof window[f]==='function') window[f]() }catch(e){} }); return 1 })()`);
+      }
+      await ev(`window.__P.informe('estandar')`);
+      for (const pl of PLANT) {
+        out[fase][pl] = JSON.parse(await ev(`JSON.stringify(window.__P.pdf(${JSON.stringify(pl)}))`));
+      }
+    }
+    /* El PPT estadistico y el PDF de auditoria sobre una poblacion fija de estudios. */
+    const POB = JSON.stringify([
+      { id:1, nombre:'A', ci:'1', fecha_estudio:'2026-10-01',
+        campos:{ et_grado:'Significativa', ea_grado:'moderada', ia_grado:'2', im_grado:'1' },
+        informe_texto:'x', en_suma:'ET significativa. EAo moderada.' },
+      { id:2, nombre:'B', ci:'2', fecha_estudio:'2026-10-02',
+        campos:{ et_grado:'sin', ea_grado:'severa', ia_grado:'4', im_grado:'4' },
+        informe_texto:'y', en_suma:'EAo severa. IAo severa.' }
+    ]);
+    out.ppt   = await ev(`JSON.stringify(window.__P.labPPT(${POB}))`);
+    out.audit = await ev(`JSON.stringify(window.__P.labAudit(${POB}))`);
+    parcial('pdf', out);
   }
 
   /* ── (8) CONTROLES: Excel, campos y las zonas que esta tanda no toca ─────────────────────── */

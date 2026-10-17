@@ -1156,6 +1156,9 @@ que aquellas corridas midieron otra cosa, y no fue así.
 ## Cortes de la estenosis aórtica y estenosis tricuspídea (2026-10-13) — DECLARADO y NO arreglado
 
 ### A-1 · Cinco de los seis criterios NO votan «leve», y la guía sí tiene esa banda
+> ⚠️ **SIGUE ABIERTO al 2026-10-17.** La tanda VAL tocó el TECHO de la banda moderada del AVA
+> (1,5 inclusive) y no la banda leve, que es lo que esta entrada declara.
+
 
 La **Tabla 3 de la EAE/ASE 2009, p. 10** publica una columna «Mild» para las seis variables. La app
 sólo la vota en la **Vmax** (`2,6-2,9`). Las otras cinco —gradiente medio `<20`, AVA por continuidad
@@ -4558,3 +4561,65 @@ Guardar el grado pediría una columna nueva, que es una PARADA.
 Un estudio archivado abre con los campos que guardó y se **reclasifica solo** al calcular, porque
 la app no guarda la categoría: guarda el valor. Su `informe_texto` y su `en_suma` ya firmados se
 reponen tal cual y no se reescriben.
+
+---
+
+## Tanda «VAL» · las válvulas NATIVAS alineadas a las guías (2026-10-17) — DECLARADO y NO arreglado
+
+### VAL-1 · El borde de 1,0 cm² del AVA aórtico: las dos guías se contradicen
+
+**Verificado y NO cambiado** (lo pedía la orden). La **EAE/ASE 2009, Tabla 3, folio 10** escribe la
+severa como **`<1.0`** —o sea que el 1,00 exacto sería MODERADA— y la **ESC/EACTS 2025, folio 4670**
+escribe «AVA **≤1.0 cm²**». La app aplica `≤ 1,0` → severa, que es la guía más nueva y el lado que
+no suaviza. Moverlo cambia el grado de todo paciente con un AVA de exactamente 1,00 en un informe
+FIRMADO, y es contenido clínico.
+
+### VAL-2 · La estenosis tricuspídea sigue BINARIA aunque la ASE 2023 gradúe el área
+
+El **folio 16** de esa guía escribe «TS is considered to be mild with a TVA >1.5 cm², and moderate
+with a TVA 1-1.5 cm²», o sea que publica tres bandas de área. La app conserva los DOS estados
+—decisión de Maicol, punto (f) de la orden— y no muestra leve ni moderada. Pasar a tres bandas
+cambiaría el `<select>`, el informe, el EN SUMA, el Excel y la celda del Laboratorio.
+
+### VAL-3 · El criterio que decide en la ET: la precedencia es de la app, no de la guía
+
+Con dos o tres criterios cumplidos, el que se nombra es el primero de **área → gradiente medio →
+VTI de entrada**. La regla sigue siendo un OR —los tres pesan igual, que es lo que la Tabla 10 de
+la EAE/ASE 2009 dice— y ninguna guía dice cuál nombrar cuando coinciden. Es un **desempate de
+presentación**, no de cálculo, y está escrito en `etEstado`.
+
+### VAL-4 · El informe nombra el criterio en el paréntesis y no con un sufijo
+
+La pantalla publica «Significativa **— por** área valvular» y el informe «estenosis significativa
+**(por** área valvular 0.80 cm²; gradiente medio 8 mmHg)». Son **dos formas de la misma cosa**: el
+papel nombra el criterio con su valor, como ya hace la mitral («AVm 1.20 cm² por planimetría»), y
+la pantalla con el sufijo que la aórtica usa desde la tanda F. Unificarlas es un cambio de
+redacción del informe firmado.
+
+### VAL-5 · El AVA por PLANIMETRÍA se movió con el de continuidad
+
+`_eaCritPlan` usa el **mismo** `avaEsModerada`, así que el 1,50 por planimetría también pasó a
+moderada. Es correcto —es la banda del ÁREA y no la del método— y se declara porque la orden sólo
+nombraba el AVA por continuidad. Separarlos exigiría una segunda tabla de cortes, que es el defecto
+que `AVA_MOD_MAX` viene a cerrar.
+
+### VAL-6 · La ACC/AHA 2020 publica ESTADIOS y la app los llama grados
+
+La Tabla 17 del folio e121 reparte el jet/AI en estadio A (`<20 %`), estadio B «Progressive MR»
+(`20-40 %`) y estadios C-D (`>40 %`). La app los mapea a leve / moderada / severa, que es lo que ya
+hacía. **Ningún número cambió**; lo que se corrigió es que el corte dejara de figurar como «sin
+fuente». Renombrar las bandas es contenido clínico.
+
+### VAL-7 · Lo que esta orden dejó explícitamente afuera
+
+El **VTI del reverso en aorta descendente** (15 / 25 cm), cuya fuente sigue pendiente; el **piso de
+9 mmHg de la estenosis pulmonar**; el **área mitral por continuidad en fibrilación auricular**; la
+**insuficiencia tricuspídea de tres grados**; el **THP con insuficiencia mitral significativa**; y
+las **prótesis**, que van en el trabajo «PRO». Ninguno se tocó.
+
+### VAL-8 · `panel-evidencia.md` sigue por encima del techo y esta tanda no lo tocó
+
+Ese mapa está en **35,3 KB**, o sea ya cruzado, desde el 2026-10-12. La nota del panel sobre el
+cociente VTI se reescribió en `index.html` y lo que la documenta vive en
+`docs/mapa/valvulas-val.md` §5, para no agrandarlo. **La próxima tanda que lo toque tiene que
+partirlo**, igual que `diastolica.md` (35,2 KB).

@@ -43690,6 +43690,11 @@ function etGradoCalculado() {
   } catch (e) { return null; }
 }
 window.etGradoCalculado = etGradoCalculado;
+/* ⚠️ LOS DOS TOKENS SE EXPORTAN (VAL7, 2026-10-17): el Laboratorio los compara contra el grado
+   guardado y la suite los lee para afirmar que esa comparacion sale del DUENO y no de un literal.
+   Sin el export, un caso que preguntara por `window.ET_SIGNIF_TXT` mediria `undefined` y su
+   condicion pasaria por el camino de legado — un falso plausible. */
+window.ET_SIGNIF_TXT = ET_SIGNIF_TXT; window.ET_NOSIGNIF_TXT = ET_NOSIGNIF_TXT;
 /* Atajo de la ET, como `_emSincronizarPantalla` y por lo mismo: lo llama el CALCULADOR, así que un
    throw acá se llevaría el badge y la cápsula que `calcET` estaba pintando y el síntoma sería «se
    rompió el cálculo de la tricúspide». */
@@ -118120,8 +118125,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261017-0910';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1792239008557;                 /* eco-build-ms */
+const ECO_BUILD    = '20261017-1125';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1792247119786;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -118207,7 +118212,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261017-0910</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261017-1125</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

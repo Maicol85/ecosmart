@@ -471,3 +471,23 @@ que son las dueñas del grado y del color de cada tarjeta.
 
 ⚠️ **TOCAR UNA PASTILLA O UN GRADO DE ESTA PANTALLA MUEVE LA VISTA 2D**, y al revés no: la vista no
 escribe nada. El mapa de arriba tiene la tabla completa de qué nodo alimenta cada cosa.
+
+---
+
+## → La tanda «VAL» (2026-10-17) vive en `docs/mapa/valvulas-val.md`
+
+Lo que esa tanda movió en esta zona, en una línea cada uno:
+- **Estenosis tricuspídea:** el gradiente medio pasa a `> 5` mmHg ESTRICTO, el **THP deja de votar**
+  y es un signo de APOYO, el veredicto **nombra el criterio que decide** (área → gradiente → VTI)
+  y entra un aviso de texto con insuficiencia tricuspídea mayor que leve. La cita del cuadro pasa
+  de «ESC/EACTS 2021» a **2025**.
+- **Estenosis aórtica:** el **1,50 cm² EXACTO es MODERADA** (`AVA_MOD_MAX`, del que se deriva
+  `EA_BANDAS.avaSinMin`). El borde de 1,0 se verificó y **no se tocó**.
+- **Insuficiencia aórtica:** la fracción regurgitante es severa con **más** de 50 %.
+- **Insuficiencia mitral:** la onda E apoya con **más** de 120 cm/s, el **cociente VTI se retira
+  desde la IAo moderada** —y con eso se fue la salvedad de la divergencia— y el **jet/AI gana su
+  fuente** (ACC/AHA 2020, Tabla 17, folio e121) sin mover un número.
+- **Referencias:** el texto general de integración, al final de la sección de válvulas nativas.
+
+Cada corte con su tabla, su folio impreso y su hoja del PDF está en `docs/fuentes/FUENTES.md` →
+«La tanda VAL». Lo declarado y no tocado, en `docs/PENDIENTES.md` → VAL-1 a VAL-8.

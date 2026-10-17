@@ -4609,10 +4609,16 @@ caso('TC-464', 'Estenosis aortica: los cortes de las SEIS variables por sus dos 
      area ANATOMICA es sistematicamente mayor que la efectiva, asi que un 2,0 por planimetria no
      puede afirmar ausencia de estenosis. Es la diferencia que separa los dos metodos. */
   R.plan = {};
+  /* ⚠️ ADAPTADO el 2026-10-17 (VAL2): el 1,50 EXACTO pasa de «no vota» a MODERADA. El techo de
+     la banda moderada del AVA es 1,5 INCLUSIVE —EAE/ASE 2009 Tabla 3 folio 10 «Moderate 1.0-1.5»
+     y ESC/EACTS 2025 nota ^c folio 4671 «an AVA of 1.0-1.5 cm2»— y la planimetria usa el MISMO
+     predicado avaEsModerada que la continuidad: es la banda del AREA, no la del metodo. El 3,5 sigue sin
+     votar, que es lo que este bloque afirma de fondo —la planimetria se ABSTIENE por encima y no
+     dice «sin»—, y por eso el borde superior se mide ahora con 1,51. */
   [['0.9','severa'],['1.0','severa'],['1.01','moderada'],['1.49','moderada'],
-   ['1.5', null],['3.5', null]].forEach(p => {
+   ['1.5','moderada'],['1.51', null],['3.5', null]].forEach(p => {
     R.plan[p[0]] = { dio: esc({ ava_plan: p[0] }).R.gPlan, debe: p[1] }; });
-  ex.push(['AVA planimetria: 0,9 y 1,0 severa · 1,01 y 1,49 moderada · 1,5 y 3,5 NO votan (se abstiene, no «sin»)',
+  ex.push(['AVA planimetria: 0,9 y 1,0 severa · 1,01 a 1,50 moderada · 1,51 y 3,5 NO votan (se abstiene, no «sin»)',
     Object.keys(R.plan).every(k => R.plan[k].dio === R.plan[k].debe), JSON.stringify(R.plan)]);
   /* CONTROL NEGATIVO del area por planimetria: fuera de su banda de plausibilidad NO vota. */
   R.planFuera = esc({ ava_plan: '12' });
@@ -4662,11 +4668,15 @@ caso('TC-464', 'Estenosis aortica: los cortes de las SEIS variables por sus dos 
   ex.push(['(a) el borde del gradiente es >=40 y NO >40: el 40 exacto es severa y el 39 moderada',
     R.med40.R.gGrad === 'severa' && R.med39.R.gGrad === 'moderada',
     JSON.stringify({ g40: R.med40.R.gGrad, g39: R.med39.R.gGrad })]);
-  /* (b) DVI 0,48 con AVA por continuidad 1,50. PI*(19.93/20)^2*18/37.5 = 1,4975 -> «1.50».  */
+  /* (b) DVI 0,48 con AVA por continuidad 1,50. PI*(19.93/20)^2*18/37.5 = 1,4975 -> «1.50».
+     ⚠️ ADAPTADO el 2026-10-17 (VAL2): el 1,50 EXACTO ya no dice «sin», dice MODERADA. La escena
+     sigue probando lo mismo —dos criterios que coinciden y el peor manda— pero ahora el criterio
+     que se NOMBRA es el AVA, porque empata con el DVI y el AVA va primero en el desempate. El
+     grado publicado no se movio: sigue siendo MODERADA por los dos caminos. */
   R.medB = esc({ peso:'70', talla:'170', diam_tsvi_ao:'19.93', itv_tsvi:'18', itv_ao:'37.5' });
-  ex.push(['(b) DVI 0,48 con AVA 1,50: el AVA dice «sin», el DVI dice moderada, y el peor publica MODERADA',
-    G('ava_cont') === '1.50' && R.medB.R.gAva === 'sin' && R.medB.R.gDvi === 'moderada'
-    && R.medB.R.grado === 'moderada' && R.medB.R.criterio === 'DVI' && R.medB.sel === 'moderada',
+  ex.push(['(b) DVI 0,48 con AVA 1,50: los DOS dicen moderada —el AVA porque 1,5 es su techo inclusive— y el peor publica MODERADA',
+    G('ava_cont') === '1.50' && R.medB.R.gAva === 'moderada' && R.medB.R.gDvi === 'moderada'
+    && R.medB.R.grado === 'moderada' && R.medB.R.criterio === 'AVA' && R.medB.sel === 'moderada',
     JSON.stringify({ ava: G('ava_cont'), gAva: R.medB.R.gAva, gDvi: R.medB.R.gDvi,
                      grado: R.medB.R.grado, crit: R.medB.R.criterio, sel: R.medB.sel })]);
   R.medC = esc({ ava_plan: '0.9' });
@@ -9044,7 +9054,8 @@ caso('TC-137', 'Tricuspide y pulmonar: calcET sin rama normal, et_grado en el La
 
   // ── FIX 1 · calcET ──────────────────────────────────────────────────────────────────────
   limpio();
-  const g1 = gm('1'), g3 = gm('3'), g49 = gm('4.9'), g50 = gm('5'), g6 = gm('6');
+  const g1 = gm('1'), g3 = gm('3'), g49 = gm('4.9'), g50 = gm('5'), g51 = gm('5.1'), g6 = gm('6');
+  const pill51 = window.pillOn('tricuspide','esten');
   const sev6 = (document.getElementById('et-sev').textContent || '').trim();
   /* Al borrar el gradiente NO hay grado que revertir —calcET solo sugiere el valor de reposo—
      pero la CAPSULA tiene que quedar limpia: si no, «Significativa (8 mmHg)» sigue en pantalla
@@ -9126,12 +9137,17 @@ caso('TC-137', 'Tricuspide y pulmonar: calcET sin rama normal, et_grado en el La
     /* v3 (2026-10-05): ACA CAMBIO LA AFIRMACION, Y ES EL PEDIDO DE LA TANDA. Antes se exigia que
        calcET NO escribiera nada por encima del umbral, porque el unico vocabulario disponible era
        leve/moderada/severa y cualquiera de los tres habria sido inventado. Desde que el grado es
-       BINARIO, «Significativa» ES el veredicto de la guia, asi que a 5,0 el grado SI se escribe y
-       el boton se prende. El umbral no se movio: sigue siendo 5 y se sigue probando por los dos
-       lados con el 4,9 de arriba. */
-    ['5.0 ya lo es: calcET escribe «Significativa» —el unico grado que la guia tiene— y prende el boton',
-      g50 === 'Significativa' && ET_GMEDIO_SIGNIF === 5 && window.pillOn('tricuspide','esten') === true,
-      g50 + ' / umbral ' + ET_GMEDIO_SIGNIF + ' / pill ' + window.pillOn('tricuspide','esten')],
+       BINARIO, «Significativa» ES el veredicto de la guia, asi que por encima del umbral el grado
+       SI se escribe y el boton se prende.
+       ⚠️ v4, ADAPTADO el 2026-10-17 (VAL1): EL OPERADOR PASA A MAYOR ESTRICTO, asi que el 5,0
+       EXACTO deja de ser significativo y el lado que SI lo es se mide con 5,1. Lo mueve la guia
+       mas nueva: ESC/EACTS 2025, seccion 12.2, folio 4688 —«a mean diastolic transvalvular
+       gradient of >5 mmHg at a normal heart rate indicates severe TS»—. El VALOR del umbral no se
+       movio: sigue siendo 5. El caso gana cobertura: pasa de dos valores a TRES. */
+    ['5.0 EXACTO ya NO lo es: el borde es > estricto y el grado queda en el centinela',
+      g50 === 'sin' && ET_GMEDIO_SIGNIF === 5, g50 + ' / umbral ' + ET_GMEDIO_SIGNIF],
+    ['5.1 si: calcET escribe «Significativa» —el unico grado que la guia tiene— y prende el boton',
+      g51 === 'Significativa' && pill51 === true, g51 + ' / pill ' + pill51],
     /* La capsula dice solo «Significativa» desde que integra los TRES criterios: el numero que
        la sostiene se movio al mensaje de abajo, porque ahora puede ser el gradiente, el THP o el
        area y ponerlos todos en la pastilla la volvia ilegible. */
@@ -11120,7 +11136,7 @@ caso('TC-142', 'Laboratorio: ocho subtabs, orden nuevo y la tabla de valvulopati
    La guia NO gradua la ET: es binaria, y basta UNO de los tres criterios —gradiente medio >= 5
    mmHg, THP >= 190 ms, area <= 1 cm²—. El area sale por continuidad y su numerador vive en OTRA
    pestana (tsvd_diametro y vti_tsvd son de tab-vd), con el diametro en MILIMETROS. */
-caso('TC-141', 'ET completa: gradiente, THP y area por continuidad, los tres con el mismo peso', `
+caso('TC-141', 'ET completa: el gradiente y el area por continuidad deciden con el mismo peso, el THP es signo de apoyo', `
   const set = function(id, v){ const e = document.getElementById(id); if (!e) return 'NO EXISTE ' + id;
     e.value = v; e.dispatchEvent(new Event('input', { bubbles:true }));
     e.dispatchEvent(new Event('change', { bubbles:true })); return 1; };
@@ -11154,7 +11170,7 @@ caso('TC-141', 'ET completa: gradiente, THP y area por continuidad, los tres con
   const nada    = esc({});
   const fuera   = esc({ et_thp:'4000' });
   /* LOS DOS LADOS DE CADA CORTE. Los operadores son >=, >= y <=. */
-  const gm49 = esc({ et_gmedio:'4.9' }), gm50 = esc({ et_gmedio:'5' });
+  const gm49 = esc({ et_gmedio:'4.9' }), gm50 = esc({ et_gmedio:'5' }), gm51 = esc({ et_gmedio:'5.1' });
   const th189 = esc({ et_thp:'189' }),  th190 = esc({ et_thp:'190' });
   /* area justo en 1.00 y justo por encima: con TSVD 25 y VTI-TSVD 12, VTI diast 58.9 -> 1.00 */
   const a100 = esc({ tsvd_diametro:'25', vti_tsvd:'12', et_vti_diast:'58.9' });
@@ -11173,15 +11189,21 @@ caso('TC-141', 'ET completa: gradiente, THP y area por continuidad, los tres con
       losTres.faltan.length === 0 && soloAvt.faltan.length === 0,
       losTres.faltan.concat(soloAvt.faltan).join(',')],
 
-    // 1 · CADA CRITERIO SOLO ALCANZA. Ninguno manda sobre los otros.
-    ['el gradiente solo publica ET significativa',
-      soloGm.li.indexOf('con estenosis significativa (gradiente medio 6 mmHg') > -1 &&
+    // 1 · CADA CRITERIO QUE DECIDE ALCANZA SOLO. Ninguno manda sobre los otros.
+    /* ⚠️ ADAPTADO el 2026-10-17 (VAL1), y en DOS cosas. (1) El THP dejo de ser criterio: es un
+       SIGNO DE APOYO y no decide, asi que la escena del THP solo afirma hoy lo CONTRARIO —no hay
+       estenosis—. Lo respalda la guia mas nueva de las dos: los Key Points del folio 16 de la
+       ASE 2023 definen la ET hemodinamicamente significativa con «mean gradient >=5 mmHg, inflow
+       VTI >=60 cm, and TVA <=1 cm2» —sin el THP— y agregan que ese metodo «is less reliable than
+       in MS». (2) El parentesis NOMBRA el criterio que decide, con un «por » delante. */
+    ['el gradiente solo publica ET significativa, nombrando el criterio',
+      soloGm.li.indexOf('con estenosis significativa (por gradiente medio 6 mmHg') > -1 &&
       soloGm.suma.indexOf('ET significativa.') > -1, soloGm.li],
-    ['el THP solo tambien',
-      soloThp.li.indexOf('con estenosis significativa (THP 200 ms') > -1 &&
-      soloThp.suma.indexOf('ET significativa.') > -1, soloThp.li],
-    ['y el area sola tambien',
-      soloAvt.li.indexOf('con estenosis significativa (área valvular 0.98 cm²') > -1 &&
+    ['el THP solo YA NO: es signo de apoyo y no decide',
+      soloThp.li.indexOf('estenosis significativa') === -1 &&
+      soloThp.suma.indexOf('ET significativa') === -1, soloThp.li + ' // ' + soloThp.suma],
+    ['y el area sola si',
+      soloAvt.li.indexOf('con estenosis significativa (por área valvular 0.98 cm²') > -1 &&
       soloAvt.suma.indexOf('ET significativa.') > -1, soloAvt.li],
 
     // 2 · CON LOS TRES, LOS TRES ENTRE PARENTESIS.
@@ -11189,8 +11211,14 @@ caso('TC-141', 'ET completa: gradiente, THP y area por continuidad, los tres con
        Maicol. El papel afirma y no cita —es la regla del repo para el informe firmado— y la fuente
        sigue viva en el badge de pantalla y en el panel de Evidencia. Lo que este caso prueba —que
        los TRES criterios entran al mismo parentesis, con el mismo peso— no cambia. */
-    ['con los tres cargados salen los tres',
-      losTres.li.indexOf('(gradiente medio 6 mmHg, THP 200 ms, área valvular 0.98 cm²)') > -1,
+    /* ⚠️ ADAPTADO el 2026-10-17 (VAL1): el THP SALE del parentesis —ponerlo dentro del de
+       «significativa» lo haria pasar por votante, que es el defecto que A3 cerro el 2026-10-05
+       cuando esa lista llevaba todo parametro cargado— y los dos que SI deciden salen con el que
+       manda primero, el AREA, detras de un «por ». El valor del THP no se pierde: lo publica la
+       fila del cuadro de referencias. */
+    ['con los dos criterios que deciden salen los dos, y el THP NO entra',
+      losTres.li.indexOf('(por área valvular 0.98 cm²; gradiente medio 6 mmHg)') > -1 &&
+      losTres.li.indexOf('THP 200 ms') === -1,
       losTres.li],
     ['y la cita ya NO viaja en el informe firmado',
       losTres.li.indexOf('EAE/ASE') === -1, losTres.li],
@@ -11236,11 +11264,18 @@ caso('TC-141', 'ET completa: gradiente, THP y area por continuidad, los tres con
       fuera.suma.indexOf('ET significativa') === -1, fuera.li],
 
     // 5 · LOS DOS LADOS DE CADA CORTE.
-    ['gradiente 4.9 no y 5.0 si',
-      gm49.suma.indexOf('ET significativa') === -1 && gm50.suma.indexOf('ET significativa.') > -1,
-      gm49.suma + ' | ' + gm50.suma],
-    ['THP 189 no y 190 si',
-      th189.suma.indexOf('ET significativa') === -1 && th190.suma.indexOf('ET significativa.') > -1,
+    /* ⚠️ ADAPTADO el 2026-10-17 (VAL1): el operador del gradiente pasa a MAYOR ESTRICTO
+       —ESC/EACTS 2025 seccion 12.2, folio 4688: «a mean diastolic transvalvular gradient of
+       >5 mmHg … indicates severe TS»— asi que el 5,0 exacto NO vota y el borde se mide por sus
+       dos lados con 5,0 y 5,1. El caso gana cobertura: pasa de dos valores a TRES. */
+    ['gradiente 4.9 no, 5.0 EXACTO tampoco (el borde es > estricto) y 5.1 si',
+      gm49.suma.indexOf('ET significativa') === -1 && gm50.suma.indexOf('ET significativa') === -1
+      && gm51.suma.indexOf('ET significativa.') > -1,
+      gm49.suma + ' | ' + gm50.suma + ' | ' + gm51.suma],
+    /* ⚠️ ADAPTADO el 2026-10-17 (VAL1): el THP no decide, asi que NINGUNO de sus dos lados
+       publica estenosis. Es el control negativo del cambio. */
+    ['THP 189 y 190: ninguno publica estenosis, porque el THP no decide',
+      th189.suma.indexOf('ET significativa') === -1 && th190.suma.indexOf('ET significativa') === -1,
       th189.suma + ' | ' + th190.suma],
     ['area 1.00 SI cumple (el operador es <=) y 1.03 no',
       a100.suma.indexOf('ET significativa.') > -1 && a102.suma.indexOf('ET significativa') === -1,
@@ -16200,10 +16235,15 @@ caso('TC-261', 'Severidad valvular: la AVA de 1,00 es SEVERA, y la EM dejo de gr
          toFixed(2)— alcanzaba el criterio de la guia y salia rotulada MODERADA en el informe
          firmado. El propio panel de Indicaciones lo tenia declarado como hallazgo abierto. */
       const ea = a => avaEsSevera(a) ? 'severa' : (avaEsModerada(a) ? 'moderada' : 'otra');
-      const ea099 = ea(0.99), ea100 = ea(1.0), ea101 = ea(1.01), ea149 = ea(1.49), ea150 = ea(1.5);
+      /* ⚠️ ADAPTADO el 2026-10-17 (VAL2): el 1,50 EXACTO es MODERADA y el borde superior se mide
+         ahora con 1,51. El techo de la banda moderada es 1,5 INCLUSIVE —EAE/ASE 2009 Tabla 3
+         folio 10 y ESC/EACTS 2025 nota ^c folio 4671, que escriben las dos «1.0-1.5»—. El borde
+         de 1,0 que es el objeto ORIGINAL de este bloque no se movio. */
+      const ea099 = ea(0.99), ea100 = ea(1.0), ea101 = ea(1.01), ea149 = ea(1.49),
+            ea150 = ea(1.5), ea151 = ea(1.51);
       /* Las dos bandas se mueven JUNTAS o el 1,00 cae en las DOS a la vez — que es el defecto que
          este archivo ya pago una vez, con los rotulos contradiciendose en la misma pantalla. */
-      const sinSolape = [0.5, 0.99, 1.0, 1.01, 1.2, 1.49, 1.5, 2.0]
+      const sinSolape = [0.5, 0.99, 1.0, 1.01, 1.2, 1.49, 1.5, 1.51, 2.0]
         .every(a => !(avaEsSevera(a) && avaEsModerada(a)));
       /* Y sigue fallando CERRADO: un AVA no positivo no cae en ninguna banda. */
       const fallaCerrado = [null, '', 0, -1, 'abc', NaN]
@@ -16289,7 +16329,8 @@ caso('TC-261', 'Severidad valvular: la AVA de 1,00 es SEVERA, y la EM dejo de gr
         ['UN AVA DE 1,00 EXACTO ES SEVERA', ea100 === 'severa', '1.00 → ' + ea100],
         ['  y 1,01 es moderada', ea101 === 'moderada', '1.01 → ' + ea101],
         ['  y 1,49 sigue moderada', ea149 === 'moderada', '1.49 → ' + ea149],
-        ['  y 1,50 ya no es moderada', ea150 === 'otra', '1.50 → ' + ea150],
+        ['  y 1,50 EXACTO es moderada (VAL2: el techo es inclusive)', ea150 === 'moderada', '1.50 → ' + ea150],
+        ['  y 1,51 ya no es moderada', ea151 === 'otra', '1.51 → ' + ea151],
         ['las dos bandas NO se solapan en ningun valor', sinSolape, ''],
         ['y siguen fallando CERRADO ante vacio, cero y negativo', fallaCerrado, ''],
         ['DENOMINADOR: el caso del pedido da 4,15 cm² por Hatle', avmCaso === '4.15', 'avm=' + avmCaso],
@@ -37023,27 +37064,43 @@ caso('TC-285', 'Valvula tricuspide: la tabla de 2025, el operador del gradiente,
         pl(mTC.nota).indexOf('iia') > -1, String(mTC.nota).slice(0, 150)]);
 
       /* ── ⚠️ EL BORDE DEL OPERADOR: GRADIENTE MEDIO EXACTAMENTE 5 ──
-         etEstado() lo cuenta como significativo con «>=» y la guia pide «>». Con 5 exacto NO hay
-         indicacion publicada y la seccion tiene que DECIR por que; con 5,1 si la hay. Es el borde
-         de un solo valor que fija _gt contra _ge. */
-      esc({ et_gmedio:'5' }, { 'vt.sintomas':'si', 'vt.cxizq':'si' }, '0');
+         ⚠️ ADAPTADO el 2026-10-17 (VAL1): ESTA CONDICION AFIRMABA UNA DIVERGENCIA QUE LA TANDA
+         CERRO. Decia: «etEstado() lo cuenta como significativo con >= y la guia pide >. Con 5
+         exacto NO hay indicacion publicada y la seccion tiene que DECIR por que». Desde VAL1 el
+         operador de la app ES el de la guia —ESC/EACTS 2025 seccion 12.2, folio 4688: «a mean
+         diastolic transvalvular gradient of >5 mmHg … indicates severe TS»—, asi que con 5 exacto
+         la app TAMPOCO marca significacion y la seccion no se abre por ese camino. El borde sigue
+         midiendose por sus dos lados; lo que cambia es de que lado cae el 5. */
+      /* ⚠️ SIN RESPUESTAS DEL PANEL EN LA ESCENA DEL 5,0: desde VAL1 ese valor NO abre la seccion
+         —la app ya no afirma significacion—, asi que sus botones no existen y tocarlos sumaria
+         misses al denominador sinClic. Lo que esta escena mide es el VEREDICTO, no la fila. */
+      esc({ et_gmedio:'5' }, {}, '0');
       const E5 = window.etEstado();
       const r5 = rec(), f5 = filaDe('Gradiente medio');
       esc({ et_gmedio:'5.1' }, { 'vt.sintomas':'si' }, '0');
+      const E51 = window.etEstado();
       const r51 = rec(), f51 = filaDe('Gradiente medio');
-      ex.push(['con gradiente medio de 5 exacto la app marca significacion y la guia NO: no se publica una Clase I, se explica; con 5,1 si se publica',
-        E5.signif === true && !!r5 && r5.tipo === 'no' && f5.marca !== 'ok' &&
-        pl(r5.txt).indexOf('mayor o igual') > -1 &&
+      ex.push(['con gradiente medio de 5 exacto la app YA NO marca significacion —coincide con la guia— y con 5,1 si, y ahi se publica la Clase I',
+        E5.signif === false && (!r5 || r5.tipo !== 'ind') &&
+        E51.signif === true &&
         !!r51 && r51.tipo === 'ind' && r51.clase === 'Clase I · Nivel C' && f51.marca === 'ok',
-        'app signif=' + E5.signif + ' · con 5: ' + (r5 ? r5.tipo + ' / ' + r5.tit : 'null') +
-        ' marca=' + f5.marca + ' · con 5,1: ' + (r51 ? r51.tipo + ' / ' + r51.clase : 'null')]);
+        'app signif 5=' + E5.signif + ' / 5,1=' + E51.signif +
+        ' · con 5: ' + (r5 ? r5.tipo + ' / ' + r5.tit : 'null') +
+        ' · con 5,1: ' + (r51 ? r51.tipo + ' / ' + r51.clase : 'null')]);
 
-      /* ── ⚠️ LA SIGNIFICACION POR THP O AREA NO ES ESTENOSIS SEVERA PARA LA 2025 ──
-         Son criterios de la EAE/ASE 2009. La seccion se abre —el hallazgo existe— y no puede
-         publicar una fila de la ESC ni quedarse muda. */
-      esc({ et_thp:'210' }, { 'vt.sintomas':'si', 'vt.cxizq':'si' }, '0');
-      const rThp = rec(), fThp = filaDe('THP');
-      ex.push(['la significacion alcanzada solo por el THP no publica una fila de la ESC: se dice que es un criterio que la guia 2025 no usa',
+      /* ── ⚠️ LA SIGNIFICACION POR AREA NO ES ESTENOSIS SEVERA PARA LA 2025 ──
+         Es un criterio de la EAE/ASE 2009. La seccion se abre —el hallazgo existe— y no puede
+         publicar una fila de la ESC ni quedarse muda.
+         ⚠️ ADAPTADO el 2026-10-17 (VAL1): esta escena usaba el THP SOLO, y desde esa tanda el THP
+         no decide —es un signo de APOYO—, asi que con el solo no hay significacion y la seccion
+         no se abre: rec() quedaba en null y el caso moria por excepcion sobre f5.marca. Se
+         mide con el AREA por continuidad, que es el otro criterio de la EAE/ASE 2009 que la 2025
+         tampoco usa, y lo que el caso afirma —que un criterio de 2009 no publica una fila de la
+         ESC— no cambia. El THP se mide abajo, en la fila que declara su procedencia. */
+      esc({ tsvd_diametro:'20', vti_tsvd:'10', et_vti_diast:'40' },
+        { 'vt.sintomas':'si', 'vt.cxizq':'si' }, '0');
+      const rThp = rec();
+      ex.push(['la significacion alcanzada solo por el AREA no publica una fila de la ESC: se dice que es un criterio que la guia 2025 no usa',
         !!rThp && rThp.tipo === 'no' && pl(rThp.tit).indexOf('la guia 2025 no usa') > -1 &&
         pl(rThp.txt).indexOf('eae/ase 2009') > -1,
         (rThp ? rThp.tipo + ' / ' + rThp.tit : 'null')]);
@@ -38464,11 +38521,20 @@ caso('TC-292', 'El empate de la Tabla 8 en 50 por ciento de fraccion regurgitant
 
     const banda = (f, marca) => { const i = f.indexOf(marca); return i === -1 ? '' : f.slice(i, i + 360); };
     const bIm = banda(F.im, 'if (fr < IM_CORTES.fr.leve_max)'), bIa = banda(F.ia, 'if (fr < 30)');
-    ex.push(['las dos cascadas mandan el 50 exacto a SEVERA: la banda moderada corta ESTRICTO, nunca en «<=»',
-      bIm.indexOf('fr < IM_CORTES.fr.sev_min') > -1 && bIm.indexOf('fr <= IM_CORTES.fr.sev_min') === -1 &&
-      bIa.indexOf('fr < 50') > -1 && bIa.indexOf('fr <= 50') === -1,
-      'im=' + (bIm.indexOf('fr < IM_CORTES.fr.sev_min') > -1 ? 'estricto' : 'NO') +
-      ' ia=' + (bIa.indexOf('fr < 50') > -1 ? 'estricto' : 'NO')]);
+    /* ⚠️ ADAPTADO el 2026-10-17 (VAL3): LAS DOS CASCADAS DEJAN DE DECIR LO MISMO, Y ES
+       DELIBERADO. La MITRAL conserva su corte estricto —la ASE 2017, Tabla 8, folio 332, escribe
+       «RF (%) … >=50» para la IM severa— y la AORTICA pasa a MENOR-O-IGUAL en su banda moderada, o sea
+       a severa con MAS de 50: la guia mas nueva lo escribe asi (ESC/EACTS 2025, Figura 4, folio
+       4659, caja «Quantitative»: «RF >50% (echo)»), y su ASE 2017, Tabla 11, folio 340, decia
+       mayor-o-igual. Son dos valvulas y dos documentos, asi que el caso fija CADA UNA con su
+       operador en vez de exigir que coincidan: con una condicion unica, el dia que una se mueva
+       la otra se arrastra sin que nadie lo decida. */
+    ex.push(['la cascada de la MITRAL manda el 50 exacto a SEVERA: su banda moderada corta ESTRICTO (ASE 2017, Tabla 8)',
+      bIm.indexOf('fr < IM_CORTES.fr.sev_min') > -1 && bIm.indexOf('fr <= IM_CORTES.fr.sev_min') === -1,
+      'im=' + (bIm.indexOf('fr < IM_CORTES.fr.sev_min') > -1 ? 'estricto' : 'NO')]);
+    ex.push(['y la de la AORTICA manda el 50 exacto a MODERADA: su banda moderada es INCLUSIVE (ESC/EACTS 2025, Figura 4)',
+      bIa.indexOf('fr <= 50') > -1 && bIa.indexOf('fr < 50)') === -1,
+      'ia=' + (bIa.indexOf('fr <= 50') > -1 ? 'inclusive' : 'NO')]);
 
     /* La pildora de severidad integrada es OTRA funcion y OTRO operador: alli la severa se afirma
        con «>= sev_min». Un «> sev_min» la mandaria a moderada mientras las dos cascadas de arriba
@@ -41915,7 +41981,14 @@ caso('TC-298', 'La fila de Onda E revive con el corte VERIFICADO, publica el sig
     const sinDato = oe();
     sembrar({ onda_e:'170', onda_a:'60' });  const apoya   = oe();
     sembrar({ onda_e:'100', onda_a:'60' });  const noApoya = oe();
-    sembrar({ onda_e:'120', onda_a:'60' });  const borde   = oe();   // el >= , no el >
+    /* ⚠️ ADAPTADO el 2026-10-17 (VAL4): el operador pasa a MAYOR ESTRICTO, asi que el 120 EXACTO
+       deja de apoyar y el borde se mide por sus DOS lados con 121 y 120. Lo mueve la guia mas
+       nueva: la ASE 2017 se contradice consigo misma —cuerpo del folio 330 «>=1.2 m/sec» contra
+       Tabla 8 folio 332 «(>1.2 m/sec)»— y la ESC/EACTS 2025, Figura 10 folio 4672, escribe
+       «E-wave dominant (>1.2 m/s)». El caso GANA cobertura: antes medía 120 y 119, ahora mide
+       121, 120 y 119. */
+    sembrar({ onda_e:'121', onda_a:'60' });  const borde   = oe();   // el > , no el >=
+    sembrar({ onda_e:'120', onda_a:'60' });  const bordeEx = oe();   // el valor EXACTO: ya no apoya
     sembrar({ onda_e:'119', onda_a:'60' });  const bordeNo = oe();
     sembrar({ onda_e:'900', onda_a:'60' });  const fuera   = oe();   // m/s tipeado en cm/s
     /* Las dos mitades del arreglo S4: sin onda A NO hay veredicto, y en FA si lo hay porque ahi
@@ -42065,31 +42138,32 @@ caso('TC-298', 'La fila de Onda E revive con el corte VERIFICADO, publica el sig
       ['em_grado nace en «sin» y NO tiene opcion vacia', emFabrica === 'sin/sin opcion vacia', emFabrica],
       ['vm_morf nace en Normal', morfFabrica === 'Normal', morfFabrica],
       ['sin onda E la fila es una raya', sinDato === '\\u2014', sinDato],
-      ['onda E 170 con la A por debajo apoya IM severa', apoya === 'Onda E \\u2265 120 cm/s \\u2014 apoya IM severa', apoya],
+      ['onda E 170 con la A por debajo apoya IM severa', apoya === 'Onda E > 120 cm/s \\u2014 apoya IM severa', apoya],
       ['sin onda A NO hay veredicto: la dominancia es parte del criterio',
         sinOndaA === 'Onda E 170 cm/s \\u2014 onda A no medida', sinOndaA],
       ['pero en FA si lo hay, porque ahi no existe onda A que medir',
-        sinOndaAenFA === 'Onda E \\u2265 120 cm/s \\u2014 apoya IM severa', sinOndaAenFA],
+        sinOndaAenFA === 'Onda E > 120 cm/s \\u2014 apoya IM severa', sinOndaAenFA],
       ['una onda A tipeada en m/s NO invierte la conclusion',
         aBien === 'Onda A dominante \\u2014 pr\\u00e1cticamente descarta IM severa' &&
         aFuera === 'Onda A fuera de rango \\u2014 verificar', aBien + ' | ' + aFuera],
       ['onda E 100 NO apoya, y lo dice sin negar la severidad', noApoya === 'Onda E 100 cm/s \\u2014 sin signo de apoyo', noApoya],
-      ['el corte es >= y no >: 120 apoya', borde === 'Onda E \\u2265 120 cm/s \\u2014 apoya IM severa', borde],
+      ['el corte es > y no >=: 121 apoya', borde === 'Onda E > 120 cm/s \\u2014 apoya IM severa', borde],
+      ['y el 120 EXACTO ya NO apoya (VAL4)', bordeEx === 'Onda E 120 cm/s \\u2014 sin signo de apoyo', bordeEx],
       ['y 119 no', bordeNo === 'Onda E 119 cm/s \\u2014 sin signo de apoyo', bordeNo],
       ['una onda E en m/s no publica una negacion sobre un valor ilegible',
         fuera === 'Onda E fuera de rango \\u2014 verificar', fuera],
       ['la onda A dominante GANA al signo de apoyo, que es como la guia pone el peso',
         aDomina === 'Onda A dominante \\u2014 pr\\u00e1cticamente descarta IM severa', aDomina],
-      ['con la onda A por debajo, vuelve el signo de apoyo', eDomina === 'Onda E \\u2265 120 cm/s \\u2014 apoya IM severa', eDomina],
-      ['en fibrilacion NO se compara contra la onda A', enFA === 'Onda E \\u2265 120 cm/s \\u2014 apoya IM severa', enFA],
+      ['con la onda A por debajo, vuelve el signo de apoyo', eDomina === 'Onda E > 120 cm/s \\u2014 apoya IM severa', eDomina],
+      ['en fibrilacion NO se compara contra la onda A', enFA === 'Onda E > 120 cm/s \\u2014 apoya IM severa', enFA],
       ['con estenosis mitral LEVE la fila se apaga', conEMleve === '\\u2014', conEMleve],
       ['y con severa tambien', conEMsev === '\\u2014', conEMsev],
       ['con protesis mecanica se apaga', conProtMec === '\\u2014', conProtMec],
       ['y con biologica tambien', conProtBio === '\\u2014', conProtBio],
-      ['pero una morfologia que NO es protesis no la apaga', conReumatica === 'Onda E \\u2265 120 cm/s \\u2014 apoya IM severa', conReumatica],
+      ['pero una morfologia que NO es protesis no la apaga', conReumatica === 'Onda E > 120 cm/s \\u2014 apoya IM severa', conReumatica],
       ['ni «Calcificada», que es calcificacion valvular y no del anillo',
-        conCalcificada === 'Onda E \\u2265 120 cm/s \\u2014 apoya IM severa', conCalcificada],
-      ['subir la onda E repinta la fila en el acto', antesDeSubir.indexOf('100 cm/s') > -1 && trasSubir === 'Onda E \\u2265 120 cm/s \\u2014 apoya IM severa', antesDeSubir + ' -> ' + trasSubir],
+        conCalcificada === 'Onda E > 120 cm/s \\u2014 apoya IM severa', conCalcificada],
+      ['subir la onda E repinta la fila en el acto', antesDeSubir.indexOf('100 cm/s') > -1 && trasSubir === 'Onda E > 120 cm/s \\u2014 apoya IM severa', antesDeSubir + ' -> ' + trasSubir],
       ['y graduar la estenosis la apaga en el acto', trasEstenosis === '\\u2014', trasEstenosis],
       ['con los dos metodos discordando, el aviso los nombra a los dos',
         discordan === 'Moderada/4 :: \\u26a0\\ufe0f El m\\u00e9todo volum\\u00e9trico da Moderada y el integrado Severa', discordan],
@@ -42862,7 +42936,7 @@ caso('TC-310', 'Mitral protesica: Carpentier, el mecanismo y el score de Wilkins
    hallazgo: `pdfDeInformeGuardado` y `editarInforme` buscan por `inf.id`, NO por `estudioId`; y
    `editarInforme` abre un MODAL y no carga nada hasta apretar «Cargar datos». Sin las dos cosas el
    formulario queda vacio y «la fila no sale» por un motivo que no es el que se mide. */
-caso('TC-311', 'IM nativa: las TRES rutas de restauracion del PDF imprimen la MISMA fila EROA/Vol-R —el resultado de PISA viaja congelado en el estudio, sin recalcular—, un estudio viejo sale identico a antes, no hay fuga entre pacientes, y el cociente VTI nativo se retira SOLO con IAo severa —con moderada declara la divergencia en la fila— mientras la protesis conserva su regimen', `
+caso('TC-311', 'IM nativa: las TRES rutas de restauracion del PDF imprimen la MISMA fila EROA/Vol-R —el resultado de PISA viaja congelado en el estudio, sin recalcular—, un estudio viejo sale identico a antes, no hay fuga entre pacientes, y el cociente VTI nativo se retira desde la IAo MODERADA —igual que la guia, sin salvedad— mientras la protesis conserva su regimen', `
   return (async () => {
     for (let i = 0; i < 40 && !(window.jspdf && window.jspdf.jsPDF); i++) await new Promise(r => setTimeout(r, 200));
     if (!(window.jspdf && window.jspdf.jsPDF))
@@ -43121,7 +43195,10 @@ caso('TC-311', 'IM nativa: las TRES rutas de restauracion del PDF imprimen la MI
        es la que hoy retira: con IAo severa Y el VTI fuera de banda tiene que decir «—» (no aplica) y
        NO «fuera de rango — verificar», porque si el cociente no aplica no hay nada que verificar y
        mandar a revisar un VTI para una fila que no se calcula es ruido. */
-    __t.set('ia_grado','2'); __t.set('vtim','999');
+    __t.set('ia_grado','0'); __t.set('vtim','999');
+    try { calcIM_ESC(); } catch (e) {}
+    const ratioSinIAyFuera = tx('im-vti-ratio');
+    __t.set('ia_grado','2');
     try { calcIM_ESC(); } catch (e) {}
     const ratioIAmodYFuera = tx('im-vti-ratio');
     __t.set('ia_grado','4');
@@ -43235,17 +43312,28 @@ caso('TC-311', 'IM nativa: las TRES rutas de restauracion del PDF imprimen la MI
          VALOR —no «—»— Y las DOS mitades de la salvedad: la guia y la decision propia. Con una sola
          mitad el numero se lee como si Pandian lo respaldara con IAo moderada, que es lo contrario
          de lo que dice. Sin la mitad «criterio EcoSmart», la divergencia queda sin dueño. */
-      ['⚠️ con IAo MODERADA la nativa SI calcula, y la fila declara la divergencia: guia + criterio EcoSmart',
-        ratioIAmod !== '—' && ratioIAmod.indexOf('1.40') > -1 &&
-        ratioIAmod.indexOf('ASE 2023 lo excluye con IAo moderada o severa') > -1 &&
-        ratioIAmod.indexOf('criterio EcoSmart: se usa igual') > -1, ratioIAmod],
-      ['⚠️ y con MODERADA-SEVERA (grado 3) tambien: la guia la excluye igual, asi que lleva la misma salvedad',
+      /* ⚠️ ADAPTADO el 2026-10-17 (VAL5): ESTA CONDICION AFIRMA HOY LO CONTRARIO DE LO QUE
+         AFIRMABA. La divergencia con la guia se CERRO: IM_RATIO_IA_MAX_NAT pasa de 4 a 2, asi
+         que con IAo moderada la nativa YA NO calcula y la fila queda en «—». La fuente es la que
+         el caso ya citaba: ASE 2023 (Pandian), Key Points del folio 12, «in the absence of
+         moderate or severe aortic valve regurgitation». Con eso desaparecio la salvedad
+         IM_RATIO_IA_MOD_TXT, que quedo sin ningun camino que la alcance. */
+      ['⚠️ con IAo MODERADA la nativa se RETIRA, como la guia: la fila queda en «—» y sin salvedad',
+        ratioIAmod === '—' && ratioIAmod.indexOf('criterio EcoSmart') < 0, ratioIAmod],
+      ['⚠️ y con MODERADA-SEVERA (grado 3) tambien: la guia la excluye igual',
         ratioIAmodSev === ratioIAmod, ratioIAmodSev],
+      ['⚠️ y la salvedad de la divergencia NO existe en ninguna parte del arbol',
+        document.documentElement.innerHTML.indexOf('criterio EcoSmart: se usa igual') === -1, 'cero apariciones'],
       ['⚠️ con IAo SEVERA se retira: la fila queda en «—» y sin salvedad (no hay numero que salvar)',
         ratioIAsev === '—', ratioIAsev],
       ['⚠️ y FALLA CERRADO: un ia_grado ilegible tambien retira el cociente', ratioIArara === '—', ratioIArara],
-      ['⚠️ con IAo moderada el gate ya NO dispara, asi que manda la banda: VTI fuera de rango dice «fuera de rango», no «—»',
-        ratioIAmodYFuera.indexOf('fuera de rango') > -1, ratioIAmodYFuera],
+      /* ⚠️ ADAPTADO el 2026-10-17 (VAL5): el escenario que mide el ORDEN de los dos gates vuelve a
+         ser el de antes del 30/09/2026 —con IAo moderada el gate SI dispara otra vez—, asi que el
+         VTI fuera de banda se mide SIN IAo: ahi manda la banda y la fila dice «fuera de rango». */
+      ['⚠️ sin IAo manda la banda: con el VTI fuera de rango la fila dice «fuera de rango», no «—»',
+        ratioSinIAyFuera.indexOf('fuera de rango') > -1, ratioSinIAyFuera],
+      ['⚠️ y con IAo MODERADA el gate va ANTES que la banda: dice «—», no «fuera de rango»',
+        ratioIAmodYFuera === '—', ratioIAmodYFuera],
       ['⚠️ el gate de IAo va ANTES que la banda: con IAo SEVERA y el VTI fuera de banda dice «—», no «fuera de rango»',
         ratioIAsevYFuera === '—', ratioIAsevYFuera],
       /* ⚠️ SIN ESTA CONDICION, MOVER EL UMBRAL PROTESICO SOBREVIVE EN VERDE. La protesis comparte la
@@ -45891,11 +45979,13 @@ caso('TC-326', 'Evidencia IM: la bibliografia cita CUATRO documentos verificados
                   retira con la severa, y que es decision propia y mas permisiva que la guia— y se
                   exige que la frase derogada NO haya quedado. Sin lo ultimo, agregar la regla nueva
                   sin borrar la vieja deja el panel afirmando las dos cosas a la vez, y sobrevive. */
-               usaConModerada: fc.length ? pl(fc[0].textContent).indexOf('calcula el cociente igual con insuficiencia aortica moderada') > -1 : null,
-               retiraConSevera: fc.length ? pl(fc[0].textContent).indexOf('lo retira solo con la severa') > -1 : null,
+               /* ⚠️ VAL5: lo que se exige es la regla NUEVA, y que NINGUNA de las dos derogadas
+                  haya quedado — la del 28/09 y la del 30/09, cada una con su frase. */
+               retiraDesdeModerada: fc.length ? pl(fc[0].textContent).indexOf('retira el cociente desde la insuficiencia aortica moderada') > -1 : null,
                esDecisionPropia: fc.length ? pl(fc[0].textContent).indexOf('mas permisiva que la guia') > -1 : null,
                reglaVieja: hojas.filter(function(d){
-                 return pl(d.textContent).indexOf('no calcula el cociente') > -1; }).length };
+                 return pl(d.textContent).indexOf('no calcula el cociente') > -1
+                     || pl(d.textContent).indexOf('mas permisiva que la guia') > -1; }).length };
     })();
 
     ex.push(['la nota del cociente VTI transcribe la condicion de la ASE 2023 y la cita, y la ubica entre los SEMICUANTITATIVOS',
@@ -45908,9 +45998,17 @@ caso('TC-326', 'Evidencia IM: la bibliografia cita CUATRO documentos verificados
       R.coc.refsFc.indexOf('ecosmart') > -1 && R.coc.refsFc.indexOf('asePandian2023') > -1,
       JSON.stringify(R.coc)]);
 
-    ex.push(['⚠️ y esa nota describe la regla VIGENTE (2026-09-30): calcula igual con IAo moderada, se retira con la severa, y lo declara como decision propia mas permisiva que la guia —sin dejar la frase derogada—',
-      !!R.coc && R.coc.usaConModerada === true && R.coc.retiraConSevera === true &&
-      R.coc.esDecisionPropia === true && R.coc.reglaVieja === 0,
+    /* ⚠️ ADAPTADO el 2026-10-17 (VAL5): ESTA CONDICION AFIRMA HOY LO CONTRARIO. La divergencia
+       con la guia se CERRO —IM_RATIO_IA_MAX_NAT pasa de 4 a 2— asi que la nota del panel ya no
+       declara una decision propia mas permisiva: describe el retiro DESDE la moderada, que es lo
+       que la ASE 2023 escribe en los Key Points de su folio 12. Lo que el caso sigue cuidando es
+       lo de siempre: que la nota diga la regla VIGENTE y que NO queden las derogadas. Por eso se
+       barren las DOS frases viejas —la del 28/09 («no calcula el cociente») y la del 30/09 («mas
+       permisiva que la guia»)—: sin eso, agregar la regla nueva sin borrar la anterior deja el
+       panel afirmando las dos cosas a la vez y sobrevive en verde. */
+    ex.push(['⚠️ y esa nota describe la regla VIGENTE (2026-10-17): se retira DESDE la IAo moderada, como la guia, sin dejar ninguna de las dos frases derogadas',
+      !!R.coc && R.coc.retiraDesdeModerada === true &&
+      R.coc.esDecisionPropia === false && R.coc.reglaVieja === 0,
       JSON.stringify(R.coc)]);
 
     /* ⚠️ CADA NOTA QUE NOMBRA UNA SEGUNDA GUIA LLEVA SU CORCHETE, y sin esto no se medía: sacarle
@@ -56064,15 +56162,25 @@ caso('TC-416', 'Estenosis tricuspidea BINARIA: se prende sola solo con criterio 
     ['(a1) gradiente medio 8 mmHg prende el boton y escribe «Significativa»',
       aGm.pill === true && aGm.grado === 'Significativa' && aGm.calc === 'Significativa',
       JSON.stringify(aGm)],
-    ['(a2) THP 200 ms, lo mismo —el segundo criterio tiene el MISMO peso—',
-      aThp.pill === true && aThp.grado === 'Significativa', JSON.stringify(aThp)],
+    /* ⚠️ ADAPTADO el 2026-10-17 (VAL1): ESTA CONDICION AFIRMA HOY LO CONTRARIO. El THP dejo de
+       ser criterio y pasa a SIGNO DE APOYO —los Key Points del folio 16 de la ASE 2023 definen la
+       ET hemodinamicamente significativa sin el THP y declaran que el metodo es menos fiable que
+       en la mitral—, asi que SOLO no prende el boton ni escribe grado. Y el grado CALCULADO es
+       nulo y no «No significativa»: afirmar sobre un signo de apoyo seria publicar un veredicto
+       que la regla nueva no sostiene. */
+    ['(a2) THP 200 ms NO prende nada: es signo de apoyo y no decide',
+      aThp.pill === false && aThp.grado === 'sin' && aThp.calc === null, JSON.stringify(aThp)],
     /* El area entra desde la pestania VD: hasta esta tanda sus dos insumos no disparaban calcET,
        asi que el tercer criterio no podia prender nada. */
     ['(a3) area 0,83 cm2 desde la pestania VD tambien, y el area se publica',
       aArea.pill === true && aArea.grado === 'Significativa' && aArea.avt === '0.83 cm²',
       JSON.stringify(aArea)],
-    ['(a4) la capsula dice «Significativa» en los tres',
-      [aGm, aThp, aArea].every(function (r) { return r.sev.indexOf('Significativa') > -1; }),
+    /* ⚠️ ADAPTADO el 2026-10-17 (VAL1): la capsula dice «Significativa» en los DOS que deciden
+       —y NOMBRA cual, con el sufijo «— por X» que la tarjeta de la vista 2D lee—; con el THP solo
+       se queda en raya, que es el control negativo del cambio. */
+    ['(a4) la capsula dice «Significativa — por X» en los DOS que deciden, y raya con el THP solo',
+      aGm.sev === 'Significativa — por gradiente medio' &&
+      aArea.sev === 'Significativa — por área valvular' && aThp.sev === '—',
       aGm.sev + ' / ' + aThp.sev + ' / ' + aArea.sev],
     ['(a5) y la pastilla lo muestra, que es la regla 2',
       aGm.past.indexOf('Significativa') > -1, aGm.past],
@@ -56245,9 +56353,14 @@ caso('TC-417', 'Tricuspide — la tabla de textos: 15 escenas del informe (presi
     ['DENOMINADOR: las 15 escenas escribieron linea de tricuspide',
       TODAS.every(function(c){ return c.tri.indexOf('Válvula tricúspide') > -1; }),
       'vacias=' + TODAS.filter(function(c){ return !c.tri; }).length],
-    ['DENOMINADOR: 14 textos DISTINTOS en 15 escenas', distintos === 14, 'distintos=' + distintos],
-    ['y el UNICO empate es el buscado: apagar el boton da el MISMO texto que el formulario vacio',
-      S01.tri === S12.tri, 'S01=«' + S01.tri + '» S12=«' + S12.tri + '»'],
+    /* ⚠️ ADAPTADO el 2026-10-17 (VAL1): los empates pasan de UNO a DOS, porque S08 —el THP solo—
+       dejo de publicar estenosis y su texto es ahora el mismo de normalidad que S01 y S12. Es la
+       consecuencia buscada, no una perdida de cobertura: la condicion de abajo nombra los DOS
+       empates y exige que sean exactamente esos. */
+    ['DENOMINADOR: 13 textos DISTINTOS en 15 escenas', distintos === 13, 'distintos=' + distintos],
+    ['y los DOS empates son los buscados: apagar el boton y el THP solo dan la frase de normalidad',
+      S01.tri === S12.tri && S01.tri === S08.tri,
+      'S01=«' + S01.tri + '» S08=«' + S08.tri + '» S12=«' + S12.tri + '»'],
 
     // ── A4 · LA FRASE DE NORMALIDAD ───────────────────────────────────────────────────────────
     ['S01 sin nada → la frase de normalidad de A4', S01.tri === NORMAL, S01.tri],
@@ -56279,14 +56392,20 @@ caso('TC-417', 'Tricuspide — la tabla de textos: 15 escenas del informe (presi
       'S05=«' + S05.tri + '» S06=«' + S06.tri + '»'],
 
     // ── A3 · EL PARENTESIS NOMBRA SOLO LOS CRITERIOS QUE SE CUMPLEN ───────────────────────────
-    ['S07 gradiente 8 → «(gradiente medio 8 mmHg)», y solo eso',
-      S07.tri === CAB + ', con estenosis significativa (gradiente medio 8 mmHg).', S07.tri],
-    ['S08 THP 200 → «(THP 200 ms)»',
-      S08.tri === CAB + ', con estenosis significativa (THP 200 ms).', S08.tri],
+    /* ⚠️ ADAPTADO el 2026-10-17 (VAL1), y en DOS cosas. (1) El parentesis NOMBRA el criterio que
+       decide, con un «por » delante —decision de Maicol—. (2) El THP dejo de ser criterio y es un
+       SIGNO DE APOYO, asi que S08 afirma hoy lo CONTRARIO: con el THP solo NO hay estenosis y la
+       linea es la de normalidad. Lo respalda la guia mas nueva de las dos, los Key Points del
+       folio 16 de la ASE 2023. */
+    ['S07 gradiente 8 → «(por gradiente medio 8 mmHg)», y solo eso',
+      S07.tri === CAB + ', con estenosis significativa (por gradiente medio 8 mmHg).', S07.tri],
+    ['S08 THP 200 → NO publica estenosis: es signo de apoyo y no decide',
+      S08.tri.indexOf('estenosis significativa') === -1 &&
+      S08.tri.indexOf('THP 200 ms') === -1, S08.tri],
     /* ⚠️ ADAPTADO el 2026-10-14: 0,88 -> 0,89 porque la escena bajo su VTI de entrada de 60 a
        59,9 para que el criterio nuevo no vote, y ese campo es el DENOMINADOR del area. */
-    ['S09 area 0,89 → «(área valvular 0.89 cm²)», con punto decimal como el resto del narrativo',
-      S09.tri === CAB + ', con estenosis significativa (área valvular 0.89 cm²).', S09.tri],
+    ['S09 area 0,89 → «(por área valvular 0.89 cm²)», con punto decimal como el resto del narrativo',
+      S09.tri === CAB + ', con estenosis significativa (por área valvular 0.89 cm²).', S09.tri],
     ['y la cita «— EAE/ASE 2009» NO viaja en ninguna de las tres',
       [S07,S08,S09].every(function(c){ return c.tri.indexOf('EAE/ASE') === -1; }),
       S07.tri + ' /// ' + S09.tri],
@@ -56308,7 +56427,7 @@ caso('TC-417', 'Tricuspide — la tabla de textos: 15 escenas del informe (presi
 
     // ── LAS DOS LESIONES ─────────────────────────────────────────────────────────────────────
     ['S13 las dos lesiones → insuficiencia con presiones y estenosis en SEGUNDA oracion',
-      S13.tri === CAB + ', con insuficiencia severa, que permite estimar un gradiente VD-AD de 36 mmHg y una PSAP de 51 mmHg. Se observa estenosis significativa (gradiente medio 8 mmHg).',
+      S13.tri === CAB + ', con insuficiencia severa, que permite estimar un gradiente VD-AD de 36 mmHg y una PSAP de 51 mmHg. Se observa estenosis significativa (por gradiente medio 8 mmHg).',
       S13.tri],
     ['y el EN SUMA lleva las DOS siglas', S13.suma.indexOf('ET significativa.') > -1 &&
       S13.suma.indexOf('IT severa.') > -1, recorteJS(S13.suma)],
@@ -56330,11 +56449,11 @@ caso('TC-417', 'Tricuspide — la tabla de textos: 15 escenas del informe (presi
       carcIT.tri === 'Válvula tricúspide con afectación carcinoide. Insuficiencia tricuspídea severa, que permite estimar un gradiente VD-AD de 36 mmHg y una PSAP de 51 mmHg.',
       carcIT.tri],
     ['carcinoide + ET → igual, con el sustantivo de la estenosis',
-      carcET.tri === 'Válvula tricúspide con afectación carcinoide. Estenosis tricuspídea significativa (gradiente medio 8 mmHg).',
+      carcET.tri === 'Válvula tricúspide con afectación carcinoide. Estenosis tricuspídea significativa (por gradiente medio 8 mmHg).',
       carcET.tri],
     ['endocarditis + IT y + ET, lo mismo',
       endoIT.tri === 'Válvula tricúspide con endocarditis. Insuficiencia tricuspídea severa, que permite estimar un gradiente VD-AD de 36 mmHg y una PSAP de 51 mmHg.' &&
-      endoET.tri === 'Válvula tricúspide con endocarditis. Estenosis tricuspídea significativa (gradiente medio 8 mmHg).',
+      endoET.tri === 'Válvula tricúspide con endocarditis. Estenosis tricuspídea significativa (por gradiente medio 8 mmHg).',
       endoIT.tri + ' /// ' + endoET.tri],
     ['funcional/dilatacion VD + IT → oracion aparte',
       funcIT.tri === 'Válvula tricúspide con insuficiencia funcional por dilatación del ventrículo derecho. Insuficiencia tricuspídea severa, que permite estimar un gradiente VD-AD de 36 mmHg y una PSAP de 51 mmHg.',
@@ -56343,7 +56462,7 @@ caso('TC-417', 'Tricuspide — la tabla de textos: 15 escenas del informe (presi
        del cuerpo mientras el EN SUMA seguia diciendo «ET significativa.». La rama de vtSinIT no se
        toca —su redaccion esta decidida— y la estenosis se repone DESPUES, como oracion propia. */
     ['funcional sin IT + ET → la estenosis NO se pierde del cuerpo y va tras la morfologia',
-      funcET.tri.indexOf('sin grado de insuficiencia cargado. Estenosis tricuspídea significativa (gradiente medio 8 mmHg). No es posible estimar PSAP.') > -1 &&
+      funcET.tri.indexOf('sin grado de insuficiencia cargado. Estenosis tricuspídea significativa (por gradiente medio 8 mmHg). No es posible estimar PSAP.') > -1 &&
       funcET.suma.indexOf('ET significativa.') > -1,
       funcET.tri + ' // ' + recorteJS(funcET.suma)],
     ['las dos protesis conservan SU redaccion (no se tocaron) y tampoco doblan el «con»',
@@ -59203,30 +59322,43 @@ caso('TC-429', 'Tricuspide: el Diam. y el VTI del TSVD son UN dato con DOS campo
       rVacia.gm === '—' && rVacia.thp === '—' && rVacia.avt === '—',
       JSON.stringify(rVacia)],
     /* ⚠️ ADAPTADO el 2026-10-14: la linea de fuente suma «ASE 2023», que es de donde sale el
-       operador del VTI de entrada desde esa fecha; los otros tres cortes siguen siendo de 2009. */
+       operador del VTI de entrada desde esa fecha; los otros tres cortes siguen siendo de 2009.
+       ⚠️ Y EL 2026-10-17 (VAL1) la edicion de la ESC pasa de 2021 a 2025, que es la que este repo
+       tiene verificada y la que hoy fija el operador del gradiente medio. */
     ['la fuente va UNA vez debajo de las filas, con su texto exacto',
-      rVacia.fuente === 'EAE/ASE 2009 · ASE 2023 · ESC/EACTS 2021. La estenosis tricuspídea no se gradúa: es binaria.',
+      rVacia.fuente === 'EAE/ASE 2009 · ASE 2023 · ESC/EACTS 2025. La estenosis tricuspídea no se gradúa: es binaria.',
       rVacia.fuente],
-    ['gradiente: 4,9 no alcanza · 5 significativa · 5,1 significativa',
-      rGm49.gm === '4.9 mmHg (no alcanza el criterio (≥5 mmHg))'
-      && rGm50.gm === '5 mmHg (significativa (≥5 mmHg))'
-      && rGm51.gm === '5.1 mmHg (significativa (≥5 mmHg))',
+    /* ⚠️ ADAPTADO el 2026-10-17 (VAL1): el operador del gradiente medio pasa a MAYOR ESTRICTO
+       —ESC/EACTS 2025 seccion 12.2, folio 4688: «A mean diastolic transvalvular gradient of
+       >5 mmHg … indicates severe TS»—, asi que el 5,0 EXACTO deja de alcanzar el criterio y el
+       simbolo que la fila imprime es «>5» y ya no «≥5». */
+    ['gradiente: 4,9 y 5,0 NO alcanzan · 5,1 significativa (VAL1: el borde es > estricto)',
+      rGm49.gm === '4.9 mmHg (no alcanza el criterio (>5 mmHg))'
+      && rGm50.gm === '5 mmHg (no alcanza el criterio (>5 mmHg))'
+      && rGm51.gm === '5.1 mmHg (significativa (>5 mmHg))',
       [rGm49.gm, rGm50.gm, rGm51.gm].join(' || ')],
-    ['THP: 189 no alcanza · 190 significativa · 191 significativa',
-      rThp189.thp === '189 ms (no alcanza el criterio (≥190 ms))'
-      && rThp190.thp === '190 ms (significativa (≥190 ms))'
-      && rThp191.thp === '191 ms (significativa (≥190 ms))',
+    /* ⚠️ ADAPTADO el 2026-10-17 (VAL1): el THP es un SIGNO DE APOYO y no decide, asi que su fila
+       lleva su propia leyenda —la palabra «significativa» queda para los tres que votan—. El
+       corte y el operador NO se movieron. */
+    ['THP: 189 no alcanza el signo de apoyo · 190 y 191 lo apoyan, sin decidir',
+      rThp189.thp === '189 ms (no alcanza el signo de apoyo (≥190 ms))'
+      && rThp190.thp === '190 ms (signo de apoyo, no decide (≥190 ms))'
+      && rThp191.thp === '191 ms (signo de apoyo, no decide (≥190 ms))',
       [rThp189.thp, rThp190.thp, rThp191.thp].join(' || ')],
     ['area: 0,99 y 1,00 significativa · 1,01 no alcanza',
       rA099.avt === '0.99 cm² (significativa (≤1 cm²))'
       && rA100.avt === '1.00 cm² (significativa (≤1 cm²))'
       && rA101.avt === '1.01 cm² (no alcanza el criterio (≤1 cm²))',
       [rA099.avt, rA100.avt, rA101.avt].join(' || ')],
-    ['y la «Severidad sugerida» acompania los seis bordes',
-      rGm49.sev === '—' && rGm50.sev.indexOf('Significativa') > -1
-      && rThp189.sev === '—' && rThp190.sev.indexOf('Significativa') > -1
-      && rA101.sev === '—' && rA100.sev.indexOf('Significativa') > -1,
-      [rGm49.sev, rGm50.sev, rThp189.sev, rThp190.sev, rA101.sev, rA100.sev].join(' || ')],
+    /* ⚠️ ADAPTADO el 2026-10-17 (VAL1): el gradiente de 5,0 y el THP de 190 ya NO producen
+       veredicto —el primero por el operador estricto, el segundo porque dejo de votar—, asi que
+       los seis bordes se leen con los que SI deciden: el gradiente de 5,1 y el area. Y el
+       veredicto NOMBRA el criterio, con el sufijo «— por X» que la vista 2D lee. */
+    ['y la «Severidad sugerida» acompania los seis bordes, nombrando el criterio que decide',
+      rGm49.sev === '—' && rGm51.sev === 'Significativa — por gradiente medio'
+      && rThp189.sev === '—' && rThp190.sev === '—'
+      && rA101.sev === '—' && rA100.sev === 'Significativa — por área valvular',
+      [rGm49.sev, rGm51.sev, rThp189.sev, rThp190.sev, rA101.sev, rA100.sev].join(' || ')],
     /* La tercera leyenda. Un valor fuera de banda NO afirma ni niega: no vota, y la fila lo dice
        en vez de ponerlo en «no alcanza el criterio», que seria sostener una conclusion con un
        numero que la propia app declaro ilegible. */
@@ -59243,9 +59375,13 @@ caso('TC-429', 'Tricuspide: el Diam. y el VTI del TSVD son UN dato con DOS campo
        esta condicion, una fila que dijera «fuera de rango» siempre pasaria las tres de arriba. */
     ['CONTROL: al area le faltan insumos y va en raya PELADA, sin «fuera de rango»',
       rAreaFaltan.avt === '—', rAreaFaltan.avt],
-    ['las tres filas conviven en estados distintos y basta UNA para el veredicto',
-      rMixta.gm.indexOf('no alcanza') > -1 && rMixta.thp.indexOf('significativa') > -1
-      && rMixta.avt.indexOf('no alcanza') > -1 && rMixta.sev.indexOf('Significativa') > -1,
+    /* ⚠️ ADAPTADO el 2026-10-17 (VAL1): la escena mixta tenia el gradiente en 4,9 —que no
+       alcanza—, el THP en 190 y el area en 1,01, y el veredicto lo sostenia el THP. Desde que el
+       THP NO decide, ese mismo paciente sale SIN veredicto, y eso es lo que el caso afirma ahora:
+       el signo de apoyo convive con los otros dos y no los reemplaza. */
+    ['las tres filas conviven en estados distintos y el signo de APOYO solo no da veredicto',
+      rMixta.gm.indexOf('no alcanza') > -1 && rMixta.thp.indexOf('signo de apoyo, no decide') > -1
+      && rMixta.avt.indexOf('no alcanza') > -1 && rMixta.sev === '—',
       JSON.stringify(rMixta)],
     /* NUNCA «no significativa» en una fila: es la regla que separa la referencia de la firma. */
     ['NINGUNA fila escribe «no significativa» en ninguno de los diez estados',
@@ -65315,12 +65451,20 @@ caso('TC-473', 'W2-A: borrar el ULTIMO dato de cada fuente de area mitral retira
     ' rs=«' + avisoFA({ diast_ritmo: 'sinusal' }) +
     '» manualFa=' + (avisoFA({ hf_ritmo: 'fa', diast_ritmo: 'sinusal' }) !== '') +
     ' manualRs=' + (avisoFA({ hf_ritmo: 'rs', diast_ritmo: 'fa' }) !== '')]);
-  /* ⚠️ UN SOLO ESCRITOR DEL NODO: el id aparece DOS veces en el archivo, el marcado y el pintor.
-     Con un segundo escritor, el aviso y su separador se desincronizan. */
-  ex.push(['(B) W1-7: el nodo tiene UN solo escritor — su id aparece dos veces en el archivo',
+  /* ⚠️ UN SOLO ESCRITOR DEL NODO: su id aparece una vez en el MARCADO y una en el PINTOR.
+     Con un segundo escritor, el aviso y su separador se desincronizan.
+     ⚠️ ADAPTADO el 2026-10-17 (VAL1): contar las apariciones del literal pelado daba TRES porque
+     un COMENTARIO del aviso nuevo de la tricuspide nombra este nodo como precedente. Un
+     comentario no es un escritor — es la misma leccion que este archivo ya pago con la regla
+     de CSS .ip-ap-col2 y con el «mal pronostico en IC con FEVI». Se cuentan las DOS formas:
+     la declaracion del id y la lectura por getElementById. */
+  ex.push(['(B) W1-7: el nodo tiene UN solo escritor — un id en el marcado y un getElementById',
     (function(){ const s = document.documentElement.innerHTML;
-      return (s.split('em-cont-fa-aviso').length - 1) === 2; })(),
-    'apariciones=' + (document.documentElement.innerHTML.split('em-cont-fa-aviso').length - 1)]);
+      const decl = (s.split('id="em-cont-fa-aviso"').length - 1);
+      const lect = (s.split("getElementById('em-cont-fa-aviso')").length - 1);
+      return decl === 1 && lect === 1; })(),
+    'decl=' + (document.documentElement.innerHTML.split('id="em-cont-fa-aviso"').length - 1) +
+    ' lect=' + (document.documentElement.innerHTML.split("getElementById('em-cont-fa-aviso')").length - 1)]);
 
   /* ══ (C) W1-2 · EL LABORATORIO CLASIFICA IGUAL QUE EL INFORME ═════════════════════════════ */
   const reg = (c) => ({ id:'T', nombre:'T', ci:'1', fecha_estudio:'2026-10-15', campos: c || {} });
@@ -67627,18 +67771,26 @@ caso('TC-479', 'Tanda Z: el PPM aortico llega al informe y al EN SUMA con su col
       g19.g === '' && g20.g === '(moderada)' && g39.g === '(moderada)' && g40.g === '(severa)',
       [g19.g, g20.g, g39.g, g40.g].join('/')]);
     S('gmedio_ao','30');
+    /* ⚠️ ADAPTADO el 2026-10-17 (VAL2): el 1,50 EXACTO pasa de «sin grado» a MODERADA —el techo
+       de la banda moderada del AVA es 1,5 INCLUSIVE, EAE/ASE 2009 Tabla 3 folio 10 y ESC/EACTS
+       2025 nota ^c folio 4671— y el borde superior se mide ahora con 1,51, que es el que sigue
+       abstniendose. El caso gana cobertura: pasa de cuatro valores a CINCO. */
     const p09 = BORDE('ava_plan','0.9'), p10 = BORDE('ava_plan','1.0'),
-          p14 = BORDE('ava_plan','1.4'), p15 = BORDE('ava_plan','1.5');
-    ex.push(['la planimetria por sus bordes: 0,90 severa, 1,00 severa, 1,40 moderada, 1,50 sin grado',
-      p09.p === '(severa)' && p10.p === '(severa)' && p14.p === '(moderada)' && p15.p === '',
-      [p09.p, p10.p, p14.p, p15.p].join('/')]);
+          p14 = BORDE('ava_plan','1.4'), p15 = BORDE('ava_plan','1.5'),
+          p151 = BORDE('ava_plan','1.51');
+    ex.push(['la planimetria por sus bordes: 0,90 y 1,00 severa, 1,40 y 1,50 moderada, 1,51 sin grado',
+      p09.p === '(severa)' && p10.p === '(severa)' && p14.p === '(moderada)'
+      && p15.p === '(moderada)' && p151.p === '',
+      [p09.p, p10.p, p14.p, p15.p, p151.p].join('/')]);
     /* ADAPTADO el 2026-10-16 (Y2b): el mapa pasa de CINCO entradas a SEIS porque la VELOCIDAD
        PICO gano su fila en el cuadro aortico —era el ultimo criterio que graduaba sin tenerla,
        la mitad de F8 que quedaba abierta—. Lo que el caso afirma no cambia: que un AVA normal
        no imprima «sin estenosis» como grado de su fila. */
+    /* ⚠️ ADAPTADO el 2026-10-17 (VAL2): la abstencion se mide con 1,51 y no con 1,50, que desde
+       esa tanda SI tiene grado. Lo que el caso afirma no cambia. */
     ex.push(['«sin estenosis» NO se imprime como grado de una fila — vacio es la abstencion',
       typeof EA_FILA_GRADO !== 'undefined' && Object.keys(EA_FILA_GRADO).length === 6 &&
-      p15.p === '', JSON.stringify(p15)]);
+      p151.p === '', JSON.stringify(p151)]);
 
     /* ══ D · LA FILA DEL TAPSE/PSAP: DOS ESTADOS ═══════════════════════════════════════════
        ⚠️ LA PSAP NO SALE SOLO DE LA VMAX: es 4 x VRT^2 + PmAD, y sin el diametro y el colapso
@@ -69330,8 +69482,17 @@ caso('TC-484', 'Tanda Y2: el «porque» de cada tarjeta de la vista 2D — los c
       const t = UNA('esten');
       CERRAR();
       ex.push(['ET binaria: sus cuatro criterios dicen lo MISMO que la pantalla, con su banda', r.ok, r.det]);
-      ex.push(['y la ET no lleva linea «Decide»: su renglon publica el veredicto y no nombra cual lo produjo',
-        !!t && t.decide === null, t ? String(t.decide) : 'SIN TARJETA']); }
+      /* ⚠️ ADAPTADO el 2026-10-17 (VAL1): ESTA CONDICION AFIRMA HOY LO CONTRARIO. Desde esa
+         tanda el renglon de severidad de la ET publica «Significativa — por <criterio>», o sea
+         el MISMO formato que la aortica, asi que la tarjeta gana su linea «Decide» leyendola con
+         el decideModo 'sufijo' que ya existia — sin mecanismo nuevo. Lo que el caso sigue
+         cuidando es que la tarjeta NO invente nada: publica el texto de la pantalla tal cual.
+         El criterio que se nombra con estos datos es el AREA (0,98 cm2), que va primero en el
+         desempate; el gradiente de 6 mmHg tambien se cumple y viaja en la lista. */
+      ex.push(['y la ET SI lleva linea «Decide» desde VAL1, con el texto que la pantalla publica',
+        !!t && typeof t.decide === 'string' && t.decide.indexOf('— por ') > -1
+        && t.decide.indexOf(String((document.getElementById('et-sev') || {}).textContent || 'X')) > -1,
+        t ? String(t.decide) : 'SIN TARJETA']); }
 
     /* ══ D · LAS PROTESIS ═══════════════════════════════════════════════════════════════ */
     const PROT = (morf, campos, sev) => { NUEVO();
@@ -73584,6 +73745,334 @@ caso('TC-494', 'Tanda VS: el VD, la AD, la VCI y la RAIZ AORTICA alineados a la 
     !!document.querySelector('[data-vinfo="tapse-psap"]'),
     'existe=' + !!document.querySelector('[data-vinfo="tapse-psap"]')]);
 
+  return { extra: ex };
+`);
+
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════════
+   TC-495 — LA TANDA «VAL»: las cinco alineaciones de valvula NATIVA y las dos de texto.
+   Cada borde se mide con el VALOR EXACTO, uno por debajo y uno por encima, y cada cambio con su
+   control negativo. Lo que esta tanda NO toca lleva su propia condicion.
+   ⚠️ ESTE CUERPO ES UN TEMPLATE LITERAL: ni un acento grave adentro, tampoco en los comentarios.
+   ══════════════════════════════════════════════════════════════════════════════════════════════ */
+caso('TC-495', 'Tanda VAL: la estenosis tricuspidea con el gradiente >5 estricto, el THP como signo de apoyo y el criterio que DECIDE nombrado en las cuatro superficies; el AVA aortico con 1,50 EXACTO moderada; la fraccion regurgitante aortica severa con >50; la onda E mitral con >120; el cociente VTI retirado desde la IAo moderada; la cita del jet/AI en la ACC/AHA 2020 y el texto de integracion SOLO en Referencias; y las protesis, la diastolica, el HFA-PEFF, la AI, el VI, el VD, la AD, la VCI, la aorta, el Wilkins, Otros, el cuadro de frases, la identificacion del paciente y las 440 columnas del Excel sin moverse', `
+  const ex = [];
+  const EL  = (id) => document.getElementById(id);
+  const S   = (id, v) => { try { __t.set(id, v); } catch (e) {} };
+  const V   = (id) => { const e = EL(id); return e ? String(e.value) : 'NO EXISTE'; };
+  const TXT = (id) => { const e = EL(id); return e ? String(e.textContent || '').replace(/[ ]+/g, ' ').trim() : 'NO EXISTE'; };
+  const G   = (n) => { try { return (n in window) ? window[n] : 'NO EXISTE'; } catch (e) { return 'EXC'; } };
+  const FN  = (n) => typeof G(n) === 'function';
+  const LL  = (n, a, b) => { try { return FN(n) ? window[n](a, b) : 'SIN FN'; } catch (e) { return 'EXC'; } };
+  const estilo = (e) => { try { setEstiloInforme(e) } catch (x) {} };
+  const inf = (e) => { estilo(e || 'estandar'); try { generarInforme() } catch (x) {}
+    return { inf: String((EL('informe_texto')||{}).value || ''), suma: String((EL('en_suma')||{}).value || '') } };
+  const esc = (o) => { __t.limpiar(); Object.keys(o).forEach(k => S(k, String(o[k])));
+    ['calcET','calcAo','calcIA_ESC','calcIM_ESC'].forEach(f => { try { if (FN(f)) window[f](); } catch (x) {} });
+    return inf('estandar'); };
+  const ET = () => { try { return etEstado(); } catch (e) { return null; } };
+  const HTML = () => document.documentElement.innerHTML;
+
+  /* ══ DENOMINADOR 1 · las piezas nuevas existen y tienen un solo dueno ═════════════════════ */
+  const C = G('ET_CRIT');
+  ex.push(['(DENOM) ET_CRIT trae los cuatro criterios con su nombre CORTO, y el THP es el UNICO marcado como signo de apoyo',
+    C !== 'NO EXISTE' && ['gmedio','vtiEnt','thp','avt'].every(k => C[k] && typeof C[k].corto === 'string')
+      && C.thp.apoyo === true && !C.gmedio.apoyo && !C.avt.apoyo && !C.vtiEnt.apoyo,
+    C === 'NO EXISTE' ? 'SIN ET_CRIT' : ['gmedio','vtiEnt','thp','avt'].map(k => k + ':' + C[k].corto + '/' + !!C[k].apoyo).join(' ')]);
+  ex.push(['(DENOM) el operador del gradiente es > estricto y el del THP sigue siendo >=; el valor de los dos NO se movio',
+    C !== 'NO EXISTE' && C.gmedio.op === '>' && C.gmedio.signif === 5
+      && C.thp.op === '>=' && C.thp.signif === 190 && C.avt.signif === 1 && C.vtiEnt.signif === 60,
+    C === 'NO EXISTE' ? 'SIN ET_CRIT' : C.gmedio.op + C.gmedio.signif + ' / ' + C.thp.op + C.thp.signif]);
+  ex.push(['(DENOM) AVA_MOD_MAX es el dueno del 1,5 y EA_BANDAS.avaSinMin se DERIVA de el (no hay dos copias)',
+    G('AVA_MOD_MAX') === 1.5 && G('EA_BANDAS') !== 'NO EXISTE' && window.EA_BANDAS.avaSinMin === window.AVA_MOD_MAX,
+    'AVA_MOD_MAX=' + G('AVA_MOD_MAX') + ' avaSinMin=' + (G('EA_BANDAS') === 'NO EXISTE' ? '-' : window.EA_BANDAS.avaSinMin)]);
+
+  /* ══ (b) ESTENOSIS TRICUSPIDEA — los tres que deciden, el THP que no, y el criterio nombrado ══
+     El area sale por continuidad: PI*(25/20)^2 = 4,9087 cm2, por el VTI del TSVD y sobre el VTI
+     de entrada. Con VTI de entrada 50 el cuarto criterio NO vota (su corte es 60), asi que las
+     escenas del gradiente y del area quedan AISLADAS. */
+  const BASE = { tsvd_diametro:'25', vti_tsvd:'8.1', et_vti_diast:'50' };   // area 0,80 cm2
+  const SINAREA = { et_vti_diast:'50' };
+  const conBase = (o) => { const x = {}; Object.keys(BASE).forEach(k => x[k] = BASE[k]);
+                           Object.keys(o).forEach(k => x[k] = o[k]); return x; };
+  const sinArea = (o) => { const x = {}; Object.keys(SINAREA).forEach(k => x[k] = SINAREA[k]);
+                           Object.keys(o).forEach(k => x[k] = o[k]); return x; };
+
+  esc(sinArea({ et_gmedio:'4.9' })); const g49 = ET();
+  esc(sinArea({ et_gmedio:'5'   })); const g50 = ET();
+  const i51 = esc(sinArea({ et_gmedio:'5.1' })); const g51 = ET();
+  ex.push(['el gradiente medio por su borde EXACTO: 4,9 no vota, 5,0 TAMPOCO (el operador es > estricto) y 5,1 si',
+    !!g49 && g49.signif === false && !!g50 && g50.signif === false && !!g51 && g51.signif === true,
+    [g49 && g49.signif, g50 && g50.signif, g51 && g51.signif].join('/')]);
+  ex.push(['y con 5,1 el criterio que DECIDE es el gradiente medio, con el nombre corto de ET_CRIT',
+    !!g51 && g51.criterio === (C === 'NO EXISTE' ? '?' : C.gmedio.corto),
+    String(g51 && g51.criterio)]);
+
+  esc(sinArea({ et_thp:'189' })); const t189 = ET();
+  esc(sinArea({ et_thp:'190' })); const t190 = ET();
+  esc(sinArea({ et_thp:'191' })); const t191 = ET();
+  ex.push(['el THP NO decide por ninguno de sus lados: 189, 190 y 191 dejan el veredicto en falso',
+    [t189, t190, t191].every(r => !!r && r.signif === false),
+    [t189 && t189.signif, t190 && t190.signif, t191 && t191.signif].join('/')]);
+  ex.push(['y el THP se SIGUE calculando: cThp distingue sus dos lados, asi que se muestra y no decide',
+    !!t189 && t189.cThp === false && !!t190 && t190.cThp === true && !!t191 && t191.cThp === true,
+    [t189 && t189.cThp, t190 && t190.cThp, t191 && t191.cThp].join('/')]);
+  /* ⚠️ EL THP SOLO, DE VERDAD: sin el VTI de entrada, que las escenas de arriba dejan cargado
+     para aislar los otros criterios. Con el VTI en banda el grado calculado existe igual. */
+  esc({ et_thp:'200' });
+  ex.push(['CONTROL NEGATIVO: con el THP como UNICO dato el grado CALCULADO es nulo, no «No significativa»',
+    LL('etGradoCalculado') === null, String(LL('etGradoCalculado'))]);
+
+  esc({ et_vti_diast:'59.9' }); const v599 = ET();
+  esc({ et_vti_diast:'60'   }); const v60  = ET();
+  ex.push(['el VTI de entrada SIGUE votando con su operador >=: 59,9 no y 60,0 si (decision del 13/10)',
+    !!v599 && v599.signif === false && !!v60 && v60.signif === true && v60.criterio === (C === 'NO EXISTE' ? '?' : C.vtiEnt.corto),
+    (v599 && v599.signif) + '/' + (v60 && v60.signif) + ' crit=' + (v60 && v60.criterio)]);
+
+  /* El area por su borde: con VTI de entrada 50 y VTI del TSVD 10,2 el area da 1,00 exacto. */
+  const iA = esc({ tsvd_diametro:'25', vti_tsvd:'10.19', et_vti_diast:'50' }); const a100 = ET();
+  esc({ tsvd_diametro:'25', vti_tsvd:'10.3', et_vti_diast:'50' });  const a101 = ET();
+  ex.push(['el area por su borde: 1,00 EXACTO vota (el operador es <=) y 1,01 no — y el area no se toco',
+    !!a100 && a100.avt === 1 && a100.signif === true && a100.criterio === (C === 'NO EXISTE' ? '?' : C.avt.corto)
+      && !!a101 && a101.avt > 1 && a101.signif === false,
+    'a100=' + (a100 && a100.avt) + '/' + (a100 && a100.signif) + ' a101=' + (a101 && a101.avt) + '/' + (a101 && a101.signif)]);
+
+  /* PRECEDENCIA del desempate: con el area Y el gradiente cumplidos manda el AREA. */
+  const iDos = esc(conBase({ et_gmedio:'8' })); const dos = ET();
+  ex.push(['con DOS criterios cumplidos el que se nombra es el AREA: la precedencia es area > gradiente > VTI',
+    !!dos && dos.cAvt === true && dos.cGm === true && dos.criterio === (C === 'NO EXISTE' ? '?' : C.avt.corto),
+    'cAvt=' + (dos && dos.cAvt) + ' cGm=' + (dos && dos.cGm) + ' crit=' + (dos && dos.criterio)]);
+
+  /* ══ LAS SUPERFICIES DE LA ET, todas leyendo del MISMO dueno ══════════════════════════════ */
+  ex.push(['el badge de la pantalla publica «Significativa — por <criterio>», que es lo que la tarjeta de la vista 2D lee',
+    TXT('et-sev') === 'Significativa — por ' + (C === 'NO EXISTE' ? '?' : C.avt.corto), TXT('et-sev')]);
+  ex.push(['la fila del THP del cuadro lleva su propia leyenda de APOYO y NUNCA la palabra «significativa»',
+    TXT('et-ref-thp').indexOf('signo de apoyo, no decide') === -1
+      ? true
+      : TXT('et-ref-thp').indexOf('significativa') === -1,
+    TXT('et-ref-thp')]);
+  const iThpFila = esc(conBase({ et_gmedio:'8', et_thp:'200' }));
+  ex.push(['con el THP cargado su fila dice «signo de apoyo, no decide» y la del gradiente dice «significativa»',
+    TXT('et-ref-thp') === '200 ms (signo de apoyo, no decide (≥190 ms))'
+      && TXT('et-ref-gmedio') === '8 mmHg (significativa (>5 mmHg))',
+    TXT('et-ref-thp') + ' || ' + TXT('et-ref-gmedio')]);
+  ex.push(['el informe NOMBRA el criterio que decide, con el que manda primero y el THP FUERA del parentesis',
+    iThpFila.inf.indexOf('(por área valvular 0.80 cm²; gradiente medio 8 mmHg)') > -1
+      && iThpFila.inf.indexOf('THP 200 ms') === -1,
+    (iThpFila.inf.split(String.fromCharCode(10)).filter(l => l.indexOf('tricúspide') > -1)[0] || '(sin linea)')]);
+  const cTres = ['estandar','conciso','narrativo'].map(e => inf(e));
+  estilo('estandar');
+  ex.push(['y los TRES estilos publican la MISMA significacion y la MISMA sigla en el EN SUMA',
+    cTres.every(r => r.suma.indexOf('ET significativa.') > -1),
+    cTres.map(r => r.suma.indexOf('ET significativa.') > -1).join('/')]);
+  /* La tarjeta de la vista 2D LEE el badge, no lo recompone. */
+  const pq = (() => { try { return FN('_v2dPorQue') ? _v2dPorQue('esten:tricuspide') : 'SIN FN' } catch (e) { return 'EXC' } })();
+  ex.push(['la tarjeta de la vista 2D publica la linea «Decide» con el TEXTO del badge, sin recomponerlo',
+    !!pq && typeof pq === 'object' && typeof pq.decide === 'string' && pq.decide === TXT('et-sev'),
+    pq && pq.decide ? pq.decide : String(pq)]);
+
+  /* ══ (b) EL AVISO DE LA INSUFICIENCIA TRICUSPIDEA ═════════════════════════════════════════ */
+  const AV = (grado) => { esc(conBase({ et_gmedio:'8' }));
+    try { if (grado !== null) valvSev.aplicar('insuf','tricuspide', grado); } catch (e) {}
+    return TXT('et-it-aviso'); };
+  const av0 = AV(null), av1 = AV('1'), av2 = AV('2'), av4 = AV('4');
+  ex.push(['el aviso de la IT sale SOLO con insuficiencia MAYOR QUE LEVE: sin IT y con leve calla, con moderada y severa avisa',
+    av0 === '' && av1 === '' && av2.indexOf('subestimada') > -1 && av4.indexOf('subestimada') > -1,
+    JSON.stringify([av0, av1, av2.slice(0, 30), av4.slice(0, 30)])]);
+  ex.push(['y su texto cita la nota de la Tabla 10 de la EAE/ASE 2009, sin cambiar el veredicto',
+    av2 === G('ET_IT_AVISO_TXT') && ET() && ET().signif === true, av2]);
+  /* CONTROL NEGATIVO: sin AREA calculada no hay nada que advertir, por grave que sea la IT. */
+  esc(sinArea({ et_gmedio:'8' }));
+  try { valvSev.aplicar('insuf','tricuspide','4'); } catch (e) {}
+  ex.push(['CONTROL NEGATIVO: con IT severa pero SIN area por continuidad el aviso NO sale',
+    TXT('et-it-aviso') === '', TXT('et-it-aviso')]);
+
+  /* ══ (d) LA CITA: «ESC/EACTS 2021» ya no figura en la estenosis tricuspidea ════════════════ */
+  ex.push(['la linea de fuente del cuadro de la ET cita EAE/ASE 2009, ASE 2023 y ESC/EACTS 2025, y ya NO la 2021',
+    TXT('et-ref-fuente').indexOf('ESC/EACTS 2025') > -1 && TXT('et-ref-fuente').indexOf('2021') === -1
+      && TXT('et-ref-fuente').indexOf('EAE/ASE 2009') > -1 && TXT('et-ref-fuente').indexOf('ASE 2023') > -1,
+    TXT('et-ref-fuente')]);
+
+  /* ══ EL LABORATORIO LEE DEL MISMO DUENO ═══════════════════════════════════════════════════ */
+  const LAB = (tok) => { try {
+      const b = _labValvBin([{ campos: { et_grado: String(tok) } }]);
+      const i = (G('LAB_VALV_BIN') !== 'NO EXISTE' && window.LAB_VALV_BIN.et) ? window.LAB_VALV_BIN.et.i : 5;
+      const f = b[i]; return f ? (f.cuentas.Severa + '/' + f.base) : 'SIN FILA';
+    } catch (e) { return 'EXC'; } };
+  ex.push(['el Laboratorio cuenta la ET por el TOKEN del dueno: «Significativa» suma, «No significativa» y el centinela cuentan en la base y no se afirman',
+    LAB(G('ET_SIGNIF_TXT')) === '1/1' && LAB('No significativa') === '0/1' && LAB('sin') === '0/1' && LAB('Severa') === '0/1',
+    [LAB('Significativa'), LAB('No significativa'), LAB('sin'), LAB('Severa')].join(' · ')]);
+
+  /* ══ (a) AVA AORTICO: el 1,50 EXACTO es MODERADA ══════════════════════════════════════════
+     ⚠️ EL O DEL TSVI VA EN 19 mm Y NO EN 20, Y NO ES UN DETALLE: el DVI es AVA / area del TSVI,
+     asi que con 20 mm un AVA de 1,5 da DVI 0,477 y el DVI vota moderada POR SU CUENTA — los dos
+     lados del borde darian «moderada» sobre un corte que SI se movio. Con 19 mm el DVI queda en
+     0,53 (> 0,50) y se abstiene, asi que lo unico que decide es el AVA. */
+  const AVA = (obj) => { const A = Math.PI * Math.pow(19 / 20, 2);
+    const r = esc({ ea_dtsvi:'19', itv_tsvi:'20', itv_ao: String((A * 20 / obj).toFixed(2)) });
+    let R = null; try { R = eaGradoCalculado(); } catch (e) {}
+    return { ava: V('ava_cont'), gAva: R && R.gAva, grado: R && R.grado, sel: V('ea_grado'),
+             inf: r.inf, suma: r.suma }; };
+  const q149 = AVA(1.49), q150 = AVA(1.50), q151 = AVA(1.51);
+  ex.push(['(DENOM) las tres escenas del AVA dan el area que dicen dar',
+    q149.ava === '1.49' && q150.ava === '1.50' && q151.ava === '1.51',
+    [q149.ava, q150.ava, q151.ava].join('/')]);
+  ex.push(['el AVA por su borde EXACTO: 1,49 y 1,50 moderada (el techo es inclusive) y 1,51 ya no gradua',
+    q149.gAva === 'moderada' && q150.gAva === 'moderada' && q151.gAva === 'sin',
+    [q149.gAva, q150.gAva, q151.gAva].join('/')]);
+  ex.push(['y el informe y el EN SUMA siguen al corte: con 1,50 publican la estenosis moderada y con 1,51 no',
+    q150.inf.indexOf('con estenosis moderada') > -1 && q150.suma.indexOf('EAo moderada.') > -1
+      && q151.inf.indexOf('con estenosis moderada') === -1 && q151.suma.indexOf('EAo moderada.') === -1,
+    q150.suma.slice(0, 40) + ' || ' + q151.suma.slice(0, 40)]);
+  ex.push(['CONTROL NEGATIVO: el borde de 1,0 NO se movio — 1,00 exacto sigue siendo severa y 1,01 moderada',
+    LL('avaEsSevera', 1) === true && LL('avaEsModerada', 1) === false
+      && LL('avaEsSevera', 1.01) === false && LL('avaEsModerada', 1.01) === true,
+    '1.00 sev=' + LL('avaEsSevera', 1) + ' 1.01 mod=' + LL('avaEsModerada', 1.01)]);
+  ex.push(['las dos bandas del AVA no se solapan ni dejan hueco en ninguno de los siete valores del borde',
+    [0.5, 0.99, 1.0, 1.01, 1.2, 1.49, 1.5, 1.51, 2.0].every(a =>
+      !(LL('avaEsSevera', a) && LL('avaEsModerada', a))), 'sin solape']);
+  ex.push(['la planimetria usa el MISMO predicado, asi que su 1,50 tambien es moderada y el 1,51 se abstiene',
+    (() => { const f = (x) => { esc({ ava_plan: String(x) }); let R = null;
+        try { R = eaGradoCalculado(); } catch (e) {} return R && R.gPlan; };
+      return f(1.5) === 'moderada' && f(1.51) === null; })(), 'planimetria']);
+
+  /* ══ (a) FRACCION REGURGITANTE AORTICA: severa con MAS de 50 % ════════════════════════════
+     EROA = 2*PI*(5/10)^2*40/400*100 = 15,708 mm2 ; VSV = PI*(19/20)^2*20 = 56,706 ml.
+     El VTI del jet se despeja para cada FR objetivo. Las unidades son las que declara cada banda:
+     radio en mm, Valiasing en cm/s, Vmax CW en m/s y VTI del jet en cm. */
+  const FR = (obj) => { const A = Math.PI * Math.pow(19 / 20, 2) * 20;
+    const E = 2 * Math.PI * Math.pow(5 / 10, 2) * 40 / 400 * 100;
+    const r = esc({ ea_dtsvi:'19', itv_tsvi:'20', ia_pisa_r:'5', ia_pisa_val:'40',
+                    ia_vmax_cw:'4', ia_vti: String((obj * A / E).toFixed(1)) });
+    return { fr: TXT('ia-freg'), grado: V('ia_grado'), sev: TXT('ia-sev'), suma: r.suma }; };
+  const f49 = FR(49), f50 = FR(50), f51 = FR(51);
+  ex.push(['(DENOM) las tres escenas de la FR dan el porcentaje que dicen dar (las unidades del PISA son las de su banda)',
+    f49.fr === '49%' && f50.fr === '50%' && f51.fr === '51%', [f49.fr, f50.fr, f51.fr].join('/')]);
+  ex.push(['la FR aortica por su borde EXACTO: 49 y 50 moderada (el operador es > estricto) y 51 severa',
+    f49.grado === '2' && f50.grado === '2' && f51.grado === '4',
+    [f49.grado, f50.grado, f51.grado].join('/')]);
+  ex.push(['y el EN SUMA sigue al corte: con 50 dice «IAo moderada.» y con 51 «IAo severa.»',
+    f50.suma.indexOf('IAo moderada.') > -1 && f51.suma.indexOf('IAo severa.') > -1,
+    f50.suma.slice(0, 40) + ' || ' + f51.suma.slice(0, 40)]);
+  ex.push(['el tramo de moderada no deja hueco: el 50 cae en UNA sola banda',
+    f50.grado === '2' && f50.grado !== f51.grado, 'fr50=' + f50.grado]);
+
+  /* ══ (a) ONDA E MITRAL: apoya con MAS de 120 cm/s, y sigue sin votar ══════════════════════ */
+  const OE = (v) => { const r = esc({ onda_e: String(v), onda_a:'60' });
+    return { fila: TXT('im-ondae-interp'), grado: V('im_grado'), suma: r.suma }; };
+  const e119 = OE(119), e120 = OE(120), e121 = OE(121);
+  ex.push(['la onda E por su borde EXACTO: 119 y 120 NO apoyan (el operador es > estricto) y 121 si',
+    e119.fila.indexOf('sin signo de apoyo') > -1 && e120.fila.indexOf('sin signo de apoyo') > -1
+      && e121.fila === 'Onda E > 120 cm/s — apoya IM severa',
+    [e119.fila, e120.fila, e121.fila].join(' || ')]);
+  ex.push(['CONTROL NEGATIVO: la onda E sigue SIN votar — el grado de la IM es el mismo en los tres',
+    e119.grado === e120.grado && e120.grado === e121.grado,
+    [e119.grado, e120.grado, e121.grado].join('/')]);
+
+  /* ══ (a) COCIENTE VTI MITRAL/TSVI: se retira desde la IAo MODERADA ════════════════════════ */
+  const RT = (g) => { esc({ itv_tsvi:'20', vtim:'32' });
+    try { valvSev.aplicar('insuf','aortica', g); } catch (e) {}
+    try { calcIM_ESC(); } catch (e) {}
+    return TXT('im-vti-ratio'); };
+  const r0 = RT('0'), r1 = RT('1'), r2 = RT('2'), r3 = RT('3'), r4 = RT('4');
+  ex.push(['el cociente VTI se publica sin IAo y con IAo leve, y se RETIRA desde la moderada —como la guia—',
+    r0.indexOf('1.60') > -1 && r1 === r0 && r2 === '—' && r3 === '—' && r4 === '—',
+    [r0, r1, r2, r3, r4].join(' | ')]);
+  ex.push(['y la salvedad de la divergencia ya no existe en NINGUNA parte del arbol',
+    HTML().indexOf('criterio EcoSmart: se usa igual') === -1, 'cero apariciones']);
+  ex.push(['CONTROL NEGATIVO: el corte del cociente no se movio — sin IAo sigue publicando el >1,4',
+    r0.indexOf('>1,4') > -1, r0]);
+
+  /* ══ (c) EL TEXTO GENERAL DE INTEGRACION — SOLO en Referencias ════════════════════════════ */
+  const FRASE = 'EcoSmart aplica una regla simple y declarada';
+  const NODO = EL('ref-integracion');
+  ex.push(['el texto de integracion existe, esta DENTRO de la seccion de valvulas nativas de Referencias y dice lo aprobado',
+    !!NODO && !!EL('ref-nativas') && EL('ref-nativas').contains(NODO)
+      && TXT('ref-integracion').indexOf('Las guías piden integrar varios parámetros y no fijan una regla numérica de decisión.') === 0
+      && TXT('ref-integracion').indexOf('El médico debe revisarlo.') > -1,
+    TXT('ref-integracion').slice(0, 90)]);
+  ex.push(['y esta DENTRO de la pestania Referencias y de ninguna otra',
+    !!NODO && !!EL('tab-refs') && EL('tab-refs').contains(NODO)
+      && !(EL('tab-valvulas') && EL('tab-valvulas').contains(NODO)),
+    'tab-refs=' + (!!EL('tab-refs') && EL('tab-refs').contains(NODO))]);
+  ex.push(['su color sale de --text2, que existe en esa zona, y resuelve a un color REAL (no cadena vacia)',
+    (() => { try { const c = getComputedStyle(NODO).color;
+      return !!c && c.indexOf('rgb') === 0; } catch (e) { return false; } })(),
+    (() => { try { return getComputedStyle(NODO).color; } catch (e) { return 'EXC'; } })()]);
+  const iFin = esc(conBase({ et_gmedio:'8' }));
+  ex.push(['CONTROL NEGATIVO: la frase NO aparece en el informe, en el EN SUMA ni en la pestania Valvulas',
+    iFin.inf.indexOf(FRASE) === -1 && iFin.suma.indexOf(FRASE) === -1
+      && (EL('tab-valvulas') ? String(EL('tab-valvulas').textContent || '').indexOf(FRASE) === -1 : true),
+    'informe=' + (iFin.inf.indexOf(FRASE) > -1) + ' suma=' + (iFin.suma.indexOf(FRASE) > -1)]);
+  ex.push(['y aparece UNA sola vez en todo el documento: no se la copio al PDF ni al PPT',
+    (HTML().split(FRASE).length - 1) === 1, 'apariciones=' + (HTML().split(FRASE).length - 1)]);
+
+  /* ══ (c) LA CITA DEL JET/AI — ACC/AHA 2020, Tabla 17, folio e121 ══════════════════════════ */
+  /* ⚠️ EL GLOBO NO TIENE GEOMETRIA SI SU PESTANIA Y SU CAJON ESTAN CERRADOS, y una tarjeta que
+     no se ancla devuelve el texto de la ANTERIOR o vacio. Se abre la pestania Valvulas, la
+     seccion de la mitral y su cajon de datos ANTES de tocarlo, que es lo que hace el medico. */
+  const VJ = (() => { try {
+      try { if (!EL('tab-valvulas') || getComputedStyle(EL('tab-valvulas')).display === 'none') showTab('valvulas'); } catch (x) {}
+      try { const sec = EL('ete-seccion-valv-mitral');
+        if (sec && getComputedStyle(sec).display === 'none') toggleEteSeccion('valv-mitral'); } catch (x) {}
+      try { const caja = EL('caja-insuf-mitral');
+        if (caja && caja.className.indexOf('valv-datos-abierto') < 0) valvDatosTog('caja-insuf-mitral'); } catch (x) {}
+      const b = document.querySelector('[data-vinfo="im-jet-ai"]');
+      if (!b) return 'SIN GLOBO';
+      const r = b.getBoundingClientRect();
+      if (r.width < 1 || r.height < 1) return 'SIN GEOMETRIA';
+      b.click(); const t = TXT('vinfo-card'); b.click(); return t;
+    } catch (e) { return 'EXC: ' + e.message; } })();
+  ex.push(['la tarjeta del jet/AI cita la ACC/AHA 2020, Tabla 17, folio e121, y ya NO dice que el corte no tiene fuente',
+    VJ.indexOf('ACC/AHA 2020') > -1 && VJ.indexOf('Tabla 17') > -1 && VJ.indexOf('e121') > -1
+      && VJ.indexOf('NO figuran') === -1,
+    VJ.slice(0, 160)]);
+  ex.push(['CONTROL NEGATIVO: los NUMEROS del jet/AI no se movieron — 20 leve y 40 inclusive en moderada',
+    G('IM_CORTES') !== 'NO EXISTE' && window.IM_CORTES.jet_nat.leve_max === 20
+      && window.IM_CORTES.jet_nat.mod_max_incl === 40 && window.IM_CORTES.jet_nat.forma === 'mod_incl',
+    G('IM_CORTES') === 'NO EXISTE' ? 'SIN IM_CORTES' : JSON.stringify(window.IM_CORTES.jet_nat)]);
+  ex.push(['y el texto de «NO figuran en la ASE 2017» no quedo en ninguna superficie',
+    HTML().indexOf('NO figuran en la ASE 2017') === -1, 'cero apariciones']);
+
+  /* ══ (g) CONTROLES — lo que esta tanda NO toca ════════════════════════════════════════════ */
+  const XLS = (() => { try { const c = {};
+      document.querySelectorAll('input[id], select[id], textarea[id]').forEach(e => {
+        try { if (FN('_noEsDelEstudio') && _noEsDelEstudio(e.id)) return; } catch (x) {}
+        c[e.id] = e.value; });
+      return _labExcelRow({ nombre:'T', ci:'1', fecha_estudio:'2026-10-17', campos: c });
+    } catch (e) { return null; } })();
+  ex.push(['el Excel sigue en 440 columnas y esta tanda no agrego ninguna',
+    !!XLS && Object.keys(XLS).length === 440, 'columnas=' + (XLS ? Object.keys(XLS).length : 'EXC')]);
+  ex.push(['CONTROL: la PROTESIS mitral conserva su cociente >=2,5 y la aortica su Tabla 5 — esta tanda no las toca',
+    (() => { __t.limpiar(); S('vm_morf','Prótesis mecánica'); S('itv_tsvi','20'); S('vtim','60');
+      try { calcIM_ESC(); } catch (e) {}
+      return TXT('im-vti-ratio').indexOf('≥2,5') > -1; })(), TXT('im-vti-ratio')]);
+  ex.push(['CONTROL: con PROTESIS mitral el cociente se sigue retirando desde la IAo moderada, sin cambios',
+    (() => { S('ia_grado','2'); try { valvSev.aplicar('insuf','aortica','2'); calcIM_ESC(); } catch (e) {}
+      return TXT('im-vti-ratio') === '—'; })(), TXT('im-vti-ratio')]);
+  const iCtrl = esc({ peso:'80', talla:'180', edad:'62', fevi:'55', ddfvi:'52', ppvi:'11', siv:'11',
+                      ai_vol:'70', onda_e:'90', onda_a:'70', e_sep:'6', e_lat:'8', tde:'180',
+                      vmax_it:'2.9', vci_diam:'18', vd_basal:'38', ao_sin:'38' });
+  ex.push(['CONTROL: la diastolica, la AI y el HFA-PEFF siguen publicando lo suyo con un escenario ajeno cargado',
+    TXT('dd-interp') !== 'NO EXISTE' && TXT('dd-interp') !== '—' && TXT('ai-interp') !== '—',
+    'dd=' + TXT('dd-interp').slice(0, 30) + ' | ai=' + TXT('ai-interp').slice(0, 30)]);
+  ex.push(['CONTROL: las OCHO lesiones siguen teniendo su selector de grado y ninguna cambio de vocabulario',
+    ['im_grado','em_grado','ia_grado','ea_grado','it_grado','et_grado','ip_grado','ep_grado']
+      .every(id => V(id) !== 'NO EXISTE'),
+    'los ocho existen']);
+  ex.push(['CONTROL: el Wilkins, el cuadro de frases y la identificacion del paciente siguen en su lugar',
+    !!EL('cx-wilkins') && !!EL('frases-panel') && V('pac_id_print') !== 'NO EXISTE',
+    'wilkins=' + !!EL('cx-wilkins') + ' frases=' + !!EL('frases-panel') + ' pacid=' + V('pac_id_print')]);
+  /* NADA DE ESTO SE GUARDA: la tanda no agrego un solo campo del estudio ni una clave del navegador. */
+  ex.push(['esta tanda no agrego ningun campo del estudio: el aviso y el texto de integracion no tienen id de campo',
+    !EL('et-it-aviso') || EL('et-it-aviso').tagName === 'SPAN',
+    'et-it-aviso es ' + (EL('et-it-aviso') ? EL('et-it-aviso').tagName : 'NO EXISTE')]);
+  ex.push(['y no agrego ninguna clave de localStorage propia',
+    (() => { try { return Object.keys(localStorage).filter(k =>
+        k.indexOf('et-it') === 0 || k.indexOf('ref-integracion') === 0).length === 0;
+      } catch (e) { return true; } })(), 'cero claves']);
+
+  __t.limpiar();
   return { extra: ex };
 `);
 

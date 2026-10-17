@@ -3244,3 +3244,113 @@ para el contraste espontáneo ni para el reflujo de color.
 | Diámetro de la VCI | normal `<21 mm` | normal `≤21 mm` | ASE 2025, presión auricular derecha, folio 160 | VS4 | 17/10/2026 |
 | Seno de Valsalva | dilatado `>40 mm` | dilatado `≥40 mm` | criterio de EcoSmart (decisión de Maicol) | VS5 | 17/10/2026 |
 | Tiempo de aceleración pulmonar | `<105 ms` signo indirecto de HTP | **sin cambio** | ASE 2025, Tabla 1, folio 145 | — | 17/10/2026 |
+
+---
+
+## La tanda «VAL» (2026-10-17) — las VÁLVULAS NATIVAS alineadas a las guías
+
+> **Regla aplicada en toda la tanda:** si dos guías chocan manda la **más nueva**; si la más nueva
+> no trae ese dato, se usa la anterior. **Todo lo de abajo se leyó en el PDF original**, extrayendo
+> sólo las páginas necesarias, con su **tabla o figura, su folio IMPRESO y su hoja del PDF**.
+
+### Las cinco guías, con su regla de folio comprobada en el pie o el encabezado impreso
+
+| guía | archivo | regla de folio | comprobada en |
+|---|---|---|---|
+| **ESC/EACTS 2025** | `04_Valvulopatias/2025 ESC:EACTS Guidelines…pdf` (102 hojas) | folio = hoja **+ 4634** | hoja 38 → `4672` y hoja 54 → `4688`, los dos en el encabezado |
+| **EAE/ASE 2009** (Baumgartner) | `2009_Echo-Assessment-of-Valve-Stenosis…pdf` (23 hojas) | folio = **hoja** | hoja 10 → «10 Baumgartner et al» · hoja 19 → «Baumgartner et al 19» |
+| **ASE 2017** (Zoghbi) | `Zoghbi_2017_Regurgitacion_Valvular.pdf` (69 hojas) | folio = hoja **+ 302** | hoja 30 → `332` y hoja 38 → `340`, los dos en el encabezado |
+| **ASE 2023** (Pandian) | `ASE Enf Reumatica.pdf` (26 hojas) | folio = hoja **+ 2** | hoja 10 → `12` y hoja 14 → `16`, los dos en el encabezado |
+| **ACC/AHA 2020** (Otto) | `AHA 2020 Valvulopatias.pdf` (156 hojas) | folio = índice 0-based **+ 72** | hoja 50 → `e121`, en el pie impreso |
+
+⚠️ **LA ASE 2023 CODIFICA `≥` COMO `$` Y `≤` COMO `#`** en su texto extraído, así que sus operadores
+se leyeron **renderizando** la página. Lo mismo con las **Tablas 3 y 10 de la EAE/ASE 2009** y con
+las **Figuras 4 y 10 de la ESC/EACTS 2025**, que son **bitmaps**: el texto extraído devuelve sólo
+los símbolos sueltos.
+
+### Lo verificado, dato por dato
+
+**Estenosis tricuspídea**
+- **ESC/EACTS 2025, §12.2, folio 4688 (hoja 54)**, literal: «A mean diastolic transvalvular gradient
+  of **>5 mmHg** at a normal heart rate indicates severe TS».
+- **ASE 2023, folio 16 (hoja 14)**: «TS is considered to be severe if the mean gradient is **≥5
+  mmHg**, inflow VTI **≥60 cm**, PHT **≥190 ms**, and TVA **≤1 cm²**». Y en sus **Key Points** de la
+  misma página: «TS is hemodynamically significant with a mean gradient ≥5 mmHg, inflow VTI ≥60 cm,
+  and TVA ≤1 cm². **PHT ≥190 or 220 msec may be used, but this method is less reliable than in MS**»
+  — o sea que el THP queda **fuera** de su definición de significación.
+- **EAE/ASE 2009, Tabla 10, folio 19 (hoja 19)**, leída de la imagen: «Mean pressure gradient ≥5 mmHg
+  · Inflow time-velocity integral >60 cm · T½ ≥190 ms · Valve area by continuity equationᵃ ≤1 cm²».
+  Su **nota ᵃ**: «Stroke volume derived from left or right ventricular outflow. **In the presence of
+  more than mild TR, the derived valve area will be underestimated.** Nevertheless, a value ≤1 cm²
+  implies a significant haemodynamic burden imposed by the combined lesion». La prosa de esa misma
+  página lo repite: «as severity of TR increases, valve area is progressively underestimated».
+- ⚠️ **La ASE 2023 SÍ gradúa el área tricuspídea** («mild with a TVA >1.5 cm², and moderate with a
+  TVA 1-1.5 cm²») y esta app **no la gradúa**: la regla sigue siendo BINARIA por decisión de Maicol.
+
+**Estenosis aórtica — el AVA**
+- **EAE/ASE 2009, Tabla 3, folio 10 (hoja 10)**, leída de la imagen: fila «AVA (cm²)» → Mild **>1.5**
+  · Moderate **1.0–1.5** · Severe **<1.0**. (La misma tabla: jet velocity ≤2.5 / 2.6-2.9 / 3.0-4.0 /
+  >4.0; gradiente medio <20 / 20-40ᵇ / >40ᵇ, con la columna ESC de 2009 entre paréntesis; AVA
+  indexada >0.85 / 0.60-0.85 / <0.6; velocity ratio >0.50 / 0.25-0.50 / <0.25.)
+- **ESC/EACTS 2025, folio 4671 (hoja 37)**, nota ^c de la Recommendation Table 6: «Defined as an AVA
+  of **1.0–1.5 cm²** (or mean aortic gradient of 25–40 mmHg) in normal-flow conditions» — su
+  definición de estenosis aórtica MODERADA. La misma nota se repite en el **folio 4690 (hoja 56)**.
+- **ESC/EACTS 2025, folio 4670 (hoja 36)**: la severa es «mean gradient ≥40 mmHg, Vmax ≥4.0 m/s,
+  **AVA ≤1.0 cm²** (or ≤0.6 cm²/m² BSA)».
+- ⚠️ **LAS DOS SE CONTRADICEN EN EL BORDE DE 1,0**: la de 2009 escribe severa `<1.0` —o sea el 1,0
+  exacto sería moderada— y la de 2025 escribe `≤1.0`. **No se tocó**: la app aplica `≤ 1,0` → severa,
+  que es la guía más nueva y el lado que no suaviza. Declarado en `docs/PENDIENTES.md` → VAL-1.
+
+**Insuficiencia aórtica — la fracción regurgitante**
+- **ESC/EACTS 2025, Figura 4, folio 4659 (hoja 25)**, renderizada: recuadro «Criteria for severe AR»,
+  caja «Quantitative» → «EROA ≥30 mm² · RVol ≥60 mL/beat · **RF >50% (echo)**», y al lado
+  «RF >40% (CMR)». La caja «Semi-quantitative»: «Vena contracta >6 mm · PHT <200 ms · Large central
+  jet (≥65% of LVOT diameter) · Holodiastolic flow reversal in descending aorta (EDV ≥20 cm/s)».
+- **ASE 2017, Tabla 11, folio 340 (hoja 38)**: fila «RF (%)» → `<30` / `30-39` / `40-49` / **`≥50`**.
+- ⚠️ La diferencia alcanza a **un valor**, el 50 exacto, y gana la de 2025.
+
+**Insuficiencia mitral — la onda E**
+- **ASE 2017, Tabla 8, folio 332 (hoja 30)**: fila «Mitral inflow» → «A-wave dominant / Variable /
+  **E-wave dominant (>1.2 m/sec)**».
+- **ASE 2017, CUERPO del folio 330 (hoja 28)**: «E velocity is usually **≥1.2 m/sec**». ⚠️ Es una
+  **contradicción de la propia guía**, verificada glifo por glifo, y ya estaba declarada en el repo.
+- **ESC/EACTS 2025, Figura 10, folio 4672 (hoja 38)**, renderizada: caja «Semi-quantitative» de los
+  criterios de IM severa → «**E-wave dominant (>1.2 m/s)**». La desempata: dos documentos con `>`.
+
+**Insuficiencia mitral — el cociente VTI y el área del jet**
+- **ASE 2023, Key Points del folio 12 (hoja 10)**: «mitral to aortic valve VTI ratio (**>1.4**
+  suggests severe MR and <1 indicates mild MR **in the absence of moderate or severe aortic valve
+  regurgitation**)».
+- **ESC/EACTS 2025, Figura 10, folio 4672**: «VTI mitral / VTI LVOT **>1.4**», entre los
+  semicuantitativos, **sin** enunciar la condición de la IAo.
+- **ACC/AHA 2020, Tabla 17 «Stages of Chronic Primary MR», folio e121 (hoja 50)**, columna «Valve
+  Hemodynamics»: estadio A → «small central jet area **<20 % LA**»; estadio B (Progressive MR) →
+  «Central jet MR **20 %–40 % LA**»; estadios C y D (severa) → «Central jet MR **>40 % LA**».
+  ⚠️ **Publica ESTADIOS y no grados**, y la app los mapea a leve / moderada / severa.
+- **ASE 2017, Tabla 8, folio 332**: «Color flow jet area … Large central jet (**>50 % of LA**)» —
+  esa guía **no** escribe el 20 ni el 40, que es lo que el repo ya tenía declarado.
+
+### Lo que NO se pudo verificar, con el motivo
+
+- **El VTI del reverso en aorta descendente (15 / 25 cm)** de la IAo: la orden lo deja afuera y su
+  fuente sigue pendiente. No se tocó.
+- **El piso de 9 mmHg de la estenosis pulmonar** y el **área mitral por continuidad en fibrilación
+  auricular**: fuera del alcance de esta orden. No se tocaron.
+
+### Cambios de evidencia
+
+| dato | valor antes | valor ahora | fuente | commit | fecha |
+|---|---|---|---|---|---|
+| ET — gradiente medio | `≥ 5` mmHg | **`> 5`** mmHg | ESC/EACTS 2025, §12.2, folio 4688 | VAL1 | 17/10/2026 |
+| ET — THP | criterio que VOTA (`≥ 190` ms) | **signo de apoyo**, no decide; mismo corte | ASE 2023, Key Points, folio 16 | VAL1 | 17/10/2026 |
+| ET — área valvular | `≤ 1` cm² | **sin cambio** | EAE/ASE 2009, Tabla 10, folio 19 | — | 17/10/2026 |
+| ET — VTI de entrada | `≥ 60` cm | **sin cambio** | ASE 2023, folio 16 | — | 17/10/2026 |
+| ET — criterio que decide | no se nombraba | se nombra: área → gradiente → VTI | criterio de EcoSmart (decisión de Maicol) | VAL1 | 17/10/2026 |
+| ET — aviso con IT > leve | no existía | el área por continuidad queda subestimada | EAE/ASE 2009, Tabla 10, nota ᵃ, folio 19 | VAL1 | 17/10/2026 |
+| ET — cita del cuadro | «ESC/EACTS 2021» | «ESC/EACTS 2025» | la 2021 no tiene entrada en este registro | VAL1 | 17/10/2026 |
+| EAo — AVA, techo de moderada | `< 1,5` cm² | **`≤ 1,5`** cm² | EAE/ASE 2009 Tabla 3 folio 10 · ESC/EACTS 2025 folio 4671 | VAL2 | 17/10/2026 |
+| EAo — AVA, borde de severa | `≤ 1,0` cm² | **sin cambio** (las dos guías se contradicen) | ESC/EACTS 2025, folio 4670 | — | 17/10/2026 |
+| IAo — fracción regurgitante | `≥ 50` % | **`> 50`** % | ESC/EACTS 2025, Figura 4, folio 4659 | VAL3 | 17/10/2026 |
+| IM — onda E (apoyo) | `≥ 120` cm/s | **`> 120`** cm/s | ASE 2017 Tabla 8 folio 332 · ESC/EACTS 2025 Figura 10 folio 4672 | VAL4 | 17/10/2026 |
+| IM — cociente VTI, compuerta | se retira con IAo **severa** | se retira desde IAo **moderada** | ASE 2023, Key Points, folio 12 | VAL5 | 17/10/2026 |
+| IM — jet/AI (20 y 40 %) | declarado «sin fuente» | **ACC/AHA 2020, Tabla 17, folio e121**; el número NO cambia | ACC/AHA 2020 (Otto), hoja 50 | VAL6 | 17/10/2026 |

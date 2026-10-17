@@ -200,3 +200,52 @@ cada parámetro donde antes medía un corte.
 ⚠️ **Y DOS CASOS CAZARON DEFECTOS REALES QUE LA LECTURA NO VIO:** TC-457 encontró las dos
 constantes derivadas con la banda equivocada, y TC-482 que la vista 2D había dejado de agrandar
 las dos cámaras derechas.
+
+---
+
+## TC-495 — la tanda «VAL» (2026-10-17)
+
+**Qué afirma.** Los cinco parámetros de válvula nativa que la tanda alineó a las guías, cada uno
+por su **borde EXACTO** con un valor por debajo y uno por encima, y las dos cosas de texto.
+
+**53 condiciones**, con **tres denominadores** y **nueve controles negativos**.
+**Verificado que sabe fallar contra el inicio de la tanda en un worktree aparte: 29 de las 53 en
+rojo, y NINGUNA por excepción.** Las 24 que pasan son lo que esta tanda NO mueve —los cortes del
+área y del VTI de entrada de la ET, el borde de 1,0 del AVA, el `>1,4` del cociente, los números
+del jet/AI, el Excel en 440 columnas y las ocho lesiones—, que es justamente lo que había que
+demostrar.
+
+### Los denominadores
+1. `ET_CRIT` trae los cuatro criterios con su nombre corto, y el **THP es el único** con
+   `apoyo: true`; los operadores y los cuatro valores son los que se declaran.
+2. `AVA_MOD_MAX` existe y `EA_BANDAS.avaSinMin` **se deriva** de él: no hay dos copias del 1,5.
+3. Las escenas del AVA y de la FR **producen el número que dicen producir** (`1.49` / `1.50` /
+   `1.51` y `49%` / `50%` / `51%`). Sin esto, un corte que no se alcanza pasa por un corte que no
+   se movió.
+
+### Los nueve controles negativos
+- El THP distingue sus dos lados (`cThp`) y **aun así no decide** — se muestra y no vota.
+- Con el THP como **único** dato el grado calculado es **nulo**, no «No significativa».
+- Con IT severa pero **sin área** por continuidad el aviso **no** sale.
+- El borde de **1,0** del AVA no se movió (1,00 severa · 1,01 moderada) y las bandas no se solapan
+  en ninguno de los nueve valores probados.
+- La **onda E sigue sin votar**: `im_grado` es el mismo en 119, 120 y 121.
+- El **corte del cociente VTI no se movió**: sin IAo sigue publicando el `>1,4`.
+- Los **números del jet/AI** no se movieron (20 y 40, con el 40 inclusive en moderada).
+- Con **prótesis** mitral el cociente conserva su `≥2,5` y su retiro desde la IAo moderada.
+- La frase de integración **no** aparece en el informe, en el EN SUMA ni en la pestaña Válvulas, y
+  aparece **una sola vez** en todo el documento.
+
+### Trampas que este caso pagó al escribirse
+1. **`sinArea` dejaba el VTI de entrada cargado**, así que la escena «el THP solo» tenía un segundo
+   insumo en banda y el grado calculado existía: el control negativo medía otra cosa.
+2. **`_labValvBin` devuelve un objeto indexado por VÁLVULA**: tomar la primera clave da la MITRAL
+   (índice 1) y no la tricúspide (índice 5).
+3. **`ET_SIGNIF_TXT` era un `const` de módulo**: preguntando por `window.ET_SIGNIF_TXT` la lectura
+   caía por el camino de legado y la condición pasaba por una razón equivocada. Se exportó.
+4. **El globo ⓘ del jet/AI mide 0×0** con su pestaña y su cajón cerrados, y una tarjeta que no se
+   ancla devuelve el texto de la anterior. Se abren los tres pasos antes de tocarlo.
+5. **El Ø del TSVI de la escena del AVA va en 19 mm y no en 20**: con 20 el DVI vota moderada por
+   su cuenta y los dos lados del borde de 1,5 dan «moderada» sobre un corte que sí se movió.
+6. **Las unidades del PISA aórtico son las de su banda** (radio en mm, Valiasing en cm/s, Vmax en
+   m/s): fuera de banda la FR no se calcula y los tres bordes salen iguales.

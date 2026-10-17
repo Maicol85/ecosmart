@@ -272,6 +272,225 @@ impecable.
 
 ## Estado vigente
 
+### Las VÁLVULAS NATIVAS alineadas a las guías — «VAL» (2026-10-17)
+
+- **Son SIETE commits.** Al **empezar**, `main` y `origin/main` estaban los dos en **`d7c48e9`**
+  (sello `v20261017-0910`), **sin nada sin pushear** —confirmado con un `git fetch` de verdad, con
+  el `FETCH_HEAD` fechado al momento—, con los siete commits del VS ya incluidos **y pusheados**.
+  Los **siete** commits de esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 7 → 6 → … → 1.**
+  ⚠️ **LOS SEIS PRIMEROS NO SE NOMBRAN ENTRE SÍ Y SE REVIERTEN EN CUALQUIER ORDEN**, que en esta
+  serie es raro y conviene decirlo: el 1 vive en `ET_CRIT`, `etEstado`, `etRefPintar`, `calcET`,
+  `etItAvisoSync` y el bloque de la tricúspide de `generarInforme`; el 2 en `AVA_MOD_MAX`,
+  `avaEsModerada`, `EA_BANDAS` y los seis rótulos del AVA; el 3 en **tres líneas** de
+  `calcIA_ESC`; el 4 en `UMBRAL_ONDA_E_APOYO_IM` e `imOndaEPintar`; el 5 en
+  `IM_RATIO_IA_MAX_NAT` y las tres superficies que describían la divergencia; el 6 en la cita del
+  jet/AI y en `#ref-integracion`. **Ninguno nombra una pieza de otro.**
+  ⚠️ **PERO EL 1 LLEVA LA SONDA** (`scripts/_probe_val.mjs`), que los cinco siguientes usan.
+  **El 7 es TC-495 más las QUINCE adaptaciones, la documentación y el sello**, y afirma el
+  comportamiento de los seis: revertir cualquiera sin el 7 lo deja en rojo.
+  ⚠️ **Y EL 7 LLEVA ADEMÁS DOS LÍNEAS DE `index.html`**: el export de `ET_SIGNIF_TXT` y
+  `ET_NOSIGNIF_TXT`, que sin él dejaba una condición de TC-495 midiendo `undefined` y pasando por
+  el camino de legado — un falso plausible.
+  ⚠️ **CASOS ADAPTADOS: QUINCE** —TC-137, TC-141, TC-261, TC-285, TC-292, TC-298, TC-311, TC-326,
+  TC-416, TC-417, TC-429, TC-464, TC-473, TC-479 y TC-484—, cada uno con el motivo escrito en el
+  propio caso. **Ninguno estaba mal escrito: los quince describían la app de ayer.** Cuatro ganan
+  cobertura (TC-137, TC-141, TC-261 y TC-479 pasan de dos valores de borde a TRES).
+  ⚠️ **DOS DE LOS QUINCE LOS DESTAPÓ LA SUITE COMPLETA Y NINGUNA CORRIDA DE ZONA PODÍA VERLOS**:
+  **TC-292** —que exigía que las cascadas de la FR de la MITRAL y de la AÓRTICA cortaran IGUAL, y
+  desde VAL3 son dos válvulas con dos documentos— y **TC-326**, cuya nota del panel de Evidencia
+  describía la divergencia del cociente VTI. Es la **décima** tanda seguida en que pasa.
+
+- **Línea base al cierre: suite 505/509 con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0
+  ERROR, Excel en 440 columnas, celular 52 a 360 px y 61 a 390 px con 10 ALTA cada uno —IDÉNTICO
+  a la línea base del VS—. CERO REGRESIONES.** Los **CUATRO** rojos son exactamente los de
+  ENTRADA —**TC-223** (el documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**— y
+  no apareció ninguno fuera de esa lista. **El denominador sube a 509**: esta tanda agregó
+  **TC-495**.
+  ⚠️ **LA SUITE COMPLETA SE CORRIÓ DOS VECES Y LA PRIMERA NO ES LA LÍNEA BASE.** Dio **503/509**
+  con SEIS rojos, y los dos de más son TC-292 y TC-326, los que la zona no podía ver. Se
+  adaptaron y la segunda corrida es la que vale.
+  ⚠️ **EL PENDRIVE ESTUVO MONTADO EN LAS DOS CORRIDAS, verificado antes y después**, y el `md5` de
+  `index.html` no se movió durante ninguna (`547174ed…`, el del sello). Los **diecisiete** de
+  **TC-181…TC-197** salieron VERDES, que es la prueba. `ls /Volumes/DISK_IMG` ANTES de comparar
+  dos cifras.
+  **La de ENTRADA es la que el VS dejó medida HOY MISMO en esta máquina y con el pendrive puesto:
+  504/508, con esos mismos cuatro rojos.** La comparación es 504/508 → 505/509 y el delta es el
+  caso nuevo. No se volvió a medir en un worktree: lo que sí se midió ahí fueron los **catorce**
+  casos de la zona, que dieron exactamente **TC-376** (rojo de entrada) y **TC-137** (el inestable
+  documentado) — o sea que ninguno de los otros doce estaba rojo antes de esta tanda.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **509 ids** sobre los 510 casos del archivo.
+- **EL SELLO DE VERSIÓN** estaba al día al empezar (`v20261017-0910`) y se volvió a sellar:
+  **`v20261017-1125`**. Todo lo medido salió **DESPUÉS** de sellar, con el `md5` quieto; lo único
+  que se tocó después fueron las quince adaptaciones y TC-495, que viven en
+  `scripts/test_clinico.mjs` y no en `index.html`.
+- **`index.html` pasó de 8,02 MB / 120.796 líneas a 8,03 MB / 121.028 líneas.**
+
+- **Dónde está todo:** `docs/mapa/valvulas-val.md` (**mapa NUEVO**, 11,6 KB: la tabla de los cinco
+  cortes con su folio, el dueño de la ET con sus tres piezas nuevas, el techo del AVA, la FR, la
+  onda E y el cociente, las dos cosas de texto y siete trampas); cinco mapas con un puntero cada
+  uno (`valvulas` 31,3 KB · `aortica-cortes` 30,7 · `valvulas-mitral-pantalla` 22,5 ·
+  `vista-2d-valvulas` 31,0 · `laboratorio-asociaciones-valvulas` 14,9);
+  `docs/mapa/tests-fichas.md` → la ficha de TC-495 (**20,6 KB**); `docs/fuentes/FUENTES.md` → «La
+  tanda VAL», con las **cinco** guías y su regla de folio comprobada, los datos verificados uno
+  por uno, la contradicción del AVA en 1,0 y la tabla de **Cambios de evidencia**; y
+  `docs/PENDIENTES.md` → **ocho** cosas declaradas (VAL-1 a VAL-8).
+  ⚠️ **NINGÚN MAPA CRUZÓ EL TECHO, medido con `wc -c` ANTES de escribir**: el contenido salió a un
+  archivo propio y a los cinco mapas de la zona les entró un puntero de veinte líneas.
+  ⚠️ **`panel-evidencia.md` NO SE TOCÓ A PROPÓSITO:** está en **35,3 KB**, o sea YA cruzado desde
+  el 2026-10-12. La nota del panel sobre el cociente VTI se reescribió en `index.html` y lo que la
+  documenta vive en el mapa nuevo. `PENDIENTES.md` → VAL-8.
+
+- **VAL0 · LA REGLA QUE GOBIERNA LA TANDA, Y LAS CINCO GUÍAS CON SU FOLIO COMPROBADO.** Si dos
+  guías chocan manda la **más nueva**; si la más nueva no trae el dato, la anterior. Las reglas de
+  folio se comprobaron en el pie o el encabezado IMPRESO, no por aritmética: **ESC/EACTS 2025**
+  folio = hoja + 4634 · **EAE/ASE 2009** folio = hoja · **ASE 2017** folio = hoja + 302 ·
+  **ASE 2023** folio = hoja + 2 · **ACC/AHA 2020** folio = índice 0-based + 72.
+  ⚠️ **CUATRO DOCUMENTOS HUBO QUE RENDERIZARLOS**: la ASE 2023 codifica `≥` como `$` y `≤` como
+  `#`; las Tablas 3 y 10 de la EAE/ASE 2009 y las Figuras 4 y 10 de la ESC/EACTS 2025 son
+  **bitmaps** y el texto extraído devuelve los símbolos sueltos.
+
+- **VAL1 · LA ESTENOSIS TRICUSPÍDEA: TRES CRITERIOS QUE DECIDEN Y UNO QUE APOYA.** El gradiente
+  medio pasa a **`> 5` ESTRICTO** (ESC/EACTS 2025, §12.2, folio 4688: «a mean diastolic
+  transvalvular gradient of **>5 mmHg** … indicates severe TS»), y el **THP sale del veredicto**:
+  es un signo de APOYO, se muestra y no decide. Lo respalda la guía más nueva de las dos que lo
+  publican —los **Key Points del folio 16 de la ASE 2023** definen la ET significativa con
+  «mean gradient ≥5 mmHg, inflow VTI ≥60 cm, and TVA ≤1 cm²», **sin** el THP, y agregan que ese
+  método «is less reliable than in MS»—. **El corte del THP y el del área NO se movieron.**
+  **ESCENAS QUE CAMBIAN DE VEREDICTO: SEIS sobre 36**, medidas con teclas reales en la tabla
+  completa área × gradiente × VTI × THP — cuatro por el operador del gradiente y dos porque el
+  THP dejó de votar. Las otras treinta conservan su grado.
+  ⚠️ **EL VEREDICTO NOMBRA EL CRITERIO QUE DECIDE**, con la precedencia **área → gradiente → VTI**:
+  el badge dice «Significativa — por área valvular» y el informe «(por área valvular 0.80 cm²;
+  gradiente medio 8 mmHg)». Es un **desempate de presentación**, no de cálculo — el veredicto
+  sigue siendo un OR.
+  ⚠️ **LA TARJETA DE LA VISTA 2D GANA SU LÍNEA «Decide» SIN MECANISMO NUEVO**: el badge publica el
+  mismo sufijo «— por X» que la aórtica, así que el `decideModo: 'sufijo'` que ya existía lo lee.
+  **Cambiar el formato del badge la deja sin esa línea y nada lo señala.**
+  ⚠️ **EL THP SOLO YA NO PRODUCE GRADO CALCULADO** (`null`, no «No significativa»): afirmar sobre
+  un signo de apoyo sería publicar un veredicto que la regla nueva no sostiene.
+  **Aviso NUEVO, de texto, que no mueve ningún veredicto:** con insuficiencia tricuspídea **mayor
+  que leve** el área por continuidad queda **subestimada** (nota ᵃ de la Tabla 10 de la EAE/ASE
+  2009, folio 19, leída renderizando). Color **`--orange`**, medido `rgb(245,158,66)` de noche y
+  `rgb(217,123,31)` de día ⚠️ **y no `--amber`, que fuera de `.amilo-root` se ve GRIS** — la
+  trampa que este archivo ya pagó cinco veces. Lleva las **tres columnas** y un **oyente de
+  documento** sobre `#it_grado`, el mismo que `vdTeiAvisoSync` ya necesitó para ese campo.
+  **La cita del cuadro pasa de «ESC/EACTS 2021» a 2025**, y el Laboratorio compara contra el
+  **token del dueño** (`ET_SIGNIF_TXT`) y no contra un literal.
+
+- **VAL2 · EL AVA AÓRTICO DE 1,50 EXACTO ES MODERADA, Y CAMBIA UNA SOLA ESCENA.** Las dos guías
+  verificadas escriben el rango con guión —**EAE/ASE 2009, Tabla 3, folio 10**: «Moderate
+  **1.0–1.5**»; **ESC/EACTS 2025, folio 4671**, nota ^c: «an AVA of **1.0–1.5 cm²**»— o sea con
+  los dos extremos incluidos. Entra **`AVA_MOD_MAX`**, del que se **deriva** `EA_BANDAS.avaSinMin`.
+  **Medido por sus seis bordes: cambia SÓLO el 1,50**, de «Sin estenosis / leve» a «Moderada —
+  por AVA», con el informe y el EN SUMA siguiéndolo.
+  ⚠️ **SE MUEVEN CON ÉL SEIS RÓTULOS**, incluidas **las DOS referencias impresas del PDF**, que
+  decían «>1.0–1.49» en un papel FIRMADO.
+  ⚠️ **EL BORDE DE 1,0 SE VERIFICÓ Y NO SE TOCÓ**: ahí las dos guías se contradicen —2009 escribe
+  severa `<1.0` y 2025 `≤1.0`— y la app aplica el de la más nueva, que es además el que no
+  suaviza. `PENDIENTES.md` → VAL-1.
+  ⚠️ **EL AVA POR PLANIMETRÍA SE MUEVE CON ESTO Y ES CORRECTO**: `_eaCritPlan` usa el MISMO
+  predicado. Es la banda del ÁREA, no la del método.
+  ⚠️ **AL MEDIR ESE BORDE HAY QUE APAGAR EL DVI**, y es una trampa que costó una corrida: el DVI
+  es `AVA / área del TSVI`, así que con un Ø TSVI de 20 mm un AVA de 1,5 da un DVI de 0,477 y el
+  DVI vota moderada **por su cuenta** — los dos lados del borde salen «moderada» sobre un corte
+  que SÍ se movió. Con Ø 19 mm el DVI queda en 0,53 y se abstiene.
+
+- **VAL3 · LA FRACCIÓN REGURGITANTE AÓRTICA ES SEVERA CON MÁS DE 50 %.** **ESC/EACTS 2025,
+  Figura 4, folio 4659**, renderizada: «**RF >50% (echo)**». La **ASE 2017, Tabla 11, folio 340**
+  escribe `≥50`, y la diferencia alcanza a un valor. **Medido por sus tres bordes: cambia SÓLO el
+  50 exacto**, de `ia_grado` 4 a 2, con el EN SUMA pasando de «IAo severa.» a «IAo moderada.».
+  El tramo de moderada es el **complemento exacto** (`30 ≤ fr ≤ 50`): con `< 50` arriba y `> 50`
+  abajo el 50 no caería en ninguna y el parámetro dejaría de votar en silencio.
+  ⚠️ **LAS UNIDADES DE LOS CAMPOS DEL PISA AÓRTICO SON LAS DE SU BANDA** —radio en mm, Valiasing
+  en cm/s, Vmax CW en m/s, VTI del jet en cm—: con el radio o la Vmax fuera de banda la FR **no se
+  calcula** y los tres bordes salen idénticos en los dos árboles, un denominador vacío con pinta
+  de «el corte no se movió». La primera versión de esa escena lo tenía mal.
+
+- **VAL4 · LA ONDA E MITRAL APOYA CON MÁS DE 120 cm/s, Y SIGUE SIN VOTAR.** La **ASE 2017 se
+  contradice consigo misma** y las dos mitades están impresas —cuerpo del folio 330 «usually
+  ≥1.2 m/sec» contra **Tabla 8, folio 332**, «(>1.2 m/sec)»— y la desempata la **ESC/EACTS 2025,
+  Figura 10, folio 4672**, que escribe `>`. **Medido: cambia SÓLO el 120 exacto**, y `im_grado`
+  vale lo mismo en los tres valores, que es la comprobación de que el parámetro no gradúa.
+
+- **VAL5 · EL COCIENTE VTI MITRAL/TSVI SE RETIRA DESDE LA IAo MODERADA — SE CIERRA LA
+  DIVERGENCIA.** La **ASE 2023, Key Points del folio 12**: «>1.4 suggests severe MR … **in the
+  absence of moderate or severe aortic valve regurgitation**». `IM_RATIO_IA_MAX_NAT` pasa de 4 a
+  **2**, así que los dos regímenes —nativo y protésico— se retiran desde la moderada.
+  **Medido: cambian DOS de cinco escenas**, las de IAo moderada y moderada-severa, que pasan de
+  publicar el número con su salvedad a «—». La fila no vota, así que el grado, el informe y el EN
+  SUMA no se mueven en ninguna.
+  ⚠️ **CON ESO QUEDARON INALCANZABLES `IM_RATIO_IA_MOD_MIN` Y `IM_RATIO_IA_MOD_TXT`, y se fueron**:
+  una cadena viva sin consumidores es la que la próxima lectura cree que gobierna algo. Y se
+  reescribieron las **TRES** superficies que describían la divergencia —la nota del panel de
+  Evidencia, la fila de «Salvedades» y el manual—, porque una nota que describe una regla derogada
+  es peor que ninguna. **Es la TERCERA vez que este bloque se da vuelta** (28/09 → 30/09 → hoy).
+
+- **VAL6 · LA CITA DEL JET/AI Y EL TEXTO DE INTEGRACIÓN.** Los cortes nativos 20/40 figuraban como
+  «sin fuente» y **la tienen**: **ACC/AHA 2020, Tabla 17 «Stages of Chronic Primary MR», folio
+  e121** —estadio A `<20 % LA`, estadio B `20 %–40 % LA`, estadios C-D `>40 % LA`—. **Ningún
+  número cambió**; lo que se corrigió es el rótulo en las tres superficies que lo publicaban. La
+  mitad que seguía siendo cierta es que **no son de la ASE 2017**, que publica `>50 %`.
+  ⚠️ **ESA TABLA PUBLICA ESTADIOS Y NO GRADOS**, y la app los mapea a los suyos. `PENDIENTES.md`
+  → VAL-6.
+  **El texto general de integración** va **SÓLO** al final de la sección de válvulas nativas de la
+  pestaña Referencias (`#ref-integracion`), en letra chica, con `--text2` —medido
+  `rgb(154,163,188)` de noche y `rgb(91,100,120)` de día—. Es marcado **estático**. **Medido: no
+  aparece en el informe, en el EN SUMA ni en la pestaña Válvulas, y aparece UNA sola vez en todo
+  el documento.**
+
+- **A/B DEDICADO CONTRA EL INICIO DE LA TANDA, con el PDF, el PPT y el PDF de auditoría GENERADOS
+  DE VERDAD.** Con el **formulario vacío las SEIS plantillas del PDF salen IDÉNTICAS** —mismo
+  `nTextos`, mismo `nFigs` y los mismos textos—; el **PPT estadístico** da 21 textos en los dos
+  árboles y el **PDF de auditoría** 104, con **cero** textos distintos. Con escenario cargado, las
+  diferencias de las seis plantillas son **sólo tres y las tres autorizadas**: la referencia
+  impresa del AVA, la frase de la tricúspide y —⚠️ **consecuencia buscada**— la **desaparición del
+  párrafo de discrepancia** «El grado de estenosis aórtica consignado (moderada) no coincide con
+  las mediciones del estudio (AVA 1.50 cm²…)», porque desde VAL2 el grado consignado y el
+  calculado **coinciden**: el papel dejó de contradecirse a sí mismo.
+  **Excel en 440 columnas CLAVE POR CLAVE con CERO valores distintos**, con el formulario vacío y
+  con escenario cargado, en los seis commits.
+
+- **MEDIDO EN LOS DOS MOTORES, 24 CELDAS** —Chrome 155 y **WebKit 27.2**, seis viewports × dos
+  temas—: el badge publica el mismo texto en las 24, el aviso **no** sale sin insuficiencia
+  tricuspídea y **sí** con ella severa, los cuatro colores resuelven **reales y distintos** en los
+  dos temas, el texto de integración entra entero en el viewport y hay **cero scroll horizontal**
+  en Válvulas y en Referencias, en las 24. **Cero abortos.** Capturas en los dos motores y los dos
+  temas, miradas: los acentos salen completos y el cuadro de la ET se lee entero.
+  ⚠️ **WebKit de Playwright NO es Safari, y se declara.**
+
+- **Arneses: `scripts/_probe_val.mjs`** (CDP, teclas y clics reales; nueve grupos: `et`, `etaviso`,
+  `ava`, `fra`, `onda`, `vti`, `refs`, `pdf`, `ctrl`) y **`scripts/_probe_valwk.mjs`**
+  (Playwright, los DOS motores, con las capturas).
+  **Cobertura: TC-495**, **53 condiciones** con tres denominadores y nueve controles negativos.
+  **Verificado que sabe fallar contra el árbol de entrada en un worktree aparte: 29 de las 53 en
+  rojo, y NINGUNA por excepción.**
+
+- ⚠️ **SIETE TRAMPAS, Y CUATRO DABAN FALSOS PLAUSIBLES.**
+  1. **EL DVI TAPA EL BORDE DEL AVA** (arriba): los dos lados dan «moderada» y el corte parece no
+     haberse movido.
+  2. **LAS UNIDADES DEL PISA AÓRTICO**: fuera de banda la FR no se calcula y la escena mide un
+     denominador vacío.
+  3. **`_labValvBin` DEVUELVE UN OBJETO INDEXADO POR VÁLVULA**: tomar `Object.keys(b)[0]` da la
+     **MITRAL** (índice 1) y no la tricúspide (índice 5) — la sonda informó `base=0` sobre una
+     lectura perfecta.
+  4. **`VINFO` Y `ET_SIGNIF_TXT` SON `const` DE MÓDULO Y NO PROPIEDADES DE `window`**: la cita de
+     una tarjeta se lee **abriendo el globo real**, y el token hubo que exportarlo.
+  5. **EL `\s` DENTRO DEL TEMPLATE DE UNA SONDA SE COCINA A LA LETRA `s`** y borra todas las eses:
+     «Las guías piden integrar varios parámetros» salió «La guía piden integrar vario parámetro».
+     Va con **doble barra en el ARCHIVO**. Pasó **dos veces**.
+  6. **LOS INSUMOS DEL ÁREA TRICUSPÍDEA VIVEN EN LA PESTAÑA VD**: sin abrirla el tecleo no ocurre.
+     La sonda **aborta** nombrando el campo, que es lo correcto; la primera corrida informó las
+     cuatro escenas abortadas.
+  7. **UN RECORTE DE CAPTURA SOBRE EL NODO EQUIVOCADO SALE PLAUSIBLE**: el PNG del cuadro de la ET
+     salió con la **botonera de la app** y se ve perfectamente bien. Se recorta sobre el
+     `.calc-box` que contiene al badge, medido DESPUÉS de desplazar.
+- ⚠️ **Me comí el acento grave NUEVE veces**, todas en comentarios míos dentro del cuerpo de un
+  caso o del template de una sonda. `scripts/check_backticks.py` dio la línea exacta las nueve
+  mientras `node --check` apuntaba a la apertura del template, cientos de líneas antes.
+
 ### El VD, la AD, la VCI y la RAÍZ AÓRTICA a la Tabla 1 de la ASE 2025 — «VS» (2026-10-17)
 
 - **Son SIETE commits.** Al **empezar**, `main` y `origin/main` estaban los dos en **`c111a52`**
