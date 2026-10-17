@@ -13545,7 +13545,7 @@ z
           </select></div>
       </div>
       <div class="grid-2" id="ete-tavi-veltele-wrap" style="margin-top:6px;display:none;">
-        <div class="fg"><label>Velocidad tele-diastólica aorta abdominal (cm/s)</label>
+        <div class="fg"><label>Velocidad tele-diastólica aorta descendente (cm/s)</label>
           <input type="number" id="ete_tavi_vel_tele" step="1" placeholder="cm/s" oninput="eteTaviSync()"></div>
       </div>
 
@@ -21177,9 +21177,17 @@ const AVA_MOD_MAX = 1.5;      // 1.0 < AVA ≤ 1.5 → moderada;  AVA > 1.5 → 
    `_sevManualRestaurar()` no lo frena: ningún estudio anterior trae la marca `esqSevManual`.
    ⚠️ EL LITERAL 20 EXISTE EN UN SEGUNDO SITIO y NO deriva de esta constante: `holoSevero` del
    módulo TAVI (`velT >= 20`, regurgitación paravalvular) usa el mismo número para el mismo criterio
-   físico. No se unificaron porque no son el mismo territorio —acá «Ao desc.», allá aorta abdominal—
-   ni la misma fuente —ESC/EACTS 2025 contra la VARC-3—, y fundirlos es decisión clínica de
+   físico. No se unificaron porque no es la misma fuente —ESC/EACTS 2025 contra la VARC-3— ni el
+   mismo régimen de válvula —acá nativa y SAVR, allá TAVI—, y fundirlos es decisión clínica de
    Maicol, no una refactorización. Se declara para que mover ESTE número no deje aquél atrás.
+   ⚠️ **Y EL TERRITORIO SÍ ES EL MISMO, QUE ES LO QUE ESTE PÁRRAFO DECÍA AL REVÉS** (PRO-B2,
+   2026-10-17). Decía «no son el mismo territorio —acá "Ao desc.", allá aorta abdominal—», y era
+   el RÓTULO del campo del módulo TAVI el que estaba mal: la ASE 2024 (Tabla 8, folio 23) escribe
+   «Diastolic flow reversal in the **descending aorta**» y la VARC-3 (Tabla 16, folio 1846)
+   «proximal **descending** aorta». Las dos guías hablan de la aorta DESCENDENTE, el `<select>`
+   hermano de ese campo ya decía «Ao desc.» y el informe ya imprimía «aorta descendente»: el
+   rótulo del campo era la única superficie desalineada y pasó a decir «aorta descendente».
+   Lo que NO cambió es ningún corte ni ningún cálculo.
    ⚠️ DESDE EL 2026-10-17 (PRO3) LOS DOS NÚMEROS YA NO COINCIDEN: el del módulo TAVI pasó a dos
    niveles —moderada de 20 a <30 cm/s y severa con ≥30— por la VARC-3, Tabla 16, folio 1846, que
    es la única fuente que publica cifras para ese parámetro (la ASE 2024 escribe «prominent,
