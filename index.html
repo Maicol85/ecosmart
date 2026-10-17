@@ -9552,6 +9552,19 @@ window.cerrarSesionReal = cerrarSesionReal;
           <div style="font-size:13px;color:var(--accent2);font-weight:700;">Bull's Eye · Strain (17 segmentos)</div>
           <svg viewBox="0 0 320 320" id="sgl-svg-bullseye" style="width:280px;max-width:100%;"></svg>
           <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+              <!-- ⚠️ EL ESTADO ES UN CAMPO DEL ESTUDIO Y NO UNA PREFERENCIA GLOBAL (CORTOS9,
+                   2026-10-17), y cierra la mitad de `K-3`. Era la clave `sgl_incluir_pdf` de
+                   `localStorage`: una preferencia que sobrevivia a «Nuevo estudio» —por eso el
+                   boton aparecia prendido solo al encadenar estudios— y que no viajaba con el
+                   estudio, asi que el reimpreso podia salir distinto del original.
+                   Es el patron exacto de `contr_be_pdf` (K1): un `input[type=hidden]` con guion
+                   BAJO entra al recolector de `guardarInforme`, `_noEsDelEstudio` no lo excluye,
+                   la reimpresion lo repone y las rutas de restauracion lo VACIAN cuando la clave
+                   no esta —asi que un estudio anterior abre APAGADO sin migrar nada—. NO agrega
+                   ninguna columna al Excel, que exporta por `LAB_XLS_MAP`.
+                   El barrido de `limpiarCampos` toma text y number, asi que no lo alcanza: lo
+                   vacia y lo repinta esa misma funcion. -->
+              <input type="hidden" id="sgl_be_pdf" value="">
             <button class="btn btn-ghost" id="sgl-pdf-toggle" onclick="toggleSglPDF()">📄 Incluir en PDF</button>
             <button class="btn btn-ghost" onclick="sglReset()">🧹 Limpiar</button>
           </div>
@@ -13084,6 +13097,19 @@ z
       <input type="hidden" id="ete_seg_P1" data-espejo><input type="hidden" id="ete_seg_P2" data-espejo><input type="hidden" id="ete_seg_P3" data-espejo>
       <div style="text-align:center;margin-top:10px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
         <button class="btn btn-ghost" onclick="eteLimpiarSegmentos()">🧹 Limpiar</button>
+              <!-- ⚠️ EL ESTADO ES UN CAMPO DEL ESTUDIO Y NO UNA PREFERENCIA GLOBAL (CORTOS9,
+                   2026-10-17), y cierra la mitad de `K-3`. Era la clave `mitral_qx_incluir_pdf` de
+                   `localStorage`: una preferencia que sobrevivia a «Nuevo estudio» —por eso el
+                   boton aparecia prendido solo al encadenar estudios— y que no viajaba con el
+                   estudio, asi que el reimpreso podia salir distinto del original.
+                   Es el patron exacto de `contr_be_pdf` (K1): un `input[type=hidden]` con guion
+                   BAJO entra al recolector de `guardarInforme`, `_noEsDelEstudio` no lo excluye,
+                   la reimpresion lo repone y las rutas de restauracion lo VACIAN cuando la clave
+                   no esta —asi que un estudio anterior abre APAGADO sin migrar nada—. NO agrega
+                   ninguna columna al Excel, que exporta por `LAB_XLS_MAP`.
+                   El barrido de `limpiarCampos` toma text y number, asi que no lo alcanza: lo
+                   vacia y lo repinta esa misma funcion. -->
+              <input type="hidden" id="ete_qx_pdf" value="">
         <button class="btn btn-ghost" id="ete-qx-pdf" onclick="eteQxIncluirPDF()">📄 Incluir en PDF</button>
         <!-- ⚠️ SÓLO CON VÁLVULA MITRAL NATIVA. Con una prótesis el botón no existe y el panel
              abierto se cierra: el modelo dibuja valvas, festones y un orificio de válvula nativa,
@@ -52171,7 +52197,7 @@ function RECALC_MODULOS() {
      automaticos con el «requiere …» del formulario vacio al lado de un VDFVI y una FEVI ya
      poblados. No puede migrar nada: no escribe ningun campo del estudio, los dos nodos que
      toca son `vauto-` y el tercero un `<div>` de texto. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','m3dBotonSync','contrPdfSync','v2dCerrar','aiviSexoSync'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','v2dCerrar','aiviSexoSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -52680,7 +52706,10 @@ function limpiarCampos(silencioso) {
      localStorage y el script de arranque la restaura en la próxima carga: la técnica del
      paciente anterior reaparecía sola al recargar. Es la misma fuga entre pacientes que ya
      tuvieron los segmentos del ETE. */
-  ['mitral_qx_incluir_pdf','ete_tecnica_incluir','ete_morfo_incluir','ete_tecnica_texto']
+  /* `mitral_qx_incluir_pdf` y `sgl_incluir_pdf` son claves de LEGADO desde el CORTOS9: ya no
+     las lee nadie —el estado vive en `ete_qx_pdf` y en `sgl_be_pdf`, que son campos del
+     estudio—. Se siguen borrando para no dejar basura de una build anterior. */
+  ['mitral_qx_incluir_pdf','sgl_incluir_pdf','ete_tecnica_incluir','ete_morfo_incluir','ete_tecnica_texto']
     .forEach(k => localStorage.removeItem(k));
   /* Borrar la clave NO desmarca la casilla: el <input> conserva su estado hasta que se
      recargue la página, así que tras «Nuevo Estudio» los dos toggles seguían tildados
@@ -52811,14 +52840,20 @@ function limpiarCampos(silencioso) {
      estudio» no borraba, y por eso el boton quedaba PRENDIDO sobre un formulario en blanco. */
   { const _be = document.getElementById('contr_be_pdf'); if (_be) _be.value = ''; }
   if (typeof contrPdfSync === 'function') { try { contrPdfSync(); } catch (e) {} }
-  _pdfToggleBtnState('sgl-pdf-toggle',   localStorage.getItem('sgl_incluir_pdf') === '1');
-  /* `ete-qx-pdf` es el tercero, y es el ÚNICO de los tres cuya clave sí se borra unas líneas más
-     arriba (`mitral_qx_incluir_pdf`). Sólo se pintaba al arrancar la app (~36727), así que tras
-     «Nuevo estudio» quedaba encendido sobre una clave ya borrada: el botón prometía la vista
-     quirúrgica mitral y el PDF salía sin el diagrama. Peor que los otros dos, porque acá el
-     botón miente en la dirección de omitir algo del informe firmado. Se pinta desde el estado
-     real, igual que los otros, así que si mañana se deja de borrar la clave esto sigue bien. */
-  _pdfToggleBtnState('ete-qx-pdf',       localStorage.getItem('mitral_qx_incluir_pdf') === '1');
+  /* ⚠️ CORTOS9 (2026-10-17): los otros dos toggles tambien son campos del estudio, asi que el
+     barrido de arriba —que toma text y number— no los alcanza. Se vacian a mano y se repintan
+     desde el estado real, igual que `contr_be_pdf`. Antes se pintaban desde una clave de
+     `localStorage` que esta funcion no borraba: el boton quedaba PRENDIDO sobre un formulario en
+     blanco y prometia una figura que el PDF del paciente siguiente iba a imprimir. */
+  { const _sg = document.getElementById('sgl_be_pdf'); if (_sg) _sg.value = ''; }
+  if (typeof sglPdfSync === 'function') { try { sglPdfSync(); } catch (e) {} }
+  /* `ete-qx-pdf` era el tercero y el PEOR de los tres: su clave si se borraba unas lineas mas
+     arriba pero el boton solo se pintaba al arrancar la app, asi que tras «Nuevo estudio»
+     quedaba encendido sobre una clave ya borrada —el boton prometia la vista quirurgica mitral y
+     el PDF salia sin el diagrama, o sea mentia en la direccion de OMITIR algo del informe
+     firmado—. Desde el CORTOS9 su estado es un campo del estudio y se pinta desde el. */
+  { const _qx = document.getElementById('ete_qx_pdf'); if (_qx) _qx.value = ''; }
+  if (typeof eteQxPdfSync === 'function') { try { eteQxPdfSync(); } catch (e) {} }
   try { localStorage.removeItem('ecosmart_autosave'); } catch(e) {}
   // Checklists de indicaciones/antecedentes → desmarcar, ocultar "Otro" y resetear resumen
   document.querySelectorAll('.ind-chk, .ant-chk').forEach(c => { c.checked = false; });
@@ -58525,7 +58560,7 @@ function generarPDFReal(_aj) {
      `strain_sgl` guardado, así que _restaurarStrain lo deja vacío y strainColor devuelve
      «Normal» para los 17 segmentos: el PDF salía con un bull's eye entero verde al lado del
      «SGL global: -12 %» que sí venía del guardado. Vacío no es normal, es no evaluado. */
-  const _incSgl   = localStorage.getItem('sgl_incluir_pdf') === '1'
+  const _incSgl   = (typeof sglPdfOn === 'function' && sglPdfOn())
                     && typeof strainEstado === 'object'
                     && Object.keys(strainEstado).some(k => (strainEstado[k] || 0) > 0);
   /* Lado de las imágenes cuadradas del informe, en mm. Lo comparten la diana de
@@ -58886,7 +58921,7 @@ function generarPDFReal(_aj) {
   }
 
 
-  if (localStorage.getItem('mitral_qx_incluir_pdf') === '1' && typeof eteQxDataURL === 'function') {
+  if (typeof eteQxPdfOn === 'function' && eteQxPdfOn() && typeof eteQxDataURL === 'function') {
     const _mData = eteQxDataURL();
     checkPage(92);
     drawBar('VÁLVULA MITRAL — VISTA QUIRÚRGICA');
@@ -80066,8 +80101,17 @@ function amiloImprimirPDF(cual) {
   doc.text(esETT ? 'Score Amiloidosis por ETT - ESC 2021' : 'Algoritmo diagnostico de amiloidosis', 105, 9, { align:'center' });
   const _s = id => { const e = document.getElementById(id); return e ? String(e.value || '').trim() : ''; };
   const _f = _s('fecha') ? _s('fecha').split('-').reverse().join('/') : '';
+  /* ⚠️ LA IDENTIFICACION SALE DE `pacIdImpreso` (CORTOS9, 2026-10-17), y cierra `J-2`. Este
+     encabezado armaba el documento a mano —`_s('ci')` con `_s('doc_tipo')`— y no le preguntaba al
+     dueño, asi que el medico que elige imprimir la MATRICULA la veia en el informe y NO en la
+     hoja de ETT Avanzado del mismo taco. El dueño ya existe desde el J3 y decide entre el
+     documento y la matricula, con la caida al otro cuando el elegido esta vacio.
+     `'CI'` se le pasa como etiqueta por omision para que el texto salga igual que antes cuando
+     `doc_tipo` esta sin elegir. */
+  const _pid = (typeof pacIdImpreso === 'function') ? pacIdImpreso(undefined, 'CI') : null;
+  const _idTxt = _pid ? (_pid.lbl + ': ' + _pid.val) : '';
   doc.setFont('helvetica','normal'); doc.setFontSize(8);
-  doc.text(amiloSanPDF([_s('nombre'), _s('ci') ? (_s('doc_tipo') || 'CI') + ': ' + _s('ci') : '', _f].filter(Boolean).join('  ·  ')), 105, 16, { align:'center' });
+  doc.text(amiloSanPDF([_s('nombre'), _idTxt, _f].filter(Boolean).join('  ·  ')), 105, 16, { align:'center' });
 
   /* titPagina: amiloDibujarSecciones abre hojas nuevas cuando el módulo no entra, y el
      encabezado con nombre, documento y fecha se dibuja UNA sola vez antes de llamarla.
@@ -80088,7 +80132,7 @@ function amiloImprimirPDF(cual) {
   const _sinMed = !_mNom;
 
   amiloDibujarSecciones(doc, secs, { mL, pgW, tema:T, yIni:30, yFin: _sinMed ? 270 : 281, bannerSoloContinuacion: true,
-    titPagina: amiloSanPDF([_s('nombre'), _s('ci') ? (_s('doc_tipo') || 'CI') + ': ' + _s('ci') : '', _f].filter(Boolean).join('  ·  ')) || 'Continuacion' });
+    titPagina: amiloSanPDF([_s('nombre'), _idTxt, _f].filter(Boolean).join('  ·  ')) || 'Continuacion' });
 
   /* Pie: firma y disclaimer, coherente con el informe. Va en TODAS las páginas.
      amiloDibujarSecciones agrega hojas cuando el módulo no entra en una, y el pie se
@@ -82772,10 +82816,11 @@ function _pptDesdeFormulario(inf, tema, presentador){
          vacío hace que strainColor devuelva «Normal» para los 17, así que un estudio con
          GLS cargado pero sin strain segmentario habría salido con un bull's eye entero del
          color de «Normal» al lado del número: vacío no es normal, es no evaluado. Es el
-         mismo criterio de DATOS que usa el PDF; lo que el PPT NO mira son los toggles
-         `sgl_incluir_pdf` / `contractilidad_incluir_pdf`, que son preferencias globales de
-         la sesión y no viajan con el estudio —usarlas como compuerta acá importaría esa
-         fuga entre pacientes—. La diapositiva se decide por lo que el estudio contiene. */
+         mismo criterio de DATOS que usa el PDF; lo que el PPT NO mira son los toggles de
+         inclusion en PDF (`sgl_be_pdf` y `contr_be_pdf`), que dicen que entra en el PAPEL y no
+         que haya datos. Desde el K1 y el CORTOS9 son campos del estudio y ya no son preferencias
+         globales, asi que la razon original —no importar esa fuga entre pacientes— caduco; lo que
+         sigue valiendo es que la diapositiva se decide por lo que el estudio CONTIENE. */
       let haySgl = false;
       try {
         haySgl = (typeof strainEstado === 'object' && strainEstado)
@@ -86559,7 +86604,7 @@ function sglSyncGLS(){
 window.sglOnShow = function(){
   sglDibujarBullseye(); sglSyncGLS();
   if (typeof _pdfToggleBtnState === 'function'){
-    _pdfToggleBtnState('sgl-pdf-toggle', localStorage.getItem('sgl_incluir_pdf')==='1');
+    sglPdfSync();
   }
 };
 
@@ -86598,7 +86643,32 @@ function toggleContrPDF(){
   toast(on?'📄 Bull\'s eye de contractilidad se incluirá en el PDF':'Bull\'s eye de contractilidad excluido del PDF');
 }
 window.contrPdfOn = contrPdfOn; window.contrPdfSync = contrPdfSync;
-function toggleSglPDF(){ const on = localStorage.getItem('sgl_incluir_pdf')!=='1'; localStorage.setItem('sgl_incluir_pdf', on?'1':'0'); _pdfToggleBtnState('sgl-pdf-toggle', on); toast(on?'📄 Bull\'s eye de strain se incluirá en el PDF':'Bull\'s eye de strain excluido del PDF'); }
+/* ══ LOS OTROS DOS TOGGLES DE PDF, TAMBIEN CAMPOS DEL ESTUDIO (CORTOS9, 2026-10-17) ═══════════
+   Cierra `K-3`. Mismo dueño y mismo molde que `contrPdfOn`/`contrPdfSync`/`toggleContrPDF`: el
+   estado vive en un oculto del estudio y el boton se pinta SIEMPRE desde el, nunca desde una
+   clave global. Las dos claves viejas de `localStorage` ya no se leen y no se migran. */
+function sglPdfOn(){ const e = document.getElementById('sgl_be_pdf'); return !!e && e.value === '1'; }
+function sglPdfSync(){ _pdfToggleBtnState('sgl-pdf-toggle', sglPdfOn()); }
+function toggleSglPDF(){
+  const e = document.getElementById('sgl_be_pdf');
+  if (!e) return;
+  const on = e.value !== '1';
+  e.value = on ? '1' : '';
+  sglPdfSync();
+  toast(on?'📄 Bull\'s eye de strain se incluirá en el PDF':'Bull\'s eye de strain excluido del PDF');
+}
+function eteQxPdfOn(){ const e = document.getElementById('ete_qx_pdf'); return !!e && e.value === '1'; }
+function eteQxPdfSync(){ _pdfToggleBtnState('ete-qx-pdf', eteQxPdfOn()); }
+function eteQxIncluirPDF(){
+  const e = document.getElementById('ete_qx_pdf');
+  if (!e) return;
+  const on = e.value !== '1';
+  e.value = on ? '1' : '';
+  eteQxPdfSync();
+  toast(on?'📄 Vista quirúrgica mitral se incluirá en el PDF':'Vista quirúrgica mitral excluido del PDF');
+}
+window.sglPdfOn = sglPdfOn; window.sglPdfSync = sglPdfSync;
+window.eteQxPdfOn = eteQxPdfOn; window.eteQxPdfSync = eteQxPdfSync;
 window.toggleContrPDF = toggleContrPDF; window.toggleSglPDF = toggleSglPDF;
 
 // ── Toggles genéricos de inclusión en PDF (Wilkins / Duke / GTP / Eco Estrés) ──
@@ -86621,7 +86691,6 @@ function cxGtpPDF(){ _togglePDF('gtp_incluir_pdf','cx-gtp-pdf','GTP/RVP'); }
    sólo corre al cargar, con lo cual el PDF podría estampar una sección «ECO ESTRÉS» con los 17
    segmentos en NORMAL sobre un estudio donde no se hizo ninguno. No re-agregar el export. */
 function eeIncluirPDF(){ _togglePDF('ecoestres_incluir_pdf','ee-incluir-pdf','Eco Estrés'); }
-function eteQxIncluirPDF(){ _togglePDF('mitral_qx_incluir_pdf','ete-qx-pdf','Vista quirúrgica mitral'); }
 window.cxWilkinsPDF=cxWilkinsPDF; window.cxDukePDF=cxDukePDF; window.cxGtpPDF=cxGtpPDF; window.eteQxIncluirPDF=eteQxIncluirPDF;
 
 // ══════════ Eco Estrés · Tabla de protocolo + toggles PDF por sección ══════════
@@ -86805,7 +86874,7 @@ window.eteQxDataURL=eteQxDataURL;
 sglDibujarBullseye();
 /* K1: al arrancar, el boton se pinta desde el CAMPO del estudio, que nace vacio. */
 if (typeof contrPdfSync === 'function') contrPdfSync();
-_pdfToggleBtnState('sgl-pdf-toggle', localStorage.getItem('sgl_incluir_pdf')==='1');
+sglPdfSync();
 _pdfToggleBtnState('cx-wilkins-pdf', localStorage.getItem('wilkins_incluir_pdf')==='1');
 _pdfToggleBtnState('cx-duke-pdf', localStorage.getItem('duke_incluir_pdf')==='1');
 _pdfToggleBtnState('cx-gtp-pdf', localStorage.getItem('gtp_incluir_pdf')==='1');
@@ -86816,7 +86885,7 @@ if (localStorage.getItem('ecoestres_incluir_pdf') !== null && !document.getEleme
   localStorage.removeItem('ecoestres_incluir_pdf');
 }
 _pdfToggleBtnState('ee-incluir-pdf', localStorage.getItem('ecoestres_incluir_pdf')==='1');
-_pdfToggleBtnState('ete-qx-pdf', localStorage.getItem('mitral_qx_incluir_pdf')==='1');
+eteQxPdfSync();
 if (typeof cxWilkins === 'function') cxWilkins();
 
 // ══════════════ IMÁGENES DEL ESTUDIO (memoria de sesión, NO localStorage) ══════════════
