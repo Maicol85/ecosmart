@@ -486,3 +486,18 @@ con sus cuatro zonas y las ocho trampas.
 **Lo que hay que saber antes de tocar esta zona:** los cortes y los operadores ya NO viven acá.
 Mover uno es editar `ASE25_T1`, y el assert de arranque exige que las cuatro bandas sigan en
 orden y sin hueco.
+
+---
+
+## ⚠️ Punteros de la tanda «CORTOS» (2026-10-17)
+
+- **Los otros dos toggles de inclusión en PDF son campos del ESTUDIO** (`sgl_be_pdf` y
+  `ete_qx_pdf`), con el patrón de `contr_be_pdf`: `K-3` cerrado. Las dos claves de `localStorage`
+  ya no se leen.
+- **El PDF de amiloidosis pregunta a `pacIdImpreso`** en sus dos encabezados: `J-2` cerrado.
+- **El informe dice «derrame pericárdico»** y el `value` del selector no cambia, así que la columna
+  «Pericardio» del Excel y los estudios guardados siguen leyendo lo mismo.
+- **El Excel sigue en 440 columnas**: ni los 21 campos de Otros, ni los dos ocultos de PDF, ni la
+  separación de las líneas B agregan una.
+
+En `docs/mapa/cortos-arreglos.md` y `docs/mapa/otros-hallazgos.md`.

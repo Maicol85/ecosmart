@@ -510,3 +510,17 @@ operador y su veredicto binario siguen en `ET_CRIT`), y la **regurgitación de l
 las Tablas 21 y 16 de la ASE 2024 coinciden con lo que la app ya aplica.
 Tres campos nuevos, visibles sólo con prótesis y sin columna de Excel: `et_e_vmax`,
 `vp_tipo_prot` y `ep_gmedio`.
+
+---
+
+## ⚠️ Punteros de la tanda «CORTOS» (2026-10-17)
+
+- **El selector de origen de la regurgitación de la prótesis MITRAL** se mudó DEBAJO del cuadro de
+  referencias de la insuficiencia, que es donde el PRO-B3 puso el bloque de la fuga aórtica. Es una
+  mudanza de nodo: ni un corte, ni un voto, ni una superficie firmada se mueven.
+- **La obstrucción de la prótesis TRICÚSPIDE pide DOS o más criterios positivos**, su onda E va en
+  cm/s espejada con el Doppler, y sus campos y sus filas viven ahora con los de la estenosis.
+- **Los dos rótulos de la insuficiencia PULMONAR** nombran el anillo pulmonar y el tronco pulmonar
+  distal, que es lo que escribe la Tabla 16.
+
+Todo en `docs/mapa/cortos-arreglos.md`.

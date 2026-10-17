@@ -287,3 +287,24 @@ de la VARC-3, que es de TAVI.
 cosas; desde el PRO-B3 le pregunta al dueño, y `RPV_L` ganó el rótulo «Sin RPV».
 
 Cobertura: **TC-497**, 51 condiciones. Fuentes: `docs/fuentes/FUENTES-protesis.md`.
+
+---
+
+## ⚠️ La FEVI del Laboratorio se lee de su dueño desde la tanda «CORTOS» (2026-10-17)
+
+Cierra `LS-6` y `LS-7`. Tres sitios la leían a mano y hoy los tres le preguntan a
+`feviClasificar` / `FEVI_CATS`:
+
+- **`ORD`**, el orden de lectura de las categóricas, tenía escritas las TRES etiquetas viejas
+  (`≥50`, `40-49`, `<40`): ninguna matcheaba el `rango` de las cuatro clases y la tabla de
+  contingencia de las tres chi² de FEVI salía en orden **alfabético**. ⚠️ **EL VALOR DE p NO SALÍA
+  MAL** —`chi2test` deriva R, C, los esperados y `df` de las propias filas, y el chi² es invariante
+  a permutar filas—: lo que estaba mal era el orden de lectura. Lo que sí cambió con la cuarta clase
+  es que hay más celdas y el semáforo cae a 🟡 con `fe<5` más seguido.
+- **El filtro de cohorte `coh-fevi`** pasa de tres bandas con un 40 a pelo a las **cuatro**
+  categorías del dueño, con los tres valores viejos aceptados y traducidos.
+- **La comparación de subgrupos del PPT** parte la cohorte por el dueño —reducida = moderada o
+  severa— en vez de por `f < 40`, y sus rótulos salen de dos constantes.
+
+**ESCENA QUE CAMBIA en los dos últimos: el estudio con FEVI 40 exacta**, que es «moderadamente
+reducida» y antes caía del lado no reducido. Detalle y medición en `docs/mapa/cortos-arreglos.md`.

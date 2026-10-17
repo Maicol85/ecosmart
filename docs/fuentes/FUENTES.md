@@ -3441,3 +3441,140 @@ que escalar. Medido con la escena más extrema que la app admite: los cinco nodo
 veredicto y las dos superficies firmadas no dicen «severa».
 ⚠️ **LA TABLA 19 NO GRADÚA**: es un umbral único por tipo y la app no inventa leve, moderada ni
 severa para la obstrucción tricuspídea protésica.
+
+---
+
+## La tanda «CORTOS» (2026-10-17) — cuatro fuentes leídas y una que NO existe
+
+### `aseProtesis2024` — lo que esta tanda le volvió a leer
+
+`05_Protesis_valvulares/ASE protesis 2024.pdf`. **Folio = hoja + 1.** ⚠️ El texto extraído de ese
+PDF codifica `≥` como **`$`** y `≤` como **`#`**: quien lo lea sin saberlo invierte TODOS los
+operadores.
+
+- **Tabla 19 — «Doppler parameters suggestive of prosthetic TV stenosis», folio 36 (hoja 35).**
+  Transcrita entera, con sus dos columnas (bioprostética / mecánica):
+
+  | parámetro | bio | mec |
+  |---|---|---|
+  | Peak E velocity, m/sec | ≥2.1 | ≥1.9 |
+  | Mean gradient, mm Hg | ≥9 | ≥6 |
+  | PHT, msec | ≥200 | ≥130 |
+  | EOA, cm² | <1.5 | <2.0 |
+  | **DVI (VTI_PrTV / VTI_LVOT)*** | ≥3.3 | ≥2.1 |
+
+  Pie, literal: «VTI_PrTV, VTI through the prosthetic TV. *Assessed in the absence of AR or TR.
+  Upper limits of normal DVI vary by valve size and type.»
+  - ⚠️ **EL ASTERISCO ESTÁ SÓLO EN LA FILA DEL DVI**, así que la nota `*` alcanza **sólo** al DVI:
+    la app retira ese y nada más, y eso queda **confirmado** (era lo que `PRO-C` había implementado).
+  - ⚠️ **EL DENOMINADOR DEL DVI ES EL TRACTO DE SALIDA IZQUIERDO**, con todas las letras:
+    `VTI_LVOT`. El rótulo de la app —«DVI — VTI prótesis / VTI TSVI»— **coincide con la fuente**.
+    Sorprende y es lo que dice la tabla.
+  - ⚠️ **LA APP NO CALCULA EL DVI:** `vt_dvi` es un campo que tipea el médico. No hay fórmula detrás
+    y por eso no hay dos copias de ninguna.
+  - El **título** dice «suggestive of» y **no dice cuántos parámetros hacen falta**: la regla de
+    integración es de la casa. Desde el CORTOS4 son **dos o más**, el mismo umbral que la Tabla 11
+    de la mitral ya tenía (`VM_PROT_OBSTR_MIN`).
+- **Tabla 16 — «Echocardiographic evaluation of severity of prosthetic pulmonary valve
+  regurgitation», folio 34 (hoja 33).** Dos filas re-leídas para el CORTOS5:
+  - «Jet size by color Doppler (central jets)‡: Thin with a narrow origin; jet width **≤25% of
+    pulmonary annulus** / Intermediate; jet width **26%-50% of pulmonary annulus** / Usually large,
+    with a wide origin; jet width **>50% of pulmonary annulus**».
+  - «**Diastolic flow reversal in the distal main PA**: None / Present / Present».
+  - O sea **anillo pulmonar** y **tronco pulmonar distal**: los dos rótulos de la app decían «del
+    TSVD» y «en las ramas». **Sólo el rótulo cambió**; ni un corte, ni un operador, ni un voto.
+
+### `aseDiast2025` — la nota de suplementarios de la Figura 3
+
+`02_Diastolica/Nagueh_2025_Diastolica.pdf`. **Folio = hoja + 536.**
+
+- **Nota de suplementarios de la Figura 3, folio 554 (hoja 18), literal:** «PR end-diastolic
+  velocity $ 2m/s, PA diastolic pressure $ 16 mm Hg, mitral inflow L-wave velocity $ 50 cm/s,
+  **Ar-A duration > 30 ms**, and/or a decrease in mitral E/A ratio of $50% with Valsalva maneuver.»
+  → el operador del Ar−A es **`>` ESTRICTO**.
+- **Prosa del folio 555 (hoja 19):** «(>35 cm/s) and long duration of pulmonary vein Ar velocity,
+  along with an Ar-A duration >30 ms» → mismo operador, **más** una condición de amplitud.
+- **Tabla 7, folio 557 (hoja 21):** «Ar-A (**$30 ms**)» → o sea **`≥`**.
+- ⚠️ **TRES TEXTOS DEL MISMO DOCUMENTO Y DOS OPERADORES.** Manda la **figura del algoritmo que la
+  app ejecuta**, que es la regla de la casa: `>` estricto, y el valor no se movió. La condición de
+  amplitud de la prosa **se retiró** (decisión de Maicol, CORTOS6); su corte queda declarado en
+  `ASE_ARVEL_SUPL` y nombrado en el rótulo de la fila.
+
+### `aseCoronarias2020` — ENTRADA NUEVA (anomalías coronarias congénitas)
+
+- **Documento:** Frommelt P, Lopez L, Dimas VV, et al. «Recommendations for Multimodality
+  Assessment of Congenital Coronary Anomalies: A Guide from the American Society of
+  Echocardiography». *J Am Soc Echocardiogr* 2020;33(3):259-294.
+  **DOI 10.1016/j.echo.2019.10.011.** Archivo:
+  `08_Cardiopatias_congenitas/ConCoronary_March2020.pdf`.
+- **Regla de folio: folio = hoja del PDF + 258**, comprobada en el **pie impreso** de cuatro
+  páginas (hoja 1 → 259, hoja 6 → 264, hoja 8 → 266, hoja 9 → 267).
+- **Verificado en texto completo, folio 266 (hoja 8), literal:** «anomalous CA can arise from the
+  opposite sinus and course anterior to the pulmonary artery (PA), posterior to the aorta
+  (**retro-aortic**), or between them (**interarterial**) (Figure 3). AAOCA with an **interarterial**
+  course is associated with **increased risk** for cardiac [events]».
+- **Qué publica la app con eso:** la ficha «Anomalías coronarias congénitas — trayecto» de la
+  pestaña Referencias y el globo ⓘ de la circunfleja retroaórtica, con los **tres trayectos** y
+  **cuál es el de riesgo aumentado**. Nada más: la ficha **no gradúa**, no recomienda conducta y
+  **no dice que el trayecto retroaórtico sea «benigno»**.
+- ⚠️ **ESE PDF NO SALE CON `pdftotext` DE FORMA COMPLETA EN LA PRIMERA PÁGINA** y la palabra
+  «retroaortic» está escrita **con guión** («retro-aortic»): buscarla sin el guión da cero.
+
+### `icmPocus2026` — ENTRADA NUEVA (la fórmula de Balik, con su alcance)
+
+- **Documento:** Volpicelli G, Gargani L, Zieleskiewicz L, et al. «International evidence-based
+  recommendations for point-of-care lung ultrasound — 2025 focused update of the 2012
+  recommendations». *Intensive Care Med* 2026. **DOI 10.1007/s00134-026-08487-2.** Archivo:
+  `19_Pulmon_POCUS/ICM_26_Internationalevidence-basedrecommendationsforpoint-of-carelungultrasound.pdf`.
+- ⚠️ **ES *ONLINE FIRST* Y NO TIENE FOLIO IMPRESO**, así que se cita por **enunciado** y por **hoja
+  del PDF**. No se le inventa un número de página.
+- **Verificado en texto completo, enunciado `D6_11`, hoja 19, literal:** «A practical
+  semi-quantification method involves performing a lateral transverse view over the costophrenic
+  angle in the supine patient. Once the maximum space occupied by the effusion is visualized, the
+  maximal distance (D) between parietal and visceral pleura should be measured (Fig. 4F). The
+  following formula can be used to estimate the approximate volume (V): **V (ml) = D (mm) × 20**.
+  **This formula has been validated in critically ill patients in intensive care units undergoing
+  invasive ventilation.** In other settings where the patient can be examined in a sitting position,
+  other methods based on multiplanar acquisition may offer greater accuracy. However, there is
+  currently no strong evidence to support their recommendation.» Su referencia [154] es
+  **Balik M, et al. Intensive Care Med 2006** — el artículo original, que **no** está en la
+  biblioteca.
+- ✅ **ESO LE DA FUENTE VERIFICADA A LA FÓRMULA QUE LA APP YA APLICABA** (`_balikVol`, ml = mm × 20):
+  el número **no se movió**, y el **alcance** —validada en pacientes críticos bajo ventilación
+  invasiva— va en el globo ⓘ de su campo. Cierra `Y3b-5`.
+
+### ❌ Las dos separaciones de LÍNEAS B (≈3 mm y ≈7 mm): NO HAY FUENTE EN LA BIBLIOTECA
+
+- Barrido de los **seis** PDF de `19_Pulmon_POCUS` por `B7`, `B3`, `7 mm`, `3 mm`, `interlobular` y
+  `septal thick`, y barrido **global** de la biblioteca por `B7` y `7 mm apart`: **cero**. Los
+  únicos aciertos globales son `B7` dentro de un DOI.
+- El único documento que nombra «B3 lines» es el **protocolo BLUE** (Lichtenstein, *Chest*
+  2008;134(1):117-125, hoja 3): «Several B lines in a single view … are called lung rockets, or B 1
+  lines (featuring here, B3 lines)». **No da ninguna separación en milímetros.**
+- El `Resumen_Evidencia_Pulmon_POCUS_2026-10-16.md` de la propia biblioteca lo dice: «Ninguna guía
+  leída recomienda ni desaconseja la fórmula de Balik ni otra».
+- **Por eso el selector de separación es DESCRIPTIVO**: dice la separación que el médico midió, **no
+  la interpreta** —ni «septal» ni «vidrio deslustrado»—, **no lleva cita** y el dato **no tiene
+  globo**. Las dos separaciones las dicta Maicol.
+
+### Cambios de evidencia — tanda CORTOS
+
+| dato | valor antes | valor ahora | fuente | commit | fecha |
+|---|---|---|---|---|---|
+| Velocidad pico de E tricuspídea protésica | `≥2,1` / `≥1,9` **m/s** | `≥210` / `≥190` **cm/s** (el mismo valor, convertido) | ASE 2024 T19 folio 36 | CORTOS3 | 17/10/2026 |
+| Banda de plausibilidad de ese campo | `[0,2 – 4]` m/s | `[20 – 400]` cm/s | criterio EcoSmart | CORTOS3 | 17/10/2026 |
+| Regla de integración de la obstrucción tricuspídea protésica | **OR**: basta UNO | **dos o más** positivos; con UNO, hallazgo aislado que no sube al papel | criterio EcoSmart (la T19 no publica regla) | CORTOS4 | 17/10/2026 |
+| Denominador del ancho del jet de la IP | «del **TSVD**» | «del **anillo pulmonar**» | ASE 2024 T16 folio 34 | CORTOS5 | 17/10/2026 |
+| Territorio del reverso diastólico de la IP | «en las **ramas**» | «en el **tronco pulmonar distal**» | ASE 2024 T16 folio 34 | CORTOS5 | 17/10/2026 |
+| Suplementario **Ar−A** de la ASE 2025 | `> 30 ms` **Y** amplitud de la Ar `> 35 cm/s` | `> 30 ms` **solo** | nota de la Figura 3, folio 554 | CORTOS6 | 17/10/2026 |
+| Banda del filtro de cohorte de FEVI | tres, con un **40** escrito a mano | las **cuatro** categorías de `FEVI_CATS` | dueño de la app | CORTOS7 | 17/10/2026 |
+| Subgrupos del PPT | `FEVI < 40` contra `≥ 40` | reducida (moderada o severa) contra el resto | dueño de la app | CORTOS7 | 17/10/2026 |
+| Rango de advertencia del importador para el diámetro AP | techo del **varón** para los dos sexos | se resuelve con el **sexo de la fila** | `aiDiamNormalMax` (Lang 2015, Tabla supl. 9) | CORTOS8 | 17/10/2026 |
+| Volumen del derrame pleural (Balik) | fórmula **sin fuente verificada** | **verificada**, con su alcance; el número no se movió | ICM 2026, enunciado D6_11, hoja 19 | CORTOS13 | 17/10/2026 |
+| Anomalías coronarias | **sin entrada** | ficha con los tres trayectos y el de riesgo aumentado | ASE 2020 folio 266 | CORTOS12 | 17/10/2026 |
+| Separación de las líneas B | no existía | selector **descriptivo**, sin cita | **ninguna** (declarado) | CORTOS13 | 17/10/2026 |
+
+⚠️ **NINGÚN OTRO CORTE SE MOVIÓ**, y está medido: los cuatro criterios y la regla de la prótesis
+mitral, la fuga paravalvular, la TAVI, el PPM, los cuatro de la estenosis tricuspídea nativa, los
+de la pulmonar, `IT_CRIT`, los cuatro signos de la IP, los ocho del HFA-PEFF, el Wilkins y los
+umbrales nativos de la AI, el VI y la FEVI.

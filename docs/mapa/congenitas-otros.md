@@ -378,3 +378,18 @@ Desde la tanda **K** (2026-10-16): el botón «Incluir bull's eye en PDF» y de 
 bull's eye entre al papel, la fila de tres bloques bajo el bull's eye, la tabla «Referencia de
 colores» retirada y el interior del 3D del ventrículo están en
 **`docs/mapa/contractilidad-3d-vi.md`**.
+
+---
+
+## ⚠️ La pestaña OTROS ganó seis hallazgos en la tanda «CORTOS» (2026-10-17)
+
+ASIA, seis variantes anatómicas, la circunfleja retroaórtica, el test de burbuja, el «derrame
+pericárdico» del papel y la separación de las líneas B. Cada uno con su casilla y su caja de nota,
+un solo dueño por frase y cero columnas nuevas de Excel.
+
+⚠️ **EL TEST DE BURBUJA SIGUE TENIENDO DOS ESCALAS EN LA APP, declarado y no tocado:** la sección
+FOP de «CC frecuentes» conserva sus `fop_contraste` / `fop_burbujas` con `<5 / 5-20 / >20`, y el
+bloque nuevo usa las bandas de Referencias (`<10 / 10-30 / >30`). Unificar los `value` de ese
+`<select>` dejaría a cada estudio guardado en `selectedIndex -1`.
+
+Todo en `docs/mapa/otros-hallazgos.md`.

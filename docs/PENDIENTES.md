@@ -1495,7 +1495,14 @@ Medido: cambian exactamente **dos** valores de nueve —el −32 y el −60, que
 acepta—, y ±61 y ±80 se siguen rechazando. La banda `[0,60]` **no se tocó** y el valor guardado
 sigue siendo el crudo con su signo. Ver `docs/mapa/exclusiones-laboratorio-vd.md` → «BLOQUE R2».
 
-### C2 · La nota ‡ de la Figura 3 y el inciso (d) del folio 555 no dicen lo mismo
+### C2 · La nota ‡ de la Figura 3 y el inciso (d) no dicen lo mismo — ✅ **CERRADO 17/10/2026 (CORTOS6)**
+
+Decisión de Maicol: **manda la figura**. El Ar−A vota con su **duración sola**, con `> 30 ms`
+estricto; el AND con la amplitud de la Ar se retiró y `ASE_ARVEL_SUPL` queda declarada, nombrada en
+el rótulo de la fila como la salvedad de la prosa. **Escena que cambia:** con el Ar−A por encima de
+30 ms y la amplitud sin cargar o por debajo de 35, el suplementario ahora vota.
+
+#### Lo que decía la entrada original
 
 La nota ‡ nombra sólo «Ar-A duration > 30 ms»; el inciso (d) pide además «a high amplitude
 (>35 cm/s) … **along with** an Ar-A duration >30 ms». La app exige el **AND**, que es la prosa y es
@@ -3915,7 +3922,17 @@ Con un 1/1/1/1 sin marca, `amiloTextoWilkins` publica «Score de Wilkins | no ca
 cuatro criterios en 1/4. Es factual —son los valores que el estudio trae— pero convive con un total
 que la app declara no interpretable. **No se tocó**: cambiar ese desglose es cambiar el papel firmado.
 
-### Y3b-5 · La fórmula de Balik NO está en la biblioteca, y queda sin verificar
+### Y3b-5 · La fórmula de Balik — ✅ **CERRADO 17/10/2026 (CORTOS13): TIENE FUENTE**
+
+No es el artículo original —que sigue sin estar en la biblioteca— sino una **guía que la publica
+con su alcance**: «International evidence-based recommendations for point-of-care lung ultrasound —
+2025 focused update» (Volpicelli et al, *Intensive Care Med* 2026, DOI 10.1007/s00134-026-08487-2),
+enunciado **D6_11**, **hoja 19**: «V (ml) = D (mm) × 20 … validated in critically ill patients in
+intensive care units undergoing invasive ventilation». Es exactamente lo que la app calcula y **no
+se movió un número**. Ese documento es *online first* y no tiene folio impreso, así que se cita por
+enunciado y hoja. El **alcance** va en el globo ⓘ del campo.
+
+#### Lo que decía la entrada original
 
 `_balikVol` convierte la separación pleural en volumen con `ml = mm × 20` y ya lo publicaba antes de
 esta tanda. **Censada la biblioteca entera**: no hay un solo documento que contenga la fórmula ni el
@@ -3925,7 +3942,15 @@ no existen. Así que la fórmula **se reusa tal cual, no se escribió de memoria
 entrada a `FUENTES.md`**. Para cerrarlo hace falta el artículo original (Balik M, et al. *Intensive
 Care Med* 2006) en la biblioteca.
 
-### Y3b-6 · Las dos separaciones de líneas B (≈3 mm y ≈7 mm) quedaron SIN HACER
+### Y3b-6 · Las dos separaciones de líneas B — ✅ **HECHO 17/10/2026 (CORTOS13), y SIGUE SIN FUENTE**
+
+El selector existe con las dos separaciones que **dicta Maicol** (≈7 mm y ≈3 mm) y sus opciones son
+**descriptivas**: dicen la separación que el médico midió, **no la interpretan** —ni «septal» ni
+«vidrio deslustrado»—, **no llevan cita** y el dato **no tiene globo**. El barrido de la biblioteca
+se repitió y sigue dando **cero**: ver `docs/fuentes/FUENTES.md` → «Las dos separaciones de LÍNEAS
+B: NO HAY FUENTE EN LA BIBLIOTECA». Lo que queda abierto es la fuente, no el control.
+
+#### Lo que decía la entrada original
 
 No hay **ningún protocolo POCUS pulmonar** en la biblioteca. Lo único sobre líneas B es la misma
 revisión de ETE en cuidados críticos, que dice que **tres o más** indican edema o enfermedad
@@ -3969,7 +3994,13 @@ antes afirmaba normalidad.
 * **(b)** llamar a `ccMarcarParrafo()` en la rama nueva: el EN SUMA pasa a «Sin OTRAS
   alteraciones significativas — ver los hallazgos descritos en el cuerpo». **Una línea.**
 
-### J-2 · El PDF de los módulos de amiloidosis sigue imprimiendo sólo el documento
+### J-2 · El PDF de amiloidosis imprimía sólo el documento — ✅ **CERRADO 17/10/2026 (CORTOS9)**
+
+Sus **dos** encabezados —el principal y el `titPagina` de las hojas de continuación— preguntan hoy
+a `pacIdImpreso`, con `'CI'` como etiqueta por omisión para que el texto salga igual que antes
+cuando `doc_tipo` está sin elegir.
+
+#### Lo que decía la entrada original
 
 `amiloImprimirPDF` dibuja su encabezado con `_s('ci')` y `_s('doc_tipo')` en **dos** lugares
 —el encabezado y el `titPagina` de las hojas de continuación— y **no** le pregunta a
@@ -4070,7 +4101,12 @@ Que un chorro sea más ancho que el anillo es una decisión sobre el MODELO, que
 tocar. Las salidas: abrir el abanico en un cono en vez de un plano (cambia la geometría de la
 demo), acotar `sf`, o dejarlo. **No se tocó.**
 
-### K-3 · Los otros dos toggles de PDF siguen en `localStorage`
+### K-3 · Los otros dos toggles de PDF estaban en `localStorage` — ✅ **CERRADO 17/10/2026 (CORTOS9)**
+
+Hoy son campos del estudio: `sgl_be_pdf` y `ete_qx_pdf`, con el patrón de `contr_be_pdf`. Las dos
+claves viejas ya no se leen y se siguen borrando en «Nuevo estudio». Medido con clics reales.
+
+#### Lo que decía la entrada original
 
 K1 movió el estado del bull's eye de contractilidad a un campo DEL ESTUDIO (`contr_be_pdf`). Sus
 dos hermanos —`sgl_incluir_pdf` (bull's eye del strain) y `mitral_qx_incluir_pdf` (vista
@@ -4410,7 +4446,14 @@ aviso—. Es el mismo precedente que `vd-fun-card` de la tanda M, que ya está d
 (c) una sola barra de espesor, que obliga a elegir entre el septum y la pared o a tomar el mayor,
 que es un criterio que la guía no escribe.
 
-### LS-5 · El aviso del importador del diámetro AP usa el techo del VARÓN y no mira el sexo
+### LS-5 · El aviso del importador del diámetro AP no miraba el sexo — ✅ **CERRADO 17/10/2026 (CORTOS8)**
+
+`DCM_RANGO_CLIN` acepta hoy un **par** o una **función del sexo**, la resuelve `_dcmRangoClin` —que
+comparten las dos vías del importador— y el corte se le pide a `aiDiamNormalMax`. El sexo llega del
+propio archivo, **(0010,0040) PatientSex**. ⚠️ **El CHM del Vivid no trae sexo**, así que por esa
+vía el comportamiento es el de hoy: queda declarado abajo como `CORTOS-7`.
+
+#### Lo que decía la entrada original
 
 `LAB_XLS_RANGO_NORMAL.ai_diam` deriva de `AI_DIAM_NORMAL_MAX_H` (40 mm) y esa tabla es estática:
 no tiene el sexo de la fila. Con el corte más alto **nunca avisa de más**, que es el lado
@@ -4422,7 +4465,16 @@ estricto y la dilatación pasó de `>= 40` a `> 40`, así que los dos bordes coi
 rango se resuelva con el sexo de la fila importada. Toca el consumidor, que lo comparten los 40
 campos de la tabla.
 
-### LS-6 · El `FEVICAT` del módulo de asociaciones cambió de tres clases a cuatro, y eso mueve dos p
+### LS-6 · `FEVICAT` pasó de tres clases a cuatro — ✅ **CERRADO 17/10/2026 (CORTOS7)**
+
+El **orden de lectura** (`ORD`) tenía escritas las tres etiquetas viejas y ninguna matcheaba, así
+que la tabla de contingencia salía en orden **alfabético**; hoy se deriva de `FEVI_CATS`.
+⚠️ **EL VALOR DE p NO SALÍA MAL:** `chi2test` deriva R, C, los esperados y `df` de las propias
+filas, y el chi² es invariante a permutar filas. Lo que sí cambió con la cuarta clase es que hay
+más celdas, el esperado mínimo baja y el semáforo cae a 🟡 con `fe<5` más seguido — eso sigue
+siendo una consecuencia declarada, no un defecto.
+
+#### Lo que decía la entrada original
 
 Es **consecuencia declarada** y no un defecto. El chi² de los tres pares que usan esa variable
 —FEVI contra HTA, contra DM y contra FA— se calcula con **un grado de libertad más**, así que su
@@ -4431,7 +4483,15 @@ el **p ajustado** de sus vecinos puede moverse. Lo mismo vale para la distribuci
 pasó de tres barras a cuatro. Queda anotado para que una auditoría que compare dos corridas del
 Laboratorio sepa por qué.
 
-### LS-7 · Dos lugares siguen usando un 40 pelado, y son bandas de FILTRO
+### LS-7 · Dos lugares usaban un 40 pelado — ✅ **CERRADO 17/10/2026 (CORTOS7)**
+
+Los dos pasan a leer al dueño: el **filtro de cohorte** ofrece las cuatro categorías de
+`FEVI_CATS` (con los tres valores viejos aceptados y traducidos) y la **comparación de subgrupos**
+del PPT parte por reducida = moderada o severa. **Escena que cambia en los dos: el estudio con
+FEVI 40 exacta.** El `<select>` `filtro-fevi` —que es otro control, con cuatro rangos `lt30`,
+`lt40`, `lt50`, `gte50`— **no se tocó**: no son categorías clínicas sino bandas de filtro.
+
+#### Lo que decía la entrada original
 
 El criterio de cohorte `baja`/`media`/`alta` —cuyo propio comentario ya dice que su 40 es «el
 borde interno de la banda intermedia, no un umbral de normalidad»— y la comparación de subgrupos
@@ -4446,14 +4506,25 @@ La orden lo pide así y está medido en los tres estilos. Queda anotado que un e
 sin sexo y reimpreso no lleva ninguna señal de que sus categorías se calcularon con el corte más
 alto: el papel firmado no lo dice por ningún camino.
 
-### LS-9 · El enlace del aviso no se pudo comprobar alcanzable a 768 px
+### LS-9 · El enlace del aviso a 768 px — ✅ **CERRADO 17/10/2026 (CORTOS8): NO ERA UN DEFECTO**
+
+Era el artefacto de `elementFromPoint` que este repo ya tiene escrito: hay que **desplazar la
+página antes de medir**. No se tocó una línea de la app; el enlace tiene geometría y el aviso se
+ve.
+
+#### Lo que decía la entrada original
 
 `elementFromPoint` sobre el centro del enlace devolvió «fuera del viewport» en las **dos** celdas
 de 768 × 1024 y fue alcanzable en las otras diez. Es el artefacto que este repo ya tiene escrito
 —el mismo que el globo del cociente TAPSE/PSAP pagó en la tanda Z— y no un defecto: el enlace
 tiene geometría y el aviso se ve. Para cerrarlo hay que desplazar la página antes de medir.
 
-### LS-10 · El texto del aviso de sexo de las tarjetas vive en DOS constantes con el mismo literal
+### LS-10 · El aviso de sexo de las tarjetas vivía en DOS constantes — ✅ **CERRADO 17/10/2026 (CORTOS8)**
+
+Sube a `EV_AV_SEXO`, a nivel de módulo y al lado de `EV_BANDAS_ESPESOR`. **Ni una letra del texto
+cambia.** De paso se fue el ternario redundante de `_avSx`.
+
+#### Lo que decía la entrada original
 
 `AV_SEXO_ALTO` (dentro de `evTarjetaVI`) y `AV_SEXO_GEO` (dentro de `evTarjetaGeo`) tienen
 **exactamente el mismo texto**: «Sin sexo cargado: se usó el corte más alto.». Son dos funciones
@@ -4820,7 +4891,14 @@ quedaron con margen: `vista-2d-valvulas.md` 32,4 KB · `tests-fichas.md` 28,3 ·
 
 # Tanda PRO-C (2026-10-17) — lo declarado y NO tocado
 
-### PRO-C1 · La Tabla 19 no publica regla de integración, y el OR es de la casa
+### PRO-C1 · La Tabla 19 no publica regla de integración — ✅ **DECIDIDO 17/10/2026 (CORTOS4): DOS O MÁS**
+
+Decisión de Maicol: hacen falta **dos o más** criterios positivos (`VT_PROT_OBSTR_MIN = 2`, el
+mismo umbral que `VM_PROT_OBSTR_MIN` de la mitral) y con **UNO** solo el veredicto es `aislado` —la
+cápsula lo nombra con su valor y **no sube al papel**—. La Tabla 19 sigue sin publicar una regla:
+el umbral es criterio de EcoSmart y la cápsula lo declara. Ver `docs/mapa/cortos-arreglos.md`.
+
+#### Lo que decía la entrada original
 
 **Es de la fuente y está censado:** el título de la **Tabla 19 (folio 36, hoja 35)** dice
 «Doppler parameters **suggestive of** prosthetic TV stenosis» y **no dice cuántos hacen falta**,
@@ -4856,7 +4934,13 @@ THP— y **no nombra la reversión**.
 Cambiarlo haría que un paciente con reversión aislada pase de «IP severa» a «IP moderada» en el
 informe firmado. Es decisión clínica de Maicol.
 
-### PRO-C4 · Dos rótulos de la IP describen la válvula NATIVA y no el anillo protésico
+### PRO-C4 · Dos rótulos de la IP describían la válvula NATIVA — ✅ **CERRADO 17/10/2026 (CORTOS5)**
+
+Los dos —y una tercera superficie que nadie había contado, el `rotulo` con que el reverso entra en
+la fila de discordancia— nombran hoy el **anillo pulmonar** y el **tronco pulmonar distal**, que es
+lo que escribe la Tabla 16. Sólo texto: ni un corte, ni un operador, ni un voto.
+
+#### Lo que decía la entrada original
 
 - El `<option>` «Ancho (**>50–65 % del TSVD**)» de `ip_ancho`: la **Tabla 16** escribe «jet width
   >50 % of **pulmonary annulus**», no del TSVD. El corte numérico coincide en el 50; el
@@ -4892,3 +4976,88 @@ Medido con `wc -c` DESPUÉS de escribir: `docs/mapa/tests-fichas.md` quedó en *
 bytes del techo de 35— y `docs/mapa/vista-2d-valvulas.md` en **33,3 KB**. **La próxima tanda que
 toque cualquiera de los dos tiene que partirlo ANTES de escribir.** Sigue esperando
 `docs/mapa/aortica-cortes.md` (33,2 KB), que esta tanda no tocó.
+
+---
+
+## Tanda «CORTOS» (2026-10-17) — DECLARADO y NO arreglado
+
+### CORTOS-1 · El test de burbuja tiene DOS escalas en la app, y la del módulo FOP no se tocó
+
+La sección FOP de «CC frecuentes» conserva `fop_contraste` y `fop_burbujas` con su escala
+(`pocas` <5 · `moderado` 5-20 · `abundante` >20) y su propio párrafo; el bloque nuevo de Otros usa
+las bandas de la ficha de Referencias (`<10` / `10-30` / `>30`), que son las que la orden dicta. El
+Laboratorio cuenta su barra «Paso de burbujas con contraste» leyendo `fop_burbujas`.
+
+**Por qué no se unificó, medido:** cambiar los `value` de ese `<select>` deja a **todo estudio
+guardado** con un valor que su selector ya no ofrece —`selectedIndex -1`, la trampa que `et_grado`
+pagó— y mueve el texto del módulo FOP (`FOP_BURB_TXT`) y las categorías de la barra del Laboratorio.
+Nada de eso estaba autorizado.
+
+**Consecuencia que hay que saber:** un estudio puede llevar las dos cosas y el informe diría dos
+oraciones sobre el mismo test con dos escalas. **Salidas:** (a) que el módulo FOP LEA el bloque
+nuevo y su `<select>` quede sólo para los estudios viejos; (b) agregar una tabla de alias de
+entrada, el patrón de `LAB_XLS_LISTAS_LEGADO`; (c) dejarlo y documentar las dos escalas.
+
+### CORTOS-2 · «Engrosamiento / calcificación» no dice «pericárdico»
+
+El dueño nuevo (`_periTxt`) sólo reescribe los tokens que empiezan con «Derrame», así que el
+informe sigue publicando «Engrosamiento / calcificación.» a secas. Nombrarle el pericardio es
+redactar una frase clínica que esta orden no autoriza. **Es una línea** y el dueño ya existe.
+
+### CORTOS-3 · Los dos campos de la prótesis tricúspide quedan detrás del cajón «Datos» en celular
+
+Desde que viven dentro de `#campos-esten-tricuspide`, por debajo de **768 px** el CSS del celular
+cierra ese cajón con `!important`, así que el DVI y la velocidad pico de E ya no están siempre a la
+vista en celular —igual que los seis campos de la estenosis—. Es el precio de ponerlos con los
+demás y lo pidió la orden. **Salida:** sacarlos del cajón con un envoltorio propio, que es lo que
+hacía el PRO-C1.
+
+### CORTOS-4 · El selector de origen de la prótesis mitral no se ve sin la pastilla de insuficiencia
+
+Su padre es `#bloque-insuf-mitral`, **el mismo antes y después de la mudanza**, así que esto es
+**preexistente** y no lo trae esta tanda: medido en los dos árboles, con prótesis mecánica y la
+pastilla cerrada la visibilidad es `false` en HEAD y hoy. Lo mismo le pasa a los campos de
+cuantificación que lo rodeaban.
+
+### CORTOS-5 · El Ar−A sigue teniendo DOS constantes con dos operadores (era `B4`)
+
+`VENP_AR_A_MS` vale 30 con borde **`>=`** —criterio de la ASE/EACVI 2016, que pinta la fila de la
+vena pulmonar y la celda del PDF— y `ASE_ARA_SUPL` vale 30 con **`>`**. Un Ar−A de **30,0 exactos**
+es positivo para la fila y negativo para el paso suplementario, **en la misma pantalla**. No se
+unificaron: son dos guías con el mismo número y distinto borde, y tocar `VENP_AR_A_MS` movería la
+alerta de otro módulo.
+
+### CORTOS-6 · `ASE_ARVEL_SUPL` queda declarada y sin consumidor
+
+Es el corte de la amplitud de la Ar de la **prosa** del folio 555d (35 cm/s). No vota desde el
+CORTOS6 y se nombra en el rótulo de la fila como salvedad. **No es una cadena viva sin dueño: es un
+dato de la fuente**, y el día que Maicol vuelva al AND está ahí con su folio.
+
+### CORTOS-7 · El importador CHM del Vivid no trae sexo, así que su aviso usa el corte más alto
+
+`_chmPaciente` devuelve `sexo: ''` —ese formato no publica el sexo—, así que por esa vía el rango de
+advertencia del diámetro AP sigue resolviéndose con el techo del varón, que es el lado que **nunca
+avisa de más**. El SR DICOM sí trae `(0010,0040)` y resuelve bien.
+
+### CORTOS-8 · Los seis hallazgos de Otros llegan al papel SÓLO por el informe narrativo
+
+El PDF del informe y el PPT clínico imprimen `informe_texto` y `en_suma`, así que heredan las
+frases nuevas por ese camino. **Lo que NO tienen es una fila propia** en la tabla de datos del PDF
+ni una entrada en el PPT estadístico, y **ninguna columna de Excel** —que es lo que la orden pide—.
+Un estudio exportado a Excel y reimportado **conserva los campos** (viajan en `campos`, no en el
+libro), pero un backup hecho **sólo** con el Excel los pierde, igual que el resto de los campos que
+no tienen columna.
+
+### CORTOS-9 · El Laboratorio sigue sin contar las dos obstrucciones protésicas (era `PRO-C6`)
+
+Ni la tricuspídea ni la pulmonar entran en la tabla de las ocho válvulas ni en el apilado: esa
+tabla cuenta por el token del `<select>` de severidad, y estas dos no escriben uno. Sigue abierto y
+esta tanda no lo movió.
+
+### CORTOS-10 · Lo que TC-499 no puede medir
+
+El **ancho de la ventana** —el cuerpo de un caso corre dentro de la página—, los **dos motores** y
+el **ciclo de 20 aperturas** de la vista 2D con su conteo de nodos. Lo mide
+`scripts/_probe_cortos.mjs`; las condiciones de maqueta del caso **declaran** el ancho en el que
+corrieron. Es el reparto de TC-460.
+

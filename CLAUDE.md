@@ -57,13 +57,15 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la AURÍCULA IZQUIERDA**: el dueño de su clasificación por volumen indexado, qué superficie clasifica y cuál sólo publica el valor; o **el COLAPSO de la VCI y el SÍMBOLO DEL SEXO en el PDF** | `docs/mapa/auricula-izquierda-pdf.md` |
 | **Tocar una COLUMNA del Excel, el criterio de «derivada», la IDA Y VUELTA de un dato calculado o el mensaje del importador** | `docs/mapa/excel-origen-ida-vuelta.md` |
 | **Tocar las ASOCIACIONES del Laboratorio o la TABLA DE LAS OCHO VÁLVULAS**: el cociente TAPSE/PSAP en el bloque A, el aviso de par acoplado, las dos estenosis BINARIAS y sus dos denominadores | `docs/mapa/laboratorio-asociaciones-valvulas.md` |
-| **Agregar o correr un caso de prueba; A/B; mutación** | `docs/mapa/tests.md` · fichas en `docs/mapa/tests-fichas.md` (TC-491 en adelante) y `docs/mapa/tests-fichas-481-490.md` |
+| **Agregar o correr un caso de prueba; A/B; mutación** | `docs/mapa/tests.md` · fichas en `docs/mapa/tests-fichas.md` (TC-496 en adelante), `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
 | **Visor de cineloop, medición, calibración, IndexedDB** | `docs/mapa/imagenes-visor.md` |
 | **Tocar la ESTENOSIS MITRAL en el LABORATORIO**: las seis categorías, las dos casillas del filtro, el gráfico de distribución, el PDF de auditoría o el PPT | `docs/mapa/laboratorio-estenosis-mitral.md` |
 | **Tocar la VISTA 2D de las válvulas**: el lector único del estado, las tarjetas, la tabla de cavidades, el dibujo, los chorros o el «por qué» | `docs/mapa/vista-2d-valvulas.md` |
 | **Tocar el PANEL EN LÍNEA de la vista 2D**: el botón que prende y apaga, el apagado automático, la sincronía en vivo, el alto del dibujo o la línea de fase | `docs/mapa/vista-2d-en-linea.md` |
 | **Orientarse en otro módulo** (Congénitas, Laboratorio, PPT, Cardio-Onco, Pericardio) | `docs/mapa/congenitas-otros.md` |
 | **Citar un dato de una guía** (documento, folio, frase verificada) | `docs/fuentes/FUENTES.md` |
+| **Tocar la POSICIÓN del selector de origen mitral o de los dos campos de la prótesis TRICÚSPIDE, la regla de DOS O MÁS de su obstrucción, la onda E en cm/s, el Ar−A suplementario, la FEVI del Laboratorio o los dos toggles de PDF** | `docs/mapa/cortos-arreglos.md` |
+| **Tocar un HALLAZGO de la pestaña OTROS**: ASIA, las seis variantes anatómicas, la circunfleja retroaórtica, el test de burbuja, el derrame pericárdico del papel o la separación de las líneas B | `docs/mapa/otros-hallazgos.md` |
 | **Tocar la OBSTRUCCIÓN de una prótesis TRICÚSPIDE o PULMONAR**: las Tablas 19 y 15 de la ASE 2024, los tres campos del PRO-C1, el DVI retirado con regurgitación o los tres estados pulmonares que no gradúan | `docs/mapa/protesis-tri-pulm.md` |
 | **Tocar un CORTE de PRÓTESIS de la tanda PRO**: el cociente VTI mitral por régimen, el jet/TSVI y la FR de la IAo protésica, o el reverso diastólico de la TAVI | `docs/mapa/protesis-pro.md` |
 | **Citar un dato de PRÓTESIS valvular** | `docs/fuentes/FUENTES-protesis.md` |
@@ -120,8 +122,8 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **8,12 MB / 122.172 líneas**, medido el 2026-10-17 al cierre de la tanda PRO-C
-  —el renglón anterior decía «8,07 MB / 121.605 líneas» y era del PRO-B, una tanda antes:
+  sin frameworks. Hoy **8,17 MB / 122.882 líneas**, medido el 2026-10-17 al cierre de la tanda
+  CORTOS —el renglón anterior decía «8,12 MB / 122.172 líneas» y era del PRO-C, una tanda antes:
   **medirlo antes de presupuestar contexto**—. Las únicas dependencias son jsPDF, XLSX y
   PptxGenJS por CDN. Se abre como archivo local y corre en Chrome.
 - Lo que produce es un **informe firmado**: narrativo, EN SUMA, PDF, PPT y Excel del Laboratorio.
@@ -275,6 +277,257 @@ impecable.
 ---
 
 ## Estado vigente
+
+### Los arreglos chicos y los SEIS hallazgos nuevos de la pestaña OTROS — «CORTOS» (2026-10-17)
+
+- **Son CATORCE commits, y son los catorce que la orden pedía.** Al **empezar**, `main` y
+  `origin/main` estaban los dos en **`68d64f5`** (sello `v20261017-1516`), **sin nada sin pushear**
+  —confirmado con un `git fetch` de verdad, con el `FETCH_HEAD` fechado al momento—, con los cuatro
+  commits del PRO-C ya incluidos **y pusheados por Maicol**. Los **catorce** commits de esta tanda
+  quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 14 → 13 → … → 1.**
+  ⚠️ **EL 3 SE REVIERTE ANTES QUE EL 2, aunque el 2 sea el que mueve el marcado.** El 2 muda
+  `et_e_vmax` y `vt_dvi` a `#campos-esten-tricuspide`; el 3 reescribe **esa misma línea** —unidad,
+  `step`, rótulo y `oninput`—, así que revertir el 2 primero intenta reponer un marcado que ya no
+  existe. **El 1 se revierte solo**: es sólo la mudanza del selector de origen mitral al pie del
+  cuadro, dentro del MISMO padre (`#bloque-insuf-mitral`).
+  ⚠️ **DEL 4 AL 9 SE REVIERTEN EN CUALQUIER ORDEN ENTRE SÍ Y NINGUNO NOMBRA UNA PIEZA DE OTRO**:
+  el 4 vive en `VT_PROT_OBSTR_MIN`, `VT_PROT_AISLADO_TXT` y el `R.obstr` de `vtProtObstr`; el 5 en
+  dos rótulos de la insuficiencia pulmonar; el 6 en el `cumple` del `arA` de `ASE_SUPLEMENTARIOS`;
+  el 7 en `ORD`, `_COH_FEVI_LEGADO`, `_COH_LBL`, el `<select>` `coh-fevi`, la rama `fevi` de
+  `_labCohorteOk` y los subgrupos del PPT; el 8 en `DCM_RANGO_CLIN.ai_diam`, `_dcmRangoClin`,
+  `_dcmMapear`, `_chmMapearMedicion` y `EV_AV_SEXO`; el 9 en `sgl_be_pdf`, `ete_qx_pdf`, sus dos
+  sincronías y el encabezado de `amiloImprimirPDF`.
+  ⚠️ **PERO EL 4 LEE LO QUE EL 3 ALIMENTA**: revertir el 3 sin revertir antes el 4 deja la regla de
+  «dos o más» contando una velocidad pico que vuelve a estar en m/s contra un corte en cm/s, o sea
+  **un criterio que deja de votar en silencio**.
+  ⚠️ **EL 11 ES LA BASE DEL 12 Y DEL 13**: `_otrRefClon` —el que clona la ficha de Referencias
+  dentro de una tarjeta ⓘ— nace ahí, y los globos de la orejuela, de la circunfleja retroaórtica y
+  de Balik lo llaman. Revertirlo sin revertir antes esos dos deja tres `data-vinfo` apuntando a una
+  función que no existe. **Y el 12 cuelga además del 10**, porque el globo `otr-rac` vive en el
+  rótulo de la casilla que el 10 crea.
+  **El 14 es TC-499 más las cinco adaptaciones, la documentación y la sonda de los dos motores**, y
+  afirma el comportamiento de los trece: revertir cualquiera sin el 14 lo deja en rojo.
+  ⚠️ **CASOS ADAPTADOS: CINCO, y DOS los destapó la SUITE COMPLETA.** **TC-498** en quince lugares
+  —los valores de la onda E pasan a cm/s y sus nueve escenas de **un** criterio positivo pasan de
+  `'estenosis'` a `'aislado'`—; **TC-471** (el registro `VINFO` pasa de 30 a 34 entradas);
+  **TC-459**, cuyo «CONTROL DEL AND» era el **límite declarado** del trabajo anterior —«la amplitud
+  de la Ar es condición»—, escrito para que el día que cayera se notara, **y lo notó**; y los dos
+  que la zona no podía ver: **TC-440** (el rótulo del ancho del jet de la IP, que pasa a nombrar el
+  anillo pulmonar) y **TC-488** (las tres condiciones del pericardio, que filtraban por «Derrame
+  moderado» y hoy el papel dice «Derrame pericárdico moderado»).
+  ⚠️ **Y LAS TRES DE TC-488 DEVOLVÍAN CADENA VACÍA, que se lee IGUAL que «la oración desapareció».**
+  El filtro era del lector. Es la trampa que este archivo ya tiene escrita tres veces.
+
+- **Línea base al cierre: suite **509/513** con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0
+  ERROR, Excel en 440 columnas, celular 52 a 360 px y 61 a 390 px con 10 ALTA cada uno —IDÉNTICO a
+  la línea base del PRO-C—. CERO REGRESIONES.** Los **CUATRO** rojos son exactamente los de ENTRADA
+  —**TC-223** (el documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**— y no
+  apareció ninguno fuera de esa lista. **El denominador sube a 513**: esta tanda agregó **TC-499**.
+  La de ENTRADA es la que el PRO-C dejó medida el MISMO día en esta máquina y con el pendrive
+  puesto: **508/512**. La comparación es 508/512 → **509/513** y el delta es el caso nuevo.
+  ⚠️ **LOS DIECISIETE DE TC-181…TC-197 SALIERON VERDES, que es la prueba de que el pendrive estuvo
+  montado.** `ls /Volumes/DISK_IMG` ANTES de comparar dos cifras.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **513 ids** sobre los 514 casos del archivo.
+  ⚠️ **LA SUITE COMPLETA SE CORRIÓ DOS VECES Y LA PRIMERA NO ES LA LÍNEA BASE.** Dio **506/513**
+  con SIETE rojos: los cuatro de entrada más **TC-459**, **TC-440** y **TC-488**, los tres que hubo
+  que adaptar y que **ninguna corrida de zona podía ver**. **La segunda corrida es la que vale.**
+- **EL SELLO DE VERSIÓN** estaba al día al empezar (`v20261017-1516`) y se volvió a sellar:
+  **`v20261017-1917`**. Todo lo medido salió **DESPUÉS** de sellar, con el `md5` quieto
+  (`884a0c69…`, verificado al abrir y al cerrar las dos corridas); lo único que se tocó después
+  fueron las cinco adaptaciones y TC-499, que no viven en `index.html`.
+  ⚠️ **EL SELLO VIAJA EN EL COMMIT 14, que es el único cambio de `index.html` que ese commit
+  lleva**: los trece anteriores quedaron con el sello viejo. Es la regla de la casa —el sello va
+  con el último commit que toca el archivo— y acá ese commit es el de la documentación.
+- **`index.html` pasó de 8,12 MB / 122.172 líneas a 8,17 MB / 122.882 líneas.**
+
+- **CORTOS1 y CORTOS2 · LO QUE SE MUDÓ, Y NINGUNA DE LAS DOS MUDANZAS CAMBIA UN PADRE.** El
+  selector de origen de la prótesis mitral baja **al pie del cuadro** de la insuficiencia, igual
+  que el bloque de la fuga paravalvular aórtica del PRO-B, y sigue dentro de
+  `#bloque-insuf-mitral`; los dos campos de la prótesis tricúspide entran en
+  `#campos-esten-tricuspide` —la grilla pasa de `grid-2` a `grid-3`— y su bloque de resultados
+  entra **dentro del `.calc-box`** de la estenosis, debajo de `#et-sev`, perdiendo su propia clase
+  `calc-box` y conservando su id. **Medido en los DOS motores**: los tres padres son los esperados
+  en Chrome **y** en WebKit.
+  ⚠️ **CONSECUENCIA DECLARADA: los dos campos tricuspídeos quedan detrás del cajón «Datos»**, que
+  por debajo de 768 px el CSS del celular cierra con `!important`. Es el precio de ponerlos con los
+  demás, y lo pidió la orden. `PENDIENTES.md` → CORTOS-3.
+  ⚠️ **Y EL SELECTOR MITRAL NO SE VE SIN LA PASTILLA DE INSUFICIENCIA, Y ES PREEXISTENTE**: su
+  padre es el mismo antes y después, medido en los dos árboles. `PENDIENTES.md` → CORTOS-4.
+
+- **CORTOS3 · LA ONDA E TRICUSPÍDEA ES UN DATO CON DOS CAMPOS, LOS DOS EN cm/s.** `et_e_vmax` y
+  `dt_onda_e` se espejan en los dos sentidos —borrado incluido— con el patrón de `itVmaxSync` y su
+  guarda de re-entrada. **El corte de la Tabla 19 se convierte UNA vez** (`≥2,1 / ≥1,9` m/s →
+  **210 / 190 cm/s**) y la pantalla **sólo muestra cm/s**: el rótulo, la fila y el veredicto.
+  ⚠️ **UN ESTUDIO GUARDADO EN m/s REABRE CON SU NÚMERO Y NO SE MIGRA**, así que un 2,1 guardado
+  entra como 2,1 cm/s y **no** vota. Está declarado y es la decisión de la casa: no se reescribe lo
+  que ya está en disco. Lo que sí se hizo es que el campo no pueda volver a cargarse en m/s —el
+  `step` pasa a 1 y el rótulo dice la unidad— y que el Doppler y Válvulas no puedan divergir.
+  ⚠️ **Y «cm/s)» CONTIENE «m/s)»**: la condición que exigía que la fila NO dijera «m/s» salía roja
+  sobre una fila perfecta. Se mide por lo que la fila SÍ dice.
+
+- **CORTOS4 · LA OBSTRUCCIÓN DE LA PRÓTESIS TRICÚSPIDE PIDE DOS O MÁS CRITERIOS POSITIVOS.**
+  Decisión de Maicol. Con **uno** solo el veredicto es `'aislado'` y la cápsula publica «Hallazgo
+  aislado, sin veredicto» con el criterio y su valor; **no sube al papel**. Con cero medidos sigue
+  siendo `null` y con cero positivos sobre criterios medidos, `'sin'`.
+  ⚠️ **EL DENOMINADOR LO PONE LA ESCENA Y NO LA REGLA**: el AEO por continuidad es un criterio
+  MEDIDO en cuanto hay área, así que la escena de un gradiente solo informa «1 de 2» o «1 de 3»
+  según lo que la tabla haya podido calcular. Mi primera expectativa decía «1 de 2» sobre una
+  escena que medía tres, y lo cazó el propio caso.
+  ⚠️ **LA NOTA `*` DE LA TABLA 19 ALCANZA SÓLO AL DVI** —«Assessed in the absence of AR or TR»—,
+  re-verificada en el original: no alcanza al resto de la fila. Y **el DVI no lo calcula la app**:
+  es un campo que el médico tipea, y su rótulo «VTI TSVI» es el literal `VTI_LVOT` de esa tabla.
+  Está reportado y no se tocó.
+
+- **CORTOS5 · LOS DOS RÓTULOS DE LA INSUFICIENCIA PULMONAR, CON LAS PALABRAS DE LA TABLA 16.**
+  Sólo texto: ni un corte, ni una cuenta, ni un grado. El ancho del jet pasa a nombrar el **anillo
+  pulmonar** —«pulmonary annulus», folio 34— donde decía «TSVD», y el reverso pasa a decir **«en el
+  tronco pulmonar distal»**. A/B: los grados de la IP y las tres filas del cuadro, idénticos.
+
+- **CORTOS6 · EL Ar−A VOTA CON SU DURACIÓN SOLA.** **ASE 2025, Figura 3, nota ‡**: «Ar-A duration
+  > 30 ms», sin la amplitud. La app exigía el AND de la prosa del folio 555d —duración **y**
+  amplitud > 35 cm/s— y el AND se retira: el corte y su operador **no se movieron**.
+  ⚠️ **`ASE_ARVEL_SUPL` QUEDA DECLARADA Y SIN CONSUMIDOR, a propósito**: es el 35 cm/s de la prosa,
+  se nombra en el rótulo de la fila como salvedad, y el día que Maicol vuelva al AND está ahí con
+  su folio. `PENDIENTES.md` → CORTOS-6.
+  ⚠️ **Y SIGUEN HABIENDO DOS CONSTANTES DE Ar−A CON DOS OPERADORES**: `VENP_AR_A_MS` con `>=` para
+  la fila de la vena pulmonar de la ASE/EACVI 2016 y `ASE_ARA_SUPL` con `>` para el suplementario.
+  Un Ar−A de **30,0 exactos** es positivo para una y negativo para el otro, en la misma pantalla.
+  No se unificaron: son dos guías con el mismo número y distinto borde. `PENDIENTES.md` → CORTOS-5.
+
+- **CORTOS7 · EL LABORATORIO LEE LA FEVI DE SU DUEÑO EN LOS TRES LUGARES QUE LA LEÍAN A MANO.**
+  Cierra **LS-6** y **LS-7**. El orden de la tabla (`ORD`) se **deriva** de `FEVI_CATS`, el filtro
+  de cohorte pasa de dos opciones con el 40 pelado a las **cuatro** categorías y le pregunta a
+  `feviClasificar`, y los subgrupos del PPT salen de la misma tabla.
+  ⚠️ **LA PREMISA DE LS-6 ERA FALSA Y SE MIDIÓ: el chi² no sale mal.** Es genérico y no depende del
+  orden de las categorías. Lo que estaba mal era el **orden de lectura** de la tabla, que mezclaba
+  los rótulos de la FEVI con «Sí/No».
+  ⚠️ **LAS DOS CLAVES VIEJAS DEL FILTRO SE SIGUEN LEYENDO** (`_COH_FEVI_LEGADO`): una cohorte
+  guardada con el 40 pelado no se queda sin filtrar.
+
+- **CORTOS8 · LOS TRES CHICOS DEL LS.** El aviso del importador por el diámetro AP de la AI pasa a
+  mirar el **sexo del paciente importado** (`DCM_RANGO_CLIN.ai_diam` pasa a ser función del sexo), y
+  el aviso de las tarjetas usa **una** constante (`EV_AV_SEXO`) donde había dos con el mismo texto.
+  ⚠️ **EL IMPORTADOR CHM DEL VIVID NO TRAE SEXO**, así que por esa vía el rango se resuelve con el
+  corte más alto, que es el lado que **nunca avisa de más**. El SR DICOM sí lo trae.
+  `PENDIENTES.md` → CORTOS-7.
+
+- **CORTOS9 · LOS DOS TOGGLES DE PDF PASAN A SER CAMPOS DEL ESTUDIO.** Cierra **K-3** y **J-2**.
+  `sgl_be_pdf` y `ete_qx_pdf` dejan `localStorage` y pasan a `input[type=hidden]` con guión BAJO,
+  con su dueño único y sus dos sincronías en `RECALC_MODULOS` y en `limpiarCampos`: «Nuevo estudio»
+  los apaga, viajan con el estudio y la reimpresión los repone. Es exactamente lo que el bull's eye
+  del K1 ya había hecho.
+  ⚠️ **NO SE MIGRA NADA**: un estudio anterior abre con los dos APAGADOS, porque la clave no está.
+  Y **el PDF de amiloidosis imprime SÓLO el documento elegido** —`pacIdImpreso`—, que es lo que el
+  J2 dejó pendiente: antes imprimía la cédula aunque el médico hubiera elegido la matrícula.
+
+- **CORTOS10 a CORTOS13 · LOS SEIS HALLAZGOS NUEVOS DE LA PESTAÑA OTROS, CON UNA SOLA REGLA.**
+  Casilla apagada ⇒ **el texto de la caja se ignora**; casilla encendida con la caja vacía ⇒ sale el
+  **texto por defecto**; con la caja escrita, la nota se suma **en la misma oración**. Es el patrón
+  que `pul_consol_nota` ya usaba, y es lo que impide que una caja escrita y olvidada entre al
+  informe firmado. **El texto de cada hallazgo vive UNA sola vez**, en `OTR_HALL`, que leen el
+  cuerpo y el EN SUMA: no pueden decir cosas distintas del mismo hallazgo.
+  **Al EN SUMA sube sólo lo que la orden dicta**: «ASIA» y «RAC»; **las seis variantes anatómicas no
+  suben**, y el nombre completo de la circunfleja va en el cuerpo.
+  ⚠️ **SON TRES BLOQUES Y NO UNO**, porque no son la misma pregunta: el aneurisma del septum, las
+  seis variantes —estructuras normales prominentes— y una anomalía coronaria.
+  **El TEST DE BURBUJA tiene un solo dueño** (`otrBurbuja`) con sus cuatro controles, y sus tres
+  detalles aparecen **sólo con pasaje**. **Los cuatro globos ⓘ nuevos CLONAN la ficha de
+  Referencias** (`_otrRefClon`) en vez de copiar su texto: `VINFO` pasa de 30 a 34 entradas.
+  **El papel dice «derrame pericárdico»** —un dueño único reescribe el token del selector, cuyo
+  `value` **no se toca** porque es lo que viaja en `campos` y lo que exporta el Excel— y las
+  **líneas B** ganan su selector de separación.
+  ⚠️ **«Engrosamiento / calcificación» NO SE TOCA**: no empieza con «Derrame», así que el dueño lo
+  devuelve igual. Nombrarle el pericardio es redactar una frase clínica que esta orden no autoriza.
+  `PENDIENTES.md` → CORTOS-2.
+  ⚠️ **EL TEST DE BURBUJA TIENE DOS ESCALAS EN LA APP Y LA DEL MÓDULO FOP NO SE TOCÓ**: unificar sus
+  `value` deja a cada estudio guardado con un valor que su selector ya no ofrece —la trampa de
+  `et_grado`— y mueve la barra del Laboratorio. `PENDIENTES.md` → CORTOS-1.
+
+- **DOS FUENTES NUEVAS VERIFICADAS, Y UNA AUSENCIA CONFIRMADA.** **ASE 2020** de anomalías
+  coronarias (folio **266**, regla folio = hoja + 258 **comprobada en el pie impreso**), que es lo
+  que sostiene la entrada nueva de Referencias y el globo de la circunfleja; y la **ICM 2026**
+  (Volpicelli, *Intensive Care Med*, enunciado **D6_11, hoja 19**), que publica la fórmula de
+  **Balik** con su alcance —«validated in critically ill patients … undergoing invasive
+  ventilation»— y **cierra Y3b-5 sin mover un número**. ⚠️ **Y LAS DOS SEPARACIONES DE LÍNEAS B
+  SIGUEN SIN FUENTE**, re-censada la biblioteca entera: sus opciones son **descriptivas**, no
+  interpretan, no llevan cita y el dato **no tiene globo**. `PENDIENTES.md` → Y3b-6.
+
+- **A/B DEDICADO contra el inicio de la tanda, con el PDF, el PPT y el PDF de auditoría GENERADOS
+  DE VERDAD: TRES diferencias y las tres son el conteo de campos.** Las **SEIS plantillas** del PDF
+  con el formulario vacío, con un escenario ajeno y con la escena protésica del PRO-C salen
+  **idénticas**; el informe en los tres estilos, los ocho grados, el **PPT estadístico**, el **PDF
+  de auditoría** y el **Excel en 440 columnas CLAVE POR CLAVE** —vacío, cargado, protésico y los
+  tres estudios de la población— **sin una sola diferencia**. Lo único que cambia es que los campos
+  del estudio pasan de **999 a 1023**, y los **24** están contados uno por uno: los dos toggles, las
+  ocho casillas con sus ocho cajas de nota, los cuatro controles del test de burbuja y la separación
+  de las líneas B. **Cero columnas de Excel nuevas.**
+
+- **MEDIDO EN LOS DOS MOTORES, 8 CELDAS CADA UNO** —Chrome **155.0.8059.84** y WebKit **27.2**,
+  cuatro viewports (1200×700, 768×1024, 390×844, 360×740) × dos temas, con la clase `light-mode`
+  COMPROBADA—: los seis controles nuevos entran enteros en las 16, **CERO scroll horizontal de la
+  página** en las 16 (`scrollWidth` igual a `clientWidth`), los campos a 483/706/328/298 px, y el
+  color del rótulo resuelve **REAL y DISTINTO** en los dos temas —`rgb(232,236,244)` de noche y
+  `rgb(26,34,51)` de día— e **IDÉNTICO entre motores**: las 8 celdas de Chrome y las 8 de WebKit dan
+  **los mismos números**. **Cero abortos.**
+  **20 APERTURAS Y CIERRES DE LA VISTA 2D: 12.010 nodos → 12.010, delta CERO**, y el panel apagado
+  al final, **en los dos motores**; y con CDP, sobre otra escena: 12.027 → 12.027.
+  **16 CAPTURAS PNG con los 16 `md5` DISTINTOS, y dos MIRADAS**: los acentos salen completos
+  —«Sí, se observa pasaje», «Maniobra», «Momento de aparición»— y a 360 px en WebKit la tarjeta del
+  test de burbuja entra entera y se lee.
+  ⚠️ **WebKit de Playwright NO es Safari, y se declara.**
+
+- **EL CHEQUEO DE CELULAR NO SE MOVIÓ NI CON `--todo`, Y SE MIDIÓ HEAD EL MISMO DÍA PARA PODER
+  DECIRLO:** `52 / 61` con 10 ALTA cada uno, y `--todo` **387 y 396**, el **mismo par** en los dos
+  árboles. ⚠️ **Y NO ES POR SUERTE: `check_mobile.js` NO ALCANZA EL CONTENIDO DE LA PESTAÑA OTROS**
+  —medido: cero menciones de `otr_`, y tampoco de `pericardio` ni de `pul_derrame`, que existen
+  desde antes—. `PENDIENTES.md` → CORTOS-10.
+
+- **Arneses: `scripts/_probe_cortos.mjs`** (CDP, teclas y clics reales; siete grupos propios:
+  `pos`, `trip`, `ara`, `lab`, `pdf`, `otros`, `maqueta`, más los heredados del PRO-C) y
+  **`scripts/_probe_cortoswk.mjs`** (Playwright, los DOS motores, la maqueta a cuatro viewports, el
+  ciclo de la vista 2D y las 16 capturas; resuelve Playwright **por ruta** y, si no está, lo DICE y
+  sale con código 2 en vez de reventar).
+  **Cobertura: TC-499**, **35 condiciones** —contadas sobre el propio caso— con sus denominadores y
+  sus controles negativos. **Verificado que sabe fallar contra el inicio de la tanda en un worktree
+  aparte: 29 de las 35 en rojo, y NINGUNA por excepción.**
+
+- **Dónde está todo:** `docs/mapa/cortos-arreglos.md` (**mapa NUEVO**, 18,7 KB: los nueve arreglos
+  con su medición y sus trampas) y `docs/mapa/otros-hallazgos.md` (**mapa NUEVO**, 14,3 KB: la regla
+  de las ocho casillas, el test de burbuja, los cuatro globos clonados y el pericardio);
+  `docs/mapa/tests-fichas-491-495.md` (**archivo NUEVO por PARTICIÓN**, 20,6 KB) y
+  `docs/mapa/tests-fichas.md` → la ficha de TC-499 (**20,3 KB**); seis mapas con un puntero cada uno
+  (`valvulas` 33,1 KB · `informe-pdf-excel` 31,4 · `congenitas-otros` 22,9 ·
+  `laboratorio-asociaciones-valvulas` 17,6 · `diastolica-complementarios` 16,9 ·
+  `protesis-tri-pulm` 16,4); `docs/fuentes/FUENTES.md` → las dos fuentes nuevas con su folio y su
+  hoja, la ausencia confirmada de las líneas B y la tabla de **Cambios de evidencia**;
+  `docs/fuentes/FUENTES-protesis.md` → la conversión del corte de la Tabla 19; y
+  `docs/PENDIENTES.md` → **diez entradas CERRADAS** (PRO-C1, PRO-C4, C2, LS-5, LS-6, LS-7, LS-9,
+  LS-10, K-3, J-2) más **Y3b-5 cerrada por fuente** y **Y3b-6 hecha y declarada**, y **diez** cosas
+  nuevas declaradas (CORTOS-1 a CORTOS-10).
+  ⚠️ **`tests-fichas.md` SE PARTIÓ ANTES DE ESCRIBIR Y NO DESPUÉS**, medido con `wc -c`: estaba en
+  **34,1 KB**, a 855 bytes del techo. Ningún mapa cruzó.
+
+- ⚠️ **CINCO TRAMPAS, Y TRES DABAN FALSOS PLAUSIBLES.**
+  1. **`_labCohorteOk(inf)` TOMA UN SOLO ARGUMENTO** y lee la variable de módulo `_LAB_COHORTE`:
+     pasarle el criterio como segundo argumento hizo que las siete claves contaran la **población
+     entera**, un denominador roto con pinta de medición buena.
+  2. **UN CRITERIO DE COHORTE INCOMPLETO RECHAZA TODO**, porque una clave ausente deja
+     comparaciones contra `undefined`. Se parte de un objeto COMPLETO leído del panel.
+  3. **`camposGuardados()` NO DEVUELVE LOS NOMBRES**, así que «cero campos nuevos» se informó sobre
+     veintiuno que sí viajan.
+  4. **TRES CONSTANTES DE MÓDULO NO ESTÁN EN `window`** y pusieron seis condiciones de TC-499 en
+     rojo sobre un árbol perfecto. Es la trampa de `ECO_AYUDA`, pagada otra vez.
+  5. **UN BOTÓN DE TOGGLE DEL PDF NO TIENE GEOMETRÍA** si su tarjeta está plegada: la sonda abortó
+     con «SIN GEOMETRIA», que es lo correcto.
+- ⚠️ **Me comí el acento grave CINCO veces**, todas en comentarios míos dentro del cuerpo de un caso
+  o del template de la sonda. `scripts/check_backticks.py` las dio con la línea exacta salvo una,
+  que estaba en el objeto `SONDA2` y la dio `node --check`. **Correr los dos.**
+- ⚠️ **Y UN REGEX CON LA BARRA ESCAPADA SE COCINA DENTRO DEL TEMPLATE DE UN CASO**: `/210 cm\/s/`
+  llega al motor como `/210 cm/s/` y revienta con un `SyntaxError` que el runner informa como
+  **excepción del caso**, no como condición en rojo. Va por `indexOf`.
 
 ### Las prótesis TRICÚSPIDE y PULMONAR se gradúan — «PRO-C» (2026-10-17)
 

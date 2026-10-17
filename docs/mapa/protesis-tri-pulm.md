@@ -249,3 +249,24 @@ La sonda es A/B de **solo lectura** y acepta `--file` para correr contra una cop
 HEAD. **El grupo `campos` usa un helper tolerante** (`tipearSiHay`) porque contra HEAD los tres
 campos no existen: sin eso el lado de HEAD queda vacío y la comparación deja de distinguir «se
 agregó» de «se rompió». Ningún grupo que mida un veredicto lo usa.
+
+---
+
+## ⚠️ La tanda «CORTOS» movió TRES cosas de esta zona (2026-10-17)
+
+Está en `docs/mapa/cortos-arreglos.md`, y es lo primero que hay que leer antes de volver acá:
+
+- **La POSICIÓN:** los dos campos (`vt_dvi` y `et_e_vmax`) se mudaron DENTRO de
+  `#campos-esten-tricuspide`, con los seis de la estenosis y en una `grid-3`; y las cinco filas de
+  la Tabla 19 salieron de su cápsula aparte y entraron DENTRO del `.calc-box` de la estenosis,
+  debajo de `#et-sev`, sin la clase `calc-box`. Ni un `id` cambió.
+- **LA UNIDAD DE LA ONDA E:** `et_e_vmax` pasó a **cm/s** y es un espejo de `dt_onda_e`, el campo
+  que ya existía en el Doppler tricuspídeo. El corte de la Tabla 19 se convierte una vez
+  —2,1 m/s = **210** y 1,9 m/s = **190**— y **no se publica en m/s en ninguna superficie**. La banda
+  pasó a `[20 – 400]`.
+- **LA REGLA DE INTEGRACIÓN:** ya **no** es un OR. Hacen falta **DOS o más** positivos
+  (`VT_PROT_OBSTR_MIN = 2`, el mismo que la mitral) y con UNO solo el veredicto es `aislado`: la
+  cápsula lo nombra con su valor y **no sube al papel**. `PRO-C1` queda cerrado por decisión de
+  Maicol.
+- Y los dos rótulos de la insuficiencia pulmonar nombran el territorio de la **Tabla 16** —anillo
+  pulmonar y tronco pulmonar distal—, que cierra `PRO-C4`.

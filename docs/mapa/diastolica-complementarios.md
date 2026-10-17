@@ -269,3 +269,25 @@ node scripts/test_clinico.mjs --solo TC-459         # la cobertura de esta tanda
 node scripts/test_clinico.mjs --solo TC-453,TC-454,TC-455,TC-456,TC-458,TC-260   # la zona
 python3 scripts/check_backticks.py                  # ANTES de cada commit
 ```
+
+---
+
+## ⚠️ El Ar−A vota con su duración sola desde la tanda «CORTOS» (2026-10-17)
+
+Cierra `C2`. La entrada `arA` de `ASE_SUPLEMENTARIOS` exigía **además** una amplitud de la Ar
+> 35 cm/s, que es lo que pide la PROSA del folio 555d; la **nota de suplementarios de la Figura 3**
+—folio 554, hoja 18— nombra sólo «Ar-A duration **> 30 ms**». Decisión de Maicol: **manda la
+figura**, que es la regla de la casa.
+
+- El operador sigue siendo `>` **estricto** y el valor no se movió. La **Tabla 7 del folio 557**
+  escribe «Ar-A (≥30 ms)»: tres textos del mismo documento y dos operadores.
+- `ASE_ARVEL_SUPL` queda **declarada y sin consumidor**, nombrada en el rótulo de la fila como la
+  salvedad de la prosa.
+- **ESCENA QUE CAMBIA:** con el Ar−A por encima de 30 ms y la amplitud de la Ar sin cargar o por
+  debajo de 35 cm/s, el suplementario ahora vota. Alcanza sólo al paciente que llegó al paso
+  suplementario.
+- `B4` sigue abierto: `VENP_AR_A_MS` (ASE/EACVI 2016) vale 30 con `>=` y pinta la fila de la vena
+  pulmonar, así que un Ar−A de 30,0 exactos es positivo para esa fila y negativo para el paso
+  suplementario, en la misma pantalla.
+
+Detalle en `docs/mapa/cortos-arreglos.md`.

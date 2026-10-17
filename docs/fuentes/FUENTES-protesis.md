@@ -439,3 +439,45 @@ criterio de severidad, y la diferencia queda declarada.
   VTI** del PRO1 y el **reverso** del PRO3;
 - y el **Excel en 440 columnas**, clave por clave, con el formulario vacío, con un escenario ajeno
   y en los tres estudios de la población.
+
+---
+
+## Lo que la tanda «CORTOS» le volvió a leer a la ASE 2024 (2026-10-17)
+
+### Tabla 19 — folio 36 (hoja 35): el DVI y su nota `*`, transcritos otra vez
+
+Pie, literal: «VTI_PrTV, VTI through the prosthetic TV. **\*Assessed in the absence of AR or TR.
+Upper limits of normal DVI vary by valve size and type.**»
+
+- ⚠️ **EL ASTERISCO ESTÁ SÓLO EN LA FILA DEL DVI.** La nota alcanza a ese parámetro y a ninguno
+  más: lo que la app hace —retirar el DVI con IT o IAo moderada o mayor, y nada más— queda
+  **confirmado** contra la fuente. Reportado sin tocar nada.
+- ⚠️ **EL DENOMINADOR DEL DVI ES EL TRACTO DE SALIDA IZQUIERDO**, con todas las letras:
+  `DVI (VTI_PrTV/VTI_LVOT)`. El rótulo de la app —«DVI — VTI prótesis / VTI TSVI»— **coincide con
+  la tabla**. Sorprende, y es lo que la fuente escribe.
+- ⚠️ **LA APP NO CALCULA EL DVI**: `vt_dvi` es un campo que **tipea el médico**, con su `oninput`
+  al pintor y sin ninguna fórmula detrás. No hay dos copias de nada, y la segunda parte de la nota
+  —«los límites superiores normales varían con el tamaño y el tipo de válvula»— es la razón por la
+  que un cociente consignado por otro laboratorio entra tal cual.
+- **El título sigue diciendo «suggestive of» y la tabla sigue sin publicar una regla de
+  integración.** Desde el CORTOS4 la app pide **dos o más** positivos —`VT_PROT_OBSTR_MIN = 2`, el
+  mismo número que `VM_PROT_OBSTR_MIN` de la mitral— y con UNO publica un **hallazgo aislado** que
+  no sube al papel. Es **criterio de EcoSmart**, declarado en la cápsula, y cierra `PRO-C1` por
+  decisión de Maicol.
+- **La velocidad pico de E se aplica en cm/s**: 2,1 m/s = **210 cm/s** y 1,9 m/s = **190 cm/s**. El
+  valor del borde no se movió; la unidad es la del campo que lo recibe, que es Doppler **pulsado**.
+
+### Tabla 16 — folio 34 (hoja 33): los dos rótulos de la IP protésica
+
+- «jet width **≤25% of pulmonary annulus**» / «**26%-50% of pulmonary annulus**» / «**>50% of
+  pulmonary annulus**».
+- «**Diastolic flow reversal in the distal main PA**».
+- Los dos rótulos de la app decían «del TSVD» y «en las ramas de la arteria pulmonar». **Sólo el
+  texto cambió** (CORTOS5), en las **tres** superficies que lo publican: la `<option>`, el rótulo de
+  la casilla y la fila del cuadro con el `rotulo` que entra en la discordancia. Cierra `PRO-C4`.
+
+**Lo que NO se movió en esta tanda, y está medido:** los cinco cortes de la Tabla 19 y los dos de
+la Tabla 15 (sólo la unidad de uno), los cuatro de `IT_CRIT`, los cuatro signos de la IP, la
+prótesis **mitral** con su regla de dos o más y sus cuatro cortes, la **fuga paravalvular** del
+PRO-B, la **TAVI**, el **PPM**, el **valve-in-valve**, el cociente VTI del PRO1, el reverso del
+PRO3, y el **Excel en 440 columnas**.

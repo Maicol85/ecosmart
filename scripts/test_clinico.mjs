@@ -2359,7 +2359,7 @@ caso('TC-458', 'Diastolica ASE/EACVI 2016 en RITMO SINUSAL: los DOS algoritmos d
   ] };
 `);
 
-caso('TC-459', 'Parametros complementarios de la funcion diastolica: las TRES opciones del S/D con un corte por algoritmo y el legado ya eliminado, el LARS en valor absoluto, los cuatro suplementarios de la ASE 2025 (folio 555) con el AND del inciso d, el E/e-prima por sitio de la ASE 2016 (folio 281), los dos rotulos y el borde del IMC, con nueve controles negativos', `
+caso('TC-459', 'Parametros complementarios de la funcion diastolica: las TRES opciones del S/D con un corte por algoritmo y el legado ya eliminado, el LARS en valor absoluto, los cuatro suplementarios de la ASE 2025 (el Ar-A con su duracion sola desde el CORTOS6), el E/e-prima por sitio de la ASE 2016 (folio 281), los dos rotulos y el borde del IMC, con nueve controles negativos', `
   const S = (k, v) => __t.set(k, v);
   /* ⚠️ EL FUENTE SE LEE DEL DOM Y NO CON fetch, Y NO ES UNA PREFERENCIA: el cuerpo de un caso
      se evalua dentro de un (function(){ ... })() que NO es async, asi que un await en su nivel
@@ -2527,7 +2527,8 @@ caso('TC-459', 'Parametros complementarios de la funcion diastolica: las TRES op
   /* SIN PmAD el campo dice «N mmHg (sin PmAD)»: le falta el sumando de la auricula derecha y NO
      vota, aunque el numero que muestra pase de 16. */
   const xPsin = sup({ ip_vtd: '1.95' });
-  /* El inciso (d) pide las DOS cosas: Ar-A > 30 ms Y amplitud de la Ar > 35 cm/s. */
+  /* El Ar-A vota con su DURACION SOLA desde el CORTOS6 (nota de la Figura 3, folio 554): el AND
+     con la amplitud era la lectura de la prosa del folio 555d y Maicol eligio la figura. */
   const xA30 = sup({ venp_dur_a: '100', venp_dur_ar: '130', venp_vel_ar: '40' });
   const xA31 = sup({ venp_dur_a: '100', venp_dur_ar: '131', venp_vel_ar: '40' });
   const xV35 = sup({ venp_dur_a: '100', venp_dur_ar: '140', venp_vel_ar: '35' });
@@ -2647,8 +2648,16 @@ caso('TC-459', 'Parametros complementarios de la funcion diastolica: las TRES op
     ['Ar-A: 30 ms NO alcanza y 31 SI (folio 555d, borde > ESTRICTO)',
       est(xA30.ven, /Ar−A|Ar-A/) === 'neg' && est(xA31.ven, /Ar−A|Ar-A/) === 'POS' && xA30.badge !== xA31.badge,
       est(xA30.ven, /Ar−A|Ar-A/) + ' / ' + est(xA31.ven, /Ar−A|Ar-A/)],
-    ['CONTROL DEL AND: con la amplitud de la Ar en 35 cm/s el Ar-A de 40 ms NO alcanza, y con 36 SI',
-      est(xV35.ven, /Ar−A|Ar-A/) === 'neg' && est(xV36.ven, /Ar−A|Ar-A/) === 'POS',
+    /* ADAPTADO el 2026-10-17 (CORTOS6): esta condicion era el CONTROL DEL AND —«con la amplitud
+       de la Ar en 35 cm/s el Ar-A de 40 ms NO alcanza, y con 36 SI»— y estaba escrita para que el
+       dia que el AND se cayera se notara. Se cayo: decision de Maicol, el Ar-A vota con su
+       DURACION SOLA, que es lo que escribe la nota de suplementarios de la Figura 3 (folio 554,
+       hoja 18). Hoy afirma lo CONTRARIO: con 40 ms de Ar-A el suplementario vota con la amplitud
+       en 35, en 36 y sin cargar. El corte de la amplitud (ASE_ARVEL_SUPL) queda declarado en el
+       rotulo de la fila como la salvedad de la prosa del folio 555d. */
+    ['LA AMPLITUD DE LA Ar YA NO ES CONDICION: con 40 ms de Ar-A el suplementario vota con la amplitud en 35, en 36 y sin cargar',
+      est(xV35.ven, /Ar−A|Ar-A/) === 'POS' && est(xV36.ven, /Ar−A|Ar-A/) === 'POS'
+        && est(xA31.ven, /Ar−A|Ar-A/) === 'POS',
       est(xV35.ven, /Ar−A|Ar-A/) + ' / ' + est(xV36.ven, /Ar−A|Ar-A/)],
     ['CONTROL NEGATIVO: con el Vol AI cargado el suplementario POSITIVO no se consulta',
       est(xCNvol.ven, /telediast/) === 'POS' && !/no estimable/i.test(xCNvol.badge),
@@ -60562,9 +60571,13 @@ caso('TC-440', 'Insuficiencia pulmonar: los CUATRO signos nuevos graduan por el 
     ['el ancho del jet vota leve / moderada / severa',
       angosto.calc === 'Leve' && intermedio.calc === 'Moderada' && ancho.calc === 'Severa',
       [angosto.calc, intermedio.calc, ancho.calc].join('/')],
+    /* ADAPTADO el 2026-10-17 (CORTOS5): esta condicion exigia que el rotulo del ancho del jet
+       nombrara el «TSVD», y la Tabla 16 de la ASE 2024 (folio 34) escribe el denominador de ese
+       cociente como «pulmonary annulus». El CORTOS5 corrigio SOLO el rotulo —ni un corte, ni una
+       cuenta, ni un grado— asi que lo que cambia es la palabra que la fila imprime. */
     ['y su fila imprime la opcion elegida, con su rango cuando lo trae',
       angosto.ancho === 'Angosto' && intermedio.ancho === 'Intermedio'
-      && ancho.ancho.indexOf('Ancho') === 0 && ancho.ancho.indexOf('TSVD') > -1,
+      && ancho.ancho.indexOf('Ancho') === 0 && ancho.ancho.indexOf('anillo pulmonar') > -1,
       [angosto.ancho, intermedio.ancho, ancho.ancho].join(' // ')],
     ['la senal CW vota tenue=leve / densa variable=moderada / densa empinada=severa',
       tenue.calc === 'Leve' && varia.calc === 'Moderada' && empin.calc === 'Severa',
@@ -64772,9 +64785,12 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
        ninguna de legado.
        ADAPTADO otra vez el 2026-10-16 (M): 26 -> 30, por ad-card, vd-tam-card, vd-fun-card y
        ao-card. Los cuatro viven en las pestanas VD y AI/VI, no en Valvulas; lo que esta
-       condicion afirma del marcado de Valvulas no cambia. */
+       condicion afirma del marcado de Valvulas no cambia.
+       ADAPTADO otra vez el 2026-10-17 (CORTOS): 30 -> 34, por otr-burbujas, otr-rac, pul-balik
+       -los tres en la pestana OTROS- y oai-ref, en la seccion de la orejuela de ETE. Ninguno
+       esta en Valvulas. */
     HAY_INFO && globos.every(function(b){ return !!VINFO[b.getAttribute('data-vinfo')]; }) &&
-    Object.keys(VINFO).length === 30,
+    Object.keys(VINFO).length === 34,
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
   ex.push(['(H) y la tarjeta se coloca SIEMPRE dentro de la pantalla, sin cortarse',
     (function(){ const b = document.querySelector('[data-vinfo="avm-thp"]');
@@ -70877,18 +70893,27 @@ caso('TC-488', 'Tanda Y3b + Wilkins + I: el 3D de la mitral se GIRA A MANO —co
         VAL('pericardio_hemo') === '' &&
         Array.prototype.slice.call((EL('pericardio_hemo') || { options: [] }).options).length === 3,
         VAL('pericardio_hemo')]);
+      /* ADAPTADO el 2026-10-17 (CORTOS13): el papel escribe «Derrame PERICARDICO moderado
+         (10-20mm)». El valor del selector no se movio —sigue siendo «Derrame moderado
+         (10-20mm)», que es lo que viaja con el estudio y lo que exporta el Excel— y lo que cambio
+         es como se ESCRIBE en el informe FIRMADO, por su dueño unico.
+         ⚠️ Y EL FILTRO ERA DEL LECTOR: con «Derrame moderado» las tres condiciones devolvian
+         cadena vacia sobre una oracion perfecta, que se lee igual que «la oracion desaparecio».
+         Se filtra por «Derrame pericárdico moderado», que es lo que el papel dice hoy. */
       SEL('pericardio', 'Derrame moderado (10-20mm)');
-      const sinElegir = LINEAS('estandar').filter(x => x.indexOf('Derrame moderado') > -1).join(' || ');
+      const PFIL = 'Derrame pericárdico moderado';
+      const sinElegir = LINEAS('estandar').filter(x => x.indexOf(PFIL) > -1).join(' || ');
       ex.push(['sin consignar el compromiso, la oracion del pericardio no dice nada de el',
-        sinElegir === 'Derrame moderado (10-20mm).', sinElegir]);
+        sinElegir === 'Derrame pericárdico moderado (10-20mm).', sinElegir]);
       SEL('pericardio_hemo', 'si');
-      const conSi = LINEAS('estandar').filter(x => x.indexOf('Derrame moderado') > -1).join(' || ');
+      const conSi = LINEAS('estandar').filter(x => x.indexOf(PFIL) > -1).join(' || ');
       SEL('pericardio_hemo', 'no');
-      const conNo = LINEAS('estandar').filter(x => x.indexOf('Derrame moderado') > -1).join(' || ');
+      const conNo = LINEAS('estandar').filter(x => x.indexOf(PFIL) > -1).join(' || ');
       ex.push(['con el si y con el no, la oracion lo dice con las palabras del selector',
-        conSi === 'Derrame moderado (10-20mm), con compromiso hemodinámico.' &&
-        conNo === 'Derrame moderado (10-20mm), sin compromiso hemodinámico.', conSi + ' // ' + conNo]);
-      const nar = LINEAS('narrativo').filter(x => x.indexOf('derrame moderado') > -1).join(' || ');
+        conSi === 'Derrame pericárdico moderado (10-20mm), con compromiso hemodinámico.' &&
+        conNo === 'Derrame pericárdico moderado (10-20mm), sin compromiso hemodinámico.',
+        conSi + ' // ' + conNo]);
+      const nar = LINEAS('narrativo').filter(x => x.indexOf('derrame pericárdico moderado') > -1).join(' || ');
       ex.push(['y en el narrativo el pericardio ya NO arrastra a las masas en la misma oracion',
         nar.indexOf('sin compromiso hemodinámico') > -1 && nar.indexOf('masas') === -1, nar]); }
     { NUEVO();
@@ -74786,7 +74811,12 @@ caso('TC-498', 'Tanda PRO-C: la OBSTRUCCION de las protesis TRICUSPIDE (ASE 2024
   ex.push(['(DENOM4) las dos tablas de cortes existen con sus dos columnas y los operadores de la fuente: el AEO es el UNICO con <',
     (function(){ const T = G('VT_PROT_T19'), P = G('VP_PROT_T15');
       if (typeof T !== 'object' || !T || typeof P !== 'object' || !P) return false;
-      return T.evmax.bio === 2.1 && T.evmax.mec === 1.9 && T.evmax.op === '>='
+      /* ADAPTADO el 2026-10-17 (CORTOS3): la velocidad pico de E pasa a cm/s —2,1 m/s = 210 y
+         1,9 m/s = 190—, porque la onda E se mide con Doppler PULSADO y su campo esta en cm/s. El
+         VALOR del borde no se movio; lo que cambio es la unidad en que la app lo publica, y esta
+         condicion exige ademas que la unidad sea la del campo. */
+      return T.evmax.bio === 210 && T.evmax.mec === 190 && T.evmax.op === '>='
+          && T.evmax.uni === 'cm/s'
           && T.gmed.bio === 9   && T.gmed.mec === 6   && T.gmed.op === '>='
           && T.thp.bio === 200  && T.thp.mec === 130  && T.thp.op === '>='
           && T.aeo.bio === 1.5  && T.aeo.mec === 2.0  && T.aeo.op === '<'
@@ -74804,31 +74834,34 @@ caso('TC-498', 'Tanda PRO-C: la OBSTRUCCION de las protesis TRICUSPIDE (ASE 2024
   /* ══ (a) LOS CINCO CRITERIOS DE LA TABLA 19, POR SU BORDE EXACTO Y EN LAS DOS COLUMNAS ═════
      ASE 2024, Tabla 19, folio 36 (hoja 35), verificada en el PDF original. Un parametro por
      escena, para que el veredicto sea el de ESE parametro y no el del peor de dos. */
-  ex.push(['(a1) velocidad pico de E: biologica 2,0 NO y 2,1 SI; mecanica 1,8 NO y 1,9 SI (T19: >=2,1 / >=1,9)',
-    escVT({ et_e_vmax:'2' }) === 'sin' && escVT({ et_e_vmax:'2.1' }) === 'estenosis'
-      && escVT({ vt_morf:'Prótesis mecánica', et_e_vmax:'1.8' }) === 'sin'
-      && escVT({ vt_morf:'Prótesis mecánica', et_e_vmax:'1.9' }) === 'estenosis',
-    'bio 2,0=' + escVT({ et_e_vmax:'2' }) + ' 2,1=' + escVT({ et_e_vmax:'2.1' })
-      + ' | mec 1,8=' + escVT({ vt_morf:'Prótesis mecánica', et_e_vmax:'1.8' })
-      + ' 1,9=' + escVT({ vt_morf:'Prótesis mecánica', et_e_vmax:'1.9' })]);
+  ex.push(['(a1) velocidad pico de E en cm/s: biologica 200 NO y 210 SI; mecanica 180 NO y 190 SI (T19: >=2,1 / >=1,9 m/s, convertidos)',
+    /* ADAPTADO el 2026-10-17 (CORTOS3 y CORTOS4): los valores van en cm/s —200/210 y 180/190— y
+       con UN SOLO criterio positivo el veredicto es «aislado» y no «estenosis». El borde separa
+       igual: lo que cambio es la unidad del campo y la regla de integracion. */
+    escVT({ et_e_vmax:'200' }) === 'sin' && escVT({ et_e_vmax:'210' }) === 'aislado'
+      && escVT({ vt_morf:'Prótesis mecánica', et_e_vmax:'180' }) === 'sin'
+      && escVT({ vt_morf:'Prótesis mecánica', et_e_vmax:'190' }) === 'aislado',
+    'bio 200=' + escVT({ et_e_vmax:'200' }) + ' 210=' + escVT({ et_e_vmax:'210' })
+      + ' | mec 180=' + escVT({ vt_morf:'Prótesis mecánica', et_e_vmax:'180' })
+      + ' 190=' + escVT({ vt_morf:'Prótesis mecánica', et_e_vmax:'190' })]);
   ex.push(['(a2) gradiente medio: biologica 8 NO y 9 SI; mecanica 5 NO y 6 SI (T19: >=9 / >=6)',
-    escVT({ et_gmedio:'8' }) === 'sin' && escVT({ et_gmedio:'9' }) === 'estenosis'
+    escVT({ et_gmedio:'8' }) === 'sin' && escVT({ et_gmedio:'9' }) === 'aislado'
       && escVT({ vt_morf:'Prótesis mecánica', et_gmedio:'5' }) === 'sin'
-      && escVT({ vt_morf:'Prótesis mecánica', et_gmedio:'6' }) === 'estenosis',
+      && escVT({ vt_morf:'Prótesis mecánica', et_gmedio:'6' }) === 'aislado',
     'bio 8=' + escVT({ et_gmedio:'8' }) + ' 9=' + escVT({ et_gmedio:'9' })
       + ' | mec 5=' + escVT({ vt_morf:'Prótesis mecánica', et_gmedio:'5' })
       + ' 6=' + escVT({ vt_morf:'Prótesis mecánica', et_gmedio:'6' })]);
   ex.push(['(a3) THP: biologica 199 NO y 200 SI; mecanica 129 NO y 130 SI (T19: >=200 / >=130)',
-    escVT({ et_thp:'199' }) === 'sin' && escVT({ et_thp:'200' }) === 'estenosis'
+    escVT({ et_thp:'199' }) === 'sin' && escVT({ et_thp:'200' }) === 'aislado'
       && escVT({ vt_morf:'Prótesis mecánica', et_thp:'129' }) === 'sin'
-      && escVT({ vt_morf:'Prótesis mecánica', et_thp:'130' }) === 'estenosis',
+      && escVT({ vt_morf:'Prótesis mecánica', et_thp:'130' }) === 'aislado',
     'bio 199=' + escVT({ et_thp:'199' }) + ' 200=' + escVT({ et_thp:'200' })
       + ' | mec 129=' + escVT({ vt_morf:'Prótesis mecánica', et_thp:'129' })
       + ' 130=' + escVT({ vt_morf:'Prótesis mecánica', et_thp:'130' })]);
   ex.push(['(a4) DVI: biologica 3,2 NO y 3,3 SI; mecanica 2,0 NO y 2,1 SI (T19: >=3,3 / >=2,1)',
-    escVT({ vt_dvi:'3.2' }) === 'sin' && escVT({ vt_dvi:'3.3' }) === 'estenosis'
+    escVT({ vt_dvi:'3.2' }) === 'sin' && escVT({ vt_dvi:'3.3' }) === 'aislado'
       && escVT({ vt_morf:'Prótesis mecánica', vt_dvi:'2' }) === 'sin'
-      && escVT({ vt_morf:'Prótesis mecánica', vt_dvi:'2.1' }) === 'estenosis',
+      && escVT({ vt_morf:'Prótesis mecánica', vt_dvi:'2.1' }) === 'aislado',
     'bio 3,2=' + escVT({ vt_dvi:'3.2' }) + ' 3,3=' + escVT({ vt_dvi:'3.3' })
       + ' | mec 2,0=' + escVT({ vt_morf:'Prótesis mecánica', vt_dvi:'2' })
       + ' 2,1=' + escVT({ vt_morf:'Prótesis mecánica', vt_dvi:'2.1' })]);
@@ -74837,17 +74870,20 @@ caso('TC-498', 'Tanda PRO-C: la OBSTRUCCION de las protesis TRICUSPIDE (ASE 2024
      Con numerador 62,83 (diametro 20 mm, VTI del TSVD 20 cm): VTI 41,89 da 1,50 cm2 —que NO
      vota, porque el corte es < 1,5— y 42,2 da 1,49, que SI. */
   ex.push(['(a5) AEO: 1,50 cm2 exactos NO votan en biologica y 1,49 SI; 2,00 exactos NO votan en mecanica y 1,99 SI (T19: <1,5 / <2,0)',
-    escVT({ et_vti_diast:'41.89' }) === 'sin' && escVT({ et_vti_diast:'42.2' }) === 'estenosis'
+    escVT({ et_vti_diast:'41.89' }) === 'sin' && escVT({ et_vti_diast:'42.2' }) === 'aislado'
       && escVT({ vt_morf:'Prótesis mecánica', et_vti_diast:'31.42' }) === 'sin'
-      && escVT({ vt_morf:'Prótesis mecánica', et_vti_diast:'31.6' }) === 'estenosis',
+      && escVT({ vt_morf:'Prótesis mecánica', et_vti_diast:'31.6' }) === 'aislado',
     (function(){ escVT({ et_vti_diast:'41.89' }); const a = V('et_avt');
       escVT({ vt_morf:'Prótesis mecánica', et_vti_diast:'31.42' }); return 'bio 41,89 -> ' + a + ' | mec 31,42 -> ' + V('et_avt'); })()]);
   /* LA COLUMNA LA ELIGE LA MORFOLOGIA, medido por los DOS lados: la mecanica es mas exigente en
      el gradiente y MENOS en el area, asi que no hay un «tipo mas estricto». */
   ex.push(['(a6) la MISMA medicion da distinto por TIPO en los dos sentidos: gradiente 7 vota solo en mecanica, AEO 1,96 vota solo en mecanica, y el gradiente 9 vota en las dos',
-    escVT({ et_gmedio:'7' }) === 'sin' && escVT({ vt_morf:'Prótesis mecánica', et_gmedio:'7' }) === 'estenosis'
-      && escVT({ et_vti_diast:'32' }) === 'sin' && escVT({ vt_morf:'Prótesis mecánica', et_vti_diast:'32' }) === 'estenosis'
-      && escVT({ et_gmedio:'9' }) === 'estenosis' && escVT({ vt_morf:'Prótesis mecánica', et_gmedio:'9' }) === 'estenosis',
+    /* ADAPTADO el 2026-10-17 (CORTOS4): con UN solo positivo el veredicto es «aislado». Lo que
+       esta condicion afirma —que la columna la elige la morfologia y que la MISMA medicion vota
+       en una y no en la otra— no cambia: lo que cambia es la palabra del estado positivo. */
+    escVT({ et_gmedio:'7' }) === 'sin' && escVT({ vt_morf:'Prótesis mecánica', et_gmedio:'7' }) === 'aislado'
+      && escVT({ et_vti_diast:'32' }) === 'sin' && escVT({ vt_morf:'Prótesis mecánica', et_vti_diast:'32' }) === 'aislado'
+      && escVT({ et_gmedio:'9' }) === 'aislado' && escVT({ vt_morf:'Prótesis mecánica', et_gmedio:'9' }) === 'aislado',
     'gmed7 bio=' + escVT({ et_gmedio:'7' }) + ' mec=' + escVT({ vt_morf:'Prótesis mecánica', et_gmedio:'7' })]);
   /* LA COMPUERTA DEL DVI: la nota * de la Tabla 19 lo evalua «in the absence of AR or TR». */
   ex.push(['(a7) el DVI se RETIRA con IT o IAo moderada o mayor —nota * de la T19— y la fila publica el motivo en vez de votar',
@@ -74857,7 +74893,7 @@ caso('TC-498', 'Tanda PRO-C: la OBSTRUCCION de las protesis TRICUSPIDE (ASE 2024
       escVT({ vt_dvi:'3.5', ia_vc:'7' }); const b = VT();
       const bOk = b && typeof b === 'object' && b.niv.dvi === 'retirado' && b.obstr === 'sin';
       escVT({ vt_dvi:'3.5' }); const c = VT();
-      const cOk = c && typeof c === 'object' && c.niv.dvi === 'si' && c.obstr === 'estenosis';
+      const cOk = c && typeof c === 'object' && c.niv.dvi === 'si' && c.obstr === 'aislado';
       return aOk && bOk && cOk; })(),
     (function(){ escVT({ vt_dvi:'3.5', it_vc:'8' }); return 'conIT fila=' + TXT('vt-prot-dvi'); })()]);
   /* ⚠️ EM_CONT_REGURG_MIN ES UN const DE MODULO Y NO UNA PROPIEDAD DE window —la trampa que
@@ -74870,7 +74906,7 @@ caso('TC-498', 'Tanda PRO-C: la OBSTRUCCION de las protesis TRICUSPIDE (ASE 2024
        MEDIDO: sin eso el veredicto cae en null —abstenerse— y no en «sin». */
     (function(){ escVT({ vt_dvi:'3.5', it_vc:'2' }); const a = VT();
       escVT({ vt_dvi:'3.5', it_vc:'5' }); const b = VT();
-      return !!(a && typeof a === 'object' && a.niv.dvi === 'si' && a.obstr === 'estenosis')
+      return !!(a && typeof a === 'object' && a.niv.dvi === 'si' && a.obstr === 'aislado')
         && !!(b && typeof b === 'object' && b.niv.dvi === 'retirado' && b.obstr === 'sin'); })(),
     (function(){ escVT({ vt_dvi:'3.5', it_vc:'2' }); const a = VT();
       const an = (a && typeof a === 'object') ? (a.niv.dvi + '/' + a.obstr) : String(a);
@@ -74954,16 +74990,22 @@ caso('TC-498', 'Tanda PRO-C: la OBSTRUCCION de las protesis TRICUSPIDE (ASE 2024
       escVP({ ep_vmax:p[0], ep_gmedio:p[1] }); r.push(VPO()); }); return r.join(','); })()]);
   ex.push(['(d3) la estenosis tricuspidea protesica NO se gradua: su unico veredicto positivo es «estenosis» y la fila de severidad sigue diciendo que los cortes nativos no aplican',
     (function(){ const r = [];
-      [['2.1','0'],['3','0'],['0','9'],['0','40']].forEach(function(p){
+      /* ADAPTADO el 2026-10-17 (CORTOS3 y CORTOS4): la onda E va en cm/s y las cuatro escenas
+         tienen UN solo criterio positivo, asi que su veredicto es «aislado». Lo que esta
+         condicion afirma —que esta protesis no se gradua y que la fila de severidad sigue
+         diciendo que los cortes nativos no aplican— no cambia. */
+      [['210','0'],['300','0'],['0','9'],['0','40']].forEach(function(p){
         escVT({ et_e_vmax:p[0], et_gmedio:p[1] }); r.push(VTO()); });
       const sev = TXT('et-sev');
       const P = G('PROT_SIN_GRADO_TXT');
-      return r.join(',') === 'estenosis,estenosis,estenosis,estenosis'
+      return r.join(',') === 'aislado,aislado,aislado,aislado'
         && typeof P === 'string' && sev === P; })(),
     'et-sev=' + TXT('et-sev')]);
   ex.push(['(d4) la palabra del veredicto tricuspideo es la de la Tabla 19 y vive en UNA constante que publican la capsula Y el informe',
     (function(){ const T = G('VT_PROT_OBSTR_TXT'); if (typeof T !== 'string') return false;
-      escVT({ et_gmedio:'12' });
+      /* ADAPTADO el 2026-10-17 (CORTOS4): la escena pasa a DOS criterios positivos, que es lo
+         que hace falta para que el veredicto exista y suba al papel. */
+      escVT({ et_gmedio:'12', et_thp:'250' });
       const o = inf('estandar');
       return TXT('vt-prot-obstr').indexOf(T) === 0 && o.inf.indexOf(T) >= 0 && o.suma.indexOf(T) >= 0; })(),
     'VT_PROT_OBSTR_TXT=' + String(G('VT_PROT_OBSTR_TXT'))]);
@@ -75002,7 +75044,8 @@ caso('TC-498', 'Tanda PRO-C: la OBSTRUCCION de las protesis TRICUSPIDE (ASE 2024
     (function(){ escVP({ vp_tipo_prot:'perc', ep_vmax:'3.3' }); return 'fila=' + TXT('vp-prot-obstr'); })()]);
   ex.push(['(e5) la VISTA 2D publica el veredicto protesico tricuspideo en la columna de estenosis, SIN chip de color, y la PULMONAR no esta en la vista 2D',
     (function(){ if (!FN('v2dEstado')) return false;
-      escVT({ et_gmedio:'12' });
+      /* ADAPTADO el 2026-10-17 (CORTOS4): DOS positivos, por lo mismo que (d4). */
+      escVT({ et_gmedio:'12', et_thp:'250' });
       let E = null; try { E = window.v2dEstado(); } catch (x) { return false; }
       const t = (E.esten || []).filter(x => x.valv && x.valv.indexOf('ricusp') >= 0)[0];
       const p = (E.esten || []).filter(x => x.valv && x.valv.indexOf('ulmonar') >= 0);
@@ -75063,12 +75106,12 @@ caso('TC-498', 'Tanda PRO-C: la OBSTRUCCION de las protesis TRICUSPIDE (ASE 2024
 
   /* ══ (g) LOS TRES CAMPOS VIAJAN CON EL ESTUDIO Y SIN COLUMNA DE EXCEL ═════════════════════ */
   ex.push(['(g1) los tres campos nuevos viajan con el estudio: sus id llevan guion BAJO y _noEsDelEstudio no los excluye',
-    (function(){ esc({ vt_morf:'Prótesis biológica', et_e_vmax:'2.4',
+    (function(){ esc({ vt_morf:'Prótesis biológica', et_e_vmax:'240',
                        vp_morf:'Prótesis biológica', vp_tipo_prot:'bio', ep_gmedio:'18' });
       const c = {};
       document.querySelectorAll('input[id],select[id],textarea[id]').forEach(function(e){
         if (e.type !== 'checkbox' && e.type !== 'radio') c[e.id] = e.value; });
-      return c.et_e_vmax === '2.4' && c.vp_tipo_prot === 'bio' && c.ep_gmedio === '18'; })(),
+      return c.et_e_vmax === '240' && c.vp_tipo_prot === 'bio' && c.ep_gmedio === '18'; })(),
     'et_e_vmax=' + V('et_e_vmax') + ' tipo=' + V('vp_tipo_prot') + ' gmedio=' + V('ep_gmedio')]);
   ex.push(['(g2) el Excel sigue en 440 columnas y NINGUNA nombra a los tres campos nuevos',
     (function(){ if (!FN('_labExcelRow')) return false;
@@ -75086,7 +75129,7 @@ caso('TC-498', 'Tanda PRO-C: la OBSTRUCCION de las protesis TRICUSPIDE (ASE 2024
       return !ls.some(k => re.test(k)) && !ss.some(k => re.test(k)); })(),
     'ls=' + (function(){ const a = []; try { for (let i = 0; i < localStorage.length; i++) a.push(localStorage.key(i)); } catch (e) {} return a.join(','); })().slice(0, 120)]);
   ex.push(['(g4) «Nuevo estudio» vacia los tres campos y esconde las dos capsulas',
-    (function(){ esc({ vt_morf:'Prótesis biológica', et_e_vmax:'2.4',
+    (function(){ esc({ vt_morf:'Prótesis biológica', et_e_vmax:'240',
                        vp_morf:'Prótesis biológica', vp_tipo_prot:'bio', ep_gmedio:'18' });
       __t.limpiar();
       ['valvProtSync','vtProtObstrPintar','vpProtObstrPintar'].forEach(f => { try { if (FN(f)) window[f](); } catch (x) {} });
@@ -75157,9 +75200,465 @@ caso('TC-498', 'Tanda PRO-C: la OBSTRUCCION de las protesis TRICUSPIDE (ASE 2024
             sb = String(b.getAttribute('style') || '').replace(/[ ]+/g, '');
       return sa.indexOf('display:none') >= 0 && sb.indexOf('display:none') >= 0
         && sa.indexOf('color') < 0 && sb.indexOf('color') < 0
-        && a.className.indexOf('calc-box') >= 0 && b.className.indexOf('calc-box') >= 0; })(),
+        /* ADAPTADO el 2026-10-17 (CORTOS2): la capsula TRICUSPIDEA ya no es una caja propia —se
+           mudo DENTRO del cuadro de referencias de la estenosis y perdio la clase calc-box, que
+           dibujaria una caja dentro de otra—, asi que la clase se le exige a la PULMONAR, que
+           sigue siendo una caja aparte, y de la tricuspidea se exige que su ANCESTRO sea una
+           calc-box: es lo que afirma que sigue heredando el estilo de un cuadro de referencias y
+           no que quedo suelta. */
+        && !!a.closest('.calc-box') && b.className.indexOf('calc-box') >= 0; })(),
     (function(){ const a = EL('bloque-prot-vt-res');
       return a ? String(a.getAttribute('style')) + ' | ' + a.className : 'NO EXISTE'; })()]);
+
+  return { extra: ex };
+`);
+
+
+/* ════════════════════════════════════════════════════════════════════════════════════════════
+   TC-499 — TANDA «CORTOS» (2026-10-17)
+   ⚠️ SIN ACENTOS GRAVES EN EL CUERPO DE ESTE CASO, tampoco en los comentarios: el cuerpo es un
+   template literal y uno de ellos cierra la cadena. `scripts/check_backticks.py` da la linea.
+   ⚠️ LO QUE ESTE CASO NO PUEDE MEDIR Y MIDE LA SONDA (scripts/_probe_cortos.mjs): el ancho de la
+   ventana —el cuerpo de un caso corre DENTRO de la pagina y no puede emular un viewport, que es
+   el reparto de TC-460—, los dos motores y el ciclo de 20 aperturas de la vista 2D con su conteo
+   de nodos. Las condiciones de maqueta de aca declaran el ancho en el que corrieron.
+   ════════════════════════════════════════════════════════════════════════════════════════════ */
+caso('TC-499', 'Tanda CORTOS: la POSICION del selector de origen mitral y de los dos campos tricuspideos; la obstruccion de la protesis TRICUSPIDE con DOS O MAS criterios positivos y la onda E en cm/s espejada con el Doppler; el Ar-A de la ASE 2025 votando con su duracion sola; la FEVI del Laboratorio leida de su dueno; los dos toggles de PDF como campos del estudio; y los seis hallazgos nuevos de la pestana Otros —ASIA, variantes, RAC, test de burbuja, derrame pericardico y separacion de lineas B— con su frase exacta, sin que se muevan la protesis mitral, la fuga paravalvular, la TAVI, el PPM, las valvulas nativas, el HFA-PEFF, el Wilkins ni las 440 columnas del Excel', `
+  const ex = [];
+  const EL  = (id) => document.getElementById(id);
+  const S   = (id, v) => { try { __t.set(id, v); } catch (e) {} };
+  const V   = (id) => { const e = EL(id); return e ? String(e.value) : 'NO EXISTE'; };
+  const TXT = (id) => { const e = EL(id); return e ? String(e.textContent || '').replace(/[ ]+/g, ' ').trim() : 'NO EXISTE'; };
+  const G   = (n) => { try { return (n in window) ? window[n] : 'NO EXISTE'; } catch (e) { return 'EXC'; } };
+  const FN  = (n) => typeof G(n) === 'function';
+  /* ⚠️ UN const DE NIVEL SUPERIOR NO ES UNA PROPIEDAD DE window, asi que G() —que usa
+     in window— devuelve «NO EXISTE» sobre una constante que SI existe: es la trampa de
+     ECO_AYUDA que este archivo ya tiene escrita, y cazo SEIS condiciones de este caso. El
+     cuerpo de un caso se evalua en el scope GLOBAL de la pagina, asi que la ligadura lexica si
+     esta: se la nombra PELADA, con su guarda de typeof. */
+  const CHK = (id, on) => { const e = EL(id); if (!e) return; e.checked = !!on;
+    try { e.dispatchEvent(new Event('change', { bubbles: true })); } catch (x) {} };
+  const estilo = (e) => { try { setEstiloInforme(e) } catch (x) {} };
+  const inf = (e) => { estilo(e || 'estandar'); try { generarInforme() } catch (x) {}
+    return { inf: String((EL('informe_texto')||{}).value || ''), suma: String((EL('en_suma')||{}).value || '') } };
+  const LIN = (t, pat) => String(t || '').split(String.fromCharCode(10)).filter(l => l.indexOf(pat) >= 0);
+  /* Los calculadores y los pintores se llaman a mano: __t.set no dispara el oninput del marcado,
+     asi que sin esto la escena mide el estado del paciente ANTERIOR. */
+  const esc = (o) => { __t.limpiar(); Object.keys(o || {}).forEach(k => S(k, String(o[k])));
+    ['calcET','calcVP','calcIT_ESC','calcIA_ESC','calcIM_ESC','calcDiastol','calcVenaPulm',
+     'valvProtSync','vtProtObstrPintar','vpProtObstrPintar','imPvlPintar','otrBurbUI','pulBasicoUI']
+      .forEach(f => { try { if (FN(f)) window[f](); } catch (x) {} });
+    return o; };
+  const VT  = () => { try { return FN('vtProtObstr') ? (window.vtProtObstr() || null) : 'SIN FN'; } catch (e) { return 'EXC'; } };
+  const VTO = () => { const r = VT(); return (r && typeof r === 'object') ? String(r.obstr) : String(r); };
+  const escVT = (o) => { const b = { vt_morf:'Protesis biologica',
+      et_tsvd_diam:'20', et_vti_tsvd:'20', et_vti_diast:'20' };
+    /* El valor del select se escribe con su texto EXACTO: «Protesis biologica» sin tilde no es
+       una opcion de vt_morf, y con un valor que no esta el select queda en selectedIndex -1 y la
+       escena mide una valvula NATIVA. Se toma del propio select. */
+    const sel = EL('vt_morf');
+    if (sel) { const op = Array.prototype.slice.call(sel.options).filter(x => /biol/i.test(x.value))[0];
+      if (op) b.vt_morf = op.value; }
+    Object.keys(o || {}).forEach(k => b[k] = o[k]); esc(b); return VTO(); };
+
+  /* ══ DENOMINADORES ════════════════════════════════════════════════════════════════════════ */
+  ex.push(['(DENOM1) las piezas de esta tanda existen: el umbral de integracion, el estado aislado, la tabla de hallazgos de Otros y el dueno del test de burbuja',
+    G('VT_PROT_OBSTR_MIN') === 2 && typeof G('VT_PROT_AISLADO_TXT') === 'string'
+      && Array.isArray(G('OTR_HALL')) && G('OTR_HALL').length === 8
+      && FN('otrHallazgos') && FN('otrBurbuja') && FN('etOndaESync') && FN('_otrRefClon'),
+    'MIN=' + G('VT_PROT_OBSTR_MIN') + ' aislado=' + G('VT_PROT_AISLADO_TXT')
+      + ' OTR_HALL=' + (Array.isArray(G('OTR_HALL')) ? G('OTR_HALL').length : G('OTR_HALL'))]);
+  ex.push(['(DENOM2) los 16 controles nuevos de Otros y los dos ocultos de PDF existen con guion BAJO, asi que viajan con el estudio',
+    (function(){ const ids = ['otr_asia','otr_asia_nota','otr_var_eustaquio','otr_var_chiari',
+        'otr_var_lipo','otr_var_tendones','otr_var_lambl','otr_var_senocor','otr_rac','otr_rac_nota',
+        'otr_burb','otr_burb_pasaje','otr_burb_cant','otr_burb_man','otr_burb_mom',
+        'pul_lineasb_sep','sgl_be_pdf','ete_qx_pdf'];
+      const faltan = ids.filter(i => !EL(i));
+      const conGuion = ids.filter(i => i.indexOf('-') >= 0);
+      return faltan.length === 0 && conGuion.length === 0; })(),
+    (function(){ const ids = ['otr_asia','otr_burb','pul_lineasb_sep','sgl_be_pdf','ete_qx_pdf'];
+      return ids.map(i => i + '=' + !!EL(i)).join(' '); })()]);
+
+  /* ══ (b) LA POSICION DE LO QUE SE MUDO (CORTOS1 y CORTOS2) ════════════════════════════════
+     Se mide por CONTENCION y por ORDEN en el documento, que es lo que distingue «esta dentro del
+     cuadro» de «esta despues del cuadro». La geometria no sirve: con la pestana cerrada los dos
+     miden 0x0. */
+  ex.push(['(b1) el selector de origen de la protesis mitral esta DEBAJO del cuadro de referencias: no esta dentro de el y la fila de resultado lo PRECEDE',
+    (function(){ const a = EL('bloque-prot-vm-pvl'), f = EL('im-pvl-interp');
+      if (!a || !f) return false;
+      const caja = f.closest('.calc-box');
+      return !!caja && !caja.contains(a) && !!(a.compareDocumentPosition(f) & 2); })(),
+    (function(){ const a = EL('bloque-prot-vm-pvl'), f = EL('im-pvl-interp');
+      if (!a || !f) return 'NO EXISTE';
+      const caja = f.closest('.calc-box');
+      return 'dentroDeLaCaja=' + (!!caja && caja.contains(a)) + ' filaPrecede=' + !!(a.compareDocumentPosition(f) & 2); })()]);
+  ex.push(['(b2) los dos campos de la protesis tricuspide viven DENTRO de la zona de campos de la estenosis y en una grilla de TRES, como los seis de arriba',
+    (function(){ const b = EL('bloque-prot-vt'), z = EL('campos-esten-tricuspide');
+      if (!b || !z) return false;
+      return z.contains(b) && b.className.indexOf('grid-3') >= 0
+        && z.contains(EL('vt_dvi')) && z.contains(EL('et_e_vmax')); })(),
+    (function(){ const b = EL('bloque-prot-vt'), z = EL('campos-esten-tricuspide');
+      return (b && z) ? ('dentro=' + z.contains(b) + ' clase=' + b.className) : 'NO EXISTE'; })()]);
+  ex.push(['(b3) las filas de la Tabla 19 estan DENTRO del cuadro de referencias de la estenosis y DEBAJO de las que ya estaban, sin dibujar una caja dentro de otra',
+    (function(){ const c = EL('bloque-prot-vt-res'), sev = EL('et-sev'), z = EL('campos-esten-tricuspide');
+      if (!c || !sev || !z) return false;
+      const caja = sev.closest('.calc-box');
+      return z.contains(c) && !!caja && caja.contains(c)
+        && c.className.indexOf('calc-box') < 0
+        && !!(c.compareDocumentPosition(sev) & 2); })(),
+    (function(){ const c = EL('bloque-prot-vt-res'), sev = EL('et-sev');
+      return (c && sev) ? ('clase=[' + c.className + '] enLaCaja=' + !!(sev.closest('.calc-box') || {}).contains
+        + ' sevPrecede=' + !!(c.compareDocumentPosition(sev) & 2)) : 'NO EXISTE'; })()]);
+
+  /* ══ (a) LA REGLA DE DOS O MAS, EN LOS DOS TIPOS, Y LA ONDA E EN cm/s ═════════════════════ */
+  ex.push(['(a1) CERO positivos no concluye, UNO queda como hallazgo aislado y DOS publican el veredicto: el umbral es el mismo que la protesis mitral',
+    escVT({ et_gmedio:'4', et_thp:'120' }) === 'sin'
+      && escVT({ et_gmedio:'12', et_thp:'120' }) === 'aislado'
+      && escVT({ et_gmedio:'12', et_thp:'250' }) === 'estenosis'
+      && G('VT_PROT_OBSTR_MIN') === ((typeof VM_PROT_OBSTR_MIN === 'undefined') ? null : VM_PROT_OBSTR_MIN),
+    'cero=' + escVT({ et_gmedio:'4', et_thp:'120' })
+      + ' uno=' + escVT({ et_gmedio:'12', et_thp:'120' })
+      + ' dos=' + escVT({ et_gmedio:'12', et_thp:'250' })
+      + ' | MIN tri=' + G('VT_PROT_OBSTR_MIN')
+      + ' mitral=' + ((typeof VM_PROT_OBSTR_MIN === 'undefined') ? 'NO EXISTE' : VM_PROT_OBSTR_MIN)]);
+  ex.push(['(a2) con UN solo positivo la frase NO sube al papel —ni al cuerpo ni al EN SUMA— y con DOS sube a los dos, en los tres estilos',
+    (function(){ const T = G('VT_PROT_OBSTR_TXT');
+      if (typeof T !== 'string') return false;
+      escVT({ et_gmedio:'12', et_thp:'120' });
+      const u = ['conciso','estandar','narrativo'].map(e => inf(e));
+      escVT({ et_gmedio:'12', et_thp:'250' });
+      const d = ['conciso','estandar','narrativo'].map(e => inf(e));
+      return u.every(o => o.inf.indexOf(T) < 0 && o.suma.indexOf(T) < 0)
+        && d.every(o => o.inf.indexOf(T) >= 0 && o.suma.indexOf(T) >= 0); })(),
+    (function(){ escVT({ et_gmedio:'12', et_thp:'120' }); const o = inf('estandar');
+      return 'capsula=' + TXT('vt-prot-obstr') + ' | papel=' + LIN(o.inf, 'tricuspide').join(' // '); })()]);
+  ex.push(['(a3) la capsula NOMBRA el hallazgo aislado con su valor y NO usa la palabra estenosis como afirmacion',
+    (function(){ escVT({ et_gmedio:'12', et_thp:'120' });
+      const t = TXT('vt-prot-obstr'), A = G('VT_PROT_AISLADO_TXT');
+      /* SON TRES CRITERIOS MEDIDOS y no dos: la escena base carga los tres insumos del area, asi
+         que el AEO por continuidad tambien esta medido —y da 3,14 cm2, que no vota—. El
+         denominador lo pone la escena, no la regla. */
+      return typeof A === 'string' && t.indexOf(A) === 0 && t.indexOf('12.0 mmHg') >= 0
+        && t.indexOf('1 de 3 criterios') >= 0; })(),
+    'capsula=' + (function(){ escVT({ et_gmedio:'12', et_thp:'120' }); return TXT('vt-prot-obstr'); })()]);
+  ex.push(['(a4) la onda E vota en cm/s por su borde exacto en las DOS columnas: 209/210 en biologica y 189/190 en mecanica, y el corte se publica SOLO en cm/s',
+    (function(){ const niv = (o) => { escVT(o); const r = VT();
+        return (r && typeof r === 'object') ? String(r.niv.evmax) : String(r); };
+      const sel = EL('vt_morf');
+      const mec = sel ? (Array.prototype.slice.call(sel.options).filter(x => /mec/i.test(x.value))[0] || {}).value : '';
+      const ok = niv({ et_e_vmax:'209' }) === 'no' && niv({ et_e_vmax:'210' }) === 'si'
+        && niv({ vt_morf:mec, et_e_vmax:'189' }) === 'no' && niv({ vt_morf:mec, et_e_vmax:'190' }) === 'si';
+      escVT({ et_e_vmax:'210' });
+      const fila = TXT('vt-prot-evmax');
+      /* ⚠️ NI UN REGEX CON BARRA DENTRO DEL CUERPO DE UN CASO: el cuerpo es un template literal
+         y la barra escapada se cocina —medido: el motor recibe /210 cm/s/ y tira «Unexpected
+         token .»—. Va por indexOf, que es lo que este repo ya tiene escrito. */
+      /* La fila termina en «>= 210 cm/s)», asi que buscar «m/s)» matchea DENTRO de «cm/s)»: el
+         valor y el corte se comprueban por su texto completo, en cm/s los dos. */
+      return ok && fila.indexOf('210 cm/s') === 0 && fila.indexOf('>= 210 cm/s') > 0; })(),
+    (function(){ escVT({ et_e_vmax:'210' }); return 'fila=' + TXT('vt-prot-evmax'); })()]);
+  ex.push(['(a5) el dedazo de tipear 2,1 por 210 cae debajo del piso de la banda, se publica «fuera de rango» y NO vota',
+    (function(){ escVT({ et_e_vmax:'2.1' }); const r = VT();
+      /* El veredicto queda en «sin» y no en nulo porque la escena base deja el AEO medido: lo
+         que esta condicion afirma es que el valor fuera de banda NO VOTA, y eso se lee en su
+         propio nivel. */
+      return !!(r && typeof r === 'object') && r.niv.evmax === 'fuera' && r.obstr === 'sin'
+        && (r.fuera || []).length === 1
+        && TXT('vt-prot-evmax').indexOf('fuera de rango') >= 0; })(),
+    (function(){ escVT({ et_e_vmax:'2.1' }); return 'fila=' + TXT('vt-prot-evmax') + ' obstr=' + VTO(); })()]);
+  ex.push(['(a6) la onda E es UN dato con DOS campos: el espejo copia en los dos sentidos y el borrado borra en los dos',
+    (function(){ if (!FN('etOndaESync')) return false;
+      __t.limpiar(); S('et_e_vmax', '96'); window.etOndaESync('et_e_vmax');
+      const a = V('dt_onda_e') === '96';
+      S('dt_onda_e', '77'); window.etOndaESync('dt_onda_e');
+      const b = V('et_e_vmax') === '77';
+      S('dt_onda_e', ''); window.etOndaESync('dt_onda_e');
+      const c = V('et_e_vmax') === '';
+      return a && b && c; })(),
+    (function(){ __t.limpiar(); S('et_e_vmax', '96');
+      if (FN('etOndaESync')) window.etOndaESync('et_e_vmax');
+      return 'valv=96 -> dop=' + V('dt_onda_e'); })()]);
+  ex.push(['(a7) el DVI se sigue retirando con IT moderada o mayor, y con el retirado el unico positivo que queda es un hallazgo aislado',
+    (function(){ escVT({ vt_dvi:'3.5', it_vc:'8', et_gmedio:'12' }); const r = VT();
+      return !!(r && typeof r === 'object') && r.niv.dvi === 'retirado' && r.obstr === 'aislado'; })(),
+    (function(){ escVT({ vt_dvi:'3.5', it_vc:'8', et_gmedio:'12' }); const r = VT();
+      return (r && typeof r === 'object') ? ('dvi=' + r.niv.dvi + ' obstr=' + r.obstr) : String(r); })()]);
+  ex.push(['(a8) la PULMONAR no cambia: tiene DOS criterios y cualquiera alcanza, como dice su tabla',
+    (function(){ if (!FN('vpProtObstr')) return false;
+      esc({ vp_morf:'Protesis biologica', vp_tipo_prot:'bio', ep_vmax:'3.3' });
+      const sel = EL('vp_morf');
+      if (sel) { const op = Array.prototype.slice.call(sel.options).filter(x => /biol/i.test(x.value))[0];
+        if (op) { esc({ vp_morf:op.value, vp_tipo_prot:'bio', ep_vmax:'3.3' }); } }
+      const r = window.vpProtObstr();
+      return !!r && String(r.obstr) === 'posible'; })(),
+    (function(){ try { const r = window.vpProtObstr(); return r ? String(r.obstr) : 'null'; } catch (x) { return 'EXC'; } })()]);
+
+  /* ══ (c) EL Ar-A DE LA ASE 2025, POR SU BORDE (CORTOS6) ══════════════════════════════════ */
+  ex.push(['(c1) el Ar-A vota con su DURACION SOLA y el borde es > 30 ms estricto: 29 no, 30 no, 31 si, con la amplitud de la Ar sin cargar',
+    (function(){ const E = (Array.isArray(G('ASE_SUPLEMENTARIOS')) ? G('ASE_SUPLEMENTARIOS') : [])
+        .filter(q => q.clave === 'arA')[0];
+      if (!E) return false;
+      const c = (dur) => { esc({ venp_dur_ar:String(dur), venp_dur_a:'100' }); return !!E.cumple(E.leer()); };
+      return c(129) === false && c(130) === false && c(131) === true; })(),
+    (function(){ const E = (Array.isArray(G('ASE_SUPLEMENTARIOS')) ? G('ASE_SUPLEMENTARIOS') : [])
+        .filter(q => q.clave === 'arA')[0];
+      if (!E) return 'SIN ENTRADA';
+      esc({ venp_dur_ar:'131', venp_dur_a:'100' });
+      return 'dur=' + E.leer() + ' cumple=' + !!E.cumple(E.leer()) + ' | rot=' + String(E.rot).slice(0, 90); })()]);
+  ex.push(['(c2) la amplitud de la Ar ya NO es una condicion: con 20 cm/s —por debajo de los 35 de la prosa— el Ar-A de 31 ms vota igual, y la constante sigue declarada',
+    (function(){ const E = (Array.isArray(G('ASE_SUPLEMENTARIOS')) ? G('ASE_SUPLEMENTARIOS') : [])
+        .filter(q => q.clave === 'arA')[0];
+      if (!E) return false;
+      esc({ venp_dur_ar:'131', venp_dur_a:'100', venp_vel_ar:'20' });
+      const a = !!E.cumple(E.leer());
+      esc({ venp_dur_ar:'131', venp_dur_a:'100', venp_vel_ar:'40' });
+      const b = !!E.cumple(E.leer());
+      /* Los dos cortes son const de modulo: se los mide por el ROTULO de la fila, que es lo
+         que el medico lee, y por el comportamiento de arriba. */
+      const rot = String(E.rot || '');
+      return a === true && b === true && rot.indexOf('> 30 ms') >= 0 && rot.indexOf('35 cm/s') >= 0
+        && rot.indexOf('folio 554') >= 0; })(),
+    (function(){ const E = (Array.isArray(G('ASE_SUPLEMENTARIOS')) ? G('ASE_SUPLEMENTARIOS') : [])
+        .filter(q => q.clave === 'arA')[0];
+      return E ? String(E.rot) : 'SIN ENTRADA'; })()]);
+
+  /* ══ (d) EL LABORATORIO LEE LA FEVI DE SU DUENO (CORTOS7) ════════════════════════════════ */
+  ex.push(['(d1) el orden de lectura de las categoricas trae las CUATRO clases de FEVI del dueno, sin ninguna de las tres etiquetas viejas',
+    (function(){ const C = G('FEVI_CATS');
+      if (!Array.isArray(C)) return false;
+      const src = String(document.documentElement.innerHTML);
+      const viejas = ["'" + String.fromCharCode(8805) + "50'", "'40-49'", "'<40'"];
+      return C.length === 4 && viejas.every(v => src.indexOf('ORD = [' ) >= 0 && src.indexOf(v + ',') < 0); })(),
+    (function(){ const C = G('FEVI_CATS');
+      return Array.isArray(C) ? C.map(x => x.rango).join(' | ') : String(C); })()]);
+  ex.push(['(d2) el filtro de cohorte ofrece las CUATRO categorias del dueno y sus rotulos salen de FEVI_CATS, sin ningun 40 escrito a mano',
+    (function(){ const e = EL('coh-fevi'), C = G('FEVI_CATS');
+      const L = (typeof _COH_LBL === 'undefined') ? null : _COH_LBL;
+      if (!e || !Array.isArray(C) || typeof L !== 'object' || !L) return false;
+      const vals = Array.prototype.slice.call(e.options).map(o => o.value).join(',');
+      const esperado = ',' + C.map(x => x.clave).join(',');
+      return vals === esperado && C.every(x => String(L.fevi[x.clave] || '').indexOf(x.rango) >= 0); })(),
+    (function(){ const e = EL('coh-fevi');
+      return e ? Array.prototype.slice.call(e.options).map(o => o.value).join(',') : 'NO EXISTE'; })()]);
+  ex.push(['(d3) una FEVI de 40 exactos es «moderadamente reducida» para el dueno, asi que el filtro y los subgrupos la cuentan del lado reducido',
+    (function(){ if (!FN('feviClasificar')) return false;
+      const c40 = window.feviClasificar(40), c41 = window.feviClasificar(41);
+      return !!c40 && !!c41 && c40.clave === 'moderada' && c41.clave === 'leve'; })(),
+    (function(){ if (!FN('feviClasificar')) return 'SIN FN';
+      return '40=' + window.feviClasificar(40).clave + ' 41=' + window.feviClasificar(41).clave; })()]);
+
+  /* ══ (e) LOS DOS TOGGLES DE PDF Y EL PDF DE AMILOIDOSIS (CORTOS9) ════════════════════════ */
+  ex.push(['(e1) los dos toggles son campos del ESTUDIO: nacen apagados, el gesto los prende, «Nuevo estudio» los apaga y la clave vieja de localStorage NO los enciende',
+    (function(){ if (!FN('sglPdfOn') || !FN('eteQxPdfOn')) return false;
+      __t.limpiar();
+      try { localStorage.setItem('sgl_incluir_pdf', '1'); localStorage.setItem('mitral_qx_incluir_pdf', '1'); } catch (x) {}
+      const apagados = !window.sglPdfOn() && !window.eteQxPdfOn();
+      try { window.toggleSglPDF(); window.eteQxIncluirPDF(); } catch (x) {}
+      const prendidos = window.sglPdfOn() && window.eteQxPdfOn()
+        && V('sgl_be_pdf') === '1' && V('ete_qx_pdf') === '1';
+      __t.limpiar();
+      const limpios = !window.sglPdfOn() && !window.eteQxPdfOn()
+        && V('sgl_be_pdf') === '' && V('ete_qx_pdf') === '';
+      try { localStorage.removeItem('sgl_incluir_pdf'); localStorage.removeItem('mitral_qx_incluir_pdf'); } catch (x) {}
+      return apagados && prendidos && limpios; })(),
+    'sgl=' + V('sgl_be_pdf') + ' qx=' + V('ete_qx_pdf')]);
+  ex.push(['(e2) el PDF de amiloidosis pregunta al dueno de la identificacion impresa: con la matricula elegida imprime la matricula y no el documento',
+    (function(){ if (!FN('pacIdImpreso') || !FN('pacIdElegir')) return false;
+      __t.limpiar(); S('ci', '1234567'); S('matricula', 'M-777');
+      window.pacIdElegir('ci');
+      const a = window.pacIdImpreso(undefined, 'CI');
+      window.pacIdElegir('matricula');
+      const b = window.pacIdImpreso(undefined, 'CI');
+      const src = String(document.documentElement.innerHTML);
+      /* Y el encabezado de amiloidosis NO arma el documento a mano: ya no queda ninguna copia de
+         la expresion que lo hacia. */
+      return !!a && !!b && a.val === '1234567' && b.val === 'M-777'
+        && src.indexOf("_s('doc_tipo') || 'CI'") < 0; })(),
+    (function(){ if (!FN('pacIdImpreso')) return 'SIN FN';
+      const r = window.pacIdImpreso(undefined, 'CI'); return r ? (r.lbl + ': ' + r.val) : 'null'; })()]);
+
+  /* ══ (f) LOS SEIS HALLAZGOS NUEVOS DE LA PESTANA OTROS ═══════════════════════════════════ */
+  const OTR = (o) => { esc(o || {}); return inf('estandar'); };
+  ex.push(['(f1) ASIA: con la casilla sola sale el texto por defecto y al EN SUMA va solo la sigla; con la nota, la nota se suma en la MISMA oracion',
+    (function(){ __t.limpiar(); CHK('otr_asia', true);
+      const a = inf('estandar');
+      S('otr_asia_nota', '(de 15 mm por 12 mm en eje L y T)');
+      const b = inf('estandar');
+      return LIN(a.inf, 'Aneurisma del septum interauricular.').length === 1
+        && LIN(a.suma, 'ASIA.').length === 1
+        && LIN(b.inf, 'Aneurisma del septum interauricular (de 15 mm por 12 mm en eje L y T).').length === 1; })(),
+    (function(){ __t.limpiar(); CHK('otr_asia', true); const a = inf('estandar');
+      return 'inf=' + LIN(a.inf, 'Aneurisma').join(' // ') + ' | suma=' + LIN(a.suma, 'ASIA').join(' // '); })()]);
+  ex.push(['(f2) la nota con la casilla APAGADA no entra al informe por ningun camino: es la regla de la orden',
+    (function(){ __t.limpiar(); CHK('otr_asia', false);
+      S('otr_asia_nota', '(de 15 mm por 12 mm)');
+      const a = inf('estandar');
+      return LIN(a.inf, 'Aneurisma').length === 0 && LIN(a.inf, '15 mm').length === 0
+        && LIN(a.suma, 'ASIA').length === 0; })(),
+    (function(){ __t.limpiar(); CHK('otr_asia', false); S('otr_asia_nota', '(de 15 mm)');
+      const a = inf('estandar'); return 'lineas con 15 mm=' + LIN(a.inf, '15 mm').length; })()]);
+  ex.push(['(f3) las SEIS variantes anatomicas van al informe y NINGUNA al EN SUMA, y la tabla lo dice con suma: null',
+    (function(){ const H = G('OTR_HALL');
+      if (!Array.isArray(H)) return false;
+      const vars = H.filter(h => h.id.indexOf('otr_var_') === 0);
+      if (vars.length !== 6 || !vars.every(h => h.suma === null)) return false;
+      __t.limpiar(); CHK('otr_var_chiari', true);
+      const a = inf('estandar');
+      return LIN(a.inf, 'Red de Chiari prominente.').length === 1
+        && LIN(a.suma, 'Chiari').length === 0; })(),
+    (function(){ __t.limpiar(); CHK('otr_var_chiari', true); const a = inf('estandar');
+      return 'inf=' + LIN(a.inf, 'Chiari').join(' // ') + ' | suma=' + LIN(a.suma, 'Chiari').length; })()]);
+  ex.push(['(f4) la RAC va al informe con su nombre completo y al EN SUMA solo con la sigla',
+    (function(){ __t.limpiar(); CHK('otr_rac', true);
+      const a = inf('estandar');
+      return LIN(a.inf, 'Arteria circunfleja retroa').length === 1
+        && LIN(a.suma, 'RAC.').length === 1
+        && LIN(a.suma, 'circunfleja').length === 0; })(),
+    (function(){ __t.limpiar(); CHK('otr_rac', true); const a = inf('estandar');
+      return 'inf=' + LIN(a.inf, 'circunfleja').join(' // ') + ' | suma=' + LIN(a.suma, 'RAC').join(' // '); })()]);
+  ex.push(['(f5) el test de burbuja arma su frase con la cantidad, la maniobra y el momento, y al EN SUMA va positivo o negativo sin inventar un grado',
+    (function(){ __t.limpiar(); CHK('otr_burb', true);
+      S('otr_burb_pasaje', 'si'); S('otr_burb_cant', 'e1030');
+      S('otr_burb_man', 'val'); S('otr_burb_mom', 'pre3');
+      const a = inf('estandar');
+      __t.limpiar(); CHK('otr_burb', true); S('otr_burb_pasaje', 'no');
+      const b = inf('estandar');
+      __t.limpiar(); CHK('otr_burb', true);
+      const c = inf('estandar');
+      return LIN(a.inf, 'Se realiza test de burbuja, se observa pasaje de burbujas (entre 10 y 30), con Valsalva, antes del tercer latido.').length === 1
+        && LIN(a.suma, 'Test de burbuja positivo.').length === 1
+        && LIN(b.inf, 'Se realiza test de burbuja, no se observa pasaje de burbujas.').length === 1
+        && LIN(b.suma, 'Test de burbuja negativo.').length === 1
+        && LIN(c.inf, 'Se realiza test de burbuja.').length === 1
+        && LIN(c.suma, 'Test de burbuja').length === 0; })(),
+    (function(){ __t.limpiar(); CHK('otr_burb', true); S('otr_burb_pasaje', 'si');
+      S('otr_burb_cant', 'e1030'); S('otr_burb_man', 'val'); S('otr_burb_mom', 'pre3');
+      const a = inf('estandar'); return LIN(a.inf, 'burbuja').join(' // '); })()]);
+  ex.push(['(f6) el informe del test de burbuja NO interpreta: no dice intracardiaco ni intrapulmonar',
+    (function(){ __t.limpiar(); CHK('otr_burb', true);
+      S('otr_burb_pasaje', 'si'); S('otr_burb_mom', 'pre3');
+      const a = inf('estandar');
+      const l = LIN(a.inf, 'test de burbuja').join(' ');
+      return l.indexOf('intracard') < 0 && l.indexOf('intrapulmon') < 0 && l.length > 0; })(),
+    (function(){ __t.limpiar(); CHK('otr_burb', true); S('otr_burb_pasaje', 'si');
+      return LIN(inf('estandar').inf, 'test de burbuja').join(' // '); })()]);
+  ex.push(['(f7) el papel dice «derrame pericardico» y el token del selector NO cambia, asi que el Excel y los estudios guardados siguen leyendo lo mismo',
+    (function(){ __t.limpiar(); S('pericardio', 'Derrame severo (>20mm)');
+      const a = inf('estandar');
+      const tokenIntacto = V('pericardio') === 'Derrame severo (>20mm)';
+      const nar = inf('narrativo');
+      return tokenIntacto
+        && LIN(a.inf, 'Derrame pericárdico severo (>20mm).').length === 1
+        && LIN(a.suma, 'Derrame pericárdico severo (>20mm).').length === 1
+        && LIN(nar.inf, 'derrame pericárdico severo').length === 1; })(),
+    (function(){ __t.limpiar(); S('pericardio', 'Derrame severo (>20mm)');
+      const a = inf('estandar');
+      return 'token=' + V('pericardio') + ' | inf=' + LIN(a.inf, 'errame').join(' // '); })()]);
+  ex.push(['(f8) la separacion de las lineas B se suma a la MISMA oracion y, sin consignar, la frase sale como hasta hoy',
+    (function(){ __t.limpiar(); S('pul_lineasb', 'si'); S('pul_lineasb_pat', 'difuso');
+      S('pul_lineasb_sep', 's7');
+      const a = inf('estandar');
+      __t.limpiar(); S('pul_lineasb', 'si'); S('pul_lineasb_pat', 'difuso');
+      const b = inf('estandar');
+      return LIN(a.inf, 'Líneas B de distribución difusa, con separación aproximada de 7 mm.').length === 1
+        && LIN(b.inf, 'Líneas B de distribución difusa.').length === 1; })(),
+    (function(){ __t.limpiar(); S('pul_lineasb', 'si'); S('pul_lineasb_pat', 'difuso');
+      S('pul_lineasb_sep', 's7');
+      return LIN(inf('estandar').inf, 'Líneas B').join(' // '); })()]);
+  ex.push(['(f9) los cuatro globos nuevos tienen entrada en el registro y los tres que leen Referencias traen NODOS de la ficha, no un cartel de error',
+    (function(){ const R = (typeof VINFO === 'undefined') ? null : VINFO;
+      if (typeof R !== 'object' || !R) return false;
+      const claves = ['otr-burbujas','otr-rac','oai-ref','pul-balik'];
+      if (!claves.every(k => !!R[k])) return false;
+      const tres = ['otr-burbujas','otr-rac','oai-ref'];
+      return tres.every(k => { try { const n = R[k].dyn();
+          return !!n && n.childNodes.length > 1
+            && String(n.textContent || '').indexOf('no esta disponible') < 0; } catch (x) { return false; } })
+        && typeof R['pul-balik'].fuente === 'string'
+        && R['pul-balik'].fuente.indexOf('D6_11') >= 0; })(),
+    (function(){ const R = (typeof VINFO === 'undefined') ? null : VINFO;
+      if (typeof R !== 'object' || !R || !R['otr-burbujas']) return 'NO EXISTE';
+      try { const n = R['otr-burbujas'].dyn();
+        return 'nodos=' + n.childNodes.length + ' | ' + String(n.textContent || '').slice(0, 90); }
+      catch (x) { return 'EXC'; } })()]);
+
+  /* ══ (g) LOS CONTROLES ═══════════════════════════════════════════════════════════════════ */
+  ex.push(['(g1) los campos nuevos viajan con el estudio y NO agregan ninguna columna: el Excel sigue en 440',
+    (function(){ if (!FN('_labExcelRow')) return false;
+      const cols = Object.keys(window._labExcelRow({ id:0, campos:{} }));
+      const nombran = cols.filter(function(k){ const x = String(k).toLowerCase();
+        return x.indexOf('asia') >= 0 || x.indexOf('rac ') === 0
+          || x.indexOf('burbuja de') >= 0 || x.indexOf('separaci') >= 0; });
+      __t.limpiar(); CHK('otr_asia', true); S('otr_asia_nota', 'detalle');
+      const c = {};
+      document.querySelectorAll('input[id],select[id],textarea[id]').forEach(function(e){
+        if (e.type === 'checkbox' || e.type === 'radio') c[e.id + '__chk'] = e.checked ? '1' : '0';
+        else c[e.id] = e.value; });
+      return cols.length === 440 && nombran.length === 0
+        && c['otr_asia__chk'] === '1' && c['otr_asia_nota'] === 'detalle'
+        && typeof c['sgl_be_pdf'] === 'string' && typeof c['ete_qx_pdf'] === 'string'; })(),
+    (function(){ if (!FN('_labExcelRow')) return 'SIN FN';
+      return 'cols=' + Object.keys(window._labExcelRow({ id:0, campos:{} })).length; })()]);
+  ex.push(['(g2) nada de esta tanda se guarda en el navegador: ninguna clave de localStorage ni de sessionStorage nombra los hallazgos nuevos',
+    (function(){ __t.limpiar(); CHK('otr_asia', true); CHK('otr_burb', true);
+      const re = /otr_|burbuj|asia|rac|lineasb_sep|sgl_be|ete_qx/i;
+      const ls = [], ss = [];
+      try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (re.test(k)) ls.push(k); } } catch (x) {}
+      try { for (let j = 0; j < sessionStorage.length; j++) { const k = sessionStorage.key(j); if (re.test(k)) ss.push(k); } } catch (x) {}
+      return ls.length === 0 && ss.length === 0; })(),
+    'claves propias en el navegador: ninguna esperada']);
+  ex.push(['(g3) CONTROL: la protesis MITRAL no se movio —su regla de dos o mas, sus cuatro cortes y su selector de origen siguen iguales—',
+    (function(){ const M = (typeof VM_PROT_OBSTR_MIN === 'undefined') ? null : VM_PROT_OBSTR_MIN;
+      const V3 = (typeof VM_PVL_ORIGEN_PVL === 'undefined') ? null : VM_PVL_ORIGEN_PVL;
+      if (M !== 2 || !Array.isArray(V3)) return false;
+      const e = EL('vm_pvl_origen');
+      const vals = e ? Array.prototype.slice.call(e.options).map(o => o.value).join(',') : 'NO';
+      return vals === ',central,paraval,mixta' && V3.join(',') === 'paraval,mixta'; })(),
+    (function(){ const e = EL('vm_pvl_origen');
+      return e ? Array.prototype.slice.call(e.options).map(o => o.value).join(',') : 'NO EXISTE'; })()]);
+  ex.push(['(g4) CONTROL: las valvulas nativas, el HFA-PEFF, el Wilkins, el PPM y el cuadro de frases no se movieron',
+    (function(){ const ok = [];
+      ok.push(G('AVM_SEVERA_MAX') === 1.5);
+      ok.push(G('UMBRAL_FEVI_NORMAL') === 50);
+      ok.push(((typeof EM_CONT_REGURG_MIN === 'undefined') ? null : EM_CONT_REGURG_MIN) === 2);
+      ok.push(FN('wilkinsScore'));
+      ok.push(FN('_eaPpmAoClasificar') || FN('eaProtVeredicto'));
+      ok.push(((typeof IP_PHT_SEVERA === 'undefined') ? null : IP_PHT_SEVERA) === 100);
+      return ok.every(Boolean); })(),
+    'AVM=' + G('AVM_SEVERA_MAX') + ' FEVI=' + G('UMBRAL_FEVI_NORMAL')
+      + ' REGURG=' + ((typeof EM_CONT_REGURG_MIN === 'undefined') ? 'NO EXISTE' : EM_CONT_REGURG_MIN)
+      + ' PHT_IP=' + ((typeof IP_PHT_SEVERA === 'undefined') ? 'NO EXISTE' : IP_PHT_SEVERA)]);
+  ex.push(['(g5) CONTROL: los dos rotulos de la insuficiencia pulmonar nombran el territorio de la Tabla 16 y no se movio ningun corte',
+    (function(){ const e = EL('ip_ancho');
+      if (!e) return false;
+      const op = Array.prototype.slice.call(e.options).filter(o => o.value === 'ancho')[0];
+      const t = op ? String(op.textContent || '') : '';
+      const rev = EL('ip_reversion');
+      const lbl = rev && rev.parentElement ? String(rev.parentElement.textContent || '') : '';
+      const fila = TXT('ip-ref-rev');
+      return t.indexOf('anillo pulmonar') >= 0 && t.indexOf('TSVD') < 0
+        && lbl.indexOf('tronco pulmonar distal') >= 0 && lbl.indexOf('ramas') < 0
+        && fila.indexOf('NO EXISTE') < 0; })(),
+    (function(){ const e = EL('ip_ancho');
+      const op = e ? Array.prototype.slice.call(e.options).filter(o => o.value === 'ancho')[0] : null;
+      const rev = EL('ip_reversion');
+      return 'ancho=' + (op ? op.textContent : 'NO') + ' | rev=' + (rev && rev.parentElement ? rev.parentElement.textContent.trim() : 'NO'); })()]);
+  ex.push(['(g6) MAQUETA al ancho de esta corrida: los controles nuevos de Otros no desbordan la pagina ni se superponen entre si',
+    (function(){ __t.limpiar();
+      try { showTab('otros'); } catch (x) {}
+      ['pericardio-masas','burbuja','pulmonar'].forEach(function(k){
+        try { const sec = EL('ete-seccion-' + k);
+          if (sec && getComputedStyle(sec).display === 'none' && FN('toggleEteSeccion')) window.toggleEteSeccion(k, null);
+        } catch (x) {} });
+      CHK('otr_burb', true); if (FN('otrBurbUI')) window.otrBurbUI();
+      const d = document.documentElement;
+      const sinScroll = d.scrollWidth <= d.clientWidth + 1;
+      const ids = ['otr_asia_nota','otr_var_chiari_nota','otr_rac_nota','otr_burb_pasaje'];
+      const rects = ids.map(i => { const e = EL(i); return e ? e.getBoundingClientRect() : null; });
+      const conCaja = rects.filter(r => r && r.width > 0 && r.height > 0).length;
+      return sinScroll && conCaja === ids.length; })(),
+    (function(){ const d = document.documentElement;
+      return 'ancho=' + window.innerWidth + ' sw=' + d.scrollWidth + ' cw=' + d.clientWidth; })()]);
 
   return { extra: ex };
 `);
