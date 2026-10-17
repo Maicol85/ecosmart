@@ -5969,7 +5969,7 @@ window.cerrarSesionReal = cerrarSesionReal;
              numero rancio que esta zona ya pago cuatro veces. -->
         <div data-im-bloque="1">
         <div class="calc-row"><span class="calc-lbl" style="font-weight:700;color:var(--accent2);">Signos y parámetros semicuantitativos — valen para los dos métodos</span></div>
-        <div class="calc-row"><span class="calc-lbl">Onda E (parámetro soporte — &ge;120 cm/s apoya IM severa) <button type="button" class="vinfo-btn" data-vinfo="im-onda-e" aria-expanded="false" aria-label="Información sobre Onda E como parametro de soporte" onclick="vInfoClic(this)">&#9432;</button></span><span id="im-ondae-interp">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">Onda E (parámetro soporte — &gt;120 cm/s apoya IM severa) <button type="button" class="vinfo-btn" data-vinfo="im-onda-e" aria-expanded="false" aria-label="Información sobre Onda E como parametro de soporte" onclick="vInfoClic(this)">&#9432;</button></span><span id="im-ondae-interp">—</span></div>
         <!-- ⚠️ EL 1,4 SÍ TIENE FUENTE, Y NO ES LA QUE SE BUSCÓ EN LA FASE 2. Aquella pasada barrió el
              PDF primario de ASE 2017 —«1.4» cero veces, «VTI ratio» y «mitral-to-aortic» tampoco,
              con control de denominador: «1.2» sale 4 veces y «1.5» 3, o sea que la extracción
@@ -16791,7 +16791,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
      ⚠️ Y LA TABLA SE LLAMA «ESC 2021»: estas dos filas —onda E y cociente de VTI— NO son de esa
      guía. La onda E se verificó en ASE 2017 y el cociente no se pudo verificar en ninguna. La
      tabla NO se renombra (decisión de Maicol), así que la atribución queda anotada en cada fila. -->
-<tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">Onda E — llenado mitral <span style="font-size:10px;">(ASE 2017)</span></td><td style="padding:5px 8px;text-align:center;font-weight:700;">onda A dominante</td><td style="padding:5px 8px;text-align:center;">variable</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">onda E dominante (&ge;120 cm/s)</td></tr>
+<tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">Onda E — llenado mitral <span style="font-size:10px;">(ASE 2017)</span></td><td style="padding:5px 8px;text-align:center;font-weight:700;">onda A dominante</td><td style="padding:5px 8px;text-align:center;">variable</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">onda E dominante (&gt;120 cm/s)</td></tr>
             <!-- Las bandas «<1.0» y «1.0–1.4» eran inventadas: el índice sólo se publicó como corte binario
      para severa, en ninguna fuente hay bandas de leve y moderada. Y el cálculo tampoco las usaba
      —la fila de pantalla sólo mira si cruza el corte—, así que la tabla enseñaba una graduación
@@ -16842,9 +16842,11 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
                que tiene ancho para leerlo. -->
           <div style="margin-top:10px;font-size:12px;font-weight:700;color:var(--accent2);">Salvedades de los par&aacute;metros de apoyo</div>
           <div style="font-size:11px;color:var(--text2);line-height:1.7;margin-top:4px;">
-            <b>Onda E (&ge;120 cm/s):</b> v&aacute;lida sin estenosis mitral, calcificaci&oacute;n anular, anillo
+            <b>Onda E (&gt;120 cm/s):</b> v&aacute;lida sin estenosis mitral, calcificaci&oacute;n anular, anillo
             prot&eacute;sico ni fibrilaci&oacute;n auricular. Menos espec&iacute;fica en IM secundaria. La onda A dominante
-            es m&aacute;s aplicable en mayores de 50 a&ntilde;os. ASE 2017 (Zoghbi, JASE 2017;30:303-371).<br>
+            es m&aacute;s aplicable en mayores de 50 a&ntilde;os. ASE 2017 (Zoghbi, JASE 2017;30:303-371, Tabla 8,
+            folio 332) y ESC/EACTS 2025 (Figura 10, folio 4672), que escriben las dos
+            &laquo;onda E dominante (&gt;1,2 m/s)&raquo;.<br>
             <b>Vena contracta:</b> se mide en el eje donde el chorro se ve m&aacute;s angosto. En pr&oacute;tesis
             mitral EcoSmart aplica los mismos cortes que en v&aacute;lvula nativa: ninguna de las gu&iacute;as
             le&iacute;das publica un corte de vena contracta para pr&oacute;tesis, as&iacute; que no se inventa uno.<br>
@@ -21329,10 +21331,19 @@ const UMBRAL_AI_AREA_DILATADA = 20;   // cm² — >20 → dilatada, SIN grado (A
    renderizada como imagen, y el estudio de origen (Thomas, Foster, Schiller, JACC 1998;31:174-9,
    vía Europe PMC — otra base). El rótulo anterior decía «>150 cm/s severa» y ese 150 no tenía
    fuente en ninguna de las dos.
-   Se escribe ≥ y no >: la Tabla 7 y el cuerpo del texto imprimen «≥1.2 m/sec» y la Tabla 8 imprime
-   «>1.2». Es una inconsistencia de la propia guía —verificada glifo por glifo, no inferida— y se
-   elige el ≥ porque es el que aparece dos veces. */
-const UMBRAL_ONDA_E_APOYO_IM = 120;   // cm/s — ≥120 apoya IM severa (ASE 2017); NO gradúa
+   ⚠️ EL OPERADOR PASA A `>` ESTRICTO EL 2026-10-17 (VAL4, decisión de Maicol), Y ESTE PÁRRAFO
+   DECÍA LO CONTRARIO. Decía: «Se escribe ≥ y no >: la Tabla 7 y el cuerpo del texto imprimen
+   ≥1.2 m/sec y la Tabla 8 imprime >1.2 … se elige el ≥ porque es el que aparece dos veces».
+   La inconsistencia de la ASE 2017 es real y queda re-verificada glifo por glifo: el CUERPO del
+   folio 330 (hoja 28) escribe «E velocity is usually ≥1.2 m/sec» y la **Tabla 8, folio 332**
+   (hoja 30) escribe «E-wave dominant (**>1.2 m/sec**)». Lo que la desempata es la guía MÁS
+   NUEVA: **ESC/EACTS 2025, Figura 10, folio 4672** (hoja 38; la figura es una IMAGEN y se leyó
+   RENDERIZANDO la página), caja «Semi-quantitative» de los criterios de IM severa →
+   «**E-wave dominant (>1.2 m/s)**». Dos documentos escriben `>` y el criterio de la casa es que
+   manda la edición más nueva, así que el 120,0 exacto deja de apoyar.
+   ⚠️ SIGUE SIN VOTAR: es un signo de APOYO y no entra en ningún `scores`. Lo que cambia es la
+   frase de UNA fila de pantalla. */
+const UMBRAL_ONDA_E_APOYO_IM = 120;   // cm/s — >120 apoya IM severa (ESC/EACTS 2025); NO gradúa
 /* Aorta torácica: UN solo juego de umbrales para los tres segmentos, **ESC 2021**. Antes había
    dos conviviendo —las cápsulas de `calcAorta` decían normal hasta 38 y 40, y las dos tablas del
    PDF marcaban «* dilatado» desde 34 y 37—, así que la misma medición salía verde en pantalla y
@@ -38754,8 +38765,8 @@ const VINFO = Object.freeze({
      ASE 2024». La tarjeta NO lleva a esa pestana: el globo ya no abre el manual. */
   'im-onda-e': {
     tit: 'Onda E del llenado mitral',
-    lee: 'Es un par\u00e1metro de APOYO y no gradu\u00faa: una onda E dominante, de 120 cm/s o m\u00e1s, acompa\u00f1a a una insuficiencia mitral severa, y una onda A dominante va en contra.',
-    fuente: 'ASE 2017 (Zoghbi), Tabla 8, folio 332.',
+    lee: 'Es un par\u00e1metro de APOYO y no gradu\u00faa: una onda E dominante, de m\u00e1s de 120 cm/s (1,2 m/s), acompa\u00f1a a una insuficiencia mitral severa, y una onda A dominante va en contra.',
+    fuente: 'ASE 2017 (Zoghbi), Tabla 8, folio 332, y ESC/EACTS 2025, Figura 10, folio 4672: las dos escriben \u00abonda E dominante (>1,2 m/s)\u00bb.',
     ojo: 'No vale con estenosis mitral, calcificaci\u00f3n anular, anillo prot\u00e9sico ni fibrilaci\u00f3n auricular, y es menos espec\u00edfica en la insuficiencia secundaria.'
   },
   'im-vti-ratio': {
@@ -41392,14 +41403,16 @@ function imOndaEPintar() {
   if (!enFA && pA.val != null && pA.val > pE.val) {
     el.textContent = 'Onda A dominante \u2014 pr\u00e1cticamente descarta IM severa'; return;
   }
-  if (pE.val >= UMBRAL_ONDA_E_APOYO_IM) {
+  /* ⚠️ `>` ESTRICTO DESDE EL 2026-10-17 (VAL4): el 120,0 exacto NO apoya. Ver el comentario de
+     `UMBRAL_ONDA_E_APOYO_IM`. */
+  if (pE.val > UMBRAL_ONDA_E_APOYO_IM) {
     /* ⚠️ LA DOMINANCIA ES PARTE DEL CRITERIO. La Tabla 8 de ASE 2017 dice «E-wave dominant
        (>1.2 m/sec)», no «E ≥1,2»: sin la onda A no se puede establecer que la E domine, y si esa
        A hubiera sido mayor la conclusión era la contraria. Así que sin onda A se publica el valor
        y se nombra lo que falta, en vez de un veredicto que el dato no sostiene. En FA no hay onda
        A que medir, así que ahí el veredicto sí se publica. */
     if (!enFA && pA.val == null) { el.textContent = 'Onda E ' + pE.val + ' cm/s \u2014 onda A no medida'; return; }
-    el.textContent = 'Onda E \u2265 ' + UMBRAL_ONDA_E_APOYO_IM + ' cm/s \u2014 apoya IM severa'; return;
+    el.textContent = 'Onda E > ' + UMBRAL_ONDA_E_APOYO_IM + ' cm/s \u2014 apoya IM severa'; return;
   }
   el.textContent = 'Onda E ' + pE.val + ' cm/s \u2014 sin signo de apoyo';
 }
@@ -120339,7 +120352,7 @@ const ECO_AYUDA = [
 <div class="mSub">Válvulas — regurgitación e indicación quirúrgica</div>
 <table class="mTbl"><tr><th>Situación</th><th>Criterio</th><th>Guía</th></tr>
 <tr><td>Insuficiencia mitral primaria severa, asintomática</td><td>DTSI ≥ 40 mm o FEVI ≤ 60 % (Clase I)</td><td>ESC/EACTS 2021</td></tr>
-<tr><td>IM — onda E como signo de soporte<br><span style="font-size:11px;color:var(--text2);">Sólo soporte: no gradúa. El signo <b>específico</b> es el opuesto — la onda A dominante prácticamente descarta IM severa. Válido sin estenosis mitral (la guía dice que incluso la leve altera la onda E), calcificación anular, anillo protésico ni fibrilación auricular; menos específico en IM secundaria; más aplicable en mayores de 50 años.</span></td><td>onda E ≥ 120 cm/s apoya severa · onda A dominante la descarta</td><td>ASE 2017 (Zoghbi, JASE 30:303-371, Tabla 8)</td></tr>
+<tr><td>IM — onda E como signo de soporte<br><span style="font-size:11px;color:var(--text2);">Sólo soporte: no gradúa. El signo <b>específico</b> es el opuesto — la onda A dominante prácticamente descarta IM severa. Válido sin estenosis mitral (la guía dice que incluso la leve altera la onda E), calcificación anular, anillo protésico ni fibrilación auricular; menos específico en IM secundaria; más aplicable en mayores de 50 años.</span></td><td>onda E &gt; 120 cm/s apoya severa · onda A dominante la descarta</td><td>ASE 2017 (Zoghbi, JASE 30:303-371, Tabla 8, folio 332) · ESC/EACTS 2025 (Figura 10, folio 4672)</td></tr>
 <tr><td>IM — cociente VTI mitral / VTI TSVI<br><span style="font-size:11px;color:var(--text2);"><b>La guía lo da en ausencia de insuficiencia aórtica moderada o severa:</b> la IAo aumenta el VTI aórtico, que es el denominador, y el cociente deja de medir lo que dice medir.<br>⚠️ <b>Acá la app diverge de la guía a propósito, y lo dice en la fila.</b> En válvula <b>nativa</b> calcula el cociente igual con IAo <b>moderada</b> y <b>moderada-severa</b> —agregando en la fila la salvedad «la ASE 2023 lo excluye con IAo moderada o severa; criterio EcoSmart: se usa igual»— y lo retira sólo con IAo <b>severa</b>. Es criterio de la aplicación (decisión del 30/09/2026), no lo que dice el documento. Es la misma dirección que la app ya aplica al THP con IAo, donde la guía también dice «moderada o severa» y la app sólo se retira con la severa. Con <b>prótesis</b> la fila se retira desde la IAo moderada, sin cambios. Con un grado de IAo que no se puede interpretar se retira en los dos casos.<br>El corte sale de la <b>ASE 2023 de cardiopatía reumática</b> (Pandian et al., JASE 2023;36:3-28), Key Points de IM reumática: &gt; 1,4 sugiere IM severa y &lt; 1 leve. <b>La ESC/EACTS 2025 también lo publica</b>, con el mismo corte: Figura 10, pág. 4672, recuadro de criterios ecocardiográficos de IM severa, entre los <b>semicuantitativos</b> — «VTI mitral / VTI LVOT &gt; 1,4». <b>No figura en ASE 2017 ni en ESC/EACTS 2021.</b><br>⚠️ Ninguna de las dos guías dice <b>con qué modalidad</b> se mide ese VTI mitral. La app usa el de entrada por Doppler pulsado anterógrado —no el del chorro de la insuficiencia—, que es lo correcto, pero es criterio de la aplicación y no algo que las guías respalden.<br>⚠️ El estudio original que la guía cita (Tribouilloy, Eur Heart J 1994;15:1335-9) da ≥ <b>1,3</b> con sensibilidad 87 % y especificidad 91 %, y el 1,4 se rastrea además a un artículo del E-Journal de la ESC que cita esas mismas dos cifras. O sea que la guía publica 1,4 sobre un primario que dice 1,3, y eso no distingue entre haberlo validado y haber propagado el mismo error. Se conserva el 1,4 que la app venía usando y se declaran las dos cosas.<br>⚠️ <b>Con PRÓTESIS mitral el corte es otro: ≥ 2,5.</b> Sale de la <b>ASE 2024 de prótesis</b> (Zoghbi et al., JASE 2024;37(1):2-63), <b>Tabla 12, pág. 28</b> — «hallazgos de ETT que sugieren IM protésica significativa en válvulas mecánicas con THP normal»: VTI protésico / VTI TSVI ≥ 2,5, sensibilidad 89 %, especificidad 91 %. El 1,4 es de válvula <b>nativa</b> y aplicarlo a una prótesis daba «apoya IM severa» sobre cocientes muy por debajo de lo que la tabla protésica considera sugestivo. La app elige el corte por la morfología de la válvula mitral.<br>⚠️ Esa tabla define el corte <b>para válvulas mecánicas y con THP normal</b>, y la app <b>no verifica ninguna de las dos condiciones</b>: lo aplica a cualquier prótesis mitral y no cruza el tiempo de hemipresión.</span></td><td>nativa &gt; 1,4 · prótesis ≥ 2,5</td><td>nativa: ASE 2023 (Pandian, JASE 36:3-28) y ESC/EACTS 2025 (Figura 10, p. 4672) — el primario da 1,3 · prótesis: ASE 2024 (Zoghbi), Tabla 12 p. 28</td></tr>
 <tr><td>IM — cociente jet/AI (%)<br><span style="font-size:11px;color:var(--text2);">⚠️ <b>Dos cortes según la morfología.</b> En válvula <b>nativa</b>: &lt; 20 % leve, ≤ 40 % moderada, &gt; 40 % severa.<br>⚠️ <b>Con PRÓTESIS mitral el corte de severa es &gt; 50 %</b>, y entre 20 y 50 % la <b>ASE 2024 de prótesis</b> (Zoghbi et al., JASE 2024;37(1):2-63), <b>Tabla 13, pág. 30</b>, dice «<b>Variable</b>»: ahí el parámetro <b>no gradúa</b> y la app se abstiene en vez de inventar una banda moderada. La fila de pantalla lo declara en vez de descontar el parámetro en silencio.<br>⚠️ Los <b>cortes absolutos</b> de esa misma tabla (área del jet &lt; 4 cm² leve / &gt; 8 cm² severa) <b>no se implementan</b>: la guía los da como alternativa al porcentaje («usually … or …») y aplicarlos exigiría decidir qué manda cuando los dos discrepan.<br>⚠️ Y la nota al pie de la tabla exige un <b>Nyquist de 50-60 cm/s</b> para que el porcentaje valga; la app <b>no registra ese dato</b>, así que ninguno de los dos regímenes puede verificar la condición en la que su corte está definido.</span></td><td>nativa &lt; 20 / ≤ 40 / &gt; 40 % · prótesis &lt; 20 % leve · &gt; 50 % severa</td><td>nativa: ASE 2017 (Zoghbi, JASE 30:303-371) · prótesis: ASE 2024 (Zoghbi), Tabla 13 p. 30</td></tr>
 <tr><td>IM — EROA por continuidad y Vol-R<br><span style="font-size:11px;color:var(--text2);">La EROA por continuidad es <b>Vol-R ÷ VTI del chorro de IM por CW</b>. Los dos cortes de severidad de la guía —<b>EROA ≥ 40 mm²</b> y <b>Vol-R ≥ 60 ml</b>— describen al mismo paciente sólo cuando el VTI del chorro vale <b>150 cm</b>, porque 60 ÷ 0,40 = 150. Con un VTI de 100 cm, un Vol-R justo en el corte da una EROA de 60 mm², o sea severa con holgura; con 200 cm da 30 mm², por debajo del corte con el Vol-R ya severo.<br>⚠️ Eso es <b>aritmética de la fórmula, no una discrepancia entre guías</b>: los dos cortes son correctos y se refieren al mismo hallazgo medido por dos caminos con distinta sensibilidad a la duración del chorro. Por eso esta fila no lleva atribución de guía.<br>⚠️ <b>Desde el 13/10/2026 esta EROA SÍ vota</b>, junto con el volumen regurgitante y la fracción regurgitante <i>por continuidad</i>: la continuidad se integra como un MÉTODO, con la misma regla que PISA y con los mismos cortes, y los votos comunes a los dos son la vena contracta, el jet sobre área auricular y la onda S pulmonar. Con las dos casillas de «Incluir en el informe» marcadas, al informe va el <b>peor</b> de los dos métodos; con una sola, la de ese método; con ninguna, sólo los comunes. Lo que NO cambió es la cápsula «Severidad (continuidad)» de ese cuadro, que sigue graduando sólo por volumen regurgitante y fracción regurgitante: es una lectura volumétrica de pantalla de dos parámetros, no el método del grado final. El <b>EROA por PISA</b> es otra medición del mismo hallazgo y aparece en la misma pantalla: conviene no confundirlas.</span></td><td>coinciden sólo con VTI del chorro = 150 cm</td><td>aritmética de la fórmula — no es una cita</td></tr>
