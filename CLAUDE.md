@@ -303,13 +303,32 @@ impecable.
   describían la app de ayer**. Cuatro ganan cobertura: TC-33, TC-34, TC-35 y TC-37 pasan de cuatro
   bordes a seis, y TC-492 mide hoy las cuatro bandas donde antes medía un corte.
 
-- ⚠️ **LA SUITE COMPLETA QUEDÓ SIN MEDIR Y HAY QUE DECIR POR QUÉ: EL PENDRIVE `DISK_IMG` ESTABA
-  DESMONTADO.** Con él afuera caen además los **diecisiete** de **TC-181…TC-197**, que son
-  ENTORNO, así que la cifra no se puede comparar con la línea base del LS sin restar un número
-  que no existe — el falso que este archivo ya documenta tres veces. La orden manda PARAR y
-  avisar antes de correr la suite, y se paró. **Lo que SÍ está medido**, sobre el árbol sellado:
-  · **la ZONA completa: 122/122 ✓, sin un solo rojo**, con la lista de los **122** casos que
-    nombran el VD, la AD, la VCI, la aorta, el registro o las tarjetas;
+- **Línea base al cierre: suite 504/508 con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0
+  ERROR, Excel en 440 columnas, celular 52 a 360 px y 61 a 390 px con 10 ALTA cada uno —IDÉNTICO
+  a la línea base del LS—. CERO REGRESIONES.** Los **CUATRO** rojos son exactamente los de
+  ENTRADA —**TC-223** (el documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**—
+  y no apareció ninguno fuera de esa lista. **El denominador sube a 508**: esta tanda agregó
+  **TC-494**.
+  La de **ENTRADA**, medida en HEAD limpio (`c111a52`, md5 `cfa0d49a…`) en un worktree aparte,
+  fue **503/507** con esos mismos cuatro rojos — **exactamente la misma cifra que el LS dejó
+  escrita**, así que la comparación es 503/507 → 504/508 y el delta es el caso nuevo.
+  ⚠️ **EL PENDRIVE ESTUVO MONTADO EN LAS DOS CORRIDAS, VERIFICADO ANTES Y DESPUÉS, y por eso las
+  dos cifras se pueden restar.** Los **diecisiete** de **TC-181…TC-197** salieron **VERDES** en
+  las dos, que es la prueba. Con el pendrive afuera caerían los diecisiete y restar las cifras
+  daría una «regresión» de 17 casos que no existe — el falso que este archivo ya documenta tres
+  veces. `ls /Volumes/DISK_IMG` ANTES de comparar dos cifras.
+  ⚠️ **AL EMPEZAR ESTA TANDA EL PENDRIVE ESTABA DESMONTADO y se PARÓ antes de correr la suite**,
+  como manda la regla; Maicol lo conectó y las dos corridas salieron después, cada una de un
+  tirón —**sin colgarse y sin partir en mitades**—, con **2,5 GB de memoria libre** (160.086
+  páginas) contra los 80 MB con los que el LS se colgó tres veces.
+  El `md5` de `index.html` no se movió durante ninguna de las dos (`3a3a8960…` el sellado,
+  `cfa0d49a…` el de entrada).
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **508 ids** sobre los 509 casos del archivo.
+  **Lo demás, medido sobre el árbol sellado:**
+  · **la ZONA completa: 123/123 ✓, sin un solo rojo** —los 122 casos que nombran el VD, la AD, la
+    VCI, la aorta, el registro o las tarjetas, más TC-494—;
   · **Semgrep 127 / 0 ERROR**, con **1 app escaneada** (corrido desde `~/Desktop/APLICACIONES`);
   · **Excel en 440 columnas**, comparadas **CLAVE POR CLAVE** contra el inicio de la tanda: cero
     faltantes, cero sobrantes y **cero valores distintos**, con el formulario vacío y con un
