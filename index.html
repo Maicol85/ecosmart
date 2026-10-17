@@ -7717,11 +7717,19 @@ window.cerrarSesionReal = cerrarSesionReal;
               <input type="number" id="ip_pht" placeholder="ms" oninput="calcIP()">
             </div>
             <div class="fg"><label>Ancho del jet</label>
+              <!-- ══ EL DENOMINADOR DEL ANCHO DEL JET (CORTOS5, 2026-10-17) ══════════════════════
+                   DECISION DE MAICOL, y cierra `PRO-C4`. El rotulo decia «del TSVD» y la **Tabla 16
+                   de la ASE 2024** (folio 34, hoja 33) escribe, literal, «jet width #25% of
+                   **pulmonary annulus**», «26%-50% of pulmonary annulus» y «>50% of pulmonary
+                   annulus». El CORTE NUMERICO no se toca —el 50 coincide y el 65 es el que la app
+                   ya publicaba—: lo que estaba mal era el denominador que el texto nombra, o sea
+                   contra que se mide ese porcentaje. Es SOLO texto: el `value` de la opcion no
+                   cambia, asi que ni un voto, ni un grado, ni un estudio guardado se mueven. -->
               <select id="ip_ancho" onchange="calcIP()">
                 <option value="">&mdash;</option>
                 <option value="angosto">Angosto</option>
                 <option value="intermedio">Intermedio</option>
-                <option value="ancho">Ancho (&gt;50&ndash;65 % del TSVD)</option>
+                <option value="ancho">Ancho (&gt;50&ndash;65 % del anillo pulmonar)</option>
               </select>
             </div>
           </div>
@@ -7743,9 +7751,13 @@ window.cerrarSesionReal = cerrarSesionReal;
             <div class="fg"><label>Reversi&oacute;n del flujo diast&oacute;lico</label>
               <!-- `min-height:44px` y el `<label>` envolviendo la casilla: el blanco táctil del
                    celular es la fila entera, que es el criterio de `check_mobile.js`. -->
+              <!-- ⚠️ EL TERRITORIO DEL REVERSO (CORTOS5, 2026-10-17): la Tabla 16 dice «Diastolic
+                   flow reversal in the **distal main PA**» —el tronco pulmonar distal—, y el rotulo
+                   decia «en las ramas». Es SOLO el rotulo: el `id`, el `onchange` y el voto son los
+                   mismos. -->
               <label style="display:flex;align-items:center;gap:8px;min-height:44px;font-weight:400;">
                 <input type="checkbox" id="ip_reversion" onchange="calcIP()">
-                <span style="font-size:12px;">En las ramas de la arteria pulmonar</span>
+                <span style="font-size:12px;">En el tronco pulmonar distal</span>
               </label>
             </div>
           </div>
@@ -7767,7 +7779,7 @@ window.cerrarSesionReal = cerrarSesionReal;
             <div class="calc-row"><span class="calc-lbl">THP de la IP</span><span class="calc-val" id="ip-ref-pht">&mdash;</span></div>
             <div class="calc-row"><span class="calc-lbl">Ancho del jet</span><span class="calc-val" id="ip-ref-ancho">&mdash;</span></div>
             <div class="calc-row"><span class="calc-lbl">Se&ntilde;al CW</span><span class="calc-val" id="ip-ref-senal">&mdash;</span></div>
-            <div class="calc-row"><span class="calc-lbl">Reversi&oacute;n en ramas</span><span class="calc-val" id="ip-ref-rev">&mdash;</span></div>
+            <div class="calc-row"><span class="calc-lbl">Reversi&oacute;n en el tronco distal</span><span class="calc-val" id="ip-ref-rev">&mdash;</span></div>
             <div style="font-size:10px;color:var(--text2);line-height:1.45;margin:2px 0 4px;">Integraci&oacute;n: ASE 2017 &middot; EACVI 2013 (sin escala cuantitativa: grado por el peor signo cargado)</div>
             <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Insuficiencia pulmonar &mdash; severidad</span><span class="calc-val" id="ip-sev">&mdash;</span></div>
             <div class="calc-row"><span id="ip-discordancia" style="color:var(--yellow);font-size:11px;"></span></div>
@@ -43714,7 +43726,9 @@ function ipSignos() {
   const se = txt('ip_senal');
   if (se) out.push({ clave:'senal', rotulo:'señal CW', valor: se, grado: IP_SENAL_GRADO[se] || null });
   const rv = document.getElementById('ip_reversion');
-  if (rv && rv.checked) out.push({ clave:'rev', rotulo:'reversión en ramas', valor:'1', grado:'Severa' });
+  /* El rotulo nombra el territorio de la Tabla 16 —el tronco pulmonar distal— desde el CORTOS5:
+     era «reversión en ramas» y lo publica la fila de discordancia. Solo texto. */
+  if (rv && rv.checked) out.push({ clave:'rev', rotulo:'reversión en el tronco distal', valor:'1', grado:'Severa' });
   return out;
 }
 window.ipSignos = ipSignos;
