@@ -8204,6 +8204,7 @@ window.cerrarSesionReal = cerrarSesionReal;
             <label style="display:flex;align-items:center;gap:8px;min-height:44px;font-weight:600;">
               <input type="checkbox" id="otr_rac" onchange="otrHallSync()">
               <span style="font-size:12px;">Arteria circunfleja retroa&oacute;rtica (RAC)</span>
+              <button type="button" class="vinfo-btn" data-vinfo="otr-rac" aria-expanded="false" aria-label="Informaci&oacute;n sobre las anomal&iacute;as coronarias cong&eacute;nitas" onclick="vInfoClic(this)">&#9432;</button>
             </label>
             <input type="text" id="otr_rac_nota" maxlength="120" placeholder="Detalle (opcional)" oninput="_refrescarInformeSiGenerado()">
           </div>
@@ -13645,6 +13646,18 @@ z
   <div id="ete-seccion-oai" style="display:none;">
   <div class="card">
     <div class="card-body">
+      <!-- ⚠️ EL GLOBO LEE LA FICHA DE REFERENCIAS Y NO ESCRIBE NADA NUEVO (CORTOS12, 2026-10-17).
+           La ficha «OAI — Orejuela Izquierda y Cierre Percutáneo» ya tiene la morfología, la
+           velocidad de vaciamiento y el SEC; el globo CLONA sus nodos (ver `_otrRefClon`). Va en
+           una fila propia del cuerpo y NO dentro del `<h2>` del acordeón: ese encabezado ya es un
+           control con `onclick`, y un botón dentro de otro no es marcado válido —el navegador lo
+           saca del padre al parsear—, que es la lección del globo del panel de Evidencia. -->
+      <div class="fg" style="margin-bottom:6px;">
+        <label style="font-weight:600;display:flex;align-items:center;gap:8px;">
+          <span style="font-size:12px;">Referencia de la orejuela</span>
+          <button type="button" class="vinfo-btn" data-vinfo="oai-ref" aria-expanded="false" aria-label="Informaci&oacute;n de referencia sobre la orejuela izquierda" onclick="vInfoClic(this)">&#9432;</button>
+        </label>
+      </div>
       <div class="grid-3">
         <div class="fg"><label>Morfología OAI</label>
           <select id="oai_morfologia" onchange="calcOAI()">
@@ -17882,6 +17895,39 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
   </div>
 
+
+  <!-- ══ ANOMALIAS CORONARIAS CONGENITAS (CORTOS12, 2026-10-17) ═══════════════════════════════
+       ENTRADA MUY RESUMIDA, y SOLO con lo que se VIO en el PDF original. La orden la condiciona a
+       que exista una fuente en la biblioteca, y existe: ASE 2020 (Frommelt et al,
+       «Recommendations for Multimodality Assessment of Congenital Coronary Anomalies»,
+       JASE 2020;33(3):259-294, DOI 10.1016/j.echo.2019.10.011). La regla de folio se comprobo en
+       el PIE IMPRESO de cuatro paginas: folio = hoja del PDF + 258 (hoja 1 -> 259, 6 -> 264,
+       8 -> 266, 9 -> 267).
+       Lo que dice el folio 266, literal: «anomalous CA can arise from the opposite sinus and
+       course anterior to the pulmonary artery (PA), posterior to the aorta (retro-aortic), or
+       between them (interarterial). AAOCA with an interarterial course is associated with
+       increased risk for cardiac [events]».
+       ⚠️ NO SE ESCRIBE NI UNA PALABRA MAS. La ficha no gradua, no recomienda conducta y no dice
+       que el trayecto retroaortico sea «benigno»: la fuente dice cual es el de riesgo aumentado y
+       eso es lo que se publica. Lo que no se leyo, no se cita. -->
+  <div class="card">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('coronarias',this)">
+      🫀 Anomalías coronarias congénitas — trayecto
+      <span style="float:right;">▶</span>
+    </h2>
+    <div id="ref-coronarias" style="display:none;" class="card-body">
+      <div style="font-size:12px;color:var(--text);line-height:1.8;">
+        <b style="color:var(--accent2);">Origen anómalo desde el seno contralateral — tres trayectos posibles:</b><br>
+        • <b>Anterior a la arteria pulmonar</b><br>
+        • <b>Posterior a la aorta</b> (retroaórtico)<br>
+        • <b>Interarterial</b> (entre la aorta y la arteria pulmonar)<br>
+        <b style="color:var(--accent2);">Riesgo:</b> el trayecto <b>interarterial</b> es el que se asocia a mayor riesgo de eventos cardíacos.
+      </div>
+      <div style="font-size:10px;color:var(--text2);margin-top:8px;line-height:1.4;">
+        ASE 2020 — Frommelt et al, <i>Recommendations for Multimodality Assessment of Congenital Coronary Anomalies</i>, J Am Soc Echocardiogr 2020;33(3):259-294, folio 266.
+      </div>
+    </div>
+  </div>
 
   <div class="card">
     <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('burbujas',this)">
@@ -39561,6 +39607,8 @@ const VINFO = Object.freeze({
   /* Los dos globos que LEEN una ficha de Referencias (CORTOS11 y CORTOS12). Van con `dyn` porque
      lo que muestran son NODOS clonados, no un texto. */
   'otr-burbujas': { ancho: 360, dyn: function () { return _otrRefClon('ref-burbujas', 'tablas') } },
+  'otr-rac': { ancho: 360, dyn: function () { return _otrRefClon('ref-coronarias') } },
+  'oai-ref': { ancho: 360, dyn: function () { return _otrRefClon('ref-oai') } },
   'ai-card': { ancho: 348, dyn: function () { return evTarjetaAI() } },
   'vi-card': { ancho: 360, dyn: function () { return evTarjetaVI() } },
   /* ⚠️ LA GEOMETRIA VA EN SU PROPIO GLOBO Y NO DENTRO DE LA TARJETA DEL VENTRICULO, y es una
