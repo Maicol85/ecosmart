@@ -7011,12 +7011,36 @@ window.cerrarSesionReal = cerrarSesionReal;
       <div id="bloque-prot-vt" class="grid-2" style="display:none;margin-bottom:8px;">
         <div class="fg">
           <label>DVI <span style="font-weight:400;color:var(--text2);font-size:10px;">— índice de velocidad Doppler</span></label>
-          <input type="number" id="vt_dvi" step="0.01" placeholder="—">
+          <input type="number" id="vt_dvi" step="0.01" placeholder="—" oninput="vtProtObstrPintar()">
         </div>
         <div class="fg">
           <label>Velocidad pico de E tricuspídea (m/s) <span style="font-weight:400;color:var(--text2);font-size:10px;">— entrada, no el jet de IT</span></label>
-          <input type="number" id="et_e_vmax" step="0.1" placeholder="m/s">
+          <input type="number" id="et_e_vmax" step="0.1" placeholder="m/s" oninput="vtProtObstrPintar()">
         </div>
+      </div>
+      <!-- ⚠️ LA CÁPSULA DEL VEREDICTO PROTÉSICO (PRO-C2, 2026-10-17), calcada de
+           `#bloque-prot-vm-res`. Las cinco filas de la **Tabla 19 de la ASE 2024** (folio 36,
+           hoja 35) con su valor y su nivel, y el veredicto DEBAJO, con la lista de los criterios
+           que lo decidieron.
+           ⚠️ LA FILA «Severidad sugerida» DEL CUADRO DE ABAJO NO SE TOCA: sigue diciendo
+           `PROT_SIN_GRADO_TXT`, y es literalmente cierto —la escala leve/moderada/severa de la
+           válvula nativa no aplica a una prótesis y la Tabla 19 **no gradúa**—. Es el mismo
+           reparto que la prótesis mitral: `em-sev` dice eso y su cápsula publica su veredicto
+           aparte. Por eso `calcET` no cambia ni una línea.
+           ⚠️ CÁPSULA DE SÓLO LECTURA: ni un `id` de control acá dentro. `guardarInforme` barre
+           `input[id]`/`select[id]` de TODO el documento, así que un campo con id viajaría en
+           `campos` de cada estudio y al Excel —la regla de los paneles de referencia de Marfan—.
+           ⚠️ Y SIN GLOBOS ⓘ, a propósito: el registro `VINFO` y el conteo de globos de la pestaña
+           Válvulas son el denominador de TC-471 y de TC-472, y cada `.vinfo-btn` suma además un
+           hallazgo en `check_mobile.js`. La fuente va UNA vez al pie, como en el cuadro de la IT. -->
+      <div id="bloque-prot-vt-res" class="calc-box" style="display:none;margin-bottom:8px;">
+        <div class="calc-row"><span class="calc-lbl">Velocidad pico de E</span><span class="calc-val" id="vt-prot-evmax">&mdash;</span></div>
+        <div class="calc-row"><span class="calc-lbl">Gradiente medio</span><span class="calc-val" id="vt-prot-gmed">&mdash;</span></div>
+        <div class="calc-row"><span class="calc-lbl">THP &mdash; tiempo de hemipresi&oacute;n</span><span class="calc-val" id="vt-prot-thp">&mdash;</span></div>
+        <div class="calc-row"><span class="calc-lbl">AEO por continuidad</span><span class="calc-val" id="vt-prot-aeo">&mdash;</span></div>
+        <div class="calc-row"><span class="calc-lbl">DVI &mdash; VTI pr&oacute;tesis / VTI TSVI</span><span class="calc-val" id="vt-prot-dvi">&mdash;</span></div>
+        <div style="font-size:10px;color:var(--text2);line-height:1.45;margin:2px 0 4px;">Criterios: ASE 2024, Tabla 19. La estenosis prot&eacute;sica tricusp&iacute;dea no se grad&uacute;a.</div>
+        <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Obstrucci&oacute;n prot&eacute;sica</span><span class="calc-val" id="vt-prot-obstr">&mdash;</span></div>
       </div>
       <!-- ═══ LAS DOS LESIONES, UNA BAJO CADA BOTÓN (2026-10-04) ═════════════════════════════════
            Insuficiencia a la IZQUIERDA (bajo su botón) y estenosis a la DERECHA, apiladas por
@@ -42335,6 +42359,11 @@ function calcIA_ESC() {
      `oninput` de sus tres campos propios, `valvProtSync` —la morfología— y la pareja
      `RECALC_MODULOS` + `limpiarCampos`. */
   if (typeof eaPvlPintar === 'function') { try { eaPvlPintar(); } catch (e) {} }
+  /* Y la de la prótesis TRICUSPIDE, por el mismo motivo: su compuerta del DVI mira TAMBIÉN el
+     grado de la insuficiencia AÓRTICA —la nota * de la Tabla 19 dice «in the absence of AR or
+     TR»—, así que corregir la vena contracta aórtica cambia el veredicto protésico del otro
+     lado del corazón y la fila se quedaba con el estado del gesto anterior. */
+  if (typeof vtProtObstrPintar === 'function') { try { vtProtObstrPintar(); } catch (e) {} }
 }
 
 /* ══ MORFOLOGÍA VALVULAR: ALGUNAS OPCIONES SON ETIOLOGÍAS, NO MORFOLOGÍAS ═══════════════════
@@ -44390,8 +44419,14 @@ window.ET_IT_AVISO_TXT = ET_IT_AVISO_TXT;
    mismo campo, y se cuelga igual —en captura, sin tocar la cadena de `valvSev`—. */
 document.addEventListener('change', function (e) {
   const id = e && e.target && e.target.id;
-  if (id !== 'it_grado') return;
-  try { etItAvisoSync(); } catch (x) {}
+  /* ⚠️ `ia_grado` ENTRA EN ESTE OYENTE DESDE EL PRO-C2, y es por la compuerta del DVI: la nota *
+     de la Tabla 19 lo evalúa «in the absence of AR or TR», así que los dos grados son insumo del
+     veredicto protésico tricuspídeo y ninguno de los dos `onchange` pasa por `calcET` —los dos van
+     a `valvSev.aplicar`—. Se cuelga del oyente que ya existía, en captura y sin tocar esa cadena,
+     que es el patrón de `vdTeiAvisoSync` para este mismo campo. */
+  if (id !== 'it_grado' && id !== 'ia_grado') return;
+  if (id === 'it_grado') { try { etItAvisoSync(); } catch (x) {} }
+  try { if (typeof vtProtObstrPintar === 'function') vtProtObstrPintar(); } catch (x) {}
 }, true);
 
 /* El PINTOR. Sólo pinta: el veredicto lo decide `etEstado`, que es lo que también lee el
@@ -44408,6 +44443,14 @@ function calcET() {
   /* El aviso de la IT va con las filas y ANTES de cualquier salida temprana, por lo mismo: el
      área ya se escribió arriba y con prótesis se sigue viendo. */
   try { etItAvisoSync(); } catch (e) {}
+  /* ⚠️ LA CÁPSULA PROTÉSICA SE REPINTA ACÁ, ANTES DE LA SALIDA TEMPRANA (PRO-C2). Los cinco
+     insumos de la Tabla 19 que ya existían —gradiente medio, THP y los tres del área— llaman a
+     `calcET` por su `oninput`, así que colgándola de acá no hubo que tocar ni un atributo: el
+     que se olvida es la línea suelta en el marcado. Y va ANTES del `return` de prótesis, que es
+     justamente el único estado en que la cápsula se ve.
+     ⚠️ NO HAY RECURSIÓN: `vtProtObstr` le pide el área a `etEstado()`, que es PURO —lee el DOM y
+     no escribe— y no vuelve a entrar a `calcET`. Censado. */
+  try { if (typeof vtProtObstrPintar === 'function') vtProtObstrPintar(); } catch (e) {}
   /* Prótesis: los valores medidos siguen visibles —el área ya se escribió arriba— pero el grado no
      se sugiere ni se escribe. `_etSincronizarPantalla` SÍ corre antes de salir: con prótesis
      `bloqueado()` devuelve `true`, el grado calculado es `null` y el aviso tiene que quedar VACÍO —
@@ -44442,6 +44485,211 @@ window.calcET = calcET;
 window.ET_GMEDIO_SIGNIF = ET_GMEDIO_SIGNIF;
 window.ET_THP_SIGNIF = ET_THP_SIGNIF;
 window.ET_AVT_SIGNIF = ET_AVT_SIGNIF;
+
+/* ══ LA OBSTRUCCIÓN DE LA PRÓTESIS TRICÚSPIDE — ASE 2024, TABLA 19 (PRO-C2, 2026-10-17) ═══════
+   Hasta hoy esta válvula no tenía veredicto protésico: `calcET` sale por `protNoGraduaPintar` y
+   la fila de severidad publica `PROT_SIN_GRADO_TXT`. Eso **sigue siendo cierto y no se toca**: la
+   escala leve/moderada/severa de la válvula nativa no aplica a una prótesis, y la Tabla 19 **no
+   gradúa**. Lo que entra es un veredicto PROPIO, en su propia cápsula, con el mismo reparto que
+   la prótesis mitral: `em-sev` dice `PROT_SIN_GRADO_TXT` y `#bloque-prot-vm-res` publica su
+   veredicto aparte. O sea que `calcET` no cambia ni una línea.
+
+   **Tabla 19 — «Doppler parameters suggestive of prosthetic TV stenosis», folio 36, hoja 35**,
+   verificada en el PDF original —folio comprobado en el pie impreso de la página, «36 · Zoghbi
+   et al»—. Un umbral único por tipo de prótesis, sin graduar:
+
+     parámetro                        bioprotésica   mecánica
+     velocidad pico de E (m/s)            >= 2,1       >= 1,9
+     gradiente medio (mmHg)               >= 9         >= 6
+     THP (ms)                             >= 200       >= 130
+     AEO (cm²)                            <  1,5       <  2,0
+     DVI (VTI prótesis / VTI TSVI)        >= 3,3       >= 2,1
+
+   ⚠️ CUATRO DE LOS CINCO SUBEN Y UNO BAJA, y los operadores salen de la tabla y no de una
+   convención: el AEO es el único con `<` —un área CHICA sugiere obstrucción— y los otros cuatro
+   con `>=`. Un juego único de operadores habría puesto el valor exacto del AEO del lado
+   equivocado en las dos columnas.
+   ⚠️ LA MECÁNICA ES MÁS EXIGENTE EN TRES FILAS Y MENOS EN DOS, así que no hay un «tipo más
+   estricto»: con el MISMO gradiente medio de 7 mmHg una mecánica da positivo y una biológica no,
+   y con el MISMO AEO de 1,96 cm² al revés. Es lo que hace que la columna la tenga que elegir la
+   morfología y no un default.
+
+   ⚠️ LA TABLA NO PUBLICA REGLA DE INTEGRACIÓN —su título dice «parameters suggestive of», y no
+   dice cuántos hacen falta—, igual que la Tabla 11 de la mitral (ver `Z1` en
+   `docs/PENDIENTES.md`). Acá el veredicto es un **OR**: basta UNO. Es la regla que esta app ya
+   aplica a todos sus umbrales únicos —la estenosis tricuspídea NATIVA es un `some` de sus tres
+   criterios desde que es binaria— y es la que pidió Maicol para esta tanda. El veredicto NOMBRA
+   los criterios positivos con su valor, así que el médico ve cuántos lo sostienen.
+
+   ⚠️ TRES PARÁMETROS DE LA TABLA 21 Y UNO DE LA 19 NO ENTRAN, y se declaran en vez de
+   inventarse: el flujo de vena hepática (Tabla 21) no tiene campo —orden expresa de no
+   agregarlo—, y las filas cualitativas de la 21 (área del jet en color, zona de convergencia,
+   llenado tricuspídeo) tampoco. La Tabla 21 es de REGURGITACIÓN y sus cuatro cuantitativos
+   coinciden DÍGITO POR DÍGITO con los que la app ya aplica (ver `IT_CRIT`), así que esta tanda
+   no mueve un solo corte de la insuficiencia tricuspídea. */
+const VT_PROT_T19 = Object.freeze({
+  /* `op` es el operador que APLICA, y de él sale también el símbolo que imprime la fila: con un
+     símbolo fijo, la fila del AEO imprimiría `>=` donde la guía escribe `<` y el renglón
+     contradiría al veredicto de al lado en el borde exacto. Es la lección del VTI de entrada. */
+  evmax: Object.freeze({ bio: 2.1, mec: 1.9, op: '>=', uni: 'm/s', dec: 1,
+                         nombre: 'velocidad pico de E', campo: 'et_e_vmax' }),
+  gmed:  Object.freeze({ bio: 9,   mec: 6,   op: '>=', uni: 'mmHg', dec: 1,
+                         nombre: 'gradiente medio', campo: 'et_gmedio' }),
+  thp:   Object.freeze({ bio: 200, mec: 130, op: '>=', uni: 'ms',  dec: 0,
+                         nombre: 'THP', campo: 'et_thp' }),
+  aeo:   Object.freeze({ bio: 1.5, mec: 2.0, op: '<',  uni: 'cm²', dec: 2,
+                         nombre: 'AEO', campo: null }),
+  dvi:   Object.freeze({ bio: 3.3, mec: 2.1, op: '>=', uni: '',    dec: 2,
+                         nombre: 'DVI', campo: 'vt_dvi' })
+});
+const VT_PROT_ORDEN = Object.freeze(['evmax', 'gmed', 'thp', 'aeo', 'dvi']);
+/* Bandas de plausibilidad de los DOS campos que esta tanda hace votar y que no tenían una. Las
+   de `et_gmedio` y `et_thp` viven en `ET_CRIT` y NO se copian acá: el rango de un campo tiene un
+   solo dueño, y los dos tienen además el papel de criterio nativo.
+   ⚠️ EL TECHO DE LA VELOCIDAD PICO DE E CAZA EL DEDAZO QUE IMPORTA: el ecógrafo la puede dar en
+   cm/s, y un 210 tipeado por 2,1 cruzaría el corte de las dos columnas con tres cifras de más.
+   El del DVI es generoso a propósito: es un cociente sin unidad y una prótesis muy obstruida da
+   valores altos — la banda está para rechazar lo ilegible, no para graduar. */
+const VT_PROT_BANDA = Object.freeze({
+  et_e_vmax: Object.freeze([0.2, 4]),
+  vt_dvi:    Object.freeze([0.2, 20])
+});
+/* El TIPO sale de la morfología y de nada más: `vt_morf` ofrece «Prótesis biológica» y «Prótesis
+   mecánica», que son exactamente las dos columnas de la Tabla 19. Devuelve `null` con una
+   válvula nativa, que es lo que apaga el veredicto entero. */
+function vtProtTipo(){
+  const el = document.getElementById('vt_morf');
+  const v = el ? String(el.value || '').trim() : '';
+  if (typeof valvEsProtesis === 'function' && !valvEsProtesis(v)) return null;
+  if (!v) return null;
+  return /mec/i.test(v) ? 'mec' : 'bio';
+}
+window.VT_PROT_T19 = VT_PROT_T19; window.VT_PROT_BANDA = VT_PROT_BANDA;
+window.vtProtTipo = vtProtTipo;
+
+/* El DUEÑO DE DATOS. Devuelve datos y no HTML, por el mismo motivo que `vmProtEOA`: la cápsula
+   pinta y el informe firma, y dos derivaciones del mismo hecho se desincronizan.
+   ⚠️ EL AEO SE LE PIDE A `etEstado()` Y NO SE RECALCULA. Esa función es el dueño único del área
+   tricuspídea por continuidad —con sus tres insumos, sus tres bandas y su denominador > 0— y
+   recalcularla acá sería una segunda copia de la ecuación de continuidad, que es exactamente el
+   defecto que `ET_BANDA_INSUMO` vino a cerrar.
+   ⚠️ EL DVI SE RETIRA CON REGURGITACIÓN, Y ES DE LA FUENTE. La nota * de la Tabla 19 dice,
+   literal: «Assessed in the absence of AR or TR». El umbral de «hay regurgitación» es el que
+   esta app ya usa para retirar el AEO mitral por el mismo motivo —`EM_CONT_REGURG_MIN`,
+   moderada o mayor— y se LEE de esa constante en vez de retipear un 2: el día que se mueva, los
+   dos caminos se mueven juntos. Sin el retiro, un DVI inflado por una IT severa sostendría solo
+   un veredicto de obstrucción. */
+function vtProtObstr(){
+  const tipo = vtProtTipo();
+  const R = { tipo: tipo, esProt: !!tipo, obstr: null, pos: [], med: [], fuera: [],
+              vals: {}, niv: {}, dviMotivo: '' };
+  if (!tipo) return R;
+  const nv = (id) => { const e = document.getElementById(id); if (!e) return null;
+    const n = parseFloat(String(e.value).replace(',', '.')); return isFinite(n) ? n : null; };
+  const enBanda = (x, b) => !!(b && x != null && x >= b[0] && x <= b[1]);
+  /* El área, del dueño único. `etEstado()` es puro —lee el DOM y no escribe— así que llamarlo
+     desde acá no puede pintar nada ni entrar en un bucle. */
+  let avt = null;
+  try { avt = (typeof etEstado === 'function') ? etEstado().avt : null; } catch (e) { avt = null; }
+  /* La regurgitación que retira el DVI: tricuspídea o aórtica, moderada o mayor. Los dos grados
+     son el 0-4 de los `<select>` de severidad. */
+  const _gMin = (typeof EM_CONT_REGURG_MIN === 'number') ? EM_CONT_REGURG_MIN : 2;
+  const _g = (id) => { const e = document.getElementById(id);
+    const n = e ? parseInt(String(e.value || ''), 10) : NaN; return isFinite(n) ? n : null; };
+  const gIt = _g('it_grado'), gIa = _g('ia_grado');
+  const regurg = [];
+  if (gIt != null && gIt >= _gMin) regurg.push('insuficiencia tricuspídea');
+  if (gIa != null && gIa >= _gMin) regurg.push('insuficiencia aórtica');
+
+  VT_PROT_ORDEN.forEach(function(k){
+    const C = VT_PROT_T19[k];
+    let x = (k === 'aeo') ? avt : nv(C.campo);
+    /* Las dos bandas nuevas y las dos que ya tenían dueño. El AEO no lleva banda propia: sus
+       tres insumos ya están gateados por `ET_BANDA_INSUMO` dentro de `etEstado`. */
+    if (x != null && k !== 'aeo') {
+      const b = VT_PROT_BANDA[C.campo] ||
+                ((typeof ET_CRIT !== 'undefined' && ET_CRIT[k === 'gmed' ? 'gmedio' : k])
+                   ? ET_CRIT[k === 'gmed' ? 'gmedio' : k].banda : null);
+      if (b && !enBanda(x, b)) { R.fuera.push(C.nombre); R.vals[k] = x; R.niv[k] = 'fuera'; return; }
+    }
+    if (x == null) { R.vals[k] = null; R.niv[k] = null; return; }
+    R.vals[k] = x;
+    if (k === 'dvi' && regurg.length) {
+      R.dviMotivo = 'no se evalúa con ' + regurg.join(' ni ');
+      R.niv[k] = 'retirado';
+      return;
+    }
+    R.med.push(k);
+    const corte = C[tipo];
+    const positivo = (C.op === '<') ? (x < corte) : (x >= corte);
+    R.niv[k] = positivo ? 'si' : 'no';
+    if (positivo) R.pos.push(k);
+  });
+  /* `null` sin ningún criterio medido —abstenerse— y no «sin criterios», que afirmaría que se
+     buscó. Es el contrato de `calcular()` del resto del archivo. */
+  R.obstr = R.pos.length ? 'estenosis' : (R.med.length ? 'sin' : null);
+  return R;
+}
+window.vtProtObstr = vtProtObstr;
+
+/* Los criterios POSITIVOS nombrados con su valor, en un solo dueño: lo consumen la cápsula de
+   pantalla y la línea del informe firmado. Dos listas armadas por separado son dos oraciones
+   distintas sobre el mismo paciente — el defecto que `vmProtObstrCrit` ya evita. */
+function vtProtObstrCrit(R){
+  if (!R || !R.pos || !R.pos.length) return [];
+  return R.pos.map(function(k){
+    const C = VT_PROT_T19[k];
+    const v = R.vals[k];
+    return C.nombre + ' ' + (v == null ? '—' : v.toFixed(C.dec)) + (C.uni ? ' ' + C.uni : '');
+  });
+}
+window.vtProtObstrCrit = vtProtObstrCrit;
+
+/* ⚠️ VA ANTES DE SU PRIMER LLAMADOR, POR TDZ: un `const` leído antes de su línea no da
+   «undefined», LANZA, y un `ReferenceError` en la evaluación de un `<script>` se lleva el bloque
+   COMPLETO —la app con cero pestañas con geometría—. Es la nota de `PROT_SIN_GRADO_TXT`.
+   El texto del veredicto vive en UNA constante, porque lo publican la cápsula Y el informe
+   firmado: dos literales son dos oraciones que se separan el día que una se toque. La palabra
+   es la de la Tabla 19 —«suggestive of prosthetic TV stenosis»— y el molde es el que la prótesis
+   mitral ya usa para su obstrucción. */
+const VT_PROT_OBSTR_TXT = 'hallazgos sugestivos de estenosis';
+window.VT_PROT_OBSTR_TXT = VT_PROT_OBSTR_TXT;
+
+/* Sólo PINTA. El corte evaluación/pintor es el de `vmProtEOA`/`vmProtEOAPintar`.
+   ⚠️ EL RÓTULO DE LA BANDA SE DERIVA DE LA TABLA y no se teclea: un rango escrito a mano al lado
+   de un corte es la segunda fuente de verdad, y el día que el corte se mueva la pantalla publica
+   la escala anterior al lado del veredicto nuevo. */
+function vtProtObstrPintar(){
+  const caja = document.getElementById('bloque-prot-vt-res');
+  if (!caja) return null;
+  const R = vtProtObstr();
+  if (!R.esProt) { caja.style.display = 'none'; return R; }
+  caja.style.display = '';
+  const put = (id, t) => { const e = document.getElementById(id); if (e) e.textContent = t; };
+  const GUION = '—';
+  VT_PROT_ORDEN.forEach(function(k){
+    const C = VT_PROT_T19[k];
+    const v = R.vals[k], n = R.niv[k];
+    const esc = C.op + ' ' + C[R.tipo] + (C.uni ? ' ' + C.uni : '');
+    let t;
+    if (v == null) t = GUION;
+    else if (n === 'fuera') t = v + (C.uni ? ' ' + C.uni : '') + '  (fuera de rango: no gradúa)';
+    else if (n === 'retirado') t = v.toFixed(C.dec) + (C.uni ? ' ' + C.uni : '') + '  (' + R.dviMotivo + ')';
+    else t = v.toFixed(C.dec) + (C.uni ? ' ' + C.uni : '') +
+             '  (' + (n === 'si' ? 'sugiere estenosis' : 'no alcanza el criterio') + ' · ' + esc + ')';
+    put('vt-prot-' + k, t);
+  });
+  const _cr = vtProtObstrCrit(R);
+  const _nMed = R.med.length, _nMedTxt = _nMed + (_nMed === 1 ? ' criterio' : ' criterios');
+  put('vt-prot-obstr',
+    R.obstr === 'estenosis'
+      ? VT_PROT_OBSTR_TXT + '  (' + _cr.join(', ') + ' · ' + R.pos.length + ' de ' + _nMedTxt + ')'
+    : R.obstr === 'sin'
+      ? 'sin criterios de estenosis  (' + _nMedTxt + (_nMed === 1 ? ' medido' : ' medidos') + ')'
+      : GUION + '  (sin criterios medidos' + (R.fuera.length ? ' · ' + R.fuera.join(', ') + ' fuera de rango' : '') + ')');
+  return R;
+}
+window.vtProtObstrPintar = vtProtObstrPintar;
 
 /* ══ LA Vmax IT ES UN DATO CON DOS CAMPOS (P3, 2026-10-05) ════════════════════════════════════
    `vmax_it` (pestaña Doppler, bloque PSAP) e `it_vmax_cw` (pestaña Válvulas, bloque de
@@ -44891,6 +45139,15 @@ function calcIT_ESC() {
   /* Regla 2: con al menos un votante la pastilla se prende sola. */
   if (typeof _insufAutoPrender === 'function') _insufAutoPrender('tricuspide');
   if (typeof sevSincronizar === 'function') { try { sevSincronizar('it'); } catch (e) {} }   // v2 (E2c): repinta aviso/pastilla de la IT
+  /* ⚠️ LA CÁPSULA PROTÉSICA TRICUSPIDE SE REPINTA ACÁ (PRO-C2), y sin esta línea se queda
+     atrás en la escena que la compuerta existe para cubrir: la nota * de la Tabla 19 retira el
+     DVI «en ausencia de AR o TR», así que el GRADO de esta lesión es insumo del veredicto
+     protésico. Medido: con el DVI ya cargado, tipear la vena contracta dejaba la fila del DVI
+     diciendo «sugiere estenosis» mientras el motor ya lo había retirado —el oyente de documento
+     sobre el `<select>` cubre el gesto MANUAL del médico, no la escritura por cálculo—. Es
+     «un consumidor nuevo sin su disparador», el patrón que este archivo documenta cuatro veces.
+     Va al FINAL, que es cuando el grado de esta función ya está publicado. */
+  if (typeof vtProtObstrPintar === 'function') { try { vtProtObstrPintar(); } catch (e) {} }
 }
 
 // ══ MODO COMPARATIVO ══
@@ -48809,6 +49066,27 @@ function generarInforme(opts) {
       suma.push(`PSAP estimada ${psap} mmHg.`);
     }
     inf.push(tricLine);
+    /* ══ LA OBSTRUCCIÓN DE LA PRÓTESIS TRICUSPIDE (PRO-C2, 2026-10-17) ════════════════
+       UNA ORACIÓN APARTE, con el molde exacto que la prótesis MITRAL ya usa para su obstrucción:
+       la misma frase al cuerpo y al EN SUMA, con la lista de los criterios que la sostienen y sin
+       ninguna cita —el papel afirma y no cita—. No se inventa vocabulario: la palabra del
+       veredicto sale de `VT_PROT_OBSTR_TXT`, que es la misma que publica la cápsula.
+       ⚠️ LA LISTA SALE DE `vtProtObstrCrit`, EL MISMO DUEÑO QUE PINTA LA CÁPSULA. Una segunda
+       lista acá dejaría el papel diciendo menos que la pantalla sobre el mismo paciente —el
+       defecto que la mitral ya pagó cuando su paréntesis nombraba sólo dos de los cuatro—.
+       ⚠️ «SIN CRITERIOS DE ESTENOSIS» NO SUBE AL PAPEL, y es la misma decisión que la mitral:
+       lo que se firma es el hallazgo, no su ausencia. Se ve en pantalla, que es donde el médico
+       decide si profundiza.
+       ⚠️ Y NO REEMPLAZA LA LÍNEA DE LA PRÓTESIS: `tricLine` y `_vtProtLinea` siguen publicando el
+       grado que el médico o un estudio legado dejaron en el `<select>`, que es otra pregunta. */
+    {
+      const _vo = (typeof vtProtObstr === 'function') ? vtProtObstr() : null;
+      if (_vo && _vo.esProt && _vo.obstr === 'estenosis') {
+        const _q = (typeof vtProtObstrCrit === 'function') ? vtProtObstrCrit(_vo) : [];
+        const _t = 'Prótesis tricúspide con ' + VT_PROT_OBSTR_TXT + ' (' + _q.join(', ') + ').';
+        inf.push(_t); suma.push(_t);
+      }
+    }
   }
 
   // ── 10) Válvula pulmonar (estenosis + insuficiencia) ──
@@ -54020,6 +54298,11 @@ function valvProtSync(){
      exactamente cuando el bloque aparece y desaparece. */
   if (typeof eaPvlPintar === 'function') { try { eaPvlPintar(); } catch (e) {} }
   ver('bloque-prot-vt', valvEsProtesis(g('vt_morf')));
+  /* La cápsula del veredicto protésico tricuspídeo tiene su propio dueño y no una línea
+     `ver(...)` acá: además de mostrarse tiene que repintar sus seis filas, y cambiar la
+     morfología cambia la COLUMNA de cortes de la Tabla 19 —bioprótesis o mecánica—, no sólo si
+     se ve. Es el mismo argumento que `eaPvlPintar` y que `imPvlPintar`. */
+  if (typeof vtProtObstrPintar === 'function') { try { vtProtObstrPintar(); } catch (e) {} }
   ver('bloque-prot-vp', valvEsProtesis(g('vp_morf')));
   /* La fila del AT en el cuadro de resultados se muestra con la misma regla que su campo, y su
      lectura depende de la morfología: cambiar de prótesis a nativa tiene que apagarla, no dejarla
@@ -116519,6 +116802,21 @@ const V2D_PORQUE = Object.freeze({
      referencia —la Tabla 5 no da cortes absolutos de AVA para una protesis—, asi que las otras
      muestran su valor sin grado. Su REGLA son dos mitades y no un criterio, y eso lo dice la nota
      que el renglon ya publica: va al pie de la lista, no en la tarjeta cerrada. */
+  /* La TRICUSPIDE protésica (PRO-C2, 2026-10-17). Cinco filas de la Tabla 19, la del veredicto
+     aparte y SIN pastilla de color, por el mismo motivo que la mitral: la Tabla 19 **no gradúa**,
+     asi que no hay GRADO que colorear y pintar el residuo nativo de `et_grado` seria republicar
+     la escala que esta app se niega a aplicar a una prótesis.
+     ⚠️ EL AVISO ES EL DE LA INSUFICIENCIA TRICUSPIDEA (`et-it-aviso`), el MISMO que la tarjeta
+     de la estenosis nativa ya lee: la tarjeta lo LEE, no lo vuelve a derivar. */
+  'prot:tricuspide': Object.freeze({ decide: 'vt-prot-obstr', decideModo: 'parentesis',
+    aviso: 'et-it-aviso',
+    crit: Object.freeze([
+      Object.freeze({ id: 'vt-prot-evmax', sep: 'parentesis' }),
+      Object.freeze({ id: 'vt-prot-gmed',  sep: 'parentesis' }),
+      Object.freeze({ id: 'vt-prot-thp',   sep: 'parentesis' }),
+      Object.freeze({ id: 'vt-prot-aeo',   sep: 'parentesis' }),
+      Object.freeze({ id: 'vt-prot-dvi',   sep: 'parentesis' })
+    ]) }),
   'prot:aortica': Object.freeze({ decide: null, aviso: 'ea-det-sev-nota',
     crit: Object.freeze([
       Object.freeze({ id: 'ea-det-gmedio' }),
@@ -116735,7 +117033,12 @@ function v2dEstado(){
       const vProt = !tipoProt ? '' :
         (tipo !== 'esten' ? '' :
          (V.k === 'mitral') ? _v2dVeredictoProt('vm-prot-obstr')
-       : (V.k === 'aortica') ? _v2dVeredictoProt('ea-det-sev') : '');
+       : (V.k === 'aortica') ? _v2dVeredictoProt('ea-det-sev')
+       /* La TRICUSPIDE entra el 2026-10-17 (PRO-C2) y no hizo falta un mecanismo nuevo: su
+          capsula publica el veredicto en la misma forma que la mitral, asi que la lee el mismo
+          `_v2dVeredictoProt`. La PULMONAR no esta en la vista 2D: `V2D_VALVS` tiene tres
+          valvulas y la pulmonar no es una de ellas. */
+       : (V.k === 'tricuspide') ? _v2dVeredictoProt('vt-prot-obstr') : '');
       if (vProt) {
         E[tipo].push({ valv:V.nom, morf:morfTxt, frase:vProt, chip:null, cls:'',
                        pq:_v2dPorQue('prot:' + V.k) });
