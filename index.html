@@ -5246,7 +5246,7 @@ window.cerrarSesionReal = cerrarSesionReal;
       <div style="font-size:11.5px;font-weight:700;color:var(--accent2);margin:14px 0 4px;">Llenado y relajación del ventrículo derecho</div>
       <div class="grid-4">
         <div class="fg"><label>Onda E tricuspídea (cm/s)</label>
-          <input type="number" id="dt_onda_e" step="1" placeholder="cm/s" oninput="calcDopTric()"></div>
+          <input type="number" id="dt_onda_e" step="1" placeholder="cm/s" oninput="etOndaESync('dt_onda_e');calcDopTric();vtProtObstrPintar()"></div>
         <div class="fg"><label>Onda A tricuspídea (cm/s)</label>
           <input type="number" id="dt_onda_a" step="1" placeholder="cm/s" oninput="calcDopTric()"></div>
         <div class="fg"><label>e' anular lateral tricuspídeo (cm/s)</label>
@@ -7383,8 +7383,8 @@ window.cerrarSesionReal = cerrarSesionReal;
               <input type="number" id="vt_dvi" step="0.01" placeholder="&mdash;" oninput="vtProtObstrPintar()">
             </div>
             <div class="fg">
-              <label>Velocidad pico de E tricusp&iacute;dea (m/s) <span style="font-weight:400;color:var(--text2);font-size:10px;">&mdash; entrada, no el jet de IT</span></label>
-              <input type="number" id="et_e_vmax" step="0.1" placeholder="m/s" oninput="vtProtObstrPintar()">
+              <label>Velocidad pico de E tricusp&iacute;dea (cm/s) <span style="font-weight:400;color:var(--text2);font-size:10px;">&harr; Doppler &mdash; entrada, no el jet de IT</span></label>
+              <input type="number" id="et_e_vmax" step="1" placeholder="cm/s" oninput="etOndaESync('et_e_vmax');calcDopTric();vtProtObstrPintar()">
             </div>
           </div>
           <div class="calc-box">
@@ -44738,7 +44738,13 @@ const VT_PROT_T19 = Object.freeze({
   /* `op` es el operador que APLICA, y de él sale también el símbolo que imprime la fila: con un
      símbolo fijo, la fila del AEO imprimiría `>=` donde la guía escribe `<` y el renglón
      contradiría al veredicto de al lado en el borde exacto. Es la lección del VTI de entrada. */
-  evmax: Object.freeze({ bio: 2.1, mec: 1.9, op: '>=', uni: 'm/s', dec: 1,
+  /* ⚠️ EL CORTE VA EN cm/s Y LA GUIA LO ESCRIBE EN m/s (CORTOS3, 2026-10-17). La Tabla 19 imprime
+     «Peak E velocity, m/sec: $2.1 / $1.9»; la onda E se mide con Doppler PULSADO y el campo de la
+     app esta en cm/s, que es la unidad del ecografo y la del campo que ya existia en el Doppler
+     tricuspideo (`dt_onda_e`). El corte se CONVIERTE una vez, aca, y NO se muestra en m/s en
+     ninguna superficie: la regla de la casa es que un corte se publica solo en la unidad del campo
+     que lo recibe. 2,1 m/s = 210 cm/s y 1,9 m/s = 190 cm/s; el valor del borde no se movio. */
+  evmax: Object.freeze({ bio: 210, mec: 190, op: '>=', uni: 'cm/s', dec: 0,
                          nombre: 'velocidad pico de E', campo: 'et_e_vmax' }),
   gmed:  Object.freeze({ bio: 9,   mec: 6,   op: '>=', uni: 'mmHg', dec: 1,
                          nombre: 'gradiente medio', campo: 'et_gmedio' }),
@@ -44753,12 +44759,13 @@ const VT_PROT_ORDEN = Object.freeze(['evmax', 'gmed', 'thp', 'aeo', 'dvi']);
 /* Bandas de plausibilidad de los DOS campos que esta tanda hace votar y que no tenían una. Las
    de `et_gmedio` y `et_thp` viven en `ET_CRIT` y NO se copian acá: el rango de un campo tiene un
    solo dueño, y los dos tienen además el papel de criterio nativo.
-   ⚠️ EL TECHO DE LA VELOCIDAD PICO DE E CAZA EL DEDAZO QUE IMPORTA: el ecógrafo la puede dar en
-   cm/s, y un 210 tipeado por 2,1 cruzaría el corte de las dos columnas con tres cifras de más.
+   ⚠️ EL PISO DE LA VELOCIDAD PICO DE E CAZA EL DEDAZO QUE IMPORTA, y desde el CORTOS3 es el piso
+   y no el techo: el campo esta en cm/s, asi que el dedazo es tipear «2,1» por 210 — y 2,1 cm/s
+   cae debajo del piso, queda marcado «fuera de rango» y NO vota.
    El del DVI es generoso a propósito: es un cociente sin unidad y una prótesis muy obstruida da
    valores altos — la banda está para rechazar lo ilegible, no para graduar. */
 const VT_PROT_BANDA = Object.freeze({
-  et_e_vmax: Object.freeze([0.2, 4]),
+  et_e_vmax: Object.freeze([20, 400]),
   vt_dvi:    Object.freeze([0.2, 20])
 });
 /* El TIPO sale de la morfología y de nada más: `vt_morf` ofrece «Prótesis biológica» y «Prótesis
@@ -44979,6 +44986,54 @@ function dtTapSync(origenId) {
   } finally { _dtTapSinc = false; }
 }
 window.dtTapSync = dtTapSync;
+
+/* ══ LA ONDA E TRICUSPIDEA ES UN DATO CON DOS CAMPOS (CORTOS3, 2026-10-17) ════════════════════
+   DECISION DE MAICOL. `dt_onda_e` (pestaña Doppler, bloque tricuspideo, rotulado «Onda E
+   tricuspidea (cm/s)») y `et_e_vmax` (pestaña Valvulas, bloque de la protesis) son la MISMA
+   medicion: la velocidad pico de la onda E de la ENTRADA tricuspidea por Doppler PULSADO. El
+   PRO-C1 creo el segundo en m/s porque la Tabla 19 de la ASE 2024 escribe su corte en m/s, y eso
+   dejo el mismo numero pedido dos veces y en dos unidades: el medico lo cargaba dos veces y, si
+   lo cargaba una sola, la mitad de la app no se enteraba.
+
+   ⚠️ LOS DOS ESTAN EN cm/s Y EL CORTE SE CONVIERTE, no al reves. La onda E se mide con pulsado y
+   el ecografo la da en cm/s; el campo que ya existia estaba en cm/s y es el que leen `calcDopTric`
+   y el E/A tricuspideo. Convertir el campo habria obligado a tocar esos lectores; convertir el
+   corte es UNA linea en `VT_PROT_T19`.
+
+   NO HAY BUCLE, Y NO ES POR LA GUARDA: asignar `.value` por codigo no dispara `oninput`, asi que
+   el espejo no se re-dispara solo. `_etOndaESinc` esta para el dia en que alguien despache un
+   `input` a mano —los arneses de prueba lo hacen—, exactamente como documentan `itVmaxSync` y
+   `dtTapSync`.
+
+   ⚠️ LA SALIDA TEMPRANA POR VALOR IGUAL EVITA EL SALTO DEL CARET, igual que en `itVmaxSync`:
+   escribir `dst.value` con el mismo contenido mueve el cursor al final del campo.
+
+   ⚠️ ESTUDIOS GUARDADOS CON EL CAMPO EN m/s (los del PRO-C, de hoy mismo): NO SE MIGRA NI UN
+   REGISTRO, que es la regla de la casa, y hay que saber que hace cada camino. Esta funcion entra
+   en `RECALC_MODULOS` —el embudo de las cinco rutas de restauracion— y ahi se la llama SIN
+   argumento, o sea copiando del DUEÑO (`dt_onda_e`) al espejo, que es el reparto de `dtTapSync`
+   y de `etTsvdSync`. Entonces: con la onda E cargada en el Doppler, el espejo la toma y el
+   criterio de la Tabla 19 la ve en cm/s —que es lo que esta tanda vino a arreglar—; y un estudio
+   del PRO-C que traiga SOLO `et_e_vmax` en m/s reabre con el campo VACIO, porque el espejo sigue
+   al dueño. No se reinterpreta un 2,4 m/s como 2,4 cm/s —seria afirmar una medicion que nadie
+   hizo— y no se reescribe el registro en disco. El criterio simplemente no vota.
+   Por si alguien lo tipea igual: 2,4 cae debajo del piso de `VT_PROT_BANDA` (20 cm/s), la fila lo
+   publica «fuera de rango: no gradua» y NO vota. */
+let _etOndaESinc = false;
+function etOndaESync(origenId) {
+  if (_etOndaESinc) return null;
+  _etOndaESinc = true;
+  try {
+    const a = document.getElementById('dt_onda_e'), b = document.getElementById('et_e_vmax');
+    if (!a || !b) return null;
+    const src = (origenId === 'et_e_vmax') ? b : a;
+    const dst = (origenId === 'et_e_vmax') ? a : b;
+    if (dst.value === src.value) return { copio: false, valor: src.value };
+    dst.value = src.value;   /* borrar en uno borra en el otro: '' se copia igual que un numero */
+    return { copio: true, valor: src.value };
+  } finally { _etOndaESinc = false; }
+}
+window.etOndaESync = etOndaESync;
 
 /* ══ LOS DOS INSUMOS DEL ÁREA TRICUSPÍDEA SON DATOS CON DOS CAMPOS (2026-10-07) ═══════════════
    `tsvd_diametro` / `vti_tsvd` (pestaña VD/AD, bloque «Ventrículo derecho») y `et_tsvd_diam` /
@@ -52051,7 +52106,7 @@ function RECALC_MODULOS() {
      automaticos con el «requiere …» del formulario vacio al lado de un VDFVI y una FEVI ya
      poblados. No puede migrar nada: no escribe ningun campo del estudio, los dos nodos que
      toca son `vauto-` y el tercero un `<div>` de texto. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','m3dBotonSync','contrPdfSync','v2dCerrar','aiviSexoSync'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','m3dBotonSync','contrPdfSync','v2dCerrar','aiviSexoSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
