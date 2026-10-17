@@ -5926,6 +5926,15 @@ window.cerrarSesionReal = cerrarSesionReal;
             </div>
           </div>
         </div>
+        <div id="bloque-prot-vm-pvl" class="fg" style="display:none;margin-top:6px;">
+          <label>Origen de la regurgitaci&oacute;n <span style="font-weight:400;color:var(--text2);font-size:10px;">&mdash; pr&oacute;tesis, ASE 2024 (Tabla 13)</span></label>
+          <select id="vm_pvl_origen" onchange="imPvlPintar()">
+            <option value="">&mdash;</option>
+            <option value="central">Central (intraprot&eacute;sica)</option>
+            <option value="paraval">Paravalvular</option>
+            <option value="mixta">Mixta</option>
+          </select>
+        </div>
       <div class="calc-box" style="margin-top:10px;">
         <!-- ══ EL ORDEN DE LAS FILAS LO FIJÓ MAICOL (2026-10-09) ════════════════════════════
              Primero las dos que APOYAN y NO votan —onda E y cociente VTI mitral/TSVI—, después
@@ -6075,6 +6084,19 @@ window.cerrarSesionReal = cerrarSesionReal;
              y sólo con mecanismo secundario consignado. NO cambia cortes, votos ni grado, y no llega
              al informe, EN SUMA, PDF ni Excel. -->
         <div class="calc-row"><span id="im-sec-aviso" style="color:var(--yellow);font-size:11px;"></span></div>
+        <!-- ══ ORIGEN DE LA REGURGITACIÓN DE LA PRÓTESIS MITRAL (PRO-B4, 2026-10-17) ═════════
+             Decisión de Maicol. **NI UN CAMPO NUMÉRICO NUEVO Y NI UN CORTE MOVIDO**: los cuatro
+             parámetros cuantitativos de la **Tabla 13 de la ASE 2024 (folio 30, hoja 29)** —ancho
+             de vena contracta `<0,3 / 0,3-0,69 / ≥0,7` cm, Vol-R `<30 / 30-59 / ≥60` ml, FR
+             `<30 / 30-49 / ≥50` % y EROA `<0,20 / 0,20-0,39 / ≥0,40` cm²— son EXACTAMENTE los que
+             `IM_CORTES` ya aplica, y el jet sobre área auricular ya tiene su régimen protésico de
+             esa misma tabla (`IM_CORTES.jet_prot`). Verificado fila por fila en el PDF original.
+             Lo único que faltaba es lo que este selector agrega: **marcar que la regurgitación es
+             paravalvular**, para que el grado que la app ya calcula se NOMBRE como lo que es.
+             ⚠️ NO HAY EXTENSIÓN CIRCUNFERENCIAL, Y ES DE LA FUENTE: la Tabla 13 no publica ese
+             parámetro —censada entera—, a diferencia de la Tabla 8 de la aórtica. Ofrecerlo acá
+             significaría tomarlo prestado de una tabla de OTRA válvula. -->
+        <div class="calc-row"><span class="calc-lbl">Origen de la regurgitaci&oacute;n</span><span class="calc-val" id="im-pvl-interp">&#8212;</span></div>
         <div class="calc-row"><span id="im-discordancia" style="color:var(--yellow);font-size:11px;"></span></div>
         <!-- ⚠️ LA CAPSULA «Severidad (continuidad)» SE CONSERVA Y SUBE AL BLOQUE 3, y no es
              redundante con el bloque 2: ahi arriba va el grado de CADA parametro por separado y
@@ -38718,6 +38740,78 @@ const IM_CORTES = Object.freeze({
 });
 window.IM_CORTES = IM_CORTES;
 
+/* ══ PRO-B4 — EL ORIGEN DE LA REGURGITACIÓN DE LA PRÓTESIS MITRAL (2026-10-17) ══════════════
+   Decisión de Maicol. **NI UN CAMPO NUMÉRICO NUEVO, NI UN CORTE MOVIDO, NI UNA COLUMNA DE EXCEL.**
+   Los cuatro parámetros cuantitativos de la **Tabla 13 de la ASE 2024 (folio 30, hoja 29)** —ancho
+   de vena contracta `<0,3 / 0,3-0,69 / ≥0,7` cm, Vol-R `<30 / 30-59 / ≥60` ml, FR
+   `<30 / 30-49 / ≥50` % y EROA `<0,20 / 0,20-0,39 / ≥0,40` cm²— son EXACTAMENTE los que
+   `IM_CORTES` ya aplica (`vc` en mm, `eroa` en mm², `volr` y `fr`), verificado fila por fila en el
+   PDF original; y el jet sobre área auricular ya tiene su régimen protésico de esa misma tabla
+   (`IM_CORTES.jet_prot`, `<20` leve y `>50` severa). El flujo venoso pulmonar también está, en
+   `im_onda_s`. Lo que la app NO tiene campo para registrar son los tres cualitativos de la tabla
+   —convergencia, densidad y contorno del chorro—, y eso queda declarado, no inventado.
+   O sea: **lo único que faltaba es marcar que la regurgitación es paravalvular**, que es
+   literalmente lo que la orden del PRO-B anticipaba. Eso es este selector y nada más.
+   ⚠️ NO HAY EXTENSIÓN CIRCUNFERENCIAL, Y ES DE LA FUENTE: la Tabla 13 **no publica** ese
+   parámetro —censada entera— a diferencia de la Tabla 8 de la aórtica. Ofrecerlo acá sería tomarlo
+   prestado de una tabla de OTRA válvula, y la ASE 2019 y la VARC-3 que lo publican son también de
+   la aórtica.
+   ⚠️ Y NO SE REPITE EL GRADO. La frase dice el ORIGEN y el grado lo sigue publicando `im_grado`
+   en la oración de al lado: repetirlo acá sería una quinta copia del vocabulario de severidad
+   —`imTxt`, `GTX`, `_ESC04` y `GRTXT` ya son cuatro, censadas— y dos lugares que decir lo mismo
+   del mismo paciente. */
+const VM_PVL_ORIGEN_PVL = Object.freeze(['paraval', 'mixta']);
+/* Las frases son del MISMO vocabulario que la fuga aórtica usa, declinadas para que la oración
+   concuerde: «de origen mixta» no es castellano. Dos entradas y no tres: el origen CENTRAL se
+   muestra en pantalla y NO agrega una oración al informe, porque el grado de la insuficiencia ya
+   está dicho dos renglones antes y «central» no agrega un hallazgo que nombrar. */
+const VM_PVL_FRASE = Object.freeze({
+  paraval: { inf: 'Insuficiencia mitral paravalvular',                       suma: 'IM paravalvular.' },
+  mixta:   { inf: 'Insuficiencia mitral de origen mixto, central y paravalvular', suma: 'IM de origen mixto.' }
+});
+
+/* El origen tal como el médico lo eligió, LEÍDO DE LA `<option>` del propio selector: así la fila
+   de pantalla no puede decir una palabra distinta de la que el control ofrece, que es el defecto
+   que la tabla del S/D venoso pulmonar ya pagó con su ternario. */
+function imPvlOrigenTxt() {
+  const el = document.getElementById('vm_pvl_origen');
+  if (!el || el.selectedIndex < 0) return null;
+  const o = el.options[el.selectedIndex];
+  const t = o ? String(o.textContent || '').trim() : '';
+  return (t && t !== '—') ? t : null;
+}
+
+/* La frase, UNA sola para el informe y el EN SUMA. `null` = no hay nada que decir, y NO es
+   decorativo: es el caso en que el origen no se evaluó y por lo tanto no se afirma ni se niega. */
+function imPvlTxt() {
+  if (!_imVmProt()) return null;
+  const org = sv('vm_pvl_origen');
+  if (VM_PVL_ORIGEN_PVL.indexOf(org) < 0) return null;
+  const f = VM_PVL_FRASE[org];
+  return f ? { clave: org, txt: f.inf, suma: f.suma } : null;
+}
+window.imPvlTxt = imPvlTxt;
+
+/* El dueño de la PANTALLA: la visibilidad del selector y su fila del cuadro.
+   ⚠️ LA VISIBILIDAD LA GOBIERNA ESTA FUNCIÓN Y NO `valvProtSync`, por el mismo motivo que en la
+   aórtica: esa función no se llama desde `limpiarCampos` —censado— y con un dueño propio la línea
+   que hace falta agregar ahí es UNA y no toca los otros cuatro bloques de prótesis.
+   ⚠️ `_imVmProt()` Y NO UNA COPIA: es el dueño de «¿esta mitral es protésica?» para todo el árbol
+   de `calcIM_ESC` y falla CERRADO sobre un `#vm_morf` ausente. */
+function imPvlPintar() {
+  const caja = document.getElementById('bloque-prot-vm-pvl');
+  const esProt = (typeof _imVmProt === 'function') ? !!_imVmProt() : false;
+  if (caja) caja.style.display = esProt ? '' : 'none';
+  const fila = document.getElementById('im-pvl-interp');
+  if (!fila) return;
+  const row = fila.closest ? fila.closest('.calc-row') : null;
+  /* La FILA del cuadro se esconde con la válvula nativa: una fila que dice «—» sobre una válvula
+     que no es protésica afirma que hay un origen sin evaluar, y acá no hay nada que evaluar. */
+  if (row) row.style.display = esProt ? '' : 'none';
+  fila.textContent = (esProt && imPvlOrigenTxt()) ? imPvlOrigenTxt() : '—';
+}
+window.imPvlPintar = imPvlPintar;
+
 /* El texto de un corte se DERIVA de sus números y no se escribe a mano: un rótulo tecleado al
    lado de una constante es la segunda fuente de verdad otra vez, con la diferencia de que esa
    nadie la prueba. */
@@ -41596,6 +41690,11 @@ function calcIM_ESC() {
   /* El corte que publica cada fila se repinta acá y no una sola vez al arrancar: el del jet/AI
      depende de si la válvula es protésica, y eso cambia con `vm_morf` en medio del estudio. */
   if (typeof imCortesPintar === 'function') { try { imCortesPintar(); } catch (e) {} }
+  /* ⚠️ EL ORIGEN DE LA REGURGITACION PROTESICA SE REPINTA ACA (PRO-B4): sin esta linea, cambiar
+     la morfologia a protesis desde el <select> de arriba mostraba el selector pero dejaba su fila
+     del cuadro con el estado del paciente anterior. Las otras tres columnas son el `onchange` del
+     propio selector, `valvProtSync` y la pareja `RECALC_MODULOS` + `limpiarCampos`. */
+  if (typeof imPvlPintar === 'function') { try { imPvlPintar(); } catch (e) {} }
 }
 
 /* ⚠️ ESTA FILA ESTUVO MUERTA. `im-ondae-interp` se declaraba UNA vez en el marcado y nadie lo
@@ -47730,6 +47829,20 @@ function generarInforme(opts) {
         }
       }
     }
+
+    /* ══ EL ORIGEN DE LA REGURGITACIÓN DE LA PRÓTESIS MITRAL (PRO-B4, 2026-10-17) ══════════
+       Decisión de Maicol. Una ORACIÓN APARTE y SIN el grado: el grado de la insuficiencia ya lo
+       publicó la frase de arriba y el EN SUMA ya escribió «IM severa.» dos renglones antes.
+       Repetirlo acá sería decir dos veces lo mismo del mismo paciente, y una quinta copia del
+       vocabulario de severidad.
+       Los tres estilos imprimen la MISMA oración porque la frase ya es una oración con sujeto,
+       igual que la de la fuga aórtica y la del módulo TAVI.
+       ⚠️ EL ORIGEN «CENTRAL» NO ESCRIBE NADA, y es deliberado: no agrega un hallazgo que nombrar
+       —la insuficiencia ya está graduada— y el informe firmado no gana una oración por cada campo
+       que el médico contesta. Se ve en la pantalla, que es donde queda constancia de que se
+       evaluó. */
+    const _pvlVm = (typeof imPvlTxt === 'function') ? imPvlTxt() : null;
+    if (_pvlVm) { inf.push(_pvlVm.txt + '.'); suma.push(_pvlVm.suma); }
   }
 
   // ── 8) Válvula aórtica (morfología + estenosis + insuficiencia) ──
@@ -51381,7 +51494,7 @@ function RECALC_MODULOS() {
      automaticos con el «requiere …» del formulario vacio al lado de un VDFVI y una FEVI ya
      poblados. No puede migrar nada: no escribe ningun campo del estudio, los dos nodos que
      toca son `vauto-` y el tercero un `<div>` de texto. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','m3dBotonSync','contrPdfSync','v2dCerrar','aiviSexoSync'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','m3dBotonSync','contrPdfSync','v2dCerrar','aiviSexoSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -51670,6 +51783,7 @@ function limpiarCampos(silencioso) {
      de vuelta en «Trivalva normal». MEDIDO con la sonda: tras «Nuevo estudio» el bloque queda
      escondido y sus dos filas en «—». La otra columna es `RECALC_MODULOS`. */
   { if (typeof eaPvlPintar === 'function') { try { eaPvlPintar(); } catch (e) {} } }
+  { if (typeof imPvlPintar === 'function') { try { imPvlPintar(); } catch (e) {} } }
   /* ⚠️ EL CUADRO DE REFERENCIAS DEL DOPPLER AÓRTICO NECESITA LAS DOS COLUMNAS, por el mismo motivo
      que los dos avisos de arriba. Las catorce filas son `span[id]` dentro de un `.calc-box`, así
      que el barrido de más arriba las deja en «—»; lo que NO alcanza ese barrido es el aviso «auto»
@@ -53833,6 +53947,10 @@ function valvProtSync(){
   const g = id => { const e = document.getElementById(id); return e ? e.value : ''; };
   const ver = (id, on) => { const e = document.getElementById(id); if (e) e.style.display = on ? '' : 'none'; };
   ver('bloque-prot-vm', valvEsProtesis(g('vm_morf')));
+  /* El selector de ORIGEN de la regurgitacion protesica mitral tiene su propio dueno (PRO-B4),
+     por el mismo motivo que el bloque de la fuga aortica: ademas de mostrarse tiene que repintar
+     su fila del cuadro. */
+  if (typeof imPvlPintar === 'function') { try { imPvlPintar(); } catch (e) {} }
   /* La cápsula de EOA/DVI/PPM se muestra desde acá, junto a sus campos.
      ⚠️ Y LOS DOS PREDICADOS NO COINCIDEN EN EL BORDE, que es lo contrario de lo que decía este
      comentario. `vmProtEOAPintar` pregunta a `_imVmProt()`, que falla cerrado a **true** con
@@ -81932,6 +82050,10 @@ function _pptDesdeFormulario(inf, tema, presentador){
     try {
       const _pvl = (typeof eaProtRPV === 'function') ? eaProtRPV() : null;
       if (_pvl && !_pvl.nula) _hallazgos.push('IAo paravalvular: ' + _pvl.sev.toLowerCase());
+      /* El ORIGEN de la regurgitacion protesica mitral (PRO-B4): el GRADO ya lo publica la entrada
+         «IM» de arriba, asi que aca va el origen y nada mas. */
+      const _pvlM = (typeof imPvlTxt === 'function') ? imPvlTxt() : null;
+      if (_pvlM) _hallazgos.push('IM: origen ' + (_pvlM.clave === 'mixta' ? 'mixto' : 'paravalvular'));
     } catch (e) { console.warn('[ppt] fuga paravalvular', e); }
     /* Se dice «sin alteraciones» sin exigir que alguien haya interrogado las válvulas, y es
        deliberado: es LA MISMA convención del EN SUMA, que con el formulario vacío escribe
@@ -116244,7 +116366,11 @@ const V2D_PORQUE = Object.freeze({
       Object.freeze({ id: 'freg-val',           color: true, suf: 'PISA' }),
       Object.freeze({ id: 'im-eroa-cont-ref',   color: true, suf: 'continuidad' }),
       Object.freeze({ id: 'im-volr-cont-ref',   color: true, suf: 'continuidad' }),
-      Object.freeze({ id: 'im-fr-cont-ref',     color: true, suf: 'continuidad' })
+      Object.freeze({ id: 'im-fr-cont-ref',     color: true, suf: 'continuidad' }),
+      /* El ORIGEN de la regurgitacion protesica (PRO-B4). Con la mitral nativa la fila entera se
+         esconde y su texto queda en «—», asi que `_v2dCrit` la descarta por su primera guarda y
+         la tarjeta de una valvula nativa sale IDENTICA. */
+      Object.freeze({ id: 'im-pvl-interp' })
     ]) }),
   'insuf:aortica': Object.freeze({ clave: 'ia', decide: null, aviso: 'ia-discordancia',
     crit: Object.freeze([

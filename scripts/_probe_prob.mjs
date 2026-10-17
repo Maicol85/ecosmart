@@ -1115,6 +1115,65 @@ async function main() {
     out.grupos.bordes = g;
   }
 
+  /* ── 5 · pvlvm ── PRO-B4: el ORIGEN de la regurgitacion de la protesis MITRAL. ──────────
+     NI UN CORTE NUEVO: lo que se mide es que el grado que la app YA calcula no se mueva y que la
+     frase del origen aparezca. Por eso cada escena carga la vena contracta y lee `im_grado` al
+     lado del origen: sin el grado, una frase que aparece no dice nada sobre si el calculo se
+     movio. */
+  async function escenaVmPvl(morf, origen, extra) {
+    await ev(`window.__P.nuevo()`);
+    await ev(`window.__P.abrirValv()`);
+    const ap = await ev(`window.__P.abrirPara('im_vc')`);
+    if (!ap || !ap.ok) throw new Error('DENOMINADOR: no abrio el bloque de la IM ' + JSON.stringify(ap));
+    const sm = await ev(`window.__P.sel('vm_morf', ${JSON.stringify(morf)})`);
+    if (sm && sm.err) throw new Error('DENOMINADOR vm_morf: ' + JSON.stringify(sm));
+    if (origen !== null) {
+      const so = await ev(`window.__P.sel('vm_pvl_origen', ${JSON.stringify(origen)})`);
+      if (so && so.err) return { denominadorOrigen: so };
+    }
+    for (const k of Object.keys(extra || {})) {
+      if (extra[k] === '') continue;
+      await tipear(k, String(extra[k]));
+    }
+    const o = await ev(`window.__P.pvlVm()`);
+    o.im = await ev(`(function(){ return { grado: window.__P.val('im_grado'),
+      vcRef: window.__P.txt('im-vc-ref'),
+      pastilla: window.__P.pill('mitral','insuf') } })()`);
+    return o;
+  }
+
+  if (corre('pvlvm')) {
+    const g = { escenas: {} };
+    /* Las morfologias: el selector aparece SOLO con las dos protesis. `vm_morf` no tiene TAVI. */
+    for (const morf of ['Normal', 'Reumática', 'Prótesis biológica', 'Prótesis mecánica'])
+      g.escenas['morf|' + morf] = await escenaVmPvl(morf, null, { im_vc: '8' });
+    /* Los CUATRO estados del origen sobre la MISMA protesis con el MISMO numero: el grado no se
+       mueve en ninguno, que es la comprobacion de que no se movio ningun corte. */
+    for (const org of ['', 'central', 'paraval', 'mixta'])
+      g.escenas['origen|' + (org || 'vacio')] = await escenaVmPvl('Prótesis mecánica', org, { im_vc: '8' });
+    /* Los CUATRO cortes de la Tabla 13 por su valor exacto y sus dos vecinos, sobre la PROTESIS:
+       lo que se afirma es que coinciden con los de la app y que esta tanda no los movio. */
+    g.bordes = { vc: {}, eroa: {}, volr: {}, fr: {} };
+    for (const x of ['2.9', '3', '6.9', '7'])
+      g.bordes.vc[x] = (await escenaVmPvl('Prótesis mecánica', 'paraval', { im_vc: x })).im;
+    /* El origen consignado y NINGUN parametro: la frase igual sale, porque el origen es un dato
+       del medico y no un derivado. */
+    g.escenas['sinParams'] = await escenaVmPvl('Prótesis biológica', 'paraval', {});
+    /* La extension circunferencial NO se ofrece en la mitral: la Tabla 13 no la publica. */
+    g.extCircExiste = await ev(`window.__P.existe('vm_pvl_ext')`);
+    /* El informe y el EN SUMA en los TRES estilos, con origen paravalvular y con mixto. */
+    g.inf = {};
+    for (const org of ['paraval', 'mixta', 'central']) {
+      await escenaVmPvl('Prótesis mecánica', org, { im_vc: '8' });
+      g.inf[org] = {};
+      for (const est of ['conciso', 'estandar', 'narrativo']) g.inf[org][est] = await ev(`window.__P.informe('${est}')`);
+    }
+    g.v2d = await ev(`window.__P.v2d('insuf:mitral')`);
+    await ev(`window.__P.nuevo()`);
+    g.trasNuevo = await ev(`window.__P.pvlVm()`);
+    out.grupos.pvlvm = g;
+  }
+
   /* ── 7 · maqueta ── LOS DOS TEMAS Y LOS CUATRO ANCHOS, CON EL COLOR REAL. ────────────────
      Las variables que el bloque usa son `--accent2`, `--text2` y las cuatro clases `badge-*`,
      todas GLOBALES: se mide el color COMPUTADO y no el nombre de la variable, que es la trampa
@@ -1207,6 +1266,29 @@ async function main() {
           g.archivos[nom] = { rect: r, bytes: Buffer.from(cap.data, 'base64').length,
             md5: createHash('md5').update(Buffer.from(cap.data, 'base64')).digest('hex') };
         }
+      }
+      /* El selector de ORIGEN de la protesis MITRAL (PRO-B4), en los dos temas a 1200 px. */
+      for (const claro of [false, true]) {
+        const t = await ev(`window.__P.tema(${claro})`);
+        if (!!t.claro !== claro) throw new Error('DENOMINADOR: light-mode no quedo');
+        await viewport(1200, 700);
+        await escenaVmPvl('Prótesis mecánica', 'paraval', { im_vc: '8' });
+        await ev(`window.__P.despejar()`);
+        const r = await ev(`(function(){
+          var n = document.getElementById('bloque-prot-vm-pvl');
+          if (!n) return null; n.scrollIntoView({ block: 'center' });
+          var q = n.getBoundingClientRect();
+          return { x: Math.max(0, Math.round(q.left + window.scrollX) - 6),
+                   y: Math.max(0, Math.round(q.top + window.scrollY) - 6),
+                   w: Math.round(q.width) + 12, h: Math.round(q.height) + 12 } })()`);
+        if (!r || r.w < 40 || r.h < 30) throw new Error('DENOMINADOR captura mitral: ' + JSON.stringify(r));
+        const cap = await cdp.send('Page.captureScreenshot',
+          { format: 'png', captureBeyondViewport: true,
+            clip: { x: r.x, y: r.y, width: r.w, height: r.h, scale: 1 } }, sessionId);
+        const nom = 'pvlvm_' + (claro ? 'dia' : 'noche') + '_1200.png';
+        await writeFile(join(DEST, nom), Buffer.from(cap.data, 'base64'));
+        g.archivos[nom] = { rect: r, bytes: Buffer.from(cap.data, 'base64').length,
+          md5: createHash('md5').update(Buffer.from(cap.data, 'base64')).digest('hex') };
       }
       await viewport(1200, 900);
       await ev(`window.__P.tema(false)`);
