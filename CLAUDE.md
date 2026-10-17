@@ -64,6 +64,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar el PANEL EN LÍNEA de la vista 2D**: el botón que prende y apaga, el apagado automático, la sincronía en vivo, el alto del dibujo o la línea de fase | `docs/mapa/vista-2d-en-linea.md` |
 | **Orientarse en otro módulo** (Congénitas, Laboratorio, PPT, Cardio-Onco, Pericardio) | `docs/mapa/congenitas-otros.md` |
 | **Citar un dato de una guía** (documento, folio, frase verificada) | `docs/fuentes/FUENTES.md` |
+| **Tocar la OBSTRUCCIÓN de una prótesis TRICÚSPIDE o PULMONAR**: las Tablas 19 y 15 de la ASE 2024, los tres campos del PRO-C1, el DVI retirado con regurgitación o los tres estados pulmonares que no gradúan | `docs/mapa/protesis-tri-pulm.md` |
 | **Tocar un CORTE de PRÓTESIS de la tanda PRO**: el cociente VTI mitral por régimen, el jet/TSVI y la FR de la IAo protésica, o el reverso diastólico de la TAVI | `docs/mapa/protesis-pro.md` |
 | **Citar un dato de PRÓTESIS valvular** | `docs/fuentes/FUENTES-protesis.md` |
 | **Empezar una válvula nueva**: qué fuentes faltan y cómo se agrega una | `docs/fuentes/PENDIENTES_FUENTES.md` |
@@ -119,9 +120,9 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **8,07 MB / 121.605 líneas**, medido el 2026-10-17 al cierre de la tanda PRO-B
-  —el renglón anterior decía «8,05 MB / 121.205 líneas» y era del PRO, una tanda antes: **medirlo
-  antes de presupuestar contexto**—. Las únicas dependencias son jsPDF, XLSX y
+  sin frameworks. Hoy **8,12 MB / 122.172 líneas**, medido el 2026-10-17 al cierre de la tanda PRO-C
+  —el renglón anterior decía «8,07 MB / 121.605 líneas» y era del PRO-B, una tanda antes:
+  **medirlo antes de presupuestar contexto**—. Las únicas dependencias son jsPDF, XLSX y
   PptxGenJS por CDN. Se abre como archivo local y corre en Chrome.
 - Lo que produce es un **informe firmado**: narrativo, EN SUMA, PDF, PPT y Excel del Laboratorio.
   Un dato que se carga y no sale en ninguno de esos destinos desapareció sin aviso.
@@ -274,6 +275,228 @@ impecable.
 ---
 
 ## Estado vigente
+
+### Las prótesis TRICÚSPIDE y PULMONAR se gradúan — «PRO-C» (2026-10-17)
+
+- **Son CUATRO commits, y son los cuatro que la orden pedía.** Al **empezar**, `main` y
+  `origin/main` estaban los dos en **`d6539fb`** (sello `v20261017-1412`), **sin nada sin
+  pushear** —confirmado con un `git fetch` de verdad, con el `FETCH_HEAD` fechado al momento y el
+  `ls-remote` dando el mismo sha—, con los cinco commits del PRO-B ya incluidos **y pusheados por
+  Maicol**. Los **cuatro** commits de esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 4 → 3 → 2 → 1.**
+  ⚠️ **EL 1 ES LA BASE DE LOS DOS SIGUIENTES**: crea los tres campos, y el 2 y el 3 leen uno cada
+  uno (`et_e_vmax` y `vp_tipo_prot`/`ep_gmedio`). Revertirlo sin revertir antes los otros dos
+  **no rompe la app** —los motores leen el DOM con `getElementById` y un campo ausente devuelve
+  `null`— pero deja la obstrucción tricuspídea sin su quinto criterio y la pulmonar **sin
+  columna de cortes para siempre**, o sea publicando «falta el tipo de prótesis pulmonar» sobre
+  un campo que ya no existe.
+  ⚠️ **EL 2 Y EL 3 SE REVIERTEN EN CUALQUIER ORDEN ENTRE SÍ**: el 2 vive en `VT_PROT_T19`,
+  `vtProtTipo`, `vtProtObstr`, `vtProtObstrCrit`, `vtProtObstrPintar`, `VT_PROT_OBSTR_TXT`,
+  `VT_PROT_BANDA`, el bloque `bloque-prot-vt-res` y la entrada `prot:tricuspide` de `V2D_PORQUE`;
+  el 3 en `VP_PROT_T15`, `vpProtTipo`, `vpProtObstr`, `vpProtObstrCrit`, `vpProtObstrPintar`,
+  `VP_PROT_OBSTR_TXT`, `VP_PROT_SIN_COL`, `VP_PROT_BANDA` y `bloque-prot-vp-res`. **Ninguno
+  nombra una pieza del otro.**
+  ⚠️ **PERO EL 1 LLEVA LA SONDA** (`scripts/_probe_proc.mjs`), que el 2, el 3 y el 4 usan.
+  **El 4 es TC-498 más la documentación**, y afirma el comportamiento de los tres: revertir
+  cualquiera sin el 4 lo deja en rojo.
+  ⚠️ **EL SELLO VA EN EL COMMIT 3 y no en el 4**, porque el 4 **no toca `index.html`**: es el
+  último commit que lo edita, que es lo que la regla pide.
+  ⚠️ **CASOS ADAPTADOS: UNO, TC-484, y lo destapó la SUITE COMPLETA.** Su denominador exigía que
+  `V2D_PORQUE` tuviera **OCHO** entradas y desde esta tanda tiene **NUEVE**: la novena es
+  `prot:tricuspide`. Lo que ese caso afirma —que la tabla existe y que están las entradas que el
+  Y2 creó— no cambió; lo que cambió es el denominador, y de paso ahora **también exige que
+  `prot:pulmonar` NO exista**, porque la pulmonar no está en la vista 2D.
+  ⚠️ **Y NO ERA EL INESTABLE POR ORDEN DE CORRIDA QUE ESTE ARCHIVO DOCUMENTA PARA TC-484**:
+  corrido solo dio rojo igual, con el denominador a la vista. **Repetir antes de sospechar sirve
+  en los dos sentidos: también para no archivar como inestable algo que hay que adaptar.**
+  Los demás no se tocaron, y es consecuencia del reparto elegido: `calcET` y `calcVP` no cambiaron
+  una línea, `PROT_SIN_GRADO_TXT` se conserva en las dos filas de severidad, y los tres campos
+  nuevos no entran en ningún conteo de columnas del Excel ni de globos ⓘ.
+
+- **Línea base al cierre: suite **508/512** con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0 ERROR,
+  Excel en 440 columnas, celular 52 a 360 px y 61 a 390 px con 10 ALTA cada uno —IDÉNTICO a la
+  línea base del PRO-B—. CERO REGRESIONES.** Los **CUATRO** rojos son exactamente los de ENTRADA
+  —**TC-223** (el documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**— y no
+  apareció ninguno fuera de esa lista. **El denominador sube a 512**: esta tanda agregó
+  **TC-498**. La de ENTRADA es la que el PRO-B dejó medida el MISMO día en esta máquina y con el
+  pendrive puesto: **507/511**. La comparación es 507/511 → **508/512** y el delta es el caso nuevo.
+  ⚠️ **LOS DIECISIETE DE TC-181…TC-197 SALIERON VERDES, que es la prueba de que el pendrive
+  estuvo montado.** `ls /Volumes/DISK_IMG` ANTES de comparar dos cifras.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **512 ids** sobre los 513 casos del archivo.
+  ⚠️ **LA SUITE COMPLETA SE CORRIÓ DOS VECES Y LA PRIMERA NO ES LA LÍNEA BASE.** Dio **507/512**
+  con CINCO rojos: los cuatro de entrada más **TC-484**, que es el único que hubo que adaptar.
+  **La segunda corrida es la que vale.**
+  ⚠️ **Y MIRAR EL `mtime` DEL LOG ANTES DE CREER QUE UNA CORRIDA SE COLGÓ**: el contador de ✓ no
+  se movió entre dos lecturas y node estaba al 0,0 % de CPU en ese instante, pero el log se había
+  escrito ese mismo minuto. Era **TC-209**, que es lento y que este archivo ya nombra entre los
+  casos donde la corrida parece detenerse. Memoria libre: 700 MB.
+- **EL SELLO DE VERSIÓN** estaba al día al empezar (`v20261017-1412`) y se volvió a sellar:
+  **`v20261017-1516`**. Todo lo medido salió **DESPUÉS** de sellar, con el `md5` quieto
+  (`c5ba2dfb…`); lo único que se tocó después fue TC-498 y la documentación, que no viven en
+  `index.html`.
+- **`index.html` pasó de 8,07 MB / 121.605 líneas a 8,12 MB / 122.172 líneas.**
+
+- **PRO-C1 · LOS TRES CAMPOS MÍNIMOS, Y NINGUNO ES UN SEGUNDO DATO.** `et_e_vmax` —la velocidad
+  pico de E de la **entrada** tricuspídea, que la Tabla 19 pide y que `it_vmax_cw` **no** es:
+  ésa es la Vmax de la **regurgitación**—, `vp_tipo_prot` —el que elige la **columna** de la Tabla
+  15, que `vp_morf` no puede dar porque sus dos opciones protésicas son «biológica» y «mecánica» y
+  la tabla reparte entre **bioprótesis** y **homoinjerto**— y `ep_gmedio` —la Tabla 15 gradúa por
+  el gradiente **MEDIO** y `ep_gmax` es el MÁXIMO, derivado de 4·V² por `calcVP`; el medio es la
+  integral del gradiente instantáneo y no se deriva del pico—.
+  **Los tres se ven SOLO con morfología protésica** y **ninguno tiene columna de Excel**: 440
+  columnas con **CERO claves distintas**, medido clave por clave, y el `hash` de los 996 campos
+  preexistentes **idéntico**. «Nuevo estudio» los vacía y esconde los dos bloques.
+  ⚠️ **NINGUNO LLEVA `oninput` EN EL COMMIT 1**, igual que `vt_dvi` y `vp_dvi`: así ese commit no
+  puede cambiar un veredicto **por construcción**. Los disparadores entran con su tabla.
+
+- **PRO-C2 · LA TRICÚSPIDE: CINCO CRITERIOS, UMBRAL ÚNICO POR TIPO Y SIN GRADUAR.**
+  **ASE 2024, Tabla 19, folio 36 (hoja 35)**, re-verificada en el PDF original con el folio
+  comprobado en el pie impreso: velocidad pico de E `≥2,1 / ≥1,9` m/s · gradiente medio `≥9 / ≥6`
+  mmHg · THP `≥200 / ≥130` ms · AEO `<1,5 / <2,0` cm² · DVI `≥3,3 / ≥2,1` (bioprotésica /
+  mecánica). **MEDIDO POR LOS DIEZ BORDES**, uno por debajo, el exacto y uno por encima.
+  ⚠️ **EL AEO ES EL ÚNICO CON `<`**, y el operador sale de la tabla: un juego único habría puesto
+  su valor exacto del lado equivocado en las dos columnas. El 1,50 exacto **no** vota en biológica
+  y el 2,00 exacto **no** vota en mecánica.
+  ⚠️ **LA MECÁNICA ES MÁS EXIGENTE EN TRES FILAS Y MENOS EN DOS**, así que no hay un «tipo más
+  estricto» del que sacar un default: el MISMO gradiente de 7 mmHg vota sólo en mecánica y el
+  MISMO AEO de 1,96 cm² también, al revés de lo que el gradiente haría pensar.
+  ⚠️ **EL AEO SE LE PIDE A `etEstado()` Y NO SE RECALCULA**: es el dueño único del área por
+  continuidad, con sus tres insumos, sus tres bandas y su denominador > 0, y es PURO.
+  ⚠️ **EL DVI SE RETIRA CON REGURGITACIÓN, Y ES DE LA FUENTE.** La nota * de la Tabla 19: «Assessed
+  in the absence of AR or TR». El umbral se **LEE de `EM_CONT_REGURG_MIN`** —moderada o mayor, el
+  mismo con que la app retira el AEO mitral— en vez de retipear un 2. Medido por sus dos lados:
+  con IT **leve** el DVI vota y con IT **moderada** se retira, y la fila publica el motivo.
+  **Regla de integración: un OR, basta UNO.** La Tabla 19 no la publica —su título dice «parameters
+  suggestive of»—, igual que la Tabla 11 de la mitral (`Z1`), y el OR es el que esta app ya aplica
+  a todos sus umbrales únicos. El veredicto NOMBRA los positivos con su valor.
+  **Frase, la misma al cuerpo y al EN SUMA, en los tres estilos:** «Prótesis tricúspide con
+  hallazgos sugestivos de estenosis (gradiente medio 12.0 mmHg, THP 250 ms).» «Sin criterios» no
+  sube al papel, igual que en la mitral.
+
+- **PRO-C3 · LA PULMONAR: DOS CRITERIOS, Y LA TABLA NO TIENE COLUMNA DE «SEVERA».**
+  **ASE 2024, Tabla 15, folio 33 (hoja 32)**: velocidad pico `≥3,2` m/s en bioprótesis y `≥2,5` en
+  homoinjerto; gradiente medio `≥20` y `≥15` mmHg. **MEDIDO POR LOS CUATRO BORDES.**
+  ⚠️ **SUS DOS COLUMNAS SON «Normal» Y «Possible obstruction»**, así que el único veredicto
+  positivo que el motor puede devolver es `'posible'` —**no hay un segundo nivel al que
+  escalar**— y la app **no puede afirmar «severa» por ese camino**. Medido con la escena más
+  extrema que la app admite: los cinco nodos que publican un veredicto y las dos superficies
+  firmadas no dicen la palabra.
+  **TRES ESTADOS NO GRADÚAN Y CADA UNO DICE POR QUÉ** (`VP_PROT_SIN_COL`): la **mecánica** —la
+  Tabla 15 no publica columna—, la **percutánea** —tampoco, y la **Tabla 22** del mismo documento
+  las enumera como una familia aparte (Melody, SAPIEN, Harmony)— y el **tipo sin elegir**, donde
+  aplicar una de las dos columnas sería publicar un veredicto cuya fuente el médico no eligió.
+  Los tres publican su motivo en la cápsula y **no escriben nada en el papel**.
+  **Frase:** «Prótesis pulmonar con posible obstrucción (velocidad pico 3.3 m/s, gradiente medio
+  24.0 mmHg).»
+
+- ⚠️ **LA REGURGITACIÓN DE LAS DOS NO SE MOVIÓ UN CORTE, Y ESTÁ MEDIDO.** La ASE 2024 remite la
+  regurgitación protésica a los criterios de la válvula nativa, y sus dos tablas coinciden con lo
+  que la app ya aplica: la **Tabla 21 (folio 39, hoja 38)** coincide **DÍGITO POR DÍGITO** con
+  `IT_CRIT` en sus tres cuantitativos —VC `<0,3 / 0,3-0,69 / ≥0,7` cm, EROA
+  `<0,20 / 0,20-0,39 / ≥0,40` cm² y RVol `<30 / 30-44 / ≥45` mL— y su onda de CW mapea a las tres
+  opciones de `it_densidad`; y de la **Tabla 16 (folio 34, hoja 33)** más la **prosa del folio 35**
+  la app ya aplica el ancho del jet, la densidad, la tasa de desaceleración, el reverso y el THP.
+  **A/B: CERO diferencias** en el grado de la IT y de la IP, en las tres filas del cuadro, en la
+  discordancia, en los cuatro signos de la IP y en el informe, con morfología **nativa** y con las
+  **dos** prótesis sobre los MISMOS datos; y los bordes separan igual en el régimen protésico
+  (vena contracta 6,9 / 7,0 / 7,1 y THP de la IP 99 / 100 / 101).
+  ✅ **Y APARECIÓ UNA FUENTE QUE FALTABA**: el `IP_PHT_SEVERA = 100` de la IP severa está
+  verificado en la **ASE 2019 (Zoghbi, JASE 2019;32(4)), hoja 33, folio impreso 463** —«a pressure
+  half-time of <100 ms has been shown to have good sensitivity and specificity for predicting
+  severe PR»—. **El corte no se movió**; lo que sigue siendo criterio de la app, declarado como
+  tal, es la regla de integración «el peor de los signos cargados».
+  ⚠️ **LA ASE 2024 NOMBRA 95 ms Y CON OTRO SIGNIFICADO**: su prosa del folio 35 lo cita como el
+  umbral de un estudio que «indicó necesidad de intervención», y su Tabla 16 **no publica THP**.
+
+- **A/B DEDICADO contra el inicio de la tanda, con el PDF, el PPT y el PDF de auditoría GENERADOS
+  DE VERDAD.** Con el formulario **vacío** y con un escenario **ajeno**, las **SEIS plantillas**
+  del PDF salen **IDÉNTICAS** —mismo `nTextos`, mismo `nFigs` y los mismos textos—, el informe en
+  los tres estilos y los ocho grados idénticos, el **PPT estadístico** da 21 textos en los dos
+  árboles, el **PDF de auditoría** 105, y el **Excel en 440 columnas CLAVE POR CLAVE** con cero
+  valores distintos, en el formulario vacío, en el escenario ajeno y en los **tres estudios de la
+  población**. Con la escena **protésica** de esta tanda la diferencia es **+4 textos por
+  plantilla en las seis, y los cuatro son las DOS frases nuevas** —cada una dos veces, porque el
+  PDF imprime el informe Y el EN SUMA—, con `nFigs` idéntico, los grados sin moverse y el Excel
+  en 440 con cero claves distintas.
+
+- **MEDIDO EN LOS DOS MOTORES, 24 CELDAS CADA UNO** —Chrome **155.0.8059.84** y WebKit **27.2**,
+  seis viewports (1200×700, 1440×800, 1920×1080, 768×1024, 390×844, 360×740) × dos temas, con la
+  clase `light-mode` COMPROBADA—: las dos cápsulas entran enteras en las 48, **CERO scroll
+  horizontal de la página** y **CERO scroll interno**, con los campos a 318/328/298 px. El
+  veredicto resuelve su color **REAL y DISTINTO** en los dos temas —`rgb(126,200,227)` de noche y
+  `rgb(31,95,184)` de día, no es gris— e **IDÉNTICO entre motores**. Las 24 celdas de Chrome y las
+  24 de WebKit dan **los mismos números y los mismos textos**. **Cero abortos.**
+  **20 APERTURAS Y CIERRES DE LA VISTA 2D: 11.900 nodos → 11.900, delta CERO**, y el panel apagado
+  al final, **en los dos motores**. Y con CDP, sobre otra escena: 11.903 → 11.903.
+  ⚠️ **CON UNA VUELTA DE CALENTAMIENTO ANTES DE CONTAR**: sin ella la sonda informó **+17 nodos**
+  sobre un panel que no acumula ninguno, porque el primer pintado CREA el contenido y después lo
+  reusa. Es la lección del L y del PRO-B, pagada otra vez.
+  **48 CAPTURAS PNG con los 48 `md5` DISTINTOS, y dos MIRADAS**: los acentos salen completos
+  —«hemipresión», «protésica», «obstrucción», «gradúa»— y a 360 px en WebKit la cápsula pulmonar
+  entra entera y se lee.
+  ⚠️ **WebKit de Playwright NO es Safari, y se declara.**
+
+- **Arneses: `scripts/_probe_proc.mjs`** (CDP, teclas y clics reales; diez grupos: `campos`, `tri`,
+  `tribordes`, `pulm`, `pulmbordes`, `regurg`, `v2d`, `maqueta`, `controles`, `ab`, más los cinco
+  heredados del PRO-B) y **`scripts/_probe_procwk.mjs`** (Playwright, los DOS motores, la maqueta a
+  seis viewports, el ciclo de la vista 2D y las 48 capturas; resuelve Playwright **por ruta** y, si
+  no está, lo DICE y sale con código 2 en vez de reventar).
+  **Cobertura: TC-498**, **47 condiciones** —contadas sobre el propio caso—
+  con cinco denominadores y nueve controles negativos. **Verificado que sabe fallar contra el
+  inicio de la tanda en un worktree aparte: 34 de las 47 en rojo, y NINGUNA por excepción** —las
+  34 informan `SIN FN`, `NO EXISTE` o `false`, que es lo que producen los centinelas—.
+
+- **Dónde está todo:** `docs/mapa/protesis-tri-pulm.md` (**mapa NUEVO**, 15,1 KB: el reparto que
+  deja `calcET` y `calcVP` quietos, los tres campos, las dos tablas con sus operadores, la
+  regurgitación que no se movió, las cuatro columnas de cada pintor y siete trampas); cuatro mapas
+  con un puntero cada uno (`protesis-valvular` 18,2 KB · `protesis-pro` 19,7 · `valvulas` 32,4 ·
+  `vista-2d-valvulas` 33,3); `docs/mapa/tests-fichas.md` → la ficha de TC-498 (**34,1 KB**);
+  `docs/fuentes/FUENTES-protesis.md` → **las cuatro tablas re-verificadas fila por fila** con su
+  folio y su hoja, la prosa del folio 35 literal, la entrada nueva de la **ASE 2019** y la tabla de
+  **Cambios de evidencia**; `docs/fuentes/FUENTES.md` → esa misma tabla; y `docs/PENDIENTES.md` →
+  **PRO-2 y PRO-4 marcados CERRADOS** más **siete** cosas declaradas (PRO-C1 a PRO-C7).
+  ⚠️ **NINGÚN MAPA CRUZÓ EL TECHO, medido con `wc -c`.** Los dos que quedaron más cerca son
+  `tests-fichas.md` en **34,1 KB** —a 855 bytes— y `vista-2d-valvulas.md` en **33,3**:
+  `PENDIENTES.md` → PRO-C7. Y `aortica-cortes.md` sigue en 33,2 KB, sin tocar.
+
+- ⚠️ **SIETE TRAMPAS, Y CINCO DABAN FALSOS PLAUSIBLES.**
+  1. **LOS DOS BLOQUES DE PRÓTESIS ESTÁN DETRÁS DE DOS PUERTAS**, no de una:
+     `#ete-seccion-valv-tricuspide` y `#ete-seccion-valv-pulmonar` nacen en `display:none` —y el
+     prefijo `ete-seccion-` es histórico: son de la pestaña Válvulas—. Sin abrirlas,
+     `valvProtSync` muestra el bloque y un ancestro lo esconde igual: la sonda informó «el bloque
+     no aparece con prótesis» en las seis morfologías con el cableado perfecto.
+  2. **A 768 px Y POR DEBAJO EL CAJÓN DE LA LESIÓN SE CIERRA** y el respaldo en línea no gana (el
+     CSS del celular usa la clase con `!important`): los campos miden 0×0 y `tipear` ABORTÓ con
+     «SIN GEOMETRIA et_gmedio». La maqueta se carga UNA vez a 1200 px y después sólo se cambia el
+     viewport — que además mide el MISMO paciente en las doce celdas, que es lo que corresponde.
+  3. **BARRER «sever» EN EL `textContent` DE LA CÁPSULA DA UN FALSO**: su línea de fuente dice «no
+     gradúa la **SEVER**idad», o sea exactamente lo contrario. Se barren los nodos que PUBLICAN un
+     veredicto y la palabra se busca completa.
+  4. **EL CICLO DE LA VISTA 2D NECESITA UNA VUELTA DE CALENTAMIENTO** (arriba).
+  5. **`_v2dPorQue` DEVUELVE `filas`, NO `crit`**: `crit` es el nombre del campo de la **tabla**
+     `V2D_PORQUE` y el objeto que la función devuelve usa otro. Leer `crit` daba 0 criterios en
+     las DOS prótesis, que se lee igual que «la tarjeta no tiene criterios».
+  6. **TRES CONSTANTES DE MÓDULO NO ESTÁN EN `window`** y pusieron tres condiciones de TC-498 en
+     rojo sobre un árbol perfecto: `EM_CONT_REGURG_MIN`, `IP_PHT_SEVERA` e `IA_VMAX_TD_SEVERA`.
+     Se miden por su **COMPORTAMIENTO**, por los dos lados del borde. Es la trampa de `ECO_AYUDA`.
+  7. **UNA ESCENA QUE SE PISA A SÍ MISMA**: `escVP` llama a `__t.limpiar()`, así que leer el
+     veredicto tricuspídeo DESPUÉS de montar la escena pulmonar informa `null` sobre una escena
+     que sí produjo «sin». El veredicto se captura **en el momento** de cada escena.
+  ⚠️ **Y LA CÁPSULA TRICUSPÍDEA NECESITÓ UNA QUINTA COLUMNA, QUE LA DESTAPÓ LA MEDICIÓN**: el
+  grado de la IT y de la IAo se escribe por **CÁLCULO**, y el oyente de documento sobre el
+  `<select>` sólo ve el gesto MANUAL del médico. Con el DVI cargado, tipear la vena contracta
+  dejaba la fila diciendo «sugiere estenosis» mientras el motor ya lo había retirado. Se cierra al
+  final de `calcIT_ESC` y de `calcIA_ESC`.
+- ⚠️ **Me comí el acento grave CUATRO veces**, todas en comentarios míos dentro del template de la
+  sonda o del cuerpo de TC-498. **La peor fue la última: al limpiarlos de un RANGO DE LÍNEAS me
+  llevé el que CIERRA el cuerpo del caso**, y `check_backticks.py` señaló una línea del **runner**,
+  400 líneas después, que es código normal. **El acento grave que FALTA se ve igual que uno que
+  SOBRA**, y este archivo ya lo tenía escrito.
+- ⚠️ **Y CORRÍ DOS CHROME EN PARALELO UNA VEZ**, contra la regla de la casa, para ahorrar tiempo:
+  la sonda del A/B y la de la maqueta a la vez. Las dos corridas usan perfiles y servidores
+  distintos, así que el resultado era válido, pero se repitieron **en serie** igual.
 
 ### La FUGA PARAVALVULAR de la prótesis QUIRÚRGICA — «PRO-B» (2026-10-17)
 

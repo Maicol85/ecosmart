@@ -264,3 +264,25 @@ que hacer DESPUÉS de cruzar. Quedó en 15,0 KB antes de recibir este puntero.
   **`docs/mapa/protesis-fuga-pvl.md`**: el motor único con su fuente inyectable, los tres campos
   nuevos de la aórtica, la marca de origen de la mitral y por qué la Tabla 13 no ofrece extensión
   circunferencial.
+
+---
+
+## La tanda «PRO-C» (2026-10-17) — las prótesis TRICÚSPIDE y PULMONAR se gradúan
+
+**Está en `docs/mapa/protesis-tri-pulm.md`** (15,1 KB). Lo que hay que saber desde acá:
+
+- Las dos válvulas que publicaban `PROT_SIN_GRADO_TXT` y nada más tienen hoy un **veredicto
+  protésico propio**, con el MISMO reparto que la mitral: la fila de «Severidad sugerida» sigue
+  diciendo `PROT_SIN_GRADO_TXT` —es literalmente cierto— y el veredicto vive en su propia
+  cápsula. **`calcET` y `calcVP` no cambiaron una línea.**
+- **Tricúspide — ASE 2024, Tabla 19, folio 36:** cinco criterios con umbral único por tipo
+  (bioprotésica / mecánica), **sin graduar**. El AEO es el único con operador `<`. El DVI se
+  retira «in the absence of AR or TR» leyendo `EM_CONT_REGURG_MIN`.
+- **Pulmonar — ASE 2024, Tabla 15, folio 33:** dos criterios por tipo (bioprótesis /
+  homoinjerto). ⚠️ **ESA TABLA NO TIENE COLUMNA DE SEVERA**: el único veredicto positivo es
+  «posible obstrucción» y la app no puede afirmar «severa» por ese camino. Tres estados no
+  gradúan y cada uno dice por qué: mecánica, percutánea y el tipo sin elegir.
+- **La REGURGITACIÓN de las dos no se movió**: las Tablas 21 (folio 39) y 16 (folio 34) coinciden
+  con lo que la app aplica, medido con el grado idéntico en nativa y en las dos prótesis.
+- **Tres campos nuevos y CERO columnas de Excel**: `et_e_vmax`, `vp_tipo_prot` y `ep_gmedio`.
+- Cobertura: **TC-498**, 47 condiciones, 34 en rojo contra el inicio de la tanda.

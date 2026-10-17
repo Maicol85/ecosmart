@@ -538,3 +538,17 @@ de la VARC-3, que es de TAVI.
 cosas; desde el PRO-B3 le pregunta al dueño, y `RPV_L` ganó el rótulo «Sin RPV».
 
 Cobertura: **TC-497**, 51 condiciones. Fuentes: `docs/fuentes/FUENTES-protesis.md`.
+
+---
+
+## La prótesis TRICÚSPIDE entra en la vista 2D — tanda «PRO-C» (2026-10-17)
+
+Una línea en `v2dEstado` y una entrada `prot:tricuspide` en `V2D_PORQUE`. **No hizo falta un
+mecanismo nuevo**: la cápsula del veredicto publica en la misma forma que la mitral, así que la
+lee el mismo `_v2dVeredictoProt`. **Sin chip de color**, por el mismo motivo que las otras dos
+prótesis: la Tabla 19 no gradúa, así que no hay GRADO que colorear.
+⚠️ **LA PULMONAR NO ESTÁ EN LA VISTA 2D**: `V2D_VALVS` tiene tres válvulas —mitral, aórtica y
+tricúspide— y la pulmonar no es una de ellas. Detalle en `docs/mapa/protesis-tri-pulm.md`.
+⚠️ **Y EL CICLO DE 20 APERTURAS NECESITA UNA VUELTA DE CALENTAMIENTO ANTES DE CONTAR**: el primer
+pintado crea los nodos de su contenido y después los reusa. Sin ella la sonda informó +17 nodos;
+con ella, **11903 → 11903, delta CERO**.

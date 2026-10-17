@@ -497,3 +497,16 @@ Lo que esa tanda movió en esta zona, en una línea cada uno:
 
 Cada corte con su tabla, su folio impreso y su hoja del PDF está en `docs/fuentes/FUENTES.md` →
 «La tanda VAL». Lo declarado y no tocado, en `docs/PENDIENTES.md` → VAL-1 a VAL-8.
+
+---
+
+## Las prótesis TRICÚSPIDE y PULMONAR — tanda «PRO-C» (2026-10-17)
+
+Las dos tienen veredicto protésico propio desde el 17/10/2026: **`docs/mapa/protesis-tri-pulm.md`**.
+Lo que importa desde acá: `calcET` y `calcVP` **no cambiaron** —su fila de severidad sigue
+diciendo `PROT_SIN_GRADO_TXT`— y el veredicto vive en `#bloque-prot-vt-res` y
+`#bloque-prot-vp-res`. La **estenosis tricuspídea NATIVA no se tocó** (sus cuatro cortes, su
+operador y su veredicto binario siguen en `ET_CRIT`), y la **regurgitación de las dos tampoco**:
+las Tablas 21 y 16 de la ASE 2024 coinciden con lo que la app ya aplica.
+Tres campos nuevos, visibles sólo con prótesis y sin columna de Excel: `et_e_vmax`,
+`vp_tipo_prot` y `ep_gmedio`.

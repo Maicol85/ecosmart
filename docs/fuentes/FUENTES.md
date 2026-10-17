@@ -3384,3 +3384,60 @@ lo publican (ASE 2019 y VARC-3) son también de la aórtica.
 ⚠️ **EL ANCHO DE VENA CONTRACTA DIFIERE ENTRE LA ASE 2024 Y LA VARC-3**: el borde leve/moderada
 está en **3 mm** en la primera y en **4 mm** en la segunda. Manda la ASE 2024, que es la más
 nueva, y es el que el motor aplica.
+
+---
+
+## La tanda PRO-C (2026-10-17) — las prótesis TRICÚSPIDE y PULMONAR se gradúan
+
+**El detalle completo, tabla por tabla y fila por fila, está en
+`docs/fuentes/FUENTES-protesis.md`.** Acá, lo verificado y la tabla de cambios.
+
+**`aseProt2024` — Zoghbi et al., JASE 2024;37(1):2-63. Folio = hoja del PDF + 1**, comprobado en
+el pie impreso de las cuatro páginas usadas.
+⚠️ **El texto extraído de ese PDF codifica `≥` como `$` y `≤` como `#`**: quien lo lea sin saberlo
+invierte TODOS los operadores.
+
+- **Tabla 19, folio 36 (hoja 35)** — «Doppler parameters suggestive of prosthetic TV stenosis».
+  Umbral único por tipo, **sin graduar**: velocidad pico de E `≥2,1 / ≥1,9` m/s · gradiente medio
+  `≥9 / ≥6` mmHg · PHT `≥200 / ≥130` ms · EOA `<1,5 / <2,0` cm² · DVI `≥3,3 / ≥2,1`
+  (bioprotésica / mecánica). **El AEO es el único con operador `<`.** Nota * verificada: «Assessed
+  in the absence of AR or TR».
+- **Tabla 15, folio 33 (hoja 32)** — «Parameters for prosthetic pulmonary valve stenosis». ⚠️ **Dos
+  columnas y NINGUNA es «severa»**: «Normal» y «Possible obstruction». Velocidad pico `≥3,2` m/s
+  en bioprótesis y `≥2,5` en homoinjerto; gradiente medio `≥20` y `≥15` mmHg. **No publica columna
+  para una prótesis mecánica ni percutánea** —la Tabla 22 del mismo documento enumera las
+  percutáneas pulmonares como una familia aparte—.
+- **Tabla 21, folio 39 (hoja 38)** — «Echocardiographic grading of TR after TVR or TV repair».
+  ⚠️ **Tres de sus cuatro cuantitativos coinciden DÍGITO POR DÍGITO con `IT_CRIT`**, que la app ya
+  aplica desde la ASE 2017 (Tabla 14, folio 350): VC `<0,3 / 0,3-0,69 / ≥0,7` cm · EROA
+  `<0,20 / 0,20-0,39 / ≥0,40` cm² · RVol `<30 / 30-44 / ≥45` mL. **Por eso esta tanda no movió un
+  corte de la insuficiencia tricuspídea.** El radio de PISA y el flujo de vena hepática quedan
+  declarados y no inventados.
+- **Tabla 16, folio 34 (hoja 33)** y **prosa del folio 35 (hoja 34)** — la regurgitación pulmonar
+  protésica. Lo que publican con cortes la app ya lo aplica (`ip_ancho`, `ip_senal`,
+  `ip_reversion`, `IP_PHT_SEVERA`); la **fracción regurgitante** (`<30 %` leve, `>50 %` severa)
+  **no tiene campo** y queda declarada. ⚠️ Esa tabla **no trae THP ni fracción regurgitante**, y su
+  nota dice «Cutoff values for regurgitant volume and fraction are not well validated».
+
+**`asePercVR2019` — Zoghbi et al., JASE 2019;32(4), hoja 33, folio impreso 463.** Folio = hoja +
+430, comprobado en el pie. Literal: «a **pressure half-time of <100 ms** has been shown to have
+good sensitivity and specificity for predicting severe PR». ✅ **Eso le da fuente verificada al
+`IP_PHT_SEVERA = 100` que la app ya aplicaba**; el corte **no se movió**, y la regla de
+integración «el peor de los signos cargados» sigue siendo criterio de la app, declarado como tal.
+
+### Cambios de evidencia — tanda PRO-C (commits 1 a 4)
+
+| dato | valor antes | valor ahora | fuente | commit | fecha |
+|---|---|---|---|---|---|
+| Obstrucción de la prótesis **tricúspide** | **no se graduaba** | cinco criterios por tipo, veredicto binario «hallazgos sugestivos de estenosis» | ASE 2024 T19 folio 36 | PRO-C2 | 17/10/2026 |
+| Compuerta del **DVI** tricuspídeo | no existía | se **retira** con IT o IAo moderada o mayor | nota * de la T19 | PRO-C2 | 17/10/2026 |
+| Obstrucción de la prótesis **pulmonar** | **no se graduaba** | dos criterios por tipo, veredicto único «posible obstrucción» —**nunca «severa»**— | ASE 2024 T15 folio 33 | PRO-C3 | 17/10/2026 |
+| Prótesis pulmonar **mecánica**, **percutánea** y **tipo sin elegir** | `PROT_SIN_GRADO_TXT` genérico | tres motivos propios, cada uno nombrando por qué la guía no da columna | T15 folio 33 + T22 folio 39 | PRO-C3 | 17/10/2026 |
+| Fuente del `IP_PHT_SEVERA = 100` | el comentario declaraba que **ninguna guía** lo publicaba | **verificada**; el corte **no se movió** | ASE 2019 folio 463 | PRO-C3 | 17/10/2026 |
+
+⚠️ **LA TABLA 15 NO TIENE COLUMNA DE SEVERA, Y LA APP NO PUEDE AFIRMARLA POR ESE CAMINO**: el
+motor pulmonar devuelve un único veredicto positivo (`'posible'`) y no hay un segundo nivel al
+que escalar. Medido con la escena más extrema que la app admite: los cinco nodos que publican un
+veredicto y las dos superficies firmadas no dicen «severa».
+⚠️ **LA TABLA 19 NO GRADÚA**: es un umbral único por tipo y la app no inventa leve, moderada ni
+severa para la obstrucción tricuspídea protésica.

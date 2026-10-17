@@ -4680,7 +4680,29 @@ extensión circunferencial `<10 / 10-29 / ≥30 %`, VC width `<0,3 / 0,3-0,6 / >
    guías hablan de la aorta **descendente** (la VARC-3, de la «descendente proximal»). Es un rótulo
    clínico: se reporta y no se toca.
 
-### PRO-2 · Las prótesis TRICÚSPIDE y PULMONAR siguen sin graduar — NO hecho
+### PRO-2 · Las prótesis TRICÚSPIDE y PULMONAR siguen sin graduar — **CERRADO 17/10/2026 (tanda PRO-C)**
+
+> **Se hizo, y con las cuatro tablas que esta entrada dejaba verificadas.** Las dos válvulas
+> tienen hoy un veredicto protésico propio, con el MISMO reparto que la prótesis mitral:
+> `PROT_SIN_GRADO_TXT` **se conserva** en la fila de «Severidad sugerida» —es literalmente
+> cierto— y el veredicto vive en su propia cápsula, así que **`calcET` y `calcVP` no cambiaron
+> una línea**.
+> **Tricúspide (Tabla 19, folio 36):** cinco criterios con umbral único por tipo, **sin graduar**,
+> con el AEO como único operador `<` y el DVI retirado «in the absence of AR or TR» leyendo
+> `EM_CONT_REGURG_MIN`.
+> **Pulmonar (Tabla 15, folio 33):** dos criterios por tipo y un único veredicto positivo,
+> «posible obstrucción» — **la app no puede decir «severa» por ese camino**, porque el motor no
+> tiene un segundo nivel al que escalar. Los tres estados sin columna (mecánica, percutánea y
+> tipo sin elegir) publican su motivo propio.
+> **La regurgitación de las dos NO se movió**: las Tablas 21 (folio 39) y 16 (folio 34) coinciden
+> con lo que la app aplica, medido con el grado idéntico en las tres morfologías.
+> Entraron **tres** campos (`et_e_vmax`, `vp_tipo_prot`, `ep_gmedio`), los tres **sin columna de
+> Excel**: 440, medido clave por clave.
+> Dónde está: `docs/mapa/protesis-tri-pulm.md` · `docs/fuentes/FUENTES-protesis.md` · **TC-498**.
+> Lo que esta tanda **dejó abierto** está en **PRO-C1 a PRO-C7**, al final de este archivo.
+
+El texto original de la entrada, que sigue describiendo el punto de partida:
+
 
 Hoy las dos están en `PROT_SIN_GRADO_VALVS` y publican `PROT_SIN_GRADO_TXT` («No graduada: los
 cortes de válvula nativa no aplican a prótesis»). **Las cuatro tablas están verificadas** (ASE 2024
@@ -4714,7 +4736,14 @@ corresponderían son:
   `IP etiología`.
 **No se crearon**: una columna nueva es PARADA.
 
-### PRO-4 · Cobertura de PRO-1 y PRO-2 — **la mitad de PRO-1 CERRADA 17/10/2026**
+### PRO-4 · Cobertura de PRO-1 y PRO-2 — **CERRADO 17/10/2026 (tanda PRO-C)**
+
+> Las dos mitades tienen su caso: **TC-497** para la fuga de la prótesis quirúrgica (51
+> condiciones, 34 en rojo contra el inicio de su tanda) y **TC-498** para la graduación de las
+> prótesis tricúspide y pulmonar (**47 condiciones, 34 en rojo** contra el inicio de la tanda
+> PRO-C y **ninguna por excepción**). Su ficha está en `docs/mapa/tests-fichas.md`.
+
+### PRO-4 (texto intermedio) · la mitad de PRO-1 CERRADA 17/10/2026
 
 > La fuga de la prótesis quirúrgica tiene su caso: **TC-497**, 51 condiciones, **34 en rojo**
 > contra el inicio de la tanda y ninguna por excepción. Lo que sigue sin cobertura es **PRO-2**,
@@ -4786,3 +4815,80 @@ A **1,8 KB del techo** de 35, medido con `wc -c` DESPUÉS de recibir su puntero 
 quedaron con margen: `vista-2d-valvulas.md` 32,4 KB · `tests-fichas.md` 28,3 ·
 `valvulas-mitral-pantalla.md` 23,9 · `protesis-pro.md` 19,2 · `laboratorio-asociaciones-valvulas.md`
 16,3. El mapa nuevo, `protesis-fuga-pvl.md`, nació en **15,3 KB**.
+
+---
+
+# Tanda PRO-C (2026-10-17) — lo declarado y NO tocado
+
+### PRO-C1 · La Tabla 19 no publica regla de integración, y el OR es de la casa
+
+**Es de la fuente y está censado:** el título de la **Tabla 19 (folio 36, hoja 35)** dice
+«Doppler parameters **suggestive of** prosthetic TV stenosis» y **no dice cuántos hacen falta**,
+igual que la Tabla 11 de la mitral (ver `Z1`). La app aplica un **OR** —basta uno— porque es la
+regla que ya usa en todos sus umbrales únicos: la estenosis tricuspídea **nativa** es un `some`
+de sus tres criterios desde que es binaria. El veredicto nombra los positivos con su valor, así
+que el médico ve cuántos lo sostienen.
+Si alguna vez se quiere un umbral de conteo como el de la mitral (`VM_PROT_OBSTR_MIN = 2`), es una
+decisión clínica de Maicol y cambia qué escenas publican la línea en el informe **firmado**.
+
+### PRO-C2 · Cuatro parámetros de la Tabla 21 y uno de la 19 no tienen campo
+
+**Tabla 21 (folio 39, hoja 38):** el **flujo de vena hepática** —orden expresa de no agregarlo—,
+el **área del jet en color**, la **zona de convergencia** y el **llenado tricuspídeo** no tienen
+campo en la app. El **radio de PISA** sí lo tiene (`it_pisa_r`) y vota **por la EROA**, no como
+criterio propio: agregarlo como criterio cambiaría el grado de la IT, que esta tanda congela.
+**Tabla 16 (folio 34):** el **flujo sistólico pulmonar comparado con el sistémico** tampoco tiene
+campo, y la **fracción regurgitante** de la prosa del folio 35 (`<30 %` leve, `>50 %` severa)
+tampoco. Los cinco quedan **declarados, no inventados**.
+
+### PRO-C3 · La reversión del flujo en las ramas de la AP vota «Severa» y la fuente dice «al menos moderada»
+
+**Medido en el PDF original**, prosa del folio 35 (hoja 34), literal: «Reversal of flow in the
+distal main PA by PW Doppler is **suggestive of at least moderate PR**», y la **Tabla 16** pone
+«Present» en las columnas de **moderada Y severa** —o sea que su presencia sola no distingue—.
+La app vota **Severa** con `ip_reversion` (`IP_SIGNOS` → `rev: 'Severa'`).
+**NO SE TOCÓ, y hay tres motivos:** (1) la regla de integración de la IP es «el peor de los signos
+cargados», declarada **criterio de la app** por decisión de Maicol del 2026-10-07, no de una guía;
+(2) el signo es **compartido con la válvula nativa**, que esta orden congela, así que cambiarlo
+sólo en el régimen protésico crearía dos reglas de la app donde hay una; y (3) la orden del PRO-C3
+enumera qué criterios de regurgitación pulmonar aplicar —ancho del jet, fracción regurgitante y
+THP— y **no nombra la reversión**.
+Cambiarlo haría que un paciente con reversión aislada pase de «IP severa» a «IP moderada» en el
+informe firmado. Es decisión clínica de Maicol.
+
+### PRO-C4 · Dos rótulos de la IP describen la válvula NATIVA y no el anillo protésico
+
+- El `<option>` «Ancho (**>50–65 % del TSVD**)» de `ip_ancho`: la **Tabla 16** escribe «jet width
+  >50 % of **pulmonary annulus**», no del TSVD. El corte numérico coincide en el 50; el
+  **denominador** que el rótulo nombra, no.
+- El rótulo de `ip_reversion` dice «En las **ramas** de la arteria pulmonar» y la Tabla 16 dice
+  «in the **distal main PA**» —el tronco distal, no las ramas—.
+Los dos son **rótulos clínicos** y esta orden no autoriza cambiarlos: se reportan.
+
+### PRO-C5 · El `vpProtObstr` no tiene fuente inyectable, y hoy no la necesita
+
+`vmProtEOA(src)`, `eteTaviRPV(src)` y `valvProtDato(…, src)` aceptan una fuente para poder leer un
+estudio **archivado**; `vtProtObstr()` y `vpProtObstr()` leen el DOM y nada más. Hoy **ningún
+consumidor archivado los necesita**: no hay columna de Excel, el Laboratorio no los lee y el
+informe trabaja sobre el formulario, donde el formulario ES el estudio. El día que el Laboratorio
+quiera contar obstrucciones protésicas tricuspídeas o pulmonares hay que agregarles `src` —y al
+AEO tricuspídeo, que hoy se le pide a `etEstado()`, que tampoco lo tiene—. Es el mismo camino que
+`_htp2022Core` recorrió cuando el panel de cohorte lo consumió.
+
+### PRO-C6 · El Laboratorio no cuenta las dos obstrucciones protésicas
+
+Medido: `_labEstenSev` lee el **token** del `<select>` (`et_grado` / `ep_grado`), que esta tanda no
+toca, así que la fila de las ocho válvulas y el gráfico apilado siguen contando lo de siempre; y
+ninguna categoría de `_LAB_HALLAZGOS` matchea las dos frases nuevas, así que esos estudios no
+entran en ninguna. **No se tocó el Laboratorio** (orden expresa): el A/B dedicado da cero
+diferencias en el PPT estadístico (21 textos), en el PDF de auditoría (105) y en el Excel de los
+tres estudios de la población. Si alguna vez hay que contarlas, hace falta decidir si son
+categorías nuevas de `_LAB_HALLAZGOS` —que corta en OCHO, ver `X5`— o columnas derivadas, y lo
+segundo es una **PARADA de columna**.
+
+### PRO-C7 · Dos mapas quedaron cerca del techo
+
+Medido con `wc -c` DESPUÉS de escribir: `docs/mapa/tests-fichas.md` quedó en **34,1 KB** —a 855
+bytes del techo de 35— y `docs/mapa/vista-2d-valvulas.md` en **33,3 KB**. **La próxima tanda que
+toque cualquiera de los dos tiene que partirlo ANTES de escribir.** Sigue esperando
+`docs/mapa/aortica-cortes.md` (33,2 KB), que esta tanda no tocó.

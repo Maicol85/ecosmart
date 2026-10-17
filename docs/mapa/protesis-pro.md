@@ -308,3 +308,12 @@ de la VARC-3, que es de TAVI.
 cosas; desde el PRO-B3 le pregunta al dueño, y `RPV_L` ganó el rótulo «Sin RPV».
 
 Cobertura: **TC-497**, 51 condiciones. Fuentes: `docs/fuentes/FUENTES-protesis.md`.
+
+---
+
+## Lo que el PRO dejó sin hacer, y dónde está hoy
+
+**PRO-2 y PRO-4 CERRADOS el 17/10/2026 por la tanda «PRO-C»**: las prótesis **tricúspide** y
+**pulmonar** se gradúan con las Tablas 19 (folio 36) y 15 (folio 33) de la ASE 2024, con tres
+campos nuevos y sin columnas de Excel. Está en **`docs/mapa/protesis-tri-pulm.md`**, con su
+cobertura en **TC-498**. Lo que sigue abierto de esta serie está en `docs/PENDIENTES.md`.

@@ -302,3 +302,140 @@ los cuatro de la Tabla 13 (`IM_CORTES` ya los aplicaba), `IM_CORTES.jet_prot`, l
 PRO2, el cociente VTI del PRO1, el reverso del PRO3, `IA_VMAX_TD_SEVERA` (20 cm/s, un solo nivel,
 en nativa y en SAVR), el PPM, el valve-in-valve, y la tricúspide y la pulmonar protésicas, que
 siguen en «No graduada» hasta el PRO-C.
+
+---
+
+## La tanda PRO-C (2026-10-17) — las prótesis TRICÚSPIDE y PULMONAR
+
+Las cuatro tablas estaban transcritas desde la tanda PRO; esta tanda **re-verificó en el PDF
+original cada operador que aplica**, con el folio comprobado en el pie impreso de cada página.
+Regla de folio del documento: **folio = hoja del PDF + 1**.
+⚠️ **El texto extraído de la ASE 2024 codifica `≥` como `$` y `≤` como `#`**: quien lo lea sin
+saberlo invierte TODOS los operadores. Lo de abajo está traducido y verificado.
+
+### `aseProt2024` — Tabla 19, folio 36, hoja 35 · RE-VERIFICADA
+
+**«Doppler parameters suggestive of prosthetic TV stenosis».** Un umbral único por tipo, **sin
+graduar** —no hay columnas de leve/moderada/severa—:
+
+| parámetro | Bioprosthetic | Mechanical |
+|---|---|---|
+| Peak E velocity, m/sec | **≥ 2.1** | **≥ 1.9** |
+| Mean gradient, mm Hg | **≥ 9** | **≥ 6** |
+| PHT, msec | **≥ 200** | **≥ 130** |
+| EOA, cm² | **< 1.5** | **< 2.0** |
+| DVI (VTI_PrTV/VTI_LVOT)* | **≥ 3.3** | **≥ 2.1** |
+
+Nota * verificada, literal: «**Assessed in the absence of AR or TR.** Upper limits of normal DVI
+vary by valve size and type.» — es la compuerta que la app implementa retirando el DVI con IT o
+IAo moderada o mayor.
+⚠️ **EL AEO ES EL ÚNICO PARÁMETRO CON OPERADOR `<`**: los otros cuatro suben y él baja. Un juego
+único de operadores habría puesto su valor exacto del lado equivocado en las dos columnas.
+
+### `aseProt2024` — Tabla 15, folio 33, hoja 32 · RE-VERIFICADA
+
+**«Parameters for prosthetic pulmonary valve stenosis».** ⚠️ **DOS COLUMNAS, Y NINGUNA ES
+«SEVERA»**: son «Normal» y «Possible obstruction».
+
+| parámetro | Normal | Possible obstruction |
+|---|---|---|
+| Peak velocity, bioprosthesis | < 3.2 m/sec | **≥ 3.2 m/sec** |
+| Peak velocity, homograft | < 2.5 m/sec | **≥ 2.5 m/sec** |
+| Mean gradient, bioprosthesis | < 20 mm Hg | **≥ 20 mm Hg** |
+| Mean gradient, homograft | < 15 mm Hg | **≥ 15 mm Hg** |
+
+Nota * verificada: «Measurements assume normal RV stroke volume. Accurate CW Doppler may be
+challenging because of the position of the homograft or bioprosthetic valve». Sus otras entradas
+son **cualitativas** (estructura y movimiento valvular, flujo laminar, turbulencia por color) o de
+**comparación seriada** con un estudio basal, así que la app implementa los dos cuantitativos.
+⚠️ **ESA TABLA NO PUBLICA COLUMNA PARA UNA PRÓTESIS MECÁNICA NI PERCUTÁNEA.** La **Tabla 22** del
+mismo documento (folio 39, hoja 38) enumera las percutáneas pulmonares como una familia aparte
+—«Melody valve», «Edwards SAPIEN valve», «Harmony transcatheter pulmonary valve»—. Los dos
+estados quedan **sin graduar** y la app lo dice.
+
+### `aseProt2024` — Tabla 21, folio 39, hoja 38 · RE-VERIFICADA
+
+**«Echocardiographic grading of TR after TVR or TV repair».** Sus cuatro semicuantitativos y
+cuantitativos, verificados:
+
+| parámetro | Mild | Moderate | Severe |
+|---|---|---|---|
+| VC width, cm* | < 0.3 | 0.3-0.69 | **≥ 0.7 or ≥ 2 moderate jets** |
+| PISA radius, cm† | ≤ 0.5 | 0.6-0.9 | > 0.9 |
+| EROA, cm²§ | < 0.20 | 0.20-0.39 | ≥ 0.40 |
+| RVol, mL§ | < 30 | 30-44 | ≥ 45 |
+
+Más cinco cualitativos: área del jet en color, zona de convergencia, onda de CW (densidad y
+forma), llenado tricuspídeo y **flujo de vena hepática**.
+⚠️ **TRES DE SUS CUATRO CUANTITATIVOS COINCIDEN DÍGITO POR DÍGITO CON `IT_CRIT`** —la tabla que
+la app ya aplica, de la ASE 2017 (Zoghbi), Tabla 14, folio 350—: VC `<3 / 3-<7 / ≥7` mm, EROA
+`<20 / 20-<40 / ≥40` mm² y RVol `<30 / 30-<45 / ≥45` ml. Y la onda de CW mapea a las tres
+opciones de `it_densidad`. **Por eso esta tanda no movió un solo corte de la insuficiencia
+tricuspídea**, y está medido: el grado sale idéntico con morfología nativa y con las dos prótesis.
+El **radio de PISA** no es criterio propio en la app (vota por la EROA) y el **flujo de vena
+hepática** no tiene campo: los dos quedan declarados, no inventados.
+Nota § verificada: «EROA and RVol from 2D PISA need further validation of cutoffs».
+
+### `aseProt2024` — Tabla 16 (folio 34, hoja 33) y la PROSA del folio 35 (hoja 34) · RE-VERIFICADAS
+
+**Tabla 16 — «Echocardiographic evaluation of severity of prosthetic pulmonary valve
+regurgitation».** Verificada entera: estructura valvular, tamaño del VD, **tamaño del jet por
+Doppler color** (`jet width ≤25 % / 26 %-50 % / >50 % of pulmonary annulus`), **densidad del jet
+por CW** (incomplete or faint / dense / dense), **tasa de desaceleración por CW** (slow /
+variable / steep, early termination), flujo sistólico pulmonar comparado con el sistémico y
+**reverso diastólico en la AP principal distal** (none / present / present).
+⚠️ **NO TRAE FRACCIÓN REGURGITANTE NI THP.** Su nota verificada dice: «Cutoff values for
+regurgitant volume and fraction are not well validated».
+
+**Prosa del folio 35, verificada literal:**
+- «A color jet width **>50 %** of the prosthesis annulus suggests severe PR.»
+- «Reversal of flow in the distal main PA by PW Doppler is **suggestive of at least moderate PR**.»
+- «In a study comparing CMR with echocardiography, a **PHT <95 msec** and a slope >4.9 m/sec²
+  indicated a need for pulmonary valve intervention.»
+- «A **regurgitant fraction <30 % is considered mild, and >50 % is considered severe**.»
+
+**Lo que la app ya aplica de esa tabla, sin mover nada**: el tamaño del jet lo produce `ip_ancho`
+con sus tres opciones cualitativas, la densidad y la tasa de desaceleración las combina
+`ip_senal` en sus tres, y el reverso es `ip_reversion`. **La fracción regurgitante no tiene
+campo** y queda declarada.
+
+### `asePercVR2019` — Zoghbi et al., JASE 2019;32(4) · el THP de la IP severa · VERIFICADO
+
+**«Guidelines for the Evaluation of Valvular Regurgitation After Percutaneous Valve Repair or
+Replacement», hoja 33, folio impreso 463** —comprobado en el pie de la página, «Zoghbi et al ·
+463»; regla de folio de ESE PDF: folio = hoja + 430—. Literal: «Rapid deceleration of the PR CW
+Doppler velocity waveform with a **pressure half-time of <100 ms** has been shown to have good
+sensitivity and specificity for predicting severe PR».
+✅ **Eso le da fuente verificada al `IP_PHT_SEVERA = 100` que la app ya aplicaba** con su `<`
+estricto, y el corte **no se movió**. Lo que sigue siendo criterio de la app —declarado como tal
+en su propio comentario— es la **regla de integración** «el peor de los signos cargados»:
+ninguna de las dos guías publica una escala cuantitativa que integre los cuatro signos de la IP.
+⚠️ **LA ASE 2024 NOMBRA 95 ms Y NO 100, Y CON OTRO SIGNIFICADO**: su prosa del folio 35 lo cita
+como el umbral de un estudio que «indicó necesidad de intervención», no como corte de severidad,
+y su Tabla 16 **no publica THP**. Se conserva el corte de la ASE 2019, que es el publicado como
+criterio de severidad, y la diferencia queda declarada.
+
+---
+
+## Cambios de evidencia — tanda PRO-C (commits 1 a 4)
+
+| dato | valor antes | valor ahora | fuente | commit | fecha |
+|---|---|---|---|---|---|
+| Obstrucción de la prótesis **tricúspide** | **no se graduaba**: sólo `PROT_SIN_GRADO_TXT` | cinco criterios con umbral único por tipo, veredicto binario «hallazgos sugestivos de estenosis» | ASE 2024 **T19 folio 36** (hoja 35) | PRO-C2 | 17/10/2026 |
+| Compuerta del **DVI** tricuspídeo | no existía (el campo no se leía con ningún corte) | se **retira** con IT o IAo moderada o mayor | nota * de la T19, folio 36 | PRO-C2 | 17/10/2026 |
+| Obstrucción de la prótesis **pulmonar** | **no se graduaba**: sólo `PROT_SIN_GRADO_TXT` | dos criterios por tipo, veredicto único «posible obstrucción» —**nunca «severa»**— | ASE 2024 **T15 folio 33** (hoja 32) | PRO-C3 | 17/10/2026 |
+| Prótesis pulmonar **mecánica**, **percutánea** y **tipo sin elegir** | `PROT_SIN_GRADO_TXT` genérico | tres motivos propios, cada uno nombrando por qué la guía no da columna | T15 folio 33 + T22 folio 39 | PRO-C3 | 17/10/2026 |
+| Fuente del `IP_PHT_SEVERA = 100` de la IP severa | el comentario declaraba que **ninguna guía** lo publicaba | **verificada**: ASE 2019, folio 463 (hoja 33). **El corte no se movió** | ASE 2019 folio 463 | PRO-C3 | 17/10/2026 |
+
+**Lo que NO se movió, y está medido:**
+- los **cuatro cortes de `IT_CRIT`** (la Tabla 21 coincide dígito por dígito) y el grado de la IT,
+  idéntico con morfología nativa y con las dos prótesis, con el borde del 7 separando igual;
+- los **cuatro signos de la IP** y su regla de integración, con el grado idéntico en las tres
+  morfologías y el borde del THP separando en 99 / 100;
+- los **cuatro cortes de la estenosis tricuspídea NATIVA** (`ET_CRIT`), su operador y su veredicto
+  binario;
+- la prótesis **mitral** (la regla de «dos o más de cuatro» y su umbral), la **aórtica**, la
+  **TAVI**, la **fuga paravalvular** del PRO-B, el **PPM**, el **valve-in-valve**, el **cociente
+  VTI** del PRO1 y el **reverso** del PRO3;
+- y el **Excel en 440 columnas**, clave por clave, con el formulario vacío, con un escenario ajeno
+  y en los tres estudios de la población.

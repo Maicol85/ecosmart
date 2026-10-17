@@ -356,3 +356,73 @@ los seis controles de la zona ajena.
 - ⚠️ **AL LIMPIAR LOS ACENTOS GRAVES DE UN RANGO DE LÍNEAS ME LLEVÉ EL QUE ABRE EL CUERPO DEL
   CASO.** El síntoma fue que `check_backticks.py` señaló una línea **350 líneas después**, dentro
   del runner, que es código normal. **El acento grave que FALTA se ve igual que uno que SOBRA.**
+
+---
+
+## TC-498 — la OBSTRUCCIÓN de las prótesis TRICÚSPIDE y PULMONAR (tanda «PRO-C», 2026-10-17)
+
+**47 condiciones**, contadas sobre el propio caso (`ex.push`), con **cinco denominadores** y
+**nueve controles negativos**. **Verificado que sabe fallar contra el inicio de la tanda
+(`d6539fb`, md5 `9854beaa…`) en un worktree aparte: 34 de las 47 en rojo, y NINGUNA por
+excepción** —las 34 informan `SIN FN`, `NO EXISTE` o `false`, que es lo que producen los
+centinelas—. Las 13 que pasan son los controles y lo que esta tanda no mueve.
+
+### Qué cubre
+
+| grupo | condiciones | qué afirma |
+|---|---|---|
+| DENOM1-5 | 5 | los tres campos existen y son los tres; la velocidad pico de E es un campo PROPIO y no `it_vmax_cw`; el selector del tipo ofrece exactamente cuatro opciones; las dos tablas de cortes con sus operadores de la fuente; y el AEO **sale de `etEstado()`** y no de una segunda cuenta |
+| a1-a8 | 8 | los **cinco criterios de la Tabla 19** por su borde exacto **en las dos columnas**, la columna elegida por la morfología medida **por los dos lados**, y la compuerta del DVI con su umbral medido por comportamiento |
+| b1-b4 | 4 | los **dos criterios de la Tabla 15** por su borde exacto en las dos columnas, la columna elegida por el tipo, y que el gradiente MEDIO no es el MÁXIMO |
+| c1-c4 | 4 | los **tres estados pulmonares que no gradúan** con su motivo propio, y que con morfología nativa las dos cápsulas se esconden |
+| d1-d4 | 4 | que la obstrucción pulmonar **nunca dice «severa»**, que su único veredicto positivo es «posible», que la tricuspídea **no se gradúa**, y que la palabra del veredicto vive en UNA constante |
+| e1-e6 | 6 | las superficies: informe en los **tres estilos**, EN SUMA, que «sin criterios» no sube al papel, que los estados que no gradúan tampoco, y la **vista 2D** con su entrada propia |
+| f1-f5 | 5 | que la **regurgitación** de las dos **no movió un corte**: la Tabla 21 contra `IT_CRIT` dígito por dígito, el grado idéntico en las tres morfologías, el borde del 7, el de la IP y el THP, y que la FR pulmonar no tiene campo |
+| g1-g5 | 5 | los tres campos **viajan con el estudio** sin columna de Excel, **nada en el navegador**, «Nuevo estudio» los vacía, y las cápsulas son de **sólo lectura** |
+| h1-h6 | 6 | los controles: la ET **nativa**, la prótesis **mitral**, la **fuga paravalvular** y el **reverso de la TAVI**, el formulario vacío, los asserts del Excel y el límite declarado de la maqueta |
+
+### Las escenas y sus denominadores
+
+- **`escVT`** fija morfología protésica y los tres insumos del área: diámetro del TSVD 20 mm, VTI
+  del TSVD 20 cm y VTI de entrada 20 cm → numerador 62,83 y **área 3,14 cm²**, que no alcanza el
+  criterio en ninguna de las dos columnas. Es lo que deja que cada escena mida **un** parámetro.
+  ⚠️ **El VTI de entrada es ADEMÁS criterio de la ET nativa (`≥60` cm) y su banda es 5-100 cm**:
+  los valores usados (20, 32, 41,89, 42,2, 45) están dentro y ninguno llega a 60, así que no
+  mueven el veredicto nativo.
+- **El borde del AEO se alcanza por el VTI de entrada y NO tipeando el área**: el campo es de
+  solo lectura y lo escribe la continuidad. VTI 41,89 → 1,50 cm² (que **no** vota, porque el
+  corte es `< 1,5`) y 42,2 → 1,49, que sí.
+- **El grado de la IT se produce por CÁLCULO**, con la vena contracta: 2 mm es leve y 5 mm
+  moderada. Setear `it_grado` a mano no sirve, porque `calcIT_ESC` lo vuelve a escribir.
+
+### Siete cosas que pusieron el caso en rojo sobre un árbol perfecto
+
+1. **TRES CONSTANTES DE MÓDULO NO ESTÁN EN `window`** y rompieron tres condiciones:
+   `EM_CONT_REGURG_MIN`, `IP_PHT_SEVERA` e `IA_VMAX_TD_SEVERA`. Se miden por su
+   **COMPORTAMIENTO**, por los dos lados del borde. Es la trampa de `ECO_AYUDA` y de `AO_SEGS`.
+2. **UNA ESCENA QUE SE PISA A SÍ MISMA**: `escVP` llama a `__t.limpiar()`, así que leer el
+   veredicto tricuspídeo DESPUÉS de montar la escena pulmonar informa `null` sobre una escena que
+   sí produjo «sin». El veredicto se captura **en el momento** de cada escena.
+3. **EL ATRIBUTO `style` SALE NORMALIZADO POR EL MOTOR** —«margin-bottom: 8px; display: none;»—
+   así que buscar `display:none` sin el espacio falla sobre un marcado correcto.
+4. **CON EL DVI RETIRADO Y SIN LOS INSUMOS DEL ÁREA NO QUEDA NINGÚN CRITERIO MEDIDO**, así que el
+   veredicto cae en `null` —abstenerse— y no en «sin». La escena de la compuerta lleva los
+   insumos del AEO a propósito.
+5. **`__t.set` NO DISPARA EL `oninput` DEL MARCADO**: los calculadores se llaman a mano, y los dos
+   pintores nuevos **al final**, porque leen lo que los calculadores acaban de publicar.
+6. **BARRER «sever» EN EL CONTENEDOR DA UN FALSO**: la línea de fuente de la cápsula dice «no
+   gradúa la **SEVER**idad». Se barren los nodos que publican un veredicto, con la palabra
+   completa.
+7. ⚠️ **EL ACENTO GRAVE, DOS VECES.** La segunda fue la peor: al limpiarlos de un **rango de
+   líneas** me llevé el que **CIERRA** el cuerpo del caso, y `check_backticks.py` señaló una línea
+   del **runner**, 400 líneas después, que es código normal. **El que FALTA se ve igual que uno
+   que SOBRA.**
+
+### Límite declarado
+
+El cuerpo de un caso **no puede cambiar el ancho de la ventana ni correr en WebKit** —corre
+DENTRO de la página y no tiene el canal del navegador—, así que la maqueta a los seis anchos por
+los dos temas, el **color REAL resuelto** y el ciclo de 20 aperturas de la vista 2D los mide
+`scripts/_probe_proc.mjs` con `--solo maqueta,v2d`. Es el reparto de TC-460. Lo que **sí** se
+afirma desde el caso es la REGLA que produce el comportamiento: las dos cápsulas nacen en
+`display:none`, son `.calc-box` y **no declaran ni un color propio**, así que heredan el del tema.

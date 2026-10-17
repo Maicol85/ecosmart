@@ -925,7 +925,13 @@ window.__P = {
     if (!E || typeof E === 'string') return { estado: E };
     var simple = function(a){ return (a || []).map(function(x){
       return { valv: x.valv, morf: x.morf, frase: x.frase, chip: x.chip,
-               pq: x.pq ? { decide: x.pq.decide, nCrit: (x.pq.crit || []).length } : null } }) };
+               /* ADVERTENCIA: _v2dPorQue devuelve filas, no crit. La primera version leia
+                  crit —el nombre del campo de la TABLA V2D_PORQUE— y daba nCrit 0 en las dos
+                  protesis, que se lee igual que «la tarjeta no tiene criterios». */
+               pq: x.pq ? { decide: x.pq.decide, manual: !!x.pq.manual,
+                            nFilas: (x.pq.filas || []).length,
+                            filas: (x.pq.filas || []).map(function(f){
+                              return (f && (f.lbl || f.rotulo || '')) + '=' + (f && (f.val || f.valor || '')) }) } : null } }) };
     return { esten: simple(E.esten), insuf: simple(E.insuf),
              pt: E.pt, et: E.et, it: E.it,
              nodos: document.querySelectorAll('*').length,
@@ -933,11 +939,18 @@ window.__P = {
                catch (e) { return 'EXC' } })() } },
 
   v2dCiclo(n) {
-    var o = { antes: document.querySelectorAll('*').length };
+    /* ADVERTENCIA: UNA VUELTA DE CALENTAMIENTO ANTES DE CONTAR, Y ES LA LECCION DEL PRO-B. El
+       primer pintado del panel CREA los nodos de su contenido y despues los reusa, asi que un
+       conteo tomado con el panel nunca abierto informa esos nodos como una acumulacion. Medido
+       en esta misma tanda: la primera corrida dio +17 sobre un panel que no acumula ninguno. */
+    var o = {};
+    try { if (typeof v2dAbrir === 'function') { v2dAbrir(); v2dCerrar() } } catch (e) { o.calentar = 'EXC' }
+    o.antes = document.querySelectorAll('*').length;
     try {
       if (typeof v2dVisible === 'function' && v2dVisible() && typeof v2dCerrar === 'function') v2dCerrar();
       for (var i = 0; i < (n || 20); i++) { v2dAbrir(); v2dCerrar() }
       o.despues = document.querySelectorAll('*').length;
+      o.delta = o.despues - o.antes;
       o.abierto = (typeof v2dVisible === 'function') ? v2dVisible() : null;
     } catch (e) { o.err = 'EXC: ' + e.message }
     return o },
@@ -1456,6 +1469,22 @@ async function main() {
   if (corre('maqueta')) {
     const g = { celdas: {} };
     const IDS = ['bloque-prot-vt', 'bloque-prot-vt-res', 'bloque-prot-vp', 'bloque-prot-vp-res'];
+    /* ADVERTENCIA: LA ESCENA SE CARGA UNA SOLA VEZ, A 1200 px, Y DESPUES SOLO SE CAMBIA EL
+       VIEWPORT. A 768 px y por debajo el cajon de la lesion se CIERRA y el respaldo en linea no
+       gana —el CSS del celular usa la clase con `!important`—, asi que los campos miden 0x0 y
+       `tipear` aborta: la primera corrida murio con «SIN GEOMETRIA et_gmedio». Es la trampa que
+       el PRO-B ya documenta. Cargada antes, lo que se mide en las seis celdas es el MISMO
+       paciente, que es lo que corresponde. */
+    await viewport(1200, 700);
+    await ev(`window.__P.despejar()`);
+    await ev(`window.__P.nuevo()`);
+    await ev(`window.__P.abrirVtVp()`);
+    await ev(`window.__P.sel('vt_morf', 'Prótesis biológica')`);
+    await ev(`window.__P.sel('vp_morf', 'Prótesis biológica')`);
+    await ev(`window.__P.sel('vp_tipo_prot', 'bio')`);
+    await tipear('et_gmedio', '12');
+    await tipear('ep_gmedio', '24');
+    g.escenaCargada = { vt: await ev(`window.__P.protVt()`), vp: await ev(`window.__P.protVp()`) };
     for (const [w, h] of [[1200, 700], [1440, 800], [1920, 1080], [768, 1024], [390, 844], [360, 740]]) {
       for (const claro of [false, true]) {
         await viewport(w, h);
@@ -1463,13 +1492,6 @@ async function main() {
         const t = await ev(`window.__P.tema(${claro})`);
         if (t.claro !== claro) throw new Error('EL TEMA NO QUEDO: ' + JSON.stringify(t));
         await ev(`window.__P.despejar()`);
-        await ev(`window.__P.nuevo()`);
-        await ev(`window.__P.abrirVtVp()`);
-        await ev(`window.__P.sel('vt_morf', 'Prótesis biológica')`);
-        await ev(`window.__P.sel('vp_morf', 'Prótesis biológica')`);
-        await ev(`window.__P.sel('vp_tipo_prot', 'bio')`);
-        await tipear('et_gmedio', '12');
-        await tipear('ep_gmedio', '24');
         const k = w + 'x' + h + (claro ? '|claro' : '|oscuro');
         g.celdas[k] = await ev(`window.__P.anchos(${JSON.stringify(IDS)})`);
         /* El COLOR REAL del veredicto, resuelto: una variable que no existe en esta zona se ve
@@ -1548,6 +1570,24 @@ async function main() {
     for (const est of ['conciso', 'estandar', 'narrativo']) g.cargado['inf_' + est] = await ev(`window.__P.informe('${est}')`);
     for (const pl of PLANT) g.cargado.pdf[pl] = await ev(`window.__P.pdf('${pl}')`);
     g.cargado.grados = await ev(`window.__P.grados()`);
+    /* LA ESCENA DE ESTA TANDA: las dos protesis cargadas, con el PDF generado de verdad en las
+       SEIS plantillas. ADVERTENCIA: el tipo de protesis pulmonar NO EXISTE en el arbol de HEAD,
+       asi que se pone con el helper tolerante — contra HEAD la pulmonar no publica veredicto
+       porque alla no hay campo que elija la columna, y esa es una de las diferencias esperadas. */
+    await ev(`window.__P.nuevo()`);
+    await ev(`window.__P.abrirVtVp()`);
+    await ev(`window.__P.sel('vt_morf', 'Prótesis biológica')`);
+    await ev(`window.__P.sel('vp_morf', 'Prótesis biológica')`);
+    const _tt = await ev(`window.__P.sel('vp_tipo_prot', 'bio')`);
+    await tipear('et_gmedio', '12');
+    await tipear('et_thp', '250');
+    await tipear('ep_vmax', '3.3');
+    await tipearSiHay('ep_gmedio', '24');
+    g.prot = { tipoPuesto: _tt, pdf: {}, excel: await ev(`window.__P.excelDOM()`),
+               campos: await ev(`window.__P.camposGuardados()`),
+               grados: await ev(`window.__P.grados()`) };
+    for (const est of ['conciso', 'estandar', 'narrativo']) g.prot['inf_' + est] = await ev(`window.__P.informe('${est}')`);
+    for (const pl of PLANT) g.prot.pdf[pl] = await ev(`window.__P.pdf('${pl}')`);
     /* PPT estadistico y PDF de auditoria del Laboratorio, por sus generadores REALES. */
     g.labPPT   = await ev(`window.__P.labPPT(${JSON.stringify(POBL)})`);
     g.labAudit = await ev(`window.__P.labAudit(${JSON.stringify(POBL)})`);
