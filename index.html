@@ -8310,7 +8310,7 @@ window.cerrarSesionReal = cerrarSesionReal;
             <option value="mínimo">Mínimo</option><option value="moderado">Moderado</option><option value="severo">Severo</option>
           </select>
         </div>
-        <div class="fg" id="pul-derrame-balik-wrap" style="display:none;"><label>Balik (mm)</label>
+        <div class="fg" id="pul-derrame-balik-wrap" style="display:none;"><label>Balik (mm) <button type="button" class="vinfo-btn" data-vinfo="pul-balik" aria-expanded="false" aria-label="Informaci&oacute;n sobre la estimaci&oacute;n del volumen del derrame pleural" onclick="vInfoClic(this)">&#9432;</button></label>
           <input type="number" id="pul_balik" step="1" min="1" max="120" placeholder="mm">
         </div>
         <!-- ⚠️ EL LADO NO EXISTÍA EN EL MÓDULO BÁSICO y sí en el avanzado (`pua_derrame_lado`), así
@@ -8336,6 +8336,22 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="fg" id="pul-lineasb-pat-wrap" style="display:none;"><label>Patrón</label>
           <select id="pul_lineasb_pat">
             <option value="focal">Focal</option><option value="difuso">Difuso</option>
+          </select>
+        </div>
+        <!-- ══ LA SEPARACION ENTRE LINEAS B (CORTOS13, 2026-10-17) ══════════════════════════════
+             DECISION DE MAICOL, que dicta las dos separaciones. ⚠️ SIN FUENTE EN LA BIBLIOTECA, y
+             se declara: barrido de los seis PDF de ecografia pulmonar por «B7», «B3», «7 mm»,
+             «3 mm», «interlobular» y «septal thick», y barrido global por «B7» y «7 mm apart» —
+             cero. El unico documento que nombra «B3 lines» es el protocolo BLUE (Lichtenstein,
+             Chest 2008, hoja 3) y NO da ninguna separacion en milimetros.
+             Por eso las dos opciones son DESCRIPTIVAS y nada mas: dicen la separacion que el
+             medico midio y NO la interpretan —ni «septal» ni «vidrio deslustrado»—, no llevan
+             cita y el dato no tiene globo. Sin consignar, la oracion sale IDENTICA a la de hoy. -->
+        <div class="fg" id="pul-lineasb-sep-wrap" style="display:none;"><label>Separaci&oacute;n</label>
+          <select id="pul_lineasb_sep">
+            <option value="">&mdash; sin consignar &mdash;</option>
+            <option value="s7">separaci&oacute;n aproximada de 7 mm</option>
+            <option value="s3">separaci&oacute;n aproximada de 3 mm</option>
           </select>
         </div>
         <div class="fg"><label>Consolidación</label>
@@ -39608,6 +39624,15 @@ const VINFO = Object.freeze({
      lo que muestran son NODOS clonados, no un texto. */
   'otr-burbujas': { ancho: 360, dyn: function () { return _otrRefClon('ref-burbujas', 'tablas') } },
   'otr-rac': { ancho: 360, dyn: function () { return _otrRefClon('ref-coronarias') } },
+  /* El unico globo de esta tanda que escribe texto, y lo escribe porque la fuente esta VISTA: su
+     formula, su medicion y su alcance salen del enunciado D6_11 de la guia, no de la memoria. */
+  'pul-balik': {
+    tit: 'Volumen aproximado del derrame pleural',
+    formula: 'V (ml) = D (mm) × 20',
+    lee: 'D es la distancia maxima entre la pleura parietal y la visceral, medida en un corte transversal lateral sobre el angulo costofrenico con el paciente en decubito supino.',
+    fuente: 'International evidence-based recommendations for point-of-care lung ultrasound, 2025 focused update (Volpicelli et al, Intensive Care Med 2026), enunciado D6_11, hoja 19.',
+    ojo: 'La guia declara que la formula fue validada en pacientes criticos en cuidados intensivos bajo ventilacion invasiva. En un paciente que puede examinarse sentado, esa misma guia dice que otros metodos de adquisicion multiplanar pueden ser mas precisos, y que no hay evidencia fuerte para recomendarlos.'
+  },
   'oai-ref': { ancho: 360, dyn: function () { return _otrRefClon('ref-oai') } },
   'ai-card': { ancho: 348, dyn: function () { return evTarjetaAI() } },
   'vi-card': { ancho: 360, dyn: function () { return evTarjetaVI() } },
@@ -50297,6 +50322,19 @@ function generarInforme(opts) {
        `<select>` de tres estados `pericardio_hemo`. Sin consignar, la oracion no dice nada —no
        se afirma ni que lo haya ni que no—. Y no sale cuando el modulo de derrame/taponamiento es
        el que describe el derrame, porque entonces esta oracion no se emite. */
+    /* ══ EL PAPEL DICE «DERRAME PERICARDICO» (CORTOS13, 2026-10-17) ══════════════════════════
+       DECISION DE MAICOL. El `<select>` guarda «Derrame severo (>20mm)» y el informe FIRMADO
+       imprimia ese token tal cual, asi que la oracion decia «Derrame severo (>20mm).» sin nombrar
+       el pericardio: en un informe de ecocardiograma, al lado del derrame PLEURAL del modulo
+       pulmonar, «Derrame severo» no dice de que derrame habla.
+       ⚠️ EL `value` DEL SELECTOR NO SE TOCA. Es lo que viaja en `campos`, lo que exporta el Excel
+       («Pericardio») y lo que leen los estudios guardados: cambiarlo dejaria a cada uno con un
+       valor que su propio selector ya no ofrece. Lo que se cambia es como se ESCRIBE en el papel,
+       y lo hace un dueño unico que leen el cuerpo del informe y el EN SUMA.
+       ⚠️ «Engrosamiento / calcificación» NO SE TOCA y se declara: no empieza con «Derrame», asi
+       que esta funcion lo devuelve igual. Nombrarle el pericardio es redactar una frase clinica
+       que esta orden no autoriza. `docs/PENDIENTES.md`. */
+    const _periTxt = (t) => String(t || '').replace(/^Derrame/, 'Derrame pericárdico');
     const _periHemo = (function(){
       const h = sv('pericardio_hemo');
       return h === 'si' ? ', con compromiso hemodinámico'
@@ -50309,12 +50347,12 @@ function generarInforme(opts) {
     } else if (_dptDescribe) {
       /* El derrame lo describe el modulo, con su cuantificacion y su valoracion hemodinamica. */
       sPeri = '';
-      if (!_dptManda) suma.push(peri + '.');
+      if (!_dptManda) suma.push(_periTxt(peri) + '.');
     } else {
-      sPeri = estiloPick(peri + _periHemo + '.', peri + _periHemo + '.',
-                         'Se observa ' + peri.toLowerCase() + _periHemo +
+      sPeri = estiloPick(_periTxt(peri) + _periHemo + '.', _periTxt(peri) + _periHemo + '.',
+                         'Se observa ' + _periTxt(peri).toLowerCase() + _periHemo +
                          '; hallazgo que requiere correlación clínica y control evolutivo.');
-      if (!_dptManda) suma.push(peri + '.');
+      if (!_dptManda) suma.push(_periTxt(peri) + '.');
     }
     if (hayMasa) {
       const _mtam = (document.getElementById('masa_tam_mm') || {}).value || '';
@@ -79441,6 +79479,7 @@ function pulBasicoUI() {
   on('pul-derrame-tam-wrap', der); on('pul-derrame-balik-wrap', der);
   on('pul-derrame-lado-wrap', der);
   on('pul-lineasb-pat-wrap', _amV('pul_lineasb') === 'si');
+  on('pul-lineasb-sep-wrap', _amV('pul_lineasb') === 'si');
   on('pul-consol-nota-wrap', _amV('pul_consolidacion') === 'si');
 }
 window.pulBasicoUI = pulBasicoUI;
@@ -79516,12 +79555,19 @@ function pulBasicoTexto() {
     const tam = _amV('pul_derrame_tam') || 'mínimo';
     /* ⚠️ EL LADO VA ANTES DEL TAMAÑO, que es donde lo pone el módulo avanzado («Derrame pleural
        bilateral, de aspecto libre…»). Sin consignar, la oración queda IDENTÉNTICA a la de hoy.
-       ⚠️ LA FÓRMULA DE BALIK NO SE TOCÓ NI SE CITÓ: ya estaba implementada (`_balikVol`, ml = mm
-       × 20) y ya se publicaba. La orden pedía verificarla en la biblioteca con folio y NO
-       escribirla de memoria si no está: censada la biblioteca entera, no hay ningún documento
-       que la contenga —lo que sí hay es el método de Capper (área de sección × longitud axial),
-       que es otro y necesitaría campos que no existen—. Así que la fuente queda SIN VERIFICAR y
-       declarada en PENDIENTES; lo que se reusa es lo que la app ya calculaba. */
+       ⚠️ LA FORMULA DE BALIK YA TIENE FUENTE VERIFICADA (CORTOS13, 2026-10-17), y cierra `Y3b-5`.
+       La tanda del 16/10 la declaro sin fuente porque censo la biblioteca buscando el articulo
+       original de Balik; lo que si esta es una GUIA que publica la formula y su alcance:
+       «International evidence-based recommendations for point-of-care lung ultrasound — 2025
+       focused update» (Volpicelli et al, Intensive Care Med 2026,
+       DOI 10.1007/s00134-026-08487-2), enunciado **D6_11**, hoja 19 del PDF, literal: «The
+       following formula can be used to estimate the approximate volume (V): V (ml) = D (mm) x 20.
+       This formula has been validated in critically ill patients in intensive care units
+       undergoing invasive ventilation.» Es exactamente lo que la app calcula (`_balikVol`,
+       ml = mm x 20) y NO se movio ni un numero. Ese documento es online-first y no tiene folio
+       impreso, asi que se cita por enunciado y hoja.
+       El ALCANCE —validada en pacientes criticos bajo ventilacion invasiva— va en el globo de su
+       campo, que es donde el medico lo necesita. */
     const lado = _amV('pul_derrame_lado') || '';
     // Balik en mm; el volumen aproximado es mm x 20 en ml.
     const bk = PF(_amV('pul_balik'));
@@ -79542,8 +79588,14 @@ function pulBasicoTexto() {
        tres o más indican edema o enfermedad intersticial y NO menciona ninguna separación en
        milímetros. El selector sigue ofreciendo focal y difuso, como hasta hoy. */
     const pat = _amV('pul_lineasb_pat') || 'focal';
+    /* La separacion sale de la `<option>` elegida —el texto del papel vive una sola vez— y se
+       suma a la MISMA oracion. Sin consignar, la frase es la de siempre. */
+    const _sepEl = document.getElementById('pul_lineasb_sep');
+    const _sep = (_sepEl && _sepEl.value)
+      ? String((_sepEl.options[_sepEl.selectedIndex] || {}).textContent || '').trim() : '';
     // "distribución" es femenino: difusa / focal, no "difuso".
-    frases.push('Líneas B de distribución ' + (pat === 'difuso' ? 'difusa' : 'focal') + '.');
+    frases.push('Líneas B de distribución ' + (pat === 'difuso' ? 'difusa' : 'focal')
+                + (_sep ? ', con ' + _sep : '') + '.');
     suma.push(pat === 'difuso' ? 'Edema pulmonar intersticial.' : 'Líneas B focales.');
   }
   if (_amV('pul_consolidacion') === 'si') {
