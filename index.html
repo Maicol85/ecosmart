@@ -22604,20 +22604,20 @@ const EV_REG = Object.freeze([
   /* ── AURICULA DERECHA Y VENA CAVA INFERIOR ──────────────────────────────────── */
   Object.freeze({
     id: 'DIM-AD-001', zona: 'VD/AD — Aurícula derecha', dato: 'Área de la aurícula derecha en cuatro cámaras',
-    valor: 'Normal hasta 18 cm2; dilatada por encima de 18. Un solo corte para los dos sexos',
-    duenio: 'adAreaCat / UMBRAL_AD_AREA_NORMAL',
+    valor: 'Normal por debajo de 19 cm2; dilatación leve de 19 a 22; moderada por encima de 22 y hasta 24; severa por encima de 24. Un solo corte para los dos sexos',
+    duenio: 'adAreaCat / ASE25_T1.ad_area',
     guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1', folio: '145', hoja_pdf: 5,
     doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
-    estado: 'parcial', fecha_verificacion: EV_FECHA_VER,
+    estado: 'verificado', fecha_verificacion: EV_FECHA_VS,
     fuente_una_linea: 'ASE 2025 (Mukherjee), Tabla 1 (folio 145)',
   }),
   Object.freeze({
     id: 'VCI-001', zona: 'VD/AD — Vena cava inferior', dato: 'Diámetro de la vena cava inferior',
-    valor: 'La aplicación la trata como dilatada desde 21 mm',
+    valor: 'Normal con 21 mm o menos; dilatada por encima de 21. Un solo corte para los dos sexos',
     duenio: 'pmadEstimar / VCI_DIAM_DILATADA_MIN',
     guia: EV_GUIA_ASE2025VD, ubicacion: 'Presión auricular derecha', folio: '160', hoja_pdf: 20,
     doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
-    estado: 'parcial', fecha_verificacion: EV_FECHA_VER,
+    estado: 'verificado', fecha_verificacion: EV_FECHA_VS,
     fuente_una_linea: 'ASE 2025 (Mukherjee), Presión auricular derecha (folio 160)',
   }),
   Object.freeze({
@@ -24364,7 +24364,16 @@ window.ipApDiamSync = ipApDiamSync;
 /* Área de la AD en 4 cámaras: ≤18 cm² normal (ASE). Estaba como literal en `calcAD` y otro
    literal igual en el informe narrativo — dos copias del mismo corte, que es como la cápsula
    de pantalla y el informe firmado terminan discrepando. */
-const UMBRAL_AD_AREA_NORMAL = 18;  // cm²
+/* ⚠️ SE DERIVA DE LA TABLA 1 Y CAMBIA DE VALOR (VS4, 2026-10-17): la ASE 2025 pone el techo de
+   lo normal en `<19 cm2` y la app lo tenía en `<=18`, así que 18,x cm2 pasa de dilatada a
+   normal y 19,0 exactos pasan de dilatada a dilatación LEVE. Por encima ya no hay un solo
+   «dilatada» sino moderada (>22 y hasta 24) y severa (>24).
+   ⚠️ EL `adA > 18` DE `_htp2022Core` NO SE TOCA Y ES OTRA PREGUNTA, igual que el `vdBas > 41`
+   y el `vciD > 21` de su misma línea: ahí el área de la AD es un SIGNO de categoría C de la
+   probabilidad ecocardiográfica de hipertensión pulmonar de la ESC/ERS 2022, con el corte de
+   ESA tabla, y no un grado de tamaño de la ASE 2025. Mover un signo de categoría cambia `nCat`
+   y con él la probabilidad publicada. Queda declarado en `docs/PENDIENTES.md`. */
+const UMBRAL_AD_AREA_NORMAL = ase25Corte('ad_area', 'normal');  // cm² — normal `<` (ASE 2025, Tabla 1 folio 145)
 window.UMBRAL_AD_AREA_NORMAL = UMBRAL_AD_AREA_NORMAL;
 /* La MISMA comparacion que hacia `calcAD` en su cuerpo, movida a funcion propia y PURA: la
    tarjeta i de esta tanda tiene que preguntarle al dueno por un valor cualquiera, y `calcAD`
@@ -24372,7 +24381,7 @@ window.UMBRAL_AD_AREA_NORMAL = UMBRAL_AD_AREA_NORMAL;
 function adAreaCat(x) {
   const n = (typeof PF === 'function') ? PF(x) : parseFloat(x);
   if (n == null || !isFinite(n) || !n) return null;
-  return (n <= UMBRAL_AD_AREA_NORMAL) ? 'normal' : 'dilatada';
+  return ase25Grado('ad_area', n);
 }
 window.adAreaCat = adAreaCat;
 function vdBasCat(vd) {
@@ -24656,10 +24665,8 @@ function calcVD() {
 function calcAD() {
   const ad = v('ad_area');
   if (!ad) return;
-  let t = adAreaCat(ad) === 'normal'
-    ? badge('green',  `Normal (≤${UMBRAL_AD_AREA_NORMAL}cm²)`)
-    : badge('yellow', `Dilatada (>${UMBRAL_AD_AREA_NORMAL}cm²)`);
-  document.getElementById('ad-interp').innerHTML = t;
+  document.getElementById('ad-interp').innerHTML =
+    vdBadgeGrado('ad_area', ad, adAreaCat(ad), 'cm²', 'dilatación');
   if (typeof calcHTP2022 === 'function') calcHTP2022();
 }
 
@@ -24938,17 +24945,31 @@ window.calcHTP2022 = calcHTP2022;
    enlarged IVC diameter that does not collapse <50% with a sniff suggests an elevated RAP
    (15 mm Hg)… In indeterminate cases, an intermediate value of 8 mm Hg…»— y su Key Point:
    «RAP values of 3, 8, or 15 mm Hg are assigned using an IVC diameter cutoff of 2.1 cm».
-   ⚠️ EL DIAMETRO LO APLICA LA APP CON `< 21` y la guia escribe «normal <= 2,1 cm», asi que a
-   21,0 mm EXACTOS la app ya lo trata como dilatado. No se movio. */
-const VCI_DIAM_DILATADA_MIN = 21;   // mm
+   ⚠️ EL OPERADOR SE ALINEO A LA GUIA (VS4, 2026-10-17). La app aplicaba `< 21` como «normal»,
+   asi que a 21,0 mm EXACTOS la trataba como DILATADA; el folio 160 escribe, literal, «A normal
+   IVC diameter is <=2.1 cm». Desde este commit lo normal es `<= 21` y la dilatacion empieza por
+   encima. El VALOR no se movio: lo que cambia es de que lado cae el 21 exacto, que es un numero
+   que se tipea entero.
+   ⚠️ Y ESO MUEVE LA PmAD EN UN VALOR: con 21,0 mm y colapso mayor del 50 % la presion pasa de 8
+   a 3 mmHg, y sin colapso de 15 a 8. La PSAP estimada, que es `4 x VRT^2 + PmAD`, baja 5 mmHg en
+   esas dos escenas.
+   ⚠️ EL `vciD > 21` DE `_htp2022Core` NO SE TOCA Y ES OTRA PREGUNTA: ahi el diametro es un SIGNO
+   de categoria C de la probabilidad de hipertension pulmonar de la ESC/ERS 2022, con el corte de
+   ESA tabla. Da la casualidad de que el numero coincide y el operador tambien queda igual.
+   ⚠️ LA GUIA TIENE UNA QUINTA CATEGORIA QUE LA APP NO IMPLEMENTA, y queda declarada: «In cases in
+   which the IVC is markedly enlarged (>2.5 cm) without respirophasic variation and evidence of
+   spontaneous echo contrast or color flow reflux, a value of 20 mm Hg can be considered» (folio
+   160). La app no tiene campo para el contraste espontaneo ni para el reflujo de color, asi que
+   los dos insumos que esa categoria pide no existen. `docs/PENDIENTES.md`. */
+const VCI_DIAM_DILATADA_MIN = 21;   // mm — normal `<=` (ASE 2025, Presion auricular derecha, folio 160)
 window.VCI_DIAM_DILATADA_MIN = VCI_DIAM_DILATADA_MIN;
 function pmadEstimar(diam, col) {
   const d = (typeof PF === 'function') ? PF(diam) : parseFloat(diam);
   const c = (col === null || col === undefined) ? '' : String(col);
   if (d == null || !isFinite(d) || !d || !c) return null;
-  if (d <  VCI_DIAM_DILATADA_MIN && c === '>50') return { pmad: 3,  interp: '3 mmHg (normal)',            fila: 'nor-col' };
-  if (d <  VCI_DIAM_DILATADA_MIN && c === '<50') return { pmad: 8,  interp: '8 mmHg (levemente elevada)', fila: 'nor-sin' };
-  if (d >= VCI_DIAM_DILATADA_MIN && c === '>50') return { pmad: 8,  interp: '8 mmHg (levemente elevada)', fila: 'dil-col' };
+  if (d <= VCI_DIAM_DILATADA_MIN && c === '>50') return { pmad: 3,  interp: '3 mmHg (normal)',            fila: 'nor-col' };
+  if (d <= VCI_DIAM_DILATADA_MIN && c === '<50') return { pmad: 8,  interp: '8 mmHg (levemente elevada)', fila: 'nor-sin' };
+  if (d >  VCI_DIAM_DILATADA_MIN && c === '>50') return { pmad: 8,  interp: '8 mmHg (levemente elevada)', fila: 'dil-col' };
   return                                                { pmad: 15, interp: '15 mmHg (elevada)',          fila: 'dil-sin' };
 }
 window.pmadEstimar = pmadEstimar;
@@ -39753,7 +39774,10 @@ function _evVciTabla(actual) {
   const rotCol = {};
   ops.forEach(function (o) { rotCol[o.value] = String(o.textContent || o.value).trim(); });
   const dNor = (typeof VCI_DIAM_DILATADA_MIN === 'number') ? VCI_DIAM_DILATADA_MIN : 21;
-  const rotD = { nor: 'Menos de ' + dNor + ' mm', dil: dNor + ' mm o más' };
+  /* ⚠️ LOS DOS ROTULOS SIGUEN AL OPERADOR DEL DUENO (VS4, 2026-10-17): `pmadEstimar` pasó de
+     `< 21` a `<= 21` para lo normal, así que la tabla ya no puede decir «21 mm o más» sobre una
+     fila que la app clasifica como diámetro NORMAL. */
+  const rotD = { nor: dNor + ' mm o menos', dil: 'Más de ' + dNor + ' mm' };
   const casos = [
     { d: 'nor', c: '>50', dv: dNor - 3 }, { d: 'nor', c: '<50', dv: dNor - 3 },
     { d: 'dil', c: '>50', dv: dNor + 3 }, { d: 'dil', c: '<50', dv: dNor + 3 },
@@ -46466,14 +46490,23 @@ function generarInforme(opts) {
   {
     const adArea = v('ad_area');
     if (adArea) {
-      const adDil = adArea > UMBRAL_AD_AREA_NORMAL;
-      inf.push(`Aurícula derecha ${adDil ? 'dilatada' : 'de dimensiones normales'} (área ${adArea} cm²).`);
+      /* ⚠️ EL GRADO SALE DEL MISMO DUENO QUE LA CAPSULA (VS4, 2026-10-17). Acá vivía una SEGUNDA
+         comparación contra la constante —`adArea > UMBRAL_AD_AREA_NORMAL`— al lado de la de
+         `adAreaCat`: dos copias del mismo corte, que es como la pantalla y el papel firmado
+         terminan discrepando. El vocabulario es el que la app ya usa para la aurícula izquierda
+         y no se inventa ninguna palabra. */
+      const _adG = adAreaCat(adArea);
+      const _adTxt = { normal:'de dimensiones normales', leve:'levemente dilatada',
+                       moderada:'moderadamente dilatada', severa:'severamente dilatada' }[_adG]
+                     || 'de dimensiones normales';
+      const adDil = _adG !== null && _adG !== 'normal';
+      inf.push(`Aurícula derecha ${_adTxt} (área ${adArea} cm²).`);
       /* La AD dilatada llegaba al informe narrativo y NO al En Suma, mientras la AI dilatada sí
          entraba. Misma regla para las dos: la dilatación auricular es un hallazgo y va a la
          conclusión. El rótulo sigue la forma que ya usa la AI —sigla + grado + el valor entre
          paréntesis—, no «Dilatación auricular derecha», para que las dos líneas se lean iguales
          cuando aparecen juntas. */
-      if (adDil) suma.push(`AD dilatada (área ${adArea} cm²).`);
+      if (adDil) suma.push(`AD ${_adTxt} (área ${adArea} cm²).`);
     } else {
       inf.push('Aurícula derecha no valorada.');
     }
@@ -56162,8 +56195,14 @@ function generarPDFReal(_aj) {
       {lbl:'Vol. indexado',ref:'<=' + UMBRAL_LAVI_DILATADO + ' ml/m2', val:aiIdx},
     ]},
     {titulo:'Aurícula Derecha / VCI', items:[
-      {lbl:'Área AD',     ref:'<18 cm2',  val:v('ad_area') ?v('ad_area') +' cm2':null},
-      {lbl:'Diám. VCI',   ref:'16-20 mm', val:v('vci_diam')?v('vci_diam')+' mm' :null},
+      /* ⚠️ LAS DOS REFERENCIAS SE DERIVAN DEL DUENO (VS4, 2026-10-17) y las dos cambian de
+         número: el área de la AD pasa de «<18» a «<19» (ASE 2025, Tabla 1) y el diámetro de la
+         VCI pasa de un rango «16-20 mm» a «<=21 mm», que es lo que la guía escribe —«A normal
+         IVC diameter is <=2.1 cm», folio 160— y lo que la app aplica desde este commit. El
+         rango viejo le ponía a lo normal un PISO que ninguna guía da, y contradecía a la propia
+         app sobre el 21 exacto. */
+      {lbl:'Área AD',     ref:'<' + UMBRAL_AD_AREA_NORMAL + ' cm2',  val:v('ad_area') ?v('ad_area') +' cm2':null},
+      {lbl:'Diám. VCI',   ref:'<=' + VCI_DIAM_DILATADA_MIN + ' mm',  val:v('vci_diam')?v('vci_diam')+' mm' :null},
       /* ⚠️ EL COLAPSO LLEVA SU UNIDAD (H2, 2026-10-16). El `<select>` guarda los tokens «>50»
          y «<50» y el papel firmado los imprimía PELADOS, al lado de un diámetro que sí dice
          «mm»: un «>50» sin unidad en un informe clínico se lee como lo que el lector suponga.

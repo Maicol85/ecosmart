@@ -503,6 +503,50 @@ async function main() {
     out.grupos.tam = g; parcial('tam', t0);
   }
 
+  /* ── grupo ad: area de la auricula derecha, por los bordes EXACTOS ── */
+  if (corre('ad')) {
+    const t0 = Date.now(); const g = {};
+    const RE_AD = 'AD|aur[ií]cula derecha';
+    for (const v of [17, 18, 18.9, 19, 22, 22.1, 24, 24.1, 27]) {
+      try {
+        await escena({ ad_area: String(v) });
+        const r = await leer(RE_AD);
+        g[String(v)] = { cap: r.caps['ad-interp'], duenio: await ev(`window.__P.duenio('adAreaCat', ${v})`),
+          inf: r.txt.estandar.inf, suma: r.txt.estandar.suma,
+          conc: r.txt.conciso.inf, narr: r.txt.narrativo.inf, htp: r.otros.htp };
+      } catch (e) { g[String(v)] = { ABORTO: e.message }; abortos.push('ad ' + v + ': ' + e.message); }
+    }
+    out.grupos.ad = g; parcial('ad', t0);
+  }
+
+  /* ── grupo vci: vena cava inferior por su borde, contra la PmAD y la PSAP ── */
+  if (corre('vci')) {
+    const t0 = Date.now(); const g = {};
+    for (const d of [20, 21, 21.1, 22]) {
+      for (const c of ['>50', '<50']) {
+        const k = d + ' ' + c;
+        try {
+          await escena({ vci_diam: String(d), vci_col: c, vmax_it: '3.0' });
+          g[k] = { pmad: await ev("window.__P.val('pmad')"),
+                   cap: await ev("window.__P.cap('pmad-interp')"),
+                   psap: await ev("window.__P.val('psap_calc')"),
+                   inf: await J(`JSON.stringify(window.__P.lineas('estandar', 'VCI'))`) };
+        } catch (e) { g[k] = { ABORTO: e.message }; abortos.push('vci ' + k + ': ' + e.message); }
+      }
+    }
+    /* La tabla de la tarjeta lee del mismo dueno: sus cuatro filas y sus dos rotulos. */
+    try {
+      g.tabla = await J(`JSON.stringify((function(){
+        var box = document.createElement('div');
+        if (typeof _evVciTabla !== 'function') return { err:'SIN FN' };
+        box.appendChild(_evVciTabla('nor-col'));
+        return { txt: String(box.textContent||'').trim(),
+                 filas: Array.prototype.slice.call(box.querySelectorAll('[data-ev-fila]')).map(function(tr){
+                   return String(tr.textContent||'').trim() }) } })())`);
+    } catch (e) { g.tabla = { ABORTO: e.message }; abortos.push('vci tabla: ' + e.message); }
+    out.grupos.vci = g; parcial('vci', t0);
+  }
+
   out.md5_despues = await md5(EXTERNO ? FARG : join(RAIZ, 'index.html'));
   out.index_intacto = out.md5_antes === out.md5_despues;
   out.segundos = +((Date.now() - t00) / 1000).toFixed(1);
