@@ -20877,23 +20877,6 @@ function showTab(id) {
 // ASE 2019: FEVI normal ≥50%
 // Nota: ESC usa ≥55% — se eligió ASE ≥50% para mayor sensibilidad diagnóstica
 const UMBRAL_FEVI_NORMAL = 50;   // %  (FEVI ≥50 = normal)
-const UMBRAL_TAPSE_NORMAL = 17;  // mm (TAPSE ≥17 = normal)
-/* ══ LOS DOS CORTES DEL VD QUE VIVIAN COMO LITERAL DENTRO DE `calcVD` (M1, 2026-10-16) ═══
-   `sp >= 9.5` y `tap < 105` estaban escritos a mano en el cuerpo de la funcion. Mientras la
-   unica superficie que los aplicaba era esa capsula, un literal alcanzaba; desde que la
-   tarjeta i de esta tanda los tiene que DIBUJAR, dejarlos ahi obligaba a escribir el mismo
-   numero una segunda vez en el dibujo, que es exactamente el defecto que este archivo ya pago
-   cuatro veces. El valor no se movio ni un decimal.
-   · ONDA S' del anillo tricuspideo, ASE/EACVI 2015 (Lang), folio 20: «An S' velocity
-     < 9.5 cm/sec measured on the free-wall side indicates RV systolic dysfunction», o sea que
-     normal es `>= 9.5`, que es el operador que la app ya aplicaba.
-   · TIEMPO DE ACELERACION PULMONAR, ASE 2025 (Mukherjee), Tabla 1, folio 145, fila
-     `RVOT AccT, ms`: normal `> 105`. La app lo aplica como `< 105` = elemento indirecto de
-     HTP, asi que el 105 EXACTO cae del lado normal en la app y del lado leve en esa tabla. */
-const UMBRAL_SPRIME_NORMAL = 9.5;  // cm/s — normal `>=` (ASE/EACVI 2015, folio 20)
-const UMBRAL_TAP_HTP       = 105;  // ms   — elemento indirecto de HTP con `<` (ASE 2025, Tabla 1 folio 145)
-window.UMBRAL_SPRIME_NORMAL = UMBRAL_SPRIME_NORMAL;
-window.UMBRAL_TAP_HTP = UMBRAL_TAP_HTP;
 /* ══ LA TABLA 1 DE LA ASE 2025 — DUEÑO ÚNICO DE LOS CORTES DEL CORAZÓN DERECHO (VS1) ═══════
    FUENTE ÚNICA: Mukherjee M, Rudski LG, y col. «Guidelines for the Echocardiographic
    Assessment of the Right Heart in Adults and Special Considerations in Pulmonary
@@ -21018,6 +21001,38 @@ function ase25Rango(clave, g, conUnidad) {
   return txt + (conUnidad && t.u ? ' ' + t.u : '');
 }
 window.ase25Rango = ase25Rango;
+/* El VALOR del corte de una banda, para las constantes que ya existian y ahora se DERIVAN de
+   la tabla en vez de repetir su numero. Devuelve `null` cuando la banda no tiene corte propio
+   (la ultima de cada fila). */
+function ase25Corte(clave, g) {
+  const t = ASE25_T1[clave];
+  if (!t) return null;
+  const b = t.bandas.find((x) => x.g === g);
+  return (b && typeof b.v === 'number') ? b.v : null;
+}
+window.ase25Corte = ase25Corte;
+/* El color del badge por grado, el MISMO reparto que `AO_BADGE_COLOR` ya usa para los cinco
+   segmentos de la aorta y que `EV_COLOR` usa para las barras de las tarjetas. Vive acá, al lado
+   del evaluador, porque desde el VS2 lo consumen las cápsulas del cuadro del VD y de la AD. */
+const ASE25_BADGE = Object.freeze({ normal:'green', leve:'yellow', moderada:'orange', severa:'red' });
+window.ASE25_BADGE = ASE25_BADGE;
+/* ⚠️ LOS DOS CORTES DEL VD SE MUDARON ACA Y PASARON A DERIVARSE (VS2, 2026-10-17). Estaban
+   declarados unas lineas MAS ARRIBA, antes de la tabla, asi que derivarlos en su sitio era un
+   ReferenceError por zona muerta de `const`. El VALOR no se movio ni un decimal —17 mm y
+   9,5 cm/s son los mismos de la ASE/EACVI 2015 y los que la Tabla 1 de la ASE 2025 vuelve a
+   publicar como limite de lo normal— y lo que cambia es QUIEN los define: hoy son el corte de
+   la banda `normal` de su fila, asi que no hay un segundo numero que se pueda desincronizar.
+   ⚠️ EL OPERADOR SI SE MOVIO, y es el cambio de esta tanda: la Tabla 1 escribe `>1.7` y `>9.5`
+   para lo NORMAL, asi que el valor EXACTO del corte cae del lado de la disfuncion LEVE. La app
+   aplicaba `>=` en los dos. 17 mm y 9,5 cm/s son valores que se tipean enteros.
+   · TIEMPO DE ACELERACION PULMONAR: la Tabla 1 lo gradua y la app no —esta orden lo deja como
+     esta—, asi que `UMBRAL_TAP_HTP` NO entra en la tabla y conserva su `<` de siempre. */
+const UMBRAL_TAPSE_NORMAL  = ase25Corte('tapse', 'normal');     // mm   — normal `>` (ASE 2025, Tabla 1 folio 145)
+const UMBRAL_SPRIME_NORMAL = ase25Corte('s_prime', 'normal');   // cm/s — normal `>` (ASE 2025, Tabla 1 folio 145)
+const UMBRAL_TAP_HTP       = 105;  // ms   — elemento indirecto de HTP con `<` (ASE 2025, Tabla 1 folio 145)
+window.UMBRAL_TAPSE_NORMAL  = UMBRAL_TAPSE_NORMAL;
+window.UMBRAL_SPRIME_NORMAL = UMBRAL_SPRIME_NORMAL;
+window.UMBRAL_TAP_HTP = UMBRAL_TAP_HTP;
 /* Assert de arranque: cada fila tiene que producir los CUATRO grados, en orden de gravedad, y
    sin hueco ni solape. Sin esto, un operador mal tipeado deja una banda inalcanzable —o dos
    pisadas— y el único síntoma es una categoría que nunca aparece, que se lee igual que «este
@@ -22439,6 +22454,10 @@ const EV_DOI_ASE2005  = '10.1016/j.echo.2005.10.005';
 const EV_GUIA_ESC2021IC = 'McDonagh TA y col., Guía ESC 2021 sobre el diagnóstico y tratamiento de la insuficiencia cardiaca aguda y crónica (traducción de la Sociedad Española de Cardiología)';
 const EV_DOI_ESC2021IC  = '10.1016/j.recesp.2021.11.012';
 const EV_FECHA_VER    = '2026-10-16';
+/* La fecha de verificacion de la tanda VS: las fichas del corazon derecho y de la aorta se
+   volvieron a leer contra el PDF original el 17/10/2026. Convive con la del M porque una ficha
+   que no se releyo no puede decir que se releyo. */
+const EV_FECHA_VS     = '2026-10-17';
 
 const EV_REG = Object.freeze([
   /* ── AURICULA IZQUIERDA ────────────────────────────────────────────────────────────────── */
@@ -22650,35 +22669,35 @@ const EV_REG = Object.freeze([
   /* ── VENTRICULO DERECHO — FUNCION ─────────────────────────────────────── */
   Object.freeze({
     id: 'FUN-VD-001', zona: 'VD/AD — Ventrículo derecho', dato: 'Excursión sistólica del anillo tricuspídeo (TAPSE)',
-    valor: 'Normal con 17 mm o más; por debajo de 17, disfunción sistólica. Un solo corte para los dos sexos',
-    duenio: 'vdTapseCat / UMBRAL_TAPSE_NORMAL',
-    guia: EV_GUIA_ASE2015, ubicacion: 'Sección 8.2', folio: '19', hoja_pdf: 19,
-    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guía',
-    estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
-    fuente_una_linea: 'ASE/EACVI 2015, sección 8.2 (folio 19)',
+    valor: 'Normal por encima de 17 mm; disfunción leve de 17 a 13; moderada por debajo de 13 y por encima de 10; severa con 10 mm o menos. Un solo corte para los dos sexos',
+    duenio: 'vdTapseCat / ASE25_T1.tapse',
+    guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1', folio: '145', hoja_pdf: 5,
+    doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_VS,
+    fuente_una_linea: 'ASE 2025 (Mukherjee), Tabla 1 (folio 145)',
   }),
   Object.freeze({
     id: 'FUN-VD-002', zona: 'VD/AD — Ventrículo derecho', dato: 'Onda S′ del anillo tricuspídeo',
-    valor: 'Normal con 9,5 cm/s o más; por debajo de 9,5, disfunción sistólica. Un solo corte para los dos sexos',
-    duenio: 'vdSprimeCat / UMBRAL_SPRIME_NORMAL',
-    guia: EV_GUIA_ASE2015, ubicacion: 'Sección 8.4', folio: '20', hoja_pdf: 20,
-    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guía',
-    estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
-    fuente_una_linea: 'ASE/EACVI 2015, sección 8.4 (folio 20)',
+    valor: 'Normal por encima de 9,5 cm/s; disfunción leve de 9,5 a 7,2; moderada por debajo de 7,2 y por encima de 5,0; severa con 5,0 cm/s o menos. Un solo corte para los dos sexos',
+    duenio: 'vdSprimeCat / ASE25_T1.s_prime',
+    guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1', folio: '145', hoja_pdf: 5,
+    doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_VS,
+    fuente_una_linea: 'ASE 2025 (Mukherjee), Tabla 1 (folio 145)',
   }),
   Object.freeze({
     id: 'FUN-VD-003', zona: 'VD/AD — Ventrículo derecho', dato: 'Cambio fraccional de área (FAC)',
-    valor: 'Normal con 35 % o más; disfunción por debajo de 35; disfunción severa por debajo de 25. Un solo corte para los dos sexos',
-    duenio: 'vdFacCat / UMBRAL_FAC_VD_NORMAL y UMBRAL_FAC_VD_SEVERA',
-    guia: EV_GUIA_ASE2015, ubicacion: 'Sección 8.3', folio: '19', hoja_pdf: 19,
-    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guía',
-    estado: 'parcial', fecha_verificacion: EV_FECHA_VER,
-    fuente_una_linea: 'ASE/EACVI 2015, sección 8.3 (folio 19)',
+    valor: 'Normal por encima de 35 %; disfunción leve de 35 a por encima de 29; moderada de 29 a por encima de 22; severa con 22 % o menos. Un solo corte para los dos sexos',
+    duenio: 'vdFacCat / ASE25_T1.vd_fac',
+    guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1', folio: '145', hoja_pdf: 5,
+    doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_VS,
+    fuente_una_linea: 'ASE 2025 (Mukherjee), Tabla 1 (folio 145)',
   }),
   Object.freeze({
     id: 'FUN-VD-004', zona: 'VD/AD — Ventrículo derecho', dato: 'Fracción de eyección del VD por 3D',
-    valor: 'Normal por encima de 45 %; con 45 o menos, disfunción sistólica. Un solo corte para los dos sexos',
-    duenio: 'vdFevdCat / UMBRAL_FEVD_NORMAL',
+    valor: 'Normal por encima de 45 %; disfunción leve de 45 a por encima de 39; moderada de 39 a 32; severa por debajo de 32. Un solo corte para los dos sexos',
+    duenio: 'vdFevdCat / ASE25_T1.fevd',
     guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1', folio: '145', hoja_pdf: 5,
     doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
     estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
@@ -22686,8 +22705,8 @@ const EV_REG = Object.freeze([
   }),
   Object.freeze({
     id: 'FUN-VD-005', zona: 'VD/AD — Ventrículo derecho', dato: 'Índice de Tei por Doppler tisular',
-    valor: 'Normal por debajo de 0,55; con 0,55 o más, alterado. Es el corte del método por Doppler tisular; el del Doppler pulsado es 0,40 y no se aplica en este campo',
-    duenio: 'vdTeiCat / VD_TEI_DTI_ALT_MIN',
+    valor: 'Normal por debajo de 0,55; alteración leve de 0,55 a por debajo de 0,62; moderada de 0,62 a por debajo de 0,70; severa con 0,70 o más. Es el corte del método por Doppler tisular; el del Doppler pulsado es 0,40 y no se aplica en este campo',
+    duenio: 'vdTeiCat / ASE25_T1.vd_tei',
     guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1', folio: '145', hoja_pdf: 5,
     doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
     estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
@@ -23624,8 +23643,16 @@ const VD_BAS_LEVE_MAX   = 45;   // mm — 42-45 dilatación leve;  >45 dilatado
 /* FAC del VD (ASE 2015): <35 % es disfunción sistólica. El segundo corte —<25 %— lo usa el
    En Suma para llamarla severa; no está en la guía como banda formal, es el criterio con el
    que trabaja esta app y por eso vive acá y no repartido en literales. */
-const UMBRAL_FAC_VD_NORMAL = 35;   // %
-const UMBRAL_FAC_VD_SEVERA = 25;   // %
+/* ⚠️ LOS DOS SE DERIVAN DE LA TABLA 1 (VS2, 2026-10-17). El 35 % es el mismo de siempre y lo
+   que se mueve es su OPERADOR: la Tabla 1 escribe `>35` para lo normal, asi que una FAC de 35 %
+   EXACTOS es disfuncion LEVE. El 25 % de la disfuncion severa NO TENIA FUENTE —el comentario de
+   arriba lo declaraba como criterio de la app— y sale: la Tabla 1 corta la severa en `<=22`.
+   `UMBRAL_FAC_VD_SEVERA` es el PISO de la banda moderada, o sea el techo de la severa, y se
+   aplica con `<=` a traves de `ase25Grado`. Se conserva el nombre y el export porque el panel de
+   Evidencia los lee por `_indUmb` para comparar su propio corte de la Figura 15 contra el de
+   esta capsula; con los dos en 22 ya no discrepan. */
+const UMBRAL_FAC_VD_NORMAL = ase25Corte('vd_fac', 'normal');     // % — normal `>` (ASE 2025, Tabla 1 folio 145)
+const UMBRAL_FAC_VD_SEVERA = ase25Corte('vd_fac', 'moderada');   // % — severa `<=` (ASE 2025, Tabla 1 folio 145)
 /* FEVD por 3D (G1, 2026-10-15). ASE 2025, Tabla 1, folio 145, fila `3D RVEF, %`: **normal > 45**.
    ⚠️ EL OPERADOR ES `>` Y NO `>=`, y hasta hoy el comentario de al lado del campo decia «(>=45 %)».
    No gobernaba nada —la FEVD no se evaluaba en ninguna parte de la app— pero con el corte aplicado
@@ -23634,7 +23661,7 @@ const UMBRAL_FAC_VD_SEVERA = 25;   // %
    ⚠️ LA APP NO GRADUA LA FEVD aunque la Tabla 1 la gradue (`<=45 a <39` leve, `<=39 a >=32`
    moderada, `<32` severa): lo que esta orden pide es que la FILA aparezca con el dato, no una
    banda. Queda en `docs/PENDIENTES.md`. */
-const UMBRAL_FEVD_NORMAL = 45;     // % — normal `> 45`, ASE 2025 Tabla 1 folio 145
+const UMBRAL_FEVD_NORMAL = ase25Corte('fevd', 'normal');   // % — normal `>`, ASE 2025 Tabla 1 folio 145
 window.UMBRAL_FEVD_NORMAL = UMBRAL_FEVD_NORMAL;
 /* Exportados 2026-09-27: el panel de Evidencia los LEE por `_indUmb` —que resuelve sobre
    `window`— para poder decir que su corte de la Figura 15 (≤ 22 %) no es el de esta cápsula
@@ -23719,7 +23746,7 @@ window.VD_PARED_GRADOS = VD_PARED_GRADOS;
    y sólo al final `vd_vi`. */
 const VD_VI_HTP_MIN = 1.0;        // cociente — borde `>` (ESC/ERS 2022 Tabla 10 f. 28 · ASE 2025 Tabla 8 f. 173)
 window.VD_VI_HTP_MIN = VD_VI_HTP_MIN;
-const VD_TEI_DTI_ALT_MIN = 0.55;  // cociente — Tei por DTI alterado, borde `>=` (Tabla 1 folio 145 · texto folio 158)
+const VD_TEI_DTI_ALT_MIN = ase25Corte('vd_tei', 'leve');  // cociente — Tei por DTI alterado, borde `>=` (Tabla 1 folio 145 · texto folio 158)
 const VD_TEI_PW_ALT_MIN  = 0.40;  // cociente — el corte del Doppler PULSADO. Declarado y NO aplicado: el campo es DTI.
 window.VD_PARED_HVD_MIN   = VD_PARED_HVD_MIN;
 window.VD_TEI_DTI_ALT_MIN = VD_TEI_DTI_ALT_MIN;
@@ -23860,28 +23887,35 @@ window.vdViSelClic = vdViSelClic;
    comparacion por corte.
    ⚠️ LOS NOMBRES DE CATEGORIA SON LOS QUE EL DIBUJO COLOREA, no los del texto del informe: el
    texto lo sigue escribiendo cada capsula con sus propias palabras. */
+/* ⚠️ LAS CINCO PASAN A SER UNA LLAMADA AL DUENO (VS2, 2026-10-17). Devuelven los CUATRO grados
+   de la Tabla 1 —`normal` / `leve` / `moderada` / `severa`— donde antes devolvian dos o tres
+   nombres propios (`disfuncion`, `severa`, `alterado`). El corte y el operador ya no viven aca:
+   los pone `ASE25_T1`, que es la unica transcripcion de la tabla.
+   ⚠️ LA GUARDA `!n` SE CONSERVA EN LAS TRES QUE LA TENIAN. Un cero no es una medicion de TAPSE,
+   de onda S' ni de FEVD, y sin la guarda `ase25Grado` lo clasificaria `severa`: una afirmacion
+   sobre un campo que quedo en cero al corregir otra medida. La FAC y el indice de Tei no la
+   tenian y no se les agrega, que es como ya se comportaban. */
 function vdTapseCat(x) {
   const n = (typeof PF === 'function') ? PF(x) : parseFloat(x);
   if (n == null || !isFinite(n) || !n) return null;
-  return (n >= UMBRAL_TAPSE_NORMAL) ? 'normal' : 'disfuncion';
+  return ase25Grado('tapse', n);
 }
 function vdSprimeCat(x) {
   const n = (typeof PF === 'function') ? PF(x) : parseFloat(x);
   if (n == null || !isFinite(n) || !n) return null;
-  return (n >= UMBRAL_SPRIME_NORMAL) ? 'normal' : 'disfuncion';
+  return ase25Grado('s_prime', n);
 }
-/* La FAC tiene TRES bandas y la del medio no tiene nombre propio en la guia: la app la llama
-   «disfuncion» y a la de abajo «disfuncion severa». El corte de 25 % es de la app. */
+/* La FAC pasa de TRES bandas a CUATRO: la Tabla 1 le da leve, moderada y severa donde la app
+   tenia «disfuncion» y «disfuncion severa», y el 25 % sin fuente sale. */
 function vdFacCat(x) {
   const n = (typeof PF === 'function') ? PF(x) : parseFloat(x);
   if (n == null || !isFinite(n)) return null;
-  if (n >= UMBRAL_FAC_VD_NORMAL) return 'normal';
-  return (n < UMBRAL_FAC_VD_SEVERA) ? 'severa' : 'disfuncion';
+  return ase25Grado('vd_fac', n);
 }
 function vdFevdCat(x) {
   const n = (typeof PF === 'function') ? PF(x) : parseFloat(x);
   if (n == null || !isFinite(n) || !n) return null;
-  return (n > UMBRAL_FEVD_NORMAL) ? 'normal' : 'disfuncion';
+  return ase25Grado('fevd', n);
 }
 function vdTapCat(x) {
   const n = (typeof PF === 'function') ? PF(x) : parseFloat(x);
@@ -23900,8 +23934,22 @@ function vdParedCat(x) {
 function vdTeiCat(x) {
   const n = (typeof PF === 'function') ? PF(x) : parseFloat(x);
   if (n == null || !isFinite(n)) return null;
-  return (n >= VD_TEI_DTI_ALT_MIN) ? 'alterado' : 'normal';
+  return ase25Grado('vd_tei', n);
 }
+/* ══ EL BADGE DE UN PARAMETRO GRADUADO POR LA TABLA 1 (VS2, 2026-10-17) ══════════════════
+   Valor, categoria EN PALABRAS y el rango de SU banda, los tres del mismo dueno: el rango se le
+   pide a `ase25Rango`, que lo deriva de los operadores que el evaluador aplica, asi que el
+   numero publicado no puede quedar corrido del que decide. El color sale de `ASE25_BADGE`, el
+   mismo reparto de los cinco segmentos de la aorta.
+   ⚠️ EL COLOR NUNCA ES LO UNICO QUE INFORMA: la categoria va escrita al lado, con su rango. */
+function vdBadgeGrado(clave, val, g, unidad, nombreAnormal, sufijo) {
+  if (g === null || g === undefined) return '—';
+  const u = unidad ? ' ' + unidad : '';
+  const rango = ase25Rango(clave, g, true) + (sufijo || '');
+  const etq = (g === 'normal') ? 'normal' : (nombreAnormal + ' ' + g);
+  return badge(ASE25_BADGE[g] || 'red', val + u + ' — ' + etq + ' (' + rango + ')');
+}
+window.vdBadgeGrado = vdBadgeGrado;
 window.vdTapseCat = vdTapseCat; window.vdSprimeCat = vdSprimeCat; window.vdFacCat = vdFacCat;
 window.vdFevdCat = vdFevdCat;   window.vdTapCat = vdTapCat;       window.vdParedCat = vdParedCat;
 window.vdTeiCat = vdTeiCat;
@@ -23909,7 +23957,12 @@ function vdTeiEstado() {
   const x = v('vd_tei');
   /* El corte es el de DTI. `VD_TEI_PW_ALT_MIN` (0,40) es el del Doppler PULSADO y no entra acá:
      aplicar el método equivocado mueve el corte un 27 % sobre un informe firmado. */
-  return { val: x, alt: (x !== null) ? vdTeiCat(x) === 'alterado' : false };
+  /* ⚠️ `alt` ES «NO ES NORMAL» Y NO UNA CATEGORIA (VS2): desde que `vdTeiCat` devuelve los
+     cuatro grados de la Tabla 1, preguntar por la cadena «alterado» daba false en los tres
+     grados anormales y el indice de Tei dejaba de votar en el OR de la disfuncion sistolica,
+     en silencio. Se agrega el grado al lado para que la capsula no lo recalcule. */
+  const g = (x !== null) ? vdTeiCat(x) : null;
+  return { val: x, alt: (g !== null && g !== 'normal'), grado: g };
 }
 window.vdTeiEstado = vdTeiEstado;
 
@@ -24383,13 +24436,15 @@ function calcVD() {
         + dil.map(d => d.lblC + ' ' + d.val + ' mm (>' + d.max + ')').join(' · '));
     }
   }
+  /* ⚠️ LAS DOS FILAS SIGUEN SIN VOLVER A «—» AL BORRAR EL DATO: su `if` solo pinta. Es el
+     defecto V1 de `docs/PENDIENTES.md`, preexistente, y esta orden no lo nombra. */
   if (tapse) {
-    let t = vdTapseCat(tapse) === 'normal' ? badge('green','Normal (≥' + UMBRAL_TAPSE_NORMAL + 'mm)') : badge('red','Disfunción (< ' + UMBRAL_TAPSE_NORMAL + 'mm)');
-    document.getElementById('tapse-interp').innerHTML = t;
+    document.getElementById('tapse-interp').innerHTML =
+      vdBadgeGrado('tapse', tapse, vdTapseCat(tapse), 'mm', 'disfunción sistólica');
   }
   if (sp) {
-    let t = vdSprimeCat(sp) === 'normal' ? badge('green','Normal (≥' + UMBRAL_SPRIME_NORMAL + ' cm/s)') : badge('red','Disfunción (< ' + UMBRAL_SPRIME_NORMAL + ' cm/s)');
-    document.getElementById('sprime-interp').innerHTML = t;
+    document.getElementById('sprime-interp').innerHTML =
+      vdBadgeGrado('s_prime', sp, vdSprimeCat(sp), 'cm/s', 'disfunción sistólica');
   }
   /* FAC = (área telediastólica − área telesistólica) / telediastólica × 100. Se escribe el
      campo SIEMPRE que el par sea utilizable, y se BORRA cuando deja de serlo: si sólo se
@@ -24424,12 +24479,7 @@ function calcVD() {
         ? badge('yellow', 'Áreas no utilizables — la telesistólica debe ser mayor que cero y menor que la telediastólica')
         : '—';
     } else {
-      const _facC = vdFacCat(fac);
-      facInt.innerHTML = _facC === 'normal'
-        ? badge('green', `${fac}% — normal (≥${UMBRAL_FAC_VD_NORMAL}%)`)
-        : (_facC === 'severa'
-            ? badge('red',    `${fac}% — disfunción severa (<${UMBRAL_FAC_VD_SEVERA}%)`)
-            : badge('orange', `${fac}% — disfunción (<${UMBRAL_FAC_VD_NORMAL}%)`));
+      facInt.innerHTML = vdBadgeGrado('vd_fac', fac, vdFacCat(fac), '%', 'disfunción sistólica');
     }
   }
   /* ── PARED DEL VD — hipertrofia (ASE 2025, Tabla 1 folio 145: normal < 5 mm) ──
@@ -24476,9 +24526,7 @@ function calcVD() {
   const _teiEl = document.getElementById('vd-tei-interp');
   if (_teiEl) {
     if (_teiSt.val === null) _teiEl.textContent = '—';
-    else _teiEl.innerHTML = _teiSt.alt
-      ? badge('red',   `${_teiSt.val} — alterado (≥${VD_TEI_DTI_ALT_MIN} por DTI)`)
-      : badge('green', `${_teiSt.val} — normal (<${VD_TEI_DTI_ALT_MIN} por DTI)`);
+    else _teiEl.innerHTML = vdBadgeGrado('vd_tei', _teiSt.val, _teiSt.grado, '', 'alterado,', ' por DTI');
   }
   if (typeof vdTeiAvisoSync === 'function') vdTeiAvisoSync();
   /* ── FEVD por 3D (G1) — ASE 2025, Tabla 1 folio 145: normal > 45 % ──
@@ -24488,9 +24536,7 @@ function calcVD() {
   const _fevdEl = document.getElementById('fevd-interp');
   if (_fevdEl) {
     if (_fevd === null) _fevdEl.textContent = '—';
-    else _fevdEl.innerHTML = vdFevdCat(_fevd) === 'normal'
-      ? badge('green', `${_fevd}% — normal (>${UMBRAL_FEVD_NORMAL}%)`)
-      : badge('red',   `${_fevd}% — disfunción sistólica VD (≤${UMBRAL_FEVD_NORMAL}%)`);
+    else _fevdEl.innerHTML = vdBadgeGrado('fevd', _fevd, vdFevdCat(_fevd), '%', 'disfunción sistólica');
   }
   /* ── VOLUMEN SISTÓLICO PULMONAR (Qp) (G1) ──
      SIN badge de color y SIN corte: no hay un valor normal de Qp aislado, así que la fila
@@ -46136,16 +46182,30 @@ function generarInforme(opts) {
          degradar a «leve» un VD medio de 42 mm sería suavizar un hallazgo con la etiqueta de
          otro segmento. */
       const vdSoloLeve = vdDils.length === 1 && vdDils[0].k === 'vd_bas' && vdDils[0].cat === 'leve';
-      // Disfunción sistólica VD: TAPSE < 17 mm, S' < 9.5 cm/s y/o FAC < 35 % (ASE 2015)
-      const tapseBajo = tapse !== null ? tapse < UMBRAL_TAPSE_NORMAL : false;
-      const spBajo    = sp    !== null ? sp    < 9.5 : false;
-      const facBajo   = facVD !== null ? facVD < UMBRAL_FAC_VD_NORMAL : false;
+      /* ══ DISFUNCION SISTOLICA DEL VD — LA REGLA NO CAMBIA, LOS CORTES SI (VS2, 2026-10-17) ══
+         Sigue siendo un OR de los parametros MEDIDOS, y uno alcanza: ni el numero de parametros
+         alterados ni su peso se tocaron. Lo que cambia es de donde sale cada «esta alterado»:
+         de `vdTapseCat` / `vdSprimeCat` / `vdFacCat`, o sea de la Tabla 1 de la ASE 2025, en
+         vez de tres comparaciones escritas aca.
+         ⚠️ EL `sp < 9.5` ERA UN LITERAL, el ultimo corte de esta zona que vivia escrito a mano
+         en el informe FIRMADO: con la constante movida de valor, la pantalla y el papel se
+         habrian separado sin que nada lo delatara.
+         ⚠️ Y EL VALOR EXACTO DEL CORTE CAMBIA DE LADO EN LOS TRES: la Tabla 1 escribe `>1.7`,
+         `>9.5` y `>35` para lo NORMAL, asi que 17 mm, 9,5 cm/s y 35 % pasan a ser disfuncion
+         leve. La app aplicaba `>=` en los tres.
+         ⚠️ LA FEVD SIGUE SIN VOTAR, y es deliberado: nunca estuvo en este OR y meterla cambiaria
+         que escenas publican «disfuncion sistolica» en el informe firmado, que es la logica de
+         integracion que esta orden congela. Su grado vive en la fila del cuadro y en la tarjeta. */
+      const _vdAnorm = (g) => g !== null && g !== undefined && g !== 'normal';
+      const tapseBajo = tapse !== null ? _vdAnorm(vdTapseCat(tapse)) : false;
+      const spBajo    = sp    !== null ? _vdAnorm(vdSprimeCat(sp))   : false;
+      const facBajo   = facVD !== null ? _vdAnorm(vdFacCat(facVD))   : false;
       /* EL ÍNDICE DE TEI ES EL CUARTO PARÁMETRO, con la MISMA regla que los otros tres: la del
          VD no es «N alterados» sino un OR —cada uno cuenta sólo si está medido y uno alcanza—,
          así que el Tei se suma al OR y nada más. Un paciente SIN Tei cargado da exactamente lo
          mismo que antes, porque `teiAlt` queda en `false` igual que los otros tres.
          El corte es el de DTI (`>= 0,55`); el del Doppler pulsado NO se usa — ver la constante. */
-      const teiAlt    = teiVD !== null ? teiVD >= VD_TEI_DTI_ALT_MIN : false;
+      const teiAlt    = teiVD !== null ? _vdAnorm(vdTeiCat(teiVD))     : false;
       const vdDisf = tapseBajo || spBajo || facBajo || teiAlt;
 
       const tamTxt  = hayTam  ? (vdSoloLeve ? 'levemente dilatado'
@@ -46308,7 +46368,11 @@ function generarInforme(opts) {
       /* La FAC severa va como línea PROPIA y no reemplaza a la de arriba: la de arriba dice
          tamaño y función, ésta gradúa. Lleva el número porque es el que sostiene la palabra
          «severa» y sin él la afirmación no se puede auditar. */
-      if (facVD !== null && facVD < UMBRAL_FAC_VD_SEVERA) {
+      /* ⚠️ EL CORTE DE LA SEVERA PASA DE «< 25 %» A «<= 22 %» (VS2, 2026-10-17) y se lo pregunta
+         al dueno en vez de compararlo aca: el 25 % no tenia fuente —lo declaraba su propio
+         comentario— y la Tabla 1 de la ASE 2025 corta la banda severa en `<=22`. La FRASE no se
+         toca: lleva el numero porque es el que sostiene la palabra «severa». */
+      if (facVD !== null && vdFacCat(facVD) === 'severa') {
         suma.push(`Disfunción sistólica severa del VD (FAC ${facVD}%).`);
       }
     }
@@ -56090,8 +56154,12 @@ function generarPDFReal(_aj) {
     ]},
     {titulo:'Ventrículo Derecho', items:[
       {lbl:'TAP',         ref:'>105 ms',    val:vPdf('tvia',' ms')},
-      {lbl:'TAPSE',       ref:'>=' + UMBRAL_TAPSE_NORMAL + ' mm',     val:vPdf('tapse',' mm')},
-      {lbl:"S'",          ref:'>9.5 cm/s',  val:vPdf('s_prime',' cm/s')},
+      /* ⚠️ LAS REFERENCIAS IMPRESAS SIGUEN AL OPERADOR DEL DUENO (VS2, 2026-10-17): la Tabla 1
+         de la ASE 2025 da lo NORMAL con `>`, asi que el papel ya no puede decir «>=17 mm» sobre
+         una capsula que llama leve al 17 exacto. La de la onda S' ya decia «>9.5» y se deriva
+         para que no vuelva a quedar vieja sola. */
+      {lbl:'TAPSE',       ref:'>' + UMBRAL_TAPSE_NORMAL + ' mm',      val:vPdf('tapse',' mm')},
+      {lbl:"S'",          ref:'>' + UMBRAL_SPRIME_NORMAL + ' cm/s',   val:vPdf('s_prime',' cm/s')},
       /* Los tres diámetros con SU referencia (ASE 2015). El medio y el longitudinal se imprimían
          sin corte, así que el lector no tenía cómo saber que un VD medio de 42 mm está dilatado
          — y hasta este commit la app tampoco lo decía en el informe. */
@@ -56103,8 +56171,8 @@ function generarPDFReal(_aj) {
          normal en disfuncionante. La referencia del diámetro basal decía «<42 mm» mientras el
          código clasifica con «<=41»: el mismo borde escrito de dos formas, ahora derivado de la
          constante. */
-      {lbl:'FAC',         ref:'>=' + UMBRAL_FAC_VD_NORMAL + '%', val:vPdf('vd_fac','%')},
-      {lbl:'FEVD',        ref:'>=45%',       val:vPdf('fevd','%')},
+      {lbl:'FAC',         ref:'>' + UMBRAL_FAC_VD_NORMAL + '%', val:vPdf('vd_fac','%')},
+      {lbl:'FEVD',        ref:'>' + UMBRAL_FEVD_NORMAL + '%',   val:vPdf('fevd','%')},
       /* ⚠️ CON NÚMERO SALE EXACTAMENTE LO DE HEAD —`vPdf` con sus dos decimales y su marca
          «(revisar)»— y sólo cuando NO hay número el papel publica el tramo que eligió el
          médico (G3, 2026-10-15). `vdViTexto(true)` da la forma ASCII, que es la que esta
@@ -68370,10 +68438,11 @@ const VT_CRIT_2025 = Object.freeze({
      (`UMBRAL_TAPSE_NORMAL`, 17 mm) pero no el de disfunción SEVERA, que es el que las filas de
      esta tabla usan como exclusión. No se exportan como `UMBRAL_*`: la pantalla no los aplica, y
      nombrarlos así haría creer que sí.
-     ⚠️ La misma figura publica FAC ≤22 % para disfunción severa y la app usa 25 % en la cápsula
-     de la FAC (`UMBRAL_FAC_VD_SEVERA`). No se unifican ni se toca la cápsula: son dos
-     parámetros distintos y la FAC no entra acá por falta de banda. Si algún día entra, esa
-     diferencia hay que resolverla antes, no después. */
+     ⚠️ LA DIFERENCIA DE LA FAC SE CERRO SOLA (VS2, 2026-10-17). Esta figura publica FAC ≤22 %
+     para disfunción severa y la cápsula de la app usaba 25 % con `<`; desde que la cápsula
+     gradúa con la Tabla 1 de la ASE 2025 —que corta la severa en `<=22`— las dos escalas dicen
+     el MISMO número y el mismo operador. El aviso de abajo queda igual, apagado por la
+     aritmética y no por un borrado, para el día que una de las dos se mueva. */
   tapse_severa:  10,  // mm    — Figura 15: TAPSE < 10 mm
   sprime_severa: 6,   // cm/s  — Figura 15: S' tricuspídeo < 6 cm/s
   /* ⚠️ EL OPERADOR DE LA FAC ES `≤`, Y ES EL ÚNICO DE LA COLUMNA QUE LO USA: los otros cinco
@@ -68383,15 +68452,15 @@ const VT_CRIT_2025 = Object.freeze({
      glifos `≤` de toda la región caen en la fila de la FAC de cada caja. No es un desliz de
      transcripción: una FAC de exactamente 22 % ES disfunción severa. Se aplica con `_le`.
 
-     ⚠️ Y NO ES EL NÚMERO DE LA CÁPSULA DE LA PANTALLA. `UMBRAL_FAC_VD_SEVERA` vale 25 y gobierna
-     el badge de la FAC y el informe firmado; no se toca, porque moverlo cambiaría el grado
-     consignado en estudios ya firmados. Son dos preguntas distintas: la cápsula gradúa la FAC, y
-     esto es la EXCLUSIÓN de unas filas de recomendación. Misma situación que `ET_GMEDIO_SIGNIF`
-     con su `>=` frente al `>` de la guía. Entre 23 y 24 % las dos discrepan —la cápsula dice
-     severa y la guía no— y el panel lo NOMBRA cuando pasa, en vez de dejar dos escalas del mismo
-     dato sin avisar.
-     (De paso: la guía pone el corte de disfunción NO severa en `≤ 35`, y la app en `>= 35` normal,
-     así que una FAC de exactamente 35 también las separa. El panel no usa ese corte.) */
+     ⚠️ Y DESDE EL VS2 ES EL MISMO NÚMERO QUE EL DE LA CÁPSULA DE LA PANTALLA.
+     `UMBRAL_FAC_VD_SEVERA` valía 25 con `<` —criterio de la app, sin fuente— y hoy vale 22 con
+     `<=`, derivado de la Tabla 1 de la ASE 2025, que es la misma banda que esta figura escribe.
+     Las dos escalas coinciden en valor y en operador, así que `facDiscorda` es hoy
+     estructuralmente falso: no se borró el aviso, se quedó sin escenas. Son dos preguntas
+     distintas igual —la cápsula gradúa la FAC y esto es la EXCLUSIÓN de unas filas de
+     recomendación—, y el día que una se mueva el aviso vuelve solo.
+     (De paso: la guía pone el corte de disfunción NO severa en `≤ 35`, y la app pasó a `>35`
+     normal, así que ahí también coinciden. El panel no usa ese corte.) */
   fac_severa:    22   // %     — Figura 15: FAC ≤ 22 % (p. 4684 de EHJ 46(44))
 });
 const VT_REC_2025 = Object.freeze({
@@ -68468,8 +68537,10 @@ function _indVTDatos(){
      columna que lo es. Una FAC de exactamente 22 % ES disfunción severa. */
   const facSev = _le(fac, VT_CRIT_2025.fac_severa);
   const vdSev = _lt(t.val, VT_CRIT_2025.tapse_severa) || _lt(sp.val, VT_CRIT_2025.sprime_severa) || facSev;
-  /* La cápsula de la pantalla usa 25 y la guía 22: entre 23 y 24 las dos discrepan. El panel lo
-     nombra cuando pasa, en vez de dejar al médico con dos escalas del mismo dato sin aviso. */
+  /* ⚠️ DESDE EL VS2 LAS DOS ESCALAS COINCIDEN (22 % con `<=` en las dos), así que esto es hoy
+     estructuralmente falso y el aviso no tiene escenas. Se CONSERVA, y no se borra, por lo mismo
+     que existe: es el centinela de que la cápsula y la Figura 15 sigan diciendo lo mismo. El día
+     que una de las dos se mueva, el aviso vuelve sin que nadie tenga que volver a escribirlo. */
   const facDiscorda = fac != null && !facSev &&
     _lt(fac, _indUmb('UMBRAL_FAC_VD_SEVERA'));
   const vdMedido = t.val != null || sp.val != null || fac != null;
