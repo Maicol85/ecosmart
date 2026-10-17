@@ -5,7 +5,9 @@ las guías: el cociente VTI de la prótesis mitral, los dos bordes de la insufic
 protésica y el reverso diastólico de la TAVI. **No hay números de línea a propósito**: la línea
 cambia en cada edición, el nombre de la función no.
 
-Lo que este mapa NO cubre: el resto de la lógica protésica —`docs/mapa/protesis-valvular.md`—, los
+Lo que este mapa NO cubre: el resto de la lógica protésica —`docs/mapa/protesis-valvular.md`, con
+las tandas Z, Z5 y Z6 en `docs/mapa/protesis-z-z5-z6.md` (partición del 17/10) y la fuga
+paravalvular de la prótesis quirúrgica en `docs/mapa/protesis-fuga-pvl.md`—, los
 cortes nativos —`docs/mapa/valvulas.md`, `docs/mapa/aortica-cortes.md` y
 `docs/mapa/valvulas-constantes.md`— y los cambios nativos del 2026-10-17, que están en
 `docs/mapa/valvulas-val.md`.

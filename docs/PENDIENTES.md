@@ -3386,7 +3386,8 @@ No se tocó porque mueve la posición de una columna que esta orden no nombra.
 > MISMO dueño y el MISMO umbral que el DVI (`emContMotivoNoVota`, moderada o mayor). Cambian DOS
 > escenas: con IM moderada o severa el veredicto baja de «significativa» a «posible» y la línea
 > SALE del informe firmado. La velocidad pico sigue sin retirarse (Z5-2): no vota.
-> Ver `docs/mapa/protesis-valvular.md` → «La tanda Z6» y `docs/fuentes/FUENTES.md` → «La tanda Z6».
+> Ver `docs/mapa/protesis-z-z5-z6.md` → «La tanda Z6» (salió de `protesis-valvular.md` en la
+> partición del 17/10) y `docs/fuentes/FUENTES.md` → «La tanda Z6».
 
 ### Z5-1 (texto original) · PARADA · El gradiente medio NO se retira con regurgitación protésica, y la nota ‡ lo marca
 
@@ -4712,8 +4713,10 @@ nivel, por la **ESC/EACTS 2025, Figura 4, folio 4659**; el del módulo TAVI pas�
 fuentes**, y el comentario de esa constante ya pedía que mover uno no dejara al otro atrás: quedó al
 día. Unificarlos es decisión clínica de Maicol, no una refactorización.
 
-### PRO-6 · El mapa de prótesis quedó a 754 bytes del techo
+### PRO-6 · El mapa de prótesis quedó a 754 bytes del techo — **CERRADO 17/10/2026 (PRO-B1)**
 
-`docs/mapa/protesis-valvular.md` quedó en **34,2 KB** y el techo es 35: **la próxima tanda que lo
-toque tiene que partirlo**. El contenido de esta tanda salió a archivo propio
-(`docs/mapa/protesis-pro.md`, 17,6 KB) justamente por eso, medido con `wc -c` ANTES de escribir.
+`docs/mapa/protesis-valvular.md` quedó en **34,2 KB** y el techo es 35, así que la tanda PRO-B lo
+**partió antes de escribir una línea**, medido con `wc -c`: las tres tandas históricas Z, Z5 y Z6
+salieron completas a `docs/mapa/protesis-z-z5-z6.md` (**20,4 KB**) y el mapa de origen quedó en
+**16,7 KB** con su puntero. El contenido de la tanda PRO ya había salido a archivo propio
+(`docs/mapa/protesis-pro.md`, 17,6 KB) por el mismo motivo.

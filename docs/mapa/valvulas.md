@@ -369,6 +369,12 @@ gradúa?» (una SAVR es prótesis y la aórtica sí se gradúa); cuerpo no leíd
 
 ## PRÓTESIS valvular mitral y aórtica → `docs/mapa/protesis-valvular.md`
 
+> **Esa zona son CUATRO archivos desde el 17/10/2026.** `protesis-valvular.md` (16,7 KB) tiene lo
+> de abajo; `protesis-z-z5-z6.md` (20,4 KB) las tres tandas históricas; `protesis-pro.md`
+> (17,6 KB) los tres cortes del PRO; y `protesis-fuga-pvl.md` la **fuga paravalvular de la
+> prótesis quirúrgica**, aórtica y mitral. El original se partió porque estaba en 34,2 KB, a
+> 754 bytes del techo.
+
 Los criterios **propios de las prótesis** —Tabla 11 de la ASE 2024 para la estenosis mitral
 (velocidad pico de E, gradiente medio, DVI, AEO en tres tramos y THP como parámetro **directo**),
 Tabla 7 para el PPM de las dos válvulas, Tabla 5 para la estenosis aórtica protésica y Tablas 12 y
