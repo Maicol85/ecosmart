@@ -6999,62 +6999,13 @@ window.cerrarSesionReal = cerrarSesionReal;
       <!-- v2 (E5b-3, 2026-10-04): los campos de CADA lesión van DEBAJO de su propia pastilla y a
            ancho completo, como la mitral y la aórtica. Antes prótesis + estenosis + «Densidad jet CW»
            compartían un `grid-2`, así que prender «Estenosis» DESPLAZABA el campo de insuficiencia
-           (`it_densidad`) a la otra columna. Se quitó el wrapper: `bloque-prot-vt` y
-           `bloque-esten-tricuspide` son hermanos a ancho completo, y `it_densidad` —que es un insumo
+           (`it_densidad`) a la otra columna. Se quitó el wrapper, y `it_densidad` —que es un insumo
            de la IT, no de la estenosis— se mudó DENTRO de `bloque-insuf-tricuspide`. Se movieron
-           WRAPPERS: ni un `id`, `name`, listener ni opción cambió. -->
-      <!-- Campos de PRÓTESIS tricuspídea (Fase 1).
-           ⚠️ QUEDA FUERA de `#vt-lesiones` y a ancho completo A PROPÓSITO: el DVI no es un insumo de
-           la insuficiencia ni de la estenosis, es de la PRÓTESIS, y lo gobierna `valvProtSync` por
-           la morfología —no las pastillas—. Metido en una de las dos columnas habría quedado
-           colgando de un botón que no lo manda. -->
-      <!-- ⚠️ PRO-C1 (2026-10-17): EL BLOQUE PASA DE UN CAMPO A DOS, y el segundo es la
-           VELOCIDAD PICO DE E de la entrada tricuspídea, que la **Tabla 19 de la ASE 2024**
-           (folio 36, hoja 35) pide y la app no tenía. El censo del PRO ya lo había declarado:
-           `it_vmax_cw` es la Vmax de la REGURGITACIÓN por Doppler continuo —otra medición, con
-           otro significado y otro rango—, así que reusarla habría hecho votar el jet de la
-           insuficiencia como si fuera el flujo de entrada.
-           ⚠️ VA ACÁ Y NO EN LA COLUMNA DE LA ESTENOSIS, por el mismo argumento con el que el DVI
-           vive en este bloque: es un dato de la PRÓTESIS y lo gobierna `valvProtSync` por la
-           morfología, no la pastilla. Con morfología nativa el bloque entero está en
-           `display:none`, así que no desplaza ningún campo del camino nativo.
-           ⚠️ EL CONTENEDOR PASA DE `.fg` A `.grid-2` y conserva su `display:none` en línea: `ver()`
-           de `valvProtSync` escribe `''`, que cae al display de la clase. Es el mismo patrón que
-           `#bloque-prot-va`, que ya es un `grid-4` gobernado por esa función. -->
-      <div id="bloque-prot-vt" class="grid-2" style="display:none;margin-bottom:8px;">
-        <div class="fg">
-          <label>DVI <span style="font-weight:400;color:var(--text2);font-size:10px;">— índice de velocidad Doppler</span></label>
-          <input type="number" id="vt_dvi" step="0.01" placeholder="—" oninput="vtProtObstrPintar()">
-        </div>
-        <div class="fg">
-          <label>Velocidad pico de E tricuspídea (m/s) <span style="font-weight:400;color:var(--text2);font-size:10px;">— entrada, no el jet de IT</span></label>
-          <input type="number" id="et_e_vmax" step="0.1" placeholder="m/s" oninput="vtProtObstrPintar()">
-        </div>
-      </div>
-      <!-- ⚠️ LA CÁPSULA DEL VEREDICTO PROTÉSICO (PRO-C2, 2026-10-17), calcada de
-           `#bloque-prot-vm-res`. Las cinco filas de la **Tabla 19 de la ASE 2024** (folio 36,
-           hoja 35) con su valor y su nivel, y el veredicto DEBAJO, con la lista de los criterios
-           que lo decidieron.
-           ⚠️ LA FILA «Severidad sugerida» DEL CUADRO DE ABAJO NO SE TOCA: sigue diciendo
-           `PROT_SIN_GRADO_TXT`, y es literalmente cierto —la escala leve/moderada/severa de la
-           válvula nativa no aplica a una prótesis y la Tabla 19 **no gradúa**—. Es el mismo
-           reparto que la prótesis mitral: `em-sev` dice eso y su cápsula publica su veredicto
-           aparte. Por eso `calcET` no cambia ni una línea.
-           ⚠️ CÁPSULA DE SÓLO LECTURA: ni un `id` de control acá dentro. `guardarInforme` barre
-           `input[id]`/`select[id]` de TODO el documento, así que un campo con id viajaría en
-           `campos` de cada estudio y al Excel —la regla de los paneles de referencia de Marfan—.
-           ⚠️ Y SIN GLOBOS ⓘ, a propósito: el registro `VINFO` y el conteo de globos de la pestaña
-           Válvulas son el denominador de TC-471 y de TC-472, y cada `.vinfo-btn` suma además un
-           hallazgo en `check_mobile.js`. La fuente va UNA vez al pie, como en el cuadro de la IT. -->
-      <div id="bloque-prot-vt-res" class="calc-box" style="display:none;margin-bottom:8px;">
-        <div class="calc-row"><span class="calc-lbl">Velocidad pico de E</span><span class="calc-val" id="vt-prot-evmax">&mdash;</span></div>
-        <div class="calc-row"><span class="calc-lbl">Gradiente medio</span><span class="calc-val" id="vt-prot-gmed">&mdash;</span></div>
-        <div class="calc-row"><span class="calc-lbl">THP &mdash; tiempo de hemipresi&oacute;n</span><span class="calc-val" id="vt-prot-thp">&mdash;</span></div>
-        <div class="calc-row"><span class="calc-lbl">AEO por continuidad</span><span class="calc-val" id="vt-prot-aeo">&mdash;</span></div>
-        <div class="calc-row"><span class="calc-lbl">DVI &mdash; VTI pr&oacute;tesis / VTI TSVI</span><span class="calc-val" id="vt-prot-dvi">&mdash;</span></div>
-        <div style="font-size:10px;color:var(--text2);line-height:1.45;margin:2px 0 4px;">Criterios: ASE 2024, Tabla 19. La estenosis prot&eacute;sica tricusp&iacute;dea no se grad&uacute;a.</div>
-        <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Obstrucci&oacute;n prot&eacute;sica</span><span class="calc-val" id="vt-prot-obstr">&mdash;</span></div>
-      </div>
+           WRAPPERS: ni un `id`, `name`, listener ni opción cambió.
+           ⚠️ ESTE PARRAFO DECIA QUE `bloque-prot-vt` ERA HERMANO A ANCHO COMPLETO, y desde el
+           CORTOS2 (2026-10-17) ya no lo es: vive DENTRO de `#campos-esten-tricuspide`, con los
+           demas campos de la estenosis. El argumento del E5b-3 sigue valiendo para `it_densidad`,
+           que es lo que ese commit movio. -->
       <!-- ═══ LAS DOS LESIONES, UNA BAJO CADA BOTÓN (2026-10-04) ═════════════════════════════════
            Insuficiencia a la IZQUIERDA (bajo su botón) y estenosis a la DERECHA, apiladas por
            debajo de 768 px. La maquetación la hace `#vt-lesiones` en el CSS — ver ahí los dos
@@ -7407,6 +7358,35 @@ window.cerrarSesionReal = cerrarSesionReal;
                sobre un nodo inexistente es una escritura muerta que la próxima lectura cree que
                gobierna algo. Lo que ese texto decía ahora lo dicen las filas del cuadro, criterio por
                criterio, en vez de en una frase que había que leer entera. -->
+          <!-- ══ LOS DOS CAMPOS DE LA PROTESIS, CON LOS DEMAS DE LA ESTENOSIS (CORTOS2, 2026-10-17)
+               DECISION DE MAICOL. El PRO-C1 los dejo arriba, al lado de las pastillas y por encima
+               de las dos columnas de lesiones, con el argumento de que son datos de la PROTESIS y
+               los gobierna `valvProtSync` y no la pastilla. Eso sigue siendo cierto —el bloque
+               conserva su `display:none` en linea y lo sigue mostrando `valvProtSync`— pero el
+               medico los busca donde estan los demas numeros que la Tabla 19 integra: el gradiente
+               medio, el THP y el area. Hoy van en la zona de campos de la ESTENOSIS, terceros, con
+               su mismo ancho de columna.
+               ⚠️ ES UNA MUDANZA DE NODO: ni un `id`, ni un `oninput`, ni un `step`, ni una unidad
+               cambian en este commit. `valvProtSync` y `vtProtObstrPintar` los buscan por
+               `getElementById`, asi que no dependen de donde cuelguen.
+               ⚠️ LA CLASE PASA DE `grid-2` A `grid-3` para que los dos campos midan lo mismo que
+               los seis de las dos filas de arriba. Con dos hijos en una grilla de tres, ocupan las
+               dos primeras columnas con el ancho de esas columnas; con `grid-2` median la mitad del
+               bloque cada uno y la fila no se alineaba con las otras dos.
+               ⚠️ CONSECUENCIA DECLARADA: desde que viven dentro de `#campos-esten-tricuspide`, por
+               debajo de 768 px quedan detras del cajon «Datos» —el CSS del celular lo cierra con
+               `!important`—, igual que los seis campos de la estenosis. Antes estaban siempre a la
+               vista en celular. Es el precio de ponerlos con los demas y lo pidio la orden. -->
+          <div id="bloque-prot-vt" class="grid-3" style="display:none;margin-bottom:8px;">
+            <div class="fg">
+              <label>DVI <span style="font-weight:400;color:var(--text2);font-size:10px;">&mdash; &iacute;ndice de velocidad Doppler</span></label>
+              <input type="number" id="vt_dvi" step="0.01" placeholder="&mdash;" oninput="vtProtObstrPintar()">
+            </div>
+            <div class="fg">
+              <label>Velocidad pico de E tricusp&iacute;dea (m/s) <span style="font-weight:400;color:var(--text2);font-size:10px;">&mdash; entrada, no el jet de IT</span></label>
+              <input type="number" id="et_e_vmax" step="0.1" placeholder="m/s" oninput="vtProtObstrPintar()">
+            </div>
+          </div>
           <div class="calc-box">
             <div class="calc-row"><span class="calc-lbl">Gradiente medio</span><span id="et-ref-gmedio">—</span></div>
             <!-- ⚠️ LA FILA DEL VTI DE ENTRADA ENTRÓ EL 2026-10-13 y va SEGUNDA, que es el orden de
@@ -7427,6 +7407,31 @@ window.cerrarSesionReal = cerrarSesionReal;
             <div class="calc-row"><span id="et-it-aviso" style="color:var(--orange);font-size:11px;"></span></div>
             <div style="font-size:10px;color:var(--text2);line-height:1.45;margin:2px 0 4px;" id="et-ref-fuente"></div>
             <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Severidad sugerida</span><span id="et-sev">—</span></div>
+            <!-- ══ LAS FILAS DE LA PROTESIS, DENTRO DEL CUADRO (CORTOS2, 2026-10-17) ══════════════
+                 DECISION DE MAICOL. El PRO-C2 las puso en una CAPSULA APARTE, por encima de las dos
+                 columnas de lesiones, asi que el cuadro de referencias de la estenosis quedaba
+                 DEBAJO de un segundo cuadro que hablaba de la misma valvula. Hoy van DENTRO de este
+                 cuadro y DEBAJO de las filas que ya estaban.
+                 ⚠️ LAS CUATRO FILAS NATIVAS NO SE TOCAN y siguen primero: son los cortes de la
+                 EAE/ASE 2009 para la valvula NATIVA, y las cinco de abajo son los de la Tabla 19
+                 para la PROTESIS. Con morfologia protesica `calcET` sale por `protNoGraduaPintar`,
+                 asi que las nativas quedan en «—» y lo que se lee son estas.
+                 ⚠️ EL ENVOLTORIO CONSERVA SU `id` Y PIERDE LA CLASE `calc-box`: el `id` es lo que
+                 `vtProtObstrPintar` y `valvProtSync` muestran y esconden, y la clase dibujaria una
+                 caja dentro de otra. El `display:none` en linea se queda: `vtProtObstrPintar`
+                 escribe `''`, que cae al `block` del div.
+                 ⚠️ NI UN CORTE, NI UN VEREDICTO, NI UN TEXTO DEL INFORME SE MUEVEN: los cinco `id`
+                 de las filas y el del veredicto salen byte por byte iguales, que es lo que leen la
+                 tarjeta de la vista 2D (`V2D_PORQUE['prot:tricuspide']`) y TC-498. -->
+            <div id="bloque-prot-vt-res" style="display:none;">
+              <div class="calc-row"><span class="calc-lbl">Velocidad pico de E</span><span class="calc-val" id="vt-prot-evmax">&mdash;</span></div>
+              <div class="calc-row"><span class="calc-lbl">Gradiente medio</span><span class="calc-val" id="vt-prot-gmed">&mdash;</span></div>
+              <div class="calc-row"><span class="calc-lbl">THP &mdash; tiempo de hemipresi&oacute;n</span><span class="calc-val" id="vt-prot-thp">&mdash;</span></div>
+              <div class="calc-row"><span class="calc-lbl">AEO por continuidad</span><span class="calc-val" id="vt-prot-aeo">&mdash;</span></div>
+              <div class="calc-row"><span class="calc-lbl">DVI &mdash; VTI pr&oacute;tesis / VTI TSVI</span><span class="calc-val" id="vt-prot-dvi">&mdash;</span></div>
+              <div style="font-size:10px;color:var(--text2);line-height:1.45;margin:2px 0 4px;">Criterios: ASE 2024, Tabla 19. La estenosis prot&eacute;sica tricusp&iacute;dea no se grad&uacute;a.</div>
+              <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Obstrucci&oacute;n prot&eacute;sica</span><span class="calc-val" id="vt-prot-obstr">&mdash;</span></div>
+            </div>
           </div>
         </div>
       </div><!-- fin caja-esten-tricuspide -->
