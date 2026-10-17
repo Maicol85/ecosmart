@@ -460,6 +460,49 @@ async function main() {
     out.grupos.fun = g; parcial('fun', t0);
   }
 
+  /* ── grupo tam: tamano del VD, por los bordes EXACTOS ── */
+  if (corre('tam')) {
+    const t0 = Date.now(); const g = {};
+    const RE_VD = 'VD|ventr[ií]culo derecho';
+    const FILAS = [
+      ['vd_bas',   [40, 40.9, 41, 44, 44.1, 45, 49, 49.1, 52]],
+      ['vd_mid',   [34, 34.9, 35, 38, 38.1, 42, 42.1]],
+      ['vd_long',  [81, 82, 86, 89, 89.1, 96, 96.1]],
+      ['vd_pared', [4.9, 5, 7, 7.1, 9, 9.1]],
+    ];
+    const DUE = { vd_bas:'vdBasCat', vd_mid:'vdMidCat', vd_long:'vdLongCat', vd_pared:'vdParedCat' };
+    for (const [campo, vals] of FILAS) {
+      g[campo] = {};
+      for (const v of vals) {
+        try {
+          await escena({ [campo]: String(v) });
+          const r = await leer(RE_VD);
+          g[campo][String(v)] = {
+            cap: r.caps[campo === 'vd_pared' ? 'vd-pared-interp' : 'vd-tam'],
+            duenio: await ev(`window.__P.duenio(${JSON.stringify(DUE[campo])}, ${v})`),
+            inf: r.txt.estandar.inf, suma: r.txt.estandar.suma,
+            conc: r.txt.conciso.inf, narr: r.txt.narrativo.inf, disf: r.disf };
+        } catch (e) { g[campo][String(v)] = { ABORTO: e.message }; abortos.push('tam ' + campo + ' ' + v + ': ' + e.message); }
+      }
+      parcial('tam/' + campo, t0);
+    }
+    /* El PEOR de los tres manda, y con dos hallazgos se nombra cada uno con su grado. */
+    try {
+      await escena({ vd_bas: '43', vd_mid: '40' });
+      g.peor_de_dos = await leer(RE_VD);
+      await escena({ vd_bas: '43' });
+      g.solo_basal_leve = await leer(RE_VD);
+      await escena({ vd_bas: '38', vd_mid: '36' });
+      g.solo_medio_leve = await leer(RE_VD);
+      /* Las dos areas NO clasifican en el informe: se cargan y la oracion no las nombra. */
+      await escena({ vd_area_d: '34', vd_area_s: '21' });
+      g.areas_no_informan = await leer(RE_VD);
+      g.areas_duenio = { s: await ev("window.__P.duenio('vdAreaSCat', 21)"),
+                         d: await ev("window.__P.duenio('vdAreaDCat', 34)") };
+    } catch (e) { g.combinadas = { ABORTO: e.message }; abortos.push('tam combinadas: ' + e.message); }
+    out.grupos.tam = g; parcial('tam', t0);
+  }
+
   out.md5_despues = await md5(EXTERNO ? FARG : join(RAIZ, 'index.html'));
   out.index_intacto = out.md5_antes === out.md5_despues;
   out.segundos = +((Date.now() - t00) / 1000).toFixed(1);

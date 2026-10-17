@@ -22632,38 +22632,60 @@ const EV_REG = Object.freeze([
   /* ── VENTRICULO DERECHO — TAMANO ───────────────────────────────────────── */
   Object.freeze({
     id: 'DIM-VD-001', zona: 'VD/AD — Ventrículo derecho', dato: 'Diámetro basal',
-    valor: 'Normal hasta 41 mm; dilatación leve por encima de 41 y hasta 45; dilatado por encima de 45. Un solo corte para los dos sexos',
-    duenio: 'vdBasCat / VD_BAS_NORMAL_MAX y VD_BAS_LEVE_MAX',
-    guia: EV_GUIA_ASE2015, ubicacion: 'Tabla 8', folio: '20', hoja_pdf: 20,
-    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guía',
-    estado: 'parcial', fecha_verificacion: EV_FECHA_VER,
-    fuente_una_linea: 'ASE/EACVI 2015, Tabla 8 (folio 20)',
+    valor: 'Normal por debajo de 41 mm; dilatación leve de 41 a 44; moderada por encima de 44 y hasta 49; severa por encima de 49. Un solo corte para los dos sexos',
+    duenio: 'vdBasCat / ASE25_T1.vd_bas',
+    guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1', folio: '145', hoja_pdf: 5,
+    doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_VS,
+    fuente_una_linea: 'ASE 2025 (Mukherjee), Tabla 1 (folio 145)',
   }),
   Object.freeze({
     id: 'DIM-VD-002', zona: 'VD/AD — Ventrículo derecho', dato: 'Diámetro medio',
-    valor: 'Normal hasta 35 mm; dilatado por encima de 35. Un solo corte para los dos sexos',
-    duenio: 'vdMidCat / VD_MID_NORMAL_MAX',
-    guia: EV_GUIA_ASE2015, ubicacion: 'Tabla 8', folio: '20', hoja_pdf: 20,
-    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guía',
-    estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
-    fuente_una_linea: 'ASE/EACVI 2015, Tabla 8 (folio 20)',
+    valor: 'Normal por debajo de 35 mm; dilatación leve de 35 a 38; moderada por encima de 38 y hasta 42; severa por encima de 42. Un solo corte para los dos sexos',
+    duenio: 'vdMidCat / ASE25_T1.vd_mid',
+    guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1', folio: '145', hoja_pdf: 5,
+    doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_VS,
+    fuente_una_linea: 'ASE 2025 (Mukherjee), Tabla 1 (folio 145)',
   }),
   Object.freeze({
     id: 'DIM-VD-003', zona: 'VD/AD — Ventrículo derecho', dato: 'Diámetro longitudinal',
-    valor: 'Normal hasta 86 mm; dilatado por encima de 86. Un solo corte para los dos sexos',
-    duenio: 'vdLongCat / VD_LONG_NORMAL_MAX',
-    guia: EV_GUIA_ASE2015, ubicacion: '', folio: '', hoja_pdf: null,
-    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'criterio propio de EcoSmart',
-    estado: 'por verificar', fecha_verificacion: EV_FECHA_VER,
-    fuente_una_linea: '',
+    valor: 'Normal por debajo de 82 mm; dilatación leve de 82 a 89; moderada por encima de 89 y hasta 96; severa por encima de 96. Un solo corte para los dos sexos',
+    duenio: 'vdLongCat / ASE25_T1.vd_long',
+    guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1', folio: '145', hoja_pdf: 5,
+    doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_VS,
+    fuente_una_linea: 'ASE 2025 (Mukherjee), Tabla 1 (folio 145)',
   }),
   Object.freeze({
     id: 'DIM-VD-004', zona: 'VD/AD — Ventrículo derecho', dato: 'Espesor de la pared libre',
     valor: 'Normal por debajo de 5 mm; hipertrofia leve de 5 a 7; moderada por encima de 7 y hasta 9; severa por encima de 9 mm. Un solo corte para los dos sexos',
-    duenio: 'vdParedCat / VD_PARED_HVD_MIN y VD_PARED_GRADOS',
+    duenio: 'vdParedCat / ASE25_T1.vd_pared',
     guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1', folio: '145', hoja_pdf: 5,
     doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
     estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
+    fuente_una_linea: 'ASE 2025 (Mukherjee), Tabla 1 (folio 145)',
+  }),
+  /* ⚠️ LAS DOS AREAS SE GRADUAN SOLO EN LA TARJETA Y EN REFERENCIAS (VS3, 2026-10-17): ninguna
+     superficie de la app las clasifica hoy —el informe, el EN SUMA, el PDF y el PPT publican su
+     VALOR y nada mas, y lo unico que la app hace con ellas es derivar la FAC—, asi que
+     agregarles una categoria al papel firmado seria contenido clinico que esta orden no pide. */
+  Object.freeze({
+    id: 'DIM-VD-005', zona: 'VD/AD — Ventrículo derecho', dato: 'Área telediastólica',
+    valor: 'Normal por debajo de 25 cm2; dilatación leve de 25 a 28; moderada por encima de 28 y hasta 32; severa por encima de 32. Un solo corte para los dos sexos',
+    duenio: 'vdAreaDCat / ASE25_T1.vd_area_d',
+    guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1', folio: '145', hoja_pdf: 5,
+    doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_VS,
+    fuente_una_linea: 'ASE 2025 (Mukherjee), Tabla 1 (folio 145)',
+  }),
+  Object.freeze({
+    id: 'DIM-VD-006', zona: 'VD/AD — Ventrículo derecho', dato: 'Área telesistólica',
+    valor: 'Normal por debajo de 14 cm2; dilatación leve de 14 a 16; moderada por encima de 16 y hasta 19; severa por encima de 19. Un solo corte para los dos sexos',
+    duenio: 'vdAreaSCat / ASE25_T1.vd_area_s',
+    guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1', folio: '145', hoja_pdf: 5,
+    doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_VS,
     fuente_una_linea: 'ASE 2025 (Mukherjee), Tabla 1 (folio 145)',
   }),
   /* ── VENTRICULO DERECHO — FUNCION ─────────────────────────────────────── */
@@ -22832,6 +22854,8 @@ function evCortes(sexo) {
   if (typeof vdMidCat === 'function')   r.vdMid   = _evBandas(vdMidCat, 15, 60, 1, 0);
   if (typeof vdLongCat === 'function')  r.vdLong  = _evBandas(vdLongCat, 40, 130, 1, 0);
   if (typeof vdParedCat === 'function') r.vdPared = _evBandas(vdParedCat, 1, 16, 0.1, 1);
+  if (typeof vdAreaSCat === 'function') r.vdAreaS = _evBandas(vdAreaSCat, 5, 30, 1, 0);
+  if (typeof vdAreaDCat === 'function') r.vdAreaD = _evBandas(vdAreaDCat, 10, 45, 1, 0);
   if (typeof vdTapseCat === 'function') r.vdTapse = _evBandas(vdTapseCat, 2, 35, 1, 0);
   if (typeof vdSprimeCat === 'function')r.vdSprime= _evBandas(vdSprimeCat, 2, 20, 0.1, 1);
   if (typeof vdFacCat === 'function')   r.vdFac   = _evBandas(vdFacCat, 5, 70, 1, 0);
@@ -23638,8 +23662,17 @@ window.cxWilkins = cxWilkins; window.cxDuke = cxDuke; window.cxGTP = cxGTP; wind
    ecocardiográfico de categoría A, o sea el límite superior de lo normal; acá «dilatado» empieza
    en >45, que es otra pregunta. Los dos números conviven a propósito y no hay que unificarlos:
    son dos criterios distintos sobre la misma medida. */
-const VD_BAS_NORMAL_MAX = 41;   // mm — ≤41 normal (ASE)
-const VD_BAS_LEVE_MAX   = 45;   // mm — 42-45 dilatación leve;  >45 dilatado
+/* ⚠️ LOS DOS SE DERIVAN DE LA TABLA 1 (VS3, 2026-10-17), Y EL SEGUNDO CAMBIA DE VALOR. El 41 es
+   el mismo y lo que se mueve es su OPERADOR: la Tabla 1 escribe `<4.1` para lo normal, así que
+   41,0 mm EXACTOS son dilatación LEVE. El techo de la banda leve pasa de 45 a 44, y por encima
+   ya no hay un solo «dilatado» sino moderada (hasta 49) y severa (por encima de 49), que es la
+   graduación que la guía publica y la app no tenía.
+   ⚠️ EL `vdBas > 41` DE `_htp2022Core` NO SE TOCA Y SIGUE SIENDO OTRA PREGUNTA: ahí 41 es el
+   límite superior de lo normal como SIGNO de categoría A de probabilidad de hipertensión
+   pulmonar, no un grado de tamaño. Con el operador nuevo, 41,0 exactos son dilatación leve para
+   el tamaño y NO son signo de categoría A. Los dos conviven a propósito. */
+const VD_BAS_NORMAL_MAX = ase25Corte('vd_bas', 'normal');   // mm — normal `<` (ASE 2025, Tabla 1 folio 145)
+const VD_BAS_LEVE_MAX   = ase25Corte('vd_bas', 'leve');     // mm — techo de la banda leve, `<=`
 /* FAC del VD (ASE 2015): <35 % es disfunción sistólica. El segundo corte —<25 %— lo usa el
    En Suma para llamarla severa; no está en la guía como banda formal, es el criterio con el
    que trabaja esta app y por eso vive acá y no repartido en literales. */
@@ -23711,7 +23744,7 @@ window.UMBRAL_FAC_VD_SEVERA = UMBRAL_FAC_VD_SEVERA;
    el MPI describe lo contrario —la congestión lo sube—, así que la app no lo afirma. El aviso de
    esta zona nombra sólo las dos advertencias que la guía escribe Y la app puede detectar: IT
    severa y ritmo irregular. */
-const VD_PARED_HVD_MIN   = 5;     // mm — hipertrofia del VD, borde `>=` (Tabla 1 folio 145 · Key Point folio 144)
+const VD_PARED_HVD_MIN   = ase25Corte('vd_pared', 'leve');  // mm — hipertrofia del VD, borde `>=` (Tabla 1 folio 145 · Key Point folio 144)
 /* ══ LA GRADUACIÓN DE LA PARED (G1, 2026-10-15) ══════════════════════════════════════════════
    ASE 2025, **Tabla 1, folio 145**, fila `RVWT, cm`: normal `< 0,5` · leve `≥0,5 a ≤0,7` ·
    moderada `>0,7 a ≤0,9` · severa `>0,9`. En milímetros, que es la unidad del campo: **5 · 7 ·
@@ -23727,11 +23760,14 @@ const VD_PARED_HVD_MIN   = 5;     // mm — hipertrofia del VD, borde `>=` (Tabl
    cambiar una frase del informe FIRMADO es contenido clínico y esta orden no lo autoriza.
    El operador de cada tramo es el de la tabla: el leve INCLUYE su techo (`<= 7`) y el moderado
    también (`<= 9`), así que 7,0 es leve y 9,0 es moderada. */
-const VD_PARED_GRADOS = Object.freeze([
-  Object.freeze({ max: 7, lbl: 'leve',     rango: '≥5 a ≤7 mm' }),
-  Object.freeze({ max: 9, lbl: 'moderada', rango: '>7 a ≤9 mm'  }),
-  Object.freeze({ max: Infinity, lbl: 'severa', rango: '>9 mm'  })
-]);
+/* ⚠️ SE DERIVA DE LA TABLA 1 Y NINGUN VALOR SE MUEVE (VS3, 2026-10-17): la pared es la UNICA
+   fila de esta zona que la app ya tenía exactamente como la guía la publica —5 · 7 · 9 mm con
+   `>=` y los dos techos incluidos—, así que esto no es un cambio de corte sino el retiro de la
+   segunda copia. El rango de cada banda lo escribe `ase25Rango`, derivado de los operadores que
+   `ase25Grado` aplica. */
+const VD_PARED_GRADOS = Object.freeze(['leve', 'moderada', 'severa'].map(function (g) {
+  return Object.freeze({ lbl: g, rango: ase25Rango('vd_pared', g, true) });
+}));
 window.VD_PARED_GRADOS = VD_PARED_GRADOS;
 /* ══ LA RELACIÓN VD/VI (G1, 2026-10-15) ══════════════════════════════════════════════════════
    Corte `> 1,0`, con DOS fuentes que coinciden: ESC/ERS 2022, **Tabla 10, folio 28**, categoría
@@ -23781,8 +23817,8 @@ function vdHvdEstado() {
   /* El GRADO es SÓLO de la fila del cuadro: ni `vdHvdClausula` ni la cadena del EN SUMA lo
      leen, y por eso el informe firmado sale letra por letra como salía. Se devuelve acá, y no
      en una segunda función, porque es la misma comparación sobre el mismo número. */
-  const g = hvd ? VD_PARED_GRADOS.find((b) => x <= b.max) : null;
-  return { val: x, hvd: hvd, grado: g ? g.lbl : null, rango: g ? g.rango : null };
+  const g = hvd ? vdParedCat(x) : null;
+  return { val: x, hvd: hvd, grado: g, rango: g ? ase25Rango('vd_pared', g, true) : null };
 }
 window.vdHvdEstado = vdHvdEstado;
 /* ══ EL DUEÑO DE LA RELACIÓN VD/VI (G1 · ampliado en el G3, 2026-10-15) ══════════════════════
@@ -23927,9 +23963,7 @@ function vdTapCat(x) {
 function vdParedCat(x) {
   const n = (typeof PF === 'function') ? PF(x) : parseFloat(x);
   if (n == null || !isFinite(n) || !n) return null;
-  if (n < VD_PARED_HVD_MIN) return 'normal';
-  const g = VD_PARED_GRADOS.find((b) => n <= b.max);
-  return g ? g.lbl : 'severa';
+  return ase25Grado('vd_pared', n);
 }
 function vdTeiCat(x) {
   const n = (typeof PF === 'function') ? PF(x) : parseFloat(x);
@@ -24350,9 +24384,14 @@ function vdBasCat(vd) {
      number de esta app pasan a text, así que el `step` no restringe nada—, de modo que un 41,5 se
      clasifica «leve» bajo un cartel que dice que la banda empieza en 42. Es exactamente la trampa
      que ya se documentó con el panel de criterios de MCA. */
-  if (n <= VD_BAS_NORMAL_MAX) return { cat:'normal',   cls:'green',  lbl:'Normal (≤' + VD_BAS_NORMAL_MAX + 'mm)' };
-  if (n <= VD_BAS_LEVE_MAX)   return { cat:'leve',     cls:'yellow', lbl:'Leve (>' + VD_BAS_NORMAL_MAX + ' y ≤' + VD_BAS_LEVE_MAX + 'mm)' };
-  return                             { cat:'dilatado', cls:'red',    lbl:'Dilatado (>' + VD_BAS_LEVE_MAX + 'mm)' };
+  /* ⚠️ CUATRO GRADOS DESDE EL VS3, Y EL ROTULO SALE DEL MISMO DUENO QUE DECIDE. `ase25Rango`
+     deriva el rango de los operadores que `ase25Grado` aplica, así que el número impreso no
+     puede quedar corrido del que clasifica — que es la trampa que el comentario de arriba
+     describe para el «42-45» escrito a mano. */
+  const g = ase25Grado('vd_bas', n);
+  if (g === null) return null;
+  const LBL = { normal:'Normal', leve:'Dilatación leve', moderada:'Dilatación moderada', severa:'Dilatación severa' };
+  return { cat:g, cls:ASE25_BADGE[g], lbl: LBL[g] + ' (' + ase25Rango('vd_bas', g, true) + ')' };
 }
 window.vdBasCat = vdBasCat;
 
@@ -24367,24 +24406,68 @@ window.vdBasCat = vdBasCat;
 
    Devuelve la lista de los MEDIDOS. Un diámetro vacío no cuenta ni a favor ni en contra —misma
    regla que la aorta— y un valor no positivo no cuenta como medición. */
-const VD_MID_NORMAL_MAX  = 35;   // mm — VD medio, ASE 2015
-const VD_LONG_NORMAL_MAX = 86;   // mm — VD longitudinal, ASE 2015
+/* ⚠️ LOS DOS SE DERIVAN DE LA TABLA 1 (VS3, 2026-10-17) y el longitudinal CAMBIA DE VALOR. El
+   35 del medio es el mismo con el operador movido (`<3.5` normal, así que 35,0 exactos son
+   leves); el longitudinal pasa de 86 a 82, y el 86 NO ESTABA EN NINGUNA GUÍA — su ficha
+   `DIM-VD-003` estaba «por verificar» y declarada como criterio propio desde la tanda M. */
+const VD_MID_NORMAL_MAX  = ase25Corte('vd_mid', 'normal');    // mm — normal `<` (ASE 2025, Tabla 1 folio 145)
+const VD_LONG_NORMAL_MAX = ase25Corte('vd_long', 'normal');   // mm — normal `<` (ASE 2025, Tabla 1 folio 145)
 window.VD_MID_NORMAL_MAX = VD_MID_NORMAL_MAX;
 window.VD_LONG_NORMAL_MAX = VD_LONG_NORMAL_MAX;
 /* Los dos como funcion PURA, por lo mismo que `vdBasCat`: la tarjeta i sondea al dueno en vez
    de copiar su numero. La comparacion es la que `vdDiamsMedidos` ya hacia —`x > max` es
    dilatado— y esa funcion pasa a llamarlas, asi que sigue habiendo UNA sola. */
+/* ⚠️ LOS DOS PASAN DE SI/NO A LOS CUATRO GRADOS DE LA TABLA 1 (VS3). La app los tenía como
+   «dilatado o no» porque la ASE/EACVI 2015 no los graduaba; la Tabla 1 de la ASE 2025 sí. */
 function vdMidCat(x) {
   const n = (typeof PF === 'function') ? PF(x) : parseFloat(x);
   if (n == null || !isFinite(n) || n <= 0) return null;
-  return (n > VD_MID_NORMAL_MAX) ? 'dilatado' : 'normal';
+  return ase25Grado('vd_mid', n);
 }
 function vdLongCat(x) {
   const n = (typeof PF === 'function') ? PF(x) : parseFloat(x);
   if (n == null || !isFinite(n) || n <= 0) return null;
-  return (n > VD_LONG_NORMAL_MAX) ? 'dilatado' : 'normal';
+  return ase25Grado('vd_long', n);
+}
+/* ══ LAS DOS AREAS DEL VD (VS3, 2026-10-17) ══════════════════════════════════════════════
+   NINGUNA SUPERFICIE DE LA APP LAS CLASIFICA —ni el informe, ni el EN SUMA, ni el PDF, ni el
+   PPT, ni el Laboratorio—: lo único que hace la app con ellas es derivar la FAC. La Tabla 1 sí
+   las gradúa, así que tienen dueño y ficha, y su grado se publica SOLO en la tarjeta i y en
+   Referencias. Agregarles una clasificación al informe sería contenido clínico que esta orden
+   no autoriza. */
+function vdAreaSCat(x) {
+  const n = (typeof PF === 'function') ? PF(x) : parseFloat(x);
+  if (n == null || !isFinite(n) || n <= 0) return null;
+  return ase25Grado('vd_area_s', n);
+}
+function vdAreaDCat(x) {
+  const n = (typeof PF === 'function') ? PF(x) : parseFloat(x);
+  if (n == null || !isFinite(n) || n <= 0) return null;
+  return ase25Grado('vd_area_d', n);
 }
 window.vdMidCat = vdMidCat; window.vdLongCat = vdLongCat;
+window.vdAreaSCat = vdAreaSCat; window.vdAreaDCat = vdAreaDCat;
+/* ══ EL NOMBRE DEL GRADO DE TAMANO DEL VD (VS3, 2026-10-17) ═══════════════════════════════
+   UN solo dueno para la capsula, el informe narrativo y el EN SUMA. El vocabulario es el que la
+   app ya usa para la auricula izquierda —«levemente», «moderadamente», «severamente dilatado»—
+   y no se inventa ninguna palabra: lo unico que entra son las dos categorias que la app no
+   tenia, porque hasta hoy el tamano del VD se decia con DOS («levemente dilatado» y «dilatado»)
+   y la Tabla 1 lo gradua en cuatro. */
+const VD_TAM_TXT = Object.freeze({ normal:'de dimensiones normales', leve:'levemente dilatado',
+                                   moderada:'moderadamente dilatado', severa:'severamente dilatado' });
+window.VD_TAM_TXT = VD_TAM_TXT;
+/* El PEOR grado de una lista de diametros medidos. Es LA MISMA regla que la app ya aplicaba
+   —el hallazgo manda sobre lo normal— con dos categorias mas; lo que se va es el caso especial
+   `vdSoloLeve`, que existia porque el basal era el UNICO con banda intermedia. */
+function vdTamPeor(ds) {
+  const ord = (typeof ASE25_GRADOS !== 'undefined') ? ASE25_GRADOS : ['normal','leve','moderada','severa'];
+  let peor = 'normal';
+  (ds || []).forEach(function (d) {
+    if (d && d.cat && ord.indexOf(d.cat) > ord.indexOf(peor)) peor = d.cat;
+  });
+  return peor;
+}
+window.vdTamPeor = vdTamPeor;
 function vdDiamsMedidos() {
   /* `min`/`max`: ventana de plausibilidad, la misma red que llevan los segmentos de la aorta y
      por el mismo motivo. Sin ella la cascada falla ABIERTA: un longitudinal tipeado en
@@ -24430,10 +24513,13 @@ function calcVD() {
       _vdTam.innerHTML = badge('yellow', 'Verificar la medición — ' + fuera.map(d => d.lblC + ' ' + d.val + ' mm').join(' · ') + ' fuera de rango plausible');
     else if (!dil.length) _vdTam.innerHTML = badge('green', 'Normal (' + ds.map(d => d.lblC + ' ' + d.val).join(' · ') + ' mm)');
     else {
-      const soloLeve = dil.length === 1 && dil[0].k === 'vd_bas' && dil[0].cat === 'leve';
-      _vdTam.innerHTML = badge(soloLeve ? 'yellow' : 'red',
-        (soloLeve ? 'Dilatación leve — ' : 'Dilatado — ')
-        + dil.map(d => d.lblC + ' ' + d.val + ' mm (>' + d.max + ')').join(' · '));
+      /* ⚠️ EL GRADO ES EL PEOR DE LOS DIAMETROS DILATADOS, y cada uno publica el SUYO con su
+         rango: con el basal leve y el medio moderado, una sola etiqueta no deja ver cual de
+         los dos la sostiene. El rango sale de `ase25Rango`, o sea del mismo dueno. */
+      const _peor = vdTamPeor(dil);
+      _vdTam.innerHTML = badge(ASE25_BADGE[_peor] || 'red',
+        'Dilatación ' + _peor + ' — '
+        + dil.map(d => d.lblC + ' ' + d.val + ' mm (' + d.cat + ': ' + ase25Rango(d.k, d.cat, true) + ')').join(' · '));
     }
   }
   /* ⚠️ LAS DOS FILAS SIGUEN SIN VOLVER A «—» AL BORRAR EL DATO: su `if` solo pinta. Es el
@@ -24496,10 +24582,7 @@ function calcVD() {
   const _parEl = document.getElementById('vd-pared-interp');
   if (_parEl) {
     if (_hvdSt.val === null) _parEl.textContent = '—';
-    else _parEl.innerHTML = _hvdSt.hvd
-      ? badge(_hvdSt.grado === 'leve' ? 'orange' : 'red',
-              `${_hvdSt.val} mm — hipertrofia del VD, ${_hvdSt.grado} (${_hvdSt.rango})`)
-      : badge('green', `${_hvdSt.val} mm — normal (<${VD_PARED_HVD_MIN} mm)`);
+    else _parEl.innerHTML = vdBadgeGrado('vd_pared', _hvdSt.val, vdParedCat(_hvdSt.val), 'mm', 'hipertrofia del VD,');
   }
   /* ── RELACIÓN VD/VI (G1) — ESC/ERS 2022 Tabla 10 folio 28 (categoría A) y ASE 2025 Tabla 8
      folio 173. La fila la esconde `vdRefVisSync` cuando el cociente no está alterado; acá sólo
@@ -46177,11 +46260,13 @@ function generarInforme(opts) {
          pantalla y «Ventrículo derecho dilatado» en el informe firmado — dos respuestas a la
          misma pregunta. */
       const vdDilat = vdDils.length > 0;
-      /* «Levemente dilatado» sólo si el ÚNICO hallazgo es el basal en su banda leve. Con el
-         medio o el longitudinal por encima del corte no hay banda intermedia que aplicar, y
-         degradar a «leve» un VD medio de 42 mm sería suavizar un hallazgo con la etiqueta de
-         otro segmento. */
-      const vdSoloLeve = vdDils.length === 1 && vdDils[0].k === 'vd_bas' && vdDils[0].cat === 'leve';
+      /* ⚠️ EL GRADO DEL TAMANO SALE DE `vdTamPeor` (VS3, 2026-10-17), Y LA REGLA ES LA MISMA DE
+         SIEMPRE: el hallazgo manda sobre lo normal, y entre dos hallazgos manda el peor. Lo que
+         se va es el caso especial `vdSoloLeve` —«levemente dilatado» solo si el UNICO hallazgo
+         era el basal en su banda leve—, que existia porque el basal era el unico diametro con
+         banda intermedia. Desde que los tres tienen las cuatro bandas de la Tabla 1, la excepcion
+         sobra: un VD medio de 36 mm es leve POR SU PROPIA banda, no por la del basal. */
+      const vdTamGrado = vdTamPeor(vdDils);
       /* ══ DISFUNCION SISTOLICA DEL VD — LA REGLA NO CAMBIA, LOS CORTES SI (VS2, 2026-10-17) ══
          Sigue siendo un OR de los parametros MEDIDOS, y uno alcanza: ni el numero de parametros
          alterados ni su peso se tocaron. Lo que cambia es de donde sale cada «esta alterado»:
@@ -46208,8 +46293,7 @@ function generarInforme(opts) {
       const teiAlt    = teiVD !== null ? _vdAnorm(vdTeiCat(teiVD))     : false;
       const vdDisf = tapseBajo || spBajo || facBajo || teiAlt;
 
-      const tamTxt  = hayTam  ? (vdSoloLeve ? 'levemente dilatado'
-                                 : (vdDilat ? 'dilatado' : 'de dimensiones normales')) : null;
+      const tamTxt  = hayTam  ? VD_TAM_TXT[vdTamGrado] : null;
       const funcTxt = hayFunc ? (vdDisf ? 'disfunción sistólica' : 'función sistólica conservada') : null;
 
       // conciso (sigla) · estándar (nombre completo, frase compacta) · narrativo (prosa),
@@ -56163,9 +56247,12 @@ function generarPDFReal(_aj) {
       /* Los tres diámetros con SU referencia (ASE 2015). El medio y el longitudinal se imprimían
          sin corte, así que el lector no tenía cómo saber que un VD medio de 42 mm está dilatado
          — y hasta este commit la app tampoco lo decía en el informe. */
-      {lbl:'Diám. basal', ref:'<=' + VD_BAS_NORMAL_MAX + ' mm',   val:vPdf('vd_bas',' mm')},
-      {lbl:'Diám. medio', ref:'<=' + VD_MID_NORMAL_MAX + ' mm',   val:vPdf('vd_mid',' mm')},
-      {lbl:'Longitud',    ref:'<=' + VD_LONG_NORMAL_MAX + ' mm',  val:vPdf('vd_long',' mm')},
+      /* ⚠️ LAS TRES REFERENCIAS SIGUEN AL OPERADOR DEL DUENO (VS3): la Tabla 1 de la ASE 2025
+         da lo NORMAL con `<`, así que el papel ya no puede decir «<=41 mm» sobre una cápsula que
+         llama leve al 41 exacto. El longitudinal baja además de 86 a 82 mm. */
+      {lbl:'Diám. basal', ref:'<' + VD_BAS_NORMAL_MAX + ' mm',   val:vPdf('vd_bas',' mm')},
+      {lbl:'Diám. medio', ref:'<' + VD_MID_NORMAL_MAX + ' mm',   val:vPdf('vd_mid',' mm')},
+      {lbl:'Longitud',    ref:'<' + VD_LONG_NORMAL_MAX + ' mm',  val:vPdf('vd_long',' mm')},
       /* FAC y FEVD van juntas y con SU propia referencia cada una: son dos medidas distintas de
          lo mismo (2D por áreas vs 3D) y confundir los cortes —35 % y 45 %— convierte un VD
          normal en disfuncionante. La referencia del diámetro basal decía «<42 mm» mientras el
@@ -67690,10 +67777,16 @@ function _indCIA(){
   /* `vdBasCat` es la MISMA clasificación que pinta `calcVD`. OJO: su umbral de «dilatado» (>45)
      no es el `> 41` que `_htp2022Core` usa como signo de categoría A — son dos criterios
      distintos sobre la misma medida y no hay que unificarlos. */
+  /* ⚠️ `vdBasCat` DEVUELVE CUATRO GRADOS DESDE EL VS3 y la categoría «dilatado» ya no existe:
+     lo que era `dilatado` (>45 mm) son hoy `moderada` (>44 y ≤49) y `severa` (>49). Se pregunta
+     por «no es normal y no es leve», que es la MISMA frontera con otro nombre, y por eso la
+     conducta sólo se mueve en los dos bordes que el VS3 movió: 41,0 mm exactos pasan de `none`
+     a `warn`, y entre 44 y 45 de `warn` a `ok`. */
   const cat = (_indFn('vdBasCat') || function(){ return null; })(_indN('vd_bas'));
+  const _catDil = !!(cat && cat.cat !== 'normal' && cat.cat !== 'leve');
   filas.push(_indFila('Diámetro basal del VD', _indNum(_indN('vd_bas'), 0, 'mm'),
-    cat ? (cat.cat === 'dilatado' ? 'ok' : (cat.cat === 'leve' ? 'warn' : 'none')) : 'ask',
-    cat ? cat.lbl + (cat.cat === 'dilatado' ? ' — la sobrecarga de volumen del VD es el criterio Clase I' : '') : 'sin medir'));
+    cat ? (_catDil ? 'ok' : (cat.cat === 'leve' ? 'warn' : 'none')) : 'ask',
+    cat ? cat.lbl + (_catDil ? ' — la sobrecarga de volumen del VD es el criterio Clase I' : '') : 'sin medir'));
 
   const core = _indFn('_htp2022Core'), n = _indFn('_hfN'), c = _indFn('_hfChk');
   let R = null;
@@ -69872,7 +69965,11 @@ function cvpaEstado(){
   /* Del estudio. `vdBasCat` devuelve null sin medición: «no dilatado» y «no medido» son cosas
      distintas y acá la diferencia decide si se tranquiliza o se pide el dato. */
   const vdCat = (typeof vdBasCat === 'function') ? vdBasCat((document.getElementById('vd_bas') || {}).value) : null;
-  const vdDilatado = !!(vdCat && (vdCat.cat === 'leve' || vdCat.cat === 'dilatado'));
+  /* ⚠️ «no es normal» Y NO UNA LISTA DE NOMBRES (VS3, 2026-10-17): `vdBasCat` pasó de tres
+     categorías a las cuatro de la Tabla 1 y `dilatado` dejó de existir. Con la lista vieja, un
+     basal moderado o severo contaba como NO dilatado y la conclusión se iba a la rama de
+     seguimiento — en silencio. */
+  const vdDilatado = !!(vdCat && vdCat.cat !== 'normal');
   const vdMedido = !!vdCat;
   const ciaTipo = sv('ete_cia_tipo');
   const hayDatos = !!(venas || conex || lado || htp || sint || qp != null);
