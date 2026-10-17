@@ -19447,7 +19447,11 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       <div style="font-size:.8rem;font-weight:700;color:var(--accent2);margin-bottom:8px;">Función ventricular</div>
       <div class="lab-filtros">
         <div class="fg" style="margin:0;"><label style="font-size:.75rem;">FEVI</label>
-          <select id="coh-fevi"><option value="">Todas</option><option value="baja">&lt; 40 %</option><option value="media">40–49 %</option><option value="alta">≥ 50 %</option></select></div>
+          <!-- ⚠️ LAS CUATRO CATEGORIAS DE LA FEVI (CORTOS7, 2026-10-17): eran tres bandas con un
+               40 escrito a mano y ahora son las del dueño (`FEVI_CATS` / `feviClasificar`), las
+               mismas que publica la capsula, el informe y la distribucion del panel. Los rotulos
+               repiten el RANGO y no la palabra, que es como estaba. -->
+          <select id="coh-fevi"><option value="">Todas</option><option value="preservada">≥ 50 %</option><option value="leve">41–49 %</option><option value="moderada">30–40 %</option><option value="severa">&lt; 30 %</option></select></div>
         <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Disfunción diastólica</label>
           <select id="coh-diast"><option value="">Todas</option><option value="I">Grado I</option><option value="II">Grado II</option><option value="III">Grado III</option><option value="sin">Sin disfunción</option></select></div>
         <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Geometría del VI</label>
@@ -98274,18 +98278,27 @@ function _labCohorteOk(inf) {
   }
 
   // ── Función ventricular ──
-  /* `UMBRAL_FEVI_NORMAL` y no un 50 a pelo: es la constante que gobierna `FEVICAT`, o sea las
-     MISMAS tres bandas en el módulo de asociaciones. CLAUDE.md ya lista un `FEVICAT f>=50`
-     entre los ~20 sitios que se escaparon la vez anterior; escribir el número otra vez acá es
-     reintroducir uno nuevo. El 40 queda literal porque no hay constante y es el borde interno
-     de la banda intermedia, no un umbral de normalidad. */
+  /* ══ EL FILTRO DE FEVI PASA A LAS CUATRO CATEGORIAS DEL DUEÑO (CORTOS7, 2026-10-17) ═════════
+     DECISION DE MAICOL, y cierra la primera mitad de `LS-7`. Tenia TRES bandas con un 40 escrito
+     a mano —cuyo propio comentario declaraba que era «el borde interno de la banda intermedia, no
+     un umbral de normalidad»— y eso lo dejaba DISCREPANDO del dueño en un valor: una FEVI de 40
+     exacta es «moderadamente reducida» para `feviClasificar` y caia en la banda «40-49 %» de este
+     filtro. Hoy se le pregunta al dueño y no hay ningun numero en esta funcion.
+     ⚠️ ESCENA QUE CAMBIA: el estudio con FEVI 40 exacta. Antes entraba con «40-49 %» y hoy entra
+     con «moderadamente reducida».
+     ⚠️ LOS TRES VALORES VIEJOS SE SIGUEN ACEPTANDO (`_COH_FEVI_LEGADO`), y no es por los estudios
+     —este control no viaja con ninguno, su id lleva guion MEDIO— sino porque un filtro escrito a
+     mano en una sesion vieja o un `coh-fevi` repuesto por codigo no tiene por que descartar la
+     cohorte entera en silencio. Se traducen a las categorias del dueño. */
   if (C.fevi) {
     const f = _labFevi(inf);
     if (f === null) return false;
-    const uf = (typeof UMBRAL_FEVI_NORMAL === 'number') ? UMBRAL_FEVI_NORMAL : 50;
-    if (C.fevi === 'baja'  && !(f < 40)) return false;
-    if (C.fevi === 'media' && !(f >= 40 && f < uf)) return false;
-    if (C.fevi === 'alta'  && !(f >= uf)) return false;
+    const cat = (typeof feviClasificar === 'function') ? feviClasificar(f) : null;
+    const k = cat ? cat.clave : null;
+    if (!k) return false;
+    const leg = _COH_FEVI_LEGADO[C.fevi];
+    if (leg) { if (leg.indexOf(k) < 0) return false; }
+    else if (k !== C.fevi) return false;
   }
   if (C.diast && _labDiastGrado(inf) !== C.diast) return false;
   if (C.geom  && _labGeomCat(inf)    !== C.geom)  return false;
@@ -98433,9 +98446,27 @@ function _cohNum(id) {
 /* Los rótulos de la descripción son LITERALES de este archivo, nunca el valor crudo del control:
    es la misma allowlist con la que se rotulan las barras. Van por `_lblDe`, que usa
    hasOwnProperty — con `MAPA[k] || '…'` la clave 'constructor' no cae al fallback. */
+/* Los tres valores de FEVI que este filtro ofrecia hasta el CORTOS7, traducidos a las claves del
+   dueño. `baja` era `f < 40` y hoy son las dos categorias reducidas, o sea `f < 41`: el 40 exacto
+   cambia de lado, que es el defecto que `LS-7` declaraba. */
+const _COH_FEVI_LEGADO = Object.freeze({
+  baja:  Object.freeze(['moderada', 'severa']),
+  media: Object.freeze(['leve']),
+  alta:  Object.freeze(['preservada'])
+});
 const _COH_LBL = {
   sexo:     { M:'Masculino', F:'Femenino' },
-  fevi:     { baja:'FEVI < 40 %', media:'FEVI 40–49 %', alta:'FEVI ≥ 50 %' },
+  /* Los cuatro rotulos se DERIVAN de `FEVI_CATS`: el rango de cada clase tiene un solo dueño y
+     esta allowlist no puede quedar publicando la escala anterior. Las tres claves de legado van
+     con su propio texto, que dice el rango que ese filtro aplica HOY. */
+  fevi:     (function () {
+    const o = {};
+    FEVI_CATS.forEach(function (c) { o[c.clave] = 'FEVI ' + c.rot.toLowerCase() + ' (' + c.rango + ')'; });
+    o.baja  = 'FEVI reducida (moderada o severa)';
+    o.media = 'FEVI ' + FEVI_CATS[1].rot.toLowerCase() + ' (' + FEVI_CATS[1].rango + ')';
+    o.alta  = 'FEVI ' + FEVI_CATS[0].rot.toLowerCase() + ' (' + FEVI_CATS[0].rango + ')';
+    return o;
+  })(),
   diast:    { I:'Diastólica grado I', II:'Diastólica grado II', III:'Diastólica grado III', sin:'Sin disfunción diastólica' },
   geom:     { normal:'Geometría normal', remod:'Remodelado concéntrico', conc:'HVI concéntrica', exc:'HVI excéntrica' },
   hfpeff:   { bajo:'HFA-PEFF bajo', inter:'HFA-PEFF intermedio', alto:'HFA-PEFF alto' },
@@ -107525,9 +107556,23 @@ function labSubTab(id, el) {
      TAPSE/PSAP contra el grado de insuficiencia tricuspídea: sin ellos `ordCmp` cae al orden
      ALFABETICO y los grupos del Kruskal-Wallis salen «Leve · Moderada · Severa · Sin», con el
      «Sin» al final — o sea una escalera de severidad que arranca por el medio. */
-  const ORD = ['Sí','No','≥50','40-49','<40','Normal','I','II','III',
+  /* ⚠️ LAS CUATRO CLASES DE FEVI SE DERIVAN DE `FEVI_CATS` (CORTOS7, 2026-10-17), y es un
+     DEFECTO QUE SE CIERRA, no un refactor. Esta lista tenia escritas las TRES viejas —`≥50`,
+     `40-49`, `<40`— y desde el LS7 `FEVICAT` devuelve el `rango` de las CUATRO categorias, que
+     ademas lleva el `%` pegado: ninguna de las cuatro matcheaba, `ordCmp` caia a `999` y de ahi
+     al orden ALFABETICO. La tabla de contingencia de las tres chi² de FEVI salia con sus filas
+     en «30-40% · 41-49% · <30% · ≥50%», o sea la severa en el medio y la normal al final.
+     ⚠️ EL p NO CAMBIA Y HAY QUE DECIRLO: `chi2test` deriva R y C de las propias filas, los
+     esperados de las marginales y `df = (R-1)(C-1)`, asi que ya contaba las cuatro clases bien y
+     el chi² es invariante a permutar filas. Lo que estaba mal era el ORDEN DE LECTURA, que es lo
+     que el medico mira al lado del p. Lo que SI cambio con la cuarta clase —y queda declarado en
+     `LS-6`— es que hay mas celdas, asi que el esperado minimo baja y el semaforo cae a 🟡 con
+     `fe<5` mas seguido.
+     Derivarlo del dueño es lo que impide que vuelva a pasar el dia que un corte se mueva. */
+  const ORD = ['Sí','No'].concat(FEVI_CATS.map(function(c){ return c.rango }),
+              ['Normal','I','II','III',
                'Remodelado conc.','HVI excéntrica','HVI concéntrica','F','M',
-               'Sin','Leve','Moderada','Severa'];
+               'Sin','Leve','Moderada','Severa']);
   const ordCmp = (x,y) => { const a=ORD.indexOf(x), b=ORD.indexOf(y);
     return (a<0?999:a)-(b<0?999:b) || String(x).localeCompare(String(y)); };
 
@@ -111191,7 +111236,8 @@ function _labHfPeffRaw(inf) {
        pantalla y en la hoja del PDF, y el Laboratorio era la quinta superficie —la que define el
        denominador del PDF de auditoría—: un paciente con FEVI 28 % y 5/6 quedaba fuera de su
        propio informe y al mismo tiempo contado como «HFA-PEFF alto» en el panel, y pasaba el
-       filtro de cohorte junto con «FEVI < 40 %». El mismo paciente, HFrEF en su informe y HFpEF
+       filtro de cohorte junto con una FEVI reducida —«30-40 %» o «< 30 %» desde el CORTOS7—. El
+       mismo paciente, HFrEF en su informe y HFpEF
        en la estadística. Se excluye acá, en el único punto por el que pasan las tres superficies
        del Lab (panel, filtro y asociaciones).
        Esto CAMBIA los conteos históricos del Laboratorio, en la dirección correcta: los estudios
@@ -112666,23 +112712,41 @@ async function _labPPTGenerar(infs, o) {
 
     // ── 10 · COMPARACIÓN DE SUBGRUPOS ──
     if (G('tend')) {
-      const baj = infs.filter(i => { const f = _labFevi(i); return f !== null && f > 0 && f < 40; });
-      const alt = infs.filter(i => { const f = _labFevi(i); return f !== null && f >= 40; });
+      /* ══ LOS DOS SUBGRUPOS SALEN DEL DUEÑO DE LA FEVI (CORTOS7, 2026-10-17) ═══════════════════
+         DECISION DE MAICOL, y cierra la segunda mitad de `LS-7`. La dicotomia estaba escrita con
+         un 40 a pelo —`f < 40` contra `f >= 40`— y desde el LS7 la app clasifica la FEVI en CUATRO
+         categorias cuyo dueño es `feviClasificar`: una FEVI de 40 exacta es «moderadamente
+         reducida» y caia del lado «>= 40», o sea del lado NO reducido, en el mazo que se proyecta.
+         Hoy el corte es el del dueño: reducida = moderada o severa.
+         ⚠️ ESCENA QUE CAMBIA: el estudio con FEVI 40 exacta pasa de un subgrupo al otro, y con el
+         se mueven las dos medias y las dos distribuciones de la hoja.
+         ⚠️ SIGUE SIENDO UNA DICOTOMIA y no cuatro series: la hoja compara DOS grupos con dos
+         graficos de barras y cuatro series dejarian cada barra por debajo de lo legible
+         proyectado, que es el mismo argumento con el que esta funcion pagina los scatter.
+         ⚠️ EL `f > 0` SE CONSERVA: un cero no es una medicion, y sin esa guarda caeria en
+         «severamente reducida» y entraria en el subgrupo reducido. */
+      const _feviRed = i => { const f = _labFevi(i);
+        if (f === null || !(f > 0)) return null;
+        const c = (typeof feviClasificar === 'function') ? feviClasificar(f) : null;
+        return c ? (c.clave === 'moderada' || c.clave === 'severa') : null };
+      const LBL_B = 'FEVI moderada o severamente reducida', LBL_A = 'FEVI normal o levemente reducida';
+      const baj = infs.filter(i => _feviRed(i) === true);
+      const alt = infs.filter(i => _feviRed(i) === false);
       if (baj.length < MIN_OPC || alt.length < MIN_OPC)
-        omitir('Comparación de subgrupos', 'FEVI < 40 %: ' + baj.length + ' · FEVI ≥ 40 %: ' + alt.length +
+        omitir('Comparación de subgrupos', LBL_B + ': ' + baj.length + ' · ' + LBL_A + ': ' + alt.length +
                ' — se necesitan al menos ' + MIN_OPC + ' en cada uno');
       if (baj.length >= MIN_OPC && alt.length >= MIN_OPC) {
-        const s = nueva('FEVI < 40 % frente a FEVI ≥ 40 %'); avisoN(s, Math.min(baj.length, alt.length));
+        const s = nueva(LBL_B + ' frente a ' + LBL_A); avisoN(s, Math.min(baj.length, alt.length));
         const dB = _labEstDescriptiva(baj), dA = _labEstDescriptiva(alt);
         const m = (d, lbl) => { const r = d.find(x => x.lbl === lbl); return (r && r.n > 0) ? Math.round(r.mean * 10) / 10 : 0; };
-        s.addText(T('FEVI < 40 %: n = ' + baj.length + '     ·     FEVI ≥ 40 %: n = ' + alt.length),
+        s.addText(T(LBL_B + ': n = ' + baj.length + '     ·     ' + LBL_A + ': n = ' + alt.length),
           { x:0.4, y:0.85, w:W-0.8, h:0.26, fontSize:12, bold:true, color:C.teal, fontFace:FONT });
         /* DOS gráficos y no uno agrupado: la PSAP ronda 40 mmHg y el E/e' ronda 10, así que en un
            mismo eje el segundo queda como una raya invisible. Y una distribución en porcentaje no
            comparte escala con ninguno de los dos. */
         _pptAddChart(s, P.ChartType.bar, [
-          { name:'FEVI < 40 %', labels:['PSAP (mmHg)', "E/e'"], values:[m(dB,'PSAP (mmHg)'), m(dB,"E/e' (ratio)")] },
-          { name:'FEVI ≥ 40 %', labels:['PSAP (mmHg)', "E/e'"], values:[m(dA,'PSAP (mmHg)'), m(dA,"E/e' (ratio)")] }
+          { name:LBL_B, labels:['PSAP (mmHg)', "E/e'"], values:[m(dB,'PSAP (mmHg)'), m(dB,"E/e' (ratio)")] },
+          { name:LBL_A, labels:['PSAP (mmHg)', "E/e'"], values:[m(dA,'PSAP (mmHg)'), m(dA,"E/e' (ratio)")] }
         ], { x:0.4, y:1.20, w:4.6, h:2.5, barDir:'col', chartColors:[SEM.rojo, SEM.verde],
              showTitle:true, title:T('Medias por subgrupo'), titleColor:C.txt, titleFontSize:12, titleFontFace:FONT,
              showValue:true, dataLabelColor:C.txt, dataLabelFontSize:10, dataLabelFontFace:FONT,
@@ -112692,8 +112756,8 @@ async function _labPPTGenerar(infs, o) {
         const gb = _labDiastDist(baj), ga = _labDiastDist(alt);
         const cats = gb.dist.map(x => T(String(x.lbl).replace(/\s*\(n=\d+\)/, '')));
         _pptAddChart(s, P.ChartType.bar, [
-          { name:'FEVI < 40 %', labels:cats, values:gb.dist.map(x => x.n) },
-          { name:'FEVI ≥ 40 %', labels:cats, values:ga.dist.map(x => x.n) }
+          { name:LBL_B, labels:cats, values:gb.dist.map(x => x.n) },
+          { name:LBL_A, labels:cats, values:ga.dist.map(x => x.n) }
         ], { x:5.2, y:1.20, w:4.5, h:2.5, barDir:'col', chartColors:[SEM.rojo, SEM.verde],
              showTitle:true, title:T('Función diastólica por subgrupo'), titleColor:C.txt, titleFontSize:12, titleFontFace:FONT,
              showValue:true, dataLabelColor:C.txt, dataLabelFontSize:10, dataLabelFontFace:FONT,
