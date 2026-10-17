@@ -366,3 +366,40 @@ TC-460.
 * **Un centinela sobre la VERDAD no alcanza: tiene que ser sobre el TIPO.** Contra HEAD el
   ayudante devuelve la cadena `'SIN FN'`, que es *truthy*, y `r.lo.toFixed(3)` mató la corrida
   entera — que prueba que el árbol es distinto, no que el caso sabe medir.
+
+---
+
+## TC-493 — la tanda «LS»: la AI y el VI por sexo, la FEVI en cuatro y el aviso
+
+**52 condiciones**, con **dos denominadores** y **cuatro controles negativos**. Contra el árbol de
+entrada en un worktree aparte: **36 de las 52 en rojo**, y **ninguna por excepción** (el log no
+tiene una sola línea de `excepcion`).
+
+### Lo que afirma, por bloque
+
+| Bloque | Condiciones | Qué fija |
+|---|---|---|
+| DENOM | 2 | las once piezas nuevas existen como función; los tres globos de AI/VI tienen geometría |
+| (b) el dueño del sexo | b1 a b4 | normaliza `M`/`F`/minúscula/palabra entera/con espacios; un valor **no binario** cuenta como sin sexo; sin sexo el corte es el del **varón**; la regla alcanza a los seis parámetros |
+| (a) los seis parámetros | a1 a a11 | el diámetro AP por sus bordes exactos en los tres sexos y el rótulo del corte publicado; el DDVI en sus **tres** bordes por sexo y en los tres estilos del informe; el DSVI y el espesor por sus bandas; **(a11) límite declarado**: ninguna cápsula clasifica el diámetro sistólico ni el espesor |
+| (e) la masa | e1 a e4 | 115 y 95 **exactos** normales, 116 y 96 hipertrofia leve, sin sexo el del varón, y **cero huecos ni solapes** de 40 a 200 g/m² en los dos sexos |
+| (d) la FEVI | d1 a d5 | los cuatro tramos con 50/41/40/30/29; el 40 y el 30 en moderada **en los tres estilos y en el EN SUMA**; **un solo dueño** (cápsula, informe, Simpson y bandas coinciden en todo el dominio); el censo de la comparación suelta; **(d5) control negativo**: el criterio no distingue sexo |
+| (c) el aviso | c1 a c7 | aparece sólo con falta de sexo y valor en la franja; desaparece con el sexo cargado; los seis parámetros lo disparan y la FEVI **no**; no entra al informe ni al EN SUMA en los tres estilos; `role="status"` y `aria-live="polite"` sin `onclick`; «Nuevo estudio» lo apaga sin dejar una línea vacía; **no desplaza el campo de al lado** |
+| (f) las tarjetas | f1 a f5 | sin sexo las **cinco** barras del VI ubican su punto y las tres que dependen del sexo lo dicen; los cortes publicados son los del sexo; la línea del criterio de la FEVI **sin nombrar ninguna guía**; la de geometría trae las dos barras de espesor con su fuente; la de la AI con sus tres fuentes verificadas |
+| (g) Referencias | g1 a g3 | los **dos sexos** del diámetro AP y del DDVI, el espesor y la masa con su operador nuevo, y las cuatro bandas de la FEVI con su línea de criterio |
+| (h) el registro | h1 a h4 | ids únicos y datos puros; el valor de cada ficha **atado a su dueño**; sin vocabulario de reserva y con los acentos puestos; las seis fichas nuevas o reverificadas con su tabla, folio, hoja y DOI |
+| (i)/(j) | i1, i2, j1 | 20 aperturas y cierres de las tres tarjetas sin acumular nodos ni dejar ninguna abierta; sin scroll horizontal con el aviso puesto; nada se guarda en el estudio ni en el navegador |
+| (k) los controles | k1 a k4 | el Excel en **440** columnas sin ninguna categoría nueva; la diastólica, el HFA-PEFF y los ocho grados; las cuatro tarjetas de la tanda M intactas; el cuadro de frases, la identificación del paciente y el Wilkins en su lugar |
+
+### Dos cosas que hay que saber para releerlo
+
+⚠️ **CARGA CON `__t.set` Y NO CON TECLAS DE CDP**, y está escrito en el caso: el cuerpo corre
+DENTRO de la página, no tiene acceso al protocolo del navegador y un `KeyboardEvent` construido a
+mano no es de confianza. Las **mismas** escenas se corren con teclas y clics reales en
+`scripts/_probe_ls.mjs`, que es la sonda que midió el A/B contra el árbol de entrada. Es el
+reparto de TC-460, TC-463 y TC-469.
+
+⚠️ **LA ESCENA DE (d2) LLEVA EL DIÁMETRO DIASTÓLICO ADEMÁS DE LA FEVI, y es un denominador**: el
+bloque del ventrículo del informe se arma alrededor del diámetro, así que con la FEVI sola el
+estilo **conciso** no publica su fragmento y la condición salía roja sobre un informe correcto en
+los otros dos estilos.

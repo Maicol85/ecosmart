@@ -3052,3 +3052,97 @@ Ninguna barra, tabla ni entrada de Referencias publica una fuente que no esté a
 40 mm de la raíz aórtica sale **sin línea de fuente**, y los cinco cortes por segmento de
 `ref-ao2` salen **sin corchete**. Los límites de dibujo de cada barra y los ejes del nomograma no
 llevan fuente: son el rango que el gráfico encuadra, no un criterio.
+
+---
+
+## La tanda LS — la AI y el VI por SEXO, leídos en el original (2026-10-16)
+
+Todo lo de abajo se **vio en el PDF original**, extrayendo sólo las páginas necesarias y
+comprobando el folio en el **pie impreso** de cada una. Lo que no se pudo ver está al final, con
+el motivo.
+
+### Las tres fuentes, con su regla de folio comprobada
+
+| Documento | Dónde está | Regla de folio | DOI (leído en el pie de su hoja 1) |
+|---|---|---|---|
+| **ASE/EACVI 2015** — Lang RM y col., *Recommendations for Cardiac Chamber Quantification by Echocardiography in Adults*, JASE 2015;28:1-39 | `EcoSmart_Biblioteca_Fuentes/01_VI_y_camaras/Chamber-quantification.-Guidelines-and-standards.-ASE-2015.pdf` (53 hojas) | **en el cuerpo, folio = hoja** (la hoja 10 imprime «10 Lang et al», la 17 «Lang et al 17»); **en el apéndice, NO**: la hoja 47 lleva el folio `39.e8` y la 53 el `39.e14` | `10.1016/j.echo.2014.10.003` |
+| **ASE/AEE 2005** — Lang RM y col., *Recommendations for Chamber Quantification*, JASE 2005;18:1440-1463 | `…/01_VI_y_camaras/Chamber-Quantification.pdf` (24 hojas) | **folio = hoja + 1439** (hoja 9 → 1448, hoja 17 → 1456), comprobado en el pie | `10.1016/j.echo.2005.10.005` |
+| **ESC 2021 de insuficiencia cardíaca** — McDonagh TA y col., traducción de la Sociedad Española de Cardiología, Rev Esp Cardiol 2022;75(6):523.e1-523.e114 | `…/01_VI_y_camaras/S0300893221005236.pdf` (114 hojas) | **folio = `523.e` + hoja** (la hoja 11 imprime «e11» en su pie) | `10.1016/j.recesp.2021.11.012` |
+
+⚠️ **DE LA ESC 2021 SÓLO HAY LA TRADUCCIÓN, Y SE DECLARA.** La regla de la casa es citar del
+original inglés —la ESC/EACTS 2025 en español ya dio vuelta un hallazgo entero por una palabra
+omitida—. Acá lo que se leyó son **números y operadores**, que son inequívocos (`FEVI ≤40%`,
+`FEVI 41-49%`, `FEVI ≥50%`) y además coinciden con el texto del cuerpo de la misma hoja. El
+original inglés **no está en la biblioteca**; si entra, conviene re-verificar los dos operadores.
+
+### Lo verificado, dato por dato
+
+| Dato | Lo que dice el original, textual | Tabla · folio · hoja | Estado |
+|---|---|---|---|
+| **Diámetro AP de la AI** | «AP dimension (cm): **Women 2.7–3.8 / Men 3.0–4.0**» | Supplemental Table 9 · 39.e14 · 53 | verificado |
+| **Área de la AI** | «LA area, cm²: **≤20** (reference range)», con 20-30 leve, 30-40 moderada y >40 severa | Lang **2005**, Table 9 · 1456 · 17 | verificado |
+| **Volumen indexado de la AI** | «Maximum LA volume/BSA (mL/m²): **16–34 · 35–41 · 42–48 · >48**», los mismos en las dos columnas de sexo | Table 4 · 10 · 10 | verificado |
+| **DDVI** | «LV diastolic diameter (cm): **4.2–5.8 · 5.9–6.3 · 6.4–6.8 · >6.8**» varón, «**3.8–5.2 · 5.3–5.6 · 5.7–6.1 · >6.1**» mujer | Supplemental Table 3 · 39.e8 · 47 | verificado |
+| **DSVI** | «LV systolic diameter (cm): **2.5–4.0 · 4.1–4.3 · 4.4–4.5 · >4.5**» varón, «**2.2–3.5 · 3.6–3.8 · 3.9–4.1 · >4.1**» mujer | Supplemental Table 3 · 39.e8 · 47 | verificado |
+| **Espesor del septum** | «Septal wall thickness (cm): **0.6–1.0 · 1.1–1.3 · 1.4–1.6 · >1.6**» varón, «**0.6–0.9 · 1.0–1.2 · 1.3–1.5 · >1.5**» mujer | Supplemental Table 3 · 39.e8 · 47 | verificado |
+| **Espesor de la pared posterior** | «Posterior wall thickness (cm)»: **los mismos cuatro rangos** que el septum | Supplemental Table 3 · 39.e8 · 47 · y Table 6 · 17 · 17 | verificado |
+| **Masa indexada, límite normal** | «LV mass/BSA (g/m²): **Women 43–95 / Men 49–115**» | Table 6 · 17 · 17 · y Supplemental Table 3 | verificado |
+| **Masa indexada, gravedad** | «**116–131 · 132–148 · >148**» varón, «**96–108 · 109–121 · >121**» mujer | Supplemental Table 3 · 39.e8 · 47 | verificado |
+| **Volumen telediastólico indexado** | «LV diastolic volume/BSA (mL/m²): **34–74 · 75–89 · 90–100 · >100**» varón, «**29–61 · 62–70 · 71–80 · >80**» mujer | Supplemental Table 3 · 39.e8 · 47 | verificado |
+| **Volumen telesistólico indexado** | «LV systolic volume/BSA (mL/m²): **11–31 · 32–38 · 39–45 · >45**» varón, «**8–24 · 25–32 · 33–40 · >40**» mujer | Supplemental Table 3 · 39.e8 · 47 | verificado |
+| **FEVI — los cortes de 50 y de 40** | «FEVI **≤40%**» (reducida) · «FEVI **41-49%**» (ligeramente reducida) · «FEVI **≥50%**» (conservada) | ESC 2021, Tabla 3 · 523.e11 · 11 | verificado |
+| **FEVI — el corte de 30** | «LV EF (%): 52–72 · 41–51 · **30–40** · **<30**» varón y «54–74 · 41–53 · **30–40** · **<30**» mujer | Table 4 · 10 · 10 · y Supplemental Table 3 | verificado |
+| **FEVI — el 30 en la edición de 2005** | «Ejection fraction, %: >55 · 45–54 · 30–44 · **<30**» | Lang **2005**, Table 6 · 1448 · 9 | verificado |
+
+### El operador de cada borde
+
+La guía publica **RANGOS NORMALES QUE INCLUYEN SU LÍMITE SUPERIOR** —«3.0–4.0», «49–115»,
+«0.6–1.0»— y hace empezar la banda siguiente en el entero de arriba. De ahí que el operador de
+todos los techos de normalidad de esta zona sea **`<=` para lo normal y `>` para lo anormal**, y
+que **40,0 mm, 115 y 95 g/m², 58 mm y 10 mm sean NORMALES**. Los volúmenes indexados ya lo
+aplicaban (`> 74` y `> 61`, medido desde siempre).
+
+### Las dos contradicciones del propio documento, declaradas y NO corregidas
+
+1. **El espesor parietal relativo.** La **Tabla 6 (folio 17)** publica «Relative wall thickness
+   (cm): Women 0.22–0.42 / Men 0.24–0.42», o sea con el **0,42 ADENTRO del rango normal**; el pie
+   de la **Figura 6**, en la misma página, escribe «concentric remodeling (normal LV mass with
+   increased RWT **$ 0.42**)» y «normal geometry (RWT **# 0.42**)» —y en esa fuente `$` es `≥` y
+   `#` es `≤`, la misma codificación que la ASE 2025 ya tiene documentada—, o sea que la figura se
+   contradice a sí misma en el 0,42 exacto. La app usa `< 0,42` normal, que es la lectura de la
+   figura. **El RWT está fuera del alcance de esta tanda y no se tocó**; la ficha `GEO-VI-001`
+   pasó a citar **sólo la Figura 6**, que es la que respalda lo que la app hace, en vez de la
+   Tabla 6, que lo niega.
+2. **El área de la AI se gradúa en 2005 y no en 2015.** La Tabla 9 de 2005 publica 20-30 leve,
+   30-40 moderada y >40 severa; la de 2015 no publica el área absoluta. La app la deja **binaria**
+   y eso no se tocó (la orden lo prohíbe).
+
+### Lo que NO se pudo verificar, con el motivo
+
+- **Las cuatro bandas de la FEVI como conjunto.** Ninguna de las tres fuentes publica
+  «50 / 41-49 / 30-40 / <30» en una sola tabla: es una **composición** del corte de la ESC 2021
+  con el desglose de la ASE/EACVI. Por eso la ficha `FUN-VI-001` queda **«por verificar»** y no
+  publica fuente, la tarjeta declara «Criterio de EcoSmart, orientado según guías clínicas» sin
+  nombrar ninguna guía, y el detalle por corte va en Referencias con las dos fichas que SÍ se
+  verificaron (`FUN-VI-002` y `FUN-VI-003`).
+- **El límite de normalidad de la FEVI por sexo.** La guía de 2015 corta en **52 % en el varón y
+  54 % en la mujer** (Tabla 4, folio 10). La app usa 50 sin sexo, que es decisión de Maicol del
+  2026-09-20 y sigue vigente: no se tocó.
+- **El 65 mm del DDVI que la app usaba.** No está en ninguna de las dos columnas de la Tabla
+  suplementaria 3 ni en el cuerpo del documento: era un valor sin fuente, y se retiró.
+- **El «3,9 / 4,1 cm» del diámetro AP** que el comentario del código atribuía a la guía. **No
+  existe en ninguna de las dos ediciones**: las dos publican 3,8 y 4,0. El comentario era falso
+  en las dos mitades y se corrigió.
+
+### Cambios de evidencia
+
+| Dato | Valor antes | Valor ahora | Fuente | Commit | Fecha |
+|---|---|---|---|---|---|
+| Diámetro AP de la AI | dilatada con `>= 40` mm, un corte para los dos sexos | normal `<= 40` en el varón y `<= 38` en la mujer; dilatada por encima | ASE/EACVI 2015, Supplemental Table 9, folio 39.e14 | LS2 | 16/10/2026 |
+| Área de la AI | `> 20` cm², sin fuente verificada | `> 20` cm² (sin cambio), ahora verificado | ASE/AEE 2005, Table 9, folio 1456 | LS1 | 16/10/2026 |
+| DDVI | normal `<= 58`, leve `<= 65`, dilatado por encima; un corte para los dos sexos | cuatro categorías por sexo: varón 58 / 63 / 68, mujer 52 / 56 / 61 | ASE/EACVI 2015, Supplemental Table 3, folio 39.e8 | LS3 | 16/10/2026 |
+| DSVI | sin clasificar en ninguna superficie; referencia impresa «< 40 mm» | sin clasificar (igual); referencia «H<=40 M<=35 mm» y barra por sexo | ASE/EACVI 2015, Supplemental Table 3, folio 39.e8 | LS4 | 16/10/2026 |
+| Espesor del septum y de la pared | sin clasificar; referencia impresa «< 13 mm» | sin clasificar (igual); referencia «H<=10 M<=9 mm» y dos barras por sexo | ASE/EACVI 2015, Supplemental Table 3 (folio 39.e8) y Table 6 (folio 17) | LS5 | 16/10/2026 |
+| Masa indexada, límite normal | hipertrofia desde `>= 115` y `>= 95` (operador `<` para lo normal) | normal hasta `<= 115` y `<= 95`; la hipertrofia empieza por encima | ASE/EACVI 2015, Table 6 (folio 17) y Supplemental Table 3 | LS6 | 16/10/2026 |
+| FEVI | normal `>= 50`, leve 40-49, moderada 30-39, severa `< 30` | normal `>= 50`, leve 41-49, moderada 30-40, severa `< 30` | ESC 2021 Tabla 3 (folio 523.e11) + ASE/EACVI 2015 Tabla 4 (folio 10) | LS7 | 16/10/2026 |
+| Volúmenes indexados del VI | por sexo, operador `>` | sin cambio; sólo se agregó la regla del corte más alto sin sexo | ASE/EACVI 2015, Supplemental Table 3, folio 39.e8 | LS6 | 16/10/2026 |

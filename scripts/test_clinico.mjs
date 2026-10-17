@@ -573,26 +573,42 @@ caso('TC-18', 'DDFVI 58 normal / 59 levemente dilatado (corte >58)', `
   ] };
 `);
 
-caso('TC-19', 'DDFVI 65 leve / 66 dilatado (corte >65)', `
-  __t.limpiar(); __t.set('ddfvi','65'); const a = __t.informe();
-  __t.limpiar(); __t.set('ddfvi','66'); const b = __t.informe();
+/* ADAPTADO el 2026-10-16 (tanda LS3): los cortes del diametro diastolico pasaron a ser POR SEXO
+   y a ser CUATRO. El 65 que este caso usaba como «leve» NO estaba en ninguna de las dos columnas
+   de la Tabla suplementaria 3 de la ASE/EACVI 2015, y el 66 era «dilatado» por descarte. Hoy el
+   varon separa en 58 / 63 / 68 y la mujer en 52 / 56 / 61, asi que el caso mide los TRES bordes
+   del varon —que es el corte que se aplica cuando el sexo falta, como en estas escenas— en vez
+   de un solo par. Los textos nuevos no son vocabulario nuevo: son los que `vdfviInterp` ya
+   publicaba para los volumenes del mismo ventriculo. */
+caso('TC-19', 'DDFVI: los TRES bordes del varon (58/59, 63/64, 68/69), que es el corte sin sexo', `
+  function dd(v) { __t.limpiar(); __t.set('ddfvi', String(v)); return __t.informe(); }
+  const r = [58, 59, 63, 64, 68, 69].map(dd);
   return { extra: [
-    ['65 mm sigue siendo leve', a.suma.indexOf('VI levenmente') === -1 && a.suma.indexOf('VI levemente dilatado.') > -1],
-    ['66 mm es dilatado',       /^Ventrículo izquierdo dilatado con diámetro diastólico de 66 mm/m.test(b.inf)],
-    ['66 mm va al EN SUMA',     b.suma.indexOf('VI dilatado.') > -1]
+    ['58 mm es normal',                 r[0].suma.indexOf('VI ') === -1],
+    ['59 mm es levemente dilatado',     r[1].suma.indexOf('VI levemente dilatado.') > -1],
+    ['63 mm sigue siendo leve',         r[2].suma.indexOf('VI levemente dilatado.') > -1],
+    ['64 mm es moderadamente dilatado', r[3].suma.indexOf('VI moderadamente dilatado.') > -1],
+    ['68 mm sigue siendo moderado',     r[4].suma.indexOf('VI moderadamente dilatado.') > -1],
+    ['69 mm es severamente dilatado',   r[5].suma.indexOf('VI severamente dilatado.') > -1],
+    ['y el informe lo escribe igual',   /Ventrículo izquierdo severamente dilatado con diámetro diastólico de 69 mm/m.test(r[5].inf)]
   ] };
 `);
 
-/* UMBRAL_FEVI_NORMAL = 50, y las bandas de abajo son 40 y 30. Los tres cortes, por los dos
-   lados. La FEVI es el numero que mas decide conducta en todo el informe. */
-caso('TC-20', 'FEVI: los tres cortes (50 / 40 / 30) por ambos lados', `
+/* UMBRAL_FEVI_NORMAL = 50, y las bandas de abajo son 41 y 30. Los tres cortes, por los dos
+   lados. La FEVI es el numero que mas decide conducta en todo el informe.
+   ADAPTADO el 2026-10-16 (tanda LS7): el borde del medio pasa de 40 a 41, asi que el 40 EXACTO
+   cae en «moderadamente reducida» y no en la de arriba. La guia ESC 2021 de insuficiencia
+   cardiaca escribe «FEVI <=40%» para la reducida y «41-49%» para la ligeramente reducida (Tabla
+   3, folio 523.e11), asi que el 40 pertenece al grupo de abajo. El caso gana el 41 para medir el
+   borde por sus DOS lados, que antes no se podia: con el corte en 40 el 41 no separaba nada. */
+caso('TC-20', 'FEVI: los tres cortes (50 / 41 / 30) por ambos lados', `
   function fevi(v) { __t.limpiar(); __t.set('fevi', String(v)); return __t.informe(); }
-  const r = [50, 49, 40, 39, 30, 29].map(fevi);
+  const r = [50, 49, 41, 40, 30, 29].map(fevi);
   return { extra: [
     ['FEVI 50 normal',                 r[0].suma.indexOf('FEVI normal (50%).') > -1],
     ['FEVI 49 levemente reducida',     r[1].suma.indexOf('FEVI levemente reducida (49%).') > -1],
-    ['FEVI 40 levemente reducida',     r[2].suma.indexOf('FEVI levemente reducida (40%).') > -1],
-    ['FEVI 39 moderadamente reducida', r[3].suma.indexOf('FEVI moderadamente reducida (39%).') > -1],
+    ['FEVI 41 levemente reducida',     r[2].suma.indexOf('FEVI levemente reducida (41%).') > -1],
+    ['FEVI 40 moderadamente reducida', r[3].suma.indexOf('FEVI moderadamente reducida (40%).') > -1],
     ['FEVI 30 moderadamente reducida', r[4].suma.indexOf('FEVI moderadamente reducida (30%).') > -1],
     ['FEVI 29 severamente reducida',   r[5].suma.indexOf('FEVI severamente reducida (29%).') > -1]
   ] };
@@ -4110,17 +4126,26 @@ caso('TC-31', 'AI sin volumen: el diametro NOMBRA la dilatacion y no la gradua (
   return { extra: [
     ['38 mm normal',
       d38.indexOf('Aur\u00edcula izquierda de dimensiones normales (di\u00e1metro AP 38 mm).') > -1],
-    ['39 mm TODAVIA normal — el borde de abajo',
+    /* ADAPTADO el 2026-10-16 (tanda LS2): el corte pasa a ser POR SEXO y el operador de
+       mayor-o-igual a mayor estricto, porque la Supplemental Table 9 de la ASE/EACVI 2015
+       publica un RANGO NORMAL que incluye su techo —«Men 3.0-4.0»—. Estas escenas van SIN sexo
+       cargado, asi que se aplica el corte MAS ALTO, el del varon: 40 mm EXACTOS pasan de
+       «dilatada» a NORMAL y la dilatacion empieza en 41. El borde se mide por sus DOS lados. */
+    ['39 mm TODAVIA normal',
       d39.indexOf('Aur\u00edcula izquierda de dimensiones normales (di\u00e1metro AP 39 mm).') > -1],
-    ['40 mm YA dilatada — el corte es >=40, no >40',
-      d40.indexOf('Aur\u00edcula izquierda dilatada (di\u00e1metro AP 40 mm).') > -1],
+    ['40 mm TAMBIEN normal — el corte es > 40 y sin sexo manda el del varon',
+      d40.indexOf('Aur\u00edcula izquierda de dimensiones normales (di\u00e1metro AP 40 mm).') > -1],
+    ['41 mm YA dilatada — el otro lado del mismo borde',
+      ai(41).indexOf('Aur\u00edcula izquierda dilatada (di\u00e1metro AP 41 mm).') > -1],
     ['45 mm dilatada',
       d45.indexOf('Aur\u00edcula izquierda dilatada (di\u00e1metro AP 45 mm).') > -1],
     ['NINGUNO de los cuatro publica un grado',
       !gradua(d38) && !gradua(d39) && !gradua(d40) && !gradua(d45),
       'd38=' + gradua(d38) + ' d39=' + gradua(d39) + ' d40=' + gradua(d40) + ' d45=' + gradua(d45)],
     ['y los dilatados DECLARAN por que no se gradua',
-      d40.indexOf('El grado de dilataci\u00f3n auricular no se informa') > -1 &&
+      /* ADAPTADO el 2026-10-16: el 40 ya no es dilatado, asi que la declaracion se mide en el
+         41 —el primer valor dilatado del varon— y en el 45. */
+      ai(41).indexOf('El grado de dilataci\u00f3n auricular no se informa') > -1 &&
       d45.indexOf('El grado de dilataci\u00f3n auricular no se informa') > -1]
   ] };
 `);
@@ -5869,7 +5894,11 @@ caso('TC-90', 'TEER: los criterios COAPT se espejan vivos, rechazan el cero y no
    deje de emitirse. Sin la segunda, un `suma.push` de mas seguiria pasando el test. */
 caso('TC-87', 'AI dilatada por diametro AP llega al EN SUMA sin grado, y la normal no sube', `
   function ai(mm) { __t.limpiar(); __t.set('ai_diam', String(mm)); return __t.informe(); }
-  const r = ai(45), borde = ai(40), normal = ai(39);
+  /* ADAPTADO el 2026-10-16 (tanda LS2): el corte del diametro AP pasa a ser POR SEXO y su
+     operador de mayor-o-igual a mayor estricto. Estas escenas van SIN sexo cargado, asi que se
+     aplica el corte MAS ALTO —el del varon, 40 mm— y 40 EXACTOS pasan a ser NORMALES: el valor
+     que ejerce «sube al EN SUMA» en el borde es ahora el 41, y el 40 se suma al lado normal. */
+  const r = ai(45), borde = ai(41), normal = ai(40), normal39 = ai(39);
   return { inf: r.inf, suma: r.suma,
     debe: ['Aur\u00edcula izquierda dilatada (di\u00e1metro AP 45 mm).'],
     debeSuma: ['AI dilatada (di\u00e1metro AP 45 mm).'],
@@ -5877,10 +5906,11 @@ caso('TC-87', 'AI dilatada por diametro AP llega al EN SUMA sin grado, y la norm
     extra: [
       ['el EN SUMA tampoco gradua',
         /AI (levemente|moderadamente|severamente) dilatada/.test(r.suma) === false, r.suma],
-      ['40 mm sube igual — el borde del corte',
-        borde.suma.indexOf('AI dilatada (di\u00e1metro AP 40 mm).') > -1, borde.suma],
-      ['39 mm es normal y NO sube al EN SUMA',
-        /AI .*dilatada/.test(normal.suma) === false, normal.suma],
+      ['41 mm sube igual — el borde del corte del varon',
+        borde.suma.indexOf('AI dilatada (di\u00e1metro AP 41 mm).') > -1, borde.suma],
+      ['40 y 39 mm son normales y NO suben al EN SUMA',
+        /AI .*dilatada/.test(normal.suma) === false && /AI .*dilatada/.test(normal39.suma) === false,
+        normal.suma + ' // ' + normal39.suma],
       ['y ese estudio sigue diciendo que no hay alteraciones',
         normal.suma.indexOf('Estudio sin alteraciones estructurales ni funcionales significativas.') > -1]
     ] };
@@ -41219,8 +41249,13 @@ caso('TC-295', 'Las tres referencias de AI del PDF firmado coinciden con el oper
       ['el PDF tiene paginas y texto que contar',
         (bin.match(/\\/Type\\s*\\/Page[^s]/g) || []).length > 0 && txt.length > 20,
         'objetos de texto: ' + txt.length],
-      ['la ref del diametro dice <40 mm — el corte es >=40',
-        t.indexOf('<40 mm') > -1, txt.filter(x => x.indexOf('mm): ') > -1).join(' / ')],
+      /* ADAPTADO el 2026-10-16 (tanda LS2): el corte del diametro AP pasa a ser POR SEXO
+         —40 mm en el varon y 38 en la mujer— y su operador de mayor-o-igual a mayor estricto,
+         asi que la referencia impresa pasa de «<40 mm» a «H<=40 M<=38 mm», con el formato que
+         las filas de volumenes de esa misma tabla ya usaban. La condicion sigue midiendo lo que
+         importa: que el rotulo del papel firmado coincida con el operador del codigo. */
+      ['la ref del diametro dice H<=40 M<=38 mm — el corte es > 40 y > 38',
+        t.indexOf('H<=40 M<=38 mm') > -1, txt.filter(x => x.indexOf('mm): ') > -1).join(' / ')],
       ['la ref del area dice <=20 cm2 — el corte es >20',
         t.indexOf('<=20 cm2') > -1, txt.filter(x => x.indexOf('cm2') > -1).join(' / ')],
       ['la ref del volumen indexado dice <=34 — el clasificador trata el 34,0 como NORMAL',
@@ -72592,6 +72627,481 @@ caso('TC-492', 'Tanda M: las DIECISEIS FICHAS nuevas del registro de evidencia d
        scripts/_probe_mwk.mjs. Es el reparto de TC-460. */
     ex.push(['LIMITE DECLARADO: la maqueta por ancho y el segundo motor los miden las sondas, no este caso',
       true, 'ver scripts/_probe_m.mjs (grupo maqueta) y scripts/_probe_mwk.mjs (192 celdas por motor)']);
+
+    return { extra: ex };
+  })();
+`);
+
+
+caso('TC-493', 'Tanda LS: la AI y el VI alineados a la ASE/EACVI 2015 con CORTES POR SEXO y la regla del CORTE MAS ALTO sin sexo —el diametro AP de la auricula, el diametro diastolico en cuatro categorias, el diametro sistolico, los espesores del septum y de la pared, la masa con sus 115 y 95 EXACTOS normales y los dos volumenes indexados—; la fraccion de eyeccion en CUATRO categorias con UN solo dueno y los 40 y 30 exactos en la moderada; el AVISO de pantalla que aparece solo cuando falta el sexo y un valor cambiaria de categoria; las tarjetas y Referencias con los dos sexos; y el informe, el EN SUMA, la diastolica, el HFA-PEFF, las valvulas, el VD y las 440 columnas del Excel sin moverse', `
+  return (async function(){
+    const ex = [];
+    const EL = (id) => document.getElementById(id);
+    const S  = (id, v) => { try { __t.set(id, v); } catch (e) {} };
+    const V  = (id) => { const e = EL(id); return e ? e.value : null; };
+    const TXT = (id) => { const e = EL(id); return e ? String(e.textContent || '').replace(/[ ]+/g, ' ').trim() : 'NO EXISTE'; };
+    /* TODA LECTURA DE LAS PIEZAS NUEVAS VA POR UN AYUDANTE CON CENTINELA: contra HEAD no existen
+       sexoEfectivo, aiDiamNormalMax, ddviCortes, dsviBandas, espesorBandas, feviClasificar,
+       FEVI_CATS, aiviSexoCambian ni el nodo del aviso, y nombrarlos pelados es un ReferenceError
+       que mata la corrida entera — eso prueba que el arbol es distinto, no que el caso sabe
+       medir. Es la leccion que TC-455, TC-473, TC-477, TC-480, TC-485, TC-487, TC-490, TC-491 y
+       TC-492 ya tienen escrita. */
+    const G = (n) => { try { return (n in window) ? window[n] : 'NO EXISTE'; } catch (e) { return 'EXC'; } };
+    const FN = (n) => typeof G(n) === 'function';
+    const CARD = () => EL('vinfo-card');
+    const BTN  = (k) => document.querySelector('[data-vinfo="' + k + '"]');
+    const BSA2 = { peso: '80', talla: '180' };   // Mosteller -> 2,00 exacta
+
+    /* ⚠️ ESTE CASO CARGA CON __t.set Y NO CON TECLAS DE CDP, y hay que decirlo: el cuerpo de un
+       caso corre DENTRO de la pagina, no tiene acceso al protocolo del navegador, y un
+       KeyboardEvent construido a mano no es de confianza. Las MISMAS escenas se corren con
+       teclas y clics reales en scripts/_probe_ls.mjs, que es la que midio el A/B contra el arbol
+       de entrada. Es el reparto de TC-460, TC-463 y TC-469. */
+    const escena = (campos, sexo) => {
+      try { limpiarCampos(true); } catch (e) {}
+      try { showTab('ai-vi'); } catch (e) {}
+      ['ai', 'vi'].forEach(function (k) { const n = EL('sacc-' + k);
+        if (n && !n.classList.contains('open')) { try { secToggle(k); } catch (e) {} } });
+      const s = EL('sexo');
+      if (s) { s.value = sexo; s.dispatchEvent(new Event('change', { bubbles: true })); }
+      Object.keys(BSA2).forEach(function (id) { S(id, BSA2[id]); });
+      Object.keys(campos).forEach(function (id) { S(id, campos[id]); });
+      try { calcAI(); calcVI(); } catch (e) {}
+    };
+    const inf = (est) => { try { setEstiloInforme(est); } catch (e) {}
+      try { generarInforme(); } catch (e) {}
+      return { i: V('informe_texto') || '', s: V('en_suma') || '' }; };
+
+    /* ── DENOMINADOR 1: las piezas nuevas existen ── */
+    const PIEZAS = ['sexoLeido','sexoCargado','sexoEfectivo','sexoFalta','aiDiamNormalMax',
+      'ddviCortes','dsviBandas','espesorBandas','feviClasificar','aiviSexoCambian','aiviSexoSync'];
+    ex.push(['(DENOM 1) las once piezas nuevas de la tanda existen como funcion',
+      PIEZAS.every(FN), 'faltan=' + PIEZAS.filter(function (n) { return !FN(n) }).join(',')]);
+
+    /* ── DENOMINADOR 2: la pestana AI/VI abierta con sus dos acordeones ── */
+    try { showTab('ai-vi'); } catch (e) {}
+    ['ai', 'vi'].forEach(function (k) { const n = EL('sacc-' + k);
+      if (n && !n.classList.contains('open')) { try { secToggle(k); } catch (e) {} } });
+    const geoBtn = (k) => { const b = BTN(k); if (!b) return null;
+      const r = b.getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height) }; };
+    ex.push(['(DENOM 2) los tres globos de AI/VI tienen geometria',
+      ['ai-card','vi-card','vi-geo'].every(function (k) { const g = geoBtn(k); return !!(g && g.w > 0) }),
+      'geo=' + JSON.stringify(['ai-card','vi-card','vi-geo'].map(geoBtn))]);
+
+    /* ══ (b) LA REGLA DEL CORTE MAS ALTO Y EL VALOR NO BINARIO ═══════════════════════════ */
+    ex.push(['(b1) el dueno del sexo normaliza: M, F, minuscula, palabra entera y con espacios',
+      FN('sexoLeido') && sexoLeido('M') === 'M' && sexoLeido('F') === 'F'
+        && sexoLeido('m') === 'M' && sexoLeido('f') === 'F'
+        && sexoLeido('Masculino') === 'M' && sexoLeido('Femenino') === 'F'
+        && sexoLeido('  F  ') === 'F',
+      'leido=' + (FN('sexoLeido') ? [sexoLeido('m'), sexoLeido('Femenino'), sexoLeido('  F  ')].join(',') : 'SIN FN')]);
+    ex.push(['(b2) un valor que no es masculino ni femenino cuenta como SIN SEXO, y el vacio tambien',
+      FN('sexoLeido') && sexoLeido('') === null && sexoLeido('X') === null
+        && sexoLeido('otro') === null && sexoLeido(null) === null && sexoLeido(undefined) === null,
+      'no binario=' + (FN('sexoLeido') ? String(sexoLeido('X')) : 'SIN FN')]);
+    ex.push(['(b3) SIN SEXO el corte efectivo es el del VARON, que es el MAS ALTO',
+      FN('sexoEfectivo') && G('SEXO_CORTE_ALTO') === 'M'
+        && sexoEfectivo('') === 'M' && sexoEfectivo('X') === 'M' && sexoEfectivo(null) === 'M'
+        && sexoEfectivo('F') === 'F' && sexoEfectivo('M') === 'M'
+        && FN('sexoFalta') && sexoFalta('') === true && sexoFalta('X') === true
+        && sexoFalta('F') === false,
+      'corteAlto=' + String(G('SEXO_CORTE_ALTO'))]);
+    ex.push(['(b4) la regla alcanza a los SEIS parametros por sexo, y en los seis el corte sin sexo es el del varon',
+      FN('aiDiamNormalMax') && FN('ddviCortes') && FN('dsviBandas') && FN('espesorBandas')
+        && aiDiamNormalMax('') === aiDiamNormalMax('M') && aiDiamNormalMax('F') !== aiDiamNormalMax('M')
+        && JSON.stringify(ddviCortes('')) === JSON.stringify(ddviCortes('M'))
+        && JSON.stringify(ddviCortes('F')) !== JSON.stringify(ddviCortes('M'))
+        && JSON.stringify(dsviBandas('')) === JSON.stringify(dsviBandas('M'))
+        && JSON.stringify(espesorBandas('')) === JSON.stringify(espesorBandas('M'))
+        && JSON.stringify(espesorBandas('F')) !== JSON.stringify(espesorBandas('M'))
+        && G('UMBRAL_MASA_HVI_H') === 115 && G('UMBRAL_MASA_HVI_M') === 95,
+      'apM=' + (FN('aiDiamNormalMax') ? aiDiamNormalMax('M') + '/' + aiDiamNormalMax('F') + '/sin=' + aiDiamNormalMax('') : 'SIN FN')]);
+
+    /* ══ (a) EL DIAMETRO AP DE LA AURICULA: el borde exacto, uno abajo y uno arriba ══════ */
+    const apDil = (v, sx) => { escena({ ai_diam: String(v) }, sx);
+      return { pred: FN('aiDiamDilatado') ? String(aiDiamDilatado(v, sx)) : 'SIN FN',
+               cap: TXT('ai-diam-interp'), inf: inf('estandar') }; };
+    const ap = {};
+    [['M', 39], ['M', 40], ['M', 41], ['F', 37], ['F', 38], ['F', 39], ['', 40], ['', 41]]
+      .forEach(function (p) { ap[p[0] + ':' + p[1]] = apDil(p[1], p[0]); });
+    ex.push(['(a1) el diametro AP del VARON: 40,0 EXACTOS son normales y la dilatacion empieza por encima',
+      ap['M:39'].pred === 'false' && ap['M:40'].pred === 'false' && ap['M:41'].pred === 'true'
+        && ap['M:40'].cap.indexOf('Normal') === 0 && ap['M:41'].cap.indexOf('Dilatada') === 0
+        && ap['M:40'].inf.i.indexOf('dilatada') < 0 && ap['M:41'].inf.i.indexOf('dilatada') > 0,
+      '39=' + ap['M:39'].pred + ' 40=' + ap['M:40'].pred + ' 41=' + ap['M:41'].pred
+        + ' cap40=' + ap['M:40'].cap]);
+    ex.push(['(a2) el de la MUJER: 38 normal, 39 ya dilatada, y el EN SUMA lo dice',
+      ap['F:37'].pred === 'false' && ap['F:38'].pred === 'false' && ap['F:39'].pred === 'true'
+        && ap['F:39'].cap.indexOf('Dilatada') === 0 && ap['F:39'].inf.s.indexOf('AI dilatada') >= 0
+        && ap['F:38'].inf.s.indexOf('AI dilatada') < 0,
+      '38=' + ap['F:38'].pred + ' 39=' + ap['F:39'].pred + ' cap39=' + ap['F:39'].cap]);
+    ex.push(['(a3) SIN SEXO manda el corte del varon: 40 normal y 41 dilatada, igual que el varon',
+      ap[':40'].pred === ap['M:40'].pred && ap[':41'].pred === ap['M:41'].pred
+        && ap[':40'].cap === ap['M:40'].cap,
+      'sin40=' + ap[':40'].pred + ' sin41=' + ap[':41'].pred]);
+    ex.push(['(a4) el rotulo de la capsula publica el corte DEL SEXO con el que clasifica',
+      ap['M:40'].cap.indexOf('40') > 0 && ap['F:38'].cap.indexOf('38') > 0
+        && ap['F:38'].cap.indexOf('40') < 0,
+      'M=' + ap['M:40'].cap + ' | F=' + ap['F:38'].cap]);
+
+    /* ══ (a) EL DIAMETRO DIASTOLICO: cuatro categorias por sexo, los tres bordes ═════════ */
+    const dd = (v, sx) => { escena({ ddfvi: String(v) }, sx);
+      return FN('viDimCat') ? String(viDimCat(v, sx)) : 'SIN FN'; };
+    ex.push(['(a5) el diametro diastolico del VARON separa sus TRES bordes: 58/59, 63/64 y 68/69',
+      dd(58, 'M') === 'de dimensiones normales' && dd(59, 'M') === 'levemente dilatado'
+        && dd(63, 'M') === 'levemente dilatado' && dd(64, 'M') === 'moderadamente dilatado'
+        && dd(68, 'M') === 'moderadamente dilatado' && dd(69, 'M') === 'severamente dilatado',
+      '58=' + dd(58, 'M') + ' 64=' + dd(64, 'M') + ' 69=' + dd(69, 'M')]);
+    ex.push(['(a6) el de la MUJER separa 52/53, 56/57 y 61/62, que son los de su columna',
+      dd(52, 'F') === 'de dimensiones normales' && dd(53, 'F') === 'levemente dilatado'
+        && dd(56, 'F') === 'levemente dilatado' && dd(57, 'F') === 'moderadamente dilatado'
+        && dd(61, 'F') === 'moderadamente dilatado' && dd(62, 'F') === 'severamente dilatado',
+      '52=' + dd(52, 'F') + ' 57=' + dd(57, 'F') + ' 62=' + dd(62, 'F')]);
+    ex.push(['(a7) SIN SEXO el diametro diastolico usa los cortes del varon en los tres bordes',
+      dd(58, '') === dd(58, 'M') && dd(64, '') === dd(64, 'M') && dd(69, '') === dd(69, 'M')
+        && dd(53, '') === 'de dimensiones normales',
+      'sin58=' + dd(58, '') + ' sin64=' + dd(64, '') + ' sin53=' + dd(53, '')]);
+    ex.push(['(a8) el informe y el EN SUMA publican la categoria nueva en los TRES estilos',
+      (function () {
+        escena({ ddfvi: '64' }, 'M');
+        const a = inf('estandar'), b = inf('narrativo'), c = inf('conciso');
+        return a.i.indexOf('moderadamente dilatado') > 0 && b.i.indexOf('moderadamente dilatado') > 0
+          && c.i.indexOf('moderadamente dilatado') > 0 && a.s.indexOf('moderadamente dilatado') > 0;
+      })(), 'con DDVI 64 en el varon']);
+
+    /* ══ (a) EL DIAMETRO SISTOLICO Y LOS ESPESORES: nada los clasifica en el papel ═══════ */
+    const bandaDe = (bs, x) => { for (let i = 0; i < bs.length; i++) if (x <= bs[i].hasta) return bs[i].k;
+      return bs[bs.length - 1].k; };
+    ex.push(['(a9) el diametro sistolico: 40 normal y 41 leve en el varon, 35 y 36 en la mujer, y sin sexo manda el varon',
+      FN('dsviBandas') && bandaDe(dsviBandas('M'), 40) === 'normal' && bandaDe(dsviBandas('M'), 41) === 'leve'
+        && bandaDe(dsviBandas('F'), 35) === 'normal' && bandaDe(dsviBandas('F'), 36) === 'leve'
+        && bandaDe(dsviBandas(''), 40) === 'normal' && bandaDe(dsviBandas(''), 36) === 'normal',
+      'M40=' + (FN('dsviBandas') ? bandaDe(dsviBandas('M'), 40) : 'SIN FN')]);
+    ex.push(['(a10) los espesores: 10 normal y 11 leve en el varon, 9 y 10 en la mujer, iguales para septum y pared',
+      FN('espesorBandas') && bandaDe(espesorBandas('M'), 10) === 'normal' && bandaDe(espesorBandas('M'), 11) === 'leve'
+        && bandaDe(espesorBandas('F'), 9) === 'normal' && bandaDe(espesorBandas('F'), 10) === 'leve'
+        && bandaDe(espesorBandas(''), 10) === 'normal',
+      'M10=' + (FN('espesorBandas') ? bandaDe(espesorBandas('M'), 10) : 'SIN FN')]);
+    /* ⚠️ LIMITE DECLARADO: el diametro sistolico y el espesor aislado NO se clasifican en NINGUNA
+       superficie firmada —censado: no hay capsula dsvi-interp, siv-interp ni pp-interp—, y la
+       tanda LS decidio NO agregarles una. Esta condicion lo fija: el dia que alguna las
+       clasifique, el caso lo nota. */
+    ex.push(['(a11) LIMITE DECLARADO: ninguna capsula de pantalla clasifica el diametro sistolico ni el espesor',
+      !EL('dsvi-interp') && !EL('siv-interp') && !EL('pp-interp'),
+      'capsulas=' + ['dsvi-interp','siv-interp','pp-interp'].filter(function (i) { return !!EL(i) }).join(',')]);
+
+    /* ══ (e) LA MASA: 115 y 95 EXACTOS normales, y las bandas sin huecos ni solapes ══════ */
+    const geoEn = (m, r, sx) => { try { return String(calcGeometriaVI(m, r, sx)) } catch (e) { return 'EXC' } };
+    ex.push(['(e1) la masa del VARON: 115 EXACTOS son normales y la hipertrofia empieza en 116, con su gravedad',
+      FN('calcGeometriaVI') && FN('hviSeveridad')
+        && geoEn(115, 0.30, 'M') === 'Normal' && geoEn(116, 0.30, 'M') === 'Hipertrofia excéntrica'
+        && hviSeveridad(115, 'M') === null && hviSeveridad(116, 'M') === 'leve',
+      '115=' + geoEn(115, 0.30, 'M') + ' 116=' + geoEn(116, 0.30, 'M')]);
+    ex.push(['(e2) la masa de la MUJER: 95 EXACTOS normales y 96 hipertrofia leve',
+      FN('calcGeometriaVI') && geoEn(95, 0.30, 'F') === 'Normal'
+        && geoEn(96, 0.30, 'F') === 'Hipertrofia excéntrica' && hviSeveridad(96, 'F') === 'leve',
+      '95=' + geoEn(95, 0.30, 'F') + ' 96=' + geoEn(96, 0.30, 'F')]);
+    ex.push(['(e3) SIN SEXO la masa usa el corte del varon: 115 normal y 96 tambien',
+      geoEn(115, 0.30, '') === 'Normal' && geoEn(96, 0.30, '') === 'Normal'
+        && geoEn(116, 0.30, '') === 'Hipertrofia excéntrica',
+      'sin115=' + geoEn(115, 0.30, '') + ' sin96=' + geoEn(96, 0.30, '')]);
+    ex.push(['(e4) las bandas no dejan ningun valor sin categoria ni con dos, en los dos sexos',
+      (function () { if (!FN('calcGeometriaVI') || !FN('hviSeveridad')) return false;
+        let mal = 0;
+        ['M','F'].forEach(function (sx) {
+          for (let m = 40; m <= 200; m++) {
+            const hip = geoEn(m, 0.30, sx).indexOf('Hipertrofia') === 0;
+            const sev = hviSeveridad(m, sx);
+            if (hip && !sev) mal++;
+            if (!hip && sev) mal++;
+          } });
+        return mal === 0; })(), 'huecos y solapes']);
+
+    /* ══ (d) LA FRACCION DE EYECCION: cuatro tramos, un solo dueno ══════════════════════ */
+    const fe = (v) => FN('feviClasificar') ? (feviClasificar(v) || {}).clave : 'SIN FN';
+    ex.push(['(d1) los cuatro tramos con sus bordes exactos: 50, 41, 40, 30 y 29',
+      fe(51) === 'preservada' && fe(50) === 'preservada' && fe(49) === 'leve' && fe(41) === 'leve'
+        && fe(40) === 'moderada' && fe(30) === 'moderada' && fe(29) === 'severa',
+      '50=' + fe(50) + ' 41=' + fe(41) + ' 40=' + fe(40) + ' 30=' + fe(30) + ' 29=' + fe(29)]);
+    /* ⚠️ LA ESCENA LLEVA EL DIAMETRO DIASTOLICO ADEMAS DE LA FEVI, y es un denominador: el
+       bloque del ventriculo del informe se arma alrededor del diametro, asi que con la FEVI
+       SOLA el estilo CONCISO no publica su fragmento y la condicion salia roja sobre un informe
+       que dice lo correcto en los otros dos estilos. */
+    ex.push(['(d2) el 40 y el 30 EXACTOS van a moderadamente reducida, y antes el 40 caia arriba',
+      (function () { escena({ fevi: '40', ddfvi: '50' }, 'M');
+        const a = inf('estandar'), b = inf('narrativo'), c = inf('conciso');
+        return TXT('fevi-interp').indexOf('Moderadamente') === 0
+          && a.i.indexOf('moderadamente reducida') > 0 && b.i.indexOf('disfunción sistólica moderada') > 0
+          && c.i.indexOf('FEVI moderadamente reducida') > 0
+          && a.s.indexOf('FEVI moderadamente reducida (40%)') >= 0; })(),
+      'capsula=' + (function () { escena({ fevi: '40', ddfvi: '50' }, 'M'); return TXT('fevi-interp') })()]);
+    ex.push(['(d3) UN SOLO DUENO: la capsula, el informe, el modulo de Simpson y las bandas de dibujo coinciden en todo el dominio',
+      (function () { if (!FN('feviClasificar') || !FN('_simpClasificar')) return false;
+        const B = G('EV_BANDAS_REF'); if (!B || !B.fevi) return false;
+        let mal = 0;
+        for (let f = 10; f <= 80; f += 0.5) {
+          const c = feviClasificar(f); if (!c) { mal++; continue }
+          if (_simpClasificar(f).txt !== c.adj) mal++;
+          const esp = (c.clave === 'preservada') ? 'normal' : c.clave;
+          let b = null;
+          for (let i = 0; i < B.fevi.length; i++) {
+            const x = B.fevi[i];
+            if (f >= x.desde && f <= x.hasta) { b = x.k; break } }
+          if (b !== esp) mal++;
+        }
+        return mal === 0; })(), 'capsula, informe, Simpson y bandas']);
+    ex.push(['(d4) las superficies que usaban TRES categorias usan CUATRO, y ninguna las escribe a mano',
+      (function () { const C = G('FEVI_CATS');
+        if (!Array.isArray(C) || C.length !== 4) return false;
+        const t = document.documentElement.innerHTML;
+        /* El censo busca la comparacion suelta que habia en las cinco copias. Las dos que
+           quedan son bandas de FILTRO de cohorte, no categorias, y estan declaradas. */
+        let n = 0, i = 0;
+        while ((i = t.indexOf('fevi >= 40', i)) >= 0) { n++; i += 10 }
+        return n === 0; })(),
+      'FEVI_CATS=' + (Array.isArray(G('FEVI_CATS')) ? G('FEVI_CATS').length : 'NO EXISTE')]);
+    ex.push(['(d5) CONTROL NEGATIVO: el criterio de la FEVI NO distingue sexo',
+      (function () { escena({ fevi: '45' }, 'M'); const a = TXT('fevi-interp');
+        escena({ fevi: '45' }, 'F'); const b = TXT('fevi-interp');
+        escena({ fevi: '45' }, ''); const c = TXT('fevi-interp');
+        return a === b && b === c && a.indexOf('Levemente') === 0; })(),
+      'los tres iguales']);
+
+    /* ══ (c) EL AVISO DE PANTALLA ══════════════════════════════════════════════════════ */
+    const avi = () => { const e = EL('aivi-sexo-aviso'); if (!e) return { hay: false };
+      const cs = getComputedStyle(e), r = e.getBoundingClientRect();
+      return { hay: true, vis: cs.display !== 'none' && r.height > 0, color: cs.color.trim(),
+               txt: String(e.textContent || '').replace(/[ ]+/g, ' ').trim(),
+               role: e.getAttribute('role'), live: e.getAttribute('aria-live') }; };
+    ex.push(['(c1) el aviso aparece SOLO cuando falta el sexo y el valor cae entre los dos cortes',
+      (function () { escena({ ai_diam: '39' }, ''); const a = avi();
+        escena({ ai_diam: '37' }, ''); const b = avi();
+        escena({ ai_diam: '45' }, ''); const c = avi();
+        return a.hay && a.vis && !b.vis && !c.vis
+          && a.txt.indexOf('Falta el sexo') === 0 && a.txt.indexOf('diámetro AP') > 0; })(),
+      'aviso=' + JSON.stringify((function () { escena({ ai_diam: '39' }, ''); return avi() }))]);
+    ex.push(['(c2) desaparece al cargar el sexo, con los dos valores',
+      (function () { escena({ ai_diam: '39' }, 'M'); const a = avi();
+        escena({ ai_diam: '39' }, 'F'); const b = avi();
+        return !a.vis && !b.vis; })(), 'con sexo cargado']);
+    ex.push(['(c3) los SEIS parametros por sexo lo disparan, y la FEVI NO —su criterio no distingue sexo—',
+      (function () { if (!FN('aiviSexoCambian')) return false;
+        const uno = (c) => { escena(c, ''); return aiviSexoCambian().length };
+        return uno({ ai_diam: '39' }) === 1 && uno({ ddfvi: '55' }) === 1 && uno({ dsfvi: '37' }) === 1
+          && uno({ siv: '10' }) === 1 && uno({ ppvi: '10' }) === 1
+          && uno({ ddfvi: '50', siv: '11', ppvi: '11' }) >= 1
+          && uno({ vdfvi: '130' }) === 1 && uno({ vsfvi: '56' }) === 1
+          && uno({ fevi: '40' }) === 0 && uno({}) === 0; })(),
+      'cambian=' + (FN('aiviSexoCambian') ? JSON.stringify((function () { escena({ ai_diam: '39', ddfvi: '55' }, ''); return aiviSexoCambian() })()) : 'SIN FN')]);
+    ex.push(['(c4) el texto del aviso NO entra al informe ni al EN SUMA',
+      (function () { escena({ ai_diam: '39' }, '');
+        const a = inf('narrativo'), b = inf('estandar'), c = inf('conciso');
+        return [a, b, c].every(function (r) {
+          return r.i.indexOf('Falta el sexo') < 0 && r.s.indexOf('Falta el sexo') < 0 }); })(),
+      'en los tres estilos']);
+    ex.push(['(c5) es accesible y no es un boton: role status, aria-live polite y sin onclick',
+      (function () { escena({ ai_diam: '39' }, ''); const e = EL('aivi-sexo-aviso');
+        return !!e && e.getAttribute('role') === 'status' && e.getAttribute('aria-live') === 'polite'
+          && !e.getAttribute('onclick') && e.tagName === 'DIV'; })(),
+      'role/live/onclick']);
+    ex.push(['(c6) «Nuevo estudio» lo apaga, y no deja una linea naranja vacia',
+      (function () { escena({ ai_diam: '39' }, ''); const a = avi();
+        try { limpiarCampos(true) } catch (e) {}
+        const b = avi();
+        return a.vis && !b.vis && b.txt === ''; })(), 'tras limpiar']);
+    ex.push(['(c7) el aviso NO desplaza el campo de al lado: su ancho es el mismo con y sin aviso',
+      (function () { escena({ ai_diam: '39' }, 'M');
+        const e0 = EL('ai_diam'); if (!e0) return false;
+        const w0 = Math.round(e0.getBoundingClientRect().width);
+        escena({ ai_diam: '39' }, '');
+        const w1 = Math.round(EL('ai_diam').getBoundingClientRect().width);
+        return w0 > 0 && w0 === w1; })(), 'ancho del campo']);
+
+    /* ══ (f) LAS TARJETAS con y sin sexo ═══════════════════════════════════════════════ */
+    const abrir = (k) => { const b = BTN(k); if (!b) return false; b.click();
+      const c = CARD(); return !!(c && getComputedStyle(c).display !== 'none'); };
+    const cerrar = () => { const c = CARD(); if (c && getComputedStyle(c).display !== 'none') {
+      try { vInfoCerrar(true); } catch (e) {} } };
+    const leerCard = () => { const c = CARD(); if (!c) return { err: 'NO EXISTE' };
+      const q = (sel) => Array.prototype.slice.call(c.querySelectorAll(sel));
+      return { puntos: q('[data-ev-punto]').map(function (e) { return e.getAttribute('data-ev-punto') }),
+        barras: q('[data-ev-barra]').map(function (e) { return e.getAttribute('data-ev-barra') }),
+        cortes: q('[data-ev-corte]').map(function (e) { return String(e.textContent || '').trim() }),
+        cat: q('[data-ev-cat]').map(function (e) { return String(e.textContent || '').trim() }),
+        avisos: q('[data-ev-aviso]').map(function (e) { return String(e.textContent || '').trim() }),
+        fuentes: q('[data-ev-fuente]').map(function (e) { return String(e.textContent || '').trim() }) }; };
+    const ESC_T = Object.assign({}, { ai_diam: '39', ai_area: '19', ai_vol: '80', ddfvi: '53',
+      dsfvi: '36', vdfvi: '124', vsfvi: '50', fevi: '40', siv: '10', ppvi: '10' });
+    ex.push(['(f1) SIN SEXO las CINCO barras del VI ubican su punto y las tres que dependen del sexo lo dicen',
+      (function () { escena(ESC_T, ''); if (!abrir('vi-card')) return false;
+        const t = leerCard(); cerrar();
+        return t.puntos.length === 5
+          && t.avisos.filter(function (a) { return a.indexOf('Sin sexo cargado') === 0 }).length === 3; })(),
+      'puntos=' + (function () { escena(ESC_T, ''); abrir('vi-card'); const t = leerCard(); cerrar();
+        return JSON.stringify(t.puntos) })()]);
+    ex.push(['(f2) la tarjeta publica los cortes DEL SEXO: el diametro diastolico del varon y el de la mujer difieren',
+      (function () { escena(ESC_T, 'M'); abrir('vi-card'); const a = leerCard(); cerrar();
+        escena(ESC_T, 'F'); abrir('vi-card'); const b = leerCard(); cerrar();
+        return a.cortes.join(',') !== b.cortes.join(',')
+          && a.cortes.indexOf('58 mm') >= 0 && b.cortes.indexOf('52 mm') >= 0; })(),
+      'cortes']);
+    ex.push(['(f3) la barra de la FEVI publica la linea del criterio SIN nombrar ninguna guia',
+      (function () { escena(ESC_T, 'M'); if (!abrir('vi-card')) return false;
+        const t = leerCard(); cerrar();
+        const l = t.fuentes.filter(function (f) { return f.indexOf('Criterio de EcoSmart') >= 0 })[0];
+        return !!l && l.indexOf('ASE') < 0 && l.indexOf('ESC') < 0 && l.indexOf('folio') < 0
+          && l.indexOf('Lang') < 0; })(),
+      'linea del criterio']);
+    ex.push(['(f4) la tarjeta de GEOMETRIA trae las dos barras de espesor con su fuente, y ubica el punto sin sexo',
+      (function () { escena(ESC_T, ''); if (!abrir('vi-geo')) return false;
+        const t = leerCard(); cerrar();
+        return t.barras.indexOf('vi-siv') >= 0 && t.barras.indexOf('vi-pp') >= 0
+          && t.puntos.indexOf('vi-geom') >= 0
+          && t.fuentes.filter(function (f) { return f.indexOf('Fuente del espesor') === 0 }).length === 1; })(),
+      'barras de la geometria']);
+    ex.push(['(f5) la tarjeta de la AURICULA publica el corte del sexo y sus tres fuentes verificadas',
+      (function () { escena(ESC_T, 'F'); if (!abrir('ai-card')) return false;
+        const t = leerCard(); cerrar();
+        return t.cortes.indexOf('38 mm') >= 0 && t.fuentes.length === 3
+          && t.cat.join(' ').indexOf('Dilatada') >= 0; })(),
+      'tarjeta de la AI con sexo F']);
+
+    /* ══ (g) REFERENCIAS con los dos sexos ═════════════════════════════════════════════ */
+    try { showTab('refs'); } catch (e) {}
+    ['ai', 'vi2'].forEach(function (id) { try { evRefPintar(id) } catch (e) {} });
+    const cuDe = (id) => EL('ref-' + id + '-cuerpo');
+    const filaCon = (cu, t) => { if (!cu) return null;
+      const f = Array.prototype.slice.call(cu.querySelectorAll('.ev-tabla tr'))
+        .filter(function (tr) { return String(tr.textContent || '').indexOf(t) >= 0 })[0];
+      return f ? Array.prototype.slice.call(f.children).map(function (c) { return String(c.textContent || '').trim() }) : null; };
+    ex.push(['(g1) Referencias publica los DOS sexos del diametro AP y del diametro diastolico',
+      (function () { const a = filaCon(cuDe('ai'), 'Diámetro AP — normal');
+        const b = filaCon(cuDe('vi2'), 'Diámetro diastólico — normal');
+        return !!a && !!b && a[1] !== a[2] && b[1] !== b[2]
+          && a[1].indexOf('40') > 0 && a[2].indexOf('38') > 0
+          && b[1].indexOf('58') > 0 && b[2].indexOf('52') > 0; })(),
+      'ap=' + JSON.stringify(filaCon(cuDe('ai'), 'Diámetro AP — normal'))
+        + ' dd=' + JSON.stringify(filaCon(cuDe('vi2'), 'Diámetro diastólico — normal'))]);
+    ex.push(['(g2) Referencias publica el espesor y la masa con su operador nuevo',
+      (function () { const a = filaCon(cuDe('vi2'), 'Espesor del septum y de la pared — normal');
+        const b = filaCon(cuDe('vi2'), 'Masa indexada — normal');
+        return !!a && !!b && a[1].indexOf('10') > 0 && a[2].indexOf('9') > 0
+          && b[1].indexOf('115') > 0 && b[1].indexOf('≤') >= 0; })(),
+      'esp=' + JSON.stringify(filaCon(cuDe('vi2'), 'Espesor del septum y de la pared — normal'))]);
+    ex.push(['(g3) Referencias publica las CUATRO bandas de la FEVI y su linea de criterio',
+      (function () { const cu = cuDe('vi2'); if (!cu) return false;
+        const hay = ['FEVI — levemente reducida','FEVI — moderadamente reducida',
+                     'FEVI — severamente reducida'].every(function (t) { return !!filaCon(cu, t) });
+        const l = Array.prototype.slice.call(cu.querySelectorAll('[data-ev-fuente]'))
+          .map(function (e) { return String(e.textContent || '') })
+          .filter(function (t) { return t.indexOf('Criterio de EcoSmart') >= 0 });
+        return hay && l.length === 1; })(), 'las cuatro bandas']);
+
+    /* ══ (h) EL REGISTRO ═══════════════════════════════════════════════════════════════ */
+    const REG = G('EV_REG');
+    const hayReg = Array.isArray(REG);
+    const tok = (s2) => { const out = []; let cur = '';
+      s2 = String(s2 == null ? '' : s2).toLowerCase();
+      for (let i = 0; i < s2.length; i++) { const c = s2.charCodeAt(i);
+        if ((c >= 97 && c <= 122) || c >= 192) cur += s2.charAt(i);
+        else { if (cur) out.push(cur); cur = '' } }
+      if (cur) out.push(cur); return out; };
+    ex.push(['(h1) los ids son unicos y las fichas son datos puros',
+      hayReg && (function () { const ids = REG.map(function (f) { return f.id });
+        if (ids.length !== new Set(ids).size) return false;
+        try { return JSON.stringify(JSON.parse(JSON.stringify(REG))) === JSON.stringify(REG) }
+        catch (e) { return false } })(), 'n=' + (hayReg ? REG.length : 'NO ES ARRAY')]);
+    ex.push(['(h2) las fichas de esta tanda tienen el valor que el DUENO aplica, no una copia',
+      hayReg && (function () {
+        const f = (id) => REG.filter(function (x) { return x.id === id })[0];
+        const ap1 = f('DIM-AI-001'), dd1 = f('DIM-VI-001'), es1 = f('DIM-VI-005'),
+              ma1 = f('MAS-VI-001'), fe1 = f('FUN-VI-001');
+        if (!ap1 || !dd1 || !es1 || !ma1 || !fe1) return false;
+        return ap1.valor.indexOf('40') > 0 && ap1.valor.indexOf('38') > 0
+          && dd1.valor.indexOf('58') > 0 && dd1.valor.indexOf('63') > 0 && dd1.valor.indexOf('68') > 0
+          && dd1.valor.indexOf('52') > 0 && es1.valor.indexOf('10') > 0 && es1.valor.indexOf('9') > 0
+          && ma1.valor.indexOf('115') > 0 && ma1.valor.indexOf('95') > 0
+          && fe1.valor.indexOf('41') > 0 && fe1.valor.indexOf('30') > 0
+          && ap1.duenio.indexOf('aiDiamNormalMax') >= 0 && dd1.duenio.indexOf('ddviCortes') >= 0
+          && es1.duenio.indexOf('espesorBandas') >= 0 && fe1.duenio.indexOf('feviClasificar') >= 0; })(),
+      'valores y duenos']);
+    ex.push(['(h3) sin notas internas y con los acentos puestos en lo que el medico LEE',
+      hayReg && (function () {
+        const RES = ['pendiente','pendientes','duda','dudas','reserva','reservas','fixme',
+                     'provisorio','tentativo','chequear','confirmar','ojo'];
+        const SIN = ['diametro','area','auricula','ventriculo','telediastolico','telesistolico',
+                     'sistolico','diastolico','fraccion','eyeccion','limite','metodo',
+                     'concentrico','concentrica','excentrico','excentrica','geometria',
+                     'cuantificacion','camaras','ecocardiografia','asociacion','espanola',
+                     'cardiologia','diagnostico','cronica','traduccion','guia','indice'];
+        const LEE = ['zona','dato','valor','tipo','ubicacion','fuente_una_linea','guia'];
+        let malR = 0, malA = 0;
+        REG.forEach(function (f) {
+          Object.keys(f).forEach(function (k) {
+            tok(f[k]).forEach(function (t) { if (RES.indexOf(t) >= 0) malR++ }) });
+          LEE.forEach(function (k) {
+            tok(f[k]).forEach(function (t) { if (SIN.indexOf(t) >= 0) malA++ }) }); });
+        return malR === 0 && malA === 0; })(), 'reserva y acentos']);
+    ex.push(['(h4) las fichas de la tanda estan VERIFICADAS, con su tabla, su folio y su hoja del PDF',
+      hayReg && (function () {
+        const V2 = ['DIM-AI-001','DIM-AI-002','DIM-VI-001','DIM-VI-005','FUN-VI-002','FUN-VI-003'];
+        return V2.every(function (id) { const f = REG.filter(function (x) { return x.id === id })[0];
+          return !!f && f.estado === 'verificado' && !!f.ubicacion && !!f.folio && !!f.hoja_pdf
+            && !!f.doi && !!f.fuente_una_linea; }); })(),
+      'las seis fichas nuevas o reverificadas']);
+
+    /* ══ (i) y (j): sin acumular, sin guardar nada y sin scroll horizontal ══════════════ */
+    ex.push(['(i1) veinte aperturas y cierres de las tres tarjetas no acumulan nodos ni dejan ninguna abierta',
+      (function () { escena(ESC_T, 'M');
+        const n0 = document.getElementsByTagName('*').length;
+        for (let i = 0; i < 20; i++) { ['ai-card','vi-card','vi-geo'].forEach(function (k) {
+          const b = BTN(k); if (b) { b.click(); b.click(); } }); }
+        cerrar();
+        const n1 = document.getElementsByTagName('*').length;
+        const c = CARD();
+        return n0 === n1 && !!c && getComputedStyle(c).display === 'none'; })(),
+      'nodos antes y despues']);
+    ex.push(['(j1) nada de esto se guarda en el estudio ni en el navegador',
+      (function () { escena({ ai_diam: '39' }, '');
+        const ids = [];
+        document.querySelectorAll('input[id],select[id],textarea[id]').forEach(function (e) { ids.push(e.id) });
+        const malC = ids.filter(function (i) { return /^aivi-|^ev-sexo/.test(i) });
+        let malL = [];
+        try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i);
+          if (/aivi|sexoEfect|fevi_cat/i.test(k)) malL.push(k); } } catch (e) {}
+        return malC.length === 0 && malL.length === 0; })(),
+      'campos y almacenamiento']);
+    ex.push(['(i2) la pestana AI/VI no tiene scroll horizontal con el aviso puesto',
+      (function () { escena({ ai_diam: '39', ddfvi: '55' }, '');
+        return document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1; })(),
+      'sw=' + document.documentElement.scrollWidth + ' cw=' + document.documentElement.clientWidth]);
+
+    /* ══ (k) LOS CONTROLES: lo que esta tanda NO toca ═══════════════════════════════════ */
+    escena({ ai_vol: '98', ai_diam: '44', ai_area: '25', onda_e: '90', onda_a: '60',
+             e_sep: '6', e_lat: '8', vmax_it: '3.0', fevi: '55', ddfvi: '50', siv: '12',
+             ppvi: '11', dsfvi: '34', vdfvi: '150', vsfvi: '70', tapse: '18' }, 'M');
+    const fila = (function () { try { return _labExcelRow({ id: 'p1', fecha: '2026-10-16',
+      nombre: 'X', campos: (function () { const c = {};
+        document.querySelectorAll('input[id],select[id],textarea[id]').forEach(function (e) {
+          if (e.type === 'checkbox' || e.type === 'radio') c[e.id + '__chk'] = e.checked ? '1' : '0';
+          else c[e.id] = e.value }); return c })(), informe_texto: '', en_suma: '' }) }
+      catch (e) { return null } })();
+    ex.push(['(k1) el Excel sigue en 440 columnas y ninguna guarda una categoria nueva',
+      !!fila && Object.keys(fila).length === 440
+        && Object.keys(fila).filter(function (k) { return /sexo efectivo|FEVI cat|categor/i.test(k) }).length === 0,
+      'n=' + (fila ? Object.keys(fila).length : 'SIN FILA')]);
+    ex.push(['(k2) la diastolica, el HFA-PEFF y las ocho valvulas siguen publicando lo suyo',
+      (function () { const d = TXT('dd-interp');
+        const g8 = ['im_grado','ia_grado','it_grado','ip_grado','ea_grado','em_grado','et_grado','ep_grado']
+          .map(function (i) { return V(i) }).join(',');
+        return d !== 'NO EXISTE' && d.indexOf('—') !== 0 && g8.indexOf('undefined') < 0; })(),
+      'diast=' + TXT('dd-interp')]);
+    ex.push(['(k3) el VD, la AD/VCI y la aorta no se tocaron: sus cuatro tarjetas siguen ahi',
+      ['ad-card','vd-tam-card','vd-fun-card','ao-card'].every(function (k) { return !!BTN(k) }),
+      'tarjetas de la tanda M=' + ['ad-card','vd-tam-card','vd-fun-card','ao-card'].filter(function (k) { return !!BTN(k) }).join(',')]);
+    ex.push(['(k4) el cuadro de frases, la identificacion del paciente y el Wilkins siguen en su lugar',
+      !!EL('frases-panel') === !!EL('frases-panel') && !!EL('pac_id_print') && FN('wilkinsScore'),
+      'piezas ajenas']);
 
     return { extra: ex };
   })();

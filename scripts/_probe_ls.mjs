@@ -1059,6 +1059,51 @@ async function main() {
     out.grupos.refs = g; parcial('refs', t0);
   }
 
+  /* ── pdf: el PDF del informe GENERADO DE VERDAD en las SEIS plantillas, el PPT y el
+     Laboratorio por sus funciones duenas ── */
+  if (corre('pdf')) {
+    const t0 = Date.now(); const g = {};
+    const ESC = [
+      { n: 'vacio', c: {}, sexo: '' },
+      { n: 'varon cargado', sexo: 'M',
+        c: { ai_vol: '98', ai_diam: '44', ai_area: '25', fevi: '55', ddfvi: '50', siv: '12',
+             ppvi: '11', dsfvi: '34', vdfvi: '150', vsfvi: '70', onda_e: '90', onda_a: '60',
+             e_sep: '6', e_lat: '8', vmax_it: '3.0', tapse: '18' } },
+      { n: 'mujer cargada', sexo: 'F',
+        c: { ai_vol: '84', ai_diam: '39', fevi: '40', ddfvi: '53', siv: '10', ppvi: '10',
+             dsfvi: '36', vdfvi: '124', vsfvi: '50' } },
+    ];
+    const PL = ['clasico', 'moderno', 'minimalista', 'academico', 'compacto', 'elegante'];
+    for (const E of ESC) {
+      try {
+        await montar(E.c, { sexo: E.sexo, vci: '>50' });
+        await ev('(function(){ try { calcVI(); calcAI() } catch(e) {} return 1 })()');
+        const o = { informe: await J("JSON.stringify(window.__P.informe('estandar'))") };
+        for (const pl of PL) {
+          const r = await J('JSON.stringify(window.__P.pdf(' + JSON.stringify(pl) + '))');
+          /* Se guarda el conteo y las lineas de texto, no el PDF: lo que hay que comparar es
+             que ninguna plantilla cambie de envoltorio y que las celdas digan lo mismo. */
+          o['pdf_' + pl] = { err: r.err, nTextos: r.nTextos, nFigs: r.nFigs,
+            /* ⚠️ EL ROTULO Y LA REFERENCIA DE UNA FILA SON DOS doc.text DISTINTOS —la leccion
+               que la tanda F ya tiene escrita— asi que un filtro por rotulo NO ve el cambio de la
+               referencia impresa. Se guardan TODOS los textos SIN su posicion: un cambio de
+               maquetacion mueve la y de todos y esconde el de contenido. */
+            textos: (r.textos || []).map(function (t) { var q = t.lastIndexOf("|");
+              return q < 0 ? t : t.slice(q + 1) }) };
+        }
+        o.lab = await J(`JSON.stringify((function(){
+          var c = window.__P.camposCrudos();
+          var inf2 = { id:'p1', fecha:'2026-10-16', nombre:'X', campos:c,
+                       informe_texto: c.informe_texto || '', en_suma: c.en_suma || '' };
+          var f = function(n, a){ try { return String(window[n].apply(null, a)) } catch(e){ return 'EXC' } };
+          return { geom: f('_labGeomCat', [inf2]), diast: f('_labDiastGrado', [inf2]),
+                   lavi: f('_labLavi', [inf2]), fevi: f('_labFevi', [inf2]) } })())`);
+        g[E.n] = o;
+      } catch (e) { g[E.n] = { ABORTO: e.message }; abortos.push('pdf ' + E.n + ': ' + e.message); }
+    }
+    out.grupos.pdf = g; parcial('pdf', t0);
+  }
+
   /* ── maqueta: el aviso y las tres tarjetas a seis anchos por dos temas, con el COLOR REAL
      resuelto y sin scroll horizontal de la pagina ── */
   if (corre('maqueta')) {

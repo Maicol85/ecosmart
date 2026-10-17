@@ -50,6 +50,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la IMPORTACIÓN del Excel**: el guardián de columnas, las listas de valores, los rangos, el mensaje de las columnas calculadas o la exportación JSON | `docs/mapa/importacion-excel.md` |
 | **Tocar CONTRACTILIDAD**: el botón «Incluir bull's eye en PDF» y de qué depende que el bull's eye entre al papel, la fila de tres bloques, la tabla de colores o el interior del 3D del VENTRÍCULO | `docs/mapa/contractilidad-3d-vi.md` |
 | **Tocar una TARJETA ⓘ de AI/VI, el REGISTRO DE EVIDENCIA o una entrada de Referencias**: las fichas, los estados, el sondeo del dueño, el gráfico de geometría | `docs/mapa/registro-evidencia.md` |
+| **Tocar un CORTE POR SEXO de la AI o del VI**: el diámetro AP, el DDVI en cuatro categorías, el DSVI, los espesores, la masa, los volúmenes, la FEVI en cuatro, el dueño del sexo efectivo o el AVISO de que falta el sexo | `docs/mapa/ai-vi-por-sexo.md` |
 | **Tocar la AURÍCULA IZQUIERDA**: el dueño de su clasificación por volumen indexado, qué superficie clasifica y cuál sólo publica el valor; o **el COLAPSO de la VCI y el SÍMBOLO DEL SEXO en el PDF** | `docs/mapa/auricula-izquierda-pdf.md` |
 | **Tocar una COLUMNA del Excel, el criterio de «derivada», la IDA Y VUELTA de un dato calculado o el mensaje del importador** | `docs/mapa/excel-origen-ida-vuelta.md` |
 | **Tocar las ASOCIACIONES del Laboratorio o la TABLA DE LAS OCHO VÁLVULAS**: el cociente TAPSE/PSAP en el bloque A, el aviso de par acoplado, las dos estenosis BINARIAS y sus dos denominadores | `docs/mapa/laboratorio-asociaciones-valvulas.md` |
@@ -114,8 +115,8 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **7,94 MB / 119.840 líneas**, medido el 2026-10-16 al cierre de la tanda M
-  —el renglón anterior decía «7,89 MB / 118.928 líneas» y era del L: **medirlo antes de
+  sin frameworks. Hoy **7,98 MB / 120.328 líneas**, medido el 2026-10-16 al cierre de la tanda LS
+  —el renglón anterior decía «7,94 MB / 119.840 líneas» y era del M: **medirlo antes de
   presupuestar contexto**—. Las únicas dependencias son jsPDF, XLSX y
   PptxGenJS por CDN. Se abre como archivo local y corre en Chrome.
 - Lo que produce es un **informe firmado**: narrativo, EN SUMA, PDF, PPT y Excel del Laboratorio.
@@ -269,6 +270,263 @@ impecable.
 ---
 
 ## Estado vigente
+
+### La AI y el VI por SEXO, la FEVI en CUATRO categorías y el aviso de sexo — «LS» (2026-10-16)
+
+- **Son NUEVE commits.** Al **empezar**, `main` y `origin/main` estaban los dos en **`984a727`**
+  (sello `v20261016-1937`), **sin nada sin pushear** —confirmado con un `git fetch` de verdad, con
+  el `FETCH_HEAD` fechado al momento—, con los cinco commits del M ya incluidos **y pusheados**.
+  Los **nueve** commits de esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 9 → 8 → … → 1.**
+  ⚠️ **EL 1 ES LA BASE DE TODOS**: crea `sexoLeido`, `sexoCargado`, `sexoEfectivo`, `sexoFalta` y
+  `SEXO_CORTE_ALTO`, y los **siete** clasificadores de la zona pasan a leerlos. Revertirlo sin
+  revertir antes los otros ocho deja `aiDiamNormalMax`, `ddviCortes`, `dsviBandas`,
+  `espesorBandas`, `viDimCat`, `calcGeometriaVI` y el aviso nombrando funciones que no existen
+  —y un `ReferenceError` en la evaluación de un `<script>` **aborta el bloque COMPLETO**, o sea
+  la app con cero pestañas con geometría—.
+  ⚠️ **EL 2, EL 3, EL 6 Y EL 7 SE REVIERTEN EN CUALQUIER ORDEN ENTRE SÍ**: el 2 es el diámetro AP
+  de la AI (`AI_DIAM_NORMAL_MAX_H/M`, `aiDiamNormalMax`), el 3 el DDVI (`ddviCortes` y sus seis
+  constantes), el 6 la masa (el operador de `calcGeometriaVI`) y el 7 la FEVI (`FEVI_CATS`,
+  `feviClasificar`). Ninguno nombra una pieza de otro.
+  ⚠️ **PERO EL 5 CUELGA DEL 4** por `AV_SEXO_ALTO`, que nace ahí, y **el 8 cuelga del 4, del 5 y
+  del 6** porque su aviso consulta `dsviBandas` y `espesorBandas` y porque retira el `AV_SEXO`
+  viejo que el 6 dejó sin usar. **Y EL 9 ES TC-493 más la documentación y el sello**, y afirma el
+  comportamiento de los ocho: revertir cualquiera sin el 9 lo deja en rojo.
+  ⚠️ **EL 1 LLEVA LA SONDA** (`scripts/_probe_ls.mjs`), con la que se verificaron los ocho.
+  ⚠️ **CASOS ADAPTADOS: DOS, y los dos en el commit 8.** **TC-491** en NUEVE condiciones —tres
+  conteos que subieron, dos sondeos de corte y **cuatro que afirman hoy LO CONTRARIO** de lo que
+  afirmaban, las cuatro escritas para que el día que se decidiera se notara: la (B17) «sin sexo
+  las tres barras quedan SIN punto», la (C7) «115 ya es hipertrofia» —que era el defecto L-5— y el
+  control negativo (D4), que se muda a la única ficha que sigue sin verificar— y **TC-492**, su
+  denominador, que pasa de conteo exacto a **mínimo** para no ponerse rojo la próxima vez que otra
+  tanda agregue una ficha de otra zona.
+
+- **Línea base al cierre: suite **486/507**, Semgrep 127 / 0 ERROR, Excel en 440 columnas,
+  celular 52 a 360 px y 61 a 390 px con 10 ALTA cada uno —IDÉNTICO a la línea base del M—.
+  **CERO REGRESIONES**: los **21** rojos se reparten en dos grupos que NO se restan —**17** son
+  **TC-181…TC-197**, los del pendrive `DISK_IMG`, que son ENTORNO, y los **CUATRO** restantes son
+  exactamente los de ENTRADA (**TC-223**, el documentado que falla por la fecha, **TC-376**,
+  **TC-390** y **TC-406**)— y no apareció ninguno fuera de esas dos listas.
+  ⚠️ **EL PENDRIVE SE DESMONTÓ A MITAD DE LA CORRIDA Y HAY QUE DECIRLO EN VEZ DE RESTAR.** Estaba
+  **montado al lanzar** —verificado— y afuera al cerrar, así que esos diecisiete no prueban nada:
+  con el pendrive puesto la cifra es **503/507**. Es el mismo falso que este archivo ya documenta
+  dos veces. `ls /Volumes/DISK_IMG` ANTES de comparar dos cifras.
+  ⚠️ **Y SE MIDIÓ EN DOS MITADES, DECLARADO: 236/253 y 250/254**, que juntas cubren los 507 ids.
+  La corrida única se COLGÓ **TRES VECES** —dos en TC-263 y una en TC-209— con el log sin
+  escribir 25 a 44 minutos y node al **0,0 % de CPU**: es la trampa de `cdp.mjs` que este archivo
+  ya tiene escrita, y **TC-263 corrido solo pasa en segundos**. La causa de fondo se midió: el
+  sistema estaba con **80 MB de memoria libre** (`vm_stat` con 5.025 páginas), y las dos mitades
+  —cada una con su propio Chrome, abierto y cerrado— corren sin colgarse. **Mirar el `mtime` del
+  log antes de creer que una corrida avanza.**. CERO REGRESIONES.** El `md5` de `index.html` no se movió
+  durante la corrida (`cfa0d49a…`, el del sello) y el pendrive `DISK_IMG` estaba montado antes y
+  después. **El denominador sube a 507**: esta tanda agregó **TC-493**.
+  La de **ENTRADA**, medida en HEAD limpio en un worktree aparte con el pendrive montado antes y
+  después, fue **502/506** con los mismos cuatro rojos y ninguno fuera de esa lista.
+  ⚠️ **EL CHEQUEO DE CELULAR: el par VISIBLE es IDENTICO a la linea base del M: **52 a 360 px y
+  61 a 390 px, con 10 ALTA cada uno**, y `--todo` da **387 y 396**, tambien el mismo par. **CERO
+  hallazgos nuevos**, y no por suerte: el aviso nace en `display:none` —y lo que esta en
+  `display:none` no tiene geometria—, no es un control de formulario y las dos barras de espesor
+  viven dentro de una tarjeta que `check_mobile.js` no abre.**
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **507 ids** sobre los 508 casos del archivo.
+- **EL SELLO DE VERSIÓN** estaba al día al empezar (`v20261016-1937`) y se volvió a sellar:
+  **`v20261016-2123`**. Todo lo medido salió **DESPUÉS** de sellar, con el `md5` quieto.
+- **`index.html` pasó de 7,94 MB / 119.840 líneas a 7,98 MB / 120.328 líneas.**
+
+- **Dónde está todo:** `docs/mapa/ai-vi-por-sexo.md` (**mapa NUEVO**, 18,0 KB: el dueño del sexo,
+  la tabla de los seis parámetros con su operador, el DDVI en cuatro categorías, las cinco copias
+  de la FEVI, el aviso con su medición, las tarjetas, Referencias, el registro y nueve trampas);
+  `docs/mapa/auricula-izquierda-pdf.md`, `docs/mapa/registro-evidencia.md`,
+  `docs/mapa/vi-volumenes-automaticos.md` e `docs/mapa/informe-pdf-excel.md` → un puntero cada uno;
+  `docs/mapa/tests-fichas.md` → la ficha de TC-493 (**32,7 KB**); `docs/fuentes/FUENTES.md` → «La
+  tanda LS», con las **tres** guías, su regla de folio comprobada en el pie impreso, los **trece**
+  datos verificados uno por uno, las dos contradicciones del propio documento y la tabla de
+  **Cambios de evidencia**; y `docs/PENDIENTES.md` → **L-1 a L-5 marcados CERRADOS** más **nueve**
+  cosas declaradas (LS-1 a LS-9).
+  ⚠️ **NINGÚN MAPA CRUZÓ EL TECHO, medido con `wc -c` ANTES de escribir**: el contenido salió a un
+  archivo propio y a los cuatro mapas de la zona les entró un puntero de dieciocho líneas.
+  `tests-fichas.md` quedó en **32,7 KB**, a 2,3 KB del techo: **la próxima tanda que lo toque
+  conviene que lo parta.**
+
+- **LS1 · UN SOLO DUEÑO DEL SEXO, Y LA REGLA DEL CORTE MÁS ALTO ESCRITA UNA VEZ.** Sin sexo
+  cargado se aplica el corte **más alto**, que en los seis parámetros de esta zona es el del
+  varón: el lado que **no sobre-afirma**.
+  ⚠️ **ANTES LA MISMA PREGUNTA SE CONTESTABA DE TRES FORMAS** —`sv('sexo') === 'F'`,
+  `sexo === 'F'` y la comparación por primera letra— **y las dos primeras no coinciden con la
+  tercera**: un `'Femenino'` o un `'f'` guardado mandaba a una mujer a los cortes del varón.
+  ⚠️ **UN VALOR QUE NO SEA MASCULINO NI FEMENINO CUENTA COMO SIN SEXO**, y es el único cambio de
+  conducta del commit 1. El `<select>` ofrece exactamente `''`, `'M'` y `'F'`, así que ese estado
+  sólo llega por un estudio importado con otro vocabulario.
+  **A/B contra HEAD en las tres escenas de control: CERO diferencias** en informe (tres estilos),
+  EN SUMA, los ocho grados, las ocho pastillas, la diastólica, el HFA-PEFF, el token del
+  Laboratorio, el conteo de campos y el Excel en **440 columnas CLAVE POR CLAVE**.
+
+- ⚠️ **TODO LO VERIFICADO SE LEYÓ EN EL PDF ORIGINAL, Y LAS TRES REGLAS DE FOLIO SE COMPROBARON EN
+  EL PIE IMPRESO.** ASE/EACVI 2015: en el **cuerpo** folio = hoja (la hoja 10 imprime «10 Lang et
+  al»), en el **apéndice NO** —la hoja 47 lleva el folio `39.e8` y la 53 el `39.e14`—. ASE/AEE
+  2005: **folio = hoja + 1439**. ESC 2021 de insuficiencia cardíaca: **folio = `523.e` + hoja**.
+  Los tres DOI se leyeron en el pie de la hoja 1 de su propio PDF.
+  ⚠️ **DE LA ESC 2021 SÓLO HAY LA TRADUCCIÓN DE LA SEC, Y SE DECLARA.** Lo que se leyó son números
+  y operadores —«FEVI ≤40%», «41-49%», «≥50%»—, inequívocos y coincidentes con el texto del cuerpo
+  de la misma hoja; el original inglés **no está en la biblioteca**.
+
+- **LS2 · EL DIÁMETRO AP DE LA AI: 40 EN EL VARÓN Y 38 EN LA MUJER, CON `>`.** Y **el comentario
+  del código citaba mal la guía en las DOS mitades**: decía «3,9 en la mujer y 4,1 en el varón» y
+  que se tomaba «el valor de la mujer» para los dos. La Supplemental Table 9 (folio 39.e14, hoja
+  53) imprime «Women 2.7–3.8 / Men 3.0–4.0», o sea 3,8 y 4,0, y el 40 que la app aplicaba era el
+  **del varón**. **Medido en 15 escenas con teclas reales: CAMBIAN DE VEREDICTO EXACTAMENTE DOS**
+  —varón y sin sexo con **40 mm exactos**, que pasan de «dilatada» a «normal», y mujer con **39**,
+  que pasa de normal a dilatada y entra al informe y al EN SUMA—. Las otras trece conservan su
+  veredicto y sólo cambia el rótulo del corte publicado.
+  **El hueco de un valor del importador se cerró solo**: su aviso ya era `>` estricto.
+
+- **LS3 · EL DDVI PASA A CUATRO CATEGORÍAS POR SEXO.** El 58 era el techo normal **del varón** y
+  **el 65 no estaba en ninguna de las dos columnas** de la Tabla suplementaria 3. Hoy son las
+  cuatro de la guía: varón 58 / 63 / 68 y mujer 52 / 56 / 61. **Los adjetivos no son vocabulario
+  nuevo**: son los cuatro que `vdfviInterp` y `vsfviInterp` ya publicaban para los volúmenes del
+  mismo ventrículo, y **`EV_COLOR` ya tenía su color**. **Medido en 42 escenas: cambian 18**, y
+  los seis bordes separan uno por uno. El respaldo por volumen indexado **no se movió** (12
+  escenas con 0 diferencias).
+  ⚠️ **LA VISTA 2D NO NECESITÓ CAMBIOS Y ESTÁ MEDIDO POR CONSTRUCCIÓN**: mapea el sintagma con
+  `indexOf('normales')` y `indexOf('levemente')`, así que las dos categorías nuevas caen en el
+  mismo tramo «dilatado» en el que caía la que reemplazan.
+
+- **LS4 y LS5 · EL DSVI Y LOS ESPESORES NO SE CLASIFICAN EN NINGUNA SUPERFICIE, Y NO SE LES
+  AGREGÓ UNA.** Censado: no hay cápsula `dsvi-interp`, `siv-interp` ni `pp-interp` —cero
+  ocurrencias— y el informe no los categoriza; lo que publica es la **hipertrofia por masa**. El
+  «menor de 40 mm» y el «menor de 13 mm» eran **referencias impresas** de la tabla del PDF, y **el
+  13 no es un límite de normalidad**: es el techo de la banda *levemente anormal* del varón, donde
+  la guía corta en **10 mm en el varón y 9 en la mujer**.
+  ⚠️ **LAS DOS BARRAS DE ESPESOR VAN EN LA TARJETA DE GEOMETRÍA Y NO EN LA DEL VENTRÍCULO, y es
+  una medición**: esa tarjeta ya mide 475 a 507 px con sus cinco barras y el hueco útil a
+  1200 × 700 es de 486. El espesor pertenece a la de geometría por contenido: el espesor parietal
+  relativo que su gráfico dibuja es 2 × pared / diámetro. **Son DOS barras y no una** porque son
+  dos mediciones: una sola obligaría a elegir entre los campos o a tomar el mayor, que es un
+  criterio que la guía no escribe. **La tarjeta pasó de 363 px a 528 con 562 a 596 de contenido**,
+  o sea 34 a 68 px de scroll interno: `PENDIENTES.md` → LS-4.
+
+- **LS6 · LOS 115 Y 95 EXACTOS SON NORMALES, Y EL DEFECTO ERA PEOR QUE UN BORDE.** Cierra **L-5**.
+  Con 115 exactos la **cápsula** decía «Normal» —su operador ya era `>`— y la fila de geometría,
+  dos renglones más abajo, «Hipertrofia excéntrica» **sin gravedad**, porque `hviSeveridad`
+  empieza en 116: dos respuestas al mismo número en la misma pantalla. **Bandas sin huecos ni
+  solapes, sondeadas de 40 a 200 g/m² en los dos sexos: HEAD tenía UN hueco por sexo y hoy son
+  CERO.** Cambian exactamente tres escenas.
+  ⚠️ **PARA TIPEAR UN 115 EXACTO HAY QUE BISECAR**: la masa es la fórmula de Devereux sobre cinco
+  campos, así que no hay valor que se pueda escribir. Los pares salen de una **bisección sobre
+  doubles** con la superficie corporal en 2,00.
+  **Los dos volúmenes indexados no cambiaron ni un corte**; lo que cambia es que la tarjeta ubica
+  su punto sin sexo.
+
+- **LS7 · LA FEVI VIVÍA EN CINCO COPIAS, NO EN DOS.** Tres de cuatro categorías —la cápsula, el
+  informe y `_simpClasificar`— y **DOS DE TRES**: `FEVICAT` del módulo de asociaciones y la
+  distribución del panel del Laboratorio, que fundían la moderada con la severa en un «< 40 %».
+  Las cinco leen `feviClasificar` / `FEVI_CATS`, y `EV_BANDAS_REF.fevi` **se deriva** de esa tabla
+  en vez de ser una sexta. **Medido: bandas y dueño coinciden en TODO el dominio**, 10 a 80 % de
+  medio en medio.
+  **Los 40 y 30 exactos van a «moderadamente reducida»**: el corte de arriba es `>= 41` porque la
+  ESC 2021 escribe «FEVI ≤40%» para la reducida y «41-49%» para la ligeramente reducida. **El
+  informe y el EN SUMA cambian en UNA sola escena —el 40 exacto— y en los tres estilos**; la
+  cápsula cambia en seis, y en cinco de ellas **sólo el rótulo del rango**.
+  ⚠️ **LA LÍNEA DE LA TARJETA NO NOMBRA NINGUNA GUÍA**: las cuatro bandas son una **composición**
+  del corte de una con el desglose de otra, y atribuírselas a un documento sería citarlo por algo
+  que no escribe. El detalle por corte va **sólo en Referencias**, con dos fichas verificadas
+  (`FUN-VI-002` y `FUN-VI-003`); `FUN-VI-001` sigue «por verificar» y no publica fuente.
+  ⚠️ **DOS LUGARES SIGUEN CON UN 40 PELADO Y SON BANDAS DE FILTRO, NO CATEGORÍAS**: el criterio de
+  cohorte `baja`/`media`/`alta` —cuyo comentario ya lo declara— y la dicotomía «FEVI < 40 % frente
+  a FEVI ≥ 40 %» del PDF de auditoría. Tocarlos cambiaría qué estudios entran en un filtro
+  guardado. `PENDIENTES.md` → LS-7.
+  ⚠️ **CONSECUENCIA DECLARADA: el chi² de los tres pares que usan `FEVICAT` se calcula con un
+  grado de libertad MÁS**, así que su p crudo cambia, y el ajuste BH puede mover el p ajustado de
+  sus vecinos. `PENDIENTES.md` → LS-6.
+
+- **LS8 · EL AVISO NO COPIA NI UN CORTE, Y ES LO QUE LO HACE CORRECTO.** La condición no es «el
+  valor cae entre 38 y 40»: es «la categoría que el DUEÑO devuelve con sexo varón no es la misma
+  que devuelve con sexo mujer» —se le pregunta **dos veces a la misma función**—. Escribir la
+  franja a mano sería una segunda copia de **veinte números**, y de paso así cubre los **tres**
+  bordes del DDVI y las **tres** bandas de gravedad de la masa sin nombrar ninguno.
+  **Medido en 17 escenas**: aparece con los ocho parámetros en su franja, **no** aparece con el
+  sexo cargado, con un valor igual en los dos sexos, sin datos ni **con la FEVI** —cuyo criterio
+  no distingue sexo, que es el control negativo—, y **sí** con un valor no binario. «Nuevo
+  estudio» lo apaga. **No entra al informe, al EN SUMA, al PDF ni al PPT.**
+  **A 1200 × 700, 1440 × 800, 1920 × 1080, 768 × 1024, 390 × 844 y 360 × 740, en los DOS temas:
+  visible en las doce celdas, sin scroll horizontal, el campo de al lado con su ancho de siempre,
+  y el COLOR REAL en `rgb(245,158,66)` de noche y `rgb(217,123,31)` de día.**
+  ⚠️ **ES `--orange` Y NO `--amber`**, que se define sólo dentro de `.amilo-root` y fuera de ahí
+  se ve GRIS: la trampa que este archivo ya pagó cinco veces.
+  ⚠️ **NO LLEVA `onclick`**, y es deliberado: la regla táctil global matchea **por el atributo** y
+  estiraría la línea a 44 px **desplazando el campo**. El enlace es un `<a>`, que no entra en esa
+  regla.
+  **LOS ACENTOS: de 93 palabras sin tilde a CERO** en las cadenas de las fichas que el médico LEE.
+  ⚠️ **EL DETECTOR COMPARA POR TOKEN COMPLETO** —«todo» matchea dentro de «método»— y **no**
+  incluye «auricular», «insuficiencia» ni «cardiacas», que no llevan tilde o la Academia las
+  admite sin ella: una lista que las incluya pone en rojo una ficha perfecta.
+
+- **EL REGISTRO PASA DE 28 FICHAS A 31**, con **24 verificadas · 4 parciales · 3 por verificar**.
+  `DIM-AI-001` y `DIM-VI-001` pasan de «parcial / criterio propio» a **«verificado / guía»**,
+  `DIM-AI-002` de «por verificar» a verificado contra la edición de **2005** —la de 2015 no
+  publica el área absoluta, y esa es la regla de la casa: manda la más nueva y si no trae el dato
+  se usa la anterior—, y `GEO-VI-001` deja de citar la Tabla 6 y cita **sólo la Figura 6**, porque
+  esa tabla da el 0,42 como **normal** y la app lo trata como aumentado. `PENDIENTES.md` → LS-1.
+
+- **A/B DEDICADO CONTRA EL ÁRBOL DE ENTRADA, con el PDF GENERADO DE VERDAD en las SEIS
+  plantillas por tres escenas (18 celdas).** Con el formulario **vacío las seis salen
+  IDÉNTICAS** —mismo `nTextos`, mismo `nFigs` y los mismos textos—. Con escenario cargado
+  **`nFigs` es idéntico en las doce celdas** y `nTextos` en diez de las doce: en académico y
+  elegante de la mujer baja **uno**, porque la línea del ventrículo se acortó al perder «(por
+  volumen indexado)». Lo que cambia son **las seis referencias impresas** —diámetro AP, SIV, PP,
+  DSVI, DDVI y masa indexada, que pasan al formato «H<=… M<=…»— y **dos líneas del informe**: la
+  del diámetro diastólico de la mujer y la de la FEVI con 40 %. Todo autorizado.
+  ⚠️ **EL RÓTULO Y LA REFERENCIA DE UNA FILA DEL PDF SON DOS `doc.text` DISTINTOS** —la lección
+  que la tanda F ya tiene escrita—, así que la primera comparación, filtrada por rótulo,
+  informó «cero diferencias» sobre seis referencias que SÍ cambiaron. Se comparan **todos** los
+  textos sin su posición: con la posición adentro, un cambio de maquetación mueve la `y` de
+  todos y esconde el de contenido.
+  **El Laboratorio por sus funciones dueñas** (`_labGeomCat`, `_labDiastGrado`, `_labLavi`,
+  `_labFevi`) sale idéntico en las tres escenas, y el **Excel en 440 columnas CLAVE POR CLAVE**
+  también.
+
+- ⚠️ **CASOS ADAPTADOS POR LA SUITE COMPLETA: CINCO MÁS, Y NINGUNA CORRIDA DE ZONA PODÍA VERLOS.**
+  Es la novena tanda en que la suite completa destapa algo que la de zona no ve, y los cinco
+  afirmaban el comportamiento viejo:
+  **TC-19** («DDFVI 65 leve / 66 dilatado») —su 65 no estaba en ninguna columna de la guía y hoy
+  mide los TRES bordes del varón—, **TC-20** («FEVI: los tres cortes 50/40/30») —su borde del
+  medio pasa a 41 y el caso gana el 41 para medirlo por sus dos lados—, **TC-31** y **TC-87**
+  —los dos usaban el 40 del diámetro AP como «ya dilatada» y hoy el 40 es normal: el borde se
+  mide con el 40 y el 41— y **TC-295**, que compara la referencia del PDF firmado contra el
+  operador del código y exigía «<40 mm».
+  ⚠️ **Y LOS CINCO SE DETECTARON CORRIÉNDOLOS SOLOS**, que es lo que separa una regresión de un
+  inestable por orden: los cinco fallan también aislados, así que no había nada que repetir.
+
+- **Arnés: `scripts/_probe_ls.mjs`** (CDP, teclas y clics reales; once grupos: `sexo`, `registro`,
+  `aidiam`, `ddvi`, `vol`, `aviso`, `fevi`, `masa`, `tarjeta`, `refs`, `maqueta`, `controles`).
+  **Cobertura: TC-493**, **52 condiciones** —contadas sobre el propio caso— con dos denominadores
+  y cuatro controles negativos. **Verificado que sabe fallar contra HEAD en un worktree aparte: 36
+  de las 52 en rojo, y NINGUNA por excepción.**
+
+- ⚠️ **NUEVE TRAMPAS, Y CUATRO DABAN FALSOS PLAUSIBLES.**
+  1. **UN `assert` QUE FALLA EN UN SCRIPT DE EDICIÓN NO APLICA NADA**, porque la escritura va al
+     final — y el paso siguiente informa «SINTAXIS OK» sobre un archivo **sin** los enganches.
+     Pasó dos veces. **Verificar con `grep` que la edición quedó.**
+  2. **`viVolAutoSync` APARECE DOS VECES CON EL MISMO PATRÓN EXACTO** —en `calcVI` y en la ventana
+     de reimpresión— así que un `replace` por texto no es único: se insertó por número de línea.
+  3. **EL ESTILO CONCISO NO PUBLICA EL FRAGMENTO DEL VENTRÍCULO SIN EL DIÁMETRO DIASTÓLICO**, así
+     que una escena con la FEVI sola dejaba la condición en rojo sobre un informe correcto en los
+     otros dos estilos.
+  4. **LAS CLAVES DE LAS DOS TARJETAS DEL VD SON `vd-tam-card` Y `vd-fun-card`**, no `vd-tam` ni
+     `vd-fun`: el control de que la tanda M no se movió salía rojo sobre un árbol perfecto.
+  5. **EL DETECTOR DE ACENTOS INFORMÓ 101 DONDE HABÍA 93 ANTES**, y la subida era mía: los textos
+     nuevos de las fichas también salieron sin acentos. **Medir el detector antes y después.**
+  6. **DOS CORRIDAS DE LA SUITE EN PARALELO**, por un `&` dentro de un comando que ya corría en
+     background. Se mataron **por PID propio** —nunca por nombre— y se volvió a medir.
+  7. **`elementFromPoint` DEVUELVE EL ARTEFACTO CONOCIDO A 768 px**: el centro del enlace cae
+     fuera del viewport y la lectura informa «fuera», no un defecto.
+  8. **NI UN REGEX DENTRO DEL TEMPLATE DE LA SONDA**: una barra invertida se **cocina**, así que
+     `\s` llega al motor como la letra `s` y borra todas las eses del texto. Las cadenas se parten
+     **por código de carácter**.
+  9. **Me comí el acento grave CUATRO veces**, todas en comentarios míos: tres dentro del cuerpo
+     de TC-491 y una dentro de la sonda. `scripts/check_backticks.py` dio la línea exacta las
+     cuatro mientras `node --check` apuntaba a la apertura del template, cientos de líneas antes.
 
 ### Las tarjetas ⓘ de AD/VCI, del VENTRÍCULO DERECHO y de la AORTA — «M» (2026-10-16)
 

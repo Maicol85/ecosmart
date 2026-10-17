@@ -207,3 +207,21 @@ a las que esta tanda **no agregó una tercera**.
 
 El registro de evidencia que lo alimenta, el mecanismo entero y sus trampas están en
 **`docs/mapa/registro-evidencia.md`**.
+
+---
+
+## → La tanda «LS» (2026-10-16): la AI y el VI por SEXO
+
+Los cortes de la aurícula y el ventrículo izquierdos pasaron a ser **por sexo**, con la regla del
+**corte más alto** cuando el sexo falta, y la fracción de eyección a **cuatro categorías con un
+solo dueño**. Entró además un **aviso de pantalla** que aparece sólo cuando falta el sexo y algún
+valor cambiaría de categoría con él.
+
+**Todo está en `docs/mapa/ai-vi-por-sexo.md`**: el dueño del sexo efectivo (`sexoLeido`,
+`sexoCargado`, `sexoEfectivo`, `sexoFalta`), la tabla de los seis parámetros con su operador, las
+cinco copias de la FEVI que pasaron a leer `feviClasificar`, el aviso con su medición en seis
+anchos por dos temas, lo que cambió en las tarjetas y en Referencias, las tres fichas nuevas del
+registro y nueve trampas.
+
+La verificación contra el PDF original —folio por folio, con la regla de folio de cada una de las
+tres guías comprobada en el pie impreso— está en `docs/fuentes/FUENTES.md` → «La tanda LS».

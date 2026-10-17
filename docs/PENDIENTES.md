@@ -4105,6 +4105,16 @@ lo mismo que ocultar la pestaña de verdad. **No se tocó.**
 Nada de lo de abajo se tocó: todo es contenido clínico, un corte o un texto del informe firmado,
 y esta orden no lo autoriza.
 
+### ✅ L-1 · CERRADO el 2026-10-16 (tanda LS2) — el diámetro AP de la AI tiene corte POR SEXO
+
+**Resuelto.** Normal hasta **40 mm en el varón y 38 en la mujer**, con el operador `>` para la
+dilatación —la guía publica un rango normal que incluye su techo— y el corte del varón cuando el
+sexo falta. Verificado en la Supplemental Table 9 de la ASE/EACVI 2015 (folio 39.e14, hoja 53):
+«AP dimension (cm): Women 2.7–3.8 / Men 3.0–4.0». El comentario del código que atribuía «3,9 y
+4,1» a la guía era **falso en las dos mitades** y se corrigió. Ver `docs/mapa/ai-vi-por-sexo.md`.
+
+<details><summary>Lo que decía esta entrada</summary>
+
 ### L-1 · El diámetro AP de la AI usa un corte único donde la guía da uno por sexo
 La app marca dilatación con **≥ 40 mm** para los dos sexos. La ASE/EACVI 2015, **Tabla
 suplementaria 9, folio 39.e14**, da el techo de normalidad en **4,0 cm en el varón y 3,8 cm en la
@@ -4114,11 +4124,36 @@ barra **no publica línea de fuente**.
 Salidas: (a) dejarlo como está y documentarlo en la tarjeta; (b) separar por sexo, que mueve el
 informe de toda mujer con un diámetro entre 38 y 39 mm.
 
+</details>
+
+### ✅ L-2 · CERRADO el 2026-10-16 (tanda LS3) — el DDVI pasa a CUATRO categorías por sexo
+
+**Resuelto.** Varón 58 / 63 / 68 mm y mujer 52 / 56 / 61, las cuatro bandas de la Tabla
+suplementaria 3 (folio 39.e8, hoja 47), con los adjetivos que `vdfviInterp` y `vsfviInterp` ya
+publicaban. **El 65 mm que la app usaba no estaba en ninguna de las dos columnas** de esa tabla.
+
+<details><summary>Lo que decía esta entrada</summary>
+
 ### L-2 · El diámetro diastólico del VI tampoco separa por sexo
 `viDimCat` usa **58 y 65 mm** para los dos, más un respaldo por volumen telediastólico indexado
 (61 en la mujer, 75 en el varón). La guía, **Tabla suplementaria 3, folio 39.e8**, da cuatro
 bandas por sexo, y su techo de normalidad es 5,8 cm en el varón y **5,2 en la mujer**. Ficha
 `DIM-VI-001`, «parcial».
+
+</details>
+
+### ✅ L-3 · CERRADO el 2026-10-16 (tanda LS7) — la FEVI tiene UN dueño y CUATRO categorías
+
+**Resuelto, y eran CINCO copias y no dos.** Las tres de cuatro categorías —la cápsula de
+`calcVI`, el bloque del informe y `_simpClasificar`— y **dos de TRES** —`FEVICAT` del módulo de
+asociaciones y la distribución del panel del Laboratorio, que fundían la moderada con la severa
+en un «< 40 %»—. Las cinco leen `feviClasificar` / `FEVI_CATS`, y `EV_BANDAS_REF.fevi` se
+**deriva** de esa tabla. Los cortes de 50 y de 40 quedaron verificados en la guía ESC 2021 de
+insuficiencia cardíaca (Tabla 3, folio 523.e11) y el de 30 en la ASE/EACVI 2015 (Tabla 4, folio
+10) y en la de 2005 (Tabla 6, folio 1448). Las cuatro bandas **como conjunto** siguen siendo un
+criterio de la aplicación y la tarjeta lo declara sin nombrar ninguna guía.
+
+<details><summary>Lo que decía esta entrada</summary>
 
 ### L-3 · Las categorías de FEVI viven en DOS copias y no se verificaron
 Los cortes **≥ 50 / 40-49 / 30-39 / < 30** están escritos dos veces —la cápsula de `calcVI` y el
@@ -4131,11 +4166,37 @@ Esta tanda **no agregó una tercera copia**: la tarjeta dibuja con las bandas de
 Salidas: (a) extraer un dueño único sin cambiar los números —no cambia nada visible—; (b)
 además, decidir si se adoptan los cortes por sexo de la guía, que sí mueve el informe.
 
+</details>
+
+### ✅ L-4 · CERRADO el 2026-10-16 (tanda LS4) — SIGUE sin clasificarse, y es la decisión
+
+**Resuelto por confirmación, no por cambio de conducta.** Se volvió a censar: ninguna superficie
+clasifica el diámetro sistólico —no hay cápsula `dsvi-interp`, cero ocurrencias— y el «menor de
+40 mm» que se le atribuía es la **referencia impresa** de la tabla del PDF, no una clasificación.
+LS4 **no agregó** una al informe ni al EN SUMA: eso sería inventar un texto. Lo que ganó el sexo
+es la referencia impresa («H<=40 M<=35 mm»), el punto de la tarjeta sin sexo y una barra por sexo
+en Referencias. TC-493 (a11) lo fija como límite declarado.
+
+<details><summary>Lo que decía esta entrada</summary>
+
 ### L-4 · El diámetro sistólico del VI no se clasifica en ninguna superficie
 Censado: `dsfvi` alimenta la fracción de acortamiento y el módulo de TEER, y **no produce
 categoría** en la pantalla, el informe, el PDF, el PPT ni el Laboratorio. La barra de la tarjeta
 publica la banda de la **guía** (Tabla suplementaria 3, folio 39.e8, verificada) y lo dice con
 esas palabras, porque no hay dueño al que preguntarle. Decidir si la app debe clasificarlo.
+
+</details>
+
+### ✅ L-5 · CERRADO el 2026-10-16 (tanda LS6) — los 115 y 95 EXACTOS son NORMALES
+
+**Resuelto.** `calcGeometriaVI` pasó de `m < limite` a `m <= limite`: las dos tablas de la
+ASE/EACVI 2015 publican la masa normal como un rango que **incluye su techo** («Women 43–95 / Men
+49–115») y hacen empezar la banda leve en 116 y 96, que es donde `hviSeveridad` ya graduaba.
+**El defecto era peor que un borde:** con 115 exactos la cápsula decía «Normal» —su operador ya
+era `>`— y la fila de geometría, dos renglones más abajo, «Hipertrofia excéntrica» sin gravedad.
+Medido: HEAD tenía **un hueco por sexo** y hoy son **cero**, barriendo de 40 a 200 g/m².
+
+<details><summary>Lo que decía esta entrada</summary>
 
 ### L-5 · En el valor exacto del umbral de masa, la app dice «hipertrofia» SIN gravedad
 `calcGeometriaVI` llama hipertrofia a la masa que **no es menor** que el umbral —o sea **115 g/m²
@@ -4145,6 +4206,8 @@ El comentario de `hviSeveridad` ya lo anticipaba. TC-491 lo fija como **límite 
 que el día que se decida el caso lo note.
 Y la Figura 6 de la guía escribe `≥ 0,42` y `≤ 0,42`, que **se solapan en el 0,42 exacto**: la
 app lo resuelve del lado concéntrico.
+
+</details>
 
 ### L-6 · J-1 sigue abierto, y esta tanda lo volvió a medir
 Reproducido con teclas reales en los **tres** estilos, con el volumen de la AI medido y **sin
@@ -4289,3 +4352,116 @@ La lectura del gráfico por edad y superficie corporal vive **sólo en pantalla*
 EN SUMA, el PDF y el PPT siguen diciendo lo de siempre, que sale del corte único de 40 mm. Es la
 regla de la casa —«el panel explica, el papel afirma»— y además agregar una frase al informe
 firmado no está autorizado en esta tanda.
+
+---
+
+## Tanda LS · la AI y el VI por SEXO (2026-10-16) — DECLARADO y NO arreglado
+
+> Lo implementado está en `docs/mapa/ai-vi-por-sexo.md` y la verificación contra el original en
+> `docs/fuentes/FUENTES.md` → «La tanda LS». Acá queda lo que la tanda **no** hizo.
+> **Cierra L-1, L-2, L-3, L-4 y L-5.**
+
+### LS-1 · El espesor parietal relativo: la Tabla 6 y la Figura 6 se contradicen en el 0,42
+
+La **Tabla 6 (folio 17)** de la ASE/EACVI 2015 publica «Relative wall thickness (cm): Women
+0.22–0.42 / Men 0.24–0.42», o sea con el **0,42 ADENTRO del rango normal**. El pie de la **Figura
+6**, en la misma página, escribe «concentric remodeling (normal LV mass with increased RWT
+**$ 0.42**)» y «normal geometry (RWT **# 0.42**)» —y en esa fuente `$` es `≥` y `#` es `≤`, la
+codificación que la ASE 2025 ya tiene documentada—, así que **la figura se contradice a sí misma**
+en el 0,42 exacto.
+
+La app usa `< 0,42` normal, que es la lectura de la figura. **El RWT estaba fuera del alcance de
+esta orden y no se tocó.** Lo único que se hizo fue que la ficha `GEO-VI-001` cite **sólo la
+Figura 6** —la que respalda lo que la app hace— en vez de la Tabla 6, que lo niega. Y queda una
+contradicción impresa: la tabla del PDF publica `RWT ref '<=0.42'` mientras el código trata el
+0,42 como aumentado.
+
+**Salidas:** (a) dejarlo así y declarar la contradicción de la guía en la tarjeta; (b) adoptar la
+Tabla 6 y pasar a `<= 0,42` normal, que cambia la geometría de todo paciente con RWT exactamente
+0,42; (c) corregir sólo la referencia impresa del PDF a `<0.42` para que el papel y el código
+digan lo mismo. **La (c) es la mínima y sólo toca un rótulo.**
+
+### LS-2 · El límite de normalidad de la FEVI por sexo
+
+La ASE/EACVI 2015 corta la FEVI en **52 % en el varón y 54 % en la mujer** (Tabla 4, folio 10).
+La app usa **50 sin sexo**, que es decisión de Maicol del 2026-09-20 y el comentario de
+`UMBRAL_FEVI_NORMAL` ya lo declara. **No se tocó**: mover ese corte cambia la premisa del
+HFA-PEFF, la compuerta de la función diastólica y el panel de Evidencia, que lo leen todos.
+
+### LS-3 · El área de la AI se gradúa en la edición de 2005 y la app la deja binaria
+
+La Tabla 9 de Lang 2005 (folio 1456) publica el área con **cuatro bandas** —`≤20` normal, 20-30
+leve, 30-40 moderada y `>40` severa—; la de 2015 no publica el área absoluta. La app dice
+«dilatada» sí o no. **Está fuera del alcance de esta orden** («el área de la AI NO cambia») y el
+corte coincide con la fuente, así que lo único abierto es si conviene graduarla.
+
+### LS-4 · La tarjeta de GEOMETRÍA se desplaza por dentro
+
+Con las dos barras de espesor pasó de **363 px a 528 de alto visible y 562 a 596 de contenido**,
+o sea **34 a 68 px de scroll interno** —los 68 sin sexo, donde cada barra agrega su línea de
+aviso—. Es el mismo precedente que `vd-fun-card` de la tanda M, que ya está declarado como M-8.
+
+**Salidas:** (a) dejarlo, que es lo que esta tanda hizo; (b) partir la tarjeta en dos globos
+—«geometría» y «espesores»—, lo que agrega una entrada a `VINFO` y sube el conteo de TC-471;
+(c) una sola barra de espesor, que obliga a elegir entre el septum y la pared o a tomar el mayor,
+que es un criterio que la guía no escribe.
+
+### LS-5 · El aviso del importador del diámetro AP usa el techo del VARÓN y no mira el sexo
+
+`LAB_XLS_RANGO_NORMAL.ai_diam` deriva de `AI_DIAM_NORMAL_MAX_H` (40 mm) y esa tabla es estática:
+no tiene el sexo de la fila. Con el corte más alto **nunca avisa de más**, que es el lado
+correcto, pero en una mujer un diámetro de **39 mm es dilatado y entra sin advertencia**.
+De paso se cerró el hueco de un valor que esta tabla tenía declarado: su aviso ya era `>`
+estricto y la dilatación pasó de `>= 40` a `> 40`, así que los dos bordes coinciden.
+
+**Salida:** que esa tabla acepte una función por campo en vez de un par de números, para que el
+rango se resuelva con el sexo de la fila importada. Toca el consumidor, que lo comparten los 40
+campos de la tabla.
+
+### LS-6 · El `FEVICAT` del módulo de asociaciones cambió de tres clases a cuatro, y eso mueve dos p
+
+Es **consecuencia declarada** y no un defecto. El chi² de los tres pares que usan esa variable
+—FEVI contra HTA, contra DM y contra FA— se calcula con **un grado de libertad más**, así que su
+**p crudo** cambia; y el ajuste de Benjamini-Hochberg corre sobre la familia del bloque, así que
+el **p ajustado** de sus vecinos puede moverse. Lo mismo vale para la distribución del panel, que
+pasó de tres barras a cuatro. Queda anotado para que una auditoría que compare dos corridas del
+Laboratorio sepa por qué.
+
+### LS-7 · Dos lugares siguen usando un 40 pelado, y son bandas de FILTRO
+
+El criterio de cohorte `baja`/`media`/`alta` —cuyo propio comentario ya dice que su 40 es «el
+borde interno de la banda intermedia, no un umbral de normalidad»— y la comparación de subgrupos
+«FEVI < 40 % frente a FEVI ≥ 40 %», que es una dicotomía con su rótulo impreso. **No se tocaron a
+propósito:** cambiarlos cambiaría qué estudios entran en un filtro guardado y qué dice el rótulo
+de una tabla del PDF de auditoría. El `<select>` `filtro-fevi` tiene además cuatro opciones de
+rango (`lt30`, `lt40`, `lt50`, `gte50`) que tampoco son categorías clínicas.
+
+### LS-8 · El aviso no llega al PDF, al PPT ni al informe, y es la decisión
+
+La orden lo pide así y está medido en los tres estilos. Queda anotado que un estudio **guardado**
+sin sexo y reimpreso no lleva ninguna señal de que sus categorías se calcularon con el corte más
+alto: el papel firmado no lo dice por ningún camino.
+
+### LS-9 · El enlace del aviso no se pudo comprobar alcanzable a 768 px
+
+`elementFromPoint` sobre el centro del enlace devolvió «fuera del viewport» en las **dos** celdas
+de 768 × 1024 y fue alcanzable en las otras diez. Es el artefacto que este repo ya tiene escrito
+—el mismo que el globo del cociente TAPSE/PSAP pagó en la tanda Z— y no un defecto: el enlace
+tiene geometría y el aviso se ve. Para cerrarlo hay que desplazar la página antes de medir.
+
+### LS-10 · El texto del aviso de sexo de las tarjetas vive en DOS constantes con el mismo literal
+
+`AV_SEXO_ALTO` (dentro de `evTarjetaVI`) y `AV_SEXO_GEO` (dentro de `evTarjetaGeo`) tienen
+**exactamente el mismo texto**: «Sin sexo cargado: se usó el corte más alto.». Son dos funciones
+distintas y por eso cada una declaró la suya, pero es la clase de duplicación que esta misma
+tanda vino a sacar: el día que una se reescriba, las dos tarjetas dirán cosas distintas del mismo
+estado.
+
+**No se unificó** porque el defecto se vio **después** de sellar la versión y de lanzar la suite
+completa, y tocar `index.html` ahí mueve el `md5` en medio de la medición, que es exactamente lo
+que la regla de la casa prohíbe. **Es una línea**: subir la constante a nivel de módulo, al lado
+de `EV_BANDAS_ESPESOR`, y que las dos la lean.
+
+De paso, `_avSx` de la tarjeta del VI quedó con un ternario redundante
+—`(!sx && hay dato) ? X : (!sx ? X : '')`, que es `!sx ? X : ''`— y se simplifica en el mismo
+movimiento. No cambia su resultado en ninguna escena: está medido en las tres de la tarjeta.
