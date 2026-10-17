@@ -564,12 +564,16 @@ const SONDA = `window.__P = {
      la tanda M ya pago —«todo» matchea dentro de «metodo»—. ── */
   registroAcentos() {
     if (typeof window.EV_REG === 'undefined') return { err:'SIN EV_REG' };
-    var SIN = ['diametro','diametros','area','areas','auricula','auricular','ventriculo',
+    var SIN = ['diametro','diametros','area','areas','auricula','ventriculo',
                'telediastolico','telesistolico','sistolico','diastolico','fraccion','eyeccion',
                'limite','metodo','concentrico','concentrica','excentrico','excentrica',
-               'geometria','maxima','maximo','cuantificacion','camaras','cardiacas',
+               'geometria','maxima','maximo','cuantificacion','camaras',
                'ecocardiografia','asociacion','espanola','cardiologia','diagnostico',
-               'insuficiencia','cronica','traduccion','guia','indice','aurica'];
+               'cronica','traduccion','guia','indice'];
+    /* NO entran: «auricular», «insuficiencia», «cardiaca» y «cardiacas» no llevan tilde —la
+       Academia admite «cardiaco» sin ella—, y «metros», «parietal», «solo» y «ecuaciones»
+       tampoco. Una lista que las incluya pone en rojo una ficha perfecta, que es la trampa de
+       las palabras de reserva cortas que la tanda M ya pago. */
     var LEE = ['zona','dato','valor','tipo','ubicacion','fuente_una_linea','guia'];
     var sal = [];
     window.EV_REG.forEach(function(f){
@@ -853,6 +857,61 @@ async function main() {
   }
 
 
+  /* ── aviso: la linea de pantalla cuando falta el sexo ── */
+  if (corre('aviso')) {
+    const t0 = Date.now(); const g = {};
+    const ESC = [
+      { n: 'SIN sexo, diametro AP 39 (entre 38 y 40)', sexo: '', c: { ai_diam: '39' } },
+      { n: 'SIN sexo, diametro AP 37 (normal en los dos)', sexo: '', c: { ai_diam: '37' } },
+      { n: 'SIN sexo, diametro AP 45 (dilatada en los dos)', sexo: '', c: { ai_diam: '45' } },
+      { n: 'CON sexo M, diametro AP 39', sexo: 'M', c: { ai_diam: '39' } },
+      { n: 'CON sexo F, diametro AP 39', sexo: 'F', c: { ai_diam: '39' } },
+      { n: 'SIN sexo, DDVI 55 (entre 52 y 58)', sexo: '', c: { ddfvi: '55' } },
+      { n: 'SIN sexo, DDVI 50 (normal en los dos)', sexo: '', c: { ddfvi: '50' } },
+      { n: 'SIN sexo, DSVI 37 (entre 35 y 40)', sexo: '', c: { dsfvi: '37' } },
+      { n: 'SIN sexo, septum 10 (entre 9 y 10)', sexo: '', c: { siv: '10' } },
+      { n: 'SIN sexo, pared 10', sexo: '', c: { ppvi: '10' } },
+      { n: 'SIN sexo, FEVI 40 (el criterio no distingue sexo)', sexo: '', c: { fevi: '40' } },
+      { n: 'SIN sexo, masa entre 95 y 115', sexo: '', c: { ddfvi: '50', siv: '11', ppvi: '11' } },
+      { n: 'SIN sexo, VDFVI 130 idx 65 (entre 61 y 74)', sexo: '', c: { vdfvi: '130' } },
+      { n: 'SIN sexo, VSFVI 56 idx 28 (entre 24 y 31)', sexo: '', c: { vsfvi: '56' } },
+      { n: 'SIN sexo, cuatro a la vez', sexo: '', c: { ai_diam: '39', ddfvi: '55', dsfvi: '37', vdfvi: '130' } },
+      { n: 'SIN sexo y SIN NINGUN dato', sexo: '', c: {} },
+      { n: 'valor NO binario en el sexo, diametro AP 39', sexo: 'X', c: { ai_diam: '39' }, noBin: true },
+    ];
+    for (const E of ESC) {
+      try {
+        if (E.noBin) {
+          await montar(E.c, { sexo: '' });
+          /* El `<select>` no ofrece un valor no binario: se fuerza por valor Y SE DECLARA, que es
+             el unico gesto de estas escenas que no es una tecla ni un clic. Es el camino por el
+             que llega un estudio importado con otro vocabulario. */
+          await ev("(function(){ var e=document.getElementById('sexo'); var o=document.createElement('option'); o.value='X'; o.textContent='X'; e.appendChild(o); e.value='X'; e.dispatchEvent(new Event('change',{bubbles:true})); return e.value })()");
+          await ev('(function(){ try { calcVI(); calcAI() } catch(e) {} return 1 })()');
+        } else {
+          await montar(E.c, { sexo: E.sexo });
+          await ev('(function(){ try { calcVI(); calcAI() } catch(e) {} return 1 })()');
+        }
+        g[E.n] = { aviso: await J('JSON.stringify(window.__P.avisoSexo())'),
+                   cambian: await J('JSON.stringify((typeof aiviSexoCambian === "function") ? aiviSexoCambian() : "SIN FN")'),
+                   /* el aviso NO va al papel: se mide en los tres estilos y en el PPT */
+                   inf: await J("JSON.stringify(window.__P.informe('estandar'))") };
+      } catch (e) { g[E.n] = { ABORTO: e.message }; abortos.push('aviso ' + E.n + ': ' + e.message); }
+    }
+    /* El aviso no sobrevive a «Nuevo estudio», y el texto no entra al informe ni al EN SUMA. */
+    try {
+      await montar({ ai_diam: '39' }, { sexo: '' });
+      const antes = await J('JSON.stringify(window.__P.avisoSexo())');
+      await ev('window.__P.limpiar()');
+      g.nuevoEstudio = { antes: antes, despues: await J('JSON.stringify(window.__P.avisoSexo())') };
+      await montar({ ai_diam: '39' }, { sexo: '' });
+      const r = await J("JSON.stringify(window.__P.informe('narrativo'))");
+      g.enPapel = { inf: String(r.inf || '').indexOf('Falta el sexo') > -1,
+                    suma: String(r.suma || '').indexOf('Falta el sexo') > -1 };
+    } catch (e) { g.ABORTO2 = e.message; abortos.push('aviso cierre: ' + e.message); }
+    out.grupos.aviso = g; parcial('aviso', t0);
+  }
+
   /* ── fevi: los cuatro tramos y sus bordes exactos, con UN solo dueno ── */
   if (corre('fevi')) {
     const t0 = Date.now(); const g = {};
@@ -998,6 +1057,48 @@ async function main() {
       for (const id of ['ai', 'vi2']) g[id] = await J('JSON.stringify(window.__P.refs(' + JSON.stringify(id) + '))');
     } catch (e) { g.ABORTO = e.message; abortos.push('refs: ' + e.message); }
     out.grupos.refs = g; parcial('refs', t0);
+  }
+
+  /* ── maqueta: el aviso y las tres tarjetas a seis anchos por dos temas, con el COLOR REAL
+     resuelto y sin scroll horizontal de la pagina ── */
+  if (corre('maqueta')) {
+    const t0 = Date.now(); const g = {};
+    const VP = [[1200,700],[1440,800],[1920,1080],[768,1024],[390,844],[360,740]];
+    for (const [w, h] of VP) {
+      for (const claro of [false, true]) {
+        const k = w + 'x' + h + (claro ? ' claro' : ' oscuro');
+        try {
+          await cdp.send('Emulation.setDeviceMetricsOverride',
+            { width: w, height: h, deviceScaleFactor: 1, mobile: w < 768 }, sessionId);
+          const puesto = await ev('window.__P.temaClaro(' + (claro ? 'true' : 'false') + ')');
+          if (puesto !== claro) throw new Error('el tema no quedo: light-mode=' + puesto);
+          await montar({ ai_diam: '39', ddfvi: '55' }, { sexo: '' });
+          await ev('(function(){ try { calcVI(); calcAI() } catch(e) {} return 1 })()');
+          await ev('JSON.stringify(window.__P.despejar())');
+          const av = await J('JSON.stringify(window.__P.avisoSexo())');
+          /* El aviso NO puede desplazar un campo ni taparlo: se mide el rect del primer input de
+             la pestana con el aviso puesto y sin el. */
+          const campo = await J("JSON.stringify(window.__P.geo('ai_diam'))");
+          const sc = await J('JSON.stringify(window.__P.scrollH())');
+          /* Que la linea sea ALCANZABLE y no la tape otro nodo: el centro del enlace. */
+          const alc = await J(`JSON.stringify((function(){
+            var a = document.querySelector('#aivi-sexo-aviso a');
+            if (!a) return { hay:false };
+            var r = a.getBoundingClientRect();
+            if (r.width === 0) return { hay:true, geo:false };
+            var cx = r.left + r.width/2, cy = r.top + r.height/2;
+            if (cy < 0 || cy > innerHeight) return { hay:true, fuera:true };
+            var e = document.elementFromPoint(cx, cy);
+            return { hay:true, blanco: e ? (e.tagName + (e.id ? '#' + e.id : '')) : 'NADA',
+                     ok: !!e && (e === a || a.contains(e)) } })())`);
+          g[k] = { aviso: av, campo: campo, scroll: sc, enlace: alc,
+                   hScroll: sc.sw > sc.cw };
+        } catch (e) { g[k] = { ABORTO: e.message }; abortos.push('maqueta ' + k + ': ' + e.message); }
+      }
+    }
+    try { await cdp.send('Emulation.clearDeviceMetricsOverride', {}, sessionId);
+          await ev('window.__P.temaClaro(false)') } catch (e) {}
+    out.grupos.maqueta = g; parcial('maqueta', t0);
   }
 
   /* ── controles: lo que esta tanda NO toca. Informe en los tres estilos, EN SUMA, los ocho

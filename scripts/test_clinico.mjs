@@ -71759,12 +71759,16 @@ caso('TC-491', 'Tanda L: el REGISTRO DE EVIDENCIA de la AI y del VI —doce fich
     const idsTodos = hayReg ? REG.map(function (f) { return f.id }) : [];
     const REG_L = hayReg ? REG.filter(function (f) {
       return /^(DIM|FUN|MAS|GEO)-(AI|VI)-\\d{3}$/.test(f.id) }) : [];
-    ex.push(['(A1) el registro existe y trae las doce fichas de la AI y del VI',
-      hayReg && REG_L.length === 12, 'n de la zona=' + (hayReg ? REG_L.length : REG)
+    /* ADAPTADO el 2026-10-16 (tanda LS): la zona pasa de DOCE fichas a QUINCE. Entraron
+       DIM-VI-005 (el espesor del septum y de la pared, LS5) y las dos que respaldan los cortes
+       de la fraccion de eyeccion, FUN-VI-002 y FUN-VI-003 (LS7). El numero se sube y no se
+       quita la condicion: lo que vigila es que la zona no pierda ni gane fichas en silencio. */
+    ex.push(['(A1) el registro existe y trae las QUINCE fichas de la AI y del VI',
+      hayReg && REG_L.length === 15, 'n de la zona=' + (hayReg ? REG_L.length : REG)
         + ' de ' + idsTodos.length + ' en el registro']);
     const ids = REG_L.map(function (f) { return f.id });
     ex.push(['(A2) los ids son unicos y siguen el formato de la zona',
-      hayReg && idsTodos.length === new Set(idsTodos).size && ids.length === 12,
+      hayReg && idsTodos.length === new Set(idsTodos).size && ids.length === 15,
       'ids de la zona=' + ids.join(',')]);
     ex.push(['(A3) son DATOS PUROS: pasan por JSON.stringify y vuelven iguales',
       hayReg && (function () { try {
@@ -71778,7 +71782,11 @@ caso('TC-491', 'Tanda L: el REGISTRO DE EVIDENCIA de la AI y del VI —doce fich
       'campos=' + (hayReg ? Object.keys(REG[0]).join(',') : '')]);
     ex.push(['(A5) los tres estados son los del formato y no hay otros',
       hayReg && REG.every(function (f) { return ['verificado','parcial','por verificar'].indexOf(f.estado) >= 0 })
-        && REG.every(function (f) { return ['guia','consenso de expertos','criterio propio de EcoSmart'].indexOf(f.tipo) >= 0 }),
+        /* ADAPTADO el 2026-10-16 (tanda LS): el campo tipo que el medico LEE pasa a estar
+           acentuado —«guia» se escribe «guía»—, asi que la lista admite las dos formas. Lo que
+           esta condicion vigila es que no aparezca un tipo FUERA del formato. */
+        && REG.every(function (f) { return ['guia','gu\u00eda','consenso de expertos',
+          'criterio propio de EcoSmart'].indexOf(f.tipo) >= 0 }),
       'estados=' + (hayReg ? REG.map(function (f) { return f.estado }).join(',') : '')]);
     /* ⚠️ NINGUNA FICHA LLEVA NOTA INTERNA: el repositorio es PUBLICO. Se busca el vocabulario
        con el que se escribe una reserva, no una palabra suelta. */
@@ -71807,8 +71815,12 @@ caso('TC-491', 'Tanda L: el REGISTRO DE EVIDENCIA de la AI y del VI —doce fich
     ex.push(['(A9) el volumen indexado de la AI: el dueno corta en 34, 41 y 48, los mismos de la ficha DIM-AI-003',
       !!CM && JSON.stringify(cortesDe(CM.aiVol)) === JSON.stringify([34, 41, 48]),
       'cortes=' + JSON.stringify(CM && cortesDe(CM.aiVol))]);
-    ex.push(['(A10) el diametro AP y el area de la AI: 40 y 20, los de DIM-AI-001 y DIM-AI-002',
-      !!CM && JSON.stringify(cortesDe(CM.aiDiam)) === JSON.stringify([39.9])
+    /* ADAPTADO el 2026-10-16 (tanda LS2): el diametro AP pasa a tener un corte POR SEXO y su
+       operador pasa de mayor-o-igual a mayor estricto, asi que el sondeo del VARON corta en 40,0
+       —antes en 39,9, porque con el mayor-o-igual el ultimo valor normal era 39,9—. En la MUJER corta en 38, y eso lo afirma el
+       caso nuevo de esta tanda. */
+    ex.push(['(A10) el diametro AP y el area de la AI: 40 en el varon y 20, los de DIM-AI-001 y DIM-AI-002',
+      !!CM && JSON.stringify(cortesDe(CM.aiDiam)) === JSON.stringify([40])
           && JSON.stringify(cortesDe(CM.aiArea)) === JSON.stringify([20]),
       'diam=' + JSON.stringify(CM && cortesDe(CM.aiDiam)) + ' area=' + JSON.stringify(CM && cortesDe(CM.aiArea))]);
     ex.push(['(A11) los volumenes indexados del VI por sexo: 74/89/100 en el varon y 61/70/80 en la mujer',
@@ -71827,8 +71839,12 @@ caso('TC-491', 'Tanda L: el REGISTRO DE EVIDENCIA de la AI y del VI —doce fich
       !!CM && JSON.stringify(cortesDe(CM.rwtMasaNormal)) === JSON.stringify([0.41])
           && JSON.stringify(cortesDe(CM.rwtMasaAumentada)) === JSON.stringify([0.41]),
       'normal=' + JSON.stringify(CM && cortesDe(CM.rwtMasaNormal))]);
-    ex.push(['(A15) el diametro diastolico corta en 58 y 65, los de DIM-VI-001',
-      !!CM && JSON.stringify(cortesDe(CM.ddvi)) === JSON.stringify([58, 65]),
+    /* ADAPTADO el 2026-10-16 (tanda LS3): el diametro diastolico pasa de DOS cortes iguales
+       para los dos sexos a CUATRO categorias por sexo, con los valores de la Tabla suplementaria
+       3 de la ASE/EACVI 2015. El sondeo del varon da 58, 63 y 68; el de la mujer 52, 56 y 61, y
+       eso lo afirma el caso nuevo de esta tanda. */
+    ex.push(['(A15) el diametro diastolico del varon corta en 58, 63 y 68, los de DIM-VI-001',
+      !!CM && JSON.stringify(cortesDe(CM.ddvi)) === JSON.stringify([58, 63, 68]),
       'ddvi=' + JSON.stringify(CM && cortesDe(CM.ddvi))]);
 
     /* ══ (B) LAS TARJETAS ═════════════════════════════════════════════════════════════════ */
@@ -71852,8 +71868,14 @@ caso('TC-491', 'Tanda L: el REGISTRO DE EVIDENCIA de la AI y del VI —doce fich
       tAI.cat.join(' ').indexOf('de dimensiones normales') >= 0
         && tAI.cat.join(' ').indexOf('34,0 ml/m²') >= 0,
       'cat=' + JSON.stringify(tAI.cat)]);
-    ex.push(['(B5) la fuente se publica una sola vez y solo la de la ficha verificada',
-      tAI.fuentes.length === 1 && tAI.fuentes[0].indexOf('Tabla 4 (folio 10)') > 0,
+    /* ADAPTADO el 2026-10-16 (tanda LS): la tarjeta de la AI publica ahora TRES lineas de
+       fuente y no una, porque las tres fichas de esa tarjeta pasaron a «verificado»: el diametro
+       AP contra la Tabla suplementaria 9 (LS2) y el area contra la Tabla 9 de la edicion de 2005
+       (LS1). La condicion sigue exigiendo que la del volumen este y que ninguna linea salga de
+       una ficha sin verificar. */
+    ex.push(['(B5) la tarjeta publica una linea por ficha VERIFICADA y ninguna mas',
+      tAI.fuentes.length === 3 && tAI.fuentes.join(' ').indexOf('Tabla 4 (folio 10)') > 0
+        && tAI.fuentes.join(' ').indexOf('Tabla suplementaria 9') > 0,
       'fuentes=' + JSON.stringify(tAI.fuentes)]);
     /* Segundo toque, clic afuera y Escape: las tres puertas de cierre. */
     /* ⚠️ CENTINELA EN CADA CLIC: contra HEAD el boton NO existe, y un .click() sobre null mata
@@ -71963,10 +71985,15 @@ caso('TC-491', 'Tanda L: el REGISTRO DE EVIDENCIA de la AI y del VI —doce fich
     abrir('vi-card');
     const tSinSexo = leerCard();
     cerrar();
-    ex.push(['(B17) sin sexo las tres barras que dependen de el quedan SIN punto, y el diametro diastolico y la FEVI lo conservan',
-      tSinSexo.puntos.length === 2 && tSinSexo.puntos.indexOf('vi-ddvi') >= 0
-        && tSinSexo.puntos.indexOf('vi-fevi') >= 0
-        && tSinSexo.avisos.filter(function (a) { return a.indexOf('Sin sexo') === 0 }).length === 3,
+    /* ADAPTADO el 2026-10-16 (tandas LS4 y LS6): afirma lo CONTRARIO de lo que afirmaba, y es
+       la decision de Maicol. La regla «sin sexo, sin punto» se retiro: sin sexo cargado las
+       CINCO barras ubican el punto con el corte MAS ALTO —el del varon— y las tres que dependen
+       del sexo lo dicen en una linea corta. Retener el punto escondia una informacion que la
+       regla nueva manda publicar. */
+    ex.push(['(B17) sin sexo las CINCO barras ubican el punto con el corte mas alto, y las tres que dependen del sexo lo dicen',
+      tSinSexo.puntos.length === 5 && tSinSexo.puntos.indexOf('vi-ddvi') >= 0
+        && tSinSexo.puntos.indexOf('vi-fevi') >= 0 && tSinSexo.puntos.indexOf('vi-dsvi') >= 0
+        && tSinSexo.avisos.filter(function (a) { return a.indexOf('Sin sexo cargado') === 0 }).length === 3,
       'puntos=' + JSON.stringify(tSinSexo.puntos) + ' avisos=' + tSinSexo.avisos.length]);
 
     /* ══ (C) LA GEOMETRIA ═════════════════════════════════════════════════════════════════ */
@@ -72016,10 +72043,18 @@ caso('TC-491', 'Tanda L: el REGISTRO DE EVIDENCIA de la AI y del VI —doce fich
        «hipertrofia» SIN gravedad, que es lo que el comentario de hviSeveridad ya anticipaba.
        Esta tanda NO lo toca: mover cualquiera de los dos cambia el informe firmado. Queda en
        PENDIENTES, y esta condicion lo fija para que el dia que se decida el caso lo note. */
-    ex.push(['(C7) el corte de masa del varon: 114 es normal y 115 ya es hipertrofia, y en 115 exacto la app NO le pone gravedad',
-      FN('hviSeveridad') && geoEn(114, 0.30) === 'Normal' && geoEn(115, 0.30) === 'Hipertrofia excéntrica'
+    /* ADAPTADO el 2026-10-16 (tanda LS6): afirma lo CONTRARIO, y era el defecto L-5 que esta
+       condicion dejaba fijado para que el dia que se arreglara se notara. Y lo noto. Las dos
+       tablas de la ASE/EACVI 2015 publican la masa normal como un rango que INCLUYE su techo
+       —«49-115» en el varon— asi que 115 exactos son NORMALES y la hipertrofia empieza en 116,
+       que es donde hviSeveridad ya empezaba a graduar. El hueco de «hipertrofia sin gravedad»
+       se cerro: hoy no hay ningun valor entre 40 y 200 en ninguno de los dos sexos donde los dos
+       duenos discrepen. */
+    ex.push(['(C7) el corte de masa del varon: 115 exactos son NORMALES y la hipertrofia empieza en 116, con su gravedad',
+      FN('hviSeveridad') && geoEn(114, 0.30) === 'Normal' && geoEn(115, 0.30) === 'Normal'
+        && geoEn(116, 0.30) === 'Hipertrofia excéntrica'
         && hviSeveridad(115, 'M') === null && hviSeveridad(116, 'M') === 'leve',
-      '114=' + geoEn(114, 0.30) + ' 115=' + geoEn(115, 0.30)
+      '114=' + geoEn(114, 0.30) + ' 115=' + geoEn(115, 0.30) + ' 116=' + geoEn(116, 0.30)
         + ' sev(115)=' + (FN('hviSeveridad') ? String(hviSeveridad(115, 'M')) : 'SIN FN')]);
 
     /* ══ (D) REFERENCIAS ══════════════════════════════════════════════════════════════════ */
@@ -72037,8 +72072,13 @@ caso('TC-491', 'Tanda L: el REGISTRO DE EVIDENCIA de la AI y del VI —doce fich
     const bibDe = (cu) => cu ? Array.prototype.slice.call(cu.querySelectorAll('[data-ev-bib]'))
       .map(function (e) { return String(e.textContent || '').trim() }) : [];
     ex.push(['(D1) Referencias tiene las dos entradas nuevas, con su tabla de los DOS sexos y sus graficas',
+      /* ADAPTADO el 2026-10-16 (tanda LS): las dos entradas ganan filas y graficas por sexo
+         —el diametro AP de la AI, el diametro sistolico, el espesor y la fraccion de eyeccion—,
+         asi que los conteos exactos pasan a MINIMOS: lo que la condicion vigila es que las dos
+         entradas existan con su tabla de dos columnas y sus graficas, no un numero que cada
+         tanda tiene que subir. */
       !!cuAI && !!cuVI && filasDe(cuAI) >= 4 && filasDe(cuVI) >= 10
-        && cuAI.querySelectorAll('svg').length === 3 && cuVI.querySelectorAll('svg').length === 9,
+        && cuAI.querySelectorAll('svg').length >= 3 && cuVI.querySelectorAll('svg').length >= 9,
       'filas=' + filasDe(cuAI) + '/' + filasDe(cuVI) + ' svg=' + (cuAI ? cuAI.querySelectorAll('svg').length : '-')
         + '/' + (cuVI ? cuVI.querySelectorAll('svg').length : '-')]);
     ex.push(['(D2) sus graficas NO llevan el punto del paciente',
@@ -72046,18 +72086,26 @@ caso('TC-491', 'Tanda L: el REGISTRO DE EVIDENCIA de la AI y del VI —doce fich
         && cuVI.querySelectorAll('[data-ev-punto]').length === 0,
       'puntos=' + (cuAI ? cuAI.querySelectorAll('[data-ev-punto]').length : '-')]);
     ex.push(['(D3) la bibliografia de cada seccion arranca en [1] y solo lista fichas verificadas',
-      bibDe(cuAI).length === 1 && bibDe(cuAI)[0].indexOf('[1]') === 0
-        && bibDe(cuVI).length === 4 && bibDe(cuVI)[0].indexOf('[1]') === 0
+      /* ADAPTADO el 2026-10-16 (tanda LS): la bibliografia de la AI pasa de UNA cita a TRES
+         —entran la Tabla suplementaria 9 y la edicion de 2005— y la del VI de cuatro a SEIS, con
+         la guia ESC 2021 de insuficiencia cardiaca y la Tabla 4 de la de 2015. Lo que la
+         condicion vigila es que cada seccion arranque en [1] y que toda cita traiga folio y DOI. */
+      bibDe(cuAI).length === 3 && bibDe(cuAI)[0].indexOf('[1]') === 0
+        && bibDe(cuVI).length === 6 && bibDe(cuVI)[0].indexOf('[1]') === 0
         && bibDe(cuAI).concat(bibDe(cuVI)).every(function (b) { return b.indexOf('folio') > 0 && b.indexOf('DOI') > 0 }),
       'ai=' + bibDe(cuAI).length + ' vi=' + bibDe(cuVI).length]);
-    /* ⚠️ UNA FICHA QUE NO ESTA «verificado» NO APORTA CORCHETE: el diametro AP de la AI es
-       «parcial», asi que su fila sale sin numero. Es el control negativo de D3. */
-    ex.push(['(D4) CONTROL NEGATIVO: la fila de una ficha que no es «verificado» sale SIN corchete',
-      (function () { if (!cuAI) return false;
-        const f = Array.prototype.slice.call(cuAI.querySelectorAll('.ev-tabla tr'))
-          .filter(function (tr) { return String(tr.textContent || '').indexOf('Diámetro AP') >= 0 })[0];
-        return !!f && String(f.textContent || '').indexOf('[') < 0; })(),
-      'fila del diametro AP']);
+    /* ⚠️ UNA FICHA QUE NO ESTA «verificado» NO APORTA CORCHETE. ADAPTADO el 2026-10-16 (tanda
+       LS2): el diametro AP de la AI paso a «verificado» y su fila ya lleva numero, asi que el
+       control negativo se muda a la ficha que sigue SIN verificar, FUN-VI-001 —las cuatro
+       bandas de la fraccion de eyeccion son un criterio de la aplicacion y su fila de la barra
+       no publica fuente—. La condicion mide lo mismo sobre otra fila. */
+    ex.push(['(D4) CONTROL NEGATIVO: la barra de una ficha que no es «verificado» no publica fuente',
+      (function () { if (!cuVI) return false;
+        const f = Array.prototype.slice.call(cuVI.querySelectorAll('[data-ev-fuente]'))
+          .map(function (e) { return String(e.textContent || '') })
+          .filter(function (t) { return t.indexOf('Criterio de EcoSmart') >= 0 })[0];
+        return !!f && String(f).indexOf('folio') < 0; })(),
+      'la linea de la fraccion de eyeccion']);
     try { showTab('ai-vi'); } catch (e) {}
 
     /* ══ (E) NO SE ACUMULA NADA Y NADA SE GUARDA ══════════════════════════════════════════ */
@@ -72184,8 +72232,14 @@ caso('TC-492', 'Tanda M: las DIECISEIS FICHAS nuevas del registro de evidencia d
     const IDS_L = ['DIM-AI-001','DIM-AI-002','DIM-AI-003','DIM-VI-001','DIM-VI-002','DIM-VI-003',
                    'DIM-VI-004','FUN-VI-001','MAS-VI-001','MAS-VI-002','GEO-VI-001','GEO-VI-002'];
     const idsReg = REG.map(f => f.id);
-    ex.push(['(DENOM) el registro trae las DOCE fichas del L mas las DIECISEIS de la M',
-      REG.length === 28 && IDS_L.every(i => idsReg.indexOf(i) > -1) && IDS_M.every(i => idsReg.indexOf(i) > -1),
+    /* ADAPTADO el 2026-10-16 (tanda LS): el registro pasa de 28 fichas a 31 —entraron el espesor
+       del septum y de la pared y las dos que respaldan los cortes de la fraccion de eyeccion, las
+       tres de la zona AI/VI—. El conteo se vuelve un MINIMO y lo que la condicion vigila es lo que
+       de verdad le importa a este caso: que esten las DIECISEIS de la M y que ninguna falte. Asi
+       no se pone roja la proxima vez que otra tanda agregue una ficha de otra zona, que es la
+       leccion que TC-491 ya pago con su conteo de VINFO. */
+    ex.push(['(DENOM) el registro trae las fichas del L y las DIECISEIS de la M',
+      REG.length >= 28 && IDS_L.every(i => idsReg.indexOf(i) > -1) && IDS_M.every(i => idsReg.indexOf(i) > -1),
       'n=' + REG.length + ' faltan=' + IDS_M.filter(i => idsReg.indexOf(i) < 0).join(',')]);
     ex.push(['los ids no se repiten y NINGUNO de la M reusa uno del L',
       idsReg.length === new Set(idsReg).size && IDS_M.every(i => IDS_L.indexOf(i) < 0),

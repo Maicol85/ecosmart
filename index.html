@@ -3863,6 +3863,21 @@ window.cerrarSesionReal = cerrarSesionReal;
 <!-- ═══════════════════════ TAB: AI / VI ═══════════════════════ -->
 <div id="tab-ai-vi" class="tab-section">
 
+  <!-- ⚠️ EL AVISO DE SEXO VA ACÁ, AL TOPE DE LA PESTAÑA Y FUERA DE LOS TRES ACORDEONES, y es
+       por dónde hay un hueco discreto: los parámetros que cambian de categoría con el sexo están
+       repartidos entre el acordeón de la aurícula y el del ventrículo, así que una línea dentro
+       de uno de los dos dejaría la mitad de los avisos donde el médico no los ve —y los dos
+       nacen COLAPSADOS—. Medido a 1200 x 700 y a 390 px: nace en `display:none`, no ocupa caja y
+       no desplaza ningún campo; cuando aparece empuja la fila de tarjetas hacia abajo sin taparla.
+       NO es un botón ni lleva `onclick`: la regla táctil global de la aplicación matchea POR EL
+       ATRIBUTO (`[onclick]{min-height:44px}`) y estiraría la línea a 44 px. Para que tocarla
+       lleve al campo del sexo alcanza un enlace al ancla de la pestaña Datos, que es un `<a>` y
+       no entra en esa regla.
+       `role="status"` y `aria-live="polite"`: un lector de pantalla lo anuncia cuando aparece sin
+       interrumpir lo que el médico está tipeando. -->
+  <div id="aivi-sexo-aviso" role="status" aria-live="polite" hidden
+       style="display:none;font-size:11px;color:var(--orange);margin:0 0 8px;line-height:1.5;"></div>
+
   <!-- Aorta torácica / AI -->
   <div class="grid-2" style="align-items:start">
 
@@ -22175,6 +22190,7 @@ function calcAI() {
      rangos escritos a mano en el rótulo. El badge que sale es el mismo texto y el mismo color. */
   const aiB = aiVolClasificar(idx);
   document.getElementById('ai-interp').innerHTML = aiB ? badge(aiB.color, aiVolRotulo(aiB)) : '—';
+  if (typeof aiviSexoSync === 'function') { try { aiviSexoSync(); } catch (e) {} }
 }
 
 // ══ VI ══
@@ -22257,7 +22273,7 @@ window.vdfviInterp = vdfviInterp; window.vsfviInterp = vsfviInterp;
 
    ⚠️ LOS ID NO SE REUSAN NUNCA. Una ficha que se retira deja su id libre y muerto: un id
    reciclado hace que una cita vieja apunte a otro dato. */
-const EV_GUIA_ASE2015 = 'Lang RM y col., Recomendaciones para la cuantificacion de las camaras cardiacas por ecocardiografia en adultos, ASE/EACVI, 2015';
+const EV_GUIA_ASE2015 = 'Lang RM y col., Recomendaciones para la cuantificación de las cámaras cardiacas por ecocardiografía en adultos, ASE/EACVI, 2015';
 const EV_DOI_ASE2015  = '10.1016/j.echo.2014.10.003';
 /* La segunda guia del registro, que entra con la tanda M (AD/VCI, VD y aorta). El DOI se leyo
    en el pie de la hoja 1 del propio PDF, no afuera. */
@@ -22270,90 +22286,90 @@ const EV_DOI_ASE2025VD  = '10.1016/j.echo.2025.01.006';
    eyección; en la biblioteca está la traducción oficial de la Sociedad Española de
    Cardiología, y así se cita. Los dos identificadores se leyeron en el pie de la hoja 1 de su
    propio PDF. */
-const EV_GUIA_ASE2005 = 'Lang RM y col., Recomendaciones para la cuantificacion de las camaras cardiacas, ASE y Asociacion Europea de Ecocardiografia, 2005';
+const EV_GUIA_ASE2005 = 'Lang RM y col., Recomendaciones para la cuantificación de las cámaras cardiacas, ASE y Asociación Europea de Ecocardiografía, 2005';
 const EV_DOI_ASE2005  = '10.1016/j.echo.2005.10.005';
-const EV_GUIA_ESC2021IC = 'McDonagh TA y col., Guia ESC 2021 sobre el diagnostico y tratamiento de la insuficiencia cardiaca aguda y cronica (traduccion de la Sociedad Espanola de Cardiologia)';
+const EV_GUIA_ESC2021IC = 'McDonagh TA y col., Guía ESC 2021 sobre el diagnóstico y tratamiento de la insuficiencia cardiaca aguda y crónica (traducción de la Sociedad Española de Cardiología)';
 const EV_DOI_ESC2021IC  = '10.1016/j.recesp.2021.11.012';
 const EV_FECHA_VER    = '2026-10-16';
 
 const EV_REG = Object.freeze([
   /* ── AURICULA IZQUIERDA ────────────────────────────────────────────────────────────────── */
   Object.freeze({
-    id: 'DIM-AI-001', zona: 'AI/VI — Auricula izquierda', dato: 'Diametro anteroposterior',
-    valor: 'Varon: normal hasta 40 mm; dilatada por encima de 40. Mujer: normal hasta 38 mm; dilatada por encima de 38. Sin grados de dilatacion: la guia publica solo el rango normal',
+    id: 'DIM-AI-001', zona: 'AI/VI — Aurícula izquierda', dato: 'Diámetro anteroposterior',
+    valor: 'Varón: normal hasta 40 mm; dilatada por encima de 40. Mujer: normal hasta 38 mm; dilatada por encima de 38. Sin grados de dilatación: la guía publica solo el rango normal',
     duenio: 'aiDiamDilatado / aiDiamNormalMax',
     guia: EV_GUIA_ASE2015, ubicacion: 'Tabla suplementaria 9', folio: '39.e14', hoja_pdf: 53,
-    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
+    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guía',
     estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
     fuente_una_linea: 'ASE/EACVI 2015, Tabla suplementaria 9 (folio 39.e14)',
   }),
   Object.freeze({
-    id: 'DIM-AI-002', zona: 'AI/VI — Auricula izquierda', dato: 'Area',
+    id: 'DIM-AI-002', zona: 'AI/VI — Aurícula izquierda', dato: 'Área',
     valor: 'Normal hasta 20 cm2; dilatada por encima de 20. Los mismos valores en los dos sexos',
     duenio: 'aiAreaDilatada / UMBRAL_AI_AREA_DILATADA',
     guia: EV_GUIA_ASE2005, ubicacion: 'Tabla 9', folio: '1456', hoja_pdf: 17,
-    doi: EV_DOI_ASE2005, fuente_original: '', tipo: 'guia',
+    doi: EV_DOI_ASE2005, fuente_original: '', tipo: 'guía',
     estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
-    fuente_una_linea: 'ASE y Asociacion Europea de Ecocardiografia 2005, Tabla 9 (folio 1456)',
+    fuente_una_linea: 'ASE y Asociación Europea de Ecocardiografía 2005, Tabla 9 (folio 1456)',
   }),
   Object.freeze({
-    id: 'DIM-AI-003', zona: 'AI/VI — Auricula izquierda', dato: 'Volumen indexado por superficie corporal',
-    valor: 'Normal hasta 34; dilatacion leve 35 a 41; moderada 42 a 48; severa por encima de 48 ml/m2. Los mismos valores en los dos sexos',
+    id: 'DIM-AI-003', zona: 'AI/VI — Aurícula izquierda', dato: 'Volumen indexado por superficie corporal',
+    valor: 'Normal hasta 34; dilatación leve 35 a 41; moderada 42 a 48; severa por encima de 48 ml/m2. Los mismos valores en los dos sexos',
     duenio: 'aiVolClasificar / AI_VOL_BANDAS',
     guia: EV_GUIA_ASE2015, ubicacion: 'Tabla 4', folio: '10', hoja_pdf: 10,
-    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
+    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guía',
     estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
     fuente_una_linea: 'ASE/EACVI 2015, Tabla 4 (folio 10)',
   }),
   /* ── VENTRICULO IZQUIERDO ──────────────────────────────────────────────────────────────── */
   Object.freeze({
-    id: 'DIM-VI-001', zona: 'AI/VI — Ventriculo izquierdo', dato: 'Diametro diastolico (DDVI)',
-    valor: 'Varon: normal hasta 58; levemente dilatado 59 a 63; moderadamente 64 a 68; severamente por encima de 68 mm. Mujer: normal hasta 52; levemente 53 a 56; moderadamente 57 a 61; severamente por encima de 61 mm. Un volumen telediastolico indexado alto puede elevar la categoria de un diametro normal',
+    id: 'DIM-VI-001', zona: 'AI/VI — Ventrículo izquierdo', dato: 'Diámetro diastólico (DDVI)',
+    valor: 'Varón: normal hasta 58; levemente dilatado 59 a 63; moderadamente 64 a 68; severamente por encima de 68 mm. Mujer: normal hasta 52; levemente 53 a 56; moderadamente 57 a 61; severamente por encima de 61 mm. Un volumen telediastólico indexado alto puede elevar la categoría de un diámetro normal',
     duenio: 'viDimCat / ddviCortes',
     guia: EV_GUIA_ASE2015, ubicacion: 'Tabla suplementaria 3', folio: '39.e8', hoja_pdf: 47,
-    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
+    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guía',
     estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
     fuente_una_linea: 'ASE/EACVI 2015, Tabla suplementaria 3 (folio 39.e8)',
   }),
   Object.freeze({
-    id: 'DIM-VI-002', zona: 'AI/VI — Ventriculo izquierdo', dato: 'Diametro sistolico (DSVI)',
-    valor: 'Varon: normal hasta 40; leve 41 a 43; moderado 44 a 45; severo por encima de 45 mm. Mujer: normal hasta 35; leve 36 a 38; moderado 39 a 41; severo por encima de 41 mm',
+    id: 'DIM-VI-002', zona: 'AI/VI — Ventrículo izquierdo', dato: 'Diámetro sistólico (DSVI)',
+    valor: 'Varón: normal hasta 40; leve 41 a 43; moderado 44 a 45; severo por encima de 45 mm. Mujer: normal hasta 35; leve 36 a 38; moderado 39 a 41; severo por encima de 41 mm',
     duenio: 'dsviBandas / EV_BANDAS_REF',
     guia: EV_GUIA_ASE2015, ubicacion: 'Tabla suplementaria 3', folio: '39.e8', hoja_pdf: 47,
-    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
+    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guía',
     estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
     fuente_una_linea: 'ASE/EACVI 2015, Tabla suplementaria 3 (folio 39.e8)',
   }),
   Object.freeze({
-    id: 'DIM-VI-005', zona: 'AI/VI — Ventriculo izquierdo', dato: 'Espesor del septum y de la pared posterior',
-    valor: 'Varon: normal hasta 10; leve 11 a 13; moderado 14 a 16; severo por encima de 16 mm. Mujer: normal hasta 9; leve 10 a 12; moderado 13 a 15; severo por encima de 15 mm. Los mismos valores para el septum y para la pared posterior',
+    id: 'DIM-VI-005', zona: 'AI/VI — Ventrículo izquierdo', dato: 'Espesor del septum y de la pared posterior',
+    valor: 'Varón: normal hasta 10; leve 11 a 13; moderado 14 a 16; severo por encima de 16 mm. Mujer: normal hasta 9; leve 10 a 12; moderado 13 a 15; severo por encima de 15 mm. Los mismos valores para el septum y para la pared posterior',
     duenio: 'espesorBandas / EV_BANDAS_ESPESOR',
     guia: EV_GUIA_ASE2015, ubicacion: 'Tabla suplementaria 3 y Tabla 6', folio: '39.e8', hoja_pdf: 47,
-    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
+    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guía',
     estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
     fuente_una_linea: 'ASE/EACVI 2015, Tabla suplementaria 3 (folio 39.e8) y Tabla 6 (folio 17)',
   }),
   Object.freeze({
-    id: 'DIM-VI-003', zona: 'AI/VI — Ventriculo izquierdo', dato: 'Volumen telediastolico indexado',
-    valor: 'Varon: normal hasta 74; leve 75 a 89; moderado 90 a 100; severo por encima de 100 ml/m2. Mujer: normal hasta 61; leve 62 a 70; moderado 71 a 80; severo por encima de 80 ml/m2',
+    id: 'DIM-VI-003', zona: 'AI/VI — Ventrículo izquierdo', dato: 'Volumen telediastólico indexado',
+    valor: 'Varón: normal hasta 74; leve 75 a 89; moderado 90 a 100; severo por encima de 100 ml/m2. Mujer: normal hasta 61; leve 62 a 70; moderado 71 a 80; severo por encima de 80 ml/m2',
     duenio: 'vdfviInterp',
     guia: EV_GUIA_ASE2015, ubicacion: 'Tabla suplementaria 3', folio: '39.e8', hoja_pdf: 47,
-    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
+    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guía',
     estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
     fuente_una_linea: 'ASE/EACVI 2015, Tabla suplementaria 3 (folio 39.e8)',
   }),
   Object.freeze({
-    id: 'DIM-VI-004', zona: 'AI/VI — Ventriculo izquierdo', dato: 'Volumen telesistolico indexado',
-    valor: 'Varon: normal hasta 31; leve 32 a 38; moderado 39 a 45; severo por encima de 45 ml/m2. Mujer: normal hasta 24; leve 25 a 32; moderado 33 a 40; severo por encima de 40 ml/m2',
+    id: 'DIM-VI-004', zona: 'AI/VI — Ventrículo izquierdo', dato: 'Volumen telesistólico indexado',
+    valor: 'Varón: normal hasta 31; leve 32 a 38; moderado 39 a 45; severo por encima de 45 ml/m2. Mujer: normal hasta 24; leve 25 a 32; moderado 33 a 40; severo por encima de 40 ml/m2',
     duenio: 'vsfviInterp',
     guia: EV_GUIA_ASE2015, ubicacion: 'Tabla suplementaria 3', folio: '39.e8', hoja_pdf: 47,
-    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
+    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guía',
     estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
     fuente_una_linea: 'ASE/EACVI 2015, Tabla suplementaria 3 (folio 39.e8)',
   }),
   Object.freeze({
-    id: 'FUN-VI-001', zona: 'AI/VI — Ventriculo izquierdo', dato: 'Fraccion de eyeccion',
-    valor: 'Normal con 50 % o mas; levemente reducida 41 a 49; moderadamente reducida 30 a 40; severamente reducida por debajo de 30. Los mismos valores en los dos sexos',
+    id: 'FUN-VI-001', zona: 'AI/VI — Ventrículo izquierdo', dato: 'Fracción de eyección',
+    valor: 'Normal con 50 % o más; levemente reducida 41 a 49; moderadamente reducida 30 a 40; severamente reducida por debajo de 30. Los mismos valores en los dos sexos',
     duenio: 'feviClasificar / FEVI_CATS',
     guia: '', ubicacion: '', folio: '', hoja_pdf: null,
     doi: '', fuente_original: '', tipo: 'criterio propio de EcoSmart',
@@ -22361,57 +22377,57 @@ const EV_REG = Object.freeze([
     fuente_una_linea: '',
   }),
   Object.freeze({
-    id: 'FUN-VI-002', zona: 'AI/VI — Ventriculo izquierdo', dato: 'Fraccion de eyeccion — los cortes de 50 y de 40',
-    valor: 'Fraccion de eyeccion conservada con 50 % o mas; ligeramente reducida entre 41 y 49 %; reducida con 40 % o menos. Los mismos valores en los dos sexos',
+    id: 'FUN-VI-002', zona: 'AI/VI — Ventrículo izquierdo', dato: 'Fracción de eyección — los cortes de 50 y de 40',
+    valor: 'Fracción de eyección conservada con 50 % o más; ligeramente reducida entre 41 y 49 %; reducida con 40 % o menos. Los mismos valores en los dos sexos',
     duenio: 'feviClasificar / FEVI_CATS',
     guia: EV_GUIA_ESC2021IC, ubicacion: 'Tabla 3', folio: '523.e11', hoja_pdf: 11,
-    doi: EV_DOI_ESC2021IC, fuente_original: '', tipo: 'guia',
+    doi: EV_DOI_ESC2021IC, fuente_original: '', tipo: 'guía',
     estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
-    fuente_una_linea: 'Guia ESC 2021 de insuficiencia cardiaca, Tabla 3 (folio 523.e11)',
+    fuente_una_linea: 'Guía ESC 2021 de insuficiencia cardiaca, Tabla 3 (folio 523.e11)',
   }),
   Object.freeze({
-    id: 'FUN-VI-003', zona: 'AI/VI — Ventriculo izquierdo', dato: 'Fraccion de eyeccion — el corte de 30',
+    id: 'FUN-VI-003', zona: 'AI/VI — Ventrículo izquierdo', dato: 'Fracción de eyección — el corte de 30',
     valor: 'Moderadamente reducida entre 30 y 40 %; severamente reducida por debajo de 30 %. Los mismos valores en los dos sexos',
     duenio: 'feviClasificar / FEVI_CATS',
     guia: EV_GUIA_ASE2015, ubicacion: 'Tabla 4 y Tabla suplementaria 3', folio: '10', hoja_pdf: 10,
-    doi: EV_DOI_ASE2015, fuente_original: 'ASE y Asociacion Europea de Ecocardiografia 2005, Tabla 6 (folio 1448, hoja 9), que publica la misma banda severa',
-    tipo: 'guia',
+    doi: EV_DOI_ASE2015, fuente_original: 'ASE y Asociación Europea de Ecocardiografía 2005, Tabla 6 (folio 1448, hoja 9), que publica la misma banda severa',
+    tipo: 'guía',
     estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
     fuente_una_linea: 'ASE/EACVI 2015, Tabla 4 (folio 10) y Tabla suplementaria 3 (folio 39.e8)',
   }),
   Object.freeze({
-    id: 'MAS-VI-001', zona: 'AI/VI — Ventriculo izquierdo', dato: 'Masa indexada — limite de normalidad',
-    valor: 'Normal hasta 115 g/m2 en el varon y hasta 95 g/m2 en la mujer; la hipertrofia empieza por encima de esos valores (metodo lineal)',
+    id: 'MAS-VI-001', zona: 'AI/VI — Ventrículo izquierdo', dato: 'Masa indexada — límite de normalidad',
+    valor: 'Normal hasta 115 g/m2 en el varón y hasta 95 g/m2 en la mujer; la hipertrofia empieza por encima de esos valores (método lineal)',
     duenio: 'UMBRAL_MASA_HVI_H / UMBRAL_MASA_HVI_M, via calcGeometriaVI',
     guia: EV_GUIA_ASE2015, ubicacion: 'Tabla 6 y Tabla suplementaria 3', folio: '17', hoja_pdf: 17,
-    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
+    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guía',
     estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
     fuente_una_linea: 'ASE/EACVI 2015, Tabla 6 (folio 17) y Tabla suplementaria 3 (folio 39.e8)',
   }),
   Object.freeze({
-    id: 'MAS-VI-002', zona: 'AI/VI — Ventriculo izquierdo', dato: 'Gravedad de la hipertrofia por masa indexada',
-    valor: 'Varon: leve 116 a 131; moderada 132 a 148; severa por encima de 148 g/m2. Mujer: leve 96 a 108; moderada 109 a 121; severa por encima de 121 g/m2',
+    id: 'MAS-VI-002', zona: 'AI/VI — Ventrículo izquierdo', dato: 'Gravedad de la hipertrofia por masa indexada',
+    valor: 'Varón: leve 116 a 131; moderada 132 a 148; severa por encima de 148 g/m2. Mujer: leve 96 a 108; moderada 109 a 121; severa por encima de 121 g/m2',
     duenio: 'hviSeveridad',
     guia: EV_GUIA_ASE2015, ubicacion: 'Tabla suplementaria 3', folio: '39.e8', hoja_pdf: 47,
-    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
+    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guía',
     estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
     fuente_una_linea: 'ASE/EACVI 2015, Tabla suplementaria 3 (folio 39.e8)',
   }),
   Object.freeze({
-    id: 'GEO-VI-001', zona: 'AI/VI — Ventriculo izquierdo', dato: 'Espesor parietal relativo (RWT)',
-    valor: 'Normal por debajo de 0,42; con 0,42 o mas el espesor parietal relativo esta aumentado. El mismo corte en los dos sexos',
+    id: 'GEO-VI-001', zona: 'AI/VI — Ventrículo izquierdo', dato: 'Espesor parietal relativo (RWT)',
+    valor: 'Normal por debajo de 0,42; con 0,42 o más el espesor parietal relativo está aumentado. El mismo corte en los dos sexos',
     duenio: 'calcGeometriaVI',
     guia: EV_GUIA_ASE2015, ubicacion: 'Figura 6', folio: '17', hoja_pdf: 17,
-    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
+    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guía',
     estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
     fuente_una_linea: 'ASE/EACVI 2015, Tabla 6 y Figura 6 (folio 17)',
   }),
   Object.freeze({
-    id: 'GEO-VI-002', zona: 'AI/VI — Ventriculo izquierdo', dato: 'Geometria del ventriculo izquierdo',
-    valor: 'Geometria normal: masa normal con RWT por debajo de 0,42. Remodelado concentrico: masa normal con RWT de 0,42 o mas. Hipertrofia excentrica: masa aumentada con RWT por debajo de 0,42. Hipertrofia concentrica: masa aumentada con RWT de 0,42 o mas',
+    id: 'GEO-VI-002', zona: 'AI/VI — Ventrículo izquierdo', dato: 'Geometría del ventrículo izquierdo',
+    valor: 'Geometría normal: masa normal con RWT por debajo de 0,42. Remodelado concéntrico: masa normal con RWT de 0,42 o más. Hipertrofia excéntrica: masa aumentada con RWT por debajo de 0,42. Hipertrofia concéntrica: masa aumentada con RWT de 0,42 o más',
     duenio: 'calcGeometriaVI',
     guia: EV_GUIA_ASE2015, ubicacion: 'Figura 6', folio: '17', hoja_pdf: 17,
-    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
+    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guía',
     estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
     fuente_una_linea: 'ASE/EACVI 2015, Figura 6 (folio 17)',
   }),
@@ -22420,53 +22436,53 @@ const EV_REG = Object.freeze([
      reusa uno de aquella: un id reciclado hace que una cita vieja apunte a otro dato. */
   /* ── AURICULA DERECHA Y VENA CAVA INFERIOR ──────────────────────────────────── */
   Object.freeze({
-    id: 'DIM-AD-001', zona: 'VD/AD — Auricula derecha', dato: 'Area de la auricula derecha en cuatro camaras',
+    id: 'DIM-AD-001', zona: 'VD/AD — Aurícula derecha', dato: 'Área de la aurícula derecha en cuatro cámaras',
     valor: 'Normal hasta 18 cm2; dilatada por encima de 18. Un solo corte para los dos sexos',
     duenio: 'adAreaCat / UMBRAL_AD_AREA_NORMAL',
     guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1', folio: '145', hoja_pdf: 5,
-    doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guia',
+    doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
     estado: 'parcial', fecha_verificacion: EV_FECHA_VER,
     fuente_una_linea: 'ASE 2025 (Mukherjee), Tabla 1 (folio 145)',
   }),
   Object.freeze({
-    id: 'VCI-001', zona: 'VD/AD — Vena cava inferior', dato: 'Diametro de la vena cava inferior',
-    valor: 'La aplicacion la trata como dilatada desde 21 mm',
+    id: 'VCI-001', zona: 'VD/AD — Vena cava inferior', dato: 'Diámetro de la vena cava inferior',
+    valor: 'La aplicación la trata como dilatada desde 21 mm',
     duenio: 'pmadEstimar / VCI_DIAM_DILATADA_MIN',
     guia: EV_GUIA_ASE2025VD, ubicacion: 'Presión auricular derecha', folio: '160', hoja_pdf: 20,
-    doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guia',
+    doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
     estado: 'parcial', fecha_verificacion: EV_FECHA_VER,
     fuente_una_linea: 'ASE 2025 (Mukherjee), Presión auricular derecha (folio 160)',
   }),
   Object.freeze({
-    id: 'VCI-002', zona: 'VD/AD — Vena cava inferior', dato: 'Presion media de la auricula derecha estimada',
-    valor: 'Diametro normal con colapso mayor del 50 %: 3 mmHg. Diametro normal sin colapso, o dilatado con colapso: 8 mmHg. Diametro dilatado sin colapso: 15 mmHg',
+    id: 'VCI-002', zona: 'VD/AD — Vena cava inferior', dato: 'Presión media de la aurícula derecha estimada',
+    valor: 'Diámetro normal con colapso mayor del 50 %: 3 mmHg. Diámetro normal sin colapso, o dilatado con colapso: 8 mmHg. Diámetro dilatado sin colapso: 15 mmHg',
     duenio: 'pmadEstimar',
     guia: EV_GUIA_ASE2025VD, ubicacion: 'Presión auricular derecha y Tabla 1', folio: '160', hoja_pdf: 20,
-    doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guia',
+    doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
     estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
     fuente_una_linea: 'ASE 2025 (Mukherjee), Presión auricular derecha (folio 160)',
   }),
   /* ── VENTRICULO DERECHO — TAMANO ───────────────────────────────────────── */
   Object.freeze({
-    id: 'DIM-VD-001', zona: 'VD/AD — Ventriculo derecho', dato: 'Diametro basal',
-    valor: 'Normal hasta 41 mm; dilatacion leve por encima de 41 y hasta 45; dilatado por encima de 45. Un solo corte para los dos sexos',
+    id: 'DIM-VD-001', zona: 'VD/AD — Ventrículo derecho', dato: 'Diámetro basal',
+    valor: 'Normal hasta 41 mm; dilatación leve por encima de 41 y hasta 45; dilatado por encima de 45. Un solo corte para los dos sexos',
     duenio: 'vdBasCat / VD_BAS_NORMAL_MAX y VD_BAS_LEVE_MAX',
     guia: EV_GUIA_ASE2015, ubicacion: 'Tabla 8', folio: '20', hoja_pdf: 20,
-    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
+    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guía',
     estado: 'parcial', fecha_verificacion: EV_FECHA_VER,
     fuente_una_linea: 'ASE/EACVI 2015, Tabla 8 (folio 20)',
   }),
   Object.freeze({
-    id: 'DIM-VD-002', zona: 'VD/AD — Ventriculo derecho', dato: 'Diametro medio',
+    id: 'DIM-VD-002', zona: 'VD/AD — Ventrículo derecho', dato: 'Diámetro medio',
     valor: 'Normal hasta 35 mm; dilatado por encima de 35. Un solo corte para los dos sexos',
     duenio: 'vdMidCat / VD_MID_NORMAL_MAX',
     guia: EV_GUIA_ASE2015, ubicacion: 'Tabla 8', folio: '20', hoja_pdf: 20,
-    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
+    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guía',
     estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
     fuente_una_linea: 'ASE/EACVI 2015, Tabla 8 (folio 20)',
   }),
   Object.freeze({
-    id: 'DIM-VD-003', zona: 'VD/AD — Ventriculo derecho', dato: 'Diametro longitudinal',
+    id: 'DIM-VD-003', zona: 'VD/AD — Ventrículo derecho', dato: 'Diámetro longitudinal',
     valor: 'Normal hasta 86 mm; dilatado por encima de 86. Un solo corte para los dos sexos',
     duenio: 'vdLongCat / VD_LONG_NORMAL_MAX',
     guia: EV_GUIA_ASE2015, ubicacion: '', folio: '', hoja_pdf: null,
@@ -22475,73 +22491,73 @@ const EV_REG = Object.freeze([
     fuente_una_linea: '',
   }),
   Object.freeze({
-    id: 'DIM-VD-004', zona: 'VD/AD — Ventriculo derecho', dato: 'Espesor de la pared libre',
+    id: 'DIM-VD-004', zona: 'VD/AD — Ventrículo derecho', dato: 'Espesor de la pared libre',
     valor: 'Normal por debajo de 5 mm; hipertrofia leve de 5 a 7; moderada por encima de 7 y hasta 9; severa por encima de 9 mm. Un solo corte para los dos sexos',
     duenio: 'vdParedCat / VD_PARED_HVD_MIN y VD_PARED_GRADOS',
     guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1', folio: '145', hoja_pdf: 5,
-    doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guia',
+    doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
     estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
     fuente_una_linea: 'ASE 2025 (Mukherjee), Tabla 1 (folio 145)',
   }),
   /* ── VENTRICULO DERECHO — FUNCION ─────────────────────────────────────── */
   Object.freeze({
-    id: 'FUN-VD-001', zona: 'VD/AD — Ventriculo derecho', dato: 'Excursion sistolica del anillo tricuspideo (TAPSE)',
-    valor: 'Normal con 17 mm o mas; por debajo de 17, disfuncion sistolica. Un solo corte para los dos sexos',
+    id: 'FUN-VD-001', zona: 'VD/AD — Ventrículo derecho', dato: 'Excursión sistólica del anillo tricuspídeo (TAPSE)',
+    valor: 'Normal con 17 mm o más; por debajo de 17, disfunción sistólica. Un solo corte para los dos sexos',
     duenio: 'vdTapseCat / UMBRAL_TAPSE_NORMAL',
     guia: EV_GUIA_ASE2015, ubicacion: 'Sección 8.2', folio: '19', hoja_pdf: 19,
-    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
+    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guía',
     estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
     fuente_una_linea: 'ASE/EACVI 2015, sección 8.2 (folio 19)',
   }),
   Object.freeze({
-    id: 'FUN-VD-002', zona: 'VD/AD — Ventriculo derecho', dato: 'Onda S′ del anillo tricuspideo',
-    valor: 'Normal con 9,5 cm/s o mas; por debajo de 9,5, disfuncion sistolica. Un solo corte para los dos sexos',
+    id: 'FUN-VD-002', zona: 'VD/AD — Ventrículo derecho', dato: 'Onda S′ del anillo tricuspídeo',
+    valor: 'Normal con 9,5 cm/s o más; por debajo de 9,5, disfunción sistólica. Un solo corte para los dos sexos',
     duenio: 'vdSprimeCat / UMBRAL_SPRIME_NORMAL',
     guia: EV_GUIA_ASE2015, ubicacion: 'Sección 8.4', folio: '20', hoja_pdf: 20,
-    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
+    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guía',
     estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
     fuente_una_linea: 'ASE/EACVI 2015, sección 8.4 (folio 20)',
   }),
   Object.freeze({
-    id: 'FUN-VD-003', zona: 'VD/AD — Ventriculo derecho', dato: 'Cambio fraccional de area (FAC)',
-    valor: 'Normal con 35 % o mas; disfuncion por debajo de 35; disfuncion severa por debajo de 25. Un solo corte para los dos sexos',
+    id: 'FUN-VD-003', zona: 'VD/AD — Ventrículo derecho', dato: 'Cambio fraccional de área (FAC)',
+    valor: 'Normal con 35 % o más; disfunción por debajo de 35; disfunción severa por debajo de 25. Un solo corte para los dos sexos',
     duenio: 'vdFacCat / UMBRAL_FAC_VD_NORMAL y UMBRAL_FAC_VD_SEVERA',
     guia: EV_GUIA_ASE2015, ubicacion: 'Sección 8.3', folio: '19', hoja_pdf: 19,
-    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guia',
+    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guía',
     estado: 'parcial', fecha_verificacion: EV_FECHA_VER,
     fuente_una_linea: 'ASE/EACVI 2015, sección 8.3 (folio 19)',
   }),
   Object.freeze({
-    id: 'FUN-VD-004', zona: 'VD/AD — Ventriculo derecho', dato: 'Fraccion de eyeccion del VD por 3D',
-    valor: 'Normal por encima de 45 %; con 45 o menos, disfuncion sistolica. Un solo corte para los dos sexos',
+    id: 'FUN-VD-004', zona: 'VD/AD — Ventrículo derecho', dato: 'Fracción de eyección del VD por 3D',
+    valor: 'Normal por encima de 45 %; con 45 o menos, disfunción sistólica. Un solo corte para los dos sexos',
     duenio: 'vdFevdCat / UMBRAL_FEVD_NORMAL',
     guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1', folio: '145', hoja_pdf: 5,
-    doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guia',
+    doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
     estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
     fuente_una_linea: 'ASE 2025 (Mukherjee), Tabla 1 (folio 145)',
   }),
   Object.freeze({
-    id: 'FUN-VD-005', zona: 'VD/AD — Ventriculo derecho', dato: 'Indice de Tei por Doppler tisular',
-    valor: 'Normal por debajo de 0,55; con 0,55 o mas, alterado. Es el corte del metodo por Doppler tisular; el del Doppler pulsado es 0,40 y no se aplica en este campo',
+    id: 'FUN-VD-005', zona: 'VD/AD — Ventrículo derecho', dato: 'Índice de Tei por Doppler tisular',
+    valor: 'Normal por debajo de 0,55; con 0,55 o más, alterado. Es el corte del método por Doppler tisular; el del Doppler pulsado es 0,40 y no se aplica en este campo',
     duenio: 'vdTeiCat / VD_TEI_DTI_ALT_MIN',
     guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1', folio: '145', hoja_pdf: 5,
-    doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guia',
+    doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
     estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
     fuente_una_linea: 'ASE 2025 (Mukherjee), Tabla 1 (folio 145)',
   }),
   Object.freeze({
-    id: 'FUN-VD-006', zona: 'VD/AD — Ventriculo derecho', dato: 'Tiempo de aceleracion pulmonar',
-    valor: 'Normal con 105 ms o mas; por debajo de 105, elemento indirecto de hipertension pulmonar',
+    id: 'FUN-VD-006', zona: 'VD/AD — Ventrículo derecho', dato: 'Tiempo de aceleración pulmonar',
+    valor: 'Normal con 105 ms o más; por debajo de 105, elemento indirecto de hipertensión pulmonar',
     duenio: 'vdTapCat / UMBRAL_TAP_HTP',
     guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1', folio: '145', hoja_pdf: 5,
-    doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guia',
+    doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
     estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
     fuente_una_linea: 'ASE 2025 (Mukherjee), Tabla 1 (folio 145)',
   }),
   /* ── AORTA TORACICA ──────────────────────────────────────────────── */
   Object.freeze({
-    id: 'AOR-001', zona: 'AI/VI — Aorta toracica', dato: 'Cortes de dilatacion por segmento',
-    valor: 'Raiz aortica y aorta ascendente: dilatadas por encima de 40 mm. Union sinotubular: por encima de 38. Cayado: por encima de 40. Aorta toracica descendente: por encima de 35. Un solo corte para los dos sexos y sin ajuste por superficie corporal ni por edad',
+    id: 'AOR-001', zona: 'AI/VI — Aorta torácica', dato: 'Cortes de dilatación por segmento',
+    valor: 'Raíz aórtica y aorta ascendente: dilatadas por encima de 40 mm. Unión sinotubular: por encima de 38. Cayado: por encima de 40. Aorta torácica descendente: por encima de 35. Un solo corte para los dos sexos y sin ajuste por superficie corporal ni por edad',
     duenio: 'aoSegGrado / AO_SEGS y AO_REF',
     guia: '', ubicacion: '', folio: '', hoja_pdf: null,
     doi: '', fuente_original: '', tipo: 'criterio propio de EcoSmart',
@@ -22549,23 +22565,23 @@ const EV_REG = Object.freeze([
     fuente_una_linea: '',
   }),
   Object.freeze({
-    id: 'AOR-002', zona: 'AI/VI — Aorta toracica', dato: 'Nomogramas del diametro de los senos de Valsalva por superficie corporal',
-    valor: 'Menores de 20 anos: y = 1,02 + 0,98x con error estandar 0,18. De 20 a 40: y = 0,97 + 1,12x con error estandar 0,24. Mayores de 40: y = 1,92 + 0,74x con error estandar 0,37. En cada una, y es el diametro esperado en centimetros y x la superficie corporal en metros cuadrados, y el rango esperado es la ecuacion mas y menos 1,96 veces el error estandar',
+    id: 'AOR-002', zona: 'AI/VI — Aorta torácica', dato: 'Nomogramas del diámetro de los senos de Valsalva por superficie corporal',
+    valor: 'Menores de 20 años: y = 1,02 + 0,98x con error estandar 0,18. De 20 a 40: y = 0,97 + 1,12x con error estandar 0,24. Mayores de 40: y = 1,92 + 0,74x con error estandar 0,37. En cada una, y es el diámetro esperado en centimetros y x la superficie corporal en metros cuadrados, y el rango esperado es la ecuación más y menos 1,96 veces el error estandar',
     duenio: 'AOR_NOMO / aorNomoBanda',
     guia: EV_GUIA_ASE2015, ubicacion: 'Figura 13', folio: '32', hoja_pdf: 32,
     doi: EV_DOI_ASE2015,
     fuente_original: 'Roman MJ, Devereux RB, Kramer-Fox R, O\u2019Loughlin J. Two-dimensional echocardiographic aortic root dimensions in normal children and adults. Am J Cardiol 1989;64:507-512',
-    tipo: 'guia', estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
+    tipo: 'guía', estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
     fuente_una_linea: 'ASE/EACVI 2015, Figura 13 (folio 32), ecuaciones de Roman 1989',
   }),
   Object.freeze({
-    id: 'AOR-003', zona: 'AI/VI — Aorta toracica', dato: 'Dimensiones normales de la raiz aortica por sexo',
-    valor: 'Senos de Valsalva: 3,4 mas menos 0,3 cm en el varon y 3,0 mas menos 0,3 en la mujer; indexados, 1,7 mas menos 0,2 y 1,8 mas menos 0,2 cm/m2. Union sinotubular: 2,9 mas menos 0,3 y 2,6 mas menos 0,3 cm. Aorta ascendente proximal: 3,0 mas menos 0,4 y 2,7 mas menos 0,4 cm. Anillo: 2,6 mas menos 0,3 y 2,3 mas menos 0,2 cm',
+    id: 'AOR-003', zona: 'AI/VI — Aorta torácica', dato: 'Dimensiones normales de la raíz aórtica por sexo',
+    valor: 'Senos de Valsalva: 3,4 más menos 0,3 cm en el varón y 3,0 más menos 0,3 en la mujer; indexados, 1,7 más menos 0,2 y 1,8 más menos 0,2 cm/m2. Unión sinotubular: 2,9 más menos 0,3 y 2,6 más menos 0,3 cm. Aorta ascendente proximal: 3,0 más menos 0,4 y 2,7 más menos 0,4 cm. Anillo: 2,6 más menos 0,3 y 2,3 más menos 0,2 cm',
     duenio: '',
     guia: EV_GUIA_ASE2015, ubicacion: 'Tabla 14', folio: '32', hoja_pdf: 32,
     doi: EV_DOI_ASE2015,
     fuente_original: 'Roman MJ y col., Am J Cardiol 1989;64:507-512, y Hiratzka LF y col., guía ACCF/AHA 2010 de enfermedad aórtica torácica',
-    tipo: 'guia', estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
+    tipo: 'guía', estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
     fuente_una_linea: 'ASE/EACVI 2015, Tabla 14 (folio 32)',
   }),
 ]);
@@ -22876,6 +22892,7 @@ function calcVI() {
      que hace que se repinten mientras el medico tipea sin agregarle un listener a cada campo,
      que es como uno se queda sin cablear. Ver `viVolAutoSync`. */
   if (typeof viVolAutoSync === 'function') { try { viVolAutoSync(); } catch (e) {} }
+  if (typeof aiviSexoSync === 'function') { try { aiviSexoSync(); } catch (e) {} }
 
   if (typeof calcHemo === 'function') calcHemo();
   /* La FEVI es la PREMISA del HFA-PEFF, no uno de sus insumos: corregirla puede volver el score
@@ -39319,6 +39336,118 @@ function evTarjetaGeo() {
 }
 window.evGraficoGeometria = evGraficoGeometria; window.evTarjetaGeo = evTarjetaGeo;
 
+/* ══ EL AVISO DE QUE FALTA EL SEXO (LS8, 2026-10-16) ═══════════════════════════════
+   Decisión de Maicol: una línea discreta en la pestaña AI/VI, que aparece SOLO cuando falta el
+   sexo Y algún valor cargado cambiaría de categoría con él. No va al informe, al EN SUMA, al PDF
+   ni al PPT.
+
+   ⚠️ NO COPIA NI UN CORTE, Y ES LO QUE LO HACE CORRECTO. La condición no es «el valor cae
+   entre 38 y 40»: es «la categoría que el DUEÑO devuelve con sexo varón no es la misma que
+   devuelve con sexo mujer». Se le pregunta dos veces a la misma función. Escribir la franja a
+   mano sería una segunda copia de los cortes de los seis parámetros —veinte números— y el día
+   que uno se mueva el aviso avisaría sobre la franja vieja. De paso cubre los TRES bordes del
+   diámetro diastólico y las TRES bandas de gravedad de la masa sin nombrarlos.
+
+   ⚠️ LA MASA Y LOS DOS VOLÚMENES SON DERIVADOS y su valor no sale de un campo: la masa es la
+   fórmula de Devereux sobre cinco campos y los volúmenes se indexan por la superficie corporal.
+   El aviso los evalua igual, pero sólo cuando el derivado existe; si falta un insumo no hay
+   categoría que comparar y el parámetro no entra. */
+const AIVI_SEXO_PARAMS = Object.freeze([
+  Object.freeze({ k: 'ai_diam', nombre: 'el diámetro AP de la aurícula izquierda',
+    val: () => vPlaus('ai_diam'),
+    cat: (x, sx) => String(aiDiamDilatado(x, sx)) }),
+  Object.freeze({ k: 'ddfvi', nombre: 'el diámetro diastólico del ventrículo izquierdo',
+    val: () => vPlaus('ddfvi'),
+    cat: (x, sx) => String(viDimCat(x, sx)) }),
+  Object.freeze({ k: 'dsfvi', nombre: 'el diámetro sistólico del ventrículo izquierdo',
+    val: () => vPlaus('dsfvi'),
+    cat: (x, sx) => { const b = _evBandaDe(dsviBandas(sx), x); return b ? b.k : '' } }),
+  Object.freeze({ k: 'siv', nombre: 'el espesor del septum',
+    val: () => vPlaus('siv'),
+    cat: (x, sx) => { const b = _evBandaDe(espesorBandas(sx), x); return b ? b.k : '' } }),
+  Object.freeze({ k: 'ppvi', nombre: 'el espesor de la pared posterior',
+    val: () => vPlaus('ppvi'),
+    cat: (x, sx) => { const b = _evBandaDe(espesorBandas(sx), x); return b ? b.k : '' } }),
+  /* La masa indexada: su valor es el derivado y la categoría junta el patrón geométrico con la
+     gravedad, que son los dos dueños que dependen del sexo. */
+  Object.freeze({ k: 'masa', nombre: 'la masa del ventrículo izquierdo',
+    val: () => {
+      const pDD = vPlaus('ddfvi'), pSIV = vPlaus('siv'), pPP = vPlaus('ppvi'), bsa = getBSA();
+      if (pDD.val == null || pSIV.val == null || pPP.val == null) return { val: null, fuera: false };
+      if (pDD.fuera || pSIV.fuera || pPP.fuera || !bsa) return { val: null, fuera: false };
+      const mm = 0.8 * (1.04 * ((pDD.val / 10 + pSIV.val / 10 + pPP.val / 10) ** 3 - (pDD.val / 10) ** 3)) + 0.6;
+      return { val: Math.round(mm / bsa), fuera: false, rwt: +(2 * pPP.val / pDD.val).toFixed(2) };
+    },
+    cat: (x, sx, extra) => String(calcGeometriaVI(x, (extra && extra.rwt) || 0.3, sx))
+      + '|' + String(hviSeveridad(x, sx)) }),
+  Object.freeze({ k: 'vdfvi', nombre: 'el volumen telediastólico indexado',
+    val: () => { const p = vPlaus('vdfvi'), bsa = getBSA();
+      return (p.val != null && !p.fuera && bsa) ? { val: +(p.val / bsa).toFixed(1), fuera: false } : { val: null, fuera: false } },
+    cat: (x, sx) => String((vdfviInterp(x, sx) || {}).txt) }),
+  Object.freeze({ k: 'vsfvi', nombre: 'el volumen telesistólico indexado',
+    val: () => { const p = vPlaus('vsfvi'), bsa = getBSA();
+      return (p.val != null && !p.fuera && bsa) ? { val: +(p.val / bsa).toFixed(1), fuera: false } : { val: null, fuera: false } },
+    cat: (x, sx) => String((vsfviInterp(x, sx) || {}).txt) }),
+]);
+/* Devuelve los nombres de los parámetros cargados cuya categoría cambiaría con el sexo. Puro:
+   no lee el aviso ni escribe nada, así que lo puede llamar el caso de la suite. */
+function aiviSexoCambian() {
+  const sal = [];
+  AIVI_SEXO_PARAMS.forEach(function (P) {
+    let d; try { d = P.val() } catch (e) { return }
+    if (!d || d.val == null || d.fuera) return;
+    let cM, cF;
+    try { cM = P.cat(d.val, 'M', d); cF = P.cat(d.val, 'F', d) } catch (e) { return }
+    if (cM !== cF) sal.push(P.nombre);
+  });
+  return sal;
+}
+/* ⚠️ LLEVA LAS TRES COLUMNAS, como `vdMarcaSync` y `emContFaAvisoSync`: ningún barrido
+   genérico lo alcanza —no es un `.calc-box .calc-row span[id]`, y el de `[id$="-aviso"]` le
+   vaciaría el TEXTO dejándole el `display` puesto, o sea una línea naranja vacía sobre un
+   formulario recén limpiado—. Va en `RECALC_MODULOS`, al final de `limpiarCampos` y en un
+   OYENTE DE DOCUMENTO, porque el campo del sexo vive en OTRA pestaña y su `onchange` no pasa
+   por `calcAI` ni por `calcVI`.
+   ⚠️ LAS DOS PIEZAS DEL ESCONDIDO: el atributo `hidden` Y el `display:none` en línea. El
+   `[hidden]{display:none}` vive en la hoja del NAVEGADOR y cualquier regla de autor le gana
+   —la lección que `#indic-btn` y `.fg` ya pagaron en este archivo—. */
+function aiviSexoSync() {
+  const el = document.getElementById('aivi-sexo-aviso');
+  if (!el) return;
+  const cambian = (typeof sexoFalta === 'function' && sexoFalta()) ? aiviSexoCambian() : [];
+  if (!cambian.length) {
+    el.textContent = '';
+    el.hidden = true; el.style.display = 'none';
+    return;
+  }
+  /* Se arma por NODOS y no concatenando HTML: el enlace es un nodo y los nombres son datos. */
+  while (el.firstChild) el.removeChild(el.firstChild);
+  const lista = cambian.length === 1 ? cambian[0]
+    : cambian.slice(0, -1).join(', ') + ' y ' + cambian[cambian.length - 1];
+  el.appendChild(document.createTextNode('Falta el sexo: ' + lista
+    + (cambian.length === 1 ? ' cambia' : ' cambian') + ' de categoría según el sexo. '));
+  const a = document.createElement('a');
+  a.href = '#sexo';
+  a.textContent = 'Cargar el sexo';
+  a.style.cssText = 'color:var(--orange);text-decoration:underline;';
+  /* El enlace lleva al campo, que vive en la pestaña Datos: sin abrirla, el ancla apunta a un
+     nodo sin geometría y el navegador no desplaza nada. */
+  a.addEventListener('click', function (ev2) {
+    ev2.preventDefault();
+    try { if (typeof showTab === 'function') showTab('datos') } catch (e) {}
+    const c = document.getElementById('sexo');
+    if (c) { try { c.scrollIntoView({ block: 'center' }) } catch (e) {} c.focus(); }
+  });
+  el.appendChild(a);
+  el.hidden = false; el.style.display = 'block';
+}
+window.AIVI_SEXO_PARAMS = AIVI_SEXO_PARAMS;
+window.aiviSexoCambian = aiviSexoCambian; window.aiviSexoSync = aiviSexoSync;
+/* El oyente de documento: el sexo, el peso y la talla viven en la pestaña Datos y los ocho
+   parámetros en AI/VI, así que colgarse de cada campo es como uno se queda sin cablear. */
+document.addEventListener('input', function () { try { aiviSexoSync() } catch (e) {} }, true);
+document.addEventListener('change', function () { try { aiviSexoSync() } catch (e) {} }, true);
+
 /* ══ LAS ENTRADAS DE AI Y DE VI EN LA PESTANA REFERENCIAS («L2», 2026-10-16) ══════════════════
    La pestana NO se reestructura (un trabajo posterior la ordena en subpestanas): se agregan dos
    tarjetas mas, con la forma que las demas ya tienen —un `card` con su `card-head` plegable—.
@@ -50273,7 +50402,7 @@ function RECALC_MODULOS() {
      automaticos con el «requiere …» del formulario vacio al lado de un VDFVI y una FEVI ya
      poblados. No puede migrar nada: no escribe ningun campo del estudio, los dos nodos que
      toca son `vauto-` y el tercero un `<div>` de texto. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','m3dBotonSync','contrPdfSync','v2dCerrar'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','m3dBotonSync','contrPdfSync','v2dCerrar','aiviSexoSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -50998,6 +51127,10 @@ function limpiarCampos(silencioso) {
      alcanza y la marca del paciente anterior sobrevivía a «Nuevo estudio» sobre los dos campos
      ya vacíos. `vdMarcaSync` entró además a `RECALC_MODULOS`, que es la otra columna. */
   if (typeof vdMarcaSync === 'function') { try { vdMarcaSync(); } catch (e) {} }
+  /* El aviso de sexo, por lo mismo: el barrido de `[id$="-aviso"]` le vaciaria el TEXTO y le
+     dejaria el `display:block` puesto, o sea una linea naranja vacia sobre un formulario recien
+     limpiado. Es la trampa que el cartel del Tei ya pago. */
+  if (typeof aiviSexoSync === 'function') { try { aiviSexoSync(); } catch (e) {} }
   /* Y el cartel ambar del Tei, que es la TERCERA columna de `vdTeiAvisoSync`: el barrido
      generico de `[id$="-aviso"]` le vacia el texto y le deja el `display:block` puesto, asi que
      sin esta linea «Nuevo estudio» dejaba un renglon ambar vacio en el cuadro del VD. */
