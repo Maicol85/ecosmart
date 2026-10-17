@@ -733,7 +733,10 @@ window.__P = {
       ? (function(){ try { var t = eaProtPvlTxt(); return t ? { clave: t.clave, txt: t.txt } : null }
           catch (e) { return 'EXC' } })() : 'SIN FN';
     o.bloqueVis = window.__P.vis('bloque-prot-va-pvl');
-    o.sevTxt    = window.__P.txt('ea-pvl-sev');
+    /* El bloque VECINO, que "valvProtSync" gobierna y "limpiarCampos" NO llama: es el control de
+       que el dueno propio del bloque nuevo hacia falta. */
+    o.bloqueAtVis = window.__P.vis('bloque-prot-va');
+    o.morf = window.__P.val('va_morf');
     o.motivoTxt = window.__P.txt('ea-pvl-motivo');
     o.interp    = window.__P.txt('ea-pvl-interp');
     o.origen    = window.__P.val('ea_pvl_origen');
@@ -1008,6 +1011,207 @@ async function main() {
       ['vacio',      {}]
     ]) g.lab[nom] = await ev(`window.__P.labTavi(${JSON.stringify(c)})`);
     out.grupos.tavi = g;
+  }
+
+  /* ── 3 · pvlao ── PRO-B3: la fuga de la protesis AORTICA quirurgica. ─────────────────────
+     La escena base, con teclas y clics reales. `morf` elige la morfologia y `extra` carga los
+     campos de cada escena.
+     DENOMINADOR: se devuelve la geometria de los tres campos nuevos y la visibilidad del bloque,
+     para que el lector pueda ver que la escena de verdad llego al bloque. Sin eso, un `va_morf`
+     que no quedo da `bloqueVis:false` y todas las escenas informan lo mismo, que se lee igual que
+     «la regla no funciona». */
+  async function escenaPvl(morf, origen, extra) {
+    await ev(`window.__P.nuevo()`);
+    await ev(`window.__P.abrirValv()`);
+    /* ⚠️ EL BLOQUE DE LA INSUFICIENCIA AORTICA ESTA DETRAS DE SU PROPIA PUERTA, y `abrirValv`
+       abre las otras tres cajas pero NO esta. La primera corrida informo `bloqueVis:false` en las
+       escenas que no tipean ningun campo —un `tipear` llama a `abrirPara`, que sube por el DOM y
+       la abre de rebote— asi que la visibilidad salia true o false segun si la escena tecleaba
+       algo, no segun la morfologia. Se abre explicitamente por un campo ancla del bloque. */
+    const ap = await ev(`window.__P.abrirPara('ia_vc')`);
+    if (!ap || !ap.ok) throw new Error('DENOMINADOR: no abrio el bloque de la IAo ' + JSON.stringify(ap));
+    const sm = await ev(`window.__P.sel('va_morf', ${JSON.stringify(morf)})`);
+    if (sm && sm.err) throw new Error('DENOMINADOR va_morf: ' + JSON.stringify(sm));
+    if (origen !== null) {
+      const so = await ev(`window.__P.sel('ea_pvl_origen', ${JSON.stringify(origen)})`);
+      if (so && so.err) return { denominadorOrigen: so };
+    }
+    for (const k of Object.keys(extra || {})) {
+      if (extra[k] === '') continue;
+      await tipear(k, String(extra[k]));
+    }
+    const o = await ev(`window.__P.pvlAo()`);
+    o.ia = await ev(`window.__P.iaFilas()`);
+    return o;
+  }
+
+  if (corre('pvlao')) {
+    const g = { escenas: {} };
+    /* Las TRES morfologias: nativa, protesis quirurgica (las dos) y TAVI. El bloque aparece SOLO
+       con las dos quirurgicas. */
+    for (const morf of ['Trivalva normal', 'Prótesis biológica', 'Prótesis mecánica', 'TAVI']) {
+      g.escenas['morf|' + morf] = await escenaPvl(morf, null, {});
+    }
+    /* Los CUATRO estados del origen sobre la misma protesis con los mismos numeros: sin
+       consignar, central, paravalvular y mixta. El veredicto existe SOLO en los dos ultimos. */
+    for (const org of ['', 'central', 'paraval', 'mixta']) {
+      g.escenas['origen|' + (org || 'vacio')] =
+        await escenaPvl('Prótesis biológica', org, { ea_pvl_ext: '15' });
+    }
+    /* La integracion: gana el peor. Extension TRIVIAL (5 %) con area de vena contracta SEVERA
+       (0,35 cm2) tiene que dar SEVERA, y al reves tambien. */
+    g.escenas['peor|extTrivVcaSev'] = await escenaPvl('Prótesis mecánica', 'paraval',
+      { ea_pvl_ext: '5', ea_pvl_vc_area: '0.35' });
+    g.escenas['peor|extSevVcaTriv'] = await escenaPvl('Prótesis mecánica', 'paraval',
+      { ea_pvl_ext: '35', ea_pvl_vc_area: '0.05' });
+    /* «Trivial» exige TRES de los cuatro en banda trivial: con dos sale «Leve — faltan
+       parametros», con tres sale «Trivial». */
+    g.escenas['triv|dos']  = await escenaPvl('Prótesis mecánica', 'paraval',
+      { ea_pvl_ext: '5', ea_pvl_vc_area: '0.05' });
+    g.escenas['triv|tres'] = await escenaPvl('Prótesis mecánica', 'paraval',
+      { ea_pvl_ext: '5', ea_pvl_vc_area: '0.05', ia_vc: '2' });
+    g.escenas['triv|cuatro'] = await escenaPvl('Prótesis mecánica', 'paraval',
+      { ea_pvl_ext: '5', ea_pvl_vc_area: '0.05', ia_vc: '2', ia_pht: '600' });
+    /* Los dos PRESTADOS: el ancho de vena contracta y el THP salen de los campos de la IAo, y su
+       grado tiene que coincidir con el que esas mismas filas publican arriba. */
+    g.escenas['prestado|vc8'] = await escenaPvl('Prótesis biológica', 'paraval', { ia_vc: '8' });
+    g.escenas['prestado|pht150'] = await escenaPvl('Prótesis biológica', 'paraval', { ia_pht: '150' });
+    /* El CERO medido: se busco el jet y no esta. */
+    g.escenas['cero'] = await escenaPvl('Prótesis biológica', 'paraval', { ea_pvl_ext: '0' });
+    /* Origen consignado y ni un parametro: se dice el origen y NO se gradua. */
+    g.escenas['sinParams'] = await escenaPvl('Prótesis biológica', 'paraval', {});
+    /* El reverso NO entra en este motor: con `ia_vmax_td` en 25 cm/s —que en la TAVI seria
+       MODERADA— la fuga de la quirurgica no se mueve, y la fila nativa SI publica severa. */
+    g.escenas['reversoNoEntra'] = await escenaPvl('Prótesis biológica', 'paraval',
+      { ea_pvl_ext: '5', ea_pvl_vc_area: '0.05', ia_vc: '2', ia_vmax_td: '25' });
+    /* El informe y el EN SUMA en los TRES estilos, sobre la escena moderada. */
+    await escenaPvl('Prótesis biológica', 'paraval', { ea_pvl_ext: '15' });
+    g.inf = {};
+    for (const est of ['conciso', 'estandar', 'narrativo']) g.inf[est] = await ev(`window.__P.informe('${est}')`);
+    g.pdf = await ev(`window.__P.pdf('clasico')`);
+    g.v2d = await ev(`window.__P.v2d('insuf:aortica')`);
+    /* «Nuevo estudio» tiene que esconder el bloque y vaciar las dos filas. */
+    await ev(`window.__P.nuevo()`);
+    g.trasNuevo = await ev(`window.__P.pvlAo()`);
+    /* Control negativo: una NATIVA con los mismos numeros de la IAo no publica nada de fuga. */
+    g.escenas['nativaMismoNumero'] = await escenaPvl('Trivalva normal', null, { ia_vc: '8', ia_pht: '150' });
+    out.grupos.pvlao = g;
+  }
+
+  /* ── 4 · bordes ── CADA CRITERIO DE LA TABLA 8, POR SU VALOR EXACTO Y SUS DOS VECINOS. ───
+     Un parametro por escena, para que el veredicto sea el de ESE parametro y no el del peor de
+     dos. Los dos prestados van en sus unidades reales: `ia_vc` en MILIMETROS (la tabla publica
+     cm) y `ia_pht` en ms. */
+  if (corre('bordes')) {
+    const g = { ext: {}, vcArea: {}, vcAncho: {}, pht: {} };
+    for (const x of ['9', '10', '29', '30'])
+      g.ext[x] = await escenaPvl('Prótesis biológica', 'paraval', { ea_pvl_ext: x });
+    for (const x of ['0.09', '0.10', '0.29', '0.30'])
+      g.vcArea[x] = await escenaPvl('Prótesis biológica', 'paraval', { ea_pvl_vc_area: x });
+    for (const x of ['2.9', '3', '6', '6.1'])
+      g.vcAncho[x] = await escenaPvl('Prótesis biológica', 'paraval', { ia_vc: x });
+    for (const x of ['199', '200', '500', '501'])
+      g.pht[x] = await escenaPvl('Prótesis biológica', 'paraval', { ia_pht: x });
+    out.grupos.bordes = g;
+  }
+
+  /* ── 7 · maqueta ── LOS DOS TEMAS Y LOS CUATRO ANCHOS, CON EL COLOR REAL. ────────────────
+     Las variables que el bloque usa son `--accent2`, `--text2` y las cuatro clases `badge-*`,
+     todas GLOBALES: se mide el color COMPUTADO y no el nombre de la variable, que es la trampa
+     del ambar que fuera de `.amilo-root` se ve GRIS y que este archivo ya pago cinco veces.
+     ⚠️ EL TEMA CLARO ES LA CLASE `light-mode` EN EL ELEMENTO RAIZ, y la sonda ABORTA si no
+     quedo puesta: dos capturas identicas byte por byte son la firma de que el cambio no ocurrio. */
+  if (corre('maqueta')) {
+    const g = { celdas: {} };
+    await escenaPvl('Prótesis biológica', 'paraval', { ea_pvl_ext: '15' });
+    for (const claro of [false, true]) {
+      const t = await ev(`window.__P.tema(${claro})`);
+      if (!!t.claro !== claro) throw new Error('DENOMINADOR: la clase light-mode no quedo ' + JSON.stringify(t));
+      for (const [w, h] of [[1200, 700], [768, 1024], [390, 844], [360, 740]]) {
+        await viewport(w, h);
+        await ev(`window.__P.despejar()`);
+        /* ⚠️ A 768 px Y POR DEBAJO EL CAJON DE LA INSUFICIENCIA AORTICA SE CIERRA, y el respaldo
+           que `abrirPara` escribe en linea NO GANA: el CSS del celular usa la clase con
+           `!important`. La primera corrida informo el bloque en 0x0 en las SEIS celdas angostas
+           con el bloque perfecto. Se abre con el GESTO REAL del medico, `valvDatosTog`, despues de
+           cambiar el viewport, y se publica el display resultante al lado de la geometria. */
+        const cj = await ev(`(function(){
+          var c = document.getElementById('caja-insuf-aortica');
+          var b = document.getElementById('bloque-insuf-aortica');
+          if (b && getComputedStyle(b).display === 'none' && typeof valvDatosTog === 'function')
+            valvDatosTog('caja-insuf-aortica');
+          return { caja: c ? 'ok' : 'NO EXISTE',
+                   detalle: b ? getComputedStyle(b).display : 'NO EXISTE' } })()`);
+        g.celdas[(claro ? 'dia' : 'noche') + '|' + w] = {
+          cajon: cj,
+          bloque: await ev(`window.__P.geo('bloque-prot-va-pvl')`),
+          origen: await ev(`window.__P.geo('ea_pvl_origen')`),
+          ext:    await ev(`window.__P.geo('ea_pvl_ext')`),
+          vcA:    await ev(`window.__P.geo('ea_pvl_vc_area')`),
+          colorTitulo: await ev(`window.__P.color('#bloque-prot-va-pvl')`),
+          colorBadge:  await ev(`(function(){ var e = document.querySelector('#ea-pvl-interp .badge');
+            if (!e) return 'NO EXISTE'; var c = getComputedStyle(e);
+            return c.color + ' / ' + c.backgroundColor })()`),
+          scrollH: await ev(`(function(){ return { ancho: document.documentElement.scrollWidth,
+            viewport: document.documentElement.clientWidth } })()`)
+        };
+      }
+    }
+    await viewport(1200, 900);
+    await ev(`window.__P.tema(false)`);
+    out.grupos.maqueta = g;
+  }
+
+  /* ── 8 · captura ── EL PNG DEL BLOQUE, EN LOS DOS TEMAS Y A DOS ANCHOS. ──────────────────
+     Mirar el PNG es como este repositorio caza los acentos comidos y los rotulos encimados, que
+     ninguna medicion de geometria ve. Tres trampas ya documentadas y las tres resueltas aca:
+       · el `clip` de `Page.captureScreenshot` va en coordenadas de PAGINA y el `getBoundingClientRect`
+         en las del VIEWPORT, asi que hay que sumarle el desplazamiento o el PNG sale con la
+         botonera de la app y se ve perfectamente bien;
+       · con `deviceScaleFactor: 2` ese clip se interpreta en pixeles de DISPOSITIVO y el recorte
+         cae a la mitad de la coordenada pedida: el factor va en 1;
+       · un recorte mas alto que la ventana sale en NEGRO, porque lo que no esta renderizado no se
+         dibuja: se desplaza el nodo a la vista ANTES de leer su rect.
+     Los md5 de los dos temas tienen que DIFERIR: dos capturas identicas byte por byte son la firma
+     de que `light-mode` nunca se puso. */
+  if (corre('captura')) {
+    const g = { archivos: {} };
+    if (!DEST) { g.err = 'falta --dest'; out.grupos.captura = g; }
+    else {
+      await escenaPvl('Prótesis biológica', 'paraval', { ea_pvl_ext: '15', ea_pvl_vc_area: '0.35' });
+      for (const claro of [false, true]) {
+        const t = await ev(`window.__P.tema(${claro})`);
+        if (!!t.claro !== claro) throw new Error('DENOMINADOR: light-mode no quedo');
+        for (const [w, h] of [[1200, 700], [390, 844]]) {
+          await viewport(w, h);
+          await ev(`window.__P.despejar()`);
+          await ev(`(function(){
+            var b = document.getElementById('bloque-insuf-aortica');
+            if (b && getComputedStyle(b).display === 'none' && typeof valvDatosTog === 'function')
+              valvDatosTog('caja-insuf-aortica');
+            var n = document.getElementById('bloque-prot-va-pvl');
+            if (n) n.scrollIntoView({ block: 'center' });
+            return 1 })()`);
+          const r = await ev(`(function(){
+            var n = document.getElementById('bloque-prot-va-pvl');
+            if (!n) return null; var q = n.getBoundingClientRect();
+            return { x: Math.max(0, Math.round(q.left + window.scrollX) - 6),
+                     y: Math.max(0, Math.round(q.top + window.scrollY) - 6),
+                     w: Math.round(q.width) + 12, h: Math.round(q.height) + 12 } })()`);
+          if (!r || r.w < 40 || r.h < 40) throw new Error('DENOMINADOR captura: rect inutil ' + JSON.stringify(r));
+          const cap = await cdp.send('Page.captureScreenshot',
+            { format: 'png', captureBeyondViewport: true,
+              clip: { x: r.x, y: r.y, width: r.w, height: r.h, scale: 1 } }, sessionId);
+          const nom = 'pvlao_' + (claro ? 'dia' : 'noche') + '_' + w + '.png';
+          await writeFile(join(DEST, nom), Buffer.from(cap.data, 'base64'));
+          g.archivos[nom] = { rect: r, bytes: Buffer.from(cap.data, 'base64').length,
+            md5: createHash('md5').update(Buffer.from(cap.data, 'base64')).digest('hex') };
+        }
+      }
+      await viewport(1200, 900);
+      await ev(`window.__P.tema(false)`);
+      out.grupos.captura = g;
+    }
   }
 
   /* ── 9 · controles ── NADA AJENO SE MUEVE. ───────────────────────────────────────────────

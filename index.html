@@ -6709,6 +6709,51 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">⚖️ Severidad IAo integrada (ESC/EACTS 2025)</span><span id="ia-sev">—</span></div>
         <div class="calc-row"><span id="ia-discordancia" style="color:var(--yellow);font-size:11px;"></span></div>
       </div>
+
+      <!-- ══ FUGA PARAVALVULAR DE LA PRÓTESIS AÓRTICA QUIRÚRGICA (PRO-B3, 2026-10-17) ═════════
+           Decisión de Maicol. Hasta hoy los únicos campos de fuga paravalvular eran los SEIS del
+           módulo TAVI, y una prótesis aórtica QUIRÚRGICA con una dehiscencia salía del informe
+           como «insuficiencia moderada» sin que nada dijera que era paravalvular, y sin lugar
+           donde anotar la extensión circunferencial — el parámetro que la ASE 2024 escribe
+           explícitamente para la fuga («Circumferential extent of PVL», Tabla 8, folio 23) y el
+           que más pesa en la decisión de reintervenir.
+           ⚠️ TRES CAMPOS Y NINGUNO DUPLICADO, y es lo que separa este bloque de una copia del de
+           la TAVI. El ANCHO de vena contracta y el THP ya existen a dos filas de acá (`ia_vc` y
+           `ia_pht`), miden exactamente eso y sus cortes YA SON los de la Tabla 8, así que el
+           motor los LEE de ahí en vez de pedirlos otra vez: el médico no tipea nada dos veces y
+           los dos parámetros no pueden dar un grado acá y otro en el cuadro de arriba.
+           ⚠️ EL REVERSO DIASTÓLICO NO ENTRA, Y ES DELIBERADO. `IA_VMAX_TD_SEVERA` queda en
+           20 cm/s de un solo nivel para la nativa y la SAVR (ESC/EACTS 2025, Figura 4, folio
+           4659) y la lectura en DOS niveles es de la VARC-3, que es un documento de TAVI.
+           Alimentar `ia_vmax_td` a este motor aplicaría a una prótesis quirúrgica un corte que
+           esta orden prohíbe mover, y dejaría el mismo número leído con dos cortes distintos.
+           El dueño del bloque —de su visibilidad y de sus dos filas— es `eaPvlPintar`. -->
+      <div id="bloque-prot-va-pvl" style="display:none;margin-top:10px;">
+        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin:0 0 6px;">Regurgitaci&oacute;n paravalvular <span style="font-weight:400;color:var(--text2);font-size:10px;">&mdash; pr&oacute;tesis quir&uacute;rgica, ASE 2024 (Tabla 8)</span></div>
+        <div class="grid-3">
+          <div class="fg"><label>Origen de la regurgitaci&oacute;n</label>
+            <select id="ea_pvl_origen" onchange="eaPvlPintar()">
+              <option value="">&mdash;</option>
+              <option value="central">Central (intraprot&eacute;sica)</option>
+              <option value="paraval">Paravalvular</option>
+              <option value="mixta">Mixta</option>
+            </select></div>
+          <div class="fg"><label>Extensi&oacute;n circunferencial de la fuga (%)</label>
+            <input type="number" id="ea_pvl_ext" step="1" placeholder="%" oninput="eaPvlPintar()"></div>
+          <div class="fg"><label>&Aacute;rea vena contracta (cm&sup2;)</label>
+            <input type="number" id="ea_pvl_vc_area" step="0.01" placeholder="cm&sup2; (2D/3D)" oninput="eaPvlPintar()"></div>
+        </div>
+        <!-- Las DOS filas son las mismas que la cápsula de la TAVI publica: la severidad estimada
+             y el criterio que decide. Son `span[id]` dentro de un `.calc-box .calc-row`, así que
+             el barrido de `limpiarCampos` las deja en «—» sin una línea extra. -->
+        <div class="calc-box" style="margin-top:8px;">
+          <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Regurgitaci&oacute;n paravalvular &mdash; severidad</span><span class="calc-val" id="ea-pvl-interp">&#8212;</span></div>
+          <div class="calc-row"><span class="calc-lbl">Criterio que decide</span><span id="ea-pvl-motivo" style="font-size:11px;color:var(--text2);">&#8212;</span></div>
+        </div>
+        <div style="font-size:10px;color:var(--text2);margin-top:4px;line-height:1.45;">
+          Manda el par&aacute;metro m&aacute;s severo de los cargados. El ancho de vena contracta y el THP se toman de los campos de arriba. Clasificaci&oacute;n orientativa: la integraci&oacute;n cl&iacute;nica es del m&eacute;dico tratante.
+        </div>
+      </div>
         </div>
       </div>
       <div id="caja-esten-aortica">
@@ -36696,6 +36741,128 @@ function _eaEsProtesisAo() {
 }
 window._eaEsProtesisAo = _eaEsProtesisAo;
 
+/* ══ PRO-B3 — LA FUGA PARAVALVULAR DE LA PRÓTESIS AÓRTICA QUIRÚRGICA (2026-10-17) ═══════════
+   Decisión de Maicol. El motor es `eteTaviRPV`, el MISMO que gradúa la fuga de la TAVI, con su
+   fuente inyectada: no se abre una segunda copia de los cuatro cortes de la **Tabla 8 de la ASE
+   2024 (folio 23, hoja 22)**, que son los que ese motor ya aplica —extensión circunferencial
+   `<10 / 10-29 / ≥30` %, ancho de vena contracta `<0,3 / 0,3-0,6 / >0,6` cm, área de vena
+   contracta `<0,10 / 0,10-0,29 / ≥0,30` cm² y THP `>500 / 200-500 / <200` ms—, verificados otra
+   vez en el PDF original antes de extenderlo.
+   ⚠️ SON TRES CAMPOS NUEVOS Y DOS PRESTADOS. El ancho de vena contracta sale de `ia_vc` y el THP
+   de `ia_pht`, que ya existen en la misma pestaña, miden exactamente eso y cuyos cortes **ya
+   coinciden dígito por dígito** con los de la Tabla 8 —`calcIA_ESC` vota `<3 / 3-6 / >6` mm y
+   `>500 / 200-500 / <200` ms—, así que los dos parámetros NO PUEDEN dar un grado acá y otro en el
+   cuadro de arriba. Se leen con `vPlaus(...).val`, que es `null` fuera de banda: un valor
+   ilegible no vota, igual que en `calcIA_ESC`.
+   ⚠️ `ia_vc` ESTÁ EN MILÍMETROS Y EL MOTOR ESPERA CENTÍMETROS. Sin el `/10` un ancho de 5 mm
+   entraría como 5 cm y el motor devolvería SEVERA sobre una fuga moderada, en la dirección que
+   sobre-afirma. Es la conversión que la Tabla 8 obliga porque publica ese parámetro en cm.
+   ⚠️ EL REVERSO DIASTÓLICO NO SE LE PASA, y es deliberado: `IA_VMAX_TD_SEVERA` queda en 20 cm/s
+   de un solo nivel para la nativa y la SAVR (ESC/EACTS 2025) y la lectura en dos niveles es de la
+   VARC-3, un documento de TAVI. Pasárselo aplicaría a una prótesis quirúrgica un corte que la
+   orden prohíbe mover y dejaría el mismo número leído con dos cortes distintos.
+   ⚠️ «TRIVIAL» EXIGE TRES DE LOS CUATRO en banda trivial, que es la regla del motor y no una
+   decisión de acá: con menos, devuelve «Leve — faltan parámetros para descartar mayor
+   severidad». Con dos parámetros alimentables «Trivial» sería inalcanzable; con cuatro no lo es.
+   ⚠️ NO REEMPLAZA LA REGURGITACIÓN CENTRAL. El grado integrado de la insuficiencia aórtica lo
+   sigue publicando `calcIA_ESC` en `ia_grado`, y esta fuga es una afirmación APARTE, que es la
+   misma lógica que la TAVI aplica desde siempre: ahí `ia_grado` y `eteTaviRPV()` conviven como
+   dos oraciones del informe. */
+const EA_PVL_ORIGEN_PVL = Object.freeze(['paraval', 'mixta']);
+/* ⚠️ NO ES `_eaEsProtesisAo`, Y CONFUNDIRLAS ROMPE LAS DOS COSAS. Aquél dice «¿hay una prótesis
+   aórtica?» y abarca la TAVI —lo usa el PRO2 para los dos bordes de la Tabla 8, que la guía aplica
+   a las tres—; éste dice «¿es una prótesis QUIRÚRGICA?», o sea prótesis y NO TAVI, porque la TAVI
+   tiene su propio módulo con sus propios seis campos y su propio párrafo en el informe. Se deriva
+   de `valvEsProtesis`, que es el dueño único de la lista de opciones protésicas: una copia de los
+   dos literales acá sería la cuarta lista paralela que este archivo ya documenta. */
+function _eaEsProtesisSavr() {
+  try {
+    const m = document.getElementById('va_morf');
+    const val = m ? String(m.value || '').trim() : '';
+    return valvEsProtesis(val) && val !== 'TAVI';
+  } catch (e) { return false; }
+}
+window._eaEsProtesisSavr = _eaEsProtesisSavr;
+
+/* El dueño ÚNICO del veredicto de la fuga paravalvular quirúrgica. Devuelve lo mismo que
+   `eteTaviRPV` —`{sev, cls, motivo, nula?}` o `null`— porque ES `eteTaviRPV`.
+   Dos compuertas y ninguna decorativa: la morfología tiene que ser una prótesis quirúrgica, y el
+   médico tiene que haber consignado que la regurgitación es paravalvular o mixta. Sin lo segundo
+   no se afirma nada: una fuga paravalvular no se deduce de los parámetros de una insuficiencia
+   aórtica, que son los mismos de una regurgitación central. */
+function eaProtRPV() {
+  if (!_eaEsProtesisSavr()) return null;
+  if (EA_PVL_ORIGEN_PVL.indexOf(sv('ea_pvl_origen')) < 0) return null;
+  const pVc = vPlaus('ia_vc'), pPht = vPlaus('ia_pht');
+  return eteTaviRPV({
+    ext:   v('ea_pvl_ext'),
+    vc:    (pVc.val == null) ? null : pVc.val / 10,
+    vcA:   v('ea_pvl_vc_area'),
+    pht:   pPht.val,
+    flujo: '',
+    velT:  null
+  });
+}
+window.eaProtRPV = eaProtRPV;
+
+/* La frase, UNA sola para la pantalla y para el informe, calcada de `taviRpvNarrativa`: «clave»
+   es para que el llamador sepa qué caso salió sin parsear el texto. Las palabras son las de la
+   TAVI —«Insuficiencia paravalvular moderada, extensión circunferencial 15%» y «Sin insuficiencia
+   paravalvular significativa»—; lo único propio es la rama de «consignada y sin graduar», que
+   existe porque acá no hay reloj de horas con el que localizar el jet. */
+function eaProtPvlTxt() {
+  if (!_eaEsProtesisSavr()) return null;
+  const esPvl = EA_PVL_ORIGEN_PVL.indexOf(sv('ea_pvl_origen')) >= 0;
+  if (!esPvl) return null;
+  const R = eaProtRPV();
+  const f1 = (n) => (n == null || !isFinite(n)) ? null : String(Math.round(n * 10) / 10);
+  const ext = f1(v('ea_pvl_ext'));
+  const extTxt = ext ? ', extensión circunferencial ' + ext + '%' : '';
+  /* `nula` = se midió y dio cero: es la ÚNICA vía por la que este módulo niega, y sale del MISMO
+     motor que gradúa, así que la fila de pantalla y el informe no pueden discrepar. */
+  if (R && R.nula) return { clave: 'negativa', txt: 'Sin insuficiencia paravalvular significativa' };
+  if (R) return { clave: 'graduada', txt: 'Insuficiencia paravalvular ' + R.sev.toLowerCase() + extTxt };
+  /* Origen consignado y ni un parámetro con el que graduar: se dice el ORIGEN y NO se gradúa.
+     Inventar «leve» porque no hay números sería el default tranquilizador que este archivo ya
+     documenta tres veces. */
+  return { clave: 'sin_graduar', txt: 'Insuficiencia de origen paravalvular' };
+}
+window.eaProtPvlTxt = eaProtPvlTxt;
+
+/* El dueño de la PANTALLA: la visibilidad del bloque y sus dos filas.
+   ⚠️ LA VISIBILIDAD LA GOBIERNA ESTA FUNCIÓN Y NO `valvProtSync`, que es la que muestra los otros
+   cuatro bloques de prótesis. Dos motivos medidos: `valvProtSync` NO se llama desde
+   `limpiarCampos` —censado—, así que un bloque que dependiera sólo de ella sobreviviría a «Nuevo
+   estudio» con la morfología ya en «Trivalva normal»; y con un dueño propio la línea que hace
+   falta agregar al final de `limpiarCampos` es UNA y no toca los otros cuatro bloques, que esta
+   orden no autoriza a mover. La otra columna es `RECALC_MODULOS`.
+   ⚠️ EL BADGE SE CONSTRUYE POR NODOS Y NO CON `innerHTML`. `eteTaviSync` usa
+   `el.innerHTML = badge(...)` y es lo que la línea base de Semgrep ya contabiliza; una ocurrencia
+   NUEVA la hubiera llevado de 127 a 128, que es exactamente el falso que la tanda Y2 pagó sobre
+   código recién escrito. Con `createElement` + `textContent` no hay HTML concatenado. */
+function eaPvlPintar() {
+  const caja = document.getElementById('bloque-prot-va-pvl');
+  if (caja) caja.style.display = _eaEsProtesisSavr() ? '' : 'none';
+  const sevEl = document.getElementById('ea-pvl-interp');
+  const motEl = document.getElementById('ea-pvl-motivo');
+  const R = eaProtRPV();
+  if (sevEl) {
+    while (sevEl.firstChild) sevEl.removeChild(sevEl.firstChild);
+    if (R) {
+      const sp = document.createElement('span');
+      const cls = (typeof BADGE_CLS_OK !== 'undefined' && BADGE_CLS_OK.indexOf(String(R.cls)) >= 0)
+        ? R.cls : 'gray';
+      sp.className = 'badge badge-' + cls;
+      sp.textContent = R.sev;
+      sevEl.appendChild(sp);
+    } else {
+      sevEl.appendChild(document.createTextNode('—'));
+    }
+  }
+  if (motEl) motEl.textContent = R ? R.motivo : '—';
+}
+window.eaPvlPintar = eaPvlPintar;
+
 /* ══ EL GRADO DE LA FILA «AVA INDEXADA» DEL CUADRO DE VÁLVULAS (F2, 2026-10-15) ══════════════
    Decisión de Maicol. El AVA indexada VOTA desde el 2026-10-13 y su fila publicaba el valor y
    callaba: medido en HEAD, con AVA por continuidad 1,10 cm² (moderada) y AVA indexada 0,55 cm²/m²
@@ -42007,6 +42174,14 @@ function calcIA_ESC() {
   const _discTxt = sevs.length > 1 ? '⚠️ Discordancia: ' + params.map(p=>`${p.p}:${p.sev}`).join(', ') : '';
   const _fueraTxtIA = _aoFueraTxt(_iaFuera);
   if (_dElIA) _dElIA.textContent = [_fueraTxtIA, _discTxt].filter(Boolean).join('  |  ');
+  /* ⚠️ LA FUGA PARAVALVULAR SE REPINTA ACÁ (PRO-B3), y sin esta línea se queda atrás en la
+     escena más frecuente: el motor LEE `ia_vc` y `ia_pht`, que son dos campos de este bloque, así
+     que corregir la vena contracta movía el grado integrado y dejaba la fila de la fuga con el
+     veredicto del gesto anterior. Va al final y no al principio por el mismo motivo que
+     `sevSincronizar`: lee lo que esta función acaba de publicar. Las otras tres columnas son el
+     `oninput` de sus tres campos propios, `valvProtSync` —la morfología— y la pareja
+     `RECALC_MODULOS` + `limpiarCampos`. */
+  if (typeof eaPvlPintar === 'function') { try { eaPvlPintar(); } catch (e) {} }
 }
 
 /* ══ MORFOLOGÍA VALVULAR: ALGUNAS OPCIONES SON ETIOLOGÍAS, NO MORFOLOGÍAS ═══════════════════
@@ -48029,6 +48204,32 @@ function generarInforme(opts) {
         + `del estudio${eaDatosTxt(_eaR, false)}, que corresponderían a estenosis ${_eaR.esperado}. `
         + `Revisar el diámetro del tracto de salida y el trazado de las integrales velocidad-tiempo.`);
     }
+
+    /* ══ LA FUGA PARAVALVULAR DE LA PRÓTESIS QUIRÚRGICA (PRO-B3, 2026-10-17) ══════════════
+       Decisión de Maicol. Es una ORACIÓN APARTE y no una cláusula de la frase de arriba, que es
+       exactamente la lógica que la TAVI aplica desde siempre: allá `ia_grado` publica el grado
+       integrado y `taviRpvNarrativa()` la fuga, en dos oraciones del mismo párrafo. **La fuga no
+       reemplaza la regurgitación central**, así que la línea de la insuficiencia no se toca.
+       EL TEXTO ES EL DE LA TAVI, palabra por palabra —«Insuficiencia paravalvular moderada,
+       extensión circunferencial 15%» y «Sin insuficiencia paravalvular significativa»—: no se
+       inventó vocabulario. Los tres estilos imprimen la MISMA oración porque la frase ya es una
+       oración con sujeto, igual que la del módulo TAVI, y partirla en tres redacciones serían tres
+       textos que hay que mantener sincronizados.
+       ⚠️ VA FUERA DE LA RAMA DE `_eaProtN` A PROPÓSITO: `eaProtVeredicto()` devuelve `null` sin
+       datos de estenosis protésica, así que una SAVR con una dehiscencia y sin un solo gradiente
+       cargado —caso habitual en un control— se habría quedado sin la oración de la fuga. Su
+       única compuerta es `eaProtPvlTxt()`, que ya exige prótesis quirúrgica y origen consignado. */
+    const _pvlAo = (typeof eaProtPvlTxt === 'function') ? eaProtPvlTxt() : null;
+    if (_pvlAo) {
+      inf.push(_pvlAo.txt + '.');
+      /* El EN SUMA reusa la sigla que la sección aórtica ya usa («IAo») más la palabra del origen
+         y el grado: ni una palabra nueva. Las dos ramas que NO gradúan no suben al resumen —una
+         niega y la otra declara un origen sin severidad, y el EN SUMA es la lista de lo que hay—. */
+      if (_pvlAo.clave === 'graduada') {
+        const _R = (typeof eaProtRPV === 'function') ? eaProtRPV() : null;
+        if (_R) suma.push(`IAo paravalvular ${_R.sev.toLowerCase()}.`);
+      }
+    }
   }
 
   // ── 9) Válvula tricúspide (IT + gradiente VD-AD + PSAP + PmAD) + HTP ──
@@ -51180,7 +51381,7 @@ function RECALC_MODULOS() {
      automaticos con el «requiere …» del formulario vacio al lado de un VDFVI y una FEVI ya
      poblados. No puede migrar nada: no escribe ningun campo del estudio, los dos nodos que
      toca son `vauto-` y el tercero un `<div>` de texto. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','m3dBotonSync','contrPdfSync','v2dCerrar','aiviSexoSync'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','m3dBotonSync','contrPdfSync','v2dCerrar','aiviSexoSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -51459,6 +51660,16 @@ function limpiarCampos(silencioso) {
      —una fórmula anunciando con qué se calculó un número que ya no está—, que es el mismo defecto
      que los span de `im-pdf-` unas líneas más arriba. La otra columna es `RECALC_MODULOS`. */
   { if (typeof papmEstSync === 'function') { try { papmEstSync(); } catch (e) {} } }
+  /* ⚠️ EL BLOQUE DE LA FUGA PARAVALVULAR QUIRÚRGICA NECESITA LAS DOS COLUMNAS (PRO-B3), y la
+     que falta acá es la VISIBILIDAD. Sus dos filas sí las deja en «—» el barrido de
+     `.calc-box .calc-row span[id]` de más arriba; lo que NINGÚN barrido toca es el `display` de
+     `#bloque-prot-va-pvl`, y `valvProtSync` —la que gobierna los otros cuatro bloques de
+     prótesis— **no se llama desde `limpiarCampos`**: censado por `grep` sobre el cuerpo entero de
+     esa función. Sin esta línea el bloque se queda con su `display` en línea puesto y vuelve a
+     aparecer en cuanto el médico abra el cajón de la insuficiencia aórtica, con la morfología ya
+     de vuelta en «Trivalva normal». MEDIDO con la sonda: tras «Nuevo estudio» el bloque queda
+     escondido y sus dos filas en «—». La otra columna es `RECALC_MODULOS`. */
+  { if (typeof eaPvlPintar === 'function') { try { eaPvlPintar(); } catch (e) {} } }
   /* ⚠️ EL CUADRO DE REFERENCIAS DEL DOPPLER AÓRTICO NECESITA LAS DOS COLUMNAS, por el mismo motivo
      que los dos avisos de arriba. Las catorce filas son `span[id]` dentro de un `.calc-box`, así
      que el barrido de más arriba las deja en «—»; lo que NO alcanza ese barrido es el aviso «auto»
@@ -53631,6 +53842,11 @@ function valvProtSync(){
      que los predicados no dan: es la clase de frase que hace que nadie vuelva a mirar. */
   if (typeof vmProtEOAPintar === 'function') { try { vmProtEOAPintar(); } catch (e) {} }
   ver('bloque-prot-va', valvEsProtesis(g('va_morf')));
+  /* ⚠️ EL BLOQUE DE LA FUGA PARAVALVULAR QUIRÚRGICA TIENE SU PROPIO DUEÑO (PRO-B3) y no una
+     línea `ver(...)` acá: su predicado es protésica Y NO TAVI, y además tiene que repintar sus
+     dos filas, no sólo mostrarse. Se la llama desde acá porque cambiar la morfología es
+     exactamente cuando el bloque aparece y desaparece. */
+  if (typeof eaPvlPintar === 'function') { try { eaPvlPintar(); } catch (e) {} }
   ver('bloque-prot-vt', valvEsProtesis(g('vt_morf')));
   ver('bloque-prot-vp', valvEsProtesis(g('vp_morf')));
   /* La fila del AT en el cuadro de resultados se muestra con la misma regla que su campo, y su
@@ -71011,10 +71227,32 @@ window.eteTaviTab = eteTaviTab;
    integrador habitual y falla hacia el lado seguro, que en una insuficiencia paravalvular es
    NO sub-graduarla. Se informa qué parámetro decidió, para que el criterio sea auditable y
    no una caja negra. «Trivial» exige los TRES en banda trivial; con menos, «Leve». */
-function eteTaviRPV(){
-  const ext=v('ete_tavi_ext_circ'), vc=v('ete_tavi_vc_ancho'), vcA=v('ete_tavi_vc_area');
-  const pht=v('ete_tavi_pht');
-  const flujo=sv('ete_tavi_flujo_rev'), velT=v('ete_tavi_vel_tele');
+/* ⚠️ LA FUENTE ES INYECTABLE DESDE EL PRO-B3 (2026-10-17), Y NO ES UN DETALLE DE ESTILO.
+   Sin `src` este motor lee los SEIS campos del modulo TAVI por su id, que es lo que hacia y lo
+   que sigue haciendo: **el camino de la TAVI es el MISMO byte por byte**, asi que su veredicto no
+   puede moverse por este cambio — es identico POR CONSTRUCCION y no por una medicion a
+   posteriori. Con `src` lee un objeto, y eso es lo que permite que la **protesis AORTICA
+   QUIRURGICA** use este motor en vez de abrir una segunda copia de los cuatro cortes de la
+   Tabla 8. Es el patron `src` que `valvProtDato`, `emContMotivoNoVota` y `_htp2022Core` ya usan
+   por la misma razon, y el unico que deja que el Laboratorio —que trabaja sobre `inf.campos` y
+   no sobre el DOM— le pregunte al dueno en vez de reimplementarlo.
+   Las claves de `src` son `ext`, `vc`, `vcA`, `pht`, `flujo` y `velT`, en las MISMAS unidades que
+   los campos de la TAVI: la extension en %, los dos de vena contracta en cm y cm2, el THP en ms y
+   la velocidad tele-diastolica en cm/s. Quien pase el ancho de vena contracta en MILIMETROS
+   —como lo guarda `ia_vc`— tiene que dividirlo por 10 antes, y `eaProtRPV` lo hace. */
+function eteTaviRPV(src){
+  /* `v(id)` devuelve numero o null; `_n` conserva ese contrato sobre el objeto inyectado, asi que
+     el `cero(x) => x === 0` de mas abajo sigue comparando numeros y no cadenas. */
+  const _n = (k, id) => {
+    if (!src) return v(id);
+    const x = src[k];
+    if (x == null || x === '') return null;
+    const n = Number(x);
+    return isFinite(n) ? n : null;
+  };
+  const ext=_n('ext','ete_tavi_ext_circ'), vc=_n('vc','ete_tavi_vc_ancho'), vcA=_n('vcA','ete_tavi_vc_area');
+  const pht=_n('pht','ete_tavi_pht');
+  const flujo=src ? String(src.flujo || '') : sv('ete_tavi_flujo_rev'), velT=_n('velT','ete_tavi_vel_tele');
   /* ══ PRO3 — EL REVERSO DIASTOLICO GRADUA EN DOS NIVELES (2026-10-17) ═══════════════════════
      DECISION DE MAICOL. Hasta hoy este parametro votaba SOLO severa con `velT >= 20` y citaba la
      ASE 2019; manda la fuente especifica de la TAVI, que es la unica que publica cifras.
@@ -81685,6 +81923,16 @@ function _pptDesdeFormulario(inf, tema, presentador){
       if (_VALV_SIN.indexOf(t) >= 0) return;                         // sin hallazgo
       _hallazgos.push(pp[1] + ': ' + t);
     });
+    /* ══ LA FUGA PARAVALVULAR DE LA PRÓTESIS QUIRÚRGICA (PRO-B3, 2026-10-17) ══════════════
+       Es una entrada APARTE de las seis de arriba y no un reemplazo de la de «IAo»: la fuga no
+       reemplaza la regurgitación central. El rótulo es el mismo que la diapositiva de ETE usa
+       para la fuga de la TAVI («Regurgitación paravalvular»), acortado a la sigla de esta franja.
+       Se le pregunta al DUEÑO y no se recalcula: con dos lecturas, la franja y el informe
+       terminan diciendo cosas distintas del mismo paciente. */
+    try {
+      const _pvl = (typeof eaProtRPV === 'function') ? eaProtRPV() : null;
+      if (_pvl && !_pvl.nula) _hallazgos.push('IAo paravalvular: ' + _pvl.sev.toLowerCase());
+    } catch (e) { console.warn('[ppt] fuga paravalvular', e); }
     /* Se dice «sin alteraciones» sin exigir que alguien haya interrogado las válvulas, y es
        deliberado: es LA MISMA convención del EN SUMA, que con el formulario vacío escribe
        «Estudio sin alteraciones estructurales ni funcionales significativas». La versión
@@ -113090,21 +113338,31 @@ function _labTaviResumen(taviArr) {
      peor que romperse—. Con prototipo nulo, __proto__ es una clave más. */
   const op = Object.create(null);
   taviArr.forEach(i => { const t=_labCampoRaw(i,'ete_tavi_pro_tipo'); if(t) op[t]=(op[t]||0)+1; });
+  /* ══ LE PREGUNTA AL DUEÑO, Y HASTA EL PRO-B3 TENÍA SU PROPIA COPIA DE LOS CUATRO CORTES ════
+     Esta función reimplementaba la cascada de `eteTaviRPV` sobre `inf.campos` —no podía llamarla,
+     porque ese motor leía el DOM— y la segunda copia **divergió del dueño en DOS cosas, medidas
+     las dos sobre estudios archivados**:
+       1. el reverso diastolíco seguía votando SEVERA desde 20 cm/s. El PRO3 lo partió en dos
+          niveles por la VARC-3 (Tabla 16, folio 1846) y esta copia no lo siguió: con 25 cm/s el
+          dueño decía **Moderada** y el Laboratorio **Severa**, sobre el MISMO estudio;
+       2. el «cero medido» no existía acá. Un estudio con extensión circunferencial 0 —la
+          constancia de que se buscó el jet y NO está— contaba como **Leve** en la distribución,
+          que es exactamente el defecto que el motor cerró en su día («el informe firmado imprimía
+          "Insuficiencia paravalvular leve, extensión circunferencial 0%"»).
+     Desde el PRO-B3 el motor acepta su fuente por parámetro, así que la copia se retira y acá
+     queda UNA llamada. Las dos escenas que cambian están declaradas en `docs/PENDIENTES.md`.
+     ⚠️ `Sin RPV` ES UNA CATEGORÍA NUEVA DE ESTA DISTRIBUCIÓN y hay que agregarla a `RPV_L`: sin su
+     rótulo, esos estudios contarían en `nR` y no dibujarían barra, o sea una distribución que no
+     suma 100 % sin que nada lo diga. */
   const rpv = Object.create(null); let nR = 0;
   taviArr.forEach(i => {
-    const ext=_labNum(i,'ete_tavi_ext_circ'), vc=_labNum(i,'ete_tavi_vc_ancho'),
-          vcA=_labNum(i,'ete_tavi_vc_area'), pht=_labNum(i,'ete_tavi_pht');
-    const flujo=_labCampoRaw(i,'ete_tavi_flujo_rev'), velT=_labNum(i,'ete_tavi_vel_tele');
-    const holo = (flujo==='holo' && velT!==null && velT>=20);
-    if (ext===null && vc===null && vcA===null && pht===null && !holo) return;
-    let sev=0, mod=0, triv=0;
-    if(ext!==null) (ext>=30?sev++:(ext>=10?mod++:triv++));
-    if(vc!==null)  (vc>0.6?sev++:(vc>=0.3?mod++:triv++));
-    if(vcA!==null) (vcA>=0.30?sev++:(vcA>=0.10?mod++:triv++));
-    if(pht!==null) (pht<200?sev++:(pht<=500?mod++:triv++));
-    if(holo) sev++;
-    const g = sev ? 'Severa' : (mod ? 'Moderada' : (triv>=3 ? 'Trivial' : 'Leve'));
-    rpv[g] = (rpv[g]||0)+1; nR++;
+    const R = (typeof eteTaviRPV === 'function') ? eteTaviRPV({
+      ext:   _labNum(i,'ete_tavi_ext_circ'), vc:  _labNum(i,'ete_tavi_vc_ancho'),
+      vcA:   _labNum(i,'ete_tavi_vc_area'),  pht: _labNum(i,'ete_tavi_pht'),
+      flujo: _labCampoRaw(i,'ete_tavi_flujo_rev'), velT: _labNum(i,'ete_tavi_vel_tele')
+    }) : null;
+    if (!R) return;
+    rpv[R.sev] = (rpv[R.sev]||0)+1; nR++;
   });
   /* Mapa explícito y no `{}`: _barras hace `mapa[k] || 'Otro'`, así que con el mapa vacío las
      cuatro severidades se mostraban como «Otro (n=1) · Otro (n=1)» — la distribución existía
@@ -113328,7 +113586,9 @@ function labEteRender(infs, n) {
     /* La severidad de RPV se recalcula con la MISMA regla que la pantalla (gana el criterio
        más severo), a partir de los campos guardados. Leerla de un span daría la del estudio
        abierto para todos los de la lista. */
-    const RPV_L = { Trivial:'Trivial', Leve:'Leve', Moderada:'Moderada', Severa:'Severa' };
+    /* `Sin RPV` entra con el PRO-B3: desde que esta distribucion le pregunta al dueno, un estudio
+       con todos los parametros en CERO sale «Sin RPV» y sin su rotulo no dibujaria barra. */
+    const RPV_L = { 'Sin RPV':'Sin RPV', Trivial:'Trivial', Leve:'Leve', Moderada:'Moderada', Severa:'Severa' };
     if (nR) _barras('lab-tavi-rpv-bars', RPV_L, rpv, nR); else empty('lab-tavi-rpv-bars','regurgitación paravalvular');
 
     /* Jets por hora del reloj. `ete_tavi_jet_horas` es un hidden con CSV «3,7,11»; se
@@ -115994,7 +116254,13 @@ const V2D_PORQUE = Object.freeze({
       Object.freeze({ id: 'ia-freg',            color: true }),
       Object.freeze({ id: 'ia-pht-interp' }),
       Object.freeze({ id: 'ia-vtd-interp' }),
-      Object.freeze({ id: 'ia-vti-desc-interp' })
+      Object.freeze({ id: 'ia-vti-desc-interp' }),
+      /* ══ LA FUGA PARAVALVULAR DE LA PRÓTESIS QUIRÚRGICA (PRO-B3, 2026-10-17) ════════════
+         La fila LEE del dueño: `eaPvlPintar` escribe `#ea-pvl-interp` y esta lista la publica por
+         su id, igual que las siete de arriba. Con la morfología nativa, o con el origen sin
+         consignar, esa fila dice «—» y `_v2dCrit` la descarta —su primera guarda—, así que la
+         tarjeta de una válvula nativa sale IDENTICA. */
+      Object.freeze({ id: 'ea-pvl-interp' })
     ]) }),
   'insuf:tricuspide': Object.freeze({ clave: 'it', decide: null, aviso: 'it-discordancia',
     crit: Object.freeze([
