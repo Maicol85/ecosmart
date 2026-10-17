@@ -39835,6 +39835,13 @@ window.dsviBandas = dsviBandas;
    la referencia impresa y una barra en la tarjeta de geometría, que es donde el espesor ya
    participa —el espesor parietal relativo es 2 × pared / diámetro—.
    Sin sexo devuelve las del varón, que son las del corte MÁS ALTO. */
+/* ══ EL AVISO DE SEXO DE LAS TARJETAS, EN UNA SOLA CONSTANTE (CORTOS8, 2026-10-17) ════════════
+   Cierra `LS-10`. Vivia DOS veces con el MISMO literal: `AV_SEXO_ALTO` dentro de `evTarjetaVI` y
+   `AV_SEXO_GEO` dentro de `evTarjetaGeo`. Son dos funciones distintas y por eso cada una declaro
+   la suya, pero es la clase de duplicacion que la tanda LS vino a sacar: el dia que una se
+   reescriba, las dos tarjetas dicen cosas distintas del mismo estado. Sube a nivel de modulo, al
+   lado de las bandas que esas dos tarjetas ya comparten. NI UNA LETRA DEL TEXTO CAMBIA. */
+const EV_AV_SEXO = 'Sin sexo cargado: se usó el corte más alto.';
 const EV_BANDAS_ESPESOR = Object.freeze({
   M: Object.freeze([{ k: 'normal', desde: 4, hasta: 10 }, { k: 'leve', desde: 10.1, hasta: 13 },
                     { k: 'moderada', desde: 13.1, hasta: 16 }, { k: 'severa', desde: 16.1, hasta: 25 }]),
@@ -39878,7 +39885,6 @@ function evTarjetaVI() {
      no se ubica el punto; se muestran los cortes del varón», y desde que las tres barras que
      dependen del sexo ubican el punto con el corte MÁS ALTO esa frase afirmaba algo falso sobre
      una barra que lo tiene. Queda UNA sola línea corta, la misma en las tres. */
-  const AV_SEXO_ALTO = 'Sin sexo cargado: se usó el corte más alto.';
 
   /* Diametro diastolico — un corte unico para los dos sexos en esta aplicacion. */
   fr.appendChild(_evBarra({ clave: 'vi-ddvi', rotulo: 'Diámetro diastólico (mm)',
@@ -39903,7 +39909,7 @@ function evTarjetaVI() {
     bandas: bandasDS, lo: 15, hi: 60, unidad: 'mm', dec: 0,
     valor: (pDS.val != null && !pDS.fuera) ? pDS.val : null,
     cat: catDS,
-    aviso: [_falta(pDS, 'el diámetro sistólico'), sx ? '' : AV_SEXO_ALTO].filter(Boolean).join(' '),
+    aviso: [_falta(pDS, 'el diámetro sistólico'), sx ? '' : EV_AV_SEXO].filter(Boolean).join(' '),
     ficha: 'DIM-VI-002' }));
 
   /* Los dos volumenes indexados: dependen del sexo Y de la superficie corporal. */
@@ -39919,20 +39925,23 @@ function evTarjetaVI() {
     if (!bsa) return 'Volumen de ' + p.val + ' ml, sin indexar: cargar peso y talla.';
     return '';
   };
-  const _avSx = (p) => (!sx && p.val != null && !p.fuera && bsa) ? AV_SEXO_ALTO : (!sx ? AV_SEXO_ALTO : '');
+  /* ⚠️ ERA UN TERNARIO REDUNDANTE y lo declaraba `LS-10`: las dos ramas devolvian el MISMO
+     texto, asi que `(!sx && hay dato) ? X : (!sx ? X : '')` es exactamente `!sx ? X : ''`. El
+     parametro se fue con el: no lo usaba ninguna de las dos ramas. */
+  const _avSx = () => (!sx ? EV_AV_SEXO : '');
   fr.appendChild(_evBarra({ clave: 'vi-vdfvi', rotulo: 'Volumen telediastólico indexado (ml/m²)',
     bandas: C.vdfvi, lo: 20, hi: 130, unidad: 'ml/m²', dec: 0,
     valor: idxD,
     cat: (idxD !== null && typeof vdfviInterp === 'function')
       ? ('Volumen telediastólico indexado ' + vdfviInterp(idxD, sexoEfectivo(sx)).txt + ' (' + _evNum(idxD, 1) + ' ml/m²).') : '',
-    aviso: [_avVol(pVDF, idxD, 'el volumen telediastólico'), _avSx(pVDF)].filter(Boolean).join(' '),
+    aviso: [_avVol(pVDF, idxD, 'el volumen telediastólico'), _avSx()].filter(Boolean).join(' '),
     ficha: 'DIM-VI-003' }));
   fr.appendChild(_evBarra({ clave: 'vi-vsfvi', rotulo: 'Volumen telesistólico indexado (ml/m²)',
     bandas: C.vsfvi, lo: 5, hi: 70, unidad: 'ml/m²', dec: 0,
     valor: idxS,
     cat: (idxS !== null && typeof vsfviInterp === 'function')
       ? ('Volumen telesistólico indexado ' + vsfviInterp(idxS, sexoEfectivo(sx)).txt + ' (' + _evNum(idxS, 1) + ' ml/m²).') : '',
-    aviso: [_avVol(pVSF, idxS, 'el volumen telesistólico'), _avSx(pVSF)].filter(Boolean).join(' '),
+    aviso: [_avVol(pVSF, idxS, 'el volumen telesistólico'), _avSx()].filter(Boolean).join(' '),
     ficha: 'DIM-VI-004' }));
 
   /* Fraccion de eyeccion — la categoria se COPIA de la capsula, que es lo que la app publica.
@@ -40110,7 +40119,6 @@ function evTarjetaGeo() {
   const sx = _evSexoCargado();
   const pDD = vPlaus('ddfvi'), pSIV = vPlaus('siv'), pPP = vPlaus('ppvi');
   const bsa = getBSA();
-  const AV_SEXO_GEO = 'Sin sexo cargado: se usó el corte más alto.';
   let masaIdx = null, rwt = null;
   if (pDD.val != null && pSIV.val != null && pPP.val != null
       && !pDD.fuera && !pSIV.fuera && !pPP.fuera) {
@@ -40132,7 +40140,7 @@ function evTarjetaGeo() {
   let cat = '', avi = '';
   if (rwt === null) avi = 'Cargar el diámetro diastólico, el septum y la pared posterior.';
   else if (masaIdx === null) avi = 'Masa sin indexar por falta de superficie corporal: no se ubica el punto. Cargar peso y talla.';
-  else if (!sx) avi = AV_SEXO_GEO;
+  else if (!sx) avi = EV_AV_SEXO;
   if (rwt !== null && masaIdx !== null) {
     /* ⚠️ EL TEXTO ES EL DEL INFORME, NO UNO PROPIO: el informe escribe «Geometría normal.» para
        la normal y, para las otras tres, el patron que devuelve el dueno con la gravedad entre
@@ -40177,7 +40185,7 @@ function evTarjetaGeo() {
       cat: _espCat(d[2]),
       aviso: [(d[2].fuera ? ('Valor fuera de rango medible: verificar ' + d[3] + '.')
                           : (d[2].val == null ? ('Cargar ' + d[3] + '.') : '')),
-              sx ? '' : AV_SEXO_GEO].filter(Boolean).join(' '),
+              sx ? '' : EV_AV_SEXO].filter(Boolean).join(' '),
       ficha: 'DIM-VI-005' }));
   });
   /* La fuente del espesor se publica aparte y DESPUÉS de sus dos barras: su ficha es otra que
@@ -105644,13 +105652,29 @@ const DCM_RANGO_CLIN = {
      app ya marca en pantalla y en el informe—, así que no se toca acá: este renglón es un rango
      de ADVERTENCIA del importador y no la definición de dilatada. `docs/PENDIENTES.md`.
      Los otros dos segmentos de este renglón conservan su `>` y siguen coincidiendo.
-     ⚠️ SE USA EL TECHO DEL VARÓN y esta tabla no mira el sexo: es el corte MÁS ALTO, así que el
-     aviso nunca avisa de más. En una mujer un diámetro de 39 mm es dilatado y entra sin
-     advertencia; avisar de más sobre un estudio sano es la forma más rápida de que el médico
-     aprenda a ignorar el cartel, y queda declarado en PENDIENTES. */
-  tango_tac:[null,185], vti_tsvd:[12,22], tsvd_diametro:[null,35], ai_diam:[null,AI_DIAM_NORMAL_MAX_H],
+     ⚠️ `ai_diam` RESUELVE EL SEXO DE LA FILA IMPORTADA (CORTOS8, 2026-10-17), y cierra `LS-5`.
+     Hasta hoy esta tabla era estatica y usaba el techo del VARON para los dos sexos: nunca
+     avisaba de mas, pero en una mujer un diametro de 39 mm es dilatado y entraba SIN advertencia.
+     La entrada puede ser un PAR o una FUNCION del sexo, y la resuelve `_dcmRangoClin`; el corte
+     se lo pide a `aiDiamNormalMax`, que es su dueño unico y el que usan el informe, el EN SUMA,
+     la capsula y la tarjeta — aca no hay ningun numero.
+     ⚠️ EL SEXO LLEGA DEL PROPIO ARCHIVO: (0010,0040) PatientSex en el SR DICOM. `sexoCargado`
+     normaliza un texto, asi que la 'M'/'F' cruda del archivo entra tal cual, y sin sexo cae al
+     corte MAS ALTO —que es la regla de la casa y lo que esta tabla hacia siempre—. El informe CHM
+     del Vivid NO trae sexo (`_chmPaciente` devuelve `sexo: ''`), asi que por esa via el
+     comportamiento es el de hoy. */
+  tango_tac:[null,185], vti_tsvd:[12,22], tsvd_diametro:[null,35],
+  ai_diam: sx => [null, aiDiamNormalMax(sx)],
   ao_sin:[null,AO_REF.sin], ao_st:[null,AO_REF.st], ao_tub:[null,AO_REF.tub]
 };
+
+/* El resolvedor de la tabla de arriba: una entrada puede ser un PAR `[min,max]` o una FUNCION
+   del sexo de la fila. Lo comparten las DOS vias del importador —el SR DICOM y el CHM del
+   Vivid—, que armaban su `rgc` por separado. */
+function _dcmRangoClin(campo, sexo) {
+  const r = DCM_RANGO_CLIN[campo];
+  return (typeof r === 'function') ? r(sexo) : r;
+}
 
 /* ── Conversión de nombres, en UN solo lugar para las dos direcciones ──
 
@@ -105709,7 +105733,7 @@ function _dcmPaciente(ds) {
 }
 
 /* Convierte un NUM leído a un campo de EcoSmart, o explica por qué no se puede. */
-function _dcmMapear(num) {
+function _dcmMapear(num, sexo) {
   const c = num.concepto;
   if (!c || !c.v) return { ok:false, motivo:'la medición no declara código de concepto' };
   /* Primero por ESQUEMA|CÓDIGO. El respaldo por código pelado sólo se acepta si el archivo NO
@@ -105774,7 +105798,7 @@ function _dcmMapear(num) {
     ? (der.valor.m || der.valor.v) : '';
   /* Fuera de lo NORMAL pero dentro de lo posible: entra, y se avisa. No destilda: un
      hallazgo patológico es justamente lo que hay que importar. */
-  const rgc = DCM_RANGO_CLIN[hit.def.campo];
+  const rgc = _dcmRangoClin(hit.def.campo, sexo);
   /* La unidad del mensaje es la de EcoSmart, que es la del factor 1 en la tabla UCUM: sin
      ella el cartel dice «Vmax IT = 3.2 queda fuera de (0.5–2.8)» y no se sabe de qué. */
   const _uApp = Object.keys(hit.def.ucum).find(k => hit.def.ucum[k] === 1) || '';
@@ -106326,7 +106350,7 @@ function _chmEdad(nacIso, fechaIso) {
 
 /* Convierte una medición del XML a una fila con la MISMA forma que devuelve `_dcmMapear`,
    para que la vista previa, la deduplicación y el ejecutor sean los mismos. */
-function _chmMapearMedicion(nombreParam, etiqGE, unidadGE, valorTexto) {
+function _chmMapearMedicion(nombreParam, etiqGE, unidadGE, valorTexto, sexo) {
   const cod = { v: nombreParam, e: 'GE Vivid', m: etiqGE || '' };
   const ent = CHM_MAPA[nombreParam];
   if (!ent) return { ok:false, cod, motivo:'parámetro del GE sin equivalente en EcoSmart' };
@@ -106358,7 +106382,7 @@ function _chmMapearMedicion(nombreParam, etiqGE, unidadGE, valorTexto) {
     return { ok:false, cod, valor:n, unidad:u,
              motivo: etiq + ' = ' + _dcmRed(conv) + ' queda fuera de lo posible (' + rg[0] + '–' + rg[1] +
                      '): el archivo declara «' + u + '» pero el número no lo parece' };
-  const rgc = DCM_RANGO_CLIN[ent.campo];
+  const rgc = _dcmRangoClin(ent.campo, sexo);
   const _uApp = Object.keys(ucum).find(k => ucum[k] === 1) || '';
   const _fuera = rgc && ((rgc[0] != null && conv < rgc[0]) || (rgc[1] != null && conv > rgc[1]));
   const _banda = rgc ? (rgc[0] == null ? 'hasta ' + rgc[1] : (rgc[1] == null ? 'desde ' + rgc[0] : rgc[0] + '–' + rgc[1])) : '';
@@ -106401,7 +106425,7 @@ function _chmLeerEstudio(buf, nombreArchivo) {
     for (let k = 0; k < mps.length; k++) {
       const mp = mps[k];
       const r = _chmMapearMedicion(nombre, _chmTexto(mp, 'name'), _chmTexto(mp, 'unit'),
-                                   _chmTexto(mp, 'aver') || _chmTexto(mp, 'value'));
+                                   _chmTexto(mp, 'aver') || _chmTexto(mp, 'value'), pac.sexo);
       if (r.ok) mapeadas.push(r);
       else descartes.push({ cod:r.cod, motivo:r.motivo, valor:r.valor != null ? r.valor : null, unidad:r.unidad || '' });
     }
@@ -106472,7 +106496,7 @@ async function dcmImportarSR(fileList) {
       }
       descartes = []; mapeadas = [];
       nums.forEach(n => {
-        const r = _dcmMapear(n);
+        const r = _dcmMapear(n, pac.sexo);
         if (!r.ok) descartes.push({ cod:r.cod, motivo:r.motivo, valor:n.valor, unidad:n.unidad ? n.unidad.v : '' });
         else mapeadas.push(r);
       });
