@@ -29461,8 +29461,11 @@ window.feviRangoUI = feviRangoUI;
 const ASE_ONDAL_SUPL = 50;   // cm/s  — onda L, borde `>=` (folio 555b y nota ‡ de la Figura 3)
 const ASE_IPTD_SUPL  = 2;    // m/s   — IP telediastólica, borde `>=` (folio 555a y nota ‡)
 const ASE_PAPD_SUPL  = 16;   // mmHg  — PAP diastólica, borde `>=` (folio 555a y nota ‡)
-const ASE_ARA_SUPL   = 30;   // ms    — Ar−A, borde `>` ESTRICTO (folio 555d y nota ‡)
-const ASE_ARVEL_SUPL = 35;   // cm/s  — amplitud de la Ar, borde `>` ESTRICTO (folio 555d)
+const ASE_ARA_SUPL   = 30;   // ms    — Ar−A, borde `>` ESTRICTO (nota de la Figura 3, folio 554,
+                             //        y prosa del folio 555d). La Tabla 7 del folio 557 escribe
+                             //        `>=`: gana la figura del algoritmo que la app ejecuta.
+const ASE_ARVEL_SUPL = 35;   // cm/s  — amplitud de la Ar, borde `>` ESTRICTO (folio 555d); desde
+                             //        el CORTOS6 NO vota: solo se nombra en el rotulo de la fila
 
 /* La PAP diastólica que publica `calcIP`, leída de su campo y NO recalculada. Devuelve `null`
    cuando falta la PmAD, porque ese texto trae el sufijo «(sin PmAD)» y es una PAPd a la que le
@@ -29488,17 +29491,27 @@ const ASE_SUPLEMENTARIOS = [
   { clave: 'papD', rot: 'PAP diastólica ≥ ' + ASE_PAPD_SUPL + ' mmHg (folio 555a, alternativa de la anterior)', u: 'mmHg', dec: 0,
     leer: function () { return asePapdSupl(); },
     cumple: function (x) { return x !== null && x >= ASE_PAPD_SUPL; } },
-  /* ⚠️ UNA SOLA ENTRADA PARA LOS DOS OPERANDOS DEL INCISO (d), y no dos. Son un AND: con dos
-     entradas, cada una votaría sola y el Ar−A positivo con una Ar de 20 cm/s afirmaría presión
-     elevada —la mitad de la condición que la guía escribe—. `leer` devuelve la DURACIÓN, que es el
-     número que la fila muestra, y `cumple` exige además la amplitud. Que la fila no pueda mostrar
-     los dos valores es el precio; el rótulo nombra los dos cortes. */
-  { clave: 'arA', rot: 'Ar−A > ' + ASE_ARA_SUPL + ' ms CON amplitud de la Ar > ' + ASE_ARVEL_SUPL + ' cm/s (folio 555d)', u: 'ms', dec: 0,
+  /* ══ EL Ar−A VOTA SOLO, CON SU DURACION Y NADA MAS (CORTOS6, 2026-10-17) ════════════════════
+     DECISION DE MAICOL, y cierra `C2` de `docs/PENDIENTES.md`. La orden dice «segun la Figura 3 de
+     la ASE 2025, con mayor de 30 ms», y la nota de suplementarios de esa figura —folio 554, hoja
+     18— nombra, literal y con el operador ESTRICTO: «Ar-A duration > 30 ms». Verificado en el PDF
+     original.
+     ⚠️ HASTA HOY EXIGIA ADEMAS LA AMPLITUD DE LA Ar (> 35 cm/s), que es lo que pide la PROSA del
+     folio 555d —«a high amplitude (>35 cm/s) and long duration of pulmonary vein Ar velocity,
+     along with an Ar-A duration >30 ms»—. Las dos mitades estan impresas y no dicen lo mismo:
+     `C2` lo dejo declarado el 12/10 con el AND, que era el lado conservador. Hoy manda la FIGURA,
+     que es la regla de la casa —gana la figura del algoritmo que la app ejecuta— y es lo que la
+     orden pide.
+     ⚠️ CONSECUENCIA MEDIDA Y AUTORIZADA: con el Ar−A por encima de 30 ms y la amplitud de la Ar
+     SIN CARGAR o por debajo de 35 cm/s, este suplementario ahora vota. Alcanza unicamente al
+     paciente que llego al paso suplementario, o sea el que no tiene ninguno de los cuatro
+     parametros del segundo paso (Vol AI, LARS, S/D ni TRIV).
+     ⚠️ `ASE_ARVEL_SUPL` SE QUEDA DECLARADA Y SIN CONSUMIDOR A PROPOSITO: es el corte de la prosa
+     del folio 555d, el rotulo de la fila lo nombra como salvedad y el dia que Maicol vuelva al
+     AND esta ahi con su folio. No es una cadena viva sin dueño: es un dato de la fuente. */
+  { clave: 'arA', rot: 'Ar−A > ' + ASE_ARA_SUPL + ' ms (folio 554, nota de la Figura 3; la prosa del folio 555d pide ademas una Ar de amplitud > ' + ASE_ARVEL_SUPL + ' cm/s)', u: 'ms', dec: 0,
     leer: function () { return (typeof venpArA === 'function') ? venpArA() : null; },
-    cumple: function (x) {
-      const vel = v('venp_vel_ar');
-      return x !== null && x > ASE_ARA_SUPL && vel !== null && vel > ASE_ARVEL_SUPL;
-    } }
+    cumple: function (x) { return x !== null && x > ASE_ARA_SUPL; } }
 ];
 window.ASE_SUPLEMENTARIOS = ASE_SUPLEMENTARIOS;
 
