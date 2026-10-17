@@ -584,6 +584,140 @@ async function main() {
     out.grupos.aorta = g; parcial('aorta', t0);
   }
 
+  /* ── grupo tarjetas: las cuatro tarjetas i y la pestana Referencias ── */
+  if (corre('tarjetas')) {
+    const t0 = Date.now(); const g = {};
+    const CARDS = [['ad-card', 'ad_area'], ['vd-tam-card', 'vd_bas'],
+                   ['vd-fun-card', 'tapse'], ['ao-card', 'ao_sin']];
+    /* Un paciente con un grado distinto en cada parametro, para que las cuatro tarjetas tengan
+       punto y categoria. */
+    const ESC = { ad_area:'23', vd_bas:'46', vd_mid:'36', vd_long:'92', vd_pared:'8',
+                  vd_area_d:'30', vd_area_s:'17', tapse:'12', s_prime:'6', fevd:'35',
+                  vd_tei:'0.65', tvia:'90', vd_area_dX:null, ao_sin:'42', edad:'55',
+                  peso:'80', talla:'180', vci_diam:'24', vci_col:'<50' };
+    try { await escena(ESC); } catch (e) { abortos.push('tarjetas escena: ' + e.message); }
+    for (const [clave, ancla] of CARDS) {
+      try {
+        await ev(`JSON.stringify(window.__P.abrirPara(${JSON.stringify(ancla)}))`);
+        g[clave] = await J(`JSON.stringify((function(){
+          var b = document.querySelector('[data-vinfo="' + ${JSON.stringify(clave)} + '"]');
+          if (!b) return { err:'SIN BOTON' };
+          var rb = b.getBoundingClientRect();
+          if (!(rb.width > 0 && rb.height > 0)) return { err:'BOTON SIN GEOMETRIA' };
+          b.click();
+          /* OJO: la tarjeta se cierra con style.display = none y NO con el atributo hidden:
+             preguntar por el atributo informa 'no cerro' sobre un cierre perfecto. */
+          var c = document.getElementById('vinfo-card');
+          if (!c || getComputedStyle(c).display === 'none') return { err:'NO ABRIO' };
+          var r = c.getBoundingClientRect();
+          var zonas = Array.prototype.slice.call(c.querySelectorAll('[data-ev-zona]')).map(function(z){ return z.getAttribute('data-ev-zona') });
+          var barras = {};
+          Array.prototype.slice.call(c.querySelectorAll('[data-ev-barra]')).forEach(function(sv){
+            var k = sv.getAttribute('data-ev-barra');
+            barras[k] = { zonas: Array.prototype.slice.call(sv.querySelectorAll('[data-ev-zona]')).map(function(z){ return z.getAttribute('data-ev-zona') }),
+                          cortes: Array.prototype.slice.call(sv.querySelectorAll('text[data-ev-corte]')).map(function(t){ return String(t.textContent||'').trim() }),
+                          aria: sv.getAttribute('aria-label'),
+                          punto: !!sv.querySelector('[data-ev-punto]') } });
+          var cats = {};
+          Array.prototype.slice.call(c.querySelectorAll('[data-ev-cat]')).forEach(function(d){ cats[d.getAttribute('data-ev-cat')] = String(d.textContent||'').trim() });
+          var r2 = { w: Math.round(r.width), h: Math.round(r.height),
+                     scrollH: c.scrollHeight, clientH: c.clientHeight,
+                     vh: window.innerHeight, barras: barras, nZonas: zonas.length, cats: cats,
+                     pie: String((c.querySelector('[data-ev-pie]')||{}).textContent||'').trim() };
+          b.click();
+          r2.cerro = getComputedStyle(document.getElementById('vinfo-card')).display === 'none';
+          return r2 })())`);
+      } catch (e) { g[clave] = { ABORTO: e.message }; abortos.push('tarjeta ' + clave + ': ' + e.message); }
+    }
+    /* Referencias: las tres entradas, con sus filas y su bibliografia. */
+    try {
+      g.refs = await J(`JSON.stringify((function(){
+        var o = {};
+        ['ad','vd2','ao2'].forEach(function(id){
+          var host = document.getElementById('ref-' + id + '-cuerpo');
+          if (!host) { o[id] = { err:'SIN HOST' }; return }
+          try { if (typeof evRefPintar === 'function') evRefPintar(id) } catch (e) { o[id] = { err:String(e && e.message) }; return }
+          var filas = Array.prototype.slice.call(host.querySelectorAll('tr')).map(function(tr){ return String(tr.textContent||'').trim() });
+          o[id] = { nFilas: filas.length, filas: filas,
+                    biblio: String((host.querySelector('[data-ev-biblio]')||{}).textContent||'').trim(),
+                    barras: Array.prototype.slice.call(host.querySelectorAll('[data-ev-barra]')).map(function(s){ return s.getAttribute('data-ev-barra') }) };
+        });
+        return o })())`);
+    } catch (e) { g.refs = { ABORTO: e.message }; abortos.push('refs: ' + e.message); }
+    /* 20 aperturas y cierres: ni oyentes ni nodos acumulados. */
+    try {
+      g.ciclo = await J(`JSON.stringify((function(){
+        var b = document.querySelector('[data-vinfo="vd-tam-card"]');
+        if (!b) return { err:'SIN BOTON' };
+        var c = document.getElementById('vinfo-card');
+        /* ⚠️ SE CIERRA ANTES DEL BUCLE: con la tarjeta abierta, cuarenta clics la dejan ABIERTA
+           —la leccion que el mapa de la tanda M ya tiene escrita— y el conteo de nodos sale con
+           el contenido de una tarjeta adentro. */
+        if (getComputedStyle(c).display !== 'none') b.click();
+        var n0 = document.getElementsByTagName('*').length;
+        for (var i = 0; i < 20; i++) { b.click(); b.click() }
+        return { n0: n0, n1: document.getElementsByTagName('*').length,
+                 cerrada: getComputedStyle(c).display === 'none' } })())`);
+    } catch (e) { g.ciclo = { ABORTO: e.message }; abortos.push('ciclo: ' + e.message); }
+    g.almacen = await J('JSON.stringify(window.__P.almacen())');
+    out.grupos.tarjetas = g; parcial('tarjetas', t0);
+  }
+
+  /* ── grupo maqueta: alto de las cuatro tarjetas en seis anchos y los DOS temas ── */
+  if (corre('maqueta')) {
+    const t0 = Date.now(); const g = {};
+    const VIEW = [[1200,700],[1440,800],[1920,1080],[768,1024],[390,844],[360,740]];
+    const CARDS = [['ad-card','ad_area'],['vd-tam-card','vd_bas'],['vd-fun-card','tapse'],['ao-card','ao_sin']];
+    const ESC = { ad_area:'23', vd_bas:'46', vd_mid:'36', vd_long:'92', vd_pared:'8',
+                  vd_area_d:'30', vd_area_s:'17', tapse:'12', s_prime:'6', fevd:'35',
+                  vd_tei:'0.65', tvia:'90', ao_sin:'42', edad:'55', peso:'80', talla:'180',
+                  vci_diam:'24', vci_col:'<50' };
+    for (const [W, H] of VIEW) {
+      await cdp.send('Emulation.setDeviceMetricsOverride',
+        { width: W, height: H, deviceScaleFactor: 1, mobile: W < 768 }, sessionId);
+      for (const tema of ['oscuro', 'claro']) {
+        /* ⚠️ EL TEMA DE ESTA APP ES LA CLASE `light-mode` EN EL ELEMENTO RAIZ, y se ABORTA si no
+           quedo puesta: sin eso las dos pasadas miden el mismo tema y salen identicas. */
+        const puesto = await ev(`(function(){ var r = document.documentElement;
+          if (${tema === 'claro'}) r.classList.add('light-mode'); else r.classList.remove('light-mode');
+          return r.classList.contains('light-mode') })()`);
+        if (puesto !== (tema === 'claro')) { abortos.push('maqueta tema ' + tema + ' no quedo'); continue; }
+        try { await escena(ESC); } catch (e) { abortos.push('maqueta escena ' + W + ': ' + e.message); }
+        for (const [clave, ancla] of CARDS) {
+          const k = W + 'x' + H + ' ' + tema + ' ' + clave;
+          try {
+            await ev(`JSON.stringify(window.__P.abrirPara(${JSON.stringify(ancla)}))`);
+            g[k] = await J(`JSON.stringify((function(){
+              var b = document.querySelector('[data-vinfo="' + ${JSON.stringify(clave)} + '"]');
+              if (!b) return { err:'SIN BOTON' };
+              var rb = b.getBoundingClientRect();
+              if (!(rb.width > 0 && rb.height > 0)) return { err:'BOTON 0x0' };
+              b.click();
+              var c = document.getElementById('vinfo-card');
+              if (getComputedStyle(c).display === 'none') return { err:'NO ABRIO' };
+              var r = c.getBoundingClientRect();
+              var o = { w: Math.round(r.width), h: Math.round(r.height),
+                        top: Math.round(r.top), bottom: Math.round(r.bottom),
+                        vh: window.innerHeight, vw: window.innerWidth,
+                        scrollInterno: c.scrollHeight > c.clientHeight + 1,
+                        dentro: r.top >= -1 && r.bottom <= window.innerHeight + 1,
+                        scrollH: document.documentElement.scrollWidth > window.innerWidth + 1,
+                        colorZona: (function(){ var o = {};
+                          ['normal','leve','moderada','severa'].forEach(function(g){
+                            var z = c.querySelector('[data-ev-zona="' + g + '"]');
+                            o[g] = z ? getComputedStyle(z).fill : 'SIN ZONA' });
+                          return o })() };
+              b.click();
+              return o })())`);
+          } catch (e) { g[k] = { ABORTO: e.message }; abortos.push('maqueta ' + k + ': ' + e.message); }
+        }
+      }
+    }
+    await ev("document.documentElement.classList.remove('light-mode')");
+    await cdp.send('Emulation.clearDeviceMetricsOverride', {}, sessionId);
+    out.grupos.maqueta = g; parcial('maqueta', t0);
+  }
+
   out.md5_despues = await md5(EXTERNO ? FARG : join(RAIZ, 'index.html'));
   out.index_intacto = out.md5_antes === out.md5_despues;
   out.segundos = +((Date.now() - t00) / 1000).toFixed(1);

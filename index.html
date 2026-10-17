@@ -39856,7 +39856,7 @@ function evTarjetaAD() {
   const C = evCortes(sv('sexo'));
   const pA = vPlaus('ad_area');
   fr.appendChild(_evBarra({ clave: 'ad-area', rotulo: 'Área de la aurícula derecha (cm²)',
-    bandas: C.adArea, lo: 8, hi: 35, unidad: 'cm²', dec: 0,
+    bandas: C.adArea, lo: 8, hi: 35, unidad: 'cm²', dec: 0, corteEn: ['desde', 'hasta', 'hasta'],
     valor: (pA.val != null && !pA.fuera) ? pA.val : null,
     cat: _evCapsula('ad-interp'),
     aviso: pA.fuera ? 'Valor fuera de rango medible: verificar el área.'
@@ -39906,15 +39906,20 @@ function evTarjetaVDTam() {
   const C = evCortes(sv('sexo'));
   const num = (id) => { const x = v(id); return (x !== null && isFinite(x) && x > 0) ? x : null; };
 
+  /* ⚠️ `corteEn` ES UNA LISTA EN LAS TRES, Y SALE DE LA TABLA 1 (VS6, 2026-10-17): sus bandas
+     se escriben «<4.1 · >=4.1 a <=4.4 · >4.4 a <=4.9 · >4.9», o sea que el PRIMER corte se
+     nombra por el PISO de la banda de arriba y los otros dos por el TECHO de la de abajo. Con
+     un solo modo, uno de los dos grupos sale corrido un paso de sondeo —«40 mm» en vez de 41, o
+     «45» en vez de 44— y es un número que el médico no reconoce. */
   fr.appendChild(_evBarra({ clave: 'vd-bas', rotulo: 'Diámetro basal (mm)',
     bandas: C.vdBas, lo: 20, hi: 65, unidad: 'mm', dec: 0, valor: num('vd_bas'),
-    ficha: 'DIM-VD-001' }));
+    corteEn: ['desde', 'hasta', 'hasta'], ficha: 'DIM-VD-001' }));
   fr.appendChild(_evBarra({ clave: 'vd-mid', rotulo: 'Diámetro medio (mm)',
     bandas: C.vdMid, lo: 15, hi: 55, unidad: 'mm', dec: 0, valor: num('vd_mid'),
-    ficha: 'DIM-VD-002' }));
+    corteEn: ['desde', 'hasta', 'hasta'], ficha: 'DIM-VD-002' }));
   fr.appendChild(_evBarra({ clave: 'vd-long', rotulo: 'Diámetro longitudinal (mm)',
     bandas: C.vdLong, lo: 45, hi: 120, unidad: 'mm', dec: 0, valor: num('vd_long'),
-    ficha: 'DIM-VD-003' }));
+    corteEn: ['desde', 'hasta', 'hasta'], ficha: 'DIM-VD-003' }));
   const _tam = _evCapsula('vd-tam');
   if (_tam) fr.appendChild(_evDiv('ev-cat', _tam, { 'data-ev-cat': 'vd-diams' }));
   else fr.appendChild(_evDiv('ev-avi', 'Cargar al menos uno de los tres diámetros.',
@@ -39926,15 +39931,34 @@ function evTarjetaVDTam() {
     cat: _evCapsula('vd-pared-interp'),
     aviso: (num('vd_pared') === null) ? 'Cargar el espesor de la pared libre.' : '',
     ficha: 'DIM-VD-004' }));
-  fr.appendChild(_evFuentesPie(['DIM-VD-001', 'DIM-VD-002', 'DIM-VD-003', 'DIM-VD-004']));
+  /* ⚠️ LAS DOS AREAS SOLO SE GRADUAN ACA Y EN REFERENCIAS (VS6, 2026-10-17): ninguna superficie
+     firmada las clasifica, y agregarles una categoría al papel sería contenido clínico que esta
+     orden no pide. No llevan la frase de la cápsula porque no hay cápsula que copiar: lo que
+     publican es la banda y el punto del paciente. */
+  fr.appendChild(_evBarra({ clave: 'vd-area-d', rotulo: 'Área telediastólica (cm²)',
+    bandas: C.vdAreaD, lo: 12, hi: 42, unidad: 'cm²', dec: 0, valor: num('vd_area_d'),
+    corteEn: ['desde', 'hasta', 'hasta'],
+    aviso: (num('vd_area_d') === null) ? 'Cargar el área telediastólica.' : '',
+    ficha: 'DIM-VD-005' }));
+  fr.appendChild(_evBarra({ clave: 'vd-area-s', rotulo: 'Área telesistólica (cm²)',
+    bandas: C.vdAreaS, lo: 6, hi: 28, unidad: 'cm²', dec: 0, valor: num('vd_area_s'),
+    corteEn: ['desde', 'hasta', 'hasta'],
+    aviso: (num('vd_area_s') === null) ? 'Cargar el área telesistólica.' : '',
+    ficha: 'DIM-VD-006' }));
+  fr.appendChild(_evFuentesPie(['DIM-VD-001', 'DIM-VD-002', 'DIM-VD-003', 'DIM-VD-004',
+                                'DIM-VD-005', 'DIM-VD-006']));
   return fr;
 }
 window.evTarjetaVDTam = evTarjetaVDTam;
 
 /* La mitad de FUNCION. Las seis barras que la aplicacion clasifica, cada una con la frase que
    su propia capsula publica.
-   ⚠️ TAPSE, ONDA S' Y FEVD PIDEN EL ROJO POR `colores`: su unica banda anormal es la peor, y
-   el naranja del mapa global es el de la banda del MEDIO de la FAC. */
+   ⚠️ EL `colores` DE TAPSE, ONDA S' Y FEVD SE RETIRO (VS6, 2026-10-17). Existia porque esas tres
+   tenian UNA sola banda anormal y la palabra «disfuncion» era, en la FAC, la del MEDIO: con el
+   mapa global salian naranjas cuando eran la peor. Desde el VS2 las cinco devuelven los CUATRO
+   grados de la Tabla 1 y `EV_COLOR` ya tiene su color —verde, amarillo, naranja y rojo—, asi que
+   el override pintaria de rojo las cuatro bandas. El tiempo de aceleracion pulmonar lo conserva:
+   es el unico que sigue teniendo dos bandas, porque esta orden lo deja como esta. */
 function evTarjetaVDFun() {
   const fr = document.createDocumentFragment();
   const h = document.createElement('h4');
@@ -39943,27 +39967,32 @@ function evTarjetaVDFun() {
   fr.appendChild(h);
   const C = evCortes(sv('sexo'));
   const num = (id) => { const x = v(id); return (x !== null && isFinite(x) && x > 0) ? x : null; };
-  const ROJO = { disfuncion: '--red' };
-
+  /* ⚠️ EL TAPSE Y LA ONDA S' SE NOMBRAN «<=1.7 a >=1.3 · <1.3 a >1.0 · <=1.0»: el corte de
+     abajo por el TECHO de la banda severa, el del medio por el PISO de la leve y el de arriba
+     por su TECHO. Tres operadores distintos en una sola barra. */
   fr.appendChild(_evBarra({ clave: 'vd-tapse', rotulo: 'TAPSE (mm)',
-    bandas: C.vdTapse, lo: 5, hi: 32, unidad: 'mm', dec: 0, corteEn: 'desde',
-    valor: num('tapse'), colores: ROJO, cat: _evCapsula('tapse-interp'),
+    bandas: C.vdTapse, lo: 5, hi: 32, unidad: 'mm', dec: 0, corteEn: ['hasta', 'desde', 'hasta'],
+    valor: num('tapse'), cat: _evCapsula('tapse-interp'),
     aviso: (num('tapse') === null) ? 'Cargar el TAPSE.' : '', ficha: 'FUN-VD-001' }));
   fr.appendChild(_evBarra({ clave: 'vd-sprime', rotulo: 'Onda S′ tricuspídea (cm/s)',
-    bandas: C.vdSprime, lo: 4, hi: 18, unidad: 'cm/s', dec: 1, corteEn: 'desde',
-    valor: num('s_prime'), colores: ROJO, cat: _evCapsula('sprime-interp'),
+    bandas: C.vdSprime, lo: 4, hi: 18, unidad: 'cm/s', dec: 1, corteEn: ['hasta', 'desde', 'hasta'],
+    valor: num('s_prime'), cat: _evCapsula('sprime-interp'),
     aviso: (num('s_prime') === null) ? 'Cargar la onda S′.' : '', ficha: 'FUN-VD-002' }));
   /* La FAC es un campo de SOLO LECTURA que `calcVD` escribe desde las dos areas: el valor se
      lee del campo, que es el que la capsula clasifica y el que el informe imprime. */
   const _fac = v('vd_fac');
   fr.appendChild(_evBarra({ clave: 'vd-fac', rotulo: 'Cambio fraccional de área (%)',
-    bandas: C.vdFac, lo: 10, hi: 60, unidad: '%', dec: 0, corteEn: 'desde',
+    /* La FAC nombra sus TRES cortes por el techo de la banda de abajo —«<=35 · <=29 · <=22»—,
+       que es el modo por omision de `_evBarra`. */
+    bandas: C.vdFac, lo: 10, hi: 60, unidad: '%', dec: 0,
     valor: (_fac !== null && isFinite(_fac)) ? _fac : null, cat: _evCapsula('fac-interp'),
     aviso: (_fac === null) ? 'Cargar las dos áreas del ventrículo derecho.' : '',
     ficha: 'FUN-VD-003' }));
   fr.appendChild(_evBarra({ clave: 'vd-fevd', rotulo: 'Fracción de eyección por 3D (%)',
-    bandas: C.vdFevd, lo: 15, hi: 75, unidad: '%', dec: 0,
-    valor: num('fevd'), colores: ROJO, cat: _evCapsula('fevd-interp'),
+    /* La FEVD nombra el corte de abajo por el PISO de la moderada (32, que la guia escribe
+       «>=32») y los otros dos por el techo de la banda de abajo. */
+    bandas: C.vdFevd, lo: 15, hi: 75, unidad: '%', dec: 0, corteEn: ['desde', 'hasta', 'hasta'],
+    valor: num('fevd'), cat: _evCapsula('fevd-interp'),
     aviso: (num('fevd') === null) ? 'Cargar la fracción de eyección por 3D.' : '',
     ficha: 'FUN-VD-004' }));
   fr.appendChild(_evBarra({ clave: 'vd-tei', rotulo: 'Índice de Tei por Doppler tisular',
@@ -40185,6 +40214,21 @@ function _evRefBiblio(fichas) {
 }
 /* Las graficas de Referencias son las MISMAS del paciente, sin su punto: el motor es uno solo
    (`_evBarra`), asi que una barra nueva aparece en los dos lados o en ninguno. */
+/* ══ LAS CUATRO FILAS DE UN PARAMETRO DE LA TABLA 1, DERIVADAS (VS6, 2026-10-17) ═══════════
+   Una fila por grado, con el rango que publica `ase25Rango`, o sea el que `ase25Grado` aplica.
+   Antes estas filas eran CADENAS ESCRITAS A MANO —«≤ 18 cm²», «≥ 17 mm», «≥ 35 % · < 25 %»— y
+   quedaron viejas en bloque el día que los cortes se movieron: Referencias es la superficie que
+   el médico consulta JUSTAMENTE para saber con qué se graduó.
+   Las dos columnas de sexo publican lo MISMO porque la Tabla 1 no distingue sexo en ninguna de
+   sus filas; se conservan las dos para que la tabla se lea igual que las de la zona AI/VI. */
+function _evRefFilasT1(ficha, clave, rot) {
+  const G = (typeof ASE25_GRADOS !== 'undefined') ? ASE25_GRADOS : ['normal','leve','moderada','severa'];
+  const NOM = { normal:'normal', leve:'leve', moderada:'moderada', severa:'severa' };
+  return G.map(function (g) {
+    const r = ase25Rango(clave, g, true);
+    return { ficha: ficha, rot: rot + ' — ' + NOM[g], h: r, m: r };
+  });
+}
 function _evRefBarras(defs, sexo) {
   const C = evCortes(sexo);
   const w = document.createElement('div');
@@ -40228,16 +40272,15 @@ function evRefPintar(id) {
   if (id === 'ad') {
     const B = _evRefBiblio(['DIM-AD-001', 'VCI-001', 'VCI-002']);
     host.appendChild(_evRefTabla([
-      { ficha: 'DIM-AD-001', rot: 'Área de la AD — normal', h: '≤ 18 cm²', m: '≤ 18 cm²' },
-      { ficha: 'DIM-AD-001', rot: 'Área de la AD — dilatada', h: '> 18 cm²', m: '> 18 cm²' },
-      { ficha: 'VCI-001', rot: 'Vena cava — diámetro no dilatado', h: '< 21 mm', m: '< 21 mm' },
+      ..._evRefFilasT1('DIM-AD-001', 'ad_area', 'Área de la AD'),
+      { ficha: 'VCI-001', rot: 'Vena cava — diámetro no dilatado', h: '≤ ' + VCI_DIAM_DILATADA_MIN + ' mm', m: '≤ ' + VCI_DIAM_DILATADA_MIN + ' mm' },
       { ficha: 'VCI-002', rot: 'PmAD — cava no dilatada y colapso > 50 %', h: '3 mmHg', m: '3 mmHg' },
       { ficha: 'VCI-002', rot: 'PmAD — un solo criterio alterado', h: '8 mmHg', m: '8 mmHg' },
       { ficha: 'VCI-002', rot: 'PmAD — cava dilatada y colapso < 50 %', h: '15 mmHg', m: '15 mmHg' },
     ], B.idx));
     host.appendChild(_evRefBarras([
       { clave: 'ref-ad-area', rotulo: 'Área de la aurícula derecha (cm²)', banda: 'adArea',
-        lo: 8, hi: 35, unidad: 'cm²', dec: 0, ficha: 'DIM-AD-001' },
+        lo: 8, hi: 35, unidad: 'cm²', dec: 0, ficha: 'DIM-AD-001', corteEn: ['desde', 'hasta', 'hasta'] },
     ], 'M'));
     /* La MISMA tabla de la tarjeta, sin la fila del paciente. */
     const wv = document.createElement('div');
@@ -40251,7 +40294,11 @@ function evRefPintar(id) {
   if (id === 'ao2') {
     const B = _evRefBiblio(['AOR-001', 'AOR-002', 'AOR-003']);
     host.appendChild(_evRefTabla([
-      { ficha: 'AOR-001', rot: 'Raíz aórtica — dilatada (criterio de EcoSmart)', h: '> 40 mm', m: '> 40 mm' },
+      /* ⚠️ EL SIMBOLO SE DERIVA DE `AO_SEGS` (VS5/VS6): la raíz es el único segmento que cuenta
+         su propio corte como dilatado, así que su fila dice «≥ 40 mm» y las otras cuatro «>». */
+      { ficha: 'AOR-001', rot: 'Raíz aórtica — dilatada (criterio de EcoSmart)',
+        h: aoSegSim(AO_SEGS.find(x => x.k === 'ao_sin'), 'dil') + ' ' + AO_REF.sin + ' mm',
+        m: aoSegSim(AO_SEGS.find(x => x.k === 'ao_sin'), 'dil') + ' ' + AO_REF.sin + ' mm' },
       { ficha: 'AOR-001', rot: 'Unión sinotubular — dilatada', h: '> 38 mm', m: '> 38 mm' },
       { ficha: 'AOR-001', rot: 'Aorta ascendente — dilatada', h: '> 40 mm', m: '> 40 mm' },
       { ficha: 'AOR-001', rot: 'Cayado — dilatado', h: '> 40 mm', m: '> 40 mm' },
@@ -40284,31 +40331,37 @@ function evRefPintar(id) {
   }
   if (id === 'vd2') {
     const B = _evRefBiblio(['DIM-VD-001', 'DIM-VD-002', 'DIM-VD-003', 'DIM-VD-004',
+                            'DIM-VD-005', 'DIM-VD-006',
                             'FUN-VD-001', 'FUN-VD-002', 'FUN-VD-003', 'FUN-VD-004',
                             'FUN-VD-005', 'FUN-VD-006']);
     host.appendChild(_evRefTabla([
-      { ficha: 'DIM-VD-001', rot: 'Diámetro basal — normal', h: '≤ 41 mm', m: '≤ 41 mm' },
-      { ficha: 'DIM-VD-001', rot: 'Diámetro basal — dilatación leve / dilatado', h: '42 a 45 · > 45 mm', m: '42 a 45 · > 45 mm' },
-      { ficha: 'DIM-VD-002', rot: 'Diámetro medio — dilatado', h: '> 35 mm', m: '> 35 mm' },
-      { ficha: 'DIM-VD-003', rot: 'Diámetro longitudinal — dilatado', h: '> 86 mm', m: '> 86 mm' },
-      { ficha: 'DIM-VD-004', rot: 'Pared libre — normal', h: '< 5 mm', m: '< 5 mm' },
-      { ficha: 'DIM-VD-004', rot: 'Pared libre — leve / moderada / severa', h: '5 a 7 · > 7 a 9 · > 9 mm', m: '5 a 7 · > 7 a 9 · > 9 mm' },
-      { ficha: 'FUN-VD-001', rot: 'TAPSE — normal', h: '≥ 17 mm', m: '≥ 17 mm' },
-      { ficha: 'FUN-VD-002', rot: 'Onda S′ — normal', h: '≥ 9,5 cm/s', m: '≥ 9,5 cm/s' },
-      { ficha: 'FUN-VD-003', rot: 'FAC — normal / disfunción severa', h: '≥ 35 % · < 25 %', m: '≥ 35 % · < 25 %' },
-      { ficha: 'FUN-VD-004', rot: 'Fracción de eyección por 3D — normal', h: '> 45 %', m: '> 45 %' },
-      { ficha: 'FUN-VD-005', rot: 'Índice de Tei por Doppler tisular — normal', h: '< 0,55', m: '< 0,55' },
-      { ficha: 'FUN-VD-006', rot: 'Tiempo de aceleración pulmonar — normal', h: '≥ 105 ms', m: '≥ 105 ms' },
+      ..._evRefFilasT1('DIM-VD-001', 'vd_bas',   'Diámetro basal'),
+      ..._evRefFilasT1('DIM-VD-002', 'vd_mid',   'Diámetro medio'),
+      ..._evRefFilasT1('DIM-VD-003', 'vd_long',  'Diámetro longitudinal'),
+      ..._evRefFilasT1('DIM-VD-004', 'vd_pared', 'Pared libre'),
+      ..._evRefFilasT1('DIM-VD-005', 'vd_area_d','Área telediastólica'),
+      ..._evRefFilasT1('DIM-VD-006', 'vd_area_s','Área telesistólica'),
+      ..._evRefFilasT1('FUN-VD-001', 'tapse',    'TAPSE'),
+      ..._evRefFilasT1('FUN-VD-002', 's_prime',  'Onda S′'),
+      ..._evRefFilasT1('FUN-VD-003', 'vd_fac',   'FAC'),
+      ..._evRefFilasT1('FUN-VD-004', 'fevd',     'Fracción de eyección por 3D'),
+      ..._evRefFilasT1('FUN-VD-005', 'vd_tei',   'Índice de Tei por Doppler tisular'),
+      /* El tiempo de aceleracion pulmonar NO entra en `ASE25_T1`: la Tabla 1 lo gradua y la app
+         lo aplica con un solo corte, que esta orden deja como esta. Su fila sigue siendo la que
+         describe lo que la app hace. */
+      { ficha: 'FUN-VD-006', rot: 'Tiempo de aceleración pulmonar — normal', h: '≥ ' + UMBRAL_TAP_HTP + ' ms', m: '≥ ' + UMBRAL_TAP_HTP + ' ms' },
     ], B.idx));
     host.appendChild(_evRefBarras([
-      { clave: 'ref-vd-bas', rotulo: 'Diámetro basal (mm)', banda: 'vdBas', lo: 20, hi: 65, unidad: 'mm', dec: 0, ficha: 'DIM-VD-001' },
-      { clave: 'ref-vd-mid', rotulo: 'Diámetro medio (mm)', banda: 'vdMid', lo: 15, hi: 55, unidad: 'mm', dec: 0, ficha: 'DIM-VD-002' },
-      { clave: 'ref-vd-long', rotulo: 'Diámetro longitudinal (mm)', banda: 'vdLong', lo: 45, hi: 120, unidad: 'mm', dec: 0, ficha: 'DIM-VD-003' },
+      { clave: 'ref-vd-bas', rotulo: 'Diámetro basal (mm)', banda: 'vdBas', lo: 20, hi: 65, unidad: 'mm', dec: 0, ficha: 'DIM-VD-001', corteEn: ['desde', 'hasta', 'hasta'] },
+      { clave: 'ref-vd-mid', rotulo: 'Diámetro medio (mm)', banda: 'vdMid', lo: 15, hi: 55, unidad: 'mm', dec: 0, ficha: 'DIM-VD-002', corteEn: ['desde', 'hasta', 'hasta'] },
+      { clave: 'ref-vd-long', rotulo: 'Diámetro longitudinal (mm)', banda: 'vdLong', lo: 45, hi: 120, unidad: 'mm', dec: 0, ficha: 'DIM-VD-003', corteEn: ['desde', 'hasta', 'hasta'] },
       { clave: 'ref-vd-pared', rotulo: 'Espesor de la pared libre (mm)', banda: 'vdPared', lo: 1, hi: 14, unidad: 'mm', dec: 1, ficha: 'DIM-VD-004', corteEn: ['desde', 'hasta', 'hasta'] },
-      { clave: 'ref-vd-tapse', rotulo: 'TAPSE (mm)', banda: 'vdTapse', lo: 5, hi: 32, unidad: 'mm', dec: 0, ficha: 'FUN-VD-001', corteEn: 'desde' },
-      { clave: 'ref-vd-sprime', rotulo: 'Onda S′ tricuspídea (cm/s)', banda: 'vdSprime', lo: 4, hi: 18, unidad: 'cm/s', dec: 1, ficha: 'FUN-VD-002', corteEn: 'desde' },
-      { clave: 'ref-vd-fac', rotulo: 'Cambio fraccional de área (%)', banda: 'vdFac', lo: 10, hi: 60, unidad: '%', dec: 0, ficha: 'FUN-VD-003', corteEn: 'desde' },
-      { clave: 'ref-vd-fevd', rotulo: 'Fracción de eyección por 3D (%)', banda: 'vdFevd', lo: 15, hi: 75, unidad: '%', dec: 0, ficha: 'FUN-VD-004' },
+      { clave: 'ref-vd-area-d', rotulo: 'Área telediastólica (cm²)', banda: 'vdAreaD', lo: 12, hi: 42, unidad: 'cm²', dec: 0, ficha: 'DIM-VD-005', corteEn: ['desde', 'hasta', 'hasta'] },
+      { clave: 'ref-vd-area-s', rotulo: 'Área telesistólica (cm²)', banda: 'vdAreaS', lo: 6, hi: 28, unidad: 'cm²', dec: 0, ficha: 'DIM-VD-006', corteEn: ['desde', 'hasta', 'hasta'] },
+      { clave: 'ref-vd-tapse', rotulo: 'TAPSE (mm)', banda: 'vdTapse', lo: 5, hi: 32, unidad: 'mm', dec: 0, ficha: 'FUN-VD-001', corteEn: ['hasta', 'desde', 'hasta'] },
+      { clave: 'ref-vd-sprime', rotulo: 'Onda S′ tricuspídea (cm/s)', banda: 'vdSprime', lo: 4, hi: 18, unidad: 'cm/s', dec: 1, ficha: 'FUN-VD-002', corteEn: ['hasta', 'desde', 'hasta'] },
+      { clave: 'ref-vd-fac', rotulo: 'Cambio fraccional de área (%)', banda: 'vdFac', lo: 10, hi: 60, unidad: '%', dec: 0, ficha: 'FUN-VD-003' },
+      { clave: 'ref-vd-fevd', rotulo: 'Fracción de eyección por 3D (%)', banda: 'vdFevd', lo: 15, hi: 75, unidad: '%', dec: 0, ficha: 'FUN-VD-004', corteEn: ['desde', 'hasta', 'hasta'] },
       { clave: 'ref-vd-tei', rotulo: 'Índice de Tei por Doppler tisular', banda: 'vdTei', lo: 0.15, hi: 1.0, unidad: '', dec: 2, ficha: 'FUN-VD-005', corteEn: 'desde' },
       { clave: 'ref-vd-tap', rotulo: 'Tiempo de aceleración pulmonar (ms)', banda: 'vdTap', lo: 50, hi: 180, unidad: 'ms', dec: 0, ficha: 'FUN-VD-006', corteEn: 'desde' },
     ], 'M'));
