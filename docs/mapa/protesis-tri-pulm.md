@@ -270,3 +270,14 @@ Está en `docs/mapa/cortos-arreglos.md`, y es lo primero que hay que leer antes 
   Maicol.
 - Y los dos rótulos de la insuficiencia pulmonar nombran el territorio de la **Tabla 16** —anillo
   pulmonar y tronco pulmonar distal—, que cierra `PRO-C4`.
+
+## Las TARJETAS ⓘ de las válvulas — están en otro archivo
+
+Las ocho tarjetas de lesión (una arriba de cada pastilla selectora de severidad), la de la función
+diastólica y la de la fuga paravalvular aórtica están en
+**`docs/mapa/valvulas-tarjetas-info.md`** (tanda «Q», 2026-10-17): el mecanismo reusado de L y de
+M, los dos dueños de donde sale todo (`_v2dPastilla` y `_v2dPorQue`), la tabla `QV_BARRA` con la
+constante dueña de cada corte, la cosecha de fuentes, la frase de integración y diez trampas.
+
+⚠️ Es **solo presentación**: ni un corte, ni un operador, ni una regla, ni un texto del informe,
+del EN SUMA, del PDF, del PPT o del Excel. A/B contra el inicio de la tanda: **cero diferencias**.

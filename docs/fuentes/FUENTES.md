@@ -3578,3 +3578,83 @@ operadores.
 mitral, la fuga paravalvular, la TAVI, el PPM, los cuatro de la estenosis tricuspídea nativa, los
 de la pulmonar, `IT_CRIT`, los cuatro signos de la IP, los ocho del HFA-PEFF, el Wilkins y los
 umbrales nativos de la AI, el VI y la FEVI.
+
+---
+
+## La tanda «Q» — las fuentes que MUESTRAN las tarjetas ⓘ (2026-10-17)
+
+⚠️ **ESTA TANDA NO VERIFICÓ NINGUNA FUENTE NUEVA Y NO MOVIÓ NINGÚN CORTE.** Es solo presentación:
+lo que hace es **publicar en pantalla** citas que ya estaban verificadas por las tandas que
+implementaron cada corte. Lo único nuevo es que **tres de ellas pasaron de ser un COMENTARIO a ser
+un DATO**, con el patrón de `IT_CRIT_FUENTE`: la cita vive al lado del corte, así que los dos se
+mueven juntos y un consumidor nuevo puede leerla en vez de retipearla.
+
+### Tarjeta → de dónde lee / fuente que publica
+
+| Tarjeta | Dueño de los cortes | Fuente que la tarjeta publica |
+|---|---|---|
+| Insuficiencia mitral | `IM_CORTES` (`vc`, `eroa`, `volr`, `fr`, `jet_nat`/`jet_prot`) | ASE 2017 (Zoghbi) folios 311-312, Tabla 8 folio 332 · el jet: ACC/AHA 2020 Tabla 17 folio e121 · prótesis: ASE 2024 Tabla 13 pág. 30 |
+| Estenosis mitral | `EM_GMEDIO_ELEVADO_MIN`, `EM_GMEDIO_SIGNIF_MIN`, `AVM_SEVERA_MAX` | EAE/ASE 2009 (Baumgartner) folios 12 y 13 · los cortes: ASE 2023 (Pandian) Tabla 1 folio 8 |
+| Insuficiencia aórtica | `calcIA_ESC` (literales) + `EA_PROT_CRIT` para la fuga | ASE 2017 folios 311-312, Tabla 14 folio 339 · la fuga: ASE 2024 Tabla 8 folio 23 |
+| Estenosis aórtica nativa | `EA_BANDAS`, `AVA_SEVERA_MAX`, `AVA_MOD_MAX`, `EA_AVAI_*`, `EA_DVI_*` | EAE/ASE 2009 Tabla 3 pág. 10 y folios 6-7 · ESC/EACTS 2025 |
+| Estenosis aórtica protésica y TAVI | `EA_PROT_CRIT` (`savr_gmed_*`, `savr_dvi_*`) | ASE 2024 Tabla 5 pág. 19 · el PPM, Tabla 7 pág. 20 |
+| Prótesis mitral | `VM_PROT_T11`, `VM_PROT_EOA_*`, `VM_PROT_DVI_*` | ASE 2024 Tabla 11 pág. 27 y texto de la pág. 24 |
+| Insuficiencia tricuspídea | `IT_CRIT` | ASE 2017 (Zoghbi) folio 312, Tabla 14 folio 350 |
+| Estenosis tricuspídea nativa | `ET_CRIT` | EAE/ASE 2009 Tabla 10 folio 19 · ASE 2023 folio 16 · ESC/EACTS 2025 §12.2 folio 4688 |
+| Prótesis tricúspide | `VT_PROT_T19` | ASE 2024 Tabla 19 folio 36 |
+| Insuficiencia pulmonar | `IP_PHT_SEVERA` | **`IP_CRIT_FUENTE`** (dato nuevo): ASE 2019 (Zoghbi), JASE 2019;32(4), folio 463 |
+| Estenosis pulmonar nativa | `EP_GMAX_NORMAL_MAX`, `EP_GMAX_LEVE_MAX`, `EP_GMAX_MOD_MAX` | **SIN LÍNEA DE FUENTE** (ver abajo) |
+| Prótesis pulmonar | `VP_PROT_T15` | **`VP_PROT_FUENTE`** (dato nuevo): ASE 2024 Tabla 15 folio 33 |
+| Función diastólica | `diast*Evaluar` de la guía elegida | **`DIAST_ALGO_FUENTE`** (dato nuevo): ASE 2025 Figura 3 folio 554 y Figura 8 folio 563 · BSE 2024 Figuras 17-19 págs. 35-40 · ASE/EACVI 2016 Figura 8 folio 290 y folio 281 |
+| Fuga paravalvular aórtica | `EA_PROT_CRIT` y la Tabla 8 | ASE 2024 (Zoghbi) Tabla 8 folio 23 |
+
+### ⚠️ Dos lesiones NO publican línea de fuente, y los dos motivos son distintos
+
+- **La ESTENOSIS PULMONAR NATIVA.** El comentario de sus tres cortes (9, 36 y 64 mmHg) dice
+  «(ESC/ASE)» **sin folio**, así que en este repo no están verificados al estándar de la casa:
+  texto completo leído, con documento, año, tabla y página. Inventarle una cita sería respaldar un
+  corte con una fuente que nadie abrió, que es exactamente lo que la regla de la casa prohíbe. La
+  tarjeta muestra los cortes —que son los que la app aplica— y **no cita a nadie**.
+  `docs/PENDIENTES.md` → **Q-2**.
+  ⚠️ **Y el piso de 9 mmHg es criterio propio de la app:** la tarjeta lo muestra como corte y
+  **no escribe ningún «por qué»** (orden expresa: ese texto está sin aprobar).
+- **Los TRES parámetros de la INSUFICIENCIA AÓRTICA sin barra** —THP (500/200), reverso
+  telediastólico (20 cm/s) y VTI de la aorta descendente (15/25)—. Sus cortes **sí** tienen fuente
+  (ASE 2017 Tabla 14 folio 339 y ESC/EACTS 2025), y lo que falta es otra cosa: viven como
+  **literal dentro de `calcIA_ESC`** y no en una constante, así que dibujarles una barra obligaría
+  a copiar el corte. Sus filas salen como TEXTO y publican el corte igual, porque el badge que la
+  app escribe ya lo lleva adentro. `docs/PENDIENTES.md` → **Q-1**.
+
+### ⚠️ La frase de integración NO es de ninguna guía, y lo dice en voz alta
+
+`QV_INTEGRA_TXT`, con las palabras que fijó Maicol el 17/10/2026:
+
+> «La guía sugiere integrar varios parámetros y no fija una regla numérica de decisión. Para
+> facilitar la clasificación, EcoSmart considera sugestivos de estenosis dos o más criterios
+> positivos. La decisión final queda a criterio del médico.»
+
+La usan la prótesis **TRICÚSPIDE** (Tabla 19) y la **MITRAL** (Tabla 11), que aplican la MISMA
+regla y cuya tabla publica la MISMA columna, «Suggests significant stenosis». Que la ASE 2024 **no
+publica** una regla de integración para ninguna de las dos está censado en las entradas **Z1** y
+**PRO-C2** de `docs/PENDIENTES.md`: la nota `*` de la Tabla 11 habla de CONFIANZA diagnóstica, la
+prosa del folio 24 enumera los criterios sin decir cuántos hacen falta, no hay figura de
+algoritmo y los Key Points del folio 29 no agregan ninguna.
+
+### ⚠️ El reverso diastólico se cita SIN número, y es deliberado
+
+La nota de la tarjeta de la insuficiencia aórtica dice que hay **dos fuentes** y **cuántos
+niveles** tiene cada una —un solo nivel en la nativa y en la prótesis quirúrgica por la ESC/EACTS
+2025; **dos** en la TAVI por la VARC-3, Tabla 16, folio 1846— y **no escribe ningún corte**: los
+dos de la TAVI viven como constante LOCAL dentro de `eteTaviRPV` y copiarlos a la tarjeta sería un
+segundo dueño. El corte que se aplica lo publica la propia fila.
+
+### Cambios de evidencia — tanda Q
+
+| Dato | Antes | Ahora | Fuente | Commit | Fecha |
+|---|---|---|---|---|---|
+| **ningún corte, operador ni regla** | — | — | — | — | — |
+
+⚠️ **CERO CAMBIOS DE EVIDENCIA, Y ESTÁ MEDIDO:** A/B contra el inicio de la tanda en los siete
+commits, con el PDF en sus seis plantillas, el PPT y el PDF de auditoría **generados de verdad**,
+el informe en los tres estilos, el EN SUMA, el Excel en 440 columnas CLAVE POR CLAVE, los ocho
+grados con sus ocho pastillas y el Laboratorio: **cero diferencias**.

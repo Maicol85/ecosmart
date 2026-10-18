@@ -267,3 +267,69 @@ corrieron. Todo eso lo mide `scripts/_probe_cortos.mjs`.
   Ninguna de las quince estaba mal escrita: las quince describían la app de ayer.
 - **TC-471**, una línea: el registro `VINFO` pasa de **30 a 34** entradas. Las cuatro nuevas no
   están en la pestaña Válvulas, así que lo que ese caso afirma del marcado de Válvulas no cambia.
+
+---
+
+## TC-500 — la tanda «Q»: las tarjetas ⓘ de las válvulas (2026-10-17)
+
+**51 condiciones**, contadas sobre el propio caso (los `ex.push` de su cuerpo; ninguno vive dentro
+de un bucle). **Verificado que sabe fallar contra el inicio de la tanda en un worktree aparte: 37
+de las 51 en rojo, y NINGUNA por excepción** —las 14 que pasan son el mecanismo de los globos, que
+viene de L y de M, y los controles, que es lo que esta tanda no mueve—.
+
+### Qué afirma, por bloque
+
+| Bloque | Qué fija |
+|---|---|
+| **A** (5) | el mecanismo y las 44 entradas del registro; los ocho botones de lesión son `<button>` sin `title` y con `aria-expanded`; los dos de fuera de la lista; ninguno de los 44 lleva al manual ni queda sin entrada; y los ocho quedan **ARRIBA** de su pastilla selectora, medido con la geometría |
+| **B** (3) | las ocho abren con su propio botón y el segundo toque cierra; NUNCA hay dos abiertas; el cierre deja la tarjeta vacía y sin clave viva |
+| **C** (8+1) | el GRADO es el de la pastilla en las ocho, con su clase de nivel; cada fila publica el MISMO nombre, valor y grado que el dueño; la línea «Decide» es la que la pantalla publica; las barras traen sus CORTES y el PUNTO con su unidad; la FUENTE al pie con folio; ningún rótulo de corte lleva palabra de gravedad; el signo de APOYO va en su grupo |
+| **D** (6+1) | con morfología protésica la tarjeta lee `prot:tricuspide`; bio muestra SOLO 210 cm/s, 9 mmHg y 200 ms y mecánica SOLO 190, 6 y 130; ningún corte en dos unidades; la regla por sus TRES estados; la frase de integración con las palabras de su constante; el DVI pierde su barra al retirarse con IT moderada |
+| **E** (5+1) | la PULMONAR con sus tres entradas; bio 3,2/20 y homoinjerto 2,5/15 sin mostrar los del otro; **NUNCA «severa»** en los cinco estados; «No graduada» con su motivo y sin barra en los tres sin columna; la estenosis nativa convirtiendo sus cortes al m/s de la fila |
+| **F** (5+1) | la diastólica con las tres guías: la categoría es la de `dd-interp`, la guía elegida se nombra con su ritmo, cada guía trae SUS filas, el suplementario Ar−A sale solo con la ASE 2025 con su operador y su folio, y la fuente sale de su constante |
+| **G** (2+1) | las dos frases fijas de la fuga aórtica ya no están en el texto visible de la pestaña, y el globo dice lo mismo en menos palabras con su folio |
+| **H** (2+1) | el grado fijado a mano: la tarjeta lo publica, con su aviso y SIN criterios, y el **control negativo** con el automático |
+| **I** (2) | 20 aperturas y cierres dejan el MISMO número de nodos y la tarjeta cerrada; las diez se cierran con el clic de afuera, o sea el oyente es uno solo |
+| **J** (2) | abrir y cerrar las nueve no deja una clave en el navegador ni agrega un campo del estudio |
+| **K** (3) | los CONTROLES: Excel en 440 columnas, el informe y el EN SUMA en los tres estilos sin una mención de la tarjeta, y la frase de integración que NO entra en ninguna superficie firmada |
+| **L** (2) | la regla de CSS de la columna y el piso táctil acotado a `pointer: coarse`; la tarjeta siempre dentro de la pantalla |
+
+### Lo que este caso NO puede medir y mide la sonda
+
+El cuerpo de un caso corre DENTRO de la página: no puede cambiar el ancho de la ventana ni el
+motor. Los cuatro anchos, los dos temas con su color REAL resuelto, Chrome y WebKit y las capturas
+los mide `scripts/_probe_qtarj.mjs`. Lo que el caso fija es la REGLA de CSS que lo produce, que es
+el reparto de TC-460 y de TC-485.
+
+### Cinco cosas que pusieron el caso en rojo sobre un árbol perfecto
+
+1. **`CDAT` DEVOLVIA UN OBJETO INCOMPLETO cuando la tarjeta no abría**, y una condición que leía
+   `.texto.length` mató la corrida entera con un `TypeError` — que prueba que el árbol es distinto
+   y no que el caso sabe medir. Hoy la forma del objeto es la misma siempre.
+2. **`VINFO`, `QV_INTEGRA_TXT` y `DIAST_ALGO_FUENTE` SON `const` DE MODULO:** el ayudante `G()`
+   —que usa `in window`— devolvió «NO EXISTE» sobre constantes que sí existen. Cuatro condiciones
+   en rojo. Es la trampa de `ECO_AYUDA`.
+3. **BARRER «sever» EN EL TEXTO COMPLETO DE LA TARJETA PULMONAR DA UN FALSO:** su línea de fuente
+   dice «esa tabla no publica una columna de severa». Se barren los nodos que publican veredicto.
+4. **EL VEREDICTO DE LA PROTESIS TRICUSPIDE NO ESTA EN EL PARENTESIS DEL «Decide»:** su entrada
+   declara `decideModo: 'parentesis'`, así que la línea integrada publica los criterios con su
+   conteo y la PALABRA la dice la fila `vt-prot-obstr`. Hay que leer las dos.
+5. **EL `\s` SE COCINA:** una condición con un regex sobre el CSS quedó en rojo sobre dos reglas
+   perfectas. Va por `indexOf`.
+
+Y dos del ARNES del propio caso: **abrir Válvulas a ciegas navega fuera de la pestaña del globo de
+la diastólica**, y **si el botón sigue midiendo 0×0 hay que abrir su cajón** —`valvDatosTog`
+toggea, así que preguntarle al `caja-*` por su `display` no sirve—.
+
+### Casos adaptados por esta tanda: CUATRO
+
+- **TC-471**, dos números: el registro `VINFO` pasa de **34 a 44** y los globos de la pestaña
+  Válvulas de **22 a 31**. Lo que ese caso vigila —que toda clave del marcado tenga entrada y que
+  no quede ninguna de legado— no cambia.
+- **TC-472** y **TC-474**, un número cada uno: los mismos 22 → **31** globos.
+- **TC-484**, el denominador de `V2D_PORQUE` de **9 a 12** y, sobre todo, **su afirmación sobre la
+  pulmonar cambia de nodo y no de sentido**: decía «`prot:pulmonar` NO existe» como PROXY de «la
+  pulmonar no está en la vista 2D», y ese proxy dejó de servir. El invariante de verdad es
+  `V2D_VALVS` —los dos lugares que buscan una entrada la buscan por una clave que sale de esa
+  tabla—, así que hoy se exige que tenga TRES válvulas y que ninguna sea la pulmonar, que es más
+  fuerte que lo anterior.

@@ -2545,6 +2545,10 @@ async function main() {
       await tipear('vp_vmax', '3.3');
       await tipear('ep_gmedio', '22');
       const o = { morfPuesta: sm, tipoPuesto: st,
+                  epGrado: await ev(`window.__P.val('ep_grado')`),
+                  epSev: await ev(`window.__P.txt('ep-sev')`),
+                  pastilla: await ev(`(function(){ try { return _v2dPastilla('esten','pulmonar') }
+                    catch (x) { return 'EXC' } })()`),
                   tipoLeido: await ev(`(function(){ try { return vpProtTipo() } catch (x) { return 'EXC' } })()`),
                   dueno: await ev(`window.__Q.dueno('esten', 'pulmonar')`) };
       try { await clicQ('tarj-esten-pulmonar'); o.card = await ev(`window.__Q.cardDatos()`);
@@ -2679,6 +2683,20 @@ async function main() {
     g.interp = await ev(`window.__P.txt('ea-pvl-interp')`);
     g.motivo = await ev(`window.__P.txt('ea-pvl-motivo')`);
     /* Las dos frases retiradas, contadas en el texto RENDERIZADO de la pestana. */
+    g.conteos = await ev(`(function(){
+      return { vinfo: (typeof VINFO === 'object' && VINFO) ? Object.keys(VINFO).length : 'SIN',
+               globosValv: document.querySelectorAll('#tab-valvulas [data-vinfo]').length,
+               globosDoppler: document.querySelectorAll('#tab-doppler [data-vinfo]').length,
+               globosTot: document.querySelectorAll('[data-vinfo]').length,
+               v2dPorque: (typeof V2D_PORQUE === 'object' && V2D_PORQUE) ? Object.keys(V2D_PORQUE).length : 'SIN',
+               v2dValvs: (typeof V2D_VALVS !== 'undefined' && V2D_VALVS) ? V2D_VALVS.map(function(v){ return v.k }) : 'SIN',
+               sinTitle: Array.prototype.slice.call(document.querySelectorAll('#tab-valvulas [data-vinfo]'))
+                 .filter(function(b){ return b.hasAttribute('title') }).length,
+               noBoton: Array.prototype.slice.call(document.querySelectorAll('[data-vinfo]'))
+                 .filter(function(b){ return b.tagName !== 'BUTTON' }).length,
+               sinEntrada: Array.prototype.slice.call(document.querySelectorAll('[data-vinfo]'))
+                 .filter(function(b){ return !(typeof VINFO === 'object' && VINFO && VINFO[b.getAttribute('data-vinfo')]) })
+                 .map(function(b){ return b.getAttribute('data-vinfo') }) } })()`);
     g.frases = await ev(`(function(){
       var tab = document.getElementById('tab-valvulas');
       var t = tab ? (tab.innerText || '').replace(/\\s+/g, ' ') : '';

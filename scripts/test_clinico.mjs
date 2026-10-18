@@ -64690,8 +64690,15 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
        protesica mitral (clave prot-obstr), que nace con la regla de conteo de los cuatro
        criterios. Lo que este bloque vigila no es el numero sino que NINGUNO sea de legado y que
        la tarjeta no se corte, y eso se conserva entero. */
-    '(H) DENOMINADOR: la pestana tiene los VEINTIDOS globos y la tarjeta esta en el marcado',
-    globos.length === 22 && !!G('vinfo-card'),
+    /* ADAPTADO el 2026-10-17 (tanda Q): 22 -> 31. Los NUEVE globos nuevos de esta pestana son los
+       OCHO de las tarjetas de lesion -uno arriba de cada pastilla selectora de severidad- y el de
+       la fuga paravalvular aortica, que reemplazo a dos textos fijos de prosa. El de la funcion
+       diastolica NO cuenta aca: vive en el DOPPLER. Lo que estas condiciones vigilan no es el
+       numero sino que ninguno sea de legado, que todos sean <button> sin atributo title y que ninguno
+       lleve al manual, y eso se conserva entero: medido, 44 globos en la app, 44 entradas de
+       registro, CERO sin entrada, CERO con atributo title y CERO que no sean <button>. */
+    '(H) DENOMINADOR: la pestana tiene los TREINTA Y UN globos y la tarjeta esta en el marcado',
+    globos.length === 31 && !!G('vinfo-card'),
     'globos=' + globos.length + ' tarjeta=' + !!G('vinfo-card')]);
   ex.push(['(H) los veintidos son BOTONES, o sea enfocables y activables con teclado',
     globos.every(function(b){ return b.tagName.toLowerCase() === 'button'; }),
@@ -64788,9 +64795,15 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
        condicion afirma del marcado de Valvulas no cambia.
        ADAPTADO otra vez el 2026-10-17 (CORTOS): 30 -> 34, por otr-burbujas, otr-rac, pul-balik
        -los tres en la pestana OTROS- y oai-ref, en la seccion de la orejuela de ETE. Ninguno
-       esta en Valvulas. */
+       esta en Valvulas.
+       ADAPTADO otra vez el 2026-10-17 (tanda Q): 34 -> 44. Las DIEZ nuevas son las OCHO tarjetas
+       de lesion (tarj-insuf-* y tarj-esten-* de las cuatro valvulas), la de la funcion
+       diastolica (tarj-diast, que vive en el DOPPLER) y la de la fuga paravalvular aortica
+       (ea-pvl, que reemplazo a dos textos fijos). Lo que esta condicion sigue exigiendo —que
+       TODA clave del marcado de Valvulas tenga entrada, que es lo que impide una tarjeta VACIA,
+       y que no quede ninguna de legado— no cambia. */
     HAY_INFO && globos.every(function(b){ return !!VINFO[b.getAttribute('data-vinfo')]; }) &&
-    Object.keys(VINFO).length === 34,
+    Object.keys(VINFO).length === 44,
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
   ex.push(['(H) y la tarjeta se coloca SIEMPRE dentro de la pantalla, sin cortarse',
     (function(){ const b = document.querySelector('[data-vinfo="avm-thp"]');
@@ -65018,8 +65031,15 @@ caso('TC-472', 'Valvulas D2: la insuficiencia aortica en TRES columnas de CUATRO
     /* ADAPTADO el 2026-10-15 (Z5): 21 -> 22, por el globo del veredicto de obstruccion
        protesica mitral. Lo que este caso vigila —que las once tarjetas de D2 esten y que no
        quede ningun globo de legado— no se toca. */
-    '(E) DENOMINADOR: la pestana tiene VEINTIDOS globos y la tarjeta esta en el marcado',
-    globos.length === 22 && !!G('vinfo-card'),
+    /* ADAPTADO el 2026-10-17 (tanda Q): 22 -> 31. Los NUEVE globos nuevos de esta pestana son los
+       OCHO de las tarjetas de lesion -uno arriba de cada pastilla selectora de severidad- y el de
+       la fuga paravalvular aortica, que reemplazo a dos textos fijos de prosa. El de la funcion
+       diastolica NO cuenta aca: vive en el DOPPLER. Lo que estas condiciones vigilan no es el
+       numero sino que ninguno sea de legado, que todos sean <button> sin atributo title y que ninguno
+       lleve al manual, y eso se conserva entero: medido, 44 globos en la app, 44 entradas de
+       registro, CERO sin entrada, CERO con atributo title y CERO que no sean <button>. */
+    '(E) DENOMINADOR: la pestana tiene TREINTA Y UN globos y la tarjeta esta en el marcado',
+    globos.length === 31 && !!G('vinfo-card'),
     'globos=' + globos.length + ' tarjeta=' + !!G('vinfo-card')]);
   ex.push(['(E) las CUATRO nuevas y las SIETE reescritas estan en el registro',
     HAY_INFO && NUEVAS.concat(REESCRITAS).every(function(k){ return !!VINFO[k]; }),
@@ -65983,7 +66003,9 @@ caso('TC-474', 'W2-B: los criterios PROPIOS de la protesis mitral y aortica —T
     // ADAPTADO el 2026-10-15 (Z5): 21 -> 22. El globo nuevo es el del veredicto de obstruccion
     // protesica mitral (clave prot-obstr), que nace con la regla de conteo. Lo que este caso
     // vigila no es el numero sino que NINGUNO sea de legado, y eso se conserva entero.
-    globos.length === 22 &&
+    // ADAPTADO el 2026-10-17 (tanda Q): 22 -> 31, por los ocho globos de las tarjetas de lesion
+    // y el de la fuga paravalvular aortica. Lo que este caso vigila sigue intacto.
+    globos.length === 31 &&
     globos.every(function(b){ return b.tagName.toLowerCase() === 'button'; }) &&
     globos.every(function(b){ return !b.getAttribute('title'); }) &&
     globos.every(function(b){ return (b.getAttribute('onclick') || '').indexOf('abrirAyudaEco') === -1; }) &&
@@ -69333,11 +69355,26 @@ caso('TC-484', 'Tanda Y2: el «porque» de cada tarjeta de la vista 2D — los c
          propio (ASE 2024, Tabla 19, folio 36) y su tarjeta lo publica con el MISMO
          _v2dVeredictoProt que la mitral. Lo que esta condicion afirma —que la tabla existe y
          que estan las entradas que el Y2 creo— no cambio; lo que cambio es el denominador.
-         La PULMONAR sigue sin entrada, y es correcto: no esta en la vista 2D. */
-      ex.push(['DENOMINADOR: la tabla de criterios existe con las NUEVE entradas (seis nativas y TRES protesicas)',
-        k.length === 9 && k.indexOf('insuf:mitral') > -1 && k.indexOf('esten:aortica') > -1 &&
+         La PULMONAR sigue sin entrada, y es correcto: no esta en la vista 2D.
+         ADAPTADO otra vez el 2026-10-17 (tanda Q): la tabla pasa de NUEVE entradas a DOCE, y las
+         tres nuevas son las de la PULMONAR -insuf:pulmonar, esten:pulmonar y prot:pulmonar-, que
+         las ocho tarjetas i de la pestana Valvulas leen para no tener un segundo dueno.
+         ⚠️ Y LA AFIRMACION SOBRE LA PULMONAR CAMBIA DE NODO, NO DE SENTIDO. Este caso decia
+         «prot:pulmonar NO existe» como PROXY de «la pulmonar no esta en la vista 2D», y ese proxy
+         dejo de servir. El invariante de verdad es V2D_VALVS: los dos lugares que buscan una
+         entrada la buscan por una clave que sale de esa tabla, asi que mientras tenga TRES valvulas
+         y ninguna sea la pulmonar, las tres entradas nuevas son inertes para el dibujo. Eso es lo
+         que se exige ahora, y es mas fuerte que lo anterior. */
+      ex.push(['DENOMINADOR: la tabla de criterios existe con las DOCE entradas (seis nativas, tres protesicas y las tres de la pulmonar)',
+        k.length === 12 && k.indexOf('insuf:mitral') > -1 && k.indexOf('esten:aortica') > -1 &&
         k.indexOf('prot:mitral') > -1 && k.indexOf('prot:aortica') > -1 &&
-        k.indexOf('prot:tricuspide') > -1 && k.indexOf('prot:pulmonar') < 0, k.join(',')]);
+        k.indexOf('prot:tricuspide') > -1 && k.indexOf('prot:pulmonar') > -1, k.join(',')]);
+      ex.push(['y las tres de la PULMONAR son INERTES para el dibujo: V2D_VALVS sigue teniendo TRES valvulas y ninguna es la pulmonar',
+        (function(){ const V2 = (window.V2D_VALVS && Array.isArray(window.V2D_VALVS)) ? window.V2D_VALVS : null;
+          if (!V2) return false;
+          return V2.length === 3 && V2.map(function(v){ return v.k; }).indexOf('pulmonar') < 0; })(),
+        (function(){ const V2 = (window.V2D_VALVS && Array.isArray(window.V2D_VALVS)) ? window.V2D_VALVS : null;
+          return V2 ? V2.map(function(v){ return v.k; }).join(',') : 'SIN V2D_VALVS'; })()]);
       /* NI UN innerHTML en las funciones del Y2: todo el texto va por textContent. */
       ex.push(['todo el «porque» se escribe por textContent: ni un innerHTML en sus funciones',
         (function(){ const f = FUENTE();
@@ -75659,6 +75696,612 @@ caso('TC-499', 'Tanda CORTOS: la POSICION del selector de origen mitral y de los
       return sinScroll && conCaja === ids.length; })(),
     (function(){ const d = document.documentElement;
       return 'ancho=' + window.innerWidth + ' sw=' + d.scrollWidth + ' cw=' + d.clientWidth; })()]);
+
+  return { extra: ex };
+`);
+
+caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastilla selectora, la de la funcion diastolica y la de la fuga paravalvular aortica — el grado, las filas, la linea «Decide» y los cortes leidos del MISMO dueno que la vista 2D (V2D_PORQUE y _v2dPastilla), la columna de la protesis ELEGIDA en la tricuspide y en la pulmonar, la onda E en cm/s sin repetir el corte en m/s, la frase de integracion con sus palabras, «No graduada» con su motivo en los tres estados sin columna de la pulmonar, los dos textos fijos de la fuga retirados de la pantalla, y el informe, el EN SUMA, los ocho grados y las 440 columnas del Excel sin moverse', `
+  const ex = [];
+  const EL  = (id) => document.getElementById(id);
+  const S   = (id, v) => { try { __t.set(id, v); } catch (e) {} };
+  const V   = (id) => { const e = EL(id); return e ? String(e.value) : 'NO EXISTE'; };
+  const TXT = (id) => { const e = EL(id); return e ? String(e.textContent || '').replace(/[ ]+/g, ' ').trim() : 'NO EXISTE'; };
+  const G   = (n) => { try { return (n in window) ? window[n] : 'NO EXISTE'; } catch (e) { return 'EXC'; } };
+  const FN  = (n) => typeof G(n) === 'function';
+  const NL  = String.fromCharCode(10);
+  const NORM = (t) => String(t == null ? '' : t).replace(/[ ]+/g, ' ').trim();
+  /* ⚠️ TODA LECTURA DE LA TARJETA VA POR UN AYUDANTE CON CENTINELA. Contra el arbol de HEAD no
+     existen ni los ocho botones, ni qvTarjeta, ni QV_BARRA, ni las tres entradas de la pulmonar:
+     un .length o un .textContent sobre null mata la corrida entera con un TypeError, y eso
+     prueba que el arbol es distinto, no que el caso sabe medir. Misma leccion que TC-455,
+     TC-462, TC-465, TC-471, TC-473, TC-474, TC-477, TC-480, TC-481, TC-482, TC-483 y TC-484. */
+  /* ⚠️ VINFO, QV_INTEGRA_TXT Y DIAST_ALGO_FUENTE SON const DE MODULO Y NO PROPIEDADES DE window,
+     asi que G() -que usa in window- devuelve «NO EXISTE» sobre constantes que SI existen: es la
+     trampa de ECO_AYUDA que este archivo ya tiene escrita y que cazo CUATRO condiciones de este
+     caso en su primera corrida. El cuerpo de un caso se evalua en el scope GLOBAL de la pagina,
+     asi que la ligadura lexica si esta: se la nombra PELADA, con su guarda de typeof. */
+  const REG = () => { try { return (typeof VINFO === 'object' && VINFO) ? VINFO : null; } catch (e) { return null; } };
+  const INTEG = () => { try { return (typeof QV_INTEGRA_TXT === 'string') ? QV_INTEGRA_TXT : null; } catch (e) { return null; } };
+  const DFTE = () => { try { return (typeof DIAST_ALGO_FUENTE === 'object' && DIAST_ALGO_FUENTE) ? DIAST_ALGO_FUENTE : null; } catch (e) { return null; } };
+  const BTN = (k) => { try { return document.querySelector('[data-vinfo="' + k + '"]'); } catch (e) { return null; } };
+  const CARD = () => EL('vinfo-card');
+  const ABIERTO = () => { const c = CARD(); return !!(c && c.style.display !== 'none'); };
+  const CERRAR = () => { try { if (FN('vInfoCerrar')) window.vInfoCerrar(true); } catch (e) {} };
+  /* ⚠️ SE ABRE LA PESTANA DEL PROPIO BOTON, Y NO SIEMPRE VALVULAS: el globo de la funcion
+     diastolica vive en el DOPPLER, asi que sin esto mide 0 x 0 y el clic no llega. Lo que esta
+     funcion hace es lo que hace el medico: ir a la pantalla donde esta el globo. */
+  const PUERTA = (b) => { try {
+      const sec = b.closest ? b.closest('.tab-section') : null;
+      const id = sec ? String(sec.id || '') : '';
+      if (id.indexOf('tab-') === 0 && FN('showTab') && getComputedStyle(sec).display === 'none')
+        window.showTab(id.slice(4));
+      if (id === 'tab-valvulas') {
+        ['valv-mitral','valv-aortica','valv-tricuspide','valv-pulmonar']
+          .forEach(function (sx) { const c = EL('ete-seccion-' + sx);
+            if (c && getComputedStyle(c).display === 'none' && FN('toggleEteSeccion')) window.toggleEteSeccion(sx); });
+        /* ⚠️ Y LOS OCHO CAJONES «Datos», que tambien nacen cerrados: el bloque de la fuga
+           paravalvular vive dentro del de la insuficiencia aortica, asi que sin abrirlo su globo
+           mide 0 x 0 y la tarjeta salia VACIA. Lo cazo la primera corrida. */
+        ['caja-insuf-mitral','caja-esten-mitral','caja-insuf-aortica','caja-esten-aortica',
+         'caja-insuf-tricuspide','caja-esten-tricuspide','caja-insuf-pulmonar','caja-esten-pulmonar']
+          .forEach(function (cid) { const c = EL(cid);
+            if (c && getComputedStyle(c).display === 'none' && FN('valvDatosTog')) window.valvDatosTog(cid); });
+      }
+    } catch (e) {} };
+  /* ⚠️ Y SI DESPUES DE ABRIR LA PESTANA EL BOTON SIGUE MIDIENDO 0 x 0, SE ABRE SU CAJON. El
+     globo de la fuga paravalvular vive dentro del cajon «Datos» de la insuficiencia aortica, y
+     valvDatosTog TOGGLEA: preguntarle al caja-* por su display no sirve, porque lo que esta
+     escondido es el bloque-* de adentro. Se pregunta por la geometria del PROPIO boton, que es
+     la unica lectura que no se equivoca. Lo cazo la primera corrida de este caso: la tarjeta de
+     la fuga salia VACIA con el bloque perfecto. */
+  const CAJON = (b) => { try {
+      const caja = b.closest ? b.closest('[id^="caja-"]') : null;
+      if (caja && FN('valvDatosTog')) window.valvDatosTog(caja.id);
+    } catch (e) {} };
+  const ABRIR = (k) => { CERRAR(); const b = BTN(k); if (!b) return false;
+    PUERTA(b);
+    let r = b.getBoundingClientRect();
+    if (!(r.width > 0 && r.height > 0)) { CAJON(b); r = b.getBoundingClientRect(); }
+    if (!(r.width > 0 && r.height > 0)) return false;
+    try { b.click(); } catch (e) { return false; } return ABIERTO(); };
+  const CTXT = (k) => { if (!ABRIR(k)) return 'NO ABRE'; const c = CARD();
+    const t = NORM(c ? c.textContent : ''); CERRAR(); return t; };
+  /* El contenido estructurado: el grado, las filas de texto, las barras con su aria y la linea
+     integrada. Devuelve un objeto SIEMPRE, con marcas cuando no hay nada: asi una condicion no
+     revienta y el lector ve por que. */
+  /* ⚠️ LA FORMA DEL OBJETO ES SIEMPRE LA MISMA, TAMBIEN CUANDO NO ABRE, y eso es el centinela:
+     con un objeto incompleto, una condicion que lee .texto.length mata la corrida entera con un
+     TypeError y el caso prueba que el arbol es distinto, no que sabe medir. Lo cazo la primera
+     corrida de este mismo caso. */
+  const VACIA = (e) => ({ err: e || null, tit: null, grado: null, morf: null, gradoCls: '',
+    filas: [], arias: [], barras: [], cortes: [], apoyo: null, decide: null, aviso: null, ver: null,
+    nota: null, manual: null, vacio: null, fuentes: [], texto: '' });
+  const CDAT = (k) => {
+    if (!ABRIR(k)) return VACIA('NO ABRE ' + k);
+    const c = CARD();
+    const q = (sel) => { try { return Array.prototype.slice.call(c.querySelectorAll(sel)); } catch (e) { return []; } };
+    const uno = (sel) => { const e = c.querySelector(sel); return e ? NORM(e.textContent) : null; };
+    const o = {
+      tit: uno('h4'), grado: uno('[data-qv-grado]'),
+      /* La tarjeta de la diastolica rotula su guia con data-qv-algo y las de valvula su
+         morfologia con data-qv-morf: se leen los dos y se toma el que haya. */
+      morf: uno('[data-qv-morf]') || uno('[data-qv-algo]'),
+      gradoCls: (c.querySelector('[data-qv-grado]') || {}).className || '',
+      filas: q('[data-qv-row]').map(function (r) {
+        const n = r.querySelector('.qv-nom'), v2 = r.querySelector('.qv-val'), g2 = r.querySelector('.qv-g');
+        return { nom: n ? NORM(n.textContent) : null, val: v2 ? NORM(v2.textContent) : null,
+                 grado: g2 ? NORM(g2.textContent) : '' }; }),
+      arias: q('[data-ev-barra]').map(function (b) { return NORM(b.getAttribute('aria-label')); }),
+      barras: q('[data-ev-barra]').map(function (b) { return b.getAttribute('data-ev-barra'); }),
+      cortes: q('[data-ev-corte]').map(function (b) { return NORM(b.textContent); }),
+      apoyo: uno('[data-qv-apoyo]'), decide: uno('[data-qv-decide]'), aviso: uno('[data-qv-aviso]'),
+      nota: uno('[data-qv-nota]'), manual: uno('[data-qv-manual]'), vacio: uno('[data-qv-vacio]'),
+      fuentes: q('[data-ev-fuente]').map(function (b) { return NORM(b.textContent); }),
+      texto: NORM(c.textContent)
+    };
+    CERRAR(); return o;
+  };
+  /* El DUENO, leido aparte. Es contra esto que se compara la tarjeta. */
+  const PAST = (t, v2) => { try { return FN('_v2dPastilla') ? window._v2dPastilla(t, v2) : 'SIN FN'; } catch (e) { return 'EXC'; } };
+  const CLAVE = (t, v2) => { try { return FN('_qvClave') ? window._qvClave(t, v2) : 'SIN FN'; } catch (e) { return 'EXC'; } };
+  const PQ = (t, v2) => { try { if (!FN('_v2dPorQue') || !FN('_qvClave')) return null;
+      const c = window._qvClave(t, v2); return window._v2dPorQue(c && c.k ? c.k : (t + ':' + v2)) || null;
+    } catch (e) { return null; } };
+  const estilo = (e) => { try { setEstiloInforme(e); } catch (x) {} };
+  const inf = (e) => { estilo(e || 'estandar'); try { generarInforme(); } catch (x) {}
+    return { inf: String((EL('informe_texto') || {}).value || ''), suma: String((EL('en_suma') || {}).value || '') }; };
+  /* Los calculadores y los pintores se llaman a mano: __t.set no dispara el oninput del marcado,
+     asi que sin esto la escena mide el estado del paciente ANTERIOR. */
+  const PINT = ['calcBSA','calcIM_ESC','calcEM','calcIA_ESC','calcAo','calcIT_ESC','calcET',
+                'calcIP','calcVP','calcDiastol','valvProtSync','vmProtEOAPintar','vtProtObstrPintar',
+                'vpProtObstrPintar','eaPvlPintar','eaAvaiGradoPintar','etRefPintar','epRefPintar',
+                'ipRefPintar','emCuadroRefRepintar','calcPmAD','calcPSAP'];
+  const esc = (o) => { __t.limpiar(); Object.keys(o || {}).forEach(k => S(k, String(o[k])));
+    PINT.forEach(f => { try { if (FN(f)) window[f](); } catch (x) {} });
+    try { if (typeof valvSev === 'object' && valvSev && valvSev.refrescar) valvSev.refrescar(); } catch (x) {}
+    return o; };
+  const LESIONES = [['insuf','mitral'],['esten','mitral'],['insuf','aortica'],['esten','aortica'],
+                    ['insuf','tricuspide'],['esten','tricuspide'],['insuf','pulmonar'],['esten','pulmonar']];
+  const CLAVES = LESIONES.map(function (p) { return 'tarj-' + p[0] + '-' + p[1]; });
+
+  /* ══ A · DENOMINADOR: EL MECANISMO Y LOS DIEZ GLOBOS NUEVOS ════════════════════════════════ */
+  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 44 entradas',
+    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 44,
+    'VINFO=' + (REG() ? Object.keys(REG()).length : 'SIN REGISTRO') + ' card=' + !!CARD()]);
+  ex.push(['(A1) los OCHO botones de lesion existen, son BUTTON, sin atributo title y con aria-expanded',
+    CLAVES.every(function (k) { const b = BTN(k);
+      return !!b && b.tagName === 'BUTTON' && !b.hasAttribute('title') && b.getAttribute('aria-expanded') === 'false'; }),
+    CLAVES.map(function (k) { const b = BTN(k); return k + ':' + (b ? b.tagName : 'NO'); }).join(' ')]);
+  ex.push(['(A2) los dos globos nuevos de fuera de la lista existen: la funcion diastolica y la fuga paravalvular aortica',
+    !!BTN('tarj-diast') && !!BTN('ea-pvl') &&
+      !!(REG() || {})['tarj-diast'] && !!(REG() || {})['ea-pvl'],
+    'diast=' + !!BTN('tarj-diast') + ' pvl=' + !!BTN('ea-pvl')]);
+  ex.push(['(A3) ninguno de los globos de la app lleva atributo title ni al manual, y todos tienen entrada',
+    (function () { const g2 = Array.prototype.slice.call(document.querySelectorAll('[data-vinfo]'));
+      const R = REG(); if (!R || !g2.length) return false;
+      return g2.every(function (b) { return b.tagName === 'BUTTON' && !b.hasAttribute('title')
+        && String(b.getAttribute('onclick') || '').indexOf('abrirAyudaEco') < 0 && !!R[b.getAttribute('data-vinfo')]; }); })(),
+    'globos=' + document.querySelectorAll('[data-vinfo]').length]);
+  /* ⚠️ ARRIBA DE LA PASTILLA SELECTORA, y se mide con la GEOMETRIA: el borde inferior del globo
+     por encima del borde superior del boton de severidad. Un selector de marcado diria que son
+     hermanos y no donde quedo cada uno. */
+  ex.push(['(A4) los ocho quedan ARRIBA de su pastilla selectora de severidad, medido con la geometria',
+    (function () { try { if (FN('showTab')) showTab('valvulas'); } catch (e) {}
+      ['valv-mitral','valv-aortica','valv-tricuspide','valv-pulmonar'].forEach(function (sx) {
+        try { const c = EL('ete-seccion-' + sx);
+          if (c && getComputedStyle(c).display === 'none' && FN('toggleEteSeccion')) window.toggleEteSeccion(sx);
+        } catch (e) {} });
+      return LESIONES.every(function (p) {
+        const b = BTN('tarj-' + p[0] + '-' + p[1]), sv2 = EL('sevbtn-' + p[0] + '-' + p[1]);
+        if (!b || !sv2) return false;
+        const rb = b.getBoundingClientRect(), rs = sv2.getBoundingClientRect();
+        return rb.width > 0 && rb.height > 0 && Math.round(rb.bottom) <= Math.round(rs.top) + 1; }); })(),
+    LESIONES.map(function (p) { const b = BTN('tarj-' + p[0] + '-' + p[1]);
+      const r = b ? b.getBoundingClientRect() : null;
+      return p[1].slice(0,3) + p[0].slice(0,2) + ':' + (r ? Math.round(r.width) + 'x' + Math.round(r.height) : 'NO'); }).join(' ')]);
+
+  /* ══ B · ABRE Y CIERRA POR LAS TRES PUERTAS, Y UNA SOLA ABIERTA ═══════════════════════════ */
+  { const mec = {};
+    CLAVES.forEach(function (k) {
+      const a1 = ABRIR(k);
+      const dyn1 = (CARD() || {}).getAttribute ? CARD().getAttribute('data-ev-dyn') : null;
+      const b = BTN(k); let a2 = null;
+      if (b) { try { b.click(); } catch (e) {} a2 = ABIERTO(); }
+      mec[k] = { abre: a1, dyn: dyn1, cierraSegundoToque: a2 === false };
+      CERRAR();
+    });
+    ex.push(['(B1) las OCHO abren con su propio boton y el SEGUNDO toque las cierra',
+      CLAVES.every(function (k) { return mec[k].abre && mec[k].cierraSegundoToque && mec[k].dyn === k; }),
+      CLAVES.map(function (k) { return k.slice(5) + ':' + (mec[k].abre ? 'abre' : 'NO') +
+        (mec[k].cierraSegundoToque ? '/cierra' : '/NO') + '/' + mec[k].dyn; }).join(' ')]);
+  }
+  ex.push(['(B2) NUNCA hay dos abiertas: abrir la segunda cierra la primera',
+    (function () { if (!ABRIR(CLAVES[0])) return false;
+      const b = BTN(CLAVES[3]); if (!b) return false;
+      try { b.click(); } catch (e) { return false; }
+      const n = document.querySelectorAll('[data-vinfo][aria-expanded="true"]').length;
+      const dyn = CARD() ? CARD().getAttribute('data-ev-dyn') : null;
+      CERRAR(); return n === 1 && dyn === CLAVES[3]; })(),
+    'abiertas tras la segunda=' + document.querySelectorAll('[data-vinfo][aria-expanded="true"]').length]);
+  ex.push(['(B3) y el cierre deja la tarjeta vacia y sin clave viva, o sea sin el paciente anterior pegado',
+    (function () { if (!ABRIR(CLAVES[0])) return false; CERRAR();
+      const c = CARD(); if (!c) return false;
+      return c.style.display === 'none' && !c.getAttribute('data-ev-dyn') &&
+        document.querySelectorAll('[data-vinfo][aria-expanded="true"]').length === 0; })(),
+    'display=' + ((CARD() || {}).style || {}).display]);
+
+  /* ══ C · LA ESCENA CON LAS OCHO LESIONES: EL GRADO Y LAS FILAS SON LOS DEL DUENO ═══════════ */
+  { esc({ peso:'80', talla:'180',
+          im_vc:'8', em_vtimit:'60', em_gmedio:'12', thp:'160',
+          ia_vc:'7', ia_pht:'180', vmax_ao:'4.5', gmedio_ao:'45',
+          it_vc:'8', et_gmedio:'8', et_thp:'210',
+          ip_pht:'80', vp_vmax:'3.5' });
+    const d = {}, p = {};
+    LESIONES.forEach(function (q) { const k = 'tarj-' + q[0] + '-' + q[1];
+      d[k] = CDAT(k); p[k] = PAST(q[0], q[1]); });
+    ex.push(['DENOMINADOR: la escena produce lesion en las OCHO, o sea hay algo que comparar',
+      LESIONES.filter(function (q) { const x = p['tarj-' + q[0] + '-' + q[1]];
+        return x && typeof x === 'object' && x.txt; }).length >= 6,
+      LESIONES.map(function (q) { const x = p['tarj-' + q[0] + '-' + q[1]];
+        return q[1].slice(0,3) + q[0].slice(0,2) + '=' + ((x && x.txt) || '-'); }).join(' ')]);
+    /* ⚠️ EL GRADO SALE DE LA PASTILLA, QUE ES SU DUENO UNICO desde valvSev.refrescar. Con una
+       segunda derivacion la tarjeta y el informe podrian decir dos palabras del mismo paciente. */
+    ex.push(['(C1) el GRADO de cada tarjeta es EXACTAMENTE el de su pastilla, en las ocho',
+      LESIONES.every(function (q) { const k = 'tarj-' + q[0] + '-' + q[1];
+        const x = p[k], c = d[k];
+        if (!x || typeof x !== 'object' || !c) return false;
+        return x.txt ? (c.grado === x.txt) : /sin (grado|datos)/.test(String(c.grado)); }),
+      LESIONES.map(function (q) { const k = 'tarj-' + q[0] + '-' + q[1];
+        return q[1].slice(0,3) + q[0].slice(0,2) + ':' + ((p[k] || {}).txt || '-') + '|' + ((d[k] || {}).grado || '-'); }).join(' ')]);
+    ex.push(['(C2) y hereda la CLASE de nivel de la pastilla, asi que su color es el MISMO que el del boton',
+      LESIONES.every(function (q) { const k = 'tarj-' + q[0] + '-' + q[1];
+        const x = p[k], c = d[k];
+        if (!x || typeof x !== 'object' || !c) return false;
+        return !x.cls || String(c.gradoCls).indexOf(x.cls) >= 0; }),
+      LESIONES.map(function (q) { const k = 'tarj-' + q[0] + '-' + q[1];
+        return ((p[k] || {}).cls || '-') + '|' + ((d[k] || {}).gradoCls || '-'); }).join(' ')]);
+    /* Las filas: nombre, valor y grado, fila por fila, contra el objeto del dueno. Las que salen
+       como BARRA no son [data-qv-row], asi que se comparan por el aria-label, que repite el
+       rotulo, el valor y los cortes. */
+    ex.push(['(C3) cada fila de la tarjeta publica el MISMO nombre, valor y grado que el dueno',
+      LESIONES.every(function (q) { const k = 'tarj-' + q[0] + '-' + q[1];
+        const R = PQ(q[0], q[1]), c = d[k];
+        if (!R || !c) return true;
+        const fil = (R.filas || []);
+        if (!fil.length) return true;
+        return fil.every(function (f) {
+          const enFila = (c.filas || []).some(function (x) {
+            return x.nom && x.nom.indexOf(f.nom) === 0 && x.val === f.val; });
+          const enBarra = (c.arias || []).some(function (a) {
+            return a.indexOf(f.nom) === 0 && a.indexOf(String(f.val).split(' ')[0].replace('.', ',')) > -1; });
+          return enFila || enBarra; }); }),
+      LESIONES.map(function (q) { const R = PQ(q[0], q[1]);
+        return q[1].slice(0,3) + q[0].slice(0,2) + '=' + ((R && R.filas) ? R.filas.length : 0); }).join(' ')]);
+    ex.push(['(C4) la linea «Decide» es la que la PANTALLA publica, sin recomponerla',
+      LESIONES.every(function (q) { const k = 'tarj-' + q[0] + '-' + q[1];
+        const R = PQ(q[0], q[1]), c = d[k];
+        if (!R || !c) return true;
+        if (!R.decide) return !c.decide;
+        return !!c.decide && c.decide.indexOf(R.decide) > -1; }),
+      LESIONES.map(function (q) { const R = PQ(q[0], q[1]);
+        return (R && R.decide) ? (q[1].slice(0,3) + ':' + R.decide.slice(0, 30)) : ''; }).filter(Boolean).join(' | ')]);
+    ex.push(['(C5) las barras publican CORTES y el PUNTO del paciente, con su unidad',
+      (function () { const c = d['tarj-esten-aortica'];
+        if (!c || !c.arias.length) return false;
+        const a = c.arias.filter(function (x) { return x.indexOf('Vmax') === 0; })[0] || '';
+        return a.indexOf('Paciente 4,5 m/s') > -1 && a.indexOf('Cortes en 2,6, 3,0, 4,0 m/s') > -1; })(),
+      ((d['tarj-esten-aortica'] || {}).arias || []).join(' || ').slice(0, 170)]);
+    /* ⚠️ LA FUENTE SE COSECHA DE LA PANTALLA Y NO SE ESCRIBE. Se exige que las lesiones que SI
+       publican fuente en su cuadro la traigan al pie, y que la cita lleve folio o pagina. */
+    ex.push(['(C6) la tarjeta trae su FUENTE al pie, con folio o pagina',
+      (function () { const con = ['tarj-insuf-mitral','tarj-esten-aortica','tarj-insuf-tricuspide',
+                                  'tarj-esten-tricuspide','tarj-insuf-pulmonar'];
+        return con.every(function (k) { const c = d[k];
+          return !!c && c.fuentes.length > 0 && c.fuentes.some(function (f) { return /folio|p\u00e1g/.test(f); }); }); })(),
+      LESIONES.map(function (q) { const k = 'tarj-' + q[0] + '-' + q[1];
+        return q[1].slice(0,3) + q[0].slice(0,2) + '=' + ((d[k] || {}).fuentes || []).length; }).join(' ')]);
+    /* ⚠️ LAS BANDAS NO LLEVAN PALABRAS DE GRAVEDAD, SOLO COLOR: el grado va en el encabezado y la
+       categoria de cada parametro debajo de su barra. Lo que se mide es que ningun rotulo de
+       CORTE —los [data-ev-corte]— contenga una palabra de la escala. */
+    ex.push(['(C7) los rotulos de los cortes son numeros con su unidad y NINGUNO lleva palabra de gravedad',
+      LESIONES.every(function (q) { const c = d['tarj-' + q[0] + '-' + q[1]];
+        if (!c) return true;
+        return (c.cortes || []).every(function (t) {
+          return !/leve|moderad|sever|significativ|normal/i.test(t); }); }),
+      LESIONES.map(function (q) { const c = d['tarj-' + q[0] + '-' + q[1]];
+        return ((c || {}).cortes || []).join('/'); }).filter(Boolean).join(' | ').slice(0, 150)]);
+    /* El grupo de APOYO: el THP de la estenosis tricuspidea no decide y va aparte, rotulado. */
+    ex.push(['(C8) el signo de APOYO va en su propio grupo, rotulado como apoyo: el THP de la estenosis tricuspidea',
+      (function () { const c = d['tarj-esten-tricuspide'];
+        if (!c) return false;
+        return !!c.apoyo && /apoyo/i.test(c.apoyo) &&
+          (c.arias || []).some(function (a) { return a.indexOf('THP') === 0 && /apoyo/i.test(a); }); })(),
+      ((d['tarj-esten-tricuspide'] || {}).apoyo || 'SIN GRUPO') + ' || ' +
+        ((d['tarj-esten-tricuspide'] || {}).arias || []).join(' / ').slice(0, 120)]);
+  }
+
+  /* ══ D · LA PROTESIS TRICUSPIDE: LA COLUMNA ELEGIDA, LA REGLA Y LA FRASE ═══════════════════ */
+  { const VTB = { vt_morf:'Pr\u00f3tesis biol\u00f3gica', et_gmedio:'12', et_thp:'250', et_e_vmax:'150' };
+    const VTM = { vt_morf:'Pr\u00f3tesis mec\u00e1nica',  et_gmedio:'12', et_thp:'250', et_e_vmax:'150' };
+    /* El VEREDICTO de la capsula se guarda con la tarjeta: la palabra la dice la fila
+       vt-prot-obstr y el conteo la linea integrada, asi que hay que leer las dos. */
+    const CON_VER = (k) => { const c = CDAT(k); c.ver = TXT('vt-prot-obstr'); return c; };
+    esc(VTB); const bio = CON_VER('tarj-esten-tricuspide'); const claveBio = CLAVE('esten','tricuspide');
+    esc(VTM); const mec = CON_VER('tarj-esten-tricuspide');
+    ex.push(['DENOMINADOR: con morfologia protesica la tarjeta lee la entrada prot:tricuspide y no la nativa',
+      !!claveBio && claveBio.k === 'prot:tricuspide' && claveBio.prot === true,
+      JSON.stringify(claveBio)]);
+    /* ⚠️ SOLO LA COLUMNA DE LA PROTESIS ELEGIDA. La Tabla 19 es mas exigente en TRES filas con la
+       mecanica y MENOS en DOS, asi que no hay un tipo mas estricto del que sacar un default:
+       mostrar las dos obligaria al medico a elegir cual le toca. */
+    ex.push(['(D1) con BIOPROTESIS la tarjeta muestra SOLO los cortes de su columna: 210 cm/s, 9 mmHg y 200 ms',
+      (function () { const t = bio.arias.join(' || ');
+        return t.indexOf('Cortes en 210 cm/s') > -1 && t.indexOf('Cortes en 9,0 mmHg') > -1
+            && t.indexOf('Cortes en 200 ms') > -1
+            && t.indexOf('190 cm/s') < 0 && t.indexOf('6,0 mmHg') < 0 && t.indexOf('130 ms') < 0; })(),
+      bio.arias.join(' || ').slice(0, 200)]);
+    ex.push(['(D2) con MECANICA muestra SOLO la suya: 190 cm/s, 6 mmHg y 130 ms, y NINGUNO de los de la biologica',
+      (function () { const t = mec.arias.join(' || ');
+        return t.indexOf('Cortes en 190 cm/s') > -1 && t.indexOf('Cortes en 6,0 mmHg') > -1
+            && t.indexOf('Cortes en 130 ms') > -1
+            && t.indexOf('210 cm/s') < 0 && t.indexOf('9,0 mmHg') < 0 && t.indexOf('200 ms') < 0; })(),
+      mec.arias.join(' || ').slice(0, 200)]);
+    /* ⚠️ «cm/s)» CONTIENE «m/s)», asi que la condicion se escribe por lo que el texto SI dice: el
+       corte en cm/s presente y el valor en m/s de la Tabla 19 —2,1 y 1,9— ausente. Es la trampa
+       que el CORTOS3 ya pago. */
+    ex.push(['(D3) NINGUN corte aparece en dos unidades: la onda E va en cm/s y el 2,1 / 1,9 m/s de la tabla NO se publica',
+      (function () {
+        const ok = (t, propio, ajeno, m1, m2) => t.indexOf(propio) > -1 && t.indexOf(ajeno) < 0
+          && t.indexOf(m1) < 0 && t.indexOf(m2) < 0;
+        return ok(bio.texto, '210 cm/s', '190 cm/s', '2,1 m/s', '2.1 m/s')
+            && ok(mec.texto, '190 cm/s', '210 cm/s', '1,9 m/s', '1.9 m/s'); })(),
+      'bio 210cm/s=' + (bio.texto.indexOf('210 cm/s') > -1) + '/190=' + (bio.texto.indexOf('190 cm/s') > -1) +
+        ' mec 190cm/s=' + (mec.texto.indexOf('190 cm/s') > -1) + '/210=' + (mec.texto.indexOf('210 cm/s') > -1)]);
+    /* La regla por sus TRES estados, con la escena que los produce. */
+    esc({ vt_morf:'Pr\u00f3tesis biol\u00f3gica', et_gmedio:'12', et_thp:'250', et_e_vmax:'150' });
+    const dos = CON_VER('tarj-esten-tricuspide');
+    esc({ vt_morf:'Pr\u00f3tesis biol\u00f3gica', et_gmedio:'12', et_thp:'100', et_e_vmax:'150' });
+    const uno = CON_VER('tarj-esten-tricuspide');
+    esc({ vt_morf:'Pr\u00f3tesis biol\u00f3gica', et_gmedio:'3', et_thp:'100', et_e_vmax:'150' });
+    const cero = CON_VER('tarj-esten-tricuspide');
+    ex.push(['(D4) la regla por sus TRES estados: dos positivos dan sugestivos, uno es hallazgo aislado y cero es sin criterios',
+      /* ⚠️ EL VEREDICTO VIVE EN LA CAPSULA Y NO EN EL PARENTESIS DEL «Decide»: la entrada de la
+         protesis tricuspide declara decideModo parentesis, asi que la linea integrada publica los
+         criterios con su conteo y la PALABRA la dice la fila vt-prot-obstr. Se miden las dos. */
+      /sugestivos de estenosis/i.test(String(dos.ver)) && String(dos.decide).indexOf('2 de') > -1 &&
+      /aislado/i.test(String(uno.ver)) && String(uno.decide).indexOf('1 de') > -1 &&
+      /sin criterios/i.test(String(cero.ver)),
+      'dos=' + String(dos.ver).slice(0, 45) + ' / ' + String(dos.decide).slice(0, 45) +
+        ' | uno=' + String(uno.ver).slice(0, 40) + ' | cero=' + String(cero.ver).slice(0, 35)]);
+    /* ⚠️ LA FRASE DE INTEGRACION CON SUS PALABRAS, que son las que fijo Maicol. Se compara contra
+       la CONSTANTE que la declara, no contra un literal retipeado aca: con dos copias, el dia que
+       una se retoque este caso dejaria de medir la que la app publica. */
+    ex.push(['(D5) la frase de integracion esta, con las palabras exactas de su constante, y declara que la regla NO es de la guia',
+      (function () { const T = INTEG();
+        if (!T) return false;
+        return /no fija una regla num\u00e9rica de decisi\u00f3n/.test(T) &&
+          /EcoSmart considera sugestivos de estenosis dos o m\u00e1s criterios positivos/.test(T) &&
+          /La decisi\u00f3n final queda a criterio del m\u00e9dico/.test(T) &&
+          String(dos.nota || '').indexOf(T) === 0 &&
+          /Tabla 19/.test(String(dos.nota || '')); })(),
+      String(dos.nota || 'SIN NOTA').slice(0, 180)]);
+    /* El DVI se retira con IT moderada o mayor, y entonces votan cuatro: la nota * de la Tabla 19. */
+    esc({ vt_morf:'Pr\u00f3tesis biol\u00f3gica', et_gmedio:'3', et_thp:'100', et_e_vmax:'150', vt_dvi:'3.5' });
+    const conDvi = CDAT('tarj-esten-tricuspide');
+    try { if (typeof valvSev === 'object' && valvSev) valvSev.aplicar('insuf', 'tricuspide', '2'); } catch (e) {}
+    PINT.forEach(f => { try { if (FN(f)) window[f](); } catch (x) {} });
+    const dviRet = CDAT('tarj-esten-tricuspide');
+    ex.push(['(D6) el DVI lleva barra cuando vota y la PIERDE cuando se retira con IT moderada, con su motivo en la fila',
+      conDvi.barras.length === 4 && dviRet.barras.length === 3 &&
+      (dviRet.filas || []).some(function (f) { return /DVI/.test(String(f.nom)) && /no se eval/i.test(String(f.grado)); }),
+      'conDvi=' + conDvi.barras.length + ' retirado=' + dviRet.barras.length +
+        ' filas=' + JSON.stringify((dviRet.filas || []).map(function (f) { return f.nom; }))]);
+  }
+
+  /* ══ E · LA PULMONAR: LOS DOS TIPOS, NUNCA SEVERA Y LOS TRES QUE NO GRADUAN ════════════════ */
+  { const base = { vp_morf:'Pr\u00f3tesis biol\u00f3gica', vp_vmax:'3.3', ep_gmedio:'22' };
+    esc(Object.assign({}, base, { vp_tipo_prot:'bio' }));  const pBio = CDAT('tarj-esten-pulmonar');
+    esc(Object.assign({}, base, { vp_tipo_prot:'homo' })); const pHomo = CDAT('tarj-esten-pulmonar');
+    esc(Object.assign({}, base, { vp_tipo_prot:'perc' })); const pPerc = CDAT('tarj-esten-pulmonar');
+    esc(Object.assign({}, base, { vp_tipo_prot:'' }));     const pSin = CDAT('tarj-esten-pulmonar');
+    esc({ vp_morf:'Pr\u00f3tesis mec\u00e1nica', vp_vmax:'3.3', ep_gmedio:'22', vp_tipo_prot:'bio' });
+    const pMec = CDAT('tarj-esten-pulmonar');
+    ex.push(['DENOMINADOR: la PULMONAR tiene sus tres entradas en V2D_PORQUE y con protesis la tarjeta lee prot:pulmonar',
+      (function () { const T = G('V2D_PORQUE');
+        if (typeof T !== 'object' || !T) return false;
+        return !!T['insuf:pulmonar'] && !!T['esten:pulmonar'] && !!T['prot:pulmonar']; })(),
+      Object.keys(G('V2D_PORQUE') || {}).filter(function (k) { return /pulmonar/.test(k); }).join(',') || 'NINGUNA']);
+    ex.push(['(E1) con BIOPROTESIS los cortes son 3,2 m/s y 20 mmHg; con HOMOINJERTO 2,5 y 15, y ninguno muestra los del otro',
+      (function () { const b = pBio.arias.join(' || '), h = pHomo.arias.join(' || ');
+        return b.indexOf('Cortes en 3,2 m/s') > -1 && b.indexOf('Cortes en 20,0 mmHg') > -1
+            && b.indexOf('2,5 m/s') < 0 && b.indexOf('15,0 mmHg') < 0
+            && h.indexOf('Cortes en 2,5 m/s') > -1 && h.indexOf('Cortes en 15,0 mmHg') > -1
+            && h.indexOf('3,2 m/s') < 0 && h.indexOf('20,0 mmHg') < 0; })(),
+      'bio=' + pBio.arias.join(' / ').slice(0, 90) + ' || homo=' + pHomo.arias.join(' / ').slice(0, 90)]);
+    /* ⚠️ LA TABLA 15 NO TIENE COLUMNA DE SEVERA, asi que la tarjeta no puede decir esa palabra en
+       ninguno de los cinco estados. Es lo que el PRO-C3 midio en los nodos que publican veredicto. */
+    ex.push(['(E2) NUNCA dice «severa» en ninguno de los cinco estados de la protesis pulmonar',
+      /* ⚠️ SE BARREN LOS NODOS QUE PUBLICAN UN VEREDICTO Y NO EL textContent ENTERO, porque la
+         LINEA DE FUENTE de esta tarjeta dice «esa tabla no publica una columna de severa», o sea
+         exactamente lo contrario: un barrido del texto completo da un FALSO y lo dio en la primera
+         corrida de este caso. Es la trampa que el PRO-C ya tiene escrita. */
+      (function () { const ver = (c) => [c.grado, c.decide, c.apoyo, c.nota]
+          .concat(c.arias).concat((c.filas || []).map(function (f) { return f.grado + ' ' + f.val; }))
+          .join(' || ');
+        return [pBio, pHomo, pPerc, pSin, pMec].every(function (c) { return !/sever/i.test(ver(c)); }); })(),
+      [pBio, pHomo, pPerc, pSin, pMec].map(function (c) {
+        return /sever/i.test([c.grado, c.decide].concat(c.arias).join(' ')) ? 'SEVERA' : 'ok'; }).join(' ')]);
+    ex.push(['(E3) percutanea, mecanica y sin tipo dicen «No graduada» con su motivo, y SIN barra',
+      pPerc.barras.length === 0 && pSin.barras.length === 0 && pMec.barras.length === 0 &&
+      /No graduada: la gu\u00eda no publica cortes para una pr\u00f3tesis pulmonar percut\u00e1nea/.test(String(pPerc.decide)) &&
+      /No graduada: falta el tipo de pr\u00f3tesis pulmonar/.test(String(pSin.decide)) &&
+      /No graduada: la gu\u00eda no publica cortes para una pr\u00f3tesis pulmonar mec\u00e1nica/.test(String(pMec.decide)),
+      'perc=' + String(pPerc.decide).slice(0, 60) + ' | sin=' + String(pSin.decide).slice(0, 45) +
+        ' | mec=' + String(pMec.decide).slice(0, 45)]);
+    /* ⚠️ Y SIN EL PREFIJO «Decide», porque «Decide: No graduada: …» pone dos dos puntos y afirma
+       que algo decidio cuando nada graduo. Cual de las dos es se le pregunta al dueno. */
+    ex.push(['(E4) y esa linea NO lleva el prefijo «Decide», que si lleva la del veredicto',
+      String(pPerc.decide || '').indexOf('Decide:') < 0 &&
+      String(pBio.decide || '').indexOf('Decide:') === 0,
+      'perc=' + String(pPerc.decide).slice(0, 25) + ' | bio=' + String(pBio.decide).slice(0, 25)]);
+    /* La ESTENOSIS NATIVA: sus cortes viven en mmHg y la fila de la velocidad en m/s, asi que la
+       barra los convierte con el dueno en vez de con una segunda tabla. */
+    esc({ vp_vmax:'3.5' });
+    const epNat = CDAT('tarj-esten-pulmonar');
+    ex.push(['(E5) la estenosis pulmonar NATIVA convierte sus cortes al m/s de la fila con el dueno: 1,50 / 3,00 / 4,00',
+      (function () { const t = epNat.arias.join(' || ');
+        return t.indexOf('Cortes en 1,50, 3,00, 4,00 m/s') > -1
+            && t.indexOf('Cortes en 9, 36, 64 mmHg') > -1; })(),
+      epNat.arias.join(' || ').slice(0, 170)]);
+  }
+
+  /* ══ F · LA FUNCION DIASTOLICA CON LAS TRES GUIAS ══════════════════════════════════════════ */
+  { const DIA = { peso:'80', talla:'180', onda_e:'95', onda_a:'45', e_sep:'6', e_lat:'8',
+                  vmax_it:'3.0', ai_vol:'80', venp_dur_ar:'140', venp_dur_a:'100' };
+    const got = {};
+    ['ase2025','bse2024','ase2016'].forEach(function (a) {
+      esc(Object.assign({}, DIA, { diast_algoritmo:a, diast_ritmo:'sinusal' }));
+      got[a] = { card: CDAT('tarj-diast'), dd: TXT('dd-interp') };
+    });
+    ex.push(['DENOMINADOR: la escena clasifica con las TRES guias, o sea hay categoria que comparar',
+      ['ase2025','bse2024','ase2016'].every(function (a) {
+        return got[a].dd !== 'NO EXISTE' && got[a].dd !== '\u2014' && got[a].dd.length > 5; }),
+      ['ase2025','bse2024','ase2016'].map(function (a) { return a + '=' + got[a].dd; }).join(' | ')]);
+    /* ⚠️ LA CATEGORIA SE LEE DEL CUADRO GRIS Y NO SE VUELVE A DERIVAR: es la palabra que el medico
+       tiene delante y la que el informe firma. */
+    ex.push(['(F1) la tarjeta publica EXACTAMENTE la categoria del cuadro gris, con las tres guias',
+      ['ase2025','bse2024','ase2016'].every(function (a) { return got[a].card.grado === got[a].dd; }),
+      ['ase2025','bse2024','ase2016'].map(function (a) {
+        return a + ': ' + got[a].dd + ' | ' + got[a].card.grado; }).join(' || ')]);
+    ex.push(['(F2) y nombra la guia ELEGIDA en el selector, con su ritmo',
+      ['ase2025','bse2024','ase2016'].every(function (a) {
+        const m = String(got[a].card.morf || '');
+        return m.indexOf('Ritmo sinusal') > -1 &&
+          (a === 'ase2025' ? /ASE 2025/.test(m) : a === 'bse2024' ? /BSE 2024/.test(m) : /2016/.test(m)); }),
+      ['ase2025','bse2024','ase2016'].map(function (a) { return got[a].card.morf; }).join(' || ')]);
+    ex.push(['(F3) las filas del algoritmo salen del dueno y cada guia trae las SUYAS, con su paso',
+      got['ase2025'].card.texto.length > 300 &&
+      got['bse2024'].card.texto !== got['ase2025'].card.texto &&
+      got['ase2016'].card.texto !== got['ase2025'].card.texto &&
+      got['ase2025'].card.filas.length === 0,
+      'largos=' + ['ase2025','bse2024','ase2016'].map(function (a) {
+        return a + ':' + got[a].card.texto.length; }).join(' ')]);
+    /* ⚠️ EL SUPLEMENTARIO Ar-A CON SU OPERADOR, leido de ASE_SUPLEMENTARIOS, cuyo rotulo YA lo
+       trae junto con el folio. Sale SOLO con la ASE 2025, porque es la nota de SU figura. */
+    ex.push(['(F4) el suplementario Ar-A sale con la ASE 2025, con su operador y su folio, y NO con las otras dos',
+      (function () { const t = got['ase2025'].card.texto;
+        return /Par\u00e1metro suplementario/.test(t) && /Ar\u2212A > 30 ms/.test(t) && /folio 554/.test(t)
+          && !/Par\u00e1metro suplementario/.test(got['bse2024'].card.texto)
+          && !/Par\u00e1metro suplementario/.test(got['ase2016'].card.texto); })(),
+      (got['ase2025'].card.texto.match(/Ar\u2212A[^.]{0,60}/) || ['SIN Ar-A'])[0]]);
+    ex.push(['(F5) y la FUENTE de cada guia sale de su constante, con folio o pagina',
+      (function () { const F = DFTE();
+        if (!F) return false;
+        return ['ase2025','bse2024','ase2016'].every(function (a) {
+          const c = got[a].card.fuentes.join(' ');
+          return c.indexOf(F[a]) > -1 && /folio|p\u00e1g/.test(F[a]); }); })(),
+      ['ase2025','bse2024','ase2016'].map(function (a) {
+        return got[a].card.fuentes.join('') .slice(0, 55); }).join(' || ')]);
+  }
+
+  /* ══ G · LOS DOS TEXTOS FIJOS DE LA FUGA AORTICA, AHORA EN UN GLOBO ════════════════════════ */
+  { esc({ va_morf:'Pr\u00f3tesis biol\u00f3gica', ea_pvl_origen:'paraval', ea_pvl_ext:'35' });
+    const tab = EL('tab-valvulas');
+    const vis = tab ? NORM(tab.innerText || '') : '';
+    const c = CDAT('ea-pvl');
+    ex.push(['DENOMINADOR: la fila de la fuga publica su severidad, o sea el bloque esta vivo',
+      TXT('ea-pvl-interp') !== 'NO EXISTE' && TXT('ea-pvl-interp') !== '\u2014' && vis.length > 500,
+      'interp=' + TXT('ea-pvl-interp') + ' motivo=' + TXT('ea-pvl-motivo') + ' visibles=' + vis.length]);
+    ex.push(['(G1) las DOS frases fijas ya no estan en el texto visible de la pestana',
+      vis.indexOf('Manda el par') < 0 && vis.indexOf('Clasificaci\u00f3n orientativa') < 0,
+      'manda=' + (vis.indexOf('Manda el par') >= 0) + ' orientativa=' + (vis.indexOf('Clasificaci\u00f3n orientativa') >= 0)]);
+    ex.push(['(G2) y el globo dice la MISMA informacion en menos palabras, con su folio',
+      /Manda el par\u00e1metro m\u00e1s severo de los cargados/.test(c.texto) &&
+      /ancho de vena contracta y el THP se toman de los campos/.test(c.texto) &&
+      /orientativa/.test(c.texto) && /Tabla 8, folio 23/.test(c.texto) &&
+      c.texto.length < 500,
+      'largo=' + c.texto.length + ' || ' + c.texto.slice(0, 150)]);
+  }
+
+  /* ══ H · EL GRADO FIJADO A MANO: LA TARJETA LO DICE Y NO LLEVA CRITERIOS ═══════════════════ */
+  { esc({ peso:'80', talla:'180', im_vc:'8' });
+    const auto = CDAT('tarj-insuf-mitral');
+    try { if (typeof valvSev === 'object' && valvSev) valvSev.aplicar('insuf', 'mitral', '1'); } catch (e) {}
+    PINT.forEach(f => { try { if (FN(f)) window[f](); } catch (x) {} });
+    const man = CDAT('tarj-insuf-mitral');
+    ex.push(['DENOMINADOR: el grado automatico de la escena es SEVERA y el fijado a mano es LEVE, o sea discrepan',
+      /Severa/i.test(String(auto.grado)) && /Leve/i.test(String(man.grado)),
+      'auto=' + auto.grado + ' manual=' + man.grado]);
+    /* ⚠️ EL CRITERIO ES sevDiscrepa, EL MISMO DUENO DEL AVISO ROJO, y no esqSevManual pelado:
+       fijar a mano el MISMO grado que el calculo no es una discrepancia. Lo garantiza el dueno. */
+    ex.push(['(H1) con el grado fijado a mano la tarjeta publica ESE grado, el aviso de ajuste manual y NINGUN criterio',
+      !!man.manual && /manual/i.test(String(man.manual)) &&
+      man.filas.length === 0 && man.arias.length === 0 && !man.decide,
+      'manual=' + String(man.manual).slice(0, 80) + ' filas=' + man.filas.length +
+        ' barras=' + man.arias.length]);
+    ex.push(['(H1b) CONTROL NEGATIVO: con el grado automatico la lista de criterios SI esta',
+      auto.arias.length + auto.filas.length > 0 && !auto.manual,
+      'barras=' + auto.arias.length + ' filas=' + auto.filas.length + ' manual=' + auto.manual]);
+  }
+
+  /* ══ I · VEINTE APERTURAS Y CIERRES: NI UN NODO NI UN OYENTE DE MAS ════════════════════════ */
+  ex.push(['(I1) veinte aperturas y cierres dejan el MISMO numero de nodos y la tarjeta cerrada',
+    (function () { CERRAR();
+      const n0 = document.getElementsByTagName('*').length;
+      for (let i = 0; i < 20; i++) { ABRIR(CLAVES[i % CLAVES.length]); CERRAR(); }
+      const n1 = document.getElementsByTagName('*').length;
+      return n0 === n1 && !ABIERTO(); })(),
+    'nodos iguales y cerrada']);
+  /* ⚠️ LOS OYENTES DE CIERRE SON DOS Y VIVEN EN EL DOCUMENTO, puestos UNA vez por el mecanismo de
+  /* ⚠️ SE MIDE EL COMPORTAMIENTO Y NO EL FUENTE. La primera version contaba ocurrencias de dos
+     literales en el innerHTML y daba CERO sobre un mecanismo perfecto: ese innerHTML devuelve el
+     texto DECODIFICADO y el literal no sobrevive tal cual. Lo que importa es que las nueve se
+     cierren por el clic de afuera, que es la prueba de que el oyente es UNO y compartido. */
+  /* ⚠️ LA ESCENA SE ARMA ADENTRO, Y SIN ESO LA CONDICION MIDE MENOS DE LAS DIEZ: el globo de la
+     fuga paravalvular SOLO existe con una protesis aortica y la fuga consignada, asi que con la
+     escena que deja el bloque anterior la apertura devuelve false y el every da false sobre un
+     mecanismo perfecto. Lo cazo la corrida. Y el resultado informa CUALES fallaron, no una
+     cadena fija: un veredicto sin denominador no se puede diagnosticar. */
+  { esc({ peso:'80', talla:'180', im_vc:'8', ia_vc:'7', vmax_ao:'4.5', it_vc:'8', et_gmedio:'8',
+          ip_pht:'80', vp_vmax:'3.5', onda_e:'95', e_sep:'6', e_lat:'8',
+          va_morf:'Pr\u00f3tesis biol\u00f3gica', ea_pvl_origen:'paraval', ea_pvl_ext:'35' });
+    const todas = CLAVES.concat(['tarj-diast','ea-pvl']);
+    const malas = todas.filter(function (k) {
+      if (!ABRIR(k)) return true;
+      try { document.body.dispatchEvent(new MouseEvent('click', { bubbles: true })); } catch (e) { return true; }
+      const cerrada = !ABIERTO(); CERRAR(); return !cerrada; });
+    ex.push(['(I2) las DIEZ tarjetas se cierran con el clic AFUERA, o sea el oyente es uno solo y compartido',
+      malas.length === 0, malas.length ? ('no cerraron: ' + malas.join(',')) : 'las diez cerradas']);
+  }
+
+  /* ══ J · NADA SE GUARDA: NI EN EL NAVEGADOR NI EN EL ESTUDIO ═══════════════════════════════ */
+  ex.push(['(J1) abrir y cerrar las nueve tarjetas no deja una sola clave en el navegador',
+    (function () { const ant = { l: localStorage.length, s: sessionStorage.length };
+      CLAVES.concat(['tarj-diast','ea-pvl']).forEach(function (k) { ABRIR(k); CERRAR(); });
+      let malas = [];
+      try { for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i); if (/tarj|^qv|vinfo/i.test(k)) malas.push('local:' + k); } } catch (e) {}
+      try { for (let j = 0; j < sessionStorage.length; j++) {
+        const k = sessionStorage.key(j); if (/tarj|^qv|vinfo/i.test(k)) malas.push('session:' + k); } } catch (e) {}
+      return malas.length === 0 && localStorage.length === ant.l && sessionStorage.length === ant.s; })(),
+    'sin claves nuevas']);
+  ex.push(['(J2) y no agrega un solo campo del estudio: cero ids con prefijo de la tanda',
+    (function () { const ids = Array.prototype.slice.call(
+        document.querySelectorAll('input[id],select[id],textarea[id]'))
+        .map(function (e) { return e.id; });
+      return ids.filter(function (i) { return /^(qv|tarj)[-_]/.test(i); }).length === 0; })(),
+    'campos qv/tarj=' + Array.prototype.slice.call(
+      document.querySelectorAll('input[id],select[id],textarea[id]'))
+      .filter(function (e) { return /^(qv|tarj)[-_]/.test(e.id); }).length]);
+
+  /* ══ K · LOS CONTROLES: NADA FUERA DE LAS TARJETAS SE MUEVE ════════════════════════════════ */
+  { esc({ peso:'70', talla:'170', ia_vc:'4', ia_pht:'300', im_vc:'5',
+          vmax_ao:'3.2', gmedio_ao:'25', vmax_it:'3.0',
+          onda_e:'95', onda_a:'45', e_sep:'7', e_lat:'9', ai_vol:'45' });
+    const i1 = inf('estandar'), i2 = inf('narrativo'), i3 = inf('conciso');
+    const cols = (function () { try { if (!FN('_labExcelRow')) return 'SIN FN';
+      const c = {}; document.querySelectorAll('input[id],select[id],textarea[id]').forEach(function (e) {
+        if (e.type === 'checkbox' || e.type === 'radio') c[e.id + '__chk'] = e.checked ? '1' : '0';
+        else c[e.id] = e.value; });
+      return Object.keys(window._labExcelRow({ id: 0, nombre: 'P', ci: '1',
+        fecha_estudio: '2026-10-17', campos: c })).length; } catch (e) { return 'EXC'; } })();
+    ex.push(['(K1) el Excel sigue en 440 columnas',
+      cols === 440, 'cols=' + cols]);
+    ex.push(['(K2) el informe y el EN SUMA publican la lesion en los tres estilos, sin una sola mencion de la tarjeta',
+      [i1, i2, i3].every(function (o) { return o.inf.length > 100
+        && !/data-qv|qv-grado|Decide:/.test(o.inf) && !/data-qv|qv-grado|Decide:/.test(o.suma); }),
+      'largos=' + [i1, i2, i3].map(function (o) { return o.inf.length; }).join('/')]);
+    /* ⚠️ NINGUN TEXTO DE LA TARJETA ENTRA EN NINGUNA SUPERFICIE FIRMADA, y la frase de integracion
+       es la que mas facil se habria escapado: es texto nuevo de esta tanda. */
+    ex.push(['(K3) la frase de integracion NO entra en el informe ni en el EN SUMA',
+      (function () { const T = INTEG();
+        if (!T) return false;
+        const trozo = 'EcoSmart considera sugestivos de estenosis';
+        return [i1, i2, i3].every(function (o) {
+          return o.inf.indexOf(trozo) < 0 && o.suma.indexOf(trozo) < 0; }); })(),
+      'ok']);
+  }
+
+  /* ══ L · LA MAQUETA SE MIDE EN LA SONDA, Y ESTE CASO FIJA LA REGLA QUE LA PRODUCE ══════════ */
+  /* ⚠️ EL CUERPO DE UN CASO NO PUEDE CAMBIAR EL ANCHO DE LA VENTANA: corre DENTRO de la pagina.
+     Los cuatro anchos, los dos temas, el color REAL y los dos motores los mide
+     scripts/_probe_qtarj.mjs; lo que se fija aca es la REGLA de CSS que lo sostiene. */
+  ex.push(['(L1) la columna del globo es una sola regla y el piso tactil de .vinfo-btn sigue acotado a pointer: coarse',
+    /* ⚠️ SIN REGEX CON BARRAS: una barra invertida dentro del cuerpo de un caso se COCINA -el
+       cuerpo es un template literal-, asi que una clase de espacios llega al motor como la letra
+       s. Es la trampa que este archivo ya tiene escrita cinco veces y dejo esta condicion en rojo
+       sobre dos reglas perfectas en la primera corrida. Va por indexOf. */
+    (function () { const f = String(document.documentElement.innerHTML || '');
+      return f.indexOf('.valv-sev-col{display:flex;flex-direction:column') > -1 &&
+        f.indexOf('@media (pointer: coarse)') > -1 &&
+        f.indexOf('.vinfo-btn { min-width: 44px; min-height: 44px; }') > -1; })(),
+    'reglas presentes']);
+  ex.push(['(L2) y la tarjeta se coloca SIEMPRE dentro de la pantalla, sin cortarse',
+    (function () { if (!ABRIR('tarj-esten-aortica')) return false;
+      const c = CARD(); const r = c.getBoundingClientRect();
+      const ok = r.left >= -1 && r.right <= innerWidth + 1 && r.top >= -1 && r.bottom <= innerHeight + 1;
+      CERRAR(); return ok; })(),
+    'dentro de la pantalla']);
 
   return { extra: ex };
 `);

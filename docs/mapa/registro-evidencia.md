@@ -305,3 +305,14 @@ con sus cuatro zonas y las ocho trampas.
 **Lo que hay que saber antes de tocar esta zona:** los cortes y los operadores ya NO viven acá.
 Mover uno es editar `ASE25_T1`, y el assert de arranque exige que las cuatro bandas sigan en
 orden y sin hueco.
+
+## Las TARJETAS ⓘ de las válvulas — están en otro archivo
+
+Las ocho tarjetas de lesión (una arriba de cada pastilla selectora de severidad), la de la función
+diastólica y la de la fuga paravalvular aórtica están en
+**`docs/mapa/valvulas-tarjetas-info.md`** (tanda «Q», 2026-10-17): el mecanismo reusado de L y de
+M, los dos dueños de donde sale todo (`_v2dPastilla` y `_v2dPorQue`), la tabla `QV_BARRA` con la
+constante dueña de cada corte, la cosecha de fuentes, la frase de integración y diez trampas.
+
+⚠️ Es **solo presentación**: ni un corte, ni un operador, ni una regla, ni un texto del informe,
+del EN SUMA, del PDF, del PPT o del Excel. A/B contra el inicio de la tanda: **cero diferencias**.

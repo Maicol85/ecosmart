@@ -57,6 +57,8 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la AURÍCULA IZQUIERDA**: el dueño de su clasificación por volumen indexado, qué superficie clasifica y cuál sólo publica el valor; o **el COLAPSO de la VCI y el SÍMBOLO DEL SEXO en el PDF** | `docs/mapa/auricula-izquierda-pdf.md` |
 | **Tocar una COLUMNA del Excel, el criterio de «derivada», la IDA Y VUELTA de un dato calculado o el mensaje del importador** | `docs/mapa/excel-origen-ida-vuelta.md` |
 | **Tocar las ASOCIACIONES del Laboratorio o la TABLA DE LAS OCHO VÁLVULAS**: el cociente TAPSE/PSAP en el bloque A, el aviso de par acoplado, las dos estenosis BINARIAS y sus dos denominadores | `docs/mapa/laboratorio-asociaciones-valvulas.md` |
+| **Tocar una TARJETA ⓘ de VÁLVULA o de la FUNCIÓN DIASTÓLICA**: el mecanismo, los dos dueños, `QV_BARRA` y la constante dueña de cada corte, la cosecha de fuentes o la frase de integración | `docs/mapa/valvulas-tarjetas-info.md` |
+| **Tocar la FIBRILACIÓN AURICULAR de la función diastólica**: los tres dueños, sus cortes lado a lado, las tres reglas de conteo o el aviso de frecuencia cardíaca | `docs/mapa/diastolica-fa.md` |
 | **Agregar o correr un caso de prueba; A/B; mutación** | `docs/mapa/tests.md` · fichas en `docs/mapa/tests-fichas.md` (TC-496 en adelante), `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
 | **Visor de cineloop, medición, calibración, IndexedDB** | `docs/mapa/imagenes-visor.md` |
 | **Tocar la ESTENOSIS MITRAL en el LABORATORIO**: las seis categorías, las dos casillas del filtro, el gráfico de distribución, el PDF de auditoría o el PPT | `docs/mapa/laboratorio-estenosis-mitral.md` |
@@ -122,8 +124,8 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **8,17 MB / 122.882 líneas**, medido el 2026-10-17 al cierre de la tanda
-  CORTOS —el renglón anterior decía «8,12 MB / 122.172 líneas» y era del PRO-C, una tanda antes:
+  sin frameworks. Hoy **8,23 MB / 123.829 líneas**, medido el 2026-10-17 al cierre de la tanda
+  Q —el renglón anterior decía «8,17 MB / 122.882 líneas» y era del CORTOS, una tanda antes:
   **medirlo antes de presupuestar contexto**—. Las únicas dependencias son jsPDF, XLSX y
   PptxGenJS por CDN. Se abre como archivo local y corre en Chrome.
 - Lo que produce es un **informe firmado**: narrativo, EN SUMA, PDF, PPT y Excel del Laboratorio.
@@ -277,6 +279,238 @@ impecable.
 ---
 
 ## Estado vigente
+
+### Las TARJETAS ⓘ de las VÁLVULAS y de la función diastólica — «Q» (2026-10-17)
+
+- **Son OCHO commits, y son los ocho que la orden pedía.** Al **empezar**, `main` y `origin/main`
+  estaban los dos en **`4366951`** (sello `v20261017-1917`), **sin nada sin pushear** —confirmado
+  con un `git fetch` de verdad, con el `FETCH_HEAD` fechado al momento y un `ls-remote` dando el
+  mismo sha—, con los catorce commits del CORTOS ya incluidos **y pusheados por Maicol**. Los
+  **ocho** commits de esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 8 → 7 → … → 1.**
+  ⚠️ **EL 1 ES LA BASE DE TODOS**: crea los ocho botones, la columna `.valv-sev-col`, las ocho
+  entradas de `VINFO` y `qvTarjeta`. Revertirlo sin revertir antes los otros deja ocho `data-vinfo`
+  apuntando a una función que no existe —inocuo, el mecanismo cae a su camino de legado y abre una
+  tarjeta VACÍA— y, peor, deja `QV_BARRA`, `QV_NOTA` y `qvDiast` colgando de un `_qvFila` que ya no
+  está.
+  ⚠️ **EL 2 ES LA BASE DEL 3, DEL 4 Y DEL 5**: `QV_BARRA`, `_qvBarra`, `_qvFuentes` y los tres
+  moldes de banda nacen ahí, y los tres commits siguientes sólo le agregan ENTRADAS.
+  ⚠️ **EL 3, EL 4 Y EL 5 SE REVIERTEN EN CUALQUIER ORDEN ENTRE SÍ** —el 3 es la mitral y la
+  aórtica, el 4 la tricúspide y el 5 la pulmonar, y ninguno nombra una entrada de otro—, **salvo
+  por UNA cosa: el 4 lleva `_qvBinOp` y `QV_INTEGRA_TXT`, que el 5 usa.** Revertir el 4 sin
+  revertir antes el 5 deja las dos barras de la prótesis pulmonar llamando a una función que no
+  existe: su `bandas()` lanza, `_qvBarra` lo atrapa y devuelve `null`, y la fila cae a TEXTO. No
+  rompe nada y **no se nota**, que es el peor modo de falla de la serie.
+  ⚠️ **EL 6 (la diastólica) Y EL 7 (la fuga aórtica) SE REVIERTEN SOLOS**: el 6 vive en
+  `qvDiast`, `DIAST_ALGO_FUENTE` y el botón del cuadro gris; el 7 en `VINFO['ea-pvl']` y el
+  marcado de su bloque. Ninguno nombra una pieza del otro.
+  ⚠️ **PERO EL 7 RETIRÓ DOS TEXTOS FIJOS, y eso NO vuelve solo**: revertirlo repone el `<div>` de
+  prosa, pero revertir el 6 o cualquier otro sin el 7 deja la pantalla sin esos textos y sin su
+  globo.
+  **El 8 es TC-500 más las cuatro adaptaciones, la documentación y el sello**, y afirma el
+  comportamiento de los siete: revertir cualquiera sin el 8 lo deja en rojo.
+  ⚠️ **EL SELLO VIAJA EN EL COMMIT 8, que es el único cambio de `index.html` que ese commit
+  lleva**: los siete anteriores quedaron con el sello viejo. Es la regla de la casa.
+  ⚠️ **CASOS ADAPTADOS: CUATRO.** **TC-471** (dos números: `VINFO` de 34 a **44** y los globos de
+  Válvulas de 22 a **31**), **TC-472** y **TC-474** (los mismos 22 → **31**) y **TC-484**, cuyo
+  denominador de `V2D_PORQUE` pasa de 9 a **12** y cuya afirmación sobre la pulmonar **cambia de
+  nodo y no de sentido**: decía «`prot:pulmonar` NO existe» como PROXY de «la pulmonar no está en
+  la vista 2D», y ese proxy dejó de servir. Hoy exige el invariante de verdad —`V2D_VALVS` con
+  TRES válvulas y ninguna la pulmonar—, que es **más fuerte** que lo anterior.
+
+- **Línea base al cierre: suite **510/514** con el pendrive `DISK_IMG` MONTADO, Semgrep
+  127 / 0 ERROR en 1 app, Excel en 440 columnas, celular 53 a 360 px y 62 a 390 px con 11 ALTA cada
+  uno.** **CERO REGRESIONES**: la de ENTRADA es la que el CORTOS dejó
+  medida el MISMO día en esta máquina y con el pendrive puesto —**509/513**—, así que la
+  comparación es 509/513 → **510/514** y el delta es el caso nuevo. Los **CUATRO** rojos de ENTRADA son **TC-223** (el documentado, falla por la
+  fecha), **TC-376**, **TC-390** y **TC-406**. **El denominador sube a 514**: esta tanda agregó
+  **TC-500**.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **514 ids** sobre los 515 casos del archivo.
+  ⚠️ **EL CELULAR SUBE +1 POR ANCHO Y ES UN SOLO GLOBO, EL DE LA DIASTÓLICA.** La línea base del
+  CORTOS era 52 / 61 con 10 ALTA, y `--todo` pasa de 387 / 396 a **388 / 397**. **No son diez**,
+  aunque la tanda agregue diez globos: `check_mobile.js` **no abre las secciones de Válvulas**, así
+  que los nueve que viven ahí no tienen geometría —y el de la fuga, además, sólo existe con
+  prótesis—. La causa del que sí cuenta tiene nombre y es la de L y la de M: ese script mide el
+  rect del NODO **sin emular puntero grueso**, y `.vinfo-btn` mide **16 × 12 px con el mouse y
+  44 × 44 con el dedo**, por su `@media (pointer: coarse)`. `PENDIENTES.md` → Q-5.
+- **EL SELLO DE VERSIÓN** estaba al día al empezar (`v20261017-1917`) y se volvió a sellar:
+  **`v20261017-2310`**. Todo lo medido salió **DESPUÉS** de sellar, con el `md5` quieto
+  (`1eda9949…`); lo único que se tocó después fueron las cuatro adaptaciones, TC-500 y la
+  documentación, que no viven en `index.html`.
+- **`index.html` pasó de 8,17 MB / 122.882 líneas a 8,23 MB / 123.829 líneas.**
+
+- **ES SOLO PRESENTACIÓN, Y ESO ES LO QUE EL A/B PRUEBA: CERO DIFERENCIAS EN LOS SIETE COMMITS.**
+  Medido contra el inicio de la tanda con el **PDF, el PPT y el PDF de auditoría GENERADOS DE
+  VERDAD**: las **SEIS plantillas** del PDF por tres escenas —formulario vacío, escenario ajeno y
+  escena protésica—, el informe en los **tres estilos**, el EN SUMA, el **Excel en 440 columnas
+  CLAVE POR CLAVE** (vacío, cargado, protésico y los tres estudios de la población), los ocho
+  grados con sus ocho pastillas, el PPT estadístico y el PDF de auditoría. **Ni un corte, ni un
+  operador, ni una regla, ni un texto firmado.**
+
+- **Q1 · EL BOTÓN VA ARRIBA DE LA PASTILLA SELECTORA Y EN FLUJO, Y EL NÚMERO SALE DE MEDIR.** A
+  390 px la pastilla de lesión mide **50 px** y la selectora 104: un tercer ítem en la MISMA fila
+  flex la dejaría por debajo de lo legible —es `flex:1; min-width:0`, así que se come todo el
+  recorte—. Apilado, la fila pasa de **44 a 58 px** (+14 con el mouse; con el dedo el piso táctil
+  reserva 44) y la pastilla **conserva sus 375 px**: ningún campo se superpone, se tapa ni se
+  desplaza en horizontal. Un botón `position:absolute` habría tapado el `<select>` de morfología,
+  que es lo que la orden prohíbe.
+  ⚠️ **EL MENÚ DE SEVERIDAD NO ENTRA EN LA COLUMNA**: se coloca con `position:absolute; top:100%`
+  contra `.valv-btn-wrap`, así que metido adentro se anclaría a ella y se abriría encimado.
+
+- **Q2 · NO CALCULA NADA: LEE DOS DUEÑOS QUE LA VISTA 2D YA CONSUME.** `_v2dPastilla` para la
+  palabra del grado y su color, y `_v2dPorQue` para las filas con su valor, su grado, su marca de
+  «decide», su marca de retiro y su «no vota», más la línea integrada y el aviso. Es el mismo texto
+  leído del mismo nodo, así que la tarjeta, la vista 2D, el cuadro de referencias y el informe no
+  se pueden desincronizar.
+  ⚠️ **`_v2dCrit` GANÓ LA CLAVE `id`, INERTE PARA LA VISTA 2D** (que no la lee): la necesitan las
+  tarjetas para encontrar el encuadre de su barra sin emparejar por el ROTULO, que es texto del DOM.
+  ⚠️ **QUIÉN ES DE APOYO LO DICE EL DUEÑO, POR TRES FORMAS Y NINGUNA ES UNA LISTA APARTE:** el
+  `noVota` de la tabla, la palabra «apoyo» que la fila de la ET escribe desde el VAL1 y el «no vota»
+  que la fila del AVm por THP publica desde el 2026-10-11.
+  ⚠️ **«SIN GRADO» Y «SIN DATOS» NO SON LO MISMO**, y la diferencia la da el dueño.
+
+- **Q3 · LA MITRAL Y LA AÓRTICA — Y UN DEFECTO QUE SE VEÍA BIEN.** Las barras derivan su corte de
+  la constante que ya es su dueño (`IM_CORTES`, `EM_GMEDIO_*`, `AVM_SEVERA_MAX`, `EA_BANDAS`,
+  `AVA_*`, `EA_AVAI_*`, `EA_DVI_*`, `VM_PROT_T11`, `EA_PROT_CRIT`), y `bandas` es una **FUNCIÓN** a
+  propósito: una tabla con los números resueltos quedaría vieja el día que alguien mueva un corte.
+  ⚠️ **LA SONDA CAZÓ QUE LA PRÓTESIS AÓRTICA DIBUJABA LAS BANDAS NATIVAS.** El cuadro de la
+  estenosis aórtica es el MISMO con nativa y con prótesis, y con la clave armada por el rótulo de
+  la lesión el gradiente salía con **20/40** en vez de los **20/35** de la Tabla 5, y el AVA y el
+  AVA indexada con bandas que esa tabla **no publica** —que es justo lo que el W2-B retiró de esta
+  pantalla—. La clave sale ahora de la clave del DUEÑO.
+  ⚠️ **TRES PARÁMETROS DE LA IAo NO LLEVAN BARRA, Y EL MOTIVO ESTÁ MEDIDO:** los cortes del THP
+  (500/200), del reverso telediastólico (20) y del VTI de la aorta descendente (15/25) viven como
+  **LITERAL dentro de `calcIA_ESC`**, así que una barra obligaría a copiarlos. Su fila sale como
+  TEXTO y publica el corte igual. `PENDIENTES.md` → Q-1.
+  ⚠️ **LA LÍNEA DEL REVERSO NO ESCRIBE NINGÚN NÚMERO:** los dos cortes de la TAVI viven como
+  constante LOCAL dentro de `eteTaviRPV`. Dice que hay dos fuentes y cuántos niveles tiene cada una.
+
+- **Q4 · LA TRICÚSPIDE: SOLO LA COLUMNA DE LA PRÓTESIS ELEGIDA.** Medido con la MISMA escena: con
+  biológica los cortes salen **210 cm/s, 9 mmHg y 200 ms** y con mecánica **190, 6 y 130**, y
+  ninguna muestra los de la otra. La onda E va en **cm/s** y su corte también: el **2,1 / 1,9 m/s**
+  de la Tabla 19 no se publica en ninguna superficie.
+  ⚠️ **Y LA SONDA CAZÓ UN SEGUNDO DEFECTO:** el DVI se retira con IT o IAo moderada o mayor —la
+  nota `*` de la Tabla 19— y lo dice con palabras que **no están** en `V2D_PQ_RETIRO` («no se
+  evalúa con insuficiencia tricuspídea»): sin leerlas, la barra le pintaba su banda **ROJA** a un
+  criterio que la app acaba de sacar del conteo —el dibujo decía que vota y el «Decide» de dos
+  renglones más abajo decía que no—. El aviso **no** se agregó a esa lista, porque eso cambiaría la
+  vista 2D. Medido: con IT moderada el DVI pierde su barra y el conteo pasa de «1 de 4» a «3
+  criterios medidos».
+  **LA FRASE DE INTEGRACIÓN ES UNA SOLA CONSTANTE** con las palabras que fijó Maicol, y la usan la
+  prótesis tricúspide y la mitral: las dos aplican la MISMA regla y su tabla publica la MISMA
+  columna. Declara que la regla **no es de la guía**.
+
+- **Q5 · LA PULMONAR ENTRA A `V2D_PORQUE`, Y ES INERTE PARA EL DIBUJO POR CONSTRUCCIÓN.** Los dos
+  lugares que buscan una entrada la buscan por una clave que sale de `V2D_VALVS`, que tiene TRES
+  válvulas y no se tocó. Los cortes de la estenosis nativa viven en **mmHg** y la fila de la
+  velocidad en **m/s**, así que la barra los convierte con `epVmaxDeGmax` —el mismo dueño que
+  rotula esa fila— y no con una segunda tabla: 1,50 / 3,00 / 4,00 m/s contra 9 / 36 / 64 mmHg.
+  **La prótesis: según el tipo y NUNCA «severa»** —bio 3,2 y 20, homoinjerto 2,5 y 15—, y las dos
+  bandas en NARANJA porque las dos columnas de la Tabla 15 son «Normal» y «Possible obstruction».
+  ⚠️ **Y LA SONDA CAZÓ UN TERCER DEFECTO:** con prótesis percutánea, mecánica o sin tipo la cápsula
+  publica el MOTIVO y NINGUNA fila, así que la tarjeta se iba por la salida de «sin parámetros
+  cargados» **sobre un paciente con sus dos campos cargados**, perdiendo exactamente el estado que
+  la orden pide mostrar. Hoy «hay algo que decir» incluye la línea integrada.
+
+- **Q6 · LA DIASTÓLICA LEE EL DUEÑO DEL CÁLCULO Y NO CAMBIA EL SELECTOR.** Medido en las **SEIS**
+  combinaciones —las tres guías por los dos ritmos—: la tarjeta publica **exactamente** la misma
+  cadena que el cuadro gris, 6 de 6. El suplementario **Ar−A** sale de `ASE_SUPLEMENTARIOS`, cuyo
+  rótulo ya trae el operador y el folio, y **sólo con la ASE 2025**, porque es la nota de SU figura.
+  ⚠️ **CON LA ASE 2025 EN RITMO SINUSAL EL ALGORITMO TIENE DIECISIETE FILAS** y la tarjeta se
+  desplaza **333 px** por dentro. `PENDIENTES.md` → Q-3.
+
+- **Q7 · LOS DOS TEXTOS FIJOS DE LA FUGA AÓRTICA PASARON A UN ⓘ.** Medido: las dos frases no
+  aparecen en el texto renderizado de la pestaña, contadas sobre un denominador de **6264
+  caracteres**. **CENSO DE LA PROSA FIJA QUE QUEDA, sólo reportado:** TRES textos de más de 120
+  caracteres —los criterios de la Tabla 19 debajo de la prótesis tricúspide (306 car., 4 renglones,
+  el candidato más claro porque duplica la nota que la tarjeta ya publica), el pie «Esquema
+  cualitativo» de la vista 2D (301) y la instrucción de sincronía del cuadro aórtico (135)—.
+  `PENDIENTES.md` → Q-6.
+
+- **TRES FUENTES PASARON DE COMENTARIO A DATO**, con el patrón de `IT_CRIT_FUENTE` y al lado de su
+  corte: `IP_CRIT_FUENTE` (ASE 2019, folio 463, más la declaración de que integrar los cuatro
+  signos es criterio de EcoSmart), `VP_PROT_FUENTE` (ASE 2024, Tabla 15, folio 33) y
+  `DIAST_ALGO_FUENTE` (las tres guías).
+  ⚠️ **LA ESTENOSIS PULMONAR NATIVA SIGUE SIN LÍNEA DE FUENTE, A PROPÓSITO:** el comentario de sus
+  tres cortes dice «(ESC/ASE)» **sin folio**, así que en este repo no están verificados al estándar
+  de la casa. `PENDIENTES.md` → Q-2. **ESTA TANDA NO VERIFICÓ NINGUNA FUENTE NUEVA**: publica citas
+  que ya estaban verificadas.
+
+- **MEDIDO EN LOS DOS MOTORES, 8 CELDAS CADA UNO Y NUEVE TARJETAS POR CELDA** —Chrome
+  **155.0.8059.84** y WebKit **27.2**, cuatro viewports (1200×700, 768×1024, 390×844, 360×740) ×
+  dos temas, con el tema COMPROBADO—: **144 aperturas por motor con CERO errores, CERO tarjetas
+  fuera de pantalla, CERO scroll horizontal de la página y CERO scroll interno.** Los colores de
+  variable resuelven **reales y distintos** en los dos temas —el «Decide» en `rgb(126,200,227)` de
+  noche y `rgb(31,95,184)` de día, la fuente en `rgb(154,163,188)` y `rgb(91,100,120)`— e
+  **IDÉNTICOS entre motores**.
+  ⚠️ **EL COLOR DEL GRADO ES LITERAL Y NO UNA VARIABLE, Y ES DELIBERADO:** hereda las cuatro clases
+  de nivel de la pastilla, cuyos colores en esa zona son literales (`#16a34a`, `#c2410c`, `#dc2626`,
+  `#7c3aed`). Una variable mostraría un color DISTINTO del que el médico ve en el botón.
+  **20 APERTURAS Y CIERRES: 12.191 nodos → 12.191, delta CERO**, la tarjeta cerrada al final y cero
+  fallos, **en los dos motores** y con una vuelta de calentamiento antes de contar.
+  **32 CAPTURAS PNG con los 32 `md5` DISTINTOS, y dos MIRADAS**: los acentos salen completos
+  —«Estenosis aórtica», «tricuspídea», «velocidad»— y a 360 px en WebKit la tarjeta de la estenosis
+  tricuspídea entra entera, con su barra de apoyo en gris y su «Decide».
+  ⚠️ **WebKit de Playwright NO es Safari, y se declara.**
+
+- **Arneses: `scripts/_probe_qtarj.mjs`** (CDP, teclas y clics reales; diez grupos propios:
+  `pos0`, `mec`, `tarj`, `prot3`, `trip`, `pulm`, `diast`, `pvl`, `fijos`, más los heredados del
+  CORTOS y del PRO-C) y **`scripts/_probe_qtarjwk.mjs`** (Playwright, los DOS motores, la maqueta a
+  cuatro viewports, el ciclo y las 32 capturas; resuelve Playwright **por ruta** y, si no está, lo
+  DICE y sale con código 2).
+  **Cobertura: TC-500**, **51 condiciones** —contadas sobre el propio caso— con nueve denominadores
+  y tres controles negativos. **Verificado que sabe fallar contra el inicio de la tanda en un
+  worktree aparte: 37 de las 51 en rojo, y NINGUNA por excepción.**
+
+- **Dónde está todo:** `docs/mapa/valvulas-tarjetas-info.md` (**mapa NUEVO**, 18,7 KB: el
+  mecanismo, los dos dueños, la estructura, `QV_BARRA` con la constante dueña de cada corte, la
+  cosecha de fuentes, las notas, la diastólica, la fuga y diez trampas);
+  `docs/mapa/diastolica-fa.md` (**archivo NUEVO por PARTICIÓN**, 6,6 KB); siete mapas con un
+  puntero cada uno (`vista-2d-valvulas` 34,0 KB · `aortica-cortes` 33,9 · `valvulas` 33,9 ·
+  `diastolica` 30,5 · `registro-evidencia` 18,5 · `protesis-valvular` 19,0 · `protesis-tri-pulm`
+  17,2); `docs/mapa/tests-fichas.md` → la ficha de TC-500 (**26,2 KB**);
+  `docs/fuentes/FUENTES.md` → «La tanda Q», con la tabla de tarjeta → dueño → fuente, las dos
+  lesiones sin cita y su motivo, y la tabla de **Cambios de evidencia VACÍA**; y
+  `docs/PENDIENTES.md` → **siete** cosas declaradas (Q-1 a Q-7).
+  ⚠️ **`diastolica.md` SE PARTIÓ, Y HABÍA QUE HACERLO:** estaba en **35,2 KB**, o sea **ya
+  cruzado** desde el 2026-10-12, y esta tanda tenía que dejarle un puntero. Su bloque de
+  fibrilación auricular salió a archivo propio **verificado byte por byte con un `diff` contra
+  HEAD**, y el mapa volvió a **30,4 KB** antes de recibir el puntero. **Ningún otro mapa cruzó**,
+  medido con `wc -c` ANTES de escribir; los tres que quedaron más cerca están a poco más de 1 KB
+  (`PENDIENTES.md` → Q-7).
+
+- ⚠️ **DIEZ TRAMPAS, Y CINCO DABAN FALSOS PLAUSIBLES.**
+  1. **LA CLAVE DE LA BARRA SALE DEL DUEÑO Y NO DEL ROTULO DE LA LESION**, o una prótesis aórtica
+     dibuja las bandas NATIVAS y **se ve perfectamente bien**.
+  2. **UN CRITERIO RETIRADO SE RECONOCE POR LAS PALABRAS QUE LA PANTALLA ESCRIBE**, y la prótesis
+     tricúspide usa unas que no están en `V2D_PQ_RETIRO`.
+  3. **«HAY ALGO QUE DECIR» INCLUYE LA LINEA INTEGRADA Y NO SOLO LAS FILAS**, o los tres estados
+     sin columna de la pulmonar se pierden enteros.
+  4. **BARRER «sever» EN EL TEXTO COMPLETO DE LA TARJETA PULMONAR DA UN FALSO:** su línea de fuente
+     dice «esa tabla no publica una columna de severa». Es la trampa que el PRO-C ya tiene escrita,
+     pagada otra vez — y esta vez por un texto que **escribí yo**.
+  5. **`VINFO`, `QV_INTEGRA_TXT` y `DIAST_ALGO_FUENTE` SON `const` DE MODULO** y no propiedades de
+     `window`: cuatro condiciones de TC-500 en rojo sobre un árbol perfecto. Es `ECO_AYUDA`.
+  6. **LAS CUATRO SECCIONES DE VALVULA SE CIERRAN SOLAS A MITAD DE CORRIDA.** Medido: entre dos
+     lecturas CONSECUTIVAS de `ete-seccion-valv-mitral` —sin una sola llamada mía en medio— pasó de
+     `block` a `none`, así que lo cierra un temporizador de la propia app.
+  7. **SE ABRE LA PESTAÑA DEL PROPIO BOTON, NO SIEMPRE VALVULAS**: el globo de la diastólica vive
+     en el DOPPLER y abrir Válvulas a ciegas navega FUERA de su pestaña.
+  8. **Y SI EL BOTON SIGUE MIDIENDO 0×0, HAY QUE ABRIR SU CAJON:** `valvDatosTog` TOGGLEA, así que
+     preguntarle al `caja-*` por su `display` no sirve —lo escondido es el `bloque-*` de adentro—.
+     Se pregunta por la geometría del PROPIO botón.
+  9. **EL `\s` QUE SE COCINA** dentro del cuerpo de un caso: dejó una condición en rojo sobre dos
+     reglas de CSS perfectas. Va por `indexOf`.
+  10. **UN `*/` HUERFANO**: una nota insertada DESPUÉS del cierre del comentario que ya existía dejó
+      TC-471 y TC-472 muriendo con un `SyntaxError` que el runner informa como **excepción del
+      caso**.
+- ⚠️ **Me comí el acento grave ONCE veces**, todas en comentarios míos dentro del cuerpo de un caso
+  o del template de una sonda. `scripts/check_backticks.py` dio la línea exacta las once — y **UNA
+  SE ME PASÓ POR MANDAR SU SALIDA A `/dev/null`**, que es exactamente lo que este archivo prohíbe:
+  el `&&` siguiente no corrió, el archivo quedó sin editar y el `node --check` de la línea de al
+  lado informó un error que parecía de otra cosa.
 
 ### Los arreglos chicos y los SEIS hallazgos nuevos de la pestaña OTROS — «CORTOS» (2026-10-17)
 

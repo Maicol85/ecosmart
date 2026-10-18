@@ -5061,3 +5061,101 @@ el **ciclo de 20 aperturas** de la vista 2D con su conteo de nodos. Lo mide
 `scripts/_probe_cortos.mjs`; las condiciones de maqueta del caso **declaran** el ancho en el que
 corrieron. Es el reparto de TC-460.
 
+
+---
+
+## Tanda «Q» (2026-10-17) — DECLARADO y NO arreglado
+
+### Q-1 · Tres parámetros de la insuficiencia aórtica no pueden llevar barra sin copiar su corte
+
+Los cortes del **THP** (`>500` leve, `200-500` moderada, `<200` severa), del **reverso
+telediastólico** (`≥20 cm/s`) y del **VTI de la aorta descendente** (`<15`, `<25`, resto) viven
+como **literal dentro de `calcIA_ESC`** y no en una constante dueña, así que dibujarles una barra
+obligaría a una segunda copia del corte — que es el defecto que este repo documenta cuatro veces.
+Sus filas salen como **texto** y publican el corte igual, porque el badge que la app escribe ya lo
+lleva adentro («Leve (>500ms)», «Severa (≥20 cm/s)»).
+
+**Medido:** las otras cuatro filas de esa lesión (jet/TSVI, EROA, Vol-R y FR) tampoco tienen
+constante, y sus cortes (10/30 para la EROA) están también en la cascada.
+
+Salidas: **(a)** sacar los siete a una tabla `IA_CORTES`, con el patrón de `IM_CORTES` y sin mover
+un número, y darles barra; **(b)** dejarlas como texto. Esta tanda eligió (b), porque extraer un
+literal es tocar la cascada y esta orden no lo autoriza. La (a) es un trabajo de una tanda propia:
+hay que medir que ni un grado se mueva en los dos regímenes.
+
+### Q-2 · Los tres cortes de la estenosis pulmonar nativa no tienen folio verificado
+
+El comentario de `EP_GMAX_NORMAL_MAX`, `EP_GMAX_LEVE_MAX` y `EP_GMAX_MOD_MAX` (9, 36 y 64 mmHg)
+dice «(ESC/ASE)» **sin documento, sin tabla y sin página**. Por la regla de la casa —«verificada» =
+texto completo leído, con documento, año, tabla y página— no están verificados, así que su tarjeta
+**no publica línea de fuente**: inventarle una cita sería respaldar un corte con una fuente que
+nadie abrió.
+
+⚠️ **Y el piso de 9 mmHg es criterio propio de la app**, declarado como tal: la tarjeta lo muestra
+como corte y **no escribe ningún «por qué»** (orden expresa, ese texto está sin aprobar).
+
+Salidas: **(a)** verificar los tres en el original y declarar la fuente como dato, con el patrón de
+`IP_CRIT_FUENTE`; **(b)** dejarlos sin cita y declarar el piso como criterio EcoSmart en la tarjeta,
+con el texto que Maicol apruebe.
+
+### Q-3 · La tarjeta de la función diastólica con la ASE 2025 en ritmo sinusal se desplaza por dentro
+
+Ese algoritmo tiene **DIECISIETE** filas y la tarjeta mide más que el hueco: se desplaza **333 px**
+por dentro, medido a 1200 × 900. Es lo que esa guía publica, y la ventana 🧭 sigue siendo el lugar
+donde se ve entera con su diagrama. Las otras dos guías no desplazan (BSE 0 px, ASE/EACVI 2016
+42 px).
+
+Salidas: **(a)** dejarlo así —el `overflow:auto` de la tarjeta es para esto—; **(b)** partirla en
+dos globos, como el L partió la del VI y su gráfico de geometría; **(c)** mostrar sólo los pasos
+que el paciente recorrió, que es lo que el diagrama de la ventana ya hace. La (c) es la más
+informativa y la que cambia más: hay que decidir qué pasa con un paciente que no llegó al paso 2.
+
+### Q-4 · No hay botón «Ver referencia» en las nueve tarjetas nuevas (es `L-9` y `M-11`, otra vez)
+
+Las ocho tarjetas de lesión y la de la función diastólica publican su fuente **como texto**, y no
+hay forma de saltar desde ahí a la ficha de la pestaña Referencias: no existe mecanismo para abrir
+esa pestaña en una sección concreta. Es la misma entrada que **L-9** (2026-10-16) y **M-11**
+dejaron abierta para las tarjetas de la AI, del VI, del VD, de la AD y de la aorta, y hoy alcanza
+a nueve tarjetas más.
+
+**Lo que haría falta:** un `showTab('referencias')` que además desplace a un `id` de sección, y un
+mapa tarjeta → sección. El mapa es la parte barata; lo que no existe es el desplazamiento.
+
+### Q-5 · Los ocho globos nuevos suman hallazgos en `check_mobile.js`, y es el precedente de L y de M
+
+`check_mobile.js` mide el rect del NODO **sin emular puntero grueso**, y `.vinfo-btn` mide
+**16 × 12 px con el mouse y 44 × 44 con el dedo**, por su `@media (pointer: coarse)`. Es exactamente
+lo que las tandas **L** (+3 ALTA) y **M** (+4 ALTA) ya declararon, y esta tanda agrega **nueve** en
+la pestaña Válvulas más uno en el Doppler.
+
+**No se agrandaron, y el motivo está medido:** a 390 px la pastilla de lesión mide 50 px y la
+selectora 104, así que un globo de 44 px en la misma fila la dejaría por debajo de lo legible; y
+apilado ya crece la fila 14 px con el mouse. El piso táctil real del dedo **sí** son 44 px.
+
+### Q-6 · Tres textos fijos de más de dos líneas quedan en la pestaña Válvulas
+
+Censados en el árbol vivo, con las cuatro morfologías protésicas puestas, a 1200 px (grupo `fijos`
+de `scripts/_probe_qtarj.mjs`). **Sólo reportados: Maicol decide cuáles pasan a un globo ⓘ.**
+
+| # | Tamaño | Dónde | Texto |
+|---|---|---|---|
+| 1 | 306 caracteres · 4 renglones | `bloque-prot-vt-res` < `campos-esten-tricuspide` | «Criterios: ASE 2024, Tabla 19. La estenosis protésica tricuspídea no se gradúa. La guía sugiere integrar varios parámetros y no fija una regla numérica: EcoSmart considera…» |
+| 2 | 301 caracteres | `v2d-cuerpo` < `v2d-card` | «Esquema cualitativo: no está a escala y no mide. La apertura de cada válvula, el tamaño de los chorros y de las cámaras muestran sólo el grado que la aplicación ya publicó…» (sólo se ve con el panel prendido) |
+| 3 | 135 caracteres · 2 renglones | `bloque-ea-detalle` < `caja-esten-aortica` | «Los valores se sincronizan automáticamente desde el módulo Doppler Aórtico. Si no fueron ingresados antes, ingresalós acá directamente.» |
+
+El **1** es el candidato más claro: dice lo mismo que la nota de integración que la tarjeta de esa
+prótesis ya publica, así que pasarlo a ⓘ **retiraría una duplicación** y no sólo prosa. El **2** es
+una salvedad sobre el dibujo y pertenece a la vista 2D, que esta orden no toca. El **3** es una
+instrucción de uso y no contenido clínico.
+
+### Q-7 · Tres mapas quedaron cerca del techo
+
+Medido con `wc -c` al cerrar: `vista-2d-valvulas.md` **34,0 KB**, `aortica-cortes.md` **33,9** y
+`valvulas.md` **33,9** — los tres a poco más de 1 KB del techo de 35, y los tres sólo con el
+puntero de esta tanda adentro. La próxima tanda que toque cualquiera de los tres conviene que lo
+parta ANTES de escribir.
+
+⚠️ **`diastolica.md` SÍ se partió, y había que hacerlo:** estaba en **35,2 KB**, o sea ya cruzado
+desde el 2026-10-12. Su bloque de fibrilación auricular salió a `docs/mapa/diastolica-fa.md`
+(6,6 KB) **verificado byte por byte con un `diff` contra HEAD**, y el mapa volvió a **30,4 KB**
+antes de recibir el puntero.
