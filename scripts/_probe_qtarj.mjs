@@ -1292,6 +1292,7 @@ window.__Q = {
       aviso:  (c.querySelector('[data-qv-aviso]') ? tx(c.querySelector('[data-qv-aviso]')) : null),
       manual: (c.querySelector('[data-qv-manual]') ? tx(c.querySelector('[data-qv-manual]')) : null),
       vacio:  (c.querySelector('[data-qv-vacio]') ? tx(c.querySelector('[data-qv-vacio]')) : null),
+      nota:   (c.querySelector('[data-qv-nota]') ? tx(c.querySelector('[data-qv-nota]')) : null),
       fuentes: q('[data-ev-fuente]').map(function(b){ return tx(b) }),
       scrollInterno: Math.max(0, c.scrollHeight - c.clientHeight)
     } },
@@ -2438,6 +2439,60 @@ async function main() {
       g['va-' + morf.replace(/[^A-Za-z]/g, '')] = o;
     }
     out.grupos.prot3 = g;
+  }
+
+  /* ══ GRUPO `trip` — LA PROTESIS TRICUSPIDE: BIO Y MECANICA, Y LA REGLA DE DOS O MAS ═══════
+     Las dos columnas de la Tabla 19 con la MISMA escena, para que se vea que la tarjeta muestra
+     SOLO la de la protesis elegida y que los cortes cambian con ella. Y la regla por sus tres
+     estados: cero, uno y dos criterios positivos.
+     ⚠️ DENOMINADOR: se informa el objeto del dueno protesico (`protVt`) en cada escena. */
+  if (corre('trip')) {
+    const g = {};
+    await viewport(1200, 900);
+    const ESC = [
+      { n: 'bio-2pos', morf: 'Prótesis biológica', c: { et_gmedio: '12', et_thp: '250', et_e_vmax: '150' } },
+      { n: 'mec-2pos', morf: 'Prótesis mecánica',  c: { et_gmedio: '12', et_thp: '250', et_e_vmax: '150' } },
+      { n: 'bio-1pos', morf: 'Prótesis biológica', c: { et_gmedio: '12', et_thp: '100', et_e_vmax: '150' } },
+      { n: 'bio-0pos', morf: 'Prótesis biológica', c: { et_gmedio: '3',  et_thp: '100', et_e_vmax: '150' } },
+      /* Con el DVI cargado la fila existe y lleva barra. */
+      { n: 'bio-dvi', morf: 'Prótesis biológica', c: { et_gmedio: '3', et_thp: '100',
+        et_e_vmax: '150', vt_dvi: '3.5' } },
+      /* Y con IT MODERADA el DVI se retira: la fila sale como TEXTO con su motivo, sin barra, y
+         la regla pasa a contar sobre los cuatro que quedan. Es la nota * de la Tabla 19. */
+      { n: 'bio-dvi-it', morf: 'Prótesis biológica', c: { et_gmedio: '3', et_thp: '100',
+        et_e_vmax: '150', vt_dvi: '3.5' }, it: '2' }
+    ];
+    for (const e of ESC) {
+      await ev(`window.__P.despejar()`);
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__P.abrirTodasValv()`);
+      const sm = await ev(`window.__P.sel('vt_morf', ${JSON.stringify('X')})`);
+      const s2 = await ev(`window.__P.sel('vt_morf', ${JSON.stringify(e.morf)})`);
+      if (s2 && s2.err) throw new Error('DENOMINADOR vt_morf: ' + JSON.stringify(s2));
+      for (const k of Object.keys(e.c)) await tipear(k, e.c[k]);
+      /* ⚠️ `it_grado` ES UN `<select>` Y SU GESTO REAL ES `valvSev.aplicar(tipo, valvula, grado)`
+         —tres argumentos, en ese orden—, que es como lo usan las sondas anteriores de este repo. */
+      if (e.it) await ev(`(function(){ try { valvSev.aplicar('insuf', 'tricuspide', ${JSON.stringify(e.it)}) }
+        catch (x) { return 'EXC: ' + x.message } return 'ok' })()`);
+      const o = { morfPuesta: s2, itGrado: await ev(`window.__P.val('it_grado')`),
+                  prot: await ev(`window.__P.protVt()`),
+                  dueno: await ev(`window.__Q.dueno('esten', 'tricuspide')`) };
+      try { await clicQ('tarj-esten-tricuspide'); o.card = await ev(`window.__Q.cardDatos()`);
+            await tecla('Escape'); } catch (x) { o.card = { ABORTO: x.message }; }
+      g[e.n] = o;
+    }
+    /* NATIVA, de control: las mismas filas con los cortes de ET_CRIT y el THP en apoyo. */
+    await ev(`window.__P.despejar()`);
+    await ev(`window.__P.nuevo()`);
+    await ev(`window.__P.abrirTodasValv()`);
+    await tipear('et_gmedio', '8'); await tipear('et_thp', '210');
+    await tipear('it_vc', '8');
+    g.nativa = { dueno: await ev(`window.__Q.dueno('esten', 'tricuspide')`) };
+    try { await clicQ('tarj-esten-tricuspide'); g.nativa.card = await ev(`window.__Q.cardDatos()`);
+          await tecla('Escape'); } catch (x) { g.nativa.card = { ABORTO: x.message }; }
+    try { await clicQ('tarj-insuf-tricuspide'); g.nativa.cardIns = await ev(`window.__Q.cardDatos()`);
+          await tecla('Escape'); } catch (x) { g.nativa.cardIns = { ABORTO: x.message }; }
+    out.grupos.trip = g;
   }
 
   out.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));

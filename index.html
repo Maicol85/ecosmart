@@ -41544,7 +41544,10 @@ function qvTarjeta(tipo, valv) {
   if (R.decide) cont.appendChild(_evDiv('qv-decide', 'Decide: ' + R.decide,
                                         { 'data-qv-decide': kl }));
   if (R.aviso) cont.appendChild(_evDiv('ev-avi', R.aviso, { 'data-qv-aviso': kl }));
-  if (QV_NOTA[kl]) cont.appendChild(_evDiv('qv-nota', QV_NOTA[kl], { 'data-qv-nota': kl }));
+  /* ⚠️ LA NOTA SE LEE POR LA CLAVE DEL DUENO Y NO POR EL ROTULO DE LA LESION: la frase de
+     integracion es de la PROTESIS y no de la estenosis nativa, asi que con el rotulo saldria
+     tambien sobre una valvula nativa, afirmando una regla que ahi no se aplica. */
+  if (QV_NOTA[C.k]) cont.appendChild(_evDiv('qv-nota', QV_NOTA[C.k], { 'data-qv-nota': C.k }));
   cont.appendChild(_qvFuentesPie(kl));
   return cont;
 }
@@ -41561,7 +41564,16 @@ function _qvFila(f, kl, ck) {
      salian con bandas que su tabla no da. Es el defecto que esa tanda cerro, reabierto por la
      puerta de al lado, y se veia bien. */
   const spec = QV_BARRA[(ck || kl) + '|' + (f.id || '')] || null;
-  if (spec && !f.retiro) {
+  /* ⚠️ UN CRITERIO RETIRADO NO LLEVA BARRA, Y LA SONDA LO CAZO. El dueno marca `retiro` por las
+     tres formas que el W2-B y el Z6 declararon («no concluye», «no valida», «no aplica»), pero el
+     DVI de la protesis TRICUSPIDE se retira con otras palabras —«no se evalua con insuficiencia
+     tricuspidea», la nota * de la Tabla 19— y sin esta segunda lectura la barra le pintaba su
+     banda ROJA a un criterio que la app acaba de sacar del conteo: el dibujo decia que vota y el
+     «Decide» de dos renglones mas abajo decia que no. Se lee la palabra que la PANTALLA escribe,
+     no una segunda copia de la regla que lo retira, y el aviso NO se agrega a `V2D_PQ_RETIRO`
+     porque eso cambiaria la lista «Ver criterios» de la vista 2D, que esta orden no toca. */
+  const _ret = !!(f.retiro || /no se eval/i.test(String(f.grado || '')));
+  if (spec && !_ret) {
     const b = _qvBarra(spec, f, kl);
     if (b) {
       if (f.decide) b.appendChild(_evDiv('qv-marca', 'decide'));
@@ -41574,8 +41586,8 @@ function _qvFila(f, kl, ck) {
   const val = _evDiv('qv-val', f.val, { 'data-qv-val': f.nom });
   row.appendChild(val);
   if (f.grado) {
-    const g = _evDiv('qv-g' + (f.retiro ? ' qv-g-retiro' : ''), f.grado);
-    if (f.color && !f.retiro) {
+    const g = _evDiv('qv-g' + (_ret ? ' qv-g-retiro' : ''), f.grado);
+    if (f.color && !_ret) {
       const c = _evColor(String(f.grado).toLowerCase().split(' ')[0]);
       g.style.borderColor = c;
     }
@@ -41629,6 +41641,17 @@ function _qvDesc(lo, a, b, hi, kAlto) {
 function _qvBin(lo, a, hi) {
   return [{ desde: lo, hasta: a, k: 'significativa' },
           { desde: a,  hasta: hi, k: 'no significativa' }];
+}
+/* Binaria por OPERADOR: el lado que afirma lo elige el `op` del propio dueño. Con `>` o `>=` el
+   positivo esta ARRIBA del corte; con `<` o `<=`, abajo. Asi la barra no puede quedar al reves el
+   dia que una guia mas nueva de vuelta un operador —que es lo que la ESC/EACTS 2025 le hizo al
+   gradiente de la estenosis tricuspidea—. Los dos ultimos argumentos dejan nombrar las bandas:
+   un criterio de APOYO las pide las dos en gris, porque no gradua. */
+function _qvBinOp(lo, a, hi, op, kSi, kNo) {
+  const arriba = (op === '>' || op === '>=');
+  const kA = arriba ? (kSi || 'significativa') : (kNo || 'no significativa');
+  const kB = arriba ? (kNo || 'no significativa') : (kSi || 'significativa');
+  return [{ desde: lo, hasta: a, k: kB }, { desde: a, hasta: hi, k: kA }];
 }
 /* ══ LAS BARRAS, POR LESION Y POR FILA ═════════════════════════════════════════════════════════
    ⚠️ CADA CORTE SE LEE DE SU DUEÑO EN EL MOMENTO DE DIBUJAR. `bandas` es una FUNCION a proposito:
@@ -41761,13 +41784,78 @@ const QV_BARRA = Object.freeze({
   'prot:aortica|ea-det-dvi': { clave: 'eap-dvi', lo: 0.05, hi: 1, uni: '', dec: 2,
     bandas: () => [{ desde: 0.05, hasta: EA_PROT_CRIT.savr_dvi_signif_max, k: 'significativa' },
                    { desde: EA_PROT_CRIT.savr_dvi_signif_max, hasta: EA_PROT_CRIT.savr_dvi_normal_min, k: 'posible' },
-                   { desde: EA_PROT_CRIT.savr_dvi_normal_min, hasta: 1, k: 'normal' }] }
+                   { desde: EA_PROT_CRIT.savr_dvi_normal_min, hasta: 1, k: 'normal' }] },
+  /* ── INSUFICIENCIA TRICUSPIDEA — ASE 2017, Tabla 14, folio 350 ─────────────────────────────
+     `itGradoDe` es `val < leveMax` leve · `val < modMax` moderada · resto severa, con
+     `modInc:false` en los tres: es exactamente el molde ascendente. */
+  'insuf:tricuspide|it-ref-vc': { clave: 'it-vc', lo: 0, hi: 12, uni: 'mm', dec: 0,
+    bandas: () => _qvAsc(0, IT_CRIT.vc.leveMax, IT_CRIT.vc.modMax, 12) },
+  'insuf:tricuspide|it-eroa': { clave: 'it-eroa', lo: 0, hi: 60, uni: 'mm\u00b2', dec: 0,
+    bandas: () => _qvAsc(0, IT_CRIT.eroa.leveMax, IT_CRIT.eroa.modMax, 60) },
+  'insuf:tricuspide|it-volr': { clave: 'it-volr', lo: 0, hi: 70, uni: 'ml', dec: 0,
+    bandas: () => _qvAsc(0, IT_CRIT.volr.leveMax, IT_CRIT.volr.modMax, 70) },
+  /* ── ESTENOSIS TRICUSPIDEA NATIVA — es BINARIA y no se gradua ──────────────────────────────
+     Los cuatro criterios de `ET_CRIT`, cada uno con SU operador: el gradiente con `>` estricto
+     (ESC/EACTS 2025), el VTI de entrada y el THP con `>=` (ASE 2023) y el area con `<=`. El THP
+     es signo de APOYO desde el VAL1, asi que sus dos bandas van en GRIS: ese parametro no decide
+     y pintarlo de rojo seria afirmar una gravedad que la app le retiro.
+     El encuadre `lo`/`hi` sale de la BANDA DE PLAUSIBILIDAD del propio criterio cuando la tiene
+     (`ET_CRIT.x.banda`), que es el rango de lo medible y no un corte. */
+  'esten:tricuspide|et-ref-gmedio': { clave: 'et-gmed', lo: 0, hi: 20, uni: 'mmHg', dec: 0,
+    bandas: () => _qvBinOp(0, ET_CRIT.gmedio.signif, 20, ET_CRIT.gmedio.op) },
+  'esten:tricuspide|et-ref-vti': { clave: 'et-vti', lo: 0, hi: 120, uni: 'cm', dec: 0,
+    bandas: () => _qvBinOp(0, ET_CRIT.vtiEnt.signif, 120, ET_CRIT.vtiEnt.op) },
+  'esten:tricuspide|et-ref-thp': { clave: 'et-thp', lo: 50, hi: 400, uni: 'ms', dec: 0,
+    bandas: () => _qvBinOp(50, ET_CRIT.thp.signif, 400, ET_CRIT.thp.op, 'apoyo', 'no gradua') },
+  'esten:tricuspide|et-ref-avt': { clave: 'et-avt', lo: 0.2, hi: 4, uni: 'cm\u00b2', dec: 2,
+    bandas: () => _qvBinOp(0.2, ET_CRIT.avt.signif, 4, ET_CRIT.avt.op) },
+  /* ── PROTESIS TRICUSPIDE — ASE 2024, Tabla 19, folio 36 ────────────────────────────────────
+     ⚠️ LA TARJETA MUESTRA SOLO LA COLUMNA DE LA PROTESIS ELEGIDA, y el tipo se lo pregunta a
+     `vtProtTipo()`, que es su dueno unico. Mostrar las dos columnas a la vez obligaria al medico
+     a elegir cual le toca, y la Tabla 19 es mas exigente en TRES filas con la mecanica y MENOS en
+     DOS: no hay un «tipo mas estricto» del que sacar un default.
+     ⚠️ CADA CRITERIO EN LA UNIDAD DE SU CAMPO. La onda E va en cm/s —el corte se convirtio UNA
+     vez en la tabla, en el CORTOS3— y no se muestra en m/s en ninguna superficie: la regla de la
+     casa es que un corte se publica solo en la unidad del campo que lo recibe.
+     ⚠️ EL AEO ES EL UNICO CON `<`, y el operador sale de la tabla: un juego unico habria puesto su
+     valor exacto del lado equivocado en las dos columnas. `_qvBinOp` lo lee del dueno. */
+  'prot:tricuspide|vt-prot-evmax': { clave: 'vtp-evmax', lo: 20, hi: 400, uni: 'cm/s', dec: 0,
+    bandas: () => _qvT19('evmax', 20, 400) },
+  'prot:tricuspide|vt-prot-gmed': { clave: 'vtp-gmed', lo: 0, hi: 20, uni: 'mmHg', dec: 1,
+    bandas: () => _qvT19('gmed', 0, 20) },
+  'prot:tricuspide|vt-prot-thp': { clave: 'vtp-thp', lo: 50, hi: 400, uni: 'ms', dec: 0,
+    bandas: () => _qvT19('thp', 50, 400) },
+  'prot:tricuspide|vt-prot-aeo': { clave: 'vtp-aeo', lo: 0.3, hi: 4, uni: 'cm\u00b2', dec: 2,
+    bandas: () => _qvT19('aeo', 0.3, 4) },
+  'prot:tricuspide|vt-prot-dvi': { clave: 'vtp-dvi', lo: 0.5, hi: 6, uni: '', dec: 2,
+    bandas: () => _qvT19('dvi', 0.5, 6) }
 });
+/* UNA fila de la Tabla 19, con la columna de la protesis elegida. Devuelve `null` sin tipo —y sin
+   tipo la barra no se dibuja, que es lo correcto: no hay columna que aplicar—. */
+function _qvT19(k, lo, hi) {
+  const tipo = (typeof vtProtTipo === 'function') ? vtProtTipo() : null;
+  if (!tipo) return null;
+  const C = VT_PROT_T19[k];
+  if (!C) return null;
+  return _qvBinOp(lo, C[tipo], hi, C.op);
+}
 /* ══ LAS NOTAS POR LESION ══════════════════════════════════════════════════════════════════════
    Una linea, al pie y antes de la fuente, SOLO donde hace falta explicar algo que las filas no
    pueden decir por si solas. NO llevan un corte: el corte que cada fila aplica lo publica su
    propio texto, y escribirlo aca seria la segunda copia que esta tanda evita. */
+/* ⚠️ LA FRASE DE INTEGRACION ES UNA SOLA Y SUS PALABRAS LAS FIJO MAICOL (17/10/2026). La usan la
+   protesis TRICUSPIDE y la protesis MITRAL, que aplican la MISMA regla de dos o mas positivos y
+   cuya tabla publica la MISMA columna —«Suggests significant stenosis»—. Con dos textos, el dia
+   que uno se retoque los dos dejan de decir lo mismo de la misma regla.
+   ⚠️ NO ES DE LA GUIA Y LO DICE: la ASE 2024 no publica una regla de integracion ni para la Tabla
+   11 ni para la Tabla 19 —censado en las entradas Z1 y PRO-C2— y el umbral de dos es de la
+   aplicacion. La frase lo declara en voz alta, que es lo que la orden pide. */
+const QV_INTEGRA_TXT = 'La gu\u00eda sugiere integrar varios par\u00e1metros y no fija una regla num\u00e9rica '
+  + 'de decisi\u00f3n. Para facilitar la clasificaci\u00f3n, EcoSmart considera sugestivos de estenosis '
+  + 'dos o m\u00e1s criterios positivos. La decisi\u00f3n final queda a criterio del m\u00e9dico.';
 const QV_NOTA = Object.freeze({
+  'prot:tricuspide': QV_INTEGRA_TXT + ' Fuente: ASE 2024, Tabla 19.',
+  'prot:mitral':     QV_INTEGRA_TXT + ' Fuente: ASE 2024, Tabla 11.',
   /* ⚠️ EL REVERSO DIASTOLICO SE GRADUA CON DOS FUENTES Y DOS NUMEROS DE NIVELES, y sin decirlo la
      tarjeta de una TAVI y la de una valvula nativa se leen igual sobre el mismo parametro. La
      diferencia esta medida y declarada desde el PRO3 y el PRO-B2: la nativa y la protesis
