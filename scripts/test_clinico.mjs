@@ -76307,6 +76307,188 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
 `);
 
 
+// === GRUPO 41 - ARR: escribir y BORRAR deja la referencia en «sin datos» ======================
+caso('TC-501', 'Tanda ARR: un campo VACIO es SIN DATO - las once referencias que conservaban el resultado del valor viejo (las cinco filas de la aorta toracica, el TAPSE, la onda S prima, el area de la AD con su categoria C de la HTP, el promedio de las dos e prima y la densidad del jet tricuspideo) vuelven a «-» al borrar el dato por los TRES gestos (Backspace digito por digito, seleccionar todo y Delete, y cambiar el valor por otro y borrar), sin que ninguna superficie firmada se mueva', `
+  const ex = [];
+  const EL  = (id) => document.getElementById(id);
+  const V   = (id) => { const e = EL(id); return e ? String(e.value) : 'NO EXISTE'; };
+  const TXT = (id) => { const e = EL(id); return e ? String(e.textContent || '').replace(/[ ]+/g, ' ').trim() : 'NO EXISTE'; };
+  const FN  = (n) => { try { return typeof window[n] === 'function'; } catch (e) { return false; } };
+  const NL  = String.fromCharCode(10);
+  /* ⚠️ EL SPAN VACIO DICE UN EM DASH (U+2014) Y NO UN GUION: comparar contra '-' deja los
+     TRES controles negativos en rojo sobre un arbol perfecto -lo cazo la primera corrida de
+     este caso contra HEAD-. Se nombra por su codigo de caracter. */
+  const RAYA = String.fromCharCode(8212);
+  /* Toda lectura del arbol va por un ayudante con centinela: contra HEAD estos span EXISTEN
+     -el defecto es que conservan el valor-, asi que lo que hay que blindar es el camino de la
+     funcion dueña. Misma leccion que TC-455, TC-462, TC-465, TC-471, TC-473, TC-474, TC-477,
+     TC-480, TC-481, TC-482, TC-483, TC-484 y TC-500. */
+  const CORRER = (n) => { try { if (FN(n)) window[n](); return true; } catch (e) { return false; } };
+
+  /* ⚠️ EL DENOMINADOR: el estado de PARTIDA no es «el formulario recien cargado» sino «el
+     formulario vacio con los calculos YA CORRIDOS». Sin esto, la base tiene los span en «-»
+     porque nadie los pinto nunca y despues de tipear y borrar quedan con su propio texto de
+     «sin datos» -«Requiere IC + PCP estimada», «No evaluado»-, que NO es el defecto. La sonda
+     de esta tanda informo 39 de 41 campos fallando por esta sola razon. */
+  const CALENTAR = () => {
+    let n = 0;
+    try { Object.keys(window).forEach(function (k) {
+      if (!/^calc[A-Z]/.test(k)) return;
+      if (typeof window[k] !== 'function') return;
+      try { window[k](); n++; } catch (e) {}
+    }); } catch (e) {}
+    CORRER('_recalcModulos');
+    return n;
+  };
+  const LIMPIO = () => { try { if (FN('limpiarCampos')) window.limpiarCampos(true); } catch (e) {} CALENTAR(); };
+
+  /* Escribir y borrar un campo, y devolver el texto de su referencia DESPUES de borrar.
+     \`modo\`: 'bs' = un valor y se borra; 'cambio' = se escribe uno, se cambia por otro y se borra.
+     El borrado se hace por el DUEÑO del valor y despachando input+change, que es lo que produce
+     cualquiera de los dos gestos del medico: el cuerpo de un caso corre DENTRO de la pagina y no
+     tiene el canal del protocolo para mandar una tecla de confianza -las teclas reales las manda
+     la sonda scripts/_probe_arr.mjs, que mide las MISMAS escenas-. */
+  const ESCBOR = (campo, va, vb, spanId) => {
+    LIMPIO();
+    const antes = TXT(spanId);
+    try { __t.set(campo, va); } catch (e) { return { err: 'NO SE PUDO ESCRIBIR ' + campo }; }
+    const conDato = TXT(spanId);
+    if (vb != null) { try { __t.set(campo, vb); } catch (e) {} }
+    try { __t.set(campo, ''); } catch (e) { return { err: 'NO SE PUDO BORRAR ' + campo }; }
+    const e2 = EL(campo);
+    if (e2) { try { e2.dispatchEvent(new Event('input', { bubbles: true }));
+                    e2.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {} }
+    return { antes: antes, conDato: conDato, despues: TXT(spanId), valor: V(campo) };
+  };
+
+  /* ══ (A) LAS CINCO FILAS DE LA AORTA TORACICA ══════════════════════════════════════════════
+     El sintoma que el medico reporto: con los campos vacios las cinco decian «Valor fuera de
+     rango (10-90 mm) - verificar». La causa es que \`aoSegsMedidos()\` FILTRA los segmentos sin
+     dato, asi que el forEach de \`calcAorta\` nunca llega a los vacios y la capsula conserva lo
+     ultimo que se le escribio; con el Backspace digito por digito ese ultimo valor es el digito
+     suelto -el «4» de «46»-, que cae por debajo del minimo de la banda. */
+  const AORTA = [['ao_sin','46','ao-interp'], ['ao_st','45','ao-st-interp'],
+                 ['ao_tub','47','ao-tub-interp'], ['diam_cayado','46','ao-cay-interp'],
+                 ['diam_ao_toracica','42','ao-desc-interp']];
+  AORTA.forEach(function (p) {
+    const r = ESCBOR(p[0], p[1], null, p[2]);
+    ex.push(['(A) ' + p[0] + ': con dato la fila publica su grado y al BORRAR vuelve a «-»',
+      !r.err && r.conDato !== RAYA && r.conDato !== r.antes && r.despues === RAYA,
+      JSON.stringify(r)]);
+  });
+  /* El valor INTERMEDIO de un digito, que es lo que el Backspace produce y lo que hacia que la
+     fila dijera «fuera de rango»: se escribe el digito solo, se comprueba que SI publica el
+     aviso -el denominador- y despues se borra. */
+  (function () {
+    const r = ESCBOR('ao_sin', '4', null, 'ao-interp');
+    ex.push(['(A6) un ao_sin de 4 mm SI publica el aviso de rango (denominador del sintoma)',
+      !r.err && r.conDato.indexOf('fuera de rango') > -1, r.conDato]);
+    ex.push(['(A7) y al borrarlo la fila vuelve a «-», no se queda con el aviso',
+      !r.err && r.despues === RAYA, r.despues]);
+  })();
+
+  /* ══ (B) EL TAPSE Y LA ONDA S PRIMA ════════════════════════════════════════════════════════
+     Su \`if\` solo pintaba: era el defecto V1 de docs/PENDIENTES.md, declarado en el propio
+     comentario de \`calcVD\` desde el VS2. */
+  [['tapse','14','22','tapse-interp'], ['s_prime','8','13','sprime-interp']].forEach(function (p) {
+    const r1 = ESCBOR(p[0], p[1], null, p[3]);
+    ex.push(['(B) ' + p[0] + ': con dato publica su grado y al borrar vuelve a «-»',
+      !r1.err && r1.conDato !== RAYA && r1.despues === RAYA, JSON.stringify(r1)]);
+    const r2 = ESCBOR(p[0], p[1], p[2], p[3]);
+    ex.push(['(B) ' + p[0] + ': cambiar el valor por otro y borrar tambien vuelve a «-»',
+      !r2.err && r2.despues === RAYA, JSON.stringify(r2)]);
+  });
+
+  /* ══ (C) EL AREA DE LA AD, Y SU CATEGORIA C DE LA PROBABILIDAD DE HTP ══════════════════════
+     \`calcAD\` salia por \`if (!ad) return;\` ANTES de llamar a \`calcHTP2022\`, asi que la salida
+     temprana se llevaba tambien el signo de la categoria C: el cuadro de la HTP decia «signo
+     presente» sobre un area que ya no existe. */
+  (function () {
+    const r = ESCBOR('ad_area', '22', null, 'ad-interp');
+    ex.push(['(C1) ad_area: con dato publica su grado y al borrar vuelve a «-»',
+      !r.err && r.conDato !== RAYA && r.despues === RAYA, JSON.stringify(r)]);
+    LIMPIO();
+    try { __t.set('ad_area', '22'); } catch (e) {}
+    const catC1 = TXT('htp2022-catC');
+    try { __t.set('ad_area', ''); } catch (e) {}
+    const el = EL('ad_area');
+    if (el) { try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {} }
+    const catC2 = TXT('htp2022-catC');
+    ex.push(['(C2) la categoria C de la HTP tambien vuelve a «-» -la salida temprana de calcAD se llevaba calcHTP2022-',
+      catC1.indexOf('signo presente') > -1 && catC2 === RAYA, catC1 + ' -> ' + catC2]);
+  })();
+
+  /* ══ (D) EL PROMEDIO DE LAS DOS e PRIMA ════════════════════════════════════════════════════
+     Su pintor tiene DOS sitios y los dos con \`if (x !== null)\` sin else. */
+  [['e_sep','5','e_lat'], ['e_lat','6','e_sep']].forEach(function (p) {
+    const r = ESCBOR(p[0], p[1], null, 'eprom-val');
+    ex.push(['(D) ' + p[0] + ': el e prima promedio vuelve a «-» al borrar el anillo',
+      !r.err && r.conDato !== RAYA && r.despues === RAYA, JSON.stringify(r)]);
+  });
+
+  /* ══ (E) LA DENSIDAD DEL JET TRICUSPIDEO ═══════════════════════════════════════════════════
+     Es un <select>: su \`if (densidad)\` protege el vacio, pero al volver a la opcion vacia la
+     fila no se repinta y conserva «Severa - jet denso/triangular». Con PROTESIS pasa igual: la
+     fila es la misma. */
+  (function () {
+    LIMPIO();
+    try { __t.set('it_vc', '5'); } catch (e) {}
+    CALENTAR();
+    const antes = TXT('it-densidad-interp');
+    try { __t.set('it_densidad', 'denso'); } catch (e) {}
+    const conDato = TXT('it-densidad-interp');
+    try { __t.set('it_densidad', ''); } catch (e) {}
+    const d = EL('it_densidad');
+    if (d) { try { d.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {} }
+    const despues = TXT('it-densidad-interp');
+    ex.push(['(E1) it_densidad: con «denso» la fila dice Severa (denominador)',
+      conDato.indexOf('Severa') > -1, conDato]);
+    ex.push(['(E2) y al volver el selector a vacio la fila vuelve a «-»',
+      despues === RAYA, antes + ' | ' + conDato + ' -> ' + despues]);
+  })();
+
+  /* ══ (F) CONTROL NEGATIVO: los campos que YA volvian no se movieron ════════════════════════
+     Si una de estas tres se pusiera en rojo, el arreglo rompio lo que ya funcionaba. */
+  [['ai_diam','44','ai-diam-interp'], ['ai_vol','98','ai-interp'], ['fevi','40','fevi-interp']]
+    .forEach(function (p) {
+      const r = ESCBOR(p[0], p[1], null, p[2]);
+      ex.push(['(F) CONTROL NEGATIVO ' + p[0] + ': ya volvia a «-» y sigue volviendo',
+        !r.err && r.despues === RAYA, JSON.stringify(r)]);
+    });
+
+  /* ══ (G) CONTROL NEGATIVO MAYOR: ninguna superficie FIRMADA se mueve ═══════════════════════
+     Medido en la sonda: con el estado SIN DATO el informe en los tres estilos, el EN SUMA y las
+     440 columnas del Excel salen IDENTICOS al formulario vacio. El defecto era solo de pantalla,
+     y el arreglo no puede cambiar eso. */
+  (function () {
+    const inf = (est) => { try { if (FN('setEstiloInforme')) window.setEstiloInforme(est);
+      if (FN('generarInforme')) window.generarInforme(); } catch (e) {}
+      return V('informe_texto') + '||' + V('en_suma'); };
+    LIMPIO();
+    const base = ['estandar','narrativo','conciso'].map(inf).join('@@');
+    ['ao_sin','tapse','s_prime','ad_area','e_sep'].forEach(function (c) {
+      try { __t.set(c, '20'); } catch (e) {}
+      try { __t.set(c, ''); } catch (e) {}
+      const e2 = EL(c); if (e2) { try { e2.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {} }
+    });
+    const post = ['estandar','narrativo','conciso'].map(inf).join('@@');
+    ex.push(['(G1) el informe y el EN SUMA en los TRES estilos salen identicos tras escribir y borrar los cinco campos',
+      base === post, base === post ? 'identicos' : ('base ' + base.length + ' vs post ' + post.length)]);
+    let c0 = null, c1 = null;
+    try { if (FN('_labExcelRow')) {
+      const cam = {}; document.querySelectorAll('input[id],select[id],textarea[id]').forEach(function (e) {
+        if (e.type === 'checkbox' || e.type === 'radio') cam[e.id + '__chk'] = e.checked ? '1' : '0';
+        else cam[e.id] = e.value; });
+      c1 = Object.keys(window._labExcelRow({ id: 0, nombre: 'x', campos: cam })).length;
+      c0 = Object.keys(window._labExcelRow({ id: 0, nombre: 'x', campos: {} })).length;
+    } } catch (e) {}
+    ex.push(['(G2) el Excel sigue en 440 columnas con el estado SIN DATO',
+      c0 === 440 && c1 === 440, 'vacio=' + c0 + ' postborrado=' + c1]);
+  })();
+
+  return { extra: ex };
+`);
+
 
 let servidor, chrome;
 try {
