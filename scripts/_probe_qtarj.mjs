@@ -2610,6 +2610,86 @@ async function main() {
     out.grupos.diast = g;
   }
 
+  /* ══ GRUPO `fijos` — CENSO DE LOS TEXTOS FIJOS DE LA PESTANA VALVULAS ══════════════════════
+     SOLO LECTURA: no cambia nada. Lista la prosa FIJA de mas de dos renglones que vive en la
+     pestana, con su ubicacion, para que Maicol decida cuales pasan a un globo i.
+     ⚠️ SE MIDE LA ALTURA RENDERIZADA Y NO SOLO EL LARGO: «dos renglones» depende del ancho de la
+     columna, y en esta pestana hay columnas de 150 px y de 700. Se declara la cuenta de los dos
+     modos. Y se EXCLUYE lo que no es prosa fija: los valores que la app escribe (`.calc-val`, los
+     `span[id]`), los avisos que nacen vacios y se llenan con el paciente, y la tarjeta i. */
+  if (corre('fijos')) {
+    await viewport(1200, 900);
+    await ev(`window.__P.despejar()`);
+    await ev(`window.__P.nuevo()`);
+    await ev(`window.__P.abrirTodasValv()`);
+    /* Con las cuatro morfologias PROTESICAS puestas, para que la prosa de los bloques de protesis
+       tambien este visible: con valvula nativa esos bloques estan en display:none y su texto se
+       censa con altura CERO, que se lee igual que «no existe». */
+    for (const [id, val] of [['vm_morf', 'Prótesis biológica'], ['va_morf', 'Prótesis biológica'],
+                             ['vt_morf', 'Prótesis biológica'], ['vp_morf', 'Prótesis biológica']])
+      await ev(`window.__P.sel(${JSON.stringify(id)}, ${JSON.stringify(val)})`);
+    await ev(`window.__P.abrirTodasValv()`);
+    out.grupos.fijos = await ev(`(function(){
+      var tab = document.getElementById('tab-valvulas');
+      if (!tab) return 'NO EXISTE tab-valvulas';
+      var fuera = function(n){
+        if (n.closest('#vinfo-card')) return true;
+        if (n.id && /-aviso$|-interp$|-motivo$|discordancia|-nota$|-sev$|-badge$/.test(n.id)) return true;
+        if (n.classList && (n.classList.contains('calc-val') || n.classList.contains('calc-lbl'))) return true;
+        if (n.tagName === 'OPTION' || n.tagName === 'LABEL' || n.tagName === 'BUTTON') return true;
+        return false };
+      var out = [];
+      Array.prototype.slice.call(tab.querySelectorAll('div,p,li,small')).forEach(function(n){
+        if (fuera(n)) return;
+        /* Solo HOJAS: un contenedor con hijos repite el texto de todos. */
+        if (n.querySelector('div,p,li,small,input,select,textarea,table')) return;
+        var t = (n.textContent || '').replace(/\\s+/g, ' ').trim();
+        if (t.length < 120) return;
+        var r = n.getBoundingClientRect();
+        var cs = getComputedStyle(n);
+        var lh = parseFloat(cs.lineHeight) || (parseFloat(cs.fontSize) * 1.4);
+        var sec = n.closest('[id]');
+        /* El ancestro con id MAS CERCANO que no sea el propio nodo, para ubicarlo. */
+        var q = n.parentNode, donde = [];
+        while (q && q.nodeType === 1 && donde.length < 4) { if (q.id) donde.push(q.id); q = q.parentNode }
+        out.push({ chars: t.length,
+                   altoPx: Math.round(r.height), renglones: lh ? Math.round(r.height / lh) : null,
+                   visible: r.height > 0,
+                   donde: donde.join(' < '),
+                   txt: t.slice(0, 190) });
+      });
+      out.sort(function(a,b){ return b.chars - a.chars });
+      return { n: out.length, filas: out } })()`);
+  }
+
+  /* ══ GRUPO `pvl` — EL GLOBO DE LA FUGA AORTICA («Q7») ══════════════════════════════════════
+     Abre, dice lo mismo en menos palabras y los dos textos fijos YA NO ESTAN en la pantalla.
+     ⚠️ DENOMINADOR: se cuenta cuantos nodos de la pestana contienen cada una de las dos frases
+     retiradas. Sin eso, «no aparece» se lee igual que «la sonda mira donde no es». */
+  if (corre('pvl')) {
+    const g = {};
+    await viewport(1200, 900);
+    await ev(`window.__P.despejar()`);
+    await ev(`window.__P.nuevo()`);
+    await ev(`window.__P.abrirTodasValv()`);
+    await ev(`window.__P.sel('va_morf', 'Prótesis biológica')`);
+    await ev(`window.__P.sel('ea_pvl_origen', 'paraval')`);
+    await tipear('ea_pvl_ext', '35');
+    g.bloqueVis = await ev(`window.__P.vis('bloque-prot-va-pvl')`);
+    g.interp = await ev(`window.__P.txt('ea-pvl-interp')`);
+    g.motivo = await ev(`window.__P.txt('ea-pvl-motivo')`);
+    /* Las dos frases retiradas, contadas en el texto RENDERIZADO de la pestana. */
+    g.frases = await ev(`(function(){
+      var tab = document.getElementById('tab-valvulas');
+      var t = tab ? (tab.innerText || '').replace(/\\s+/g, ' ') : '';
+      return { largo: t.length,
+               manda: t.indexOf('Manda el par') > -1,
+               orientativa: t.indexOf('Clasificaci\u00f3n orientativa') > -1 } })()`);
+    try { await clicQ('ea-pvl'); g.card = await ev(`window.__Q.card()`); await tecla('Escape'); }
+    catch (x) { g.card = { ABORTO: x.message }; }
+    out.grupos.pvl = g;
+  }
+
   out.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
   if (out.md5Fin !== out.md5Ini) out.AVISO = 'EL ARCHIVO SE MOVIO DURANTE LA CORRIDA';
   console.log(JSON.stringify(out, null, 1));

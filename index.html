@@ -6842,11 +6842,14 @@ window.cerrarSesionReal = cerrarSesionReal;
              y el criterio que decide. Son `span[id]` dentro de un `.calc-box .calc-row`, así que
              el barrido de `limpiarCampos` las deja en «—» sin una línea extra. -->
         <div class="calc-box" style="margin-top:8px;">
-          <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Regurgitaci&oacute;n paravalvular &mdash; severidad</span><span class="calc-val" id="ea-pvl-interp">&#8212;</span></div>
+          <!-- ⚠️ LOS DOS TEXTOS FIJOS DE ESTE BLOQUE PASARON A UN GLOBO i («Q7», 2026-10-17).
+               Decision de Maicol. Eran tres oraciones de prosa fija debajo del resultado —la regla
+               de integracion, de donde salen dos de los cuatro parametros y la salvedad de que la
+               clasificacion es orientativa— que todo paciente leia siempre, dijeran algo de el o
+               no. La MISMA informacion esta hoy en `VINFO['ea-pvl']`, en menos palabras y con su
+               folio, y se abre con un toque. El `<div>` de prosa se retira. -->
+          <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Regurgitaci&oacute;n paravalvular &mdash; severidad <button type="button" class="vinfo-btn" data-vinfo="ea-pvl" aria-expanded="false" aria-label="Como se clasifica la fuga paravalvular a&oacute;rtica" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="ea-pvl-interp">&#8212;</span></div>
           <div class="calc-row"><span class="calc-lbl">Criterio que decide</span><span id="ea-pvl-motivo" style="font-size:11px;color:var(--text2);">&#8212;</span></div>
-        </div>
-        <div style="font-size:10px;color:var(--text2);margin-top:4px;line-height:1.45;">
-          Manda el par&aacute;metro m&aacute;s severo de los cargados. El ancho de vena contracta y el THP se toman de los campos de arriba. Clasificaci&oacute;n orientativa: la integraci&oacute;n cl&iacute;nica es del m&eacute;dico tratante.
         </div>
       </div>
         </div>
@@ -39748,6 +39751,20 @@ const VINFO = Object.freeze({
   'tarj-esten-aortica': { ancho: 356, dyn: function () { return qvTarjeta('esten', 'aortica') } },
   'tarj-esten-tricuspide': { ancho: 356, dyn: function () { return qvTarjeta('esten', 'tricuspide') } },
   'tarj-esten-pulmonar': { ancho: 356, dyn: function () { return qvTarjeta('esten', 'pulmonar') } },
+  /* ══ LA FUGA PARAVALVULAR AORTICA («Q7», 2026-10-17) ════════════════════════════════════
+     Reemplaza a los dos textos fijos que vivian debajo del resultado. La MISMA informacion en
+     menos palabras: la regla de integracion, de donde salen los dos parametros prestados y la
+     salvedad de que la clasificacion es orientativa.
+     ⚠️ LOS CORTES NO SE REPITEN ACA: los publica la propia fila del resultado y el renglon
+     «Criterio que decide» de al lado. Lo que la tarjeta explica es la REGLA, que no tenia donde
+     leerse salvo en esa prosa fija. */
+  'ea-pvl': {
+    tit: 'Fuga paravalvular a\u00f3rtica \u2014 c\u00f3mo se clasifica',
+    lee: 'Manda el par\u00e1metro m\u00e1s severo de los cargados.',
+    fuente: 'ASE 2024 (Zoghbi), Tabla 8, folio 23.',
+    ojo: 'El ancho de vena contracta y el THP se toman de los campos de la insuficiencia a\u00f3rtica, '
+       + 'arriba. La clasificaci\u00f3n es orientativa: la integraci\u00f3n cl\u00ednica es del m\u00e9dico tratante.'
+  },
   /* La NOVENA tarjeta: la funcion diastolica («Q6»). Mismo ancho que las ocho de valvula. */
   'tarj-diast': { ancho: 356, dyn: function () { return qvDiast() } }
 });
