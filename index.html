@@ -1584,6 +1584,36 @@
   .ev-ref .ev-avi { font-size: 11px; color: var(--orange); margin-top: 2px; }
   .ev-ref .ev-fte { font-size: 10px; color: var(--text2); margin-top: 2px; font-style: italic; }
 
+  /* ══ LAS OCHO TARJETAS DE VALVULAS («Q1», 2026-10-17) ══════════════════════════════════════
+     Los colores salen de las variables que esta zona YA define —`--text`, `--text2`, `--bg3`,
+     `--border`, `--orange`, `--accent2`— y de `EV_COLOR` para el borde del grado de una fila,
+     que es el mismo mapa que las barras de L y de M. Ninguna variable nueva. */
+  #vinfo-card .qv-hd { margin-top: 6px; padding-bottom: 5px; border-bottom: 1px solid var(--border); }
+  #vinfo-card .qv-grado { font-size: 12.5px; font-weight: 700; color: var(--text); margin-top: 1px; }
+  /* El grado hereda las cuatro clases de nivel de la pastilla, asi que su color es EL MISMO que
+     el medico ve en el boton — no una segunda eleccion de color. */
+  #vinfo-card .qv-grado.nivel1 { color: #16a34a; }
+  #vinfo-card .qv-grado.nivel2 { color: #c2410c; }
+  #vinfo-card .qv-grado.nivel3 { color: #dc2626; }
+  #vinfo-card .qv-grado.nivel-sig { color: #7c3aed; }
+  #vinfo-card .qv-morf { font-size: 10px; color: var(--text2); margin-top: 2px; }
+  #vinfo-card .qv-crit { margin-top: 6px; }
+  #vinfo-card .qv-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px;
+    padding: 3px 0; border-bottom: 1px solid var(--bg3); }
+  #vinfo-card .qv-row:last-child { border-bottom: 0; }
+  #vinfo-card .qv-nom { flex: 1 1 120px; min-width: 0; font-size: 10.5px; color: var(--text2); }
+  #vinfo-card .qv-val { font-size: 11px; font-weight: 600; color: var(--text); }
+  #vinfo-card .qv-g { font-size: 9.5px; color: var(--text2); border: 1px solid var(--border);
+    border-radius: 4px; padding: 0 4px; }
+  #vinfo-card .qv-g-retiro { font-style: italic; }
+  #vinfo-card .qv-marca { font-size: 9px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .3px; color: var(--accent2); }
+  #vinfo-card .qv-decide { margin-top: 6px; font-size: 11px; font-weight: 600; color: var(--accent2); }
+  #vinfo-card .qv-manual { margin-top: 6px; font-size: 10.5px; font-weight: 700; color: var(--orange); }
+  #vinfo-card .qv-vacio { margin-top: 6px; font-size: 10.5px; color: var(--text2); }
+  #vinfo-card .qv-bl { margin-top: 6px; }
+  #vinfo-card .qv-apoyo-rot { margin-top: 7px; }
+
   /* ══ LA TABLA DE DOS METODOS DEL BLOQUE 2 DE LA IM (2026-10-14) ═══════════════════════════
      Tres columnas: el parametro con su corte, el valor por PISA y el valor por continuidad.
      ⚠️ LAS FILAS LLEVAN LAS DOS CLASES, `calc-row im-m2`, Y NO SOLO ESTA. El barrido de
@@ -1872,6 +1902,22 @@
 /* min-height:44px = mínimo táctil (acá NO se hace el override a 0 que usan las viejas pills) */
 #tab-valvulas .valv-sev-btn{font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid #b45309;background:#fef3c7;color:#92400e;cursor:pointer;white-space:nowrap;flex-shrink:0;min-height:44px;min-width:44px;display:inline-flex;align-items:center;justify-content:center;font-family:inherit;font-weight:600;align-self:center;}
 #tab-valvulas .valv-sev-btn:hover{filter:brightness(.96);}
+/* ══ LA COLUMNA DEL BOTON i, ARRIBA DE LA PASTILLA SELECTORA («Q1», 2026-10-17) ════════════════
+   DECISION DE MAICOL: un globo i arriba de la pastilla de severidad de cada lesion, los ocho.
+   ⚠️ VA ARRIBA Y EN FLUJO, Y NO AL LADO, Y EL NUMERO SALE DE MEDIR. A 390 px la pastilla de
+   lesion mide 50 px y la selectora 104: un tercer item en la MISMA fila flex la dejaria por
+   debajo de lo legible (es `flex:1; min-width:0`, asi que se come todo el recorte). Apilado,
+   la fila crece —medido: +13 px con el mouse y +44 px con el dedo, que es lo que el piso tactil
+   de `.vinfo-btn` reserva por su `@media (pointer: coarse)`— y NINGUN campo se superpone ni se
+   tapa, porque el crecimiento es en flujo. Un boton `position:absolute` sobre la fila de arriba
+   habria tapado el `<select>` de morfologia, que es exactamente lo que la orden prohibe.
+   ⚠️ EL MENU DE SEVERIDAD NO ENTRA EN LA COLUMNA. `.valv-sev-menu` se coloca con
+   `position:absolute; top:100%; right:0` contra `.valv-btn-wrap`, que es el `position:relative`:
+   metido en la columna se anclaria a ella y se abriria 44 px mas arriba, encimado con el boton.
+   Queda hermano del wrap, donde estaba. */
+#tab-valvulas .valv-sev-col{display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:1px;flex-shrink:0;}
+#tab-valvulas .valv-sev-col .vinfo-btn{font-size:13px;}
 /* Con severidad elegida, el sub-botón toma el color del nivel (el principal queda celeste) */
 #tab-valvulas .valv-sev-btn.nivel1{background:#dcfce7;border-color:#16a34a;color:#166534;}
 /* ⚠️ MODERADA ERA EL MISMO AMARILLO QUE «SIN DATO», no uno parecido. Medido en Chrome con
@@ -5413,12 +5459,18 @@ window.cerrarSesionReal = cerrarSesionReal;
       <div style="display:flex;gap:8px;margin-bottom:12px;">
         <div class="valv-btn-wrap">
           <button type="button" class="btn btn-ghost valv-pill" id="pill-insuf-mitral" onclick="toggleValvPill('mitral','insuf')">Insuficiencia</button>
-          <button type="button" class="valv-sev-btn" id="sevbtn-insuf-mitral" onclick="valvSevMenu('insuf','mitral',event)" aria-haspopup="true" aria-expanded="false" title="Elegir severidad">🟡 Severidad ▼</button>
+          <div class="valv-sev-col">
+            <button type="button" class="vinfo-btn" data-vinfo="tarj-insuf-mitral" aria-expanded="false" aria-label="Criterios y cortes de la insuficiencia mitral" onclick="vInfoClic(this)">&#9432;</button>
+            <button type="button" class="valv-sev-btn" id="sevbtn-insuf-mitral" onclick="valvSevMenu('insuf','mitral',event)" aria-haspopup="true" aria-expanded="false" title="Elegir severidad">🟡 Severidad ▼</button>
+          </div>
           <div class="valv-sev-menu" id="sevmenu-insuf-mitral" role="menu"></div>
         </div>
         <div class="valv-btn-wrap">
           <button type="button" class="btn btn-ghost valv-pill" id="pill-esten-mitral" onclick="toggleValvPill('mitral','esten')">Estenosis</button>
-          <button type="button" class="valv-sev-btn" id="sevbtn-esten-mitral" onclick="valvSevMenu('esten','mitral',event)" aria-haspopup="true" aria-expanded="false" title="Elegir severidad">🟡 Severidad ▼</button>
+          <div class="valv-sev-col">
+            <button type="button" class="vinfo-btn" data-vinfo="tarj-esten-mitral" aria-expanded="false" aria-label="Criterios y cortes de la estenosis mitral" onclick="vInfoClic(this)">&#9432;</button>
+            <button type="button" class="valv-sev-btn" id="sevbtn-esten-mitral" onclick="valvSevMenu('esten','mitral',event)" aria-haspopup="true" aria-expanded="false" title="Elegir severidad">🟡 Severidad ▼</button>
+          </div>
           <div class="valv-sev-menu" id="sevmenu-esten-mitral" role="menu"></div>
         </div>
       </div>
@@ -6472,12 +6524,18 @@ window.cerrarSesionReal = cerrarSesionReal;
       <div style="display:flex;gap:8px;margin-bottom:12px;">
         <div class="valv-btn-wrap">
           <button type="button" class="btn btn-ghost valv-pill" id="pill-insuf-aortica" onclick="toggleValvPill('aortica','insuf')">Insuficiencia</button>
-          <button type="button" class="valv-sev-btn" id="sevbtn-insuf-aortica" onclick="valvSevMenu('insuf','aortica',event)" aria-haspopup="true" aria-expanded="false" title="Elegir severidad">🟡 Severidad ▼</button>
+          <div class="valv-sev-col">
+            <button type="button" class="vinfo-btn" data-vinfo="tarj-insuf-aortica" aria-expanded="false" aria-label="Criterios y cortes de la insuficiencia aórtica" onclick="vInfoClic(this)">&#9432;</button>
+            <button type="button" class="valv-sev-btn" id="sevbtn-insuf-aortica" onclick="valvSevMenu('insuf','aortica',event)" aria-haspopup="true" aria-expanded="false" title="Elegir severidad">🟡 Severidad ▼</button>
+          </div>
           <div class="valv-sev-menu" id="sevmenu-insuf-aortica" role="menu"></div>
         </div>
         <div class="valv-btn-wrap">
           <button type="button" class="btn btn-ghost valv-pill" id="pill-esten-aortica" onclick="toggleValvPill('aortica','esten')">Estenosis</button>
-          <button type="button" class="valv-sev-btn" id="sevbtn-esten-aortica" onclick="valvSevMenu('esten','aortica',event)" aria-haspopup="true" aria-expanded="false" title="Elegir severidad">🟡 Severidad ▼</button>
+          <div class="valv-sev-col">
+            <button type="button" class="vinfo-btn" data-vinfo="tarj-esten-aortica" aria-expanded="false" aria-label="Criterios y cortes de la estenosis aórtica" onclick="vInfoClic(this)">&#9432;</button>
+            <button type="button" class="valv-sev-btn" id="sevbtn-esten-aortica" onclick="valvSevMenu('esten','aortica',event)" aria-haspopup="true" aria-expanded="false" title="Elegir severidad">🟡 Severidad ▼</button>
+          </div>
           <div class="valv-sev-menu" id="sevmenu-esten-aortica" role="menu"></div>
         </div>
       </div>
@@ -6971,12 +7029,18 @@ window.cerrarSesionReal = cerrarSesionReal;
       <div style="display:flex;gap:8px;margin-bottom:12px;">
         <div class="valv-btn-wrap">
           <button type="button" class="btn btn-ghost valv-pill" id="pill-insuf-tricuspide" onclick="toggleValvPill('tricuspide','insuf')">Insuficiencia</button>
-          <button type="button" class="valv-sev-btn" id="sevbtn-insuf-tricuspide" onclick="valvSevMenu('insuf','tricuspide',event)" aria-haspopup="true" aria-expanded="false" title="Elegir severidad">🟡 Severidad ▼</button>
+          <div class="valv-sev-col">
+            <button type="button" class="vinfo-btn" data-vinfo="tarj-insuf-tricuspide" aria-expanded="false" aria-label="Criterios y cortes de la insuficiencia tricuspídea" onclick="vInfoClic(this)">&#9432;</button>
+            <button type="button" class="valv-sev-btn" id="sevbtn-insuf-tricuspide" onclick="valvSevMenu('insuf','tricuspide',event)" aria-haspopup="true" aria-expanded="false" title="Elegir severidad">🟡 Severidad ▼</button>
+          </div>
           <div class="valv-sev-menu" id="sevmenu-insuf-tricuspide" role="menu"></div>
         </div>
         <div class="valv-btn-wrap">
           <button type="button" class="btn btn-ghost valv-pill" id="pill-esten-tricuspide" onclick="toggleValvPill('tricuspide','esten')">Estenosis</button>
-          <button type="button" class="valv-sev-btn" id="sevbtn-esten-tricuspide" onclick="valvSevMenu('esten','tricuspide',event)" aria-haspopup="true" aria-expanded="false" title="Elegir severidad">🟡 Severidad ▼</button>
+          <div class="valv-sev-col">
+            <button type="button" class="vinfo-btn" data-vinfo="tarj-esten-tricuspide" aria-expanded="false" aria-label="Criterios y cortes de la estenosis tricuspídea" onclick="vInfoClic(this)">&#9432;</button>
+            <button type="button" class="valv-sev-btn" id="sevbtn-esten-tricuspide" onclick="valvSevMenu('esten','tricuspide',event)" aria-haspopup="true" aria-expanded="false" title="Elegir severidad">🟡 Severidad ▼</button>
+          </div>
           <div class="valv-sev-menu" id="sevmenu-esten-tricuspide" role="menu"></div>
         </div>
       </div>
@@ -7551,12 +7615,18 @@ window.cerrarSesionReal = cerrarSesionReal;
       <div style="display:flex;gap:8px;margin-bottom:12px;">
         <div class="valv-btn-wrap">
           <button type="button" class="btn btn-ghost valv-pill" id="pill-insuf-pulmonar" onclick="toggleValvPill('pulmonar','insuf')">Insuficiencia</button>
-          <button type="button" class="valv-sev-btn" id="sevbtn-insuf-pulmonar" onclick="valvSevMenu('insuf','pulmonar',event)" aria-haspopup="true" aria-expanded="false" title="Elegir severidad">🟡 Severidad ▼</button>
+          <div class="valv-sev-col">
+            <button type="button" class="vinfo-btn" data-vinfo="tarj-insuf-pulmonar" aria-expanded="false" aria-label="Criterios y cortes de la insuficiencia pulmonar" onclick="vInfoClic(this)">&#9432;</button>
+            <button type="button" class="valv-sev-btn" id="sevbtn-insuf-pulmonar" onclick="valvSevMenu('insuf','pulmonar',event)" aria-haspopup="true" aria-expanded="false" title="Elegir severidad">🟡 Severidad ▼</button>
+          </div>
           <div class="valv-sev-menu" id="sevmenu-insuf-pulmonar" role="menu"></div>
         </div>
         <div class="valv-btn-wrap">
           <button type="button" class="btn btn-ghost valv-pill" id="pill-esten-pulmonar" onclick="toggleValvPill('pulmonar','esten')">Estenosis</button>
-          <button type="button" class="valv-sev-btn" id="sevbtn-esten-pulmonar" onclick="valvSevMenu('esten','pulmonar',event)" aria-haspopup="true" aria-expanded="false" title="Elegir severidad">🟡 Severidad ▼</button>
+          <div class="valv-sev-col">
+            <button type="button" class="vinfo-btn" data-vinfo="tarj-esten-pulmonar" aria-expanded="false" aria-label="Criterios y cortes de la estenosis pulmonar" onclick="vInfoClic(this)">&#9432;</button>
+            <button type="button" class="valv-sev-btn" id="sevbtn-esten-pulmonar" onclick="valvSevMenu('esten','pulmonar',event)" aria-haspopup="true" aria-expanded="false" title="Elegir severidad">🟡 Severidad ▼</button>
+          </div>
           <div class="valv-sev-menu" id="sevmenu-esten-pulmonar" role="menu"></div>
         </div>
       </div>
@@ -39651,7 +39721,19 @@ const VINFO = Object.freeze({
      INTERNO. Partida en tamano y funcion, cada mitad entra entera. */
   'vd-tam-card': { ancho: 356, dyn: function () { return evTarjetaVDTam() } },
   'vd-fun-card': { ancho: 356, dyn: function () { return evTarjetaVDFun() } },
-  'ao-card': { ancho: 356, dyn: function () { return evTarjetaAo() } }
+  'ao-card': { ancho: 356, dyn: function () { return evTarjetaAo() } },
+  /* ══ LAS OCHO TARJETAS DE VALVULAS («Q1», 2026-10-17) ═══════════════════════════════════
+     Una por lesion. Las ocho llaman al MISMO constructor con dos argumentos: no hay ocho
+     funciones que puedan divergir entre si, y el ancho es el de las de M —356 px— porque las
+     barras con sus cortes no entran en los 300 del registro. */
+  'tarj-insuf-mitral': { ancho: 356, dyn: function () { return qvTarjeta('insuf', 'mitral') } },
+  'tarj-insuf-aortica': { ancho: 356, dyn: function () { return qvTarjeta('insuf', 'aortica') } },
+  'tarj-insuf-tricuspide': { ancho: 356, dyn: function () { return qvTarjeta('insuf', 'tricuspide') } },
+  'tarj-insuf-pulmonar': { ancho: 356, dyn: function () { return qvTarjeta('insuf', 'pulmonar') } },
+  'tarj-esten-mitral': { ancho: 356, dyn: function () { return qvTarjeta('esten', 'mitral') } },
+  'tarj-esten-aortica': { ancho: 356, dyn: function () { return qvTarjeta('esten', 'aortica') } },
+  'tarj-esten-tricuspide': { ancho: 356, dyn: function () { return qvTarjeta('esten', 'tricuspide') } },
+  'tarj-esten-pulmonar': { ancho: 356, dyn: function () { return qvTarjeta('esten', 'pulmonar') } }
 });
 let _vInfoId = null;
 function _vInfoBtnDe(clave) {
@@ -41306,6 +41388,151 @@ function _evTarjetaViva() {
     catch (e) { c.replaceChildren(document.createTextNode('No se pudo actualizar la tarjeta.')); }
   }, 0);
 }
+
+/* ══ LAS OCHO TARJETAS i DE LAS VALVULAS — EL MECANISMO («Q1», 2026-10-17) ═════════════════════
+   DECISION DE MAICOL. Un globo i arriba de la pastilla selectora de severidad de cada lesion,
+   del lado de la insuficiencia y del lado de la estenosis: ocho botones, uno por lesion de las
+   cuatro valvulas. Reusan el MISMO mecanismo que las once tarjetas de L y de M —`VINFO` con
+   `dyn`, `vInfoClic`, `#vinfo-card`, `_vInfoColocar`— asi que no hay un segundo motor, ni un
+   segundo cierre por Escape, ni un segundo oyente de clic afuera.
+
+   ⚠️ NO CALCULA NADA Y NO LLEVA UN SOLO CORTE ESCRITO. Todo sale de DOS duenos que ya existen y
+   que la vista 2D ya consume:
+     · `_v2dPastilla(tipo, valv)` — la palabra del GRADO y su color, derivados de UNA lectura del
+       mismo `sevbtn-*` que el medico tiene delante. Es el dueno unico desde `valvSev.refrescar`,
+       asi que la tarjeta no puede decir una palabra y el informe otra.
+     · `_v2dPorQue(tipo + ':' + valv)` — las filas de criterios con su valor, su grado, su marca
+       de «decide», su marca de retiro y su «no vota», mas la linea integrada y el aviso de
+       discordancia. Es LITERALMENTE lo que la lista «Ver criterios» de la vista 2D publica.
+   Por eso la tarjeta, la vista 2D, el cuadro de referencias y el informe firmado no se pueden
+   desincronizar: es el mismo texto leido del mismo nodo.
+
+   ⚠️ LA PULMONAR NO ESTA EN `V2D_PORQUE` AL ABRIR ESTA TANDA, y es porque no esta en la vista 2D
+   (`V2D_VALVS` tiene TRES valvulas). Sus dos tarjetas publican el grado y nada mas hasta el
+   commit de la pulmonar, que le agrega sus entradas a la MISMA tabla —no a una segunda—. Eso es
+   inerte para el dibujo por construccion: los dos lugares que buscan una entrada la buscan por
+   una `k` que sale de `V2D_VALVS`, que no se toca.
+
+   ⚠️ EL GRADO FIJADO A MANO MANDA Y NO LLEVA CRITERIOS. Lo garantiza el dueno: `_v2dPorQue`
+   devuelve `{ manual: true, aviso, fund }` cuando `sevDiscrepa` dice que el medico consigno un
+   grado distinto del calculado, y la tarjeta publica ese aviso —que la pantalla ya escribe y que
+   ademas nombra el calculado— mas el fundamento del propio cajon. Ningun valor inventado. */
+const QV_LESION = Object.freeze({
+  'insuf:mitral':     'Insuficiencia mitral',
+  'esten:mitral':     'Estenosis mitral',
+  'insuf:aortica':    'Insuficiencia a\u00f3rtica',
+  'esten:aortica':    'Estenosis a\u00f3rtica',
+  'insuf:tricuspide': 'Insuficiencia tricusp\u00eddea',
+  'esten:tricuspide': 'Estenosis tricusp\u00eddea',
+  'insuf:pulmonar':   'Insuficiencia pulmonar',
+  'esten:pulmonar':   'Estenosis pulmonar'
+});
+/* El campo de morfologia de cada valvula, para que la tarjeta pueda DECIR si esta leyendo una
+   protesis. No se duplica la lista de `V2D_VALVS` porque esa no tiene la pulmonar. */
+const QV_MORF = Object.freeze({ mitral:'vm_morf', aortica:'va_morf',
+                                tricuspide:'vt_morf', pulmonar:'vp_morf' });
+/* La clave de `V2D_PORQUE` que corresponde a una lesion. Con morfologia protesica la ESTENOSIS
+   lee la entrada protesica —que es donde viven los criterios de la ASE 2024— y la INSUFICIENCIA
+   sigue leyendo la nativa, porque esa guia remite la regurgitacion protesica a los criterios de
+   la valvula nativa y es lo que la app ya aplica. */
+function _qvClave(tipo, valv) {
+  let prot = false;
+  try {
+    const m = document.getElementById(QV_MORF[valv]);
+    const vm = m ? String(m.value || '').trim() : '';
+    prot = !!(vm && typeof valvEsProtesis === 'function' && valvEsProtesis(vm));
+  } catch (e) { prot = false; }
+  if (prot && tipo === 'esten' && V2D_PORQUE['prot:' + valv]) return { k: 'prot:' + valv, prot: true };
+  return { k: tipo + ':' + valv, prot: prot };
+}
+/* El texto de la morfologia tal como el `<select>` lo rotula: se LEE de la `<option>` elegida y
+   no de un mapa paralelo, que es el defecto que el ternario del S/D venoso pulmonar ya pago. */
+function _qvMorfTxt(valv) {
+  const e = document.getElementById(QV_MORF[valv]);
+  if (!e || e.selectedIndex < 0) return '';
+  return String(e.options[e.selectedIndex].textContent || '').trim();
+}
+/* ══ EL CONSTRUCTOR ═══════════════════════════════════════════════════════════════════════════
+   Devuelve NODOS, nunca HTML concatenado: lo que entra son valores del paciente. */
+function qvTarjeta(tipo, valv) {
+  const cont = document.createElement('div');
+  const kl = tipo + ':' + valv;
+  const C = _qvClave(tipo, valv);
+
+  const h = document.createElement('h4');
+  h.id = 'vinfo-tit';
+  h.textContent = QV_LESION[kl] || kl;
+  cont.appendChild(h);
+
+  /* ══ ENCABEZADO: EL GRADO DEL PACIENTE ═════════════════════════════════════════════════════
+     Sale de la pastilla, que es su dueno unico. Sin grado la tarjeta lo DICE: una tarjeta que
+     calla sobre el grado se lee como si el grado fuera normal. */
+  let P = { txt: null, cls: '' };
+  try { P = _v2dPastilla(tipo, valv) || P; } catch (e) { P = { txt: null, cls: '' }; }
+  const hd = _evDiv('qv-hd');
+  const hdR = _evDiv('ev-rot', 'Grado de este paciente');
+  hd.appendChild(hdR);
+  const hdV = _evDiv('qv-grado', P.txt || 'sin datos', { 'data-qv-grado': kl });
+  if (P.cls) hdV.className = 'qv-grado ' + P.cls;
+  hd.appendChild(hdV);
+  if (C.prot) {
+    const mt = _qvMorfTxt(valv);
+    hd.appendChild(_evDiv('qv-morf', mt ? ('Morfolog\u00eda: ' + mt) : 'Pr\u00f3tesis',
+                          { 'data-qv-morf': kl }));
+  }
+  cont.appendChild(hd);
+
+  /* ══ LO QUE DICE EL DUENO ══════════════════════════════════════════════════════════════════ */
+  let R = null;
+  try { R = _v2dPorQue(C.k); } catch (e) { R = null; }
+
+  if (R && R.manual) {
+    if (R.aviso) cont.appendChild(_evDiv('qv-manual', R.aviso, { 'data-qv-manual': kl }));
+    if (R.fund) {
+      const f = _evDiv('qv-bl');
+      f.appendChild(_evDiv('ev-rot', 'Fundamento del m\u00e9dico'));
+      f.appendChild(_evDiv('ev-cat', R.fund));
+      cont.appendChild(f);
+    }
+    return cont;
+  }
+
+  if (!R || !R.filas.length) {
+    cont.appendChild(_evDiv('qv-vacio', 'Sin par\u00e1metros cargados para esta lesi\u00f3n.',
+                            { 'data-qv-vacio': kl }));
+    return cont;
+  }
+
+  /* Las filas, en el ORDEN en que la pantalla las publica. `noVota` y `retiro` salen del dueno:
+     la tarjeta no vuelve a derivar quien vota. */
+  const grupo = _evDiv('qv-crit', null, { 'data-qv-crit': kl });
+  R.filas.forEach(function (f) { grupo.appendChild(_qvFila(f, kl)); });
+  cont.appendChild(grupo);
+
+  if (R.decide) cont.appendChild(_evDiv('qv-decide', 'Decide: ' + R.decide,
+                                        { 'data-qv-decide': kl }));
+  if (R.aviso) cont.appendChild(_evDiv('ev-avi', R.aviso, { 'data-qv-aviso': kl }));
+  return cont;
+}
+/* UNA fila de criterio: nombre, valor y grado, con la marca que la pantalla publica. */
+function _qvFila(f, kl) {
+  const row = _evDiv('qv-row', null, { 'data-qv-row': kl });
+  const nom = _evDiv('qv-nom', f.nom + (f.noVota ? ' \u00b7 no vota' : ''));
+  row.appendChild(nom);
+  const val = _evDiv('qv-val', f.val, { 'data-qv-val': f.nom });
+  row.appendChild(val);
+  if (f.grado) {
+    const g = _evDiv('qv-g' + (f.retiro ? ' qv-g-retiro' : ''), f.grado);
+    if (f.color && !f.retiro) {
+      const c = _evColor(String(f.grado).toLowerCase().split(' ')[0]);
+      g.style.borderColor = c;
+    }
+    row.appendChild(g);
+  }
+  if (f.decide) row.appendChild(_evDiv('qv-marca', 'decide'));
+  return row;
+}
+window.qvTarjeta = qvTarjeta; window._qvClave = _qvClave; window.QV_LESION = QV_LESION;
 
 
 /* ══ LAS CUATRO CASILLAS AUTOMATICAS DE LA INSUFICIENCIA MITRAL (2026-10-14) ═══════════════════
