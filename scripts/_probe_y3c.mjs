@@ -758,6 +758,45 @@ async function main() {
      tanda no puede romper la infraestructura que comparten nueve sondas. */
   await evCrudo(`
 window.__Y = {
+  teerColores() {
+    var LES = ['#f59e0b','#3b82f6','#8b5cf6','#22c55e'];  /* prolapso, restriccion, perforacion, calcificacion */
+    var o = {};
+    ['prof','len','gap','anch'].forEach(function(k){
+      var s = document.getElementById('teer-fig-' + k);
+      if (!s) { o[k] = 'NO EXISTE'; return }
+      var cols = {};
+      s.querySelectorAll('*').forEach(function(e){
+        ['stroke','fill'].forEach(function(a){
+          var c = e.getAttribute(a);
+          if (c && c !== 'none') cols[c] = (cols[c] || 0) + 1 }) });
+      var usados = Object.keys(cols);
+      o[k] = { colores: usados.sort(),
+               celeste: usados.indexOf('#1BA3B8') >= 0,
+               rojoFlail: usados.indexOf('#ef4444') >= 0,
+               otrosDeLesion: usados.filter(function(c){ return LES.indexOf(c) >= 0 }),
+               markerFijo: (function(){ var m = s.querySelector('marker path');
+                 return m ? m.getAttribute('stroke') : 'NO EXISTE' })(),
+               /* El color RENDERIZADO del texto del valor, en el tema puesto. */
+               valColor: (function(){ var t = document.getElementById('teer-fig-' + k + '-val');
+                 return t ? getComputedStyle(t).fill : 'NO EXISTE' })() };
+    });
+    return o },
+
+  /* La maqueta: el ancho REAL del input al lado del dibujo, y si hay scroll horizontal. */
+  teerMaqueta() {
+    var o = { scrollH: window.__Y.scrollH() };
+    var CP = { prof: 'teer_prof_flail', len: 'teer_gap', gap: 'teer_flail_gap', anch: 'teer_ancho_flail' };
+    Object.keys(CP).forEach(function(k){
+      var i = document.getElementById(CP[k]), f = document.getElementById('teer-fig-' + k);
+      var ri = i ? i.getBoundingClientRect() : null, rf = f ? f.getBoundingClientRect() : null;
+      o[k] = { inputW: ri ? Math.round(ri.width) : null, figW: rf ? Math.round(rf.width) : null,
+               figH: rf ? Math.round(rf.height) : null,
+               /* Si el dibujo esta a la DERECHA del input o DEBAJO. */
+               alLado: (ri && rf) ? (rf.left >= ri.right - 2) : null,
+               solapa: (ri && rf) ? (rf.left < ri.right - 2 && rf.top < ri.bottom - 2) : null };
+    });
+    return o },
+
   letrasDisp() {
     var o = {};
     ['A1','A2','A3','P1','P2','P3'].forEach(function(n){
@@ -1310,6 +1349,88 @@ window.__Y = {
 
   /* ══ GRUPO «pdf» — el dibujo al papel, con lesiones y sin la linea ═══════════════════════ */
   /* Guarda el PNG del papel para MIRARLO: un dibujo roto se ve igual que uno sano en un hash. */
+  /* ══ GRUPO «teer» — los cuatro dibujos de medidas ════════════════════════════════════════ */
+  /* Captura de los cuatro dibujos TEER, para MIRARLOS: un dibujo con las lineas encimadas se ve
+     igual que uno sano en cualquier medicion numerica. */
+  if (corre('capteer')) {
+    const r = {};
+    try {
+      await ev(`window.__Y.irTEER()`);
+      await ev(`window.__P.sel('teer_tipo_im','')`);
+      for (const [k, v2] of [['teer_prof_flail','8'],['teer_gap','5'],['teer_flail_gap','7'],['teer_ancho_flail','12']])
+        await tipear(k, v2);
+      for (const claro of [false, true]) {
+        const t = await ev(`window.__P.tema(${claro})`);
+        if (!!t.claro !== claro) throw new Error('EL TEMA NO QUEDO PUESTO: pedido ' + claro + ', quedo ' + t.claro);
+        await ev(`window.__Y.esperar(350)`, 20000);
+        for (const k of ['prof','len','gap','anch']) {
+          /* ⚠️ EL `clip` DE captureScreenshot VA EN COORDENADAS DE PAGINA y `getBoundingClientRect`
+             da las del VIEWPORT: sin sumar el desplazamiento, el PNG sale de otra parte de la
+             pagina — y se ve perfectamente bien. Es la trampa que este repo ya tiene escrita. */
+          const g2 = await ev(`(function(){ var e=document.getElementById('teer-fig-'+${JSON.stringify(k)});
+            if(!e) return null; e.scrollIntoView({block:'center'}); var r=e.getBoundingClientRect();
+            return { x: Math.round(r.left + window.scrollX), y: Math.round(r.top + window.scrollY),
+                     w: Math.round(r.width), h: Math.round(r.height),
+                     claro: document.documentElement.classList.contains('light-mode') } })()`);
+          if (!g2 || !DEST) continue;
+          const shot = await cdp.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false,
+            clip: { x: g2.x - 2, y: g2.y - 2, width: g2.w + 4, height: g2.h + 4, scale: 4 } }, sessionId);
+          await writeFile(join(DEST, 'teer_' + k + (claro ? '_claro' : '_osc') + '.png'),
+                          Buffer.from(shot.data, 'base64'));
+          r[k + (claro ? '_claro' : '_osc')] = g2;
+        }
+      }
+      await ev(`window.__P.tema(false)`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.capteer = r;
+    process.stderr.write('[capteer] listo\n');
+  }
+
+  if (corre('teer')) {
+    const r = {};
+    const CAMPOS = { prof: 'teer_prof_flail', len: 'teer_gap',
+                     gap: 'teer_flail_gap', anch: 'teer_ancho_flail' };
+    try {
+      r.puerta = await ev(`window.__Y.irTEER()`);
+      await ev(`window.__P.sel('teer_tipo_im','')`);
+      r.vacio = await ev(`window.__Y.teer()`);
+      /* Se carga cada campo con teclas REALES y se lee el valor que el dibujo publica. */
+      r.cargado = {};
+      const VAL = { prof: '8', len: '5', gap: '7', anch: '12' };
+      for (const k of Object.keys(CAMPOS)) { await tipear(CAMPOS[k], VAL[k]); }
+      r.cargado = await ev(`window.__Y.teer()`);
+      /* Y se BORRA con teclas reales, por los dos gestos: el dibujo tiene que quedar SIN numero,
+         no conservar el anterior ni publicar un cero. */
+      await borrar(CAMPOS.prof, 'bs');
+      await borrar(CAMPOS.len, 'del');
+      r.trasBorrarDos = await ev(`window.__Y.teer()`);
+      for (const k of Object.keys(CAMPOS)) { try { await borrar(CAMPOS[k], 'bs'); } catch (e) {} }
+      r.trasBorrarTodos = await ev(`window.__Y.teer()`);
+      /* «Nuevo estudio» tambien. */
+      for (const k of Object.keys(CAMPOS)) { await tipear(CAMPOS[k], VAL[k]); }
+      r.antesNuevo = await ev(`window.__Y.teer()`);
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__Y.irTEER()`);
+      r.trasNuevo = await ev(`window.__Y.teer()`);
+      /* Los colores: celeste de medicion, rojo de flail, y NINGUN otro color de lesion. */
+      r.colores = await ev(`window.__Y.teerColores()`);
+      /* La maqueta a tres anchos, en los dos temas: la imagen no puede apretar el campo. */
+      r.maqueta = {};
+      for (const [w, h] of [[1200, 760], [768, 1024], [390, 844]]) {
+        await viewport(w, h);
+        for (const claro of [false, true]) {
+          await ev(`window.__P.tema(${claro})`);
+          await ev(`window.__Y.esperar(250)`, 20000);
+          r.maqueta[w + (claro ? '_claro' : '_osc')] = await ev(`window.__Y.teerMaqueta()`);
+        }
+      }
+      await ev(`window.__P.tema(false)`);
+      await viewport(1200, 760);
+    } catch (e) { r.err = e.message; }
+    out.grupos.teer = r;
+    process.stderr.write('[teer] listo\n');
+  }
+
   if (corre('png')) {
     const r = {};
     try {

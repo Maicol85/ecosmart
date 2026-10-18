@@ -13549,12 +13549,38 @@ z
       </div>
       <div class="grid-4" style="margin-bottom:10px;">
         <div class="fg"><label>Flail gap (mm)</label>
+          <div class="teer-figrow"><div class="teer-figcol">
           <input type="number" id="teer_flail_gap" placeholder="mm" oninput="calcTEER()">
           <span style="font-size:10px; color:var(--text2);">Excl: ≥10mm</span>
+          </div>
+          <svg class="teer-fig" id="teer-fig-gap" viewBox="0 0 320 250" role="img"
+                 aria-label="Esquema de la medicion">
+              <defs><marker id="teer-ar-gap" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6"
+                            markerHeight="6" orient="auto-start-reverse">
+                <path d="M2 1L8 5L2 9" fill="none" stroke="#1BA3B8" stroke-width="1.5"
+                      stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+              <line x1="56" y1="90" x2="264" y2="90" stroke="var(--text2)" stroke-width="2" stroke-dasharray="6 5"/><path d="M50,70 C50,150 100,230 160,230 C220,230 270,150 270,70" fill="none" stroke="var(--text)" stroke-width="4" stroke-linecap="round"/><path d="M74,70 C74,135 110,206 160,206 C210,206 246,135 246,70" fill="none" stroke="var(--text)" stroke-width="4" stroke-linecap="round"/><path d="M246,70 C250,52 266,42 284,34" fill="none" stroke="var(--text)" stroke-width="4" stroke-linecap="round"/><path d="M270,70 C274,56 290,48 306,42" fill="none" stroke="var(--text)" stroke-width="4" stroke-linecap="round"/><path d="M78,90 C90,122 106,134 124,120" fill="none" stroke="var(--text)" stroke-width="8" stroke-linecap="round"/><path d="M124,120 C146,104 160,84 172,66" fill="none" stroke="#ef4444" stroke-width="8" stroke-linecap="round"/><path d="M136,110 L128,142" fill="none" stroke="var(--text2)" stroke-width="2.5" stroke-linecap="round"/><path d="M146,99 L142,128" fill="none" stroke="var(--text2)" stroke-width="2.5" stroke-linecap="round"/><path d="M242,90 L168,124" fill="none" stroke="var(--text)" stroke-width="8" stroke-linecap="round"/><line x1="172" y1="71" x2="172" y2="118" stroke="#1BA3B8" stroke-width="3" marker-start="url(#teer-ar-gap)" marker-end="url(#teer-ar-gap)"/>
+              <text id="teer-fig-gap-val" x="186" y="108" text-anchor="start" font-size="26"
+                    font-weight="600" fill="#1BA3B8"></text>
+            </svg>
+          </div>
         </div>
         <div class="fg"><label>Ancho flail (mm)</label>
+          <div class="teer-figrow"><div class="teer-figcol">
           <input type="number" id="teer_ancho_flail" placeholder="mm" oninput="calcTEER()">
           <span style="font-size:10px; color:var(--text2);">Excl: ≥15mm</span>
+          </div>
+          <svg class="teer-fig" id="teer-fig-anch" viewBox="0 0 320 250" role="img"
+                 aria-label="Esquema de la medicion">
+              <defs><marker id="teer-ar-anch" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6"
+                            markerHeight="6" orient="auto-start-reverse">
+                <path d="M2 1L8 5L2 9" fill="none" stroke="#1BA3B8" stroke-width="1.5"
+                      stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+              <ellipse cx="160" cy="148" rx="108" ry="66" fill="none" stroke="var(--text)" stroke-width="4"/><path d="M54,150 Q160,120 266,150" fill="none" stroke="var(--text)" stroke-width="5" stroke-linecap="round"/><path d="M120,137 C122,106 198,106 200,137 Z" fill="#ef4444" fill-opacity="0.25" stroke="none"/><path d="M120,137 C122,106 198,106 200,137" fill="none" stroke="#ef4444" stroke-width="6" stroke-linecap="round"/><line x1="120" y1="142" x2="120" y2="166" stroke="#1BA3B8" stroke-width="2" stroke-dasharray="4 4"/><line x1="200" y1="142" x2="200" y2="166" stroke="#1BA3B8" stroke-width="2" stroke-dasharray="4 4"/><line x1="122" y1="160" x2="198" y2="160" stroke="#1BA3B8" stroke-width="3" marker-start="url(#teer-ar-anch)" marker-end="url(#teer-ar-anch)"/>
+              <text id="teer-fig-anch-val" x="160" y="196" text-anchor="middle" font-size="26"
+                    font-weight="600" fill="#1BA3B8"></text>
+            </svg>
+          </div>
         </div>
       </div>
 
@@ -13570,12 +13596,38 @@ z
              marcaba como no cumplido. Se alinea el rótulo al umbral que se aplica, no al revés:
              cambiar el corte es una decisión clínica. -->
         <div class="fg"><label>Profundidad coaptación (mm)</label>
+          <div class="teer-figrow"><div class="teer-figcol">
           <input type="number" id="teer_prof_flail" placeholder="mm" oninput="calcTEER()">
           <span style="font-size:10px; color:var(--text2);">Excl: &gt;10mm</span>
+          </div>
+          <svg class="teer-fig" id="teer-fig-prof" viewBox="0 0 320 250" role="img"
+                 aria-label="Esquema de la medicion">
+              <defs><marker id="teer-ar-prof" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6"
+                            markerHeight="6" orient="auto-start-reverse">
+                <path d="M2 1L8 5L2 9" fill="none" stroke="#1BA3B8" stroke-width="1.5"
+                      stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+              <line x1="56" y1="90" x2="264" y2="90" stroke="var(--text2)" stroke-width="2" stroke-dasharray="6 5"/><path d="M50,70 C50,150 100,230 160,230 C220,230 270,150 270,70" fill="none" stroke="var(--text)" stroke-width="4" stroke-linecap="round"/><path d="M74,70 C74,135 110,206 160,206 C210,206 246,135 246,70" fill="none" stroke="var(--text)" stroke-width="4" stroke-linecap="round"/><path d="M78,90 L160,144 L242,90" fill="none" stroke="var(--text)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><path d="M160,144 L160,156" fill="none" stroke="var(--text)" stroke-width="8" stroke-linecap="round"/><line x1="160" y1="95" x2="160" y2="140" stroke="#1BA3B8" stroke-width="3" marker-start="url(#teer-ar-prof)" marker-end="url(#teer-ar-prof)"/>
+              <text id="teer-fig-prof-val" x="176" y="128" text-anchor="start" font-size="26"
+                    font-weight="600" fill="#1BA3B8"></text>
+            </svg>
+          </div>
         </div>
         <div class="fg"><label>Longitud coaptación (mm)</label>
+          <div class="teer-figrow"><div class="teer-figcol">
           <input type="number" id="teer_gap" placeholder="mm" oninput="calcTEER()">
           <span style="font-size:10px; color:var(--text2);">Req: &gt;2mm</span>
+          </div>
+          <svg class="teer-fig" id="teer-fig-len" viewBox="0 0 320 250" role="img"
+                 aria-label="Esquema de la medicion">
+              <defs><marker id="teer-ar-len" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6"
+                            markerHeight="6" orient="auto-start-reverse">
+                <path d="M2 1L8 5L2 9" fill="none" stroke="#1BA3B8" stroke-width="1.5"
+                      stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+              <line x1="56" y1="90" x2="264" y2="90" stroke="var(--text2)" stroke-width="2" stroke-dasharray="6 5"/><path d="M50,70 C50,150 100,230 160,230 C220,230 270,150 270,70" fill="none" stroke="var(--text)" stroke-width="4" stroke-linecap="round"/><path d="M74,70 C74,135 110,206 160,206 C210,206 246,135 246,70" fill="none" stroke="var(--text)" stroke-width="4" stroke-linecap="round"/><path d="M78,90 L160,124 L242,90" fill="none" stroke="var(--text)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><path d="M160,124 L160,166" fill="none" stroke="#1BA3B8" stroke-width="9" stroke-linecap="round"/>
+              <text id="teer-fig-len-val" x="178" y="158" text-anchor="start" font-size="26"
+                    font-weight="600" fill="#1BA3B8"></text>
+            </svg>
+          </div>
         </div>
         <div class="fg"><label>FEVI (%) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← VI Función Sistólica</span></label>
           <input type="number" id="teer_fevi" placeholder="%" oninput="calcTEER()">
@@ -16733,6 +16785,19 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
   #tab-fono .fcg-layout { display:flex;gap:16px;align-items:flex-start; }
   #tab-fono .fcg-left { flex:0 0 260px; }
   #tab-fono .fcg-right { flex:1;min-width:0; }
+  /* ══ LOS CUATRO DIBUJOS DE MEDIDAS TEER (Y3c7, 2026-10-18) ═══════════════════════════════
+     La imagen va AL LADO del campo. A 768 px y por debajo pasa a ir DEBAJO: medido, con la
+     imagen al lado el `<input>` de la profundidad de coaptacion queda por debajo de lo usable a
+     390 px — y la orden prohibe expresamente que una imagen apriete un campo. Es la alternativa
+     minima: ni se achica el dibujo ni se esconde. */
+  .teer-figrow { display:flex; gap:6px; align-items:flex-start; }
+  .teer-figrow > .teer-figcol { flex:1 1 auto; min-width:0; }
+  .teer-fig { flex:0 0 auto; width:92px; height:72px; }
+  @media (max-width: 768px) {
+    .teer-figrow { flex-direction:column; align-items:center; }
+    .teer-figrow > .teer-figcol { width:100%; }
+    .teer-fig { width:120px; height:94px; }
+  }
   #tab-fono .fcg-valve-grid { display:grid;grid-template-columns:1fr 1fr;gap:8px; }
   #tab-fono .fcg-valve-btn {
     display:flex;align-items:center;gap:7px;padding:8px 12px;border-radius:6px;
@@ -54535,6 +54600,10 @@ function limpiarCampos(silencioso) {
      trampa que el selector de VD/VI pago en el G3. Va con `true` porque aca no hay nada que
      respetar: el formulario se acaba de vaciar. */
   if (typeof vtDviAuto === 'function') { try { vtDviAuto(true); } catch (e) {} }
+  /* Los cuatro dibujos de medidas TEER vuelven a quedar SIN numero: `limpiarCampos` vacia los
+     `<input>` pero el `<text>` de un SVG no lo alcanza ningun barrido generico, asi que sin esta
+     linea el dibujo seguiria publicando el valor del paciente anterior (Y3c7). */
+  if (typeof teerFigSync === 'function') { try { teerFigSync(); } catch (e) {} }
   /* La casilla de la FAC queda VISIBLE desde el G3, asi que «Nuevo estudio» tiene que reponer
      su mensaje «requiere …»: el barrido generico vacia el `.value` y NO toca el `placeholder`,
      que es exactamente la trampa que `vdMarcaSync` y `vdTeiAvisoSync` ya documentan. Y
@@ -61466,6 +61535,30 @@ function calcWilkins() {
    `calcTEER` sólo pinta y `amiloTextoTEER` sólo escribe.
 
    `ok:null` = criterio no ingresado, distinto de no cumplido. */
+/* ══ EL VALOR AL LADO DE CADA DIBUJO TEER (Y3c7, 2026-10-18) ═════════════════════════════════
+   Los cuatro esquemas son marcado ESTATICO —ni un dato concatenado en `innerHTML`— y lo unico
+   que esta funcion escribe es el `textContent` del `<text>` del valor.
+
+   ⚠️ UN CAMPO VACIO ES SIN DATO, NO UN CERO, Y ES LA REGLA QUE EL ARR DEJO ESCRITA: `v()`
+   devuelve `null` con el campo vacio o no numerico, y entonces el dibujo se queda SIN numero en
+   vez de conservar el anterior o publicar «0 mm». Es lo que el caso de la suite prueba
+   escribiendo y borrando con teclas reales.
+   ⚠️ LOS CUATRO SON LECTURAS DEL CAMPO, NO DEL VEREDICTO: no se les aplica ningun corte ni se
+   los pinta de ningun color segun cumplan o no. El celeste dice «esto es lo que se mide» y nada
+   mas; los seis colores de lesion estan reservados y ninguna flecha los usa. */
+var TEER_FIG = Object.freeze({ prof: 'teer_prof_flail', len: 'teer_gap',
+                               gap: 'teer_flail_gap', anch: 'teer_ancho_flail' });
+function teerFigSync(){
+  Object.keys(TEER_FIG).forEach(function(k){
+    var t = document.getElementById('teer-fig-' + k + '-val');
+    if (!t) return;
+    var x = null;
+    try { x = (typeof v === 'function') ? v(TEER_FIG[k]) : null; } catch (e) { x = null; }
+    t.textContent = (x === null || !isFinite(x)) ? '' : (x + ' mm');
+  });
+}
+window.teerFigSync = teerFigSync; window.TEER_FIG = TEER_FIG;
+
 function teerEstado() {
   const lva   = v('teer_lva'),  lvp = v('teer_lvp'),  gap = v('teer_gap');
   const area  = v('teer_area_mitral');
@@ -61658,6 +61751,10 @@ window.teerEstado = teerEstado;
 
 function calcTEER() {
   const r = teerEstado();
+  /* Los cuatro dibujos de medidas van colgados de aca porque los cuatro campos ya llaman a esta
+     funcion en su `oninput`, y porque `calcTEER` esta en RECALC_MODULOS —el embudo de las cinco
+     rutas de restauracion—. Una segunda puerta seria una que se desincroniza. */
+  try { teerFigSync(); } catch (e) {}
   /* La interfaz sigue al tipo de IM. Se OCULTA, no se deshabilita ni se borra: los valores se
      conservan —cambiar de «secundaria» a «primaria» y volver no puede perder lo cargado— y lo
      que decide si cuentan es el gate de `teerEstado`, no esta línea. */
