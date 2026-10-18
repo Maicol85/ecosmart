@@ -1285,6 +1285,44 @@ async function main() {
     out.grupos.dvit = r;
   }
 
+
+  /* == GRUPO linb: las lineas B sin separacion, y los dos controles del CORTOS13 ============== */
+  if (corre('linb')) {
+    const r = {};
+    try {
+      r.censo = await ev(`window.__P.lineasb()`);
+      /* La oracion del informe, en los dos patrones y en los tres estilos. */
+      const esc = async (pat) => {
+        await ev(`window.__P.nuevo()`);
+        await ev(`window.__P.abrirPara('pul_lineasb')`);
+        await ev(`window.__P.sel('pul_lineasb', 'si')`);
+        if (pat) await ev(`window.__P.sel('pul_lineasb_pat', ${JSON.stringify(pat)})`);
+        const o = {};
+        for (const est of ['estandar', 'narrativo', 'conciso']) o[est] = await ev(`window.__P.informe(${JSON.stringify(est)})`);
+        o.sepExiste = await ev(`window.__P.existe('pul_lineasb_sep')`);
+        o.wrapExiste = await ev(`window.__P.existe('pul-lineasb-sep-wrap')`);
+        return o;
+      };
+      r.focal = await esc('focal');
+      r.difuso = await esc('difuso');
+      /* CONTROLES DEL CORTOS13 QUE SE CONSERVAN: el derrame pericardico del papel y la formula
+         de Balik. */
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__P.abrirPara('pericardio')`);
+      const ids = await ev(`window.__P.censoIds('pericard|balik|derrame')`);
+      r.idsPeri = ids;
+      await ev(`window.__P.abrirPara('pul_derrame')`);
+      await ev(`window.__P.sel('pul_derrame', 'si')`);
+      await ev(`window.__P.sel('pul_derrame_tam', 'moderado')`);
+      await ev(`window.__P.abrirPara('pul_balik')`);
+      await tipear('pul_balik', '25');
+      r.balik = {};
+      for (const est of ['estandar', 'narrativo', 'conciso']) r.balik[est] = await ev(`window.__P.informe(${JSON.stringify(est)})`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.linb = r;
+    process.stderr.write('[linb] listo\n');
+  }
+
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
   process.stdout.write(JSON.stringify(OUT, null, 1));
   cdp.close(); srv.close(); process.exit(0);

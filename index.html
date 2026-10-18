@@ -8413,22 +8413,14 @@ window.cerrarSesionReal = cerrarSesionReal;
             <option value="focal">Focal</option><option value="difuso">Difuso</option>
           </select>
         </div>
-        <!-- ══ LA SEPARACION ENTRE LINEAS B (CORTOS13, 2026-10-17) ══════════════════════════════
-             DECISION DE MAICOL, que dicta las dos separaciones. ⚠️ SIN FUENTE EN LA BIBLIOTECA, y
-             se declara: barrido de los seis PDF de ecografia pulmonar por «B7», «B3», «7 mm»,
-             «3 mm», «interlobular» y «septal thick», y barrido global por «B7» y «7 mm apart» —
-             cero. El unico documento que nombra «B3 lines» es el protocolo BLUE (Lichtenstein,
-             Chest 2008, hoja 3) y NO da ninguna separacion en milimetros.
-             Por eso las dos opciones son DESCRIPTIVAS y nada mas: dicen la separacion que el
-             medico midio y NO la interpretan —ni «septal» ni «vidrio deslustrado»—, no llevan
-             cita y el dato no tiene globo. Sin consignar, la oracion sale IDENTICA a la de hoy. -->
-        <div class="fg" id="pul-lineasb-sep-wrap" style="display:none;"><label>Separaci&oacute;n</label>
-          <select id="pul_lineasb_sep">
-            <option value="">&mdash; sin consignar &mdash;</option>
-            <option value="s7">separaci&oacute;n aproximada de 7 mm</option>
-            <option value="s3">separaci&oacute;n aproximada de 3 mm</option>
-          </select>
-        </div>
+        <!-- ⚠️ LA SEPARACION ENTRE LINEAS B SE RETIRO (ARR7, 2026-10-18). Vivia aca desde el
+             CORTOS13 con dos opciones descriptivas (≈7 mm y ≈3 mm) y SIN FUENTE: censada la
+             biblioteca entera, ningun protocolo de ecografia pulmonar publica una separacion en
+             milimetros —el unico que nombra «B3 lines» es el BLUE de Lichtenstein (Chest 2008,
+             hoja 3) y no da ninguna—. Decision de Maicol: se saca el selector y la clausula
+             «con separacion aproximada de …» del informe, y la oracion vuelve a ser la de antes
+             del CORTOS13. El RESTO del CORTOS13 se conserva: el derrame pericardico del papel y
+             la fuente de Balik de la ICM 2026. -->
         <div class="fg"><label>Consolidación</label>
           <select id="pul_consolidacion" onchange="pulBasicoUI()">
             <option value="no">No</option><option value="si">Sí</option>
@@ -80567,7 +80559,6 @@ function pulBasicoUI() {
   on('pul-derrame-tam-wrap', der); on('pul-derrame-balik-wrap', der);
   on('pul-derrame-lado-wrap', der);
   on('pul-lineasb-pat-wrap', _amV('pul_lineasb') === 'si');
-  on('pul-lineasb-sep-wrap', _amV('pul_lineasb') === 'si');
   on('pul-consol-nota-wrap', _amV('pul_consolidacion') === 'si');
 }
 window.pulBasicoUI = pulBasicoUI;
@@ -80676,14 +80667,11 @@ function pulBasicoTexto() {
        tres o más indican edema o enfermedad intersticial y NO menciona ninguna separación en
        milímetros. El selector sigue ofreciendo focal y difuso, como hasta hoy. */
     const pat = _amV('pul_lineasb_pat') || 'focal';
-    /* La separacion sale de la `<option>` elegida —el texto del papel vive una sola vez— y se
-       suma a la MISMA oracion. Sin consignar, la frase es la de siempre. */
-    const _sepEl = document.getElementById('pul_lineasb_sep');
-    const _sep = (_sepEl && _sepEl.value)
-      ? String((_sepEl.options[_sepEl.selectedIndex] || {}).textContent || '').trim() : '';
+    /* ⚠️ LA CLAUSULA DE LA SEPARACION SE RETIRO (ARR7, 2026-10-18): el selector no tiene fuente
+       y la oracion vuelve a la de antes del CORTOS13. El selector tambien se fue del marcado, asi
+       que no queda un campo escrito y olvidado que nadie publique. */
     // "distribución" es femenino: difusa / focal, no "difuso".
-    frases.push('Líneas B de distribución ' + (pat === 'difuso' ? 'difusa' : 'focal')
-                + (_sep ? ', con ' + _sep : '') + '.');
+    frases.push('Líneas B de distribución ' + (pat === 'difuso' ? 'difusa' : 'focal') + '.');
     suma.push(pat === 'difuso' ? 'Edema pulmonar intersticial.' : 'Líneas B focales.');
   }
   if (_amV('pul_consolidacion') === 'si') {

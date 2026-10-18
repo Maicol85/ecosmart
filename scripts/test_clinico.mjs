@@ -75318,11 +75318,15 @@ caso('TC-499', 'Tanda CORTOS: la POSICION del selector de origen mitral y de los
     (function(){ const ids = ['otr_asia','otr_asia_nota','otr_var_eustaquio','otr_var_chiari',
         'otr_var_lipo','otr_var_tendones','otr_var_lambl','otr_var_senocor','otr_rac','otr_rac_nota',
         'otr_burb','otr_burb_pasaje','otr_burb_cant','otr_burb_man','otr_burb_mom',
-        'pul_lineasb_sep','sgl_be_pdf','ete_qx_pdf'];
+        /* ADAPTADO el 2026-10-18 (ARR7): pul_lineasb_sep SE RETIRO. Entro en el CORTOS13 y
+           salio por la misma falta de fuente que las dos veces quedo declarada: ningun protocolo
+           de ecografia pulmonar de la biblioteca publica una separacion en milimetros. Lo afirma
+           por su AUSENCIA la condicion (f8), de aca abajo. */
+        'sgl_be_pdf','ete_qx_pdf'];
       const faltan = ids.filter(i => !EL(i));
       const conGuion = ids.filter(i => i.indexOf('-') >= 0);
       return faltan.length === 0 && conGuion.length === 0; })(),
-    (function(){ const ids = ['otr_asia','otr_burb','pul_lineasb_sep','sgl_be_pdf','ete_qx_pdf'];
+    (function(){ const ids = ['otr_asia','otr_burb','sgl_be_pdf','ete_qx_pdf'];
       return ids.map(i => i + '=' + !!EL(i)).join(' '); })()]);
 
   /* ══ (b) LA POSICION DE LO QUE SE MUDO (CORTOS1 y CORTOS2) ════════════════════════════════
@@ -75600,17 +75604,37 @@ caso('TC-499', 'Tanda CORTOS: la POSICION del selector de origen mitral y de los
     (function(){ __t.limpiar(); S('pericardio', 'Derrame severo (>20mm)');
       const a = inf('estandar');
       return 'token=' + V('pericardio') + ' | inf=' + LIN(a.inf, 'errame').join(' // '); })()]);
-  ex.push(['(f8) la separacion de las lineas B se suma a la MISMA oracion y, sin consignar, la frase sale como hasta hoy',
-    (function(){ __t.limpiar(); S('pul_lineasb', 'si'); S('pul_lineasb_pat', 'difuso');
-      S('pul_lineasb_sep', 's7');
-      const a = inf('estandar');
+  /* ADAPTADO el 2026-10-18 (ARR7) — LA SEPARACION DE LAS LINEAS B SE RETIRO, y esta condicion
+     afirma hoy lo CONTRARIO de lo que afirmaba: ni el selector ni su envoltorio existen, la
+     clausula no aparece en ningun estilo, y la oracion es la de antes del CORTOS13. El motivo es
+     el que el propio CORTOS13 ya habia declarado: sus dos opciones no tienen fuente. */
+  ex.push(['(f8) ADAPTADA: la separacion de las lineas B YA NO EXISTE — ni el selector, ni su envoltorio, ni la clausula en los tres estilos',
+    (function(){ if (EL('pul_lineasb_sep') || EL('pul-lineasb-sep-wrap')) return false;
+      __t.limpiar(); S('pul_lineasb', 'si'); S('pul_lineasb_pat', 'difuso');
+      const tres = ['estandar', 'narrativo', 'conciso'].map(function (e) { return inf(e); });
+      const sinClausula = tres.every(function (a) {
+        return String(a.inf || '').indexOf('separación aproximada') < 0; });
       __t.limpiar(); S('pul_lineasb', 'si'); S('pul_lineasb_pat', 'difuso');
       const b = inf('estandar');
-      return LIN(a.inf, 'Líneas B de distribución difusa, con separación aproximada de 7 mm.').length === 1
-        && LIN(b.inf, 'Líneas B de distribución difusa.').length === 1; })(),
+      __t.limpiar(); S('pul_lineasb', 'si'); S('pul_lineasb_pat', 'focal');
+      const c = inf('estandar');
+      return sinClausula
+        && LIN(b.inf, 'Líneas B de distribución difusa.').length === 1
+        && LIN(c.inf, 'Líneas B de distribución focal.').length === 1; })(),
     (function(){ __t.limpiar(); S('pul_lineasb', 'si'); S('pul_lineasb_pat', 'difuso');
-      S('pul_lineasb_sep', 's7');
-      return LIN(inf('estandar').inf, 'Líneas B').join(' // '); })()]);
+      return 'sel=' + !!EL('pul_lineasb_sep') + ' wrap=' + !!EL('pul-lineasb-sep-wrap')
+        + ' | ' + LIN(inf('estandar').inf, 'Líneas B').join(' // '); })()]);
+  /* CONTROL: lo demas del CORTOS13 se conserva — el derrame PERICARDICO del papel y la formula
+     de Balik con su fuente. */
+  ex.push(['(f8b) CONTROL ARR7: el derrame pericardico y la formula de Balik del CORTOS13 se conservan',
+    (function(){ __t.limpiar(); S('pericardio', 'Derrame moderado (10-20mm)');
+      const a = inf('estandar');
+      __t.limpiar(); S('pul_derrame', 'si'); S('pul_derrame_tam', 'moderado'); S('pul_balik', '25');
+      const b = inf('estandar');
+      return LIN(a.inf, 'Derrame pericárdico moderado').length === 1
+        && LIN(b.inf, 'Balik 25 mm').length === 1; })(),
+    (function(){ __t.limpiar(); S('pul_derrame', 'si'); S('pul_derrame_tam', 'moderado'); S('pul_balik', '25');
+      return LIN(inf('estandar').inf, 'errame').join(' // '); })()]);
   ex.push(['(f9) los cuatro globos nuevos tienen entrada en el registro y los tres que leen Referencias traen NODOS de la ficha, no un cartel de error',
     (function(){ const R = (typeof VINFO === 'undefined') ? null : VINFO;
       if (typeof R !== 'object' || !R) return false;
