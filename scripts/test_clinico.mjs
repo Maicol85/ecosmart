@@ -76343,7 +76343,7 @@ caso('TC-501', 'Tanda ARR: un campo VACIO es SIN DATO - las once referencias que
   const LIMPIO = () => { try { if (FN('limpiarCampos')) window.limpiarCampos(true); } catch (e) {} CALENTAR(); };
 
   /* Escribir y borrar un campo, y devolver el texto de su referencia DESPUES de borrar.
-     \`modo\`: 'bs' = un valor y se borra; 'cambio' = se escribe uno, se cambia por otro y se borra.
+     \modo\: 'bs' = un valor y se borra; 'cambio' = se escribe uno, se cambia por otro y se borra.
      El borrado se hace por el DUEÑO del valor y despachando input+change, que es lo que produce
      cualquiera de los dos gestos del medico: el cuerpo de un caso corre DENTRO de la pagina y no
      tiene el canal del protocolo para mandar una tecla de confianza -las teclas reales las manda
@@ -76363,8 +76363,8 @@ caso('TC-501', 'Tanda ARR: un campo VACIO es SIN DATO - las once referencias que
 
   /* ══ (A) LAS CINCO FILAS DE LA AORTA TORACICA ══════════════════════════════════════════════
      El sintoma que el medico reporto: con los campos vacios las cinco decian «Valor fuera de
-     rango (10-90 mm) - verificar». La causa es que \`aoSegsMedidos()\` FILTRA los segmentos sin
-     dato, asi que el forEach de \`calcAorta\` nunca llega a los vacios y la capsula conserva lo
+     rango (10-90 mm) - verificar». La causa es que \aoSegsMedidos()\ FILTRA los segmentos sin
+     dato, asi que el forEach de \calcAorta\ nunca llega a los vacios y la capsula conserva lo
      ultimo que se le escribio; con el Backspace digito por digito ese ultimo valor es el digito
      suelto -el «4» de «46»-, que cae por debajo del minimo de la banda. */
   const AORTA = [['ao_sin','46','ao-interp'], ['ao_st','45','ao-st-interp'],
@@ -76388,8 +76388,8 @@ caso('TC-501', 'Tanda ARR: un campo VACIO es SIN DATO - las once referencias que
   })();
 
   /* ══ (B) EL TAPSE Y LA ONDA S PRIMA ════════════════════════════════════════════════════════
-     Su \`if\` solo pintaba: era el defecto V1 de docs/PENDIENTES.md, declarado en el propio
-     comentario de \`calcVD\` desde el VS2. */
+     Su \if\ solo pintaba: era el defecto V1 de docs/PENDIENTES.md, declarado en el propio
+     comentario de \calcVD\ desde el VS2. */
   [['tapse','14','22','tapse-interp'], ['s_prime','8','13','sprime-interp']].forEach(function (p) {
     const r1 = ESCBOR(p[0], p[1], null, p[3]);
     ex.push(['(B) ' + p[0] + ': con dato publica su grado y al borrar vuelve a «-»',
@@ -76400,7 +76400,7 @@ caso('TC-501', 'Tanda ARR: un campo VACIO es SIN DATO - las once referencias que
   });
 
   /* ══ (C) EL AREA DE LA AD, Y SU CATEGORIA C DE LA PROBABILIDAD DE HTP ══════════════════════
-     \`calcAD\` salia por \`if (!ad) return;\` ANTES de llamar a \`calcHTP2022\`, asi que la salida
+     \calcAD\ salia por \if (!ad) return;\ ANTES de llamar a \calcHTP2022\, asi que la salida
      temprana se llevaba tambien el signo de la categoria C: el cuadro de la HTP decia «signo
      presente» sobre un area que ya no existe. */
   (function () {
@@ -76419,7 +76419,7 @@ caso('TC-501', 'Tanda ARR: un campo VACIO es SIN DATO - las once referencias que
   })();
 
   /* ══ (D) EL PROMEDIO DE LAS DOS e PRIMA ════════════════════════════════════════════════════
-     Su pintor tiene DOS sitios y los dos con \`if (x !== null)\` sin else. */
+     Su pintor tiene DOS sitios y los dos con \if (x !== null)\ sin else. */
   [['e_sep','5','e_lat'], ['e_lat','6','e_sep']].forEach(function (p) {
     const r = ESCBOR(p[0], p[1], null, 'eprom-val');
     ex.push(['(D) ' + p[0] + ': el e prima promedio vuelve a «-» al borrar el anillo',
@@ -76427,7 +76427,7 @@ caso('TC-501', 'Tanda ARR: un campo VACIO es SIN DATO - las once referencias que
   });
 
   /* ══ (E) LA DENSIDAD DEL JET TRICUSPIDEO ═══════════════════════════════════════════════════
-     Es un <select>: su \`if (densidad)\` protege el vacio, pero al volver a la opcion vacia la
+     Es un <select>: su \if (densidad)\ protege el vacio, pero al volver a la opcion vacia la
      fila no se repinta y conserva «Severa - jet denso/triangular». Con PROTESIS pasa igual: la
      fila es la misma. */
   (function () {
@@ -76445,6 +76445,117 @@ caso('TC-501', 'Tanda ARR: un campo VACIO es SIN DATO - las once referencias que
       conDato.indexOf('Severa') > -1, conDato]);
     ex.push(['(E2) y al volver el selector a vacio la fila vuelve a «-»',
       despues === RAYA, antes + ' | ' + conDato + ' -> ' + despues]);
+  })();
+
+
+  /* ══ (H) LAS TARJETAS i, LA VISTA 2D Y LAS SEIS SUPERFICIES DE SALIDA ══════════════════════
+     Las ocho tarjetas de valvula LEEN _v2dPorQue y _v2dPastilla, que leen el textContent de
+     las capsulas; las de L y M SONDEAN al dueno y publican el valor del paciente. Medido contra
+     HEAD: CUATRO arrastraban -la de la insuficiencia tricuspidea deciale «Densidad jet CW Severa
+     - jet denso/triangular», la de la AD «2 cm2 - normal (<19 cm2)», la de la funcion del VD
+     «1 mm - disfuncion sistolica severa» y la de la aorta «Valor fuera de rango (10-90 mm)»- y
+     hoy las cuatro vuelven a su texto de base. No hay mecanismo nuevo: se curaron porque leen la
+     capsula, que es lo que los commits 2 y 3 arreglaron. */
+  const PUERTA = (b) => { try {
+      const sec = b.closest ? b.closest('.tab-section') : null;
+      const id = sec ? String(sec.id || '') : '';
+      if (id.indexOf('tab-') === 0 && FN('showTab') && getComputedStyle(sec).display === 'none')
+        window.showTab(id.slice(4));
+      if (id === 'tab-valvulas') {
+        ['valv-mitral','valv-aortica','valv-tricuspide','valv-pulmonar'].forEach(function (sx) {
+          const c = EL('ete-seccion-' + sx);
+          if (c && getComputedStyle(c).display === 'none' && FN('toggleEteSeccion')) window.toggleEteSeccion(sx); });
+        ['caja-insuf-mitral','caja-insuf-tricuspide','caja-esten-aortica'].forEach(function (cj) {
+          const c = EL(cj);
+          if (c && getComputedStyle(c).display === 'none' && FN('valvDatosTog')) window.valvDatosTog(cj); });
+      }
+      let n = b.parentNode;
+      while (n && n.nodeType === 1 && n !== document.body) {
+        if (String(n.id || '').indexOf('sacc-') === 0 && getComputedStyle(n).display === 'none'
+            && FN('secToggle')) window.secToggle(String(n.id).slice(5));
+        n = n.parentNode;
+      }
+    } catch (e) {} };
+  const TARJ = (k) => {
+    const b = document.querySelector('[data-vinfo="' + k + '"]');
+    if (!b) return 'SIN BOTON ' + k;
+    PUERTA(b);
+    const r = b.getBoundingClientRect();
+    if (!(r.width > 0 && r.height > 0)) return 'SIN GEOMETRIA ' + k;
+    try { b.click(); } catch (e) { return 'NO ABRIO ' + k; }
+    const c = EL('vinfo-card');
+    const ab = !!(c && getComputedStyle(c).display !== 'none');
+    const t = ab ? String(c.textContent || '').replace(/[ ]+/g, ' ').trim() : null;
+    if (ab) { try { b.click(); } catch (e) {} }
+    return t == null ? ('NO ABRIO ' + k) : t;
+  };
+  (function () {
+    const CUATRO = ['tarj-insuf-tricuspide', 'ad-card', 'vd-fun-card', 'ao-card'];
+    const CARGA = { it_vc: '8', ad_area: '22', tapse: '14', s_prime: '8', ao_sin: '46',
+                    peso: '80', talla: '180' };
+    LIMPIO();
+    const base = {}; CUATRO.forEach(function (k) { base[k] = TARJ(k); });
+    Object.keys(CARGA).forEach(function (c) { try { __t.set(c, CARGA[c]); } catch (e) {} });
+    try { __t.set('it_densidad', 'denso'); } catch (e) {}
+    CALENTAR();
+    const con = {}; CUATRO.forEach(function (k) { con[k] = TARJ(k); });
+    Object.keys(CARGA).forEach(function (c) { try { __t.set(c, ''); } catch (e) {}
+      const e2 = EL(c); if (e2) { try { e2.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {} } });
+    try { __t.set('it_densidad', ''); } catch (e) {}
+    const dd = EL('it_densidad'); if (dd) { try { dd.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {} }
+    CALENTAR();
+    const post = {}; CUATRO.forEach(function (k) { post[k] = TARJ(k); });
+    /* DENOMINADOR: las cuatro tienen que MOVERSE con el dato cargado. Sin eso, «volvio» se lee
+       igual que «la tarjeta no mide nada». */
+    ex.push(['(H0) DENOMINADOR: las cuatro tarjetas se ABREN y su texto CAMBIA con el dato cargado',
+      CUATRO.every(function (k) { return String(base[k]).indexOf('SIN ') !== 0
+        && String(base[k]).indexOf('NO ABRIO') !== 0 && base[k] !== con[k]; }),
+      CUATRO.map(function (k) { return k + '=' + String(base[k]).slice(0, 30) + '/' + (base[k] !== con[k]); }).join(' | ')]);
+    CUATRO.forEach(function (k) {
+      ex.push(['(H) la tarjeta i «' + k + '» vuelve a su texto de base al borrar los datos',
+        base[k] === post[k], 'base ' + String(base[k]).length + ' vs post ' + String(post[k]).length
+          + (base[k] === post[k] ? '' : (NL + '  POST: ' + String(post[k]).slice(0, 220)))]);
+    });
+  })();
+
+  /* ══ (I) EL PDF EN SUS SEIS PLANTILLAS Y EL PDF DE AUDITORIA ═══════════════════════════════
+     Medido: NO arrastraban en HEAD y no arrastran hoy. La condicion existe para que el dia que
+     alguno empiece a leer una capsula en vez de su campo, el caso lo note. */
+  (function () {
+    /* ⚠️ jsPDF LLEGA POR CDN Y A VECES NO LLEGA A TIEMPO. Las dos condiciones del PDF se empujan
+       SOLO cuando la libreria esta: una condicion que pasa sin haber medido es lo que este
+       archivo persigue, y un rojo de ENTORNO permanente en la suite es peor -es el defecto que
+       TC-131, TC-135 y TC-148 ya documentan-. El denominador DICE si se midio, asi que el lector
+       ve el numero de condiciones y sabe si el bloque corrio. El PDF se mide ADEMAS de verdad en
+       scripts/_probe_arr.mjs, grupo sal2, donde las SEIS plantillas salieron identicas. */
+    if (typeof window.jspdf === 'undefined') return;
+    const gen = (pl) => {
+      try { localStorage.setItem('ett_pdf_plantilla', pl); } catch (e) {}
+      const orig = window.jspdf.jsPDF; const tx = [];
+      function Env() { const d = new orig(arguments[0]); const oT = d.text;
+        d.text = function (t) { tx.push((typeof t === 'string') ? t
+          : (Array.isArray(t) ? t.join(String.fromCharCode(1)) : String(t))); return oT.apply(d, arguments); };
+        d.save = function () { return d; }; return d; }
+      Env.API = orig.API; Env.version = orig.version;
+      window.jspdf.jsPDF = Env;
+      try { if (FN('generarPDFReal')) window.generarPDFReal(); } catch (e) {}
+      finally { window.jspdf.jsPDF = orig; }
+      return tx.join('|');
+    };
+    const PL = ['clasico','moderno','minimalista','academico','compacto','elegante'];
+    LIMPIO();
+    const base = PL.map(gen);
+    ['ao_sin','tapse','s_prime','ad_area','e_sep','e_lat'].forEach(function (c) {
+      try { __t.set(c, '20'); } catch (e) {}
+      try { __t.set(c, ''); } catch (e) {}
+      const e2 = EL(c); if (e2) { try { e2.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {} } });
+    CALENTAR();
+    const post = PL.map(gen);
+    ex.push(['(I1) DENOMINADOR: las seis plantillas del PDF generan texto',
+      base.every(function (t) { return t.length > 50; }), base.map(function (t) { return t.length; }).join('/')]);
+    ex.push(['(I2) las SEIS plantillas del PDF salen IDENTICAS tras escribir y borrar los seis campos',
+      PL.every(function (p, i) { return base[i] === post[i]; }),
+      PL.map(function (p, i) { return p + (base[i] === post[i] ? ':=' : ':DIF'); }).join(' ')]);
   })();
 
   /* ══ (F) CONTROL NEGATIVO: los campos que YA volvian no se movieron ════════════════════════

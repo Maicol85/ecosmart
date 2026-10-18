@@ -255,10 +255,110 @@ window.__P = {
     return { ok: !!(r && r.ok), tab: tab, abiertos: abiertos, rect: r } },
 
 
+  pdf(plantilla) {
+    if (typeof window.jspdf === 'undefined') return { err:'SIN jsPDF' };
+    if (plantilla) { try { localStorage.setItem('ett_pdf_plantilla', plantilla) } catch (e) {} }
+    var orig = window.jspdf.jsPDF;
+    var textos = [], nfig = 0, guardo = false, err = null;
+    function Envuelto(){
+      var d = new orig(arguments[0]);
+      var oText = d.text, oCirc = d.circle, oLine = d.line;
+      d.text = function(t){
+        var s = (typeof t === 'string') ? t : (Array.isArray(t) ? t.join(String.fromCharCode(1)) : String(t));
+        textos.push(s); return oText.apply(d, arguments) };
+      d.circle = function(){ nfig++; return oCirc.apply(d, arguments) };
+      d.line   = function(){ nfig++; return oLine.apply(d, arguments) };
+      d.save   = function(){ guardo = true; return d };
+      return d }
+    Envuelto.API = orig.API; Envuelto.version = orig.version;
+    window.jspdf.jsPDF = Envuelto;
+    try { generarPDFReal() } catch (e) { err = String(e && e.message || e) }
+    finally { window.jspdf.jsPDF = orig }
+    return { err:err, guardo:guardo, nTextos:textos.length, nFigs:nfig, textos:textos } },
+
+  /* El PPT estadistico y el PDF de auditoria del Laboratorio, por sus generadores REALES —los
+     publicos exigen tarjetas tildadas y abren modales—. Se mide el numero de textos. */
+  labPPT(infs) {
+    if (typeof _labPPTGenerar !== 'function') return 'SIN _labPPTGenerar';
+    if (typeof PptxGenJS === 'undefined') return 'SIN PptxGenJS';
+    var n = 0;
+    try {
+      var P = PptxGenJS; var orig = P.prototype.addSlide;
+      P.prototype.addSlide = function(){ var sl = orig.apply(this, arguments);
+        var oT = sl.addText; sl.addText = function(t){ n++; return oT.apply(sl, arguments) };
+        var oTb = sl.addTable; if (oTb) sl.addTable = function(){ n++; return oTb.apply(sl, arguments) };
+        return sl };
+      try { _labPPTGenerar(infs || [], { guardar:false }); } catch (e) {}
+      P.prototype.addSlide = orig;
+    } catch (e) { return 'EXC: ' + e.message }
+    return n },
+
+  labAudit(infs) {
+    if (typeof _labAnalisisPDFReal !== 'function') return 'SIN _labAnalisisPDFReal';
+    if (typeof window.jspdf === 'undefined') return 'SIN jsPDF';
+    var orig = window.jspdf.jsPDF; var textos = [];
+    function Envuelto(){ var d = new orig(arguments[0]); var oText = d.text;
+      d.text = function(t){ var s = (typeof t === 'string') ? t
+        : (Array.isArray(t) ? t.join(String.fromCharCode(1)) : String(t));
+        textos.push(s); return oText.apply(d, arguments) };
+      d.save = function(){ return d }; return d }
+    Envuelto.API = orig.API; Envuelto.version = orig.version;
+    window.jspdf.jsPDF = Envuelto;
+    try { _labAnalisisPDFReal(infs || []); } catch (e) {}
+    finally { window.jspdf.jsPDF = orig }
+    return { n: textos.length, textos: textos } },
+
+
   /* == LAS TARJETAS i DEL Q, LA VISTA 2D Y EL LABORATORIO =====================================
      Los tres LEEN EL DOM de las capsulas, asi que un span que conserva el valor viejo les llega
      tal cual. Es la superficie que el censo no cubre. */
+  /* ⚠️ SE ABRE LA PUERTA DEL PROPIO BOTON, Y NO SIEMPRE ES VALVULAS. Los globos viven en CINCO
+     pestañas y las cuatro secciones de valvula nacen cerradas con sus ocho cajones «Datos»: sin
+     esto los once botones miden 0 x 0 y la lectura informa «SIN GEOMETRIA» sobre globos que el
+     medico ve perfectamente. Es el abridor de TC-500, con los toggles REALES y no con un
+     display vacio a mano, que la regla del celular le gana con !important. */
+  puertaDe(clave) {
+    var b = document.querySelector('[data-vinfo="' + clave + '"]');
+    if (!b) return { err: 'NO EXISTE globo ' + clave };
+    var o = {};
+    try {
+      var sec = b.closest ? b.closest('.tab-section') : null;
+      var id = sec ? String(sec.id || '') : '';
+      if (id.indexOf('tab-') === 0 && getComputedStyle(sec).display === 'none'
+          && typeof showTab === 'function') showTab(id.slice(4));
+      o.tab = id;
+      if (id === 'tab-valvulas') {
+        ['valv-mitral','valv-aortica','valv-tricuspide','valv-pulmonar'].forEach(function(sx){
+          var c = document.getElementById('ete-seccion-' + sx);
+          if (c && getComputedStyle(c).display === 'none' && typeof toggleEteSeccion === 'function')
+            toggleEteSeccion(sx); });
+        ['caja-insuf-mitral','caja-esten-mitral','caja-insuf-aortica','caja-esten-aortica',
+         'caja-insuf-tricuspide','caja-esten-tricuspide','caja-insuf-pulmonar','caja-esten-pulmonar']
+          .forEach(function(cj){ var c = document.getElementById(cj);
+            if (c && getComputedStyle(c).display === 'none' && typeof valvDatosTog === 'function')
+              valvDatosTog(cj); });
+      }
+      if (id === 'tab-doppler') {
+        ['dop-mitral','dop-aortico','dop-tricusp','dop-pulmonar'].forEach(function(cd){
+          var c = document.getElementById(cd);
+          if (c && getComputedStyle(c).display === 'none' && typeof toggleCard === 'function')
+            toggleCard(cd); });
+      }
+      /* Los acordeones sacc- de AI/VI y VD. */
+      var n = b.parentNode;
+      while (n && n.nodeType === 1 && n !== document.body) {
+        if (String(n.id || '').indexOf('sacc-') === 0 && getComputedStyle(n).display === 'none'
+            && typeof secToggle === 'function') secToggle(String(n.id).slice(5));
+        n = n.parentNode;
+      }
+    } catch (e) { o.err = 'EXC: ' + e.message }
+    o.geo = window.__P.geo(b.id || '') ;
+    var rr = b.getBoundingClientRect();
+    o.w = Math.round(rr.width); o.h = Math.round(rr.height);
+    return o },
+
   qtarj(clave) {
+    window.__P.puertaDe(clave);
     var b = document.querySelector('[data-vinfo="' + clave + '"]');
     if (!b) return { hayBoton: false };
     var r = b.getBoundingClientRect();
@@ -965,6 +1065,94 @@ async function main() {
       process.stderr.write('[ab] ' + nom + '\n');
     }
     out.grupos.ab = r;
+  }
+
+
+  /* == GRUPO sal2: las SEIS SUPERFICIES DE SALIDA con el estado SIN DATO =======================
+     El informe, el EN SUMA y el Excel ya salieron limpios en el grupo `salida`. Lo que falta son
+     las que LEEN EL DOM de las capsulas: el PDF en sus SEIS plantillas, el PPT estadistico, el
+     PDF de auditoria del Laboratorio, las tarjetas i del Q y la vista 2D.
+     El metodo es el mismo: formulario vacio calentado (base) -> escribir los once campos que
+     fallaban -> borrarlos todos -> volver a medir. Lo que mencione un valor borrado lo arrastra. */
+  const PLANTILLAS = ['clasico', 'moderno', 'minimalista', 'academico', 'compacto', 'elegante'];
+  const ONCE = [['ao_sin','46'], ['ao_st','45'], ['ao_tub','47'], ['diam_cayado','46'],
+                ['diam_ao_toracica','42'], ['tapse','14'], ['s_prime','8'], ['ad_area','22'],
+                ['e_sep','5'], ['e_lat','6']];
+  if (corre('sal2')) {
+    const r = {};
+    async function medir() {
+      const o = {};
+      o.refs = await ev(`window.__P.refs()`);
+      for (const pl of PLANTILLAS) {
+        const d = await ev(`window.__P.pdf(${JSON.stringify(pl)})`, 60000);
+        o['pdf:' + pl] = (d && d.textos) ? { n: d.nTextos, f: d.nFigs, t: d.textos.join('|') } : d;
+      }
+      o.ppt = await ev(`window.__P.labPPT([])`, 60000);
+      o.audit = await ev(`window.__P.labAudit([])`, 60000);
+      o.v2dTri = await ev(`window.__P.v2d('tricuspide')`);
+      o.v2dAo = await ev(`window.__P.v2d('aortica')`);
+      o.lab = await ev(`window.__P.lab({})`);
+      return o;
+    }
+    try {
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__P.calentar()`);
+      r.base = await medir();
+      for (const [k, v2] of ONCE) { await ev(`window.__P.abrirPara(${JSON.stringify(k)})`); await tipear(k, v2); }
+      await ev(`window.__P.abrirPara('it_densidad')`);
+      await tipear('it_vc', '5');
+      await ev(`window.__P.sel('it_densidad', 'denso')`);
+      await ev(`window.__P.calentar()`);
+      r.conDato = { refs: await ev(`window.__P.refs()`) };
+      for (const [k] of ONCE) await borrar(k, 'bs');
+      await borrar('it_vc', 'bs');
+      await ev(`window.__P.sel('it_densidad', "")`);
+      await ev(`window.__P.calentar()`);
+      r.post = await medir();
+    } catch (e) { r.err = e.message; }
+    out.grupos.sal2 = r;
+    process.stderr.write('[sal2] listo\n');
+  }
+
+
+  /* == GRUPO qtar: las tarjetas i del Q y las de L y M con el estado SIN DATO =================
+     Las ocho de valvula LEEN `_v2dPorQue` y `_v2dPastilla`, que leen el textContent de las
+     capsulas: un span que conserva el valor viejo les llega tal cual. Las de L y M (AI, VI, VD,
+     AD, aorta) SONDEAN al dueno y publican el valor del paciente, asi que tambien lo verian.
+     El metodo es el de siempre: base calentada -> cargar -> borrar -> comparar. */
+  const QTARJ = ['tarj-insuf-tricuspide', 'tarj-esten-aortica', 'tarj-insuf-mitral',
+                 'ad-card', 'ai-card', 'vd-fun-card', 'vd-tam-card', 'ao-card', 'vi-card',
+                 'tapse-psap', 'tarj-diast'];
+  if (corre('qtar')) {
+    const r = {};
+    const leer = async () => {
+      const o = {};
+      for (const k of QTARJ) o[k] = await ev(`window.__P.qtarj(${JSON.stringify(k)})`, 30000);
+      return o;
+    };
+    try {
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__P.calentar()`);
+      /* Las puertas: la pestaña y las secciones de valvula nacen cerradas y sus globos miden
+         0 x 0 sin abrirlas. Se usa el mismo abridor del censo. */
+      for (const k of ['it_vc', 'ea_vmax', 'im_vc', 'ad_area', 'ai_vol', 'tapse', 'ao_sin', 'ddfvi', 'onda_e'])
+        await ev(`window.__P.abrirPara(${JSON.stringify(k)})`);
+      r.base = await leer();
+      const CARGA = { it_vc: '8', ea_vmax: '4.5', im_vc: '8', ad_area: '22', ai_vol: '98',
+                      tapse: '14', s_prime: '8', ao_sin: '46', ddfvi: '58', siv: '13', ppvi: '13',
+                      peso: '80', talla: '180', onda_e: '95', e_sep: '5', e_lat: '6',
+                      vmax_it: '3.0', vci_diam: '18' };
+      for (const [k, v2] of Object.entries(CARGA)) { await ev(`window.__P.abrirPara(${JSON.stringify(k)})`); await tipear(k, v2); }
+      await ev(`window.__P.sel('it_densidad', 'denso')`);
+      await ev(`window.__P.calentar()`);
+      r.conDato = await leer();
+      for (const k of Object.keys(CARGA)) await borrar(k, 'bs');
+      await ev(`window.__P.sel('it_densidad', "")`);
+      await ev(`window.__P.calentar()`);
+      r.post = await leer();
+    } catch (e) { r.err = e.message; }
+    out.grupos.qtar = r;
+    process.stderr.write('[qtar] listo\n');
   }
 
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
