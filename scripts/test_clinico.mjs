@@ -75568,21 +75568,28 @@ caso('TC-499', 'Tanda CORTOS: la POSICION del selector de origen mitral y de los
       return 'inf=' + LIN(a.inf, 'circunfleja').join(' // ') + ' | suma=' + LIN(a.suma, 'RAC').join(' // '); })()]);
   ex.push(['(f5) el test de burbuja arma su frase con la cantidad, la maniobra y el momento, y al EN SUMA va positivo o negativo sin inventar un grado',
     (function(){ __t.limpiar(); CHK('otr_burb', true);
-      S('otr_burb_pasaje', 'si'); S('otr_burb_cant', 'e1030');
+      /* ADAPTADO el 2026-10-18 (ARR8) — LA ESCALA DE BURBUJAS SE UNIFICO con la del modulo FOP,
+         que es la que el Laboratorio ya cuenta y la unica con NOMBRES de grado. El valor e1030 sigue
+         existiendo como <option hidden> para que un estudio guardado del CORTOS no quede con el
+         <select> en selectedIndex -1 —la trampa de et_grado—, pero su rotulo ahora dice
+         «(estudio anterior)», asi que la escena usa el valor VIGENTE. Ninguna fuente de la
+         biblioteca gradua el paso de burbujas: se conservo la escala que los estudios guardados
+         ya usan y se adapto la otra, que tenia un dia de vida. */
+      S('otr_burb_pasaje', 'si'); S('otr_burb_cant', 'moderado');
       S('otr_burb_man', 'val'); S('otr_burb_mom', 'pre3');
       const a = inf('estandar');
       __t.limpiar(); CHK('otr_burb', true); S('otr_burb_pasaje', 'no');
       const b = inf('estandar');
       __t.limpiar(); CHK('otr_burb', true);
       const c = inf('estandar');
-      return LIN(a.inf, 'Se realiza test de burbuja, se observa pasaje de burbujas (entre 10 y 30), con Valsalva, antes del tercer latido.').length === 1
+      return LIN(a.inf, 'Se realiza test de burbuja, se observa pasaje de burbujas (Moderado (5-20)), con Valsalva, antes del tercer latido.').length === 1
         && LIN(a.suma, 'Test de burbuja positivo.').length === 1
         && LIN(b.inf, 'Se realiza test de burbuja, no se observa pasaje de burbujas.').length === 1
         && LIN(b.suma, 'Test de burbuja negativo.').length === 1
         && LIN(c.inf, 'Se realiza test de burbuja.').length === 1
         && LIN(c.suma, 'Test de burbuja').length === 0; })(),
     (function(){ __t.limpiar(); CHK('otr_burb', true); S('otr_burb_pasaje', 'si');
-      S('otr_burb_cant', 'e1030'); S('otr_burb_man', 'val'); S('otr_burb_mom', 'pre3');
+      S('otr_burb_cant', 'moderado'); S('otr_burb_man', 'val'); S('otr_burb_mom', 'pre3');
       const a = inf('estandar'); return LIN(a.inf, 'burbuja').join(' // '); })()]);
   ex.push(['(f6) el informe del test de burbuja NO interpreta: no dice intracardiaco ni intrapulmonar',
     (function(){ __t.limpiar(); CHK('otr_burb', true);

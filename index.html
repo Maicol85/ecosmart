@@ -8217,7 +8217,7 @@ window.cerrarSesionReal = cerrarSesionReal;
           <div class="grid-2">
           <div class="fg">
             <label style="display:flex;align-items:center;gap:8px;min-height:44px;font-weight:600;">
-              <input type="checkbox" id="otr_asia" onchange="otrHallSync()">
+              <input type="checkbox" id="otr_asia" onchange="otrHallSync();fopBurbEspejo('otr_asia')">
               <span style="font-size:12px;">Aneurisma del septum interauricular (ASIA)</span>
             </label>
             <input type="text" id="otr_asia_nota" maxlength="120" placeholder="(de &hellip; mm por &hellip; mm en eje L y T)" oninput="_refrescarInformeSiGenerado()">
@@ -8316,7 +8316,7 @@ window.cerrarSesionReal = cerrarSesionReal;
     <div class="card-body">
       <div class="fg">
         <label style="display:flex;align-items:center;gap:8px;min-height:44px;font-weight:600;">
-          <input type="checkbox" id="otr_burb" onchange="otrBurbUI();otrHallSync()">
+          <input type="checkbox" id="otr_burb" onchange="otrBurbUI();otrHallSync();fopBurbEspejo('otr_burb')">
           <span style="font-size:12px;">Se realiza test de burbuja</span>
           <button type="button" class="vinfo-btn" data-vinfo="otr-burbujas" aria-expanded="false" aria-label="Informaci&oacute;n sobre el test de burbuja" onclick="vInfoClic(this)">&#9432;</button>
         </label>
@@ -8324,7 +8324,7 @@ window.cerrarSesionReal = cerrarSesionReal;
       <div id="otr-burb-detalle" style="display:none;">
         <div class="grid-2">
           <div class="fg"><label>Pasaje de burbujas</label>
-            <select id="otr_burb_pasaje" onchange="otrBurbUI();otrHallSync()">
+            <select id="otr_burb_pasaje" onchange="otrBurbUI();otrHallSync();fopBurbEspejo('otr_burb_pasaje')">
               <option value="">&mdash; sin consignar &mdash;</option>
               <option value="si">S&iacute;, se observa pasaje</option>
               <option value="no">No se observa pasaje</option>
@@ -8333,15 +8333,38 @@ window.cerrarSesionReal = cerrarSesionReal;
         </div>
         <div id="otr-burb-pos" class="grid-3" style="display:none;margin-top:8px;">
           <div class="fg"><label>Cantidad</label>
-            <select id="otr_burb_cant" onchange="otrHallSync()">
+            <!-- ══ UNA SOLA ESCALA DE BURBUJAS (ARR8, 2026-10-18) ════════════════════════
+                 Habia DOS: esta, que nacio en el CORTOS13 (17/10/2026) con «<10 / 10-30 / >30», y
+                 la del modulo FOP de CC frecuentes, «Pocas (<5) / Moderado (5-20) / Abundante
+                 (>20)». Un estudio podia llevar las dos y el informe deciria dos oraciones sobre
+                 el mismo test con dos escalas (CORTOS-1 de PENDIENTES.md).
+                 ⚠️ NINGUNA FUENTE DE LA BIBLIOTECA GRADUA EL PASO DE BURBUJAS, censada entera: las
+                 menciones de microburbujas son de contraste de perfusion, protesis mecanicas y
+                 artefactos pulmonares, y la ASE de ETE (hoja 59) describe el estudio positivo de
+                 forma CUALITATIVA -«dense opacification of RA and RV, and clear early passage of
+                 microbubbles to the LA»-, sin conteo. Por eso se aplica la regla de la orden:
+                 CONSERVAR la que ya usan los estudios guardados y ADAPTAR la otra.
+                 Queda la del MODULO FOP, por tres razones medidas: el Laboratorio cuenta su barra
+                 «Paso de burbujas con contraste» leyendo `fop_burbujas`; es la unica que tiene
+                 NOMBRES de grado, que es lo que el informe esquematico necesita; y es la antigua,
+                 mientras esta tiene un dia de vida.
+                 ⚠️ LAS TRES OPCIONES VIEJAS QUEDAN COMO `hidden`, el patron que `em_grado` ya usa:
+                 el recolector restaura por `el.value`, asi que sin ellas un estudio guardado del
+                 CORTOS reabre con el `<select>` en `selectedIndex -1`. Es la trampa de `et_grado`.
+                 NO se traducen a la escala nueva: equiparar «menos de 10» con «Pocas (<5)» o con
+                 «Moderado (5-20)» seria inventar una equivalencia que ninguna fuente hace. -->
+            <select id="otr_burb_cant" onchange="otrHallSync();fopBurbEspejo('otr_burb_cant')">
               <option value="">&mdash; sin consignar &mdash;</option>
-              <option value="lt10">menos de 10</option>
-              <option value="e1030">entre 10 y 30</option>
-              <option value="gt30">m&aacute;s de 30</option>
+              <option value="pocas">Pocas (&lt;5)</option>
+              <option value="moderado">Moderado (5-20)</option>
+              <option value="abundante">Abundante (&gt;20)</option>
+              <option value="lt10" hidden>menos de 10 (estudio anterior)</option>
+              <option value="e1030" hidden>entre 10 y 30 (estudio anterior)</option>
+              <option value="gt30" hidden>m&aacute;s de 30 (estudio anterior)</option>
             </select>
           </div>
           <div class="fg"><label>Maniobra</label>
-            <select id="otr_burb_man" onchange="otrHallSync()">
+            <select id="otr_burb_man" onchange="otrHallSync();fopBurbEspejo('otr_burb_man')">
               <option value="">&mdash; sin consignar &mdash;</option>
               <option value="esp">espont&aacute;neo</option>
               <option value="val">con Valsalva</option>
@@ -14468,7 +14491,7 @@ z
           </select>
         </div>
         <div class="fg"><label>Aneurisma del septum</label>
-          <select id="fop_asa" onchange="fopSync()">
+          <select id="fop_asa" onchange="fopSync();fopBurbEspejo('fop')">
             <option value="">—</option>
             <option value="no_eval">No evaluado</option>
             <option value="no">No</option>
@@ -14487,14 +14510,14 @@ z
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Shunt</div>
       <div class="grid-3">
         <div class="fg"><label>Contraste con burbujas</label>
-          <select id="fop_contraste" onchange="fopSync()">
+          <select id="fop_contraste" onchange="fopSync();fopBurbEspejo('fop')">
             <option value="">—</option>
             <option value="no">No se realizó</option>
             <option value="si">Realizado</option>
           </select>
         </div>
         <div class="fg"><label>Shunt en reposo</label>
-          <select id="fop_shunt_reposo" onchange="fopSync()">
+          <select id="fop_shunt_reposo" onchange="fopSync();fopBurbEspejo('fop')">
             <option value="">—</option>
             <option value="no_eval">No evaluado</option>
             <option value="no">Ausente</option>
@@ -14502,7 +14525,7 @@ z
           </select>
         </div>
         <div class="fg"><label>Shunt con Valsalva</label>
-          <select id="fop_shunt_valsalva" onchange="fopSync()">
+          <select id="fop_shunt_valsalva" onchange="fopSync();fopBurbEspejo('fop')">
             <option value="">—</option>
             <option value="no_eval">No evaluado</option>
             <option value="no">Ausente</option>
@@ -14512,7 +14535,7 @@ z
       </div>
       <div class="grid-2" style="margin-top:10px;">
         <div class="fg"><label>Cantidad de burbujas</label>
-          <select id="fop_burbujas" onchange="fopSync()">
+          <select id="fop_burbujas" onchange="fopSync();fopBurbEspejo('fop')">
             <option value="">—</option>
             <option value="pocas">Pocas (&lt;5)</option>
             <option value="moderado">Moderado (5-20)</option>
@@ -52385,6 +52408,16 @@ function generarInforme(opts) {
       const reposo = sv('fop_shunt_reposo'), valsalva = sv('fop_shunt_valsalva'), contraste = sv('fop_contraste');
       /* El encabezado del párrafo depende de la conclusión: con el estudio de burbujas negativo
          no se puede abrir diciendo «Foramen oval permeable», que es justo lo que se descartó. */
+      /* ══ EL INFORME ES ESQUEMÁTICO (ARR8, 2026-10-18) ═══════════════════════════
+         UNA ORACIÓN POR HALLAZGO, en el estilo del EN SUMA y sin frases explicativas. Hasta hoy
+         era una lista de hasta nueve frases de una cláusula cada una —«Foramen oval permeable.
+         Longitud del túnel 8 mm. Septum interauricular móvil. …»— que se leía como un telegrama.
+         Son TRES oraciones: la anatomía, el test de burbuja y el contexto clínico.
+         ⚠️ NO SE PIERDE NI UN DATO: los mismos campos, los mismos números y las mismas palabras
+         de grado. Lo que cambia es la puntuación y el orden de las cláusulas dentro de la frase.
+         ⚠️ `ccHoja` SIGUE RECIBIENDO LA LISTA `p` y no la oración armada: esa hoja la consume el
+         PDF de CC frecuentes renglón por renglón, y pasarle una sola cadena larga le rompería la
+         maquetación. Es la misma lista de siempre. */
       const p = [c.clave === 'descartado' ? 'Septum interauricular' : 'Foramen oval permeable'];
       if (f1(tunel)) p.push('Longitud del túnel ' + f1(tunel) + ' mm');
       if (mov === 'si') p.push('Septum interauricular móvil');
@@ -52404,7 +52437,43 @@ function generarInforme(opts) {
       } else if (contraste === 'no') {
         p.push('No se realizó estudio con contraste');
       }
-      etePars.push(p.join('. ') + '. ' + c.txt + '.'); ccMarcarParrafo();
+      /* —— LA PROSA ESQUEMÁTICA, armada de los MISMOS valores —— */
+      const _ors = [];
+      /* 1 · anatomía */
+      let _a = (c.clave === 'descartado') ? 'Septum interauricular' : 'Foramen oval permeable';
+      if (f1(tunel)) _a += ' (túnel de ' + f1(tunel) + ' mm)';
+      const _rasgos = [];
+      if (mov === 'si') _rasgos.push('septum interauricular móvil');
+      if (asa === 'si' || (asaMm != null && asaMm >= 10))
+        _rasgos.push('aneurisma del septum' + (f1(asaMm) ? ' (excursión de ' + f1(asaMm) + ' mm)' : ''));
+      else if (asa === 'no') _rasgos.push('sin aneurisma del septum');
+      if (_rasgos.length) _a += ', con ' + _rasgos.join(' y ');
+      _ors.push(_a + '.');
+      /* 2 · test de burbuja. El rango sale de `FOP_BURB_TXT`, que es su dueño único y el mismo
+         que publica la cápsula del módulo: el texto del papel no se escribe una segunda vez. */
+      if (contraste === 'si') {
+        const _t = [];
+        if (reposo === 'si') _t.push('shunt en reposo');
+        else if (reposo === 'no') _t.push('sin shunt en reposo');
+        /* ⚠️ `FOP_BURB_TXT` YA EMPIEZA CON LA PALABRA «shunt» —«shunt moderado (5-20
+           burbujas)»—, así que la frase la pone ÉL y no la plantilla: la primera versión
+           publicaba «con maniobra de Valsalva, shunt shunt moderado» en el informe FIRMADO, y lo
+           cazó la sonda. Sin grado se escribe «shunt» a secas. */
+        if (valsalva === 'si') _t.push('con maniobra de Valsalva, '
+          + (burb ? (FOP_BURB_TXT[burb] || burb) : 'shunt'));
+        else if (valsalva === 'no') _t.push('sin shunt con maniobra de Valsalva');
+        else if (burb) _t.push((FOP_BURB_TXT[burb] || burb));
+        if (_t.length) _ors.push('Test de burbuja: ' + _t.join('; ') + '.');
+        else _ors.push('Test de burbuja realizado.');
+      } else if (contraste === 'no') {
+        _ors.push('No se realizó test de burbuja.');
+      }
+      /* 3 · contexto clínico. Las cuatro claves que cambian la conducta llevan su cláusula
+         esquemática (`esq`); las que no la tienen publican el párrafo de siempre, porque
+         omitirlas sería PERDER información del informe firmado y esta orden no lo autoriza. */
+      if (c.esq) _ors.push(c.esq);
+      else if (c.txt) _ors.push(c.txt + '.');
+      etePars.push(_ors.join(' ')); ccMarcarParrafo();
       ccHoja('fop', p, c.txt, null);
       /* Al EN SUMA sólo lo que cambia una conducta. `incidental` no: un FOP sin contexto es un
          hallazgo de uno de cada cuatro adultos y llenaría la conclusión de ruido.
@@ -56873,6 +56942,16 @@ function otrHallazgos(src) {
     if (src && typeof src === 'object') return String(src[id + '__chk'] || '') === '1';
     const e = document.getElementById(id); return !!(e && e.checked);
   };
+  /* ⚠️ CON EL MÓDULO FOP INTEGRADO AL INFORME, EL ANEURISMA NO SE PUBLICA DOS VECES (ARR8,
+     2026-10-18). Es el MISMO dato —desde este commit los dos controles se espejan— y el párrafo
+     del FOP ya lo nombra con su excursión: sin esto, el informe firmado decía «Aneurisma del
+     septum interauricular.» por un lado y «…, con aneurisma del septum (excursión de 22 mm)»
+     por el otro. Es el mismo patrón con que el módulo pulmonar básico se calla cuando el
+     avanzado está integrado. La casilla de Otros NO se toca: sigue encendida y sigue viajando
+     con el estudio; lo único que cambia es quién escribe la oración. */
+  const fopIntegrado = (src && typeof src === 'object')
+    ? String(src['fop_incluir_chk__chk'] || '') === '1'
+    : !!(document.getElementById('fop_incluir_chk') || {}).checked;
   const nota = (id) => {
     if (src && typeof src === 'object') return String(src[id + '_nota'] || '').trim();
     const e = document.getElementById(id + '_nota'); return e ? String(e.value || '').trim() : '';
@@ -56880,6 +56959,7 @@ function otrHallazgos(src) {
   const out = [];
   OTR_HALL.forEach(function (h) {
     if (!chk(h.id)) return;
+    if (h.id === 'otr_asia' && fopIntegrado) return;
     const n = nota(h.id);
     out.push({ id: h.id, inf: h.def + (n ? ' ' + n : '') + '.', suma: h.suma ? (h.suma + '.') : null });
   });
@@ -56926,6 +57006,18 @@ function otrBurbuja(src) {
     ? String(src['otr_burb__chk'] || '') === '1'
     : !!(document.getElementById('otr_burb') || {}).checked;
   if (!on) return null;
+  /* ⚠️ CON EL MÓDULO FOP INTEGRADO AL INFORME, EL TEST NO SE PUBLICA DOS VECES (ARR8,
+     2026-10-18). Es el MISMO test —desde este commit comparten la escala y se espejan— y el
+     párrafo del FOP ya lo publica con su oración esquemática: sin esto, el informe firmado
+     decía «Se realiza test de burbuja, se observa pasaje de burbujas (Moderado (5-20)), con
+     Valsalva.» por un lado y «Test de burbuja: … shunt moderado (5-20 burbujas).» por el otro.
+     Es el patrón del módulo pulmonar básico frente al avanzado, y es LA mitad que faltaba del
+     «un solo dueño»: con la escala unificada pero las dos oraciones, el defecto que CORTOS-1
+     declara seguía abierto. Los cuatro campos de Otros NO se tocan y siguen viajando. */
+  const fopIntegrado = (src && typeof src === 'object')
+    ? String(src['fop_incluir_chk__chk'] || '') === '1'
+    : !!(document.getElementById('fop_incluir_chk') || {}).checked;
+  if (fopIntegrado) return null;
   const pas = (src && typeof src === 'object')
     ? String(src['otr_burb_pasaje'] || '')
     : ((document.getElementById('otr_burb_pasaje') || {}).value || '');
@@ -56939,6 +57031,84 @@ function otrBurbuja(src) {
            suma: 'Test de burbuja positivo.' };
 }
 window.otrBurbuja = otrBurbuja;
+
+/* ══ UN SOLO DATO: EL ESPEJO ENTRE LA PESTAÑA OTROS Y EL MÓDULO FOP (ARR8, 2026-10-18) ═════
+   El test de burbuja y el aneurisma del septum existían DOS veces —pestaña Otros y módulo FOP de
+   CC frecuentes— y un mismo estudio podía llevar las dos con valores distintos, así que el
+   informe diría dos oraciones sobre el mismo hallazgo. Desde hoy son UN dato con DOS controles,
+   con el patrón de `itVmaxSync`: espejo en los dos sentidos y guarda de re-entrada.
+
+   LA TABLA, y no hay traducción inventada en ninguna fila:
+     otr_burb (casilla)   <->  fop_contraste      si / no
+     otr_burb_pasaje      <->  fop_shunt_reposo + fop_shunt_valsalva, según `otr_burb_man`
+     otr_burb_cant        <->  fop_burbujas       MISMOS value desde este commit
+     otr_asia (casilla)   <->  fop_asa            si / no
+   La excursión del aneurisma tiene UN solo campo en toda la app (`fop_asa_mm`) y se deja ahí:
+   agregarle uno a Otros sería crear el segundo dato que este commit viene a cerrar.
+
+   ⚠️ LAS TRES OPCIONES DE LEGADO NO SE ESPEJAN. Un `otr_burb_cant` en `lt10`, `e1030` o `gt30`
+   —un estudio guardado del CORTOS— se conserva tal cual y NO se copia a `fop_burbujas`: mapear
+   «menos de 10» a «Pocas (<5)» o a «Moderado (5-20)» es inventar una equivalencia. No se migra.
+
+   ⚠️ LA GUARDA DE RE-ENTRADA NO ES DECORATIVA aunque asignar `.value` por código no dispare
+   `onchange`: los arneses despachan el evento a mano, y sin ella el espejo se llama a sí mismo.
+   Es el mismo motivo que `_itVmaxSinc` deja escrito. */
+let _fopEspejoSinc = false;
+const FOP_BURB_LEGADO = Object.freeze(['lt10', 'e1030', 'gt30']);
+function fopBurbEspejo(origen) {
+  if (_fopEspejoSinc) return;
+  _fopEspejoSinc = true;
+  try {
+    const g = (id) => document.getElementById(id);
+    const sv2 = (id) => { const e = g(id); return e ? String(e.value || '') : null; };
+    const pon = (id, val) => { const e = g(id); if (!e || val == null) return;
+      /* No se escribe un valor que el `<select>` no ofrece: dejaría `selectedIndex -1`. */
+      if (e.options && Array.prototype.slice.call(e.options).every((o) => o.value !== val)) return;
+      if (e.value !== val) e.value = val; };
+    const chk = (id) => { const e = g(id); return e ? !!e.checked : null; };
+    const ponChk = (id, b) => { const e = g(id); if (e && e.checked !== b) e.checked = b; };
+
+    if (origen === 'otr_burb' || origen === 'otr_burb_pasaje' || origen === 'otr_burb_man'
+        || origen === 'otr_burb_cant' || origen === 'otr_asia') {
+      /* OTROS -> FOP */
+      if (origen === 'otr_burb') pon('fop_contraste', chk('otr_burb') ? 'si' : 'no');
+      if (origen === 'otr_burb_pasaje' || origen === 'otr_burb_man') {
+        const pas = sv2('otr_burb_pasaje'), man = sv2('otr_burb_man');
+        if (pas === 'no') { pon('fop_shunt_reposo', 'no'); pon('fop_shunt_valsalva', 'no'); }
+        else if (pas === 'si') {
+          if (man === 'val') pon('fop_shunt_valsalva', 'si');
+          else if (man === 'esp') pon('fop_shunt_reposo', 'si');
+        }
+      }
+      if (origen === 'otr_burb_cant') {
+        const c = sv2('otr_burb_cant');
+        if (c && FOP_BURB_LEGADO.indexOf(c) < 0) pon('fop_burbujas', c);
+      }
+      if (origen === 'otr_asia') pon('fop_asa', chk('otr_asia') ? 'si' : 'no');
+      if (typeof fopSync === 'function') { try { fopSync(); } catch (e) {} }
+    } else {
+      /* FOP -> OTROS */
+      const contr = sv2('fop_contraste');
+      if (contr === 'si') ponChk('otr_burb', true);
+      else if (contr === 'no') ponChk('otr_burb', false);
+      const rep = sv2('fop_shunt_reposo'), val = sv2('fop_shunt_valsalva');
+      if (rep === 'si' || val === 'si') {
+        pon('otr_burb_pasaje', 'si');
+        pon('otr_burb_man', (val === 'si') ? 'val' : 'esp');
+      } else if (rep === 'no' && val === 'no') {
+        pon('otr_burb_pasaje', 'no');
+      }
+      const b = sv2('fop_burbujas');
+      if (b) pon('otr_burb_cant', b);
+      const asa = sv2('fop_asa');
+      if (asa === 'si') ponChk('otr_asia', true);
+      else if (asa === 'no') ponChk('otr_asia', false);
+      if (typeof otrBurbUI === 'function') { try { otrBurbUI(); } catch (e) {} }
+      if (typeof otrHallSync === 'function') { try { otrHallSync(); } catch (e) {} }
+    }
+  } finally { _fopEspejoSinc = false; }
+}
+window.fopBurbEspejo = fopBurbEspejo;
 
 function showMasaPanel(){
   var v = (document.getElementById('masa_presente') || {}).value || '';
@@ -62650,6 +62820,7 @@ function fopConclusion(src){
   const shuntNegado = contraste === 'si' && reposo === 'no' && valsalva === 'no' && !burb;
   const anatomiaNegada = tunelRaw == null && asaMmRaw == null && asa !== 'si' && mov !== 'si';
   if (shuntNegado && anatomiaNegada) return { clave:'descartado',
+    esq:'Sin evidencia de foramen oval permeable.',
     txt:'Estudio con solución salina agitada sin paso de burbujas en reposo ni con maniobra de Valsalva — sin evidencia de foramen oval permeable' };
 
   const shuntAbundante = burb === 'abundante';
@@ -62660,7 +62831,16 @@ function fopConclusion(src){
 
   /* 1 · El antecedente manda sobre la anatomía. */
   if (acv === 'si') {
+    /* ⚠️ `esq` ES LA CLÁUSULA DEL INFORME ESQUEMÁTICO (ARR8, 2026-10-18) y `txt` el párrafo de
+       siempre, que el PDF de CC frecuentes y la hoja de `ccHoja` siguen consumiendo. Son dos
+       superficies con dos registros y por eso son dos campos: el papel esquemático dice el
+       hallazgo, el párrafo explica la conducta.
+       ⚠️ EL AVISO DE LA EDAD NO VA AL INFORME NI AL EN SUMA, por decisión de Maicol: la
+       indicación de cierre percutáneo según la edad queda documentada en `FUENTES.md` y en
+       `PENDIENTES.md` para llevarla a Referencias, y NO se escribe en la app. Por eso `esq` de
+       `acv_mayor` y de `acv_sin_edad` dice el hallazgo y nada más. */
     if (edad != null && edad >= 60) return { clave:'acv_mayor',
+      esq:'Con ACV criptogénico.',
       txt:'FOP en paciente con ACV criptogénico de 60 años o más — la indicación de cierre percutáneo de la ESC está establecida por debajo de esa edad; decisión individual en equipo con neurología' };
     /* La edad decide, y se lee de otra pestaña. Sin ella, `!(edad != null && edad >= 60)` cae
        hacia la rama que INDICA el implante: un paciente de 78 años con ACV criptogénico al que
@@ -62668,8 +62848,10 @@ function fopConclusion(src){
        omitía la edad en silencio. La rama que niega exigía el dato; la que afirma, no.
        `edad > 0` y no `edad != null`: un 0 producía «en paciente de 0 años». */
     if (!(edad > 0)) return { clave:'acv_sin_edad',
+      esq:'Con ACV criptogénico.',
       txt:'FOP con ACV criptogénico — falta la edad del paciente, de la que depende la indicación: el cierre percutáneo es Clase IIa por debajo de los 60 años' };
     return { clave:'cierre_iia',
+      esq:'Con ACV criptogénico.',
       txt:'FOP con ACV criptogénico' + (edad > 0 ? ' en paciente de ' + edad + ' años' : '') +
           (hayASA || shuntAbundante ? ', con características de alto riesgo embólico (' +
             [hayASA ? 'aneurisma del septum interauricular' : null, shuntAbundante ? 'shunt severo' : null].filter(Boolean).join(' y ') + ')' : '') +
@@ -62681,6 +62863,7 @@ function fopConclusion(src){
      es donde el ACV criptogénico es más probable. Se arrastra la salvedad en vez de reordenar
      las ramas: la trombofilia también cambia la conducta y tiene que decirse. */
   if (trombofilia === 'si') return { clave:'trombofilia',
+    esq:'Con trombofilia conocida.',
     txt:'FOP en paciente con trombofilia conocida — la conducta antitrombótica la define hematología; el cierre percutáneo no sustituye a la anticoagulación cuando ésta está indicada por la trombofilia' +
         (acv !== 'no' ? '. No consta si hubo ACV criptogénico, que es el dato del que depende la indicación de cierre' : '') };
 
@@ -62695,6 +62878,7 @@ function fopConclusion(src){
   if (fuera.length) return { clave:'no_interpretable',
     txt:'FOP — ' + fuera.join(' y ') + ' fuera de rango: revisar unidades antes de concluir' };
   if (hayASA || shuntAbundante) return { clave:'alto_riesgo_sin_evento',
+    esq:'Sin evento embólico.',
     txt:'FOP con características de mayor riesgo embólico (' +
         [hayASA ? 'aneurisma del septum interauricular' : null, shuntAbundante ? 'shunt severo' : null].filter(Boolean).join(' y ') +
         ') sin evento embólico — no hay indicación de cierre en prevención primaria; seguimiento clínico' };
@@ -64740,7 +64924,11 @@ function ccSumaLinea(sec){
        EXCURSIÓN medida alcanza el umbral, aunque el desplegable no se haya contestado. */
     const hayASA = asa === 'si' || (asaMm != null && asaMm >= 10);
     const DX = { descartado:'sin evidencia de foramen oval permeable', cierre_iia:'con ACV criptogénico',
-                 acv_mayor:'con ACV criptogénico en mayor de 60 años', acv_sin_edad:'con ACV criptogénico, sin edad cargada',
+                 /* ⚠️ EL AVISO DE LA EDAD NO VA AL EN SUMA (ARR8, 2026-10-18), decisión de Maicol:
+                    `acv_sin_edad` decía «con ACV criptogénico, sin edad cargada» y hoy dice lo
+                    mismo que `cierre_iia`. La indicación de cierre percutáneo según la edad queda
+                    documentada en FUENTES.md y PENDIENTES.md para llevarla a Referencias. */
+                 acv_mayor:'con ACV criptogénico en mayor de 60 años', acv_sin_edad:'con ACV criptogénico',
                  trombofilia:'con trombofilia conocida', sin_contexto:'sin contexto embólico definido',
                  alto_riesgo_sin_evento:'con características de alto riesgo embólico, sin evento',
                  sin_contraste:'shunt no interrogado — falta estudio con contraste',
@@ -121093,8 +121281,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261017-2310';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1792289436508;                 /* eco-build-ms */
+const ECO_BUILD    = '20261018-0120';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1792297213484;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -121180,7 +121368,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261017-2310</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261018-0120</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

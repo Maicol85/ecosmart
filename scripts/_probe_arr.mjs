@@ -1323,6 +1323,73 @@ async function main() {
     process.stderr.write('[linb] listo\n');
   }
 
+
+  /* == GRUPO fopu: el FOP unificado (ARR8) ==================================================== */
+  if (corre('fopu')) {
+    const r = {};
+    const esc = async (nom, selects, nums, chks) => {
+      await ev(`window.__P.nuevo()`);
+      for (const k of ['fop_tunel', 'fop_asa_mm', 'edad', 'otr_burb', 'otr_asia'])
+        await ev(`window.__P.abrirPara(${JSON.stringify(k)})`);
+      for (const [k, v2] of Object.entries(chks || {})) {
+        await ev(`window.__P.abrirPara(${JSON.stringify(k)})`);
+        await ev(`(function(){ var e = document.getElementById(${JSON.stringify(k)});
+          if (!e) return 'NO EXISTE'; if (e.checked !== ${v2}) { e.click(); } return e.checked })()`);
+      }
+      for (const [k, v2] of Object.entries(selects || {})) {
+        await ev(`window.__P.abrirPara(${JSON.stringify(k)})`);
+        const g = await ev(`window.__P.sel(${JSON.stringify(k)}, ${JSON.stringify(v2)})`);
+        if (g && g.err) return { n: nom, err: 'DENOMINADOR ' + k + ': ' + JSON.stringify(g) };
+      }
+      for (const [k, v2] of Object.entries(nums || {})) {
+        await ev(`window.__P.abrirPara(${JSON.stringify(k)})`);
+        await tipear(k, v2);
+      }
+      /* La seccion del FOP es opt-in: su casilla «Integrar al informe» es la que lo manda al
+         papel. Sin ella el informe no publica NADA y el «sin cambios» no prueba nada. */
+      await ev(`(function(){ var b = document.querySelector('[data-ete-chk="fop_incluir_chk"]');
+        var c = document.getElementById('fop_incluir_chk');
+        if (c && !c.checked && b) b.click(); return c ? c.checked : 'NO EXISTE' })()`);
+      await ev(`window.__P.calentar()`);
+      const o = { n: nom, incluir: await ev(`window.__P.val('fop_incluir_chk')`) };
+      for (const est of ['estandar', 'narrativo', 'conciso']) o[est] = await ev(`window.__P.informe(${JSON.stringify(est)})`);
+      o.campos = await ev(`window.__P.fop()`);
+      o.espejo = await ev(`(function(){ var g = function(id){ var e = document.getElementById(id);
+        return e ? (e.type === 'checkbox' ? (e.checked ? '1' : '0') : e.value) : 'NO EXISTE' };
+        return { otr_burb: g('otr_burb'), otr_burb_pasaje: g('otr_burb_pasaje'),
+                 otr_burb_cant: g('otr_burb_cant'), otr_burb_man: g('otr_burb_man'),
+                 otr_asia: g('otr_asia'), fop_contraste: g('fop_contraste'),
+                 fop_shunt_reposo: g('fop_shunt_reposo'), fop_shunt_valsalva: g('fop_shunt_valsalva'),
+                 fop_burbujas: g('fop_burbujas'), fop_asa: g('fop_asa') } })()`);
+      return o;
+    };
+    try {
+      r.ejemplo = await esc('ejemplo de la orden',
+        { fop_mov: 'si', fop_asa: 'si', fop_contraste: 'si', fop_shunt_reposo: 'no',
+          fop_shunt_valsalva: 'si', fop_burbujas: 'moderado', fop_acv: 'si' },
+        { fop_tunel: '8', fop_asa_mm: '22', edad: '52' }, {});
+      r.sinEdad = await esc('ACV sin edad cargada',
+        { fop_mov: 'si', fop_asa: 'si', fop_contraste: 'si', fop_shunt_reposo: 'no',
+          fop_shunt_valsalva: 'si', fop_burbujas: 'moderado', fop_acv: 'si' },
+        { fop_tunel: '8', fop_asa_mm: '22' }, {});
+      r.descartado = await esc('shunt descartado',
+        { fop_contraste: 'si', fop_shunt_reposo: 'no', fop_shunt_valsalva: 'no' }, {}, {});
+      r.incidental = await esc('incidental',
+        { fop_contraste: 'si', fop_shunt_valsalva: 'si', fop_burbujas: 'pocas', fop_acv: 'no' },
+        { fop_tunel: '6' }, {});
+      /* EL ESPEJO, en los dos sentidos. */
+      r.espOtrosAFop = await esc('espejo Otros -> FOP', { otr_burb_pasaje: 'si',
+        otr_burb_man: 'val', otr_burb_cant: 'moderado' }, {}, { otr_burb: 'true', otr_asia: 'true' });
+      r.espFopAOtros = await esc('espejo FOP -> Otros', { fop_contraste: 'si',
+        fop_shunt_valsalva: 'si', fop_burbujas: 'abundante', fop_asa: 'si' }, {}, {});
+      /* CONTROL: un valor de LEGADO de Otros NO se espeja ni se migra. */
+      r.legado = await esc('legado lt10 no se espeja', { otr_burb_pasaje: 'si',
+        otr_burb_cant: 'lt10' }, {}, { otr_burb: 'true' });
+    } catch (e) { r.err = e.message; }
+    out.grupos.fopu = r;
+    process.stderr.write('[fopu] listo\n');
+  }
+
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
   process.stdout.write(JSON.stringify(OUT, null, 1));
   cdp.close(); srv.close(); process.exit(0);
