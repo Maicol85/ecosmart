@@ -487,6 +487,23 @@ window.__P = {
     ['VENP_AR_A_MS','ASE_ARA_SUPL','ASE_ARVEL_SUPL'].forEach(function(k){
       o.cte[k] = (typeof window[k] !== 'undefined') ? window[k] : 'NO EN WINDOW' });
     try { o.venpArA = (typeof venpArA === 'function') ? venpArA() : 'SIN FN' } catch (e) { o.venpArA = 'EXC' }
+    /* EL PREDICADO de la fila de la vena pulmonar (ASE/EACVI 2016): es lo que decide el color, y
+       es el que el ARR5 unifica. Y el COLOR resuelto, que es lo que el medico ve. */
+    try { o.alta = (typeof venpArAAlta === 'function') ? venpArAAlta() : 'SIN FN' } catch (e) { o.alta = 'EXC' }
+    o.colorAra = (function(){ var e = document.getElementById('venp-ara');
+      return e ? getComputedStyle(e).color : 'NO EXISTE' })();
+    /* El cumple de la tabla de suplementarios toma el VALOR como argumento: llamarlo pelado da
+       undefined > 30 = false SIEMPRE, y eso se lee igual que «el corte no funciona». Se le pasa
+       el Ar-A y se nombra la clave. */
+    try {
+      if (typeof ASE_SUPLEMENTARIOS === 'undefined') { o.suplV = 'SIN TABLA'; }
+      else {
+        var ara = (typeof venpArA === 'function') ? venpArA() : null;
+        o.suplV = ASE_SUPLEMENTARIOS.map(function(sp){
+          var c = null; try { c = sp.cumple(sp.clave === 'arA' ? ara : null) } catch (e) { c = 'EXC' }
+          return { clave: sp.clave || null, rot: String(sp.rot || '').slice(0, 60), cumple: c } });
+      }
+    } catch (e) { o.suplV = 'EXC: ' + e.message }
     /* El suplementario del Ar-A, leido del dueno: su cumple es lo que vota. */
     try {
       if (typeof ASE_SUPLEMENTARIOS === 'undefined') { o.supl = 'SIN TABLA'; }
@@ -1153,6 +1170,41 @@ async function main() {
     } catch (e) { r.err = e.message; }
     out.grupos.qtar = r;
     process.stderr.write('[qtar] listo\n');
+  }
+
+
+  /* == GRUPO arab: los bordes del Ar-A (29, 30 y 31 ms) en TODAS las superficies ==============
+     El Ar-A no es un campo: es `venp_dur_ar - venp_dur_a`, asi que el borde se alcanza fijando
+     la duracion de la A y moviendo la de la Ar. Con A = 100 ms, una Ar de 129/130/131 da 29/30/31.
+     Se miden: la fila de la vena pulmonar (ASE/EACVI 2016), el paso suplementario de la ASE 2025
+     y los dos de la BSE 2024, mas el informe en los tres estilos y la celda del PDF. */
+  if (corre('arab')) {
+    const r = [];
+    for (const guia of ['ase2025', 'bse2024', 'ase2016']) {
+      for (const ar of ['129', '130', '131']) {
+        try {
+          await ev(`window.__P.nuevo()`);
+          await ev(`window.__P.abrirPara('venp_dur_a')`);
+          const g = await ev(`window.__P.sel('diast_algoritmo', ${JSON.stringify(guia)})`);
+          if (g && g.err) throw new Error('DENOMINADOR diast_algoritmo: ' + JSON.stringify(g));
+          /* La base deja la zona con un criterio ya positivo, para que el suplementario se
+             CONSULTE: sin eso el algoritmo cierra antes y el borde no se puede medir. */
+          for (const [k, v2] of Object.entries({ venp_dur_a: '100', venp_dur_ar: ar,
+                                                 onda_e: '95', onda_a: '50', e_sep: '5', e_lat: '6' })) {
+            await ev(`window.__P.abrirPara(${JSON.stringify(k)})`);
+            await tipear(k, v2);
+          }
+          await ev(`window.__P.calentar()`);
+          const o = { guia, ar, ara: await ev(`window.__P.ara()`) };
+          for (const est of ['estandar', 'narrativo', 'conciso']) o['inf:' + est] = await ev(`window.__P.informe(${JSON.stringify(est)})`);
+          const d = await ev(`window.__P.pdf('clasico')`, 60000);
+          o.pdfAra = (d && d.textos) ? d.textos.filter((t) => String(t).indexOf('Ar-A') >= 0 || String(t).indexOf('ms') >= 0).slice(0, 6) : d;
+          r.push(o);
+        } catch (e) { r.push({ guia, ar, err: e.message }); }
+      }
+      process.stderr.write('[arab] ' + guia + '\n');
+    }
+    out.grupos.arab = r;
   }
 
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));

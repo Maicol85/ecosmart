@@ -16457,9 +16457,16 @@ caso('TC-260', 'Vena pulmonar: los cuatro campos en la grilla, los tres cortes e
       const grisCrece = grisConDatos.indexOf('Diferencia Ar−A') >= 0 &&
                         grisConDatos.indexOf('Veloc. Ar pulmonar') >= 0;
 
-      /* ── LOS TRES CORTES, CON LOS VALORES LIMITE EXACTOS ── tres operadores y NO son el mismo:
-         Ar-A alerta con >=30, la velocidad con >35 y E/e' con >14. El de E/e' NO es nuevo: la app
-         ya clasifica asi en seis lugares y lo rotula «E/e' promedio > 14». */
+      /* ── LOS TRES CORTES, CON LOS VALORES LIMITE EXACTOS ──
+         ADAPTADO el 2026-10-18 (ARR5) — EL Ar-A PASA DE >=30 A >30, Y SU 30,0 EXACTO DEJA DE
+         MARCARSE. Habia TRES constantes con el mismo valor y DOS operadores, asi que un Ar-A de
+         30,0 era positivo para esta fila y negativo para los dos pasos suplementarios, en la
+         misma pantalla. Queda UNA (ARA_MS), con el operador de la Figura 3 de la ASE 2025,
+         leido en el original: «Ar-A duration > 30 ms» (folio 554, pie impreso comprobado).
+         ⚠️ La ASE/EACVI 2016 —que es la fuente de ESTA fila— escribe «$ 30 msec», o sea >=, asi
+         que el operador viejo era correcto para su propia fuente: unificar es la decision de
+         Maicol y queda declarada en FUENTES.md.
+         La velocidad sigue con >35 y el E/e' con >14: son otras dos mediciones. */
       const leer = id => { const e = document.getElementById(id);
         return { txt: e.textContent, rojo: e.style.color === 'rgb(239, 68, 68)' }; };
       const probar = (dA, dAr, vel) => { set('venp_dur_a', dA); set('venp_dur_ar', dAr);
@@ -16603,7 +16610,9 @@ caso('TC-260', 'Vena pulmonar: los cuatro campos en la grilla, los tres cortes e
                      x.indexOf('Veloc') >= 0 || x.indexOf('Ar-A') >= 0);
       const sinDesplazar = cSin.length > 0 &&
         cSin.filter(x => x.indexOf('VM - ') !== 0).every(x => cCon.indexOf(x) >= 0);
-      const cortesEnPDF = cCon.filter(x => x.indexOf('>=30 ms') >= 0 || x.indexOf('>35 cm/s') >= 0);
+      /* ADAPTADO el 2026-10-18 (ARR5): el rotulo del corte del Ar-A en el PDF pasa de «>=30 ms»
+         a «>30 ms», que es el unico texto que este cambio mueve en el papel. */
+      const cortesEnPDF = cCon.filter(x => x.indexOf('>30 ms') >= 0 || x.indexOf('>35 cm/s') >= 0);
       const transmitralIntacta = cSin.filter(x => x.indexOf('Onda E') >= 0 || x.indexOf('TRIV') >= 0).length;
 
       return { extra: [
@@ -16617,8 +16626,8 @@ caso('TC-260', 'Vena pulmonar: los cuatro campos en la grilla, los tres cortes e
         ['SIN datos, el cuadro gris NO agrega filas', grisLimpio, grisSinDatos.join(' | ')],
         ['  y con datos aparecen las dos', grisCrece, grisConDatos.join(' | ')],
         ['Ar-A 29 ms NO se marca', !a29.ara.rojo, a29.ara.txt],
-        ['Ar-A 30 ms SI (el corte es >=)', a30.ara.rojo, a30.ara.txt],
-        ['  y 31 tambien', a31.ara.rojo, a31.ara.txt],
+        ['Ar-A 30 ms EXACTO NO se marca (ARR5: el corte pasa a > ESTRICTO)', !a30.ara.rojo, a30.ara.txt],
+        ['  y 31 SI', a31.ara.rojo, a31.ara.txt],
         ['Ar 34 cm/s NO se marca', !v34.vel.rojo, v34.vel.txt],
         ['Ar 35 cm/s NO se marca (el corte es >)', !v35.vel.rojo, v35.vel.txt],
         ['  y 36 SI', v36.vel.rojo, v36.vel.txt],

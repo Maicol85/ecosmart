@@ -27185,13 +27185,42 @@ function calcPSAP() {
    por `venpArA()` desde las duraciones de la vena pulmonar y de la onda A mitral.
    ⚠️ LA ONDA L TIENE DOS CORTES Y SON DE LA FUENTE: » 20 cm/s« acá (Figuras 17 y 18) y
    »≥ 50 cm/s« en la ASE 2025 (folio 555). No se unifican, igual que el LARS (18 % contra 16 %).
-   ⚠️ EL CORTE DEL Ar−A DE LA BSE ES «> 30» Y LA APP YA TENÍA UN «>= 30» (`VENP_AR_A_MS`), que
-   es el criterio de la ASE/EACVI 2016 y lo usan otras pantallas. No se tocó: esta rama lleva su
-   propia constante, como ya pasa con la FA de esta misma guía. */
+   ⚠️ EL CORTE DEL Ar−A ES UNO SOLO DESDE EL ARR5 (18/10/2026): `ARA_MS`, con `>` estricto, y lo
+   comparten las TRES guías. Este párrafo decía que la BSE llevaba su propia constante porque la
+   fila de la vena pulmonar usaba `>=`; ya no. */
+/* ══ EL Ar−A TIENE UN SOLO CORTE Y UN SOLO OPERADOR (ARR5, 2026-10-18) ════════════════
+   Había TRES constantes con el MISMO valor y DOS operadores —`VENP_AR_A_MS` con `>=`,
+   `ASE_ARA_SUPL` con `>` y `BSE_ARA_SUPL` con `>`—, así que un Ar−A de **30,0 exactos** era
+   positivo para la fila de la vena pulmonar y negativo para los dos pasos suplementarios, en la
+   MISMA pantalla. Decisión de Maicol (18/10/2026): queda una sola, con el operador de la **Figura
+   3 de la ASE 2025**, leído en el original.
+
+   **VERIFICADO EN EL PDF ORIGINAL** (`02_Diastolica/Left-Ventricular-Diastolic-Function.pdf`,
+   folio = hoja + 536, comprobado en el pie impreso de las tres páginas):
+     · **Folio 554 (hoja 18), pie de la Figura 3**, literal: «Ar-A duration **> 30 ms**» → el
+       operador es `>` ESTRICTO. Es la figura del algoritmo que la app ejecuta, así que manda.
+     · **Folio 555 (hoja 19), prosa**, literal: «… along with an Ar-A duration **>30 ms**» → mismo
+       operador.
+     · **Folio 557 (hoja 21), Tabla 7**: «Ar-A (**$30 ms**)», o sea `≥`. ⚠️ El `$` es la
+       codificación de `≥` en el texto extraído de esa fuente: quien la lea sin saberlo invierte
+       todos los operadores. Tres textos del mismo documento y dos operadores; manda la figura.
+     · **BSE 2024, Figuras 17 y 18**: escriben `> 30 ms`, o sea el mismo operador.
+
+   ⚠️ LA ASE/EACVI 2016 ESCRIBE `≥ 30 msec` Y SE MUEVE CON ESTO, REPORTADO. Verificado en su
+   original (`LV-Diastolic-Function-ASE-EACVI-2016.pdf`, hoja 13: «Ar-A duration $ 30 msec», y
+   hoja 20, Tabla: «Ar-A ($30 msec)»). O sea que el `>=` de la fila de la vena pulmonar **era
+   correcto para su propia fuente**, y unificar con el operador de la ASE 2025 hace que un Ar−A de
+   30,0 exactos deje de alertar ahí. Es la decisión de Maicol, con la fuente nombrada, y es el
+   lado que NO sobre-afirma.
+
+   ⚠️ `ASE_ARVEL_SUPL` NO QUEDA HUÉRFANA Y SE CONSERVA: tiene consumidor —el rótulo de la fila
+   del suplementario la nombra como salvedad de la prosa del folio 555d— desde el CORTOS6.
+   ⚠️ Y `VENP_AR_VEL_CMS` (35 cm/s, borde `>`) NO SE TOCA: es la VELOCIDAD de la Ar y no su
+   duración. Son dos mediciones distintas, y esta orden nombra una. */
+const ARA_MS = 30;   // ms — diferencia Ar−A, borde `>` ESTRICTO. UN solo corte para las tres guías.
 const BSE_LARS_NORMAL  = 30;    // % — reservorio, borde `>=` (Figura 17; la prosa escribe `> 30`)
 const BSE_LAPS_NORMAL  = 14;    // % — bomba (contracción), borde `>=` (Figura 17). Campo: `ai_strain_ct`, en VALOR ABSOLUTO
 const BSE_LARS_ELEVADA = 18;    // % — reservorio, borde `<` (Figura 17)
-const BSE_ARA_SUPL     = 30;    // ms — Ar−A, borde `>` (Figura 17)
 const BSE_ONDAL_SUPL   = 20;    // cm/s — onda L, borde `>` (Figura 17). Campo: `onda_l`. ⚠️ NO es el ≥ 50 de la ASE 2025
 
 /* ══ LA VÍA DE FEVI REDUCIDA — Figura 18 (pág. 38) y prosa de la pág. 37 ════════════════
@@ -27464,7 +27493,7 @@ function diastBSE2024Evaluar() {
            El S/D vota acá porque su corte es exactamente «< 1» y es lo que dice la opción del
            <select> —al revés que en la ASE 2025, cuyo ≤ 0,67 ese control no puede expresar—, y
            la onda L entra por `onda_l`, con el MISMO corte que la Figura 17 (> 20 cm/s). */
-        const cArA   = arA !== null && arA > BSE_ARA_SUPL;
+        const cArA   = arA !== null && arA > ARA_MS;
         const cOndaL = ondaL !== null && ondaL > BSE_ONDAL_SUPL;
         /* El corte de esta figura es `< 1` (pág. 37), así que la lectura es `'lt1'` y la hace
            `venpSdEstado`. Acá lo cumplen las DOS opciones de abajo del 1 —«≤ 0,67» y
@@ -27475,7 +27504,7 @@ function diastBSE2024Evaluar() {
         const suplEval = (arA !== null ? 1 : 0) + (ondaL !== null ? 1 : 0)
                        + (eSd !== null ? 1 : 0) + (tde !== null ? 1 : 0);
         R.filas.push({ g: 'Parámetros suplementarios (Figura 18)', nodo: 'f18.supl',
-                       crit: 'Ar−A > ' + BSE_ARA_SUPL + ' ms', val: arA, u: 'ms', ok: cArA, dec: 0 });
+                       crit: 'Ar−A > ' + ARA_MS + ' ms', val: arA, u: 'ms', ok: cArA, dec: 0 });
         R.filas.push({ nodo: 'f18.supl', crit: 'Onda L > ' + BSE_ONDAL_SUPL + ' cm/s', val: ondaL, u: 'cm/s', ok: cOndaL, dec: 1 });
         R.filas.push({ nodo: 'f18.supl', crit: 'S/D venoso pulmonar < 1', val: venpSdFilaVal('lt1'), u: '', ok: cSd });
         R.filas.push({ nodo: 'f18.supl', crit: 'TDE < ' + BSE_FR_TDE_SUPL + ' ms', val: tde, u: 'ms', ok: cTde, dec: 0 });
@@ -27592,11 +27621,11 @@ function diastBSE2024Evaluar() {
         /* Zona entre los dos cortes: los suplementarios. Con UNO positivo alcanza para elevada
            («≥1 positive» en la figura); con todos negativos la presión es normal. Si NINGUNO se
            puede evaluar no se contesta «no» a una pregunta que no se hizo: queda indeterminada. */
-        const cArA = arA !== null && arA > BSE_ARA_SUPL;
+        const cArA = arA !== null && arA > ARA_MS;
         const cOndaL = ondaL !== null && ondaL > BSE_ONDAL_SUPL;
         const suplEval = (arA !== null ? 1 : 0) + (ondaL !== null ? 1 : 0);
         R.filas.push({ g: 'Parámetros suplementarios (Figura 17)', nodo: 'f17.supl',
-                       crit: 'Ar−A > ' + BSE_ARA_SUPL + ' ms', val: arA, u: 'ms', ok: cArA, dec: 0 });
+                       crit: 'Ar−A > ' + ARA_MS + ' ms', val: arA, u: 'ms', ok: cArA, dec: 0 });
         R.filas.push({ nodo: 'f17.supl', crit: 'Onda L > ' + BSE_ONDAL_SUPL + ' cm/s', val: ondaL, u: 'cm/s', ok: cOndaL, dec: 1 });
         if (suplEval === 0) {
           presion = 'indeterminada';
@@ -29865,9 +29894,6 @@ window.feviRangoUI = feviRangoUI;
 const ASE_ONDAL_SUPL = 50;   // cm/s  — onda L, borde `>=` (folio 555b y nota ‡ de la Figura 3)
 const ASE_IPTD_SUPL  = 2;    // m/s   — IP telediastólica, borde `>=` (folio 555a y nota ‡)
 const ASE_PAPD_SUPL  = 16;   // mmHg  — PAP diastólica, borde `>=` (folio 555a y nota ‡)
-const ASE_ARA_SUPL   = 30;   // ms    — Ar−A, borde `>` ESTRICTO (nota de la Figura 3, folio 554,
-                             //        y prosa del folio 555d). La Tabla 7 del folio 557 escribe
-                             //        `>=`: gana la figura del algoritmo que la app ejecuta.
 const ASE_ARVEL_SUPL = 35;   // cm/s  — amplitud de la Ar, borde `>` ESTRICTO (folio 555d); desde
                              //        el CORTOS6 NO vota: solo se nombra en el rotulo de la fila
 
@@ -29913,9 +29939,9 @@ const ASE_SUPLEMENTARIOS = [
      ⚠️ `ASE_ARVEL_SUPL` SE QUEDA DECLARADA Y SIN CONSUMIDOR A PROPOSITO: es el corte de la prosa
      del folio 555d, el rotulo de la fila lo nombra como salvedad y el dia que Maicol vuelva al
      AND esta ahi con su folio. No es una cadena viva sin dueño: es un dato de la fuente. */
-  { clave: 'arA', rot: 'Ar−A > ' + ASE_ARA_SUPL + ' ms (folio 554, nota de la Figura 3; la prosa del folio 555d pide ademas una Ar de amplitud > ' + ASE_ARVEL_SUPL + ' cm/s)', u: 'ms', dec: 0,
+  { clave: 'arA', rot: 'Ar−A > ' + ARA_MS + ' ms (folio 554, nota de la Figura 3; la prosa del folio 555d pide ademas una Ar de amplitud > ' + ASE_ARVEL_SUPL + ' cm/s)', u: 'ms', dec: 0,
     leer: function () { return (typeof venpArA === 'function') ? venpArA() : null; },
-    cumple: function (x) { return x !== null && x > ASE_ARA_SUPL; } }
+    cumple: function (x) { return x !== null && x > ARA_MS; } }
 ];
 window.ASE_SUPLEMENTARIOS = ASE_SUPLEMENTARIOS;
 
@@ -31623,10 +31649,10 @@ window.calcularBSE2024_FEVIreducida = calcularBSE2024_FEVIreducida;
    dispara nada: entra como selector «<1» / «>1» y es informativo. Agregarle un umbral sería
    inventar una graduación que nadie pidió — que es justo lo que este archivo persigue desde
    `epGradoPorGmax`.
-   ⚠️ Y LOS OPERADORES SON DISTINTOS ENTRE SÍ, a propósito: la diferencia es `>= 30` y la
-   velocidad `> 35`. Así los publica la guía y así están escritos; unificarlos «por prolijidad»
-   mueve un borde clínico. 30 ms exactos SÍ alertan; 35 cm/s exactos NO. */
-const VENP_AR_A_MS   = 30;    // diferencia Ar−A: alerta con >=
+   ⚠️ LOS DOS OPERADORES SON `>` DESDE EL ARR5 (18/10/2026), y antes la diferencia usaba `>=`.
+   El corte de la duración vive en `ARA_MS`, declarado una sola vez con sus tres folios
+   verificados: **30 ms exactos ya NO alertan**, igual que los 35 cm/s exactos de la velocidad.
+   `VENP_AR_VEL_CMS` sigue siendo propio porque es otra medición. */
 const VENP_AR_VEL_CMS = 35;   // velocidad de Ar:  alerta con >
 
 /* Los cuatro campos, en UNA lista: la consumen el predicado «¿hay algo cargado?», el render y
@@ -31839,7 +31865,7 @@ window.venpArA = venpArA;
    Los PREDICADOS quedan separados del pintado a propósito: los consumen el render y el caso de
    prueba, y tenerlos como función evita que el umbral se escriba una segunda vez en el `if` del
    `style.color`. */
-function venpArAAlta() { const d = venpArA(); return d != null && d >= VENP_AR_A_MS; }
+function venpArAAlta() { const d = venpArA(); return d != null && d > ARA_MS; }
 function venpVelArAlta() { const x = v('venp_vel_ar'); return x != null && isFinite(x) && x > VENP_AR_VEL_CMS; }
 window.venpArAAlta = venpArAAlta;
 window.venpVelArAlta = venpVelArAlta;
@@ -59278,7 +59304,7 @@ function generarPDFReal(_aj) {
          esta tabla ya hace con `UMBRAL_TAPSE_NORMAL` y `UMBRAL_PSAP_ELEVADA`. Y son los dos del
          pedido, ninguno más. */
       {lbl:'Veloc. Ar',   ref:'>' + VENP_AR_VEL_CMS + ' cm/s', val:v('venp_vel_ar')>0?v('venp_vel_ar')+' cm/s':null},
-      {lbl:'Ar-A',        ref:'>=' + VENP_AR_A_MS + ' ms', val:(()=>{ const d=(typeof venpArA==='function')?venpArA():null;
+      {lbl:'Ar-A',        ref:'>' + ARA_MS + ' ms', val:(()=>{ const d=(typeof venpArA==='function')?venpArA():null;
                                              return d==null?null:(d+' ms'); })()},
     ]},
     {titulo:'DTI mitral', items:[
