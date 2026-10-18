@@ -27676,10 +27676,15 @@ function calcDiastolBSE2024() {
      ayudante común habría cambiado lo que se ve con un anillo solo, y este commit no mueve nada
      visible del cuadro. */
   const e = v('onda_e'), a = v('onda_a'), esep = v('e_sep'), elat = v('e_lat');
-  if (e && a) document.getElementById('ea-val').textContent = (e/a).toFixed(2);
+  /* ⚠️ LAS TRES CELDAS VUELVEN A LA RAYA CUANDO SU INSUMO SE BORRA (ARR3, 2026-10-18). La
+     CONDICION es la de HEAD y no la de `diastCeldasBasicas` —acá el e′ promedio y el E/e′ sólo
+     salen con los DOS anillos—: lo único que entra es el `else`, que vive en `refTxt`. Antes el
+     `if` solo pintaba, así que borrar un anillo dejaba el promedio del otro y borrar la onda E
+     dejaba un cociente contra una onda que ya no existe. */
   const eprom = (esep && elat) ? ((esep + elat) / 2) : null;
-  if (eprom !== null) document.getElementById('eprom-val').textContent = eprom.toFixed(1) + ' cm/s';
-  if (e && eprom) document.getElementById('ee-val').textContent = (e / eprom).toFixed(1);
+  refTxt('ea-val', (e && a) ? (e/a).toFixed(2) : null);
+  refTxt('eprom-val', eprom !== null ? (eprom.toFixed(1) + ' cm/s') : null);
+  refTxt('ee-val', (e && eprom) ? (e / eprom).toFixed(1) : null);
 
   const R = diastBSE2024Evaluar();
   if (typeof diastBseEprimaAvisoSync === 'function') diastBseEprimaAvisoSync();
@@ -30699,9 +30704,12 @@ function diastCeldasBasicas() {
   const ep = v('e_sep'), el = v('e_lat');
   const E = v('onda_e'), A = v('onda_a');
   const ee = (ep && el) ? ((ep + el) / 2) : (ep || el || null);
-  if (E && A) document.getElementById('ea-val').textContent = (E / A).toFixed(2);
-  if (ee !== null) document.getElementById('eprom-val').textContent = ee.toFixed(1) + ' cm/s';
-  if (E && ee) document.getElementById('ee-val').textContent = (E / ee).toFixed(1);
+  /* ⚠️ EL `else` ENTRA ACA TAMBIEN, Y LA CUENTA NO CAMBIA (ARR3, 2026-10-18). La condición de
+     este sitio NO es la del otro —acá un anillo solo SÍ publica su valor, que es lo que la ASE
+     2025 hace— y se conserva byte por byte: lo único que se agrega es quién repone la raya. */
+  refTxt('ea-val', (E && A) ? (E / A).toFixed(2) : null);
+  refTxt('eprom-val', ee !== null ? (ee.toFixed(1) + ' cm/s') : null);
+  refTxt('ee-val', (E && ee) ? (E / ee).toFixed(1) : null);
 }
 
 /* El cuadro gris de la FA. `faSinFrase` es lo que apaga el respaldo de `generarInforme` —«Función
@@ -46605,10 +46613,17 @@ function calcIT_ESC() {
     params.push({p:'VC',sev:g,grupo:'vc'});
   }
 
+  /* ⚠️ LA FILA VUELVE A LA RAYA AL VOLVER EL SELECTOR A VACIO (ARR3, 2026-10-18). El
+     `if (densidad)` SÍ protegía el voto —el parámetro no entra en `params` sin dato— pero la fila
+     no se repintaba, así que después de elegir «denso» y volver a «sin consignar» seguía diciendo
+     «Severa — jet denso/triangular»: un parámetro CUALITATIVO afirmado sobre un selector vacío.
+     Con PRÓTESIS pasa igual, porque la fila es la misma. Los tres grados y el voto no cambian. */
   if (densidad) {
-    if (densidad === 'debil') { params.push({p:'Jet',sev:'leve',grupo:'jet'}); document.getElementById('it-densidad-interp').innerHTML = badge('green','Leve — jet débil'); }
-    else if (densidad === 'moderado') { params.push({p:'Jet',sev:'moderada',grupo:'jet'}); document.getElementById('it-densidad-interp').innerHTML = badge('yellow','Moderada'); }
-    else { params.push({p:'Jet',sev:'severa',grupo:'jet'}); document.getElementById('it-densidad-interp').innerHTML = badge('red','Severa — jet denso/triangular'); }
+    if (densidad === 'debil') { params.push({p:'Jet',sev:'leve',grupo:'jet'}); refSync('it-densidad-interp', badge('green','Leve — jet débil')); }
+    else if (densidad === 'moderado') { params.push({p:'Jet',sev:'moderada',grupo:'jet'}); refSync('it-densidad-interp', badge('yellow','Moderada')); }
+    else { params.push({p:'Jet',sev:'severa',grupo:'jet'}); refSync('it-densidad-interp', badge('red','Severa — jet denso/triangular')); }
+  } else {
+    refSync('it-densidad-interp', null);
   }
 
   if (pisaR && pisaVal && vmaxCW) {
