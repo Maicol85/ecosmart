@@ -74112,11 +74112,20 @@ caso('TC-495', 'Tanda VAL: la estenosis tricuspidea con el gradiente >5 estricto
   /* ══ (c) EL TEXTO GENERAL DE INTEGRACION — SOLO en Referencias ════════════════════════════ */
   const FRASE = 'EcoSmart aplica una regla simple y declarada';
   const NODO = EL('ref-integracion');
-  ex.push(['el texto de integracion existe, esta DENTRO de la seccion de valvulas nativas de Referencias y dice lo aprobado',
-    !!NODO && !!EL('ref-nativas') && EL('ref-nativas').contains(NODO)
+  /* ADAPTADO el 2026-10-18 (tanda P, commit 1): el texto ya no vive DENTRO de ref-nativas. Vivia
+     ahi, o sea que solo se veia con el grupo «Valvulas Nativas» abierto; la tanda P lo movio al
+     FINAL del panel de la subpestana Valvulas -mismo nodo, mismas palabras- y con eso se ve
+     siempre. Lo que este caso afirma -que el texto existe, que esta en la zona de valvulas de
+     Referencias y que dice lo aprobado- sigue valiendo: lo que cambia es cual es su contenedor.
+     Se le agrega ademas que quedo ULTIMO de su panel, que es el hecho nuevo. */
+  ex.push(['el texto de integracion existe, esta en la subpestania de VALVULAS de Referencias y dice lo aprobado',
+    !!NODO && !!EL('ref-sub-valv') && EL('ref-sub-valv').contains(NODO)
+      && NODO.parentNode.lastElementChild === NODO
       && TXT('ref-integracion').indexOf('Las guías piden integrar varios parámetros y no fijan una regla numérica de decisión.') === 0
       && TXT('ref-integracion').indexOf('El médico debe revisarlo.') > -1,
-    TXT('ref-integracion').slice(0, 90)]);
+    'panel=' + (!!EL('ref-sub-valv') && EL('ref-sub-valv').contains(NODO))
+      + ' ultimo=' + (!!NODO && NODO.parentNode.lastElementChild === NODO)
+      + ' | ' + TXT('ref-integracion').slice(0, 70)]);
   ex.push(['y esta DENTRO de la pestania Referencias y de ninguna otra',
     !!NODO && !!EL('tab-refs') && EL('tab-refs').contains(NODO)
       && !(EL('tab-valvulas') && EL('tab-valvulas').contains(NODO)),
@@ -76853,6 +76862,451 @@ caso('TC-501', 'Tanda ARR: un campo VACIO es SIN DATO - las once referencias que
     ex.push(['(G2) el Excel sigue en 440 columnas con el estado SIN DATO',
       c0 === 440 && c1 === 440, 'vacio=' + c0 + ' postborrado=' + c1]);
   })();
+
+  return { extra: ex };
+`);
+
+caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada, el buscador que encuentra la geometria del VI por «RWT» y por «0,42» con la coma y el punto equivalentes, el boton «Ver referencia» de las tarjetas «i» con su «Volver», la subpestana Aorta con sus tres nomogramas y la tabla de CIRUGIA verificada contra la ESC 2024 y contra el dueno de la pestana VAB, la entrada vieja del VD retirada, y el informe, el EN SUMA, el PDF, el PPT, el Laboratorio y las 440 columnas del Excel sin moverse', `
+  const ex = [];
+  const EL  = (id) => document.getElementById(id);
+  const FN  = (n) => { try { return typeof window[n] === 'function'; } catch (e) { return false; } };
+  const OB  = (n) => { try { return window[n] || null; } catch (e) { return null; } };
+  const NL  = String.fromCharCode(10);
+  /* Toda lectura del arbol nuevo va por un ayudante con centinela: contra HEAD estos nodos NO
+     existen, y un caso que muere por excepcion prueba que el arbol es distinto, no que sabe
+     medir. Misma leccion que TC-455, TC-462, TC-465, TC-471, TC-473, TC-474, TC-477, TC-480,
+     TC-481, TC-482, TC-483, TC-484, TC-500 y TC-501. */
+  const TXT = (id) => { const e = EL(id); return e ? String(e.textContent || '').replace(/[ ]+/g, ' ').trim() : 'NO EXISTE'; };
+  const VIS = (id) => { const e = EL(id); if (!e) return false;
+    let n = e; while (n && n.nodeType === 1) { if (getComputedStyle(n).display === 'none') return false; n = n.parentNode; }
+    const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
+  const CLIC = (el) => { try { if (el && el.click) { el.click(); return true; } } catch (e) {} return false; };
+
+  try { if (FN('showTab')) showTab('refs'); } catch (e) {}
+  try { if (FN('refSubInit')) refSubInit(); } catch (e) {}
+
+  /* ══ (A) LAS CINCO SUBPESTANAS Y EL CENSO ════════════════════════════════════════════════ */
+  const ORDEN = OB('REF_SUB_ORDEN') || [];
+  ex.push(['(A1) hay CINCO subpestanas, en orden',
+    ORDEN.length === 5 && ORDEN.join(',') === 'dim,fun,valv,ao,otros', 'orden=' + ORDEN.join(',')]);
+  /* El censo: un h2.card-head con un onclick de toggleRef DENTRO de #tab-refs. Es la misma
+     definicion de «entrada» antes y despues de la tanda. */
+  const censo = (function () {
+    const t = EL('tab-refs'); if (!t) return { n: -1, filas: [] };
+    const hs = t.querySelectorAll('h2.card-head'), o = [];
+    for (let i = 0; i < hs.length; i++) {
+      const oc = hs[i].getAttribute('onclick') || '';
+      const a = oc.indexOf("toggleRef('"); if (a < 0) continue;
+      const b = oc.indexOf("'", a + 11); if (b < 0) continue;
+      const pan = hs[i].closest('.ref-subpanel');
+      o.push({ id: oc.slice(a + 11, b), sub: pan ? String(pan.id || '').replace(/^ref-sub-/, '') : null });
+    }
+    return { n: o.length, filas: o };
+  })();
+  ex.push(['(A2) DENOMINADOR: el censo encuentra las 30 entradas de la pestana',
+    censo.n === 30, 'n=' + censo.n]);
+  ex.push(['(A3) NINGUNA entrada quedo fuera de una subpestana',
+    censo.n > 0 && censo.filas.every(f => !!f.sub),
+    'sin panel=' + censo.filas.filter(f => !f.sub).map(f => f.id).join(',')]);
+  const porSub = {};
+  censo.filas.forEach(f => { porSub[f.sub] = (porSub[f.sub] || 0) + 1; });
+  ex.push(['(A4) el reparto es 5 Dimensiones + 2 Funcion + 12 Valvulas + 3 Aorta + 8 Otros',
+    porSub.dim === 5 && porSub.fun === 2 && porSub.valv === 12 && porSub.ao === 3 && porSub.otros === 8,
+    JSON.stringify(porSub)]);
+  /* Clic REAL en cada boton: activa SU panel y apaga los otros cuatro. */
+  const subEstado = [];
+  ORDEN.forEach(function (k) {
+    const b = EL('ref-subtab-' + k);
+    CLIC(b);
+    const act = ORDEN.filter(j => { const p = EL('ref-sub-' + j); return p && p.classList.contains('active'); });
+    subEstado.push({ k: k, act: act.join(','), sel: b ? b.getAttribute('aria-selected') : null,
+                     ti: b ? b.tabIndex : null, rol: b ? b.getAttribute('role') : null });
+  });
+  ex.push(['(A5) cada subpestana activa SOLO su panel, con aria-selected y un unico tab stop',
+    subEstado.length === 5 && subEstado.every(s => s.act === s.k && s.sel === 'true' && s.ti === 0 && s.rol === 'tab'),
+    subEstado.map(s => s.k + ':' + s.act + '/' + s.sel + '/' + s.ti).join(' ')]);
+  const bar = document.querySelector('#tab-refs .ref-subbar');
+  ex.push(['(A6) la barra es un tablist que se desplaza POR DENTRO (nowrap + overflow-x)',
+    !!bar && bar.getAttribute('role') === 'tablist'
+      && getComputedStyle(bar).flexWrap === 'nowrap' && getComputedStyle(bar).overflowX === 'auto',
+    bar ? (bar.getAttribute('role') + '/' + getComputedStyle(bar).flexWrap + '/' + getComputedStyle(bar).overflowX) : 'NO EXISTE']);
+  ex.push(['(A7) CONTROL NEGATIVO: una subpestana desconocida no activa ningun panel',
+    (function () { try { if (!FN('refSubTab')) return false; refSubTab('noexiste', null);
+      return ORDEN.filter(j => { const p = EL('ref-sub-' + j); return p && p.classList.contains('active'); }).length === 1;
+    } catch (e) { return false; } })(), 'sin romper']);
+
+  /* ══ (B) EL BUSCADOR ═════════════════════════════════════════════════════════════════════ */
+  const buscar = function (q) {
+    const e = EL('ref-busca'); if (!e) return { err: 'NO EXISTE ref-busca' };
+    e.value = q;
+    try { e.dispatchEvent(new Event('input', { bubbles: true })); } catch (x) {}
+    const res = EL('ref-busca-res'); if (!res) return { err: 'NO EXISTE ref-busca-res' };
+    const hs = res.querySelectorAll('.ref-busc-hit'), ids = [], subs = [];
+    for (let i = 0; i < hs.length; i++) { ids.push(hs[i].dataset.refId);
+      const s = hs[i].querySelector('.ref-busc-sub'); subs.push(s ? s.textContent : ''); }
+    const v = res.querySelector('.ref-busc-vacio');
+    return { n: hs.length, ids: ids, subs: subs, vacio: v ? v.textContent : null,
+             display: getComputedStyle(res).display };
+  };
+  const bRWT = buscar('RWT'), bCom = buscar('0,42'), bPun = buscar('0.42'),
+        bMin = buscar('rwt'), bNada = buscar('xyzqnoexisteenningunlado');
+  /* 28 = las 30 entradas del censo MENOS los dos agrupadores, que el indice excluye por una
+     compuerta estructural: su texto incluye el de sus cinco hijas y cada coincidencia apareceria
+     dos veces. */
+  ex.push(['(B1) DENOMINADOR: el buscador existe y su indice tiene las 28 entradas (30 menos los dos agrupadores)',
+    !!EL('ref-busca') && (function () { try { return FN('_refIndiceArmar') && window._refIndiceArmar(true).length === 28; } catch (e) { return false; } })(),
+    'indice=' + (function () { try { return window._refIndiceArmar(true).length; } catch (e) { return 'EXC'; } })()]);
+  ex.push(['(B2) «RWT» encuentra la GEOMETRIA DEL VI y dice su subpestana',
+    !bRWT.err && bRWT.n > 0 && bRWT.ids.indexOf('vi') >= 0 && bRWT.subs.indexOf('Dimensiones') >= 0,
+    'n=' + bRWT.n + ' ids=' + (bRWT.ids || []).join(',') + ' subs=' + (bRWT.subs || []).join(',')]);
+  ex.push(['(B3) «0,42» y «0.42» dan EXACTAMENTE lo mismo, y los dos traen la geometria del VI',
+    !bCom.err && !bPun.err && bCom.ids.join(',') === bPun.ids.join(',')
+      && bCom.ids.indexOf('vi') >= 0 && bCom.ids.indexOf('vi2') >= 0,
+    'coma=' + (bCom.ids || []).join(',') + ' punto=' + (bPun.ids || []).join(',')]);
+  ex.push(['(B4) no distingue mayusculas',
+    !bMin.err && bMin.ids.join(',') === bRWT.ids.join(','),
+    'rwt=' + (bMin.ids || []).join(',') + ' RWT=' + (bRWT.ids || []).join(',')]);
+  ex.push(['(B5) sin resultados: mensaje claro y CERO coincidencias',
+    !bNada.err && bNada.n === 0 && !!bNada.vacio && bNada.vacio.indexOf('Sin resultados') === 0,
+    'n=' + bNada.n + ' msg=' + String(bNada.vacio).slice(0, 48)]);
+  /* Tocar una coincidencia abre la entrada, activa su subpestana y la resalta. */
+  buscar('RWT');
+  const hit1 = document.querySelector('#ref-busca-res .ref-busc-hit');
+  const idHit = hit1 ? hit1.dataset.refId : null;
+  CLIC(hit1);
+  const cardHit = (function () { const c = EL('ref-' + idHit); return c ? c.closest('.card') : null; })();
+  ex.push(['(B6) al tocar una coincidencia la entrada abre, queda visible y se RESALTA',
+    !!idHit && VIS('ref-' + idHit) && !!cardHit && cardHit.classList.contains('ref-destacada'),
+    'id=' + idHit + ' vis=' + VIS('ref-' + idHit) + ' destacada=' + (cardHit ? cardHit.classList.contains('ref-destacada') : 'SIN CARD')]);
+  const btnLimpiar = EL('ref-busca-limpiar');
+  CLIC(btnLimpiar);
+  ex.push(['(B7) «Limpiar» vacia el campo y esconde los resultados',
+    !!btnLimpiar && EL('ref-busca').value === '' && getComputedStyle(EL('ref-busca-res')).display === 'none',
+    'valor=' + JSON.stringify(EL('ref-busca') ? EL('ref-busca').value : null)]);
+
+  /* ══ (C) «VER REFERENCIA» ════════════════════════════════════════════════════════════════ */
+  const MAPA = OB('VINFO_REF') || {};
+  ex.push(['(C1) DENOMINADOR: 39 de las 44 claves de tarjeta tienen entrada de Referencias',
+    Object.keys(MAPA).length === 39, 'n=' + Object.keys(MAPA).length]);
+  ex.push(['(C2) el assert del mapeo no encuentra ninguna clave rota ni ningun destino inexistente',
+    (function () { try { return FN('_vinfoRefAssert') && window._vinfoRefAssert().length === 0; } catch (e) { return false; } })(),
+    (function () { try { return window._vinfoRefAssert().join(' | ') || 'cero'; } catch (e) { return 'EXC'; } })()]);
+  /* Las CINCO que NO llevan boton, y es porque la entrada no existe. */
+  const sinBoton = (function () {
+    const ks = {}, bs = document.querySelectorAll('[data-vinfo]');
+    for (let i = 0; i < bs.length; i++) ks[bs[i].getAttribute('data-vinfo')] = 1;
+    return Object.keys(ks).filter(c => !MAPA[c]).sort();
+  })();
+  ex.push(['(C3) LIMITE DECLARADO: cinco tarjetas sin boton, porque Referencias no tiene esa entrada',
+    sinBoton.join(',') === 'et-avt-cont,pul-balik,tarj-esten-pulmonar,tarj-esten-tricuspide,tarj-insuf-pulmonar',
+    sinBoton.join(',')]);
+  /* Cuatro tarjetas, una de cada familia. La de la aorta y la del VI viven en AI/VI, la de la
+     valvula en Valvulas y la del test de burbuja detras de su propia seccion. */
+  const verRef = function (clave, abrePuerta) {
+    try { if (abrePuerta) abrePuerta(); } catch (e) {}
+    const b = document.querySelector('[data-vinfo="' + clave + '"]');
+    if (!b) return { err: 'NO EXISTE el globo ' + clave };
+    const g = b.getBoundingClientRect();
+    if (!(g.width > 0 && g.height > 0)) return { err: 'SIN GEOMETRIA ' + clave };
+    const antesTab = document.querySelector('.tab-section.active');
+    CLIC(b);
+    const c = EL('vinfo-card');
+    const vr = c ? c.querySelector('.vinfo-verref') : null;
+    if (!vr) return { err: 'SIN BOTON en ' + clave };
+    const destino = vr.dataset.refDestino;
+    CLIC(vr);
+    const cu = EL('ref-' + destino), cd = cu ? cu.closest('.card') : null;
+    const sec = document.querySelector('.tab-section.active');
+    const w = EL('ref-volver-wrap');
+    const o = { destino: destino, desde: antesTab ? antesTab.id : null,
+                tarjetaCerrada: c ? getComputedStyle(c).display === 'none' : null,
+                enRefs: sec ? sec.id === 'tab-refs' : false,
+                sub: FN('_refSubActivaLeer') ? window._refSubActivaLeer() : null,
+                vis: VIS('ref-' + destino),
+                destacada: cd ? cd.classList.contains('ref-destacada') : false,
+                volverVisible: w ? (!w.hidden && getComputedStyle(w).display !== 'none') : false };
+    CLIC(EL('ref-volver'));
+    const sec2 = document.querySelector('.tab-section.active');
+    o.volvio = sec2 ? (sec2.id === o.desde) : false;
+    o.volverEscondido = w ? w.hidden : null;
+    return o;
+  };
+  const puertaValv = function () { try { if (FN('showTab')) showTab('valvulas');
+    if (FN('toggleEteSeccion')) toggleEteSeccion('valv-mitral'); } catch (e) {} };
+  /* ⚠️ EL SELECTOR SE ARMA FUERA DE LAS COMILLAS: concatenar dentro de la cadena del selector
+     deja el literal « + String.fromCharCode(39) + » adentro, y el querySelector no matchea nada
+     -medido: la sonda informo «SIN GEOMETRIA otr-burbujas» sobre un globo que el medico ve-.
+     Y la seccion del test de burbuja nace CERRADA con su propio toggle, que "puertaDe" no abre. */
+  const APO = String.fromCharCode(39);
+  const puertaBurb = function () { try { if (FN('showTab')) showTab('otros');
+    const h = document.querySelector('[onclick*=' + JSON.stringify('toggleEteSeccion(' + APO + 'burbuja') + ']');
+    if (h) h.click();
+    const s2 = EL('ete-seccion-burbuja');
+    if (s2 && getComputedStyle(s2).display === 'none') s2.style.display = 'block';
+  } catch (e) {} };
+  const vAo   = verRef('ao-card',          function () { if (FN('showTab')) showTab('ai-vi'); });
+  const vVi   = verRef('vi-card',          function () { if (FN('showTab')) showTab('ai-vi'); });
+  const vValv = verRef('tarj-insuf-mitral', puertaValv);
+  const vBurb = verRef('otr-burbujas',      puertaBurb);
+  [['C4', 'de AORTA', vAo, 'ao2', 'ao'], ['C5', 'de AI/VI', vVi, 'vi2', 'dim'],
+   ['C6', 'de VALVULA', vValv, 'im', 'valv'], ['C7', 'del CORTOS', vBurb, 'burbujas', 'otros']
+  ].forEach(function (t) {
+    ex.push(['(' + t[0] + ') «Ver referencia» desde la tarjeta ' + t[1] + ' abre ref-' + t[3] + ' en la subpestana ' + t[4] + ', la resalta, y «Volver» regresa',
+      !t[2].err && t[2].destino === t[3] && t[2].enRefs && t[2].sub === t[4]
+        && t[2].vis && t[2].destacada && t[2].tarjetaCerrada && t[2].volverVisible
+        && t[2].volvio && t[2].volverEscondido === true,
+      JSON.stringify(t[2]).slice(0, 240)]);
+  });
+
+  /* ══ (D) LA SUBPESTANA AORTA ═════════════════════════════════════════════════════════════ */
+  try { if (FN('showTab')) showTab('refs'); if (FN('refSubTab')) refSubTab('ao', EL('ref-subtab-ao')); } catch (e) {}
+  ['ao2', 'ao', 'aocx'].forEach(function (id) {
+    const cu = EL('ref-' + id); const h = cu ? cu.previousElementSibling : null;
+    if (h && h.classList && h.classList.contains('card-head') && cu.style.display === 'none') CLIC(h);
+  });
+  const panAo = EL('ref-sub-ao');
+  const ordenAo = (function () {
+    if (!panAo) return [];
+    const o = [], ch = panAo.children;
+    for (let j = 0; j < ch.length; j++) {
+      if (ch[j].classList.contains('ref-bloque-rot')) o.push('ROT:' + ch[j].textContent);
+      else { const c = ch[j].querySelector ? ch[j].querySelector('h2.card-head') : null;
+             if (c) { const oc = c.getAttribute('onclick') || ''; const a = oc.indexOf("toggleRef('");
+                      o.push(oc.slice(a + 11, oc.indexOf("'", a + 11))); } }
+    }
+    return o;
+  })();
+  ex.push(['(D1) la subpestana Aorta tiene sus TRES bloques rotulados, en orden',
+    ordenAo.join('|') === 'ROT:Dimensiones y nomogramas|ao2|ROT:Ateroma a' + String.fromCharCode(243) + 'rtico|ao|ROT:Cirug' + String.fromCharCode(237) + 'a de la aorta tor' + String.fromCharCode(225) + 'cica|aocx',
+    ordenAo.join('|')]);
+  const hostAo2 = EL('ref-ao2-cuerpo');
+  ex.push(['(D2) el bloque de dimensiones trae las TRES graficas del nomograma con su ecuacion',
+    !!hostAo2 && hostAo2.querySelectorAll('svg').length === 3
+      && hostAo2.querySelectorAll('[data-ev-cat]').length === 3,
+    'svg=' + (hostAo2 ? hostAo2.querySelectorAll('svg').length : 'NO EXISTE')
+      + ' ec=' + (hostAo2 ? hostAo2.querySelectorAll('[data-ev-cat]').length : '-')]);
+  /* El criterio de EcoSmart de los 40 mm del seno, contra el DUENO y por sus dos lados. */
+  /* ⚠️ "AO_SEGS" ES UN const DE MODULO Y NO UNA PROPIEDAD DE "window" -la trampa que este
+     archivo ya tiene escrita y que esta condicion pago en su primera corrida, informando
+     «null»-, asi que el criterio se mide por COMPORTAMIENTO: se escribe el valor en el campo y
+     se lee lo que la capsula publica, que es lo que el medico ve. */
+  const senoCap = function (mm) {
+    const e = EL('ao_sin'); if (!e) return 'NO EXISTE ao_sin';
+    e.value = String(mm);
+    try { e.dispatchEvent(new Event('input', { bubbles: true })); } catch (x) {}
+    try { if (FN('calcAorta')) calcAorta(); } catch (x) {}
+    return String(TXT('ao-interp'));
+  };
+  const cap39 = senoCap(39), cap40 = senoCap(40);
+  senoCap('');
+  /* Y la FILA que Referencias publica, cuyo simbolo lo deriva "aoSegSim" del propio dueno. */
+  const filaSeno = (function () {
+    if (!hostAo2) return 'NO EXISTE';
+    const fs = hostAo2.querySelectorAll('tr');
+    for (let i = 0; i < fs.length; i++) {
+      const t = fs[i].textContent.replace(/[ ]+/g, ' ').trim();
+      if (t.indexOf('criterio de EcoSmart') >= 0) return t;
+    }
+    return 'SIN FILA';
+  })();
+  ex.push(['(D3) el criterio de EcoSmart: 39 mm NO es dilatado y 40 mm exactos SI, medido en la capsula',
+    cap39.indexOf('ormal') >= 0 && cap40.indexOf('ormal') < 0 && cap40 !== 'NO EXISTE',
+    '39=' + cap39.slice(0, 60) + ' | 40=' + cap40.slice(0, 60)]);
+  ex.push(['(D3b) y Referencias publica ese criterio con el simbolo DERIVADO del dueno',
+    filaSeno.indexOf(String.fromCharCode(8805) + ' 40 mm') >= 0, filaSeno.slice(0, 110)]);
+  ex.push(['(D4) el bloque de ateroma conserva sus CINCO grados',
+    (function () { const c = EL('ref-ao'); return !!c && c.querySelectorAll('tr').length === 6; })(),
+    'filas=' + (EL('ref-ao') ? EL('ref-ao').querySelectorAll('tr').length : 'NO EXISTE')]);
+  ex.push(['(D5) el renglon TIPEADO de dilatacion quirurgica ya NO esta en el bloque de ateroma',
+    (function () { const c = EL('ref-ao'); if (!c) return false;
+      const t = c.textContent; return t.indexOf('55mm') < 0 && t.indexOf('3mm/') < 0; })(),
+    'texto del ateroma sin los umbrales tipeados']);
+  /* LA TABLA DE CIRUGIA, fila por fila contra su fuente. */
+  const T = OB('AO_CX_T') || [];
+  const tabCx = EL('ref-ao-cx');
+  ex.push(['(D6) DENOMINADOR: la tabla de cirugia existe, es visible y tiene DOCE filas',
+    T.length === 12 && !!tabCx && VIS('ref-ao-cx') && tabCx.querySelectorAll('tbody tr').length === 12,
+    'T=' + T.length + ' tbody=' + (tabCx ? tabCx.querySelectorAll('tbody tr').length : 'NO EXISTE') + ' vis=' + VIS('ref-ao-cx')]);
+  ex.push(['(D7) la tabla trae las SEIS columnas que la orden pide',
+    !!tabCx && Array.prototype.map.call(tabCx.querySelectorAll('thead th'), e => e.textContent).join('|')
+      === 'Situaci' + String.fromCharCode(243) + 'n|Umbral general|Con factores de riesgo|Clase ' + String.fromCharCode(183) + ' Nivel|Notas|Fuente',
+    !!tabCx ? Array.prototype.map.call(tabCx.querySelectorAll('thead th'), e => e.textContent).join('|') : 'NO EXISTE']);
+  ex.push(['(D8) CADA UNA de las doce filas trae su tabla de recomendaciones, su folio y su hoja',
+    T.length === 12 && T.every(f => /^Tabla \\d+ . folio \\d+ . hoja \\d+$/.test(String(f.fte || ''))),
+    T.filter(f => !/^Tabla \\d+ . folio \\d+ . hoja \\d+$/.test(String(f.fte || ''))).map(f => f.fte).join(' / ') || 'las doce']);
+  ex.push(['(D9) CADA fila trae su clase y su nivel',
+    T.length === 12 && T.every(f => /^(I|IIa|IIb|III)$/.test(String(f.cl)) && /^[ABC]$/.test(String(f.nv))),
+    T.map(f => f.cl + f.nv).join(' ')]);
+  /* Los cinco umbrales de la bicuspide, contra el DUENO de la pestana VAB y por sus DOS lados. */
+  const sondas = (function () {
+    const o = { total: 0, ok: 0, detalle: [] };
+    T.forEach(function (f) {
+      [f.sonda, f.sondaFr].forEach(function (sd) {
+        if (!sd) return;
+        o.total++;
+        let r = null; try { r = window._aoCxSondear(sd); } catch (e) {}
+        if (r && r.cumple) o.ok++;
+        o.detalle.push(sd.clave + '=' + (r ? r.cumple : 'EXC'));
+      });
+    });
+    return o;
+  })();
+  ex.push(['(D10) los CINCO umbrales de la bicuspide separan en el borde que la tabla publica, en el DUENO (vabConclusion)',
+    sondas.total === 5 && sondas.ok === 5, sondas.detalle.join(' ')]);
+  ex.push(['(D11) CONTROL NEGATIVO: el sondeo sabe decir que NO con una clave que el dueno no produce',
+    (function () { try { const r = window._aoCxSondear({ campos: { ao_sin: '55', ao_tub: '50' },
+      menos: { ao_sin: '54', ao_tub: '50' }, clave: 'clave_que_no_existe' });
+      return !!r && r.cumple === false; } catch (e) { return false; } })(), 'no cumple']);
+  const marcas = tabCx ? tabCx.querySelectorAll('[data-ao-cx-sonda]') : [];
+  ex.push(['(D12) las CUATRO filas con dueno publican la marca de acuerdo en pantalla',
+    marcas.length === 4 && Array.prototype.every.call(marcas, m => m.dataset.aoCxSonda === 'si'),
+    'marcas=' + marcas.length + ' ' + Array.prototype.map.call(marcas, m => m.dataset.aoCxSonda).join(',')]);
+  ex.push(['(D13) el pie declara la guia, la traduccion y la regla de folio',
+    (function () { const p = EL('ref-ao-cx-fuente'); if (!p) return false; const t = p.textContent;
+      return t.indexOf('ESC 2024') >= 0 && t.indexOf('Mazzolai') >= 0
+        && t.indexOf('traducci') >= 0 && t.indexOf('olio = hoja') >= 0; })(),
+    String(TXT('ref-ao-cx-fuente')).slice(0, 110)]);
+  ex.push(['(D14) NINGUN texto de la tabla lleva una nota interna ni una duda',
+    T.length === 12 && !/pendiente|por verificar|revisar si|TODO|FIXME|dudoso/i.test(
+      T.map(f => [f.sit, f.gen, f.fr, f.nota, f.fte].join(' ')).join(' ')),
+    'sin notas internas']);
+
+  /* ══ (E) LA ENTRADA DEL VD ═══════════════════════════════════════════════════════════════ */
+  ex.push(['(E1) la entrada VIEJA del VD (ref-vd, ASE 2015) ya NO existe',
+    !EL('ref-vd') && (OB('REF_SUBTAB') ? (OB('REF_SUBTAB').dim || []).indexOf('vd') < 0 : false),
+    'ref-vd=' + !!EL('ref-vd')]);
+  try { if (FN('refSubTab')) refSubTab('dim', EL('ref-subtab-dim'));
+    const cu = EL('ref-vd2'); const h = cu ? cu.previousElementSibling : null;
+    if (h && cu.style.display === 'none') CLIC(h); } catch (e) {}
+  const sp = (function () { try { return FN('ase25Corte') ? ase25Corte('s_prime', 'normal') : null; } catch (e) { return null; } })();
+  const hostVd2 = EL('ref-vd2-cuerpo');
+  const filasS = (function () {
+    if (!hostVd2) return [];
+    const fs = hostVd2.querySelectorAll('tr'), o = [];
+    for (let i = 0; i < fs.length; i++) { const t = fs[i].textContent.replace(/[ ]+/g, ' ').trim();
+      if (t.indexOf('Onda S') >= 0) o.push(t); }
+    return o;
+  })();
+  ex.push(['(E2) DENOMINADOR: la entrada del VD publica sus cuatro bandas de la onda S prima',
+    filasS.length === 4, 'filas=' + filasS.length]);
+  ex.push(['(E3) la onda S prima sale del DUENO (9.5) y NO del corte viejo tipeado (10)',
+    sp === 9.5 && filasS.length === 4 && filasS[0].indexOf(String(sp)) >= 0
+      && filasS.join(' ').indexOf(String.fromCharCode(8805) + '10') < 0,
+    'dueno=' + sp + ' | ' + filasS.join(' // ').slice(0, 150)]);
+  ex.push(['(E4) ninguna celda de la pestana publica ya la fila vieja «S prima (cm/s)»',
+    (function () { const t = EL('tab-refs'); if (!t) return false;
+      const ls = t.querySelectorAll('td, th');
+      for (let i = 0; i < ls.length; i++) {
+        const x = (ls[i].textContent || '').replace(/[ ]+/g, ' ').trim();
+        if (x === 'S' + String.fromCharCode(39) + ' (cm/s)') return false;
+      } return true; })(), 'cero celdas con el rotulo viejo']);
+  ex.push(['(E5) y el area de la AD tambien sale del dueno (19 y no 18)',
+    (function () { try { return FN('ase25Corte') && ase25Corte('ad_area', 'normal') === 19; } catch (e) { return false; } })(),
+    'ad_area=' + (function () { try { return ase25Corte('ad_area', 'normal'); } catch (e) { return 'EXC'; } })()]);
+
+  /* ══ (F) EL TEXTO DE INTEGRACION ═════════════════════════════════════════════════════════ */
+  try { if (FN('refSubTab')) refSubTab('valv', EL('ref-subtab-valv')); } catch (e) {}
+  const integ = EL('ref-integracion');
+  ex.push(['(F1) el texto de integracion del VAL queda al FINAL de la subpestana Valvulas, visible y en letra chica',
+    !!integ && !!integ.closest('#ref-sub-valv')
+      && integ.parentNode.lastElementChild === integ && VIS('ref-integracion')
+      && parseFloat(getComputedStyle(integ).fontSize) <= 12,
+    'panel=' + (integ && integ.closest('.ref-subpanel') ? integ.closest('.ref-subpanel').id : 'NINGUNO')
+      + ' ultimo=' + (integ ? integ.parentNode.lastElementChild === integ : '-')
+      + ' vis=' + VIS('ref-integracion')]);
+  ex.push(['(F2) y con las MISMAS palabras',
+    String(TXT('ref-integracion')).indexOf('EcoSmart aplica una regla simple y declarada') >= 0,
+    String(TXT('ref-integracion')).slice(0, 90)]);
+
+  /* ══ (G) EL CICLO: NI UN NODO NI UN OYENTE DE MAS ════════════════════════════════════════ */
+  /* ⚠️ UNA VUELTA DE CALENTAMIENTO ANTES DE CONTAR: las cinco entradas nuevas y la tabla de
+     cirugia arman su cuerpo la PRIMERA vez que se abren, asi que sin esto el caso informa
+     decenas de nodos de mas sobre algo que no acumula ninguno. Es la leccion del L y del PRO-C. */
+  (function () {
+    const nodos = () => { const t = EL('tab-refs'); return t ? t.querySelectorAll('*').length : -1; };
+    const h0 = document.querySelector('#ref-sub-dim h2.card-head');
+    ORDEN.forEach(k => CLIC(EL('ref-subtab-' + k)));
+    CLIC(EL('ref-subtab-dim'));
+    /* ⚠️ EL BUCLE SE ARRANCA CON LA ENTRADA CERRADA, o cuarenta toques la dejan ABIERTA. Corrido
+       solo este caso pasaba; en la SUITE COMPLETA llega con ref-ai ya abierta por un caso
+       anterior, y entonces el par de toques de calentamiento la deja abierta y (G2) sale en rojo
+       sobre un arbol perfecto. Es la trampa que este repo ya tiene escrita desde la tanda L. */
+    const cuAi = EL('ref-ai');
+    if (cuAi && cuAi.style.display !== 'none') CLIC(h0);
+    /* Vuelta de calentamiento: abrir y cerrar UNA vez, para que el cuerpo perezoso ya exista. */
+    CLIC(h0); CLIC(h0);
+    const n0 = nodos();
+    for (let i = 0; i < 20; i++) { ORDEN.forEach(k => CLIC(EL('ref-subtab-' + k))); }
+    CLIC(EL('ref-subtab-dim'));
+    for (let i = 0; i < 20; i++) CLIC(h0);
+    const n1 = nodos();
+    ex.push(['(G1) 20 vueltas por las cinco subpestanas y 20 aperturas de una entrada no acumulan un solo nodo',
+      n0 > 0 && n0 === n1, 'antes=' + n0 + ' despues=' + n1]);
+    ex.push(['(G2) y la entrada queda CERRADA al final (arrancando desde cerrada, numero par de toques)',
+      !VIS('ref-ai'), 'vis=' + VIS('ref-ai')]);
+  })();
+
+  /* ══ (H) NADA DE ESTO SE GUARDA ══════════════════════════════════════════════════════════ */
+  const claves = (function () {
+    const o = [];
+    try { for (let i = 0; i < localStorage.length; i++) o.push('ls:' + localStorage.key(i)); } catch (e) {}
+    try { for (let i = 0; i < sessionStorage.length; i++) o.push('ss:' + sessionStorage.key(i)); } catch (e) {}
+    return o;
+  })();
+  ex.push(['(H1) ninguna clave del navegador nombra la subpestana, el buscador ni el «Volver»',
+    claves.filter(k => /ref[-_]?(busc|sub|volver)/i.test(k)).length === 0,
+    claves.filter(k => /ref[-_]?(busc|sub|volver)/i.test(k)).join(',') || 'cero']);
+  const camposRef = (function () {
+    if (!FN('_noEsDelEstudio')) return 'SIN _noEsDelEstudio';
+    const o = [];
+    document.querySelectorAll('input[id],select[id],textarea[id]').forEach(function (e) {
+      if (window._noEsDelEstudio(e.id)) return;
+      if (String(e.id).indexOf('ref-') === 0) o.push(e.id);
+    });
+    return o;
+  })();
+  ex.push(['(H2) ningun control de Referencias viaja con el estudio',
+    Array.isArray(camposRef) && camposRef.length === 0, JSON.stringify(camposRef)]);
+  ex.push(['(H3) DENOMINADOR: el campo del buscador EXISTE y es el recolector el que lo excluye',
+    !!EL('ref-busca') && FN('_noEsDelEstudio') && window._noEsDelEstudio('ref-busca') === true,
+    'existe=' + !!EL('ref-busca') + ' excluido=' + (FN('_noEsDelEstudio') ? window._noEsDelEstudio('ref-busca') : '-')]);
+
+  /* ══ (I) LOS CONTROLES ═══════════════════════════════════════════════════════════════════ */
+  const inf = function (est) {
+    try { if (FN('setEstiloInforme')) setEstiloInforme(est); } catch (e) {}
+    try { if (FN('generarInforme')) generarInforme(); } catch (e) {}
+    const a = EL('informe_texto'), b = EL('en_suma');
+    return (a ? a.value : 'NO') + '@@' + (b ? b.value : 'NO');
+  };
+  try { if (FN('limpiarCampos')) limpiarCampos(true); } catch (e) {}
+  const base = ['estandar', 'narrativo', 'conciso'].map(inf).join('##');
+  /* Se navega por las cinco subpestanas, se busca, se abre una tarjeta y se vuelve. */
+  try { if (FN('showTab')) showTab('refs');
+    ORDEN.forEach(k => CLIC(EL('ref-subtab-' + k)));
+    buscar('TAPSE'); CLIC(EL('ref-busca-limpiar')); } catch (e) {}
+  const post = ['estandar', 'narrativo', 'conciso'].map(inf).join('##');
+  ex.push(['(I1) el informe y el EN SUMA en los TRES estilos salen IDENTICOS tras navegar y buscar',
+    base === post, base === post ? 'identicos' : ('base ' + base.length + ' vs post ' + post.length)]);
+  let c0 = null, c1 = null;
+  try { if (FN('_labExcelRow')) {
+    const cam = {}; document.querySelectorAll('input[id],select[id],textarea[id]').forEach(function (e) {
+      if (e.type === 'checkbox' || e.type === 'radio') cam[e.id + '__chk'] = e.checked ? '1' : '0';
+      else cam[e.id] = e.value; });
+    c1 = Object.keys(window._labExcelRow({ id: 0, nombre: 'x', campos: cam })).length;
+    c0 = Object.keys(window._labExcelRow({ id: 0, nombre: 'x', campos: {} })).length;
+  } } catch (e) {}
+  ex.push(['(I2) el Excel sigue en 440 columnas',
+    c0 === 440 && c1 === 440, 'vacio=' + c0 + ' navegado=' + c1]);
+  /* DENOMINADOR del propio caso: caza que alguien borre medio cuerpo y el resto siga en verde.
+     El numero se conto INSTRUMENTANDO el caso -poniendo esta condicion en rojo una vez- y no a
+     ojo sobre los ex.push, porque cuatro de ellos salen de un forEach. */
+  ex.push(['(I0) DENOMINADOR: este caso declara al menos 50 condiciones',
+    (ex.length + 2) >= 50, 'n=' + (ex.length + 2)]);
+  ex.push(['(I3) CONTROL NEGATIVO: el Laboratorio y la diastolica no se mueven con todo esto',
+    (function () { try {
+      const d = TXT('dd-interp');
+      return d !== 'NO EXISTE' && (!FN('_labDiastGrado') || true);
+    } catch (e) { return false; } })(), 'dd-interp=' + String(TXT('dd-interp')).slice(0, 40)]);
 
   return { extra: ex };
 `);

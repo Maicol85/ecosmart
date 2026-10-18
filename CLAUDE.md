@@ -44,6 +44,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar una TARJETA ⓘ de AD/VCI, del VD o de la AORTA, el NOMOGRAMA de los senos de Valsalva, o sus entradas de Referencias** | `docs/mapa/evidencia-derecho-aorta.md` |
 | **Tocar el cociente TAPSE/PSAP o el color del aviso del Tei** (el DIÁMETRO DE LA ARTERIA PULMONAR se mudó al VD en el G3) | `docs/mapa/tapse-psap-ap.md` |
 | **Tocar la RELACIÓN VD/VI**: el campo numérico, el selector de tramo, las cuatro reglas que los sincronizan, la función dueña o cualquiera de sus CUATRO lectores | `docs/mapa/vd-vi-selector.md` |
+| **Tocar la pestaña REFERENCIAS**: las cinco subpestañas y su reparto, el buscador, el botón «Ver referencia» de las tarjetas ⓘ o la TABLA DE CIRUGÍA AÓRTICA | `docs/mapa/referencias-subpestanas.md` |
 | **Tocar el panel de Evidencia: agregar una cita, una sección o un sub-bloque** | `docs/mapa/panel-evidencia.md` |
 | **Agregar un TÉRMINO al glosario del panel (el ⓘ con tarjeta)** | `docs/mapa/panel-evidencia-terminos.md` |
 | **Tocar el CARTEL DE PÉPTIDOS del HFA-PEFF, su puntaje o el plan Básico/Avanzado**: el espejo del péptido, el ritmo que se lee, los cortes por tipo o por qué `showTab` no chequea el plan | `docs/mapa/hfapeff-peptidos.md` |
@@ -61,7 +62,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la FIBRILACIÓN AURICULAR de la función diastólica**: los tres dueños, sus cortes lado a lado, las tres reglas de conteo o el aviso de frecuencia cardíaca | `docs/mapa/diastolica-fa.md` |
 | **Entender por qué una REFERENCIA conservaba el resultado del valor viejo al borrar el dato**: el dueño común, las DOS causas y los once campos | `docs/mapa/borrado-referencias.md` |
 | **Tocar el FOP, el test de burbuja o el aneurisma del septum**: la escala unificada, el espejo entre Otros y el módulo FOP, el informe esquemático o el aviso de la edad | `docs/mapa/fop-burbuja-unificado.md` |
-| **Agregar o correr un caso de prueba; A/B; mutación** | `docs/mapa/tests.md` · fichas en `docs/mapa/tests-fichas.md` (TC-496 en adelante), `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
+| **Agregar o correr un caso de prueba; A/B; mutación** | `docs/mapa/tests.md` · fichas en `docs/mapa/tests-fichas.md` (TC-499 en adelante), `docs/mapa/tests-fichas-496-498.md`, `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
 | **Visor de cineloop, medición, calibración, IndexedDB** | `docs/mapa/imagenes-visor.md` |
 | **Tocar la ESTENOSIS MITRAL en el LABORATORIO**: las seis categorías, las dos casillas del filtro, el gráfico de distribución, el PDF de auditoría o el PPT | `docs/mapa/laboratorio-estenosis-mitral.md` |
 | **Tocar la VISTA 2D de las válvulas**: el lector único del estado, las tarjetas, la tabla de cavidades, el dibujo, los chorros o el «por qué» | `docs/mapa/vista-2d-valvulas.md` |
@@ -281,6 +282,240 @@ impecable.
 ---
 
 ## Estado vigente
+
+### REFERENCIAS con subpestañas, buscador, «Ver referencia» y la TABLA DE CIRUGÍA AÓRTICA — «P» (2026-10-18)
+
+- **Son SIETE commits, y son los siete que la orden pedía.** Al **empezar**, `main` y
+  `origin/main` estaban los dos en **`ea7f2c0`** (sello `v20261018-0120`), **sin nada sin
+  pushear** —confirmado con un `git fetch` de verdad, con el `FETCH_HEAD` fechado al momento y un
+  `ls-remote` dando el mismo sha—, con los nueve commits del ARR ya incluidos **y pusheados por
+  Maicol**. Los **siete** commits de esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 7 → 6 → … → 1.**
+  ⚠️ **EL 1 ES LA BASE DE TODOS**: crea `REF_SUBTAB`, `refSubInit`, `refSubTab`, la barra y los
+  cinco paneles. Revertirlo sin revertir antes los otros deja `refBuscadorInit`, `refIr`,
+  `_refIndiceArmar` y `aoCxPintar` llamando a `refSubInit`, que ya no existiría, y un
+  `ReferenceError` ahí se lleva el buscador y el botón «Ver referencia» enteros.
+  ⚠️ **EL 2 ES LA BASE DEL 3 Y DEL 5**: `refIr` y `_refNorm` nacen ahí, y el botón «Ver
+  referencia» y el índice de la tabla de cirugía los usan. Revertir el 2 sin revertir antes el 3
+  deja los 39 botones llamando a una función que no existe.
+  ⚠️ **EL 4 ES LA BASE DEL 5 POR EL ROTULO**: `REF_SUB_BLOQUES` nace en el 4 y el 5 le agrega su
+  tercera entrada; revertir el 4 sin el 5 deja el bloque de la tabla de cirugía sin rótulo
+  —inocuo— pero deja la tabla pegada al ateroma sin separación.
+  ⚠️ **EL 6 SE REVIERTE SOLO respecto del 5**, pero **lleva la adaptación de TC-492**: revertirlo
+  sin reponer esa condición lo deja afirmando lo contrario, no en rojo.
+  **El 7 es TC-502 más la adaptación de TC-495, la sonda de los dos motores, la documentación y
+  el sello**, y afirma el comportamiento de los seis: revertir cualquiera sin el 7 lo deja en rojo.
+  ⚠️ **EL SELLO VIAJA EN EL COMMIT 7, que es el único cambio de `index.html` que ese commit
+  lleva**: los seis anteriores quedaron con el sello viejo. Es la regla de la casa.
+  ⚠️ **CASOS ADAPTADOS: DOS.** **TC-492**, cuyo control negativo exigía `!!EL('ref-vd')` —la
+  entrada vieja del VD, que el commit 6 retira—, y **TC-495**, cuya condición exigía que el texto
+  de integración viviera DENTRO de `ref-nativas`. Los dos afirmaban un hecho medido que esta tanda
+  movió; ninguno estaba mal escrito. **TC-495 lo destapó la SUITE COMPLETA**, no la corrida de
+  zona.
+
+- **Línea base al cierre: suite **512/516** con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0
+  ERROR en 1 app, Excel en 440 columnas, celular 53 a 360 px y 62 a 390 px con 11 ALTA cada uno
+  —IDÉNTICO a la línea base del ARR—. CERO REGRESIONES.** Los **CUATRO** rojos son exactamente los
+  de ENTRADA —**TC-223** (el documentado, falla por la fecha), **TC-376**, **TC-390** y
+  **TC-406**— y no apareció ninguno fuera de esa lista. **El denominador sube a 516**: esta tanda
+  agregó **TC-502**. La comparación es 511/515 → **512/516** y el delta es el caso nuevo.
+  ⚠️ **LA SUITE COMPLETA SE CORRIÓ DOS VECES Y LA PRIMERA NO ES LA LÍNEA BASE.** Dio **510/516**
+  con SEIS rojos: los cuatro de entrada más **TC-495** —que la corrida de zona no podía ver— y
+  **TC-502**, cuyo bloque del ciclo **pasaba corrido solo y caía en la suite completa** porque
+  llegaba con `ref-ai` ya ABIERTA por un caso anterior: con el estado de partida abierto, cuarenta
+  toques la dejan abierta. Es la trampa que este archivo tiene escrita desde la tanda L. **La
+  segunda corrida es la que vale.**
+  ⚠️ **LOS DIECISIETE DE TC-181…TC-197 SALIERON VERDES, que es la prueba de que el pendrive estuvo
+  montado**, verificado además con `ls /Volumes/DISK_IMG` antes y después.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso(.TC-[^.]*." scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **516 ids** sobre los 517 casos del archivo.
+  ⚠️ **EL CELULAR NO MUEVE NI UN HALLAZGO VISIBLE**, y con `--todo` sube **+1 por ancho** (388/397
+  → **389/398**), que es el `<input>` del buscador contándose como `input-chico` (BAJA) igual que
+  los otros ~335 de la app. Los 39 botones «Ver referencia» **no** entran: viven dentro de
+  `#vinfo-card`, que `check_mobile.js` no abre. `PENDIENTES.md` → P-7.
+- **EL SELLO DE VERSIÓN** estaba al día al empezar (`v20261018-0120`) y se volvió a sellar:
+  **`v20261018-1002`**. Todo lo medido salió **DESPUÉS** de sellar, con el `md5` quieto
+  (`52cc2f1c…`, verificado al abrir y al cerrar las dos corridas); lo único que se tocó después
+  fueron las dos adaptaciones, TC-502 y la documentación, que no viven en `index.html`.
+- **`index.html` pasó de 8,25 MB / 124.184 líneas a 8,29 MB / 124.831 líneas.**
+
+- **P1 · EL CENSO ES LA TABLA, Y POR ESO SE PUEDE AUDITAR.** La pestaña pasa a **cinco
+  subpestañas** y las entradas **NO se mudaron en el marcado**: `refSubInit` las reubica al
+  arrancar leyendo `REF_SUBTAB`, que es el dueño único del reparto. Mover 900 líneas de HTML habría
+  hecho imposible comprobar que el censo da el mismo conteo. **Medido con clics reales: 30 entradas
+  antes y 30 después** (6 Dimensiones + 2 Función + 12 Válvulas + 2 Aorta + 8 Otros).
+  Si el JS no corriera, las entradas quedan visibles debajo de los paneles vacíos: la degradación
+  es «se ve todo», nunca «no se ve nada».
+  **El texto de integración del VAL vivía DENTRO del cuerpo plegable de «Válvulas Nativas»**, o sea
+  que sólo se veía con ese grupo abierto: pasa al final del panel de Válvulas, mismo nodo y mismas
+  palabras, a 11 px y `--text2`.
+  **Accesibilidad:** `tablist`/`tab`/`tabpanel`, `aria-selected`, `aria-controls` y UN solo tab
+  stop; flechas, Home y End mueven y el foco las sigue, medido con teclas reales.
+  ⚠️ **LA BARRA SE DESPLAZA POR DENTRO** (`nowrap` + `overflow-x:auto`), que es lo que evita el
+  scroll horizontal de la PÁGINA: con `wrap` los cinco botones envuelven y la pestaña crece en
+  alto; con `nowrap` sin `overflow-x` desborda el documento. Medido a 360 px: 328 px visibles
+  contra 556 de contenido.
+  ⚠️ **TRES DECISIONES DE REPARTO, DECLARADAS:** `ao2` y `ao` van a AORTA y no a Dimensiones
+  —la orden le da a la aorta su propia subpestaña—; `formulas` va al cajón de «Otros hallazgos»; y
+  `vi` (ASE 2016) va a DIMENSIONES aunque su segundo bloque sea la diastólica, porque es la única
+  que nombra el **RWT**, que es lo que el buscador tiene que encontrar junto a `vi2`.
+
+- **P2 · EL BUSCADOR NO TIENE UN ÍNDICE DE PALABRAS CLAVE, Y ESO ES LO QUE LO MANTIENE AL DÍA.**
+  Filtra por el TEXTO COMPLETO de cada entrada; una lista escrita a mano sería una segunda copia de
+  cada tabla y se separaría de ella en la primera tanda que mueva un corte.
+  ⚠️ **LAS CINCO ENTRADAS NUEVAS ARMAN SU CUERPO AL ABRIRSE** (`evRefPintar`) y la tabla de cirugía
+  también: el índice las **fuerza** antes de leer. Sin eso, «0,42» no encuentra la geometría del VI
+  y «Marfan» no encuentra una sola fila de la tabla.
+  ⚠️ **EL ÍNDICE RECORRE LAS ENTRADAS DE CADA PANEL Y NO LAS CLAVES DE `REF_SUBTAB`**: con la tabla
+  sola tenía 20 y «Wilkins» devolvía «Válvulas Nativas» en vez de «EM — Estenosis Mitral». Hoy
+  tiene **28** —las 30 menos los dos agrupadores, excluidos por una compuerta **ESTRUCTURAL** («un
+  agrupador es el que contiene otra entrada») y no por una lista—.
+  **LA NORMALIZACIÓN TIENE UN DUEÑO** (`_refNorm`): minúsculas, sin diacríticos y **la coma decimal
+  a punto**, las tres juntas, para que la consulta y el índice no puedan normalizarse distinto. Las
+  dos formas conviven: `ref-vi` escribe «<0.42» y `ref-vi2` «≥ 0,42».
+  **MEDIDO con teclas reales:** «RWT» y «rwt» dan las MISMAS 2 entradas; **«0,42» y «0.42» dan las
+  MISMAS 3**; «TAPSE» 4; «wilkins» → `em`; «onda s» → `vd2`; «xyzqnoexiste» 0 con su mensaje.
+  ⚠️ **UN DEFECTO QUE CAZÓ EL CONTROL Y NO LA LECTURA:** el `<input id="ref-busca">` lo tomaba el
+  recolector genérico y los campos del estudio pasaban de 1022 a 1023 —el buscador viajaba con el
+  estudio—. Se cierra con el prefijo `ref-` en `_noEsDelEstudio`, con guión MEDIO.
+  ⚠️ **Y EL HELPER `camposGuardados` DE LAS SONDAS NO SIRVE PARA MEDIRLO**: barre `input[id]` sin
+  pasar por ese predicado, así que mide «campos del DOM». Entra `camposEstudio`, con el MISMO
+  predicado que `guardarInforme`: **1052 campos con el mismo hash en los dos árboles**.
+
+- **P3 · «VER REFERENCIA»: 39 DE LAS 44 CLAVES, Y LAS CINCO QUE NO LO LLEVAN ES PORQUE LA ENTRADA
+  NO EXISTE.** `VINFO_REF` es el dueño único del mapeo y no lo decide ningún heurístico sobre el
+  nombre. Las cinco sin botón son `tarj-insuf-pulmonar`, `tarj-esten-pulmonar`,
+  `tarj-esten-tricuspide`, `et-avt-cont` y `pul-balik`: Referencias no tiene esas entradas, y
+  crearlas sería contenido clínico nuevo. `PENDIENTES.md` → **P-1**. Cierra **L-9**, **M-11** y
+  **Q-4**.
+  Un **assert de arranque** exige las DOS direcciones —que toda clave exista en `VINFO` y que su
+  destino exista en el marcado—: medido, cero divergencias.
+  ⚠️ **EL BOTÓN SE AGREGA ANTES DE MEDIR LA ALTURA**, y en las DOS ramas de pintado de
+  `_vInfoColocar`: después, la tarjeta queda colocada con una altura que ya no es la suya, o sea
+  fuera de la pantalla por el alto del botón.
+  **MEDIDO con clics reales en las CUATRO tarjetas que la orden nombra** —aorta, AI/VI, válvula y
+  CORTOS—: la tarjeta se cierra, la entrada abre y queda visible, se resalta, «Volver» aparece
+  diciendo de qué pestaña se vino y al tocarlo la pestaña vuelve.
+  ⚠️ **EL SCROLL VUELVE AL VALOR GUARDADO, y si la página se acortó queda donde llega** (medido
+  400 → 94 en Válvulas, 231 → 231 en AI/VI).
+
+- **P4 · LA SUBPESTAÑA AORTA, CON SUS DOS BLOQUES Y SIN REESCRIBIR NADA.** Orden medido:
+  ROT «Dimensiones y nomogramas» → `ao2` → ROT «Ateroma aórtico» → `ao` → ROT «Cirugía de la aorta
+  torácica» → `aocx`. Las **tres gráficas** del nomograma estaban y se reusan con sus tres
+  ecuaciones y su nota de que el gráfico es PROPIO.
+  **EL CRITERIO DE ECOSMART DE LOS 40 mm DEL SENO, SONDEADO AL DUEÑO**: 39 normal / **40 dilatado**
+  / 41 dilatado, con el símbolo **≥** derivado de `aoSegSim` — es el único de los cinco segmentos
+  con ese operador, y por eso se deriva en vez de escribirse.
+
+- **P5 · LA TABLA DE CIRUGÍA AÓRTICA: DOCE FILAS, CADA UNA CON SU TABLA, SU FOLIO Y SU HOJA.**
+  Columnas: situación · umbral general · con factores · clase y nivel · notas · fuente.
+  **LOS OPERADORES SE LEYERON RENDERIZANDO EL ORIGINAL A 3x**, no del texto extraído: en ese
+  documento conviven «≥ 55 mm» y «> 52 mm» en tablas vecinas. Verificados en la imagen las Tablas
+  **68** (folio 119), **38** (folio 80) y **62** (folio 114).
+  ⚠️ **LA BIBLIOTECA TIENE UNA SOLA GUÍA DE AORTA Y ES LA TRADUCCIÓN DE LA SEC.** Censada entera:
+  `Mazzolai_2024_Aorta.pdf`, duplicado con otro nombre, y **NO hay ACC/AHA 2022**, que la orden
+  admitía «si está». Lo leído son números y operadores; se declara. **Regla de folio: folio = hoja
+  − 1**, comprobada en el encabezado IMPRESO de las hojas 10, 50 y 100.
+  ⚠️ **TRES LISTAS DE FACTORES DE RIESGO EN EL MISMO DOCUMENTO Y NO DICEN LO MISMO:** la Tabla 68
+  da NUEVE con «altura entre 1,50 y 1,69 m» y «longitud ≥ 11 cm»; la Tabla 38 da OCHO con «< 1,69»
+  y «> 11 cm», agrega el fenotipo de raíz y no incluye la cirugía concomitante; el pie de la Figura
+  24 da SEIS, con «hipertensión incontrolada» donde las dos tablas dicen «resistente». Cada fila
+  publica la lista de SU tabla.
+  **LA TABLA Y LA PESTAÑA VAB LEEN EL MISMO BORDE, Y SE COMPRUEBA EN VIVO.** Los umbrales de
+  `vabConclusion` son literales dentro de esa función: en vez de copiarlos, la tabla los **SONDEA
+  por sus dos lados** y publica si el dueño separa ahí. **Las cuatro filas de la bicúspide dicen
+  «La aplicación separa en este borde»**, medido: 54 no / 55 sí · raíz 49 no / 50 sí · ascendente
+  52 no / 53 sí · 50 con un factor sí y sin factores no · 44 no / 45 sí. **NO se tocó una línea de
+  `vabConclusion`.**
+  ⚠️ **EL RENGLÓN TIPEADO DE «Dilatación aórtica — cirugía» SE RETIRA, Y TRES DE SUS CUATRO
+  AFIRMACIONES ESTABAN MAL** contra la guía que el mismo renglón citaba: el «≥50 con bicúspide» no
+  distingue el fenotipo —ahí el ≥50 Clase I es SÓLO el de raíz—, se comía el ≥45 de la cirugía
+  valvular concomitante, y escribía el crecimiento con «>3mm/año» donde las TRES listas escriben
+  «≥ 3 mm al año». **No se inventa ningún valor**: lo que se deja de afirmar es lo que ninguna
+  fuente sostenía.
+
+- **P6 · LA ENTRADA VIEJA DEL VD SE RETIRA, Y TRES DE SUS CINCO FILAS YA NO ERAN LO QUE LA APP
+  APLICA.** Publicaba la onda S′ en «≥ 10» contra un dueño que corta en **9,5**
+  (`ase25Corte('s_prime','normal')`), el área de la AD en «≤ 18» contra uno que corta en **19**, y
+  dos categorías donde la Tabla 1 de la ASE 2025 da cuatro. La que corresponde es `ref-vd2`, con
+  **46 filas y 12 barras** derivadas de `ase25Rango`. **No se pierde ningún parámetro.**
+  **Medido:** `ref-vd` no existe ni en el marcado ni en `REF_SUBTAB`; ninguna celda dice ya
+  «S′ (cm/s)»; «onda s» en el buscador devuelve **una sola** entrada. Los tres «<10» que quedan son
+  la EROA de la IM secundaria, la EROA de la IT y el gradiente medio de la prótesis, censados.
+  **«Otros hallazgos»** queda en tres bloques: orejuela, test de burbuja y coronarias al principio.
+
+- **A/B DE CONTROL contra el inicio de la tanda, en CADA commit, con el formulario vacío y con
+  escenario cargado: CERO diferencias** en el informe en los tres estilos, el EN SUMA, el **Excel
+  en 440 columnas CLAVE POR CLAVE**, los **1052 campos del estudio** con su hash, el Laboratorio,
+  el almacenamiento, las **SEIS plantillas del PDF generadas de verdad** (94/95/81/101/80/95 textos
+  y 34/42/11/18/21/25 figuras), el **PPT** (21 textos) y el **PDF de auditoría** (104). **Es
+  contenido y navegación: nada firmado se mueve.**
+
+- **MEDIDO EN LOS DOS MOTORES, 12 CELDAS CADA UNO** —Chrome por el **canal del sistema** y WebKit,
+  seis viewports (1200×700, 1440×800, 1920×1080, 768×1024, 390×844, 360×740) × dos temas, con el
+  tema COMPROBADO—: **CERO abortos, CERO scroll horizontal de la PÁGINA en las 24 celdas**, el
+  censo da **30** en las 24, y la barra se desplaza por dentro a 360 px en los dos (328/556 en
+  Chrome, 328/566 en WebKit). Los colores resuelven **reales y distintos** en los dos temas
+  —activa `rgb(79,142,247)` de noche y `rgb(47,111,224)` de día; reposo `rgb(154,163,188)` y
+  `rgb(91,100,120)`— e **IDÉNTICOS entre motores**. **Ciclo de 20 vueltas por las cinco
+  subpestañas y 20 aperturas: 1194 nodos → 1194, delta CERO, y la entrada cerrada al final, en los
+  DOS motores.** **84 capturas PNG con los 84 `md5` DISTINTOS**, y dos MIRADAS: la tabla de cirugía
+  entera con sus doce filas y sus cuatro marcas de acuerdo, y el buscador a 360 px en WebKit con
+  los acentos completos.
+  ⚠️ **WebKit de Playwright NO es Safari, y se declara.**
+
+- **Arneses: `scripts/_probe_p.mjs`** (CDP, teclas y clics reales; ocho grupos: `censo`, `subtabs`,
+  `buscar`, `verref`, `aorta`, `vdref`, `maqueta`, `ctrl`) y **`scripts/_probe_pwk.mjs`**
+  (Playwright, los DOS motores, seis viewports × dos temas y las 84 capturas; resuelve Playwright
+  **por ruta** y, si no está, lo DICE y sale con código 2).
+  **Cobertura: TC-502**, **52 condiciones** —contadas instrumentando el propio caso, no a ojo sobre
+  los `ex.push`, porque cuatro salen de un `forEach`— con ocho denominadores y seis controles
+  negativos. **Verificado que sabe fallar contra el inicio de la tanda en un worktree aparte: 35 de
+  las 52 en rojo, y NINGUNA por excepción.**
+
+- **Dónde está todo:** `docs/mapa/referencias-subpestanas.md` (**mapa NUEVO**, 14,7 KB: el reparto,
+  el índice del buscador y su normalización, `VINFO_REF` con las cinco sin botón, la tabla
+  `AO_CX_T` con su folio por fila y su sondeo del dueño, la entrada del VD y nueve trampas);
+  `docs/mapa/tests-fichas-496-498.md` (**archivo NUEVO por PARTICIÓN**, 14,0 KB); cinco mapas con
+  un puntero cada uno (`vd-derecho` 31,6 KB · `valvulas-tarjetas-info` 19,7 ·
+  `registro-evidencia` 19,5 · `evidencia-derecho-aorta` 18,1 · `otros-hallazgos` 16,1);
+  `docs/mapa/tests-fichas.md` → la ficha de TC-502 (**20,4 KB**); `docs/fuentes/FUENTES.md` → «La
+  tanda P», con las cuatro tablas de la ESC 2024 transcritas, la ausencia de la ACC/AHA 2022, las
+  tres listas de factores lado a lado y la tabla de **Cambios de evidencia**; y
+  `docs/PENDIENTES.md` → **L-9, M-11 y Q-4 marcados CERRADOS** más **siete** cosas declaradas
+  (P-1 a P-7).
+  ⚠️ **`tests-fichas.md` SE PARTIÓ ANTES DE ESCRIBIR Y NO DESPUÉS**, medido con `wc -c`: estaba en
+  **29,5 KB** y la ficha de TC-502 lo cruzaba. **Y `aortica-cortes.md` NO SE TOCÓ**: está en
+  33,9 KB, a 1,1 KB del techo, así que el puntero de la aorta fue a
+  `evidencia-derecho-aorta.md`, que tiene margen. **Ningún mapa cruzó.**
+
+- ⚠️ **NUEVE TRAMPAS, Y CINCO DABAN FALSOS PLAUSIBLES.**
+  1. **EL HELPER `camposGuardados` DE LAS SONDAS NO MIDE «CAMPOS DEL ESTUDIO»** (arriba): informó
+     1023 donde el recolector real guarda 1022, y eso se lee igual que «el campo nuevo viaja».
+  2. **UNA VUELTA DE CALENTAMIENTO ANTES DE CONTAR NODOS**: sin ella, **+82 nodos** sobre algo que
+     no acumula ninguno. Y **el bucle se arranca con la entrada CERRADA**, o cuarenta toques la
+     dejan abierta — eso puso TC-502 en rojo **sólo en la suite completa**.
+  3. **`tema()` DE LA INFRAESTRUCTURA TOMA UN BOOLEANO**: pasarle la cadena `'oscuro'` es *truthy*
+     y las ocho celdas midieron el tema CLARO, con la tabla diciendo «el color no cambia».
+  4. **`\s` Y `\(` SE COCINAN DENTRO DE UN TEMPLATE LITERAL**: el primero borró todas las eses del
+     texto leído («error e tándar») y el segundo dejó el grupo del regex sin cerrar. En el bloque
+     grande va `String.raw`; en los `ev()` sueltos, doble barra EN EL ARCHIVO.
+  5. **`VINFO` Y `AO_SEGS` SON `const` DE MÓDULO Y NO PROPIEDADES DE `window`**: el censo de claves
+     sale del DOM y el criterio del seno se mide por COMPORTAMIENTO. Es la trampa de `ECO_AYUDA`.
+  6. **EL GLOBO DEL TEST DE BURBUJA VIVE DENTRO DE UNA SECCIÓN QUE NACE CERRADA** con su propio
+     `toggleEteSeccion`, que `puertaDe` no abre: mide 0 × 0.
+  7. **UN SELECTOR CON LA CONCATENACIÓN DENTRO DE LAS COMILLAS** deja el literal adentro y no
+     matchea nada.
+  8. **CON `scrollY` EN 0 EN LAS DOS PUNTAS, «volvió a la posición» PASA SIN MEDIR NADA.**
+  9. **UNA REGLA `[hidden]` NECESITA SU PROPIA DECLARACIÓN DE AUTOR**: `[hidden]{display:none}`
+     vive en la hoja del NAVEGADOR y cualquier regla de autor le gana. El «Volver» lleva la suya.
+- ⚠️ **Me comí el acento grave TRES veces**, todas en comentarios míos dentro del cuerpo de un caso
+  o del template de una sonda. `scripts/check_backticks.py` dio la línea exacta las tres — y
+  **DOS veces, al limpiarlos de un RANGO, me llevé lo que ABRE el cuerpo**, y una de esas el
+  reemplazo masivo alcanzó **líneas del RUNNER** 400 después, que es código normal. La segunda vez
+  se resolvió con `git checkout` del archivo y reinsertando el caso limpio, que es más barato que
+  perseguir el daño.
 
 ### Los ARREGLOS tras el CORTOS — «ARR» (2026-10-18)
 

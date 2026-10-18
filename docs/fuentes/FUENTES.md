@@ -3758,3 +3758,135 @@ publicarla en Referencias hay que leerla en la guía de la ESC con su folio.
 
 ⚠️ **EL VALOR DEL Ar−A NO SE MOVIÓ: 30 ms en las tres guías.** Lo que cambió es el operador, y
 sólo en la fila de la vena pulmonar: los dos pasos suplementarios ya usaban `>`.
+
+---
+
+## La tanda «P» (2026-10-18) — los UMBRALES DE CIRUGÍA de la aorta torácica
+
+### La guía, y lo que la biblioteca NO tiene
+
+**Censada entera:** el único PDF de aorta es `06_Aorta/Mazzolai_2024_Aorta.pdf` —la **ESC 2024**
+sobre el diagnóstico y el tratamiento de la enfermedad arterial periférica y aórtica, 199 hojas,
+duplicado con el nombre `iyfY3N-Final-Guía_2024_Enfermedad_aórtica_y_periférica.pdf` (md5 distinto,
+mismo contenido: mismas 199 hojas, mismo encabezado)—. Barrido de los nombres de PDF de las 24
+carpetas: **no hay ACC/AHA 2022** (Isselbacher), que la orden admitía «si está».
+
+⚠️ **ES LA TRADUCCIÓN DE LA SEC** («SEC: 2025-B», en español). El original inglés **no está en la
+biblioteca**, y se declara. Lo que se leyó son **números y operadores**, inequívocos y verificados
+en la imagen; es el mismo precedente que la ESC 2021 de insuficiencia cardíaca ya dejó escrito en
+este repo. Una traducción no cierra un hallazgo de *wording*.
+
+**REGLA DE FOLIO: folio = hoja del PDF − 1**, comprobada en el **encabezado impreso** de las hojas
+10, 50 y 100 (folios 9, 49 y 99). No se dedujo por aritmética.
+
+⚠️ **Sus TABLAS van de 1 a 18 y sus TABLAS DE RECOMENDACIONES de 1 a 70**, numeradas aparte y
+rotuladas «Recomendaciones - tabla N». La «Tabla 68» que los comentarios de la app citan es una
+**tabla de recomendaciones**, y existe: folio 119, hoja 120.
+
+### Lo verificado, tabla por tabla, RENDERIZANDO el original a 3x
+
+⚠️ **Los operadores se leyeron en la IMAGEN y no del texto extraído**: en este documento conviven
+«≥ 55 mm» y «> 52 mm» en tablas vecinas, así que un operador mal leído mueve el umbral de un lado
+al otro.
+
+#### Recomendaciones - tabla 38 · folio 80 · hoja 81 — válvula aórtica TRICÚSPIDE
+«Recomendaciones sobre la cirugía de la dilatación de raíz aórtica y de la aorta ascendente con
+válvula aórtica tricúspide»
+
+| recomendación | umbral | clase | nivel |
+|---|---|---|---|
+| raíz o ascendente, diámetro máximo | **≥ 55 mm** | I | B |
+| ascendente tubular, riesgo quirúrgico bajo^c | **> 52 mm** | IIa | B |
+| cirugía por enfermedad de la válvula aórtica + dilatación concomitante, riesgo bajo | **≥ 45 mm**, «o en otros casos ≥ 50 mm» | IIa | B |
+| cirugía cardíaca NO valvular aórtica + dilatación concomitante | **≥ 50 mm** | IIa | C |
+| dilatación de la aorta proximal, riesgo bajo, con cualquiera de ocho factores | **≥ 50 mm** | IIb | B |
+
+Nota ^c: riesgo individual del paciente **< 3 %**.
+Sus **OCHO** factores: crecimiento ≥ 3 mm/año · hipertensión resistente^d · **baja estatura
+< 1,69 m** · **fenotipo de raíz aórtica** · **longitud aórtica > 11 cm**^e · edad < 50 años · deseo
+de embarazo · coartación aórtica.
+
+#### Recomendaciones - tabla 62 · folio 114 · hoja 115 — síndrome de MARFAN
+
+| recomendación | umbral | clase | nivel |
+|---|---|---|---|
+| raíz aórtica, diámetro máximo de los senos | **≥ 50 mm** | I | B |
+| raíz + factores de riesgo adicionales^c | **≥ 45 mm** | IIa | C |
+| ascendente, arco, torácica descendente o abdominal | **≥ 50 mm** | IIa | C |
+
+Nota ^c: historia familiar de disección aórtica con dimensiones pequeñas (< 50 mm) · hipertensión
+refractaria (tres o más antihipertensivos) · crecimiento anual **≥ 3 mm** en adultos.
+
+#### Recomendaciones - tabla 68 · folio 119 · hoja 120 — válvula aórtica BICÚSPIDE
+«Recomendaciones sobre el tratamiento de la aortopatía asociada a válvula aórtica bicúspide»
+
+| recomendación | umbral | clase | nivel |
+|---|---|---|---|
+| diámetro aórtico máximo | **≥ 55 mm** | I | B |
+| **fenotipo de raíz**^c | **≥ 50 mm** | I | B |
+| **fenotipo ascendente**^d, riesgo quirúrgico bajo | **> 52 mm** | IIa | B |
+| fenotipo ascendente, riesgo bajo, con **alguna** de nueve condiciones | **≥ 50 mm** | IIa | C |
+| cirugía de válvula aórtica, diámetro de raíz **o** de ascendente | **≥ 45 mm** | IIa | C |
+
+Sus **NUEVE** condiciones, literales: Edad **< 50** años · **Baja estatura**^e · Longitud de la
+aorta ascendente **≥ 11 cm**^f · Tasa de crecimiento del diámetro aórtico **≥ 3 mm al año**^g ·
+Historia familiar de síndrome aórtico agudo · Coartación aórtica · Hipertensión resistente^h ·
+Cirugía cardiaca concomitante no relacionada con la válvula aórtica · Deseo de embarazo.
+
+Notas: ^c fenotipo de raíz = senos mayores que el tubular · ^d ascendente = tubular mayor que los
+senos · ^e **altura entre 1,50 y 1,69 m (con CSA/h > 13 cm²/m)** · ^f distancia curvilínea en la
+línea aórtica central entre la unión ventrículo-aórtica y el origen de la innominada · ^g
+reevaluación lado a lado con la misma modalidad · ^h refractaria a **tres o más** antihipertensivos,
+incluidos diuréticos.
+
+#### Recomendaciones - tabla 39 · folio 81 · hoja 82 — ARCO aórtico
+Aneurisma aislado del arco, sintomático, con riesgo operatorio bajo: **≥ 55 mm**, IIa · B.
+
+### ⚠️ TRES LISTAS DE FACTORES DE RIESGO EN EL MISMO DOCUMENTO, Y NO DICEN LO MISMO
+
+| | nº | estatura | longitud | hipertensión | otras |
+|---|---|---|---|---|---|
+| **Tabla 68** (bicúspide) | 9 | **entre 1,50 y 1,69 m** | **≥ 11 cm** | **resistente** | + historia familiar, + cirugía concomitante |
+| **Tabla 38** (tricúspide) | 8 | **< 1,69 m** | **> 11 cm** | **resistente** | + fenotipo de raíz, sin historia familiar ni cirugía concomitante |
+| **Figura 24**, folio 76 | 6 | **< 1,69 m** | **> 11 cm** | **incontrolada** | sólo para VAB: coartación e historia familiar |
+
+**Cada fila de la tabla de la app publica la lista de SU tabla y no una fusión de las tres.** La app
+aplica la de la **Tabla 68**, que es la que lleva clase y nivel y la que corresponde a la pestaña de
+válvula aórtica bicúspide. La Figura 24 además publica un tramo (50-52 mm, fenotipo ascendente, sin
+características de riesgo alto, **Clase IIb**) que la tabla de recomendaciones no publica y que la
+app no aplica: queda declarado y **no se escribió**.
+
+### Lo que la app APLICA, sondeado a su dueño
+
+Los umbrales de `vabConclusion` son literales dentro de esa función. La tabla de Referencias los
+**sondea por sus dos lados** y publica si el dueño separa en el borde que ella escribe. Medido:
+
+| escena | abajo | en el umbral |
+|---|---|---|
+| diámetro máximo | 54 → no indica | **55 → `cx_55`** |
+| fenotipo de raíz | 49 → vigilancia | **50 → `cx_raiz_50`** |
+| fenotipo ascendente, riesgo bajo | 52 → vigilancia | **53 → `cx_52`** |
+| ascendente 50, riesgo bajo | sin factores → vigilancia | **con un factor → `cx_50_fr`** |
+| cirugía valvular prevista | 44 → control | **45 → `concomitante_45`** |
+
+**Los cinco coinciden dígito por dígito con la Tabla 68.** No se movió ningún corte ni se tocó una
+línea de `vabConclusion`.
+
+### Lo que se dejó de afirmar
+
+El renglón «Dilatación aórtica — cirugía (ESC 2024)» de la entrada de ateroma decía «Ao ascendente
+≥55mm · ≥50mm con bicúspide/Marfan · ≥45mm Marfan + factores · crecimiento >3mm/año». **Tres de
+esas cuatro afirmaciones no las sostiene la guía que el mismo renglón citaba**: el «≥50 con
+bicúspide» no distingue el fenotipo (ahí el ≥50 Clase I es **sólo el de raíz**), faltaba el ≥45 de
+la cirugía valvular concomitante, y el crecimiento iba con `>` donde las **tres** listas escriben
+`≥ 3 mm al año`. Se retiró y lo reemplaza la tabla, con su folio por fila.
+
+### Cambios de evidencia — tanda P
+
+| qué | antes | ahora | fuente | commit | fecha |
+|---|---|---|---|---|---|
+| Umbrales de cirugía de la aorta torácica en Referencias | un renglón de cuatro afirmaciones, tres de ellas sin respaldo | **tabla de doce filas** con tabla, folio y hoja por fila | ESC 2024 · T38 f80, T39 f81, T62 f114, T68 f119 | P5 | 18/10/2026 |
+| Entrada del VD en Referencias | «ASE 2015» con cinco filas tipeadas (S′ «≥10», área AD «≤18») | se **retira**; queda `ref-vd2`, derivada de `ase25Rango` | ASE 2025, Tabla 1, folio 145 (tanda VS) | P6 | 18/10/2026 |
+
+**NINGUNA fuente nueva se verificó para el resto de la tanda**: las subpestañas, el buscador y el
+botón «Ver referencia» son navegación y no publican un solo dato clínico nuevo.

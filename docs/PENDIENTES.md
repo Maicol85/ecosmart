@@ -4290,7 +4290,14 @@ el navegador lo saca del padre al parsear. Quedó en una fila propia inmediatame
 título, con su rótulo. Si se quisiera a la derecha del título habría que reestructurar la
 cabecera del acordeón, que gobierna todas las secciones de la app.
 
-### L-9 · No hay botón «Ver referencia» en la tarjeta
+### L-9 · [CERRADO 2026-10-18, tanda P] No hay botón «Ver referencia» en la tarjeta
+
+> **CERRADO el 2026-10-18 (tanda P, commit 3).** `VINFO_REF` mapea **39 de las
+> 44 claves** de tarjeta a su entrada, y `refIr(id)` activa la subpestaña, abre el agrupador y la
+> entrada, desplaza hasta ella y la resalta. Un botón «Volver» repone la pestaña y la posición.
+> Las **cinco** que siguen sin botón —`tarj-insuf-pulmonar`, `tarj-esten-pulmonar`,
+> `tarj-esten-tricuspide`, `et-avt-cont` y `pul-balik`— es porque **la entrada no existe**: ver
+> **P-1**.
 La orden lo pedía **sólo si abrir Referencias en esa entrada costaba poco**. No hay mecanismo
 para abrir la pestaña en una sección concreta: `toggleRef` no tiene una entrada por URL ni por
 parámetro, y `showTab('refs')` deja todas las secciones como estaban. Construirlo es agregar un
@@ -4382,7 +4389,14 @@ emulación táctil: los cuatro pasan a 44 × 44 exactos, igual que los tres del 
 agrandaron**: hacerlo desplazaría los campos de la fila. Es el mismo precedente que el botón del
 «porqué» de la vista 2D y los dos marcadores de identificación del J.
 
-### M-11 · No hay botón «Ver referencia» en las tarjetas nuevas
+### M-11 · [CERRADO 2026-10-18, tanda P] No hay botón «Ver referencia» en las tarjetas nuevas
+
+> **CERRADO el 2026-10-18 (tanda P, commit 3).** `VINFO_REF` mapea **39 de las
+> 44 claves** de tarjeta a su entrada, y `refIr(id)` activa la subpestaña, abre el agrupador y la
+> entrada, desplaza hasta ella y la resalta. Un botón «Volver» repone la pestaña y la posición.
+> Las **cinco** que siguen sin botón —`tarj-insuf-pulmonar`, `tarj-esten-pulmonar`,
+> `tarj-esten-tricuspide`, `et-avt-cont` y `pul-balik`— es porque **la entrada no existe**: ver
+> **P-1**.
 Por el mismo motivo que en el L (**L-9**): no hay mecanismo para abrir la pestaña Referencias en
 una sección concreta. La orden de esta tanda lo prohíbe expresamente. Queda para el trabajo que
 reestructure esa pestaña en subpestañas.
@@ -5110,7 +5124,14 @@ dos globos, como el L partió la del VI y su gráfico de geometría; **(c)** mos
 que el paciente recorrió, que es lo que el diagrama de la ventana ya hace. La (c) es la más
 informativa y la que cambia más: hay que decidir qué pasa con un paciente que no llegó al paso 2.
 
-### Q-4 · No hay botón «Ver referencia» en las nueve tarjetas nuevas (es `L-9` y `M-11`, otra vez)
+### Q-4 · [CERRADO 2026-10-18, tanda P] No hay botón «Ver referencia» en las nueve tarjetas nuevas (es `L-9` y `M-11`, otra vez)
+
+> **CERRADO el 2026-10-18 (tanda P, commit 3).** `VINFO_REF` mapea **39 de las
+> 44 claves** de tarjeta a su entrada, y `refIr(id)` activa la subpestaña, abre el agrupador y la
+> entrada, desplaza hasta ella y la resalta. Un botón «Volver» repone la pestaña y la posición.
+> Las **cinco** que siguen sin botón —`tarj-insuf-pulmonar`, `tarj-esten-pulmonar`,
+> `tarj-esten-tricuspide`, `et-avt-cont` y `pul-balik`— es porque **la entrada no existe**: ver
+> **P-1**.
 
 Las ocho tarjetas de lesión y la de la función diastólica publican su fuente **como texto**, y no
 hay forma de saltar desde ahí a la ficha de la pestaña Referencias: no existe mecanismo para abrir
@@ -5229,3 +5250,80 @@ de Maicol.
 Declarado en el CORTOS (CORTOS-10) y **no se cerró en esta tanda**: ampliar ese script para que
 abra la pestaña Otros y las tarjetas del Q con emulación táctil es un trabajo propio, y lo que
 esta tanda agrega a esa pestaña es un `<select>` con otros `value` y **un campo menos**.
+
+---
+
+# Lo que la tanda «P» declaró y NO tocó (2026-10-18)
+
+### P-1 · Cinco tarjetas ⓘ sin entrada en Referencias
+
+`tarj-insuf-pulmonar`, `tarj-esten-pulmonar`, `tarj-esten-tricuspide`, `et-avt-cont` y
+`pul-balik` **no llevan botón «Ver referencia»**, y es porque la entrada que les correspondería no
+existe: Referencias no tiene una entrada de **insuficiencia pulmonar**, ni de **estenosis
+pulmonar**, ni de **estenosis tricuspídea**, ni de la **fórmula de Balik**.
+
+Crearlas es escribir contenido clínico nuevo con su fuente verificada, que esta orden no autoriza.
+**Lo que haría falta**, por entrada: el corte, su operador, la guía con folio y hoja, y la decisión
+de si deriva del dueño o se transcribe. Para la de Balik, además, la fuente es la **ICM 2026**
+(`icmPocus2026` en `FUENTES.md`), que ya está verificada: ésa es la más barata de las cuatro.
+
+### P-2 · El censo de entradas se movió dos veces dentro de la tanda, y está declarado
+
+| momento | entradas | por qué |
+|---|---|---|
+| al empezar y tras el commit 1 | **30** | la reubicación no pierde ninguna |
+| tras el commit 5 | **31** | entra «Aorta — Umbrales de cirugía» |
+| tras el commit 6 | **30** | sale la vieja del VD (`ref-vd`, ASE 2015) |
+
+Lo que P1 pide —que la **reubicación** no pierda ninguna— se cumplió con 30 → 30. Los otros dos
+movimientos son contenido autorizado por P5 y P6.
+
+### P-3 · La Figura 24 publica un tramo que la tabla de cirugía no tiene
+
+El algoritmo de la **Figura 24 (folio 76)** de la ESC 2024 da, para 50-52 mm con fenotipo
+ascendente y **sin** características de riesgo alto, «Cirugía si riesgo operatorio bajo (**Clase
+IIb**)». La **Tabla 68** —que es la que lleva clase y nivel y la que la app aplica— no publica ese
+tramo, y `vabConclusion` tampoco. **No se escribió.**
+
+Decidir: (a) dejarlo así —la tabla publica las tablas de recomendaciones y lo declara—; (b)
+agregar la fila citando la figura, que es un diagrama y no una tabla de recomendaciones; (c)
+implementarlo en `vabConclusion`, que es mover una conducta.
+
+### P-4 · Los umbrales de `vabConclusion` siguen siendo literales
+
+Los cinco viven escritos a mano dentro de esa función, y la tabla de Referencias los **sondea** en
+vez de copiarlos —así no hay una segunda copia y la divergencia se ve en pantalla—. Lo que no hay
+es una constante dueña.
+
+**No se extrajo a propósito**: `vabConclusion` escribe el informe firmado, y esta orden prohíbe
+tocar un cálculo. Si alguna vez se extrae, la tabla debería pasar a leer la constante y el sondeo
+quedaría como centinela.
+
+### P-5 · «Otros hallazgos» es el cajón, y `formulas` cayó ahí
+
+La entrada **«Fórmulas — Cálculos Ecocardiográficos y Hemodinámicos»** no es una dimensión, ni una
+función de una cámara, ni una válvula, ni la aorta: quedó en «Otros hallazgos», con su propio
+rótulo de bloque. Es el cajón que la propia orden prevé.
+
+⚠️ **Y esa entrada tiene números tipeados que NO coinciden con sus dueños**, censados y **no
+tocados** porque son contenido clínico: publica **«TAPSE/PSAP … >0.32 mm/mmHg»** cuando el dueño de
+la pantalla corta en **0,55** desde la tanda Z, y **«Relación VD/VI … <0.9»** cuando `VD_VI_HTP_MIN`
+corta en **1,0** desde el G1. Las dos son filas de una tabla de fórmulas, no de cálculo, pero las
+dos contradicen a la app. Decidir si se derivan del dueño o se retiran.
+
+### P-6 · La entrada `ref-vi` (ASE 2016) quedó en Dimensiones y tiene dos mitades
+
+Su primer bloque es la **geometría** del VI (masa, RWT, los cuatro cuadrantes) y el segundo la
+**disfunción diastólica de la ASE 2016**. Se la puso en **Dimensiones** porque es la única que
+nombra el **RWT**, que es lo que el buscador tiene que encontrar junto a `vi2`.
+
+Decidir: (a) dejarla ahí; (b) partirla en dos entradas, una por subpestaña —lo que cambia el censo
+y obliga a adaptar TC-502—; (c) moverla entera a Función, con lo que «RWT» dejaría de salir en
+Dimensiones.
+
+### P-7 · El botón «Ver referencia» puede sumar un hallazgo en `check_mobile.js`
+
+Es un `<button>` dentro de `#vinfo-card`, que `check_mobile.js` **no abre** —la tarjeta nace
+cerrada y lo que está en `display:none` no tiene geometría—, así que hoy no entra en la cuenta.
+El día que ese script aprenda a abrir las tarjetas ⓘ, los 39 botones aparecerán. Es el mismo
+precedente que **Q-5**, **L-10** y **M-10** ya tienen escrito.

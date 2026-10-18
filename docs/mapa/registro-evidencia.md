@@ -316,3 +316,20 @@ constante dueña de cada corte, la cosecha de fuentes, la frase de integración 
 
 ⚠️ Es **solo presentación**: ni un corte, ni un operador, ni una regla, ni un texto del informe,
 del EN SUMA, del PDF, del PPT o del Excel. A/B contra el inicio de la tanda: **cero diferencias**.
+
+---
+
+## → La tanda «P» (2026-10-18): Referencias con subpestañas, buscador y «Ver referencia»
+
+La pestaña **Referencias** pasó a **cinco subpestañas** (Dimensiones · Función · Válvulas · Aorta ·
+Otros hallazgos) con un **buscador** y, en las tarjetas ⓘ que tienen entrada, un botón **«Ver
+referencia»** con su «Volver». La subpestaña **Aorta** sumó la **tabla de umbrales de cirugía**
+verificada contra la ESC 2024, y la entrada **vieja del VD** (`ref-vd`, ASE 2015, con la onda S′
+tipeada en «≥ 10») **se retiró**: la que corresponde es `ref-vd2`, derivada del dueño.
+
+**No cambió ningún cálculo, corte, operador ni texto del informe**, y el Excel quedó en 440
+columnas idéntico.
+
+**Está todo en `docs/mapa/referencias-subpestanas.md`**: el reparto (`REF_SUBTAB`), el índice del
+buscador y su normalización, el mapeo `VINFO_REF` con las cinco tarjetas que no llevan botón, la
+tabla `AO_CX_T` con su folio por fila y su sondeo del dueño, y nueve trampas medidas.
