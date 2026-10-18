@@ -1106,7 +1106,7 @@ async function main() {
       /* Se abren las DOS entradas con sus encabezados REALES. */
       r.abrir = await ev(`(function(){
         var o = {};
-        ['ao2','ao'].forEach(function(id){
+        ['ao2','ao','aocx'].forEach(function(id){
           var cu = document.getElementById('ref-' + id);
           var h = cu ? cu.previousElementSibling : null;
           if (h && h.classList.contains('card-head')) h.click();
@@ -1160,7 +1160,14 @@ async function main() {
         }
         var ths = t.querySelectorAll('thead th'); var cab = [];
         for (var k=0;k<ths.length;k++) cab.push(ths[k].textContent.replace(/\\s+/g,' ').trim());
-        return { existe: true, cab: cab, n: o.length, filas: o,
+        /* La marca de acuerdo con el dueno, fila por fila: es lo que prueba que la tabla y la
+           pestana VAB leen el MISMO borde. */
+        var sondas = []; var ds = t.querySelectorAll('[data-ao-cx-sonda]');
+        for (var m=0;m<ds.length;m++) sondas.push({ estado: ds[m].dataset.aoCxSonda,
+          txt: ds[m].textContent, color: getComputedStyle(ds[m]).color });
+        var pie = document.getElementById('ref-ao-cx-fuente');
+        return { existe: true, cab: cab, n: o.length, filas: o, sondas: sondas,
+                 pie: pie ? pie.textContent.slice(0, 220) : null,
                  vis: window.__P.vis('ref-ao-cx') } })()`);
       /* Los umbrales que la pestana VAB APLICA, SONDEADOS a su dueno. */
       r.vab = await ev(`(function(){

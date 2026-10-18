@@ -17896,10 +17896,33 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;text-align:center;font-weight:700;">4</td><td style="padding:5px 8px;">Placas complejas protuyentes ≥5mm</td><td style="padding:5px 8px;text-align:center;color:#f05454;">Alto</td></tr>
         <tr><td style="padding:5px 8px;text-align:center;font-weight:700;color:#f05454;">5</td><td style="padding:5px 8px;">Protrusiones móviles, cualquier tamaño</td><td style="padding:5px 8px;text-align:center;color:#f05454;font-weight:700;">Muy alto</td></tr>
       </table>
-      <div style="margin-top:10px;font-size:12px;color:var(--text);line-height:1.8;">
-        <b style="color:var(--accent2);">Dilatación aórtica — cirugía (ESC 2024):</b><br>
-        • Ao ascendente ≥55mm · ≥50mm con bicúspide/Marfan · ≥45mm Marfan + factores · crecimiento &gt;3mm/año
+      <!-- ⚠️ ESTE RENGLON PUBLICABA CUATRO UMBRALES QUIRURGICOS TIPEADOS Y TRES ESTABAN MAL
+           contra las tablas de recomendaciones de la guia que el mismo renglon citaba
+           (ESC 2024): decia «≥50mm con bicuspide» sin distinguir el fenotipo —en la VAB el ≥50
+           Clase I es SOLO el de RAIZ, y para el ascendente la guia da >52 (IIa) o ≥50 con al
+           menos una condicion (IIa)—; se comia el ≥45 de la cirugia valvular concomitante; y
+           escribia el crecimiento con «>3mm/año» donde las TRES listas de factores de esa guia
+           escriben «≥ 3 mm al año». Se retira y lo reemplaza la tabla de cirugia de abajo, con
+           cada fila verificada contra su tabla, su folio y su hoja. No se inventa ningun valor:
+           lo que se deja de afirmar es lo que ninguna fuente sostenia. -->
+      <div style="margin-top:10px;font-size:11px;color:var(--text2);line-height:1.6;">
+        Los umbrales de cirugía de la aorta torácica están en el bloque «Cirugía de la aorta torácica», debajo.
       </div>
+    </div>
+  </div>
+
+  <!-- ══ UMBRALES DE CIRUGIA DE LA AORTA TORACICA (tanda P, commit 5) ═══════════════════════
+       El cuerpo lo arma `aoCxPintar()` la primera vez que se abre, desde `AO_CX_T`: una sola
+       transcripcion de las tablas de recomendaciones de la ESC 2024, con su folio y su hoja.
+       Las filas de la valvula bicuspide ademas SONDEAN a `vabConclusion`, que es el dueno que
+       la pestana VAB aplica, y publican si el dueno separa en ese mismo borde. -->
+  <div class="card">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('aocx',this)">
+      🩸 Aorta — Umbrales de cirugía (ESC 2024)
+      <span style="float:right;">▶</span>
+    </h2>
+    <div id="ref-aocx" style="display:none;" class="card-body">
+      <div id="ref-aocx-cuerpo"></div>
     </div>
   </div>
 
@@ -61806,7 +61829,7 @@ const REF_SUBTAB = Object.freeze({
   dim:   Object.freeze(['ai', 'vi2', 'vi', 'vd2', 'vd', 'ad']),
   fun:   Object.freeze(['htp', 'tep']),
   valv:  Object.freeze(['nativas', 'protesicas']),
-  ao:    Object.freeze(['ao2', 'ao']),
+  ao:    Object.freeze(['ao2', 'ao', 'aocx']),
   otros: Object.freeze(['oai', 'burbujas', 'coronarias', 'pericardio', 'cardiotox', 'miocard',
                         'congenitas', 'formulas'])
 });
@@ -61818,8 +61841,9 @@ const REF_SUB_ORDEN = Object.freeze(['dim', 'fun', 'valv', 'ao', 'otros']);
    que se lean como dos bloques y no como dos entradas sueltas.
    Es texto de NAVEGACION, no contenido clinico: ni un corte, ni una cuenta, ni una cita. */
 const REF_SUB_BLOQUES = Object.freeze({
-  ao: Object.freeze([{ antes: 'ao2', rot: 'Dimensiones y nomogramas' },
-                     { antes: 'ao',  rot: 'Ateroma aórtico' }])
+  ao: Object.freeze([{ antes: 'ao2',  rot: 'Dimensiones y nomogramas' },
+                     { antes: 'ao',   rot: 'Ateroma aórtico' },
+                     { antes: 'aocx', rot: 'Cirugía de la aorta torácica' }])
 });
 let _refSubActiva = 'dim';
 /* La reubicacion corre UNA vez. El marcado deja las entradas como estaban y los cinco paneles
@@ -61920,6 +61944,9 @@ function _refIndiceArmar(forzar) {
   if (typeof evRefPintar === 'function') {
     ['ai', 'ad', 'vd2', 'ao2', 'vi2'].forEach(function (k) { try { evRefPintar(k) } catch (e) {} });
   }
+  /* La tabla de cirugia aortica tambien se arma al vuelo: sin esto, buscar «55 mm» o «Marfan»
+     no encontraria una sola de sus doce filas. */
+  if (typeof aoCxPintar === 'function') { try { aoCxPintar() } catch (e) {} }
   const SUBTIT = { dim: 'Dimensiones', fun: 'Funcion', valv: 'Valvulas', ao: 'Aorta',
                    otros: 'Otros hallazgos' };
   const idx = [];
@@ -62131,6 +62158,161 @@ function refVolver() {
   try { window.scrollTo(0, v.y) } catch (e) {}
   return true;
 }
+
+/* ══ UMBRALES DE CIRUGIA DE LA AORTA TORACICA — ESC 2024 (tanda P, commit 5) ══════════════
+   UNA sola transcripcion, y cada fila trae su tabla de recomendaciones, su folio IMPRESO y su
+   hoja del PDF. Los valores y los OPERADORES se leyeron RENDERIZANDO el original a 3x, no del
+   texto extraido: en ese documento conviven «≥ 55 mm» y «> 52 mm» en tablas vecinas, asi que un
+   operador mal leido mueve el umbral de un lado al otro.
+
+   ⚠️ LA BIBLIOTECA TIENE UNA SOLA GUIA DE AORTA, Y ES LA TRADUCCION DE LA SEC. Censada entera:
+   el unico PDF de aorta es `Mazzolai_2024_Aorta.pdf` —la ESC 2024 en espanol, duplicado con otro
+   nombre, mismo contenido de 199 hojas— y NO hay ACC/AHA 2022. Lo que se leyo son numeros y
+   operadores, inequivocos; el original ingles no esta, y se declara. Es el mismo precedente que
+   la ESC 2021 de insuficiencia cardiaca ya dejo escrito en este repo.
+   REGLA DE FOLIO: folio = hoja del PDF menos 1, comprobada en el encabezado IMPRESO de las
+   hojas 10, 50 y 100 (folios 9, 49 y 99).
+
+   ⚠️ TRES LISTAS DE FACTORES DE RIESGO EN EL MISMO DOCUMENTO, Y NO DICEN LO MISMO. La Tabla 68
+   (bicuspide) da NUEVE condiciones con «altura entre 1,50 y 1,69 m» y «longitud ≥ 11 cm»; la
+   Tabla 38 (tricuspide) da OCHO con «baja estatura < 1,69 m» y «longitud > 11 cm», agrega el
+   fenotipo de raiz y no incluye la cirugia concomitante; y el pie de la Figura 24 (folio 76) da
+   SEIS, con «hipertension incontrolada» donde las dos tablas dicen «resistente». Cada fila de
+   aca publica la lista de SU tabla y no una fusion de las tres.
+
+   ⚠️ LO QUE LA APP APLICA SON LAS FILAS DE LA BICUSPIDE, y esas SONDEAN a `vabConclusion`, que
+   es su dueno: la tabla publica el umbral de la guia y comprueba en vivo que el dueno separa en
+   ese mismo borde. Si alguien moviera el literal de `vabConclusion`, esta tabla deja de mostrar
+   la marca de acuerdo y lo dice. Las demas filas son de la guia y la app no las implementa en
+   esa rama; su columna de notas lo declara. */
+const AO_CX_T = Object.freeze([
+  { sit: 'Válvula aórtica TRICÚSPIDE — raíz o aorta ascendente',
+    gen: '≥ 55 mm', cl: 'I', nv: 'B', fr: '—',
+    nota: 'Diámetro máximo. La app no concluye por esta rama: su cascada de aortopatía es la de la válvula bicúspide.',
+    fte: 'Tabla 38 · folio 80 · hoja 81' },
+  { sit: 'Tricúspide — aorta ascendente tubular, riesgo quirúrgico bajo',
+    gen: '> 52 mm', cl: 'IIa', nv: 'B', fr: '—',
+    nota: 'Riesgo quirúrgico estimado del paciente menor del 3 %.',
+    fte: 'Tabla 38 · folio 80 · hoja 81' },
+  { sit: 'Tricúspide — cirugía por enfermedad de la válvula aórtica, con dilatación concomitante',
+    gen: '≥ 45 mm', cl: 'IIa', nv: 'B', fr: '—',
+    nota: 'Raíz o aorta ascendente tubular, con riesgo quirúrgico estimado bajo; la guía agrega «o en otros casos ≥ 50 mm».',
+    fte: 'Tabla 38 · folio 80 · hoja 81' },
+  { sit: 'Tricúspide — cirugía cardíaca NO valvular aórtica, con dilatación concomitante',
+    gen: '≥ 50 mm', cl: 'IIa', nv: 'C', fr: '—',
+    nota: 'Aorta ascendente o raíz aórtica.',
+    fte: 'Tabla 38 · folio 80 · hoja 81' },
+  { sit: 'Tricúspide — dilatación de la aorta proximal, riesgo quirúrgico bajo',
+    gen: '—', cl: 'IIb', nv: 'B', fr: '≥ 50 mm con al menos un factor',
+    nota: 'Factores de esta tabla, OCHO: crecimiento ≥ 3 mm al año · hipertensión resistente · baja estatura menor de 1,69 m · fenotipo de raíz aórtica · longitud aórtica mayor de 11 cm · edad menor de 50 años · deseo de embarazo · coartación aórtica.',
+    fte: 'Tabla 38 · folio 80 · hoja 81' },
+  { sit: 'Válvula aórtica BICÚSPIDE — diámetro aórtico máximo',
+    gen: '≥ 55 mm', cl: 'I', nv: 'B', fr: '—',
+    nota: 'Es el umbral que la app aplica en la pestaña de válvula aórtica bicúspide.',
+    fte: 'Tabla 68 · folio 119 · hoja 120',
+    sonda: { campos: { ao_sin: '55', ao_tub: '50' }, menos: { ao_sin: '54', ao_tub: '50' }, clave: 'cx_55' } },
+  { sit: 'Bicúspide — fenotipo de raíz',
+    gen: '≥ 50 mm', cl: 'I', nv: 'B', fr: '—',
+    nota: 'Fenotipo de raíz: diámetro de los senos mayor que el tubular. Es el umbral que la app aplica.',
+    fte: 'Tabla 68 · folio 119 · hoja 120',
+    sonda: { campos: { ao_sin: '50', ao_tub: '40', vab_fenotipo: 'raiz' },
+             menos: { ao_sin: '49', ao_tub: '40', vab_fenotipo: 'raiz' }, clave: 'cx_raiz_50' } },
+  { sit: 'Bicúspide — fenotipo ascendente, riesgo quirúrgico bajo',
+    gen: '> 52 mm', cl: 'IIa', nv: 'B', fr: '≥ 50 mm con al menos una condición',
+    nota: 'Fenotipo ascendente: diámetro tubular mayor que el de los senos. Los dos umbrales son los que la app aplica.',
+    fte: 'Tabla 68 · folio 119 · hoja 120',
+    sonda: { campos: { ao_sin: '40', ao_tub: '53', vab_fenotipo: 'tubular', vab_riesgo_qx: 'si' },
+             menos: { ao_sin: '40', ao_tub: '52', vab_fenotipo: 'tubular', vab_riesgo_qx: 'si' }, clave: 'cx_52' },
+    sondaFr: { campos: { ao_sin: '40', ao_tub: '50', vab_fenotipo: 'tubular', vab_riesgo_qx: 'si', vab_fr_hta: 'si' },
+               menos: { ao_sin: '40', ao_tub: '50', vab_fenotipo: 'tubular', vab_riesgo_qx: 'si' }, clave: 'cx_50_fr' } },
+  { sit: 'Bicúspide — cirugía de válvula aórtica prevista',
+    gen: '≥ 45 mm', cl: 'IIa', nv: 'C', fr: '—',
+    nota: 'Diámetro de raíz o de aorta ascendente. Es el umbral que la app aplica.',
+    fte: 'Tabla 68 · folio 119 · hoja 120',
+    sonda: { campos: { ao_sin: '45', ao_tub: '40', vab_cx_valvular: 'si' },
+             menos: { ao_sin: '44', ao_tub: '40', vab_cx_valvular: 'si' }, clave: 'concomitante_45' } },
+  { sit: 'Síndrome de Marfan — raíz aórtica (senos)',
+    gen: '≥ 50 mm', cl: 'I', nv: 'B', fr: '≥ 45 mm con factores de riesgo adicionales (clase IIa, nivel C)',
+    nota: 'Factores de esta tabla: historia familiar de disección aórtica con dimensiones pequeñas (menores de 50 mm) · hipertensión refractaria · crecimiento anual ≥ 3 mm en adultos.',
+    fte: 'Tabla 62 · folio 114 · hoja 115' },
+  { sit: 'Marfan — aorta ascendente, arco, torácica descendente o abdominal',
+    gen: '≥ 50 mm', cl: 'IIa', nv: 'C', fr: '—',
+    nota: 'Reemplazo quirúrgico del segmento aneurismático, por cirujano con experiencia específica.',
+    fte: 'Tabla 62 · folio 114 · hoja 115' },
+  { sit: 'Arco aórtico aislado, sintomático, con riesgo operatorio bajo',
+    gen: '≥ 55 mm', cl: 'IIa', nv: 'B', fr: '—',
+    nota: 'Reemplazo con cirugía abierta. La app no evalúa el arco aórtico aislado.',
+    fte: 'Tabla 39 · folio 81 · hoja 82' }
+]);
+const AO_CX_FUENTE = 'ESC 2024 · Guía sobre el diagnóstico y el tratamiento de la enfermedad arterial periférica y aórtica (Mazzolai y cols.) · traducción de la Sociedad Española de Cardiología; el original en inglés no está en la biblioteca. Folio = hoja del PDF menos uno, comprobado en el encabezado impreso.';
+/* Le pregunta al DUENO —`vabConclusion`— si separa en el borde que la fila publica. Devuelve
+   'si' cuando el valor del umbral da la clave esperada y el de un milimetro menos NO. */
+function _aoCxSondear(sd) {
+  if (!sd || typeof vabConclusion !== 'function') return null;
+  const base = { va_morf: 'Bicúspide' };
+  const r1 = vabConclusion(Object.assign({}, base, sd.campos));
+  const r0 = vabConclusion(Object.assign({}, base, sd.menos));
+  const a = r1 && r1.clave === sd.clave, b = !(r0 && r0.clave === sd.clave);
+  return { cumple: !!(a && b), enUmbral: r1 ? r1.clave : null, debajo: r0 ? r0.clave : null };
+}
+/* Se construye POR NODOS. Lo que entra son rotulos de este archivo, pero la regla de la casa es
+   que una tabla de contenido clinico no se arma concatenando HTML. */
+function aoCxPintar() {
+  const host = document.getElementById('ref-aocx-cuerpo');
+  if (!host || host.dataset.aoCx === '1') return;
+  const tab = document.createElement('table');
+  tab.id = 'ref-ao-cx';
+  tab.style.cssText = 'width:100%;border-collapse:collapse;font-size:11.5px;';
+  const thead = document.createElement('thead');
+  const trh = document.createElement('tr');
+  trh.style.background = 'var(--section-head)';
+  ['Situación', 'Umbral general', 'Con factores de riesgo', 'Clase · Nivel', 'Notas', 'Fuente']
+    .forEach(function (t) {
+      const th = document.createElement('th');
+      th.style.cssText = 'padding:6px 8px;text-align:left;color:var(--accent2);vertical-align:bottom;';
+      th.textContent = t; trh.appendChild(th);
+    });
+  thead.appendChild(trh); tab.appendChild(thead);
+  const tb = document.createElement('tbody');
+  AO_CX_T.forEach(function (f, i) {
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = '1px solid var(--border)';
+    if (i % 2) tr.style.background = 'var(--bg3)';
+    const cel = function (txt, extra) {
+      const td = document.createElement('td');
+      td.style.cssText = 'padding:5px 8px;vertical-align:top;' + (extra || '');
+      td.textContent = txt; tr.appendChild(td); return td;
+    };
+    cel(f.sit, 'font-weight:600;');
+    cel(f.gen, 'white-space:nowrap;');
+    cel(f.fr);
+    cel(f.cl + ' · ' + f.nv, 'white-space:nowrap;');
+    const tdN = cel(f.nota, 'color:var(--text2);');
+    /* La marca de acuerdo con el dueno, SOLO en las filas que lo tienen. */
+    const s1 = _aoCxSondear(f.sonda), s2 = _aoCxSondear(f.sondaFr);
+    if (s1 || s2) {
+      const d = document.createElement('div');
+      d.style.cssText = 'margin-top:3px;font-size:10.5px;';
+      const ok = (!s1 || s1.cumple) && (!s2 || s2.cumple);
+      d.style.color = ok ? 'var(--text2)' : 'var(--orange)';
+      d.dataset.aoCxSonda = ok ? 'si' : 'no';
+      d.textContent = ok ? 'La aplicación separa en este borde.'
+                         : 'La aplicación no separa en este borde: revisar.';
+      tdN.appendChild(d);
+    }
+    cel(f.fte, 'color:var(--text2);white-space:nowrap;');
+    tb.appendChild(tr);
+  });
+  tab.appendChild(tb);
+  host.appendChild(tab);
+  const pie = document.createElement('div');
+  pie.id = 'ref-ao-cx-fuente';
+  pie.style.cssText = 'margin-top:10px;font-size:10.5px;color:var(--text2);line-height:1.6;';
+  pie.textContent = AO_CX_FUENTE;
+  host.appendChild(pie);
+  host.dataset.aoCx = '1';
+}
+window.AO_CX_T = AO_CX_T; window.aoCxPintar = aoCxPintar; window._aoCxSondear = _aoCxSondear;
 window.VINFO_REF = VINFO_REF; window.refVerReferencia = refVerReferencia;
 window.refVolver = refVolver; window._vinfoRefAssert = _vinfoRefAssert;
 window._refVueltaLeer = function () { return _refVuelta };
@@ -62154,6 +62336,9 @@ function toggleRef(id, headEl) {
      del registro de evidencia y de los duenos, no del marcado. Con `typeof` porque esta funcion
      corre tambien en arboles donde el pintor no existe. */
   if (!visible && typeof evRefPintar === 'function') { try { evRefPintar(id) } catch (e) {} }
+  /* La tabla de cirugia aortica se arma igual: su cuerpo sale de `AO_CX_T` y del dueno de la
+     pestana VAB, no del marcado. */
+  if (!visible && id === 'aocx' && typeof aoCxPintar === 'function') { try { aoCxPintar() } catch (e) {} }
 }
 
 // ══ ETE MITRAL — Módulo interactivo de segmentos ══
