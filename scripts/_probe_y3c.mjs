@@ -1071,8 +1071,12 @@ window.__Y = {
     try { if (typeof eteQxPdfOn === 'function' && !eteQxPdfOn()) eteQxIncluirPDF(); return eteQxPdfOn() }
     catch (e) { return 'EXC: ' + e.message } },
 
+  /* ⚠️ COMPARAR POR LARGO NO ALCANZA: dos PNG distintos pueden pesar lo mismo. Va con un hash
+     del data URL completo, que es lo que distingue «el papel no cambio» de «el papel cambio». */
   qxData() {
-    try { var d = window.eteQxDataURL(); return { largo: d.length, pre: d.slice(0, 22) } }
+    try { var d = window.eteQxDataURL(), h = 0, i;
+      for (i = 0; i < d.length; i++) h = ((h << 5) - h + d.charCodeAt(i)) | 0;
+      return { largo: d.length, hash: h, pre: d.slice(0, 22) } }
     catch (e) { return 'EXC: ' + e.message } },
 
   nodos() { return document.getElementsByTagName('*').length },
@@ -1302,6 +1306,73 @@ window.__Y = {
     } catch (e) { r.err = e.message; }
     out.grupos.vistas = r;
     process.stderr.write('[vistas] listo\n');
+  }
+
+  /* ══ GRUPO «pdf» — el dibujo al papel, con lesiones y sin la linea ═══════════════════════ */
+  /* Guarda el PNG del papel para MIRARLO: un dibujo roto se ve igual que uno sano en un hash. */
+  if (corre('png')) {
+    const r = {};
+    try {
+      await ev(`window.__Y.irETE()`);
+      await ev(`window.__Y.limpiarSeg()`);
+      await ev(`window.__Y.click('P2')`); await ev(`window.__Y.click('P2')`);
+      await ev(`window.__Y.click('A1')`);
+      const d = await ev(`window.eteQxDataURL()`, 60000);
+      if (DEST) { await writeFile(join(DEST, 'qx_papel.png'), Buffer.from(String(d).split(',')[1], 'base64')); }
+      r.guardado = !!DEST; r.largo = String(d).length;
+      await ev(`window.__Y.limpiarSeg()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.png = r;
+    process.stderr.write('[png] listo\n');
+  }
+
+  if (corre('pdf')) {
+    const r = {};
+    try {
+      await ev(`window.__Y.irETE()`);
+      await ev(`window.__Y.limpiarSeg()`);
+      r.apagado = { on: await ev(`(function(){ return typeof eteQxPdfOn==='function' ? eteQxPdfOn() : 'SIN FN' })()`),
+                    pdf: await ev(`window.__P.pdf('clasico')`, 60000) };
+      /* Se prende el toggle, se marca una lesion y se elige un angulo: el papel tiene que llevar
+         el dibujo CON la lesion y SIN la linea del plano. */
+      r.prendido = await ev(`window.__Y.qxPdf()`);
+      await ev(`window.__Y.click('P2')`); await ev(`window.__Y.click('P2')`);  // -> Flail
+      r.dataSinAng = await ev(`window.__Y.qxData()`);
+      /* CONTROL: sin lesion el papel tiene que ser DISTINTO. Si fuera igual, el dibujo del papel
+         no estaria leyendo las lesiones y la comparacion de abajo no probaria nada. */
+      await ev(`window.__Y.limpiarSeg()`);
+      r.dataSinLesion = await ev(`window.__Y.qxData()`);
+      await ev(`window.__Y.click('P2')`); await ev(`window.__Y.click('P2')`);
+      await ev(`window.__Y.tog3d()`);
+      await ev(`window.__Y.ang(60)`);
+      r.conAngulo = { plano: (await ev(`window.__Y.dib()`)).plano.disp,
+                      data: await ev(`window.__Y.qxData()`) };
+      /* El papel no puede cambiar porque el medico eligio un angulo o giro el dibujo: el canvas
+         se dibuja con la camara del cirujano, fija. Se comparan los dos data URL. */
+      await ev(`window.__Y.ang(60)`);
+      await ev(`window.__Y.tog3d()`);
+      await ev(`window.__Y.ponerRot(90)`);
+      await ev(`window.__Y.esperar(1200)`, 30000);
+      r.rotado = { estado: await ev(`window.__Y.estado()`), data: await ev(`window.__Y.qxData()`) };
+      await ev(`window.__Y.vista('ett')`);
+      await ev(`window.__Y.esperar(1200)`, 30000);
+      r.ett = { estado: await ev(`window.__Y.estado()`), data: await ev(`window.__Y.qxData()`) };
+      await ev(`window.__Y.vista('cir')`);
+      await ev(`window.__Y.esperar(1200)`, 30000);
+      /* El PDF generado de verdad en las SEIS plantillas, con el dibujo prendido. */
+      r.pdfSeis = {};
+      for (const pl of ['clasico','moderno','minimalista','academico','compacto','elegante']) {
+        const o = await ev(`window.__P.pdf(${JSON.stringify(pl)})`, 60000);
+        r.pdfSeis[pl] = { nTextos: o.nTextos, nFigs: o.nFigs, err: o.err,
+          barra: (o.textos || []).filter((t) => String(t).indexOf('VISTA QUIR') >= 0).length,
+          ete: (o.textos || []).filter((t) => /ETE \d+/.test(String(t))).length };
+      }
+      /* El toggle no se guarda en el navegador: es un campo del estudio. */
+      r.almacen = await ev(`window.__P.almacen()`);
+      await ev(`window.__Y.limpiarSeg()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.pdf = r;
+    process.stderr.write('[pdf] listo\n');
   }
 
   if (corre('ctrl')) {

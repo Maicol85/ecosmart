@@ -60699,11 +60699,19 @@ function generarPDFReal(_aj) {
 
   if (typeof eteQxPdfOn === 'function' && eteQxPdfOn() && typeof eteQxDataURL === 'function') {
     const _mData = eteQxDataURL();
-    checkPage(92);
+    checkPage(125);
     drawBar('VÁLVULA MITRAL — VISTA QUIRÚRGICA');
     y += _aire(3);
-    const _mW = Math.min(pgW, 120);
-    const _mH = _mW * (290 / 520);
+    /* ⚠️ EL DIBUJO ES CUADRADO DESDE EL Y3c2, asi que la proporcion cambia con el. El ancho baja
+       de 120 a 100 mm para contener el crecimiento del bloque: con 120 el alto pasaria de 66,9 a
+       120 mm. Con 100 queda en 100 x 100 y el bloque crece 33 mm, que es por lo que `checkPage`
+       sube de 92 a 125 — sin eso la imagen se corta al pie de pagina.
+       ⚠️ EL DIBUJO IMPRESO SE ACHICA Y SE DECLARA: el lienzo nuevo tiene aire a los costados
+       —el que el dibujo necesita para GIRAR en pantalla— asi que con 100 mm de caja el modelo
+       mide unos 57 mm de ancho contra los 76 del dibujo viejo. Recortar el lienzo del canvas al
+       contenido dejaria las cuatro marcas pegadas al borde. Esta en PENDIENTES. */
+    const _mW = Math.min(pgW, 100);
+    const _mH = _mW * (420 / 420);
     const _mX = mL + (pgW - _mW) / 2;
     doc.addImage(_mData, 'PNG', _mX, y, _mW, _mH);
     y += _mH + 5;
@@ -89663,52 +89671,65 @@ window.eeProtoMode=eeProtoMode; window.eeProtoBuild=eeProtoBuild; window.eePdfPa
    firmada saliera con la válvula EN BLANCO mientras la pantalla se ve perfecta. Los dos bloques
    tienen convenciones opuestas a propósito y cada uno lo dice. */
 function eteQxDataURL(){
-  const W=520,H=290,k=2;
-  const cv=document.createElement('canvas'); cv.width=W*k; cv.height=H*k;
-  const c=cv.getContext('2d'); c.scale(k,k);
-  const INK='#1f2937', INK2='#6b7280';
-  c.fillStyle='#ffffff'; c.fillRect(0,0,W,H);
-  const QX_PATHS={
-    A1:"M102,162 Q108,108 168,72 L168,162 Z",
-    A2:"M168,162 L168,62 Q265,38 362,62 L362,162 Z",
-    A3:"M362,162 L362,72 Q422,108 428,162 Z",
-    P1:"M102,162 Q108,216 158,238 L158,162 Z",
-    P2:"M158,162 L158,240 Q265,274 372,240 L372,162 Z",
-    P3:"M372,162 L372,238 Q422,216 428,162 Z"
+  /* ⚠️ EL PAPEL SE DIBUJA DE LA MISMA GEOMETRIA QUE LA PANTALLA, Y NO DE UNA COPIA (Y3c6).
+     Hasta hoy esta funcion tenia los seis paths del dibujo viejo escritos a mano (`QX_PATHS`) y
+     la elipse, la linea recta y los rotulos con sus coordenadas repetidas: dos dibujos del mismo
+     organo que se podian separar en el primer cambio, y de hecho se separaron en cuanto la
+     pantalla paso al dibujo nuevo. Hoy llama a `qxBandAnt`, `qxBandPost`, `qxAnnPt` y `qxCoapY`,
+     que son los MISMOS dueños que pinta `eteQxDibujar`.
+     ⚠️ EL PAPEL VA SIEMPRE EN LA VISTA DEL CIRUJANO, SIN ROTAR Y SIN ESPEJO, y es deliberado: es
+     la unica orientacion VERIFICADA (Hahn y col., ASE 2022, folio 17) y un informe firmado no
+     puede depender de como el medico dejo girada la pantalla. De ahi el `c = 1, sn = 0` y el
+     `fl = 1` de abajo, que no leen `_qxRot` ni `_qxFlip`.
+     ⚠️ Y SIN LA LINEA DEL PLANO NI LOS FESTONES EN NEGRITA: la linea es una ayuda de pantalla
+     para entender un corte de ETE y el papel no publica cual corte se estaba mirando. */
+  const W = 420, H = 420, k = 2;
+  const cv = document.createElement('canvas'); cv.width = W * k; cv.height = H * k;
+  const c2 = cv.getContext('2d'); c2.scale(k, k);
+  const INK = '#1f2937', INK2 = '#6b7280', BASE = '#f3f4f6', BORDE = '#d1d5db';
+  c2.fillStyle = '#ffffff'; c2.fillRect(0, 0, W, H);
+  /* La misma transformacion que `qxT`, con la camara fija de la vista del cirujano. */
+  const cc = 1, sn = 0, fl = 1;
+  const T = (p2) => [QXCX + fl * p2[0] * cc - p2[1] * sn, QXCY + fl * p2[0] * sn + p2[1] * cc];
+  const trazar = (arr, cerrar) => {
+    c2.beginPath();
+    arr.forEach((p2, idx) => { const q = T(p2);
+      if (idx === 0) c2.moveTo(q[0], q[1]); else c2.lineTo(q[0], q[1]); });
+    if (cerrar) c2.closePath();
   };
-  Object.keys(QX_PATHS).forEach(s=>{
-    const el=document.getElementById('ete-qx-'+s);
-    const fill=el&&el.style.fill?el.style.fill:'';
-    const stroke=el&&el.style.stroke?el.style.stroke:'';
-    if(!fill&&!stroke) return;
-    const p=new Path2D(QX_PATHS[s]);
-    if(fill){ c.fillStyle=fill; c.fill(p); }
-    if(stroke){ c.strokeStyle=stroke; c.lineWidth=2; c.stroke(p); }
+  /* Los seis festones. El color de la LESION sale del `style` del poligono de pantalla, que es el
+     que `eteClick` escribe: el mismo contrato que esta funcion ya tenia. Sin lesion va el relleno
+     base, para que el papel muestre las valvas como la pantalla. */
+  QX_DEF.forEach((d) => {
+    const el = document.getElementById('ete-qx-' + d[0]);
+    const fill = (el && el.style.fill) ? el.style.fill : '';
+    const stroke = (el && el.style.stroke) ? el.style.stroke : '';
+    const pts = d[3] ? qxBandPost(d[1], d[2]) : qxBandAnt(d[1], d[2]);
+    trazar(pts, true);
+    c2.fillStyle = fill || BASE; c2.fill();
+    c2.strokeStyle = stroke || BORDE; c2.lineWidth = stroke ? 2 : 1; c2.stroke();
   });
-  c.strokeStyle=INK; c.lineWidth=2.2;
-  c.beginPath(); c.ellipse(265,152,168,112,0,0,2*Math.PI); c.stroke();
-  c.lineWidth=1.8; c.beginPath(); c.moveTo(100,162); c.lineTo(430,162); c.stroke();
-  c.strokeStyle=INK2; c.lineWidth=1.3; c.setLineDash([5,4]);
-  [[168,162,168,66],[362,162,362,66],[158,162,158,238],[372,162,372,238]].forEach(l=>{ c.beginPath(); c.moveTo(l[0],l[1]); c.lineTo(l[2],l[3]); c.stroke(); });
-  c.setLineDash([]);
-  c.fillStyle=INK; c.textAlign='center'; c.textBaseline='alphabetic';
-  c.font='bold 13px sans-serif'; c.fillText('A1',134,122); c.fillText('A3',396,122); c.fillText('P1',130,205); c.fillText('P3',400,205);
-  c.font='bold 15px sans-serif'; c.fillText('A2',265,112);
-  c.font='bold 14px sans-serif'; c.fillText('P2',265,218);
-  c.fillStyle=INK2; c.font='italic 9px sans-serif';
-  /* ⚠️ LOS MISMOS DOS ROTULOS QUE EL SVG, Y HAY QUE CORREGIRLOS EN LOS DOS (Y3-1): esta es la
-     copia en canvas que viaja al PDF, asi que dejar uno solo arreglado publicaria una
-     nomenclatura en pantalla y la contraria en el papel FIRMADO. AL a la izquierda, del lado de
-     la orejuela (x=68) y de A1/P1; PM a la derecha. Las coordenadas no se movieron. */
-  c.fillText('Anterior',265,30); c.fillText('Posterior',265,282); c.fillText('AL',20,156); c.fillText('PM',510,156);
-  c.strokeStyle=INK; c.lineWidth=1.8; c.beginPath(); c.arc(265,18,18,0,2*Math.PI); c.stroke();
-  c.lineWidth=1.2;
-  [[265,18,265,0],[265,18,250,28],[265,18,280,28]].forEach(l=>{ c.beginPath(); c.moveTo(l[0],l[1]); c.lineTo(l[2],l[3]); c.stroke(); });
-  c.strokeStyle=INK2; c.lineWidth=1; c.setLineDash([3,3]); c.beginPath(); c.moveTo(265,36); c.lineTo(265,52); c.stroke(); c.setLineDash([]);
-  c.fillStyle=INK; c.font='italic 9px sans-serif'; c.textAlign='left'; c.fillText('Ao',288,14);
-  c.strokeStyle=INK; c.lineWidth=1.8; c.beginPath(); c.ellipse(68,156,22,15,0,0,2*Math.PI); c.stroke();
-  c.strokeStyle=INK2; c.lineWidth=1; c.setLineDash([3,3]); c.beginPath(); c.moveTo(90,156); c.lineTo(100,156); c.stroke(); c.setLineDash([]);
-  c.fillStyle=INK; c.textAlign='center'; c.font='italic 9px sans-serif'; c.fillText('LAA',68,181);
+  /* El anillo y la sonrisa de coaptacion. */
+  const ann = []; for (let ph = 0; ph < 360; ph += 4) ann.push(qxAnnPt(ph));
+  c2.strokeStyle = INK; c2.lineWidth = 2.4; trazar(ann, true); c2.stroke();
+  const coap = []; for (let x = -QXE; x <= QXE; x += 8) coap.push([x, qxCoapY(x)]);
+  c2.lineWidth = 2; trazar(coap, false); c2.stroke();
+  /* Los seis rotulos, con el peso NORMAL: el papel no marca los festones que corta un plano. */
+  c2.fillStyle = INK; c2.textAlign = 'center'; c2.textBaseline = 'alphabetic';
+  c2.font = '500 13px sans-serif';
+  QX_DEF.forEach((d) => { const q = T(qxLblPos(d[0])); c2.fillText(d[0], q[0], q[1] + 4); });
+  /* Las cuatro marcas de orientacion. */
+  const circ = (p2, r2) => { const q = T(p2); c2.beginPath(); c2.arc(q[0], q[1], r2, 0, 2 * Math.PI); };
+  c2.lineWidth = 1.5; c2.strokeStyle = INK2;
+  circ([0, -QXG.RYT - 36], 12); c2.fillStyle = '#ffffff'; c2.fill(); c2.stroke();
+  circ([-138, -64], 11);        c2.fillStyle = '#ffffff'; c2.fill(); c2.stroke();
+  c2.fillStyle = INK2; c2.font = '600 11px sans-serif';
+  let q1 = T([0, -QXG.RYT - 36]); c2.fillText('Ao', q1[0], q1[1] + 4);
+  c2.font = '400 10px sans-serif';
+  q1 = T([-138, -82]); c2.fillText('orejuela', q1[0], q1[1]);
+  c2.font = '600 11px sans-serif';
+  q1 = T([-158, 0]); c2.fillText('AL', q1[0], q1[1] + 4);
+  q1 = T([158, 0]);  c2.fillText('PM', q1[0], q1[1] + 4);
   return cv.toDataURL('image/png');
 }
 window.eteQxDataURL=eteQxDataURL;
