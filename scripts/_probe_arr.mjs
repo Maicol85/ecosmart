@@ -309,6 +309,21 @@ window.__P = {
     return { n: textos.length, textos: textos } },
 
 
+  abrirComoEstudio(campos) {
+    var inf = window.__P.reg(campos, 'iv');
+    var oG = window.getInformes, oL = window.labGetInformes;
+    window.getInformes = function(){ return [inf] };
+    window.labGetInformes = function(){ return [inf] };
+    var err = null;
+    try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+    try { editarInforme(inf.id) } catch (e) { err = 'EXC: ' + e.message }
+    var ok = document.getElementById('edit-ok');
+    if (!ok) { window.getInformes = oG; window.labGetInformes = oL;
+               return { err: err || 'NO APARECIO EL BOTON edit-ok' } }
+    ok.click();
+    window.getInformes = oG; window.labGetInformes = oL;
+    return { ok: true, err: err } },
+
   /* == LAS TARJETAS i DEL Q, LA VISTA 2D Y EL LABORATORIO =====================================
      Los tres LEEN EL DOM de las capsulas, asi que un span que conserva el valor viejo les llega
      tal cual. Es la superficie que el censo no cubre. */
@@ -1205,6 +1220,69 @@ async function main() {
       process.stderr.write('[arab] ' + guia + '\n');
     }
     out.grupos.arab = r;
+  }
+
+
+  /* == GRUPO dvit: el DVI tricuspideo automatico (ARR6) ======================================= */
+  if (corre('dvit')) {
+    const r = [];
+    const BIO = 'Prótesis biológica';
+    async function escDvi(nom, pasos) {
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__P.abrirPara('vt_morf')`);
+      const g = await ev(`window.__P.sel('vt_morf', ${JSON.stringify(BIO)})`);
+      if (g && g.err) throw new Error('DENOMINADOR vt_morf: ' + JSON.stringify(g));
+      await ev(`window.__P.abrirPara('vt_dvi')`);
+      await ev(`window.__P.abrirPara('itv_tsvi')`);
+      for (const [k, v2] of pasos) {
+        if (v2 === '') { await borrar(k, 'bs'); continue; }
+        await ev(`window.__P.abrirPara(${JSON.stringify(k)})`);
+        /* El DVI pasa a SOLO LECTURA cuando los dos VTI estan: mandarle una tecla ahi es un gesto
+           que no existe, y `tipear` aborta nombrandolo. Se escribe solo cuando se puede. */
+        const ro = await ev(`(function(){ var e = document.getElementById(${JSON.stringify(k)});
+          return !!(e && (e.readOnly || e.disabled)) })()`);
+        if (ro) { r.push({ n: nom, aviso: 'CAMPO DE SOLO LECTURA al intentar escribir ' + k }); continue; }
+        await tipear(k, v2);
+      }
+      await ev(`window.__P.calentar()`);
+      return Object.assign({ n: nom }, await ev(`window.__P.dviT()`));
+    }
+    const ESC = [
+      ['sin nada',            []],
+      ['solo VTI entrada',    [['et_vti_diast','70']]],
+      ['solo VTI TSVI',       [['itv_tsvi','20']]],
+      ['los dos: 70/20=3.50', [['et_vti_diast','70'], ['itv_tsvi','20']]],
+      ['borde 3.29 (65.8/20)',[['et_vti_diast','65.8'], ['itv_tsvi','20']]],
+      ['borde 3.30 (66/20)',  [['et_vti_diast','66'], ['itv_tsvi','20']]],
+      ['borde 3.31 (66.2/20)',[['et_vti_diast','66.2'], ['itv_tsvi','20']]],
+      ['y se borra un VTI',   [['et_vti_diast','70'], ['itv_tsvi','20'], ['itv_tsvi','']]],
+    ];
+    for (const [nom, pasos] of ESC) {
+      try { r.push(await escDvi(nom, pasos)); } catch (e) { r.push({ n: nom, err: e.message }); }
+      process.stderr.write('[dvit] ' + nom + '\n');
+    }
+    /* MECANICA: el corte es 2.1, asi que el borde se mide con otro par. */
+    for (const [nom, pasos] of [['mec 2.09 (41.8/20)', [['et_vti_diast','41.8'], ['itv_tsvi','20']]],
+                                ['mec 2.10 (42/20)',   [['et_vti_diast','42'], ['itv_tsvi','20']]]]) {
+      try {
+        await ev(`window.__P.nuevo()`);
+        await ev(`window.__P.abrirPara('vt_morf')`);
+        await ev(`window.__P.sel('vt_morf', ${JSON.stringify('Prótesis mecánica')})`);
+        await ev(`window.__P.abrirPara('vt_dvi')`); await ev(`window.__P.abrirPara('itv_tsvi')`);
+        for (const [k, v2] of pasos) { await ev(`window.__P.abrirPara(${JSON.stringify(k)})`); await tipear(k, v2); }
+        await ev(`window.__P.calentar()`);
+        r.push(Object.assign({ n: nom }, await ev(`window.__P.dviT()`)));
+      } catch (e) { r.push({ n: nom, err: e.message }); }
+    }
+    /* UN ESTUDIO GUARDADO CON UN DVI TIPEADO REABRE COMO SE GUARDO: se arma el registro con los
+       tres campos y se abre por la ruta real de restauracion. */
+    try {
+      const campos = { vt_morf: BIO, et_vti_diast: '70', itv_tsvi: '20', vt_dvi: '9.99' };
+      const ab = await ev(`window.__P.abrirComoEstudio(${JSON.stringify(campos)})`, 40000);
+      r.push({ n: 'estudio guardado con DVI tipeado', abrir: ab,
+               estado: await ev(`window.__P.dviT()`) });
+    } catch (e) { r.push({ n: 'estudio guardado', err: e.message }); }
+    out.grupos.dvit = r;
   }
 
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));

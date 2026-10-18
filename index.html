@@ -5017,7 +5017,7 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div>
           <div class="fg">
             <label>VTI TSVI (cm)</label>
-            <input type="number" id="itv_tsvi" placeholder="cm" oninput="eaParEditado('itv_tsvi')">
+            <input type="number" id="itv_tsvi" placeholder="cm" oninput="eaParEditado('itv_tsvi');vtDviAuto(true);vtProtObstrPintar()">
           </div>
           <div class="fg">
             <label>VTI Vao (cm)</label>
@@ -7388,7 +7388,7 @@ window.cerrarSesionReal = cerrarSesionReal;
           </div>
           <div class="grid-3" style="margin-bottom:8px;">
             <div class="fg"><label>VTI diastólico tricuspídeo (cm)</label>
-              <input type="number" id="et_vti_diast" placeholder="cm" step="0.1" oninput="calcET()">
+              <input type="number" id="et_vti_diast" placeholder="cm" step="0.1" oninput="calcET();vtDviAuto(true);vtProtObstrPintar()">
               <!-- El aviso NO es decorativo: `it_vti` vive en el bloque de INSUFICIENCIA —la
                    columna de al lado— y es el VTI del jet de regurgitación: otra medición, mismas
                    unidades y rango parecido. Cargar uno donde va el otro no da error: da un área
@@ -7448,7 +7448,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                vista en celular. Es el precio de ponerlos con los demas y lo pidio la orden. -->
           <div id="bloque-prot-vt" class="grid-3" style="display:none;margin-bottom:8px;">
             <div class="fg">
-              <label>DVI <span style="font-weight:400;color:var(--text2);font-size:10px;">&mdash; &iacute;ndice de velocidad Doppler</span></label>
+              <label>DVI <span style="font-weight:400;color:var(--text2);font-size:10px;">auto &larr; VTI entrada / VTI TSVI</span></label>
               <input type="number" id="vt_dvi" step="0.01" placeholder="&mdash;" oninput="vtProtObstrPintar()">
             </div>
             <div class="fg">
@@ -46142,6 +46142,64 @@ function vtProtTipo(){
 window.VT_PROT_T19 = VT_PROT_T19; window.VT_PROT_BANDA = VT_PROT_BANDA;
 window.vtProtTipo = vtProtTipo;
 
+/* ══ EL DVI DE LA PRÓTESIS TRICÚSPIDE LO CALCULA LA APP (ARR6, 2026-10-18) ═══════════════
+   Hasta hoy lo tipeaba el médico, con los dos insumos ya cargados en la pantalla. La fórmula es
+   la que la propia Tabla 19 escribe en el nombre del parámetro, no una deducción.
+
+   **VERIFICADO EN EL PDF ORIGINAL** (`05_Protesis_valvulares/Zoghbi_2024_Protesis.pdf`, Tabla 19,
+   **folio 36, hoja 35**, con el pie impreso «36» comprobado), literal:
+     «**DVI (VTI_PrTV / VTI_LVOT)***», con «VTI_PrTV, VTI through the prosthetic TV» al pie, y los
+     cortes «**$3.3**» (bioprotésica) y «**$2.1**» (mecánica) —el `$` es la codificación de `≥`—.
+     Nota `*`: «**Assessed in the absence of AR or TR.** Upper limits of normal DVI vary by valve
+     size and type.»
+   Los DOS cortes, su operador `>=` y la regla de «dos o más» **no se mueven**, y el retiro por
+   regurgitación moderada o mayor —la nota `*`— **tampoco**: sigue alcanzando sólo al DVI.
+   ⚠️ LA SEGUNDA MITAD DE LA NOTA QUEDA DECLARADA Y NO IMPLEMENTADA: «vary by valve size and
+   type». La app aplica los dos cortes de la tabla y no tiene el tamaño de la prótesis.
+
+   ⚠️ UN ESTUDIO GUARDADO CON UN DVI TIPEADO REABRE COMO SE GUARDÓ, y eso es lo que decide la
+   forma de esta función. `vtDviAuto()` sin argumento **respeta** un valor que la app no escribió
+   —lo distingue `dataset.auto`, que NO se persiste— y sólo arregla el estado del campo;
+   `vtDviAuto(true)`, que es lo que llaman los dos insumos, sí lo recalcula. Es el mismo reparto
+   que `vdViSelSync` usa para la relación VD/VI y el mismo argumento con que `larsSync` se quedó
+   fuera del embudo de restauración: copiar al abrir sería migrar el registro en silencio.
+
+   ⚠️ EL VTI DEL TSVI VIVE EN EL DOPPLER (`itv_tsvi`) y el de entrada tricuspídeo en Válvulas
+   (`et_vti_diast`), así que los dos `oninput` llaman a esta función: sin eso el campo se quedaría
+   con el DVI del paciente anterior, que es el defecto que esta misma tanda vino a cerrar. */
+const VT_DVI_REQ_TXT = 'requiere ';
+function vtDviAuto(forzar){
+  const el = document.getElementById('vt_dvi');
+  if (!el) return;
+  const nv = (id) => { const e = document.getElementById(id); if (!e) return null;
+    const n = parseFloat(String(e.value).replace(',', '.')); return isFinite(n) ? n : null; };
+  const vEnt = nv('et_vti_diast'), vTsvi = nv('itv_tsvi');
+  const hay = (vEnt != null && vTsvi != null && vTsvi > 0);
+  if (!hay) {
+    /* Sin los dos insumos el campo vuelve a ser del médico, y lo que la app haya escrito se
+       borra: dejarlo sería publicar un cociente cuyo denominador ya no existe. Lo que el médico
+       tipeó NO se toca. */
+    el.readOnly = false;
+    if (el.dataset.auto === '1') { el.value = ''; delete el.dataset.auto; }
+    const falta = [];
+    if (vEnt == null)  falta.push('el VTI de entrada tricuspídeo');
+    if (vTsvi == null || !(vTsvi > 0)) falta.push('el VTI del TSVI');
+    el.placeholder = VT_DVI_REQ_TXT + falta.join(' y ');
+    return;
+  }
+  if (!forzar && el.value !== '' && el.dataset.auto !== '1') {
+    /* El valor es del médico —o viene de un estudio guardado—: se conserva y el campo sigue
+       siendo editable hasta que toque uno de los dos VTI. */
+    el.readOnly = false; el.placeholder = '—';
+    return;
+  }
+  el.value = (vEnt / vTsvi).toFixed(2);
+  el.dataset.auto = '1';
+  el.readOnly = true;
+  el.placeholder = '';
+}
+window.vtDviAuto = vtDviAuto;
+
 /* El DUEÑO DE DATOS. Devuelve datos y no HTML, por el mismo motivo que `vmProtEOA`: la cápsula
    pinta y el informe firma, y dos derivaciones del mismo hecho se desincronizan.
    ⚠️ EL AEO SE LE PIDE A `etEstado()` Y NO SE RECALCULA. Esa función es el dueño único del área
@@ -53517,13 +53575,20 @@ function RECALC_MODULOS() {
      dispara su `onchange`. Sin esto, reabrir un estudio con PROTESIS mitral dejaba el boton
      a la vista sobre una valvula que el modelo no sabe dibujar. Lo que gobierna es el
      atributo `hidden` de un boton, que ningun barrido generico toca. */
+  /* `vtDviAuto` arregla el ESTADO del DVI de la protesis tricuspide (ARR6, 2026-10-18) y entra
+     aca SIN ARGUMENTO, que es su modo conservador: con un valor que la app no escribio -o sea un
+     estudio guardado- lo RESPETA y solo repone el readonly y el placeholder. Con `true` -que es
+     lo que llaman los dos insumos- recalcula. Sin esta entrada, reabrir un estudio con los dos
+     VTI cargados dejaba el campo editable y con el placeholder del formulario vacio al lado de
+     un DVI ya poblado; con `true` aca, en cambio, pisaria el valor guardado, que es exactamente
+     lo que la orden prohibe. Es el mismo reparto que `vdViSelSync`. */
   /* `viVolAutoSync` repinta los DOS campos automaticos del VI (F1, 2026-10-15). Entra aca
      porque las cinco rutas de restauracion pueblan asignando `.value`, que no dispara `input`,
      asi que `calcVI` —su unico llamador en vivo— no corre: reabrir un estudio dejaba los dos
      automaticos con el «requiere …» del formulario vacio al lado de un VDFVI y una FEVI ya
      poblados. No puede migrar nada: no escribe ningun campo del estudio, los dos nodos que
      toca son `vauto-` y el tercero un `<div>` de texto. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -54289,6 +54354,13 @@ function limpiarCampos(silencioso) {
      formulario vacio, y la casilla automatica de la FAC dibujada al lado de dos areas borradas.
      `calcVD` es la otra columna y esta en `RECALC_MODULOS`; `limpiarCampos` no pasa por ahi. */
   if (typeof vdRefVisSync === 'function') { try { vdRefVisSync(); } catch (e) {} }
+  /* Y el DVI automatico de la protesis tricuspide (ARR6, 2026-10-18), por la misma razon que las
+     dos de arriba: el barrido generico vacia el `.value` de un `input[type=number]` pero NO le
+     saca el `readOnly`, ni le repone el placeholder, ni borra su `dataset.auto`. Sin esta linea
+     «Nuevo estudio» dejaba el campo BLOQUEADO para siempre sobre un formulario vacio — la misma
+     trampa que el selector de VD/VI pago en el G3. Va con `true` porque aca no hay nada que
+     respetar: el formulario se acaba de vaciar. */
+  if (typeof vtDviAuto === 'function') { try { vtDviAuto(true); } catch (e) {} }
   /* La casilla de la FAC queda VISIBLE desde el G3, asi que «Nuevo estudio» tiene que reponer
      su mensaje «requiere …»: el barrido generico vacia el `.value` y NO toca el `placeholder`,
      que es exactamente la trampa que `vdMarcaSync` y `vdTeiAvisoSync` ya documentan. Y
