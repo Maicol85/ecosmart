@@ -1612,6 +1612,7 @@
   #vinfo-card .qv-manual { margin-top: 6px; font-size: 10.5px; font-weight: 700; color: var(--orange); }
   #vinfo-card .qv-vacio { margin-top: 6px; font-size: 10.5px; color: var(--text2); }
   #vinfo-card .qv-bl { margin-top: 6px; }
+  #vinfo-card .qv-dico { flex: 0 0 10px; font-size: 10px; font-weight: 700; }
   #vinfo-card .qv-nota { margin-top: 6px; font-size: 10px; color: var(--text2); line-height: 1.4; }
   #vinfo-card .qv-apoyo-rot { margin-top: 7px; }
 
@@ -4946,7 +4947,7 @@ window.cerrarSesionReal = cerrarSesionReal;
              los haría leer con el mismo peso. -->
         <div class="calc-row" id="venp-ara-row" style="display:none;"><span class="calc-lbl">Diferencia Ar−A</span><span class="calc-val" id="venp-ara">—</span></div>
         <div class="calc-row" id="venp-vel-row" style="display:none;"><span class="calc-lbl">Veloc. Ar pulmonar</span><span class="calc-val" id="venp-vel">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">Función diastólica</span><span id="dd-interp">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">Funci&oacute;n diast&oacute;lica <button type="button" class="vinfo-btn" data-vinfo="tarj-diast" aria-expanded="false" aria-label="Criterios y cortes del algoritmo de funci&oacute;n diast&oacute;lica" onclick="vInfoClic(this)">&#9432;</button></span><span id="dd-interp">&mdash;</span></div>
         <!-- Sólo aparece si los dos dominios de eco tienen datos y suman >= 2 -->
         <div class="calc-row" id="hfapeff-eco-row" style="display:none;"><span class="calc-lbl" id="hfapeff-eco-lbl">HFA-PEFF (eco)</span><span id="hfapeff-eco">—</span></div>
       </div>
@@ -31130,6 +31131,18 @@ window.calcDiastol = function() {
    Lo que NO cambia y queda dicho: ni el algoritmo, ni sus cortes, ni cuál es el recomendado, ni lo
    que se guarda dentro del estudio. `diast_algoritmo` sigue siendo un campo del estudio (no está
    en `_CAMPOS_FUERA_DEL_ESTUDIO`, verificado) y sigue viajando en `campos`. */
+/* ⚠️ LA FUENTE DE CADA ALGORITMO, COMO DATO Y NO COMO COMENTARIO («Q6», 2026-10-17). Mismo patron
+   que `IT_CRIT_FUENTE` y `IP_CRIT_FUENTE`: la cita vive al lado del selector que elige el
+   algoritmo, asi que los dos se mueven juntos. Los tres folios estan verificados en
+   `docs/fuentes/FUENTES.md` por las tandas que implementaron cada guia -la ASE 2025 en la del
+   2026-10-12, la BSE 2024 y la ASE/EACVI 2016 en las dos siguientes-, y la ventana del compas NO
+   publicaba ninguno: censado. */
+const DIAST_ALGO_FUENTE = Object.freeze({
+  ase2025: 'ASE 2025 (Nagueh), Figura 3, folio 554; la fibrilaci\u00f3n auricular, Figura 8, folio 563.',
+  bse2024: 'BSE 2024, Figuras 17 y 18 (p\u00e1gs. 35 a 38); la fibrilaci\u00f3n auricular, Figura 19, p\u00e1g. 40.',
+  ase2016: 'ASE/EACVI 2016 (Nagueh), Figura 8, folio 290; los cortes por sitio del e\u2032, folio 281.'
+});
+window.DIAST_ALGO_FUENTE = DIAST_ALGO_FUENTE;
 const DIAST_ALGO_RECOMENDADO = 'ase2025';
 const DIAST_ALGO_SES_KEY = 'ett_diast_algo';
 
@@ -39734,7 +39747,9 @@ const VINFO = Object.freeze({
   'tarj-esten-mitral': { ancho: 356, dyn: function () { return qvTarjeta('esten', 'mitral') } },
   'tarj-esten-aortica': { ancho: 356, dyn: function () { return qvTarjeta('esten', 'aortica') } },
   'tarj-esten-tricuspide': { ancho: 356, dyn: function () { return qvTarjeta('esten', 'tricuspide') } },
-  'tarj-esten-pulmonar': { ancho: 356, dyn: function () { return qvTarjeta('esten', 'pulmonar') } }
+  'tarj-esten-pulmonar': { ancho: 356, dyn: function () { return qvTarjeta('esten', 'pulmonar') } },
+  /* La NOVENA tarjeta: la funcion diastolica («Q6»). Mismo ancho que las ocho de valvula. */
+  'tarj-diast': { ancho: 356, dyn: function () { return qvDiast() } }
 });
 let _vInfoId = null;
 function _vInfoBtnDe(clave) {
@@ -42050,6 +42065,119 @@ function _qvBarra(spec, f, kl) {
     corteEn: spec.corteEn, colores: QV_COLOR, W: 316
   });
 }
+/* ══ LA TARJETA i DE LA FUNCION DIASTOLICA («Q6», 2026-10-17) ══════════════════════════════════
+   DECISION DE MAICOL. Un globo en la fila «Funcion diastolica» del cuadro gris, con la categoria
+   del paciente, los parametros y cortes de la guia ELEGIDA en el selector, el suplementario Ar−A
+   con su operador y la fuente.
+
+   ⚠️ NO CALCULA NADA Y NO CAMBIA EL SELECTOR. Todo sale del dueño del calculo, que es la funcion
+   evaluadora de la guia en vigor —`diastASE2025Evaluar`, `diastBSE2024Evaluar`,
+   `diastASE2016Evaluar` o `diastFAEvaluar(algo)` con fibrilacion auricular—, la MISMA que llena
+   la ventana del compas y la que firma el cuadro gris y el informe. Las filas, su estado y su
+   agrupacion por paso se publican tal como ese objeto las trae.
+
+   ⚠️ LA CATEGORIA SE LEE DEL CUADRO GRIS (`dd-interp`) Y NO SE VUELVE A DERIVAR. Es la palabra que
+   el medico tiene delante y la que el informe firma: con una segunda lectura, la tarjeta y el
+   papel podrian decir dos cosas del mismo paciente. Es el criterio de las ocho tarjetas de
+   valvula, aplicado a la novena.
+
+   ⚠️ EL SUPLEMENTARIO Ar−A SALE DE `ASE_SUPLEMENTARIOS`, cuyo rotulo YA lleva el operador y el
+   folio escritos por su dueño (el CORTOS6 los dejo ahi). No se retipea ninguno de los dos. Sale
+   solo con la ASE 2025, porque es la nota de SU figura: con las otras dos guias la tarjeta no lo
+   nombra, que es lo que corresponde. */
+function _qvDiastAlgo() {
+  const sel = document.getElementById('diast_algoritmo');
+  const algo = (sel && sel.value) ? String(sel.value) : 'ase2025';
+  const tit = (sel && sel.selectedIndex >= 0)
+    ? String(sel.options[sel.selectedIndex].textContent || '').trim() : algo;
+  const r = document.getElementById('diast_ritmo');
+  const ritmo = (r && r.value) ? String(r.value) : 'sinusal';
+  const ritmoTxt = (r && r.selectedIndex >= 0)
+    ? String(r.options[r.selectedIndex].textContent || '').trim() : ritmo;
+  return { algo: algo, tit: tit, ritmo: ritmo, ritmoTxt: ritmoTxt };
+}
+function _qvDiastEval(A) {
+  try {
+    if (A.ritmo === 'fa' && typeof diastFAEvaluar === 'function') {
+      const R = diastFAEvaluar(A.algo);
+      if (R) return R;
+    }
+    if (A.algo === 'bse2024' && typeof diastBSE2024Evaluar === 'function') return diastBSE2024Evaluar();
+    if (A.algo === 'ase2016' && typeof diastASE2016Evaluar === 'function') return diastASE2016Evaluar();
+    if (typeof diastASE2025Evaluar === 'function') return diastASE2025Evaluar();
+  } catch (e) { return null; }
+  return null;
+}
+/* UNA fila del algoritmo: el icono que la ventana ya usa, el criterio y el valor con su unidad.
+   El estado tiene TRES valores y no dos —positivo, negativo y SIN EVALUAR—, que es lo que evita
+   que «no se midio» se cuente como «no cumple». */
+function _qvDiastFila(f) {
+  const hay = (typeof f.val === 'number') ? !isNaN(f.val)
+            : (f.val !== null && f.val !== undefined && String(f.val).trim() !== '');
+  const row = _evDiv('qv-row', null, { 'data-qv-dfila': f.crit });
+  const ico = _evDiv('qv-dico', !hay ? '\u2013' : (f.ok ? '\u2717' : '\u2713'));
+  ico.style.color = !hay ? 'var(--text2)' : (f.ok ? 'var(--red)' : 'var(--green)');
+  row.appendChild(ico);
+  row.appendChild(_evDiv('qv-nom', f.crit));
+  const txt = hay
+    ? ((typeof f.val === 'number' ? f.val.toFixed(f.dec == null ? 1 : f.dec) : f.val)
+        + (f.u ? ' ' + f.u : ''))
+    : 'sin dato';
+  row.appendChild(_evDiv('qv-val', txt));
+  return row;
+}
+function qvDiast() {
+  const cont = document.createElement('div');
+  const A = _qvDiastAlgo();
+
+  const h = document.createElement('h4');
+  h.id = 'vinfo-tit';
+  h.textContent = 'Funci\u00f3n diast\u00f3lica';
+  cont.appendChild(h);
+
+  const hd = _evDiv('qv-hd');
+  hd.appendChild(_evDiv('ev-rot', 'Categor\u00eda de este paciente'));
+  const cat = _evCapsula('dd-interp');
+  hd.appendChild(_evDiv('qv-grado', cat || 'sin datos', { 'data-qv-grado': 'diast' }));
+  hd.appendChild(_evDiv('qv-morf', A.tit + ' \u00b7 ' + A.ritmoTxt, { 'data-qv-algo': A.algo }));
+  cont.appendChild(hd);
+
+  const R = _qvDiastEval(A);
+  if (!R || !R.filas || !R.filas.length) {
+    cont.appendChild(_evDiv('qv-vacio', 'Sin par\u00e1metros cargados para este algoritmo.',
+                            { 'data-qv-vacio': 'diast' }));
+    return cont;
+  }
+  let g = null;
+  const grupo = _evDiv('qv-crit', null, { 'data-qv-crit': 'diast' });
+  R.filas.forEach(function (f) {
+    if (f.g && f.g !== g) { grupo.appendChild(_evDiv('ev-rot qv-apoyo-rot', f.g)); g = f.g; }
+    grupo.appendChild(_qvDiastFila(f));
+  });
+  cont.appendChild(grupo);
+
+  /* El suplementario Ar−A, con el rotulo de su dueño —que ya trae el operador y el folio—. */
+  if (A.algo === 'ase2025' && typeof ASE_SUPLEMENTARIOS !== 'undefined') {
+    const sup = ASE_SUPLEMENTARIOS.filter(function (x) { return x.clave === 'arA'; })[0] || null;
+    if (sup) {
+      cont.appendChild(_evDiv('ev-rot qv-apoyo-rot', 'Par\u00e1metro suplementario',
+                              { 'data-qv-supl': 'arA' }));
+      let val = null;
+      try { val = sup.leer(); } catch (e) { val = null; }
+      let ok = false;
+      try { ok = !!sup.cumple(val); } catch (e) { ok = false; }
+      cont.appendChild(_qvDiastFila({ crit: sup.rot, val: val, u: sup.u, dec: sup.dec, ok: ok }));
+    }
+  }
+
+  if (R.ventanaTit) cont.appendChild(_evDiv('qv-decide', R.ventanaTit
+    + (R.ventanaDet ? ' \u00b7 ' + R.ventanaDet : ''), { 'data-qv-decide': 'diast' }));
+  const fte = (typeof DIAST_ALGO_FUENTE === 'object' && DIAST_ALGO_FUENTE)
+    ? DIAST_ALGO_FUENTE[A.algo] : '';
+  if (fte) cont.appendChild(_evDiv('ev-fte', 'Fuente: ' + fte, { 'data-ev-fuente': 'pie' }));
+  return cont;
+}
+window.qvDiast = qvDiast;
 window.QV_BARRA = QV_BARRA; window._qvNum = _qvNum; window._qvFuentes = _qvFuentes;
 window.qvTarjeta = qvTarjeta; window._qvClave = _qvClave; window.QV_LESION = QV_LESION;
 

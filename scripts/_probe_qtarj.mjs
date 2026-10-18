@@ -1926,8 +1926,23 @@ async function main() {
        paso de `block` a `none`, asi que lo cierra un temporizador de la propia app (es la
        familia del aviso legal que este repo ya documenta). Sin reabrir, el globo EXISTE y mide
        0x0 y el clic aborta sobre un boton perfecto. Se reabre y se informa, que es lo que hace
-       `foco()` con `abrirPara`. */
-    const _reab = await ev(`window.__P.abrirTodasValv()`);
+       `foco()` con `abrirPara`.
+       ⚠️ Y SE ABRE LA PESTANA DEL PROPIO BOTON, NO SIEMPRE VALVULAS, Y LO CAZO LA SONDA: el globo
+       de la funcion diastolica vive en el DOPPLER, asi que llamar a `abrirTodasValv` a ciegas
+       navegaba FUERA de su pestana y el clic abortaba con «tab-doppler:none» sobre un boton
+       perfecto. La pestana se deduce del ancestro `.tab-section` del propio nodo. */
+    const _reab = await ev(`(function(){
+      var e = document.querySelector(${JSON.stringify(sel)});
+      if (!e) return 'NO EXISTE';
+      var sec = e.closest ? e.closest('.tab-section') : null;
+      var id = sec ? String(sec.id || '') : '';
+      var o = { seccion: id || '(sin .tab-section)' };
+      if (id.indexOf('tab-') === 0 && typeof showTab === 'function') {
+        try { if (getComputedStyle(sec).display === 'none') showTab(id.slice(4));
+              o.display = getComputedStyle(sec).display } catch (x) { o.err = x.message }
+      }
+      if (id === 'tab-valvulas') o.valv = window.__P.abrirTodasValv();
+      return o })()`);
     await ev(`(function(){ var e = document.querySelector(${JSON.stringify(sel)});
       if (!e) return 0; e.scrollIntoView({ block:'center', inline:'nearest' }); return 1 })()`);
     const g = await ev(`(function(){ var e = document.querySelector(${JSON.stringify(sel)});
@@ -2537,6 +2552,62 @@ async function main() {
       g['prot-' + (morf.indexOf('mec') > -1 ? 'mec' : 'bio') + '-' + (tipo || 'sintipo')] = o;
     }
     out.grupos.pulm = g;
+  }
+
+  /* ══ GRUPO `diast` — LA TARJETA DE LA FUNCION DIASTOLICA CON LAS TRES GUIAS ════════════════
+     Una escena que produce veredicto, leida con los tres valores del selector y en los dos
+     ritmos. Se compara la categoria de la tarjeta contra el cuadro gris (`dd-interp`), que es su
+     dueno, y las filas contra el objeto del evaluador.
+     ⚠️ DENOMINADOR: se informa `dd-interp` al lado, para que se vea que la escena de verdad
+     clasifico. Sin eso, una tarjeta en «sin datos» se lee igual que «la tarjeta no sabe leer». */
+  if (corre('diast')) {
+    const g = {};
+    await viewport(1200, 900);
+    await ev(`window.__P.despejar()`);
+    await ev(`window.__P.nuevo()`);
+    await ev(`window.__P.abrirDoppler()`);
+    await tipear('peso', '80'); await tipear('talla', '180');
+    await ev(`window.__P.abrirDoppler()`);
+    await tipear('onda_e', '95'); await tipear('onda_a', '45');
+    await tipear('e_sep', '6'); await tipear('e_lat', '8');
+    await tipear('vmax_it', '3.0');
+    await tipear('ai_vol', '80');
+    await tipear('venp_dur_ar', '140'); await tipear('venp_dur_a', '100');
+    g.botonGeo = await ev(`(function(){ var b = document.querySelector('[data-vinfo="tarj-diast"]');
+      if (!b) return 'NO EXISTE'; var r = b.getBoundingClientRect();
+      return { w: Math.round(r.width), h: Math.round(r.height), tag: b.tagName,
+               title: b.hasAttribute('title') } })()`);
+    for (const ritmo of ['sinusal', 'fa']) {
+      await ev(`window.__P.sel('diast_ritmo', ${JSON.stringify(ritmo)})`);
+      for (const algo of ['ase2025', 'bse2024', 'ase2016']) {
+        const sa = await ev(`window.__P.sel('diast_algoritmo', ${JSON.stringify(algo)})`);
+        if (sa && sa.err) throw new Error('DENOMINADOR diast_algoritmo: ' + JSON.stringify(sa));
+        const o = { sel: sa, ddInterp: await ev(`window.__P.txt('dd-interp')`),
+          llamada: await ev(`(function(){ try { var n = qvDiast();
+            return { ok: true, hijos: n.childNodes.length, txt: (n.textContent||'').slice(0,160) } }
+            catch (x) { return { ok: false, err: x.message, stack: String(x.stack||'').slice(0,300) } } })()`) };
+        try { await clicQ('tarj-diast');
+              o.card = await ev(`(function(){ var c = document.getElementById('vinfo-card');
+                if (!c || c.style.display === 'none') return 'CERRADA';
+                var tx = function(e){ return e ? (e.textContent||'').replace(/\\s+/g,' ').trim() : null };
+                return { tit: tx(c.querySelector('h4')),
+                         grado: tx(c.querySelector('[data-qv-grado]')),
+                         algo: tx(c.querySelector('[data-qv-algo]')),
+                         algoAttr: c.querySelector('[data-qv-algo]') ? c.querySelector('[data-qv-algo]').getAttribute('data-qv-algo') : null,
+                         filas: Array.prototype.slice.call(c.querySelectorAll('[data-qv-dfila]'))
+                           .map(function(r){ return tx(r) }),
+                         supl: tx(c.querySelector('[data-qv-supl]')),
+                         decide: tx(c.querySelector('[data-qv-decide]')),
+                         fuente: tx(c.querySelector('[data-ev-fuente]')),
+                         vacio: tx(c.querySelector('[data-qv-vacio]')),
+                         scroll: Math.max(0, c.scrollHeight - c.clientHeight) } })()`);
+              await tecla('Escape'); } catch (x) { o.card = { ABORTO: x.message }; }
+        g[ritmo + '|' + algo] = o;
+      }
+    }
+    await ev(`window.__P.sel('diast_ritmo', 'sinusal')`);
+    await ev(`window.__P.sel('diast_algoritmo', 'ase2025')`);
+    out.grupos.diast = g;
   }
 
   out.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
