@@ -758,6 +758,53 @@ async function main() {
      tanda no puede romper la infraestructura que comparten nueve sondas. */
   await evCrudo(`
 window.__Y = {
+  clicNodo(id) {
+    var e = document.getElementById(id);
+    if (!e) return { err: 'NO EXISTE ' + id };
+    var r = e.getBoundingClientRect();
+    if (!(r.width > 0 && r.height > 0)) return { err: 'SIN GEOMETRIA ' + id };
+    e.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    return { ok: true, w: Math.round(r.width), h: Math.round(r.height) } },
+
+  /* La geometria RENDERIZADA, no la declarada. El anillo: sus dos semiejes verticales y el
+     horizontal. La coaptacion: la flecha de la sonrisa, o sea cuanto se aparta el punto del
+     medio de la recta que une sus dos extremos. Con una recta la flecha es CERO, que es lo que
+     distingue el dibujo nuevo del viejo. */
+  geomDib() {
+    var o = {};
+    var a = document.getElementById('ete-qx-anillo');
+    if (!a) return { err: 'NO EXISTE ete-qx-anillo' };
+    var P = (a.getAttribute('points') || '').trim().split(/\\s+/).map(function(t){
+      var q = t.split(','); return [parseFloat(q[0]), parseFloat(q[1])] });
+    o.nAnillo = P.length;
+    var xs = P.map(function(q){ return q[0] }), ys = P.map(function(q){ return q[1] });
+    o.anilloRX = Math.round((Math.max.apply(null, xs) - Math.min.apply(null, xs)) / 2);
+    o.anilloArriba = Math.round(215 - Math.min.apply(null, ys));
+    o.anilloAbajo = Math.round(Math.max.apply(null, ys) - 215);
+    var c = document.getElementById('ete-qx-coap');
+    var Q = (c.getAttribute('points') || '').trim().split(/\\s+/).map(function(t){
+      var q = t.split(','); return [parseFloat(q[0]), parseFloat(q[1])] });
+    o.nCoap = Q.length;
+    var p0 = Q[0], p1 = Q[Q.length - 1], pm = Q[Math.floor(Q.length / 2)];
+    var mx = (p0[0] + p1[0]) / 2, my = (p0[1] + p1[1]) / 2;
+    o.flechaCoap = Math.round(Math.sqrt(Math.pow(pm[0] - mx, 2) + Math.pow(pm[1] - my, 2)) * 10) / 10;
+    o.coapAncho = Math.round(Math.sqrt(Math.pow(p1[0] - p0[0], 2) + Math.pow(p1[1] - p0[1], 2)));
+    /* Que todo el dibujo entre en el lienzo: ningun punto de ningun nodo fuera de 0..420. */
+    var fuera = [];
+    document.querySelectorAll('#ete-svg-qx polygon,#ete-svg-qx polyline').forEach(function(e){
+      (e.getAttribute('points') || '').trim().split(/\\s+/).forEach(function(t){
+        var q = t.split(','), x = parseFloat(q[0]), y = parseFloat(q[1]);
+        if (!(x >= 0 && x <= 420 && y >= 0 && y <= 420)) fuera.push(e.id + '@' + t) }) });
+    document.querySelectorAll('#ete-svg-qx text,#ete-svg-qx circle').forEach(function(e){
+      var x = parseFloat(e.getAttribute('x') || e.getAttribute('cx') || 0);
+      var y = parseFloat(e.getAttribute('y') || e.getAttribute('cy') || 0);
+      if (!(x >= 0 && x <= 420 && y >= 0 && y <= 420)) fuera.push(e.id + '@' + x + ',' + y) });
+    o.fueraDelLienzo = fuera;
+    /* Un toque sobre el ANILLO no debe ciclar nada: lleva pointer-events none. */
+    o.anilloPE = getComputedStyle(a).pointerEvents;
+    o.coapPE = getComputedStyle(c).pointerEvents;
+    return o },
+
   camposEstudio: function () {
     if (typeof _noEsDelEstudio !== 'function') return { err: 'SIN _noEsDelEstudio' };
     var c = {};
@@ -944,7 +991,18 @@ window.__Y = {
   scrollH() { var d = document.documentElement;
     return { sw: d.scrollWidth, cw: d.clientWidth, hay: d.scrollWidth > d.clientWidth + 1 } },
 
-  irETE() { try { showTab('ete'); return 'ok' } catch (e) { return 'EXC: ' + e.message } },
+  /* ⚠️ EL DIBUJO VIVE DENTRO DE #ete-seccion-mitral, QUE NACE PLEGADA. Sin abrirla el SVG
+     existe y mide 0 x 0, y la lectura informa «el dibujo no se dibuja» sobre un dibujo
+     perfecto. Se abre con el toggle REAL, que es el gesto del medico. */
+  irETE() { try { showTab('ete');
+      var s = document.getElementById('ete-seccion-mitral');
+      if (s && getComputedStyle(s).display === 'none' && typeof toggleEteSeccion === 'function')
+        toggleEteSeccion('mitral');
+      var q = document.getElementById('ete-svg-qx');
+      var r = q ? q.getBoundingClientRect() : null;
+      return { sec: s ? getComputedStyle(s).display : 'NO EXISTE',
+               svgW: r ? Math.round(r.width) : null, svgH: r ? Math.round(r.height) : null } }
+    catch (e) { return 'EXC: ' + e.message } },
   irTEER() { try { showTab('ete');
       var s = document.getElementById('ete-seccion-teer');
       if (s && getComputedStyle(s).display === 'none') toggleEteSeccion('teer');
@@ -977,6 +1035,30 @@ window.__Y = {
     } catch (e) { r.err = e.message; }
     out.grupos.tabla = r;
     process.stderr.write('[tabla] listo\n');
+  }
+
+  /* ══ GRUPO «dibujo» — el dibujo estatico nuevo ═══════════════════════════════════════════ */
+  if (corre('dibujo')) {
+    const r = {};
+    try {
+      await ev(`window.__Y.irETE()`);
+      r.base = await ev(`window.__Y.dib()`);
+      /* El toque corto sobre un feston cicla su lesion, y tiene que reflejarse en las CUATRO
+         superficies. El toque va por CLIC REAL sobre el poligono, no por eteClick(). */
+      r.toque = {};
+      for (const seg of ['A2','P1','P3']) {
+        await ev(`window.__Y.limpiarSeg()`);
+        const g1 = await ev(`window.__Y.clicNodo('ete-qx-' + ${JSON.stringify(seg)})`);
+        const g2 = await ev(`window.__Y.clicNodo('ete-qx-lbl-' + ${JSON.stringify(seg)})`);
+        r.toque[seg] = { poli: g1, rotulo: g2, estado: await ev(`window.__Y.lesion(${JSON.stringify(seg)})`) };
+      }
+      await ev(`window.__Y.limpiarSeg()`);
+      /* La geometria: el anillo tiene que ser una elipse de dos semiejes verticales distintos y
+         la coaptacion una CURVA, no una recta. Se mide sobre los puntos renderizados. */
+      r.geom = await ev(`window.__Y.geomDib()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.dibujo = r;
+    process.stderr.write('[dibujo] listo\n');
   }
 
   if (corre('ctrl')) {

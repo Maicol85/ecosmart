@@ -13297,49 +13297,24 @@ z
       <!-- Vista Quirúrgica -->
       <div id="m3d-qx" style="max-width:500px;margin:0 auto 10px;text-align:center;">
         <div style="font-size:9px;font-weight:700;color:var(--accent2);margin-bottom:3px;">Vista Quirúrgica — Válvula Mitral</div>
-        <svg viewBox="0 0 520 290" style="width:100%;height:auto;" id="ete-svg-qx">
-          <ellipse cx="265" cy="152" rx="168" ry="112" fill="none" stroke="var(--text)" stroke-width="2.2"/>
-          <line x1="100" y1="162" x2="430" y2="162" stroke="var(--text)" stroke-width="1.8"/>
-          <line x1="168" y1="162" x2="168" y2="66" stroke="var(--text2)" stroke-width="1.3" stroke-dasharray="5,4"/>
-          <line x1="362" y1="162" x2="362" y2="66" stroke="var(--text2)" stroke-width="1.3" stroke-dasharray="5,4"/>
-          <line x1="158" y1="162" x2="158" y2="238" stroke="var(--text2)" stroke-width="1.3" stroke-dasharray="5,4"/>
-          <line x1="372" y1="162" x2="372" y2="238" stroke="var(--text2)" stroke-width="1.3" stroke-dasharray="5,4"/>
-          <path id="ete-qx-A1" onclick="eteClick('A1')" style="cursor:pointer;" d="M102,162 Q108,108 168,72 L168,162 Z" fill="transparent" stroke="none"/>
-          <path id="ete-qx-A2" onclick="eteClick('A2')" style="cursor:pointer;" d="M168,162 L168,62 Q265,38 362,62 L362,162 Z" fill="transparent" stroke="none"/>
-          <path id="ete-qx-A3" onclick="eteClick('A3')" style="cursor:pointer;" d="M362,162 L362,72 Q422,108 428,162 Z" fill="transparent" stroke="none"/>
-          <path id="ete-qx-P1" onclick="eteClick('P1')" style="cursor:pointer;" d="M102,162 Q108,216 158,238 L158,162 Z" fill="transparent" stroke="none"/>
-          <path id="ete-qx-P2" onclick="eteClick('P2')" style="cursor:pointer;" d="M158,162 L158,240 Q265,274 372,240 L372,162 Z" fill="transparent" stroke="none"/>
-          <path id="ete-qx-P3" onclick="eteClick('P3')" style="cursor:pointer;" d="M372,162 L372,238 Q422,216 428,162 Z" fill="transparent" stroke="none"/>
-          <text x="134" y="122" text-anchor="middle" font-size="13" font-weight="bold" fill="var(--text)" pointer-events="none">A1</text>
-          <text x="265" y="112" text-anchor="middle" font-size="15" font-weight="bold" fill="var(--text)" pointer-events="none">A2</text>
-          <text x="396" y="122" text-anchor="middle" font-size="13" font-weight="bold" fill="var(--text)" pointer-events="none">A3</text>
-          <text x="130" y="205" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--text)" pointer-events="none">P1</text>
-          <text x="265" y="218" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--text)" pointer-events="none">P2</text>
-          <text x="400" y="205" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--text)" pointer-events="none">P3</text>
-          <text x="265" y="30" text-anchor="middle" font-size="9" fill="var(--text2)" font-style="italic">Anterior</text>
-          <text x="265" y="282" text-anchor="middle" font-size="9" fill="var(--text2)" font-style="italic">Posterior</text>
-          <!-- ⚠️ LOS DOS ROTULOS ESTABAN INVERTIDOS Y SE CORRIGIERON (Y3-1, 2026-10-16).
-               En la vista del cirujano —desde la auricula izquierda, con la aorta arriba— la
-               OREJUELA queda del lado de la comisura ANTEROLATERAL. La fuente lo dice con todas
-               las letras: ASE/SCA/STS 2020 (Nicoara et al, JASE 33:6), folio 695 —comprobado en
-               el pie impreso, NO por aritmetica—, que orienta la valvula con la aortica a las 12
-               y declara que el tabique interauricular queda junto a la comisura MEDIAL y la
-               orejuela junto a la LATERAL. En este dibujo la orejuela esta en x=68 y A1/P1 en
-               x~130, los dos a la IZQUIERDA: ahi va AL, y PM a la derecha, del lado de A3/P3.
-               SE CAMBIAN SOLO LOS DOS ROTULOS: ni los festones, ni la orejuela, ni la aorta se
-               movieron un pixel —sus coordenadas son las mismas—, que es lo que hace que esto
-               sea una correccion de nomenclatura y no un redibujo. -->
-          <text x="20" y="156" text-anchor="middle" font-size="9" fill="var(--text2)" font-style="italic">AL</text>
-          <text x="510" y="156" text-anchor="middle" font-size="9" fill="var(--text2)" font-style="italic">PM</text>
-          <circle cx="265" cy="18" r="18" fill="none" stroke="var(--text)" stroke-width="1.8"/>
-          <line x1="265" y1="18" x2="265" y2="0" stroke="var(--text)" stroke-width="1.2"/>
-          <line x1="265" y1="18" x2="250" y2="28" stroke="var(--text)" stroke-width="1.2"/>
-          <line x1="265" y1="18" x2="280" y2="28" stroke="var(--text)" stroke-width="1.2"/>
-          <line x1="265" y1="36" x2="265" y2="52" stroke="var(--text2)" stroke-width="1.0" stroke-dasharray="3,3"/>
-          <text x="288" y="14" font-size="9" fill="var(--text)" font-style="italic">Ao</text>
-          <ellipse cx="68" cy="156" rx="22" ry="15" fill="none" stroke="var(--text)" stroke-width="1.8"/>
-          <line x1="90" y1="156" x2="100" y2="156" stroke="var(--text2)" stroke-width="1.0" stroke-dasharray="3,3"/>
-          <text x="68" y="181" text-anchor="middle" font-size="9" fill="var(--text)" font-style="italic">LAA</text>
+        <!-- ⚠️ EL DIBUJO SE CONSTRUYE POR JS Y EL SVG NACE VACIO (Y3c2, 2026-10-18).
+             Hasta hoy era marcado estatico: una elipse, una linea RECTA de coaptacion y seis
+             paths de feston con sus coordenadas escritas a mano. Lo sustituye el dibujo de la
+             demo que Maicol aprobo el 18/10/2026 (`docs/3d/demo2_mitral_integrada_en_ETE.html`),
+             cuya geometria es PARAMETRICA —la boca, las dos mitades del anillo y la sonrisa de
+             coaptacion salen de seis numeros— y que ademas tiene que GIRAR: unas coordenadas
+             fijas no se pueden rotar sin recalcularlas, asi que el dibujo se arma con
+             `createElementNS` y se repinta en cada cuadro. Ver `eteQxDibujar`.
+             ⚠️ EL viewBox ES CUADRADO Y ES LA ESCALA 1:1 DE LA DEMO (420 x 420, centro en
+             210,215). No se reescalo ningun numero: asi la letra de 13 px se ve a 13 px, que es
+             como la aprobo Maicol, y el dibujo tiene los 210 de radio que necesita para girar
+             sin que las cuatro marcas se salgan. El bloque pasa de 500 x 279 px a 420 x 420.
+             ⚠️ LOS SEIS `ete-qx-*` CONSERVAN SU id Y NACEN `fill`/`stroke` EN ATRIBUTOS, no en
+             el `style`: es lo que hace que `eteClick`, `eteLimpiarSegmentos` y `eteQxDataURL`
+             sigan funcionando SIN TOCAR UNA LINEA del modulo de lesiones —el pintor escribe
+             `style.fill` y en «Normal» hace `removeProperty`, que aterriza sobre el atributo—.
+             Es la convencion que ese modulo documenta con su propio assert. -->
+        <svg viewBox="0 0 420 420" style="width:100%;height:auto;max-width:420px;margin:0 auto;display:block;touch-action:none;" id="ete-svg-qx" tabindex="0" role="img" aria-label="Vista quirurgica de la valvula mitral: seis festones, aorta, orejuela y las dos comisuras">
         </svg>
       </div>
 
@@ -62662,6 +62637,163 @@ window.ETE_EPIGRAFE = ETE_EPIGRAFE; window.eteCorteFest = eteCorteFest;
 
   window.eteActualizarResumen = eteActualizarResumen;
 })();
+
+
+/* ══ EL DIBUJO ESTATICO DE LA VISTA QUIRURGICA (Y3c2, 2026-10-18) ═════════════════════════════
+   El dibujo de la demo aprobada por Maicol el 18/10/2026
+   (`docs/3d/demo2_mitral_integrada_en_ETE.html`) SUSTITUYE al marcado estatico que habia: la
+   elipse, la linea recta de coaptacion y los seis paths con coordenadas a mano.
+
+   ⚠️ NI UN NUMERO DE LA DEMO SE REESCALO. El viewBox es 420 x 420 con el centro en (210, 215),
+   que es el lienzo de la demo tal cual, y los seis parametros de `QXG` son los que Maicol aprobo
+   el 17/10/2026. La escala al «tamanio real» la hace el CSS (`width:100%` con `max-width:420px`),
+   no una multiplicacion: asi las proporciones se conservan por construccion y la letra de 13 px
+   se ve a 13 px. El precio, declarado: el bloque pasa de 500 x 279 px a 420 x 420.
+
+   ⚠️ LA LINEA DE COAPTACION ES UNA SONRISA CURVA Y NO UNA RECTA, que era justamente lo que el
+   dibujo viejo dibujaba: `qxCoapY` es una parabola con flecha `SAG` colgada del punto donde el
+   anillo anterior toca el borde de la boca.
+
+   ⚠️ LOS FESTONES CONSERVAN SUS `id` (`ete-qx-A1` … `ete-qx-P3`) Y SU CONVENCION DE COLOR: el
+   relleno y el trazo de base van en ATRIBUTOS y la lesion en el `style`. Eso es lo que hace que
+   el modulo de lesiones de arriba —y `eteQxDataURL`, que viaja al PDF— sigan funcionando sin que
+   se les toque una linea: su pintor escribe `style.fill` y en «Normal» hace `removeProperty`,
+   que descubre el atributo de abajo. Si alguna vez el relleno base se mueve al `style`, el primer
+   regreso a «Normal» deja el feston en `fill:none` y desaparece del dibujo para siempre. */
+var QXNS = 'http://www.w3.org/2000/svg';
+var QXD = Math.PI / 180;
+var QXCX = 210, QXCY = 215, QXRX = 120, QXE = 116;
+/* Valores aprobados por Maicol (17/10/2026). RYT y RYB son los dos semiejes verticales del
+   anillo —la mitad anterior es mas chata que la posterior—, SAG la flecha de la sonrisa de
+   coaptacion, dx/dy el centro por el que pasan los planos de corte y T la inclinacion de los
+   planos de cuatro y de dos camaras. */
+var QXG = Object.freeze({ RYT: 64, RYB: 100, SAG: 46, dx: 38, dy: 10, T: 22 });
+/* Los seis festones: nombre, x inicial, x final, y si es de la valva POSTERIOR. */
+var QX_DEF = Object.freeze([
+  Object.freeze(['A1', -QXE, -70.5, 0]), Object.freeze(['A2', -70.5, 70.5, 0]),
+  Object.freeze(['A3', 70.5, QXE, 0]),   Object.freeze(['P1', -QXRX, -76, 1]),
+  Object.freeze(['P2', -76, 76, 1]),     Object.freeze(['P3', 76, QXRX, 1])
+]);
+var QX_LX = Object.freeze({ A1: -93, A2: 0, A3: 93, P1: -98, P2: 0, P3: 98 });
+
+function qxTopY(x){ var u = x / QXRX; return -QXG.RYT * Math.sqrt(Math.max(0, 1 - u * u)); }
+function qxBotY(x){ var u = x / QXRX; return QXG.RYB * Math.sqrt(Math.max(0, 1 - u * u)); }
+function qxCoapY(x){ var u = x / QXE; return qxTopY(QXE) + QXG.SAG * (1 - u * u); }
+function qxUpPost(x){ return Math.abs(x) <= QXE ? qxCoapY(x) : qxTopY(x); }
+function qxAnnPt(phi){ var sn = Math.sin(phi * QXD);
+  return [QXRX * Math.cos(phi * QXD), -(sn > 0 ? QXG.RYT : QXG.RYB) * sn]; }
+function qxBandAnt(x0, x1){ var pts = [], x;
+  for (x = x0; x < x1; x += 4) pts.push([x, qxTopY(x)]);
+  pts.push([x1, qxTopY(x1)]);
+  for (x = x1; x > x0; x -= 4) pts.push([x, qxCoapY(x)]);
+  pts.push([x0, qxCoapY(x0)]); return pts; }
+function qxBandPost(x0, x1){ var pts = [], x;
+  for (x = x0; x < x1; x += 4) pts.push([x, qxUpPost(x)]);
+  pts.push([x1, qxUpPost(x1)]);
+  for (x = x1; x > x0; x -= 4) pts.push([x, qxBotY(x)]);
+  pts.push([x0, qxBotY(x0)]); return pts; }
+function qxLblPos(n){ var x = QX_LX[n];
+  var y = (n.charAt(0) === 'A') ? (qxTopY(x) + qxCoapY(x)) / 2 : (qxUpPost(x) + qxBotY(x)) / 2;
+  return [x, y]; }
+
+/* Estado del dibujo. `_qxRot` en grados y `_qxFlip` en 1 / -1 (el espejo de la vista ETT).
+   NADA de esto se guarda: ni en el estudio ni en el navegador — el dibujo es de lectura, igual
+   que el panel 3D. */
+var _qxRot = 0, _qxFlip = 1;
+var _qxN = null;   /* los nodos, creados una sola vez */
+
+function qxEl(n, a, padre){ var e = document.createElementNS(QXNS, n);
+  Object.keys(a).forEach(function(k){ e.setAttribute(k, a[k]); });
+  if (padre) padre.appendChild(e); return e; }
+
+/* ⚠️ EL ORDEN DE CREACION ES EL ORDEN DE PINTADO, y no es decorativo: los festones van PRIMERO
+   para que el anillo y la sonrisa se dibujen ENCIMA de su relleno, y los rotulos al final para
+   que ninguna linea los cruce. Todo lo que no es feston ni rotulo lleva `pointer-events:none`:
+   sin eso, el anillo —que es un poligono de 90 vertices que cubre la boca entera— se come todos
+   los toques y ningun feston cicla su lesion. */
+function eteQxConstruir(){
+  var svg = document.getElementById('ete-svg-qx');
+  if (!svg || _qxN) return _qxN;
+  var N = { svg: svg, fes: [], lbl: [] };
+  QX_DEF.forEach(function(d){
+    /* `fill` y `stroke` en ATRIBUTOS — ver la nota de arriba. */
+    var g = qxEl('polygon', { id: 'ete-qx-' + d[0], fill: 'var(--bg3)', stroke: 'var(--border)',
+      'stroke-width': 1, style: 'cursor:pointer' }, svg);
+    N.fes.push({ n: d[0], e: g, pts: d[3] ? qxBandPost(d[1], d[2]) : qxBandAnt(d[1], d[2]) });
+  });
+  N.anillo = qxEl('polygon', { id: 'ete-qx-anillo', fill: 'none', stroke: 'var(--text)',
+    'stroke-width': 2.4, 'pointer-events': 'none' }, svg);
+  N.coap = qxEl('polyline', { id: 'ete-qx-coap', fill: 'none', stroke: 'var(--text)',
+    'stroke-width': 2, 'pointer-events': 'none' }, svg);
+  function txt(id, t, sz, w, fill){
+    var e = qxEl('text', { id: id, 'text-anchor': 'middle', 'font-size': sz, 'font-weight': w || 400,
+      fill: fill || 'var(--text)' }, svg);
+    e.textContent = t; return e; }
+  QX_DEF.forEach(function(d){
+    var e = txt('ete-qx-lbl-' + d[0], d[0], 13, 700);
+    e.setAttribute('style', 'cursor:pointer');
+    N.lbl.push({ n: d[0], e: e }); });
+  /* Las CUATRO marcas que orientan el dibujo y giran con el. Sin brujula aparte y sin ningun
+     punto que marque el centro de los cortes: las dos cosas las excluye la orden. */
+  N.cAo = qxEl('circle', { id: 'ete-qx-cAo', r: 12, fill: 'var(--bg3)', stroke: 'var(--accent2)',
+    'stroke-width': 1.5, 'pointer-events': 'none' }, svg);
+  N.mAo = txt('ete-qx-mAo', 'Ao', 11, 600, 'var(--accent2)');
+  N.cOr = qxEl('circle', { id: 'ete-qx-cOr', r: 11, fill: 'var(--bg3)', stroke: 'var(--accent2)',
+    'stroke-width': 1.5, 'pointer-events': 'none' }, svg);
+  N.mOr = txt('ete-qx-mOr', 'orejuela', 10, 400, 'var(--text2)');
+  /* ⚠️ AL VA DEL LADO DE LA OREJUELA, Y ESTA VERIFICADO EN EL ORIGINAL. Hahn y col., ASE 2022,
+     folio 17: «The LAA offers a clear landmark for the anterolateral commissure and the A1/P1
+     scallops, whereas the coronary sinus is adjacent to the posteromedial commissure and the
+     A3/P3 scallops». En este dibujo la orejuela esta a x = -138 y A1/P1 a x ~ -95, los dos a la
+     IZQUIERDA: ahi va AL, y PM a la derecha. Es la misma correccion del Y3-1, que ahora tiene su
+     fuente leida en texto completo y no solo la de la ASE/SCA/STS 2020. */
+  N.mAL = txt('ete-qx-mAL', 'AL', 11, 600, 'var(--text2)');
+  N.mPM = txt('ete-qx-mPM', 'PM', 11, 600, 'var(--text2)');
+  [N.mAo, N.mOr, N.mAL, N.mPM].forEach(function(e){ e.setAttribute('pointer-events', 'none'); });
+  N.annPts = []; for (var ph = 0; ph < 360; ph += 4) N.annPts.push(qxAnnPt(ph));
+  N.coapPts = []; for (var x = -QXE; x <= QXE; x += 8) N.coapPts.push([x, qxCoapY(x)]);
+  _qxN = N;
+  /* El toque corto que cicla la lesion. Va por propiedad y NO por `setAttribute('onclick', ...)`,
+     que Semgrep marca y que ademas obliga a armar codigo como cadena. En el commit del giro este
+     mismo gesto pasa a distinguirse de un arrastre por su recorrido. */
+  N.fes.forEach(function(f){ f.e.onclick = function(){ eteClick(f.n); }; });
+  N.lbl.forEach(function(l){ l.e.onclick = function(){ eteClick(l.n); }; });
+  return N;
+}
+
+/* Lleva un punto del espacio del dibujo al del lienzo: espejo, rotacion y traslado al centro. */
+function qxT(p, c, sn){ var x = _qxFlip * p[0], y = p[1];
+  return [QXCX + x * c - y * sn, QXCY + x * sn + y * c]; }
+function qxPts(arr, c, sn){ return arr.map(function(p){ var q = qxT(p, c, sn);
+  return q[0].toFixed(1) + ',' + q[1].toFixed(1); }).join(' '); }
+function qxPon(e, p, c, sn, dy){ var q = qxT(p, c, sn);
+  e.setAttribute('x', q[0].toFixed(1)); e.setAttribute('y', (q[1] + (dy || 0)).toFixed(1)); }
+function qxPonC(e, p, c, sn){ var q = qxT(p, c, sn);
+  e.setAttribute('cx', q[0].toFixed(1)); e.setAttribute('cy', q[1].toFixed(1)); }
+
+function eteQxDibujar(){
+  var N = eteQxConstruir();
+  if (!N) return;
+  var c = Math.cos(_qxRot * QXD), sn = Math.sin(_qxRot * QXD), i;
+  for (i = 0; i < N.fes.length; i++) N.fes[i].e.setAttribute('points', qxPts(N.fes[i].pts, c, sn));
+  N.anillo.setAttribute('points', qxPts(N.annPts, c, sn));
+  N.coap.setAttribute('points', qxPts(N.coapPts, c, sn));
+  N.lbl.forEach(function(l){ qxPon(l.e, qxLblPos(l.n), c, sn, 4); });
+  qxPonC(N.cAo, [0, -QXG.RYT - 36], c, sn);  qxPon(N.mAo, [0, -QXG.RYT - 36], c, sn, 4);
+  qxPonC(N.cOr, [-138, -64], c, sn);         qxPon(N.mOr, [-138, -82], c, sn, 0);
+  qxPon(N.mAL, [-158, 0], c, sn, 4);         qxPon(N.mPM, [158, 0], c, sn, 4);
+}
+
+/* Lo que la sonda y el caso de la suite leen. Es un lector PURO: no dibuja ni escribe estado. */
+function eteQxEstado(){ return { rot: Math.round(_qxRot * 100) / 100, flip: _qxFlip }; }
+
+window.eteQxConstruir = eteQxConstruir; window.eteQxDibujar = eteQxDibujar;
+window.eteQxEstado = eteQxEstado; window.QXG = QXG; window.QX_DEF = QX_DEF;
+
+/* El dibujo se construye al arrancar. `eteSegSync` corre a los 300 ms y pinta las lesiones del
+   estudio sobre los seis poligonos, asi que estos tienen que existir ANTES: de ahi los 150 ms.
+   Con el SVG ausente —un arbol recortado— `eteQxConstruir` sale por su guarda. */
+setTimeout(function(){ try { eteQxDibujar(); } catch (e) {} }, 150);
 
 
 function toggleEteSeccion(id, headEl) {
