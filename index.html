@@ -1612,6 +1612,7 @@
   #vinfo-card .qv-manual { margin-top: 6px; font-size: 10.5px; font-weight: 700; color: var(--orange); }
   #vinfo-card .qv-vacio { margin-top: 6px; font-size: 10.5px; color: var(--text2); }
   #vinfo-card .qv-bl { margin-top: 6px; }
+  #vinfo-card .qv-nota { margin-top: 6px; font-size: 10px; color: var(--text2); line-height: 1.4; }
   #vinfo-card .qv-apoyo-rot { margin-top: 7px; }
 
   /* ══ LA TABLA DE DOS METODOS DEL BLOQUE 2 DE LA IM (2026-10-14) ═══════════════════════════
@@ -41518,33 +41519,48 @@ function qvTarjeta(tipo, valv) {
      lista aparte, el dia que un criterio deje de votar la tarjeta seguiria contandolo. */
   const decide = [], apoyo = [];
   R.filas.forEach(function (f) {
-    f.apoyo = !!(f.noVota || /\bapoyo\b/i.test(String(f.grado || '')));
+    /* ⚠️ TRES FORMAS, LAS TRES DEL DUENO: el `noVota` que la tabla declara, la palabra «apoyo»
+       que la fila de la estenosis tricuspidea escribe en su leyenda, y el «no vota» que la fila
+       del AVm por THP de la estenosis mitral publica desde el 2026-10-11. Con una lista aparte, el
+       dia que un criterio deje de votar la tarjeta seguiria contandolo entre los que deciden. */
+    const _gl = String(f.grado || '');
+    f.apoyo = !!(f.noVota || /\bapoyo\b/i.test(_gl) || /\bno vota\b/i.test(_gl));
     (f.apoyo ? apoyo : decide).push(f);
   });
 
   if (decide.length) {
     const grupo = _evDiv('qv-crit', null, { 'data-qv-crit': kl });
-    decide.forEach(function (f) { grupo.appendChild(_qvFila(f, kl)); });
+    decide.forEach(function (f) { grupo.appendChild(_qvFila(f, kl, C.k)); });
     cont.appendChild(grupo);
   }
   if (apoyo.length) {
     cont.appendChild(_evDiv('ev-rot qv-apoyo-rot', 'Signos de apoyo \u2014 no deciden el grado',
                             { 'data-qv-apoyo': kl }));
     const ga = _evDiv('qv-crit', null, { 'data-qv-crit-apoyo': kl });
-    apoyo.forEach(function (f) { ga.appendChild(_qvFila(f, kl)); });
+    apoyo.forEach(function (f) { ga.appendChild(_qvFila(f, kl, C.k)); });
     cont.appendChild(ga);
   }
 
   if (R.decide) cont.appendChild(_evDiv('qv-decide', 'Decide: ' + R.decide,
                                         { 'data-qv-decide': kl }));
   if (R.aviso) cont.appendChild(_evDiv('ev-avi', R.aviso, { 'data-qv-aviso': kl }));
+  if (QV_NOTA[kl]) cont.appendChild(_evDiv('qv-nota', QV_NOTA[kl], { 'data-qv-nota': kl }));
   cont.appendChild(_qvFuentesPie(kl));
   return cont;
 }
 /* UNA fila de criterio. Con spec en `QV_BARRA` sale como BARRA —cortes, punto y unidad— y sin
    spec como fila de texto: nombre, valor y grado, con la marca que la pantalla publica. */
-function _qvFila(f, kl) {
-  const spec = QV_BARRA[f.id || ''] || null;
+function _qvFila(f, kl, ck) {
+  /* ⚠️ LA CLAVE DE LA BARRA SALE DE LA CLAVE DEL DUENO (`ck`) Y NO DEL ROTULO DE LA LESION, Y LO
+     CAZO LA SONDA: el cuadro de la estenosis AORTICA es el MISMO con valvula nativa y con
+     protesis, y sus cortes NO son los mismos —la Tabla 5 de la ASE 2024 publica cortes de
+     gradiente medio y de DVI para una protesis y NO publica cortes absolutos de AVA, que es justo
+     lo que el W2-B retiro de esta pantalla—. Con el rotulo de la lesion, la tarjeta de una
+     protesis aortica dibujaba las bandas NATIVAS: medido, el gradiente salia con los cortes
+     20/40 de la valvula nativa en vez de los 20/35 de la protesis, y el AVA y el AVA indexada
+     salian con bandas que su tabla no da. Es el defecto que esa tanda cerro, reabierto por la
+     puerta de al lado, y se veia bien. */
+  const spec = QV_BARRA[(ck || kl) + '|' + (f.id || '')] || null;
   if (spec && !f.retiro) {
     const b = _qvBarra(spec, f, kl);
     if (b) {
@@ -41592,13 +41608,192 @@ function _qvFila(f, kl) {
    evalua y no en una constante —los tres de la insuficiencia aortica son el caso— y ahi una barra
    obligaria a copiar el corte. Su fila igual publica el corte, porque el badge que la app escribe
    ya lo lleva adentro («Leve (>500ms)»). Declarado en docs/PENDIENTES.md. */
-const QV_BARRA = Object.freeze({});
+/* ══ LOS TRES MOLDES DE BANDA ══════════════════════════════════════════════════════════════════
+   Las tres formas con las que las tablas dueñas de esta app escriben una banda de tres grados.
+   NO llevan un numero: reciben el corte del dueño y devuelven los tramos que el dibujo pinta. */
+/* Ascendente con el severo INCLUIDO en su piso: `< a` leve · `a` a `< b` moderada · `>= b` severa.
+   Es la forma `sev_min` de `IM_CORTES`. */
+function _qvAsc(lo, a, b, hi, kLeve) {
+  return [{ desde: lo, hasta: a, k: kLeve || 'leve' },
+          { desde: a,  hasta: b, k: 'moderada' },
+          { desde: b,  hasta: hi, k: 'severa' }];
+}
+/* Descendente —mas bajo es peor—: `<= a` severa · `> a` a `<= b` moderada · `> b` sin graduar.
+   Es la forma de las tres areas aorticas y del DVI. */
+function _qvDesc(lo, a, b, hi, kAlto) {
+  return [{ desde: lo, hasta: a, k: 'severa' },
+          { desde: a,  hasta: b, k: 'moderada' },
+          { desde: b,  hasta: hi, k: kAlto || 'sin' }];
+}
+/* Binaria descendente: `<= a` significativa · `> a` no significativa. Las tres areas mitrales. */
+function _qvBin(lo, a, hi) {
+  return [{ desde: lo, hasta: a, k: 'significativa' },
+          { desde: a,  hasta: hi, k: 'no significativa' }];
+}
+/* ══ LAS BARRAS, POR LESION Y POR FILA ═════════════════════════════════════════════════════════
+   ⚠️ CADA CORTE SE LEE DE SU DUEÑO EN EL MOMENTO DE DIBUJAR. `bandas` es una FUNCION a proposito:
+   una tabla con los numeros ya resueltos quedaria vieja el dia que alguien mueva un corte, y ese
+   es el modo de falla que no se ve —la barra mostrando un corte y el informe graduando con otro—.
+   ⚠️ `lo` y `hi` NO SON CORTES Y NO LLEVAN FUENTE: son el rango de lo medible que la barra
+   encuadra, igual que una banda de plausibilidad. Un valor por fuera se dibuja pegado al borde y
+   el texto de la fila dice el numero real. Es la regla que las barras de L y de M ya tienen.
+   ⚠️ UN PARAMETRO SIN ENTRADA NO PIERDE SU FILA: sale como fila de TEXTO con su valor y su grado,
+   y su grado ya trae el corte adentro porque la app lo escribe asi. Los tres parametros de la
+   INSUFICIENCIA AORTICA que no tienen entrada —el THP, la Vmax telediastolica y el VTI de la aorta
+   descendente— son el caso, y el motivo esta medido: sus cortes viven como LITERAL dentro de
+   `calcIA_ESC` (500/200, 20, 15/25) y no en una constante, asi que una barra obligaria a copiarlos.
+   Sacarlos a una constante es tocar la cascada, que esta orden no autoriza.
+   `docs/PENDIENTES.md` → Q-1. */
+const QV_BARRA = Object.freeze({
+  /* ── INSUFICIENCIA MITRAL — ASE 2017, Tabla 8, folio 332 (y el jet, ACC/AHA 2020) ─────────── */
+  'insuf:mitral|im-vc-ref': { clave: 'vc', lo: 0, hi: 12, uni: 'mm', dec: 0,
+    bandas: () => _qvAsc(0, IM_CORTES.vc.leve_max, IM_CORTES.vc.sev_min, 12) },
+  'insuf:mitral|eroa-val': { clave: 'eroa-pisa', lo: 0, hi: 60, uni: 'mm\u00b2', dec: 0,
+    bandas: () => _qvAsc(0, IM_CORTES.eroa.leve_max, IM_CORTES.eroa.sev_min, 60) },
+  'insuf:mitral|im-eroa-cont-ref': { clave: 'eroa-cont', lo: 0, hi: 60, uni: 'mm\u00b2', dec: 0,
+    bandas: () => _qvAsc(0, IM_CORTES.eroa.leve_max, IM_CORTES.eroa.sev_min, 60) },
+  'insuf:mitral|volr-val': { clave: 'volr-pisa', lo: 0, hi: 90, uni: 'ml', dec: 0,
+    bandas: () => _qvAsc(0, IM_CORTES.volr.leve_max, IM_CORTES.volr.sev_min, 90) },
+  'insuf:mitral|im-volr-cont-ref': { clave: 'volr-cont', lo: 0, hi: 90, uni: 'ml', dec: 0,
+    bandas: () => _qvAsc(0, IM_CORTES.volr.leve_max, IM_CORTES.volr.sev_min, 90) },
+  'insuf:mitral|freg-val': { clave: 'fr-pisa', lo: 0, hi: 70, uni: '%', dec: 0,
+    bandas: () => _qvAsc(0, IM_CORTES.fr.leve_max, IM_CORTES.fr.sev_min, 70) },
+  'insuf:mitral|im-fr-cont-ref': { clave: 'fr-cont', lo: 0, hi: 70, uni: '%', dec: 0,
+    bandas: () => _qvAsc(0, IM_CORTES.fr.leve_max, IM_CORTES.fr.sev_min, 70) },
+  /* ⚠️ EL JET TIENE DOS REGIMENES Y LA BARRA LEE EL QUE LA APP APLICA. Con protesis la Tabla 13
+     de la ASE 2024 dice «Variable» entre 20 y 50 y el parametro NO vota: la banda del medio sale
+     en GRIS, que es «no se clasifica», y no en el amarillo de moderada. El regimen se le pregunta
+     a `valvEsProtesis`, el mismo dueño que lo decide en la cascada. */
+  'insuf:mitral|im-jet-ratio': { clave: 'jet', lo: 0, hi: 70, uni: '%', dec: 0,
+    bandas: () => {
+      let prot = false;
+      try { const e = document.getElementById('vm_morf');
+        prot = !!(e && typeof valvEsProtesis === 'function' && valvEsProtesis(String(e.value || '')));
+      } catch (x) { prot = false; }
+      const C = prot ? IM_CORTES.jet_prot : IM_CORTES.jet_nat;
+      return prot
+        ? [{ desde: 0, hasta: C.leve_max, k: 'leve' },
+           { desde: C.leve_max, hasta: C.sev_min_excl, k: 'variable' },
+           { desde: C.sev_min_excl, hasta: 70, k: 'severa' }]
+        : [{ desde: 0, hasta: C.leve_max, k: 'leve' },
+           { desde: C.leve_max, hasta: C.mod_max_incl, k: 'moderada' },
+           { desde: C.mod_max_incl, hasta: 70, k: 'severa' }];
+    } },
+  /* ── ESTENOSIS MITRAL — la regla BINARIA del 2026-10-11 ───────────────────────────────────── */
+  /* El gradiente tiene TRES tramos y el del medio no afirma estenosis: es «gradiente elevado», que
+     es lo que el informe publica sin la palabra estenosis. Va en amarillo y sin texto, como todas. */
+  'esten:mitral|em-gmedio-row': { clave: 'em-gmed', lo: 0, hi: 20, uni: 'mmHg', dec: 0,
+    bandas: () => [{ desde: 0, hasta: EM_GMEDIO_ELEVADO_MIN, k: 'no significativa' },
+                   { desde: EM_GMEDIO_ELEVADO_MIN, hasta: EM_GMEDIO_SIGNIF_MIN, k: 'elevado' },
+                   { desde: EM_GMEDIO_SIGNIF_MIN, hasta: 20, k: 'significativa' }] },
+  'esten:mitral|em-thp-row': { clave: 'em-thp', lo: 0.3, hi: 4, uni: 'cm\u00b2', dec: 2,
+    bandas: () => _qvBin(0.3, AVM_SEVERA_MAX, 4) },
+  'esten:mitral|em-cont-row': { clave: 'em-cont', lo: 0.3, hi: 4, uni: 'cm\u00b2', dec: 2,
+    bandas: () => _qvBin(0.3, AVM_SEVERA_MAX, 4) },
+  'esten:mitral|em-plan-row': { clave: 'em-plan', lo: 0.3, hi: 4, uni: 'cm\u00b2', dec: 2,
+    bandas: () => _qvBin(0.3, AVM_SEVERA_MAX, 4) },
+  /* ── ESTENOSIS AORTICA NATIVA — EAE/ASE 2009 Tabla 3 y ESC/EACTS 2025 ─────────────────────── */
+  /* `EA_BANDAS.vmax[i].bajo` es el TECHO de su grado (`if (vmax < bajo) return grado`), asi que
+     los tres cortes son los tres primeros `bajo`. Se derivan, no se escriben. */
+  'esten:aortica|ea-det-vmax': { clave: 'ea-vmax', lo: 0, hi: 6, uni: 'm/s', dec: 1,
+    bandas: () => {
+      const B = EA_BANDAS.vmax, out = []; let prev = 0;
+      for (let i = 0; i < B.length; i++) {
+        const top = isFinite(B[i].bajo) ? B[i].bajo : 6;
+        out.push({ desde: prev, hasta: top, k: B[i].grado }); prev = top;
+      }
+      return out;
+    } },
+  /* Por debajo del piso de moderada este criterio NO se pronuncia —`gGrad` queda en `null` y la
+     fila dice «no gradúa por debajo de 20»—, asi que esa banda va en GRIS y no en verde: verde
+     seria afirmar que no hay estenosis. */
+  'esten:aortica|ea-det-gmedio': { clave: 'ea-gmed', lo: 0, hi: 70, uni: 'mmHg', dec: 0,
+    bandas: () => [{ desde: 0, hasta: EA_BANDAS.gmedModMin, k: 'no gradua' },
+                   { desde: EA_BANDAS.gmedModMin, hasta: EA_BANDAS.gmedSevMin, k: 'moderada' },
+                   { desde: EA_BANDAS.gmedSevMin, hasta: 70, k: 'severa' }] },
+  'esten:aortica|ea-det-ava': { clave: 'ea-ava', lo: 0.2, hi: 3, uni: 'cm\u00b2', dec: 2,
+    bandas: () => _qvDesc(0.2, AVA_SEVERA_MAX, AVA_MOD_MAX, 3) },
+  'esten:aortica|ea-det-plan': { clave: 'ea-plan', lo: 0.2, hi: 3, uni: 'cm\u00b2', dec: 2,
+    bandas: () => _qvDesc(0.2, AVA_SEVERA_MAX, AVA_MOD_MAX, 3) },
+  'esten:aortica|ea-det-avai': { clave: 'ea-avai', lo: 0.1, hi: 1.5, uni: 'cm\u00b2/m\u00b2', dec: 2,
+    bandas: () => _qvDesc(0.1, EA_AVAI_SEV_MAX, EA_AVAI_MOD_MAX, 1.5) },
+  'esten:aortica|ea-det-dvi': { clave: 'ea-dvi', lo: 0.05, hi: 1, uni: '', dec: 2,
+    bandas: () => _qvDesc(0.05, EA_DVI_SEV_MAX, EA_DVI_MOD_MAX, 1) },
+  /* ── PROTESIS MITRAL — ASE 2024, Tabla 11, folio 27 ────────────────────────────────────────
+     Los tres tramos de la tabla: «Normal», «Possible stenosis» y «Suggests significant stenosis».
+     El del medio es LITERALMENTE «possible», asi que va en naranja y no en amarillo: no es un
+     grado intermedio de severidad, es el estado que la guia nombra.
+     ⚠️ LA VELOCIDAD PICO LLEVA SU BARRA Y NO VOTA. La Tabla 11 la publica y la prosa del folio 24
+     la omite, asi que la app la muestra y no la cuenta: la tarjeta la manda al grupo de APOYO por
+     el `noVota` que V2D_PORQUE ya declara, y le dibuja igual su banda — esconderla dejaria al
+     medico sin saber que esa medicion esta y no pesa. */
+  'prot:mitral|vm-prot-vmax': { clave: 'vmp-vmax', lo: 0, hi: 4, uni: 'm/s', dec: 1,
+    bandas: () => [{ desde: 0, hasta: VM_PROT_T11.vmaxNormalMax, k: 'normal' },
+                   { desde: VM_PROT_T11.vmaxNormalMax, hasta: VM_PROT_T11.vmaxSignifMin, k: 'posible' },
+                   { desde: VM_PROT_T11.vmaxSignifMin, hasta: 4, k: 'significativa' }] },
+  'prot:mitral|vm-prot-gmed': { clave: 'vmp-gmed', lo: 0, hi: 20, uni: 'mmHg', dec: 1,
+    bandas: () => [{ desde: 0, hasta: VM_PROT_T11.gmedNormalMax, k: 'normal' },
+                   { desde: VM_PROT_T11.gmedNormalMax, hasta: VM_PROT_T11.gmedSignifMin, k: 'posible' },
+                   { desde: VM_PROT_T11.gmedSignifMin, hasta: 20, k: 'significativa' }] },
+  'prot:mitral|vm-prot-thp': { clave: 'vmp-thp', lo: 0, hi: 320, uni: 'ms', dec: 0,
+    bandas: () => [{ desde: 0, hasta: VM_PROT_T11.thpNormalMax, k: 'normal' },
+                   { desde: VM_PROT_T11.thpNormalMax, hasta: VM_PROT_T11.thpSignifMin, k: 'posible' },
+                   { desde: VM_PROT_T11.thpSignifMin, hasta: 320, k: 'significativa' }] },
+  /* El AEO es DESCENDENTE: mas chico es peor. Sus dos cortes tienen constante propia. */
+  'prot:mitral|vm-prot-eoa': { clave: 'vmp-eoa', lo: 0.3, hi: 3.5, uni: 'cm\u00b2', dec: 2,
+    bandas: () => [{ desde: 0.3, hasta: VM_PROT_EOA_OBSTR_MAX, k: 'significativa' },
+                   { desde: VM_PROT_EOA_OBSTR_MAX, hasta: VM_PROT_EOA_NORMAL_MIN, k: 'posible' },
+                   { desde: VM_PROT_EOA_NORMAL_MIN, hasta: 3.5, k: 'normal' }] },
+  'prot:mitral|vm-prot-dvi': { clave: 'vmp-dvi', lo: 1, hi: 5, uni: '', dec: 2,
+    bandas: () => [{ desde: 1, hasta: VM_PROT_DVI_NORMAL_MAX, k: 'normal' },
+                   { desde: VM_PROT_DVI_NORMAL_MAX, hasta: VM_PROT_DVI_SIGNIF_MIN, k: 'posible' },
+                   { desde: VM_PROT_DVI_SIGNIF_MIN, hasta: 5, k: 'significativa' }] },
+  /* ── PROTESIS AORTICA (y TAVI) — ASE 2024, Tabla 5, folio 19 ───────────────────────────────
+     ⚠️ SOLO DOS DE LAS CUATRO FILAS LLEVAN BARRA, Y ES DE LA FUENTE. La Tabla 5 publica cortes
+     para el gradiente medio y para el DVI de una protesis quirurgica; para el AVA y el AVA
+     indexada NO da cortes absolutos —es exactamente lo que el W2-B retiro de esta pantalla—, asi
+     que esas dos salen como fila de texto con su valor y sin grado, que es lo que la app publica.
+     Dibujarles la banda NATIVA seria republicar la escala que esa tanda retiro. */
+  'prot:aortica|ea-det-gmedio': { clave: 'eap-gmed', lo: 0, hi: 60, uni: 'mmHg', dec: 0,
+    bandas: () => [{ desde: 0, hasta: EA_PROT_CRIT.savr_gmed_normal_max, k: 'normal' },
+                   { desde: EA_PROT_CRIT.savr_gmed_normal_max, hasta: EA_PROT_CRIT.savr_gmed_signif_min, k: 'posible' },
+                   { desde: EA_PROT_CRIT.savr_gmed_signif_min, hasta: 60, k: 'significativa' }] },
+  'prot:aortica|ea-det-dvi': { clave: 'eap-dvi', lo: 0.05, hi: 1, uni: '', dec: 2,
+    bandas: () => [{ desde: 0.05, hasta: EA_PROT_CRIT.savr_dvi_signif_max, k: 'significativa' },
+                   { desde: EA_PROT_CRIT.savr_dvi_signif_max, hasta: EA_PROT_CRIT.savr_dvi_normal_min, k: 'posible' },
+                   { desde: EA_PROT_CRIT.savr_dvi_normal_min, hasta: 1, k: 'normal' }] }
+});
+/* ══ LAS NOTAS POR LESION ══════════════════════════════════════════════════════════════════════
+   Una linea, al pie y antes de la fuente, SOLO donde hace falta explicar algo que las filas no
+   pueden decir por si solas. NO llevan un corte: el corte que cada fila aplica lo publica su
+   propio texto, y escribirlo aca seria la segunda copia que esta tanda evita. */
+const QV_NOTA = Object.freeze({
+  /* ⚠️ EL REVERSO DIASTOLICO SE GRADUA CON DOS FUENTES Y DOS NUMEROS DE NIVELES, y sin decirlo la
+     tarjeta de una TAVI y la de una valvula nativa se leen igual sobre el mismo parametro. La
+     diferencia esta medida y declarada desde el PRO3 y el PRO-B2: la nativa y la protesis
+     QUIRURGICA llevan un solo nivel por la ESC/EACTS 2025, y la TAVI dos por la VARC-3 (Tabla 16,
+     folio 1846), que es la unica de las dos guias que publica la cifra en dos tramos.
+     La nota NO escribe ningun numero a proposito: los cortes de la TAVI viven como constante
+     LOCAL dentro de `eteTaviRPV` y copiarlos aca seria un segundo dueno. */
+  'insuf:aortica': 'El reverso diast\u00f3lico en la aorta descendente se grad\u00faa con dos fuentes: '
+    + 'en la v\u00e1lvula nativa y en la pr\u00f3tesis quir\u00fargica, un solo nivel (ESC/EACTS 2025); '
+    + 'en la TAVI, dos niveles (VARC-3, Tabla 16, folio 1846). El corte que se aplica lo publica '
+    + 'la propia fila.'
+});
 /* Los colores de las bandas que `EV_COLOR` no nombra. Son los vocabularios de severidad propios
    de las estenosis binarias y de las protesis, donde la palabra no es leve/moderada/severa. */
 const QV_COLOR = Object.freeze({
   sin: '--green', 'sin estenosis': '--green', 'no significativa': '--green',
   significativa: '--red', posible: '--orange', 'sin criterios': '--green',
-  'no vota': '--text2', apoyo: '--text2'
+  'no vota': '--text2', apoyo: '--text2',
+  /* El tramo del medio del gradiente mitral: el informe lo llama «gradiente elevado» y NO usa la
+     palabra estenosis. Amarillo, como la banda del medio de las demas. */
+  elevado: '--yellow',
+  /* Los dos tramos que NO clasifican van en GRIS, que es «no se pronuncia»: el «Variable» que la
+     Tabla 13 de la ASE 2024 publica para el jet protesico entre 20 y 50 %, y el tramo por debajo
+     del piso de moderada del gradiente aortico, donde el criterio devuelve `null`. Pintarlos de
+     verde seria afirmar normalidad sobre un parametro que la app no gradua. */
+  variable: '--text2', 'no gradua': '--text2'
 });
 /* ⚠️ EL NUMERO DEL PACIENTE SALE DEL TEXTO DE LA FILA. Acepta la coma decimal —varias filas de
    esta pestana escriben «0,35»— y descarta lo que viene despues de la primera unidad. Devuelve

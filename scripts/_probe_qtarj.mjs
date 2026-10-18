@@ -1284,6 +1284,7 @@ window.__Q = {
                 return { nom: n ? tx(n) : null, val: v ? tx(v) : null,
                          grado: g ? tx(g) : null, decide: !!m } }),
       barras: q('[data-ev-barra]').map(function(b){ return b.getAttribute('data-ev-barra') }),
+      arias:  q('[data-ev-barra]').map(function(b){ return b.getAttribute('aria-label') }),
       puntos: q('[data-ev-punto]').map(function(b){ return b.getAttribute('data-ev-punto') }),
       cortes: q('[data-ev-corte]').map(function(b){ return tx(b) }),
       apoyo:  (c.querySelector('[data-qv-apoyo]') ? tx(c.querySelector('[data-qv-apoyo]')) : null),
@@ -2389,6 +2390,54 @@ async function main() {
       }
     }
     out.grupos.tarj = g;
+  }
+
+  /* ══ GRUPO `prot3` — LA MITRAL Y LA AORTICA PROTESICAS ═════════════════════════════════════
+     Con morfologia protesica la tarjeta de la ESTENOSIS tiene que leer la entrada `prot:*` y la
+     de la INSUFICIENCIA la nativa, porque la ASE 2024 remite la regurgitacion protesica a los
+     criterios de la valvula nativa. Se mide la clave que eligio y el contenido.
+     ⚠️ DENOMINADOR: se informa el objeto del dueno protesico para que se vea que la escena de
+     verdad produjo veredicto. */
+  if (corre('prot3')) {
+    const g = {};
+    await viewport(1200, 900);
+    for (const caso of [
+      { n: 'vm-bio', morf: 'Prótesis biológica', campos: { em_vmax: '2.8', em_gmedio: '12', thp: '250',
+        em_dtsvi: '20', em_vtitsvi: '20', em_vtimit: '60' } },
+      { n: 'vm-mec', morf: 'Prótesis mecánica', campos: { em_gmedio: '12', thp: '250',
+        em_dtsvi: '20', em_vtitsvi: '20', em_vtimit: '60' } }
+    ]) {
+      await ev(`window.__P.despejar()`);
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__P.abrirTodasValv()`);
+      await tipear('peso', '80'); await tipear('talla', '180');
+      const sm = await ev(`window.__P.sel('vm_morf', ${JSON.stringify(caso.morf)})`);
+      if (sm && sm.err) throw new Error('DENOMINADOR vm_morf: ' + JSON.stringify(sm));
+      for (const k of Object.keys(caso.campos)) await tipear(k, caso.campos[k]);
+      const o = { morfPuesta: sm, prot: await ev(`window.__P.prot()`),
+                  dueno: await ev(`window.__Q.dueno('esten', 'mitral')`) };
+      try { await clicQ('tarj-esten-mitral'); o.card = await ev(`window.__Q.cardDatos()`);
+            await tecla('Escape'); } catch (e) { o.card = { ABORTO: e.message }; }
+      try { await clicQ('tarj-insuf-mitral'); o.cardIns = await ev(`window.__Q.cardDatos()`);
+            await tecla('Escape'); } catch (e) { o.cardIns = { ABORTO: e.message }; }
+      g[caso.n] = o;
+    }
+    /* La AORTICA protesica quirurgica: el cuadro es el mismo que la nativa y los cortes NO. */
+    for (const morf of ['Prótesis biológica', 'TAVI']) {
+      await ev(`window.__P.despejar()`);
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__P.abrirTodasValv()`);
+      await tipear('peso', '80'); await tipear('talla', '180');
+      const sa = await ev(`window.__P.sel('va_morf', ${JSON.stringify(morf)})`);
+      if (sa && sa.err) throw new Error('DENOMINADOR va_morf: ' + JSON.stringify(sa));
+      await tipear('gmedio_ao', '30');
+      await tipear('ea_dtsvi', '20'); await tipear('itv_tsvi', '20'); await tipear('itv_ao', '60');
+      const o = { morfPuesta: sa, dueno: await ev(`window.__Q.dueno('esten', 'aortica')`) };
+      try { await clicQ('tarj-esten-aortica'); o.card = await ev(`window.__Q.cardDatos()`);
+            await tecla('Escape'); } catch (e) { o.card = { ABORTO: e.message }; }
+      g['va-' + morf.replace(/[^A-Za-z]/g, '')] = o;
+    }
+    out.grupos.prot3 = g;
   }
 
   out.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
