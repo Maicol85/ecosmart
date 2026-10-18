@@ -17276,6 +17276,14 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
        estudio: es navegacion, no un dato del paciente.
        La barra se DESPLAZA horizontalmente por dentro (`overflow-x:auto` + `nowrap`), que es lo
        que evita el scroll horizontal de la PAGINA a 390 px. -->
+  <!-- «Volver»: aparece SOLO cuando se llego aca desde una tarjeta i, y devuelve a la pestana y
+       a la posicion de scroll anteriores. Nace con `hidden` Y con su propia regla de display,
+       porque `[hidden]{display:none}` vive en la hoja del NAVEGADOR y cualquier regla de autor
+       le gana —este archivo ya pago esa leccion cuatro veces—. -->
+  <div id="ref-volver-wrap" hidden>
+    <button type="button" id="ref-volver" class="ref-volver" onclick="refVolver()">&#8592; Volver</button>
+    <span id="ref-volver-de" class="ref-volver-de"></span>
+  </div>
   <div class="ref-subbar" role="tablist" aria-label="Secciones de Referencias">
     <button type="button" class="ref-subtab active" role="tab" id="ref-subtab-dim" aria-selected="true" aria-controls="ref-sub-dim" tabindex="0" onclick="refSubTab('dim',this)">📏 Dimensiones</button>
     <button type="button" class="ref-subtab" role="tab" id="ref-subtab-fun" aria-selected="false" aria-controls="ref-sub-fun" tabindex="-1" onclick="refSubTab('fun',this)">📈 Función</button>
@@ -19752,6 +19760,17 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   #tab-refs .ref-busc-hit:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;}
   #tab-refs .ref-busc-sub{flex:0 0 auto;font-size:.7rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.3px;}
   #tab-refs .ref-busc-tit{flex:1 1 auto;min-width:0;}
+  /* «Volver» y el boton «Ver referencia» de las tarjetas. Ni un color propio. */
+  #tab-refs #ref-volver-wrap{display:flex;gap:8px;align-items:center;margin:0 0 8px;}
+  #tab-refs #ref-volver-wrap[hidden]{display:none;}
+  #tab-refs .ref-volver{padding:6px 12px;font-size:.78rem;font-weight:600;font-family:inherit;cursor:pointer;
+    color:var(--accent);background:transparent;border:1px solid var(--accent);border-radius:7px;}
+  #tab-refs .ref-volver:hover{background:var(--section-head);}
+  #tab-refs .ref-volver-de{font-size:.74rem;color:var(--text2);}
+  #vinfo-card .vinfo-verref{display:block;width:100%;margin-top:9px;padding:6px 8px;font-size:10.5px;
+    font-weight:700;font-family:inherit;cursor:pointer;color:var(--accent);background:transparent;
+    border:1px solid var(--border);border-radius:6px;text-align:center;}
+  #vinfo-card .vinfo-verref:hover{border-color:var(--accent);}
   #tab-lab .lab-chart-container{position:relative;height:220px;width:100%;margin-bottom:8px;}
   /* Corazón anatómico con datos superpuestos */
   #tab-lab .heart-lab-grid{display:grid;grid-template-columns:340px 1fr;gap:22px;align-items:start;}
@@ -40057,6 +40076,14 @@ function _vInfoColocar(clave) {
     c.removeAttribute('data-ev-dyn');
     c.innerHTML = _vInfoHTML(clave, btn);
   }
+  /* ⚠️ EL BOTON «VER REFERENCIA» VA ANTES DE MEDIR LA ALTURA, y en las DOS ramas de pintado:
+     agregarlo despues dejaria la tarjeta colocada con una altura que ya no es la suya, o sea
+     fuera de la pantalla por el alto del boton. Sale SOLO si la clave tiene entrada en
+     `VINFO_REF`; las cinco que no la tienen no llevan boton.
+     Va por `window.` y con `typeof` porque `_vinfoPieRef` vive en otro bloque `<script>`: una
+     dependencia cruzada entre bloques sin respaldo se vuelve ReferenceError el dia que el
+     bloque grande deja de parsear, y este archivo ya se quedo sin JavaScript por eso. */
+  if (typeof window._vinfoPieRef === 'function') { try { window._vinfoPieRef(c, clave) } catch (e) {} }
   /* Se pinta y se mide EN EL MISMO CUADRO: entre el display y la escritura de top/left no hay
      ningun await ni setTimeout, asi que no hay salto visible. */
   c.style.left = '0px'; c.style.top = '0px';
@@ -61823,6 +61850,8 @@ function refSubInit() {
   bar.dataset.refSubInit = '1';
   /* El buscador se cablea DESPUES de reubicar, porque su indice lee los paneles ya armados. */
   if (typeof refBuscadorInit === 'function') { try { refBuscadorInit() } catch (e) {} }
+  /* El assert del mapeo tarjeta -> entrada: las dos direcciones, al arrancar. */
+  if (typeof _vinfoRefAssert === 'function') { try { _vinfoRefAssert() } catch (e) {} }
 }
 function refSubTab(sub, el) {
   refSubInit();
@@ -62004,6 +62033,87 @@ function refBuscar() {
   });
   return { q: q, n: hits.length, ids: hits.map(function (e) { return e.id }) };
 }
+
+/* ══ «VER REFERENCIA» desde una tarjeta i (tanda P, commit 3) ══════════════════════════════
+   `VINFO_REF` es el dueno UNICO del mapeo tarjeta -> entrada de Referencias, y no lo decide
+   ningun heuristico sobre el nombre de la clave: una clave que no esta aca NO lleva boton, que
+   es lo que la orden pide («no inventes entradas»).
+
+   ⚠️ CINCO TARJETAS QUEDAN SIN BOTON, y es porque la entrada NO EXISTE, no por un olvido:
+   `tarj-insuf-pulmonar`, `tarj-esten-tricuspide`, `tarj-esten-pulmonar`, `et-avt-cont` y
+   `pul-balik`. Referencias no tiene una entrada de insuficiencia ni de estenosis pulmonar, ni
+   de estenosis tricuspidea, ni de la formula de Balik. Crearlas seria escribir contenido
+   clinico nuevo, que esta orden no autoriza. Queda en PENDIENTES.md.
+
+   El assert de arranque exige las dos direcciones: que toda clave de `VINFO_REF` exista en
+   `VINFO`, y que su destino exista en el marcado. Sin el, una clave con un typo deja un boton
+   que lleva a ninguna parte y eso no se nota hasta que alguien lo toca. */
+const VINFO_REF = Object.freeze({
+  'ai-card': 'ai', 'vi-card': 'vi2', 'vi-geo': 'vi2',
+  'ad-card': 'ad', 'vd-tam-card': 'vd2', 'vd-fun-card': 'vd2', 'ao-card': 'ao2',
+  'tarj-insuf-mitral': 'im', 'tarj-esten-mitral': 'em',
+  'tarj-insuf-aortica': 'ia', 'tarj-esten-aortica': 'eao',
+  'tarj-insuf-tricuspide': 'it', 'tarj-diast': 'vi', 'ea-pvl': 'pao',
+  'eroa-pisa': 'im', 'eroa-cont': 'im', 'im-onda-e': 'im', 'im-vti-ratio': 'im',
+  'im-vc': 'im', 'im-jet-ai': 'im',
+  'avm-thp': 'em', 'avm-cont': 'em', 'vsv-tsvi': 'em',
+  'ia-eroa-pisa': 'ia', 'it-eroa-pisa': 'it', 'ea-ava-cont': 'eao',
+  'prot-eoa': 'pm', 'prot-dvi': 'pm', 'prot-obstr': 'pm', 'prot-ppm': 'pm',
+  'prot-vmax': 'pm', 'prot-gmed': 'pm', 'prot-thp': 'pm',
+  'ea-prot-sev': 'pao', 'ea-prot-ppm': 'pao',
+  'tapse-psap': 'htp',
+  'otr-burbujas': 'burbujas', 'otr-rac': 'coronarias', 'oai-ref': 'oai'
+});
+function _vinfoRefAssert() {
+  const malas = [];
+  Object.keys(VINFO_REF).forEach(function (k) {
+    if (typeof VINFO === 'undefined' || !VINFO[k]) malas.push('clave sin tarjeta: ' + k);
+    if (!document.getElementById('ref-' + VINFO_REF[k])) malas.push('destino inexistente: ref-' + VINFO_REF[k]);
+  });
+  if (malas.length) console.error('[VINFO_REF] ' + malas.join(' · '));
+  return malas;
+}
+/* Desde donde se vino, para el «Volver». Vive en MEMORIA: es navegacion. */
+let _refVuelta = null;
+function _vinfoPieRef(c, clave) {
+  const destino = VINFO_REF[clave];
+  if (!c || !destino) return null;
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'vinfo-verref'; b.dataset.refDestino = destino;
+  b.textContent = 'Ver referencia →';
+  b.setAttribute('aria-label', 'Ver la entrada de Referencias de este parámetro');
+  b.addEventListener('click', function (ev) { ev.stopPropagation(); refVerReferencia(clave); });
+  c.appendChild(b);
+  return b;
+}
+/* Cierra la tarjeta, anota de donde se vino y abre la entrada. */
+function refVerReferencia(clave) {
+  const destino = VINFO_REF[clave];
+  if (!destino) return false;
+  const sec = document.querySelector('.tab-section.active');
+  _refVuelta = { tab: sec ? String(sec.id || '').replace(/^tab-/, '') : null,
+                 y: window.scrollY || 0, clave: clave };
+  if (typeof vInfoCerrar === 'function') { try { vInfoCerrar(true) } catch (e) {} }
+  const ok = refIr(destino);
+  const w = document.getElementById('ref-volver-wrap');
+  const de = document.getElementById('ref-volver-de');
+  if (w) w.hidden = false;
+  if (de) de.textContent = _refVuelta.tab ? 'desde ' + _refVuelta.tab : '';
+  return ok;
+}
+function refVolver() {
+  const w = document.getElementById('ref-volver-wrap');
+  if (w) w.hidden = true;
+  if (!_refVuelta) return false;
+  const v = _refVuelta; _refVuelta = null;
+  if (v.tab && typeof showTab === 'function') { try { showTab(v.tab) } catch (e) {} }
+  /* El scroll se repone DESPUES de cambiar de pestana: `showTab` puede moverlo. */
+  try { window.scrollTo(0, v.y) } catch (e) {}
+  return true;
+}
+window.VINFO_REF = VINFO_REF; window.refVerReferencia = refVerReferencia;
+window.refVolver = refVolver; window._vinfoRefAssert = _vinfoRefAssert;
+window._refVueltaLeer = function () { return _refVuelta };
 window._refNorm = _refNorm; window.refIr = refIr; window.refDestacar = refDestacar;
 window.refBuscar = refBuscar; window.refBuscadorInit = refBuscadorInit;
 window._refIndiceArmar = _refIndiceArmar;

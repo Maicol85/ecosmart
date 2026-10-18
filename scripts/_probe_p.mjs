@@ -993,6 +993,94 @@ async function main() {
     process.stderr.write('[buscar] listo\n');
   }
 
+  /* ══ GRUPO verref ════════════════════════════════════════════════════════════════════════
+     Las cuatro tarjetas que la orden nombra —una de AORTA, una de AI o VI, una de VALVULA y una
+     del CORTOS— mas el assert del mapeo y el censo de las que NO llevan boton. Los globos viven
+     en CINCO pestanas y las secciones de valvula nacen cerradas: se abre la puerta del PROPIO
+     boton con `puertaDe`, que es el abridor de TC-500. */
+  if (corre('verref')) {
+    const r = { tarjetas: {} };
+    const CUATRO = ['ao-card', 'vi-card', 'tarj-insuf-mitral', 'otr-burbujas'];
+    try {
+      r.assert = await ev(`window._vinfoRefAssert()`);
+      /* ⚠️ VINFO ES UN const DE MODULO Y NO UNA PROPIEDAD DE window —la trampa que CLAUDE.md
+         ya tiene escrita— asi que el censo de claves sale del DOM: los [data-vinfo] que el
+         marcado declara. VINFO_REF si esta exportada. */
+      r.mapa = await ev(`(function(){
+        var ks = {}; var bs = document.querySelectorAll('[data-vinfo]');
+        for (var i=0;i<bs.length;i++) ks[bs[i].getAttribute('data-vinfo')] = 1;
+        var dom = Object.keys(ks).sort();
+        var sin = dom.filter(function(c){ return !window.VINFO_REF[c] });
+        return { conBoton: Object.keys(window.VINFO_REF).length, enDOM: dom.length,
+                 sinBoton: sin } })()`);
+      /* ⚠️ EL GLOBO DEL TEST DE BURBUJA VIVE DENTRO DE UNA SECCION QUE NACE CERRADA
+         (`#ete-seccion-burbuja`, con su propio `toggleEteSeccion`), que `puertaDe` no abre: sin
+         esto mide 0 x 0 y la sonda informa «SIN GEOMETRIA» sobre un globo que el medico ve.
+         Se abre con su toggle REAL, el gesto del medico. */
+      await ev(`(function(){ var h = document.querySelector('[onclick*="toggleEteSeccion(\\'burbuja\\'"]');
+        if (h) h.click(); var s = document.getElementById('ete-seccion-burbuja');
+        return s ? getComputedStyle(s).display : 'NO EXISTE' })()`);
+      /* Y se desplaza la pagina ANTES de medir, para que el «Volver» tenga denominador: con
+         scrollY en 0 en las dos puntas, «volvio a la posicion» pasa sin medir nada. */
+      for (const clave of CUATRO) {
+        const o = {};
+        o.puerta = await ev(`window.__P.puertaDe(${JSON.stringify(clave)})`);
+        o.scrollPrevio = await ev(`(function(){ window.scrollTo(0, 400); return window.scrollY })()`);
+        /* Clic REAL en el globo. */
+        o.abrir = await ev(`(function(){
+          var b = document.querySelector('[data-vinfo=' + JSON.stringify(${JSON.stringify(clave)}) + ']');
+          if (!b) return { err: 'NO EXISTE el globo' };
+          var g = b.getBoundingClientRect();
+          if (!(g.width > 0 && g.height > 0)) return { err: 'SIN GEOMETRIA ' + g.width + 'x' + g.height };
+          b.click();
+          var c = document.getElementById('vinfo-card');
+          var vr = c ? c.querySelector('.vinfo-verref') : null;
+          return { abierta: c ? getComputedStyle(c).display : null,
+                   tieneBoton: !!vr, destino: vr ? vr.dataset.refDestino : null,
+                   txt: vr ? vr.textContent : null,
+                   color: vr ? getComputedStyle(vr).color : null,
+                   dentroDelViewport: c ? (c.getBoundingClientRect().bottom <= innerHeight + 1) : null } })()`);
+        if (!o.abrir.err && o.abrir.tieneBoton) {
+          o.ir = await ev(`(function(){
+            var antesTab = document.querySelector('.tab-section.active');
+            var antesY = window.scrollY;
+            var c = document.getElementById('vinfo-card');
+            var vr = c.querySelector('.vinfo-verref');
+            vr.click();
+            var dest = vr.dataset.refDestino;
+            var cuerpo = document.getElementById('ref-' + dest);
+            var card = cuerpo ? cuerpo.closest('.card') : null;
+            var sec = document.querySelector('.tab-section.active');
+            var w = document.getElementById('ref-volver-wrap');
+            return { desdeTab: antesTab ? antesTab.id : null, desdeY: antesY,
+                     tarjetaCerrada: getComputedStyle(c).display === 'none',
+                     tabAhora: sec ? sec.id : null,
+                     activa: window._refSubActivaLeer(),
+                     abierta: cuerpo ? (cuerpo.style.display !== 'none') : null,
+                     destacada: card ? card.classList.contains('ref-destacada') : null,
+                     vis: window.__P.vis('ref-' + dest),
+                     volverVis: w ? { hidden: w.hidden, display: getComputedStyle(w).display } : null,
+                     volverDe: (document.getElementById('ref-volver-de')||{}).textContent } })()`);
+          o.volver = await ev(`(function(){
+            var b = document.getElementById('ref-volver');
+            if (!b) return { err: 'NO EXISTE ref-volver' };
+            var g = b.getBoundingClientRect();
+            if (!(g.width > 0 && g.height > 0)) return { err: 'SIN GEOMETRIA ref-volver' };
+            var v = window._refVueltaLeer();
+            b.click();
+            var sec = document.querySelector('.tab-section.active');
+            var w = document.getElementById('ref-volver-wrap');
+            return { esperada: v, tabAhora: sec ? sec.id : null, y: window.scrollY,
+                     volverEscondido: w ? w.hidden : null,
+                     vuelta: window._refVueltaLeer() } })()`);
+        }
+        r.tarjetas[clave] = o;
+      }
+    } catch (e) { r.err = e.message; }
+    out.grupos.verref = r;
+    process.stderr.write('[verref] listo\n');
+  }
+
   /* ══ GRUPO maqueta ════════════════════════════════════════════════════════════════════════ */
   if (corre('maqueta')) {
     const r = { celdas: [] };
