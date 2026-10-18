@@ -62700,7 +62700,23 @@ function qxLblPos(n){ var x = QX_LX[n];
    NADA de esto se guarda: ni en el estudio ni en el navegador — el dibujo es de lectura, igual
    que el panel 3D. */
 var _qxRot = 0, _qxFlip = 1;
+/* ⚠️ EL BUCLE NO ES PERPETUO, Y ESO NO ES UNA OPTIMIZACION. Un `requestAnimationFrame` colgado
+   para siempre repinta el dibujo sesenta veces por segundo con la pestana ETE abierta y sin que
+   nada se mueva — es por lo que el panel 3D apaga el suyo al cerrarse. Aca el bucle se ENCIENDE
+   con un gesto y se APAGA solo cuando el dibujo converge: `qxAnimar` no hace nada si ya hay uno
+   pedido, y `qxFrame` no pide el siguiente si no queda nada por mover. Lo mide el caso de la
+   suite contando cuadros con el dibujo quieto.
+   `_qxTRot` / `_qxTFlip` son el DESTINO —el valor al que el dibujo tiende— y `_qxVel` la inercia
+   que deja el arrastre. Con `prefers-reduced-motion` no hay ni inercia ni interpolacion: se salta
+   al destino en un cuadro. */
+var _qxTRot = 0, _qxTFlip = 1, _qxVel = 0, _qxDrag = false, _qxLastA = 0;
+var _qxRaf = null, _qxDown = null, _qxCableado = false;
 var _qxN = null;   /* los nodos, creados una sola vez */
+
+function qxCalmo(){
+  try { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
+  catch (e) { return false; }
+}
 
 function qxEl(n, a, padre){ var e = document.createElementNS(QXNS, n);
   Object.keys(a).forEach(function(k){ e.setAttribute(k, a[k]); });
@@ -62766,12 +62782,105 @@ function eteQxConstruir(){
   N.annPts = []; for (var ph = 0; ph < 360; ph += 4) N.annPts.push(qxAnnPt(ph));
   N.coapPts = []; for (var x = -QXE; x <= QXE; x += 8) N.coapPts.push([x, qxCoapY(x)]);
   _qxN = N;
-  /* El toque corto que cicla la lesion. Va por propiedad y NO por `setAttribute('onclick', ...)`,
-     que Semgrep marca y que ademas obliga a armar codigo como cadena. En el commit del giro este
-     mismo gesto pasa a distinguirse de un arrastre por su recorrido. */
-  N.fes.forEach(function(f){ f.e.onclick = function(){ eteClick(f.n); }; });
-  N.lbl.forEach(function(l){ l.e.onclick = function(){ eteClick(l.n); }; });
+  /* ⚠️ EL TOQUE YA NO ES UN `onclick`: lo decide el RECORRIDO del puntero (ver `qxCablear`).
+     Con `onclick` en cada feston, un arrastre que empieza sobre un feston y lo suelta sobre el
+     mismo cicla su lesion al terminar de girar — y el medico que gira el dibujo le cambiaria el
+     diagnostico a la valva sin tocar nada. Es lo que la orden prohibe expresamente. */
+  qxCablear(N);
   return N;
+}
+
+/* ══ EL GIRO (Y3c4, 2026-10-18) ═══════════════════════════════════════════════════════════════
+   El gesto es el de la demo aprobada, linea por linea: el angulo del puntero respecto del centro
+   del dibujo, la diferencia normalizada a +-180, la inercia como media movil de esa diferencia y
+   el roce de 0,94 por cuadro. No se invento ninguna constante.
+
+   ⚠️ UN ARRASTRE NO CAMBIA LA LESION, y el umbral son los 6 px de la demo medidos sobre el
+   recorrido ACUMULADO (|dx| + |dy| maximo), no sobre la distancia final: un arrastre que vuelve
+   al punto de partida tiene distancia final cero y SI es un arrastre.
+   ⚠️ SE CABLEA UNA SOLA VEZ. `eteQxConstruir` tiene su guarda `if (_qxN) return`, y `_qxCableado`
+   es la segunda: sin ella, dos llamadas apilarian dos juegos de oyentes y cada gesto giraria el
+   doble. Los oyentes van en el `<svg>`, que existe desde el arranque y no se reemplaza nunca.
+   ⚠️ SIN ZOOM Y SIN BOTONES DE GIRAR: no hay oyente de `wheel` ni de `gesture`, y el teclado solo
+   atiende las dos flechas horizontales. */
+function qxPtAngulo(ev){
+  var svg = document.getElementById('ete-svg-qx');
+  var r = svg.getBoundingClientRect();
+  var sx = (ev.clientX - r.left) / r.width * 420, sy = (ev.clientY - r.top) / r.height * 420;
+  return Math.atan2(sy - QXCY, sx - QXCX) / QXD;
+}
+function qxGirarA(destino){
+  _qxVel = 0; _qxTRot = destino;
+  if (qxCalmo()) { _qxRot = _qxTRot; eteQxDibujar(); qxVistasAviso(); return; }
+  qxAnimar();
+}
+function qxAnimar(){ if (_qxRaf === null) _qxRaf = requestAnimationFrame(qxFrame); }
+function qxFrame(){
+  _qxRaf = null;
+  if (!_qxDrag) {
+    if (Math.abs(_qxVel) > 0.05) { _qxRot += _qxVel; _qxVel *= 0.94; _qxTRot = _qxRot; }
+    else {
+      _qxVel = 0;
+      _qxRot += (_qxTRot - _qxRot) * 0.16;
+      if (Math.abs(_qxTRot - _qxRot) < 0.05) _qxRot = _qxTRot;
+    }
+    _qxFlip += (_qxTFlip - _qxFlip) * 0.16;
+    if (Math.abs(_qxTFlip - _qxFlip) < 0.005) _qxFlip = _qxTFlip;
+  }
+  eteQxDibujar();
+  if (_qxDrag || _qxVel !== 0 || _qxRot !== _qxTRot || _qxFlip !== _qxTFlip) qxAnimar();
+  else qxVistasAviso();
+}
+/* Hook del commit de las vistas: avisa que la camara se asento, para que los tres botones se
+   marquen o se desmarquen. Con `typeof` porque el giro no depende de las vistas. */
+function qxVistasAviso(){
+  try { if (typeof eteQxVistasSync === 'function') eteQxVistasSync(); } catch (e) {}
+}
+function qxCablear(N){
+  if (_qxCableado) return;
+  _qxCableado = true;
+  var svg = N.svg;
+  svg.style.cursor = 'grab';
+  var sobre = function(t){
+    var i;
+    for (i = 0; i < N.fes.length; i++) if (N.fes[i].e === t) return N.fes[i].n;
+    for (i = 0; i < N.lbl.length; i++) if (N.lbl[i].e === t) return N.lbl[i].n;
+    return null;
+  };
+  svg.addEventListener('pointerdown', function(ev){
+    _qxDrag = true; _qxVel = 0; svg.style.cursor = 'grabbing';
+    _qxDown = { n: sobre(ev.target), x: ev.clientX, y: ev.clientY, moved: 0 };
+    try { svg.setPointerCapture(ev.pointerId); } catch (x) {}
+    _qxLastA = qxPtAngulo(ev);
+  });
+  svg.addEventListener('pointermove', function(ev){
+    if (!_qxDrag) return;
+    if (_qxDown) _qxDown.moved = Math.max(_qxDown.moved,
+      Math.abs(ev.clientX - _qxDown.x) + Math.abs(ev.clientY - _qxDown.y));
+    var a = qxPtAngulo(ev), d = a - _qxLastA;
+    if (d > 180) d -= 360;
+    if (d < -180) d += 360;
+    _qxRot += d; _qxTRot = _qxRot;
+    _qxVel = qxCalmo() ? 0 : (0.5 * d + 0.5 * _qxVel);
+    _qxLastA = a;
+    eteQxDibujar();
+  });
+  var soltar = function(){
+    if (!_qxDrag) return;
+    _qxDrag = false; svg.style.cursor = 'grab'; _qxTRot = _qxRot;
+    if (_qxDown && _qxDown.n && _qxDown.moved < 6) eteClick(_qxDown.n);
+    _qxDown = null;
+    if (qxCalmo()) { _qxVel = 0; eteQxDibujar(); qxVistasAviso(); } else qxAnimar();
+  };
+  svg.addEventListener('pointerup', soltar);
+  svg.addEventListener('pointercancel', function(){
+    _qxDrag = false; _qxDown = null; _qxVel = 0; svg.style.cursor = 'grab'; qxVistasAviso();
+  });
+  /* Las flechas del teclado como alternativa al arrastre: 15 grados por pulsacion. */
+  svg.addEventListener('keydown', function(ev){
+    if (ev.key === 'ArrowLeft')       { qxGirarA(_qxTRot - 15); ev.preventDefault(); }
+    else if (ev.key === 'ArrowRight') { qxGirarA(_qxTRot + 15); ev.preventDefault(); }
+  });
 }
 
 /* Lleva un punto del espacio del dibujo al del lienzo: espejo, rotacion y traslado al centro. */
@@ -62861,6 +62970,8 @@ window.eteQxPlanoSync = eteQxPlanoSync;
 /* Lo que la sonda y el caso de la suite leen. Es un lector PURO: no dibuja ni escribe estado. */
 function eteQxEstado(){
   return { rot: Math.round(_qxRot * 100) / 100, flip: _qxFlip,
+           tRot: Math.round(_qxTRot * 100) / 100, tFlip: _qxTFlip,
+           raf: _qxRaf !== null, drag: _qxDrag, calmo: qxCalmo(),
            ang: (typeof _qxAng === 'undefined') ? null : _qxAng,
            corta: (typeof _qxAng !== 'undefined' && _qxAng !== null && ETE_CORTES[_qxAng])
                   ? ETE_CORTES[_qxAng].fest.slice() : [] };
@@ -62868,6 +62979,7 @@ function eteQxEstado(){
 
 window.eteQxConstruir = eteQxConstruir; window.eteQxDibujar = eteQxDibujar;
 window.eteQxEstado = eteQxEstado; window.QXG = QXG; window.QX_DEF = QX_DEF;
+window.qxGirarA = qxGirarA;
 
 /* El dibujo se construye al arrancar. `eteSegSync` corre a los 300 ms y pinta las lesiones del
    estudio sobre los seis poligonos, asi que estos tienen que existir ANTES: de ahi los 150 ms.

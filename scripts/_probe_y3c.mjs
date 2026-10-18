@@ -758,6 +758,71 @@ async function main() {
      tanda no puede romper la infraestructura que comparten nueve sondas. */
   await evCrudo(`
 window.__Y = {
+  estado() { try { return window.eteQxEstado() } catch (e) { return 'EXC: ' + e.message } },
+  ponerRot(v) { try { window.qxGirarA(v); return window.eteQxEstado() } catch (e) { return 'EXC' } },
+  esperar(ms) { return new Promise(function(r){ setTimeout(function(){ r(ms) }, ms) }) },
+
+  /* El centro de un nodo del dibujo, en coordenadas del VIEWPORT y ya desplazado a la vista:
+     un arrastre sobre un punto fuera de la ventana no es un gesto. */
+  centroDe(id) {
+    var e = document.getElementById(id);
+    if (!e) return { err: 'NO EXISTE ' + id };
+    e.scrollIntoView({ block: 'center' });
+    var r = e.getBoundingClientRect();
+    if (!(r.width > 0 && r.height > 0)) return { err: 'SIN GEOMETRIA ' + id };
+    var x = Math.round(r.left + r.width / 2), y = Math.round(r.top + r.height / 2);
+    if (y < 0 || y > window.innerHeight) return { err: 'FUERA DEL VIEWPORT y=' + y };
+    return { x: x, y: y, w: Math.round(r.width), h: Math.round(r.height) } },
+
+  /* Cuadros de requestAnimationFrame pedidos en una ventana de tiempo. Con el dibujo quieto
+     tienen que ser CERO: un bucle perpetuo repinta sesenta veces por segundo sin que nada se
+     mueva, y eso es lo que el panel 3D apaga al cerrarse. */
+  contarRaf(ms) {
+    return new Promise(function(res){
+      var n = 0, o = window.requestAnimationFrame;
+      window.requestAnimationFrame = function(f){ n++; return o.call(window, f) };
+      setTimeout(function(){ window.requestAnimationFrame = o; res(n) }, ms);
+    }) },
+
+  botonesGirar() {
+    var o = {};
+    var svg = document.getElementById('ete-svg-qx');
+    o.enSvg = svg ? svg.querySelectorAll('button').length : 'NO EXISTE';
+    var host = document.getElementById('m3d-qx');
+    var bt = [];
+    if (host) host.querySelectorAll('button').forEach(function(b){ bt.push((b.textContent||'').trim()) });
+    o.enBloque = bt;
+    o.conPalabraGirar = bt.filter(function(t){ return /girar|rotar|gira/i.test(t) }).length;
+    o.cursor = svg ? getComputedStyle(svg).cursor : null;
+    o.touchAction = svg ? getComputedStyle(svg).touchAction : null;
+    o.tabindex = svg ? svg.getAttribute('tabindex') : null;
+    return o },
+
+  /* Sin zoom: se cuenta espiando addEventListener en una reconstruccion. Lo que se mide es que
+     el dibujo no registre wheel ni gesture; el conteo total sirve de denominador. */
+  sinZoom() {
+    var svg = document.getElementById('ete-svg-qx');
+    if (!svg) return 'NO EXISTE';
+    var tipos = [], o = EventTarget.prototype.addEventListener;
+    EventTarget.prototype.addEventListener = function(t){
+      if (this === svg) tipos.push(t); return o.apply(this, arguments) };
+    try { window.eteQxConstruir() } catch (e) {}
+    EventTarget.prototype.addEventListener = o;
+    return { tiposEnUnaReconstruccion: tipos,
+             hayWheel: tipos.indexOf('wheel') >= 0,
+             hayGesture: tipos.filter(function(t){ return t.indexOf('gesture') === 0 }).length } },
+
+  /* N llamadas a eteQxConstruir no pueden apilar oyentes: la guarda de _qxCableado. */
+  recablear(n) {
+    var svg = document.getElementById('ete-svg-qx');
+    if (!svg) return 'NO EXISTE';
+    var cuenta = 0, o = EventTarget.prototype.addEventListener;
+    EventTarget.prototype.addEventListener = function(t){
+      if (this === svg) cuenta++; return o.apply(this, arguments) };
+    for (var i = 0; i < n; i++) { try { window.eteQxConstruir() } catch (e) {} }
+    EventTarget.prototype.addEventListener = o;
+    return { llamadas: n, oyentesNuevos: cuenta, nodos: document.getElementsByTagName('*').length } },
+
   m3dEstado() {
     var o = {};
     try { o.camara = window.m3dEstadoCamara ? window.m3dEstadoCamara() : 'SIN FN' }
@@ -1118,6 +1183,65 @@ window.__Y = {
     } catch (e) { r.err = e.message; }
     out.grupos.plano = r;
     process.stderr.write('[plano] listo\n');
+  }
+
+  /* ══ GRUPO «giro» — arrastre REAL, flechas, y que un arrastre no cicla la lesion ═════════ */
+  if (corre('giro')) {
+    const r = {};
+    /* Arrastre con el raton REAL por CDP: mousePressed, varios mouseMoved y mouseReleased.
+       Un `pointerdown` sintetico no lleva `pointerId` ni captura, asi que no es el gesto. */
+    const arrastrar = async (x0, y0, x1, y1, pasos) => {
+      await cdp.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: x0, y: y0,
+        button: 'left', clickCount: 1, buttons: 1, pointerType: 'mouse' }, sessionId);
+      for (let i = 1; i <= (pasos || 8); i++) {
+        await cdp.send('Input.dispatchMouseEvent', { type: 'mouseMoved',
+          x: Math.round(x0 + (x1 - x0) * i / (pasos || 8)),
+          y: Math.round(y0 + (y1 - y0) * i / (pasos || 8)),
+          button: 'left', buttons: 1, pointerType: 'mouse' }, sessionId);
+      }
+      await cdp.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: x1, y: y1,
+        button: 'left', clickCount: 1, buttons: 0, pointerType: 'mouse' }, sessionId);
+    };
+    try {
+      await ev(`window.__Y.irETE()`);
+      await ev(`window.__Y.limpiarSeg()`);
+      r.botonesGirar = await ev(`window.__Y.botonesGirar()`);
+      r.rafQuieto = await ev(`window.__Y.contarRaf(700)`, 30000);
+      /* El arrastre tiene que mover el dibujo Y NO ciclar la lesion del feston de arranque. */
+      const c = await ev(`window.__Y.centroDe('ete-qx-A2')`);
+      r.centroA2 = c;
+      r.antes = await ev(`window.__Y.estado()`);
+      r.lesionAntes = await ev(`window.__Y.lesion('A2')`);
+      await arrastrar(c.x, c.y, c.x + 70, c.y + 40, 10);
+      await ev(`window.__Y.esperar(900)`, 30000);
+      r.trasArrastre = await ev(`window.__Y.estado()`);
+      r.lesionTrasArrastre = await ev(`window.__Y.lesion('A2')`);
+      r.dibTrasArrastre = await ev(`window.__Y.geomDib()`);
+      /* Y el toque CORTO sobre el mismo feston si cicla: mismo punto, sin mover. */
+      await arrastrar(c.x, c.y, c.x, c.y, 2);
+      await ev(`window.__Y.esperar(300)`, 30000);
+      r.lesionTrasToque = await ev(`window.__Y.lesion('A2')`);
+      await ev(`window.__Y.limpiarSeg()`);
+      /* Las flechas del teclado: 15 grados por pulsacion, con el foco en el dibujo. */
+      await ev(`(function(){ document.getElementById('ete-svg-qx').focus(); return document.activeElement.id })()`);
+      r.focoSvg = await ev(`document.activeElement ? document.activeElement.id : null`);
+      await ev(`window.__Y.ponerRot(0)`);
+      await tecla('ArrowRight');
+      await ev(`window.__Y.esperar(900)`, 30000);
+      r.derecha = await ev(`window.__Y.estado()`);
+      await tecla('ArrowLeft'); await tecla('ArrowLeft');
+      await ev(`window.__Y.esperar(900)`, 30000);
+      r.izquierda = await ev(`window.__Y.estado()`);
+      /* El bucle se apaga cuando el dibujo converge: cero cuadros con el dibujo quieto. */
+      r.rafTrasGiro = await ev(`window.__Y.contarRaf(700)`, 30000);
+      /* Sin zoom: ni un oyente de wheel ni de gesture sobre el dibujo. */
+      r.sinZoom = await ev(`window.__Y.sinZoom()`);
+      /* Veinte gestos no acumulan oyentes: se cuenta llamando a eteQxConstruir veinte veces. */
+      r.cableado = await ev(`window.__Y.recablear(20)`);
+      await ev(`window.__Y.ponerRot(0)`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.giro = r;
+    process.stderr.write('[giro] listo\n');
   }
 
   if (corre('ctrl')) {
