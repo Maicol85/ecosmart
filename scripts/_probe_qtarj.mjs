@@ -2322,6 +2322,75 @@ async function main() {
     } catch (e) { g.ABORTO = e.message; }
   }
 
+  /* ══ GRUPO `tarj` — EL CONTENIDO DE CADA TARJETA CONTRA EL DUENO ═══════════════════════════
+     Una escena con las ocho lesiones cargadas. De cada tarjeta se leen el grado, las filas, las
+     barras, los puntos, el grupo de apoyo, la linea «Decide» y las fuentes; y aparte se lee el
+     DUENO (`_v2dPastilla` + `_v2dPorQue`). El lector compara los dos.
+     ⚠️ DENOMINADOR: se informa el grado de las ocho pastillas, para que se vea que la escena de
+     verdad produjo lesiones. Sin eso, una tarjeta vacia en las ocho se lee igual que «la tarjeta
+     no sabe leer el dueno». */
+  if (corre('tarj')) {
+    const g = { tarjetas: {}, duenos: {} };
+    await viewport(1200, 900);
+    await ev(`window.__P.despejar()`);
+    await ev(`window.__P.nuevo()`);
+    await ev(`window.__P.abrirTodasValv()`);
+    await ev(`window.__P.abrirDoppler()`);
+    await ev(`window.__P.abrirTodasValv()`);
+    await tipear('peso', '80'); await tipear('talla', '180');
+    /* MITRAL: insuficiencia por PISA y estenosis por area. */
+    await tipear('im_vc', '8');
+    await tipear('em_vtimit', '60');
+    await tipear('em_gmedio', '12');
+    await tipear('thp', '160');
+    /* AORTICA: la IA vota por THP y por el reverso telediastolico; `ia_vc` alimenta el grado
+       pero NO tiene fila en el cuadro, asi que una escena que solo lo cargue deja la tarjeta sin
+       filas y se lee igual que «el dueno no devuelve nada». Medido. */
+    await tipear('ia_vc', '7');
+    await tipear('ia_pht', '180');
+    await tipear('vmax_ao', '4.5'); await tipear('gmedio_ao', '45');
+    /* TRICUSPIDE: insuficiencia por vena contracta y estenosis por gradiente. */
+    await tipear('it_vc', '8');
+    await tipear('et_gmedio', '8');
+    await tipear('et_thp', '210');
+    /* PULMONAR. */
+    await tipear('ip_pht', '80');
+    await ev(`window.__P.sel('ip_ancho', 'ancho')`);
+    await tipear('vp_vmax', '3.5');
+    g.grados = await ev(`window.__P.grados()`);
+    /* DENOMINADOR de las fuentes: que contiene cada caja declarada y donde vive cada nodo de
+       fuente. Sin esto, una lista de fuentes vacia se lee igual que «el cosechador no funciona». */
+    g.cajas = await ev(`(function(){ var o = {};
+      ['bloque-insuf-mitral','bloque-esten-mitral','bloque-insuf-aortica','bloque-ea-detalle',
+       'bloque-insuf-tricuspide','bloque-esten-tricuspide','bloque-insuf-pulmonar',
+       'bloque-esten-pulmonar','bloque-prot-vt-res','bloque-prot-vp-res','bloque-prot-vm-res']
+      .forEach(function(id){ var c = document.getElementById(id);
+        o[id] = c ? { vinfo: Array.prototype.slice.call(c.querySelectorAll('[data-vinfo]'))
+                        .map(function(b){ return b.getAttribute('data-vinfo') }),
+                      fte: Array.prototype.slice.call(c.querySelectorAll('[id$="-ref-fuente"]'))
+                        .map(function(n){ return n.id + '=' + (n.textContent||'').slice(0,40) }) }
+                  : 'NO EXISTE' });
+      ['it-ref-fuente','et-ref-fuente'].forEach(function(id){
+        var n = document.getElementById(id);
+        o['padres:' + id] = 'NO EXISTE';
+        if (n) { var cad = [], q = n.parentNode;
+          while (q && q.nodeType === 1 && cad.length < 14) { if (q.id) cad.push(q.id); q = q.parentNode }
+          o['padres:' + id] = cad.join(' < ') + ' | txt=' + (n.textContent||'').slice(0,30) } });
+      return o })()`);
+    for (const t of ['insuf', 'esten']) {
+      for (const v of ['mitral', 'aortica', 'tricuspide', 'pulmonar']) {
+        const k = 'tarj-' + t + '-' + v;
+        g.duenos[k] = await ev(`window.__Q.dueno(${JSON.stringify(t)}, ${JSON.stringify(v)})`);
+        try {
+          await clicQ(k);
+          g.tarjetas[k] = await ev(`window.__Q.cardDatos()`);
+          await tecla('Escape');
+        } catch (e) { g.tarjetas[k] = { ABORTO: e.message }; }
+      }
+    }
+    out.grupos.tarj = g;
+  }
+
   out.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
   if (out.md5Fin !== out.md5Ini) out.AVISO = 'EL ARCHIVO SE MOVIO DURANTE LA CORRIDA';
   console.log(JSON.stringify(out, null, 1));

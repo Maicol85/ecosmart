@@ -41472,7 +41472,20 @@ function qvTarjeta(tipo, valv) {
   const hd = _evDiv('qv-hd');
   const hdR = _evDiv('ev-rot', 'Grado de este paciente');
   hd.appendChild(hdR);
-  const hdV = _evDiv('qv-grado', P.txt || 'sin datos', { 'data-qv-grado': kl });
+  cont.appendChild(hd);
+
+  /* ══ LO QUE DICE EL DUENO ══════════════════════════════════════════════════════════════════ */
+  let R = null;
+  try { R = _v2dPorQue(C.k); } catch (e) { R = null; }
+
+  /* ⚠️ «SIN GRADO» Y «SIN DATOS» NO SON LO MISMO, Y LA DIFERENCIA LA DA EL DUENO. Con la pastilla
+     apagada y parametros cargados, la app NO esta diciendo que no hay datos: esta diciendo que no
+     publica un grado —la estenosis mitral con gradiente elevado e IM significativa es el caso, y
+     la binaria con el boton apagado tambien—. Escribir «sin datos» ahi seria afirmar que no se
+     midio nada sobre una pantalla que muestra dos parametros. */
+  const hayFilas = !!(R && !R.manual && R.filas && R.filas.length);
+  const hdV = _evDiv('qv-grado', P.txt || (hayFilas ? 'sin grado consignado' : 'sin datos'),
+                     { 'data-qv-grado': kl });
   if (P.cls) hdV.className = 'qv-grado ' + P.cls;
   hd.appendChild(hdV);
   if (C.prot) {
@@ -41480,12 +41493,6 @@ function qvTarjeta(tipo, valv) {
     hd.appendChild(_evDiv('qv-morf', mt ? ('Morfolog\u00eda: ' + mt) : 'Pr\u00f3tesis',
                           { 'data-qv-morf': kl }));
   }
-  cont.appendChild(hd);
-
-  /* ══ LO QUE DICE EL DUENO ══════════════════════════════════════════════════════════════════ */
-  let R = null;
-  try { R = _v2dPorQue(C.k); } catch (e) { R = null; }
-
   if (R && R.manual) {
     if (R.aviso) cont.appendChild(_evDiv('qv-manual', R.aviso, { 'data-qv-manual': kl }));
     if (R.fund) {
@@ -41503,21 +41510,50 @@ function qvTarjeta(tipo, valv) {
     return cont;
   }
 
-  /* Las filas, en el ORDEN en que la pantalla las publica. `noVota` y `retiro` salen del dueno:
-     la tarjeta no vuelve a derivar quien vota. */
-  const grupo = _evDiv('qv-crit', null, { 'data-qv-crit': kl });
-  R.filas.forEach(function (f) { grupo.appendChild(_qvFila(f, kl)); });
-  cont.appendChild(grupo);
+  /* ══ LOS QUE DECIDEN Y LOS DE APOYO, EN DOS GRUPOS («Q2») ══════════════════════════════════
+     ⚠️ QUIEN ES DE APOYO LO DICE EL DUENO Y NO UNA SEGUNDA LISTA. Dos formas, las dos del dueno:
+     el `noVota` que `V2D_PORQUE` declara —la velocidad pico de la protesis mitral, que la Tabla
+     11 publica y la prosa del folio 24 omite— y la palabra «apoyo» que la PROPIA FILA escribe en
+     su leyenda, que es lo que hace el THP de la estenosis tricuspidea desde el VAL1. Con una
+     lista aparte, el dia que un criterio deje de votar la tarjeta seguiria contandolo. */
+  const decide = [], apoyo = [];
+  R.filas.forEach(function (f) {
+    f.apoyo = !!(f.noVota || /\bapoyo\b/i.test(String(f.grado || '')));
+    (f.apoyo ? apoyo : decide).push(f);
+  });
+
+  if (decide.length) {
+    const grupo = _evDiv('qv-crit', null, { 'data-qv-crit': kl });
+    decide.forEach(function (f) { grupo.appendChild(_qvFila(f, kl)); });
+    cont.appendChild(grupo);
+  }
+  if (apoyo.length) {
+    cont.appendChild(_evDiv('ev-rot qv-apoyo-rot', 'Signos de apoyo \u2014 no deciden el grado',
+                            { 'data-qv-apoyo': kl }));
+    const ga = _evDiv('qv-crit', null, { 'data-qv-crit-apoyo': kl });
+    apoyo.forEach(function (f) { ga.appendChild(_qvFila(f, kl)); });
+    cont.appendChild(ga);
+  }
 
   if (R.decide) cont.appendChild(_evDiv('qv-decide', 'Decide: ' + R.decide,
                                         { 'data-qv-decide': kl }));
   if (R.aviso) cont.appendChild(_evDiv('ev-avi', R.aviso, { 'data-qv-aviso': kl }));
+  cont.appendChild(_qvFuentesPie(kl));
   return cont;
 }
-/* UNA fila de criterio: nombre, valor y grado, con la marca que la pantalla publica. */
+/* UNA fila de criterio. Con spec en `QV_BARRA` sale como BARRA —cortes, punto y unidad— y sin
+   spec como fila de texto: nombre, valor y grado, con la marca que la pantalla publica. */
 function _qvFila(f, kl) {
+  const spec = QV_BARRA[f.id || ''] || null;
+  if (spec && !f.retiro) {
+    const b = _qvBarra(spec, f, kl);
+    if (b) {
+      if (f.decide) b.appendChild(_evDiv('qv-marca', 'decide'));
+      return b;
+    }
+  }
   const row = _evDiv('qv-row', null, { 'data-qv-row': kl });
-  const nom = _evDiv('qv-nom', f.nom + (f.noVota ? ' \u00b7 no vota' : ''));
+  const nom = _evDiv('qv-nom', f.nom + (f.apoyo ? ' \u00b7 apoyo' : ''));
   row.appendChild(nom);
   const val = _evDiv('qv-val', f.val, { 'data-qv-val': f.nom });
   row.appendChild(val);
@@ -41532,6 +41568,118 @@ function _qvFila(f, kl) {
   if (f.decide) row.appendChild(_evDiv('qv-marca', 'decide'));
   return row;
 }
+/* ══ LA ESTRUCTURA COMUN DE LA TARJETA («Q2», 2026-10-17) ══════════════════════════════════════
+   DECISION DE MAICOL. Encabezado con el GRADO del paciente; una BARRA por parametro con sus
+   cortes, el punto del paciente y su unidad; los signos de APOYO en su propio grupo, rotulados
+   como apoyo; la linea «Decide»; y la FUENTE al pie con su folio. Las bandas SIN palabras de
+   gravedad —solo color— porque el grado va en el encabezado y la categoria de cada parametro va
+   debajo de su barra, en palabras.
+
+   ⚠️ EL MOTOR DE DIBUJO ES EL DE L Y DE M (`_evBarra`) Y NO SE TOCA. Lo que esta tanda agrega es
+   la tabla `QV_BARRA`, que dice COMO se encuadra cada parametro, y de donde salen sus bandas: de
+   las constantes que ya son el dueno del corte (`IM_CORTES`, `IT_CRIT`, `ET_CRIT`, `EA_BANDAS`,
+   `VT_PROT_T19`, `VP_PROT_T15`, `VM_PROT_T11`...). NI UN NUMERO ESCRITO A MANO: una segunda copia
+   de un corte es como el cuadro de referencias y el informe empiezan a decir cosas distintas del
+   mismo paciente, que es el defecto que este archivo documenta cuatro veces.
+
+   ⚠️ EL PUNTO DEL PACIENTE SE PARSEA DEL TEXTO QUE LA FILA YA PUBLICA, y no se vuelve a leer el
+   campo. Asi el punto cae exactamente en el numero que el medico tiene delante —con su redondeo y
+   todo— y no en un valor crudo que la pantalla muestra de otra forma. La marca «(revisar)» viaja
+   en el texto de la fila, que la tarjeta muestra igual.
+
+   ⚠️ UN PARAMETRO SIN SPEC NO PIERDE SU FILA: sale como fila de TEXTO, con su valor y su grado
+   leidos del dueno. Hay parametros cuyos cortes viven como LITERAL dentro de la cascada que los
+   evalua y no en una constante —los tres de la insuficiencia aortica son el caso— y ahi una barra
+   obligaria a copiar el corte. Su fila igual publica el corte, porque el badge que la app escribe
+   ya lo lleva adentro («Leve (>500ms)»). Declarado en docs/PENDIENTES.md. */
+const QV_BARRA = Object.freeze({});
+/* Los colores de las bandas que `EV_COLOR` no nombra. Son los vocabularios de severidad propios
+   de las estenosis binarias y de las protesis, donde la palabra no es leve/moderada/severa. */
+const QV_COLOR = Object.freeze({
+  sin: '--green', 'sin estenosis': '--green', 'no significativa': '--green',
+  significativa: '--red', posible: '--orange', 'sin criterios': '--green',
+  'no vota': '--text2', apoyo: '--text2'
+});
+/* ⚠️ EL NUMERO DEL PACIENTE SALE DEL TEXTO DE LA FILA. Acepta la coma decimal —varias filas de
+   esta pestana escriben «0,35»— y descarta lo que viene despues de la primera unidad. Devuelve
+   `null` cuando no hay numero: un parametro cualitativo («embotada», «presente») no tiene punto, y
+   un punto en el borde izquierdo se leeria como «este paciente esta en lo mas bajo de la escala». */
+function _qvNum(txt) {
+  if (txt == null) return null;
+  const m = String(txt).replace(/\u00a0/g, ' ').match(/-?\d+(?:[.,]\d+)?/);
+  if (!m) return null;
+  const n = parseFloat(m[0].replace(',', '.'));
+  return isFinite(n) ? n : null;
+}
+/* Las cajas de donde la tarjeta cosecha sus fuentes. Es estructura del DOM y no contenido
+   clinico: lo que se declara es DONDE mirar, no que dice. */
+/* ⚠️ SON LAS `caja-*` Y NO LAS `bloque-*`, Y LO MIDIO LA SONDA. El nodo `<x>-ref-fuente` de la
+   tricuspide vive en `campos-insuf-tricuspide`, que es HERMANO del `bloque-*` y no su hijo: con
+   los `bloque-*` declarados, la tarjeta de la IT y la de la ET salian SIN una sola fuente, que se
+   lee igual que «el cosechador no funciona». Los `caja-*` son el envoltorio que contiene las dos
+   cosas. Los tres bloques de resultado protesico se agregan porque DOS de ellos viven fuera de su
+   caja —el de la mitral y el de la pulmonar nacen arriba, al lado de la morfologia—; los solapes
+   son inocuos, porque el cosechador deduplica. */
+const QV_CAJA = Object.freeze({
+  'insuf:mitral':     Object.freeze(['caja-insuf-mitral']),
+  'esten:mitral':     Object.freeze(['caja-esten-mitral', 'bloque-prot-vm-res']),
+  'insuf:aortica':    Object.freeze(['caja-insuf-aortica', 'bloque-prot-va-pvl']),
+  'esten:aortica':    Object.freeze(['caja-esten-aortica']),
+  'insuf:tricuspide': Object.freeze(['caja-insuf-tricuspide']),
+  'esten:tricuspide': Object.freeze(['caja-esten-tricuspide', 'bloque-prot-vt-res']),
+  'insuf:pulmonar':   Object.freeze(['caja-insuf-pulmonar']),
+  'esten:pulmonar':   Object.freeze(['caja-esten-pulmonar', 'bloque-prot-vp-res'])
+});
+/* ⚠️ LA FUENTE NO SE ESCRIBE: SE COSECHA DE LA PANTALLA. Dos orígenes, los dos ya existentes:
+     · el nodo `<x>-ref-fuente` de la propia lesion, que publica su constante
+       (`IT_CRIT_FUENTE`, `ET_CRIT_FUENTE`) — es la fuente de los CORTES de ese cuadro;
+     · el campo `fuente` de cada globo i que vive dentro de las cajas de esa lesion, que son las
+       fuentes POR PARAMETRO del registro `VINFO`.
+   Se deduplican: cuatro parametros de la protesis mitral citan la MISMA Tabla 11, y repetirla
+   cuatro veces empuja la tarjeta a scroll interno. Es el argumento de `_evFuentesPie`. */
+function _qvFuentes(kl) {
+  const vistas = [];
+  const sum = (t) => { const x = String(t || '').trim();
+    if (x && vistas.indexOf(x) < 0) vistas.push(x); };
+  (QV_CAJA[kl] || []).forEach(function (cid) {
+    const caja = document.getElementById(cid);
+    if (!caja) return;
+    Array.prototype.slice.call(caja.querySelectorAll('[id$="-ref-fuente"]'))
+      .forEach(function (n) { sum(n.textContent); });
+    Array.prototype.slice.call(caja.querySelectorAll('[data-vinfo]')).forEach(function (b) {
+      const k = b.getAttribute('data-vinfo');
+      const d = (k && VINFO[k]) ? VINFO[k] : null;
+      if (d && d.fuente) sum(d.fuente);
+    });
+  });
+  return vistas;
+}
+/* El pie de fuentes como NODOS, con el mismo aspecto que el de L y de M. */
+function _qvFuentesPie(kl) {
+  const fs = _qvFuentes(kl);
+  const fr = document.createDocumentFragment();
+  fs.forEach(function (f, i) {
+    fr.appendChild(_evDiv('ev-fte', (i === 0 ? 'Fuente: ' : '') + f, { 'data-ev-fuente': 'pie' }));
+  });
+  return fr;
+}
+/* UNA barra de parametro, si hay spec para el. `spec.bandas` es una FUNCION para que sus cortes se
+   lean del dueno en el momento de dibujar: una tabla con los numeros ya resueltos quedaria vieja
+   el dia que alguien mueva un corte, y ese es el modo de falla que no se ve. */
+function _qvBarra(spec, f, kl) {
+  let bandas = null;
+  try { bandas = spec.bandas(); } catch (e) { bandas = null; }
+  if (!bandas || !bandas.length) return null;
+  const val = _qvNum(f.val);
+  return _evBarra({
+    clave: kl + '|' + (spec.clave || f.nom),
+    rotulo: f.nom + (f.apoyo ? ' \u00b7 apoyo' : ''),
+    lo: spec.lo, hi: spec.hi, unidad: spec.uni, dec: (spec.dec == null ? 0 : spec.dec),
+    bandas: bandas, valor: val, cat: f.grado || '',
+    corteEn: spec.corteEn, colores: QV_COLOR, W: 316
+  });
+}
+window.QV_BARRA = QV_BARRA; window._qvNum = _qvNum; window._qvFuentes = _qvFuentes;
 window.qvTarjeta = qvTarjeta; window._qvClave = _qvClave; window.QV_LESION = QV_LESION;
 
 
@@ -118079,7 +118227,11 @@ function _v2dCrit(c) {
   const gl = grado.toLowerCase();
   for (let i = 0; i < V2D_PQ_RETIRO.length; i++)
     if (gl.indexOf(V2D_PQ_RETIRO[i]) > -1) { retiro = true; break; }
-  return { nom: nom, val: val, grado: grado, decide: decide, retiro: retiro,
+  /* ⚠️ `id` SE AGREGA EN LA TANDA Q Y ES INERTE PARA LA VISTA 2D, que no lo lee: lo necesitan
+     las ocho tarjetas i para encontrar el encuadre de su barra en `QV_BARRA` sin tener que
+     emparejar por el ROTULO, que es texto del DOM y se mueve con cualquier retoque de un
+     `<label>`. Emparejar por el id es emparejar por lo que la propia tabla de criterios declara. */
+  return { id: c.id, nom: nom, val: val, grado: grado, decide: decide, retiro: retiro,
            noVota: !!c.noVota, color: !!c.color };
 }
 /* Las marcas con las que la pantalla dice que un criterio no concluye. En minusculas y con tilde,
