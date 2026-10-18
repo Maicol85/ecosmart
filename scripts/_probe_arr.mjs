@@ -867,6 +867,106 @@ async function main() {
     process.stderr.write('[tarj] listo\n');
   }
 
+
+  /* == GRUPO pares: las referencias que necesitan DOS O MAS campos ============================
+     El censo campo por campo no las ve: con un solo insumo la referencia nunca se pinta, asi que
+     al borrarlo no hay nada que conservar y el campo sale «no falla». Aca se carga la base
+     COMPLETA y se borra UNO. Es el hueco que el censo tiene por construccion. */
+  const PARES = [
+    { n: 'masa-vi',  base: { siv: '13', ddfvi: '58', ppvi: '13', peso: '80', talla: '180' }, saca: 'siv' },
+    /* DENOMINADOR: la fila del espesor parietal relativo no se pinta sin la masa, que pide
+       tambien el SIV: sin el, `pinto` sale 0 y el «no falla» no prueba nada. */
+    { n: 'rwt',      base: { ppvi: '13', ddfvi: '58', siv: '13', peso: '80', talla: '180' }, saca: 'ppvi' },
+    { n: 'geom',     base: { siv: '13', ddfvi: '58', ppvi: '13', peso: '80', talla: '180' }, saca: 'ddfvi' },
+    { n: 'fa-vi',    base: { ddfvi: '58', dsfvi: '40' }, saca: 'dsfvi' },
+    { n: 'ai-idx',   base: { ai_vol: '98', peso: '80', talla: '180' }, saca: 'peso' },
+    { n: 'vdfvi-idx',base: { vdfvi: '160', peso: '80', talla: '180' }, saca: 'vdfvi' },
+    { n: 'vsfvi-idx',base: { vsfvi: '90', peso: '80', talla: '180' }, saca: 'vsfvi' },
+    { n: 'ea-val',   base: { onda_e: '95', onda_a: '50' }, saca: 'onda_a' },
+    { n: 'ee-val',   base: { onda_e: '95', e_sep: '5', e_lat: '6' }, saca: 'onda_e' },
+    { n: 'eprom-par',base: { e_sep: '5', e_lat: '6' }, saca: 'e_lat' },
+    { n: 'fac-vd',   base: { vd_area_d: '30', vd_area_s: '18' }, saca: 'vd_area_s' },
+    { n: 'pmad',     base: { vci_diam: '25' }, saca: 'vci_diam' },
+    { n: 'psap',     base: { vmax_it: '3.0', vci_diam: '18' }, saca: 'vmax_it' },
+    { n: 'tpsp',     base: { tapse: '18', vmax_it: '2.8', vci_diam: '18' }, saca: 'tapse' },
+    { n: 'avm-thp',  base: { thp: '150' }, saca: 'thp' },
+    { n: 'ava-cont', base: { ea_dtsvi: '20', ea_vtitsvi: '20', ea_vtiao: '56' }, saca: 'ea_vtiao' },
+    { n: 'dvi-ao',   base: { ea_vtitsvi: '20', ea_vtiao: '56' }, saca: 'ea_vtitsvi' },
+    { n: 'qp-vd',    base: { tsvd_diametro: '20', vti_tsvd: '20' }, saca: 'vti_tsvd' },
+  ];
+  if (corre('pares')) {
+    const r = [];
+    for (const P of PARES) {
+      try {
+        await ev(`window.__P.nuevo()`);
+        await ev(`window.__P.calentar()`);
+        const ref0 = await ev(`window.__P.refs()`);
+        for (const [k, v2] of Object.entries(P.base)) { await ev(`window.__P.abrirPara(${JSON.stringify(k)})`); await tipear(k, v2); }
+        const ref1 = await ev(`window.__P.refs()`);
+        await borrar(P.saca, 'bs');
+        const ref2 = await ev(`window.__P.refs()`);
+        /* ⚠️ EL DENOMINADOR CORRECTO NO ES EL FORMULARIO VACIO: es «la misma base MENOS el campo
+           sacado, cargada desde limpio». Comparar contra el vacio informa como defecto todo span
+           que refleje un campo que SIGUE cargado -el peso, la talla, la VCI, el e prima-: la
+           primera corrida de este grupo dio 9 de 18 «fallando» y siete eran eso. */
+        await ev(`window.__P.nuevo()`);
+        await ev(`window.__P.calentar()`);
+        for (const [k, v3] of Object.entries(P.base)) {
+          if (k === P.saca) continue;
+          await ev(`window.__P.abrirPara(${JSON.stringify(k)})`);
+          await tipear(k, v3);
+        }
+        await ev(`window.__P.calentar()`);
+        const ref3 = await ev(`window.__P.refs()`);
+        r.push({ n: P.n, saca: P.saca, pinto: Object.keys(dif(ref0, ref1)).length,
+                 arrastre: dif(ref3, ref2), quedaVsVacio: Object.keys(dif(ref0, ref2)).length });
+      } catch (e) { r.push({ n: P.n, err: e.message }); }
+      process.stderr.write('[pares] ' + P.n + ' -> ' + (r[r.length-1].err ? 'ERR'
+        : (Object.keys(r[r.length-1].arrastre||{}).length + ' arrastran')) + '\n');
+    }
+    out.grupos.pares = r;
+  }
+
+
+  /* == GRUPO ab: el A/B de CONTROL contra el inicio de la tanda ================================
+     Con el formulario VACIO y con un escenario CARGADO en las zonas que esta tanda toca. Mide las
+     seis superficies una por una -informe en tres estilos, EN SUMA, las 440 columnas del Excel y
+     el juego de campos del estudio- mas las referencias de pantalla. Todo lo que cambie fuera de
+     lo autorizado es un defecto. */
+  const ESC_AB = {
+    vacio: {},
+    cargado: { peso: '80', talla: '180', edad: '62',
+               ai_diam: '44', ai_area: '26', ai_vol: '98',
+               siv: '13', ddfvi: '58', dsfvi: '40', ppvi: '13', fevi: '45',
+               ao_sin: '46', ao_st: '45', ao_tub: '47', diam_cayado: '46', diam_ao_toracica: '42',
+               tapse: '14', s_prime: '8', vd_bas: '45', vd_pared: '7', ad_area: '22',
+               vci_diam: '25', vmax_it: '3.0',
+               onda_e: '95', onda_a: '50', e_sep: '5', e_lat: '6', thp: '150', tde: '180' },
+    ajeno: { im_vc: '8', ea_vmax: '4.5', ea_gmedio: '45', it_vc: '8', ip_pht: '80',
+             em_gmedio: '12', ep_vmax: '4.5' },
+  };
+  if (corre('ab')) {
+    const r = {};
+    for (const [nom, campos] of Object.entries(ESC_AB)) {
+      try {
+        await ev(`window.__P.nuevo()`);
+        for (const [k, v2] of Object.entries(campos)) {
+          await ev(`window.__P.abrirPara(${JSON.stringify(k)})`);
+          await tipear(k, v2);
+        }
+        await ev(`window.__P.calentar()`);
+        const o = { refs: await ev(`window.__P.refs()`), pills: await ev(`window.__P.pills()`),
+                    campos: await ev(`window.__P.camposGuardados()`) };
+        for (const est of ['estandar', 'narrativo', 'conciso']) o['inf:' + est] = await ev(`window.__P.informe(${JSON.stringify(est)})`);
+        const xl = await ev(`window.__P.excelDOM()`);
+        o.cols = xl && xl.cols; o.xl = xl && xl.fila;
+        r[nom] = o;
+      } catch (e) { r[nom] = { err: e.message }; }
+      process.stderr.write('[ab] ' + nom + '\n');
+    }
+    out.grupos.ab = r;
+  }
+
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
   process.stdout.write(JSON.stringify(OUT, null, 1));
   cdp.close(); srv.close(); process.exit(0);

@@ -22488,6 +22488,44 @@ function badge(cls, txt) {
   const c = BADGE_CLS_OK.indexOf(String(cls)) >= 0 ? cls : 'gray';
   return `<span class="badge badge-${c}">${escHtml(txt)}</span>`;
 }
+/* ══ EL DUEÑO ÚNICO DEL «SIN DATO» (ARR2, 2026-10-18) ══════════════════════════
+   Un campo VACÍO o no numérico es SIN DATO, y toda referencia que dependa de él tiene que volver
+   a la raya. Nace porque el patrón de esta app era `if (dato) { el.innerHTML = … }` —un `if` que
+   SÓLO PINTA—, así que al borrar el dato la fila CONSERVABA el resultado del valor anterior.
+   Medido contra HEAD con teclas reales: fallaban las cinco filas de la aorta torácica, el TAPSE,
+   la onda S′, el área de la AD —y con ella la categoría C de la probabilidad de HTP—, el promedio
+   de las dos e′ y la densidad del jet tricuspídeo.
+
+   ⚠️ EL SÍNTOMA TIENE DOS CARAS Y ES EL MISMO DEFECTO. Con **Backspace dígito por dígito** lo que
+   queda es el ÚLTIMO VALOR INTERMEDIO —el «4» de «46»—, que cae por debajo del mínimo de la banda
+   y hace que la fila diga «Valor fuera de rango (10-90 mm)» con el campo vacío: de ahí la lectura
+   de «el vacío se lee como cero». Con **seleccionar todo y Delete** queda el grado del valor
+   ORIGINAL. Las dos salen de no tener `else`.
+
+   ⚠️ SON DOS FUNCIONES HERMANAS Y NO UNA CON UN FLAG. `refSync` escribe `innerHTML` porque sus
+   llamadores pasan un badge ya armado por `badge()`, que escapa su texto; `refTxt` escribe
+   `textContent` porque las tres celdas del cuadro del Doppler lo usaban y este trabajo no cambia
+   lo que se ve. Un solo nombre con un flag hace que el día que alguien se equivoque de flag un
+   texto sin escapar entre como HTML, y el escape de esta app es manual: no hay CSP de respaldo.
+
+   ⚠️ LA RAYA VA SIEMPRE POR `textContent`, también en `refSync`: es el ÚNICO camino que no pasa
+   por `innerHTML`, y así el estado «sin dato» no puede introducir marcado por ningún descuido. */
+const REF_SIN_DATO = '\u2014';
+function refSync(id, html) {
+  const el = document.getElementById(id);
+  if (!el) return false;
+  if (html == null || html === '') { el.textContent = REF_SIN_DATO; return true; }
+  el.innerHTML = html;
+  return true;
+}
+function refTxt(id, txt) {
+  const el = document.getElementById(id);
+  if (!el) return false;
+  el.textContent = (txt == null || txt === '') ? REF_SIN_DATO : txt;
+  return true;
+}
+window.REF_SIN_DATO = REF_SIN_DATO; window.refSync = refSync; window.refTxt = refTxt;
+
 function toast(msg) {
   const t = document.getElementById('toast');
   /* FIX A11y: errores críticos se anuncian de inmediato (assertive); el resto, polite.
@@ -22619,6 +22657,15 @@ function calcBSA() {
        tienen otro disparador. Es la lección que esta función escribe dos líneas más arriba, y el
        consumidor nuevo había quedado del lado equivocado. */
     if (typeof vmProtEOAPintar === 'function') { try { vmProtEOAPintar(); } catch (e) {} }
+    /* ⚠️ `calcAI` Y `calcVI` FALTABAN EN ESTA RAMA, y sólo se llamaban en la de abajo (ARR2,
+       2026-10-18). Los dos tienen su propio `else` que repone la raya cuando falta la superficie
+       corporal —la cápsula de la AI publica «Sin indexar (falta ASC)» desde el J1—, pero nadie se
+       los llamaba al borrar el peso: medido, con un volumen de AI de 98 ml y borrando «80» dígito
+       por dígito la fila se quedaba en «155.0 ml/m²» y la cápsula en «Dilat. severa (>48)» —el
+       155 es 98 dividido por la superficie corporal del «8» intermedio—. Van con `try`, igual que
+       las nueve llamadas de arriba. */
+    if (typeof calcAI === 'function') { try { calcAI(); } catch (e) {} }
+    if (typeof calcVI === 'function') { try { calcVI(); } catch (e) {} }
     return;
   }
   const bsa = Math.sqrt((p * t) / 3600).toFixed(2);
@@ -22776,10 +22823,18 @@ const AO_INTERP_EL = { ao_sin: 'ao-interp', ao_st: 'ao-st-interp', ao_tub: 'ao-t
                        diam_cayado: 'ao-cay-interp', diam_ao_toracica: 'ao-desc-interp' };
 const AO_BADGE_COLOR = { normal:'green', leve:'yellow', moderada:'orange', severa:'red' };
 function calcAorta() {
-  aoSegsMedidos().forEach(function(m){
-    const el = document.getElementById(AO_INTERP_EL[m.sg.k]);
-    if (!el) return;
-    const sg = m.sg;
+  /* ⚠️ SE RECORRE `AO_SEGS` COMPLETO Y NO `aoSegsMedidos()` (ARR2, 2026-10-18). Ese lector
+     FILTRA los segmentos sin dato (`if (!x) return null` + `.filter(Boolean)`) porque el informe
+     y el PDF sólo quieren los medidos —y ahí está bien—, pero el `forEach` nunca llegaba a los
+     vacíos y las cinco cápsulas conservaban lo último que se les había escrito. `aoSegsMedidos`
+     NO se toca: lo consumen el narrativo, el PDF y la tarjeta ⓘ. */
+  const _med = {};
+  aoSegsMedidos().forEach(function(m){ _med[m.sg.k] = m; });
+  AO_SEGS.forEach(function(sg){
+    const idSpan = AO_INTERP_EL[sg.k];
+    if (!idSpan) return;
+    const m = _med[sg.k];
+    if (!m) { refSync(idSpan, null); return; }
     let txt;
     /* Los rótulos llevan el OPERADOR que aplica el código, no un entero siguiente: estos campos
        aceptan decimales (los `type=number` pasan a texto con `inputmode=decimal` en runtime), y
@@ -22789,7 +22844,7 @@ function calcAorta() {
     else if (m.grado === 'leve')     txt = 'Dilat. leve (' + aoSegSim(sg, 'dil') + sg.ref + ' y ≤' + sg.leve + 'mm)';
     else if (m.grado === 'moderada') txt = 'Dilat. moderada (>' + sg.leve + ' y ≤' + sg.mod + 'mm)';
     else                             txt = 'Dilat. severa (>' + (sg.mod || sg.leve) + 'mm)';
-    el.innerHTML = badge(m.grado === 'fuera' ? 'red' : AO_BADGE_COLOR[m.grado], txt);
+    refSync(idSpan, badge(m.grado === 'fuera' ? 'red' : AO_BADGE_COLOR[m.grado], txt));
   });
 }
 
@@ -25177,16 +25232,16 @@ function calcVD() {
         + dil.map(d => d.lblC + ' ' + d.val + ' mm (' + d.cat + ': ' + ase25Rango(d.k, d.cat, true) + ')').join(' · '));
     }
   }
-  /* ⚠️ LAS DOS FILAS SIGUEN SIN VOLVER A «—» AL BORRAR EL DATO: su `if` solo pinta. Es el
-     defecto V1 de `docs/PENDIENTES.md`, preexistente, y esta orden no lo nombra. */
-  if (tapse) {
-    document.getElementById('tapse-interp').innerHTML =
-      vdBadgeGrado('tapse', tapse, vdTapseCat(tapse), 'mm', 'disfunción sistólica');
-  }
-  if (sp) {
-    document.getElementById('sprime-interp').innerHTML =
-      vdBadgeGrado('s_prime', sp, vdSprimeCat(sp), 'cm/s', 'disfunción sistólica');
-  }
+  /* ✅ LAS DOS FILAS VUELVEN A LA RAYA AL BORRAR EL DATO (ARR2, 2026-10-18). Era el defecto V1
+     de `docs/PENDIENTES.md`: su `if` SOLO PINTABA, así que borrando un TAPSE de 14 mm la fila
+     seguía diciendo «disfunción sistólica leve» sobre un campo vacío —y con Backspace dígito por
+     dígito se quedaba con el «1», o sea «1 mm — disfunción sistólica severa»—. El `else` vive
+     UNA vez, en `refSync`. Los cortes y las cuatro bandas de la Tabla 1 de la ASE 2025 no se
+     tocan: lo único que cambia es quién repone la raya. */
+  refSync('tapse-interp', tapse
+    ? vdBadgeGrado('tapse', tapse, vdTapseCat(tapse), 'mm', 'disfunción sistólica') : null);
+  refSync('sprime-interp', sp
+    ? vdBadgeGrado('s_prime', sp, vdSprimeCat(sp), 'cm/s', 'disfunción sistólica') : null);
   /* FAC = (área telediastólica − área telesistólica) / telediastólica × 100. Se escribe el
      campo SIEMPRE que el par sea utilizable, y se BORRA cuando deja de serlo: si sólo se
      llenara, corregir un área a un valor inválido dejaba en pantalla —y en el informe— la FAC
@@ -25309,10 +25364,14 @@ function calcVD() {
 
 // ══ AD / PmAD ══
 function calcAD() {
+  /* ⚠️ LA SALIDA TEMPRANA SE LLEVABA DOS COSAS Y NO UNA (ARR2, 2026-10-18). El `if (!ad) return;`
+     dejaba la cápsula con el grado del área anterior —y con Backspace, con el grado del dígito
+     suelto— **y además** no llegaba a `calcHTP2022`, así que la fila «Categoría C — VCI / AD» de
+     la probabilidad de HTP seguía diciendo «signo presente» sobre un área que ya no existe. Ese
+     segundo síntoma no estaba reportado y lo encontró el censo. El corte de 19 cm² no se mueve. */
   const ad = v('ad_area');
-  if (!ad) return;
-  document.getElementById('ad-interp').innerHTML =
-    vdBadgeGrado('ad_area', ad, adAreaCat(ad), 'cm²', 'dilatación');
+  refSync('ad-interp', ad
+    ? vdBadgeGrado('ad_area', ad, adAreaCat(ad), 'cm²', 'dilatación') : null);
   if (typeof calcHTP2022 === 'function') calcHTP2022();
 }
 
@@ -26994,6 +27053,13 @@ function calcPSAP() {
        de IT. Es el mismo motivo que el espejo de la PASP del TEER de abajo. */
     if (typeof vdTapsePsapSync === 'function') vdTapsePsapSync();
     if (typeof calcTEP === 'function') calcTEP();
+    /* ⚠️ `calcHTP2022` FALTABA EN ESTA RAMA, y era el CUARTO caso del mismo patrón (ARR2,
+       2026-10-18). Las tres llamadas de al lado ya estaban por este motivo; sin la cuarta, borrar
+       la velocidad de la IT dejaba el cuadro de la probabilidad de HTP diciendo «VRT 2.8-3.4 m/s
+       (IT 3 m/s)» y «Probabilidad INTERMEDIA» sobre un campo vacío. El número entre paréntesis
+       nombra una velocidad que ya no existe, así que no es un grado rancio: es un dato inventado.
+       Lo encontró el grupo `pares` del censo, no la lectura. */
+    if (typeof calcHTP2022 === 'function') calcHTP2022();
     if (typeof calcIP  === 'function') calcIP();
     /* También acá, y no sólo al final: esta rama sale por `return`, así que el espejo de la
        PASP del TEER se quedaba con la última PSAP calculada después de borrar la velocidad de
