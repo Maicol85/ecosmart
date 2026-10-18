@@ -393,3 +393,13 @@ bloque nuevo usa las bandas de Referencias (`<10 / 10-30 / >30`). Unificar los `
 `<select>` dejaría a cada estudio guardado en `selectedIndex -1`.
 
 Todo en `docs/mapa/otros-hallazgos.md`.
+
+
+---
+
+## ⚠️ El FOP pasó a tener UN solo dueño con la pestaña Otros (ARR, 18/10/2026)
+
+El test de burbuja y el aneurisma del septum existían **dos veces**, con dos escalas. Desde el
+ARR8 son **un dato con dos controles** (espejo bidireccional), el informe del FOP es
+**esquemático** —tres oraciones en el estilo del EN SUMA— y el **aviso de la edad se omite** del
+informe y del EN SUMA. → `docs/mapa/fop-burbuja-unificado.md`

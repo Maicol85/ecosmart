@@ -1662,7 +1662,7 @@ Lo que la tanda de la pared del VD y del índice de Tei **midió y dejó como es
 de cada uno. La zona está mapeada en `docs/mapa/vd-derecho.md` y la fuente en
 `docs/fuentes/FUENTES.md` → `### aseVd2025`.
 
-### V1 · Las filas de TAPSE y S′ del cuadro no vuelven a «—» al borrar el dato
+### V1 · Las filas de TAPSE y S′ del cuadro no vuelven a «—» al borrar el dato — ✅ **CERRADO 18/10/2026 (ARR2)**
 
 Su `if (tapse)` / `if (sp)` dentro de `calcVD` **sólo pinta**, así que la fila del paciente
 anterior se queda en pantalla hasta que `limpiarCampos` barra el `.calc-box`. Las otras cinco
@@ -3942,7 +3942,7 @@ no existen. Así que la fórmula **se reusa tal cual, no se escribió de memoria
 entrada a `FUENTES.md`**. Para cerrarlo hace falta el artículo original (Balik M, et al. *Intensive
 Care Med* 2006) en la biblioteca.
 
-### Y3b-6 · Las dos separaciones de líneas B — ✅ **HECHO 17/10/2026 (CORTOS13), y SIGUE SIN FUENTE**
+### Y3b-6 · Las dos separaciones de líneas B — ✅ **RETIRADAS 18/10/2026 (ARR7), por la misma falta de fuente**
 
 El selector existe con las dos separaciones que **dicta Maicol** (≈7 mm y ≈3 mm) y sus opciones son
 **descriptivas**: dicen la separación que el médico midió, **no la interpretan** —ni «septal» ni
@@ -4981,7 +4981,7 @@ toque cualquiera de los dos tiene que partirlo ANTES de escribir.** Sigue espera
 
 ## Tanda «CORTOS» (2026-10-17) — DECLARADO y NO arreglado
 
-### CORTOS-1 · El test de burbuja tiene DOS escalas en la app, y la del módulo FOP no se tocó
+### CORTOS-1 · El test de burbuja tiene DOS escalas en la app — ✅ **CERRADO 18/10/2026 (ARR8), por la salida (a)**
 
 La sección FOP de «CC frecuentes» conserva `fop_contraste` y `fop_burbujas` con su escala
 (`pocas` <5 · `moderado` 5-20 · `abundante` >20) y su propio párrafo; el bloque nuevo de Otros usa
@@ -5019,7 +5019,7 @@ Su padre es `#bloque-insuf-mitral`, **el mismo antes y después de la mudanza**,
 pastilla cerrada la visibilidad es `false` en HEAD y hoy. Lo mismo le pasa a los campos de
 cuantificación que lo rodeaban.
 
-### CORTOS-5 · El Ar−A sigue teniendo DOS constantes con dos operadores (era `B4`)
+### CORTOS-5 · El Ar−A tenía DOS constantes con dos operadores — ✅ **CERRADO 18/10/2026 (ARR5)**
 
 `VENP_AR_A_MS` vale 30 con borde **`>=`** —criterio de la ASE/EACVI 2016, que pinta la fila de la
 vena pulmonar y la celda del PDF— y `ASE_ARA_SUPL` vale 30 con **`>`**. Un Ar−A de **30,0 exactos**
@@ -5027,7 +5027,7 @@ es positivo para la fila y negativo para el paso suplementario, **en la misma pa
 unificaron: son dos guías con el mismo número y distinto borde, y tocar `VENP_AR_A_MS` movería la
 alerta de otro módulo.
 
-### CORTOS-6 · `ASE_ARVEL_SUPL` queda declarada y sin consumidor
+### CORTOS-6 · `ASE_ARVEL_SUPL` queda declarada — ⚠️ **RE-MEDIDO 18/10/2026: NO está sin consumidor**
 
 Es el corte de la amplitud de la Ar de la **prosa** del folio 555d (35 cm/s). No vota desde el
 CORTOS6 y se nombra en el rótulo de la fila como salvedad. **No es una cadena viva sin dueño: es un
@@ -5159,3 +5159,73 @@ parta ANTES de escribir.
 desde el 2026-10-12. Su bloque de fibrilación auricular salió a `docs/mapa/diastolica-fa.md`
 (6,6 KB) **verificado byte por byte con un `diff` contra HEAD**, y el mapa volvió a **30,4 KB**
 antes de recibir el puntero.
+
+---
+
+# Tanda ARR (2026-10-18) — lo que queda declarado
+
+### ARR-1 · `aortica-cortes.md` está a 1,1 KB del techo y NO se tocó
+
+Mide **33.881 bytes** y el techo son 35 KB. El puntero del defecto de la aorta se puso en
+`evidencia-derecho-aorta.md` (16,4 → 17,1 KB), que es el otro mapa que documenta `calcAorta` y
+tiene margen. **La próxima tanda que necesite escribir en `aortica-cortes.md` tiene que partirlo
+ANTES**, medido con `wc -c`.
+
+### ARR-2 · El Ar−A de la ASE/EACVI 2016 aplica hoy el operador de la ASE 2025
+
+Verificado en su propio original (hojas 13 y 20): esa guía escribe **`≥ 30 msec`**, así que el
+`>=` de la fila de la vena pulmonar **era correcto para su fuente**. Unificar con el `>` de la
+Figura 3 de la ASE 2025 es la decisión de Maicol y hace que un Ar−A de **30,0 exactos** deje de
+alertar ahí. **Salidas:** (a) dejarlo como está y documentarlo —lo que se hizo—; (b) volver a dos
+constantes, con la discrepancia del 30,0 exacto de vuelta; (c) que la fila declare en su rótulo
+qué guía aplica.
+
+### ARR-3 · La nota `*` de la Tabla 19 tiene una segunda mitad sin implementar
+
+«Upper limits of normal DVI **vary by valve size and type**». La app aplica los dos cortes de la
+tabla (≥3,3 bio y ≥2,1 mec) y **no tiene el tamaño de la prótesis**: no hay campo. Declarado y no
+inventado.
+
+### ARR-4 · La escala del test de burbuja no tiene fuente en la biblioteca
+
+Censada entera (ver `FUENTES.md` → «La escala del TEST DE BURBUJA»). Se conservó la del módulo FOP
+porque el Laboratorio la cuenta, porque tiene nombres de grado y porque es la antigua. **Salidas:**
+(a) conseguir un documento que gradúe el paso de burbujas y citarlo; (b) dejar la escala sin
+nombres de grado, sólo con el rango; (c) dejarlo como está, declarado.
+
+### ARR-5 · La indicación de cierre del FOP según la edad, para llevar a Referencias
+
+El informe y el EN SUMA ya **no** publican «falta la edad del paciente, de la que depende la
+indicación: el cierre percutáneo es Clase IIa por debajo de los 60 años» ni «sin edad cargada»
+(decisión de Maicol). El contenido vive en `fopConclusion().txt` —que consumen el PDF de CC
+frecuentes y la hoja de `ccHoja`— y está recogido en `FUENTES.md`.
+⚠️ **NO ESTÁ VERIFICADA CONTRA SU GUÍA**: antes de publicarla en Referencias hay que leerla en la
+ESC con su folio impreso.
+
+### ARR-6 · Tres spans de módulos ajenos se quedan atrás en la recarga, no en el borrado
+
+`vab-fr`, `ete-shunt-ddvii` y `pop-eco-src` aparecen en el grupo `pares` de la sonda en la
+dirección **contraria** —el camino de borrado deja **más** limpio que la recarga— y son
+**idénticos en los dos árboles**, así que no los trae esta tanda: la recarga tipea en otro orden y
+esos módulos no se enteran. **Salida:** medirlos con su propia escena y, si corresponde, agregar
+su `*Sync` a `RECALC_MODULOS`.
+
+### ARR-7 · `vd-tam-card` no se mueve con la escena del censo de tarjetas
+
+Su «volvió al texto de base» pasa, pero sin denominador propio: la carga del grupo `qtar` no
+cambia su contenido. No arrastraba en ninguno de los dos árboles. **Salida:** darle una escena con
+los tres diámetros del VD.
+
+### ARR-8 · El informe esquemático del FOP sólo alcanza a seis de las diez claves
+
+`fopConclusion` tiene diez claves y seis llevan su cláusula `esq` —las que cambian la conducta—;
+las otras cuatro (`sin_contexto`, `sin_contraste`, `incidental`, `no_interpretable`) publican el
+**párrafo de siempre** como tercera oración, porque omitirlas sería perder información del informe
+firmado. **Salida:** escribirles su `esq` corta, que es redactar frases clínicas y pide la decisión
+de Maicol.
+
+### ARR-9 · `check_mobile.js` sigue sin llegar al contenido de la pestaña Otros
+
+Declarado en el CORTOS (CORTOS-10) y **no se cerró en esta tanda**: ampliar ese script para que
+abra la pestaña Otros y las tarjetas del Q con emulación táctil es un trabajo propio, y lo que
+esta tanda agrega a esa pestaña es un `<select>` con otros `value` y **un campo menos**.

@@ -76607,6 +76607,214 @@ caso('TC-501', 'Tanda ARR: un campo VACIO es SIN DATO - las once referencias que
         !r.err && r.despues === RAYA, JSON.stringify(r)]);
     });
 
+
+  /* ══ (J) EL Ar-A: UN SOLO CORTE Y UN SOLO OPERADOR (ARR5) ══════════════════════════════════
+     Habia TRES constantes con el mismo valor y DOS operadores, asi que un Ar-A de 30,0 exactos
+     era positivo para la fila de la vena pulmonar y negativo para los dos pasos suplementarios.
+     El Ar-A no es un campo: es venp_dur_ar - venp_dur_a, asi que el borde se alcanza fijando
+     la duracion de la A en 100 ms y moviendo la de la Ar. */
+  (function () {
+    const ara = (dAr) => { __t.limpiar();
+      try { __t.set('venp_dur_a', '100'); __t.set('venp_dur_ar', dAr); } catch (e) {}
+      CORRER('calcVenaPulm'); CALENTAR();
+      const e = EL('venp-ara');
+      let alta = null, supl = null;
+      try { alta = FN('venpArAAlta') ? window.venpArAAlta() : 'SIN FN'; } catch (x) { alta = 'EXC'; }
+      try {
+        const d = FN('venpArA') ? window.venpArA() : null;
+        const T = (typeof ASE_SUPLEMENTARIOS !== 'undefined') ? ASE_SUPLEMENTARIOS : null;
+        const f = T ? T.filter(function (sp) { return sp.clave === 'arA'; })[0] : null;
+        supl = f ? !!f.cumple(d) : 'SIN TABLA';
+      } catch (x) { supl = 'EXC'; }
+      return { d: FN('venpArA') ? window.venpArA() : null, alta: alta, supl: supl,
+               txt: e ? String(e.textContent || '').trim() : 'NO EXISTE' }; };
+    const a29 = ara('129'), a30 = ara('130'), a31 = ara('131');
+    ex.push(['(J0) DENOMINADOR: la diferencia Ar-A se calcula 29 / 30 / 31 ms',
+      a29.d === 29 && a30.d === 30 && a31.d === 31, [a29.d, a30.d, a31.d].join('/')]);
+    ex.push(['(J1) 29 ms: ni la fila ni el suplementario',
+      a29.alta === false && a29.supl === false, JSON.stringify(a29)]);
+    ex.push(['(J2) 30,0 EXACTO: NINGUNO de los dos (el corte es > ESTRICTO, Figura 3 de la ASE 2025, folio 554)',
+      a30.alta === false && a30.supl === false, JSON.stringify(a30)]);
+    ex.push(['(J3) 31 ms: LOS DOS, y ya no pueden discrepar',
+      a31.alta === true && a31.supl === true, JSON.stringify(a31)]);
+    ex.push(['(J4) hay UNA sola constante de Ar-A y las tres viejas no existen',
+      (function () { const f = String(document.documentElement.innerHTML || '');
+        return f.indexOf('const ARA_MS = 30;') > -1
+          && f.indexOf('const VENP_AR_A_MS') < 0
+          && f.indexOf('const ASE_ARA_SUPL') < 0
+          && f.indexOf('const BSE_ARA_SUPL') < 0; })(),
+      'declaraciones']);
+    ex.push(['(J5) CONTROL: la VELOCIDAD de la Ar sigue con su propio corte de 35 cm/s y borde >',
+      (function () { const vel = (x) => { __t.limpiar();
+        try { __t.set('venp_vel_ar', x); } catch (e) {} CORRER('calcVenaPulm');
+        try { return FN('venpVelArAlta') ? window.venpVelArAlta() : 'SIN FN'; } catch (e) { return 'EXC'; } };
+        return vel('34') === false && vel('35') === false && vel('36') === true; })(),
+      'VENP_AR_VEL_CMS']);
+  })();
+
+  /* ══ (K) EL DVI DE LA PROTESIS TRICUSPIDE, AUTOMATICO (ARR6) ═══════════════════════════════
+     La formula es la que la Tabla 19 escribe en el nombre del parametro: VTI_PrTV / VTI_LVOT,
+     o sea et_vti_diast / itv_tsvi. Los cortes (>=3.3 bio y >=2.1 mec) y la regla de «dos o
+     mas» no se mueven. */
+  (function () {
+    const BIO = 'Pr' + String.fromCharCode(243) + 'tesis biol' + String.fromCharCode(243) + 'gica';
+    const MEC = 'Pr' + String.fromCharCode(243) + 'tesis mec' + String.fromCharCode(225) + 'nica';
+    const dvi = (morf, ent, tsvi) => { __t.limpiar();
+      try { __t.set('vt_morf', morf); } catch (e) {}
+      try { if (ent != null) __t.set('et_vti_diast', ent); } catch (e) {}
+      try { if (tsvi != null) __t.set('itv_tsvi', tsvi); } catch (e) {}
+      CORRER('vtDviAuto'); CALENTAR();
+      const e = EL('vt_dvi');
+      let ver = null; try { ver = FN('vtProtObstr') ? window.vtProtObstr() : null; } catch (x) { ver = 'EXC'; }
+      return { val: e ? String(e.value) : 'NO EXISTE', ro: e ? !!e.readOnly : null,
+               ph: e ? String(e.placeholder || '') : null,
+               obstr: (ver && typeof ver === 'object') ? ver.obstr : ver }; };
+    const sinNada = dvi(BIO, null, null);
+    const soloEnt = dvi(BIO, '70', null);
+    const dos     = dvi(BIO, '70', '20');
+    ex.push(['(K0) DENOMINADOR: con morfologia protesica el campo existe y, con los dos VTI, la app lo calcula',
+      dos.val === '3.50', JSON.stringify(dos)]);
+    ex.push(['(K1) sin los dos VTI el campo queda vacio, EDITABLE y con su texto de «requiere …»',
+      sinNada.val === '' && sinNada.ro === false && sinNada.ph.indexOf('requiere') === 0
+        && soloEnt.val === '' && soloEnt.ro === false && soloEnt.ph.indexOf('el VTI del TSVI') > 0,
+      JSON.stringify(sinNada) + ' | ' + JSON.stringify(soloEnt)]);
+    ex.push(['(K2) con los dos VTI pasa a SOLO LECTURA (la app es su duena)',
+      dos.ro === true && dos.ph === '', JSON.stringify(dos)]);
+    const b329 = dvi(BIO, '65.8', '20'), b330 = dvi(BIO, '66', '20'), b331 = dvi(BIO, '66.2', '20');
+    ex.push(['(K3) BORDE bioprotesica: 3.29 no vota, 3.30 SI (Tabla 19, >= 3.3) y 3.31 tambien',
+      b329.val === '3.29' && b329.obstr === 'sin'
+        && b330.val === '3.30' && b330.obstr === 'aislado'
+        && b331.val === '3.31' && b331.obstr === 'aislado',
+      [b329.val + ':' + b329.obstr, b330.val + ':' + b330.obstr, b331.val + ':' + b331.obstr].join(' | ')]);
+    const m209 = dvi(MEC, '41.8', '20'), m210 = dvi(MEC, '42', '20');
+    ex.push(['(K4) BORDE mecanica: 2.09 no vota y 2.10 SI (Tabla 19, >= 2.1)',
+      m209.val === '2.09' && m209.obstr === 'sin' && m210.val === '2.10' && m210.obstr === 'aislado',
+      m209.val + ':' + m209.obstr + ' | ' + m210.val + ':' + m210.obstr]);
+    /* Borrar un VTI devuelve el campo al medico y borra lo que la app escribio. */
+    (function () { __t.limpiar();
+      try { __t.set('vt_morf', BIO); __t.set('et_vti_diast', '70'); __t.set('itv_tsvi', '20'); } catch (e) {}
+      CORRER('vtDviAuto');
+      try { __t.set('itv_tsvi', ''); } catch (e) {}
+      CORRER('vtDviAuto');
+      const e = EL('vt_dvi');
+      ex.push(['(K5) al borrar un VTI el campo vuelve a vacio y editable, no queda con el cociente viejo',
+        !!e && String(e.value) === '' && e.readOnly === false,
+        e ? ('val=' + e.value + ' ro=' + e.readOnly) : 'NO EXISTE']); })();
+  })();
+
+  /* ══ (L) LAS LINEAS B YA NO TIENEN SEPARACION, Y EL RESTO DEL CORTOS13 SE CONSERVA (ARR7) ══ */
+  (function () {
+    ex.push(['(L1) ni el selector de la separacion ni su envoltorio existen',
+      !EL('pul_lineasb_sep') && !EL('pul-lineasb-sep-wrap'),
+      'sel=' + !!EL('pul_lineasb_sep') + ' wrap=' + !!EL('pul-lineasb-sep-wrap')]);
+    const linb = (pat) => { __t.limpiar();
+      try { __t.set('pul_lineasb', 'si'); __t.set('pul_lineasb_pat', pat); } catch (e) {}
+      try { if (FN('setEstiloInforme')) window.setEstiloInforme('estandar');
+            if (FN('generarInforme')) window.generarInforme(); } catch (e) {}
+      return String(V('informe_texto')); };
+    const dif = linb('difuso'), foc = linb('focal');
+    ex.push(['(L2) la oracion vuelve a la de antes del CORTOS13, sin clausula de separacion',
+      dif.indexOf('L' + String.fromCharCode(237) + 'neas B de distribuci' + String.fromCharCode(243) + 'n difusa.') >= 0
+        && foc.indexOf('L' + String.fromCharCode(237) + 'neas B de distribuci' + String.fromCharCode(243) + 'n focal.') >= 0
+        && dif.indexOf('separaci' + String.fromCharCode(243) + 'n aproximada') < 0,
+      dif.split(String.fromCharCode(10)).filter(function (l) { return l.indexOf('neas B') >= 0; }).join(' // ')]);
+    (function () { __t.limpiar();
+      try { __t.set('pericardio', 'Derrame moderado (10-20mm)'); } catch (e) {}
+      try { if (FN('generarInforme')) window.generarInforme(); } catch (e) {}
+      const a = String(V('informe_texto'));
+      __t.limpiar();
+      try { __t.set('pul_derrame', 'si'); __t.set('pul_derrame_tam', 'moderado'); __t.set('pul_balik', '25'); } catch (e) {}
+      try { if (FN('generarInforme')) window.generarInforme(); } catch (e) {}
+      const b = String(V('informe_texto'));
+      ex.push(['(L3) CONTROL: el derrame PERICARDICO y la formula de Balik del CORTOS13 se conservan',
+        a.indexOf('Derrame peric' + String.fromCharCode(225) + 'rdico moderado') >= 0
+          && b.indexOf('Balik 25 mm') >= 0,
+        b.split(String.fromCharCode(10)).filter(function (l) { return l.indexOf('errame') >= 0; }).join(' // ')]); })();
+  })();
+
+  /* ══ (M) EL FOP UNIFICADO (ARR8) ═══════════════════════════════════════════════════════════ */
+  (function () {
+    const INC = () => { const c = EL('fop_incluir_chk');
+      const b = document.querySelector('[data-ete-chk="fop_incluir_chk"]');
+      if (c && !c.checked && b) { try { b.click(); } catch (e) {} }
+      return !!(c && c.checked); };
+    const esc = (campos) => { __t.limpiar();
+      Object.keys(campos).forEach(function (k) { try { __t.set(k, campos[k]); } catch (e) {} });
+      const inc = INC(); CALENTAR();
+      try { if (FN('setEstiloInforme')) window.setEstiloInforme('estandar');
+            if (FN('generarInforme')) window.generarInforme(); } catch (e) {}
+      return { inc: inc, inf: String(V('informe_texto')), suma: String(V('en_suma')) }; };
+    const EJ = { fop_tunel: '8', fop_mov: 'si', fop_asa: 'si', fop_asa_mm: '22',
+                 fop_contraste: 'si', fop_shunt_reposo: 'no', fop_shunt_valsalva: 'si',
+                 fop_burbujas: 'moderado', fop_acv: 'si', edad: '52' };
+    const conEdad = esc(EJ);
+    const SE = {}; Object.keys(EJ).forEach(function (k) { if (k !== 'edad') SE[k] = EJ[k]; });
+    const sinEdad = esc(SE);
+    const FRASE = 'Foramen oval permeable (t' + String.fromCharCode(250) + 'nel de 8 mm), con septum interauricular m'
+      + String.fromCharCode(243) + 'vil y aneurisma del septum (excursi' + String.fromCharCode(243)
+      + 'n de 22 mm). Test de burbuja: sin shunt en reposo; con maniobra de Valsalva, shunt moderado (5-20 burbujas). Con ACV criptog'
+      + String.fromCharCode(233) + 'nico.';
+    ex.push(['(M0) DENOMINADOR: la seccion del FOP se integra al informe',
+      conEdad.inc === true, 'incluir=' + conEdad.inc]);
+    ex.push(['(M1) el informe es ESQUEMATICO y sale con la frase exacta de la orden',
+      conEdad.inf.indexOf(FRASE) >= 0,
+      conEdad.inf.split(String.fromCharCode(10)).filter(function (l) { return l.indexOf('oramen oval') >= 0; }).join(' // ').slice(0, 300)]);
+    ex.push(['(M2) y el EN SUMA en el estilo aprobado',
+      conEdad.suma.indexOf('FOP ' + String.fromCharCode(8212) + ' t' + String.fromCharCode(250)
+        + 'nel 8 mm ' + String.fromCharCode(8212) + ' shunt con Valsalva ' + String.fromCharCode(8212)
+        + ' aneurisma del septum (22 mm) ' + String.fromCharCode(8212) + ' con ACV criptog'
+        + String.fromCharCode(233) + 'nico') >= 0,
+      conEdad.suma.split(String.fromCharCode(10)).filter(function (l) { return l.indexOf('FOP') >= 0; }).join(' // ')]);
+    ex.push(['(M3) el AVISO DE LA EDAD se omite: con edad y sin edad el informe y el EN SUMA son IDENTICOS',
+      conEdad.inf === sinEdad.inf && conEdad.suma === sinEdad.suma
+        && sinEdad.inf.indexOf('falta la edad del paciente') < 0
+        && sinEdad.suma.indexOf('sin edad cargada') < 0,
+      'infIgual=' + (conEdad.inf === sinEdad.inf) + ' sumaIgual=' + (conEdad.suma === sinEdad.suma)]);
+    ex.push(['(M4) UNA sola oracion del test de burbuja: el bloque de Otros no la duplica con el FOP integrado',
+      (function () { const o = esc(Object.assign({}, EJ, { otr_burb__chk: '1' }));
+        const n = o.inf.split(String.fromCharCode(10))
+          .filter(function (l) { return l.indexOf('burbuja') >= 0 || l.indexOf('Test de burbuja') >= 0; }).length;
+        return n === 1; })(),
+      'oraciones con «burbuja»']);
+    ex.push(['(M5) UNA sola escala: el selector de Otros ofrece la del modulo FOP y conserva las tres viejas como hidden',
+      (function () { const e = EL('otr_burb_cant');
+        if (!e) return false;
+        const vis = [], hid = [];
+        Array.prototype.slice.call(e.options).forEach(function (o) {
+          if (!o.value) return; (o.hidden ? hid : vis).push(o.value); });
+        return vis.join(',') === 'pocas,moderado,abundante' && hid.join(',') === 'lt10,e1030,gt30'; })(),
+      (function () { const e = EL('otr_burb_cant');
+        return e ? Array.prototype.slice.call(e.options).map(function (o) {
+          return o.value + (o.hidden ? '(h)' : ''); }).join(' ') : 'NO EXISTE'; })()]);
+    ex.push(['(M6) el ESPEJO va en los dos sentidos y los dos dan el mismo informe',
+      (function () { __t.limpiar();
+        try { __t.set('fop_contraste', 'si'); __t.set('fop_shunt_valsalva', 'si');
+              __t.set('fop_burbujas', 'abundante'); __t.set('fop_asa', 'si'); } catch (e) {}
+        CORRER('fopBurbEspejo');
+        const a = { burb: V('otr_burb'), cant: V('otr_burb_cant'), pas: V('otr_burb_pasaje'),
+                    man: V('otr_burb_man'), asia: (EL('otr_asia') || {}).checked };
+        __t.limpiar();
+        try { const c = EL('otr_burb'); if (c && !c.checked) c.click();
+              const s2 = EL('otr_asia'); if (s2 && !s2.checked) s2.click();
+              __t.set('otr_burb_pasaje', 'si'); __t.set('otr_burb_man', 'val');
+              __t.set('otr_burb_cant', 'abundante'); } catch (e) {}
+        try { window.fopBurbEspejo('otr_burb'); window.fopBurbEspejo('otr_burb_pasaje');
+              window.fopBurbEspejo('otr_burb_man'); window.fopBurbEspejo('otr_burb_cant');
+              window.fopBurbEspejo('otr_asia'); } catch (e) {}
+        const b = { contr: V('fop_contraste'), val: V('fop_shunt_valsalva'),
+                    burb: V('fop_burbujas'), asa: V('fop_asa') };
+        return a.cant === 'abundante' && a.pas === 'si' && a.man === 'val' && a.asia === true
+          && b.contr === 'si' && b.val === 'si' && b.burb === 'abundante' && b.asa === 'si'; })(),
+      'espejo']);
+    ex.push(['(M7) CONTROL: un valor de LEGADO de Otros NO se espeja ni se migra',
+      (function () { __t.limpiar();
+        try { const c = EL('otr_burb'); if (c && !c.checked) c.click();
+              __t.set('otr_burb_pasaje', 'si'); __t.set('otr_burb_cant', 'lt10'); } catch (e) {}
+        try { window.fopBurbEspejo('otr_burb_cant'); } catch (e) {}
+        return V('otr_burb_cant') === 'lt10' && V('fop_burbujas') === ''; })(),
+      'otr=' + V('otr_burb_cant') + ' fop=' + V('fop_burbujas')]);
+  })();
+
   /* ══ (G) CONTROL NEGATIVO MAYOR: ninguna superficie FIRMADA se mueve ═══════════════════════
      Medido en la sonda: con el estado SIN DATO el informe en los tres estilos, el EN SUMA y las
      440 columnas del Excel salen IDENTICOS al formulario vacio. El defecto era solo de pantalla,

@@ -333,3 +333,47 @@ toggea, así que preguntarle al `caja-*` por su `display` no sirve—.
   `V2D_VALVS` —los dos lugares que buscan una entrada la buscan por una clave que sale de esa
   tabla—, así que hoy se exige que tenga TRES válvulas y que ninguna sea la pulmonar, que es más
   fuerte que lo anterior.
+
+---
+
+## TC-501 — tanda ARR: un campo VACÍO es SIN DATO (2026-10-18)
+
+**50 condiciones**, ocho denominadores y nueve controles negativos.
+**Sabe fallar contra el inicio de la tanda** (worktree en `7bd5a9f`, `md5 1eda9949…`):
+**31 de las 50 en rojo, y NINGUNA por excepción.**
+
+| bloque | qué afirma |
+|---|---|
+| **(A)** | las **cinco** filas de la aorta torácica vuelven a la raya al borrar, y el valor intermedio de un dígito —que es lo que produce el «Valor fuera de rango (10-90 mm)»— también |
+| **(B)** | el **TAPSE** y la **onda S′**, por los dos gestos (borrar, y cambiar el valor por otro y borrar) |
+| **(C)** | el **área de la AD** y, con ella, la **categoría C** de la probabilidad de HTP |
+| **(D)** | el **promedio de las dos e′** al borrar cualquiera de los dos anillos |
+| **(E)** | la **densidad del jet tricuspídeo** al volver el selector a vacío, con su denominador |
+| **(F)** | **CONTROL NEGATIVO:** `ai_diam`, `ai_vol` y `fevi`, que ya volvían, siguen volviendo |
+| **(G)** | **CONTROL MAYOR:** el informe en los tres estilos, el EN SUMA y las 440 columnas del Excel no se mueven |
+| **(H)** | las **cuatro tarjetas ⓘ** que arrastraban vuelven a su texto de base, con su denominador |
+| **(I)** | las **seis plantillas** del PDF salen idénticas |
+| **(J)** | el **Ar−A**: 29 / **30,0 exacto** / 31, los dos lados en acuerdo, una sola constante, y el control de la velocidad de la Ar |
+| **(K)** | el **DVI tricuspídeo automático**: los dos bordes por tipo de prótesis, el solo-lectura, el «requiere …» y el borrado |
+| **(L)** | las **líneas B** sin separación, y el control del pericardio y de Balik |
+| **(M)** | el **FOP unificado**: la frase exacta, el EN SUMA, el aviso de la edad omitido, una sola oración, una sola escala, el espejo en los dos sentidos y el control del legado |
+
+### ⚠️ Trampas que este caso pagó
+
+- **El span vacío dice un EM DASH (U+2014) y no un guión.** Comparar contra `'-'` dejaba los tres
+  controles negativos en rojo sobre un árbol perfecto. Va por `String.fromCharCode(8212)`.
+- **El denominador es «el formulario vacío con los cálculos YA CORRIDOS»**, no «el recién
+  cargado»: de ahí el ayudante `CALENTAR()`, que corre todos los `calc*` y `_recalcModulos`.
+- **jsPDF llega por CDN y a veces no**: las dos condiciones del bloque (I) se empujan **sólo**
+  cuando la librería está. Una condición que pasa sin medir es lo que este archivo persigue, y un
+  rojo de ENTORNO permanente es peor (TC-131, TC-135, TC-148). El PDF se mide **además** de verdad
+  en `scripts/_probe_arr.mjs`, grupo `sal2`.
+- **Los globos ⓘ viven en cinco pestañas** y las secciones de válvula nacen cerradas: el ayudante
+  `PUERTA()` abre la del **propio** botón con los toggles reales.
+- **El cuerpo de un caso carga con `__t.set`, no con teclas de CDP**: corre dentro de la página y
+  no tiene el canal del protocolo. Las mismas escenas van con **teclas reales** en la sonda
+  `scripts/_probe_arr.mjs`, que es la que midió los síntomas contra HEAD. Mismo reparto que
+  TC-460, TC-463 y TC-469.
+- **Me comí el acento grave en el cuerpo del caso cuatro veces**, y la peor fue al limpiarlos de
+  un RANGO: me llevé el que **cierra** el cuerpo, y `check_backticks.py` señaló una línea del
+  **runner** 150 líneas después, que es código normal.

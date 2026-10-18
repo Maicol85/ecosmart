@@ -262,3 +262,16 @@ con sus cuatro zonas y las ocho trampas.
 **Lo que hay que saber antes de tocar esta zona:** los cortes y los operadores ya NO viven acá.
 Mover uno es editar `ASE25_T1`, y el assert de arranque exige que las cuatro bandas sigan en
 orden y sin hueco.
+
+
+---
+
+## ⚠️ Las cinco filas de la aorta torácica vuelven a la raya al borrar el dato (ARR, 18/10/2026)
+
+`calcAorta` recorría `aoSegsMedidos()`, que **filtra** los segmentos sin dato, así que el
+`forEach` nunca llegaba a los vacíos y las cápsulas conservaban lo último escrito —con Backspace
+dígito por dígito, el «4» de «46», que cae bajo el mínimo y publicaba «Valor fuera de rango
+(10-90 mm)» con el campo vacío—. Hoy se recorre `AO_SEGS` completo; `aoSegsMedidos` **no se toca**,
+porque el narrativo, el PDF y esta tarjeta ⓘ sí quieren sólo los medidos.
+La tarjeta `ao-card` y `ad-card` también arrastraban, y se curaron por construcción: leen el
+`textContent` de la cápsula. → `docs/mapa/borrado-referencias.md`

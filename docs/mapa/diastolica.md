@@ -454,3 +454,19 @@ constante dueña de cada corte, la cosecha de fuentes, la frase de integración 
 
 ⚠️ Es **solo presentación**: ni un corte, ni un operador, ni una regla, ni un texto del informe,
 del EN SUMA, del PDF, del PPT o del Excel. A/B contra el inicio de la tanda: **cero diferencias**.
+
+
+---
+
+## ⚠️ El Ar−A tiene UN solo corte y UN solo operador (ARR5, 18/10/2026)
+
+Había **tres** constantes con el mismo valor y **dos** operadores —`VENP_AR_A_MS` con `>=`
+(ASE/EACVI 2016), `ASE_ARA_SUPL` con `>` (ASE 2025) y `BSE_ARA_SUPL` con `>` (BSE 2024)—, así que
+un Ar−A de **30,0 exactos** era positivo para la fila de la vena pulmonar y negativo para los dos
+pasos suplementarios, **en la misma pantalla**. Queda **`ARA_MS = 30`**, borde `>` ESTRICTO, el de
+la **Figura 3 de la ASE 2025** (folio 554, leído en el original).
+⚠️ **La ASE/EACVI 2016 escribe `≥ 30 msec`**, así que el `>=` era correcto para su fuente:
+unificar es la decisión de Maicol y está declarada en `FUENTES.md`. Escena que cambia: **una**, el
+30,0 exacto. El único texto que se mueve en el papel es el rótulo de la celda del PDF.
+Y las tres celdas del cuadro (`ea-val`, `eprom-val`, `ee-val`) vuelven a la raya al borrar su
+insumo. → `docs/mapa/borrado-referencias.md`

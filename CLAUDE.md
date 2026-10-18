@@ -59,6 +59,8 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar las ASOCIACIONES del Laboratorio o la TABLA DE LAS OCHO VÁLVULAS**: el cociente TAPSE/PSAP en el bloque A, el aviso de par acoplado, las dos estenosis BINARIAS y sus dos denominadores | `docs/mapa/laboratorio-asociaciones-valvulas.md` |
 | **Tocar una TARJETA ⓘ de VÁLVULA o de la FUNCIÓN DIASTÓLICA**: el mecanismo, los dos dueños, `QV_BARRA` y la constante dueña de cada corte, la cosecha de fuentes o la frase de integración | `docs/mapa/valvulas-tarjetas-info.md` |
 | **Tocar la FIBRILACIÓN AURICULAR de la función diastólica**: los tres dueños, sus cortes lado a lado, las tres reglas de conteo o el aviso de frecuencia cardíaca | `docs/mapa/diastolica-fa.md` |
+| **Entender por qué una REFERENCIA conservaba el resultado del valor viejo al borrar el dato**: el dueño común, las DOS causas y los once campos | `docs/mapa/borrado-referencias.md` |
+| **Tocar el FOP, el test de burbuja o el aneurisma del septum**: la escala unificada, el espejo entre Otros y el módulo FOP, el informe esquemático o el aviso de la edad | `docs/mapa/fop-burbuja-unificado.md` |
 | **Agregar o correr un caso de prueba; A/B; mutación** | `docs/mapa/tests.md` · fichas en `docs/mapa/tests-fichas.md` (TC-496 en adelante), `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
 | **Visor de cineloop, medición, calibración, IndexedDB** | `docs/mapa/imagenes-visor.md` |
 | **Tocar la ESTENOSIS MITRAL en el LABORATORIO**: las seis categorías, las dos casillas del filtro, el gráfico de distribución, el PDF de auditoría o el PPT | `docs/mapa/laboratorio-estenosis-mitral.md` |
@@ -124,8 +126,8 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **8,23 MB / 123.829 líneas**, medido el 2026-10-17 al cierre de la tanda
-  Q —el renglón anterior decía «8,17 MB / 122.882 líneas» y era del CORTOS, una tanda antes:
+  sin frameworks. Hoy **8,26 MB / 124.184 líneas**, medido el 2026-10-18 al cierre de la tanda
+  ARR —el renglón anterior decía «8,23 MB / 123.829 líneas» y era del Q, una tanda antes:
   **medirlo antes de presupuestar contexto**—. Las únicas dependencias son jsPDF, XLSX y
   PptxGenJS por CDN. Se abre como archivo local y corre en Chrome.
 - Lo que produce es un **informe firmado**: narrativo, EN SUMA, PDF, PPT y Excel del Laboratorio.
@@ -279,6 +281,232 @@ impecable.
 ---
 
 ## Estado vigente
+
+### Los ARREGLOS tras el CORTOS — «ARR» (2026-10-18)
+
+- **Son NUEVE commits, y son los nueve que la orden pedía.** Al **empezar**, `main` y
+  `origin/main` estaban los dos en **`7bd5a9f`** (sello `v20261017-2310`), **sin nada sin
+  pushear** —confirmado con un `git fetch` de verdad, con el `FETCH_HEAD` fechado al momento—,
+  con los ocho commits del Q ya incluidos **y pusheados por Maicol**. Los **nueve** commits de
+  esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 9 → 8 → … → 1.**
+  ⚠️ **EL 2 ES LA BASE DEL 3**: crea `refSync`, `refTxt` y `REF_SIN_DATO`, y el 3 los usa en cinco
+  sitios más. Revertir el 2 sin revertir antes el 3 deja las tres celdas del Doppler y la fila de
+  la densidad del jet llamando a una función que no existe, y un `ReferenceError` ahí se lleva
+  `calcDiastolBSE2024` y `calcIT_ESC` enteras.
+  ⚠️ **EL 1 Y EL 4 NO TOCAN `index.html`**: el 1 es la sonda más TC-501 en rojo, y el 4 es la
+  MEDICIÓN de las seis superficies de salida —su hallazgo es que **cuatro tarjetas ⓘ
+  arrastraban**, y se curaron solas en el 2 y el 3—. Los dos se revierten solos; revertir el 4
+  deja TC-501 sin sus bloques (H) e (I).
+  ⚠️ **EL 5, EL 6 Y EL 7 SE REVIERTEN EN CUALQUIER ORDEN ENTRE SÍ**: el 5 vive en `ARA_MS` y
+  `venpArAAlta`, el 6 en `vtDviAuto` y sus tres columnas, y el 7 en `pul_lineasb_sep` y la
+  cláusula de `pulBasicoTexto`. Ninguno nombra una pieza de otro.
+  ⚠️ **EL 8 LLEVA EL SELLO**, porque es el último commit que toca `index.html`: es la regla de la
+  casa. El 9 es cobertura y documentación y **no** edita la app.
+  ⚠️ **CASOS ADAPTADOS: TRES.** **TC-260** en tres lugares (el borde del Ar−A pasa de `>=` a `>`,
+  así que su «30 ms SÍ» afirma hoy lo CONTRARIO, y el rótulo del corte en el PDF), y **TC-499**
+  dos veces —su (DENOM2) deja de exigir `pul_lineasb_sep` y su **(f8)** afirma hoy lo contrario,
+  con una condición NUEVA (f8b) que controla que el pericardio y Balik se conservan; y su (f5),
+  cuya escena usaba el valor de legado `e1030`—.
+
+- **Línea base al cierre: suite **511/515** con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0
+  ERROR en 1 app, Excel en 440 columnas, celular 53 a 360 px y 62 a 390 px con 11 ALTA cada uno.
+  CERO REGRESIONES.** Los **CUATRO** rojos son exactamente los de ENTRADA —**TC-223** (el
+  documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**— y no apareció ninguno
+  fuera de esa lista. **El denominador sube a 515**: esta tanda agregó **TC-501**.
+  ⚠️ **LA DE ENTRADA NO SE MIDIÓ HOY EN UN WORKTREE Y SE DECLARA:** se usa la que el Q dejó
+  escrita —**510/514**, medida el 17/10 en esta máquina y con el pendrive puesto, con esos mismos
+  cuatro rojos—, así que la comparación es 510/514 → **511/515** y el delta es el caso nuevo.
+  ⚠️ **LOS DIECISIETE DE TC-181…TC-197 SALIERON VERDES, que es la prueba de que el pendrive
+  estuvo montado**, verificado además con `ls /Volumes/DISK_IMG` antes y después.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso(.TC-[^.]*." scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **515 ids** sobre los 516 casos del archivo.
+  ⚠️ **EL CELULAR NO SE MOVIÓ NI UN HALLAZGO** respecto de la línea base del Q (53 / 62 con 11
+  ALTA; `--todo` **388 y 397**, el mismo par), y no por suerte: esta tanda **saca** un `<select>`
+  de la pestaña Otros —que `check_mobile.js` no alcanza, declarado en CORTOS-10— y lo demás es
+  lógica, no controles nuevos. El DVI tricuspídeo pasa a solo lectura, que no agrega un control.
+- **EL SELLO DE VERSIÓN** estaba al día al empezar (`v20261017-2310`) y se volvió a sellar:
+  **`v20261018-0120`**. Todo lo medido salió **DESPUÉS** de sellar, con el `md5` quieto
+  (`97cfa053…`, verificado al abrir y al cerrar la corrida).
+- **`index.html` pasó de 8,23 MB / 123.829 líneas a 8,26 MB / 124.184 líneas.**
+
+- **ARR1 · EL CENSO ES UN CENSO Y NO UNA LISTA, Y ESO ES LO QUE ENCONTRÓ EL DEFECTO.** La sonda
+  `scripts/_probe_arr.mjs` toma un snapshot de **TODAS** las referencias de la pantalla —295
+  filas de `.calc-box`, 18 grados hermanos y 93 cápsulas sueltas—, tipea, borra y vuelve a medir:
+  no hay que saber qué span depende de qué campo, **se descubre midiendo**.
+  **MEDIDO CONTRA EL INICIO DE LA TANDA: 11 campos de 41 fallaban**, y son exactamente los que el
+  médico reportó, más dos que el censo destapó —la categoría C de la probabilidad de HTP y el
+  volumen indexado de la AI al borrar el **peso**—.
+
+- **ARR2 y ARR3 · LA CAUSA NO ES UNA, SON DOS, Y LA SEGUNDA NO ESTABA REPORTADA.**
+  **(A) el `if (dato)` que SÓLO PINTA**, sin `else`: `calcAorta` —que recorría
+  `aoSegsMedidos()`, el lector que **filtra** los segmentos sin dato—, los dos `if` de `calcVD`,
+  la salida temprana de `calcAD`, las tres celdas del cuadro del Doppler y la fila de la densidad
+  del jet tricuspídeo.
+  **(B) el DISPARADOR QUE FALTA**, con la función teniendo su `else` y nadie llamándola:
+  `calcPSAP` no llamaba a `calcHTP2022` en su rama de `return` temprano —era el **CUARTO** caso
+  del mismo patrón: `vdTapsePsapSync`, `calcTEP` y `calcIP` ya estaban ahí por esto— y `calcBSA`
+  no llamaba a `calcAI` ni a `calcVI` en su rama sin peso ni talla.
+  **EL DUEÑO COMÚN SON DOS FUNCIONES HERMANAS Y NO UNA CON UN FLAG:** `refSync` escribe
+  `innerHTML` porque sus llamadores pasan un badge ya armado por `badge()`, que escapa su texto;
+  `refTxt` escribe `textContent`. **La raya va SIEMPRE por `textContent`, también dentro de
+  `refSync`**: es el único camino que no pasa por `innerHTML`.
+  ⚠️ **EL SÍNTOMA TIENE DOS CARAS Y ES EL MISMO DEFECTO.** Con **Backspace dígito por dígito**
+  queda el ÚLTIMO VALOR INTERMEDIO —el «4» de «46», que cae bajo el mínimo de la banda y hace
+  que la fila diga «Valor fuera de rango (10-90 mm)» con el campo vacío: de ahí la lectura de
+  «el vacío se lee como cero»—; con **seleccionar todo y Delete** queda el grado del valor
+  ORIGINAL.
+  ⚠️ **NO «VOLVIÓ» NADA, Y LAS FECHAS LO DICEN.** Lo que se arregló en su momento —el THP de la
+  estenosis mitral en el W2-A, y la IM, la IAo, la EAo y la IT en la tanda del borrado en
+  Válvulas— fue **OTRO** conjunto de campos con el mismo patrón. `git log -S` sobre cada línea
+  culpable: `calcAD`, `calcVD`, las celdas del e′ y la densidad del jet son de **`c94d48d`,
+  13/07/2026** —el commit inicial del repo reorganizado— y la aorta de **`95659c6`,
+  14/09/2026**. **Ninguna la trajo LS, VS, VAL, PRO, PRO-B, PRO-C, CORTOS ni Q.**
+
+- **ARR4 · LAS SUPERFICIES FIRMADAS NO ARRASTRABAN, Y CUATRO TARJETAS ⓘ SÍ.** Medido base →
+  cargar → borrar → medir en los DOS árboles: el **informe** en los tres estilos, el **EN SUMA**,
+  el **Excel** (440 columnas clave por clave), el **PDF** en sus **SEIS** plantillas generadas de
+  verdad, el **PDF de auditoría** (104 textos), el **Laboratorio** por sus ocho funciones dueñas y
+  la **vista 2D** salen **idénticos**. **El defecto era sólo de pantalla.**
+  Lo que **sí** arrastraba son **cuatro de las once tarjetas ⓘ**: `tarj-insuf-tricuspide` decía
+  «Densidad jet CW Severa — jet denso/triangular», `ad-card` «2 cm² — normal (<19 cm²)»,
+  `vd-fun-card` «1 mm — disfunción sistólica severa» y `ao-card` «Valor fuera de rango (10-90
+  mm)». **Se curaron por construcción**, porque leen el `textContent` de la cápsula.
+
+- **ARR5 · EL Ar−A TENÍA TRES CONSTANTES, NO DOS, Y QUEDA UNA.** `VENP_AR_A_MS` con `>=`,
+  `ASE_ARA_SUPL` con `>` y `BSE_ARA_SUPL` con `>`, todas en 30: un Ar−A de **30,0 exactos** era
+  positivo para la fila de la vena pulmonar y negativo para los dos pasos suplementarios, **en la
+  misma pantalla**. Queda **`ARA_MS = 30`** con `>` ESTRICTO, **leído en el original**: ASE 2025,
+  **pie de la Figura 3, folio 554 (hoja 18, pie impreso comprobado)**, «Ar-A duration **> 30 ms**».
+  ⚠️ **LA ASE/EACVI 2016 ESCRIBE `≥ 30 msec`** (hojas 13 y 20 de su propio PDF), así que el `>=`
+  **era correcto para su fuente**: unificar es la decisión de Maicol y está declarada.
+  **TABLA DE BORDES, con A = 100 ms y la Ar en 129/130/131, en las TRES guías (9 escenas):** el 29
+  no vota en ninguno de los dos lados, el **30,0 exacto hoy tampoco en ninguno** —en HEAD votó la
+  fila y no el suplementario— y el 31 vota en los dos. El informe y el EN SUMA salen **idénticos**
+  en los tres estilos y en las nueve escenas; el único texto que se mueve en el papel es el
+  RÓTULO del corte en la celda del PDF: « (>=30 ms)» → « (>30 ms)».
+  ⚠️ **`ASE_ARVEL_SUPL` NO QUEDÓ HUÉRFANA y se conserva**: la nombra el rótulo de la fila del
+  suplementario desde el CORTOS6. Y `VENP_AR_VEL_CMS` (35 cm/s, `>`) no se toca: es la VELOCIDAD
+  de la Ar y no su duración.
+
+- **ARR6 · EL DVI DE LA PRÓTESIS TRICÚSPIDE LO CALCULA LA APP.** La fórmula es la que la **Tabla
+  19 escribe en el nombre del parámetro** —`DVI (VTI_PrTV / VTI_LVOT)`, folio 36, hoja 35, pie
+  impreso «36» comprobado—: `et_vti_diast` / `itv_tsvi`. **Los dos cortes (`≥3,3` bio y `≥2,1`
+  mec), su operador y la regla de «dos o más» no se mueven**, y el retiro del DVI con IT o IAo
+  moderada o mayor —la nota `*`— tampoco. **Bordes medidos:** bio 3.29 `sin` / **3.30 `aislado`**
+  / 3.31 `aislado`; mec 2.09 `sin` / **2.10 `aislado`**.
+  ⚠️ **UN ESTUDIO GUARDADO CON UN DVI TIPEADO REABRE COMO SE GUARDÓ**, medido por la ruta REAL de
+  restauración: con `vt_dvi = 9.99` y los dos VTI cargados reabre en 9.99 y EDITABLE. Eso decide
+  la forma: `vtDviAuto()` sin argumento RESPETA lo que la app no escribió —lo distingue
+  `dataset.auto`, que no se persiste— y `vtDviAuto(true)` recalcula. **Tres columnas**: los dos
+  `oninput` —que viven en PESTAÑAS DISTINTAS—, `RECALC_MODULOS` sin argumento y el final de
+  `limpiarCampos` con `true`, porque el barrido genérico vacía el `.value` pero **no** saca el
+  `readOnly` ni borra el `dataset.auto`: sin eso «Nuevo estudio» dejaba el campo BLOQUEADO para
+  siempre. Es la trampa que el selector de VD/VI pagó en el G3.
+  ⚠️ **LA SEGUNDA MITAD DE LA NOTA `*` QUEDA DECLARADA Y SIN IMPLEMENTAR**: «Upper limits of
+  normal DVI vary by valve size and type» — la app no tiene el tamaño de la prótesis.
+
+- **ARR7 · LA SEPARACIÓN DE LAS LÍNEAS B SE RETIRA, por la MISMA falta de fuente que las dos
+  veces quedó declarada.** Censada la biblioteca completa: ningún protocolo de ecografía pulmonar
+  publica una separación en milímetros, y el único que nombra «B3 lines» es el BLUE de
+  Lichtenstein (Chest 2008, hoja 3), que no da ninguna. Se van el `<select>`, su envoltorio y la
+  cláusula del informe; la oración vuelve a la de antes del CORTOS13, medida en los tres estilos.
+  **El resto del CORTOS13 se conserva**, medido: el derrame **pericárdico** del papel y la
+  fórmula de **Balik**. Los campos del estudio pasan de **1023 a 1022**: el retirado y ninguno más.
+
+- **ARR8 · EL FOP, EL ANEURISMA Y EL TEST DE BURBUJA CON UN SOLO DUEÑO.** Cierra **CORTOS-1** por
+  su salida (a).
+  ⚠️ **NINGUNA FUENTE DE LA BIBLIOTECA GRADÚA EL PASO DE BURBUJAS**, censada entera: las
+  menciones son de contraste de perfusión, prótesis mecánicas y artefactos pulmonares, y la ASE
+  de ETE (hoja 59) lo describe de forma **cualitativa**, sin conteo. Se aplicó la regla de
+  conservar la que los estudios guardados ya usan: queda la del **módulo FOP** (Pocas <5 /
+  Moderado 5-20 / Abundante >20), porque el **Laboratorio** cuenta su barra leyendo
+  `fop_burbujas`, porque es la única con **nombres de grado** y porque es la antigua —la de Otros
+  tenía **un día** de vida—. **Las tres opciones viejas quedan como `<option hidden>`**, el
+  patrón de `em_grado`, y **no se traducen**: equiparar «menos de 10» con «Pocas (<5)» sería
+  inventar una equivalencia. **No se migra nada.**
+  **EL ESPEJO VA EN LOS DOS SENTIDOS** (`fopBurbEspejo`, patrón de `itVmaxSync` con guarda de
+  re-entrada) y cubre cuatro datos; la excursión del aneurisma tiene **un** campo en toda la app.
+  ⚠️ **Y LA MITAD QUE FALTABA, QUE DESTAPÓ LA SONDA: con la escala unificada el informe SEGUÍA
+  publicando DOS oraciones.** Con el módulo FOP integrado, los dos hallazgos de Otros se **callan**
+  —el patrón con que el módulo pulmonar básico se calla frente al avanzado—. Las casillas de
+  Otros no se tocan y siguen viajando.
+  **EL INFORME ES ESQUEMÁTICO, TRES oraciones**, y sale con la frase exacta de la orden:
+  «Foramen oval permeable (túnel de 8 mm), con septum interauricular móvil y aneurisma del septum
+  (excursión de 22 mm). Test de burbuja: sin shunt en reposo; con maniobra de Valsalva, shunt
+  moderado (5-20 burbujas). Con ACV criptogénico.» **EN SUMA:** «FOP — túnel 8 mm — shunt con
+  Valsalva — aneurisma del septum (22 mm) — con ACV criptogénico.»
+  **EL AVISO DE LA EDAD SE OMITE** del informe y del EN SUMA: medido, con edad y sin edad los dos
+  salen **idénticos**. La indicación queda en `FUENTES.md` y `PENDIENTES.md` para Referencias.
+  ⚠️ **LAS CLAVES SIN `esq` PUBLICAN EL PÁRRAFO DE SIEMPRE**, porque omitirlas sería perder
+  información del informe firmado. `PENDIENTES.md` → ARR-8.
+
+- **A/B DE CONTROL contra el inicio de la tanda, en CADA commit, tres escenas** —formulario
+  vacío, escenario cargado en las zonas tocadas y escenario AJENO de válvulas—: **CERO
+  diferencias** en informe en los tres estilos, EN SUMA, las **440 columnas del Excel CLAVE POR
+  CLAVE**, el hash de los campos del estudio, las **295** referencias de pantalla y las ocho
+  pastillas. Lo único que se mueve en toda la tanda es lo autorizado: el rótulo del corte del
+  Ar−A en el PDF, el campo de las líneas B (1023 → 1022) y los textos del FOP.
+
+- **MEDIDO EN LOS DOS MOTORES, 12 CELDAS CADA UNO** —Chrome por el **canal del sistema** y WebKit,
+  seis viewports (1200×700, 1440×800, 1920×1080, 768×1024, 390×844, 360×740) × dos temas, con el
+  tema COMPROBADO—: las **nueve** referencias vuelven a la raya en las **24** celdas, **CERO
+  scroll horizontal de la página y CERO abortos**, y los colores resuelven **reales y distintos**
+  en los dos temas —`rgb(232,236,244)` de noche y `rgb(26,34,51)` de día para la raya,
+  `rgb(126,200,227)` y `rgb(31,95,184)` para el e′ promedio— e **IDÉNTICOS entre motores**. El
+  informe del FOP sale **idéntico en los dos**. **26 capturas PNG con los 26 `md5` DISTINTOS**, y
+  una MIRADA: los acentos salen completos —«Ventrículo derecho», «S′ tricuspídeo», «Índice de
+  Tei», «telediastólica»— y la maqueta entra entera.
+  ⚠️ **EL CHROMIUM QUE TRAE PLAYWRIGHT NO ARRANCA** —espera `chromium_headless_shell-1248` y en
+  el caché está el `-1234`—: va por el canal del sistema, que es el Chrome con el que mide el
+  resto de este repo. Es la trampa que este archivo ya tenía escrita desde la tanda J.
+  ⚠️ **WebKit de Playwright NO es Safari, y se declara.**
+
+- **Arneses: `scripts/_probe_arr.mjs`** (CDP, teclas y clics reales; once grupos propios: `censo`,
+  `censo2`, `pares`, `escenas`, `salida`, `sal2`, `qtar`, `ab`, `arab`, `dvit`, `linb`, `fopu`,
+  `inv`) y **`scripts/_probe_arrwk.mjs`** (Playwright, los DOS motores, seis viewports × dos temas
+  y las 26 capturas; resuelve Playwright **por ruta** y, si no está, lo DICE y sale con código 2).
+  **Cobertura: TC-501**, **50 condiciones** —contadas instrumentando el propio caso— con ocho
+  denominadores y nueve controles negativos. **Verificado que sabe fallar contra el inicio de la
+  tanda en un worktree aparte: 31 de las 50 en rojo, y NINGUNA por excepción.**
+
+- **Dónde está todo:** `docs/mapa/borrado-referencias.md` (**mapa NUEVO**, 9,4 KB: la regla, el
+  dueño común, las DOS causas, la tabla de los once campos con su fecha de origen, lo que no
+  arrastraba y cinco trampas del medidor); `docs/mapa/fop-burbuja-unificado.md` (**mapa NUEVO**,
+  7,1 KB: el inventario, la escala y su ausencia de fuente, el espejo, el informe esquemático y
+  el aviso de la edad); seis mapas con un puntero cada uno (`diastolica` 31,4 KB · `vd-derecho`
+  30,6 · `congenitas-otros` 23,4 · `protesis-tri-pulm` 18,4 · `evidencia-derecho-aorta` 17,1 ·
+  `otros-hallazgos` 15,1); `docs/mapa/tests-fichas.md` → la ficha de TC-501 (**29,5 KB**);
+  `docs/fuentes/FUENTES.md` → «La tanda ARR», con las tres verificaciones, la ausencia confirmada
+  y la tabla de **Cambios de evidencia**; y `docs/PENDIENTES.md` → **V1, CORTOS-1, CORTOS-5,
+  CORTOS-6 e Y3b-6 marcados CERRADOS** más **nueve** cosas declaradas (ARR-1 a ARR-9).
+  ⚠️ **`aortica-cortes.md` ESTÁ A 1,1 KB DEL TECHO (33,9 KB) Y NO SE TOCÓ**, medido con `wc -c`
+  ANTES de escribir: el puntero del defecto de la aorta se puso en `evidencia-derecho-aorta.md`,
+  que documenta el mismo `calcAorta` y tiene margen. **Ningún mapa cruzó.** `PENDIENTES.md` → ARR-1.
+
+- ⚠️ **SIETE TRAMPAS, Y CINCO DABAN FALSOS PLAUSIBLES.**
+  1. **EL DENOMINADOR DEL CENSO NO ES EL FORMULARIO RECÉN CARGADO** sino «el formulario vacío con
+     los cálculos YA CORRIDOS». Sin `calentar()`, la base tiene los span en la raya porque nadie
+     los pintó nunca y tras tipear y borrar quedan con su texto de «sin datos»: la primera
+     corrida informó **39 de 41 campos fallando** por esto solo.
+  2. **EN EL GRUPO `pares` EL DENOMINADOR ES «LA MISMA BASE MENOS EL CAMPO SACADO, CARGADA DESDE
+     LIMPIO»**: contra el vacío informa como defecto todo span que refleje un campo que **sigue
+     cargado** —dio 9 de 18 «fallando» y siete eran eso—.
+  3. **EL SPAN VACÍO DICE UN EM DASH (U+2014) Y NO UN GUIÓN**: comparar contra `'-'` dejaba los
+     tres controles negativos de TC-501 en rojo sobre un árbol perfecto.
+  4. **TRES ESCENAS CON `pinto = 0`**, o sea un denominador vacío con pinta de medición buena.
+  5. **LOS GLOBOS ⓘ VIVEN EN CINCO PESTAÑAS** y las secciones de válvula nacen cerradas: sin
+     abrir la puerta del PROPIO botón los once miden 0 × 0.
+  6. **`FOP_BURB_TXT` YA EMPIEZA CON LA PALABRA «shunt»**, así que la primera versión del informe
+     esquemático publicaba «con maniobra de Valsalva, shunt shunt moderado» en el papel FIRMADO.
+  7. **EL `cumple` DE `ASE_SUPLEMENTARIOS` TOMA EL VALOR COMO ARGUMENTO**: llamarlo pelado da
+     `undefined > 30` = false SIEMPRE, y eso se lee igual que «el corte no funciona».
+- ⚠️ **Me comí el acento grave DOCE veces**, todas en comentarios míos dentro del cuerpo de un
+  caso o del template de la sonda. `scripts/check_backticks.py` dio la línea exacta las doce — y
+  **DOS veces, al limpiarlos de un RANGO, me llevé el que CIERRA el cuerpo del caso**, y el script
+  señaló una línea del **runner** 150 líneas después, que es código normal. **El acento grave que
+  FALTA se ve igual que uno que SOBRA**, y este archivo ya lo tenía escrito.
 
 ### Las TARJETAS ⓘ de las VÁLVULAS y de la función diastólica — «Q» (2026-10-17)
 

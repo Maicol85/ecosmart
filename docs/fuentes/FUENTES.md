@@ -3658,3 +3658,103 @@ segundo dueño. El corte que se aplica lo publica la propia fila.
 commits, con el PDF en sus seis plantillas, el PPT y el PDF de auditoría **generados de verdad**,
 el informe en los tres estilos, el EN SUMA, el Excel en 440 columnas CLAVE POR CLAVE, los ocho
 grados con sus ocho pastillas y el Laboratorio: **cero diferencias**.
+
+---
+
+## La tanda ARR (2026-10-18) — tres verificaciones y una ausencia confirmada
+
+### `aseDiast2025` — el operador del Ar−A, re-leído en el original
+
+`02_Diastolica/Left-Ventricular-Diastolic-Function.pdf`. **Folio = hoja + 536**, comprobado en el
+**pie impreso** de las tres páginas (18 → «554», 19 → «555», 21 → «557»).
+
+| Folio (hoja) | Dónde | Literal |
+|---|---|---|
+| **554** (18) | pie de la **Figura 3** | «Ar-A **duration > 30 ms**, and/or a decrease in mitral E/A ratio of ≥50% with Valsalva maneuver.» |
+| **555** (19) | prosa | «… along with an **Ar-A duration >30 ms**.» |
+| **557** (21) | **Tabla 7** | «Ar-A (**$30 ms**)» → o sea **`≥`** |
+
+⚠️ **TRES TEXTOS DEL MISMO DOCUMENTO Y DOS OPERADORES.** Manda la **figura del algoritmo que la
+app ejecuta**, que es la regla de la casa: **`>` ESTRICTO**, valor **30**.
+⚠️ **El `$` es la codificación de `≥` en el texto extraído de esa fuente** —y `#` la de `≤`—:
+quien la lea sin saberlo invierte todos los operadores.
+
+### `aseDiast2016` — el mismo parámetro, con OTRO operador, y se mueve con esto
+
+`02_Diastolica/LV-Diastolic-Function-ASE-EACVI-2016.pdf`, **hoja 13** («…velocity (**Ar-A duration
+$ 30 msec**), and peak velocity of TR jet by CW Doppler») y **hoja 20**, tabla («Ar-A (**$30
+msec**)»): o sea **`≥`**.
+
+⚠️ **EL `>=` DE LA FILA DE LA VENA PULMONAR ERA CORRECTO PARA SU PROPIA FUENTE.** Unificar con el
+operador de la ASE 2025 —decisión de Maicol del 18/10/2026, con la fuente nombrada— hace que un
+Ar−A de **30,0 exactos deje de alertar** en esa fila. Es el lado que **no sobre-afirma**, y la
+alternativa era dejar dos constantes que se contradicen en la misma pantalla.
+
+### `aseProtesis2024` — el DVI de la prótesis tricúspide, Tabla 19
+
+`05_Protesis_valvulares/Zoghbi_2024_Protesis.pdf`. **Folio = hoja + 1**, y el de esta tabla está
+comprobado en el **pie impreso**: hoja 35 → «36».
+
+**Tabla 19, folio 36 (hoja 35) — «Doppler parameters suggestive of prosthetic TV stenosis»**
+
+| Parámetro | Bioprotésica | Mecánica |
+|---|---|---|
+| Peak E velocity, m/sec | ≥2.1 | ≥1.9 |
+| Mean gradient, mm Hg | ≥9 | ≥6 |
+| PHT, msec | ≥200 | ≥130 |
+| EOA, cm² | <1.5 | <2.0 |
+| **DVI (VTI_PrTV / VTI_LVOT)\*** | **≥3.3** | **≥2.1** |
+
+Al pie: «VTI_PrTV, VTI through the prosthetic TV.» y la nota **`*`**: «**Assessed in the absence
+of AR or TR.** Upper limits of normal DVI vary by valve size and type.»
+
+**Qué publica la app con eso:** el DVI lo **calcula** desde el 18/10/2026, con la fórmula que la
+propia tabla escribe en el nombre del parámetro (`et_vti_diast` / `itv_tsvi`). **Los dos cortes,
+su operador y la regla de integración no se movieron**, y el retiro del DVI con IT o IAo moderada
+o mayor —la nota `*`— tampoco.
+⚠️ **LA SEGUNDA MITAD DE LA NOTA QUEDA DECLARADA Y NO IMPLEMENTADA:** «vary by valve size and
+type». La app aplica los dos cortes de la tabla y **no tiene el tamaño de la prótesis**.
+
+### La escala del TEST DE BURBUJA — AUSENCIA CONFIRMADA, re-censada la biblioteca entera
+
+⚠️ **NINGUNA FUENTE DE LA BIBLIOTECA GRADÚA EL PASO DE BURBUJAS CON UN RANGO NUMÉRICO.** Barrido
+de **todos** los PDF por `bubble`, `microbubble`, `agitated saline`, `contrast study`,
+`right-to-left shunt` y `patent foramen`, con una ventana de 480 caracteres alrededor de cada
+coincidencia buscando cualquier rango, «grade», «mild», «moderate», «severe», «small» o «large»:
+las coincidencias son **contraste de perfusión**, **microburbujas espontáneas de prótesis
+mecánicas**, **artefactos de ecografía pulmonar** y referencias bibliográficas.
+
+Lo más cerca está en `14- ETE/ASE ETE .pdf`, **hoja 59**, y es **cualitativo**: «Positive agitated
+saline contrast study with **dense opacification** of RA and RV, and **clear early passage** of
+microbubbles to the LA (arrow) in a case of PFO.» — **sin conteo**.
+
+**Qué hizo la app con eso:** se aplicó la regla de conservar la escala que los estudios guardados
+ya usan. Queda la del módulo FOP (**Pocas <5 / Moderado 5-20 / Abundante >20**), porque el
+**Laboratorio** cuenta su barra leyendo `fop_burbujas`, porque es la única con nombres de grado y
+porque es la antigua; la de la pestaña Otros (`<10 / 10-30 / >30`, del CORTOS13, con **un día** de
+vida) se adapta, con sus tres `value` viejos como `<option hidden>`. **Ninguna de las dos lleva
+cita, y el dato no se atribuye a ninguna guía.**
+
+### La indicación de cierre del FOP según la edad — DOCUMENTADA Y NO ESCRITA EN LA APP
+
+Por decisión de Maicol (18/10/2026) el informe y el EN SUMA **omiten** el aviso «falta la edad del
+paciente, de la que depende la indicación: el cierre percutáneo es Clase IIa por debajo de los 60
+años» y el «sin edad cargada». El contenido de esa indicación queda acá y en `PENDIENTES.md` para
+llevarlo a **Referencias**; `fopConclusion` lo conserva en su `txt`, que consumen el PDF de CC
+frecuentes y la hoja de `ccHoja`.
+⚠️ **ESTA ENTRADA NO VERIFICA ESA INDICACIÓN**: la recoge como la tenía la app, y antes de
+publicarla en Referencias hay que leerla en la guía de la ESC con su folio.
+
+### Cambios de evidencia — tanda ARR
+
+| Dato | Antes | Ahora | Fuente | Commit | Fecha |
+|---|---|---|---|---|---|
+| **Ar−A, operador** de la fila de la vena pulmonar | `≥ 30 ms` (ASE/EACVI 2016, hojas 13 y 20) | **`> 30 ms`** | ASE 2025, **Figura 3, folio 554** | ARR5 | 18/10/2026 |
+| **Ar−A, rótulo** de la celda del PDF | «(>=30 ms)» | **«(>30 ms)»** | ídem | ARR5 | 18/10/2026 |
+| **DVI de la prótesis tricúspide** | lo tipeaba el médico | **lo calcula la app**, `VTI_PrTV / VTI_LVOT` | ASE 2024, **Tabla 19, folio 36** | ARR6 | 18/10/2026 |
+| **escala del test de burbuja** en Otros | `<10 / 10-30 / >30` | **`Pocas <5 / Moderado 5-20 / Abundante >20`** | **sin fuente**: se conserva la que usan los estudios guardados | ARR8 | 18/10/2026 |
+| separación de las líneas B | `≈7 mm` / `≈3 mm` | **retirada** | **sin fuente**, censada la biblioteca | ARR7 | 18/10/2026 |
+| **ningún otro corte, operador ni regla** | — | — | — | — | — |
+
+⚠️ **EL VALOR DEL Ar−A NO SE MOVIÓ: 30 ms en las tres guías.** Lo que cambió es el operador, y
+sólo en la fila de la vena pulmonar: los dos pasos suplementarios ya usaban `>`.

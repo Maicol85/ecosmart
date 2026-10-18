@@ -508,3 +508,14 @@ con sus cuatro zonas y las ocho trampas.
 **Lo que hay que saber antes de tocar esta zona:** los cortes y los operadores ya NO viven acá.
 Mover uno es editar `ASE25_T1`, y el assert de arranque exige que las cuatro bandas sigan en
 orden y sin hueco.
+
+
+---
+
+## ⚠️ El TAPSE, la onda S′ y el área de la AD vuelven a la raya al borrar el dato (ARR, 18/10/2026)
+
+Era el defecto **V1** de `PENDIENTES.md`, declarado en el propio comentario de `calcVD` desde el
+VS2: su `if` **sólo pintaba**. Y `calcAD` salía por `if (!ad) return;`, que además se llevaba la
+llamada a `calcHTP2022` —la fila «Categoría C — VCI / AD» seguía diciendo «signo presente» sobre
+un área que ya no existe—. El `else` vive ahora UNA vez, en `refSync`. **Ningún corte se movió.**
+→ `docs/mapa/borrado-referencias.md`

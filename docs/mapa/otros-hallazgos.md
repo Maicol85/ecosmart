@@ -238,3 +238,17 @@ publica con su alcance**:
    `display:none` y lo que está ahí no tiene geometría, así que el clic aborta —que es lo correcto—
    y sin mirar el aborto las escenas salen «sin cambios», indistinguible de «el cableado no
    funciona».
+
+
+---
+
+## ⚠️ La separación de las líneas B se RETIRÓ, y el test de burbuja tiene UN dueño (ARR, 18/10/2026)
+
+- **`pul_lineasb_sep` ya no existe** —ni el selector, ni su envoltorio, ni la cláusula «con
+  separación aproximada de …»—: entró en el CORTOS13 y salió por la **misma falta de fuente** que
+  las dos veces quedó declarada. La oración vuelve a «Líneas B de distribución difusa / focal.».
+  El resto del CORTOS13 se conserva: el **derrame pericárdico** del papel y la **fuente de Balik**.
+- **El test de burbuja y el aneurisma del septum de esta pestaña se espejan con el módulo FOP** y
+  comparten su escala; con el módulo FOP integrado al informe, **los dos hallazgos de acá se
+  callan** para no publicar dos oraciones del mismo hecho. →
+  `docs/mapa/fop-burbuja-unificado.md`

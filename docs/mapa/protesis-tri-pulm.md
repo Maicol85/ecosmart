@@ -281,3 +281,23 @@ constante dueña de cada corte, la cosecha de fuentes, la frase de integración 
 
 ⚠️ Es **solo presentación**: ni un corte, ni un operador, ni una regla, ni un texto del informe,
 del EN SUMA, del PDF, del PPT o del Excel. A/B contra el inicio de la tanda: **cero diferencias**.
+
+
+---
+
+## ⚠️ El DVI de la prótesis tricúspide lo calcula la app (ARR6, 18/10/2026)
+
+La fórmula es la que la **Tabla 19 escribe en el nombre del parámetro**: `DVI (VTI_PrTV /
+VTI_LVOT)` —folio 36, hoja 35, pie impreso comprobado—, o sea `et_vti_diast` / `itv_tsvi`.
+Los dos cortes (`≥3,3` bio y `≥2,1` mec), su operador y la regla de «dos o más» **no se mueven**,
+y el retiro del DVI con IT o IAo moderada o mayor **tampoco**.
+El campo pasa a **«auto ← VTI entrada / VTI TSVI»** y de **solo lectura** con los dos VTI, y sin
+alguno vuelve a ser del médico con su texto de «requiere …».
+⚠️ **Un estudio guardado con un DVI tipeado reabre COMO SE GUARDÓ:** `vtDviAuto()` sin argumento
+RESPETA un valor que la app no escribió —lo distingue `dataset.auto`, que no se persiste— y
+`vtDviAuto(true)` recalcula. Tres columnas: los dos `oninput`, `RECALC_MODULOS` (sin argumento) y
+el final de `limpiarCampos` (con `true`).
+⚠️ La segunda mitad de la nota `*` queda declarada y **no** implementada: «Upper limits of normal
+DVI vary by valve size and type» — la app no tiene el tamaño de la prótesis.
+Y la densidad del jet tricuspídeo vuelve a la raya al vaciar su selector. →
+`docs/mapa/borrado-referencias.md`
