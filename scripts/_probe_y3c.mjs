@@ -758,6 +758,20 @@ async function main() {
      tanda no puede romper la infraestructura que comparten nueve sondas. */
   await evCrudo(`
 window.__Y = {
+  m3dEstado() {
+    var o = {};
+    try { o.camara = window.m3dEstadoCamara ? window.m3dEstadoCamara() : 'SIN FN' }
+    catch (e) { o.camara = 'EXC' }
+    try { o.vis = window.M3D_VIS ? JSON.parse(JSON.stringify(window.M3D_VIS)) : 'SIN M3D_VIS' }
+    catch (e) { o.vis = 'EXC' }
+    try { o.angs = window.M3D_ANGS ? window.M3D_ANGS.slice() : 'SIN M3D_ANGS' }
+    catch (e) { o.angs = 'EXC' }
+    var bt = [];
+    document.querySelectorAll('#m3d-angs button, #m3d-vistas button, .m3d-btns button').forEach(function(b){
+      bt.push(b.id + '=' + (b.textContent || '').trim()) });
+    o.botones = bt.sort();
+    return o },
+
   clicNodo(id) {
     var e = document.getElementById(id);
     if (!e) return { err: 'NO EXISTE ' + id };
@@ -1059,6 +1073,51 @@ window.__Y = {
     } catch (e) { r.err = e.message; }
     out.grupos.dibujo = r;
     process.stderr.write('[dibujo] listo\n');
+  }
+
+  /* ══ GRUPO «plano» — la linea punteada en los cinco angulos ══════════════════════════════ */
+  if (corre('plano')) {
+    const r = {};
+    try {
+      await ev(`window.__Y.irETE()`);
+      r.sinAngulo = await ev(`window.__Y.dib()`);
+      r.abrir3d = await ev(`window.__Y.tog3d()`);
+      r.porAngulo = {};
+      for (const a of [0, 45, 60, 90, 120]) {
+        const cl = await ev(`window.__Y.ang(${a})`);
+        const d = await ev(`window.__Y.dib()`);
+        r.porAngulo[a] = { clic: cl, plano: d.plano, planoTxt: d.planoTxt, estado: d.estado,
+                           rotulos: d.rotulos, centro: d.centro };
+      }
+      /* Volver a tocar el MISMO angulo apaga la linea. */
+      r.repetir = {};
+      await ev(`window.__Y.ang(60)`);
+      r.repetir.tras60 = (await ev(`window.__Y.dib()`)).plano.disp;
+      await ev(`window.__Y.ang(60)`);
+      const d2 = await ev(`window.__Y.dib()`);
+      r.repetir.trasRepetir = d2.plano.disp;
+      r.repetir.rotulosTrasRepetir = d2.rotulos;
+      r.repetir.estado = d2.estado;
+      /* Cerrar el 3D se lleva la linea. */
+      await ev(`window.__Y.ang(90)`);
+      r.cierre = { antes: (await ev(`window.__Y.dib()`)).plano.disp };
+      await ev(`window.__Y.tog3d()`);
+      const d3 = await ev(`window.__Y.dib()`);
+      r.cierre.despues = d3.plano.disp;
+      r.cierre.txt = d3.planoTxt;
+      r.cierre.estado = d3.estado;
+      /* Elegir una VISTA del 3D tambien, porque vistas y angulos son excluyentes. */
+      await ev(`window.__Y.tog3d()`);
+      await ev(`window.__Y.ang(45)`);
+      r.vista3d = { antes: (await ev(`window.__Y.dib()`)).plano.disp };
+      await ev(`(function(){ var b=document.getElementById('m3d-v-ventriculo'); if(!b) return 'NO EXISTE'; b.click(); return 'ok' })()`);
+      r.vista3d.despues = (await ev(`window.__Y.dib()`)).plano.disp;
+      await ev(`window.__Y.tog3d()`);
+      /* El 3D no cambia: su propia cuenta del plano y sus botones. */
+      r.m3dIntacto = await ev(`window.__Y.m3dEstado()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.plano = r;
+    process.stderr.write('[plano] listo\n');
   }
 
   if (corre('ctrl')) {

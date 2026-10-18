@@ -62730,7 +62730,9 @@ function eteQxConstruir(){
       fill: fill || 'var(--text)' }, svg);
     e.textContent = t; return e; }
   QX_DEF.forEach(function(d){
-    var e = txt('ete-qx-lbl-' + d[0], d[0], 13, 700);
+    /* 500 de base y 800 marcado: la diferencia entre 700 y 800 no se renderiza en muchas
+       fuentes, y el peso es el refuerzo del subrayado — ver `eteQxPlanoPintar`. */
+    var e = txt('ete-qx-lbl-' + d[0], d[0], 13, 500);
     e.setAttribute('style', 'cursor:pointer');
     N.lbl.push({ n: d[0], e: e }); });
   /* Las CUATRO marcas que orientan el dibujo y giran con el. Sin brujula aparte y sin ningun
@@ -62750,6 +62752,17 @@ function eteQxConstruir(){
   N.mAL = txt('ete-qx-mAL', 'AL', 11, 600, 'var(--text2)');
   N.mPM = txt('ete-qx-mPM', 'PM', 11, 600, 'var(--text2)');
   [N.mAo, N.mOr, N.mAL, N.mPM].forEach(function(e){ e.setAttribute('pointer-events', 'none'); });
+  /* ⚠️ LA LINEA DEL PLANO ES NEUTRA Y NUNCA LLEVA UN COLOR DE LESION. Los seis colores de
+     Normal, Prolapso, Flail, Restriccion, Perforacion y Calcificacion estan RESERVADOS para el
+     trastorno de la valva: un plano de corte pintado con uno de ellos diria que hay una lesion
+     donde solo hay un corte. Va en `var(--text)`, el mismo tinte del anillo.
+     Nace con `display:none`: sin angulo elegido no hay linea. */
+  N.plano = qxEl('line', { id: 'ete-qx-plano', stroke: 'var(--text)', 'stroke-width': 2.4,
+    'stroke-dasharray': '7 5', 'stroke-linecap': 'round', 'pointer-events': 'none',
+    display: 'none' }, svg);
+  N.planoLbl = qxEl('text', { id: 'ete-qx-plano-lbl', x: 12, y: 26, 'font-size': 12,
+    'font-weight': 600, fill: 'var(--text)', 'pointer-events': 'none' }, svg);
+  N.planoLbl.textContent = '';
   N.annPts = []; for (var ph = 0; ph < 360; ph += 4) N.annPts.push(qxAnnPt(ph));
   N.coapPts = []; for (var x = -QXE; x <= QXE; x += 8) N.coapPts.push([x, qxCoapY(x)]);
   _qxN = N;
@@ -62782,10 +62795,76 @@ function eteQxDibujar(){
   qxPonC(N.cAo, [0, -QXG.RYT - 36], c, sn);  qxPon(N.mAo, [0, -QXG.RYT - 36], c, sn, 4);
   qxPonC(N.cOr, [-138, -64], c, sn);         qxPon(N.mOr, [-138, -82], c, sn, 0);
   qxPon(N.mAL, [-158, 0], c, sn, 4);         qxPon(N.mPM, [158, 0], c, sn, 4);
+  /* La linea gira con el dibujo: sus dos extremos son puntos del MISMO espacio local, asi que
+     pasan por `qxT` igual que todo lo demas. */
+  if (_qxAng !== null && ETE_CORTES[_qxAng]) {
+    var f = ETE_CORTES[_qxAng];
+    var q1 = qxT(f.p0, c, sn), q2 = qxT(f.p1, c, sn);
+    N.plano.setAttribute('x1', q1[0].toFixed(1)); N.plano.setAttribute('y1', q1[1].toFixed(1));
+    N.plano.setAttribute('x2', q2[0].toFixed(1)); N.plano.setAttribute('y2', q2[1].toFixed(1));
+  }
 }
 
+/* ══ LA LINEA DEL PLANO DE CORTE (Y3c3, 2026-10-18) ═══════════════════════════════════════════
+   El angulo vive en los CINCO botones del 3D que ya existen y el dibujo solo los ESCUCHA: no se
+   le agrega ni un boton de angulo, que es lo que la orden prohibe. Los cinco botones existen
+   (`m3d-a-0`, `-45`, `-60`, `-90`, `-120`), asi que no hubo ninguno que reportar como faltante.
+
+   ⚠️ EL TOGGLE VIVE ACA Y NO EN `m3dAngulo`, y es lo que permite no tocar el 3D. `m3dAngulo` NO
+   togglea —hace `_m3dAng = a` siempre—, asi que «volver a tocar el mismo angulo» no se puede
+   deducir del ESTADO: hay que ver el CLIC. De ahi el oyente de documento en fase de CAPTURA, que
+   corre ANTES del `onclick` del boton y por lo tanto antes de que `m3dBotonesSync` sincronice.
+   Si se enganchara en burbuja, en el primer clic ya veria el angulo puesto y lo apagaria.
+   ⚠️ Y `eteQxPlanoSync` SOLO APAGA, nunca prende: es la puerta por la que el cierre del panel y
+   el cambio a una VISTA del 3D —los dos dejan `_m3dAng` en nulo— se llevan la linea.
+   CONSECUENCIA DECLARADA: tocar dos veces el mismo angulo deja el boton del 3D marcado y el
+   dibujo sin linea. Es el precio de no togglear el 3D; esta en PENDIENTES. */
+var _qxAng = null;
+
+function eteQxPlanoPintar(){
+  var N = eteQxConstruir();
+  if (!N) return;
+  var on = _qxAng !== null && !!ETE_CORTES[_qxAng];
+  N.plano.setAttribute('display', on ? 'inline' : 'none');
+  N.planoLbl.textContent = on ? ('ETE ' + _qxAng + '\u00B0') : '';
+  var corta = on ? ETE_CORTES[_qxAng].fest : [];
+  /* ⚠️ NEGRITA Y SUBRAYADO, Y NI UN COLOR: el `fill` no se toca. Los seis colores de lesion
+     estan reservados y marcar un feston cortado con uno de ellos diria que tiene un trastorno. */
+  N.lbl.forEach(function(l){
+    var hit = corta.indexOf(l.n) >= 0;
+    l.e.setAttribute('font-weight', hit ? '800' : '500');
+    l.e.setAttribute('text-decoration', hit ? 'underline' : 'none');
+  });
+  eteQxDibujar();
+}
+/* El clic real en uno de los cinco botones de angulo del 3D. Togglea. */
+function eteQxAnguloClic(a){
+  a = Number(a);
+  if (!ETE_CORTES[a]) return;
+  _qxAng = (_qxAng === a) ? null : a;
+  eteQxPlanoPintar();
+}
+/* Llamada desde `m3dBotonesSync`: APAGA la linea cuando el 3D se queda sin angulo. */
+function eteQxPlanoSync(){
+  if (typeof _m3dAng !== 'undefined' && _m3dAng === null && _qxAng !== null) {
+    _qxAng = null; eteQxPlanoPintar();
+  }
+}
+document.addEventListener('click', function(ev){
+  var b = ev.target && ev.target.closest ? ev.target.closest('#m3d-angs button[id^="m3d-a-"]') : null;
+  if (!b) return;
+  eteQxAnguloClic(String(b.id).replace('m3d-a-', ''));
+}, true);
+window.eteQxPlanoPintar = eteQxPlanoPintar; window.eteQxAnguloClic = eteQxAnguloClic;
+window.eteQxPlanoSync = eteQxPlanoSync;
+
 /* Lo que la sonda y el caso de la suite leen. Es un lector PURO: no dibuja ni escribe estado. */
-function eteQxEstado(){ return { rot: Math.round(_qxRot * 100) / 100, flip: _qxFlip }; }
+function eteQxEstado(){
+  return { rot: Math.round(_qxRot * 100) / 100, flip: _qxFlip,
+           ang: (typeof _qxAng === 'undefined') ? null : _qxAng,
+           corta: (typeof _qxAng !== 'undefined' && _qxAng !== null && ETE_CORTES[_qxAng])
+                  ? ETE_CORTES[_qxAng].fest.slice() : [] };
+}
 
 window.eteQxConstruir = eteQxConstruir; window.eteQxDibujar = eteQxDibujar;
 window.eteQxEstado = eteQxEstado; window.QXG = QXG; window.QX_DEF = QX_DEF;
@@ -121073,6 +121152,12 @@ function m3dBotonesSync(){
   });
   var n = m3dEl('m3d-nota-ang');
   if (n) n.textContent = (_m3dAng === null) ? '' : (M3D_ANG_TXT[_m3dAng] || '');
+  /* ⚠️ LA UNICA LINEA QUE ESTA TANDA LE AGREGA AL 3D (Y3c3, 2026-10-18), y no cambia ni una de
+     las cuatro cosas que la orden congela —las vistas, sus nombres, los botones y la cuenta del
+     plano—: avisa al dibujo estatico para que APAGUE su linea cuando este embudo se queda sin
+     angulo, que es lo que pasa al cerrar el panel y al elegir una vista. Va con `typeof` y en
+     `try` porque este 3D corre tambien en arboles donde el dibujo no existe. */
+  try { if (typeof eteQxPlanoSync === 'function') eteQxPlanoSync(); } catch (e) {}
 }
 function m3dVista(k){
   if (M3D_VISTAS.indexOf(k) < 0) return;
