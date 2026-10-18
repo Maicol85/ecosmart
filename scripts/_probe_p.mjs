@@ -824,6 +824,29 @@ async function main() {
              txt: (e.textContent || '').replace(/\s+/g, ' ').trim() };
   },
 
+  /* ⚠️ EL HELPER camposGuardados DE LA INFRA BARRE input[id] SIN PASAR POR
+     _noEsDelEstudio, asi que mide «campos del DOM» y no «campos del ESTUDIO»: con el buscador
+     puesto informa 1023 donde el recolector real guarda 1022, y eso se lee igual que «el campo
+     nuevo viaja con el estudio». Este helper usa el MISMO predicado que guardarInforme.
+     Y SIN UN SOLO ACENTO GRAVE: estos comentarios viven DENTRO del template de la sonda y un
+     acento grave aca lo cierra. check_backticks.py no alcanza este bloque; lo dio node --check. */
+  camposEstudio: function () {
+    if (typeof _noEsDelEstudio !== 'function') return { err: 'SIN _noEsDelEstudio' };
+    var c = {};
+    document.querySelectorAll('input[id],select[id],textarea[id]').forEach(function (e) {
+      if (_noEsDelEstudio(e.id)) return;
+      c[e.id] = e.value;
+    });
+    document.querySelectorAll('input[type=checkbox][id]').forEach(function (e) {
+      if (_noEsDelEstudio(e.id)) return;
+      c[e.id + '__chk'] = e.checked ? '1' : '0';
+    });
+    var ks = Object.keys(c).sort(), h = 0;
+    var s2 = ks.map(function (k) { return k + '=' + c[k] }).join('|');
+    for (var i = 0; i < s2.length; i++) { h = ((h << 5) - h + s2.charCodeAt(i)) | 0 }
+    return { n: ks.length, hash: h, refs: ks.filter(function (k) { return k.indexOf('ref-') === 0 }) };
+  },
+
   /* Nodos de la pestana, para el ciclo de aperturas. */
   nodosRefs: function () {
     var t = document.getElementById('tab-refs');
@@ -896,6 +919,80 @@ async function main() {
     process.stderr.write('[subtabs] listo\n');
   }
 
+  /* ══ GRUPO buscar ════════════════════════════════════════════════════════════════════════
+     El campo se escribe con TECLAS REALES: `Input.insertText` mas el `input` nativo que el
+     navegador despacha, para que el oyente del buscador corra como con el medico. */
+  if (corre('buscar')) {
+    const r = { consultas: {} };
+    const CONS = ['RWT', '0,42', '0.42', 'rwt', 'TAPSE', 'xyzqnoexiste', 'wilkins'];
+    try {
+      await ev(`(function(){ showTab('refs'); return 1 })()`);
+      r.existe = await ev(`window.__P.existe('ref-busca')`);
+      r.indice = await ev(`(function(){ var i = window._refIndiceArmar(true);
+        return { n: i.length, ids: i.map(function(e){return e.id}),
+                 largos: i.map(function(e){return e.txt.length}) } })()`);
+      for (const q of CONS) {
+        await ev(`(function(){ var e=document.getElementById('ref-busca'); e.focus();
+          e.setSelectionRange(0,(e.value||'').length); return 1 })()`);
+        await tecla('Delete');
+        await cdp.send('Input.insertText', { text: q }, sessionId);
+        /* `insertText` NO despacha `input` por si mismo en todos los casos: se despacha a mano,
+           igual que hace `tipear`, y se comprueba que el valor quedo. */
+        await ev(`(function(){ var e=document.getElementById('ref-busca');
+          e.dispatchEvent(new Event('input',{bubbles:true})); return e.value })()`);
+        const val = await ev(`document.getElementById('ref-busca').value`);
+        if (val !== q) { r.consultas[q] = { err: 'EL TECLEO NO QUEDO: ' + val }; continue; }
+        r.consultas[q] = await ev(`(function(){
+          var res = document.getElementById('ref-busca-res');
+          var hits = res ? res.querySelectorAll('.ref-busc-hit') : [];
+          var ids = []; for (var i=0;i<hits.length;i++) ids.push(hits[i].dataset.refId);
+          var subs = []; for (var i=0;i<hits.length;i++) subs.push(hits[i].querySelector('.ref-busc-sub').textContent);
+          var vac = res ? res.querySelector('.ref-busc-vacio') : null;
+          return { display: res ? getComputedStyle(res).display : null, n: hits.length, ids: ids,
+                   subs: subs, vacio: vac ? vac.textContent : null,
+                   cab: res && res.querySelector('.ref-busc-cab') ? res.querySelector('.ref-busc-cab').textContent : null } })()`);
+      }
+      /* TOCAR UNA COINCIDENCIA: abre la entrada, activa su subpestana y la resalta. */
+      await ev(`(function(){ var e=document.getElementById('ref-busca'); e.focus();
+        e.setSelectionRange(0,(e.value||'').length); return 1 })()`);
+      await tecla('Delete');
+      await cdp.send('Input.insertText', { text: 'RWT' }, sessionId);
+      await ev(`(function(){ var e=document.getElementById('ref-busca');
+        e.dispatchEvent(new Event('input',{bubbles:true})); return 1 })()`);
+      r.toque = await ev(`(function(){
+        var h = document.querySelector('#ref-busca-res .ref-busc-hit');
+        if (!h) return { err: 'SIN COINCIDENCIA' };
+        var id = h.dataset.refId;
+        h.click();
+        var cuerpo = document.getElementById('ref-' + id);
+        var card = cuerpo ? cuerpo.closest('.card') : null;
+        return { id: id, activa: window._refSubActivaLeer(),
+                 abierta: cuerpo ? (cuerpo.style.display !== 'none') : null,
+                 destacada: card ? card.classList.contains('ref-destacada') : null,
+                 vis: window.__P.vis('ref-' + id) } })()`);
+      /* EL BOTON DE LIMPIAR, con clic real. */
+      r.limpiar = await ev(`(function(){
+        var b = document.getElementById('ref-busca-limpiar');
+        if (!b) return { err: 'NO EXISTE el boton' };
+        var g = b.getBoundingClientRect();
+        if (!(g.width > 0 && g.height > 0)) return { err: 'SIN GEOMETRIA' };
+        b.click();
+        var res = document.getElementById('ref-busca-res');
+        return { valor: document.getElementById('ref-busca').value,
+                 display: getComputedStyle(res).display,
+                 hits: res.querySelectorAll('.ref-busc-hit').length,
+                 foco: document.activeElement ? document.activeElement.id : null } })()`);
+      /* NO PERSISTE: ninguna clave del navegador nombra la busqueda. */
+      r.almacen = await ev(`(function(){ var o = window.__P.almacen();
+        var n = (o.ls || []).concat(o.ss || []).filter(function(k){
+          return String(k).indexOf('ref_busc') >= 0 || String(k).indexOf('ref-busca') >= 0
+              || String(k).indexOf('refsub') >= 0 || String(k).indexOf('ref_sub') >= 0 });
+        return { nombran: n } })()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.buscar = r;
+    process.stderr.write('[buscar] listo\n');
+  }
+
   /* ══ GRUPO maqueta ════════════════════════════════════════════════════════════════════════ */
   if (corre('maqueta')) {
     const r = { celdas: [] };
@@ -935,6 +1032,7 @@ async function main() {
       o.excel = await ev(`window.__P.excelDOM()`);
       o.lab = await ev(`window.__P.lab()`);
       o.campos = await ev(`window.__P.camposGuardados()`);
+      o.camposEst = await ev(`window.__P.camposEstudio()`);
       o.almacen = await ev(`window.__P.almacen()`);
       return o;
     };

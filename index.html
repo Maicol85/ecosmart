@@ -19733,6 +19733,25 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   #tab-refs .ref-subpanel.active{display:block;}
   /* El resaltado de «Ver referencia» y del buscador. Dura unos segundos y se quita solo. */
   #tab-refs .ref-destacada{box-shadow:0 0 0 2px var(--accent);border-radius:10px;transition:box-shadow .3s;}
+  /* El buscador. Ni un color propio: `--bg3`, `--border`, `--text`, `--text2` y `--accent`. */
+  #tab-refs .ref-busc-wrap{display:flex;gap:6px;align-items:center;margin:0 0 8px;}
+  #tab-refs .ref-busc-input{flex:1 1 auto;min-width:0;padding:7px 10px;font-size:.82rem;font-family:inherit;
+    color:var(--text);background:var(--bg3);border:1px solid var(--border);border-radius:7px;}
+  #tab-refs .ref-busc-input:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;}
+  #tab-refs .ref-busc-limpiar{flex:0 0 auto;padding:7px 12px;font-size:.78rem;font-weight:600;font-family:inherit;
+    cursor:pointer;color:var(--text2);background:transparent;border:1px solid var(--border);border-radius:7px;}
+  #tab-refs .ref-busc-limpiar:hover{color:var(--text);border-color:var(--text2);}
+  #tab-refs .ref-busc-res{display:none;margin:0 0 12px;border:1px solid var(--border);border-radius:8px;
+    background:var(--bg3);padding:6px;}
+  #tab-refs .ref-busc-cab{font-size:.74rem;color:var(--text2);padding:2px 6px 6px;}
+  #tab-refs .ref-busc-vacio{font-size:.8rem;color:var(--text2);padding:8px 6px;line-height:1.5;}
+  #tab-refs .ref-busc-hit{display:flex;gap:8px;align-items:baseline;width:100%;text-align:left;
+    padding:7px 8px;font-size:.82rem;font-family:inherit;cursor:pointer;color:var(--text);
+    background:transparent;border:none;border-radius:6px;}
+  #tab-refs .ref-busc-hit:hover{background:var(--section-head);}
+  #tab-refs .ref-busc-hit:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;}
+  #tab-refs .ref-busc-sub{flex:0 0 auto;font-size:.7rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.3px;}
+  #tab-refs .ref-busc-tit{flex:1 1 auto;min-width:0;}
   #tab-lab .lab-chart-container{position:relative;height:220px;width:100%;margin-bottom:8px;}
   /* Corazón anatómico con datos superpuestos */
   #tab-lab .heart-lab-grid{display:grid;grid-template-columns:340px 1fr;gap:22px;align-items:start;}
@@ -53016,7 +53035,14 @@ function _noEsDelEstudio(id) {
      trio de PISA y `im_eroa_cont`/`vr_cont`/`im_fr_cont` son campos reales—.
      Guion MEDIO, asi que este prefijo no alcanza a ningun campo del estudio, que van con guion
      BAJO (`avm_cont`, `vm_lat`, `em_gmax`). */
-  return /^(login-|ig-|lab-|cfg-|exp-|filtro-|adv-|asoc-|pdf-|lgal-|fcg-|hfpep-|vauto-|(?:b-)?cine-)/.test(id);
+  /* `ref-` es el BUSCADOR de la pestana Referencias (2026-10-18). NO es del estudio: es
+     navegacion, no un dato del paciente, y persistirlo cambiaria el juego de campos guardados
+     de TODO estudio que se guarde desde hoy. Medido ANTES del arreglo: el recolector lo tomaba
+     y los campos pasaban de 1022 a 1023 —lo cazo el control A/B, no la lectura—.
+     Guion MEDIO, asi que este prefijo no alcanza a ningun campo del estudio, que van con guion
+     BAJO. Censado: ningun `input`, `select` ni `textarea` con id del estudio empieza con
+     `ref-`; los `ref-*` del marcado son los DIV de las entradas, que no tienen valor. */
+  return /^(login-|ig-|lab-|cfg-|exp-|filtro-|adv-|asoc-|pdf-|lgal-|fcg-|hfpep-|vauto-|ref-|(?:b-)?cine-)/.test(id);
 }
 
 /* ══ Repintado de módulos al cargar un estudio ═══════════════════════════════════════════
@@ -61795,6 +61821,8 @@ function refSubInit() {
     if (btn) { refSubTab(REF_SUB_ORDEN[j], btn); btn.focus(); }
   });
   bar.dataset.refSubInit = '1';
+  /* El buscador se cablea DESPUES de reubicar, porque su indice lee los paneles ya armados. */
+  if (typeof refBuscadorInit === 'function') { try { refBuscadorInit() } catch (e) {} }
 }
 function refSubTab(sub, el) {
   refSubInit();
@@ -61810,6 +61838,175 @@ function refSubTab(sub, el) {
   _refSubActiva = sub;
   if (el && el.scrollIntoView) { try { el.scrollIntoView({ block: 'nearest', inline: 'nearest' }) } catch (e) {} }
 }
+
+/* ══ REFERENCIAS — BUSCADOR (tanda P, commit 2) ════════════════════════════════════════════
+   Filtra las entradas por su TEXTO COMPLETO —titulo, parametro, sigla y valor—, que es lo que
+   el medico tiene delante: un indice de palabras clave escritas a mano seria una SEGUNDA copia
+   de cada tabla y se separaria de ella en la primera tanda que mueva un corte.
+
+   ⚠️ LAS CINCO ENTRADAS NUEVAS ARMAN SU CUERPO AL ABRIRSE (`evRefPintar`), asi que sin forzar
+   su pintado el indice no contiene ni un corte de la AI, del VI, del VD, de la AD ni de la
+   aorta: buscar «0,42» no encontraria la geometria del VI, que es exactamente lo que la orden
+   pide. `evRefPintar` es idempotente por su `dataset.evPintado`.
+
+   NORMALIZACION, las tres cosas en el MISMO dueno (`_refNorm`) para que la consulta y el indice
+   no puedan normalizarse distinto: minusculas, sin diacriticos (NFD) y la COMA DECIMAL a punto.
+   Con la coma sin convertir, «0,42» no encuentra «0.42» ni «0,42» encuentra «0.42» segun como
+   lo haya escrito cada tabla — y en esta app las dos formas conviven: `ref-vi` escribe «<0.42»
+   y `ref-vi2` escribe «>= 0,42».
+
+   NO PERSISTE: el texto vive en el campo y nada se escribe en localStorage ni en el estudio. */
+const REF_BUSCA_MIN = 2;
+let _refIndice = null;
+function _refNorm(s) {
+  return String(s == null ? '' : s)
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/,/g, '.')
+    .toLowerCase();
+}
+function _refIndiceArmar(forzar) {
+  if (_refIndice && !forzar) return _refIndice;
+  refSubInit();
+  /* El pintado perezoso, antes de leer el texto. */
+  if (typeof evRefPintar === 'function') {
+    ['ai', 'ad', 'vd2', 'ao2', 'vi2'].forEach(function (k) { try { evRefPintar(k) } catch (e) {} });
+  }
+  const SUBTIT = { dim: 'Dimensiones', fun: 'Funcion', valv: 'Valvulas', ao: 'Aorta',
+                   otros: 'Otros hallazgos' };
+  const idx = [];
+  /* Se recorren TODAS las entradas de cada panel y no solo las claves de `REF_SUBTAB`: las cinco
+     nativas y las cinco protesicas viven DENTRO del cuerpo plegable de su agrupador, asi que con
+     la tabla sola el indice tendria 20 entradas y buscar «Wilkins» devolveria «Valvulas Nativas»
+     en vez de «EM — Estenosis Mitral», que es la que el medico quiere abrir.
+     ⚠️ LOS DOS AGRUPADORES SE EXCLUYEN, y la compuerta es ESTRUCTURAL y no una lista: un
+     agrupador es el que contiene OTRA entrada. Sin eso, su texto incluye el de sus cinco hijas y
+     cada coincidencia aparece DOS veces —la hija y el grupo—.
+     ⚠️ EL ID SE SACA POR `indexOf` Y NO CON UN REGEX: un parentesis escapado dentro de una
+     cadena de este archivo ya costo una corrida en la tanda ARR. */
+  REF_SUB_ORDEN.forEach(function (sub) {
+    const pan = document.getElementById('ref-sub-' + sub);
+    if (!pan) return;
+    const hs = pan.querySelectorAll('h2.card-head');
+    for (let i = 0; i < hs.length; i++) {
+      const head = hs[i], oc = head.getAttribute('onclick') || '';
+      const a = oc.indexOf("toggleRef('");
+      if (a < 0) continue;
+      const b = oc.indexOf("'", a + 11);
+      if (b < 0) continue;
+      const id = oc.slice(a + 11, b);
+      const cuerpo = document.getElementById('ref-' + id);
+      if (!cuerpo) continue;
+      const card = head.closest('.card');
+      if (!card) continue;
+      if (cuerpo.querySelector('h2.card-head')) continue;
+      const tit = (head.textContent || '').replace(/[▶▼]/g, '').replace(/\s+/g, ' ').trim() || id;
+      idx.push({ id: id, sub: sub, subTit: SUBTIT[sub] || sub, tit: tit,
+                 txt: _refNorm(tit + ' ' + (card.textContent || '')) });
+    }
+  });
+  _refIndice = idx;
+  return idx;
+}
+/* Resalta una entrada unos segundos. La clase se quita sola; el temporizador se guarda en el
+   PROPIO nodo para que dos busquedas seguidas no se pisen el borrado. */
+const REF_DESTACA_MS = 4000;
+function refDestacar(card) {
+  if (!card) return;
+  card.classList.add('ref-destacada');
+  if (card._refTimer) clearTimeout(card._refTimer);
+  card._refTimer = setTimeout(function () { card.classList.remove('ref-destacada'); }, REF_DESTACA_MS);
+}
+/* Abre una entrada por su id: activa su subpestana, despliega su cuerpo si estaba cerrado,
+   desplaza hasta ella y la resalta. Es el camino que usan el buscador y «Ver referencia». */
+function refIr(id) {
+  refSubInit();
+  const cuerpo = document.getElementById('ref-' + id);
+  if (!cuerpo) { console.error('[refIr] no existe ref-' + id); return false; }
+  if (typeof showTab === 'function') { try { showTab('refs') } catch (e) {} }
+  const card = cuerpo.closest('.card');
+  const pan = card ? card.closest('.ref-subpanel') : null;
+  const sub = pan ? String(pan.id || '').replace(/^ref-sub-/, '') : null;
+  if (sub) refSubTab(sub, document.getElementById('ref-subtab-' + sub));
+  /* El grupo que la contiene, si vive dentro de uno (las cinco nativas y las cinco protesicas
+     estan dentro del cuerpo plegable de su agrupador). Se abre el PADRE antes que el hijo. */
+  let papa = cuerpo.parentNode;
+  while (papa && papa.nodeType === 1 && !papa.classList.contains('ref-subpanel')) {
+    if (papa.id && papa.id.indexOf('ref-') === 0 && papa.style.display === 'none') {
+      const h = papa.previousElementSibling;
+      if (h && h.classList && h.classList.contains('card-head')) h.click();
+    }
+    papa = papa.parentNode;
+  }
+  if (cuerpo.style.display === 'none') {
+    const h = cuerpo.previousElementSibling;
+    if (h && h.classList && h.classList.contains('card-head')) h.click();
+    else { cuerpo.style.display = 'block'; if (typeof evRefPintar === 'function') { try { evRefPintar(id) } catch (e) {} } }
+  }
+  if (card && card.scrollIntoView) { try { card.scrollIntoView({ block: 'start' }) } catch (e) {} }
+  refDestacar(card);
+  return true;
+}
+/* El marcado del buscador se construye POR NODOS y no concatenando HTML: lo que entra es texto
+   del medico. */
+function refBuscadorInit() {
+  const host = document.getElementById('ref-buscador-host');
+  if (!host || host.dataset.refBusc === '1') return;
+  const wrap = document.createElement('div');
+  wrap.className = 'ref-busc-wrap';
+  const inp = document.createElement('input');
+  inp.type = 'search'; inp.id = 'ref-busca'; inp.className = 'ref-busc-input';
+  inp.setAttribute('placeholder', 'Buscar en Referencias: parámetro, sigla o valor (RWT, 0,42, TAPSE…)');
+  inp.setAttribute('aria-label', 'Buscar en Referencias');
+  inp.setAttribute('autocomplete', 'off');
+  const btn = document.createElement('button');
+  btn.type = 'button'; btn.id = 'ref-busca-limpiar'; btn.className = 'ref-busc-limpiar';
+  btn.textContent = 'Limpiar'; btn.setAttribute('aria-label', 'Limpiar la búsqueda');
+  const res = document.createElement('div');
+  res.id = 'ref-busca-res'; res.className = 'ref-busc-res';
+  res.setAttribute('role', 'region'); res.setAttribute('aria-live', 'polite');
+  wrap.appendChild(inp); wrap.appendChild(btn);
+  host.appendChild(wrap); host.appendChild(res);
+  inp.addEventListener('input', refBuscar);
+  btn.addEventListener('click', function () { inp.value = ''; refBuscar(); inp.focus(); });
+  host.dataset.refBusc = '1';
+}
+function refBuscar() {
+  const inp = document.getElementById('ref-busca');
+  const res = document.getElementById('ref-busca-res');
+  if (!inp || !res) return null;
+  while (res.firstChild) res.removeChild(res.firstChild);
+  const q = _refNorm(inp.value.trim());
+  if (q.length < REF_BUSCA_MIN) { res.style.display = 'none'; return { q: q, n: null }; }
+  res.style.display = 'block';
+  const hits = _refIndiceArmar().filter(function (e) { return e.txt.indexOf(q) >= 0; });
+  if (!hits.length) {
+    const p = document.createElement('div');
+    p.className = 'ref-busc-vacio';
+    p.textContent = 'Sin resultados para «' + inp.value.trim() + '». Probá con el nombre del parámetro, su sigla o su valor.';
+    res.appendChild(p);
+    return { q: q, n: 0, ids: [] };
+  }
+  const cab = document.createElement('div');
+  cab.className = 'ref-busc-cab';
+  cab.textContent = hits.length === 1 ? '1 entrada' : hits.length + ' entradas';
+  res.appendChild(cab);
+  hits.forEach(function (e) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'ref-busc-hit';
+    b.dataset.refId = e.id;
+    const s = document.createElement('span');
+    s.className = 'ref-busc-sub'; s.textContent = e.subTit;
+    const t = document.createElement('span');
+    t.className = 'ref-busc-tit'; t.textContent = e.tit;
+    b.appendChild(s); b.appendChild(t);
+    b.addEventListener('click', function () { refIr(e.id); });
+    res.appendChild(b);
+  });
+  return { q: q, n: hits.length, ids: hits.map(function (e) { return e.id }) };
+}
+window._refNorm = _refNorm; window.refIr = refIr; window.refDestacar = refDestacar;
+window.refBuscar = refBuscar; window.refBuscadorInit = refBuscadorInit;
+window._refIndiceArmar = _refIndiceArmar;
 window.REF_SUBTAB = REF_SUBTAB; window.REF_SUB_ORDEN = REF_SUB_ORDEN;
 window.refSubInit = refSubInit; window.refSubTab = refSubTab;
 window._refSubActivaLeer = function () { return _refSubActiva };
