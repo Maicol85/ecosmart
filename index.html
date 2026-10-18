@@ -19767,6 +19767,9 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     color:var(--accent);background:transparent;border:1px solid var(--accent);border-radius:7px;}
   #tab-refs .ref-volver:hover{background:var(--section-head);}
   #tab-refs .ref-volver-de{font-size:.74rem;color:var(--text2);}
+  #tab-refs .ref-bloque-rot{font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;
+    color:var(--text2);margin:10px 0 4px;padding:0 2px;}
+  #tab-refs .ref-subpanel > .ref-bloque-rot:first-child{margin-top:0;}
   #vinfo-card .vinfo-verref{display:block;width:100%;margin-top:9px;padding:6px 8px;font-size:10.5px;
     font-weight:700;font-family:inherit;cursor:pointer;color:var(--accent);background:transparent;
     border:1px solid var(--border);border-radius:6px;text-align:center;}
@@ -61808,6 +61811,16 @@ const REF_SUBTAB = Object.freeze({
                         'congenitas', 'formulas'])
 });
 const REF_SUB_ORDEN = Object.freeze(['dim', 'fun', 'valv', 'ao', 'otros']);
+/* ══ ROTULOS DE BLOQUE (tanda P, commit 4) ═══════════════════════════════════════════════════
+   La subpestana AORTA son DOS bloques que hasta hoy vivian separados en la pestana: las
+   DIMENSIONES —cortes por segmento y los tres nomogramas de los senos de Valsalva— y el ATEROMA
+   aortico. Los dos se reusan tal cual: esta tabla solo pone un rotulo ANTES de cada uno para
+   que se lean como dos bloques y no como dos entradas sueltas.
+   Es texto de NAVEGACION, no contenido clinico: ni un corte, ni una cuenta, ni una cita. */
+const REF_SUB_BLOQUES = Object.freeze({
+  ao: Object.freeze([{ antes: 'ao2', rot: 'Dimensiones y nomogramas' },
+                     { antes: 'ao',  rot: 'Ateroma aórtico' }])
+});
 let _refSubActiva = 'dim';
 /* La reubicacion corre UNA vez. El marcado deja las entradas como estaban y los cinco paneles
    vacios arriba; mientras esto no corra, la pestana se ve entera debajo de los paneles. */
@@ -61817,9 +61830,16 @@ function refSubInit() {
   REF_SUB_ORDEN.forEach(function (sub) {
     const host = document.getElementById('ref-sub-' + sub);
     if (!host) { console.error('[refSubInit] no existe ref-sub-' + sub); return; }
+    const bloques = REF_SUB_BLOQUES[sub] || [];
     REF_SUBTAB[sub].forEach(function (id) {
       const cuerpo = document.getElementById('ref-' + id);
       if (!cuerpo) { console.error('[refSubInit] no existe ref-' + id); return; }
+      const bl = bloques.filter(function (b) { return b.antes === id; })[0];
+      if (bl) {
+        const r = document.createElement('div');
+        r.className = 'ref-bloque-rot'; r.dataset.refBloque = id; r.textContent = bl.rot;
+        host.appendChild(r);
+      }
       /* La entrada es la TARJETA que contiene al cuerpo, no el cuerpo: el titulo plegable vive
          en el `h2.card-head` hermano. */
       const card = cuerpo.closest('.card');
@@ -62118,6 +62138,7 @@ window._refNorm = _refNorm; window.refIr = refIr; window.refDestacar = refDestac
 window.refBuscar = refBuscar; window.refBuscadorInit = refBuscadorInit;
 window._refIndiceArmar = _refIndiceArmar;
 window.REF_SUBTAB = REF_SUBTAB; window.REF_SUB_ORDEN = REF_SUB_ORDEN;
+window.REF_SUB_BLOQUES = REF_SUB_BLOQUES;
 window.refSubInit = refSubInit; window.refSubTab = refSubTab;
 window._refSubActivaLeer = function () { return _refSubActiva };
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', refSubInit);

@@ -1081,6 +1081,108 @@ async function main() {
     process.stderr.write('[verref] listo\n');
   }
 
+  /* ══ GRUPO aorta ═════════════════════════════════════════════════════════════════════════
+     La subpestana AORTA: los dos bloques, las tres graficas con su fuente, el criterio de los
+     40 mm del seno DERIVADO del dueno, y la tabla de cirugia (commit 5). */
+  if (corre('aorta')) {
+    const r = {};
+    try {
+      await ev(`(function(){ showTab('refs'); return 1 })()`);
+      r.panel = await ev(`window.__P.refSub('ao')`);
+      r.bloques = await ev(`(function(){
+        var p = document.getElementById('ref-sub-ao');
+        var rs = p.querySelectorAll('.ref-bloque-rot');
+        var o = []; for (var i=0;i<rs.length;i++) o.push({ antes: rs[i].dataset.refBloque,
+          rot: rs[i].textContent, color: getComputedStyle(rs[i]).color });
+        /* El ORDEN real de los hijos del panel. */
+        var ord = []; var ch = p.children;
+        for (var j=0;j<ch.length;j++) {
+          if (ch[j].classList.contains('ref-bloque-rot')) ord.push('ROT:' + ch[j].textContent);
+          else { var c = ch[j].querySelector ? ch[j].querySelector('h2.card-head') : null;
+                 if (c) { var oc = c.getAttribute('onclick')||''; var a = oc.indexOf("toggleRef('");
+                          var b = oc.indexOf("'", a+11); ord.push('ENTRADA:' + oc.slice(a+11,b)); } }
+        }
+        return { rotulos: o, orden: ord } })()`);
+      /* Se abren las DOS entradas con sus encabezados REALES. */
+      r.abrir = await ev(`(function(){
+        var o = {};
+        ['ao2','ao'].forEach(function(id){
+          var cu = document.getElementById('ref-' + id);
+          var h = cu ? cu.previousElementSibling : null;
+          if (h && h.classList.contains('card-head')) h.click();
+          o[id] = { vis: window.__P.vis('ref-' + id),
+                    display: cu ? cu.style.display : null };
+        });
+        return o })()`);
+      r.ao2 = await ev(`(function(){
+        var h = document.getElementById('ref-ao2-cuerpo');
+        if (!h) return { err: 'NO EXISTE ref-ao2-cuerpo' };
+        var svgs = h.querySelectorAll('svg');
+        var cats = h.querySelectorAll('[data-ev-cat]');
+        var ecs = []; for (var i=0;i<cats.length;i++) ecs.push(cats[i].textContent.replace(/\\s+/g,' ').trim());
+        var fila = null, filas = h.querySelectorAll('tr');
+        for (var j=0;j<filas.length;j++) {
+          var t = filas[j].textContent.replace(/\\s+/g,' ').trim();
+          if (t.indexOf('Raiz') >= 0 || t.indexOf('Raíz') >= 0) { fila = t; break; }
+        }
+        var fte = h.querySelector('[data-ev-fuente="ao-nota"]');
+        return { nSvg: svgs.length, ecuaciones: ecs, filaRaiz: fila,
+                 nota: fte ? fte.textContent.replace(/\\s+/g,' ').trim().slice(0,200) : null,
+                 nFilas: filas.length,
+                 biblio: (function(){ var b = h.querySelectorAll('[data-ev-biblio] li, .ev-biblio li');
+                   var o=[]; for (var k=0;k<b.length;k++) o.push(b[k].textContent.replace(/\\s+/g,' ').trim().slice(0,160));
+                   return o })() } })()`);
+      /* EL CRITERIO DE LOS 40 mm, contra el DUENO: se le pregunta a `aoSegGrado` por sus dos
+         lados en vez de leer el numero de la fila. */
+      r.corte40 = await ev(`(function(){
+        if (typeof aoSegGrado !== 'function') return { err: 'SIN aoSegGrado' };
+        var sg = (typeof AO_SEGS !== 'undefined') ? AO_SEGS.filter(function(x){return x.k==='ao_sin'})[0] : null;
+        if (!sg) return { err: 'SIN AO_SEGS' };
+        return { ref: sg.ref, g39: aoSegGrado(sg, 39), g40: aoSegGrado(sg, 40), g41: aoSegGrado(sg, 41),
+                 sim: (typeof aoSegSim === 'function') ? aoSegSim(sg, 'dil') : null } })()`);
+      r.ateroma = await ev(`(function(){
+        var cu = document.getElementById('ref-ao');
+        if (!cu) return { err: 'NO EXISTE ref-ao' };
+        var t = cu.textContent.replace(/\\s+/g,' ').trim();
+        var filas = cu.querySelectorAll('tr');
+        return { nFilas: filas.length, dice55: t.indexOf('55mm') >= 0 || t.indexOf('55 mm') >= 0,
+                 diceCrecimiento: t.indexOf('3mm/') >= 0 || t.indexOf('3 mm/') >= 0,
+                 txt: t.slice(0, 700) } })()`);
+      /* La TABLA DE CIRUGIA (commit 5): existe o no. */
+      r.tablaCx = await ev(`(function(){
+        var t = document.getElementById('ref-ao-cx');
+        if (!t) return { existe: false };
+        var fs = t.querySelectorAll('tbody tr');
+        var o = []; for (var i=0;i<fs.length;i++) {
+          var tds = fs[i].querySelectorAll('td'); var f = [];
+          for (var j=0;j<tds.length;j++) f.push(tds[j].textContent.replace(/\\s+/g,' ').trim());
+          o.push(f);
+        }
+        var ths = t.querySelectorAll('thead th'); var cab = [];
+        for (var k=0;k<ths.length;k++) cab.push(ths[k].textContent.replace(/\\s+/g,' ').trim());
+        return { existe: true, cab: cab, n: o.length, filas: o,
+                 vis: window.__P.vis('ref-ao-cx') } })()`);
+      /* Los umbrales que la pestana VAB APLICA, SONDEADOS a su dueno. */
+      r.vab = await ev(`(function(){
+        if (typeof vabConclusion !== 'function') return { err: 'SIN vabConclusion' };
+        function c(o){ var r = vabConclusion(Object.assign({ va_morf:'Bicúspide' }, o));
+          return r ? { clave: r.clave, txt: r.txt.slice(0, 190) } : null }
+        return {
+          max54:  c({ ao_sin:'54', ao_tub:'50' }),
+          max55:  c({ ao_sin:'55', ao_tub:'50' }),
+          raiz49: c({ ao_sin:'49', ao_tub:'40', vab_fenotipo:'raiz' }),
+          raiz50: c({ ao_sin:'50', ao_tub:'40', vab_fenotipo:'raiz' }),
+          asc52:  c({ ao_sin:'40', ao_tub:'52', vab_fenotipo:'tubular', vab_riesgo_qx:'si' }),
+          asc53:  c({ ao_sin:'40', ao_tub:'53', vab_fenotipo:'tubular', vab_riesgo_qx:'si' }),
+          asc50fr:c({ ao_sin:'40', ao_tub:'50', vab_fenotipo:'tubular', vab_riesgo_qx:'si', vab_fr_hta:'si' }),
+          asc50sf:c({ ao_sin:'40', ao_tub:'50', vab_fenotipo:'tubular', vab_riesgo_qx:'si' }),
+          cx44:   c({ ao_sin:'44', ao_tub:'40', vab_cx_valvular:'si' }),
+          cx45:   c({ ao_sin:'45', ao_tub:'40', vab_cx_valvular:'si' }) } })()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.aorta = r;
+    process.stderr.write('[aorta] listo\n');
+  }
+
   /* ══ GRUPO maqueta ════════════════════════════════════════════════════════════════════════ */
   if (corre('maqueta')) {
     const r = { celdas: [] };
