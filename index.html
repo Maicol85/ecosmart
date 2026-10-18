@@ -17266,6 +17266,30 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
 
 <!-- ═══════════════════════ TAB: REFERENCIAS CLÍNICAS ═══════════════════════ -->
 <div id="tab-refs" class="tab-section">
+  <!-- ══ SUBPESTANAS (tanda P, 2026-10-18) ═══════════════════════════════════════════════
+       Las entradas NO se mudaron en el marcado: `refSubInit` las REUBICA al arrancar leyendo
+       `REF_SUBTAB`, que es el dueno UNICO del reparto. Mover 900 lineas de marcado habria hecho
+       imposible comprobar que el censo da el mismo conteo; con la tabla, el censo ES la tabla.
+       Si el JS no corriera, las entradas quedan visibles debajo de los paneles vacios: la
+       degradacion es «se ve todo», nunca «no se ve nada».
+       El estado de la subpestana vive en MEMORIA (`_refSubActiva`) y no en localStorage ni en el
+       estudio: es navegacion, no un dato del paciente.
+       La barra se DESPLAZA horizontalmente por dentro (`overflow-x:auto` + `nowrap`), que es lo
+       que evita el scroll horizontal de la PAGINA a 390 px. -->
+  <div class="ref-subbar" role="tablist" aria-label="Secciones de Referencias">
+    <button type="button" class="ref-subtab active" role="tab" id="ref-subtab-dim" aria-selected="true" aria-controls="ref-sub-dim" tabindex="0" onclick="refSubTab('dim',this)">📏 Dimensiones</button>
+    <button type="button" class="ref-subtab" role="tab" id="ref-subtab-fun" aria-selected="false" aria-controls="ref-sub-fun" tabindex="-1" onclick="refSubTab('fun',this)">📈 Función</button>
+    <button type="button" class="ref-subtab" role="tab" id="ref-subtab-valv" aria-selected="false" aria-controls="ref-sub-valv" tabindex="-1" onclick="refSubTab('valv',this)">🫀 Válvulas</button>
+    <button type="button" class="ref-subtab" role="tab" id="ref-subtab-ao" aria-selected="false" aria-controls="ref-sub-ao" tabindex="-1" onclick="refSubTab('ao',this)">🩸 Aorta</button>
+    <button type="button" class="ref-subtab" role="tab" id="ref-subtab-otros" aria-selected="false" aria-controls="ref-sub-otros" tabindex="-1" onclick="refSubTab('otros',this)">🔎 Otros hallazgos</button>
+  </div>
+  <div id="ref-buscador-host"></div>
+  <div id="ref-sub-dim" class="ref-subpanel active" role="tabpanel" aria-labelledby="ref-subtab-dim"></div>
+  <div id="ref-sub-fun" class="ref-subpanel" role="tabpanel" aria-labelledby="ref-subtab-fun"></div>
+  <div id="ref-sub-valv" class="ref-subpanel" role="tabpanel" aria-labelledby="ref-subtab-valv"></div>
+  <div id="ref-sub-ao" class="ref-subpanel" role="tabpanel" aria-labelledby="ref-subtab-ao"></div>
+  <div id="ref-sub-otros" class="ref-subpanel" role="tabpanel" aria-labelledby="ref-subtab-otros"></div>
+
 
   <div class="card">
     <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('nativas',this)">
@@ -19689,6 +19713,26 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   #tab-lab .lab-subtab:hover:not(.active){color:var(--text);}
   #tab-lab .lab-subpanel{display:none;}
   #tab-lab .lab-subpanel.active{display:block;}
+
+  /* ══ REFERENCIAS — subpestanas (tanda P) ════════════════════════════════════════════════
+     Los colores son los MISMOS que `.lab-subtab` y no se declara ninguno propio: `--text2` en
+     reposo, `--accent` activo, `--border` para la linea. Asi los dos temas salen gratis.
+     `nowrap` + `overflow-x:auto` hace que la que se desplaza sea LA BARRA y no la pagina: con
+     `flex-wrap:wrap` los cinco botones envuelven y la pestana crece en alto, y con `nowrap` sin
+     `overflow-x` desborda el ancho del documento. `flex-shrink:0` evita que los rotulos se
+     compriman hasta ser ilegibles. */
+  #tab-refs .ref-subbar{display:flex;flex-wrap:nowrap;gap:2px;overflow-x:auto;-webkit-overflow-scrolling:touch;
+    border-bottom:1px solid var(--border);margin:0 0 12px;scrollbar-width:thin;max-width:100%;}
+  #tab-refs .ref-subtab{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;font-size:.8rem;
+    font-weight:600;cursor:pointer;color:var(--text2);border:none;background:none;border-bottom:2px solid transparent;
+    margin-bottom:-1px;transition:.15s;font-family:inherit;white-space:nowrap;flex-shrink:0;}
+  #tab-refs .ref-subtab.active{color:var(--accent);border-bottom-color:var(--accent);}
+  #tab-refs .ref-subtab:hover:not(.active){color:var(--text);}
+  #tab-refs .ref-subtab:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;}
+  #tab-refs .ref-subpanel{display:none;}
+  #tab-refs .ref-subpanel.active{display:block;}
+  /* El resaltado de «Ver referencia» y del buscador. Dura unos segundos y se quita solo. */
+  #tab-refs .ref-destacada{box-shadow:0 0 0 2px var(--accent);border-radius:10px;transition:box-shadow .3s;}
   #tab-lab .lab-chart-container{position:relative;height:220px;width:100%;margin-bottom:8px;}
   /* Corazón anatómico con datos superpuestos */
   #tab-lab .heart-lab-grid{display:grid;grid-template-columns:340px 1fr;gap:22px;align-items:start;}
@@ -61686,6 +61730,91 @@ function eteSetModo(m,btn){
 }
 window.eteSetModo=eteSetModo;
 
+/* ══ REFERENCIAS — SUBPESTANAS (tanda P, 2026-10-18) ═══════════════════════════════════════
+   `REF_SUBTAB` es el DUENO UNICO del reparto: la pestana no tiene su reparto escrito en el
+   marcado, asi que el censo de entradas ES esta tabla y no hay una segunda lista que se separe
+   de ella. El orden dentro de cada panel es el orden de este arreglo.
+
+   ⚠️ `vd` ES LA ENTRADA VIEJA DEL VD (ASE 2015) y convive con `vd2` hasta que el commit 6 la
+   retire: publica una onda S' de «>= 10 cm/s» tipeada a mano mientras el dueno
+   (`UMBRAL_SPRIME_NORMAL`, derivado de la Tabla 1 de la ASE 2025) aplica otro valor.
+
+   ⚠️ `ao2` y `ao` van a AORTA y NO a Dimensiones, aunque la aorta toracica sea una dimension:
+   la orden le da a la aorta su propia subpestana con sus dos bloques (nomogramas y ateroma).
+   ⚠️ `formulas` va a «Otros hallazgos» porque no es ni una dimension ni una funcion de una
+   camara: es el cajon que la propia orden prevee para lo que no encaja.
+   ⚠️ `vi` (ASE 2016) va a DIMENSIONES y no a FUNCION aunque su segundo bloque sea la diastolica:
+   su primer bloque es la GEOMETRIA del VI, que es lo que da nombre al RWT y a la masa, y es lo
+   que el buscador tiene que encontrar junto a `vi2`. */
+const REF_SUBTAB = Object.freeze({
+  dim:   Object.freeze(['ai', 'vi2', 'vi', 'vd2', 'vd', 'ad']),
+  fun:   Object.freeze(['htp', 'tep']),
+  valv:  Object.freeze(['nativas', 'protesicas']),
+  ao:    Object.freeze(['ao2', 'ao']),
+  otros: Object.freeze(['oai', 'burbujas', 'coronarias', 'pericardio', 'cardiotox', 'miocard',
+                        'congenitas', 'formulas'])
+});
+const REF_SUB_ORDEN = Object.freeze(['dim', 'fun', 'valv', 'ao', 'otros']);
+let _refSubActiva = 'dim';
+/* La reubicacion corre UNA vez. El marcado deja las entradas como estaban y los cinco paneles
+   vacios arriba; mientras esto no corra, la pestana se ve entera debajo de los paneles. */
+function refSubInit() {
+  const bar = document.querySelector('#tab-refs .ref-subbar');
+  if (!bar || bar.dataset.refSubInit === '1') return;
+  REF_SUB_ORDEN.forEach(function (sub) {
+    const host = document.getElementById('ref-sub-' + sub);
+    if (!host) { console.error('[refSubInit] no existe ref-sub-' + sub); return; }
+    REF_SUBTAB[sub].forEach(function (id) {
+      const cuerpo = document.getElementById('ref-' + id);
+      if (!cuerpo) { console.error('[refSubInit] no existe ref-' + id); return; }
+      /* La entrada es la TARJETA que contiene al cuerpo, no el cuerpo: el titulo plegable vive
+         en el `h2.card-head` hermano. */
+      const card = cuerpo.closest('.card');
+      if (card) host.appendChild(card);
+    });
+  });
+  /* El texto general de integracion del VAL vivia DENTRO del cuerpo plegable de «Valvulas
+     Nativas», asi que solo se veia con ese grupo abierto. Va al final del panel de Valvulas,
+     donde la orden lo pide, y con eso se ve siempre. Mismas palabras, mismo nodo. */
+  const integ = document.getElementById('ref-integracion');
+  const hostValv = document.getElementById('ref-sub-valv');
+  if (integ && hostValv) hostValv.appendChild(integ);
+  /* Teclado del tablist, patron ARIA: la barra es UN solo tab stop y las flechas mueven entre
+     las cinco. Se cablea con addEventListener y no con un atributo de evento. */
+  bar.addEventListener('keydown', function (e) {
+    const K = e.key;
+    if (K !== 'ArrowLeft' && K !== 'ArrowRight' && K !== 'Home' && K !== 'End') return;
+    const i = REF_SUB_ORDEN.indexOf(_refSubActiva);
+    let j = i;
+    if (K === 'ArrowLeft')  j = (i <= 0) ? REF_SUB_ORDEN.length - 1 : i - 1;
+    if (K === 'ArrowRight') j = (i >= REF_SUB_ORDEN.length - 1) ? 0 : i + 1;
+    if (K === 'Home') j = 0;
+    if (K === 'End')  j = REF_SUB_ORDEN.length - 1;
+    e.preventDefault();
+    const btn = document.getElementById('ref-subtab-' + REF_SUB_ORDEN[j]);
+    if (btn) { refSubTab(REF_SUB_ORDEN[j], btn); btn.focus(); }
+  });
+  bar.dataset.refSubInit = '1';
+}
+function refSubTab(sub, el) {
+  refSubInit();
+  if (!REF_SUBTAB[sub]) { console.error('[refSubTab] subpestana desconocida: ' + sub); return; }
+  REF_SUB_ORDEN.forEach(function (k) {
+    const b = document.getElementById('ref-subtab-' + k);
+    const p = document.getElementById('ref-sub-' + k);
+    const on = (k === sub);
+    if (b) { b.classList.toggle('active', on); b.setAttribute('aria-selected', on ? 'true' : 'false');
+             b.tabIndex = on ? 0 : -1; }
+    if (p) p.classList.toggle('active', on);
+  });
+  _refSubActiva = sub;
+  if (el && el.scrollIntoView) { try { el.scrollIntoView({ block: 'nearest', inline: 'nearest' }) } catch (e) {} }
+}
+window.REF_SUBTAB = REF_SUBTAB; window.REF_SUB_ORDEN = REF_SUB_ORDEN;
+window.refSubInit = refSubInit; window.refSubTab = refSubTab;
+window._refSubActivaLeer = function () { return _refSubActiva };
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', refSubInit);
+else refSubInit();
 function toggleRef(id, headEl) {
   const sec = document.getElementById('ref-' + id);
   if (!sec) return;
