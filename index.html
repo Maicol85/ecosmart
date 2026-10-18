@@ -41484,7 +41484,12 @@ function qvTarjeta(tipo, valv) {
      publica un grado —la estenosis mitral con gradiente elevado e IM significativa es el caso, y
      la binaria con el boton apagado tambien—. Escribir «sin datos» ahi seria afirmar que no se
      midio nada sobre una pantalla que muestra dos parametros. */
-  const hayFilas = !!(R && !R.manual && R.filas && R.filas.length);
+  /* ⚠️ «HAY ALGO QUE DECIR» INCLUYE LA LINEA INTEGRADA Y NO SOLO LAS FILAS, Y LO CAZO LA SONDA.
+     La protesis PULMONAR percutanea, mecanica o sin tipo no tiene columna en la Tabla 15: su
+     capsula publica el MOTIVO por el que no gradua y NINGUNA fila, asi que la tarjeta se iba por
+     la salida de «sin parametros cargados» y perdia exactamente el estado que la orden pide
+     mostrar —«No graduada» con su motivo— sobre un paciente cuyos dos campos estan cargados. */
+  const hayFilas = !!(R && !R.manual && ((R.filas && R.filas.length) || R.decide));
   const hdV = _evDiv('qv-grado', P.txt || (hayFilas ? 'sin grado consignado' : 'sin datos'),
                      { 'data-qv-grado': kl });
   if (P.cls) hdV.className = 'qv-grado ' + P.cls;
@@ -41505,7 +41510,7 @@ function qvTarjeta(tipo, valv) {
     return cont;
   }
 
-  if (!R || !R.filas.length) {
+  if (!R || (!R.filas.length && !R.decide)) {
     cont.appendChild(_evDiv('qv-vacio', 'Sin par\u00e1metros cargados para esta lesi\u00f3n.',
                             { 'data-qv-vacio': kl }));
     return cont;
@@ -41518,7 +41523,7 @@ function qvTarjeta(tipo, valv) {
      su leyenda, que es lo que hace el THP de la estenosis tricuspidea desde el VAL1. Con una
      lista aparte, el dia que un criterio deje de votar la tarjeta seguiria contandolo. */
   const decide = [], apoyo = [];
-  R.filas.forEach(function (f) {
+  (R.filas || []).forEach(function (f) {
     /* ⚠️ TRES FORMAS, LAS TRES DEL DUENO: el `noVota` que la tabla declara, la palabra «apoyo»
        que la fila de la estenosis tricuspidea escribe en su leyenda, y el «no vota» que la fila
        del AVm por THP de la estenosis mitral publica desde el 2026-10-11. Con una lista aparte, el
@@ -41541,15 +41546,32 @@ function qvTarjeta(tipo, valv) {
     cont.appendChild(ga);
   }
 
-  if (R.decide) cont.appendChild(_evDiv('qv-decide', 'Decide: ' + R.decide,
-                                        { 'data-qv-decide': kl }));
+  /* ⚠️ EL ROTULO DE LA LINEA INTEGRADA NO ES SIEMPRE «Decide», Y LA PROTESIS PULMONAR ES EL
+     MOTIVO. Por ese mismo nodo su capsula publica DOS cosas: el veredicto con sus criterios, o el
+     MOTIVO por el que la Tabla 15 no tiene columna, y «Decide: No graduada: …» pone dos dos puntos
+     seguidos y afirma que algo decidio cuando nada graduo. Cual de las dos es se le pregunta al
+     DUENO —se compara contra los tres valores de `VP_PROT_SIN_COL`— y no se olfatea el texto. */
+  if (R.decide) cont.appendChild(_evDiv('qv-decide',
+    (_qvEsMotivo(R.decide) ? '' : 'Decide: ') + R.decide, { 'data-qv-decide': kl }));
   if (R.aviso) cont.appendChild(_evDiv('ev-avi', R.aviso, { 'data-qv-aviso': kl }));
   /* ⚠️ LA NOTA SE LEE POR LA CLAVE DEL DUENO Y NO POR EL ROTULO DE LA LESION: la frase de
      integracion es de la PROTESIS y no de la estenosis nativa, asi que con el rotulo saldria
      tambien sobre una valvula nativa, afirmando una regla que ahi no se aplica. */
   if (QV_NOTA[C.k]) cont.appendChild(_evDiv('qv-nota', QV_NOTA[C.k], { 'data-qv-nota': C.k }));
-  cont.appendChild(_qvFuentesPie(kl));
+  /* ⚠️ EL PIE SE ARMA CON LAS DOS CLAVES: la de la LESION, que es la que nombra las cajas de
+     donde se cosechan los globos, y la del DUENO, que es la que trae la fuente declarada de la
+     protesis. Con una sola, la tarjeta de una protesis pulmonar sale sin la Tabla 15. */
+  cont.appendChild(_qvFuentesPie(kl, C.k));
   return cont;
+}
+/* ¿La linea integrada es un MOTIVO de «no graduada» y no un veredicto? Se compara contra los tres
+   valores que su dueño declara, que es el unico lugar donde esas frases viven. */
+function _qvEsMotivo(t) {
+  try {
+    if (typeof VP_PROT_SIN_COL !== 'object' || !VP_PROT_SIN_COL) return false;
+    const x = String(t || '').trim();
+    return Object.keys(VP_PROT_SIN_COL).some(function (k) { return VP_PROT_SIN_COL[k] === x; });
+  } catch (e) { return false; }
 }
 /* UNA fila de criterio. Con spec en `QV_BARRA` sale como BARRA —cortes, punto y unidad— y sin
    spec como fila de texto: nombre, valor y grado, con la marca que la pantalla publica. */
@@ -41828,8 +41850,58 @@ const QV_BARRA = Object.freeze({
   'prot:tricuspide|vt-prot-aeo': { clave: 'vtp-aeo', lo: 0.3, hi: 4, uni: 'cm\u00b2', dec: 2,
     bandas: () => _qvT19('aeo', 0.3, 4) },
   'prot:tricuspide|vt-prot-dvi': { clave: 'vtp-dvi', lo: 0.5, hi: 6, uni: '', dec: 2,
-    bandas: () => _qvT19('dvi', 0.5, 6) }
+    bandas: () => _qvT19('dvi', 0.5, 6) },
+  /* ── INSUFICIENCIA PULMONAR — el THP es el unico con corte numerico ────────────────────────
+     `IP_PHT_SEVERA` es binario y DESCENDENTE: por debajo de su corte vota «Severa» y por encima
+     el parametro NO vota —la guia solo publica el corte de severa—, asi que la banda de arriba va
+     en GRIS y no en verde: verde seria afirmar que no hay insuficiencia.
+     Los otros tres son CUALITATIVOS (ancho del jet, senal CW y reversion) y salen como fila de
+     texto con el rotulo de su propia `<option>`. */
+  'insuf:pulmonar|ip-ref-pht': { clave: 'ip-pht', lo: 20, hi: 400, uni: 'ms', dec: 0,
+    bandas: () => [{ desde: 20, hasta: IP_PHT_SEVERA, k: 'severa' },
+                   { desde: IP_PHT_SEVERA, hasta: 400, k: 'no gradua' }] },
+  /* ── ESTENOSIS PULMONAR NATIVA ─────────────────────────────────────────────────────────────
+     ⚠️ LOS CORTES VIVEN EN mmHg Y LA FILA DE LA VELOCIDAD ESTA EN m/s, asi que la barra de la
+     velocidad los CONVIERTE con `epVmaxDeGmax` —el mismo dueño que `epRangoDe` usa para rotular
+     esa fila—, y no con una segunda tabla de cortes en m/s. Un corte se publica solo en la unidad
+     del campo que lo recibe, que es la regla de la casa.
+     ⚠️ EL PISO DE 9 mmHg ES CRITERIO PROPIO DE LA APP y la tarjeta lo muestra como corte Y NO
+     ESCRIBE NINGUN «por que»: ese texto esta sin aprobar (orden expresa). La banda de abajo va en
+     verde porque es la que la app llama normal. */
+  'esten:pulmonar|ep-ref-vmax': { clave: 'ep-vmax', lo: 0, hi: 6, uni: 'm/s', dec: 2,
+    bandas: () => [{ desde: 0, hasta: epVmaxDeGmax(EP_GMAX_NORMAL_MAX), k: 'normal' },
+                   { desde: epVmaxDeGmax(EP_GMAX_NORMAL_MAX), hasta: epVmaxDeGmax(EP_GMAX_LEVE_MAX), k: 'leve' },
+                   { desde: epVmaxDeGmax(EP_GMAX_LEVE_MAX), hasta: epVmaxDeGmax(EP_GMAX_MOD_MAX), k: 'moderada' },
+                   { desde: epVmaxDeGmax(EP_GMAX_MOD_MAX), hasta: 6, k: 'severa' }] },
+  'esten:pulmonar|ep-ref-gmax': { clave: 'ep-gmax', lo: 0, hi: 100, uni: 'mmHg', dec: 0,
+    bandas: () => [{ desde: 0, hasta: EP_GMAX_NORMAL_MAX, k: 'normal' },
+                   { desde: EP_GMAX_NORMAL_MAX, hasta: EP_GMAX_LEVE_MAX, k: 'leve' },
+                   { desde: EP_GMAX_LEVE_MAX, hasta: EP_GMAX_MOD_MAX, k: 'moderada' },
+                   { desde: EP_GMAX_MOD_MAX, hasta: 100, k: 'severa' }] },
+  /* ── PROTESIS PULMONAR — ASE 2024, Tabla 15, folio 33 ──────────────────────────────────────
+     ⚠️ SUS DOS COLUMNAS SON «Normal» Y «Possible obstruction», asi que la banda de arriba va en
+     NARANJA y nunca en rojo: la Tabla 15 **no tiene columna de severa** y pintar una seria
+     afirmar un nivel que su fuente no publica. Es lo que el PRO-C3 midio en los cinco nodos que
+     publican veredicto.
+     ⚠️ SIN TIPO NO HAY BARRA. `vpProtTipo` devuelve el motivo en vez del tipo con una protesis
+     mecanica, percutanea o sin elegir, y ahi la tarjeta publica «No graduada» con ese motivo en
+     su linea integrada: dibujar una banda seria aplicar una columna que el medico no eligio. */
+  'prot:pulmonar|vp-prot-vmax': { clave: 'vpp-vmax', lo: 0, hi: 6, uni: 'm/s', dec: 1,
+    bandas: () => _qvT15('vmax', 0, 6) },
+  'prot:pulmonar|vp-prot-gmed': { clave: 'vpp-gmed', lo: 0, hi: 60, uni: 'mmHg', dec: 1,
+    bandas: () => _qvT15('gmed', 0, 60) }
 });
+/* UNA fila de la Tabla 15, con la columna del tipo elegido. `vpProtTipo` devuelve un objeto con
+   `tipo` en `null` y un `motivo` cuando no hay columna: ahi no se dibuja. */
+function _qvT15(k, lo, hi) {
+  let T = null;
+  try { T = (typeof vpProtTipo === 'function') ? vpProtTipo() : null; } catch (e) { T = null; }
+  const tipo = (T && T.tipo) ? T.tipo : null;
+  if (!tipo) return null;
+  const C = VP_PROT_T15[k];
+  if (!C || C[tipo] == null) return null;
+  return _qvBinOp(lo, C[tipo], hi, C.op, 'posible', 'normal');
+}
 /* UNA fila de la Tabla 19, con la columna de la protesis elegida. Devuelve `null` sin tipo —y sin
    tipo la barra no se dibuja, que es lo correcto: no hay columna que aplicar—. */
 function _qvT19(k, lo, hi) {
@@ -41920,10 +41992,22 @@ const QV_CAJA = Object.freeze({
        fuentes POR PARAMETRO del registro `VINFO`.
    Se deduplican: cuatro parametros de la protesis mitral citan la MISMA Tabla 11, y repetirla
    cuatro veces empuja la tarjeta a scroll interno. Es el argumento de `_evFuentesPie`. */
+/* ⚠️ DOS LESIONES NO PUBLICAN SU FUENTE EN NINGUN NODO DE LA PANTALLA, y ahi la tarjeta la lee de
+   una constante declarada AL LADO DE SU CORTE —el patron de `IT_CRIT_FUENTE`—, no de un texto
+   escrito aca: la insuficiencia pulmonar y la protesis pulmonar.
+   ⚠️ LA ESTENOSIS PULMONAR NATIVA SIGUE SIN LINEA DE FUENTE, Y ES A PROPOSITO: el comentario de
+   sus tres cortes dice «(ESC/ASE)» sin folio, asi que en este repo no estan verificados al
+   estandar de la casa. Inventarle una cita seria respaldar un corte con una fuente que nadie
+   abrio. `docs/PENDIENTES.md` -> Q-2. */
+const QV_FUENTE = Object.freeze({
+  'insuf:pulmonar': function () { return (typeof IP_CRIT_FUENTE === 'string') ? IP_CRIT_FUENTE : ''; },
+  'prot:pulmonar':  function () { return (typeof VP_PROT_FUENTE === 'string') ? VP_PROT_FUENTE : ''; }
+});
 function _qvFuentes(kl) {
   const vistas = [];
   const sum = (t) => { const x = String(t || '').trim();
     if (x && vistas.indexOf(x) < 0) vistas.push(x); };
+  if (QV_FUENTE[kl]) { try { sum(QV_FUENTE[kl]()); } catch (e) {} }
   (QV_CAJA[kl] || []).forEach(function (cid) {
     const caja = document.getElementById(cid);
     if (!caja) return;
@@ -41938,8 +42022,12 @@ function _qvFuentes(kl) {
   return vistas;
 }
 /* El pie de fuentes como NODOS, con el mismo aspecto que el de L y de M. */
-function _qvFuentesPie(kl) {
+function _qvFuentesPie(kl, ck) {
   const fs = _qvFuentes(kl);
+  if (ck && ck !== kl && QV_FUENTE[ck]) {
+    try { const x = String(QV_FUENTE[ck]() || '').trim();
+      if (x && fs.indexOf(x) < 0) fs.push(x); } catch (e) {}
+  }
   const fr = document.createDocumentFragment();
   fs.forEach(function (f, i) {
     fr.appendChild(_evDiv('ev-fte', (i === 0 ? 'Fuente: ' : '') + f, { 'data-ev-fuente': 'pie' }));
@@ -43748,6 +43836,11 @@ const VP_PROT_SIN_COL = Object.freeze({
   perc:   'No graduada: la guía no publica cortes para una prótesis pulmonar percutánea',
   faltaTipo: 'No graduada: falta el tipo de prótesis pulmonar'
 });
+/* La cita de la Tabla 15 como DATO, por el mismo motivo que `IP_CRIT_FUENTE`: el folio esta
+   comprobado en el pie impreso («Zoghbi et al · 33») y verificado en `docs/fuentes/FUENTES-protesis.md`. */
+const VP_PROT_FUENTE = 'ASE 2024 (Zoghbi), Tabla 15, folio 33. Sus dos columnas son «Normal» y '
+  + '«Possible obstruction»: esa tabla no publica una columna de severa.';
+window.VP_PROT_FUENTE = VP_PROT_FUENTE;
 window.VP_PROT_T15 = VP_PROT_T15; window.VP_PROT_BANDA = VP_PROT_BANDA;
 window.VP_PROT_OBSTR_TXT = VP_PROT_OBSTR_TXT; window.VP_PROT_SIN_COL = VP_PROT_SIN_COL;
 
@@ -44691,6 +44784,19 @@ window.IP_SIN_INSUF = IP_SIN_INSUF;
    Sin ningún signo que vote, NO hay grado automático: `null`, que es el contrato de `calcular()`
    («abstenerse»), y no «Sin insuficiencia» — que sería afirmar que no hay. */
 const IP_PHT_SEVERA  = 100;   // ms — PHT < 100 ms vota «Severa»; 100 o más no vota
+/* ⚠️ LA FUENTE DE ESTE CORTE, COMO DATO Y NO COMO COMENTARIO («Q5», 2026-10-17). Es el mismo
+   patron que `IT_CRIT_FUENTE` y `ET_CRIT_FUENTE`: la cita vive AL LADO del corte, asi que los dos
+   se mueven juntos, y un consumidor nuevo puede leerla en vez de retipearla. La verifico el PRO-C
+   en el PDF original —ASE 2019 (Zoghbi), JASE 2019;32(4), hoja 33, folio impreso 463: «a pressure
+   half-time of <100 ms has been shown to have good sensitivity and specificity for predicting
+   severe PR»— y el corte NO se movio desde entonces.
+   ⚠️ Y DECLARA QUE LA INTEGRACION ES DE LA APP: ninguna de las guias publica una escala que
+   combine los cuatro signos en un grado, asi que «el peor de los signos cargados» es criterio de
+   EcoSmart. Es lo que el comentario de arriba ya dice; lo que cambia es que ahora se puede leer. */
+const IP_CRIT_FUENTE = 'Corte del THP: ASE 2019 (Zoghbi), folio 463. La integraci\u00f3n de los '
+  + 'cuatro signos en un grado es criterio de EcoSmart: ninguna gu\u00eda publica una escala que '
+  + 'los combine.';
+window.IP_CRIT_FUENTE = IP_CRIT_FUENTE;
 const IP_ANCHO_GRADO = Object.freeze({ angosto:'Leve', intermedio:'Moderada', ancho:'Severa' });
 const IP_SENAL_GRADO = Object.freeze({ tenue:'Leve', densa_var:'Moderada', densa_emp:'Severa' });
 /* El orden de gravedad, para poder decir «el peor» sin escribir una cascada de ifs que después hay
@@ -118401,6 +118507,40 @@ const V2D_PORQUE = Object.freeze({
       Object.freeze({ id: 'ea-det-ava' }),
       Object.freeze({ id: 'ea-det-avai' }),
       Object.freeze({ id: 'ea-det-dvi' })
+    ]) })
+,
+  /* ══ LA PULMONAR («Q5», 2026-10-17) ════════════════════════════════════════════════════════
+     ⚠️ ESTAS TRES ENTRADAS SON INERTES PARA LA VISTA 2D, Y LO ES POR CONSTRUCCION. Los dos
+     lugares que buscan una entrada la buscan por una `k` que sale de `V2D_VALVS`, y esa tabla
+     tiene TRES valvulas: la pulmonar no esta en el dibujo. O sea que agregarlas aca no le cambia
+     una linea al dibujo ni a sus tarjetas, y lo que gana es que las ocho tarjetas i de Valvulas
+     lean UN solo dueno en vez de dos. Lo fija TC-500, que sigue exigiendo que `V2D_VALVS` tenga
+     tres entradas y que ninguna sea la pulmonar.
+     ⚠️ LA INSUFICIENCIA PULMONAR TIENE UN SOLO CRITERIO CUANTITATIVO —el THP— y tres
+     CUALITATIVOS: el ancho del jet, la densidad de la senal y la reversion en el tronco distal.
+     Los tres publican el texto de su propia `<option>`, asi que entran como filas de texto. */
+  'insuf:pulmonar': Object.freeze({ clave: 'ip', decide: null, aviso: 'ip-discordancia',
+    crit: Object.freeze([
+      Object.freeze({ id: 'ip-ref-pht' }),
+      Object.freeze({ id: 'ip-ref-ancho' }),
+      Object.freeze({ id: 'ip-ref-senal' }),
+      Object.freeze({ id: 'ip-ref-rev' })
+    ]) }),
+  /* La estenosis nativa publica su grado PEGADO al valor con un punto medio, igual que la IT. */
+  'esten:pulmonar': Object.freeze({ clave: 'ep', decide: null, aviso: null,
+    crit: Object.freeze([
+      Object.freeze({ id: 'ep-ref-vmax', sep: 'punto', color: true }),
+      Object.freeze({ id: 'ep-ref-gmax' })
+    ]) }),
+  /* ⚠️ LA PROTESIS PULMONAR VA SIN `decideModo`, A PROPOSITO Y A DIFERENCIA DE LAS OTRAS DOS. Su
+     capsula publica DOS cosas por el mismo nodo: el veredicto con su parentesis de criterios, o
+     —cuando la Tabla 15 no tiene columna— el MOTIVO por el que no gradua, que NO lleva parentesis.
+     Con `decideModo: 'parentesis'` el motivo se perderia entero, que es justo el estado que la
+     orden pide mostrar: percutanea, mecanica y sin tipo. Sin modo, se publica el texto completo. */
+  'prot:pulmonar': Object.freeze({ decide: 'vp-prot-obstr', aviso: null,
+    crit: Object.freeze([
+      Object.freeze({ id: 'vp-prot-vmax', sep: 'parentesis' }),
+      Object.freeze({ id: 'vp-prot-gmed', sep: 'parentesis' })
     ]) })
 });
 window.V2D_PORQUE = V2D_PORQUE;

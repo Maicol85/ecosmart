@@ -2495,6 +2495,50 @@ async function main() {
     out.grupos.trip = g;
   }
 
+  /* ══ GRUPO `pulm` — LA PULMONAR: NATIVA, BIO, HOMOINJERTO Y LOS TRES QUE NO GRADUAN ════════
+     ⚠️ DENOMINADOR: se informa el tipo que quedo puesto y el objeto del dueno protesico. */
+  if (corre('pulm')) {
+    const g = {};
+    await viewport(1200, 900);
+    /* NATIVA: insuficiencia por THP y los tres cualitativos; estenosis por velocidad. */
+    await ev(`window.__P.despejar()`);
+    await ev(`window.__P.nuevo()`);
+    await ev(`window.__P.abrirTodasValv()`);
+    await tipear('ip_pht', '80');
+    await ev(`window.__P.sel('ip_ancho', 'ancho')`);
+    await ev(`window.__P.sel('ip_senal', 'densa_emp')`);
+    await tipear('vp_vmax', '3.5');
+    g.nativa = { duenoIns: await ev(`window.__Q.dueno('insuf', 'pulmonar')`),
+                 duenoEst: await ev(`window.__Q.dueno('esten', 'pulmonar')`) };
+    for (const [t, slot] of [['insuf', 'cardIns'], ['esten', 'cardEst']]) {
+      try { await clicQ('tarj-' + t + '-pulmonar');
+            g.nativa[slot] = await ev(`window.__Q.cardDatos()`); await tecla('Escape'); }
+      catch (x) { g.nativa[slot] = { ABORTO: x.message }; }
+    }
+    /* PROTESICA: los dos tipos con columna y los TRES que no la tienen. */
+    for (const caso of [['bio', 'Prótesis biológica'], ['homo', 'Prótesis biológica'],
+                        ['perc', 'Prótesis biológica'], ['', 'Prótesis biológica'],
+                        ['bio', 'Prótesis mecánica']]) {
+      const [tipo, morf] = caso;
+      await ev(`window.__P.despejar()`);
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__P.abrirTodasValv()`);
+      const sm = await ev(`window.__P.sel('vp_morf', ${JSON.stringify(morf)})`);
+      if (sm && sm.err) throw new Error('DENOMINADOR vp_morf: ' + JSON.stringify(sm));
+      let st = 'n/a';
+      if (tipo) st = await ev(`window.__P.sel('vp_tipo_prot', ${JSON.stringify(tipo)})`);
+      await tipear('vp_vmax', '3.3');
+      await tipear('ep_gmedio', '22');
+      const o = { morfPuesta: sm, tipoPuesto: st,
+                  tipoLeido: await ev(`(function(){ try { return vpProtTipo() } catch (x) { return 'EXC' } })()`),
+                  dueno: await ev(`window.__Q.dueno('esten', 'pulmonar')`) };
+      try { await clicQ('tarj-esten-pulmonar'); o.card = await ev(`window.__Q.cardDatos()`);
+            await tecla('Escape'); } catch (x) { o.card = { ABORTO: x.message }; }
+      g['prot-' + (morf.indexOf('mec') > -1 ? 'mec' : 'bio') + '-' + (tipo || 'sintipo')] = o;
+    }
+    out.grupos.pulm = g;
+  }
+
   out.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
   if (out.md5Fin !== out.md5Ini) out.AVISO = 'EL ARCHIVO SE MOVIO DURANTE LA CORRIDA';
   console.log(JSON.stringify(out, null, 1));
