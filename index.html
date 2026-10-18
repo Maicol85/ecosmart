@@ -10296,7 +10296,7 @@ L 54.182539 48.453331
 L 127.581001 48.453331 
 " clip-path="url(#p97029d9b9d)" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
-   <g id="valve-A3" onclick="eteClick('A3')" style="cursor:pointer;" class="ete-valve-seg">
+   <g id="valve-A3-4ch" onclick="eteClick('A3')" style="cursor:pointer;" class="ete-valve-seg">
     <path d="M 54.182539 48.453331 
 L 66.737539 71.21291 
 " clip-path="url(#p97029d9b9d)" stroke="currentColor" stroke-width="2.5" style="fill: none; stroke-linecap: square"/>
@@ -10306,7 +10306,7 @@ L 66.737539 71.21291
 L 79.292539 93.972488 
 " clip-path="url(#p97029d9b9d)" stroke="currentColor" stroke-width="2.5" style="fill: none; stroke-linecap: square"/>
    </g>
-   <g id="valve-P1" onclick="eteClick('P1')" style="cursor:pointer;" class="ete-valve-seg">
+   <g id="valve-P1-4ch" onclick="eteClick('P1')" style="cursor:pointer;" class="ete-valve-seg">
     <path d="M 127.581001 48.453331 
 L 115.026001 71.21291 
 " clip-path="url(#p97029d9b9d)" stroke="currentColor" stroke-width="2.5" style="fill: none; stroke-linecap: square"/>
@@ -11791,7 +11791,7 @@ L 123.999231 48.453331
 L 65.409231 89.303857 
 " clip-path="url(#pc62ce34b76)" stroke="currentColor" stroke-width="2.5" style="fill: none; stroke-linecap: square"/>
    </g>
-   <g id="valve-A1" onclick="eteClick('A1')" style="cursor:pointer;" class="ete-valve-seg">
+   <g id="valve-A1-2ch" onclick="eteClick('A1')" style="cursor:pointer;" class="ete-valve-seg">
     <path d="M 123.999231 48.453331 
 L 115.2 67.51691 
 " clip-path="url(#pc62ce34b76)" stroke="currentColor" stroke-width="2.5" style="fill: none; stroke-linecap: square"/>
@@ -11801,7 +11801,7 @@ L 115.2 67.51691
 L 106.400769 86.580488 
 " clip-path="url(#pc62ce34b76)" stroke="currentColor" stroke-width="2.5" style="fill: none; stroke-linecap: square"/>
    </g>
-   <g id="valve-A3-2ch" onclick="eteClick('A3')" style="cursor:pointer;" class="ete-valve-seg">
+   <g id="valve-P2-2ch" onclick="eteClick('P2')" style="cursor:pointer;" class="ete-valve-seg">
     <path d="M 106.400769 86.580488 
 L 97.601538 105.644067 
 " clip-path="url(#pc62ce34b76)" stroke="currentColor" stroke-width="2.5" style="fill: none; stroke-linecap: square"/>
@@ -11962,10 +11962,10 @@ z
     </g>
    </g>
    <g id="text_4">
-    <!-- A3 -->
+    <!-- P2 -->
     <g style="fill: currentColor" transform="translate(88.033498 95.529713) scale(0.085 -0.085)">
-     <use xlink:href="#DejaVuSans-Bold-41"/>
-     <use xlink:href="#DejaVuSans-Bold-33" transform="translate(77.392578 0)"/>
+     <use xlink:href="#DejaVuSans-Bold-50"/>
+     <use xlink:href="#DejaVuSans-Bold-32" transform="translate(77.392578 0)"/>
     </g>
    </g>
    <g id="text_5">
@@ -62346,6 +62346,58 @@ function toggleRef(id, headEl) {
   if (!visible && id === 'aocx' && typeof aoCxPintar === 'function') { try { aoCxPintar() } catch (e) {} }
 }
 
+/* ══ ETE MITRAL — LA TABLA DUENA DE LOS CORTES POR ANGULO (Y3c1, 2026-10-18) ══════════════
+   UNA tabla, y de ella leen los CUATRO esquemas de proyeccion de arriba, el dibujo estatico de
+   la vista quirurgica y la linea punteada del plano de corte. Nadie recalcula estos festones:
+   antes de esta tanda cada superficie traia su propia lista escrita a mano y por eso divergian.
+
+   `fest` va de LATERAL a MEDIAL, que es el orden en que la linea del plano los atraviesa, y
+   `p0`/`p1` son los dos extremos de esa linea en el sistema de coordenadas del dibujo
+   —centro (0,0) en el centro de la boca valvular, antes de rotar—.
+
+   ⚠️ FUENTE. La tabla la transcribio Maicol de la Figura 1 del comentario de Keituqwa Yanez I.
+   (SEIC, ecocardio.com) sobre Abazid y col., JASE 2023. Ese comentario NO esta en la biblioteca
+   de fuentes de este repo, asi que la tabla se declara SIN folio y como transcripcion —ver
+   `docs/fuentes/FUENTES.md`—. Lo que SI esta verificado en el PDF original es la fila de 60
+   grados: Hahn y col., ASE 2022, Tabla 4, folio 28, dice literalmente que la vista comisural
+   media (50-70 grados) muestra «the anterior leaflet in the center (A2) and the posterior leaflet
+   on either side (P3 left/medial and P1 right/lateral)», o sea P1 - A2 - P3.
+
+   ⚠️ LOS NUMEROS NO SE INVENTARON: salen del mismo barrido geometrico que la demo aprobada
+   (`docs/3d/demo2_mitral_integrada_en_ETE.html`) corre sobre los valores que aprobo Maicol el
+   17/10/2026, y los CINCO coinciden con el epigrafe de la figura por sus dos extremos. Eso es
+   lo que verifica `ETE_EPIGRAFE` mas abajo: un assert de arranque, no un comentario.
+
+   ⚠️ ESTA TABLA NO ES LA DEL 3D. `M3D_VIS` sigue siendo la suya y esta tanda no la toca —la
+   orden lo prohibe expresamente—, asi que las dos divergen en las filas de 45 y de 90 grados.
+   Esta declarado en `docs/PENDIENTES.md`. */
+const ETE_CORTES = Object.freeze({
+  0:   Object.freeze({ fest: Object.freeze(['P1','P2','A2','A3']),
+                       p0: Object.freeze([119.13, -22.78]), p1: Object.freeze([-98.30, 65.07]) }),
+  45:  Object.freeze({ fest: Object.freeze(['P1','P2','A2','A3','P3']),
+                       p0: Object.freeze([125.67,   2.33]), p1: Object.freeze([-122.39, 24.03]) }),
+  60:  Object.freeze({ fest: Object.freeze(['P1','A2','P3']),
+                       p0: Object.freeze([125.00,  10.00]), p1: Object.freeze([-125.00, 10.00]) }),
+  90:  Object.freeze({ fest: Object.freeze(['A1','A2','P2','P3']),
+                       p0: Object.freeze([115.88,  41.47]), p1: Object.freeze([-95.98, -44.13]) }),
+  120: Object.freeze({ fest: Object.freeze(['P2','A2']),
+                       p0: Object.freeze([38.00,  100.50]), p1: Object.freeze([38.00,  -66.50]) })
+});
+/* Los dos festones que el epigrafe de la figura nombra para cada angulo. Son los EXTREMOS de la
+   lista de arriba —en cualquier orden—, y el assert lo exige: si una fila se edita y deja de
+   coincidir con lo que la figura dice, la consola lo canta al arrancar. */
+const ETE_EPIGRAFE = Object.freeze({
+  0: Object.freeze(['A3','P1']), 45: Object.freeze(['P1','P3']), 60: Object.freeze(['P1','P3']),
+  90: Object.freeze(['A1','P3']), 120: Object.freeze(['A2','P2'])
+});
+/* ⚠️ EL REPARTO ESQUEMA -> FILA ES DECISION DE MAICOL (18/10/2026) y los TITULOS no cambian.
+   El esquema rotulado «45-60 grados — Bicomisural» lee la fila de 60 y el rotulado
+   «60-90 grados — 2 Camaras» lee la de 90; la fila de 45 la usa SOLO la linea del plano. */
+const ETE_ESQ_ANG = Object.freeze({ '4ch': 0, 'bc': 60, '2ch': 90, '3ch': 120 });
+function eteCorteFest(a){ const f = ETE_CORTES[a]; return f ? f.fest : null; }
+window.ETE_CORTES = ETE_CORTES; window.ETE_ESQ_ANG = ETE_ESQ_ANG;
+window.ETE_EPIGRAFE = ETE_EPIGRAFE; window.eteCorteFest = eteCorteFest;
+
 // ══ ETE MITRAL — Módulo interactivo de segmentos ══
 (function() {
   /* ⚠️ FORMATO DE CABLE. Lo que se persiste —en el estudio guardado, en el backup JSON y en
@@ -62368,14 +62420,23 @@ function toggleRef(id, headEl) {
     "Restricción":"#3b82f6","Perforación":"#8b5cf6","Calcificación":"#22c55e"
   };
   const ete_estado = {A1:0,A2:0,A3:0,P1:0,P2:0,P3:0};
-  const ETE_GID_MAP = {
-    A1:["valve-A1"],
-    A2:["valve-A2-4ch","valve-A2-bc","valve-A2-2ch","valve-A2-3ch"],
-    A3:["valve-A3","valve-A3-2ch"],
-    P1:["valve-P1","valve-P1-bc"],
-    P2:["valve-P2-4ch","valve-P2-3ch"],
-    P3:["valve-P3-bc","valve-P3-2ch"],
-  };
+  /* ⚠️ EL MAPA DE SEGMENTOS SE DERIVA DE `ETE_CORTES`, QUE ES LA TABLA DUENA (Y3c1, 2026-10-18).
+     Hasta hoy era una lista escrita a mano, y por eso podia —y de hecho lo hacia— discrepar de
+     los festones que cada proyeccion corta de verdad: el esquema de 60-90 grados rotulaba A3
+     donde la fila de 90 grados pone P2. Derivarlo es lo que hace que la tabla sea duena y no una
+     segunda copia: el dia que una fila cambie, el mapa se mueve con ella y el assert de abajo
+     caza el id que falte en el marcado.
+     El sufijo de cada esquema sale de `ETE_ESQ_ANG`; los cuatro ids sin sufijo se normalizaron en
+     el mismo commit, asi que hoy TODOS son `valve-<feston>-<sufijo>`. */
+  const ETE_GID_MAP = (function(){
+    const m = {A1:[],A2:[],A3:[],P1:[],P2:[],P3:[]};
+    Object.keys(ETE_ESQ_ANG).forEach(function(suf){
+      const fila = ETE_CORTES[ETE_ESQ_ANG[suf]];
+      if (!fila) return;
+      fila.fest.forEach(function(f){ if (m[f]) m[f].push('valve-' + f + '-' + suf); });
+    });
+    return m;
+  })();
   const ETE_QX_MAP = {A1:"ete-qx-A1",A2:"ete-qx-A2",A3:"ete-qx-A3",P1:"ete-qx-P1",P2:"ete-qx-P2",P3:"ete-qx-P3"};
 
   /* ⚠️ EL PINTOR NO PUEDE TOCAR LAS ZONAS DE TOQUE, Y ÉSE ERA EL DEFECTO.
@@ -62393,6 +62454,29 @@ function toggleRef(id, headEl) {
     if (!(e in ETE_FILL) || !(e in ETE_STROKE))
       console.error('[ETE_ESTADOS] «' + e + '» no tiene color: el segmento queda con el color del estado anterior mientras el texto dice el nuevo');
   });
+
+  /* ⚠️ DOS CENTINELAS DE LA TABLA DUENA, y ninguno es decorativo.
+     (1) Los EXTREMOS de cada fila contra el epigrafe de la figura. Es la unica forma de que una
+         edicion futura de `ETE_CORTES` no se separe en silencio de la fuente que la sostiene.
+     (2) Cada id que el mapa DERIVA tiene que existir en el marcado. Sin esto, mover un feston de
+         fila deja un `valve-X-suf` que no esta en ningun SVG y el pintor sale por su `if (!el)`:
+         el esquema se queda sin pintar la lesion y no hay error en consola. */
+  Object.keys(ETE_EPIGRAFE).forEach(function(a){
+    const f = ETE_CORTES[a] && ETE_CORTES[a].fest, e = ETE_EPIGRAFE[a];
+    if (!f) { console.error('[ETE_CORTES] falta la fila de ' + a + ' grados'); return; }
+    const ext = [f[0], f[f.length - 1]].slice().sort().join(',');
+    if (ext !== e.slice().sort().join(','))
+      console.error('[ETE_CORTES] la fila de ' + a + ' grados empieza y termina en ' + ext +
+        ' y el epigrafe de la figura dice ' + e.slice().sort().join(',') + ': la tabla se separo de su fuente');
+  });
+  setTimeout(function(){
+    Object.keys(ETE_GID_MAP).forEach(function(f){
+      ETE_GID_MAP[f].forEach(function(gid){
+        if (!document.getElementById(gid))
+          console.error('[ETE_GID_MAP] «' + gid + '» no existe en el marcado: ese esquema no va a pintar la lesion de ' + f);
+      });
+    });
+  }, 700);
 
   /* ⚠️ EL COLOR BASE DE UN SEGMENTO VA EN ATRIBUTOS, NUNCA EN EL `style` EN LÍNEA, y sin este
      assert la regla vive sólo en un comentario. El resto del dibujo —y toda salida de matplotlib,
