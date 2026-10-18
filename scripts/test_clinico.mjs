@@ -72941,9 +72941,18 @@ caso('TC-492', 'Tanda M: las DIECISEIS FICHAS nuevas del registro de evidencia d
         && String(refs.vd2.txt||'').indexOf('Pared libre \u2014 normal [') > -1
         && String(refs.vd2.txt||'').indexOf('Di\u00e1metro longitudinal \u2014 normal [') > -1,
       'raiz sin corchete=' + (String(refs.ao2.txt||'').indexOf('EcoSmart) [') < 0)]);
-    ex.push(['CONTROL NEGATIVO: las dos entradas del L siguen existiendo y no se tocaron',
-      !!EL('ref-ai') && !!EL('ref-vi2') && !!EL('ref-vd') && !!EL('ref-ao'),
-      'ai=' + !!EL('ref-ai') + ' vi2=' + !!EL('ref-vi2') + ' vd=' + !!EL('ref-vd') + ' ao=' + !!EL('ref-ao')]);
+    /* ADAPTADO el 2026-10-18 (tanda P, commit 6): ref-vd —la entrada VIEJA del VD, «ASE
+       2015», con cinco filas TIPEADAS— se RETIRO, porque tres de sus cinco ya no eran lo que la
+       app aplica desde la tanda VS: la onda S' publicaba «>=10» contra un dueno que corta en 9,5
+       y el area de la AD «<=18» contra uno que corta en 19. La que corresponde es ref-vd2, que
+       no tiene un solo numero tipeado. Lo que este control negativo afirma —que las entradas del
+       L y del M no se tocaron— sigue valiendo para las tres que quedan, y se le agrega la
+       afirmacion del hecho nuevo: que la vieja YA NO esta. */
+    ex.push(['CONTROL NEGATIVO: las entradas del L y del M siguen existiendo y no se tocaron',
+      !!EL('ref-ai') && !!EL('ref-vi2') && !!EL('ref-vd2') && !!EL('ref-ao'),
+      'ai=' + !!EL('ref-ai') + ' vi2=' + !!EL('ref-vi2') + ' vd2=' + !!EL('ref-vd2') + ' ao=' + !!EL('ref-ao')]);
+    ex.push(['la entrada VIEJA del VD (ref-vd, ASE 2015) ya NO existe',
+      !EL('ref-vd'), 'ref-vd=' + !!EL('ref-vd')]);
 
     /* ══ (f) NADA DE ESTO SE GUARDA ═══════════════════════════════════════ */
     montar(MAL);

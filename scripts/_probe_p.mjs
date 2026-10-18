@@ -1190,6 +1190,78 @@ async function main() {
     process.stderr.write('[aorta] listo\n');
   }
 
+  /* ══ GRUPO vdref ═════════════════════════════════════════════════════════════════════════
+     La entrada vieja del VD y la que la reemplaza, contra el DUENO. */
+  if (corre('vdref')) {
+    const r = {};
+    try {
+      await ev(`(function(){ showTab('refs'); return 1 })()`);
+      r.vieja = await ev(`(function(){ return { existe: !!document.getElementById('ref-vd'),
+        enTabla: (window.REF_SUBTAB.dim || []).indexOf('vd') >= 0 } })()`);
+      await ev(`window.__P.refSub('dim')`);
+      r.abrir = await ev(`(function(){ var cu = document.getElementById('ref-vd2');
+        var h = cu ? cu.previousElementSibling : null;
+        if (h && h.classList.contains('card-head')) h.click();
+        return { vis: window.__P.vis('ref-vd2') } })()`);
+      /* LOS CORTES DEL DUENO, por sus dos lados, contra lo que la entrada publica. */
+      r.dueno = await ev(`(function(){
+        var o = {};
+        ['UMBRAL_TAPSE_NORMAL','UMBRAL_SPRIME_NORMAL','UMBRAL_TAP_HTP','VD_BAS_NORMAL_MAX',
+         'UMBRAL_AD_AREA_NORMAL'].forEach(function(k){
+           o[k] = (typeof window[k] !== 'undefined') ? window[k] : 'NO EXPORTADA' });
+        /* Y se le pregunta directamente a ase25Corte, que es el dueno de la Tabla 1. */
+        if (typeof ase25Corte === 'function') {
+          o.sprime = ase25Corte('s_prime','normal');
+          o.tapse  = ase25Corte('tapse','normal');
+          o.adArea = ase25Corte('ad_area','normal');
+          o.vdBas  = ase25Corte('vd_bas','normal');
+        }
+        return o })()`);
+      r.vd2 = await ev(`(function(){
+        var h = document.getElementById('ref-vd2-cuerpo');
+        if (!h) return { err: 'NO EXISTE ref-vd2-cuerpo' };
+        var t = h.textContent.replace(/\\s+/g,' ');
+        var filas = h.querySelectorAll('tr');
+        var sp = []; for (var i=0;i<filas.length;i++) {
+          var x = filas[i].textContent.replace(/\\s+/g,' ').trim();
+          if (x.indexOf('Onda S') >= 0) sp.push(x);
+        }
+        return { nFilas: filas.length, nBarras: h.querySelectorAll('svg').length,
+                 filasS: sp, diceDiez: t.indexOf('S\u2032 (cm/s)') >= 0 } })()`);
+      /* El texto RENDERIZADO de la pestana entera no publica el corte viejo de la S'. */
+      r.censoTexto = await ev(`(function(){
+        var t = document.getElementById('tab-refs');
+        var lb = t.querySelectorAll('td, th, div, span');
+        var hits = [];
+        for (var i=0;i<lb.length;i++) {
+          if (lb[i].children.length) continue;
+          var x = (lb[i].textContent||'').replace(/\\s+/g,' ').trim();
+          if (x === "S' (cm/s)" || x === '\u226510' || x === '<10') hits.push(x);
+        }
+        return { viejos: hits } })()`);
+      r.busca = await ev(`(function(){
+        var e = document.getElementById('ref-busca');
+        e.value = 'onda s'; e.dispatchEvent(new Event('input',{bubbles:true}));
+        var res = document.getElementById('ref-busca-res');
+        var hs = res.querySelectorAll('.ref-busc-hit'); var ids=[];
+        for (var i=0;i<hs.length;i++) ids.push(hs[i].dataset.refId);
+        e.value=''; e.dispatchEvent(new Event('input',{bubbles:true}));
+        return ids })()`);
+      r.otros = await ev(`(function(){
+        var p = document.getElementById('ref-sub-otros');
+        var ord = []; var ch = p.children;
+        for (var j=0;j<ch.length;j++) {
+          if (ch[j].classList.contains('ref-bloque-rot')) ord.push('ROT:' + ch[j].textContent);
+          else { var c = ch[j].querySelector ? ch[j].querySelector('h2.card-head') : null;
+                 if (c) { var oc = c.getAttribute('onclick')||''; var a = oc.indexOf("toggleRef('");
+                          var b = oc.indexOf("'", a+11); ord.push(oc.slice(a+11,b)); } }
+        }
+        return ord })()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.vdref = r;
+    process.stderr.write('[vdref] listo\n');
+  }
+
   /* ══ GRUPO maqueta ════════════════════════════════════════════════════════════════════════ */
   if (corre('maqueta')) {
     const r = { celdas: [] };

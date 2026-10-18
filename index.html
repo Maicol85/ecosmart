@@ -17788,22 +17788,19 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
   </div>
 
-  <div class="card">
-    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('vd',this)">
-      ➡️ VD — Parámetros Normales y Disfunción (ASE 2015)
-      <span style="float:right;">▶</span>
-    </h2>
-    <div id="ref-vd" style="display:none;" class="card-body">
-      <table style="width:100%;border-collapse:collapse;font-size:12px;">
-        <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Parámetro</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Normal</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Disfunción</th></tr>
-        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">TAPSE (mm)</td><td style="padding:5px 8px;text-align:center;">≥17</td><td style="padding:5px 8px;text-align:center;color:#f05454;">&lt;17</td></tr>
-        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">S' (cm/s)</td><td style="padding:5px 8px;text-align:center;">≥10</td><td style="padding:5px 8px;text-align:center;color:#f05454;">&lt;10</td></tr>
-        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">TAP (ms)</td><td style="padding:5px 8px;text-align:center;">≥105</td><td style="padding:5px 8px;text-align:center;color:#f05454;">&lt;105</td></tr>
-        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">VD basal (mm)</td><td style="padding:5px 8px;text-align:center;">≤41</td><td style="padding:5px 8px;text-align:center;color:#f05454;">&gt;41</td></tr>
-        <tr><td style="padding:5px 8px;color:var(--text2);">Área AD (cm²)</td><td style="padding:5px 8px;text-align:center;">≤18</td><td style="padding:5px 8px;text-align:center;color:#f05454;">&gt;18</td></tr>
-      </table>
-    </div>
-  </div>
+  <!-- ══ LA ENTRADA VIEJA DEL VD SE RETIRA (tanda P, commit 6) ══════════════════════════════
+       Era «VD — Parametros Normales y Disfuncion (ASE 2015)», con CINCO filas TIPEADAS a mano:
+       TAPSE «>=17», onda S' «>=10», TAP «>=105», VD basal «<=41» y area de la AD «<=18». Tres de
+       esas cinco ya no eran lo que la app aplica desde la tanda VS, que llevo el VD a la Tabla 1
+       de la ASE 2025:
+         · la onda S' corta en `UMBRAL_SPRIME_NORMAL`, que esa tabla deja por debajo de 10;
+         · el area de la AD corta en `UMBRAL_AD_AREA_NORMAL`, que esa tabla deja por encima de 18;
+         · y los tres diametros, la FAC, la FEVD y el Tei pasaron de dos categorias a CUATRO.
+       La entrada que CORRESPONDE es `ref-vd2`, que no tiene un solo numero tipeado: sus 45 filas
+       y sus doce barras las arma `evRefPintar('vd2')` SONDEANDO a `ase25Rango`, que es el dueno
+       —asi el cuadro de la pestana VD y Referencias no se pueden desincronizar—. El area de la
+       AD vive en `ref-ad`, por el mismo camino.
+       No se pierde ningun parametro: los cinco estan cubiertos entre `ref-vd2` y `ref-ad`. -->
 
   <div class="card">
     <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('htp',this)">
@@ -61814,9 +61811,10 @@ window.eteSetModo=eteSetModo;
    marcado, asi que el censo de entradas ES esta tabla y no hay una segunda lista que se separe
    de ella. El orden dentro de cada panel es el orden de este arreglo.
 
-   ⚠️ `vd` ES LA ENTRADA VIEJA DEL VD (ASE 2015) y convive con `vd2` hasta que el commit 6 la
-   retire: publica una onda S' de «>= 10 cm/s» tipeada a mano mientras el dueno
-   (`UMBRAL_SPRIME_NORMAL`, derivado de la Tabla 1 de la ASE 2025) aplica otro valor.
+   ⚠️ LA ENTRADA VIEJA DEL VD (`vd`, ASE 2015) SE RETIRO en el commit 6 de esta tanda: publicaba
+   una onda S' de «>= 10 cm/s» tipeada a mano mientras el dueno (`UMBRAL_SPRIME_NORMAL`, derivado
+   de la Tabla 1 de la ASE 2025) aplica otro valor. La que corresponde es `vd2`, que no tiene un
+   solo numero tipeado. Ver el comentario que quedo en su lugar en el marcado.
 
    ⚠️ `ao2` y `ao` van a AORTA y NO a Dimensiones, aunque la aorta toracica sea una dimension:
    la orden le da a la aorta su propia subpestana con sus dos bloques (nomogramas y ateroma).
@@ -61826,7 +61824,7 @@ window.eteSetModo=eteSetModo;
    su primer bloque es la GEOMETRIA del VI, que es lo que da nombre al RWT y a la masa, y es lo
    que el buscador tiene que encontrar junto a `vi2`. */
 const REF_SUBTAB = Object.freeze({
-  dim:   Object.freeze(['ai', 'vi2', 'vi', 'vd2', 'vd', 'ad']),
+  dim:   Object.freeze(['ai', 'vi2', 'vi', 'vd2', 'ad']),
   fun:   Object.freeze(['htp', 'tep']),
   valv:  Object.freeze(['nativas', 'protesicas']),
   ao:    Object.freeze(['ao2', 'ao', 'aocx']),
@@ -61843,7 +61841,14 @@ const REF_SUB_ORDEN = Object.freeze(['dim', 'fun', 'valv', 'ao', 'otros']);
 const REF_SUB_BLOQUES = Object.freeze({
   ao: Object.freeze([{ antes: 'ao2',  rot: 'Dimensiones y nomogramas' },
                      { antes: 'ao',   rot: 'Ateroma aórtico' },
-                     { antes: 'aocx', rot: 'Cirugía de la aorta torácica' }])
+                     { antes: 'aocx', rot: 'Cirugía de la aorta torácica' }]),
+  /* «Otros hallazgos» es el cajon de lo que no es una dimension, una funcion, una valvula ni la
+     aorta. Los tres primeros son los hallazgos de la pestana Otros y del ETE que el CORTOS y la
+     tanda M ya habian creado —orejuela, test de burbuja y anomalias coronarias—; los cuatro del
+     medio son entidades propias; y las formulas van al final porque son transversales. */
+  otros: Object.freeze([{ antes: 'oai',      rot: 'Orejuela, shunts y coronarias' },
+                        { antes: 'pericardio', rot: 'Otras entidades' },
+                        { antes: 'formulas',   rot: 'Fórmulas' }])
 });
 let _refSubActiva = 'dim';
 /* La reubicacion corre UNA vez. El marcado deja las entradas como estaban y los cinco paneles
