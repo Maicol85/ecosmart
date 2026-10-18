@@ -758,6 +758,16 @@ async function main() {
      tanda no puede romper la infraestructura que comparten nueve sondas. */
   await evCrudo(`
 window.__Y = {
+  letrasDisp() {
+    var o = {};
+    ['A1','A2','A3','P1','P2','P3'].forEach(function(n){
+      var e = document.getElementById('ete-qx-lbl-' + n);
+      o[n] = e ? (e.getAttribute('display') || 'inline') : 'NO EXISTE' });
+    return o },
+  morfOpciones() {
+    var e = document.getElementById('vm_morf');
+    return e ? Array.prototype.slice.call(e.options).map(function(o){ return o.value }) : 'NO EXISTE' },
+
   estado() { try { return window.eteQxEstado() } catch (e) { return 'EXC: ' + e.message } },
   ponerRot(v) { try { window.qxGirarA(v); return window.eteQxEstado() } catch (e) { return 'EXC' } },
   esperar(ms) { return new Promise(function(r){ setTimeout(function(){ r(ms) }, ms) }) },
@@ -1242,6 +1252,56 @@ window.__Y = {
     } catch (e) { r.err = e.message; }
     out.grupos.giro = r;
     process.stderr.write('[giro] listo\n');
+  }
+
+  /* ══ GRUPO «vistas» — los tres botones, su marca y la protesis ═══════════════════════════ */
+  if (corre('vistas')) {
+    const r = {};
+    try {
+      await ev(`window.__Y.irETE()`);
+      await ev(`window.__Y.morf('Normal')`);
+      await ev(`window.__Y.ponerRot(0)`);
+      await ev(`window.__Y.esperar(500)`, 30000);
+      r.botones = await ev(`window.__Y.vistasBotones()`);
+      r.porVista = {};
+      for (const k of ['cir','ett','tg','cir']) {
+        await ev(`window.__Y.vista(${JSON.stringify(k)})`);
+        await ev(`window.__Y.esperar(1400)`, 30000);
+        const d = await ev(`window.__Y.dib()`);
+        r.porVista[k + (r.porVista[k] ? '_2' : '')] = {
+          estado: d.estado, botones: await ev(`window.__Y.vistasBotones()`),
+          letrasVisibles: Object.keys(d.rotulos).filter((n) => d.rotulos[n] !== 'NO EXISTE'
+            && (d.rotulos[n].disp === undefined || d.rotulos[n].disp !== 'none')),
+          letrasDisp: await ev(`window.__Y.letrasDisp()`) };
+      }
+      /* Girar a mano desmarca el boton de la vista activa. */
+      await ev(`window.__Y.vista('cir')`);
+      await ev(`window.__Y.esperar(900)`, 30000);
+      r.antesGirar = await ev(`window.__Y.vistasBotones()`);
+      await ev(`window.__Y.ponerRot(40)`);
+      await ev(`window.__Y.esperar(900)`, 30000);
+      r.trasGirar = await ev(`window.__Y.vistasBotones()`);
+      r.trasGirarEstado = await ev(`window.__Y.estado()`);
+      /* Con protesis mitral los botones no aparecen, y la camara vuelve al cirujano. */
+      await ev(`window.__Y.vista('tg')`);
+      await ev(`window.__Y.esperar(900)`, 30000);
+      r.protAntes = { botones: await ev(`window.__Y.vistasBotones()`),
+                      estado: await ev(`window.__Y.estado()`) };
+      r.morfProt = await ev(`window.__Y.morf('Pr\u00f3tesis mec\u00e1nica')`);
+      if (r.morfProt && r.morfProt.err) r.morfProt = await ev(`window.__Y.morfOpciones()`);
+      await ev(`window.__Y.esperar(900)`, 30000);
+      r.protDespues = { botones: await ev(`window.__Y.vistasBotones()`),
+                        estado: await ev(`window.__Y.estado()`),
+                        hostDisp: await ev(`(function(){ var h=document.getElementById('ete-qx-vistas');
+                          return h ? { hidden: h.hasAttribute('hidden'), disp: getComputedStyle(h).display,
+                                       w: Math.round(h.getBoundingClientRect().width) } : 'NO EXISTE' })()`) };
+      await ev(`window.__Y.morf('Normal')`);
+      await ev(`window.__Y.esperar(600)`, 30000);
+      r.protVuelta = await ev(`window.__Y.vistasBotones()`);
+      await ev(`window.__Y.ponerRot(0)`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.vistas = r;
+    process.stderr.write('[vistas] listo\n');
   }
 
   if (corre('ctrl')) {

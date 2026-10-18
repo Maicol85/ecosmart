@@ -13314,6 +13314,24 @@ z
              sigan funcionando SIN TOCAR UNA LINEA del modulo de lesiones —el pintor escribe
              `style.fill` y en «Normal» hace `removeProperty`, que aterriza sobre el atributo—.
              Es la convencion que ese modulo documenta con su propio assert. -->
+        <!-- ⚠️ LAS TRES VISTAS, Y CON PROTESIS NO APARECEN (Y3c5, 2026-10-18). Lo gobierna
+             `eteQxVistasBotonSync`, que pregunta por `valvEsProtesis` —el MISMO dueno del
+             predicado que usa `m3dBotonSync` para el boton del 3D— y no por una segunda lista de
+             opciones: el dibujo tiene valvas y festones de valvula nativa, y espejarlo o girarlo
+             sobre una protesis seria orientar una cosa que no esta dibujada.
+             ⚠️ ETT Y TRANSGASTRICA VAN SIN LETRAS DE FESTON, y es lo que la orden manda cuando la
+             orientacion no se puede verificar: se censo la biblioteca entera y NINGUNA fuente
+             publica de que lado quedan las comisuras en el eje corto paraesternal mitral ni en la
+             transgastrica basal. Lo que SI esta verificado —Hahn y col., ASE 2022, folio 17— es la
+             vista del cirujano, y ahi las letras van. Esta declarado en FUENTES.md. -->
+        <div id="ete-qx-vistas" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:5px;">
+          <button type="button" class="btn btn-ghost" id="ete-qx-v-cir" aria-pressed="true"
+                  onclick="eteQxVista('cir')">Vista del cirujano</button>
+          <button type="button" class="btn btn-ghost" id="ete-qx-v-ett" aria-pressed="false"
+                  onclick="eteQxVista('ett')">Vista ETT</button>
+          <button type="button" class="btn btn-ghost" id="ete-qx-v-tg" aria-pressed="false"
+                  onclick="eteQxVista('tg')">Vista transgastrica</button>
+        </div>
         <svg viewBox="0 0 420 420" style="width:100%;height:auto;max-width:420px;margin:0 auto;display:block;touch-action:none;" id="ete-svg-qx" tabindex="0" role="img" aria-label="Vista quirurgica de la valvula mitral: seis festones, aorta, orejuela y las dos comisuras">
         </svg>
       </div>
@@ -62964,6 +62982,82 @@ document.addEventListener('click', function(ev){
   if (!b) return;
   eteQxAnguloClic(String(b.id).replace('m3d-a-', ''));
 }, true);
+/* ══ LAS TRES VISTAS (Y3c5, 2026-10-18) ══════════════════════════════════════════════════════
+   Las tres de la demo, con su misma aritmetica:
+     · cirujano      — la orientacion inicial: desde la auricula, aorta arriba y orejuela a la
+                       izquierda. Es la unica VERIFICADA (Hahn y col., ASE 2022, folio 17).
+     · ETT           — el dibujo en ESPEJO (`flip = -1`), con la comisura anterolateral a la
+                       derecha. Eje corto paraesternal a nivel mitral.
+     · transgastrica — el dibujo girado 180 grados respecto del cirujano. Eje corto basal.
+
+   ⚠️ EN ETT Y EN TRANSGASTRICA NO SE DIBUJAN LAS LETRAS DE LOS FESTONES. La orden lo pide asi
+   cuando la orientacion no se puede verificar, y no se pudo: censada la biblioteca entera,
+   ninguna fuente publica de que lado quedan las comisuras en esas dos vistas. Los poligonos
+   siguen tocables y se siguen pintando con su lesion —el dato no se pierde—; lo que no se
+   afirma es cual es cual. Las cuatro marcas de orientacion se conservan: espejan y giran con el
+   dibujo por construccion, asi que su posicion RELATIVA es correcta sin afirmar nada nuevo.
+
+   ⚠️ `qxCerca` LLEVA EL DESTINO AL MULTIPLO DE 360 MAS CERCANO DEL ANGULO ACTUAL. Sin eso, un
+   dibujo girado a 350 grados que vuelve a la vista del cirujano daria toda la vuelta para atras
+   en vez de los diez grados que faltan. Es `nearest` de la demo.
+   ⚠️ EL BOTON SE DESMARCA AL GIRAR A MANO, y lo decide `eteQxVistasSync` CLASIFICANDO la camara
+   —no una bandera—: con una bandera, girar un grado dejaria el boton marcado sobre una
+   orientacion que ya no es la suya. La tolerancia de 8 grados es la de la demo. */
+var ETE_QX_VISTAS = Object.freeze({
+  cir: Object.freeze({ rot: 0,   flip: 1,  letras: 1 }),
+  ett: Object.freeze({ rot: 0,   flip: -1, letras: 0 }),
+  tg:  Object.freeze({ rot: 180, flip: 1,  letras: 0 })
+});
+function qxCerca(b){ return b + 360 * Math.round((_qxRot - b) / 360); }
+function qxClase(r, f){
+  var m = ((r % 360) + 360) % 360, d0 = Math.min(m, 360 - m), d180 = Math.abs(m - 180);
+  if (f > 0.95 && d0 < 8) return 'cir';
+  if (f > 0.95 && d180 < 8) return 'tg';
+  if (f < -0.95 && d0 < 8) return 'ett';
+  return 'libre';
+}
+function eteQxVista(k){
+  var v = ETE_QX_VISTAS[k];
+  if (!v) return;
+  _qxVel = 0; _qxTFlip = v.flip; _qxTRot = qxCerca(v.rot);
+  if (qxCalmo()) { _qxRot = _qxTRot; _qxFlip = _qxTFlip; eteQxDibujar(); }
+  else qxAnimar();
+  eteQxVistasSync();
+}
+/* Marca el boton que corresponde a la camara de DESTINO y esconde las letras de los festones en
+   las dos vistas sin orientacion verificada. */
+function eteQxVistasSync(){
+  var N = _qxN;
+  var cDest = qxClase(_qxTRot, _qxTFlip);
+  Object.keys(ETE_QX_VISTAS).forEach(function(k){
+    var b = document.getElementById('ete-qx-v-' + k);
+    if (b) b.setAttribute('aria-pressed', cDest === k ? 'true' : 'false');
+  });
+  if (!N) return;
+  var cAhora = qxClase(_qxRot, _qxFlip);
+  /* Las letras se deciden por la camara EN PANTALLA y no por el destino: durante la animacion el
+     dibujo pasa por orientaciones intermedias, y mostrar letras ahi afirmaria una orientacion que
+     no es ninguna de las tres. En «libre» —el medico girando a mano— tampoco se afirman. */
+  var conLetras = (cAhora === 'cir');
+  N.lbl.forEach(function(l){ l.e.setAttribute('display', conLetras ? 'inline' : 'none'); });
+}
+/* El boton no existe con una protesis mitral, por el mismo predicado que el boton del 3D. */
+function eteQxVistasBotonSync(){
+  var host = document.getElementById('ete-qx-vistas');
+  if (!host) return;
+  var prot = false;
+  try { prot = (typeof m3dEsProtesis === 'function') ? m3dEsProtesis() : false; } catch (e) {}
+  host.hidden = prot;
+  /* ⚠️ `hidden` NO ALCANZA CON UN `display` DE AUTOR: la hoja del NAVEGADOR define
+     `[hidden]{display:none}` y cualquier regla de autor le gana — es el defecto que este archivo
+     ya documenta para `.fg`, `.frases-panel` y el boton del panel de Evidencia. Se escribe el
+     `display` tambien, que es lo que de verdad lo saca de la pantalla. */
+  host.style.display = prot ? 'none' : 'flex';
+  if (prot) { _qxVel = 0; _qxTRot = qxCerca(0); _qxTFlip = 1;
+    if (qxCalmo()) { _qxRot = _qxTRot; _qxFlip = _qxTFlip; eteQxDibujar(); } else qxAnimar(); }
+}
+window.eteQxVista = eteQxVista; window.eteQxVistasSync = eteQxVistasSync;
+window.eteQxVistasBotonSync = eteQxVistasBotonSync; window.ETE_QX_VISTAS = ETE_QX_VISTAS;
 window.eteQxPlanoPintar = eteQxPlanoPintar; window.eteQxAnguloClic = eteQxAnguloClic;
 window.eteQxPlanoSync = eteQxPlanoSync;
 
@@ -62972,6 +63066,8 @@ function eteQxEstado(){
   return { rot: Math.round(_qxRot * 100) / 100, flip: _qxFlip,
            tRot: Math.round(_qxTRot * 100) / 100, tFlip: _qxTFlip,
            raf: _qxRaf !== null, drag: _qxDrag, calmo: qxCalmo(),
+           vista: (typeof qxClase === 'function') ? qxClase(_qxRot, _qxFlip) : null,
+           vistaDest: (typeof qxClase === 'function') ? qxClase(_qxTRot, _qxTFlip) : null,
            ang: (typeof _qxAng === 'undefined') ? null : _qxAng,
            corta: (typeof _qxAng !== 'undefined' && _qxAng !== null && ETE_CORTES[_qxAng])
                   ? ETE_CORTES[_qxAng].fest.slice() : [] };
@@ -62984,7 +63080,9 @@ window.qxGirarA = qxGirarA;
 /* El dibujo se construye al arrancar. `eteSegSync` corre a los 300 ms y pinta las lesiones del
    estudio sobre los seis poligonos, asi que estos tienen que existir ANTES: de ahi los 150 ms.
    Con el SVG ausente —un arbol recortado— `eteQxConstruir` sale por su guarda. */
-setTimeout(function(){ try { eteQxDibujar(); } catch (e) {} }, 150);
+setTimeout(function(){ try { eteQxDibujar();
+  if (typeof eteQxVistasSync === 'function') eteQxVistasSync();
+  if (typeof eteQxVistasBotonSync === 'function') eteQxVistasBotonSync(); } catch (e) {} }, 150);
 
 
 function toggleEteSeccion(id, headEl) {
@@ -121455,6 +121553,11 @@ function m3dBotonSync(){
   var prot = m3dEsProtesis();
   if (b) b.hidden = prot;
   if (prot && m3dVisible()) m3dCerrar();
+  /* ⚠️ LOS TRES BOTONES DE VISTA DEL DIBUJO ESTATICO SIGUEN EL MISMO PREDICADO Y POR LA MISMA
+     RAZON (Y3c5), y van aca y no en un segundo oyente: esta funcion ya esta en RECALC_MODULOS
+     —el embudo de las cinco rutas de restauracion— y en `limpiarCampos`, asi que un oyente
+     propio seria una segunda puerta que se desincroniza. No cambia nada del 3D. */
+  try { if (typeof eteQxVistasBotonSync === 'function') eteQxVistasBotonSync(); } catch (e) {}
 }
 
 /* ⚠️ EL BUCLE SE APAGA TAMBIÉN CON LA PESTAÑA DEL NAVEGADOR OCULTA. `requestAnimationFrame` ya
