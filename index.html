@@ -14251,7 +14251,7 @@ z
         <div style="flex:1 1 420px;min-width:0;">
           <div class="grid-3">
             <div class="fg"><label>Tipo de fusión <button type="button" class="vinfo-btn" data-vinfo="vab-valv" aria-expanded="false" aria-label="Clasificación de la válvula" onclick="vInfoClic(this)">&#9432;</button></label>
-              <select id="vab_tipo" onchange="vabSync()">
+              <select id="vab_tipo" onchange="vabTipoCambio()">
                 <option value="">—</option>
                 <option value="fused_rl">Fused type R-L — fusión derecha-izquierda (~70 %)</option>
                 <option value="fused_rn">Fused type R-N — fusión derecha-no coronaria (~17 %)</option>
@@ -14416,6 +14416,10 @@ z
            retira del informe en el commit 10: NINGUNA fuente de la biblioteca publica ese
            numero -censadas las congenitas, la aorta y el consenso VAB-, asi que el aviso no
            lleva cifra. -->
+      <!-- Y3d7: el aviso de que la morfologia de Valvulas NO dice «Bicuspide». Es de PANTALLA y
+           no llega al informe, al EN SUMA ni al PDF por ningun camino: lo unico que lo escribe
+           es `vabMorfAviso`. Nace oculto. -->
+      <div id="vab-morf-aviso" style="font-size:11px;color:var(--orange);margin:12px 0 0;line-height:1.5;display:none;"></div>
       <div id="vab-coa-aviso" style="font-size:11px;color:var(--orange);margin:12px 0 0;line-height:1.5;">
         Excluir coartación de aorta asociada — ver la sección de coartación.
       </div>
@@ -65075,6 +65079,73 @@ function vabDibConstruir() {
 /* El gesto de tocar el rafe: elige el tipo en la LISTA y despacha su `change`, asi que todo lo
    que depende del tipo -el dibujo, la conclusion y, desde el commit 7, la morfologia de
    Valvulas- se entera por el MISMO camino que un cambio a mano. Sin esto habria dos caminos. */
+/* ══ LA MORFOLOGIA AORTICA SIGUE AL TIPO DE FUSION (Y3d7, 2026-10-19) ═══════════════════════
+   DECISION DE MAICOL: al ELEGIR un tipo de fusion -por la lista o tocando el dibujo- la
+   morfologia aortica de Valvulas pasa sola a «Bicuspide». El medico puede cambiarla despues.
+
+   ⚠️ SE DESPACHA EL `change` DE `va_morf`, no se le escribe el `.value` y listo. De esa
+   morfologia dependen `valvProtSync` -que muestra y esconde el bloque de protesis entera-, el
+   regimen protesico de la estenosis y de la insuficiencia aorticas, `eaGradoNoPublica`, la fila
+   «Morf.» de la tabla del PDF, el panel de Evidencia y el Laboratorio. Asignar el valor por
+   codigo NO dispara ningun evento, asi que sin el despacho la pantalla quedaria diciendo
+   «Bicuspide» con medio modulo calculando sobre la morfologia anterior.
+   ⚠️ SOLO SE PISA «Trivalva normal», QUE ES EL VALOR DE FABRICA. `va_morf` no tiene opcion
+   vacia y `limpiarCampos` lo deja ahi, asi que ese valor NO significa «el medico dijo
+   trivalva»: significa «nadie lo toco» -lo dice el comentario de `vabConclusion` desde que esa
+   seccion existe-. Pisar una prótesis, una TAVI o una endocarditis que el medico SI eligio
+   seria borrar una afirmacion suya en silencio, que es lo que la orden prohibe. En esos casos
+   el aviso de la seccion lo dice y el tipo se conserva.
+   ⚠️ Y NO SE TOCA NINGUN CORTE: lo unico que cambia es el valor de un selector que el medico
+   podia poner a mano desde siempre. */
+/* Las dos etiquetas REALES del selector de Valvulas, en un solo lugar y ANTES de la funcion
+   que las usa: son texto del marcado, y compararlas a mano en tres sitios es como se separan. */
+const VAB_MORF_BIC = 'Bicúspide';
+const VAB_MORF_DEF = 'Trivalva normal';
+function vabMorfSeguir() {
+  const sel = document.getElementById('vab_tipo');
+  const m   = document.getElementById('va_morf');
+  if (!sel || !m) return false;
+  if (!String(sel.value || '').trim()) return false;
+  if (m.value === VAB_MORF_BIC) return false;
+  if (m.value !== VAB_MORF_DEF) return false;
+  m.value = VAB_MORF_BIC;
+  m.dispatchEvent(new Event('change', { bubbles: true }));
+  return true;
+}
+/* El aviso de la seccion. NO va al informe nunca -es una ayuda de pantalla- y NO borra nada:
+   con la morfologia puesta a mano en otra cosa, el tipo de fusion se CONSERVA y lo que se dice
+   es que las dos no coinciden. */
+function vabMorfAviso() {
+  const e = document.getElementById('vab-morf-aviso');
+  if (!e) return;
+  const tipo = (document.getElementById('vab_tipo') || {}).value || '';
+  const morf = (document.getElementById('va_morf') || {}).value || '';
+  const hay = !!String(tipo).trim() && morf !== VAB_MORF_BIC;
+  e.style.display = hay ? '' : 'none';
+  e.textContent = hay
+    ? 'La morfología aórtica registrada en Válvulas es «' + morf + '». El tipo de fusión se conserva.'
+    : '';
+}
+/* El gesto de ELEGIR un tipo: primero la morfologia -que puede despachar un `change` y
+   repintar medio modulo de Valvulas- y despues el resto de la seccion, que lee el estado ya
+   asentado. Lo llaman el `onchange` del selector y `vabDibClic`, que despacha ese mismo
+   `change`: una sola puerta para los dos gestos. */
+function vabTipoCambio() {
+  try { vabMorfSeguir(); } catch (e) {}
+  if (typeof vabSync === 'function') vabSync();
+}
+/* ⚠️ EL AVISO NECESITA UN OYENTE DE DOCUMENTO: su otro insumo es `va_morf`, que vive en
+   VALVULAS y cuyo `onchange` va a `valvProtSync` —no pasa por `vabSync`—. Sin esto, volver la
+   morfologia a «Trivalva normal» dejaba la seccion sin decir nada hasta el gesto siguiente.
+   Es el patron de `emContFaAvisoSync` y de `vdTeiAvisoSync`. */
+document.addEventListener('change', function (ev) {
+  const t = ev && ev.target;
+  if (t && t.id === 'va_morf') { try { vabMorfAviso(); } catch (e) {} }
+}, false);
+window.vabTipoCambio = vabTipoCambio;
+window.vabMorfSeguir = vabMorfSeguir; window.vabMorfAviso = vabMorfAviso;
+window.VAB_MORF_BIC = VAB_MORF_BIC; window.VAB_MORF_DEF = VAB_MORF_DEF;
+
 function vabDibClic(k) {
   const sel = document.getElementById('vab_tipo');
   if (!sel) return;
@@ -65186,6 +65257,13 @@ function vabSync(){
   /* El dibujo y el boton del PDF siguen al estado por el MISMO embudo que el resto de la
      seccion: `vabSync` esta en `RECALC_MODULOS` y al final de `limpiarCampos`, asi que no hace
      falta una segunda puerta -que es la que se desincroniza-. */
+  /* ⚠️ `vabMorfSeguir` NO SE LLAMA DESDE ACA, y es lo que deja que el medico vuelva a
+     «Trivalva normal». `vabSync` corre en cada gesto de la seccion y desde `RECALC_MODULOS`:
+     con el seguimiento adentro, poner la morfologia en trivalva a mano con un tipo cargado la
+     devolvia a «Bicuspide» en el gesto siguiente, o sea la app deshaciendo una eleccion del
+     medico en silencio. El seguimiento cuelga SOLO del cambio de TIPO (`vabTipoCambio`); el
+     AVISO si se repinta siempre, que es lo que tiene que ver el estado actual. */
+  try { vabMorfAviso(); } catch (e) {}
   try { vabDibujar(); } catch (e) {}
   try { vabPdfSync(); } catch (e) {}
   const txt = (id,s) => { const e=document.getElementById(id); if(e) e.textContent = s; };

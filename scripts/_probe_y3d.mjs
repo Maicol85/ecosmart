@@ -1236,11 +1236,27 @@ window.__Y = {
     return o },
 
   /* == VAB ================================================================================= */
+  /* ⚠️ NO ALCANZA CON MIRAR EL el display DEL CUERPO: con el acordeon cerrado el SVG conserva su
+     rect y queda RECORTADO, asi que elementFromPoint devuelve el acordeon y un clic real no
+     llega a ningun punto sensible -se lee igual que «el mecanismo no funciona»-. Se comprueba la
+     ALCANZABILIDAD del centro del SVG y, si falla, se toglea y se vuelve a comprobar. */
   irVAB() { try { showTab('congenitas');
+      var alcanza = function(){ var sv = document.getElementById('vab-svg');
+        if (!sv) return null;
+        var r = sv.getBoundingClientRect();
+        if (!(r.width > 0 && r.height > 0)) return false;
+        sv.scrollIntoView({ block: 'center' });
+        r = sv.getBoundingClientRect();
+        var e = document.elementFromPoint(Math.round(r.left + r.width / 2),
+                                         Math.round(r.top + r.height / 2));
+        while (e) { if (e.id === 'vab-svg') return true; e = e.parentElement }
+        return false };
       var c = document.getElementById('sacc-cc-vab');
       var b = c ? c.querySelector('.sacc-body') : null;
-      if (b && getComputedStyle(b).display === 'none' && typeof secToggle === 'function') secToggle('cc-vab');
-      return { sec: b ? getComputedStyle(b).display : 'NO EXISTE' } }
+      var ok = alcanza();
+      if (ok === false && typeof secToggle === 'function') { secToggle('cc-vab'); ok = alcanza() }
+      if (ok === false && typeof secToggle === 'function') { secToggle('cc-vab'); ok = alcanza() }
+      return { sec: b ? getComputedStyle(b).display : 'NO EXISTE', alcanza: ok } }
     catch (e) { return 'EXC: ' + e.message } },
 
   vab() {
@@ -1261,6 +1277,18 @@ window.__Y = {
     return o },
 
   /* El dibujo de la VAB: caminos, rafe, puntos y letras. */
+  vabMorf() {
+    var a = document.getElementById('vab-morf-aviso');
+    return { vaMorf: (document.getElementById('va_morf') || {}).value,
+             tipo: (document.getElementById('vab_tipo') || {}).value,
+             aviso: a ? { vis: getComputedStyle(a).display !== 'none',
+                          txt: (a.textContent || '').trim(),
+                          color: getComputedStyle(a).color } : 'NO EXISTE',
+             protVis: (function(){ var b = document.getElementById('bloque-prot-va');
+               return b ? getComputedStyle(b).display : 'NO EXISTE' })(),
+             concl: (function(){ try { var c = vabConclusion();
+               return c ? c.clave : null } catch (e) { return 'EXC' } })() } },
+
   vabColor() {
     var e = document.getElementById('vab-rafe'), d = document.getElementById('vab-d1');
     var l = document.getElementById('vab-lR'), s2 = document.getElementById('vab-s1');
@@ -1548,6 +1576,60 @@ window.__Y = {
     } catch (e) { r.err = e.message; }
     out.grupos.vab = r;
     process.stderr.write('[vab] listo\n');
+  }
+
+  /* == GRUPO «morf» - la morfologia de Valvulas sigue al tipo de fusion =================== */
+  if (corre('morf')) {
+    const r = {};
+    const leer = async () => await ev(`window.__Y.vabMorf()`);
+    try {
+      /* (a) Elegir un tipo por la LISTA pone la morfologia en Bicuspide. */
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__Y.irVAB()`);
+      r.inicio = await leer();
+      await ev(`window.__P.sel('vab_tipo','fused_rl')`);
+      r.porLista = await leer();
+      /* (b) Y tocando el rafe, tambien. */
+      await ev(`window.__P.nuevo()`);
+      /* ⚠️ DESPEJAR ANTES DE ABRIR Y DE LEER EL RECT: al esconder el aviso legal la pagina
+         recupera el scroll y un rect leido antes queda viejo. */
+      await ev(`window.__P.despejar()`);
+      await ev(`window.__Y.irVAB()`);
+      const hit = await ev(`window.__Y.vabHit('fused_ln')`);
+      if (!hit.err) {
+        for (const type of ['mousePressed', 'mouseReleased']) {
+          await cdp.send('Input.dispatchMouseEvent', { type, x: hit.x, y: hit.y,
+            button: 'left', clickCount: 1 }, sessionId);
+        }
+        await pausa(140);
+      }
+      r.porToque = Object.assign({ enPunto: hit.enPunto }, await leer());
+      /* (c) INVERSO 1: elegir «Bicuspide» a mano en Valvulas deja la seccion lista. */
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__P.sel('va_morf','Bicúspide')`);
+      await ev(`window.__Y.irVAB()`);
+      r.bicuspideAMano = await leer();
+      /* (d) INVERSO 2: volver a «Trivalva normal» con un tipo cargado avisa y CONSERVA. */
+      await ev(`window.__P.sel('vab_tipo','fused_rn')`);
+      await ev(`window.__P.sel('va_morf','Trivalva normal')`);
+      await ev(`window.__Y.irVAB()`);
+      r.vueltaATrivalva = await leer();
+      /* (e) CONTROL: una morfologia que el medico SI eligio no se pisa. */
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__P.sel('va_morf','TAVI')`);
+      await ev(`window.__Y.irVAB()`);
+      await ev(`window.__P.sel('vab_tipo','fused_rl')`);
+      r.conTavi = await leer();
+      /* (f) Y el aviso NO llega al informe ni al EN SUMA. */
+      r.salida = await ev(`window.__Y.salida()`, 60000);
+      r.avisoEnInforme = await ev(`(function(){
+        var t = (document.getElementById('informe_texto') || {}).value || '';
+        var s2 = (document.getElementById('en_suma') || {}).value || '';
+        return { informe: t.indexOf('registrada en Válvulas') >= 0,
+                 suma: s2.indexOf('registrada en Válvulas') >= 0 } })()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.morf = r;
+    process.stderr.write('[morf] listo\n');
   }
 
   /* == GRUPO «dib» - el dibujo de la VAB ================================================== */
