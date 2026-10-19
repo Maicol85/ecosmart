@@ -54,6 +54,14 @@ cablea al desplegarse, con `secToggle('cc-<k>')` seguido de su `Sync()`. Patrón
 - `<k>Estado()` o `<k>Conclusion()` — clasificador puro: lee los campos, devuelve estado/texto.
 - `<k>Sync()` — render: badge, frases, conclusión, y publica la hoja vía `ccHoja`.
 
+> ⚠️ **LA SECCIÓN VAB TIENE SU PROPIO MAPA DESDE LA TANDA Y3d (2026-10-19):**
+> `docs/mapa/vab-bicuspide.md`. Ahí están la disposición en tres columnas con el dibujo al lado,
+> las seis tarjetas ⓘ, los factores de riesgo con **casilla** y su migración, `vabGeom` con la
+> tabla de qué dibuja cada tipo y cuáles **no se dibujan inventados**, la morfología de Válvulas
+> siguiendo al tipo de fusión, la **única** descripción de la válvula en el informe, el PDF con su
+> tabla y por qué el recordatorio de la coartación quedó **sin porcentaje**. Los cortes de
+> `vabConclusion` y la Tabla 68 de la ESC 2024 siguen acá.
+
 Prefijos: `vab` (aórtica bicúspide), `coa` (coartación; además `coaGmax`, `coaRatio` y la única
 periodicidad de control calculada de la app, `coaSeguimiento()`), `marfan` (con `critMarfanCalc`),
 `fop`, `esub` (estenosis subaórtica), `easv` (supravalvular aórtica), `mch`, `mca`, `tdf` (Fallot

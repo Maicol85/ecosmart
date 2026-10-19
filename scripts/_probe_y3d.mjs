@@ -1955,6 +1955,33 @@ window.__Y = {
           };
         }
       }
+      /* ⚠️ LOS SEIS GLOBOS MIDEN 16 x 12 px CON EL MOUSE Y 44 x 44 CON EL DEDO, por su
+         `@media (pointer: coarse)`. `check_mobile.js` mide el rect del NODO SIN emular puntero
+         grueso, asi que los informa como objetivo tactil chico: es el precedente de las tandas
+         L, M y Q. Se mide con la emulacion puesta, que es el unico lever que mueve el media
+         feature `pointer` -ni `mobile:true` ni `setEmulatedMedia` lo hacen-. */
+      await cdp.send('Emulation.setTouchEmulationEnabled',
+        { enabled: true, maxTouchPoints: 5 }, sessionId);
+      await viewport(390, 844);
+      await pausa(180);
+      r.tactil = await ev(`(function(){ var o = [];
+        document.querySelectorAll('#sacc-cc-vab [data-vinfo]').forEach(function(b){
+          var r2 = b.getBoundingClientRect();
+          o.push({ k: b.getAttribute('data-vinfo'), w: Math.round(r2.width), h: Math.round(r2.height) }) });
+        return o })()`);
+      /* Y las SEIS casillas: lo clicable es la ETIQUETA envolvente, no el cuadradito. */
+      r.tactilChk = await ev(`(function(){ var o = [];
+        Object.keys(window.VAB_FR_CHK || {}).forEach(function(k){
+          var cb = document.getElementById(k); if (!cb) { o.push({ k: k, err: 'NO EXISTE' }); return }
+          var lb = cb.closest('label'), r2 = cb.getBoundingClientRect(),
+              r3 = lb ? lb.getBoundingClientRect() : null;
+          o.push({ k: k, chk: Math.round(r2.width) + 'x' + Math.round(r2.height),
+                   label: r3 ? Math.round(r3.width) + 'x' + Math.round(r3.height) : 'SIN LABEL' }) });
+        return o })()`);
+      /* ⚠️ `maxTouchPoints` TIENE QUE ESTAR ENTRE 1 Y 16 INCLUSO AL DESACTIVAR: con 0 el
+         protocolo rechaza la llamada y la corrida muere antes de medir nada. */
+      await cdp.send('Emulation.setTouchEmulationEnabled',
+        { enabled: false, maxTouchPoints: 1 }, sessionId);
       await ev(`window.__P.tema(false)`);
       await viewport(1200, 800);
       /* 20 aperturas y cierres: nodos y oyentes. */

@@ -1,6 +1,12 @@
 <!-- mapa armado sobre 5137c30, 2026-10-01; los números de línea no se guardan a propósito -->
 # Mapa de funciones — informe narrativo, EN SUMA, PDF y Excel
 
+> ⚠️ **TANDA Y3d (2026-10-19) — EL PDF LLEVA EL DIBUJO DE LA VÁLVULA AÓRTICA BICÚSPIDE Y SU TABLA**
+> cuando el botón «Incluir en el PDF» está tildado, y **no se toca** cuando no. El detalle, la
+> guarda que evita una tabla sobre una sección vacía y por qué las palabras de la tabla son las
+> MISMAS del informe están en `docs/mapa/vab-bicuspide.md` → §7. **El Excel sigue en 440 columnas
+> y no gana ninguna por esto.**
+
 Dice *qué función emite cada superficie de salida*.
 
 Las cuatro superficies **se rompen por separado**: tienen emisores distintos y ninguna deriva de

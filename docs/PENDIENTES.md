@@ -5426,3 +5426,80 @@ Es un `<button>` dentro de `#vinfo-card`, que `check_mobile.js` **no abre** —l
 cerrada y lo que está en `display:none` no tiene geometría—, así que hoy no entra en la cuenta.
 El día que ese script aprenda a abrir las tarjetas ⓘ, los 39 botones aparecerán. Es el mismo
 precedente que **Q-5**, **L-10** y **M-10** ya tienen escrito.
+
+---
+
+## Tanda Y3d (2026-10-19) — declarado y NO tocado
+
+### Y3d-1 · La orientación de la vista TRANSGÁSTRICA no coincide con la guía, y el dibujo no se cambió
+
+**Censadas las OCHO guías de ETE de la biblioteca**, la única que describe esa orientación es la
+**ASE/SCA 2013** (Hahn, JASE 2013;26(9):921-964), **folio 939, hoja 19** —regla de folio = hoja +
+920, comprobada en el pie impreso—:
+
+> «… with the **anterior leaflet on the left of the display and the posterior leaflet on the
+> right**. The **medial commissure is in the near field, with the lateral commissure in the far
+> field**.»
+
+Eso es un giro de unos **90°**. La demo aprobada rota **180°**, lo que deja la anterior **abajo**,
+la posterior **arriba**, AL a la derecha y PM a la izquierda. **No coincide.**
+
+La demo es la que Maicol aprobó y la orden prohíbe expresamente cambiar el dibujo, así que queda
+declarado como **orientación: criterio de Maicol** (en `FUENTES.md` → `aseEte2013`).
+**Decidir:** (a) dejarlo así, con la declaración; (b) rotar esa vista 90° para seguir a la guía, lo
+que cambia el dibujo que Maicol aprobó y mueve el PDF si alguna vez el papel sale en esa vista;
+(c) sacar las letras **sólo** de la transgástrica, que es lo que esta tanda vino a revertir.
+
+### Y3d-2 · Las seis tarjetas ⓘ de la VAB no tienen entrada en Referencias
+
+`VINFO_REF` mapea 39 de las 50 claves; las **once** que quedan sin botón «Ver referencia» son las
+cinco que ya estaban (`et-avt-cont`, `pul-balik`, `tarj-esten-pulmonar`, `tarj-esten-tricuspide`,
+`tarj-insuf-pulmonar`) y las **seis de la VAB**. El motivo es el mismo: **Referencias no tiene esas
+entradas**, y crearlas sería contenido clínico nuevo que esta orden no autoriza. Lo fija TC-502
+(C3) como límite declarado. **Decidir:** crear una entrada de Referencias para la VAB —con su
+tabla y su folio— o dejarlo.
+
+### Y3d-3 · Las fuentes de los criterios TEER no están en la biblioteca
+
+**Censada entera:** no hay **EVEREST II** (Eur Heart J 2010;31(11):1382-1389 · PMC2878966) ni el
+protocolo **EXPAND** (NCT03502811). Los tres cortes que esta tanda cablea —flail gap `<10 mm`,
+ancho del flail `<15 mm`, longitud de coaptación `≥2 mm`— son **los que la app ya aplicaba**: el
+valor no se movió, lo que cambió es a qué campo y con qué operador. Por eso las filas **no llevan
+línea de fuente**. El día que alguno de esos dos PDF entre a la biblioteca, hay que verificar los
+tres contra su tabla y recién entonces citarlos.
+
+### Y3d-4 · El «hasta el 85 %» de la coartación se retiró y no se reemplazó
+
+La afirmación estaba **invertida**: lo que la literatura publica es la prevalencia de **VAB entre
+los coartados** —alta—, no la de coartación entre los portadores de VAB, que es baja. **Ninguna
+fuente de la biblioteca publica ese porcentaje en ninguno de los dos sentidos**, así que el
+recordatorio quedó con la indicación clínica y **sin número**. El día que aparezca una fuente, el
+número va **con su folio** y en el sentido correcto.
+
+### Y3d-5 · «Senos asimétricos» no está definido en ninguna fuente
+
+El consenso de VAB clasifica el **número de senos distinguibles** y el **patrón de fusión**, no su
+simetría. El dibujo lo representa como lo único que la app afirma —un seno más amplio que los otros
+dos— y **no afirma cuál**, porque la app no lo pregunta. **Decidir:** (a) dejarlo así; (b) agregar
+un campo que diga **cuál** seno es el amplio, que es un dato nuevo; (c) retirar la opción.
+
+### Y3d-6 · Seis hallazgos ALTA y seis MEDIA nuevos en `check_mobile.js`, con causa medida
+
+La cuenta pasa de **53 / 62 con 11 ALTA** a **65 / 74 con 17 ALTA**, y con `--todo` de **389 / 398**
+a **394 / 403**. Medido contra el árbol base **el mismo día**, el delta se explica entero:
+
+| delta | qué es | medido |
+|---|---|---|
+| **+6 ALTA** | los seis botones ⓘ nuevos (`button.vinfo-btn`) | **16 × 12 px con el mouse y 44 × 44 EXACTOS con el dedo**, por su `@media (pointer: coarse)`. `check_mobile.js` mide el rect del nodo **sin emular puntero grueso**: es el precedente de **L-10**, **M-10** y **Q-5** |
+| **+6 MEDIA** | las seis casillas de factor de riesgo | el cuadradito mide **13 × 13** y la **etiqueta clicable 328 × 14 px** a 390 px: ancha y **baja**. Es el mismo patrón que las ~50 `input.ind-chk` del panel de Evidencia |
+| **−7 BAJA** | los **seis `<select>`** de factor de riesgo que se retiraron (hoy son `input[type=hidden]`, sin geometría) y **`vab_morf_ro`**, que pasó a `display:none` | −6 y −1 |
+
+**No se agrandó ninguno de los doce**, y el motivo es el mismo en los dos casos: el piso de 44 px
+desplazaría la fila —lo que la orden prohíbe en la grilla de dos columnas de tres— y el ⓘ ya tiene
+sus 44 px donde importa, que es con el dedo.
+
+### Y3d-7 · `tests-fichas.md` quedó en 28,9 KB
+
+A **6 KB del techo** de 35. La próxima tanda que le agregue una ficha conviene que **mida con
+`wc -c` antes de escribir** y, si no entra, que la parta —como ya se hizo con
+`tests-fichas-481-490.md`, `-491-495.md` y `-496-498.md`—.

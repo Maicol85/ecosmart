@@ -140,19 +140,52 @@ juego y el dibujo giraría el doble por gesto.
 | botón | cámara | letras de festón |
 |---|---|---|
 | Vista del cirujano | `rot 0`, sin espejo | **sí** |
-| Vista ETT | **espejo** (`flip −1`), `rot 0` | **no** |
-| Vista transgástrica | `rot 180`, sin espejo | **no** |
+| Vista ETT | **espejo** (`flip −1`), `rot 0` | **sí** (desde el Y3d) |
+| Vista transgástrica | `rot 180`, sin espejo | **sí** (desde el Y3d) |
 
-⚠️ **ETT Y TRANSGÁSTRICA VAN SIN LETRAS DE FESTÓN**, y es lo que la orden manda cuando la
-orientación no se puede verificar: **censada la biblioteca entera**, ninguna fuente publica de qué
-lado quedan las comisuras en el eje corto paraesternal mitral ni en la transgástrica basal. Los
-polígonos **siguen tocables y pintándose con su lesión** —el dato no se pierde—; lo que no se
-afirma es cuál festón es cuál. Las cuatro marcas se conservan: espejan y giran con el dibujo por
-construcción, así que su posición **relativa** es correcta sin afirmar nada nuevo.
+### ⚠️ Y3d1 (2026-10-19) — LAS LETRAS SE VEN SIEMPRE, Y LA CAUSA TENÍA NOMBRE
 
-⚠️ **LAS LETRAS SE DECIDEN POR LA CÁMARA EN PANTALLA Y NO POR EL DESTINO**: durante la animación
-el dibujo pasa por orientaciones intermedias, y mostrar letras ahí afirmaría una orientación que no
-es ninguna de las tres. En «libre» —el médico girando a mano— tampoco se afirman.
+Lo reportó Maicol probando: los rótulos **desaparecían al girar** y las vistas ETT y transgástrica
+salían **sin una sola letra**. **La causa era UNA línea de `eteQxVistasSync`**:
+
+```js
+var conLetras = (cAhora === 'cir');
+N.lbl.forEach(function(l){ l.e.setAttribute('display', conLetras ? 'inline' : 'none'); });
+```
+
+o sea las letras colgaban de que la cámara **en pantalla** fuera exactamente la del cirujano —con
+la tolerancia de 8° de `qxClase`—. Por eso también se iban **girando a mano**: en «libre» la clase
+no es `cir`. Hoy esas dos líneas no están y `ETE_QX_VISTAS` **perdió su campo `letras`**: no hay
+una segunda copia de la decisión, porque no hay decisión.
+
+**MEDIDO: los SEIS rótulos se ven en las TRES vistas y en los OCHO ángulos de giro** (0, 45, 90,
+135, 180, 225, 270 y 315°), y también durante el arrastre. Es la demo aprobada, que los muestra
+siempre.
+
+⚠️ **LA ORIENTACIÓN TRANSGÁSTRICA SE VERIFICÓ Y NO COINCIDE CON LA DEMO — REPORTADO, SIN TOCAR EL
+DIBUJO.** **Censadas las OCHO guías de ETE de la biblioteca**, la única que describe la orientación
+de esa vista es la **ASE/SCA 2013** (Hahn, JASE 2013;26(9):921-964), **folio 939, hoja 19** —regla
+de folio = hoja + 920, comprobada en el pie impreso de las hojas 11 y 21 **y en esa misma hoja**—,
+que dice textual:
+
+> «This view demonstrates the typical SAX view or "fish mouth" appearance of the MV in the TG
+> imaging plane with the **anterior leaflet on the left of the display and the posterior leaflet on
+> the right**. The **medial commissure is in the near field, with the lateral commissure in the far
+> field**.»
+
+O sea: valva **anterior a la izquierda**, **posterior a la derecha**, comisura **medial arriba** y
+**lateral abajo** — que es un giro de unos **90°**, no de 180°. La demo rotada 180° deja la
+anterior **abajo**, la posterior **arriba**, AL a la derecha y PM a la izquierda. **No coincide.**
+La demo es la que Maicol aprobó, así que **el dibujo no se cambió**: queda declarado en
+`FUENTES.md` como **orientación: criterio de Maicol**. Las letras se muestran igual —lo que esta
+tanda corrige es que el médico vea la nomenclatura; la orientación es una decisión suya—.
+
+⚠️ **LA CÁMARA SE ANIMA, Y ESO DA UN FALSO AL MEDIR.** Como la decisión colgaba de la cámara **en
+pantalla**, una condición que cuenta letras **justo después del clic** encuentra la cámara todavía
+en la del cirujano y **pasa también contra el árbol viejo**. Lo cazó correr TC-504 contra el inicio
+de la tanda, no la lectura: dos condiciones salían verdes sobre un árbol que **sí** las escondía.
+El caso lleva la cámara al **destino** de la vista (`window._qxRot`, `window._qxFlip` —son `var`
+de nivel superior, o sea propiedades de `window`—) y repinta antes de contar.
 
 ⚠️ **EL BOTÓN SE DESMARCA AL GIRAR A MANO, Y LO DECIDE `qxClase` CLASIFICANDO LA CÁMARA**, no una
 bandera: con una bandera, girar un grado dejaría el botón marcado sobre una orientación que ya no
@@ -217,6 +250,49 @@ las paredes del VI, y las figuras con relleno van sin trazo de cierre.
 recupera su ancho entero (706 y 328 px). Cero scroll horizontal y cero solapamientos. **La bajada a
 768 px es la alternativa mínima** que la orden pide: con la imagen al lado el input queda por
 debajo de lo usable en el celular, y ni se achica el dibujo ni se esconde.
+
+### ⚠️ Y3d2 (2026-10-19) — LOS CRITERIOS TEER: cuatro defectos, medidos antes de tocar nada
+
+Los cuatro los reportó Maicol y los cuatro **se reprodujeron** contra una copia del árbol de
+entrada:
+
+| qué pasaba | medido en el árbol viejo | hoy |
+|---|---|---|
+| el **flail gap** tenía campo y rótulo «Excl: ≥10mm» y **ninguna fila**, y nadie lo leía | 12 mm → «**APTO**» | fila «Flail gap <10 mm», y 12 mm deja de ser apto |
+| «Gap coaptación ≤10mm» se aplicaba al campo de la **LONGITUD** de coaptación | una longitud de 2 mm «cumplía» un corte que no es el suyo | «Longitud de coaptación ≥2 mm», y el rótulo del campo dice «Req: ≥2mm» |
+| la fila del **ancho del flail** contradecía su propio rótulo | el rótulo decía `<15` y la fila votaba otro borde | «Ancho del flail <15 mm» — **el único borde que se mueve** |
+| un criterio **sin dato** no frenaba el «APTO» | faltando el gap, el veredicto decía apto | «⚠️ Datos incompletos — falta: …», **nombrando cada criterio** |
+
+**MEDIDO por sus tres valores cada uno:** flail gap 9,9 cumple / **10 exacto NO** / 10,1 no; ancho
+14,9 cumple / **15 exacto NO** / 15,1 no; longitud 1,9 no / **2 exacto SÍ** / 2,1 sí.
+
+⚠️ **LA GUARDA `> 0` DEL VIEJO CRITERIO TUVO QUE IRSE, y no es un descuido.** El corte nuevo es un
+**PISO** (`≥2`), así que con `v > 0 && v >= 2` un valor de 0 —que es un dato, no un hueco— quedaba
+**sin evaluar** en vez de **no cumplir**. Un piso falla cerrado por sí solo.
+
+⚠️ **`_NO_APLICA` TIENE DOS COPIAS Y LAS DOS NECESITAN LA FILA NUEVA**: la del pintado de
+`calcTEER` y la de la hoja del PDF (`amiloTextoTEER`). Con una sola, el papel firmado publicaba la
+fila sin su marca de «no aplica» en la IM secundaria.
+
+⚠️ **LAS FUENTES QUE LA ORDEN SUPONÍA NO ESTÁN EN LA BIBLIOTECA, Y SE DECLARA.** Censada entera:
+**no hay** EVEREST II (Eur Heart J 2010;31(11):1382-1389) ni el protocolo EXPAND (NCT03502811). Los
+tres cortes son los que la app ya aplicaba —el valor no se movió, lo que cambió es **a qué campo**
+y **con qué operador** se aplican—, así que las filas **no llevan línea de fuente**.
+
+**Cómo se tratan los criterios COAPT (FEVI y DSFVI) sin dato — reportado y NO cambiado:** caen en
+la misma rama de «no evaluado» y desde esta tanda **también** frenan el «APTO» y se nombran en
+«falta: …». Antes no frenaban nada.
+
+### ⚠️ Y3d3 (2026-10-19) — LA FEVI Y EL DSFVI DEL TEER SE COMPLETAN SOLOS
+
+**La copia funcionaba; lo que faltaba era el DISPARADOR.** `sincronizarTEERDesdeGlobal` existía y
+copiaba bien llamándola a mano, pero **ningún campo de origen la llamaba**: `fevi` y `dsfvi` de
+AI/VI tenían su `oninput` sin esa línea, así que el TEER se quedaba con el valor del paciente
+anterior —o vacío—. Hoy los dos la llaman, y **al borrar el origen los dos campos del TEER vuelven
+a vacío**, que es la regla del ARR.
+
+**El rótulo se unificó a «DSFVI»** en el campo y en el criterio —que es lo que lee la hoja del
+PDF—. **Los dos cortes COAPT no se movieron**: FEVI 20-50 % y DSFVI ≤70 mm.
 
 ---
 

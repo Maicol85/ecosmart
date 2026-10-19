@@ -41245,7 +41245,14 @@ caso('TC-301', 'Marca de espejo para los NUEVE destinos: la marca sobrevive al g
     // ── 8. Con el centinela y SIN marcas, el fallback NO corre ─────────────────────────
     __t.limpiar();
     __t.set('nombre','TC301c'); __t.set('edad','60');
-    __t.set('fevi','45'); __t.set('teer_fevi','45');    // coinciden, pero tipeados a mano
+    /* ⚠️ ADAPTADO el 2026-10-19 (tanda Y3d): el ORDEN de estos dos tecleos ahora importa, y es la
+       mitad de lo que esta condicion mide. Desde el Y3d3 el oninput de fevi llama a
+       sincronizarTEERDesdeGlobal, asi que tipear el ORIGEN primero hace que la app copie el
+       destino y REGISTRE su marca -que es lo correcto y lo que la tanda busca-: el oculto salia
+       «v1|teer_fevi=45» y el valor dejaba de estar «tipeado a mano». Se tipea el DESTINO primero,
+       que es el unico orden en que el valor es de verdad del medico; la condicion sigue midiendo
+       lo mismo -que con el centinela puesto el fallback por igualdad NO inventa una marca-. */
+    __t.set('teer_fevi','45'); __t.set('fevi','45');    // coinciden, pero el destino es del medico
     __t.informe();
     const eid3 = await guardar();
     const oculto3 = eid3 ? String((getInformes().find(i => i.estudioId === eid3) || {campos:{}}).campos['im_espejos'] || '') : '';
@@ -77075,14 +77082,21 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
   ex.push(['(C2) el assert del mapeo no encuentra ninguna clave rota ni ningun destino inexistente',
     (function () { try { return FN('_vinfoRefAssert') && window._vinfoRefAssert().length === 0; } catch (e) { return false; } })(),
     (function () { try { return window._vinfoRefAssert().join(' | ') || 'cero'; } catch (e) { return 'EXC'; } })()]);
-  /* Las CINCO que NO llevan boton, y es porque la entrada no existe. */
+  /* Las ONCE que NO llevan boton, y es porque la entrada no existe.
+     ⚠️ ADAPTADO el 2026-10-19 (tanda Y3d): eran CINCO y hoy son ONCE. Las seis nuevas son las
+     tarjetas de la seccion VAB (vab-tit, vab-valv, vab-func, vab-aorta, vab-cx y vab-friesgo), y
+     el motivo es el MISMO que el de las cinco viejas: Referencias no tiene esas entradas, y
+     crearlas seria contenido clinico nuevo que esa orden no autoriza. Lo que este limite sigue
+     fijando es que ninguna tarjeta quede sin boton por un olvido del mapeo -eso lo caza (C2)-,
+     sino por una entrada que no existe. Ver PENDIENTES.md, Y3d-2. */
   const sinBoton = (function () {
     const ks = {}, bs = document.querySelectorAll('[data-vinfo]');
     for (let i = 0; i < bs.length; i++) ks[bs[i].getAttribute('data-vinfo')] = 1;
     return Object.keys(ks).filter(c => !MAPA[c]).sort();
   })();
-  ex.push(['(C3) LIMITE DECLARADO: cinco tarjetas sin boton, porque Referencias no tiene esa entrada',
-    sinBoton.join(',') === 'et-avt-cont,pul-balik,tarj-esten-pulmonar,tarj-esten-tricuspide,tarj-insuf-pulmonar',
+  ex.push(['(C3) LIMITE DECLARADO: once tarjetas sin boton, porque Referencias no tiene esa entrada',
+    sinBoton.join(',') === 'et-avt-cont,pul-balik,tarj-esten-pulmonar,tarj-esten-tricuspide,'
+      + 'tarj-insuf-pulmonar,vab-aorta,vab-cx,vab-friesgo,vab-func,vab-tit,vab-valv',
     sinBoton.join(',')]);
   /* Cuatro tarjetas, una de cada familia. La de la aorta y la del VI viven en AI/VI, la de la
      valvula en Valvulas y la del test de burbuja detras de su propia seccion. */
@@ -77395,7 +77409,7 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
   return { extra: ex };
 `);
 
-caso('TC-503', 'Tanda Y3c: la TABLA UNICA de festones por angulo que leen los cuatro esquemas, el dibujo estatico nuevo de la vista quirurgica con su sonrisa de coaptacion y sus cuatro marcas, la linea punteada del plano en los cinco angulos del 3D con los festones en negrita y SIN color, el giro con las flechas sin botones de girar, las tres vistas con ETT y transgastrica sin letras de feston, el PDF con el dibujo y sin la linea, los cuatro dibujos de medidas TEER con su valor, y el 3D, el informe, el EN SUMA, el PPT, el Laboratorio y las 440 columnas del Excel sin moverse', `
+caso('TC-503', 'Tanda Y3c: la TABLA UNICA de festones por angulo que leen los cuatro esquemas, el dibujo estatico nuevo de la vista quirurgica con su sonrisa de coaptacion y sus cuatro marcas, la linea punteada del plano en los cinco angulos del 3D con los festones en negrita y SIN color, el giro con las flechas sin botones de girar, las tres vistas -con sus letras de feston desde el Y3d-, el PDF con el dibujo y sin la linea, los cuatro dibujos de medidas TEER con su valor, y el 3D, el informe, el EN SUMA, el PPT, el Laboratorio y las 440 columnas del Excel sin moverse', `
   const ex = [];
   const EL  = (id) => document.getElementById(id);
   const FN  = (n) => { try { return typeof window[n] === 'function'; } catch (e) { return false; } };
@@ -77657,8 +77671,19 @@ caso('TC-503', 'Tanda Y3c: la TABLA UNICA de festones por angulo que leen los cu
       'pressed=' + ['cir','ett','tg'].map(j => j + ':' + AT('ete-qx-v-' + j, 'aria-pressed')).join(' ') + ' dest=' + e2.vistaDest]);
   });
   /* Y3d1: las letras se ven en las TRES vistas. */
+  /* ⚠️ LA CAMARA SE ANIMA, Y eteQxVistasSync DECIDIA LAS LETRAS POR LA CAMARA EN PANTALLA.
+     Medido justo despues del clic, el arbol del Y3c todavia esta en la del cirujano y la
+     condicion PASA sobre un arbol que si las escondia: un falso plausible -lo cazo correr este
+     caso contra el inicio de la tanda, no la lectura-. Se lleva la camara al DESTINO de la vista
+     y se repinta, que es el estado al que el boton converge. */
+  const VISTA_Q = k => { CLIC('ete-qx-v-' + k);
+    const d = (typeof ETE_QX_VISTAS === 'object' && ETE_QX_VISTAS) ? ETE_QX_VISTAS[k] : null;
+    if (d) { try { window._qxRot = d.rot; window._qxFlip = d.flip;
+      if (FN('eteQxDibujar')) eteQxDibujar();
+      if (FN('eteQxVistasSync')) eteQxVistasSync(); } catch (e) {} }
+    return LETRAS_VIS(); };
   const _letVista = {};
-  ['cir','ett','tg'].forEach(k => { CLIC('ete-qx-v-' + k); _letVista[k] = LETRAS_VIS(); });
+  ['cir','ett','tg'].forEach(k => { _letVista[k] = VISTA_Q(k); });
   ex.push(['(E4b) los SEIS rotulos de feston se ven en las TRES vistas',
     _letVista.cir === 6 && _letVista.ett === 6 && _letVista.tg === 6,
     JSON.stringify(_letVista)]);
@@ -77797,6 +77822,487 @@ caso('TC-503', 'Tanda Y3c: la TABLA UNICA de festones por angulo que leen los cu
 
   return { extra: ex };
 `);
+
+/* ══ TANDA Y3d (2026-10-19) ════════════════════════════════════════════════════════════════
+   Cubre los DIEZ commits de la tanda. Todo lo que lee va por un ayudante con CENTINELA: un
+   caso que muere por excepcion contra HEAD prueba que el arbol es distinto, no que sabe medir.
+   VERIFICADO QUE SABE FALLAR contra el inicio de la tanda (a40ccc2) en un worktree aparte:
+   51 de las 63 condiciones en rojo, y NINGUNA por excepcion. Las doce que pasan son lo que esta
+   tanda NO mueve: los dos denominadores, la linea del plano (A4), los tres controles negativos
+   (B8, G3, H9), el fenotipo aortopatico que ya existia (H7), el aviso que no llega al informe
+   porque alla no existe (G4), las 440 columnas (K2) y -esto importa- C1 y C3: la COPIA de la
+   FEVI y el DSFVI ya funcionaba llamandola a mano, lo que faltaba era el DISPARADOR, que es C2 y
+   si esta en rojo.
+   ADVERTENCIA: ni un acento grave en los comentarios de este cuerpo -ni siquiera para nombrar
+   una funcion-: cierra el template. scripts/check_backticks.py da la linea exacta. */
+caso('TC-504', 'Tanda Y3d: los rotulos de feston visibles en las TRES vistas y en cualquier angulo; el FLAIL GAP votando con su fila, la LONGITUD de coaptacion con su propio corte y el ancho del flail con su operador; la FEVI y el DSFVI del TEER completandose solos; la seccion VAB en tres columnas con su dibujo, sus seis tarjetas i y sus factores de riesgo con CASILLA; la morfologia de Valvulas siguiendo al tipo de fusion; UNA sola descripcion de la valvula aortica con el EN SUMA corto y la raiz una sola vez; el PDF con el dibujo y su tabla; y el recordatorio de la coartacion SOLO en pantalla y sin porcentaje', `
+  const ex = [];
+  const EL  = id => document.getElementById(id);
+  const TXT = id => { const e = EL(id); return e ? (e.textContent || '').trim() : 'NO EXISTE'; };
+  const VAL = id => { const e = EL(id); return e ? String(e.value == null ? '' : e.value) : 'NO EXISTE'; };
+  const FN  = n => typeof window[n] === 'function';
+  const OB  = n => (typeof window[n] === 'object' && window[n]) ? window[n] : null;
+  const CS  = (id, prop) => { const e = EL(id); return e ? getComputedStyle(e)[prop] : 'NO EXISTE'; };
+  const SEL = (id, v) => { const e = EL(id); if (!e) return false;
+    e.value = v; e.dispatchEvent(new Event('change', { bubbles: true })); return e.value === v; };
+  const CLIC = id => { const e = EL(id); if (!e) return false; e.click(); return true; };
+  /* TRAMPA: estos cuatro son const/function de MODULO. window[n] da undefined y el
+     identificador PELADO si se ve: la trampa de ECO_AYUDA, pagada otra vez. */
+  const _VINFO  = (typeof VINFO === 'object' && VINFO) ? VINFO : null;
+  const _noEs   = (typeof _noEsDelEstudio === 'function') ? _noEsDelEstudio : null;
+  const _xlsRow = (typeof _labExcelRow === 'function') ? _labExcelRow : null;
+  const _togEte = (typeof toggleEteSeccion === 'function') ? toggleEteSeccion : null;
+
+  /* ══ (A) LOS ROTULOS DE FESTON ════════════════════════════════════════════════════════ */
+  /* El dibujo vive dentro de #ete-seccion-mitral, que nace plegada. Y los seis rotulos los CREA
+     eteQxConstruir la primera vez que alguien dibuja: sin esa llamada no existen todavia y la
+     lectura informa «no hay rotulos» sobre un dibujo perfecto -paso una vez en esta tanda-. */
+  try { showTab('ete');
+    const s = EL('ete-seccion-mitral');
+    if (s && getComputedStyle(s).display === 'none' && _togEte) _togEte('mitral');
+  } catch (e) {}
+  try { if (FN('eteQxDibujar')) eteQxDibujar(); } catch (e) {}
+  const FEST = ['A1','A2','A3','P1','P2','P3'];
+  const LETRAS = () => FEST.filter(n => {
+    const e = EL('ete-qx-lbl-' + n);
+    if (!e) return false;
+    const cs = getComputedStyle(e), r = e.getBoundingClientRect();
+    return cs.display !== 'none' && cs.visibility !== 'hidden' && r.width > 0;
+  }).length;
+  ex.push(['(DENOM A) los SEIS rotulos de feston existen en el dibujo',
+    FEST.every(n => !!EL('ete-qx-lbl-' + n)), 'hay=' + FEST.filter(n => !!EL('ete-qx-lbl-' + n)).length]);
+  /* ⚠️ LA CAMARA SE ANIMA, Y eteQxVistasSync DECIDIA LAS LETRAS POR LA CAMARA EN PANTALLA.
+     Medido justo despues del clic, el arbol del Y3c todavia esta en la del cirujano y la
+     condicion PASA sobre un arbol que si las escondia: un falso plausible -lo cazo correr este
+     caso contra el inicio de la tanda, no la lectura-. Se lleva la camara al DESTINO de la vista
+     y se repinta, que es el estado al que el boton converge. */
+  const VISTA = k => { CLIC('ete-qx-v-' + k);
+    const d = (typeof ETE_QX_VISTAS === 'object' && ETE_QX_VISTAS) ? ETE_QX_VISTAS[k] : null;
+    if (d) { try { window._qxRot = d.rot; window._qxFlip = d.flip;
+      if (FN('eteQxDibujar')) eteQxDibujar();
+      if (FN('eteQxVistasSync')) eteQxVistasSync(); } catch (e) {} }
+    return LETRAS(); };
+  const _letV = {};
+  ['cir','ett','tg'].forEach(k => { _letV[k] = VISTA(k); });
+  ex.push(['(A1) los SEIS rotulos se ven en las TRES vistas',
+    _letV.cir === 6 && _letV.ett === 6 && _letV.tg === 6, JSON.stringify(_letV)]);
+  const _letA = {};
+  [0, 45, 90, 135, 180, 225, 270, 315].forEach(a => {
+    try { if (FN('qxGirarA')) qxGirarA(a); if (FN('eteQxDibujar')) eteQxDibujar(); } catch (e) {}
+    _letA[a] = LETRAS();
+  });
+  ex.push(['(A2) y en los OCHO angulos de giro, tambien mientras se arrastra',
+    Object.keys(_letA).every(k => _letA[k] === 6), JSON.stringify(_letA)]);
+  const VST = OB('ETE_QX_VISTAS');
+  ex.push(['(A3) la tabla de vistas ya no declara ninguna bandera de letras',
+    !!VST && VST.cir.letras === undefined && VST.ett.letras === undefined && VST.tg.letras === undefined,
+    VST ? JSON.stringify(VST) : 'SIN ETE_QX_VISTAS']);
+  /* La linea del plano NO cambia: tocar dos veces el mismo angulo la apaga. */
+  try { if (FN('qxGirarA')) qxGirarA(0); } catch (e) {}
+  CLIC('ete-qx-v-cir');
+  const _3d = EL('m3d-btn');
+  if (_3d && FN('m3dBotonSync')) { try { m3dBotonSync(); } catch (e) {} }
+  let _planoA = null, _planoB = null;
+  if (_3d && !_3d.hasAttribute('hidden')) {
+    CLIC('m3d-btn'); CLIC('m3d-a-60');
+    _planoA = CS('ete-qx-plano', 'display');
+    CLIC('m3d-a-60');
+    _planoB = CS('ete-qx-plano', 'display');
+    CLIC('m3d-btn');
+  }
+  ex.push(['(A4) tocar DOS veces el mismo angulo sigue apagando la linea del plano',
+    _planoA === 'inline' && _planoB === 'none',
+    'primer toque=' + _planoA + ' segundo=' + _planoB]);
+
+  /* ══ (B) LOS CRITERIOS TEER ═══════════════════════════════════════════════════════════ */
+  const TEER = () => { try { return FN('teerEstado') ? teerEstado() : null; } catch (e) { return null; } };
+  const CRIT = (r, k) => (r && r.cs && r.cs[k]) ? r.cs[k] : { ok: 'SIN CRIT', txt: 'SIN CRIT' };
+  const baseP = ex2 => { __t.limpiar(); __t.set('teer_tipo_im','primaria');
+    __t.set('teer_lva','22'); __t.set('teer_lvp','9'); __t.set('teer_area_mitral','5');
+    __t.set('teer_pasp','40'); __t.set('teer_ancho_flail','12'); __t.set('teer_flail_gap','5');
+    __t.set('teer_calcificacion','no'); __t.set('teer_clefts','no'); __t.set('teer_trombo','no');
+    Object.keys(ex2 || {}).forEach(k => __t.set(k, ex2[k]));
+    return TEER(); };
+  ex.push(['(DENOM B) la escena base de IM primaria da APTO',
+    (baseP({}) || {}).clave === 'apto', JSON.stringify((baseP({}) || {}).clave)]);
+  /* FLAIL GAP: el borde por sus tres valores. */
+  const _g99 = baseP({ teer_flail_gap: '9.9' }), _g10 = baseP({ teer_flail_gap: '10' }),
+        _g101 = baseP({ teer_flail_gap: '10.1' });
+  ex.push(['(B1) el FLAIL GAP tiene fila y vota: 9,9 cumple, 10 exacto NO y 10,1 tampoco',
+    CRIT(_g99,'c11').ok === true && CRIT(_g10,'c11').ok === false && CRIT(_g101,'c11').ok === false,
+    '9.9=' + CRIT(_g99,'c11').ok + ' 10=' + CRIT(_g10,'c11').ok + ' 10.1=' + CRIT(_g101,'c11').ok]);
+  ex.push(['(B2) y con 12 mm el veredicto deja de decir APTO',
+    (baseP({ teer_flail_gap: '12' }) || {}).clave !== 'apto',
+    JSON.stringify((baseP({ teer_flail_gap: '12' }) || {}).clave)]);
+  ex.push(['(B3) su fila existe en el cuadro de la pantalla', !!EL('teer-c11'), TXT('teer-c11')]);
+  /* ANCHO DEL FLAIL. */
+  const _a149 = baseP({ teer_ancho_flail: '14.9' }), _a15 = baseP({ teer_ancho_flail: '15' }),
+        _a151 = baseP({ teer_ancho_flail: '15.1' });
+  ex.push(['(B4) el ANCHO del flail: 14,9 cumple, 15 exacto NO -el unico borde que se mueve-',
+    CRIT(_a149,'c5').ok === true && CRIT(_a15,'c5').ok === false && CRIT(_a151,'c5').ok === false,
+    '14.9=' + CRIT(_a149,'c5').ok + ' 15=' + CRIT(_a15,'c5').ok + ' 15.1=' + CRIT(_a151,'c5').ok]);
+  /* SIN DATO nunca es APTO, y el titulo lo nombra. */
+  const _sinGap = baseP({ teer_flail_gap: '' });
+  ex.push(['(B5) un criterio SIN DATO no deja decir APTO y el titulo dice que falta',
+    (_sinGap || {}).clave !== 'apto'
+      && String((_sinGap || {}).titulo || '').indexOf('Datos incompletos') > -1
+      && String((_sinGap || {}).titulo || '').indexOf('Flail gap') > -1,
+    JSON.stringify((_sinGap || {}).titulo)]);
+  /* LONGITUD DE COAPTACION, en IM secundaria. */
+  const baseS = ex2 => { __t.limpiar(); __t.set('teer_tipo_im','secundaria');
+    __t.set('teer_lva','22'); __t.set('teer_lvp','9'); __t.set('teer_area_mitral','5');
+    __t.set('teer_pasp','40'); __t.set('teer_prof_flail','8');
+    __t.set('teer_fevi','35'); __t.set('teer_dtsvi','60');
+    __t.set('teer_calcificacion','no'); __t.set('teer_clefts','no'); __t.set('teer_trombo','no');
+    Object.keys(ex2 || {}).forEach(k => __t.set(k, ex2[k]));
+    return TEER(); };
+  const _l19 = baseS({ teer_gap: '1.9' }), _l2 = baseS({ teer_gap: '2' }), _l21 = baseS({ teer_gap: '2.1' });
+  ex.push(['(B6) la LONGITUD de coaptacion usa su propio corte: 1,9 NO cumple, 2 exacto SI',
+    CRIT(_l19,'c2').ok === false && CRIT(_l2,'c2').ok === true && CRIT(_l21,'c2').ok === true,
+    '1.9=' + CRIT(_l19,'c2').ok + ' 2=' + CRIT(_l2,'c2').ok + ' 2.1=' + CRIT(_l21,'c2').ok]);
+  ex.push(['(B7) y su criterio ya no se llama «Gap de coaptacion»',
+    String(CRIT(_l2,'c2').lbl || '').indexOf('Longitud de coaptación') > -1,
+    JSON.stringify(CRIT(_l2,'c2').lbl)]);
+  /* CONTROL NEGATIVO: los demas criterios no se mueven. */
+  const _b = baseP({});
+  ex.push(['(B8) CONTROL: los otros criterios siguen con su corte y su operador',
+    CRIT(_b,'c1').ok === true && CRIT(_b,'c3').ok === true && CRIT(_b,'c6').ok === true
+      && CRIT(_b,'c9').ok === true && CRIT(_b,'c10').ok === true,
+    [CRIT(_b,'c1').ok, CRIT(_b,'c3').ok, CRIT(_b,'c6').ok].join(',')]);
+
+  /* ══ (C) LA FEVI Y EL DSFVI AUTOMATICOS ═══════════════════════════════════════════════ */
+  __t.limpiar();
+  __t.set('fevi','42'); __t.set('dsfvi','63');
+  try { if (FN('sincronizarTEERDesdeGlobal')) sincronizarTEERDesdeGlobal(); } catch (e) {}
+  ex.push(['(C1) la FEVI y el DSFVI se copian al TEER desde AI/VI',
+    VAL('teer_fevi') === '42' && VAL('teer_dtsvi') === '63',
+    'fevi=' + VAL('teer_fevi') + ' dsfvi=' + VAL('teer_dtsvi')]);
+  ex.push(['(C2) el disparador vive en el ORIGEN, no solo al abrir el acordeon',
+    (EL('fevi') ? String(EL('fevi').getAttribute('oninput') || '') : '').indexOf('sincronizarTEERDesdeGlobal') > -1
+      && (EL('dsfvi') ? String(EL('dsfvi').getAttribute('oninput') || '') : '').indexOf('sincronizarTEERDesdeGlobal') > -1,
+    'fevi=' + (EL('fevi') ? String(EL('fevi').getAttribute('oninput') || '').slice(0, 60) : 'NO EXISTE')]);
+  __t.set('fevi',''); __t.set('dsfvi','');
+  try { if (FN('sincronizarTEERDesdeGlobal')) sincronizarTEERDesdeGlobal(); } catch (e) {}
+  ex.push(['(C3) y al borrar el origen vuelven a vacio -regla ARR-',
+    VAL('teer_fevi') === '' && VAL('teer_dtsvi') === '',
+    'fevi=' + JSON.stringify(VAL('teer_fevi')) + ' dsfvi=' + JSON.stringify(VAL('teer_dtsvi'))]);
+  const _rotDs = (function(){ const e = EL('teer_dtsvi');
+    const fg = e && e.closest ? e.closest('.fg') : null;
+    const lb = fg ? fg.querySelector('label') : null;
+    return lb ? (lb.textContent || '').trim() : 'NO EXISTE'; })();
+  ex.push(['(C4) el rotulo del campo se unifico a DSFVI',
+    _rotDs.indexOf('DSFVI') === 0 && _rotDs.indexOf('DTSVI') < 0, JSON.stringify(_rotDs)]);
+  ex.push(['(C5) y tambien el del criterio, que es lo que lee la hoja del PDF',
+    String(CRIT(baseS({}), 'c8').lbl || '').indexOf('DSFVI') > -1,
+    JSON.stringify(CRIT(baseS({}), 'c8').lbl)]);
+
+  /* ══ (D) LA DISPOSICION DE LA VAB Y SUS SEIS TARJETAS ═════════════════════════════════ */
+  __t.limpiar();
+  try { showTab('congenitas');
+    const c = EL('sacc-cc-vab'), b = c ? c.querySelector('.sacc-body') : null;
+    if (b && getComputedStyle(b).display === 'none' && FN('secToggle')) secToggle('cc-vab');
+  } catch (e) {}
+  const VINF = _VINFO;
+  const CLAVES = ['vab-tit','vab-valv','vab-func','vab-aorta','vab-cx','vab-friesgo'];
+  ex.push(['(D1) las SEIS tarjetas de la VAB estan registradas y tienen boton',
+    !!VINF && CLAVES.every(k => !!VINF[k] && !!document.querySelector('[data-vinfo="' + k + '"]')),
+    CLAVES.filter(k => !!VINF && !!VINF[k]).join(',')]);
+  ex.push(['(D2) los seis son BUTTON, sin title y sin llevar al manual',
+    CLAVES.every(k => { const b = document.querySelector('[data-vinfo="' + k + '"]');
+      return b && b.tagName === 'BUTTON' && !b.getAttribute('title')
+        && String(b.getAttribute('onclick') || '').indexOf('abrirAyudaEco') < 0; }),
+    CLAVES.map(k => { const b = document.querySelector('[data-vinfo="' + k + '"]');
+      return b ? b.tagName : 'NO'; }).join(',')]);
+  const _ab = (function(){ const b = document.querySelector('[data-vinfo="vab-tit"]');
+    if (!b) return { err: 'NO EXISTE' };
+    b.click();
+    const c = EL('vinfo-card');
+    const abierta = !!(c && getComputedStyle(c).display !== 'none');
+    const t = abierta ? (c.textContent || '') : '';
+    b.click();
+    const cerrada = !!(c && getComputedStyle(c).display === 'none');
+    return { abierta: abierta, cerrada: cerrada, txt: t }; })();
+  ex.push(['(D3) un toque abre la tarjeta y otro la cierra',
+    _ab.abierta === true && _ab.cerrada === true, JSON.stringify(_ab).slice(0, 110)]);
+  ex.push(['(D4) el campo de la morfologia de solo lectura esta oculto y los rotulos sin parentesis',
+    CS('vab_morf_ro', 'display') === 'none'
+      && (function(){ const fg = EL('vab_ea_ro') && EL('vab_ea_ro').closest('.fg');
+        const lb = fg ? fg.querySelector('label') : null;
+        return lb ? (lb.textContent || '').indexOf('(de Válvulas)') < 0 : false; })(),
+    CS('vab_morf_ro', 'display')]);
+  ex.push(['(D5) el DIBUJO existe y su host tiene el ancho reservado',
+    !!EL('vab-svg') && !!EL('vab-dibujo-host'),
+    EL('vab-svg') ? 'hay svg' : 'NO EXISTE']);
+
+  /* ══ (E) LOS FACTORES DE RIESGO CON CASILLA ═══════════════════════════════════════════ */
+  const CHK = OB('VAB_FR_CHK');
+  ex.push(['(DENOM E) las SEIS casillas existen y son checkbox',
+    !!CHK && Object.keys(CHK).length === 6
+      && Object.keys(CHK).every(k => { const e = EL(k); return e && e.type === 'checkbox'; }),
+    CHK ? Object.keys(CHK).join(',') : 'SIN VAB_FR_CHK']);
+  ex.push(['(E1) y su dato sigue viviendo en los mismos campos ocultos',
+    !!CHK && Object.keys(CHK).every(k => { const e = EL(CHK[k]); return e && e.type === 'hidden'; }),
+    CHK ? Object.keys(CHK).map(k => CHK[k]).join(',') : 'SIN VAB_FR_CHK']);
+  const FR = () => { try { return FN('vabFactores') ? vabFactores() : null; } catch (e) { return null; } };
+  __t.limpiar();
+  try { if (FN('vabSync')) vabSync(); } catch (e) {}
+  const _fr0 = FR();
+  CLIC('vabchk-hta');
+  const _fr1 = FR();
+  CLIC('vabchk-embarazo');
+  const _fr2 = FR();
+  CLIC('vabchk-hta');
+  const _fr3 = FR();
+  ex.push(['(E2) marcar y destildar mueve el conteo: 0 -> 1 -> 2 -> 1',
+    (_fr0 || {}).n === 0 && (_fr1 || {}).n === 1 && (_fr2 || {}).n === 2 && (_fr3 || {}).n === 1,
+    [(_fr0 || {}).n, (_fr1 || {}).n, (_fr2 || {}).n, (_fr3 || {}).n].join(' -> ')]);
+  ex.push(['(E3) la casilla escribe el campo que viaja, con los MISMOS valores de siempre',
+    VAL('vab_fr_embarazo') === 'si' && VAL('vab_fr_hta') === '',
+    'embarazo=' + JSON.stringify(VAL('vab_fr_embarazo')) + ' hta=' + JSON.stringify(VAL('vab_fr_hta'))]);
+  ex.push(['(E4) la fila dice cuantos estan MARCADOS, no «ninguno de los evaluados»',
+    TXT('vab-fr').indexOf('marcado') > -1 && TXT('vab-fr').indexOf('de los evaluados') < 0,
+    TXT('vab-fr').slice(0, 80)]);
+  /* MIGRACION: los cuatro valores que puede traer un estudio guardado. */
+  const _migra = {};
+  ['si','no','no_eval',''].forEach(val => {
+    const e = EL('vab_fr_hta'); if (e) e.value = val;
+    try { if (FN('vabFrChkSync')) vabFrChkSync(); } catch (x) {}
+    const cb = EL('vabchk-hta');
+    _migra[val || 'vacio'] = cb ? cb.checked : 'NO EXISTE';
+  });
+  ex.push(['(E5) un estudio guardado con «si» reabre MARCADO; «no» y «no consta», sin marcar',
+    _migra.si === true && _migra.no === false && _migra.no_eval === false && _migra.vacio === false,
+    JSON.stringify(_migra)]);
+  /* «Nuevo estudio» destilda. */
+  const e5 = EL('vab_fr_hta'); if (e5) e5.value = 'si';
+  try { if (FN('vabFrChkSync')) vabFrChkSync(); } catch (x) {}
+  __t.limpiar();
+  ex.push(['(E6) «Nuevo estudio» vacia el campo Y destilda la casilla',
+    VAL('vab_fr_hta') === '' && EL('vabchk-hta') && EL('vabchk-hta').checked === false,
+    'campo=' + JSON.stringify(VAL('vab_fr_hta')) + ' chk=' + (EL('vabchk-hta') ? EL('vabchk-hta').checked : '?')]);
+  /* La conclusion NUNCA afirma «sin factores de riesgo». */
+  __t.limpiar(); SEL('va_morf','Bicúspide');
+  __t.set('ao_tub','51'); SEL('vab_riesgo_qx','si');
+  try { if (FN('vabSync')) vabSync(); } catch (e) {}
+  const _cNada = (function(){ try { return vabConclusion(); } catch (e) { return null; } })();
+  ex.push(['(E7) sin nada marcado la conclusion dice «sin factores de riesgo MARCADOS»',
+    !!_cNada && String(_cNada.txt).indexOf('sin factores de riesgo marcados') > -1
+      && String(_cNada.txt).indexOf('sin factores de riesgo adicionales') < 0,
+    _cNada ? String(_cNada.txt).slice(0, 120) : 'SIN CONCLUSION']);
+
+  /* ══ (F) EL DIBUJO DE LA VAB ══════════════════════════════════════════════════════════ */
+  const DIB = () => ({ s1: EL('vab-s1') ? EL('vab-s1').getAttribute('d') : null,
+                       cierre: EL('vab-cierre') ? EL('vab-cierre').getAttribute('d') : null,
+                       rafeOp: EL('vab-rafe') ? EL('vab-rafe').getAttribute('opacity') : null,
+                       rafeCol: EL('vab-rafe') ? EL('vab-rafe').getAttribute('stroke') : null,
+                       letraOp: EL('vab-lR') ? EL('vab-lR').getAttribute('opacity') : null,
+                       nota: TXT('vab-nota') });
+  __t.limpiar();
+  try { showTab('congenitas');
+    const c = EL('sacc-cc-vab'), b = c ? c.querySelector('.sacc-body') : null;
+    if (b && getComputedStyle(b).display === 'none' && FN('secToggle')) secToggle('cc-vab');
+  } catch (e) {}
+  const _dVacio = DIB();
+  SEL('vab_tipo','fused_rl');
+  const _dRL = DIB();
+  SEL('vab_rafe','si');
+  const _dCalc = DIB();
+  ex.push(['(F1) sin tipo el dibujo no afirma nada: ni cierre, ni rafe, ni letras',
+    _dVacio.cierre === 'M 0 0' && String(_dVacio.rafeOp) === '0' && String(_dVacio.letraOp) === '0',
+    JSON.stringify(_dVacio).slice(0, 110)]);
+  ex.push(['(F2) con un tipo de fusion dibuja cierre, rafe y las tres letras',
+    _dRL.cierre !== 'M 0 0' && String(_dRL.rafeOp) === '1' && String(_dRL.letraOp) === '1',
+    JSON.stringify(_dRL).slice(0, 110)]);
+  ex.push(['(F3) el rafe calcificado se pinta con el verde de la paleta',
+    _dRL.rafeCol === 'var(--text)' && _dCalc.rafeCol === 'var(--green)',
+    'sin calc=' + _dRL.rafeCol + ' con calc=' + _dCalc.rafeCol]);
+  /* La ORIENTACION verificada: R arriba, L abajo-derecha, N abajo-izquierda. */
+  const _or = (function(){ const g = FN('vabGeom') ? vabGeom('RL','no','sim') : null;
+    if (!g) return null;
+    return { R: [g.lRx, g.lRy], L: [g.lLx, g.lLy], N: [g.lNx, g.lNy] }; })();
+  ex.push(['(F4) la orientacion es la VERIFICADA: R arriba, L abajo-derecha, N abajo-izquierda',
+    !!_or && _or.R[1] < 120 && _or.L[1] > 120 && _or.L[0] > 120 && _or.N[1] > 120 && _or.N[0] < 120,
+    JSON.stringify(_or)]);
+  /* Los tres puntos sensibles y su lado efectivo. */
+  const _hits = Array.prototype.slice.call(document.querySelectorAll('[data-vab-hit]'));
+  ex.push(['(F5) los TRES puntos sensibles existen y miden al menos 44 px de lado',
+    _hits.length === 3 && _hits.every(h => { const r = h.getBoundingClientRect(); return r.width >= 44; }),
+    _hits.map(h => h.getAttribute('data-vab-hit') + ':' + Math.round(h.getBoundingClientRect().width)).join(' ')]);
+  /* Tocar el rafe elige el tipo por el MISMO camino que la lista. */
+  SEL('vab_tipo','');
+  const _hLN = document.querySelector('[data-vab-hit="fused_ln"]');
+  if (_hLN) _hLN.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  ex.push(['(F6) tocar el rafe elige el tipo en la lista',
+    VAL('vab_tipo') === 'fused_ln', JSON.stringify(VAL('vab_tipo'))]);
+  /* Los tres tipos que la geometria no cubre: contorno y rotulo, sin inventar. */
+  const _noCub = {};
+  ['dos_senos_ap','partial','no_clasif'].forEach(t => { SEL('vab_tipo', t); _noCub[t] = DIB(); });
+  ex.push(['(F7) los tres tipos que el dibujo no cubre salen sin cierre y CON su rotulo',
+    ['dos_senos_ap','partial','no_clasif'].every(t => _noCub[t].cierre === 'M 0 0' && _noCub[t].nota.length > 0),
+    JSON.stringify(Object.keys(_noCub).map(k => k + '=' + _noCub[k].nota))]);
+  /* El boton del PDF. */
+  __t.limpiar();
+  const _pdf0 = FN('vabPdfOn') ? vabPdfOn() : 'SIN FN';
+  CLIC('vab-pdf-btn');
+  const _pdf1 = FN('vabPdfOn') ? vabPdfOn() : 'SIN FN';
+  const _pdfTxt = TXT('vab-pdf-btn');
+  CLIC('vab-pdf-btn');
+  const _pdf2 = FN('vabPdfOn') ? vabPdfOn() : 'SIN FN';
+  ex.push(['(F8) el boton de PDF alterna su estado y su texto',
+    _pdf0 === false && _pdf1 === true && _pdf2 === false && _pdfTxt.indexOf('Se incluye') > -1,
+    [_pdf0, _pdf1, _pdf2].join(',') + ' txt=' + _pdfTxt]);
+  ex.push(['(F9) y su campo viaja con el estudio, sin columna de Excel',
+    EL('vab_pdf') && EL('vab_pdf').type === 'hidden'
+      && !(_noEs && _noEs('vab_pdf')),
+    EL('vab_pdf') ? EL('vab_pdf').type : 'NO EXISTE']);
+
+  /* ══ (G) LA MORFOLOGIA SIGUE AL TIPO ══════════════════════════════════════════════════ */
+  __t.limpiar();
+  try { if (FN('vabSync')) vabSync(); } catch (e) {}
+  const _m0 = VAL('va_morf');
+  SEL('vab_tipo','fused_rl');
+  const _m1 = VAL('va_morf');
+  ex.push(['(G1) al elegir un tipo, la morfologia de Valvulas pasa a «Bicuspide»',
+    _m0 === 'Trivalva normal' && _m1 === 'Bicúspide', _m0 + ' -> ' + _m1]);
+  /* INVERSO: volver a trivalva avisa y CONSERVA el tipo. */
+  SEL('va_morf','Trivalva normal');
+  try { if (FN('vabMorfAviso')) vabMorfAviso(); } catch (e) {}
+  ex.push(['(G2) volver a «Trivalva normal» avisa en pantalla y CONSERVA el tipo',
+    VAL('vab_tipo') === 'fused_rl' && CS('vab-morf-aviso', 'display') !== 'none'
+      && TXT('vab-morf-aviso').indexOf('Trivalva normal') > -1,
+    'tipo=' + VAL('vab_tipo') + ' aviso=' + CS('vab-morf-aviso', 'display')]);
+  /* CONTROL: una morfologia que el medico eligio NO se pisa. */
+  __t.limpiar();
+  SEL('va_morf','TAVI');
+  SEL('vab_tipo','fused_rl');
+  ex.push(['(G3) CONTROL: una morfologia elegida a mano no se pisa',
+    VAL('va_morf') === 'TAVI', JSON.stringify(VAL('va_morf'))]);
+  /* Y el aviso NO llega al informe. */
+  __t.limpiar(); SEL('va_morf','Trivalva normal'); SEL('vab_tipo','fused_rn');
+  SEL('va_morf','Trivalva normal');
+  __t.chk('vab_incluir_chk', true);
+  const _infAv = __t.informe();
+  ex.push(['(G4) el aviso de discrepancia NO llega al informe ni al EN SUMA',
+    _infAv.inf.indexOf('El tipo de fusión se conserva') < 0
+      && _infAv.suma.indexOf('El tipo de fusión se conserva') < 0,
+    'inf=' + (_infAv.inf.indexOf('El tipo de fusión se conserva') < 0)]);
+
+  /* ══ (H) EL INFORME Y EL EN SUMA ══════════════════════════════════════════════════════ */
+  const MONTAR = () => { __t.limpiar(); SEL('va_morf','Bicúspide');
+    __t.set('ao_sin','38'); __t.set('ao_tub','42');
+    SEL('vab_tipo','fused_rl'); SEL('vab_rafe','si'); SEL('vab_simetria','simetrica');
+    SEL('vab_funcion','normal'); __t.chk('vab_incluir_chk', true);
+    return __t.informe(); };
+  const _est = (function(){ setEstiloInforme('estandar'); return MONTAR(); })();
+  ex.push(['(H1) UNA sola descripcion, con el fenotipo, el rafe y los senos en PLURAL',
+    _est.inf.indexOf('Válvula aórtica bicúspide, fenotipo R-L (fusión derecha-izquierda), con rafe calcificado y senos simétricos') > -1,
+    _est.inf.split(String.fromCharCode(10)).filter(l => l.indexOf('bicúspide') > -1)[0] || 'NO ESTA']);
+  ex.push(['(H2) en ESPAÑOL: el informe ya no dice «fused type»',
+    _est.inf.indexOf('fused type') < 0, 'hay fused type=' + (_est.inf.indexOf('fused type') > -1)]);
+  ex.push(['(H3) la RAIZ aparece UNA sola vez',
+    (_est.inf.match(/[Rr]a[ií]z a[oó]rtica/g) || []).length === 1,
+    'veces=' + (_est.inf.match(/[Rr]a[ií]z a[oó]rtica/g) || []).length]);
+  ex.push(['(H4) sin «resolver la discrepancia» y sin el recordatorio de la coartacion',
+    _est.inf.indexOf('resolver la discrepancia') < 0
+      && _est.inf.indexOf('85 %') < 0 && _est.inf.indexOf('excluir coartación') < 0,
+    'discrepancia=' + (_est.inf.indexOf('resolver la discrepancia') > -1)]);
+  ex.push(['(H5) el EN SUMA es corto, con la sigla y el rafe entre parentesis',
+    _est.suma.indexOf('VAB fenotipo R-L (rafe calcificado), normofuncionante.') > -1,
+    _est.suma.split(String.fromCharCode(10)).filter(l => l.indexOf('VAB') > -1)[0] || 'NO ESTA']);
+  /* Los TRES estilos dan la misma informacion. */
+  const _nar = (function(){ setEstiloInforme('narrativo'); return MONTAR(); })();
+  const _con = (function(){ setEstiloInforme('conciso');  return MONTAR(); })();
+  ex.push(['(H6) los TRES estilos nombran el fenotipo, el rafe y los senos',
+    [_est, _nar, _con].every(r => r.inf.indexOf('fenotipo R-L') > -1
+      && r.inf.indexOf('rafe calcificado') > -1 && r.inf.indexOf('senos simétricos') > -1),
+    'conciso=' + (_con.inf.split(String.fromCharCode(10)).filter(l => l.indexOf('fenotipo') > -1)[0] || 'NO')]);
+  setEstiloInforme('estandar');
+  /* El FENOTIPO AORTOPATICO va con la aorta, no repetido. */
+  SEL('vab_fenotipo','raiz');
+  const _feno = __t.informe();
+  ex.push(['(H7) el fenotipo aortopatico se agrega a la frase de la AORTA',
+    _feno.inf.indexOf('Fenotipo aortopático de raíz') > -1
+      && (_feno.inf.match(/Fenotipo aortopático/g) || []).length === 1,
+    'veces=' + (_feno.inf.match(/Fenotipo aortopático/g) || []).length]);
+  /* CON lesion: no se repite lo que el EN SUMA ya trae. */
+  __t.limpiar(); SEL('va_morf','Bicúspide');
+  __t.set('ao_sin','38'); __t.set('ao_tub','42');
+  __t.set('vmax_ao','4.3'); __t.set('gmedio_ao','45');
+  SEL('vab_tipo','fused_rl'); SEL('vab_rafe','si'); SEL('vab_simetria','simetrica');
+  SEL('vab_funcion','estenosis'); __t.chk('vab_incluir_chk', true);
+  const _les = __t.informe();
+  ex.push(['(H8) con estenosis el EN SUMA la dice UNA vez y la VAB no la repite',
+    _les.suma.indexOf('EAo severa.') > -1
+      && _les.suma.indexOf('VAB fenotipo R-L (rafe calcificado).') > -1,
+    _les.suma.split(String.fromCharCode(10)).filter(l => l.indexOf('VAB') > -1 || l.indexOf('EAo') > -1).join(' | ')]);
+  /* CONTROL: con otra morfologia la frase de la aortica no cambia. */
+  __t.limpiar(); SEL('va_morf','Trivalva normal');
+  __t.set('ao_sin','38'); __t.set('ao_tub','42');
+  const _triv = __t.informe();
+  ex.push(['(H9) CONTROL: con «Trivalva normal» no aparece ninguna cola de la VAB',
+    _triv.inf.indexOf('fenotipo') < 0 && _triv.inf.indexOf('rafe') < 0,
+    _triv.inf.split(String.fromCharCode(10)).filter(l => l.indexOf('aórtica') > -1)[0] || '']);
+
+  /* ══ (I) EL PDF ═══════════════════════════════════════════════════════════════════════ */
+  __t.limpiar(); SEL('va_morf','Bicúspide');
+  __t.set('ao_sin','38'); __t.set('ao_tub','42');
+  SEL('vab_tipo','fused_rl'); SEL('vab_rafe','si'); SEL('vab_simetria','simetrica');
+  const _filas = (function(){ try { return FN('vabPdfFilas') ? vabPdfFilas() : 'SIN FN'; }
+    catch (e) { return 'EXC'; } })();
+  ex.push(['(I1) la tabla del PDF usa las MISMAS palabras del informe',
+    Array.isArray(_filas) && _filas.length >= 3
+      && _filas[0][0] === 'Fenotipo' && _filas[0][1] === 'R-L (fusión derecha-izquierda)'
+      && _filas.some(f => f[0] === 'Rafe' && f[1] === 'calcificado')
+      && _filas.some(f => f[0] === 'Senos' && f[1] === 'simétricos'),
+    JSON.stringify(_filas)]);
+  ex.push(['(I2) y el dibujo se rasteriza desde la MISMA geometria',
+    (function(){ try { const d = vabDataURL();
+      return typeof d === 'string' && d.indexOf('data:image/png') === 0 && d.length > 2000; }
+      catch (e) { return false; } })(), 'ok']);
+  /* CONTROL: con la seccion VACIA no hay tabla, aunque el boton este tildado. */
+  __t.limpiar(); SEL('va_morf','Bicúspide');
+  const _filasV = (function(){ try { return vabPdfFilas(); } catch (e) { return 'EXC'; } })();
+  ex.push(['(I3) CONTROL: con la seccion vacia el PDF no publica tabla ni dibujo',
+    _filasV === null, JSON.stringify(_filasV)]);
+
+  /* ══ (J) EL RECORDATORIO DE LA COARTACION ═════════════════════════════════════════════ */
+  ex.push(['(J1) el aviso esta en pantalla, con su texto y SIN porcentaje',
+    TXT('vab-coa-nota').indexOf('Excluir coartación de aorta asociada') > -1
+      && !/\d+\s*%/.test(TXT('vab-coa-nota')),
+    TXT('vab-coa-nota')]);
+  ex.push(['(J2) su id NO termina en «-aviso», que limpiarCampos vacia',
+    !!EL('vab-coa-nota') && !EL('vab-coa-aviso'),
+    'nota=' + !!EL('vab-coa-nota') + ' aviso=' + !!EL('vab-coa-aviso')]);
+  __t.limpiar();
+  ex.push(['(J3) y «Nuevo estudio» NO lo deja vacio',
+    TXT('vab-coa-nota').length > 20, TXT('vab-coa-nota').slice(0, 50)]);
+
+  /* ══ (K) CONTROLES: nada de esto se guarda donde no debe ══════════════════════════════ */
+  __t.limpiar();
+  const _noGuarda = ['vabchk-hta','vabchk-familiar','vabchk-crecimiento',
+                     'vabchk-longitud','vabchk-cx','vabchk-embarazo'];
+  ex.push(['(K1) las SEIS casillas NO son campos del estudio',
+    FN('_noEsDelEstudio') && _noGuarda.every(id => _noEsDelEstudio(id) === true),
+    _noGuarda.filter(id => _noEs && _noEs(id)).length + ' de 6']);
+  const _xls = (function(){ try {
+      const inf = { campos: {}, id: 'x', fecha: '2026-10-19' };
+      const f = _xlsRow(inf);
+      return { n: Object.keys(f).length,
+               tieneChk: Object.keys(f).some(k => k.indexOf('vabchk') > -1),
+               tienePdf: Object.keys(f).some(k => k.toLowerCase().indexOf('vab_pdf') > -1) };
+    } catch (e) { return { err: 'EXC: ' + e.message }; } })();
+  ex.push(['(K2) el Excel sigue en 440 columnas, sin las casillas ni el boton de PDF',
+    _xls.n === 440 && _xls.tieneChk === false && _xls.tienePdf === false, JSON.stringify(_xls)]);
+
+  /* DENOMINADOR del propio caso: caza que alguien borre medio cuerpo y el resto siga en verde.
+     El numero se conto INSTRUMENTANDO esta condicion -poniendola en rojo una vez-, no a ojo
+     sobre los ex.push: ocho de ellos salen de un forEach o de un bucle. */
+  ex.push(['(L0) DENOMINADOR: este caso declara al menos 63 condiciones',
+    (ex.length + 1) >= 63, 'n=' + (ex.length + 1)]);
+
+  return { extra: ex };
+`);
+
 
 
 let servidor, chrome;

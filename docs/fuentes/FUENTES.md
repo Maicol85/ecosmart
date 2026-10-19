@@ -18,6 +18,117 @@ desacuerdo — `grep -n 'IND_REFS' index.html`) y `docs/historial/CLAUDE_histori
 ---
 
 
+## La tanda Y3d — la orientación transgástrica, los criterios TEER y la VÁLVULA AÓRTICA BICÚSPIDE (2026-10-19)
+
+### ⚠️ Lo que esta tanda VERIFICÓ, y las TRES fuentes que la biblioteca NO tiene
+
+**Ninguna de las tres fuentes que la orden daba por existentes está en la biblioteca.** Censada
+entera, carpeta por carpeta:
+
+| fuente que la orden nombraba | está | consecuencia |
+|---|---|---|
+| **EVEREST II** (Eur Heart J 2010;31(11):1382-1389 · PMC2878966, Tabla 1) | **NO** | las filas de los criterios TEER **no llevan línea de fuente** |
+| **Protocolo EXPAND** (NCT03502811) | **NO** | idem |
+| Cualquier publicación con el **porcentaje de coartación** asociada a VAB | **NO** | el «hasta el 85 %» se **retiró sin reemplazarlo por otro número** |
+
+**Los tres cortes TEER que esta tanda cablea son los que la app ya aplicaba**: el valor **no se
+movió**, lo que cambió es **a qué campo** y **con qué operador** se aplica cada uno. Por eso no
+hubo que verificar ningún número nuevo, y por eso tampoco se cita ninguno.
+
+### ⚠️ El «hasta el 85 %» de la coartación estaba INVERTIDO, y por eso no se reemplazó
+
+El recordatorio decía que hasta el 85 % de los portadores de válvula aórtica bicúspide tiene
+coartación. **La afirmación está dada vuelta**: lo que la literatura publica es la prevalencia de
+**VAB entre los coartados** —alta— y no la de coartación entre los portadores de VAB, que es
+baja. Como **ninguna fuente de la biblioteca publica ese porcentaje en ninguno de los dos
+sentidos**, el recordatorio quedó con la indicación clínica —«excluir coartación de aorta
+asociada»— **y sin número**: un número que no se vio no se escribe.
+
+### `aseEte2013` — la orientación de la vista TRANSGÁSTRICA BASAL · **VERIFICADA, Y NO COINCIDE**
+
+**ASE/SCA 2013** — Hahn RT y col., *Guidelines for Performing a Comprehensive Transesophageal
+Echocardiographic Examination*, **JASE 2013;26(9):921-964**.
+Ruta: `14- ETE/PIIS0894731713005622.pdf`.
+**Regla de folio = hoja del PDF + 920**, comprobada en el **número impreso** de las hojas 11
+(931), 19 (939) y 21 (941).
+
+**Folio 939, hoja 19, «TG Basal SAX View (Video 16)»**, literal:
+
+> «This view demonstrates the typical SAX view or "fish mouth" appearance of the MV in the TG
+> imaging plane with the **anterior leaflet on the left of the display and the posterior leaflet on
+> the right**. The **medial commissure is in the near field, with the lateral commissure in the
+> far field**.»
+
+⚠️ **CENSADAS LAS OCHO GUÍAS DE ETE DE LA BIBLIOTECA, ES LA ÚNICA QUE DESCRIBE ESA ORIENTACIÓN.**
+Las otras siete la nombran en una lista de vistas o para otra cosa (`ASE ETE .pdf`,
+`Guidelines for the Use of Transesophageal Echocardiography.pdf`,
+`Performing-a-Comprehensive-Multiplane-TEE-Exam.pdf`, `Spanish-TEE-Screening-2022_ES-LA.pdf`,
+`TEE-Ped-CHD-2019_Spanish.pdf`, `TEE-Surgical-Decision-Making_June2020.pdf`,
+`s13665-024-00351-2.pdf`).
+
+⚠️ **NO COINCIDE CON EL DIBUJO DE LA DEMO, Y EL DIBUJO NO SE CAMBIÓ.** La guía describe valva
+anterior a la **izquierda**, posterior a la **derecha**, comisura medial **arriba** y lateral
+**abajo**: un giro de unos **90°**. La demo aprobada rota **180°**, lo que deja la anterior
+**abajo**, la posterior **arriba**, AL a la derecha y PM a la izquierda.
+
+> **ORIENTACIÓN DE LA VISTA TRANSGÁSTRICA: CRITERIO DE MAICOL.** La demo es la que él aprobó y la
+> orden prohíbe expresamente cambiar el dibujo. Lo que esta tanda hace es **mostrar las letras de
+> festón en las tres vistas**, que es una decisión de presentación; la orientación queda declarada
+> acá y en `docs/PENDIENTES.md`.
+
+### `consensoVabMx2024` — la orientación de los TRES SENOS en el eje corto · **VERIFICADA**
+
+**Consenso internacional para la nomenclatura y clasificación de la válvula aórtica bicúspide
+congénita y su aortopatía** — Michelena HI y col., **traducción al español del resumen**,
+*Arch Cardiol Mex. 2024;94(2)*. Ruta:
+`10_Material_de_apoyo/Consenso_MX_Valvula_Bicuspide_resumen.pdf`.
+**Regla de folio = hoja del PDF + 218**, comprobada en el número impreso al tope de las hojas 1
+(219), 7 (225), 10 (228) y 14 (232).
+
+⚠️ **ES LA TRADUCCIÓN DEL RESUMEN Y EL ORIGINAL INGLÉS NO ESTÁ EN LA BIBLIOTECA.** Lo que se leyó
+son los **nombres de los tres fenotipos**, el pie de la Figura 7 y la **orientación de las cúspides
+en la imagen renderizada**, no un corte ni un operador. Se declara.
+
+**Folio 228, hoja 10 — pie de la Figura 7**, literal:
+
+> «Imágenes de ecocardiografía transtorácica diastólica y sistólica de eje corto paraesternal de
+> los tres fenotipos de la válvula aórtica bicúspide (VAB) fusionada. … **A:** VAB de tres senos
+> aórticos distinguibles con fusión de cúspide **derecha-izquierda**, con rafé (flecha) en
+> diástole … **C:** … fusión **derecha-no coronaria** … **E:** … fusión **izquierda-no
+> coronaria** … **R:** cúspide coronaria derecha; **L:** cúspide coronaria izquierda; **N:**
+> cúspide no coronaria.»
+
+De esa figura, **leída renderizando la hoja**, sale la orientación que el dibujo de la app usa:
+**R arriba, L abajo-derecha, N abajo-izquierda**, con el rafe en la posición que le corresponde a
+cada fusión. El folio **225** (hoja 7) es el que distingue la fusión **congénita** de la
+**adquirida** por la altura de la pseudocomisura, y es lo que sostiene el rótulo de los tipos que
+el dibujo **no** dibuja.
+
+⚠️ **«SENOS ASIMÉTRICOS» NO ESTÁ DEFINIDO EN ESE DOCUMENTO** —ni en ningún otro de la
+biblioteca—: lo que el consenso clasifica es el **número de senos distinguibles** y el **patrón de
+fusión**, no su simetría. El dibujo lo representa como lo único que la app afirma —un seno más
+amplio que los otros dos— y **no afirma cuál**, porque la app no lo pregunta.
+`docs/PENDIENTES.md` → **Y3d-5**.
+
+⚠️ **LA APP NO TIENE UN «VERDE DE CALCIFICACIÓN»**, censado: `ETE_COLORES` pinta la calcificación
+en **GRIS** (`#6b7280`). El rafe calcificado del dibujo usa `--green` de la paleta global, que
+**no es ese color** y no se le atribuye.
+
+### Cambios de evidencia — tanda Y3d
+
+| qué | antes | ahora | fuente | commit | fecha |
+|---|---|---|---|---|---|
+| Criterio TEER del **flail gap** | tenía campo y rótulo «Excl: ≥10mm», **ninguna fila** y nadie lo leía: 12 mm decía «APTO» | fila «Flail gap <10 mm», votando | **sin fuente en la biblioteca** — el corte es el que la app ya rotulaba | Y3d2 | 19/10/2026 |
+| Criterio TEER de la **longitud de coaptación** | el corte «≤10 mm» del *gap* aplicado al campo de la **longitud** | «Longitud de coaptación **≥2 mm**» | idem | Y3d2 | 19/10/2026 |
+| Criterio TEER del **ancho del flail** | la fila contradecía su propio rótulo | «Ancho del flail **<15 mm**» — **el único borde que se mueve** | idem | Y3d2 | 19/10/2026 |
+| **Coartación** en la sección VAB | «hasta el 85 % de los portadores» | «excluir coartación de aorta asociada», **sin porcentaje** | **ninguna** — la afirmación estaba invertida y el número no se verificó | Y3d10 | 19/10/2026 |
+
+**NINGÚN corte de `vabConclusion` se movió** y **ninguna fuente nueva sostiene un umbral**: la
+Tabla 68 de la ESC 2024 sigue siendo la dueña de los cinco, verificada en la tanda anterior.
+
+---
+
+
 ## La tanda Y3c — la tabla de ángulos de ETE, las tres vistas y las medidas TEER (2026-10-18)
 
 ### `eteCortesSEIC` — la tabla de festones por ángulo · **TRANSCRITA, SIN FOLIO**

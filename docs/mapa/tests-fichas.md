@@ -284,3 +284,52 @@ diastólica, más los denominadores que ya existían.
 el canvas ya no usa los paths cableados miraba el **fuente** de la función. Hoy lee los cuatro
 bytes de ancho y los cuatro de alto de la **cabecera IHDR del PNG** y exige 840 × 840 —el lienzo
 cuadrado con supermuestreo 2×—, que es el único lugar donde eso se comprueba sin mirar el código.
+
+---
+
+## TC-504 — tanda «Y3d» (2026-10-19)
+
+**Los rótulos de festón visibles siempre; los cuatro defectos de los criterios TEER; la FEVI y el
+DSFVI completándose solos; y la sección VAB entera —disposición, casillas, dibujo, morfología,
+informe, PDF y el recordatorio de la coartación—.**
+
+**63 condiciones**, contadas **instrumentando el propio caso** para que publicara su `ex.length`
+—no a ojo sobre los `ex.push`, porque ocho salen de bucles—. **Cuatro denominadores** y **cinco
+controles negativos**.
+
+**Verificado que sabe fallar contra el inicio de la tanda** (`a40ccc2`, md5 `9281f677…`) en un
+worktree aparte: **51 de las 63 en rojo, y NINGUNA por excepción**. Las doce que pasan son lo que
+esta tanda **no mueve**: los dos denominadores, la línea del plano (A4), los tres controles
+negativos (B8, G3, H9), el fenotipo aortopático que ya existía (H7), el aviso que no llega al
+informe porque allá no existe (G4), las 440 columnas (K2) y —esto importa— **C1 y C3**: la
+**copia** de la FEVI y el DSFVI ya funcionaba llamándola a mano, lo que faltaba era el
+**disparador**, que es C2 y sí está en rojo.
+
+| bloque | qué fija |
+|---|---|
+| **(A)** | los seis rótulos de festón en las **tres vistas** y en los **ocho ángulos** de giro; que `ETE_QX_VISTAS` ya no declara ninguna bandera de letras; y que tocar **dos veces** el mismo ángulo sigue apagando la línea del plano |
+| **(B)** | el **flail gap** con su fila y votando (9,9 / **10** / 10,1), el **ancho** del flail (14,9 / **15** / 15,1), la **longitud de coaptación** con su propio corte (1,9 / **2** / 2,1), que sin dato nunca dice «APTO» y sí «Datos incompletos — falta: …», y el **control** de que los otros criterios no se movieron |
+| **(C)** | la FEVI y el DSFVI copiados desde AI/VI, el **disparador en el origen**, que al borrar vuelven a vacío, y el rótulo unificado a **DSFVI** en el campo **y** en el criterio |
+| **(D)** | las seis tarjetas ⓘ registradas, los seis como `<button>` **sin `title`** y sin llevar al manual, abrir y cerrar con dos toques, el campo de morfología oculto y el dibujo con su host |
+| **(E)** | las seis **casillas**, su dato en los mismos campos ocultos, el conteo 0 → 1 → 2 → 1, los valores que escribe, la fila que dice «marcados», la **migración** de los cuatro valores guardados, «Nuevo estudio» destildando, y que la conclusión nunca afirma «sin factores de riesgo» |
+| **(F)** | el dibujo sin afirmar nada sin tipo, con cierre y letras con tipo, el rafe calcificado en el verde de la paleta, la **orientación verificada** (R arriba, L abajo-derecha, N abajo-izquierda), los tres puntos sensibles con 44 px de lado, el toque eligiendo el tipo, los **tres tipos que no se dibujan inventados** y el botón de PDF |
+| **(G)** | la morfología pasando a «Bicúspide», el caso **inverso** conservando el tipo con su aviso, el **control** de que una morfología elegida a mano no se pisa, y que el aviso **no** llega al informe |
+| **(H)** | **una sola** descripción con el fenotipo, el rafe y los senos en plural; todo en español; la **raíz una sola vez**; sin «resolver la discrepancia» y sin el recordatorio; el EN SUMA corto; los **tres estilos**; el fenotipo aortopático en la frase de la aorta; y el **control** con «Trivalva normal» |
+| **(I)** | la tabla del PDF con las **mismas palabras** del informe, el dibujo rasterizado desde la **misma** geometría, y el **control**: con la sección vacía no hay tabla ni dibujo |
+| **(J)** | el recordatorio de la coartación en pantalla, **sin porcentaje**, con un id que no termina en `-aviso` y que «Nuevo estudio» no lo vacía |
+| **(K)** | las seis casillas **no** son campos del estudio, y el Excel sigue en **440** columnas sin ellas ni el botón de PDF |
+| **(L0)** | el **denominador del propio caso**: al menos 63 condiciones, para que borrar medio cuerpo no quede en verde |
+
+### Dos trampas que este caso pagó
+
+1. **`VINFO`, `_noEsDelEstudio`, `_labExcelRow` y `toggleEteSeccion` son `const`/función de
+   MÓDULO**: `window[n]` da `undefined` y el identificador **pelado** sí se ve. Puso cuatro
+   condiciones en rojo sobre un árbol perfecto. Es la trampa de `ECO_AYUDA`, pagada otra vez.
+2. **LA CÁMARA DEL DIBUJO SE ANIMA**, y las letras colgaban de la cámara **en pantalla**: contar
+   justo después del clic las encuentra todavía en la vista del cirujano, así que la condición
+   **pasaba también contra el árbol viejo** —un falso plausible que cazó correr el caso contra el
+   inicio de la tanda, no la lectura—. Se lleva la cámara al **destino** y se repinta antes de
+   contar, y la misma corrección entró en **TC-503**, cuyo (E4b) tenía el mismo agujero.
+3. **Los seis rótulos los CREA `eteQxConstruir`** la primera vez que alguien dibuja: sin una
+   llamada explícita a `eteQxDibujar()` no existen todavía y la lectura informa «no hay rótulos»
+   sobre un dibujo perfecto. Pasó una vez, en una corrida que la anterior había dado en verde.
