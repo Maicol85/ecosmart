@@ -60941,6 +60941,43 @@ function generarPDFReal(_aj) {
   }
 
 
+  /* ══ VALVULA AORTICA BICUSPIDE — EL DIBUJO Y SU TABLA (Y3d9, 2026-10-19) ══════════════════
+     Mismo mecanismo que la vista quirurgica mitral de aca abajo y que el bull's eye: un
+     `input[type=hidden]` del ESTUDIO decide, y con el destildado el PDF no cambia en un byte.
+     ⚠️ EL GATE PIDE ADEMAS QUE HAYA ALGO QUE DIBUJAR: con la seccion vacia el dibujo es el
+     contorno de tres senos sin una sola linea de cierre, y una figura asi dentro de un informe
+     FIRMADO se lee como «se evaluo y es normal». Es la misma guarda que el donut de la CIA.
+     `try/catch` por lo mismo que el reloj del TAVI: una excepcion aca aborta el PDF entero. */
+  try {
+    const _vabOn = (typeof vabPdfOn === 'function') && vabPdfOn();
+    const _vabFilas = (typeof vabPdfFilas === 'function') ? vabPdfFilas() : null;
+    if (_vabOn && _vabFilas && typeof vabDataURL === 'function') {
+      const _vData = vabDataURL();
+      if (_vData) {
+        /* 70 de dibujo + la banda + una fila por caracteristica. */
+        checkPage(92 + _vabFilas.length * 5);
+        drawBar('VÁLVULA AÓRTICA BICÚSPIDE');
+        y += _aire(3);
+        const _vW = Math.min(pgW, 70), _vH = _vW;
+        const _vX = mL + (pgW - _vW) / 2;
+        doc.addImage(_vData, 'PNG', _vX, y, _vW, _vH);
+        y += _vH + 5;
+        /* La TABLA, con las MISMAS palabras del informe: el rotulo a la izquierda y el valor a
+           continuacion, que es el formato de las otras tablas de caracteristicas del papel. */
+        fn(8); tc(30, 30, 30);
+        _vabFilas.forEach(function (f) {
+          fb(8); tc(TEMA[0], TEMA[1], TEMA[2]);
+          doc.text(_sanML(f[0]) + ':', mL, y);
+          const _w = doc.getTextWidth(_sanML(f[0]) + ': ');
+          fn(8); tc(30, 30, 30);
+          doc.text(_sanML(f[1]), mL + _w + 1, y);
+          y += 5;
+        });
+        y += _aire(3);
+      }
+    }
+  } catch (e) { console.error('[PDF] bloque VAB:', e); }
+
   if (typeof eteQxPdfOn === 'function' && eteQxPdfOn() && typeof eteQxDataURL === 'function') {
     const _mData = eteQxDataURL();
     checkPage(125);
@@ -65326,6 +65363,90 @@ function vabIncluirPDF() {
   toast(on ? '📄 Esquema de la válvula bicúspide se incluirá en el PDF'
            : 'Esquema de la válvula bicúspide excluido del PDF');
 }
+/* ══ EL DIBUJO AL PDF (Y3d9, 2026-10-19) ════════════════════════════════════════════════════
+   El canvas repinta la MISMA geometria que la pantalla -las dos llaman a `vabGeom`-, asi que no
+   hay dos dibujos del mismo organo que se puedan separar. Es la leccion que el Y3c6 pago con la
+   mitral, donde el canvas del papel tenia los seis paths del dibujo viejo escritos a mano.
+   ⚠️ NO SE SERIALIZA EL SVG Y SE RASTERIZA, y no es una preferencia: `drawImage` de una `Image`
+   con un `data:` URL de SVG es ASINCRONO -la decodificacion lo es- y el PDF se arma de forma
+   SINCRONICA. Ademas un `var(--text)` dentro de un SVG convertido a imagen no tiene de donde
+   leer la variable, porque la hoja de estilos no viaja con el `data:` URL.
+   ⚠️ LOS COLORES SE FUERZAN AL TEMA CLARO: el papel es blanco, y los del tema oscuro no se ven
+   sobre el. */
+function vabDataURL(){
+  if (!document.getElementById('vab-svg')) return null;
+  const cv = document.createElement('canvas');
+  cv.width = 480; cv.height = 480;
+  const ctx = cv.getContext('2d');
+  /* FONDO BLANCO: el papel es blanco, y con el tema oscuro los trazos quedan en un gris claro
+     que sobre blanco no se ve. Por eso `vabPintarCanvas` fuerza los colores del tema CLARO. */
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 480, 480);
+  vabPintarCanvas(ctx, 480 / 240);
+  return cv.toDataURL('image/png');
+}
+/* Pinta la MISMA geometria sobre un canvas 2D. Lee `vabGeom`, igual que el SVG: una sola fuente
+   para la pantalla y para el papel. */
+function vabPintarCanvas(ctx, k){
+  const sv2 = id => { const e = document.getElementById(id); return e ? String(e.value || '').trim() : ''; };
+  const tipo = sv2('vab_tipo');
+  const fus = VAB_DIB_FUSION[tipo] || null;
+  const g = vabGeom(fus || 'RL', sv2('vab_rafe'), sv2('vab_simetria') === 'asimetrica' ? 'asim' : 'sim');
+  const neutro = !fus;
+  const P = (d) => { const p = new Path2D(d); return p; };
+  ctx.save(); ctx.scale(k, k); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.strokeStyle = '#1a2233'; ctx.lineWidth = 2.5;
+  const base = neutro ? vabGeom('RL', 'no', 'sim') : g;
+  [base.s1, base.s2, base.s3].forEach(function (d) { if (d && d !== 'M 0 0') ctx.stroke(P(d)); });
+  if (!neutro) {
+    ctx.lineWidth = 3; ctx.stroke(P(g.closure));
+    if (g.rapheOp) {
+      ctx.lineWidth = 4.5;
+      ctx.strokeStyle = (g.rapheColor === 'var(--green)') ? '#1f9d6c' : '#1a2233';
+      ctx.stroke(P(g.rapheD));
+    }
+    if (g.calcOp) {
+      ctx.fillStyle = '#1f9d6c';
+      for (let i = 1; i <= 4; i++) {
+        ctx.beginPath(); ctx.arc(g['d' + i + 'x'], g['d' + i + 'y'], 2.8, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    if (g.lblOp) {
+      ctx.fillStyle = '#5b6478'; ctx.font = '600 13px system-ui, sans-serif'; ctx.textAlign = 'center';
+      ['R', 'L', 'N'].forEach(function (n) {
+        ctx.fillText(n, g['l' + n + 'x'], g['l' + n + 'y'] + 4);
+      });
+    }
+  }
+  ctx.restore();
+}
+/* La TABLA de caracteristicas del papel, con las MISMAS palabras del informe. Devuelve `null`
+   sin nada que decir, asi que el PDF no imprime una tabla vacia. */
+function vabPdfFilas(){
+  const sv2 = id => _ccSv(id);
+  const tipo = sv2('vab_tipo'), rafe = sv2('vab_rafe'), sim = sv2('vab_simetria');
+  const f = [];
+  const feno = _ccLbl(VAB_INF_FENO, tipo);
+  if (feno) f.push(['Fenotipo', feno]);
+  const esDosSenos = tipo === 'dos_senos_ll' || tipo === 'dos_senos_ap';
+  if (esDosSenos) f.push(['Rafe', 'dos velos verdaderos']);
+  else { const rf = _ccLbl(VAB_INF_RAFE, rafe);
+         if (rf) f.push(['Rafe', rf.replace(/^con rafe /, '')]); }
+  const sn = _ccLbl(VAB_INF_SENOS, sim); if (sn) f.push(['Senos', sn.replace(/^senos /, '')]);
+  /* ⚠️ LA TABLA SOLO EXISTE SI HAY ALGO DE LA VALVULA QUE DECIR. El grado de EA y de IAo tiene
+     valor de FABRICA -«Sin estenosis» y «Ausente»-, asi que sin esta guarda una seccion VACIA
+     publicaba en el papel FIRMADO una tabla «VÁLVULA AÓRTICA BICÚSPIDE» con dos filas que nadie
+     consigno, al lado de un dibujo que es el contorno de tres senos sin una linea de cierre: se
+     lee como «se evaluo y es normal». Es la misma guarda que el donut de la CIA. */
+  if (!f.length) return null;
+  /* La FUNCION: el grado de EA y de IAo se lee de Valvulas, igual que en la pantalla. */
+  const EA = { sin:'Sin estenosis', esclerosis:'Esclerosis', leve:'Leve', moderada:'Moderada', severa:'Severa' };
+  const IA = { '0':'Ausente', '1':'Leve', '2':'Moderada', '3':'Moderada-severa', '4':'Severa' };
+  const ea = _ccLbl(EA, sv2('ea_grado')), ia = _ccLbl(IA, sv2('ia_grado'));
+  if (ea) f.push(['Estenosis aórtica', ea]);
+  if (ia) f.push(['Insuficiencia aórtica', ia]);
+  return f;
+}
+window.vabDataURL = vabDataURL; window.vabPdfFilas = vabPdfFilas;
 window.vabGeom = vabGeom; window.vabDibujar = vabDibujar; window.vabDibClic = vabDibClic;
 window.VAB_PDF_TXT = VAB_PDF_TXT; window.vabPdfOn = vabPdfOn; window.vabPdfSync = vabPdfSync; window.vabIncluirPDF = vabIncluirPDF;
 window.VAB_DIB_HIT = VAB_DIB_HIT; window.VAB_DIB_FUSION = VAB_DIB_FUSION;

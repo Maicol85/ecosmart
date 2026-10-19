@@ -1699,6 +1699,48 @@ window.__Y = {
     process.stderr.write('[inf] listo\n');
   }
 
+  /* == GRUPO «pdf» - el dibujo y la tabla de la VAB en el papel =========================== */
+  if (corre('pdf')) {
+    const r = { plantillas: {} };
+    const montar = async () => {
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__P.sel('va_morf','Bicúspide')`);
+      await tipear('ao_sin', '38');
+      await tipear('ao_tub', '42');
+      await ev(`window.__Y.irVAB()`);
+      await ev(`window.__P.sel('vab_tipo','fused_rl')`);
+      await ev(`window.__P.sel('vab_rafe','si')`);
+      await ev(`window.__P.sel('vab_simetria','simetrica')`);
+      await ev(`window.__P.sel('vab_funcion','normal')`);
+    };
+    try {
+      await montar();
+      r.filas = await ev(`(function(){ return (typeof vabPdfFilas === 'function') ? vabPdfFilas() : 'SIN FN' })()`);
+      r.dataURL = await ev(`(function(){ try { var d = vabDataURL();
+        return d ? { largo: d.length, pre: d.slice(0, 22) } : null } catch (e) { return 'EXC: ' + e.message } })()`);
+      /* SIN el boton: el PDF no cambia. */
+      for (const pl of ['clasico', 'academico', 'moderno', 'minimalista', 'compacto', 'elegante']) {
+        r.plantillas[pl] = { sin: await ev(`window.__P.pdf(${JSON.stringify(pl)})`, 60000) };
+      }
+      /* CON el boton. */
+      await ev(`(function(){ document.getElementById('vab-pdf-btn').click(); return vabPdfOn() })()`);
+      for (const pl of ['clasico', 'academico', 'moderno', 'minimalista', 'compacto', 'elegante']) {
+        r.plantillas[pl].con = await ev(`window.__P.pdf(${JSON.stringify(pl)})`, 60000);
+      }
+      /* Y el control: con el boton tildado pero la seccion VACIA, el papel no cambia. */
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__P.sel('va_morf','Bicúspide')`);
+      await ev(`window.__Y.irVAB()`);
+      await ev(`(function(){ var b = document.getElementById('vab-pdf-btn');
+        if (!vabPdfOn()) b.click(); return vabPdfOn() })()`);
+      r.vacia = { on: await ev(`vabPdfOn()`),
+                  filas: await ev(`vabPdfFilas()`),
+                  pdf: await ev(`window.__P.pdf('clasico')`, 60000) };
+    } catch (e) { r.err = e.message; }
+    out.grupos.pdf = r;
+    process.stderr.write('[pdf] listo\n');
+  }
+
   /* == GRUPO «dib» - el dibujo de la VAB ================================================== */
   if (corre('dib')) {
     const r = { tipos: {}, toque: {}, pdf: {} };
