@@ -77556,10 +77556,28 @@ caso('TC-503', 'Tanda Y3c: la TABLA UNICA de festones por angulo que leen los cu
     !!EL('ete-qx-v-cir') && !!EL('ete-qx-v-ett') && !!EL('ete-qx-v-tg')
       && TXT('ete-qx-v-cir').indexOf('cirujano') > 0,
     [TXT('ete-qx-v-cir'), TXT('ete-qx-v-ett'), TXT('ete-qx-v-tg')].join(' | ')]);
+  /* ADAPTADO el 2026-10-19 (Y3d1). Este bloque exigia que VST.cir.letras valiera 1 y que
+     las de ETT y transgastrica valieran 0, que era el comportamiento del Y3c: las letras
+     de feston se escondian fuera de la vista del cirujano porque la orientacion de la ETT y la
+     de la transgastrica no estaban verificadas. DECISION DE MAICOL (18/10/2026): las letras se
+     ven SIEMPRE, asi que el campo letras se retiro de la tabla y la condicion afirma hoy lo
+     CONTRARIO: que las tres vistas NO declaran ninguna bandera de letras. Lo que ese bloque
+     fijaba de verdad -las tres camaras- no cambio y se conserva entero. */
   ex.push(['(E3) la vista del cirujano es rot 0 sin espejo; ETT es espejo; la transgastrica, 180',
     !!VST && VST.cir.rot === 0 && VST.cir.flip === 1 && VST.ett.flip === -1 && VST.tg.rot === 180
-      && VST.cir.letras === 1 && VST.ett.letras === 0 && VST.tg.letras === 0,
+      && VST.cir.letras === undefined && VST.ett.letras === undefined && VST.tg.letras === undefined,
     VST ? JSON.stringify(VST) : 'SIN ETE_QX_VISTAS']);
+  /* NUEVO (Y3d1): los SEIS rotulos se ven en las tres vistas y en cualquier angulo. Se mide el
+     display COMPUTADO y no el atributo, que es la leccion del atributo hidden de este repo. */
+  const LETRAS_VIS = () => ['A1','A2','A3','P1','P2','P3'].filter(n => {
+    const e = EL('ete-qx-lbl-' + n);
+    if (!e) return false;
+    const cs = getComputedStyle(e), r = e.getBoundingClientRect();
+    return cs.display !== 'none' && cs.visibility !== 'hidden' && r.width > 0;
+  }).length;
+  ex.push(['(DENOM E2) los SEIS rotulos de feston existen en el dibujo',
+    ['A1','A2','A3','P1','P2','P3'].every(n => !!EL('ete-qx-lbl-' + n)),
+    'hay=' + ['A1','A2','A3','P1','P2','P3'].filter(n => !!EL('ete-qx-lbl-' + n)).length]);
   /* Con prefers-reduced-motion la app salta, asi que el estado queda puesto en el acto; sin el,
      la animacion tarda. Se lee el DESTINO, que no depende de eso. */
   ['cir','ett','tg'].forEach(k => {
@@ -77571,6 +77589,22 @@ caso('TC-503', 'Tanda Y3c: la TABLA UNICA de festones por angulo que leen los cu
         && e2.vistaDest === k,
       'pressed=' + ['cir','ett','tg'].map(j => j + ':' + AT('ete-qx-v-' + j, 'aria-pressed')).join(' ') + ' dest=' + e2.vistaDest]);
   });
+  /* Y3d1: las letras se ven en las TRES vistas. */
+  const _letVista = {};
+  ['cir','ett','tg'].forEach(k => { CLIC('ete-qx-v-' + k); _letVista[k] = LETRAS_VIS(); });
+  ex.push(['(E4b) los SEIS rotulos de feston se ven en las TRES vistas',
+    _letVista.cir === 6 && _letVista.ett === 6 && _letVista.tg === 6,
+    JSON.stringify(_letVista)]);
+  /* Y en los OCHO angulos de giro, que es donde el Y3c los apagaba. */
+  const _letAng = {};
+  [0, 45, 90, 135, 180, 225, 270, 315].forEach(a => {
+    try { if (FN('qxGirarA')) qxGirarA(a); } catch (e) {}
+    try { if (FN('eteQxDibujar')) eteQxDibujar(); } catch (e) {}
+    _letAng[a] = LETRAS_VIS();
+  });
+  ex.push(['(E4c) los SEIS rotulos se ven en los OCHO angulos de giro',
+    Object.values(_letAng).every(n => n === 6), JSON.stringify(_letAng)]);
+  try { if (FN('qxGirarA')) qxGirarA(0); } catch (e) {}
   CLIC('ete-qx-v-cir');
   try { if (FN('qxGirarA')) qxGirarA(40); } catch (e) {}
   ex.push(['(E5) girar a mano DESMARCA los tres botones',

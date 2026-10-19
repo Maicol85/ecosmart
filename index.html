@@ -63114,10 +63114,11 @@ document.addEventListener('click', function(ev){
    ⚠️ EL BOTON SE DESMARCA AL GIRAR A MANO, y lo decide `eteQxVistasSync` CLASIFICANDO la camara
    —no una bandera—: con una bandera, girar un grado dejaria el boton marcado sobre una
    orientacion que ya no es la suya. La tolerancia de 8 grados es la de la demo. */
+/* El campo `letras` se retiro en el Y3d1: los seis rotulos se ven en las tres vistas. */
 var ETE_QX_VISTAS = Object.freeze({
-  cir: Object.freeze({ rot: 0,   flip: 1,  letras: 1 }),
-  ett: Object.freeze({ rot: 0,   flip: -1, letras: 0 }),
-  tg:  Object.freeze({ rot: 180, flip: 1,  letras: 0 })
+  cir: Object.freeze({ rot: 0,   flip: 1  }),
+  ett: Object.freeze({ rot: 0,   flip: -1 }),
+  tg:  Object.freeze({ rot: 180, flip: 1  })
 });
 function qxCerca(b){ return b + 360 * Math.round((_qxRot - b) / 360); }
 function qxClase(r, f){
@@ -63135,8 +63136,8 @@ function eteQxVista(k){
   else qxAnimar();
   eteQxVistasSync();
 }
-/* Marca el boton que corresponde a la camara de DESTINO y esconde las letras de los festones en
-   las dos vistas sin orientacion verificada. */
+/* Marca el boton que corresponde a la camara de DESTINO. Las letras de feston NO se tocan:
+   ver `eteQxConstruir`, que es su unico dueno. */
 function eteQxVistasSync(){
   var N = _qxN;
   var cDest = qxClase(_qxTRot, _qxTFlip);
@@ -63144,13 +63145,23 @@ function eteQxVistasSync(){
     var b = document.getElementById('ete-qx-v-' + k);
     if (b) b.setAttribute('aria-pressed', cDest === k ? 'true' : 'false');
   });
-  if (!N) return;
-  var cAhora = qxClase(_qxRot, _qxFlip);
-  /* Las letras se deciden por la camara EN PANTALLA y no por el destino: durante la animacion el
-     dibujo pasa por orientaciones intermedias, y mostrar letras ahi afirmaria una orientacion que
-     no es ninguna de las tres. En «libre» —el medico girando a mano— tampoco se afirman. */
-  var conLetras = (cAhora === 'cir');
-  N.lbl.forEach(function(l){ l.e.setAttribute('display', conLetras ? 'inline' : 'none'); });
+  /* ⚠️ ACA VIVIA EL OCULTADO DE LAS LETRAS DE FESTON, Y SE RETIRA — DECISION DE MAICOL
+     (18/10/2026, Y3d1). El Y3c las escondia fuera de la vista del cirujano porque la orientacion
+     de la ETT y la de la transgastrica no estaban verificadas. Hoy las letras se ven SIEMPRE: en
+     las tres vistas y en cualquier angulo de giro, como en la demo aprobada
+     (`docs/3d/demo2_mitral_integrada_en_ETE.html`), cuyo `views()` solo marca el `aria-pressed` y
+     cuyo `draw()` reposiciona los seis rotulos en todos los cuadros sin esconder ninguno.
+     MEDIDO contra el inicio de la tanda: la vista del cirujano daba 6 de 6 y la ETT, la
+     transgastrica y los ocho angulos de giro daban 0 de 6. Los rotulos NUNCA dejaron de
+     posicionarse —`eteQxDibujar` les escribe `x` e `y` en todas las escenas—: lo unico que
+     pasaba es que esta linea les ponia `display:none`.
+     ⚠️ NO SE DEJA LA VARIABLE `conLetras` VIVA NI EL CAMPO `letras` DE `ETE_QX_VISTAS`: una
+     bandera sin consumidor es la que la proxima lectura cree que gobierna algo. El campo sale
+     de la tabla en el mismo movimiento.
+     ⚠️ Y LO QUE LA ORIENTACION AFIRMA QUEDA DECLARADO EN `docs/fuentes/FUENTES.md`: la ASE/SCA
+     2013 (folio 939, hoja 19) publica la transgastrica basal con las VALVAS a izquierda y
+     derecha y las COMISURAS en campo cercano y lejano, que NO es la orientacion de la demo. El
+     dibujo no se toca —la orden lo prohibe— y la discrepancia se reporta. */
 }
 /* El boton no existe con una protesis mitral, por el mismo predicado que el boton del 3D. */
 function eteQxVistasBotonSync(){
