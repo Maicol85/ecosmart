@@ -8,6 +8,13 @@ la otra. Un dato que se carga y no aparece en ninguna de las cuatro desapareció
 
 ---
 
+
+> ⚠️ **EL ESQUEMA DE LA MITRAL DEL PDF CAMBIÓ DE DIBUJO** (tanda «Y3c», 2026-10-18).
+> `eteQxDataURL` tenía los seis paths del dibujo viejo escritos a mano; hoy dibuja el canvas desde
+> la **misma geometría que la pantalla**, siempre en la **vista del cirujano** y **sin la línea del
+> plano**. La caja pasa de 120 × 66,9 mm a **100 × 100 mm** y `checkPage` de 92 a 125; **lo
+> incluyen las SEIS plantillas**. Detalle en `docs/mapa/mitral-dibujo-estatico.md` § 7.
+
 ## Las cuatro superficies, una por una
 
 | Superficie | Función de entrada | Destino del texto/dato |

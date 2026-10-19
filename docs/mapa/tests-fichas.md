@@ -241,3 +241,46 @@ criterio de los 40 mm del seno, el ateroma, la onda S′ del dueño y los nueve 
 cuatro por el medidor: el índice esperaba 29 donde son 28; el selector del test de burbuja se
 construía con la concatenación **dentro** de las comillas; `AO_SEGS` es un `const` de módulo y daba
 `null`; y el pie dice «Folio» con mayúscula.
+
+---
+
+## TC-503 — tanda «Y3c» (2026-10-18)
+
+**El dibujo estático de la mitral con giro, tres vistas y plano de corte; la tabla única de
+festones; y los cuatro dibujos de medidas TEER.**
+
+**67 condiciones**, contadas instrumentando el propio caso para que publicara su `ex.length` —no a
+ojo sobre los `ex.push`, porque veinticinco salen de bucles—. **Cuatro denominadores** y **cinco
+controles negativos**.
+
+**Verificado que sabe fallar contra HEAD** (`d007921`, md5 `52cc2f1c…`) en un worktree aparte:
+**55 de las 67 en rojo, y NINGUNA por excepción** —toda lectura del árbol nuevo va por un ayudante
+con centinela—. Las doce que pasan son los controles del 3D, del Excel, del informe y de la
+diastólica, más los denominadores que ya existían.
+
+| bloque | qué fija |
+|---|---|
+| **(A)** | la tabla dueña con sus cinco filas, los extremos contra el epígrafe, el reparto esquema → fila, y los cuatro esquemas leídos **del marcado** contra su fila; el esquema de 60–90° con P2 y sin A3 |
+| **(B)** | el lienzo cuadrado, el anillo de dos semiejes verticales distintos, la **sonrisa** de coaptación por su flecha, las cuatro marcas, AL del lado de la orejuela, `pointer-events` y que nada cae fuera del lienzo |
+| **(C)** | el ciclo de lesiones sincronizado entre dibujo, esquemas, espejo y resumen; «Limpiar»; y que los festones **no** llevan `onclick` |
+| **(D)** | la línea del plano en los cinco ángulos desde los botones del 3D, con los festones en negrita, subrayados y **sin color**; el toggle al repetir; el cierre del panel; y el control negativo del color |
+| **(E)** | cero botones de girar, las flechas de 15°, las tres vistas con su marca, y el desmarcado al girar a mano |
+| **(F)** | el papel con el dibujo, que **no depende de la pantalla**, que **sí** lee las lesiones, y que se dibuja en el lienzo cuadrado (leído de la cabecera IHDR del PNG) |
+| **(G)** | los cuatro dibujos TEER con su valor, el borrado de un campo con su **control negativo**, el color fijo del marcador y la ausencia de colores de lesión ajenos |
+| **(H)** | nada se guarda ni en el estudio ni en el navegador; y los **controles** de que el 3D no cambió (`M3D_VIS`, `M3D_ANGS` y los ocho botones con sus nombres) |
+| **(I)** | los controles del Excel en 440, del informe y del EN SUMA, y de la diastólica |
+
+⚠️ **TRES COSAS QUE EL PROPIO CASO DESTAPÓ, y que una lectura no habría dado:**
+1. **un `.click()` sintético ya no cicla la lesión**, porque desde el commit del giro los polígonos
+   no tienen `onclick`: hay que despachar `pointerdown` + `pointerup`. La primera versión informó
+   «el ciclo no funciona» sobre un ciclo perfecto **y además dejó en falso al control del PDF**,
+   que compara el papel con y sin lesión;
+2. **el botón del 3D nace `hidden`** y hay que llamar a `m3dBotonSync()` antes de medirlo;
+3. **el botón de la vista se desmarcaba recién AL CONVERGER** —durante todo el giro quedaba
+   marcada una orientación que ya no era la del destino—. **Eso se corrigió en `index.html`**, en
+   el mismo commit.
+
+⚠️ **UNA CONDICIÓN SE REESCRIBIÓ PARA MEDIR COMPORTAMIENTO Y NO EXPRESIÓN:** la que comprobaba que
+el canvas ya no usa los paths cableados miraba el **fuente** de la función. Hoy lee los cuatro
+bytes de ancho y los cuatro de alto de la **cabecera IHDR del PNG** y exige 840 × 840 —el lienzo
+cuadrado con supermuestreo 2×—, que es el único lugar donde eso se comprueba sin mirar el código.

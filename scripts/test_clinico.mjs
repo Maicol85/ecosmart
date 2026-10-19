@@ -12629,7 +12629,12 @@ caso('TC-252', 'ETE mitral: cada toque en las proyecciones sincroniza, y la traz
           que mover la vista quirurgica. Con la zona de toque colapsada, del segundo en adelante
           el clic cae fuera y el qx no se entera. */
     eteLimpiarSegmentos();
-    const gA3 = document.getElementById('valve-A3');
+    /* ⚠️ ADAPTADO el 2026-10-18 (tanda Y3c): los cuatro ids de segmento SIN sufijo se
+       normalizaron a valve-<feston>-<sufijo> para que ETE_GID_MAP se pueda DERIVAR de la
+       tabla duena de cortes. valve-A3 es hoy valve-A3-4ch y valve-A1 es valve-A1-2ch.
+       Lo que este caso afirma —que la zona de toque sobrevive al pintado y que cada toque
+       sincroniza— no cambio. */
+    const gA3 = document.getElementById('valve-A3-4ch');
     const seguidos = [];
     for (let i = 0; i < 3; i++) { const ok = tocar(gA3); seguidos.push((ok ? '' : 'NO LLEGO ') + qxDe('A3')); }
     /* Los tres LLEGARON y los tres dieron distinto. Sin la primera mitad la condicion miente:
@@ -12641,7 +12646,7 @@ caso('TC-252', 'ETE mitral: cada toque en las proyecciones sincroniza, y la traz
 
     /* 4) Un toque en cada una de las CUATRO proyecciones sincroniza el qx. */
     eteLimpiarSegmentos();
-    const unoPorProy = [['valve-A3', 'A3'], ['valve-A2-bc', 'A2'], ['valve-A1', 'A1'], ['valve-P2-3ch', 'P2']].map(function (par) {
+    const unoPorProy = [['valve-A3-4ch', 'A3'], ['valve-A2-bc', 'A2'], ['valve-A1-2ch', 'A1'], ['valve-P2-3ch', 'P2']].map(function (par) {
       const g = document.getElementById(par[0]);
       const antes = qxDe(par[1]);
       const ok = tocar(g);
@@ -12681,7 +12686,7 @@ caso('TC-252', 'ETE mitral: cada toque en las proyecciones sincroniza, y la traz
       return getComputedStyle(document.body).backgroundColor;
     };
     eteLimpiarSegmentos();
-    const gP1 = document.getElementById('valve-P1');
+    const gP1 = document.getElementById('valve-P1-4ch');   /* ADAPTADO Y3c: id normalizado */
     eteClick('P1');                                        // P1 con lesion, A3 virgen
     /* Se miden TRES cosas por tema y no solo el trazo de la valva: los 13 paths de valva toman el
        color de un ATRIBUTO y los otros 76 —contornos del ventriculo y las LETRAS A1/A2/P1…— de un
@@ -69925,24 +69930,36 @@ caso('TC-485', 'Tanda Y3: la fila de la VELOCIDAD PICO en la lista «Ver criteri
       const com = rot.filter(r => r.t === 'AL' || r.t === 'PM').sort((u, v) => u.x - v.x);
       ex.push(['DENOMINADOR: la vista quirurgica existe y publica sus dos comisuras',
         com.length === 2, JSON.stringify(com)]);
-      ex.push(['AL a la IZQUIERDA (x=20, el lado de la orejuela y de A1/P1) y PM a la DERECHA (x=510)',
-        com.length === 2 && com[0].t === 'AL' && com[0].x === 20 &&
-        com[1].t === 'PM' && com[1].x === 510, JSON.stringify(com)]);
-      /* La orejuela y los festones NO se movieron: esto es una correccion de rotulos. */
-      const laa = svg ? svg.querySelector('ellipse[cx="68"]') : null;
-      ex.push(['la OREJUELA sigue en 68,156 — ni el dibujo ni su posicion se tocaron',
-        !!laa && laa.getAttribute('cy') === '156', laa ? laa.getAttribute('cx') + ',' + laa.getAttribute('cy') : 'NO EXISTE']);
-      const ds = ['A1','A2','A3','P1','P2','P3'].map(k => { const e = EL('ete-qx-' + k);
-        return e ? String(e.getAttribute('d') || '').slice(0, 12) : 'NO EXISTE'; });
-      ex.push(['los SEIS festones conservan su trazado y su posicion: A1 arranca a la izquierda (x=102) y A3 a la derecha (x=362)',
-        ds[0].indexOf('M102') === 0 && ds[2].indexOf('M362') === 0 && ds.every(d => d !== 'NO EXISTE'),
-        ds.join(' | ')]);
-      /* Y LA SEGUNDA COPIA, la del canvas que viaja al PDF: su fuente tiene el mismo orden. */
+      /* ⚠️ ADAPTADO el 2026-10-18 (tanda Y3c). Las cuatro condiciones de abajo fijaban el
+         dibujo ESTATICO VIEJO por sus COORDENADAS —AL en x=20, PM en x=510, la orejuela en
+         68,156, los seis festones como path con su d empezando en M102 y M362, y el canvas
+         con sus fillText cableados—, y ese dibujo lo SUSTITUYO el de la demo aprobada: hoy es
+         parametrico, se construye con createElementNS, los festones son polygon con points
+         y **GIRA**, asi que ninguna coordenada es fija. Lo que ese bloque queria fijar —la
+         correccion del Y3-1, o sea que AL queda del lado de la orejuela y de A1/P1— **sigue
+         siendo cierto y se mide igual, pero por el LADO y no por el pixel**, que ademas es una
+         afirmacion mas fuerte: sobrevive a cualquier cambio de escala. La geometria nueva y el
+         canvas los cubre TC-503. */
+      ex.push(['AL del lado de la orejuela y de A1/P1, y PM del otro (Y3-1, medido por el LADO)',
+        com.length === 2 && com[0].t === 'AL' && com[0].x < 210 && com[1].t === 'PM' && com[1].x > 210,
+        JSON.stringify(com)]);
+      const orX = (function () { const e = EL('ete-qx-mOr');
+        return e ? Math.round(parseFloat(e.getAttribute('x'))) : null; })();
+      ex.push(['la OREJUELA queda del MISMO lado que AL',
+        orX !== null && orX < 210 && com.length === 2 && com[0].t === 'AL', 'orejuela x=' + orX]);
+      const fx = ['A1','A2','A3','P1','P2','P3'].map(k => { const e = EL('ete-qx-lbl-' + k);
+        return e ? Math.round(parseFloat(e.getAttribute('x'))) : null; });
+      ex.push(['los SEIS festones estan, y A1/P1 caen del lado de AL mientras A3/P3 caen del de PM',
+        fx.every(v => v !== null) && fx[0] < 210 && fx[3] < 210 && fx[2] > 210 && fx[5] > 210,
+        fx.join(' | ')]);
+      /* ⚠️ LA SEGUNDA COPIA YA NO EXISTE, Y ESO ES EL ARREGLO: eteQxDataURL tenia los rotulos y
+         los seis paths escritos a mano —dos dibujos del mismo organo— y hoy dibuja llamando a los
+         MISMOS duenos que la pantalla, asi que no pueden divergir por construccion. Lo que se
+         mide es eso: que el canvas ya no lleve coordenadas propias de AL ni de PM. */
       const f = FUENTE();
-      ex.push(['la copia en CANVAS del PDF lleva la MISMA correccion: AL en x=20 y PM en x=510',
-        f.indexOf("fillText('AL',20,156)") > -1 && f.indexOf("fillText('PM',510,156)") > -1 &&
-        f.indexOf("fillText('PM',20,156)") === -1,
-        'AL@20 ' + (f.indexOf("fillText('AL',20,156)") > -1) + ' · PM@510 ' + (f.indexOf("fillText('PM',510,156)") > -1)]);
+      ex.push(['el canvas del PDF ya NO tiene una copia de los rotulos ni de los paths',
+        f.indexOf("fillText('AL',20,156)") === -1 && f.indexOf('const QX_PATHS') === -1,
+        'AL@20 ' + (f.indexOf("fillText('AL',20,156)") > -1) + ' · declara QX_PATHS ' + (f.indexOf('const QX_PATHS') > -1)]);
       /* CONTROL NEGATIVO: la proyeccion TRANSGASTRICA no se toco — su par ya era coherente. */
       ex.push(['CONTROL NEGATIVO: la proyeccion transgastrica conserva su par, con AL junto a A1/P1',
         f.indexOf('<text x="30" y="108" text-anchor="middle" font-size="8" fill="#6688aa">AL</text>') > -1,
@@ -77307,6 +77324,375 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
       const d = TXT('dd-interp');
       return d !== 'NO EXISTE' && (!FN('_labDiastGrado') || true);
     } catch (e) { return false; } })(), 'dd-interp=' + String(TXT('dd-interp')).slice(0, 40)]);
+
+  return { extra: ex };
+`);
+
+caso('TC-503', 'Tanda Y3c: la TABLA UNICA de festones por angulo que leen los cuatro esquemas, el dibujo estatico nuevo de la vista quirurgica con su sonrisa de coaptacion y sus cuatro marcas, la linea punteada del plano en los cinco angulos del 3D con los festones en negrita y SIN color, el giro con las flechas sin botones de girar, las tres vistas con ETT y transgastrica sin letras de feston, el PDF con el dibujo y sin la linea, los cuatro dibujos de medidas TEER con su valor, y el 3D, el informe, el EN SUMA, el PPT, el Laboratorio y las 440 columnas del Excel sin moverse', `
+  const ex = [];
+  const EL  = (id) => document.getElementById(id);
+  const FN  = (n) => { try { return typeof window[n] === 'function'; } catch (e) { return false; } };
+  const OB  = (n) => { try { return window[n] || null; } catch (e) { return null; } };
+  /* Toda lectura del arbol nuevo va por un ayudante con centinela: contra HEAD estos nodos y
+     estas funciones NO existen, y un caso que muere por excepcion prueba que el arbol es
+     distinto, no que sabe medir. Misma leccion que TC-455, TC-462, TC-471, TC-480, TC-500,
+     TC-501 y TC-502. */
+  const AT  = (id, a) => { const e = EL(id); return e ? String(e.getAttribute(a) === null ? '' : e.getAttribute(a)) : 'NO EXISTE'; };
+  const TXT = (id) => { const e = EL(id); return e ? String(e.textContent || '').trim() : 'NO EXISTE'; };
+  const PTS = (id) => { const e = EL(id); const p = e ? e.getAttribute('points') : null;
+    if (!p) return []; return String(p).trim().split(/[ ]+/).map(t => t.split(',').map(parseFloat)); };
+  const CLIC = (id) => { const e = EL(id); try { if (e && e.click) { e.click(); return true; } } catch (x) {} return false; };
+  /* ⚠️ EL TOQUE SOBRE UN FESTON NO ES UN click: desde el commit del giro los poligonos NO
+     tienen onclick y el toque lo decide el RECORRIDO del puntero. Un .click() sintetico no
+     dispara pointerdown, asi que la lesion no cicla y la lectura informa «el ciclo no
+     funciona» sobre un ciclo perfecto. Se despachan los dos eventos del gesto, sin mover. */
+  const TOQUE = (id) => { const e = EL(id); if (!e) return false;
+    try {
+      const op = { bubbles: true, cancelable: true, clientX: 10, clientY: 10, pointerId: 1 };
+      const Ctor = (typeof PointerEvent === 'function') ? PointerEvent : MouseEvent;
+      e.dispatchEvent(new Ctor('pointerdown', op));
+      e.dispatchEvent(new Ctor('pointerup', op));
+      return true;
+    } catch (x) { return false; } };
+  const EST = () => { try { return FN('eteQxEstado') ? eteQxEstado() : { err: 'SIN FN' }; } catch (e) { return { err: 'EXC' }; } };
+  const VAL = (id) => { const e = EL(id); return e ? String(e.value) : 'NO EXISTE'; };
+
+  /* El dibujo vive dentro de #ete-seccion-mitral, que nace plegada: sin abrirla el SVG existe y
+     mide 0 x 0, y la lectura informa «el dibujo no se dibuja» sobre un dibujo perfecto. */
+  try { if (FN('showTab')) showTab('ete'); } catch (e) {}
+  try { const s = EL('ete-seccion-mitral');
+    if (s && getComputedStyle(s).display === 'none' && FN('toggleEteSeccion')) toggleEteSeccion('mitral'); } catch (e) {}
+  try { if (FN('eteQxDibujar')) eteQxDibujar(); } catch (e) {}
+  try { if (FN('eteLimpiarSegmentos')) eteLimpiarSegmentos(); } catch (e) {}
+
+  /* ══ (A) LA TABLA DUENA Y LOS CUATRO ESQUEMAS ════════════════════════════════════════════ */
+  const T = OB('ETE_CORTES'), EP = OB('ETE_EPIGRAFE'), EA = OB('ETE_ESQ_ANG');
+  ex.push(['(DENOM A) la tabla duena existe con los CINCO angulos',
+    !!T && [0,45,60,90,120].every(a => T[a] && Array.isArray(T[a].fest) && T[a].fest.length > 0),
+    T ? Object.keys(T).join(',') : 'SIN ETE_CORTES']);
+  const ESPER = { 0:'P1,P2,A2,A3', 45:'P1,P2,A2,A3,P3', 60:'P1,A2,P3', 90:'A1,A2,P2,P3', 120:'P2,A2' };
+  [0,45,60,90,120].forEach(a => {
+    const f = (T && T[a]) ? T[a].fest.join(',') : 'SIN FILA';
+    ex.push(['(A1.' + a + ') la fila de ' + a + ' grados, de lateral a medial', f === ESPER[a], f]);
+  });
+  /* Los EXTREMOS contra el epigrafe de la figura: el centinela de que la tabla no se separo de
+     su fuente. */
+  [0,45,60,90,120].forEach(a => {
+    const f = (T && T[a]) ? T[a].fest : [];
+    const ext = f.length ? [f[0], f[f.length - 1]].slice().sort().join(',') : 'SIN FILA';
+    const e2 = (EP && EP[a]) ? EP[a].slice().sort().join(',') : 'SIN EPIGRAFE';
+    ex.push(['(A2.' + a + ') los extremos coinciden con el epigrafe', ext === e2, ext + ' vs ' + e2]);
+  });
+  ex.push(['(A3) el reparto esquema -> fila es 4ch:0, bc:60, 2ch:90, 3ch:120',
+    !!EA && EA['4ch'] === 0 && EA['bc'] === 60 && EA['2ch'] === 90 && EA['3ch'] === 120,
+    EA ? JSON.stringify(EA) : 'SIN ETE_ESQ_ANG']);
+  /* Los cuatro esquemas, leidos del MARCADO y no de una lista: la lectura independiente. */
+  const SVGE = { '4ch':'ete-svg-4ch', 'bc':'ete-svg-bc', '2ch':'ete-svg-2ch', '3ch':'ete-svg-3ch' };
+  Object.keys(SVGE).forEach(suf => {
+    const s = EL(SVGE[suf]);
+    const hay = s ? Array.prototype.slice.call(s.querySelectorAll('g.ete-valve-seg[id]'))
+      .map(g => String(g.id).replace('valve-', '').replace('-' + suf, '')).sort().join(',') : 'NO EXISTE';
+    const deb = (T && EA && T[EA[suf]]) ? T[EA[suf]].fest.slice().sort().join(',') : 'SIN FILA';
+    ex.push(['(A4.' + suf + ') el esquema rotula los festones de su fila', hay === deb, hay + ' vs ' + deb]);
+  });
+  /* El esquema de 60-90 grados rotula P2 y YA NO A3: es el unico cambio visible del commit 1. */
+  ex.push(['(A5) el esquema de 60-90 grados tiene el segmento P2 y NO el A3',
+    !!EL('valve-P2-2ch') && !EL('valve-A3-2ch'),
+    'P2-2ch=' + !!EL('valve-P2-2ch') + ' A3-2ch=' + !!EL('valve-A3-2ch')]);
+
+  /* ══ (B) EL DIBUJO ESTATICO ══════════════════════════════════════════════════════════════ */
+  const svgq = EL('ete-svg-qx');
+  ex.push(['(DENOM B) el dibujo existe y tiene geometria',
+    !!svgq && svgq.getBoundingClientRect().width > 100,
+    svgq ? Math.round(svgq.getBoundingClientRect().width) + 'x' + Math.round(svgq.getBoundingClientRect().height) : 'NO EXISTE']);
+  ex.push(['(B1) el viewBox es el lienzo cuadrado de la demo', AT('ete-svg-qx', 'viewBox') === '0 0 420 420',
+    AT('ete-svg-qx', 'viewBox')]);
+  /* El anillo: dos semiejes verticales DISTINTOS (64 arriba, 100 abajo) y 120 de radio horizontal. */
+  const PA = PTS('ete-qx-anillo');
+  const geoA = (function () {
+    if (!PA.length) return { n: 0 };
+    const xs = PA.map(q => q[0]), ys = PA.map(q => q[1]);
+    return { n: PA.length, rx: Math.round((Math.max.apply(null, xs) - Math.min.apply(null, xs)) / 2),
+             arr: Math.round(215 - Math.min.apply(null, ys)), ab: Math.round(Math.max.apply(null, ys) - 215) };
+  })();
+  ex.push(['(B2) el anillo es una elipse de dos semiejes verticales distintos',
+    geoA.n > 50 && geoA.rx === 120 && geoA.arr === 64 && geoA.ab === 100, JSON.stringify(geoA)]);
+  /* La coaptacion es una SONRISA: con una recta la flecha seria CERO. */
+  const PC = PTS('ete-qx-coap');
+  const flecha = (function () {
+    if (PC.length < 3) return -1;
+    const p0 = PC[0], p1 = PC[PC.length - 1], pm = PC[Math.floor(PC.length / 2)];
+    const mx = (p0[0] + p1[0]) / 2, my = (p0[1] + p1[1]) / 2;
+    return Math.round(Math.sqrt(Math.pow(pm[0] - mx, 2) + Math.pow(pm[1] - my, 2)));
+  })();
+  ex.push(['(B3) la linea de coaptacion es una SONRISA curva, no una recta', flecha >= 40 && flecha <= 52,
+    'flecha=' + flecha]);
+  ex.push(['(B4) las CUATRO marcas estan, y no hay punto del centro de los cortes',
+    TXT('ete-qx-mAo') === 'Ao' && TXT('ete-qx-mOr') === 'orejuela' && TXT('ete-qx-mAL') === 'AL'
+      && TXT('ete-qx-mPM') === 'PM' && !EL('ete-qx-centro'),
+    [TXT('ete-qx-mAo'), TXT('ete-qx-mOr'), TXT('ete-qx-mAL'), TXT('ete-qx-mPM'), 'centro=' + !!EL('ete-qx-centro')].join('|')]);
+  /* AL va del lado de la orejuela: la correccion del Y3-1, con la fuente de Hahn 2022 folio 17. */
+  const xAL = parseFloat(AT('ete-qx-mAL', 'x')), xOr = parseFloat(AT('ete-qx-mOr', 'x'));
+  const xPM = parseFloat(AT('ete-qx-mPM', 'x')), xA1 = parseFloat(AT('ete-qx-lbl-A1', 'x'));
+  ex.push(['(B5) AL queda del lado de la orejuela y de A1/P1, y PM del otro',
+    isFinite(xAL) && xAL < 210 && xOr < 210 && xA1 < 210 && xPM > 210,
+    'AL=' + xAL + ' orejuela=' + xOr + ' A1=' + xA1 + ' PM=' + xPM]);
+  ex.push(['(B6) el anillo y la coaptacion no se comen los toques',
+    (function () { const a = EL('ete-qx-anillo'), c = EL('ete-qx-coap');
+      return !!a && !!c && getComputedStyle(a).pointerEvents === 'none' && getComputedStyle(c).pointerEvents === 'none';
+    })(), 'anillo=' + (EL('ete-qx-anillo') ? getComputedStyle(EL('ete-qx-anillo')).pointerEvents : 'NO')]);
+  ex.push(['(B7) nada del dibujo cae fuera del lienzo de 420 x 420',
+    (function () { const s = EL('ete-svg-qx'); if (!s) return false;
+      const malo = [];
+      s.querySelectorAll('polygon,polyline').forEach(e => {
+        String(e.getAttribute('points') || '').trim().split(/[ ]+/).forEach(t => {
+          const q = t.split(','), x = parseFloat(q[0]), y = parseFloat(q[1]);
+          if (!(x >= 0 && x <= 420 && y >= 0 && y <= 420)) malo.push(e.id); }); });
+      return malo.length === 0; })(), 'ok']);
+
+  /* ══ (C) EL CICLO DE LESIONES SIGUE SINCRONIZADO ═════════════════════════════════════════ */
+  /* Un toque corto en el POLIGONO del dibujo cicla la lesion y se refleja en los esquemas que la
+     tabla dice, en el espejo del estudio y en el resumen. */
+  const sinc = {};
+  ['A2','P1','P3'].forEach(seg => {
+    try { if (FN('eteLimpiarSegmentos')) eteLimpiarSegmentos(); } catch (e) {}
+    TOQUE('ete-qx-' + seg); TOQUE('ete-qx-' + seg);   /* -> Flail */
+    const esq = {};
+    ['4ch','bc','2ch','3ch'].forEach(suf => {
+      const g = EL('valve-' + seg + '-' + suf);
+      const p = g ? g.querySelector('path:not(.ete-hit),line:not(.ete-hit)') : null;
+      esq[suf] = p ? String(p.style.stroke || '') : null; });
+    sinc[seg] = { esp: VAL('ete_seg_' + seg), qx: String((EL('ete-qx-' + seg) || {}).style ? EL('ete-qx-' + seg).style.fill : ''),
+                  esq: esq,
+                  deb: ['4ch','bc','2ch','3ch'].filter(suf => T && EA && T[EA[suf]] && T[EA[suf]].fest.indexOf(seg) >= 0) };
+  });
+  ['A2','P1','P3'].forEach(seg => {
+    const o = sinc[seg];
+    const pintados = ['4ch','bc','2ch','3ch'].filter(suf => o.esq[suf] && o.esq[suf].length > 0);
+    ex.push(['(C1.' + seg + ') el toque cicla la lesion y la pinta en los esquemas de su fila y en ninguno mas',
+      o.esp === '2' && o.qx.length > 0 && pintados.join(',') === o.deb.join(','),
+      'esp=' + o.esp + ' qx=' + o.qx + ' pintados=' + pintados.join(',') + ' deb=' + o.deb.join(',')]);
+  });
+  try { if (FN('eteLimpiarSegmentos')) eteLimpiarSegmentos(); } catch (e) {}
+  ex.push(['(C2) «Limpiar» devuelve el dibujo y los esquemas a Normal',
+    VAL('ete_seg_A2') === '0' && String((EL('ete-qx-A2') || { style: {} }).style.fill || '') === '',
+    'esp=' + VAL('ete_seg_A2')]);
+  /* El toque es por RECORRIDO y no por onclick: un arrastre no puede ciclar la lesion. */
+  ex.push(['(C3) los festones NO llevan un onclick propio: el toque lo decide el recorrido',
+    (function () { const e = EL('ete-qx-A2');
+      return !!e && !e.getAttribute('onclick'); })(), 'onclick=' + AT('ete-qx-A2', 'onclick')]);
+
+  /* ══ (D) LA LINEA DEL PLANO ══════════════════════════════════════════════════════════════ */
+  ex.push(['(D1) sin angulo elegido no hay linea, ni rotulo, ni punto del centro',
+    AT('ete-qx-plano', 'display') === 'none' && TXT('ete-qx-plano-lbl') === '' && !EL('ete-qx-centro'),
+    'disp=' + AT('ete-qx-plano', 'display') + ' lbl=' + TXT('ete-qx-plano-lbl')]);
+  /* Los cinco angulos SE ELIGEN DESDE LOS BOTONES DEL 3D, que es la unica puerta. */
+  /* El boton del 3D nace hidden en el marcado y lo enciende m3dBotonSync, que corre desde
+     RECALC_MODULOS: en un arbol recien cargado hay que llamarlo. Sin esto el grupo informa «no
+     hay boton del 3D» sobre un boton que el medico ve. */
+  try { if (FN('m3dBotonSync')) m3dBotonSync(); } catch (e) {}
+  const b3 = EL('m3d-btn');
+  const hay3d = !!b3 && !b3.hasAttribute('hidden');
+  ex.push(['(DENOM D) el boton del 3D esta y los CINCO botones de angulo existen',
+    hay3d && [0,45,60,90,120].every(a => !!EL('m3d-a-' + a)),
+    'btn=' + hay3d + ' angs=' + [0,45,60,90,120].filter(a => !!EL('m3d-a-' + a)).join(',')]);
+  if (hay3d) CLIC('m3d-btn');
+  [0,45,60,90,120].forEach(a => {
+    CLIC('m3d-a-' + a);
+    const marc = ['A1','A2','A3','P1','P2','P3'].filter(n => AT('ete-qx-lbl-' + n, 'font-weight') === '800');
+    const sub  = ['A1','A2','A3','P1','P2','P3'].filter(n => AT('ete-qx-lbl-' + n, 'text-decoration') === 'underline');
+    const col  = ['A1','A2','A3','P1','P2','P3'].map(n => AT('ete-qx-lbl-' + n, 'fill'));
+    const deb  = (T && T[a]) ? T[a].fest.slice().sort().join(',') : 'SIN FILA';
+    ex.push(['(D2.' + a + ') la linea aparece con su rotulo y marca los festones de la tabla, SIN color',
+      AT('ete-qx-plano', 'display') === 'inline'
+        && TXT('ete-qx-plano-lbl').indexOf('ETE ' + a) === 0
+        && marc.slice().sort().join(',') === deb
+        && sub.slice().sort().join(',') === deb
+        && col.every(c => c === 'var(--text)'),
+      'disp=' + AT('ete-qx-plano', 'display') + ' lbl=' + TXT('ete-qx-plano-lbl')
+        + ' marc=' + marc.join(',') + ' sub=' + sub.join(',') + ' deb=' + deb
+        + ' fills=' + col.filter((c, i, A2) => A2.indexOf(c) === i).join('|')]);
+    CLIC('m3d-a-' + a);   /* repetir el mismo angulo lo apaga */
+    ex.push(['(D3.' + a + ') volver a tocar el mismo angulo apaga la linea y desmarca los rotulos',
+      AT('ete-qx-plano', 'display') === 'none'
+        && ['A1','A2','A3','P1','P2','P3'].every(n => AT('ete-qx-lbl-' + n, 'font-weight') !== '800'),
+      'disp=' + AT('ete-qx-plano', 'display')]);
+  });
+  /* Cerrar el 3D se lleva la linea. */
+  CLIC('m3d-a-60');
+  const antesCierre = AT('ete-qx-plano', 'display');
+  CLIC('m3d-btn');
+  ex.push(['(D4) cerrar el panel 3D apaga la linea',
+    antesCierre === 'inline' && AT('ete-qx-plano', 'display') === 'none' && TXT('ete-qx-plano-lbl') === '',
+    'antes=' + antesCierre + ' despues=' + AT('ete-qx-plano', 'display')]);
+  /* CONTROL NEGATIVO: la linea NUNCA lleva un color de lesion. */
+  ex.push(['(D5) CONTROL NEGATIVO: la linea es neutra, no un color de lesion',
+    (function () { const c = AT('ete-qx-plano', 'stroke');
+      return c === 'var(--text)' && ['#f59e0b','#ef4444','#3b82f6','#8b5cf6','#22c55e'].indexOf(c) < 0;
+    })(), 'stroke=' + AT('ete-qx-plano', 'stroke')]);
+
+  /* ══ (E) EL GIRO Y LAS TRES VISTAS ═══════════════════════════════════════════════════════ */
+  ex.push(['(E1) no hay ni un boton de girar y el dibujo es enfocable y sin zoom',
+    (function () { const s = EL('ete-svg-qx'); if (!s) return false;
+      const bt = Array.prototype.slice.call((EL('m3d-qx') || s).querySelectorAll('button'))
+        .map(b => String(b.textContent || ''));
+      return s.querySelectorAll('button').length === 0 && s.getAttribute('tabindex') === '0'
+        && bt.filter(t => /girar|rotar/i.test(t)).length === 0;
+    })(), 'ok']);
+  /* Las flechas del teclado: 15 grados por pulsacion. Con prefers-reduced-motion la app salta al
+     destino, asi que se lee tRot, que es el DESTINO y no depende de la animacion. */
+  try { if (FN('qxGirarA')) qxGirarA(0); } catch (e) {}
+  const r0 = EST().tRot;
+  try { EL('ete-svg-qx').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })); } catch (e) {}
+  const r1 = EST().tRot;
+  try { EL('ete-svg-qx').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true })); } catch (e) {}
+  try { EL('ete-svg-qx').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true })); } catch (e) {}
+  const r2 = EST().tRot;
+  ex.push(['(E2) las flechas giran 15 grados por pulsacion', r1 === r0 + 15 && r2 === r0 - 15,
+    'r0=' + r0 + ' derecha=' + r1 + ' dos izquierdas=' + r2]);
+  /* Las tres vistas. */
+  const VST = OB('ETE_QX_VISTAS');
+  ex.push(['(DENOM E) los TRES botones de vista existen con su texto',
+    !!EL('ete-qx-v-cir') && !!EL('ete-qx-v-ett') && !!EL('ete-qx-v-tg')
+      && TXT('ete-qx-v-cir').indexOf('cirujano') > 0,
+    [TXT('ete-qx-v-cir'), TXT('ete-qx-v-ett'), TXT('ete-qx-v-tg')].join(' | ')]);
+  ex.push(['(E3) la vista del cirujano es rot 0 sin espejo; ETT es espejo; la transgastrica, 180',
+    !!VST && VST.cir.rot === 0 && VST.cir.flip === 1 && VST.ett.flip === -1 && VST.tg.rot === 180
+      && VST.cir.letras === 1 && VST.ett.letras === 0 && VST.tg.letras === 0,
+    VST ? JSON.stringify(VST) : 'SIN ETE_QX_VISTAS']);
+  /* Con prefers-reduced-motion la app salta, asi que el estado queda puesto en el acto; sin el,
+     la animacion tarda. Se lee el DESTINO, que no depende de eso. */
+  ['cir','ett','tg'].forEach(k => {
+    CLIC('ete-qx-v-' + k);
+    const e2 = EST();
+    ex.push(['(E4.' + k + ') el boton de la vista queda marcado y los otros dos no',
+      AT('ete-qx-v-' + k, 'aria-pressed') === 'true'
+        && ['cir','ett','tg'].filter(j => j !== k).every(j => AT('ete-qx-v-' + j, 'aria-pressed') === 'false')
+        && e2.vistaDest === k,
+      'pressed=' + ['cir','ett','tg'].map(j => j + ':' + AT('ete-qx-v-' + j, 'aria-pressed')).join(' ') + ' dest=' + e2.vistaDest]);
+  });
+  CLIC('ete-qx-v-cir');
+  try { if (FN('qxGirarA')) qxGirarA(40); } catch (e) {}
+  ex.push(['(E5) girar a mano DESMARCA los tres botones',
+    ['cir','ett','tg'].every(j => AT('ete-qx-v-' + j, 'aria-pressed') === 'false') && EST().vistaDest === 'libre',
+    'pressed=' + ['cir','ett','tg'].map(j => AT('ete-qx-v-' + j, 'aria-pressed')).join(',') + ' dest=' + EST().vistaDest]);
+  try { if (FN('qxGirarA')) qxGirarA(0); } catch (e) {}
+  CLIC('ete-qx-v-cir');
+
+  /* ══ (F) EL PDF ══════════════════════════════════════════════════════════════════════════ */
+  /* El canvas se dibuja con la camara del cirujano FIJA: el papel no puede depender de como el
+     medico dejo girada la pantalla. Se compara el data URL en tres estados. */
+  const dataURL = () => { try { return FN('eteQxDataURL') ? String(eteQxDataURL()) : 'SIN FN'; } catch (e) { return 'EXC'; } };
+  try { if (FN('eteLimpiarSegmentos')) eteLimpiarSegmentos(); } catch (e) {}
+  TOQUE('ete-qx-P2'); TOQUE('ete-qx-P2');
+  const dBase = dataURL();
+  try { if (FN('qxGirarA')) qxGirarA(90); } catch (e) {}
+  try { if (FN('eteQxDibujar')) eteQxDibujar(); } catch (e) {}
+  const dGirado = dataURL();
+  if (hay3d) { CLIC('m3d-btn'); CLIC('m3d-a-60'); }
+  const dConAng = dataURL();
+  if (hay3d) { CLIC('m3d-a-60'); CLIC('m3d-btn'); }
+  try { if (FN('qxGirarA')) qxGirarA(0); } catch (e) {}
+  ex.push(['(F1) el papel no depende de la pantalla: girado y con un angulo elegido sale igual',
+    dBase.length > 1000 && dBase === dGirado && dBase === dConAng,
+    'largo=' + dBase.length + ' girado=' + (dBase === dGirado) + ' conAng=' + (dBase === dConAng)]);
+  try { if (FN('eteLimpiarSegmentos')) eteLimpiarSegmentos(); } catch (e) {}
+  const dSinLesion = dataURL();
+  ex.push(['(F2) CONTROL: el papel SI lee las lesiones, asi que (F1) prueba algo',
+    dSinLesion.length > 1000 && dSinLesion !== dBase, 'distintos=' + (dSinLesion !== dBase)]);
+  /* ⚠️ ESTO MIDE EL COMPORTAMIENTO Y NO LA EXPRESION: el lienzo del papel pasa a ser CUADRADO
+     con el dibujo nuevo (420 x 420 por el supermuestreo 2x = 840 x 840), contra los 520 x 290 del
+     dibujo viejo. Se leen los cuatro bytes de ancho y los cuatro de alto de la cabecera IHDR del
+     PNG, que es el unico lugar donde eso se puede comprobar sin mirar el fuente. */
+  ex.push(['(F3) el papel se dibuja en el lienzo CUADRADO del dibujo nuevo',
+    (function () { try {
+      const b = atob(String(dBase).split(',')[1]).slice(16, 24);
+      const u32 = (o) => ((b.charCodeAt(o) << 24) | (b.charCodeAt(o + 1) << 16)
+                        | (b.charCodeAt(o + 2) << 8) | b.charCodeAt(o + 3)) >>> 0;
+      return u32(0) === 840 && u32(4) === 840;
+    } catch (e) { return 'EXC: ' + e.message; } })(),
+    (function () { try { const b = atob(String(dBase).split(',')[1]).slice(16, 24);
+      const u32 = (o) => ((b.charCodeAt(o) << 24) | (b.charCodeAt(o + 1) << 16)
+                        | (b.charCodeAt(o + 2) << 8) | b.charCodeAt(o + 3)) >>> 0;
+      return u32(0) + 'x' + u32(4); } catch (e) { return 'EXC'; } })()]);
+
+  /* ══ (G) LOS CUATRO DIBUJOS TEER ═════════════════════════════════════════════════════════ */
+  try { if (FN('showTab')) showTab('ete'); } catch (e) {}
+  try { const s = EL('ete-seccion-teer');
+    if (s && getComputedStyle(s).display === 'none' && FN('toggleEteSeccion')) toggleEteSeccion('teer'); } catch (e) {}
+  const TF = OB('TEER_FIG');
+  ex.push(['(DENOM G) los CUATRO dibujos existen con su campo', !!TF
+    && ['prof','len','gap','anch'].every(k => !!EL('teer-fig-' + k) && !!EL('teer-fig-' + k + '-val') && !!EL(TF[k])),
+    TF ? JSON.stringify(TF) : 'SIN TEER_FIG']);
+  const V4 = { prof: '8', len: '5', gap: '7', anch: '12' };
+  if (TF) Object.keys(V4).forEach(k => { try { __t.set(TF[k], V4[k]); } catch (e) {} });
+  try { if (FN('calcTEER')) calcTEER(); } catch (e) {}
+  ex.push(['(G1) cada dibujo publica el valor de SU campo, en mm',
+    !!TF && Object.keys(V4).every(k => TXT('teer-fig-' + k + '-val') === V4[k] + ' mm'),
+    !!TF ? Object.keys(V4).map(k => k + '=' + TXT('teer-fig-' + k + '-val')).join(' ') : 'SIN TEER_FIG']);
+  /* Un campo vacio es SIN DATO: el dibujo se queda sin numero, no conserva el anterior ni
+     publica un cero. Y los otros tres conservan el suyo — el control negativo. */
+  if (TF) { try { __t.set(TF.prof, ''); } catch (e) {} }
+  try { if (FN('calcTEER')) calcTEER(); } catch (e) {}
+  ex.push(['(G2) borrar un campo deja SU dibujo sin numero y NO toca los otros tres',
+    !!TF && TXT('teer-fig-prof-val') === '' && TXT('teer-fig-len-val') === '5 mm'
+      && TXT('teer-fig-gap-val') === '7 mm' && TXT('teer-fig-anch-val') === '12 mm',
+    !!TF ? ['prof','len','gap','anch'].map(k => k + '=' + JSON.stringify(TXT('teer-fig-' + k + '-val'))).join(' ') : 'SIN TEER_FIG']);
+  ex.push(['(G3) las puntas de flecha llevan COLOR FIJO en el marcador, no heredado',
+    ['prof','len','gap','anch'].every(k => { const s = EL('teer-fig-' + k);
+      const m = s ? s.querySelector('marker path') : null;
+      return !!m && m.getAttribute('stroke') === '#1BA3B8'; }), 'ok']);
+  ex.push(['(G4) ninguna flecha ni ninguna linea usa un color de LESION ajeno',
+    ['prof','len','gap','anch'].every(k => { const s = EL('teer-fig-' + k); if (!s) return false;
+      const malos = ['#f59e0b','#3b82f6','#8b5cf6','#22c55e'], hay = [];
+      s.querySelectorAll('*').forEach(e => ['stroke','fill'].forEach(a => {
+        const c = e.getAttribute(a); if (c && malos.indexOf(c) >= 0) hay.push(c); }));
+      return hay.length === 0; }), 'ok']);
+  if (TF) Object.keys(V4).forEach(k => { try { __t.set(TF[k], ''); } catch (e) {} });
+  try { if (FN('calcTEER')) calcTEER(); } catch (e) {}
+
+  /* ══ (H) NADA SE GUARDA, Y EL 3D NO CAMBIA ═══════════════════════════════════════════════ */
+  ex.push(['(H1) ni el angulo, ni la rotacion, ni la vista entran al estudio',
+    (function () { const ids = [];
+      document.querySelectorAll('input[id],select[id],textarea[id]').forEach(e => {
+        if (/^(ete-qx|teer-fig|qx)/.test(e.id)) ids.push(e.id); });
+      return ids.length === 0; })(), 'ok']);
+  ex.push(['(H2) ni al navegador: ninguna clave de almacenamiento del dibujo',
+    (function () { try { const k = [];
+      for (let i = 0; i < localStorage.length; i++) k.push(localStorage.key(i));
+      for (let i = 0; i < sessionStorage.length; i++) k.push(sessionStorage.key(i));
+      return k.filter(x => /qx|teer_fig|ete_qx_rot|ete_qx_vista/i.test(String(x))).length === 0;
+    } catch (e) { return false; } })(), 'ok']);
+  /* CONTROL: el 3D de la mitral no cambia ni su tabla, ni sus angulos, ni sus botones. */
+  const MV = OB('M3D_VIS'), MA = OB('M3D_ANGS');
+  ex.push(['(H3) CONTROL: la tabla del 3D no se toco, y es OTRA que la del dibujo',
+    !!MV && JSON.stringify(MV[45]) === JSON.stringify(['P3','A2','P1'])
+      && JSON.stringify(MV[90]) === JSON.stringify(['P3','A1','A2','A3'])
+      && !!MA && MA.join(',') === '0,45,60,90,120',
+    MV ? JSON.stringify(MV) : 'SIN M3D_VIS']);
+  ex.push(['(H4) CONTROL: los OCHO botones del 3D siguen con sus nombres',
+    (function () { const n = ['m3d-v-cirujano','m3d-v-ventriculo','m3d-v-lateral',
+        'm3d-a-0','m3d-a-45','m3d-a-60','m3d-a-90','m3d-a-120'];
+      return n.every(id => !!EL(id)) && TXT('m3d-v-cirujano') === 'Vista del cirujano'
+        && TXT('m3d-v-ventriculo') === 'Desde el ventrículo' && TXT('m3d-v-lateral') === 'Corte lateral';
+    })(), [TXT('m3d-v-cirujano'), TXT('m3d-v-ventriculo'), TXT('m3d-v-lateral')].join('|')]);
+
+  /* ══ (I) CONTROLES ═══════════════════════════════════════════════════════════════════════ */
+  ex.push(['(I1) CONTROL: el Excel sigue en 440 columnas',
+    (function () { try { if (!FN('_labExcelRow')) return true;
+      const f = _labExcelRow(__t.reg ? __t.reg({}, 'y3c') : {});
+      return Object.keys(f).length === 440; } catch (e) { return 'EXC: ' + e.message; } })(),
+    (function () { try { return FN('_labExcelRow')
+      ? Object.keys(_labExcelRow(__t.reg ? __t.reg({}, 'y3c') : {})).length : 'SIN FN'; } catch (e) { return 'EXC'; } })()]);
+  ex.push(['(I2) CONTROL: el informe y el EN SUMA siguen vivos y sin una palabra del dibujo',
+    (function () { try { if (FN('generarInforme')) generarInforme();
+      const t = String((EL('informe_texto') || {}).value || '') + ' ' + String((EL('en_suma') || {}).value || '');
+      return t.length > 20 && !/vista quir|transgastrica|flail gap|ETE 60/i.test(t);
+    } catch (e) { return false; } })(), 'ok']);
+  ex.push(['(I3) CONTROL: el Laboratorio y la diastolica no se mueven con todo esto',
+    (function () { try { const d = TXT('dd-interp');
+      return d !== 'NO EXISTE'; } catch (e) { return false; } })(),
+    'dd-interp=' + String(TXT('dd-interp')).slice(0, 40)]);
 
   return { extra: ex };
 `);

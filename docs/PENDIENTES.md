@@ -2,6 +2,105 @@
 
 
 
+
+## Tanda Y3c · el dibujo estático de la mitral, el plano de corte y las medidas TEER (2026-10-18) — DECLARADO y NO arreglado
+
+### Y3c-1 · La tabla del 3D y la del dibujo DIVERGEN en dos filas
+
+`ETE_CORTES` (el dibujo, los cuatro esquemas y la línea del plano) y `M3D_VIS` (el 3D) contestan la
+misma pregunta —qué festones corta el plano en cada ángulo— y **no dicen lo mismo**:
+
+| ángulo | `ETE_CORTES` | `M3D_VIS` |
+|---|---|---|
+| 0°   | P1 · P2 · A2 · A3      | A2 · A3 · P1 · P2 ✓ |
+| 45°  | P1 · P2 · A2 · A3 · P3 | **P3 · A2 · P1** ✗ |
+| 60°  | P1 · A2 · P3           | P3 · A2 · P1 ✓ |
+| 90°  | A1 · A2 · P2 · P3      | **P3 · A1 · A2 · A3** ✗ |
+| 120° | P2 · A2                | A2 · P2 ✓ |
+
+**No se tocó `M3D_VIS` porque la orden de esta tanda lo prohíbe expresamente** («el 3D de la mitral
+NO cambia… ni su cuenta del plano»). Unificarlas cambia **qué festones se ven** en el modelo 3D en
+esos dos ángulos, que es contenido de pantalla y decisión de Maicol. Es exactamente el defecto que
+esta tanda vino a cerrar en los cuatro esquemas, por la otra puerta.
+
+### Y3c-2 · Tocar dos veces el mismo ángulo deja el botón del 3D marcado y el dibujo sin línea
+
+`m3dAngulo` **no togglea** —hace `_m3dAng = a` siempre—, así que el dibujo lleva su propio toggle
+para poder cumplir «al volver a tocar el mismo ángulo la línea desaparece» sin tocar el 3D. El
+precio: en ese estado el botón del 3D sigue marcado. Las dos salidas son hacer que `m3dAngulo`
+togglee —cambia el 3D— o que el dibujo no toggle —cambia lo que la orden pide—.
+
+### Y3c-3 · El dibujo IMPRESO se achica
+
+La caja del PDF pasa de 120 × 66,9 mm a 100 × 100 mm, pero el lienzo nuevo tiene el **aire que el
+dibujo necesita para girar en pantalla**: el modelo ocupa un 57 % del ancho del lienzo, así que
+mide unos **57 mm** impresos contra los **76** del dibujo viejo. Recortar el lienzo del canvas al
+contenido dejaría las cuatro marcas pegadas al borde; subir la caja a 120 mm dejaría el bloque en
+120 mm de alto (+53 contra los 67 de hoy).
+
+### Y3c-4 · ETT y transgástrica van sin letras de festón
+
+Ninguna fuente de la biblioteca publica de qué lado quedan las comisuras en el eje corto
+paraesternal mitral ni en la transgástrica basal (censo en `docs/fuentes/FUENTES.md` → «La tanda
+Y3c»). Las dos vistas se muestran igual pero **sin letras**. El día que aparezca la fuente, lo
+único que hay que cambiar es el campo `letras` de `ETE_QX_VISTAS`.
+
+### Y3c-5 · El bloque del dibujo pasa de 500 × 279 px a 420 × 420
+
+El dibujo de la demo es cuadrado y no se reescaló ningún número, así que la pestaña ETE crece en
+alto. A 1200 y 768 px mide 420 × 420; a 390 px, 328 × 328; a 360 px, 298 × 298. Cero scroll
+horizontal en las ocho celdas medidas.
+
+### Y3c-6 · Los cortes de TEER, y el campo del flail gap que nadie lee
+
+**Reportado y NO tocado** (son contenido clínico). El detalle, con la tabla completa, está en
+`docs/fuentes/FUENTES.md` → «Los cortes de TEER que la app aplica hoy». Los tres puntos:
+1. **`teer_flail_gap` no lo lee ningún veredicto.** El campo que **sí** es el flail gap no vota; el
+   que vota contra `<= 10` es `teer_gap`, rotulado «Longitud coaptación» con la ayuda «Req: >2mm».
+   Es un defecto **preexistente** que el propio código ya declara.
+2. **La anchura de flail diverge en el valor exacto**: el código cumple con `<= 15` y la ayuda dice
+   «Excl: ≥15mm».
+3. **Las definiciones de EVEREST II y del protocolo EXPAND no están en la biblioteca**, así que los
+   cuatro dibujos muestran lo que se mide **sin línea de fuente**.
+
+### Y3c-7 · El valor del dibujo TEER achica el campo a 1200 px
+
+Con la imagen al lado, el `<input>` pasa de unos 238 px a **138 px** a 1200 px de ventana. Sigue
+siendo cómodo para un número de dos dígitos y a 768 px y por debajo la imagen baja y el campo
+recupera su ancho entero. Si 138 px resulta poco, la alternativa mínima es bajar la imagen también
+en escritorio o achicarla a 72 px.
+
+### Y3c-10 · No existe un «bull's eye quirúrgico» de la mitral, y hay que decirlo
+
+La orden pide que el ciclo de lesiones se refleje «en los cuatro esquemas de ETE, el dibujo
+estático, el 3D y el bull's eye quirúrgico». **Censado: ese bull's eye no existe en la app.** El
+único bull's eye es el de **Contractilidad** (17 segmentos del VI), que no tiene nada que ver con
+la mitral y que esta orden prohíbe tocar. Lo que más se le parece es la proyección **transgástrica
+de `ETE_PROYECCIONES`**, que dibuja los seis festones en eje corto — pero **ese módulo entero es
+código legado que no se renderiza en ninguna parte**: `eteProy = ETE_PROYECCIONES[0]` se asigna y
+nunca se pinta, y su manejador `eteClickSeg` tiene su **propio estado** (`eteEstado`), desconectado
+del módulo vivo. TC-485 lo usa sólo como control negativo, leyendo el fuente y no el DOM.
+
+**Lo que sí está sincronizado, y medido:** dibujo estático → cuatro esquemas de proyección →
+espejo del estudio (`ete_seg_*`) → **3D**, que lee esos mismos espejos. Son un solo estado.
+
+### Y3c-9 · La segunda corrida de la suite se midió SIN el pendrive
+
+El `DISK_IMG` **se desconectó físicamente** entre las dos corridas completas —verificado con
+`diskutil list`: el volumen ya no existe, no es que se desmontó—, así que la corrida de cierre
+sale con los **diecisiete** de **TC-181…TC-197** en rojo por ENTORNO. **No se restan las dos
+cifras**: la primera, **con el pendrive montado**, dio **510/517** y sus siete rojos están
+explicados uno por uno en `CLAUDE.md`; los dos que eran trabajo pendiente se adaptaron y los tres
+casos de la zona dan 3/3 ✓. Cuando el pendrive vuelva, conviene medir la suite entera de un tirón
+para dejar la cifra limpia.
+
+### Y3c-8 · El celeste `#1BA3B8` es un literal y no una variable del tema
+
+Lo fija la orden («LO QUE SE MIDE va en celeste #1BA3B8») y es lo que lo separa de los seis colores
+de lesión. Su contraste contra el fondo claro (#ffffff) es bajo para texto chico; contra el oscuro
+(#181c27) es cómodo. Los trazos del corazón sí van con `var(--text)` y `var(--text2)`, medidos
+reales y distintos en los dos temas.
+
 ## Tanda Y3 · el 3D de la mitral en ETE y la fila de la Vmax (2026-10-16) — DECLARADO y NO arreglado
 
 > Lo implementado está en `docs/mapa/mitral-3d-ete.md`. Acá queda lo que la tanda **no** hizo.

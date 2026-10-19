@@ -758,6 +758,17 @@ async function main() {
      tanda no puede romper la infraestructura que comparten nueve sondas. */
   await evCrudo(`
 window.__Y = {
+  /* N aperturas y cierres del panel 3D, contando oyentes nuevos sobre el dibujo. */
+  ciclo3d(n) {
+    var svg = document.getElementById('ete-svg-qx');
+    var cuenta = 0, o = EventTarget.prototype.addEventListener;
+    EventTarget.prototype.addEventListener = function(t){
+      if (this === svg) cuenta++; return o.apply(this, arguments) };
+    var b = document.getElementById('m3d-btn'), i;
+    for (i = 0; i < n; i++) { if (b && !b.hasAttribute('hidden')) { b.click(); b.click(); } }
+    EventTarget.prototype.addEventListener = o;
+    return { ciclos: n, oyentesNuevos: cuenta } },
+
   teerColores() {
     var LES = ['#f59e0b','#3b82f6','#8b5cf6','#22c55e'];  /* prolapso, restriccion, perforacion, calcificacion */
     var o = {};
@@ -1494,6 +1505,115 @@ window.__Y = {
     } catch (e) { r.err = e.message; }
     out.grupos.pdf = r;
     process.stderr.write('[pdf] listo\n');
+  }
+
+  /* ══ GRUPO «ciclo» — 20 aperturas y cierres del 3D ═══════════════════════════════════════ */
+  if (corre('ciclo')) {
+    const r = {};
+    try {
+      await ev(`window.__Y.irETE()`);
+      await ev(`window.__Y.morf('Normal')`);
+      /* ⚠️ UNA VUELTA DE CALENTAMIENTO ANTES DE CONTAR: el primer pintado CREA el contenido del
+         panel y despues lo reusa. Sin ella la cuenta informa decenas de nodos de mas sobre algo
+         que no acumula ninguno — la leccion del L, del PRO-B y del CORTOS. */
+      await ev(`window.__Y.tog3d()`); await ev(`window.__Y.tog3d()`);
+      await ev(`window.__Y.esperar(400)`, 20000);
+      r.nodosAntes = await ev(`window.__Y.nodos()`);
+      r.oyentes = await ev(`window.__Y.ciclo3d(20)`, 90000);
+      await ev(`window.__Y.esperar(500)`, 20000);
+      r.nodosDespues = await ev(`window.__Y.nodos()`);
+      r.panelFinal = await ev(`(function(){ var p=document.getElementById('m3d-panel');
+        return p ? { hidden: p.hasAttribute('hidden') } : 'NO EXISTE' })()`);
+      r.planoFinal = (await ev(`window.__Y.dib()`)).plano.disp;
+      r.rafTrasCiclo = await ev(`window.__Y.contarRaf(700)`, 30000);
+      /* Nada de esto se guarda: ni en el estudio ni en el navegador. */
+      r.almacen = await ev(`window.__P.almacen()`);
+      r.camposEst = await ev(`window.__Y.camposEstudio()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.ciclo = r;
+    process.stderr.write('[ciclo] listo\n');
+  }
+
+  /* ══ GRUPO «maqueta» — cuatro anchos por dos temas ═══════════════════════════════════════ */
+  if (corre('maqueta')) {
+    const r = {};
+    try {
+      await ev(`window.__Y.irETE()`);
+      await ev(`window.__Y.morf('Normal')`);
+      for (const [w, h] of [[1200, 700], [768, 1024], [390, 844], [360, 740]]) {
+        await viewport(w, h);
+        for (const claro of [false, true]) {
+          const t = await ev(`window.__P.tema(${claro})`);
+          if (!!t.claro !== claro) throw new Error('EL TEMA NO QUEDO: ' + JSON.stringify(t));
+          await ev(`window.__Y.esperar(300)`, 20000);
+          const d = await ev(`window.__Y.dib()`);
+          r[w + (claro ? '_claro' : '_osc')] = {
+            svgW: d.w, svgH: d.h, scrollH: await ev(`window.__Y.scrollH()`),
+            colorAnillo: await ev(`(function(){ var e=document.getElementById('ete-qx-anillo');
+              return e ? getComputedStyle(e).stroke : 'NO EXISTE' })()`),
+            colorRotulo: await ev(`(function(){ var e=document.getElementById('ete-qx-lbl-A2');
+              return e ? getComputedStyle(e).fill : 'NO EXISTE' })()`),
+            colorPlano: await ev(`(function(){ var e=document.getElementById('ete-qx-plano');
+              return e ? getComputedStyle(e).stroke : 'NO EXISTE' })()`),
+            vistasW: await ev(`(function(){ var h=document.getElementById('ete-qx-vistas');
+              return h ? Math.round(h.getBoundingClientRect().width) : 'NO EXISTE' })()`) };
+        }
+      }
+      await ev(`window.__P.tema(false)`); await viewport(1200, 760);
+    } catch (e) { r.err = e.message; }
+    out.grupos.maqueta = r;
+    process.stderr.write('[maqueta] listo\n');
+  }
+
+  /* ══ GRUPO «captura» — el dibujo en las tres vistas, con y sin linea ═════════════════════ */
+  if (corre('captura')) {
+    const r = {};
+    const tirar = async (nom) => {
+      const g2 = await ev(`(function(){ var e=document.getElementById('ete-svg-qx');
+        if(!e) return null; e.scrollIntoView({block:'center'}); var b=e.getBoundingClientRect();
+        return { x: Math.round(b.left + window.scrollX), y: Math.round(b.top + window.scrollY),
+                 w: Math.round(b.width), h: Math.round(b.height) } })()`);
+      if (!g2 || !DEST) return null;
+      const shot = await cdp.send('Page.captureScreenshot', { format: 'png',
+        clip: { x: g2.x, y: g2.y, width: g2.w, height: g2.h, scale: 2 } }, sessionId);
+      await writeFile(join(DEST, nom + '.png'), Buffer.from(shot.data, 'base64'));
+      return g2;
+    };
+    try {
+      await ev(`window.__Y.irETE()`);
+      await ev(`window.__Y.morf('Normal')`);
+      await ev(`window.__Y.limpiarSeg()`);
+      await ev(`window.__Y.click('P2')`); await ev(`window.__Y.click('P2')`);
+      await ev(`window.__Y.click('A1')`);
+      for (const [w, h] of [[1200, 700], [390, 844]]) {
+        await viewport(w, h);
+        for (const claro of [false, true]) {
+          const t = await ev(`window.__P.tema(${claro})`);
+          if (!!t.claro !== claro) throw new Error('EL TEMA NO QUEDO');
+          const sfx = '_' + w + (claro ? '_claro' : '_osc');
+          for (const v of ['cir','ett','tg']) {
+            await ev(`window.__Y.vista(${JSON.stringify(v)})`);
+            await ev(`window.__Y.esperar(1400)`, 30000);
+            r['v_' + v + sfx] = await tirar('qx_' + v + sfx);
+          }
+          await ev(`window.__Y.vista('cir')`);
+          await ev(`window.__Y.esperar(1400)`, 30000);
+          /* Con el 3D abierto y un angulo: la linea del plano. */
+          await ev(`window.__Y.tog3d()`);
+          for (const a of [0, 45, 60, 90, 120]) {
+            await ev(`window.__Y.ang(${a})`);
+            await ev(`window.__Y.esperar(200)`, 20000);
+            r['a' + a + sfx] = await tirar('qx_ang' + a + sfx);
+            await ev(`window.__Y.ang(${a})`);
+          }
+          await ev(`window.__Y.tog3d()`);
+        }
+      }
+      await ev(`window.__P.tema(false)`); await viewport(1200, 760);
+      await ev(`window.__Y.limpiarSeg()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.captura = r;
+    process.stderr.write('[captura] listo\n');
   }
 
   if (corre('ctrl')) {

@@ -7,6 +7,15 @@ cada edición, el nombre no.
 
 ---
 
+> ⚠️ **EL DIBUJO ESTÁTICO —la «vista quirúrgica»— YA NO ES EL QUE ESTE MAPA DESCRIBÍA** (tanda
+> «Y3c», 2026-10-18). Lo sustituyó el dibujo de la demo aprobada, que es **paramétrico**, **gira**,
+> tiene **tres vistas** y dibuja la **línea del plano de corte** de los cinco ángulos de ETE. Todo
+> eso, más la **tabla única de festones** que hoy leen los cuatro esquemas de proyección y los
+> **cuatro dibujos de medidas TEER**, vive en **`docs/mapa/mitral-dibujo-estatico.md`**.
+> El 3D **no cambió**: ni sus vistas, ni sus nombres, ni sus botones, ni su cuenta del plano
+> (`M3D_VIS`) — medido, y por eso esa tabla y la nueva **divergen** en 45° y 90°
+> (`docs/PENDIENTES.md` → Y3c-1).
+
 ## 1 · Dónde vive y quién lo ve
 
 Dentro de la pestaña **ETE**, en la sección `ete-seccion-mitral`, al lado de la **Vista Quirúrgica**

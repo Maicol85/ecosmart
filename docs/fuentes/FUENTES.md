@@ -17,6 +17,102 @@ desacuerdo — `grep -n 'IND_REFS' index.html`) y `docs/historial/CLAUDE_histori
 
 ---
 
+
+## La tanda Y3c — la tabla de ángulos de ETE, las tres vistas y las medidas TEER (2026-10-18)
+
+### `eteCortesSEIC` — la tabla de festones por ángulo · **TRANSCRITA, SIN FOLIO**
+
+**La transcribió Maicol** de la **Figura 1** del comentario de **Keituqwa Yáñez I.** (SEIC,
+ecocardio.com) sobre **Abazid y col., JASE 2023**. ⚠️ **Ese comentario NO está en la biblioteca de
+fuentes de este repo** —censados los 112 PDF por nombre y por texto: no hay ningún Abazid ni ningún
+comentario de la SEIC—, así que la tabla se declara **sin folio** y **como transcripción**, no como
+dato verificado al estándar de la casa.
+
+Epígrafe transcrito: *0° = 4 cámaras: A3 y P1; 45° = transición, casi comisural: P1 y P3, con A2 en
+el medio; 60° = bicomisural: P3(A2)P1; 90° = 2 cámaras: A1 y P3; 120° = eje largo: A2 y P2.*
+
+La tabla que la app guarda sale del **mismo barrido geométrico que la demo aprobada** corre sobre
+los valores que Maicol aprobó el 17/10/2026, y **los cinco coinciden con el epígrafe por sus dos
+extremos** —lo verifica un assert de arranque, no un comentario—:
+
+| ángulo | festones, de lateral a medial | extremos | epígrafe |
+|---|---|---|---|
+| 0°   | P1 · P2 · A2 · A3      | P1 / A3 | A3 y P1 ✓ |
+| 45°  | P1 · P2 · A2 · A3 · P3 | P1 / P3 | P1 y P3, con A2 en el medio ✓ |
+| 60°  | P1 · A2 · P3           | P1 / P3 | P3(A2)P1 ✓ |
+| 90°  | A1 · A2 · P2 · P3      | A1 / P3 | A1 y P3 ✓ |
+| 120° | P2 · A2                | P2 / A2 | A2 y P2 ✓ |
+
+### ✅ LO QUE SÍ ESTÁ VERIFICADO EN EL ORIGINAL — `aseEteHahn2022`
+
+**Hahn RT, Saric M, Faletra FF y col.** *Recommended Standards for the Performance of
+Transesophageal Echocardiographic Screening for Structural Heart Intervention.* American Society of
+Echocardiography. PDF en `14- ETE/ASE ETE .pdf`, 76 páginas. **Regla de folio: folio = página del
+PDF**, comprobada en el pie impreso («28 · Hahn et al · Journal of the American Society of
+Echocardiography»).
+
+1. **La fila de 60° de la tabla.** **Tabla 4, folio 28**, «Imaging level: ME mitral commissural
+   view 50–70»: *«Mitral commissural view images the anterior leaflet in the center (A2) and the
+   posterior leaflet on either side (**P3 left/medial and P1 right/lateral**).»* → **P1 · A2 · P3**,
+   con A2 en el medio. Coincide dígito por dígito con la fila que la app aplica.
+2. **Las dos comisuras y la vista del cirujano.** **Folio 17**: *«The **LAA offers a clear landmark
+   for the anterolateral commissure and the A1/P1 scallops**, whereas the coronary sinus is adjacent
+   to the posteromedial commissure and the A3/P3 scallops.»* Y la **Tabla 4, folio 28**, describe la
+   vista 3D en face **con la aórtica a las 12**. Eso es lo que sostiene que en el dibujo —aorta
+   arriba, orejuela a la izquierda— **AL va a la izquierda y PM a la derecha**: confirma la
+   corrección del Y3-1, que hasta hoy se apoyaba sólo en la ASE/SCA/STS 2020 (Nicoara, folio 695).
+3. **Dónde se miden las medidas de TEER.** **Tabla 4, folio 30**, «Imaging level: ME mitral view
+   120–140»: *«Degenerative MV leaflet measurements include **flail gap**, anterior leaflet length,
+   and the C-sept distance»* y *«Measurements of tethered leaflets include **coaptation length and
+   depth**.»* Respalda el PLANO de tres de los cuatro dibujos; **no** publica sus definiciones
+   numéricas.
+
+### ❌ LO QUE **NO** SE PUDO VERIFICAR, Y QUEDA DECLARADO
+
+1. **La orientación de la vista ETT (eje corto paraesternal a nivel mitral) y de la
+   TRANSGÁSTRICA basal.** Censada la biblioteca entera —las cuatro guías de ETE, la de
+   cuantificación de cavidades (Lang 2015 y sus dos copias), la de regurgitación (Zoghbi 2017), las
+   de prótesis y las de corazón derecho— buscando «parasternal short axis» a nivel mitral, «TG
+   basal» y las dos comisuras por su nombre: **ninguna publica de qué lado quedan las comisuras en
+   esas dos vistas**. Por eso la app las muestra igual pero **SIN letras de festón**, que es lo que
+   la orden manda en ese caso.
+2. **Las definiciones de EVEREST II (Eur Heart J 2010, Tabla 1) y del protocolo MitraClip EXPAND
+   de Abbott.** **No están en la biblioteca**: censados los 112 PDF, «EVEREST» aparece **una sola
+   vez** y es una cita bibliográfica dentro de Cruz-González 2022. Así que **flail gap**, **flail
+   width**, **profundidad de coaptación** y **longitud de coaptación** quedan **sin línea de
+   fuente** para su definición; los cuatro dibujos muestran lo que se mide sin atribuírselo a
+   ninguna guía.
+3. **Lo que sí está VISTO y define OTRA cosa:** **Cruz-González I y col.**, *Valvulopatía mitral y
+   tricuspídea*, posicionamiento conjunto de la SEC (Rev Esp Cardiol), **Tabla 8, página 11 del
+   PDF**, «Características anatómicas para seleccionar la idoneidad de cada dispositivo»: para
+   reparación borde a borde da «Gap septolateral < 7 mm» (ideal), «7-8,5 mm» (posible), «> 8,5 mm»
+   (desfavorable), «Flail o prolapso < 10 mm» (posible) y «longitud < 7 mm» (desfavorable). **Son
+   otros cortes y otro criterio** que los que la app aplica, y **no se tocó ninguno**.
+
+### Los cortes de TEER que la app aplica hoy — REPORTADOS, NO TOCADOS
+
+| criterio | campo | lo que aplica `teerEstado` | la ayuda en pantalla |
+|---|---|---|---|
+| Velo anterior | `teer_lva` | `>= 20` mm | — |
+| Velo posterior | `teer_lvp` | `>= 7` mm (advertencia, no veta) | — |
+| «Gap de coaptación» | `teer_gap` | `<= 10` mm | **«Longitud coaptación · Req: >2mm»** |
+| Área mitral | `teer_area_mitral` | `>= 4,0` cm² | — |
+| Profundidad de coaptación | `teer_prof_flail` | `<= 10` mm | «Excl: >10mm» ✓ |
+| Anchura de flail | `teer_ancho_flail` | `<= 15` mm | **«Excl: ≥15mm»** |
+| Flail gap | `teer_flail_gap` | **nadie lo lee** | «Excl: ≥10mm» |
+
+⚠️ **TRES DIVERGENCIAS, LAS TRES PREEXISTENTES Y NINGUNA TOCADA EN ESTA TANDA:**
+- **`teer_flail_gap` no lo lee ningún veredicto** —censado el archivo entero—, así que el campo que
+  **sí** es el flail gap no vota. El que vota contra `<= 10` es `teer_gap`, que la interfaz rotula
+  «Longitud coaptación» con la ayuda «Req: >2mm», o sea **donde más es mejor**. El propio código ya
+  lo declara como defecto preexistente de `calcTEER`.
+- **La anchura de flail diverge en el valor exacto**: el código cumple con `<= 15` (o sea 15,0 está
+  dentro) y la ayuda dice «Excl: ≥15mm» (o sea 15,0 excluye).
+- **El criterio de profundidad coincide** (`<= 10` contra «Excl: >10mm»).
+
+Los cortes son **contenido clínico** y moverlos es decisión de Maicol: `docs/PENDIENTES.md` →
+**Y3c-6**.
+
 ## Reglas de folio — la trampa más cara del repo
 
 El folio que se cita es **la página impresa de la revista**, no la del visor de PDF. Cada documento

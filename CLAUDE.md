@@ -63,6 +63,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Entender por qué una REFERENCIA conservaba el resultado del valor viejo al borrar el dato**: el dueño común, las DOS causas y los once campos | `docs/mapa/borrado-referencias.md` |
 | **Tocar el FOP, el test de burbuja o el aneurisma del septum**: la escala unificada, el espejo entre Otros y el módulo FOP, el informe esquemático o el aviso de la edad | `docs/mapa/fop-burbuja-unificado.md` |
 | **Agregar o correr un caso de prueba; A/B; mutación** | `docs/mapa/tests.md` · fichas en `docs/mapa/tests-fichas.md` (TC-499 en adelante), `docs/mapa/tests-fichas-496-498.md`, `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
+| **Tocar el DIBUJO ESTÁTICO de la mitral en ETE**: la tabla única de festones por ángulo, la geometría, la línea del plano, el giro, las tres vistas, el PDF o los CUATRO DIBUJOS DE MEDIDAS TEER | `docs/mapa/mitral-dibujo-estatico.md` |
 | **Visor de cineloop, medición, calibración, IndexedDB** | `docs/mapa/imagenes-visor.md` |
 | **Tocar la ESTENOSIS MITRAL en el LABORATORIO**: las seis categorías, las dos casillas del filtro, el gráfico de distribución, el PDF de auditoría o el PPT | `docs/mapa/laboratorio-estenosis-mitral.md` |
 | **Tocar la VISTA 2D de las válvulas**: el lector único del estado, las tarjetas, la tabla de cavidades, el dibujo, los chorros o el «por qué» | `docs/mapa/vista-2d-valvulas.md` |
@@ -127,8 +128,8 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **8,26 MB / 124.184 líneas**, medido el 2026-10-18 al cierre de la tanda
-  ARR —el renglón anterior decía «8,23 MB / 123.829 líneas» y era del Q, una tanda antes:
+  sin frameworks. Hoy **8,33 MB / 125.471 líneas**, medido el 2026-10-18 al cierre de la tanda
+  Y3c —el renglón anterior decía «8,26 MB / 124.184 líneas» y era del ARR, tres tandas antes:
   **medirlo antes de presupuestar contexto**—. Las únicas dependencias son jsPDF, XLSX y
   PptxGenJS por CDN. Se abre como archivo local y corre en Chrome.
 - Lo que produce es un **informe firmado**: narrativo, EN SUMA, PDF, PPT y Excel del Laboratorio.
@@ -283,6 +284,275 @@ impecable.
 
 ## Estado vigente
 
+### El DIBUJO ESTÁTICO de la mitral, el plano de corte y las medidas TEER — «Y3c» (2026-10-18)
+
+- **Son OCHO commits, y son los ocho que la orden pedía.** Al **empezar**, `main` y `origin/main`
+  estaban los dos en **`d007921`** (sello `v20261018-1002`), **sin nada sin pushear** —confirmado
+  con un `git fetch` de verdad—, con los siete commits del P ya incluidos **y pusheados por
+  Maicol**. Los **ocho** commits de esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 8 → 7 → … → 1.**
+  ⚠️ **EL 1 ES LA BASE DEL 2, DEL 3, DEL 4 Y DEL 5**: crea `ETE_CORTES`, `ETE_ESQ_ANG`,
+  `ETE_EPIGRAFE` y el `ETE_GID_MAP` **derivado**, y los cuatro siguientes le piden sus filas.
+  Revertirlo sin revertir antes los otros deja `eteQxConstruir` y `eteQxPlanoPintar` nombrando una
+  tabla que no existe —y un `ReferenceError` ahí se lleva el dibujo entero— **y además** deja los
+  cuatro esquemas con sus ids renombrados sin el mapa que los nombra: ningún esquema volvería a
+  pintar una lesión, **sin un error en consola**.
+  ⚠️ **EL 3 DEPENDE ADEMÁS DEL 2**: su línea y su rótulo son nodos que `eteQxConstruir` crea, y su
+  pintado llama a `eteQxDibujar`. **EL 4 DEPENDE DEL 2** por lo mismo, y **EL 5 DEPENDE DEL 4**:
+  `eteQxVista` usa `qxCerca`, `qxCalmo` y `qxAnimar`, que nacen en el 4.
+  ⚠️ **EL 6 DEPENDE DEL 2**: `eteQxDataURL` dibuja llamando a `qxBandAnt`, `qxBandPost`, `qxAnnPt`,
+  `qxCoapY` y `qxLblPos`. Revertir el 2 sin revertir antes el 6 deja el papel llamando a funciones
+  que no existen y el PDF entero sin generarse.
+  ⚠️ **EL 7 SE REVIERTE SOLO**: los cuatro dibujos TEER viven en `TEER_FIG`, `teerFigSync`, su CSS
+  y el marcado de los cuatro `.fg`; no nombran una sola pieza del dibujo de la mitral.
+  **El 8 es TC-503, la sonda de los dos motores, la documentación y el sello**, y afirma el
+  comportamiento de los siete: revertir cualquiera sin el 8 lo deja en rojo.
+  ⚠️ **EL SELLO VIAJA EN EL COMMIT 8**, que lleva además **dos correcciones de `index.html` que el
+  propio TC-503 destapó**: el botón de vista que se desmarcaba recién al converger, y el «7 mm» del
+  flail gap, que quedaba encima de la valva anterior. Revertir el 8 repone las dos.
+  ⚠️ **CASOS ADAPTADOS: NINGUNO.** Es consecuencia de dos decisiones: los seis `ete-qx-*`
+  **conservaron su id y su convención de color**, así que el módulo de lesiones no se tocó; y los
+  cuatro dibujos TEER **no agregan un solo campo**. Lo confirma la suite completa.
+
+
+- **Línea base al cierre: suite **513/517** descontando los del pendrive —medida en DOS
+  corridas, 510/517 CON el `DISK_IMG` montado y 496/517 sin él—, Semgrep 127 / 0 ERROR en 1 app, Excel en 440 columnas, celular **53 a 360 px y 62 a 390 px con 11 ALTA cada
+  uno** —IDÉNTICO a la línea base del P, y con `--todo` **389 y 398**, el mismo par—. **El
+  denominador sube a 517**: esta tanda agregó **TC-503**.
+  ⚠️ **LOS SIETE ROJOS DE ESA CORRIDA SE EXPLICAN UNO POR UNO, y sólo DOS eran trabajo
+  pendiente.** Los **CUATRO** de ENTRADA —**TC-223** (el documentado, falla por la fecha),
+  **TC-376**, **TC-390** y **TC-406**—; **TC-246**, que es uno de los INESTABLES POR ORDEN DE
+  CORRIDA que este archivo documenta y que **corrido solo da verde** sobre el mismo árbol; y
+  **TC-485** y **TC-252**, los dos que hubo que **ADAPTAR** —ver abajo—. Con los dos adaptados
+  los tres casos de la zona dan **3/3 ✓**.
+  ⚠️ **LA SEGUNDA CORRIDA COMPLETA SE MIDIÓ SIN EL PENDRIVE, Y HAY QUE DECIRLO EN VEZ DE
+  RESTAR.** El `DISK_IMG` **se desconectó físicamente** entre las dos corridas —verificado con
+  `diskutil list`: el volumen ya no existe, no es que se desmontó—. Dio **496/517** con
+  **VEINTIUN** rojos, y son **exactamente** los **diecisiete** de **TC-181…TC-197** —los del
+  pendrive, que son ENTORNO y no prueban nada— más los **CUATRO** de ENTRADA. **No apareció
+  ninguno fuera de esas dos listas, así que CERO REGRESIONES**; con el pendrive puesto la cifra
+  es **513/517**. La comparación válida no es restar 510 y 496: es que **el conjunto de rojos
+  que no son del pendrive, ni de entrada, ni los inestables documentados, es VACÍO en las dos
+  puntas**. El `md5` de `index.html` no se movió durante ninguna de las dos (`9281f677…`).
+  `PENDIENTES.md` → **Y3c-9**.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **517 ids** sobre los 518 casos del archivo.
+  ⚠️ **CASOS ADAPTADOS: DOS, y LOS DOS LOS DESTAPÓ LA SUITE COMPLETA.** **TC-485**, cuyo bloque
+  de las comisuras fijaba el dibujo VIEJO **por sus coordenadas** —AL en x=20, PM en x=510, la
+  orejuela en 68,156, los seis festones como `path` con su `d` empezando en M102 y M362, y el
+  canvas con sus `fillText` cableados—, y ese dibujo es justo el que esta tanda sustituye: hoy es
+  paramétrico, se construye con `createElementNS` y **gira**, así que ninguna coordenada es fija.
+  Lo que ese bloque quería fijar —la corrección del Y3-1— **sigue siendo cierto y se mide igual,
+  pero por el LADO y no por el píxel**, que es una afirmación **más fuerte**. Y **TC-252**, que
+  buscaba los cuatro ids de segmento **sin sufijo** que esta tanda normalizó; moría por
+  **excepción**, no por condición.
+  ⚠️ **Y LA PRIMERA VERSIÓN DE ESA ADAPTACIÓN TRAJO SU PROPIO FALSO:** la condición que exige que
+  el canvas ya no tenga su copia buscaba la palabra `QX_PATHS`, **y el comentario que explica el
+  retiro la nombra** — la trampa que este archivo ya tiene escrita para `.ip-ap-col2`. Se busca la
+  **declaración** (`const QX_PATHS`).
+- **EL SELLO DE VERSIÓN** estaba al día al empezar (`v20261018-1002`) y se volvió a sellar:
+  **`v20261018-1208`**. Todo lo medido salió **DESPUÉS** de sellar, con el `md5` quieto
+  (`9281f677…`, verificado al abrir y al cerrar la corrida).
+- **`index.html` pasó de 8,29 MB / 124.831 líneas a 8,33 MB / 125.471 líneas.**
+
+- **Y3c1 · LA TABLA ES UNA Y EL MAPA SE DERIVA, Y POR ESO EL DEFECTO SE VE.** `ETE_CORTES` es la
+  dueña de los festones que el plano corta en cada ángulo, de LATERAL a MEDIAL, con los dos
+  extremos de la línea. De ella leen los cuatro esquemas de proyección —por `ETE_GID_MAP`, que
+  ahora **se deriva**—, el dibujo estático y la línea del plano. Antes cada superficie traía su
+  lista a mano.
+  **MEDIDO: el esquema de «60-90° — 2 Cámaras» rotulaba A3 donde la fila de 90° pone P2**, y ése
+  es el único cambio visible del commit. Los TÍTULOS de los cuatro no se tocan.
+  ⚠️ **DOS ASSERTS DE ARRANQUE, Y NINGUNO ES DECORATIVO:** los EXTREMOS de cada fila contra el
+  epígrafe de la figura —lo único que impide que una edición futura se separe de la fuente en
+  silencio— y que cada id derivado **exista en el marcado**: sin eso, un festón movido de fila
+  deja un `valve-X-suf` que no está en ningún SVG, el pintor sale por su `if (!el)` y el esquema
+  **no pinta la lesión, sin un error en consola**. Los dos salen limpios.
+  ⚠️ **PARA PODER DERIVAR EL MAPA HUBO QUE NORMALIZAR CUATRO ids** (`valve-A3` → `valve-A3-4ch`,
+  `valve-P1` → `valve-P1-4ch`, `valve-A1` → `valve-A1-2ch`) y mover `valve-A3-2ch` →
+  `valve-P2-2ch` con su rótulo, que es un glifo de matplotlib y no un `<text>`.
+  **FUENTE: la tabla la transcribió Maicol** de la Figura 1 del comentario de Keituqwa Yáñez I.
+  (SEIC) sobre Abazid y col., JASE 2023. ⚠️ **ESE COMENTARIO NO ESTÁ EN LA BIBLIOTECA** —censados
+  los 112 PDF—, así que se declara **sin folio y como transcripción**. ✅ **Lo que SÍ está
+  verificado en el original es la fila de 60°:** Hahn y col., ASE 2022, **Tabla 4, folio 28**
+  (regla de folio = página, comprobada en el pie impreso): «the anterior leaflet in the center
+  (A2) and the posterior leaflet on either side (**P3 left/medial and P1 right/lateral**)».
+  ⚠️ **`M3D_VIS` NO SE TOCA Y LAS DOS TABLAS DIVERGEN** en las filas de 45° y de 90°: la orden lo
+  prohíbe expresamente. `PENDIENTES.md` → **Y3c-1**.
+
+- **Y3c2 · EL DIBUJO DE LA DEMO SUSTITUYE A LA VISTA QUIRÚRGICA, Y NI UN NÚMERO SE REESCALÓ.** El
+  viewBox es el lienzo de la demo tal cual (420 × 420, centro en 210,215) y la escala al «tamaño
+  real» la hace el CSS con `width:100%` + `max-width:420px`: así las proporciones se conservan por
+  construcción y la letra de 13 px se ve a 13 px. **El precio, declarado: el bloque pasa de
+  500 × 279 px a 420 × 420.**
+  **MEDIDO sobre los puntos renderizados:** anillo de 90 vértices con semieje horizontal 120 y
+  verticales **64 arriba / 100 abajo**, y coaptación de 30 vértices con **FLECHA 46,2** sobre un
+  ancho de 232 — **con una recta la flecha sería CERO**, que es lo que el dibujo viejo dibujaba.
+  ⚠️ **LOS SEIS `ete-qx-*` CONSERVAN SU id Y SU CONVENCIÓN DE COLOR** —base en ATRIBUTOS, lesión
+  en el `style`—, y por eso el módulo de lesiones, `eteLimpiarSegmentos` y `eteQxDataURL` siguen
+  andando **sin que se les toque una línea**. Si alguna vez el relleno base se mueve al `style`,
+  el primer regreso a «Normal» deja el festón en `fill:none` y desaparece para siempre.
+  ⚠️ **TODO LO QUE NO ES FESTÓN NI RÓTULO LLEVA `pointer-events:none`**: sin eso el anillo —un
+  polígono de 90 vértices sobre la boca entera— se come todos los toques.
+  ✅ **AL VA DEL LADO DE LA OREJUELA Y AHORA TIENE SU FUENTE LEÍDA EN TEXTO COMPLETO:** Hahn y
+  col., ASE 2022, **folio 17** — «The LAA offers a clear landmark for the anterolateral commissure
+  and the A1/P1 scallops». Confirma la corrección del Y3-1.
+
+- **Y3c3 · LA LÍNEA DEL PLANO, Y EL TOGGLE VIVE EN EL DIBUJO PARA NO TOCAR EL 3D.** Los cinco
+  botones de ángulo del 3D ya existían —no hubo ninguno que reportar como faltante— y el dibujo
+  sólo los ESCUCHA. Línea neutra punteada, festones cortados en `font-weight: 800` **y
+  subrayados**, y el rótulo «ETE 60°».
+  ⚠️ **EL `fill` NO SE TOCA:** los seis colores de lesión están RESERVADOS, y marcar un festón
+  cortado con uno de ellos diría que tiene un trastorno donde sólo hay un corte. **Medido: en los
+  cinco ángulos los seis rótulos salen con `var(--text)` y nada más.**
+  ⚠️ **`m3dAngulo` NO TOGGLEA** —hace `_m3dAng = a` siempre—, así que «volver a tocar el mismo
+  ángulo» **no se deduce del ESTADO**: hay que ver el CLIC. De ahí el oyente de documento en fase
+  de **CAPTURA**, que corre ANTES del `onclick` del botón; en burbuja, el primer clic ya vería el
+  ángulo puesto y lo apagaría. Y `eteQxPlanoSync` **sólo APAGA, nunca prende**: es la puerta por
+  la que el cierre del panel y el cambio a una vista del 3D se llevan la línea.
+  **LA ÚNICA LÍNEA QUE SE LE AGREGA AL 3D** es esa sincronía al final de `m3dBotonesSync`, con
+  `typeof` y en `try`. **MEDIDO: `M3D_VIS`, `M3D_ANGS` y los OCHO botones con sus nombres salen
+  idénticos a los del inicio de la tanda** —la única diferencia del volcado es la fase del latido,
+  que es un reloj—.
+  **MEDIDO:** sin ángulo no hay línea, ni rótulo, ni punto del centro; en los cinco los festones
+  marcados son EXACTAMENTE los de la tabla; repetir el ángulo la apaga; cerrar el panel y elegir
+  una vista del 3D también.
+
+- **Y3c4 · EL GIRO, Y EL BUCLE NO ES PERPETUO.** El gesto es el de la demo línea por línea: el
+  ángulo del puntero respecto del centro, la diferencia normalizada a ±180, la inercia como media
+  móvil y el roce de 0,94 por cuadro. Flechas del teclado, 15° por pulsación. Sin zoom.
+  ⚠️ **UN `requestAnimationFrame` COLGADO PARA SIEMPRE REPINTA SESENTA VECES POR SEGUNDO** con la
+  pestaña ETE abierta y sin que nada se mueva — es por lo que el panel 3D apaga el suyo al
+  cerrarse. **MEDIDO espiando `requestAnimationFrame`: CERO cuadros en 700 ms con el dibujo
+  quieto, antes y después de girar.**
+  ⚠️ **UN ARRASTRE NO CAMBIA LA LESIÓN**, y era lo que un `onclick` por festón hacía inevitable.
+  El umbral son los 6 px de la demo sobre el recorrido **ACUMULADO** y no sobre la distancia
+  final: un arrastre que vuelve al punto de partida tiene distancia final cero y **sí** es un
+  arrastre. **MEDIDO con el ratón REAL por CDP:** un arrastre de 70 × 40 px desde el centro de A2
+  gira el dibujo de 0 a **142,89°** y deja a A2 en «Normal»; un toque en el MISMO punto sin mover
+  **sí** cicla.
+  ⚠️ **SE CABLEA UNA SOLA VEZ**: medido espiando `addEventListener`, **veinte reconstrucciones
+  agregan CERO oyentes nuevos**.
+
+- **Y3c5 · LAS TRES VISTAS, Y LAS DOS SIN ORIENTACIÓN VERIFICADA VAN SIN LETRAS DE FESTÓN.**
+  Cirujano (rot 0, sin espejo), ETT (espejo) y transgástrica (180°).
+  ⚠️ **CENSADA LA BIBLIOTECA ENTERA —las cuatro guías de ETE, la de cuantificación de cavidades,
+  la de regurgitación, las de prótesis y las de corazón derecho— NINGUNA publica de qué lado
+  quedan las comisuras en el eje corto paraesternal mitral ni en la transgástrica basal.** Las dos
+  se muestran igual pero **sin letras**, que es lo que la orden manda en ese caso. Los polígonos
+  siguen tocables y pintándose con su lesión: el dato no se pierde, lo que no se afirma es cuál
+  festón es cuál. `PENDIENTES.md` → **Y3c-4**.
+  ⚠️ **LAS LETRAS SE DECIDEN POR LA CÁMARA EN PANTALLA Y NO POR EL DESTINO:** durante la animación
+  el dibujo pasa por orientaciones intermedias, y mostrar letras ahí afirmaría una orientación que
+  no es ninguna de las tres.
+  ⚠️ **EL BOTÓN SE DESMARCA AL GIRAR A MANO, Y LO DECIDE `qxClase` CLASIFICANDO LA CÁMARA**, no
+  una bandera: con una bandera, girar un grado dejaría el botón marcado sobre una orientación que
+  ya no es la suya.
+  ⚠️ **CON PRÓTESIS MITRAL LOS TRES NO APARECEN**, por el MISMO predicado que el botón del 3D. Va
+  con `hidden` **y** con `display`, porque `[hidden]{display:none}` vive en la hoja del NAVEGADOR
+  y cualquier regla de autor le gana — el defecto que este archivo ya documenta para `.fg`.
+  **Medido:** el bloque queda en `hidden`, `display:none` y ancho 0, y la cámara vuelve al
+  cirujano; al volver a nativa los botones reaparecen con el cirujano marcado.
+
+- **Y3c6 · EL PDF DIBUJA DE LA MISMA GEOMETRÍA QUE LA PANTALLA.** `eteQxDataURL` tenía los seis
+  paths del dibujo viejo escritos a mano: **dos dibujos del mismo órgano** que se separaron en
+  cuanto la pantalla cambió.
+  ⚠️ **EL PAPEL VA SIEMPRE EN LA VISTA DEL CIRUJANO, SIN ROTAR Y SIN ESPEJO:** es la única
+  orientación verificada y un informe firmado no puede depender de cómo el médico dejó girada la
+  pantalla. **MEDIDO por el hash del data URL:** con un ángulo elegido, girado 90° y en ETT el
+  papel sale **IDÉNTICO**. Y el **CONTROL**: con las lesiones borradas sale con OTRO hash, así que
+  esa comparación prueba algo.
+  **Sin la línea del plano ni los festones en negrita** (medido: cero textos «ETE N°» en las seis
+  plantillas). **LO INCLUYEN LAS SEIS PLANTILLAS**, y las seis salen con el MISMO número de textos
+  y de figuras que al inicio — lo único que cambia es la imagen (data URL de 62.418 a 57.478
+  bytes). La caja pasa de 120 × 66,9 mm a **100 × 100 mm** y `checkPage` de 92 a 125.
+  ⚠️ **EL DIBUJO IMPRESO SE ACHICA** de unos 76 a unos 57 mm de ancho, porque el lienzo nuevo
+  tiene el aire que el dibujo necesita para girar. `PENDIENTES.md` → **Y3c-3**.
+
+- **Y3c7 · LOS CUATRO DIBUJOS DE MEDIDAS TEER, Y NO AGREGAN UN SOLO CAMPO.** Son marcado
+  ESTÁTICO —ni un dato concatenado en `innerHTML`— y lo único que `teerFigSync` escribe es el
+  `textContent` del valor. Celeste `#1BA3B8` para lo que se mide, rojo de Flail para el segmento.
+  ⚠️ **UN CAMPO VACÍO ES SIN DATO**, la regla del ARR. **MEDIDO con teclas REALES por los DOS
+  gestos de borrado:** cargar los cuatro publica «8 mm», «5 mm», «7 mm» y «12 mm»; borrar dos los
+  deja sin número y **DEJA a los otros dos con el suyo** —el control negativo—; borrar los cuatro
+  y «Nuevo estudio» los dejan los cuatro sin número.
+  ⚠️ **LAS PUNTAS DE FLECHA LLEVAN COLOR FIJO EN EL MARCADOR**, no heredado: Safari no lo soporta.
+  **Medido: los cuatro `<marker path>` con `stroke="#1BA3B8"`.**
+  ⚠️ **CERO COLORES DE LESIÓN AJENOS** en los cuatro dibujos, medido.
+  **MAQUETA a 1200, 768 y 390 px en los dos temas:** a 1200 px la imagen va AL LADO (92 px) y el
+  `<input>` conserva 138 px; a 768 y 390 px pasa DEBAJO (120 px) y el input recupera su ancho
+  entero. **La bajada a 768 px es la alternativa mínima que la orden pide.** `PENDIENTES.md` →
+  **Y3c-7**.
+
+- **A/B DE CONTROL contra el inicio de la tanda, en CADA commit, con el formulario vacío y con
+  escenario cargado: CERO diferencias** en el informe en los tres estilos, el EN SUMA, el **Excel
+  en 440 columnas CLAVE POR CLAVE**, los **1052 campos del estudio** con su hash, el
+  almacenamiento, el Laboratorio por sus ocho funciones dueñas, las **SEIS plantillas del PDF
+  generadas de verdad**, el **PPT** (21 textos) y el **PDF de auditoría** (104). **Es dibujo y
+  navegación: nada firmado se mueve.**
+
+- **MEDIDO EN LOS DOS MOTORES, 12 CELDAS CADA UNO** —Chrome por el canal del sistema y WebKit,
+  seis viewports × dos temas, con el tema COMPROBADO—: **CERO abortos y CERO scroll horizontal de
+  la PÁGINA en las 24 celdas**; el dibujo mide 420 × 420 a 1200, 1440, 1920 y 768 px, 328 × 328 a
+  390 y 298 × 298 a 360; la tabla y el censo de los cuatro esquemas salen **idénticos** en los dos
+  motores; los colores resuelven **reales y distintos** en los dos temas —`rgb(232,236,244)` de
+  noche y `rgb(26,34,51)` de día— e **IDÉNTICOS entre motores**. **20 aperturas y cierres del
+  panel 3D: 11.980 nodos → 11.980, delta CERO**, con el panel cerrado y la línea apagada al final,
+  **en los DOS motores** y con una vuelta de calentamiento antes de contar. **80 capturas PNG con
+  los 80 `md5` DISTINTOS**, y dos MIRADAS.
+  ⚠️ **WebKit de Playwright NO es Safari, y se declara.**
+  ⚠️ **LA MIRADA CAZÓ UN DEFECTO QUE NINGUNA MEDICIÓN NUMÉRICA DA:** en el dibujo del flail gap el
+  «7 mm» quedaba pegado a la flecha y, al correrlo, **encima de la valva anterior**. Terminó
+  arriba de todo. Es para lo que están las capturas.
+
+- **Arneses: `scripts/_probe_y3c.mjs`** (CDP, teclas, clics y **arrastre de ratón REAL**; once
+  grupos: `tabla`, `dibujo`, `plano`, `giro`, `vistas`, `teer`, `ciclo`, `maqueta`, `captura`,
+  `capteer`, `png`, `pdf`, `ctrl`) y **`scripts/_probe_y3cwk.mjs`** (Playwright, los DOS motores,
+  seis viewports × dos temas y las 80 capturas; resuelve Playwright **por ruta** y, si no está, lo
+  DICE y sale con código 2).
+  **Cobertura: TC-503**, **67 condiciones** —contadas instrumentando el propio caso, porque
+  veinticinco salen de bucles— con **cuatro denominadores** y **cinco controles negativos**.
+  **Verificado que sabe fallar contra el inicio de la tanda en un worktree aparte: 55 de las 67 en
+  rojo, y NINGUNA por excepción.**
+
+- **Dónde está todo:** `docs/mapa/mitral-dibujo-estatico.md` (**mapa NUEVO**, 17,1 KB: la tabla
+  dueña con sus dos asserts, la geometría paramétrica, el ciclo de lesiones, la línea del plano,
+  el giro, las tres vistas, el PDF, los cuatro dibujos TEER, siete trampas y lo medido en los dos
+  motores); `docs/mapa/mitral-3d-ete.md` → un puntero (**31,9 KB**);
+  `docs/mapa/informe-pdf-excel.md` → un puntero (**31,9 KB**); `docs/mapa/tests-fichas.md` → la
+  ficha de TC-503 (**23,9 KB**); `docs/fuentes/FUENTES.md` → «La tanda Y3c», con la tabla
+  transcrita, **lo verificado en Hahn 2022 por su folio**, **las dos ausencias confirmadas** y la
+  tabla de los cortes de TEER que la app aplica; y `docs/PENDIENTES.md` → **ocho** cosas
+  declaradas (Y3c-1 a Y3c-8).
+  ⚠️ **EL MAPA SE SACÓ A ARCHIVO PROPIO ANTES DE ESCRIBIR, medido con `wc -c`:**
+  `mitral-3d-ete.md` estaba en **31,2 KB** y la sección entera lo cruzaba. **Ningún mapa cruzó.**
+
+- ⚠️ **SIETE TRAMPAS, Y CUATRO DABAN FALSOS PLAUSIBLES.**
+  1. **EL `\s` DE UN REGEX SE COCINA DENTRO DEL TEMPLATE DE UNA SONDA**, otra vez: `split(/\s+/)`
+     llegó al motor como `/s+/`, el parseo de los `points` devolvió **un solo vértice** y la sonda
+     informó el anillo con radio 0 y la coaptación con flecha 0 — o sea «el dibujo es una recta»
+     sobre una sonrisa perfecta.
+  2. **EL DIBUJO VIVE DENTRO DE `#ete-seccion-mitral`, QUE NACE PLEGADA**: sin abrirla el SVG
+     existe y mide 0 × 0.
+  3. **EL `clip` DE `Page.captureScreenshot` VA EN COORDENADAS DE PÁGINA** y
+     `getBoundingClientRect` da las del VIEWPORT: la primera tanda de capturas salió del
+     encabezado de la tarjeta, **y se ve perfectamente bien**.
+  4. **EL TEMA HAY QUE EXIGIRLO, NO PEDIRLO**: las ocho primeras capturas dieron **4 `md5`
+     distintos de 8**, o sea claro y oscuro idénticos. La sonda **aborta** si la clase no quedó.
+  5. **UN `.click()` SINTÉTICO YA NO CICLA LA LESIÓN** desde el commit del giro, porque los
+     polígonos no tienen `onclick`: hay que despachar `pointerdown` + `pointerup`. La primera
+     versión de TC-503 informó «el ciclo no funciona» sobre un ciclo perfecto **y además dejó en
+     falso al control del PDF**, que compara el papel con y sin lesión.
+  6. **EL BOTÓN DEL 3D NACE `hidden`** y lo enciende `m3dBotonSync`, que corre desde
+     `RECALC_MODULOS`: en un árbol recién cargado hay que llamarlo.
+  7. **UNA CONDICIÓN MÍA MEDÍA LA EXPRESIÓN Y NO EL COMPORTAMIENTO** —miraba el fuente de
+     `eteQxDataURL`—. Pasó a leer los cuatro bytes de ancho y los cuatro de alto de la **cabecera
+     IHDR del PNG** y exigir 840 × 840.
+- ⚠️ **Me comí el acento grave TRECE veces**: dos dentro del template de un `evCrudo()` suelto de
+  la sonda —que `scripts/check_backticks.py` **NO alcanza**, porque su cobertura es el cuerpo de un
+  `caso(...)` y el de la sonda inyectada; ésos los dio `node --check`— y once dentro del cuerpo de
+  TC-503, que el script sí dio con su línea exacta. **Correr los dos, siempre.**
+
 ### REFERENCIAS con subpestañas, buscador, «Ver referencia» y la TABLA DE CIRUGÍA AÓRTICA — «P» (2026-10-18)
 
 - **Son SIETE commits, y son los siete que la orden pedía.** Al **empezar**, `main` y
@@ -313,8 +583,7 @@ impecable.
   movió; ninguno estaba mal escrito. **TC-495 lo destapó la SUITE COMPLETA**, no la corrida de
   zona.
 
-- **Línea base al cierre: suite **512/516** con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0
-  ERROR en 1 app, Excel en 440 columnas, celular 53 a 360 px y 62 a 390 px con 11 ALTA cada uno
+- **Línea base al cierre: suite **512/516** con el pendrive `DISK_IMG` MONTADO, ERROR en 1 app, Excel en 440 columnas, celular 53 a 360 px y 62 a 390 px con 11 ALTA cada uno
   —IDÉNTICO a la línea base del ARR—. CERO REGRESIONES.** Los **CUATRO** rojos son exactamente los
   de ENTRADA —**TC-223** (el documentado, falla por la fecha), **TC-376**, **TC-390** y
   **TC-406**— y no apareció ninguno fuera de esa lista. **El denominador sube a 516**: esta tanda
@@ -544,8 +813,7 @@ impecable.
   con una condición NUEVA (f8b) que controla que el pericardio y Balik se conservan; y su (f5),
   cuya escena usaba el valor de legado `e1030`—.
 
-- **Línea base al cierre: suite **511/515** con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0
-  ERROR en 1 app, Excel en 440 columnas, celular 53 a 360 px y 62 a 390 px con 11 ALTA cada uno.
+- **Línea base al cierre: suite **511/515** con el pendrive `DISK_IMG` MONTADO, ERROR en 1 app, Excel en 440 columnas, celular 53 a 360 px y 62 a 390 px con 11 ALTA cada uno.
   CERO REGRESIONES.** Los **CUATRO** rojos son exactamente los de ENTRADA —**TC-223** (el
   documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**— y no apareció ninguno
   fuera de esa lista. **El denominador sube a 515**: esta tanda agregó **TC-501**.
