@@ -1332,7 +1332,12 @@ window.__Y = {
         if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(id)) return;
         if (id === 'informe_texto' || id === 'en_suma') return;
         o[id] = (e.type === 'checkbox') ? (e.checked ? '1' : '') : e.value; n++ });
-      var s = JSON.stringify(o), h = 0, i;
+      /* ⚠️ SE ORDENA ANTES DE HASHEAR. El objeto se arma en ORDEN DEL DOM, asi que mover un
+         campo de columna cambia el string sin cambiar un solo valor, y el A/B informa
+         «distinto» sobre un commit que no toco ninguno. Es la trampa que este repo ya tiene
+         escrita desde la tanda D1. */
+      var orden = {}; Object.keys(o).sort().forEach(function(k){ orden[k] = o[k] });
+      var s = JSON.stringify(orden), h = 0, i;
       for (i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
       return { n: n, hash: h } }
     catch (e) { return 'EXC: ' + e.message } }
@@ -1492,6 +1497,60 @@ window.__Y = {
     } catch (e) { r.err = e.message; }
     out.grupos.vab = r;
     process.stderr.write('[vab] listo\n');
+  }
+
+  /* ══ GRUPO «tarj» — las SEIS tarjetas de la VAB y la maqueta ═══════════════════════════ */
+  if (corre('tarj')) {
+    const r = { tarjetas: {}, maqueta: {} };
+    const CLAVES = ['vab-tit', 'vab-valv', 'vab-func', 'vab-aorta', 'vab-cx', 'vab-friesgo'];
+    try {
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__Y.irVAB()`);
+      for (const k of CLAVES) r.tarjetas[k] = await ev(`window.__Y.vabTarj(${JSON.stringify(k)})`);
+      /* La maqueta en cuatro anchos por dos temas. */
+      for (const [w, h] of [[1200, 800], [768, 1024], [390, 844], [360, 740]]) {
+        await viewport(w, h);
+        for (const claro of [false, true]) {
+          const t = await ev(`window.__P.tema(${claro})`);
+          if (!!t.claro !== claro) throw new Error('EL TEMA NO QUEDO: ' + JSON.stringify(t));
+          await ev(`window.__Y.irVAB()`);
+          await pausa(140);
+          r.maqueta[w + '_' + (claro ? 'claro' : 'oscuro')] = {
+            scroll: await ev(`window.__Y.scrollH()`),
+            aviso: await ev(`(function(){ var e = document.getElementById('vab-coa-aviso');
+              if (!e) return 'NO EXISTE';
+              var r2 = e.getBoundingClientRect();
+              return { w: Math.round(r2.width), color: getComputedStyle(e).color } })()`),
+            globos: await ev(`(function(){ var o = [];
+              document.querySelectorAll('#sacc-cc-vab [data-vinfo]').forEach(function(b){
+                var r2 = b.getBoundingClientRect();
+                o.push({ k: b.getAttribute('data-vinfo'), w: Math.round(r2.width), h: Math.round(r2.height) }) });
+              return o })()`),
+            campos: await ev(`(function(){ var o = {};
+              ['vab_tipo','vab_funcion','vab_fenotipo','vab_fr_hta'].forEach(function(id){
+                var e = document.getElementById(id); if (!e) { o[id] = 'NO EXISTE'; return }
+                var r2 = e.getBoundingClientRect(); o[id] = Math.round(r2.width) });
+              return o })()`)
+          };
+        }
+      }
+      await ev(`window.__P.tema(false)`);
+      await viewport(1200, 800);
+      /* 20 aperturas y cierres: nodos y oyentes. */
+      await ev(`window.__Y.vabTarj('vab-tit')`);
+      const n0 = await ev(`window.__Y.nodos()`);
+      r.ciclo = await ev(`(function(){
+        var b = document.querySelector('[data-vinfo="vab-tit"]'), i;
+        var cuenta = 0, o = EventTarget.prototype.addEventListener;
+        EventTarget.prototype.addEventListener = function(){ cuenta++; return o.apply(this, arguments) };
+        for (i = 0; i < 20; i++) { b.click(); b.click(); }
+        EventTarget.prototype.addEventListener = o;
+        var c = document.getElementById('vinfo-card');
+        return { oyentesNuevos: cuenta, cerrada: !!(c && getComputedStyle(c).display === 'none') } })()`);
+      r.nodos = { antes: n0, despues: await ev(`window.__Y.nodos()`) };
+    } catch (e) { r.err = e.message; }
+    out.grupos.tarj = r;
+    process.stderr.write('[tarj] listo\n');
   }
 
   /* == GRUPO «ctrl» - el A/B de control de toda la tanda ================================= */

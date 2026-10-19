@@ -14237,148 +14237,160 @@ z
       <span id="vab_badge" class="incl-badge" hidden>📎 en el informe</span>
     </button>
     <div class="card-body sacc-body">
-      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
-        La cardiopatía congénita más frecuente: <b>1-2 % de la población</b>. Fusión de dos velos aórticos, con alta asociación a
-        aortopatía y estenosis aórtica precoz. Base hereditaria — corresponde ofrecer cribado a familiares de primer grado.
-        <b style="color:var(--accent2);">Lo que decide la conducta no es la válvula sino la aorta.</b>
-      </p>
-
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:4px 0 8px;">Válvula</div>
-      <div class="grid-3">
-        <div class="fg"><label>Tipo de fusión</label>
-          <select id="vab_tipo" onchange="vabSync()">
-            <option value="">—</option>
-            <option value="fused_rl">Fused type R-L — fusión derecha-izquierda (~70 %)</option>
-          <option value="fused_rn">Fused type R-N — fusión derecha-no coronaria (~17 %)</option>
-          <option value="fused_ln">Fused type L-N — fusión izquierda-no coronaria (raro)</option>
-          <option value="dos_senos_ll">2-sinus type — latero-lateral</option>
-          <option value="dos_senos_ap">2-sinus type — antero-posterior</option>
-          <option value="partial">Partial type (forme fruste)</option>
-          <option value="no_clasif">No clasificable</option>
-</select>
-        <span style="font-size:10px;color:var(--text2);">Clasificación del Consenso Internacional VAB 2021 (Michelena et al., JTCVS). Reemplaza a Sievers (2007): se basa en imagen y no en la inspección quirúrgica. Los estudios guardados con la clasificación anterior se migran solos al reabrirlos.</span>
+      <!-- ══ Y3d4: LA DISPOSICION (2026-10-19) ══════════════════════════════════════════════
+           DECISION DE MAICOL. Arriba, TRES columnas -valvula, funcion y aorta- con el DIBUJO a
+           su derecha; abajo, el contexto quirurgico en columna y los factores de riesgo al
+           costado. Casi todo el texto largo paso a un globo: a la vista quedan SOLO el aviso
+           corto de la coartacion y los seis ⓘ. Los campos, sus ids y sus calculos NO se tocan
+           en este commit: solo cambia donde estan. -->
+      <!-- ⚠️ EL GLOBO DEL TITULO VA EN EL CUERPO Y NO EN EL ENCABEZADO: el `sacc-hdr` ES un
+           <button>, y un boton dentro de otro no es marcado valido -el navegador lo saca del
+           padre al parsear-. Es la leccion que la tanda L dejo escrita. -->
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:0 0 10px;">Válvula aórtica bicúspide <button type="button" class="vinfo-btn" data-vinfo="vab-tit" aria-expanded="false" aria-label="Válvula aórtica bicúspide" onclick="vInfoClic(this)">&#9432;</button></div>
+      <div style="display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;">
+        <div style="flex:1 1 420px;min-width:0;">
+          <div class="grid-3">
+            <div class="fg"><label>Tipo de fusión <button type="button" class="vinfo-btn" data-vinfo="vab-valv" aria-expanded="false" aria-label="Clasificación de la válvula" onclick="vInfoClic(this)">&#9432;</button></label>
+              <select id="vab_tipo" onchange="vabSync()">
+                <option value="">—</option>
+                <option value="fused_rl">Fused type R-L — fusión derecha-izquierda (~70 %)</option>
+                <option value="fused_rn">Fused type R-N — fusión derecha-no coronaria (~17 %)</option>
+                <option value="fused_ln">Fused type L-N — fusión izquierda-no coronaria (raro)</option>
+                <option value="dos_senos_ll">2-sinus type — latero-lateral</option>
+                <option value="dos_senos_ap">2-sinus type — antero-posterior</option>
+                <option value="partial">Partial type (forme fruste)</option>
+                <option value="no_clasif">No clasificable</option>
+              </select>
+            </div>
+            <div class="fg"><label>Rafe calcificado</label>
+              <select id="vab_rafe" onchange="vabSync()">
+                <option value="">—</option>
+                <option value="no_eval">No evaluado</option>
+                <option value="no">No</option>
+                <option value="si">Sí</option>
+              </select>
+            </div>
+            <div class="fg"><label>Simetría de los senos</label>
+              <select id="vab_simetria" onchange="vabSync()">
+                <option value="">—</option>
+                <option value="simetrica">Simétrica</option>
+                <option value="asimetrica">Asimétrica</option>
+                <option value="no_val">No valorable</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid-3" style="margin-top:10px;">
+            <div class="fg"><label>Función valvular <button type="button" class="vinfo-btn" data-vinfo="vab-func" aria-expanded="false" aria-label="Función valvular" onclick="vInfoClic(this)">&#9432;</button></label>
+              <select id="vab_funcion" onchange="vabSync()">
+                <option value="">—</option>
+                <option value="normal">Normofuncionante</option>
+                <option value="estenosis">Estenosis</option>
+                <option value="insuficiencia">Insuficiencia</option>
+                <option value="mixta">Mixta</option>
+              </select>
+            </div>
+            <!-- Los rotulos de SOLO LECTURA van sin parentesis: el globo de su grupo dice de
+                 donde viene cada dato. -->
+            <div class="fg"><label>EA — grado</label>
+              <input type="text" id="vab_ea_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+            <div class="fg"><label>IAo — grado</label>
+              <input type="text" id="vab_ia_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+          </div>
+          <div class="grid-3" style="margin-top:10px;">
+            <div class="fg"><label>Raíz aórtica <button type="button" class="vinfo-btn" data-vinfo="vab-aorta" aria-expanded="false" aria-label="Aorta" onclick="vInfoClic(this)">&#9432;</button></label>
+              <input type="text" id="vab_raiz_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+            <div class="fg"><label>Ao ascendente</label>
+              <input type="text" id="vab_asc_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+            <div class="fg"><label>Fenotipo aortopático</label>
+              <select id="vab_fenotipo" onchange="vabSync()">
+                <option value="">—</option>
+                <option value="sin">Sin dilatación</option>
+                <option value="raiz">De raíz (seno &gt; tubular)</option>
+                <option value="tubular">Tubular / ascendente</option>
+                <option value="arco">Extendido (con arco)</option>
+              </select>
+            </div>
+          </div>
+          <!-- `vab_morf_ro` se conserva: lo escribe `vabSync` y es el espejo de `va_morf`, la
+               fuente canonica. Va OCULTO porque el aviso de discrepancia del commit 7 lo
+               reemplaza en pantalla; el campo sigue existiendo para que nada que lo lea se
+               quede sin nodo. -->
+          <input type="text" id="vab_morf_ro" readonly tabindex="-1" style="display:none;">
         </div>
-        <div class="fg"><label>Rafe calcificado</label>
-          <select id="vab_rafe" onchange="vabSync()">
-            <option value="">—</option>
-            <option value="no_eval">No evaluado</option>
-            <option value="no">No</option>
-            <option value="si">Sí</option>
-          </select>
-        </div>
-      <div class="fg"><label>Simetría de los senos</label>
-        <select id="vab_simetria" onchange="vabSync()">
-          <option value="">—</option>
-          <option value="simetrica">Simétrica</option>
-          <option value="asimetrica">Asimétrica</option>
-          <option value="no_val">No valorable</option>
-        </select>
-      </div>
-        <div class="fg"><label>Función valvular</label>
-          <select id="vab_funcion" onchange="vabSync()">
-            <option value="">—</option>
-            <option value="normal">Normofuncionante</option>
-            <option value="estenosis">Estenosis</option>
-            <option value="insuficiencia">Insuficiencia</option>
-            <option value="mixta">Mixta</option>
-          </select>
-        </div>
-      </div>
-      <div class="grid-3" style="margin-top:10px;">
-        <div class="fg"><label>Morfología aórtica (de Válvulas)</label>
-          <input type="text" id="vab_morf_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
-        <div class="fg"><label>EA — grado (de Válvulas)</label>
-          <input type="text" id="vab_ea_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
-        <div class="fg"><label>IAo — grado (de Válvulas)</label>
-          <input type="text" id="vab_ia_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
-      </div>
-
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Aortopatía</div>
-      <div class="grid-3">
-        <div class="fg"><label>Raíz aórtica (de Aorta torácica)</label>
-          <input type="text" id="vab_raiz_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
-        <div class="fg"><label>Ao ascendente (de Aorta torácica)</label>
-          <input type="text" id="vab_asc_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
-        <div class="fg"><label>Fenotipo aortopático</label>
-          <select id="vab_fenotipo" onchange="vabSync()">
-            <option value="">—</option>
-            <option value="sin">Sin dilatación</option>
-            <option value="raiz">De raíz (seno &gt; tubular)</option>
-            <option value="tubular">Tubular / ascendente</option>
-            <option value="arco">Extendido (con arco)</option>
-          </select>
-        </div>
-      </div>
-      <p style="font-size:10px;color:var(--text2);margin:6px 0 0;">Los diámetros se miden en <b>Paciente → Aorta torácica</b>. Acá se muestran en gris para que veas con qué está calculando el umbral.</p>
-
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Contexto quirúrgico</div>
-      <div class="grid-2">
-        <div class="fg"><label>Cirugía valvular aórtica prevista</label>
-          <select id="vab_cx_valvular" onchange="vabSync()">
-            <option value="">—</option>
-            <option value="no_eval">No consta</option>
-            <option value="no">No</option>
-            <option value="si">Sí</option>
-          </select>
-        </div>
-        <div class="fg"><label>Riesgo quirúrgico bajo (&lt;3 %)</label>
-          <select id="vab_riesgo_qx" onchange="vabSync()">
-            <option value="">—</option>
-            <option value="no_eval">No consta</option>
-            <option value="no">No</option>
-            <option value="si">Sí</option>
-          </select>
-        </div>
-      </div>
-      <p style="font-size:10px;color:var(--text2);margin:6px 0 0;">El riesgo quirúrgico lo define el Heart Team, no el ecocardiograma. Sin un «Sí» explícito la app no emite las indicaciones Clase IIa que lo exigen.</p>
-
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Factores de riesgo (ESC 2024, Tabla 68)</div>
-      <p style="font-size:10px;color:var(--text2);margin:0 0 8px;">Tres se derivan solos: <b>edad &lt;50 años</b> y <b>talla 1,50-1,69 m</b> de Datos del paciente, y <b>coartación</b> de la sección de esta misma pestaña. Los seis restantes se preguntan acá.</p>
-      <div class="grid-3">
-        <div class="fg"><label>Familiar con síndrome aórtico agudo</label>
-          <select id="vab_fr_familiar" onchange="vabSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-        <div class="fg"><label>Hipertensión arterial resistente</label>
-          <select id="vab_fr_hta" onchange="vabSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-        <div class="fg"><label>Crecimiento ≥3 mm/año</label>
-          <select id="vab_fr_crecimiento" onchange="vabSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-      </div>
-      <div class="grid-3" style="margin-top:10px;">
-        <div class="fg"><label>Longitud Ao ascendente ≥11 cm</label>
-          <select id="vab_fr_longitud" onchange="vabSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-        <div class="fg"><label>Cirugía cardíaca concomitante</label>
-          <select id="vab_fr_cx" onchange="vabSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-        <div class="fg"><label>Deseo de embarazo</label>
-          <select id="vab_fr_embarazo" onchange="vabSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
+        <!-- El DIBUJO. Su contenido entra en el commit 6; aca queda su lugar reservado para
+             que la maqueta de tres columnas se pueda medir desde ya. -->
+        <div id="vab-dibujo-host" style="flex:0 0 240px;max-width:240px;"></div>
       </div>
 
-      <div class="calc-box" style="margin-top:12px;">
-        <div class="calc-row"><span class="calc-lbl">Factores presentes</span><span id="vab-fr" class="calc-val">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="vab-concl" class="calc-val">—</span></div>
+      <div style="display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-top:16px;">
+        <div style="flex:0 0 240px;max-width:260px;">
+          <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:0 0 8px;">Contexto quirúrgico <button type="button" class="vinfo-btn" data-vinfo="vab-cx" aria-expanded="false" aria-label="Contexto quirúrgico" onclick="vInfoClic(this)">&#9432;</button></div>
+          <div class="fg"><label>Cirugía valvular aórtica prevista</label>
+            <select id="vab_cx_valvular" onchange="vabSync()">
+              <option value="">—</option>
+              <option value="no_eval">No consta</option>
+              <option value="no">No</option>
+              <option value="si">Sí</option>
+            </select>
+          </div>
+          <div class="fg" style="margin-top:10px;"><label>Riesgo quirúrgico bajo (&lt;3 %)</label>
+            <select id="vab_riesgo_qx" onchange="vabSync()">
+              <option value="">—</option>
+              <option value="no_eval">No consta</option>
+              <option value="no">No</option>
+              <option value="si">Sí</option>
+            </select>
+          </div>
+        </div>
+        <div style="flex:1 1 340px;min-width:0;">
+          <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:0 0 8px;">Factores de riesgo <button type="button" class="vinfo-btn" data-vinfo="vab-friesgo" aria-expanded="false" aria-label="Factores de riesgo" onclick="vInfoClic(this)">&#9432;</button></div>
+          <div id="vab-fr-grid" class="grid-2">
+            <div class="fg"><label>Familiar con síndrome aórtico agudo</label>
+              <select id="vab_fr_familiar" onchange="vabSync()">
+                <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+              </select>
+            </div>
+            <div class="fg"><label>Longitud Ao ascendente ≥11 cm</label>
+              <select id="vab_fr_longitud" onchange="vabSync()">
+                <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+              </select>
+            </div>
+            <div class="fg"><label>Hipertensión arterial resistente</label>
+              <select id="vab_fr_hta" onchange="vabSync()">
+                <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+              </select>
+            </div>
+            <div class="fg"><label>Cirugía cardíaca concomitante</label>
+              <select id="vab_fr_cx" onchange="vabSync()">
+                <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+              </select>
+            </div>
+            <div class="fg"><label>Crecimiento ≥3 mm/año</label>
+              <select id="vab_fr_crecimiento" onchange="vabSync()">
+                <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+              </select>
+            </div>
+            <div class="fg"><label>Deseo de embarazo</label>
+              <select id="vab_fr_embarazo" onchange="vabSync()">
+                <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+              </select>
+            </div>
+          </div>
+          <div class="calc-box" style="margin-top:10px;">
+            <div class="calc-row"><span class="calc-lbl">Factores presentes</span><span id="vab-fr" class="calc-val">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="vab-concl" class="calc-val">—</span></div>
+          </div>
+        </div>
       </div>
-      <div class="mBoxLike" style="border-left:3px solid var(--accent2);background:rgba(13,148,136,.08);padding:8px 12px;border-radius:6px;font-size:10px;line-height:1.5;margin-top:10px;color:var(--text2);">
-        <b>Umbrales ESC 2024 de aorta</b> (Eur Heart J 2024;45:3538) — ≥55 mm cualquier fenotipo (I) · ≥50 mm fenotipo raíz (I) ·
-        por encima de 52 mm ascendente con riesgo bajo (IIa) · ≥50 mm ascendente con riesgo bajo y ≥1 factor (IIa) · ≥45 mm si ya va a cirugía valvular (IIa).
-        <b>No se implementa el umbral indexado</b>: la AHA gradúa 10 cm²/m y la ESC lo desestima para bicúspide; su propio 13 cm²/m va en prosa y sin grado.
-        El <b>fenotipo extendido</b> no tiene fila propia en la guía — es un hueco de la ESC, no del cálculo.
+
+      <!-- La UNICA linea de texto que queda a la vista. El recordatorio con su porcentaje se
+           retira del informe en el commit 10: NINGUNA fuente de la biblioteca publica ese
+           numero -censadas las congenitas, la aorta y el consenso VAB-, asi que el aviso no
+           lleva cifra. -->
+      <div id="vab-coa-aviso" style="font-size:11px;color:var(--orange);margin:12px 0 0;line-height:1.5;">
+        Excluir coartación de aorta asociada — ver la sección de coartación.
       </div>
+
       <div style="text-align:center;margin-top:10px;">
         <input type="checkbox" id="vab_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
         <button type="button" class="btn btn-integrar" data-ete-chk="vab_incluir_chk" aria-pressed="false"
@@ -39789,6 +39801,45 @@ window._imPeorIntegrado = _imPeorIntegrado;
    una palabra. Se reescriben en D2, y mientras tanto el medico ve en el dedo lo que antes solo
    veia con el mouse. Son `legado: true`. */
 const VINFO = Object.freeze({
+  /* ══ LAS SEIS TARJETAS DE LA SECCION VAB (Y3d4, 2026-10-19) ════════════════════════════════
+     DECISION DE MAICOL: casi todo el texto largo de esa seccion pasa a un globo, con la
+     informacion RESUMIDA y con las palabras que la app YA usaba. No se agrega ni un dato nuevo.
+     Las seis reusan el mecanismo de L, M y Q sin tocarle una linea. */
+  'vab-tit': {
+    tit: 'V\u00e1lvula a\u00f3rtica bic\u00faspide',
+    lee: 'Cardiopat\u00eda cong\u00e9nita m\u00e1s frecuente (1-2 %). Se asocia a aortopat\u00eda y a estenosis a\u00f3rtica precoz. '
+       + 'Base hereditaria: ofrecer cribado a familiares de primer grado.',
+    ojo: 'Lo que decide la conducta es la aorta, no la v\u00e1lvula.'
+  },
+  'vab-valv': {
+    tit: 'Clasificaci\u00f3n de la v\u00e1lvula',
+    lee: 'Clasificaci\u00f3n del Consenso Internacional VAB 2021 (Michelena y col., JTCVS); reemplaza a Sievers 2007. '
+       + 'Se basa en la imagen, no en la inspecci\u00f3n quir\u00fargica. Los estudios guardados con la clasificaci\u00f3n '
+       + 'anterior se migran al reabrirlos.',
+    ojo: 'Tambi\u00e9n pod\u00e9s tocar el rafe en el dibujo.'
+  },
+  'vab-func': { tit: 'Funci\u00f3n valvular', lee: 'El grado de EA y de IAo se lee de V\u00e1lvulas.' },
+  'vab-aorta': { tit: 'Aorta', lee: 'Los di\u00e1metros se miden en Paciente \u2192 Aorta tor\u00e1cica.' },
+  'vab-cx': {
+    tit: 'Contexto quir\u00fargico',
+    lee: 'El riesgo quir\u00fargico lo define el Heart Team, no el ecocardiograma.',
+    ojo: 'Sin un «S\u00ed» expl\u00edcito la app no emite las indicaciones Clase IIa que lo exigen.'
+  },
+  /* Clave 'vab-friesgo' y NO 'vab-fr': ese id ya lo tiene el span de la fila «Factores
+     presentes». No colisionan -uno es un atributo y el otro un id- pero leerlos juntos confunde. */
+  'vab-friesgo': {
+    tit: 'Factores de riesgo',
+    lee: 'ESC 2024, Tabla 68. Se derivan solos: edad <50 a\u00f1os, talla 1,50-1,69 m y coartaci\u00f3n. '
+       + 'Los seis restantes se marcan ac\u00e1 y solo cuentan los marcados.',
+    /* El texto de los umbrales es el ACTUAL de la app, sin cambios. */
+    ojo: 'Umbrales ESC 2024 de aorta (Eur Heart J 2024;45:3538): \u226555 mm cualquier fenotipo (I) \u00b7 '
+       + '\u226550 mm fenotipo ra\u00edz (I) \u00b7 por encima de 52 mm ascendente con riesgo bajo (IIa) \u00b7 '
+       + '\u226550 mm ascendente con riesgo bajo y \u22651 factor (IIa) \u00b7 \u226545 mm si ya va a cirug\u00eda valvular (IIa). '
+       + 'No se implementa el umbral indexado: la AHA grad\u00faa 10 cm\u00b2/m y la ESC lo desestima para bic\u00faspide; '
+       + 'su propio 13 cm\u00b2/m va en prosa y sin grado. El fenotipo extendido no tiene fila propia en la gu\u00eda '
+       + '\u2014 es un hueco de la ESC, no del c\u00e1lculo.'
+  },
+
   'eroa-pisa': {
     tit: 'EROA, Vol-R y FR por PISA',
     formula: 'EROA = 2π · r² · V_aliasing ÷ Vmax del chorro\n'

@@ -64859,9 +64859,13 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
        diastolica (tarj-diast, que vive en el DOPPLER) y la de la fuga paravalvular aortica
        (ea-pvl, que reemplazo a dos textos fijos). Lo que esta condicion sigue exigiendo —que
        TODA clave del marcado de Valvulas tenga entrada, que es lo que impide una tarjeta VACIA,
-       y que no quede ninguna de legado— no cambia. */
+       y que no quede ninguna de legado— no cambia.
+       ADAPTADO el 2026-10-19 (tanda Y3d): 44 -> 50. Las SEIS nuevas son las tarjetas de la
+       seccion VAB -vab-tit, vab-valv, vab-func, vab-aorta, vab-cx y vab-friesgo-, que viven en
+       CARDIOPATIAS CONGENITAS y no en Valvulas: lo que cambia es el denominador del registro,
+       no lo que esta condicion afirma sobre los globos de Valvulas. */
     HAY_INFO && globos.every(function(b){ return !!VINFO[b.getAttribute('data-vinfo')]; }) &&
-    Object.keys(VINFO).length === 44,
+    Object.keys(VINFO).length === 50,
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
   ex.push(['(H) y la tarjeta se coloca SIEMPRE dentro de la pantalla, sin cortarse',
     (function(){ const b = document.querySelector('[data-vinfo="avm-thp"]');
@@ -75944,8 +75948,11 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
   const CLAVES = LESIONES.map(function (p) { return 'tarj-' + p[0] + '-' + p[1]; });
 
   /* ══ A · DENOMINADOR: EL MECANISMO Y LOS DIEZ GLOBOS NUEVOS ════════════════════════════════ */
-  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 44 entradas',
-    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 44,
+  /* ADAPTADO el 2026-10-19 (Y3d4): 44 -> 50. Las SEIS nuevas son las tarjetas de la seccion
+     VAB, que vive en CARDIOPATIAS CONGENITAS. Lo que este denominador afirma -que el mecanismo
+     existe y que el registro esta poblado- no cambia; lo que se movio es el numero. */
+  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 50 entradas',
+    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 50,
     'VINFO=' + (REG() ? Object.keys(REG()).length : 'SIN REGISTRO') + ' card=' + !!CARD()]);
   ex.push(['(A1) los OCHO botones de lesion existen, son BUTTON, sin atributo title y con aria-expanded',
     CLAVES.every(function (k) { const b = BTN(k);
