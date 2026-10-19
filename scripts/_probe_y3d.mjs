@@ -1699,6 +1699,53 @@ window.__Y = {
     process.stderr.write('[inf] listo\n');
   }
 
+  /* == GRUPO «coa» - el recordatorio de la coartacion, SOLO en pantalla =================== */
+  if (corre('coa')) {
+    const r = {};
+    try {
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__P.sel('va_morf','Bicúspide')`);
+      await tipear('ao_sin', '38');
+      await tipear('ao_tub', '42');
+      await ev(`window.__Y.irVAB()`);
+      await ev(`window.__P.sel('vab_tipo','fused_rl')`);
+      await ev(`window.__P.sel('vab_rafe','si')`);
+      await ev(`(function(){ var c = document.getElementById('vab_incluir_chk');
+        if (c && !c.checked) eteInclToggle('vab_incluir_chk'); return !!(c && c.checked) })()`);
+      await ev(`(function(){ var b = document.getElementById('vab-pdf-btn');
+        if (!vabPdfOn()) b.click(); return vabPdfOn() })()`);
+      r.enPantalla = await ev(`(function(){ var e = document.getElementById('vab-coa-nota');
+        if (!e) return 'NO EXISTE';
+        return { vis: getComputedStyle(e).display !== 'none',
+                 txt: (e.textContent || '').trim(),
+                 color: getComputedStyle(e).color,
+                 conNumero: /\d+\s*%/.test(e.textContent || '') } })()`);
+      const sal = await ev(`window.__Y.salida()`, 60000);
+      const BUSCA = ['coartaci', '85 %', '85%'];
+      r.superficies = {};
+      for (const st of ['estandar', 'narrativo', 'conciso']) {
+        r.superficies['informe_' + st] = BUSCA.filter(b => (sal[st] || '').toLowerCase().indexOf(b.toLowerCase()) >= 0);
+        r.superficies['suma_' + st] = BUSCA.filter(b => (sal['suma_' + st] || '').toLowerCase().indexOf(b.toLowerCase()) >= 0);
+      }
+      r.pdf = {};
+      for (const pl of ['clasico', 'academico']) {
+        const d = await ev(`window.__P.pdf(${JSON.stringify(pl)})`, 60000);
+        r.pdf[pl] = (d.textos || []).filter(t => /coartaci|85\s?%/i.test(t));
+      }
+      r.ppt = await ev(`window.__P.labPPT([])`, 60000);
+      /* El censo del fuente: cuantas veces queda el 85 % en el modulo de la VAB. */
+      /* ⚠️ EL CENSO VA SOBRE EL TEXTO RENDERIZADO Y NO SOBRE EL FUENTE: los comentarios que
+         explican el retiro NOMBRAN la frase retirada, asi que buscarla en el fuente la
+         encuentra siempre. Es la trampa de `.ip-ap-col2` que este repo ya tiene escrita. */
+      r.censo = await ev(`(function(){
+        var t = document.body.innerText || '';
+        return { en85: (t.match(/85 % de las v/g) || []).length,
+                 conNumero: /coartaci[^.]{0,80}\d+\s?%/i.test(t) } })()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.coa = r;
+    process.stderr.write('[coa] listo\n');
+  }
+
   /* == GRUPO «pdf» - el dibujo y la tabla de la VAB en el papel =========================== */
   if (corre('pdf')) {
     const r = { plantillas: {} };
@@ -1891,7 +1938,7 @@ window.__Y = {
           await pausa(140);
           r.maqueta[w + '_' + (claro ? 'claro' : 'oscuro')] = {
             scroll: await ev(`window.__Y.scrollH()`),
-            aviso: await ev(`(function(){ var e = document.getElementById('vab-coa-aviso');
+            aviso: await ev(`(function(){ var e = document.getElementById('vab-coa-nota');
               if (!e) return 'NO EXISTE';
               var r2 = e.getBoundingClientRect();
               return { w: Math.round(r2.width), color: getComputedStyle(e).color } })()`),

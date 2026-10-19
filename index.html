@@ -14412,15 +14412,37 @@ z
         </div>
       </div>
 
-      <!-- La UNICA linea de texto que queda a la vista. El recordatorio con su porcentaje se
-           retira del informe en el commit 10: NINGUNA fuente de la biblioteca publica ese
-           numero -censadas las congenitas, la aorta y el consenso VAB-, asi que el aviso no
-           lleva cifra. -->
+      <!-- ══ EL RECORDATORIO DE LA COARTACION (Y3d10, 2026-10-19) ════════════════════════
+           Queda SOLO como este aviso de pantalla: no llega al informe, al EN SUMA, al PDF ni
+           al PPT por ningun camino, y lo unico que lo escribe es este marcado estatico.
+
+           ⚠️ Y NO LLEVA NINGUN PORCENTAJE. El texto que el informe publicaba hasta el commit 8
+           afirmaba que la coartacion esta presente «en hasta el 85 % de las valvulas aorticas
+           bicuspides», y esa relacion esta INVERTIDA: lo que la literatura describe es lo
+           contrario -la bicuspide es frecuente ENTRE las coartaciones-.
+           CENSADA LA BIBLIOTECA ENTERA, NINGUNA fuente publica un porcentaje de coartacion en
+           la VAB: ni el consenso internacional VAB (Arch Cardiol Mex 2024;94(2), folios
+           219-239), ni la ESC 2024 de aorta (Mazzolai), ni Baumgartner 2020, ni las dos
+           ACC/AHA 2025 de cardiopatias congenitas del adulto. Lo UNICO que el consenso dice es
+           que la fusion derecha-izquierda «esta fuertemente asociada con coartacion aortica EN
+           NIÑOS» (folio 226), sin cifra. Un porcentaje que no se vio no se escribe.
+
+           ⚠️ EL CRUCE DE LA SECCION DE COARTACION NO SE TOCA Y SE REPORTA: ahi el aviso va en
+           la direccion CORRECTA -«la coartacion se asocia a valvula aortica bicuspide en el
+           50-85 % de los casos»- pero ese 50-85 % tampoco esta verificado en la biblioteca, y
+           es un texto del informe de OTRA seccion que esta orden no autoriza a cambiar.
+           Declarado en PENDIENTES.md. -->
       <!-- Y3d7: el aviso de que la morfologia de Valvulas NO dice «Bicuspide». Es de PANTALLA y
            no llega al informe, al EN SUMA ni al PDF por ningun camino: lo unico que lo escribe
            es `vabMorfAviso`. Nace oculto. -->
       <div id="vab-morf-aviso" style="font-size:11px;color:var(--orange);margin:12px 0 0;line-height:1.5;display:none;"></div>
-      <div id="vab-coa-aviso" style="font-size:11px;color:var(--orange);margin:12px 0 0;line-height:1.5;">
+      <!-- ⚠️ EL ID NO PUEDE TERMINAR EN «-aviso», Y LO ENCONTRO LA MEDICION: `limpiarCampos`
+           barre `[id$="-aviso"]` con `textContent = ''`, asi que el primer «Nuevo estudio»
+           dejaba este recordatorio VACIO para siempre -visible, en ambar, y sin una palabra-.
+           Es la misma trampa que el aviso de fibrilacion auricular de la mitral pago, resuelta
+           alla haciendo el span HERMANO; aca, donde el texto es estatico, alcanza con el
+           nombre. -->
+      <div id="vab-coa-nota" style="font-size:11px;color:var(--orange);margin:12px 0 0;line-height:1.5;">
         Excluir coartación de aorta asociada — ver la sección de coartación.
       </div>
 
