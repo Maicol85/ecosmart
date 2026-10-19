@@ -48876,6 +48876,17 @@ function _infBaseAjena() {
    haya pedido. Sin esto, cada refresco saltaba a la pestaña Informe y cantaba un toast
    "✅ Informe generado" que nadie pidió; enganchado a un oninput numérico, además sacaba el
    foco del campo que se estaba tipeando y truncaba el número a la primera tecla. */
+/* ══ LA MARCA DEL EN SUMA DE LA VALVULA AORTICA (Y3d8, 2026-10-19) ═════════════════════════
+   Variable de modulo porque `ccSumaLinea` es GLOBAL y el array del resumen es local de
+   `generarInforme`: la rama de la VAB no lo puede mirar, y lo que mira es esta marca.
+   ⚠️ SE DECLARA ARRIBA DE `generarInforme` Y NO AL LADO DE SU LECTOR, 15.000 lineas mas abajo:
+   un `let` nombrado antes de su declaracion es la ZONA MUERTA que este archivo ya documenta
+   -nombrarla desde un `const` de modulo que se evalue antes LANZA y se lleva el <script>
+   entero-. Fuera del camino del informe vale `false`, que es el lado que no pierde informacion. */
+let _ccSumaAo = false;
+function _ccSumaTieneAo(){ return _ccSumaAo === true; }
+window._ccSumaTieneAo = _ccSumaTieneAo;
+
 function generarInforme(opts) {
   const _silencioso = !!(opts && opts.silencioso);
   const bsa = getBSA();
@@ -48917,6 +48928,10 @@ function generarInforme(opts) {
      ahi adentro la hoja quedaria en el PDF para siempre con el texto de la ultima vez que si
      estuvo. Es el defecto que `am-integrados` vino a cerrar del lado de amiloidosis. */
   if (typeof ccHojaReset === 'function') ccHojaReset();
+  /* Y3d8: la marca del EN SUMA de la valvula aortica arranca en falso en CADA informe. Sin
+     esto, un informe sin lesion aortica heredaria la marca del anterior y la linea de la VAB
+     se callaria sobre una lesion que esta vez nadie publico. */
+  _ccSumaAo = false;
   const sumaCC = function(linea){
     /* Acepta un array para las secciones que suben VARIAS líneas. Va como array y no como un
        string con `\n`: `_infEscribir` trata `lineasNuevas` como array de LÍNEAS y `_infMerge`
@@ -50461,7 +50476,19 @@ function generarInforme(opts) {
     }
     if (iaG > 0) suma.push(`IAo ${imTxt[iaG]}.`); else if (insE) suma.push('IAo presente.');  // v2: regla 6
     if (esclerosis) suma.push('Esclerosis aórtica.');
+    /* ⚠️ LA MARCA QUE LEE LA LINEA DE LA VAB (Y3d8). `ccSumaLinea` es una funcion GLOBAL y el
+       array del EN SUMA es local de `generarInforme`, asi que la rama de la VAB no lo puede
+       mirar: lo que mira es esta marca, que escribe el UNICO lugar que empuja esas dos lineas.
+       Reimplementar el predicado alla seria una segunda copia de la regla, y la copia que se
+       olvida es la que repite el hallazgo en el resumen firmado.
+       Sin marca -`undefined`- la VAB publica su lesion, que es el comportamiento de siempre: el
+       lado que no PIERDE informacion. */
+    _ccSumaAo = !!(eaDesc || estE || iaG > 0 || insE);
     const cE = fraseEI(estE, insE), cC = fraseEI(estC, insC);
+    /* Y3d8: la cola de la VAB. Vacia con cualquier otra morfologia y con la seccion sin
+       completar, asi que las ramas de abajo quedan textualmente como estaban. */
+    const _vabCola = (vaMorf === 'Bicúspide' && typeof vabFraseValv === 'function')
+      ? vabFraseValv() : '';
     if (_eaProtN) {
       /* La mitad de INSUFICIENCIA sigue saliendo de la cascada nativa, y es correcto: la Tabla 8
          de la ASE 2024 remite la regurgitación protésica a los criterios de la válvula nativa
@@ -50539,10 +50566,14 @@ function generarInforme(opts) {
          «sin estenosis ni insuficiencia significativas; obstrucción subaórtica» no se contradice
          —niega la estenosis VALVULAR y nombra la subvalvular— pero «normal» sí: el conciso borra el
          hallazgo entero. Con la cola vacía los tres estilos quedan textualmente como estaban. */
+      /* ⚠️ EL CONCISO NO PUEDE DECIR «VAo normal.» CON UNA BICUSPIDE DESCRITA: los tres estilos
+         tienen que dar la misma informacion, que es lo que la orden pide. Con la cola vacia
+         —cualquier otra morfologia, o la seccion sin completar— las tres ramas quedan
+         textualmente como estaban. */
       inf.push(estiloPick(
-        _eaFundCola ? `VAo ${cC}${_eaFundCola}.` : `VAo normal.`,
-        `Válvula aórtica ${_vaAdj}, ${cE}${_eaFundCola}.`,
-        `La válvula aórtica ${_vaEs}, ${cE} significativas${_eaFundCola}.`));
+        (_eaFundCola || _vabCola) ? `VAo ${_vaAdj}${_vabCola}, ${cC}${_eaFundCola}.` : `VAo normal.`,
+        `Válvula aórtica ${_vaAdj}${_vabCola}, ${cE}${_eaFundCola}.`,
+        `La válvula aórtica ${_vaEs}${_vabCola}, ${cE} significativas${_eaFundCola}.`));
     } else {
       const escC = esclerosis ? 'esclerosis valvular; ' : '';
       /* Los números que SOSTIENEN la estenosis van en la misma oración que la nombra. Antes el
@@ -50565,10 +50596,12 @@ function generarInforme(opts) {
       const medEAp = (estE && _eaR && !_eaDiscordante) ? eaDatosTxt(_eaR, false) : '';
       /* `_eaFundCola` al FINAL, después de los números: es un hallazgo aparte (la OTSVI) y su nota,
          no un modificador del grado — el modificador ya entró en `estE`/`estC` arriba. */
+      /* Con estenosis o insuficiencia la frase es la que la app YA arma para ellas: lo unico
+         que se le agrega es la cola de la VAB, y no se repite «sin estenosis ni insuficiencia». */
       inf.push(estiloPick(
-        `VAo ${escC}${cC}${medEAp}${_eaFundCola}.`,
-        `Válvula aórtica ${_vaAdj}, ${escC}${cE}${medEAp}${_eaFundCola}.`,
-        `La válvula aórtica (${_vaAdj}), ${escC}${cE}${medEAp}${_eaFundCola}.`));
+        `VAo ${_vabCola ? _vaAdj + _vabCola + ', ' : ''}${escC}${cC}${medEAp}${_eaFundCola}.`,
+        `Válvula aórtica ${_vaAdj}${_vabCola}, ${escC}${cE}${medEAp}${_eaFundCola}.`,
+        `La válvula aórtica (${_vaAdj})${_vabCola}, ${escC}${cE}${medEAp}${_eaFundCola}.`));
     }
     /* ── Escenario hemodinámico del bajo gradiente ──
        Se DESCRIBE el escenario y se nombra el estudio que lo confirma. No se sugiere conducta
@@ -51629,9 +51662,9 @@ function generarInforme(opts) {
     } else if (!aoD.length) {
       const vals = aoM.map(x => x.sg.lblC + ' ' + x.val + ' mm').join(', ');
       inf.push(estiloPick(
-        'Aorta torácica de calibre normal (' + aoM.map(x => x.val + ' mm').join(' · ') + ').',
-        'Aorta torácica de calibre normal (' + vals + ').',
-        'La aorta torácica es de calibre normal, con ' + vals.toLowerCase() + '.'));
+        'Aorta torácica de calibre normal (' + aoM.map(x => x.val + ' mm').join(' · ') + ').' + _vabFenoCola(),
+        'Aorta torácica de calibre normal (' + vals + ').' + _vabFenoCola(),
+        'La aorta torácica es de calibre normal, con ' + vals.toLowerCase() + '.' + _vabFenoCola()));
     } else {
       const cad = aoD.map(x => x.sg.lblC + ' ' + x.val + ' mm (' + gTxt(x)[x.grado] + ')').join('; ');
       /* Sólo la raíz lleva el «a nivel de …»: su medición se toma en los senos de Valsalva, que
@@ -51646,11 +51679,11 @@ function generarInforme(opts) {
       const okM = aoM.filter(x => !x.dil);
       const okC = okM.length ? ' ' + okM.map(x => x.sg.lblC + ' ' + x.val + ' mm').join(', ') + ' de calibre normal.' : '';
       inf.push(estiloPick(
-        'Aorta torácica: ' + cad + '.' + okC,
-        'Aorta torácica: ' + cad + '.' + okC,
+        'Aorta torácica: ' + cad + '.' + okC + _vabFenoCola(),
+        'Aorta torácica: ' + cad + '.' + okC + _vabFenoCola(),
         'A nivel de la aorta torácica, ' + nar + ', hallazgo que amerita control evolutivo del calibre aórtico.' +
           (okM.length ? ' El resto de los segmentos medidos es de calibre normal (' +
-            okM.map(x => x.sg.lbl + ' ' + x.val + ' mm').join(', ') + ').' : '')));
+            okM.map(x => x.sg.lbl + ' ' + x.val + ' mm').join(', ') + ').' : '') + _vabFenoCola()));
       /* Sin artículo, como las cuatro líneas que ya existían («Dilatación unión sinotubular»).
          Agregarlo obligaba a reescribir las cuatro para que el En Suma no quedara con dos
          estilos, y nada lo pedía. */
@@ -52770,6 +52803,23 @@ function generarInforme(opts) {
       const f1 = n => (n==null || !isFinite(n)) ? null : String(Math.round(n*10)/10);
       const tipo = sv('vab_tipo'), func = sv('vab_funcion'), feno = sv('vab_fenotipo'), rafe = sv('vab_rafe');
       const raiz = v('ao_sin'), asc = v('ao_tub');
+      /* ══ Y3d8: LO QUE ESTE BLOQUE DEJA DE PUBLICAR, Y POR QUE ═══════════════════════════════
+         DECISION DE MAICOL. La descripcion de la valvula -el tipo, el rafe, los senos y la
+         funcion- se dice UNA sola vez y en VALVULAS, con el estilo del resto de las valvulas
+         (ver `vabFraseValv` y el bloque 8). Y la RAIZ y la ASCENDENTE se dicen UNA sola vez, en
+         la frase de la aorta toracica, que es su lugar. Medido antes de tocar: el informe
+         publicaba «Raíz aórtica 38 mm de calibre normal» en el bloque de la aorta y «Raíz
+         aórtica 38 mm» tres renglones mas abajo en este, sobre el mismo numero.
+         ⚠️ `p` SE CONSERVA PARA LA HOJA DEL PDF (`ccHoja`), que es otra superficie y tiene su
+         propio commit: lo que cambia aca es `etePars`, que es el informe.
+         ⚠️ Y EL RECORDATORIO DE LA COARTACION SE RETIRA DEL INFORME. Su texto afirmaba que la
+         coartacion esta presente «en hasta el 85 % de las válvulas aórticas bicúspides», y esa
+         relacion esta INVERTIDA: la bicuspide es frecuente entre las coartaciones, no al reves.
+         CENSADA LA BIBLIOTECA ENTERA -el consenso VAB, la ESC 2024 de aorta, Baumgartner 2020 y
+         las dos ACC/AHA 2025 de congenitas del adulto- NINGUNA publica un porcentaje de
+         coartacion en la VAB; lo que el consenso dice es que la fusion derecha-izquierda «esta
+         fuertemente asociada con coartacion aortica EN NIÑOS», sin cifra. El recordatorio queda
+         SOLO como el aviso corto de la seccion, y SIN numero. Ver el commit 10. */
       const p = ['Válvula aórtica bicúspide' + (tipo ? ' — ' + (VAB_TIPO_TXT[tipo] || tipo) : '')];
       const _sim = sv('vab_simetria');
       if (_sim) p.push('Senos ' + (VAB_SIMETRIA_TXT[_sim] || _sim));
@@ -52780,13 +52830,11 @@ function generarInforme(opts) {
       if (f1(raiz)) p.push('Raíz aórtica ' + f1(raiz) + ' mm');
       if (f1(asc))  p.push('Aorta ascendente ' + f1(asc) + ' mm');
       if (feno) p.push('Fenotipo aortopático ' + (VAB_FENO_TXT[feno] || feno));
-      /* El fenotipo extendido no tiene umbral propio en la ESC 2024. Se dice en el informe en vez
-         de que el lector suponga que el cálculo lo contempló. */
-      if (feno === 'arco') p.push('El fenotipo extendido no tiene umbral quirúrgico propio en la ESC 2024: la decisión es individual');
-      /* Recordatorio de la coartación. La asociación es de hasta el 85 %, o sea que en una
-         bicúspide la aorta descendente NO es un territorio aparte: es parte de la evaluación.
-         La sección CoAo ya cruza en la otra dirección (ver su bloque); acá se cierra el par. */
-      etePars.push(p.join('. ') + '. ' + c.txt + '. Recordatorio: excluir coartación de aorta asociada, presente en hasta el 85 % de las válvulas aórticas bicúspides — ver la sección de coartación.'); ccMarcarParrafo();
+      /* Lo que el INFORME publica de esta seccion: la conclusion de la guia y nada mas. El
+         fenotipo extendido conserva su salvedad, porque no la dice ninguna otra superficie. */
+      const _inf = [];
+      if (feno === 'arco') _inf.push('El fenotipo extendido no tiene umbral quirúrgico propio en la ESC 2024: la decisión es individual');
+      etePars.push([c.txt].concat(_inf).join('. ') + '.'); ccMarcarParrafo();
       ccHoja('vab', p, c.txt, null);
       sumaCC(ccSumaLinea('vab'));
     })();
@@ -64420,6 +64468,68 @@ const VAB_TIPO_LBL_LEGACY = Object.assign({
   t1nl: VAB_TIPO_LBL.fused_ln,     t2:   VAB_TIPO_LBL.no_clasif
 }, VAB_TIPO_LBL);
 const VAB_SIMETRIA_TXT = { simetrica:'simétrica', asimetrica:'asimétrica', no_val:'no valorable' };
+/* ══ LA DESCRIPCION DE LA VALVULA EN EL INFORME (Y3d8, 2026-10-19) ══════════════════════════
+   DECISION DE MAICOL: UNA sola descripcion de la valvula aortica, dentro de VALVULAS, en el
+   lugar donde el informe ya dice «trivalva normal...», con el estilo del resto de las valvulas.
+   Antes la VAB tenia su propio parrafo en el bloque de cardiopatias congenitas Y la valvula
+   aortica tenia el suyo en el bloque 8, asi que el mismo organo se describia dos veces.
+
+   ⚠️ EN ESPAÑOL Y NO «fused type». `VAB_TIPO_TXT` -el nombre tecnico del Consenso 2021- se
+   conserva para la pantalla, el Excel y «Ver detalle»; el INFORME usa estas palabras.
+   ⚠️ «SIMETRICOS» Y «ASIMETRICOS» EN PLURAL: son los SENOS. El informe decia «Senos simétrica»,
+   concordando con el singular de `VAB_SIMETRIA_TXT`, que describe la SIMETRIA.
+   ⚠️ LOS DOS TIPOS DE DOS SENOS NO TIENEN RAFE POR DEFINICION, asi que en vez de la clausula
+   del rafe publican «con dos velos verdaderos», que es lo que esa morfologia significa. */
+const VAB_INF_FENO = Object.freeze({
+  fused_rl: 'R-L (fusión derecha-izquierda)',
+  fused_rn: 'R-N (fusión derecha-no coronaria)',
+  fused_ln: 'L-N (fusión izquierda-no coronaria)',
+  dos_senos_ll: 'de dos senos, latero-lateral',
+  dos_senos_ap: 'de dos senos, antero-posterior',
+  partial: 'de fusión parcial (forme fruste)',
+  no_clasif: 'no clasificable'
+});
+/* La sigla CORTA, para el EN SUMA. Se deriva de `VAB_INF_FENO` recortando el parentesis, asi
+   que el dia que una etiqueta cambie las dos se mueven juntas. */
+const VAB_SUMA_FENO = Object.freeze(Object.keys(VAB_INF_FENO).reduce(function (o, k) {
+  o[k] = VAB_INF_FENO[k].replace(/\s*\(.*\)\s*$/, ''); return o;
+}, {}));
+const VAB_INF_SENOS = Object.freeze({ simetrica: 'senos simétricos', asimetrica: 'senos asimétricos' });
+const VAB_INF_RAFE  = Object.freeze({ si: 'con rafe calcificado', no: 'con rafe no calcificado' });
+const VAB_INF_DOSVELOS = 'con dos velos verdaderos';
+/* La COLA que el bloque 8 le pega a «Válvula aórtica bicúspide». Devuelve '' cuando no hay nada
+   que decir, asi que con la morfologia en bicuspide y la seccion vacia la frase queda
+   exactamente como estaba. PURA: no lee mas que los tres selectores. */
+function vabFraseValv(src){
+  const sv2 = id => _ccSv(id, src);
+  const tipo = sv2('vab_tipo'), rafe = sv2('vab_rafe'), sim = sv2('vab_simetria');
+  const partes = [];
+  const feno = _ccLbl(VAB_INF_FENO, tipo);
+  if (feno) partes.push('fenotipo ' + feno);
+  /* Los de dos senos no tienen rafe: lo que se dice es que los dos velos son verdaderos. */
+  const esDosSenos = tipo === 'dos_senos_ll' || tipo === 'dos_senos_ap';
+  const rf = esDosSenos ? VAB_INF_DOSVELOS : _ccLbl(VAB_INF_RAFE, rafe);
+  const sn = _ccLbl(VAB_INF_SENOS, sim);
+  /* El rafe y los senos van en la MISMA clausula cuando estan los dos: «con rafe calcificado y
+     senos simétricos». Con uno solo, el que haya. */
+  if (rf && sn) partes.push(rf + ' y ' + sn);
+  else if (rf) partes.push(rf);
+  else if (sn) partes.push('con ' + sn);
+  return partes.length ? ', ' + partes.join(', ') : '';
+}
+/* El fenotipo aortopatico se agrega a la frase de la AORTA, que es donde la aorta se describe,
+   en vez de repetirse en el bloque de la VAB. Vacio con cualquier otra morfologia y sin
+   fenotipo elegido, asi que la frase de la aorta queda textualmente como estaba. */
+function _vabFenoCola(){
+  const morf = _ccSv('va_morf');
+  if (morf !== 'Bicúspide') return '';
+  const f = _ccLbl(VAB_FENO_TXT, _ccSv('vab_fenotipo'));
+  return f ? ' Fenotipo aortopático ' + f + '.' : '';
+}
+window._vabFenoCola = _vabFenoCola;
+window.vabFraseValv = vabFraseValv; window.VAB_INF_FENO = VAB_INF_FENO;
+window.VAB_SUMA_FENO = VAB_SUMA_FENO;
+window.VAB_INF_SENOS = VAB_INF_SENOS; window.VAB_INF_RAFE = VAB_INF_RAFE;
 const VAB_FUNC_TXT = { normal:'normofuncionante', estenosis:'con estenosis', insuficiencia:'con insuficiencia', mixta:'con lesión mixta' };
 const VAB_FENO_TXT = { sin:'sin dilatación', raiz:'de raíz', tubular:'tubular (ascendente)', arco:'extendido (con compromiso del arco)' };
 /* Los NUEVE factores de la Tabla 68 de la ESC 2024. Tres se derivan de datos que la app ya
@@ -64857,8 +64967,13 @@ function vabConclusion(src){
   const hayDato = hayPropio || morfBicuspide;
   if (!hayDato) return null;
   /* Los dos campos en desacuerdo: no se elige uno en silencio, se lo dice. */
+  /* ⚠️ «RESOLVER LA DISCREPANCIA ANTES DE FIRMAR» SE RETIRA DEL TEXTO — DECISION DE MAICOL
+     (Y3d8). Era una instruccion de interfaz dentro de un informe FIRMADO, y desde el commit
+     anterior la seccion tiene su propio aviso en pantalla (`vab-morf-aviso`), que es donde esa
+     frase sirve. Lo que la conclusion sigue haciendo es DECIR la discrepancia, que es el
+     hallazgo; lo que deja de hacer es dar una orden al que la lee. */
   if (hayPropio && morf && !morfBicuspide) return { clave:'contradiccion',
-    txt:'La morfología aórtica registrada en Válvulas es «' + morf + '» y esta sección describe una válvula bicúspide — resolver la discrepancia antes de firmar' };
+    txt:'La morfología aórtica registrada en Válvulas es «' + morf + '» y esta sección describe una válvula bicúspide' };
 
   const maxAo = (raiz != null && asc != null) ? Math.max(raiz, asc) : (raiz != null ? raiz : asc);
   const fr = vabFactores(src);
@@ -66741,13 +66856,26 @@ function ccSumaLinea(sec){
                  no_interpretable:'medidas fuera de rango — revisar unidades',
                  sin_aorta:'sin medición de la aorta' };
     if (!tipo && maxAo == null && c.clave !== 'contradiccion' && c.clave !== 'sin_aorta' && c.clave !== 'no_interpretable') return null;
-    let l = 'VAB' + (tipo ? ' ' + L(VAB_TIPO_TXT, tipo) : '');
-    const fx = L(VAB_FUNC_TXT, func); if (fx) l += ', ' + fx;
-    /* Se publica el DIÁMETRO MÁXIMO, que es el que decide, y se dice de dónde sale. */
-    if (raiz != null) l += ' — raíz ' + _cc1(raiz) + ' mm';
-    if (asc != null) l += ' — Ao ascendente ' + _cc1(asc) + ' mm';
-    if (maxAo != null && raiz != null && asc != null) l += ' (máx. ' + _cc1(maxAo) + ' mm)';
-    const fz = L(VAB_FENO_TXT, feno); if (fz) l += ' — dilatación ' + fz;
+    /* ══ Y3d8: EL EN SUMA PASA A SER CORTO ═════════════════════════════════════════════════
+       DECISION DE MAICOL: «VAB fenotipo R-L (rafe calcificado), normofuncionante.». El tipo va
+       con las palabras del informe -no con «fused type»- y el rafe entre parentesis.
+       ⚠️ LA DILATACION DE LA RAIZ Y DE LA ASCENDENTE SIGUE EN SU PROPIA LINEA, la que el bloque
+       de la aorta ya empuja («Dilatación aorta ascendente (42 mm).»): repetir los dos diametros
+       aca los decia DOS veces en el mismo resumen.
+       ⚠️ Y CON DISFUNCION VALVULAR LA VAB NO REPITE LA LESION si el EN SUMA ya trae su linea.
+       `_ccSumaTieneAo` mira lo que ya se empujo: la aortica publica «EAo ...» e «IAo ...» desde
+       el bloque 8, y una segunda mencion desde aca diria el mismo hallazgo dos veces. Sin esas
+       lineas -el medico consigno la funcion en la seccion VAB y no gradúo la valvula- la lesion
+       se agrega con las palabras que la app ya usa. */
+    /* ⚠️ LA SIGLA CORTA Y NO LA EXPANDIDA: el EN SUMA es un resumen, y «VAB fenotipo R-L
+       (fusión derecha-izquierda) (rafe calcificado)» deja dos parentesis seguidos sobre la
+       misma linea. La expansion queda en el informe, que es donde se describe. */
+    const feRafe = _ccLbl(VAB_INF_RAFE, _ccS('vab_rafe'));
+    const feTipo = _ccLbl(VAB_SUMA_FENO, tipo);
+    let l = 'VAB' + (feTipo ? ' fenotipo ' + feTipo : '')
+          + (feRafe ? ' (' + feRafe.replace(/^con /, '') + ')' : '');
+    const fx = L(VAB_FUNC_TXT, func);
+    if (fx && !(func !== 'normal' && _ccSumaTieneAo())) l += ', ' + fx;
     const dx = L(DX, c.clave);
     return l + (dx ? ' — ' + dx : '');
   }

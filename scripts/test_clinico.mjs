@@ -5537,8 +5537,12 @@ caso('TC-66', 'VAB: aorta de 56 mm dispara la indicacion Clase I de la ESC 2024'
   __t.limpiar(); __t.set('va_morf','Bicúspide'); __t.set('ao_tub','56');
   __t.chk('vab_incluir_chk', true);
   const r = __t.informe();
+  /* ADAPTADO el 2026-10-19 (Y3d8): el EN SUMA de la VAB pasa a ser CORTO y la dilatacion de la
+     aorta queda en su PROPIA linea, la que el bloque de la aorta ya empuja -repetir los dos
+     diametros ahi los decia DOS veces en el mismo resumen-. Lo que este caso fija -que una
+     aorta de 56 mm dispare la Clase I- no cambio y es lo que sigue midiendo su extra. */
   return { suma: r.suma,
-    debeSuma: ['Dilatación aorta ascendente (56 mm).', 'VAB — Ao ascendente 56 mm.'],
+    debeSuma: ['Dilatación aorta ascendente (56 mm).', 'VAB.'],
     extra: [['la conclusion es Clase I',
       (__t.txt('vab-concl') || '').indexOf('cirugía de la aorta indicada (ESC 2024, Clase I)') > -1]] };
 `);
@@ -7214,17 +7218,29 @@ caso('TC-115', 'VAB: la migracion a Consenso 2021 no pierde los estudios de Siev
       ['un valor ya migrado no se vuelve a tocar', yaNuevo === true],
       ['un estudio guardado con Sievers reabre con el tipo PUESTO, no vacio',
         trasReabrir === 'fused_rl'],
+      /* ADAPTADO el 2026-10-19 (Y3d8). El INFORME dejo de usar «fused type R-L»: la descripcion
+         de la valvula se dice UNA sola vez, en VALVULAS, y en ESPAÑOL -«fenotipo R-L (fusion
+         derecha-izquierda)»-. VAB_TIPO_TXT se conserva intacto y lo siguen usando la pantalla,
+         el Excel, «Ver detalle» y la hoja del PDF, que es lo que estas dos condiciones de la
+         MIGRACION querian fijar: que un estudio de Sievers reabra con su tipo puesto y se
+         imprima con la nomenclatura del Consenso. Se mide donde esa nomenclatura vive hoy. */
       ['y el informe lo imprime en la nomenclatura nueva',
-        infMigrado.inf.indexOf('fused type R-L') > -1],
+        infMigrado.inf.indexOf('fenotipo R-L (fusión derecha-izquierda)') > -1],
+      ['y VAB_TIPO_TXT sigue siendo el dueño del nombre tecnico del Consenso',
+        VAB_TIPO_TXT.fused_rl === 'fused type R-L (fusión derecha-izquierda)'],
       ['el mapa de etiquetas ya no tiene las claves viejas',
         VAB_TIPO_TXT.t1rl === undefined && VAB_TIPO_TXT.t0 === undefined],
       // 4 · Lo aditivo.
-      ['la simetria sale en el informe', inf.inf.indexOf('Senos asimétrica') > -1],
-      ['el recordatorio de coartacion tambien',
-        inf.inf.indexOf('excluir coartación de aorta asociada') > -1 &&
-        inf.inf.indexOf('85 %') > -1],
-      ['y el tipo, con la nomenclatura del Consenso',
-        inf.inf.indexOf('Válvula aórtica bicúspide — fused type R-L') > -1]
+      /* ADAPTADO: «Senos asimétrica» concordaba con el singular de VAB_SIMETRIA_TXT, que
+         describe la SIMETRIA; los SENOS van en plural. Y el recordatorio de la coartacion SALIO
+         del informe -su 85 % no lo publica ninguna fuente de la biblioteca, ver el commit 10-:
+         hoy la condicion afirma lo CONTRARIO, que es que no esta. */
+      ['la simetria sale en el informe, y en PLURAL', inf.inf.indexOf('senos asimétricos') > -1],
+      ['el recordatorio de la coartacion YA NO esta en el informe',
+        inf.inf.indexOf('excluir coartación de aorta asociada') === -1 &&
+        inf.inf.indexOf('85 %') === -1],
+      ['y el tipo, con la nomenclatura del Consenso en español',
+        inf.inf.indexOf('Válvula aórtica bicúspide, fenotipo R-L (fusión derecha-izquierda)') > -1]
     ] };
   })();
 `);

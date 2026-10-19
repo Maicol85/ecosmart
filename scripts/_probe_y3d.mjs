@@ -1632,6 +1632,73 @@ window.__Y = {
     process.stderr.write('[morf] listo\n');
   }
 
+  /* == GRUPO «inf» - el informe y el EN SUMA de la VAB ==================================== */
+  if (corre('inf')) {
+    const r = { escenas: {} };
+    const ESC = [
+      ['rl_calc_sim_normal', { vab_tipo:'fused_rl', vab_rafe:'si',  vab_simetria:'simetrica',  vab_funcion:'normal' }],
+      ['rn_nocalc_asim',     { vab_tipo:'fused_rn', vab_rafe:'no',  vab_simetria:'asimetrica', vab_funcion:'normal' }],
+      ['ln_noeval',          { vab_tipo:'fused_ln', vab_rafe:'no_eval', vab_simetria:'',       vab_funcion:'normal' }],
+      ['dos_senos',          { vab_tipo:'dos_senos_ll', vab_rafe:'', vab_simetria:'simetrica', vab_funcion:'normal' }],
+      ['partial',            { vab_tipo:'partial',  vab_rafe:'',    vab_simetria:'',           vab_funcion:'' }],
+      ['sin_tipo',           { vab_tipo:'',         vab_rafe:'',    vab_simetria:'',           vab_funcion:'' }],
+      ['con_fenotipo',       { vab_tipo:'fused_rl', vab_rafe:'si',  vab_simetria:'simetrica',  vab_funcion:'normal', vab_fenotipo:'raiz' }]
+    ];
+    const correr = async (campos, extra) => {
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__P.sel('va_morf','Bicúspide')`);
+      await tipear('ao_sin', '38');
+      await tipear('ao_tub', '42');
+      for (const [k, v2] of Object.entries(extra || {})) {
+        try { await tipear(k, v2); } catch (e) { await ev(`window.__P.sel(${JSON.stringify(k)},${JSON.stringify(v2)})`); }
+      }
+      await ev(`window.__Y.irVAB()`);
+      for (const [k, v2] of Object.entries(campos)) {
+        if (v2 === '') continue;
+        await ev(`window.__P.sel(${JSON.stringify(k)},${JSON.stringify(v2)})`);
+      }
+      await ev(`(function(){ var c = document.getElementById('vab_incluir_chk');
+        if (c && !c.checked) eteInclToggle('vab_incluir_chk'); return !!(c && c.checked) })()`);
+      const sal = await ev(`window.__Y.salida()`, 60000);
+      const o = {};
+      for (const st of ['estandar', 'narrativo', 'conciso']) {
+        o[st] = await ev(`window.__Y.lineasVAB(${JSON.stringify(sal[st] || '')})`);
+        o['suma_' + st] = sal['suma_' + st];
+      }
+      o.feno = await ev(`(function(){ var t = ${JSON.stringify(sal.estandar || '')};
+        var i = t.indexOf('Fenotipo aortopático');
+        return i < 0 ? null : t.slice(Math.max(0, i - 70), i + 44).split(String.fromCharCode(10)).join(' | ') })()`);
+      o.conciso = await ev(`window.__Y.lineasVAB(${JSON.stringify(sal.conciso || '')})`);
+      o.raizVeces = await ev(`(function(){ var t = ${JSON.stringify(sal.estandar || '')};
+        return (t.match(/[Rr]a[ií]z a[oó]rtica/g) || []).length })()`);
+      o.discrepancia = await ev(`(function(){ var t = ${JSON.stringify((sal.estandar || '') + (sal.suma_estandar || ''))};
+        return t.indexOf('resolver la discrepancia') >= 0 })()`);
+      o.recordatorio = await ev(`(function(){ var t = ${JSON.stringify((sal.estandar || '') + (sal.suma_estandar || ''))};
+        return t.indexOf('85 %') >= 0 || t.indexOf('excluir coartación') >= 0 })()`);
+      return o;
+    };
+    try {
+      for (const [k, c] of ESC) r.escenas[k] = await correr(c, null);
+      /* Con ESTENOSIS: la VAB no repite la lesion que el EN SUMA ya trae. */
+      r.escenas.conEstenosis = await correr(
+        { vab_tipo:'fused_rl', vab_rafe:'si', vab_simetria:'simetrica', vab_funcion:'estenosis' },
+        { vmax_ao:'4.3', gmedio_ao:'45' });
+      /* Y el CONTROL: con otra morfologia la frase de la aortica no cambia. */
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__P.sel('va_morf','Trivalva normal')`);
+      await tipear('ao_sin', '38');
+      await tipear('ao_tub', '42');
+      const sal2 = await ev(`window.__Y.salida()`, 60000);
+      r.controlTrivalva = {};
+      for (const st of ['estandar', 'narrativo', 'conciso']) {
+        r.controlTrivalva[st] = await ev(`window.__Y.lineasVAB(${JSON.stringify(sal2[st] || '')})`);
+        r.controlTrivalva['suma_' + st] = sal2['suma_' + st];
+      }
+    } catch (e) { r.err = e.message; }
+    out.grupos.inf = r;
+    process.stderr.write('[inf] listo\n');
+  }
+
   /* == GRUPO «dib» - el dibujo de la VAB ================================================== */
   if (corre('dib')) {
     const r = { tipos: {}, toque: {}, pdf: {} };
