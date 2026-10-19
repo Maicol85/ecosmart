@@ -13615,7 +13615,7 @@ z
         <div class="fg"><label>Longitud coaptación (mm)</label>
           <div class="teer-figrow"><div class="teer-figcol">
           <input type="number" id="teer_gap" placeholder="mm" oninput="calcTEER()">
-          <span style="font-size:10px; color:var(--text2);">Req: &gt;2mm</span>
+          <span style="font-size:10px; color:var(--text2);">Req: &ge;2mm</span>
           </div>
           <svg class="teer-fig" id="teer-fig-len" viewBox="0 0 320 250" role="img"
                  aria-label="Esquema de la medicion">
@@ -13694,12 +13694,17 @@ z
         <div style="font-size:11px; font-weight:700; color:var(--accent2); margin-bottom:6px;">CRITERIOS ANATÓMICOS ESC 2021</div>
         <div class="calc-row"><span class="calc-lbl">Velo anterior ≥20mm</span><span id="teer-c1">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Velo posterior ≥7mm (idealmente ≥10mm)</span><span id="teer-c1b">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">Gap coaptación ≤10mm</span><span id="teer-c2">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">Longitud de coaptación ≥2mm</span><span id="teer-c2">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Área mitral ≥4.0cm²</span><span id="teer-c3">—</span></div>
         <!-- «Profundidad de coaptación», igual que el campo y que la hoja del PDF: el mismo
              criterio tenía tres nombres distintos en tres superficies. -->
         <div class="calc-row"><span class="calc-lbl">Profundidad de coaptación ≤10mm</span><span id="teer-c4">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">Anchura flail ≤15mm</span><span id="teer-c5">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">Anchura del flail &lt;15mm</span><span id="teer-c5">—</span></div>
+        <!-- Y3d2: el FLAIL GAP tenia campo y rotulo («Excl: >=10mm») y NO tenia fila: nadie lo
+             leia, asi que con 12 mm el veredicto seguia diciendo «APTO para TEER - criterios
+             cumplidos». Medido contra el inicio de la tanda en 9,9 / 10 / 10,1 / 12 mm: los
+             cuatro daban APTO. -->
+        <div class="calc-row"><span class="calc-lbl">Flail gap &lt;10mm</span><span id="teer-c11">—</span></div>
         <div class="calc-row"><span class="calc-lbl">PASP ≤70mmHg</span><span id="teer-c6">—</span></div>
         <!-- Se oculta junto con sus dos filas: es un elemento suelto, no una `.calc-row`, así
              que el barrido de `calcTEER` no lo alcanzaba y quedaba flotando ENCIMA de «Sin
@@ -61563,6 +61568,9 @@ function teerEstado() {
   const lva   = v('teer_lva'),  lvp = v('teer_lvp'),  gap = v('teer_gap');
   const area  = v('teer_area_mitral');
   const profFlail = v('teer_prof_flail'), anchoFlail = v('teer_ancho_flail');
+  /* Y3d2: el FLAIL GAP. El campo existia desde siempre, con su rotulo «Excl: >=10mm», y NINGUNA
+     de las trece lecturas de esta funcion lo nombraba: no habia fila y no votaba. */
+  const flailGap = v('teer_flail_gap');
   const pasp  = v('teer_pasp'), fevi = v('teer_fevi'), dtsvi = v('teer_dtsvi');
   const calc  = sv('teer_calcificacion'), clefts = sv('teer_clefts'), trombo = sv('teer_trombo');
   const tipoIM = sv('teer_tipo_im');
@@ -61621,7 +61629,19 @@ function teerEstado() {
        cumplido es el error en la dirección peligrosa. La dirección igual es segura en los
        cuatro —un `null` nunca entra en `fallos`, así que la guarda no puede voltear
        NO APTO → APTO; lo único que produce es degradar un APTO a «faltan datos»—. */
-    c2:  (aplSec  && gap  !== null && gap > 0) ? C('teer-c2', 'Gap de coaptación ≤10 mm', gap <= 10, `${gap}mm ≤10mm`, `${gap}mm >10mm — evaluar Heart Team`) : C('teer-c2', 'Gap de coaptación ≤10 mm', null),
+    /* ⚠️ C2 ERA «GAP DE COAPTACION <=10 mm» SOBRE EL CAMPO DE LA LONGITUD DE COAPTACION, que es
+       la medida CONTRARIA: en la longitud mas es mejor. El propio comentario de abajo lo
+       documentaba como «confusion semantica preexistente». Medido contra el inicio de la tanda
+       con 1,9 / 2 / 2,1 / 7 mm: los cuatro imprimian «N mm <=10mm ✓» y daban APTO, o sea que una
+       longitud de 1,9 mm -por debajo del minimo para el agarre- contaba como criterio CUMPLIDO.
+       Hoy el criterio es el que su propio rotulo pide: longitud de coaptacion >= 2 mm.
+       ⚠️ LA GUARDA `> 0` SE RETIRA, y no es un descuido: con el criterio dado vuelta este dejo de
+       ser un TECHO y paso a ser un PISO, y un piso falla CERRADO con el cero -una longitud de
+       coaptacion de 0 mm es «sin coaptacion», que es el hallazgo mas desfavorable posible-. Con
+       la guarda puesta ese cero saldria «No ingresado» y el estudio caeria a «Datos incompletos»
+       en vez de a «NO apto». Es exactamente el razonamiento que la nota de c5 ya tiene escrita,
+       aplicado al otro lado del borde. */
+    c2:  (aplSec  && gap  !== null) ? C('teer-c2', 'Longitud de coaptación ≥2 mm', gap >= 2, `${gap}mm ≥2mm`, `${gap}mm <2mm — agarre insuficiente, NO apto`) : C('teer-c2', 'Longitud de coaptación ≥2 mm', null),
     c3:  area !== null ? C('teer-c3', 'Área mitral ≥4,0 cm²', area >= 4.0, `${area}cm² ≥4cm²`, `${area}cm² <4cm² — NO apto`)                    : C('teer-c3', 'Área mitral ≥4,0 cm²', null),
     c4:  (aplSec  && profFlail  !== null && profFlail  > 0) ? C('teer-c4','Profundidad de coaptación ≤10 mm', profFlail <= 10, `${profFlail}mm ≤10mm`, `${profFlail}mm >10mm — anatomía compleja, Heart Team`) : C('teer-c4','Profundidad de coaptación ≤10 mm', null),
     /* c5 NO lleva la guarda `> 0`, y es la única excepción de los criterios de techo — decisión
@@ -61632,7 +61652,11 @@ function teerEstado() {
        Anchura de flail», y el médico iba a buscar una medición que ya había hecho.
        Lo que se pierde: un 0 tipeado por error se cuenta como criterio cumplido. Se acepta
        porque es indistinguible del medido y porque el caso frecuente es el medido. */
-    c5:  (aplPrim && anchoFlail !== null) ? C('teer-c5','Anchura de flail ≤15 mm', anchoFlail <= 15, `${anchoFlail}mm ≤15mm`, `${anchoFlail}mm >15mm — anatomía compleja, Heart Team`) : C('teer-c5','Anchura de flail ≤15 mm', null),
+    /* ⚠️ EL OPERADOR SE ALINEA CON EL ROTULO DEL PROPIO CAMPO, que dice «Excl: >=15mm»: la fila
+       aplicaba `<=15`, asi que un ancho de 15,0 exactos -el valor del corte- PASABA. Medido
+       contra el inicio de la tanda: 14,9 APTO / 15 APTO / 15,1 borderline. Es el UNICO borde que
+       esta tanda mueve en los criterios TEER. */
+    c5:  (aplPrim && anchoFlail !== null) ? C('teer-c5','Anchura del flail <15 mm', anchoFlail < 15, `${anchoFlail}mm <15mm`, `${anchoFlail}mm ≥15mm — anatomía compleja, Heart Team`) : C('teer-c5','Anchura del flail <15 mm', null),
     /* `pasp > 0` por lo mismo que `c8`: un criterio de TECHO falla ABIERTO con el cero. Con
        `pasp !== null` solo, un `psap_calc` de 0 —o un 0 tipeado— imprimía «0mmHg ≤70mmHg ✓» en
        la hoja firmada y contaba como criterio CUMPLIDO, así que podía dejar `noIngresados` en
@@ -61649,6 +61673,19 @@ function teerEstado() {
     c8:  (dtsvi !== null && dtsvi > 0 && esSec) ? C('teer-c8','DTSVI ≤70 mm (COAPT)', dtsvi <= 70, `${dtsvi}mm ≤70mm`, `${dtsvi}mm >70mm — NO apto`) : C('teer-c8','DTSVI ≤70 mm (COAPT)', null),
     /* `'' → null`, no `false`: son los únicos dos criterios que no podían mostrar «No
        ingresado», así que su default se leía como un hallazgo negativo comprobado. */
+    /* ⚠️ EL FLAIL GAP, Y SIN GUARDA `> 0` POR EL MISMO MOTIVO QUE c5. Es un criterio de TECHO,
+       asi que la regla de los cuatro techos pediria la guarda; pero aca -igual que en el ancho
+       del flail, que es la OTRA medida del mismo hallazgo- **0 mm es «no hay flail gap»**, que
+       es el hallazgo de un prolapso sin flail y satisface genuinamente el «<10 mm»: anatomia
+       FAVORABLE, no un dato que falta. Con la guarda puesta ese estudio pasaria de «APTO» a
+       «Datos incompletos - falta: Flail gap», y el medico iria a buscar una medicion que ya
+       hizo. Es la excepcion que Maicol fijo para c5 el 2026-09-15, aplicada a su par.
+       El corte y su operador salen del ROTULO del propio campo («Excl: >=10mm»), que es lo unico
+       que la app tenia escrito sobre este criterio. ⚠️ SIN LINEA DE FUENTE: ni el registro de
+       EVEREST II ni el protocolo EXPAND estan en la biblioteca -censados los 115 PDF, cero
+       coincidencias de EVEREST, EXPAND, MitraClip, TEER o PASCAL-, asi que el corte NO se cita.
+       Declarado en FUENTES.md y en PENDIENTES.md. */
+    c11: (aplPrim && flailGap !== null) ? C('teer-c11','Flail gap <10 mm', flailGap < 10, `${flailGap}mm <10mm`, `${flailGap}mm ≥10mm — NO apto`) : C('teer-c11','Flail gap <10 mm', null),
     c9:  C('teer-c9', 'Sin calcificación densa en zona clip',        calc   === '' ? null : calc   === 'no', 'Sin calcificación densa',    'Calcificación densa — evaluar'),
     c10: C('teer-c10','Sin clefts ni perforaciones en zona agarre',  clefts === '' ? null : clefts === 'no', 'Sin clefts ni perforaciones','Clefts/perforaciones — limitan agarre')
   };
@@ -61680,7 +61717,7 @@ function teerEstado() {
      Convertirlo en veto es una decisión clínica, no un arreglo; queda documentado en CLAUDE.md
      con su caso abierto (TC-86). */
   const veto = [cs.c1, cs.c3, cs.c6, cs.c9, cs.c10]
-    .concat(aplPrim ? [cs.c5] : [])
+    .concat(aplPrim ? [cs.c5, cs.c11] : [])
     .concat(aplSec  ? [cs.c2, cs.c4] : [])
     .concat(esSec   ? [cs.c7, cs.c8] : []);
   const evaluados    = veto.filter(c => c.ok !== null);
@@ -61723,7 +61760,13 @@ function teerEstado() {
     clave = 'apto'; badgeCls = 'green'; titulo = '✅ APTO para TEER — criterios cumplidos';
     nota = tipoIM === 'secundaria' ? 'Optimizar GDMT previo. Evaluar Heart Team.' : 'Anatomía favorable. Evaluar Heart Team.';
   } else if (!fallos.length) {
-    clave = 'parcial'; badgeCls = 'yellow'; titulo = '⚠️ Posiblemente apto — completar datos faltantes';
+    /* ⚠️ «POSIBLEMENTE APTO» SE LEIA COMO UN APTO CON SALVEDAD — Y3d2. Un criterio sin dato NO
+       es un criterio cumplido, y el titulo tiene que decir lo que falta y no lo que podria
+       llegar a ser. Los nombres ya estaban en la nota de abajo; ahora estan tambien en el
+       titulo, que es lo que se lee. La LOGICA no cambia: la rama se alcanza exactamente con las
+       mismas condiciones que antes. */
+    clave = 'parcial'; badgeCls = 'yellow';
+    titulo = '⚠️ Datos incompletos — falta: ' + faltantes.map(c => c.lbl).join(', ');
     /* La nota NOMBRA los criterios que faltan. Decía sólo «Faltan 2 criterio(s) por ingresar» y
        eso alcanzaba mientras todos vivieran en esta misma tarjeta; desde que c7 y c8 cuentan,
        los que faltan pueden ser la FEVI y el DSFVI, que se cargan en el bloque de VI —o sea que
@@ -61743,7 +61786,9 @@ function teerEstado() {
      que es sólo una advertencia se leía como un rechazo. Sale de acá para que no pueda
      desincronizarse: el día que c1b entre o salga del `veto`, el color lo sigue solo. */
   const vetoIds = new Set(veto.map(c => c.id));
-  return { cs, vetoIds, orden:[cs.c1, cs.c1b, cs.c2, cs.c3, cs.c4, cs.c5, cs.c6, cs.c7, cs.c8, cs.c9, cs.c10],
+  /* c11 va PEGADO a c5: son las dos medidas del MISMO hallazgo -la anchura y la separacion
+     del flail- y el cuadro las publica juntas. */
+  return { cs, vetoIds, orden:[cs.c1, cs.c1b, cs.c2, cs.c3, cs.c4, cs.c5, cs.c11, cs.c6, cs.c7, cs.c8, cs.c9, cs.c10],
            tipoIM, esPrim, esSec, trombo, clave, badgeCls, titulo, nota, fallos: fallos.length, noIngresados,
            hayDatos: tipeados.length > 0 || trombo === 'si' || cs.c1b.ok !== null };
 }
@@ -61775,7 +61820,7 @@ function calcTEER() {
      secundaria, así que con el tipo sin definir también se ocultan: imprimirlos como «No
      ingresado» en la hoja firmada, al lado de un bloque de VI que sí muestra la FEVI, se lee
      como un dato que falta cargar cuando en realidad no es aplicable todavía. */
-  const _NO_APLICA = { 'teer-c5':r.esSec,
+  const _NO_APLICA = { 'teer-c5':r.esSec, 'teer-c11':r.esSec,
                        'teer-c2':r.esPrim, 'teer-c4':r.esPrim,
                        'teer-c7':!r.esSec, 'teer-c8':!r.esSec };
   r.orden.forEach(c => {
@@ -81710,7 +81755,12 @@ function amiloTextoTEER() {
      secundaria, así que con el tipo sin definir también se ocultan: imprimirlos como «No
      ingresado» en la hoja firmada, al lado de un bloque de VI que sí muestra la FEVI, se lee
      como un dato que falta cargar cuando en realidad no es aplicable todavía. */
-  const _NO_APLICA = { 'teer-c5':r.esSec,
+  /* ⚠️ SEGUNDA COPIA DE `_NO_APLICA`, preexistente: la otra vive en `calcTEER` y pinta la
+     pantalla. Las dos tienen que moverse juntas -c11 entro en las dos a la vez-; una sola
+     dejaria la hoja FIRMADA imprimiendo «Flail gap <10 mm | No ingresado» en una IM
+     secundaria, donde el criterio no aplica. Reportado y no unificado: esta orden no lo
+     autoriza. */
+  const _NO_APLICA = { 'teer-c5':r.esSec, 'teer-c11':r.esSec,
                        'teer-c2':r.esPrim, 'teer-c4':r.esPrim,
                        'teer-c7':!r.esSec, 'teer-c8':!r.esSec };
   r.orden.forEach(c => {
@@ -117181,14 +117231,16 @@ const _labUsaEteVM = i => _labAlgunTxtA(i, ['ete_etiologia','ete_carpentier','et
      puesto el render entero. Es la trampa que este archivo ya documenta. */
 const _LAB_TEER_CRIT = [
     { k:'lva',  lbl:'Velo anterior <20 mm',        campo:'teer_lva',         ok:v => v >= 20 },
-    /* Rótulo NEUTRO a propósito. calcTEER lee `teer_gap` —que la interfaz rotula «Longitud
-       coaptación (mm)» con la ayuda «Req: >2mm», o sea más es mejor— y lo evalúa contra `<=10`,
-       que es el umbral del FLAIL GAP. Y `teer_flail_gap`, el campo que sí es el flail gap, no lo
-       lee nadie en todo el archivo. Es un defecto preexistente de calcTEER, no de acá; pero
-       rotular la barra «Longitud coaptación >10 mm» publicaba la frase invertida —una coaptación
-       larga es BUENA— en un gráfico titulado «criterios no cumplidos». Hasta que se decida la
-       semántica del campo, la barra nombra el campo y no una interpretación. */
-    { k:'gap',  lbl:'teer_gap fuera de rango (>10 mm)', campo:'teer_gap',    ok:v => v <= 10, tipo:'sec',  cero:'no' },
+    /* ⚠️ Y3d2: EL ROTULO NEUTRO SE RETIRA PORQUE LA SEMANTICA SE DECIDIO. El comentario que
+       vivia acá declaraba el defecto: `calcTEER` leia `teer_gap` -rotulado «Longitud coaptacion
+       (mm)», donde mas es mejor- y lo evaluaba contra `<=10`, que es el umbral del FLAIL GAP,
+       mientras `teer_flail_gap` no lo leia nadie en todo el archivo. Hoy la longitud de
+       coaptacion es un PISO de 2 mm y el flail gap tiene su propia fila, asi que la barra puede
+       nombrar la interpretacion sin invertirla.
+       ⚠️ Y SIN `cero:'no'`: desde que es un PISO, el cero falla CERRADO -una longitud de 0 mm es
+       «sin coaptacion»- y marcarlo como «campo sin llenar» lo sacaria del conteo. La guarda sale
+       de las DOS superficies a la vez, que es lo que TC-98 vigila. */
+    { k:'gap',  lbl:'Longitud de coaptación <2 mm', campo:'teer_gap',        ok:v => v >= 2,   tipo:'sec' },
     { k:'area', lbl:'Área mitral <4 cm²',          campo:'teer_area_mitral', ok:v => v >= 4.0 },
     { k:'prof', lbl:'Profundidad de coaptación >10 mm', campo:'teer_prof_flail', ok:v => v <= 10, tipo:'sec',  cero:'no' },
     /* `anch` SIN `cero:'no'`, a diferencia de los otros cuatro techos: 0 mm de anchura de flail
@@ -117196,7 +117248,11 @@ const _LAB_TEER_CRIT = [
        Maicol, y tiene que estar acá igual que en `teerEstado` — si una de las dos superficies la
        aplica y la otra no, el mismo estudio sale «Posiblemente apto» en el informe firmado y
        «Apto» en el PDF de auditoría. */
-    { k:'anch', lbl:'Ancho flail >15 mm',          campo:'teer_ancho_flail', ok:v => v <= 15, tipo:'prim' },
+    { k:'anch', lbl:'Ancho del flail ≥15 mm',     campo:'teer_ancho_flail', ok:v => v < 15,  tipo:'prim' },
+    /* ⚠️ Y3d2: EL FLAIL GAP, que hasta hoy no tenia fila en NINGUNA de las dos superficies.
+       Comparte con la anchura la excepcion del cero -son las dos medidas del mismo hallazgo y
+       0 mm es «no hay flail»-, asi que tampoco lleva `cero:'no'`. */
+    { k:'fgap', lbl:'Flail gap ≥10 mm',           campo:'teer_flail_gap',   ok:v => v < 10,  tipo:'prim' },
     /* `cero:'no'` = el cero NO es una medición, es un campo sin llenar. Los criterios de TECHO
        (`v <= X`) fallan ABIERTO con el cero: `_labNum` devuelve 0 para "0", no null, así que
        sin esto el estudio sumaba `ingresados` y el criterio salía CUMPLIDO. Va acá al mismo

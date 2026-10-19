@@ -5683,17 +5683,27 @@ caso('TC-88', 'Cardio-onco: la constante de la leyenda y el umbral que clasifica
 /* Los criterios se gatean por el DATO (`teer_tipo_im`), no por lo que se ve en pantalla. En la
    IM primaria, el gap y la profundidad de coaptacion —que son de la funcional— no cuentan como
    criterios faltantes: un criterio que NO APLICA no es un criterio que FALTA. */
+/* ADAPTADO el 2026-10-19 (Y3d2). La escena «primaria y completa» dejo de estar completa: el
+   FLAIL GAP entro a la lista de criterios de la IM primaria -hasta el Y3d su campo existia con
+   su rotulo «Excl: >=10mm» y NADIE lo leia, asi que con 12 mm el veredicto seguia diciendo
+   APTO-. Se le agrega el dato, que es lo que una escena «completa» tiene que traer, y la hoja
+   pasa a exigir tambien su fila. El rotulo de la anchura cambio de «<=15 mm» a «<15 mm» para
+   alinearse con el rotulo de su propio campo, que siempre dijo «Excl: >=15mm». */
 caso('TC-73', 'TEER: el tipo de IM gatea que criterios cuentan, sin dejar el veredicto incompleto', `
   __t.limpiar(); __t.set('teer_tipo_im','primaria');
   __t.set('teer_lva','24'); __t.set('teer_lvp','9'); __t.set('teer_ancho_flail','12');
+  __t.set('teer_flail_gap','4');
   __t.set('teer_area_mitral','5.2'); __t.set('teer_pasp','40');
   __t.set('teer_calcificacion','no'); __t.set('teer_clefts','no'); __t.set('teer_trombo','no');
   const e = teerEstado(); const hoja = amiloTextoTEER();
   return { extra: [
     ['primaria y completa -> APTO', e.clave === 'apto' && e.noIngresados === 0],
-    ['la hoja trae la anchura de flail', hoja.indexOf('Anchura de flail <=15 mm') > -1],
-    ['y NO pide gap ni profundidad de coaptacion',
-      hoja.indexOf('Gap de coaptación') === -1 && hoja.indexOf('Profundidad de coaptación') === -1],
+    ['la hoja trae la anchura de flail', hoja.indexOf('Anchura del flail <15 mm') > -1],
+    ['y tambien el flail gap, que desde el Y3d vota', hoja.indexOf('Flail gap <10 mm') > -1],
+    /* El criterio de c2 se llama hoy «Longitud de coaptacion»: era «Gap de coaptacion <=10 mm»
+       sobre el campo de la LONGITUD, que es la medida contraria. */
+    ['y NO pide longitud ni profundidad de coaptacion',
+      hoja.indexOf('Longitud de coaptación') === -1 && hoja.indexOf('Profundidad de coaptación') === -1],
     ['la nota es la de anatomia, no la de GDMT', e.nota.indexOf('Anatomía favorable') > -1]
   ] };
 `);
@@ -5874,6 +5884,10 @@ caso('TC-89', 'TEER: los criterios COAPT solo cuentan con la IM secundaria consi
   function base(tipo) { __t.limpiar(); if (tipo) __t.set('teer_tipo_im', tipo);
     __t.set('teer_lva','24'); __t.set('teer_lvp','9'); __t.set('teer_gap','6');
     __t.set('teer_prof_flail','8'); __t.set('teer_ancho_flail','12');
+    /* ADAPTADO el 2026-10-19 (Y3d2): el FLAIL GAP entro a los criterios de la IM primaria, asi
+       que una escena «completa» tiene que traerlo. Sin el, las dos ramas sin tipo y primaria
+       caian a «Datos incompletos» por un criterio que este caso no mide. */
+    __t.set('teer_flail_gap','4');
     __t.set('teer_area_mitral','5.2'); __t.set('teer_pasp','40');
     __t.set('teer_calcificacion','no'); __t.set('teer_clefts','no'); __t.set('teer_trombo','no');
     return teerEstado(); }
@@ -6194,12 +6208,20 @@ caso('TC-98', 'TEER: la pantalla y el Laboratorio rechazan el cero en los MISMOS
   return (async () => {
     const src = await (await fetch(location.href, { cache:'no-store' })).text();
     // Lado del informe firmado: la guarda vive en la condicion de cada criterio.
+    /* ADAPTADO el 2026-10-19 (Y3d2). La clave gap SALIO de la lista de los que rechazan el
+       cero, en las DOS superficies a la vez: c2 dejo de ser el techo «Gap de coaptacion
+       el campo de la LONGITUD de coaptacion y paso a ser el piso «Longitud de coaptacion
+       >=2 mm», y un piso falla CERRADO con el cero -0 mm es «sin coaptacion»-. Y entra fgap,
+       el FLAIL GAP, que hasta el Y3d no tenia fila en ninguna de las dos: comparte con la
+       anchura la excepcion del cero, porque son las dos medidas del mismo hallazgo. Lo que este
+       caso vigila -que las dos listas digan LO MISMO- no cambio y es lo que sigue midiendo. */
     const guarda = {
       gap:   src.indexOf('gap  !== null && gap > 0') > -1,
       prof:  src.indexOf('profFlail  !== null && profFlail  > 0') > -1,
       pasp:  src.indexOf('pasp !== null && pasp > 0') > -1,
       dtsvi: src.indexOf('dtsvi !== null && dtsvi > 0') > -1,
-      anch:  src.indexOf('anchoFlail !== null && anchoFlail > 0') > -1
+      anch:  src.indexOf('anchoFlail !== null && anchoFlail > 0') > -1,
+      fgap:  src.indexOf('flailGap !== null && flailGap > 0') > -1
     };
     // Lado del Laboratorio: la marca cero:'no' en la fila de TEER_CRIT de cada campo.
     const fila = campo => {
@@ -6212,17 +6234,20 @@ caso('TC-98', 'TEER: la pantalla y el Laboratorio rechazan el cero en los MISMOS
       prof:  (fila('prof_flail')  || '').indexOf("cero:'no'") > -1,
       pasp:  (fila('pasp')        || '').indexOf("cero:'no'") > -1,
       dtsvi: (fila('dtsvi')       || '').indexOf("cero:'no'") > -1,
-      anch:  (fila('ancho_flail') || '').indexOf("cero:'no'") > -1
+      anch:  (fila('ancho_flail') || '').indexOf("cero:'no'") > -1,
+      fgap:  (fila('flail_gap')   || '').indexOf("cero:'no'") > -1
     };
-    const campos = ['gap','prof','pasp','dtsvi','anch'];
+    const campos = ['gap','prof','pasp','dtsvi','anch','fgap'];
+    const campoDe = k => k === 'prof' ? 'prof_flail' : k === 'anch' ? 'ancho_flail'
+                       : k === 'fgap' ? 'flail_gap' : k;
     return { extra: [
       ['el fuente se pudo leer', src.length > 100000],
-      ['las cinco filas de TEER_CRIT existen', campos.every(k => fila(k === 'prof' ? 'prof_flail' : k === 'anch' ? 'ancho_flail' : k) !== null)],
-      ['los cuatro que rechazan el cero lo rechazan en las DOS superficies',
-        ['gap','prof','pasp','dtsvi'].every(k => guarda[k] === true && marca[k] === true)],
-      ['y la anchura de flail lo acepta en las DOS',
-        guarda.anch === false && marca.anch === false],
-      ['ninguna de las cinco quedo desparejada',
+      ['las SEIS filas de TEER_CRIT existen', campos.every(k => fila(campoDe(k)) !== null)],
+      ['los TRES que rechazan el cero lo rechazan en las DOS superficies',
+        ['prof','pasp','dtsvi'].every(k => guarda[k] === true && marca[k] === true)],
+      ['y las tres medidas del flail y la longitud lo aceptan en las DOS',
+        ['anch','fgap','gap'].every(k => guarda[k] === false && marca[k] === false)],
+      ['ninguna de las seis quedo desparejada',
         campos.every(k => guarda[k] === marca[k])]
     ] };
   })();
@@ -6308,29 +6333,39 @@ caso('TC-95', 'TEER: el cero se rechaza donde no puede ser una medicion, no en t
   // La anchura de flail es criterio de IM PRIMARIA, asi que se prueba con ese tipo.
   __t.limpiar(); __t.set('teer_tipo_im','primaria');
   __t.set('teer_lva','24'); __t.set('teer_lvp','9'); __t.set('teer_area_mitral','5.2');
-  __t.set('teer_pasp','40'); __t.set('teer_ancho_flail','0');
+  __t.set('teer_pasp','40'); __t.set('teer_ancho_flail','0'); __t.set('teer_flail_gap','0');
   __t.set('teer_calcificacion','no'); __t.set('teer_clefts','no'); __t.set('teer_trombo','no');
   const anch = teerEstado();
   // Los DOS de piso, con cero: tienen que seguir diciendo que NO se cumplen.
   const piso = conCero('teer_lva'), pisoArea = conCero('teer_area_mitral');
   return { extra: [
-    ['gap 0 no es criterio cumplido',          gap.cs.c2.ok === null],
+    /* ADAPTADO el 2026-10-19 (Y3d2). c2 DEJO DE SER UN TECHO. Era «Gap de coaptacion <=10 mm»
+       sobre el campo de la LONGITUD de coaptacion -la medida contraria, donde mas es mejor- y
+       llevaba la guarda de mayor que cero por la regla de los techos. Hoy es «Longitud de
+       coaptacion >=2 mm», o sea un PISO, y un piso falla CERRADO con el cero: una longitud
+       coaptacion», el hallazgo mas desfavorable que existe, y declararlo «no ingresado» lo
+       sacaria del veredicto. La condicion afirma hoy lo CONTRARIO, y es la direccion segura. */
+    ['longitud de coaptacion 0 es criterio NO CUMPLIDO, no «no ingresado»',
+      gap.cs.c2.ok === false && gap.cs.c2.txt.indexOf('0mm <2mm') > -1],
     ['profundidad 0 tampoco',                  prof.cs.c4.ok === null],
     ['PASP 0 tampoco',                         pasp.cs.c6.ok === null],
     ['DTSVI 0 tampoco',                        dtsvi.cs.c8.ok === null],
     ['y ninguno de los cuatro deja decir APTO',
       [gap, prof, pasp, dtsvi].every(e => e.clave !== 'apto')],
+    /* Y3d2: el FLAIL GAP comparte la excepcion de la anchura, porque son las dos medidas del
+       MISMO hallazgo: 0 mm es «no hay flail gap», anatomia favorable, no un dato que falta. */
+    ['flail gap 0 SI es criterio cumplido',    anch.cs.c11.ok === true],
     // La excepcion: 0 mm de anchura de flail es «no hay flail», una medicion favorable.
     ['anchura de flail 0 SI es criterio cumplido', anch.cs.c5.ok === true],
     ['y el estudio queda APTO, sin pedir datos que ya estan',
       anch.clave === 'apto' && anch.noIngresados === 0],
     ['el texto del criterio muestra el valor medido, no «No ingresado»',
-      anch.cs.c5.txt.indexOf('0mm ≤15mm') > -1],
+      anch.cs.c5.txt.indexOf('0mm <15mm') > -1],
     // Y sigue rechazando lo que de verdad es un flail ancho.
     ['un flail de 18 mm sigue siendo criterio NO cumplido',
       (function(){ __t.limpiar(); __t.set('teer_tipo_im','primaria');
         __t.set('teer_lva','24'); __t.set('teer_area_mitral','5.2'); __t.set('teer_pasp','40');
-        __t.set('teer_ancho_flail','18');
+        __t.set('teer_ancho_flail','18'); __t.set('teer_flail_gap','4');
         __t.set('teer_calcificacion','no'); __t.set('teer_clefts','no'); __t.set('teer_trombo','no');
         const e = teerEstado(); return e.cs.c5.ok === false && e.fallos === 1; })()],
     ['el velo anterior en 0 SIGUE fallando, no se vuelve «no ingresado»',
