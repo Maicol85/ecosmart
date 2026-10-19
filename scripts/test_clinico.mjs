@@ -5942,8 +5942,17 @@ caso('TC-90', 'TEER: los criterios COAPT se espejan vivos, rechazan el cero y no
     ['y la hoja del PDF sale vacia',              hojaEspejo === ''],
     ['DTSVI 0 no es un criterio cumplido',        cero.cs.c8.ok === null],
     ['y por eso el estudio no puede decir APTO',  cero.clave !== 'apto'],
+    /* ADAPTADO el 2026-10-19 (Y3d3): la sigla del criterio pasa de DTSVI a DSFVI. Son el MISMO
+       dato -el diametro TELEsistolico del VI, el LVESD del COAPT- y su campo de origen en AI/VI
+       siempre se llamo DSFVI; «DTSVI» nombra ademas OTRA cosa en esta app, el diametro del
+       TSVI. Se unifico en la seccion TEER y la hoja del PDF lo hereda del mismo lbl. */
     ['sin FEVI ni DSFVI la nota NOMBRA los dos que faltan',
-      faltan.nota.indexOf('FEVI 20-50 % (COAPT)') > -1 && faltan.nota.indexOf('DTSVI ≤70 mm (COAPT)') > -1]
+      faltan.nota.indexOf('FEVI 20-50 % (COAPT)') > -1 && faltan.nota.indexOf('DSFVI ≤70 mm (COAPT)') > -1],
+    /* Y3d3: el titulo tambien los nombra, no solo la nota. */
+    ['y el titulo dice «Datos incompletos» con los dos nombres',
+      faltan.titulo.indexOf('Datos incompletos') > -1
+        && faltan.titulo.indexOf('FEVI 20-50 % (COAPT)') > -1
+        && faltan.titulo.indexOf('DSFVI ≤70 mm (COAPT)') > -1]
   ] };
 `);
 

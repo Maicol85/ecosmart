@@ -4121,7 +4121,16 @@ window.cerrarSesionReal = cerrarSesionReal;
         </div>
         <div class="fg">
           <label>DSFVI (mm)</label>
-          <input type="number" id="dsfvi" placeholder="mm" oninput="calcVI()">
+          <!-- ⚠️ EL DISPARADOR DEL ESPEJO DEL TEER (Y3d3, 2026-10-19). `sincronizarTEERDesdeGlobal`
+               corria SOLO desde `calcPSAP` y al ABRIR el acordeon TEER, asi que con el acordeon ya
+               abierto -que es el caso del medico que vuelve a AI/VI a cargar los datos- el campo
+               `teer_dtsvi` se quedaba vacio y la lista publicaba «No ingresado» sobre un dato que
+               el medico acababa de tipear. MEDIDO contra el inicio de la tanda: sin abrir el
+               acordeon, vacios; al abrirlo, 35 y 58; con el acordeon YA abierto y cargando de
+               nuevo, VACIOS otra vez. Es el patron «consumidor nuevo sin su disparador» que el ARR
+               dejo escrito. Va con `typeof` porque el bloque del TEER vive 20.000 lineas mas abajo
+               y un ReferenceError aqui se lleva el `oninput` de un campo del VI. -->
+          <input type="number" id="dsfvi" placeholder="mm" oninput="calcVI();if(typeof sincronizarTEERDesdeGlobal==='function')sincronizarTEERDesdeGlobal()">
         </div>
         <div class="fg">
           <label>PPVI (mm)</label>
@@ -4131,7 +4140,9 @@ window.cerrarSesionReal = cerrarSesionReal;
           <label>FEVI (Simpson, %)</label>
           <!-- `aoRefPintar` se agrega para que la fila FEVI del cuadro de referencias del Doppler
                aórtico se entere al tipear; NO cambia nada de AI/VI ni de `calcVI`. -->
-          <input type="number" id="fevi" placeholder="%" oninput="calcVI();if(typeof aoRefPintar==='function')aoRefPintar();calcDiastol()">
+          <!-- `sincronizarTEERDesdeGlobal`: el mismo disparador que `dsfvi`, por el mismo motivo
+               (ver su comentario). -->
+          <input type="number" id="fevi" placeholder="%" oninput="calcVI();if(typeof aoRefPintar==='function')aoRefPintar();calcDiastol();if(typeof sincronizarTEERDesdeGlobal==='function')sincronizarTEERDesdeGlobal()">
         </div>
         <div class="fg">
           <label>FEVI método</label>
@@ -13633,7 +13644,13 @@ z
           <input type="number" id="teer_fevi" placeholder="%" oninput="calcTEER()">
           <span style="font-size:10px; color:var(--text2);">COAPT: 20–50%</span>
         </div>
-        <div class="fg"><label>DTSVI (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← VI Estructura (DSFVI)</span></label>
+        <!-- ⚠️ EL ROTULO DECIA «DTSVI» Y SU ORIGEN «DSFVI», y son el MISMO dato: el diametro
+             TELEsistolico del VI, el LVESD del COAPT. En esta app «DTSVI» nombra ademas OTRA
+             cosa -el diametro del TSVI, el tracto de salida, en hemodinamica y en el AVA por
+             continuidad-, asi que la sigla decia dos cosas distintas en dos pestañas. Se
+             unifica a DSFVI EN LA SECCION TEER, que es lo que la orden pide; las de
+             hemodinamica NO se tocan, porque ahi la sigla es correcta y es otro dato. -->
+        <div class="fg"><label>DSFVI (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← VI Estructura</span></label>
           <input type="number" id="teer_dtsvi" placeholder="mm" oninput="calcTEER()">
           <span style="font-size:10px; color:var(--text2);">COAPT: ≤70mm</span>
         </div>
@@ -13712,7 +13729,7 @@ z
              COAPT en el mismo cuadro que decide APTO. -->
         <div id="teer-hdr-coapt" style="font-size:11px; font-weight:700; color:var(--accent2); margin:8px 0 4px;">CRITERIOS COAPT (IM secundaria)</div>
         <div class="calc-row"><span class="calc-lbl">FEVI 20–50%</span><span id="teer-c7">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">DTSVI ≤70mm</span><span id="teer-c8">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">DSFVI ≤70mm</span><span id="teer-c8">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Sin calcificación densa en zona clip</span><span id="teer-c9">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Sin clefts ni perforaciones en zona agarre</span><span id="teer-c10">—</span></div>
         <div style="border-top:1px solid var(--border); margin:8px 0;"></div>
@@ -17430,8 +17447,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
                  tipos desde el arreglo del bloque de criterios— y listaba el velo posterior como
                  criterio de inclusión, cuando es una advertencia que NO cambia el veredicto. -->
             <b>Comunes a los dos tipos:</b> Velo ant ≥20mm · Área mitral ≥4cm² · PSAP ≤70mmHg<br>
-            <b>IM Primaria:</b> Ancho flail ≤15mm<br>
-            <b>IM Secundaria (COAPT):</b> FEVI 20–50% · DTSVI ≤70mm · Prof. coaptación ≤10mm · Gap de coaptación ≤10mm<br>
+            <b>IM Primaria:</b> Ancho del flail &lt;15mm · Flail gap &lt;10mm<br>
+            <b>IM Secundaria (COAPT):</b> FEVI 20–50% · DSFVI ≤70mm · Prof. coaptación ≤10mm · Longitud de coaptación ≥2mm<br>
             <b>Exclusión ambas:</b> Trombo AI (absoluta) · Calcificación densa zona clip · Clefts en zona agarre<br>
             <b>Advertencia, no exclusión:</b> Velo post ≥7mm (ideal ≥10mm) — factibilidad de agarre; se informa y no modifica el veredicto
           </div>
@@ -61670,7 +61687,7 @@ function teerEstado() {
        para TEER». No hay diámetro telesistólico cero; el lado seguro es «no ingresado». Es la
        misma guarda que `vd_bas` ya tiene por escrito. (c6 —PASP ≤70— tiene esta misma forma y
        sigue con `!== null`: es preexistente y está reportado, no lo toca este cambio.) */
-    c8:  (dtsvi !== null && dtsvi > 0 && esSec) ? C('teer-c8','DTSVI ≤70 mm (COAPT)', dtsvi <= 70, `${dtsvi}mm ≤70mm`, `${dtsvi}mm >70mm — NO apto`) : C('teer-c8','DTSVI ≤70 mm (COAPT)', null),
+    c8:  (dtsvi !== null && dtsvi > 0 && esSec) ? C('teer-c8','DSFVI ≤70 mm (COAPT)', dtsvi <= 70, `${dtsvi}mm ≤70mm`, `${dtsvi}mm >70mm — NO apto`) : C('teer-c8','DSFVI ≤70 mm (COAPT)', null),
     /* `'' → null`, no `false`: son los únicos dos criterios que no podían mostrar «No
        ingresado», así que su default se leía como un hallazgo negativo comprobado. */
     /* ⚠️ EL FLAIL GAP, Y SIN GUARDA `> 0` POR EL MISMO MOTIVO QUE c5. Es un criterio de TECHO,
