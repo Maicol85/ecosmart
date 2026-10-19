@@ -1261,6 +1261,55 @@ window.__Y = {
     return o },
 
   /* El dibujo de la VAB: caminos, rafe, puntos y letras. */
+  vabColor() {
+    var e = document.getElementById('vab-rafe'), d = document.getElementById('vab-d1');
+    var l = document.getElementById('vab-lR'), s2 = document.getElementById('vab-s1');
+    return { rafe: e ? getComputedStyle(e).stroke : 'NO EXISTE',
+             punto: d ? getComputedStyle(d).fill : 'NO EXISTE',
+             letra: l ? getComputedStyle(l).fill : 'NO EXISTE',
+             seno: s2 ? getComputedStyle(s2).stroke : 'NO EXISTE' } },
+
+  vabPdfEstado() {
+    var b = document.getElementById('vab-pdf-btn');
+    return { campo: (document.getElementById('vab_pdf') || {}).value,
+             on: (typeof vabPdfOn === 'function') ? vabPdfOn() : 'SIN FN',
+             btn: b ? (b.textContent || '').trim() : 'NO EXISTE',
+             pressed: b ? b.getAttribute('aria-pressed') : null,
+             clase: b ? b.className : null } },
+
+  vabHit(k) {
+    var c = document.querySelector('[data-vab-hit="' + k + '"]');
+    if (!c) return { err: 'NO EXISTE hit ' + k };
+    c.scrollIntoView({ block: 'center', inline: 'center' });
+    var r2 = c.getBoundingClientRect();
+    var x = Math.round(r2.left + r2.width / 2), y = Math.round(r2.top + r2.height / 2);
+    var svg = document.getElementById('vab-svg');
+    var rs = svg ? svg.getBoundingClientRect() : null;
+    var en = document.elementFromPoint(x, y);
+    var todos = document.elementsFromPoint
+      ? document.elementsFromPoint(x, y).slice(0, 5).map(function(e3){
+          return e3.tagName + (e3.id ? '#' + e3.id : '') }) : 'SIN FN';
+    return { x: x, y: y, lado: Math.round(r2.width) + 'x' + Math.round(r2.height),
+             vw: window.innerWidth, vh: window.innerHeight,
+             dentro: x >= 0 && x <= window.innerWidth && y >= 0 && y <= window.innerHeight,
+             svgX: rs ? Math.round(rs.left) : null, svgW: rs ? Math.round(rs.width) : null,
+             pe: getComputedStyle(c).pointerEvents,
+             peSvg: svg ? getComputedStyle(svg).pointerEvents : null,
+             enPunto: en ? (en.tagName + (en.id ? '#' + en.id : '')) : 'NADA',
+             todos: todos,
+             cRect: { x: Math.round(r2.left), y: Math.round(r2.top),
+                      w: Math.round(r2.width), h: Math.round(r2.height) },
+             svgRect: rs ? { x: Math.round(rs.left), y: Math.round(rs.top),
+                             w: Math.round(rs.width), h: Math.round(rs.height) } : null,
+             centroSvg: (function(){ if (!rs) return null;
+               var cx = Math.round(rs.left + rs.width / 2), cy = Math.round(rs.top + rs.height / 2);
+               var e4 = document.elementFromPoint(cx, cy);
+               return { cx: cx, cy: cy, el: e4 ? (e4.tagName + (e4.id ? '#' + e4.id : '')) : 'NADA' } })(),
+             svgCss: (function(){ if (!svg) return null; var cs = getComputedStyle(svg);
+               return { disp: cs.display, vis: cs.visibility, op: cs.opacity, pe: cs.pointerEvents,
+                        ow: svg.parentNode ? getComputedStyle(svg.parentNode).overflow : null } })(),
+             nHijos: svg ? svg.childNodes.length : null } },
+
   vabDib() {
     var s = document.getElementById('vab-svg');
     if (!s) return { err: 'NO EXISTE vab-svg' };
@@ -1274,6 +1323,8 @@ window.__Y = {
     o.puntos = [];
     for (var i = 1; i <= 4; i++) { var p = document.getElementById('vab-d' + i);
       o.puntos.push(p ? { cx: p.getAttribute('cx'), cy: p.getAttribute('cy'), op: p.getAttribute('opacity') } : null) }
+    var nt = document.getElementById('vab-nota');
+    o.nota = nt ? (nt.textContent || '').trim() : 'NO EXISTE';
     o.letras = {};
     ['R','L','N'].forEach(function(k){ var e = document.getElementById('vab-l' + k);
       o.letras[k] = e ? { x: e.getAttribute('x'), y: e.getAttribute('y'), op: e.getAttribute('opacity'),
@@ -1497,6 +1548,76 @@ window.__Y = {
     } catch (e) { r.err = e.message; }
     out.grupos.vab = r;
     process.stderr.write('[vab] listo\n');
+  }
+
+  /* == GRUPO «dib» - el dibujo de la VAB ================================================== */
+  if (corre('dib')) {
+    const r = { tipos: {}, toque: {}, pdf: {} };
+    const TIPOS = ['', 'fused_rl', 'fused_rn', 'fused_ln', 'dos_senos_ll', 'dos_senos_ap', 'partial', 'no_clasif'];
+    try {
+      await viewport(1400, 900);
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__Y.irVAB()`);
+      await ev(`window.__P.despejar()`);
+      for (const t of TIPOS) {
+        await ev(`window.__P.sel('vab_tipo', ${JSON.stringify(t)})`);
+        r.tipos[t || 'vacio'] = await ev(`window.__Y.vabDib()`);
+      }
+      await ev(`window.__P.sel('vab_tipo','fused_rl')`);
+      await ev(`window.__P.sel('vab_rafe','no')`);
+      r.rafeNo = await ev(`window.__Y.vabDib()`);
+      await ev(`window.__P.sel('vab_rafe','si')`);
+      r.rafeSi = await ev(`window.__Y.vabDib()`);
+      await ev(`window.__P.sel('vab_simetria','simetrica')`);
+      r.sim = await ev(`window.__Y.vabDib()`);
+      await ev(`window.__P.sel('vab_simetria','asimetrica')`);
+      r.asim = await ev(`window.__Y.vabDib()`);
+      r.color = {};
+      for (const claro of [false, true]) {
+        const t = await ev(`window.__P.tema(${claro})`);
+        if (!!t.claro !== claro) throw new Error('EL TEMA NO QUEDO');
+        r.color[claro ? 'claro' : 'oscuro'] = await ev(`window.__Y.vabColor()`);
+      }
+      await ev(`window.__P.tema(false)`);
+      /* TOCAR el rafe con el raton REAL. */
+      for (const k of ['fused_rn', 'fused_ln', 'fused_rl']) {
+        await ev(`window.__P.sel('vab_tipo','')`);
+        await ev(`window.__P.despejar()`);
+        /* ⚠️ LA SECCION HAY QUE ABRIRLA ANTES DE CADA TOQUE: con el acordeon cerrado el SVG
+           conserva su rect pero queda RECORTADO, no es hit-testable, y `elementFromPoint`
+           devuelve el acordeon. Medido: devolvia DIV#sacc-cc-vab en los tres puntos. */
+        await ev(`window.__Y.irVAB()`);
+        const hit = await ev(`window.__Y.vabHit(${JSON.stringify(k)})`);
+        if (hit.err) { r.toque[k] = hit; continue; }
+        for (const type of ['mousePressed', 'mouseReleased']) {
+          await cdp.send('Input.dispatchMouseEvent', { type, x: hit.x, y: hit.y,
+            button: 'left', clickCount: 1 }, sessionId);
+        }
+        await pausa(140);
+        r.toque[k] = Object.assign({}, hit, { tipo: await ev(`window.__P.val('vab_tipo')`) });
+      }
+      /* El boton del PDF. */
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__Y.irVAB()`);
+      r.pdf.inicio = await ev(`window.__Y.vabPdfEstado()`);
+      await ev(`(function(){ document.getElementById('vab-pdf-btn').click(); return 1 })()`);
+      r.pdf.tildado = await ev(`window.__Y.vabPdfEstado()`);
+      await ev(`(function(){ document.getElementById('vab-pdf-btn').click(); return 1 })()`);
+      r.pdf.destildado = await ev(`window.__Y.vabPdfEstado()`);
+      await ev(`(function(){ document.getElementById('vab-pdf-btn').click(); return 1 })()`);
+      r.pdf.delEstudio = await ev(`!(typeof _noEsDelEstudio === 'function' && _noEsDelEstudio('vab_pdf'))`);
+      await ev(`window.__P.nuevo()`);
+      r.pdf.trasNuevo = await ev(`window.__P.val('vab_pdf')`);
+      /* Y el borrado de los campos: regla ARR. */
+      await ev(`window.__P.sel('vab_tipo','fused_rl')`);
+      await ev(`window.__P.sel('vab_rafe','si')`);
+      r.borrado = { conDato: await ev(`window.__Y.vabDib()`) };
+      await ev(`window.__P.sel('vab_rafe','')`);
+      await ev(`window.__P.sel('vab_tipo','')`);
+      r.borrado.sinDato = await ev(`window.__Y.vabDib()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.dib = r;
+    process.stderr.write('[dib] listo\n');
   }
 
   /* ══ GRUPO «fr» — las SEIS casillas de los factores de riesgo ═══════════════════════════ */

@@ -14317,9 +14317,23 @@ z
                quede sin nodo. -->
           <input type="text" id="vab_morf_ro" readonly tabindex="-1" style="display:none;">
         </div>
-        <!-- El DIBUJO. Su contenido entra en el commit 6; aca queda su lugar reservado para
-             que la maqueta de tres columnas se pueda medir desde ya. -->
-        <div id="vab-dibujo-host" style="flex:0 0 240px;max-width:240px;"></div>
+        <!-- ══ EL DIBUJO (Y3d6, 2026-10-19) ═══════════════════════════════════════════════
+             SVG en eje corto de la valvula, con tres senos, que se REDIBUJA con lo que el
+             medico elige. Se construye POR NODOS en `vabDibujar` -ni un dato concatenado en
+             `innerHTML`-; aca solo va su envoltorio y el boton de PDF.
+             ⚠️ LA ORIENTACION DE LOS SENOS ESTA VERIFICADA: consenso internacional VAB,
+             Figura 7, folio 228 (hoja 10) -Arch Cardiol Mex 2024;94(2), resumen en español del
+             consenso de Michelena y col.-, imagenes de ETT de eje corto PARAESTERNAL: R arriba,
+             L abajo a la derecha y N abajo a la izquierda, que es exactamente lo que
+             `vabGeom` dibuja. Por eso las letras llevan su sigla y la tarjeta puede nombrarlas. -->
+        <div id="vab-dibujo-host" style="flex:0 0 240px;max-width:240px;">
+          <svg id="vab-svg" viewBox="0 0 240 240" width="100%" style="max-width:240px;display:block;"
+               role="img" aria-labelledby="vab-svg-tit"><title id="vab-svg-tit">Esquema de la válvula aórtica en eje corto</title></svg>
+          <input type="hidden" id="vab_pdf" value="">
+          <div style="text-align:center;margin-top:6px;">
+            <button type="button" class="btn btn-ghost" id="vab-pdf-btn" onclick="vabIncluirPDF()">📄 Incluir en el PDF</button>
+          </div>
+        </div>
       </div>
 
       <div style="display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-top:16px;">
@@ -54590,6 +54604,8 @@ function limpiarCampos(silencioso) {
      el PDF salia sin el diagrama, o sea mentia en la direccion de OMITIR algo del informe
      firmado—. Desde el CORTOS9 su estado es un campo del estudio y se pinta desde el. */
   { const _qx = document.getElementById('ete_qx_pdf'); if (_qx) _qx.value = ''; }
+  /* `vab_pdf`, por lo mismo: es `input[type=hidden]` y el barrido de arriba no lo alcanza. */
+  { const _vp = document.getElementById('vab_pdf'); if (_vp) _vp.value = ''; }
   if (typeof eteQxPdfSync === 'function') { try { eteQxPdfSync(); } catch (e) {} }
   /* ⚠️ EL BLOQUE DEL TEST DE BURBUJA SE CIERRA A MANO (CORTOS11): el barrido de arriba desmarca
      la casilla, pero el `display` de sus dos envoltorios lo gobierna `otrBurbUI` y ningun barrido
@@ -64928,6 +64944,206 @@ function vabConclusion(src){
   return { clave:'sin_dilatacion',
     txt: cabeza + (func ? ' ' + (VAB_FUNC_TXT[func] || func) : '') + '. Aorta de ' + maxAo + ' mm, sin dilatación — seguimiento anual (la bicúspide es hereditaria: corresponde ofrecer cribado a familiares de primer grado)' };
 }
+/* ══ EL DIBUJO DE LA VALVULA AORTICA BICUSPIDE (Y3d6, 2026-10-19) ═══════════════════════════
+   GEOMETRIA APROBADA POR MAICOL, de la demo del lienzo: sistema de 240 x 240 con el centro en
+   (120,120), tres arcos de 120 grados de radio 60, la linea de cierre desde las dos comisuras
+   al centro, el rafe entre las dos cuspides fusionadas y cuatro puntos de calcificacion sobre
+   el. NI UN NUMERO SE REESCALO.
+
+   ⚠️ LA ORIENTACION ESTA VERIFICADA Y NO ES CRITERIO: consenso internacional VAB, Figura 7,
+   folio 228 (hoja 10), imagenes de ETT de eje corto PARAESTERNAL -R arriba, L abajo a la
+   derecha, N abajo a la izquierda-. Las tres letras de `vabGeom` caen exactamente ahi: R en
+   -90 grados (arriba), L en 30 (abajo-derecha) y N en 150 (abajo-izquierda). Por eso se
+   publican con su sigla.
+   ⚠️ LA ASIMETRIA TAMBIEN ESTA VERIFICADA, y el dibujo NO la mide: el consenso la define por el
+   ANGULO DE LAS COMISURAS DE LA CUSPIDE NO FUSIONADA -simetrico 160-180 grados, asimetrico
+   140-159, muy asimetrico 120-139, folios 225 y 230-231- y esta geometria la representa
+   variando la CURVATURA de los tres senos, no ese angulo. Es un esquema, no una medicion, y
+   por eso ningun texto de la app afirma un angulo. Declarado en FUENTES.md.
+   ⚠️ TRES TIPOS DE LA LISTA NO ESTAN CUBIERTOS POR LA DEMO -«partial», «no_clasif» y el
+   2-sinus ANTERO-POSTERIOR- y NO se dibujan inventados: se muestra el contorno de tres senos
+   sin lineas de cierre, con el rotulo del tipo. Reportado.
+   ⚠️ SE CONSTRUYE POR NODOS, nunca concatenando HTML: es la regla de la casa y lo que mantiene
+   Semgrep en 127. */
+function vabGeom(fusion, calc, sym) {
+  var C = 120, R0 = 60, DK = 'var(--text)';
+  var rad = function (d) { return d * Math.PI / 180; };
+  var r1 = function (n) { return Math.round(n * 10) / 10; };
+  var P = function (deg, r) { return [r1(C + r * Math.cos(rad(deg))), r1(C + r * Math.sin(rad(deg)))]; };
+  var pt = function (deg, r) { var p = P(deg, r); return p[0] + ',' + p[1]; };
+  var arc = function (a0, a1, rs) { return 'M ' + pt(a0, R0) + ' A ' + rs + ' ' + rs + ' 0 0 1 ' + pt(a1, R0); };
+  var two = fusion === 'NONE';
+  var asym = sym === 'asim';
+  var comm, raphe, rs, s1, s2, s3;
+  if (two) {
+    comm = [180, 0]; raphe = null;
+    rs = asym ? [60.5, 90, 0] : [64, 64, 0];
+    s1 = arc(180, 360, rs[0]); s2 = arc(0, 180, rs[1]); s3 = 'M 0 0';
+  } else {
+    if (fusion === 'RL') { comm = [210, 90]; raphe = -30; rs = asym ? [53, 55, 66] : [56, 56, 56]; }
+    else if (fusion === 'RN') { comm = [-30, 90]; raphe = 210; rs = asym ? [53, 66, 55] : [56, 56, 56]; }
+    else { comm = [-30, 210]; raphe = 90; rs = asym ? [66, 53, 55] : [56, 56, 56]; }
+    s1 = arc(-150, -30, rs[0]); s2 = arc(-30, 90, rs[1]); s3 = arc(90, 210, rs[2]);
+  }
+  var closure = 'M ' + pt(comm[0], R0) + ' L ' + C + ',' + C + ' L ' + pt(comm[1], R0);
+  var hasRaphe = raphe !== null;
+  var rapheD = hasRaphe ? 'M ' + pt(raphe, R0 - 1) + ' L ' + pt(raphe, 26) : 'M 0 0';
+  var calcOn = hasRaphe && calc === 'si';
+  /* El verde del rafe calcificado sale de `--green`, que existe en la paleta global y resuelve
+     distinto en los dos temas (#3ecf8e de noche, #1f9d6c de dia). La demo usaba el literal
+     #4CAF6E. ⚠️ REPORTADO: la app NO tiene un «verde de calcificacion» -`ETE_COLORES`
+     la pinta en GRIS (#6b7280)-, asi que este verde no es ese color y no se le atribuye. */
+  var out = { s1: s1, s2: s2, s3: s3, closure: closure, rapheD: rapheD,
+    rapheColor: calcOn ? 'var(--green)' : DK, rapheOp: hasRaphe ? 1 : 0, calcOp: calcOn ? 1 : 0 };
+  var radii = [30, 38, 46, 54], jit = [-3, 3, -3, 3];
+  for (var i = 0; i < 4; i++) {
+    var p = hasRaphe ? P(raphe + jit[i], radii[i]) : [0, 0];
+    out['d' + (i + 1) + 'x'] = p[0]; out['d' + (i + 1) + 'y'] = p[1];
+  }
+  var LR = 90, lbl = { R: -90, L: 30, N: 150 };
+  ['R', 'L', 'N'].forEach(function (k) { var p = P(lbl[k], LR); out['l' + k + 'x'] = p[0]; out['l' + k + 'y'] = p[1]; });
+  out.lblOp = two ? 0 : 1;
+  return out;
+}
+/* El reparto tipo de la lista -> fusion del dibujo. Los tres que NO estan es porque la demo no
+   los cubre: `partial` (forme fruste) es una trivalve en diastole, `no_clasif` no tiene forma
+   por definicion, y el 2-sinus antero-posterior comparte geometria con el latero-lateral pero
+   rotada 90 grados, que la demo no da. Los tres caen al contorno sin lineas de cierre. */
+const VAB_DIB_FUSION = Object.freeze({
+  fused_rl: 'RL', fused_rn: 'RN', fused_ln: 'LN', dos_senos_ll: 'NONE'
+});
+/* Los puntos sensibles para elegir la fusion TOCANDO el rafe. Transparentes, radio 24 -por
+   encima de los 44 px de lado efectivo que pide el celular a este tamaño-. «Sin rafe» solo por
+   la lista, que ademas sigue siendo la via accesible con teclado. */
+const VAB_DIB_HIT = Object.freeze([
+  { k: 'fused_rl', cx: 159, cy: 97,  lbl: 'Fusión derecha-izquierda' },
+  { k: 'fused_rn', cx: 81,  cy: 97,  lbl: 'Fusión derecha-no coronaria' },
+  { k: 'fused_ln', cx: 120, cy: 165, lbl: 'Fusión izquierda-no coronaria' }
+]);
+const VAB_NS = 'http://www.w3.org/2000/svg';
+function _vabEl(tag, attrs, host) {
+  const e = document.createElementNS(VAB_NS, tag);
+  Object.keys(attrs).forEach(function (k) { e.setAttribute(k, attrs[k]); });
+  if (host) host.appendChild(e);
+  return e;
+}
+/* Se construye UNA sola vez y despues solo se le reescriben los atributos, igual que el dibujo
+   estatico de la mitral: reconstruir en cada gesto apilaria oyentes en los tres puntos. */
+let _vabN = null;
+function vabDibConstruir() {
+  const svg = document.getElementById('vab-svg');
+  if (!svg) return null;
+  if (_vabN && _vabN.svg === svg) return _vabN;
+  while (svg.firstChild && svg.firstChild.nodeName !== 'title') svg.removeChild(svg.lastChild);
+  const N = { svg: svg };
+  const trazo = { fill: 'none', stroke: 'var(--text)', 'stroke-width': 2.5,
+                  'stroke-linecap': 'round', 'pointer-events': 'none' };
+  N.s1 = _vabEl('path', Object.assign({ id: 'vab-s1' }, trazo), svg);
+  N.s2 = _vabEl('path', Object.assign({ id: 'vab-s2' }, trazo), svg);
+  N.s3 = _vabEl('path', Object.assign({ id: 'vab-s3' }, trazo), svg);
+  N.cierre = _vabEl('path', { id: 'vab-cierre', fill: 'none', stroke: 'var(--text)',
+    'stroke-width': 3, 'stroke-linejoin': 'round', 'stroke-linecap': 'round',
+    'pointer-events': 'none' }, svg);
+  N.rafe = _vabEl('path', { id: 'vab-rafe', fill: 'none', 'stroke-width': 4.5,
+    'stroke-linecap': 'round', 'pointer-events': 'none' }, svg);
+  N.pts = [];
+  for (let i = 1; i <= 4; i++) {
+    N.pts.push(_vabEl('circle', { id: 'vab-d' + i, r: 2.8, fill: 'var(--green)',
+      'pointer-events': 'none' }, svg));
+  }
+  N.lbl = {};
+  ['R', 'L', 'N'].forEach(function (k) {
+    const t = _vabEl('text', { id: 'vab-l' + k, 'text-anchor': 'middle', 'font-size': 13,
+      'font-weight': 600, fill: 'var(--text2)', 'pointer-events': 'none' }, svg);
+    t.textContent = k; N.lbl[k] = t;
+  });
+  /* El rotulo del tipo que el dibujo NO representa. Nace vacio. */
+  N.nota = _vabEl('text', { id: 'vab-nota', x: 120, y: 232, 'text-anchor': 'middle',
+    'font-size': 11, fill: 'var(--text2)', 'pointer-events': 'none' }, svg);
+  /* Los puntos sensibles van AL FINAL para quedar por encima, y son los UNICOS con
+     `pointer-events`. Se cablean una sola vez. */
+  N.hits = VAB_DIB_HIT.map(function (h) {
+    const c = _vabEl('circle', { cx: h.cx, cy: h.cy, r: 24, fill: 'transparent',
+      'data-vab-hit': h.k, role: 'button', tabindex: '-1', 'aria-label': h.lbl,
+      style: 'cursor:pointer' }, svg);
+    c.addEventListener('click', function () { vabDibClic(h.k); });
+    return c;
+  });
+  _vabN = N;
+  return N;
+}
+/* El gesto de tocar el rafe: elige el tipo en la LISTA y despacha su `change`, asi que todo lo
+   que depende del tipo -el dibujo, la conclusion y, desde el commit 7, la morfologia de
+   Valvulas- se entera por el MISMO camino que un cambio a mano. Sin esto habria dos caminos. */
+function vabDibClic(k) {
+  const sel = document.getElementById('vab_tipo');
+  if (!sel) return;
+  sel.value = k;
+  sel.dispatchEvent(new Event('change', { bubbles: true }));
+}
+function vabDibujar() {
+  const N = vabDibConstruir();
+  if (!N) return;
+  const sv2 = function (id) { const e = document.getElementById(id); return e ? String(e.value || '').trim() : ''; };
+  const tipo = sv2('vab_tipo');
+  const fus = VAB_DIB_FUSION[tipo] || null;
+  /* Sin tipo elegido, o con uno que la geometria no cubre, se dibuja el CONTORNO de tres senos
+     y nada mas: ni lineas de cierre, ni rafe, ni letras. Un dibujo inventado afirmaria una
+     morfologia que el medico no eligio. */
+  const g = vabGeom(fus || 'RL', sv2('vab_rafe'), sv2('vab_simetria') === 'asimetrica' ? 'asim' : 'sim');
+  const neutro = !fus;
+  N.s1.setAttribute('d', neutro ? vabGeom('RL', 'no', 'sim').s1 : g.s1);
+  N.s2.setAttribute('d', neutro ? vabGeom('RL', 'no', 'sim').s2 : g.s2);
+  N.s3.setAttribute('d', neutro ? vabGeom('RL', 'no', 'sim').s3 : g.s3);
+  N.cierre.setAttribute('d', neutro ? 'M 0 0' : g.closure);
+  N.rafe.setAttribute('d', neutro ? 'M 0 0' : g.rapheD);
+  N.rafe.setAttribute('stroke', g.rapheColor);
+  N.rafe.setAttribute('opacity', neutro ? 0 : g.rapheOp);
+  for (let i = 0; i < 4; i++) {
+    N.pts[i].setAttribute('cx', g['d' + (i + 1) + 'x']);
+    N.pts[i].setAttribute('cy', g['d' + (i + 1) + 'y']);
+    N.pts[i].setAttribute('opacity', neutro ? 0 : g.calcOp);
+  }
+  ['R', 'L', 'N'].forEach(function (k) {
+    N.lbl[k].setAttribute('x', g['l' + k + 'x']);
+    N.lbl[k].setAttribute('y', g['l' + k + 'y']);
+    N.lbl[k].setAttribute('opacity', neutro ? 0 : g.lblOp);
+  });
+  /* `textContent` y NO `innerHTML`: es un rotulo que sale de una tabla de este archivo, pero la
+     regla de la casa es que un dato no se concatena a marcado. */
+  N.nota.textContent = (fus || !tipo) ? '' : (VAB_TIPO_LBL[tipo] || tipo);
+  /* El punto sensible del tipo ELEGIDO se marca, para que el gesto tenga respuesta visible. */
+  N.hits.forEach(function (c) {
+    c.setAttribute('aria-pressed', c.getAttribute('data-vab-hit') === tipo ? 'true' : 'false');
+  });
+}
+/* El boton «Incluir en el PDF», con el patron de `eteQxIncluirPDF`: un `input[type=hidden]` con
+   guion BAJO, asi que viaja con el estudio y NO tiene columna de Excel. */
+function vabPdfOn() { const e = document.getElementById('vab_pdf'); return !!e && e.value === '1'; }
+/* ⚠️ `_pdfToggleBtnState` SOLO CAMBIA LA CLASE, no el texto. La orden pide que el boton ALTERNE
+   su rotulo, asi que el texto se escribe aca y la funcion compartida no se toca -la usan otros
+   seis botones de inclusion-. `textContent` y no `innerHTML`. */
+const VAB_PDF_TXT = Object.freeze({ on: '✓ Se incluye en el PDF', off: '📄 Incluir en el PDF' });
+function vabPdfSync() {
+  const on = vabPdfOn();
+  _pdfToggleBtnState('vab-pdf-btn', on);
+  const b = document.getElementById('vab-pdf-btn');
+  if (b) { b.textContent = on ? VAB_PDF_TXT.on : VAB_PDF_TXT.off;
+           b.setAttribute('aria-pressed', on ? 'true' : 'false'); }
+}
+function vabIncluirPDF() {
+  const e = document.getElementById('vab_pdf');
+  if (!e) return;
+  const on = e.value !== '1';
+  e.value = on ? '1' : '';
+  vabPdfSync();
+  toast(on ? '📄 Esquema de la válvula bicúspide se incluirá en el PDF'
+           : 'Esquema de la válvula bicúspide excluido del PDF');
+}
+window.vabGeom = vabGeom; window.vabDibujar = vabDibujar; window.vabDibClic = vabDibClic;
+window.VAB_PDF_TXT = VAB_PDF_TXT; window.vabPdfOn = vabPdfOn; window.vabPdfSync = vabPdfSync; window.vabIncluirPDF = vabIncluirPDF;
+window.VAB_DIB_HIT = VAB_DIB_HIT; window.VAB_DIB_FUSION = VAB_DIB_FUSION;
+
 /* ══ LOS SEIS FACTORES DE RIESGO CON CASILLA (Y3d5, 2026-10-19) ══════════════════════════════
    `VAB_FR_CHK` es el reparto casilla -> campo, y de el salen las DOS direcciones: el gesto del
    medico (`vabFrChk`) y la reposicion desde el estudio (`vabFrChkSync`). Una lista sola, porque
@@ -64967,6 +65183,11 @@ window.vabFrChk = vabFrChk; window.vabFrChkSync = vabFrChkSync; window.VAB_FR_CH
 
 function vabSync(){
   vabFrChkSync();
+  /* El dibujo y el boton del PDF siguen al estado por el MISMO embudo que el resto de la
+     seccion: `vabSync` esta en `RECALC_MODULOS` y al final de `limpiarCampos`, asi que no hace
+     falta una segunda puerta -que es la que se desincroniza-. */
+  try { vabDibujar(); } catch (e) {}
+  try { vabPdfSync(); } catch (e) {}
   const txt = (id,s) => { const e=document.getElementById(id); if(e) e.textContent = s; };
   const ro  = (id,s) => { const e=document.getElementById(id); if(e) e.value = s; };
   const nv  = id => { const n = (typeof v==='function') ? v(id) : null; return (n!=null && isFinite(n)) ? n : null; };
