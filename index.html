@@ -14344,36 +14344,51 @@ z
         </div>
         <div style="flex:1 1 340px;min-width:0;">
           <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:0 0 8px;">Factores de riesgo <button type="button" class="vinfo-btn" data-vinfo="vab-friesgo" aria-expanded="false" aria-label="Factores de riesgo" onclick="vInfoClic(this)">&#9432;</button></div>
+          <!-- ══ Y3d5: LOS SEIS FACTORES PASAN A CASILLA (2026-10-19) ════════════════════
+               DECISION DE MAICOL: marcada = presente; sin marcar = no cuenta. Los tres que se
+               derivan solos -edad <50, talla 1,50-1,69 m y coartacion- siguen siendo etiquetas
+               automaticas y no se preguntan.
+               ⚠️ LA CASILLA NO ES EL CAMPO. El dato sigue viviendo en el `<input type="hidden">`
+               `vab_fr_*` con los MISMOS valores de siempre ('si' / ''), porque es el que tiene
+               columna de Excel y vocabulario de reimportacion: una casilla con id propio se
+               guardaria como `<id>__chk` y le cambiaria el nombre y el valor a esa columna. La
+               casilla visible lleva el prefijo `vabchk-` con guion MEDIO, que `_noEsDelEstudio`
+               excluye -el patron de `hfpep-` y `vauto-`-, asi que NO agrega ni una clave al
+               juego de campos guardados.
+               ⚠️ ESTUDIOS GUARDADOS: «si» reabre MARCADO; «no» y «no_eval» reabren SIN marcar.
+               No se migra nada: el valor guardado queda como esta y lo que se deriva es la
+               casilla. Un estudio con «No» que se vuelva a guardar pasa a '' -la casilla no
+               distingue «no» de «no consta»-, y es el precio de la casilla, declarado. -->
           <div id="vab-fr-grid" class="grid-2">
-            <div class="fg"><label>Familiar con síndrome aórtico agudo</label>
-              <select id="vab_fr_familiar" onchange="vabSync()">
-                <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-              </select>
+            <div class="fg"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+              <input type="checkbox" id="vabchk-familiar" onchange="vabFrChk(this)" style="width:auto;margin:0;flex:0 0 auto;">
+              <span>Familiar con síndrome aórtico agudo</span></label>
+              <input type="hidden" id="vab_fr_familiar" value="">
             </div>
-            <div class="fg"><label>Longitud Ao ascendente ≥11 cm</label>
-              <select id="vab_fr_longitud" onchange="vabSync()">
-                <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-              </select>
+            <div class="fg"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+              <input type="checkbox" id="vabchk-longitud" onchange="vabFrChk(this)" style="width:auto;margin:0;flex:0 0 auto;">
+              <span>Longitud Ao ascendente ≥11 cm</span></label>
+              <input type="hidden" id="vab_fr_longitud" value="">
             </div>
-            <div class="fg"><label>Hipertensión arterial resistente</label>
-              <select id="vab_fr_hta" onchange="vabSync()">
-                <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-              </select>
+            <div class="fg"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+              <input type="checkbox" id="vabchk-hta" onchange="vabFrChk(this)" style="width:auto;margin:0;flex:0 0 auto;">
+              <span>Hipertensión arterial resistente</span></label>
+              <input type="hidden" id="vab_fr_hta" value="">
             </div>
-            <div class="fg"><label>Cirugía cardíaca concomitante</label>
-              <select id="vab_fr_cx" onchange="vabSync()">
-                <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-              </select>
+            <div class="fg"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+              <input type="checkbox" id="vabchk-cx" onchange="vabFrChk(this)" style="width:auto;margin:0;flex:0 0 auto;">
+              <span>Cirugía cardíaca concomitante</span></label>
+              <input type="hidden" id="vab_fr_cx" value="">
             </div>
-            <div class="fg"><label>Crecimiento ≥3 mm/año</label>
-              <select id="vab_fr_crecimiento" onchange="vabSync()">
-                <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-              </select>
+            <div class="fg"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+              <input type="checkbox" id="vabchk-crecimiento" onchange="vabFrChk(this)" style="width:auto;margin:0;flex:0 0 auto;">
+              <span>Crecimiento ≥3 mm/año</span></label>
+              <input type="hidden" id="vab_fr_crecimiento" value="">
             </div>
-            <div class="fg"><label>Deseo de embarazo</label>
-              <select id="vab_fr_embarazo" onchange="vabSync()">
-                <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-              </select>
+            <div class="fg"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+              <input type="checkbox" id="vabchk-embarazo" onchange="vabFrChk(this)" style="width:auto;margin:0;flex:0 0 auto;">
+              <span>Deseo de embarazo</span></label>
+              <input type="hidden" id="vab_fr_embarazo" value="">
             </div>
           </div>
           <div class="calc-box" style="margin-top:10px;">
@@ -53223,7 +53238,12 @@ function _noEsDelEstudio(id) {
      Guion MEDIO, asi que este prefijo no alcanza a ningun campo del estudio, que van con guion
      BAJO. Censado: ningun `input`, `select` ni `textarea` con id del estudio empieza con
      `ref-`; los `ref-*` del marcado son los DIV de las entradas, que no tienen valor. */
-  return /^(login-|ig-|lab-|cfg-|exp-|filtro-|adv-|asoc-|pdf-|lgal-|fcg-|hfpep-|vauto-|ref-|(?:b-)?cine-)/.test(id);
+  /* `vabchk-` son las SEIS casillas de los factores de riesgo de la VAB (2026-10-19). NO son
+     del estudio: el dato vive en los `<input type="hidden">` `vab_fr_*`, que son los que tienen
+     columna de Excel y vocabulario de reimportacion. Persistir tambien la casilla dejaria una
+     segunda copia del mismo hecho -y seis claves nuevas con sufijo `__chk` en todo estudio que
+     se guarde desde hoy-. Guion MEDIO, asi que no alcanza a `vab_fr_*`, que van con guion BAJO. */
+  return /^(login-|ig-|lab-|cfg-|exp-|filtro-|adv-|asoc-|pdf-|lgal-|fcg-|hfpep-|vauto-|vabchk-|ref-|(?:b-)?cine-)/.test(id);
 }
 
 /* ══ Repintado de módulos al cargar un estudio ═══════════════════════════════════════════
@@ -54518,6 +54538,20 @@ function limpiarCampos(silencioso) {
   if (typeof easvSync === 'function') { try { easvSync(); } catch (e) {} }
   if (typeof dsavSync === 'function') { try { dsavSync(); } catch (e) {} }
   if (typeof cvpaSync === 'function') { try { cvpaSync(); } catch (e) {} }
+  /* ⚠️ LOS SEIS CAMPOS DE LOS FACTORES DE RIESGO DE LA VAB SE VACIAN A MANO (Y3d5), por el
+     MISMO motivo que las dos marcas del Wilkins: son `input[type=hidden]` y el barrido de
+     arriba es `input[type=text], input[type=number]`, asi que NUNCA los alcanzo.
+     MEDIDO antes de esta linea: tras «Nuevo estudio» cinco quedaban vacios -los que el medico
+     no habia marcado- y el sexto conservaba su `'si'`, asi que `vabFrChkSync` le reponia la
+     casilla MARCADA sobre un formulario en blanco y la conclusion contaba un factor del
+     paciente anterior. El orden importa: primero se vacian los campos y DESPUES corre
+     `vabSync`, que es quien deriva las casillas de ellos. */
+  if (typeof VAB_FR_CHK === 'object' && VAB_FR_CHK) {
+    Object.keys(VAB_FR_CHK).forEach(function(k){
+      const e = document.getElementById(VAB_FR_CHK[k]); if (e) e.value = '';
+    });
+  }
+  if (typeof vabSync === 'function') { try { vabSync(); } catch (e) {} }
   /* La segunda columna: `limpiarCampos` NO pasa por el embudo de `RECALC_MODULOS`, así que sin
      esta línea el bloque de nivel/etiología del paciente anterior quedaba abierto sobre un
      formulario en blanco. */
@@ -64419,7 +64453,15 @@ function vabFactores(src){
     ['vab_fr_cx',         'cirugía cardíaca concomitante no valvular aórtica'],
     ['vab_fr_embarazo',   'deseo de embarazo']
   ];
-  preg.forEach(function(p){ const val = sv2(p[0]); anota(val === 'si', p[1], val === 'si' || val === 'no'); });
+  /* ⚠️ DESDE EL Y3d5 LOS SEIS SE MARCAN CON UNA CASILLA, ASI QUE NO HAY «SIN EVALUAR». Una
+     casilla tiene dos estados y los dos son respuestas: marcada = presente, sin marcar = no
+     cuenta. El tercer argumento va en `true` SIEMPRE, que es lo que saca a los seis de
+     `sinEvaluar`. Los TRES derivados -edad, talla y coartacion- siguen pudiendo quedar sin
+     evaluar, porque ahi la ausencia del dato es real: nadie cargo la edad.
+     ⚠️ CONSECUENCIA DECLARADA: un estudio guardado con «No consta» reabre sin marcar y deja de
+     listarse como pendiente. Es el precio de la casilla y lo cubre la conclusion, que desde
+     este commit NUNCA afirma «sin factores de riesgo». */
+  preg.forEach(function(p){ anota(sv2(p[0]) === 'si', p[1], true); });
   return { presentes: presentes, sinEvaluar: sinEvaluar, n: presentes.length };
 }
 /* ══ MARFAN / EHAT — aortopatía hereditaria (ESC 2024, Tabla 62) ═══════════════════════════════════════
@@ -64869,8 +64911,12 @@ function vabConclusion(src){
     if (fr.n) return { clave:'cx_50_fr',
       txt: cabeza + '. Aorta ascendente ' + asc + ' mm' + otroDiam + ' con riesgo quirúrgico bajo y ' + (fr.n === 1 ? 'un factor de riesgo' : fr.n + ' factores de riesgo') + conFR +
            ' — cirugía de la aorta a considerar (ESC 2024, Clase IIa)' + sinEval };
+    /* ⚠️ «SIN FACTORES DE RIESGO IDENTIFICADOS» ERA UNA AFIRMACION, y desde que los seis se
+       marcan con una casilla la app no puede sostenerla: una casilla sin marcar no distingue
+       «lo pregunte y no esta» de «no lo mire». Se dice lo que de verdad se sabe -que ninguno
+       esta marcado- y no lo que no se sabe. DECISION DE MAICOL (Y3d5). */
     return { clave:'vigilancia_50',
-      txt: cabeza + '. Aorta ascendente ' + asc + ' mm' + otroDiam + ' sin factores de riesgo adicionales identificados' + sinEval +
+      txt: cabeza + '. Aorta ascendente ' + asc + ' mm' + otroDiam + ' sin factores de riesgo marcados' + sinEval +
            ' — por debajo del umbral de 52 mm de la ESC 2024; vigilancia estrecha' };
   }
   if (maxAo >= 45) return { clave:'vigilancia_45',
@@ -64882,7 +64928,45 @@ function vabConclusion(src){
   return { clave:'sin_dilatacion',
     txt: cabeza + (func ? ' ' + (VAB_FUNC_TXT[func] || func) : '') + '. Aorta de ' + maxAo + ' mm, sin dilatación — seguimiento anual (la bicúspide es hereditaria: corresponde ofrecer cribado a familiares de primer grado)' };
 }
+/* ══ LOS SEIS FACTORES DE RIESGO CON CASILLA (Y3d5, 2026-10-19) ══════════════════════════════
+   `VAB_FR_CHK` es el reparto casilla -> campo, y de el salen las DOS direcciones: el gesto del
+   medico (`vabFrChk`) y la reposicion desde el estudio (`vabFrChkSync`). Una lista sola, porque
+   dos listas de lo mismo se separan el dia que entre un factor. */
+const VAB_FR_CHK = Object.freeze({
+  'vabchk-familiar':    'vab_fr_familiar',
+  'vabchk-hta':         'vab_fr_hta',
+  'vabchk-crecimiento': 'vab_fr_crecimiento',
+  'vabchk-longitud':    'vab_fr_longitud',
+  'vabchk-cx':          'vab_fr_cx',
+  'vabchk-embarazo':    'vab_fr_embarazo'
+});
+/* El gesto: la casilla escribe el campo que de verdad viaja, con los MISMOS valores de siempre.
+   `''` y no `'no'`: la casilla no distingue «no» de «no consta», asi que afirmar «no» sobre un
+   control que no lo pregunta seria inventar una respuesta. */
+function vabFrChk(cb){
+  if (!cb) return;
+  const id = VAB_FR_CHK[cb.id];
+  const e = id ? document.getElementById(id) : null;
+  if (e) e.value = cb.checked ? 'si' : '';
+  if (typeof vabSync === 'function') vabSync();
+}
+/* La reposicion. Corre desde `vabSync`, que esta en `RECALC_MODULOS` -el embudo de las cinco
+   rutas de restauracion- y al final de `limpiarCampos`: asignar `.value` por codigo NO dispara
+   `change`, asi que sin esto un estudio reabierto mostraba las seis casillas vacias sobre
+   factores que el campo oculto SI traia.
+   ⚠️ SOLO `'si'` MARCA. Un estudio guardado con «no» o con «no consta» reabre SIN marcar, que
+   es lo que la orden define: los dos significan «no cuenta». El valor guardado no se migra. */
+function vabFrChkSync(){
+  Object.keys(VAB_FR_CHK).forEach(function(k){
+    const cb = document.getElementById(k);
+    const e  = document.getElementById(VAB_FR_CHK[k]);
+    if (cb && e) cb.checked = (String(e.value || '').trim() === 'si');
+  });
+}
+window.vabFrChk = vabFrChk; window.vabFrChkSync = vabFrChkSync; window.VAB_FR_CHK = VAB_FR_CHK;
+
 function vabSync(){
+  vabFrChkSync();
   const txt = (id,s) => { const e=document.getElementById(id); if(e) e.textContent = s; };
   const ro  = (id,s) => { const e=document.getElementById(id); if(e) e.value = s; };
   const nv  = id => { const n = (typeof v==='function') ? v(id) : null; return (n!=null && isFinite(n)) ? n : null; };
@@ -64905,9 +64989,12 @@ function vabSync(){
      condición era `sinEvaluar.length === 9`, inalcanzable porque la coartación nunca entraba a
      esa lista (máximo 8), así que una sección virgen mostraba «ninguno identificado» sobre nueve
      preguntas que nadie hizo. */
-  txt('vab-fr', fr.n ? fr.n + ': ' + fr.presentes.join('; ')
-      : (fr.sinEvaluar.length >= 9 ? '— (ninguno evaluado)'
-         : 'ninguno de los evaluados' + (fr.sinEvaluar.length ? ' · sin evaluar: ' + fr.sinEvaluar.join('; ') : '')));
+  /* ⚠️ «NINGUNO MARCADO» NO ES «NO HAY FACTORES», y la linea lo dice con esas palabras desde el
+     Y3d5. Lo que antes decia «ninguno de los evaluados» descansaba en un estado -«no»- que la
+     casilla ya no produce. Los tres derivados que falten se siguen listando, porque ahi la
+     ausencia del dato es real. */
+  txt('vab-fr', fr.n ? fr.n + ' marcado' + (fr.n === 1 ? '' : 's') + ': ' + fr.presentes.join('; ')
+      : 'ninguno marcado' + (fr.sinEvaluar.length ? ' · sin datos: ' + fr.sinEvaluar.join('; ') : ''));
   const c = vabConclusion();
   txt('vab-concl', c ? c.txt : '—');
 }

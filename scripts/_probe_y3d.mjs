@@ -1499,6 +1499,68 @@ window.__Y = {
     process.stderr.write('[vab] listo\n');
   }
 
+  /* ══ GRUPO «fr» — las SEIS casillas de los factores de riesgo ═══════════════════════════ */
+  if (corre('fr')) {
+    const r = { escenas: {}, migra: {} };
+    const CHK = ['vabchk-familiar','vabchk-hta','vabchk-crecimiento','vabchk-longitud','vabchk-cx','vabchk-embarazo'];
+    const leer = async () => ({
+      vab: await ev(`window.__Y.vab()`),
+      chk: await ev(`(function(){ var o = {};
+        ['vabchk-familiar','vabchk-hta','vabchk-crecimiento','vabchk-longitud','vabchk-cx','vabchk-embarazo']
+          .forEach(function(k){ var e = document.getElementById(k);
+            o[k] = e ? { checked: e.checked, tipo: e.type } : 'NO EXISTE' });
+        return o })()`),
+      excel: await ev(`(function(){ if (typeof _labExcelRow !== 'function') return 'SIN FN';
+        var inf = window.__P.reg({}, 'fr'); var f = _labExcelRow(inf); var o = {};
+        Object.keys(f).forEach(function(k){ if (k.indexOf('VAB FR') === 0) o[k] = f[k] });
+        return { n: Object.keys(f).length, fr: o } })()`)
+    });
+    try {
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__Y.irVAB()`);
+      r.escenas.vacia = await leer();
+      /* Marcar DOS con un clic real. */
+      for (const k of ['vabchk-hta', 'vabchk-embarazo']) {
+        await ev(`(function(){ var e = document.getElementById(${JSON.stringify(k)});
+          e.scrollIntoView({ block:'center' }); e.click(); return e.checked })()`);
+      }
+      r.escenas.dosMarcadas = await leer();
+      /* Destildar una. */
+      await ev(`(function(){ document.getElementById('vabchk-hta').click(); return 1 })()`);
+      r.escenas.unaMarcada = await leer();
+      /* «Nuevo estudio» tiene que destildarlas. */
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__Y.irVAB()`);
+      r.escenas.trasNuevo = await leer();
+      /* MIGRACION: un estudio guardado con cada uno de los cuatro valores viejos. */
+      for (const val of ['si', 'no', 'no_eval', '']) {
+        await ev(`window.__P.abrirComoEstudio({ vab_fr_hta: ${JSON.stringify(val)}, vab_tipo: 'fused_rl', ao_sin: '38', ao_tub: '42' })`, 40000);
+        await ev(`window.__Y.irVAB()`);
+        r.migra[val || 'vacio'] = {
+          chk: await ev(`(document.getElementById('vabchk-hta') || {}).checked`),
+          campo: await ev(`window.__P.val('vab_fr_hta')`),
+          fila: await ev(`window.__P.txt('vab-fr')`)
+        };
+      }
+      /* La CONCLUSION en las escenas que dependen de los factores. */
+      const conc = async (ex) => {
+        await ev(`window.__P.nuevo()`);
+        await ev(`window.__P.sel('va_morf','Bicúspide')`);
+        await tipear('ao_tub', '51');
+        await tipear('ao_sin', '38');
+        await ev(`window.__P.sel('vab_riesgo_qx','si')`);
+        await ev(`window.__Y.irVAB()`);
+        for (const k of ex) await ev(`(function(){ var e = document.getElementById(${JSON.stringify(k)});
+          e.scrollIntoView({ block:'center' }); e.click(); return e.checked })()`);
+        return await ev(`window.__Y.vab()`);
+      };
+      r.conclusion = { ninguno: await conc([]), uno: await conc(['vabchk-hta']),
+                       dos: await conc(['vabchk-hta', 'vabchk-cx']) };
+    } catch (e) { r.err = e.message; }
+    out.grupos.fr = r;
+    process.stderr.write('[fr] listo\n');
+  }
+
   /* ══ GRUPO «tarj» — las SEIS tarjetas de la VAB y la maqueta ═══════════════════════════ */
   if (corre('tarj')) {
     const r = { tarjetas: {}, maqueta: {} };
