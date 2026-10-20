@@ -1576,6 +1576,14 @@ window.__Y = {
     try { o.vocab = Object.keys(LAB_XLS_VOCAB.vab_simetria) } catch (e) { o.vocab = 'EXC' }
     return o },
 
+  /* El data URL del dibujo que viaja al PDF: es el que dice si el PAPEL se movio. */
+  vabPng() {
+    try { var d = (typeof vabDataURL === 'function') ? vabDataURL() : null;
+      if (!d) return 'SIN vabDataURL';
+      var h = 0, i; for (i = 0; i < d.length; i++) h = ((h << 5) - h + d.charCodeAt(i)) | 0;
+      return { largo: d.length, hash: h } }
+    catch (e) { return 'EXC: ' + e.message } },
+
   /* La celda del Excel de la simetria para un estudio dado, y el conteo de columnas. */
   vabExcelCelda(campos) {
     try { if (typeof _labExcelRow !== 'function') return 'SIN _labExcelRow';
@@ -1793,7 +1801,8 @@ window.__Y = {
           const q = await ev(`window.__P.sel('vab_simetria',${JSON.stringify(cat)})`);
           if (q && q.err) { r.escenas[t][cat || 'vacia'] = { noHayOpcion: true }; continue; }
           r.escenas[t][cat || 'vacia'] = { geo: await ev(`window.__Y.vabGeo()`),
-                                          dib: await ev(`window.__Y.vabDib()`) };
+                                          dib: await ev(`window.__Y.vabDib()`),
+                                          png: await ev(`window.__Y.vabPng()`, 30000) };
         }
       }
       /* Los tres puntos sensibles con la categoria mas extrema puesta. */

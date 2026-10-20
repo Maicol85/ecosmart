@@ -7235,7 +7235,11 @@ caso('TC-115', 'VAB: la migracion a Consenso 2021 no pierde los estudios de Siev
          describe la SIMETRIA; los SENOS van en plural. Y el recordatorio de la coartacion SALIO
          del informe -su 85 % no lo publica ninguna fuente de la biblioteca, ver el commit 10-:
          hoy la condicion afirma lo CONTRARIO, que es que no esta. */
-      ['la simetria sale en el informe, y en PLURAL', inf.inf.indexOf('senos asimétricos') > -1],
+      /* ADAPTADO el 2026-10-20 (Y3e3): «senos» pasa a «CUSPIDES» en toda la app. Lo que el
+         consenso clasifica es el angulo de las comisuras de la cuspide no fusionada, no los
+         senos aorticos. El plural femenino se conserva, que es lo que esta condicion fija. */
+      ['la simetria sale en el informe como CUSPIDES, y en PLURAL',
+        inf.inf.indexOf('cúspides asimétricas') > -1 && inf.inf.indexOf('senos asimétricos') === -1],
       ['el recordatorio de la coartacion YA NO esta en el informe',
         inf.inf.indexOf('excluir coartación de aorta asociada') === -1 &&
         inf.inf.indexOf('85 %') === -1],
@@ -50572,7 +50576,7 @@ return { extra: [
 ] };
 `);
 
-caso('TC-366', 'VAB: «Ver detalle» muestra la fila de simetria de los senos cuando esta cargada y la OMITE cuando esta vacia — el dato lo usaba solo el narrativo y desaparecia de esta superficie', `
+caso('TC-366', 'VAB: «Ver detalle» muestra la fila de simetria de las cuspides cuando esta cargada y la OMITE cuando esta vacia — el dato lo usaba solo el narrativo y desaparecia de esta superficie', `
 return (async () => {
   const leer = async (cargar) => {
     __t.limpiar();
@@ -78211,8 +78215,11 @@ caso('TC-504', 'Tanda Y3d: los rotulos de feston visibles en las TRES vistas y e
     SEL('vab_funcion','normal'); __t.chk('vab_incluir_chk', true);
     return __t.informe(); };
   const _est = (function(){ setEstiloInforme('estandar'); return MONTAR(); })();
-  ex.push(['(H1) UNA sola descripcion, con el fenotipo, el rafe y los senos en PLURAL',
-    _est.inf.indexOf('Válvula aórtica bicúspide, fenotipo R-L (fusión derecha-izquierda), con rafe calcificado y senos simétricos') > -1,
+  /* ADAPTADO el 2026-10-20 (Y3e3): «senos» pasa a «CUSPIDES» en toda la app, porque lo que el
+     consenso clasifica es el angulo de las comisuras de la cuspide no fusionada y no los senos
+     aorticos. La frase y su plural femenino no cambian de forma: cambia la palabra. */
+  ex.push(['(H1) UNA sola descripcion, con el fenotipo, el rafe y las CUSPIDES en PLURAL',
+    _est.inf.indexOf('Válvula aórtica bicúspide, fenotipo R-L (fusión derecha-izquierda), con rafe calcificado y cúspides simétricas') > -1,
     _est.inf.split(String.fromCharCode(10)).filter(l => l.indexOf('bicúspide') > -1)[0] || 'NO ESTA']);
   ex.push(['(H2) en ESPAÑOL: el informe ya no dice «fused type»',
     _est.inf.indexOf('fused type') < 0, 'hay fused type=' + (_est.inf.indexOf('fused type') > -1)]);
@@ -78229,9 +78236,11 @@ caso('TC-504', 'Tanda Y3d: los rotulos de feston visibles en las TRES vistas y e
   /* Los TRES estilos dan la misma informacion. */
   const _nar = (function(){ setEstiloInforme('narrativo'); return MONTAR(); })();
   const _con = (function(){ setEstiloInforme('conciso');  return MONTAR(); })();
-  ex.push(['(H6) los TRES estilos nombran el fenotipo, el rafe y los senos',
+  /* ADAPTADO el 2026-10-20 (Y3e3): la palabra pasa a «cúspides». Ver (H1). */
+  ex.push(['(H6) los TRES estilos nombran el fenotipo, el rafe y las CUSPIDES',
     [_est, _nar, _con].every(r => r.inf.indexOf('fenotipo R-L') > -1
-      && r.inf.indexOf('rafe calcificado') > -1 && r.inf.indexOf('senos simétricos') > -1),
+      && r.inf.indexOf('rafe calcificado') > -1 && r.inf.indexOf('cúspides simétricas') > -1
+      && r.inf.indexOf('senos simétricos') === -1),
     'conciso=' + (_con.inf.split(String.fromCharCode(10)).filter(l => l.indexOf('fenotipo') > -1)[0] || 'NO')]);
   setEstiloInforme('estandar');
   /* El FENOTIPO AORTOPATICO va con la aorta, no repetido. */
@@ -78270,7 +78279,9 @@ caso('TC-504', 'Tanda Y3d: los rotulos de feston visibles en las TRES vistas y e
     Array.isArray(_filas) && _filas.length >= 3
       && _filas[0][0] === 'Fenotipo' && _filas[0][1] === 'R-L (fusión derecha-izquierda)'
       && _filas.some(f => f[0] === 'Rafe' && f[1] === 'calcificado')
-      && _filas.some(f => f[0] === 'Senos' && f[1] === 'simétricos'),
+      /* ADAPTADO el 2026-10-20 (Y3e3): la fila pasa de «Senos» a «Cúspides». Ver (H1). */
+      && _filas.some(f => f[0] === 'Cúspides' && f[1] === 'simétricas')
+      && !_filas.some(f => f[0] === 'Senos'),
     JSON.stringify(_filas)]);
   ex.push(['(I2) y el dibujo se rasteriza desde la MISMA geometria',
     (function(){ try { const d = vabDataURL();

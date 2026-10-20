@@ -14265,11 +14265,23 @@ z
                 <option value="si">Sí</option>
               </select>
             </div>
-            <div class="fg"><label>Simetría de los senos</label>
+            <!-- ⚠️ «CUSPIDES» Y NO «SENOS», Y TRES CATEGORIAS (Y3e3, 2026-10-20). Decision de
+                 Maicol. El consenso internacional VAB define la simetria por el ANGULO ENTRE LAS
+                 COMISURAS DE LA CUSPIDE NO FUSIONADA -no por los senos aorticos- y publica TRES
+                 categorias: simetrica 160-180 grados, asimetrica 140-159 y muy asimetrica
+                 120-139 (traduccion del resumen, Arch Cardiol Mex 2024, folios 225 y 230, hoja
+                 12; regla folio = hoja + 218 comprobada en el numero impreso de seis hojas).
+                 Las DOS claves que ya existian NO se tocan, asi que un estudio guardado abre en
+                 su misma opcion; `muy_asimetrica` entra entre la asimetrica y «No valorable»,
+                 que es el orden de gravedad creciente de la fuente.
+                 El id, la clave y el encabezado del Excel se conservan: renombrarlos dejaria
+                 huerfana la columna de todo backup ya exportado. -->
+            <div class="fg"><label>Simetría de las cúspides</label>
               <select id="vab_simetria" onchange="vabSync()">
                 <option value="">—</option>
                 <option value="simetrica">Simétrica</option>
                 <option value="asimetrica">Asimétrica</option>
+                <option value="muy_asimetrica">Muy asimétrica</option>
                 <option value="no_val">No valorable</option>
               </select>
             </div>
@@ -39888,8 +39900,16 @@ const VINFO = Object.freeze({
     tit: 'Clasificaci\u00f3n de la v\u00e1lvula',
     lee: 'Clasificaci\u00f3n del Consenso Internacional VAB 2021 (Michelena y col., JTCVS); reemplaza a Sievers 2007. '
        + 'Se basa en la imagen, no en la inspecci\u00f3n quir\u00fargica. Los estudios guardados con la clasificaci\u00f3n '
-       + 'anterior se migran al reabrirlos.',
-    ojo: 'Tambi\u00e9n pod\u00e9s tocar el rafe en el dibujo.'
+       + 'anterior se migran al reabrirlos. '
+       /* ⚠️ LA FRASE DE LA SIMETRIA ES LA DE LA FUENTE, RESUMIDA, y no agrega ni un dato (Y3e3):
+          el folio 225 dice «Simétrico o asimétrico se refiere al ángulo de las comisuras de la
+          cúspide no fusionada» y el pie de la Figura 9, folio 230, da los tres rangos. El
+          angulo se CLASIFICA, no se mide: la app no tiene campo para el grado. */
+       + 'La simetr\u00eda se refiere al \u00e1ngulo entre las comisuras de la c\u00faspide no fusionada: '
+       + 'sim\u00e9tricas 160-180\u00b0, asim\u00e9tricas 140-159\u00b0 y muy asim\u00e9tricas 120-139\u00b0.',
+    ojo: 'Tambi\u00e9n pod\u00e9s tocar el rafe en el dibujo. El esquema dibuja el punto medio de cada '
+       + 'categor\u00eda (170\u00b0, 150\u00b0 y 130\u00b0) y solo en los tipos fusionados, que son los que el '
+       + 'consenso clasifica.'
   },
   'vab-func': { tit: 'Funci\u00f3n valvular', lee: 'El grado de EA y de IAo se lee de V\u00e1lvulas.' },
   'vab-aorta': { tit: 'Aorta', lee: 'Los di\u00e1metros se miden en Paciente \u2192 Aorta tor\u00e1cica.' },
@@ -52861,8 +52881,13 @@ function generarInforme(opts) {
          fuertemente asociada con coartacion aortica EN NIÑOS», sin cifra. El recordatorio queda
          SOLO como el aviso corto de la seccion, y SIN numero. Ver el commit 10. */
       const p = ['Válvula aórtica bicúspide' + (tipo ? ' — ' + (VAB_TIPO_TXT[tipo] || tipo) : '')];
+      /* ⚠️ «Cúspides …» Y EN PLURAL CONCORDADO (Y3e3). Esta linea decia «Senos simétrica»:
+         nombraba la estructura equivocada Y concordaba con el singular de `VAB_SIMETRIA_TXT`,
+         que describe la SIMETRIA y no las cuspides. El texto sale de `VAB_HOJA_CUSPIDES`, que
+         se DERIVA de la misma tabla que el informe usa, con el fallback para una clave que la
+         tabla no tenga. */
       const _sim = sv('vab_simetria');
-      if (_sim) p.push('Senos ' + (VAB_SIMETRIA_TXT[_sim] || _sim));
+      if (_sim) p.push(VAB_HOJA_CUSPIDES[_sim] || ('Cúspides ' + (VAB_SIMETRIA_TXT[_sim] || _sim)));
       /* Sólo la afirmación explícita: «rafe no calcificado» es un hallazgo, «no evaluado» no. */
       if (rafe === 'si') p.push('Rafe calcificado');
       else if (rafe === 'no') p.push('Rafe no calcificado');
@@ -64575,7 +64600,8 @@ const VAB_TIPO_LBL_LEGACY = Object.assign({
   t0:   VAB_TIPO_LBL.dos_senos_ll, t1rl: VAB_TIPO_LBL.fused_rl, t1rn: VAB_TIPO_LBL.fused_rn,
   t1nl: VAB_TIPO_LBL.fused_ln,     t2:   VAB_TIPO_LBL.no_clasif
 }, VAB_TIPO_LBL);
-const VAB_SIMETRIA_TXT = { simetrica:'simétrica', asimetrica:'asimétrica', no_val:'no valorable' };
+const VAB_SIMETRIA_TXT = { simetrica:'simétrica', asimetrica:'asimétrica',
+                           muy_asimetrica:'muy asimétrica', no_val:'no valorable' };
 /* ══ LA DESCRIPCION DE LA VALVULA EN EL INFORME (Y3d8, 2026-10-19) ══════════════════════════
    DECISION DE MAICOL: UNA sola descripcion de la valvula aortica, dentro de VALVULAS, en el
    lugar donde el informe ya dice «trivalva normal...», con el estilo del resto de las valvulas.
@@ -64602,7 +64628,21 @@ const VAB_INF_FENO = Object.freeze({
 const VAB_SUMA_FENO = Object.freeze(Object.keys(VAB_INF_FENO).reduce(function (o, k) {
   o[k] = VAB_INF_FENO[k].replace(/\s*\(.*\)\s*$/, ''); return o;
 }, {}));
-const VAB_INF_SENOS = Object.freeze({ simetrica: 'senos simétricos', asimetrica: 'senos asimétricos' });
+/* ⚠️ «CUSPIDES» Y EN FEMENINO PLURAL (Y3e3, 2026-10-20). Decision de Maicol. Lo que el
+   consenso clasifica es el angulo de las comisuras de la CUSPIDE no fusionada, no los senos
+   aorticos; «senos simétricos» nombraba la estructura equivocada. `no_val` sigue SIN entrada:
+   «no valorable» no es un hallazgo que el informe firmado afirme, que es la decision del Y3d8.
+   La constante cambia de NOMBRE en el mismo movimiento: una que se llame SENOS con valores que
+   dicen cuspides es la proxima confusion. Nadie fuera de esta zona la leia -censado-. */
+const VAB_INF_CUSPIDES = Object.freeze({ simetrica: 'cúspides simétricas',
+  asimetrica: 'cúspides asimétricas', muy_asimetrica: 'cúspides muy asimétricas' });
+/* La forma CAPITALIZADA para la hoja del PDF de cardiopatias congenitas (`ccHoja`), que es otra
+   superficie y escribe «Cúspides …» como rotulo de linea. Se DERIVA, asi que el dia que una
+   etiqueta cambie las dos se mueven juntas; la cuarta entrada es la unica propia, porque
+   `no_val` no esta en la tabla del informe y la hoja si lo publica. */
+const VAB_HOJA_CUSPIDES = Object.freeze(Object.keys(VAB_INF_CUSPIDES).reduce(function (o, k) {
+  o[k] = VAB_INF_CUSPIDES[k].charAt(0).toUpperCase() + VAB_INF_CUSPIDES[k].slice(1); return o;
+}, { no_val: 'Simetría de las cúspides no valorable' }));
 const VAB_INF_RAFE  = Object.freeze({ si: 'con rafe calcificado', no: 'con rafe no calcificado' });
 const VAB_INF_DOSVELOS = 'con dos velos verdaderos';
 /* La COLA que el bloque 8 le pega a «Válvula aórtica bicúspide». Devuelve '' cuando no hay nada
@@ -64617,9 +64657,9 @@ function vabFraseValv(src){
   /* Los de dos senos no tienen rafe: lo que se dice es que los dos velos son verdaderos. */
   const esDosSenos = tipo === 'dos_senos_ll' || tipo === 'dos_senos_ap';
   const rf = esDosSenos ? VAB_INF_DOSVELOS : _ccLbl(VAB_INF_RAFE, rafe);
-  const sn = _ccLbl(VAB_INF_SENOS, sim);
-  /* El rafe y los senos van en la MISMA clausula cuando estan los dos: «con rafe calcificado y
-     senos simétricos». Con uno solo, el que haya. */
+  const sn = _ccLbl(VAB_INF_CUSPIDES, sim);
+  /* El rafe y las cuspides van en la MISMA clausula cuando estan los dos: «con rafe calcificado
+     y cúspides simétricas». Con uno solo, el que haya. */
   if (rf && sn) partes.push(rf + ' y ' + sn);
   else if (rf) partes.push(rf);
   else if (sn) partes.push('con ' + sn);
@@ -64637,7 +64677,8 @@ function _vabFenoCola(){
 window._vabFenoCola = _vabFenoCola;
 window.vabFraseValv = vabFraseValv; window.VAB_INF_FENO = VAB_INF_FENO;
 window.VAB_SUMA_FENO = VAB_SUMA_FENO;
-window.VAB_INF_SENOS = VAB_INF_SENOS; window.VAB_INF_RAFE = VAB_INF_RAFE;
+window.VAB_INF_CUSPIDES = VAB_INF_CUSPIDES; window.VAB_INF_RAFE = VAB_INF_RAFE;
+window.VAB_HOJA_CUSPIDES = VAB_HOJA_CUSPIDES;
 const VAB_FUNC_TXT = { normal:'normofuncionante', estenosis:'con estenosis', insuficiencia:'con insuficiencia', mixta:'con lesión mixta' };
 const VAB_FENO_TXT = { sin:'sin dilatación', raiz:'de raíz', tubular:'tubular (ascendente)', arco:'extendido (con compromiso del arco)' };
 /* Los NUEVE factores de la Tabla 68 de la ESC 2024. Tres se derivan de datos que la app ya
@@ -65182,16 +65223,39 @@ function vabConclusion(src){
    derecha, N abajo a la izquierda-. Las tres letras de `vabGeom` caen exactamente ahi: R en
    -90 grados (arriba), L en 30 (abajo-derecha) y N en 150 (abajo-izquierda). Por eso se
    publican con su sigla.
-   ⚠️ LA ASIMETRIA TAMBIEN ESTA VERIFICADA, y el dibujo NO la mide: el consenso la define por el
-   ANGULO DE LAS COMISURAS DE LA CUSPIDE NO FUSIONADA -simetrico 160-180 grados, asimetrico
-   140-159, muy asimetrico 120-139, folios 225 y 230-231- y esta geometria la representa
-   variando la CURVATURA de los tres senos, no ese angulo. Es un esquema, no una medicion, y
-   por eso ningun texto de la app afirma un angulo. Declarado en FUENTES.md.
+   ⚠️ LA SIMETRIA SE DIBUJA POR EL ANGULO, QUE ES COMO LA FUENTE LA DEFINE (Y3e3, 2026-10-20).
+   Hasta el Y3d esta geometria la representaba variando la CURVATURA de los tres senos, que no
+   es el criterio del consenso. Verificado en el original: traduccion del resumen del consenso
+   internacional VAB (Arch Cardiol Mex 2024), folio 225 (hoja 7) -«Simétrico o asimétrico se
+   refiere al ángulo de las comisuras de la cúspide no fusionada (Fig. 9)»- y pie de la Figura 9,
+   folio 230 (hoja 12), que da las TRES categorias con su punto medio:
+     simetrica        160-180 grados -> «aproximadamente 170 grados»
+     asimetrica       140-159        -> «aproximadamente 150»
+     muy asimetrica   120-139        -> «aproximadamente 130»
+   El dibujo usa esos tres puntos medios. Sin categoria elegida mantiene los 120 grados de la
+   geometria aprobada, que es la que no afirma nada.
+   ⚠️ LA FIGURA 9 ES SOLO DE LOS TIPOS FUSIONADOS, y lo dice su propio pie: «aplicables a los
+   tres fenotipos de la VAB fusionados». El 2-sinus no tiene cuspide no fusionada ni rafe, asi
+   que la categoria NO le aplica y su dibujo no cambia con ella. Reportado. Declarado en FUENTES.md.
    ⚠️ TRES TIPOS DE LA LISTA NO ESTAN CUBIERTOS POR LA DEMO -«partial», «no_clasif» y el
    2-sinus ANTERO-POSTERIOR- y NO se dibujan inventados: se muestra el contorno de tres senos
    sin lineas de cierre, con el rotulo del tipo. Reportado.
    ⚠️ SE CONSTRUYE POR NODOS, nunca concatenando HTML: es la regla de la casa y lo que mantiene
    Semgrep en 127. */
+/* EL ANGULO COMISURAL DE LA CUSPIDE NO FUSIONADA por categoria, que es lo que el consenso usa
+   para definir la simetria. Son los PUNTOS MEDIOS que el pie de la Figura 9 publica, no una
+   interpolacion propia: «aproximadamente 170», «aproximadamente 150» y «aproximadamente 130».
+   `VAB_SIM_ANG_BASE` es el angulo de la geometria aprobada por Maicol, el que se dibuja SIN
+   categoria elegida: ahi la app no afirma ninguna simetria. */
+const VAB_SIM_ANG = Object.freeze({ simetrica: 170, asimetrica: 150, muy_asimetrica: 130 });
+const VAB_SIM_ANG_BASE = 120;
+/* El CENTRO del seno de la cuspide NO FUSIONADA y el angulo del RAFE, que queda en el lado
+   opuesto. La no fusionada es la que no participa de la fusion: N en la R-L, L en la R-N y R en
+   la L-N. Los tres valores son los que la geometria aprobada ya aplicaba -el rafe no se mueve-,
+   escritos aqui por su nombre en vez de deducirse de un par de comisuras. */
+const VAB_DIB_CEN = Object.freeze({ RL: 150, RN: 30, LN: -90 });
+window.VAB_SIM_ANG = VAB_SIM_ANG; window.VAB_SIM_ANG_BASE = VAB_SIM_ANG_BASE;
+window.VAB_DIB_CEN = VAB_DIB_CEN;
 function vabGeom(fusion, calc, sym) {
   var C = 120, R0 = 60, DK = 'var(--text)';
   var rad = function (d) { return d * Math.PI / 180; };
@@ -65200,17 +65264,48 @@ function vabGeom(fusion, calc, sym) {
   var pt = function (deg, r) { var p = P(deg, r); return p[0] + ',' + p[1]; };
   var arc = function (a0, a1, rs) { return 'M ' + pt(a0, R0) + ' A ' + rs + ' ' + rs + ' 0 0 1 ' + pt(a1, R0); };
   var two = fusion === 'NONE';
-  var asym = sym === 'asim';
   var comm, raphe, rs, s1, s2, s3;
   if (two) {
+    /* ⚠️ LA CATEGORIA NO TOCA ESTE DIBUJO, y es de la fuente: el pie de la Figura 9 acota las
+       tres categorias a «los tres fenotipos de la VAB FUSIONADOS». Un 2-sinus no tiene cuspide
+       no fusionada ni rafe, asi que no hay angulo comisural que clasificar. Hasta el Y3d la
+       opcion «asimetrica» le cambiaba los radios a [60.5, 90, 0]; eso se retira, porque
+       afirmaba una asimetria que la fuente no define para este tipo. Reportado. */
     comm = [180, 0]; raphe = null;
-    rs = asym ? [60.5, 90, 0] : [64, 64, 0];
+    rs = [64, 64, 0];
     s1 = arc(180, 360, rs[0]); s2 = arc(0, 180, rs[1]); s3 = 'M 0 0';
   } else {
-    if (fusion === 'RL') { comm = [210, 90]; raphe = -30; rs = asym ? [53, 55, 66] : [56, 56, 56]; }
-    else if (fusion === 'RN') { comm = [-30, 90]; raphe = 210; rs = asym ? [53, 66, 55] : [56, 56, 56]; }
-    else { comm = [-30, 210]; raphe = 90; rs = asym ? [66, 53, 55] : [56, 56, 56]; }
-    s1 = arc(-150, -30, rs[0]); s2 = arc(-30, 90, rs[1]); s3 = arc(90, 210, rs[2]);
+    /* ⚠️ EL RADIO DEL ARCO SE ESCALA CON SU ANGULO, Y LA CONSTANTE SALE DE LA GEOMETRIA
+       APROBADA, no de un numero elegido a ojo. Un arco cuyos dos extremos estan a R0 del centro
+       necesita un radio de al menos `R0 * sin(angulo/2)`; por debajo de eso el motor lo escala
+       solo y el seno sale semicircular. La geometria de Maicol usa 56 para un arco de 120
+       grados, o sea K = 56 / (R0 * sin(60)) = 1,0778 veces ese minimo. Con esa misma K, un arco
+       de 120 grados vuelve a dar 56 EXACTO -asi que el dibujo sin categoria es identico al de
+       hoy- y uno de 180 da 64,7, que es practicamente el 64 que el 2-sinus ya usaba. */
+    var K = 56 / (R0 * Math.sin(rad(60)));
+    var rsDe = function (th) { return r1(K * R0 * Math.sin(rad(th / 2))); };
+    var ang = VAB_SIM_ANG[sym] || VAB_SIM_ANG_BASE;
+    var cen = VAB_DIB_CEN[fusion];
+    if (cen === undefined) { cen = VAB_DIB_CEN.RL; fusion = 'RL'; }
+    /* Las dos comisuras se abren SIMETRICAMENTE respecto del eje que pasa por el centro del seno
+       de la cuspide no fusionada, y el rafe queda del lado opuesto. */
+    var A = cen - ang / 2, B = cen + ang / 2, Rf = cen + 180;
+    raphe = Rf;
+    comm = [A, B];
+    /* Los otros dos senos son los de la cuspide FUSIONADA, partidos por el rafe: se reparten el
+       complemento del angulo. */
+    var otro = (360 - ang) / 2;
+    /* Los tres tramos se reparten a s1 / s2 / s3 por su angulo de INICIO normalizado al rango
+       que los tres ids ya ocupaban -[-150, 210)-, no por su papel. Asi, con el angulo de la
+       geometria aprobada, cada id recibe EXACTAMENTE el mismo arco que antes de esta tanda:
+       medido en los tres tipos de fusion. */
+    var norm = function (d) { var m = ((d + 150) % 360 + 360) % 360; return m - 150; };
+    var tramos = [[A, B, ang], [B, Rf, otro], [Rf, A + 360, otro]];
+    tramos.sort(function (x, y) { return norm(x[0]) - norm(y[0]); });
+    rs = tramos.map(function (t) { return rsDe(t[2]); });
+    s1 = arc(tramos[0][0], tramos[0][1], rs[0]);
+    s2 = arc(tramos[1][0], tramos[1][1], rs[1]);
+    s3 = arc(tramos[2][0], tramos[2][1], rs[2]);
   }
   var closure = 'M ' + pt(comm[0], R0) + ' L ' + C + ',' + C + ' L ' + pt(comm[1], R0);
   var hasRaphe = raphe !== null;
@@ -65384,7 +65479,9 @@ function vabDibujar() {
   /* Sin tipo elegido, o con uno que la geometria no cubre, se dibuja el CONTORNO de tres senos
      y nada mas: ni lineas de cierre, ni rafe, ni letras. Un dibujo inventado afirmaria una
      morfologia que el medico no eligio. */
-  const g = vabGeom(fus || 'RL', sv2('vab_rafe'), sv2('vab_simetria') === 'asimetrica' ? 'asim' : 'sim');
+  /* La CLAVE cruda del selector: `vabGeom` resuelve el angulo por `VAB_SIM_ANG` (Y3e3). Antes
+     se le pasaba un booleano disfrazado de cadena, que con tres categorias ya no alcanza. */
+  const g = vabGeom(fus || 'RL', sv2('vab_rafe'), sv2('vab_simetria'));
   const neutro = !fus;
   N.s1.setAttribute('d', neutro ? vabGeom('RL', 'no', 'sim').s1 : g.s1);
   N.s2.setAttribute('d', neutro ? vabGeom('RL', 'no', 'sim').s2 : g.s2);
@@ -65461,7 +65558,9 @@ function vabPintarCanvas(ctx, k){
   const sv2 = id => { const e = document.getElementById(id); return e ? String(e.value || '').trim() : ''; };
   const tipo = sv2('vab_tipo');
   const fus = VAB_DIB_FUSION[tipo] || null;
-  const g = vabGeom(fus || 'RL', sv2('vab_rafe'), sv2('vab_simetria') === 'asimetrica' ? 'asim' : 'sim');
+  /* La CLAVE cruda del selector: `vabGeom` resuelve el angulo por `VAB_SIM_ANG` (Y3e3). Antes
+     se le pasaba un booleano disfrazado de cadena, que con tres categorias ya no alcanza. */
+  const g = vabGeom(fus || 'RL', sv2('vab_rafe'), sv2('vab_simetria'));
   const neutro = !fus;
   const P = (d) => { const p = new Path2D(d); return p; };
   ctx.save(); ctx.scale(k, k); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
@@ -65502,7 +65601,7 @@ function vabPdfFilas(){
   if (esDosSenos) f.push(['Rafe', 'dos velos verdaderos']);
   else { const rf = _ccLbl(VAB_INF_RAFE, rafe);
          if (rf) f.push(['Rafe', rf.replace(/^con rafe /, '')]); }
-  const sn = _ccLbl(VAB_INF_SENOS, sim); if (sn) f.push(['Senos', sn.replace(/^senos /, '')]);
+  const sn = _ccLbl(VAB_INF_CUSPIDES, sim); if (sn) f.push(['Cúspides', sn.replace(/^cúspides /, '')]);
   /* ⚠️ LA TABLA SOLO EXISTE SI HAY ALGO DE LA VALVULA QUE DECIR. El grado de EA y de IAo tiene
      valor de FABRICA -«Sin estenosis» y «Ausente»-, asi que sin esta guarda una seccion VACIA
      publicaba en el papel FIRMADO una tabla «VÁLVULA AÓRTICA BICÚSPIDE» con dos filas que nadie
@@ -85041,7 +85140,7 @@ const _IG_SECTIONS = [
        guardado no la mostraba, así que un dato cargado desaparecía de esta superficie. Reusa el
        mapa del narrativo y no una copia, y por eso el texto va en minúscula: ahí se lee dentro de
        la frase «Senos asimétricos». Se omite vacía por el mismo camino que las demás filas. */
-    {id:'vab_simetria',lbl:'Simetría de los senos',map:VAB_SIMETRIA_TXT},
+    {id:'vab_simetria',lbl:'Simetría de las cúspides',map:VAB_SIMETRIA_TXT},
     {id:'vab_funcion',lbl:'Función valvular',map:{normal:'Normofuncionante',estenosis:'Estenosis',insuficiencia:'Insuficiencia',mixta:'Mixta'}},
     {id:'vab_fenotipo',lbl:'Fenotipo aortopático',map:{sin:'Sin dilatación',raiz:'De raíz',tubular:'Tubular',arco:'Extendido'}},
     {id:'vab_cx_valvular',lbl:'Cirugía valvular prevista',map:_IG_SN},
@@ -107175,7 +107274,8 @@ LAB_XLS_ETIQ.cvpa_lado = { der:'Derecha', izq:'Izquierda', bil:'Bilateral' };
 LAB_XLS_ETIQ.cvpa_htp  = { no:'Sin HTP', leve:'Leve', moderada:'Moderada', severa:'Severa' };
 LAB_XLS_ETIQ.cvpa_sintomas = { asintomatico:'Asintomatico', disnea:'Disnea de esfuerzo',
                                palpitaciones:'Palpitaciones', ic_derecha:'IC derecha', otro:'Otro' };
-LAB_XLS_ETIQ.vab_simetria     = { simetrica:'Simétrica', asimetrica:'Asimétrica', no_val:'No valorable' };
+LAB_XLS_ETIQ.vab_simetria     = { simetrica:'Simétrica', asimetrica:'Asimétrica',
+                                  muy_asimetrica:'Muy asimétrica', no_val:'No valorable' };
 /* Las siete etiquetas del Consenso 2021, del dueño único y no copiadas. Declararlas acá es lo que
    hace que los dos bucles del cierre deriven de ellas la ayuda de la plantilla
    (`LAB_XLS_OPCIONES.vab_tipo`, que estaba escrita A MANO) y las sume al vocabulario de
@@ -107553,8 +107653,13 @@ LAB_XLS_VOCAB.eis_hemoptisis = { no:'no', si:'si', 'sí':'si' };
 /* `no_val`, no `no_valorable`: el token sale del <option value> REAL del select. Inventarlo se
    cae en silencio —la celda se rechaza y la fila entera con ella— y es el mismo error que ya
    costo el `escaso` por `pocas` del FOP. Lo cazo TC-119 comparando el select contra el mapa. */
+/* La tercera categoria entra con sus cuatro formas de entrada (Y3e3): la clave, el texto con
+   tilde y sin tilde, y la version con guion bajo. Las dos que ya estaban NO se tocan, asi que
+   un backup exportado antes de esta tanda sigue reimportandose igual. */
 LAB_XLS_VOCAB.vab_simetria = { simetrica:'simetrica', 'simétrica':'simetrica',
   asimetrica:'asimetrica', 'asimétrica':'asimetrica',
+  muy_asimetrica:'muy_asimetrica', 'muy asimétrica':'muy_asimetrica',
+  'muy asimetrica':'muy_asimetrica', 'muy_asimétrica':'muy_asimetrica',
   no_val:'no_val', 'no valorable':'no_val', no_valorable:'no_val' };
 LAB_XLS_VOCAB.marfan_sindrome = { marfan:'marfan', 'sindrome de marfan':'marfan',
   lds:'lds', 'loeys-dietz':'lds', 'loeys dietz':'lds',
