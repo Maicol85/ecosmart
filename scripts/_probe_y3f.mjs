@@ -1919,6 +1919,73 @@ window.__Z = {
     process.stderr.write('[fevi] listo\n');
   }
 
+
+  /* ══ GRUPO «dop» — LA GRILLA DEL DOPPLER MITRAL ══════════════════════════════════════════
+     Mide TRES cosas que no son la misma: el orden del MARCADO (que es lo que el Tab recorre sin
+     tabindex positivos), el FOCO real campo por campo, y la POSICION renderizada a cada ancho.
+     Y el valor y el comportamiento de cada campo, para que el A/B pruebe que SOLO cambio el
+     orden del bloque. */
+  if (corre('dop')) {
+    const r = {};
+    try {
+      await ev(`window.__P.nuevo()`); await ev(`window.__P.despejar()`);
+      await ev(`(function(){ try { showTab('doppler') } catch(e){} return 1 })()`);
+      r.grid = await ev(`window.__Z.dopGrid()`);
+      r.foco = await ev(`window.__Z.dopFoco()`);
+      /* Cada campo conserva su valor y su comportamiento: se tipea en los doce tipeables y se
+         lee lo que la app publica. */
+      const VAL = { onda_e:'90', onda_a:'60', e_sep:'7', e_lat:'9',
+                    venp_dur_a:'120', venp_dur_ar:'140', venp_vel_ar:'30',
+                    thp:'160', tde:'180', triv:'80', onda_l:'25',
+                    lars_dop:'27', ai_strain_ct_dop:'12', itv_mitral:'20' };
+      for (const [k, v2] of Object.entries(VAL)) await tipear(k, v2);
+      await ev(`window.__P.sel('venp_sd','mid')`);
+      await ev(`window.__P.calentar()`);
+      r.cargado = await ev(`window.__Z.dopGrid()`);
+      r.cuadro = await ev(`(function(){ var o={};
+        ['ea-val','eprom-val','ee-val','dd-interp','avm_thp'].forEach(function(id){
+          var e=document.getElementById(id); o[id]= e ? (e.value!==undefined&&e.tagName==='INPUT'?e.value:(e.textContent||'').trim()) : 'NO EXISTE' });
+        return o })()`);
+      /* Las dos sincronias con AI/VI, en los dos sentidos y con borrado. */
+      r.sinc = {};
+      await tipear('lars', '31');
+      r.sinc.lars_desde_aivi = await ev(`window.__Z.dopGrid()`);
+      await borrar('lars_dop', 'del');
+      r.sinc.lars_borrado_en_dop = await ev(`(function(){ var a=document.getElementById('lars'), b=document.getElementById('lars_dop');
+        return { lars: a?a.value:null, lars_dop: b?b.value:null } })()`);
+      /* Y el borrado con teclas reales de un campo de cada columna (regla ARR). */
+      r.borrado = {};
+      for (const id of ['onda_e', 'thp', 'venp_dur_a', 'itv_mitral']) {
+        await borrar(id, 'bs');
+        r.borrado[id] = await ev(`window.__P.val(${JSON.stringify(id)})`);
+      }
+      /* La maqueta a cuatro anchos por dos temas. */
+      r.pos = {};
+      for (const [w, h] of [[1200, 700], [1440, 800], [768, 1024], [390, 844], [360, 740]]) {
+        for (const claro of [false, true]) {
+          await viewport(w, h);
+          const t = await ev(`window.__P.tema(${claro})`);
+          if (!!t.claro !== claro) throw new Error('EL TEMA NO QUEDO en ' + w + ' claro=' + claro);
+          await ev(`window.__P.despejar()`);
+          r.pos[w + 'x' + h + (claro ? '_claro' : '_oscuro')] = await ev(`window.__Z.dopPos()`);
+        }
+      }
+      await ev(`window.__P.tema(false)`);
+      await viewport(1200, 700);
+      /* El CSS: las ocho reglas de posicion y su media query, leidas del fuente. */
+      r.css = await ev(`(function(){
+        var h = document.documentElement.innerHTML;
+        var o = {};
+        [1,2,3,4].forEach(function(n){
+          o['c'+n] = h.indexOf('.dm-grid > .dm-c'+n+' { grid-column: '+n+'; }') >= 0;
+          o['r'+n] = h.indexOf('.dm-grid > .dm-r'+n+' { grid-row: '+n+'; }') >= 0 });
+        o.mq = (h.match(/@media \(min-width: 769px\)/g) || []).length;
+        return o })()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.dop = r;
+    process.stderr.write('[dop] listo\n');
+  }
+
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
   process.stdout.write(JSON.stringify(OUT, null, 1));
   cdp.close(); srv.close(); process.exit(0);

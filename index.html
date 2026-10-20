@@ -4772,7 +4772,75 @@ window.cerrarSesionReal = cerrarSesionReal;
           <label>e' lateral (cm/s)</label>
           <input type="number" id="e_lat" placeholder="cm/s" oninput="calcDiastol();cvrSync();" onchange="cvrCambio()">
         </div>
-        <!-- ══ COLUMNA 2 ══ ⚠️ VENA PULMONAR — `venp_`, NO `vp_`. `vp_vmax`, `vp_gmax` y
+        <!-- ⚠️ LAS COLUMNAS 2 Y 3 SE INTERCAMBIARON EL 2026-10-20 («Y3f2»), Y ES UN CAMBIO DE
+             POSICION Y DE ORDEN DE TAB Y NADA MAS. Los tiempos del llenado mitral pasan a la
+             columna 2 -pegados a las cuatro velocidades de la columna 1, que es de donde salen- y
+             la vena pulmonar a la 3. DECISION DE MAICOL.
+             Los `id`, los rotulos, las unidades, los `placeholder` y los manejadores NO cambiaron:
+             los campos se guardan por `id` y no por posicion, asi que el guardado, la
+             restauracion, el Excel, el informe y el PDF no se enteran. Lo UNICO que cambia es el
+             orden de los `.fg` en el marcado -que es lo que el Tab recorre, sin un solo
+             `tabindex`- y el numero de columna de sus clases `dm-cN`.
+             ⚠️ EL ORDEN DEL MARCADO ES EL DEL TAB Y EL DE LA PANTALLA ANGOSTA. A una columna la
+             grilla apila en el orden del documento, asi que el celular hereda el orden nuevo sin
+             una sola regla extra. -->
+        <!-- ══ COLUMNA 2 ══ Los cuatro tiempos del llenado mitral, con el THP primero porque
+             es el único de la columna que alimenta OTRA cuenta además de la diastólica (el AVm de
+             la estenosis mitral, en la columna 4). La onda L cierra: es el único parámetro
+             SUPLEMENTARIO de la columna —vota sólo cuando el algoritmo llega a preguntarlo— y por
+             eso va después de los tres que son insumos directos. -->
+        <div class="fg dm-c2 dm-r1">
+          <!-- ⚠️ EL THP ES UN DATO CON DOS CAMPOS DESDE EL 2026-10-09. Este es el PORTADOR: lo
+               imprime el PDF firmado por vPdf('thp',' ms'), lo exporta el Excel y lo lee el panel
+               de Evidencia. El otro campo vive en Válvulas — Estenosis Mitral y era un display de
+               solo lectura. Ver «EL THP ES UN DATO CON DOS CAMPOS» en el JS.
+               `calcTHP()` no se perdió: lo lleva `thpEditado`, que además copia el valor al otro
+               campo y repinta la marca en los DOS avisos. -->
+          <label>THP mitral (ms) — EM</label>
+          <input type="number" id="thp" placeholder="ms" oninput="thpEditado('thp')">
+          <!-- ⚠️ ESTE AVISO ES NUEVO Y CIERRA UN AGUJERO MEDIDO: hasta hoy la marca «(revisar)»
+               del THP fuera de banda salía SÓLO en los displays del bloque de Estenosis Mitral, o
+               sea en otra pestaña. El médico que tipeaba 12 ms acá no veía una palabra. La escribe
+               `thpMarcaPintar`, la única dueña, con la misma constante `MARCA_REVISAR` y la misma
+               banda `EM_BANDA_PLAUS.thp` que decide el resto. -->
+          <div id="thp-marca" style="font-size:10px;color:var(--yellow);margin-top:3px;min-height:14px;"></div>
+        </div>
+        <div class="fg dm-c2 dm-r2">
+          <!-- ⚠️ EL CUADRO GRIS SE ATRASABA, Y ERA PORQUE `calcDiastol` NO ESTABA CABLEADO A TODO
+               LO QUE LEE. Vivia en el `oninput` de los cuatro campos del Doppler mitral, del LARS
+               y de los dos selectores, y en ningun otro: el TDE y el TRIV no tenian manejador
+               NINGUNO, y el Vol AI, la velocidad de la IT, el peso, la talla, la FEVI, el S/D y
+               los campos de VCI —de donde sale la PSAP— llamaban a lo suyo y no a la diastolica.
+               Medido en HEAD: tipeando el paciente en el orden natural, el cuadro se quedaba con
+               el veredicto del PACIENTE ANTERIOR hasta tocar un campo mitral. La ventana del 🧭
+               no se atrasaba (cuelga de un oyente de documento) y el informe firmado tampoco
+               (`generarInforme` llama a `calcDiastol`): lo que mentia era el cartel de pantalla,
+               que es el que el medico mira mientras carga.
+               Se cablearon ONCE campos con el mismo enganche que ya usaban los mitrales —una
+               llamada mas en su `oninput`— y no con un oyente global: `calcDiastol` arrastra
+               `calcHemo`, `calcVenaPulm`, `imOndaEPintar` y el aviso de protocolo, y colgarla de
+               cada tecla de la app entera se paga en todas las pestanas.
+               El veredicto NO cambia por esto: es una funcion pura de los campos, asi que lo
+               unico que cambia es CUANDO se repinta. Verificado en ritmo sinusal con las mismas
+               escenas de la tanda anterior. -->
+          <label>TDE (ms)</label>
+          <input type="number" id="tde" placeholder="ms" oninput="calcDiastol()">
+        </div>
+        <div class="fg dm-c2 dm-r3">
+          <label>TRIV (ms)</label>
+          <input type="number" id="triv" placeholder="ms" oninput="calcDiastol()">
+        </div>
+        <div class="fg dm-c2 dm-r4">
+          <!-- Onda L: velocidad mesodiastolica del llenado mitral, posterior a la onda E.
+               Es parametro SUPLEMENTARIO en las Figuras 17 y 18 de la BSE 2024 (> 20 cm/s) y en la
+               ASE 2025 (folio 555, >= 50 cm/s). Los dos cortes son de la fuente y NO se unifican:
+               cada guia lleva el suyo, como ya pasa con el LARS (18 % en la ASE, 16 % en la BSE).
+               En ESTE commit el campo no entra en ninguna cuenta: solo se guarda y se marca. -->
+          <label>Onda L (cm/s) <span style="font-weight:400;color:var(--text2);font-size:10px;">opcional — mesodiastólica</span></label>
+          <input type="number" id="onda_l" step="0.1" placeholder="cm/s" oninput="diastStrainEditado('onda_l')">
+          <div id="onda_l-marca" style="font-size:10px;color:var(--yellow);margin-top:3px;min-height:14px;"></div>
+        </div>
+        <!-- ══ COLUMNA 3 ══ ⚠️ VENA PULMONAR — `venp_`, NO `vp_`. `vp_vmax`, `vp_gmax` y
              `vp_morf` ya existen en esta misma pestaña y son la VÁLVULA pulmonar, otra estructura
              y otro Doppler. Dos prefijos a un carácter de distancia para dos cosas distintas es
              cómo un valor termina impreso bajo el rótulo del otro; acá se separan desde el nombre.
@@ -4785,19 +4853,19 @@ window.cerrarSesionReal = cerrarSesionReal;
              cerrar con él deja la columna leyéndose de lo medido a lo descriptivo. Lo que antes
              decía «la fila» hoy dice «la columna»: el orden de los cuatro es el mismo, lo que
              cambió es el eje. -->
-        <div class="fg dm-c2 dm-r1">
+        <div class="fg dm-c3 dm-r1">
           <label>Dur. onda A mitral (ms)</label>
           <input type="number" id="venp_dur_a" placeholder="ms" oninput="calcVenaPulm();calcDiastol()">
         </div>
-        <div class="fg dm-c2 dm-r2">
+        <div class="fg dm-c3 dm-r2">
           <label>Dur. onda Ar pulmonar (ms)</label>
           <input type="number" id="venp_dur_ar" placeholder="ms" oninput="calcVenaPulm();calcDiastol()">
         </div>
-        <div class="fg dm-c2 dm-r3">
+        <div class="fg dm-c3 dm-r3">
           <label>Veloc. Ar pulmonar (cm/s)</label>
           <input type="number" id="venp_vel_ar" placeholder="cm/s" oninput="calcVenaPulm();calcDiastol()">
         </div>
-        <div class="fg dm-c2 dm-r4">
+        <div class="fg dm-c3 dm-r4">
           <!-- ⚠️ S/D ES UN SELECTOR, NO UN NÚMERO. Es informativo y no entra en ningún cálculo:
                con un campo numérico habría que decidir qué hacer con un 1,0 exacto, y eso sería
                inventar un umbral que nadie pidió.
@@ -4842,62 +4910,6 @@ window.cerrarSesionReal = cerrarSesionReal;
             <option value="mid">&gt;0,67 y &lt;1</option>
             <option value="ge1">&ge;1</option>
           </select>
-        </div>
-        <!-- ══ COLUMNA 3 ══ Los cuatro tiempos del llenado mitral, con el THP primero porque
-             es el único de la columna que alimenta OTRA cuenta además de la diastólica (el AVm de
-             la estenosis mitral, en la columna 4). La onda L cierra: es el único parámetro
-             SUPLEMENTARIO de la columna —vota sólo cuando el algoritmo llega a preguntarlo— y por
-             eso va después de los tres que son insumos directos. -->
-        <div class="fg dm-c3 dm-r1">
-          <!-- ⚠️ EL THP ES UN DATO CON DOS CAMPOS DESDE EL 2026-10-09. Este es el PORTADOR: lo
-               imprime el PDF firmado por vPdf('thp',' ms'), lo exporta el Excel y lo lee el panel
-               de Evidencia. El otro campo vive en Válvulas — Estenosis Mitral y era un display de
-               solo lectura. Ver «EL THP ES UN DATO CON DOS CAMPOS» en el JS.
-               `calcTHP()` no se perdió: lo lleva `thpEditado`, que además copia el valor al otro
-               campo y repinta la marca en los DOS avisos. -->
-          <label>THP mitral (ms) — EM</label>
-          <input type="number" id="thp" placeholder="ms" oninput="thpEditado('thp')">
-          <!-- ⚠️ ESTE AVISO ES NUEVO Y CIERRA UN AGUJERO MEDIDO: hasta hoy la marca «(revisar)»
-               del THP fuera de banda salía SÓLO en los displays del bloque de Estenosis Mitral, o
-               sea en otra pestaña. El médico que tipeaba 12 ms acá no veía una palabra. La escribe
-               `thpMarcaPintar`, la única dueña, con la misma constante `MARCA_REVISAR` y la misma
-               banda `EM_BANDA_PLAUS.thp` que decide el resto. -->
-          <div id="thp-marca" style="font-size:10px;color:var(--yellow);margin-top:3px;min-height:14px;"></div>
-        </div>
-        <div class="fg dm-c3 dm-r2">
-          <!-- ⚠️ EL CUADRO GRIS SE ATRASABA, Y ERA PORQUE `calcDiastol` NO ESTABA CABLEADO A TODO
-               LO QUE LEE. Vivia en el `oninput` de los cuatro campos del Doppler mitral, del LARS
-               y de los dos selectores, y en ningun otro: el TDE y el TRIV no tenian manejador
-               NINGUNO, y el Vol AI, la velocidad de la IT, el peso, la talla, la FEVI, el S/D y
-               los campos de VCI —de donde sale la PSAP— llamaban a lo suyo y no a la diastolica.
-               Medido en HEAD: tipeando el paciente en el orden natural, el cuadro se quedaba con
-               el veredicto del PACIENTE ANTERIOR hasta tocar un campo mitral. La ventana del 🧭
-               no se atrasaba (cuelga de un oyente de documento) y el informe firmado tampoco
-               (`generarInforme` llama a `calcDiastol`): lo que mentia era el cartel de pantalla,
-               que es el que el medico mira mientras carga.
-               Se cablearon ONCE campos con el mismo enganche que ya usaban los mitrales —una
-               llamada mas en su `oninput`— y no con un oyente global: `calcDiastol` arrastra
-               `calcHemo`, `calcVenaPulm`, `imOndaEPintar` y el aviso de protocolo, y colgarla de
-               cada tecla de la app entera se paga en todas las pestanas.
-               El veredicto NO cambia por esto: es una funcion pura de los campos, asi que lo
-               unico que cambia es CUANDO se repinta. Verificado en ritmo sinusal con las mismas
-               escenas de la tanda anterior. -->
-          <label>TDE (ms)</label>
-          <input type="number" id="tde" placeholder="ms" oninput="calcDiastol()">
-        </div>
-        <div class="fg dm-c3 dm-r3">
-          <label>TRIV (ms)</label>
-          <input type="number" id="triv" placeholder="ms" oninput="calcDiastol()">
-        </div>
-        <div class="fg dm-c3 dm-r4">
-          <!-- Onda L: velocidad mesodiastolica del llenado mitral, posterior a la onda E.
-               Es parametro SUPLEMENTARIO en las Figuras 17 y 18 de la BSE 2024 (> 20 cm/s) y en la
-               ASE 2025 (folio 555, >= 50 cm/s). Los dos cortes son de la fuente y NO se unifican:
-               cada guia lleva el suyo, como ya pasa con el LARS (18 % en la ASE, 16 % en la BSE).
-               En ESTE commit el campo no entra en ninguna cuenta: solo se guarda y se marca. -->
-          <label>Onda L (cm/s) <span style="font-weight:400;color:var(--text2);font-size:10px;">opcional — mesodiastólica</span></label>
-          <input type="number" id="onda_l" step="0.1" placeholder="cm/s" oninput="diastStrainEditado('onda_l')">
-          <div id="onda_l-marca" style="font-size:10px;color:var(--yellow);margin-top:3px;min-height:14px;"></div>
         </div>
         <!-- ══ COLUMNA 4 ══ Los dos strain de la aurícula izquierda, el VTI mitral de entrada
              y el AVm derivado. Los dos primeros son ESPEJOS de AI/VI (`lars` y `ai_strain_ct`):
