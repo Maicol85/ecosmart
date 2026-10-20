@@ -13635,8 +13635,8 @@ z
             </svg>
           </div>
         </div>
-        <div class="fg"><label>FEVI (%) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← VI Función Sistólica</span></label>
-          <input type="number" id="teer_fevi" placeholder="%" oninput="calcTEER()">
+        <div class="fg"><label>FEVI (%) <span style="font-weight:400;color:var(--text2);font-size:10px;">↔ AI/VI</span></label>
+          <input type="number" id="teer_fevi" placeholder="%" oninput="teerEspejoEditado('teer_fevi')">
           <span style="font-size:10px; color:var(--text2);">COAPT: 20–50%</span>
         </div>
         <!-- ⚠️ EL ROTULO DECIA «DTSVI» Y SU ORIGEN «DSFVI», y son el MISMO dato: el diametro
@@ -13645,8 +13645,8 @@ z
              continuidad-, asi que la sigla decia dos cosas distintas en dos pestañas. Se
              unifica a DSFVI EN LA SECCION TEER, que es lo que la orden pide; las de
              hemodinamica NO se tocan, porque ahi la sigla es correcta y es otro dato. -->
-        <div class="fg"><label>DSFVI (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← VI Estructura</span></label>
-          <input type="number" id="teer_dtsvi" placeholder="mm" oninput="calcTEER()">
+        <div class="fg"><label>DSFVI (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">↔ AI/VI</span></label>
+          <input type="number" id="teer_dtsvi" placeholder="mm" oninput="teerEspejoEditado('teer_dtsvi')">
           <span style="font-size:10px; color:var(--text2);">COAPT: ≤70mm</span>
         </div>
       </div>
@@ -34857,6 +34857,30 @@ function sincronizarTEERDesdeGlobal() {
      tipeada 45 y corregida a 60 seguía imprimiendo «FEVI 45% (20-50%) ✓ APTO».
      Es el mismo defecto y el mismo arreglo que `psap_calc → teer_pasp`, acá abajo. Sigue
      respetando el valor tipeado a mano: en cuanto deja de coincidir con la marca, no se toca. */
+  /* ⚠️ LA PASADA INVERSA VA ANTES, Y CIERRA EL CAMINO «POR PROGRAMA» DEL LADO DEL TEER (Y3f1).
+     Desde que la FEVI y el DSFVI son UN SOLO VALOR, un estudio que traiga `teer_fevi` poblado y
+     `fevi` vacío —uno guardado antes de que el campo de AI/VI existiera, o uno importado, que se
+     construye desde cero— dejaría el dato invisible para `calcVI`, el informe y el Excel: el
+     médico lo ve en la pantalla del TEER y la app se comporta como si no estuviera.
+     ⚠️ LA GUARDA ES «EL DESTINO NO ES NUESTRO ESPEJO VIVO», y es lo único que distingue este caso
+     del BORRADO. Al borrar `fevi` con teclas, su cadena llega acá con el origen vacío y el destino
+     todavía con su valor: si la pasada inversa no mirara la marca, el borrado se desharía solo y
+     el campo sería imborrable. Con la marca puesta, el que vacía es `_syncDerivado`, dos líneas
+     más abajo, que es su dueño.
+     ⚠️ Y AL COPIAR HACIA ATRÁS SE MARCA EL ESPEJO, por la misma razón: sin la marca, el par queda
+     en el estado «destino con valor propio» y el próximo borrado del origen volvería a entrar por
+     acá — el valor resucitaría en cada gesto. Con la marca, de ahí en adelante el par se comporta
+     como cualquier otro espejo. */
+  _TEER_ESPEJOS.slice(0, 2).forEach(function (par) {
+    const src = document.getElementById(par[0]), dst = document.getElementById(par[1]);
+    if (!src || !dst) return;
+    if (src.value !== '' || dst.value === '') return;
+    if (dst.dataset.espejoDe !== undefined && dst.dataset.espejoDe === dst.value
+        && dst.dataset.espejoVivo === '1') return;   // es nuestro espejo: lo vacía `_syncDerivado`
+    src.value = dst.value;
+    dst.dataset.espejoDe = dst.value;
+    dst.dataset.espejoVivo = '1';
+  });
   _syncDerivado(_TEER_ESPEJOS.slice(0, 2));
   /* PASP: la app ya la calcula en `psap_calc` (4·VIT² + PmAD, en calcPSAP) y este campo no la
      recibía — había que tipearla a mano en un módulo cuyo criterio ≤70 mmHg decide APTO / NO
@@ -34878,6 +34902,71 @@ function sincronizarTEERDesdeGlobal() {
   if (typeof calcTEER === 'function') calcTEER();
 }
 window.sincronizarTEERDesdeGlobal = sincronizarTEERDesdeGlobal;
+
+/* ══ LA FEVI Y EL DSFVI SON UN SOLO VALOR, EN LOS DOS SENTIDOS — «Y3f1» (2026-10-20) ═══════
+   DECISIÓN DE MAICOL. Hasta hoy el espejo era de UNA sola dirección: `_syncDerivado` copiaba
+   `fevi → teer_fevi` y `dsfvi → teer_dtsvi`, y lo que el médico escribía en los campos del TEER
+   se quedaba ahí. MEDIDO contra el árbol de entrada con teclas reales, los SIETE caminos de la
+   ida ya funcionaban —el Y3e1 los cerró, el DSFVI incluido— y los CINCO de la vuelta no: con
+   `teer_fevi` en 45, `fevi` seguía VACÍO, el VSFVI automático no se calculaba y la FEVI no
+   llegaba ni al informe ni al Excel. El médico la tipeaba en la pantalla que tenía delante y la
+   app se comportaba como si no existiera.
+
+   ⚠️ EL DUEÑO SIGUE SIENDO EL CAMPO DE AI/VI, y eso no es cosmético: `fevi` es el que leen
+   `calcVI`, el informe, el Excel, el Laboratorio y la diastólica. Lo que hace esta función es
+   ESCRIBIR SOBRE ÉL y después disparar exactamente la misma cadena que su `oninput` —`calcVI`,
+   `aoRefPintar` y `calcDiastol` para la FEVI; `calcVI` para el DSFVI—, así que de ahí en adelante
+   el árbol no distingue de qué campo vino el tecleo.
+
+   ⚠️ SE MARCA EL ESPEJO EN LA MISMA OPERACIÓN, y sin eso la VUELTA rompería la IDA. `_syncDerivado`
+   sólo refresca un destino cuyo `dataset.espejoDe` coincide con su valor: un `teer_fevi` escrito a
+   mano y sin marca queda como «valor del médico», así que la próxima corrección en AI/VI dejaría
+   de llegarle y los dos campos volverían a divergir — que es justo el defecto que esto cierra. Se
+   marca con `espejoVivo` porque la copia es de ESTA sesión, igual que hace `_syncDerivado`.
+
+   ⚠️ NO HAY RECURSIÓN, y no es por suerte ni por la guarda. Asignar `.value` por JS NO dispara
+   `oninput`, así que escribir en `fevi` no vuelve a entrar por acá; y la cola de `calcVI` llama a
+   `sincronizarTEERDesdeGlobal`, cuyo `_syncDerivado` encuentra los dos valores YA IGUALES y no
+   escribe nada. La guarda `_teerEspSinc` está para el día en que alguien despache un `input` a
+   mano —los arneses lo hacen—, que es el mismo motivo por el que la tienen `larsSync` y
+   `laContrSync`.
+
+   ⚠️ BORRAR EN UN LADO BORRA EN EL OTRO, y es la regla ARR: la copia se hace por TEXTO y no por
+   número, así que la cadena vacía viaja igual que un valor. Medido por los dos gestos de borrado.
+
+   Es el MISMO patrón que «LARS (%) ↔ AI/VI» y «Strain de contracción de la AI (%) ↔ AI/VI» de
+   Doppler mitral, que son bidireccionales desde el 2026-10-12: guarda de reentrada, copia por
+   texto y la cadena del dueño al final. La diferencia es que allá el portador no tiene una
+   cadena de cálculo propia y acá sí. */
+const _TEER_ESP_INV = Object.freeze({ teer_fevi: 'fevi', teer_dtsvi: 'dsfvi' });
+let _teerEspSinc = false;
+function teerEspejoEditado(origenId) {
+  if (_teerEspSinc) return null;
+  const destinoId = _TEER_ESP_INV[origenId];
+  if (!destinoId) return null;
+  _teerEspSinc = true;
+  try {
+    const src = document.getElementById(origenId);
+    const dst = document.getElementById(destinoId);
+    if (!src) return null;
+    const val = src.value;
+    if (dst && dst.value !== val) dst.value = val;
+    /* La marca, para que la IDA siga funcionando después de este tecleo (ver arriba). */
+    if (val === '') { delete src.dataset.espejoDe; delete src.dataset.espejoVivo; }
+    else { src.dataset.espejoDe = val; src.dataset.espejoVivo = '1'; }
+  } finally { _teerEspSinc = false; }
+  /* La MISMA cadena que el `oninput` del campo de AI/VI, fuera de la guarda: lo que cuelga de
+     `calcVI` tiene que correr igual que si el médico hubiera tipeado allá. */
+  try { if (typeof calcVI === 'function') calcVI(); } catch (e) { console.warn('[teerEsp]', e); }
+  if (destinoId === 'fevi') {
+    try { if (typeof aoRefPintar === 'function') aoRefPintar(); } catch (e) {}
+    try { if (typeof calcDiastol === 'function') calcDiastol(); } catch (e) {}
+  }
+  try { if (typeof calcTEER === 'function') calcTEER(); } catch (e) {}
+  return { origen: origenId, destino: destinoId, valor: (document.getElementById(origenId) || {}).value };
+}
+window.teerEspejoEditado = teerEspejoEditado;
+window._TEER_ESP_INV = _TEER_ESP_INV;
 window.sincronizarEADesdeGlobal = sincronizarEADesdeGlobal;
 
 // EA: input manual desde bloque Válvulas → sincronizar al Doppler global y recalcular
