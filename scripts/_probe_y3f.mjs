@@ -1776,9 +1776,12 @@ window.__Z = {
       if (typeof indicRender === 'function') indicRender();
       var c = document.getElementById('indic-cuerpo');
       if (!c) return { err: 'NO EXISTE indic-cuerpo' };
-      var tits = Array.prototype.slice.call(c.querySelectorAll('[data-ind-sec-tit], h3, .ind-sec-tit'))
-        .map(function(e){ return (e.textContent||'').trim() });
-      return { n: tits.length, tits: tits, txt: (c.textContent||'').replace(/\\s+/g,' ').trim() };
+      /* El titulo de cada seccion es el <summary> de su <details>. */
+      var tits = Array.prototype.slice.call(c.querySelectorAll('details > summary'))
+        .map(function(e){ return (e.textContent||'').trim() })
+        .filter(function(t){ return t && t.length > 2 });
+      var txt = (c.textContent||'').replace(new RegExp(String.fromCharCode(92)+'s+','g'),' ').trim();
+      return { n: tits.length, tits: tits, txt: txt, largo: txt.length };
     } catch (e) { return { err: 'EXC: ' + e.message } } },
 
   /* ══ INFORME ════════════════════════════════════════════════════════════════════════════ */
@@ -2077,6 +2080,61 @@ window.__Z = {
     } catch (e) { r.err = e.message; }
     out.grupos.vabviv = r;
     process.stderr.write('[vabviv] listo\n');
+  }
+
+
+  /* ══ GRUPO «vabcon» — EL RESUMEN DESCRIPTIVO Y LA TARJETA DE EVIDENCIA ═══════════════════ */
+  if (corre('vabcon')) {
+    const r = { escenas: {} };
+    const nuevo = async () => { await ev(`window.__P.nuevo()`); await ev(`window.__P.despejar()`); };
+    const resumen = async () => await ev(`(function(){
+      var h = document.getElementById('vab-concl');
+      if (!h) return 'NO EXISTE';
+      return { lineas: Array.prototype.slice.call(h.children).map(function(d){ return (d.textContent||'').trim() }),
+               txt: (h.textContent||'').trim(),
+               frId: !!document.getElementById('vab-fr') } })()`);
+    try {
+      /* Escena COMPLETA: tipo, rafe, simetria, grados, aorta, fenotipo y tres factores. */
+      await nuevo();
+      await ev(`window.__Z.irVAB()`);
+      await ev(`window.__P.sel('vab_tipo','fused_rn')`);
+      await ev(`window.__P.sel('vab_rafe','si')`);
+      await ev(`window.__P.sel('vab_simetria','muy_asimetrica')`);
+      await ev(`window.__P.sel('vab_fenotipo','raiz')`);
+      await tipear('ao_sin', '45'); await tipear('ao_tub', '45');
+      await ev(`window.__P.sel('ea_grado','leve')`);
+      await ev(`(function(){ var e=document.getElementById('ia_grado'); e.value='2';
+        e.dispatchEvent(new Event('change',{bubbles:true})); return 1 })()`);
+      await ev(`(function(){ var n=0;
+        Object.keys(window.VAB_FR_CHK||{}).forEach(function(k){
+          if (n>=3) return; var cb=document.getElementById(k); if (cb && !cb.checked) { cb.click(); n++ } });
+        return n })()`);
+      r.escenas.completa = await resumen();
+      r.escenas.completa_concl = await ev(`(function(){ try { var c = vabConclusion(); return c ? c.txt : null }
+        catch(e){ return 'EXC' } })()`);
+      r.escenas.completa_evid = await ev(`window.__Z.evid()`);
+      /* Sin nada: el resumen no afirma. */
+      await nuevo(); await ev(`window.__Z.irVAB()`);
+      r.escenas.vacia = await resumen();
+      r.escenas.vacia_evid = await ev(`window.__Z.evid()`);
+      /* Solo el tipo. */
+      await nuevo(); await ev(`window.__Z.irVAB()`);
+      await ev(`window.__P.sel('vab_tipo','fused_rl')`);
+      r.escenas.solo_tipo = await resumen();
+      r.escenas.solo_tipo_evid = await ev(`window.__Z.evid()`);
+      /* Morfologia bicuspide SIN tipo: la tarjeta de Evidencia tiene que salir igual. */
+      await nuevo(); await ev(`window.__Z.irVAB()`);
+      await ev(`window.__P.sel('va_morf','Bicúspide')`);
+      r.escenas.solo_morf_evid = await ev(`window.__Z.evid()`);
+      /* Las palabras PROHIBIDAS en el resumen de la seccion. */
+      r.prohibidas = await ev(`(function(){
+        var h = document.getElementById('vab-concl');
+        var t = h ? (h.textContent||'') : '';
+        var P = ['ESC','Clase','umbral','control anual','reemplaz','cirug','sin evaluar','guía','guia','recomend'];
+        var o = {}; P.forEach(function(p){ o[p] = t.indexOf(p) >= 0 }); return o })()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.vabcon = r;
+    process.stderr.write('[vabcon] listo\n');
   }
 
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));

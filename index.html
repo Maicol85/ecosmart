@@ -14430,8 +14430,17 @@ z
             </div>
           </div>
           <div class="calc-box" style="margin-top:10px;">
-            <div class="calc-row"><span class="calc-lbl">Factores presentes</span><span id="vab-fr" class="calc-val">—</span></div>
-            <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="vab-concl" class="calc-val">—</span></div>
+            <!-- ⚠️ EL RESUMEN ES ESQUEMATICO Y DESCRIPTIVO DESDE EL 2026-10-20 («Y3f4»).
+                 DECISION DE MAICOL. Antes eran dos filas: «Factores presentes» y «Conclusión»,
+                 y la segunda publicaba el parrafo de `vabConclusion`, que nombra la ESC 2024,
+                 recomienda («control anual por imagen», «corresponde reemplazar la aorta en el
+                 mismo acto») y avisa de datos sin evaluar. Ese texto NO se perdio ni se cambio:
+                 se mudo a la pestana Evidencia, que es donde viven los umbrales y las conductas.
+                 Lo que queda aca son cuatro lineas cortas que DESCRIBEN y no recomiendan, y el
+                 conteo de factores -que era la fila de arriba- es la cuarta.
+                 ⚠️ `vab-fr` CONSERVA SU id aunque haya cambiado de lugar: lo escribe
+                 `vabResumenPintar` y es el nodo que el resto del archivo conoce. -->
+            <div class="calc-row" style="align-items:flex-start;"><span class="calc-lbl">Resumen</span><span id="vab-concl" class="calc-val" style="text-align:right;line-height:1.55;"></span></div>
           </div>
         </div>
       </div>
@@ -65857,6 +65866,78 @@ function _vabOrigenCambio(ev) {
 document.addEventListener('input', _vabOrigenCambio, false);
 document.addEventListener('change', _vabOrigenCambio, false);
 
+/* ══ EL RESUMEN DE LA SECCION: ESQUEMATICO Y DESCRIPTIVO — «Y3f4» (2026-10-20) ════════════
+   DECISION DE MAICOL. Cuatro lineas cortas, en este orden, y ninguna de ellas nombra una guia,
+   publica un umbral, recomienda una conducta ni avisa de un dato sin evaluar: eso vive en la
+   pestana Evidencia desde esta misma tanda.
+
+     1 · «VAB, fenotipo R-N · rafe calcificado · cuspides muy asimetricas»
+     2 · «EA leve · IAo moderada»            -sale de Valvulas; sin dato, la linea no aparece-
+     3 · «Aorta: raiz 45 mm · ascendente 45 mm · fenotipo de raiz»   -solo lo que tenga dato-
+     4 · «Factores de riesgo: 3 marcados (...)»  o  «Factores de riesgo: ninguno marcado»
+
+   ⚠️ LAS PALABRAS SALEN DE LAS MISMAS CONSTANTES QUE EL INFORME —`VAB_SUMA_FENO`,
+   `VAB_INF_RAFE`, `VAB_INF_CUSPIDES`, `VAB_FENO_TXT`— y no de un vocabulario propio. Un segundo
+   juego de rotulos se separa del primero en la primera tanda que mueva una etiqueta, y entonces
+   la pantalla y el papel firmado dicen cosas distintas del mismo hallazgo.
+   ⚠️ SE CONSTRUYE POR NODOS, nunca concatenando HTML con datos: es la regla de la casa y lo que
+   mantiene a Semgrep en 127.
+   ⚠️ LA LINEA 4 CONSERVA EL id `vab-fr`, que es el nodo que el resto del archivo conoce. Antes
+   era una fila propia («Factores presentes»); hoy es un renglon del resumen y la fila se retiro,
+   porque decir dos veces el conteo de factores en el mismo cuadro es ruido. */
+function vabResumenPintar() {
+  const host = document.getElementById('vab-concl');
+  if (!host) return;
+  while (host.firstChild) host.removeChild(host.firstChild);
+  const sv2 = id => (document.getElementById(id)?.value || '').trim();
+  const nv  = id => { const n = (typeof v === 'function') ? v(id) : null; return (n != null && isFinite(n)) ? n : null; };
+  const L = (mapa, k) => (k && mapa && mapa[k]) ? mapa[k] : '';
+  const linea = (txt, id) => {
+    const d = document.createElement('div');
+    if (id) d.id = id;
+    d.textContent = txt;
+    host.appendChild(d);
+  };
+
+  /* 1 · LA VALVULA. */
+  const tipo = sv2('vab_tipo'), rafe = sv2('vab_rafe'), sim = sv2('vab_simetria');
+  const p1 = [];
+  const feTipo = L(VAB_SUMA_FENO, tipo);
+  if (feTipo) p1.push('fenotipo ' + feTipo);
+  const feRafe = L(VAB_INF_RAFE, rafe);
+  if (feRafe) p1.push(feRafe.replace(/^con /, ''));
+  const feCus = L(VAB_INF_CUSPIDES, sim);
+  if (feCus) p1.push(feCus);
+  if (p1.length) linea('VAB, ' + p1.join(' · '));
+  else if (sv2('va_morf') === VAB_MORF_BIC) linea('VAB');
+
+  /* 2 · LA FUNCION, con los dos grados que la seccion ya muestra. Sin dato, no hay linea: la
+     ausencia de una lesion no se afirma desde un valor de fabrica. */
+  const EA = { esclerosis:'EA esclerosis', leve:'EA leve', moderada:'EA moderada', severa:'EA severa' };
+  const IA = { '1':'IAo leve', '2':'IAo moderada', '3':'IAo moderada-severa', '4':'IAo severa' };
+  const p2 = [];
+  const tEA = L(EA, sv2('ea_grado')); if (tEA) p2.push(tEA);
+  const tIA = L(IA, sv2('ia_grado')); if (tIA) p2.push(tIA);
+  if (!p2.length && vabFuncionDerivada() === 'normal') p2.push('Sin estenosis ni insuficiencia');
+  if (p2.length) linea(p2.join(' · '));
+
+  /* 3 · LA AORTA, solo lo que tenga dato. */
+  const raiz = nv('ao_sin'), asc = nv('ao_tub'), feno = sv2('vab_fenotipo');
+  const p3 = [];
+  if (raiz != null) p3.push('raíz ' + raiz + ' mm');
+  if (asc  != null) p3.push('ascendente ' + asc + ' mm');
+  const tFeno = L(VAB_FENO_TXT, feno); if (tFeno) p3.push('fenotipo ' + tFeno);
+  if (p3.length) linea('Aorta: ' + p3.join(' · '));
+
+  /* 4 · LOS FACTORES DE RIESGO. «ninguno marcado» y no «sin factores de riesgo»: una casilla sin
+     marcar no distingue «lo busque y no esta» de «no lo pregunte» (Y3d5). */
+  const fr = vabFactores();
+  linea('Factores de riesgo: ' + (fr.n
+    ? fr.n + ' marcado' + (fr.n === 1 ? '' : 's') + ' (' + fr.presentes.join('; ') + ')'
+    : 'ninguno marcado'), 'vab-fr');
+}
+window.vabResumenPintar = vabResumenPintar;
+
 function vabSync(){
   vabFrChkSync();
   /* El dibujo y el boton del PDF siguen al estado por el MISMO embudo que el resto de la
@@ -65897,19 +65978,7 @@ function vabSync(){
     const f = vabFuncionDerivada();
     h.value = f || '';
   })();
-  const fr = vabFactores();
-  /* «ninguno identificado» es una afirmación y necesita que se haya evaluado algo. Antes la
-     condición era `sinEvaluar.length === 9`, inalcanzable porque la coartación nunca entraba a
-     esa lista (máximo 8), así que una sección virgen mostraba «ninguno identificado» sobre nueve
-     preguntas que nadie hizo. */
-  /* ⚠️ «NINGUNO MARCADO» NO ES «NO HAY FACTORES», y la linea lo dice con esas palabras desde el
-     Y3d5. Lo que antes decia «ninguno de los evaluados» descansaba en un estado -«no»- que la
-     casilla ya no produce. Los tres derivados que falten se siguen listando, porque ahi la
-     ausencia del dato es real. */
-  txt('vab-fr', fr.n ? fr.n + ' marcado' + (fr.n === 1 ? '' : 's') + ': ' + fr.presentes.join('; ')
-      : 'ninguno marcado' + (fr.sinEvaluar.length ? ' · sin datos: ' + fr.sinEvaluar.join('; ') : ''));
-  const c = vabConclusion();
-  txt('vab-concl', c ? c.txt : '—');
+  vabResumenPintar();
 }
 window.vabSync = vabSync; window.vabConclusion = vabConclusion; window.vabFactores = vabFactores;
 
@@ -74743,6 +74812,38 @@ function _indCIV(){
     ] };
 }
 
+/* ── VAB — la conclusion de la seccion ─────────────────────────────────────────────────────
+   «Y3f4» (2026-10-20). DECISION DE MAICOL: el texto que la seccion de valvula aortica bicuspide
+   publicaba en su cuadro —el que nombra la ESC 2024, recomienda controles y cirugia, y avisa de
+   datos sin evaluar— se MUDA aca, que es la pestana donde viven los umbrales y las conductas. La
+   seccion pasa a mostrar un resumen esquematico y descriptivo.
+
+   ⚠️ EL TEXTO NO SE CAMBIA NI UNA PALABRA: es la salida de `vabConclusion()` tal cual, el MISMO
+   dueno que viaja al informe firmado y al EN SUMA. Escribir sus umbrales a mano aca habria puesto
+   al panel a contradecir a la app en la misma pantalla, que es lo que `_indVAB` ya documenta.
+   ⚠️ LA COMPUERTA ES LA VALVULA Y NO LA AORTA, y por eso es una seccion APARTE de `_indVAB`:
+   aquella se abre con un diametro de 45 mm o mas, y esta con un tipo de fusion elegido o con la
+   morfologia aortica en bicuspide. Son dos preguntas distintas y la misma guia.
+   ⚠️ `va_morf` NO TIENE OPCION VACIA y `limpiarCampos` lo deja en «Trivalva normal», asi que solo
+   el «Bicuspide» explicito afirma — es la misma salvedad que `vabConclusion` documenta. */
+function _indVABConcl(){
+  const tipo = _indS('vab_tipo'), morf = _indS('va_morf');
+  if (!tipo && morf !== 'Bicúspide') return null;
+  const conc = _indFn('vabConclusion');
+  const C = conc ? conc() : null;
+  if (!C || !C.txt) return null;
+  const marca = (C.clave === 'contradiccion' || C.clave === 'no_interpretable') ? 'alarm'
+              : (/cirug|reemplaz/i.test(C.txt) ? 'warn' : 'ok');
+  return {
+    filas: [ _indFila('Según la guía', '—', marca, C.txt) ],
+    guia: { ref:'esc2024ao',
+      txt:'Cirugía Clase I · Nivel B con diámetro máximo ≥ 55 mm, y Clase I · Nivel B desde 50 mm en el FENOTIPO DE RAÍZ. Todo lo demás es Clase IIa (Tabla 68, folio 119).' },
+    notas: [
+      'Este es el texto que la sección de válvula aórtica bicúspide calcula, con los mismos umbrales que viajan al informe y al EN SUMA. La sección muestra la descripción; los umbrales y la conducta se consultan acá.',
+      'La distinción raíz / ascendente decide la conducta: en fenotipo ascendente NO hay Clase I a 50 mm.'
+    ] };
+}
+
 const IND_SECS = [
   { tit:'Estenosis aórtica',                     fn:_indEA },
   { tit:'Insuficiencia mitral primaria',         fn:_indIM },
@@ -74761,6 +74862,7 @@ const IND_SECS = [
   { tit:'Coartación de aorta',                   fn:_indCoAo },
   { tit:'Foramen oval permeable',                fn:_indFOP },
   { tit:'Miocardiopatía hipertrófica obstructiva', fn:_indMCH },
+  { tit:'Válvula aórtica bicúspide', fn:_indVABConcl },
   { tit:'Válvula aórtica bicúspide — aorta ascendente', fn:_indVAB }
 ];
 
