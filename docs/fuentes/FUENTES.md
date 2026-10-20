@@ -4173,3 +4173,104 @@ la Figura 7 del Y3d6. Se declara.
 
 **NINGUNA fuente nueva se verificó para el commit 1**: el espejo de la FEVI y el DSFVI del TEER
 es cableado, no contenido clínico, y los cortes COAPT (20-50 % y ≤70 mm) no se movieron.
+
+---
+
+## La tanda Y3f (2026-10-20)
+
+### `consensoVabMx2024` — los DOS fenotipos de DOS SENOS y la FUSIÓN PARCIAL · **VERIFICADAS**
+
+Misma fuente y misma ruta que la entrada de la Figura 7 (`consensoVabMx2024`, más arriba):
+**Consenso internacional para la nomenclatura y clasificación de la válvula aórtica bicúspide
+congénita y su aortopatía** — Michelena HI y col., **traducción al español del resumen**,
+*Arch Cardiol Mex. 2024;94(2)*, `10_Material_de_apoyo/Consenso_MX_Valvula_Bicuspide_resumen.pdf`.
+**Regla de folio = hoja del PDF + 218**, re-comprobada en el número impreso al tope de las hojas
+**14 (232)** y **16 (234)**, que son las dos que esta tanda leyó.
+
+⚠️ **LAS DOS FIGURAS SE LEYERON RENDERIZANDO LA PÁGINA**, no del texto extraído: el dibujo es un
+bitmap y lo único que `pdftotext` devuelve es el **pie**. El pie alcanza para los ángulos y para
+qué cúspide es cuál; **de dónde queda cada seno en la pantalla sale de MIRAR la imagen**.
+
+#### Folio 232, hoja 14 — pie de la Figura 11, literal
+
+> «**1: VAB de tipo dos senos latero-lateral** con solo dos senos aórticos distinguibles en
+> diástole y dos cúspides de aproximadamente el mismo tamaño y forma, cada una ocupando **180° de
+> la circunferencia, con un ángulo de 180° de las comisuras**. Nótese que aunque es posible
+> sospechar fusión derecha-no coronaria, las referencias anatómicas no están claras porque tanto
+> las cúspides «izquierda» como «no coronaria» ocupan porciones de la ubicación anatómica normal
+> de la cúspide «no coronaria», y **la línea comisural posterior está casi alineada con el septum
+> interauricular**, dividiendo la ubicación anatómica de la cúspide no coronariana normal.
+> La VAB de tipo dos senos fenotipo latero-lateral tiene **una arteria coronaria que surge de cada
+> seno**. **2A: una VAB de tipo dos senos fenotipo antero-posterior** con solo dos senos aórticos
+> distinguibles en diástole y dos cúspides de aproximadamente el mismo tamaño y forma, cada uno
+> ocupando 180° de la circunferencia, con un ángulo de 180° de las comisuras. Nótese que aunque es
+> posible sospechar fusión derecha-izquierda, las referencias anatómicas no están claras porque
+> **la línea comisural en realidad divide la ubicación anatómica normal de la cúspide izquierda**,
+> de modo que tanto la cúspide funcional **anterior** como la **posterior** parecen tener una
+> «parte» de la cúspide izquierda normal. **2B:** … se asemeja a una fusión derecha-izquierda
+> fusionada **pero sin rafé** … La VAB antero-posterior de dos senos puede tener arterias
+> coronarias que surgen de cada cúspide (2A) o desde la cúspide funcional anterior (2B).»
+
+Y el cuerpo del **mismo folio 232** es el que nombra los dos fenotipos como categoría:
+
+> «generalmente es evidente si las cúspides son **latero-laterales (de lado a lado)** o
+> **antero-posteriores (adelante y atrás)** dentro del plano de la base del corazón de eje corto
+> (Figs. 11 y 12); por lo tanto, estos son los dos fenotipos específicos de la categoría de la VAB
+> de dos senos.»
+
+⚠️ **ESO ES LO QUE DIO VUELTA EL DIBUJO DE LA APP, Y EL DEFECTO ERA REAL.** «De lado a lado»
+describe dónde están las **cúspides**, no dónde están las **comisuras**: si las dos cúspides son
+laterales entre sí, la línea comisural que las separa es **vertical** —y el pie lo confirma por el
+otro lado, porque sitúa la comisural posterior «casi alineada con el septum interauricular», que en
+el eje corto paraesternal queda abajo—. La app dibujaba el látero-lateral con las comisuras a los
+**costados**, que es exactamente el antero-posterior. **Medido en el A/B: el `data URL` del dibujo
+nuevo de `dos_senos_ap` tiene el hash que `dos_senos_ll` tenía en HEAD** (`-657166111`), o sea que
+lo que había era el otro fenotipo con el nombre equivocado.
+
+#### Folio 234, hoja 16 — pie de la Figura 13, literal
+
+> «Esquema del fenotipo de la válvula aórtica bicúspide de **fusión parcial** visto en la
+> proyección del eje corto paraesternal del ecocardiograma transtorácico. **Panel izquierdo.** La
+> apariencia **en diástole** de la válvula aórtica bicúspide de fusión parcial o forme fruste
+> (forma frustrada) **es la de una válvula aórtica tricúspide**. **Panel derecho.** El diagnóstico
+> por imágenes generalmente se realiza **en sístole**. Aunque la apertura parece **triangular**,
+> hay una **pequeña fusión de las cúspides derecha e izquierda con un «minirafé»**. Estos pueden
+> sospecharse mediante ecocardiograma transtorácico o transesofágico, y confirmarse mediante un
+> ecocardiograma transesofágico tridimensional, resonancia magnética cardiaca o tomografía
+> computarizada cardiaca.»
+
+⚠️ **ESE PIE ES LO QUE DECIDE QUE EL DIBUJO DE LA FUSIÓN PARCIAL SEA EL DE TRES SENOS CON UN
+MINIRAFÉ Y NO UNA BICÚSPIDE**, y es lo contrario de lo que el Y3d6 había declarado: ahí la app lo
+dejaba «con el contorno y su rótulo, sin líneas de cierre» porque «es una trivalva en diástole».
+Sigue siendo cierto en diástole y la figura lo dice; lo que faltaba es que **la vista de imagen es
+la de SÍSTOLE**, y ahí el fenotipo sí tiene una forma propia. **Cierra `PENDIENTES.md` → Y3e-2.**
+
+⚠️ **EL «MINIRAFÉ» ES DE LAS CÚSPIDES DERECHA E IZQUIERDA Y NO DE OTRO PAR**, y eso también está
+impreso: el dibujo no elige el par, lo lee de la figura.
+
+⚠️ **ES LA TRADUCCIÓN DEL RESUMEN Y EL ORIGINAL INGLÉS NO ESTÁ EN LA BIBLIOTECA**, igual que para
+las Figuras 7 y 9. Se declara, por tercera vez, porque es la misma fuente.
+
+### Lo que esta tanda NO verificó, y por qué
+
+- **El commit 1 (FEVI y DSFVI en los dos sentidos)** es cableado: los cortes COAPT (FEVI 20-50 %,
+  DSFVI ≤70 mm) **no se movieron** y están medidos por sus cuatro bordes. Ninguna fuente nueva.
+- **El commit 2 (las columnas del Doppler mitral)** es maquetación: ni un corte, ni un operador.
+- **El commit 3 (la función valvular de la VAB se DERIVA)** no introduce ningún criterio: lee los
+  grados que `calcEA_*` y `calcIA_ESC` ya publican. Lo que se retira es un **segundo** lugar donde
+  el médico declaraba a mano lo que la app ya sabía.
+- **El commit 4 (la conclusión esquemática)** **no toca `vabConclusion`**: su texto se publica
+  igual, y lo único que cambia es **dónde**. La cita de su fila es la que ese motor ya tenía
+  (`esc2024ao` — ESC/EACTS 2024, Tabla 68, folio 119), y no se agregó ninguna.
+- **Los commits 5 y 6** son redacción y rótulos del informe firmado, decididos por Maicol.
+- **El commit 8 (la animación)** es un dibujo: no publica un número ni gradúa nada.
+
+### Cambios de evidencia — tanda Y3f
+
+| dato | antes | ahora | fuente | commit | fecha |
+|---|---|---|---|---|---|
+| Orientación del dibujo del **2-sinus látero-lateral** | comisuras a los **costados** (o sea el fenotipo antero-posterior con el nombre del otro) | comisuras **arriba y abajo**: las dos cúspides quedan lateral a lateral | consenso VAB, Figura 11 y cuerpo del **folio 232** | Y3f7 | 20/10/2026 |
+| El dibujo del **2-sinus antero-posterior** | **no existía** | comisuras a los costados, las dos cúspides adelante y atrás | la misma | Y3f7 | 20/10/2026 |
+| El dibujo de la **fusión parcial** | **no existía** (salía el contorno sin líneas de cierre, declarado en Y3d6 como «trivalva en diástole») | tres senos con **minirafé derecha-izquierda** y apertura **triangular**, que es la vista de sístole con que se diagnostica | consenso VAB, Figura 13, **folio 234** | Y3f7 | 20/10/2026 |
+| Dónde se publica el texto de `vabConclusion` | fila «Según la guía» de la **pestaña Válvula aórtica bicúspide** y párrafo del **informe** | fila «Según la guía» del **panel de Evidencia**, con su corchete numerado; la pestaña publica un **resumen esquemático** y el informe ya no lleva el párrafo | **ninguna**: el motor y su cita no se tocaron | Y3f4, Y3f5 | 20/10/2026 |
+| La **función valvular** de la VAB | `<select>` que el médico declaraba a mano | **derivada** de los grados de EA y de IAo de Válvulas | **ninguna**: son los mismos grados ya publicados | Y3f3 | 20/10/2026 |

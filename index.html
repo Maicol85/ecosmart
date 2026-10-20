@@ -53568,7 +53568,17 @@ function _noEsDelEstudio(id) {
      columna de Excel y vocabulario de reimportacion. Persistir tambien la casilla dejaria una
      segunda copia del mismo hecho -y seis claves nuevas con sufijo `__chk` en todo estudio que
      se guarde desde hoy-. Guion MEDIO, asi que no alcanza a `vab_fr_*`, que van con guion BAJO. */
-  return /^(login-|ig-|lab-|cfg-|exp-|filtro-|adv-|asoc-|pdf-|lgal-|fcg-|hfpep-|vauto-|vabchk-|ref-|(?:b-)?cine-)/.test(id);
+  /* `vab-anim-` es el CONTROL DESLIZANTE de la animacion de apertura de la VAB (2026-10-20).
+     NO es del estudio, y esto lo destapo el A/B y no la lectura: `vab-anim-scrub` es un
+     `<input type="range">` con id, asi que el recolector generico lo tomaba y los campos
+     guardados pasaban de 933 a 934 — o sea la fase de un dibujo viajando con el paciente y el
+     juego de claves cambiado en TODO estudio que se guarde desde hoy, cuando la orden de esa
+     tanda dice expresamente que la animacion no guarda nada. Es el mismo argumento que
+     `hfpep-` y `vauto-`: lo que el control muestra se deriva de los campos que SI viajan
+     (`vab_tipo`, `vab_rafe`, `vab_simetria`) cada vez que se abre.
+     Guion MEDIO, asi que este prefijo no alcanza a ningun campo de la VAB, que van con guion
+     BAJO. */
+  return /^(login-|ig-|lab-|cfg-|exp-|filtro-|adv-|asoc-|pdf-|lgal-|fcg-|hfpep-|vauto-|vabchk-|vab-anim-|ref-|(?:b-)?cine-)/.test(id);
 }
 
 /* ══ Repintado de módulos al cargar un estudio ═══════════════════════════════════════════
@@ -75271,7 +75281,11 @@ function _indVABConcl(){
   const marca = (C.clave === 'contradiccion' || C.clave === 'no_interpretable') ? 'alarm'
               : (/cirug|reemplaz/i.test(C.txt) ? 'warn' : 'ok');
   return {
-    filas: [ _indFila('Según la guía', '—', marca, C.txt) ],
+    /* ⚠️ LA FILA LLEVA SU CITA, y no es decoracion: el contrato del panel es que toda seccion
+       publique un corchete numerado -TC-322 lo exige sobre `IND_SECS` entera-, y una fila con
+       una afirmacion de guia sin cita es justamente lo que este archivo persigue. La clave es la
+       misma que la linea de guia. */
+    filas: [ _indFila('Según la guía', '—', marca, C.txt, ['esc2024ao']) ],
     guia: { ref:'esc2024ao',
       txt:'Cirugía Clase I · Nivel B con diámetro máximo ≥ 55 mm, y Clase I · Nivel B desde 50 mm en el FENOTIPO DE RAÍZ. Todo lo demás es Clase IIa (Tabla 68, folio 119).' },
     notas: [
@@ -75298,7 +75312,12 @@ const IND_SECS = [
   { tit:'Coartación de aorta',                   fn:_indCoAo },
   { tit:'Foramen oval permeable',                fn:_indFOP },
   { tit:'Miocardiopatía hipertrófica obstructiva', fn:_indMCH },
-  { tit:'Válvula aórtica bicúspide', fn:_indVABConcl },
+  /* ⚠️ EL TITULO LLEVA «— conclusión» Y NO ES COSMETICO: `IND_SECS` se recorre buscando la
+     seccion por el PREFIJO de su titulo, asi que «Válvula aórtica bicúspide» a secas seria
+     prefijo de la de abajo y las dos matchearian la misma clave — la primera se llevaria las dos
+     comprobaciones y la otra quedaria sin probar. Es el mismo argumento por el que las claves de
+     este archivo no se repiten. */
+  { tit:'Válvula aórtica bicúspide — conclusión', fn:_indVABConcl },
   { tit:'Válvula aórtica bicúspide — aorta ascendente', fn:_indVAB }
 ];
 
@@ -124284,8 +124303,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261020-1408';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1792516104968;                 /* eco-build-ms */
+const ECO_BUILD    = '20261020-1954';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1792536898209;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -124371,7 +124390,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261020-1408</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261020-1954</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

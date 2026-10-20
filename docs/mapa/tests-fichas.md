@@ -204,3 +204,72 @@ categoría el dibujo ya daba 120°, que es el punto de ese control), C8, C9, C15
 **TC-504** (C2) —medía el literal del `oninput` y hoy mide que los dos campos llamen al dueño y
 que el dueño sincronice, que es más fuerte—, **TC-503** (E3) —`VST.tg.rot` de 180 a 270—,
 **TC-115** y **TC-504** (H1, H6 e I1) —la palabra «senos»— y el **título** de TC-366.
+
+---
+
+## TC-506 — tanda «Y3f» (2026-10-20)
+
+Cubre los **ocho** commits de código: la FEVI y el DSFVI como un solo valor **en los dos
+sentidos**, el intercambio de las columnas 2 y 3 del **Doppler mitral**, la sección VAB **en
+vivo** con la función valvular **derivada** de Válvulas, la conclusión **esquemática** con su
+texto mudado a **Evidencia**, el informe sin el párrafo de la VAB con el derrame y las masas en
+**una** oración, los nombres **en español** con el Excel intacto, los **seis** dibujos con el
+látero-lateral corregido y el **arco** del ángulo, y la **animación** de la apertura.
+
+**83 condiciones**, con **cinco denominadores** y **ocho controles negativos**.
+**Verificado que sabe fallar contra el inicio de la tanda (`4c1bb58`) en un worktree aparte:
+49 de las 83 en rojo, y NINGUNA por excepción.** Las 34 que pasan son lo que esta tanda **no**
+mueve: los cinco denominadores, los cinco controles de **(I)**, la IDA de la FEVI y el DSFVI
+—que el Y3e1 ya había dejado colgada del dueño—, los cuatro bordes COAPT, las ocho reglas de
+posición del Doppler y el espejo del LARS, los dibujos de los tres tipos **fusionados** con su
+ángulo, y `vabConclusion` con sus umbrales.
+
+### Qué afirma, por bloque
+
+| bloque | qué fija |
+|---|---|
+| **(A1-A9b)** FEVI y DSFVI | la **IDA** y la **VUELTA**, los dos criterios COAPT evaluándose con ese valor, el VSFVI automático siguiéndolo, el **borrado por los dos lados**, la pasada inversa de `imEspejosRestaurar` con su borrado posterior y los **cuatro bordes** de los cortes COAPT (20 / 50 / 70 / 71) |
+| **(B1-B7)** Doppler mitral | el orden del **MARCADO** —que es el que recorre el Tab— columna por columna; cada campo en su casilla nueva; **cero `tabindex` positivos**; los 14 campos tipeables conservando su valor por su id; el cuadro de abajo calculando con ellos; el LARS espejado; y las **ocho** reglas de posición explícita todavía en la hoja |
+| **(C1-C12)** VAB en vivo | los dos campos de la aorta y los dos grados refrescándose desde **otras pestañas**, el de IAo por el camino del **CÁLCULO** y no del gesto; el borrado devolviendo a vacío; `vab_funcion` como **oculto** y ni un `<select>` de función en la sección; la función **derivada** en sus cinco estados; y el Excel en **440** con la celda derivada del estudio archivado |
+| **(D1-D7)** conclusión esquemática | las cuatro líneas y lo que cada una nombra; que el resumen **no** nombre una guía, un umbral ni una conducta; la tarjeta nueva del panel de Evidencia con su texto completo y su **corchete**; que esté registrada en `IND_SECS`; y el control de la sección vacía |
+| **(E1-E6)** informe y EN SUMA | el párrafo de la VAB **retirado**; el EN SUMA sin el encabezado de congénitas; la línea corta y la coletilla «, normofuncionante» por sus dos lados; el derrame y las masas en **UNA** oración en los tres estilos; y que con hallazgo cada uno conserve su frase |
+| **(F1-F8)** español y Excel | ninguna etiqueta visible con «fused type», ni en el selector ni en `VAB_TIPO_TXT`; la del **Excel conservada en inglés** en otra tabla; las siete celdas publicando el texto de antes; el importador entendiendo las **dos** formas; la hoja de CC retirada para la VAB; y el **control** de otra cardiopatía congénita que la sigue imprimiendo |
+| **(G1-G10)** los dibujos | el látero-lateral cerrando **vertical** y el antero-posterior **horizontal**; la «Y» de la fusión parcial; «no clasificable» **sin** dibujo; los seis tipos en `VAB_DIB_FUSION`; el arco y su frase por los dos lados de la categoría y en un tipo sin fusión; el ángulo saliendo de `VAB_SIM_ANG`; y el `aria-label` nombrando tipo y categoría |
+| **(H1-H9)** animación | apagada no se ve y su bloque tampoco; **en reposo el lumen es EL cierre estático, byte por byte**; al abrir deja de serlo; el rafe calcificado abre menos; el scrub **pausa**; el botón alterna; «Nuevo estudio» la apaga; **nada** en el navegador; y la tarjeta declarando que no es una medición |
+| **(I1-I5)** controles | 440 columnas con el formulario vacío; el dibujo de la mitral en ETE y su tabla intactos; `vabConclusion` **sigue siendo el dueño** de los umbrales; esos umbrales **no se movieron** (una raíz de 56 mm sigue dando su Clase I); y la tabla de cirugía aórtica de Referencias intacta |
+
+### Los controles negativos que más valen
+
+- **(H2)** **en reposo el lumen de la animación es el `d` del cierre estático, comparado byte por
+  byte.** Es lo único que separa «la animación arranca de donde está el dibujo» de «hay dos
+  dibujos del mismo órgano que se van a separar en la primera edición» — el defecto que el
+  `eteQxDataURL` del Y3c6 ya pagó con los seis paths escritos a mano.
+- **(F8)** **otra cardiopatía congénita SIGUE imprimiendo su hoja del PDF.** Sin él, «la hoja se
+  retiró para la VAB» pasaría igual si la hoja se hubiera retirado para **todas**, que es un
+  informe firmado con información de menos.
+- **(C9)** **la ESCLEROSIS aórtica no es estenosis y tampoco es «sin lesión»**: ahí la función no
+  se afirma. Es el borde que distingue derivar de adivinar.
+- **(I3) e (I4)** `vabConclusion` **no se tocó**: sigue siendo el dueño de los umbrales y una raíz
+  de 56 mm sigue dando su Clase I. Son las dos condiciones que prueban que mudar un texto de
+  lugar no movió la regla que lo produce.
+- **(B3)** **cero `tabindex` positivos.** El orden del Tab tiene que salir del orden del
+  documento, porque un `tabindex` es una segunda lista que se desincroniza con el marcado en la
+  primera edición.
+
+### Trampas que este caso pagó
+
+1. **EL ACENTO GRAVE, TRES VECES** —``tabindex``, ``no_clasif`` y ``VAB_TIPO_TXT``/``vabConclusion``—,
+   las tres para nombrar algo en prosa, que es como el resto del archivo lo escribe.
+   `scripts/check_backticks.py` dio la línea exacta las tres mientras `node --check` apuntaba a la
+   apertura del template, cientos de líneas antes. **Correr los dos.**
+2. **LA FRASE DE LA ANIMACIÓN ESTABA EN EL BLOQUE `ojo` DE LA TARJETA Y NO EN `lee`**, así que
+   (H9) salía roja sobre una tarjeta que sí la publica. Hoy lee el **objeto completo** de la
+   entrada de `VINFO`, no uno de sus campos.
+3. **`masa_presente` ES UN `<select>` Y NO UN CHECKBOX**, y sus valores son el **TEXTO** de la
+   opción. Tratarlo como casilla dejaba la escena de las masas sin montar y (E5) y (E6) medían un
+   informe que no tenía masas por ninguna vía.
+4. **LA LÍNEA DE LA MASA NO MATCHEABA EL FILTRO**: dice «intracardíaca», con tilde, y el filtro
+   buscaba otra palabra. Es el mismo falso que el `uricula` de TC-487: **el filtro era del lector**
+   y el informe estaba perfecto.
+5. **EL FOP NO SE MONTA CON `fop_presente`** —ese campo no existe—: la puerta es `fop_tunel` más
+   `fopSync()` y `fopConclusion()`.

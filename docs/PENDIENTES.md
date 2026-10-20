@@ -5518,7 +5518,12 @@ cuarta partición de este archivo y la segunda que se hace a tiempo.
 
 ## Tanda Y3e (2026-10-20) — lo declarado y no tocado
 
-### Y3e-1 · El PDF sigue diciendo «fused type» en la hoja de cardiopatías congénitas
+### ✅ [CERRADO 2026-10-20, tanda Y3f6] Y3e-1 · El PDF sigue diciendo «fused type» en la hoja de cardiopatías congénitas
+
+> **CERRADO por las DOS salidas a la vez, y es lo que la decisión de Maicol pide:** «fused type»
+> pasa a español en todo rótulo visible -la salida (a)- **y** la hoja de CC **se retira para la
+> VAB**, porque la sección publica su propia tabla y la hoja duplicaba lo que el papel ya dice.
+> El **Excel conserva el texto viejo** y el importador entiende las dos formas.
 
 Medido con el PDF **generado de verdad**: la hoja de CC publica «Válvula aórtica bicúspide -
 **fused type** R-L (fusión derecha-izquierda).», en inglés y dentro de un papel firmado en
@@ -5529,7 +5534,12 @@ contempló es que `ccHoja` es una **tercera** superficie y que sí llega al pape
 que la hoja use `VAB_INF_FENO`, como el informe; (b) dejarlo, porque es el nombre técnico del
 consenso.
 
-### Y3e-2 · El aria-label del dibujo de la VAB no nombra la simetría, así que no hubo nada que renombrar
+### ✅ [CERRADO 2026-10-20, tanda Y3f7] Y3e-2 · El aria-label del dibujo de la VAB no nombra la simetría, así que no hubo nada que renombrar
+
+> **CERRADO por la salida que esta entrada proponía:** `vabDibAria()` arma el nombre accesible y
+> **publica el tipo de fusión Y la categoría de simetría con su ángulo**, así que el lector de
+> pantalla ya no depende de leer el selector. Y el dibujo ganó además el **arco del ángulo** con su
+> leyenda (`vabAngNota`), que es la misma información para quien mira.
 
 La orden incluía «el aria-label del dibujo» entre los lugares donde «senos» pasa a «cúspides».
 Censado: el nombre accesible del SVG es un `<title>` **estático** —«Esquema de la válvula aórtica
@@ -5565,3 +5575,71 @@ siguen sin línea de fuente por el mismo motivo.
 Salió rojo en una corrida de zona de 28 casos y **verde corrido solo** sobre el mismo árbol, con
 una condición («`_indIM` sigue sin corchete propio») que esta tanda no toca. Se suma a la lista
 de `CLAUDE.md`: TC-137, TC-246, TC-249, TC-252, TC-260, TC-395 y TC-GR-06.
+
+---
+
+## Tanda Y3f (2026-10-20) — lo declarado y no tocado
+
+### Y3f-1 · Un estudio guardado con `vab_funcion` tipeado a mano reabre con lo que sus GRADOS dicen
+
+Desde el Y3f3 la función valvular de la VAB se **deriva** de los grados de EA y de IAo, así que la
+celda del Excel y el campo oculto de un estudio archivado se recalculan al leerlo. Un estudio
+anterior cuyo médico hubiera elegido una función **distinta** de la que sus grados implican sale
+hoy con la derivada. **No se migró ningún registro**: lo que se reescribe es la celda derivada, no
+el disco. **Decidir:** (a) dejarlo —la derivada es la que no puede contradecir a Válvulas—;
+(b) conservar el valor guardado cuando exista y derivar sólo si falta, que reabre la posibilidad de
+que la sección diga una función y el cuadro de al lado otra.
+
+### Y3f-2 · La compuerta de «normofuncionante» es «la VÁLVULA tiene datos» y no «IAo con grado cero»
+
+La orden decía «IAo con grado calculado cero». **Medido en el archivo: ese estado es inalcanzable**
+—la cascada de `calcIA_ESC` sólo emite `'1'`, `'2'` y `'4'` y deja `null` cuando no hay nada que
+graduar—, así que la regla literal se anularía a sí misma y la coletilla no saldría nunca. Se usó
+«la válvula tiene datos», que es el estado en el que el informe ya dice «sin estenosis ni
+insuficiencia» (medido). **Decidir:** si «normofuncionante» tiene que exigir además que la EA esté
+explícitamente en «sin estenosis», que hoy entra por el mismo camino.
+
+### Y3f-3 · `VAB_INF_FENO` dice «no coronaria» y el selector dice «no coronariana»
+
+Las dos formas conviven: el informe firmado escribe «fusión derecha-no coronaria» y la `<option>`
+del tipo de fusión dice «no coronariana». **No se tocó**: es una palabra de una frase clínica del
+informe firmado y de un rótulo que el médico eligió, y esta orden sólo autorizaba traducir
+«fused type». La fuente —el consenso, folio 232— usa **las dos** en la misma página («la cúspide
+«no coronaria»» en el pie de la Figura 11 y «la cúspide no coronariana normal» dos líneas después),
+así que ninguna está mal. **Decidir:** cuál de las dos queda.
+
+### Y3f-4 · El `<input type=range>` del scrub de la animación no tiene equivalente por teclado propio
+
+Es un `range` nativo, así que las flechas lo mueven y el foco lo alcanza: la accesibilidad básica
+está. Lo que **no** tiene es un rótulo que anuncie la fase en palabras mientras se arrastra —el
+dibujo cambia y el lector de pantalla sólo oye el número del `range`—. **No se agregó** un `aria`
+en vivo: un atributo que se desincroniza miente con más convicción que no tenerlo, y esta orden no
+pedía el anuncio. **Decidir:** si la fase debería publicarse en un `aria-valuetext` derivado del
+mismo `vabAnimFrac` que dibuja.
+
+### Y3f-5 · `informe-pdf-excel.md` quedó a 1 KB del techo
+
+**33.973 bytes** de los 35.000, medido con `wc -c` DESPUÉS de escribirle su puntero de doce líneas.
+Es el mismo lugar en el que estuvo `panel-evidencia.md` antes de cruzar dos veces. **La próxima
+tanda que lo toque tiene que partirlo**, y el corte natural es el bloque de la importación, que ya
+salió una vez a archivo propio (`importacion-excel.md`) y podría llevarse también la exportación.
+
+### Y3f-6 · La animación no está conectada a ninguna superficie firmada
+
+`vabAnimPintar` dibuja sólo en pantalla: el PDF sigue llevando el **dibujo estático** en la vista
+que el Y3f7 corrigió, y no hay captura de la animación en ningún lado. Es lo conservador —una fase
+intermedia en un papel firmado afirma una apertura que nadie midió— y es lo que la orden pedía.
+**Decidir:** si el papel debería llevar el cuadro de **apertura máxima**, que es el que el pie de
+la Figura 13 llama «la vista con que se diagnostica».
+
+### Y3f-7 · El censo de textos de conducta y de datos faltantes está hecho y NO se cambió ninguno
+
+`docs/censo/textos-conducta.md`: **248 textos listados** —**73 de conducta y 175 de datos
+faltantes**, más **3 descartados** por ser fragmentos de código y no textos—, cada uno con su
+texto exacto, su función, su área y por dónde sale.
+⚠️ **EL RESUMEN DE ESE CENSO DECÍA 76 / 251 Y SUS FILAS SON 73 / 248**: lo escribí antes de
+contarlas. Se corrigió contando con un barrido sobre el archivo, y quedó anotado ahí mismo.
+
+**Es una lista, no un cambio**: la orden lo pedía así. **Decidir:** cuáles se unifican,
+porque el censo deja a la vista que el mismo estado se declara con redacciones distintas según el
+módulo que lo escriba.

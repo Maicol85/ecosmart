@@ -487,3 +487,51 @@ espejo y **respeta lo tipeado a mano**, que es lo que `_syncDerivado` ya hacía.
 
 **Cómo medir:** `node scripts/_probe_y3e.mjs --solo teercam` corre los diez caminos con teclas y
 clics reales y devuelve la tabla completa.
+
+---
+
+## La FEVI y el DSFVI son UN SOLO VALOR, con espejo en los DOS SENTIDOS — «Y3f1» (2026-10-20)
+
+El Y3e1 dejó el espejo colgando del **dueño** (`calcVI` y `RECALC_MODULOS`), así que AI/VI → TEER
+funcionaba por los diez caminos. Lo que faltaba es la **vuelta**: el médico que cargaba el DSFVI
+estando en la pestaña del TEER dejaba `dsfvi` vacío, y con él el cuadro de AI/VI, la referencia y
+todo lo que lee ese ventrículo.
+
+**MEDIDO contra HEAD antes de tocar nada: la vuelta fallaba en 0 de 5 caminos** —no es que fallara
+a veces, es que no existía—.
+
+### Las piezas
+
+```js
+const _TEER_ESP_INV = Object.freeze({ teer_fevi: 'fevi', teer_dtsvi: 'dsfvi' });
+let _teerEspSinc = false;
+function teerEspejoEditado(origenId) { … }
+```
+
+Los dos `oninput` del TEER llaman a `teerEspejoEditado`, que copia al dueño, **registra la marca de
+espejo sobre el campo del TEER** (`dataset.espejoDe` + `espejoVivo`) y corre la cadena del dueño:
+`calcVI`, y con la FEVI además `aoRefPintar` y `calcDiastol`.
+
+Y en `imEspejosRestaurar` entra una **PASADA INVERSA** antes de `_syncDerivado`, para el estudio
+que trae el valor en el campo del TEER y el dueño vacío.
+
+⚠️ **LA GUARDA DE RE-ENTRADA NO ES POR EL `oninput`, Y CONVIENE SABER POR QUÉ.** Asignar `.value`
+por código **no** dispara `oninput`, así que el bucle directo no existe; `_teerEspSinc` está para
+el día en que alguien despache un `input` a mano —los arneses lo hacen— y, sobre todo, para que la
+pasada inversa de `imEspejosRestaurar` y `_syncDerivado` no se pisen entre sí.
+
+⚠️ **EL ORDEN DENTRO DE `imEspejosRestaurar` IMPORTA: la pasada inversa va ANTES de
+`_syncDerivado`**, y se salta el par cuyo destino ya está marcado como nuestro espejo vivo —ése lo
+resuelve `_syncDerivado`, que es su dueño—. Al revés, un destino vacío se llenaría desde el dueño
+vacío y la vuelta no tendría de dónde salir.
+
+⚠️ **LOS CORTES COAPT NO SE MOVIERON** (FEVI 20-50 %, DSFVI ≤70 mm), medidos por sus **cuatro**
+bordes, y el rótulo de los dos campos pasa a declarar el espejo: «FEVI (%) ↔ AI/VI» y
+«DSFVI (mm) ↔ AI/VI», que es el mismo formato con que el LARS y el strain de contracción de la AI
+anuncian el suyo.
+
+⚠️ **`teer_pasp` SIGUE SIENDO DE UNA SOLA DIRECCIÓN, Y ES LO CORRECTO**: su origen `psap_calc` es
+`readonly` y lo calcula la app, así que no hay nada que escribir hacia arriba. Esa asimetría es lo
+que hizo falta para adaptar **TC-301**: las cinco condiciones que medían «un valor tipeado a mano
+no se pisa» y «el fallback no inventa una marca» se mudaron a ese par, porque sobre la FEVI y el
+DSFVI **ya no son alcanzables por construcción** —tipear ahí es editar el dato—.

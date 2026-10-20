@@ -29,7 +29,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la ASE/EACVI 2016 en ritmo sinusal**: la Figura 8A, la 8B o el corte de FEVI | `docs/mapa/diastolica-ase2016.md` |
 | **Tocar el S/D venoso pulmonar, el LARS, los suplementarios de la ASE 2025, el E/e′ por sitio de la ASE 2016, los rótulos del cuadro o el rojo del E/e′** | `docs/mapa/diastolica-complementarios.md` |
 | **Tocar un DIAGRAMA DE FLUJO de la ventana 🧭** (BSE 2024, ASE 2025 en ritmo sinusal o en FA, ASE/EACVI 2016 8A y 8B): los planos, el motor del SVG, el umbral de ancho o la tabla compacta | `docs/mapa/diastolica-diagrama.md` |
-| **Tocar la GRILLA del Doppler mitral**: el orden de los 16 campos, el Tab por columnas, los puntos de corte o el selector del S/D | `docs/mapa/doppler-mitral-grilla.md` |
+| **Tocar la GRILLA del Doppler mitral**: el orden de los 16 campos —**las columnas 2 y 3 están intercambiadas desde el Y3f2**—, el Tab por columnas, los puntos de corte o el selector del S/D | `docs/mapa/doppler-mitral-grilla.md` |
 | **Tocar el BORRADO de una lesión valvular**: el retiro del grado, quién prendió una pastilla, los dos métodos de la IM, la continuidad de la IT, el grado de cada fila o **la salida temprana de `calcTHP`** | `docs/mapa/valvulas-borrado.md` |
 | **Tocar la PANTALLA de las dos lesiones MITRALES**: las tres columnas de la insuficiencia, las casillas automáticas, el cuadro de referencias en tres bloques, la columna 2 de la estenosis, el mecanismo de los globos ⓘ o **el aviso de fibrilación auricular de la continuidad** | `docs/mapa/valvulas-mitral-pantalla.md` |
 | **Tocar la PANTALLA de las insuficiencias AÓRTICA o TRICUSPÍDEA**: sus columnas, las cinco casillas automáticas, las once tarjetas ⓘ, el rótulo THP o el color de los avisos | `docs/mapa/valvulas-ia-it-pantalla.md` |
@@ -64,7 +64,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar el FOP, el test de burbuja o el aneurisma del septum**: la escala unificada, el espejo entre Otros y el módulo FOP, el informe esquemático o el aviso de la edad | `docs/mapa/fop-burbuja-unificado.md` |
 | **Agregar o correr un caso de prueba; A/B; mutación** | `docs/mapa/tests.md` · fichas en `docs/mapa/tests-fichas.md` (TC-499 en adelante), `docs/mapa/tests-fichas-496-498.md`, `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
 | **Tocar el DIBUJO ESTÁTICO de la mitral en ETE**: la tabla única de festones por ángulo, la geometría, la línea del plano, el giro, las tres vistas con sus LETRAS DE FESTÓN, **la ORIENTACIÓN de la TRANSGÁSTRICA**, el PDF, los CUATRO DIBUJOS DE MEDIDAS TEER, **los CRITERIOS TEER y sus cortes** o **el ESPEJO de la FEVI y el DSFVI del TEER** | `docs/mapa/mitral-dibujo-estatico.md` |
-| **Tocar la sección de la VÁLVULA AÓRTICA BICÚSPIDE**: la disposición en tres columnas, las seis tarjetas ⓘ, los factores de riesgo con casilla, el DIBUJO y sus puntos sensibles, **la SIMETRÍA DE LAS CÚSPIDES y el ÁNGULO con que se dibuja**, la morfología que sigue al tipo de fusión, la descripción del informe, el PDF o el recordatorio de la coartación | `docs/mapa/vab-bicuspide.md` |
+| **Tocar la sección de la VÁLVULA AÓRTICA BICÚSPIDE**: la disposición en tres columnas, las seis tarjetas ⓘ, los factores de riesgo con casilla, el DIBUJO y sus puntos sensibles, **la SIMETRÍA DE LAS CÚSPIDES y el ÁNGULO con que se dibuja**, **los SEIS dibujos por tipo y la ANIMACIÓN de la apertura**, **la FUNCIÓN VALVULAR derivada**, **el RESUMEN esquemático y su texto en Evidencia**, la morfología que sigue al tipo de fusión, la descripción del informe, el PDF o el recordatorio de la coartación | `docs/mapa/vab-bicuspide.md` |
 | **Visor de cineloop, medición, calibración, IndexedDB** | `docs/mapa/imagenes-visor.md` |
 | **Tocar la ESTENOSIS MITRAL en el LABORATORIO**: las seis categorías, las dos casillas del filtro, el gráfico de distribución, el PDF de auditoría o el PPT | `docs/mapa/laboratorio-estenosis-mitral.md` |
 | **Tocar la VISTA 2D de las válvulas**: el lector único del estado, las tarjetas, la tabla de cavidades, el dibujo, los chorros o el «por qué» | `docs/mapa/vista-2d-valvulas.md` |
@@ -129,8 +129,8 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **8,40 MB / 126.417 líneas**, medido el 2026-10-20 al cierre de la tanda
-  Y3e —el renglón anterior decía «8,39 MB / 126.263 líneas» y era del Y3d, una tanda antes:
+  sin frameworks. Hoy **8,45 MB / 127.206 líneas**, medido el 2026-10-20 al cierre de la tanda
+  Y3f —el renglón anterior decía «8,40 MB / 126.417 líneas» y era del Y3e, una tanda antes:
   **medirlo antes de presupuestar contexto**—. Las únicas dependencias son jsPDF, XLSX y
   PptxGenJS por CDN. Se abre como archivo local y corre en Chrome.
 - Lo que produce es un **informe firmado**: narrativo, EN SUMA, PDF, PPT y Excel del Laboratorio.
@@ -284,6 +284,253 @@ impecable.
 ---
 
 ## Estado vigente
+
+### El ESPEJO de los DOS SENTIDOS, las columnas del DOPPLER y la VAB en vivo, con sus SEIS dibujos y su ANIMACIÓN — «Y3f» (2026-10-20)
+
+- **Son NUEVE commits, y son los nueve que la orden pedía.** Al **empezar**, `main` y
+  `origin/main` estaban los dos en **`4c1bb58`** (sello `v20261020-1408`), **sin nada sin
+  pushear** —confirmado con un `git fetch` de verdad—, con los cuatro commits del Y3e ya
+  incluidos **y pusheados por Maicol**. Los **nueve** commits de esta tanda quedan locales; el
+  push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 9 → 8 → … → 1.**
+  ⚠️ **EL 1 Y EL 2 NO SE NOMBRAN ENTRE SÍ Y SE REVIERTEN EN CUALQUIER ORDEN**: el 1 vive en
+  `teerEspejoEditado`, `_TEER_ESP_INV`, la pasada inversa de `imEspejosRestaurar` y los dos
+  `oninput` del TEER; el 2 es marcado y ocho clases de posición del Doppler mitral.
+  ⚠️ **DEL 3 AL 8 LA CADENA ES ESTRICTA, Y ES LA SECCIÓN VAB.** El 3 crea `vabFuncionDerivada`,
+  `_VAB_ORIGENES` y el oculto `vab_funcion`; el 4 crea `vabResumenPintar` y `_indVABConcl`; el 5
+  toca el informe y el EN SUMA; el 6 los rótulos y la hoja del PDF; el 7 reescribe `vabGeom` con
+  sus tres ramas nuevas, `VAB_SIN_RAFE`, `vabAngNota` y `vabDibAria`; el 8 la animación, que
+  **dibuja llamando a `vabGeom`**. **Revertir el 7 sin revertir antes el 8 deja `vabAnimGeom`
+  pidiéndole al motor una rama que ya no existe**, y la sección se queda sin dibujo.
+  ⚠️ **EL 4 CUELGA DEL 3 POR UNA LÍNEA**: su primera línea del resumen nombra la función, que el 3
+  derivó. **Y EL 5 CUELGA DEL 4**: el párrafo que retira del informe es el que el 4 mudó a
+  Evidencia; revertir el 5 sin el 4 deja el texto en **dos** superficies a la vez.
+  **El 9 es TC-506, la documentación y el sello**, y afirma el comportamiento de los ocho:
+  revertir cualquiera sin el 9 lo deja en rojo.
+  ⚠️ **EL SELLO VIAJA EN EL COMMIT 9**, que lleva además **dos correcciones de `index.html` que la
+  medición destapó**: el título de la sección nueva de Evidencia —que era PREFIJO de la que ya
+  existía— y el prefijo `vab-anim-` de `_noEsDelEstudio`. Revertir el 9 repone las dos.
+  ⚠️ **CASOS ADAPTADOS: DIEZ**, contados sobre las marcas del propio archivo y no a ojo —la
+  primera versión de este renglón decía OCHO—: **TC-461** (las dos tablas del Doppler mitral),
+  **TC-363** (`VAB_SIETE_ES` para «Ver detalle»), **TC-504** (F7 y H5), **TC-505** (A8 se parte en A8a y A8b, y una de las dos afirma hoy **lo contrario**),
+  **TC-322** (su SEED se parte en dos entradas de la VAB), **TC-301** (cinco condiciones, abajo),
+  **TC-61**, **TC-66**, **TC-115** y **TC-488**.
+  ⚠️ **CINCO DE ELLOS LOS DESTAPÓ LA SUITE COMPLETA** y ninguna corrida de zona podía verlos:
+  TC-61, TC-66, TC-115, TC-322 y TC-488. **Es la duodécima tanda seguida en que pasa.**
+
+- **Línea base al cierre: suite **516/520** con el pendrive `DISK_IMG` MONTADO —verificado al
+  abrir Y al cerrar—, Semgrep **127 / 0 ERROR en 1 app**, Excel en **440** columnas, celular
+  **65 a 360 px y 74 a 390 px con 17 ALTA cada uno**, el MISMO par que dejó el Y3e. CERO
+  REGRESIONES.** Los rojos son exactamente los de ENTRADA —**TC-223** (el documentado, falla por
+  la fecha), **TC-376**, **TC-390** y **TC-406**— y no apareció ninguno fuera de esa lista.
+  **El denominador sube a 521**: esta tanda agregó **TC-506**.
+  ⚠️ **`--todo` BAJA UNO EN CADA ANCHO —394/403 → 393/402— Y HAY QUE MEDIR HEAD EL MISMO DÍA PARA
+  PODER DECIRLO.** Medido en un worktree del inicio de la tanda: el delta es **exactamente
+  `input-chico` 329 → 328** y **nada más se mueve**. Es el `<select>` «Función valvular» de la
+  VAB, que el Y3f3 retira. **Y los tres controles de la animación NO suman**: el botón mide
+  **114 × 44 px** con el mouse —ya tenía el piso táctil— y la pausa y el deslizante viven dentro
+  de un bloque que **nace apagado**, así que no tienen geometría.
+  ⚠️ **TC-252 y TC-246 SALIERON ROJOS EN LA CORRIDA COMPLETA Y VERDES CORRIDOS SOLOS** sobre el
+  mismo árbol: son los inestables por orden de corrida que este archivo ya documenta.
+  **Repetir antes de sospechar.**
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **520 ids** sobre los 521 casos del archivo.
+- **EL SELLO DE VERSIÓN** estaba al día al empezar (`v20261020-1408`) y se volvió a sellar:
+  **`v20261020-1954`**. ⚠️ **SE SELLÓ TRES VECES, Y HAY QUE DECIR POR QUÉ**: las dos primeras quedaron
+  invalidadas porque la **medición destapó dos defectos de código nuevo** —el título prefijo y el
+  `vab-anim-scrub` que viajaba con el estudio— y arreglarlos movió `index.html` después de sellar.
+  **Lo medido vale el último sello**, con el `md5` quieto durante toda la corrida.
+- **`index.html` pasó de 8,40 MB / 126.417 líneas a 8,45 MB / 127.206 líneas.**
+
+- **Y3f1 · LA FEVI Y EL DSFVI SON UN SOLO VALOR, Y LA VUELTA NO EXISTÍA.** El Y3e1 dejó el espejo
+  colgando del **dueño**, así que AI/VI → TEER andaba por los diez caminos. **MEDIDO contra el
+  inicio de la tanda: la vuelta funcionaba en 0 de 5 caminos** —no es que fallara a veces, es que no
+  existía—: el médico que cargaba el DSFVI parado en la pestaña del TEER dejaba `dsfvi` vacío, y
+  con él el cuadro de AI/VI, su referencia y todo lo que lee ese ventrículo.
+  Entra `teerEspejoEditado`, con `_TEER_ESP_INV`, y una **pasada inversa** en
+  `imEspejosRestaurar` para el estudio que trae el valor sólo del lado del TEER.
+  ⚠️ **LA GUARDA DE RE-ENTRADA NO ES POR EL `oninput`**: asignar `.value` por código **no** lo
+  dispara, así que el bucle directo no existe. `_teerEspSinc` está para el día en que alguien
+  despache un `input` a mano —los arneses lo hacen— y para que la pasada inversa y `_syncDerivado`
+  no se pisen.
+  ⚠️ **EL ORDEN IMPORTA: la pasada inversa va ANTES de `_syncDerivado`** y **se saltea el par cuyo
+  destino ya está marcado como espejo vivo**, que es el que ese otro resuelve. Al revés, un
+  destino vacío se llenaría desde un dueño vacío.
+  **Los cortes COAPT no se movieron** (20-50 % y ≤70 mm), medidos por sus **cuatro** bordes, y los
+  dos rótulos pasan a declarar el espejo: «FEVI (%) ↔ AI/VI» y «DSFVI (mm) ↔ AI/VI».
+  ⚠️ **`teer_pasp` SIGUE SIENDO DE UNA SOLA DIRECCIÓN, y eso es lo que permitió adaptar TC-301**:
+  su origen `psap_calc` es `readonly`, así que no hay nada que escribir hacia arriba.
+
+- **Y3f2 · LAS COLUMNAS 2 Y 3 DEL DOPPLER MITRAL SE INTERCAMBIAN, Y CADA CAMPO CONSERVA SU FILA.**
+  Los **tiempos** del llenado mitral —la continuación natural de las velocidades de la columna 1—
+  pasan a la 2 y la **vena pulmonar** a la 3. **Ni un `tabindex`**: el Tab sale del orden del
+  **marcado**, y por eso el apilado del celular sale en el mismo orden **por construcción**, sin
+  una segunda lista que mantener sincronizada. Las **ocho** reglas de posición explícita siguen
+  en la hoja, los 14 campos tipeables conservan su valor por su id y el cuadro de abajo calcula
+  con ellos. **Nada más cambia.**
+
+- **Y3f3 · LA SECCIÓN VAB SE ACTUALIZA SOLA, Y LA FUNCIÓN VALVULAR SE DERIVA.** Los tres campos de
+  solo lectura se quedaban con el valor del **gesto anterior** —**medido: congelados en 6 de 6
+  escenas** con los orígenes cambiando a la vista—, porque `vabSync` corría sólo desde los
+  controles de la propia sección y los orígenes viven en **Válvulas** y en **Datos**.
+  ⚠️ **ES UN OYENTE DE DOCUMENTO Y NO CUATRO LÍNEAS EN LOS `onchange` AJENOS**: `ea_grado` e
+  `ia_grado` los escribe `valvSev.aplicar` por **CÁLCULO**, no sólo por el gesto del médico, así
+  que pegarle una llamada a cada `onchange` deja afuera el camino frecuente.
+  El `<select>` «Función valvular» se retira: `vabFuncionDerivada(src)` la deduce de los grados de
+  EA y de IAo, con sus **cinco** estados, y el dato pasa a `<input type=hidden>`.
+  ⚠️ **EL EXCEL NO GANA NI PIERDE UNA COLUMNA**: 440, mismas claves, y la celda se **deriva del
+  estudio ARCHIVADO** con la rama `src`, porque ahí no hay formulario que leer.
+  ⚠️ **`limpiarCampos` NO BARRE `input[type=hidden]`**, así que `vab_funcion` se limpia a mano. Es
+  la trampa que el Y3d5 ya pagó dos veces.
+
+- **Y3f4 · LA CONCLUSIÓN PASA A ESQUEMÁTICA, Y SU TEXTO SE MUDA A EVIDENCIA.** Cuatro líneas
+  cortas armadas **por nodos** —fenotipo · rafe · cúspides · aorta—, y **`vabConclusion` NO SE
+  TOCÓ**: su texto completo se publica igual, en la fila «Según la guía» de la sección nueva del
+  panel. Lo único que cambia es **dónde**. TC-506 lo fija con dos condiciones de control: que esa
+  función **siga siendo el dueño** de los umbrales y que **una raíz de 56 mm siga dando su Clase I**.
+  ⚠️ **Y ESO DESTAPÓ UN DEFECTO DE MI PROPIO CÓDIGO, QUE LO CAZÓ TC-322 EN LA SUITE COMPLETA.**
+  La fila no llevaba `refs`, o sea una afirmación de guía **sin corchete numerado**, que es
+  justamente lo que ese caso persigue; y el título «Válvula aórtica bicúspide» era **PREFIJO** del
+  de «… — aorta ascendente», así que `IND_SECS` —que busca la sección por el prefijo de su
+  título— devolvía la mía para las dos y **la otra quedaba sin probar**. Se cerró con
+  `refs:['esc2024ao']` y el título «— conclusión», y **TC-506 ganó una condición (D6b) que exige
+  que ningún título de `IND_SECS` sea prefijo de otro**, para que no vuelva.
+
+- **Y3f5 · EL INFORME Y EL EN SUMA.** Se va el párrafo final de la VAB; el derrame pericárdico y
+  las masas salen en **UNA** oración cuando los dos están ausentes; el EN SUMA pierde el
+  encabezado «Cardiopatías congénitas y miocardiopatías genéticas:» y la línea de la VAB sólo
+  agrega «, normofuncionante».
+  ⚠️ **DESVÍO DECLARADO sobre la letra del pedido:** decía «IAo con grado calculado cero», y
+  **medido en el archivo la cascada de `calcIA_ESC` sólo emite `'1'`, `'2'` y `'4'` y deja
+  `null`**, así que ese estado es **inalcanzable** y la regla literal se anularía a sí misma. La
+  compuerta es «la VÁLVULA tiene datos», que es el estado en el que el informe ya dice «sin
+  estenosis ni insuficiencia» —medido—. `PENDIENTES.md` → Y3f-2.
+
+- **Y3f6 · «fused type» PASA A ESPAÑOL, Y EL EXCEL CONSERVA EL TEXTO VIEJO.** El importador
+  entiende las **dos** formas, por el mecanismo de `LAB_XLS_LISTAS_LEGADO`: para una columna de
+  opción, un valor desconocido descarta la **FILA ENTERA**, así que renombrar el valor dejaría sin
+  importar todo backup ya exportado. Y la hoja «Estudio avanzado – Cardiopatías congénitas» del
+  PDF **se retira sólo para la VAB**, que publica su propia tabla. **Control medido: otra
+  cardiopatía congénita la sigue imprimiendo.** Cierra `PENDIENTES.md` → **Y3e-1**, por las dos
+  salidas que esa entrada ofrecía a la vez.
+
+- **Y3f7 · LOS SEIS DIBUJOS, Y EL LÁTERO-LATERAL ESTABA INVERTIDO.** `VAB_DIB_FUSION` pasa de tres
+  entradas a **seis**: entran el **2-sinus antero-posterior** y la **fusión parcial**, y el
+  látero-lateral **se corrige**.
+  **Consenso VAB, cuerpo del folio 232 (hoja 14)**: «generalmente es evidente si las cúspides son
+  **latero-laterales (de lado a lado)** o **antero-posteriores (adelante y atrás)**». Eso describe
+  dónde están las **cúspides**, no las comisuras: si las dos cúspides son laterales entre sí, la
+  línea comisural que las separa es **vertical** —y el pie de la Figura 11 lo confirma por el otro
+  lado, situando la comisural posterior «casi alineada con el septum interauricular»—. La app
+  dibujaba el látero-lateral con las comisuras **a los costados**, que es el antero-posterior.
+  ⚠️ **LA PRUEBA NO ES LA LECTURA, ES EL A/B: el hash del dibujo que viaja al PDF de
+  `dos_senos_ap` es HOY exactamente el que `dos_senos_ll` tenía al empezar la tanda**
+  (**`-657166111`**, 15.190 bytes, re-medido al cerrar), o sea que lo que había era el otro
+  fenotipo con el nombre equivocado. Y el `d` del cierre lo dice igual de claro: en el árbol de
+  entrada el látero-lateral era `M 60,120 L 120,120 L 180,120` —una línea **horizontal**—.
+  **La fusión parcial sale de la Figura 13, folio 234 (hoja 16)**, leída **renderizando**: tres
+  senos con **minirafé derecha-izquierda** y apertura triangular, que es la vista de **sístole**
+  con que se diagnostica. Esto **cierra lo que el Y3d6 había dejado declarado** —«es una trivalva
+  en diástole»—: sigue siendo cierto en diástole, y lo que faltaba es que la imagen de referencia
+  es la de sístole.
+  Entra además el **arco del ángulo** con su leyenda (`vabAngNota`), acotado a los tipos
+  **fusionados con categoría elegida**, que es lo que el pie de la Figura 9 permite, y el
+  `aria-label` pasa a nombrar el tipo y la categoría — lo que **cierra `PENDIENTES.md` → Y3e-2**.
+  ⚠️ **EL `id` DE LA LEYENDA NO TERMINA EN `-aviso`**: `limpiarCampos` barre `[id$="-aviso"]` con
+  `textContent = ''`, así que como `vab-ang-aviso` desaparecía en el primer «Nuevo estudio» y no
+  volvía nunca. Es el defecto que `vab-coa-aviso` ya documenta.
+
+- **Y3f8 · LA ANIMACIÓN DE LA APERTURA, Y EN REPOSO COINCIDE CON EL DIBUJO ESTÁTICO.** Sale de la
+  demo aprobada `docs/3d/demo3_vab_apertura.html`, **que queda sin versionar**. **MEDIDO: con la
+  fracción en 0 el `d` del lumen es EL `d` del cierre estático, byte por byte** — que es lo único
+  que impide que haya dos dibujos del mismo órgano separándose en la primera edición.
+  **rAF, espiado: 0 cuadros apagada, 21 en 700 ms encendida, 0 tras mover el control (pausa), 0
+  con la sección cerrada y 0 en otra pestaña.** «Nuevo estudio» la apaga, el rafe calcificado abre
+  **menos** (área 6545 → 5906) y **20 aperturas y cierres dejan 12.222 nodos → 12.222 con CERO
+  oyentes nuevos**.
+  ⚠️ **`vabAnimVisible` MIRA EL RECT DE CADA ANCESTRO Y NO SU `display`, Y ESO LO DESTAPÓ MEDIR.**
+  El acordeón se cierra con **`max-height: 0` + `overflow: hidden`**, no con `display:none`, y el
+  rect del propio SVG **sigue siendo distinto de cero**: con la sección plegada la sonda contó
+  **54 cuadros en 900 ms**, o sea un bucle repintando lo que nadie ve.
+  ⚠️ **Y `_vabAnimCuadro` VUELVE SIN PEDIR OTRO CUADRO cuando está en pausa**: con la guarda sólo
+  en el pintado, el bucle seguía girando en vacío — el defecto que el 3D del VI ya pagó.
+  **Táctil a 390 px: botón 134 × 44, pausa 81 × 44 y deslizante 153 × 44**, los tres con el piso,
+  el último por su `min-height` acotado a `pointer: coarse`.
+  ⚠️ **Y UN DEFECTO DE MI PROPIO CÓDIGO QUE DESTAPÓ EL A/B Y NO LA LECTURA: el deslizante VIAJABA
+  CON EL ESTUDIO.** `vab-anim-scrub` es un `<input type="range">` **con id**, así que el
+  recolector genérico lo tomaba y los campos guardados pasaban de **933 a 934** — la fase de un
+  dibujo viajando con el paciente y el juego de claves cambiado en **todo estudio que se guardara
+  desde hoy**, contra la orden, que dice que la animación no guarda nada. Se cierra con el prefijo
+  `vab-anim-` en `_noEsDelEstudio`, con guión MEDIO, y **TC-506 lo fija con su denominador**: los
+  cuatro campos de la VAB que **sí** son del estudio siguen entrando.
+
+- **A/B DE CONTROL contra el inicio de la tanda, con el formulario vacío y con un escenario AJENO
+  a la VAB y al TEER: 128 diferencias, y son TRES hechos —los tres autorizados—.**
+  **122** son la fusión del derrame y las masas en **una** oración —en los tres estilos, en las
+  dos escenas, y corriendo el índice de los textos en las **SEIS plantillas del PDF generadas de
+  verdad**—, que es el Y3f5; **4** son los campos del estudio con su hash; y **2** son
+  `calc-row` **296 → 295**, que es la fila del `<select>` retirado.
+  **MEDIDO AL CERRAR, tras el arreglo del deslizante: los campos del estudio son 933 contra 933 y
+  con el formulario vacío el hash es EL MISMO** (`1691101405`); en la escena ajena el conteo
+  también es 933 y lo único que mueve el hash es **`vab_funcion`**, que pasó de un `<select>` en
+  blanco a su valor **derivado** —medido: el nodo es hoy `INPUT hidden` con `normal`—.
+  **El Excel sale en 440 columnas comparadas CLAVE POR CLAVE y la ÚNICA distinta de las 440 es
+  «Informe (texto completo)»**, que lleva la oración fusionada. **El PPT, el PDF de auditoría y el
+  Laboratorio, idénticos.**
+
+- **MEDIDO EN 10 CELDAS, con el tema COMPROBADO** —cinco viewports (1200×700, 1440×800, 768×1024,
+  390×844, 360×740) × dos temas—: el SVG en **240 × 240** en las diez, el botón de la animación en
+  **114 × 44**, la leyenda del ángulo y el resumen visibles, y **CERO scroll horizontal de la
+  página en las diez**. Los colores resuelven **reales y distintos** en los dos temas
+  —`rgb(232,236,244)` de noche y `rgb(26,34,51)` de día— e **idénticos entre anchos**.
+  **10 capturas PNG con los 10 `md5` DISTINTOS**, y **tres MIRADAS**: el látero-lateral cerrando
+  **vertical**, la fusión parcial con su **minirafé entre R y L** y la animación abierta con el
+  **arco punteado sobre la cúspide no fusionada**, que es lo que la Figura 9 define.
+  ⚠️ **LA PRIMERA TANDA DE MAQUETA INFORMÓ «EL TEMA NO QUEDÓ» EN LAS DIEZ CELDAS Y ERA MI
+  MEDIDOR**: `__P.tema` devuelve `{ claro: <quedó?> }` y yo comparaba contra una cadena. **Un
+  chequeo de tema que no sabe leer su propia respuesta aborta las diez celdas buenas**, que es el
+  lado seguro del error —la trampa del Y3c hace lo contrario y deja pasar ocho capturas iguales—.
+
+- **Arnés: `scripts/_probe_y3f.mjs`** (CDP, teclas y clics reales, A/B de solo lectura con
+  `--file`; once grupos: `fevi`, `dop`, `vabviv`, `vabcon`, `inf`, `tipos`, `dib`, `anim`,
+  `maqueta`, `captura`, `ctrl`). **Cobertura: TC-506**, **83 condiciones** —contadas
+  **instrumentando el propio caso**— con **cinco** denominadores y **ocho** controles negativos.
+  **Verificado que sabe fallar contra el inicio de la tanda en un worktree aparte: 49 de las 83 en
+  rojo, y NINGUNA por excepción.**
+
+- **TC-301, ADAPTADO EN CINCO CONDICIONES, Y ES EL MÁS INTERESANTE DE LOS OCHO.** Las cinco medían
+  «un valor tipeado a mano no se pisa» y «el fallback no inventa una marca» **sobre el par de la
+  FEVI y el DSFVI**, y desde el Y3f1 eso **no es alcanzable por construcción**: tipear ahí es
+  editar el dato, así que la app copia y registra la marca —que es lo correcto—. Se mudaron a
+  **`teer_pasp`**, el único par de TEER que sigue siendo de una sola dirección, **con dos
+  denominadores nuevos**: que el origen de verdad se haya movido, y que el destino y su origen
+  **coincidan**, que es la única escena donde el fallback por igualdad podría inventar la marca.
+  ⚠️ **Y ESO OBLIGÓ A MEDIR EN DOS FASES, QUE LO DESTAPÓ CORRERLO**: calcular el origen con el
+  destino vacío **ya lo copia y lo marca** —el espejo de `psap_calc` corre desde la propia cadena
+  de la PSAP, no sólo al abrir la pastilla—, así que el valor dejaba de ser del médico antes de
+  que el caso lo tipeara. La fase 1 sirve **sólo** para averiguar con qué número va a coincidir,
+  y la fase 2 arranca de limpio tipeando el **destino primero**.
+
+- **Dónde está todo:** `docs/mapa/vab-bicuspide.md` → la sección 11 entera (**30,8 KB**);
+  `docs/mapa/doppler-mitral-grilla.md` → la tabla de columnas dada vuelta (**9,6 KB**);
+  `docs/mapa/mitral-dibujo-estatico.md` → el espejo de los dos sentidos (**32,0 KB**);
+  `docs/mapa/informe-pdf-excel.md` → un puntero (**34,0 KB**); `docs/mapa/tests-fichas.md` → la
+  ficha de TC-506 (**25,8 KB**); `docs/fuentes/FUENTES.md` → «La tanda Y3f», con las dos citas
+  literales de las Figuras 11 y 13, sus folios comprobados y la tabla de **Cambios de evidencia**;
+  `docs/censo/textos-conducta.md` (**censo NUEVO**, 35,1 KB: **248 textos listados**, **73** de
+  conducta y **175** de datos faltantes, cada uno con su función, su área y por dónde sale —
+  **es una lista, no un cambio**); y `docs/PENDIENTES.md` → **Y3e-1 e Y3e-2 marcados CERRADOS** más **siete** cosas
+  declaradas (Y3f-1 a Y3f-7).
+  ⚠️ **`informe-pdf-excel.md` QUEDÓ A 1 KB DEL TECHO (34,0 KB) y es sólo con su puntero de doce
+  líneas.** Medido con `wc -c` DESPUÉS de escribir, que es tarde: **la próxima tanda que lo toque
+  tiene que partirlo.** `PENDIENTES.md` → Y3f-5. **Ningún mapa cruzó.**
+
+- ⚠️ **ME COMÍ EL ACENTO GRAVE CINCO VECES**, todas en comentarios míos dentro del cuerpo de un
+  caso, y las cinco para nombrar algo en prosa —un atributo, una clave, dos funciones y un
+  predicado—, que es como el resto del archivo lo escribe.
+  `scripts/check_backticks.py` dio la línea exacta las cinco **antes** de commitear, mientras
+  `node --check` apuntaba a la apertura del template, cientos de líneas antes. **Correr los dos.**
 
 ### El ESPEJO del TEER, la vista TRANSGÁSTRICA y las CÚSPIDES de la VAB — «Y3e» (2026-10-20)
 

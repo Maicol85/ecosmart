@@ -514,3 +514,27 @@ orden y sin hueco.
   separación de las líneas B agregan una.
 
 En `docs/mapa/cortos-arreglos.md` y `docs/mapa/otros-hallazgos.md`.
+
+---
+
+## Lo que la tanda «Y3f» movió en el papel (2026-10-20) — puntero
+
+- **El párrafo final de la VAB SALE del informe.** Su texto completo se publica en el panel de
+  Evidencia; la pestaña publica un resumen esquemático de cuatro líneas. El motor `vabConclusion`
+  **no se tocó**: lo que cambió es dónde se muestra. → `docs/mapa/vab-bicuspide.md` § 11.3.
+- **El derrame pericárdico y las masas salen en UNA sola oración cuando los dos están ausentes**,
+  en vez de dos frases de normalidad seguidas.
+- **El EN SUMA pierde el encabezado «Cardiopatías congénitas y miocardiopatías genéticas:»**, y la
+  línea de la VAB sólo agrega «, normofuncionante».
+  ⚠️ **DESVÍO DECLARADO sobre la letra del pedido:** decía «IAo con grado calculado cero», y
+  medido en el archivo la cascada de `calcIA_ESC` sólo emite `'1'`, `'2'` y `'4'` y deja `null`,
+  así que ese estado **es inalcanzable** y la regla literal se anularía a sí misma. La compuerta es
+  «la VÁLVULA tiene datos», que es el estado en el que el informe ya dice «sin estenosis ni
+  insuficiencia» — medido.
+- **La hoja «Estudio avanzado – Cardiopatías congénitas» del PDF se retira SÓLO para la VAB.** Las
+  otras cardiopatías congénitas la conservan — medido.
+- **El Excel queda en 440 columnas, con las mismas claves y los mismos valores.** La celda de la
+  función valvular de la VAB pasa a **derivarse** de los grados de Válvulas sobre el estudio
+  archivado (`vabFuncionDerivada(c)`), y la de «fused type» **conserva el texto viejo** porque el
+  importador lo lee por valor de opción: renombrarlo descarta la **fila entera** de todo backup ya
+  exportado.

@@ -28,7 +28,7 @@
 import { createServer } from 'node:http';
 import { spawn } from 'node:child_process';
 import { readFile, writeFile, mkdtemp, rm } from 'node:fs/promises';
-import { rmSync } from 'node:fs';
+import { rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname, extname, isAbsolute, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -87,7 +87,7 @@ const EXTERNO = isAbsolute(FARG);
 const FILE = EXTERNO ? '__ab__' + basename(FARG) : FARG;
 const SOLO = arg('--solo');
 /* --dest <dir>: el grupo `captura` guarda PNG de la tabla en los dos temas. */
-const DEST = arg('--dest');
+const DEST = arg('--dest') || tmpdir();
 const hacer = (g) => !SOLO || SOLO.split(',').indexOf(g) > -1;
 
 const CHROMES = [
@@ -2430,6 +2430,163 @@ window.__Z = {
     } catch (e) { r.err = e.message; }
     out.grupos.anim = r;
     process.stderr.write('[anim] listo\n');
+  }
+
+  /* ────────────────────────────────────────────────────────────────────────────────────────
+     MAQUETA — los controles nuevos a cuatro anchos por dos temas, con el tema COMPROBADO.
+     ⚠️ EL TEMA HAY QUE EXIGIRLO, NO PEDIRLO: la trampa del Y3c, que dio cuatro `md5` iguales
+     de ocho sobre capturas de claro y oscuro. Si la clase no quedo, se ABORTA la celda.
+     ──────────────────────────────────────────────────────────────────────────────────────── */
+  if (corre('maqueta')) {
+    const r = { celdas: [] };
+    try {
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__Z.irVAB()`);
+      await ev(`window.__P.sel('vab_tipo','fused_rl')`);
+      await ev(`window.__P.sel('vab_simetria','simetrica')`);
+      for (const [w, h] of [[1200, 700], [1440, 800], [768, 1024], [390, 844], [360, 740]]) {
+        await viewport(w, h);
+        for (const claro of [false, true]) {
+          /* `__P.tema` devuelve { claro: <la clase quedo?> }: se EXIGE ese booleano y no se
+             confia en que la llamada haya surtido efecto. */
+          const puesto = await ev(`window.__P.tema(${claro})`);
+          if (!puesto || puesto.claro !== claro) {
+            /* No se aborta la corrida: se DECLARA la celda, que es peor que pasarla por buena. */
+            r.celdas.push({ w, h, claro, tema: 'NO QUEDO: ' + JSON.stringify(puesto) });
+            continue;
+          }
+          const geo = await ev(`(function(){
+            var o = {};
+            ['vab-svg','vab-anim-btn','vab-anim-pausa','vab-anim-scrub','vab-ang-nota','vab-concl'].forEach(function(id){
+              var e = document.getElementById(id);
+              if (!e) { o[id] = 'NO EXISTE'; return }
+              var b = e.getBoundingClientRect();
+              o[id] = { w: Math.round(b.width), h: Math.round(b.height),
+                        visible: !!(b.width && b.height) } });
+            o.scrollH = window.__Y.scrollH();
+            o.colorRafe = window.__P.color('#vab-rafe');
+            o.colorNota = window.__P.color('#vab-ang-nota');
+            return o })()`);
+          r.celdas.push(Object.assign({ w, h, claro }, geo));
+        }
+      }
+      await ev(`window.__P.tema(false)`);
+      await viewport(1200, 700);
+    } catch (e) { r.err = e.message; }
+    out.grupos.maqueta = r;
+    process.stderr.write('[maqueta] listo\n');
+  }
+
+  /* ────────────────────────────────────────────────────────────────────────────────────────
+     CAPTURA — PNG del dibujo y de la animacion, en los dos temas. Los `md5` tienen que ser
+     TODOS DISTINTOS: dos iguales significan que el tema o el tipo no cambiaron de verdad.
+     ⚠️ EL `clip` DE `Page.captureScreenshot` VA EN COORDENADAS DE PAGINA y
+     `getBoundingClientRect` da las del VIEWPORT: sin sumarle el desplazamiento, el PNG sale
+     del encabezado de la tarjeta — y se ve perfectamente bien. Es la trampa del Y3c.
+     ──────────────────────────────────────────────────────────────────────────────────────── */
+  if (corre('captura')) {
+    const r = { pngs: [] };
+    try {
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__Z.irVAB()`);
+      await viewport(1200, 700);
+      for (const claro of [false, true]) {
+        await ev(`window.__P.tema(${claro})`);
+        for (const tipo of ['fused_rl', 'dos_senos_ll', 'dos_senos_ap', 'partial']) {
+          await ev(`window.__P.sel('vab_tipo',${JSON.stringify(tipo)})`);
+          await ev(`window.__P.sel('vab_simetria','asimetrica')`);
+          const caja = await ev(`(function(){
+            var e = document.getElementById('vab-svg'); if (!e) return null;
+            e.scrollIntoView({ block:'center' });
+            var b = e.getBoundingClientRect();
+            return { x: Math.round(b.left + window.scrollX), y: Math.round(b.top + window.scrollY),
+                     w: Math.round(b.width), h: Math.round(b.height) } })()`);
+          if (!caja) { r.pngs.push({ claro, tipo, err: 'SIN CAJA' }); continue; }
+          const png = await cdp.send('Page.captureScreenshot', {
+            format: 'png', captureBeyondViewport: true,
+            clip: { x: caja.x, y: caja.y, width: caja.w, height: caja.h, scale: 2 } }, sessionId);
+          const dest = join(DEST, `y3f_${claro ? 'claro' : 'oscuro'}_${tipo}.png`);
+          writeFileSync(dest, Buffer.from(png.data, 'base64'));
+          r.pngs.push({ claro, tipo, dest, bytes: png.data.length,
+                        md5: createHash('md5').update(png.data).digest('hex').slice(0, 12), caja });
+        }
+        /* Y la animacion ABIERTA, que es la unica forma de MIRAR que el lumen se abre. */
+        await ev(`window.__P.sel('vab_tipo','fused_rl')`);
+        await ev(`(function(){ var b=document.getElementById('vab-anim-btn'); if(b) b.click(); return 1 })()`);
+        await ev(`(function(){ var s=document.getElementById('vab-anim-scrub');
+          if (s) { s.value='40'; s.dispatchEvent(new Event('input',{bubbles:true})) } return 1 })()`);
+        const cajaA = await ev(`(function(){
+          var e = document.getElementById('vab-svg'); if (!e) return null;
+          e.scrollIntoView({ block:'center' });
+          var b = e.getBoundingClientRect();
+          return { x: Math.round(b.left + window.scrollX), y: Math.round(b.top + window.scrollY),
+                   w: Math.round(b.width), h: Math.round(b.height) } })()`);
+        if (cajaA) {
+          const png = await cdp.send('Page.captureScreenshot', {
+            format: 'png', captureBeyondViewport: true,
+            clip: { x: cajaA.x, y: cajaA.y, width: cajaA.w, height: cajaA.h, scale: 2 } }, sessionId);
+          const dest = join(DEST, `y3f_${claro ? 'claro' : 'oscuro'}_anim.png`);
+          writeFileSync(dest, Buffer.from(png.data, 'base64'));
+          r.pngs.push({ claro, tipo: 'anim', dest, bytes: png.data.length,
+                        md5: createHash('md5').update(png.data).digest('hex').slice(0, 12) });
+        }
+        await ev(`(function(){ var b=document.getElementById('vab-anim-btn'); if(b) b.click(); return 1 })()`);
+      }
+      await ev(`window.__P.tema(false)`);
+      const ms = r.pngs.map((x) => x.md5).filter(Boolean);
+      r.md5Distintos = new Set(ms).size + '/' + ms.length;
+    } catch (e) { r.err = e.message; }
+    out.grupos.captura = r;
+    process.stderr.write('[captura] listo\n');
+  }
+
+  /* ────────────────────────────────────────────────────────────────────────────────────────
+     CTRL — el A/B de CONTROL contra el arbol del inicio de la tanda. Las seis superficies
+     enumeradas UNA POR UNA, el PDF en sus SEIS plantillas GENERADO DE VERDAD, el PPT, el PDF
+     de auditoria y el Excel CLAVE POR CLAVE. Es lo que separa «cambio lo autorizado» de
+     «cambio algo mas».
+     ──────────────────────────────────────────────────────────────────────────────────────── */
+  if (corre('ctrl')) {
+    const r = {};
+    /* Un escenario AJENO a la VAB y al TEER: la escena donde esta tanda NO debe actuar. */
+    const AJENO = { nombre: 'CTRL', edad: '58', peso: '78', talla: '172',
+                    onda_e: '70', onda_a: '60', tde: '190', e_sep: '7', e_lat: '9',
+                    ai_vol: '52', ddfvi: '50', siv: '10', ppvi: '10',
+                    vmax_ao: '2.4', im_vc: '4', vmax_it: '2.6', vci_diam: '18' };
+    const medir = async () => ({
+      salida: await ev(`window.__Y.salida()`, 90000),
+      campos: await ev(`window.__Y.campos()`),
+      excelN: await ev(`window.__Y.excelN()`),
+      excel: await ev(`window.__P.excelDOM()`, 60000),
+      refs: await ev(`window.__P.refsN()`),
+      lab: await ev(`window.__P.lab({})`),
+      almacen: await ev(`window.__P.almacen()`),
+      pills: await ev(`window.__P.pills()`)
+    });
+    try {
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__P.calentar()`);
+      r.vacio = await medir();
+      r.pdfVacio = {};
+      for (const pl of ['clasico', 'academico', 'moderno', 'minimalista', 'compacto', 'elegante'])
+        r.pdfVacio[pl] = await ev(`window.__P.pdf(${JSON.stringify(pl)})`, 90000);
+
+      await ev(`window.__P.nuevo()`);
+      for (const [k, v2] of Object.entries(AJENO)) {
+        try { await tipear(k, v2); }
+        catch (e) { try { await ev(`window.__P.sel(${JSON.stringify(k)},${JSON.stringify(v2)})`); } catch (e2) {} }
+      }
+      await ev(`window.__P.calentar()`);
+      r.ajeno = await medir();
+      r.pdfAjeno = {};
+      for (const pl of ['clasico', 'academico', 'moderno', 'minimalista', 'compacto', 'elegante'])
+        r.pdfAjeno[pl] = await ev(`window.__P.pdf(${JSON.stringify(pl)})`, 90000);
+      r.ppt = await ev(`window.__P.labPPT(null)`, 90000);
+      r.audit = await ev(`window.__P.labAudit(null)`, 90000);
+      r.errores = await ev(`window.__Y.errores()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.ctrl = r;
+    process.stderr.write('[ctrl] listo\n');
   }
 
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));

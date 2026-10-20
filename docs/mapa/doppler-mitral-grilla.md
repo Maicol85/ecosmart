@@ -21,10 +21,17 @@ columna, en el orden que pidió el médico el 13/10/2026:
 
 | | columna 1 | columna 2 | columna 3 | columna 4 |
 |---|---|---|---|---|
-| fila 1 | Onda E `onda_e` (1) | Dur. onda A mitral `venp_dur_a` (5) | THP mitral `thp` (9) | LARS `lars_dop` (13) |
-| fila 2 | Onda A `onda_a` (2) | Dur. onda Ar pulm. `venp_dur_ar` (6) | TDE `tde` (10) | Strain de contracción AI `ai_strain_ct_dop` (14) |
-| fila 3 | e′ septal `e_sep` (3) | Veloc. Ar pulm. `venp_vel_ar` (7) | TRIV `triv` (11) | VTI mitral de entrada `itv_mitral` (15) |
-| fila 4 | e′ lateral `e_lat` (4) | S/D pulmonar `venp_sd` (8) | Onda L `onda_l` (12) | AVm por THP `avm_thp` (16) |
+| fila 1 | Onda E `onda_e` (1) | THP mitral `thp` (5) | Dur. onda A mitral `venp_dur_a` (9) | LARS `lars_dop` (13) |
+| fila 2 | Onda A `onda_a` (2) | TDE `tde` (6) | Dur. onda Ar pulm. `venp_dur_ar` (10) | Strain de contracción AI `ai_strain_ct_dop` (14) |
+| fila 3 | e′ septal `e_sep` (3) | TRIV `triv` (7) | Veloc. Ar pulm. `venp_vel_ar` (11) | VTI mitral de entrada `itv_mitral` (15) |
+| fila 4 | e′ lateral `e_lat` (4) | Onda L `onda_l` (8) | S/D pulmonar `venp_sd` (12) | AVm por THP `avm_thp` (16) |
+
+⚠️ **LAS COLUMNAS 2 Y 3 SE INTERCAMBIARON EL 2026-10-20 (tanda Y3f2), Y CADA CAMPO CONSERVÓ SU
+FILA.** Antes la 2 era la vena pulmonar y la 3 los tiempos del llenado mitral; hoy los **tiempos**
+—que son la continuación natural de las velocidades de la columna 1— van segundos y la **vena
+pulmonar** tercera. El Tab sigue el orden nuevo por el **orden del marcado**, sin un solo
+`tabindex` (ver abajo), y en celular, donde la grilla colapsa a una columna, el apilado sale en
+**ese mismo orden** por construcción: no hay una segunda lista que mantener sincronizada.
 
 El número entre paréntesis es el **orden del Tab**, que es el de las columnas: la 1 entera de
 arriba hacia abajo, después la 2, la 3 y la 4.

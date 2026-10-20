@@ -368,3 +368,164 @@ tranquilizadora. Colores reales y distintos en los dos temas.
 `vabConclusion` **no lee `vab_simetria` en ninguna de sus ramas** —censado—, así que las **14** de
 la ESC 2024 salen igual, y el veredicto es el mismo con las tres categorías y sin ninguna. El EN
 SUMA no nombra la simetría, así que no se mueve.
+
+---
+
+## 11 · La sección se actualiza SOLA, la función se DERIVA, la conclusión es ESQUEMÁTICA y hay seis dibujos — «Y3f» (2026-10-20)
+
+### 11.1 · Los campos de solo lectura se actualizan EN VIVO (Y3f3)
+
+Los tres `readonly` de la sección —el grado de EA, el de IAo y los diámetros de la aorta— se
+quedaban con el valor del **gesto anterior**: `vabSync` corría sólo desde los controles de la
+propia sección, y los orígenes viven en **Válvulas** y en **Datos**. Lo cierra un **oyente de
+documento** sobre `input` y `change`, con el patrón de `emContFaAvisoSync`:
+
+```js
+const _VAB_ORIGENES = ['ao_sin', 'ao_tub', 'ea_grado', 'ia_grado'];
+```
+
+⚠️ **ES UN OYENTE DE DOCUMENTO Y NO CUATRO LÍNEAS EN LOS `onchange` AJENOS**, por la misma razón
+que el aviso del Tei del VD: `ea_grado` e `ia_grado` los escribe `valvSev.aplicar` por CÁLCULO, no
+sólo por el gesto del médico, y los dos campos de la aorta pasan por `calcAorta`. Pegarle una
+llamada a cada `onchange` deja afuera el camino del cálculo, que es el frecuente.
+
+⚠️ **MEDIDO CONTRA HEAD ANTES DE TOCAR NADA: los tres quedaban congelados en 6 de 6 escenas**, con
+los orígenes cambiando a la vista.
+
+### 11.2 · La función valvular se DERIVA y su `<select>` se retira (Y3f3)
+
+`vabFuncionDerivada(src)` devuelve `normal` / `estenosis` / `insuficiencia` / `mixta` / `null`
+leyendo los grados que Válvulas ya publica. **No declara ningún corte**: es un OR de dos grados.
+
+| EA | IAo | función |
+|---|---|---|
+| sin estenosis | ausente | `normal` |
+| con grado | ausente | `estenosis` |
+| sin estenosis | con grado | `insuficiencia` |
+| con grado | con grado | `mixta` |
+| sin datos de la válvula | sin datos | `null` |
+
+El `<select>` pasa a **`<input type="hidden" id="vab_funcion">`**, que `vabSync` escribe. ⚠️ **TIENE
+QUE SER UN OCULTO CON ID Y NO UNA VARIABLE**: la columna del Excel y el estudio guardado lo leen de
+`campos`, así que un dato que no viaja habría cambiado el libro.
+
+⚠️ **`limpiarCampos` NO BARRE `input[type=hidden]`** —la trampa que el Y3d5 ya pagó dos veces— así
+que `vab_funcion` se limpia **a mano** al final de ese barrido.
+
+⚠️ **EL EXCEL NO GANA NI PIERDE UNA COLUMNA, Y LA CELDA SE DERIVA DEL ESTUDIO ARCHIVADO**:
+`_labExcelRow` llama a `vabFuncionDerivada(c)` con la rama `src`, porque ahí no hay formulario que
+leer. Es el patrón de `emContFueraBanda(src)` y de `_htp2022Core`. **440 columnas, mismas claves.**
+
+⚠️ **UN ESTUDIO GUARDADO CON `vab_funcion` TIPEADO A MANO REABRE CON LO QUE SUS GRADOS DICEN**, que
+puede no ser lo que su médico eligió. **No se migra nada**: lo que se reescribe es la **celda
+derivada**, no el registro. Está declarado en `PENDIENTES.md`.
+
+### 11.3 · La conclusión: ESQUEMÁTICA en la pestaña, el texto completo en EVIDENCIA (Y3f4)
+
+`vabResumenPintar()` arma **cuatro líneas cortas** y las escribe **por nodos**, nunca con
+`innerHTML` concatenando datos —las dos las caza Semgrep—:
+
+```
+Fenotipo · Rafe · Cúspides · Aorta
+```
+
+**`vabConclusion` NO SE TOCÓ**: su texto completo se publica **igual**, en la fila «Según la guía»
+de la sección nueva del panel de Evidencia (`_indVABConcl`). Lo único que cambia es **dónde**.
+
+⚠️ **LA FILA LLEVA SU CORCHETE (`refs:['esc2024ao']`), Y NO ES DECORACIÓN.** El contrato del panel
+es que toda sección publique una cita numerada, y **TC-322 lo exige sobre `IND_SECS` entera**: una
+fila con una afirmación de guía y sin cita es justo lo que ese caso persigue.
+
+⚠️ **Y EL TÍTULO DE LA SECCIÓN LLEVA «— conclusión».** `IND_SECS` se recorre buscando la sección
+por el **PREFIJO** de su título, así que «Válvula aórtica bicúspide» a secas es prefijo de
+«Válvula aórtica bicúspide — aorta ascendente»: las dos matchean la misma clave, la primera se
+lleva las dos comprobaciones y **la otra queda sin probar**. Lo destapó TC-322 en la suite
+completa, no la lectura, y es el mismo argumento por el que las claves de este archivo no se
+repiten.
+
+### 11.4 · Los nombres en español y la hoja del PDF que se retira (Y3f6)
+
+«fused type» pasa a español **en todo rótulo visible**; **el Excel conserva el texto viejo** y el
+importador entiende las **dos** formas, por el mecanismo de `LAB_XLS_LISTAS_LEGADO`: para una
+columna de opción, un valor desconocido descarta la **FILA ENTERA**, así que renombrar el valor
+dejaría sin importar todo backup ya exportado.
+
+Y la **hoja «Estudio avanzado – Cardiopatías congénitas» del PDF se retira SÓLO para la VAB**: la
+sección publica su propia tabla, así que la hoja duplicaba lo que el papel ya dice. Lo decide
+`ccHoja`/`ccEnInforme`, y **las otras cardiopatías congénitas la conservan** — medido.
+
+### 11.5 · Los SEIS dibujos (Y3f7)
+
+`VAB_DIB_FUSION` pasa de tres entradas a **seis**:
+
+```js
+{ fused_rl:'RL', fused_rn:'RN', fused_ln:'LN',
+  dos_senos_ll:'LL', dos_senos_ap:'AP', partial:'PART' }
+```
+
+| tipo | qué dibuja | ángulo |
+|---|---|---|
+| `fused_rl` / `fused_rn` / `fused_ln` | tres senos, rafe en el par fusionado, **arco del ángulo** | 170 / 150 / 130, o 120 sin categoría |
+| `dos_senos_ll` | dos senos, comisuras **arriba y abajo** (cúspides lateral a lateral) | 180 fijo |
+| `dos_senos_ap` | dos senos, comisuras **a los costados** (cúspides adelante y atrás) | 180 fijo |
+| `partial` | tres senos con **minirafé** derecha-izquierda y apertura triangular | sin arco |
+
+⚠️ **EL LÁTERO-LATERAL ESTABA INVERTIDO Y SE CORRIGIÓ.** Ver `docs/fuentes/FUENTES.md` → «La tanda
+Y3f»: el pie de la Figura 11 y el cuerpo del folio 232 describen dónde quedan las **cúspides**, no
+las comisuras. **La prueba numérica es el A/B:** el hash del dibujo nuevo de `dos_senos_ap` es
+exactamente el que `dos_senos_ll` tenía en HEAD (`-657166111`).
+
+⚠️ **`fusion === 'NONE'` CAE EN `LL` Y NO EN UN CONTORNO VACÍO**, para que una clave desconocida
+no deje la sección sin dibujo; y **el arco sólo se dibuja en los tipos fusionados con categoría
+elegida** (`!two && !part && !!VAB_SIM_ANG[sym]`), que es lo que el pie de la Figura 9 acota.
+
+`VAB_SIN_RAFE` dice **qué cúspide NO está fusionada** en cada tipo, que es la que el arco mide:
+
+```js
+{ fused_rl:'N', fused_rn:'L', fused_ln:'R' }
+```
+
+El `aria-label` lo arma `vabDibAria()` y la leyenda del ángulo `vabAngNota()` →
+`vabAngNotaPintar()`, en `#vab-ang-nota`. ⚠️ **Es un `<div>` propio y su id NO termina en
+`-aviso`**: `limpiarCampos` barre `[id$="-aviso"]` con `textContent = ''`, así que como
+`vab-ang-aviso` la leyenda desaparecía en el primer «Nuevo estudio» y no volvía nunca — el defecto
+que el `vab-coa-aviso` del Y3d10 ya documenta.
+
+### 11.6 · La animación de la apertura (Y3f8)
+
+Sale de la demo aprobada `docs/3d/demo3_vab_apertura.html`, **sin versionarla**. Piezas:
+`VAB_ANIM_MS` (2800), `VAB_ANIM_EPS`, `VAB_ANIM_K`, `_vabAnim`, `vabAnimFrac`, `vabAnimGeom`,
+`vabAnimVisible`, `vabAnimPintar`, `_vabAnimCuadro`, `vabAnimVer/Play/Scrub/UI/Apagar`.
+Los dos nodos (`#vab-anim-lumen`, `#vab-anim-valvas`) se crean **una vez** con `createElementNS`.
+
+⚠️ **EN REPOSO COINCIDE CON EL DIBUJO ESTÁTICO, Y ES UNA CONDICIÓN MEDIDA, NO UNA INTENCIÓN**: con
+la fracción en 0 `vabAnimGeom` devuelve la geometría que `vabGeom` da.
+
+⚠️ **UN `requestAnimationFrame` COLGADO REPINTA SESENTA VECES POR SEGUNDO** con la pestaña abierta
+y sin que nada se mueva — es por lo que el panel 3D apaga el suyo al cerrarse. Dos guardas:
+`_vabAnimCuadro` **vuelve sin pedir otro cuadro** cuando `!_vabAnim.play`, y `vabAnimVisible`
+decide si hay algo que pintar.
+
+⚠️ **`vabAnimVisible` MIRA EL RECT DE CADA ANCESTRO Y NO SU `display`, y eso lo destapó medir.** El
+acordeón de la sección se cierra con **`max-height: 0` + `overflow: hidden`**, no con
+`display:none`, y **el rect del propio SVG sigue siendo distinto de cero**: con la sección plegada
+la sonda contó **54 cuadros en 900 ms**. Hoy se recorre la cadena de ancestros exigiendo
+`getBoundingClientRect().height > 0`, y además se mira `document.hidden`.
+
+⚠️ **EL `<input type=range>` DEL SCRUB MIDE 16 px DE ALTO**, así que lleva su
+`#vab-anim-scrub { min-height: 44px; }` dentro de `@media (pointer: coarse)` — el piso táctil de la
+casa, acotado al dedo para no agrandarlo en escritorio.
+
+**No guarda nada**: ni un campo del estudio, ni una clave de `localStorage`.
+
+### 11.7 · Cómo medir esta zona
+
+```bash
+node scripts/_probe_y3f.mjs --solo vabviv,vabcon,tipos,dib,anim
+node scripts/test_clinico.mjs --solo TC-506
+```
+
+La sonda trae `__Z.irVAB()`, `__Z.vabRo()`, `__Z.vabDib()`, `__Z.animEstado()`,
+`__Z.rafCuenta()`, `__Z.cicloVAB()`, `__Z.evid()`, `__Z.tipos()` y `__Z.xlsVab()`.
+⚠️ **ABRIR LA SECCIÓN ANTES DE MEDIR**: con el acordeón plegado los nodos existen, el rect del SVG
+no es cero y la lectura informa números plausibles sobre una sección que nadie ve.
