@@ -1552,6 +1552,12 @@
   .vinfo-btn:focus-visible { outline: 2px solid var(--accent2); outline-offset: 2px; border-radius: 4px; }
   @media (pointer: coarse) {
     .vinfo-btn { min-width: 44px; min-height: 44px; }
+    /* El control del ciclo de la animacion de la VAB (Y3f8). Un `<input type=range>` nativo mide
+       16 px de alto, que con el dedo no es un objetivo: el piso tactil de la casa son 44. Va
+       acotado a `pointer: coarse` por el mismo argumento que el globo ⓘ —con el mouse el control
+       conserva su alto— y con `min-height` sobre el propio `<input>`, que NO desplaza al boton de
+       al lado porque la fila es flex y los dos comparten la linea. */
+    #vab-anim-scrub { min-height: 44px; }
   }
   /* Los cuatro bloques de la tarjeta. El rotulo de cada uno va arriba, chico y en gris, para que
      se vea de un vistazo cual es la formula y cual la fuente. */
@@ -14365,6 +14371,22 @@ z
           <input type="hidden" id="vab_pdf" value="">
           <div style="text-align:center;margin-top:6px;">
             <button type="button" class="btn btn-ghost" id="vab-pdf-btn" onclick="vabIncluirPDF()">📄 Incluir en el PDF</button>
+            <!-- ══ LA ANIMACION DE LA APERTURA (Y3f8) ══════════════════════════════════════
+                 Tres controles y ninguno guarda nada: el estado vive en una variable de modulo.
+                 Los tres son `<button>` e `<input>` reales, asi que se usan con el teclado sin
+                 ningun manejador propio, y la regla tactil global de la app los lleva a 44 px
+                 con el dedo. El bloque de controles nace OCULTO. -->
+            <div style="margin-top:6px;">
+              <button type="button" class="btn btn-ghost" id="vab-anim-btn" aria-pressed="false"
+                      onclick="vabAnimVer()">▶ Ver apertura</button>
+            </div>
+            <div id="vab-anim-ctrl" style="display:none;align-items:center;gap:6px;margin-top:6px;">
+              <button type="button" class="btn btn-ghost" id="vab-anim-pausa" aria-pressed="true"
+                      onclick="vabAnimPlay()">⏸ Pausar</button>
+              <input type="range" id="vab-anim-scrub" min="0" max="100" step="1" value="0"
+                     aria-label="Momento del ciclo de apertura" style="flex:1;min-width:0;"
+                     oninput="vabAnimScrub(this.value)">
+            </div>
           </div>
         </div>
       </div>
@@ -40033,7 +40055,12 @@ const VINFO = Object.freeze({
        + 'sim\u00e9tricas 160-180\u00b0, asim\u00e9tricas 140-159\u00b0 y muy asim\u00e9tricas 120-139\u00b0.',
     ojo: 'Tambi\u00e9n pod\u00e9s tocar el rafe en el dibujo. El esquema dibuja el punto medio de cada '
        + 'categor\u00eda (170\u00b0, 150\u00b0 y 130\u00b0) y solo en los tipos fusionados, que son los que el '
-       + 'consenso clasifica.'
+       + 'consenso clasifica. '
+       /* ⚠️ Y3f8: LA UNICA AFIRMACION QUE LA ANIMACION AGREGA ES QUE NO ES UNA MEDICION. El
+          dibujo que se mueve es un ESQUEMA con la geometria de la demo aprobada: no sale de una
+          planimetria ni de un area medida, y decirlo con todas las letras es lo que impide que
+          se lea como un hallazgo. */
+       + 'La animaci\u00f3n es un esquema ilustrativo de la apertura; no representa una medici\u00f3n.'
   },
   /* Y3f3: el selector «Funci\u00f3n valvular» se retir\u00f3 y la funci\u00f3n se DERIVA de estos dos
      grados. El globo pasa al r\u00f3tulo de «EA \u2014 grado» y lo dice. */
@@ -54908,6 +54935,10 @@ function limpiarCampos(silencioso) {
      barrido generico tampoco lo alcanza. Sin esto, la funcion del paciente ANTERIOR sobrevivia a
      «Nuevo estudio» y `vabConclusion` la leia sobre un formulario en blanco. */
   { const _vf = document.getElementById('vab_funcion'); if (_vf) _vf.value = ''; }
+  /* La animacion de la apertura se apaga con el estudio (Y3f8): su estado es de SESION y no
+     viaja con el registro, asi que si no se apagara aca seguiria corriendo sobre el formulario
+     en blanco, con el tipo del paciente anterior ya borrado. */
+  { try { if (typeof vabAnimApagar === 'function') vabAnimApagar(); } catch (e) {} }
   if (typeof eteQxPdfSync === 'function') { try { eteQxPdfSync(); } catch (e) {} }
   /* ⚠️ EL BLOQUE DEL TEST DE BURBUJA SE CIERRA A MANO (CORTOS11): el barrido de arriba desmarca
      la casilla, pero el `display` de sus dos envoltorios lo gobierna `otrBurbUI` y ningun barrido
@@ -65614,6 +65645,15 @@ function vabDibConstruir() {
   N.s1 = _vabEl('path', Object.assign({ id: 'vab-s1' }, trazo), svg);
   N.s2 = _vabEl('path', Object.assign({ id: 'vab-s2' }, trazo), svg);
   N.s3 = _vabEl('path', Object.assign({ id: 'vab-s3' }, trazo), svg);
+  /* ══ LOS DOS NODOS DE LA ANIMACION (Y3f8) ══════════════════════════════════════════════
+     Van ANTES del cierre y del rafe para quedar POR DEBAJO: el lumen es un area rellena y, por
+     encima, taparia el rafe. Nacen con opacidad 0, asi que con la animacion apagada el dibujo
+     es exactamente el de siempre. */
+  N.lumen = _vabEl('path', { id: 'vab-anim-lumen', fill: 'none', stroke: 'var(--text)',
+    'stroke-width': 3, 'stroke-linejoin': 'round', 'stroke-linecap': 'round',
+    opacity: 0, 'pointer-events': 'none' }, svg);
+  N.valvas = _vabEl('path', { id: 'vab-anim-valvas', fill: 'none', stroke: 'var(--text)',
+    'stroke-width': 3, 'stroke-linecap': 'round', opacity: 0, 'pointer-events': 'none' }, svg);
   N.cierre = _vabEl('path', { id: 'vab-cierre', fill: 'none', stroke: 'var(--text)',
     'stroke-width': 3, 'stroke-linejoin': 'round', 'stroke-linecap': 'round',
     'pointer-events': 'none' }, svg);
@@ -65730,6 +65770,203 @@ function vabDibClic(k) {
   sel.value = k;
   sel.dispatchEvent(new Event('change', { bubbles: true }));
 }
+/* ══ LA ANIMACION 2D DE LA APERTURA — «Y3f8» (2026-10-20) ═════════════════════════════════
+   Un esquema ILUSTRATIVO de la apertura en eje corto, con la geometria de la demo que Maicol
+   aprobo (`docs/3d/demo3_vab_apertura.html`, 20/10/2026) y los mismos tres estados: el tipo, la
+   categoria de simetria y el rafe calcificado.
+
+   ⚠️ EN REPOSO EL DIBUJO ES EL ESTATICO, BYTE POR BYTE, y asi se resolvio el requisito de que
+   «coincida». La demo dibuja el lumen cerrado como una curva de Bezier que pasa por el centro
+   del orificio, y el dibujo estatico de la app dibuja una «V» (o una «Y») de segmentos rectos:
+   son dos formas distintas que comparten tres puntos. En vez de cambiar una de las dos -lo que
+   habria movido el dibujo estatico y con el la hoja del PDF-, el motor devuelve EL PROPIO
+   `g.closure` cuando la apertura es cero. Asi la coincidencia es por construccion y no por
+   parecido, y ni el dibujo estatico ni el papel se tocan. Reportado.
+
+   ⚠️ CON EL RAFE CALCIFICADO LA CUSPIDE FUSIONADA SE ABRE MUCHO MENOS, que es lo que la demo
+   dibuja: su control de Bezier del lado del rafe pasa de 36 a 12 -una TERCERA parte- mientras el
+   del lado de la cuspide libre casi no cambia (44 a 40). Los cuatro numeros son los de la demo.
+
+   ⚠️ NI UN NODO NUEVO POR CUADRO: los nodos se crean UNA vez en `vabDibConstruir` y el bucle
+   solo les reescribe atributos. Es la misma regla que el dibujo estatico, y lo que hace que
+   veinte aperturas y cierres de la seccion no acumulen nada.
+   ⚠️ UN SOLO `requestAnimationFrame` VIVO, y el bucle se para solo cuando el SVG deja de ser
+   visible —seccion plegada, otra pestana o pestana del navegador oculta—. Es la leccion del
+   panel 3D: un rAF colgado repinta sesenta veces por segundo sobre algo que nadie mira.
+   ⚠️ NADA SE GUARDA: ni en el estudio, ni en `localStorage`, ni en `sessionStorage`. El estado
+   vive en una variable de modulo y «Nuevo estudio» lo apaga. */
+const VAB_ANIM_MS = 2800;          // el ciclo entero, como la demo
+const VAB_ANIM_EPS = 0.004;        // por debajo de esto, el dibujo es el estatico
+/* Los cuatro controles de Bezier de la demo: [sin calcificar, calcificado] de cada lado. */
+const VAB_ANIM_K = Object.freeze({ libre: [44, 40], rafe: [36, 12], dosSenos: 40,
+                                   partFus: 24, partLibre: 34 });
+let _vabAnim = { on: false, play: false, p: 0, raf: null, last: 0 };
+
+/* La suavizada y la ventana del ciclo, las dos de la demo: la valvula abre, se queda abierta un
+   tramo y cierra, en vez de oscilar como un seno. */
+function _vabSmooth(x) { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); }
+function vabAnimFrac(p) { return _vabSmooth((p - 0.08) / 0.22) * (1 - _vabSmooth((p - 0.6) / 0.22)); }
+
+/* La geometria del cuadro. PURA: devuelve cadenas de `path` y no toca el DOM, igual que
+   `vabGeom`, de la que reusa el encuadre (centro 120,120 y radio 60). */
+function vabAnimGeom(fusion, calc, sym, f) {
+  const C = 120, R0 = 60, rad = d => d * Math.PI / 180;
+  const r1 = n => Math.round(n * 10) / 10;
+  const P = (deg, r) => [r1(C + r * Math.cos(rad(deg))), r1(C + r * Math.sin(rad(deg)))];
+  const pt = (deg, r) => { const p = P(deg, r); return p[0] + ',' + p[1]; };
+  const xy = p => r1(p[0]) + ',' + r1(p[1]);
+  const g = vabGeom(fusion, calc, sym);
+  if (fusion === 'NONE') fusion = 'LL';
+  /* Apertura cero: EL dibujo estatico, sin relleno. */
+  if (!(f > VAB_ANIM_EPS)) return { lumen: g.closure, relleno: 'none', valvas: 'M 0 0' };
+  const cal = calc === 'si';
+  if (fusion === 'LL' || fusion === 'AP') {
+    const comm = (fusion === 'AP') ? [180, 0] : [270, 90];
+    const u = (fusion === 'AP') ? [0, -1] : [1, 0];
+    const k = VAB_ANIM_K.dosSenos;
+    const A = P(comm[0], R0), B = P(comm[1], R0);
+    const Pa = [C + u[0] * k * f, C + u[1] * k * f], Pb = [C - u[0] * k * f, C - u[1] * k * f];
+    return { lumen: 'M ' + xy(A) + ' Q ' + xy(Pa) + ' ' + xy(B) + ' Q ' + xy(Pb) + ' ' + xy(A) + ' Z',
+             relleno: 'var(--bg3)', valvas: 'M 0 0' };
+  }
+  if (fusion === 'PART') {
+    /* Las tres valvas se separan del centro; la fusionada menos que las otras dos. */
+    const comm = [-30, 90, 210], FUS = -30;
+    const V = comm.map(a => P(a, (a === FUS ? VAB_ANIM_K.partFus : VAB_ANIM_K.partLibre) * f));
+    const valvas = comm.map((a, i) => 'M ' + xy(V[i]) + ' L ' + pt(a, a === FUS ? 42 : R0 - 1)).join(' ');
+    return { lumen: 'M ' + xy(V[0]) + ' L ' + xy(V[1]) + ' L ' + xy(V[2]) + ' Z',
+             relleno: 'var(--bg3)', valvas: valvas };
+  }
+  /* Los tres fusionados: el lumen entre la cuspide libre y la fusionada. */
+  const cen = VAB_DIB_CEN[fusion] !== undefined ? VAB_DIB_CEN[fusion] : VAB_DIB_CEN.RL;
+  const ang = VAB_SIM_ANG[sym] || VAB_SIM_ANG_BASE;
+  const A = P(cen - ang / 2, R0), B = P(cen + ang / 2, R0);
+  const M = [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2];
+  const P0 = [2 * C - M[0], 2 * C - M[1]];
+  const ux = Math.cos(rad(cen)), uy = Math.sin(rad(cen));
+  const kn = VAB_ANIM_K.libre[cal ? 1 : 0], kf = VAB_ANIM_K.rafe[cal ? 1 : 0];
+  const Pn = [P0[0] + ux * kn * f, P0[1] + uy * kn * f];
+  const Pf = [P0[0] - ux * kf * f, P0[1] - uy * kf * f];
+  return { lumen: 'M ' + xy(A) + ' Q ' + xy(Pn) + ' ' + xy(B) + ' Q ' + xy(Pf) + ' ' + xy(A) + ' Z',
+           relleno: 'var(--bg3)', valvas: 'M 0 0' };
+}
+window.vabAnimGeom = vabAnimGeom; window.vabAnimFrac = vabAnimFrac;
+
+/* ¿El dibujo esta a la vista? Cubre con UNA sola pregunta la seccion plegada, la pestana de la
+   app y la pestana del navegador. Se mira la cadena de ancestros y no una bandera: una bandera
+   se desincroniza del `display` que otro modulo acaba de cambiar. */
+function vabAnimVisible() {
+  if (typeof document !== 'undefined' && document.hidden) return false;
+  let n = document.getElementById('vab-svg');
+  if (!n) return false;
+  /* ⚠️ EL `display` NO ALCANZA, Y LO ENCONTRO LA MEDICION: el acordeon de la seccion se cierra
+     con `max-height: 0` y `overflow: hidden` -ver `secToggle`-, no con `display: none`, asi que
+     mirando solo el display el bucle seguia pidiendo cuadros con la seccion plegada (54 en
+     900 ms, medido). Y el rect del PROPIO SVG tampoco sirve: este archivo ya documenta que el
+     acordeon cerrado lo RECORTA y su rect sigue siendo distinto de cero. Lo que SI cae a cero es
+     la altura del contenedor recortante, asi que se mira la de cada ancestro.
+     Con una sola pregunta queda cubierto el acordeon, la pestana de la app (`display: none`) y la
+     del navegador (`document.hidden`). */
+  while (n && n.nodeType === 1 && n !== document.body) {
+    if (getComputedStyle(n).display === 'none') return false;
+    if (n !== document.getElementById('vab-svg') && n.getBoundingClientRect().height === 0) return false;
+    n = n.parentNode;
+  }
+  return true;
+}
+
+function vabAnimPintar() {
+  const N = (typeof vabDibConstruir === 'function') ? vabDibConstruir() : null;
+  if (!N || !N.lumen) return;
+  const sv2 = id => (document.getElementById(id)?.value || '').trim();
+  const tipo = sv2('vab_tipo');
+  const fus = VAB_DIB_FUSION[tipo] || null;
+  if (!_vabAnim.on || !fus) {
+    N.lumen.setAttribute('opacity', 0); N.valvas.setAttribute('opacity', 0);
+    N.cierre.setAttribute('opacity', 1);
+    return;
+  }
+  const a = vabAnimGeom(fus, sv2('vab_rafe'), sv2('vab_simetria'), vabAnimFrac(_vabAnim.p));
+  N.lumen.setAttribute('d', a.lumen);
+  N.lumen.setAttribute('fill', a.relleno);
+  N.lumen.setAttribute('opacity', 1);
+  N.valvas.setAttribute('d', a.valvas);
+  N.valvas.setAttribute('opacity', a.valvas === 'M 0 0' ? 0 : 1);
+  /* El cierre estatico se apaga porque el lumen LO CONTIENE: en apertura cero el motor devuelve
+     ese mismo path, asi que lo que se ve es identico. */
+  N.cierre.setAttribute('opacity', 0);
+}
+
+function _vabAnimCuadro(ts) {
+  if (!_vabAnim.on) { _vabAnim.raf = null; return; }
+  if (!vabAnimVisible()) { vabAnimApagar(); return; }
+  if (!_vabAnim.last) _vabAnim.last = ts;
+  if (_vabAnim.play) {
+    _vabAnim.p = (_vabAnim.p + (ts - _vabAnim.last) / VAB_ANIM_MS) % 1;
+    const sc = document.getElementById('vab-anim-scrub');
+    if (sc) sc.value = String(Math.round(_vabAnim.p * 100));
+  }
+  _vabAnim.last = ts;
+  vabAnimPintar();
+  /* ⚠️ EN PAUSA NO SE PIDE OTRO CUADRO. Un bucle que sigue girando sobre un dibujo que no cambia
+     es exactamente lo que el panel 3D vino a cerrar: sesenta repintados por segundo sobre algo
+     quieto. El cuadro siguiente lo pide `vabAnimPlay`, que es el gesto que lo reanuda; y el
+     control manual repinta por su cuenta, sin bucle. */
+  if (!_vabAnim.play) { _vabAnim.raf = null; return; }
+  _vabAnim.raf = requestAnimationFrame(_vabAnimCuadro);
+}
+
+/* ⚠️ UN SOLO BUCLE: se pide un cuadro solo si no hay uno pedido. Sin esta guarda, dos clics
+   seguidos dejan dos bucles vivos y la valvula late al doble de velocidad. */
+function _vabAnimArrancar() {
+  if (_vabAnim.raf !== null) return;
+  _vabAnim.last = 0;
+  _vabAnim.raf = requestAnimationFrame(_vabAnimCuadro);
+}
+function vabAnimApagar() {
+  if (_vabAnim.raf !== null) { cancelAnimationFrame(_vabAnim.raf); _vabAnim.raf = null; }
+  _vabAnim.on = false; _vabAnim.play = false; _vabAnim.p = 0; _vabAnim.last = 0;
+  vabAnimPintar(); vabAnimUI();
+}
+window.vabAnimApagar = vabAnimApagar;
+
+/* `prefers-reduced-motion`: el panel se abre igual y muestra el primer cuadro, pero NO arranca
+   solo. Es lo mismo que hace la demo y lo que ya hace el 3D del ventriculo. */
+function vabAnimVer() {
+  if (_vabAnim.on) { vabAnimApagar(); return; }
+  _vabAnim.on = true; _vabAnim.p = 0;
+  const quieto = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  _vabAnim.play = !quieto;
+  vabAnimUI(); vabAnimPintar();
+  _vabAnimArrancar();
+}
+function vabAnimPlay() {
+  if (!_vabAnim.on) return;
+  _vabAnim.play = !_vabAnim.play;
+  _vabAnim.last = 0;
+  vabAnimUI(); _vabAnimArrancar();
+}
+/* Mover el control a mano PAUSA, que es lo que la demo hace: el medico quiere mirar un cuadro. */
+function vabAnimScrub(val) {
+  if (!_vabAnim.on) return;
+  _vabAnim.play = false;
+  _vabAnim.p = Math.max(0, Math.min(100, parseInt(val, 10) || 0)) / 100;
+  vabAnimUI(); vabAnimPintar();
+}
+function vabAnimUI() {
+  const b = document.getElementById('vab-anim-btn');
+  const w = document.getElementById('vab-anim-ctrl');
+  const pz = document.getElementById('vab-anim-pausa');
+  if (b) { b.textContent = _vabAnim.on ? '■ Ocultar apertura' : '▶ Ver apertura';
+           b.setAttribute('aria-pressed', _vabAnim.on ? 'true' : 'false'); }
+  if (w) w.style.display = _vabAnim.on ? 'flex' : 'none';
+  if (pz) { pz.textContent = _vabAnim.play ? '⏸ Pausar' : '▶ Reproducir';
+            pz.setAttribute('aria-pressed', _vabAnim.play ? 'true' : 'false'); }
+}
+window.vabAnimVer = vabAnimVer; window.vabAnimPlay = vabAnimPlay;
+window.vabAnimScrub = vabAnimScrub; window.vabAnimUI = vabAnimUI;
+window.vabAnimPintar = vabAnimPintar; window.vabAnimVisible = vabAnimVisible;
+
 /* ══ LA FRASE DEL ANGULO Y LA ETIQUETA ACCESIBLE — «Y3f7» (2026-10-20) ════════════════════
    La frase va DEBAJO del dibujo y dice, con la cuspide, el angulo de la categoria elegida y su
    nombre: «Cúspide sin rafe (N): sector de 130°, cúspides muy asimétricas.». Sin categoria no
@@ -65814,6 +66051,9 @@ function vabDibujar() {
   N.svg.setAttribute('aria-label', vabDibAria());
   /* La frase del angulo, debajo del dibujo. */
   vabAngNotaPintar();
+  /* Y la animacion, que sigue al mismo estado: cambiar el tipo o la categoria con la apertura
+     encendida tiene que redibujar el lumen en el acto y no en el cuadro siguiente. */
+  try { vabAnimPintar(); vabAnimUI(); } catch (e) {}
   /* El punto sensible del tipo ELEGIDO se marca, para que el gesto tenga respuesta visible. */
   N.hits.forEach(function (c) {
     c.setAttribute('aria-pressed', c.getAttribute('data-vab-hit') === tipo ? 'true' : 'false');

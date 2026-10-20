@@ -1740,7 +1740,12 @@ window.__Z = {
     var b = document.getElementById('vab-anim-btn');
     var s = document.getElementById('vab-anim-scrub');
     var g = document.getElementById('vab-anim-g');
+    var pz = document.getElementById('vab-anim-pausa');
     return { btn: b ? (b.textContent||'').trim() : 'NO EXISTE',
+             pausa: pz ? (pz.textContent||'').trim() : 'NO EXISTE',
+             pausaPressed: pz ? pz.getAttribute('aria-pressed') : null,
+             ctrlVis: (function(){ var w=document.getElementById('vab-anim-ctrl');
+               return w ? getComputedStyle(w).display : 'NO EXISTE' })(),
              pressed: b ? b.getAttribute('aria-pressed') : null,
              btnGeo: b ? (function(){ var r = b.getBoundingClientRect();
                return { w: Math.round(r.width), h: Math.round(r.height) } })() : null,
@@ -2324,6 +2329,107 @@ window.__Z = {
     } catch (e) { r.err = e.message; }
     out.grupos.dib = r;
     process.stderr.write('[dib] listo\n');
+  }
+
+
+  /* ══ GRUPO «anim» — LA ANIMACION 2D DE LA APERTURA ═══════════════════════════════════════ */
+  if (corre('anim')) {
+    const r = {};
+    const nuevo = async () => { await ev(`window.__P.nuevo()`); await ev(`window.__P.despejar()`); };
+    const lumen = async () => await ev(`(function(){
+      var l = document.getElementById('vab-anim-lumen'), c = document.getElementById('vab-cierre'),
+          v = document.getElementById('vab-anim-valvas');
+      return { d: l ? l.getAttribute('d') : 'NO EXISTE', op: l ? l.getAttribute('opacity') : null,
+               fill: l ? l.getAttribute('fill') : null,
+               cierreD: c ? c.getAttribute('d') : null, cierreOp: c ? c.getAttribute('opacity') : null,
+               valvas: v ? v.getAttribute('d') : null } })()`);
+    try {
+      await nuevo();
+      await ev(`window.__Z.irVAB()`);
+      await ev(`window.__P.sel('vab_tipo','fused_rl')`);
+      await ev(`window.__P.sel('vab_simetria','asimetrica')`);
+      r.apagada = await lumen();
+      r.uiApagada = await ev(`window.__Z.animEstado()`);
+      /* CUADROS: con la animacion apagada, CERO. */
+      r.rafApagada = await ev(`window.__Z.rafCuenta(700)`, 40000);
+      /* Encender por el CLIC real. */
+      await ev(`(function(){ document.getElementById('vab-anim-btn').click(); return 1 })()`);
+      r.uiEncendida = await ev(`window.__Z.animEstado()`);
+      r.rafEncendida = await ev(`window.__Z.rafCuenta(700)`, 40000);
+      /* REPOSO: con el control en 0, el lumen tiene que ser EL cierre estatico. */
+      await ev(`(function(){ var s=document.getElementById('vab-anim-scrub');
+        s.value='0'; s.dispatchEvent(new Event('input',{bubbles:true})); return 1 })()`);
+      r.reposo = await lumen();
+      r.uiTrasScrub = await ev(`window.__Z.animEstado()`);
+      r.rafTrasScrub = await ev(`window.__Z.rafCuenta(700)`, 40000);
+      /* ABIERTA: el control a la mitad del tramo abierto. */
+      await ev(`(function(){ var s=document.getElementById('vab-anim-scrub');
+        s.value='40'; s.dispatchEvent(new Event('input',{bubbles:true})); return 1 })()`);
+      r.abierta = await lumen();
+      /* El rafe calcificado abre MENOS: se compara el area del lumen por su caja. */
+      r.calc = {};
+      for (const c of ['no', 'si']) {
+        await ev(`window.__P.sel('vab_rafe',${JSON.stringify(c)})`);
+        await ev(`(function(){ var s=document.getElementById('vab-anim-scrub');
+          s.value='40'; s.dispatchEvent(new Event('input',{bubbles:true})); return 1 })()`);
+        r.calc[c] = await ev(`(function(){ var l=document.getElementById('vab-anim-lumen');
+          var b = l.getBBox(); return { w: Math.round(b.width*10)/10, h: Math.round(b.height*10)/10,
+                                        area: Math.round(b.width*b.height) } })()`);
+      }
+      /* Los SEIS tipos con dibujo, abiertos. */
+      r.tipos = {};
+      for (const k of ['fused_rl','fused_rn','fused_ln','dos_senos_ll','dos_senos_ap','partial','no_clasif']) {
+        await ev(`window.__P.sel('vab_tipo',${JSON.stringify(k)})`);
+        await ev(`(function(){ var s=document.getElementById('vab-anim-scrub');
+          s.value='40'; s.dispatchEvent(new Event('input',{bubbles:true})); return 1 })()`);
+        r.tipos[k] = await lumen();
+      }
+      /* PAUSA: el boton. */
+      await ev(`window.__P.sel('vab_tipo','fused_rl')`);
+      await ev(`(function(){ document.getElementById('vab-anim-pausa').click(); return 1 })()`);
+      r.uiTrasPausa = await ev(`window.__Z.animEstado()`);
+      await ev(`(function(){ document.getElementById('vab-anim-pausa').click(); return 1 })()`);
+      r.uiTrasPlay = await ev(`window.__Z.animEstado()`);
+      /* SE DETIENE al cerrar la seccion. */
+      r.rafAntesCerrar = await ev(`window.__Z.rafCuenta(500)`, 40000);
+      await ev(`(function(){ var b = document.querySelector('[onclick*="sacc-cc-vab"]');
+        if (b) b.click(); return 1 })()`);
+      r.rafCerrada = await ev(`window.__Z.rafCuenta(900)`, 40000);
+      r.uiCerrada = await ev(`window.__Z.animEstado()`);
+      /* Y al cambiar de pestana. */
+      await ev(`window.__Z.irVAB()`);
+      await ev(`(function(){ document.getElementById('vab-anim-btn').click(); return 1 })()`);
+      await ev(`(function(){ try { showTab('doppler') } catch(e){} return 1 })()`);
+      r.rafOtraPestana = await ev(`window.__Z.rafCuenta(900)`, 40000);
+      /* CICLO: 20 aperturas y cierres de la seccion, nodos y oyentes. */
+      await ev(`window.__Z.irVAB()`);
+      r.ciclo = await ev(`window.__Z.cicloVAB(20)`, 60000);
+      /* «Nuevo estudio» la apaga. */
+      await ev(`window.__Z.irVAB()`);
+      await ev(`(function(){ document.getElementById('vab-anim-btn').click(); return 1 })()`);
+      await ev(`window.__P.nuevo()`);
+      r.uiTrasNuevo = await ev(`window.__Z.animEstado()`);
+      /* Nada en el navegador. */
+      r.almacen = await ev(`(function(){
+        var o = { ls: [], ss: [] };
+        for (var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); if (/vab|anim/i.test(k)) o.ls.push(k) }
+        for (var j=0;j<sessionStorage.length;j++){ var k2=sessionStorage.key(j); if (/vab|anim/i.test(k2)) o.ss.push(k2) }
+        return o })()`);
+      /* Los controles con el dedo. */
+      await ev(`window.__Z.irVAB()`);
+      await ev(`(function(){ document.getElementById('vab-anim-btn').click(); return 1 })()`);
+      await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 }, sessionId);
+      await viewport(390, 844);
+      r.tactil = await ev(`(function(){ var o={};
+        ['vab-anim-btn','vab-anim-pausa','vab-anim-scrub'].forEach(function(id){
+          var e=document.getElementById(id); if(!e){ o[id]='NO EXISTE'; return }
+          var b=e.getBoundingClientRect(); o[id]={ w:Math.round(b.width), h:Math.round(b.height) } });
+        return o })()`);
+      await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: false, maxTouchPoints: 1 }, sessionId);
+      await viewport(1200, 700);
+    } catch (e) { r.err = e.message; }
+    out.grupos.anim = r;
+    process.stderr.write('[anim] listo\n');
   }
 
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
