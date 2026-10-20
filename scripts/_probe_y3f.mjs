@@ -2212,6 +2212,61 @@ window.__Z = {
     process.stderr.write('[inf] listo\n');
   }
 
+
+  /* ══ GRUPO «tipos» — LAS ETIQUETAS EN ESPANOL, EL EXCEL Y LA REIMPORTACION ══════════════ */
+  if (corre('tipos')) {
+    const r = {};
+    const nuevo = async () => { await ev(`window.__P.nuevo()`); await ev(`window.__P.despejar()`); };
+    try {
+      await nuevo();
+      await ev(`window.__Z.irVAB()`);
+      r.tablas = await ev(`window.__Z.tipos()`);
+      /* El Excel por cada uno de los siete tipos, por el camino REAL del exportador. */
+      r.xls = {};
+      for (const k of ['fused_rl','fused_rn','fused_ln','dos_senos_ll','dos_senos_ap','partial','no_clasif'])
+        r.xls[k] = await ev(`window.__Z.xlsVab({ vab_tipo: ${JSON.stringify(k)} })`);
+      /* La reimportacion: que el vocabulario entienda las etiquetas de ANTES y las nuevas. */
+      /* Se le pregunta al RESOLVEDOR REAL del importador, no a una normalizacion propia: una
+         segunda copia de esa funcion informa «entra» sobre una celda que el importador descarta. */
+      r.vocab = await ev(`(function(){
+        if (typeof _labXlsVocab !== 'function') return 'SIN _labXlsVocab';
+        var pruebas = ['Fused R-L','Fused R-N','Fused L-N','2-sinus latero-lateral',
+          '2-sinus antero-posterior','Partial (forme fruste)','No clasificable',
+          'Fusi\u00f3n R\u2013L (derecha\u2013izquierda)','Fusi\u00f3n R\u2013N (derecha\u2013no coronariana)',
+          'Fusi\u00f3n L\u2013N (izquierda\u2013no coronariana)','Dos senos, latero-lateral',
+          'Dos senos, antero-posterior','Parcial (forme fruste)','fused_rl'];
+        var o = {}; pruebas.forEach(function(t){ o[t] = _labXlsVocab('vab_tipo', t) }); return o })()`);
+      /* El informe y el PDF con el tipo en espanol, y la hoja de CC. */
+      await ev(`window.__P.sel('vab_tipo','fused_rn')`);
+      await ev(`(function(){ var c=document.getElementById('vab_incluir_chk');
+        if (c && !c.checked) c.click(); return 1 })()`);
+      await ev(`(function(){ var b=document.getElementById('vab-pdf-btn'); if (b) b.click(); return 1 })()`);
+      await ev(`window.__P.calentar()`);
+      r.pdfOn = await ev(`(function(){ var e=document.getElementById('vab_pdf'); return e?e.value:'NO EXISTE' })()`);
+      r.informe = await ev(`window.__Z.informe('estandar')`, 40000);
+      r.hojasCC = await ev(`window.__Z.ccHojas()`);
+      r.pdfFilas = await ev(`(function(){ try { return vabPdfFilas() } catch(e){ return 'EXC' } })()`);
+      r.pdf = await ev(`window.__P.pdf('clasico')`, 60000);
+      /* CONTROL: otra cardiopatia congenita sigue imprimiendo su hoja. */
+      await nuevo();
+      await ev(`(function(){ try { showTab('congenitas') } catch(e){} return 1 })()`);
+      r.ctrlOtraCC = await ev(`(function(){
+        try { showTab('ete') } catch(e){}
+        var c = document.getElementById('fop_incluir_chk');
+        if (c && !c.checked) c.click();
+        var t = document.getElementById('fop_tunel');
+        if (t) { t.value = '8'; t.dispatchEvent(new Event('input', { bubbles:true })) }
+        if (typeof fopSync === 'function') { try { fopSync() } catch(e){} }
+        var cc = null; try { cc = fopConclusion() } catch(e){ cc = 'EXC' }
+        return { chk: !!(c&&c.checked), tunel: t ? t.value : 'NO EXISTE',
+                 concl: cc ? (cc.txt || cc) : null } })()`);
+      await ev(`window.__Z.informe('estandar')`, 40000);
+      r.ctrlHojas = await ev(`window.__Z.ccHojas()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.tipos = r;
+    process.stderr.write('[tipos] listo\n');
+  }
+
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
   process.stdout.write(JSON.stringify(OUT, null, 1));
   cdp.close(); srv.close(); process.exit(0);

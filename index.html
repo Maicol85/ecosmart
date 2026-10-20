@@ -14260,12 +14260,15 @@ z
             <div class="fg"><label>Tipo de fusión <button type="button" class="vinfo-btn" data-vinfo="vab-valv" aria-expanded="false" aria-label="Clasificación de la válvula" onclick="vInfoClic(this)">&#9432;</button></label>
               <select id="vab_tipo" onchange="vabTipoCambio()">
                 <option value="">—</option>
-                <option value="fused_rl">Fused type R-L — fusión derecha-izquierda (~70 %)</option>
-                <option value="fused_rn">Fused type R-N — fusión derecha-no coronaria (~17 %)</option>
-                <option value="fused_ln">Fused type L-N — fusión izquierda-no coronaria (raro)</option>
-                <option value="dos_senos_ll">2-sinus type — latero-lateral</option>
-                <option value="dos_senos_ap">2-sinus type — antero-posterior</option>
-                <option value="partial">Partial type (forme fruste)</option>
+                <!-- ⚠️ LAS ETIQUETAS PASARON A ESPAÑOL EL 2026-10-20 («Y3f6»). Los `value` NO
+                     cambian: son las claves que viajan con el estudio, las que el Excel exporta
+                     y las que el vocabulario de reimportacion reconoce. -->
+                <option value="fused_rl">Fusión R–L (derecha–izquierda) (~70 %)</option>
+                <option value="fused_rn">Fusión R–N (derecha–no coronariana) (~17 %)</option>
+                <option value="fused_ln">Fusión L–N (izquierda–no coronariana) (raro)</option>
+                <option value="dos_senos_ll">Dos senos, latero-lateral</option>
+                <option value="dos_senos_ap">Dos senos, antero-posterior</option>
+                <option value="partial">Parcial (forme fruste)</option>
                 <option value="no_clasif">No clasificable</option>
               </select>
             </div>
@@ -53015,21 +53018,13 @@ function generarInforme(opts) {
          coartacion en la VAB; lo que el consenso dice es que la fusion derecha-izquierda «esta
          fuertemente asociada con coartacion aortica EN NIÑOS», sin cifra. El recordatorio queda
          SOLO como el aviso corto de la seccion, y SIN numero. Ver el commit 10. */
-      const p = ['Válvula aórtica bicúspide' + (tipo ? ' — ' + (VAB_TIPO_TXT[tipo] || tipo) : '')];
-      /* ⚠️ «Cúspides …» Y EN PLURAL CONCORDADO (Y3e3). Esta linea decia «Senos simétrica»:
-         nombraba la estructura equivocada Y concordaba con el singular de `VAB_SIMETRIA_TXT`,
-         que describe la SIMETRIA y no las cuspides. El texto sale de `VAB_HOJA_CUSPIDES`, que
-         se DERIVA de la misma tabla que el informe usa, con el fallback para una clave que la
-         tabla no tenga. */
-      const _sim = sv('vab_simetria');
-      if (_sim) p.push(VAB_HOJA_CUSPIDES[_sim] || ('Cúspides ' + (VAB_SIMETRIA_TXT[_sim] || _sim)));
-      /* Sólo la afirmación explícita: «rafe no calcificado» es un hallazgo, «no evaluado» no. */
-      if (rafe === 'si') p.push('Rafe calcificado');
-      else if (rafe === 'no') p.push('Rafe no calcificado');
-      if (func) p.push('Válvula ' + (VAB_FUNC_TXT[func] || func));
-      if (f1(raiz)) p.push('Raíz aórtica ' + f1(raiz) + ' mm');
-      if (f1(asc))  p.push('Aorta ascendente ' + f1(asc) + ' mm');
-      if (feno) p.push('Fenotipo aortopático ' + (VAB_FENO_TXT[feno] || feno));
+      /* ⚠️ ACA SE ARMABA `p`, LAS ORACIONES DE LA HOJA DEL PDF DE CARDIOPATIAS CONGENITAS, y se
+         retiro ENTERO con esa hoja en el Y3f6 (ver abajo): «Válvula aórtica bicúspide — <tipo>»,
+         mas «Cúspides …», «Rafe calcificado», «Válvula <funcion>», «Raíz aórtica N mm», «Aorta
+         ascendente N mm» y «Fenotipo aortopático …». Lo que publicaba ya lo publica la hoja del
+         dibujo con su tabla (`vabPdfFilas`), leyendo las MISMAS constantes. Se retira en vez de
+         quedar sin consumidor: un armado que no llega a ninguna superficie es lo que la proxima
+         lectura cree que gobierna algo. */
       /* Lo que el INFORME publica de esta seccion: la conclusion de la guia y nada mas. El
          fenotipo extendido conserva su salvedad, porque no la dice ninguna otra superficie. */
       /* ══ Y3f5: EL PARRAFO FINAL DE LA VAB SALE DEL INFORME ════════════════════════════════
@@ -53049,7 +53044,17 @@ function generarInforme(opts) {
          algo de esta seccion — que lo describe, en las dos frases de arriba. Retirarla haria que
          el resumen negara lo que el cuerpo acaba de afirmar. */
       ccMarcarParrafo();
-      ccHoja('vab', p, c.txt, null);
+      /* ══ Y3f6: LA VAB DEJA DE APORTAR A LA HOJA «ESTUDIO AVANZADO - CARDIOPATIAS CONGENITAS».
+         DECISION DE MAICOL. Esa hoja repetia lo que la hoja del dibujo ya publica con su tabla
+         -el fenotipo, el rafe, las cuspides y los dos grados- y ademas arrastraba la conclusion
+         con sus umbrales y sus recomendaciones, que desde esta tanda no van en papel firmado.
+         ⚠️ SOLO LA VAB: las otras TRECE cardiopatias siguen llamando a `ccHoja` y su hoja sale
+         igual. Cuando la VAB es la unica seccion integrada, `ccEnInforme()` devuelve vacio y la
+         hoja entera no se agrega, que es la guarda que ese bloque ya tenia.
+         ⚠️ CONSECUENCIA DECLARADA: sin el boton «Incluir en el PDF» tildado, el papel no lleva
+         nada de esta seccion mas alla de la descripcion de la valvula y de la aorta, que estan
+         en el cuerpo del informe. Es lo que la orden pide.
+         La linea que estaba aca era:  ccHoja('vab', p, c.txt, null); */
       sumaCC(ccSumaLinea('vab'));
     })();
 
@@ -64718,11 +64723,14 @@ window.fopSync = fopSync; window.fopConclusion = fopConclusion;
    propósito: las traduce `_migrarCamposLegacy` al reabrir, así que un estudio de antes muestra su
    tipo en la nomenclatura nueva. Si se dejaran acá además, un estudio migrado y otro sin migrar
    imprimirían dos nomenclaturas distintas en la misma serie. */
+/* ⚠️ EN ESPAÑOL DESDE EL «Y3f6» (2026-10-20). DECISION DE MAICOL: ninguna etiqueta VISIBLE dice
+   «fused type» ni «2-sinus type». Las CLAVES no cambian -son las que viajan con el estudio y las
+   que el Excel y el importador reconocen-; lo que cambia son las palabras. */
 const VAB_TIPO_TXT = {
-  fused_rl:'fused type R-L (fusión derecha-izquierda)', fused_rn:'fused type R-N (fusión derecha-no coronaria)',
-  fused_ln:'fused type L-N (fusión izquierda-no coronaria)',
-  dos_senos_ll:'2-sinus type latero-lateral', dos_senos_ap:'2-sinus type antero-posterior',
-  partial:'partial type (forme fruste)', no_clasif:'no clasificable'
+  fused_rl:'fusión R–L (derecha–izquierda)', fused_rn:'fusión R–N (derecha–no coronariana)',
+  fused_ln:'fusión L–N (izquierda–no coronariana)',
+  dos_senos_ll:'dos senos, latero-lateral', dos_senos_ap:'dos senos, antero-posterior',
+  partial:'parcial (forme fruste)', no_clasif:'no clasificable'
 };
 /* Etiqueta CORTA del Consenso 2021 — dueño del texto de `vab_tipo` en CUATRO superficies:
    «Ver detalle» (`_IG_SECTIONS`), las DOS columnas de Excel de `_labExcelRow` y, derivadas de
@@ -64756,10 +64764,26 @@ const VAB_TIPO_LBL = {
    NO se usa para `LAB_XLS_ETIQ`: ahí cada clave publica la etiqueta que el importador acepta, y
    dos claves con la MISMA etiqueta dejarían el vocabulario derivado atado al orden de las
    propiedades del objeto. */
+/* ⚠️ LA ETIQUETA CORTA DE PANTALLA, EN ESPAÑOL — «Y3f6» (2026-10-20). `VAB_TIPO_LBL` se QUEDA
+   como estaba porque es la que escribe el EXCEL en sus dos columnas y la que
+   `LAB_XLS_ETIQ.vab_tipo` deriva para la ayuda de la plantilla y para el vocabulario de
+   reimportacion: traducirla cambiaria el TEXTO de una planilla ya exportada y el importador
+   dejaria de reconocer sus propias celdas. Lo que pasa a español es lo que el MEDICO LEE — el
+   rotulo del dibujo y «Ver detalle» —, y el vocabulario de entrada aprende las dos formas. */
+const VAB_TIPO_LBL_ES = {
+  fused_rl:'Fusión R–L', fused_rn:'Fusión R–N', fused_ln:'Fusión L–N',
+  dos_senos_ll:'Dos senos, latero-lateral', dos_senos_ap:'Dos senos, antero-posterior',
+  partial:'Parcial (forme fruste)', no_clasif:'No clasificable'
+};
 const VAB_TIPO_LBL_LEGACY = Object.assign({
   t0:   VAB_TIPO_LBL.dos_senos_ll, t1rl: VAB_TIPO_LBL.fused_rl, t1rn: VAB_TIPO_LBL.fused_rn,
   t1nl: VAB_TIPO_LBL.fused_ln,     t2:   VAB_TIPO_LBL.no_clasif
 }, VAB_TIPO_LBL);
+const VAB_TIPO_LBL_ES_LEGACY = Object.assign({
+  t0:   VAB_TIPO_LBL_ES.dos_senos_ll, t1rl: VAB_TIPO_LBL_ES.fused_rl, t1rn: VAB_TIPO_LBL_ES.fused_rn,
+  t1nl: VAB_TIPO_LBL_ES.fused_ln,     t2:   VAB_TIPO_LBL_ES.no_clasif
+}, VAB_TIPO_LBL_ES);
+window.VAB_TIPO_LBL_ES = VAB_TIPO_LBL_ES; window.VAB_TIPO_LBL_ES_LEGACY = VAB_TIPO_LBL_ES_LEGACY;
 const VAB_SIMETRIA_TXT = { simetrica:'simétrica', asimetrica:'asimétrica',
                            muy_asimetrica:'muy asimétrica', no_val:'no valorable' };
 /* ══ LA DESCRIPCION DE LA VALVULA EN EL INFORME (Y3d8, 2026-10-19) ══════════════════════════
@@ -64768,8 +64792,12 @@ const VAB_SIMETRIA_TXT = { simetrica:'simétrica', asimetrica:'asimétrica',
    Antes la VAB tenia su propio parrafo en el bloque de cardiopatias congenitas Y la valvula
    aortica tenia el suyo en el bloque 8, asi que el mismo organo se describia dos veces.
 
-   ⚠️ EN ESPAÑOL Y NO «fused type». `VAB_TIPO_TXT` -el nombre tecnico del Consenso 2021- se
-   conserva para la pantalla, el Excel y «Ver detalle»; el INFORME usa estas palabras.
+   ⚠️ EN ESPAÑOL Y NO «fused type». Desde el Y3f6 TODAS las etiquetas visibles lo estan, asi que
+   esta tabla ya no es la excepcion sino la regla; la unica que conserva el ingles es
+   `VAB_TIPO_LBL`, que es la que escribe el EXCEL y la que su importador reconoce.
+   ⚠️ ACA DICE «no coronaria» Y EL SELECTOR DICE «no coronariana», y las dos formas conviven a
+   proposito: esta es la frase del informe FIRMADO y reescribirla es contenido clinico que la
+   orden del Y3f no autoriza. Reportado.
    ⚠️ «SIMETRICOS» Y «ASIMETRICOS» EN PLURAL: son los SENOS. El informe decia «Senos simétrica»,
    concordando con el singular de `VAB_SIMETRIA_TXT`, que describe la SIMETRIA.
    ⚠️ LOS DOS TIPOS DE DOS SENOS NO TIENEN RAFE POR DEFINICION, asi que en vez de la clausula
@@ -65662,7 +65690,7 @@ function vabDibujar() {
   });
   /* `textContent` y NO `innerHTML`: es un rotulo que sale de una tabla de este archivo, pero la
      regla de la casa es que un dato no se concatena a marcado. */
-  N.nota.textContent = (fus || !tipo) ? '' : (VAB_TIPO_LBL[tipo] || tipo);
+  N.nota.textContent = (fus || !tipo) ? '' : (VAB_TIPO_LBL_ES[tipo] || tipo);
   /* El punto sensible del tipo ELEGIDO se marca, para que el gesto tenga respuesta visible. */
   N.hits.forEach(function (c) {
     c.setAttribute('aria-pressed', c.getAttribute('data-vab-hit') === tipo ? 'true' : 'false');
@@ -85489,7 +85517,8 @@ const _IG_SECTIONS = [
     {id:'fop_acv',lbl:'ACV criptogénico',map:_IG_SN},{id:'fop_trombofilia',lbl:'Trombofilia',map:_IG_SN}
   ]},
   { titulo:'🫀 Válvula aórtica bicúspide', fields:[
-    {id:'vab_tipo',lbl:'Tipo de fusión',map:VAB_TIPO_LBL_LEGACY},
+    /* Y3f6: la etiqueta de PANTALLA en español. La del Excel sigue siendo `VAB_TIPO_LBL`. */
+    {id:'vab_tipo',lbl:'Tipo de fusión',map:VAB_TIPO_LBL_ES_LEGACY},
     {id:'vab_rafe',lbl:'Rafe calcificado',map:_IG_SN},
     /* La simetría la usaba sólo el narrativo (`VAB_SIMETRIA_TXT`): «Ver detalle» de un estudio
        guardado no la mostraba, así que un dato cargado desaparecía de esta superficie. Reusa el
@@ -107879,7 +107908,20 @@ LAB_XLS_VOCAB.vab_tipo = {
   t1rl:'fused_rl', 'tipo 1 r-l':'fused_rl', 'r-l':'fused_rl', 'rl':'fused_rl', 'derecha-izquierda':'fused_rl',
   t1rn:'fused_rn', 'tipo 1 r-n':'fused_rn', 'r-n':'fused_rn', 'rn':'fused_rn',
   t1nl:'fused_ln', 'tipo 1 n-l':'fused_ln', 'n-l':'fused_ln', 'nl':'fused_ln',
-  t2:'no_clasif', 'tipo 2':'no_clasif' };
+  t2:'no_clasif', 'tipo 2':'no_clasif',
+  /* ⚠️ Y3f6: LAS ETIQUETAS EN ESPAÑOL TAMBIEN ENTRAN. Las de antes NO se tocan — una planilla
+     exportada antes de esta tanda tiene que seguir entrando—, y estas se agregan para que una
+     celda escrita a mano con lo que la pantalla muestra hoy tampoco descarte la fila. El
+     normalizador del importador saca los acentos y pasa a minusculas, asi que las claves van sin
+     tilde; el guion largo tambien se escribe como guion comun. */
+  'fusion r-l':'fused_rl', 'fusion r-n':'fused_rn', 'fusion l-n':'fused_ln',
+  'fusion r-l (derecha-izquierda)':'fused_rl',
+  'fusion r-n (derecha-no coronariana)':'fused_rn',
+  'fusion l-n (izquierda-no coronariana)':'fused_ln',
+  'dos senos, latero-lateral':'dos_senos_ll', 'dos senos latero-lateral':'dos_senos_ll',
+  'dos senos, antero-posterior':'dos_senos_ap', 'dos senos antero-posterior':'dos_senos_ap',
+  'parcial':'partial', 'parcial (forme fruste)':'partial', 'forme fruste':'partial',
+  'no clasificable':'no_clasif' };
 LAB_XLS_VOCAB.vab_funcion = { normal:'normal', normofuncionante:'normal',
   estenosis:'estenosis', 'estenosis aortica':'estenosis',
   insuficiencia:'insuficiencia', 'insuficiencia aortica':'insuficiencia',
