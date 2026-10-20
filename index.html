@@ -51942,8 +51942,26 @@ function generarInforme(opts) {
       sMasa = estiloPick('Sin masas.', 'Sin masas intracardíacas.',
                          'No se observan masas intracardíacas.');
     }
-    if (sPeri) inf.push(sPeri);
-    if (sMasa) inf.push(sMasa);
+    /* ══ Y3f5: SIN DERRAME Y SIN MASAS, UNA SOLA ORACION ═════════════════════════════════
+       DECISION DE MAICOL. Dos negaciones seguidas en renglones propios -«Sin derrame
+       pericardico.» y «Sin masas intracardiacas.»- son dos renglones para decir que no hay nada;
+       con derrame o con masas cada hallazgo conserva su renglon, porque ahi SI hay dos cosas que
+       describir. La compuerta es que las DOS oraciones sean la negacion, no el valor de los
+       campos: asi el renglon unico no aparece cuando el modulo de derrame/taponamiento es el que
+       describe el pericardio -ahi `sPeri` queda vacio- ni con una masa descrita.
+       Las tres redacciones salen del MISMO `estiloPick` que las dos frases que reemplaza. */
+    const _sinPeri = sPeri === estiloPick('Sin derrame pericárdico.', 'Sin derrame pericárdico.',
+                                          'No se observa derrame pericárdico.');
+    const _sinMasa = sMasa === estiloPick('Sin masas.', 'Sin masas intracardíacas.',
+                                          'No se observan masas intracardíacas.');
+    if (_sinPeri && _sinMasa) {
+      inf.push(estiloPick('Sin derrame pericárdico ni masas intracardíacas.',
+                          'Sin derrame pericárdico ni masas intracardíacas.',
+                          'No se observa derrame pericárdico ni masas intracardíacas.'));
+    } else {
+      if (sPeri) inf.push(sPeri);
+      if (sMasa) inf.push(sMasa);
+    }
     /* ══ ASIA, VARIANTES ANATOMICAS Y RAC (CORTOS10, 2026-10-17) ══════════════════════════════
        UNA ORACION APARTE POR HALLAZGO y DEBAJO del derrame y de las masas, que es donde la orden
        las pide. El texto sale de `OTR_HALL` por su dueño, asi que el cuerpo y el EN SUMA no
@@ -53014,9 +53032,23 @@ function generarInforme(opts) {
       if (feno) p.push('Fenotipo aortopático ' + (VAB_FENO_TXT[feno] || feno));
       /* Lo que el INFORME publica de esta seccion: la conclusion de la guia y nada mas. El
          fenotipo extendido conserva su salvedad, porque no la dice ninguna otra superficie. */
-      const _inf = [];
-      if (feno === 'arco') _inf.push('El fenotipo extendido no tiene umbral quirúrgico propio en la ESC 2024: la decisión es individual');
-      etePars.push([c.txt].concat(_inf).join('. ') + '.'); ccMarcarParrafo();
+      /* ══ Y3f5: EL PARRAFO FINAL DE LA VAB SALE DEL INFORME ════════════════════════════════
+         DECISION DE MAICOL. Publicaba la conclusion de `vabConclusion` -«Dilatacion de la aorta
+         de 45 mm, por debajo de los umbrales quirurgicos de la ESC 2024 - control anual por
+         imagen; si se indicara cirugia valvular, correspenderia reemplazar la aorta en el mismo
+         acto (sin evaluar: ...)»-, o sea una guia, un umbral, dos recomendaciones y un aviso de
+         datos faltantes, las cuatro cosas que un informe firmado no dice. El texto NO se perdio:
+         se consulta en la pestana Evidencia, en la tarjeta «Valvula aortica bicuspide» (Y3f4).
+         Con el se va la salvedad del fenotipo extendido, que era la misma clase de afirmacion.
+         ⚠️ LO QUE EL CUERPO SIGUE DICIENDO DE ESTA VALVULA ES LA DESCRIPCION, y estaba desde el
+         Y3d8: `vabFraseValv` escribe el fenotipo, el rafe y las cuspides en la frase de la
+         valvula aortica, y `_vabFenoCola` pega el fenotipo aortopatico a la de la aorta. No se
+         pierde un solo hallazgo.
+         ⚠️ `ccMarcarParrafo()` SE CONSERVA, y no es un descuido. Esa bandera autoriza al EN SUMA
+         a decir «sin OTRAS alteraciones», y lo que tiene que saber es si el informe DESCRIBIO
+         algo de esta seccion — que lo describe, en las dos frases de arriba. Retirarla haria que
+         el resumen negara lo que el cuerpo acaba de afirmar. */
+      ccMarcarParrafo();
       ccHoja('vab', p, c.txt, null);
       sumaCC(ccSumaLinea('vab'));
     })();
@@ -53122,8 +53154,15 @@ function generarInforme(opts) {
      y una cadena vacía es falsy: el único separador que el archivo intentaba —el `inf.push('',
      ...etePars)` del cuerpo— lo borra el propio filtro de la línea que lo escribe, así que era
      código muerto desde siempre. Un rótulo es truthy y sobrevive. */
+  /* ⚠️ Y3f5: EL ROTULO «Cardiopatias congenitas y miocardiopatias geneticas:» SE RETIRA.
+     DECISION DE MAICOL. Era un separador visual y no una afirmacion, y el EN SUMA es una lista
+     de hallazgos: cada linea de congenitas ya se nombra a si misma («VAB fenotipo R-N (rafe
+     calcificado).», «MCH sigmoidea - ...»). Ninguna otra linea del resumen depende de el —
+     censado: `sumaCCLineas` solo se empuja aca y el rotulo no se lee en ningun otro lado—, asi
+     que lo unico que cambia es que las lineas de congenitas quedan en la misma lista que el
+     resto. Lo que se pierde es el separador; el archivo ya documenta que una linea en blanco no
+     sirve como tal, porque `suma.filter(Boolean)` la borra. */
   if (sumaCCLineas.length) {
-    suma.push('Cardiopatías congénitas y miocardiopatías genéticas:');
     sumaCCLineas.forEach(function(l){ suma.push(l); });
   }
 
@@ -67442,8 +67481,14 @@ function ccSumaLinea(sec){
     const feTipo = _ccLbl(VAB_SUMA_FENO, tipo);
     let l = 'VAB' + (feTipo ? ' fenotipo ' + feTipo : '')
           + (feRafe ? ' (' + feRafe.replace(/^con /, '') + ')' : '');
-    const fx = L(VAB_FUNC_TXT, func);
-    if (fx && !(func !== 'normal' && _ccSumaTieneAo())) l += ', ' + fx;
+    /* ⚠️ Y3f5: LA UNICA FUNCION QUE LA LINEA AGREGA ES «normofuncionante». DECISION DE MAICOL.
+       Las otras tres -«con estenosis», «con insuficiencia», «con lesion mixta»- ya las dice el
+       EN SUMA en su propia linea desde el bloque 8 («EAo leve.», «IAo moderada.»), asi que
+       repetirlas aca decia el mismo hallazgo dos veces en el mismo resumen. `_ccSumaTieneAo`
+       cubria la mayoria de esos casos y no todos; desde el Y3f3 la funcion se DERIVA de esos dos
+       grados, asi que una funcion distinta de «normal» implica que hay un grado que publicar y la
+       guarda deja de hacer falta. Lo que queda es la afirmacion que ninguna otra linea hace. */
+    if (func === 'normal') l += ', normofuncionante';
     const dx = L(DX, c.clave);
     return l + (dx ? ' — ' + dx : '');
   }

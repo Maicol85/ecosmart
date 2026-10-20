@@ -1800,7 +1800,7 @@ window.__Z = {
     if (r.err) return r;
     var ls = String(r.inf || '').split(String.fromCharCode(10));
     return { lineas: ls.filter(function(l){
-      return /derrame|masa/i.test(l) }) } },
+      return /derrame|masa|intracard/i.test(l) }) } },
 
   /* La hoja de CC que el PDF consume. */
   ccHojas() {
@@ -2135,6 +2135,81 @@ window.__Z = {
     } catch (e) { r.err = e.message; }
     out.grupos.vabcon = r;
     process.stderr.write('[vabcon] listo\n');
+  }
+
+
+  /* ══ GRUPO «inf» — EL INFORME EN LOS TRES ESTILOS Y EL EN SUMA ═══════════════════════════ */
+  if (corre('inf')) {
+    const r = { vab: {}, perimasa: {}, suma: {} };
+    const nuevo = async () => { await ev(`window.__P.nuevo()`); await ev(`window.__P.despejar()`); };
+    const tresEstilos = async () => {
+      const o = {};
+      for (const e of ['conciso', 'estandar', 'narrativo']) o[e] = await ev(`window.__Z.informe(${JSON.stringify(e)})`, 40000);
+      return o;
+    };
+    const montarVAB = async (tipo, rafe, sim, ea, ia) => {
+      await nuevo();
+      await ev(`window.__Z.irVAB()`);
+      await ev(`(function(){ var c=document.getElementById('vab_incluir_chk');
+        if (c && !c.checked) c.click(); return !!(c&&c.checked) })()`);
+      if (tipo) await ev(`window.__P.sel('vab_tipo',${JSON.stringify(tipo)})`);
+      if (rafe) await ev(`window.__P.sel('vab_rafe',${JSON.stringify(rafe)})`);
+      if (sim)  await ev(`window.__P.sel('vab_simetria',${JSON.stringify(sim)})`);
+      if (ea)   await ev(`window.__P.sel('ea_grado',${JSON.stringify(ea)})`);
+      if (ia)   await ev(`(function(){ var e=document.getElementById('ia_grado'); e.value=${JSON.stringify(ia)};
+        e.dispatchEvent(new Event('change',{bubbles:true})); return 1 })()`);
+      await tipear('ao_sin', '45');
+      await ev(`window.__P.calentar()`);
+    };
+    try {
+      /* ── LA VAB, por tipo, rafe, simetria y funcion ───────────────────────────────────── */
+      await montarVAB('fused_rn', 'si', 'muy_asimetrica', 'leve', '2');
+      r.vab.rn_rafe_muyasim_mixta = await tresEstilos();
+      await montarVAB('fused_rl', 'no', 'simetrica', null, null);
+      r.vab.rl_sinrafe_sim_normo = await tresEstilos();
+      await montarVAB('dos_senos_ll', null, null, null, null);
+      r.vab.dos_senos = await tresEstilos();
+      /* NORMOFUNCIONANTE: la valvula evaluada y ninguna lesion. Hace falta una MEDICION para
+         que la funcion derivada deje de abstenerse. */
+      await montarVAB('fused_rl', 'no', 'simetrica', null, null);
+      await tipear('vmax_ao', '1.5');
+      await ev(`window.__P.calentar()`);
+      r.vab.rl_normofuncionante = await tresEstilos();
+      r.vab.hojasCC = await ev(`window.__Z.ccHojas()`);
+
+      /* ── DERRAME Y MASAS, las cinco escenas ──────────────────────────────────────────── */
+      const periEsc = async (peri, masa) => {
+        await nuevo();
+        if (peri) await ev(`window.__P.sel('pericardio',${JSON.stringify(peri)})`);
+        if (masa) {
+          /* El `<select>` guarda el TEXTO de la opcion, no un token. */
+          await ev(`window.__P.sel('masa_presente','Masa / imagen intracardíaca presente')`);
+          r.masaOps = await ev(`(function(){ var o={};
+            ['masa_cavidad','masa_loc','masa_morf','masa_movil','masa_eco','masa_dx'].forEach(function(id){
+              var e=document.getElementById(id);
+              o[id] = e ? Array.prototype.slice.call(e.options||[]).map(function(p){ return p.value }) : 'NO EXISTE' });
+            return o })()`);
+          for (const id of ['masa_cavidad','masa_loc','masa_morf','masa_movil','masa_eco','masa_dx']) {
+            const ops = (r.masaOps || {})[id];
+            if (Array.isArray(ops) && ops.length > 1) await ev(`window.__P.sel(${JSON.stringify(id)},${JSON.stringify(ops[1])})`);
+          }
+        }
+        const o = {};
+        for (const e of ['conciso', 'estandar', 'narrativo']) o[e] = await ev(`window.__Z.periMasas(${JSON.stringify(e)})`, 40000);
+        return o;
+      };
+      r.perimasa.ninguno       = await periEsc(null, false);
+      r.perimasa.normal_expl   = await periEsc('Normal, sin derrame', false);
+      r.perimasa.solo_derrame  = await periEsc('Derrame moderado (10-20mm)', false);
+      r.perimasa.solo_masa     = await periEsc(null, true);
+      r.perimasa.ambos         = await periEsc('Derrame moderado (10-20mm)', true);
+
+      /* ── EL EN SUMA: el encabezado de congenitas ─────────────────────────────────────── */
+      await montarVAB('fused_rn', 'si', null, null, null);
+      r.suma.vab_sola = await tresEstilos();
+    } catch (e) { r.err = e.message; }
+    out.grupos.inf = r;
+    process.stderr.write('[inf] listo\n');
   }
 
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
