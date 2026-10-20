@@ -14356,6 +14356,12 @@ z
         <div id="vab-dibujo-host" style="flex:0 0 240px;max-width:240px;">
           <svg id="vab-svg" viewBox="0 0 240 240" width="100%" style="max-width:240px;display:block;"
                role="img" aria-labelledby="vab-svg-tit"><title id="vab-svg-tit">Esquema de la válvula aórtica en eje corto</title></svg>
+          <!-- La frase del angulo de la cuspide sin rafe (Y3f7). La escribe `vabAngNotaPintar`;
+               nace vacia y NO va al PDF, que sigue con su dibujo y su tabla.
+               ⚠️ SU id NO TERMINA EN «-aviso»: `limpiarCampos` barre `[id$="-aviso"]` con
+               `textContent = ''`, y como `vab-ang-aviso` la frase desapareceria en el primer
+               «Nuevo estudio» sin volver. Es la leccion que `vab-coa-nota` ya pago. -->
+          <div id="vab-ang-nota" style="font-size:10.5px;color:var(--text2);line-height:1.45;margin-top:6px;text-align:center;"></div>
           <input type="hidden" id="vab_pdf" value="">
           <div style="text-align:center;margin-top:6px;">
             <button type="button" class="btn btn-ghost" id="vab-pdf-btn" onclick="vabIncluirPDF()">📄 Incluir en el PDF</button>
@@ -65451,17 +65457,47 @@ function vabGeom(fusion, calc, sym) {
   var P = function (deg, r) { return [r1(C + r * Math.cos(rad(deg))), r1(C + r * Math.sin(rad(deg)))]; };
   var pt = function (deg, r) { var p = P(deg, r); return p[0] + ',' + p[1]; };
   var arc = function (a0, a1, rs) { return 'M ' + pt(a0, R0) + ' A ' + rs + ' ' + rs + ' 0 0 1 ' + pt(a1, R0); };
-  var two = fusion === 'NONE';
+  /* `NONE` se acepta como alias historico de `LL`: era la unica clave de dos senos antes del
+     Y3f7 y pudo quedar en algun llamador. */
+  if (fusion === 'NONE') fusion = 'LL';
+  var two = fusion === 'LL' || fusion === 'AP';
+  var part = fusion === 'PART';
   var comm, raphe, rs, s1, s2, s3;
   if (two) {
-    /* ⚠️ LA CATEGORIA NO TOCA ESTE DIBUJO, y es de la fuente: el pie de la Figura 9 acota las
+    /* ══ LOS DOS FENOTIPOS DE DOS SENOS — «Y3f7» (2026-10-20) ════════════════════════════════
+       ⚠️ EL LATERO-LATERAL ESTABA INVERTIDO, Y SE CORRIGE CON SU FOLIO. Consenso internacional
+       VAB, traduccion del resumen, Arch Cardiol Mex 2024;94(2), **pie de la Figura 11, folio 232
+       (hoja 14)**, regla folio = hoja + 218 ya comprobada en seis hojas, y la figura LEIDA
+       renderizandola: en el latero-lateral «la linea comisural POSTERIOR esta casi alineada con
+       el septum interauricular», o sea una comisura ANTERIOR y otra POSTERIOR -arriba y abajo- y
+       por lo tanto las dos cuspides a IZQUIERDA y DERECHA, con la linea de cierre VERTICAL; en el
+       antero-posterior el pie habla de «la cuspide funcional ANTERIOR como la POSTERIOR», o sea
+       las dos cuspides arriba y abajo y la linea de cierre HORIZONTAL. En la imagen se ve asi.
+       Hasta esta tanda la app dibujaba el latero-lateral con el cierre HORIZONTAL, que es el
+       antero-posterior: el dibujo decia el otro fenotipo.
+       ⚠️ LA CATEGORIA NO TOCA ESTE DIBUJO, y es de la fuente: el pie de la Figura 9 acota las
        tres categorias a «los tres fenotipos de la VAB FUSIONADOS». Un 2-sinus no tiene cuspide
-       no fusionada ni rafe, asi que no hay angulo comisural que clasificar. Hasta el Y3d la
-       opcion «asimetrica» le cambiaba los radios a [60.5, 90, 0]; eso se retira, porque
-       afirmaba una asimetria que la fuente no define para este tipo. Reportado. */
-    comm = [180, 0]; raphe = null;
+       no fusionada ni rafe, asi que no hay angulo comisural que clasificar. */
+    raphe = null;
     rs = [64, 64, 0];
-    s1 = arc(180, 360, rs[0]); s2 = arc(0, 180, rs[1]); s3 = 'M 0 0';
+    if (fusion === 'AP') { comm = [180, 0];   s1 = arc(180, 360, rs[0]); s2 = arc(0, 180, rs[1]); }
+    else                 { comm = [270, 90];  s1 = arc(270, 450, rs[0]); s2 = arc(90, 270, rs[1]); }
+    s3 = 'M 0 0';
+  } else if (part) {
+    /* ══ LA FUSION PARCIAL (forme fruste) — «Y3f7» ═══════════════════════════════════════════
+       Consenso VAB, **Figura 13, folio 234 (hoja 16)**, leida renderizandola: «La apariencia en
+       DIASTOLE de la valvula aortica bicuspide de fusion parcial o forme fruste es la de una
+       valvula aortica TRICUSPIDE», con «una pequena fusion de las cuspides derecha e izquierda
+       con un minirafe». El dibujo estatico de la app es el de diastole, asi que son tres senos
+       iguales y una «Y» de cierre, con el tramo fusionado pintado como el rafe en la comisura
+       R-L -que es la que la figura ilustra-.
+       ⚠️ NINGUN TEXTO AFIRMA ENTRE QUE CUSPIDES: el dibujo usa la comisura de la figura y la
+       frase del pie no la nombra, que es lo que la orden pide. Reportado.
+       ⚠️ Y NO SE AGREGA NINGUN CAMPO DE SELECCION: la app no pregunta cual comisura. */
+    comm = [-30, 90, 210];
+    raphe = -30;
+    rs = [56, 56, 56];
+    s1 = arc(-150, -30, rs[0]); s2 = arc(-30, 90, rs[1]); s3 = arc(90, 210, rs[2]);
   } else {
     /* ⚠️ EL RADIO DEL ARCO SE ESCALA CON SU ANGULO, Y LA CONSTANTE SALE DE LA GEOMETRIA
        APROBADA, no de un numero elegido a ojo. Un arco cuyos dos extremos estan a R0 del centro
@@ -65495,9 +65531,15 @@ function vabGeom(fusion, calc, sym) {
     s2 = arc(tramos[1][0], tramos[1][1], rs[1]);
     s3 = arc(tramos[2][0], tramos[2][1], rs[2]);
   }
-  var closure = 'M ' + pt(comm[0], R0) + ' L ' + C + ',' + C + ' L ' + pt(comm[1], R0);
+  /* El cierre: una «V» en los fusionados y en los de dos senos -dos brazos desde las comisuras
+     al centro del orificio- y una «Y» en la fusion parcial, que en diastole es una trivalva.
+     Son subpaths de un MISMO `d`, asi que el nodo del dibujo no cambia. */
+  var closure = part
+    ? comm.map(function (a) { return 'M ' + pt(a, R0) + ' L ' + C + ',' + C; }).join(' ')
+    : 'M ' + pt(comm[0], R0) + ' L ' + C + ',' + C + ' L ' + pt(comm[1], R0);
   var hasRaphe = raphe !== null;
-  var rapheD = hasRaphe ? 'M ' + pt(raphe, R0 - 1) + ' L ' + pt(raphe, 26) : 'M 0 0';
+  /* En la fusion parcial el rafe es CORTO -«un minirafe», folio 234- y no llega al centro. */
+  var rapheD = hasRaphe ? 'M ' + pt(raphe, R0 - 1) + ' L ' + pt(raphe, part ? 42 : 26) : 'M 0 0';
   var calcOn = hasRaphe && calc === 'si';
   /* El verde del rafe calcificado sale de `--green`, que existe en la paleta global y resuelve
      distinto en los dos temas (#3ecf8e de noche, #1f9d6c de dia). La demo usaba el literal
@@ -65513,14 +65555,35 @@ function vabGeom(fusion, calc, sym) {
   var LR = 90, lbl = { R: -90, L: 30, N: 150 };
   ['R', 'L', 'N'].forEach(function (k) { var p = P(lbl[k], LR); out['l' + k + 'x'] = p[0]; out['l' + k + 'y'] = p[1]; });
   out.lblOp = two ? 0 : 1;
+  /* ══ EL ARCO DEL ANGULO DE LA CUSPIDE SIN RAFE — «Y3f7» ══════════════════════════════════
+     Un arco punteado por FUERA del contorno, con una marca en cada extremo, que muestra el
+     sector que el consenso clasifica: el angulo entre las comisuras de la cuspide no fusionada.
+     ⚠️ SOLO EN LOS TIPOS CON FUSION Y SOLO CON CATEGORIA ELEGIDA. En los de dos senos no hay
+     cuspide no fusionada; sin categoria el dibujo usa el angulo de la geometria aprobada y la app
+     NO afirma ninguna simetria, asi que dibujar el arco afirmaria una medicion que nadie hizo.
+     ⚠️ Y NO VA AL PDF: la hoja del papel sigue con su dibujo y su tabla. */
+  var conArco = !two && !part && !!VAB_SIM_ANG[sym];
+  out.arcoOp = conArco ? 1 : 0;
+  if (conArco) {
+    var RA = 72;
+    out.arcoD = 'M ' + pt(comm[0], RA) + ' A ' + RA + ' ' + RA + ' 0 0 1 ' + pt(comm[1], RA);
+    out.arcoMD = comm.map(function (a) { return 'M ' + pt(a, R0 + 3) + ' L ' + pt(a, RA + 5); }).join(' ');
+  } else { out.arcoD = 'M 0 0'; out.arcoMD = 'M 0 0'; }
   return out;
 }
 /* El reparto tipo de la lista -> fusion del dibujo. Los tres que NO estan es porque la demo no
    los cubre: `partial` (forme fruste) es una trivalve en diastole, `no_clasif` no tiene forma
    por definicion, y el 2-sinus antero-posterior comparte geometria con el latero-lateral pero
    rotada 90 grados, que la demo no da. Los tres caen al contorno sin lineas de cierre. */
+/* ⚠️ SEIS DE LOS SIETE TIPOS TIENEN DIBUJO DESDE EL «Y3f7» (2026-10-20). Faltaban el
+   antero-posterior y la fusion parcial; los dos entran con su folio (ver `vabGeom`). El que NO
+   tiene es `no_clasif`, y es por definicion: una valvula que no se puede clasificar no tiene
+   forma que dibujar. Ese sigue cayendo al contorno de tres senos con su rotulo.
+   ⚠️ `dos_senos_ll` PASA DE 'NONE' A 'LL' en el mismo movimiento, porque ya no es «el unico de
+   dos senos»: hay dos. `vabGeom` acepta 'NONE' como alias historico. */
 const VAB_DIB_FUSION = Object.freeze({
-  fused_rl: 'RL', fused_rn: 'RN', fused_ln: 'LN', dos_senos_ll: 'NONE'
+  fused_rl: 'RL', fused_rn: 'RN', fused_ln: 'LN',
+  dos_senos_ll: 'LL', dos_senos_ap: 'AP', partial: 'PART'
 });
 /* Los puntos sensibles para elegir la fusion TOCANDO el rafe. Transparentes, radio 24 -por
    encima de los 44 px de lado efectivo que pide el celular a este tamaño-. «Sin rafe» solo por
@@ -65567,6 +65630,15 @@ function vabDibConstruir() {
       'font-weight': 600, fill: 'var(--text2)', 'pointer-events': 'none' }, svg);
     t.textContent = k; N.lbl[k] = t;
   });
+  /* ══ EL ARCO DEL ANGULO DE LA CUSPIDE SIN RAFE (Y3f7) ══════════════════════════════════
+     Dos nodos: el arco punteado y las dos marcas de sus extremos. Nacen con opacidad 0 y van
+     en `var(--text2)`, que es la variable que esta zona ya usa para lo que no es el contorno:
+     un color propio para un elemento de medida competiria con los seis colores de lesion, que
+     estan RESERVADOS. */
+  N.arco = _vabEl('path', { id: 'vab-arco', fill: 'none', stroke: 'var(--text2)',
+    'stroke-width': 2, 'stroke-dasharray': '4 3', opacity: 0, 'pointer-events': 'none' }, svg);
+  N.arcoM = _vabEl('path', { id: 'vab-arco-m', fill: 'none', stroke: 'var(--text2)',
+    'stroke-width': 2, 'stroke-linecap': 'round', opacity: 0, 'pointer-events': 'none' }, svg);
   /* El rotulo del tipo que el dibujo NO representa. Nace vacio. */
   N.nota = _vabEl('text', { id: 'vab-nota', x: 120, y: 232, 'text-anchor': 'middle',
     'font-size': 11, fill: 'var(--text2)', 'pointer-events': 'none' }, svg);
@@ -65658,6 +65730,45 @@ function vabDibClic(k) {
   sel.value = k;
   sel.dispatchEvent(new Event('change', { bubbles: true }));
 }
+/* ══ LA FRASE DEL ANGULO Y LA ETIQUETA ACCESIBLE — «Y3f7» (2026-10-20) ════════════════════
+   La frase va DEBAJO del dibujo y dice, con la cuspide, el angulo de la categoria elegida y su
+   nombre: «Cúspide sin rafe (N): sector de 130°, cúspides muy asimétricas.». Sin categoria no
+   hay arco ni frase. En los tipos SIN fusion la frase dice solo que la categoria se aplica a los
+   tipos con fusion, que es lo que el pie de la Figura 9 acota.
+   ⚠️ LA CUSPIDE SIN RAFE SE DERIVA Y NO SE ESCRIBE: es la que no participa de la fusion —N en la
+   R-L, L en la R-N, R en la L-N—. Un segundo mapa a mano se separa del primero.
+   ⚠️ EL ANGULO SALE DE `VAB_SIM_ANG`, la MISMA tabla con la que el dibujo lo dibuja: un numero
+   escrito aparte diria un sector que el arco no muestra. */
+const VAB_SIN_RAFE = Object.freeze({ fused_rl: 'N', fused_rn: 'L', fused_ln: 'R' });
+function vabAngNota() {
+  const sv2 = id => (document.getElementById(id)?.value || '').trim();
+  const tipo = sv2('vab_tipo'), sim = sv2('vab_simetria');
+  if (!tipo) return '';
+  const k = VAB_SIN_RAFE[tipo];
+  if (!k) return 'La categoría de simetría se aplica a los tipos con fusión.';
+  const ang = VAB_SIM_ANG[sim];
+  if (!ang) return '';
+  return 'Cúspide sin rafe (' + k + '): sector de ' + ang + '°, ' +
+         (VAB_INF_CUSPIDES[sim] || '') + '.';
+}
+function vabAngNotaPintar() {
+  const e = document.getElementById('vab-ang-nota');
+  if (!e) return;
+  e.textContent = vabAngNota();
+}
+function vabDibAria() {
+  const sv2 = id => (document.getElementById(id)?.value || '').trim();
+  const tipo = sv2('vab_tipo'), sim = sv2('vab_simetria');
+  let t = 'Dibujo de la válvula aórtica bicúspide';
+  const ft = tipo ? (VAB_TIPO_TXT[tipo] || '') : '';
+  if (ft) t += ', ' + ft;
+  const fc = (VAB_SIN_RAFE[tipo] && sim) ? (VAB_INF_CUSPIDES[sim] || '') : '';
+  if (fc) t += ', ' + fc;
+  return t;
+}
+window.vabAngNota = vabAngNota; window.vabDibAria = vabDibAria;
+window.VAB_SIN_RAFE = VAB_SIN_RAFE;
+
 function vabDibujar() {
   const N = vabDibConstruir();
   if (!N) return;
@@ -65688,9 +65799,21 @@ function vabDibujar() {
     N.lbl[k].setAttribute('y', g['l' + k + 'y']);
     N.lbl[k].setAttribute('opacity', neutro ? 0 : g.lblOp);
   });
+  /* El arco del angulo y sus dos marcas (Y3f7). Con `neutro` o sin categoria, opacidad 0. */
+  N.arco.setAttribute('d', neutro ? 'M 0 0' : g.arcoD);
+  N.arcoM.setAttribute('d', neutro ? 'M 0 0' : g.arcoMD);
+  N.arco.setAttribute('opacity', neutro ? 0 : g.arcoOp);
+  N.arcoM.setAttribute('opacity', neutro ? 0 : g.arcoOp);
   /* `textContent` y NO `innerHTML`: es un rotulo que sale de una tabla de este archivo, pero la
      regla de la casa es que un dato no se concatena a marcado. */
   N.nota.textContent = (fus || !tipo) ? '' : (VAB_TIPO_LBL_ES[tipo] || tipo);
+  /* ══ LA ETIQUETA ACCESIBLE DEL DIBUJO (Y3f7) ═══════════════════════════════════════════════
+     Nombra el tipo y la categoria ELEGIDOS, se actualiza en cada repintado y NO inventa nada
+     cuando no hay datos: sin tipo queda la descripcion generica, que es la que el `<title>` ya
+     daba. Va como `aria-label` sobre el `<svg>`, que ya tiene `role="img"`. */
+  N.svg.setAttribute('aria-label', vabDibAria());
+  /* La frase del angulo, debajo del dibujo. */
+  vabAngNotaPintar();
   /* El punto sensible del tipo ELEGIDO se marca, para que el gesto tenga respuesta visible. */
   N.hits.forEach(function (c) {
     c.setAttribute('aria-pressed', c.getAttribute('data-vab-hit') === tipo ? 'true' : 'false');

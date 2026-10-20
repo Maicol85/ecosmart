@@ -2267,6 +2267,65 @@ window.__Z = {
     process.stderr.write('[tipos] listo\n');
   }
 
+
+  /* ══ GRUPO «dib» — LOS SIETE TIPOS, EL ARCO Y EL ARIA-LABEL ══════════════════════════════ */
+  if (corre('dib')) {
+    const r = { tipos: {}, arco: {} };
+    const nuevo = async () => { await ev(`window.__P.nuevo()`); await ev(`window.__P.despejar()`); };
+    try {
+      await nuevo();
+      await ev(`window.__Z.irVAB()`);
+      /* Los SIETE tipos, con y sin rafe calcificado. */
+      for (const k of ['fused_rl','fused_rn','fused_ln','dos_senos_ll','dos_senos_ap','partial','no_clasif']) {
+        await ev(`window.__P.sel('vab_tipo',${JSON.stringify(k)})`);
+        await ev(`window.__P.sel('vab_rafe','si')`);
+        r.tipos[k] = await ev(`window.__Z.vabDib()`);
+      }
+      /* El arco, por categoria, en un tipo fusionado y en uno de dos senos. */
+      for (const t of ['fused_rl','fused_rn','fused_ln','dos_senos_ll','partial']) {
+        await ev(`window.__P.sel('vab_tipo',${JSON.stringify(t)})`);
+        r.arco[t] = {};
+        for (const c of ['', 'simetrica', 'asimetrica', 'muy_asimetrica']) {
+          await ev(`window.__P.sel('vab_simetria',${JSON.stringify(c)})`);
+          const d = await ev(`window.__Z.vabDib()`);
+          r.arco[t][c || 'sin'] = { arcoOp: (d.nodos['vab-arco']||{}).op,
+                                    arcoD: ((d.nodos['vab-arco']||{}).d || '').slice(0, 44),
+                                    nota: d.notaAng, aria: d.aria };
+        }
+      }
+      /* El PDF: que el arco y la frase NO viajen, y el hash del dibujo por tipo. */
+      r.pdfHash = {};
+      for (const k of ['fused_rl','fused_rn','fused_ln','dos_senos_ll','dos_senos_ap','partial','no_clasif']) {
+        await ev(`window.__P.sel('vab_tipo',${JSON.stringify(k)})`);
+        await ev(`window.__P.sel('vab_simetria','muy_asimetrica')`);
+        r.pdfHash[k] = await ev(`(function(){
+          try { var u = vabDataURL(); if (!u) return 'NULL';
+            var h = 0; for (var i = 0; i < u.length; i++) { h = ((h << 5) - h + u.charCodeAt(i)) | 0 }
+            return { hash: h, bytes: u.length } } catch (e) { return 'EXC: ' + e.message } })()`, 40000);
+      }
+      /* Celular y temas: que el dibujo y la frase entren. */
+      r.maqueta = {};
+      for (const [w, h] of [[1200, 700], [768, 1024], [390, 844], [360, 740]]) {
+        for (const claro of [false, true]) {
+          await viewport(w, h);
+          const t = await ev(`window.__P.tema(${claro})`);
+          if (!!t.claro !== claro) throw new Error('EL TEMA NO QUEDO en ' + w);
+          await ev(`window.__P.despejar()`);
+          r.maqueta[w + (claro ? '_claro' : '_oscuro')] = await ev(`(function(){
+            var svg = document.getElementById('vab-svg'), n = document.getElementById('vab-ang-nota');
+            var rs = svg ? svg.getBoundingClientRect() : null, rn = n ? n.getBoundingClientRect() : null;
+            return { svg: rs ? { w: Math.round(rs.width), h: Math.round(rs.height) } : null,
+                     nota: rn ? { w: Math.round(rn.width), h: Math.round(rn.height) } : null,
+                     colArco: svg ? getComputedStyle(document.getElementById('vab-arco')).stroke : null,
+                     scrollH: document.documentElement.scrollWidth > document.documentElement.clientWidth } })()`);
+        }
+      }
+      await ev(`window.__P.tema(false)`); await viewport(1200, 700);
+    } catch (e) { r.err = e.message; }
+    out.grupos.dib = r;
+    process.stderr.write('[dib] listo\n');
+  }
+
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
   process.stdout.write(JSON.stringify(OUT, null, 1));
   cdp.close(); srv.close(); process.exit(0);
