@@ -63,8 +63,8 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Entender por qué una REFERENCIA conservaba el resultado del valor viejo al borrar el dato**: el dueño común, las DOS causas y los once campos | `docs/mapa/borrado-referencias.md` |
 | **Tocar el FOP, el test de burbuja o el aneurisma del septum**: la escala unificada, el espejo entre Otros y el módulo FOP, el informe esquemático o el aviso de la edad | `docs/mapa/fop-burbuja-unificado.md` |
 | **Agregar o correr un caso de prueba; A/B; mutación** | `docs/mapa/tests.md` · fichas en `docs/mapa/tests-fichas.md` (TC-499 en adelante), `docs/mapa/tests-fichas-496-498.md`, `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
-| **Tocar el DIBUJO ESTÁTICO de la mitral en ETE**: la tabla única de festones por ángulo, la geometría, la línea del plano, el giro, las tres vistas con sus LETRAS DE FESTÓN, el PDF, los CUATRO DIBUJOS DE MEDIDAS TEER o **los CRITERIOS TEER y sus cortes** | `docs/mapa/mitral-dibujo-estatico.md` |
-| **Tocar la sección de la VÁLVULA AÓRTICA BICÚSPIDE**: la disposición en tres columnas, las seis tarjetas ⓘ, los factores de riesgo con casilla, el DIBUJO y sus puntos sensibles, la morfología que sigue al tipo de fusión, la descripción del informe, el PDF o el recordatorio de la coartación | `docs/mapa/vab-bicuspide.md` |
+| **Tocar el DIBUJO ESTÁTICO de la mitral en ETE**: la tabla única de festones por ángulo, la geometría, la línea del plano, el giro, las tres vistas con sus LETRAS DE FESTÓN, **la ORIENTACIÓN de la TRANSGÁSTRICA**, el PDF, los CUATRO DIBUJOS DE MEDIDAS TEER, **los CRITERIOS TEER y sus cortes** o **el ESPEJO de la FEVI y el DSFVI del TEER** | `docs/mapa/mitral-dibujo-estatico.md` |
+| **Tocar la sección de la VÁLVULA AÓRTICA BICÚSPIDE**: la disposición en tres columnas, las seis tarjetas ⓘ, los factores de riesgo con casilla, el DIBUJO y sus puntos sensibles, **la SIMETRÍA DE LAS CÚSPIDES y el ÁNGULO con que se dibuja**, la morfología que sigue al tipo de fusión, la descripción del informe, el PDF o el recordatorio de la coartación | `docs/mapa/vab-bicuspide.md` |
 | **Visor de cineloop, medición, calibración, IndexedDB** | `docs/mapa/imagenes-visor.md` |
 | **Tocar la ESTENOSIS MITRAL en el LABORATORIO**: las seis categorías, las dos casillas del filtro, el gráfico de distribución, el PDF de auditoría o el PPT | `docs/mapa/laboratorio-estenosis-mitral.md` |
 | **Tocar la VISTA 2D de las válvulas**: el lector único del estado, las tarjetas, la tabla de cavidades, el dibujo, los chorros o el «por qué» | `docs/mapa/vista-2d-valvulas.md` |
@@ -129,8 +129,8 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **8,39 MB / 126.263 líneas**, medido el 2026-10-19 al cierre de la tanda
-  Y3d —el renglón anterior decía «8,33 MB / 125.471 líneas» y era del Y3c, una tanda antes:
+  sin frameworks. Hoy **8,40 MB / 126.417 líneas**, medido el 2026-10-20 al cierre de la tanda
+  Y3e —el renglón anterior decía «8,39 MB / 126.263 líneas» y era del Y3d, una tanda antes:
   **medirlo antes de presupuestar contexto**—. Las únicas dependencias son jsPDF, XLSX y
   PptxGenJS por CDN. Se abre como archivo local y corre en Chrome.
 - Lo que produce es un **informe firmado**: narrativo, EN SUMA, PDF, PPT y Excel del Laboratorio.
@@ -284,6 +284,188 @@ impecable.
 ---
 
 ## Estado vigente
+
+### El ESPEJO del TEER, la vista TRANSGÁSTRICA y las CÚSPIDES de la VAB — «Y3e» (2026-10-20)
+
+- **Son CUATRO commits, y son los cuatro que la orden pedía.** Al **empezar**, `main` y
+  `origin/main` estaban los dos en **`13a6b23`** (sello `v20261019-0157`), **sin nada sin
+  pushear** —confirmado con un `git fetch` de verdad—, con los once commits del Y3d ya incluidos
+  **y pusheados por Maicol**. Los **cuatro** commits de esta tanda quedan locales; el push lo
+  corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 4 → 3 → 2 → 1.**
+  ⚠️ **EL 1, EL 2 Y EL 3 NO SE NOMBRAN ENTRE SÍ Y SE REVIERTEN EN CUALQUIER ORDEN**, que en esta
+  serie es raro y conviene decirlo: el 1 vive en la cola de `calcVI`, en los dos `oninput` de
+  AI/VI y en la lista de `RECALC_MODULOS`; el 2 en `ETE_QX_VISTAS.tg` y en `qxClase`; el 3 en el
+  selector `vab_simetria`, en `VAB_INF_CUSPIDES`, en `vabGeom` y en las dos tablas del Excel.
+  Ninguno nombra una pieza de otro.
+  ⚠️ **PERO EL 1 LLEVA LA SONDA** (`scripts/_probe_y3e.mjs`), que el 2, el 3 y el 4 usan.
+  **El 4 es TC-505, la documentación y el sello**, y afirma el comportamiento de los tres:
+  revertir cualquiera sin el 4 lo deja en rojo.
+  ⚠️ **EL SELLO VIAJA EN EL COMMIT 4**, que es el único cambio de `index.html` que ese commit
+  lleva —tres líneas—: es la regla de la casa.
+  ⚠️ **CASOS ADAPTADOS: CINCO**, cada uno con el motivo escrito en el propio caso. **TC-504** en
+  cuatro condiciones (C2 por el disparador, y H1, H6 e I1 por la palabra «senos»), **TC-503**
+  (E3, el `rot` de la transgástrica), **TC-115** y el **título** de TC-366. Los cinco afirmaban la
+  app de ayer; ninguno estaba mal escrito.
+
+- **Línea base al cierre: suite **515/519** con el pendrive `DISK_IMG` MONTADO —verificado al
+  abrir Y al cerrar—, Semgrep **127 / 0 ERROR en 1 app**, Excel en **440** columnas, celular
+  **65 a 360 px y 74 a 390 px con 17 ALTA cada uno** y `--todo` **394 / 403**, el MISMO par que
+  dejó el Y3d. CERO REGRESIONES.** Los **CUATRO** rojos son exactamente los de ENTRADA
+  —**TC-223** (el documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**— y no
+  apareció ninguno fuera de esa lista. **El denominador sube a 519**: esta tanda agregó
+  **TC-505**. El `md5` de `index.html` no se movió durante la corrida (`ed17105f…`).
+  ⚠️ **EL CELULAR NO SE MOVIÓ NI UN HALLAZGO, y no por suerte**: esta tanda agrega **una
+  `<option>`** a un `<select>` que ya existía y **ningún control nuevo**.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **519 ids** sobre los 520 casos del archivo.
+  ⚠️ **TC-323 ES UN INESTABLE POR ORDEN DE CORRIDA MÁS**: rojo en una corrida de zona de 28 casos
+  y **verde corrido solo**, con una condición que esta tanda no toca. **Repetir antes de
+  sospechar.**
+- **EL SELLO DE VERSIÓN** estaba al día al empezar (`v20261019-0157`) y se volvió a sellar:
+  **`v20261020-1408`**. Todo lo medido salió **DESPUÉS** de sellar, con el `md5` quieto.
+- **`index.html` pasó de 8,39 MB / 126.263 líneas a 8,40 MB / 126.417 líneas.**
+
+- **Y3e1 · EL ESPEJO DEL TEER CUELGA DEL DUEÑO, Y EL `oninput` CUBRÍA UN SOLO CAMINO.** El Y3d3
+  había puesto el disparador en el `oninput` de `fevi` y de `dsfvi`. **MEDIDO con teclas y clics
+  reales en diez caminos contra el inicio de la tanda, fallaban TRES y los tres son el mismo
+  hecho —el valor cambia sin pasar por ese `oninput`—:**
+
+  | camino | antes | hoy |
+  |---|---|---|
+  | valor escrito por **PROGRAMA** + `calcVI` | **vacío** | 45 / 58 |
+  | cambiar **«FEVI método»** | **vacío** | 45 / 58 |
+  | **`RECALC_MODULOS`** (autosave y QR del PDF) | **vacío** | 45 / 58 |
+
+  Con los dos campos vacíos la lista publicaba «No ingresado» y los criterios **c7** y **c8** del
+  COAPT —que deciden **APTO / NO APTO**— se evaluaban sobre un dato ya cargado.
+  **El arreglo son dos puntos y no nueve:** la **cola de `calcVI`** —el dueño de lo que AI/VI
+  muestra de ese ventrículo, que **no tiene un solo `return` temprano**, censado— y el **final de
+  `RECALC_MODULOS`**, para las dos rutas que no pasan por `calcVI` ni por `calcPSAP`.
+  **Las dos llamadas de los `oninput` se retiran**: con el dueño puesto eran una segunda copia.
+  ⚠️ **LA POSICIÓN EN `RECALC_MODULOS` IMPORTA**: va **después** de `imEspejosRestaurar`, que
+  repone `dataset.espejoDe`. Antes de ella no hay marca y el espejo trata como manual a todo
+  destino poblado.
+  ⚠️ **NO PUEDE BORRAR UN VALOR GUARDADO, y la guarda ya existía:** `_syncDerivado` vacía el
+  destino sólo si la marca es de ESTA sesión (`espejoVivo`), e `imEspejosRestaurar` repone
+  `espejoDe` y **no** `espejoVivo`.
+  **Los cortes COAPT no se movieron** (20-50 % y ≤70 mm), medidos por sus **cuatro** bordes, y el
+  rótulo «DSFVI» sale igual. El espejo **sigue al origen** y **respeta lo tipeado a mano**
+  —control medido: con 33 y 44 escritos en el TEER los dos se conservan—. **Borrar el origen deja
+  los dos destinos VACÍOS**, que es la regla del ARR.
+
+- **Y3e2 · LA VISTA TRANSGÁSTRICA GIRA 90° ANTIHORARIO, Y LA FUENTE SE LEYÓ EN EL ORIGINAL.**
+  Cierra **Y3d-1** por su salida (b). **ASE/SCA 2013** (Hahn, JASE 2013;26(9):921-964), **hoja 19,
+  folio 939** —regla folio = hoja + 920, comprobada en el pie impreso «Hahn et al 939»—:
+  «anterior leaflet on the **left** … posterior leaflet on the **right**. The **medial** commissure
+  is in the **near field**, with the **lateral** commissure in the **far field**.»
+  `ETE_QX_VISTAS.tg` pasa de `rot: 180` a **`rot: 270`** y `qxClase` reconoce 270. **Dos valores.**
+  **LO QUE DICE LA GUÍA → LO QUE MUESTRA EL DIBUJO**, medido sobre el lienzo renderizado (centro
+  210, 219): anterior a la izquierda (`Ao` en 110,219 · A1-A3 con x≈190) · posterior a la derecha
+  (P1-P3 con x 237-275) · **`PM` arriba** (210,61) · **`AL` abajo** (210,377). **Cero diferencias.**
+  ⚠️ **EL GIRO ANTIHORARIO ES `rot` NEGATIVO**: `qxT` rota sobre un eje `y` que crece hacia abajo,
+  así que un ángulo positivo gira HORARIO. Se escribe 270 porque es el valor normalizado que
+  `qxClase` compara; `qxCerca` lo lleva a **−90**, el camino corto.
+  **Las seis letras siguen visibles (6/6)** y las cuatro marcas giran por construcción. **La vista
+  del cirujano y la ETT no se mueven un píxel** y **el PDF sigue en la del cirujano**: el hash de
+  su data URL es **1168035940** en las tres vistas, el mismo de antes. **`docs/3d/` no se tocó.**
+  ⚠️ **LA VISTA ETT SIGUE SIENDO CRITERIO DE MAICOL**: censadas las nueve guías de ETE, ninguna
+  publica de qué lado quedan las comisuras en el eje corto paraesternal mitral.
+
+- **Y3e3 · LA VAB PASA A «CÚSPIDES», CON TRES CATEGORÍAS Y EL DIBUJO POR ÁNGULO.** Cierra
+  **Y3d-5** por una salida que esa entrada no ofrecía: la simetría **sí** está definida en la
+  fuente y lo que no estaba definido eran los **senos**. Consenso internacional VAB (traducción
+  del resumen, Arch Cardiol Mex 2024), **regla folio = hoja + 218 comprobada en SEIS hojas**:
+  folio **225** —«se refiere al **ángulo de las comisuras de la cúspide no fusionada**»— y pie de
+  la **Figura 9, folio 230** —simétrica 160-180° (≈**170**), asimétrica 140-159° (≈**150**), muy
+  asimétrica 120-139° (≈**130**)—.
+  **TABLA DEL ÁNGULO, medida sobre el `d` RENDERIZADO y no sobre la tabla que lo genera:**
+
+  | tipo | sin categoría | simétrica | asimétrica | muy asimétrica |
+  |---|---|---|---|---|
+  | `fused_rl` / `fused_rn` | **120** (= antes) | 170 | 150 | 130 |
+  | `fused_ln` | **120** (= antes) | 170,1 | 150,1 | 129,9 |
+  | `dos_senos_ll` | 180 | **180** | **180** | **180** |
+
+  ⚠️ **EL RADIO DE CADA ARCO SE ESCALA CON SU ÁNGULO, Y LA CONSTANTE SALE DE LA GEOMETRÍA
+  APROBADA** —`K = 56/(R0·sin 60°)`—, así que con 120° vuelve a dar **56 exacto**: **medido, el
+  data URL del dibujo que viaja al PDF sale IDÉNTICO al de antes en los cuatro tipos sin
+  categoría elegida**. Sin esa escala, un arco de 170° con radio 56 no cubre su propia cuerda y el
+  motor lo dibuja semicircular.
+  ⚠️ **LA CATEGORÍA NO TOCA EL 2-SINUS, Y ES DE LA FUENTE**: el pie de la Figura 9 la acota a los
+  tipos **fusionados**. Hasta el Y3d la opción «asimétrica» le cambiaba los radios; eso se retira.
+  **Es la única escena cuyo dibujo cambia sin que el médico haya elegido una categoría nueva.**
+  **NOMENCLATURA:** «cúspides» en el rótulo del selector, el informe (tres estilos), la fila del
+  PDF («Cúspides | simétricas»), la hoja del PDF de CC, «Ver detalle» y la tarjeta ⓘ. **El TIPO
+  «de dos senos» NO cambia** —es el nombre del fenotipo— ni los ids, ni las claves, ni el
+  encabezado del Excel.
+  ⚠️ **LA HOJA DEL PDF ARRASTRABA UN DEFECTO DE CONCORDANCIA**: decía «Senos simétric**a**». Hoy
+  dice «Cúspides simétricas», derivado de la misma tabla que el informe.
+  **Las dos claves viejas no se tocan**: un estudio guardado reabre en su MISMA opción
+  (`selectedIndex` 1 y 2). Excel en **440** con el mismo encabezado, celda «Muy asimétrica», y el
+  importador entiende sus cuatro formas de entrada.
+  **NADA SE TAPA NI SE SALE**: cero elementos fuera del lienzo, distancia mínima de letras y
+  puntos de calcificación a los brazos de la V **igual a la de antes (30)**, los tres puntos
+  sensibles en **48 × 48 px** y la separación del rafe a cada comisura **SUBE** (120 → 95/105/115).
+  ⚠️ **`vabConclusion` NO LEE LA SIMETRÍA EN NINGUNA DE SUS RAMAS** —censado—, así que las **14**
+  de la ESC 2024 salen igual.
+
+- **A/B DE CONTROL contra el inicio de la tanda, en CADA commit: CERO diferencias** en el informe
+  en los tres estilos, el EN SUMA, el **Excel clave por clave en 440 columnas**, el **PDF generado
+  de verdad en las SEIS plantillas**, el **PPT**, el **PDF de auditoría**, el Laboratorio, las
+  referencias de pantalla y el almacenamiento.
+  **Y un A/B DEDICADO con la VAB INTEGRADA al informe**, que es la única escena donde la hoja del
+  PDF de CC publica su línea: `nTextos` **47** y `nFigs` **18** idénticos en las cinco categorías,
+  y las escenas **sin categoría** y **«no valorable»** con el informe y el EN SUMA **idénticos**.
+
+- **MEDIDO EN LOS DOS MOTORES, 8 CELDAS CADA UNO** —Chrome **155.0.8059.85** por el canal del
+  sistema y **WebKit 27.2**, cuatro viewports (1200×700, 768×1024, 390×844, 360×740) × dos temas,
+  con el tema COMPROBADO—: **CERO scroll horizontal de la página en las 16 celdas**, el SVG de la
+  VAB en 240 × 240, los tres ángulos del dibujo (**170 / 150 / 130**, y **120** sin categoría), la
+  transgástrica con sus cuatro marcas en las MISMAS coordenadas (`Ao` 110,219 · `PM` 210,61 ·
+  `AL` 210,377) y **6/6** letras, el rótulo «Simetría de las cúspides» y las cinco opciones del
+  selector. **Las 8 celdas de Chrome y las 8 de WebKit dan los MISMOS números**, y los colores
+  resuelven **reales y distintos** en los dos temas —rafe `rgb(62,207,142)` de noche y
+  `rgb(31,157,108)` de día— e **IDÉNTICOS entre motores**.
+  ⚠️ **WebKit de Playwright NO es Safari, y se declara.**
+  **Con CDP, además:** los puntos sensibles en **48 × 48**, el ciclo de tarjetas y las capturas. **20 aperturas y cierres de la tarjeta ⓘ:
+  12.246 nodos → 12.246, CERO oyentes nuevos** y la tarjeta cerrada al final. **26 capturas PNG
+  con los 26 `md5` DISTINTOS**, y dos MIRADAS: la transgástrica con sus seis letras y sus cuatro
+  marcas en el lugar que la guía dice, y la VAB simétrica con su línea de cierre **casi recta**,
+  que es como el folio 231 describe esa categoría.
+
+- **Arneses: `scripts/_probe_y3e.mjs`** (CDP, teclas y clics reales, A/B de solo lectura con
+  `--file`; ocho grupos: `teercam`, `tg`, `vabsim`, `vabdib`, `vabhoja`, `maqueta`, `ciclo`,
+  `captura`, `ctrl`) y **`scripts/_probe_y3ewk.mjs`** (Playwright, los DOS motores, cuatro
+  viewports × dos temas; resuelve Playwright **por ruta** y, si no está, lo DICE y sale con código
+  2 en vez de reventar). **Cobertura: TC-505**, **46 condiciones** —contadas **instrumentando el
+  propio caso**— con **tres denominadores** y **ocho controles negativos**. **Verificado que sabe
+  fallar contra el inicio de la tanda en un worktree aparte: 22 de las 46 en rojo, y NINGUNA por
+  excepción.**
+
+- **Dónde está todo:** `docs/mapa/mitral-dibujo-estatico.md` → las secciones del espejo del TEER y
+  de la transgástrica (**28,6 KB**); `docs/mapa/vab-bicuspide.md` → la sección 10 (**21,4 KB**);
+  `docs/mapa/tests-fichas-499-501.md` (**archivo NUEVO por PARTICIÓN**, 15,6 KB) y
+  `docs/mapa/tests-fichas.md` → la ficha de TC-505 (**18,5 KB**); `docs/fuentes/FUENTES.md` → «La
+  tanda Y3e», con las dos citas literales, sus folios comprobados y la tabla de **Cambios de
+  evidencia**; y `docs/PENDIENTES.md` → **Y3d-1, Y3d-5 e Y3d-7 marcados CERRADOS** más **seis**
+  cosas declaradas (Y3e-1 a Y3e-6).
+  ⚠️ **`tests-fichas.md` SE PARTIÓ ANTES DE ESCRIBIR Y NO DESPUÉS**, medido con `wc -c`: estaba en
+  **28,9 KB** y la ficha de TC-505 lo cruzaba. Es la cuarta partición de ese archivo y la **segunda
+  que se hace a tiempo**. **Ningún mapa cruzó el techo.**
+
+- ⚠️ **ME COMÍ EL ACENTO GRAVE TRES VECES**, las tres en comentarios míos dentro del cuerpo de un
+  caso o del template de la sonda, y las tres para **nombrar una función en prosa**, que es como
+  el resto del archivo la escribe. `scripts/check_backticks.py` dio la línea exacta las tres
+  **antes** de commitear; la de la sonda la dio `node --check`. **Correr los dos.**
+- ⚠️ **Y DOS FALSOS DE MI PROPIO CASO, los dos con pinta de medición buena.** (1) **LA CÁMARA DEL
+  DIBUJO SE ANIMA Y EL CUERPO DE UN CASO CORRE SINCRÓNICO**: pedir la transgástrica y leer las
+  marcas las encontró en la posición del **cirujano**, o sea «el giro no ocurre» sobre un giro
+  perfecto. Se planta la cámara en el destino y se repinta, que es el patrón de TC-504 (E4b) —y
+  **`qxGirarA` sola no alcanza: fija el ángulo y no el flip**, así que la ETT se medía sin
+  espejo—. (2) **`__t.reg` NO EXISTE en el runner** —TC-504 lo contempla con un ternario—: las
+  tres condiciones del Excel informaron `SIN FN`, que se lee igual que «la columna no existe».
 
 ### Los rótulos de festón, los criterios TEER y la sección de la VÁLVULA AÓRTICA BICÚSPIDE — «Y3d» (2026-10-19)
 

@@ -4097,3 +4097,79 @@ la cirugía valvular concomitante, y el crecimiento iba con `>` donde las **tres
 
 **NINGUNA fuente nueva se verificó para el resto de la tanda**: las subpestañas, el buscador y el
 botón «Ver referencia» son navegación y no publican un solo dato clínico nuevo.
+
+---
+
+## La tanda Y3e (2026-10-20)
+
+### La vista TRANSGÁSTRICA — VERIFICADA, y ya no es criterio de Maicol
+
+**ASE/SCA 2013** — Hahn RT y col., *Guidelines for Performing a Comprehensive Transesophageal
+Echocardiographic Examination*, **JASE 2013;26(9):921-964**.
+Archivo: `14- ETE/PIIS0894731713005622.pdf` (44 hojas).
+**Regla de folio = hoja + 920**, comprobada en el **pie impreso** de la hoja 19: «*Journal of the
+American Society of Echocardiography Volume 26 Number 9 Hahn et al 939*».
+
+**Hoja 19, folio 939**, sección «16. TG Basal SAX View», leída en texto completo tras
+**des-hifenar** (el extractor parte las palabras en el fin de línea, que es la trampa que este
+repo ya tiene escrita):
+
+> «This view demonstrates the typical SAX view or ''fish mouth'' appearance of the MV in the TG
+> imaging plane with the **anterior leaflet on the left of the display and the posterior leaflet
+> on the right**. The **medial commissure is in the near field, with the lateral commissure in
+> the far field**.»
+
+El dibujo de la app aplica esa orientación desde el **Y3e2**: es la vista del cirujano girada
+**90° antihorario y sin espejo**, y las **cuatro** afirmaciones de la guía se verificaron una por
+una sobre el lienzo renderizado. **Cierra `PENDIENTES.md` → Y3d-1.**
+
+⚠️ **LA VISTA ETT SIGUE SIENDO CRITERIO DE MAICOL, SIN FUENTE.** Censadas las nueve guías de ETE
+de la biblioteca, **ninguna publica de qué lado quedan las comisuras en el eje corto paraesternal
+mitral**. Se muestra como espejo de la del cirujano y la app **no lo atribuye a ninguna guía**.
+
+### La SIMETRÍA DE LAS CÚSPIDES de la válvula aórtica bicúspide — VERIFICADA
+
+**Consenso internacional VAB** — traducción del resumen en español, *Arch Cardiol Mex* 2024.
+Archivo: `08_Cardiopatias_congenitas/VAB resumen consenso Mx.pdf` (21 hojas).
+**Regla de folio = hoja + 218**, comprobada en el **número impreso** de SEIS hojas: 1→219, 7→225,
+9→227, 12→230, 13→231 y 21→239.
+
+- **folio 225, hoja 7:** «Simétrico o asimétrico se refiere al **ángulo de las comisuras de la
+  cúspide no fusionada** (Fig. 9).»
+- **pie de la Figura 9, folio 230, hoja 12:** «… la figura demuestra diferentes ángulos
+  comisurales de la cúspide no fusionados (**aplicables a los tres fenotipos de la VAB
+  fusionados**, aunque solo se muestra la fusión de la cúspide derecha-izquierda) que definen la
+  simetría. Panel izquierdo: VAB de fusión **simétrica (ángulo 160-180°)** … el ángulo comisural
+  de la cúspide no fusionada es de aproximadamente **170°**. Panel central: VAB de fusión
+  **asimétrica (ángulo 140-159°)** … aproximadamente **150°**. Panel derecho: VAB de fusión
+  derecha-izquierda **muy asimétrica (ángulo 120-139°)** … aproximadamente **130°**.»
+- **folio 231, hoja 13:** «siempre que esa única línea de coaptación sea **recta o casi recta**
+  (Figs. 8 y 9-simétrica), la reparación de la VAB insuficiente es simple y reproducible. A
+  medida que el ángulo entre las comisuras de la cúspide no fusionada disminuye **< 160°**, la VAB
+  se vuelve menos simétrica … (especialmente **< 140°**)».
+- **folio 229, hoja 11** (Figura 8), que es lo que separa el ÁNGULO del TAMAÑO del velo y conviene
+  tener a mano antes de releer el dibujo: «ángulo de **180°** de las comisuras de la cúspide no
+  fusionada, **sin embargo los tamaños y formas de las dos cúspides funcionales son diferentes**,
+  la cúspide unida es más pequeña que la cúspide no coronaria (N) no fusionada».
+
+⚠️ **LA FIGURA 9 ES SÓLO DE LOS TIPOS FUSIONADOS**, y lo dice su propio pie. El **2-sinus** no
+tiene cúspide no fusionada ni rafe, así que la categoría **no le aplica** y su dibujo no cambia
+con ella. **Cierra `PENDIENTES.md` → Y3d-5**, que decía que «senos asimétricos» no estaba definido
+en ninguna fuente: lo que no estaba definido eran los **senos**; la **simetría de las cúspides**
+sí, y con tres categorías.
+
+⚠️ **ES LA TRADUCCIÓN DEL RESUMEN Y EL ORIGINAL INGLÉS NO ESTÁ EN LA BIBLIOTECA**, igual que para
+la Figura 7 del Y3d6. Se declara.
+
+### Cambios de evidencia — tanda Y3e
+
+| dato | antes | ahora | fuente | commit | fecha |
+|---|---|---|---|---|---|
+| Orientación de la vista transgástrica del dibujo de la mitral | giro de **180°** (criterio de Maicol, declarado como discrepante con la guía en Y3d-1) | giro de **90° antihorario**: anterior a la izquierda, posterior a la derecha, medial arriba, lateral abajo | ASE/SCA 2013, hoja 19, **folio 939** | Y3e2 | 20/10/2026 |
+| Nombre de lo que la simetría de la VAB clasifica | «senos» | **«cúspides»** | consenso VAB, **folio 225** | Y3e3 | 20/10/2026 |
+| Categorías de simetría de la VAB | **dos** (simétrica / asimétrica) | **tres** (simétrica 160-180°, asimétrica 140-159°, muy asimétrica 120-139°) | consenso VAB, pie de la Figura 9, **folio 230** | Y3e3 | 20/10/2026 |
+| Cómo representa el dibujo la simetría | variando la **curvatura** de los tres senos | el **ángulo entre las comisuras de la cúspide no fusionada**, con el punto medio de cada categoría (170° / 150° / 130°) | la misma | Y3e3 | 20/10/2026 |
+| La categoría aplicada al tipo **2-sinus** | «asimétrica» le cambiaba los radios del dibujo | **no la clasifica**: el dibujo es el mismo con las cuatro opciones | pie de la Figura 9 («aplicables a los tres fenotipos **fusionados**») | Y3e3 | 20/10/2026 |
+
+**NINGUNA fuente nueva se verificó para el commit 1**: el espejo de la FEVI y el DSFVI del TEER
+es cableado, no contenido clínico, y los cortes COAPT (20-50 % y ≤70 mm) no se movieron.

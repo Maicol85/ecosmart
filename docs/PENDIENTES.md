@@ -5431,7 +5431,7 @@ precedente que **Q-5**, **L-10** y **M-10** ya tienen escrito.
 
 ## Tanda Y3d (2026-10-19) — declarado y NO tocado
 
-### Y3d-1 · La orientación de la vista TRANSGÁSTRICA no coincide con la guía, y el dibujo no se cambió
+### [CERRADO 2026-10-20 · Y3e2] Y3d-1 · La orientación de la vista TRANSGÁSTRICA no coincidía con la guía
 
 **Censadas las OCHO guías de ETE de la biblioteca**, la única que describe esa orientación es la
 **ASE/SCA 2013** (Hahn, JASE 2013;26(9):921-964), **folio 939, hoja 19** —regla de folio = hoja +
@@ -5444,11 +5444,14 @@ precedente que **Q-5**, **L-10** y **M-10** ya tienen escrito.
 Eso es un giro de unos **90°**. La demo aprobada rota **180°**, lo que deja la anterior **abajo**,
 la posterior **arriba**, AL a la derecha y PM a la izquierda. **No coincide.**
 
-La demo es la que Maicol aprobó y la orden prohíbe expresamente cambiar el dibujo, así que queda
-declarado como **orientación: criterio de Maicol** (en `FUENTES.md` → `aseEte2013`).
-**Decidir:** (a) dejarlo así, con la declaración; (b) rotar esa vista 90° para seguir a la guía, lo
-que cambia el dibujo que Maicol aprobó y mueve el PDF si alguna vez el papel sale en esa vista;
-(c) sacar las letras **sólo** de la transgástrica, que es lo que esta tanda vino a revertir.
+✅ **CERRADO el 2026-10-20 (Y3e2) por la salida (b), DECISIÓN DE MAICOL.** `ETE_QX_VISTAS.tg`
+pasa de `rot: 180` a `rot: 270`, o sea el dibujo del cirujano girado **90° ANTIHORARIO y sin
+espejo**. Las cuatro afirmaciones de la guía se verificaron una por una sobre el lienzo
+renderizado: anterior a la izquierda (marca `Ao` en 110,219), posterior a la derecha (P1-P3 con
+x 237-275), `PM` arriba (210,61) y `AL` abajo (210,377). Las seis letras siguen visibles.
+**El PDF no se movió**: el hash de su data URL es el mismo en las tres vistas. **La vista ETT no
+se tocó** y sigue siendo criterio de Maicol, sin fuente. **`docs/3d/` tampoco**: la demo conserva
+su giro de 180°.
 
 ### Y3d-2 · Las seis tarjetas ⓘ de la VAB no tienen entrada en Referencias
 
@@ -5476,12 +5479,16 @@ fuente de la biblioteca publica ese porcentaje en ninguno de los dos sentidos**,
 recordatorio quedó con la indicación clínica y **sin número**. El día que aparezca una fuente, el
 número va **con su folio** y en el sentido correcto.
 
-### Y3d-5 · «Senos asimétricos» no está definido en ninguna fuente
+### [CERRADO 2026-10-20 · Y3e3] Y3d-5 · «Senos asimétricos» no estaba definido en ninguna fuente
 
-El consenso de VAB clasifica el **número de senos distinguibles** y el **patrón de fusión**, no su
-simetría. El dibujo lo representa como lo único que la app afirma —un seno más amplio que los otros
-dos— y **no afirma cuál**, porque la app no lo pregunta. **Decidir:** (a) dejarlo así; (b) agregar
-un campo que diga **cuál** seno es el amplio, que es un dato nuevo; (c) retirar la opción.
+✅ **CERRADO el 2026-10-20 (Y3e3) por una salida que esta entrada no ofrecía: la simetría SÍ
+está definida en la fuente, y lo que no estaba definido eran los SENOS.** El consenso la define
+por el **ángulo entre las comisuras de la cúspide no fusionada** (folio 225, hoja 7) y publica
+**tres** categorías con su punto medio (pie de la Figura 9, folio 230): simétrica 160-180° (≈170),
+asimétrica 140-159° (≈150) y muy asimétrica 120-139° (≈130). La app pasa a decir **«cúspides»**,
+el selector gana la tercera categoría y el dibujo abre la V de cierre al ángulo que corresponde.
+⚠️ **Y la fuente acota las categorías a los tipos FUSIONADOS**, así que el 2-sinus dejó de
+representar una asimetría que nadie define para él.
 
 ### Y3d-6 · Seis hallazgos ALTA y seis MEDIA nuevos en `check_mobile.js`, con causa medida
 
@@ -5498,8 +5505,63 @@ a **394 / 403**. Medido contra el árbol base **el mismo día**, el delta se exp
 desplazaría la fila —lo que la orden prohíbe en la grilla de dos columnas de tres— y el ⓘ ya tiene
 sus 44 px donde importa, que es con el dedo.
 
-### Y3d-7 · `tests-fichas.md` quedó en 28,9 KB
+### [CERRADO 2026-10-20 · Y3e4] Y3d-7 · `tests-fichas.md` quedó en 28,9 KB
 
-A **6 KB del techo** de 35. La próxima tanda que le agregue una ficha conviene que **mida con
-`wc -c` antes de escribir** y, si no entra, que la parta —como ya se hizo con
-`tests-fichas-481-490.md`, `-491-495.md` y `-496-498.md`—.
+✅ **CERRADO el 2026-10-20 (Y3e4): se partió ANTES de escribir y no después.** Medido con
+`wc -c` antes de tocarlo: estaba en **28,9 KB** y la ficha de TC-505 lo cruzaba. Las fichas de
+**TC-499 a TC-501** salieron a `docs/mapa/tests-fichas-499-501.md` (15,6 KB) y el archivo de
+origen volvió a **14,2 KB** antes de recibir la ficha nueva; con ella quedó en **19,0 KB**. Es la
+cuarta partición de este archivo y la segunda que se hace a tiempo.
+
+
+---
+
+## Tanda Y3e (2026-10-20) — lo declarado y no tocado
+
+### Y3e-1 · El PDF sigue diciendo «fused type» en la hoja de cardiopatías congénitas
+
+Medido con el PDF **generado de verdad**: la hoja de CC publica «Válvula aórtica bicúspide -
+**fused type** R-L (fusión derecha-izquierda).», en inglés y dentro de un papel firmado en
+español. Sale de `VAB_TIPO_TXT`, que el **Y3d8** decidió conservar «para la pantalla, el Excel y
+Ver detalle» mientras el **informe** pasaba a `VAB_INF_FENO`, en español. Lo que ese reparto no
+contempló es que `ccHoja` es una **tercera** superficie y que sí llega al papel.
+**No se tocó**: es un texto del informe firmado y esta orden no lo autoriza. **Decidir:** (a)
+que la hoja use `VAB_INF_FENO`, como el informe; (b) dejarlo, porque es el nombre técnico del
+consenso.
+
+### Y3e-2 · El aria-label del dibujo de la VAB no nombra la simetría, así que no hubo nada que renombrar
+
+La orden incluía «el aria-label del dibujo» entre los lugares donde «senos» pasa a «cúspides».
+Censado: el nombre accesible del SVG es un `<title>` **estático** —«Esquema de la válvula aórtica
+en eje corto»— y los `aria-label` de los tres puntos sensibles nombran la **fusión**, no la
+simetría. **Ninguno dice «senos»**, así que no se cambió ninguno y **no se inventó uno nuevo**.
+**Decidir:** si el nombre accesible debería publicar además la categoría y el tipo, que hoy el
+lector de pantalla sólo obtiene del selector.
+
+### Y3e-3 · El `d` del cierre nombra los mismos dos puntos en orden inverso, sin categoría
+
+En la R-L y en la L-N, con el selector vacío, el atributo `d` de la V de cierre pasó a listar sus
+dos extremos en orden ascendente donde antes salían en el orden en que la tabla los tenía. **El
+dibujo es idéntico** —verificado por el hash del data URL que viaja al PDF, igual en los cuatro
+tipos—, así que es un A/B sobre el atributo el que informa una diferencia que el píxel no tiene.
+Se deja la regla consistente en vez de replicar la inconsistencia anterior.
+
+### Y3e-4 · El ángulo de la fusión L-N sale con un decimal (170,1 · 150,1 · 129,9)
+
+Es el redondeo a un decimal de las coordenadas (`r1` en `vabGeom`), no un error de la tabla: su
+centro cae en −90° y los dos extremos quedan en posiciones cuyo redondeo mueve el ángulo
+reconstruido 0,1°. Es un **esquema**, no una medición, y ningún texto de la app afirma un ángulo
+de este paciente. **Decidir:** si conviene subir la precisión de `r1` a dos decimales, lo que
+movería el `d` de **todos** los dibujos de la zona.
+
+### Y3e-5 · Las dos fuentes de los criterios TEER siguen sin estar en la biblioteca
+
+Sin cambios respecto de **Y3d-3**: no hay EVEREST II ni el protocolo EXPAND. Esta tanda **no
+movió ningún corte** del TEER ni del COAPT —los cuatro bordes están medidos—, así que las filas
+siguen sin línea de fuente por el mismo motivo.
+
+### Y3e-6 · TC-323 es un inestable por orden de corrida más
+
+Salió rojo en una corrida de zona de 28 casos y **verde corrido solo** sobre el mismo árbol, con
+una condición («`_indIM` sigue sin corchete propio») que esta tanda no toca. Se suma a la lista
+de `CLAUDE.md`: TC-137, TC-246, TC-249, TC-252, TC-260, TC-395 y TC-GR-06.

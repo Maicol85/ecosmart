@@ -257,3 +257,114 @@ asociada» y **sin ningún porcentaje**.
 - **Cobertura:** **TC-504**, 63 condiciones.
 - **Antes de medir**: abrir la pestaña Congénitas **y** el `.sacc-body` de `#sacc-cc-vab`; después
   comprobar que el centro del SVG es alcanzable. Sin eso, todo lo del dibujo mide 0 × 0.
+
+---
+
+## 10 · «CÚSPIDES», tres categorías y el dibujo por ÁNGULO — «Y3e3» (2026-10-20)
+
+**Decisión de Maicol.** Cierra `PENDIENTES.md` → **Y3d-5** por una salida que esa entrada no
+ofrecía: la simetría **sí** está definida en la fuente, y lo que faltaba era dibujarla como la
+fuente la define.
+
+### La fuente, verificada en el original
+
+Traducción del resumen del consenso internacional VAB (*Arch Cardiol Mex* 2024). **Regla de
+folio = hoja + 218**, comprobada en el número impreso de **seis** hojas (1, 7, 9, 12, 13 y 21).
+
+- **folio 225, hoja 7:** «Simétrico o asimétrico se refiere al **ángulo de las comisuras de la
+  cúspide no fusionada** (Fig. 9).»
+- **pie de la Figura 9, folio 230, hoja 12:** «… diferentes ángulos comisurales de la cúspide no
+  fusionados (**aplicables a los tres fenotipos de la VAB fusionados**…) que definen la simetría.
+  … **simétrica (ángulo 160-180°)** … aproximadamente **170°**. … **asimétrica (ángulo 140-159°)**
+  … aproximadamente **150°**. … **muy asimétrica (ángulo 120-139°)** … aproximadamente **130°**.»
+- **folio 231, hoja 13:** «siempre que esa única línea de coaptación sea **recta o casi recta**
+  (Figs. 8 y 9-simétrica), la reparación de la VAB insuficiente es simple y reproducible».
+
+### Nomenclatura: dónde dice «cúspides» y dónde sigue diciendo «senos»
+
+| superficie | antes | ahora |
+|---|---|---|
+| rótulo del selector | «Simetría de los senos» | **«Simetría de las cúspides»** |
+| informe (3 estilos) | «con senos simétricos» | **«con cúspides simétricas»** |
+| fila de la tabla del PDF | `Senos \| simétricos` | **`Cúspides \| simétricas`** |
+| hoja del PDF de CC (`ccHoja`) | «Senos simétrica.» | **«Cúspides simétricas.»** |
+| «Ver detalle» | «Simetría de los senos» | **«Simetría de las cúspides»** |
+| tarjeta ⓘ `vab-valv` | — | suma la definición del ángulo y los tres rangos |
+
+⚠️ **EL TIPO «de dos senos» (2-sinus) NO CAMBIA**: es el nombre del fenotipo en el consenso y no
+habla de simetría. Tampoco cambian los **ids**, las **claves** ni el **encabezado del Excel**
+(`VAB simetría de senos`): renombrarlo dejaría huérfana la columna de todo backup ya exportado.
+
+⚠️ **LA HOJA DEL PDF ARRASTRABA UN DEFECTO DE CONCORDANCIA**: decía «Senos simétric**a**»,
+concordando con el singular de `VAB_SIMETRIA_TXT`, que describe la **simetría** y no las
+cúspides. `VAB_HOJA_CUSPIDES` se **deriva** de `VAB_INF_CUSPIDES` capitalizando, así que el día
+que una etiqueta cambie las dos se mueven juntas; la entrada de `no_val` es la única propia,
+porque el informe no la publica y la hoja sí («Simetría de las cúspides no valorable»).
+
+### Las tres categorías
+
+El selector gana **«Muy asimétrica»** entre la asimétrica y «No valorable», que es el orden de
+gravedad creciente de la fuente. **Las dos claves viejas no se tocan**: medido, un estudio
+guardado con `simetrica` o `asimetrica` reabre en su **misma opción** (`selectedIndex` 1 y 2), que
+es lo que evita el `-1` que `et_grado` ya pagó. **No se migra nada.**
+
+El Excel escribe el token de `LAB_XLS_ETIQ` —«Muy asimétrica»— en las **mismas 440 columnas** y
+`LAB_XLS_VOCAB` entiende sus cuatro formas de entrada (clave, con tilde, sin tilde y con guión
+bajo); las dos que ya estaban no se tocaron.
+
+### El dibujo por ángulo
+
+`vabGeom(fusion, calc, sym)` recibe ahora la **clave cruda** del selector y resuelve el ángulo
+por `VAB_SIM_ANG` = `{ simetrica: 170, asimetrica: 150, muy_asimetrica: 130 }`, los tres **puntos
+medios** que el pie de la Figura 9 publica. Sin categoría elegida usa `VAB_SIM_ANG_BASE` = **120**,
+que es el ángulo de la geometría aprobada: ahí la app **no afirma ninguna simetría**.
+
+La cúspide no fusionada es la que queda frente al rafe —**N** en la R-L, **L** en la R-N, **R** en
+la L-N— y su centro vive en `VAB_DIB_CEN`. Sus dos comisuras se abren **simétricamente** respecto
+de ese eje (`cen ∓ ángulo/2`) y el rafe queda del lado opuesto (`cen + 180`), **sin moverse**. La V
+de cierre une las dos comisuras pasando por el centro del orificio, así que **el ángulo de su
+vértice ES el de la categoría**.
+
+| tipo | sin categoría | simétrica | asimétrica | muy asimétrica |
+|---|---|---|---|---|
+| `fused_rl` | **120** (= antes) | 170 | 150 | 130 |
+| `fused_rn` | **120** (= antes) | 170 | 150 | 130 |
+| `fused_ln` | **120** (= antes) | 170,1 | 150,1 | 129,9 |
+| `dos_senos_ll` | 180 | **180** | **180** | **180** |
+
+El 0,1 de la L-N es el redondeo a un decimal de las coordenadas; es un esquema, no una medición.
+
+- ⚠️ **EL RADIO DE CADA ARCO SE ESCALA CON SU ÁNGULO, Y LA CONSTANTE SALE DE LA GEOMETRÍA
+  APROBADA.** Un arco cuyos extremos están a `R0` del centro necesita un radio de al menos
+  `R0·sin(ángulo/2)`; por debajo de eso el motor lo escala solo y el seno sale **semicircular**. La
+  geometría de Maicol usa 56 para 120°, o sea `K = 56/(R0·sin 60°) = 1,0778` veces ese mínimo. Con
+  esa K un arco de 120° vuelve a dar **56 exacto** y uno de 180° da 64,7 ≈ el 64 que el 2-sinus ya
+  usaba. **Medido: el data URL del dibujo que viaja al PDF sale IDÉNTICO al de antes de la tanda
+  en los cuatro tipos sin categoría elegida.**
+- ⚠️ **LOS TRES TRAMOS SE REPARTEN A `s1`/`s2`/`s3` POR SU ÁNGULO DE INICIO**, normalizado al rango
+  `[-150, 210)` que esos tres ids ya ocupaban, **no por su papel**. Así, con el ángulo base, cada
+  id recibe exactamente el mismo arco que antes: verificado en los tres tipos de fusión.
+- ⚠️ **LA CATEGORÍA NO TOCA EL 2-SINUS, y es de la fuente**: el pie de la Figura 9 la acota a los
+  tipos **fusionados**, y un 2-sinus no tiene cúspide no fusionada ni rafe. Hasta el Y3d la opción
+  «asimétrica» le cambiaba los radios a `[60,5 · 90 · 0]`; eso se retira, porque afirmaba una
+  asimetría que la fuente no define para ese tipo. **Es la única escena cuyo dibujo cambia sin que
+  el médico haya elegido una categoría nueva**, y está reportada.
+- ⚠️ **EL `d` DEL CIERRE NOMBRA LOS MISMOS DOS PUNTOS EN ORDEN INVERSO** en la R-L y en la L-N sin
+  categoría: antes el par venía en el orden en que quedó y ahora sale siempre ascendente. El
+  dibujo es el mismo —lo prueba el hash del data URL—, así que un A/B sobre el atributo informa una
+  diferencia que el píxel no tiene.
+
+### Nada se tapa ni se sale
+
+Medido en las doce escenas con la categoría más cerrada, que es la que más acerca los brazos de
+la V al rafe: **cero elementos fuera del lienzo**, distancia mínima de las letras R/L/N y de los
+cuatro puntos de calcificación a los brazos de la V **igual a la de antes (30)**, y los tres
+puntos sensibles del rafe en **48 × 48 px** con el dedo. La separación angular del rafe a cada
+comisura **sube** al crecer el ángulo (120 → 95 / 105 / 115), así que el riesgo va en la dirección
+tranquilizadora. Colores reales y distintos en los dos temas.
+
+### Lo que NO cambia
+
+`vabConclusion` **no lee `vab_simetria` en ninguna de sus ramas** —censado—, así que las **14** de
+la ESC 2024 salen igual, y el veredicto es el mismo con las tres categorías y sin ninguna. El EN
+SUMA no nombra la simetría, así que no se mueve.

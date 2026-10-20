@@ -78331,6 +78331,399 @@ caso('TC-504', 'Tanda Y3d: los rotulos de feston visibles en las TRES vistas y e
   return { extra: ex };
 `);
 
+/* ══ TANDA Y3e (2026-10-20) ════════════════════════════════════════════════════════════════
+   Cubre los TRES commits de la tanda: el espejo de la FEVI y el DSFVI del TEER colgado del
+   DUEÑO, el giro de 90 grados ANTIHORARIO de la vista transgastrica y las tres categorias de
+   simetria de las CUSPIDES de la VAB con su dibujo por angulo.
+   Todo lo que lee va por un ayudante con CENTINELA: un caso que muere por excepcion contra
+   HEAD prueba que el arbol es distinto, no que sabe medir.
+   ADVERTENCIA: ni un acento grave en los comentarios de este cuerpo -ni siquiera para nombrar
+   una funcion-: cierra el template. scripts/check_backticks.py da la linea exacta. */
+caso('TC-505', 'Tanda Y3e: la FEVI y el DSFVI del TEER sincronizados desde el DUEÑO por los caminos que el oninput no cubria, vacios al borrar el origen y con los cortes COAPT intactos; la vista TRANSGASTRICA girada 90 grados ANTIHORARIO como publica la ASE/SCA 2013 -anterior a la izquierda, posterior a la derecha, medial arriba y lateral abajo- con las seis letras y las cuatro marcas, sin tocar la del cirujano, la ETT ni el PDF; y la VAB con «CUSPIDES» en todas sus superficies, TRES categorias de simetria y el dibujo por el ANGULO de las comisuras de la cuspide no fusionada, con el Excel en 440 columnas', `
+  const ex = [];
+  const EL  = id => document.getElementById(id);
+  const TXT = id => { const e = EL(id); return e ? (e.textContent || '').trim() : 'NO EXISTE'; };
+  const VAL = id => { const e = EL(id); return e ? String(e.value == null ? '' : e.value) : 'NO EXISTE'; };
+  const FN  = n => typeof window[n] === 'function';
+  const SEL = (id, v) => { const e = EL(id); if (!e) return false;
+    e.value = v; e.dispatchEvent(new Event('change', { bubbles: true })); return e.value === v; };
+  /* TRAMPA: estas son const de MODULO. window[n] da undefined y el identificador PELADO si se
+     ve: la trampa de ECO_AYUDA, pagada en cada tanda de este repo. */
+  const _xlsRow  = (typeof _labExcelRow === 'function') ? _labExcelRow : null;
+  const _togEte  = (typeof toggleEteSeccion === 'function') ? toggleEteSeccion : null;
+  const _infCusp = (typeof VAB_INF_CUSPIDES === 'object' && VAB_INF_CUSPIDES) ? VAB_INF_CUSPIDES : null;
+  const _simAng  = (typeof VAB_SIM_ANG === 'object' && VAB_SIM_ANG) ? VAB_SIM_ANG : null;
+  const _vistas  = (typeof ETE_QX_VISTAS === 'object' && ETE_QX_VISTAS) ? ETE_QX_VISTAS : null;
+
+  /* ══ (A) TEER: LA FEVI Y EL DSFVI POR TODOS LOS CAMINOS ══════════════════════════════════
+     El cuerpo de un caso corre DENTRO de la pagina: no tiene el canal del navegador, asi que
+     carga con __t.set. Los MISMOS seis caminos con teclas y clics reales los mide
+     scripts/_probe_y3e.mjs --solo teercam, que es con lo que se midio HEAD. */
+  const _abrirTeer = () => { try { const s = EL('ete-seccion-teer');
+    if (s && getComputedStyle(s).display === 'none' && _togEte) _togEte('teer');
+    return s ? getComputedStyle(s).display : 'NO EXISTE'; } catch (e) { return 'EXC'; } };
+  const _esp = () => ({ fevi: VAL('teer_fevi'), dsfvi: VAL('teer_dtsvi'),
+                        c7: TXT('teer-c7'), c8: TXT('teer-c8') });
+  /* ESCRIBIR POR .value SIN DISPARAR oninput es el punto: es lo que hacen un calculo y las
+     cinco rutas de restauracion, y es el camino que el disparador del Y3d3 no cubria. */
+  const _porValue = (id, v) => { const e = EL(id); if (!e) return false; e.value = v; return true; };
+
+  ex.push(['(DENOM A) la seccion TEER y sus dos campos existen',
+    _abrirTeer() !== 'NO EXISTE' && EL('teer_fevi') !== null && EL('teer_dtsvi') !== null
+      && EL('fevi') !== null && EL('dsfvi') !== null,
+    'sec=' + _abrirTeer() + ' campos=' + (EL('teer_fevi') ? 'si' : 'no')]);
+
+  __t.limpiar(); _abrirTeer(); SEL('teer_tipo_im', 'secundaria');
+  __t.set('fevi', '45'); __t.set('dsfvi', '58');
+  const _a1 = _esp();
+  ex.push(['(A1) tipear en el origen con la seccion abierta copia los dos al TEER',
+    _a1.fevi === '45' && _a1.dsfvi === '58', JSON.stringify(_a1)]);
+
+  /* (A2) EL CAMINO QUE FALLABA: el valor escrito por PROGRAMA mas calcVI. */
+  __t.limpiar(); _abrirTeer(); SEL('teer_tipo_im', 'secundaria');
+  _porValue('fevi', '42'); _porValue('dsfvi', '63');
+  try { if (FN('calcVI')) calcVI(); } catch (e) {}
+  const _a2 = _esp();
+  ex.push(['(A2) el valor escrito por PROGRAMA mas calcVI tambien llega al TEER',
+    _a2.fevi === '42' && _a2.dsfvi === '63', JSON.stringify(_a2)]);
+
+  /* (A3) EL SEGUNDO CAMINO QUE FALLABA: cambiar «FEVI metodo», cuyo onchange llama a calcVI. */
+  __t.limpiar(); _abrirTeer(); SEL('teer_tipo_im', 'secundaria');
+  _porValue('fevi', '38'); _porValue('dsfvi', '61');
+  SEL('fevi_met', 'Visual (estimada)');
+  const _a3 = _esp();
+  ex.push(['(A3) cambiar «FEVI metodo» sincroniza, porque su onchange pasa por el dueño',
+    _a3.fevi === '38' && _a3.dsfvi === '61', JSON.stringify(_a3)]);
+
+  /* (A4) EL TERCERO: el embudo de las cinco rutas de restauracion. */
+  __t.limpiar(); _abrirTeer(); SEL('teer_tipo_im', 'secundaria');
+  _porValue('fevi', '47'); _porValue('dsfvi', '55');
+  try { if (FN('_recalcModulos')) _recalcModulos('tc505'); } catch (e) {}
+  const _a4 = _esp();
+  ex.push(['(A4) RECALC_MODULOS -autosave y QR del PDF- sincroniza los dos',
+    _a4.fevi === '47' && _a4.dsfvi === '55', JSON.stringify(_a4)]);
+  ex.push(['(A5) y la sincronia esta en la LISTA de RECALC_MODULOS, no de rebote',
+    (function () { try { return FN('RECALC_MODULOS')
+      && RECALC_MODULOS().indexOf('sincronizarTEERDesdeGlobal') > -1; } catch (e) { return false; } })(),
+    'en la lista=' + (function () { try { return RECALC_MODULOS().indexOf('sincronizarTEERDesdeGlobal') > -1; } catch (e) { return 'EXC'; } })()]);
+  ex.push(['(A6) el DUEÑO es calcVI y los dos campos lo llaman',
+    (function () { try { return FN('calcVI')
+      && String(calcVI).indexOf('sincronizarTEERDesdeGlobal') > -1
+      && String((EL('fevi') || {}).getAttribute ? EL('fevi').getAttribute('oninput') : '').indexOf('calcVI()') > -1
+      && String((EL('dsfvi') || {}).getAttribute ? EL('dsfvi').getAttribute('oninput') : '').indexOf('calcVI()') > -1;
+    } catch (e) { return false; } })(), 'calcVI sincroniza']);
+
+  /* (A7) BORRAR EL ORIGEN: la regla del ARR. El destino vuelve a VACIO, no al valor anterior. */
+  __t.limpiar(); _abrirTeer(); SEL('teer_tipo_im', 'secundaria');
+  __t.set('fevi', '45'); __t.set('dsfvi', '58');
+  __t.set('fevi', ''); __t.set('dsfvi', '');
+  const _a7 = _esp();
+  ex.push(['(A7) borrar el origen deja los dos campos del TEER VACIOS',
+    _a7.fevi === '' && _a7.dsfvi === '' && /No ingresado/i.test(_a7.c7) && /No ingresado/i.test(_a7.c8),
+    JSON.stringify(_a7)]);
+
+  /* (A8) CONTROL NEGATIVO: lo tipeado A MANO en el TEER no se pisa. */
+  __t.limpiar(); _abrirTeer(); SEL('teer_tipo_im', 'secundaria');
+  __t.set('teer_fevi', '33'); __t.set('teer_dtsvi', '44');
+  __t.set('fevi', '45'); __t.set('dsfvi', '58');
+  const _a8 = _esp();
+  ex.push(['(A8) CONTROL: un valor tipeado a mano en el TEER NO se pisa',
+    _a8.fevi === '33' && _a8.dsfvi === '44', JSON.stringify(_a8)]);
+
+  /* (A9) LOS CORTES COAPT NO SE MOVIERON, por sus cuatro bordes. */
+  const _coapt = (f, d) => { __t.limpiar(); _abrirTeer(); SEL('teer_tipo_im', 'secundaria');
+    __t.set('fevi', f); __t.set('dsfvi', d); return _esp(); };
+  const _b19 = _coapt('19', '70'), _b20 = _coapt('20', '71'),
+        _b50 = _coapt('50', '69'), _b51 = _coapt('51', '70');
+  ex.push(['(A9) los cortes COAPT intactos: FEVI 20-50 % y DSFVI <=70 mm, por sus cuatro bordes',
+    /fuera rango/i.test(_b19.c7) && /20-50/.test(_b20.c7) && /20-50/.test(_b50.c7)
+      && /fuera rango/i.test(_b51.c7)
+      && /70mm/.test(_b19.c8) && /NO apto/i.test(_b20.c8) && /69mm/.test(_b50.c8),
+    [_b19.c7, _b20.c7, _b50.c7, _b51.c7, _b20.c8].join(' | ')]);
+  ex.push(['(A10) el rotulo del campo sigue diciendo DSFVI',
+    (function () { const e = EL('teer_dtsvi'); if (!e) return false;
+      const fg = e.closest ? e.closest('.fg') : null;
+      const lb = fg ? fg.querySelector('label') : null;
+      return !!lb && lb.textContent.indexOf('DSFVI') > -1; })(),
+    (function () { const e = EL('teer_dtsvi'); const fg = e && e.closest ? e.closest('.fg') : null;
+      const lb = fg ? fg.querySelector('label') : null;
+      return lb ? lb.textContent.replace(/\\s+/g, ' ').trim() : 'NO EXISTE'; })()]);
+
+  /* ══ (B) LA VISTA TRANSGASTRICA ══════════════════════════════════════════════════════════ */
+  /* El dibujo vive dentro de #ete-seccion-mitral, que nace plegada: sin abrirla el SVG existe
+     y mide 0 x 0, que es la trampa que este archivo ya tiene escrita. */
+  const _abrirMitral = () => { try { if (FN('showTab')) showTab('ete');
+    const s = EL('ete-seccion-mitral');
+    if (s && getComputedStyle(s).display === 'none' && _togEte) _togEte('mitral');
+    return s ? getComputedStyle(s).display : 'NO EXISTE'; } catch (e) { return 'EXC'; } };
+  ex.push(['(DENOM B) el dibujo estatico existe y tiene geometria',
+    (function () { _abrirMitral(); const s = EL('ete-svg-qx');
+      if (!s) return false; const r = s.getBoundingClientRect();
+      return r.width > 0 && r.height > 0; })(),
+    'sec=' + _abrirMitral()]);
+
+  ex.push(['(B1) la transgastrica es un giro de 90 ANTIHORARIO (270) y SIN espejo',
+    !!_vistas && _vistas.tg.rot === 270 && _vistas.tg.flip === 1,
+    _vistas ? JSON.stringify(_vistas) : 'SIN ETE_QX_VISTAS']);
+  ex.push(['(B2) CONTROL: la del cirujano y la ETT no se tocan',
+    !!_vistas && _vistas.cir.rot === 0 && _vistas.cir.flip === 1
+      && _vistas.ett.rot === 0 && _vistas.ett.flip === -1,
+    _vistas ? JSON.stringify(_vistas) : 'SIN ETE_QX_VISTAS']);
+
+  /* La posicion RENDERIZADA de las cuatro marcas. El centro del lienzo lo da la marca Ao en la
+     vista del cirujano, que esta sobre el eje vertical. */
+  const _marca = id => { const e = EL(id); if (!e) return null;
+    return { x: parseFloat(e.getAttribute('x') || '0'), y: parseFloat(e.getAttribute('y') || '0') }; };
+  /* ⚠️ SE PLANTA LA CAMARA EN EL DESTINO Y SE REPINTA, que es el patron de TC-504 (E4b). La
+     camara se ANIMA con requestAnimationFrame y el cuerpo de un caso corre SINCRONICO, asi que
+     leer justo despues del clic la encuentra donde estaba: la primera version de este caso
+     informo las cuatro marcas en la posicion del CIRUJANO despues de pedir la transgastrica.
+     qxGirarA sola tampoco alcanza: fija el DESTINO y no el flip. */
+  const _irVista = k => { try { if (FN('eteQxVista')) eteQxVista(k);
+    const d = (typeof ETE_QX_VISTAS === 'object' && ETE_QX_VISTAS) ? ETE_QX_VISTAS[k] : null;
+    if (d) { window._qxRot = d.rot; window._qxFlip = d.flip;
+      if (FN('eteQxDibujar')) eteQxDibujar();
+      if (FN('eteQxVistasSync')) eteQxVistasSync(); }
+    return !!d; } catch (e) { return 'EXC: ' + e.message; } };
+  _abrirMitral(); _irVista('cir');
+  const _mCir = { ao: _marca('ete-qx-mAo'), al: _marca('ete-qx-mAL'), pm: _marca('ete-qx-mPM') };
+  _irVista('tg');
+  const _mTg = { ao: _marca('ete-qx-mAo'), al: _marca('ete-qx-mAL'), pm: _marca('ete-qx-mPM') };
+  /* El centro: la Ao del cirujano esta sobre el eje vertical, asi que su x ES el centro en x;
+     la AL y la PM del cirujano estan sobre el eje horizontal, asi que su y ES el centro en y. */
+  const _cx = _mCir.ao ? _mCir.ao.x : null, _cy = _mCir.al ? _mCir.al.y : null;
+  ex.push(['(B3) GUIA: la valva ANTERIOR queda a la IZQUIERDA -la marca Ao-',
+    !!_mTg.ao && _cx !== null && _mTg.ao.x < _cx - 50 && Math.abs(_mTg.ao.y - _cy) < 25,
+    'Ao=' + JSON.stringify(_mTg.ao) + ' centro=(' + _cx + ',' + _cy + ')']);
+  ex.push(['(B4) GUIA: la comisura MEDIAL -PM- queda ARRIBA, en el campo cercano',
+    !!_mTg.pm && _cy !== null && _mTg.pm.y < _cy - 50 && Math.abs(_mTg.pm.x - _cx) < 25,
+    'PM=' + JSON.stringify(_mTg.pm)]);
+  ex.push(['(B5) GUIA: la comisura LATERAL -AL- queda ABAJO, en el campo lejano',
+    !!_mTg.al && _cy !== null && _mTg.al.y > _cy + 50 && Math.abs(_mTg.al.x - _cx) < 25,
+    'AL=' + JSON.stringify(_mTg.al)]);
+  /* Y las valvas: los tres festones A a la IZQUIERDA del centro y los tres P a la DERECHA. */
+  const _lbl = n => { const e = EL('ete-qx-lbl-' + n); return e
+    ? { x: parseFloat(e.getAttribute('x') || '0'), y: parseFloat(e.getAttribute('y') || '0') } : null; };
+  ex.push(['(B6) GUIA: los tres festones A a la IZQUIERDA y los tres P a la DERECHA',
+    (function () { const A = ['A1', 'A2', 'A3'].map(_lbl), P = ['P1', 'P2', 'P3'].map(_lbl);
+      if (A.some(x => !x) || P.some(x => !x) || _cx === null) return false;
+      return A.every(x => x.x < _cx) && P.every(x => x.x > _cx - 2)
+        && Math.max.apply(null, A.map(x => x.x)) < Math.min.apply(null, P.map(x => x.x)); })(),
+    'A=' + JSON.stringify(['A1', 'A2', 'A3'].map(x => (_lbl(x) || {}).x))
+      + ' P=' + JSON.stringify(['P1', 'P2', 'P3'].map(x => (_lbl(x) || {}).x))]);
+  /* Las SEIS letras se ven, que es lo que el Y3d1 dejo. Se mide el display COMPUTADO. */
+  const _letrasVis = () => ['A1', 'A2', 'A3', 'P1', 'P2', 'P3'].filter(n => {
+    const e = EL('ete-qx-lbl-' + n); if (!e) return false;
+    const cs = getComputedStyle(e), r = e.getBoundingClientRect();
+    return cs.display !== 'none' && cs.visibility !== 'hidden' && r.width > 0; }).length;
+  ex.push(['(B7) las SEIS letras de feston siguen visibles en la transgastrica',
+    _letrasVis() === 6, _letrasVis() + ' de 6']);
+  ex.push(['(B8) el boton de la transgastrica queda MARCADO en esa vista',
+    (function () { const b = EL('ete-qx-v-tg');
+      return !!b && b.getAttribute('aria-pressed') === 'true'; })(),
+    ['cir', 'ett', 'tg'].map(k => k + '=' + ((EL('ete-qx-v-' + k) || {}).getAttribute
+      ? EL('ete-qx-v-' + k).getAttribute('aria-pressed') : 'NO')).join(' ')]);
+  /* CONTROL NEGATIVO: la del cirujano sigue con la Ao ARRIBA y la ETT con la AL a la DERECHA. */
+  _irVista('cir');
+  ex.push(['(B9) CONTROL: la vista del cirujano sigue con la Ao arriba y la AL a la izquierda',
+    (function () { const ao = _marca('ete-qx-mAo'), al = _marca('ete-qx-mAL');
+      return !!ao && !!al && _cy !== null && ao.y < _cy - 50 && al.x < _cx - 50; })(),
+    'Ao=' + JSON.stringify(_marca('ete-qx-mAo')) + ' AL=' + JSON.stringify(_marca('ete-qx-mAL'))]);
+  _irVista('ett');
+  ex.push(['(B10) CONTROL: la ETT sigue siendo el espejo, con la AL a la DERECHA',
+    (function () { const al = _marca('ete-qx-mAL');
+      return !!al && _cx !== null && al.x > _cx + 50; })(),
+    'AL=' + JSON.stringify(_marca('ete-qx-mAL'))]);
+  /* EL PDF SIGUE EN LA VISTA DEL CIRUJANO: el data URL no puede depender de la camara. */
+  const _png = () => { try { return FN('eteQxDataURL') ? String(eteQxDataURL()).length : 'SIN FN'; }
+    catch (e) { return 'EXC'; } };
+  _irVista('cir'); const _pCir = _png();
+  _irVista('tg');  const _pTg  = _png();
+  _irVista('cir');
+  ex.push(['(B11) el PDF sale en la vista del cirujano: el mismo dibujo con la camara girada',
+    _pCir !== 'SIN FN' && _pCir !== 'EXC' && _pCir === _pTg, 'cir=' + _pCir + ' tg=' + _pTg]);
+
+  /* ══ (C) LA VAB: CUSPIDES, TRES CATEGORIAS Y EL DIBUJO POR ANGULO ════════════════════════ */
+  const _irVAB = () => { try { if (FN('showTab')) showTab('congenitas');
+    const c = EL('sacc-cc-vab'); const b = c ? c.querySelector('.sacc-body') : null;
+    if (b && getComputedStyle(b).display === 'none' && FN('secToggle')) secToggle('cc-vab');
+    return b ? getComputedStyle(b).display : 'NO EXISTE'; } catch (e) { return 'EXC'; } };
+  ex.push(['(DENOM C) la seccion VAB y su selector de simetria existen',
+    _irVAB() !== 'NO EXISTE' && EL('vab_simetria') !== null && EL('vab-svg') !== null,
+    'sec=' + _irVAB()]);
+
+  ex.push(['(C1) el selector tiene TRES categorias mas el vacio y «No valorable», en ese orden',
+    (function () { const e = EL('vab_simetria'); if (!e) return false;
+      const v = Array.prototype.slice.call(e.options).map(o => o.value);
+      return v.join(',') === ',simetrica,asimetrica,muy_asimetrica,no_val'; })(),
+    (function () { const e = EL('vab_simetria');
+      return e ? Array.prototype.slice.call(e.options).map(o => o.value + '|' + o.text).join(' · ') : 'NO EXISTE'; })()]);
+  ex.push(['(C2) el ROTULO del selector dice CUSPIDES y ya no dice senos',
+    (function () { const e = EL('vab_simetria'); if (!e) return false;
+      const fg = e.closest ? e.closest('.fg') : null;
+      const lb = fg ? fg.querySelector('label') : null;
+      if (!lb) return false; const t = lb.textContent;
+      return /c[uú]spides/i.test(t) && !/senos/i.test(t); })(),
+    (function () { const e = EL('vab_simetria'); const fg = e && e.closest ? e.closest('.fg') : null;
+      const lb = fg ? fg.querySelector('label') : null;
+      return lb ? lb.textContent.replace(/\\s+/g, ' ').trim() : 'NO EXISTE'; })()]);
+  ex.push(['(C3) la tabla del informe dice «cúspides …» en las TRES categorias',
+    !!_infCusp && _infCusp.simetrica === 'cúspides simétricas'
+      && _infCusp.asimetrica === 'cúspides asimétricas'
+      && _infCusp.muy_asimetrica === 'cúspides muy asimétricas',
+    _infCusp ? JSON.stringify(_infCusp) : 'SIN VAB_INF_CUSPIDES']);
+  ex.push(['(C4) los tres angulos son los PUNTOS MEDIOS que publica el pie de la Figura 9',
+    !!_simAng && _simAng.simetrica === 170 && _simAng.asimetrica === 150
+      && _simAng.muy_asimetrica === 130,
+    _simAng ? JSON.stringify(_simAng) : 'SIN VAB_SIM_ANG']);
+
+  /* EL ANGULO MEDIDO EN EL DIBUJO, no en la tabla que lo genera: se lee del atributo d de la V
+     de cierre, cuyos dos brazos salen de las comisuras y se juntan en el centro. */
+  const _angDib = () => { const e = EL('vab-cierre'); if (!e) return null;
+    const n = (String(e.getAttribute('d') || '').match(/-?[0-9]+(?:\\.[0-9]+)?/g) || []).map(Number);
+    if (n.length < 6) return null;
+    const a0 = Math.atan2(n[1] - n[3], n[0] - n[2]) * 180 / Math.PI;
+    const a1 = Math.atan2(n[5] - n[3], n[4] - n[2]) * 180 / Math.PI;
+    let t = Math.abs(a0 - a1) % 360; if (t > 180) t = 360 - t;
+    return Math.round(t); };
+  const _escVAB = (tipo, cat) => { _irVAB(); SEL('va_morf', 'Bicúspide'); SEL('vab_rafe', 'si');
+    SEL('vab_tipo', tipo); SEL('vab_simetria', cat); return _angDib(); };
+  const _tab = {};
+  ['fused_rl', 'fused_rn', 'fused_ln'].forEach(t => {
+    _tab[t] = { vacia: _escVAB(t, ''), sim: _escVAB(t, 'simetrica'),
+                asim: _escVAB(t, 'asimetrica'), muy: _escVAB(t, 'muy_asimetrica') }; });
+  ex.push(['(C5) el dibujo abre la V al angulo de la categoria en los TRES tipos de fusion',
+    ['fused_rl', 'fused_rn', 'fused_ln'].every(t => _tab[t].sim === 170
+      && _tab[t].asim === 150 && _tab[t].muy === 130),
+    JSON.stringify(_tab)]);
+  ex.push(['(C6) CONTROL: sin categoria elegida el dibujo conserva los 120 de la geometria aprobada',
+    ['fused_rl', 'fused_rn', 'fused_ln'].every(t => _tab[t].vacia === 120),
+    JSON.stringify(['fused_rl', 'fused_rn', 'fused_ln'].map(t => _tab[t].vacia))]);
+  /* EL 2-SINUS NO SE CLASIFICA, y es de la fuente: el pie de la Figura 9 acota las categorias a
+     los tres fenotipos FUSIONADOS. Con las cuatro opciones su dibujo tiene que ser el mismo. */
+  const _two = ['', 'simetrica', 'asimetrica', 'muy_asimetrica'].map(c => {
+    _escVAB('dos_senos_ll', c); const e = EL('vab-s1');
+    return e ? e.getAttribute('d') : 'NO EXISTE'; });
+  ex.push(['(C7) CONTROL: la categoria NO toca el dibujo del 2-sinus, que la fuente no clasifica',
+    _two.every(d => d === _two[0] && d !== 'NO EXISTE'), JSON.stringify(_two[0])]);
+
+  /* NADA TAPADO Y NADA FUERA DEL LIENZO con la categoria mas cerrada, que es la que mas acerca
+     los brazos de la V al rafe. */
+  _escVAB('fused_rl', 'muy_asimetrica');
+  const _pos = id => { const e = EL(id); if (!e || e.getAttribute('opacity') === '0') return null;
+    const x = e.getAttribute('x') !== null ? e.getAttribute('x') : e.getAttribute('cx');
+    const y = e.getAttribute('y') !== null ? e.getAttribute('y') : e.getAttribute('cy');
+    return { x: parseFloat(x), y: parseFloat(y) }; };
+  ex.push(['(C8) las letras R, L y N y los cuatro puntos de calcificacion siguen dentro del lienzo',
+    ['vab-lR', 'vab-lL', 'vab-lN', 'vab-d1', 'vab-d2', 'vab-d3', 'vab-d4'].every(id => {
+      const p = _pos(id); return !!p && p.x >= 2 && p.x <= 238 && p.y >= 2 && p.y <= 238; }),
+    JSON.stringify(['vab-lR', 'vab-lL', 'vab-lN', 'vab-d1'].map(id => _pos(id)))]);
+  ex.push(['(C9) los tres puntos sensibles del rafe siguen existiendo con su radio tocable',
+    (function () { const h = document.querySelectorAll('#vab-svg [data-vab-hit]');
+      if (h.length !== 3) return false;
+      return Array.prototype.every.call(h, c => parseFloat(c.getAttribute('r') || '0') >= 22); })(),
+    document.querySelectorAll('#vab-svg [data-vab-hit]').length + ' hits']);
+
+  /* EL INFORME EN LOS TRES ESTILOS, LA TABLA DEL PDF Y EL EXCEL. */
+  const _infVAB = cat => { _escVAB('fused_rl', cat);
+    const o = {}; ['estandar', 'narrativo', 'conciso'].forEach(st => {
+      try { if (FN('setEstiloInforme')) setEstiloInforme(st); } catch (e) {}
+      try { if (FN('generarInforme')) generarInforme(); } catch (e) {}
+      o[st] = String((EL('informe_texto') || {}).value || ''); });
+    try { if (FN('setEstiloInforme')) setEstiloInforme('estandar'); } catch (e) {}
+    return o; };
+  const _iSim = _infVAB('simetrica'), _iMuy = _infVAB('muy_asimetrica');
+  ex.push(['(C10) los TRES estilos dicen «cúspides simétricas» y ninguno dice «senos simétricos»',
+    ['estandar', 'narrativo', 'conciso'].every(st =>
+      _iSim[st].indexOf('cúspides simétricas') > -1 && _iSim[st].indexOf('senos simétricos') === -1),
+    'conciso=' + (_iSim.conciso.split(String.fromCharCode(10))
+      .filter(l => l.indexOf('fenotipo') > -1)[0] || 'NO').slice(0, 110)]);
+  ex.push(['(C11) la tercera categoria llega al informe en los TRES estilos',
+    ['estandar', 'narrativo', 'conciso'].every(st => _iMuy[st].indexOf('cúspides muy asimétricas') > -1),
+    'estandar=' + (_iMuy.estandar.split(String.fromCharCode(10))
+      .filter(l => l.indexOf('fenotipo') > -1)[0] || 'NO').slice(0, 110)]);
+  _escVAB('fused_rl', 'muy_asimetrica');
+  ex.push(['(C12) la fila de la tabla del PDF dice «Cúspides» y ya no «Senos»',
+    (function () { try { if (!FN('vabPdfFilas')) return false;
+      const f = vabPdfFilas(); if (!Array.isArray(f)) return false;
+      return f.some(r => r[0] === 'Cúspides' && r[1] === 'muy asimétricas')
+        && !f.some(r => r[0] === 'Senos'); } catch (e) { return false; } })(),
+    (function () { try { return JSON.stringify(vabPdfFilas()); } catch (e) { return 'EXC'; } })()]);
+
+  /* EL EXCEL: 440 columnas, el MISMO encabezado, y la celda con la tercera categoria. */
+  /* ⚠️ __t.reg NO EXISTE en el runner -TC-504 lo contempla con un ternario-: el registro se
+     arma a mano, que es la forma que _labExcelRow consume. */
+  const _celda = cat => { try { if (!_xlsRow) return 'SIN FN';
+    const f = _xlsRow({ id: 'y3e', fecha: '2026-10-20', campos:
+      { va_morf: 'Bicúspide', vab_tipo: 'fused_rl', vab_simetria: cat } });
+    return { n: Object.keys(f).length, celda: f['VAB simetría de senos'] }; }
+    catch (e) { return 'EXC: ' + e.message; } };
+  const _cMuy = _celda('muy_asimetrica'), _cSim = _celda('simetrica');
+  ex.push(['(C13) el Excel sigue en 440 columnas con el MISMO encabezado y escribe la tercera',
+    _cMuy !== 'SIN FN' && _cMuy.n === 440 && _cMuy.celda === 'Muy asimétrica'
+      && _cSim.celda === 'Simétrica',
+    JSON.stringify([_cMuy, _cSim])]);
+  ex.push(['(C14) la REIMPORTACION entiende la tercera categoria por sus formas de entrada',
+    (function () { try { const v = LAB_XLS_VOCAB.vab_simetria;
+      return v['muy_asimetrica'] === 'muy_asimetrica' && v['muy asimétrica'] === 'muy_asimetrica'
+        && v['muy asimetrica'] === 'muy_asimetrica'
+        && v['simetrica'] === 'simetrica' && v['asimetrica'] === 'asimetrica'; }
+      catch (e) { return false; } })(),
+    (function () { try { return Object.keys(LAB_XLS_VOCAB.vab_simetria).join(','); }
+      catch (e) { return 'EXC'; } })()]);
+  /* ESTUDIOS GUARDADOS: las DOS opciones viejas conservan su clave, asi que reabren en su misma
+     opcion y no en selectedIndex -1 -el defecto que et_grado ya pago-. */
+  ex.push(['(C15) los estudios guardados con las dos opciones viejas abren en SU opcion',
+    (function () { const e = EL('vab_simetria'); if (!e) return false;
+      e.value = 'simetrica'; const i1 = e.selectedIndex;
+      e.value = 'asimetrica'; const i2 = e.selectedIndex;
+      return i1 === 1 && i2 === 2; })(),
+    (function () { const e = EL('vab_simetria'); e.value = 'simetrica';
+      return 'simetrica->' + e.selectedIndex; })()]);
+  ex.push(['(C16) la tarjeta i de la valvula publica la definicion del angulo y las tres categorias',
+    (function () { try { const t = (typeof VINFO === 'object' && VINFO) ? VINFO['vab-valv'] : null;
+      if (!t) return false; const s = String(t.lee || '') + ' ' + String(t.ojo || '');
+      return /c[uú]spide no fusionada/i.test(s) && s.indexOf('160-180') > -1
+        && s.indexOf('140-159') > -1 && s.indexOf('120-139') > -1; } catch (e) { return false; } })(),
+    (function () { try { return String((VINFO['vab-valv'] || {}).lee || '').slice(-120); }
+      catch (e) { return 'EXC'; } })()]);
+
+  /* ══ (D) LOS CONTROLES ═══════════════════════════════════════════════════════════════════ */
+  ex.push(['(D1) CONTROL: vabConclusion NO lee la simetria en ninguna de sus ramas',
+    (function () { try { return FN('vabConclusion')
+      && String(vabConclusion).indexOf('vab_simetria') === -1; } catch (e) { return false; } })(),
+    'lee vab_simetria=' + (function () { try { return String(vabConclusion).indexOf('vab_simetria') > -1; }
+      catch (e) { return 'EXC'; } })()]);
+  ex.push(['(D2) CONTROL: el veredicto de la VAB no cambia con la categoria',
+    (function () { try { const a = (_escVAB('fused_rl', 'simetrica'), vabConclusion().clave);
+      const b = (_escVAB('fused_rl', 'muy_asimetrica'), vabConclusion().clave);
+      const c = (_escVAB('fused_rl', ''), vabConclusion().clave);
+      return a === b && b === c; } catch (e) { return false; } })(),
+    (function () { try { _escVAB('fused_rl', 'muy_asimetrica'); return vabConclusion().clave; }
+      catch (e) { return 'EXC'; } })()]);
+  ex.push(['(D3) CONTROL: el Excel sigue en 440 columnas con el formulario vacio',
+    (function () { try { if (!_xlsRow) return 'SIN FN';
+      return Object.keys(_xlsRow({ id: 'y3e', fecha: '2026-10-20', campos: {} })).length === 440;
+    } catch (e) { return 'EXC'; } })(),
+    (function () { try { return Object.keys(_xlsRow({ id: 'y3e', fecha: '2026-10-20', campos: {} })).length; }
+      catch (e) { return 'EXC'; } })()]);
+  ex.push(['(D4) CONTROL: el informe y el EN SUMA siguen vivos y sin una palabra del dibujo',
+    (function () { try { __t.limpiar(); if (FN('generarInforme')) generarInforme();
+      const t = String((EL('informe_texto') || {}).value || '') + ' ' + String((EL('en_suma') || {}).value || '');
+      return t.length > 20 && !/transg[aá]strica|vista quir|comisura medial/i.test(t);
+    } catch (e) { return false; } })(), 'ok']);
+  ex.push(['(D5) CONTROL: nada de esta tanda se guarda en el navegador',
+    (function () { try { const k = Object.keys(localStorage).concat(Object.keys(sessionStorage));
+      return !k.some(x => /y3e|cuspide|transgast|simetr/i.test(x)); } catch (e) { return true; } })(),
+    'claves propias=0']);
+  ex.push(['(D6) CONTROL: la linea del plano del dibujo sigue existiendo y no se toco',
+    EL('ete-qx-plano') !== null && EL('ete-qx-plano-lbl') !== null,
+    'plano=' + (EL('ete-qx-plano') ? 'si' : 'no')]);
+
+  return { extra: ex };
+`);
+
+
 
 
 let servidor, chrome;

@@ -370,3 +370,120 @@ COMPROBADO—:
 ⚠️ **LA MIRADA CAZÓ UN DEFECTO QUE NINGUNA MEDICIÓN NUMÉRICA DA:** en el dibujo del flail gap el
 «7 mm» quedaba **pegado a la flecha** y, al correrlo, **encima de la valva anterior**. Terminó
 arriba de todo (`x=190, y=56`), donde no cruza ninguna línea. Es para lo que están las capturas.
+
+---
+
+## La vista TRANSGÁSTRICA sigue a la guía — «Y3e2» (2026-10-20)
+
+**Decisión de Maicol.** Cierra `PENDIENTES.md` → **Y3d-1** por su salida (b).
+
+`ETE_QX_VISTAS.tg` pasa de **`rot: 180`** a **`rot: 270`**, o sea el dibujo de la vista del
+cirujano girado **90° ANTIHORARIO y sin espejo**. `qxClase` reconoce 270 en vez de 180, con la
+misma tolerancia de 8° que las otras dos. **Son dos valores; ninguna otra pieza se toca.**
+
+### La fuente, verificada en el original
+
+**ASE/SCA 2013** (Hahn y col., *JASE* 2013;26(9):921-964), **hoja 19, folio 939** — regla
+folio = hoja + 920, comprobada en el pie impreso «*Journal of the American Society of
+Echocardiography Volume 26 Number 9 Hahn et al 939*» —, vista *TG Basal SAX*:
+
+> «This view demonstrates the typical SAX view or "fish mouth" appearance of the MV in the TG
+> imaging plane with the **anterior leaflet on the left** of the display and the **posterior
+> leaflet on the right**. The **medial commissure is in the near field**, with the **lateral
+> commissure in the far field**.»
+
+### Lo que dice la guía → lo que muestra el dibujo
+
+Medido sobre el lienzo **renderizado** (centro en 210, 219), marca por marca y letra por letra:
+
+| la guía | el dibujo | ✓ |
+|---|---|---|
+| valva **anterior** a la IZQUIERDA | marca `Ao` en (110, 219); A1/A2/A3 con x ≈ 190 | sí |
+| valva **posterior** a la DERECHA | P1/P2/P3 con x entre 237 y 275 | sí |
+| comisura **medial** en el campo cercano | `PM` en (210, 61), **arriba** | sí |
+| comisura **lateral** en el campo lejano | `AL` en (210, 377), **abajo**, con la orejuela al lado | sí |
+
+**Cero diferencias con la guía.** Las **seis letras** de festón siguen visibles (6/6) y las cuatro
+marcas giran con el dibujo por construcción: son puntos del mismo espacio local.
+
+### Tres cosas que conviene saber antes de tocar esto
+
+- ⚠️ **EL GIRO ANTIHORARIO ES `rot` NEGATIVO**, y no es una convención arbitraria: `qxT` aplica
+  `x·cos − y·sin` / `x·sin + y·cos` sobre un eje `y` que **crece hacia abajo**, así que un ángulo
+  **positivo** gira **horario** en pantalla. Se escribe **270** porque es el valor normalizado que
+  `qxClase` compara; `qxCerca` lo lleva a **−90**, que es el camino corto, y eso es lo que el
+  estado publica.
+- ⚠️ **LA VISTA ETT NO CAMBIA Y SIGUE SIENDO CRITERIO DE MAICOL.** Censada la biblioteca entera,
+  ninguna fuente publica de qué lado quedan las comisuras en el eje corto paraesternal mitral.
+  Declarado en `FUENTES.md`.
+- ⚠️ **EL PDF SIGUE EN LA VISTA DEL CIRUJANO**, y está medido: el hash del data URL es
+  **1168035940** en las **tres** vistas y es el mismo de antes de la tanda. Un informe firmado no
+  puede depender de cómo el médico dejó girada la pantalla.
+- ⚠️ **NO SE TOCÓ `docs/3d/`**: la demo conserva su giro de 180°, que es el que Maicol aprobó ahí.
+
+### Cómo medir esta zona
+
+`node scripts/_probe_y3e.mjs --solo tg` da la tabla de las tres vistas con sus cuatro marcas, sus
+seis letras, los tres botones y el hash del data URL del PDF.
+⚠️ **AL MEDIR DESDE UN CASO, PLANTAR LA CÁMARA EN EL DESTINO**: se anima con
+`requestAnimationFrame` y el cuerpo de un caso corre sincrónico, así que leer justo después del
+clic la encuentra donde estaba. `qxGirarA` sola **no alcanza**: fija el ángulo y no el flip.
+
+---
+
+## El espejo de la FEVI y el DSFVI del TEER cuelga del DUEÑO — «Y3e1» (2026-10-20)
+
+El **Y3d3** había puesto el disparador en el `oninput` de `fevi` y de `dsfvi`. Eso cubre **un**
+camino: el de tipear. Lo demás no pasa por ahí.
+
+### La tabla de caminos, medida con teclas y clics reales contra el inicio de la tanda
+
+| camino | antes | hoy | por qué fallaba |
+|---|---|---|---|
+| tipear en el origen, sección abierta | 45 / 58 | 45 / 58 | — |
+| tipear con la sección **cerrada**, y después abrirla | 45 / 58 | 45 / 58 | — |
+| **valor escrito por PROGRAMA + `calcVI`** | **vacío** | 45 / 58 | asignar `.value` **no dispara `oninput`** |
+| **cambiar «FEVI método»** | **vacío** | 45 / 58 | su `onchange` llama a `calcVI`, no al espejo |
+| estudio guardado reabierto (`editarInforme`) | 45 / 58 | 45 / 58 | corría de rebote, por `calcPSAP` |
+| **`RECALC_MODULOS`** (autosave, QR del PDF) | **vacío** | 45 / 58 | ahí `calcPSAP` no corre |
+| abrir / tipear / cerrar / reabrir | 45 / 58 | 45 / 58 | — |
+| **borrar el origen** con teclas | vacíos | vacíos | correcto en los dos (regla del ARR) |
+| cambiar el «Tipo de IM» | 45 / 58 | 45 / 58 | — |
+| **control**: valor tipeado a mano en el TEER | 33 / 44 | 33 / 44 | el espejo lo respeta |
+
+Con los dos campos vacíos la lista publicaba **«No ingresado»** y los criterios **c7** y **c8**
+del COAPT —que deciden **APTO / NO APTO**— se evaluaban sobre un dato que el médico ya tenía
+cargado.
+
+### El arreglo: dos puntos, no nueve
+
+1. **La cola de `calcVI`.** Es el dueño de lo que AI/VI muestra de ese ventrículo y **no tiene un
+   solo `return` temprano** —censado—, así que colgarse de ahí cubre de una vez a todos sus
+   llamadores: los dos `oninput`, el `onchange` del método, `calcBSA`, `editarInforme` y las dos
+   fases de la ventana de reimpresión. Es el mismo argumento que el comentario del VI 3D que vive
+   dos líneas más arriba.
+2. **El final de `RECALC_MODULOS`**, para las **dos** rutas que no pasan por `calcVI` ni por
+   `calcPSAP`: el `autosave` —el borrador que vuelve tras un F5— y `cargarEstudioPorId` —el QR del
+   PDF firmado—.
+
+**Las dos llamadas de los `oninput` se retiran** en el mismo movimiento: con el dueño puesto son
+una segunda copia de la misma decisión, y la copia que se olvida es la que miente.
+
+- ⚠️ **LA POSICIÓN EN `RECALC_MODULOS` IMPORTA**: va al **final**, después de
+  `imEspejosRestaurar`, que es la que repone `dataset.espejoDe` sobre los nueve destinos. Antes de
+  ella no hay marca y el espejo trata como **manual** a todo destino poblado.
+- ⚠️ **NO PUEDE BORRAR UN VALOR GUARDADO**, y la guarda que lo impide **ya existía**:
+  `_syncDerivado` vacía el destino sólo si la marca es de **esta sesión** (`espejoVivo`), e
+  `imEspejosRestaurar` repone `espejoDe` y **no** `espejoVivo`. Así que un estudio donde
+  `psap_calc` vuelve en blanco —un importado sin colapso de la VCI— conserva su `teer_pasp`.
+- ⚠️ **SIN RECURSIÓN, y está censado**: `sincronizarTEERDesdeGlobal` termina en `calcTEER`, cuya
+  única mención de una función de cálculo es la suya propia.
+- ⚠️ **NO SELLA NADA**: la sincronía del TEER no llama a `_imEspejosGuardar` —su comentario lo
+  declara—, así que el registro de espejos no se toca desde acá.
+
+**Los cortes COAPT no se movieron** (FEVI 20-50 %, DSFVI ≤ 70 mm), medidos por sus cuatro bordes:
+19/20 y 50/51 % · 69/70 y 70/71 mm. El espejo **sigue al origen** mientras el destino sea su
+espejo y **respeta lo tipeado a mano**, que es lo que `_syncDerivado` ya hacía.
+
+**Cómo medir:** `node scripts/_probe_y3e.mjs --solo teercam` corre los diez caminos con teclas y
+clics reales y devuelve la tabla completa.

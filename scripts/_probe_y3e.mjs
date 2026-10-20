@@ -1819,6 +1819,40 @@ window.__Y = {
     process.stderr.write('[vabdib] listo\n');
   }
 
+  /* ══ GRUPO «vabhoja» — la VAB INTEGRADA: informe, EN SUMA y la hoja del PDF de CC ═══════
+     Es la unica escena donde la hoja de cardiopatias congenitas publica su linea de simetria,
+     asi que sin ella el A/B informa «cero diferencias» sobre una superficie que no se midio. */
+  if (corre('vabhoja')) {
+    const r = { porCat: {} };
+    try {
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__Y.irVAB()`);
+      await ev(`window.__P.sel('va_morf','Bicúspide')`);
+      await ev(`window.__P.sel('vab_rafe','si')`);
+      await ev(`(function(){ var c = document.getElementById('vab_incluir_chk');
+        if (!c) return 'NO EXISTE'; if (!c.checked) c.click(); return c.checked })()`);
+      r.chk = await ev(`(function(){ var c = document.getElementById('vab_incluir_chk');
+        return c ? c.checked : 'NO EXISTE' })()`);
+      await ev(`window.__P.sel('vab_tipo','fused_rl')`);
+      for (const cat of ['', 'simetrica', 'asimetrica', 'muy_asimetrica', 'no_val']) {
+        const q = await ev(`window.__P.sel('vab_simetria',${JSON.stringify(cat)})`);
+        if (q && q.err) { r.porCat[cat || 'vacia'] = { noHayOpcion: true }; continue; }
+        const sal = await ev(`window.__Y.salida()`, 60000);
+        const pdf = await ev(`window.__P.pdf('clasico')`, 60000);
+        /* Solo los textos que nombran la simetria, para que el A/B no arrastre el resto. */
+        const tx = (pdf && pdf.textos) ? pdf.textos.filter((t) => /[Cc]úspide|[Ss]eno/.test(String(t))) : pdf;
+        r.porCat[cat || 'vacia'] = {
+          inf: await ev(`window.__Y.lineasVAB(${JSON.stringify(sal.estandar)})`),
+          suma: sal.suma_estandar,
+          pdfN: pdf ? pdf.nTextos : null, pdfFigs: pdf ? pdf.nFigs : null,
+          pdfSim: tx
+        };
+      }
+    } catch (e) { r.err = e.message; }
+    out.grupos.vabhoja = r;
+    process.stderr.write('[vabhoja] listo\n');
+  }
+
   /* ══ GRUPO «maqueta» — cuatro anchos por dos temas ═══════════════════════════════════════ */
   if (corre('maqueta')) {
     const r = { celdas: {} };
@@ -1912,9 +1946,12 @@ window.__Y = {
             await tirar('y3e_vab_' + t + '_' + cat + suf, 'vab-svg');
           }
         }
+        /* ⚠️ EL ORDEN IMPORTA: `tipear` entra por `abrirPara`, que hace `showTab` de la pestaña
+           del campo —AI/VI—, asi que tipear DESPUES de `irTEER` saca a ETE de la pantalla y el
+           bloque mide 0 x 0. Se tipea primero y se navega al final. */
+        await tipear('fevi', '45'); await tipear('dsfvi', '58');
         await ev(`window.__Y.irTEER()`);
         await ev(`window.__P.sel('teer_tipo_im','secundaria')`);
-        await tipear('fevi', '45'); await tipear('dsfvi', '58');
         await tirar('y3e_teer' + suf, 'teer-bloque-secundaria');
       }
       await ev(`window.__P.tema(false)`);
