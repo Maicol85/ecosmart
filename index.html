@@ -4121,16 +4121,12 @@ window.cerrarSesionReal = cerrarSesionReal;
         </div>
         <div class="fg">
           <label>DSFVI (mm)</label>
-          <!-- ⚠️ EL DISPARADOR DEL ESPEJO DEL TEER (Y3d3, 2026-10-19). `sincronizarTEERDesdeGlobal`
-               corria SOLO desde `calcPSAP` y al ABRIR el acordeon TEER, asi que con el acordeon ya
-               abierto -que es el caso del medico que vuelve a AI/VI a cargar los datos- el campo
-               `teer_dtsvi` se quedaba vacio y la lista publicaba «No ingresado» sobre un dato que
-               el medico acababa de tipear. MEDIDO contra el inicio de la tanda: sin abrir el
-               acordeon, vacios; al abrirlo, 35 y 58; con el acordeon YA abierto y cargando de
-               nuevo, VACIOS otra vez. Es el patron «consumidor nuevo sin su disparador» que el ARR
-               dejo escrito. Va con `typeof` porque el bloque del TEER vive 20.000 lineas mas abajo
-               y un ReferenceError aqui se lleva el `oninput` de un campo del VI. -->
-          <input type="number" id="dsfvi" placeholder="mm" oninput="calcVI();if(typeof sincronizarTEERDesdeGlobal==='function')sincronizarTEERDesdeGlobal()">
+          <!-- El espejo del TEER se sincroniza desde `calcVI`, que es el DUEÑO de lo que esta
+               pestaña muestra del ventriculo izquierdo (ver su cola, Y3e1). El Y3d3 habia puesto
+               la llamada aqui, y eso cubria SOLO el camino de tipear: ni el valor escrito por
+               programa, ni el cambio de «FEVI metodo», ni las cinco rutas de restauracion pasan
+               por este `oninput`. Con el dueño puesto, esta llamada era una segunda copia. -->
+          <input type="number" id="dsfvi" placeholder="mm" oninput="calcVI()">
         </div>
         <div class="fg">
           <label>PPVI (mm)</label>
@@ -4140,9 +4136,8 @@ window.cerrarSesionReal = cerrarSesionReal;
           <label>FEVI (Simpson, %)</label>
           <!-- `aoRefPintar` se agrega para que la fila FEVI del cuadro de referencias del Doppler
                aórtico se entere al tipear; NO cambia nada de AI/VI ni de `calcVI`. -->
-          <!-- `sincronizarTEERDesdeGlobal`: el mismo disparador que `dsfvi`, por el mismo motivo
-               (ver su comentario). -->
-          <input type="number" id="fevi" placeholder="%" oninput="calcVI();if(typeof aoRefPintar==='function')aoRefPintar();calcDiastol();if(typeof sincronizarTEERDesdeGlobal==='function')sincronizarTEERDesdeGlobal()">
+          <!-- El espejo del TEER lo sincroniza `calcVI` desde su cola (Y3e1), igual que `dsfvi`. -->
+          <input type="number" id="fevi" placeholder="%" oninput="calcVI();if(typeof aoRefPintar==='function')aoRefPintar();calcDiastol()">
         </div>
         <div class="fg">
           <label>FEVI método</label>
@@ -24076,6 +24071,29 @@ function calcVI() {
      tipea, sin agregarle un listener a cada campo —que es como uno se queda sin cablear—.
      Con el panel cerrado no hace nada, así que no le cuesta nada al resto de la app. */
   if (typeof lv3dAlCambiarEstado === 'function') lv3dAlCambiarEstado();
+  /* ⚠️ EL ESPEJO DE LA FEVI Y EL DSFVI DEL TEER SE CUELGA DEL DUEÑO, NO DE CADA CAMPO
+     (Y3e1, 2026-10-20). El Y3d3 lo había puesto en el `oninput` de `fevi` y de `dsfvi`, y eso
+     cubre UN camino: el de tipear. MEDIDO contra el inicio de la tanda, los que NO cubría:
+       · un valor escrito por PROGRAMA más `calcVI` —asignar `.value` no dispara `oninput`—:
+         los dos campos del TEER quedaban VACÍOS y la lista publicaba «No ingresado»;
+       · cambiar «FEVI método», cuyo `onchange` llama a `calcVI` y no al espejo;
+       · `RECALC_MODULOS`, el embudo de las cinco rutas de restauración: ahí el espejo sólo
+         corría de rebote cuando `calcPSAP` llegaba a correr, así que el `autosave` —el borrador
+         que vuelve tras un F5— y `cargarEstudioPorId` —el QR del PDF firmado— quedaban sin
+         sincronizar.
+     `calcVI` es el dueño de lo que AI/VI muestra de este ventrículo y NO tiene un solo `return`
+     temprano —censado—, así que colgarse de acá cubre de una vez a todos sus llamadores: los dos
+     `oninput`, el `onchange` del método, `calcBSA`, `editarInforme` y las dos fases de la
+     ventana de reimpresión. Es el MISMO argumento que el comentario del VI 3D de arriba.
+     Las dos llamadas de los `oninput` se retiran en el mismo movimiento: con el dueño puesto son
+     una segunda copia de la misma decisión, y la copia que se olvida es la que miente.
+     ⚠️ SIN RECURSIÓN, y está censado: `sincronizarTEERDesdeGlobal` termina en `calcTEER`, cuya
+     única mención de una función de cálculo es la suya propia.
+     Va con `typeof` y en `try` porque el bloque del TEER vive 37.000 líneas más abajo y un
+     ReferenceError acá se lleva el cálculo entero del ventrículo izquierdo. */
+  if (typeof sincronizarTEERDesdeGlobal === 'function') {
+    try { sincronizarTEERDesdeGlobal(); } catch (e) {}
+  }
 }
 
 // ══ SGL ══
@@ -54002,13 +54020,27 @@ function RECALC_MODULOS() {
      VTI cargados dejaba el campo editable y con el placeholder del formulario vacio al lado de
      un DVI ya poblado; con `true` aca, en cambio, pisaria el valor guardado, que es exactamente
      lo que la orden prohibe. Es el mismo reparto que `vdViSelSync`. */
+  /* `sincronizarTEERDesdeGlobal` entra aca al FINAL de la lista (Y3e1, 2026-10-20), y la
+     posicion importa: tiene que correr DESPUES de `imEspejosRestaurar`, que es la que repone
+     `dataset.espejoDe` sobre los nueve destinos. Antes de ella no hay marca y el espejo trata
+     como manual a todo destino poblado.
+     Cubre las DOS rutas de restauracion que no llaman a `calcVI` ni a `calcPSAP`: el `autosave`
+     -el borrador que vuelve tras un F5- y `cargarEstudioPorId` -el QR del PDF firmado-. Las
+     otras tres ya pasan por `calcVI`.
+     ⚠️ NO PUEDE BORRAR UN VALOR GUARDADO, y la guarda que lo impide ya existe: `_syncDerivado`
+     vacia el destino solo si la marca es de ESTA sesion (`espejoVivo`), e `imEspejosRestaurar`
+     repone `espejoDe` y NO `espejoVivo`. Asi que un estudio donde `psap_calc` vuelve en blanco
+     -un importado sin colapso de la VCI- conserva su `teer_pasp`, que es exactamente el defecto
+     que esa guarda documenta.
+     ⚠️ Y NO SELLA NADA: la sincronia del TEER no llama a `_imEspejosGuardar` -ver su comentario-,
+     asi que el registro de espejos no se toca desde aca. */
   /* `viVolAutoSync` repinta los DOS campos automaticos del VI (F1, 2026-10-15). Entra aca
      porque las cinco rutas de restauracion pueblan asignando `.value`, que no dispara `input`,
      asi que `calcVI` —su unico llamador en vivo— no corre: reabrir un estudio dejaba los dos
      automaticos con el «requiere …» del formulario vacio al lado de un VDFVI y una FEVI ya
      poblados. No puede migrar nada: no escribe ningun campo del estudio, los dos nodos que
      toca son `vauto-` y el tercero un `<div>` de texto. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){

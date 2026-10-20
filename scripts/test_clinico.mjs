@@ -77977,10 +77977,18 @@ caso('TC-504', 'Tanda Y3d: los rotulos de feston visibles en las TRES vistas y e
   ex.push(['(C1) la FEVI y el DSFVI se copian al TEER desde AI/VI',
     VAL('teer_fevi') === '42' && VAL('teer_dtsvi') === '63',
     'fevi=' + VAL('teer_fevi') + ' dsfvi=' + VAL('teer_dtsvi')]);
-  ex.push(['(C2) el disparador vive en el ORIGEN, no solo al abrir el acordeon',
-    (EL('fevi') ? String(EL('fevi').getAttribute('oninput') || '') : '').indexOf('sincronizarTEERDesdeGlobal') > -1
-      && (EL('dsfvi') ? String(EL('dsfvi').getAttribute('oninput') || '') : '').indexOf('sincronizarTEERDesdeGlobal') > -1,
-    'fevi=' + (EL('fevi') ? String(EL('fevi').getAttribute('oninput') || '').slice(0, 60) : 'NO EXISTE')]);
+  /* ADAPTADO el 2026-10-20 (Y3e1). Esta condicion medía el LITERAL del oninput de los dos
+     campos, que es donde el Y3d3 habia puesto la llamada. El Y3e la movio al DUEÑO -la cola de
+     calcVI- y retiro las dos del marcado, porque con el dueño puesto eran una segunda copia.
+     Lo que la condicion afirma no cambio de sentido y se midio MAS fuerte: los dos oninput
+     siguen llamando a calcVI, y calcVI es el que sincroniza. El comportamiento -que tipear
+     en el origen alcance, sin abrir el acordeon- lo mide TC-505 por sus SEIS caminos. */
+  ex.push(['(C2) el disparador vive en el ORIGEN: los dos campos llaman al DUEÑO y el DUEÑO sincroniza',
+    (EL('fevi') ? String(EL('fevi').getAttribute('oninput') || '') : '').indexOf('calcVI()') > -1
+      && (EL('dsfvi') ? String(EL('dsfvi').getAttribute('oninput') || '') : '').indexOf('calcVI()') > -1
+      && String(calcVI).indexOf('sincronizarTEERDesdeGlobal') > -1,
+    'fevi=' + (EL('fevi') ? String(EL('fevi').getAttribute('oninput') || '').slice(0, 40) : 'NO EXISTE')
+      + ' | calcVI sincroniza=' + (String(calcVI).indexOf('sincronizarTEERDesdeGlobal') > -1)]);
   __t.set('fevi',''); __t.set('dsfvi','');
   try { if (FN('sincronizarTEERDesdeGlobal')) sincronizarTEERDesdeGlobal(); } catch (e) {}
   ex.push(['(C3) y al borrar el origen vuelven a vacio -regla ARR-',
