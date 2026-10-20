@@ -1694,6 +1694,12 @@ window.__Z = {
       var e = document.getElementById(id); o[id] = e ? (e.textContent||'').trim() : 'NO EXISTE' });
     o.funcSel = (function(){ var e = document.getElementById('vab_funcion');
       return e ? e.value : 'NO EXISTE' })();
+    /* Los dos ORIGENES, crudos: sin esto, un readonly que no cambia se lee igual que un gesto
+       que nunca ocurrio. */
+    o.src = { ea_grado: (document.getElementById('ea_grado')||{}).value,
+              ia_grado: (document.getElementById('ia_grado')||{}).value,
+              ao_sin:   (document.getElementById('ao_sin')||{}).value,
+              ao_tub:   (document.getElementById('ao_tub')||{}).value };
     o.funcDer = (function(){ try { return (typeof vabFuncionDerivada === 'function')
       ? vabFuncionDerivada() : 'SIN FN' } catch (e) { return 'EXC' } })();
     try { var c = (typeof vabConclusion === 'function') ? vabConclusion() : null;
@@ -1984,6 +1990,93 @@ window.__Z = {
     } catch (e) { r.err = e.message; }
     out.grupos.dop = r;
     process.stderr.write('[dop] listo\n');
+  }
+
+
+  /* ══ GRUPO «vabviv» — LA SECCION VAB SE ACTUALIZA SOLA ═══════════════════════════════════
+     Los cuatro campos de SOLO LECTURA (EA, IAo, raiz y ascendente) los escribe `vabSync`, y
+     `vabSync` corre desde los `onchange` de la propia seccion y desde `RECALC_MODULOS`: los
+     campos de ORIGEN viven en otras pestanas y no lo llaman. La escena es la del medico:
+     escribir en Valvulas o en Aorta con la seccion VAB ABIERTA detras. */
+  if (corre('vabviv')) {
+    const r = { caminos: {}, func: {} };
+    const nuevo = async () => { await ev(`window.__P.nuevo()`); await ev(`window.__P.despejar()`); };
+    try {
+      /* (a) CON LA SECCION ABIERTA: escribir la aorta en su pestana. */
+      await nuevo();
+      r.caminos.a_abrir = await ev(`window.__Z.irVAB()`);
+      r.caminos.a_inicial = await ev(`window.__Z.vabRo()`);
+      await tipear('ao_sin', '45');
+      await tipear('ao_tub', '46');
+      r.caminos.a_tras_aorta = await ev(`window.__Z.vabRo()`);
+      /* y ahora los grados de Valvulas, por el gesto REAL del selector. */
+      await ev(`window.__P.sel('ea_grado','moderada')`);
+      r.caminos.b_tras_ea = await ev(`window.__Z.vabRo()`);
+      await ev(`(function(){ var e=document.getElementById('ia_grado'); e.value='2';
+        e.dispatchEvent(new Event('change',{bubbles:true})); return 1 })()`);
+      r.caminos.c_tras_ia = await ev(`window.__Z.vabRo()`);
+      /* (d) BORRAR la aorta: los dos readonly tienen que volver a vacio (regla ARR). */
+      await borrar('ao_sin', 'bs'); await borrar('ao_tub', 'del');
+      r.caminos.d_tras_borrar_aorta = await ev(`window.__Z.vabRo()`);
+      /* (e) CON LA SECCION CERRADA, y despues abrirla. */
+      await nuevo();
+      await tipear('ao_sin', '48');
+      await ev(`window.__P.sel('ea_grado','severa')`);
+      r.caminos.e_cerrada_antes = await ev(`window.__Z.vabRo()`);
+      await ev(`window.__Z.irVAB()`);
+      r.caminos.e_tras_abrir = await ev(`window.__Z.vabRo()`);
+      /* (f) POR PROGRAMA + el embudo, que es la restauracion de un estudio. */
+      await nuevo();
+      await ev(`window.__Z.irVAB()`);
+      await ev(`window.__Y.ponerPorValue({ ao_sin: '52', ao_tub: '41' })`);
+      await ev(`(function(){ if (typeof _recalcModulos === 'function') _recalcModulos('y3f'); return 1 })()`);
+      r.caminos.f_porValue_embudo = await ev(`window.__Z.vabRo()`);
+
+      /* ── LA FUNCION DERIVADA, por sus escenas ──────────────────────────────────────────── */
+      const esc = async (ea, ia) => {
+        await nuevo();
+        await ev(`window.__Z.irVAB()`);
+        await ev(`window.__P.sel('vab_tipo','fused_rl')`);
+        if (ea !== null) await ev(`window.__P.sel('ea_grado',${JSON.stringify(ea)})`);
+        if (ia !== null) await ev(`(function(){ var e=document.getElementById('ia_grado'); e.value=${JSON.stringify(ia)};
+          e.dispatchEvent(new Event('change',{bubbles:true})); return 1 })()`);
+        return await ev(`window.__Z.vabRo()`);
+      };
+      r.func.sin_nada          = await esc(null, null);
+      r.func.ea_sin_ia_0       = await esc('sin', '0');
+      r.func.ea_moderada       = await esc('moderada', '0');
+      r.func.ia_2              = await esc('sin', '2');
+      r.func.mixta             = await esc('moderada', '2');
+      r.func.ea_esclerosis     = await esc('esclerosis', '0');
+      /* NORMOFUNCIONANTE: la valvula evaluada -hay mediciones que la app gradua- y ninguna lesion
+         presente. Se carga la Vmax aortica, que es lo que hace que `sevCalcPublicable('ea')`
+         deje de abstenerse. */
+      await nuevo();
+      await ev(`window.__Z.irVAB()`);
+      await ev(`window.__P.sel('vab_tipo','fused_rl')`);
+      await tipear('vmax_ao', '1.5');
+      await ev(`window.__P.calentar()`);
+      r.func.normo_vmax_baja = await ev(`window.__Z.vabRo()`);
+      r.func.normo_informe = await ev(`window.__Z.informe('estandar')`);
+      /* Lo que escribe el Excel para cada escena. */
+      r.xls = {};
+      for (const [k, campos] of Object.entries({
+        guardado_normal: { vab_funcion: 'normal', vab_tipo: 'fused_rl' },
+        guardado_mixta:  { vab_funcion: 'mixta',  vab_tipo: 'fused_rl' },
+        sin_guardar:     { vab_tipo: 'fused_rl' },
+        ea_moderada:     { vab_tipo: 'fused_rl', ea_grado: 'moderada', ia_grado: '0' },
+        ea_sin_ia_0:     { vab_tipo: 'fused_rl', ea_grado: 'sin', ia_grado: '0' }
+      })) r.xls[k] = await ev(`window.__Z.xlsVab(${JSON.stringify(campos)})`);
+      /* El selector: cuantos quedan en la seccion. */
+      r.selectores = await ev(`(function(){
+        var s = document.getElementById('sacc-cc-vab');
+        if (!s) return 'NO EXISTE';
+        return Array.prototype.slice.call(s.querySelectorAll('select')).map(function(e){ return e.id }) })()`);
+      r.funcNodo = await ev(`(function(){ var e = document.getElementById('vab_funcion');
+        return e ? { tag: e.tagName, type: e.type, val: e.value } : 'NO EXISTE' })()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.vabviv = r;
+    process.stderr.write('[vabviv] listo\n');
   }
 
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));

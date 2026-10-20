@@ -14298,19 +14298,24 @@ z
               </select>
             </div>
           </div>
+          <!-- ⚠️ EL SELECTOR «Función valvular» SE RETIRO EL 2026-10-20 («Y3f3») Y SU CAMPO SIGUE
+               VIVO COMO OCULTO. DECISION DE MAICOL: la funcion de la valvula no se consigna dos
+               veces — sale de los grados de EA y de IAo que la propia seccion muestra, que vienen
+               de Valvulas. Lo que elegia el medico aca podia contradecir a la pastilla de al lado.
+               ⚠️ EL CAMPO NO SE BORRA, Y ESO ES LO QUE DEJA TODO LO DEMAS QUIETO. `vab_funcion`
+               sigue siendo un campo del estudio con el MISMO `id`, asi que conserva su columna de
+               Excel, su vocabulario de reimportacion y sus cuatro lectores —`vabConclusion`, el
+               informe, el EN SUMA y el Laboratorio— sin que ninguno cambie una linea. Lo que
+               cambia es QUIEN lo escribe: `vabSync` le pone el token que `vabFuncionDerivada`
+               calcula desde Valvulas, o vacio cuando no hay con que decidir.
+               ⚠️ UN ESTUDIO GUARDADO REABRE CON SU VALOR y `vabSync` lo RECALCULA en el mismo
+               embudo (`RECALC_MODULOS`): lo que se muestra sale de Valvulas, que es la regla. Si
+               Valvulas no tiene dato, la celda queda vacia; esta declarado. -->
+          <input type="hidden" id="vab_funcion" value="">
           <div class="grid-3" style="margin-top:10px;">
-            <div class="fg"><label>Función valvular <button type="button" class="vinfo-btn" data-vinfo="vab-func" aria-expanded="false" aria-label="Función valvular" onclick="vInfoClic(this)">&#9432;</button></label>
-              <select id="vab_funcion" onchange="vabSync()">
-                <option value="">—</option>
-                <option value="normal">Normofuncionante</option>
-                <option value="estenosis">Estenosis</option>
-                <option value="insuficiencia">Insuficiencia</option>
-                <option value="mixta">Mixta</option>
-              </select>
-            </div>
             <!-- Los rotulos de SOLO LECTURA van sin parentesis: el globo de su grupo dice de
                  donde viene cada dato. -->
-            <div class="fg"><label>EA — grado</label>
+            <div class="fg"><label>EA — grado <button type="button" class="vinfo-btn" data-vinfo="vab-func" aria-expanded="false" aria-label="Función valvular" onclick="vInfoClic(this)">&#9432;</button></label>
               <input type="text" id="vab_ea_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
             <div class="fg"><label>IAo — grado</label>
               <input type="text" id="vab_ia_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
@@ -40012,7 +40017,9 @@ const VINFO = Object.freeze({
        + 'categor\u00eda (170\u00b0, 150\u00b0 y 130\u00b0) y solo en los tipos fusionados, que son los que el '
        + 'consenso clasifica.'
   },
-  'vab-func': { tit: 'Funci\u00f3n valvular', lee: 'El grado de EA y de IAo se lee de V\u00e1lvulas.' },
+  /* Y3f3: el selector «Funci\u00f3n valvular» se retir\u00f3 y la funci\u00f3n se DERIVA de estos dos
+     grados. El globo pasa al r\u00f3tulo de «EA \u2014 grado» y lo dice. */
+  'vab-func': { tit: 'Funci\u00f3n valvular', lee: 'El grado de EA y de IAo se lee de V\u00e1lvulas; la funci\u00f3n de la v\u00e1lvula se deriva de esos dos grados y no se consigna aparte.' },
   'vab-aorta': { tit: 'Aorta', lee: 'Los di\u00e1metros se miden en Paciente \u2192 Aorta tor\u00e1cica.' },
   'vab-cx': {
     tit: 'Contexto quir\u00fargico',
@@ -54838,6 +54845,10 @@ function limpiarCampos(silencioso) {
   { const _qx = document.getElementById('ete_qx_pdf'); if (_qx) _qx.value = ''; }
   /* `vab_pdf`, por lo mismo: es `input[type=hidden]` y el barrido de arriba no lo alcanza. */
   { const _vp = document.getElementById('vab_pdf'); if (_vp) _vp.value = ''; }
+  /* `vab_funcion`, lo mismo desde el Y3f3: dejo de ser un `<select>` y paso a oculto, asi que el
+     barrido generico tampoco lo alcanza. Sin esto, la funcion del paciente ANTERIOR sobrevivia a
+     «Nuevo estudio» y `vabConclusion` la leia sobre un formulario en blanco. */
+  { const _vf = document.getElementById('vab_funcion'); if (_vf) _vf.value = ''; }
   if (typeof eteQxPdfSync === 'function') { try { eteQxPdfSync(); } catch (e) {} }
   /* ⚠️ EL BLOQUE DEL TEST DE BURBUJA SE CIERRA A MANO (CORTOS11): el barrido de arriba desmarca
      la casilla, pero el `display` de sus dos envoltorios lo gobierna `otrBurbUI` y ningun barrido
@@ -65759,6 +65770,93 @@ function vabFrChkSync(){
 }
 window.vabFrChk = vabFrChk; window.vabFrChkSync = vabFrChkSync; window.VAB_FR_CHK = VAB_FR_CHK;
 
+/* ══ LA FUNCION VALVULAR SE DERIVA DE VALVULAS — «Y3f3» (2026-10-20) ══════════════════════
+   DECISION DE MAICOL. Devuelve el MISMO vocabulario de tokens que el `<select>` retirado
+   —`normal`, `estenosis`, `insuficiencia`, `mixta`— o `null` cuando no hay con que decidir, asi
+   que los cuatro consumidores (`vabConclusion`, el informe, el EN SUMA y la columna del Excel)
+   siguen leyendo lo de siempre.
+
+   LAS TRES REGLAS, textuales:
+     · sin datos en Valvulas NO se dice nada;
+     · «normofuncionante» SOLO si EA e IAo tienen dato y las DOS estan en «sin lesion»;
+     · con EA o IAo presente NUNCA se dice «normofuncionante».
+
+   ⚠️ «TENER DATO» NO ES «EL CAMPO TIENE UN VALOR», y acá está la trampa de esta zona: los dos
+   campos tienen valor de FABRICA —`ea_grado` arranca en `sin` y `ia_grado` en `'0'`—, asi que
+   preguntarles el valor no distingue «el medico consigno que no hay lesion» de «nadie toco la
+   valvula». La segunda via es `sevCalcPublicable`, que devuelve el grado que la app CALCULO a
+   partir de las mediciones: si hubo con que calcular, hubo medicion, y entonces «sin lesion» es
+   una afirmacion y no un valor por omision. Sin esa via, una seccion virgen publicaria
+   «normofuncionante» sobre una valvula que nadie miro.
+
+   ⚠️ CON `src` -un estudio ARCHIVADO- LA SEGUNDA VIA NO CORRE, y es deliberado:
+   `sevCalcPublicable` lee el DOM. Sobre un registro, «tener dato» es que el campo no este en su
+   valor de fabrica. Es el lado conservador: deja la celda del Excel vacia en vez de afirmar.
+
+   ⚠️ LA ESCLEROSIS NO ES ESTENOSIS NI ES «SIN LESION», y por eso con EA en `esclerosis` e IAo
+   ausente la funcion devuelve `null`. Llamarla «con estenosis» afirmaria una obstruccion que la
+   app no gradua, y llamarla «normofuncionante» negaria un hallazgo que el medico consigno.
+   Reportado en `docs/PENDIENTES.md`; no se inventa una quinta palabra. */
+function vabFuncionDerivada(src) {
+  const sv2 = id => _ccSv(id, src);
+  const ea = sv2('ea_grado'), ia = sv2('ia_grado');
+  const calc = (k) => {
+    if (src) return null;
+    try { return (typeof sevCalcPublicable === 'function') ? sevCalcPublicable(k) : null; }
+    catch (e) { return null; }
+  };
+  /* El centinela de cada vocabulario: `sin` en el token de la EA, `'0'` en el codigo 0-4 de la
+     IAo. La cadena vacia es «no hay ni valor de fabrica», que pasa con un estudio importado. */
+  const eaSin = (ea === '' || ea === 'sin');
+  const iaSin = (ia === '' || ia === '0');
+  const eaTiene = !eaSin || calc('ea') !== null;
+  const iaTiene = !iaSin || calc('ia') !== null;
+  if (!eaTiene && !iaTiene) return null;
+  const eaEst = (ea === 'leve' || ea === 'moderada' || ea === 'severa');
+  const iaIns = (!iaSin && ia !== '');
+  if (eaEst && iaIns) return 'mixta';
+  if (eaEst) return 'estenosis';
+  if (iaIns) return 'insuficiencia';
+  /* Ninguna lesion graduada. La esclerosis no esta «sin lesion» y tampoco es estenosis: ahi no se
+     afirma nada (ver arriba). */
+  if (!eaSin) return null;
+  /* ⚠️ «NORMOFUNCIONANTE» EXIGE QUE LA VALVULA TENGA DATO, NO QUE LO TENGAN LAS DOS LESIONES, Y
+     ES UNA DIFERENCIA DECLARADA CON LA LETRA DE LA ORDEN. Medido en el archivo: el proveedor de
+     la IAo (`SEV_SINC.ia.calcular`) lee `window._iaGradoCalc`, y la cascada de `calcIA_ESC` solo
+     emite '1', '2' o '4' — cuando nadie cuantifico sale por su `return` dejando `null`. O sea que
+     «IAo con grado CALCULADO igual a cero» es INALCANZABLE, y con la letra estricta
+     «normofuncionante» no saldria nunca: la regla se anularia a si misma.
+     Lo que se exige es que la valvula haya sido evaluada —que la app haya podido graduar alguna de
+     las dos, o que el medico haya consignado un grado distinto del de fabrica— y que NINGUNA
+     lesion este presente. No agrega ninguna afirmacion nueva: en ese mismo estado el informe ya
+     publica «valvula aortica trivalva normal, sin estenosis ni insuficiencia significativas».
+     Reportado en `docs/PENDIENTES.md`. */
+  return 'normal';
+}
+window.vabFuncionDerivada = vabFuncionDerivada;
+
+/* ⚠️ LOS CUATRO ORIGENES NECESITAN SU PROPIO OYENTE DE DOCUMENTO, y es el defecto que el Y3f3
+   cierra. MEDIDO contra el arbol de entrada con teclas y clics reales: escribir 45 y 46 en la
+   aorta y poner la EA en moderada y la IAo en 2 dejaba los CUATRO campos de solo lectura de la
+   seccion con su texto anterior en las SEIS escenas, con la seccion abierta y con la seccion
+   cerrada. La causa: los cuatro campos viven en OTRAS pestanas y su manejador va a `calcAorta`,
+   a `_gradoManoBorraMarca` o a `sincronizarGradoIA` — ninguno pasa por `vabSync`, que es el
+   unico que escribe esos readonly.
+   Va como oyente de documento y no como una llamada mas en cada `oninput` por un motivo medido:
+   `ea_grado` e `ia_grado` se escriben tambien POR CALCULO —`valvSev.aplicar` les asigna el valor
+   y despacha su `change`—, y un `onchange` del marcado no ve esa escritura mientras que el
+   oyente en burbuja si. Es el patron de `emContFaAvisoSync` y el mismo que esta zona ya usa para
+   `va_morf`.
+   No hay bucle: `vabSync` no escribe ninguno de los cuatro origenes (censado). */
+const _VAB_ORIGENES = ['ao_sin', 'ao_tub', 'ea_grado', 'ia_grado'];
+function _vabOrigenCambio(ev) {
+  const t = ev && ev.target;
+  if (!t || _VAB_ORIGENES.indexOf(t.id) < 0) return;
+  try { if (typeof vabSync === 'function') vabSync(); } catch (e) { console.warn('[vabSync]', e); }
+}
+document.addEventListener('input', _vabOrigenCambio, false);
+document.addEventListener('change', _vabOrigenCambio, false);
+
 function vabSync(){
   vabFrChkSync();
   /* El dibujo y el boton del PDF siguen al estado por el MISMO embudo que el resto de la
@@ -65790,6 +65888,15 @@ function vabSync(){
   const IA = { '0':'Ausente', '1':'Leve', '2':'Moderada', '3':'Moderada-severa', '4':'Severa' };
   ro('vab_ea_ro', _ccLbl(EA, sv2('ea_grado')));
   ro('vab_ia_ro', _ccLbl(IA, sv2('ia_grado')));
+  /* ⚠️ EL OCULTO `vab_funcion` LO ESCRIBE ESTA LINEA Y NADIE MAS (Y3f3). Es lo que deja a los
+     cuatro consumidores intactos: `vabConclusion`, el informe, el EN SUMA y la columna del Excel
+     siguen leyendo el MISMO campo con el MISMO vocabulario, y lo que cambia es quien lo decide. */
+  (function(){
+    const h = document.getElementById('vab_funcion');
+    if (!h) return;
+    const f = vabFuncionDerivada();
+    h.value = f || '';
+  })();
   const fr = vabFactores();
   /* «ninguno identificado» es una afirmación y necesita que se haya evaluado algo. Antes la
      condición era `sinEvaluar.length === 9`, inalcanzable porque la coartación nunca entraba a
@@ -105333,7 +105440,17 @@ function _labExcelRow(inf) {
     // El mismo dato y el mismo dueño que «VAB tipo (Consenso 2021)» — ver la nota de allá arriba.
     'VAB tipo de fusión': _ccLbl(VAB_TIPO_LBL_LEGACY, c.vab_tipo),
     'VAB rafe calcificado': _cc3e(c.vab_rafe),
-    'VAB función valvular': _ccLbl({normal:'Normofuncionante',estenosis:'Estenosis',insuficiencia:'Insuficiencia',mixta:'Mixta'}, c.vab_funcion),
+    /* ⚠️ LA CELDA SE DERIVA DE VALVULAS DESDE EL Y3f3, Y YA NO SE LEE DE `c.vab_funcion`.
+       DECISION DE MAICOL: la funcion de la valvula sale de los grados de EA e IAo. La COLUMNA, su
+       nombre, su vocabulario de reimportacion y sus cuatro palabras no cambian — lo que cambia es
+       quien las decide, que es la misma regla que gobierna la pantalla.
+       ⚠️ CONSECUENCIA DECLARADA: un estudio guardado ANTES de esta tanda, con `vab_funcion` poblado
+       y los dos grados en su valor de fabrica, publica la celda VACIA en vez del token guardado. Es
+       lo que la orden pide («calculadas desde Valvulas, o vacio») y es ademas lo coherente: si la
+       pantalla ya no muestra ese token, la planilla no puede decir otra cosa. El valor guardado NO
+       se borra: sigue en el registro. */
+    'VAB función valvular': _ccLbl({normal:'Normofuncionante',estenosis:'Estenosis',insuficiencia:'Insuficiencia',mixta:'Mixta'},
+      (typeof vabFuncionDerivada === 'function') ? (vabFuncionDerivada(c) || '') : c.vab_funcion),
     'VAB fenotipo aortopático': _ccLbl({sin:'Sin dilatación',raiz:'De raíz',tubular:'Tubular',arco:'Extendido'}, c.vab_fenotipo),
     'VAB cirugía valvular prevista': _cc3e(c.vab_cx_valvular),
     'VAB riesgo quirúrgico bajo': _cc3e(c.vab_riesgo_qx),
