@@ -1709,7 +1709,7 @@ window.__Y = {
         await pausa(900);
         r.vistas[k] = await ev(`window.__Y.qx()`);
         r.vistas[k].marcas = await ev(`(function(){ var o = {};
-          [['Ao','ete-qx-m-ao'],['Or','ete-qx-m-or'],['AL','ete-qx-m-al'],['PM','ete-qx-m-pm']]
+          [['Ao','ete-qx-mAo'],['Or','ete-qx-mOr'],['AL','ete-qx-mAL'],['PM','ete-qx-mPM']]
             .forEach(function(p){ var e = document.getElementById(p[1]);
               o[p[0]] = e ? { x: Math.round(parseFloat(e.getAttribute('x')||'0')),
                               y: Math.round(parseFloat(e.getAttribute('y')||'0')) } : 'NO EXISTE' });

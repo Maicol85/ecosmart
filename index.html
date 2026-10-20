@@ -63405,14 +63405,29 @@ document.addEventListener('click', function(ev){
                        izquierda. Es la unica VERIFICADA (Hahn y col., ASE 2022, folio 17).
      · ETT           — el dibujo en ESPEJO (`flip = -1`), con la comisura anterolateral a la
                        derecha. Eje corto paraesternal a nivel mitral.
-     · transgastrica — el dibujo girado 180 grados respecto del cirujano. Eje corto basal.
+     · transgastrica — el dibujo del cirujano girado 90 grados ANTIHORARIO, sin espejo
+                       (Y3e2, 2026-10-20). Eje corto basal.
 
-   ⚠️ EN ETT Y EN TRANSGASTRICA NO SE DIBUJAN LAS LETRAS DE LOS FESTONES. La orden lo pide asi
-   cuando la orientacion no se puede verificar, y no se pudo: censada la biblioteca entera,
-   ninguna fuente publica de que lado quedan las comisuras en esas dos vistas. Los poligonos
-   siguen tocables y se siguen pintando con su lesion —el dato no se pierde—; lo que no se
-   afirma es cual es cual. Las cuatro marcas de orientacion se conservan: espejan y giran con el
-   dibujo por construccion, asi que su posicion RELATIVA es correcta sin afirmar nada nuevo.
+   ⚠️ LA ORIENTACION TRANSGASTRICA ESTA VERIFICADA Y YA NO ES CRITERIO (DECISION DE MAICOL,
+   20/10/2026). ASE/SCA 2013 (Hahn y col., JASE 2013;26(9):921-964), hoja 19, folio 939 —regla
+   folio = hoja + 920, comprobada en el pie impreso «Hahn et al 939»—, vista TG Basal SAX:
+     «This view demonstrates the typical SAX view or "fish mouth" appearance of the MV in the TG
+      imaging plane with the ANTERIOR LEAFLET ON THE LEFT of the display and the POSTERIOR
+      LEAFLET ON THE RIGHT. The MEDIAL COMMISSURE is in the NEAR FIELD, with the LATERAL
+      COMMISSURE in the FAR FIELD.»
+   El dibujo del cirujano tiene la aorta y la valva ANTERIOR arriba, la AL a la izquierda y la PM
+   a la derecha. Girarlo 90 grados ANTIHORARIO lleva la anterior a la IZQUIERDA, la posterior a
+   la DERECHA, la PM —que es la comisura posteroMEDIAL— ARRIBA (campo cercano) y la AL
+   —anteroLATERAL— ABAJO (campo lejano): las cuatro afirmaciones de la guia, una por una.
+   ⚠️ EL GIRO ANTIHORARIO ES `rot` NEGATIVO, y no es una convencion arbitraria: `qxT` aplica
+   `x*cos - y*sin` / `x*sin + y*cos` sobre un eje `y` que crece hacia ABAJO, asi que un angulo
+   POSITIVO gira HORARIO en pantalla. Se escribe 270 porque es el valor normalizado que
+   `qxClase` compara; `qxCerca` lo lleva a -90, que es el camino corto.
+   ⚠️ LA VISTA ETT NO CAMBIA Y SIGUE SIENDO CRITERIO DE MAICOL: censada la biblioteca entera,
+   ninguna fuente publica de que lado quedan las comisuras en el eje corto paraesternal mitral.
+   Declarado en FUENTES.md.
+   ⚠️ LAS SEIS LETRAS DE FESTON SE VEN EN LAS TRES VISTAS desde el Y3d1, y las cuatro marcas de
+   orientacion giran con el dibujo por construccion —son puntos del MISMO espacio local—.
 
    ⚠️ `qxCerca` LLEVA EL DESTINO AL MULTIPLO DE 360 MAS CERCANO DEL ANGULO ACTUAL. Sin eso, un
    dibujo girado a 350 grados que vuelve a la vista del cirujano daria toda la vuelta para atras
@@ -63424,13 +63439,16 @@ document.addEventListener('click', function(ev){
 var ETE_QX_VISTAS = Object.freeze({
   cir: Object.freeze({ rot: 0,   flip: 1  }),
   ett: Object.freeze({ rot: 0,   flip: -1 }),
-  tg:  Object.freeze({ rot: 180, flip: 1  })
+  tg:  Object.freeze({ rot: 270, flip: 1  })
 });
 function qxCerca(b){ return b + 360 * Math.round((_qxRot - b) / 360); }
 function qxClase(r, f){
-  var m = ((r % 360) + 360) % 360, d0 = Math.min(m, 360 - m), d180 = Math.abs(m - 180);
+  var m = ((r % 360) + 360) % 360, d0 = Math.min(m, 360 - m), d270 = Math.abs(m - 270);
   if (f > 0.95 && d0 < 8) return 'cir';
-  if (f > 0.95 && d180 < 8) return 'tg';
+  /* 270 grados, o sea el giro de 90 ANTIHORARIO del Y3e2. El valor NORMALIZADO es el que se
+     compara, asi que da lo mismo que `qxCerca` lleve el destino a -90: ((-90 % 360) + 360) % 360
+     vale 270. La tolerancia de 8 grados es la de la demo, igual que para las otras dos. */
+  if (f > 0.95 && d270 < 8) return 'tg';
   if (f < -0.95 && d0 < 8) return 'ett';
   return 'libre';
 }
@@ -63464,10 +63482,9 @@ function eteQxVistasSync(){
      ⚠️ NO SE DEJA LA VARIABLE `conLetras` VIVA NI EL CAMPO `letras` DE `ETE_QX_VISTAS`: una
      bandera sin consumidor es la que la proxima lectura cree que gobierna algo. El campo sale
      de la tabla en el mismo movimiento.
-     ⚠️ Y LO QUE LA ORIENTACION AFIRMA QUEDA DECLARADO EN `docs/fuentes/FUENTES.md`: la ASE/SCA
-     2013 (folio 939, hoja 19) publica la transgastrica basal con las VALVAS a izquierda y
-     derecha y las COMISURAS en campo cercano y lejano, que NO es la orientacion de la demo. El
-     dibujo no se toca —la orden lo prohibe— y la discrepancia se reporta. */
+     ⚠️ Y LA DISCREPANCIA QUE ESTE BLOQUE DECLARABA ESTA CERRADA (Y3e2, 2026-10-20): la
+     transgastrica pasa a los 90 grados ANTIHORARIO que publica la ASE/SCA 2013 en su folio 939.
+     Ver el comentario de `ETE_QX_VISTAS`, que es donde vive la cita. */
 }
 /* El boton no existe con una protesis mitral, por el mismo predicado que el boton del 3D. */
 function eteQxVistasBotonSync(){

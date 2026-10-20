@@ -77644,8 +77644,17 @@ caso('TC-503', 'Tanda Y3c: la TABLA UNICA de festones por angulo que leen los cu
      ven SIEMPRE, asi que el campo letras se retiro de la tabla y la condicion afirma hoy lo
      CONTRARIO: que las tres vistas NO declaran ninguna bandera de letras. Lo que ese bloque
      fijaba de verdad -las tres camaras- no cambio y se conserva entero. */
-  ex.push(['(E3) la vista del cirujano es rot 0 sin espejo; ETT es espejo; la transgastrica, 180',
-    !!VST && VST.cir.rot === 0 && VST.cir.flip === 1 && VST.ett.flip === -1 && VST.tg.rot === 180
+  /* ADAPTADO el 2026-10-20 (Y3e2). La transgastrica pasa de 180 grados a 270, o sea el giro de
+     90 ANTIHORARIO que publica la ASE/SCA 2013 en su hoja 19, folio 939: valva anterior a la
+     IZQUIERDA, posterior a la DERECHA, comisura medial en el campo cercano (arriba) y lateral
+     en el lejano (abajo). DECISION DE MAICOL (20/10/2026). Lo que esta condicion fija -la
+     camara de cada vista y que ninguna declara bandera de letras- no cambio de forma; lo que
+     cambio es el valor de UNA de las tres camaras. La orientacion RENDERIZADA, marca por marca
+     y letra por letra, la mide TC-505. Las otras dos vistas no se tocan: la ETT sigue siendo el
+     espejo y sigue siendo criterio de Maicol, sin fuente. */
+  ex.push(['(E3) la vista del cirujano es rot 0 sin espejo; ETT es espejo; la transgastrica, 270 (90 antihorario)',
+    !!VST && VST.cir.rot === 0 && VST.cir.flip === 1 && VST.ett.flip === -1 && VST.ett.rot === 0
+      && VST.tg.rot === 270 && VST.tg.flip === 1
       && VST.cir.letras === undefined && VST.ett.letras === undefined && VST.tg.letras === undefined,
     VST ? JSON.stringify(VST) : 'SIN ETE_QX_VISTAS']);
   /* NUEVO (Y3d1): los SEIS rotulos se ven en las tres vistas y en cualquier angulo. Se mide el
