@@ -13578,7 +13578,10 @@ caso('TC-168', 'POP-3: el POCUS sincroniza y no inventa cortes', `
       ['el neumotorax presente alerta',             pulmon.indexOf('PRESENTE') > -1, pulmon.slice(0,110)],
       /* Los cortes son los de la app, NO los tres tramos del pedido. */
       ['TAPSE 12 usa el corte de la app (17)',      vd.indexOf('disfunción (<17 mm)') > -1, vd.slice(0,70)],
-      ['VD/VI 1.1 usa el corte de la app (0.9)',    vd.indexOf('dilatación (≥0.9)') > -1, vd.slice(0,120)],
+      /* ADAPTADO el 2026-10-20 (R7): el corte del eco pasa de >=0,9 a >=1,0 (ESC 2019 de TEP,
+         folio e17). Lo que la condicion fija -que el POCUS use el corte de la APP y no el
+         semaforo de tres bandas del pedido original- no cambio. */
+      ['VD/VI 1.1 usa el corte de la app (1.0)',    vd.indexOf('dilatación (≥1.0)') > -1, vd.slice(0,120)],
       ['la conclusion del VD manda a descartar taponamiento y TEP',
         vd.indexOf('descartar taponamiento y TEP') > -1, vd.slice(0,190)],
       ['y declara lo que falta completar',          vd.indexOf('Completar: PSAP') > -1, vd.slice(-90)]
@@ -66799,8 +66802,17 @@ caso('TC-476', 'Tanda G1: el VD en tres columnas con su orden de Tab, las filas 
       fuente.indexOf('vdViEstado(S).alt') > -1 && fuente.indexOf('(vdvi !== null && vdvi > VD_VI_HTP_MIN) || S.chk') < 0,
       '']);
     /* Y el corte de TEP sigue siendo OTRO, sobre OTRO campo. */
-    ex.push(['CONTROL NEGATIVO: el corte de TEP (>=0.9) sigue vivo y sobre tep_vdvi',
-      fuente.indexOf('vdvi >= 0.9') > -1 && !!EL('tep_vdvi'), '']);
+    /* ADAPTADO el 2026-10-20 (R7). Esta condicion era el LIMITE DECLARADO de su tanda -«el corte
+       de TEP sigue en >=0,9 y es OTRO campo»-, escrita para que el dia que se moviera se notara.
+       Se movio: decision de Maicol con la fuente leida, ESC 2019 de TEP, folio e17, que publica
+       >=1,0 para el ECO -el 0,9 es un corte de TOMOGRAFIA-. Lo que la condicion sigue fijando, y
+       es lo que importa, es que son DOS cortes de DOS campos distintos con DOS fuentes y DOS
+       OPERADORES: tep_vdvi con >= (TEP, el nuevo TEP_VDVI_DILAT_MIN) y vd_vi con > (probabilidad
+       de HTP, VD_VI_HTP_MIN). Que hoy coincidan en el numero no los hace el mismo corte: el 1,00
+       EXACTO cuenta en TEP y NO cuenta en la probabilidad de HTP. */
+    ex.push(['CONTROL NEGATIVO: el corte de TEP es OTRO campo, OTRA constante y OTRO operador',
+      fuente.indexOf('vdvi >= TEP_VDVI_DILAT_MIN') > -1 && !!EL('tep_vdvi')
+        && fuente.indexOf('vdvi > VD_VI_HTP_MIN') > -1 && !!EL('vd_vi'), '']);
 
     /* ══ E · LA PARED GRADUADA — ASE 2025, Tabla 1, folio 145 ═════════════════════════════
        normal < 5 · leve >=5 a <=7 · moderada >7 a <=9 · severa >9 (en mm). Los dos techos
@@ -67681,8 +67693,17 @@ caso('TC-478', 'Tanda G3: la casilla de la FAC vuelve a estar VISIBLE con su men
       (function(){ const e = EL('vd_vi_sel'); return !!e && e.value === '' && e.disabled === false; })(),
       (function(){ const e = EL('vd_vi_sel'); return e ? (e.value + '/' + e.disabled) : 'NO EXISTE'; })()]);
     /* CONTROL NEGATIVO: el corte de TEP es OTRO campo y OTRA pregunta. */
-    ex.push(['(D) CONTROL NEGATIVO: el >= 0,9 de TEP sigue vivo y sobre tep_vdvi',
-      fuente.indexOf('vdvi >= 0.9') > -1 && !!EL('tep_vdvi'), '']);
+    /* ADAPTADO el 2026-10-20 (R7). Esta condicion era el LIMITE DECLARADO de su tanda -«el corte
+       de TEP sigue en >=0,9 y es OTRO campo»-, escrita para que el dia que se moviera se notara.
+       Se movio: decision de Maicol con la fuente leida, ESC 2019 de TEP, folio e17, que publica
+       >=1,0 para el ECO -el 0,9 es un corte de TOMOGRAFIA-. Lo que la condicion sigue fijando, y
+       es lo que importa, es que son DOS cortes de DOS campos distintos con DOS fuentes y DOS
+       OPERADORES: tep_vdvi con >= (TEP, el nuevo TEP_VDVI_DILAT_MIN) y vd_vi con > (probabilidad
+       de HTP, VD_VI_HTP_MIN). Que hoy coincidan en el numero no los hace el mismo corte: el 1,00
+       EXACTO cuenta en TEP y NO cuenta en la probabilidad de HTP. */
+    ex.push(['(D) CONTROL NEGATIVO: el corte de TEP es OTRO campo, OTRA constante y OTRO operador',
+      fuente.indexOf('vdvi >= TEP_VDVI_DILAT_MIN') > -1 && !!EL('tep_vdvi')
+        && fuente.indexOf('vdvi > VD_VI_HTP_MIN') > -1 && !!EL('vd_vi'), '']);
 
     /* ══ E · EL PPT ESTADISTICO Y LA MINI-TABLA DEL PDF, ALINEADOS ═════════════════════════
        Las TRES superficies leen el MISMO dueño, _labValvFila. Lo que el caso mide es ese

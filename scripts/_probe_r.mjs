@@ -2425,6 +2425,89 @@ window.__Z = {
     process.stderr.write('[tapo] listo\n');
   }
 
+
+  /* ══ GRUPO «tep» — EL CORTE DE VD/VI Y LAS FORMULAS DE REFERENCIAS ════════════════════════
+     ⚠️ CUATRO VALORES Y NO DOS: con 0,89 y 1,0 los dos operadores -`>=0.9` y `>=1.0`- dan
+     resultados distintos, pero el tramo que los separa es 0,9 a 0,99 y ahi esta el cambio. */
+  if (corre('tep')) {
+    const r = { bordes: {}, refs: {} };
+    const abrirTep = () => ev(`(function(){
+      try { if (typeof showTab === 'function') showTab('hemodinamica'); } catch(e){}
+      var e = document.getElementById('tep_vdvi');
+      var rr = e ? e.getBoundingClientRect() : null;
+      return rr ? { w: Math.round(rr.width) } : 'NO EXISTE' })()`);
+    const leerTep = async () => ({
+      cap:   await ev(`window.__P.txt('tep-vdvi-interp')`),
+      interp: await ev(`window.__P.txt('tep-interp')`),
+      riesgo: await ev(`window.__P.txt('tep-riesgo')`),
+      corte: await ev(`(typeof TEP_VDVI_DILAT_MIN !== 'undefined') ? TEP_VDVI_DILAT_MIN : 'SIN CONST'`),
+      pocus: await ev(`window.__P.txt('pop-pocus-vd')`),
+      estandar: await ev(`(function(){ var o = window.__P.informe('estandar');
+        var t = (o && o.inf) ? o.inf : String(o||'');
+        return (t.split(String.fromCharCode(10)).filter(function(l){ return l.indexOf('VD/VI')>=0 || l.indexOf('romboembol')>=0 || l.indexOf('isfunci')>=0 })||[]).join(' | ') })()`),
+    });
+    try {
+      r.puerta = await abrirTep();
+      for (const vv of ['0.89', '0.9', '0.99', '1', '1.01']) {
+        await ev(`window.__P.nuevo()`);
+        await abrirTep();
+        await tipear('tep_vdvi', vv);
+        await ev(`window.__P.calentar()`);
+        r.bordes[vv] = await leerTep();
+      }
+      /* El BORRADO: la regla ARR. */
+      await ev(`window.__P.nuevo()`);
+      await abrirTep();
+      await tipear('tep_vdvi', '1.2');
+      await borrar('tep_vdvi', 'bs');
+      await ev(`window.__P.calentar()`);
+      r.bordes['borrado'] = await leerTep();
+      /* La ficha de TEP y la tabla de formulas. */
+      r.refs.tep = await ev(`(function(){
+        try { if (typeof showTab==='function') showTab('referencias'); } catch(e){}
+        var c = document.getElementById('ref-tep');
+        if (c && getComputedStyle(c).display === 'none' && typeof toggleRef === 'function')
+          toggleRef('tep', c.previousElementSibling);
+        if (!c) return 'NO EXISTE';
+        var t = (c.textContent || '').split(/\\s+/).join(' ');
+        return { vdvi09: t.indexOf('VD/VI ≥0.9') >= 0, vdvi10: t.indexOf('VD/VI ≥1.0') >= 0,
+                 tp032: t.indexOf('0.32') >= 0 } })()`);
+      r.refs.formulas = await ev(`(function(){
+        try { if (typeof showTab==='function') showTab('referencias'); } catch(e){}
+        var filas = Array.prototype.filter.call(document.querySelectorAll('tr'), function(tr){
+          var t = tr.textContent || '';
+          return t.indexOf('TAPSE/PSAP') >= 0 || t.indexOf('Relación VD/VI') >= 0; });
+        return filas.map(function(tr){ return Array.prototype.map.call(tr.cells, function(c){
+          return (c.textContent||'').split(/\\s+/).join(' ').trim() }).join(' | ') }) })()`);
+      /* `VD_VI_HTP_MIN` es un const de MODULO y no una propiedad de window -la trampa de
+         ECO_AYUDA-, asi que se mide por COMPORTAMIENTO: el corte de la probabilidad de HTP es
+         OTRO campo (`vd_vi`) y otra pregunta, y sigue en 1,0 con operador ESTRICTO. */
+      r.refs.htpVd = await ev(`(function(){ var o = {};
+        [['1','1.0 exacto'],['1.01','por encima']].forEach(function(p){
+          var e = document.getElementById('vd_vi'); if (!e) { o.err='NO EXISTE vd_vi'; return; }
+          e.value = p[0]; e.dispatchEvent(new Event('input', { bubbles: true }));
+          try { if (typeof calcVD === 'function') calcVD(); } catch(x){}
+          var f = document.getElementById('row-tapse-psap');
+          o[p[0]] = (function(){ var el = document.getElementById('vdvi-interp');
+            return el ? (el.textContent||'').trim() : 'SIN NODO' })(); });
+        return o })()`);
+      r.excel = await ev(`window.__P.excelDOM()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.tep = r;
+    process.stderr.write('[tep] listo\n');
+  }
+
+
+  if (corre('xlsassert')) {
+    const r = {};
+    try {
+      r.bloques = await ev(`(typeof _labXlsAssertBloques==='function') ? _labXlsAssertBloques() : 'SIN FN'`);
+      r.listas  = await ev(`(typeof _labXlsAssertListas==='function') ? _labXlsAssertListas() : 'SIN FN'`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.xlsassert = r;
+    process.stderr.write('[xlsassert] listo\n');
+  }
+
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
   process.stdout.write(JSON.stringify(OUT, null, 1));
   cdp.close(); srv.close(); process.exit(0);

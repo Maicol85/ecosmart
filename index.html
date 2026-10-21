@@ -18124,7 +18124,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     <div id="ref-tep" style="display:none;" class="card-body">
       <div style="font-size:12px;color:var(--text);line-height:1.8;">
         <b style="color:var(--accent2);">Criterios de disfunción VD (≥2 = disfunción significativa):</b><br>
-        • Dilatación VD: VD/VI ≥0.9 en A4C<br>
+        • Dilatación VD: VD/VI ≥1.0 en A4C<br>
         • Disfunción sistólica: TAPSE &lt;17mm<br>
         • PSAP elevada: &gt;35 mmHg<br>
         • Signo de McConnell: hipoquinesia pared libre VD con ápex conservado (especificidad ~94% para TEP)<br>
@@ -18540,8 +18540,20 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:0 0 6px;">➡️ Ventrículo Derecho y TEP</div>
       <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:6px;">
         <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Nombre</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Fórmula</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Normal</th></tr>
-        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">TAPSE/PSAP — acoplamiento VD-AP</td><td style="padding:5px 8px;font-family:monospace;">TAPSE (mm) / PSAP (mmHg)</td><td style="padding:5px 8px;">&gt;0.32 mm/mmHg</td></tr>
-        <tr style="background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">Relación VD/VI</td><td style="padding:5px 8px;font-family:monospace;">VD_basal / DDFVI</td><td style="padding:5px 8px;">&lt;0.9</td></tr>
+        <!-- ══ LAS DOS FILAS PUBLICABAN CORTES QUE LA APP NO APLICA (R7, 2026-10-20) ══════════════
+             DECISION DE MAICOL con la fuente leida: ESC/ERS 2022, Tabla 10, folio 28 (Humbert
+             2022), que publica los signos ecocardiograficos de probabilidad de hipertension
+             pulmonar. La app YA aplica esos dos cortes -`VD_VI_HTP_MIN` en 1,0 y el 0,55 del
+             cociente-, asi que lo unico que se corrige es lo que la ficha PUBLICA:
+               · TAPSE/PSAP decia «>0.32 mm/mmHg», que es el corte de BAJO RIESGO en hipertension
+                 arterial pulmonar (ESC/ERS 2022, folio 41) y el que aplica la pantalla de TEP, no
+                 el de la probabilidad de HTP;
+               · VD/VI decia «<0.9», que no es corte de ninguna de las dos cosas: era el de
+                 TOMOGRAFIA que la app usaba en TEP y que esta tanda llevo a 1,0.
+             Cada fila publica el valor NORMAL -que es lo que el encabezado de la columna pide- y
+             entre parentesis el corte de la guia, que es el numero que el lector busca. -->
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">TAPSE/PSAP — acoplamiento VD-AP</td><td style="padding:5px 8px;font-family:monospace;">TAPSE (mm) / PSAP (mmHg)</td><td style="padding:5px 8px;">&ge;0.55 mm/mmHg <span style="color:var(--text2);">(signo de HTP si &lt;0,55 — ESC/ERS 2022, Tabla 10)</span></td></tr>
+        <tr style="background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">Relación VD/VI</td><td style="padding:5px 8px;font-family:monospace;">VD_basal / DDFVI</td><td style="padding:5px 8px;">&le;1.0 <span style="color:var(--text2);">(signo de HTP si &gt;1,0 — ESC/ERS 2022, Tabla 10)</span></td></tr>
       </table>
 
     </div>
@@ -22062,6 +22074,21 @@ window.UMBRAL_TAP_HTP = UMBRAL_TAP_HTP;
    decía normal ≤40, el Laboratorio ≤35, y el informe tenía su propia cascada—, así que
    una PSAP de 38 era «normal» en una pantalla y «HTP leve» en el informe firmado. */
 const UMBRAL_PSAP_ELEVADA = 35;  // mmHg
+/* ══ LA DILATACION DEL VD EN EL ALGORITMO DE TEP — `>= 1,0` (R7, 2026-10-20) ═════════════════
+   DECISION DE MAICOL con la fuente leida: ESC 2019 de TEP, folio e17. El `>= 0,9` que la app
+   aplicaba es un corte de TOMOGRAFIA, no de ecocardiografia, y esta tanda lo lleva al de la guia.
+
+   ⚠️ UN SOLO DUEÑO PARA LOS CUATRO CONSUMIDORES: la capsula de TEP, el score del informe firmado,
+   el POCUS del VD y el patron hemodinamico del POP escribian cada uno su `0.9`. Con cuatro copias,
+   mover el corte en una deja a las otras tres publicando el otro numero sobre el mismo paciente.
+
+   ⚠️ NO ES EL CORTE DE LA PROBABILIDAD DE HTP, que es `VD_VI_HTP_MIN` -tambien 1,0, tambien `>`-
+   y vive en la pestaña VD con otra fuente (ESC/ERS 2022, Tabla 10, folio 28; ASE 2025, Tabla 8,
+   folio 173). Son dos campos distintos -`tep_vdvi` y `vd_vi`- y dos preguntas distintas; que hoy
+   coincidan en el numero no los convierte en el mismo corte, y el operador tampoco es el mismo:
+   aca `>=` y alla `>`, asi que el 1,00 EXACTO cuenta aca y no cuenta alla. */
+const TEP_VDVI_DILAT_MIN = 1.0;   // ratio — `>=` (ESC 2019 de TEP, folio e17)
+window.TEP_VDVI_DILAT_MIN = TEP_VDVI_DILAT_MIN;
 /* El corte ALTO de la banda de cohorte de PSAP. No es un umbral clínico de la guía sino la
    frontera de la tercera banda del filtro del Laboratorio — pero estaba escrito TRES veces (los
    dos lados del predicado, la etiqueta de `_COH_LBL` y el texto del `<option>`), así que moverlo
@@ -26024,12 +26051,14 @@ function calcTEP() {
   // 2. VD/VI
   const vdviEl = document.getElementById('tep-vdvi-interp');
   if (vdvi !== null) {
-    const patol = vdvi >= 0.9;
+    const patol = vdvi >= TEP_VDVI_DILAT_MIN;
     if (patol) score++;
     criterios.push('VD/VI');
+    /* El rotulo sale de la constante: con el numero escrito a mano, el dia que se mueva el corte
+       la capsula dice uno y el score cuenta el otro. */
     if (vdviEl) vdviEl.innerHTML = patol
-      ? badge('red',    'VD/VI ' + vdvi + ' — dilatación VD (≥0.9) ✓')
-      : badge('green',  'VD/VI ' + vdvi + ' — normal (<0.9)');
+      ? badge('red',    'VD/VI ' + vdvi + ' — dilatación VD (≥' + TEP_VDVI_DILAT_MIN.toFixed(1) + ') ✓')
+      : badge('green',  'VD/VI ' + vdvi + ' — normal (<' + TEP_VDVI_DILAT_MIN.toFixed(1) + ')');
   } else if (vdviEl) vdviEl.textContent = '—';
 
   // 3. TAPSE
@@ -52483,7 +52512,7 @@ function generarInforme(opts) {
     if (!hayDatos) return;
 
     let score = 0;
-    if (vdvi !== null && vdvi >= 0.9) score++;
+    if (vdvi !== null && vdvi >= TEP_VDVI_DILAT_MIN) score++;
     if (tapse !== null && tapse < UMBRAL_TAPSE_NORMAL) score++;
     if (psap !== null && psap > UMBRAL_PSAP_ELEVADA) score++;
     if (mcconnell) score++;
@@ -54138,7 +54167,7 @@ function popPocusSync() {
   if (vdvi === null) pend.push('VD/VI (tab VD/AD)');
   if (psap === null) pend.push('PSAP (tab Doppler)');
   const tapseBaja = tapse !== null && tapse < uT;
-  const vdDil = vdvi !== null && vdvi >= 0.9;
+  const vdDil = vdvi !== null && vdvi >= TEP_VDVI_DILAT_MIN;
   let concl;
   if (tapse === null && vdvi === null) concl = badge('yellow', 'Sin datos para concluir');
   else if (tapseBaja && vdDil) concl = badge('red', 'Disfunción del VD con dilatación — descartar taponamiento y TEP');
@@ -54148,7 +54177,8 @@ function popPocusSync() {
     fila('TAPSE', tapse === null ? '—' : tapse + ' mm ' + badge(tapseBaja ? 'red' : 'green',
          tapseBaja ? 'disfunción (<' + uT + ' mm)' : 'normal (≥' + uT + ' mm)')) +
     fila('VD/VI', vdvi === null ? '—' : vdvi + ' ' + badge(vdDil ? 'red' : 'green',
-         vdDil ? 'dilatación (≥0.9)' : 'normal (<0.9)')) +
+         vdDil ? 'dilatación (≥' + TEP_VDVI_DILAT_MIN.toFixed(1) + ')'
+               : 'normal (<' + TEP_VDVI_DILAT_MIN.toFixed(1) + ')')) +
     fila('McConnell', mcc === 'si' ? badge('red', 'Presente') : mcc === 'no' ? badge('green', 'Ausente') : '—') +
     fila('PSAP', psap === null ? '—' : psap + ' mmHg') +
     fila('Conclusión', concl) +
@@ -54260,7 +54290,7 @@ function popPatron() {
   if (vdvi === null && v('vd_bas') && v('ddfvi')) vdvi = PF((v('vd_bas') / v('ddfvi')).toFixed(2));
   const uT = (typeof UMBRAL_TAPSE_NORMAL !== 'undefined') ? UMBRAL_TAPSE_NORMAL : 17;
   const tapseBaja = tapse !== null && tapse < uT;
-  const vdDil = vdvi !== null && vdvi >= 0.9;
+  const vdDil = vdvi !== null && vdvi >= TEP_VDVI_DILAT_MIN;
 
   /* ⚠️ LA PREGUNTA «¿TAPONAMIENTO?» LA CONTESTA EL MEDICO (R6, 2026-10-20). Antes salia de
      `dptEstado().clave === 'taponamiento'`, o sea de la regla de «tres criterios» que esta tanda
@@ -109095,7 +109125,12 @@ const LAB_XLS_LISTAS = {
   ep_etiologia: ['No especificada','Congénita valvular','Displasia valvular (Noonan)','Supravalvular (Williams)','Carcinoide','Post-quirúrgica','Ramas pulmonares'],
   ip_grado: ['Sin insuficiencia','Leve','Moderada','Severa'],
   ip_etiologia: ['No especificada','Fisiológica (traza)','HTP (dilatación anular)','Endocarditis','Post-quirúrgica','Carcinoide','Displasia valvular'],
-  pericardio: ['Normal, sin derrame','Derrame mínimo','Derrame leve (5-10mm)','Derrame moderado (10-20mm)','Derrame severo (>20mm)','Engrosamiento / calcificación'],
+  /* ⚠️ LOS SEIS VALORES MAS EL NUEVO (R5, 2026-10-20). Los DOS de legado -«Derrame mínimo» y
+     «Derrame leve (5-10mm)»- se conservan porque son los que trae cada backup ya exportado y,
+     para una columna de opcion, un valor desconocido descarta la FILA ENTERA. El nuevo entra
+     porque si no la reimportacion rechazaria la fila de todo estudio con derrame leve guardado
+     desde hoy: lo cazo `_labXlsAssertListas`, que es para lo que ese chequeo de arranque esta. */
+  pericardio: ['Normal, sin derrame','Derrame mínimo','Derrame leve (5-10mm)','Derrame leve (<10mm)','Derrame moderado (10-20mm)','Derrame severo (>20mm)','Engrosamiento / calcificación'],
   /* `alg-motivo` va por LISTA y no por vocabulario porque su `option value` ES la etiqueta,
      paréntesis incluidos — y `_labXlsVocab` parte por `(` para su fallback de etiqueta larga,
      así que ahí se confundiría. `_labXlsLista` compara normalizado y devuelve el valor exacto. */
