@@ -5196,9 +5196,9 @@ window.cerrarSesionReal = cerrarSesionReal;
           <div class="calc-row"><span class="calc-lbl">PAM</span><span class="calc-val" id="ao-ref-pam">—</span></div>
           <div class="calc-row"><span class="calc-lbl">GC <span class="ao-ref-f" data-f="gc" style="color:var(--text2);font-size:10px;"></span></span><span class="calc-val" id="ao-ref-gc">—</span></div>
           <div class="calc-row"><span class="calc-lbl">IC</span><span class="calc-val" id="ao-ref-ic">—</span></div>
-          <div class="calc-row"><span class="calc-lbl">PCP <span class="ao-ref-f" data-f="pcp" style="color:var(--text2);font-size:10px;"></span></span><span class="calc-val" id="ao-ref-pcp">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">PCP estimada por eco <span class="ao-ref-f" data-f="pcp" style="color:var(--text2);font-size:10px;"></span></span><span class="calc-val" id="ao-ref-pcp">—</span></div>
           <div class="calc-row"><span class="calc-lbl">RVS <span class="ao-ref-f" data-f="rvs" style="color:var(--text2);font-size:10px;"></span></span><span class="calc-val" id="ao-ref-rvs">—</span></div>
-          <div class="calc-row"><span class="calc-lbl">RVP <span class="ao-ref-f" data-f="rvp" style="color:var(--text2);font-size:10px;"></span></span><span class="calc-val" id="ao-ref-rvp">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">RVP estimada por eco <span class="ao-ref-f" data-f="rvp" style="color:var(--text2);font-size:10px;"></span></span><span class="calc-val" id="ao-ref-rvp">—</span></div>
         </div>
       </div>
       <!-- Las filas que la grilla reemplazó siguen existiendo FUERA de vista: `ava-idx`,
@@ -8720,7 +8720,10 @@ window.cerrarSesionReal = cerrarSesionReal;
           <span id="hemo-rvs">—</span>
         </div>
         <div class="calc-row">
-          <span class="calc-lbl">PCP — Nagueh <span style="color:var(--text2);font-size:10px;">= 1.24 × (E/e') + 1.9</span></span>
+          <!-- ⚠️ EL ROTULO DICE QUE ES UNA ESTIMACION POR ECO (R2-E8, 2026-10-21, decision de
+               Maicol). El CALCULO no cambia: es la misma formula de Nagueh. Lo que cambia es que
+               la pantalla no presente un valor derivado del E/e' como si fuera una medicion. -->
+          <span class="calc-lbl">PCP estimada por eco (Nagueh) <span style="color:var(--text2);font-size:10px;">= 1.24 × (E/e') + 1.9</span></span>
           <span class="calc-val" id="hemo-pcp">—</span>
         </div>
         <div class="calc-row">
@@ -8728,7 +8731,7 @@ window.cerrarSesionReal = cerrarSesionReal;
           <span class="calc-val" id="hemo-gtp">—</span>
         </div>
         <div class="calc-row">
-          <span class="calc-lbl">RVP <span style="color:var(--text2);font-size:10px;">= (Vmax IT / VTI-TSVD) × 10 + 0,16 · Abbas (Wood)</span></span>
+          <span class="calc-lbl">RVP estimada por eco (Abbas) <span style="color:var(--text2);font-size:10px;">= (Vmax IT / VTI-TSVD) × 10 + 0,16 (Wood)</span></span>
           <span id="hemo-rvp">—</span>
         </div>
         <div class="calc-row">
@@ -8738,7 +8741,7 @@ window.cerrarSesionReal = cerrarSesionReal;
       </div>
       <div class="calc-box" style="margin-top:8px;">
         <div class="calc-row">
-          <span class="calc-lbl" style="font-weight:700;">🧭 Perfil de Forrester <span style="font-weight:400;color:var(--text2);font-size:10px;">(IC + PCP)</span></span>
+          <span class="calc-lbl" style="font-weight:700;">🧭 Perfil de Forrester <span style="font-weight:400;color:var(--text2);font-size:10px;">(IC + PCP, estimado por eco)</span></span>
           <span id="hemo-forrester">—</span>
         </div>
         <!-- Ojo: en ESTA tarjeta la RVP NO deriva de la PCP —sale de Abbas o del override por
@@ -18602,7 +18605,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">Gradiente Transpulmonar (GTP)</td><td style="padding:5px 8px;font-family:monospace;">PAPm − PCP</td><td style="padding:5px 8px;">&lt;12 mmHg</td></tr>
         <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">RVP (dinas)</td><td style="padding:5px 8px;font-family:monospace;">(PAPm − PCP) / GC × 80</td><td style="padding:5px 8px;">&lt;120 dinas·s·cm⁻⁵</td></tr>
         <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">RVP — Unidades Wood</td><td style="padding:5px 8px;font-family:monospace;">(PAPm − PCP) / GC</td><td style="padding:5px 8px;">&lt;1.5–2.0 UW</td></tr>
-        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">RVS (dinas)</td><td style="padding:5px 8px;font-family:monospace;">(PAM − PmAD) / GC × 80</td><td style="padding:5px 8px;">900–1200 dinas·s·cm⁻⁵</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">RVS (dinas)</td><td style="padding:5px 8px;font-family:monospace;">(PAM − PmAD) / GC × 80</td><td style="padding:5px 8px;">—</td></tr>
         <tr style="background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">PAM</td><td style="padding:5px 8px;font-family:monospace;">(PAS + 2×PAD) / 3</td><td style="padding:5px 8px;">70–100 mmHg</td></tr>
       </table>
 
@@ -24617,10 +24620,15 @@ function _hemoGCEco(dtsvi, itv, fc) {
 }
 /* Banda del índice cardíaco. UNA sola en toda la app: la usan la cápsula de Hemodinámica y el
    bloque POP. `FORR_IC_CORTE` (2,2) es el mismo borde inferior, y es deliberado. */
+/* ══ DOS BANDAS DONDE HABIA TRES (R2-E8, 2026-10-21, decision de Maicol) ══════════════════
+   `<= 2,2` es BAJO —el 2,2 EXACTO cae de ese lado— y por encima es NORMAL hasta 4,0. Se va el
+   tramo «límite» de 2,2 a 2,49, que no sale de ninguna fuente de la biblioteca.
+   ⚠️ EL 2,2 CAMBIA DE LADO: con `< 2.2` el valor exacto era «límite» y hoy es «bajo».
+   `FORR_IC_CORTE` sigue siendo el mismo numero y el Forrester NO se toca: el 2,2 es su borde
+   inferior y eso era deliberado desde antes. */
 function _icBanda(ic) {
   if (ic === null || ic === undefined || !isFinite(ic)) return null;
-  if (ic < 2.2) return { cls:'red',    txt:'bajo' };
-  if (ic < 2.5) return { cls:'yellow', txt:'límite' };
+  if (ic <= 2.2) return { cls:'red',    txt:'bajo' };
   if (ic <= 4.0) return { cls:'green', txt:'normal' };
   return { cls:'yellow', txt:'elevado' };
 }
@@ -24696,8 +24704,14 @@ function calcHemo() {
   let rvs = null;
   if (pam !== null && pvc !== null && gc !== null && gc > 0) {
     rvs = (pam - pvc) / gc * WOOD_A_DYN;
-    const _br = _rvsBanda(rvs); const cls = _br.cls, et = _br.txt;   // seam compartido con POP
-    setH('hemo-rvs', rvs.toFixed(0) + ' dinas·s·cm⁻⁵ ' + badge(cls, et));
+    /* ══ LA RVS SE MUESTRA SIN ROTULO DE BANDA (R2-E8, 2026-10-21, decision de Maicol) ══════
+       Se publica el NUMERO y se retiran los rotulos de 800 / 1200 / 1400 de esta capsula.
+       ⚠️ `_rvsBanda` NO SE TOCA, Y ES LO QUE PROTEGE AL POSOPERATORIO: de esa funcion cuelga la
+       VASOPLEJIA del POP (RVS < 800), que esta orden excluye expresamente, y la leen tambien el
+       SVRI del PiCCO y la capsula del Swan. Lo que se saca es el USO del rotulo aca, no la
+       funcion. El color se conserva: es la unica senal que queda y no afirma una banda con
+       palabras. */
+    setH('hemo-rvs', rvs.toFixed(0) + ' dinas·s·cm⁻⁵');
   } else setH('hemo-rvs', '—');
 
   // ── PCP (Nagueh) ──
@@ -83907,8 +83921,13 @@ function _amChk(id) { const e = document.getElementById(id); return !!(e && e.ch
 function amiloTextoHemo() {
   const L = [], par = [
     ['Gasto cardíaco (GC)', 'hemo-gc'], ['Índice cardíaco (IC)', 'hemo-ic'],
-    ['Resistencia vascular sistémica (RVS)', 'hemo-rvs'], ['Presión capilar pulmonar (PCP)', 'hemo-pcp'],
-    ['Gradiente transpulmonar (GTP)', 'hemo-gtp'], ['Resistencia vascular pulmonar (RVP)', 'hemo-rvp']
+    /* ⚠️ LOS DOS DERIVADOS LLEVAN «ESTIMADA POR ECO» EN EL PAPEL (R2-E8, 2026-10-21): este
+       bloque se integra al informe y sale en la hoja del PDF, asi que el rotulo tiene que decir
+       de donde sale el numero ahi mismo y no solo en la salvedad del final. */
+    ['Resistencia vascular sistémica (RVS)', 'hemo-rvs'],
+    ['Presión capilar pulmonar (PCP) estimada por eco', 'hemo-pcp'],
+    ['Gradiente transpulmonar (GTP)', 'hemo-gtp'],
+    ['Resistencia vascular pulmonar (RVP) estimada por eco', 'hemo-rvp']
   ];
   L.push('## Parámetros calculados');
   const hay = par.filter(p => _amTxt(p[1]));
@@ -83917,9 +83936,13 @@ function amiloTextoHemo() {
 
   L.push('## Perfiles');
   const f = _amTxt('hemo-forrester'), pf = _amTxt('hemo-perfil'), ht = _amTxt('hemo-htp-tipo');
-  L.push('Perfil de Forrester: ' + (f || 'no determinable'));
-  L.push('Perfil hemodinámico: ' + (pf || 'no determinable'));
-  L.push('HTP pre / pos / mixta: ' + (ht || 'no determinable'));
+  /* ⚠️ LOS DOS QUE SE ARMAN CON LA PCP ESTIMADA LO DICEN EN SU PROPIO ROTULO (R2-E8): el
+     Forrester sale de IC + PCP y la clasificacion pre/pos/mixta de la PCP, asi que llevan
+     «estimado por eco» donde se leen. El perfil hemodinamico sale de IC + RVS, que tambien son
+     derivados del eco. Los VALORES no cambian: el Forrester no se toca. */
+  L.push('Perfil de Forrester (estimado por eco): ' + (f || 'no determinable'));
+  L.push('Perfil hemodinámico (estimado por eco): ' + (pf || 'no determinable'));
+  L.push('HTP pre / pos / mixta (estimada por eco): ' + (ht || 'no determinable'));
   /* Este bloque se integra al informe y sale en la hoja de ETT Avanzado del PDF. El perfil
      de Forrester y la clasificación pre/pos/mixta se apoyan en la PCP, que acá es una
      estimación por Doppler: la salvedad viaja con el texto, no se queda en la tarjeta. */
