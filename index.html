@@ -21867,11 +21867,22 @@ const ASE25_T1 = Object.freeze({
     Object.freeze({ g:'normal', op:'<', v:25 }), Object.freeze({ g:'leve', op:'<=', v:28 }),
     Object.freeze({ g:'moderada', op:'<=', v:32 }), Object.freeze({ g:'severa' })]) }),
   /* ── Función sistólica (descendentes) ── */
+  /* ⚠️ `solapa: true` — EL VALOR DEL BORDE ESTA EN LAS DOS BANDAS DEL ORIGINAL (R3, 2026-10-20).
+     La Tabla 1 escribe la banda leve del TAPSE «≤1.7 to ≥1.3» y la moderada «≤1.3 to >1.0», asi
+     que 1,3 cm esta en las DOS; lo mismo 7,2 cm/s en la onda S'. La cascada de `ase25Grado`
+     resuelve a favor de la banda MENOS grave -la convencion de las once filas ascendentes de la
+     MISMA tabla, y la lectura que no sobre-afirma- y eso NO cambia: el grado que publican la
+     fila del cuadro, la tarjeta y el Laboratorio sigue siendo `leve`.
+     La marca es ADITIVA e inerte para los cuatro lectores de hoy; la lee `vdDisfGrado`, que la
+     usa para decir «leve-moderada» en el informe cuando el valor cae justo ahi, que es la
+     decision de Maicol. Se DECLARA en la banda y no se deriva del operador: `op === '>='` con
+     `x === v` describe hoy el mismo conjunto, pero es una coincidencia de la forma de la tabla y
+     no una regla, y la FEVD tiene un `>=` que no solapa. */
   tapse:     Object.freeze({ u:'mm', dec:0, fila:'TAPSE, cm', bandas:Object.freeze([
-    Object.freeze({ g:'normal', op:'>', v:17 }), Object.freeze({ g:'leve', op:'>=', v:13 }),
+    Object.freeze({ g:'normal', op:'>', v:17 }), Object.freeze({ g:'leve', op:'>=', v:13, solapa:true }),
     Object.freeze({ g:'moderada', op:'>', v:10 }), Object.freeze({ g:'severa' })]) }),
   s_prime:   Object.freeze({ u:'cm/s', dec:1, fila:'Tissue Doppler S′ velocity, cm/s', bandas:Object.freeze([
-    Object.freeze({ g:'normal', op:'>', v:9.5 }), Object.freeze({ g:'leve', op:'>=', v:7.2 }),
+    Object.freeze({ g:'normal', op:'>', v:9.5 }), Object.freeze({ g:'leve', op:'>=', v:7.2, solapa:true }),
     Object.freeze({ g:'moderada', op:'>', v:5 }), Object.freeze({ g:'severa' })]) }),
   vd_fac:    Object.freeze({ u:'%', dec:0, fila:'FAC, %', bandas:Object.freeze([
     Object.freeze({ g:'normal', op:'>', v:35 }), Object.freeze({ g:'leve', op:'>', v:29 }),
@@ -25028,6 +25039,59 @@ function vdSprimeCat(x) {
   if (n == null || !isFinite(n) || !n) return null;
   return ase25Grado('s_prime', n);
 }
+/* ══ EL GRADO DE LA DISFUNCION SISTOLICA DEL VD — DUEÑO UNICO (R3, 2026-10-20) ═══════════════
+   DECISION DE MAICOL: las referencias del VD ya publicaban la severidad -«TAPSE 7 mm —
+   disfuncion sistolica severa»- y el informe de texto solo decia «disfuncion sistolica», sin
+   grado. Desde hoy lo dice, y LEE los grados de la Tabla 1 de la ASE 2025 (folio 145) en vez de
+   calcular los suyos: el dueño es `ase25Grado`, el MISMO que pinta esas referencias, asi que la
+   pantalla y el papel firmado no pueden discrepar.
+
+   LA REGLA, con el motivo de cada rama:
+     · el grado sale SOLO del TAPSE y de la onda S', que es lo que la orden fija. La FAC y el
+       indice de Tei siguen VOTANDO el OR de «hay disfuncion» -eso no se toca- y no aportan
+       grado: la decision de Maicol nombra dos parametros y agregar los otros dos cambiaria que
+       escenas publican cada palabra en un informe FIRMADO;
+     · con los dos medidos y ALTERADOS en bandas distintas, el informe dice el RANGO
+       («leve-moderada»): no se elige uno de los dos, porque elegir es una decision clinica;
+     · con UN solo valor en el borde que la Tabla 1 pone en DOS bandas -13 mm y 7,2 cm/s-, el
+       rango entre ambas, por la marca `solapa` de la propia tabla;
+     · con uno de los dos medidos NORMAL se publica «disfuncion sistolica» SIN grado, o sea
+       EXACTAMENTE lo de hoy. Es el estado que la orden manda dejar como esta para que Maicol
+       decida: un TAPSE normal con una onda S' severa no es «severa», y afirmar el grado del
+       unico alterado seria sobre-afirmar sobre un parametro que lo contradice;
+     · sin TAPSE ni S' cargados -por ejemplo con la disfuncion afirmada solo por la FAC o por el
+       Tei- tampoco hay grado, por lo mismo.
+   ⚠️ FALLA CERRADA: ante cualquier excepcion devuelve `null`, o sea la frase de hoy sin grado.
+   El rango va de MENOS a MAS grave, derivado de `ASE25_GRADOS`, que es el orden de gravedad que
+   la tabla ya declara: escribirlo a mano seria una segunda copia de ese orden. */
+function vdDisfGrado(tapse, sprime) {
+  try {
+    const bandasDe = (clave, x) => {
+      const n = (typeof PF === 'function') ? PF(x) : parseFloat(x);
+      if (n == null || !isFinite(n) || !n) return null;
+      const g = ase25Grado(clave, n);
+      if (!g) return null;
+      const t = ASE25_T1[clave];
+      const i = t.bandas.findIndex((b) => b.g === g);
+      /* El valor del borde pertenece TAMBIEN a la banda siguiente cuando el original las solapa. */
+      const extra = (i >= 0 && t.bandas[i].solapa && t.bandas[i].v === n && t.bandas[i + 1])
+        ? t.bandas[i + 1].g : null;
+      return extra ? [g, extra] : [g];
+    };
+    const a = bandasDe('tapse', tapse), b = bandasDe('s_prime', sprime);
+    const medidos = [a, b].filter(Boolean);
+    if (!medidos.length) return null;
+    /* Un parametro NORMAL bloquea el grado: ver la cuarta rama de arriba. */
+    if (medidos.some((m) => m.indexOf('normal') >= 0)) return null;
+    const idx = medidos.reduce((acc, m) => acc.concat(m), [])
+      .map((g) => ASE25_GRADOS.indexOf(g)).filter((i) => i > 0);
+    if (!idx.length) return null;
+    const lo = Math.min.apply(null, idx), hi = Math.max.apply(null, idx);
+    return lo === hi ? ASE25_GRADOS[lo] : ASE25_GRADOS[lo] + '-' + ASE25_GRADOS[hi];
+  } catch (e) { return null; }
+}
+window.vdDisfGrado = vdDisfGrado;
+
 /* La FAC pasa de TRES bandas a CUATRO: la Tabla 1 le da leve, moderada y severa donde la app
    tenia «disfuncion» y «disfuncion severa», y el 25 % sin fuente sale. */
 function vdFacCat(x) {
@@ -49589,7 +49653,18 @@ function generarInforme(opts) {
       const vdDisf = tapseBajo || spBajo || facBajo || teiAlt;
 
       const tamTxt  = hayTam  ? VD_TAM_TXT[vdTamGrado] : null;
-      const funcTxt = hayFunc ? (vdDisf ? 'disfunción sistólica' : 'función sistólica conservada') : null;
+      /* ⚠️ EL GRADO SE LE PIDE AL DUEÑO Y NO SE CALCULA ACA (R3, 2026-10-20). `vdDisfGrado` lee
+         la MISMA Tabla 1 que pinta las referencias del VD, asi que la frase del informe firmado y
+         el badge de la pantalla no pueden decir dos severidades distintas del mismo numero. Con
+         `null` -un parametro normal, ninguno de los dos medido, o una excepcion- la frase queda
+         EXACTAMENTE como estaba, que es la direccion segura. */
+      const _vdDisfG = vdDisf ? ((typeof vdDisfGrado === 'function') ? vdDisfGrado(tapse, sp) : null) : null;
+      /* UN SOLO TEXTO PARA LAS NUEVE SUPERFICIES de esta zona: el informe en los tres estilos y
+         las OCHO ramas del EN SUMA. Con el grado escrito en cada rama, la que se olvida deja el
+         resumen diciendo «disfunción sistólica» sobre un cuerpo que dice «disfunción sistólica
+         moderada» del mismo paciente — que es el defecto que esta tanda persigue. */
+      const _vdDisfTxt = 'disfunción sistólica' + (_vdDisfG ? ' ' + _vdDisfG : '');
+      const funcTxt = hayFunc ? (vdDisf ? _vdDisfTxt : 'función sistólica conservada') : null;
 
       // conciso (sigla) · estándar (nombre completo, frase compacta) · narrativo (prosa),
       // misma escala que AI / válvula pulmonar / aorta. El "En suma" mantiene la sigla.
@@ -49727,18 +49802,18 @@ function generarInforme(opts) {
            severa» no repita la palabra. Sólo se usa pegada a la sistólica. */
         const _ddCorta = (_dd && _dd.grado) ? `diastólica ${_dd.grado}` : _ddSuma;
         let _hvdCola = '';
-        if (vdDisf && _ddSuma)                  _hvdCola = `con disfunción sistólica y ${_ddCorta}`;
-        else if (vdDisf)                        _hvdCola = 'con disfunción sistólica';
+        if (vdDisf && _ddSuma)                  _hvdCola = `con ${_vdDisfTxt} y ${_ddCorta}`;
+        else if (vdDisf)                        _hvdCola = `con ${_vdDisfTxt}`;
         else if (vdDilat && hayFunc && _ddSuma) _hvdCola = `con función sistólica conservada y ${_ddSuma}`;
         else if (vdDilat && hayFunc)            _hvdCola = 'con función sistólica conservada';
         else if (_ddSuma)                       _hvdCola = `con ${_ddSuma}`;
         suma.push(_hvdCola ? `${_hvdBase}${_hvdSep}${_hvdCola}.` : `${_hvdBase}.`);
       }
-      else if (vdDilat && vdDisf)           suma.push(`VD ${tamTxt} con disfunción sistólica${_ddCola}.`);
+      else if (vdDilat && vdDisf)           suma.push(`VD ${tamTxt} con ${_vdDisfTxt}${_ddCola}.`);
       else if (vdDilat && hayFunc)          suma.push(`VD ${tamTxt} con función sistólica conservada${_ddCola}.`);
       else if (vdDilat)                     suma.push(`VD ${tamTxt}${_ddCola}.`);
-      else if (vdDisf && hayTam)            suma.push(`VD de dimensiones normales con disfunción sistólica${_ddCola}.`);
-      else if (vdDisf)                      suma.push(`VD con disfunción sistólica${_ddCola}.`);
+      else if (vdDisf && hayTam)            suma.push(`VD de dimensiones normales con ${_vdDisfTxt}${_ddCola}.`);
+      else if (vdDisf)                      suma.push(`VD con ${_vdDisfTxt}${_ddCola}.`);
       /* El VD normal —o sin medir— con la diastólica alterada necesita línea propia: sin estas
          dos ramas el hallazgo se perdía, porque las cinco de arriba exigen dilatación o
          disfunción sistólica. */

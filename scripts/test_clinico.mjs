@@ -1975,38 +1975,46 @@ caso('TC-457', 'Pared del VD e indice de Tei (DTI): los dos cortes por sus dos l
       hvdConPrevia.vd.indexOf(', con hipertrofia del ventrículo derecho (pared de 7 mm).') > -1,
       hvdConPrevia.vd],
     ['y NO reescribe la oracion: el tramo de HEAD queda intacto delante',
-      hvdConPrevia.vd.indexOf('Ventrículo derecho de dimensiones normales con disfunción sistólica (TAPSE 14 mm)') === 0,
+      hvdConPrevia.vd.indexOf('Ventrículo derecho de dimensiones normales con disfunción sistólica leve (TAPSE 14 mm)') === 0,
       hvdConPrevia.vd],
 
     // ── E · LAS OCHO FRASES DEL EN SUMA ──────────────────────────────────────────────────────
     ['EN SUMA solo hipertrofia: «HVD.»', E.solo.suma === 'HVD.', E.solo.suma],
     ['EN SUMA dilatado e hipertrofico', E.dil.suma === 'VD moderadamente dilatado e hipertrófico.', E.dil.suma],
-    ['EN SUMA hipertrofia + sistolica', E.sist.suma === 'HVD con disfunción sistólica.', E.sist.suma],
+    /* ADAPTADO el 2026-10-20 (R3). El informe y el EN SUMA dicen ahora el GRADO de la disfuncion
+       sistolica del VD -«disfunción sistólica leve / moderada / severa»-, por decision de Maicol:
+       las referencias del VD ya publicaban la severidad y el texto no la decia. El grado lo lee
+       vdDisfGrado de la MISMA Tabla 1 de la ASE 2025 (folio 145) que pinta esas referencias; no
+       se movio ningun corte -el grado que publica la tabla es identico a HEAD en los doce valores
+       de borde medidos- ni la logica de integracion, que sigue siendo un OR. Lo que estas
+       condiciones fijan -la FORMA de cada frase, los nexos, la coma de la diastolica y que la
+       palabra no se repita- no cambio: lo que se les agrega es el grado del TAPSE de su escena. */
+    ['EN SUMA hipertrofia + sistolica', E.sist.suma === 'HVD con disfunción sistólica leve.', E.sist.suma],
     ['EN SUMA hipertrofia + diastolica (con el GRADO, que la app ya publicaba)',
       E.diast.suma === 'HVD con disfunción diastólica severa.', E.diast.suma],
     ['EN SUMA hipertrofia + sistolica y diastolica, sin repetir la palabra',
-      E.sistDiast.suma === 'HVD con disfunción sistólica y diastólica severa.', E.sistDiast.suma],
+      E.sistDiast.suma === 'HVD con disfunción sistólica leve y diastólica severa.', E.sistDiast.suma],
     ['EN SUMA dilatado e hipertrofico + sistolica',
-      E.dilSist.suma === 'VD moderadamente dilatado e hipertrófico, con disfunción sistólica.', E.dilSist.suma],
+      E.dilSist.suma === 'VD moderadamente dilatado e hipertrófico, con disfunción sistólica leve.', E.dilSist.suma],
     ['EN SUMA dilatado e hipertrofico + sistolica y diastolica',
-      E.dilSistDi.suma === 'VD moderadamente dilatado e hipertrófico, con disfunción sistólica y diastólica severa.', E.dilSistDi.suma],
+      E.dilSistDi.suma === 'VD moderadamente dilatado e hipertrófico, con disfunción sistólica leve y diastólica severa.', E.dilSistDi.suma],
     ['EN SUMA dilatado e hipertrofico + solo diastolica',
       E.dilDiast.suma === 'VD moderadamente dilatado e hipertrófico, con disfunción diastólica severa.', E.dilDiast.suma],
     ['la combinacion que la orden NO nombra conserva «funcion sistolica conservada», que es la regla de HEAD',
       E.dilConserv.suma === 'VD moderadamente dilatado e hipertrófico, con función sistólica conservada.', E.dilConserv.suma],
     ['con la diastolica SIN grado se usa el texto de la app y NO se afirma la disfuncion',
-      E.sinGrado.suma === 'HVD con disfunción sistólica y patrón sugestivo de disfunción diastólica.', E.sinGrado.suma],
+      E.sinGrado.suma === 'HVD con disfunción sistólica leve y patrón sugestivo de disfunción diastólica.', E.sinGrado.suma],
 
     // ── E-bis · CONTROLES NEGATIVOS: sin pared, el EN SUMA es el de HEAD letra por letra ─────
     ['CONTROL NEGATIVO sin pared: «VD dilatado.»', N.dil.suma === 'VD moderadamente dilatado.', N.dil.suma],
     ['CONTROL NEGATIVO sin pared: «VD dilatado con disfunción sistólica.»',
-      N.dilSist.suma === 'VD moderadamente dilatado con disfunción sistólica.', N.dilSist.suma],
+      N.dilSist.suma === 'VD moderadamente dilatado con disfunción sistólica leve.', N.dilSist.suma],
     ['CONTROL NEGATIVO sin pared: la diastolica va con COMA, no con «y»',
-      N.dilSistDi.suma === 'VD moderadamente dilatado con disfunción sistólica, disfunción diastólica severa.', N.dilSistDi.suma],
+      N.dilSistDi.suma === 'VD moderadamente dilatado con disfunción sistólica leve, disfunción diastólica severa.', N.dilSistDi.suma],
     ['CONTROL NEGATIVO sin pared: «VD dilatado con función sistólica conservada.»',
       N.dilConserv.suma === 'VD moderadamente dilatado con función sistólica conservada.', N.dilConserv.suma],
     ['CONTROL NEGATIVO sin pared: «VD de dimensiones normales con disfunción sistólica.»',
-      N.sist.suma === 'VD de dimensiones normales con disfunción sistólica.', N.sist.suma],
+      N.sist.suma === 'VD de dimensiones normales con disfunción sistólica leve.', N.sist.suma],
     ['CONTROL NEGATIVO: un VD normal sin los campos nuevos no sube nada al EN SUMA y su oracion es la de HEAD',
       N.nada.suma === '' && N.nada.vd === 'Ventrículo derecho de dimensiones normales.',
       N.nada.vd + ' // ' + N.nada.suma],
@@ -4901,8 +4909,16 @@ caso('TC-36', "TAPSE 17,1 / 17,0 y S' 9,6 / 9,5 — los cortes de disfuncion del
   const t0 = f('tapse', 17.1), t1 = f('tapse', 17), s0 = f('s_prime', 9.6), s1 = f('s_prime', 9.5);
   return { extra: [
     ['TAPSE 17,1 conservada', /función sistólica conservada/.test(t0.inf)],
+    /* ADAPTADO el 2026-10-20 (R3). El informe y el EN SUMA dicen ahora el GRADO de la disfuncion
+       sistolica del VD -«disfunción sistólica leve / moderada / severa»-, por decision de Maicol:
+       las referencias del VD ya publicaban la severidad y el texto no la decia. El grado lo lee
+       vdDisfGrado de la MISMA Tabla 1 de la ASE 2025 (folio 145) que pinta esas referencias; no
+       se movio ningun corte -el grado que publica la tabla es identico a HEAD en los doce valores
+       de borde medidos- ni la logica de integracion, que sigue siendo un OR. Lo que estas
+       condiciones fijan -la FORMA de cada frase, los nexos, la coma de la diastolica y que la
+       palabra no se repita- no cambio: lo que se les agrega es el grado del TAPSE de su escena. */
     ['TAPSE 17,0 EXACTO ya es disfuncion', /con disfunción sistólica/.test(t1.inf) &&
-                            t1.suma.indexOf('VD de dimensiones normales con disfunción sistólica.') > -1],
+                            t1.suma.indexOf('VD de dimensiones normales con disfunción sistólica leve.') > -1],
     ["S' 9,6 conservada",   /función sistólica conservada/.test(s0.inf)],
     ["S' 9,5 EXACTO ya es disfuncion", /con disfunción sistólica/.test(s1.inf)]
   ] };
@@ -9073,8 +9089,11 @@ caso('TC-136', 'Diastolica del VD: el patron sale del E/A, el E/e desempata solo
       dilSev.vd.indexOf('dilatado con disfunción sistólica') > -1 &&
       dilSev.vd.indexOf('patrón restrictivo') > -1, dilSev.vd],
     ['y los tres en el EN SUMA, en una sola linea',
-      /* ADAPTADO (VS, 2026-10-17): el basal de 48 mm pasa a «moderadamente dilatado». */
-      dilSev.suma.indexOf('VD moderadamente dilatado con disfunción sistólica, disfunción diastólica severa.') > -1,
+      /* ADAPTADO (VS, 2026-10-17): el basal de 48 mm pasa a «moderadamente dilatado».
+         ADAPTADO el 2026-10-20 (R3): la disfuncion sistolica lleva su GRADO, leido de la Tabla 1
+         de la ASE 2025 por vdDisfGrado. La coma de la diastolica -que es lo que esta condicion
+         vigila- no se movio. */
+      dilSev.suma.indexOf('VD moderadamente dilatado con disfunción sistólica leve, disfunción diastólica severa.') > -1,
       dilSev.suma],
     ['VD normal con la diastolica alterada tiene linea propia',
       pseudo.suma.indexOf('VD de dimensiones normales, disfunción diastólica moderada.') > -1,
@@ -64647,7 +64666,10 @@ caso('TC-470', 'Aviso de exclusiones mitrales en las TRES guias y los DOS ritmos
        cuatro grados de la Tabla 1. Lo que el control afirma no cambia: la frase del VD sigue
        saliendo entera y el Laboratorio la cuenta como disfuncion del VD y no del VI. */
     ex.push(['(C) CONTROL: el EN SUMA sigue diciendo «VD moderadamente dilatado con disfunción sistólica.»',
-      String(r.suma).indexOf('VD moderadamente dilatado con disfunción sistólica.') > -1,
+      /* ADAPTADO el 2026-10-20 (R3): el informe y el EN SUMA dicen el GRADO de la disfuncion
+         sistolica del VD, leido de la Tabla 1 de la ASE 2025 por vdDisfGrado. Ningun corte se
+         movio; lo que esta condicion fija no cambio. */
+      String(r.suma).indexOf('VD moderadamente dilatado con disfunción sistólica leve.') > -1,
       String(r.suma).replace(/\\s+/g, ' ').trim().slice(0, 120)]);
     /* Y la tabla de valvulopatias del Laboratorio sigue contando sus OCHO lesiones. */
     let vc = null;
@@ -73793,7 +73815,7 @@ caso('TC-494', 'Tanda VS: el VD, la AD, la VCI y la RAIZ AORTICA alineados a la 
   const c17 = TXT('tapse-interp');
   const r171 = esc({ vd_bas:'35', tapse:'17.1' });
   ex.push(['TAPSE 17,0 EXACTO: el informe dice disfuncion, el EN SUMA la nombra y la capsula dice LEVE con su rango',
-    /con disfunción sistólica/.test(r17.inf) && r17.suma.indexOf('VD de dimensiones normales con disfunción sistólica.') > -1
+    /con disfunción sistólica/.test(r17.inf) && r17.suma.indexOf('VD de dimensiones normales con disfunción sistólica leve.') > -1
       && c17.indexOf('disfunción sistólica leve') > -1 && c17.indexOf('≤17 a ≥13 mm') > -1,
     'inf=' + /con disfunción sistólica/.test(r17.inf) + ' cap=' + c17]);
   ex.push(['TAPSE 17,1: funcion conservada por los tres caminos',

@@ -2067,6 +2067,76 @@ window.__Z = {
     process.stderr.write('[teer] listo\n');
   }
 
+
+  /* ══ GRUPO «vd» — LA SEVERIDAD EN EL INFORME ══════════════════════════════════════════════
+     Los dos campos viven en la pestaña VD, detras del acordeon de su seccion. Las escenas cubren
+     cada parametro SOLO, los dos iguales, los dos distintos, los DOS bordes solapados de la Tabla
+     1 (13 mm y 7,2 cm/s), uno normal y otro alterado, la FAC sola -que vota el OR y NO aporta
+     grado- y sin datos. */
+  if (corre('vd')) {
+    const r = { escenas: {}, bandas: {} };
+    const leerVd = async () => ({
+      disfG:   await ev(`(typeof vdDisfGrado==='function') ? (vdDisfGrado(window.__P.val('tapse'), window.__P.val('s_prime')) || null) : 'SIN FN'`),
+      tapseCat: await ev(`(typeof vdTapseCat==='function') ? vdTapseCat(window.__P.val('tapse')) : 'SIN'`),
+      spCat:   await ev(`(typeof vdSprimeCat==='function') ? vdSprimeCat(window.__P.val('s_prime')) : 'SIN'`),
+      refTapse: await ev(`window.__P.txt('tapse-interp')`),
+      refSp:   await ev(`window.__P.txt('sprime-interp')`),
+      estandar: await ev(`(function(){ var o = window.__P.informe('estandar');
+        var t = (o && o.inf) ? o.inf : String(o||'');
+        return (t.split(String.fromCharCode(10)).filter(function(l){ return l.indexOf('entrículo derecho')>=0 || l.indexOf('VD ')===0 })||[]).join(' | ') })()`),
+      narrativo: await ev(`(function(){ var o = window.__P.informe('narrativo');
+        var t = (o && o.inf) ? o.inf : String(o||'');
+        return (t.split(String.fromCharCode(10)).filter(function(l){ return l.indexOf('entrículo derecho')>=0 })||[]).join(' | ') })()`),
+      conciso: await ev(`(function(){ var o = window.__P.informe('conciso');
+        var t = (o && o.inf) ? o.inf : String(o||'');
+        return (t.split(String.fromCharCode(10)).filter(function(l){ return l.indexOf('VD')>=0 })||[]).join(' | ') })()`),
+      suma:    await ev(`(function(){ var t=(document.getElementById('en_suma')||{}).value||'';
+        return (t.split(String.fromCharCode(10)).filter(function(l){ return l.indexOf('VD')>=0 || l.indexOf('HVD')>=0 })||[]).join(' | ') })()`),
+    });
+    const escVd = async (nombre, campos) => {
+      try {
+        await ev(`window.__P.nuevo()`);
+        for (const [k, vv] of campos) await tipear(k, vv);
+        await ev(`window.__P.calentar()`);
+        r.escenas[nombre] = await leerVd();
+      } catch (e) { r.escenas[nombre] = { err: e.message }; }
+      process.stderr.write('[vd] ' + nombre + '\n');
+    };
+    /* TAPSE: normal >17 · leve >=13 · moderada >10 · severa resto.
+       S':    normal >9.5 · leve >=7.2 · moderada >5 · severa resto. */
+    await escVd('A-tapse-solo-leve',      [['tapse', '15']]);
+    await escVd('B-tapse-solo-moderada',  [['tapse', '12']]);
+    await escVd('C-tapse-solo-severa',    [['tapse', '8']]);
+    await escVd('D-sp-solo-moderada',     [['s_prime', '6']]);
+    await escVd('E-ambos-leve',           [['tapse', '15'], ['s_prime', '8']]);
+    await escVd('F-ambos-distintos',      [['tapse', '15'], ['s_prime', '6']]);
+    await escVd('G-borde-tapse-13',       [['tapse', '13']]);
+    await escVd('H-borde-sp-72',          [['s_prime', '7.2']]);
+    await escVd('I-uno-normal-otro-alt',  [['tapse', '22'], ['s_prime', '6']]);
+    await escVd('J-fac-sola',             [['vd_area_d', '30'], ['vd_area_s', '22']]);
+    await escVd('K-sin-datos',            []);
+    await escVd('L-ambos-severa',         [['tapse', '8'], ['s_prime', '4']]);
+    /* El BORRADO: la regla ARR. */
+    try {
+      await ev(`window.__P.nuevo()`);
+      await tipear('tapse', '12'); await tipear('s_prime', '6');
+      await borrar('tapse', 'bs'); await borrar('s_prime', 'del');
+      await ev(`window.__P.calentar()`);
+      r.escenas['M-borrado'] = await leerVd();
+    } catch (e) { r.escenas['M-borrado'] = { err: e.message }; }
+    /* La tabla duena: que el solape este declarado y que el grado publicado NO cambie. */
+    try {
+      r.bandas.tapse = await ev(`JSON.stringify(ASE25_T1.tapse.bandas)`);
+      r.bandas.sprime = await ev(`JSON.stringify(ASE25_T1.s_prime.bandas)`);
+      r.bandas.grados = await ev(`(function(){ var o={};
+        [['tapse',[18,17,13,12.9,10,9]],['s_prime',[10,9.5,7.2,7.1,5,4]]].forEach(function(p){
+          p[1].forEach(function(x){ o[p[0]+'='+x]=ase25Grado(p[0],x) }) }); return JSON.stringify(o) })()`);
+      r.bandas.err = await ev(`(window.__Yerr||[]).join(' | ')`);
+    } catch (e) { r.bandas.errMed = e.message; }
+    out.grupos.vd = r;
+    process.stderr.write('[vd] listo\n');
+  }
+
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
   process.stdout.write(JSON.stringify(OUT, null, 1));
   cdp.close(); srv.close(); process.exit(0);
