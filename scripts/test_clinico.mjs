@@ -11106,7 +11106,10 @@ caso('TC-144', 'Tabs avanzadas: el orden nuevo en las tres superficies, y las cl
   const ORDEN_TOOLS = ['refs'];
   const rail = leer('.rail .tab-btn');
   /* Las claves que NO pueden cambiar: son las de ett_modules en localStorage y las de data-mod. */
-  const MOD = { hemodinamica:'hemodinamica', pulmonar:'pulmonar', ete:'ete', cardioOnco:'cardioOnco',
+  /* ADAPTADO el 2026-10-22 (B2-E1): pulmonar salio de EE_MODULES y de los data-mod — el eco
+     pulmonar vive apilado con pericardio y masas detras de un boton SIN data-mod, que es
+     contenido basico. Lo que este caso vigila sigue igual: las claves que quedan no se cruzan. */
+  const MOD = { hemodinamica:'hemodinamica', ete:'ete', cardioOnco:'cardioOnco',
     amiloidosis:'amiloidosis', congenitas:'congenitas', congenitas2:'congenitas',
     calculadoras:'calculadoras', refs:'refs' };
 
@@ -11124,13 +11127,13 @@ caso('TC-144', 'Tabs avanzadas: el orden nuevo en las tres superficies, y las cl
   /* PREFERENCIAS POR CLAVE, no por posicion: apagar un modulo tiene que seguir ocultando SU
      boton despues de moverlo de lugar. */
   const prevLS = localStorage.getItem('ett_modules');
-  localStorage.setItem('ett_modules', JSON.stringify({ pulmonar:false }));
+  /* ADAPTADO el 2026-10-22 (B2-E1): la preferencia por clave se mide con ete, porque
+     pulmonar dejo de ser un modulo con casilla. El mecanismo es el mismo y el caso sigue
+     exigiendo que apagar UNA clave esconda SU boton y deje el de al lado visible. */
+  localStorage.setItem('ett_modules', JSON.stringify({ ete:false }));
   applyViewMode();
-  /* ADAPTADO: el boton del pulmonar vive en el RAIL desde el B-E1, asi que se lo busca entre
-     TODOS los [data-mod] y no solo en la fila de arriba. Apagar el modulo tiene que seguir
-     escondiendo SU boton, este donde este — que es justamente lo que este bloque mide. */
   const btnPul = [].slice.call(document.querySelectorAll('button[data-mod]'))
-    .filter(function(b){ return b.getAttribute('data-mod') === 'pulmonar'; })[0];
+    .filter(function(b){ return b.getAttribute('data-mod') === 'ete'; })[0];
   const ocultoPul = btnPul ? getComputedStyle(btnPul).display === 'none' : null;
   const btnHemo = [].slice.call(document.querySelectorAll('.tabs-special .tab-btn'))
     .filter(function(b){ return b.getAttribute('data-mod') === 'hemodinamica'; })[0];
@@ -11174,11 +11177,17 @@ caso('TC-144', 'Tabs avanzadas: el orden nuevo en las tres superficies, y las cl
           return !!b && b.id === 'ref-subtab-calc' && b.getAttribute('data-mod') === 'calculadoras'; })(),
       (function(){ const b = document.querySelector('#tab-refs .ref-subbar button');
         return 'primero=' + (b ? b.id : 'NO'); })()],
-    /* CONDICION NUEVA (B-E1): el pulmonar NO esta arriba y SI esta en el rail, con su data-mod.
-       Sin esta mitad, mover el boton a cualquier parte pasaria el caso. */
-    ['«Eco pulmonar» vive en el rail, con su data-mod, y no en la fila de arriba',
-      f1.concat(f2).every(function(x){ return x.id !== 'pulmonar'; })
-        && rail.filter(function(x){ return x.id === 'pulmonar' && x.mod === 'pulmonar'; }).length === 1,
+    /* ADAPTADO el 2026-10-22 (B2-E1): el eco pulmonar dejo de tener boton propio —esta apilado
+       con pericardio y masas detras de «Pericardio y pulmon»— asi que la condicion afirma hoy
+       lo CONTRARIO por los dos lados: ni arriba, ni en el rail, ni como pestana suelta, y SIN
+       data-mod en ninguna parte. Sin esta mitad, dejarle el data-mod lo escondia en Modo Basico
+       y con el se iba «Pericardio y masas». */
+    ['el eco pulmonar no tiene boton propio ni data-mod, y vive dentro de «Pericardio y pulmon»',
+      f1.concat(f2).concat(rail).every(function(x){ return x.id !== 'pulmonar'; })
+        && !document.querySelector('[data-mod=pulmonar]')
+        && !document.getElementById('tab-pulmonar')
+        && EE_MODULES.every(function(m){ return m.key !== 'pulmonar'; })
+        && rail.filter(function(x){ return x.id === 'pericardio'; }).length === 1,
       'arriba=' + f1.concat(f2).map(function(x){ return x.id; }).join(',') +
       ' | rail=' + rail.map(function(x){ return x.id + (x.mod ? '/' + x.mod : ''); }).join(',')],
     /* CONDICION NUEVA (B-E4): el Fonocardiograma no esta en ninguna de las tres superficies. */
@@ -11195,11 +11204,12 @@ caso('TC-144', 'Tabs avanzadas: el orden nuevo en las tres superficies, y las cl
       opts.join(',') === ORDEN_IDS.concat(ORDEN_TOOLS).join(','), opts.join(',')],
     /* EE_MODULES no se deriva del DOM: es la copia a mano que ordena las casillas de Config. */
     /* ADAPTADO: la clave del fonocardiograma sale de la lista —si quedara, el chequeo de
-       arranque gritaria «sin boton»— y la del pulmonar se queda, porque su boton sigue
-       existiendo: en el RAIL. */
+       arranque gritaria «sin boton»—, y desde el B2-E1 la del PULMONAR tambien: su boton dejo
+       de existir, porque el eco pulmonar vive apilado detras de «Pericardio y pulmon», que no
+       lleva data-mod. Son SIETE claves. */
     ['las casillas de Config siguen el orden de los botones',
       EE_MODULES.map(function(m){ return m.key; }).join(',') ===
-        ['hemodinamica','pulmonar','ete','cardioOnco','amiloidosis','congenitas','calculadoras','refs'].join(','),
+        ['hemodinamica','ete','cardioOnco','amiloidosis','congenitas','calculadoras','refs'].join(','),
       EE_MODULES.map(function(m){ return m.key; }).join(',')],
     /* CONDICION NUEVA: el invariante que el chequeo de arranque vigila —cada clave de
        EE_MODULES tiene su boton y cada [data-mod] su casilla— ahora cruza las DOS
@@ -80805,7 +80815,7 @@ caso('TC-508', 'Tanda R2: el desplegable del derrame ofrece SOLO las cinco opcio
    «transition: all .15s» y devuelve un valor intermedio de la animacion. Este caso mide el
    ESTADO (la clase y aria-selected), que es sincronico; el color en los dos temas lo mide
    scripts/_probe_btabs.mjs, que puede esperar. */
-caso('TC-509', 'Trabajo B: la columna izquierda con sus DOCE botones en orden y la fila de arriba con SEIS; «Pericardio y masas» como pestana propia con sus once campos intactos; Otros en dos sub-pestanas con el ASIA de UN solo dueno en los dos sentidos; el eco pulmonar en UNA pestana, con su «Integrar al informe» adentro, su texto en el CUERPO del informe justo despues del pericardio y las masas, y Balik nombrando la FORMULA; el Fonocardiograma ausente de la app y presente en su carpeta; Calculadoras como PRIMER boton de Referencias; «C. Congenitas» con un boton y dos pestanas; y los cortes, el informe, el EN SUMA, el Laboratorio y las 440 columnas del Excel sin moverse', `
+caso('TC-509', 'Trabajo B (ADAPTADO por el B2): la columna izquierda con sus ONCE botones en orden y la fila de arriba con SEIS; «Pericardio y pulmon» como pestana propia con sus once campos intactos; Otros en dos sub-pestanas con el ASIA de UN solo dueno en los dos sentidos; el eco pulmonar en UNA pestana, con su «Integrar al informe» adentro, su texto en el CUERPO del informe justo despues del pericardio y las masas, y Balik nombrando la FORMULA; el Fonocardiograma ausente de la app y presente en su carpeta; Calculadoras como PRIMER boton de Referencias; «C. Congenitas» con un boton y dos pestanas; y los cortes, el informe, el EN SUMA, el Laboratorio y las 440 columnas del Excel sin moverse', `
   const ex = [];
   /* Los helpers son propios del caso, como en todos: el runner no expone ninguno. */
   const EL  = function (id) { return document.getElementById(id); };
@@ -80833,17 +80843,25 @@ caso('TC-509', 'Trabajo B: la columna izquierda con sus DOCE botones en orden y 
 
   /* ══ (A) LA COLUMNA IZQUIERDA Y LA FILA DE ARRIBA ══════════════════════════════════════ */
   const rail = btnsDe('.rail .tab-btn');
+  /* ADAPTADO el 2026-10-22 (B2-E1): ONCE y no doce. «Pericardio y masas» y «Eco pulmonar»
+     pasaron a UN solo boton —«Pericardio y pulmon»— con las dos pantallas APILADAS dentro de
+     #tab-pericardio. El caso sigue exigiendo el ORDEN completo, que es lo que caza un boton
+     perdido o movido. */
   const RAIL_ESP = ['datos','ai-vi','vd','doppler','valvulas','contractilidad','sgl',
-                    'pericardio','pulmonar','otros','imagenes','config'];
+                    'pericardio','otros','imagenes','config'];
   /* ⚠️ EL ORDEN SE MIDE SIEMPRE; LA GEOMETRIA NO SE PUEDE MEDIR ACA. La suite corre a 756 px y
      por debajo de 768 el rail pasa a display:none —es preexistente— y la unica puerta es el
      DRAWER. Asi que aca va el orden, que no depende del ancho, mas el drawer, que es lo que el
      medico usa a este ancho; los doce botones VISIBLES a 1200 px y a 1440 los mide
      scripts/_probe_btabs.mjs en los dos motores y los dos temas. */
-  ex.push(['(A1) la columna izquierda tiene DOCE botones, en orden',
-    rail.length === 12 && rail.map(idDe).join(',') === RAIL_ESP.join(','),
+  ex.push(['(A1) la columna izquierda tiene ONCE botones, en orden',
+    rail.length === 11 && rail.map(idDe).join(',') === RAIL_ESP.join(','),
     'n=' + rail.length + ' | ' + rail.map(idDe).join(',')]);
-  ex.push(['(A1b) y el drawer movil —la unica puerta por debajo de 768 px— ofrece los doce, y en Modo Basico esconde el pulmonar',
+  /* ADAPTADO el 2026-10-22 (B2-E1): afirma hoy LO CONTRARIO en su segunda mitad, y es la
+     decision de fondo del commit. El drawer ofrece los ONCE y el modulo UNA sola vez, y en Modo
+     Basico NO esconde nada: el boton unico no lleva data-mod, porque esconderlo se llevaria
+     «Pericardio y masas», que el Basico SI ve. Las dos listas tienen que ser IDENTICAS. */
+  ex.push(['(A1b) y el drawer movil —la unica puerta por debajo de 768 px— ofrece los once, el modulo UNA sola vez, igual en los dos modos',
     (function () {
       const leer = function () { const d = EL('ecoDrawer');
         return d ? [].slice.call(d.querySelectorAll('button'))
@@ -80853,8 +80871,10 @@ caso('TC-509', 'Trabajo B: la columna izquierda con sus DOCE botones en orden y 
       poner('avanzado'); const av = leer();
       poner('basico');   const ba = leer();
       poner('avanzado'); const vu = leer();
-      return av.length === 12 && av.join(',') === RAIL_ESP.join(',')
-        && ba.indexOf('pulmonar') < 0 && ba.length === 11
+      return av.length === 11 && av.join(',') === RAIL_ESP.join(',')
+        && ba.join(',') === av.join(',')
+        && av.filter(function (x) { return x === 'pericardio'; }).length === 1
+        && av.indexOf('pulmonar') < 0
         && vu.join(',') === av.join(','); })(),
     (function () { const d = EL('ecoDrawer');
       return d ? 'n=' + d.querySelectorAll('button').length : 'SIN DRAWER'; })()]);
@@ -80956,23 +80976,31 @@ caso('TC-509', 'Trabajo B: la columna izquierda con sus DOCE botones en orden y 
   /* ══ (D) ECO PULMONAR UNIFICADO ════════════════════════════════════════════════════════ */
   const PUL_BAS = ['pul_derrame','pul_derrame_tam','pul_balik','pul_derrame_lado','pul_lineasb',
     'pul_lineasb_pat','pul_consolidacion','pul_consol_nota'];
-  ex.push(['(D1) hay UNA sola puerta al eco pulmonar, esta en el rail, y los ocho campos basicos viven ahi',
+  /* ADAPTADO el 2026-10-22 (B2-E1): la puerta unica ya no es «Eco pulmonar» sino «Pericardio y
+     pulmon», y los ocho campos del basico viven dentro de #tab-pericardio, apilados debajo de
+     pericardio y masas. Lo que el caso afirma es MAS fuerte que antes: una sola puerta, y que
+     #tab-pulmonar no exista en ninguna parte. */
+  ex.push(['(D1) hay UNA sola puerta al eco pulmonar —«Pericardio y pulmon»— y los ocho campos basicos viven ahi',
     (function () { const puertas = [].slice.call(document.querySelectorAll('[onclick]'))
-        .filter(function (b) { return oc(b).indexOf("showTab('pulmonar')") > -1; });
+        .filter(function (b) { return oc(b).indexOf("showTab('pericardio')") > -1; });
       if (puertas.length !== 1) return false;
       if (!puertas[0].closest('.rail')) return false;
+      if (EL('tab-pulmonar')) return false;
+      if ([].slice.call(document.querySelectorAll('[onclick]'))
+          .some(function (b) { return oc(b).indexOf("showTab('pulmonar')") > -1; })) return false;
       return PUL_BAS.every(function (id) { const e = EL(id);
         const p = e ? e.closest('.tab-section') : null;
-        return !!p && p.id === 'tab-pulmonar'; }); })(),
+        return !!p && p.id === 'tab-pericardio'; }); })(),
     (function () { const puertas = [].slice.call(document.querySelectorAll('[onclick]'))
-        .filter(function (b) { return oc(b).indexOf("showTab('pulmonar')") > -1; });
+        .filter(function (b) { return oc(b).indexOf("showTab('pericardio')") > -1; });
       return 'puertas=' + puertas.length + ' donde=' + puertas.map(function (b) {
         return b.closest('.rail') ? 'rail' : (b.closest('.tabs-special') ? 'arriba' : 'otro'); }).join(',')
+        + ' | tab-pulmonar=' + !!EL('tab-pulmonar')
         + ' | fuera de la pestana: ' + PUL_BAS.filter(function (id) { const e = EL(id);
           const p = e ? e.closest('.tab-section') : null;
-          return !p || p.id !== 'tab-pulmonar'; }).join(','); })()]);
+          return !p || p.id !== 'tab-pericardio'; }).join(','); })()]);
   ex.push(['(D2) el boton «Integrar al informe» del pulmonar vive DENTRO de esa pestana',
-    (function () { const t = EL('tab-pulmonar');
+    (function () { const t = EL('tab-pericardio');
       const b = t ? t.querySelector('[data-am-k=pulm]') : null;
       return !!b; })(), 'adentro']);
   ex.push(['(D3) Otros ya no tiene nada pulmonar',

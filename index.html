@@ -3460,13 +3460,18 @@ window.cerrarSesionReal = cerrarSesionReal;
     <button class="tab-btn" onclick="showTab('valvulas')">🔲 Válvulas</button>
     <button class="tab-btn" onclick="showTab('contractilidad')">🎯 Contractilidad</button>
     <button class="tab-btn" onclick="showTab('sgl');if(window.sglOnShow)sglOnShow();">📐 SGL</button>
-    <button class="tab-btn" onclick="showTab('pericardio')">⚪ Pericardio y masas</button>
-    <!-- ⚠️ `data-mod="pulmonar"` VIAJA CON EL BOTÓN, y no es decorativo: `applyViewMode`
-         esconde todo `button[data-mod]` en Modo Básico y, en Avanzado, lo muestra según la
-         casilla de Config. Sin el atributo, el módulo pulmonar quedaría visible en Básico
-         —donde hoy no existe— y su casilla de Configuración dejaría de gobernar nada. El
-         chequeo de arranque que compara `EE_MODULES` con los `[data-mod]` lo exige igual. -->
-    <button class="tab-btn" data-mod="pulmonar" onclick="showTab('pulmonar')">🫁 Eco pulmonar</button>
+    <!-- ⚠️ UN SOLO BOTON DESDE EL B2-E1 (2026-10-22). Eran dos —«Pericardio y masas» y «Eco
+         pulmonar»— y las dos pantallas viven ahora APILADAS dentro de `#tab-pericardio`, cada
+         una con su barra. La columna pasa de 12 botones a 11.
+         ⚠️ Y SIN `data-mod`, QUE ES LA DECISION DE FONDO. El boton viejo del pulmonar lo
+         llevaba, asi que `applyViewMode` lo escondia en Modo Basico; con un boton solo, dejarlo
+         se llevaria tambien «Pericardio y masas», que en Basico SI se ve hoy —medido—, o sea el
+         medico perderia campos que hoy tiene. Sin el atributo nadie pierde nada y el Basico
+         RECUPERA el modulo pulmonar basico, que hasta el B vivia en «Otros» (sin `data-mod`) y
+         que el B le habia quitado al meterlo en una pestana gateada. Es el lado conservador de
+         las dos incompatibilidades, y esta declarado en el reporte.
+         El icono es el que ya tenia «Pericardio y masas». -->
+    <button class="tab-btn" onclick="showTab('pericardio')">⚪ Pericardio y pulmón</button>
     <button class="tab-btn" onclick="showTab('otros')">🗂️ Otros</button>
     <button class="tab-btn" onclick="showTab('imagenes');if(window.imgRender)imgRender();">🖼️ Imágenes</button>
     <div class="rail-sep"></div>
@@ -8278,6 +8283,255 @@ window.cerrarSesionReal = cerrarSesionReal;
   </div>
   </div>
 
+
+  <!-- ══ LAS DOS BARRAS APILADAS DE «PERICARDIO Y PULMON» (B2-E1, 2026-10-22) ═════════
+       DECISION DE MAICOL tras probar el B en Safari. Eran DOS botones de la columna izquierda
+       —«Pericardio y masas» y «Eco pulmonar»— y son UNO: la columna pasa de 12 a 11 y las dos
+       pantallas quedan APILADAS aca, con el formato de las barras de Hemodinamica, que es el
+       de `h2.card-head` y el que esta pestana ya usaba. El CONTENIDO SE MUEVE TAL CUAL: ni un
+       id, ni un rotulo, ni un texto cambia en este commit.
+       ⚠️ EL PANEL SE LLAMA `#tab-pericardio` Y NO SE RENOMBRA, a proposito: es el id que el B
+          creo y el que `showTab`, el drawer, `_indOrigenAssert` y los casos de la suite ya
+          nombran. Renombrarlo serian cuatro cambios sin un solo efecto para el medico.
+       ⚠️ `#tab-pulmonar` DESAPARECE DEL MARCADO y no queda vacio como `#tab-calculadoras`:
+          medido antes de sacarlo, ese id tenia UNA sola aparicion en todo el archivo —su propio
+          `<div>`— asi que nadie lo nombra y `showTab` no puede tropezar con el.
+       ⚠️ Y `pulmonar` SALE DE `EE_MODULES`: con un boton solo, dejarle el `data-mod` lo
+          esconderia en Modo Basico y con el se iria «Pericardio y masas», que el Basico SI ve
+          hoy. Ver el comentario de `EE_MODULES`. -->
+
+  <!-- ══ ECO PULMONAR UNIFICADO (B-E3, 2026-10-21) ════════════════════════════════════════
+       Hasta hoy lo pulmonar estaba partido en dos puertas: el modulo BASICO dentro de la
+       pestana «Otros» y el AVANZADO en un boton de la fila de arriba. Las dos viven ahora en
+       esta pestana, que es la unica puerta.
+       El modulo basico se MUEVE TAL CUAL: los ocho campos con sus ids, sus rotulos, su globo
+       ⓘ y su acordeon. La exclusion mutua entre basico y avanzado no se toca —la deciden
+       `pulAvanzadoIntegrado` y `pulAvanzadoCubreBasico`, que son sus duenos—.
+       ⚠️ EL BASICO VA PRIMERO porque es el que la mayoria de los estudios usa; el avanzado
+          queda debajo, con su boton «Integrar al informe» DENTRO de la pestana, que es donde
+          la orden lo pide y donde ya estaba. -->
+  <!-- ═══ ECOGRAFÍA PULMONAR — módulo básico ═══ -->
+  <!-- Sólo genera texto si hay hallazgos positivos. Si se integra el módulo
+       avanzado (tab Eco Pulmonar), este se omite del informe automáticamente. -->
+  <div class="card" style="margin-bottom:6px;">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('pulmonar',this)">
+      🫁 Ecografía Pulmonar
+      <span id="ete-pulmonar-arrow" style="float:right;transition:transform 0.2s;">▶</span>
+    </h2>
+  </div>
+  <div id="ete-seccion-pulmonar" style="display:none;">
+  <div class="card">
+    <div class="card-body">
+      <p style="font-size:11px;color:var(--text2);margin-bottom:10px;">Hallazgos básicos. Si no se completa nada, no aparece en el informe.</p>
+      <div class="grid-3">
+        <div class="fg"><label>Derrame pleural</label>
+          <select id="pul_derrame" onchange="pulBasicoUI()">
+            <option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg" id="pul-derrame-tam-wrap" style="display:none;"><label>Tamaño</label>
+          <select id="pul_derrame_tam">
+            <option value="mínimo">Mínimo</option><option value="moderado">Moderado</option><option value="severo">Severo</option>
+          </select>
+        </div>
+        <div class="fg" id="pul-derrame-balik-wrap" style="display:none;"><label>Balik (mm) <button type="button" class="vinfo-btn" data-vinfo="pul-balik" aria-expanded="false" aria-label="Informaci&oacute;n sobre la estimaci&oacute;n del volumen del derrame pleural" onclick="vInfoClic(this)">&#9432;</button></label>
+          <input type="number" id="pul_balik" step="1" min="1" max="120" placeholder="mm">
+        </div>
+        <!-- ⚠️ EL LADO NO EXISTÍA EN EL MÓDULO BÁSICO y sí en el avanzado (`pua_derrame_lado`), así
+             que un derrame cargado acá llegaba al informe firmado sin decir de qué hemitórax es.
+             Sin consignar, la oración sale exactamente como hasta hoy: no se inventa un lado.
+             Los tres valores son los que pidió la orden; el avanzado escribe «unilateral
+             derecho», que es su propia redacción y no se toca. -->
+        <div class="fg" id="pul-derrame-lado-wrap" style="display:none;"><label>Lado</label>
+          <select id="pul_derrame_lado">
+            <option value="">— sin consignar —</option>
+            <option value="derecho">Derecho</option>
+            <option value="izquierdo">Izquierdo</option>
+            <option value="bilateral">Bilateral</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-3" style="margin-top:8px;">
+        <div class="fg"><label>Líneas B</label>
+          <select id="pul_lineasb" onchange="pulBasicoUI()">
+            <option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg" id="pul-lineasb-pat-wrap" style="display:none;"><label>Patrón</label>
+          <select id="pul_lineasb_pat">
+            <option value="focal">Focal</option><option value="difuso">Difuso</option>
+          </select>
+        </div>
+        <!-- ⚠️ LA SEPARACION ENTRE LINEAS B SE RETIRO (ARR7, 2026-10-18). Vivia aca desde el
+             CORTOS13 con dos opciones descriptivas (≈7 mm y ≈3 mm) y SIN FUENTE: censada la
+             biblioteca entera, ningun protocolo de ecografia pulmonar publica una separacion en
+             milimetros —el unico que nombra «B3 lines» es el BLUE de Lichtenstein (Chest 2008,
+             hoja 3) y no da ninguna—. Decision de Maicol: se saca el selector y la clausula
+             «con separacion aproximada de …» del informe, y la oracion vuelve a ser la de antes
+             del CORTOS13. El RESTO del CORTOS13 se conserva: el derrame pericardico del papel y
+             la fuente de Balik de la ICM 2026. -->
+        <div class="fg"><label>Consolidación</label>
+          <select id="pul_consolidacion" onchange="pulBasicoUI()">
+            <option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+      </div>
+      <!-- La nota de la consolidación va al informe EN LA MISMA ORACIÓN, entre paréntesis, y no
+           como una oración aparte. El campo NO existía: el «Notas adicionales» de más arriba es
+           del bloque de pericardio y masas y se imprime como un párrafo propio. -->
+      <div class="grid-3" style="margin-top:8px;">
+        <div class="fg" id="pul-consol-nota-wrap" style="display:none;grid-column:1 / -1;">
+          <label>Consolidación — nota</label>
+          <input type="text" id="pul_consol_nota" placeholder="Localización, broncograma, extensión...">
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+
+  <div class="card" style="margin-bottom:6px;">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('pua-seccion',this);pulAvUI()">
+      🫁 Ecografía pulmonar — evaluación avanzada
+      <span id="pua-seccion-arrow" style="float:right;transition:transform 0.2s;">▶</span>
+    </h2>
+  </div>
+  <div id="pua-seccion" style="display:none;">
+  <div class="card">
+    <div class="card-body">
+
+      <p style="font-size:11px;color:var(--text2);margin-bottom:12px;">
+        Al integrar este módulo, la sección básica de Ecografía Pulmonar se omite del informe para no duplicar los hallazgos.
+      </p>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">🔍 Pleura y líneas A</div>
+      <div class="grid-3" style="margin-bottom:12px;">
+        <div class="fg"><label>Deslizamiento pleural</label>
+          <select id="pua_desliz" onchange="pulAvUI()"><option value="">— no evaluado —</option>
+            <option value="presente">Presente</option>
+            <option value="reducido">Reducido</option>
+            <option value="abolido">Abolido</option>
+          </select>
+        </div>
+        <div class="fg"><label>Lateralidad del deslizamiento</label>
+          <select id="pua_desliz_lado">
+            <option value="bilateral">Bilateral</option>
+            <option value="derecho">Derecho</option>
+            <option value="izquierdo">Izquierdo</option>
+          </select>
+        </div>
+        <div class="fg"><label>Líneas A</label>
+          <select id="pua_lineasa" onchange="pulAvUI()"><option value="">— no evaluado —</option>
+            <option value="presentes">Presentes</option>
+            <option value="ausentes">Ausentes</option>
+          </select>
+        </div>
+        <!-- ⚠️ EL PUNTO PULMON ES UN SIGNO Y SE CONSIGNA (R2-E7, 2026-10-21). FUENTE, VERIFICADA
+             EN EL ORIGINAL: ICM 2026 (Volpicelli y col., Intensive Care Med), enunciado **D2_2.2,
+             hoja 12**, literal: «The visualization of the lung point CONFIRMS pneumothorax.
+             However, if no lung point is identified, the absence of movement and parenchymal
+             signs makes pneumothorax highly probable» — y su definicion en **D1_2.2, hoja 11**.
+             Hasta hoy la app solo lo nombraba en una recomendacion («Confirmar con punto
+             pulmón») y no habia donde consignarlo.
+             Va en el grupo del DESLIZAMIENTO y no en el de las lineas B, que es donde pertenece:
+             es el signo que se busca cuando el deslizamiento esta abolido.
+             ⚠️ EL PULSO PULMONAR NO SE AGREGA, por orden expresa. -->
+        <div class="fg"><label>Punto pulmón</label>
+          <select id="pua_punto" onchange="pulAvUI()"><option value="">— no evaluado —</option>
+            <option value="si">Presente</option>
+            <option value="no">Ausente</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">💧 Líneas B</div>
+      <div class="grid-2" style="margin-bottom:8px;">
+        <div class="fg"><label>Líneas B</label>
+          <select id="pua_lineasb" onchange="pulAvUI()"><option value="">— no evaluado —</option>
+            <option value="ausentes">Ausentes</option>
+            <option value="presentes">Presentes</option>
+          </select>
+        </div>
+        <div class="fg" id="pua-lb-cant-wrap" style="display:none;"><label>Cantidad</label>
+          <select id="pua_lineasb_cant" onchange="pulAvUI()">
+            <option value="focal">Focal (aisladas)</option>
+            <option value="multiples">Múltiples (≥3 por espacio)</option>
+            <option value="coalescentes">Coalescentes</option>
+          </select>
+        </div>
+      </div>
+      <div id="pua-lb-zonas-wrap" style="display:none;margin-bottom:12px;">
+        <div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:4px;">Distribución por zonas</div>
+        <div class="grid-2">
+          <div>
+            <div style="font-size:11px;color:var(--text2);margin-bottom:2px;">Hemitórax derecho</div>
+            <label style="display:flex;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="pua_z_ant_d" onchange="pulAvUI()"> Anterior</label>
+            <label style="display:flex;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="pua_z_lat_d" onchange="pulAvUI()"> Lateral</label>
+            <label style="display:flex;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="pua_z_bas_d" onchange="pulAvUI()"> Basal</label>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text2);margin-bottom:2px;">Hemitórax izquierdo</div>
+            <label style="display:flex;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="pua_z_ant_i" onchange="pulAvUI()"> Anterior</label>
+            <label style="display:flex;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="pua_z_lat_i" onchange="pulAvUI()"> Lateral</label>
+            <label style="display:flex;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="pua_z_bas_i" onchange="pulAvUI()"> Basal</label>
+          </div>
+        </div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">🌊 Derrame pleural</div>
+      <div class="grid-4" style="margin-bottom:12px;">
+        <div class="fg"><label>Derrame</label>
+          <select id="pua_derrame" onchange="pulAvUI()"><option value="">— no evaluado —</option>
+            <option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg pua-der" style="display:none;"><label>Tipo</label>
+          <select id="pua_derrame_tipo" onchange="pulAvUI()">
+            <option value="libre">Libre</option><option value="tabicado">Tabicado</option>
+          </select>
+        </div>
+        <div class="fg pua-der" style="display:none;"><label>Balik (mm)</label>
+          <input type="number" id="pua_balik" step="1" min="1" max="120" placeholder="mm" oninput="pulAvUI()">
+        </div>
+        <div class="fg pua-der" style="display:none;"><label>Lateralidad</label>
+          <select id="pua_derrame_lado" onchange="pulAvUI()">
+            <option value="unilateral derecho">Unilateral derecho</option>
+            <option value="unilateral izquierdo">Unilateral izquierdo</option>
+            <option value="bilateral">Bilateral</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">🫁 Consolidación</div>
+      <div class="grid-2" style="margin-bottom:12px;">
+        <div class="fg"><label>Consolidación</label>
+          <select id="pua_consol" onchange="pulAvUI()"><option value="">— no evaluado —</option>
+            <option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg" id="pua-consol-bronco-wrap" style="display:none;"><label>Broncograma</label>
+          <select id="pua_consol_bronco" onchange="pulAvUI()">
+            <option value="con">Con broncograma aéreo</option>
+            <option value="sin">Sin broncograma</option>
+            <option value="fluido">Broncograma fluido</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="calc-box" style="margin-bottom:12px;">
+        <div class="calc-row">
+          <span class="calc-lbl" style="font-weight:700;">🧭 Patrón global</span>
+          <span id="pua-patron" style="font-weight:700;">—</span>
+        </div>
+        <div class="calc-row"><span class="calc-lbl">Interpretación</span><span id="pua-patron-interp" style="font-size:11px;">—</span></div>
+      </div>
+
+      <div style="text-align:center;">
+        <button type="button" class="btn btn-integrar" data-am-k="pulm" onclick="amiloIntegrar('pulm')">📎 Integrar al informe</button>
+      </div>
+    </div>
+  </div>
+  </div>
 </div>
 
 <div id="tab-otros" class="tab-section">
@@ -8516,242 +8770,6 @@ window.cerrarSesionReal = cerrarSesionReal;
 
 </div>
 
-<!-- ═══════════════════════ TAB: ECO PULMONAR (avanzado) ═══════════════════════ -->
-<div id="tab-pulmonar" class="tab-section">
-
-  <!-- ══ ECO PULMONAR UNIFICADO (B-E3, 2026-10-21) ════════════════════════════════════════
-       Hasta hoy lo pulmonar estaba partido en dos puertas: el modulo BASICO dentro de la
-       pestana «Otros» y el AVANZADO en un boton de la fila de arriba. Las dos viven ahora en
-       esta pestana, que es la unica puerta.
-       El modulo basico se MUEVE TAL CUAL: los ocho campos con sus ids, sus rotulos, su globo
-       ⓘ y su acordeon. La exclusion mutua entre basico y avanzado no se toca —la deciden
-       `pulAvanzadoIntegrado` y `pulAvanzadoCubreBasico`, que son sus duenos—.
-       ⚠️ EL BASICO VA PRIMERO porque es el que la mayoria de los estudios usa; el avanzado
-          queda debajo, con su boton «Integrar al informe» DENTRO de la pestana, que es donde
-          la orden lo pide y donde ya estaba. -->
-  <!-- ═══ ECOGRAFÍA PULMONAR — módulo básico ═══ -->
-  <!-- Sólo genera texto si hay hallazgos positivos. Si se integra el módulo
-       avanzado (tab Eco Pulmonar), este se omite del informe automáticamente. -->
-  <div class="card" style="margin-bottom:6px;">
-    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('pulmonar',this)">
-      🫁 Ecografía Pulmonar
-      <span id="ete-pulmonar-arrow" style="float:right;transition:transform 0.2s;">▶</span>
-    </h2>
-  </div>
-  <div id="ete-seccion-pulmonar" style="display:none;">
-  <div class="card">
-    <div class="card-body">
-      <p style="font-size:11px;color:var(--text2);margin-bottom:10px;">Hallazgos básicos. Si no se completa nada, no aparece en el informe.</p>
-      <div class="grid-3">
-        <div class="fg"><label>Derrame pleural</label>
-          <select id="pul_derrame" onchange="pulBasicoUI()">
-            <option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-        <div class="fg" id="pul-derrame-tam-wrap" style="display:none;"><label>Tamaño</label>
-          <select id="pul_derrame_tam">
-            <option value="mínimo">Mínimo</option><option value="moderado">Moderado</option><option value="severo">Severo</option>
-          </select>
-        </div>
-        <div class="fg" id="pul-derrame-balik-wrap" style="display:none;"><label>Balik (mm) <button type="button" class="vinfo-btn" data-vinfo="pul-balik" aria-expanded="false" aria-label="Informaci&oacute;n sobre la estimaci&oacute;n del volumen del derrame pleural" onclick="vInfoClic(this)">&#9432;</button></label>
-          <input type="number" id="pul_balik" step="1" min="1" max="120" placeholder="mm">
-        </div>
-        <!-- ⚠️ EL LADO NO EXISTÍA EN EL MÓDULO BÁSICO y sí en el avanzado (`pua_derrame_lado`), así
-             que un derrame cargado acá llegaba al informe firmado sin decir de qué hemitórax es.
-             Sin consignar, la oración sale exactamente como hasta hoy: no se inventa un lado.
-             Los tres valores son los que pidió la orden; el avanzado escribe «unilateral
-             derecho», que es su propia redacción y no se toca. -->
-        <div class="fg" id="pul-derrame-lado-wrap" style="display:none;"><label>Lado</label>
-          <select id="pul_derrame_lado">
-            <option value="">— sin consignar —</option>
-            <option value="derecho">Derecho</option>
-            <option value="izquierdo">Izquierdo</option>
-            <option value="bilateral">Bilateral</option>
-          </select>
-        </div>
-      </div>
-      <div class="grid-3" style="margin-top:8px;">
-        <div class="fg"><label>Líneas B</label>
-          <select id="pul_lineasb" onchange="pulBasicoUI()">
-            <option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-        <div class="fg" id="pul-lineasb-pat-wrap" style="display:none;"><label>Patrón</label>
-          <select id="pul_lineasb_pat">
-            <option value="focal">Focal</option><option value="difuso">Difuso</option>
-          </select>
-        </div>
-        <!-- ⚠️ LA SEPARACION ENTRE LINEAS B SE RETIRO (ARR7, 2026-10-18). Vivia aca desde el
-             CORTOS13 con dos opciones descriptivas (≈7 mm y ≈3 mm) y SIN FUENTE: censada la
-             biblioteca entera, ningun protocolo de ecografia pulmonar publica una separacion en
-             milimetros —el unico que nombra «B3 lines» es el BLUE de Lichtenstein (Chest 2008,
-             hoja 3) y no da ninguna—. Decision de Maicol: se saca el selector y la clausula
-             «con separacion aproximada de …» del informe, y la oracion vuelve a ser la de antes
-             del CORTOS13. El RESTO del CORTOS13 se conserva: el derrame pericardico del papel y
-             la fuente de Balik de la ICM 2026. -->
-        <div class="fg"><label>Consolidación</label>
-          <select id="pul_consolidacion" onchange="pulBasicoUI()">
-            <option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-      </div>
-      <!-- La nota de la consolidación va al informe EN LA MISMA ORACIÓN, entre paréntesis, y no
-           como una oración aparte. El campo NO existía: el «Notas adicionales» de más arriba es
-           del bloque de pericardio y masas y se imprime como un párrafo propio. -->
-      <div class="grid-3" style="margin-top:8px;">
-        <div class="fg" id="pul-consol-nota-wrap" style="display:none;grid-column:1 / -1;">
-          <label>Consolidación — nota</label>
-          <input type="text" id="pul_consol_nota" placeholder="Localización, broncograma, extensión...">
-        </div>
-      </div>
-    </div>
-  </div>
-  </div>
-
-
-  <div class="card" style="margin-bottom:6px;">
-    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('pua-seccion',this);pulAvUI()">
-      🫁 Ecografía pulmonar — evaluación avanzada
-      <span id="pua-seccion-arrow" style="float:right;transition:transform 0.2s;">▶</span>
-    </h2>
-  </div>
-  <div id="pua-seccion" style="display:none;">
-  <div class="card">
-    <div class="card-body">
-
-      <p style="font-size:11px;color:var(--text2);margin-bottom:12px;">
-        Al integrar este módulo, la sección básica de Ecografía Pulmonar se omite del informe para no duplicar los hallazgos.
-      </p>
-
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">🔍 Pleura y líneas A</div>
-      <div class="grid-3" style="margin-bottom:12px;">
-        <div class="fg"><label>Deslizamiento pleural</label>
-          <select id="pua_desliz" onchange="pulAvUI()"><option value="">— no evaluado —</option>
-            <option value="presente">Presente</option>
-            <option value="reducido">Reducido</option>
-            <option value="abolido">Abolido</option>
-          </select>
-        </div>
-        <div class="fg"><label>Lateralidad del deslizamiento</label>
-          <select id="pua_desliz_lado">
-            <option value="bilateral">Bilateral</option>
-            <option value="derecho">Derecho</option>
-            <option value="izquierdo">Izquierdo</option>
-          </select>
-        </div>
-        <div class="fg"><label>Líneas A</label>
-          <select id="pua_lineasa" onchange="pulAvUI()"><option value="">— no evaluado —</option>
-            <option value="presentes">Presentes</option>
-            <option value="ausentes">Ausentes</option>
-          </select>
-        </div>
-        <!-- ⚠️ EL PUNTO PULMON ES UN SIGNO Y SE CONSIGNA (R2-E7, 2026-10-21). FUENTE, VERIFICADA
-             EN EL ORIGINAL: ICM 2026 (Volpicelli y col., Intensive Care Med), enunciado **D2_2.2,
-             hoja 12**, literal: «The visualization of the lung point CONFIRMS pneumothorax.
-             However, if no lung point is identified, the absence of movement and parenchymal
-             signs makes pneumothorax highly probable» — y su definicion en **D1_2.2, hoja 11**.
-             Hasta hoy la app solo lo nombraba en una recomendacion («Confirmar con punto
-             pulmón») y no habia donde consignarlo.
-             Va en el grupo del DESLIZAMIENTO y no en el de las lineas B, que es donde pertenece:
-             es el signo que se busca cuando el deslizamiento esta abolido.
-             ⚠️ EL PULSO PULMONAR NO SE AGREGA, por orden expresa. -->
-        <div class="fg"><label>Punto pulmón</label>
-          <select id="pua_punto" onchange="pulAvUI()"><option value="">— no evaluado —</option>
-            <option value="si">Presente</option>
-            <option value="no">Ausente</option>
-          </select>
-        </div>
-      </div>
-
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">💧 Líneas B</div>
-      <div class="grid-2" style="margin-bottom:8px;">
-        <div class="fg"><label>Líneas B</label>
-          <select id="pua_lineasb" onchange="pulAvUI()"><option value="">— no evaluado —</option>
-            <option value="ausentes">Ausentes</option>
-            <option value="presentes">Presentes</option>
-          </select>
-        </div>
-        <div class="fg" id="pua-lb-cant-wrap" style="display:none;"><label>Cantidad</label>
-          <select id="pua_lineasb_cant" onchange="pulAvUI()">
-            <option value="focal">Focal (aisladas)</option>
-            <option value="multiples">Múltiples (≥3 por espacio)</option>
-            <option value="coalescentes">Coalescentes</option>
-          </select>
-        </div>
-      </div>
-      <div id="pua-lb-zonas-wrap" style="display:none;margin-bottom:12px;">
-        <div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:4px;">Distribución por zonas</div>
-        <div class="grid-2">
-          <div>
-            <div style="font-size:11px;color:var(--text2);margin-bottom:2px;">Hemitórax derecho</div>
-            <label style="display:flex;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="pua_z_ant_d" onchange="pulAvUI()"> Anterior</label>
-            <label style="display:flex;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="pua_z_lat_d" onchange="pulAvUI()"> Lateral</label>
-            <label style="display:flex;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="pua_z_bas_d" onchange="pulAvUI()"> Basal</label>
-          </div>
-          <div>
-            <div style="font-size:11px;color:var(--text2);margin-bottom:2px;">Hemitórax izquierdo</div>
-            <label style="display:flex;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="pua_z_ant_i" onchange="pulAvUI()"> Anterior</label>
-            <label style="display:flex;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="pua_z_lat_i" onchange="pulAvUI()"> Lateral</label>
-            <label style="display:flex;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="pua_z_bas_i" onchange="pulAvUI()"> Basal</label>
-          </div>
-        </div>
-      </div>
-
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">🌊 Derrame pleural</div>
-      <div class="grid-4" style="margin-bottom:12px;">
-        <div class="fg"><label>Derrame</label>
-          <select id="pua_derrame" onchange="pulAvUI()"><option value="">— no evaluado —</option>
-            <option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-        <div class="fg pua-der" style="display:none;"><label>Tipo</label>
-          <select id="pua_derrame_tipo" onchange="pulAvUI()">
-            <option value="libre">Libre</option><option value="tabicado">Tabicado</option>
-          </select>
-        </div>
-        <div class="fg pua-der" style="display:none;"><label>Balik (mm)</label>
-          <input type="number" id="pua_balik" step="1" min="1" max="120" placeholder="mm" oninput="pulAvUI()">
-        </div>
-        <div class="fg pua-der" style="display:none;"><label>Lateralidad</label>
-          <select id="pua_derrame_lado" onchange="pulAvUI()">
-            <option value="unilateral derecho">Unilateral derecho</option>
-            <option value="unilateral izquierdo">Unilateral izquierdo</option>
-            <option value="bilateral">Bilateral</option>
-          </select>
-        </div>
-      </div>
-
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">🫁 Consolidación</div>
-      <div class="grid-2" style="margin-bottom:12px;">
-        <div class="fg"><label>Consolidación</label>
-          <select id="pua_consol" onchange="pulAvUI()"><option value="">— no evaluado —</option>
-            <option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-        <div class="fg" id="pua-consol-bronco-wrap" style="display:none;"><label>Broncograma</label>
-          <select id="pua_consol_bronco" onchange="pulAvUI()">
-            <option value="con">Con broncograma aéreo</option>
-            <option value="sin">Sin broncograma</option>
-            <option value="fluido">Broncograma fluido</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="calc-box" style="margin-bottom:12px;">
-        <div class="calc-row">
-          <span class="calc-lbl" style="font-weight:700;">🧭 Patrón global</span>
-          <span id="pua-patron" style="font-weight:700;">—</span>
-        </div>
-        <div class="calc-row"><span class="calc-lbl">Interpretación</span><span id="pua-patron-interp" style="font-size:11px;">—</span></div>
-      </div>
-
-      <div style="text-align:center;">
-        <button type="button" class="btn btn-integrar" data-am-k="pulm" onclick="amiloIntegrar('pulm')">📎 Integrar al informe</button>
-      </div>
-    </div>
-  </div>
-  </div>
-</div>
 
 <!-- ═══════════════════════ TAB: HEMODINÁMICA ═══════════════════════ -->
 
@@ -126045,9 +126063,14 @@ window.ecoMedToggle=ecoMedToggle;
    de este array, así que si diverge del de la fila de pestañas el médico busca «Eco Pulmonar» en
    Config donde la vio arriba y no está. Las CLAVES no se tocan nunca — son las de `ett_modules`
    en localStorage y las de `data-mod`; lo único que se reordena es la lista. */
+/* ⚠️ `pulmonar` SALIO DE ESTA LISTA EN EL B2-E1 (2026-10-22), y con el su casilla de Config.
+   El eco pulmonar deja de ser un modulo «avanzado»: vive apilado con pericardio y masas detras
+   de un boton SIN `data-mod`, que es contenido basico. Dejar la clave aca haria que el chequeo
+   de abajo gritara «sin boton: pulmonar» en cada arranque sobre una app sana, y la casilla no
+   gobernaria nada. Lo que SE PIERDE es el control para apagarlo desde Config —un control, no un
+   campo—; lo que se gana es que ningun modo pierda contenido. Declarado en el reporte. */
 var EE_MODULES = [
   {key:'hemodinamica', label:'🩸 Hemodinámica'},
-  {key:'pulmonar',     label:'🫁 Eco Pulmonar'},
   {key:'ete',          label:'🔬 ETE'},
   {key:'cardioOnco',   label:'🎗️ Cardio-Oncología'},
   {key:'amiloidosis',  label:'🫀 Amiloidosis'},
