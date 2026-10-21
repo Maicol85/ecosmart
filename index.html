@@ -8558,6 +8558,22 @@ window.cerrarSesionReal = cerrarSesionReal;
             <option value="ausentes">Ausentes</option>
           </select>
         </div>
+        <!-- ⚠️ EL PUNTO PULMON ES UN SIGNO Y SE CONSIGNA (R2-E7, 2026-10-21). FUENTE, VERIFICADA
+             EN EL ORIGINAL: ICM 2026 (Volpicelli y col., Intensive Care Med), enunciado **D2_2.2,
+             hoja 12**, literal: «The visualization of the lung point CONFIRMS pneumothorax.
+             However, if no lung point is identified, the absence of movement and parenchymal
+             signs makes pneumothorax highly probable» — y su definicion en **D1_2.2, hoja 11**.
+             Hasta hoy la app solo lo nombraba en una recomendacion («Confirmar con punto
+             pulmón») y no habia donde consignarlo.
+             Va en el grupo del DESLIZAMIENTO y no en el de las lineas B, que es donde pertenece:
+             es el signo que se busca cuando el deslizamiento esta abolido.
+             ⚠️ EL PULSO PULMONAR NO SE AGREGA, por orden expresa. -->
+        <div class="fg"><label>Punto pulmón</label>
+          <select id="pua_punto" onchange="pulAvUI()"><option value="">— no evaluado —</option>
+            <option value="si">Presente</option>
+            <option value="no">Ausente</option>
+          </select>
+        </div>
       </div>
 
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">💧 Líneas B</div>
@@ -84708,6 +84724,36 @@ window.pulBasicoTexto = pulBasicoTexto;
 window.pulBasicoHayDatos = pulBasicoHayDatos;
 
 // ── Módulo AVANZADO ──
+/* ══ EL SINDROME INTERSTICIAL DIFUSO: DOS O MAS ZONAS POR HEMITORAX (R2-E7, 2026-10-21) ═══════
+   FUENTE, VERIFICADA EN EL ORIGINAL: Volpicelli G y col., «International evidence-based
+   recommendations for point-of-care lung ultrasound», Intensive Care Med 2026 — pie de la
+   **Figura 4, panel C, hoja 8** del PDF, literal: «diagnosis of diffuse interstitial syndrome:
+   division of the antero-lateral thorax into 8 zones (**at least 2 positive zones per side**)».
+
+   ⚠️ QUE USABA LA APP HASTA HOY: nada. Censado antes de escribir: el modulo BASICO tiene un
+   `<select>` focal/difuso que elige el MEDICO a mano, y el AVANZADO llamaba «Sindrome
+   intersticial» a cualquier `cant === 'multiples'` SIN mirar las seis zonas —`pulAvZonas` las
+   enumeraba en el texto y no votaba—. O sea que el adjetivo «difuso» no tenia criterio.
+
+   ⚠️ LA APP TIENE SEIS ZONAS Y LA FUENTE DIVIDE EN OCHO (cuatro por lado): la regla «al menos 2
+   positivas por lado» se aplica sobre las TRES que la app pregunta de cada hemitorax —anterior,
+   lateral y basal—, y eso se declara. Con menos zonas, exigir dos por lado es MAS estricto en
+   proporcion, que es el lado que no sobre-afirma.
+   ⚠️ Y SI LAS ZONAS NO SE MARCARON, EL PATRON NO SE AFIRMA DIFUSO: devuelve `null`, que es
+   distinto de «no es difuso». Es la regla del ARR aplicada a un adjetivo. */
+const PUL_ZONAS_DIFUSO_MIN = 2;   // zonas positivas por hemitorax, INCLUSIVE
+const PUL_ZONAS_LADO = Object.freeze({
+  der: ['pua_z_ant_d', 'pua_z_lat_d', 'pua_z_bas_d'],
+  izq: ['pua_z_ant_i', 'pua_z_lat_i', 'pua_z_bas_i']
+});
+function pulAvDifuso() {
+  const n = (ids) => ids.filter(id => _amChk(id)).length;
+  const d = n(PUL_ZONAS_LADO.der), i = n(PUL_ZONAS_LADO.izq);
+  if (d === 0 && i === 0) return { difuso: null, der: 0, izq: 0 };   /* nadie marco nada */
+  return { difuso: (d >= PUL_ZONAS_DIFUSO_MIN && i >= PUL_ZONAS_DIFUSO_MIN), der: d, izq: i };
+}
+window.pulAvDifuso = pulAvDifuso;
+
 function pulAvZonas() {
   const Z = [['pua_z_ant_d','anterior derecha'],['pua_z_lat_d','lateral derecha'],['pua_z_bas_d','basal derecha'],
              ['pua_z_ant_i','anterior izquierda'],['pua_z_lat_i','lateral izquierda'],['pua_z_bas_i','basal izquierda']];
@@ -84727,6 +84773,7 @@ function pulAvPatron() {
      tres líneas después «Patrón global: Normal. Deslizamiento pleural CONSERVADO», y el
      neumotórax no subía al EN SUMA. La compuerta nueva le había sacado el hallazgo urgente a la
      única rama que lo nombra. */
+  const punto = _amV('pua_punto');
   if (desliz === 'abolido' && lineasA !== 'ausentes' && lb !== 'presentes') {
     /* El texto describe lo que REALMENTE se evaluó. Afirmar «con líneas A conservadas y ausencia
        de líneas B» cuando los dos quedaron en «— no evaluado —» es inventar dos hallazgos para
@@ -84734,16 +84781,36 @@ function pulAvPatron() {
     const _ap = (lineasA === 'presentes' ? 'líneas A conservadas' : '') +
                 (lineasA === 'presentes' && lb === 'ausentes' ? ' y ' : '') +
                 (lb === 'ausentes' ? 'ausencia de líneas B' : '');
-    return { p:'Neumotórax probable',
+    /* ⚠️ EL PUNTO PULMON CAMBIA LO QUE SE PUEDE AFIRMAR, y con las palabras de la fuente
+       (R2-E7): presente CONFIRMA el neumotorax; ausente lo deja «altamente probable»; sin
+       evaluar queda la recomendacion de buscarlo, que es lo que la app ya decia. */
+    const _pt = punto === 'si'  ? ' Punto pulmón presente: confirma el neumotórax.'
+              : punto === 'no'  ? ' Punto pulmón no identificado: el neumotórax sigue siendo altamente probable.'
+              :                   ' Confirmar con punto pulmón.';
+    return { p: punto === 'si' ? 'Neumotórax confirmado' : 'Neumotórax probable',
              i:'Deslizamiento pleural abolido' + (_ap ? ' con ' + _ap : ', sin líneas A ni líneas B evaluadas') +
-               '. Confirmar con punto pulmón.' };
+               '.' + _pt };
   }
   if (consol)
     return { p:'Consolidación', i:'Consolidación pulmonar; correlacionar con clínica e historia (neumonía, atelectasia, infarto).' };
+  /* ⚠️ «EDEMA ALVEOLAR» SE RETIRA DEL ROTULO (R2-E7, 2026-10-21, decision de Maicol). Lo que las
+     fuentes publican de las lineas B coalescentes es la DESCRIPCION y su grado de aireacion —el
+     ICM 2026 las puntua como grado 2 de su escala (hoja 9) y el consenso de 2022 habla de «white
+     lung» como un compromiso «more advanced» (hoja 14)—: ninguna de las dos las llama «edema
+     alveolar», que es una interpretacion etiologica. Queda la descripcion de las lineas B. */
   if (lb === 'presentes' && cant === 'coalescentes')
-    return { p:'Edema alveolar', i:'Líneas B coalescentes ("pulmón blanco"): compromiso alveolar.' };
-  if (lb === 'presentes' && (cant === 'multiples'))
-    return { p:'Síndrome intersticial', i:'Líneas B múltiples (≥3 por espacio): síndrome intersticial, compatible con edema pulmonar intersticial.' };
+    return { p:'Líneas B coalescentes', i:'Líneas B coalescentes ("pulmón blanco"): pérdida de aireación avanzada.' };
+  if (lb === 'presentes' && (cant === 'multiples')) {
+    /* ⚠️ EL ADJETIVO «DIFUSO» LO DECIDEN LAS ZONAS (R2-E7): dos o mas positivas por hemitorax,
+       pie de la Figura 4C del ICM 2026, hoja 8. Sin zonas marcadas no se afirma ni una cosa ni
+       la otra — el patron se nombra sin adjetivo. */
+    const _dif = (typeof pulAvDifuso === 'function') ? pulAvDifuso() : { difuso: null };
+    const _z = _dif.difuso === null ? ''
+      : (_dif.difuso ? ' de distribución DIFUSA (' + _dif.der + ' y ' + _dif.izq + ' zonas por hemitórax, ≥2 en cada uno)'
+                     : ' de distribución FOCAL (' + _dif.der + ' y ' + _dif.izq + ' zonas por hemitórax, no alcanza ≥2 en cada uno)');
+    return { p: _dif.difuso ? 'Síndrome intersticial difuso' : 'Síndrome intersticial',
+             i:'Líneas B múltiples (≥3 por espacio)' + _z + '.' };
+  }
   if (lb === 'presentes' && cant === 'focal')
     return { p:'Líneas B focales', i:'Líneas B aisladas: hallazgo focal, puede ser inespecífico.' };
   /* Sin ningún campo cargado la caída era a «Normal — deslizamiento pleural conservado con patrón
@@ -84850,7 +84917,10 @@ function amiloTextoPulmonar() {
 function pulAvSuma(omitir) {
   const _om = Array.isArray(omitir) ? omitir : [];
   const s = [], r = pulAvPatron();
-  if (r.p === 'Síndrome intersticial') s.push('Edema pulmonar intersticial.');
+  /* Los dos rotulos del sindrome intersticial (con y sin el adjetivo difuso) y el de las
+     coalescentes, que desde el R2-E7 ya no se llama «edema alveolar». */
+  if (r.p.indexOf('Síndrome intersticial') === 0) s.push(r.p + '.');
+  if (r.p === 'Líneas B coalescentes') s.push('Líneas B coalescentes.');
   else if (r.p === 'Edema alveolar')   s.push('Edema alveolar.');
   else if (r.p === 'Neumotórax probable') s.push('Neumotórax probable.');
   if (_amV('pua_consol') === 'si' && _om.indexOf('consol') < 0) {
@@ -84880,7 +84950,7 @@ function pulAvanzadoHayDatos() {
   /* Los dependientes (`_cant`, `_tipo`, `_lado`, `_bronco`) NO se miran: conservan su valor por
      defecto aunque nadie los toque, así que contarlos haría que este predicado diera `true`
      siempre. Sólo cuentan los cinco primarios, el Balik y las seis zonas. */
-  const primarios = ['pua_desliz','pua_lineasa','pua_lineasb','pua_derrame','pua_consol'];
+  const primarios = ['pua_desliz','pua_lineasa','pua_lineasb','pua_derrame','pua_consol','pua_punto'];
   if (primarios.some(function(id){ const e = document.getElementById(id); return e && e.value !== ''; })) return true;
   const bk = document.getElementById('pua_balik');
   if (bk && String(bk.value || '').trim() !== '') return true;
