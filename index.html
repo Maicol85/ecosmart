@@ -1274,7 +1274,10 @@
        panel activo se ve perfecto y lo que falta es la puerta a la otra.
        Se acota la regla en vez de pelearle con otro `!important`: lo que se esconde sigue
        siendo exactamente lo que tiene reemplazo. */
-    .subtabs-wrap:not(.otr-subbar):not(.cc-subbar) .tabs-row{ display:none !important; }
+    /* ⚠️ `.otr-subbar` SALIO DE LA EXCEPCION EN EL B2-E3 junto con la barra de Otros: esa
+       pestana ya no tiene sub-pestanas. La de congenitas se conserva, que es la unica que
+       sigue reusando `.subtabs-wrap` sin tener el `<select>` de reemplazo. */
+    .subtabs-wrap:not(.cc-subbar) .tabs-row{ display:none !important; }
     .eco-adv-select{display:block;width:100%;box-sizing:border-box;margin:0;padding:9px 38px 9px 12px;font-size:13px;font-weight:600;color:var(--text);background-color:var(--bg2);background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="8" viewBox="0 0 12 8"><path d="M1 1l5 5 5-5" stroke="%2394A3B8" stroke-width="2" fill="none" stroke-linecap="round"/></svg>');background-repeat:no-repeat;background-position:right 13px center;border:1px solid var(--border);border-radius:8px;-webkit-appearance:none;appearance:none;cursor:pointer;outline:none}
     .eco-adv-select:focus{border-color:var(--accent2,#4f8ef7)}
   }
@@ -8507,20 +8510,19 @@ window.cerrarSesionReal = cerrarSesionReal;
           veces y romper «cada commit se revierte solo».
        El patron es el de `.subtabs-wrap`/`.tabs-row` que la app ya usa en CIA/CIV y en el
        Laboratorio, con `role=tablist` y UN solo tab stop: las flechas mueven entre las dos. -->
-  <div class="subtabs-wrap otr-subbar" role="tablist" aria-label="Secciones de Otros hallazgos"
-       style="justify-content:flex-start;margin-bottom:12px;">
-    <div class="tabs-row">
-      <button type="button" class="tab-btn otr-on" id="otr-subtab-burbuja" role="tab"
-              aria-selected="true" aria-controls="otr-sub-burbuja" tabindex="0"
-              onclick="otrSubTab('burbuja',this)">&#129526; Test de burbuja</button>
-      <button type="button" class="tab-btn" id="otr-subtab-variantes" role="tab"
-              aria-selected="false" aria-controls="otr-sub-variantes" tabindex="-1"
-              onclick="otrSubTab('variantes',this)">&#129656; Variantes anat&oacute;micas</button>
-    </div>
-  </div>
+  <!-- ══ LAS DOS BARRAS APILADAS DE OTROS (B2-E3, 2026-10-22) ════════════════════════════
+       DECISION DE MAICOL. El B habia partido esta pestana en dos SUB-PESTANAS, y con eso cada
+       seccion quedaba detras de DOS niveles: el boton de sub-pestana y, adentro, su propia
+       barra «TEST DE BURBUJA ▶». Los botones salen y las dos secciones quedan APILADAS, una
+       debajo de la otra, con la barra que cada una ya tenia — que es el formato de las barras
+       de Hemodinamica (`h2.card-head`) y el mismo estado inicial: las dos nacen cerradas.
+       ⚠️ NI UN CAMPO, NI UN id, NI UN ROTULO CAMBIA. Los dos envoltorios `.otr-sub` se
+          conservan como agrupadores y pierden su rol de tabpanel: sin la barra, `role=tabpanel`
+          y `aria-labelledby` apuntarian a botones que ya no existen.
+       ⚠️ Y SE RETIRAN `otrSubTab`, `OTR_SUB_ORDEN`, su oyente de teclado y las tres reglas de
+          CSS de la barra. Las de C. Congenitas NO se tocan. -->
 
-  <div id="otr-sub-burbuja" class="otr-sub active" role="tabpanel"
-       aria-labelledby="otr-subtab-burbuja">
+  <div id="otr-sub-burbuja" class="otr-sub">
   <!-- ═══ TEST DE BURBUJA (CORTOS11, 2026-10-17) ═══════════════════════════════════════════════
        DECISION DE MAICOL. Una casilla que declara que el test SE HIZO y, con pasaje, tres datos:
        cantidad, momento de aparicion y si fue espontaneo o con Valsalva. Sin pasaje no se
@@ -8619,8 +8621,7 @@ window.cerrarSesionReal = cerrarSesionReal;
 
   </div>
 
-  <div id="otr-sub-variantes" class="otr-sub" role="tabpanel"
-       aria-labelledby="otr-subtab-variantes">
+  <div id="otr-sub-variantes" class="otr-sub">
   <div class="card" style="margin-bottom:6px;">
     <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('variantes',this)">
       &#129656; Variantes anat&oacute;micas
@@ -19961,29 +19962,15 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
      hoja del NAVEGADOR y cualquier regla de autor le gana —`.card` es `display:block`—, que es
      el fantasma que este archivo ya pago con `.fg[hidden]`, `.frases-panel[hidden]` y el banner
      de version. Medido: un panel inactivo queda en 0x0 y sin un solo tabulable adentro. */
-  #tab-otros .otr-sub{display:none}
-  #tab-otros .otr-sub.active{display:block}
-  /* ⚠️ EL BOTON ACTIVO SE PINTA POR UNA CLASE PROPIA (`otr-on`) Y NO POR `.active`, Y LAS DOS
-     MITADES LAS DESTAPO LA MEDICION.
-     (1) `showTab` barre `.active` de TODO `.tab-btn` del documento
-         —`querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'))`— asi que
-         al entrar a Otros los dos botones de la barra perdian su marca y el panel quedaba
-         abierto sin ningun boton encendido.
-     (2) Y UNA CLASE, que es lo que `refSubTab` ya usa para las cinco de Referencias: el
-         atributo tambien habria servido, pero la clase es el patron de la casa y no hay motivo
-         para abrir un segundo. NO son dos fuentes: `otrSubTab` escribe la clase y
-         `aria-selected` en el MISMO bucle, asi que no pueden divergir.
-     ⚠️ Y UNA TRAMPA DE MEDICION, que costo dos diagnosticos falsos: `.tab-btn` tiene
-     `transition` de color, asi que leer `getComputedStyle().color` en el mismo turno del clic
-     devuelve un valor INTERMEDIO de la animacion —medido `rgb(62,153,154)` entre el teal y el
-     gris— y parece que la regla no gana. Hay que medirlo DESPUES de la transicion, en otra
-     llamada: ahi los dos motores dan el teal y el gris exactos.
-     Los colores son los de `.subtabs-wrap .tab-btn.active`, sin declarar uno nuevo. */
+  /* ⚠️ LOS DOS PANELES SE VEN LOS DOS (B2-E3): eran sub-pestanas excluyentes y hoy son dos
+     secciones APILADAS, cada una con su barra. Lo que se pliega y se despliega es el cuerpo de
+     cada seccion, que sigue siendo de `toggleEteSeccion`. El margen separa las dos barras. */
+  #tab-otros .otr-sub{display:block}
+  #tab-otros .otr-sub + .otr-sub{margin-top:12px}
   /* ══ LAS DOS SUB-PESTANAS DE CONGENITAS (B-E6) ═════════════════════════════════════════
      Mismos colores que `.subtabs-wrap .tab-btn.active`, sin declarar uno nuevo, y por una
      clase propia por el mismo motivo que las de Otros: `showTab` barre `.active`. */
   .cc-subbar .tab-btn.cc-on{color:var(--teal);border-color:var(--teal);background:transparent}
-  #tab-otros .otr-subbar .tab-btn.otr-on{color:var(--teal);border-color:var(--teal);background:transparent}
   #tab-refs .ref-subbar{display:flex;flex-wrap:nowrap;gap:2px;overflow-x:auto;-webkit-overflow-scrolling:touch;
     border-bottom:1px solid var(--border);margin:0 0 12px;scrollbar-width:thin;max-width:100%;}
   #tab-refs .ref-subtab{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;font-size:.8rem;
@@ -63277,47 +63264,12 @@ document.addEventListener('DOMContentLoaded', function () {
   });
   ccSubSync();
 });
-/* ══ OTROS — LAS DOS SUB-PESTANAS (B-E2, 2026-10-21) ══════════════════════════════════════
-   Dueno unico del reparto: `OTR_SUB_ORDEN`. No calcula nada, no lee ni escribe un campo y no
-   toca el estado plegado de las secciones —eso sigue siendo de `toggleEteSeccion`—.
-   El teclado es el patron ARIA del tablist, igual que en Referencias: la barra es UN solo tab
-   stop y las flechas mueven entre las dos. Se cablea con addEventListener y no con un atributo
-   de evento, que es lo que Semgrep pide. */
-const OTR_SUB_ORDEN = Object.freeze(['burbuja', 'variantes']);
-let _otrSubActiva = 'burbuja';
-function otrSubTab(sub, el) {
-  if (OTR_SUB_ORDEN.indexOf(sub) < 0) { console.error('[otrSubTab] desconocida: ' + sub); return }
-  OTR_SUB_ORDEN.forEach(function (k) {
-    const b = document.getElementById('otr-subtab-' + k);
-    const p = document.getElementById('otr-sub-' + k);
-    const on = (k === sub);
-    /* La clase es `otr-on` y no `active` —ver el CSS—: la segunda la barre `showTab` en cada
-       cambio de pestana, asi que como fuente del estado duraba hasta el proximo toque. */
-    if (b) { b.classList.toggle('otr-on', on);
-             b.setAttribute('aria-selected', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1 }
-    if (p) p.classList.toggle('active', on);
-  });
-  _otrSubActiva = sub;
-  if (el && el.scrollIntoView) { try { el.scrollIntoView({ block: 'nearest', inline: 'nearest' }) } catch (e) {} }
-}
-window.otrSubTab = otrSubTab; window.OTR_SUB_ORDEN = OTR_SUB_ORDEN;
-document.addEventListener('DOMContentLoaded', function () {
-  const bar = document.querySelector('#tab-otros .otr-subbar');
-  if (!bar) return;
-  bar.addEventListener('keydown', function (e) {
-    const K = e.key;
-    if (K !== 'ArrowLeft' && K !== 'ArrowRight' && K !== 'Home' && K !== 'End') return;
-    const i = OTR_SUB_ORDEN.indexOf(_otrSubActiva);
-    let j = i;
-    if (K === 'ArrowLeft')  j = (i <= 0) ? OTR_SUB_ORDEN.length - 1 : i - 1;
-    if (K === 'ArrowRight') j = (i >= OTR_SUB_ORDEN.length - 1) ? 0 : i + 1;
-    if (K === 'Home') j = 0;
-    if (K === 'End')  j = OTR_SUB_ORDEN.length - 1;
-    e.preventDefault();
-    const btn = document.getElementById('otr-subtab-' + OTR_SUB_ORDEN[j]);
-    if (btn) { otrSubTab(OTR_SUB_ORDEN[j], btn); btn.focus() }
-  });
-});
+/* ⚠️ `otrSubTab`, `OTR_SUB_ORDEN`, `_otrSubActiva` Y SU OYENTE DE TECLADO SE RETIRARON EN EL
+   B2-E3 (2026-10-22) CON LA BARRA DE SUB-PESTANAS DE OTROS. Las dos secciones quedaron
+   APILADAS, cada una con la barra que ya tenia, asi que no hay nada que activar ni que
+   desactivar: lo que se pliega es el cuerpo de cada seccion, y eso es de `toggleEteSeccion`.
+   Se retiran tambien las dos lineas `window.*`: una referencia de nivel superior a algo que ya
+   no existe aborta el <script> COMPLETO. Las de C. Congenitas NO se tocan. */
 function refSubTab(sub, el) {
   refSubInit();
   if (!REF_SUBTAB[sub]) { console.error('[refSubTab] subpestana desconocida: ' + sub); return; }

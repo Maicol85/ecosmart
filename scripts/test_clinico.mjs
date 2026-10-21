@@ -80957,23 +80957,27 @@ caso('TC-509', 'Trabajo B (ADAPTADO por el B2): la columna izquierda con sus ONC
       return e ? 'n=' + e.options.length : 'NO'; })()]);
 
   /* ══ (C) OTROS: DOS SUB-PESTANAS Y EL ASIA CON UN DUENO ════════════════════════════════ */
-  ex.push(['(C1) Otros tiene DOS sub-pestanas y el panel inactivo no ocupa lugar ni deja un tabulable',
+  /* ADAPTADO el 2026-10-22 (B2-E3): afirma hoy LO CONTRARIO, y es la decision del commit. Los
+     dos botones de sub-pestana SALIERON y las dos secciones quedaron APILADAS, cada una con la
+     barra que ya tenia: ni barra, ni botones, ni otrSubTab, y los DOS paneles visibles a la
+     vez con su propia barra de seccion. Lo que el caso cuida —que las dos secciones esten y
+     sean alcanzables— es mas fuerte asi: antes una de las dos estaba siempre escondida. */
+  ex.push(['(C1) Otros NO tiene sub-pestanas: las dos secciones van APILADAS, visibles a la vez, cada una con su barra',
     (function () { try { showTab('otros'); } catch (e) {}
-      const bar = document.querySelector('#tab-otros .otr-subbar');
-      if (!bar) return false;
-      const bs = [].slice.call(bar.querySelectorAll('button'));
-      if (bs.length !== 2) return false;
-      if (!FN('otrSubTab')) return false;
-      otrSubTab('burbuja', EL('otr-subtab-burbuja'));
-      const pv = EL('otr-sub-variantes');
-      const okA = !vis(pv) && getComputedStyle(pv).display === 'none';
-      otrSubTab('variantes', EL('otr-subtab-variantes'));
-      const pb = EL('otr-sub-burbuja');
-      const okB = !vis(pb) && vis(pv);
-      return okA && okB; })(),
-    (function () { const bar = document.querySelector('#tab-otros .otr-subbar');
-      return bar ? [].slice.call(bar.querySelectorAll('button')).map(function (b) {
-        return b.id + '/' + b.getAttribute('aria-selected'); }).join(' ') : 'NO'; })()]);
+      if (document.querySelector('#tab-otros .otr-subbar')) return false;
+      if (EL('otr-subtab-burbuja') || EL('otr-subtab-variantes')) return false;
+      if (FN('otrSubTab')) return false;
+      const pb = EL('otr-sub-burbuja'), pv = EL('otr-sub-variantes');
+      if (!pb || !pv) return false;
+      if (!vis(pb) || !vis(pv)) return false;
+      /* UNA barra por seccion y no dos niveles: cada panel tiene exactamente un card-head. */
+      return pb.querySelectorAll('.card-head').length === 1
+          && pv.querySelectorAll('.card-head').length === 1; })(),
+    (function () { const pb = EL('otr-sub-burbuja'), pv = EL('otr-sub-variantes');
+      return 'subbar=' + !!document.querySelector('#tab-otros .otr-subbar')
+        + ' fn=' + FN('otrSubTab')
+        + ' barras=' + (pb ? pb.querySelectorAll('.card-head').length : 'NO')
+        + '/' + (pv ? pv.querySelectorAll('.card-head').length : 'NO'); })()]);
   const VAR_IDS = ['otr_asia','otr_var_eustaquio','otr_var_chiari','otr_var_lipo',
     'otr_var_tendones','otr_var_lambl','otr_var_senocor','otr_rac'];
   ex.push(['(C2) los OCHO de variantes —las seis estructuras, el ASIA y la RAC— estan en el panel de variantes, y el test de burbuja en el suyo',
