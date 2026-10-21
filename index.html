@@ -79783,7 +79783,18 @@ function calcOAI() {
   if (trombo === 'si') {
     el.innerHTML = badge('red','NO apto — trombo presente');
   } else if (diam && (diam >= 17 && diam <= 32)) {
-    el.innerHTML = badge('green','Posiblemente apto — evaluar Heart Team');
+    /* ══ EL TEXTO «Posiblemente apto — Heart Team» SE RETIRA (R2-E9, 2026-10-21) ═══════════
+       DECISION DE MAICOL. Era una CONDUCTA —derivar al Heart Team— y una afirmacion de
+       elegibilidad para un procedimiento, y el criterio de producto de esta app es que la
+       pantalla y el papel DESCRIBEN. Lo que queda es el hecho medido: el ostium esta dentro del
+       rango de los dos dispositivos, que es lo que el ecocardiograma puede decir. Las notas de
+       `notas` —que nombran los rangos de Watchman y Amulet— no se tocan.
+       ⚠️ ESTE NODO NO BAJA AL PAPEL: censado, `oai-elegibilidad` tiene UN solo lector, su propio
+       marcado de pantalla. No lo leen el informe, el EN SUMA, el PDF ni el PPT. Los otros
+       textos de la seccion —el ateroma, el Wilkins, la reparabilidad mitral, la escala de la
+       orejuela, los 40 y 20 cm/s, Watchman, Amulet, «contraindicar cardioversión» y «favorable
+       para valvuloplastia»— no se tocan, por orden expresa. */
+    el.innerHTML = badge('green','Ostium dentro del rango de los dispositivos (17-32 mm)');
   } else if (diam) {
     el.innerHTML = badge('yellow','Evaluar — medidas límite');
   } else {
