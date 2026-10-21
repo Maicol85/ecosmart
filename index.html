@@ -7828,7 +7828,10 @@ window.cerrarSesionReal = cerrarSesionReal;
                 <option value="">&mdash;</option>
                 <option value="angosto">Angosto</option>
                 <option value="intermedio">Intermedio</option>
-                <option value="ancho">Ancho (&gt;50&ndash;65 % del anillo pulmonar)</option>
+                <!-- R8 (2026-10-20): el rotulo decia «>50-65 %» y la ASE 2024, Tabla 16 (folio 34)
+                     publica «>50 %» sin cota superior. SOLO el rotulo: el `value` no cambia -es lo
+                     que viaja en `campos` y lo que exporta el Excel- y el criterio tampoco. -->
+                <option value="ancho">Ancho (&gt;50 % del anillo pulmonar)</option>
               </select>
             </div>
           </div>
@@ -17867,6 +17870,13 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         Las gu&iacute;as piden integrar varios par&aacute;metros y no fijan una regla num&eacute;rica de decisi&oacute;n.
         EcoSmart aplica una regla simple y declarada, para que el resultado sea reproducible.
         El m&eacute;dico debe revisarlo.
+        <!-- R8 (2026-10-20): la regla de la PROTESIS MITRAL no estaba en Referencias, aunque la app
+             la aplica desde el Z5 y su tarjeta la declara. Va en este MISMO texto, que es el que
+             declara las reglas de integracion de la seccion, y no en un bloque nuevo: dos lugares
+             para la misma clase de declaracion es como uno se queda viejo. -->
+        En la pr&oacute;tesis mitral, la obstrucci&oacute;n se considera con <b>dos o m&aacute;s criterios
+        positivos</b> de los cuatro que la ASE 2024 enumera (gradiente medio, tiempo de hemipresi&oacute;n,
+        &iacute;ndice de velocidad y &aacute;rea efectiva del orificio); la decisi&oacute;n es del m&eacute;dico.
       </div>
 
     </div>
@@ -18411,10 +18421,30 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px;">
         <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Grado</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Cantidad</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Significado</th></tr>
         <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;text-align:center;font-weight:700;">0</td><td style="padding:5px 8px;">Sin burbujas</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;">Negativo</td></tr>
-        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;text-align:center;font-weight:700;">I</td><td style="padding:5px 8px;">&lt;10 burbujas</td><td style="padding:5px 8px;text-align:center;color:#f5c842;">Shunt pequeño</td></tr>
-        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;text-align:center;font-weight:700;">II</td><td style="padding:5px 8px;">10–30 burbujas</td><td style="padding:5px 8px;text-align:center;color:#f59e42;">Shunt moderado</td></tr>
-        <tr><td style="padding:5px 8px;text-align:center;font-weight:700;color:#f05454;">III</td><td style="padding:5px 8px;">&gt;30 burbujas u opacificación completa VI</td><td style="padding:5px 8px;text-align:center;color:#f05454;">Shunt grande</td></tr>
+        <!-- ══ LA FICHA SIGUE A LA ESCALA DEL MODULO (R8, 2026-10-20) ════════════════════════════
+             Decia <10 / 10-30 / >30 y el modulo del FOP usa <5 / 5-20 / >20: dos escalas del mismo
+             dato en la misma app, y la que el medico lee en Referencias no era la que la app
+             aplica. Se corrige la FICHA y el modulo NO se toca.
+             ⚠️ EL CORTE DE 20 ES REGLA DE GUIA Y DE ENSAYO; el de 5 es criterio propio, declarado
+             abajo. Pristipino 2019 (suplemento, Tabla 1): «<20 leve o moderado, >20 severo»;
+             Kleindorfer y col., AHA/ASA 2021, folio e413: el RESPECT definio el shunt grande como
+             «>20 microbubbles». ⚠️ Kleindorfer (>20) y Pristipino (>10 en otra pagina) NO coinciden
+             sobre como el RESPECT lo definio: queda anotado en `docs/fuentes/FUENTES.md`. -->
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;text-align:center;font-weight:700;">I</td><td style="padding:5px 8px;">&lt;5 burbujas</td><td style="padding:5px 8px;text-align:center;color:#f5c842;">Shunt pequeño</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;text-align:center;font-weight:700;">II</td><td style="padding:5px 8px;">5–20 burbujas</td><td style="padding:5px 8px;text-align:center;color:#f59e42;">Shunt moderado</td></tr>
+        <tr><td style="padding:5px 8px;text-align:center;font-weight:700;color:#f05454;">III</td><td style="padding:5px 8px;">&gt;20 burbujas u opacificación completa VI</td><td style="padding:5px 8px;text-align:center;color:#f05454;">Shunt grande</td></tr>
       </table>
+      <div style="font-size:10px; color:var(--text2); line-height:1.55; margin:6px 0 10px;">
+        <div><b>Fuentes.</b> El corte de 20 burbujas: Pristipino y col. 2019 (suplemento, Tabla 1)
+          &mdash; &lt;20 leve o moderado, &gt;20 severo &mdash; y Kleindorfer y col., AHA/ASA 2021
+          (folio e413), que define el shunt grande del RESPECT como &gt;20 microburbujas.</div>
+        <div style="margin-top:4px;">
+          <span style="display:inline-block; border:1px solid var(--border); border-radius:4px;
+                       padding:1px 5px; margin-right:4px; font-size:9px; letter-spacing:.3px;">CRITERIO DE ECOSMART</span>
+          El corte de 5 burbujas que separa el shunt peque&ntilde;o del moderado no est&aacute;
+          publicado en esas fuentes: es una referencia propia de la aplicaci&oacute;n.
+        </div>
+      </div>
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:6px;">Indicaciones clínicas</div>
       <div style="font-size:12px;color:var(--text);line-height:1.8;">
         • <b>ACV criptogénico / AIT en joven:</b> descartar FOP como causa embólica<br>
@@ -23675,7 +23705,13 @@ const EV_DOI_ASE2025VD  = '10.1016/j.echo.2025.01.006';
 const EV_GUIA_ASE2005 = 'Lang RM y col., Recomendaciones para la cuantificación de las cámaras cardiacas, ASE y Asociación Europea de Ecocardiografía, 2005';
 const EV_DOI_ASE2005  = '10.1016/j.echo.2005.10.005';
 const EV_GUIA_ESC2021IC = 'McDonagh TA y col., Guía ESC 2021 sobre el diagnóstico y tratamiento de la insuficiencia cardiaca aguda y crónica (traducción de la Sociedad Española de Cardiología)';
-const EV_DOI_ESC2021IC  = '10.1016/j.recesp.2021.11.012';
+/* ⚠️ EL DOI ERA EL DE UN «CONTENIDO RELACIONADO» (R8, 2026-10-20). El `...11.012` que la app
+   citaba figura en la hoja 1 del PDF como contenido relacionado y no como el DOI del articulo, que
+   es el `...11.027`. Verificado por Cowork el 20/10/2026; NO SE PUDO RELEER en esta tanda porque
+   la biblioteca tiene la edicion INGLESA del documento (Eur Heart J, DOI 10.1093/eurheartj/ehab368,
+   leido en la hoja 1 de «ESC insuficiencia Cardiaca 2021.pdf»), y las dos fichas que lo citan usan
+   el folio de la TRADUCCION (523.e11). Declarado «sin releer» en `docs/fuentes/FUENTES.md`. */
+const EV_DOI_ESC2021IC  = '10.1016/j.recesp.2021.11.027';
 const EV_FECHA_VER    = '2026-10-16';
 /* La fecha de verificacion de la tanda VS: las fichas del corazon derecho y de la aorta se
    volvieron a leer contra el PDF original el 17/10/2026. Convive con la del M porque una ficha
@@ -42514,7 +42550,11 @@ function qvTarjeta(tipo, valv) {
   /* ⚠️ LA NOTA SE LEE POR LA CLAVE DEL DUENO Y NO POR EL ROTULO DE LA LESION: la frase de
      integracion es de la PROTESIS y no de la estenosis nativa, asi que con el rotulo saldria
      tambien sobre una valvula nativa, afirmando una regla que ahi no se aplica. */
-  if (QV_NOTA[C.k]) cont.appendChild(_evDiv('qv-nota', QV_NOTA[C.k], { 'data-qv-nota': C.k }));
+  /* La nota puede ser una CADENA o una FUNCION que la devuelve: lo segundo hace falta cuando el
+     texto interpola una constante declarada mas abajo en el archivo —ver la nota de la estenosis
+     pulmonar—, porque nombrarla al crear la tabla cae en la zona muerta de `const`. */
+  const _qvN = (typeof QV_NOTA[C.k] === 'function') ? QV_NOTA[C.k]() : QV_NOTA[C.k];
+  if (_qvN) cont.appendChild(_evDiv('qv-nota', _qvN, { 'data-qv-nota': C.k }));
   /* ⚠️ EL PIE SE ARMA CON LAS DOS CLAVES: la de la LESION, que es la que nombra las cajas de
      donde se cosechan los globos, y la del DUENO, que es la que trae la fuente declarada de la
      protesis. Con una sola, la tarjeta de una protesis pulmonar sale sin la Tabla 15. */
@@ -42822,9 +42862,11 @@ const QV_BARRA = Object.freeze({
      velocidad los CONVIERTE con `epVmaxDeGmax` —el mismo dueño que `epRangoDe` usa para rotular
      esa fila—, y no con una segunda tabla de cortes en m/s. Un corte se publica solo en la unidad
      del campo que lo recibe, que es la regla de la casa.
-     ⚠️ EL PISO DE 9 mmHg ES CRITERIO PROPIO DE LA APP y la tarjeta lo muestra como corte Y NO
-     ESCRIBE NINGUN «por que»: ese texto esta sin aprobar (orden expresa). La banda de abajo va en
-     verde porque es la que la app llama normal. */
+     ⚠️ EL PISO DE 9 mmHg ES CRITERIO PROPIO DE LA APP, y desde el R8 (2026-10-20) la tarjeta lo
+     DECLARA con la etiqueta «Criterio de EcoSmart» -decision de Maicol: lo que no tiene fuente se
+     dice-. Los otros dos cortes SI estan verificados y se citan: EAE/ASE 2009 folio 20, ESC 2020
+     de cardiopatias congenitas del adulto folio 436.e46 y ACC/AHA 2025 folio e177, los tres con
+     36 y 64 mmHg. La banda de abajo va en verde porque es la que la app llama normal. */
   'esten:pulmonar|ep-ref-vmax': { clave: 'ep-vmax', lo: 0, hi: 6, uni: 'm/s', dec: 2,
     bandas: () => [{ desde: 0, hasta: epVmaxDeGmax(EP_GMAX_NORMAL_MAX), k: 'normal' },
                    { desde: epVmaxDeGmax(EP_GMAX_NORMAL_MAX), hasta: epVmaxDeGmax(EP_GMAX_LEVE_MAX), k: 'leve' },
@@ -42882,6 +42924,15 @@ function _qvT19(k, lo, hi) {
 const QV_INTEGRA_TXT = 'La gu\u00eda sugiere integrar varios par\u00e1metros y no fija una regla num\u00e9rica '
   + 'de decisi\u00f3n. Para facilitar la clasificaci\u00f3n, EcoSmart considera sugestivos de estenosis '
   + 'dos o m\u00e1s criterios positivos. La decisi\u00f3n final queda a criterio del m\u00e9dico.';
+/* ══ EL MARCADOR «CRITERIO DE ECOSMART» (R8, 2026-10-20) ═════════════════════════════════════
+   DECISION DE MAICOL: cuanto menos criterio propio mejor, y lo que no tiene fuente se DECLARA con
+   una etiqueta chica y neutra, sin tono de duda. En el marcado ESTATICO -el pie del cuadro TEER,
+   el del modulo de taponamiento y la ficha del test de burbuja- la etiqueta es un chip; en las
+   notas de las tarjetas ⓘ, que son TEXTO (`_evDiv` escribe `textContent`, no HTML), es este
+   prefijo. El texto es el mismo que el panel de Evidencia ya usa para su marcador `ecosmart`, asi
+   que la app declara lo propio con UNA sola formula en las dos clases de superficie. */
+const QV_ECOSMART = 'Criterio de EcoSmart: ';
+window.QV_ECOSMART = QV_ECOSMART;
 const QV_NOTA = Object.freeze({
   'prot:tricuspide': QV_INTEGRA_TXT + ' Fuente: ASE 2024, Tabla 19.',
   'prot:mitral':     QV_INTEGRA_TXT + ' Fuente: ASE 2024, Tabla 11.',
@@ -42895,7 +42946,23 @@ const QV_NOTA = Object.freeze({
   'insuf:aortica': 'El reverso diast\u00f3lico en la aorta descendente se grad\u00faa con dos fuentes: '
     + 'en la v\u00e1lvula nativa y en la pr\u00f3tesis quir\u00fargica, un solo nivel (ESC/EACTS 2025); '
     + 'en la TAVI, dos niveles (VARC-3, Tabla 16, folio 1846). El corte que se aplica lo publica '
-    + 'la propia fila.'
+    + 'la propia fila.',
+  /* ⚠️ EL PISO DE 9 mmHg NO TIENE FUENTE Y SE DECLARA (R8, 2026-10-20). Los otros dos cortes de
+     esta fila SI estan verificados -36 y 64 mmHg, en la EAE/ASE 2009 folio 20, la ESC 2020 de
+     cardiopatias congenitas del adulto folio 436.e46 y la ACC/AHA 2025 folio e177- y los publica
+     el pie de fuentes de la propia tarjeta. Lo que no esta publicado en ninguna de las tres es el
+     limite POR DEBAJO del cual la app dice «sin estenosis», y eso es lo que esta nota dice.
+     El numero sale de la constante y no se escribe: con el 9 tipeado aca, el dia que se mueva el
+     corte la nota publica el otro. */
+  /* ⚠️ ES UNA FUNCION Y NO UNA CADENA, Y ESO NO ES ESTILO: `EP_GMAX_NORMAL_MAX` se declara 1.700
+     lineas MAS ABAJO, asi que nombrarla al CREAR esta tabla cae en la zona muerta de `const` y
+     LANZA en la evaluacion del <script>, llevandose el bloque completo. Medido: con la cadena, el
+     assert de arranque del Excel empezo a tirar «Cannot access 'LAB_XLS_BLOQUES' before
+     initialization» y la pestaña de hemodinamica dejo de abrir. Resuelta como funcion, el numero
+     se lee cuando la tarjeta se pinta, que es cuando todo existe. El lector la soporta. */
+  'esten:pulmonar': () => QV_ECOSMART + 'por debajo de ' + EP_GMAX_NORMAL_MAX + ' mmHg de gradiente '
+    + 'm\u00e1ximo la aplicaci\u00f3n no informa estenosis. Las gu\u00edas publican los cortes de las bandas '
+    + 'leve, moderada y severa, y no un l\u00edmite inferior de normalidad.'
 });
 /* Los colores de las bandas que `EV_COLOR` no nombra. Son los vocabularios de severidad propios
    de las estenosis binarias y de las protesis, donde la palabra no es leve/moderada/severa. */
@@ -46433,7 +46500,16 @@ const ET_BANDA_INSUMO = Object.freeze({
 /* ⚠️ «ESC/EACTS 2021» SALE DE ESTA LÍNEA EL 2026-10-17 (VAL1) Y ENTRA LA **2025**, que es la que
    este repo tiene verificada y la que hoy fija el operador del gradiente medio. De la edición de
    2021 `docs/fuentes/FUENTES.md` no tiene NINGUNA entrada: era un documento que nunca se leyó. */
-const ET_CRIT_FUENTE = 'EAE/ASE 2009 · ASE 2023 · ESC/EACTS 2025. La estenosis tricuspídea no se gradúa: es binaria.';
+/* ⚠️ LAS TRES GUIAS CON SU TABLA Y SU FOLIO (R8, 2026-10-20). DECISION DE MAICOL: la linea
+   nombraba las tres sin decir DONDE, asi que el medico no podia ir a buscarlas. Las tres estan en
+   la biblioteca y las tres estaban ya verificadas en `docs/fuentes/FUENTES.md`:
+     · EAE/ASE 2009, Tabla 10, folio 19 — los cuatro cortes;
+     · ASE 2023 de enfermedad reumatica, folio 16 — los Key Points, que definen la ET significativa
+       con gradiente medio ≥5 mmHg, VTI de entrada ≥60 cm y area ≤1 cm², sin el THP;
+     · ESC/EACTS 2025 de valvulopatias, §12, folios 4687-4688 — el gradiente medio >5 mmHg.
+   La Evidencia de ET e insuficiencia pulmonar es un trabajo APARTE y esta tanda no la toca. */
+const ET_CRIT_FUENTE = 'EAE/ASE 2009, Tabla 10 (folio 19) · ASE 2023, Key Points (folio 16) · '
+  + 'ESC/EACTS 2025 de valvulopatías, §12 (folios 4687-4688). La estenosis tricuspídea no se gradúa: es binaria.';
 const ET_GMEDIO_SIGNIF = ET_CRIT.gmedio.signif;  // 5 mmHg   — ESC/EACTS 2025 (f. 4688), borde `>`
 const ET_THP_SIGNIF    = ET_CRIT.thp.signif;     // 190 ms   — EAE/ASE 2009
 const ET_AVT_SIGNIF    = ET_CRIT.avt.signif;     // 1 cm²    — EAE/ASE 2009

@@ -2508,6 +2508,60 @@ window.__Z = {
     process.stderr.write('[xlsassert] listo\n');
   }
 
+
+  /* ══ GRUPO «refs» — EL DOI, LAS CITAS, LOS TEXTOS Y LOS CRITERIOS DECLARADOS ══════════════ */
+  if (corre('refs')) {
+    const r = {};
+    const fichaTxt = (id) => ev(`(function(){
+      try { if (typeof showTab === 'function') showTab('referencias'); } catch(e){}
+      var c = document.getElementById('ref-' + ${JSON.stringify('X')}.replace('X', ${JSON.stringify(id)}));
+      if (!c) return 'NO EXISTE';
+      if (getComputedStyle(c).display === 'none' && typeof toggleRef === 'function')
+        toggleRef(${JSON.stringify(id)}, c.previousElementSibling);
+      try { if (typeof evRefPintar === 'function') evRefPintar(${JSON.stringify(id)}); } catch(e){}
+      return (c.textContent || '').split(/\\s+/).join(' ').trim() })()`);
+    try {
+      /* 1 · el DOI de la ESC 2021 de IC, en la ficha del registro y en Referencias. */
+      r.doi = await ev(`(function(){ try {
+        var f = (EV_REG||[]).filter(function(x){ return x.id === 'FUN-VI-002' })[0];
+        return f ? { doi: f.doi, folio: f.folio, guia: String(f.guia).slice(0, 70) } : 'SIN' }
+        catch(e){ return 'EXC ' + e.message } })()`);
+      /* 2 · la cita de la estenosis tricuspide. */
+      r.et = await ev(`(typeof ET_CRIT_FUENTE !== 'undefined') ? ET_CRIT_FUENTE : 'SIN'`);
+      /* 3 · el texto de integracion con la protesis mitral. */
+      r.integra = await fichaTxt('nativas');
+      r.integraNodo = await ev(`(function(){ var e = document.getElementById('ref-integracion');
+        return e ? (e.textContent || '').split(/\\s+/).join(' ').trim() : 'NO EXISTE' })()`);
+      /* 4 · el rotulo del ancho del jet de la IP. */
+      r.ipJet = await ev(`(function(){ var e = document.getElementById('ip_ancho');
+        if (!e) { var c = document.querySelectorAll('option');
+          for (var i=0;i<c.length;i++) if (c[i].value==='ancho' && (c[i].textContent||'').indexOf('anillo pulmonar')>=0)
+            return c[i].textContent.trim();
+          return 'NO ENCONTRADA' }
+        return Array.prototype.map.call(e.options, function(o){return o.textContent.trim()}).join(' | ') })()`);
+      /* 5 · la escala del test de burbuja en la ficha y en el modulo. */
+      r.burbujas = await fichaTxt('burbujas');
+      r.burbModulo = await ev(`(function(){ var e = document.getElementById('fop_burbujas');
+        return e ? Array.prototype.map.call(e.options, function(o){return o.value+'='+o.textContent.trim()}) : 'NO EXISTE' })()`);
+      /* 6 · el piso de 9 mmHg de la estenosis pulmonar, declarado en su tarjeta. */
+      r.epNota = await ev(`(function(){ try {
+        var n = QV_NOTA['esten:pulmonar'];
+        return (typeof n === 'function') ? n() : (n || 'SIN NOTA') } catch(e){ return 'EXC ' + e.message } })()`);
+      r.epConst = await ev(`(typeof EP_GMAX_NORMAL_MAX !== 'undefined') ? EP_GMAX_NORMAL_MAX : 'SIN'`);
+      /* 7 · el censo de las etiquetas «Criterio de EcoSmart». */
+      r.censo = await ev(`(function(){
+        var t = document.body ? (document.body.textContent || '') : '';
+        var chips = document.querySelectorAll('span');
+        var n = 0; Array.prototype.forEach.call(chips, function(x){
+          if ((x.textContent||'').trim() === 'CRITERIO DE ECOSMART') n++; });
+        return { chips: n, prefijo: (typeof QV_ECOSMART !== 'undefined') ? QV_ECOSMART : 'SIN' } })()`);
+      r.excel = await ev(`window.__P.excelDOM()`);
+      r.campos = await ev(`window.__P.camposGuardados().n`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.refs = r;
+    process.stderr.write('[refs] listo\n');
+  }
+
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
   process.stdout.write(JSON.stringify(OUT, null, 1));
   cdp.close(); srv.close(); process.exit(0);
