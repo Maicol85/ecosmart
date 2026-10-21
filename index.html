@@ -3450,6 +3450,13 @@ window.cerrarSesionReal = cerrarSesionReal;
     <button class="tab-btn" onclick="showTab('valvulas')">🔲 Válvulas</button>
     <button class="tab-btn" onclick="showTab('contractilidad')">🎯 Contractilidad</button>
     <button class="tab-btn" onclick="showTab('sgl');if(window.sglOnShow)sglOnShow();">📐 SGL</button>
+    <button class="tab-btn" onclick="showTab('pericardio')">⚪ Pericardio y masas</button>
+    <!-- ⚠️ `data-mod="pulmonar"` VIAJA CON EL BOTÓN, y no es decorativo: `applyViewMode`
+         esconde todo `button[data-mod]` en Modo Básico y, en Avanzado, lo muestra según la
+         casilla de Config. Sin el atributo, el módulo pulmonar quedaría visible en Básico
+         —donde hoy no existe— y su casilla de Configuración dejaría de gobernar nada. El
+         chequeo de arranque que compara `EE_MODULES` con los `[data-mod]` lo exige igual. -->
+    <button class="tab-btn" data-mod="pulmonar" onclick="showTab('pulmonar')">🫁 Eco pulmonar</button>
     <button class="tab-btn" onclick="showTab('otros')">🗂️ Otros</button>
     <button class="tab-btn" onclick="showTab('imagenes');if(window.imgRender)imgRender();">🖼️ Imágenes</button>
     <div class="rail-sep"></div>
@@ -3463,7 +3470,6 @@ window.cerrarSesionReal = cerrarSesionReal;
       <!-- FILA SUPERIOR — Patologías especiales (visible solo en Modo Avanzado) -->
       <div class="tabs-row tabs-special">
         <button class="tab-btn tab-special" data-mod="hemodinamica" onclick="showTab('hemodinamica')">🫀 Hemodinámica</button>
-        <button class="tab-btn tab-special" data-mod="pulmonar" onclick="showTab('pulmonar')">🫁 Eco Pulmonar</button>
         <button class="tab-btn tab-special" data-mod="ete" onclick="showTab('ete')">🔬 ETE</button>
         <button class="tab-btn tab-special" data-mod="cardioOnco" onclick="showTab('cardioOnco')">❤️ Cardio-Oncología</button>
         <button class="tab-btn tab-special" data-mod="amiloidosis" onclick="showTab('amiloidosis')">🧬 Amiloidosis</button>
@@ -8151,7 +8157,18 @@ window.cerrarSesionReal = cerrarSesionReal;
 <!-- ═══════════════════════ TAB: OTROS ═══════════════════════ -->
 <!-- Pericardio/Masas y Ecografía Pulmonar se movieron acá desde Válvulas.
      Contenido idéntico: mismos ids, misma lógica, mismo informe y PDF. -->
-<div id="tab-otros" class="tab-section">
+<!-- ═══════════════════════ TAB: PERICARDIO Y MASAS ═══════════════════════
+     Hasta el 2026-10-21 estas dos secciones vivian DENTRO de la pestana «Otros». Se mueven
+     TAL CUAL —los mismos campos, los mismos ids, los mismos textos y los mismos globos ⓘ—:
+     lo unico que cambia es que la puerta es un boton propio de la columna izquierda en vez
+     de un acordeon de Otros. El acordeon INTERNO se conserva (`toggleEteSeccion`), asi que
+     el gesto de abrir la seccion y el estado plegado son los de siempre.
+     ⚠️ SIN `data-mod`, a proposito: el pericardio y las masas son contenido BASICO —hoy
+     viven en Otros, que tampoco lo tiene— y ponerle uno los esconderia en Modo Basico.
+     ⚠️ Y LOS TRES BLOQUES DE ASIA, VARIANTES Y RAC NO SE MUEVEN con ellos: la orden dice
+     «SOLO pericardio y masas». Se quedan en Otros, donde el commit siguiente les da su
+     propia sub-pestana. -->
+<div id="tab-pericardio" class="tab-section">
 
   <div class="card" style="margin-bottom:6px;">
     <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('pericardio-masas',this)">
@@ -8246,6 +8263,19 @@ window.cerrarSesionReal = cerrarSesionReal;
       </div>
     </div>
   </div>
+  </div>
+
+</div>
+
+<div id="tab-otros" class="tab-section">
+
+  <div class="card" style="margin-bottom:6px;">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('variantes',this)">
+      &#129656; Variantes anat&oacute;micas
+      <span id="ete-variantes-arrow" style="float:right;transition:transform 0.2s;">&#9654;</span>
+    </h2>
+  </div>
+  <div id="ete-seccion-variantes" style="display:none;">
       <!-- ══ TRES BLOQUES NUEVOS: ASIA, VARIANTES ANATOMICAS Y RAC (CORTOS10, 2026-10-17) ═══════
            DECISION DE MAICOL. Cada elemento lleva UNA CASILLA y UNA CAJA de nota al lado, con la
            misma regla para los ocho: casilla apagada, el texto de la caja se IGNORA; casilla
@@ -125503,6 +125533,7 @@ const _orig=showTab;window.showTab=function(id){_orig(id);setTimeout(actualizarF
     var d=document.getElementById('ecoDrawer');if(!d)return;
     d.innerHTML='';
     railBtns().forEach(function(b){
+      if(b.style.display==='none')return;
       var id=idOf(b);if(!id)return;
       var btn=document.createElement('button');
       btn.textContent=b.textContent.trim();
@@ -125576,6 +125607,7 @@ const _orig=showTab;window.showTab=function(id){_orig(id);setTimeout(actualizarF
     var wrapped=function(id){var r=_prev.apply(this,arguments);try{syncDrawerActive();}catch(e){}return r;};
     wrapped.__ecoDrawer=true;window.showTab=wrapped;
   }
+  window.ecoDrawerBuild=function(){buildDrawer();syncDrawerActive();};
   function init(){buildDrawer();syncDrawerActive();}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
@@ -125991,6 +126023,11 @@ function applyViewMode(){
     [special,tools].forEach(function(row){ if(!row) return; var any=[].slice.call(row.querySelectorAll('button[data-mod]')).some(function(b){ return b.style.display!=='none'; }); row.style.display = any ? '' : 'none'; });
     if(lab) lab.style.display = ''; // Laboratorio: visible siempre en Modo Avanzado (CORRECCIÓN 2)
   }
+  /* El drawer movil del rail se reconstruye desde los botones del rail, y desde que «Eco
+     pulmonar» vive ahi con su `data-mod` esa lista depende del modo. Cambiar de modo en
+     Config no pasa por `showTab` —el otro camino que lo reconstruye—, asi que sin esto el
+     drawer seguia ofreciendo el modulo hasta la proxima navegacion. */
+  if (typeof window.ecoDrawerBuild === 'function') { try { window.ecoDrawerBuild() } catch (e) {} }
 }
 /* La tarjeta de conexión por red se repinta acá además de en `cfgOnShow`: sin esto, apretar
    «Modo Básico» con Config ABIERTO la dejaba en pantalla hasta reabrir la pestaña. Es el par
