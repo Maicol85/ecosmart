@@ -411,3 +411,24 @@ El test de burbuja y el aneurisma del septum existían **dos veces**, con dos es
 ARR8 son **un dato con dos controles** (espejo bidireccional), el informe del FOP es
 **esquemático** —tres oraciones en el estilo del EN SUMA— y el **aviso de la edad se omite** del
 informe y del EN SUMA. → `docs/mapa/fop-burbuja-unificado.md`
+
+---
+
+## ⚠️ LA REORGANIZACIÓN DE PESTAÑAS — trabajo «B» (2026-10-21)
+
+Las pantallas de esta zona **cambiaron de lugar**. Nada de lo que este mapa documenta —cortes,
+operadores, fórmulas, textos clínicos, ids— se movió; lo que cambió son las puertas:
+
+- **Pericardio y masas** salió de «Otros» a su propia pestaña del rail (`#tab-pericardio`).
+- **Otros** quedó con dos sub-pestañas: «Test de burbuja» y «Variantes anatómicas» (el ASIA, las
+  seis estructuras normales prominentes y la RAC).
+- **El eco pulmonar** —básico y avanzado— quedó en UNA pestaña del rail, y el texto del avanzado
+  pasó de una hoja aparte del PDF al **cuerpo del informe**.
+- **Calculadoras** es hoy la primera sub-pestaña de **Referencias**.
+- **CC frecuentes** y **CC complejas** se abren con un solo botón, «C. Congénitas».
+- El **Fonocardiograma** salió de la app (copiado a `docs/para-cardiosalud/fonocardiograma/`).
+- La única palabra que cambió es la frase de **Balik**, que ahora nombra la fórmula.
+
+**El mapa de todo eso es `docs/mapa/pestanas-reorganizacion.md`**, con la tabla «qué se movió»,
+las tres cosas que `showTab` hace y que condicionan cualquier barra de sub-pestañas, el drawer
+móvil y sus `data-mod`, y las seis trampas de medición.

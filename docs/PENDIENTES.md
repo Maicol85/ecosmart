@@ -5841,3 +5841,57 @@ que es una línea y cerraría esto por construcción.
   único o tenía otra sangría). **Verificar con `grep` que la edición quedó.**
 - **Un `grep -c` que devuelve 0 sale con código 1 y corta una cadena `&&`**: el cierre del commit 9
   se quedó sin Semgrep ni `git commit` por eso, con la edición ya aplicada en el árbol.
+
+---
+
+### B-1 · El prompt decía «9 → 5» botones arriba y el conteo real es «10 → 6»
+
+**Medido:** la fila de arriba tiene hoy **10** botones —7 en `.tabs-special` y 3 en
+`.tabs-tools`— y queda con **6**. La diferencia es **Amiloidosis**, que vive en esa fila y que
+este trabajo **no mueve**. La corrección del médico del 21/10 lo confirmó y manda el conteo
+medido. **No hay nada pendiente**: queda escrito para que el próximo que lea el prompt original
+no vaya a buscar un botón que falta.
+
+⚠️ Y de paso: `.tabs-lab-wrap` tiene CSS y **no existe en el marcado** —sólo `applyViewMode` lo
+busca y recibe `null`—. El botón del Laboratorio vive en `.foot-actions`, al pie. Es inofensivo,
+y si alguna vez se quiere una fila para el Laboratorio ahí está la regla esperándola.
+
+### B-2 · «Pericardio y masas» sigue en una sola columna, y el rediseño es otro prompt
+
+La pestaña nueva lleva el contenido **tal cual**: los mismos once campos en la misma disposición
+y con el mismo acordeón interno. La orden lo pide así —«NO rediseñes su contenido ni lo pases a
+tres columnas: es otro prompt»—. Cuando se haga ese rediseño, el mapa de la zona es
+`docs/mapa/pestanas-reorganizacion.md` §1 y el de su contenido clínico
+`docs/mapa/otros-pericardio-pulmon.md`.
+
+### B-3 · El acordeón interno de cada sub-pestaña es redundante y no se tocó
+
+El médico entra a «Test de burbuja» y tiene que abrir «Test de burbuja». Lo mismo en
+«Variantes anatómicas» y en «Pericardio y masas». Abrir la sección sola al activar la
+sub-pestaña sería un **cambio de conducta** que esta orden no autoriza, y el estado plegado lo
+gobiernan `toggleEteSeccion` y `secAutoOpen`, que no se tocan. Las dos salidas:
+(a) que `otrSubTab` abra la sección de su panel si está cerrada;
+(b) retirar el acordeón de las secciones que hoy son la única de su sub-pestaña.
+Las dos cambian cuántos gestos hace el médico, así que las decide Maicol.
+
+### B-4 · El informe no dice de qué hemitórax es el derrame cuando sale del módulo AVANZADO sin lado
+
+El básico ganó su selector de lado en el CORTOS12 y el avanzado tiene `pua_derrame_lado` con
+«bilateral» por omisión, así que ahí el lado **siempre** sale. No es un pendiente del trabajo B
+—no se tocó ninguno de los dos— pero queda anotado porque las dos redacciones conviven en el
+mismo informe: el básico escribe «derecho» y el avanzado «unilateral derecho».
+
+### B-5 · Los tres textos de ayuda de la app no nombran la organización nueva
+
+Censado: `ECO_AYUDA` describe las pestañas por su nombre y algunas de esas descripciones quedaron
+viejas —«la pestaña Otros», «el botón Eco Pulmonar»—. **No se tocaron**: `ECO_AYUDA` es un
+string que el armador del PDF aplana por regex, y el R2-11 ya documenta que una edición
+descuidada ahí corrompe el manual y pone en rojo casos de otras zonas **sin romper el parseo**.
+Es una tanda propia, con su medición del conteo de páginas del PDF.
+
+### B-6 · El rail a 768 px y por debajo sigue escondiéndose, y el drawer es la única puerta
+
+Es **preexistente** (`@media max-width:768px { .rail{display:none!important} }`) y este trabajo no
+lo cambia. Lo que sí cerró es que el drawer respete `data-mod`, que era un agujero NUEVO que el
+pulmonar en el rail abría. Con doce botones el drawer sigue entrando; si alguna vez no entrara,
+el rail de escritorio ya tiene `overflow-y:auto` y se desplaza solo.

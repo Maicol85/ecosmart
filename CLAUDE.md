@@ -72,6 +72,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la VISTA 2D de las válvulas**: el lector único del estado, las tarjetas, la tabla de cavidades, el dibujo, los chorros o el «por qué» | `docs/mapa/vista-2d-valvulas.md` |
 | **Tocar el PANEL EN LÍNEA de la vista 2D**: el botón que prende y apaga, el apagado automático, la sincronía en vivo, el alto del dibujo o la línea de fase | `docs/mapa/vista-2d-en-linea.md` |
 | **Orientarse en otro módulo** (Congénitas, Laboratorio, PPT, Cardio-Onco, Pericardio) | `docs/mapa/congenitas-otros.md` |
+| **Saber DÓNDE ESTÁ una pantalla**: la columna izquierda y la fila de arriba, Pericardio y masas, las dos sub-pestañas de Otros, el eco pulmonar unificado, Calculadoras dentro de Referencias, C. Congénitas, el Fonocardiograma retirado o la frase de Balik | `docs/mapa/pestanas-reorganizacion.md` |
 | **Citar un dato de una guía** (documento, folio, frase verificada) | `docs/fuentes/FUENTES.md` |
 | **Tocar la POSICIÓN del selector de origen mitral o de los dos campos de la prótesis TRICÚSPIDE, la regla de DOS O MÁS de su obstrucción, la onda E en cm/s, el Ar−A suplementario, la FEVI del Laboratorio o los dos toggles de PDF** | `docs/mapa/cortos-arreglos.md` |
 | **Tocar un HALLAZGO de la pestaña OTROS**: ASIA, las seis variantes anatómicas, la circunfleja retroaórtica, el test de burbuja, el derrame pericárdico del papel o la separación de las líneas B | `docs/mapa/otros-hallazgos.md` |
@@ -131,9 +132,13 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **8,54 MB / 128.264 líneas**, medido el 2026-10-21 al cierre de la tanda
-  R2 —el renglón anterior decía «8,50 MB / 127.759 líneas» y era del R, una tanda antes:
-  **medirlo antes de presupuestar contexto**—. Las únicas dependencias son jsPDF, XLSX y
+  sin frameworks. Hoy **8,53 MB / 128.236 líneas**, medido el 2026-10-21 al cierre del trabajo
+  **B** —la primera tanda en muchas que lo deja más CHICO, por las 431 líneas del Fonocardiograma
+  retirado—. ⚠️ Y el renglón del R2 decía «128.264 líneas» y eran **128.278**, medido con `wc -l`
+  sobre el mismo `md5` de ese sello: **medirlo antes de presupuestar contexto**, no leer esto.
+  ⚠️ Y esta cifra también se escribió mal una vez —128.226— por medirla **antes** del segundo
+  sello: hay que medirla **al final**, cuando `index.html` ya no se toca más.
+  Las únicas dependencias son jsPDF, XLSX y
   PptxGenJS por CDN. Se abre como archivo local y corre en Chrome.
 - Lo que produce es un **informe firmado**: narrativo, EN SUMA, PDF, PPT y Excel del Laboratorio.
   Un dato que se carga y no sale en ninguno de esos destinos desapareció sin aviso.
@@ -286,6 +291,195 @@ impecable.
 ---
 
 ## Estado vigente
+
+
+### La REORGANIZACIÓN DE PESTAÑAS — «B» (2026-10-21)
+
+- **Son SIETE commits, y son los siete que la orden pedía.** Al **empezar**, `main` **y
+  `origin/main` estaban los dos en `a37ddc5`** (sello `v20261021-0218`), el cierre del R2, **sin
+  nada sin pushear** —medido con un `git fetch` y un `ls-remote` reales—. ⚠️ **O SEA QUE MAICOL YA
+  PUSHEÓ EL R Y EL R2**: el renglón del R2 decía que quedaban diecinueve commits locales y hoy no
+  queda ninguno. Los **siete** de esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 7 → 6 → … → 1.**
+  ⚠️ **EL 1, EL 2 Y EL 3 SON UNA CADENA ESTRICTA, Y ES DE MARCADO.** El 1 saca «pericardio y
+  masas» de Otros y deja los tres bloques de ASIA/variantes/RAC con un encabezado propio; el 2
+  envuelve ese encabezado y el del test de burbuja en dos paneles de sub-pestaña; el 3 saca de
+  Otros la sección pulmonar que los dos primeros dejaron en su lugar. **Revertir el 1 sin
+  revertir antes el 2 y el 3 deja los paneles de Otros nombrando secciones que ya no están.**
+  ⚠️ **EL 4, EL 5 Y EL 6 SE REVIERTEN EN CUALQUIER ORDEN ENTRE SÍ**: el 4 es el Fonocardiograma, el
+  5 Calculadoras y el 6 congénitas, y ninguno nombra una pieza de otro.
+  ⚠️ **PERO EL 4 LLEVA LA ADAPTACIÓN DE DOS CASOS DEL 3** (TC-488 y TC-499, por la frase de Balik):
+  revertirlo sin reponerlas los deja midiendo el texto viejo. **Y el 6 lleva una corrección de
+  `index.html` que no es suya**: la derivación de `_indOrigenAssert` (ver abajo).
+  **El 7 es TC-509, la documentación y el sello**, y afirma el comportamiento de los seis.
+
+- **Línea base al cierre: suite **519/523** con el pendrive `DISK_IMG` MONTADO —verificado al abrir
+  Y al cerrar—, Semgrep **124 / 0 ERROR en 1 app**, Excel en **440** columnas y celular **66 a
+  360 px y 76 a 390 px con 17 ALTA cada uno**, con `--todo` **395 / 405**: el MISMO par que dejó el
+  R2. CERO REGRESIONES.** Los rojos son exactamente los de ENTRADA —**TC-223** (el documentado,
+  falla por la fecha), **TC-376**, **TC-390** y **TC-406**— y no apareció ninguno fuera de esa
+  lista. **El denominador sube a 523**: esta tanda agregó **TC-509**. La de ENTRADA, medida en
+  `a37ddc5` limpio con el pendrive puesto, fue **518/522** con esos mismos cuatro.
+  ⚠️ **SEMGREP BAJA DE 127 A 124, Y ES CORRECTO:** los tres hallazgos que se van son del código
+  del Fonocardiograma retirado. **0 ERROR** sigue. La línea base de la app es **124** desde hoy.
+  ⚠️ **LA SUITE SE CORRIÓ DOS VECES Y LA PRIMERA NO VALE.** Dio 518/523 con **TC-132** rojo, y lo
+  adapté **con la corrida en curso**: el runner ya había cargado el archivo, así que esa corrida
+  midió la versión vieja del caso. No se restan dos mediciones de dos árboles distintos; la que
+  vale es la segunda, corrida entera sobre el árbol ya sellado y con el `md5` quieto.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **523 ids** sobre los 524 casos del archivo.
+- **`index.html` pasó de 8,54 MB / 128.278 líneas a 8,53 MB / 128.236 líneas** — es la primera
+  tanda en muchas que lo deja **más chico**, por las 431 líneas del Fonocardiograma.
+  ⚠️ **Y EL RENGLÓN DEL R2 DECÍA «128.264 LÍNEAS» Y ERAN 128.278**, medido con `wc -l` sobre el
+  mismo `md5` que ese sello: 14 líneas corto. **Medirlo antes de presupuestar contexto.**
+
+- **LA FILA DE ARRIBA PASA DE 10 BOTONES A 6, Y NO DE 9 A 5.** ⚠️ **El prompt lo decía mal en dos
+  lugares y la corrección del médico lo confirmó: AMILOIDOSIS también vive en esa fila y no se
+  mueve.** Los seis que quedan son Hemodinámica, ETE, Cardio-Oncología, **Amiloidosis**,
+  C. Congénitas y Referencias. La columna izquierda pasa de **10 a 12**.
+  ⚠️ **Y `.tabs-lab-wrap` TIENE CSS Y NO EXISTE EN EL MARCADO** —sólo `applyViewMode` lo busca y
+  recibe `null`—: el botón del Laboratorio vive en `.foot-actions`, al pie, y nunca estuvo arriba.
+
+- **TRES COSAS QUE `showTab` HACE Y QUE CONDICIONAN CUALQUIER BARRA DE SUB-PESTAÑAS NUEVA.**
+  (1) **Barre `.active` de TODO `.tab-btn` del documento**, así que el estado activo de una barra
+  hecha con `.tab-btn` **no puede vivir en `.active`**: lo pierde en el próximo cambio de pestaña.
+  Otros usa **`otr-on`** y congénitas **`cc-on`**; los paneles sí usan `.active`, que ese barrido
+  no alcanza. **Lo destapó la medición, no la lectura.**
+  (2) **Hace `getElementById('tab-' + id).classList.add('active')` SIN guarda**, así que un id que
+  no exista es un `TypeError` que se lleva el resto de la función — por eso `#tab-calculadoras`
+  **se conserva VACÍO** después de mudar su contenido.
+  (3) **Su cola es el único lugar donde sincronizar una barra cuyo estado se derive de la pestaña
+  activa**: a congénitas se llega también por el drawer, por el desplegable de avanzadas y por
+  accesos internos. **Medido: llegando por `showTab` directo la barra queda marcada bien.**
+
+- ⚠️ **EL DRAWER MÓVIL NO MIRABA EL `display`, Y ERA UN AGUJERO QUE ESTA TANDA ABRÍA.** Por debajo
+  de 768 px el rail pasa a `display:none` y el drawer es la ÚNICA puerta. Hasta hoy ningún botón
+  del rail llevaba `data-mod`, así que `buildDrawer` podía tomarlos todos; con «Eco pulmonar» ahí,
+  un drawer que no filtre ofrece en Modo Básico un módulo que el rail ya escondió — **la única
+  puerta por la que el gateado de `applyViewMode` no pasaba**. Se filtra por `style.display` y se
+  exporta `window.ecoDrawerBuild`, que `applyViewMode` llama: **cambiar de modo en Config no pasa
+  por `showTab`**, que es el otro camino que lo reconstruye. **Medido: 12 en Avanzado, 11 en Básico
+  y 12 otra vez al volver.**
+
+- **EL ECO PULMONAR QUEDA EN UNA PESTAÑA, y su texto pasa de una HOJA del PDF al CUERPO del
+  informe**, justo después del pericardio y las masas. Las frases salen a **`pulAvFrases()`**, un
+  dueño único con dos consumidores —el informe y la hoja—, así que no pueden divergir.
+  ⚠️ **DOS DEFECTOS DE MI PROPIO CÓDIGO, LOS DOS DESTAPADOS MIDIENDO.**
+  (1) **La primera versión suprimía la hoja con la compuerta `omitir` de la sección, y eso rompía
+  la exclusión mutua**: `pulAvanzadoIntegrado` —el predicado que decide si el módulo básico se
+  calla— pregunta por `amiloEnInforme`, que es justo donde `omitir` actúa. El predicado quedaba
+  **falso para siempre**: el avanzado no publicaba nada, el básico no se silenciaba y el módulo
+  integrado **desaparecía del informe firmado**. La hoja se descarta en el **armador del PDF**,
+  que es el único lugar que habla de páginas.
+  (2) **El «Patrón global» se perdía del papel.** Vivía SÓLO en la hoja, bajo su propio
+  `## En suma`. Lo destapó comparar los **TEXTOS** del PDF y no su conteo: con el conteo, `n`
+  bajaba de 73 a 70 y parecía sólo «una página menos».
+  **EL PDF GENERADO DE VERDAD, SEIS PLANTILLAS × TRES ESCENAS:** la hoja no sale en ninguna de las
+  18 celdas y, comparando los textos uno por uno, **no se perdió nada**: lo único que se va es el
+  título de esa hoja y el encabezado y el pie de ESA página, que desaparece porque era la única de
+  su grupo en la escena.
+
+- **BALIK SE NOMBRA POR SU FÓRMULA, y la fórmula no cambia.** «Balik 25 mm, aproximadamente 500 ml»
+  pasa a «**aproximadamente 500 ml, según fórmula de Balik**», y el valor implausible a
+  «separación pleural de 200 mm, fuera del rango plausible: no se estima el volumen».
+  `_balikVol` sigue siendo mm × 20 con su rango 1-120.
+  ⚠️ **EL LADO Y EL TAMAÑO SE CONSERVAN**, contra la letra del prompt: publicada como él la
+  escribe, la oración **perdería** de qué hemitórax es y de qué tamaño. **Y LA UNIDAD QUEDA EN
+  «ml»** y no en «mL»: la app usa «ml» en sus otras 21 apariciones.
+
+- ⚠️ **UN DEFECTO QUE INTRODUJE Y QUE DESTAPÓ LA CONSOLA.** `_indOrigenAssert` deriva los paneles
+  «gateados por Modo Básico» del `showTab('x')` de cada `.tab-btn[data-mod]`. Con **dos** botones
+  de congénitas los dos paneles quedaban cubiertos; con **uno**, `tab-congenitas2` dejó de
+  aparecer y el assert gritaba que `ete_cia_dir` es alcanzable en Modo Básico — **falso**: su única
+  puerta sigue detrás del botón gateado. Lo que quedó mal es la **derivación**, no el gateado. Se
+  cierra por **estructura** —cualquier control dentro de un panel ya gateado que navegue a otro lo
+  gatea también, iterando— y **verificado que el assert no se volvió laxo: 8 paneles gateados y
+  15 NO**, entre ellos `tab-pericardio`, `tab-otros` y `tab-datos`.
+
+- **EL FONOCARDIOGRAMA SALE, Y SU CÓDIGO NO SE BORRA**: 431 líneas copiadas a
+  `docs/para-cardiosalud/fonocardiograma/` con un README. **Confirmado que no guardaba ningún
+  campo** comparando los ids del recolector REAL uno por uno: 1059 = 1059.
+  ⚠️ **EL PREFIJO `fcg-` DE LOS DOS REGEX DE EXCLUSIÓN SE CONSERVA**, y no es inercia: hasta el
+  2026-09-09 `fcg-valve-select` **sí** se colaba entre los campos guardados, así que un estudio
+  guardado antes de esa fecha lo trae y las rutas de restauración lo recorren.
+
+- **CALCULADORAS ES LA PRIMERA SUB-PESTAÑA DE REFERENCIAS**, que pasa de cinco a seis. Se mueven
+  los **nodos**, con el mecanismo que `refSubInit` ya usa para las 30 entradas.
+  ⚠️ **`REF_SUBTAB.calc` VA CON LISTA VACÍA**, y eso la deja **fuera del índice del buscador por
+  construcción**: ese índice exige un `h2.card-head` con `toggleRef` y un `ref-<id>` hermano, y las
+  tarjetas de Calculadoras no tienen ni lo uno ni lo otro. **Las 30 entradas del censo y las 28
+  indexadas no se mueven.**
+
+- **A/B CONTRA EL INICIO DE LA TANDA, en cada commit: TRES diferencias en toda la tanda, y las
+  tres son la frase de Balik** —el informe, el EN SUMA y el hash de campos, que incluye los dos
+  `<textarea>`—. **Excel en 440 columnas** con las mismas claves y los mismos valores, y los
+  **1059 campos** del recolector real con el MISMO juego de ids, comparado uno por uno.
+  ⚠️ **Y UN FALSO QUE COSTÓ UNA VUELTA: un A/B con otro ORDEN de grupos informó 1076 campos contra
+  1059.** No era del commit — el grupo del PDF integra un módulo y deja estado. **Remedir HEAD con
+  los mismos grupos antes de sospechar.**
+
+- **MEDIDO EN LOS DOS MOTORES** —Chrome por el canal del sistema y WebKit— a **1200×700, 1440×800,
+  768×1024, 390×844 y 360×740 por los dos temas**: rail con 12 botones visibles y en orden, fila
+  de arriba con 6, **CERO scroll horizontal en las 20 celdas** y los **20 `md5` de captura
+  DISTINTOS**. **Consola LIMPIA en los dos motores recorriendo las 22 pestañas.**
+
+- ⚠️ **Y LA CAPTURA CAZÓ UN DEFECTO QUE NINGUNA MEDICIÓN NUMÉRICA DABA: EN CELULAR LAS BARRAS DE
+  SUB-PESTAÑAS NUEVAS NO SE VEÍAN.** `@media(max-width:768px){ .subtabs-wrap .tabs-row{
+  display:none !important } }` existe para las tabs avanzadas, que tienen el `<select>` de
+  reemplazo; las cuatro barras que esta tanda agrega reusan esas clases **por su estilo** y no
+  tienen reemplazo, así que **el médico quedaba atrapado en la sub-pestaña activa**. La medición
+  daba todo bien y es coherente: el panel activo se ve perfecto y lo que falta es la PUERTA a la
+  otra. Se acotó la regla con `:not(.otr-subbar):not(.cc-subbar)` en vez de pelearle con otro
+  `!important`. **El chequeo de celular no se movió ni un hallazgo.**
+
+- ⚠️ **LA TRAMPA NUEVA DE ESTA TANDA, Y COSTÓ DOS DIAGNÓSTICOS FALSOS: EL COLOR DE UN `.tab-btn`
+  NO SE LEE EN EL MISMO TURNO DEL CLIC.** Lleva `transition: all .15s`, así que
+  `getComputedStyle().color` devuelve un valor **intermedio** de la animación —medido
+  `rgb(62,153,154)` entre el teal y el gris— y la regla parece no ganar. **Llegué a escribir en un
+  comentario del código que «Chrome no revalida el estilo por un selector de atributo»: era FALSO
+  y se corrigió.** Se mide **después** de la transición y en **otra llamada** que el clic.
+- ⚠️ **Y UN MEDIDOR QUE NAVEGA SE PISA A SÍ MISMO**: el lector de las sub-pestañas de congénitas
+  hacía `showTab('congenitas')` adentro, así que volvía a la primera pestaña después de cada clic
+  e informaba «el clic no cambia de pestaña» sobre un mecanismo que funciona.
+
+- ⚠️ **CASOS ADAPTADOS: OCHO.** **TC-144** (de 10 a 6 botones, el orden, `EE_MODULES` y el botón
+  del pulmonar buscado entre TODOS los `[data-mod]`; **gana cinco condiciones nuevas**),
+  **TC-502** (de cinco subpestañas a seis; **gana una**), **TC-112** y **TC-123** (a las dos
+  pestañas de CC se llega por caminos distintos), **TC-268** (el denominador de `[data-mod]`, de 11
+  a 9: dos se fueron y dos cambiaron de sitio), **TC-488** y **TC-499** (la frase de Balik, y la
+  maqueta de TC-499 pasa a medir **cada** sub-pestaña con la SUYA activa, porque son excluyentes) y
+  **TC-132**, que exigía que **no hubiera texto** antes de la primera sección de congénitas: se
+  saltea la barra de navegación, que es un control y no la prosa que esa condición caza.
+  ⚠️ **TC-132 LO DESTAPÓ LA SUITE COMPLETA**, no la corrida de zona. **Es la decimocuarta tanda
+  seguida en que pasa.**
+- ⚠️ **ME COMÍ EL ACENTO GRAVE SEIS VECES** y **una vez un SALTO DE LÍNEA dentro de un literal de
+  cadena**, que mata el caso por excepción —«Invalid or unexpected token»— **sin decir qué
+  condición falló**. `check_backticks.py` dio la línea exacta las seis veces mientras `node
+  --check` apuntaba a la apertura del template.
+
+- **Cobertura: TC-509**, **36 condiciones** con cuatro denominadores y ocho controles negativos.
+  **Verificado que sabe fallar contra el inicio de la tanda en un worktree aparte: 20 de las 36 en
+  rojo, y NINGUNA por excepción.** Las 16 que pasan son los controles.
+  ⚠️ **Y DOS VALORES QUE ESCRIBÍ SIN MEDIR, QUE EL PROPIO CASO CAZÓ:** una condición exigía que
+  los doce botones del rail tuvieran **geometría**, y la suite corre a **756 px**, donde el rail
+  está en `display:none` por una media query preexistente —el caso mide el **orden** y el
+  **drawer**, que es la puerta real a ese ancho—; y la cadena de los ocho grados la escribí de
+  memoria y la medida es otra. **Un valor esperado inventado es lo que una condición de control
+  existe para cazar.**
+
+- **Dónde está todo:** `docs/mapa/pestanas-reorganizacion.md` (**mapa NUEVO**, 12,5 KB: la tabla
+  «qué se movió», las piezas por nombre, las tres cosas de `showTab`, el drawer, Calculadoras, el
+  eco pulmonar con su tabla de superficies, Balik, el Fonocardiograma, el assert del panel y las
+  seis trampas); cuatro mapas con un puntero cada uno (`congenitas-otros` 25,3 KB ·
+  `otros-hallazgos` 17,4 · `referencias-subpestanas` 17,0 · `otros-pericardio-pulmon` 10,8);
+  `docs/mapa/tests-fichas.md` → la ficha de TC-509 (**33,3 KB**); `docs/fuentes/FUENTES.md` → «El
+  trabajo B», con la tabla «qué se movió» comprobada en pantalla y la de **Cambios de evidencia
+  VACÍA**; `docs/para-cardiosalud/fonocardiograma/` (el módulo y su README); y
+  `docs/PENDIENTES.md` → **seis** cosas declaradas (B-1 a B-6).
+  ⚠️ **`tests-fichas.md` QUEDÓ EN 33,3 KB, a 1,7 KB del techo: la próxima tanda que lo toque tiene
+  que partirlo.** `informe-pdf-excel.md` **NO SE TOCÓ** —sigue en 34,0 KB, con el R2-8 abierto— y
+  por eso el mapa de esta tanda salió a archivo propio.
 
 ### Las NUEVE correcciones del 21/10/2026 — «R2» (2026-10-21)
 

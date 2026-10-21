@@ -1264,7 +1264,17 @@
     .rail .tab-btn.active{ border-left-color:transparent; border-bottom-color:var(--teal); }
     .rail-sep{ display:none; }
     .subtabs-wrap{ align-items:stretch; }
-    .subtabs-wrap .tabs-row{ display:none !important; }
+    /* ⚠️ ESTA REGLA EXISTE PARA LAS TABS AVANZADAS, QUE TIENEN UN `<select>` DE REEMPLAZO
+       (`#ecoAdvSelect`): por debajo de 768 px la fila se esconde y la navegación va por el
+       desplegable. Las barras de sub-pestañas que el trabajo B agregó —las dos de «Otros» y las
+       dos de congénitas— reusan `.subtabs-wrap`/`.tabs-row` por su estilo y NO tienen ningún
+       reemplazo, así que esta regla las dejaba invisibles en celular y el médico quedaba
+       ATRAPADO en la sub-pestaña activa, sin forma de ver la otra.
+       Lo destapó MIRAR una captura a 360 px: la medición numérica daba todo bien, porque el
+       panel activo se ve perfecto y lo que falta es la puerta a la otra.
+       Se acota la regla en vez de pelearle con otro `!important`: lo que se esconde sigue
+       siendo exactamente lo que tiene reemplazo. */
+    .subtabs-wrap:not(.otr-subbar):not(.cc-subbar) .tabs-row{ display:none !important; }
     .eco-adv-select{display:block;width:100%;box-sizing:border-box;margin:0;padding:9px 38px 9px 12px;font-size:13px;font-weight:600;color:var(--text);background-color:var(--bg2);background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="8" viewBox="0 0 12 8"><path d="M1 1l5 5 5-5" stroke="%2394A3B8" stroke-width="2" fill="none" stroke-linecap="round"/></svg>');background-repeat:no-repeat;background-position:right 13px center;border:1px solid var(--border);border-radius:8px;-webkit-appearance:none;appearance:none;cursor:pointer;outline:none}
     .eco-adv-select:focus{border-color:var(--accent2,#4f8ef7)}
   }
@@ -125316,8 +125326,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261021-0243';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1792561422083;                 /* eco-build-ms */
+const ECO_BUILD    = '20261021-0456';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1792569409328;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -125403,7 +125413,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261021-0243</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261021-0456</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

@@ -380,6 +380,66 @@ const PDF = `(async () => {
   return r;
 })()`;
 
+
+/* ══ PPT ESTADISTICO Y PDF DE AUDITORIA, generados de verdad ════════════════════════════
+   Los dos se arman desde el Laboratorio sobre una poblacion de estudios. Se usan los
+   generadores que toman la poblacion directo —`_labPPTGenerar` y `_labAnalisisPDFReal`—:
+   `labPPTEstadistico` exige tarjetas tildadas y abre un modal, y `labAnalisisPDF` lee
+   `labGetInformes` y avisa por toast. */
+const PPTPDF = `(async () => {
+  const POB = [
+    { id:'A', fecha:'2026-10-01', informe_texto:'Derrame pleural moderado. Sin derrame pericárdico ni masas intracardíacas.',
+      en_suma:'IM severa.', campos:{ im_grado:'4', pul_derrame:'si', pul_derrame_tam:'moderado', pul_balik:'25' } },
+    { id:'B', fecha:'2026-10-02', informe_texto:'Derrame pericárdico moderado (10-20mm). Sin masas.',
+      en_suma:'Sin alteraciones.', campos:{ pericardio:'Derrame moderado (10-20mm)' } },
+    { id:'C', fecha:'2026-10-03', informe_texto:'Estudio sin alteraciones.', en_suma:'Normal.', campos:{} }
+  ];
+  const r = {};
+  if (typeof window.PptxGenJS === 'undefined') r.pptErr = 'SIN PptxGenJS';
+  else {
+    let n = 0, tablas = 0;
+    const Orig = window.PptxGenJS;
+    window.PptxGenJS = function () { const d = new Orig();
+      const as = d.addSlide.bind(d);
+      d.addSlide = function (...a) { const sl = as(...a); n++;
+        const at = sl.addText ? sl.addText.bind(sl) : null;
+        if (at) sl.addText = function (...z) { return at(...z) };
+        const ab = sl.addTable ? sl.addTable.bind(sl) : null;
+        if (ab) sl.addTable = function (...z) { tablas++; return ab(...z) };
+        return sl; };
+      d.writeFile = function () { return Promise.resolve('') };
+      return d; };
+    try { if (typeof _labPPTGenerar === 'function') await _labPPTGenerar(POB, {});
+          else r.pptErr = 'SIN _labPPTGenerar'; } catch (e) { r.pptErr = String(e).slice(0, 110) }
+    window.PptxGenJS = Orig;
+    r.pptSlides = n; r.pptTablas = tablas;
+  }
+  if (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF) r.audErr = 'SIN JSPDF';
+  else {
+    const reg = [];
+    const Orig = window.jspdf.jsPDF;
+    window.jspdf.jsPDF = function (...a) { const d = new Orig(...a);
+      const ot = d.text.bind(d);
+      d.text = function (t, x, y, ...rest) { reg.push(String(t)); return ot(t, x, y, ...rest) };
+      d.save = function () { return true }; d.output = function () { return '' };
+      return d; };
+    Object.keys(Orig).forEach(k => { try { window.jspdf.jsPDF[k] = Orig[k] } catch (e) {} });
+    try { if (typeof _labAnalisisPDFReal === 'function') await _labAnalisisPDFReal(POB);
+          else r.audErr = 'SIN _labAnalisisPDFReal'; } catch (e) { r.audErr = String(e).slice(0, 110) }
+    window.jspdf.jsPDF = Orig;
+    r.audTextos = reg.length; r.audHash = (function (s) { let h = 0;
+      for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0; return h })(reg.join('|'));
+  }
+  /* Y el Laboratorio por sus funciones duenas. */
+  const lab = {};
+  ['_labDiastGrado','_labGeomCat','_labValvCounts','_labEstenSev','_labDisfSistVent','_labEmLectura']
+    .forEach(fn => { try { lab[fn] = typeof window[fn] === 'function'
+      ? JSON.stringify(window[fn](POB[0], 'em_grado')).slice(0, 120) : 'SIN FN'; }
+      catch (e) { lab[fn] = 'EXC' } });
+  r.lab = lab;
+  return r;
+})()`;
+
 async function corre(nombre, abrir) {
   if (MOTOR && MOTOR !== nombre) return;
   const R = {};
@@ -476,6 +536,38 @@ async function corre(nombre, abrir) {
         R.pdf[k] = await pg.evaluate(PDF);
       }
     }
+    if (hay('capzona')) {
+      /* Capturas de las pantallas que el trabajo movio, en los cinco anchos y los dos temas:
+         la columna izquierda, la fila de arriba, Otros con cada sub-pestana, Eco pulmonar y
+         Referencias con Calculadoras primera. Los md5 distintos son la prueba de que el tema
+         quedo puesto: getComputedStyle lee el estilo, no el pixel. */
+      const fs2 = await import('fs');
+      try { fs2.mkdirSync(DEST, { recursive: true }) } catch (e) {}
+      R.capzona = [];
+      for (const [w, h] of [[1200,700],[1440,800],[768,1024],[390,844],[360,740]])
+      for (const tema of ['oscuro','claro']) {
+        await pg.setViewportSize({ width: w, height: h });
+        const ok = await pg.evaluate("(() => { const d = document.documentElement;"
+          + (tema === 'claro' ? "d.classList.add('light-mode');" : "d.classList.remove('light-mode');")
+          + "return d.classList.contains('light-mode') === " + (tema === 'claro') + " })()");
+        if (!ok) { R.capzona.push({ w, h, tema, err: 'EL TEMA NO QUEDO' }); continue }
+        for (const [k, pre] of [['pericardio', "showTab('pericardio')"],
+            ['pulmonar', "showTab('pulmonar')"],
+            ['otros-burbuja', "showTab('otros');otrSubTab('burbuja',document.getElementById('otr-subtab-burbuja'))"],
+            ['otros-variantes', "showTab('otros');otrSubTab('variantes',document.getElementById('otr-subtab-variantes'))"],
+            ['refs-calc', "showTab('refs');refSubInit();refSubTab('calc',document.getElementById('ref-subtab-calc'))"],
+            ['cc', "ccSubTab('congenitas')"]]) {
+          await pg.evaluate("try{" + pre + "}catch(e){}");
+          await pg.waitForTimeout(220);
+          const f = DEST + '/' + nombre + '-' + k + '-' + w + 'x' + h + '-' + tema + '.png';
+          await pg.screenshot({ path: f });
+          R.capzona.push({ w, h, tema, zona: k, png: f });
+        }
+      }
+      await pg.evaluate("document.documentElement.classList.remove('light-mode')");
+      await pg.setViewportSize({ width: 1200, height: 700 });
+    }
+    if (hay('pptaud')) R.pptaud = await pg.evaluate(PPTPDF);
     if (hay('drawer')) R.drawer = await pg.evaluate(DRAWER);
     if (hay('excel')) {
       const ESC2 = { vacio: '', peri: "const e=document.getElementById('pericardio'); if(e){e.value='Derrame moderado (10-20mm)';e.dispatchEvent(new Event('change',{bubbles:true}))}",

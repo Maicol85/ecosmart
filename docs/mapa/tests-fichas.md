@@ -312,3 +312,75 @@ centinela el caso moría entero y probaba que el árbol es distinto, no que sabe
 3. **EL `value` DEL SELECTOR DE PERICARDIO ES SU TEXTO COMPLETO**, paréntesis incluido:
    `'Derrame moderado'` deja el `<select>` en `selectedIndex -1` y la escena mide el selector
    vacío.
+
+---
+
+## TC-509 — el trabajo «B», la reorganización de pestañas (2026-10-21)
+
+**36 condiciones**, con **cuatro denominadores** y **ocho controles negativos**. Es un trabajo que
+sólo mueve pantallas, así que la mitad del caso son controles: lo que **no** se tiene que haber
+movido.
+
+**Verificado que sabe fallar contra el inicio de la tanda (`a37ddc5`) en un worktree aparte: 20 de
+las 36 en rojo, y NINGUNA por excepción.** Las 16 que pasan son los controles y lo que esta tanda
+no toca — que es exactamente el punto.
+
+### Qué cubre, bloque por bloque
+
+| bloque | qué afirma |
+|---|---|
+| **(A1)** | la columna izquierda tiene **12** botones, en el orden pedido |
+| **(A1b)** | el **drawer móvil** ofrece los doce, y en Modo Básico esconde el pulmonar (11) y lo devuelve al volver |
+| **(A2)** | la fila de arriba tiene **6**: Hemodinámica, ETE, Cardio-Oncología, Amiloidosis, C. Congénitas, Referencias |
+| **(A3)** | CONTROL: **Amiloidosis** sigue en `.tabs-special`, con su `data-mod`, y abre `#tab-amiloidosis` |
+| **(A4)** | el rail tiene `overflow-y:auto`, así que doce botones no tapan un campo |
+| **(A5)** | cada botón del rail abre SU panel: ninguno cruzado |
+| **(B1)** | los **once** campos de pericardio y masas, en `#tab-pericardio`, con caja |
+| **(B2)** | CONTROL: el desplegable del pericardio conserva sus **cinco** opciones del R2 |
+| **(C1)** | Otros con **dos** sub-pestañas, y el panel inactivo en 0×0 |
+| **(C2)** | los **ocho** de variantes en su panel y el test de burbuja en el suyo |
+| **(C3)** | el **ASIA** es un solo dato en los **dos** sentidos, con un clic y un `change` |
+| **(C4)** | la frase «Estructuras normales prominentes…» se conserva |
+| **(D1)** | **una sola puerta** al eco pulmonar, en el rail, y los ocho campos básicos ahí |
+| **(D2)** | «Integrar al informe» **dentro** de la pestaña |
+| **(D3)** | Otros ya no tiene nada pulmonar |
+| **(D4)** | el texto del **básico** va justo **después** del pericardio y las masas |
+| **(D5)** | nombra la **fórmula** de Balik y el apellido pelado ya no está |
+| **(D6)** | y **conserva** el tamaño y el lado |
+| **(D7)** | CONTROL NEGATIVO: un Balik implausible no estima volumen, lo dice, y no imprime «4000» |
+| **(D8)** | el texto del **avanzado** va al **cuerpo** del informe, tras pericardio y masas, con su «Patrón global» |
+| **(D9)** | y el módulo **sigue integrado** mientras su contenido vive en el informe — las dos mitades |
+| **(E1)** | el Fonocardiograma no está: ni pestaña, ni botón, ni canvas, ni `data-mod`, ni `EE_MODULES` |
+| **(E2)** | pero el prefijo `fcg-` **se conserva** en la exclusión de campos |
+| **(F1)** | Calculadoras es el **primer** botón de Referencias, con su `data-mod`, y su contenido ahí |
+| **(F2)** | y no quedó ninguno en la fila de arriba |
+| **(F3)** | **seis** subpestañas y el censo de entradas de Referencias en **30**, sin moverse |
+| **(G1)** | **un** botón «C. Congénitas» y las dos pestañas con su barra |
+| **(G2)** | la barra navega y se marca bien, **también llegando por `showTab` directo** |
+| **(G3)** | CONTROL: ninguna sección de congénitas se perdió (10 y 9) |
+| **(H1)** | los campos movidos **viajan**, se **vacían** con «Nuevo estudio» y **vuelven** al restaurar |
+| **(H2)** | el importador sigue aceptando las listas de la zona movida: ninguna fila se descarta |
+| **(I1)** | sin scroll horizontal en las seis pantallas movidas, al ancho de la corrida |
+| **(J1)** | CONTROL: el Excel en **440** columnas |
+| **(J2)** | CONTROL: los ocho grados y la función diastólica, en una escena cargada |
+| **(J3)** | CONTROL: el Laboratorio sigue respondiendo |
+| **(J4)** | DENOMINADOR: hay algo que auditar en las tres superficies |
+
+### Qué NO mide, y dónde se mide
+
+- **El color** de los botones activos en los dos temas y la **maqueta a cinco anchos**: los mide
+  `scripts/_probe_btabs.mjs`, que puede emular el viewport y esperar la transición. El cuerpo de
+  un caso no puede cambiar el ancho de la ventana, y leer el color en el mismo turno del clic da
+  un valor **intermedio** de la animación de `.tab-btn` (`transition: all .15s`).
+- **El PDF generado de verdad** en sus seis plantillas: grupo `pdf` de esa misma sonda.
+- **La geometría del rail**: la suite corre a **756 px** y ahí el rail está en `display:none` por
+  una media query preexistente. El caso mide el **orden** —que no depende del ancho— y el
+  **drawer**, que es la puerta real a ese ancho.
+
+### Dos valores que escribí sin medir, y que el propio caso cazó
+
+1. La condición (A1) exigía que los doce botones tuvieran **geometría**, y a 756 px no la tienen.
+2. La cadena de grados de (J2) la escribí de memoria (`'4||||sin|sin||'`) y la medida es
+   `'4|0|0|sin|sin|sin|Sin insuficiencia|sin'`. **Un valor esperado inventado es exactamente lo
+   que una condición de control existe para cazar** — y lo cazó. La cadena que quedó es la medida,
+   y es la misma que el inicio de la tanda publica sobre esa escena, verificado con el A/B.

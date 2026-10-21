@@ -8659,11 +8659,18 @@ caso('TC-132', 'Seis correcciones: titulos, limpieza, capsulas, SGL, denominador
      Y NO se usa una regex con \\s: el cuerpo de un caso es un template literal y se come la
      barra, con lo que /\\s+/ quedaba en /s+/ y borraba todas las eses del texto. Se ve en el
      diagnostico: «la do co a a propo ito». Septima vez con esta trampa. Alcanza con trim(). */
+  /* ADAPTADO el 2026-10-21 (B-E6): se saltea la BARRA DE NAVEGACION de las dos pestanas de
+     congenitas. Lo que esta condicion caza es PROSA antes de la primera seccion —el parrafo de
+     titulo que FIX1 retiro— y una barra de sub-pestanas no es prosa: es el control que la orden
+     pone ahi para que las dos pestanas se abran con un solo boton. El poder del caso NO baja:
+     cualquier texto suelto que aparezca antes de la primera seccion sigue cayendo, porque lo
+     unico excluido es el nodo con la clase cc-subbar. */
   const primero = tab => { const e = document.getElementById(tab);
     const sec = e.querySelector('.sacc');
     let txt = '';
     for (let n = e.firstChild; n && n !== sec; n = n.nextSibling) {
       if (n.nodeType === 8) continue;
+      if (n.nodeType === 1 && n.classList && n.classList.contains('cc-subbar')) continue;
       txt += (n.textContent || '');
     }
     return txt.trim(); };
@@ -80757,6 +80764,422 @@ caso('TC-508', 'Tanda R2: el desplegable del derrame ofrece SOLO las cinco opcio
 
   return { extra: ex };
 `);
+
+/* ══ TC-509 · TRABAJO B — LA REORGANIZACION DE PESTANAS (2026-10-21) ════════════════════════
+   Mide lo RENDERIZADO: los botones por su geometria, los campos por su caja, el informe por su
+   texto y el Excel por sus claves. Es un trabajo que SOLO MUEVE pantallas, asi que la mitad del
+   caso son CONTROLES: lo que no se tiene que haber movido.
+   ⚠️ SIN ACENTOS GRAVES, sin regex con barras escapadas y sin saltos de linea dentro de un
+   literal de cadena: el cuerpo de un caso es un template literal y las tres cosas lo rompen.
+   ⚠️ Y EL COLOR DE UN `.tab-btn` NO SE LEE EN EL MISMO TURNO DEL CLIC: lleva
+   «transition: all .15s» y devuelve un valor intermedio de la animacion. Este caso mide el
+   ESTADO (la clase y aria-selected), que es sincronico; el color en los dos temas lo mide
+   scripts/_probe_btabs.mjs, que puede esperar. */
+caso('TC-509', 'Trabajo B: la columna izquierda con sus DOCE botones en orden y la fila de arriba con SEIS; «Pericardio y masas» como pestana propia con sus once campos intactos; Otros en dos sub-pestanas con el ASIA de UN solo dueno en los dos sentidos; el eco pulmonar en UNA pestana, con su «Integrar al informe» adentro, su texto en el CUERPO del informe justo despues del pericardio y las masas, y Balik nombrando la FORMULA; el Fonocardiograma ausente de la app y presente en su carpeta; Calculadoras como PRIMER boton de Referencias; «C. Congenitas» con un boton y dos pestanas; y los cortes, el informe, el EN SUMA, el Laboratorio y las 440 columnas del Excel sin moverse', `
+  const ex = [];
+  /* Los helpers son propios del caso, como en todos: el runner no expone ninguno. */
+  const EL  = function (id) { return document.getElementById(id); };
+  const V   = function (id) { const e = EL(id); return e ? e.value : null; };
+  const FN  = function (n) { return typeof window[n] === 'function'; };
+  const OB  = function (n) { return (typeof window[n] === 'undefined') ? null : window[n]; };
+  const NL  = String.fromCharCode(10);
+  const S   = function (id, v) { const e = EL(id); if (!e) return false;
+    e.value = v;
+    e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true }));
+    return true; };
+  const CHK = function (id, on) { const e = EL(id); if (!e) return false;
+    if (e.checked !== on) e.click();
+    return e.checked === on; };
+  const vis = function (e) { if (!e) return false;
+    const r = e.getBoundingClientRect();
+    return r.width > 0 && r.height > 0 && getComputedStyle(e).display !== 'none'; };
+  const oc = function (b) { return b.getAttribute('onclick') || ''; };
+  const idDe = function (b) { const s = oc(b); const a = s.indexOf("showTab('");
+    if (a < 0) return null; const z = s.indexOf("'", a + 9); return z < 0 ? null : s.slice(a + 9, z); };
+  const btnsDe = function (sel) { return [].slice.call(document.querySelectorAll(sel)); };
+  try { localStorage.setItem('ett_view_mode', 'avanzado'); } catch (e) {}
+  try { if (FN('applyViewMode')) applyViewMode(); } catch (e) {}
+
+  /* ══ (A) LA COLUMNA IZQUIERDA Y LA FILA DE ARRIBA ══════════════════════════════════════ */
+  const rail = btnsDe('.rail .tab-btn');
+  const RAIL_ESP = ['datos','ai-vi','vd','doppler','valvulas','contractilidad','sgl',
+                    'pericardio','pulmonar','otros','imagenes','config'];
+  /* ⚠️ EL ORDEN SE MIDE SIEMPRE; LA GEOMETRIA NO SE PUEDE MEDIR ACA. La suite corre a 756 px y
+     por debajo de 768 el rail pasa a display:none —es preexistente— y la unica puerta es el
+     DRAWER. Asi que aca va el orden, que no depende del ancho, mas el drawer, que es lo que el
+     medico usa a este ancho; los doce botones VISIBLES a 1200 px y a 1440 los mide
+     scripts/_probe_btabs.mjs en los dos motores y los dos temas. */
+  ex.push(['(A1) la columna izquierda tiene DOCE botones, en orden',
+    rail.length === 12 && rail.map(idDe).join(',') === RAIL_ESP.join(','),
+    'n=' + rail.length + ' | ' + rail.map(idDe).join(',')]);
+  ex.push(['(A1b) y el drawer movil —la unica puerta por debajo de 768 px— ofrece los doce, y en Modo Basico esconde el pulmonar',
+    (function () {
+      const leer = function () { const d = EL('ecoDrawer');
+        return d ? [].slice.call(d.querySelectorAll('button'))
+          .map(function (b) { return b.getAttribute('data-tab'); }) : []; };
+      const poner = function (m) { try { localStorage.setItem('ett_view_mode', m); } catch (e) {}
+        try { if (FN('applyViewMode')) applyViewMode(); } catch (e) {} };
+      poner('avanzado'); const av = leer();
+      poner('basico');   const ba = leer();
+      poner('avanzado'); const vu = leer();
+      return av.length === 12 && av.join(',') === RAIL_ESP.join(',')
+        && ba.indexOf('pulmonar') < 0 && ba.length === 11
+        && vu.join(',') === av.join(','); })(),
+    (function () { const d = EL('ecoDrawer');
+      return d ? 'n=' + d.querySelectorAll('button').length : 'SIN DRAWER'; })()]);
+  const arriba = btnsDe('.tabs-special .tab-btn').concat(btnsDe('.tabs-tools .tab-btn'));
+  const ARR_ESP = ['hemodinamica','ete','cardioOnco','amiloidosis','congenitas','refs'];
+  ex.push(['(A2) la fila de arriba tiene SEIS botones: los cuatro que no se mueven mas C. Congenitas y Referencias',
+    arriba.length === 6 && arriba.map(idDe).join(',') === ARR_ESP.join(','),
+    'n=' + arriba.length + ' | ' + arriba.map(idDe).join(',')]);
+  ex.push(['(A3) CONTROL: el boton de AMILOIDOSIS sigue donde estaba, con su data-mod y abriendo lo mismo',
+    (function () { const b = arriba.filter(function (x) { return idDe(x) === 'amiloidosis'; })[0];
+      if (!b) return false;
+      if (!b.closest('.tabs-special')) return false;
+      if (b.getAttribute('data-mod') !== 'amiloidosis') return false;
+      try { b.click(); } catch (e) {}
+      const p = EL('tab-amiloidosis');
+      return !!p && p.classList.contains('active'); })(),
+    'donde=' + (function () { const b = arriba.filter(function (x) { return idDe(x) === 'amiloidosis'; })[0];
+      return b ? (b.closest('.tabs-special') ? 'tabs-special' : 'OTRA') + '/' + b.getAttribute('data-mod') : 'NO'; })()]);
+  ex.push(['(A4) el rail se puede desplazar solo: tiene overflow-y auto, asi que doce botones no tapan ningun campo',
+    (function () { const r = document.querySelector('.rail');
+      return !!r && getComputedStyle(r).overflowY === 'auto'; })(),
+    (function () { const r = document.querySelector('.rail');
+      return r ? getComputedStyle(r).overflowY + ' alto=' + Math.round(r.getBoundingClientRect().height)
+        + ' contenido=' + r.scrollHeight : 'NO'; })()]);
+  ex.push(['(A5) y cada boton del rail abre SU panel',
+    (function () { const mal = [];
+      RAIL_ESP.forEach(function (k) { try { showTab(k); } catch (e) {}
+        const p = EL('tab-' + k);
+        if (!p || !p.classList.contains('active')) mal.push(k); });
+      try { showTab('datos'); } catch (e) {}
+      return mal.length === 0; })(), 'sin paneles cruzados']);
+
+  /* ══ (B) PERICARDIO Y MASAS ════════════════════════════════════════════════════════════ */
+  const PERI_IDS = ['pericardio','pericardio_hemo','otras_notas','masa_presente','masa_loc',
+    'masa_tam_mm','masa_morf','masa_movil','masa_eco','masa_dx','masa_notas'];
+  ex.push(['(B1) los ONCE campos de pericardio y masas viven en su pestana propia, con caja',
+    (function () { try { showTab('pericardio'); } catch (e) {}
+      const sec = EL('ete-seccion-pericardio-masas');
+      if (sec) sec.style.display = 'block';
+      const mp = EL('masa_presente');
+      if (mp) { mp.selectedIndex = 1; try { if (FN('showMasaPanel')) showMasaPanel(); } catch (e) {} }
+      return PERI_IDS.every(function (id) { const e = EL(id);
+        if (!e) return false;
+        const p = e.closest('.tab-section');
+        return !!p && p.id === 'tab-pericardio' && vis(e); }); })(),
+    (function () { const sec = EL('ete-seccion-pericardio-masas');
+      return 'seccion en ' + (sec && sec.closest('.tab-section') ? sec.closest('.tab-section').id : 'NO')
+        + ' | sin caja: ' + PERI_IDS.filter(function (id) { return !vis(EL(id)); }).join(','); })()]);
+  ex.push(['(B2) CONTROL: el desplegable del pericardio conserva sus CINCO opciones vivas del R2',
+    (function () { const e = EL('pericardio');
+      return !!e && e.options.length === 5; })(),
+    (function () { const e = EL('pericardio');
+      return e ? 'n=' + e.options.length : 'NO'; })()]);
+
+  /* ══ (C) OTROS: DOS SUB-PESTANAS Y EL ASIA CON UN DUENO ════════════════════════════════ */
+  ex.push(['(C1) Otros tiene DOS sub-pestanas y el panel inactivo no ocupa lugar ni deja un tabulable',
+    (function () { try { showTab('otros'); } catch (e) {}
+      const bar = document.querySelector('#tab-otros .otr-subbar');
+      if (!bar) return false;
+      const bs = [].slice.call(bar.querySelectorAll('button'));
+      if (bs.length !== 2) return false;
+      if (!FN('otrSubTab')) return false;
+      otrSubTab('burbuja', EL('otr-subtab-burbuja'));
+      const pv = EL('otr-sub-variantes');
+      const okA = !vis(pv) && getComputedStyle(pv).display === 'none';
+      otrSubTab('variantes', EL('otr-subtab-variantes'));
+      const pb = EL('otr-sub-burbuja');
+      const okB = !vis(pb) && vis(pv);
+      return okA && okB; })(),
+    (function () { const bar = document.querySelector('#tab-otros .otr-subbar');
+      return bar ? [].slice.call(bar.querySelectorAll('button')).map(function (b) {
+        return b.id + '/' + b.getAttribute('aria-selected'); }).join(' ') : 'NO'; })()]);
+  const VAR_IDS = ['otr_asia','otr_var_eustaquio','otr_var_chiari','otr_var_lipo',
+    'otr_var_tendones','otr_var_lambl','otr_var_senocor','otr_rac'];
+  ex.push(['(C2) los OCHO de variantes —las seis estructuras, el ASIA y la RAC— estan en el panel de variantes, y el test de burbuja en el suyo',
+    (function () { const pan = function (id) { const e = EL(id);
+        if (!e) return null; const p = e.closest('[id^=otr-sub-]'); return p ? p.id : 'SUELTO'; };
+      return VAR_IDS.every(function (id) { return pan(id) === 'otr-sub-variantes'; })
+        && pan('otr_burb') === 'otr-sub-burbuja'; })(),
+    VAR_IDS.concat(['otr_burb']).map(function (id) { const e = EL(id);
+      const p = e ? e.closest('[id^=otr-sub-]') : null;
+      return id + '->' + (p ? p.id : 'NO'); }).join(' ')]);
+  ex.push(['(C3) el ASIA es UN solo dato en los DOS sentidos: la casilla de Otros y el selector del FOP',
+    (function () { try { if (FN('limpiarCampos')) limpiarCampos(); } catch (e) {}
+      const chk = EL('otr_asia'), sel = EL('fop_asa');
+      if (!chk || !sel) return false;
+      chk.click();
+      const ida = sel.value === 'si';
+      sel.value = 'no'; sel.dispatchEvent(new Event('change', { bubbles: true }));
+      const vuelta1 = chk.checked === false;
+      sel.value = 'si'; sel.dispatchEvent(new Event('change', { bubbles: true }));
+      const vuelta2 = chk.checked === true;
+      return ida && vuelta1 && vuelta2; })(), 'los dos sentidos']);
+  ex.push(['(C4) y la frase que declara que las variantes van al informe y NO al EN SUMA se conserva',
+    (function () { const p = EL('otr-sub-variantes');
+      const t = p ? (p.textContent || '') : '';
+      return t.indexOf('Estructuras normales prominentes') > -1; })(), 'en el panel']);
+
+  /* ══ (D) ECO PULMONAR UNIFICADO ════════════════════════════════════════════════════════ */
+  const PUL_BAS = ['pul_derrame','pul_derrame_tam','pul_balik','pul_derrame_lado','pul_lineasb',
+    'pul_lineasb_pat','pul_consolidacion','pul_consol_nota'];
+  ex.push(['(D1) hay UNA sola puerta al eco pulmonar, esta en el rail, y los ocho campos basicos viven ahi',
+    (function () { const puertas = [].slice.call(document.querySelectorAll('[onclick]'))
+        .filter(function (b) { return oc(b).indexOf("showTab('pulmonar')") > -1; });
+      if (puertas.length !== 1) return false;
+      if (!puertas[0].closest('.rail')) return false;
+      return PUL_BAS.every(function (id) { const e = EL(id);
+        const p = e ? e.closest('.tab-section') : null;
+        return !!p && p.id === 'tab-pulmonar'; }); })(),
+    (function () { const puertas = [].slice.call(document.querySelectorAll('[onclick]'))
+        .filter(function (b) { return oc(b).indexOf("showTab('pulmonar')") > -1; });
+      return 'puertas=' + puertas.length + ' donde=' + puertas.map(function (b) {
+        return b.closest('.rail') ? 'rail' : (b.closest('.tabs-special') ? 'arriba' : 'otro'); }).join(',')
+        + ' | fuera de la pestana: ' + PUL_BAS.filter(function (id) { const e = EL(id);
+          const p = e ? e.closest('.tab-section') : null;
+          return !p || p.id !== 'tab-pulmonar'; }).join(','); })()]);
+  ex.push(['(D2) el boton «Integrar al informe» del pulmonar vive DENTRO de esa pestana',
+    (function () { const t = EL('tab-pulmonar');
+      const b = t ? t.querySelector('[data-am-k=pulm]') : null;
+      return !!b; })(), 'adentro']);
+  ex.push(['(D3) Otros ya no tiene nada pulmonar',
+    (function () { const e = EL('pul_derrame');
+      const p = e ? e.closest('.tab-section') : null;
+      return !!p && p.id !== 'tab-otros'; })(),
+    (function () { const e = EL('pul_derrame');
+      const p = e ? e.closest('.tab-section') : null; return p ? p.id : 'NO'; })()]);
+  /* El texto del BASICO y el del AVANZADO, los dos justo despues del pericardio y las masas. */
+  const infPul = function (esc) {
+    try { if (FN('limpiarCampos')) limpiarCampos(); } catch (e) {}
+    esc();
+    try { if (FN('generarInforme')) generarInforme(); } catch (e) {}
+    const t = String(V('informe_texto') || '');
+    const li = t.split(NL).filter(function (x) { return x.trim(); });
+    const idx = function (pat) { for (let i = 0; i < li.length; i++)
+      if (li[i].indexOf(pat) > -1) return i; return -1; };
+    return { t: t, li: li, iPeri: idx('pericárdic'), iMasa: idx('masa'),
+             iPleu: idx('Derrame pleural'), iDesliz: idx('Deslizamiento pleural'),
+             iPatron: idx('Patrón global') };
+  };
+  const rBas = infPul(function () {
+    S('pericardio', 'Derrame moderado (10-20mm)');
+    S('pul_derrame', 'si'); S('pul_derrame_tam', 'moderado'); S('pul_balik', '25');
+  });
+  ex.push(['(D4) el texto del pulmonar BASICO va justo DESPUES del pericardio y las masas',
+    rBas.iPeri >= 0 && rBas.iMasa >= 0 && rBas.iPleu === Math.max(rBas.iPeri, rBas.iMasa) + 1,
+    'peri=' + rBas.iPeri + ' masa=' + rBas.iMasa + ' pleural=' + rBas.iPleu]);
+  ex.push(['(D5) y nombra la FORMULA de Balik, no el apellido pelado',
+    rBas.t.indexOf('según fórmula de Balik') > -1 && rBas.t.indexOf('Balik 25 mm') < 0
+      && rBas.t.indexOf('aproximadamente 500 ml') > -1,
+    rBas.li.filter(function (x) { return x.indexOf('pleural') > -1; }).join(' // ')]);
+  ex.push(['(D6) y CONSERVA el tamano y el lado, que son datos del informe firmado',
+    (function () { const r = infPul(function () {
+        S('pul_derrame', 'si'); S('pul_derrame_tam', 'moderado');
+        S('pul_derrame_lado', 'derecho'); S('pul_balik', '25'); });
+      return r.t.indexOf('Derrame pleural derecho moderado') > -1; })(),
+    'con lado y tamano']);
+  ex.push(['(D7) CONTROL NEGATIVO: un Balik implausible no estima volumen y lo DICE, sin nombrar el apellido',
+    (function () { const r = infPul(function () {
+        S('pul_derrame', 'si'); S('pul_derrame_tam', 'severo'); S('pul_balik', '200'); });
+      return r.t.indexOf('fuera del rango plausible') > -1
+        && r.t.indexOf('4000') < 0 && r.t.indexOf('Balik 200 mm') < 0; })(),
+    'implausible declarado']);
+  const rAv = infPul(function () {
+    S('pericardio', 'Derrame moderado (10-20mm)');
+    S('pua_desliz', 'presente'); S('pua_lineasa', 'presentes');
+    S('pua_derrame', 'si'); S('pua_derrame_lado', 'bilateral'); S('pua_balik', '30');
+    S('pua_consol', 'si'); S('pua_consol_bronco', 'con');
+    const b = document.querySelector('[data-am-k=pulm]'); if (b) b.click();
+  });
+  ex.push(['(D8) el texto del pulmonar AVANZADO va al CUERPO del informe, justo despues del pericardio y las masas, y NO a una hoja aparte',
+    rAv.iDesliz >= 0 && rAv.iDesliz === Math.max(rAv.iPeri, rAv.iMasa) + 1
+      && rAv.iPatron > rAv.iDesliz,
+    'peri=' + rAv.iPeri + ' masa=' + rAv.iMasa + ' desliz=' + rAv.iDesliz + ' patron=' + rAv.iPatron]);
+  ex.push(['(D9) y la hoja «ECOGRAFIA PULMONAR» del PDF no se arma, aunque el modulo siga integrado',
+    (function () {
+      let enInf = null;
+      try { enInf = (amiloEnInforme() || []).map(function (d) { return d.k; }); } catch (e) { return false; }
+      /* La seccion SIGUE en amiloEnInforme —de eso cuelga la exclusion mutua con el basico— y
+         lo que la descarta es el armador del PDF. Se mide que el modulo este integrado Y que su
+         contenido viva en el informe: las dos mitades. */
+      return enInf.indexOf('pulm') > -1 && rAv.iDesliz >= 0; })(),
+    'integrado y en el informe']);
+
+  /* ══ (E) EL FONOCARDIOGRAMA ════════════════════════════════════════════════════════════ */
+  ex.push(['(E1) el Fonocardiograma no esta en la app: ni pestana, ni boton, ni canvas, ni data-mod, ni EE_MODULES',
+    !EL('tab-fono') && !EL('fcg-canvas')
+      && [].slice.call(document.querySelectorAll('[onclick]'))
+          .filter(function (b) { return oc(b).indexOf("'fono'") > -1; }).length === 0
+      && !document.querySelector('[data-mod=fono]')
+      && (typeof EE_MODULES === 'undefined' ? false
+          : EE_MODULES.every(function (m) { return m.key !== 'fono'; })),
+    'tab=' + !!EL('tab-fono') + ' canvas=' + !!EL('fcg-canvas')
+      + ' mods=' + (typeof EE_MODULES === 'undefined' ? 'SIN' : EE_MODULES.map(function (m) { return m.key; }).join(','))]);
+  ex.push(['(E2) pero el prefijo fcg- SE CONSERVA en la exclusion de campos, por los estudios guardados antes del 2026-09-09',
+    FN('_noEsDelEstudio') && window._noEsDelEstudio('fcg-valve-select') === true,
+    'excluido=' + (FN('_noEsDelEstudio') ? window._noEsDelEstudio('fcg-valve-select') : 'SIN FN')]);
+
+  /* ══ (F) CALCULADORAS DENTRO DE REFERENCIAS ════════════════════════════════════════════ */
+  ex.push(['(F1) Calculadoras es el PRIMER boton de Referencias, con su data-mod, y su contenido vive ahi',
+    (function () { try { showTab('refs'); } catch (e) {}
+      try { if (FN('refSubInit')) refSubInit(); } catch (e) {}
+      const b = document.querySelector('#tab-refs .ref-subbar button');
+      if (!b || b.id !== 'ref-subtab-calc') return false;
+      if (b.getAttribute('data-mod') !== 'calculadoras' || b.tagName !== 'BUTTON') return false;
+      const alguna = EL('cx-wilkins') || document.querySelector('[id^=cx-]');
+      const p = alguna ? alguna.closest('.tab-section') : null;
+      return !!p && p.id === 'tab-refs'; })(),
+    (function () { const b = document.querySelector('#tab-refs .ref-subbar button');
+      const a = EL('cx-wilkins') || document.querySelector('[id^=cx-]');
+      return 'primero=' + (b ? b.id : 'NO') + ' contenido=' +
+        (a && a.closest('.tab-section') ? a.closest('.tab-section').id : 'NO'); })()]);
+  ex.push(['(F2) y no quedo ningun boton de Calculadoras en la fila de arriba',
+    arriba.filter(function (b) { return oc(b).indexOf('calculadoras') > -1; }).length === 0,
+    'arriba=' + arriba.map(idDe).join(',')]);
+  ex.push(['(F3) son SEIS subpestanas de Referencias y el censo de entradas NO se movio',
+    (function () { const ORDEN = OB('REF_SUB_ORDEN') || [];
+      if (ORDEN.length !== 6 || ORDEN[0] !== 'calc') return false;
+      /* El censo: un h2.card-head con un onclick de toggleRef dentro de #tab-refs. Es la misma
+         definicion de «entrada» que usa TC-502, y las tarjetas de Calculadoras no la cumplen. */
+      const t = EL('tab-refs');
+      const n = t ? [].slice.call(t.querySelectorAll('h2.card-head'))
+        .filter(function (h) { return (h.getAttribute('onclick') || '').indexOf("toggleRef('") > -1; }).length : -1;
+      return n === 30; })(),
+    (function () { const t = EL('tab-refs');
+      const n = t ? [].slice.call(t.querySelectorAll('h2.card-head'))
+        .filter(function (h) { return (h.getAttribute('onclick') || '').indexOf("toggleRef('") > -1; }).length : -1;
+      return 'orden=' + (OB('REF_SUB_ORDEN') || []).join(',') + ' entradas=' + n; })()]);
+
+  /* ══ (G) C. CONGENITAS ═════════════════════════════════════════════════════════════════ */
+  ex.push(['(G1) UN solo boton «C. Congenitas» arriba y las DOS pestanas con su barra adentro',
+    (function () { const cc = arriba.filter(function (b) { return idDe(b) === 'congenitas'; });
+      if (cc.length !== 1) return false;
+      if ((cc[0].textContent || '').indexOf('C. Cong') < 0) return false;
+      if (arriba.filter(function (b) { return idDe(b) === 'congenitas2'; }).length !== 0) return false;
+      return document.querySelectorAll('.cc-subbar').length === 2
+        && !!EL('tab-congenitas') && !!EL('tab-congenitas2'); })(),
+    'arriba=' + arriba.filter(function (b) { return (idDe(b) || '').indexOf('congenitas') === 0; })
+      .map(function (b) { return (b.textContent || '').trim(); }).join(' + ')
+      + ' barras=' + document.querySelectorAll('.cc-subbar').length]);
+  ex.push(['(G2) la barra navega a las dos y se marca bien, TAMBIEN llegando por otro camino que la barra',
+    (function () { if (!FN('ccSubTab')) return false;
+      ccSubTab('congenitas');
+      const a1 = EL('tab-congenitas').classList.contains('active');
+      ccSubTab('congenitas2');
+      const a2 = EL('tab-congenitas2').classList.contains('active');
+      /* Por showTab directo —el camino del drawer movil y de los accesos internos—: la barra
+         tiene que seguirlo igual, porque su estado se DERIVA de cual pestana esta activa. */
+      try { showTab('congenitas'); } catch (e) {}
+      const b = document.querySelector('#tab-congenitas .cc-subbar .tab-btn.cc-on');
+      const sigue = !!b && oc(b).indexOf("ccSubTab('congenitas')") > -1;
+      return a1 && a2 && sigue; })(), 'navega y se sincroniza']);
+  ex.push(['(G3) CONTROL: ninguna seccion de congenitas se perdio',
+    document.querySelectorAll('#tab-congenitas .sacc').length === 10
+      && document.querySelectorAll('#tab-congenitas2 .sacc').length === 9,
+    'frec=' + document.querySelectorAll('#tab-congenitas .sacc').length
+      + ' compl=' + document.querySelectorAll('#tab-congenitas2 .sacc').length]);
+
+  /* ══ (H) GUARDADO, NUEVO ESTUDIO Y RESTAURACION DE LO MOVIDO ═══════════════════════════ */
+  ex.push(['(H1) los campos movidos viajan con el estudio, vuelven al reabrirlo y «Nuevo estudio» los vacia',
+    (function () {
+      try { if (FN('limpiarCampos')) limpiarCampos(); } catch (e) {}
+      S('pericardio', 'Derrame moderado (10-20mm)');
+      S('pul_derrame', 'si'); S('pul_balik', '25');
+      CHK('otr_asia', true); CHK('otr_rac', true);
+      /* El recolector REAL de guardarInforme, replicado: todos los input/select/textarea con id
+         que pasen _noEsDelEstudio, mas los __chk de los checkbox. */
+      const recolectar = function () { const c = {};
+        document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function (el) {
+          if (FN('_noEsDelEstudio') && window._noEsDelEstudio(el.id)) return;
+          c[el.id] = el.value; });
+        document.querySelectorAll('input[type=checkbox][id]').forEach(function (el) {
+          if (FN('_noEsDelEstudio') && window._noEsDelEstudio(el.id)) return;
+          c[el.id + '__chk'] = el.checked ? '1' : '0'; });
+        return c; };
+      const guardado = recolectar();
+      const viajan = guardado['pericardio'] === 'Derrame moderado (10-20mm)'
+        && guardado['pul_balik'] === '25'
+        && guardado['otr_asia__chk'] === '1' && guardado['otr_rac__chk'] === '1';
+      try { if (FN('limpiarCampos')) limpiarCampos(); } catch (e) {}
+      const vacios = String(V('pul_balik') || '') === ''
+        && (EL('otr_asia') ? EL('otr_asia').checked === false : false)
+        && (EL('otr_rac') ? EL('otr_rac').checked === false : false);
+      /* Restaurar: se escriben los valores del estudio como lo hacen las rutas de reapertura. */
+      Object.keys(guardado).forEach(function (k) {
+        if (k.indexOf('__chk') > -1) { const e = EL(k.replace('__chk', ''));
+          if (e && e.type === 'checkbox') e.checked = guardado[k] === '1'; return; }
+        const e = EL(k); if (e && e.type !== 'checkbox') e.value = guardado[k]; });
+      const vuelven = String(V('pul_balik') || '') === '25'
+        && String(V('pericardio') || '') === 'Derrame moderado (10-20mm)'
+        && (EL('otr_asia') ? EL('otr_asia').checked === true : false);
+      return viajan && vacios && vuelven; })(), 'viajan, se vacian y vuelven']);
+  ex.push(['(H2) el importador sigue aceptando las listas de la zona movida, asi que ninguna fila se descarta',
+    (function () { if (!FN('_labXlsLista')) return 'SIN FN';
+      /* Las cinco vivas del derrame y los dos textos legados: es la lista que el R2 dejo en 7. */
+      const l = window._labXlsLista('pericardio', 'Derrame moderado (10-20mm)');
+      const leg = window._labXlsLista('pericardio', 'Derrame mínimo');
+      return l !== null && leg !== null; })() === true, 'las dos formas entran']);
+
+  /* ══ (I) LA MAQUETA AL ANCHO DE ESTA CORRIDA ════════════════════════════════════════════ */
+  ex.push(['(I1) MAQUETA al ancho de esta corrida: sin scroll horizontal de la pagina en las pantallas movidas',
+    (function () { const d = document.documentElement;
+      const mal = [];
+      ['pericardio','pulmonar','otros','refs','congenitas','congenitas2'].forEach(function (k) {
+        try { showTab(k); } catch (e) {}
+        if (d.scrollWidth > d.clientWidth + 1) mal.push(k + ':' + d.scrollWidth + '>' + d.clientWidth); });
+      try { showTab('datos'); } catch (e) {}
+      return mal.length === 0; })(),
+    'ancho=' + window.innerWidth + ' (los dos temas y los cinco viewports los mide scripts/_probe_btabs.mjs)']);
+
+  /* ══ (J) LOS CONTROLES: LO QUE NO SE TIENE QUE HABER MOVIDO ════════════════════════════ */
+  ex.push(['(J1) CONTROL: las 440 columnas del Excel, con las mismas claves',
+    (function () { try { if (FN('limpiarCampos')) limpiarCampos(); } catch (e) {}
+      const c = {};
+      document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function (el) {
+        if (FN('_noEsDelEstudio') && window._noEsDelEstudio(el.id)) return;
+        c[el.id] = el.value; });
+      let f = null;
+      try { f = window._labExcelRow({ campos: c, fecha: '2026-10-21', id: 'X' }); } catch (e) { return false; }
+      return !!f && Object.keys(f).length === 440; })(),
+    (function () { const c = {};
+      document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function (el) {
+        if (FN('_noEsDelEstudio') && window._noEsDelEstudio(el.id)) return;
+        c[el.id] = el.value; });
+      try { return 'n=' + Object.keys(window._labExcelRow({ campos: c, fecha: 'x', id: 'X' })).length; }
+      catch (e) { return 'EXC'; } })()]);
+  ex.push(['(J2) CONTROL: los ocho grados valvulares y la funcion diastolica no se movieron en una escena cargada',
+    (function () { try { if (FN('limpiarCampos')) limpiarCampos(); } catch (e) {}
+      S('im_vc', '8'); S('onda_e', '90'); S('e_prima_sept', '5');
+      S('ai_vol', '90'); S('peso', '80'); S('talla', '180');
+      try { if (FN('generarInforme')) generarInforme(); } catch (e) {}
+      const g = ['im_grado','ia_grado','it_grado','ea_grado','em_grado','et_grado','ip_grado','ep_grado']
+        .map(function (k) { return String(V(k) || ''); }).join('|');
+      const dd = EL('dd-interp');
+      /* La cadena es la MEDIDA sobre el arbol de hoy, y es la MISMA que el inicio de la tanda
+         publica sobre esta escena —verificado con el A/B dedicado de scripts/_probe_btabs.mjs,
+         grupo ctrl, escena valv: cero diferencias—. Escribirla de memoria era un valor
+         inventado, que es lo que esta condicion existe para cazar. */
+      return g === '4|0|0|sin|sin|sin|Sin insuficiencia|sin'
+        && !!dd && (dd.textContent || '').indexOf('ASE 2025') > -1; })(),
+    (function () { const dd = EL('dd-interp');
+      return ['im_grado','ia_grado','it_grado','ea_grado','em_grado','et_grado','ip_grado','ep_grado']
+        .map(function (k) { return k + '=' + String(V(k) || ''); }).join(' ')
+        + ' | dd=' + (dd ? (dd.textContent || '').trim().slice(0, 40) : 'NO'); })()]);
+  ex.push(['(J3) CONTROL: el Laboratorio sigue clasificando el derrame pericardico por su token',
+    (function () { if (!FN('_labEstenSev')) return 'SIN FN';
+      /* Una funcion duena del Laboratorio cualquiera, para probar que el modulo no se movio. */
+      return window._labEstenSev({ campos: { em_grado: 'severa' } }, 'em_grado') === 'Severa'; })() === true,
+    'el Laboratorio responde']);
+  ex.push(['(J4) DENOMINADOR: hay algo que auditar en las tres superficies',
+    rail.length > 0 && arriba.length > 0 && PERI_IDS.length === 11 && VAR_IDS.length === 8,
+    'rail=' + rail.length + ' arriba=' + arriba.length]);
+
+  return { extra: ex };
+`);
+
 
 
 

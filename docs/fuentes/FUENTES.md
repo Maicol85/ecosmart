@@ -4519,3 +4519,52 @@ neumotórax.
 | El **índice cardiaco** | tres bandas, con un «límite» de 2,2 a 2,49 | **DOS**: `≤ 2.2` bajo · `2,21–4,0` normal · `> 4,0` elevado. El 2,2 exacto pasa de «límite» a **«bajo»** | rango normal 2,5-4,0 de la ESC/ERS 2022, Tabla 10, folio 28; el «bajo ≤ 2,2» es el corte que la app ya aplicaba (consenso SAC 2024, **que no está en la biblioteca**) | E8 | 21/10/2026 |
 | La **RVS** | número + rótulo de banda (800 / 1200 / 1400) y color | **el número solo**: se van el rótulo **y** el color | **ninguna**: esas bandas no están verificadas en la biblioteca. `_rvsBanda` **no se toca** — de ella cuelga la vasoplejia del POP | E8 | 21/10/2026 |
 | «**Posiblemente apto — evaluar Heart Team**» en la oclusión de orejuela | así | «**Ostium dentro del rango de los dispositivos (17-32 mm)**» | **ninguna**: criterio de producto — era una conducta y una afirmación de elegibilidad | E9 | 21/10/2026 |
+
+---
+
+## El trabajo «B» — LA REORGANIZACIÓN DE PESTAÑAS (2026-10-21)
+
+**No verificó ninguna fuente nueva y no movió ningún corte**, así que no tiene nada que citar.
+Lo que hizo es mover pantallas. Queda registrado acá porque la tabla de «Cambios de evidencia»
+tiene que poder leerse de corrido, y porque **una de sus dos tablas sí interesa a quien audita**:
+la de **qué se movió**, que es lo que contesta «¿dónde está ahora este dato?».
+
+### Tabla «qué se movió»
+
+| elemento | antes | ahora | comprobado en pantalla |
+|---|---|---|---|
+| Pericardio y masas (11 campos) | sección de «Otros» | pestaña propia `#tab-pericardio` | Chrome y WebKit, 11/11 con caja |
+| Eco pulmonar básico (8 campos) | sección de «Otros» | `#tab-pulmonar` | Chrome, 8/8 en la pestaña |
+| Eco pulmonar avanzado | botón de la fila de arriba | botón del **rail**, misma pestaña | los dos motores, **1 sola puerta** |
+| ASIA + 6 variantes + RAC | dentro de «Pericardio y masas» | sub-pestaña «Variantes anatómicas» | los dos motores, 8/8 en su panel |
+| Test de burbuja | sección suelta de «Otros» | sub-pestaña «Test de burbuja» | los dos motores |
+| Fonocardiograma | botón + `#tab-fono` | `docs/para-cardiosalud/fonocardiograma/` | ausente en las 4 superficies |
+| Calculadoras | botón de la fila de arriba | **1.ª** sub-pestaña de Referencias | los dos motores, 6 subpestañas |
+| CC frecuentes / complejas | **dos** botones | **un** botón «C. Congénitas» + barra | los dos motores, clics reales |
+| Columna izquierda | 10 botones | **12**, en el orden pedido | los dos motores, 12/12 visibles |
+| Fila de arriba | **10** botones | **6** | los dos motores |
+
+⚠️ **El conteo de la fila de arriba es 10 → 6 y no 9 → 5**, como decía el prompt: **Amiloidosis
+también vive ahí y no se mueve**. La corrección del médico lo confirmó. Y `.tabs-lab-wrap` tiene
+CSS pero **no existe en el marcado**: el botón del Laboratorio está en `.foot-actions`, al pie.
+
+### Lo único que cambió de palabras: la frase de Balik
+
+| dato | antes | ahora | fuente | commit | fecha |
+|---|---|---|---|---|---|
+| El **volumen del derrame pleural** | «Balik 25 mm, aproximadamente 500 ml» | «**aproximadamente 500 ml, según fórmula de Balik**» | **ninguna nueva**: la fórmula y su rango son los de la ICM 2026 (Volpicelli, enunciado D6_11, hoja 19) que el CORTOS ya dejó verificados, y **no se movió un número** — `_balikVol` sigue siendo mm × 20 con su rango 1-120 | B-E3 | 21/10/2026 |
+| El **valor implausible** | «Balik 200 mm — valor fuera de rango, verificar» | «**separación pleural de 200 mm, fuera del rango plausible: no se estima el volumen**» | ídem | B-E3 | 21/10/2026 |
+| El **texto del eco pulmonar avanzado** | hoja aparte del PDF | **cuerpo del informe narrativo**, tras pericardio y masas | **ninguna**: criterio de producto. El médico que integraba el módulo no lo veía en el texto que firma | B-E3 | 21/10/2026 |
+
+**Dos decisiones menores, declaradas:**
+- **El lado y el tamaño del derrame se CONSERVAN.** La orden escribe la frase como «Derrame
+  pleural de aproximadamente N mL (según fórmula de Balik)»; publicada así, el informe firmado
+  perdería de qué hemitórax es y de qué tamaño. La oración los mantiene y contiene esa frase.
+- **La unidad queda en «ml»** y no en «mL»: la app usa «ml» en sus otras 21 apariciones, y abrir
+  una segunda notación en el papel firmado se lee como un cambio de unidad.
+
+### Cambios de evidencia
+
+| dato | antes | ahora | fuente | commit | fecha |
+|---|---|---|---|---|---|
+| — | — | **ninguno** | el trabajo B no verificó ninguna fuente ni movió un corte, un operador o una regla de integración | B-E1 a B-E7 | 21/10/2026 |
