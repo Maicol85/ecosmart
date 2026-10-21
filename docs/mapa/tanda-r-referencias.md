@@ -235,3 +235,17 @@ tanda en un worktree aparte: 57 en rojo y ninguna por excepción.**
   textos), el PDF de auditoría (104), el Laboratorio por sus funciones dueñas, el **Excel en 440
   columnas clave por clave**, los 1031 campos del estudio, las 295 referencias de pantalla, el
   almacenamiento y las pastillas.
+
+---
+
+## Lo que la tanda «R2» corrigió de esta tanda (21/10/2026)
+
+Dos cosas del R se midieron en Safari y fallaban:
+
+- **El derrame pericárdico** dejaba las dos opciones viejas como `<option hidden>`, y eso **no las
+  esconde**: WebKit las pinta en la lista nativa y en los dos motores la búsqueda por letra las
+  alcanza. Hoy no están en el marcado y el token viejo se traduce en tres bordes.
+- **La sección VAB** no se repintaba con el gesto de la pastilla aórtica, porque ese gesto no pasa
+  por ningún `input` ni `change` de la sección.
+
+Lo demás de esta tanda no se tocó. **Dónde está:** `docs/mapa/tanda-r2-correcciones.md`.

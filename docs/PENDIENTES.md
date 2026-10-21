@@ -5721,3 +5721,123 @@ contarlas. Se corrigió contando con un barrido sobre el archivo, y quedó anota
 **Es una lista, no un cambio**: la orden lo pedía así. **Decidir:** cuáles se unifican,
 porque el censo deja a la vista que el mismo estado se declara con redacciones distintas según el
 módulo que lo escriba.
+
+---
+
+## Tanda «R2» (2026-10-21) — lo declarado y NO tocado
+
+### R2-1 · El informe sigue callando con la VRT «no medible» y cero categorías, y es PREEXISTENTE
+
+La probabilidad pasa a **BAJA** en ese estado (era «INDETERMINADA»), que es lo que la Figura 5
+publica. Pero la compuerta que decide si el informe escribe la línea de probabilidad **no cambió**:
+con la VRT no medible y ninguna categoría presente, el papel sigue sin decir nada.
+
+Es la compuerta **anterior a esta tanda** y esta orden no autoriza a tocar un texto del informe.
+**Decidir:** si «probabilidad baja de hipertensión pulmonar» debería publicarse en ese estado, que
+es el del paciente **sin chorro de IT medible** —entre el 40 y el 60 % según la BSE—.
+
+### R2-2 · El «índice cardiaco bajo ≤ 2,2» no tiene fuente verificada en la biblioteca
+
+El rango **normal 2,5-4,0** sí está verificado (ESC/ERS 2022, Tabla 10, folio 28). El **«bajo
+≤ 2,2»** sale del consenso SAC 2024, y **ese documento NO está en la biblioteca** —censada entera
+buscando «SAC», «Sociedad Argentina de Cardiología» y «consenso»: cero—.
+
+**No se inventó folio.** El corte es el que la app ya aplicaba, el ⓘ lo declara como tal, y el valor
+**no se movió**: lo único que cambió es que el 2,2 exacto pasó de «límite» a «bajo».
+**Decidir:** conseguir el documento o declarar el corte como criterio de EcoSmart.
+
+### R2-3 · El borde del índice cardiaco se compara contra el valor CRUDO y la pantalla imprime dos decimales
+
+`_icBanda` recibe el IC sin redondear y la cápsula lo publica con `toFixed(2)`. Así que un IC real
+de **2,204** se imprime «2.20» y la banda dice **«bajo»**, que es lo correcto por la cuenta y se lee
+como si el 2,20 impreso estuviera del lado bajo del corte — que en ese caso lo está, pero por una
+razón que el número impreso no muestra.
+
+Es el mismo precio que la PAP diastólica de la función diastólica ya paga, y es el lado conservador.
+**Decidir:** si el borde debería mirar el valor redondeado, que es el que el médico ve.
+
+### R2-4 · La advertencia de la ASE 2025 sobre la PCP y la RVP estimadas NO se agregó
+
+Por orden expresa. Los rótulos sí declaran que son **estimaciones por eco**, con su autor (Nagueh y
+Abbas), en la cápsula, en los perfiles, en la clasificación pre/postcapilar y en Forrester.
+**Decidir:** si además hace falta la salvedad de la ASE 2025 sobre la confiabilidad de esas dos
+estimaciones.
+
+### R2-5 · El Forrester no se tocó, y éstos son los cortes que usa hoy
+
+**Medido, sin cambiar nada:** `FORR_IC_CORTE = 2.2` para la columna frío/caliente y
+`UMBRAL_PCP_HUMEDO = 15` para húmedo/seco. Los cuatro perfiles salen de
+`(!frío && !húmedo) → I · (húmedo && !frío) → II · (frío && !húmedo) → III · resto → IV`.
+
+⚠️ **EL 2,2 DEL FORRESTER Y EL 2,2 DEL ÍNDICE CARDIACO SON EL MISMO NÚMERO Y NO LA MISMA REGLA**: el
+Forrester corta con `<` estricto y la banda del IC con `<=`. Eso era deliberado desde antes de esta
+tanda y **no se unificó**: son dos preguntas distintas sobre el mismo valor.
+**Decidir:** si el borde del Forrester también debería incluir el 2,2.
+
+### R2-6 · El pulso pulmonar sigue sin existir
+
+Por orden expresa: entró el **punto pulmón** y el pulso pulmonar no. **Decidir** si se agrega.
+
+### R2-7 · La atribución «ESC 2021» quedó en otras zonas, que esta orden no toca
+
+Las **diez** apariciones de la zona de **amiloidosis** se corrigieron a «García-Pavía 2021». Quedan,
+censadas, en zonas que esta orden excluye:
+
+| zona | dónde |
+|---|---|
+| **Válvulas** (Referencias) | los títulos de las tarjetas de IM, IAo, IT, prótesis aórtica y prótesis mitral, más «Indicaciones IM primaria (ESC 2021)» y el pie «ESC 2021 · VARC-3» |
+| **Aorta torácica** | los umbrales de los tres segmentos y la tabla de dilatación del informe |
+| **Insuficiencia cardíaca** | `EV_GUIA_ESC2021IC` y su línea de fuente, que **sí** es una guía ESC 2021 real y está bien atribuida |
+
+⚠️ **LA DE INSUFICIENCIA CARDÍACA ESTÁ CORRECTA Y NO HAY QUE TOCARLA**: ahí «ESC 2021» sí nombra una
+guía de práctica clínica. Las de válvulas son el caso dudoso: `FUENTES.md` **no registra ninguna
+guía valvular ESC 2021**, y eso ya está declarado en este archivo desde el 2026-10-03.
+
+### R2-8 · `informe-pdf-excel.md` sigue a 1 KB del techo y NO se tocó
+
+Está en **34,0 KB** y la regla pide partirlo. Esta tanda **no le escribió nada** —el Excel no gana
+columnas, así que no hacía falta puntero— y por eso sigue sin partirse. El mapa de la tanda nació a
+archivo propio (`tanda-r2-correcciones.md`, 19,6 KB) justamente para no tocarlo.
+**La próxima tanda que lo toque tiene que partirlo.**
+
+### R2-9 · Las conductas de la columna «Acción» no quedaron en ninguna superficie, y está medido
+
+La orden pedía comprobar si los textos de esa columna aparecían además en el informe, el PDF o el
+EN SUMA. **Censado: no.** Las únicas apariciones de «Suspender» que quedan en el archivo son mi
+propio comentario del commit y la función `autosaveSuspender`, que es otra cosa. «Cardioprotección»
+queda **sólo** en la nota del nivel de riesgo (`alto: 'Monitoreo intensificado recomendado…'`), que
+es otra fila y la orden no la nombra.
+**Decidir:** si esa nota del nivel de riesgo, que también es una conducta, sale por el mismo
+criterio de producto.
+
+### R2-10 · Me comí el acento grave 54 veces, y la mitad el script no las alcanza
+
+Todas en comentarios míos dentro del cuerpo de un caso o del template de una sonda, nombrando una
+función o un atributo en prosa — que es como el resto del archivo lo escribe.
+`scripts/check_backticks.py` da la línea exacta en el cuerpo de un `caso(...)`; **no alcanza el
+template de una sonda**, y ésos los dio `node --check`, apuntando a la apertura del template
+cientos de líneas antes. **Correr los dos, siempre.**
+
+### R2-11 · Una nota con acentos graves dentro de `ECO_AYUDA` corrompe el manual sin romper el parseo
+
+Puse un comentario `<!-- -->` dentro del HTML de la tabla de criterios declarados, que vive en un
+**string** de `ECO_AYUDA`, con dos acentos graves adentro. **Cero errores de sintaxis y cero
+errores de consola**, y la suite completa con **SIETE** casos en rojo: TC-123 y TC-149 —que cuentan
+las pestañas y las clases `m*` del manual— y **TC-298, TC-307, TC-333, TC-335 y TC-468**, que
+buscan su propio texto en `ECO_AYUDA` y son de la **mitral** y de **válvulas**, zonas que esta tanda
+no toca.
+
+**Dos cosas que hay que saber:** `ECO_AYUDA` es un string que el armador del PDF **aplana por
+regex**, así que un comentario HTML ahí dentro le mueve el conteo de páginas; y una nota de código
+no va dentro del manual, va **al lado del dueño del dato**.
+
+**Decidir:** si conviene un chequeo de arranque que falle cuando `ECO_AYUDA` contenga un `<!--`,
+que es una línea y cerraría esto por construcción.
+
+⚠️ **Y DOS TRAMPAS DE MÉTODO QUE ESTA TANDA PAGÓ:**
+- **Un `assert` que falla en un script de edición NO APLICA NADA**, porque la escritura va al final
+  — y el paso siguiente informa «SINTAXIS OK» sobre un archivo sin los cambios. Pasó **dos veces**
+  (el comentario de la dosis y el bloque de líneas B, los dos por anclar a un fragmento que no era
+  único o tenía otra sangría). **Verificar con `grep` que la edición quedó.**
+- **Un `grep -c` que devuelve 0 sale con código 1 y corta una cadena `&&`**: el cierre del commit 9
+  se quedó sin Semgrep ni `git commit` por eso, con la edición ya aplicada en el árbol.

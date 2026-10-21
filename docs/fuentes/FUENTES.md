@@ -4425,3 +4425,97 @@ las tarjetas ⓘ.
 | El **ancho del jet** de la IP protésica | «>50–65 % del anillo pulmonar» | «**>50 %** del anillo pulmonar» | ASE 2024, Tabla 16, folio 34 | R8 | 20/10/2026 |
 | La **escala del test de burbuja** en Referencias | <10 / 10–30 / >30 | **<5 / 5–20 / >20**, la del módulo, que no se toca | Pristipino 2019 (supl., Tabla 1) y Kleindorfer, AHA/ASA 2021, folio e413, para el >20; el 5 es criterio de EcoSmart | R8 | 20/10/2026 |
 | El **piso de 9 mmHg** de la estenosis pulmonar | aplicado y sin declarar | **declarado** en la nota de su tarjeta; los cortes de 36 y 64 citados | criterio de EcoSmart (los otros dos sí verificados) | R8 | 20/10/2026 |
+
+---
+
+## La tanda «R2» — las correcciones del 21/10/2026
+
+Tanda de ALINEACIÓN: no agrega criterios clínicos nuevos. Alinea a las guías lo que ya estaba,
+retira lo que no tenía fuente y cierra los dos defectos que el R dejó.
+
+### Las fuentes leídas, con su regla de folio comprobada en el pie impreso
+
+| documento | archivo | regla de folio | comprobada en |
+|---|---|---|---|
+| **ESC/ERS 2022** de hipertensión pulmonar (Humbert) — traducción de la SEC | `Humbert_2022_HTP.pdf` | folio = hoja **− 1** | el encabezado impreso de las hojas 11, 29 y 42 |
+| **García-Pavía 2021**, documento de posición del Grupo de Trabajo de la ESC sobre Enfermedades Miocárdicas y Pericárdicas (*Eur Heart J* 2021;42:1554-1568) | `Garcia-Pavia_2021_Amiloidosis.pdf` | folio = hoja **+ 1553** | el pie impreso de las hojas 3, 5 y 6 |
+| **ESC 2022** de cardio-oncología (Lyon) | `Lyon_2022_CardioOnco.pdf` | folio = hoja **+ 4228** | el pie impreso de las hojas 31 y 33 |
+| **ICM 2026** (Volpicelli, eco pulmonar) | `Volpicelli_2026_EcoPulmonar.pdf` | se cita por **enunciado + hoja** (no lleva folio corrido) | — |
+
+⚠️ **EL CONSENSO SAC 2024 NO ESTÁ EN LA BIBLIOTECA.** Censada entera buscando «SAC», «Sociedad
+Argentina de Cardiología» y «consenso»: cero. Por eso el «índice cardiaco bajo ≤ 2,2» **no se cita**
+y se declara como el corte que la app ya aplicaba. El rango normal 2,5-4,0 **sí** está verificado
+(ESC/ERS 2022, Tabla 10, folio 28).
+
+### Lo verificado, dato por dato
+
+**ESC/ERS 2022 de HTP — Tabla 10 y Figura 5, folio 28.** La Figura 5 escribe las tres bandas de
+velocidad de regurgitación tricuspídea como **`≤ 2.8`**, **`2.9–3.4`** y **`> 3.4`** m/s: el 2,8
+exacto es de la banda BAJA, y con la VRT **no medible** y sin signos la probabilidad es **baja**.
+La Tabla 10 reparte los signos en tres columnas y **ahí se leyó por COORDENADAS**, no por el orden
+en que el extractor devuelve el texto —leído de corrido, las tres columnas se mezclan—:
+- **A: Ventrículos** → relación VD/VI `> 1,0` y **cociente TAPSE/PAPs `< 0,55`** (x0 = 316).
+  El «VD basal > 41 mm» **no está** en esa columna, así que sale del conteo.
+- **B: Arteria pulmonar** → **«AP > aorta»** y **«diámetro de la AP > 25 mm»**, que son **DOS**
+  renglones distintos (x0 = 389), más el tiempo de aceleración y la muesca.
+- **C: Vena cava y aurícula derecha** → VCI `> 21 mm` con **colapso < 50 % en inspiración profunda
+  o < 20 % en inspiración tranquila**, y área de la AD `> 18 cm²`.
+
+**García-Pavía 2021 — Tabla 2, folio 1558.** El espesor relativo de pared se define como
+**(septo + pared posterior) / DDVI**. Y el criterio por eco es, literal:
+«Unexplained LV thickness (>=12 mm) **plus 1 or 2**», donde **1** son los criterios cualitativos
+(«>=2 of a, b, and c have to be present») y **2** el score multiparamétrico («>=8 points»): o sea
+que alcanza **UN** camino, no los dos. La HVI ≥ 12 mm es condición de las dos vías.
+**Folio 1556:** los grados 2 y 3 de la gammagrafía tienen **«especificidad cercana al 100 %»** con
+proteínas monoclonales negativas —no «VPP 100 %»—, y el score **«not yet externally validated»**.
+
+**ESC 2022 de cardio-oncología (Lyon) — folio 4259.** La caída relativa del strain global
+longitudinal que define disfunción es de **más del 15 %** (`> 15 %`, no `>= 15 %`). Con
+antraciclinas el eco va **basal + cada 2 ciclos + a los 3 y 12 meses de terminar** en riesgo alto y
+muy alto, y los **biomarcadores antes de CADA ciclo**. La dosis de alto riesgo es **≥ 250 mg/m²** de
+doxorrubicina o equivalente.
+
+⚠️ **LA CALCULADORA DE RIESGO BASAL DE LA APP NO ES EL HFA-ICOS**, y se declara en los tres lugares
+donde se nombra. Sus pesos y sus cortes **no se tocaron**: lo que cambia es que ya no se atribuye a
+un marco que no implementa.
+
+**ICM 2026 (Volpicelli) — eco pulmonar.** El síndrome intersticial **difuso** pide **dos o más
+zonas positivas por hemitórax**, o sea en CADA uno: dos zonas de un lado solo es unilateral. Y de
+las líneas B **coalescentes** lo que el documento publica es la **descripción** y su grado de
+pérdida de aireación, no el rótulo «edema alveolar». El **punto pulmón** figura como signo de
+neumotórax.
+
+### Cambios de evidencia — tanda «R2»
+
+| dato | antes | ahora | fuente | commit | fecha |
+|---|---|---|---|---|---|
+| El desplegable del **derrame pericárdico** | siete opciones: las cinco vivas más «Derrame mínimo» y «Derrame leve (5-10mm)» como `<option hidden>` | **cinco**: las dos viejas salen del marcado; el token se traduce en los tres bordes y no se migra nada en disco | **ninguna**: es la decisión del R (Tabla 10 de la ESC 2025) aplicada de verdad — un `<option hidden>` lo PINTA WebKit y en los dos motores la búsqueda por letra lo alcanza | E1 | 21/10/2026 |
+| El filtro de cohorte del derrame | ofrecía «mínimo» | los **tres** grados vivos | ídem | E1 | 21/10/2026 |
+| La **sección VAB** con el gesto de la pastilla aórtica | se quedaba con el estado del gesto anterior | se repinta, desde la cola de `toggleValvPill` | **ninguna**: es el defecto del Y3f3, que colgaba el repintado de un `input`/`change` que ese gesto no dispara | E2 | 21/10/2026 |
+| El borde de la **VRT** en la probabilidad de HTP | `< 2.8` → el **2,8 exacto** caía en banda media | **`≤ 2.8`** → cae en banda **baja** | ESC/ERS 2022, Figura 5, folio 28 | E3 | 21/10/2026 |
+| La **VRT no medible** sin signos | «INDETERMINADA» | **«BAJA»** | ídem | E3 | 21/10/2026 |
+| «**VD basal > 41 mm**» | contaba como signo de categoría A | **sale del conteo** | ESC/ERS 2022, Tabla 10, folio 28: en la A van la relación VD/VI y el TAPSE/PSAP | E3 | 21/10/2026 |
+| El cociente **TAPSE/PSAP < 0,55** | no contaba | entra en la **categoría A** | ídem, columna «A: Ventrículos», leída por coordenadas | E3 | 21/10/2026 |
+| El **colapso de la VCI < 20 % con inspiración tranquila** | no existía | entra en la **categoría C**, con la VCI dilatada como condición | ídem, columna «C: Vena cava y aurícula derecha» | E3 | 21/10/2026 |
+| «**AP > aorta**» y «**AP > 25 mm**» | un solo signo | **DOS** signos independientes, con modo automático y manual | ídem, columna «B: Arteria pulmonar»: son dos renglones distintos | E3 | 21/10/2026 |
+| El **e′ medial** de constricción/restricción | dos tramos: `> 8` constricción y el resto restricción | **TRES**: `> 8` constricción · **6 a 8 ninguno** · `< 6` restricción | ESC/ERS 2022 y la bibliografía de la sección: entre 6 y 8 ninguna de las dos se afirma | E4 | 21/10/2026 |
+| El **espesor relativo** de amiloidosis | `(2 × pared posterior) / DDVI` | **`(septo + pared posterior) / DDVI`**, con el septo como condición | García-Pavía 2021, Tabla 2, folio 1558 | E5 | 21/10/2026 |
+| El **criterio por eco** de amiloidosis | exigía score ≥8 **Y** ≥2 criterios cualitativos | alcanza **UNO** de los dos, con HVI ≥12 mm en las dos vías | ídem, literal «plus **1 or 2**» | E5 | 21/10/2026 |
+| El rótulo del criterio alcanzado por la vía cualitativa | «Score ALTO (3/10)» | «**Criterio por eco ALCANZADO** (score 3/10)» | **ninguna**: por esa vía el score puede ser bajo y el rótulo se contradecía | E5 | 21/10/2026 |
+| «**VPP 100 %**» de la gammagrafía | así | «**especificidad cercana al 100 %**», con proteínas monoclonales negativas | García-Pavía 2021, folio 1556 | E5 | 21/10/2026 |
+| La atribución del **algoritmo** | «Gillmore 2016 adaptado» | «Documento de posición del Grupo de Trabajo de la ESC… (García-Pavía, 2021)»; Gillmore 2016 se conserva como fuente de la **gammagrafía** | ídem | E5 | 21/10/2026 |
+| La atribución del **score por ETT**, en las diez superficies | «ESC 2021» | «**García-Pavía 2021**» en pantalla, informe, PDF y PPT | **ninguna**: «ESC 2021» atribuía a una guía de práctica clínica lo que es un documento de posición. Cambio de ROTULO: ni un corte ni una frase clínica se mueven | E5 + commit 10 | 21/10/2026 |
+| La **validación externa** del score | no se decía | el ⓘ declara que **no tiene validación externa** | García-Pavía 2021, folio 1556 | E5 | 21/10/2026 |
+| El **SGL** alterado en cardio-oncología | `>= 15 %` de caída relativa → el **15 exacto** votaba | **`> 15 %`** | ESC 2022 (Lyon), folio 4259 | E6 | 21/10/2026 |
+| La **dosis de alto riesgo** de antraciclinas | 400 mg/m² | **250 mg/m²** | ídem | E6 | 21/10/2026 |
+| El **seguimiento** con antraciclinas | eco cada 3 ciclos | eco **cada 2 ciclos** + a los 3 y 12 meses de terminar; **biomarcadores cada ciclo** | ídem | E6 | 21/10/2026 |
+| El nombre de la **calculadora de riesgo basal** | «HFA-ICOS» | «calculadora propia de EcoSmart, **no es el HFA-ICOS**»; sus pesos y cortes no se tocan | **ninguna**: la app no implementa ese marco | E6 | 21/10/2026 |
+| La columna «**Acción**» de la Referencia rápida | existía | **sale entera** | **ninguna**: criterio de producto — la pantalla describe, no indica conducta | E6 | 21/10/2026 |
+| El **síndrome intersticial difuso** | no miraba las zonas | **dos o más zonas positivas por hemitórax, en CADA uno** | ICM 2026 (Volpicelli) | E7 | 21/10/2026 |
+| «**Edema alveolar**» en las líneas B coalescentes | así se rotulaba | «**Líneas B coalescentes**» | ídem: lo que publica es la descripción y el grado de aireación | E7 | 21/10/2026 |
+| El **punto pulmón** | no existía | entra como signo, con sus tres ramas de neumotórax | ídem | E7 | 21/10/2026 |
+| El **pulso pulmonar** | no existía | **sigue sin existir**, por orden expresa | — | E7 | 21/10/2026 |
+| Los rótulos de la **PCP** y la **RVP** | «PCP (Nagueh)» y «RVP (Abbas)» | «**PCP estimada por eco** (Nagueh)» y «**RVP estimada por eco** (Abbas)», y lo mismo en la clasificación pre/postcapilar y en Forrester | **ninguna**: las dos se calculan igual; lo que cambia es que la pantalla declara que son estimaciones | E8 | 21/10/2026 |
+| El **índice cardiaco** | tres bandas, con un «límite» de 2,2 a 2,49 | **DOS**: `≤ 2.2` bajo · `2,21–4,0` normal · `> 4,0` elevado. El 2,2 exacto pasa de «límite» a **«bajo»** | rango normal 2,5-4,0 de la ESC/ERS 2022, Tabla 10, folio 28; el «bajo ≤ 2,2» es el corte que la app ya aplicaba (consenso SAC 2024, **que no está en la biblioteca**) | E8 | 21/10/2026 |
+| La **RVS** | número + rótulo de banda (800 / 1200 / 1400) y color | **el número solo**: se van el rótulo **y** el color | **ninguna**: esas bandas no están verificadas en la biblioteca. `_rvsBanda` **no se toca** — de ella cuelga la vasoplejia del POP | E8 | 21/10/2026 |
+| «**Posiblemente apto — evaluar Heart Team**» en la oclusión de orejuela | así | «**Ostium dentro del rango de los dispositivos (17-32 mm)**» | **ninguna**: criterio de producto — era una conducta y una afirmación de elegibilidad | E9 | 21/10/2026 |

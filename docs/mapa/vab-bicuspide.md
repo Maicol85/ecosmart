@@ -541,3 +541,19 @@ coronariana»** — ⚠️ en las seis superficies de PANTALLA; **`VAB_TIPO_LBL`
 toca**, porque un valor de opción desconocido descarta la fila entera al reimportar.
 
 → `docs/mapa/tanda-r-referencias.md` § 1.
+
+---
+
+## La tanda «R2» (21/10/2026) — la sección se repinta con el gesto de la pastilla
+
+**El defecto que el R dejó pasaba los tests y fallaba en la pantalla real:** `vabFuncionDerivada`
+estaba bien y el oyente de documento del Y3f3 también, pero **el gesto de la PASTILLA no pasa por
+ningún `input` ni `change` de un control de la sección**, así que al prender «estenosis aórtica» la
+sección seguía mostrando el estado del gesto anterior.
+
+El arreglo va en el **dueño del gesto**, la cola de `toggleValvPill` —la única puerta por la que
+pasa todo cambio de pastilla, censadas sus cinco entradas—, acotado a la aórtica y en `try`.
+
+**Dónde está todo:** `docs/mapa/tanda-r2-correcciones.md`, sección 2 (el censo de las cinco
+entradas, por qué la condición no puede llamar a `vabSync` a mano y por qué el estado se captura
+dentro de cada escena).

@@ -19601,10 +19601,22 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
 <!-- MODO COMPARATIVO -->
 <div id="tab-amiloidosis" class="tab-section">
 
-  <!-- ═══ 🫀 SCORE AMILOIDOSIS POR ETT (ESC 2021) ═══ -->
+  <!-- ═══ 🫀 SCORE AMILOIDOSIS POR ETT (GARCIA-PAVIA 2021) ═══ -->
   <div class="card" style="margin-bottom:6px;">
     <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('amilo-ett-seccion',this);calcETT()">
-      🫀 Score Amiloidosis por ETT (ESC 2021)
+      <!-- ⚠️ «ESC 2021» NO ES UNA GUIA Y SE SACA COMO ATRIBUCION, EN LAS DIEZ (R2-E5, commit 10).
+           El commit 5 cambio el bloque del ALGORITMO y la linea de Fuentes y me quedaron DIEZ
+           lugares con el sello viejo: cuatro de pantalla, el `interp` de `calcETT`, los dos
+           `L.push` del texto que se integra al informe, el titulo de la hoja, el encabezado del
+           PDF y el titulo del PPT. Dejar la mitad era peor que no tocar nada: la app publicaba
+           «Garcia-Pavia 2021» en el algoritmo y «ESC 2021» en el score del mismo paciente.
+           ES UN CAMBIO DE ROTULO: ni un corte, ni la banda 5-7, ni el campo sparkling, ni la
+           ecografia tisular, ni una frase clinica se mueven —el numero de puntos, la categoria y
+           la interpretacion salen identicos, medido—. Lo que cambia es a QUIEN se le atribuye.
+           La fuente es el documento de posicion del Grupo de Trabajo de la ESC sobre Enfermedades
+           Miocardicas y Pericardicas (Garcia-Pavia y col., Eur Heart J 2021;42:1554-1568), que no
+           es una guia de practica clinica de la ESC. -->
+      🫀 Score Amiloidosis por ETT (García-Pavía 2021)
       <span id="amilo-ett-arrow" style="float:right;transition:transform 0.2s;">▶</span>
     </h2>
   </div>
@@ -19659,7 +19671,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
           </div>
 
           <div class="card">
-            <div class="card-title"><span>📊</span> Puntuación multiparamétrica — ESC 2021</div>
+            <div class="card-title"><span>📊</span> Puntuación multiparamétrica — García-Pavía 2021</div>
             <div class="criterio-item" id="crit-rwt" onclick="toggleCrit('crit-rwt','ett-rwt',3)">
       <div class="criterio-check" id="chk-rwt">—</div>
       <div style="flex:1">
@@ -19782,7 +19794,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
              se conservan tal cual: no se tocó una línea de esa función. -->
         <div class="card" style="margin-bottom:0">
           <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
-            <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Score ESC 2021</span>
+            <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Score multiparamétrico</span>
             <span style="font-size:13px;font-weight:700;font-variant-numeric:tabular-nums"><span id="ett-score-num">0</span> / 10 pts</span>
             <span id="ett-score-cat" style="font-size:12px;font-weight:600">Completá los parámetros</span>
           </div>
@@ -24709,8 +24721,9 @@ function calcHemo() {
        ⚠️ `_rvsBanda` NO SE TOCA, Y ES LO QUE PROTEGE AL POSOPERATORIO: de esa funcion cuelga la
        VASOPLEJIA del POP (RVS < 800), que esta orden excluye expresamente, y la leen tambien el
        SVRI del PiCCO y la capsula del Swan. Lo que se saca es el USO del rotulo aca, no la
-       funcion. El color se conserva: es la unica senal que queda y no afirma una banda con
-       palabras. */
+       funcion. ⚠️ Y SE VA TAMBIEN EL COLOR, no solo la palabra: el badge entero sale. Un color
+       sin rotulo seguiria afirmando la banda —y la regla de la casa es que el color nunca es lo
+       unico que informa—, asi que lo que queda es el NUMERO pelado, que es lo que la orden pide. */
     setH('hemo-rvs', rvs.toFixed(0) + ' dinas·s·cm⁻⁵');
   } else setH('hemo-rvs', '—');
 
@@ -48286,8 +48299,18 @@ function _ctrcdEsGrado(k) { return k === 'severa' || k === 'moderada' || k === '
    fórmula escrita otra vez del lado del Lab, un GLS de −18 → −16 sería «11 %» en un lado y
    «2 puntos» en el otro. Devuelve null si falta alguno de los dos. */
 /* El umbral sale de `CO_UMBRAL_GLS_REL` por lo mismo: es el número que la leyenda del PDF
-   escribe («GLS caída >=15 % relativa») y el que dibuja la línea «basal -15% rel.» de la curva.
+   escribe («GLS caída >15 % relativa», con el operador del R2-E6) y el que dibuja la línea
+   «basal -15% rel.» de la curva.
    Es la comparación, no la fórmula: `_ctrcdGlsRel` devuelve el porcentaje y esto decide. */
+/* ⚠️ Y EL OPERADOR LO SIGUEN LAS TRES TABLAS QUE LO PUBLICAN, no solo el clasificador: la de
+   Referencias de cardiotoxicidad, la Referencia rapida y la de criterios DECLARADOS del manual
+   —esa ultima decia «caida relativa >= 15 %» y se alineo en el commit 10, porque un SGL de -20 a
+   -17 (15,0 exactos) no es cardiotoxicidad para la app y esa tabla decia que si—. Lo destapo
+   TC-93 en la SUITE COMPLETA, no la corrida de zona.
+   ⚠️ Y LA NOTA NO PUEDE IR EN EL MANUAL COMO COMENTARIO HTML: `ECO_AYUDA` es un STRING que el
+   armador del PDF aplana por REGEX, asi que un `<!-- -->` ahi dentro le mueve el conteo de
+   paginas y el barrido de clases `m*` —puso TC-123 y TC-149 en rojo—; y sus acentos graves caen
+   dentro de un template literal. Va aca, que es codigo. */
 /* ⚠️ EL OPERADOR ES `>` ESTRICTO (R2-E6, 2026-10-21). FUENTE, VERIFICADA EN EL ORIGINAL: guia
    ESC 2022 de cardio-oncologia (Lyon y col.), **Figura 25, hoja 55, folio impreso 4283** y
    **Figura 26, hoja 57, folio 4285** (regla folio = hoja + 4228, comprobada en el pie impreso de
@@ -48616,7 +48639,11 @@ function hfaicosPublicarBasal() {
       _b.textContent = 'Riesgo ' + _hfa.banda + ' (' + _hfa.pts + '/' + _hfa.max + ' pts)';
       _fila('Riesgo CV basal (calculadora de EcoSmart)', _b);
       _fila('Seguimiento ecocardiográfico', _val(_hfa.seguimiento));
-      _fila('Salvedad', _val('Marco HFA-ICOS (ESC 2022). Recoge sólo los factores disponibles en el ecocardiograma; el HFA-ICOS completo es específico por tratamiento (tabla 4).'));
+      /* ⚠️ LA SALVEDAD SIGUE AL NOMBRE (R2-E6, commit 10): decia «Marco HFA-ICOS (ESC 2022)» dos
+         filas debajo de un rotulo que el commit 6 ya habia pasado a «calculadora de EcoSmart», o
+         sea el mismo papel firmado atribuyendo la banda a un marco que la app NO implementa y
+         nombrandola propia en el renglon de arriba. Lo destapo TC-72 en la SUITE COMPLETA. */
+      _fila('Salvedad', _val('Calculadora propia de EcoSmart, no es el HFA-ICOS. Recoge sólo los factores disponibles en el ecocardiograma; el HFA-ICOS de la ESC 2022 es específico por tratamiento (tabla 4).'));
     } else {
       var _g = document.createElement('span');
       _g.className = 'badge badge-gray';
@@ -83832,7 +83859,7 @@ function amiloTextoETT() {
   const L = [];
 
   L.push('## Resultado del score');
-  L.push('Score ESC 2021: ' + pts + ' / 10 puntos');
+  L.push('Score García-Pavía 2021: ' + pts + ' / 10 puntos');
   if (cat && !/^Complet/i.test(cat)) L.push('Clasificación: ' + cat.replace(/^[^A-Za-zÁÉÍÓÚÑáéíóúñ0-9]+/, ''));
 
   L.push('## Criterio indispensable — HVI');
@@ -83901,7 +83928,7 @@ function amiloTextoAlgoritmo() {
   const motivo = _amSelTxt('alg-motivo');
   L.push('Motivo de sospecha: ' + (motivo || 'no especificado'));
   const sc = _amV('alg-ett-score');
-  if (sc) L.push('Score ETT ESC 2021 aportado: ' + sc + ' / 10');
+  if (sc) L.push('Score ETT García-Pavía 2021 aportado: ' + sc + ' / 10');
 
   L.push('## Centellograma Tc99 — grado Perugini');
   const GR = ['0 — no capta', '1 — captación leve, menor que el hueso', '2 — captación similar al hueso', '3 — captación mayor que el hueso'];
@@ -85142,7 +85169,7 @@ window.ccHoja = ccHoja;
 
 function amiloSecs() {
   return [
-    { k:'ett',  lbl:'Score Amiloidosis por ETT',       tit:'SCORE DE PROBABILIDAD DE AMILOIDOSIS CARDÍACA — ESC 2021',            gen:amiloTextoETT },
+    { k:'ett',  lbl:'Score Amiloidosis por ETT',       tit:'SCORE DE PROBABILIDAD DE AMILOIDOSIS CARDÍACA — GARCÍA-PAVÍA 2021',            gen:amiloTextoETT },
     { k:'alg',  lbl:'Algoritmo diagnóstico',           tit:'ALGORITMO DIAGNOSTICO DE AMILOIDOSIS',     gen:amiloTextoAlgoritmo },
     { k:'hemo', lbl:'Perfil hemodinámico',             tit:'PERFIL HEMODINAMICO',                      gen:amiloTextoHemo },
     /* `hayDatos` acá no pregunta si hay datos sino si el score APLICA: con FEVI reducida el
@@ -85724,7 +85751,7 @@ function amiloImprimirPDF(cual) {
   // Encabezado con los datos del paciente, igual que el informe
   doc.setFillColor(T[0],T[1],T[2]); doc.rect(0, 0, 210, 22, 'F');
   doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(255,255,255);
-  doc.text(esETT ? 'Score Amiloidosis por ETT - ESC 2021' : 'Algoritmo diagnostico de amiloidosis', 105, 9, { align:'center' });
+  doc.text(esETT ? 'Score Amiloidosis por ETT - Garcia-Pavia 2021' : 'Algoritmo diagnostico de amiloidosis', 105, 9, { align:'center' });
   const _s = id => { const e = document.getElementById(id); return e ? String(e.value || '').trim() : ''; };
   const _f = _s('fecha') ? _s('fecha').split('-').reverse().join('/') : '';
   /* ⚠️ LA IDENTIFICACION SALE DE `pacIdImpreso` (CORTOS9, 2026-10-17), y cierra `J-2`. Este
@@ -86383,7 +86410,7 @@ function calcETT() {
     interp='HVI presente pero score bajo. Considerar otras causas de HVI (HTA, estenosis aórtica, miocardiopatía hipertrófica). Amiloidosis menos probable pero no descartada.';
   } else {
     cat='⚪ Score: ' + pts + '/10 — Sin HVI ≥12mm';
-    interp='Sin HVI ≥12mm, el algoritmo ESC 2021 no es formalmente aplicable. Score calculado como referencia.';
+    interp='Sin HVI ≥12mm, el algoritmo de la Tabla 2 (García-Pavía 2021) no es formalmente aplicable. Score calculado como referencia.';
   }
 
   if(catEl) catEl.textContent = cat;
@@ -88944,7 +88971,7 @@ function _pptDesdeFormulario(inf, tema, presentador){
   // ══ Amiloidosis ══
   if (integrado('ett')) {
     const s = nueva();
-    titulo(s, 'Evaluación de Amiloidosis Cardíaca — ESC 2021');
+    titulo(s, 'Evaluación de Amiloidosis Cardíaca — García-Pavía 2021');
     /* Los cinco criterios del score NO tienen un span por criterio: el módulo los redacta en
        su propio texto (am-txt-ett), que es lo que imprime el PDF. Se usa esa fuente en vez de
        una tabla de ids inventados — el primer intento pedía am-rwt/am-ee/am-tapse/am-gls/
@@ -125348,8 +125375,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261020-2333';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1792550030695;                 /* eco-build-ms */
+const ECO_BUILD    = '20261021-0243';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1792561422083;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -125435,7 +125462,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261020-2333</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261021-0243</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -127643,7 +127670,7 @@ const ECO_AYUDA = [
 <div class="mSub">Otros</div>
 <table class="mTbl"><tr><th>Módulo</th><th>Criterio</th><th>Guía</th></tr>
 <tr><td>Cardiotoxicidad — FEVI</td><td>caída ≥ 10 puntos porcentuales respecto del basal, o FEVI &lt; 50 %</td><td>ESC 2022</td></tr>
-<tr><td>Cardiotoxicidad — GLS</td><td>caída relativa ≥ 15 %</td><td>ESC 2022</td></tr>
+<tr><td>Cardiotoxicidad — GLS</td><td>caída relativa &gt; 15 %</td><td>ESC 2022</td></tr>
 <tr><td>HFA-PEFF — NT-proBNP en fibrilación auricular</td><td>criterio menor desde 375 pg/mL</td><td>Pieske 2019</td></tr>
 <tr><td>VEXUS</td><td>requiere VCI ≥ 20 mm · grado 3 exige dos o más vasos severos</td><td>Beaubien-Souligny 2020</td></tr>
 <tr><td>Volumen auricular izquierdo indexado</td><td>&gt; 34 ml/m² dilatado</td><td>ASE/EACVI</td></tr></table>

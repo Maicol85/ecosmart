@@ -5609,15 +5609,24 @@ caso('TC-66', 'VAB: aorta de 56 mm dispara la indicacion Clase I de la ESC 2024'
 `);
 
 // ═══ GRUPO 22 — Amiloidosis ═════════════════════════════════════════════════════════════════
-/* El criterio INDISPENSABLE del score ESC 2021 es HVI >= 12 mm. Por debajo, el score no es
-   formalmente aplicable y la hoja tiene que decirlo en vez de publicar un numero. */
+/* El criterio INDISPENSABLE del score es HVI >= 12 mm. Por debajo, el score no es formalmente
+   aplicable y la hoja tiene que decirlo en vez de publicar un numero.
+   ⚠️ ADAPTADO el 2026-10-21 (R2-E5): el rotulo del score pasa de «Score ESC 2021» a «Score
+   Garcia-Pavia 2021» en las DIEZ superficies. «ESC 2021» atribuia a una guia de practica
+   clinica lo que es un DOCUMENTO DE POSICION del Grupo de Trabajo (Garcia-Pavia y col., Eur
+   Heart J 2021;42:1554-1568). Es un cambio de ROTULO: el numero de puntos, la categoria, la
+   interpretacion y el predicado de HVI >= 12 mm no se movieron, y este caso sigue midiendo lo
+   mismo. La capsula de pantalla dice «Score ESC no aplicable» y ESA frase no se toco. */
 caso('TC-67', 'Amiloidosis: con HVI <12 mm el score ESC no es aplicable y la hoja lo dice', `
   __t.limpiar(); __t.set('ett-septo','10'); __t.set('ett-pp','10');
   const txt = amiloTextoETT();
   return { extra: [
     ['la capsula lo declara', (__t.txt('ett-hvi-badge') || '').indexOf('HVI <12mm — Score ESC no aplicable') > -1],
     ['la hoja lo declara',    txt.indexOf('HVI < 12 mm: el score ESC no es formalmente aplicable') > -1],
-    ['y publica 0, no un score',  txt.indexOf('Score ESC 2021: 0 / 10 puntos') > -1]
+    ['y publica 0, no un score',  txt.indexOf('Score García-Pavía 2021: 0 / 10 puntos') > -1],
+    /* CONTROL NEGATIVO del renombre: la atribucion vieja no sobrevive en la hoja. */
+    ['y el sello viejo «ESC 2021» ya no esta en la hoja', txt.indexOf('ESC 2021') < 0,
+      txt.slice(0, 160)]
   ] };
 `);
 
@@ -5630,7 +5639,9 @@ caso('TC-68', 'Amiloidosis: score 9/10 con HVI cumplida y cuatro criterios marca
   const txt = amiloTextoETT();
   return { extra: [
     ['el numero de pantalla es 9', __t.txt('ett-score-num') === '9'],
-    ['la hoja publica 9/10',       txt.indexOf('Score ESC 2021: 9 / 10 puntos') > -1],
+    /* ⚠️ ADAPTADO el 2026-10-21 (R2-E5): rotulo «Garcia-Pavia 2021» por el mismo motivo que
+       TC-67. El 9/10 y las otras cuatro condiciones no se tocaron. */
+    ['la hoja publica 9/10',       txt.indexOf('Score García-Pavía 2021: 9 / 10 puntos') > -1],
     ['el espesor maximo se declara', txt.indexOf('Espesor parietal máximo 16.0 mm') > -1],
     ['HVI cumplida',               txt.indexOf('HVI >= 12 mm presente, criterio cumplido') > -1],
     ['y avisa que fueron marcados sin valor numerico',
@@ -5698,10 +5709,22 @@ caso('TC-72', 'Cardio-onco: la hoja del PDF trae riesgo basal, funcion y conclus
       sinFactores.indexOf('Completar en «Calculadora de Riesgo CV»') > -1 &&
       !/Riesgo (BAJO|MEDIO|ALTO|MUY ALTO)/.test(sinFactores)],
     ['con la calculadora cargada, la hoja trae SU banda',
-      txt.indexOf('Riesgo CV basal (HFA-ICOS) | Riesgo ALTO (2/13 pts)') > -1],
+      /* ADAPTADO el 2026-10-21 (R2-E6): la calculadora de riesgo basal de la app NO es el
+         HFA-ICOS y se renombra en todos lados, la hoja del PDF incluida. Lo que este caso vigila
+         —que el PDF publique la banda del dueño y no una propia— no cambia; cambia el ROTULO. */
+      txt.indexOf('Riesgo CV basal (calculadora de EcoSmart) | Riesgo ALTO (2/13 pts)') > -1,
+      (txt.match(/Riesgo CV basal[^|]{0,60}\|[^|]{0,40}/g) || []).slice(0, 2).join(' // ')],
     ['con su recomendacion de seguimiento',
       txt.indexOf('Eco cada 2 ciclos durante el tratamiento') > -1],
-    ['y la salvedad del marco',  txt.indexOf('Marco HFA-ICOS (ESC 2022)') > -1],
+    /* ⚠️ ADAPTADO el 2026-10-21: y la salvedad SEGUIA diciendo «Marco HFA-ICOS (ESC 2022)» dos
+       filas debajo de un rotulo que el commit 6 ya habia pasado a «calculadora de EcoSmart», o
+       sea el mismo papel firmado atribuyendo la banda a un marco que la app NO implementa y
+       nombrandola propia en el renglon de arriba. Lo destapo ESTE caso en la suite completa y se
+       cerro en el commit 10. */
+    ['y la salvedad declara que NO es el HFA-ICOS, en el mismo papel',
+      txt.indexOf('Calculadora propia de EcoSmart, no es el HFA-ICOS') > -1
+        && txt.indexOf('Marco HFA-ICOS (ESC 2022)') === -1,
+      (txt.match(/Salvedad[^|]{0,30}\|[^|]{0,90}/g) || []).slice(0, 1).join('')],
     ['ya no queda rastro del score viejo',
       txt.indexOf('Score orientativo') === -1 && txt.indexOf('pts)') > -1 &&
       txt.indexOf('Riesgo MODERADO') === -1]
@@ -5739,8 +5762,15 @@ caso('TC-88', 'Cardio-onco: la constante de la leyenda y el umbral que clasifica
     ['con 10 pp exactos ya cruza el umbral',
       fevi(60, 50).indexOf('Caida FEVI 10.0 pp con FEVI >= 50%') > -1],
     ['con 14 % relativo de GLS no hay toxicidad', gls(-20, -17.2).indexOf('Sin toxicidad detectada') > -1],
-    ['con 15.0 % exactos es CTRCD leve',
-      gls(-20, -17).indexOf('caida relativa de GLS 15.0% — cardiotoxicidad LEVE asintomatica') > -1]
+    /* ADAPTADO el 2026-10-21 (R2-E6): el operador pasa de >= a > (ESC 2022, Lyon, folio 4259),
+       asi que el 15,0 EXACTO ya NO vota y el que cruza es el 15,1. El caso mide el borde por sus
+       DOS lados, que es mas de lo que medía antes. */
+    ['con 15.0 % exactos NO hay toxicidad: el operador es > y no >=',
+      gls(-20, -17).indexOf('Sin toxicidad detectada') > -1,
+      gls(-20, -17).slice(0, 110)],
+    ['y con 15.1 % ya es CTRCD leve',
+      gls(-20, -16.98).indexOf('caida relativa de GLS 15.1% — cardiotoxicidad LEVE asintomatica') > -1,
+      gls(-20, -16.98).slice(0, 130)]
   ] };
 `);
 
@@ -6159,11 +6189,14 @@ caso('TC-93', 'Cardio-onco: la tabla de Referencias dice lo mismo que clasifica 
       tabla.indexOf('FEVI ≥50% con caída ≥10% + síntomas/biomarcadores') === -1],
     ['el clasificador rotula LEVE con 2 pp de caida y troponina elevada',
       leve.indexOf('cardiotoxicidad LEVE asintomatica (ESC 2022)') > -1],
-    // El umbral del SGL es >= 15, no > 15: la tabla tiene que escribir el operador que
-    // el codigo usa. Con «>15%» un GLS de -20 a -17 —15,0 exactos— es LEVE para el
-    // clasificador y no califica segun la tabla, que es la discrepancia que esto cierra.
-    ['la tabla usa ≥15% para el SGL, igual que el codigo',
-      tabla.indexOf('SGL ↓ ≥15% relativo') > -1 && tabla.indexOf('SGL ↓ >15% relativo') === -1],
+    /* ADAPTADO el 2026-10-21 (R2-E6): hoy el umbral del SGL es > 15 y no >= 15, asi que la
+       condicion afirma LO CONTRARIO de lo que afirmaba — y lo que vigila es lo mismo: que la
+       tabla escriba el operador que el codigo usa. Con «≥15%» un GLS de -20 a -17 —15,0
+       exactos— NO es toxicidad para el clasificador y calificaria segun la tabla, que es la
+       discrepancia que esto cierra, con el signo dado vuelta. */
+    ['la tabla usa >15% para el SGL, igual que el codigo',
+      tabla.indexOf('SGL ↓ >15% relativo') > -1 && tabla.indexOf('SGL ↓ ≥15% relativo') === -1,
+      (tabla.match(/SGL[^·|]{0,28}/g) || []).slice(0, 2).join(' / ')],
     ['la tabla exige descenso para la moderada',
       tabla.indexOf('Tiene que haber descenso') > -1],
     ['y el clasificador NO llama moderada a una FEVI que mejora hasta 40-49 con troponina',
@@ -6181,8 +6214,13 @@ caso('TC-93', 'Cardio-onco: la tabla de Referencias dice lo mismo que clasifica 
     ['la tabla de la propia pestaña define la severa como FEVI nueva <40%',
       rapida.indexOf('FEVI nueva <40% (basal >=40%)') > -1 &&
       rapida.indexOf('FEVI <50% o caida >=10pp') === -1],
-    ['y usa >=15% para el GLS, no >15%',
-      rapida.indexOf('GLS reduccion >=15% relativa') > -1],
+    /* ADAPTADO el 2026-10-21 (R2-E6): el operador pasa a > (ESC 2022, Lyon, folio 4259) y la
+       Referencia rapida lo siguio. La condicion afirma hoy lo contrario y vigila lo mismo: que
+       esa tabla escriba el operador que el codigo usa. */
+    ['y usa >15% para el GLS, no >=15%',
+      rapida.indexOf('GLS reduccion >15% relativa') > -1
+        && rapida.indexOf('GLS reduccion >=15% relativa') === -1,
+      (rapida.match(/GLS reduccion[^·|]{0,30}/g) || []).join(' / ')],
     ['el clasificador confirma: basal 62 a 48 es MODERADA, no severa',
       moderada.indexOf('cardiotoxicidad MODERADA (ESC 2022)') > -1 &&
       moderada.indexOf('SEVERA') === -1]
@@ -6209,16 +6247,24 @@ caso('TC-94', 'CTRCD: el SGL se clasifica con el mismo valor que se publica', `
       _ctrcdGlsRel(-18, -15.3) === 15],
     ['y da exactamente lo mismo que -20 -> -17',
       _ctrcdGlsRel(-18, -15.3) === _ctrcdGlsRel(-20, -17)],
-    ['los dos pares clasifican igual: LEVE',
-      tox(-18, -15.3).indexOf(LEVE) > -1 && tox(-20, -17).indexOf(LEVE) > -1],
-    ['y ninguno queda en el verde de «sin toxicidad»',
-      tox(-18, -15.3).indexOf('Sin toxicidad detectada') === -1],
+    /* ADAPTADO el 2026-10-21 (R2-E6): con el operador en > el 15,0 exacto ya no vota, asi que
+       los dos pares clasifican igual pero del OTRO lado. Lo que el caso vigila —que el valor con
+       el que se clasifica sea el MISMO que se publica, sin la coma flotante en el medio— no
+       cambia: los dos siguen dando el mismo veredicto, y eso es el punto. */
+    ['los dos pares clasifican igual: ninguno vota con 15,0 exactos',
+      tox(-18, -15.3).indexOf('Sin toxicidad detectada') > -1
+        && tox(-20, -17).indexOf('Sin toxicidad detectada') > -1,
+      tox(-18, -15.3).slice(0, 90) + ' // ' + tox(-20, -17).slice(0, 90)],
+    ['y el par de 15,1 % SI clasifica LEVE: el borde separa',
+      tox(-20, -16.98).indexOf(LEVE) > -1, tox(-20, -16.98).slice(0, 120)],
     // El redondeo no puede correr la banda: 14,94 redondea a 14,9 y sigue por debajo.
     ['14,94 % redondea a 14,9 y NO es toxicidad',
       _ctrcdGlsRel(-20, -17.012) === 14.9 && tox(-20, -17.012).indexOf('Sin toxicidad detectada') > -1],
-    // Y del otro lado: 14,96 se publica como 15,0, asi que clasifica como 15,0.
-    ['14,96 % se publica 15,0 y por eso clasifica como 15,0',
-      _ctrcdGlsRel(-20, -17.008) === 15 && tox(-20, -17.008).indexOf(LEVE) > -1]
+    /* Y del otro lado: 14,96 se publica como 15,0, asi que clasifica como 15,0 — que desde el
+       R2-E6 es NO votar. El acuerdo entre el valor publicado y el clasificado es lo que se mide. */
+    ['14,96 % se publica 15,0 y por eso clasifica como 15,0: no vota',
+      _ctrcdGlsRel(-20, -17.008) === 15 && tox(-20, -17.008).indexOf('Sin toxicidad detectada') > -1,
+      'rel=' + _ctrcdGlsRel(-20, -17.008) + ' tox=' + tox(-20, -17.008).slice(0, 90)]
   ] };
 `);
 
@@ -6376,15 +6422,29 @@ caso('TC-96', 'Cohorte: el estudio parado en el umbral entra en su propia cohort
     __t.set('co_gls_basal','-20'); __t.set('co_gls_actual','-17');
     const rotulado = (__t.txt('co-toxicidad-resultado') || '').indexOf('cardiotoxicidad LEVE') > -1;
     return { extra: [
-      ['GLS 15,0 % exactos entra en la cohorte',   glsJusto === true],
-      ['y el par que daba 14.999... tambien',      glsFlotan === true],
+      /* ADAPTADO el 2026-10-21 (R2-E6): el clasificador pasa de >= 15 a > 15, y el filtro de
+         cohorte lo siguio EN EL MISMO COMMIT, asi que el 15,0 exacto ya no entra en ninguno de
+         los dos. Lo que este caso vigila —que la cohorte y el clasificador NO se separen en el
+         borde, que es el defecto que cerro el 2026-09-15— sigue intacto y es lo que se mide
+         abajo: los dos coinciden, del lado nuevo. El par que cruza es el 15,1. */
+      ['GLS 15,0 % exactos NO entra en la cohorte: el operador es > y no >=',
+        glsJusto === false, 'justo15=' + glsJusto],
+      ['y el par que daba 14.999... tampoco, por el mismo redondeo',
+        glsFlotan === false, 'flotante=' + glsFlotan],
+      ['y el de 15,1 % SI entra: el borde separa',
+        enCohorte(G, 'gt15', { co_gls_basal:'-20', co_gls_actual:'-16.98' }) === true,
+        'justo151=' + enCohorte(G, 'gt15', { co_gls_basal:'-20', co_gls_actual:'-16.98' })],
       ['14,0 % sigue quedando fuera',              glsMenos === false],
       ['caida de FEVI de 10,0 pp exactos entra',   feviJusta === true],
       ['9 pp sigue quedando fuera',                feviMenos === false],
       ['la etiqueta del filtro dice ≥ y no >',
         desc.indexOf('Caída FEVI ≥ 10 pp') > -1 && desc.indexOf('Caída FEVI > 10 pp') === -1],
-      ['y el clasificador rotula LEVE ese mismo estudio: cohorte e informe coinciden',
-        rotulado === true && glsJusto === true]
+      /* ADAPTADO el 2026-10-21 (R2-E6): el 15,0 exacto ya no vota en ninguno de los dos lados,
+         asi que lo que se comprueba es el ACUERDO —que es lo que este caso existe para vigilar—
+         y no el valor: el clasificador NO lo rotula y la cohorte NO lo incluye. */
+      ['y el clasificador tampoco lo rotula: cohorte e informe coinciden en el borde',
+        rotulado === false && glsJusto === false,
+        'rotulado=' + rotulado + ' enCohorte=' + glsJusto]
     ] };
   } finally { _LAB_COHORTE = previo; }
 `);
@@ -11941,11 +12001,17 @@ caso('TC-100', 'Cardio-onco: las dos pestañas de referencia dicen lo mismo', `
     /* Cadena EXACTA de la fila de la tabla de farmacos, distinta de la de la tabla por clase
        (una lleva «y», la otra coma). Asi cada condicion fija SU fila: con un indexOf generico de
        «cada 2 ciclos» la condicion pasaba por el texto de la otra tabla y no probaba nada. */
+    /* ADAPTADO el 2026-10-21 (R2-E6): el calendario de antraciclinas pasa a «cada 2 ciclos en
+       riesgo alto y muy alto» con los biomarcadores antes de CADA ciclo (ESC 2022, Lyon, folio
+       4259), asi que la cadena exacta de esta fila cambio. Lo que la condicion vigila —que cada
+       tabla fije SU fila con su cadena propia, y no pase por el texto de la otra— no cambia. */
     ['la tabla de farmacos dice lo mismo',
-      onco.indexOf('cada 2 ciclos si riesgo alto y cada ciclo si muy alto') > -1],
+      onco.indexOf('cada 2 ciclos en riesgo alto y muy alto. Los biomarcadores') > -1,
+      (onco.match(/cada 2 ciclos[^·|]{0,70}/g) || []).slice(0, 3).join(' / ')],
     ['y ya no dice «c/ciclo si alto riesgo»', onco.indexOf('c/ciclo si alto riesgo') === -1],
-    ['la tabla por clase tambien reparte las dos bandas',
-      onco.indexOf('cada 2 ciclos si riesgo alto, cada ciclo si muy alto') > -1],
+    ['la tabla por clase tambien reparte las dos bandas, con SU cadena',
+      onco.indexOf('cada 2 ciclos en riesgo alto y muy alto; los biomarcadores') > -1,
+      (onco.match(/cada 2 ciclos[^·|]{0,70}/g) || []).slice(0, 3).join(' / ')],
     ['las tres coinciden en el resto del calendario',
       (onco.match(/12 meses/g) || []).length >= 2 && legenda.indexOf('12 meses') > -1],
 
@@ -12007,9 +12073,15 @@ caso('TC-99', 'Cardio-onco: las tablas de referencia no contradicen al clasifica
        numero deja de dar y avisa. */
     ['las filas remiten a la subtab de grados, que es la que define la conducta',
       (ref.match(/graduar la CTRCD con la subtab «CTRCD» de esta seccion/g) || []).length === 4],
-    ['y esa tabla sigue reservando «Suspender» para la severa',
-      ref.indexOf('Suspender, cardioproteccion, reevaluar en 2-4 sem') > -1 &&
-      ref.indexOf('Continuar con cardioproteccion y control en 4 sem') > -1],
+    /* ADAPTADO el 2026-10-21 (R2-E6): la columna «Accion» de la Referencia rapida SALE ENTERA
+       —era una CONDUCTA, y el criterio de producto es que la pantalla describa—, asi que esas
+       dos cadenas ya no existen. La condicion afirma hoy LO CONTRARIO, y de paso cubre lo que
+       la orden pedia comprobar: que esas conductas no se mudaron a otra superficie. */
+    ['la columna «Accion» ya no esta, y sus conductas no se mudaron a otra fila',
+      ref.indexOf('Suspender, cardioproteccion, reevaluar en 2-4 sem') === -1
+        && ref.indexOf('Continuar con cardioproteccion y control en 4 sem') === -1
+        && ref.indexOf('Acción') === -1,
+      (ref.match(/Suspender[^·|]{0,40}/g) || []).join(' / ') || '(ninguna)'],
     // Las cuatro mitades del aviso de escalas.
     ['el aviso de que las dos escalas NO coinciden esta',
       ref.indexOf('NO usan la misma escala') > -1],
@@ -80043,6 +80115,511 @@ caso('TC-507', 'Tanda R: la VAB muestra la lesion PRESENTE sin grado con un solo
 
   return { extra: ex };
 `);
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════════
+   TC-508 — LA TANDA «R2», los nueve commits en un solo caso.
+   ⚠️ EL CUERPO DE UN CASO NO PUEDE MANDAR TECLAS DE CONFIANZA: corre DENTRO de la pagina, no
+   tiene el canal del protocolo, y un KeyboardEvent construido a mano no activa la escritura
+   nativa de un <input> ni la busqueda por letra de un <select>. Asi que las escenas de ACA van
+   con `__t.set` y el gesto equivalente, y las MISMAS escenas con TECLAS Y CLICS REALES, en los
+   DOS motores, las corre `scripts/_probe_r2wk.mjs`. Es el reparto que TC-460 y TC-463 ya tienen
+   escrito, y esta dicho para que nadie lea «teclas reales» donde no las hay.
+   ⚠️ Y LO QUE ESTE CASO MIRA ES LO RENDERIZADO, no el atributo: la leccion de la tanda R es que
+   un `<option hidden>` pasa `getComputedStyle` y WebKit lo PINTA igual, asi que las opciones se
+   cuentan por lo que el <select> OFRECE y no por su atributo. */
+caso('TC-508', 'Tanda R2: el desplegable del derrame ofrece SOLO las cinco opciones vivas y los dos textos viejos se traducen en los TRES bordes sin perder la fila al reimportar; la seccion VAB se repinta con el gesto de la pastilla aortica; los SEIS puntos de la probabilidad de HTP de la Tabla 10 y la Figura 5 —el 2,8 en la banda BAJA, la VRT no medible, el VD basal fuera del conteo, el TAPSE/PSAP en la categoria A, el colapso de la VCI y los dos signos de la arteria pulmonar—; el e-prima medial de constriccion/restriccion en TRES tramos; el espesor relativo de amiloidosis sumando el septo y el criterio por eco alcanzando por UN camino; el SGL desde MAS de 15 %, los 250 mg/m2 y la calculadora que no es HFA-ICOS; el sindrome intersticial difuso por zonas, sin «edema alveolar» y con el punto pulmon; el indice cardiaco en DOS bandas con el 2,2 bajo, la RVS sin rotulo de banda y los rotulos «estimada por eco»; la orejuela sin «Posiblemente apto»; y el informe, el EN SUMA y las 440 columnas del Excel sin una sola columna nueva', `
+  const ex = [];
+  const EL  = id => document.getElementById(id);
+  const TXT = id => { const e = EL(id); return e ? (e.textContent || '').trim() : 'NO EXISTE'; };
+  const VAL = id => { const e = EL(id); return e ? String(e.value == null ? '' : e.value) : 'NO EXISTE'; };
+  const FN  = n => typeof window[n] === 'function';
+  const SEL = (id, v) => { const e = EL(id); if (!e) return false;
+    e.value = v; e.dispatchEvent(new Event('change', { bubbles: true })); return e.value === v; };
+  const CLIC = id => { const e = EL(id); if (!e) return false; e.click(); return true; };
+  const OPTS = id => { const e = EL(id); if (!e) return null;
+    return Array.prototype.map.call(e.options, o => ({
+      v: o.value, t: (o.textContent || '').trim(), hid: !!o.hidden,
+      dis: !!o.disabled, dsp: getComputedStyle(o).display })); };
+  /* TRAMPA DE ECO_AYUDA: las constantes nuevas son const de MODULO. window[n] da undefined y el
+     identificador PELADO si se ve. Cada una con su centinela para que el caso no muera por
+     excepcion —un caso que muere por excepcion prueba que el arbol es distinto, no que sabe
+     medir, y es la leccion que TC-455, TC-462, TC-465, TC-471, TC-473 y TC-474 ya tienen—. */
+  const _vrtBaja = (typeof HTP_VRT_BAJA_MAX  !== 'undefined') ? HTP_VRT_BAJA_MAX  : null;
+  const _vrtMed  = (typeof HTP_VRT_MEDIA_MAX !== 'undefined') ? HTP_VRT_MEDIA_MAX : null;
+  const _apMin   = (typeof HTP_AP_MM_MIN     !== 'undefined') ? HTP_AP_MM_MIN     : null;
+  const _apAuto  = (typeof HTP_AP_AUTO       !== 'undefined') ? HTP_AP_AUTO       : null;
+  const _cMin    = (typeof CVR_ESEP_CONSTR_MIN !== 'undefined') ? CVR_ESEP_CONSTR_MIN : null;
+  const _rMax    = (typeof CVR_ESEP_RESTR_MAX  !== 'undefined') ? CVR_ESEP_RESTR_MAX  : null;
+  const _glsMax  = (typeof CO_UMBRAL_GLS_REL   !== 'undefined') ? CO_UMBRAL_GLS_REL   : null;
+  const _dosis   = (typeof CO_DOSIS_ALTO_RIESGO !== 'undefined') ? CO_DOSIS_ALTO_RIESGO : null;
+  const _zonMin  = (typeof PUL_ZONAS_DIFUSO_MIN !== 'undefined') ? PUL_ZONAS_DIFUSO_MIN : null;
+  const _zonLado = (typeof PUL_ZONAS_LADO === 'object' && PUL_ZONAS_LADO) ? PUL_ZONAS_LADO : null;
+  const _xlsLis  = (typeof LAB_XLS_LISTAS === 'object' && LAB_XLS_LISTAS) ? LAB_XLS_LISTAS : null;
+  const _xlsLeg  = (typeof LAB_XLS_LISTAS_LEGADO === 'object' && LAB_XLS_LISTAS_LEGADO) ? LAB_XLS_LISTAS_LEGADO : null;
+  const _amCalc  = (typeof _AM_CALC === 'object' && _AM_CALC) ? _AM_CALC : null;
+  const _togEte  = (typeof toggleEteSeccion === 'function') ? toggleEteSeccion : null;
+  const _migra   = (typeof _migrarCamposLegacy === 'function') ? _migrarCamposLegacy : null;
+  const _lista   = (typeof _labXlsLista === 'function') ? _labXlsLista : null;
+  const _xlsRow  = (typeof _labExcelRow === 'function') ? _labExcelRow : null;
+  const _xlsCols = (typeof _labExcelCols === 'function') ? _labExcelCols : null;
+  const _asBl    = (typeof _labXlsAssertBloques === 'function') ? _labXlsAssertBloques : null;
+  const _asLi    = (typeof _labXlsAssertListas === 'function') ? _labXlsAssertListas : null;
+  const _icB     = (typeof _icBanda === 'function') ? _icBanda : null;
+  const _rvsB    = (typeof _rvsBanda === 'function') ? _rvsBanda : null;
+  const _htpCore = (typeof _htp2022Core === 'function') ? _htp2022Core : null;
+  const _glsAlt  = (typeof _ctrcdGlsAlterado === 'function') ? _ctrcdGlsAlterado : null;
+  const _difuso  = (typeof pulAvDifuso === 'function') ? pulAvDifuso : null;
+  const inf = () => { try { __t.informe(); return VAL('informe_texto') + ' ## ' + VAL('en_suma'); }
+                      catch (e) { return 'EXC ' + e.message; } };
+
+  /* ══ DENOMINADOR 0 · las piezas de los nueve commits EXISTEN ═════════════════════════════ */
+  ex.push(['(DENOM0) las constantes y funciones nuevas de los nueve commits existen',
+    _vrtBaja !== null && _vrtMed !== null && _apMin !== null && !!_apAuto
+      && _cMin !== null && _rMax !== null && _glsMax !== null && _dosis !== null
+      && _zonMin !== null && !!_zonLado && !!_xlsLeg && FN('htpApSync') && !!_difuso,
+    'vrt=' + _vrtBaja + '/' + _vrtMed + ' ap=' + _apMin + ' apAuto=' + !!_apAuto
+      + ' cvr=' + _cMin + '/' + _rMax + ' gls=' + _glsMax + ' dosis=' + _dosis
+      + ' zonas=' + _zonMin + ' lados=' + !!_zonLado + ' leg=' + !!_xlsLeg
+      + ' apSync=' + FN('htpApSync') + ' difuso=' + !!_difuso]);
+
+  /* ══ (A) E1 · EL DESPLEGABLE DEL DERRAME OFRECE SOLO LAS CINCO VIVAS ══════════════════════
+     ⚠️ SE CUENTA LO QUE EL <select> OFRECE, NO EL ATRIBUTO. La tanda R escondio las dos viejas
+     con <option hidden> y la sonda de entonces, que miraba el atributo, lo dio por bueno:
+     WebKit PINTA igual una opcion con hidden en la lista nativa, y en los DOS motores la
+     busqueda por letra la alcanza. Por eso la condicion es que NO ESTEN. */
+  const _per = OPTS('pericardio');
+  const _VIVAS = ['Normal, sin derrame', 'Derrame leve (<10mm)', 'Derrame moderado (10-20mm)',
+                  'Derrame severo (>20mm)', 'Engrosamiento / calcificación'];
+  ex.push(['(DENOM A) el desplegable del derrame existe y tiene opciones',
+    !!_per && _per.length > 0, 'n=' + (_per ? _per.length : 'NO EXISTE')]);
+  ex.push(['(A1) ofrece EXACTAMENTE las cinco opciones vivas, en orden',
+    !!_per && _per.length === 5 && _VIVAS.every((t, i) => _per[i] && _per[i].t === t),
+    JSON.stringify((_per || []).map(o => o.t))]);
+  ex.push(['(A2) y NINGUNA de las cinco esta escondida ni deshabilitada —ni por atributo ni por display—',
+    !!_per && _per.every(o => !o.hid && !o.dis && o.dsp !== 'none'),
+    JSON.stringify((_per || []).map(o => o.t + '|hid=' + o.hid + '|dsp=' + o.dsp))]);
+  ex.push(['(A3) los dos textos viejos NO se pueden elegir: no estan en el desplegable',
+    !!_per && _per.every(o => o.t.indexOf('mínimo') < 0 && o.t.indexOf('5-10mm') < 0
+                           && o.v.indexOf('mínimo') < 0 && o.v.indexOf('5-10mm') < 0),
+    JSON.stringify((_per || []).map(o => o.v))]);
+  /* ⚠️ Y EL FILTRO DE COHORTE SIGUE A LAS CATEGORIAS: con la opcion «mínimo» puesta, el panel
+     ofrecia filtrar por un grado que ningun estudio nuevo puede tener. */
+  const _coh = OPTS('coh-dpt-tam');
+  ex.push(['(A4) el filtro de cohorte ofrece los TRES grados y ya no el «mínimo»',
+    !!_coh && _coh.some(o => o.v === 'leve') && _coh.some(o => o.v === 'moderado')
+      && _coh.some(o => o.v === 'severo') && _coh.every(o => o.v !== 'minimo'),
+    JSON.stringify((_coh || []).map(o => o.v))]);
+
+  /* ══ (B) E1 · EL TOKEN VIEJO SE TRADUCE EN EL BORDE, Y EN LOS TRES CAMINOS ════════════════ */
+  const _mig = v => { if (!_migra) return 'SIN FN';
+    const c = { pericardio: v }; try { _migra(c); } catch (e) { return 'EXC ' + e.message; }
+    return c.pericardio; };
+  ex.push(['(B1) «Derrame mínimo» de un estudio guardado abre como «Derrame leve (<10mm)»',
+    _mig('Derrame mínimo') === 'Derrame leve (<10mm)', 'quedo=' + _mig('Derrame mínimo')]);
+  ex.push(['(B2) y «Derrame leve (5-10mm)» tambien',
+    _mig('Derrame leve (5-10mm)') === 'Derrame leve (<10mm)',
+    'quedo=' + _mig('Derrame leve (5-10mm)')]);
+  ex.push(['(B3) CONTROL NEGATIVO: un valor VIVO no se toca',
+    _mig('Derrame severo (>20mm)') === 'Derrame severo (>20mm)'
+      && _mig('Engrosamiento / calcificación') === 'Engrosamiento / calcificación',
+    'severo=' + _mig('Derrame severo (>20mm)') + ' engros=' + _mig('Engrosamiento / calcificación')]);
+  /* ⚠️ LO QUE LA TRADUCCION EVITA ES UN selectedIndex -1: sin ella el <select> queda en
+     ninguna opcion y el estudio reabre con el campo VACIO, perdiendo el dato del papel. */
+  const _idxTrad = (() => { __t.limpiar(); const e = EL('pericardio'); if (!e) return 'NO EXISTE';
+    const c = { pericardio: 'Derrame mínimo' }; if (_migra) _migra(c);
+    e.value = c.pericardio; return e.selectedIndex; })();
+  const _idxCrudo = (() => { const e = EL('pericardio'); if (!e) return 'NO EXISTE';
+    e.value = 'Derrame mínimo'; return e.selectedIndex; })();
+  ex.push(['(B4) con la traduccion el <select> queda en una opcion REAL, y sin ella en ninguna',
+    _idxTrad > 0 && _idxCrudo === -1, 'traducido=' + _idxTrad + ' crudo=' + _idxCrudo]);
+
+  /* ══ (C) E1 · EL IMPORTADOR SIGUE ACEPTANDO LOS DOS TEXTOS VIEJOS ═════════════════════════
+     ⚠️ ESTA ES LA CONDICION QUE MAS CARO SALE SI FALTA, y la encontro la MEDICION del
+     importador y no la lectura: para una columna de opcion un valor desconocido descarta la
+     FILA ENTERA, y «Derrame mínimo» es el valor que trae cada fila de cada backup anterior.
+     _labXlsLista lee SOLO LAB_XLS_LISTAS, asi que los legados tienen que estar en la lista
+     VIVA y no solo declarados en LAB_XLS_LISTAS_LEGADO. */
+  const _acepta = v => { if (!_lista) return 'SIN FN';
+    try { return _lista('pericardio', v); } catch (e) { return 'EXC ' + e.message; } };
+  ex.push(['(C1) el importador ACEPTA los dos textos viejos',
+    _acepta('Derrame mínimo') !== null && _acepta('Derrame leve (5-10mm)') !== null,
+    'min=' + JSON.stringify(_acepta('Derrame mínimo'))
+      + ' leve510=' + JSON.stringify(_acepta('Derrame leve (5-10mm)'))]);
+  ex.push(['(C2) y sigue aceptando los cinco vivos',
+    _VIVAS.every(t => _acepta(t) !== null),
+    JSON.stringify(_VIVAS.map(t => t + '=' + JSON.stringify(_acepta(t))))]);
+  ex.push(['(C3) CONTROL NEGATIVO: un texto inventado NO se acepta',
+    _acepta('Derrame catastrófico') === null, 'inventado=' + JSON.stringify(_acepta('Derrame catastrófico'))]);
+  ex.push(['(C4) los dos legados estan DECLARADOS aparte y la lista viva los CONTIENE',
+    !!_xlsLeg && !!_xlsLeg.pericardio && _xlsLeg.pericardio.length === 2
+      && !!_xlsLis && _xlsLis.pericardio.indexOf('Derrame mínimo') > -1
+      && _xlsLis.pericardio.length === 7,
+    'legado=' + JSON.stringify(_xlsLeg ? _xlsLeg.pericardio : null)
+      + ' viva=' + (_xlsLis ? _xlsLis.pericardio.length : 'NO')]);
+  /* Los dos asserts devuelven la LISTA de divergencias: vacia es limpio. */
+  ex.push(['(C5) y los dos asserts de arranque del Excel salen limpios',
+    (() => { try { const a = _asBl ? _asBl() : null; const b = _asLi ? _asLi() : null;
+      return Array.isArray(a) && a.length === 0 && Array.isArray(b) && b.length === 0; }
+      catch (e) { return false; } })(),
+    (() => { try { return 'bloques=' + JSON.stringify(_asBl ? _asBl() : 'SIN')
+      + ' listas=' + JSON.stringify(_asLi ? _asLi() : 'SIN'); }
+      catch (e) { return 'EXC ' + e.message; } })()]);
+
+  /* ══ (D) E2 · LA SECCION VAB SE REPINTA CON EL GESTO DE LA PASTILLA ═══════════════════════
+     ⚠️ EL DEFECTO QUE ESTO CIERRA PASABA LOS TESTS Y FALLABA EN LA PANTALLA: la funcion dueña
+     (vabFuncionDerivada) estaba bien y el oyente de documento del Y3f3 tambien, pero el gesto
+     de la PASTILLA no pasa por ningun input ni change de un control de la seccion, asi que
+     nada la repintaba. Por eso la condicion NO llama a vabSync() a mano: si la llamara,
+     pasaria igual contra el arbol roto. */
+  const _vabGesto = (lesion) => {
+    __t.limpiar();
+    SEL('va_morf', 'Bicúspide');
+    try { if (typeof showTab === 'function') showTab('valvulas'); } catch (e) {}
+    try { const s = EL('ete-seccion-valv-aortica');
+      if (s && getComputedStyle(s).display === 'none' && _togEte) _togEte('valv-aortica'); } catch (e) {}
+    try { if (typeof vabSync === 'function') vabSync(); } catch (e) {}
+    const antes = { func: VAL('vab_funcion'), concl: TXT('vab-concl') };
+    CLIC('pill-' + lesion + '-aortica');
+    /* ⚠️ ACA NO SE LLAMA A vabSync: el punto del commit es que el gesto lo dispare solo. */
+    /* ⚠️ EL ESTADO SE CAPTURA ACA Y NO DESPUES DE LAS DOS ESCENAS: la segunda limpia el
+       formulario, asi que leer al final mide la escena de la insuficiencia creyendo medir las
+       dos. Mi primera version lo hacia y la condicion salio al revés. */
+    return { antes: antes, func: VAL('vab_funcion'), concl: TXT('vab-concl'),
+             pill: (typeof pillOn === 'function') ? pillOn('aortica', lesion) : null,
+             sgEa: (typeof aoLesionSinGrado === 'function') ? aoLesionSinGrado('ea') : 'SIN FN',
+             sgIa: (typeof aoLesionSinGrado === 'function') ? aoLesionSinGrado('ia') : 'SIN FN' };
+  };
+  const _vE = _vabGesto('esten');
+  const _vI = _vabGesto('insuf');
+  ex.push(['(DENOM D) las dos pastillas quedaron PRENDIDAS con el clic',
+    _vE.pill === true && _vI.pill === true,
+    'esten=' + _vE.pill + ' insuf=' + _vI.pill]);
+  ex.push(['(D1) el gesto de la pastilla de ESTENOSIS repinta la seccion VAB, sin llamar a vabSync',
+    _vE.func !== _vE.antes.func || _vE.concl !== _vE.antes.concl,
+    'antes=' + JSON.stringify(_vE.antes) + ' despues=' + JSON.stringify({ f: _vE.func, c: _vE.concl })]);
+  ex.push(['(D2) y el de INSUFICIENCIA tambien',
+    _vI.func !== _vI.antes.func || _vI.concl !== _vI.antes.concl,
+    'antes=' + JSON.stringify(_vI.antes) + ' despues=' + JSON.stringify({ f: _vI.func, c: _vI.concl })]);
+  ex.push(['(D3) y lo que publica es la lesion PRESENTE sin grado, cada una la suya',
+    _vE.sgEa === true && _vE.sgIa === false && _vI.sgIa === true && _vI.sgEa === false,
+    'escenaEsten={ea:' + _vE.sgEa + ',ia:' + _vE.sgIa + '} escenaInsuf={ea:' + _vI.sgEa
+      + ',ia:' + _vI.sgIa + '}']);
+  /* CONTROL NEGATIVO del commit 2: con src —un estudio ARCHIVADO, que no tiene pastillas— la
+     funcion devuelve false SIEMPRE y no se pone a leer la pantalla del paciente de al lado. */
+  ex.push(['(D4) CONTROL NEGATIVO: con un estudio archivado NO lee la pantalla',
+    (typeof aoLesionSinGrado === 'function')
+      && aoLesionSinGrado('ea', {}) === false && aoLesionSinGrado('ea', { ea_grado: 'sin' }) === false,
+    'vacio=' + ((typeof aoLesionSinGrado === 'function') ? aoLesionSinGrado('ea', {}) : 'SIN FN')]);
+
+  /* ══ (E) E3 · LOS SEIS PUNTOS DE LA PROBABILIDAD DE HTP ═══════════════════════════════════
+     Se mide el MOTOR con una fuente sintetica —_htp2022Core toma {num,txt,chk} justamente
+     para esto— y despues se comprueba que la PANTALLA publique lo mismo. Con el motor solo, un
+     cuadro que no repinta pasaria; con la pantalla sola, no se pueden recorrer los bordes. */
+  const _src = (N, T, C) => ({ num: k => (k in N ? N[k] : null),
+                               txt: k => (k in T ? T[k] : ''),
+                               chk: k => !!C[k] });
+  const _core = (N, T, C) => { if (!_htpCore) return 'SIN FN';
+    try { return _htpCore(_src(N || {}, T || {}, C || {})); } catch (e) { return 'EXC ' + e.message; } };
+  const _vrt = v => { const r = _core({ vmax_it: v }, {}, {}); return r.vrtCat || r; };
+  ex.push(['(E1) el 2,8 EXACTO cae en la banda BAJA, y el 2,9 en la media (Figura 5, folio 28)',
+    _vrt(2.79) === 'baja' && _vrt(2.8) === 'baja' && _vrt(2.81) === 'media' && _vrt(2.9) === 'media',
+    '2.79=' + _vrt(2.79) + ' 2.80=' + _vrt(2.8) + ' 2.81=' + _vrt(2.81) + ' 2.90=' + _vrt(2.9)]);
+  ex.push(['(E2) y el 3,4 EXACTO sigue en media, con 3,41 en alta',
+    _vrt(3.4) === 'media' && _vrt(3.41) === 'alta',
+    '3.40=' + _vrt(3.4) + ' 3.41=' + _vrt(3.41)]);
+  const _nm = _core({}, {}, {});
+  ex.push(['(E3) la VRT NO MEDIBLE sin ningun signo es probabilidad BAJA, no «no estimable»',
+    _nm.vrtCat === 'nomedible' && _nm.nCat === 0 && _nm.prob === 'BAJA',
+    JSON.stringify({ cat: _nm.vrtCat, n: _nm.nCat, prob: _nm.prob })]);
+  ex.push(['(E4) y con DOS categorias pasa a INTERMEDIA',
+    (() => { const r = _core({ tvia: 90, ad_area: 22 }, { vci_col: '<50' }, {});
+      return r.nCat >= 2 && r.prob === 'INTERMEDIA'; })(),
+    JSON.stringify(_core({ tvia: 90, ad_area: 22 }, { vci_col: '<50' }, {}))]);
+  /* ⚠️ EL «VD basal > 41 mm» SALE DEL CONTEO: la Tabla 10 pone en la categoria A la relacion
+     VD/VI y el TAPSE/PSAP, no el diametro basal solo. */
+  const _soloBas = _core({ vd_bas: 50 }, {}, {});
+  ex.push(['(E5) un VD basal dilatado SOLO ya no cuenta como signo de categoria A',
+    _soloBas.catA === false && _soloBas.nCat === 0,
+    JSON.stringify({ a: _soloBas.catA, n: _soloBas.nCat })]);
+  ex.push(['(E6) CONTROL: la relacion VD/VI SI sigue contando en la A',
+    _core({ vd_vi: 1.2 }, {}, {}).catA === true,
+    'vdvi=' + JSON.stringify(_core({ vd_vi: 1.2 }, {}, {}).catA)]);
+  ex.push(['(E7) el cociente TAPSE/PSAP < 0,55 entra en la categoria A, y el 0,55 EXACTO no',
+    _core({ tapse: 16, psap_calc: 40 }, {}, {}).catA === true
+      && _core({ tapse: 22, psap_calc: 40 }, {}, {}).catA === false,
+    'bajo=' + _core({ tapse: 16, psap_calc: 40 }, {}, {}).catA
+      + ' exacto055=' + _core({ tapse: 22, psap_calc: 40 }, {}, {}).catA]);
+  ex.push(['(E8) el colapso de la VCI < 20 % con inspiracion tranquila entra en la C',
+    _core({ vci_diam: 25 }, {}, { htp2022_c_col20: 1 }).catC === true,
+    'col20=' + JSON.stringify(_core({ vci_diam: 25 }, {}, { htp2022_c_col20: 1 }).catC)]);
+  ex.push(['(E9) CONTROL del colapso: sin VCI dilatada el signo no alcanza solo',
+    _core({}, {}, { htp2022_c_col20: 1 }).catC === false,
+    'sinVci=' + JSON.stringify(_core({}, {}, { htp2022_c_col20: 1 }).catC)]);
+  ex.push(['(E10) «AP > aorta» y «AP > 25 mm» son DOS signos y cada uno entra solo en la B',
+    _core({}, {}, { htp2022_b3ao: 1 }).catB === true && _core({}, {}, { htp2022_b3: 1 }).catB === true,
+    'ao=' + _core({}, {}, { htp2022_b3ao: 1 }).catB + ' mm=' + _core({}, {}, { htp2022_b3: 1 }).catB]);
+  ex.push(['(E11) el corte del diametro de la AP es 25 mm y su modo automatico existe',
+    _apMin === 25 && !!_apAuto && FN('htpApSync'),
+    'apMin=' + _apMin + ' auto=' + JSON.stringify(_apAuto) + ' sync=' + FN('htpApSync')]);
+  /* ⚠️ Y LA PANTALLA PUBLICA LO MISMO QUE EL MOTOR: con la VRT en 2,8 el cuadro tiene que decir
+     la banda baja. Sin esta condicion, un cuadro que se quedo con el paciente anterior pasa. */
+  const _htpPant = (() => { __t.limpiar();
+    try { if (typeof showTab === 'function') showTab('hemodinamica'); } catch (e) {}
+    __t.set('vmax_it', '2.8');
+    try { if (typeof calcHTP2022 === 'function') calcHTP2022(); } catch (e) {}
+    return { vrt: TXT('htp2022-vrt-interp'), prob: TXT('htp2022-prob'),
+             a: TXT('htp2022-catA'), b: TXT('htp2022-catB'), c: TXT('htp2022-catC') }; })();
+  ex.push(['(E12) la PANTALLA publica la banda baja con 2,8 y el rotulo con el operador nuevo',
+    _htpPant.vrt.indexOf('2.8') > -1 && _htpPant.vrt.indexOf('≤') > -1
+      && _htpPant.vrt.indexOf('< 2.8') < 0,
+    JSON.stringify(_htpPant)]);
+
+  /* ══ (F) E4 · EL e-PRIMA MEDIAL DE CONSTRICCION/RESTRICCION EN TRES TRAMOS ════════════════ */
+  const _fila = (html, rot) => { if (!html) return 'NO HAY TABLA';
+    const i = html.indexOf(rot); if (i < 0) return 'NO HAY FILA ' + rot;
+    const j = html.indexOf('</tr>', i); return html.slice(i, j < 0 ? i + 400 : j); };
+  const _cvr = v => { __t.limpiar();
+    try { if (typeof showTab === 'function') showTab('ete'); } catch (e) {}
+    try { const s = EL('ete-seccion-constr-restr');
+      if (s && getComputedStyle(s).display === 'none' && _togEte) _togEte('constr-restr'); } catch (e) {}
+    if (v !== null) __t.set('e_sep', String(v));
+    try { if (typeof cvrCambio === 'function') cvrCambio(); } catch (e) {}
+    const tb = EL('cvr-tabla'); const h = tb ? tb.innerHTML : null;
+    const f = _fila(h, 'medial');
+    return { val: TXT('cvr-esep'), conteo: TXT('cvr-conteo'),
+             med: f.indexOf('◐') > -1, ok: f.indexOf('✅') > -1, no: f.indexOf('❌') > -1,
+             fila: String(f).replace(/<[^>]*>/g, ' ').replace(/ +/g, ' ').slice(0, 110) }; };
+  const _c9 = _cvr(9), _c8 = _cvr(8), _c7 = _cvr(7), _c6 = _cvr(6), _c5 = _cvr(5), _cNull = _cvr(null);
+  ex.push(['(DENOM F) las dos constantes del e-prima medial existen y la fila se dibuja',
+    _cMin === 8 && _rMax === 6 && _c9.fila.indexOf('NO HAY') < 0,
+    'constr=' + _cMin + ' restr=' + _rMax + ' fila=' + _c9.fila]);
+  ex.push(['(F1) un e-prima medial de 9 vota CONSTRICCION',
+    _c9.ok === true && _c9.med === false, JSON.stringify(_c9)]);
+  ex.push(['(F2) uno de 5 vota RESTRICCION',
+    _c5.no === true && _c5.med === false, JSON.stringify(_c5)]);
+  ex.push(['(F3) el tramo del medio —6 a 8— no vota a ningun lado, y los DOS bordes caen ahi',
+    _c7.med === true && _c8.med === true && _c6.med === true,
+    '8=' + JSON.stringify(_c8) + ' 7=' + JSON.stringify(_c7) + ' 6=' + JSON.stringify(_c6)]);
+  ex.push(['(F4) CONTROL NEGATIVO: sin dato la fila no vota NI muestra el tramo del medio',
+    _cNull.med === false && _cNull.ok === false && _cNull.no === false,
+    JSON.stringify(_cNull)]);
+
+  /* ══ (G) E5 · EL ESPESOR RELATIVO SUMA EL SEPTO, Y EL CRITERIO POR ECO ALCANZA UN CAMINO ══
+     ⚠️ ESTE DEFECTO ERA MIO Y LO CAZO LA MEDICION, NO LA LECTURA: cambie los insumos de
+     _AM_CALC.rwt y deje el cuerpo de calcRWT con el (2*pp)/ddvi viejo, asi que el septo
+     asimetrico seguia dando el valor de la pared duplicada. El assert de mi script de edicion
+     paso porque el fragmento que buscaba existia. Por eso la condicion usa un SEPTO DISTINTO de
+     la pared: con septo = pared las dos formulas dan el MISMO numero y no prueban nada. */
+  const _rwt = (sep, pp, ddvi) => { __t.limpiar();
+    try { if (typeof showTab === 'function') showTab('amiloidosis'); } catch (e) {}
+    if (sep !== null) __t.set('rwt-septo', String(sep));
+    if (pp !== null) __t.set('rwt-pp', String(pp));
+    if (ddvi !== null) __t.set('rwt-ddvi', String(ddvi));
+    try { if (typeof calcRWT === 'function') calcRWT(); } catch (e) {}
+    /* ⚠️ rwt-result ES UN <input> Y SE LEE POR .value: rwt-val es el nodo del SCORE y con
+       textContent devuelve «—» siempre. Mi primera version leia ese y daba el defecto por
+       presente sobre un calculo correcto. Se mide tambien el valor PURO del dueño. */
+    return { res: VAL('rwt-result'),
+             puro: (typeof amETTValor === 'function') ? amETTValor('rwt') : 'SIN FN' }; };
+  const _rAsim = _rwt(18, 11, 50);   /* (18+11)/50 = 0.58 — con la formula vieja daba 0.44 */
+  const _rSim  = _rwt(14, 14, 50);   /* septo = pared: las dos formulas coinciden, control */
+  const _rSinS = _rwt(null, 11, 50); /* sin septo no se puede calcular */
+  ex.push(['(DENOM G) los tres campos del espesor relativo existen y el septo es uno de ellos',
+    !!EL('rwt-septo') && !!EL('rwt-pp') && !!EL('rwt-ddvi')
+      && !!_amCalc && !!_amCalc.rwt && (_amCalc.rwt.ins || []).indexOf('rwt-septo') > -1,
+    'septo=' + !!EL('rwt-septo') + ' ins=' + JSON.stringify(_amCalc && _amCalc.rwt ? _amCalc.rwt.ins : null)]);
+  ex.push(['(G1) con septo 18 y pared 11 sobre DDVI 50 el espesor relativo es 0,58 —suma el septo—',
+    _rAsim.res === '0.58' && Math.abs(_rAsim.puro - 0.58) < 0.0001, JSON.stringify(_rAsim)]);
+  ex.push(['(G2) CONTROL: con septo IGUAL a la pared el numero es el de siempre, 0,56',
+    _rSim.res === '0.56', JSON.stringify(_rSim)]);
+  ex.push(['(G3) CONTROL NEGATIVO: sin el septo no se calcula nada',
+    _rSinS.res === '' || _rSinS.res === 'NO EXISTE', JSON.stringify(_rSinS)]);
+  /* El criterio por eco: la Tabla 2 pide HVI >= 12 mm MAS uno de los dos caminos. */
+  const _ett = (sep, pp, pts, cual) => { __t.limpiar();
+    try { if (typeof showTab === 'function') showTab('amiloidosis'); } catch (e) {}
+    __t.set('ett-septo', String(sep)); __t.set('ett-pp', String(pp));
+    if (pts) __t.set('ett-rwt', String(pts));
+    for (let i = 1; i <= cual; i++) __t.set('ett-cual-' + i, '1');
+    try { if (typeof calcETT === 'function') calcETT(); } catch (e) {}
+    return { cat: TXT('ett-score-cat'), interp: TXT('ett-score-interp'),
+             num: TXT('ett-score-num'), hvi: TXT('ett-hvi-badge') }; };
+  const _eScore = _ett(16, 15, 9, 1);   /* score 9, UN cualitativo  -> alcanza por el score */
+  const _eCual  = _ett(16, 15, 3, 2);   /* score 3, DOS cualitativos -> alcanza por los cuali */
+  const _eNada  = _ett(16, 15, 3, 1);   /* ninguno de los dos caminos */
+  const _eSinH  = _ett(10, 10, 9, 2);   /* los dos caminos pero SIN HVI: la fuente no aplica */
+  ex.push(['(G4) con score >= 8 y UN solo criterio cualitativo el criterio por eco ya se alcanza',
+    _eScore.cat.indexOf('muy sugestiva') > -1, JSON.stringify(_eScore)]);
+  ex.push(['(G5) y con DOS cualitativos y score BAJO tambien —es el otro camino de la Tabla 2—',
+    _eCual.cat.indexOf('muy sugestiva') > -1, JSON.stringify(_eCual)]);
+  /* ⚠️ Y EL ROTULO NO PUEDE DECIR «Score ALTO» CON UN SCORE BAJO: por la via cualitativa el
+     puntaje puede ser 3, y «Score ALTO (3/10)» se lee como una contradiccion en la pantalla. */
+  ex.push(['(G6) por la via cualitativa el rotulo nombra el CAMINO y no un score alto que no hay',
+    _eCual.cat.indexOf('Criterio por eco ALCANZADO') > -1 && _eCual.cat.indexOf('ALTO') < 0
+      && _eScore.cat.indexOf('Score ALTO') > -1,
+    'cual=' + _eCual.cat + ' | score=' + _eScore.cat]);
+  ex.push(['(G7) CONTROL NEGATIVO: sin ninguno de los dos caminos NO alcanza',
+    _eNada.cat.indexOf('muy sugestiva') < 0, JSON.stringify(_eNada)]);
+  ex.push(['(G8) CONTROL NEGATIVO: sin HVI >= 12 mm no alcanza aunque esten los dos caminos',
+    _eSinH.cat.indexOf('muy sugestiva') < 0 && _eSinH.cat.indexOf('Sin HVI') > -1,
+    JSON.stringify(_eSinH)]);
+  /* La atribucion: «ESC 2021» no es una guia, y el rotulo del score lo nombra por lo que es. */
+  ex.push(['(G9) el score se atribuye a Garcia-Pavia 2021 y no a una guia «ESC 2021»',
+    (() => { const t = document.documentElement.innerHTML;
+      const i = t.indexOf('Score Amiloidosis por ETT');
+      return i > -1 && t.slice(i, i + 120).indexOf('ESC 2021') < 0; })()
+      && (typeof amiloTextoETT === 'function'
+            ? amiloTextoETT().indexOf('ESC 2021') < 0 : false),
+    (() => { try { return amiloTextoETT().slice(0, 150); } catch (e) { return 'EXC'; } })()]);
+
+  /* ══ (H) E6 · CARDIO-ONCOLOGIA ════════════════════════════════════════════════════════════ */
+  ex.push(['(H1) el SGL alterado es MAS de 15 % de caida relativa: el 15 EXACTO no vota',
+    !!_glsAlt && _glsMax === 15 && _glsAlt(14.9) === false && _glsAlt(15) === false
+      && _glsAlt(15.1) === true,
+    'corte=' + _glsMax + ' 14.9=' + (_glsAlt ? _glsAlt(14.9) : 'SIN')
+      + ' 15=' + (_glsAlt ? _glsAlt(15) : 'SIN') + ' 15.1=' + (_glsAlt ? _glsAlt(15.1) : 'SIN')]);
+  ex.push(['(H2) CONTROL NEGATIVO: sin dato de SGL no vota',
+    !!_glsAlt && _glsAlt(null) === false, 'null=' + (_glsAlt ? _glsAlt(null) : 'SIN')]);
+  ex.push(['(H3) la dosis de alto riesgo de antraciclinas es 250 mg/m2',
+    _dosis === 250, 'dosis=' + _dosis]);
+  ex.push(['(H4) con antraciclinas el eco va cada 2 CICLOS y los biomarcadores cada ciclo',
+    (() => { const t = document.documentElement.innerHTML;
+      return t.indexOf('cada 2 ciclos') > -1 && t.indexOf('cada 3 ciclos') < 0; })(),
+    (() => { const t = document.documentElement.innerHTML;
+      return '2ciclos=' + (t.indexOf('cada 2 ciclos') > -1) + ' 3ciclos=' + (t.indexOf('cada 3 ciclos') > -1); })()]);
+  ex.push(['(H5) la calculadora de riesgo basal DECLARA que no es el HFA-ICOS',
+    document.documentElement.innerHTML.indexOf('no es el HFA-ICOS') > -1
+      || document.documentElement.innerHTML.indexOf('no es HFA-ICOS') > -1, '']);
+  /* ⚠️ LA COLUMNA «Accion» DE LA REFERENCIA RAPIDA SALE ENTERA: era una CONDUCTA y el criterio
+     de producto es que la pantalla describa. Se cuenta por los encabezados de ESA tabla. */
+  ex.push(['(H6) la tabla de referencia rapida ya no tiene columna «Accion»',
+    (() => { const ths = Array.prototype.map.call(
+        document.querySelectorAll('#co-ref-rapida th, [id^="co-ref"] th'),
+        th => (th.textContent || '').trim());
+      return ths.length === 0 || ths.every(t => t.indexOf('Acción') < 0 && t.indexOf('Accion') < 0); })(),
+    (() => { const ths = Array.prototype.map.call(
+        document.querySelectorAll('#co-ref-rapida th, [id^="co-ref"] th'),
+        th => (th.textContent || '').trim()); return JSON.stringify(ths); })()]);
+
+  /* ══ (I) E7 · ECO PULMONAR ════════════════════════════════════════════════════════════════ */
+  /* ⚠️ LAS SEIS ZONAS SON CHECKBOX, NO SELECTS: con SEL el valor se escribe y el checked
+     no se mueve, asi que pulAvDifuso contaba CERO y la tabla decia «no es difuso» sobre un
+     mecanismo que funciona. Y la CANTIDAD de lineas B vive en pua_lineasb_cant, no en
+     pua_lineasb, que solo dice si estan. */
+  const CK = (id, b) => { const e = EL(id); if (!e) return 'NO EXISTE'; if (e.checked !== b) e.click();
+    return e.checked; };
+  const _pul = (zonas, cant) => { __t.limpiar();
+    try { if (typeof showTab === 'function') showTab('pulmonar'); } catch (e) {}
+    (zonas || []).forEach(id => CK(id, true));
+    if (cant) { SEL('pua_lineasb', 'presentes'); SEL('pua_lineasb_cant', cant); }
+    try { if (typeof pulAvPatron === 'function') pulAvPatron(); } catch (e) {}
+    return { patron: TXT('pua-patron'), zonas: (zonas || []).length,
+             difuso: _difuso ? JSON.stringify(_difuso()) : 'SIN FN' }; };
+  ex.push(['(DENOM I) el minimo de zonas y el mapa de lados existen, y son 2 por hemitorax',
+    _zonMin === 2 && !!_zonLado && Object.keys(_zonLado).length >= 2,
+    'min=' + _zonMin + ' lados=' + JSON.stringify(Object.keys(_zonLado || {}))]);
+  const _pBil = _pul(['pua_z_ant_d','pua_z_lat_d','pua_z_ant_i','pua_z_lat_i'], 'multiples');
+  const _pUniL = _pul(['pua_z_ant_d','pua_z_lat_d'], 'multiples');
+  const _pCoal = _pul(['pua_z_ant_d','pua_z_lat_d','pua_z_ant_i','pua_z_lat_i'], 'coalescentes');
+  ex.push(['(I1) con DOS zonas positivas en CADA hemitorax el sindrome intersticial es DIFUSO',
+    _pBil.patron.indexOf('difus') > -1 && _pBil.difuso.indexOf('"difuso":true') > -1,
+    JSON.stringify(_pBil)]);
+  /* ⚠️ «POR HEMITORAX» ES EN CADA UNO, Y ESO ES LO QUE SEPARA DIFUSO DE FOCAL: dos zonas de un
+     lado solo es unilateral, y un sindrome intersticial difuso es bilateral por definicion. */
+  ex.push(['(I2) CONTROL NEGATIVO: dos zonas de UN solo hemitorax no es difuso',
+    _pUniL.patron.indexOf('difus') < 0 && _pUniL.difuso.indexOf('"difuso":false') > -1,
+    JSON.stringify(_pUniL)]);
+  ex.push(['(I3) las lineas B coalescentes ya no se rotulan «edema alveolar»',
+    _pCoal.patron.indexOf('alveolar') < 0 && _pCoal.patron.indexOf('coalescentes') > -1,
+    JSON.stringify(_pCoal)]);
+  ex.push(['(I4) el PUNTO PULMON existe como signo, y el PULSO PULMONAR no se agrego',
+    !!EL('pua_punto') && document.documentElement.innerHTML.indexOf('Pulso pulmonar') < 0,
+    'punto=' + !!EL('pua_punto') + ' opts=' + JSON.stringify((OPTS('pua_punto') || []).map(o => o.v))]);
+
+  /* ══ (J) E8 · HEMODINAMICA ════════════════════════════════════════════════════════════════ */
+  ex.push(['(J1) el indice cardiaco tiene DOS bandas y el 2,2 EXACTO es «bajo»',
+    !!_icB && _icB(2.19).txt === 'bajo' && _icB(2.2).txt === 'bajo'
+      && _icB(2.21).txt === 'normal' && _icB(4.0).txt === 'normal' && _icB(4.01).txt === 'elevado',
+    '2.19=' + (_icB ? _icB(2.19).txt : 'SIN') + ' 2.20=' + (_icB ? _icB(2.2).txt : 'SIN')
+      + ' 2.21=' + (_icB ? _icB(2.21).txt : 'SIN') + ' 4.00=' + (_icB ? _icB(4.0).txt : 'SIN')
+      + ' 4.01=' + (_icB ? _icB(4.01).txt : 'SIN')]);
+  ex.push(['(J2) la banda «limite» del indice cardiaco ya no existe en ningun valor',
+    !!_icB && [1, 2, 2.2, 2.3, 2.4, 2.49, 2.5, 3, 4, 5, 8].every(v => _icB(v).txt !== 'límite'
+      && _icB(v).txt !== 'limite'),
+    JSON.stringify([2.2, 2.3, 2.49, 2.5].map(v => v + '=' + (_icB ? _icB(v).txt : 'SIN')))]);
+  ex.push(['(J3) CONTROL NEGATIVO: _rvsBanda NO se toco —de ella cuelga la vasoplejia del POP—',
+    !!_rvsB && _rvsB(700).txt.indexOf('vasodilatación') > -1 && _rvsB(1000).txt === 'normal'
+      && _rvsB(1300).txt.indexOf('límite') > -1 && _rvsB(1500).txt.indexOf('vasoconstricción') > -1,
+    JSON.stringify([700, 1000, 1300, 1500].map(v => v + '=' + (_rvsB ? _rvsB(v).txt : 'SIN')))]);
+  const _hemo = (() => { __t.limpiar();
+    try { if (typeof showTab === 'function') showTab('hemodinamica'); } catch (e) {}
+    /* ⚠️ hemo_vs Y hemo_pvc SON READONLY: el volumen sistolico deriva del TSVI y la PVC de
+       la VCI. Tipear ahi no es un gesto —la regla de la casa prohibe el Backspace en un campo
+       de solo lectura— y la escena mediria un IC que nunca se calculo. */
+    __t.set('peso', '80'); __t.set('talla', '180');
+    __t.set('diam_tsvi', '20'); __t.set('itv_tsvi', '14'); __t.set('hemo_fc', '100');
+    __t.set('hemo_pam', '90'); __t.set('vci_diam', '15'); SEL('vci_col', '>50');
+    try { if (typeof calcBSA === 'function') calcBSA(); } catch (e) {}
+    try { if (typeof calcPmAD === 'function') calcPmAD(); } catch (e) {}
+    try { if (typeof calcHemo === 'function') calcHemo(); } catch (e) {}
+    return { ic: TXT('hemo-ic'), rvs: TXT('hemo-rvs'), pcp: TXT('hemo-pcp'), rvp: TXT('hemo-rvp'),
+             pant: (EL('tab-hemodinamica') || document.body).textContent || '' }; })();
+  ex.push(['(DENOM J) la escena de hemodinamica produjo un IC y una RVS de verdad',
+    _hemo.ic !== '—' && _hemo.ic !== 'NO EXISTE' && _hemo.rvs !== '—',
+    'ic=' + _hemo.ic + ' rvs=' + _hemo.rvs]);
+  ex.push(['(J4) la RVS publica el NUMERO sin rotulo de banda: ni 800, ni 1200, ni 1400',
+    _hemo.rvs.indexOf('normal') < 0 && _hemo.rvs.indexOf('vasodilat') < 0
+      && _hemo.rvs.indexOf('vasoconstric') < 0 && _hemo.rvs.indexOf('límite') < 0
+      && _hemo.rvs.indexOf('dinas') > -1,
+    'rvs=' + _hemo.rvs]);
+  ex.push(['(J5) la PCP y la RVP declaran que son ESTIMADAS POR ECO, con su autor',
+    _hemo.pant.indexOf('PCP estimada por eco') > -1 && _hemo.pant.indexOf('Nagueh') > -1
+      && _hemo.pant.indexOf('RVP estimada por eco') > -1 && _hemo.pant.indexOf('Abbas') > -1,
+    'pcp=' + (_hemo.pant.indexOf('PCP estimada por eco') > -1)
+      + ' nagueh=' + (_hemo.pant.indexOf('Nagueh') > -1)
+      + ' rvp=' + (_hemo.pant.indexOf('RVP estimada por eco') > -1)
+      + ' abbas=' + (_hemo.pant.indexOf('Abbas') > -1)]);
+
+  /* ══ (K) E9 · LA OREJUELA NO AFIRMA ELEGIBILIDAD NI DERIVA AL HEART TEAM ══════════════════ */
+  const _oai = (() => { __t.limpiar();
+    try { if (typeof showTab === 'function') showTab('ete'); } catch (e) {}
+    try { const s = EL('ete-seccion-oai');
+      if (s && getComputedStyle(s).display === 'none' && _togEte) _togEte('oai'); } catch (e) {}
+    __t.set('oai_ostium_diam', '24'); __t.set('oai_profundidad', '28');
+    try { if (typeof calcOAI === 'function') calcOAI(); } catch (e) {}
+    return { eleg: TXT('oai-elegibilidad'), pant: document.documentElement.innerHTML }; })();
+  ex.push(['(DENOM K) la escena de la orejuela publica su elegibilidad',
+    _oai.eleg !== '—' && _oai.eleg !== 'NO EXISTE' && _oai.eleg !== '', 'eleg=' + _oai.eleg]);
+  ex.push(['(K1) con un ostium en rango describe el HECHO y no deriva al Heart Team',
+    _oai.eleg.indexOf('Posiblemente apto') < 0 && _oai.eleg.indexOf('Heart Team') < 0
+      && _oai.eleg.indexOf('17-32') > -1,
+    'eleg=' + _oai.eleg]);
+  ex.push(['(K2) y el texto no sobrevive en ninguna otra superficie',
+    _oai.pant.indexOf('Posiblemente apto — evaluar Heart Team') < 0, '']);
+  /* CONTROL NEGATIVO: lo que la orden EXCLUYE sigue en su lugar. */
+  ex.push(['(K3) CONTROL NEGATIVO: los rangos de los dispositivos y el aviso del trombo siguen',
+    _oai.pant.indexOf('Watchman') > -1 && _oai.pant.indexOf('Amulet') > -1
+      && _oai.pant.indexOf('contraindicación cardioversión') > -1,
+    'watchman=' + (_oai.pant.indexOf('Watchman') > -1)
+      + ' amulet=' + (_oai.pant.indexOf('Amulet') > -1)]);
+
+  /* ══ (L) LAS SUPERFICIES: NI UNA COLUMNA NUEVA, Y EL INFORME SIGUE SIENDO EL DE SIEMPRE ═══ */
+  const _cols = (() => { try { return _xlsRow
+      ? Object.keys(_xlsRow({ id: 0, campos: {} })).length : 'SIN FN'; }
+    catch (e) { return 'EXC ' + e.message; } })();
+  ex.push(['(L1) el Excel sigue en 440 columnas, sin una sola nueva',
+    _cols === 440, 'cols=' + _cols]);
+  const _tCargado = (() => { __t.limpiar();
+    SEL('pericardio', 'Derrame leve (<10mm)'); __t.set('vmax_it', '2.8');
+    __t.set('e_sep', '7'); return inf(); })();
+  ex.push(['(L2) el informe y el EN SUMA siguen publicando el derrame leve por su grado',
+    _tCargado.indexOf('EXC') < 0 && _tCargado.toLowerCase().indexOf('leve') > -1,
+    _tCargado.split('##')[0].split('.').filter(l => l.toLowerCase().indexOf('pericard') > -1).join(' | ').slice(0, 160)]);
+  ex.push(['(L3) y ninguna superficie publica un «Derrame mínimo» que el desplegable ya no ofrece',
+    _tCargado.indexOf('mínimo') < 0, _tCargado.slice(0, 80)]);
+
+  return { extra: ex };
+`);
+
 
 
 

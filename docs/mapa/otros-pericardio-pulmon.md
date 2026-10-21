@@ -152,3 +152,21 @@ alineados por construcción. ⚠️ **El compromiso hemodinámico no se deduce: 
 campo de tres estados `pericardio_hemo` de la pestaña Otros.
 
 → `docs/mapa/tanda-r-referencias.md` §§ 5 y 6.
+
+---
+
+## La tanda «R2» (21/10/2026) — el derrame y el eco pulmonar
+
+**El desplegable del derrame pericárdico ofrece SOLO las cinco opciones vivas.** Las dos que el R
+había dejado como `<option hidden>` —«Derrame mínimo» y «Derrame leve (5-10mm)»— **se van del
+marcado**, porque un `<option hidden>` lo PINTA WebKit y en los dos motores la búsqueda por letra
+lo alcanza. El token viejo se traduce en **tres bordes** y no se migra nada en disco.
+
+**El eco pulmonar:** el síndrome intersticial difuso lo deciden las **zonas** (dos o más por
+hemitórax, en CADA uno, con `pulAvDifuso`), se retira el rótulo «edema alveolar» de las líneas B
+coalescentes, y entra el **punto pulmón** como signo. La fórmula de Balik y los textos del derrame
+pleural no se tocaron.
+
+**Dónde está todo:** `docs/mapa/tanda-r2-correcciones.md`, secciones 1 y 7 (las cinco opciones, la
+tabla de los tres bordes de traducción, por qué `LAB_XLS_LISTAS_LEGADO` sólo declara, el dueño de
+las zonas y las trampas de medición).

@@ -64,6 +64,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar el FOP, el test de burbuja o el aneurisma del septum**: la escala unificada, el espejo entre Otros y el módulo FOP, el informe esquemático o el aviso de la edad | `docs/mapa/fop-burbuja-unificado.md` |
 | **Agregar o correr un caso de prueba; A/B; mutación** | `docs/mapa/tests.md` · fichas en `docs/mapa/tests-fichas.md` (TC-499 en adelante), `docs/mapa/tests-fichas-496-498.md`, `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
 | **Tocar el DIBUJO ESTÁTICO de la mitral en ETE**: la tabla única de festones por ángulo, la geometría, la línea del plano, el giro, las tres vistas con sus LETRAS DE FESTÓN, **la ORIENTACIÓN de la TRANSGÁSTRICA**, el PDF, los CUATRO DIBUJOS DE MEDIDAS TEER, **los CRITERIOS TEER y sus cortes** o **el ESPEJO de la FEVI y el DSFVI del TEER** | `docs/mapa/mitral-dibujo-estatico.md` |
+| **Tocar algo que la tanda R2 corrigió** (21/10): las cinco opciones del derrame y la traducción del token viejo, el repintado de la VAB con el gesto de la pastilla, los seis puntos de la probabilidad de HTP, el e′ medial en tres tramos, el espesor relativo y el criterio por eco de la amiloidosis, el SGL y la calculadora de cardio-oncología, el síndrome intersticial difuso por zonas, el índice cardiaco y la RVS, o la orejuela | `docs/mapa/tanda-r2-correcciones.md` |
 | **Tocar algo que la tanda R movió**: la lesión presente sin grado de la VAB, los cortes del TEER, la severidad de la disfunción del VD, el área de la AI, los grados del derrame, el taponamiento que ya no concluye, el VD/VI del TEP o los criterios declarados de Referencias | `docs/mapa/tanda-r-referencias.md` |
 | **Tocar la sección de la VÁLVULA AÓRTICA BICÚSPIDE**: la disposición en tres columnas, las seis tarjetas ⓘ, los factores de riesgo con casilla, el DIBUJO y sus puntos sensibles, **la SIMETRÍA DE LAS CÚSPIDES y el ÁNGULO con que se dibuja**, **los SEIS dibujos por tipo y la ANIMACIÓN de la apertura**, **la FUNCIÓN VALVULAR derivada**, **el RESUMEN esquemático y su texto en Evidencia**, la morfología que sigue al tipo de fusión, la descripción del informe, el PDF o el recordatorio de la coartación | `docs/mapa/vab-bicuspide.md` |
 | **Visor de cineloop, medición, calibración, IndexedDB** | `docs/mapa/imagenes-visor.md` |
@@ -130,8 +131,8 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **8,50 MB / 127.759 líneas**, medido el 2026-10-20 al cierre de la tanda
-  R —el renglón anterior decía «8,45 MB / 127.206 líneas» y era del Y3f, una tanda antes:
+  sin frameworks. Hoy **8,54 MB / 128.264 líneas**, medido el 2026-10-21 al cierre de la tanda
+  R2 —el renglón anterior decía «8,50 MB / 127.759 líneas» y era del R, una tanda antes:
   **medirlo antes de presupuestar contexto**—. Las únicas dependencias son jsPDF, XLSX y
   PptxGenJS por CDN. Se abre como archivo local y corre en Chrome.
 - Lo que produce es un **informe firmado**: narrativo, EN SUMA, PDF, PPT y Excel del Laboratorio.
@@ -285,6 +286,292 @@ impecable.
 ---
 
 ## Estado vigente
+
+### Las NUEVE correcciones del 21/10/2026 — «R2» (2026-10-21)
+
+- **Son DIEZ commits, y son los diez que la orden pedía.** Al **empezar**, `main` estaba en
+  **`26aa3e9`** (sello `v20261020-2333`), el cierre de la tanda R.
+  ⚠️ **Y `origin/main` NO ESTABA AHÍ: ESTÁ EN `714e501`, QUE ES EL CIERRE DEL Y3f.** Medido con un
+  `git fetch` de verdad al cerrar —FETCH_HEAD fechado al momento—, así que **los NUEVE commits de
+  la tanda R tampoco están pusheados**: hoy hay **DIECINUEVE** commits locales, los nueve del R y
+  los diez de éste. Lo escribí al revés en este mismo renglón antes de medirlo, copiando el estado
+  que traía la sesión en vez de comprobarlo; se corrigió al verificarlo. **El push lo corre
+  Maicol**, y le toca empujar las dos tandas.
+  **El orden de revertido seguro es el inverso del de aplicación: 10 → 9 → … → 1.**
+  ⚠️ **LOS NUEVE PRIMEROS NO SE NOMBRAN ENTRE SÍ Y SE REVIERTEN EN CUALQUIER ORDEN**, que en esta
+  serie es raro y conviene decirlo: el 1 vive en el `<select id="pericardio">`,
+  `_migrarCamposLegacy`, `LAB_XLS_LISTAS` y `coh-dpt-tam`; el 2 en la cola de `toggleValvPill`; el 3
+  en `_htp2022Core`, sus tres constantes y `htpApSync`; el 4 en `CVR_ESEP_CONSTR_MIN` y la fila del
+  e′ medial; el 5 en `_AM_CALC.rwt`, `calcRWT` y `calcETT`; el 6 en `_ctrcdGlsAlterado`,
+  `CO_DOSIS_ALTO_RIESGO` y la tabla de referencia rápida; el 7 en `pulAvDifuso`, `pulAvPatron` y
+  `pua_punto`; el 8 en `_icBanda` y los rótulos de la cápsula; el 9 en `calcOAI`. Ninguno nombra una
+  pieza de otro.
+  ⚠️ **EL 10 NO ES SÓLO COBERTURA Y DOCUMENTACIÓN: LLEVA DOS CORRECCIONES DE `index.html`** que la
+  propia escritura destapó, y revertirlo repone las dos. (1) El comentario de la RVS afirmaba que
+  «el color se conserva» y el badge se había ido entero, o sea el archivo contradiciéndose consigo
+  mismo —que es cómo un arreglo se deshace sin que nadie se entere—. (2) **Las DIEZ atribuciones
+  «ESC 2021» del score de amiloidosis**: el commit 5 había cambiado el bloque del ALGORITMO y la
+  línea de Fuentes y dejó diez lugares con el sello viejo, así que la app publicaba «García-Pavía
+  2021» en el algoritmo y «ESC 2021» en el score **del mismo paciente**. **EL SELLO VIAJA EN EL
+  COMMIT 10**, que es el último que toca `index.html`: es la regla de la casa.
+  ⚠️ **CASOS ADAPTADOS: DOS**, y los dos por esa atribución: **TC-67** y **TC-68**, que afirmaban el
+  literal «Score ESC 2021: N / 10 puntos» del texto que se integra al informe. TC-67 **gana un
+  control negativo** que exige que el sello viejo ya no esté en la hoja.
+
+- **Línea base al cierre: suite **518/522** con el pendrive `DISK_IMG` MONTADO —verificado al
+  abrir Y al cerrar—, Semgrep **127 / 0 ERROR en 1 app**, Excel en **440** columnas y celular
+  **66 a 360 px y 76 a 390 px con 17 ALTA cada uno**. CERO REGRESIONES.** Los rojos son
+  exactamente los de ENTRADA —**TC-223** (el documentado, falla por la fecha), **TC-376**,
+  **TC-390** y **TC-406**— y no apareció ninguno fuera de esa lista. El denominador sube a
+  **523**: esta tanda agregó **TC-508**. El `md5` de `index.html` no se movió durante la corrida
+  (`ae7360ee…`, el del último sello) y los **diecisiete** de **TC-181…TC-197** salieron verdes,
+  que es la prueba de que el pendrive estuvo puesto.
+  ⚠️ **EL CELULAR SUBE +1 A 360 px Y +2 A 390 px, Y HAY QUE MEDIR HEAD EL MISMO DÍA PARA PODER
+  DECIRLO.** Medido hoy en un worktree del inicio de la tanda: **65 y 74**, con `--todo` **393 y
+  402**; hoy son **66 y 76** y `--todo` **395 y 405**. El delta se explica entero y **ninguna
+  ALTA se mueve** (17 en los dos árboles): `toque-chico` **48 → 49** y **57 → 59** —los dos
+  checkbox nuevos de la categoría B y C de HTP— y `input-chico` **328 → 329** —el campo
+  `rwt-septo`—. El `<select>` `pua_punto` no entra en ninguna de las dos categorías.
+  ⚠️ **Y EL «34 hallazgos ALTA» DEL RESUMEN ES EL TOTAL DE LOS DOS ANCHOS**, no una regresión: 17
+  a 360 px más 17 a 390 px. Es la trampa que este archivo ya tiene escrita; lo que la línea base
+  compara son los renglones `▶ NNN px`.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **522 ids** sobre los 523 casos del archivo.
+- **`index.html` pasó de 8,50 MB / 127.759 líneas a 8,54 MB / 128.264 líneas.**
+
+- ⚠️ **LA REGLA NUEVA DE ESTA TANDA, Y NACE DE UN DEFECTO MEDIDO: LO QUE SE MIDE ES LO
+  RENDERIZADO.** La tanda R escondió dos opciones de un `<select>` con `<option hidden>` y su sonda,
+  que miraba el **atributo**, lo dio por bueno. Dos cosas que ninguna medición de atributo podía ver:
+  **WebKit PINTA una `<option hidden>` en la lista nativa** —`getComputedStyle` devuelve
+  `display:none` en los dos motores y Safari la muestra igual— y **en los DOS motores la búsqueda
+  por letra la alcanza**: apretando «d» seis veces el recorrido pasaba por las dos escondidas, así
+  que también en Chrome el médico podía ELEGIR «Derrame mínimo» con el teclado.
+  ⚠️ **Y EL CUERPO DE UN CASO NO PUEDE MANDAR TECLAS DE CONFIANZA**: corre dentro de la página, sin
+  el canal del protocolo. El reparto es el de TC-460 y TC-463 — el caso usa `__t.set` y las teclas y
+  clics reales van en la sonda, en los dos motores.
+
+- **E1 · EL DESPLEGABLE DEL DERRAME OFRECE SOLO LAS CINCO VIVAS, Y EL TOKEN VIEJO SE TRADUCE EN
+  TRES BORDES.** Las dos viejas salen del marcado, no quedan escondidas. Como el `value` **ES** su
+  texto, un token viejo quedaría huérfano: `_migrarCamposLegacy` para las dos rutas de restauración
+  y la reimpresión, `LAB_XLS_LISTAS` para que el importador siga **ACEPTANDO** los dos textos, y
+  `dptTamano`, que ya mandaba los dos a `leve`. **No se migra nada en disco.**
+  ⚠️ **`LAB_XLS_LISTAS_LEGADO` SOLO DECLARA, Y ESO CASI COSTÓ TODO BACKUP YA EXPORTADO.** Esa tabla
+  existe para el segundo sentido de `_labXlsAssertListas`; **`_labXlsLista` lee ÚNICAMENTE
+  `LAB_XLS_LISTAS`**. Con la primera versión, que sólo los declaraba, `_labXlsLista('pericardio',
+  'Derrame mínimo')` devolvió `null` — y para una columna de opción un valor desconocido descarta la
+  **FILA ENTERA**. **Lo cazó medir el importador, no leer el código.** La lista viva tiene **7**
+  entradas: las 5 vivas más los 2 legados de entrada.
+  ⚠️ **EL INFORME YA TRADUCÍA «mínimo» A «leve» Y NO SE TOCÓ**, por orden expresa. Y el filtro de
+  cohorte pierde su `<option value="minimo">`: con ella, el panel ofrecía filtrar por un grado que
+  ningún estudio nuevo puede tener.
+
+- **E2 · LA SECCIÓN VAB SE REPINTA CON EL GESTO DE LA PASTILLA, Y EL DEFECTO PASABA LOS TESTS.**
+  `vabFuncionDerivada` estaba bien y el oyente de documento del Y3f3 también: lo que faltaba es que
+  **el gesto de la PASTILLA no pasa por ningún `input` ni `change` de un control de la sección**.
+  El arreglo va en el **dueño del gesto**, la cola de `toggleValvPill` —la única puerta por la que
+  pasa todo cambio de pastilla, censadas sus cinco entradas—, acotado a la aórtica y en `try`.
+  ⚠️ **LA CONDICIÓN NO PUEDE LLAMAR A `vabSync()` A MANO:** si la llamara, pasaría igual contra el
+  árbol roto. TC-508 lee el estado **antes** del clic, clickea, y vuelve a leer **sin** sincronizar.
+  ⚠️ **Y EL ESTADO SE CAPTURA DENTRO DE CADA ESCENA**: la segunda limpia el formulario, así que leer
+  al final mide la escena de la insuficiencia creyendo medir las dos — mi primera versión lo hacía y
+  la condición salió **al revés**.
+
+- **E3 · LOS SEIS PUNTOS DE LA PROBABILIDAD DE HTP, CON UN DUEÑO QUE SE PUEDE MEDIR PURO.**
+  `_htp2022Core(S)` toma `{num, txt, chk}`, así que los bordes se recorren con una fuente sintética
+  sin tocar el DOM; lo consumen la pantalla y un estudio **archivado**. **ESC/ERS 2022, Tabla 10 y
+  Figura 5, folio 28** (regla de folio = hoja − 1, comprobada en el encabezado impreso):
+  el **2,8 exacto** pasa a la banda **BAJA** (`<= 2.8`, era `< 2.8`); la **VRT no medible** sin
+  signos pasa de «INDETERMINADA» a **BAJA**; el **«VD basal > 41 mm» SALE del conteo**; el
+  **TAPSE/PSAP < 0,55** entra en la **A**; el **colapso de la VCI < 20 %** entra en la **C**; y
+  «AP > aorta» y «AP > 25 mm» pasan a ser **DOS** signos, con modo automático y manual.
+  ⚠️ **LA TABLA 10 SE LEYÓ POR COORDENADAS Y NO DE CORRIDO**: sus tres columnas se mezclan si se
+  lee el texto extraído en orden, y es lo que hace que el «VD basal» parezca de la categoría A.
+  ⚠️ **EL COLAPSO DE LA VCI NO ALCANZA SOLO**: la C pide la VCI dilatada **más** el signo, medido
+  por los dos lados.
+  ⚠️ **LOS DOS RÓTULOS SIGUEN AL CORTE**: con `< 2.8` y `2.8-3.4` el cuadro publicaba DOS bandas que
+  se pisan en el 2,8 y ninguna que lo contenga. **El rótulo y la comparación son dos líneas
+  distintas**, y TC-508 compara el texto IMPRESO contra el lado del borde que vota.
+  ⚠️ **LO QUE SIGUE ABIERTO Y SE DECLARA:** con la VRT no medible y cero categorías el informe sigue
+  callando. Es la compuerta PREEXISTENTE. `PENDIENTES.md` → R2-1.
+
+- **E4 · EL e′ MEDIAL DE CONSTRICCIÓN/RESTRICCIÓN PASA A TRES TRAMOS** (`> 8` constricción · **6 a 8
+  ninguno** · `< 6` restricción). El voto `'m'` es **nuevo**, así que hubo que tocar **dos** lectores
+  —la celda de `cvr-tabla`, que dibuja **`◐`**, y la hoja del PDF—: con uno solo, la pantalla y el
+  papel firmado graduarían distinto el mismo número.
+  ⚠️ **LOS DOS BORDES CAEN EN EL TRAMO DEL MEDIO**, porque los dos operadores son estrictos: el 8 no
+  vota constricción y el 6 no vota restricción. Medido por sus cinco valores.
+  ⚠️ **`cvr-esep` PUBLICA EL VALOR Y NO EL VOTO**: el voto vive en el HTML de `cvr-tabla`.
+
+- **E5 · EL ESPESOR RELATIVO SUMA EL SEPTO, Y EL CRITERIO POR ECO ALCANZA UN CAMINO.**
+  **García-Pavía 2021, Tabla 2, folio 1558** (regla de folio = hoja + 1553, comprobada en el pie
+  impreso): el espesor relativo es **(septo + pared posterior) / DDVI** y el criterio por eco es
+  «Unexplained LV thickness (>=12 mm) **plus 1 or 2**» — o sea que alcanza **UNO** de los dos
+  caminos, con la HVI ≥ 12 mm como condición de las dos.
+  ⚠️ **UN DEFECTO MÍO QUE CAZÓ LA MEDICIÓN Y NO LA LECTURA**: cambié los insumos de `_AM_CALC.rwt` y
+  dejé el cuerpo de `calcRWT` con el `(2*pp)/ddvi` viejo, así que el septo asimétrico seguía dando
+  el valor de la pared duplicada. **El `assert` de mi script de edición pasó porque el fragmento que
+  buscaba existía.** Lo destapó la escena de septo 18 / pared 11 / DDVI 50: con la vieja da **0,44**
+  y con la nueva **0,58**.
+  ⚠️ **UNA ESCENA CON SEPTO IGUAL A LA PARED NO PRUEBA NADA**: las dos fórmulas dan el mismo número.
+  ⚠️ **`rwt-result` ES UN `<input>` Y SE LEE POR `.value`**; `rwt-val` es el nodo del **score** y con
+  `textContent` devuelve «—» siempre: mi primer lector leía ése y daba el defecto por presente sobre
+  un cálculo correcto.
+  ⚠️ **Y EL RÓTULO NOMBRA EL CAMINO Y NO EL SCORE**: por la vía cualitativa el puntaje puede ser 3, y
+  «Score ALTO (3/10)» se lee como una contradicción. De ahí «Criterio por eco ALCANZADO (score
+  N/10)».
+  **Las citas:** «VPP 100 %» pasa a **«especificidad cercana al 100 %»** (folio 1556, con proteínas
+  monoclonales negativas), el algoritmo deja de decir «Gillmore 2016 adaptado» —que se conserva como
+  fuente de la **gammagrafía**— y el ⓘ declara que el score **no tiene validación externa**.
+  ⚠️ **NO SE TOCÓ** la banda «intermedio» de 5-7, el campo `sparkling`, la ecografía tisular ni el
+  informe, por orden expresa.
+
+- **E6 · CARDIO-ONCOLOGÍA: ESC 2022 (Lyon), folio 4259** (regla de folio = hoja + 4228, comprobada
+  en el pie impreso). El SGL alterado pasa a **MÁS de 15 %** —el 15 exacto deja de votar, medido por
+  sus dos lados—, la dosis de alto riesgo a **250 mg/m²**, el eco con antraciclinas a **cada 2
+  ciclos** más 3 y 12 meses de terminar con los **biomarcadores cada ciclo**, y la calculadora de
+  riesgo basal declara en los tres lugares que **no es el HFA-ICOS** —sus pesos y cortes **no se
+  tocaron**—. La columna «**Acción**» de la Referencia rápida **sale entera**.
+  ⚠️ **SUS CONDUCTAS NO QUEDARON EN NINGUNA SUPERFICIE, Y ESTÁ CENSADO**: las únicas apariciones de
+  «Suspender» que quedan son mi propio comentario y `autosaveSuspender`, que es otra cosa.
+  «Cardioprotección» queda **sólo** en la nota del nivel de riesgo, que es otra fila y la orden no
+  la nombra. `PENDIENTES.md` → R2-9.
+  ⚠️ **EL ANTI-HER2 YA COINCIDÍA Y NO SE TOCÓ**, igual que inmunoterapia, antiangiogénicos y
+  radioterapia salvo la columna retirada.
+
+- **E7 · ECO PULMONAR: EL SÍNDROME INTERSTICIAL DIFUSO LO DECIDEN LAS ZONAS.**
+  `PUL_ZONAS_DIFUSO_MIN = 2` con `PUL_ZONAS_LADO` y el dueño `pulAvDifuso()`.
+  ⚠️ **«POR HEMITÓRAX» ES EN CADA UNO, Y ESO ES LO QUE SEPARA DIFUSO DE FOCAL**: dos zonas de un
+  lado solo es unilateral, y un síndrome intersticial difuso es bilateral por definición. TC-508 lo
+  fija como control negativo.
+  ⚠️ **Y CON NADIE MARCADO DEVUELVE `null`, NO `false`**: «no se evaluó» no es «no es difuso», y el
+  patrón se nombra entonces **sin adjetivo**.
+  Se retira **«edema alveolar»** del rótulo de las líneas B coalescentes —lo que la ICM 2026
+  publica de ese patrón es la descripción y su grado de aireación— y entra el **punto pulmón**
+  (`pua_punto`) con sus tres ramas de neumotórax. **El pulso pulmonar NO se agregó**, por orden
+  expresa, y la fórmula de Balik y los textos del derrame pleural no se tocaron.
+  ⚠️ **LAS SEIS ZONAS SON CHECKBOX, NO SELECTS**, y la CANTIDAD de líneas B vive en
+  `pua_lineasb_cant` y no en `pua_lineasb`, que sólo dice si están: con un `SEL` sobre un checkbox el
+  valor se escribe y el `checked` no se mueve, así que `pulAvDifuso` contaba **cero** y la tabla
+  decía «no es difuso» sobre un mecanismo que funciona.
+
+- **E8 · HEMODINÁMICA: LOS RÓTULOS DECLARAN QUE SON ESTIMACIONES POR ECO, CON SU AUTOR.** «PCP
+  estimada por eco (Nagueh)» y «RVP estimada por eco (Abbas)», en la cápsula, en la lista de pares
+  de `amiloTextoHemo`, en los perfiles, en el rótulo de Forrester y en las dos filas de `ao-ref`.
+  **Las dos se calculan IGUAL**: no se movió una fórmula.
+  **El índice cardiaco pasa a DOS bandas**: `<= 2.2` bajo · `<= 4.0` normal · `> 4.0` elevado. Se va
+  el tramo «límite» de 2,2 a 2,49, que no sale de ninguna fuente de la biblioteca, y **el 2,2 cambia
+  de lado**: con `< 2.2` el valor exacto era «límite» y hoy es «bajo».
+  ⚠️ **`FORR_IC_CORTE` SIGUE SIENDO EL MISMO NÚMERO Y EL FORRESTER NO SE TOCÓ**: el 2,2 es su borde
+  inferior y eso era deliberado desde antes. **Medido, sin cambiar nada:** el Forrester corta con
+  `FORR_IC_CORTE = 2.2` **estricto** y `UMBRAL_PCP_HUMEDO = 15`, así que el 2,2 cae de lados
+  distintos en las dos preguntas. `PENDIENTES.md` → R2-5.
+  ⚠️ **EL CONSENSO SAC 2024 NO ESTÁ EN LA BIBLIOTECA**, censada entera: **no se inventó folio** y el
+  «bajo ≤ 2,2» se declara como el corte que la app ya aplicaba. El rango normal 2,5-4,0 sí está
+  verificado (ESC/ERS 2022, Tabla 10, folio 28). `PENDIENTES.md` → R2-2.
+  **La RVS publica el NÚMERO sin rótulo de banda.**
+  ⚠️ **Y SE VA TAMBIÉN EL COLOR, no sólo la palabra: el badge entero sale.** Un color sin rótulo
+  seguiría afirmando la banda —y la regla de la casa es que el color nunca es lo único que
+  informa—. **El comentario de esa zona decía que el color se conservaba y era FALSO**: se corrigió
+  en el commit 10.
+  ⚠️ **`_rvsBanda` NO SE TOCA, Y ES LO QUE PROTEGE AL POSOPERATORIO**: de esa función cuelga la
+  VASOPLEJIA del POP (RVS < 800), que esta orden excluye expresamente, y la leen también el SVRI del
+  PiCCO y la cápsula del Swan. TC-508 la fija por sus cuatro bandas.
+  ⚠️ **`hemo_vs` Y `hemo_pvc` SON READONLY**: el volumen sistólico deriva del TSVI y la PVC de la
+  VCI. Tipear ahí no es un gesto y la escena mediría un IC que nunca se calculó — mi primera versión
+  lo hacía y el denominador salió en «—».
+
+- **E9 · LA OREJUELA NO AFIRMA ELEGIBILIDAD NI DERIVA AL HEART TEAM.** Se retira «Posiblemente apto
+  — evaluar Heart Team» y queda el hecho medido: «Ostium dentro del rango de los dispositivos
+  (17-32 mm)».
+  ⚠️ **CENSADO ANTES DE TOCAR: aparecía en UN SOLO lugar**, `calcOAI`, en el nodo
+  `oai-elegibilidad`, que tiene **un único lector** —su propio marcado de pantalla—. No lo leen el
+  informe, el EN SUMA, el PDF ni el PPT por ningún camino, así que no hubo que tocar una superficie
+  firmada.
+  **Lo que la orden excluye sigue en su lugar, medido:** los rangos de Watchman (17-31 mm) y el
+  máximo de Amulet (32 mm) en las notas, y el «contraindicación cardioversión» del trombo.
+
+- **Cobertura: TC-508**, **71 condiciones** —contadas sobre el propio caso— con **ocho**
+  denominadores y **doce** controles negativos. **Verificado que sabe fallar contra el inicio de la
+  tanda en un worktree aparte: 45 de las 71 en rojo, y NINGUNA por excepción.** Las 26 que pasan son
+  los controles negativos y lo que esta tanda no mueve.
+  ⚠️ **NUEVE DE SUS CONDICIONES SALIERON ROJAS EN SU PRIMERA CORRIDA Y LAS NUEVE ERAN DENOMINADORES
+  DE MI PROPIO MEDIDOR, NO DEFECTOS**: los dos asserts del Excel devuelven un **array** (vacío es
+  limpio) y yo comparaba contra `true`; el estado de la VAB se leía después de las dos escenas;
+  `rwt-result` es un `<input>`; las zonas pulmonares son checkbox; `hemo_vs` es readonly; y
+  `_labExcelCols` no existe —las columnas se cuentan con `Object.keys(_labExcelRow(...))`—.
+
+- **A/B DEDICADO contra el inicio de la tanda, en NUEVE escenas: 74 diferencias, y son CINCO
+  hechos —los cinco autorizados—.** **36** son los **cuatro campos nuevos** existiendo
+  (`htp2022_c_col20`, `htp2022_b3ao`, `rwt-septo`, `pua_punto`); **18** el conteo y el juego de
+  claves de los campos del estudio, que pasan de **935 a 939**; **10** la probabilidad de HTP
+  pasando de «INDETERMINADA» a «BAJA» con la VRT no medible —nueve de pantalla y la del
+  Laboratorio—; **6** la VAB repintándose con el gesto de la pastilla; y **4** las dos categorías
+  y el rótulo de la VRT en la escena de HTP.
+  **Y LO QUE NO SE MUEVE, ENUMERADO UNA POR UNA: el informe en los TRES estilos, el EN SUMA en
+  los TRES, el Excel en 440 columnas y el PDF GENERADO DE VERDAD en sus SEIS plantillas salen
+  IDÉNTICOS**, igual que siete de las ocho funciones dueñas del Laboratorio.
+
+- **MEDIDO EN LOS DOS MOTORES** —Chrome **155.0.8059.85** por el canal del sistema y **WebKit
+  27.2**—: **685 claves comparadas y CINCO diferencias**, y las cinco son el **alto de fila de la
+  lista del `<select>`** (15 px en Chrome, 16 en WebKit), que es métrica de fuente del motor y no
+  un hecho de la app. Las nueve zonas publican lo mismo en los dos.
+  **32 capturas PNG con 30 `md5` distintos**, en los dos motores × los dos temas × las ocho
+  zonas, y **dos MIRADAS**: el desplegable del derrame con su opción viva y la pestaña ETE a
+  1200 px en WebKit, con los acentos completos y **cero scroll horizontal de la página** en las
+  cuatro celdas.
+  ⚠️ **LOS DOS `md5` REPETIDOS SON `htp` Y `hemo` DEL MISMO TEMA**, que viven las dos en
+  `tab-hemodinamica`: su captura de **página** es la misma, y es correcto.
+
+- **Arneses: `scripts/_probe_r2wk.mjs`** (Playwright, los DOS motores, teclas y clics reales; seis
+  grupos: `derrame`, `vab`, `vabmat`, `htp`, `cvr`, `resto`), **`scripts/_probe_r2ab.mjs`** (el
+  volcado de superficies para el A/B, con el PDF generado de verdad en sus seis plantillas) y
+  **`scripts/_ab_r2diff.mjs`** (el comparador).
+  ⚠️ **UN NODO CON TEXTO Y SIN GEOMETRÍA NO SE SALTEA: SE CAPTURA LA PÁGINA.** Las primeras tres
+  tandas de capturas sacaron **una** PNG de ocho porque siete nodos medían 0×0 —el `<select>` del
+  pericardio vive en `tab-otros` y su sección se llama `ete-seccion-pericardio-masas`, y
+  `showTab` cierra los cajones de la pestaña que deja—. Se cerró con un **abridor genérico** que
+  sube por el DOM hasta el primer ancestro oculto y lo abre por el camino que corresponda, y con
+  la captura de página como respaldo: **un PNG que no sale deja la zona sin mirada, y la mirada
+  es lo que caza lo que la medición numérica da por bueno.**
+
+- **Dónde está todo:** `docs/mapa/tanda-r2-correcciones.md` (**mapa NUEVO**, 19,6 KB: las nueve
+  zonas con su dueño, la tabla de los tres bordes de traducción del derrame, los seis puntos de HTP
+  con su fuente, las puertas de cada zona y las trampas); tres mapas con un puntero cada uno
+  (`vab-bicuspide` 32,5 KB · `tanda-r-referencias` 14,2 · `otros-pericardio-pulmon` 9,5);
+  `docs/fuentes/FUENTES.md` → «La tanda «R2»», con las cuatro reglas de folio comprobadas en el pie
+  impreso, lo verificado dato por dato, la ausencia confirmada del consenso SAC 2024 y la tabla de
+  **Cambios de evidencia**; y `docs/PENDIENTES.md` → **diez** cosas declaradas (R2-1 a R2-10).
+  ⚠️ **NINGÚN MAPA CRUZÓ EL TECHO, medido con `wc -c` ANTES de escribir**, y por eso el de la tanda
+  salió a archivo propio: no hay mapa de HTP, amiloidosis, cardio-oncología, hemodinámica,
+  constricción/restricción ni orejuela, así que nació separado en vez de colgarse de uno que ya
+  está cerca del techo. **`informe-pdf-excel.md` NO SE TOCÓ**: sigue en 34,0 KB, a 1 KB del techo, y
+  esta tanda no le escribió nada porque el Excel no gana columnas. `PENDIENTES.md` → R2-8.
+
+- ⚠️ **ME COMÍ EL ACENTO GRAVE 54 VECES**, todas en comentarios míos dentro del cuerpo de un caso o
+  del template de una sonda, nombrando una función o un atributo en prosa.
+  `scripts/check_backticks.py` da la línea exacta en el cuerpo de un `caso(...)`; **no alcanza el
+  template de una sonda**, y ésos los dio `node --check`. **Correr los dos, siempre.**
+- ⚠️ **UNA NOTA CON ACENTOS GRAVES DENTRO DE `ECO_AYUDA` CORROMPE EL MANUAL Y PONE EN ROJO CASOS DE
+  OTRAS ZONAS — Y NO ROMPE EL PARSEO.** Puse un comentario `<!-- -->` dentro del HTML de la tabla
+  de criterios declarados, que vive en un **string** de `ECO_AYUDA`, y con dos acentos graves
+  adentro. No hubo error de sintaxis y la consola dio 0 errores; lo que pasó es que **el manual
+  quedó corrupto desde ese punto** y la suite completa puso en rojo **SIETE** casos: TC-123 y
+  TC-149, que cuentan las pestañas y las clases `m*` del manual, y **TC-298, TC-307, TC-333,
+  TC-335 y TC-468**, que buscan su propio texto en `ECO_AYUDA` y son de la MITRAL y de VÁLVULAS —
+  zonas que esta tanda no toca—. **Dos cosas que hay que saber: `ECO_AYUDA` es un string que el
+  armador del PDF aplana por REGEX, así que un comentario HTML ahí dentro le mueve el conteo de
+  páginas; y una nota de código no va dentro de él, va al lado del dueño del dato.**
+- ⚠️ **Y DOS TRAMPAS DE MÉTODO.** (1) **Un `assert` que falla en un script de edición NO APLICA
+  NADA**, porque la escritura va al final — y el paso siguiente informa «SINTAXIS OK» sobre un
+  archivo sin los cambios; pasó **dos veces**, las dos por anclar a un fragmento que no era único o
+  tenía otra sangría. **Verificar con `grep` que la edición quedó.** (2) **Un `grep -c` que devuelve
+  0 sale con código 1 y corta una cadena `&&`**: el cierre del commit 9 se quedó sin Semgrep ni
+  `git commit` por eso, con la edición ya aplicada en el árbol.
+- ⚠️ **Y UNA TERCERA, DE LA MEDICIÓN: UN LOG EN 0 BYTES NO ES «NO CORRIÓ».** La primera corrida de
+  la suite se lanzó con una variable sin expandir en el entorno del background, el redirect fue a un
+  path de solo lectura y **el proceso arrancó igual**: lo que distingue «no corrió» de «está
+  buffereando» es que el PID exista y consuma CPU, no el tamaño del archivo.
 
 ### Las REFERENCIAS y las FUENTES, y lo que es CRITERIO PROPIO — «R» (2026-10-20)
 
