@@ -11069,12 +11069,18 @@ caso('TC-144', 'Tabs avanzadas: el orden nuevo en las tres superficies, y las cl
     const m = (b.getAttribute('onclick') || '').match(/showTab\\('([^']+)'\\)/);
     return { txt:(b.textContent||'').trim(), id:m?m[1]:null, mod:b.getAttribute('data-mod') }; }); };
   const f1 = leer('.tabs-special .tab-btn'), f2 = leer('.tabs-tools .tab-btn');
-  const ORDEN_IDS = ['hemodinamica','pulmonar','ete','cardioOnco','amiloidosis','congenitas','congenitas2'];
-  const ORDEN_TOOLS = ['calculadoras','fono','refs'];
+  /* ADAPTADO el 2026-10-21 (trabajo B, E1 y E4). Tres cosas de la fila de arriba cambiaron, y
+     las tres estan autorizadas: «Eco Pulmonar» se mudo a la COLUMNA IZQUIERDA con su data-mod
+     (B-E1) y el FONOCARDIOGRAMA salio de la app, copiado a docs/para-cardiosalud/ (B-E4). Lo que
+     este caso vigila —que el orden, las claves y las preferencias por clave no se crucen— no
+     cambio; lo que cambio es cuantos botones hay y donde vive el del pulmonar. */
+  const ORDEN_IDS = ['hemodinamica','ete','cardioOnco','amiloidosis','congenitas','congenitas2'];
+  const ORDEN_TOOLS = ['calculadoras','refs'];
+  const rail = leer('.rail .tab-btn');
   /* Las claves que NO pueden cambiar: son las de ett_modules en localStorage y las de data-mod. */
   const MOD = { hemodinamica:'hemodinamica', pulmonar:'pulmonar', ete:'ete', cardioOnco:'cardioOnco',
     amiloidosis:'amiloidosis', congenitas:'congenitas', congenitas2:'congenitas',
-    calculadoras:'calculadoras', fono:'fono', refs:'refs' };
+    calculadoras:'calculadoras', refs:'refs' };
 
   /* Cada boton abre SU panel — lo que el reorden podria haber cruzado. */
   const noAbren = [];
@@ -11092,7 +11098,10 @@ caso('TC-144', 'Tabs avanzadas: el orden nuevo en las tres superficies, y las cl
   const prevLS = localStorage.getItem('ett_modules');
   localStorage.setItem('ett_modules', JSON.stringify({ pulmonar:false }));
   applyViewMode();
-  const btnPul = [].slice.call(document.querySelectorAll('.tabs-special .tab-btn'))
+  /* ADAPTADO: el boton del pulmonar vive en el RAIL desde el B-E1, asi que se lo busca entre
+     TODOS los [data-mod] y no solo en la fila de arriba. Apagar el modulo tiene que seguir
+     escondiendo SU boton, este donde este — que es justamente lo que este bloque mide. */
+  const btnPul = [].slice.call(document.querySelectorAll('button[data-mod]'))
     .filter(function(b){ return b.getAttribute('data-mod') === 'pulmonar'; })[0];
   const ocultoPul = btnPul ? getComputedStyle(btnPul).display === 'none' : null;
   const btnHemo = [].slice.call(document.querySelectorAll('.tabs-special .tab-btn'))
@@ -11110,16 +11119,47 @@ caso('TC-144', 'Tabs avanzadas: el orden nuevo en las tres superficies, y las cl
     ['y la de herramientas no se movio',
       f2.map(function(x){ return x.id; }).join(',') === ORDEN_TOOLS.join(','),
       f2.map(function(x){ return x.id; }).join(',')],
-    ['son diez botones', f1.length + f2.length === 10, String(f1.length + f2.length)],
+    /* ADAPTADO: de 10 a 8. Salieron «Eco Pulmonar» (al rail) y el Fonocardiograma (de la app).
+       El conteo es lo unico que caza un boton perdido o duplicado en el reorden. */
+    ['son ocho botones', f1.length + f2.length === 8, String(f1.length + f2.length)],
+    /* CONDICION NUEVA (B-E1): el pulmonar NO esta arriba y SI esta en el rail, con su data-mod.
+       Sin esta mitad, mover el boton a cualquier parte pasaria el caso. */
+    ['«Eco pulmonar» vive en el rail, con su data-mod, y no en la fila de arriba',
+      f1.concat(f2).every(function(x){ return x.id !== 'pulmonar'; })
+        && rail.filter(function(x){ return x.id === 'pulmonar' && x.mod === 'pulmonar'; }).length === 1,
+      'arriba=' + f1.concat(f2).map(function(x){ return x.id; }).join(',') +
+      ' | rail=' + rail.map(function(x){ return x.id + (x.mod ? '/' + x.mod : ''); }).join(',')],
+    /* CONDICION NUEVA (B-E4): el Fonocardiograma no esta en ninguna de las tres superficies. */
+    ['el Fonocardiograma salio de la app: sin boton, sin pestana y sin entrada en EE_MODULES',
+      f1.concat(f2).concat(rail).every(function(x){ return x.id !== 'fono'; })
+        && !document.getElementById('tab-fono')
+        && EE_MODULES.every(function(m){ return m.key !== 'fono'; })
+        && !document.querySelector('[data-mod=fono]'),
+      'tab=' + !!document.getElementById('tab-fono') +
+      ' mods=' + EE_MODULES.map(function(m){ return m.key; }).join(',')],
     /* El desplegable de movil DERIVA del DOM, asi que sigue solo — pero es la unica via a las
        avanzadas por debajo de 768px y si dejara de seguirlo nadie lo notaria en escritorio. */
     ['el desplegable de movil sigue el mismo orden',
       opts.join(',') === ORDEN_IDS.concat(ORDEN_TOOLS).join(','), opts.join(',')],
     /* EE_MODULES no se deriva del DOM: es la copia a mano que ordena las casillas de Config. */
+    /* ADAPTADO: la clave del fonocardiograma sale de la lista —si quedara, el chequeo de
+       arranque gritaria «sin boton»— y la del pulmonar se queda, porque su boton sigue
+       existiendo: en el RAIL. */
     ['las casillas de Config siguen el orden de los botones',
       EE_MODULES.map(function(m){ return m.key; }).join(',') ===
-        ['hemodinamica','pulmonar','ete','cardioOnco','amiloidosis','congenitas','calculadoras','fono','refs'].join(','),
+        ['hemodinamica','pulmonar','ete','cardioOnco','amiloidosis','congenitas','calculadoras','refs'].join(','),
       EE_MODULES.map(function(m){ return m.key; }).join(',')],
+    /* CONDICION NUEVA: el invariante que el chequeo de arranque vigila —cada clave de
+       EE_MODULES tiene su boton y cada [data-mod] su casilla— ahora cruza las DOS
+       superficies, porque el pulmonar quedo en el rail. */
+    ['cada clave de EE_MODULES tiene su boton y al reves, mirando el rail TAMBIEN',
+      (function(){ const enBtn = {};
+        document.querySelectorAll('button[data-mod]').forEach(function(b){ enBtn[b.getAttribute('data-mod')] = 1; });
+        const enCfg = {}; EE_MODULES.forEach(function(m){ enCfg[m.key] = 1; });
+        return Object.keys(enCfg).every(function(k){ return enBtn[k]; })
+            && Object.keys(enBtn).every(function(k){ return enCfg[k]; }); })(),
+      'botones=' + [].slice.call(document.querySelectorAll('button[data-mod]'))
+        .map(function(b){ return b.getAttribute('data-mod'); }).join(',')],
 
     // 2 · LAS CLAVES NO SE TOCARON. Es lo que cuelga de localStorage y de showTab.
     ['ningun data-mod cambio',
@@ -71357,7 +71397,9 @@ caso('TC-488', 'Tanda Y3b + Wilkins + I: el 3D de la mitral se GIRA A MANO —co
         der.indexOf('Líneas B') === -1 && der.indexOf('Consolidación') === -1,
         der + ' | ' + lb + ' | ' + co]);
       ex.push(['el derrame pleural nombra su LADO y su volumen por Balik',
-        der === 'Derrame pleural bilateral moderado (Balik 25 mm, aproximadamente 500 ml).', der]);
+        /* ADAPTADO el 2026-10-21 (B-E3): el informe nombra la FORMULA y no «Balik 25 mm». El
+           lado y el tamano se conservan, que es lo que este caso vigila. */
+        der === 'Derrame pleural bilateral moderado (aproximadamente 500 ml, según fórmula de Balik).', der]);
       ex.push(['la nota de la consolidacion va EN LA MISMA ORACION, entre parentesis',
         co === 'Consolidación pulmonar (base derecha).', co]);
       ex.push(['y al EN SUMA va la conclusion, no el detalle de la nota',
@@ -71367,7 +71409,9 @@ caso('TC-488', 'Tanda Y3b + Wilkins + I: el 3D de la mitral se GIRA A MANO —co
       SEL('pul_derrame_lado', '');
       const sinLado = LINEAS('estandar').filter(x => x.indexOf('Derrame pleural') > -1).join(' || ');
       ex.push(['CONTROL NEGATIVO: sin consignar el lado, la oracion no inventa ninguno',
-        sinLado === 'Derrame pleural moderado (Balik 25 mm, aproximadamente 500 ml).', sinLado]); }
+        /* ADAPTADO el 2026-10-21 (B-E3): idem. El control negativo —que sin lado no se invente
+           ninguno— sigue siendo el mismo. */
+        sinLado === 'Derrame pleural moderado (aproximadamente 500 ml, según fórmula de Balik).', sinLado]); }
     { NUEVO();
       const L = LINEAS('estandar');
       ex.push(['CONTROL NEGATIVO: sin hallazgos pulmonares no hay NINGUNA oracion de pulmon',
@@ -76045,7 +76089,10 @@ caso('TC-499', 'Tanda CORTOS: la POSICION del selector de origen mitral y de los
       __t.limpiar(); S('pul_derrame', 'si'); S('pul_derrame_tam', 'moderado'); S('pul_balik', '25');
       const b = inf('estandar');
       return LIN(a.inf, 'Derrame pericárdico moderado').length === 1
-        && LIN(b.inf, 'Balik 25 mm').length === 1; })(),
+        /* ADAPTADO el 2026-10-21 (B-E3): la frase pasa a nombrar la formula. Se exige el texto
+           NUEVO y, de paso, que el apellido pelado ya no este: es el control del cambio. */
+        && LIN(b.inf, 'según fórmula de Balik').length === 1
+        && LIN(b.inf, 'Balik 25 mm').length === 0; })(),
     (function(){ __t.limpiar(); S('pul_derrame', 'si'); S('pul_derrame_tam', 'moderado'); S('pul_balik', '25');
       return LIN(inf('estandar').inf, 'errame').join(' // '); })()]);
   ex.push(['(f9) los cuatro globos nuevos tienen entrada en el registro y los tres que leen Referencias traen NODOS de la ficha, no un cartel de error',
@@ -76129,17 +76176,30 @@ caso('TC-499', 'Tanda CORTOS: la POSICION del selector de origen mitral y de los
   ex.push(['(g6) MAQUETA al ancho de esta corrida: los controles nuevos de Otros no desbordan la pagina ni se superponen entre si',
     (function(){ __t.limpiar();
       try { showTab('otros'); } catch (x) {}
-      ['pericardio-masas','burbuja','pulmonar'].forEach(function(k){
+      /* ADAPTADO el 2026-10-21 (B-E1/E2/E3): de las tres secciones que Otros tenia, «pericardio
+         y masas» es hoy su propia pestana y la pulmonar se mudo a «Eco pulmonar». Lo que queda en
+         Otros son las dos sub-pestanas, y los cuatro controles que este bloque mide viven en la
+         de «Variantes anatomicas», que hay que ACTIVAR: un panel inactivo esta en display:none y
+         sus campos miden 0x0, asi que sin esto la condicion pasaria sin medir nada. */
+      ['variantes','burbuja'].forEach(function(k){
         try { const sec = EL('ete-seccion-' + k);
           if (sec && getComputedStyle(sec).display === 'none' && FN('toggleEteSeccion')) window.toggleEteSeccion(k, null);
         } catch (x) {} });
       CHK('otr_burb', true); if (FN('otrBurbUI')) window.otrBurbUI();
+      /* ⚠️ CADA PANEL SE MIDE CON EL SUYO ACTIVO, y no los cuatro de una vez: las dos
+         sub-pestanas son EXCLUYENTES, asi que con «variantes» puesta el control del test de
+         burbuja mide 0x0 y la condicion caeria sobre un panel perfecto. */
       const d = document.documentElement;
-      const sinScroll = d.scrollWidth <= d.clientWidth + 1;
-      const ids = ['otr_asia_nota','otr_var_chiari_nota','otr_rac_nota','otr_burb_pasaje'];
-      const rects = ids.map(i => { const e = EL(i); return e ? e.getBoundingClientRect() : null; });
-      const conCaja = rects.filter(r => r && r.width > 0 && r.height > 0).length;
-      return sinScroll && conCaja === ids.length; })(),
+      let sinScroll = true, conCaja = 0;
+      [['variantes', ['otr_asia_nota','otr_var_chiari_nota','otr_rac_nota']],
+       ['burbuja',   ['otr_burb_pasaje']]].forEach(function (par) {
+        try { if (FN('otrSubTab')) window.otrSubTab(par[0], EL('otr-subtab-' + par[0])); } catch (x) {}
+        if (d.scrollWidth > d.clientWidth + 1) sinScroll = false;
+        par[1].forEach(function (i) { const e = EL(i);
+          const r = e ? e.getBoundingClientRect() : null;
+          if (r && r.width > 0 && r.height > 0) conCaja++; });
+      });
+      return sinScroll && conCaja === 4; })(),
     (function(){ const d = document.documentElement;
       return 'ancho=' + window.innerWidth + ' sw=' + d.scrollWidth + ' cw=' + d.clientWidth; })()]);
 
@@ -77137,7 +77197,9 @@ caso('TC-501', 'Tanda ARR: un campo VACIO es SIN DATO - las once referencias que
       const b = String(V('informe_texto'));
       ex.push(['(L3) CONTROL: el derrame PERICARDICO y la formula de Balik del CORTOS13 se conservan',
         a.indexOf('Derrame peric' + String.fromCharCode(225) + 'rdico moderado') >= 0
-          && b.indexOf('Balik 25 mm') >= 0,
+          /* ADAPTADO el 2026-10-21 (B-E3): la formula se conserva y lo que cambia es como se
+             nombra. Se exige el texto nuevo y la ausencia del viejo. */
+          && b.indexOf('según fórmula de Balik') >= 0 && b.indexOf('Balik 25 mm') < 0,
         b.split(String.fromCharCode(10)).filter(function (l) { return l.indexOf('errame') >= 0; }).join(' // ')]); })();
   })();
 
