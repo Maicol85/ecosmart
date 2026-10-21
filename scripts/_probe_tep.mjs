@@ -180,6 +180,77 @@ const REFS = `(() => {
     texto: t.slice(0, 900)
   } })()`;
 
+/* ══ A/B DEDICADO DE LAS SUPERFICIES FIRMADAS ════════════════════════════════════════════
+   El informe en los TRES estilos, el EN SUMA en los tres, el PDF GENERADO DE VERDAD en sus SEIS
+   plantillas (interceptando el constructor de jsPDF), el PPT estadistico, el PDF de auditoria,
+   el Laboratorio por sus funciones dueñas y el Excel en 440 columnas CLAVE POR CLAVE. */
+const AB = `(async () => {
+  const C = CASO;
+  __p.limpiar();
+  ['modalAvisoEco','login-overlay'].forEach(id => { const m = document.getElementById(id);
+    if (m) m.style.display = 'none' });
+  Object.keys(C.campos || {}).forEach(k => __p.set(k, C.campos[k]));
+  try { if (typeof calcPmAD === 'function') calcPmAD() } catch(e){}
+  try { if (typeof calcPSAP === 'function') calcPSAP() } catch(e){}
+  try { if (typeof calcTEP === 'function') calcTEP() } catch(e){}
+  if (C.integrar) { try { if (typeof amiloIntegrar === 'function' &&
+    typeof amiloIntegrado === 'function' && !amiloIntegrado('tep')) amiloIntegrar('tep') } catch(e){} }
+  const R = {};
+  ['estandar','narrativo','conciso'].forEach(est => {
+    try { if (typeof setEstiloInforme === 'function') setEstiloInforme(est) } catch(e){}
+    try { generarInforme() } catch(e){}
+    R['inf_' + est] = (document.getElementById('informe_texto') || {}).value || '';
+    R['sum_' + est] = (document.getElementById('en_suma') || {}).value || '';
+  });
+  try { if (typeof setEstiloInforme === 'function') setEstiloInforme('estandar') } catch(e){}
+  try { generarInforme() } catch(e){}
+  /* EXCEL: clave por clave sobre un estudio ARCHIVADO armado con los campos de la pantalla. */
+  try {
+    const campos = {};
+    Array.prototype.forEach.call(document.querySelectorAll('input[id],select[id],textarea[id]'),
+      e => { if (e.type !== 'button' && e.id) campos[e.id] = (e.type === 'checkbox') ? (e.checked ? '1' : '') : e.value });
+    const fila = _labExcelRow({ campos: campos, fecha: '2026-10-21' });
+    R.excelN = Object.keys(fila).length;
+    R.excel = JSON.stringify(fila);
+    R.campos = Object.keys(campos).sort().join(',');
+  } catch(e){ R.excel = 'EXC ' + e.message.slice(0,90) }
+  /* LABORATORIO: las funciones dueñas sobre el texto del informe. */
+  const txt = R.inf_estandar;
+  ['_labDiastGrado','_labGeomCat','_labDisfSistVent','_labEstenSev','_labValvCounts'].forEach(fn => {
+    try { R[fn] = (typeof window[fn] === 'function') ? JSON.stringify(window[fn](txt)) : 'SIN FN' }
+    catch(e){ R[fn] = 'EXC' } });
+  /* ⚠️ PDF GENERADO DE VERDAD: SE ENVUELVE EL CONSTRUCTOR, NO EL PROTOTIPO. jsPDF 2.x instala
+     text, line, circle y rect como propiedades PROPIAS de cada instancia, asi que
+     parchear jsPDF.prototype.text captura CERO y la medicion sale «PDF identico» sobre
+     veinticuatro celdas vacias — que es lo que hizo la primera version de este grupo. Medido:
+     con el constructor envuelto, una escena da 159 textos y 114 figuras. */
+  try {
+    const Real = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : null;
+    if (!Real) { R.pdf = 'SIN jsPDF' } else {
+      const plantillas = ['clasico','moderno','minimalista','academico','compacto','elegante'];
+      R.pdf = {};
+      for (const p of plantillas) {
+        const textos = []; let nFigs = 0;
+        function Spy(){ const d = new Real(...arguments);
+          const ot = d.text, ol = d.line, oc = d.circle, orr = d.rect;
+          d.text = function(t){ textos.push(String(t)); return ot.apply(d, arguments) };
+          d.line = function(){ nFigs++; return ol.apply(d, arguments) };
+          d.circle = function(){ nFigs++; return oc.apply(d, arguments) };
+          d.rect = function(){ nFigs++; return orr.apply(d, arguments) };
+          d.save = function(){ return d };
+          return d; }
+        Spy.API = Real.API; Spy.prototype = Real.prototype;
+        window.jspdf.jsPDF = Spy;
+        try { localStorage.setItem('ett_pdf_plantilla', p) } catch(e){}
+        try { if (typeof _pdfAjustarA4 === 'function') _pdfAjustarA4() }
+        catch(e){ textos.push('EXC ' + e.message.slice(0,60)) }
+        window.jspdf.jsPDF = Real;
+        R.pdf[p] = { n: textos.length, figs: nFigs, t: textos.join(' | ') };
+      }
+    }
+  } catch(e){ R.pdf = 'EXC ' + e.message.slice(0,120) }
+  return R })()`;
+
 /* ══ LA EVIDENCIA DEL TEP ════════════════════════════════════════════════════════════════
    Carga una escena, abre el panel y CONTESTA el cuestionario con clics REALES sobre los
    botones (`data-ind-clin`), que es el gesto del medico. Lee el HTML RENDERIZADO de la
@@ -284,6 +355,10 @@ async function corre(nombre, abrir) {
       R.score = {};
       for (const c of ESCENAS) R.score[c.k] = await pg.evaluate(ESCENA.replace('CASO', JSON.stringify(c)));
     }
+    if (hay('ab')) {
+      R.ab = {};
+      for (const c of AB_ESC) R.ab[c.k] = await pg.evaluate(AB.replace('CASO', JSON.stringify(c)));
+    }
     if (hay('evid')) {
       R.evid = {};
       for (const c of EVID_ESC) R.evid[c.k] = await pg.evaluate(EVID.replace('CASO', JSON.stringify(c)));
@@ -384,6 +459,20 @@ const EVID_ESC = [
   ev('bajo',      { 'tep.ih':'no', 'tep.vd':'no', 'tep.pesi':'no', 'tep.tropo':'ne' }),
   /* Control negativo: SIN datos del modulo, la seccion no existe. */
   { k:'sin_tep', campos:{ tapse:'12', vmax_it:'3.8', vci_diam:'18', vci_col:'>50' }, resp:{} }
+];
+const AB_ESC = [
+  { k:'vacio', campos:{}, integrar:false },
+  { k:'tep_propio', integrar:true, campos:{ tapse:'12', vmax_it:'3.8', tep_vdvi:'1.3',
+      tep_mcconnell:'si', tep_signo6060:'si', tep_tabique_d:'no', vci_diam:'18', vci_col:'>50',
+      peso:'80', talla:'172', nombre:'AB', ci:'1234' } },
+  { k:'tep_sin_propio', integrar:true, campos:{ tapse:'22', vd_vi:'1.2',
+      tep_mcconnell:'si', tep_signo6060:'no', tep_tabique_d:'no', vci_diam:'18', vci_col:'>50',
+      peso:'80', talla:'172', nombre:'AB', ci:'1234' } },
+  /* Escenario AJENO al TEP: valvulas, diastolica y VD cargados y ni un dato del modulo. */
+  { k:'ajeno', integrar:false, campos:{ peso:'80', talla:'172', fevi:'45', ddfvi:'58',
+      dsfvi:'42', siv:'13', ppvi:'12', ai_vol:'98', im_grado:'2', ia_grado:'1', it_grado:'4',
+      onda_e:'95', onda_a:'60', e_sep:'6', e_lat:'8', tapse:'16.5', s_prime:'9', vd_bas:'45',
+      ad_area:'20', vci_diam:'23', vci_col:'<50', vmax_it:'3.2', nombre:'AB', ci:'1234' } }
 ];
 const CTRL_ESC = [
   { k:'vacio', campos:{} },

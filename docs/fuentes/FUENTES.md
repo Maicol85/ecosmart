@@ -4568,3 +4568,95 @@ CSS pero **no existe en el marcado**: el botón del Laboratorio está en `.foot-
 | dato | antes | ahora | fuente | commit | fecha |
 |---|---|---|---|---|---|
 | — | — | **ninguno** | el trabajo B no verificó ninguna fuente ni movió un corte, un operador o una regla de integración | B-E1 a B-E7 | 21/10/2026 |
+
+---
+
+## La tanda «C» — el TEP (2026-10-21)
+
+### Los dos documentos, con su regla de folio comprobada en el pie impreso
+
+**`escTep2019`** — Konstantinides SV, Meyer G, Becattini C, et al. *Guía ESC 2019 para el
+diagnóstico y tratamiento de la embolia pulmonar aguda.* Rev Esp Cardiol. 2020;73(6):497.e1-497.e58.
+doi:10.1016/j.recesp.2019.12.030.
+Archivo: `13_Tromboembolia_pulmonar/Konstantinides_2019_TEP.pdf`.
+**Regla de folio: folio = «497.e» + número de página del PDF**, comprobada en el pie impreso de
+las páginas 11, 15, 17 y 20 (`497e11`, `497e15`, `497e17`, `497e20`). No es aritmética: se leyó
+el pie de cada una.
+⚠️ **ES LA TRADUCCIÓN DE LA SEC, y se declara.** Lo que se cita son **números, operadores y la
+estructura de una tabla**, que son inequívocos; **no se cita el wording de ninguna
+recomendación**. El original inglés (Eur Heart J 2020;41(4):543-603) **no está en la biblioteca**.
+
+**`aseVd2025`** (entrada ya existente) — ASE 2025 de cámaras derechas, Tabla 1, **folio 145**.
+Regla de folio = hoja + 140, ya comprobada en el pie impreso en la tanda VS.
+
+**`escErs2022`** (entrada ya existente) — ESC/ERS 2022 de hipertensión pulmonar. Regla de folio =
+hoja − 1, **re-comprobada en el encabezado impreso**: PDF p. 29 → folio **28**.
+
+### Lo verificado, dato por dato
+
+| dato | lo que dice la fuente | dónde, y cómo se leyó |
+|---|---|---|
+| **TAPSE del score de TEP** | «un cociente de los diámetros del VD/VI **≥ 1,0** y una **TAPSE < 16 mm** son los hallazgos que se asocian más frecuentemente con un pronóstico desfavorable» | ESC 2019, §5.2.1, **folio 497.e17**. ⚠️ **LEÍDO RENDERIZANDO la página a 400 dpi**: la extracción de texto devuelve un hueco donde va el `≥` |
+| **TAPSE, segunda aparición** | panel **G**: «TAPSE disminuido medido en modo M (**< 16 mm**)» | ESC 2019, **Figura 3, folio 497.e15**. ⚠️ **LA FIGURA ES UN BITMAP**: sus rótulos no están en el texto extraído. Leída renderizando a 260 dpi |
+| **VD/VI** | panel **B**: «VD dilatado con un cociente basal **VD/VI > 1,0** y signo de McConnell» | ídem. ⚠️ **LA GUÍA SE CONTRADICE**: el cuerpo del folio 497.e17 escribe `≥ 1,0` y la figura `> 1,0`. La app aplica el del cuerpo |
+| **Signo 60/60** | panel **E**: «coexistencia de un tiempo de aceleración de eyección pulmonar **< 60 ms** y “notch” en mesosístole con gradiente pico sistólico ligeramente elevado (**< 60 mmHg**) en la válvula tricúspide» | ídem, y la prosa del **folio 497.e14** (§4.9) lo define igual |
+| **Signo de McConnell** | «contractilidad disminuida de la pared libre del VD, comparada con el vértice “ecocardiográfico” del VD» | ESC 2019, **§4.9, folio 497.e14**, y Figura 3 B |
+| **Tabique en D** | panel **C**: «Septo intraventricular aplanado (flecha), plano corto del eje paraesternal» | ESC 2019, **Figura 3, folio 497.e15** |
+| **La limitación de McConnell** | «la detección de signos ecocardiográficos de sobrecarga por presión del VD ayuda a distinguir la TEP aguda de la hipocinesia o acinesia de la pared libre del VD debido a infarto del VD, **que puede semejar el signo de McConnell**» | ESC 2019, **§4.9, folio 497.e14** |
+| **La ausencia de signos en el inestable** | «en la sospecha de TEP de riesgo alto … la ausencia de signos ecocardiográficos de sobrecarga o disfunción del VD prácticamente excluye la TEP como causa de la inestabilidad hemodinámica» | ESC 2019, **folio 497.e15** |
+| **PSAP** | `RVSP, mm Hg`: normal **≤ 34**; leve **≥ 35 a ≤ 49**; moderada ≥ 50 a ≤ 69; severa ≥ 70 | ASE 2025, **Tabla 1, folio 145**. ⚠️ **LEÍDO EN LA IMAGEN**: esa fuente codifica `≥` como `$` y `≤` como `#` en el texto extraído, así que quien la lea sin saberlo **invierte todos los operadores** |
+| **Área de la AD** | «**Área de la AD (telesistólica) > 18 cm²**», en la columna C | ESC/ERS 2022, **Tabla 10, folio 28**, leída en la imagen, y **Figura 4, folio 27** («AD > 18 cm²» / «Área auricular derecha agrandada (> 18 cm2); plano de las cuatro cámaras») |
+
+### La Tabla 8 — VERIFICADA EN IMAGEN, folio 497.e20
+
+⚠️ **ES UN BITMAP.** La extracción de texto devuelve las celdas sueltas y en desorden; se
+renderizó la página a 320 dpi.
+
+| Riesgo de muerte precoz | Inestabilidad hemodinámica ᵃ | PESI III-V o sPESI ≥ 1 | Disfunción del VD en ETT o angio-TC ᵇ | Troponinas elevadas ᶜ |
+|---|---|---|---|---|
+| **Alto** | + | (+) ᵈ | + | (+) |
+| **Intermedio-alto** | − | + ᵉ | + | + |
+| **Intermedio-bajo** | − | + ᵉ | uno positivo o ninguno | |
+| **Bajo** | − | − | − | evaluación opcional; si se realiza, es negativa |
+
+- **ᵃ** parada cardíaca, shock obstructivo (PAS < 90 mmHg o necesidad de vasopresores para
+  alcanzar PA ≥ 90 mmHg pese a un estado adecuado de llenado, con hipoperfusión sistémica) o
+  hipotensión persistente (PAS < 90 mmHg o caída de la PAS ≥ 40 mmHg durante > 15 min, no causada
+  por arritmia de nueva aparición, hipovolemia o sepsis).
+- **ᵇ** los hallazgos de imagen con relevancia pronóstica están en la **figura 3**.
+- **ᶜ** otros biomarcadores: NT-proBNP ≥ 600 ng/l, PUAG-C ≥ 6 ng/ml, copeptina ≥ 24 pmol/l.
+- **ᵈ** la inestabilidad hemodinámica combinada con TEP confirmada en angio-TC **y/o** evidencia
+  de disfunción del VD en la ETT **es suficiente** para clasificar como riesgo alto: no hacen
+  falta el PESI ni las troponinas.
+- **ᵉ** puede haber signos de disfunción del VD pese a una clase PESI I-II o un sPESI de 0; hasta
+  que se conozcan sus implicaciones, **esos pacientes se clasifican en riesgo INTERMEDIO**.
+
+### Lo que NO está en la fuente y se retiró
+
+| afirmación retirada | dónde estaba | por qué |
+|---|---|---|
+| «desacoplamiento — mal pronóstico **independiente**» del cociente TAPSE/PSAP | ficha `ref-tep` | **ningún estudio de la biblioteca lo respalda.** El más cercano, Mostafa 2024, no predijo mortalidad |
+| el corte **0,32** del cociente aplicado a TEP | `calcTEP`, el informe, la hoja del PDF y la ficha | es el umbral de **bajo riesgo en hipertensión arterial pulmonar** (ESC/ERS 2022, **Tabla 16, folio 41**), no un corte de TEP. **Censada la biblioteca: ningún documento publica un corte del cociente para TEP AGUDO** |
+| «especificidad **~94 %**» del signo de McConnell | ficha `ref-tep` | no está publicada en la fuente. Lo que la guía dice es que esos hallazgos tienen **valor predictivo positivo alto** y aparecen en cerca del 12 % y el 20 % de los pacientes no seleccionados (§4.9, folio 497.e14) |
+
+### Lo que se MANTIENE con su fuente, y lo que queda declarado
+
+- **El área de la AD en «> 18 cm²»** se conserva, con la fuente de arriba, y **no suma al conteo**.
+  ⚠️ **La ASE 2025 pone el límite normal del área de la AD en «< 19 cm²»** (Tabla 1, folio 145), y
+  ése es el que la app usa para **graduar** esa cámara en la pestaña del VD (`adAreaCat`). **Son
+  dos documentos y dos preguntas distintas; no se unificaron.** Está declarado en la propia ficha.
+- **Los cortes 2 y 4 del conteo no tienen fuente** y llevan el chip **«CRITERIO DE ECOSMART»**:
+  ninguna de las fuentes publica un puntaje construido con estos seis criterios, y la nota ᵇ de la
+  Tabla 8 remite a la Figura 3 sin decir cuántos hallazgos hacen falta.
+
+### Cambios de evidencia
+
+| dato | antes | ahora | fuente | commit | fecha |
+|---|---|---|---|---|---|
+| **TAPSE del score de TEP** | `< 17 mm` (`UMBRAL_TAPSE_NORMAL`, ASE 2025) | **`< 16 mm`** (`TEP_TAPSE_BAJO_MAX`) | ESC 2019 de TEP, folio 497.e17 y Figura 3 G, folio 497.e15 | C-E1 | 21/10/2026 |
+| **PSAP del score de TEP** | `> 35 mmHg` | **`>= 35 mmHg`** (misma constante, sólo el operador y sólo ahí) | ASE 2025, Tabla 1, folio 145 (normal `<= 34`) | C-E1 | 21/10/2026 |
+| **Cociente TAPSE/PSAP en TEP** | corte `> 0,32`, con veredicto «acoplamiento conservado / desacoplamiento» y decidiendo el renglón de riesgo | **número, sin corte y sin veredicto** | ninguna: ningún documento de la biblioteca publica un corte del cociente para TEP agudo. El 0,32 es de la ESC/ERS 2022, Tabla 16, folio 41 (HAP) | C-E1 | 21/10/2026 |
+| **Rótulo del campo VD/VI** | «Patológico: ≥0.9» | **«Patológico: ≥1,0»** | ESC 2019 de TEP, folio 497.e17. El corte aplicado ya era 1,0 desde el R7; el rótulo era un resto del corte de tomografía | C-E2 | 21/10/2026 |
+| **Clases de riesgo en la pantalla y en la hoja del PDF** | «Riesgo INTERMEDIO-ALTO / INTERMEDIO-BAJO», decididas con el eco solo | **retiradas**; la estratificación va a Evidencia | ESC 2019, Tabla 8, folio 497.e20: clasifica con cuatro indicadores y el eco aporta uno | C-E2 | 21/10/2026 |
+| **Ficha de Referencias del TEP** | TAPSE `<17mm`, PSAP `>35`, «mal pronóstico independiente», «especificidad ~94 %» | **cada criterio con su corte y su folio**; las cuatro afirmaciones sin fuente, retiradas | arriba, dato por dato | C-E3 | 21/10/2026 |
+| **Estratificación del riesgo** | no existía | **sección nueva del panel de Evidencia**, con cuestionario y las siete ramas de la Tabla 8 | ESC 2019, Tabla 8 y sus notas ᵃ ᵇ ᵈ ᵉ, folio 497.e20 | C-E4 | 21/10/2026 |

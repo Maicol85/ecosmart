@@ -231,3 +231,21 @@ TEP**.
 Por eso la etiqueta **no se retiró**. `docs/PENDIENTES.md` → **Z4-TEP**.
 
 ---
+
+---
+
+## El TEP — la tanda «C» (2026-10-21), en su propio mapa
+
+Lo que esta tanda hizo con el **cociente TAPSE/PSAP de la pantalla de TEP** y con el score entero
+vive en **`docs/mapa/tep-score.md`**, que salió a archivo propio. Tres cosas que conviene saber
+desde acá:
+
+- **El 0,32 SALIÓ de la pantalla de TEP.** No era un corte de TEP: es el umbral de **bajo riesgo
+  en hipertensión arterial pulmonar** (ESC/ERS 2022, Tabla 16, folio 41). Hoy esa pantalla
+  publica el cociente como **número**, sin corte y sin color. El dueño del número sigue siendo
+  `vdTapsePsap()` y **sus tres decimales no se tocaron**. Eso cierra la PARADA **Z4-TEP**.
+- **El TAPSE del score de TEP pasó a `< 16 mm`** (`TEP_TAPSE_BAJO_MAX`, ESC 2019 de TEP, folio
+  497.e17 y Figura 3 G). **`UMBRAL_TAPSE_NORMAL` sigue en 17** y lo leen la pestaña VD, el PDF, el
+  POCUS del posoperatorio y el patrón hemodinámico: son dos preguntas distintas con dos fuentes.
+- **La PSAP del score de TEP pasó a `>= 35`** —el mismo `UMBRAL_PSAP_ELEVADA`, sólo cambia el
+  operador y **sólo ahí**— porque la ASE 2025 (Tabla 1, folio 145) publica normal `<= 34`.

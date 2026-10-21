@@ -3061,7 +3061,15 @@ una regla de integración clínica y esta orden no la autoriza.
 `_htp2022Core`, mover el rótulo de la pantalla de Avanzado al bloque «A · Ventrículos», y
 **medir qué escenas cambian de probabilidad**. Los dos checkbox manuales no se tocan.
 
-### G1-2 · El 0,32 de la pantalla de TEP tiene fuente, pero NO es un criterio de TEP
+### G1-2 · ✅ **CERRADO el 21/10/2026 (tanda C, commit 1)** — el 0,32 salió de la pantalla de TEP
+
+> Esta entrada ofrecía dos salidas: «decidir que la pantalla de TEP diga de dónde sale el 0,32»
+> o «conseguir una fuente que valide el cociente como marcador de TEP agudo». Se tomó una
+> tercera, que es la de Maicol: **censada la biblioteca, ninguna fuente lo valida para TEP
+> agudo, así que el corte se retira y el cociente queda como número.** La ficha de Referencias
+> sí dice de dónde sale el 0,32 que suele citarse, y declara que describe otra población.
+
+Lo que decía:
 
 `calcTEP` publica «TAPSE/PSAP N — conservado (>0.32)». El número existe y está publicado:
 **ESC/ERS 2022, folio 41**, tabla de estratificación de riesgo en **hipertensión arterial
@@ -3493,7 +3501,17 @@ el veredicto protésico empiece a leerlo en más escenas; (b) dejar el campo y p
 fila** `ea-det-dvi` desde `_eaCritDvi`, que no toca ningún `input` ni ninguna fuente del veredicto
 — **es la conservadora** y la que este archivo marcaría si tuviera que elegir.
 
-### Z4-TEP · PARADA · El 0,32 de la pantalla de TEP participa de un VEREDICTO
+### Z4-TEP · ✅ **CERRADO el 21/10/2026 (tanda C, commit 1)** — el 0,32 salió de todo veredicto
+
+> **Decisión de Maicol, 22/10/2026:** el 0,32 no es un corte de TEP — es el umbral de bajo
+> riesgo en hipertensión arterial pulmonar (ESC/ERS 2022, Tabla 16, folio 41) — y sale de TODO
+> veredicto, frase y score del TEP. Con él se fue el renglón de clase de riesgo entero
+> (commit 2), así que la «salida intermedia» que esta entrada declaraba peor que las dos ya no
+> existe: no queda ningún veredicto colgando de un corte invisible. **Las escenas que cambian
+> están medidas en la ficha de TC-510 y en `docs/mapa/tep-score.md`.**
+
+Lo que decía esta entrada, que sigue siendo la medición válida de por qué no se podía tocar
+sola:
 
 La orden corregida mandaba **quitar la etiqueta con el corte** y dejar el valor sin corte **sólo
 si** el 0,32 fuera una etiqueta que no participa del score, de la interpretación ni del riesgo.
@@ -5895,3 +5913,83 @@ Es **preexistente** (`@media max-width:768px { .rail{display:none!important} }`)
 lo cambia. Lo que sí cerró es que el drawer respete `data-mod`, que era un agujero NUEVO que el
 pulmonar en el rail abría. Con doce botones el drawer sigue entrando; si alguna vez no entrara,
 el rail de escritorio ya tiene `overflow-y:auto` y se desplaza solo.
+
+---
+
+# Tanda «C» — el TEP (2026-10-21)
+
+> El score de sobrecarga aguda del VD con el TAPSE a `< 16`, la PSAP desde 35, el 0,32 afuera y
+> el rótulo del VD/VI en 1,0; pantalla e informe con la misma regla, sin clases de riesgo y sin
+> la Salvedad del PDF; la ficha de Referencias con cada criterio y su folio; y la Evidencia del
+> TEP por la Tabla 8. Mapa: `docs/mapa/tep-score.md`.
+
+### C-1 · El rótulo del score dice «(+/7)» y los criterios que cuentan son SEIS
+
+La fila publica «Score criterios VD **(+/7)**» y el span escribe «5/5 criterios positivos»: el
+rótulo afirma un denominador de siete y la celda de al lado publica otro. Los criterios que
+suman son **seis** (VD/VI, TAPSE, PSAP, McConnell, 60/60 y tabique en D); el séptimo renglón de
+la tabla es el cociente TAPSE/PSAP, que **no vota** —y desde esta tanda tampoco tiene corte—.
+
+Es **preexistente** y esta orden no lo nombra, así que **no se tocó**. Es un rótulo, no un
+cálculo: ningún veredicto depende de él.
+
+**Qué haría falta:** cambiar el literal por «(+/6)», o derivarlo del número de criterios que
+`calcTEP` empuja a `criterios`, que es lo que ya cuenta el denominador del span.
+
+### C-2 · La PSAP se lee REDONDEADA, así que el corte de 35 se cruza por el redondeo
+
+`calcPSAP` escribe `psap_calc` con `(4·VRT² + PmAD).toFixed(0)`, y el criterio lee ese campo. Una
+PSAP real de **34,6 mmHg se lee 35 y ahora cruza** el corte; una de **35,4 se lee 35 y también**.
+Es el mismo hueco que **P1** declara para el criterio de la función diastólica, con el operador
+dado vuelta: desde que el corte es `>=`, el redondeo empuja hacia el lado que AFIRMA.
+
+No se tocó: exponer la PSAP sin redondear cambia lo que leen los otros nueve consumidores de
+`psap_calc`, y eso es otro trabajo. **Medido**: las tres escenas de TC-510 se paran en 34, 35 y
+36 enteros a propósito, para que el borde se pruebe sobre el valor que el criterio ve.
+
+### C-3 · El informe no publica el cociente cuando falta el TAPSE o la PSAP, y es correcto
+
+La línea «Índice TAPSE/PSAP N mm/mmHg.» sólo sale con los dos cargados, porque el predicado es
+`(tapse && psap)`. Queda dicho para que no se lea como una pérdida: sin uno de los dos no hay
+cociente que publicar.
+
+### C-4 · «Troponina elevada» ya es una columna del Excel, y es de amiloidosis
+
+La columna existe desde antes y **no** tiene nada que ver con el cuestionario de Evidencia del
+TEP, cuyas respuestas no se guardan con el estudio. Queda anotado porque un control que la filtre
+como «columna nueva de TEP» sale rojo sobre un libro perfecto — le pasó a la primera versión de
+(I6) de TC-510.
+
+### C-5 · La guía se contradice consigo misma en el operador del VD/VI
+
+La **Figura 3 B** (folio 497.e15) escribe `VD/VI > 1,0` y el **cuerpo del folio 497.e17** escribe
+`≥ 1,0`. La app aplica el del cuerpo, que es el que **no suaviza** y el que el R7 ya había
+elegido. Los dos textos están impresos y la discrepancia está declarada en
+`IND_REFS.escTep2019`. **No se cambió nada**: es contenido clínico.
+
+### C-6 · `scripts/check_backticks.py` NO alcanzó el cuerpo de TC-510
+
+El script dio **«OK — sin acentos graves dentro de los cuerpos»** con **cuatro** acentos graves
+dentro del cuerpo de TC-510, y los cazó `node --check` con su `SyntaxError: missing ) after
+argument list`. El cuerpo de ese caso empieza con `return (async () => {`, que es la forma que
+usan varios casos recientes; no se investigó si es eso lo que lo saca de su cobertura.
+
+**Mientras tanto:** correr **los dos**, y para un caso nuevo contar los acentos graves del cuerpo
+a mano (`s[i:j].count` entre el primer y el último acento grave del `caso(...)`).
+
+### C-7 · El informe conserva sus frases descriptivas, y no son clases de riesgo
+
+El narrativo publica «Disfunción VD significativa…», «Disfunción VD con N criterios positivos…»,
+«Criterio aislado de disfunción VD…» y «Sin criterios ecocardiográficos de disfunción VD…».
+**Ninguna es una clase de la Tabla 8** y esta orden no las nombra, así que no se tocaron. Lo que
+salió —«Riesgo INTERMEDIO-ALTO» y «Riesgo INTERMEDIO-BAJO»— vivía **sólo** en el span de la
+pantalla, y de ahí lo copiaba la hoja del PDF.
+
+### C-8 · La sección de Evidencia del TEP no entra en los mapas de TC-273
+
+`EVID_DATOS` y `EVID_FNS` son dos mapas **fijos de trece** que TC-273 recorre, así que la sección
+nueva **no** se cuenta ahí. Sí la recorre **TC-322**, que itera `IND_SECS` —por eso su
+denominador la nombró— y la cubre **TC-510** por sus siete ramas.
+
+**Qué haría falta:** agregarle su entrada a los dos mapas y adaptar el texto de TC-273, que dice
+«las trece secciones». No se hizo para no mover un caso que esta orden no nombra.

@@ -81209,6 +81209,320 @@ caso('TC-509', 'Trabajo B: la columna izquierda con sus DOCE botones en orden y 
 
   return { extra: ex };
 `);
+caso('TC-510', 'Tanda C: el score de TEP con el TAPSE a <16 y la pestana VD intacta en <17, la PSAP desde 35, el VD/VI a >=1,0 y el cociente sin corte; pantalla e informe con el MISMO conteo cuando falta el VD/VI propio; la pantalla sin clase de riesgo y la hoja del PDF sin la Salvedad; la ficha de Referencias con cada criterio y su folio, el chip de EcoSmart en los cortes 2 y 4 y la AD con su fuente; la Evidencia del TEP con su cuestionario por la Tabla 8; y el informe, el EN SUMA, el Laboratorio y las 440 columnas del Excel sin moverse', `
+  return (async () => {
+  const ex = [];
+  /* Los helpers son propios del caso: el runner no expone ninguno. */
+  const EL  = function (id) { return document.getElementById(id); };
+  const T   = function (id) { const e = EL(id); return e ? (e.textContent || '').trim() : 'NO EXISTE'; };
+  const V   = function (id) { const e = EL(id); return e ? e.value : null; };
+  const FN  = function (n) { return typeof window[n] === 'function'; };
+  const UMB = function (n) { const u = window[n]; return (typeof u === 'number') ? u : null; };
+  const NL  = String.fromCharCode(10);
+  const S   = function (id, v) { const e = EL(id); if (!e) return false;
+    e.value = v;
+    e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true }));
+    return true; };
+  const esp = function () { return new Promise(function (r) { setTimeout(r, 30); }); };
+  /* La PSAP es READONLY y se DERIVA: 4*VRT^2 + PmAD. Con la VCI en 18 mm y colapso >50 la PmAD
+     es 3, asi que la VRT elige la PSAP y es el unico camino para pararse en 34, 35 y 36. */
+  const BASE = { vci_diam:'18', vci_col:'>50' };
+  const escena = function (campos) {
+    try { __t.limpiar(); } catch (e) {}
+    ['modalAvisoEco','login-overlay'].forEach(function (id) {
+      const m = EL(id); if (m) m.style.display = 'none'; });
+    Object.keys(BASE).forEach(function (k) { S(k, BASE[k]); });
+    Object.keys(campos).forEach(function (k) { S(k, campos[k]); });
+    try { if (FN('calcPmAD')) calcPmAD(); } catch (e) {}
+    try { if (FN('calcPSAP')) calcPSAP(); } catch (e) {}
+    try { if (FN('calcTEP')) calcTEP(); } catch (e) {}
+  };
+  const SIG = { tep_mcconnell:'si', tep_signo6060:'no', tep_tabique_d:'no' };
+  const con = function (extra) { const o = {}; Object.keys(SIG).forEach(function (k) { o[k] = SIG[k]; });
+    Object.keys(extra).forEach(function (k) { o[k] = extra[k]; }); return o; };
+  const nPos = function () { const t = T('tep-score'); const i = t.indexOf('/');
+    return i < 0 ? null : Number(t.slice(0, i)); };
+
+  /* ══ DENOMINADOR ════════════════════════════════════════════════════════════════════════ */
+  ex.push(['DENOMINADOR: existen calcTEP, los dos dueños nuevos y las tres constantes del score',
+    FN('calcTEP') && FN('tepVdViRatio') && FN('tepHayDatos') &&
+    UMB('TEP_TAPSE_BAJO_MAX') !== null && UMB('TEP_VDVI_DILAT_MIN') !== null &&
+    UMB('UMBRAL_PSAP_ELEVADA') !== null,
+    'tapse=' + UMB('TEP_TAPSE_BAJO_MAX') + ' vdvi=' + UMB('TEP_VDVI_DILAT_MIN') +
+    ' psap=' + UMB('UMBRAL_PSAP_ELEVADA')]);
+  ex.push(['DENOMINADOR: las dos constantes de TAPSE son DISTINTAS — la de TEP vale 16 y la de la pestana VD 17',
+    UMB('TEP_TAPSE_BAJO_MAX') === 16 && UMB('UMBRAL_TAPSE_NORMAL') === 17,
+    'tep=' + UMB('TEP_TAPSE_BAJO_MAX') + ' vd=' + UMB('UMBRAL_TAPSE_NORMAL')]);
+
+  /* ══ (A) EL TAPSE DEL SCORE, POR SUS TRES VALORES ════════════════════════════════════════
+     McConnell va en «si» para que el score tenga denominador: con cero criterios evaluados el
+     renglon no se pinta y cruzar el corte no mueve nada que se pueda contar. */
+  escena(con({ tapse:'15.9' })); await esp();
+  const t159 = { n: nPos(), fila: T('tep-tapse-interp') };
+  escena(con({ tapse:'16' })); await esp();
+  const t16 = { n: nPos(), fila: T('tep-tapse-interp'), vd: T('tapse-interp') };
+  escena(con({ tapse:'16.9' })); await esp();
+  const t169 = { n: nPos(), fila: T('tep-tapse-interp') };
+  ex.push(['(A1) TAPSE 15,9 mm SUMA al score de TEP y la capsula nombra el corte de TEP',
+    t159.n === 2 && t159.fila.indexOf('bajo para TEP') > -1 &&
+    t159.fila.indexOf('<16 mm') > -1 && t159.fila.indexOf('17') < 0,
+    't159=' + JSON.stringify(t159)]);
+  ex.push(['(A2) TAPSE 16,0 EXACTO NO suma — el operador es estricto',
+    t16.n === 1 && t16.fila.indexOf('no bajo') > -1, 't16=' + JSON.stringify(t16)]);
+  ex.push(['(A3) TAPSE 16,9 tampoco suma', t169.n === 1 && t169.fila.indexOf('no bajo') > -1,
+    't169=' + JSON.stringify(t169)]);
+  ex.push(['(A4) CONTROL: con ESE MISMO TAPSE de 16 la pestana VD sigue diciendo disfuncion, con SU corte de 17',
+    t16.vd.indexOf('disfunci') > -1 && t16.vd.indexOf('17') > -1, 'vd=' + t16.vd]);
+
+  /* ══ (B) LA PSAP, POR SUS TRES VALORES ═══════════════════════════════════════════════════ */
+  escena(con({ vmax_it:'2.78' })); await esp();
+  const p34 = { n: nPos(), fila: T('tep-psap-interp'), v: V('psap_calc') };
+  escena(con({ vmax_it:'2.83' })); await esp();
+  const p35 = { n: nPos(), fila: T('tep-psap-interp'), v: V('psap_calc') };
+  escena(con({ vmax_it:'2.87' })); await esp();
+  const p36 = { n: nPos(), fila: T('tep-psap-interp'), v: V('psap_calc') };
+  ex.push(['DENOMINADOR: las tres escenas se paran en 34, 35 y 36 mmHg de PSAP',
+    p34.v === '34' && p35.v === '35' && p36.v === '36',
+    [p34.v, p35.v, p36.v].join(' / ')]);
+  ex.push(['(B1) PSAP 34 NO suma', p34.n === 1 && p34.fila.indexOf('normal') > -1, JSON.stringify(p34)]);
+  ex.push(['(B2) PSAP 35 EXACTO SI suma — el operador es >=, no >',
+    p35.n === 2 && p35.fila.indexOf('elevada') > -1, JSON.stringify(p35)]);
+  ex.push(['(B3) PSAP 36 suma', p36.n === 2 && p36.fila.indexOf('elevada') > -1, JSON.stringify(p36)]);
+
+  /* ══ (C) EL VD/VI ════════════════════════════════════════════════════════════════════════ */
+  escena(con({ tep_vdvi:'0.99' })); await esp();
+  const v099 = { n: nPos(), fila: T('tep-vdvi-interp') };
+  escena(con({ tep_vdvi:'1.0' })); await esp();
+  const v100 = { n: nPos(), fila: T('tep-vdvi-interp') };
+  ex.push(['(C1) VD/VI 0,99 no suma y 1,00 EXACTO si — el operador es >=',
+    v099.n === 1 && v100.n === 2, JSON.stringify(v099) + ' // ' + JSON.stringify(v100)]);
+  ex.push(['(C2) y el rotulo del campo dice 1,0 y ya no 0,9',
+    (function () { const e = EL('tep_vdvi');
+      const sp = e && e.parentElement ? e.parentElement.querySelector('span') : null;
+      const t = sp ? (sp.textContent || '') : 'NO EXISTE';
+      return t.indexOf('1,0') > -1 && t.indexOf('0.9') < 0 && t.indexOf('0,9') < 0; })(),
+    (function () { const e = EL('tep_vdvi');
+      const sp = e && e.parentElement ? e.parentElement.querySelector('span') : null;
+      return sp ? sp.textContent : 'NO EXISTE'; })()]);
+
+  /* ══ (D) EL COCIENTE: NUMERO, SIN CORTE Y SIN VEREDICTO ══════════════════════════════════
+     Dos escenas que en HEAD caian de lados distintos del 0,32 y hoy dan el mismo renglon. */
+  /* ⚠️ EL MISMO TAPSE EN LAS DOS, Y SOLO CAMBIA LA PSAP. El cociente es TAPSE/PSAP y los dos son
+     criterios, asi que moverlo cambiando el TAPSE cambia tambien el conteo y las dos escenas
+     dejan de ser comparables — que es lo que hacia la primera version de este bloque. Con el
+     TAPSE fijo en 14 y la PSAP en 55 y en 40, los dos valores siguen siendo POSITIVOS, el conteo
+     es el mismo (3) y el cociente cae de lados distintos del viejo 0,32: 0,255 y 0,350. En HEAD
+     la primera publicaba el rojo «Disfuncion VD significativa» y la segunda «Riesgo
+     INTERMEDIO-ALTO»; hoy las dos publican lo mismo. */
+  escena(con({ tapse:'14', vmax_it:'3.6' })); await esp();
+  const c025 = { t: T('tep-tapse-psap'), a: T('tep-acoplamiento'), n: nPos(),
+                 i: T('tep-interpretacion'), p: V('psap_calc') };
+  escena(con({ tapse:'14', vmax_it:'3.04' })); await esp();
+  const c037 = { t: T('tep-tapse-psap'), a: T('tep-acoplamiento'), n: nPos(),
+                 i: T('tep-interpretacion'), p: V('psap_calc') };
+  ex.push(['DENOMINADOR: las dos escenas tienen el MISMO conteo y el cociente cae de lados distintos del viejo 0,32',
+    c025.t.indexOf('0.25') === 0 && c037.t.indexOf('0.35') === 0 &&
+    c025.n === c037.n && c025.n >= 2,
+    c025.t + ' (PSAP ' + c025.p + ') // ' + c037.t + ' (PSAP ' + c037.p + ') n=' + c025.n + '/' + c037.n]);
+  ex.push(['(D1) la fila del cociente publica el NUMERO y ninguna palabra de veredicto, en las dos',
+    [c025.t, c037.t, c025.a, c037.a].every(function (x) {
+      return x.indexOf('mm/mmHg') > -1 && x.indexOf('acopl') < 0 && x.indexOf('0.32') < 0; }),
+    JSON.stringify([c025.t, c037.t, c025.a, c037.a])]);
+  ex.push(['(D2) y el cociente ya no decide: las dos escenas publican la MISMA interpretacion con el mismo conteo',
+    c025.n === c037.n && c025.i === c037.i, c025.i + ' // ' + c037.i]);
+  ex.push(['(D3) calcTEP no nombra el 0,32 ni la variable que lo usaba',
+    (function () { const s = String(calcTEP);
+      return s.indexOf('0.32') < 0 && s.indexOf('desacoplado') < 0; })(), '']);
+  ex.push(['(D4) CONTROL NEGATIVO: con cuatro criterios o mas el renglon de interpretacion SIGUE siendo el grave, porque sale del conteo',
+    (function () { escena({ tapse:'12', vmax_it:'3.8', tep_vdvi:'1.3',
+      tep_mcconnell:'si', tep_signo6060:'si', tep_tabique_d:'no' });
+      return nPos() >= 4 && T('tep-interpretacion').indexOf('severa') > -1; })(),
+    T('tep-interpretacion')]);
+
+  /* ══ (E) PANTALLA E INFORME CON EL MISMO CONTEO ══════════════════════════════════════════ */
+  const conteoInforme = function () {
+    try { if (FN('amiloIntegrar') && FN('amiloIntegrado') && !amiloIntegrado('tep')) amiloIntegrar('tep'); } catch (e) {}
+    try { generarInforme(); } catch (e) {}
+    const t = (V('informe_texto') || '');
+    const l = t.split(NL).filter(function (x) { return x.indexOf('sobrecarga VD aguda') > -1; })[0] || '';
+    const m = l.indexOf(': ');
+    return { linea: l, n: m < 0 ? null : Number(l.slice(m + 2, l.indexOf(' criterio'))) };
+  };
+  escena({ vd_vi:'1.2', tapse:'22', tep_mcconnell:'si', tep_signo6060:'no', tep_tabique_d:'no' });
+  await esp();
+  const aj = { pant: nPos(), vdvi: T('tep-vdvi-interp') };
+  const ajInf = conteoInforme();
+  ex.push(['DENOMINADOR: la escena tiene el VD/VI de la pestana VD cargado, el propio VACIO, y el informe publica su linea',
+    V('tep_vdvi') === '' && V('vd_vi') === '1.2' && ajInf.linea.length > 0,
+    'propio=' + V('tep_vdvi') + ' ajeno=' + V('vd_vi') + ' | ' + ajInf.linea.slice(0, 80)]);
+  ex.push(['(E1) la pantalla y el informe cuentan lo MISMO: los dos toman el VD/VI de la pestana VD',
+    aj.pant === 2 && ajInf.n === 2 && aj.vdvi.indexOf('1.2') > -1,
+    'pantalla=' + aj.pant + ' informe=' + ajInf.n + ' | ' + aj.vdvi]);
+  escena({ vd_vi:'0.7', tapse:'22', tep_mcconnell:'si', tep_signo6060:'no', tep_tabique_d:'no' });
+  await esp();
+  const ajB = nPos(); const ajBInf = conteoInforme();
+  ex.push(['(E2) CONTROL NEGATIVO: con ese VD/VI por debajo del corte los dos cuentan UNO, que es lo que ya hacian',
+    ajB === 1 && ajBInf.n === 1, 'pantalla=' + ajB + ' informe=' + ajBInf.n]);
+  escena({ tep_vdvi:'1.2', vd_vi:'0.7', tapse:'22', tep_mcconnell:'si', tep_signo6060:'no', tep_tabique_d:'no' });
+  await esp();
+  const ajC = nPos(); const ajCInf = conteoInforme();
+  ex.push(['(E3) CONTROL NEGATIVO: con el VD/VI PROPIO cargado manda el propio, en las dos superficies',
+    ajC === 2 && ajCInf.n === 2, 'pantalla=' + ajC + ' informe=' + ajCInf.n]);
+
+  /* ══ (F) LA PANTALLA SIN CLASE DE RIESGO Y EL PDF SIN LA SALVEDAD ════════════════════════ */
+  escena({ tapse:'12', vmax_it:'3.8', tep_vdvi:'1.3', tep_mcconnell:'si', tep_signo6060:'si', tep_tabique_d:'no' });
+  await esp();
+  const hoja = (function () { try { return FN('amiloTextoTEP') ? amiloTextoTEP() : 'SIN FN'; }
+    catch (e) { return 'EXC'; } })();
+  ex.push(['DENOMINADOR: la hoja del PDF de TEP se genera y trae el score',
+    hoja.length > 60 && hoja.indexOf('Score de criterios VD') > -1, hoja.slice(0, 90)]);
+  ex.push(['(F1) el renglon de clase de riesgo no existe en el marcado',
+    EL('tep-estratificacion') === null, String(EL('tep-estratificacion'))]);
+  ex.push(['(F2) y ninguna superficie del modulo dice «Riesgo INTERMEDIO»',
+    (function () { const sec = EL('tep-seccion');
+      const t = sec ? (sec.textContent || '') : '';
+      return t.indexOf('Riesgo INTERMEDIO') < 0 && hoja.indexOf('Riesgo INTERMEDIO') < 0 &&
+             hoja.indexOf('Orientaci') < 0; })(), hoja.slice(0, 200)]);
+  ex.push(['(F3) la hoja del PDF ya no lleva la Salvedad',
+    hoja.indexOf('Salvedad') < 0 && hoja.indexOf('orientativos y NO reemplazan') < 0, '']);
+  ex.push(['(F4) pero la advertencia SIGUE en pantalla, en el cartel de la tarjeta',
+    (function () { const sec = EL('tep-seccion');
+      const t = sec ? (sec.textContent || '') : '';
+      return t.indexOf('estratificaci') > -1 && t.indexOf('PESI') > -1; })(), '']);
+
+  /* ══ (G) LA FICHA DE REFERENCIAS ════════════════════════════════════════════════════════ */
+  const ref = (function () {
+    try { if (FN('showTab')) showTab('refs'); } catch (e) {}
+    try { if (FN('refSubInit')) refSubInit(); } catch (e) {}
+    let btn = null;
+    [].slice.call(document.querySelectorAll('[onclick]')).forEach(function (b) {
+      const o = b.getAttribute('onclick') || '';
+      if (!btn && o.indexOf('refSubTab') > -1 && o.indexOf('fun') > -1) btn = b; });
+    try { if (FN('refSubTab')) refSubTab('fun', btn); } catch (e) {}
+    const c = EL('ref-tep'); if (!c) return null;
+    if (getComputedStyle(c).display === 'none') { try { toggleRef('tep'); } catch (e) {} }
+    c.style.display = '';
+    const r = c.getBoundingClientRect();
+    return { t: (c.textContent || '').replace(/[ ]+/g, ' ').trim(),
+             w: Math.round(r.width), h: Math.round(r.height) };
+  })();
+  ex.push(['DENOMINADOR: la ficha de TEP existe, se abre y tiene geometria',
+    !!ref && ref.w > 0 && ref.h > 0 && ref.t.length > 1500,
+    ref ? (ref.w + 'x' + ref.h + ' n=' + ref.t.length) : 'NO EXISTE']);
+  ex.push(['(G1) cada criterio con su corte y su folio: TAPSE <16 con e17 y e15, PSAP >=35 con el folio 145, VD/VI 1,0',
+    !!ref && ref.t.indexOf('< 16 mm') > -1 && ref.t.indexOf('497.e17') > -1 &&
+    ref.t.indexOf('497.e15') > -1 && ref.t.indexOf('35 mmHg') > -1 &&
+    ref.t.indexOf('folio 145') > -1 && ref.t.indexOf('1,0') > -1, '']);
+  ex.push(['(G2) y ya no dice el corte de la pestana VD ni el operador viejo de la PSAP',
+    !!ref && ref.t.indexOf('17mm') < 0 && ref.t.indexOf('17 mm') < 0 &&
+    ref.t.indexOf('> 35') < 0 && ref.t.indexOf('>35') < 0, '']);
+  ex.push(['(G3) los cortes 2 y 4 del conteo llevan el chip «CRITERIO DE ECOSMART»',
+    !!ref && ref.t.indexOf('CRITERIO DE ECOSMART') > -1 &&
+    ref.t.indexOf('dos') > -1 && ref.t.indexOf('cuatro') > -1, '']);
+  ex.push(['(G4) el area de la AD se MANTIENE en >18 cm2, con su fuente y declarando que no suma',
+    !!ref && ref.t.indexOf('18 cm') > -1 && ref.t.indexOf('folio 28') > -1 &&
+    ref.t.indexOf('no suma al conteo') > -1 && ref.t.indexOf('19 cm') > -1, '']);
+  ex.push(['(G5) el resumen de la Tabla 8 menciona el PESI y el sPESI',
+    !!ref && ref.t.indexOf('PESI') > -1 && ref.t.indexOf('sPESI') > -1 &&
+    ref.t.indexOf('Tabla 8') > -1, '']);
+  ex.push(['(G6) CONTROL NEGATIVO: la palabra «independiente» ya no esta en la referencia del cociente',
+    !!ref && ref.t.indexOf('independiente') < 0, '']);
+
+  /* ══ (H) LA EVIDENCIA DEL TEP ═══════════════════════════════════════════════════════════ */
+  const evid = function (resp) {
+    escena({ tapse:'12', vmax_it:'3.8', tep_vdvi:'1.3', tep_mcconnell:'si', tep_signo6060:'si', tep_tabique_d:'no' });
+    try { indicAbrir(); } catch (e) { return { hay:false, t:'ABORTO ' + e.message, btns:0 }; }
+    Object.keys(resp).forEach(function (k) {
+      const b = document.querySelector('[data-ind-clin="' + k + '"][data-ind-val="' + resp[k] + '"]');
+      if (b) b.click(); });
+    const d = [].slice.call(document.querySelectorAll('#indic-cuerpo details')).filter(function (x) {
+      const s = x.querySelector('summary');
+      return s && (s.textContent || '').indexOf('Tromboembolia pulmonar') > -1; })[0];
+    /* ⚠️ CENTINELA: contra un arbol SIN esta seccion el detalle es undefined, y leerle el texto
+       undefined mata la corrida entera por EXCEPCION — que prueba que el arbol es distinto, no
+       que el caso sabe medir. Toda rama devuelve su campo de texto como cadena. */
+    const out = d ? { hay:true, t:(d.textContent || '').replace(/[ ]+/g, ' '),
+                      btns: d.querySelectorAll('[data-ind-clin]').length }
+                  : { hay:false, t:'', btns:0 };
+    try { indicCerrar(); } catch (e) {}
+    return out;
+  };
+  const eAlto = evid({ 'tep.ih':'si', 'tep.vd':'si' });
+  const eIA   = evid({ 'tep.ih':'no', 'tep.vd':'si', 'tep.pesi':'pesi', 'tep.tropo':'si' });
+  const eIB   = evid({ 'tep.ih':'no', 'tep.vd':'si', 'tep.pesi':'spesi', 'tep.tropo':'no' });
+  const eNotaE= evid({ 'tep.ih':'no', 'tep.vd':'si', 'tep.pesi':'no', 'tep.tropo':'no' });
+  const eBajo = evid({ 'tep.ih':'no', 'tep.vd':'no', 'tep.pesi':'no', 'tep.tropo':'ne' });
+  const eSin  = evid({});
+  ex.push(['DENOMINADOR: la seccion de TEP existe en el panel y trae los DIEZ botones de su cuestionario',
+    eAlto.hay === true && eAlto.btns === 10, JSON.stringify({ hay:eAlto.hay, btns:eAlto.btns })]);
+  ex.push(['(H1) riesgo ALTO con inestabilidad hemodinamica y disfuncion del VD',
+    eAlto.t.indexOf('Riesgo ALTO') > -1, (eAlto.t || '').slice(0, 60)]);
+  ex.push(['(H2) riesgo INTERMEDIO-ALTO con los tres positivos y INTERMEDIO-BAJO con uno solo',
+    eIA.t.indexOf('Riesgo INTERMEDIO-ALTO') > -1 && eIB.t.indexOf('Riesgo INTERMEDIO-BAJO') > -1, '']);
+  ex.push(['(H3) la nota e: sin parametros clinicos de gravedad pero con disfuncion del VD, riesgo INTERMEDIO sin subclase',
+    eNotaE.t.indexOf('Riesgo INTERMEDIO') > -1 && eNotaE.t.indexOf('INTERMEDIO-') < 0, '']);
+  ex.push(['(H4) riesgo BAJO sin inestabilidad, sin gravedad clinica y sin disfuncion del VD',
+    eBajo.t.indexOf('Riesgo BAJO') > -1, '']);
+  ex.push(['(H5) sin contestar NO publica ninguna clase, y dice que faltan',
+    eSin.t.indexOf('Faltan datos') > -1 && eSin.t.indexOf('Riesgo ') < 0, '']);
+  ex.push(['(H6) la seccion cita la Tabla 8 con su folio y lleva la idea de la ex Salvedad',
+    eIA.t.indexOf('497.e20') > -1 && eIA.t.indexOf('Tabla 8') > -1, '']);
+  ex.push(['(H7) CONTROL NEGATIVO: sin un solo dato PROPIO del modulo, la seccion no existe',
+    (function () { escena({ tapse:'12', vmax_it:'3.8' });
+      let r = null; try { r = _indTEP(); } catch (e) { r = 'EXC'; }
+      return r === null; })(), '']);
+  ex.push(['(H8) y lo que se contesta NO viaja con el estudio',
+    (function () { try { if (FN('_indClinLimpiar')) _indClinLimpiar(); } catch (e) {}
+      const campos = {};
+      [].slice.call(document.querySelectorAll('input[id],select[id],textarea[id]')).forEach(function (e) {
+        if (e.id) campos[e.id] = 1; });
+      return Object.keys(campos).filter(function (k) { return k.indexOf('tep.') === 0; }).length === 0; })(), '']);
+
+  /* ══ (I) CONTROLES — lo que esta tanda no toca ══════════════════════════════════════════ */
+  try { __t.limpiar(); } catch (e) {}
+  S('peso','80'); S('talla','172'); S('tapse','16.5'); S('s_prime','9'); S('vd_bas','45');
+  S('ad_area','20'); S('vci_diam','23'); S('vci_col','<50'); S('vmax_it','3.2'); S('ddfvi','48');
+  try { if (FN('calcPmAD')) calcPmAD(); if (FN('calcPSAP')) calcPSAP(); if (FN('calcVD')) calcVD();
+        if (FN('calcHTP2022')) calcHTP2022(); if (FN('calcAD')) calcAD(); } catch (e) {}
+  await esp();
+  ex.push(['(I1) CONTROL: la pestana VD gradua el TAPSE de 16,5 mm con SU corte de 17, no con el de TEP',
+    T('tapse-interp').indexOf('disfunci') > -1 && T('tapse-interp').indexOf('17') > -1,
+    T('tapse-interp')]);
+  ex.push(['(I2) CONTROL: la probabilidad de HTP sigue publicandose',
+    T('htp2022-prob').indexOf('Probabilidad') > -1, T('htp2022-prob')]);
+  ex.push(['(I3) CONTROL: el area de la AD sigue graduandose con el corte de la ASE 2025 (19 cm2)',
+    T('ad-interp').indexOf('19') > -1, T('ad-interp')]);
+  ex.push(['(I4) CONTROL: el posoperatorio sigue leyendo el TAPSE con el corte de 17',
+    (function () { try { if (FN('popPocusSync')) popPocusSync(); } catch (e) {}
+      const t = T('pop-pocus-vd');
+      return t.indexOf('17') > -1 && t.indexOf('16 mm') < 0; })(), T('pop-pocus-vd').slice(0, 120)]);
+  ex.push(['(I5) CONTROL: el Excel sigue en 440 columnas',
+    (function () { if (!FN('_labExcelRow')) return false;
+      const campos = {};
+      [].slice.call(document.querySelectorAll('input[id],select[id],textarea[id]')).forEach(function (e) {
+        if (e.type !== 'button' && e.id) campos[e.id] = (e.type === 'checkbox') ? (e.checked ? '1' : '') : e.value; });
+      let f = null; try { f = _labExcelRow({ campos: campos, fecha: '2026-10-21' }); } catch (e) { return false; }
+      return f && Object.keys(f).length === 440; })(),
+    (function () { try { return String(Object.keys(_labExcelRow({ campos:{}, fecha:'2026-10-21' })).length); }
+      catch (e) { return 'EXC'; } })()]);
+  /* ⚠️ «Troponina elevada» YA ES UNA COLUMNA DEL EXCEL y es del modulo de amiloidosis, no de
+     esta tanda: la primera version de esta condicion la filtraba y salia roja sobre un libro
+     perfecto. Lo que se vigila es que el cuestionario de Evidencia no haya abierto columnas. */
+  ex.push(['(I6) CONTROL: el cuestionario de Evidencia no abrio ninguna columna de Excel',
+    (function () { if (!FN('_labExcelRow')) return false;
+      let f = null; try { f = _labExcelRow({ campos:{}, fecha:'2026-10-21' }); } catch (e) { return false; }
+      const k = Object.keys(f).filter(function (x) { return x.indexOf('PESI') > -1 ||
+        x.indexOf('Riesgo TEP') > -1 || x.indexOf('tep.') > -1; });
+      return k.length === 0; })(),
+    (function () { try { return Object.keys(_labExcelRow({ campos:{}, fecha:'2026-10-21' }))
+      .filter(function (x) { return x.indexOf('PESI') > -1 || x.indexOf('Riesgo TEP') > -1 ||
+        x.indexOf('tep.') > -1; }).join(','); } catch (e) { return 'EXC'; } })()]);
+
+  return { extra: ex };
+  })();
+`);
+
 
 
 

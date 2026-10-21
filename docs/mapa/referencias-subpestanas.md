@@ -266,3 +266,20 @@ operadores, fórmulas, textos clínicos, ids— se movió; lo que cambió son la
 **El mapa de todo eso es `docs/mapa/pestanas-reorganizacion.md`**, con la tabla «qué se movió»,
 las tres cosas que `showTab` hace y que condicionan cualquier barra de sub-pestañas, el drawer
 móvil y sus `data-mod`, y las seis trampas de medición.
+
+---
+
+## La ficha del TEP — la tanda «C» (2026-10-21)
+
+`ref-tep` vive en la subpestaña **`fun`** y se reescribió entera: cada criterio pasa a una tabla
+con su corte y su **fuente con folio**, vistos en el PDF original. Tres afirmaciones que la ficha
+**dejó de hacer** porque ninguna fuente las sostiene: el TAPSE en «<17 mm» (ése es el corte de la
+pestaña VD), la PSAP en «>35» (la ASE 2025 escribe `>= 35`) y el «mal pronóstico
+**independiente**» del cociente TAPSE/PSAP. También salió la «especificidad ~94 %» del signo de
+McConnell. El detalle está en **`docs/mapa/tep-score.md`**.
+
+⚠️ **EL CHIP «CRITERIO DE ECOSMART» PASA DE TRES A CUATRO**: el cuarto declara que los cortes 2 y
+4 del conteo del TEP son una referencia propia. Lo cuenta TC-507 (I8).
+
+⚠️ **MEDIRLA EXIGE ACTIVAR SU SUBPESTAÑA.** Sin `refSubTab('fun', btn)` la tarjeta existe y mide
+**0×0** dentro de un panel apagado, y `refSubTab` **exige su segundo argumento**.

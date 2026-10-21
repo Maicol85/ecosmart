@@ -75,6 +75,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Saber DÓNDE ESTÁ una pantalla**: la columna izquierda y la fila de arriba, Pericardio y masas, las dos sub-pestañas de Otros, el eco pulmonar unificado, Calculadoras dentro de Referencias, C. Congénitas, el Fonocardiograma retirado o la frase de Balik | `docs/mapa/pestanas-reorganizacion.md` |
 | **Citar un dato de una guía** (documento, folio, frase verificada) | `docs/fuentes/FUENTES.md` |
 | **Tocar la POSICIÓN del selector de origen mitral o de los dos campos de la prótesis TRICÚSPIDE, la regla de DOS O MÁS de su obstrucción, la onda E en cm/s, el Ar−A suplementario, la FEVI del Laboratorio o los dos toggles de PDF** | `docs/mapa/cortos-arreglos.md` |
+| **Tocar el SCORE de TEP, su ficha de Referencias o su Evidencia**: los seis criterios con su corte, el TAPSE que NO es el de la pestaña VD, el cociente sin corte, el dueño del VD/VI o las siete ramas de la Tabla 8 | `docs/mapa/tep-score.md` |
 | **Tocar un HALLAZGO de la pestaña OTROS**: ASIA, las seis variantes anatómicas, la circunfleja retroaórtica, el test de burbuja, el derrame pericárdico del papel o la separación de las líneas B | `docs/mapa/otros-hallazgos.md` |
 | **Tocar la OBSTRUCCIÓN de una prótesis TRICÚSPIDE o PULMONAR**: las Tablas 19 y 15 de la ASE 2024, los tres campos del PRO-C1, el DVI retirado con regurgitación o los tres estados pulmonares que no gradúan | `docs/mapa/protesis-tri-pulm.md` |
 | **Tocar un CORTE de PRÓTESIS de la tanda PRO**: el cociente VTI mitral por régimen, el jet/TSVI y la FR de la IAo protésica, o el reverso diastólico de la TAVI | `docs/mapa/protesis-pro.md` |
@@ -291,6 +292,185 @@ impecable.
 ---
 
 ## Estado vigente
+
+
+### El TEP — el score, la ficha y su EVIDENCIA — «C» (2026-10-21)
+
+- **Son CINCO commits, y la orden pedía cinco.** Al **empezar**, `main` **y `origin/main` estaban
+  los dos en `c2e95cd`**, con el sello **`v20261021-0456`** —medido con `git show c2e95cd:index.html`
+  y no de memoria—; al cerrar se volvió a sellar en **`v20261021-0631`**. Los **siete commits del
+  B estaban incluidos Y PUSHEADOS** —medido con un `git fetch` real y un `ls-remote` dando el mismo sha—. Los **cinco**
+  de esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 5 → 4 → 3 → 2 → 1.**
+  ⚠️ **EL 1 ES LA BASE DEL 2 Y DEL 5**: crea `TEP_TAPSE_BAJO_MAX`, que `calcTEP` y el bloque del
+  informe nombran los dos. Revertirlo sin revertir antes el 2 deja las dos funciones nombrando una
+  constante que no existe, y un `ReferenceError` ahí se lleva la pantalla y el informe de TEP.
+  ⚠️ **EL 4 CUELGA DEL 2 POR `tepVdViRatio`**, que la sección de Evidencia consume y que nace en
+  el 2; y **el 4 crea `tepHayDatos`, que el INFORME pasa a consumir**, así que revertir el 4 sin
+  revertir antes el 5 deja el informe llamando a una función que ya no está.
+  ⚠️ **EL 3 SE REVIERTE SOLO**: es la ficha de Referencias, marcado estático, y no nombra una
+  pieza de los otros cuatro — pero deja **TC-507 (H4 e I8)** y **TC-510 (G)** en rojo.
+  **El 5 es TC-510, la documentación y el sello**, y afirma el comportamiento de los cuatro.
+  ⚠️ **EL COMMIT 4b NO ES DOCUMENTACIÓN**: lleva el bloque `guia` de la sección nueva —que
+  TC-322 exige a todas— y las **cinco adaptaciones** que destapó la corrida de zona.
+
+- **Línea base al cierre: suite **520/524** con el pendrive `DISK_IMG` MONTADO —verificado al
+  abrir Y al cerrar—, Semgrep **124 / 0 ERROR en 1 app**, Excel en **440** columnas y celular
+  **66 a 360 px y 76 a 390 px con 17 ALTA cada uno**, con `--todo` **395 / 405**: el MISMO par que
+  dejó el B. CERO REGRESIONES.** Los rojos son exactamente los de ENTRADA —**TC-223** (el
+  documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**— y no apareció ninguno
+  fuera de esa lista. **El denominador sube a 524**: esta tanda agregó **TC-510**. Los
+  **diecisiete** de **TC-181…TC-197** salieron VERDES, que es la prueba de que el pendrive estuvo
+  puesto, y el `md5` de `index.html` no se movió durante la corrida (`b873d87a…`, el del sello).
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **524 ids** sobre los 525 casos del archivo.
+- **`index.html` pasó de 8,53 MB / 128.236 líneas a 8,52 MB / 128.567 líneas.**
+
+- **LOS TRES CORTES DEL SCORE, CADA UNO CON SU FUENTE LEÍDA EN EL PDF ORIGINAL Y VERIFICADA
+  RENDERIZANDO LA PÁGINA.** ⚠️ **Los dos documentos se comen los glifos en la extracción de
+  texto**: la ESC 2019 devuelve un hueco donde va el `≥` y la ASE 2025 codifica `≥` como `$` y
+  `≤` como `#` — quien la lea sin saberlo **invierte todos los operadores**.
+  · **TAPSE `< 16 mm`** (`TEP_TAPSE_BAJO_MAX`, constante NUEVA). ESC 2019 de TEP, cuerpo del
+    **folio 497.e17** y **Figura 3 panel G, folio 497.e15**.
+  · **PSAP `>= 35 mmHg`** — el MISMO `UMBRAL_PSAP_ELEVADA`, sólo cambia el operador y **sólo
+    ahí**. ASE 2025, **Tabla 1, folio 145**: normal `<= 34`, leve `>= 35 a <= 49`.
+  · El **cociente TAPSE/PSAP** se publica como **número**, sin corte y sin color.
+  ⚠️ **NO SE REUSA `UMBRAL_TAPSE_NORMAL` Y ESA ES TODA LA DECISIÓN.** Vale 17 mm (ASE 2025) y
+  lo leen la pestaña VD, el cuadro de referencias, el PDF, el POCUS del posoperatorio y el patrón
+  hemodinámico. **Medido: un TAPSE de 16,0 a 16,9 mm es NORMAL para el score de TEP y DISFUNCIÓN
+  para la pestaña VD**, cada sección con su fuente. Los cortes **2 y 4** del conteo no se movieron.
+  ⚠️ **Y LA PSAP NO LLEVA CONSTANTE NUEVA, a propósito**: declarar un `TEP_PSAP_MIN = 35` sería
+  una segunda copia del mismo número, que es el defecto que este archivo ya pagó tres veces.
+
+- **EL 0,32 SALE DE TODO VEREDICTO, Y ESO CIERRA LA PARADA Z4-TEP.** No era un corte de TEP: es
+  el umbral de **bajo riesgo en hipertensión arterial pulmonar** (ESC/ERS 2022, Tabla 16, folio
+  41). No sumaba al score ni a la interpretación **pero sí decidía** el renglón de riesgo
+  (`score >= 2 && desacoplado`). **Censada la biblioteca, ningún documento publica un corte del
+  cociente para TEP AGUDO**, así que no se reemplaza por otro.
+  ⚠️ **LA «SALIDA INTERMEDIA» QUE Z4-TEP DECLARABA PEOR QUE LAS DOS YA NO EXISTE**: esta tanda
+  retira **la etiqueta y el veredicto a la vez**, así que no queda ningún renglón rojo colgando
+  de un corte que no se ve en ninguna parte.
+  **Escenas que cambian de veredicto, medidas:** TAPSE 16,0 y 16,9 (dejan de contar), PSAP 35,0
+  (empieza a contar) y los cocientes 0,255 y 0,283 con tres criterios positivos, que pierden el
+  rojo por cociente. **Control medido: con cinco criterios el renglón grave se conserva**, porque
+  sale de `score >= 4`.
+
+- ⚠️ **LA PANTALLA Y EL INFORME CONTABAN DISTINTO, Y ESTÁ MEDIDO.** La cascada del VD/VI estaba
+  escrita DOS veces: la pantalla caía al `vd_vi` de la pestaña VD y el informe **no**. **Con
+  `vd_vi = 1,2` y `tep_vdvi` vacío la pantalla contaba 2/3 criterios y el informe 1** — el mismo
+  estudio con dos conteos, uno en la pantalla y otro en el papel firmado. Hoy los dos leen
+  `tepVdViRatio()`. **El predicado se conserva letra por letra (`!vdvi`, no `=== null`)** y **el
+  POSOPERATORIO no lo consume**: tiene su propia cascada y esta orden no lo toca.
+
+- **LAS CLASES DE RIESGO SALEN DE LA PANTALLA, Y LA PREMISA DE LA ORDEN ERA CIERTA A MEDIAS.** El
+  informe NARRATIVO nunca usó «Riesgo INTERMEDIO-ALTO/BAJO» —tiene sus propias frases, que son
+  descriptivas— **pero la HOJA DEL PDF SÍ las imprimía**, leyendo el span `tep-estratificacion`
+  como «Orientación de disfunción VD». Con el span afuera, la línea del PDF se va con él.
+  **La «Salvedad» sale de la hoja del PDF** y su idea pasa a Evidencia; **la advertencia sigue en
+  pantalla**, en el cartel de la tarjeta, que no se tocó.
+  ⚠️ **Y EL RÓTULO «Patológico: ≥0.9» DEL CAMPO VD/VI LO CAZÓ MIRAR LA CAPTURA**, no la
+  medición: el corte aplicado es 1,0 desde el R7 y el rótulo era un resto del corte de tomografía.
+
+- **LA FICHA DE REFERENCIAS HACÍA CUATRO AFIRMACIONES QUE NINGUNA FUENTE SOSTIENE**, y las cuatro
+  se retiraron: el TAPSE en «<17mm» (el corte de la pestaña VD), la PSAP en «>35», el «mal
+  pronóstico **independiente**» del cociente —**ningún estudio de la biblioteca lo respalda**; el
+  más cercano, Mostafa 2024, no predijo mortalidad— y la «especificidad ~94 %» del signo de
+  McConnell, que **no está publicada**: lo que la guía dice es que esos hallazgos tienen valor
+  predictivo positivo alto y aparecen en cerca del 20 % de los pacientes no seleccionados.
+  Los seis criterios pasan a una **tabla con su corte y su folio**, y los cortes **2 y 4** llevan
+  el chip **«CRITERIO DE ECOSMART»**, que pasa de TRES a CUATRO en toda la app.
+  ⚠️ **EL ÁREA DE LA AD SE MANTIENE EN «> 18 cm²»** con su fuente verificada (ESC/ERS 2022,
+  Tabla 10 folio 28 y Figura 4 folio 27), declara que **no suma al conteo**, y la ficha **reporta**
+  que la ASE 2025 pone el límite normal en **«< 19 cm²»** (Tabla 1, folio 145), que es el que la
+  app usa para **graduar** esa cámara en la pestaña del VD. **No se cambió ninguno de los dos.**
+
+- **LA EVIDENCIA DEL TEP: LA TABLA 8, VERIFICADA EN IMAGEN — NO HUBO PARADA.** Su contenido es un
+  **bitmap** y la extracción de texto devuelve las celdas sueltas; se renderizó a 320 dpi.
+  La sección LEE lo cargado, PREGUNTA los tres indicadores que el eco no da —inestabilidad
+  hemodinámica, PESI III-V / sPESI ≥ 1 / Ninguno, y troponina— y publica la clase por sus
+  **SIETE ramas**, cada una con su fila o su nota.
+  ⚠️ **LA DISFUNCIÓN DEL VD LA PROPONE LA APP Y LA CONFIRMA EL MÉDICO, y las dos mitades
+  importan**: el conteo de esta app **no es un criterio de la guía** —la nota `b` de la Tabla 8
+  remite a la Figura 3 sin decir cuántos hallazgos hacen falta— así que publicar la clase con el
+  conteo sería inventar el umbral que esta sección vino a no inventar.
+  ⚠️ **CON INESTABILIDAD Y SIN DISFUNCIÓN DEL VD LA TABLA NO TIENE FILA, y no se inventa una**:
+  se publica lo que la guía sí dice en el folio 497.e15 —que ahí la ausencia de signos de
+  sobrecarga del VD prácticamente excluye la TEP como causa de la inestabilidad— y se deja **sin
+  clase**. Lo que el médico contesta **no se guarda con el estudio**.
+
+- **A/B contra el inicio de la tanda, en cada commit, con la sonda `scripts/_probe_tep.mjs`:**
+  el commit 1 mueve **58** claves sobre 17 escenas y las tres causas son las autorizadas; el
+  commit 2, **53**, y las cuatro causas también; **el commit 4, CERO**. **CONTROLES: HTP, pestaña
+  VD, AD, taponamiento, posoperatorio, diastólica y el Excel en 440 columnas CLAVE POR CLAVE —
+  cero diferencias contra HEAD en las dos escenas.**
+
+- **A/B DEDICADO de las superficies firmadas, con el PDF GENERADO DE VERDAD en sus SEIS
+  plantillas, en CUATRO escenas (24 celdas):** con el **formulario vacío** y con un **escenario
+  AJENO** —válvulas, diastólica y VD cargados y ni un dato del módulo— las seis salen
+  **IDÉNTICAS**, con el informe en los tres estilos, el EN SUMA en los tres y el **Excel en 440
+  columnas CLAVE POR CLAVE** sin una sola celda distinta. Con las dos escenas de TEP, `n` baja
+  **5** y `figs` **2** en las seis plantillas, y el conjunto de textos que falta es exactamente
+  **las cuatro líneas de la «Salvedad» y la de «Orientación de disfunción VD»**; lo que cambia
+  es el rótulo del TAPSE, el operador de la PSAP, el cociente sin corte y —en la escena del
+  VD/VI ajeno— el conteo de 1 a 2. **El Laboratorio por sus cinco funciones dueñas y el juego de
+  claves de los campos del estudio: CERO diferencias en las cuatro escenas.**
+  ⚠️ **Y LA PRIMERA VERSIÓN DE ESE GRUPO MIDIÓ CERO TEXTOS EN LAS 24 CELDAS, o sea «PDF
+  idéntico» sobre veinticuatro celdas VACÍAS.** La causa tiene nombre: **jsPDF 2.x instala
+  `text`, `line`, `circle` y `rect` como propiedades PROPIAS de cada instancia**, así que
+  parchear `jsPDF.prototype.text` **no captura nada y no da ningún error**. Lo que funciona es
+  **envolver el CONSTRUCTOR** —que es lo que este archivo ya decía y yo leí mal—: con eso una
+  escena da **159 textos y 114 figuras**.
+
+- **MEDIDO EN LOS DOS MOTORES** —Chrome por el canal del sistema y WebKit— **a 1200×700,
+  1440×800, 768×1024, 390×844 y 360×740 por los dos temas: CERO scroll horizontal en las 20
+  celdas**, **diez filas** (antes once), **cero renglones de clase de riesgo** y el color del
+  cociente resuelve **real y distinto** en los dos temas —`rgb(232,236,244)` de noche y
+  `rgb(26,34,51)` de día— e **idéntico entre motores**. La ficha de Referencias mide
+  **1006×763 px** y publica los mismos **3255** caracteres en los dos.
+  ⚠️ **WebKit de Playwright NO es Safari, y se declara.**
+  ⚠️ **Y LA PRIMERA TANDA DE MAQUETA MIDIÓ LA SECCIÓN CERRADA: 0×0 EN TODO, «cero scroll
+  horizontal» Y LAS DIEZ CAPTURAS VACÍAS.** `tep-seccion` nace plegada y `limpiarCampos` la vuelve
+  a cerrar; la medición numérica salía impecable sobre una tarjeta que no estaba dibujada. Se
+  abre por el gesto (`toggleCard`) y la sonda **aborta** si no hay geometría.
+
+- **Cobertura: TC-510**, **48 condiciones** con cinco denominadores y siete controles negativos.
+  **Verificado que sabe fallar contra el inicio de la tanda en un worktree aparte: 28 de las 48 en
+  rojo, y NINGUNA por excepción.**
+  ⚠️ **MURIÓ POR EXCEPCIÓN CONTRA HEAD EN SU PRIMERA VERSIÓN** (`.t.indexOf` sobre un objeto sin
+  esa clave): toda rama del ayudante devuelve su campo de texto como cadena.
+- ⚠️ **CASOS ADAPTADOS: CINCO.** **TC-476** y **TC-479** —los tres afirmaban la PARADA Z4-TEP o
+  el corte de 0,32, escritos para que el día que se decidiera se notara, **y lo notaron**—;
+  **TC-507** en dos condiciones (H4, la ficha reescrita; I8, el chip de TRES a CUATRO);
+  **TC-322**, cuyo denominador exige que TODAS las secciones de `IND_SECS` tengan escenario y lo
+  dijo con nombre y apellido; y **TC-274**, que informaba el botón de Evidencia **AZUL «con el
+  formulario vacío»** — no era un defecto del botón: `EVID_LIMPIAR` es una **lista explícita** y
+  los campos del TEP no estaban, así que el estudio del caso anterior dejaba la sección
+  encendida. **Corrido solo ya pasaba.**
+
+- ⚠️ **`scripts/check_backticks.py` NO ALCANZÓ EL CUERPO DE TC-510.** Dio «OK» con **CUATRO**
+  acentos graves adentro, y los cazó `node --check`. Me comí el acento grave **siete veces** en
+  esta tanda —cuatro en TC-510 y tres en adaptaciones y en la sonda— y el script sólo dio tres.
+  **Correr los dos, y para un caso nuevo contar los acentos graves del cuerpo a mano.**
+  `PENDIENTES.md` → C-6.
+- ⚠️ **Y DOS FALSOS DE MI PROPIO CASO.** (1) El badge de la pantalla escribe `(<16 mm)` **sin
+  espacio** y la ficha `< 16 mm` **con** espacio: una condición que busque el literal de uno sale
+  roja sobre el otro. (2) **El cociente es TAPSE/PSAP y los dos son criterios**, así que moverlo
+  cambiando el TAPSE cambia **también el conteo** y las dos escenas dejan de ser comparables — hay
+  que fijar el TAPSE y mover **sólo** la PSAP, con los dos valores del mismo lado de su corte.
+
+- **Dónde está todo:** `docs/mapa/tep-score.md` (**mapa NUEVO**, 12,3 KB: las piezas por nombre,
+  los seis criterios con su fuente, el cociente, el dueño del VD/VI, lo que salió de la pantalla
+  y del PDF, la Evidencia con sus siete ramas, las siete trampas y la ficha de TC-510); dos mapas
+  con un puntero cada uno (`tapse-psap-ap` 15,4 KB · `referencias-subpestanas` 18,0);
+  `docs/fuentes/FUENTES.md` → «La tanda C», con las dos reglas de folio comprobadas en el pie
+  impreso, lo verificado dato por dato, la **Tabla 8 transcrita con sus cinco notas**, lo que se
+  retiró por falta de fuente y la tabla de **Cambios de evidencia**; y `docs/PENDIENTES.md` →
+  **Z4-TEP y G1-2 marcados CERRADOS** más **ocho** cosas declaradas (C-1 a C-8).
+  ⚠️ **`tests-fichas.md` NO SE TOCÓ** —sigue en 33,3 KB, a 1,7 KB del techo— y
+  **`panel-evidencia.md` tampoco**, que está en **35,3 KB, o sea YA cruzado**: por eso el mapa de
+  esta tanda nació en archivo propio y lleva adentro la ficha de TC-510. **Ningún mapa cruzó.**
+
 
 
 ### La REORGANIZACIÓN DE PESTAÑAS — «B» (2026-10-21)
