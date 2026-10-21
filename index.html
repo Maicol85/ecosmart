@@ -19585,7 +19585,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
           </div>
 
           <div class="card">
-            <div class="card-title"><span>🔍</span> Criterios cualitativos — ≥2 de 3</div>
+            <div class="card-title"><span>🔍</span> Criterios cualitativos — ≥2 de 3 (camino alternativo al score)</div>
             <div id="ett-cual-count" style="font-size:12px;color:var(--muted);margin-bottom:10px">0 de 3 presentes</div>
     <div class="criterio-item" id="cual-1" onclick="toggleCual('cual-1','ett-cual-1')">
       <div class="criterio-check" id="chk-cual-1">—</div>
@@ -19618,18 +19618,23 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
             <div class="criterio-item" id="crit-rwt" onclick="toggleCrit('crit-rwt','ett-rwt',3)">
       <div class="criterio-check" id="chk-rwt">—</div>
       <div style="flex:1">
-        <div class="criterio-nombre">RWT &gt; 0.6</div>
-        <div class="criterio-def">Grosor relativo de pared = (2 × PP) / DDVI. Indica hipertrofia concéntrica marcada</div>
+        <div class="criterio-nombre">Espesor relativo &gt; 0.6</div>
+        <div class="criterio-def">Espesor relativo de pared = (septo + pared posterior) / DDVI (Garcia-Pavia 2021, Tabla 2). Indica hipertrofia concéntrica marcada</div>
       </div>
       <button type="button" class="crit-calc-btn" id="calcbtn-rwt" onclick="event.stopPropagation();amCalcToggle('rwt')">Calcular ▾</button>
       <div class="criterio-pts">+3</div>
       <input type="hidden" id="ett-rwt" value="0"><input type="hidden" id="ett-rwt-orig" value="">
     </div>
     <div class="crit-calc" id="calc-rwt" hidden>
+      <!-- ⚠️ TRES CAMPOS DESDE EL R2-E5: la formula de la Tabla 2 suma el SEPTO y la pared
+           posterior. El cuarto es el resultado, de solo lectura. -->
       <div class="form-row cols3">
+        <div><label>Septo (mm)</label><input type="number" id="rwt-septo" placeholder="Ej: 15" step="0.1" oninput="calcRWT()" onchange="amCalcAutoColapsar('rwt')"></div>
         <div><label>PP (mm)</label><input type="number" id="rwt-pp" placeholder="Ej: 13" step="0.1" oninput="calcRWT()" onchange="amCalcAutoColapsar('rwt')"></div>
         <div><label>DDVI (mm)</label><input type="number" id="rwt-ddvi" placeholder="Ej: 42" step="0.1" oninput="calcRWT()" onchange="amCalcAutoColapsar('rwt')"></div>
-        <div><label>RWT calculado</label><input id="rwt-result" readonly style="background:#f5f7fa;font-weight:700;color:var(--purple)"></div>
+      </div>
+      <div class="form-row cols3">
+        <div><label>Espesor relativo calculado</label><input id="rwt-result" readonly style="background:#f5f7fa;font-weight:700;color:var(--purple)"></div>
       </div>
       <div style="margin-top:8px;text-align:right;"><button type="button" class="crit-calc-btn" onclick="event.stopPropagation();amTraerDeFormulario('rwt')">↓ Traer del formulario</button></div>
     </div>
@@ -19738,6 +19743,10 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
           </div>
           <div class="score-bar" style="margin-top:6px"><div class="score-fill" id="ett-score-bar" style="transform:scaleX(0);background:var(--purple)"></div></div>
           <div id="ett-score-interp" style="font-size:11.5px;color:var(--muted);line-height:1.55;margin-top:6px">Score ≥8 + HVI ≥12mm sugiere amiloidosis cardíaca.</div>
+          <!-- ⚠️ LA SALVEDAD ES DE LA FUENTE Y VA CON SUS PALABRAS (R2-E5, 2026-10-21): el folio
+               1556 dice «Although NOT YET EXTERNALLY VALIDATED, a score >=8 points in the presence
+               of LV wall thickness >=12 mm … could also be considered diagnostic». -->
+          <div style="font-size:11px;color:var(--text2);line-height:1.5;margin-top:6px">El score multiparamétrico <strong>no tiene validación externa</strong> («not yet externally validated», García-Pavía 2021, folio 1556).</div>
         </div>
 
         <div style="text-align:center;margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center;" class="no-print">
@@ -19793,7 +19802,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
             <div class="divider"></div>
             <div class="card-title"><span>☢️</span> Centellograma con Tecnecio 99 — Grado Perugini</div>
     <div class="info-box">
-      Grados 2 y 3 tienen VPP 100% para diagnóstico de ATTR <strong>si las proteínas monoclonales son negativas</strong>.
+      Grados 2 y 3 tienen una <strong>especificidad cercana al 100%</strong> para el diagnóstico de ATTR <strong>si las proteínas monoclonales son negativas</strong> (García-Pavía 2021, folio 1556).
     </div>
     <div class="grado-grid" id="gamma-grado-grid">
       <div class="grado-item" onclick="selGrado(0)"><div class="grado-num grado-0">0</div><div class="grado-label">No capta nada</div></div>
@@ -19890,7 +19899,11 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
   </div>
   <div class="card">
-    <div class="card-title"><span>🗺</span> Algoritmo diagnóstico — Gillmore 2016 adaptado</div>
+    <!-- ⚠️ LA ATRIBUCION CORREGIDA (R2-E5, 2026-10-21): los cuatro escenarios son los del
+         documento de posicion del Grupo de Trabajo de la ESC (Garcia-Pavia y col., Eur Heart J
+         2021;42:1554-1568), folios 1558-1559. Decia «Gillmore 2016 adaptado», que es el estudio
+         de la gammagrafia y no el documento que publica estos escenarios. -->
+    <div class="card-title"><span>🗺</span> Algoritmo diagnóstico — Documento de posición del Grupo de Trabajo de la ESC sobre Enfermedades Miocárdicas y Pericárdicas (García-Pavía, 2021)</div>
     <div style="display:grid;gap:8px">
       <div class="escenario-box verde">
         <div class="escenario-titulo">Escenario 1 — Gammagrafía sin captación + proteínas monoclonales negativas</div>
@@ -19899,7 +19912,12 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       <div class="escenario-box morado">
         <div class="escenario-titulo">Escenario 2 — Gammagrafía con captación + proteínas monoclonales negativas</div>
         <div class="escenario-body">
-          <strong>Grado 2-3:</strong> continuar con pruebas genéticas para diferenciar ATTR wt y mt. Diagnóstico de ATTR no invasivo confirmado (VPP 100%).<br>
+          <!-- ⚠️ «ESPECIFICIDAD CERCANA AL 100 %» Y NO «VPP 100 %» (R2-E5, 2026-10-21). El folio
+               1556 del documento de posicion dice, literal: «the specificity of Grade 2 or 3 bone
+               scintigraphy for cardiac ATTR when the disease is suspected has been proposed to be
+               ALMOST 100%». Especificidad y valor predictivo positivo no son lo mismo, y el VPP
+               depende de la prevalencia. -->
+          <strong>Grado 2-3:</strong> continuar con pruebas genéticas para diferenciar ATTR wt y mt. Diagnóstico de ATTR no invasivo confirmado (especificidad cercana al 100%, García-Pavía 2021, folio 1556).<br>
           <strong>Grado 1:</strong> diagnóstico no invasivo no es posible → biopsia extracardiaca o cardiaca necesaria.
         </div>
       </div>
@@ -19936,14 +19954,21 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </table>
     <div style="margin-top:10px;font-size:12px;color:var(--muted);line-height:1.6">
       <strong>Score ≥8 + HVI ≥12mm</strong> con depósito de amiloide cardíaco o extracardiaco → diagnóstico de amiloidosis cardíaca posible sin biopsia cardiaca.<br>
-      Los criterios cualitativos (disfunción diastólica ≥grado 2, velocidades tisulares &lt;5cm/s, SGL &lt;15%) deben estar presentes ≥2 de 3 para que el escore sea aplicable.
+      <!-- ⚠️ CORREGIDO el 2026-10-21 (R2-E5): decia que los 2 de 3 cualitativos son un requisito
+           «para que el escore sea aplicable», y la Tabla 2 del folio 1558 los presenta como el
+           OTRO camino —«plus 1 or 2»—, no como una condicion del score. -->
+      Con un espesor parietal ≥12mm, la Tabla 2 ofrece <strong>dos caminos y alcanza uno</strong>: ≥2 de los 3 criterios cualitativos (disfunción diastólica ≥grado 2, velocidades tisulares &lt;5cm/s, SGL &lt;15%) <strong>o</strong> el score multiparamétrico ≥8 puntos.
     </div>
   </div>
   <div class="card">
     <div class="card-title"><span>⚠️</span> Limitaciones y consideraciones</div>
     <div class="warn-box" style="margin-bottom:0">
       Esta calculadora es una herramienta de apoyo clínico. El diagnóstico final de amiloidosis cardíaca requiere correlación clínica completa. El centellograma con Tc99 debe interpretarse siempre junto con el perfil de proteínas monoclonales. En caso de duda, consultar con cardiología/hematología especializada.<br><br>
-      <strong>Fuentes:</strong> Gillmore JD et al. NEJM 2016 · Guías ESC Cardiomiopatías 2023 · Garcia-Pavia P et al. Eur Heart J 2021.
+      <!-- ⚠️ «ESC 2021» NO ES UNA GUIA Y SE SACA COMO ATRIBUCION (R2-E5): Garcia-Pavia 2021 es
+           un DOCUMENTO DE POSICION de un grupo de trabajo, no una guia de practica clinica. Se
+           nombra por lo que es. Gillmore 2016 se conserva como fuente de la gammagrafia, que es
+           lo que ese estudio publica. -->
+      <strong>Fuentes:</strong> Documento de posición del Grupo de Trabajo de la ESC sobre Enfermedades Miocárdicas y Pericárdicas (García-Pavía P et al., Eur Heart J 2021;42:1554-1568) · Gillmore JD et al., NEJM 2016 (gammagrafía) · Guía ESC 2023 de miocardiopatías.
     </div>
   </div>
       </div>
@@ -85789,7 +85814,19 @@ function resetAlgoritmo() {
 // `calc` reproduce la fórmula de cada función de cálculo y `ok` su umbral. Se usan al
 // reconstruir un estudio viejo que no trae el origen persistido.
 var _AM_CALC = {
-  rwt:   { res:'rwt-result', ins:['rwt-pp','rwt-ddvi'], ok:function(v){ return v >  0.6; }, calc:function(a,b){ return b ? (2*a)/b : null; } },
+  /* ══ EL ESPESOR RELATIVO SUMA EL SEPTO Y LA PARED POSTERIOR (R2-E5, 2026-10-21) ═══════════
+     FUENTE, VERIFICADA EN EL ORIGINAL: Garcia-Pavia P y col., «Diagnosis and treatment of cardiac
+     amyloidosis: a position statement of the ESC Working Group on Myocardial and Pericardial
+     Diseases», Eur Heart J 2021;42:1554-1568, **Tabla 2, hoja 5 del PDF, folio impreso 1558**
+     (regla folio = hoja + 1553, comprobada en el pie impreso de TRES hojas), literal:
+     «Relative LV wall thickness (IVS+PWT)/LVEDD >0.6 — 3 points».
+     La app aplicaba `(2 x PP) / DDVI`, que es la definicion del RWT geometrico general —la que
+     usa `calcGeometriaVI` con su corte de 0,42 y que NO se toca—, y supone el septo igual a la
+     pared posterior. Con un septo mas grueso el espesor salia MENOR del real y el criterio no
+     se marcaba: hasta 3 puntos de menos, y son los que mueven un 7 a un 8.
+     ⚠️ EL CORTE NO SE MUEVE: sigue siendo `> 0.6`. */
+  rwt:   { res:'rwt-result', ins:['rwt-septo','rwt-pp','rwt-ddvi'], ok:function(v){ return v >  0.6; },
+           calc:function(a,b,c){ return c ? (a+b)/c : null; } },
   ee:    { res:'ee-result',  ins:['ee-e','ee-ep'],      ok:function(v){ return v >  11;  }, calc:function(a,b){ return b ? a/b : null; } },
   tapse: { res:null,         ins:['tapse-val'],         ok:function(v){ return v <= 19;  } },
   sgl:   { res:null,         ins:['sgl-val'],           ok:function(v){ return v >= -13; } },
@@ -85807,7 +85844,9 @@ function amCalcIds() { return Object.keys(_AM_CALC); }
    El ápice/base NO tiene fuente: el strain por segmentos no da la relación ápice/base, así que
    ese cálculo sigue siendo manual — que es lo que el propio pedido dice. */
 var _AM_FUENTE = {
-  rwt:   function(){ return [ v('ppvi'), v('ddfvi') ]; },
+  /* El septo sale de `siv`, que es el campo del septo interventricular de AI/VI: el mismo que
+     `calcGeometriaVI` ya usa para la masa. El orden sigue a `ins` (R2-E5). */
+  rwt:   function(){ return [ v('siv'), v('ppvi'), v('ddfvi') ]; },
   ee:    function(){ var d = null; try { d = hfapeffDatos(); } catch(e){}
                      return [ v('onda_e'), d ? d.eprom : null ]; },
   tapse: function(){ return [ v('tapse') ]; },
@@ -85885,10 +85924,12 @@ function amETTValor(k) {
     var v = e ? PF(e.value) : NaN;
     return isNaN(v) ? null : v;
   }
-  var a = PF((document.getElementById(c.ins[0]) || {}).value);
-  var b = PF((document.getElementById(c.ins[1]) || {}).value);
-  if (isNaN(a) || isNaN(b)) return null;
-  var r = c.calc(a, b);
+  /* Los insumos se leen por su LISTA y no uno por uno (R2-E5): el espesor relativo pasó a
+     tener TRES —septo, pared posterior y DDVI— y con dos lecturas fijas el tercero quedaba
+     fuera, asi que `calc` recibia `undefined` y devolvia null SIEMPRE. */
+  var vals = c.ins.map(function (id) { return PF((document.getElementById(id) || {}).value) });
+  if (vals.some(function (x) { return isNaN(x) })) return null;
+  var r = c.calc.apply(null, vals);
   return (r === null || isNaN(r)) ? null : r;
 }
 
@@ -86084,11 +86125,17 @@ function toggleCual(itemId, inputId) {
 }
 
 function calcRWT() {
+  /* (septo + pared posterior) / DDVI — Garcia-Pavia 2021, Tabla 2, folio 1558 (R2-E5). */
+  var sep  = PF(document.getElementById('rwt-septo')?.value) || 0;
   var pp   = PF(document.getElementById('rwt-pp')?.value)   || 0;
   var ddvi = PF(document.getElementById('rwt-ddvi')?.value) || 0;
   var resEl = document.getElementById('rwt-result');
-  if(!pp||!ddvi){ if(resEl) resEl.value=''; amCalcSinDato('rwt'); calcETT(); return; }
-  var rwt = (2*pp)/ddvi;
+  /* ⚠️ EL SEPTO ES CONDICION, Y LA PRIMERA VERSION DE ESTE COMMIT NO LO EXIGIA NI LO SUMABA:
+     cambie los insumos y deje la cuenta vieja `(2*pp)/ddvi`, asi que el espesor seguia saliendo
+     0,50 con un septo de 18 y una pared de 11. Lo cazo la MEDICION de la escena de septo
+     asimetrico, no la lectura. */
+  if(!sep||!pp||!ddvi){ if(resEl) resEl.value=''; amCalcSinDato('rwt'); calcETT(); return; }
+  var rwt = (sep+pp)/ddvi;
   if(resEl) resEl.value = rwt.toFixed(2);
   amAplicarCalc('rwt', rwt > 0.6, 3);
   calcETT();
@@ -86162,9 +86209,24 @@ function calcETT() {
   if(pts === 0) {
     cat='Completá los parámetros';
     interp='Ingresá los valores del ecocardiograma para calcular el score.';
-  } else if(pts >= 8 && hvi && cualCount >= 2) {
-    cat='🟣 Score ALTO (' + pts + '/10) — Amiloidosis muy sugestiva';
-    interp='Score ≥8 + HVI ≥12mm + ≥2 criterios cualitativos. Patrón altamente sugestivo de amiloidosis cardíaca. Continuar con centellograma y proteínas monoclonales.';
+  } else if(hvi && (pts >= 8 || cualCount >= 2)) {
+    /* ══ ALCANZA UN CAMINO, NO LOS DOS (R2-E5, 2026-10-21) ════════════════════════════════
+       FUENTE: Garcia-Pavia 2021, Tabla 2, folio 1558, literal: «Unexplained LV thickness
+       (>=12 mm) **plus 1 or 2**», donde 1 son los criterios cualitativos («>=2 of a, b, and c
+       have to be present») y 2 es el score multiparametrico («>=8 points»). La app exigia los
+       DOS a la vez, asi que un paciente con score 9 y un solo criterio cualitativo —o con los
+       dos cualitativos y score 7— no alcanzaba la categoria que la fuente le da.
+       La HVI >=12 mm sigue siendo condicion de las dos vias: es el «plus» de la frase. */
+    /* ⚠️ EL ROTULO NOMBRA EL CAMINO Y NO SOLO EL SCORE: por la via de los criterios
+       cualitativos el score puede ser BAJO, y «Score ALTO (2/10)» se lee como una
+       contradiccion. Lo que esta alto es el criterio por eco, no el puntaje. */
+    cat = (pts >= 8)
+      ? '🟣 Score ALTO (' + pts + '/10) — Amiloidosis muy sugestiva'
+      : '🟣 Criterio por eco ALCANZADO (score ' + pts + '/10) — Amiloidosis muy sugestiva';
+    interp='HVI ≥12mm con ' + (pts >= 8 && cualCount >= 2
+        ? 'score ≥8 y ≥2 criterios cualitativos'
+        : (pts >= 8 ? 'score ≥8' : '≥2 criterios cualitativos'))
+      + '. Alcanza uno de los dos caminos de la Tabla 2 (Garcia-Pavia 2021). Patrón altamente sugestivo de amiloidosis cardíaca. Continuar con centellograma y proteínas monoclonales.';
   } else if(pts >= 5 && hvi) {
     cat='🟡 Score INTERMEDIO (' + pts + '/10)';
     interp='Hallazgos sugestivos pero score <8 o criterios cualitativos insuficientes. Evaluar en contexto clínico. Completar estudio.';

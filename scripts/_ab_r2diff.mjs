@@ -5,7 +5,13 @@ const A = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
 const B = JSON.parse(fs.readFileSync(process.argv[3], 'utf8'));
 const CORTE = Number(process.argv[4] || 220);
 let n = 0;
-const esc = Object.keys(A).filter(k => k[0] !== '_' && k !== 'archivo');
+/* Solo las escenas que estan en los DOS lados: con una medida en un solo archivo, el
+   comparador listaba TODAS sus claves como diferencias —un denominador roto con pinta de
+   medicion buena—. Las que falten se informan aparte. */
+const esc = Object.keys(A).filter(k => k[0] !== '_' && k !== 'archivo' && B[k]);
+const faltan = Object.keys(A).filter(k => k[0] !== '_' && k !== 'archivo' && !B[k])
+  .concat(Object.keys(B).filter(k => k[0] !== '_' && k !== 'archivo' && !A[k]));
+if (faltan.length) console.log('(escenas en un solo lado, NO comparadas: ' + faltan.join(',') + ')');
 for (const e of esc) {
   const a = A[e] || {}, b = B[e] || {};
   const claves = Array.from(new Set(Object.keys(a).concat(Object.keys(b))));

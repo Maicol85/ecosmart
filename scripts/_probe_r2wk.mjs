@@ -281,6 +281,114 @@ const CVR_MED = `((val) => {
     badge: T('cvr-concl-badge'), esep: T('cvr-esep') };
 })(VAL)`;
 
+/* ══ (f,g,h,i) LOS CUATRO GRUPOS RESTANTES ═══════════════════════════════════════════════
+   Cada uno mide lo RENDERIZADO: el texto que la pantalla publica y el que baja al papel. */
+const RESTO = `(() => {
+  ['modalAvisoEco','login-overlay'].forEach(id => { const m = document.getElementById(id);
+    if (m) m.style.display = 'none' });
+  const S = (id, v) => { const e = document.getElementById(id); if (!e) return 'NO ' + id;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value };
+  const T = (id) => { const e = document.getElementById(id); return e ? String(e.textContent || e.value || '') : 'NO EXISTE' };
+  const limpiar = () => { try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {} };
+  const out = {};
+
+  /* ── (f) CARDIO-ONCOLOGIA: el borde del SGL y la dosis ── */
+  out.sgl = {};
+  [['15.0', '-20', '-17'], ['15.1', '-20', '-16.98'], ['14.9', '-20', '-17.02']].forEach(p => {
+    limpiar();
+    S('co_fevi_basal', '60'); S('co_fevi_actual', '58');
+    S('co_gls_basal', p[1]); S('co_gls_actual', p[2]);
+    try { if (typeof calcCardioOnco === 'function') calcCardioOnco() } catch (e) {}
+    out.sgl[p[0]] = { rel: (typeof _ctrcdGlsRel === 'function') ? _ctrcdGlsRel(parseFloat(p[1]), parseFloat(p[2])) : 'SIN',
+      alt: (typeof _ctrcdGlsAlterado === 'function') ? _ctrcdGlsAlterado(_ctrcdGlsRel(parseFloat(p[1]), parseFloat(p[2]))) : 'SIN',
+      badge: T('co-toxicidad-resultado').replace(/[ ]+/g, ' ').slice(0, 150) };
+  });
+  out.dosis = {};
+  ['249', '250', '251', '360'].forEach(d => {
+    limpiar(); S('co_dosis_antrac', d);
+    try { if (typeof calcCardioOnco === 'function') calcCardioOnco() } catch (e) {}
+    /* El aviso de dosis se CREA al vuelo dentro de co-riesgo-resultado (un span sin id),
+       asi que se lee el texto del contenedor y no un id que no existe. */
+    out.dosis[d] = T('co-riesgo-resultado').replace(/[ ]+/g, ' ').slice(0, 190);
+  });
+  /* El texto RENDERIZADO de la Referencia rapida: cuantas columnas tiene la tabla y si siguen
+     las conductas. Se cuenta sobre el DOM, no sobre el fuente. */
+  out.refrapida = (() => {
+    const p = document.querySelector('[data-coref-pane="ctrcd"]');
+    if (!p) return { err: 'NO EXISTE' };
+    const t = p.querySelector('table');
+    const ths = t ? Array.prototype.map.call(t.querySelectorAll('tr:first-child th'), x => x.textContent.trim()) : [];
+    const txt = p.textContent || '';
+    return { nCols: ths.length, ths: ths,
+      conductas: ['Suspender', 'control en 4 sem', 'considerar biopsia', 'seguimiento estrecho',
+                  'eco obligatorio'].filter(x => txt.indexOf(x) > -1) };
+  })();
+  out.hfaicos = (() => {
+    const sec = document.getElementById('hfaicos-seccion');
+    const txt = sec ? (sec.textContent || '') : 'NO EXISTE';
+    return { dicePropia: txt.indexOf('no es HFA-ICOS') > -1,
+             primeros: txt.replace(/[ ]+/g, ' ').trim().slice(0, 150) };
+  })();
+
+  /* ── (g) ECO PULMONAR ── */
+  out.pulmon = {};
+  [['difuso_2y2', ['pua_z_ant_d','pua_z_lat_d','pua_z_ant_i','pua_z_lat_i']],
+   ['focal_2y1',  ['pua_z_ant_d','pua_z_lat_d','pua_z_ant_i']],
+   ['sin_zonas',  []]].forEach(p => {
+    limpiar();
+    S('pua_lineasb', 'presentes'); S('pua_lineasb_cant', 'multiples');
+    p[1].forEach(id => { const e = document.getElementById(id); if (e && !e.checked) e.click() });
+    try { if (typeof pulAvUI === 'function') pulAvUI() } catch (e) {}
+    const r = (typeof pulAvPatron === 'function') ? pulAvPatron() : null;
+    out.pulmon[p[0]] = { p: r ? r.p : 'SIN', i: r ? String(r.i).slice(0, 150) : 'SIN',
+      dif: (typeof pulAvDifuso === 'function') ? JSON.stringify(pulAvDifuso()) : 'SIN FN' };
+  });
+  limpiar(); S('pua_lineasb', 'presentes'); S('pua_lineasb_cant', 'coalescentes');
+  try { if (typeof pulAvUI === 'function') pulAvUI() } catch (e) {}
+  out.coalescentes = (typeof pulAvPatron === 'function') ? pulAvPatron() : 'SIN';
+  out.neumo = {};
+  ['', 'si', 'no'].forEach(pt => {
+    limpiar();
+    S('pua_desliz', 'abolido'); S('pua_lineasa', 'presentes'); S('pua_lineasb', 'ausentes');
+    if (pt) S('pua_punto', pt);
+    try { if (typeof pulAvUI === 'function') pulAvUI() } catch (e) {}
+    const r = (typeof pulAvPatron === 'function') ? pulAvPatron() : null;
+    out.neumo[pt || 'sin_evaluar'] = { p: r ? r.p : 'SIN', i: r ? String(r.i).slice(0, 170) : 'SIN' };
+  });
+  out.pulsoPulmonar = !document.getElementById('pua_pulso');   /* true = NO se agrego */
+
+  /* ── (h) HEMODINAMICA ── */
+  out.ic = {};
+  [['2.19', 2.19], ['2.20', 2.20], ['2.21', 2.21], ['2.50', 2.50], ['4.10', 4.10]].forEach(p => {
+    out.ic[p[0]] = (typeof _icBanda === 'function') ? JSON.stringify(_icBanda(p[1])) : 'SIN FN';
+  });
+  limpiar();
+  ['peso','talla','fc','pam','pvc','ddfvi','vsfvi','onda_e','e_sep','e_lat'].forEach((k, i) => {
+    S(k, ['80','180','70','90','8','50','20','90','8','10'][i]);
+  });
+  try { if (typeof calcHemo === 'function') calcHemo() } catch (e) {}
+  out.hemo = { ic: T('hemo-ic'), rvs: T('hemo-rvs'), pcp: T('hemo-pcp'),
+    forr: T('hemo-forrester'), perfil: T('hemo-perfil'),
+    lblPcp: (() => { const n = document.querySelectorAll('.calc-lbl');
+      return Array.prototype.map.call(n, x => x.textContent.trim())
+        .filter(x => x.indexOf('PCP') === 0 || x.indexOf('RVP') === 0).slice(0, 4) })(),
+    hoja: (typeof amiloTextoHemo === 'function') ? String(amiloTextoHemo()).slice(0, 460) : 'SIN FN' };
+
+  /* ── (i) ETE: la orejuela ── */
+  limpiar();
+  S('oai_ostium_diam', '24'); S('oai_profundidad', '28'); S('oai_trombo', 'no');
+  try { if (typeof calcOAI === 'function') calcOAI() } catch (e) {}
+  out.oai = { eleg: T('oai-elegibilidad'), notas: T('oai-notas').slice(0, 220) };
+  /* Los controles que NO se tocan. */
+  out.eteIntacto = (() => {
+    const todo = document.body.textContent || '';
+    return ['contraindicación cardioversión', 'Watchman', 'Amulet']
+      .filter(x => todo.indexOf(x) > -1);
+  })();
+  return out;
+})()`;
+
 async function corre(nombre, lanzar) {
   let b = null;
   try { b = await lanzar() } catch (e) { OUT[nombre] = { error: 'NO ARRANCA: ' + e.message.slice(0, 120) }; return }
@@ -355,6 +463,7 @@ async function corre(nombre, lanzar) {
       R.cvr = {};
       for (const vv of CVR_VALS) R.cvr[vv] = await pg.evaluate(CVR_MED.replace('VAL', JSON.stringify(vv)));
     }
+    if (hay('resto')) R.resto = await pg.evaluate(RESTO);
     if (hay('vabmat')) {
       R.matriz = {};
       for (const c of MATRIZ) {
