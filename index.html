@@ -14275,7 +14275,7 @@ z
                 <option value="dos_senos_ll">Dos senos, latero-lateral</option>
                 <option value="dos_senos_ap">Dos senos, antero-posterior</option>
                 <option value="partial">Parcial (forme fruste)</option>
-                <option value="no_clasif">No clasificable</option>
+                <option value="no_clasif">Fusión indeterminada</option>
               </select>
             </div>
             <div class="fg"><label>Rafe calcificado</label>
@@ -50479,9 +50479,14 @@ function generarInforme(opts) {
        marca—: es la segunda compuerta para los grados que llegan con marca y sin botón, como un
        estudio importado, que la salvedad de discordancia marca `esqSevManual.ea` a propósito. */
     const EA_ESCALON_SIN_GRADO = true;
-    const _eaManualS = !!(window.esqSevManual && window.esqSevManual.ea);
-    const _iaManualS = !!(window.esqSevManual && window.esqSevManual.ia);
-    const _pillA = (t) => (typeof pillOn === 'function') && pillOn('aortica', t);
+    /* ⚠️ LAS CINCO COMPUERTAS SE MUDARON A `aoLesionSinGrado` (R1, 2026-10-20), Y NO CAMBIO
+       NINGUNA: lo que sigue a esta linea es la MISMA regla, leida desde su dueño unico para que la
+       seccion VAB no tenga una segunda copia. Las cuatro ayudas locales que vivian aca
+       —`_eaManualS`, `_iaManualS`, `_pillA` y `_aoBloqueado`— se fueron con ellas; el A/B del
+       informe en los tres estilos y del EN SUMA dio CERO diferencias en las dieciseis escenas.
+       Los comentarios de abajo explican cada compuerta y se conservan: el razonamiento de por que
+       cada una esta ahi es lo mas caro de esta zona. */
+    const _aoSinGrado = (k) => (typeof aoLesionSinGrado === 'function') ? aoLesionSinGrado(k) : false;
     /* ⚠️ CUARTA COMPUERTA: CON EL INSUMO FUERA DE BANDA EL ESCALÓN NO AFIRMA NADA. La encontró
        `/sharp-edges` sobre este propio diff, y estaba MEDIDA. `_eaRetirarGradoSugerido` escribe
        `ea_grado = 'sin'` cuando un insumo está fuera de banda —el Ø TSVI tipeado en centímetros es
@@ -50500,14 +50505,7 @@ function generarInforme(opts) {
        La IAo NO lo necesita —su `bloqueado()` está declarado en `false` a propósito, porque su
        proveedor resuelve el fuera de banda por dentro— pero se consulta igual por el registro, así
        que el día que eso cambie la compuerta ya está puesta. */
-    const _aoBloqueado = (clave) => {
-      try {
-        const C = (typeof SEV_SINC !== 'undefined') ? SEV_SINC[clave] : null;
-        return !C || typeof C.bloqueado !== 'function' ? true : !!C.bloqueado();
-      } catch (e) { return true; }
-    };
-    const _eaSinGrado = EA_ESCALON_SIN_GRADO && !eaDesc && !esclerosis && !_eaManualS &&
-      _pillA('esten') && !_aoBloqueado('ea');
+    const _eaSinGrado = EA_ESCALON_SIN_GRADO && _aoSinGrado('ea');
     /* ⚠️ QUINTA COMPUERTA, Y SÓLO PARA LA INSUFICIENCIA: CON PRÓTESIS EL ESCALÓN CALLA. Lo destapó
        el A/B de las 47 escenas contra `42a1f0e` —escena H11-prot-ia—, no la lectura. La frase
        protésica tiene OTRA FORMA: la rama de `_eaProtN` compone
@@ -50538,8 +50536,7 @@ function generarInforme(opts) {
        prótesis + botón de IAo abierto + sin grado el informe afirma «…, con insuficiencia.» y el
        EN SUMA «IAo presente.», igual que en la nativa. `_aoEsProt` sigue frenando la ESTENOSIS
        (vía `_eaProtN`/`eaProtNarrativa`), que es lo que no aplica a una prótesis. */
-    const _iaSinGrado = EA_ESCALON_SIN_GRADO && !(iaG > 0) && !_iaManualS &&
-      _pillA('insuf') && !_aoBloqueado('ia');
+    const _iaSinGrado = EA_ESCALON_SIN_GRADO && _aoSinGrado('ia');
     const estEBase = eaDesc ? `estenosis ${eaDesc}` : (_eaSinGrado ? 'estenosis' : null);
     const estCBase = eaDesc ? `EAo ${eaDesc}` : (_eaSinGrado ? 'estenosis' : null);
     /* La nota del fundamento de la IAo va pegada al grado: «insuficiencia severa (jet excéntrico,
@@ -64777,7 +64774,7 @@ const VAB_TIPO_TXT = {
   fused_rl:'fusión R–L (derecha–izquierda)', fused_rn:'fusión R–N (derecha–no coronariana)',
   fused_ln:'fusión L–N (izquierda–no coronariana)',
   dos_senos_ll:'dos senos, latero-lateral', dos_senos_ap:'dos senos, antero-posterior',
-  partial:'parcial (forme fruste)', no_clasif:'no clasificable'
+  partial:'parcial (forme fruste)', no_clasif:'fusión indeterminada'
 };
 /* Etiqueta CORTA del Consenso 2021 — dueño del texto de `vab_tipo` en CUATRO superficies:
    «Ver detalle» (`_IG_SECTIONS`), las DOS columnas de Excel de `_labExcelRow` y, derivadas de
@@ -64820,7 +64817,7 @@ const VAB_TIPO_LBL = {
 const VAB_TIPO_LBL_ES = {
   fused_rl:'Fusión R–L', fused_rn:'Fusión R–N', fused_ln:'Fusión L–N',
   dos_senos_ll:'Dos senos, latero-lateral', dos_senos_ap:'Dos senos, antero-posterior',
-  partial:'Parcial (forme fruste)', no_clasif:'No clasificable'
+  partial:'Parcial (forme fruste)', no_clasif:'Fusión indeterminada'
 };
 const VAB_TIPO_LBL_LEGACY = Object.assign({
   t0:   VAB_TIPO_LBL.dos_senos_ll, t1rl: VAB_TIPO_LBL.fused_rl, t1rn: VAB_TIPO_LBL.fused_rn,
@@ -64842,21 +64839,26 @@ const VAB_SIMETRIA_TXT = { simetrica:'simétrica', asimetrica:'asimétrica',
    ⚠️ EN ESPAÑOL Y NO «fused type». Desde el Y3f6 TODAS las etiquetas visibles lo estan, asi que
    esta tabla ya no es la excepcion sino la regla; la unica que conserva el ingles es
    `VAB_TIPO_LBL`, que es la que escribe el EXCEL y la que su importador reconoce.
-   ⚠️ ACA DICE «no coronaria» Y EL SELECTOR DICE «no coronariana», y las dos formas conviven a
-   proposito: esta es la frase del informe FIRMADO y reescribirla es contenido clinico que la
-   orden del Y3f no autoriza. Reportado.
+   ⚠️ «NO CORONARIANA» EN TODAS LAS SUPERFICIES (R1, 2026-10-20). DECISION DE MAICOL: hasta el
+   Y3f esta tabla decia «no coronaria» y el selector «no coronariana», y las dos formas convivian
+   porque reescribir la frase del informe FIRMADO era contenido clinico que aquella orden no
+   autorizaba. Esta lo autoriza y se unifica a la del selector, que es la forma correcta en
+   español: el informe en los tres estilos, el EN SUMA —que deriva de aca por `VAB_SUMA_FENO`—,
+   el PDF, los rotulos del dibujo (`VAB_DIB_HIT`), las tarjetas y las dos tablas de agregacion
+   (`VAB_TIPOS_LBL`) dicen lo mismo. `VAB_TIPO_LBL` NO cambia: es la que escribe el EXCEL y la que
+   su importador reconoce, y no contiene esa palabra.
    ⚠️ «SIMETRICOS» Y «ASIMETRICOS» EN PLURAL: son los SENOS. El informe decia «Senos simétrica»,
    concordando con el singular de `VAB_SIMETRIA_TXT`, que describe la SIMETRIA.
    ⚠️ LOS DOS TIPOS DE DOS SENOS NO TIENEN RAFE POR DEFINICION, asi que en vez de la clausula
    del rafe publican «con dos velos verdaderos», que es lo que esa morfologia significa. */
 const VAB_INF_FENO = Object.freeze({
   fused_rl: 'R-L (fusión derecha-izquierda)',
-  fused_rn: 'R-N (fusión derecha-no coronaria)',
-  fused_ln: 'L-N (fusión izquierda-no coronaria)',
+  fused_rn: 'R-N (fusión derecha-no coronariana)',
+  fused_ln: 'L-N (fusión izquierda-no coronariana)',
   dos_senos_ll: 'de dos senos, latero-lateral',
   dos_senos_ap: 'de dos senos, antero-posterior',
   partial: 'de fusión parcial (forme fruste)',
-  no_clasif: 'no clasificable'
+  no_clasif: 'de fusión indeterminada'
 });
 /* La sigla CORTA, para el EN SUMA. Se deriva de `VAB_INF_FENO` recortando el parentesis, asi
    que el dia que una etiqueta cambie las dos se mueven juntas. */
@@ -65631,8 +65633,8 @@ const VAB_DIB_FUSION = Object.freeze({
    la lista, que ademas sigue siendo la via accesible con teclado. */
 const VAB_DIB_HIT = Object.freeze([
   { k: 'fused_rl', cx: 159, cy: 97,  lbl: 'Fusión derecha-izquierda' },
-  { k: 'fused_rn', cx: 81,  cy: 97,  lbl: 'Fusión derecha-no coronaria' },
-  { k: 'fused_ln', cx: 120, cy: 165, lbl: 'Fusión izquierda-no coronaria' }
+  { k: 'fused_rn', cx: 81,  cy: 97,  lbl: 'Fusión derecha-no coronariana' },
+  { k: 'fused_ln', cx: 120, cy: 165, lbl: 'Fusión izquierda-no coronariana' }
 ]);
 const VAB_NS = 'http://www.w3.org/2000/svg';
 function _vabEl(tag, attrs, host) {
@@ -66258,11 +66260,24 @@ function vabFuncionDerivada(src) {
      IAo. La cadena vacia es «no hay ni valor de fabrica», que pasa con un estudio importado. */
   const eaSin = (ea === '' || ea === 'sin');
   const iaSin = (ia === '' || ia === '0');
-  const eaTiene = !eaSin || calc('ea') !== null;
-  const iaTiene = !iaSin || calc('ia') !== null;
+  /* ⚠️ LA TERCERA VIA: LA LESION MARCADA SIN GRADO (R1, 2026-10-20). DECISION DE MAICOL: la
+     seccion tiene que decir lo MISMO que Valvulas dice de esta valvula, con grado o sin grado.
+     `aoLesionSinGrado` es el dueño unico de ese estado y es la MISMA funcion que el informe de
+     Valvulas consume para publicar «con estenosis» / «con insuficiencia»: por construccion las
+     dos superficies no pueden discrepar.
+     ⚠️ CON `src` NO CORRE, igual que `calc`: la pastilla no viaja con el estudio, asi que sobre un
+     registro archivado este estado no es detectable y la celda del Excel se comporta como antes. */
+  const sinGr = (k) => {
+    if (src) return false;
+    try { return (typeof aoLesionSinGrado === 'function') ? !!aoLesionSinGrado(k) : false; }
+    catch (e) { return false; }
+  };
+  const eaPres = sinGr('ea'), iaPres = sinGr('ia');
+  const eaTiene = !eaSin || eaPres || calc('ea') !== null;
+  const iaTiene = !iaSin || iaPres || calc('ia') !== null;
   if (!eaTiene && !iaTiene) return null;
-  const eaEst = (ea === 'leve' || ea === 'moderada' || ea === 'severa');
-  const iaIns = (!iaSin && ia !== '');
+  const eaEst = eaPres || (ea === 'leve' || ea === 'moderada' || ea === 'severa');
+  const iaIns = iaPres || (!iaSin && ia !== '');
   if (eaEst && iaIns) return 'mixta';
   if (eaEst) return 'estenosis';
   if (iaIns) return 'insuficiencia';
@@ -66358,6 +66373,17 @@ function vabResumenPintar() {
   const p2 = [];
   const tEA = L(EA, sv2('ea_grado')); if (tEA) p2.push(tEA);
   const tIA = L(IA, sv2('ia_grado')); if (tIA) p2.push(tIA);
+  /* ⚠️ LA LESION MARCADA SIN GRADO (R1, 2026-10-20). El estado lo decide `aoLesionSinGrado`, el
+     MISMO dueño que el informe de Valvulas; aca solo se redacta. Con las DOS sin grado va UNA
+     oracion —«Estenosis e insuficiencia presentes»—, que es el texto que fijo Maicol; con una de
+     las dos graduada y la otra presente, cada una publica lo suyo separado por el ` · ` que esta
+     linea ya usa («EA leve · Insuficiencia presente»), que es la forma conservadora: no se
+     inventa una redaccion mixta ni se calla la que no tiene grado. */
+  const _sgEA = (typeof aoLesionSinGrado === 'function') && aoLesionSinGrado('ea');
+  const _sgIA = (typeof aoLesionSinGrado === 'function') && aoLesionSinGrado('ia');
+  if (_sgEA && _sgIA) p2.push('Estenosis e insuficiencia presentes');
+  else if (_sgEA)     p2.push('Estenosis presente');
+  else if (_sgIA)     p2.push('Insuficiencia presente');
   if (!p2.length && vabFuncionDerivada() === 'normal') p2.push('Sin estenosis ni insuficiencia');
   if (p2.length) linea(p2.join(' · '));
 
@@ -78060,6 +78086,52 @@ function pillOn(valvula, tipo) {
   return b ? b.classList.contains('btn-primary') : false;
 }
 window.pillOn = pillOn;
+
+/* ══ EL ESTADO «LESION PRESENTE SIN GRADO» DE LA VALVULA AORTICA — DUEÑO UNICO (R1, 2026-10-20) ══
+   DECISION DE MAICOL: la seccion VAB tiene que mostrar lo MISMO que Valvulas dice de esa valvula,
+   con grado o sin grado. Hasta hoy la VAB leia el GRADO (`ea_grado` / `ia_grado`), asi que una
+   estenosis o una insuficiencia con la pastilla PRENDIDA y la severidad sin elegir no aparecia en
+   ninguna de sus superficies: `vabFuncionDerivada` devolvia `null` y el resumen esquematico no
+   publicaba su linea, mientras el informe de Valvulas —dos bloques mas arriba— ya publicaba «con
+   estenosis».
+
+   ⚠️ NO ES UNA REGLA NUEVA: es la que `generarInforme` ya aplicaba desde el 2026-10-03 («botón
+   prendido = hay valvulopatía»), extraida de sus dos `const` locales `_eaSinGrado` / `_iaSinGrado`
+   para que la VAB NO tenga una segunda copia. Las cinco compuertas son las mismas y en el mismo
+   orden, asi que el informe sale byte por byte como antes —verificado por A/B—:
+     1. el grado esta en su CENTINELA (`sin` / `'0'`): con grado no hay nada que suplir;
+     2. no es `esclerosis`, que no es estenosis ni es «sin lesion» (solo la EA);
+     3. no hay marca MANUAL (`esqSevManual`): un grado que llega marcado y sin boton —un importado—
+        no se afirma por la pastilla;
+     4. la PASTILLA esta prendida, que es el gesto que declara la valvulopatia;
+     5. el proveedor no esta BLOQUEADO (`SEV_SINC[k].bloqueado()`): con un insumo fuera de banda
+        —el Ø TSVI tipeado en centimetros es el caso canonico— la app no afirma nada, y con
+        morfologia protesica eso ya devuelve `true` para la estenosis.
+   Falla CERRADA en las dos lecturas que pueden lanzar: ante una excepcion devuelve `false`, o sea
+   NO afirmar la valvulopatia, que es la direccion segura.
+
+   ⚠️ SIN PARAMETRO `src`, Y ES DELIBERADO: la pastilla NO viaja con el estudio —su estado vive en
+   una clave de `localStorage`—, asi que sobre un registro ARCHIVADO este estado no es detectable.
+   El lado conservador es que con `src` la VAB se comporte exactamente como antes de esta tanda.
+   Reportado en `docs/PENDIENTES.md`. */
+function aoLesionSinGrado(clave) {
+  try {
+    if (clave !== 'ea' && clave !== 'ia') return false;
+    const g = (typeof sv === 'function') ? (sv(clave + '_grado') || '') : '';
+    if (clave === 'ea') {
+      if (g && g !== 'sin' && g !== 'esclerosis') return false;   /* ya hay grado */
+      if (g === 'esclerosis') return false;                        /* no es estenosis ni «sin» */
+    } else {
+      if ((parseInt(g) || 0) > 0) return false;                    /* ya hay grado */
+    }
+    if (window.esqSevManual && window.esqSevManual[clave]) return false;
+    if (!((typeof pillOn === 'function') && pillOn('aortica', clave === 'ea' ? 'esten' : 'insuf'))) return false;
+    const C = (typeof SEV_SINC !== 'undefined') ? SEV_SINC[clave] : null;
+    if (!C || typeof C.bloqueado !== 'function' || C.bloqueado()) return false;
+    return true;
+  } catch (e) { return false; }
+}
+window.aoLesionSinGrado = aoLesionSinGrado;
 
 /* ══ LA FLECHA «Datos ▾» DEL CELULAR (2026-10-06, decisión de Maicol) ══════════════════════════
    Alterna UNA clase en el envoltorio de la lesión y nada más. Es deliberadamente lo más tonto
@@ -108303,7 +108375,7 @@ LAB_XLS_VOCAB.vab_tipo = {
   'dos senos, latero-lateral':'dos_senos_ll', 'dos senos latero-lateral':'dos_senos_ll',
   'dos senos, antero-posterior':'dos_senos_ap', 'dos senos antero-posterior':'dos_senos_ap',
   'parcial':'partial', 'parcial (forme fruste)':'partial', 'forme fruste':'partial',
-  'no clasificable':'no_clasif' };
+  'no clasificable':'no_clasif', 'fusion indeterminada':'no_clasif' };
 LAB_XLS_VOCAB.vab_funcion = { normal:'normal', normofuncionante:'normal',
   estenosis:'estenosis', 'estenosis aortica':'estenosis',
   insuficiencia:'insuficiencia', 'insuficiencia aortica':'insuficiencia',
@@ -115186,10 +115258,10 @@ const VAB_CONDUCTAS = [
   { k:'no_interpretable',  lbl:'No interpretable',            crit:'Algun valor fuera de rango: revisar unidades antes de concluir' },
   { k:'nc',                lbl:'No clasificable',             crit:'El clasificador no devolvio una conclusion para este estudio' }
 ];
-const VAB_TIPOS_LBL = { fused_rl:'Fusion derecha-izquierda', fused_rn:'Fusion derecha-no coronaria',
-                        fused_ln:'Fusion izquierda-no coronaria', dos_senos_ll:'2 senos latero-lateral',
+const VAB_TIPOS_LBL = { fused_rl:'Fusion derecha-izquierda', fused_rn:'Fusion derecha-no coronariana',
+                        fused_ln:'Fusion izquierda-no coronariana', dos_senos_ll:'2 senos latero-lateral',
                         dos_senos_ap:'2 senos antero-posterior', partial:'Partial (forme fruste)',
-                        no_clasif:'No clasificable' };
+                        no_clasif:'Fusion indeterminada' };
 /* ── MCA · miocardiopatia arritmogenica ──
    ESTO NO SON CONDUCTAS: son las BANDAS DIAGNOSTICAS del Task Force 2010, y la ficha las rotula
    como tales en las dos superficies. La app no publica conducta para la MCA —no hay una rama que

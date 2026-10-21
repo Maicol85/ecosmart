@@ -7234,7 +7234,7 @@ caso('TC-115', 'VAB: la migracion a Consenso 2021 no pierde los estudios de Siev
     await __t.borrar(g.estudioId);
     return { extra: [
       ['los cinco valores de Sievers se traducen', trad.every(Boolean)],
-      ['t2 (unicuspide) va a «no clasificable», no a una fusion inventada',
+      ['t2 (unicuspide) va a la clave no_clasif -«Fusión indeterminada» desde el R1-, no a una fusion inventada',
         _migrarCamposLegacy({ vab_tipo:'t2' }).vab_tipo === 'no_clasif'],
       ['un valor ya migrado no se vuelve a tocar', yaNuevo === true],
       ['un estudio guardado con Sievers reabre con el tipo PUESTO, no vacio',
@@ -50528,9 +50528,15 @@ caso('TC-362', 'EA e IAo: volver A MANO al mismo grado que la app habia sugerido
 const VAB_SIETE = { fused_rl:'Fused R-L', fused_rn:'Fused R-N', fused_ln:'Fused L-N',
   dos_senos_ll:'2-sinus latero-lateral', dos_senos_ap:'2-sinus antero-posterior',
   partial:'Partial (forme fruste)', no_clasif:'No clasificable' };
+/* ADAPTADO el 2026-10-20 (R1). `no_clasif` pasa de «No clasificable» a «Fusión indeterminada»
+   en la etiqueta de PANTALLA, por el consenso VAB (Michelena 2021, folio 457; Figura 4, folio
+   455): se reconocen tres senos y no se sabe que cuspides se fusionaron, asi que la fusion es
+   indeterminada y la valvula no es «no clasificable». `VAB_SIETE` -el mapa del EXCEL, arriba- NO
+   cambia: es la etiqueta que escribe la planilla y la que su importador reconoce, y renombrarla
+   dejaria sin importar todo backup ya exportado. Lo que el caso fija no se movio. */
 const VAB_SIETE_ES = { fused_rl:'Fusión R–L', fused_rn:'Fusión R–N', fused_ln:'Fusión L–N',
   dos_senos_ll:'Dos senos, latero-lateral', dos_senos_ap:'Dos senos, antero-posterior',
-  partial:'Parcial (forme fruste)', no_clasif:'No clasificable' };
+  partial:'Parcial (forme fruste)', no_clasif:'Fusión indeterminada' };
 
 caso('TC-363', 'vab_tipo: las SIETE claves del Consenso 2021 dan texto no vacio en «Ver detalle» y en las DOS columnas de Excel, con la etiqueta corta del Consenso — y un valor desconocido sigue omitiendo la fila y vaciando la celda', `
 return (async () => {
@@ -79225,7 +79231,7 @@ caso('TC-506', 'Tanda Y3f: la FEVI y el DSFVI como UN SOLO valor en los dos sent
     _ap.cierre === 'M 60,120 L 120,120 L 180,120', JSON.stringify(_ap.cierre)]);
   ex.push(['(G3) la fusion parcial dibuja una «Y» de trivalva (Figura 13, folio 234)',
     (_pa.cierre.match(/M /g) || []).length === 3, JSON.stringify(_pa.cierre)]);
-  ex.push(['(G4) y «no clasificable» sigue SIN dibujo, por definicion',
+  ex.push(['(G4) y la fusion indeterminada (clave no_clasif) sigue SIN dibujo, por definicion',
     _nc.cierre === 'M 0 0' && TXT('vab-nota').length > 0,
     'cierre=' + JSON.stringify(_nc.cierre) + ' rotulo=' + JSON.stringify(TXT('vab-nota'))]);
   ex.push(['(G5) los SEIS tipos con dibujo lo tienen, y VAB_DIB_FUSION los declara',
