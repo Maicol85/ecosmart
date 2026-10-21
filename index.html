@@ -8762,8 +8762,8 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="fg"><label>VRT</label>
           <select id="htp2022_vrt" onchange="calcHTP2022()">
             <option value="auto">Automático (según IT ingresada)</option>
-            <option value="baja">&lt; 2.8 m/s</option>
-            <option value="media">2.8–3.4 m/s</option>
+            <option value="baja">&le; 2.8 m/s</option>
+            <option value="media">2.9–3.4 m/s</option>
             <option value="alta">&gt; 3.4 m/s</option>
             <option value="nomedible">No medible</option>
           </select>
@@ -8774,15 +8774,38 @@ window.cerrarSesionReal = cerrarSesionReal;
       <!-- Paso 2 -->
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:0 0 6px;">Paso 2 — Signos adicionales</div>
       <div style="font-size:11px;font-weight:700;color:var(--text);margin:4px 0 2px;">A · Ventrículos</div>
-      <div style="font-size:12px;margin:2px 0;color:var(--text2);">VD basal &gt; 41 mm · VD/VI &gt; 1.0 — <i>automático según datos</i></div>
+      <!-- ⚠️ EL «VD basal > 41 mm» SALIO DEL CONTEO (R2-E3, 2026-10-21) y por eso sale del rotulo:
+           la primera celda de la columna A de la Tabla 10 dice «Diámetro basal VD/VI / cociente del
+           área > 1,0», o sea el COCIENTE, y el diametro basal solo no figura en ninguna columna.
+           Y el TAPSE/PAPs ENTRA, porque esa misma columna lo pone aca —tercera celda—. -->
+      <div style="font-size:12px;margin:2px 0;color:var(--text2);">VD/VI (diámetro basal o área) &gt; 1.0 · TAPSE/PAPs &lt; 0.55 mm/mmHg — <i>automático según datos</i></div>
       <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="htp2022_a3" onchange="calcHTP2022()"> Aplanamiento septal (IEVI &gt; 1.1 en sístole/diástole)</label>
       <div style="font-size:11px;font-weight:700;color:var(--text);margin:8px 0 2px;">B · Arteria pulmonar</div>
       <div style="font-size:12px;margin:2px 0;color:var(--text2);">TAP &lt; 105 ms — <i>automático</i></div>
       <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="htp2022_b1muesca" onchange="calcHTP2022()"> Muesca mesosistólica del flujo pulmonar</label>
       <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="htp2022_b2" onchange="calcHTP2022()"> Velocidad de regurgitación pulmonar diastólica &gt; 2.2 m/s</label>
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="htp2022_b3" onchange="calcHTP2022()"> Diámetro AP &gt; diámetro Ao o AP &gt; 25 mm</label>
+      <!-- ⚠️ LA CASILLA UNICA SE PARTIO EN DOS (R2-E3, 2026-10-21): la columna B de la Tabla 10
+           tiene DOS celdas separadas, «Diámetro de AP > diámetro de RA» y «Diámetro de AP > 25 mm».
+           `htp2022_b3` CONSERVA SU id y se queda con el «> 25 mm», asi que un estudio guardado con
+           la casilla vieja marcada abre con esta marcada; y como el conteo es POR CATEGORIA —`catB`
+           es un OR— el resultado de ese estudio no se mueve. La segunda es nueva.
+           Las dos las gobierna `htpApSync`: con sus datos cargados se CALCULAN y quedan bloqueadas;
+           sin ellos las marca el medico. -->
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="htp2022_b3" onchange="calcHTP2022()"> Diámetro AP &gt; 25 mm <span id="htp2022-b3-auto" style="color:var(--text2);font-size:10px;"></span></label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="htp2022_b3ao" onchange="calcHTP2022()"> Diámetro AP &gt; diámetro de la raíz aórtica <span id="htp2022-b3ao-auto" style="color:var(--text2);font-size:10px;"></span></label>
       <div style="font-size:11px;font-weight:700;color:var(--text);margin:8px 0 2px;">C · VCI / AD</div>
-      <div style="font-size:12px;margin:2px 0;color:var(--text2);">VCI &gt; 21 mm con colapso &lt; 50% · AD telesistólica &gt; 18 cm² · TAPSE/PSAP &lt; 0.55 — <i>automático según datos</i></div>
+      <!-- ⚠️ EL TAPSE/PSAP SE FUE A LA CATEGORIA A (R2-E3), que es donde la Tabla 10 lo pone. El
+           corte no se movio: lo que cambia es en que categoria suma. -->
+      <div style="font-size:12px;margin:2px 0;color:var(--text2);">VCI &gt; 21 mm con colapso disminuido · AD telesistólica &gt; 18 cm² — <i>automático según datos</i></div>
+      <!-- ⚠️ LA SEGUNDA FORMA DE MEDIR EL COLAPSO (R2-E3, 2026-10-21). La celda de la columna C es
+           UNA: «Diámetro de VCI > 21 mm con colapso inspiratorio disminuido (< 50% con inspiración
+           profunda o < 20% con inspiración superficial)». El diametro sigue siendo condicion —es el
+           sujeto de la celda— y lo que faltaba era la segunda definicion del colapso.
+           ⚠️ VA COMO CASILLA PROPIA Y NO COMO OPCION DE `vci_col`, Y ESO ES DELIBERADO: ese selector
+           tiene dos valores («>50» y «<50», con inhalacion brusca) y lo leen quince consumidores
+           —la PmAD, la pletora, el VExUS, la diastolica, el Excel y el importador—, asi que
+           agregarle una opcion le cambiaria la PmAD a todo estudio guardado. -->
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="htp2022_c_col20" onchange="calcHTP2022()"> Colapso de la VCI &lt; 20% con inspiración tranquila</label>
 
       <!-- Paso 3 -->
       <div class="calc-box" style="margin-top:12px;">
@@ -26226,6 +26249,26 @@ window.calcTEP = calcTEP;
    duplicada, que en este archivo ya se pagó tres veces. Los umbrales, los signos y el cruce
    VRT × categorías no se tocaron: sólo de dónde salen los números.
    `S.txt('htp2022_vrt') || 'auto'` conserva el comportamiento del selector ausente. */
+/* ══ LOS CORTES DE LA PROBABILIDAD DE HTP, CON SU FUENTE AL LADO (R2-E3, 2026-10-21) ════════
+   FUENTE, VERIFICADA EN EL ORIGINAL: ESC/ERS 2022 de hipertension pulmonar (Humbert y col.),
+   edicion de la SEC —la inglesa no esta en la biblioteca y se declara—, **Figura 5 y Tabla 10,
+   hoja 29 del PDF, folio impreso 28** (regla folio = hoja - 1, comprobada en el encabezado
+   impreso de dos hojas).
+
+   ⚠️ LAS DOS VAN ANTES DE `_htp2022Core`, QUE ES QUIEN LAS NOMBRA, Y NO ES ESTETICA: un `const`
+   de nivel superior leido antes de su linea en este archivo no da `undefined` — LANZA, y un
+   `ReferenceError` en la evaluacion de un `<script>` aborta el BLOQUE COMPLETO. La tanda R lo
+   pago dos veces (el R4 y el R8).
+
+   ⚠️ EL 2,8 CAE EN LA BANDA BAJA, Y ES LO QUE LA FIGURA 5 ESCRIBE: su primera fila dice
+   «≤ 2,8ᵃ» y la del medio «2,9-3,4». La app aplicaba `< 2.8`, asi que un 2,8 EXACTO —el valor
+   que mas se tipea en ese campo— caia en la banda MEDIA y subia la probabilidad un escalon. */
+const HTP_VRT_BAJA_MAX  = 2.8;   // m/s, INCLUSIVE: ESC/ERS 2022, Figura 5, folio 28
+const HTP_VRT_MEDIA_MAX = 3.4;   // m/s, INCLUSIVE: la banda media es 2,9-3,4
+/* El diametro de la arteria pulmonar, Tabla 10 columna B. Es el UNICO corte nuevo de esta tanda
+   y no es un criterio nuevo: la casilla unica que la app ya tenia lo nombraba en su rotulo. */
+const HTP_AP_MM_MIN     = 25;    // mm, ESTRICTO: «Diámetro de AP > 25 mm»
+
 function _htp2022Core(S) {
   const vrtSel = S.txt('htp2022_vrt') || 'auto';
   const vit = S.num('vmax_it');
@@ -26233,8 +26276,10 @@ function _htp2022Core(S) {
      automático, para poder contrastarla con la que el usuario eligió a mano. Sin esto, elegir
      «< 2.8 m/s» con una IT medida de 3,6 bajaba la probabilidad de ALTA a BAJA y el informe
      firmado no dejaba rastro de que el dato medido decía otra cosa. */
+  /* ⚠️ EL BORDE ES `<=` Y LA BANDA MEDIA ARRANCA EN 2,9 (R2-E3): ESC/ERS 2022, Figura 5, folio
+     28. Antes era `< 2.8`, asi que 2,8 EXACTO caia en «media». */
   const vrtAuto = (vit === null) ? null
-    : (vit < 2.8 ? 'baja' : (vit <= 3.4 ? 'media' : 'alta'));
+    : (vit <= HTP_VRT_BAJA_MAX ? 'baja' : (vit <= HTP_VRT_MEDIA_MAX ? 'media' : 'alta'));
   const vrtCat = (vrtSel === 'auto') ? ((vrtAuto === null) ? 'nomedible' : vrtAuto) : vrtSel;
 
   const vdBas = S.num('vd_bas'), vdvi = S.num('vd_vi'), tap = S.num('tvia');
@@ -26254,13 +26299,42 @@ function _htp2022Core(S) {
      resultado es idéntico al literal que había acá: es la misma constante y el mismo operador.
      El `vdBas > 41` de al lado queda como literal: es otro criterio y no es de esta tanda. */
   const _viCatA = (typeof vdViEstado === 'function') ? vdViEstado(S).alt : (vdvi !== null && vdvi > VD_VI_HTP_MIN);
-  const catA = (vdBas !== null && vdBas > 41) || _viCatA || S.chk('htp2022_a3');
-  const catB = (tap !== null && tap < 105) || S.chk('htp2022_b1muesca') || S.chk('htp2022_b2') || S.chk('htp2022_b3');
-  const catC = (vciD !== null && vciD > 21 && vciCol === '<50') || (adA !== null && adA > 18) || (tapsePsap !== null && tapsePsap < 0.55);
+  /* ══ LAS TRES CATEGORIAS, ALINEADAS A LA TABLA 10 (R2-E3, 2026-10-21) ═══════════════════
+     ⚠️ EL «VD basal > 41 mm» SALE DEL CONTEO, y es de la fuente: la primera celda de la columna
+     A dice «Diámetro basal VD/VI / cociente del área > 1,0» —o sea el COCIENTE, que es lo que
+     `vdViEstado` ya contesta—, y el «VD basal > 41 mm» NO figura en ninguna de las tres columnas.
+     El campo `vd_bas` no se toca: lo usa el VD con su propia pregunta y su propio corte, que es
+     lo que `VS-6` ya declaraba («son otra pregunta»).
+     ⚠️ EL TAPSE/PSAP PASA DE LA C A LA A, y tambien es de la fuente: la Tabla 10 lo pone en
+     «A: Ventrículos», tercera celda —«Cociente TAPSE/PAPs < 0,55 mm/mmHg»—. El corte y el
+     operador NO se mueven; lo que cambia es en que categoria suma, y eso mueve `nCat`.
+     ⚠️ LAS DOS CASILLAS DE LA AP SON DOS SIGNOS, no uno: la columna B tiene DOS celdas separadas,
+     «Diámetro de AP > diámetro de RA» y «Diámetro de AP > 25 mm». El conteo es POR CATEGORIA, asi
+     que partir la casilla no mueve ningun resultado de un estudio guardado — ver `htpApSync`.
+     ⚠️ EL COLAPSO DE LA VCI TIENE DOS DEFINICIONES Y LA CELDA ES UNA SOLA: «Diámetro de VCI
+     > 21 mm con colapso inspiratorio disminuido (< 50% con inspiración profunda o < 20% con
+     inspiración superficial)». El diametro sigue siendo condicion —es el sujeto de la celda— y lo
+     que se agrega es la segunda forma de medir el colapso, que el selector `vci_col` no puede
+     expresar: sus dos valores son «>50» y «<50» con inhalacion brusca, y los lee media app
+     (PmAD, pletora, VExUS, diastolica, Excel, importador), asi que agregarle una opcion cambiaria
+     la PmAD de todo estudio. Va como casilla propia. */
+  const catA = _viCatA || S.chk('htp2022_a3') || (tapsePsap !== null && tapsePsap < 0.55);
+  const catB = (tap !== null && tap < 105) || S.chk('htp2022_b1muesca') || S.chk('htp2022_b2')
+            || S.chk('htp2022_b3') || S.chk('htp2022_b3ao');
+  const catC = (vciD !== null && vciD > 21 && (vciCol === '<50' || S.chk('htp2022_c_col20')))
+            || (adA !== null && adA > 18);
   const nCat = (catA ? 1 : 0) + (catB ? 1 : 0) + (catC ? 1 : 0);
 
   let prob, cls;
-  if (vrtCat === 'baja')      { prob = (nCat >= 2) ? 'INTERMEDIA' : 'BAJA';  cls = (nCat >= 2) ? 'yellow' : 'green'; }
+  /* ⚠️ «NO MEDIBLE» VA EN LA MISMA FILA QUE EL ≤2,8, Y ES LA NOTA ᵃ DE LA FIGURA 5 (R2-E3):
+     «O no se puede medir». Antes la app devolvia INDETERMINADA con menos de dos categorias, y la
+     guia da BAJA. El caso CON dos categorias ya daba INTERMEDIA en las dos lecturas, asi que unir
+     las dos ramas cambia exactamente una cosa: el `nCat < 2`, que es lo que la orden pide.
+     ⚠️ EL ULTIMO `else` SE CONSERVA Y NO ES CODIGO MUERTO: es el centinela de un token que el
+     `<select>` no ofrece. Ahi no se afirma nada —INDETERMINADA—, que es el lado seguro; metido en
+     la primera rama, un token desconocido habria publicado «BAJA». */
+  if (vrtCat === 'baja' || vrtCat === 'nomedible') {
+                                prob = (nCat >= 2) ? 'INTERMEDIA' : 'BAJA';  cls = (nCat >= 2) ? 'yellow' : 'green'; }
   else if (vrtCat === 'media'){ prob = (nCat >= 2) ? 'ALTA' : 'INTERMEDIA'; cls = (nCat >= 2) ? 'red' : 'yellow'; }
   else if (vrtCat === 'alta') { prob = 'ALTA'; cls = 'red'; }
   else                        { prob = (nCat >= 2) ? 'INTERMEDIA' : 'INDETERMINADA'; cls = (nCat >= 2) ? 'yellow' : 'gray'; }
@@ -26277,14 +26351,16 @@ function calcHTP2022() {
   const R = _htp2022Core({ num: _hfN, txt: sv, chk: _hfChk });
   const vrtSel = R.vrtSel, vit = R.vit, vrtAuto = R.vrtAuto, vrtCat = R.vrtCat;
   const catA = R.catA, catB = R.catB, catC = R.catC, nCat = R.nCat, prob = R.prob, cls = R.cls;
-  const VRT_LBL = { baja:'baja (< 2.8 m/s)', media:'media (2.8–3.4 m/s)', alta:'alta (> 3.4 m/s)' };
+  /* Los rotulos siguen a los cortes: con «< 2.8» y «2.8-3.4» el cuadro publicaba DOS bandas que
+     se pisan en el 2,8 y ninguna que lo contenga. Hoy son los de la Figura 5. */
+  const VRT_LBL = { baja:'baja (≤ 2.8 m/s)', media:'media (2.9–3.4 m/s)', alta:'alta (> 3.4 m/s)' };
   const vrtDiscrepa = (vrtSel !== 'auto' && vrtAuto !== null && vrtAuto !== vrtCat);
   const vrtAviso = vrtDiscrepa
     ? '⚠️ Categoría de VRT seleccionada manualmente. La VRT medida (' + vit + ' m/s) corresponde a categoría ' +
       (VRT_LBL[vrtAuto] || vrtAuto) + '. Verificar.'
     : '';
 
-  const vrtTxt = {baja:'VRT < 2.8 m/s', media:'VRT 2.8–3.4 m/s', alta:'VRT > 3.4 m/s', nomedible:'VRT no medible'}[vrtCat];
+  const vrtTxt = {baja:'VRT ≤ 2.8 m/s', media:'VRT 2.9–3.4 m/s', alta:'VRT > 3.4 m/s', nomedible:'VRT no medible'}[vrtCat];
   const set = (id, html) => { const e = document.getElementById(id); if (e) e.innerHTML = html; };
   /* El aviso se cuelga del MISMO nodo que ya baja al PDF (`_amTxt('htp2022-vrt-interp')` en
      el generador del informe), así que aparece en pantalla y en el informe sin tocar dos
@@ -26303,6 +26379,76 @@ function calcHTP2022() {
   window._htp2022 = { vrtCat, vrtTxt, catA, catB, catC, nCat, prob, vrtDiscrepa, vrtAviso, vrtAuto, vit };
 }
 window.calcHTP2022 = calcHTP2022;
+
+/* ══ LAS DOS CASILLAS DE LA ARTERIA PULMONAR: AUTOMATICAS SI HAY DATOS (R2-E3, 2026-10-21) ════
+   DECISION DE MAICOL. Cada una se marca SOLA si estan cargados los campos que la deciden, y en
+   ese caso no se puede tocar; si falta algun dato queda MANUAL. Si despues se cargan, manda el
+   calculo; si se borran, vuelve a manual.
+
+     · `htp2022_b3`   («AP > 25 mm»)        -> solo el diametro de la AP (`ip_ap_diam`)
+     · `htp2022_b3ao` («AP > raiz aortica») -> la AP contra la Ao sinusal (`ao_sin`)
+
+   ⚠️ AL VOLVER A MANUAL SE BORRA LO QUE EL CALCULO HABIA MARCADO, Y NO LO QUE MARCO EL MEDICO.
+   Es la regla del ARR —un campo vacio es SIN DATO, y todo lo que dependa de el vuelve a «sin
+   datos» al borrarlo—: dejar marcada una casilla que la app puso sobre un diametro que ya no
+   existe es afirmar un signo sobre un dato borrado. Lo distingue `dataset.auto`, que NO se
+   persiste, asi que una marca que viene de un estudio guardado cuenta como del medico. Es el
+   patron de `vtDviAuto` y del selector de VD/VI.
+
+   ⚠️ UN ESTUDIO GUARDADO CON LA CASILLA VIEJA NO PIERDE NADA: `htp2022_b3` conserva su id, asi
+   que su `__chk` se restaura sobre esta misma casilla, y el conteo es POR CATEGORIA —`catB` es un
+   OR de cinco signos—, de modo que marcar una de las dos en vez de la vieja da el MISMO `catB` y
+   la MISMA probabilidad. Si al abrir hay diametro cargado, el automatico manda y la recalcula,
+   que es lo que la orden pide.
+
+   ⚠️ NO AGREGA NINGUNA COLUMNA DE EXCEL: los cinco `htp2022_*` no estan en `LAB_XLS_MAP` —
+   censado— asi que las 440 columnas no se mueven. Si son campos del estudio (guion bajo) y viajan.
+
+   ⚠️ Y VA EN LAS TRES COLUMNAS, como el resto de los sincronizadores de esta app: un oyente de
+   documento sobre los dos origenes —`ao_sin` escribe por `calcAorta` y no pasa por aca, y los dos
+   pueden escribirse POR CODIGO, que un `onchange` del marcado no ve—, `RECALC_MODULOS` para las
+   cinco rutas de restauracion, y el final de `limpiarCampos`, porque su barrido deja los checkbox
+   en `false` pero NO saca el `disabled` ni borra el `dataset.auto`: sin eso «Nuevo estudio» las
+   dejaba BLOQUEADAS para siempre. Es la trampa que el selector de VD/VI ya pago en el G3. */
+const HTP_AP_AUTO = Object.freeze([
+  { id: 'htp2022_b3',   nota: 'htp2022-b3-auto',   ins: ['ip_ap_diam'],
+    vale: (ap) => ap > HTP_AP_MM_MIN },
+  { id: 'htp2022_b3ao', nota: 'htp2022-b3ao-auto', ins: ['ip_ap_diam', 'ao_sin'],
+    vale: (ap, ao) => ap > ao }
+]);
+function htpApSync() {
+  const lee = (id) => (typeof v === 'function') ? v(id) : null;
+  HTP_AP_AUTO.forEach(C => {
+    const e = document.getElementById(C.id); if (!e) return;
+    const vals = C.ins.map(lee);
+    const auto = vals.every(x => x !== null);
+    if (auto) {
+      e.checked = !!C.vale.apply(null, vals);
+      e.disabled = true;
+      e.dataset.auto = '1';
+    } else {
+      /* Solo se borra lo que el CALCULO habia puesto. */
+      if (e.dataset.auto === '1') e.checked = false;
+      e.disabled = false;
+      delete e.dataset.auto;
+    }
+    const n = document.getElementById(C.nota);
+    if (n) n.textContent = auto ? '(automático)' : '';
+  });
+}
+window.htpApSync = htpApSync;
+/* Los dos origenes necesitan su propio oyente de documento: `ip_ap_diam` llama a `ipApDiamSync`
+   y `ao_sin` a `calcAorta`, y ninguno pasa por aca. Va en burbuja, que es el patron de
+   `_vabOrigenCambio` y de `emContFaAvisoSync`, y asi tambien ve las escrituras POR CODIGO. */
+const _HTP_AP_ORIG = ['ip_ap_diam', 'ao_sin'];
+function _htpApOrigen(ev) {
+  const t = ev && ev.target;
+  if (!t || _HTP_AP_ORIG.indexOf(t.id) < 0) return;
+  try { htpApSync(); if (typeof calcHTP2022 === 'function') calcHTP2022(); }
+  catch (e) { console.warn('[htpApSync]', e); }
+}
+document.addEventListener('input', _htpApOrigen, false);
+document.addEventListener('change', _htpApOrigen, false);
 
 /* ══ LA TABLA DE LA PmAD, EXTRAIDA Y PURA (M1, 2026-10-16) ══════════════════════════
    Las MISMAS cuatro ramas que vivian dentro de `calcPmAD`, movidas sin tocarles un numero ni
@@ -54737,7 +54883,7 @@ function RECALC_MODULOS() {
      automaticos con el «requiere …» del formulario vacio al lado de un VDFVI y una FEVI ya
      poblados. No puede migrar nada: no escribe ningun campo del estudio, los dos nodos que
      toca son `vauto-` y el tercero un `<div>` de texto. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -55369,6 +55515,10 @@ function limpiarCampos(silencioso) {
     });
   }
   if (typeof vabSync === 'function') { try { vabSync(); } catch (e) {} }
+  /* Las dos casillas de AP de la probabilidad de HTP: el barrido generico las deja en `false`
+     pero NO saca el `disabled` ni borra el `dataset.auto`, asi que sin esto «Nuevo estudio» las
+     dejaba bloqueadas para siempre (R2-E3). */
+  if (typeof htpApSync === 'function') { try { htpApSync(); } catch (e) {} }
   /* La segunda columna: `limpiarCampos` NO pasa por el embudo de `RECALC_MODULOS`, así que sin
      esta línea el bloque de nivel/etiología del paciente anterior quedaba abierto sobre un
      formulario en blanco. */
@@ -83673,8 +83823,10 @@ function amiloTextoHTP() {
   L.push('B · Arteria pulmonar: ' + (_amTxt('htp2022-catB') || 'sin datos'));
   if (_amChk('htp2022_b1muesca')) L.push('  - Muesca mesosistólica del flujo pulmonar');
   if (_amChk('htp2022_b2'))       L.push('  - Regurgitación pulmonar diastólica > 2.2 m/s');
-  if (_amChk('htp2022_b3'))       L.push('  - Diámetro AP > Ao o AP > 25 mm');
+  if (_amChk('htp2022_b3'))       L.push('  - Diámetro AP > 25 mm');
+  if (_amChk('htp2022_b3ao'))     L.push('  - Diámetro AP > diámetro de la raíz aórtica');
   L.push('C · VCI / AD: ' + (_amTxt('htp2022-catC') || 'sin datos'));
+  if (_amChk('htp2022_c_col20'))  L.push('  - Colapso de la VCI < 20% con inspiración tranquila');
 
   L.push('## Probabilidad ESC 2022');
   L.push(_amTxt('htp2022-prob') || 'No determinable con los datos cargados.');
@@ -116802,7 +116954,10 @@ function _labHtpUsado(inf) {
   const sel = _labCampoRaw(inf, 'htp2022_vrt');
   if (sel && sel !== 'auto' && sel !== 'nomedible') return true;
   if (_labNum(inf, 'vmax_it') !== null || _labNum(inf, 'vrt') !== null) return true;
-  return ['htp2022_a3','htp2022_b1muesca','htp2022_b2','htp2022_b3']
+  /* Las dos casillas nuevas del R2-E3 entran en la lista: sin ellas, un estudio cuyo UNICO signo
+     marcado fuera «AP > raiz aortica» o el colapso del 20 % no contaba como «uso el modulo» y
+     quedaba fuera de la cohorte de probabilidad de HTP. */
+  return ['htp2022_a3','htp2022_b1muesca','htp2022_b2','htp2022_b3','htp2022_b3ao','htp2022_c_col20']
     .some(k => _labCampoRaw(inf, k + '__chk') === '1');
 }
 function _labHtpProb(inf) {

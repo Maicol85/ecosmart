@@ -170,6 +170,89 @@ const VAB_MATRIZ = `((C) => {
   return r;
 })(CASO)`;
 
+/* ══ (c) HTP: LOS SEIS PUNTOS, POR SUS BORDES ════════════════════════════════════════════
+   Cada escena carga los campos que la decidan y NADA mas, para que la categoria que se mide sea
+   la que se quiere medir. El estado se lee del DUEÑO (`_htp2022Core`) y de la PANTALLA. */
+const HTP_ESC = [
+  /* 1 · el borde de la VRT. Sin ningun otro signo: nCat = 0. */
+  { k: 'vrt_279',   c: { vmax_it: '2.79' } },
+  { k: 'vrt_280',   c: { vmax_it: '2.80' } },
+  { k: 'vrt_281',   c: { vmax_it: '2.81' } },
+  { k: 'vrt_340',   c: { vmax_it: '3.40' } },
+  { k: 'vrt_341',   c: { vmax_it: '3.41' } },
+  /* 2 · no medible. Sin signos -> BAJA; con DOS categorias -> INTERMEDIA (no cambia). */
+  { k: 'nomed_0',   c: {}, sel: { htp2022_vrt: 'nomedible' } },
+  { k: 'nomed_2cat', c: { vd_vi: '1.2', tvia: '90' }, sel: { htp2022_vrt: 'nomedible' } },
+  /* 3 · el VD basal SOLO: antes catA, hoy no suma. */
+  { k: 'vdbas_solo', c: { vmax_it: '3.0', vd_bas: '45' } },
+  { k: 'vdvi_solo',  c: { vmax_it: '3.0', vd_vi: '1.2' } },
+  /* 4 · TAPSE/PSAP: 14/40 = 0,35 < 0,55. Pasa de catC a catA. */
+  { k: 'tpsp',      c: { vmax_it: '3.0', tapse: '14', vci_diam: '15' }, sel: { vci_col: '>50' } },
+  /* 5 · la opcion nueva de la VCI. El diametro sigue siendo condicion. */
+  { k: 'vci20_con', c: { vmax_it: '3.0', vci_diam: '24' }, sel: { vci_col: '>50' }, chk: ['htp2022_c_col20'] },
+  { k: 'vci20_sin_diam', c: { vmax_it: '3.0', vci_diam: '15' }, sel: { vci_col: '>50' }, chk: ['htp2022_c_col20'] },
+  /* 6 · las dos casillas de AP, en sus tres estados. */
+  { k: 'ap_manual', c: { vmax_it: '3.0' } },
+  { k: 'ap_auto_28', c: { vmax_it: '3.0', ip_ap_diam: '28', ao_sin: '30' } },
+  { k: 'ap_auto_22', c: { vmax_it: '3.0', ip_ap_diam: '22', ao_sin: '30' } },
+  { k: 'ap_auto_mayor_ao', c: { vmax_it: '3.0', ip_ap_diam: '32', ao_sin: '30' } },
+  { k: 'ap_solo_diam', c: { vmax_it: '3.0', ip_ap_diam: '28' } }
+];
+
+const HTP_MED = `((C) => {
+  ['modalAvisoEco','login-overlay'].forEach(id => { const m = document.getElementById(id);
+    if (m) m.style.display = 'none' });
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  const S = (id, v) => { const e = document.getElementById(id); if (!e) return 'NO EXISTE ' + id;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value };
+  Object.keys(C.sel || {}).forEach(k => S(k, C.sel[k]));
+  Object.keys(C.c || {}).forEach(k => S(k, C.c[k]));
+  (C.chk || []).forEach(id => { const e = document.getElementById(id);
+    if (e && !e.disabled && !e.checked) e.click() });
+  try { if (typeof calcHTP2022 === 'function') calcHTP2022() } catch (e) {}
+  const T = (id) => { const e = document.getElementById(id); return e ? String(e.textContent || '') : 'NO EXISTE' };
+  const CK = (id) => { const e = document.getElementById(id);
+    return e ? { chk: e.checked, dis: e.disabled, auto: e.dataset.auto || '' } : 'NO EXISTE' };
+  const R = (typeof _htp2022Core === 'function' && typeof _hfN === 'function')
+    ? _htp2022Core({ num: _hfN, txt: sv, chk: _hfChk }) : null;
+  return { k: C.k, vrtCat: R ? R.vrtCat : 'SIN', nCat: R ? R.nCat : 'SIN',
+    catA: R ? R.catA : 'SIN', catB: R ? R.catB : 'SIN', catC: R ? R.catC : 'SIN',
+    prob: R ? R.prob : 'SIN',
+    pantProb: T('htp2022-prob'), pantVrt: T('htp2022-vrt-interp'),
+    b3: CK('htp2022_b3'), b3ao: CK('htp2022_b3ao'), c20: CK('htp2022_c_col20') };
+})(CASO)`;
+
+/* El vaiven del modo automatico/manual: cargar, borrar y recargar, con TECLAS reales. */
+const HTP_VAIVEN = `(async () => {
+  ['modalAvisoEco','login-overlay'].forEach(id => { const m = document.getElementById(id);
+    if (m) m.style.display = 'none' });
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  const S = (id, v) => { const e = document.getElementById(id);
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })) };
+  const CK = (id) => { const e = document.getElementById(id);
+    return e ? (e.checked ? 'X' : '_') + (e.disabled ? '/bloq' : '/libre') + (e.dataset.auto ? '/auto' : '') : 'NO' };
+  const paso = [];
+  /* 1 · sin datos: MANUAL, y el medico la marca */
+  paso.push(['sin datos', CK('htp2022_b3'), CK('htp2022_b3ao')]);
+  const e3 = document.getElementById('htp2022_b3'); if (e3 && !e3.disabled) e3.click();
+  paso.push(['el medico la marca', CK('htp2022_b3'), CK('htp2022_b3ao')]);
+  /* 2 · carga los datos: MANDA el calculo y pisa la marca del medico */
+  S('ip_ap_diam', '22'); S('ao_sin', '30');
+  paso.push(['AP 22 / Ao 30 -> automatico', CK('htp2022_b3'), CK('htp2022_b3ao')]);
+  /* 3 · los borra: vuelve a MANUAL y se borra lo que puso el calculo */
+  S('ip_ap_diam', ''); S('ao_sin', '');
+  paso.push(['borrados -> manual y sin marca', CK('htp2022_b3'), CK('htp2022_b3ao')]);
+  /* 4 · los recarga con valores que SI cumplen */
+  S('ip_ap_diam', '32'); S('ao_sin', '30');
+  paso.push(['AP 32 / Ao 30 -> las dos', CK('htp2022_b3'), CK('htp2022_b3ao')]);
+  /* 5 · «Nuevo estudio» NO las deja bloqueadas */
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  paso.push(['Nuevo estudio', CK('htp2022_b3'), CK('htp2022_b3ao')]);
+  return paso;
+})()`;
+
 async function corre(nombre, lanzar) {
   let b = null;
   try { b = await lanzar() } catch (e) { OUT[nombre] = { error: 'NO ARRANCA: ' + e.message.slice(0, 120) }; return }
@@ -234,6 +317,11 @@ async function corre(nombre, lanzar) {
       for (const c of ['ea', 'ia', 'ambas']) {
         R.vab[c] = await pg.evaluate(VAB_ESCENA.replace('CUAL', JSON.stringify(c)));
       }
+    }
+    if (hay('htp')) {
+      R.htp = {};
+      for (const c of HTP_ESC) R.htp[c.k] = await pg.evaluate(HTP_MED.replace('CASO', JSON.stringify(c)));
+      R.vaiven = await pg.evaluate(HTP_VAIVEN);
     }
     if (hay('vabmat')) {
       R.matriz = {};
