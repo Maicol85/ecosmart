@@ -76340,6 +76340,15 @@ function _indTEP(){
   }
 
   return { filas: filas, clinica: clinica, recom: recom,
+    /* La linea «Segun la guia» la exigen todas las secciones del panel (y TC-322 la verifica):
+       es la afirmacion del documento con su cita numerada, separada de la recomendacion, que es
+       lo que resulta de aplicarla a ESTE paciente. Redactada con palabras propias. */
+    guia: { ref:'escTep2019',
+      txt:'La clasificacion del riesgo de muerte precoz combina cuatro indicadores: inestabilidad ' +
+          'hemodinamica, parametros clinicos de gravedad (clase PESI III-V o sPESI mayor o igual a 1), ' +
+          'disfuncion del ventriculo derecho por ecocardiografia o angiotomografia, y concentracion ' +
+          'elevada de troponinas cardiacas.',
+      nota:'Tabla 8, folio 497.e20. La ecocardiografia aporta uno de los cuatro.' },
     notas: [
       'La ecocardiografía sola no estratifica el riesgo de una embolia pulmonar: aporta uno de los cuatro indicadores de la tabla y los otros tres son clínicos y de laboratorio.',
       'Ningún signo ecocardiográfico es específico de la embolia pulmonar. La guía señala que la hipocinesia o acinesia de la pared libre del ventrículo derecho por infarto puede parecerse al signo de McConnell, y que un estudio normal no excluye el diagnóstico.',

@@ -33860,7 +33860,12 @@ const EVID_LIMPIAR = `['ava_cont','gmedio_ao','vmax_ao','fevi','ea_grado','im_gr
   'coa_istmo','coa_vmax','coa_gmedio','coa_hta','fop_shunt_valsalva','fop_shunt_reposo','fop_acv',
   'fop_burbujas','fop_asa','fop_asa_mm','fop_tunel','mch_grad_reposo','mch_grad_valsalva','mch_sam',
   'mch_cf','ao_tub','ao_sin','diam_tsvi','itv_tsvi','tsvd_diametro','vti_tsvd','ddfvi',
-  'edad','va_morf','vp_morf','peso','talla']`;
+  'edad','va_morf','vp_morf','peso','talla',
+  /* AGREGADOS el 2026-10-21 (tanda C, commit 4): la seccion de TEP los lee, asi que sin
+     ellos en esta lista el estudio del caso anterior dejaba la seccion encendida y TC-274
+     informaba el boton AZUL «con el formulario vacio». Es la lista explicita que cada
+     seccion nueva tiene que alimentar. */
+  'tep_mcconnell','tep_signo6060','tep_tabique_d','tep_vdvi','tapse','vmax_it']`;
 
 caso('TC-273', 'Panel de Evidencia: las trece secciones aparecen con su criterio y desaparecen sin el', `
   return (async () => {
@@ -46759,6 +46764,9 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
       ['Insuficiencia aortica',               { ia_grado:'4' },                                 'esc2025vc'],
       ['Valvula tricuspide',                  { it_grado:'4' },                                     'esc2025vc'],
       ['Estenosis pulmonar',                  { vp_gmax:'70' },                                     'esc2020guch'],
+      /* AGREGADO el 2026-10-21 (tanda C, commit 4). Su compuerta es tepHayDatos: al menos un
+         dato PROPIO del modulo de TEP. No mira el TAPSE ni la PSAP, que viven en otras pestanas. */
+      ['Tromboembolia pulmonar',              { tep_mcconnell:'si', tep_vdvi:'1.3' },               'escTep2019'],
       ['Comunicacion interauricular',         { ete_cia_tipo:'secundum', ete_cia_tam_max:'18' },    'esc2020guch'],
       ['Comunicacion interventricular',       { ete_civ_tipo:'perimembranosa' },                     'escGuchCiv'],
       ['Ductus arterioso permeable',          { dap_tipo:'no_restrictivo', dap_diam:'4' },           'esc2020guch'],
@@ -67096,8 +67104,15 @@ caso('TC-476', 'Tanda G1: el VD en tres columnas con su orden de Tab, las filas 
     ex.push(['el MISMO numero en la fila nueva y en la pantalla de TEP',
       T('tep-tapse-psap').indexOf('0.564') === 0 && t22.txt.indexOf('0.564') === 0,
       t22.txt.slice(0,20) + ' // ' + T('tep-tapse-psap').slice(0,20)]);
-    ex.push(['y la pantalla de TEP conserva SU corte de 0,32 y SU texto',
-      /acoplamiento conservado/.test(T('tep-tapse-psap')), T('tep-tapse-psap')]);
+    /* ADAPTADO el 2026-10-21 (tanda C, commit 1). Esta condicion decia «y la pantalla de TEP
+       conserva SU corte de 0,32 y SU texto» y hoy afirma LO CONTRARIO: el 0,32 salio de toda la
+       pantalla de TEP. No era un corte de TEP — es el umbral de BAJO RIESGO en hipertension
+       arterial pulmonar (ESC/ERS 2022, Tabla 16, folio 41) — y censada la biblioteca ningun
+       documento publica un corte del cociente para TEP agudo. Lo que esta condicion sigue
+       probando es lo mismo de antes: que la fila publica el numero del dueno unico. */
+    ex.push(['la pantalla de TEP publica el cociente como NUMERO, sin corte y sin palabra de veredicto',
+      T('tep-tapse-psap').indexOf('0.564') === 0 &&
+      !/acoplamiento|desacopl|0\.32/.test(T('tep-tapse-psap')), T('tep-tapse-psap')]);
     ex.push(['calcTEP LEE al dueno y no recalcula', fuente.indexOf('vdTapsePsap()') > -1 &&
       fuente.indexOf("const idx = (tapse / psap).toFixed(3)") === -1, '']);
     /* Sin TAPSE o sin PSAP la fila NO se dibuja, y sin mensaje de error. */
@@ -68413,16 +68428,20 @@ caso('TC-479', 'Tanda Z: el PPM aortico llega al informe y al EN SUMA con su col
        participa del VEREDICTO DE RIESGO —el predicado score >= 2 && desacoplado—, que elige entre
        «Disfuncion VD significativa» y «Riesgo INTERMEDIO-ALTO». Por eso la etiqueta no se
        retiro. docs/PENDIENTES.md → G1-2 y Z4. */
-    ex.push(['PARADA DECLARADA: el 0,32 de TEP no suma al score pero SI decide el riesgo',
+    /* ADAPTADO el 2026-10-21 (tanda C, commit 1). Las DOS condiciones afirmaban la PARADA Z4-TEP
+       —«el 0,32 no suma al score pero SI decide el riesgo» y «la pantalla conserva SU corte»—,
+       escritas para que el dia que se decidiera se notara. Se decidio: el 0,32 salio de todo
+       veredicto, frase y score del TEP, y el renglon de riesgo salio entero de la pantalla.
+       Hoy la condicion afirma lo contrario, que es la forma fuerte: calcTEP no puede nombrar
+       ni el numero ni la variable que lo usaba. */
+    ex.push(['Z4-TEP CERRADO: el 0,32 ya no esta en calcTEP, ni en el score ni en el riesgo',
       FN('calcTEP') &&
       (function(){ const s = String(calcTEP);
-        const i = s.indexOf('1. TAPSE/PSAP'), j = s.indexOf('2. VD/VI');
-        const bloque = (i >= 0 && j > i) ? s.slice(i, j) : '';
-        return bloque.indexOf('score++') === -1 && bloque.indexOf('criterios.push') === -1 &&
-               s.indexOf('score >= 2 && desacoplado') > -1; })(),
+        return s.indexOf('score >= 2 && desacoplado') === -1 &&
+               s.indexOf('desacoplado') === -1 && s.indexOf('0.32') === -1; })(),
       '']);
-    ex.push(['y la pantalla de TEP conserva SU corte de 0,32 y SU texto',
-      fuente.indexOf('conservado (&gt;0.32)') > -1 || fuente.indexOf('conservado (>0.32)') > -1, '']);
+    ex.push(['y el corte tampoco esta en el marcado de la pantalla de TEP',
+      fuente.indexOf('conservado (&gt;0.32)') === -1 && fuente.indexOf('conservado (>0.32)') === -1, '']);
 
     /* ══ F · CONTROLES ════════════════════════════════════════════════════════════════════
        Lo que esta tanda no toca no puede moverse. El estilo del informe es estado de sesion. */
@@ -80163,10 +80182,17 @@ caso('TC-507', 'Tanda R: la VAB muestra la lesion PRESENTE sin grado con un solo
   ex.push(['(H3) CONTROL NEGATIVO: el corte de la probabilidad de HTP es OTRO campo y OTRO operador',
     _htpMin === 1.0 && !!EL('vd_vi') && !!EL('tep_vdvi') && EL('vd_vi') !== EL('tep_vdvi'),
     'htp=' + String(_htpMin) + ' tep=' + String(_tepMin)]);
-  ex.push(['(H4) la ficha de TEP dice >=1.0 y ya no >=0.9',
+  /* ADAPTADO el 2026-10-21 (tanda C, commit 3). La ficha de TEP se reescribio entera: cada
+     criterio pasa a una tabla con su corte y su fuente, asi que el cociente ya no se escribe
+     pegado a la sigla (VD/VI ≥1.0) sino en su propia celda. Lo que esta condicion afirma no
+     cambia -que la ficha publica 1,0 y no 0,9- y GANA que el corte del TAPSE de esa ficha sea
+     el de TEP y no el de la pestana VD. */
+  ex.push(['(H4) la ficha de TEP publica el VD/VI en 1,0 y ya no en 0,9, y el TAPSE en el corte de TEP',
     (function(){ try { if (typeof showTab === 'function') showTab('referencias'); } catch (e) {}
-      const c = EL('ref-tep'); if (!c) return false; const t = c.textContent || '';
-      return t.indexOf('VD/VI ≥1.0') > -1 && t.indexOf('VD/VI ≥0.9') < 0; })(), '']);
+      const c = EL('ref-tep'); if (!c) return false;
+      const t = (c.textContent || '').replace(/[ ]+/g, ' ');
+      return t.indexOf('≥ 1,0') > -1 && t.indexOf('0.9') < 0 && t.indexOf('0,9') < 0 &&
+             t.indexOf('< 16 mm') > -1; })(), '']);
   ex.push(['(H5) las dos formulas de HTP publican los cortes de la ESC/ERS 2022',
     (function(){ const filas = Array.prototype.filter.call(document.querySelectorAll('tr'), tr => {
         const t = tr.textContent || '';
@@ -80224,11 +80250,15 @@ caso('TC-507', 'Tanda R: la VAB muestra la lesion PRESENTE sin grado con un solo
       return t.indexOf('Criterio de EcoSmart') === 0 && t.indexOf('9 mmHg') > -1; })(),
     (function(){ if (!_qvNota) return 'SIN'; const n = _qvNota['esten:pulmonar'];
       return (typeof n === 'function') ? n() : String(n || 'SIN'); })()]);
-  ex.push(['(I8) los TRES chips «Criterio de EcoSmart» estan y el prefijo de las notas tambien',
+  ex.push(['(I8) los CUATRO chips «Criterio de EcoSmart» estan y el prefijo de las notas tambien',
     (function(){ let n = 0;
       Array.prototype.forEach.call(document.querySelectorAll('span'), x => {
         if ((x.textContent || '').trim() === 'CRITERIO DE ECOSMART') n++; });
-      return n === 3 && _ecoPref === 'Criterio de EcoSmart: '; })(),
+      /* ADAPTADO el 2026-10-21 (tanda C, commit 3): el chip pasa de TRES a CUATRO. El cuarto
+         es el de la ficha de TEP, que declara que los cortes 2 y 4 de su conteo son una
+         referencia propia de la aplicacion - ninguna fuente publica un puntaje construido con
+         esos seis criterios. */
+      return n === 4 && _ecoPref === 'Criterio de EcoSmart: '; })(),
     (function(){ let n = 0;
       Array.prototype.forEach.call(document.querySelectorAll('span'), x => {
         if ((x.textContent || '').trim() === 'CRITERIO DE ECOSMART') n++; });
