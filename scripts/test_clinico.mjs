@@ -7435,7 +7435,16 @@ caso('TC-116', 'Marfan/EHAT: el umbral quirurgico sale del sindrome, no solo del
     ['con 49 no',                           mar49.c !== 'cx_i'],
     ['Marfan 45 CON factores es Clase IIa', mar45fr.c === 'cx_iia'],
     ['EHAT no sindromica corta en 55',      eh55.c === 'cx_i' && eh54.c !== 'cx_i'],
-    ['y en 50 con factores, Clase IIa',     eh50fr.c === 'cx_iia'],
+    /* ADAPTADO el 2026-10-21 (trabajo «H»): la aortopatia NO sindromica se alineo a la Tabla 38
+       de la ESC 2024 (folio 80), que imprime ese tramo como Clase IIb · Nivel B y no IIa. El
+       corte de 50 mm NO se movio; lo que cambia es la clase, y con ella la clave —cx_iib, que
+       es la que ya usa Turner y cuyo rotulo es «puede considerarse» en las tres superficies que
+       lo leen—. Si no fuera asi, el badge diria «Clase IIa» y el Fundamento «Clase IIb» sobre el
+       mismo paciente. */
+    ['y en 50 con factores, Clase IIb · B de la Tabla 38', eh50fr.c === 'cx_iib'],
+    ['y el texto nombra la Tabla 38 y su folio',
+      eh50fr.t.indexOf('Tabla 38') > -1 && eh50fr.t.indexOf('folio 80') > -1 &&
+      eh50fr.t.indexOf('Clase IIb') > -1],
     // Turner: indexado, y las dos clases segun factores.
     ['Turner con indice 24 Y factores -> IIa (el umbral baja a 23)', tu24fr.c === 'cx_iia'],
     ['23 exactos con factores no pasa (es >23)',  tu23fr.c === 'sin_indicacion'],
@@ -7463,10 +7472,24 @@ caso('TC-116', 'Marfan/EHAT: el umbral quirurgico sale del sindrome, no solo del
     /* Se normaliza el espacio: la nota usa &nbsp; entre el numero y la unidad para que no se
        parta el renglon, y en textContent eso NO es un espacio comun — un indexOf con espacio
        normal da -1 y el caso falla por el caracter, no por el contenido. */
-    ['el factor de progresion dice >5 mm/año, no >3',
-      (function(){ const t = (document.getElementById('sacc-cc-marfan').textContent || '')
-        .replace(/\\u00a0/g, ' ');
-        return t.indexOf('progresion >5 mm/año') > -1 && t.indexOf('>3 mm/año') === -1; })()],
+    /* ADAPTADO el 2026-10-21 (trabajo «H»): el hint de los factores de riesgo decia
+       «progresion >5 mm/año, deseo de embarazo o necesidad de reemplazo valvular aortico (ESC
+       2024, Tabla 62)» y NINGUNA de esas tres cosas esta en la nota c de la Tabla 62, cuyo
+       crecimiento ademas es «≥ 3 mm al año». Hoy el hint publica la lista de LA tabla del
+       sindrome elegido —son cuatro listas distintas y el campo es uno— y lo escribe marfanSync
+       en el span marfan-fr-hint. Lo que el caso afirma ahora es que la lista SIGUE al sindrome. */
+    ['el hint de factores publica la lista de LA tabla del sindrome elegido',
+      (function(){ const h = document.getElementById('marfan-fr-hint'); if (!h) return false;
+        __t.limpiar(); __t.set('marfan_sindrome','marfan');
+        const a = (h.textContent || '');
+        __t.set('marfan_sindrome','turner');
+        const b = (h.textContent || '');
+        return a !== b && a.indexOf('Tabla 62') > -1 && b.indexOf('Tabla 58') > -1 &&
+               a.indexOf('3 mm') > -1 && a.indexOf('5 mm') === -1; })()],
+    ['y sin sindrome elegido NO afirma ninguna lista',
+      (function(){ const h = document.getElementById('marfan-fr-hint'); if (!h) return false;
+        __t.limpiar();
+        return (h.textContent || '').indexOf('depende del s') > -1; })()],
     ['el EN SUMA lleva la clase',  lds45.inf.suma.indexOf('indicación quirúrgica Clase I') > -1],
     ['sin criterios NO llena el EN SUMA',
       mar49.inf.suma.indexOf('indicación quirúrgica') === -1],
@@ -9838,7 +9861,15 @@ caso('TC-149', 'Manual: 8 pestanas, PDF de 20 paginas o menos, y las advertencia
     ['esta la diferencia entre modo basico y avanzado',
       M.indexOf('Avanzado') > -1 && M.indexOf('no borra lo cargado') > -1],
     ['esta la advertencia de VEXUS sobre graduar por el vaso peor', M.indexOf('vaso peor') > -1],
-    ['cada umbral nombra su guia', M.indexOf('ESC 2020') > -1 && M.indexOf('ASE 2025') > -1 && M.indexOf('ESC/EACTS 2024') > -1],
+    /* ADAPTADO el 2026-10-21 (trabajo «H»): la tabla de aorta del manual decia «ESC/EACTS 2024»
+       en cinco filas sin nombrar la tabla, y en la de Loeys-Dietz nombraba la 62, que es la del
+       Marfan. Hoy cada fila nombra SU tabla con su folio, asi que el literal «ESC/EACTS 2024»
+       ya no existe en esa tabla: se exige «ESC 2024» mas las cuatro tablas. */
+    ['cada umbral nombra su guia', M.indexOf('ESC 2020') > -1 && M.indexOf('ASE 2025') > -1 && M.indexOf('ESC 2024') > -1],
+    ['y la tabla de aorta nombra las CUATRO tablas de la ESC 2024, cada una con su folio',
+      M.indexOf('Tabla 62') > -1 && M.indexOf('Tabla 58') > -1 && M.indexOf('Tabla 66') > -1 &&
+      M.indexOf('Tabla 38') > -1 && M.indexOf('folio 114') > -1 && M.indexOf('folio 111') > -1 &&
+      M.indexOf('folio 116') > -1 && M.indexOf('folio 80') > -1],
 
     // 5 · LAS TRES AFIRMACIONES QUE HABIAN QUEDADO FALSAS
     ['ya no dice que el Excel son 94 columnas', M.indexOf('94 columnas') === -1],

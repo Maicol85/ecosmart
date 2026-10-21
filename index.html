@@ -14881,7 +14881,7 @@ z
             <option value="no">No</option>
             <option value="si">Si</option>
           </select>
-          <span style="font-size:10px;color:var(--text2);">HTA no controlada, historia familiar de diseccion, progresion &gt;5&nbsp;mm/año, deseo de embarazo o necesidad de reemplazo valvular aortico (ESC 2024, Tabla 62).</span>
+          <span id="marfan-fr-hint" style="font-size:10px;color:var(--text2);">La lista de factores que bajan el umbral depende del sindrome: se publica al elegirlo.</span>
         </div>
       </div>
       <div id="marfan-resultado" class="calc-box" style="margin-top:12px;"></div>
@@ -53457,7 +53457,11 @@ function generarInforme(opts) {
          llenaría el resumen y le quitaría peso a las que sí. */
       if (r.clave === 'cx_i' || r.clave === 'cx_iia' || r.clave === 'cx_iib') {
         const CL = { cx_i:'Clase I', cx_iia:'Clase IIa', cx_iib:'Clase IIb' };
-        sumaCC('Aortopatía por ' + r.sindTxt + ' con indicación quirúrgica ' + CL[r.clave] + ' (ESC 2020).');
+        /* ⚠️ LA GUÍA ERA LA EQUIVOCADA: decía «(ESC 2020)» sobre umbrales que salen de la ESC
+           2024 de enfermedad aórtica, y ésa es la guía de cardiopatías congénitas del adulto.
+           Corregido en el trabajo «H». La TABLA la elige el síndrome y vive en `MARFAN_FTE`. */
+        sumaCC('Aortopatía por ' + r.sindTxt + ' con indicación quirúrgica ' + CL[r.clave] +
+               ' (' + (typeof MARFAN_FTE === 'object' && MARFAN_FTE[r.sind] ? MARFAN_FTE[r.sind] : 'ESC 2024') + ').');
       } else if (r.clave === 'sin_sindrome' || r.clave === 'falta_ita') {
         /* Estos dos SÍ suben: no son «sin hallazgo», son «no se puede concluir», y el umbral que
            falta es el que decide operar. Dejarlos sólo en el cuerpo los vuelve invisibles. */
@@ -65745,15 +65749,59 @@ function vabFactores(src){
   preg.forEach(function(p){ anota(sv2(p[0]) === 'si', p[1], true); });
   return { presentes: presentes, sinEvaluar: sinEvaluar, n: presentes.length };
 }
-/* ══ MARFAN / EHAT — aortopatía hereditaria (ESC 2024, Tabla 62) ═══════════════════════════════════════
+/* ══ MARFAN / EHAT — aortopatía hereditaria (ESC 2024) ══════════════════════════════════════
    Evaluación PURA; `marfanSync` sólo pinta y el informe sólo escribe. El umbral depende del
-   SÍNDROME y no sólo del diámetro: Loeys-Dietz opera a los 45 mm donde el Marfan espera a 50 y la
-   EHAT no sindrómica a 55. Aplicar el umbral del Marfan a un Loeys-Dietz son 5 mm de más sobre
-   una aorta que diseca antes — por eso, sin síndrome declarado NO se concluye.
+   SÍNDROME y no sólo del diámetro: aplicar el umbral del Marfan a un Loeys-Dietz son 5 mm de
+   más sobre una aorta que diseca antes — por eso, sin síndrome declarado NO se concluye.
 
-   Umbrales confirmados contra la Tabla 62 de la ESC/EACTS 2024 por Maicol (2026-09-15), que es
-   la misma guía que ya usaba `vabConclusion`: la app quedó con UNA sola referencia de aortopatía.
+   ⚠️ CADA SÍNDROME TIENE SU PROPIA TABLA, Y HASTA EL TRABAJO «H» ESTE BLOQUE SE LAS ATRIBUÍA
+   TODAS A LA TABLA 62. Verificado en el PDF original de la ESC 2024 de enfermedad arterial
+   periférica y aórtica (Mazzolai y cols., edición de la Sociedad Española de Cardiología; regla
+   de folio = hoja del PDF menos uno, comprobada en el encabezado IMPRESO de las hojas 72, 77 y
+   81): la Tabla 62 de recomendaciones es SÓLO del síndrome de Marfan (folio 114, hoja 115); el
+   síndrome de Turner es la Tabla 58 (folio 111, hoja 112) y el de Loeys-Dietz la Tabla 66
+   (folio 116, hoja 117). La aortopatía NO sindrómica no tiene tabla propia de enfermedad
+   aórtica torácica hereditaria: sus umbrales son los de la Tabla 38, la de la dilatación de
+   raíz y aorta ascendente con válvula aórtica TRICÚSPIDE (folio 80, hoja 81).
+
+   Las citas viven en `MARFAN_FTE` y la clase y el nivel al lado de cada corte, en
+   `MARFAN_UMBRAL`: una sola transcripción por síndrome, y ninguna superficie tiene que recordar
+   a qué tabla pertenece un número.
    Turner lleva DOS cortes distintos —23 con factores, 25 sin ellos— y no uno con dos ramas. */
+/* ⚠️ VA ANTES DE `marfanEstado` Y DE `marfanSync`, QUE SON SUS LECTORES: un `const` nombrado
+   desde arriba revienta en la zona muerta, y un ReferenceError en la evaluación de un `<script>`
+   aborta el BLOQUE COMPLETO — o sea la app sin pestañas con geometría. */
+const MARFAN_FTE = Object.freeze({
+  marfan: 'ESC 2024, Tabla 62 · folio 114',
+  lds:    'ESC 2024, Tabla 66 · folio 116',
+  turner: 'ESC 2024, Tabla 58 · folio 111',
+  ehat:   'ESC 2024, Tabla 38 · folio 80',
+  otro:   'ESC 2024, Tabla 38 · folio 80'
+});
+/* ⚠️ LOS FACTORES QUE BAJAN EL UMBRAL NO SON LOS MISMOS EN LAS CUATRO TABLAS, y el campo
+   `marfan_factores_riesgo` es UNO: el hint de pantalla publica la lista de LA tabla del síndrome
+   elegido, nunca una fusión de las cuatro. Es la misma regla que `AO_CX_T` ya aplica a las tres
+   listas de factores de la aorta no hereditaria.
+   El texto que había hasta el trabajo «H» decía «progresión > 5 mm/año, deseo de embarazo o
+   necesidad de reemplazo valvular aórtico (ESC 2024, Tabla 62)»: ninguna de esas tres cosas está
+   en la nota c de la Tabla 62, cuyo crecimiento además es ≥ 3 mm al año y no > 5. */
+const MARFAN_FR_TXT = Object.freeze({
+  marfan: 'Historia familiar de disección aórtica con dimensiones pequeñas (menores de 50 mm), '
+        + 'hipertensión refractaria y crecimiento anual de 3 mm o más en adultos (ESC 2024, Tabla 62, folio 114).',
+  lds:    'Variantes patogénicas específicas, mujeres con variante del TGFBR2 y tamaño corporal pequeño, '
+        + 'características extraaórticas graves, historia familiar de disección aórtica y crecimiento anual '
+        + 'de 3 mm o más (ESC 2024, Tabla 66, folio 116).',
+  turner: 'Válvula aórtica bicúspide, elongación de la aorta transversa, coartación de aorta, hipertensión '
+        + 'no controlada pese a tres o más antihipertensivos, crecimiento aórtico de 3 mm o más al año o '
+        + 'embarazo planificado (ESC 2024, Tabla 58, folio 111).',
+  ehat:   'Crecimiento del diámetro de 3 mm o más al año, hipertensión resistente, estatura menor de 1,69 m, '
+        + 'fenotipo de raíz aórtica, longitud aórtica mayor de 11 cm, edad menor de 50 años, deseo de embarazo '
+        + 'o coartación aórtica (ESC 2024, Tabla 38, folio 80).',
+  otro:   'Crecimiento del diámetro de 3 mm o más al año, hipertensión resistente, estatura menor de 1,69 m, '
+        + 'fenotipo de raíz aórtica, longitud aórtica mayor de 11 cm, edad menor de 50 años, deseo de embarazo '
+        + 'o coartación aórtica (ESC 2024, Tabla 38, folio 80).'
+});
+const MARFAN_FR_SIN = 'La lista de factores que bajan el umbral depende del síndrome: se publica al elegirlo.';
 const MARFAN_SIND_TXT = { marfan:'síndrome de Marfan', lds:'síndrome de Loeys-Dietz (TGFBR1/2)',
                           turner:'síndrome de Turner', ehat:'aortopatía hereditaria no sindrómica',
                           otro:'aortopatía hereditaria' };
@@ -65793,7 +65841,7 @@ function marfanEstado(src) {
      ELIGE el umbral. Con 47 mm, un Loeys-Dietz tiene indicación Clase I y una EHAT no tiene
      ninguna — suponer el del medio sería inventar la conducta. */
   if (!sind) return Object.assign(base, { clave:'sin_sindrome',
-    txt:'Aortopatía hereditaria — falta declarar el síndrome: el umbral quirúrgico depende de él (Loeys-Dietz desde 45 mm, Marfan desde 50, no sindrómica desde 55)' });
+    txt:'Aortopatía hereditaria — falta declarar el síndrome: el umbral quirúrgico depende de él (Loeys-Dietz desde 45 mm, Marfan desde 50, no sindrómica desde 55), y cada uno sale de una tabla distinta de la ESC 2024' });
   /* El diámetro que decide es el MAYOR de seno y ascendente. Mirar sólo el seno dejaba fuera al
      paciente con la dilatación en la ascendente, que es el fenotipo tubular. */
   const maxAo = (seno != null && asc != null) ? Math.max(seno, asc) : (seno != null ? seno : asc);
@@ -65806,18 +65854,33 @@ function marfanEstado(src) {
        ramas, así que una Turner con ASI 24 y antecedente familiar de disección salía «sin
        criterios» — el escenario exacto en que el umbral bajo existe. */
     if (ita > 23 && conFR) return Object.assign(base, { clave:'cx_iia',
-      txt:'Síndrome de Turner con índice de tamaño aórtico ' + ita + ' mm/m² (>23) y factores de riesgo — considerar cirugía de la aorta (ESC 2024, Clase IIa)' });
+      txt:'Síndrome de Turner con índice de tamaño aórtico ' + ita + ' mm/m² (>23) y factores de riesgo — considerar cirugía de la aorta (' + MARFAN_FTE.turner + ', Clase IIa · Nivel C)' });
     if (ita > 25) return Object.assign(base, { clave:'cx_iib',
-      txt:'Síndrome de Turner con índice de tamaño aórtico ' + ita + ' mm/m² (>25) sin factores de riesgo — puede considerarse cirugía de la aorta (ESC 2024, Clase IIb)' });
+      txt:'Síndrome de Turner con índice de tamaño aórtico ' + ita + ' mm/m² (>25) sin factores de riesgo — puede considerarse cirugía de la aorta (' + MARFAN_FTE.turner + ', Clase IIb · Nivel C)' });
     /* Entre 23 y 25 SIN factores no hay indicación, pero el texto nombra el umbral que se cruza
        con ellos: es la información que decide el intervalo del próximo control. */
     return Object.assign(base, { clave:'sin_indicacion',
-      txt:'Síndrome de Turner con índice de tamaño aórtico ' + ita + ' mm/m² — sin criterios quirúrgicos aórticos actuales (ESC 2024)' +
+      txt:'Síndrome de Turner con índice de tamaño aórtico ' + ita + ' mm/m² — sin criterios quirúrgicos aórticos actuales (' + MARFAN_FTE.turner + ')' +
           (ita > 23 ? '; con factores de riesgo este índice ya sería Clase IIa' : '') + '. Seguimiento' });
   }
   if (maxAo == null) return Object.assign(base, { clave:'falta_diametro',
     txt: base.sindTxt.charAt(0).toUpperCase() + base.sindTxt.slice(1) + ' — sin diámetro aórtico registrado; completar seno y ascendente' });
-  const UMBRAL = { marfan:{ i:50, iia:45 }, lds:{ i:45, iia:null }, ehat:{ i:55, iia:50 }, otro:{ i:55, iia:50 } };
+  /* ⚠️ LA CLASE Y EL NIVEL VAN AL LADO DE CADA CORTE, Y NO SON LOS MISMOS EN LAS CUATRO TABLAS
+     (trabajo «H», 2026-10-21). El `iia:50` del tramo con factores de la aortopatía NO sindrómica
+     era un IIa y la Tabla 38 lo imprime **IIb · Nivel B**: verificado en el texto del folio 80
+     («Se puede considerar el reemplazo … con un diámetro máximo ≥ 50 mm en pacientes con
+     dilatación de la aorta proximal, candidatos a cirugía con un riesgo quirúrgico estimado
+     bajo, que presentan cualquiera de los siguientes factores» · IIb · B). Los dos cortes NO se
+     movieron: lo que cambia es la clase que se publica y la tabla que se cita.
+     Marfan queda tal cual —≥ 50 mm Clase I · Nivel B y ≥ 45 mm con factores Clase IIa · Nivel C,
+     los dos de la Tabla 62, folio 114— y Loeys-Dietz se alinea en el commit siguiente. */
+  const UMBRAL = { marfan:{ i:50, iia:45, nI:'B', cFr:'IIa', nFr:'C' },
+                   lds:{ i:45, iia:null, nI:'B', cFr:null, nFr:null },
+                   ehat:{ i:55, iia:50, nI:'B', cFr:'IIb', nFr:'B' },
+                   otro:{ i:55, iia:50, nI:'B', cFr:'IIb', nFr:'B' } };
+  /* La cita sale de `MARFAN_FTE`, que es su dueño único; con un token no previsto cae a la guía
+     sin tabla, que es lo único que se puede afirmar de un síndrome que no se reconoce. */
+  const fteS = _tieneClave(MARFAN_FTE, sind) ? MARFAN_FTE[sind] : 'ESC 2024';
   /* Un token que no está en el mapa NO elige umbral, y antes eso LANZABA (`u.i` sobre undefined).
      Desde el formulario era inalcanzable —el select sólo puede tener sus cinco opciones— pero esta
      función ahora lee también los `campos` de un estudio guardado, que llegan de un Excel, de un
@@ -65832,14 +65895,20 @@ function marfanEstado(src) {
   const u = UMBRAL[sind];
   const pre = base.sindTxt.charAt(0).toUpperCase() + base.sindTxt.slice(1) + ' con diámetro aórtico máximo ' + maxAo + ' mm';
   if (maxAo >= u.i) return Object.assign(base, { clave:'cx_i',
-    txt: pre + ' — cirugía de la aorta indicada (ESC 2024, Clase I desde ' + u.i + ' mm para ' + base.sindTxt + ')' });
-  if (u.iia != null && maxAo >= u.iia && conFR) return Object.assign(base, { clave:'cx_iia',
-    txt: pre + ' con factores de riesgo — considerar cirugía de la aorta (ESC 2024, Clase IIa desde ' + u.iia + ' mm con factores)' });
+    txt: pre + ' — cirugía de la aorta indicada (' + fteS + ', Clase I · Nivel ' + u.nI + ' desde ' + u.i + ' mm para ' + base.sindTxt + ')' });
+  /* ⚠️ LA CLAVE LA ELIGE LA CLASE Y NO LA RAMA, y esto lo cazó la sonda: con la clave fija en
+     `cx_iia`, la aortopatía NO sindrómica salía con el badge «Considerar cirugía — Clase IIa» y
+     el Fundamento diciendo «Clase IIb · Nivel B» dos renglones más abajo, sobre el mismo
+     paciente. `cx_iib` ya existe —es la rama de Turner— y su rótulo es «puede considerarse» en
+     las TRES superficies que lo leen: el badge, el EN SUMA y la distribución del Laboratorio.
+     Ninguna clave nueva, así que `_labDistribDe` no pierde ningún estudio en silencio. */
+  if (u.iia != null && maxAo >= u.iia && conFR) return Object.assign(base, { clave: u.cFr === 'IIb' ? 'cx_iib' : 'cx_iia',
+    txt: pre + ' con factores de riesgo — ' + (u.cFr === 'IIb' ? 'puede considerarse' : 'considerar') + ' cirugía de la aorta (' + fteS + ', Clase ' + u.cFr + ' · Nivel ' + u.nFr + ' desde ' + u.iia + ' mm con factores)' });
   if (u.iia != null && maxAo >= u.iia && !conFR) return Object.assign(base, { clave:'umbral_iia_sin_fr',
-    txt: pre + ' — por encima del umbral de ' + u.iia + ' mm en que los factores de riesgo pasan a indicar cirugía (ESC 2024, Clase IIa)' +
+    txt: pre + ' — por encima del umbral de ' + u.iia + ' mm en que los factores de riesgo pasan a indicar cirugía (' + fteS + ', Clase ' + u.cFr + ' · Nivel ' + u.nFr + ')' +
          (fr === 'no' ? ', hoy sin factores consignados' : '; falta consignar si los hay') });
   return Object.assign(base, { clave:'sin_indicacion',
-    txt: pre + ' — sin criterios quirúrgicos aórticos actuales (ESC 2024). Seguimiento por imagen' });
+    txt: pre + ' — sin criterios quirúrgicos aórticos actuales (' + fteS + '). Seguimiento por imagen' });
 }
 window.marfanEstado = marfanEstado;
 
@@ -65857,6 +65926,14 @@ function marfanSync() {
     sp.style.fontWeight = '400'; sp.textContent = t; return sp; };
   const pill = (cls, t) => { const sp = document.createElement('span');
     sp.className = 'badge badge-' + (BADGE_CLS_OK.indexOf(cls) >= 0 ? cls : 'gray'); sp.textContent = t; return sp; };
+  /* ⚠️ EL HINT VA ANTES DE LA SALIDA TEMPRANA, Y LO CAZÓ TC-116 Y NO LA LECTURA. `marfanSync`
+     devuelve en cuanto `!r.hayDatos`, así que con el bloque al final el hint del paciente
+     ANTERIOR sobrevivía a «Nuevo estudio» —`limpiarCampos` llama a esta función y se iba por ese
+     `return`—. Es la trampa de `vab-coa-aviso`: un nodo que ningún barrido genérico alcanza se
+     limpia donde el flujo pasa SIEMPRE, no donde queda cómodo.
+     Vive fuera del `calc-box`, así que se escribe por `textContent` y no por `fila()`. */
+  { const h = document.getElementById('marfan-fr-hint');
+    if (h) h.textContent = (r.sind && _tieneClave(MARFAN_FR_TXT, r.sind)) ? MARFAN_FR_TXT[r.sind] : MARFAN_FR_SIN; }
   if (!r.hayDatos) { fila('Aortopatía hereditaria', pill('gray', 'Ingresar síndrome y diámetros')); return; }
   const CLS = { cx_i:'red', cx_iia:'orange', cx_iib:'yellow', umbral_iia_sin_fr:'yellow',
                 sin_indicacion:'green', sin_sindrome:'gray', falta_ita:'gray', falta_diametro:'gray' };
@@ -65869,9 +65946,18 @@ function marfanSync() {
   /* El umbral del síndrome se PUBLICA aunque no haya indicación: es lo que le dice al médico a
      qué distancia está este paciente de la cirugía, que es la información que usa para fijar el
      intervalo del próximo control. */
-  const U = { marfan:'50 mm (45 con factores)', lds:'45 mm', turner:'índice >23 mm/m² con factores · >25 sin ellos',
-              ehat:'55 mm (50 con factores)', otro:'55 mm (50 con factores)' };
-  if (r.sind && U[r.sind]) fila('Umbral de este síndrome', val(U[r.sind]));
+  /* ⚠️ CADA CADENA NOMBRA SU TABLA, que es la corrección del trabajo «H»: hasta entonces la
+     pantalla publicaba cinco umbrales de CUATRO tablas distintas sin decir de cuál era cada uno,
+     y el comentario del bloque se los atribuía todos a la Tabla 62. */
+  const U = { marfan:'50 mm (Clase I · B) · 45 mm con factores (IIa · C)',
+              lds:'45 mm',
+              turner:'índice >23 mm/m² con factores (IIa · C) · >25 sin ellos (IIb · C)',
+              ehat:'55 mm (Clase I · B) · 50 mm con factores (IIb · B)',
+              otro:'55 mm (Clase I · B) · 50 mm con factores (IIb · B)' };
+  if (r.sind && U[r.sind]) {
+    fila('Umbral de este síndrome', val(U[r.sind]));
+    fila('Fuente del umbral', val(_tieneClave(MARFAN_FTE, r.sind) ? MARFAN_FTE[r.sind] : 'ESC 2024'));
+  }
 }
 window.marfanSync = marfanSync;
 
@@ -127849,13 +127935,13 @@ const ECO_AYUDA = [
 
 <div class="mSub">Aorta y aortopatías</div>
 <table class="mTbl"><tr><th>Entidad</th><th>Umbral quirúrgico</th><th>Guía</th></tr>
-<tr><td>Loeys-Dietz</td><td>≥ 45 mm (Clase I)</td><td>ESC/EACTS 2024, Tabla 62</td></tr>
-<tr><td>Marfan</td><td>≥ 50 mm (Clase I) · ≥ 45 mm con factores de riesgo (IIa)</td><td>ESC/EACTS 2024</td></tr>
-<tr><td>Aortopatía hereditaria no sindrómica</td><td>≥ 55 mm (Clase I) · ≥ 50 mm con factores (IIa)</td><td>ESC/EACTS 2024</td></tr>
-<tr><td>Síndrome de Turner (indexado)</td><td>índice &gt; 23 mm/m² con factores (IIa) · &gt; 25 sin factores (IIb)</td><td>ESC/EACTS 2024</td></tr>
-<tr><td>Bicúspide — aorta concomitante a cirugía valvular</td><td>≥ 45 mm (IIa)</td><td>ESC/EACTS 2024</td></tr>
-<tr><td>Dilatación en el informe (descriptivo)</td><td>seno y ascendente &gt; 40 mm · sinotubular &gt; 38 mm</td><td>ESC 2021</td></tr></table>
-<div class="mBox mAviso"><b>Factores de riesgo</b> (ESC 2024): HTA no controlada, historia familiar de disección, progresión &gt; 5 mm/año, deseo de embarazo y necesidad de reemplazo valvular aórtico.</div>
+<tr><td>Loeys-Dietz</td><td>≥ 45 mm (Clase I)</td><td>ESC 2024, <b>Tabla 66</b> · folio 116</td></tr>
+<tr><td>Marfan</td><td>≥ 50 mm (Clase I · Nivel B) · ≥ 45 mm con factores de riesgo (IIa · C)</td><td>ESC 2024, <b>Tabla 62</b> · folio 114</td></tr>
+<tr><td>Aortopatía hereditaria no sindrómica</td><td>≥ 55 mm (Clase I · Nivel B) · ≥ 50 mm con factores (<b>IIb · B</b>)</td><td>ESC 2024, <b>Tabla 38</b> · folio 80</td></tr>
+<tr><td>Síndrome de Turner (indexado)</td><td>índice &gt; 23 mm/m² con factores (IIa · C) · &gt; 25 sin factores (IIb · C)</td><td>ESC 2024, <b>Tabla 58</b> · folio 111</td></tr>
+<tr><td>Bicúspide — aorta concomitante a cirugía valvular</td><td>≥ 45 mm (IIa · Nivel C)</td><td>ESC 2024, <b>Tabla 68</b> · folio 119</td></tr>
+<tr><td>Dilatación en el informe (descriptivo)</td><td>seno ≥ 40 mm · ascendente y cayado &gt; 40 mm · sinotubular &gt; 38 mm · descendente &gt; 35 mm</td><td><b>Criterio de EcoSmart</b> — la ESC 2024 da los límites por sexo (Figura 5, folio 28) y define la dilatación de la raíz en &gt; 40 mm en el hombre y &gt; 36 mm en la mujer (folio 71)</td></tr></table>
+<div class="mBox mAviso"><b>Los factores de riesgo NO son los mismos en las cuatro tablas</b>, y la app publica la lista de la tabla del síndrome elegido. <b>Marfan</b> (Tabla 62, folio 114): historia familiar de disección con dimensiones pequeñas (&lt; 50 mm), hipertensión refractaria y crecimiento ≥ 3 mm al año. <b>Turner</b> (Tabla 58, folio 111): bicúspide, elongación de la aorta transversa, coartación, hipertensión no controlada, crecimiento ≥ 3 mm al año o embarazo planificado. <b>Loeys-Dietz</b> (Tabla 66, folio 116): variantes patogénicas específicas, mujer con TGFBR2 y tamaño corporal pequeño, rasgos extraaórticos graves, historia familiar de disección y crecimiento ≥ 3 mm al año. <b>No sindrómica</b> (Tabla 38, folio 80): crecimiento ≥ 3 mm al año, hipertensión resistente, estatura &lt; 1,69 m, fenotipo de raíz, longitud aórtica &gt; 11 cm, edad &lt; 50 años, deseo de embarazo o coartación.</div>
 
 <div class="mSub">Congénitas</div>
 <table class="mTbl"><tr><th>Entidad</th><th>Criterio</th><th>Guía</th></tr>
