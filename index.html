@@ -14971,15 +14971,24 @@ z
       <span id="fop_badge" class="incl-badge" hidden>📎 en el informe</span>
     </button>
     <div class="card-body sacc-body">
+      <!-- == LA PANTALLA NO PUBLICA CONDUCTA NI DATOS SIN CITA (D-E2, 2026-10-22) ===========
+           DECISION DE MAICOL. Salieron de aca tres textos y los tres estan ahora en el panel de
+           Evidencia, con su fuente y su folio:
+             · «ESC: cierre percutaneo Clase IIa en el ACV criptogenico del menor de 60 anos» —
+               atribucion equivocada ademas de conducta: el 2a por debajo de los 60 anos es de la
+               AHA/ASA 2021 (Kleindorfer, folio e411) y con condiciones; el documento europeo
+               (Pristipino 2019, Tabla 5, folio 1396) habla de 18 a 65 anos y NO usa las clases
+               I/IIa/IIb de la ESC;
+             · «aproximadamente el 25 % de la poblacion» (Silvestry 2015, folio 912);
+             · «recurrencia de en torno al 5 % anual» (Pristipino 2019, folio 1399).
+           Lo que queda es la descripcion de lo que es un foramen oval, sin numero sin cita y sin
+           una sola recomendacion. -->
       <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
-        Comunicación interauricular fisiológica que no se cierra tras el nacimiento. Está en aproximadamente el <b>25 % de la población</b>,
-        así que el hallazgo por sí solo no es una enfermedad: lo que decide la conducta es el contexto clínico.
-        <b style="color:var(--accent2);">ESC: cierre percutáneo Clase IIa en el ACV criptogénico del menor de 60 años</b>, tras evaluación conjunta con neurología.
+        Comunicación interauricular fisiológica que no se cierra tras el nacimiento. Es un hallazgo
+        frecuente en la población adulta, así que por sí solo no es una enfermedad: lo que cambia su
+        lectura es el contexto clínico del paciente.
+        Las recomendaciones, con su fuente y su folio, están en el panel de <b>Evidencia</b>.
       </p>
-      <div class="mBoxLike" style="border-left:3px solid var(--red,#b91c1c);background:rgba(185,28,28,.08);padding:8px 12px;border-radius:6px;font-size:11px;line-height:1.5;margin-bottom:12px;">
-        <b>Riesgo asociado.</b> El FOP con ACV criptogénico y sin cierre tiene recurrencia de en torno al 5 % anual. La coexistencia de
-        <b>aneurisma del septum interauricular</b> y <b>shunt severo</b> marca el subgrupo de mayor riesgo embólico.
-      </div>
 
       <!-- == TRES COLUMNAS (D-E1, 2026-10-22) =====================================================
            DECISION DE MAICOL. Los campos NO se renombran ni cambian de id: lo unico que cambia es
@@ -50168,6 +50177,17 @@ function generarInforme(opts) {
     if (typeof ccMarcarParrafo === 'function') ccMarcarParrafo();
   }
 
+  /* ⚠️ DONDE VA EL PARRAFO DEL FORAMEN OVAL (D-E2, 2026-10-22) ══════════════════════════════
+     DECISION DE MAICOL: justo DEBAJO de la descripcion de la auricula izquierda, que es la
+     camara a la que el foramen comunica. Hasta hoy salia al final del cuerpo, con los modulos
+     avanzados, a decenas de renglones de la auricula.
+     Se guarda el INDICE y no se escribe el parrafo aca: el bloque del FOP corre 3.500 lineas
+     mas abajo, cuando `fopConclusion` ya puede leer sus campos. El array solo CRECE a partir de
+     este punto, asi que un `splice` en este indice inserta exactamente despues de las oraciones
+     de la auricula. Mover el bloque entero hasta aca habria obligado a mover con el la
+     compuerta, el espejo y las cuatro superficies que ese bloque alimenta. */
+  const _infTrasAI = inf.length;
+
   // ── 5) Ventrículo derecho (una sola oración combinada: tamaño + función) ──
   /* La compuerta es «¿hay alguna medida del VD?», NO «¿hay TAPSE o S'?». Con `tapse || sp` un
      VD basal de 48 mm sin TAPSE ni S' cargados desaparecía entero del informe firmado: el
@@ -53694,28 +53714,14 @@ function generarInforme(opts) {
          Son TRES oraciones: la anatomía, el test de burbuja y el contexto clínico.
          ⚠️ NO SE PIERDE NI UN DATO: los mismos campos, los mismos números y las mismas palabras
          de grado. Lo que cambia es la puntuación y el orden de las cláusulas dentro de la frase.
-         ⚠️ `ccHoja` SIGUE RECIBIENDO LA LISTA `p` y no la oración armada: esa hoja la consume el
-         PDF de CC frecuentes renglón por renglón, y pasarle una sola cadena larga le rompería la
-         maquetación. Es la misma lista de siempre. */
-      const p = [c.clave === 'descartado' ? 'Septum interauricular' : 'Foramen oval permeable'];
-      if (f1(tunel)) p.push('Longitud del túnel ' + f1(tunel) + ' mm');
-      if (mov === 'si') p.push('Septum interauricular móvil');
-      if (asa === 'si' || asiaPorExcursion(asaMm))
-        p.push('Aneurisma del septum interauricular' + (f1(asaMm) ? ' con excursión de ' + f1(asaMm) + ' mm' : ''));
-      else if (asa === 'no') p.push('Sin aneurisma del septum interauricular');
-      /* El estudio con burbujas se nombra SIEMPRE que se haya contestado, incluso negativo: que
-         no se haya hecho es información clínica —significa que el shunt no fue interrogado— y
-         omitirlo deja al lector suponiendo que sí se buscó y no había. */
-      if (contraste === 'si') {
-        p.push('Estudio con solución salina agitada realizado');
-        if (reposo === 'si') p.push('Shunt presente en reposo');
-        else if (reposo === 'no') p.push('Sin shunt en reposo');
-        if (valsalva === 'si') p.push('Shunt presente con maniobra de Valsalva');
-        else if (valsalva === 'no') p.push('Sin shunt con maniobra de Valsalva');
-        if (burb) p.push('Paso de burbujas: ' + (FOP_BURB_TXT[burb] || burb));
-      } else if (contraste === 'no') {
-        p.push('No se realizó estudio con contraste');
-      }
+         ⚠️ ESTA NOTA DECIA QUE `ccHoja` RECIBE LA LISTA `p`, y desde el D-E2 ya no hay ni
+         lista ni hoja: el FOP publica su propia tabla en el PDF. */
+      /* ══ SIN LISTA PARA LA HOJA DE CC (D-E2, 2026-10-22) ════════════════════════════════
+         La lista `p` existia para `ccHoja('fop', ...)`, que arma la seccion del FOP de la hoja
+         «ESTUDIO AVANZADO - CARDIOPATIAS CONGENITAS» del PDF. El FOP se trata ahora como la
+         VAB: sin esa hoja y con su propia TABLA de caracteristicas, que `fopPdfFilas()` arma de
+         los mismos campos. Las dos cosas se fueron juntas — dejar la lista habria dejado la
+         seccion publicada DOS veces en el mismo papel. */
       /* —— LA PROSA ESQUEMÁTICA, armada de los MISMOS valores —— */
       const _ors = [];
       /* 1 · anatomía */
@@ -53723,9 +53729,16 @@ function generarInforme(opts) {
       if (f1(tunel)) _a += ' (túnel de ' + f1(tunel) + ' mm)';
       const _rasgos = [];
       if (mov === 'si') _rasgos.push('septum interauricular móvil');
-      if (asa === 'si' || asiaPorExcursion(asaMm))
-        _rasgos.push('aneurisma del septum' + (f1(asaMm) ? ' (excursión de ' + f1(asaMm) + ' mm)' : ''));
-      else if (asa === 'no') _rasgos.push('sin aneurisma del septum');
+      if (asa === 'si' || asiaPorExcursion(asaMm)) {
+        /* El LADO viaja con la excursión: es lo que decide su umbral, así que el papel que
+           publica el número tiene que decir de qué excursión se trata. */
+        const _l = (typeof asiaLado === 'function') ? asiaLado() : '';
+        const _lf = _l === 'ambos' ? 'de excursión total'
+                  : _l === 'ad' ? 'hacia la aurícula derecha'
+                  : _l === 'ai' ? 'hacia la aurícula izquierda' : null;
+        _rasgos.push('aneurisma del septum' + (f1(asaMm)
+          ? ' (excursión de ' + f1(asaMm) + ' mm' + (_lf ? ' ' + _lf : '') + ')' : ''));
+      } else if (asa === 'no') _rasgos.push('sin aneurisma del septum');
       if (_rasgos.length) _a += ', con ' + _rasgos.join(' y ');
       _ors.push(_a + '.');
       /* 2 · test de burbuja. El rango sale de `FOP_BURB_TXT`, que es su dueño único y el mismo
@@ -53742,23 +53755,26 @@ function generarInforme(opts) {
           + (burb ? (FOP_BURB_TXT[burb] || burb) : 'shunt'));
         else if (valsalva === 'no') _t.push('sin shunt con maniobra de Valsalva');
         else if (burb) _t.push((FOP_BURB_TXT[burb] || burb));
+        /* EL NUMERO DE LATIDOS, que es el dato nuevo de esta tanda. Su dueño ya lo gatea: sin
+           pasaje documentado devuelve `null` y la cláusula no sale. */
+        const _lat = (typeof fopLatidos === 'function') ? fopLatidos() : null;
+        /* Se PEGA a la última cláusula y no se empuja como una más: con el `; ` del `join` el
+           papel decía «shunt moderado (5-20 burbujas); a los 3 latidos», que se lee como dos
+           hallazgos. Si no hay cláusula a la que pegarse, entra sola. */
+        if (_lat) { if (_t.length) _t[_t.length - 1] += ' a los ' + _lat + ' latidos';
+                    else _t.push('pasaje a los ' + _lat + ' latidos'); }
         if (_t.length) _ors.push('Test de burbuja: ' + _t.join('; ') + '.');
         else _ors.push('Test de burbuja realizado.');
       } else if (contraste === 'no') {
         _ors.push('No se realizó test de burbuja.');
       }
-      /* 3 · contexto clínico. Las cuatro claves que cambian la conducta llevan su cláusula
-         esquemática (`esq`); las que no la tienen publican el párrafo de siempre, porque
-         omitirlas sería PERDER información del informe firmado y esta orden no lo autoriza. */
+      /* 3 · contexto clínico. LAS DIEZ CLAVES llevan su cláusula esquemática (`esq`) desde el
+         D-E2: antes eran seis, y las cuatro sin cláusula publicaban el párrafo entero —con su
+         conducta— en el papel FIRMADO. */
       if (c.esq) _ors.push(c.esq);
-      else if (c.txt) _ors.push(c.txt + '.');
-      etePars.push(_ors.join(' ')); ccMarcarParrafo();
-      ccHoja('fop', p, c.txt, null);
-      /* Al EN SUMA sólo lo que cambia una conducta. `incidental` no: un FOP sin contexto es un
-         hallazgo de uno de cada cuatro adultos y llenaría la conclusión de ruido.
-         `sin_contexto` SÍ sube, aunque no sea una indicación: le está diciendo al médico que
-         falta el dato del que depende la decisión, y eso tiene que verse en la conclusión y no
-         doce renglones más arriba. */
+      /* ⚠️ EL PARRAFO SE INSERTA DESPUES DE LA AURICULA IZQUIERDA y no se empuja al final: es
+         `_infTrasAI`, el indice que el bloque 4 guardo. */
+      inf.splice(_infTrasAI, 0, _ors.join(' ')); ccMarcarParrafo();
       sumaCC(ccSumaLinea('fop'));
     })();
 
@@ -62028,6 +62044,36 @@ function generarPDFReal(_aj) {
     }
   } catch (e) { console.error('[PDF] bloque VAB:', e); }
 
+  /* ══ FORAMEN OVAL PERMEABLE — SU TABLA DE CARACTERISTICAS (D-E2, 2026-10-22) ══════════════
+     Mismo mecanismo que la VAB de arriba, con DOS diferencias y las dos son de la orden: no
+     lleva dibujo —esta tanda no agrega ninguno— y su compuerta es el MISMO «Integrar al
+     informe» que gobierna el parrafo del cuerpo, asi que la seccion no puede entrar al papel
+     por una puerta y no por la otra. La VAB tiene su propio `vab_pdf` porque lo que ese toggle
+     decide es el DIBUJO, que aca no existe.
+     ⚠️ EL GATE PIDE ADEMAS QUE HAYA ALGO QUE DECIR: `fopPdfFilas` devuelve `null` con la seccion
+     vacia, y una tabla «FORAMEN OVAL PERMEABLE» con sus rotulos y sus rayas dentro de un informe
+     FIRMADO se lee como «se evaluo».
+     `try/catch` por lo mismo que el bloque de la VAB: una excepcion aca aborta el PDF entero. */
+  try {
+    const _fopChk = document.getElementById('fop_incluir_chk');
+    const _fopFilas = (_fopChk && _fopChk.checked && typeof fopPdfFilas === 'function') ? fopPdfFilas() : null;
+    if (_fopFilas && _fopFilas.length) {
+      checkPage(18 + _fopFilas.length * 5);
+      drawBar('FORAMEN OVAL PERMEABLE');
+      y += _aire(3);
+      fn(8); tc(30, 30, 30);
+      _fopFilas.forEach(function (f) {
+        fb(8); tc(TEMA[0], TEMA[1], TEMA[2]);
+        doc.text(_sanML(f[0]) + ':', mL, y);
+        const _w = doc.getTextWidth(_sanML(f[0]) + ': ');
+        fn(8); tc(30, 30, 30);
+        doc.text(_sanML(f[1]), mL + _w + 1, y);
+        y += 5;
+      });
+      y += _aire(3);
+    }
+  } catch (e) { console.error('[PDF] bloque FOP:', e); }
+
   if (typeof eteQxPdfOn === 'function' && eteQxPdfOn() && typeof eteQxDataURL === 'function') {
     const _mData = eteQxDataURL();
     checkPage(125);
@@ -65498,9 +65544,13 @@ window.vapSync = vapSync; window.vapConclusion = vapConclusion;
 /* ══ FORAMEN OVAL PERMEABLE ══════════════════════════════════════════════════════════════
    Está en uno de cada cuatro adultos sanos, así que el hallazgo por sí solo NO es una
    enfermedad: lo que decide la conducta es el CONTEXTO CLÍNICO, no la anatomía.
-   ESC 2020 / posicionamiento conjunto ESC 2019: el cierre percutáneo es Clase IIa en el ACV
-   criptogénico del menor de 60 años tras evaluación por neurología y cardiología. Sin ese
-   antecedente, un FOP es un hallazgo incidental.
+   ⚠️ DESDE EL D-E2 (2026-10-22) ESTA SECCION NO PUBLICA NINGUNA CONDUCTA, y este comentario
+   decia lo contrario —«el cierre percutáneo es Clase IIa en el ACV criptogénico del menor de 60
+   años»—, con una atribucion que ademas era equivocada: ese 2a es de la AHA/ASA 2021
+   (Kleindorfer, folio e411) y con condiciones, y el documento europeo (Pristipino 2019, Tabla 5,
+   folio 1396) habla de 18 a 65 anos SIN usar las clases de la ESC. La conclusion, el informe y
+   el EN SUMA DESCRIBEN; las recomendaciones viven en el panel de Evidencia, con su clase, su
+   nivel y su folio.
 
    Por eso los tres campos de contexto —ACV criptogénico, trombofilia y la propia realización
    del estudio con contraste— son SELECTS de tres estados y no casillas. Una casilla
@@ -65607,70 +65657,115 @@ function fopConclusion(src){
     txt:'Estudio con solución salina agitada sin paso de burbujas en reposo ni con maniobra de Valsalva — sin evidencia de foramen oval permeable' };
 
   const shuntAbundante = burb === 'abundante';
-  /* Aneurisma del septum interauricular: la excursión ≥10 mm es el umbral clásico. Si el
-     médico marcó «sí» sin medir, se cree la clasificación; si midió, manda la medida. */
   const hayASA = asa === 'si' || asiaPorExcursion(asaMm, src);
   const edad = nv('edad');
+  const f1 = n => (n == null || !isFinite(n)) ? null : String(Math.round(n * 10) / 10);
 
-  /* 1 · El antecedente manda sobre la anatomía. */
+  /* ══ LA DESCRIPCIÓN, ARMADA DE LOS MISMOS CAMPOS (D-E2, 2026-10-22) ═══════════════════════
+     DECISIÓN DE MAICOL: la conclusión, el informe y el EN SUMA del FOP son DESCRIPTIVOS. No
+     llevan recomendación, no dicen «indicación de cierre» y no nombran ninguna guía: toda
+     recomendación vive en el panel de Evidencia, que es donde se publica con su clase, su nivel
+     y su folio. Acá se describe lo que se vio.
+     Las dos INTERPRETACIONES que la orden manda traer a la conclusión están en esta frase: la
+     excursión del aneurisma con su lado y el grado del pasaje de burbujas con su número de
+     latidos.
+     ⚠️ EL GRADO DEL PASAJE SE DERIVA DE `FOP_BURB_TXT`, que es su dueño único: «shunt moderado
+     (5-20 burbujas)» se recorta a «moderado (5-20)». Un segundo mapa con las mismas tres
+     palabras es la copia que se separa en la primera edición. */
+  const _burbCorto = burb && FOP_BURB_TXT[burb]
+    ? String(FOP_BURB_TXT[burb]).replace(/^shunt /, '').replace(' burbujas', '')
+    : null;
+  const _ladoFrase = (function(){
+    const l = asiaLado(src);
+    if (l === 'ambos') return 'de excursión total';
+    if (l === 'ad') return 'hacia la aurícula derecha';
+    if (l === 'ai') return 'hacia la aurícula izquierda';
+    return null;
+  })();
+  const _latid = fopLatidos(src);
+  const _desc = (function(){
+    let d = 'Foramen oval permeable';
+    if (f1(tunel)) d += ' (túnel de ' + f1(tunel) + ' mm)';
+    const rs = [];
+    if (mov === 'si') rs.push('septum interauricular móvil');
+    if (hayASA) rs.push('aneurisma del septum interauricular' +
+      (f1(asaMm) ? ' (excursión de ' + f1(asaMm) + ' mm' + (_ladoFrase ? ' ' + _ladoFrase : '') + ')' : ''));
+    if (rs.length) d += ', asociado a ' + rs.join(' y ');
+    if (burb || reposo === 'si' || valsalva === 'si') {
+      const b = [];
+      if (reposo === 'si') b.push('en reposo');
+      if (valsalva === 'si') b.push('con maniobra de Valsalva');
+      d += '; pasaje de burbujas' + (_burbCorto ? ' ' + _burbCorto : '') + ' a la aurícula izquierda' +
+           (b.length ? ' ' + b.join(' y ') : '') + (_latid ? ' a los ' + _latid + ' latidos' : '');
+    }
+    return d;
+  })();
+
+  /* ══ LAS DIEZ CLAVES NO CAMBIAN, Y UNA SE LLAMA `cierre_iia` ══════════════════════════════
+     No se renombra: el Laboratorio cuenta la distribución del FOP POR CLAVE y un filtro de
+     cohorte guardado la trae, así que renombrarla deja esos estudios fuera del recuento. El
+     nombre es interno y no se publica; lo que se publica es el texto, y ése ya no indica nada.
+     ⚠️ `esq` ES LA CLÁUSULA QUE VA AL INFORME, Y HOY SIETE DE LAS DIEZ LA DEJAN EN `null`.
+     DECISIÓN DE MAICOL: el ACV criptogénico es un dato CLÍNICO del paciente —el motivo del
+     estudio— y no va al informe ni al EN SUMA; sí al PDF, donde la tabla de características lo
+     publica como «Motivo del estudio». Las siete claves cuya cláusula no decía otra cosa que
+     ese antecedente —o su ausencia— quedan sin cláusula, y el párrafo del informe se queda con
+     la anatomía y el test de burbuja, que es lo que el eco midió.
+     Las tres que SÍ la llevan dicen algo que no es el antecedente: `descartado` niega el
+     hallazgo, `no_interpretable` declara una medición ilegible y `trombofilia` consigna otra
+     condición del paciente, que esta orden no nombra y por eso no se retira.
+     ⚠️ LO QUE `alto_riesgo_sin_evento` DEJA DE DECIR EN EL PAPEL NO SE PIERDE: sus dos rasgos
+     —el aneurisma y el pasaje severo— ya están en las dos oraciones de arriba del MISMO párrafo,
+     con su número. Y el párrafo del informe ya usaba `c.esq` cuando existía, así que con `null`
+     cae en la misma rama que las claves que nunca la tuvieron. */
+
+  /* 1 · El antecedente se CONSIGNA; no decide ninguna conducta acá. */
   if (acv === 'si') {
-    /* ⚠️ `esq` ES LA CLÁUSULA DEL INFORME ESQUEMÁTICO (ARR8, 2026-10-18) y `txt` el párrafo de
-       siempre, que el PDF de CC frecuentes y la hoja de `ccHoja` siguen consumiendo. Son dos
-       superficies con dos registros y por eso son dos campos: el papel esquemático dice el
-       hallazgo, el párrafo explica la conducta.
-       ⚠️ EL AVISO DE LA EDAD NO VA AL INFORME NI AL EN SUMA, por decisión de Maicol: la
-       indicación de cierre percutáneo según la edad queda documentada en `FUENTES.md` y en
-       `PENDIENTES.md` para llevarla a Referencias, y NO se escribe en la app. Por eso `esq` de
-       `acv_mayor` y de `acv_sin_edad` dice el hallazgo y nada más. */
     if (edad != null && edad >= 60) return { clave:'acv_mayor',
-      esq:'Con ACV criptogénico.',
-      txt:'FOP en paciente con ACV criptogénico de 60 años o más — la indicación de cierre percutáneo de la ESC está establecida por debajo de esa edad; decisión individual en equipo con neurología' };
-    /* La edad decide, y se lee de otra pestaña. Sin ella, `!(edad != null && edad >= 60)` cae
-       hacia la rama que INDICA el implante: un paciente de 78 años con ACV criptogénico al que
-       nadie le cargó la edad salía con «cierre percutáneo Clase IIa» en el EN SUMA, y el texto
-       omitía la edad en silencio. La rama que niega exigía el dato; la que afirma, no.
-       `edad > 0` y no `edad != null`: un 0 producía «en paciente de 0 años». */
+      esq:null,
+      txt: _desc + '. Con ACV criptogénico, en paciente de ' + edad + ' años' };
+    /* La edad se lee de otra pestaña y sin ella NO se la supone: la rama lo dice. */
     if (!(edad > 0)) return { clave:'acv_sin_edad',
-      esq:'Con ACV criptogénico.',
-      txt:'FOP con ACV criptogénico — falta la edad del paciente, de la que depende la indicación: el cierre percutáneo es Clase IIa por debajo de los 60 años' };
+      esq:null,
+      txt: _desc + '. Con ACV criptogénico; la edad del paciente no consta en el estudio' };
     return { clave:'cierre_iia',
-      esq:'Con ACV criptogénico.',
-      txt:'FOP con ACV criptogénico' + (edad > 0 ? ' en paciente de ' + edad + ' años' : '') +
-          (hayASA || shuntAbundante ? ', con características de alto riesgo embólico (' +
-            [hayASA ? 'aneurisma del septum interauricular' : null, shuntAbundante ? 'shunt severo' : null].filter(Boolean).join(' y ') + ')' : '') +
-          ' — cierre percutáneo Clase IIa (ESC), tras evaluación conjunta con neurología' };
+      esq:null,
+      txt: _desc + '. Con ACV criptogénico, en paciente de ' + edad + ' años' +
+          (hayASA || shuntAbundante ? '. Características anatómicas de alto riesgo embólico: ' +
+            [hayASA ? 'aneurisma del septum interauricular' : null,
+             shuntAbundante ? 'pasaje de burbujas severo' : null].filter(Boolean).join(' y ') : '') };
   }
-  /* La trombofilia NO puede tragarse el aviso de contexto faltante. Esta rama está antes que
-     `sin_contexto`, así que un paciente con trombofilia y el ACV en «No consta» perdía el único
-     aviso de que falta el dato que decide — justo en el paciente con estado protrombótico, que
-     es donde el ACV criptogénico es más probable. Se arrastra la salvedad en vez de reordenar
-     las ramas: la trombofilia también cambia la conducta y tiene que decirse. */
+  /* La trombofilia tampoco se tragaba el aviso de contexto faltante, y eso se conserva: esta
+     rama está antes que `sin_contexto`, así que un paciente con trombofilia y el ACV en «No
+     consta» no perdía el único aviso de que falta ese dato. */
   if (trombofilia === 'si') return { clave:'trombofilia',
     esq:'Con trombofilia conocida.',
-    txt:'FOP en paciente con trombofilia conocida — la conducta antitrombótica la define hematología; el cierre percutáneo no sustituye a la anticoagulación cuando ésta está indicada por la trombofilia' +
-        (acv !== 'no' ? '. No consta si hubo ACV criptogénico, que es el dato del que depende la indicación de cierre' : '') };
+    txt: _desc + '. Con trombofilia conocida' +
+        (acv !== 'no' ? '. No consta en el estudio si hubo ACV criptogénico' : '') };
 
   /* 2 · Sin antecedente NO se afirma que no lo haya: se dice que no consta. */
   if (acv !== 'no') return { clave:'sin_contexto',
-    txt:'FOP' + (hayASA ? ' con aneurisma del septum interauricular' : '') +
-        (shuntAbundante ? (hayASA ? ' y shunt severo' : ' con shunt severo') : '') +
-        ' — la conducta depende del contexto clínico (ACV criptogénico, edad): no consta en este estudio' };
+    esq:null,
+    txt: _desc + '. No consta en el estudio el contexto clínico (ACV criptogénico, edad)' };
 
-  /* 3 · Con «sin ACV criptogénico» explícito ya se puede concluir hallazgo incidental. */
-  /* Antes de las ramas que niegan: si un número no se pudo leer, la negación puede venir de él. */
+  /* 3 · Antes de las ramas que niegan: si un número no se pudo leer, la negación puede venir
+     de él. */
   if (fuera.length) return { clave:'no_interpretable',
-    txt:'FOP — ' + fuera.join(' y ') + ' fuera de rango: revisar unidades antes de concluir' };
+    esq: fuera.join(' y ').charAt(0).toUpperCase() + fuera.join(' y ').slice(1) + ' fuera de rango: revisar unidades.',
+    txt:'Foramen oval permeable — ' + fuera.join(' y ') + ' fuera de rango: revisar unidades' };
   if (hayASA || shuntAbundante) return { clave:'alto_riesgo_sin_evento',
-    esq:'Sin evento embólico.',
-    txt:'FOP con características de mayor riesgo embólico (' +
-        [hayASA ? 'aneurisma del septum interauricular' : null, shuntAbundante ? 'shunt severo' : null].filter(Boolean).join(' y ') +
-        ') sin evento embólico — no hay indicación de cierre en prevención primaria; seguimiento clínico' };
+    esq:null,
+    txt: _desc + '. Sin ACV criptogénico ni otro evento embólico. Características anatómicas de alto riesgo embólico: ' +
+        [hayASA ? 'aneurisma del septum interauricular' : null,
+         shuntAbundante ? 'pasaje de burbujas severo' : null].filter(Boolean).join(' y ') };
   /* «No se realizó contraste» no puede leerse como «no hay shunt»: el estudio con burbujas y
      Valsalva es el que hace el diagnóstico, y sin él sólo se documentó la anatomía. */
   if (contraste === 'no' && !resp(reposo) && !resp(valsalva)) return { clave:'sin_contraste',
-    txt:'FOP sin estudio de contraste con burbujas — el shunt no fue interrogado; completar con solución salina agitada y maniobra de Valsalva si el contexto clínico lo justifica' };
+    esq:null,
+    txt: _desc + '. Sin estudio de contraste con burbujas: el shunt no fue interrogado' };
   return { clave:'incidental',
-    txt:'FOP sin ACV criptogénico ni características de alto riesgo — hallazgo incidental sin indicación de cierre' };
+    esq:null,
+    txt: _desc + '. Sin ACV criptogénico ni características anatómicas de alto riesgo' };
 }
 function fopSync(){
   const txt = (id,s) => { const e=document.getElementById(id); if(e) e.textContent = s; };
@@ -65698,6 +65793,60 @@ function fopSync(){
   const c = fopConclusion();
   txt('fop-concl', c ? c.txt : '—');
 }
+/* ══ LA TABLA DE CARACTERISTICAS DEL PDF (D-E2, 2026-10-22) ═══════════════════════════════
+   DECISION DE MAICOL: el FOP se trata como la VAB. Sin la hoja «ESTUDIO AVANZADO -
+   CARDIOPATIAS CONGENITAS» —`ccHoja('fop', ...)` se retiro— y con una TABLA de caracteristicas
+   en el cuerpo del papel, en los tres grupos de la pantalla: anatomia, shunt y contexto
+   clinico. SIN dibujo y SIN una sola indicacion de cierre.
+   ⚠️ LAS PALABRAS SON LAS DE LA PANTALLA Y NO SE ESCRIBEN DOS VECES: el grado del pasaje sale
+   de `FOP_BURB_TXT` y el lado del aneurisma de `ASIA_LADO_TXT`, que son sus duenos unicos. Es
+   la misma regla que `vabPdfFilas`, que lee `VAB_INF_FENO` y `VAB_INF_RAFE`.
+   ⚠️ DEVUELVE `null` SI NO HAY NADA QUE DECIR, y esa guarda evita un papel FIRMADO equivocado:
+   los diez campos del modulo nacen VACIOS, pero una seccion integrada sin un solo dato
+   publicaria una tabla «FORAMEN OVAL PERMEABLE» con sus rotulos y sus rayas, que se lee como
+   «se evaluo». Es la misma guarda que `vabPdfFilas` y que el donut de la CIA. */
+function fopPdfFilas(){
+  /* `typeof` y no `_ccSv ? ...`: una referencia pelada a un identificador que no existe LANZA
+     en vez de ser falsy, y una excepcion aca aborta el PDF entero. */
+  const sv2 = id => (typeof _ccSv === 'function') ? _ccSv(id) : (document.getElementById(id)?.value || '').trim();
+  const nv  = id => { const n = (typeof v === 'function') ? v(id) : null; return (n != null && isFinite(n)) ? n : null; };
+  const f1  = n => (n == null || !isFinite(n)) ? null : String(Math.round(n * 10) / 10);
+  const f = [];
+  const tunel = nv('fop_tunel'), asaMm = nv('fop_asa_mm');
+  const asa = sv2('fop_asa'), mov = sv2('fop_mov');
+  const contraste = sv2('fop_contraste'), reposo = sv2('fop_shunt_reposo');
+  const valsalva = sv2('fop_shunt_valsalva'), burb = sv2('fop_burbujas');
+  const acv = sv2('fop_acv'), tromb = sv2('fop_trombofilia');
+  const SN = { si:'Si', no:'No', no_eval:'No evaluado' };
+  const PRES = { si:'Presente', no:'Ausente', no_eval:'No evaluado' };
+  /* ── Anatomia ── */
+  if (f1(tunel)) f.push(['Longitud del tunel', f1(tunel) + ' mm']);
+  if (mov === 'si' || mov === 'no') f.push(['Movilidad del septum', mov === 'si' ? 'Septum movil' : 'No aumentada']);
+  if (asa === 'si' || asa === 'no') f.push(['Aneurisma del septum', SN[asa]]);
+  if (f1(asaMm)) {
+    const l = (typeof asiaLado === 'function') ? asiaLado() : '';
+    const lf = l === 'ambos' ? ' (excursion total)' : l === 'ad' ? ' (hacia la auricula derecha)'
+             : l === 'ai' ? ' (hacia la auricula izquierda)' : '';
+    f.push(['Excursion del aneurisma', f1(asaMm) + ' mm' + lf]);
+  }
+  /* ── Shunt ── */
+  if (contraste === 'si' || contraste === 'no')
+    f.push(['Contraste con burbujas', contraste === 'si' ? 'Realizado' : 'No se realizo']);
+  if (PRES[reposo]) f.push(['Shunt en reposo', PRES[reposo]]);
+  if (PRES[valsalva]) f.push(['Shunt con Valsalva', PRES[valsalva]]);
+  if (burb && FOP_BURB_TXT[burb])
+    f.push(['Pasaje de burbujas', String(FOP_BURB_TXT[burb]).replace(/^shunt /, '')]);
+  { const lat = (typeof fopLatidos === 'function') ? fopLatidos() : null;
+    if (lat) f.push(['Latidos del pasaje', lat + ' latidos']); }
+  /* ── Contexto clinico. El ACV criptogenico va como MOTIVO DEL ESTUDIO, que es lo que es: un
+     dato clinico del paciente, no una conclusion del eco. Por eso esta en el PDF y NO en el
+     informe narrativo ni en el EN SUMA. ── */
+  if (SN[acv])   f.push(['Motivo del estudio: ACV criptogenico', SN[acv]]);
+  if (SN[tromb]) f.push(['Trombofilia conocida', SN[tromb]]);
+  if (!f.length) return null;
+  return f;
+}
+window.fopPdfFilas = fopPdfFilas;
 window.fopSync = fopSync; window.fopConclusion = fopConclusion;
 
 /* ══ VÁLVULA AÓRTICA BICÚSPIDE ═══════════════════════════════════════════════════════════
@@ -68963,19 +69112,26 @@ function ccSumaLinea(sec){
     /* Mismo criterio que `fopConclusion`: el aneurisma se da por presente también cuando la
        EXCURSIÓN medida alcanza el umbral, aunque el desplegable no se haya contestado. */
     const hayASA = asa === 'si' || asiaPorExcursion(asaMm);
-    const DX = { descartado:'sin evidencia de foramen oval permeable', cierre_iia:'con ACV criptogénico',
-                 /* ⚠️ EL AVISO DE LA EDAD NO VA AL EN SUMA (ARR8, 2026-10-18), decisión de Maicol:
-                    `acv_sin_edad` decía «con ACV criptogénico, sin edad cargada» y hoy dice lo
-                    mismo que `cierre_iia`. La indicación de cierre percutáneo según la edad queda
-                    documentada en FUENTES.md y PENDIENTES.md para llevarla a Referencias. */
-                 acv_mayor:'con ACV criptogénico en mayor de 60 años', acv_sin_edad:'con ACV criptogénico',
-                 trombofilia:'con trombofilia conocida', sin_contexto:'sin contexto embólico definido',
-                 alto_riesgo_sin_evento:'con características de alto riesgo embólico, sin evento',
+    /* ⚠️ EL ACV CRIPTOGENICO SALE DEL EN SUMA (D-E2, 2026-10-22), decisión de Maicol: es un dato
+       CLÍNICO del paciente —el motivo del estudio— y se publica en la tabla del PDF, no en el
+       resumen del informe firmado. Las TRES claves del antecedente y `sin_contexto` quedan sin
+       sufijo, así que el renglón del EN SUMA es el descriptivo y nada más.
+       ⚠️ Y `alto_riesgo_sin_evento` PIERDE «sin evento», que es ese mismo antecedente dicho por
+       su ausencia; conserva la caracterización del riesgo, que describe la anatomía.
+       El aviso de la EDAD ya no iba al EN SUMA desde el ARR8 (2026-10-18). */
+    const DX = { descartado:'sin evidencia de foramen oval permeable', cierre_iia:null,
+                 acv_mayor:null, acv_sin_edad:null,
+                 trombofilia:'con trombofilia conocida', sin_contexto:null,
+                 alto_riesgo_sin_evento:'con características de alto riesgo embólico',
                  sin_contraste:'shunt no interrogado — falta estudio con contraste',
                  incidental:'hallazgo incidental', no_interpretable:'medidas fuera de rango — revisar unidades' };
     /* Las claves de CONTEXTO CLÍNICO pasan sin anatomía: `fopConclusion` las dispara con el
        antecedente solo, y son las que cambian el sentido del hallazgo. */
-    const CTX = ['cierre_iia','acv_mayor','acv_sin_edad','trombofilia','sin_contexto','descartado','no_interpretable'];
+    /* ⚠️ LAS TRES CLAVES DEL ANTECEDENTE SALEN DE ESTA LISTA (D-E2). Estaban para que un
+       paciente con el antecedente SOLO —sin un dato de anatomía— tuviera renglón; desde que el
+       antecedente no se publica, ese renglón saldría «FOP» pelado. Quedan las tres cuyo sufijo
+       dice algo: el hallazgo descartado, la medición ilegible y la trombofilia. */
+    const CTX = ['trombofilia','descartado','no_interpretable'];
     if (tun == null && !rep && !val && !hayASA && CTX.indexOf(c.clave) < 0) return null;
     /* Con el contraste negativo NO se abre diciendo «FOP», que es justo lo que se descartó. El
        cuerpo ya hace esta misma sustitución en su encabezado. */
