@@ -117,6 +117,59 @@ const VAB_ESCENA = `((cual) => {
   return r;
 })(CUAL)`;
 
+/* ══ LA MATRIZ COMPLETA DE E2 ═════════════════════════════════════════════════════════
+   Cada fila es una combinacion de la orden. `grado` fija el <select> de severidad ANTES de
+   mirar; `cerrada` deja la seccion VAB plegada al prender la pastilla y la abre DESPUES;
+   `volver` cambia de pestana y vuelve; `desmarcar` apaga la pastilla al final. */
+const MATRIZ = [
+  { k: 'ea_sin_grado',      pin: ['esten'] },
+  { k: 'ia_sin_grado',      pin: ['insuf'] },
+  { k: 'ambas_sin_grado',   pin: ['esten', 'insuf'] },
+  { k: 'ea_con_grado',      pin: ['esten'], grado: { ea_grado: 'moderada' } },
+  { k: 'ia_con_grado',      pin: ['insuf'], grado: { ia_grado: '2' } },
+  { k: 'ea_desmarcar',      pin: ['esten'], desmarcar: ['esten'] },
+  { k: 'ea_seccion_cerrada', pin: ['esten'], cerrada: true },
+  { k: 'ea_cambiar_pestana', pin: ['esten'], volver: true }
+];
+
+const VAB_MATRIZ = `((C) => {
+  ['modalAvisoEco','login-overlay'].forEach(id => { const m = document.getElementById(id);
+    if (m) m.style.display = 'none' });
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  const r = { k: C.k };
+  /* La seccion VAB: si la fila la quiere CERRADA, se deja plegada; si no, se abre ANTES del
+     gesto, que es el caso en que el medico la esta mirando mientras marca. */
+  const abrirVab = () => { if (typeof showTab === 'function') { try { showTab('congenitas') } catch (e) {} }
+    const sec = document.getElementById('sacc-cc-vab');
+    const abierta = sec && getComputedStyle(sec).maxHeight !== '0px' && sec.offsetHeight > 0;
+    if (!abierta && typeof secToggle === 'function') { try { secToggle('cc-vab') } catch (e) {} } };
+  if (!C.cerrada) abrirVab();
+  if (typeof showTab === 'function') { try { showTab('valvulas') } catch (e) {} }
+  (C.pin || []).forEach(t => { const b = document.getElementById('pill-' + t + '-aortica');
+    if (b && !b.classList.contains('btn-primary')) b.click() });
+  Object.keys(C.grado || {}).forEach(id => { const e = document.getElementById(id);
+    if (e) { e.value = C.grado[id]; e.dispatchEvent(new Event('change', { bubbles: true })) } });
+  if (C.volver) { if (typeof showTab === 'function') { try { showTab('datos'); showTab('valvulas') } catch (e) {} } }
+  (C.desmarcar || []).forEach(t => { const b = document.getElementById('pill-' + t + '-aortica');
+    if (b && b.classList.contains('btn-primary')) b.click() });
+  if (C.cerrada) abrirVab(); else abrirVab();
+  const res = document.getElementById('vab-concl');
+  r.resumen = res ? String(res.textContent || '').replace(/[ ]+/g, ' ').trim() : 'NO EXISTE';
+  r.linea2 = r.resumen.replace('Factores de riesgo: ninguno marcado', '').trim();
+  r.funcion = (typeof vabFuncionDerivada === 'function') ? vabFuncionDerivada() : 'SIN FN';
+  const fh = document.getElementById('vab_funcion'); r.campo = fh ? fh.value : 'NO EXISTE';
+  r.sgEA = (typeof aoLesionSinGrado === 'function') ? aoLesionSinGrado('ea') : 'SIN FN';
+  r.sgIA = (typeof aoLesionSinGrado === 'function') ? aoLesionSinGrado('ia') : 'SIN FN';
+  /* El informe de VALVULAS y el EN SUMA: la misma palabra. */
+  try { if (typeof generarInforme === 'function') generarInforme() } catch (e) {}
+  const ti = document.getElementById('informe_texto'), su = document.getElementById('en_suma');
+  const todo = ti ? String(ti.value || '') : '';
+  r.infAo = (todo.split('.').filter(x => x.indexOf('rtica') > -1 && x.indexOf('Aorta') < 0)[0] || 'SIN LINEA').trim().slice(0, 170);
+  const sm = su ? String(su.value || '') : '';
+  r.sumaAo = (sm.split(String.fromCharCode(10)).filter(x => /EA |IAo |VAB/.test(x))[0] || 'SIN LINEA').slice(0, 130);
+  return r;
+})(CASO)`;
+
 async function corre(nombre, lanzar) {
   let b = null;
   try { b = await lanzar() } catch (e) { OUT[nombre] = { error: 'NO ARRANCA: ' + e.message.slice(0, 120) }; return }
@@ -180,6 +233,12 @@ async function corre(nombre, lanzar) {
       R.vab = {};
       for (const c of ['ea', 'ia', 'ambas']) {
         R.vab[c] = await pg.evaluate(VAB_ESCENA.replace('CUAL', JSON.stringify(c)));
+      }
+    }
+    if (hay('vabmat')) {
+      R.matriz = {};
+      for (const c of MATRIZ) {
+        R.matriz[c.k] = await pg.evaluate(VAB_MATRIZ.replace('CASO', JSON.stringify(c)));
       }
     }
     await pg.close();

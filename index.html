@@ -78242,6 +78242,38 @@ function toggleValvPill(valvula, tipo) {
   if (valvula === 'pulmonar' && tipo === 'insuf' && typeof ipIncongruenciaSync === 'function') {
     try { ipIncongruenciaSync(); } catch (e) {}
   }
+  /* ══ LA SECCION VAB SE REPINTA CON EL GESTO DE LA PASTILLA AORTICA (R2-E2, 2026-10-21) ══════
+     LO REPORTO MAICOL: marcar SOLO estenosis, sin grado, y la seccion VAB no mostraba «Estenosis
+     presente». El R1 habia creado `aoLesionSinGrado` y `vabResumenPintar` ya redactaba las tres
+     frases; lo que faltaba era QUIEN las dispara.
+
+     ⚠️ LA CAUSA ES EL DISPARADOR Y NO LA FUNCION DUEÑA, Y ESTA MEDIDA EN LOS DOS MOTORES. El
+     oyente de documento de la VAB (`_VAB_ORIGENES`) escucha `ao_sin`, `ao_tub`, `ea_grado` e
+     `ia_grado`, y prender la pastilla no cambia NINGUNO de los cuatro: el grado se queda en su
+     centinela, que es justamente el estado «lesion presente sin grado». Asi que `vabSync` no
+     corria. Medido en Chrome 155 y WebKit 27.2, con un clic REAL en el boton y la seccion abierta
+     despues: `aoLesionSinGrado('ea')` devolvia `true` y `vabFuncionDerivada()` devolvia
+     `'estenosis'` —o sea el dueño estaba bien— mientras el resumen seguia diciendo solo
+     «Factores de riesgo: ninguno marcado» y el oculto `vab_funcion` quedaba VACIO. Llamando
+     `vabSync()` a mano en la misma escena aparecian «Estenosis presente» / «Insuficiencia
+     presente» / «Estenosis e insuficiencia presentes» y el oculto con su valor.
+     Por eso la sonda del R no lo vio: midio el valor de RETORNO de las funciones dueñas y no el
+     resumen RENDERIZADO despues del gesto.
+
+     ⚠️ VA ACA Y NO EN UN OYENTE DE `click`, porque ESTA es la unica puerta por la que pasa todo
+     cambio de pastilla —censado: el `onclick` de los ocho botones, los auto-prendidos, los
+     auto-apagados, `cargarValvPills` y `valvAutoAbrirCajones` la llaman, y NADIE escribe
+     `btn-primary` sobre una pastilla por fuera—. Un oyente de `click` cubriria el gesto del
+     medico y se perderia los auto-prendidos, que son el camino frecuente.
+     Va al FINAL y despues del `setItem`, por el mismo motivo que los dos avisos de arriba:
+     `pillOn` —que es lo que `aoLesionSinGrado` lee— ya devuelve el estado nuevo. Leido antes, la
+     seccion iria siempre un clic atras.
+     Se gatea por valvula para no gastar un repintado en los otros seis botones, que es el patron
+     de las dos lineas anteriores. No hay bucle: `vabSync` no escribe ninguna pastilla ni ningun
+     grado (censado, y medido con el conteo de nodos). */
+  if (valvula === 'aortica' && typeof vabSync === 'function') {
+    try { vabSync(); } catch (e) { console.warn('[vabSync/pastilla]', e); }
+  }
 }
 function cargarValvPills() {
   /* LAS SEIS PASTILLAS SE RESTAURAN. Había una exclusión explícita para tricúspide/estenosis
