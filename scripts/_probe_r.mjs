@@ -2332,6 +2332,99 @@ window.__Z = {
     process.stderr.write('[peri] listo\n');
   }
 
+
+  /* ══ GRUPO «tapo» — EL MODULO LISTA Y NO CONCLUYE ═════════════════════════════════════════
+     Los campos del modulo viven en la pestaña de amiloidosis/ETT avanzado, y el selector del
+     derrame en ETE. Las escenas cubren los tres criterios por separado, los tres juntos -que es
+     la escena que en HEAD publicaba «TAPONAMIENTO CARDIACO»-, ninguno evaluado, y el campo del
+     medico en sus tres estados. */
+  if (corre('tapo')) {
+    const r = { escenas: {}, frases: {} };
+    const abrirDpt = () => ev(`(function(){
+      try { if (typeof showTab === 'function') showTab('ete'); } catch(e){}
+      var c = document.getElementById('ete-seccion-pericardio-masas');
+      if (c && getComputedStyle(c).display === 'none' && typeof toggleEteSeccion === 'function')
+        toggleEteSeccion('pericardio-masas');
+      try { if (typeof showTab === 'function') showTab('amiloidosis'); } catch(e){}
+      var e = document.getElementById('dpt_mm_post');
+      var rr = e ? e.getBoundingClientRect() : null;
+      return rr ? { w: Math.round(rr.width) } : 'NO EXISTE' })()`);
+    const leerDpt = async () => ({
+      clave:  await ev(`(typeof dptEstado==='function') ? (dptEstado()||{}).clave : 'SIN FN'`),
+      signos: await ev(`(typeof dptEstado==='function') ? ((dptEstado()||{}).signos||null) : 'SIN FN'`),
+      badge:  await ev(`window.__P.txt('dpt-concl-badge')`),
+      concl:  await ev(`window.__P.txt('dpt-concl')`),
+      frases: await ev(`(typeof dptFrases==='function') ? dptFrases() : 'SIN FN'`),
+      suma:   await ev(`(typeof dptSuma==='function') ? dptSuma() : 'SIN FN'`),
+      manda:  await ev(`(typeof dptMandaSuma==='function') ? dptMandaSuma() : 'SIN FN'`),
+      estandar: await ev(`(function(){ var o = window.__P.informe('estandar');
+        var t = (o && o.inf) ? o.inf : String(o||'');
+        return (t.split(String.fromCharCode(10)).filter(function(l){ return l.indexOf('erram')>=0 || l.indexOf('olapso')>=0 || l.indexOf('aponamiento')>=0 || l.indexOf('ompromiso')>=0 })||[]).join(' | ') })()`),
+      sumaInf: await ev(`(function(){ var t=(document.getElementById('en_suma')||{}).value||'';
+        return (t.split(String.fromCharCode(10)).filter(function(l){ return l.indexOf('erram')>=0 || l.indexOf('aponamiento')>=0 })||[]).join(' | ') })()`),
+    });
+    const escDpt = async (nombre, pasos) => {
+      try {
+        await ev(`window.__P.nuevo()`);
+        await abrirDpt();
+        await pasos();
+        /* El modulo tiene que estar INTEGRADO para que su linea llegue al informe. */
+        await ev(`(function(){ try { if (typeof amiloIntegrar==='function') amiloIntegrar('dpt') } catch(e){} return 1 })()`);
+        await ev(`window.__P.calentar()`);
+        r.escenas[nombre] = await leerDpt();
+      } catch (e) { r.escenas[nombre] = { err: e.message }; }
+      process.stderr.write('[tapo] ' + nombre + '\n');
+    };
+    const ponerDerrame = (tok) => ev('window.__P.sel(' + JSON.stringify('pericardio') + ',' + JSON.stringify(tok) + ')');
+
+    await escDpt('A-sin-derrame', async () => {});
+    await escDpt('B-derrame-solo', async () => { await ponerDerrame('Derrame moderado (10-20mm)'); });
+    await escDpt('C-colapso-ad', async () => {
+      await ponerDerrame('Derrame moderado (10-20mm)');
+      await ev(`window.__P.sel('dpt_col_ad','si')`); });
+    await escDpt('D-tres-criterios', async () => {
+      await ponerDerrame('Derrame severo (>20mm)');
+      await ev(`window.__P.sel('dpt_col_vd','si')`);
+      await ev(`window.__P.sel('vci_diam','')`);
+      await tipear('vci_diam', '25');
+      await ev(`window.__P.sel('vci_col','<50')`);
+      await tipear('resp_var_mitral', '35'); });
+    await escDpt('E-severo-sin-signos', async () => {
+      await ponerDerrame('Derrame severo (>20mm)');
+      await ev(`window.__P.sel('dpt_col_vd','no')`); });
+    await escDpt('F-hemo-si', async () => {
+      await ponerDerrame('Derrame moderado (10-20mm)');
+      await ev(`window.__P.sel('dpt_col_ad','si')`);
+      await ev(`window.__P.sel('pericardio_hemo','si')`); });
+    await escDpt('G-hemo-no', async () => {
+      await ponerDerrame('Derrame moderado (10-20mm)');
+      await ev(`window.__P.sel('pericardio_hemo','no')`); });
+    /* El ejemplo TEXTUAL de la orden. */
+    await escDpt('H-ejemplo-orden', async () => {
+      await ponerDerrame('Derrame moderado (10-20mm)');
+      await ev(`window.__P.sel('dpt_col_ad','si')`);
+      await tipear('resp_var_mitral', '30'); });
+    /* El estado del modulo y los textos retirados. */
+    try {
+      r.censo = await ev(`(function(){
+        var t = document.documentElement.innerHTML;
+        return { badgeConst: (typeof DPT_BADGE !== 'undefined'),
+                 claveTapo: t.indexOf('clave = ' + String.fromCharCode(39) + 'taponamiento') >= 0,
+                 subcostal: t.indexOf('subcostal') >= 0,
+                 claseIIa: t.indexOf('Clase IIa derrame severo') >= 0,
+                 opcCohorte: (function(){ var e=document.getElementById('coh-dpt-con');
+                   return e ? Array.prototype.map.call(e.options, function(o){return o.value}) : null })(),
+                 ecosmart: (function(){ var e=document.getElementById('dpt-concl');
+                   var b=e&&e.closest?e.closest('.calc-box'):null;
+                   return b ? (b.textContent||'').indexOf('CRITERIO DE ECOSMART')>=0 : null })(),
+                 hemoOpc: (function(){ var e=document.getElementById('pericardio_hemo');
+                   return e ? Array.prototype.map.call(e.options, function(o){return o.value}) : null })() } })()`);
+      r.excel = await ev(`window.__P.excelDOM()`);
+    } catch (e) { r.censoErr = e.message; }
+    out.grupos.tapo = r;
+    process.stderr.write('[tapo] listo\n');
+  }
+
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
   process.stdout.write(JSON.stringify(OUT, null, 1));
   cdp.close(); srv.close(); process.exit(0);

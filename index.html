@@ -9097,12 +9097,38 @@ window.cerrarSesionReal = cerrarSesionReal;
       </div>
       <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="dpt_swinging" onchange="dptCambio()"> Swinging heart</label>
 
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 6px;">4 · Conclusión</div>
+      <!-- ══ EL MODULO DESCRIBE Y NO CONCLUYE (R6, 2026-10-20) ═══════════════════════════════
+           «4 · Conclusión» pasa a «4 · Descripción» y «Valoración hemodinámica» a «Signos
+           presentes»: la regla de «tres criterios = taponamiento» se retiro -ESC 2025 de
+           miocarditis y pericarditis, Tabla 17, pagina 62: el diagnostico es CLINICO con
+           confirmacion por ecocardiografia, y ninguna guia fija un numero de signos de eco- y lo
+           que el modulo publica es la lista de lo que esta presente. Quien decide es el medico,
+           con el campo «con o sin compromiso hemodinámico» de la pestaña Otros. -->
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 6px;">4 · Descripción</div>
       <div class="calc-box">
-        <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Valoración hemodinámica</span><span id="dpt-concl-badge" style="font-weight:700;">—</span></div>
+        <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Signos presentes</span><span id="dpt-concl-badge" style="font-weight:700;">—</span></div>
         <div id="dpt-concl" style="font-size:12px;line-height:1.6;color:var(--text);margin-top:6px;"></div>
         <div style="font-size:10px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;padding:8px 10px;margin-top:10px;line-height:1.5;">
-          ⚠️ El diagnóstico de taponamiento es clínico-ecocardiográfico. Esta herramienta es de apoyo y no reemplaza la evaluación clínica.
+          ⚠️ El diagnóstico de taponamiento es clínico, con confirmación por ecocardiografía
+          (ESC 2025 de miocarditis y pericarditis, Tabla 17). Este módulo describe los signos
+          presentes y no concluye: el compromiso hemodinámico se consigna en el campo
+          «Pericardio — compromiso hemodinámico» de la pestaña 🗂️ Otros.
+        </div>
+        <!-- ══ DE DONDE SALE CADA CORTE (R6, 2026-10-20) ════════════════════════════════════════
+             Los tres se MANTIENEN con su valor y se DECLARAN: son el limite INFERIOR de los rangos
+             que publica la Tabla 17, asi que la app afirma antes que la guia y eso es una decision
+             propia. Marcado estatico; no mueve ningun veredicto. Usa las dos variables de color
+             que esta zona ya usa, las dos globales y definidas en los dos temas. -->
+        <div style="border-top:1px solid var(--border); margin:10px 0 0;"></div>
+        <div style="font-size:10px; color:var(--text2); line-height:1.55; margin-top:6px;">
+          <span style="display:inline-block; border:1px solid var(--border); border-radius:4px;
+                       padding:1px 5px; margin-right:4px; font-size:9px; letter-spacing:.3px;">CRITERIO DE ECOSMART</span>
+          La pl&eacute;tora de vena cava se marca con un di&aacute;metro &gt;21 mm y colapso
+          &lt;50 %, y la variaci&oacute;n respiratoria con &gt;25 % en la onda E mitral y
+          &gt;40 % en la tricusp&iacute;dea. La Tabla 17 de la gu&iacute;a publica
+          &gt;20 mm con reducci&oacute;n &lt;50 %, y rangos de &gt;25-30 % y &gt;40-60 %: la
+          aplicaci&oacute;n usa el l&iacute;mite inferior de cada rango, que es el que marca
+          antes.
         </div>
       </div>
 
@@ -20138,17 +20164,17 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
             <option value="minimo">Mínimo</option><option value="leve">Leve</option>
             <option value="moderado">Moderado</option><option value="severo">Severo</option>
             <option value="modsev">Moderado o severo</option></select></div>
-        <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Conclusión taponamiento</label>
+        <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Derrame pericárdico</label>
           <!-- Los `value` son las claves EXACTAS que devuelve `dptEstado()`. Inventar una
                —puse «compromiso», que no existe— da una opción que filtra a cero siempre, sin
-               error y sin forma de notarlo salvo contando. -->
+               error y sin forma de notarlo salvo contando.
+               ⚠️ DOS CLAVES DESDE EL R6 (2026-10-20): la cascada de siete se retiro con la regla de
+               «tres criterios = taponamiento», que ninguna guia sostiene. Las cinco opciones viejas
+               filtraban por una CONCLUSION que la app ya no emite; dejarlas habria dado cinco
+               filtros que devuelven cero siempre, que es el defecto que este propio comentario
+               documenta. `sin_derrame` conserva su nombre: la leen cinco consumidores. -->
           <select id="coh-dpt-con"><option value="">Todas</option>
-            <option value="taponamiento">Taponamiento (3 criterios mayores)</option>
-            <option value="incipiente">Compromiso incipiente (1-2 criterios)</option>
-            <option value="incipiente_cuantia">Derrame severo sin criterios</option>
-            <option value="sin_compromiso">Sin compromiso (3 evaluados)</option>
-            <option value="incompleto">Derrame sin criterios evaluados</option>
-            <option value="parcial">Evaluación parcial</option>
+            <option value="con_derrame">Con derrame pericárdico</option>
             <option value="sin_derrame">Sin derrame</option></select></div>
         <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Constricción / restricción</label>
           <!-- `mixto` y `no_concluyente` son claves DISTINTAS: la primera es «vota por las dos»
@@ -26741,20 +26767,33 @@ function dptEstado() {
   const mmDiscrepa = (mmMax !== null && tam.min !== null)
     && (mmMax < tam.min || (tam.max !== null && mmMax > tam.max));
 
-  let clave;
-  if (!hayDerrame)                         clave = 'sin_derrame';
-  else if (cumplidos.length === 3)         clave = 'taponamiento';
-  else if (cumplidos.length >= 1 || otros.length) clave = 'incipiente';
-  else if (tam.clave === 'severo')         clave = 'incipiente_cuantia';
-  /* Sin ningún criterio evaluado NO se afirma «sin compromiso hemodinámico»: sería una
-     negación sobre algo que nadie midió. Y con UNO o DOS evaluados tampoco — es la regla que
-     este archivo ya aplicó en MCH: una negación sobre preguntas sin contestar no es una
-     negación. Sólo con los tres se afirma. */
-  else if (evaluados === 0)                clave = 'incompleto';
-  else if (evaluados < 3)                  clave = 'parcial';
-  else                                     clave = 'sin_compromiso';
+  /* ══ LA REGLA DE «TRES CRITERIOS = TAPONAMIENTO» SE RETIRA (R6, 2026-10-20) ══════════════
+     DECISION DE MAICOL con la fuente leida. ESC 2025 de miocarditis y pericarditis, Tabla 17,
+     pagina 62: «The diagnosis is based on a combination of a suggestive history, symptoms, signs,
+     and imaging confirmation by echocardiography». El diagnostico de taponamiento es CLINICO y el
+     eco lo CONFIRMA; NINGUNA guia fija un numero de signos ecocardiograficos que lo defina, y la
+     cascada de siete claves que vivia aca -«tres criterios mayores», «compromiso incipiente»,
+     «sin compromiso», «evaluacion parcial»- era una regla propia de la app que publicaba un
+     diagnostico en el informe FIRMADO.
 
-  return { clave, tam, hayDerrame, crit, evaluados, cumplidos, otros, plet, varM, varT, colVD, mmMax, mmDiscrepa };
+     El modulo pasa a LISTAR los signos presentes y nada mas. Quien decide es el medico, con el
+     `<select>` de tres estados `pericardio_hemo` -«con o sin compromiso hemodinamico»- que ya
+     existe y que esta orden deja intacto.
+
+     ⚠️ DOS CLAVES Y NO SIETE: `sin_derrame` y `con_derrame`. `sin_derrame` se conserva con su
+     mismo nombre porque la leen CINCO consumidores de fuera de este bloque -el informe, el EN
+     SUMA, el POCUS, la hoja del PDF y el filtro de cohorte del Laboratorio- y cambiarla los
+     dejaria comparando contra una clave que ya no existe, en silencio.
+     ⚠️ `crit`, `evaluados` y `cumplidos` SE CONSERVAN: ya no deciden nada, pero el cuadro de
+     pantalla y la hoja del PDF los usan para pintar fila por fila cual signo esta presente, cual
+     esta ausente y cual no se evaluo, que es justamente lo que el modulo ahora hace.
+     ⚠️ `signos` ES LA LISTA UNICA de lo PRESENTE -los criterios cumplidos mas los otros
+     hallazgos-, para que el informe y el cuadro no puedan enumerar cosas distintas. */
+  const clave = hayDerrame ? 'con_derrame' : 'sin_derrame';
+  const signos = cumplidos.map(c => c.lbl).concat(otros);
+
+  return { clave, tam, hayDerrame, crit, evaluados, cumplidos, otros, signos,
+           plet, varM, varT, colVD, mmMax, mmDiscrepa };
 }
 window.dptEstado = dptEstado;
 
@@ -26770,10 +26809,29 @@ function dptFrases(st) {
   if (_pcChk('dpt_fibrina')) car.push('con fibrina');
   if (_pcChk('dpt_hemo'))    car.push('hemopericardio');
 
-  L.push('Derrame pericárdico ' + s.tam.lbl
+  /* ⚠️ LOS SIGNOS VAN EN LA MISMA ORACION QUE EL DERRAME (R6, 2026-10-20), con la forma que fijo
+     Maicol: «Derrame pericárdico moderado (10-20 mm), con colapso de aurícula derecha y variación
+     respiratoria aumentada de la onda E mitral.» Antes el colapso y el corazon oscilante salian en
+     DOS oraciones aparte y la conclusion los repetia una tercera vez.
+     ⚠️ Y EL COMPROMISO HEMODINAMICO SALE DEL CAMPO DEL MEDICO, no de un conteo: `pericardio_hemo`
+     tiene TRES estados y sin consignar no se dice nada —no se afirma ni que lo haya ni que no—,
+     que es la misma regla que la oracion historica del pericardio ya aplicaba.
+     ⚠️ EL GRADO LLEVA SU RANGO entre parentesis, leido de `DPT_TAM`: es el formato del ejemplo de
+     la orden y el mismo que publica la oracion historica. */
+  const _dptHemo = (function(){
+    const h = _pcSv('pericardio_hemo');
+    return h === 'si' ? ', con compromiso hemodinámico'
+         : h === 'no' ? ', sin compromiso hemodinámico' : '';
+  })();
+  const _dptSignosTxt = s.signos.length
+    ? ', con ' + (s.signos.length === 1 ? s.signos[0]
+        : s.signos.slice(0, -1).join(', ') + ' y ' + s.signos[s.signos.length - 1])
+    : '';
+  L.push('Derrame pericárdico ' + s.tam.lbl + (s.tam.rango ? ' (' + s.tam.rango + ')' : '')
     + (locTxt ? ', de distribución ' + locTxt : '')
     + (s.mmMax !== null ? ', de hasta ' + s.mmMax + ' mm en diástole' : '')
-    + (car.length ? ', ' + car.join(', ') : '') + '.');
+    + (car.length ? ', ' + car.join(', ') : '')
+    + _dptSignosTxt + _dptHemo + '.');
   if (s.mmDiscrepa) {
     L.push('La medición en milímetros no concuerda con la cuantía consignada: revisar el campo «Pericardio» o la medición.');
   }
@@ -26782,59 +26840,44 @@ function dptFrases(st) {
       + 'resuelve: se descartó del cálculo por probable error de escala (fracción en vez de porcentaje).');
   }
 
-  const colTxt = [];
-  [['dpt_col_ad','aurícula derecha'],['dpt_col_vd','ventrículo derecho'],
-   ['dpt_col_ai','aurícula izquierda'],['dpt_col_vi','ventrículo izquierdo']].forEach(p => {
-    if (sv(p[0]) === 'si') colTxt.push(p[1]);
-  });
-  if (colTxt.length) L.push('Colapso de ' + colTxt.join(', ') + '.');
-  if (_pcChk('dpt_swinging')) L.push('Corazón oscilante (swinging heart).');
-
-  const faltan = s.crit.filter(c => !c.ev).map(c => c.lbl);
-  if (s.clave === 'taponamiento') {
-    L.push('Se cumplen los tres criterios ecocardiográficos de taponamiento: ' + s.cumplidos.map(c => c.lbl).join(', ') + '.');
-  } else if (s.clave === 'incipiente') {
-    const hall = s.cumplidos.map(c => c.lbl).concat(s.otros);
-    L.push('Signos de compromiso hemodinámico incipiente: ' + hall.join(', ') + '.');
-    if (faltan.length) L.push('No se evaluó: ' + faltan.join(', ') + '.');
-  } else if (s.clave === 'incipiente_cuantia') {
-    L.push('Derrame severo sin criterios de colapso documentados: se considera compromiso '
-      + 'hemodinámico incipiente por la cuantía.');
-    if (faltan.length) L.push('No se evaluó: ' + faltan.join(', ') + '.');
-  } else if (s.clave === 'sin_compromiso') {
-    L.push('Evaluados los tres criterios (colapso diastólico del VD, plétora de VCI y variación '
-      + 'respiratoria de la E mitral), sin criterios ecocardiográficos de compromiso hemodinámico.');
-  } else if (s.clave === 'parcial') {
-    L.push('Los criterios evaluados no muestran compromiso hemodinámico, pero la evaluación está '
-      + 'incompleta: no se evaluó ' + faltan.join(', ') + '. No se puede descartar repercusión hemodinámica.');
-  } else if (s.clave === 'incompleto') {
-    L.push('No se evaluaron los signos de compromiso hemodinámico (colapso de cavidades, '
-      + 'plétora de vena cava inferior ni variación respiratoria de los flujos), así que no se '
-      + 'puede afirmar ni descartar repercusión hemodinámica.');
-  }
+  /* ⚠️ LAS CUATRO ORACIONES QUE SEGUIAN SE FUERON (R6, 2026-10-20), y cada una por su motivo:
+     · «Colapso de X.» y «Corazón oscilante.» eran dos oraciones APARTE que repetian signos que la
+       primera ya nombra: hoy la lista es UNA, `s.signos`, y va en esa oracion;
+     · las SEIS ramas de conclusion -«Se cumplen los tres criterios ecocardiográficos de
+       taponamiento», «Signos de compromiso hemodinámico incipiente», «Derrame severo sin criterios
+       de colapso documentados…», «sin criterios ecocardiográficos de compromiso hemodinámico»,
+       «la evaluación está incompleta… No se puede descartar repercusión hemodinámica» y «No se
+       evaluaron los signos…»- publicaban en el informe FIRMADO un diagnostico que ninguna guia
+       sostiene con un conteo de signos de eco (Tabla 17, pagina 62: el diagnostico es clinico);
+     · «No se evaluó: …» era un aviso de DATOS FALTANTES, y el informe es descriptivo.
+     Lo que el cuadro de pantalla y la hoja del PDF siguen mostrando, fila por fila, es cual signo
+     esta presente, cual ausente y cual sin evaluar: eso no se perdio, dejo de concluir. */
   return L;
 }
 window.dptFrases = dptFrases;
 
+/* ══ EL EN SUMA DESCRIBE, NO CONCLUYE (R6, 2026-10-20) ═══════════════════════════════════════
+   Las CINCO ramas de conclusion que vivian aca -taponamiento, compromiso incipiente, el severo
+   por cuantia, «sin compromiso hemodinamico» y «evaluacion hemodinamica incompleta»- publicaban
+   en el resumen firmado un diagnostico que la ESC 2025 no sostiene con un conteo de signos de eco.
+
+   Lo que queda es el DERRAME con su grado, y el compromiso hemodinamico SOLO cuando el medico lo
+   consigno en `pericardio_hemo`, que es el campo que decide. Sin consignar no se dice nada: no se
+   afirma ni que lo haya ni que no.
+
+   ⚠️ LA COMPUERTA DE «moderado o severo» SE RETIRA, y eso es un cambio declarado: con ella, un
+   derrame LEVE con colapso de la auricula derecha consignado no subia al resumen por ningun
+   camino -ninguna de las cinco ramas lo alcanzaba- mientras el cuerpo del informe lo describia.
+   Hoy sube el derrame con su grado siempre que haya derrame, que es lo que el cuerpo dice.
+   ⚠️ LOS SIGNOS NO SUBEN AL EN SUMA: estan en el cuerpo, donde esta la medicion que los sostiene,
+   y el resumen es un resumen. Es la misma regla que la discordancia de la AI ya aplica. */
 function dptSuma(st) {
   const s = st || dptEstado();
-  const t = s.tam.clave;
-  if (s.clave === 'taponamiento') return 'Derrame pericárdico con criterios ecocardiográficos de taponamiento cardíaco.';
-  if (s.clave === 'incipiente')   return 'Derrame pericárdico con signos de compromiso hemodinámico incipiente.';
-  /* El severo por CUANTÍA no dice «signos de compromiso»: no se midió ninguno. Una línea corta
-     miente más fácil que un párrafo, y ésta es la que lee el que sólo mira el EN SUMA. */
-  if (s.clave === 'incipiente_cuantia') {
-    return s.evaluados === 0
-      ? 'Derrame pericárdico severo; no se evaluaron los signos de compromiso hemodinámico.'
-      : 'Derrame pericárdico severo sin criterios de colapso, considerado de compromiso hemodinámico incipiente por la cuantía.';
-  }
-  if (s.clave === 'sin_compromiso' && (t === 'moderado' || t === 'severo')) {
-    return 'Derrame pericárdico ' + s.tam.lbl + ' sin compromiso hemodinámico.';
-  }
-  if (s.clave === 'parcial' && (t === 'moderado' || t === 'severo')) {
-    return 'Derrame pericárdico ' + s.tam.lbl + '; evaluación hemodinámica incompleta.';
-  }
-  return '';
+  if (!s.hayDerrame) return '';
+  const h = _pcSv('pericardio_hemo');
+  const hemo = h === 'si' ? ', con compromiso hemodinámico'
+             : h === 'no' ? ', sin compromiso hemodinámico' : '';
+  return 'Derrame pericárdico ' + s.tam.lbl + hemo + '.';
 }
 window.dptSuma = dptSuma;
 
@@ -26849,9 +26892,23 @@ function dptMandaSuma() {
 }
 window.dptMandaSuma = dptMandaSuma;
 
-const DPT_BADGE = { taponamiento:['red','TAPONAMIENTO CARDÍACO'], incipiente:['orange','COMPROMISO HEMODINÁMICO INCIPIENTE'],
-  incipiente_cuantia:['orange','COMPROMISO INCIPIENTE POR CUANTÍA'], sin_compromiso:['green','SIN COMPROMISO HEMODINÁMICO'],
-  parcial:['yellow','EVALUACIÓN INCOMPLETA'], incompleto:['gray','SIN EVALUAR'], sin_derrame:['gray','SIN DERRAME'] };
+/* ══ EL BADGE CUENTA, NO CONCLUYE (R6, 2026-10-20) ═══════════════════════════════════════════
+   Las seis etiquetas de veredicto -«TAPONAMIENTO CARDÍACO», «COMPROMISO HEMODINÁMICO INCIPIENTE»,
+   «COMPROMISO INCIPIENTE POR CUANTÍA», «SIN COMPROMISO HEMODINÁMICO», «EVALUACIÓN INCOMPLETA» y
+   «SIN EVALUAR»- se retiran con la regla que las producia. El badge dice cuantos signos hay y de
+   cuantos evaluados, que es un HECHO y no un diagnostico.
+   ⚠️ EL COLOR NO GRADUA GRAVEDAD: `gray` sin derrame y `accent` con derrame. Un rojo sobre «3
+   signos» volveria a decir «taponamiento» por el color, que es justo lo que se retira. Las dos
+   variables existen en esta zona y en los dos temas. */
+function dptBadge(st) {
+  const s = st || dptEstado();
+  if (!s.hayDerrame) return ['gray', 'SIN DERRAME'];
+  const n = s.signos.length;
+  return ['accent', n
+    ? n + (n === 1 ? ' SIGNO PRESENTE' : ' SIGNOS PRESENTES') + ' · ' + s.evaluados + ' de 3 criterios evaluados'
+    : 'SIN SIGNOS PRESENTES · ' + s.evaluados + ' de 3 criterios evaluados'];
+}
+window.dptBadge = dptBadge;
 
 function dptSync() {
   const setH = (id, html) => { const e = document.getElementById(id); if (e) e.innerHTML = html; };
@@ -26864,7 +26921,7 @@ function dptSync() {
   txt('dpt-vci-eco', st.plet.diam !== null ? st.plet.diam + ' mm' : 'no cargada');
   txt('dpt-vcicol-eco', st.plet.col === '>50' ? '> 50%' : st.plet.col === '<50' ? '< 50%' : 'no cargado');
 
-  const b = DPT_BADGE[st.clave] || DPT_BADGE.incompleto;
+  const b = dptBadge(st);
   setH('dpt-concl-badge', badge(b[0], b[1]));
   setH('dpt-concl', (st.clave === 'sin_derrame')
     ? '<span style="color:var(--text2)">El campo «Pericardio» no indica derrame. Cargalo en la tab 🗂️ Otros para evaluar repercusión hemodinámica.</span>'
@@ -54014,8 +54071,11 @@ function popPocusSync() {
       ? 'Sin derrame pericárdico consignado.'
       : 'Sin evaluación pericárdica cargada — completar el módulo Derrame pericárdico / Taponamiento de esta pestaña.'));
   } else {
-    const lbl = (typeof _labLblConclusion === 'function') ? _labLblConclusion('coh-dpt-con', st.clave) : st.clave;
-    const grave = st.clave === 'taponamiento';
+    /* ⚠️ PUBLICA EL CONTEO DE SIGNOS Y NO UNA CONCLUSION (R6, 2026-10-20): el rotulo salia del
+       `<option>` del filtro de cohorte y el color de la clave «taponamiento», las dos piezas de
+       la regla que se retira. `dptBadge` es el MISMO dueño que pinta el badge del modulo, asi que
+       esta pestaña y aquella no pueden decir dos cosas distintas del mismo paciente. */
+    const _pb = (typeof dptBadge === 'function') ? dptBadge(st) : ['gray', ''];
     setH('pop-pocus-peri',
       /* `dptTamano()` devuelve un OBJETO ({clave, lbl, min, max}), no una cadena: interpolarlo
          directo imprimía «[object Object]» donde va el tamaño del derrame. Lo cazó la sonda,
@@ -54023,8 +54083,8 @@ function popPocusSync() {
       fila('Tamaño del derrame', (function(){
         try { const tm = dptTamano(); return (tm && tm.lbl) ? tm.lbl : '—'; } catch (e) { return '—'; }
       })()) +
-      fila('Conclusión (módulo Pericardio)', badge(grave ? 'red' : (st.clave === 'incipiente' ? 'orange' : 'yellow'), lbl)) +
-      '<div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;">Se lee del módulo de pericardio de esta misma pestaña: mismos criterios que el informe firmado. No se reevalúa acá.</div>');
+      fila('Signos ecocardiográficos (módulo Pericardio)', badge(_pb[0], _pb[1])) +
+      '<div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;">Se lee del módulo de pericardio de esta misma pestaña: los mismos signos que describe el informe firmado. No se reevalúa acá, y el módulo no concluye taponamiento: el diagnóstico es clínico.</div>');
   }
 
   /* ── PLEURA ── */
@@ -54202,8 +54262,14 @@ function popPatron() {
   const tapseBaja = tapse !== null && tapse < uT;
   const vdDil = vdvi !== null && vdvi >= 0.9;
 
+  /* ⚠️ LA PREGUNTA «¿TAPONAMIENTO?» LA CONTESTA EL MEDICO (R6, 2026-10-20). Antes salia de
+     `dptEstado().clave === 'taponamiento'`, o sea de la regla de «tres criterios» que esta tanda
+     retira: ninguna guia la sostiene (ESC 2025, Tabla 17, pagina 62 — el diagnostico es clinico).
+     Hoy se lee del `<select>` `pericardio_hemo`, que es el campo con que el medico lo consigna y
+     el unico que esta orden deja decidiendo. Sin consignar queda en `false`, que es lo que ya
+     pasaba con los criterios sin evaluar. */
   let tapo = false;
-  try { tapo = (typeof dptEstado === 'function') && (dptEstado() || {}).clave === 'taponamiento'; } catch (e) {}
+  try { tapo = (document.getElementById('pericardio_hemo') || {}).value === 'si'; } catch (e) {}
 
   const lb = (document.getElementById('pop_pulmon_lineasb') || {}).value || '';
 
@@ -54225,8 +54291,10 @@ function popPatron() {
               r: pcp === null ? 'sin PCP' : (pcp.toFixed(0) + ' mmHg — ' +
                  (pcp < 12 ? 'sugiere hipovolemia' : pcp > 18 ? 'sugiere congestión' : 'en rango') +
                  ' (' + pcpFuente + ')') });
-  preg.push({ q:'¿Taponamiento?', cls: tapo ? 'red' : 'green', hallazgo:'taponamiento',
-              r: tapo ? 'sí — por el módulo de pericardio' : 'no por los criterios del módulo de pericardio' });
+  preg.push({ q:'¿Compromiso hemodinámico pericárdico?', cls: tapo ? 'red' : 'green',
+              hallazgo:'compromiso hemodinámico pericárdico',
+              r: tapo ? 'sí — consignado por el médico en el módulo de pericardio'
+                      : 'no consignado en el módulo de pericardio' });
   preg.push({ q:'¿Falla del VD?', cls: (tapseBaja && vdDil) ? 'red' : (tapseBaja || vdDil) ? 'orange' : 'green',
               hallazgo:'falla del ventrículo derecho',
               r: (tapse === null && vdvi === null) ? 'sin TAPSE ni VD/VI'
@@ -83633,7 +83701,8 @@ function amiloTextoDPT() {
     .forEach(p => { const n = v(p[0]); if (n !== null) L.push('Variación ' + p[1] + ' | ' + n + ' %'); });
   if (_amChk('dpt_swinging')) L.push('Swinging heart | Presente');
 
-  L.push('## Conclusión');
+  /* R6: «## Descripción» y no «## Conclusión»: el modulo describe los signos y no concluye. */
+  L.push('## Descripción');
   const fr = dptFrases(st);
   if (!fr.length) L.push('El campo «Pericardio» no indica derrame: no se evaluó repercusión hemodinámica.');
   else { fr.forEach(f => L.push(f)); L.push('!! Salvedad. ' + DPT_DISCLAIMER); }
