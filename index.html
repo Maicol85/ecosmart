@@ -807,6 +807,19 @@
   #tab-congenitas2 .sacc .sacc-hdr:hover { background-color:var(--section-head);background-image:linear-gradient(rgba(255,255,255,.055),rgba(255,255,255,.055)); }
   html.light-mode #tab-congenitas .sacc .sacc-hdr:hover,
   html.light-mode #tab-congenitas2 .sacc .sacc-hdr:hover { background-image:linear-gradient(rgba(0,0,0,.045),rgba(0,0,0,.045)); }
+  /* == FOP EN TRES COLUMNAS (D-E1, 2026-10-22) =============================================
+     Anatomia | Shunt | Contexto clinico. `flex-wrap` con base en px y NINGUNA media query, por
+     el mismo motivo que ya documenta la maquetacion de Valvulas: un breakpoint hay que
+     mantenerlo de acuerdo con `check_mobile.js` y se desincroniza en silencio, mientras que la
+     base en px apila sola en cuanto no entra. Medido: a 1200 y a 768 px entran las tres; a 390
+     y a 360 px quedan apiladas en una.
+     `align-items:flex-start` y no `stretch`: las tres columnas tienen distinta cantidad de
+     campos y estirarlas dejaria dos cajas vacias del alto de la mas larga.
+     `min-width:0` en la columna, por lo que ya documenta `.valv-gf-col`: sin el, un `<select>`
+     con una opcion larga impone su ancho minimo y la fila desborda a lo ancho. */
+  #sacc-cc-fop .fop-cols { display:flex; flex-wrap:wrap; gap:12px; align-items:flex-start; }
+  #sacc-cc-fop .fop-col  { flex:1 1 220px; min-width:0; }
+  #sacc-cc-fop .fop-col-tit { font-size:12px; font-weight:700; color:var(--accent2); margin:0 0 8px; }
   /* PC (>=768px): los acordeones de Paciente/AI-VI/VD-AD/Contractilidad/SGL quedan siempre
      expandidos, ignorando la clase .open y los estilos inline que deja secToggle() (de ahí los
      !important). overflow:visible es obligatorio: con overflow:hidden Safari rompe el hit-test
@@ -8619,6 +8632,39 @@ window.cerrarSesionReal = cerrarSesionReal;
               <option value="post5">despu&eacute;s del quinto latido</option>
             </select>
           </div>
+          <!-- == NUMERO DE LATIDOS DEL PASAJE (D-E1, 2026-10-22) ==========================
+               DECISION DE MAICOL: selector de 3 a 6, con 3 por defecto. El rango sale de
+               Silvestry 2015 (ASE/SCAI, CIA y FOP), folio 931 (hoja 22), leido literal: la
+               aparicion de microburbujas en la AI DENTRO DE 3 A 6 LATIDOS despues de la
+               opacificacion de la AD se considera positiva para un shunt intracardiaco como el
+               foramen oval. El selector publica el numero y NO lo interpreta: el informe de
+               esta app no escribe «intracardiaco» ni «intrapulmonar», que es la regla que el
+               bloque del test de burbuja ya aplica.
+               == DOS CONTROLES DE TIEMPO EN LA MISMA FILA, Y SE DECLARA ==
+               `otr_burb_mom` publica una BANDA (antes del tercero, entre el tercero y el
+               quinto, despues del quinto) y este publica el NUMERO. No se unifican: tocar las
+               bandas de `otr_burb_mom` cambia el texto del informe de todo estudio guardado que
+               las traiga, y esta orden no lo autoriza. Queda en `docs/PENDIENTES.md`.
+               == LA OPCION VACIA NO ES DECORATIVA ==
+               Un estudio guardado antes de hoy NO trae esta clave, y las rutas de restauracion
+               escriben `.value = ''` sobre todo `<select>` con id: sin una `<option value="">`
+               el control queda en `selectedIndex -1` y no muestra nada. Es la trampa que
+               `et_grado` ya pago.
+               ⚠️ EL 3 VA PRIMERO Y LA OPCION VACIA ULTIMA, Y ESO REEMPLAZA A UNA FUNCION DE
+               SINCRONIA: `limpiarCampos` hace `selectedIndex = 0` sobre TODO `<select>` del
+               documento, asi que con la opcion vacia primera «Nuevo estudio» dejaba el control
+               en «sin consignar» y el 3 por defecto solo valia en la primera carga de la
+               pagina. Con el 3 en el indice 0 el defecto lo repone el barrido que ya existe, y
+               una restauracion que escriba '' sigue encontrando su opcion. -->
+          <div class="fg"><label>Latidos del pasaje</label>
+            <select id="otr_burb_lat" onchange="otrHallSync();fopSync();">
+              <option value="3">3 latidos</option>
+              <option value="4">4 latidos</option>
+              <option value="5">5 latidos</option>
+              <option value="6">6 latidos</option>
+              <option value="">&mdash; sin consignar &mdash;</option>
+            </select>
+          </div>
         </div>
       </div>
     </div>
@@ -8664,6 +8710,26 @@ window.cerrarSesionReal = cerrarSesionReal;
               <span style="font-size:12px;">Aneurisma del septum interauricular (ASIA)</span>
             </label>
             <input type="text" id="otr_asia_nota" maxlength="120" placeholder="(de &hellip; mm por &hellip; mm en eje L y T)" oninput="_refrescarInformeSiGenerado()">
+          </div>
+          <!-- == HACIA DONDE SE ABOMBA EL ANEURISMA (D-E1, 2026-10-22) ======================
+               DECISION DE MAICOL. El dato vive ACA, con el ASIA, y la seccion del FOP lo LEE:
+               un solo dueno, como el grado del test de burbuja y la casilla del ASIA.
+               Lo que decide es el CORTE de la excursion, y por eso no es cosmetico: Silvestry
+               2015 (ASE/SCAI, CIA y FOP), folio 916 (hoja 7), define el aneurisma del septum
+               por una excursion de 10 mm hacia la AD o la AI, O por una excursion COMBINADA
+               derecha mas izquierda de 15 mm. Con «ambos lados» el numero que se tipea en
+               `fop_asa_mm` es esa excursion total y el corte pasa a 15; con un solo lado, 10.
+               Sin consignar manda el corte de 10, que es el que la app aplica desde siempre:
+               asi un estudio guardado antes de hoy -que no trae esta clave- abre y concluye
+               exactamente igual. -->
+          <div class="fg">
+            <label>Se abomba hacia</label>
+            <select id="otr_asia_lado" onchange="otrHallSync();fopSync();">
+              <option value="">&mdash; sin consignar &mdash;</option>
+              <option value="ad">la aur&iacute;cula derecha</option>
+              <option value="ai">la aur&iacute;cula izquierda</option>
+              <option value="ambos">ambos lados</option>
+            </select>
           </div>
           </div>
           <div class="fg" style="margin:12px 0 4px;border-top:1px solid var(--border);padding-top:10px;">
@@ -14915,94 +14981,114 @@ z
         <b>aneurisma del septum interauricular</b> y <b>shunt severo</b> marca el subgrupo de mayor riesgo embólico.
       </div>
 
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:4px 0 8px;">Anatomía</div>
-      <div class="grid-3">
-        <div class="fg"><label>Longitud del túnel (mm)</label><input type="number" id="fop_tunel" step="0.1" placeholder="mm" oninput="fopSync()"></div>
-        <div class="fg"><label>Movilidad del septum</label>
-          <select id="fop_mov" onchange="fopSync()">
-            <option value="">—</option>
-            <option value="no_eval">No evaluada</option>
-            <option value="no">No aumentada</option>
-            <option value="si">Septum móvil</option>
-          </select>
-        </div>
-        <div class="fg"><label>Aneurisma del septum</label>
-          <select id="fop_asa" onchange="fopSync();fopBurbEspejo('fop')">
-            <option value="">—</option>
-            <option value="no_eval">No evaluado</option>
-            <option value="no">No</option>
-            <option value="si">Sí</option>
-          </select>
-        </div>
-      </div>
-      <div class="grid-2" style="margin-top:10px;">
-        <div class="fg"><label>Excursión del aneurisma (mm)</label><input type="number" id="fop_asa_mm" step="0.1" placeholder="mm" oninput="fopSync()"></div>
-        <div class="fg"><label>Interpretación</label>
-          <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
-            <span id="fop-asa-interp" class="calc-val">—</span></div></div>
-        </div>
-      </div>
+      <!-- == TRES COLUMNAS (D-E1, 2026-10-22) =====================================================
+           DECISION DE MAICOL. Los campos NO se renombran ni cambian de id: lo unico que cambia es
+           la maquetacion y el reparto. Anatomia = el septum y el foramen; Shunt = el pasaje de
+           burbujas y sus datos; Contexto clinico = lo clinico del paciente.
+           ⚠️ DOS DATOS SE LEEN Y NO SE EDITAN ACA, porque tienen UN solo dueno en «Otros»: hacia
+           donde se abomba el aneurisma (barra «Variantes anatomicas», al lado del ASIA) y el
+           numero de latidos del pasaje (barra «Test de burbuja»). Son `<span>` con guion MEDIO,
+           asi que no los toma el recolector de `guardarInforme` y no hay una segunda copia del
+           dato viajando con el estudio — el mismo argumento que `fop-asa-interp` y
+           `fop-shunt-grado`, que ya estaban asi.
+           ⚠️ SIN DIBUJO: esta tanda no agrega ningun esquema del FOP y el hueco que ese dibujo
+           ocuparia queda vacio a proposito. -->
+      <div class="fop-cols">
 
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Shunt</div>
-      <div class="grid-3">
-        <div class="fg"><label>Contraste con burbujas</label>
-          <select id="fop_contraste" onchange="fopSync();fopBurbEspejo('fop')">
-            <option value="">—</option>
-            <option value="no">No se realizó</option>
-            <option value="si">Realizado</option>
-          </select>
+        <div class="fop-col">
+          <div class="fop-col-tit">Anatom&iacute;a</div>
+          <div class="fg"><label>Longitud del t&uacute;nel (mm)</label><input type="number" id="fop_tunel" step="0.1" placeholder="mm" oninput="fopSync()"></div>
+          <div class="fg"><label>Movilidad del septum</label>
+            <select id="fop_mov" onchange="fopSync()">
+              <option value="">&mdash;</option>
+              <option value="no_eval">No evaluada</option>
+              <option value="no">No aumentada</option>
+              <option value="si">Septum m&oacute;vil</option>
+            </select>
+          </div>
+          <div class="fg"><label>Aneurisma del septum</label>
+            <select id="fop_asa" onchange="fopSync();fopBurbEspejo('fop')">
+              <option value="">&mdash;</option>
+              <option value="no_eval">No evaluado</option>
+              <option value="no">No</option>
+              <option value="si">S&iacute;</option>
+            </select>
+          </div>
+          <div class="fg"><label>Excursi&oacute;n del aneurisma (mm)</label><input type="number" id="fop_asa_mm" step="0.1" placeholder="mm" oninput="fopSync()"></div>
+          <div class="fg"><label>Se abomba hacia</label>
+            <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
+              <span id="fop-asa-lado" class="calc-val">&mdash;</span></div></div>
+          </div>
+          <div class="fg"><label>Interpretaci&oacute;n</label>
+            <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
+              <span id="fop-asa-interp" class="calc-val">&mdash;</span></div></div>
+          </div>
         </div>
-        <div class="fg"><label>Shunt en reposo</label>
-          <select id="fop_shunt_reposo" onchange="fopSync();fopBurbEspejo('fop')">
-            <option value="">—</option>
-            <option value="no_eval">No evaluado</option>
-            <option value="no">Ausente</option>
-            <option value="si">Presente</option>
-          </select>
-        </div>
-        <div class="fg"><label>Shunt con Valsalva</label>
-          <select id="fop_shunt_valsalva" onchange="fopSync();fopBurbEspejo('fop')">
-            <option value="">—</option>
-            <option value="no_eval">No evaluado</option>
-            <option value="no">Ausente</option>
-            <option value="si">Presente</option>
-          </select>
-        </div>
-      </div>
-      <div class="grid-2" style="margin-top:10px;">
-        <div class="fg"><label>Cantidad de burbujas</label>
-          <select id="fop_burbujas" onchange="fopSync();fopBurbEspejo('fop')">
-            <option value="">—</option>
-            <option value="pocas">Pocas (&lt;5)</option>
-            <option value="moderado">Moderado (5-20)</option>
-            <option value="abundante">Abundante (&gt;20)</option>
-          </select>
-        </div>
-        <div class="fg"><label>Grado del shunt</label>
-          <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
-            <span id="fop-shunt-grado" class="calc-val">—</span></div></div>
-        </div>
-      </div>
 
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Contexto clínico</div>
-      <p style="font-size:10px;color:var(--text2);margin:0 0 8px;">Sin esto la app no puede distinguir un hallazgo incidental de una indicación de cierre, y no lo va a suponer.</p>
-      <div class="grid-2">
-        <div class="fg"><label>ACV criptogénico</label>
-          <select id="fop_acv" onchange="fopSync()">
-            <option value="">—</option>
-            <option value="no_eval">No consta</option>
-            <option value="no">No</option>
-            <option value="si">Sí</option>
-          </select>
+        <div class="fop-col">
+          <div class="fop-col-tit">Shunt</div>
+          <div class="fg"><label>Contraste con burbujas</label>
+            <select id="fop_contraste" onchange="fopSync();fopBurbEspejo('fop')">
+              <option value="">&mdash;</option>
+              <option value="no">No se realiz&oacute;</option>
+              <option value="si">Realizado</option>
+            </select>
+          </div>
+          <div class="fg"><label>Shunt en reposo</label>
+            <select id="fop_shunt_reposo" onchange="fopSync();fopBurbEspejo('fop')">
+              <option value="">&mdash;</option>
+              <option value="no_eval">No evaluado</option>
+              <option value="no">Ausente</option>
+              <option value="si">Presente</option>
+            </select>
+          </div>
+          <div class="fg"><label>Shunt con Valsalva</label>
+            <select id="fop_shunt_valsalva" onchange="fopSync();fopBurbEspejo('fop')">
+              <option value="">&mdash;</option>
+              <option value="no_eval">No evaluado</option>
+              <option value="no">Ausente</option>
+              <option value="si">Presente</option>
+            </select>
+          </div>
+          <div class="fg"><label>Cantidad de burbujas</label>
+            <select id="fop_burbujas" onchange="fopSync();fopBurbEspejo('fop')">
+              <option value="">&mdash;</option>
+              <option value="pocas">Pocas (&lt;5)</option>
+              <option value="moderado">Moderado (5-20)</option>
+              <option value="abundante">Abundante (&gt;20)</option>
+            </select>
+          </div>
+          <div class="fg"><label>Latidos del pasaje</label>
+            <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
+              <span id="fop-burb-lat" class="calc-val">&mdash;</span></div></div>
+          </div>
+          <div class="fg"><label>Grado del shunt</label>
+            <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
+              <span id="fop-shunt-grado" class="calc-val">&mdash;</span></div></div>
+          </div>
         </div>
-        <div class="fg"><label>Trombofilia conocida</label>
-          <select id="fop_trombofilia" onchange="fopSync()">
-            <option value="">—</option>
-            <option value="no_eval">No consta</option>
-            <option value="no">No</option>
-            <option value="si">Sí</option>
-          </select>
+
+        <div class="fop-col">
+          <div class="fop-col-tit">Contexto cl&iacute;nico</div>
+          <p style="font-size:10px;color:var(--text2);margin:0 0 8px;">Son datos del paciente, no del eco. La app no los deduce.</p>
+          <div class="fg"><label>ACV criptog&eacute;nico</label>
+            <select id="fop_acv" onchange="fopSync()">
+              <option value="">&mdash;</option>
+              <option value="no_eval">No consta</option>
+              <option value="no">No</option>
+              <option value="si">S&iacute;</option>
+            </select>
+          </div>
+          <div class="fg"><label>Trombofilia conocida</label>
+            <select id="fop_trombofilia" onchange="fopSync()">
+              <option value="">&mdash;</option>
+              <option value="no_eval">No consta</option>
+              <option value="no">No</option>
+              <option value="si">S&iacute;</option>
+            </select>
+          </div>
         </div>
+
       </div>
 
       <div class="calc-box" style="margin-top:12px;">
@@ -53614,7 +53700,7 @@ function generarInforme(opts) {
       const p = [c.clave === 'descartado' ? 'Septum interauricular' : 'Foramen oval permeable'];
       if (f1(tunel)) p.push('Longitud del túnel ' + f1(tunel) + ' mm');
       if (mov === 'si') p.push('Septum interauricular móvil');
-      if (asa === 'si' || (asaMm != null && asaMm >= 10))
+      if (asa === 'si' || asiaPorExcursion(asaMm))
         p.push('Aneurisma del septum interauricular' + (f1(asaMm) ? ' con excursión de ' + f1(asaMm) + ' mm' : ''));
       else if (asa === 'no') p.push('Sin aneurisma del septum interauricular');
       /* El estudio con burbujas se nombra SIEMPRE que se haya contestado, incluso negativo: que
@@ -53637,7 +53723,7 @@ function generarInforme(opts) {
       if (f1(tunel)) _a += ' (túnel de ' + f1(tunel) + ' mm)';
       const _rasgos = [];
       if (mov === 'si') _rasgos.push('septum interauricular móvil');
-      if (asa === 'si' || (asaMm != null && asaMm >= 10))
+      if (asa === 'si' || asiaPorExcursion(asaMm))
         _rasgos.push('aneurisma del septum' + (f1(asaMm) ? ' (excursión de ' + f1(asaMm) + ' mm)' : ''));
       else if (asa === 'no') _rasgos.push('sin aneurisma del septum');
       if (_rasgos.length) _a += ', con ' + _rasgos.join(' y ');
@@ -65422,6 +65508,57 @@ window.vapSync = vapSync; window.vapConclusion = vapConclusion;
    entre «hallazgo incidental sin indicación de cierre» y «cierre percutáneo Clase IIa»: es la
    diferencia entre no hacer nada y implantar un dispositivo. La app no puede firmar «FOP
    asintomático» sobre un paciente al que nadie le preguntó por qué se le pidió el estudio. */
+/* ══ EL ANEURISMA DEL SEPTUM INTERAURICULAR: UN CORTE QUE DEPENDE DEL LADO ════════════════
+   Silvestry y cols., ASE/SCAI 2015 (CIA y FOP), folio 916 (hoja 7; folio = hoja + 909,
+   comprobado en el pie impreso de las hojas 7, 8, 22 y 23), leído literal:
+     «ASA is defined as excursion of the septal tissue (typically the fossa ovalis) of greater
+      than 10 mm from the plane of the atrial septum into the RA or LA or a combined total
+      excursion right and left of 15 mm»
+   O sea DOS cortes y no uno: el de un lado y el de la excursión TOTAL. Hasta hoy la app aplicaba
+   el de 10 mm a cualquier excursión, así que una excursión combinada de 12 mm —que no alcanza el
+   corte que le toca— afirmaba el aneurisma. El lado lo dice `otr_asia_lado`, que vive con el ASIA
+   en «Otros» y es su único dueño.
+   ⚠️ SIN LADO CONSIGNADO MANDA EL CORTE DE 10 mm, que es el que la app aplica desde siempre: así
+   un estudio guardado antes de hoy —que no trae esa clave— concluye exactamente igual.
+   ⚠️ EL OPERADOR SIGUE SIENDO `>=` Y NO SE MOVIÓ, y la fuente se contradice consigo misma en
+   él: el folio 916 escribe «greater than 10 mm» y «of 15 mm» —estricto el primero, sin operador
+   el segundo— y el folio 938 (hoja 29) reescribe los DOS sin «greater than»: «an excursion of
+   10 mm ... or a combined excursion right and left of 15 mm». Cambiar el operador es mover un
+   corte, que esta orden no autoriza; `>=` es además el lado que no deja de avisar. Queda
+   declarado en `docs/fuentes/FUENTES.md` y en `docs/PENDIENTES.md`. */
+const ASIA_EXC_UN_LADO_MIN = 10;
+const ASIA_EXC_TOTAL_MIN   = 15;
+const ASIA_LADO_TXT = { ad:'hacia la aurícula derecha', ai:'hacia la aurícula izquierda', ambos:'hacia ambos lados' };
+function asiaLado(src){
+  return src ? String(src['otr_asia_lado'] == null ? '' : src['otr_asia_lado']).trim()
+             : (document.getElementById('otr_asia_lado')?.value || '').trim();
+}
+function asiaCorteMm(src){ return asiaLado(src) === 'ambos' ? ASIA_EXC_TOTAL_MIN : ASIA_EXC_UN_LADO_MIN; }
+function asiaPorExcursion(asaMm, src){
+  return asaMm != null && isFinite(asaMm) && asaMm >= asiaCorteMm(src);
+}
+window.ASIA_EXC_UN_LADO_MIN = ASIA_EXC_UN_LADO_MIN; window.ASIA_EXC_TOTAL_MIN = ASIA_EXC_TOTAL_MIN;
+window.ASIA_LADO_TXT = ASIA_LADO_TXT; window.asiaLado = asiaLado;
+window.asiaCorteMm = asiaCorteMm; window.asiaPorExcursion = asiaPorExcursion;
+
+/* Los latidos del pasaje. Silvestry 2015, folio 931 (hoja 22): la aparición de microburbujas en
+   la AI DENTRO DE 3 A 6 LATIDOS tras la opacificación de la AD se considera positiva para un
+   shunt intracardíaco como el foramen oval. El selector publica el NÚMERO y no lo interpreta. */
+function fopLatidos(src){
+  const g = id => src ? String(src[id] == null ? '' : src[id]).trim()
+                      : (document.getElementById(id)?.value || '').trim();
+  /* ⚠️ SIN PASAJE DOCUMENTADO NO HAY NÚMERO DE LATIDOS, Y LA COMPUERTA VA ACÁ Y NO EN CADA
+     CONSUMIDOR. El selector nace en 3 —decisión de Maicol— y su control vive DENTRO del bloque
+     que sólo aparece con pasaje, así que un formulario vacío publicaba «3 latidos» en la
+     pantalla del FOP sobre un estudio en el que nadie inyectó nada: un número afirmado sobre una
+     medición que no existe. Gateándolo en el dueño, las cuatro superficies —la pantalla, la
+     conclusión, el informe y el PDF— quedan de acuerdo por construcción. */
+  if (!(g('fop_shunt_reposo') === 'si' || g('fop_shunt_valsalva') === 'si' || g('fop_burbujas'))) return null;
+  const r = g('otr_burb_lat');
+  return /^[3-6]$/.test(r) ? r : null;
+}
+window.fopLatidos = fopLatidos;
+
 const FOP_BURB_TXT = { pocas:'shunt leve (<5 burbujas)', moderado:'shunt moderado (5-20 burbujas)', abundante:'shunt severo (>20 burbujas)' };
 function fopConclusion(src){
   /* `src` es un estudio GUARDADO (`inf.campos`); sin el se lee el formulario, exactamente como
@@ -65472,7 +65609,7 @@ function fopConclusion(src){
   const shuntAbundante = burb === 'abundante';
   /* Aneurisma del septum interauricular: la excursión ≥10 mm es el umbral clásico. Si el
      médico marcó «sí» sin medir, se cree la clasificación; si midió, manda la medida. */
-  const hayASA = asa === 'si' || (asaMm != null && asaMm >= 10);
+  const hayASA = asa === 'si' || asiaPorExcursion(asaMm, src);
   const edad = nv('edad');
 
   /* 1 · El antecedente manda sobre la anatomía. */
@@ -65540,11 +65677,24 @@ function fopSync(){
   const sv2 = id => (document.getElementById(id)?.value || '').trim();
   const nv = id => { const n = (typeof v==='function') ? v(id) : null; return (n!=null && isFinite(n)) ? n : null; };
   const asaMm = nv('fop_asa_mm');
+  /* El lado y los latidos se LEEN de «Otros», que es su único dueño: acá sólo se publican. Son
+     `<span>` con guión MEDIO, así que no entran al recolector del estudio y no hay una segunda
+     copia del dato. */
+  const _lado = asiaLado();
+  txt('fop-asa-lado', _lado ? ((ASIA_LADO_TXT[_lado] || _lado) +
+        (_lado === 'ambos' ? ' — el umbral es la excursión TOTAL, de ' + ASIA_EXC_TOTAL_MIN + ' mm'
+                           : ' — el umbral de ese lado es de ' + ASIA_EXC_UN_LADO_MIN + ' mm'))
+      : '— se consigna en Otros · Variantes anatómicas');
+  const _corte = asiaCorteMm();
   txt('fop-asa-interp', asaMm == null ? '—'
       : (asaMm < 2 || asaMm > 40) ? asaMm + ' mm — fuera de rango, revisar unidades'
-      : (asaMm >= 10 ? asaMm + ' mm — aneurisma significativo (≥10 mm)' : asaMm + ' mm — por debajo del umbral de 10 mm'));
+      : (asaMm >= _corte ? asaMm + ' mm — aneurisma significativo (≥' + _corte + ' mm)'
+                         : asaMm + ' mm — por debajo del umbral de ' + _corte + ' mm'));
   const burb = sv2('fop_burbujas');
   txt('fop-shunt-grado', burb ? (FOP_BURB_TXT[burb] || burb) : '—');
+  const _lat = fopLatidos();
+  txt('fop-burb-lat', _lat ? (_lat + ' latidos tras la opacificación de la aurícula derecha')
+      : '— se consigna en Otros · Test de burbuja');
   const c = fopConclusion();
   txt('fop-concl', c ? c.txt : '—');
 }
@@ -68812,7 +68962,7 @@ function ccSumaLinea(sec){
     const rep = _ccS('fop_shunt_reposo'), val = _ccS('fop_shunt_valsalva'), contr = _ccS('fop_contraste');
     /* Mismo criterio que `fopConclusion`: el aneurisma se da por presente también cuando la
        EXCURSIÓN medida alcanza el umbral, aunque el desplegable no se haya contestado. */
-    const hayASA = asa === 'si' || (asaMm != null && asaMm >= 10);
+    const hayASA = asa === 'si' || asiaPorExcursion(asaMm);
     const DX = { descartado:'sin evidencia de foramen oval permeable', cierre_iia:'con ACV criptogénico',
                  /* ⚠️ EL AVISO DE LA EDAD NO VA AL EN SUMA (ARR8, 2026-10-18), decisión de Maicol:
                     `acv_sin_edad` decía «con ACV criptogénico, sin edad cargada» y hoy dice lo
@@ -75081,7 +75231,10 @@ function _indFOP(){
      mapa sin prototipo el `||` vuelve a funcionar y no hay dependencia cruzada que se pueda caer. */
   const BURB = Object.assign(Object.create(null), { pocas:'Pocas (< 5)', moderado:'Moderado (5–20)', abundante:'Abundante (> 20)' });
   const asa = _indS('fop_asa'), asaMm = _indN('fop_asa_mm'), acv = _indS('fop_acv'), edad = _indN('edad');
-  const hayASA = asa === 'si' || _ge(asaMm, 10);
+  /* El corte sale de `asiaPorExcursion`, que es su dueño único y mira el lado: acá escrito a
+     mano, el panel afirmaría el aneurisma con una excursión total de 12 mm que la pantalla, el
+     informe y el EN SUMA ya no afirman — cuatro lecturas del mismo umbral en la misma app. */
+  const hayASA = asa === 'si' || (typeof asiaPorExcursion === 'function' ? asiaPorExcursion(asaMm) : _ge(asaMm, 10));
   const filas = [
     _indFila('Longitud del túnel', _indNum(_indN('fop_tunel'), 1, 'mm'), _indN('fop_tunel') != null ? 'none' : 'ask',
       _indN('fop_tunel') != null ? 'describe la anatomía; no es criterio de la indicación' : 'sin medir'),
@@ -75094,7 +75247,7 @@ function _indFOP(){
     _indFila('Aneurisma del septum interauricular',
       hayASA ? 'Sí' : (asa === 'no' ? 'No' : 'No evaluado'),
       hayASA ? 'warn' : (asa === 'no' ? 'none' : 'ask'),
-      hayASA ? 'característica de alto riesgo embólico' + (_ge(asaMm, 10) ? ' (excursión ' + _indNum(asaMm, 1, 'mm') + ')' : '') : ''),
+      hayASA ? 'característica de alto riesgo embólico' + (asaMm != null ? ' (excursión ' + _indNum(asaMm, 1, 'mm') + ')' : '') : ''),
     _indFila('ACV criptogénico', acv === 'si' ? 'Sí' : (acv === 'no' ? 'No' : 'No consignado'),
       acv === 'si' ? 'ok' : (acv === 'no' ? 'none' : 'ask'),
       acv === 'si' ? 'es lo que sostiene la indicación' : (acv === 'no' ? 'sin él no hay indicación de cierre' : 'se registra en esta misma sección')),
