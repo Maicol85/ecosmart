@@ -53866,13 +53866,11 @@ function generarInforme(opts) {
       if (mov === 'si') _rasgos.push('septum interauricular móvil');
       if (asa === 'si' || asiaPorExcursion(asaMm)) {
         /* El LADO viaja con la excursión: es lo que decide su umbral, así que el papel que
-           publica el número tiene que decir de qué excursión se trata. */
-        const _l = (typeof asiaLado === 'function') ? asiaLado() : '';
-        const _lf = _l === 'ambos' ? 'de excursión total'
-                  : _l === 'ad' ? 'hacia la aurícula derecha'
-                  : _l === 'ai' ? 'hacia la aurícula izquierda' : null;
-        _rasgos.push('aneurisma del septum' + (f1(asaMm)
-          ? ' (excursión de ' + f1(asaMm) + ' mm' + (_lf ? ' ' + _lf : '') + ')' : ''));
+           publica el número tiene que decir de qué excursión se trata. La frase sale de
+           `asiaExcFrase`, su único dueño: acá vivía una SEGUNDA copia del lado, y con «ambos»
+           escribía «(excursión de 16 mm de excursión total)» en el informe FIRMADO. */
+        const _ef = (typeof asiaExcFrase === 'function') ? asiaExcFrase() : null;
+        _rasgos.push('aneurisma del septum' + (_ef ? ' con ' + _ef.txt : ''));
       } else if (asa === 'no') _rasgos.push('sin aneurisma del septum');
       if (_rasgos.length) _a += ', con ' + _rasgos.join(' y ');
       _ors.push(_a + '.');
@@ -58521,7 +58519,15 @@ function otrHallazgos(src) {
     if (!chk(h.id)) return;
     if (h.id === 'otr_asia' && fopIntegrado) return;
     const n = nota(h.id);
-    out.push({ id: h.id, inf: h.def + (n ? ' ' + n : '') + '.', suma: h.suma ? (h.suma + '.') : null });
+    /* ⚠️ EL ANEURISMA PUBLICA SU EXCURSION Y SU LADO, de `asiaExcFrase`. Esta oracion era la que
+       el medico vio: «Aneurisma del septum interauricular 16.», con el 16 que el habia escrito en
+       la caja de detalle y sin decir que era ni hacia donde se abomba — porque esta superficie no
+       leia la excursion por ningun camino. La caja de detalle se CONSERVA y va despues: es texto
+       libre del medico y no se toca. */
+    const ex = (h.id === 'otr_asia' && typeof asiaExcFrase === 'function') ? asiaExcFrase(src) : null;
+    out.push({ id: h.id,
+               inf: h.def + (ex ? ' con ' + ex.txt : '') + (n ? ' ' + n : '') + '.',
+               suma: h.suma ? (h.suma + '.') : null });
   });
   return out;
 }
@@ -58644,7 +58650,12 @@ function fopBurbEspejo(origen) {
         const c = sv2('otr_burb_cant');
         if (c && FOP_BURB_LEGADO.indexOf(c) < 0) pon('fop_burbujas', c);
       }
-      if (origen === 'otr_asia') pon('fop_asa', chk('otr_asia') ? 'si' : 'no');
+      if (origen === 'otr_asia') { pon('fop_asa', chk('otr_asia') ? 'si' : 'no');
+        /* ⚠️ EL ASIA EN «NO» DEVUELVE EL LADO A VACIO (D2-E1): el lado es una propiedad del
+           aneurisma, asi que conservarlo sobre un aneurisma declarado ausente deja la pantalla
+           del FOP leyendo «hacia ambos lados - el umbral es la excursion TOTAL» de algo que no
+           esta. Al volver a «Si» se elige de nuevo. */
+        if (!chk('otr_asia')) pon('otr_asia_lado', ''); }
       if (typeof fopSync === 'function') { try { fopSync(); } catch (e) {} }
     } else {
       /* FOP -> OTROS */
@@ -58662,7 +58673,7 @@ function fopBurbEspejo(origen) {
       if (b) pon('otr_burb_cant', b);
       const asa = sv2('fop_asa');
       if (asa === 'si') ponChk('otr_asia', true);
-      else if (asa === 'no') ponChk('otr_asia', false);
+      else if (asa === 'no') { ponChk('otr_asia', false); pon('otr_asia_lado', ''); }
       if (typeof otrBurbUI === 'function') { try { otrBurbUI(); } catch (e) {} }
       if (typeof otrHallSync === 'function') { try { otrHallSync(); } catch (e) {} }
     }
@@ -65709,26 +65720,102 @@ window.vapSync = vapSync; window.vapConclusion = vapConclusion;
    en «Otros» y es su único dueño.
    ⚠️ SIN LADO CONSIGNADO MANDA EL CORTE DE 10 mm, que es el que la app aplica desde siempre: así
    un estudio guardado antes de hoy —que no trae esa clave— concluye exactamente igual.
-   ⚠️ EL OPERADOR SIGUE SIENDO `>=` Y NO SE MOVIÓ, y la fuente se contradice consigo misma en
-   él: el folio 916 escribe «greater than 10 mm» y «of 15 mm» —estricto el primero, sin operador
-   el segundo— y el folio 938 (hoja 29) reescribe los DOS sin «greater than»: «an excursion of
-   10 mm ... or a combined excursion right and left of 15 mm». Cambiar el operador es mover un
-   corte, que esta orden no autoriza; `>=` es además el lado que no deja de avisar. Queda
-   declarado en `docs/fuentes/FUENTES.md` y en `docs/PENDIENTES.md`. */
+   ══ EL OPERADOR PASA A `>` ESTRICTO (D2-E1, 2026-10-22) ══════════════════════════════════
+   DECISION DE MAICOL, con la fuente delante: una excursion de 10 mm hacia un lado NO cumple y
+   11 si; 15 mm de excursion total NO cumple y 16 si. El folio 916 (hoja 7) sostiene el estricto
+   para UN lado con todas las letras —«excursion of the septal tissue (typically the fossa
+   ovalis) of GREATER THAN 10 mm from the plane of the atrial septum into the RA or LA»— y para
+   el TOTAL no escribe operador: «or a combined total excursion right and left of 15 mm». El
+   folio 938 (hoja 29) reescribe los DOS sin «greater than».
+   ⚠️ EL TOTAL SE RESUELVE CON EL ESTRICTO, Y ES EL LADO QUE NO AFIRMA: la fuente calla el
+   operador y entre las dos lecturas posibles se elige la que no declara un aneurisma en el
+   valor exacto. Los dos textos impresos quedan en `docs/fuentes/FUENTES.md`.
+
+   ══ SIN LADO CONSIGNADO LA REGLA NO SE PUEDE APLICAR ══════════════════════════════════════
+   El corte DEPENDE del lado: sin el no hay umbral que comparar, asi que no se publica veredicto
+   —la interpretacion muestra los milimetros y dice que falta el lado— y el informe no afirma el
+   criterio. Hasta hoy se aplicaba el corte de 10 mm por omision, o sea que la app elegia el
+   umbral mas bajo en nombre del medico: la pantalla decia «15 mm - aneurisma significativo
+   (>=10 mm)» sobre un estudio donde nadie habia dicho hacia donde se abomba.
+   ⚠️ CONSECUENCIA DECLARADA sobre un estudio GUARDADO antes de esta tanda: no trae la clave del
+   lado, asi que su excursion deja de afirmar el aneurisma por si sola. Lo que lo protege es que
+   `informe_texto` es un `<textarea>` con id, viaja con el estudio y la reimpresion NO lo
+   reescribe: el papel ya firmado sale con su texto original. Esta en `docs/PENDIENTES.md`.
+
+   ══ CON EL ASIA EN «NO» LA EXCURSION NO SE USA ════════════════════════════════════════════
+   El numero se conserva como DATO —no se borra— y deja de alimentar toda frase e interpretacion
+   mientras el aneurisma este consignado como ausente. Sin esto la app publicaba «asociado a
+   aneurisma del septum interauricular (excursion de 16 mm)» sobre un estudio cuyo propio
+   desplegable dice que no hay aneurisma: la compuerta va en el DUENO y no en cada consumidor,
+   que son seis. */
 const ASIA_EXC_UN_LADO_MIN = 10;
 const ASIA_EXC_TOTAL_MIN   = 15;
+/* La banda de plausibilidad de la excursion, con un solo dueno: la usan `fopConclusion` para
+   mandar el estudio a `no_interpretable` y la interpretacion de pantalla. Un 1,2 tipeado por
+   12 mm dejaba de superar el umbral y la cascada bajaba hacia el lado benigno. */
+const ASIA_EXC_BANDA = Object.freeze([2, 40]);
 const ASIA_LADO_TXT = { ad:'hacia la aurícula derecha', ai:'hacia la aurícula izquierda', ambos:'hacia ambos lados' };
 function asiaLado(src){
   return src ? String(src['otr_asia_lado'] == null ? '' : src['otr_asia_lado']).trim()
              : (document.getElementById('otr_asia_lado')?.value || '').trim();
 }
 function asiaCorteMm(src){ return asiaLado(src) === 'ambos' ? ASIA_EXC_TOTAL_MIN : ASIA_EXC_UN_LADO_MIN; }
+/* El aneurisma consignado como AUSENTE. `fop_asa` y no la casilla de Otros: son un solo dato con
+   dos controles desde el ARR8 y el espejo los mantiene de acuerdo, pero el `<select>` es el que
+   distingue «no» de «no evaluado», que la casilla no puede. */
+function asiaNegado(src){
+  return (src ? String(src['fop_asa'] == null ? '' : src['fop_asa']).trim()
+              : (document.getElementById('fop_asa')?.value || '').trim()) === 'no';
+}
 function asiaPorExcursion(asaMm, src){
-  return asaMm != null && isFinite(asaMm) && asaMm >= asiaCorteMm(src);
+  if (asiaNegado(src)) return false;
+  if (!asiaLado(src)) return false;
+  return asaMm != null && isFinite(asaMm) && asaMm > asiaCorteMm(src);
+}
+/* ══ LA FRASE DE LA EXCURSION, CON UN SOLO DUENO (D2-E1, 2026-10-22) ══════════════════════
+   DECISION DE MAICOL: el informe decia «Aneurisma del septum interauricular 16», sin decir que
+   es el 16 ni hacia donde se abomba, y la conclusion «(excursion de 15 mm)» sin el lado. Pasan
+   a frases COMPLETAS compuestas de lo cargado, y las SEIS superficies las leen de aca —el
+   informe, la conclusion del FOP, el EN SUMA, el PDF, la pestana Otros y el panel de
+   Evidencia—: con una copia por superficie, la que se olvida es la que publica el numero pelado.
+   ⚠️ DEVUELVE DOS RENDERIZADOS DE LAS MISMAS PIEZAS y no dos textos escritos: `txt` para la
+   prosa —que entra con « con »— y `corto` para la celda del PDF, cuyo rotulo ya dice
+   «Excursion del aneurisma» y repetirlo seria decirlo dos veces en la misma linea.
+   ⚠️ EL PARENTESIS DE «(total)» ES EL UNICO, y por eso la prosa engancha con « con » y no con
+   «(...)»: anidar dejaria el papel firmado terminando en «))», que es el defecto que la rama de
+   protesis de este archivo ya pago. */
+function asiaExcFrase(src){
+  const mm = (function(){
+    if (src) { const r = src['fop_asa_mm'];
+      if (r === undefined || r === null || r === '') return null;
+      const x = (typeof PF === 'function') ? PF(r) : parseFloat(String(r).replace(',', '.'));
+      return (x != null && isFinite(x)) ? x : null; }
+    const n = (typeof v === 'function') ? v('fop_asa_mm') : null;
+    return (n != null && isFinite(n)) ? n : null;
+  })();
+  if (mm == null) return null;
+  const n1 = String(Math.round(mm * 10) / 10);
+  /* ⚠️ CON EL ANEURISMA CONSIGNADO COMO AUSENTE NO SE NOMBRA NINGUN LADO. El numero se conserva
+     —es un dato que el medico tipeo y la tabla del PDF no pierde datos— pero el lado es una
+     propiedad del aneurisma: decir «(sin consignar hacia donde se abomba)» al lado de una fila
+     que dice «Aneurisma del septum: No» invita a consignar el lado de algo que no esta. Las
+     superficies narrativas no llegan aca en ese estado: su compuerta es `hayASA`. */
+  if (asiaNegado(src)) return { mm: n1, lado: null,
+    txt: 'excursión de ' + n1 + ' mm', corto: n1 + ' mm' };
+  const l = asiaLado(src);
+  const lado = l === 'ambos' ? 'hacia ambos lados (total)'
+             : l === 'ad' ? 'hacia la aurícula derecha'
+             : l === 'ai' ? 'hacia la aurícula izquierda'
+             : '(sin consignar hacia dónde se abomba)';
+  return { mm: n1, lado: lado,
+           txt: 'excursión de ' + n1 + ' mm ' + lado,
+           corto: n1 + ' mm ' + lado };
 }
 window.ASIA_EXC_UN_LADO_MIN = ASIA_EXC_UN_LADO_MIN; window.ASIA_EXC_TOTAL_MIN = ASIA_EXC_TOTAL_MIN;
+window.ASIA_EXC_BANDA = ASIA_EXC_BANDA;
 window.ASIA_LADO_TXT = ASIA_LADO_TXT; window.asiaLado = asiaLado;
 window.asiaCorteMm = asiaCorteMm; window.asiaPorExcursion = asiaPorExcursion;
+window.asiaNegado = asiaNegado; window.asiaExcFrase = asiaExcFrase;
 
 /* Los latidos del pasaje. Silvestry 2015, folio 931 (hoja 22): la aparición de microburbujas en
    la AI DENTRO DE 3 A 6 LATIDOS tras la opacificación de la AD se considera positiva para un
@@ -65774,7 +65861,7 @@ function fopConclusion(src){
   const banda = (n, lo, hi, lbl) => { if (n==null) return null; if (n>=lo && n<=hi) return n; if(lbl) fuera.push(lbl); return null; };
   const tunelRaw = nv('fop_tunel'), asaMmRaw = nv('fop_asa_mm');
   const tunel = banda(tunelRaw, 1, 40, 'longitud del túnel');
-  const asaMm = banda(asaMmRaw, 2, 40, 'excursión del aneurisma');
+  const asaMm = banda(asaMmRaw, ASIA_EXC_BANDA[0], ASIA_EXC_BANDA[1], 'excursión del aneurisma');
   const asa = sv2('fop_asa'), mov = sv2('fop_mov'), burb = sv2('fop_burbujas');
   const reposo = sv2('fop_shunt_reposo'), valsalva = sv2('fop_shunt_valsalva');
   const contraste = sv2('fop_contraste');
@@ -65814,21 +65901,17 @@ function fopConclusion(src){
   const _burbCorto = burb && FOP_BURB_TXT[burb]
     ? String(FOP_BURB_TXT[burb]).replace(/^shunt /, '').replace(' burbujas', '')
     : null;
-  const _ladoFrase = (function(){
-    const l = asiaLado(src);
-    if (l === 'ambos') return 'de excursión total';
-    if (l === 'ad') return 'hacia la aurícula derecha';
-    if (l === 'ai') return 'hacia la aurícula izquierda';
-    return null;
-  })();
+  /* LA FRASE DE LA EXCURSION SALE DE SU DUENO. Hasta hoy esta funcion tenia su propia copia del
+     lado y con «ambos» publicaba «(excursion de 16 mm de excursion total)», que dice dos veces
+     la misma palabra; y sin lado publicaba «(excursion de 16 mm)», sin decir hacia donde. */
+  const _exc = (typeof asiaExcFrase === 'function') ? asiaExcFrase(src) : null;
   const _latid = fopLatidos(src);
   const _desc = (function(){
     let d = 'Foramen oval permeable';
     if (f1(tunel)) d += ' (túnel de ' + f1(tunel) + ' mm)';
     const rs = [];
     if (mov === 'si') rs.push('septum interauricular móvil');
-    if (hayASA) rs.push('aneurisma del septum interauricular' +
-      (f1(asaMm) ? ' (excursión de ' + f1(asaMm) + ' mm' + (_ladoFrase ? ' ' + _ladoFrase : '') + ')' : ''));
+    if (hayASA) rs.push('aneurisma del septum interauricular' + (_exc ? ' con ' + _exc.txt : ''));
     if (rs.length) d += ', asociado a ' + rs.join(' y ');
     if (burb || reposo === 'si' || valsalva === 'si') {
       const b = [];
@@ -65915,15 +65998,25 @@ function fopSync(){
      `<span>` con guión MEDIO, así que no entran al recolector del estudio y no hay una segunda
      copia del dato. */
   const _lado = asiaLado();
-  txt('fop-asa-lado', _lado ? ((ASIA_LADO_TXT[_lado] || _lado) +
-        (_lado === 'ambos' ? ' — el umbral es la excursión TOTAL, de ' + ASIA_EXC_TOTAL_MIN + ' mm'
-                           : ' — el umbral de ese lado es de ' + ASIA_EXC_UN_LADO_MIN + ' mm'))
+  /* ⚠️ CON EL ASIA EN «NO» LA LECTURA AUTOMATICA DESAPARECE, y no es cosmetico: la fila invitaba
+     a consignar el lado —«se consigna en Otros · Variantes anatomicas»— de un aneurisma que el
+     desplegable de dos filas arriba acaba de declarar ausente. */
+  const _neg = (typeof asiaNegado === 'function') ? asiaNegado() : false;
+  txt('fop-asa-lado', _neg ? '—'
+      : _lado ? ((ASIA_LADO_TXT[_lado] || _lado) +
+        (_lado === 'ambos' ? ' — el umbral es la excursión TOTAL, de más de ' + ASIA_EXC_TOTAL_MIN + ' mm'
+                           : ' — el umbral de ese lado es de más de ' + ASIA_EXC_UN_LADO_MIN + ' mm'))
       : '— se consigna en Otros · Variantes anatómicas');
   const _corte = asiaCorteMm();
+  /* El ORDEN de las ramas importa: fuera de rango primero —un 1,2 tipeado por 12 mm no se
+     interpreta—, despues el aneurisma negado, despues la falta del lado y solo al final el
+     veredicto. Las tres primeras muestran los milimetros como DATO y no concluyen. */
   txt('fop-asa-interp', asaMm == null ? '—'
-      : (asaMm < 2 || asaMm > 40) ? asaMm + ' mm — fuera de rango, revisar unidades'
-      : (asaMm >= _corte ? asaMm + ' mm — aneurisma significativo (≥' + _corte + ' mm)'
-                         : asaMm + ' mm — por debajo del umbral de ' + _corte + ' mm'));
+      : (asaMm < ASIA_EXC_BANDA[0] || asaMm > ASIA_EXC_BANDA[1]) ? asaMm + ' mm — fuera de rango, revisar unidades'
+      : _neg ? asaMm + ' mm — el aneurisma del septum está consignado como ausente'
+      : !_lado ? asaMm + ' mm — falta indicar hacia dónde se abomba'
+      : (asaMm > _corte ? asaMm + ' mm — aneurisma significativo (más de ' + _corte + ' mm)'
+                        : asaMm + ' mm — no supera el umbral de ' + _corte + ' mm'));
   const burb = sv2('fop_burbujas');
   txt('fop-shunt-grado', burb ? (FOP_BURB_TXT[burb] || burb) : '—');
   const _lat = fopLatidos();
@@ -65962,12 +66055,11 @@ function fopPdfFilas(){
   if (f1(tunel)) f.push(['Longitud del tunel', f1(tunel) + ' mm']);
   if (mov === 'si' || mov === 'no') f.push(['Movilidad del septum', mov === 'si' ? 'Septum movil' : 'No aumentada']);
   if (asa === 'si' || asa === 'no') f.push(['Aneurisma del septum', SN[asa]]);
-  if (f1(asaMm)) {
-    const l = (typeof asiaLado === 'function') ? asiaLado() : '';
-    const lf = l === 'ambos' ? ' (excursion total)' : l === 'ad' ? ' (hacia la auricula derecha)'
-             : l === 'ai' ? ' (hacia la auricula izquierda)' : '';
-    f.push(['Excursion del aneurisma', f1(asaMm) + ' mm' + lf]);
-  }
+  /* La celda sale de `asiaExcFrase().corto`, que es el renderizado sin el «excursion de» —el
+     rotulo de la fila ya lo dice—. Aca vivia la CUARTA copia del lado, y la unica que ademas
+     omitia que el lado no estuviera consignado. */
+  { const _ef = (typeof asiaExcFrase === 'function') ? asiaExcFrase() : null;
+    if (_ef) f.push(['Excursion del aneurisma', _ef.corto]); }
   /* ── Shunt ── */
   if (contraste === 'si' || contraste === 'no')
     f.push(['Contraste con burbujas', contraste === 'si' ? 'Realizado' : 'No se realizo']);
@@ -69283,7 +69375,10 @@ function ccSumaLinea(sec){
     if (val === 'si') sh.push('con Valsalva');
     if (sh.length) l += ' — shunt ' + sh.join(' y ');
     else if (contr === 'si' && rep === 'no' && val === 'no') l += ' — sin paso de burbujas';
-    if (hayASA) l += ' — aneurisma del septum' + (asaMm != null ? ' (' + _cc1(asaMm) + ' mm)' : '');
+    /* La excursión y su lado salen de `asiaExcFrase`: el resumen publicaba «(16 mm)» sin decir
+       hacia dónde se abomba, que es lo que decide el umbral. */
+    { const _ef = (typeof asiaExcFrase === 'function') ? asiaExcFrase() : null;
+      if (hayASA) l += ' — aneurisma del septum' + (_ef ? ' con ' + _ef.txt : ''); }
     const dx = L(DX, c.clave);
     return l + (dx ? ' — ' + dx : '');
   }
@@ -75630,9 +75725,9 @@ function _indFOP(){
   const asa = _indS('fop_asa'), asaMm = _indN('fop_asa_mm'), acv = _indS('fop_acv');
   const tromb = _indS('fop_trombofilia'), edad = _indN('edad');
   const hayASA = asa === 'si' || (typeof asiaPorExcursion === 'function' ? asiaPorExcursion(asaMm) : _ge(asaMm, 10));
-  const lado = (typeof asiaLado === 'function') ? asiaLado() : '';
-  const lf = lado === 'ambos' ? 'excursión total' : lado === 'ad' ? 'hacia la aurícula derecha'
-           : lado === 'ai' ? 'hacia la aurícula izquierda' : null;
+  /* La frase de la excursión sale de `asiaExcFrase`, su dueño único: acá vivía la QUINTA copia
+     del lado. */
+  const excF = (typeof asiaExcFrase === 'function') ? asiaExcFrase() : null;
   const lat = (typeof fopLatidos === 'function') ? fopLatidos() : null;
   /* El antecedente se LEE del estudio; la evaluación completa y el tamaño del shunt se
      PREGUNTAN. `_indOrigen` deja de dibujar el control manual cuando hay valor de origen, que es
@@ -75664,8 +75759,7 @@ function _indFOP(){
     _indFila('Aneurisma del septum interauricular',
       hayASA ? 'Sí' : (asa === 'no' ? 'No' : 'No evaluado'),
       hayASA ? 'warn' : (asa === 'no' ? 'none' : 'ask'),
-      hayASA ? 'es uno de los dos rasgos anatómicos de alto riesgo' +
-                 (asaMm != null ? ' (excursión ' + _indNum(asaMm, 1, 'mm') + (lf ? ', ' + lf : '') + ')' : '')
+      hayASA ? 'es uno de los dos rasgos anatómicos de alto riesgo' + (excF ? ' — ' + excF.txt : '')
              : 'es uno de los dos rasgos anatómicos de alto riesgo', ['fopSilvestry2015']),
     _indFilaOrigen('ACV o AIT criptogénico', oAcv, [{v:'si',t:'Sí'},{v:'no',t:'No'}],
       function(v){ return { txt: v === 'si' ? 'Sí' : (v === 'no' ? 'No' : 'No consta'),

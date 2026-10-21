@@ -18175,7 +18175,12 @@ caso('TC-173', 'VAP y FOP: cascadas, denominadores propios y la fila que NO exis
          este archivo ya documenta. El 99 de noInterp NO cuenta: cae fuera de banda y vale
          null, que es "no se pudo evaluar" y no "sin aneurisma". */
       asaSi:    mk({ fop_burbujas:'pocas', fop_acv:'no', fop_asa:'si' }),
-      asaMm:    mk({ fop_burbujas:'pocas', fop_acv:'no', fop_asa_mm:'12' }),
+      /* ADAPTADO el 2026-10-22 (tanda D2, commit 1): la excursion sola ya no afirma el
+         aneurisma SIN el lado consignado, porque el lado es lo que decide el umbral. Se le
+         agrega otr_asia_lado y el caso sigue midiendo lo mismo -que una excursion MEDIDA
+         cuenta igual que el aneurisma marcado- con la regla nueva: 12 mm hacia un lado supera
+         los 10 mm estrictos. */
+      asaMm:    mk({ fop_burbujas:'pocas', fop_acv:'no', fop_asa_mm:'12', otr_asia_lado:'ad' }),
       asaNo:    mk({ fop_burbujas:'pocas', fop_acv:'no', fop_asa:'no', fop_contraste:'si', fop_shunt_reposo:'si' }),
       /* FOP + CIA. El FOP esta FUERA de CC_SHUNTS a proposito, asi que con soloShuntUnico:true
          este estudio saldria del denominador y la tabla del FOP perderia a todo paciente que
@@ -82458,20 +82463,36 @@ caso('TC-513', 'Trabajo D: el FOP en TRES columnas con «Se abomba hacia» y el 
   const u9 = asaEsc('ad', 9), u10 = asaEsc('ad', 10), u11 = asaEsc('ad', 11);
   const a14 = asaEsc('ambos', 14), a15 = asaEsc('ambos', 15), a16 = asaEsc('ambos', 16);
   const s12 = asaEsc('', 12);
-  ex.push(['(B6) con un solo lado el corte es 10: 9 no, 10 si, 11 si',
-    u9.corte === 10 && u10.corte === 10 && u9.sig === false && u10.sig === true && u11.sig === true,
+  /* ADAPTADO el 2026-10-22 (tanda D2, commit 1): el operador pasa a MAYOR ESTRICTO, decision de
+     Maicol con el folio 916 delante, que escribe «greater than 10 mm» para UN lado. Las dos
+     condiciones afirman hoy LO CONTRARIO en el valor exacto del corte -10 mm hacia un lado NO
+     cumple, 15 mm de excursion total NO cumple- y conservan su poder: siguen siendo tripletes y
+     siguen separando el corte por sus dos lados. */
+  ex.push(['(B6) con un solo lado el corte es 10 ESTRICTO: 9 no, 10 no, 11 si',
+    u9.corte === 10 && u10.corte === 10 && u9.sig === false && u10.sig === false && u11.sig === true,
     JSON.stringify([u9.sig, u10.sig, u11.sig])]);
-  ex.push(['(B7) con «ambos lados» el corte es 15: 14 no, 15 si, 16 si',
-    a14.corte === 15 && a14.sig === false && a15.sig === true && a16.sig === true,
+  ex.push(['(B7) con «ambos lados» el corte es 15 ESTRICTO: 14 no, 15 no, 16 si',
+    a14.corte === 15 && a14.sig === false && a15.sig === false && a16.sig === true,
     JSON.stringify([a14.corte, a14.sig, a15.sig, a16.sig])]);
   ex.push(['(B8) y una excursion de 12 mm cambia de veredicto segun el lado',
     asaEsc('ad', 12).clave === 'alto_riesgo_sin_evento' && asaEsc('ambos', 12).clave === 'incidental',
     asaEsc('ad', 12).clave + ' / ' + asaEsc('ambos', 12).clave]);
-  ex.push(['(B9) SIN lado consignado manda el corte de 10 mm, que es el de siempre',
-    s12.corte === 10 && s12.sig === true, JSON.stringify([s12.corte, s12.sig])]);
-  ex.push(['(B10) la interpretacion de la pantalla NOMBRA el corte que aplica',
-    u10.interp.indexOf('10 mm)') > -1 && a15.interp.indexOf('15 mm)') > -1,
-    u10.interp + ' | ' + a15.interp]);
+  /* ADAPTADO el 2026-10-22 (tanda D2, commit 1): SIN lado consignado la regla NO SE PUEDE
+     APLICAR y no se publica veredicto. Esta condicion afirmaba lo contrario -que mandaba el
+     corte de 10 mm «como siempre»- y era precisamente el defecto que el medico vio: la pantalla
+     decia «15 mm - aneurisma significativo (>=10 mm)» sin que nadie hubiera dicho hacia donde se
+     abomba. Gana poder: ahora exige que la pantalla DIGA que falta el lado. */
+  ex.push(['(B9) SIN lado consignado la regla no se aplica y no hay veredicto',
+    s12.corte === 10 && s12.sig === false && s12.interp.indexOf('falta indicar hacia dónde') > -1,
+    JSON.stringify([s12.corte, s12.sig, s12.interp])]);
+  /* ADAPTADO: el simbolo SIGUE AL OPERADOR. Con el MAYOR estricto la pantalla escribe «mas de N mm»
+     y no «(>=N mm)»: el rotulo y la comparacion son dos lineas distintas, y esta condicion es lo
+     unico que impide que se desincronicen. Se mide por el lado del borde que VOTA. */
+  ex.push(['(B10) la interpretacion NOMBRA el corte que aplica, con su operador',
+    u11.interp.indexOf('más de 10 mm') > -1 && a16.interp.indexOf('más de 15 mm') > -1 &&
+    u10.interp.indexOf('no supera el umbral de 10 mm') > -1 &&
+    a15.interp.indexOf('no supera el umbral de 15 mm') > -1,
+    u11.interp + ' | ' + a16.interp + ' | ' + u10.interp]);
   /* Los latidos: el espejo y su compuerta. */
   const latEsc = function(n){ __t.limpiar();
     __t.set('fop_contraste','si'); __t.set('fop_shunt_valsalva','si'); __t.set('fop_burbujas','moderado');
@@ -82552,9 +82573,13 @@ caso('TC-513', 'Trabajo D: el FOP en TRES columnas con «Se abomba hacia» y el 
   const filaExc = Array.isArray(filasPdf)
     ? (filasPdf.filter(function(f){ return f[0] === 'Excursion del aneurisma'; })[0] || [])
     : [];
+  /* ADAPTADO el 2026-10-22 (tanda D2, commit 1): la celda sale de asiaExcFrase().corto, el
+     dueno unico de la frase, que escribe el lado CON acentos -como vabPdfFilas escribe
+     «Cuspides» y «Estenosis aortica»- y sin el «excursion de», que el rotulo de la fila ya dice.
+     Lo que el caso afirma no cambia: la celda nombra el lado. */
   ex.push(['(E1) la tabla lleva la excursion con su lado y los latidos',
     rotulos.indexOf('Excursion del aneurisma') > -1 && rotulos.indexOf('Latidos del pasaje') > -1 &&
-    String(filaExc[1] || '').indexOf('hacia la auricula derecha') > -1,
+    String(filaExc[1] || '').indexOf('hacia la aurícula derecha') > -1,
     JSON.stringify(filaExc)]);
   ex.push(['(E2) el FOP ya NO deja seccion en la hoja «Estudio avanzado - Cardiopatias congenitas»',
     FN2('ccEnInforme') && !(ccEnInforme() || []).some(function(x){ return x.k === 'fop'; }),
@@ -82676,8 +82701,17 @@ caso('TC-513', 'Trabajo D: el FOP en TRES columnas con «Se abomba hacia» y el 
     __t.limpiar();
     const cLeg = FN2('fopConclusion') ? fopConclusion({ fop_asa_mm:'12', fop_contraste:'si',
       fop_shunt_valsalva:'si', fop_acv:'no' }) : null;
-    ex.push(['(H3) un estudio SIN «Se abomba hacia» aplica el corte de 10 mm, como siempre',
-      !!cLeg && cLeg.clave === 'alto_riesgo_sin_evento', (cLeg || {}).clave]);
+    /* ADAPTADO el 2026-10-22 (tanda D2, commit 1): esta condicion afirmaba que un estudio SIN el
+       lado aplicaba el corte de 10 mm «como siempre», y hoy afirma LO CONTRARIO: sin el lado la
+       regla no se puede aplicar y la excursion sola no afirma el aneurisma. Es la decision de
+       Maicol, y la consecuencia sobre los estudios guardados antes de la tanda D esta declarada
+       en PENDIENTES. Gana su CONTROL: con el lado consignado el mismo estudio SI concluye. */
+    const cLegLado = FN2('fopConclusion') ? fopConclusion({ fop_asa_mm:'12', otr_asia_lado:'ad',
+      fop_contraste:'si', fop_shunt_valsalva:'si', fop_acv:'no' }) : null;
+    ex.push(['(H3) un estudio SIN «Se abomba hacia» no afirma el aneurisma por su excursion',
+      !!cLeg && cLeg.clave === 'incidental', (cLeg || {}).clave]);
+    ex.push(['(CONTROL H3b) y el MISMO estudio con el lado consignado si lo afirma',
+      !!cLegLado && cLegLado.clave === 'alto_riesgo_sin_evento', (cLegLado || {}).clave]);
 
     /* == I - LA MAQUETA, DECLARANDO EL ANCHO DE LA CORRIDA ================================ */
     ex.push(['(I1) la regla de las tres columnas no tiene media query propia',
