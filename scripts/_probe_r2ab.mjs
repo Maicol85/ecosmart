@@ -39,6 +39,12 @@ const ESCENAS = {
   hemo:    { campos: { peso: '80', talla: '180', fc: '70', pam: '90', ddfvi: '50', vsfvi: '35',
                        onda_e: '90', e_sep: '8', e_lat: '10', diam_tsvi_ao: '20', itv_tsvi: '20' } },
   amil:    { campos: { ett_septo_x: '' } },   /* los de amiloidosis van por su propio grupo */
+  /* La escena de constriccion/restriccion: el e' medial en el tramo que el R2-E4 mueve, con un
+     criterio especifico cargado para que la cascada llegue a clasificar. */
+  cvr:     { campos: { e_sep: '7', e_lat: '12', onda_e: '100' },
+             sel: { cvr_rebote: 'si', resp_var_tric: '45' } },
+  /* La de amiloidosis: septo ASIMETRICO, que es la escena que el R2-E5 pide mostrar. */
+  amilo:   { campos: { rwt_septo_x: '' } },
   ajeno:   { campos: { im_vc: '8', ea_dtsvi: '20', itv_tsvi: '20', itv_ao: '100', vmax_ao: '4.5',
                        onda_e: '110', e_sep: '5', e_lat: '6', ai_vol: '70', peso: '80', talla: '180' } }
 };

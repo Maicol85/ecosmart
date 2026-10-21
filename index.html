@@ -9201,7 +9201,7 @@ window.cerrarSesionReal = cerrarSesionReal;
           <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:0 0 6px;">Campos</div>
           <div class="calc-box" style="margin-bottom:10px;">
             <div style="font-size:10px;color:var(--text2);margin-bottom:6px;">Tomados de otras pestañas — no se vuelven a pedir.</div>
-            <div class="calc-row"><span class="calc-lbl">e' septal (Doppler)</span><span id="cvr-esep" style="font-weight:700;">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">e' medial (Doppler)</span><span id="cvr-esep" style="font-weight:700;">—</span></div>
             <div class="calc-row"><span class="calc-lbl">e' lateral (Doppler)</span><span id="cvr-elat" style="font-weight:700;">—</span></div>
             <div class="calc-row"><span class="calc-lbl">E/e' promedio</span><span id="cvr-ee" style="font-weight:700;">—</span></div>
             <div class="calc-row"><span class="calc-lbl">VCI — diámetro (VD/AD)</span><span id="cvr-vci" style="font-weight:700;">—</span></div>
@@ -18561,7 +18561,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">E/e' promedio</td><td style="padding:5px 8px;font-family:monospace;">E / ((e'sep + e'lat) / 2)</td><td style="padding:5px 8px;">&gt;14</td></tr>
         <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">Vol AI</td><td style="padding:5px 8px;font-family:monospace;">Vol_AI / ASC</td><td style="padding:5px 8px;">&gt;34 ml/m²</td></tr>
         <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">e' promedio</td><td style="padding:5px 8px;font-family:monospace;">(e'sep + e'lat) / 2</td><td style="padding:5px 8px;">≤6.5 cm/s</td></tr>
-        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">e' septal</td><td style="padding:5px 8px;font-family:monospace;">Tisular septal</td><td style="padding:5px 8px;">≤7 cm/s</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">e' medial</td><td style="padding:5px 8px;font-family:monospace;">Tisular medial (septal)</td><td style="padding:5px 8px;">&gt;8 constricción · 6-8 mixta · &lt;6 restricción</td></tr>
         <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">e' lateral</td><td style="padding:5px 8px;font-family:monospace;">Tisular lateral</td><td style="padding:5px 8px;">≤10 cm/s</td></tr>
         <tr style="background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">Vmax IT (marcador)</td><td style="padding:5px 8px;font-family:monospace;">Doppler continuo IT</td><td style="padding:5px 8px;">&gt;2.8 m/s</td></tr>
       </table>
@@ -26798,7 +26798,25 @@ const DPT_VAR_TRIC_SIG   = 40;   // % de variación respiratoria de la E tricús
    divergencia declarada, no una alineación.
    Y una constante que gobierna dos umbrales distintos es peor que dos literales: parece que
    los acopla y lo que hace es esconder que uno de los dos está mal. */
-const CVR_ESEP_CM_S      = 7;    // e' septal, cm/s
+/* ══ EL e' MEDIAL DE CONSTRICCION/RESTRICCION: TRES TRAMOS (R2-E4, 2026-10-21) ════════════════
+   DECISION DE MAICOL con la fuente leida en el ORIGINAL: ESC 2025 de miocarditis y pericarditis
+   (Schulz-Menger y col.), **material suplementario**, dos lugares que COINCIDEN:
+     · **Figura S1, hoja 6**: «TDI mitral medial e' >8 cm/sec» -> constriccion pericardica
+       probable; «TDI mitral medial e' <6 cm/sec» -> restriccion; y su nota b, literal: «if TDI
+       mitral medial e' is between 6 and 8 cm/s, mixed forms with constriction and restriction».
+     · **Tabla S14, hoja 27**: «Tissue Doppler peak e' <6 cm/s. Mixed disease 6-8 cm/s».
+   La ASE 2025 de funcion diastolica (Figura 7, folio 562) usa el MISMO algoritmo, y se contradice
+   consigo misma: su texto escribe >7 y su figura >8. Gana la ESC 2025, que es mas nueva y no se
+   contradice —y su figura y su tabla dicen lo mismo—.
+   ⚠️ Y LA TABLA S14 TIENE UNA ERRATA DE IMPRENTA, declarada: escribe «Septal tissue Doppler peak
+   e' > 0.8 cm/s» donde la Figura S1 dice 8. Un e' de 0,8 cm/s no es un valor medible.
+
+   El corte unico de 7 que la app aplicaba coincidia solo con el TEXTO de la ASE 2025 y partia el
+   dominio en dos: todo valor votaba constriccion o restriccion, y la zona en la que las dos
+   guias dicen «no se puede distinguir» no existia. */
+const CVR_ESEP_CONSTR_MIN = 8;   // e' medial, cm/s, ESTRICTO: >8 vota CONSTRICCION
+const CVR_ESEP_RESTR_MAX  = 6;   // e' medial, cm/s, ESTRICTO: <6 vota RESTRICCION
+/* El tramo 6-8 INCLUSIVE es la zona mixta: no vota por ninguna de las dos. */
 const CVR_ELAT_CM_S      = 10;   // e' lateral, cm/s
 const CVR_EE_ALTO        = 15;   // E/e'
 
@@ -27205,8 +27223,15 @@ window.cvrDatos = cvrDatos;
    ✅ Constricción bajo un rótulo que lo excluía, y ningún rótulo cubría el 7. */
 function cvrFilas() {
   return [
-    { lbl:"e' septal",            c:'≥' + CVR_ESEP_CM_S + ' cm/s', r:'<' + CVR_ESEP_CM_S + ' cm/s',
-      ev: d => d.esep !== null, voto: d => d.esep >= CVR_ESEP_CM_S ? 'c' : 'r' },
+    /* ⚠️ TRES TRAMOS Y UN TERCER VOTO (R2-E4, 2026-10-21). El tramo 6-8 devuelve 'm', que NO es
+       `null`: `null` significa «no se evaluo» —`voto: ev ? f.voto(d) : null`— y ahi el dato SI
+       esta, lo que pasa es que las dos guias dicen que no distingue. Un 'm' no cuenta en `nC` ni
+       en `nR` —los dos filtros comparan por igualdad— asi que es inerte para las reglas de
+       conteo, que esta orden no toca, y la tabla y la hoja del PDF lo publican como mixto. */
+    { lbl:"e' medial",            c:'>' + CVR_ESEP_CONSTR_MIN + ' cm/s', r:'<' + CVR_ESEP_RESTR_MAX + ' cm/s',
+      ev: d => d.esep !== null,
+      voto: d => d.esep > CVR_ESEP_CONSTR_MIN ? 'c'
+               : (d.esep < CVR_ESEP_RESTR_MAX ? 'r' : 'm') },
     /* El lateral reducido sólo vota RESTRICCIÓN si el septal también lo está. Con el septal
        conservado, un lateral bajo ES el annulus reversus — y eso ya lo cuenta la fila de abajo.
        Sin esta condición el mismo hecho votaba dos veces y en direcciones opuestas: al subir el
@@ -27220,7 +27245,11 @@ function cvrFilas() {
     { lbl:"e' lateral",           c:'≥' + CVR_ELAT_CM_S + ' cm/s', r:'<' + CVR_ELAT_CM_S + ' cm/s',
       ev: d => d.elat !== null,
       voto: d => d.elat >= CVR_ELAT_CM_S ? 'c'
-               : (d.esep !== null && d.esep < CVR_ESEP_CM_S) ? 'r' : null },
+               /* «e' septal bajo» pasa a ser el TRAMO RESTRICTIVO (R2-E4): con el corte unico de
+                  7, un 6,5 contaba como bajo; hoy la zona 6-8 es la mixta, en la que la fuente
+                  dice que no se distingue, y afirmar restriccion ahi seria afirmar de mas. El
+                  corte del e' LATERAL (10) no se mueve: esta orden lo excluye. */
+               : (d.esep !== null && d.esep < CVR_ESEP_RESTR_MAX) ? 'r' : null },
     { lbl:'Annulus reversus',     c:'Presente', r:'Ausente',
       ev: d => d.esep !== null && d.elat !== null, voto: d => d.esep > d.elat ? 'c' : 'r' },
     { lbl:"E/e'",                 c:'<' + CVR_EE_ALTO, r:'≥' + CVR_EE_ALTO, adic:true,
@@ -27248,7 +27277,7 @@ function cvrFilas() {
 function cvrProsa(lbl, d) {
   const n1 = x => (x === null ? '—' : (Math.round(x * 10) / 10));
   return ({
-    "e' septal":                 "e' septal conservado (" + n1(d.esep) + ' cm/s)',
+    "e' medial":                 "e' medial conservado (" + n1(d.esep) + ' cm/s)',
     "e' lateral":                "e' lateral " + n1(d.elat) + ' cm/s',
     'Annulus reversus':          '',
     "E/e'":                      "E/e' no elevado (" + n1(d.ee) + ')',
@@ -27275,7 +27304,10 @@ function cvrEstado() {
 
   /* «Sin respirofasicidad significativa» exige que se HAYA MEDIDO. Sin el dato no se puede
      afirmar el patrón restrictivo: sería una negación sin medición. */
-  const patronRestr = d.esep !== null && d.esep < CVR_ESEP_CM_S
+  /* El patron restrictivo usa el MISMO «e' medial bajo» que la fila, que desde el R2-E4 es el
+     tramo `< 6`: dos definiciones de «bajo» en la misma funcion es el defecto que este archivo ya
+     pago varias veces. Las otras tres condiciones no se tocan. */
+  const patronRestr = d.esep !== null && d.esep < CVR_ESEP_RESTR_MAX
                    && d.elat !== null && d.elat < CVR_ELAT_CM_S
                    && d.ee !== null && d.ee > CVR_EE_ALTO
                    && d.varM !== null && d.varM <= DPT_VAR_MITRAL_SIG;
@@ -27382,7 +27414,9 @@ function cvrSync() {
     : ("e' septal " + n1(d.esep) + " cm/s vs e' lateral " + n1(d.elat) + ' cm/s ')
       + badge(st.reversus ? 'orange' : 'green', st.reversus ? 'Reversus ✅' : 'Normal'));
 
-  const cel = (f, col) => f.voto === null ? '—' : (f.voto === col ? '✅' : '❌');
+  /* El tercer voto 'm' —la zona mixta del e' medial— se pinta distinto de los otros dos: con el
+     ternario de antes caia en ❌ en las DOS columnas, o sea «no cumple ninguna», que es falso. */
+  const cel = (f, col) => f.voto === null ? '—' : (f.voto === 'm' ? '◐' : (f.voto === col ? '✅' : '❌'));
   const filasHtml = st.filas.map(f =>
     '<tr><td style="padding:3px 6px;border-bottom:1px solid var(--border);">' + escHtml(f.lbl) + '</td>'
     + '<td style="padding:3px 6px;border-bottom:1px solid var(--border);text-align:center;">' + cel(f,'c') + ' <span style="color:var(--text2)">' + escHtml(f.c) + '</span></td>'
@@ -84054,7 +84088,10 @@ function amiloTextoCVR() {
   const n1 = x => (x === null ? '—' : (Math.round(x * 10) / 10));
 
   L.push('## Parámetros');
-  L.push("e' septal | " + (d.esep !== null ? n1(d.esep) + ' cm/s' : 'no cargado'));
+  /* El rotulo sigue al de la fila y a la capsula (R2-E4): «medial» es como la ESC 2025 lo nombra
+     y «(septal)» es como lo llama el campo del Doppler, que es el mismo numero. Dos nombres para
+     el mismo valor en la MISMA hoja es lo que esto evita. */
+  L.push("e' medial (septal) | " + (d.esep !== null ? n1(d.esep) + ' cm/s' : 'no cargado'));
   L.push("e' lateral | " + (d.elat !== null ? n1(d.elat) + ' cm/s' : 'no cargado'));
   L.push("E/e' promedio | " + (d.ee !== null ? String(n1(d.ee)) : 'no calculable'));
   L.push('Annulus reversus | ' + (st.reversus === null ? 'no valorable' : st.reversus ? 'Presente' : 'Ausente'));
@@ -84063,6 +84100,7 @@ function amiloTextoCVR() {
   st.filas.forEach(f => {
     L.push(f.lbl + ' | ' + (!f.ev ? 'No evaluado'
       : f.voto === 'c' ? 'Constricción (' + f.c + ')'
+      : f.voto === 'm' ? 'Formas mixtas (entre ' + f.r.replace('<', '') + ' y ' + f.c.replace('>', '') + ')'
       : f.voto === 'r' ? 'Restricción (' + f.r + ')'
       : 'No discrimina'));
   });

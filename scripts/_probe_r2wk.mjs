@@ -253,6 +253,34 @@ const HTP_VAIVEN = `(async () => {
   return paso;
 })()`;
 
+/* ══ (d) CONSTRICCION / RESTRICCION: los TRES tramos del e' medial, por sus bordes ════════
+   La escena deja los demas criterios quietos y mueve SOLO el e' medial, para que lo que cambie
+   sea el tramo. Se carga el rebote septal —que es un criterio ESPECIFICO del pericardio— porque
+   sin ninguno la cascada sale por su compuerta `espEval === 0` y nada se clasifica. */
+const CVR_VALS = ['5.9', '6.0', '6.5', '7.0', '8.0', '8.1', '9.0'];
+const CVR_MED = `((val) => {
+  ['modalAvisoEco','login-overlay'].forEach(id => { const m = document.getElementById(id);
+    if (m) m.style.display = 'none' });
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  const S = (id, v) => { const e = document.getElementById(id); if (!e) return 'NO ' + id;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value };
+  S('cvr_rebote', 'si');          /* un criterio especifico, para pasar la compuerta */
+  const puesto = S('e_sep', val);
+  try { if (typeof cvrSync === 'function') cvrSync() } catch (e) {}
+  const st = (typeof cvrEstado === 'function') ? cvrEstado() : null;
+  const f = st ? (st.filas || []).filter(x => x.lbl.indexOf('medial') > -1
+                                            || x.lbl.indexOf('septal') > -1)[0] : null;
+  const T = (id) => { const e = document.getElementById(id); return e ? String(e.textContent || '') : 'NO' };
+  /* EL DENOMINADOR AL LADO DEL VEREDICTO: sin ningun criterio ESPECIFICO evaluado la cascada
+     sale por su compuerta y la clave es sin_datos, que se lee igual que «el tramo no funciona». */
+  return { val: val, puesto: puesto, lbl: f ? f.lbl : 'SIN FILA', voto: f ? f.voto : 'SIN',
+    c: f ? f.c : '', r: f ? f.r : '', clave: st ? st.clave : 'SIN',
+    espEval: st ? st.espEval : 'SIN', nC: st ? st.nC : 'SIN', nR: st ? st.nR : 'SIN',
+    rebote: (function(){ const e = document.getElementById('cvr_rebote'); return e ? e.value : 'NO' })(),
+    badge: T('cvr-concl-badge'), esep: T('cvr-esep') };
+})(VAL)`;
+
 async function corre(nombre, lanzar) {
   let b = null;
   try { b = await lanzar() } catch (e) { OUT[nombre] = { error: 'NO ARRANCA: ' + e.message.slice(0, 120) }; return }
@@ -322,6 +350,10 @@ async function corre(nombre, lanzar) {
       R.htp = {};
       for (const c of HTP_ESC) R.htp[c.k] = await pg.evaluate(HTP_MED.replace('CASO', JSON.stringify(c)));
       R.vaiven = await pg.evaluate(HTP_VAIVEN);
+    }
+    if (hay('cvr')) {
+      R.cvr = {};
+      for (const vv of CVR_VALS) R.cvr[vv] = await pg.evaluate(CVR_MED.replace('VAL', JSON.stringify(vv)));
     }
     if (hay('vabmat')) {
       R.matriz = {};
