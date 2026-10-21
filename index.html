@@ -3483,7 +3483,6 @@ window.cerrarSesionReal = cerrarSesionReal;
       </div>
       <!-- FILA INFERIOR — Herramientas de apoyo (siempre visible) -->
       <div class="tabs-row tabs-tools">
-        <button class="tab-btn tab-tool" data-mod="calculadoras" onclick="showTab('calculadoras')">🧮 Calculadoras</button>
         <button class="tab-btn tab-tool" data-mod="refs" onclick="showTab('refs')">📚 Referencias</button>
       </div>
     </div>
@@ -17268,6 +17267,12 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
     <span id="ref-volver-de" class="ref-volver-de"></span>
   </div>
   <div class="ref-subbar" role="tablist" aria-label="Secciones de Referencias">
+    <!-- ⚠️ CALCULADORAS ES EL PRIMER BOTON (B-E5, 2026-10-21), y lleva `data-mod` como el boton
+         de la fila de arriba que reemplaza: `applyViewMode` lo esconde en Modo Basico y, en
+         Avanzado, lo muestra segun su casilla de Config. Sin el atributo esa casilla dejaria de
+         gobernar nada y el chequeo de arranque gritaria «sin boton: calculadoras». Es un
+         `<button>`, que es el otro invariante que ese chequeo exige. -->
+    <button type="button" class="ref-subtab" role="tab" id="ref-subtab-calc" data-mod="calculadoras" aria-selected="false" aria-controls="ref-sub-calc" tabindex="-1" onclick="refSubTab('calc',this)">🧮 Calculadoras</button>
     <button type="button" class="ref-subtab active" role="tab" id="ref-subtab-dim" aria-selected="true" aria-controls="ref-sub-dim" tabindex="0" onclick="refSubTab('dim',this)">📏 Dimensiones</button>
     <button type="button" class="ref-subtab" role="tab" id="ref-subtab-fun" aria-selected="false" aria-controls="ref-sub-fun" tabindex="-1" onclick="refSubTab('fun',this)">📈 Función</button>
     <button type="button" class="ref-subtab" role="tab" id="ref-subtab-valv" aria-selected="false" aria-controls="ref-sub-valv" tabindex="-1" onclick="refSubTab('valv',this)">🫀 Válvulas</button>
@@ -17275,6 +17280,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
     <button type="button" class="ref-subtab" role="tab" id="ref-subtab-otros" aria-selected="false" aria-controls="ref-sub-otros" tabindex="-1" onclick="refSubTab('otros',this)">🔎 Otros hallazgos</button>
   </div>
   <div id="ref-buscador-host"></div>
+  <div id="ref-sub-calc" class="ref-subpanel" role="tabpanel" aria-labelledby="ref-subtab-calc"></div>
   <div id="ref-sub-dim" class="ref-subpanel active" role="tabpanel" aria-labelledby="ref-subtab-dim"></div>
   <div id="ref-sub-fun" class="ref-subpanel" role="tabpanel" aria-labelledby="ref-subtab-fun"></div>
   <div id="ref-sub-valv" class="ref-subpanel" role="tabpanel" aria-labelledby="ref-subtab-valv"></div>
@@ -62958,6 +62964,13 @@ window.eteSetModo=eteSetModo;
    su primer bloque es la GEOMETRIA del VI, que es lo que da nombre al RWT y a la masa, y es lo
    que el buscador tiene que encontrar junto a `vi2`. */
 const REF_SUBTAB = Object.freeze({
+  /* ⚠️ `calc` VA CON LISTA VACIA, y no es un olvido: las otras cinco listan las ENTRADAS
+     `ref-<id>` que `refSubInit` reubica, y Calculadoras no tiene ninguna —su contenido son las
+     tarjetas de `#tab-calculadoras`, que se mueven enteras unas lineas mas abajo—. De paso eso
+     la deja FUERA del indice del buscador por construccion: ese indice exige un `h2.card-head`
+     con `toggleRef('...')` y un `ref-<id>` hermano, y las tarjetas de Calculadoras no tienen ni
+     lo uno ni lo otro. Las 28 entradas indexadas no se mueven. */
+  calc:  Object.freeze([]),
   dim:   Object.freeze(['ai', 'vi2', 'vi', 'vd2', 'ad']),
   fun:   Object.freeze(['htp', 'tep']),
   valv:  Object.freeze(['nativas', 'protesicas']),
@@ -62965,7 +62978,7 @@ const REF_SUBTAB = Object.freeze({
   otros: Object.freeze(['oai', 'burbujas', 'coronarias', 'pericardio', 'cardiotox', 'miocard',
                         'congenitas', 'formulas'])
 });
-const REF_SUB_ORDEN = Object.freeze(['dim', 'fun', 'valv', 'ao', 'otros']);
+const REF_SUB_ORDEN = Object.freeze(['calc', 'dim', 'fun', 'valv', 'ao', 'otros']);
 /* ══ ROTULOS DE BLOQUE (tanda P, commit 4) ═══════════════════════════════════════════════════
    La subpestana AORTA son DOS bloques que hasta hoy vivian separados en la pestana: las
    DIMENSIONES —cortes por segmento y los tres nomogramas de los senos de Valsalva— y el ATEROMA
@@ -63015,6 +63028,22 @@ function refSubInit() {
   const integ = document.getElementById('ref-integracion');
   const hostValv = document.getElementById('ref-sub-valv');
   if (integ && hostValv) hostValv.appendChild(integ);
+  /* ══ CALCULADORAS (B-E5, 2026-10-21) ════════════════════════════════════════════════════
+     Dejo de ser un boton de la fila de arriba y es la PRIMERA sub-pestana de Referencias. Su
+     contenido NO cambia: se mueven los NODOS de `#tab-calculadoras` —las mismas tarjetas, los
+     mismos ids, los mismos calculos— igual que las 30 entradas de arriba. Reescribirlo seria
+     una segunda copia de ocho calculadoras.
+     ⚠️ LA PESTANA `#tab-calculadoras` SE CONSERVA VACIA, y es a proposito: `showTab` hace
+     `document.getElementById('tab-' + id).classList.add('active')` SIN guarda, asi que
+     cualquier camino que todavia pida esa pestana —un acceso viejo, un estudio guardado, el
+     drawer— tiraria un TypeError que se lleva el resto de `showTab`. Vacia es inocua.
+     Es idempotente: `refSubInit` corre una sola vez (su `dataset.refSubInit`), y aun si
+     corriera dos el `while` no encontraria hijos la segunda. */
+  const calcTab = document.getElementById('tab-calculadoras');
+  const hostCalc = document.getElementById('ref-sub-calc');
+  if (calcTab && hostCalc) {
+    while (calcTab.firstChild) hostCalc.appendChild(calcTab.firstChild);
+  }
   /* Teclado del tablist, patron ARIA: la barra es UN solo tab stop y las flechas mueven entre
      las cinco. Se cablea con addEventListener y no con un atributo de evento. */
   bar.addEventListener('keydown', function (e) {
@@ -63127,8 +63156,11 @@ function _refIndiceArmar(forzar) {
   /* La tabla de cirugia aortica tambien se arma al vuelo: sin esto, buscar «55 mm» o «Marfan»
      no encontraria una sola de sus doce filas. */
   if (typeof aoCxPintar === 'function') { try { aoCxPintar() } catch (e) {} }
-  const SUBTIT = { dim: 'Dimensiones', fun: 'Funcion', valv: 'Valvulas', ao: 'Aorta',
-                   otros: 'Otros hallazgos' };
+  /* `calc` entra por prolijidad: hoy no indexa ninguna entrada —ver la nota de `REF_SUBTAB`—
+     pero sin su rotulo, el dia que alguna tarjeta de Calculadoras gane un `toggleRef` el
+     buscador la mostraria con la clave cruda en vez del nombre de la seccion. */
+  const SUBTIT = { calc: 'Calculadoras', dim: 'Dimensiones', fun: 'Funcion', valv: 'Valvulas',
+                   ao: 'Aorta', otros: 'Otros hallazgos' };
   const idx = [];
   /* Se recorren TODAS las entradas de cada panel y no solo las claves de `REF_SUBTAB`: las cinco
      nativas y las cinco protesicas viven DENTRO del cuerpo plegable de su agrupador, asi que con

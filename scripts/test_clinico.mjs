@@ -11075,7 +11075,7 @@ caso('TC-144', 'Tabs avanzadas: el orden nuevo en las tres superficies, y las cl
      este caso vigila —que el orden, las claves y las preferencias por clave no se crucen— no
      cambio; lo que cambio es cuantos botones hay y donde vive el del pulmonar. */
   const ORDEN_IDS = ['hemodinamica','ete','cardioOnco','amiloidosis','congenitas','congenitas2'];
-  const ORDEN_TOOLS = ['calculadoras','refs'];
+  const ORDEN_TOOLS = ['refs'];
   const rail = leer('.rail .tab-btn');
   /* Las claves que NO pueden cambiar: son las de ett_modules en localStorage y las de data-mod. */
   const MOD = { hemodinamica:'hemodinamica', pulmonar:'pulmonar', ete:'ete', cardioOnco:'cardioOnco',
@@ -11121,7 +11121,17 @@ caso('TC-144', 'Tabs avanzadas: el orden nuevo en las tres superficies, y las cl
       f2.map(function(x){ return x.id; }).join(',')],
     /* ADAPTADO: de 10 a 8. Salieron «Eco Pulmonar» (al rail) y el Fonocardiograma (de la app).
        El conteo es lo unico que caza un boton perdido o duplicado en el reorden. */
-    ['son ocho botones', f1.length + f2.length === 8, String(f1.length + f2.length)],
+    /* ADAPTADO el 2026-10-21: de 10 a 7. Salieron «Eco Pulmonar» (al rail, B-E1), el
+       Fonocardiograma (de la app, B-E4) y «Calculadoras» (a Referencias, B-E5). */
+    ['son siete botones', f1.length + f2.length === 7, String(f1.length + f2.length)],
+    /* CONDICION NUEVA (B-E5): Calculadoras no esta arriba y SI es el primer boton de la barra
+       de Referencias, con su data-mod. */
+    ['«Calculadoras» es el primer boton de Referencias y no esta arriba',
+      f1.concat(f2).every(function(x){ return x.id !== 'calculadoras'; })
+        && (function(){ const b = document.querySelector('#tab-refs .ref-subbar button');
+          return !!b && b.id === 'ref-subtab-calc' && b.getAttribute('data-mod') === 'calculadoras'; })(),
+      (function(){ const b = document.querySelector('#tab-refs .ref-subbar button');
+        return 'primero=' + (b ? b.id : 'NO'); })()],
     /* CONDICION NUEVA (B-E1): el pulmonar NO esta arriba y SI esta en el rail, con su data-mod.
        Sin esta mitad, mover el boton a cualquier parte pasaria el caso. */
     ['«Eco pulmonar» vive en el rail, con su data-mod, y no en la fila de arriba',
@@ -77338,10 +77348,33 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
   try { if (FN('showTab')) showTab('refs'); } catch (e) {}
   try { if (FN('refSubInit')) refSubInit(); } catch (e) {}
 
-  /* ══ (A) LAS CINCO SUBPESTANAS Y EL CENSO ════════════════════════════════════════════════ */
+  /* ══ (A) LAS SUBPESTANAS Y EL CENSO ══════════════════════════════════════════════════════ */
   const ORDEN = OB('REF_SUB_ORDEN') || [];
-  ex.push(['(A1) hay CINCO subpestanas, en orden',
-    ORDEN.length === 5 && ORDEN.join(',') === 'dim,fun,valv,ao,otros', 'orden=' + ORDEN.join(',')]);
+  /* ADAPTADO el 2026-10-21 (B-E5): son SEIS. Calculadoras dejo de ser un boton de la fila de
+     arriba y es la PRIMERA sub-pestana de Referencias; su contenido no cambio, se reubicaron sus
+     nodos igual que los de las 30 entradas. El censo de entradas y el indice del buscador NO se
+     mueven, porque las tarjetas de Calculadoras no llevan un toggleRef ni un ref-<id> hermano
+     —ver las dos condiciones que siguen, que es donde eso se mide—. */
+  ex.push(['(A1) hay SEIS subpestanas, en orden, con Calculadoras PRIMERA',
+    ORDEN.length === 6 && ORDEN.join(',') === 'calc,dim,fun,valv,ao,otros', 'orden=' + ORDEN.join(',')]);
+  /* CONDICION NUEVA (B-E5): el contenido de Calculadoras esta DENTRO de Referencias, su boton
+     es el primero de la barra y no quedo ninguno en la fila de arriba. Sin esta mitad, mover el
+     contenido a cualquier parte pasaria el caso. */
+  ex.push(['(A1b) Calculadoras vive dentro de Referencias, primer boton de la barra, y ninguno arriba',
+    (function () {
+      const b = document.querySelector('#tab-refs .ref-subbar button');
+      const pan = EL('ref-sub-calc');
+      const alguna = EL('cx-wilkins') || document.querySelector('[id^=cx-]');
+      const arriba = [].slice.call(document.querySelectorAll('.tabs-tools .tab-btn, .tabs-special .tab-btn'))
+        .filter(x => (x.getAttribute('onclick') || '').indexOf('calculadoras') > -1).length;
+      return !!b && b.id === 'ref-subtab-calc' && !!pan
+        && !!alguna && alguna.closest('.tab-section') && alguna.closest('.tab-section').id === 'tab-refs'
+        && arriba === 0
+        && b.getAttribute('data-mod') === 'calculadoras' && b.tagName === 'BUTTON'; })(),
+    (function () { const a = EL('cx-wilkins') || document.querySelector('[id^=cx-]');
+      const b = document.querySelector('#tab-refs .ref-subbar button');
+      return 'primero=' + (b ? b.id + '/' + b.getAttribute('data-mod') : 'NO')
+        + ' contenido=' + (a && a.closest('.tab-section') ? a.closest('.tab-section').id : 'NO'); })()]);
   /* El censo: un h2.card-head con un onclick de toggleRef DENTRO de #tab-refs. Es la misma
      definicion de «entrada» antes y despues de la tanda. */
   const censo = (function () {
@@ -77376,7 +77409,7 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
                      ti: b ? b.tabIndex : null, rol: b ? b.getAttribute('role') : null });
   });
   ex.push(['(A5) cada subpestana activa SOLO su panel, con aria-selected y un unico tab stop',
-    subEstado.length === 5 && subEstado.every(s => s.act === s.k && s.sel === 'true' && s.ti === 0 && s.rol === 'tab'),
+    subEstado.length === 6 && subEstado.every(s => s.act === s.k && s.sel === 'true' && s.ti === 0 && s.rol === 'tab'),
     subEstado.map(s => s.k + ':' + s.act + '/' + s.sel + '/' + s.ti).join(' ')]);
   const bar = document.querySelector('#tab-refs .ref-subbar');
   ex.push(['(A6) la barra es un tablist que se desplaza POR DENTRO (nowrap + overflow-x)',
