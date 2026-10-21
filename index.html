@@ -17888,24 +17888,94 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
       <span style="float:right;">▶</span>
     </h2>
     <div id="ref-tep" style="display:none;" class="card-body">
+      <!-- ⚠️ CADA CRITERIO CON SU FUENTE Y SU FOLIO, VISTOS EN EL PDF ORIGINAL (C-E3, 21/10/2026).
+           La version anterior publicaba el TAPSE en «<17 mm» (que es el corte de la ASE 2025 para
+           la pestaña VD, no el de TEP), la PSAP en «>35» (el operador de la ASE 2025 es `>=`) y
+           le atribuia al cociente TAPSE/PSAP un «mal pronostico independiente» que ningun estudio
+           de la biblioteca sostiene. Los tres se corrigieron. La especificidad «~94 %» del signo
+           de McConnell tampoco esta publicada en la fuente y se retiro: lo que la guia dice es
+           que esos hallazgos tienen valor predictivo positivo alto y aparecen en cerca del 20 %
+           de los pacientes no seleccionados. -->
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <tr style="background:var(--section-head);">
+          <th style="padding:6px 8px;text-align:left;color:var(--accent2);">Criterio</th>
+          <th style="padding:6px 8px;text-align:center;color:var(--accent2);">Corte</th>
+          <th style="padding:6px 8px;text-align:left;color:var(--accent2);">Fuente</th></tr>
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:5px 8px;">Dilataci&oacute;n del VD &mdash; cociente de di&aacute;metros VD/VI en cuatro c&aacute;maras</td>
+          <td style="padding:5px 8px;text-align:center;font-weight:700;">&ge; 1,0</td>
+          <td style="padding:5px 8px;">ESC 2019 de TEP, folio 497.e17 y Figura 3 B (folio 497.e15)</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);">
+          <td style="padding:5px 8px;">Funci&oacute;n sist&oacute;lica del VD &mdash; TAPSE</td>
+          <td style="padding:5px 8px;text-align:center;font-weight:700;">&lt; 16 mm</td>
+          <td style="padding:5px 8px;">ESC 2019 de TEP, folio 497.e17 y Figura 3 G (folio 497.e15)</td></tr>
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:5px 8px;">Presi&oacute;n sist&oacute;lica pulmonar estimada</td>
+          <td style="padding:5px 8px;text-align:center;font-weight:700;">&ge; 35 mmHg</td>
+          <td style="padding:5px 8px;">ASE 2025 de c&aacute;maras derechas, Tabla 1, folio 145 (normal &le; 34 mmHg)</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);">
+          <td style="padding:5px 8px;">Signo de McConnell &mdash; contractilidad disminuida de la pared libre del VD con el &aacute;pex conservado</td>
+          <td style="padding:5px 8px;text-align:center;font-weight:700;">Presente</td>
+          <td style="padding:5px 8px;">ESC 2019 de TEP, &sect;4.9 (folio 497.e14) y Figura 3 B (folio 497.e15)</td></tr>
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:5px 8px;">Signo 60/60 &mdash; tiempo de aceleraci&oacute;n pulmonar corto con gradiente pico tricusp&iacute;deo poco elevado</td>
+          <td style="padding:5px 8px;text-align:center;font-weight:700;">AT &lt; 60 ms y gradiente &lt; 60 mmHg</td>
+          <td style="padding:5px 8px;">ESC 2019 de TEP, &sect;4.9 (folio 497.e14) y Figura 3 E (folio 497.e15)</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);">
+          <td style="padding:5px 8px;">Tabique en D &mdash; aplanamiento del septo interventricular en eje corto paraesternal</td>
+          <td style="padding:5px 8px;text-align:center;font-weight:700;">Presente</td>
+          <td style="padding:5px 8px;">ESC 2019 de TEP, Figura 3 C (folio 497.e15)</td></tr>
+        <tr>
+          <td style="padding:5px 8px;">Aur&iacute;cula derecha dilatada &mdash; &aacute;rea telesist&oacute;lica <i>(se muestra; no suma al conteo)</i></td>
+          <td style="padding:5px 8px;text-align:center;font-weight:700;">&gt; 18 cm&sup2;</td>
+          <td style="padding:5px 8px;">ESC/ERS 2022 de hipertensi&oacute;n pulmonar, Tabla 10 (folio 28) y Figura 4 (folio 27)</td></tr>
+      </table>
+
+      <div style="font-size:10px; color:var(--text2); line-height:1.55; margin:8px 0 12px;">
+        <div style="margin-bottom:4px;">
+          <span style="display:inline-block; border:1px solid var(--border); border-radius:4px; padding:1px 5px; margin-right:4px; font-size:9px; letter-spacing:.3px;">CRITERIO DE ECOSMART</span>
+          La aplicaci&oacute;n resume estos criterios en un conteo y cambia de texto en <b>dos</b> y en
+          <b>cuatro</b> criterios positivos. Esos dos n&uacute;meros son una referencia propia:
+          ninguna de las fuentes de arriba publica un puntaje construido con estos seis criterios.
+        </div>
+        <div>
+          El &aacute;rea de la aur&iacute;cula derecha se muestra con el corte de la gu&iacute;a de
+          hipertensi&oacute;n pulmonar y <b>no</b> entra en el conteo. La ASE 2025 sit&uacute;a el
+          l&iacute;mite normal del &aacute;rea de la aur&iacute;cula derecha en &lt; 19 cm&sup2;
+          (Tabla 1, folio 145), que es el que la aplicaci&oacute;n usa para graduar esa c&aacute;mara
+          en la pesta&ntilde;a del ventr&iacute;culo derecho.
+        </div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:6px;">&Iacute;ndice TAPSE/PSAP &mdash; acoplamiento VD-AP</div>
       <div style="font-size:12px;color:var(--text);line-height:1.8;">
-        <b style="color:var(--accent2);">Criterios de disfunción VD (≥2 = disfunción significativa):</b><br>
-        • Dilatación VD: VD/VI ≥1.0 en A4C<br>
-        • Disfunción sistólica: TAPSE &lt;17mm<br>
-        • PSAP elevada: &gt;35 mmHg<br>
-        • Signo de McConnell: hipoquinesia pared libre VD con ápex conservado (especificidad ~94% para TEP)<br>
-        • Signo 60/60: AT pulmonar &lt;60ms + Gmax IT &lt;60 mmHg<br>
-        • Tabique en D: aplanamiento septal en eje corto paraesternal<br>
-        • AD dilatada: área &gt;18 cm²<br><br>
-        <b style="color:var(--accent2);">Índice TAPSE/PSAP — acoplamiento VD-AP:</b><br>
-        • &gt;0.32 mm/mmHg → acoplamiento conservado<br>
-        • ≤0.32 mm/mmHg → desacoplamiento — mal pronóstico independiente<br><br>
-        <b style="color:var(--accent2);">Estratificación ESC 2019:</b><br>
-        • 🔴 Alto riesgo: shock/hipotensión + disfunción VD → reperfusión urgente<br>
-        • 🟠 Intermedio-alto: normotenso + disfunción VD + biomarcadores elevados<br>
-        • 🟡 Intermedio-bajo: normotenso + disfunción VD o biomarcadores (no ambos)<br>
-        • 🟢 Bajo riesgo: normotenso + sin disfunción VD + biomarcadores negativos<br><br>
-        <b style="color:var(--accent2);">Limitaciones:</b> Ningún signo eco es patognomónico de TEP. El signo de McConnell puede verse en IAM VD. Siempre correlacionar con clínica, score de Wells y CTPA.
+        La aplicaci&oacute;n publica el cociente como un n&uacute;mero y <b>no le aplica ning&uacute;n
+        corte en el contexto de TEP agudo</b>: ninguna de las fuentes de la biblioteca propone uno
+        para esa situaci&oacute;n. El corte de 0,32 mm/mmHg que suele citarse es el umbral de
+        <b>bajo riesgo en hipertensi&oacute;n arterial pulmonar</b> (ESC/ERS 2022, Tabla 16, folio 41)
+        y describe otra poblaci&oacute;n.
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:12px 0 6px;">Estratificaci&oacute;n del riesgo &mdash; ESC 2019, Tabla 8 (folio 497.e20)</div>
+      <div style="font-size:12px;color:var(--text);line-height:1.8;">
+        La gu&iacute;a clasifica el riesgo de muerte precoz combinando <b>cuatro</b> indicadores:
+        inestabilidad hemodin&aacute;mica, par&aacute;metros cl&iacute;nicos de gravedad
+        (clase <b>PESI</b> III-V o <b>sPESI</b> &ge; 1), disfunci&oacute;n del ventr&iacute;culo derecho
+        por ecocardiograf&iacute;a o angiotomograf&iacute;a, y troponinas card&iacute;acas elevadas.<br>
+        • <b>Alto:</b> con inestabilidad hemodin&aacute;mica y disfunci&oacute;n del VD por imagen.<br>
+        • <b>Intermedio-alto:</b> sin inestabilidad, con disfunci&oacute;n del VD <i>y</i> troponinas elevadas.<br>
+        • <b>Intermedio-bajo:</b> sin inestabilidad, con uno de esos dos positivo o ninguno.<br>
+        • <b>Bajo:</b> sin inestabilidad, sin criterios cl&iacute;nicos de gravedad y sin disfunci&oacute;n del VD.<br>
+        <span style="color:var(--text2);font-size:11px;">La ecocardiograf&iacute;a aporta uno de los cuatro indicadores. El panel de Evidencia pregunta los otros tres y publica la clase que resulta.</span>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:12px 0 6px;">Limitaciones</div>
+      <div style="font-size:12px;color:var(--text);line-height:1.8;">
+        Ning&uacute;n signo ecocardiogr&aacute;fico es espec&iacute;fico de la embolia pulmonar: la
+        gu&iacute;a se&ntilde;ala que la hipocinesia o acinesia de la pared libre del ventr&iacute;culo
+        derecho por infarto puede parecerse al signo de McConnell, y que un estudio normal no excluye
+        el diagn&oacute;stico (&sect;4.9, folio 497.e14). Correlacionar siempre con la cl&iacute;nica y
+        con la confirmaci&oacute;n diagn&oacute;stica por imagen.
       </div>
     </div>
   </div>

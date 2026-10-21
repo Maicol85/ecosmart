@@ -129,6 +129,57 @@ const CONTROLES = `(() => {
     catch(e){ R[fn] = 'EXC' } });
   return R })()`;
 
+/* ══ LA FICHA DE REFERENCIAS DEL TEP ════════════════════════════════════════════════════
+   Se mide el TEXTO RENDERIZADO de la entrada, no el fuente: lo que se afirma es lo que el
+   medico lee. La entrada nace plegada y vive en una subpestaña de Referencias, asi que se
+   abre por el gesto y se ABORTA si no tiene geometria. */
+const REFS = `(() => {
+  ['modalAvisoEco','login-overlay'].forEach(id => { const m = document.getElementById(id);
+    if (m) m.style.display = 'none' });
+  try { showTab('refs') } catch(e){}
+  try { if (typeof refSubInit === 'function') refSubInit() } catch(e){}
+  /* ⚠️ LA ENTRADA VIVE EN LA SUBPESTAÑA «fun» (REF_SUBTAB). Sin activarla, la tarjeta existe y
+     mide 0x0 dentro de un panel apagado, y la medicion informa «sin geometria» sobre una ficha
+     perfecta. refSubTab EXIGE su segundo argumento: sin el boton lanza al tocarle el
+     classList y se traga el resto del abridor. */
+  try {
+    let btn = null;
+    Array.prototype.forEach.call(document.querySelectorAll('[onclick]'), b => {
+      const oc = b.getAttribute('onclick') || '';
+      if (!btn && oc.indexOf('refSubTab') > -1 && oc.indexOf('fun') > -1) btn = b; });
+    if (typeof refSubTab === 'function') refSubTab('fun', btn);
+  } catch(ex){}
+  const e = document.getElementById('ref-tep');
+  if (!e) return { ABORTO: 'SIN ref-tep' };
+  if (getComputedStyle(e).display === 'none') { try { toggleRef('tep') } catch(ex){} }
+  e.style.display = '';
+  const r = e.getBoundingClientRect();
+  const t = (e.textContent || '').replace(/[ ]+/g, ' ').trim();
+  return {
+    geom: { w: Math.round(r.width), h: Math.round(r.height) },
+    n: t.length,
+    chip: t.indexOf('CRITERIO DE ECOSMART') > -1,
+    tapse16: t.indexOf('< 16 mm') > -1,
+    tapse17: t.indexOf('17mm') > -1 || t.indexOf('17 mm') > -1,
+    psap35: t.indexOf('35 mmHg') > -1,
+    psapMayor: t.indexOf('> 35') > -1 || t.indexOf('>35') > -1,
+    vdvi10: t.indexOf('1,0') > -1,
+    ad18: t.indexOf('18 cm') > -1,
+    ad19: t.indexOf('19 cm') > -1,
+    independiente: t.indexOf('independiente') > -1,
+    pesi: t.indexOf('PESI') > -1,
+    tabla8: t.indexOf('Tabla 8') > -1,
+    e17: t.indexOf('497.e17') > -1,
+    e15: t.indexOf('497.e15') > -1,
+    e14: t.indexOf('497.e14') > -1,
+    folio145: t.indexOf('folio 145') > -1,
+    folio28: t.indexOf('folio 28') > -1,
+    folio41: t.indexOf('folio 41') > -1,
+    esp94: t.indexOf('94%') > -1 || t.indexOf('94 %') > -1,
+    corte032: t.indexOf('0,32') > -1 || t.indexOf('0.32') > -1,
+    texto: t.slice(0, 900)
+  } })()`;
+
 /* ══ MAQUETA Y CAPTURA ════════════════════════════════════════════════════════════════════
    Mide lo RENDERIZADO a cuatro anchos por los dos temas: sin scroll horizontal, la tarjeta de
    TEP entera y el COLOR REAL computado de lo nuevo. El tema se EXIGE: si la clase no queda
@@ -187,6 +238,18 @@ async function corre(nombre, abrir) {
     if (hay('score')) {
       R.score = {};
       for (const c of ESCENAS) R.score[c.k] = await pg.evaluate(ESCENA.replace('CASO', JSON.stringify(c)));
+    }
+    if (hay('refs')) {
+      R.refs = await pg.evaluate(REFS);
+      try { fs.mkdirSync(DEST, { recursive: true }) } catch (e) {}
+      for (const claro of [false, true]) {
+        const t = await pg.evaluate(TEMA.replace('CLARO', JSON.stringify(claro)));
+        if (!t.claro) { R['refTema_' + claro] = 'TEMA NO QUEDO'; continue }
+        await pg.waitForTimeout(120);
+        const el = await pg.$('#ref-tep');
+        if (el) { try { await el.screenshot({ path: DEST + '/reftep_' + nombre + '_' + (claro ? 'claro' : 'osc') + '.png' }) } catch (e) {} }
+      }
+      await pg.evaluate(TEMA.replace('CLARO', 'false'));
     }
     if (hay('maqueta')) {
       R.maq = {};
