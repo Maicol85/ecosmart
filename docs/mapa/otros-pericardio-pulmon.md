@@ -191,3 +191,22 @@ operadores, fórmulas, textos clínicos, ids— se movió; lo que cambió son la
 **El mapa de todo eso es `docs/mapa/pestanas-reorganizacion.md`**, con la tabla «qué se movió»,
 las tres cosas que `showTab` hace y que condicionan cualquier barra de sub-pestañas, el drawer
 móvil y sus `data-mod`, y las seis trampas de medición.
+
+---
+
+## ⚠️ EL ECO PULMONAR SE UNIFICÓ EL 2026-10-22 (trabajo B2)
+
+Los dos módulos pulmonares —el «básico» de ocho campos `pul_*` y el «avanzado» de diecinueve
+`pua_*`— son **UNO**. El avanzado es la base; del básico entraron sólo el **tamaño del derrame**
+(`pul_derrame_tam`) y la **nota de la consolidación** (`pul_consol_nota`), que conservan su id, y
+los otros seis campos se traducen al abrir un estudio guardado.
+
+Con eso se retiraron `PUL_PARES`, `pulBasicoHayDatos`, `pulBasicoDominios`, `pulBasicoTexto`,
+`pulBasicoUI` y `pulAvanzadoCubreBasico` —toda la exclusión mutua— y el **bloque 13b** del
+informe. El dueño único de las frases es `pulAvFrases`, y publica **un párrafo** y **una línea**.
+
+La pantalla vive apilada con «Pericardio y masas» detrás del botón **«Pericardio y pulmón»**, y
+«Otros» dejó de tener sub-pestañas: sus dos secciones quedaron apiladas con su barra.
+
+**El detalle completo —la tabla campo por campo, la migración y las trampas— está en
+`docs/mapa/pestanas-reorganizacion.md` §12 a §17.**

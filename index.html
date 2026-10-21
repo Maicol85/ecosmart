@@ -8327,8 +8327,14 @@ window.cerrarSesionReal = cerrarSesionReal;
   <div class="card">
     <div class="card-body">
 
+      <!-- ⚠️ EL AVISO DECIA «Al integrar este modulo, la seccion basica de Ecografia Pulmonar
+           se omite del informe para no duplicar los hallazgos» Y DESDE EL B2-E2 ESO ES FALSO:
+           no hay seccion basica, ni exclusion mutua, ni nada que omitir. Lo caza MIRAR la
+           captura; ninguna medicion de texto lo veia, porque el aviso no entra en el informe.
+           La frase que queda es la del modulo basico, LITERAL —no se escribe texto nuevo— y
+           sigue siendo cierta: el pulmon no publica nada hasta que se integra. -->
       <p style="font-size:11px;color:var(--text2);margin-bottom:12px;">
-        Al integrar este módulo, la sección básica de Ecografía Pulmonar se omite del informe para no duplicar los hallazgos.
+        Si no se completa nada, no aparece en el informe.
       </p>
 
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">🔍 Pleura y líneas A</div>
@@ -125574,8 +125580,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261021-0631';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1792575086071;                 /* eco-build-ms */
+const ECO_BUILD    = '20261021-0816';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1792581417499;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -125661,7 +125667,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261021-0631</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261021-0816</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

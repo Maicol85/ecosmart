@@ -4660,3 +4660,62 @@ renderizó la página a 320 dpi.
 | **Clases de riesgo en la pantalla y en la hoja del PDF** | «Riesgo INTERMEDIO-ALTO / INTERMEDIO-BAJO», decididas con el eco solo | **retiradas**; la estratificación va a Evidencia | ESC 2019, Tabla 8, folio 497.e20: clasifica con cuatro indicadores y el eco aporta uno | C-E2 | 21/10/2026 |
 | **Ficha de Referencias del TEP** | TAPSE `<17mm`, PSAP `>35`, «mal pronóstico independiente», «especificidad ~94 %» | **cada criterio con su corte y su folio**; las cuatro afirmaciones sin fuente, retiradas | arriba, dato por dato | C-E3 | 21/10/2026 |
 | **Estratificación del riesgo** | no existía | **sección nueva del panel de Evidencia**, con cuestionario y las siete ramas de la Tabla 8 | ESC 2019, Tabla 8 y sus notas ᵃ ᵇ ᵈ ᵉ, folio 497.e20 | C-E4 | 21/10/2026 |
+
+---
+
+## El trabajo «B2» — LAS CORRECCIONES DE LA REORGANIZACIÓN (2026-10-22)
+
+**Ninguna fuente nueva, y ningún corte, operador, fórmula ni texto clínico se movió.** Este
+trabajo mueve pantallas, unifica dos módulos en uno y cambia un formato. Las dos frases nuevas del
+informe se **componen** con las que ya existían: el tamaño del derrame y la nota de la
+consolidación, que venían del módulo pulmonar básico, se insertan en las oraciones del avanzado
+sin cambiar una palabra de ninguna de las dos.
+
+**La fórmula de Balik no se tocó** (`_balikVol`, ml = mm × 20) y su fuente sigue siendo la del
+CORTOS13: Volpicelli y col., *Intensive Care Med* 2026, enunciado **D6_11, hoja 19**, con su
+alcance —pacientes críticos en ventilación invasiva—. ⚠️ **Y el globo ⓘ que publica ese alcance
+estuvo a punto de perderse**: vivía en el campo `pul_balik` del módulo básico y se iba con él. Lo
+destapó TC-502, que cuenta las tarjetas registradas sin botón (once → diez), y se repuso en
+`pua_balik`.
+
+### Tabla «qué se movió»
+
+| elemento | dónde estaba | dónde está | comprobado |
+|---|---|---|---|
+| **Botón «Pericardio y masas»** | columna izquierda, botón propio | **fusionado**: un botón «Pericardio y pulmón», en el lugar de los dos | Chrome y WebKit, 5 anchos × 2 temas |
+| **Botón «Eco pulmonar»** | columna izquierda, con `data-mod="pulmonar"` | **retirado**; su pantalla vive apilada bajo el botón nuevo | ídem |
+| **Pantalla del eco pulmonar** | `#tab-pulmonar` | **`#tab-pericardio`**, segunda barra apilada | ídem |
+| **`#tab-pulmonar`** | panel propio | **no existe**: medido, su id tenía UNA aparición en todo el archivo | grep |
+| **Clave `pulmonar` de `EE_MODULES`** | con su casilla en Config | **retirada** (el botón ya no lleva `data-mod`) | TC-144, TC-511 (A2) |
+| **Módulo pulmonar «básico»** (8 campos `pul_*`) | sección propia dentro de `#tab-pulmonar` | **unificado** con el avanzado: 6 campos traducidos, 2 conservados con su id | TC-511 (C1, C2, D1) |
+| **Tamaño del derrame** `pul_derrame_tam` | módulo básico | **pantalla unificada**, mismo id, dentro de la oración del derrame | TC-511 (C5) |
+| **Nota de la consolidación** `pul_consol_nota` | módulo básico | **pantalla unificada**, mismo id, en la misma oración, entre paréntesis | TC-511 (C5) |
+| **Globo ⓘ del Balik** | campo `pul_balik` del básico | **campo `pua_balik`** de la pantalla unificada | TC-502, TC-511 (C8) |
+| **Texto pulmonar del informe** | dos listas de frases (básico y avanzado) con exclusión mutua | **UN párrafo**, un solo emisor | TC-511 (C4) |
+| **Texto pulmonar del EN SUMA** | hasta dos bloques | **UNA línea** | TC-511 (C6) |
+| **Palabra «avanzado» de la pantalla pulmonar** | barra, tarjeta de integración, título de la sección del PDF y manual | **retirada**: cero apariciones | TC-511 (C3), dos motores |
+| **Sub-pestañas de «Otros»** | dos botones `otr-subbar` + dos paneles excluyentes | **retiradas**: dos barras apiladas, visibles las dos | TC-511 (E1), captura a 360 px |
+| **`otrSubTab` / `OTR_SUB_ORDEN` / CSS de la barra** | módulo propio | **retirados**, con sus `window.*` | grep y TC-511 (E1) |
+| **Botones de CC** | `tab-btn` dentro de `.cc-subbar` | **`tab-btn tab-special`**, la clase de la fila de arriba (cero cambio de píxel) | TC-511 (F1, F2) |
+| **Aviso de la pantalla pulmonar** | «Al integrar este módulo, la sección básica … se omite del informe» | **«Si no se completa nada, no aparece en el informe.»** (la frase del módulo básico, literal) | captura a 390 px |
+| **Diapositiva del PPT** | título «Ecografía Pulmonar» | **igual**: nunca dijo «avanzado»; se conserva | fuente y PPT generado |
+
+### Lo medido, y lo que la medición desmintió
+
+- **El Modo Básico:** en HEAD mostraba **11** botones y **no** el eco pulmonar. Con un botón
+  único las dos opciones eran incompatibles; se eligió la que no le quita nada a nadie. Ver
+  `docs/PENDIENTES.md` → **B2-1**.
+- **Los botones de C. Congénitas YA coincidían** con los de la fila de arriba en las siete
+  propiedades, en reposo y en activo, en los dos temas y los dos motores. Ver **B2-6**.
+- **Las barras de la app**, medidas contra la de Hemodinámica: `background rgb(35,40,64)` ·
+  `color rgb(126,200,227)` · 11 px / 700 · uppercase · `letter-spacing 0.88px` ·
+  `padding 8px 14px` · borde inferior `1px rgb(42,48,80)`. Las cuatro barras nuevas —dos de
+  «Pericardio y pulmón» y dos de «Otros»— dan **exactamente** esos valores.
+
+### Cambios de evidencia
+
+**NINGUNO.** No se movió un corte, un operador, una fórmula ni una frase clínica. Las dos
+oraciones que cambian de forma —el párrafo del informe y la línea del EN SUMA— llevan **las mismas
+palabras**, unidas con un espacio en vez de un salto de línea; verificado además en el **PDF
+generado de verdad**: el texto de las seis plantillas es idéntico carácter por carácter
+normalizando el blanco (3037 a 3175 caracteres según la plantilla).

@@ -1,5 +1,10 @@
 # Fichas de casos por tanda
 
+> ⚠️ **TC-511 EN ADELANTE VIVE EN `docs/mapa/tests-fichas-511.md`.** Este archivo quedó en
+> **33,3 KB** tras el trabajo B y la ficha del B2 lo cruzaba: se sacó a archivo propio ANTES de
+> escribir, medido con `wc -c`.
+
+
 Sale de `docs/mapa/tests.md`, que cruzó el techo de 35 KB el 2026-10-16 al agregarle TC-485.
 **Lo que está acá es la ficha de cada tanda**: qué cubre su caso, cuántas condiciones tiene y
 cuántas quedan en rojo contra HEAD. **Lo que está allá es el mecanismo**: cómo se agrega un caso,

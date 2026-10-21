@@ -228,3 +228,143 @@ node scripts/_probe_btabs.mjs --solo maqueta --dest /tmp/bcap           # 5 anch
 node scripts/_probe_btabs.mjs --solo drawer,otrclic                     # el drawer y el color
 node scripts/test_clinico.mjs --solo TC-509
 ```
+
+---
+
+# LAS CORRECCIONES — trabajo «B2» (2026-10-22)
+
+El B dejó cuatro cosas que el médico corrigió después de probarlo en Safari. **Nada de acá cambia
+un corte, un operador, una fórmula ni un texto clínico**: lo que se mueve son puertas, lo que se
+unifica son dos módulos que decían lo mismo, y lo que cambia de formato es una clase de CSS.
+
+## 12 · «Pericardio y pulmón»: un botón, dos barras apiladas
+
+| elemento | antes (B) | ahora (B2) |
+|---|---|---|
+| botones de la columna izquierda | **12** | **11** |
+| «Pericardio y masas» y «Eco pulmonar» | dos botones | **uno**: «⚪ Pericardio y pulmón» |
+| panel | `#tab-pericardio` y `#tab-pulmonar` | **`#tab-pericardio`**, con las dos pantallas apiladas |
+| `#tab-pulmonar` | existía | **no existe** |
+| `data-mod` del botón | `pulmonar` | **ninguno**; la clave salió de `EE_MODULES` |
+
+**El panel NO se renombra**, a propósito: `#tab-pericardio` es el id que `showTab`, el drawer,
+`_indOrigenAssert` y los casos de la suite ya nombran.
+
+⚠️ **EL BOTÓN VA SIN `data-mod`, Y ES LA DECISIÓN DE FONDO.** Medido en HEAD: en Modo Básico el
+rail mostraba **11** botones —«Pericardio y masas» **sí**, «Eco pulmonar» **no**—. Con un botón
+solo, dejarle el atributo lo escondería en Básico **y con él «Pericardio y masas»**, que el médico
+hoy sí ve. Sin él nadie pierde nada y el Básico **recupera** el módulo pulmonar básico, que hasta
+el B vivía en «Otros» (sin `data-mod`) y que el B le había quitado al meterlo en una pestaña
+gateada. Está en `docs/PENDIENTES.md` → **B2-1**, con la salida para recuperar la casilla de
+Config.
+
+**Las dos barras usan `h2.card-head`**, que es el formato de las de Hemodinámica, y nacen
+**cerradas**. Medido contra la de Hemodinámica, las ocho propiedades idénticas:
+`bg rgb(35,40,64)` · `color rgb(126,200,227)` · 11px/700 · uppercase · `ls .88px` ·
+`pad 8px 14px` · `border-bottom 1px rgb(42,48,80)`.
+
+## 13 · El eco pulmonar unificado: un módulo donde había dos
+
+| | módulo BÁSICO (`pul_*`) | módulo AVANZADO (`pua_*`) | unificado |
+|---|---|---|---|
+| derrame | `pul_derrame` si/no | `pua_derrame` ''/no/si | **`pua_derrame`** |
+| tamaño | `pul_derrame_tam` mínimo/moderado/severo | **no existía** | **`pul_derrame_tam`** (mismo id) |
+| Balik | `pul_balik` | `pua_balik` | **`pua_balik`** (con su globo ⓘ) |
+| lado | `pul_derrame_lado` ''/derecho/izquierdo/bilateral | `pua_derrame_lado` unilateral derecho/… | **`pua_derrame_lado`** + «sin consignar» |
+| tipo del derrame | no existía | `pua_derrame_tipo` libre/tabicado | **`pua_derrame_tipo`** + «sin consignar» |
+| líneas B | `pul_lineasb` si/no | `pua_lineasb` ''/ausentes/presentes | **`pua_lineasb`** |
+| patrón / cantidad | `pul_lineasb_pat` focal/difuso | `pua_lineasb_cant` focal/multiples/coalescentes + 6 zonas | **`pua_lineasb_cant`** |
+| consolidación | `pul_consolidacion` si/no | `pua_consol` ''/no/si | **`pua_consol`** |
+| broncograma | no existía | `pua_consol_bronco` con/sin/fluido | **`pua_consol_bronco`** + «sin consignar» |
+| nota | `pul_consol_nota` | **no existía** | **`pul_consol_nota`** (mismo id) |
+| deslizamiento, líneas A, punto pulmón | no existían | `pua_desliz`, `pua_desliz_lado`, `pua_lineasa`, `pua_punto` | igual |
+
+**El avanzado es la base y del básico entra sólo lo que no tenía: el tamaño y la nota.** Esos dos
+**conservan su id** porque no hay contraparte a la que traducirlos (`PENDIENTES.md` → B2-2).
+
+### La migración, en `_migrarCamposLegacy`
+
+```
+pul_derrame = 'si'        -> pua_derrame = 'si'   (+ pua_balik, pua_derrame_lado)
+pul_derrame_lado derecho  -> pua_derrame_lado 'unilateral derecho'  (izquierdo idem)
+pul_lineasb = 'si'        -> pua_lineasb = 'presentes'  (+ pua_lineasb_cant)
+pul_lineasb_pat difuso    -> pua_lineasb_cant 'multiples'   ·  focal -> 'focal'
+pul_consolidacion = 'si'  -> pua_consol = 'si'
+los seis pul_* se borran del objeto; pul_derrame_tam y pul_consol_nota NO se tocan
+```
+
+⚠️ **SÓLO SE TRADUCE EL VALOR POSITIVO**, y es lo que protege todo informe ya firmado: los tres
+selects del básico nacían en `'no'`, así que ese valor lo trae **cada** estudio guardado. Ver
+`PENDIENTES.md` → **B2-3**.
+⚠️ **Y SÓLO SI EL DESTINO ESTÁ VACÍO**: desde el B los dos módulos vivían en la misma pestaña, así
+que un estudio puede traer los dos. **El avanzado manda.**
+⚠️ **LAS ZONAS NO SE INVENTAN**: quedan sin marcar, así que `pulAvDifuso` devuelve `null` y el
+patrón se nombra **sin** el adjetivo «difuso» en vez de afirmarlo. Es la regla del ARR.
+
+### El texto: un párrafo y una línea
+
+`pulAvFrases` es el **dueño único** y lo consumen el informe y `amiloTextoPulmonar`. El bloque
+**13b** del informe —el del básico— se retiró con el módulo, así que no hay dos listas que
+duplicarse ni exclusión mutua que aplicar: con eso se fueron `PUL_PARES`, `pulBasicoHayDatos`,
+`pulBasicoDominios`, `pulBasicoTexto`, `pulBasicoUI` y `pulAvanzadoCubreBasico`, **con sus
+`window.*`** (una referencia de nivel superior a algo que ya no existe aborta el `<script>`
+completo).
+
+Las frases se unen con un espacio: **un párrafo** en el informe —con el «Patrón global» adentro— y
+**una línea** en el EN SUMA. No se escribió una oración clínica nueva.
+
+⚠️ **LOS TRES DEPENDIENTES GANARON «— sin consignar —»** y su cláusula se omite cuando está vacío.
+Sin eso, un estudio migrado del básico publicaría «de aspecto libre», «bilateral» y «con
+broncograma aéreo» por el valor de fábrica — hallazgos que nadie evaluó. **No cambia ningún texto
+alcanzable antes del B2.**
+
+## 14 · Otros: dos barras apiladas
+
+Los dos botones de sub-pestaña salieron y las dos secciones quedaron apiladas, **cada una con la
+barra que ya tenía**: queda un nivel y no dos. Se retiraron `otrSubTab`, `OTR_SUB_ORDEN`,
+`_otrSubActiva`, su oyente de teclado, sus dos `window.*` y las tres reglas de CSS — incluida la
+excepción `:not(.otr-subbar)` de la media query del celular, que el B había tenido que agregar
+para que esa barra no se escondiera por debajo de 768 px. **Las de C. Congénitas se conservan.**
+
+Medido a 360 px: las dos barras en **326 × 44** (piso táctil), cero scroll horizontal, en los dos
+motores. El médico ya no queda atrapado en una sub-pestaña.
+
+## 15 · Los botones de C. Congénitas
+
+Llevan `tab-special`, la clase de los de la fila de arriba, en las **dos** copias de la barra.
+⚠️ **MEDIDO ANTES DE TOCAR NADA: ya se veían igual.** `.subtabs-wrap .tab-btn` (0,2,1) le gana a
+`.tab-special` (0,1,0) y los botones de arriba también viven dentro de un `.subtabs-wrap`, así que
+las cinco declaraciones de esa clase no se aplican a ninguno de los dos. La clase se agrega igual
+porque **ata los dos grupos**: cero cambio de píxel, medido. `PENDIENTES.md` → **B2-6**.
+
+El estado activo sigue en **`cc-on`** y no en `.active`, que `showTab` barre.
+
+## 16 · Trampas de esta tanda
+
+1. **Un medidor que clickea deja el botón en `:hover` y `:focus`**, y `.subtabs-wrap .tab-btn:hover`
+   cambia el color y el borde: la primera corrida informó tres diferencias falsas entre CC y la
+   fila de arriba. Hay que **alejar el mouse y hacer `blur`** antes de medir el reposo, además de
+   esperar la transición de `.15s` y medir en otra llamada.
+2. **Y comparar el botón ACTIVO de CC contra uno EN REPOSO de arriba** da «distinto» sobre dos
+   estados que no son comparables. Reposo con reposo, activo con activo.
+3. **`fop_contraste` es un `<select>` si/no y no un checkbox**: preguntarle por `.checked` da
+   siempre `false` y la condición sale roja sobre un espejo que funciona.
+4. **Retirar un campo se lleva su globo ⓘ.** El del Balik vivía en `pul_balik`; lo destapó
+   **TC-502**, que cuenta las tarjetas registradas sin botón, y no la lectura.
+4b. **Y retirar un módulo deja vivos los avisos que hablaban de él.** La pantalla unificada seguía
+   publicando «Al integrar este módulo, la sección básica de Ecografía Pulmonar se omite del
+   informe para no duplicar los hallazgos» sobre una sección que ya no existe. **Ninguna medición
+   de texto lo veía** —ese `<p>` no entra al informe— y lo cazó **mirar una captura a 390 px**.
+5. **El acento grave, cuatro veces**, todas en comentarios míos dentro del cuerpo de un caso.
+   `check_backticks.py` dio la línea exacta las cuatro; `node --check` apuntaba a la apertura del
+   template.
+
+## 17 · Cómo medir esta zona
+
+```bash
+node scripts/_probe_b2.mjs --solo rail,modos        # los once botones y los dos modos
+node scripts/_probe_b2.mjs --solo barras,otros      # las cuatro barras y su color
+node scripts/_probe_b2.mjs --solo pulm              # el inventario de la pantalla unificada
+node scripts/_probe_b2.mjs --solo color             # CC contra la fila de arriba
+node scripts/test_clinico.mjs --solo TC-511
+```

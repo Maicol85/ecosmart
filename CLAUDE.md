@@ -294,6 +294,174 @@ impecable.
 ## Estado vigente
 
 
+### Las CORRECCIONES de la reorganización de pestañas — «B2» (2026-10-22)
+
+- **Son CINCO commits, y son los cinco que la orden pedía.** Al **empezar**, `main` **y
+  `origin/main` estaban los dos en `82a6ead`** —el cierre del trabajo C, con su sello
+  `v20261021-0631` y su `md5` `b873d87a…`—, **sin nada sin pushear**, medido con un `git fetch`
+  real y un `ls-remote` dando el mismo sha. **El C estaba TERMINADO** (su C-E5 lleva la cobertura,
+  la documentación y el sello), así que no hubo que parar. Los **cinco** commits de esta tanda
+  quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 5 → 4 → 3 → 2 → 1.**
+  ⚠️ **EL 2 CUELGA DEL 1**, y es la única dependencia dura de la serie: el 1 mueve el contenido
+  pulmonar dentro de `#tab-pericardio` y borra `#tab-pulmonar`; el 2 reescribe ese marcado ya
+  movido. Revertir el 1 sin revertir antes el 2 deja la pantalla unificada dentro de un panel que
+  vuelve a existir y la mitad de los campos fuera de él.
+  ⚠️ **EL 3 Y EL 4 SE REVIERTEN SOLOS Y EN CUALQUIER ORDEN**: el 3 vive en la barra de Otros
+  (`otrSubTab`, `OTR_SUB_ORDEN`, `.otr-sub` y tres reglas de CSS) y el 4 en cuatro atributos
+  `class` de los botones de congénitas. Ninguno nombra una pieza del otro ni de los dos primeros.
+  ⚠️ **PERO EL 1 LLEVA LA SONDA** (`scripts/_probe_b2.mjs`), que los cuatro usan.
+  **El 5 es TC-511, la documentación y el sello**, y afirma el comportamiento de los cuatro.
+  ⚠️ **EL COMMIT 2 SE AMENDÓ, y hay que decir por qué**: el commit 3 destapó —vía **TC-502**— que
+  retirar el marcado del módulo básico se había llevado el **globo ⓘ del Balik**, donde viven los
+  límites de validez de la fórmula. Se repuso en `pua_balik` y se amendó el 2, que es donde
+  pertenece. El amend es sobre un commit **local y no pusheado**.
+
+- **Línea base al cierre: suite **521/525** con el pendrive `DISK_IMG` MONTADO —verificado al
+  abrir Y al cerrar—, Semgrep **124 / 0 ERROR en 1 app**, Excel en **440** columnas y celular
+  **66 a 360 px y 76 a 390 px con 17 ALTA cada uno**. CERO REGRESIONES.** Los rojos son
+  exactamente los de ENTRADA —**TC-223** (el documentado, falla por la fecha), **TC-376**,
+  **TC-390** y **TC-406**— y no apareció ninguno fuera de esa lista. **El denominador sube a
+  525**: esta tanda agregó **TC-511**.
+  ⚠️ **LA DE ENTRADA NO SE VOLVIÓ A MEDIR, Y SE DECLARA POR QUÉ:** HEAD limpio ES el cierre del C,
+  cuya línea base se midió **el mismo día** sobre el **mismo `md5`** (`b873d87a…`, sello
+  `v20261021-0631`): **520/524**, con esos mismos cuatro rojos. Volver a correrla habría sido
+  medir dos veces el mismo árbol. La comparación es 520/524 → **521/525** y el delta es el caso
+  nuevo.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **525 ids** sobre los 526 casos del archivo.
+- **`index.html` pasó de 8,52 MB / 128.567 líneas a **8,56 MB / 128.495 líneas** — medido con `wc -l` y
+  `ls -l` DESPUÉS de sellar, no antes.
+  ⚠️ **Y este renglón decía «8,51 MB / 128.413» ANTES DE MEDIRLO**: lo escribí estimando la resta
+  del módulo retirado y la medición da otra cosa —los comentarios de esta tanda pesan más que las
+  líneas que se fueron—. **Medir y después escribir.**
+
+- **EL MODO BÁSICO GANA EL ECO PULMONAR, Y ES EL LADO CONSERVADOR DE UNA INCOMPATIBILIDAD REAL.**
+  Medido en HEAD: en Básico el rail mostraba **11** botones —«Pericardio y masas» **sí**, «Eco
+  pulmonar» **no**—. Con un botón solo para las dos pantallas, dejarle el `data-mod` lo escondería
+  en Básico **y con él pericardio y masas**, que el médico hoy ve. Sin el atributo nadie pierde
+  nada y el Básico **recupera** el módulo pulmonar básico, que hasta el B vivía en «Otros» y que
+  **el B le había quitado** al meterlo en una pestaña gateada. Con eso `pulmonar` sale de
+  `EE_MODULES` y de su casilla de Config: **se pierde un control, no un campo**.
+  `PENDIENTES.md` → B2-1.
+
+- **EL ECO PULMONAR ERA DOS MÓDULOS Y ES UNO. El avanzado es la base y del básico entró lo que el
+  avanzado no tenía, que medido son DOS cosas:** el **tamaño** del derrame y la **nota** de la
+  consolidación. Los dos **conservan su id** (`pul_derrame_tam`, `pul_consol_nota`) porque no hay
+  contraparte a la que traducirlos: así abren solos. Los otros seis se traducen en
+  `_migrarCamposLegacy`, en memoria y sin reescribir el disco.
+  ⚠️ **SÓLO SE TRADUCE EL VALOR POSITIVO, Y ESO PROTEGE TODO INFORME YA FIRMADO.** Los tres
+  selects del básico nacían en `'no'`, así que ese valor lo trae **cada** estudio guardado, lo
+  haya mirado el médico o no: traducirlo pondría los tres primarios del avanzado en «no» y todo
+  informe anterior publicaría «Sin derrame pleural. Sin líneas B. Sin consolidaciones.» — tres
+  negaciones que nadie evaluó. **Y sólo si el destino está vacío**: con los dos cargados manda el
+  avanzado. Medido por las tres ramas.
+  ⚠️ **TRES SELECTS DEPENDIENTES GANARON «— sin consignar —»** (tipo y lateralidad del derrame,
+  broncograma) y sus frases **omiten la cláusula** cuando está vacío. Hace falta por la migración:
+  sin eso un estudio del básico saldría «de aspecto libre», «bilateral» y «con broncograma aéreo»
+  por el valor de fábrica. **No cambia ni un texto alcanzable antes del B2**: hasta hoy ninguno
+  podía valer cadena vacía.
+  **UN PÁRRAFO Y UNA LÍNEA, compuestos con las frases que YA existen**: el bloque 13b del informe
+  se retiró con el módulo y el 13c une las frases con un espacio. **No se escribió una sola
+  oración clínica nueva.** Se fueron `PUL_PARES`, `pulBasicoHayDatos`, `pulBasicoDominios`,
+  `pulBasicoTexto`, `pulBasicoUI` y `pulAvanzadoCubreBasico`, **con sus `window.*`**.
+
+- ⚠️ **EL PPT CONSERVA SU DIAPOSITIVA DE ECO PULMONAR, Y SE DECLARA.** La orden pide que el eco
+  pulmonar no genere «hoja ni sección aparte» y dice «lo mismo para el PPT»; medido, el título de
+  esa diapositiva **ya decía «Ecografía Pulmonar» sin la palabra «avanzado»**, y retirarla sería
+  perder contenido de una superficie de salida que la orden no manda vaciar. Lo que se corrigió
+  es el rótulo de la sección (`tit`), que decía «ECOGRAFIA PULMONAR - EVALUACION AVANZADA».
+
+- **EL PDF, GENERADO DE VERDAD EN SUS SEIS PLANTILLAS:** con el formulario vacío salen
+  **IDÉNTICAS**; con la escena pulmonar el **TEXTO es idéntico carácter por carácter normalizando
+  el blanco en las seis** (3037 a 3175 caracteres), y lo único que cambia es dónde corta la línea.
+  **Cero menciones de «avanzado» y cero hoja de eco pulmonar** en los dos árboles. PDF de
+  auditoría **104 → 104**.
+
+- ⚠️ **TC-502 DESTAPÓ UNA PÉRDIDA QUE NINGUNA MEDICIÓN DE TEXTO VEÍA: el globo ⓘ del Balik.**
+  Vivía en el campo `pul_balik` del módulo básico y se fue con él; ahí viven los límites de
+  validez de la fórmula (ICM 2026, pacientes críticos en ventilación invasiva). Lo cazó el caso
+  que **cuenta las tarjetas registradas sin botón** (once → diez), no la lectura. Repuesto en
+  `pua_balik` y amendado al commit 2.
+
+- **OTROS PASA A DOS BARRAS APILADAS**, cada una con la barra que ya tenía: queda **un** nivel y
+  no dos. Se retiraron `otrSubTab`, `OTR_SUB_ORDEN`, su oyente de teclado y las tres reglas de CSS
+  —incluida la excepción `:not(.otr-subbar)` de la media query del celular, que el B había tenido
+  que agregar para que esa barra no se escondiera—. **Medido a 360 px: las dos barras en 326 × 44
+  y cero scroll horizontal**; el médico ya no queda atrapado en una sub-pestaña.
+
+- ⚠️ **LOS BOTONES DE C. CONGÉNITAS YA TENÍAN EL FORMATO DE LOS DE ARRIBA, Y LA PREMISA DEL PEDIDO
+  ERA FALSA A MEDIAS.** Medido antes de tocar nada: coinciden en las **siete** propiedades, en
+  reposo y en activo, en los dos temas y los dos motores. La causa es que los de arriba **también**
+  viven dentro de un `.subtabs-wrap`, y `.subtabs-wrap .tab-btn` (0,2,1) le gana a `.tab-special`
+  (0,1,0): las cinco declaraciones de esa clase **no se aplican a ninguno de los dos**, o sea que
+  `.tab-special` es hoy casi inerte. La clase se agregó igual —**cero cambio de píxel, medido**—
+  porque ata los dos grupos. `PENDIENTES.md` → B2-6.
+
+- **A/B ACUMULADO contra el inicio de la tanda, cuatro escenas:** con el formulario **vacío**, con
+  **pericardio** y con **Otros** el informe en los tres estilos, el EN SUMA en los tres y las
+  **440 columnas del Excel** salen **IDÉNTICOS**; los campos del estudio bajan de **939 a 933**
+  —los seis retirados— y cuatro cambian de valor por defecto. Con la escena **pulmonar** lo único
+  que cambia es el salto de línea que pasa a espacio en el informe y el EN SUMA, y las dos
+  columnas de texto del Excel que los llevan. **Consola limpia en las cuatro.**
+
+- **MEDIDO EN LOS DOS MOTORES** —Chrome por el canal del sistema y WebKit— **a 1200×700, 1440×800,
+  768×1024, 390×844 y 360×740 por los dos temas: CERO scroll horizontal en las 20 celdas**, once
+  botones de rail arriba de 768 px, **dos barras** en «Pericardio y pulmón» y **dos** en Otros en
+  las veinte, las cuatro de 44 px de alto, y el color de los botones de CC en reposo **idéntico**
+  al de la fila de arriba en las veinte. **80 capturas PNG**, y dos **MIRADAS**: la pantalla nueva
+  con sus dos barras cerradas y «Otros» a 360 px con las dos alcanzables.
+  ⚠️ **Y UNA TERCERA MIRADA CAZÓ UN DEFECTO QUE NINGUNA MEDICIÓN DE TEXTO VEÍA:** la pantalla
+  unificada seguía publicando «Al integrar este módulo, la sección básica de Ecografía Pulmonar
+  se omite del informe para no duplicar los hallazgos» — un aviso sobre una sección que acababa
+  de dejar de existir. No lo veía ninguna medición porque ese texto **no entra al informe**: es
+  un `<p>` de pantalla. Se reemplazó por la frase del módulo básico, LITERAL —«Si no se completa
+  nada, no aparece en el informe.»— que sigue siendo cierta. **Es para lo que están las
+  capturas.**
+
+- **Cobertura: TC-511**, **31 condiciones** —contadas sobre el propio caso— con cinco
+  denominadores y nueve controles negativos. **Verificado que sabe fallar contra HEAD en un
+  worktree aparte: 18 de las 31 en rojo, y NINGUNA por excepción.** Las trece que pasan son
+  exactamente lo que esta tanda no mueve.
+  ⚠️ **ESCRIBÍ «24 condiciones» ANTES DE CONTARLAS Y SON 31.** Lo cazó contarlas sobre el propio
+  caso. **Contar y después escribir**, igual que medir y después escribir.
+- ⚠️ **CASOS ADAPTADOS: SEIS**, con el motivo escrito en cada uno. **TC-144** (la clave `pulmonar`
+  sale de `EE_MODULES` y de los `data-mod`, y su condición afirma hoy lo CONTRARIO), **TC-509** en
+  nueve condiciones (A1, A1b, C1, D1 a D8 y H1 — tres de ellas afirmando hoy lo contrario),
+  **TC-488** (el bloque del pulmón pasa a la pantalla única y gana que sea UN párrafo), **TC-496**
+  (g4), **TC-499** (f8, f8b y el helper que nombraba `pulBasicoUI`) y **TC-501** (L2 y L3).
+
+- ⚠️ **TRES TRAMPAS DE MEDICIÓN, Y DOS DABAN FALSOS PLAUSIBLES.**
+  1. **Un medidor que clickea deja el botón en `:hover` y `:focus`**, y `.subtabs-wrap
+     .tab-btn:hover` cambia el color y el borde: la primera corrida informó **tres diferencias
+     falsas** entre CC y la fila de arriba. Hay que **alejar el mouse y hacer `blur`** antes de
+     medir el reposo, además de esperar la transición de `.15s`.
+  2. **Y comparar el botón ACTIVO de CC contra uno EN REPOSO de arriba** informa «distinto» en las
+     20 celdas sobre dos estados que no son comparables. Reposo con reposo.
+  3. **`fop_contraste` es un `<select>` si/no y no un checkbox**: `.checked` da siempre `false` y
+     la condición sale roja sobre un espejo que funciona.
+  4. **«Nacen cerradas» no se mide en el estado VIVO**: otro caso de la suite puede haberlas
+     abierto antes. **Medido: TC-511 (A5) pasaba corrido solo y caía en una lista de siete.** Se
+     mide el `style="display:none"` del MARCADO —sincrónico y sin orden— y el toggle aparte,
+     fijando el estado de partida. Es la lección del estado de partida, otra vez.
+- ⚠️ **Me comí el acento grave CUATRO veces**, todas en comentarios míos dentro del cuerpo de un
+  caso. `scripts/check_backticks.py` dio la línea exacta las cuatro; `node --check` apuntaba a la
+  apertura del template, cientos de líneas antes.
+
+- **Dónde está todo:** `docs/mapa/pestanas-reorganizacion.md` → §12 a §17 (**22,2 KB**: la tabla
+  «qué se movió», el inventario pulmonar campo por campo, la migración, Otros, CC y las cinco
+  trampas); `docs/mapa/otros-pericardio-pulmon.md` → un puntero (**11,9 KB**);
+  `docs/mapa/tests-fichas-511.md` (**archivo NUEVO por PARTICIÓN**, 4,1 KB) y
+  `docs/mapa/tests-fichas.md` → su puntero (**33,5 KB**); `docs/fuentes/FUENTES.md` → «El trabajo
+  B2», con la tabla «qué se movió» comprobada en pantalla y la de **Cambios de evidencia VACÍA**;
+  y `docs/PENDIENTES.md` → **B-3 y B-4 marcados CERRADOS**, **B-2 y B-6 actualizados**, más
+  **siete** cosas declaradas (B2-1 a B2-7).
+  ⚠️ **`tests-fichas.md` SE PARTIÓ ANTES DE ESCRIBIR Y NO DESPUÉS**, medido con `wc -c`: estaba en
+  **33,3 KB** y la ficha de TC-511 lo cruzaba. **Ningún mapa cruzó el techo.**
+
+
+
 ### El TEP — el score, la ficha y su EVIDENCIA — «C» (2026-10-21)
 
 - **Son CINCO commits, y la orden pedía cinco.** Al **empezar**, `main` **y `origin/main` estaban

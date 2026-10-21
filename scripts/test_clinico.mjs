@@ -81603,6 +81603,363 @@ caso('TC-510', 'Tanda C: el score de TEP con el TAPSE a <16 y la pestana VD inta
   })();
 `);
 
+/* ══ TC-511 — EL TRABAJO B2 ══════════════════════════════════════════════════════════════
+   Las CUATRO correcciones de la reorganizacion del B: un solo boton «Pericardio y pulmon»
+   con sus dos barras apiladas, el eco pulmonar UNIFICADO sin la palabra «avanzado», Otros
+   con dos barras y sin sub-pestanas, y los botones de C. Congenitas con la clase de los de
+   la fila de arriba. Es un trabajo que SOLO MUEVE, UNIFICA y cambia FORMATO, asi que la
+   mitad del caso son CONTROLES: lo que no se tiene que haber movido.
+   ⚠️ SIN ACENTOS GRAVES, sin regex con barras escapadas y sin saltos de linea dentro de un
+   literal de cadena: el cuerpo de un caso es un template literal y las tres cosas lo rompen.
+   ⚠️ EL COLOR DE UN `.tab-btn` NO SE LEE EN EL MISMO TURNO DEL CLIC —transition .15s— y el
+   clic ademas deja `:hover`. Este caso mide el color de las BARRAS, que no tienen
+   transicion, y el de los botones SIN tocarlos; el ciclo con clics y los dos motores lo
+   mide scripts/_probe_b2.mjs, que puede esperar y alejar el mouse. */
+caso('TC-511', 'Trabajo B2: la columna izquierda con ONCE botones y «Pericardio y pulmon» mostrando sus DOS barras apiladas del color de las de Hemodinamica; el eco pulmonar UNIFICADO en una sola pantalla —sin la palabra «avanzado», un solo «Integrar al informe», UN parrafo en el informe y UNA linea en el EN SUMA, con el tamano del derrame y la nota de la consolidacion adentro—; los estudios guardados del modulo basico abriendo con cada valor en su lugar nuevo y sin inventar negaciones; Otros con dos barras apiladas y sin botones de sub-pestana, con el ASIA de UN solo dueno en los dos sentidos; los botones de CC con el formato de los de la fila de arriba; y los cortes, el informe, el EN SUMA, el PDF, el Laboratorio y las 440 columnas del Excel sin moverse', `
+  const ex = [];
+  const EL = function (id) { return document.getElementById(id); };
+  const V  = function (id) { const e = EL(id); return e ? e.value : null; };
+  const FN = function (n) { return typeof window[n] === 'function'; };
+  const NL = String.fromCharCode(10);
+  const oc = function (e) { return e ? (e.getAttribute('onclick') || '') : ''; };
+  const idDe = function (b) { const m = oc(b).indexOf("showTab('");
+    if (m < 0) return null; const z = oc(b).indexOf("'", m + 9);
+    return z < 0 ? null : oc(b).slice(m + 9, z); };
+  const vis = function (e) { if (!e) return false; const r = e.getBoundingClientRect();
+    return r.width > 0 && r.height > 0 && getComputedStyle(e).display !== 'none'; };
+  const S = function (id, v) { const e = EL(id); if (!e) return false;
+    e.value = v;
+    e.dispatchEvent(new Event('input',  { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true }));
+    return true; };
+  const CHK = function (id, on) { const e = EL(id); if (!e) return false; e.checked = !!on;
+    e.dispatchEvent(new Event('change', { bubbles: true })); return true; };
+  const cs = function (e, k) { return e ? getComputedStyle(e)[k] : 'NO'; };
+  try { localStorage.setItem('ett_view_mode', 'avanzado'); } catch (e) {}
+  try { if (FN('applyViewMode')) applyViewMode(); } catch (e) {}
+
+  /* ══ (A) LA COLUMNA IZQUIERDA Y LAS DOS BARRAS APILADAS ════════════════════════════════ */
+  const RAIL_ESP = ['datos','ai-vi','vd','doppler','valvulas','contractilidad','sgl',
+                    'pericardio','otros','imagenes','config'];
+  const rail = [].slice.call(document.querySelectorAll('.rail .tab-btn'));
+  ex.push(['(A1) la columna izquierda tiene ONCE botones, en orden, con «Pericardio y pulmon» donde estaban los dos',
+    rail.length === 11 && rail.map(idDe).join(',') === RAIL_ESP.join(',')
+      && rail.filter(function (b) { return (b.textContent || '').indexOf('Pericardio y pulm') > -1; }).length === 1,
+    'n=' + rail.length + ' | ' + rail.map(function (b) { return (b.textContent || '').trim(); }).join(' / ')]);
+  /* DENOMINADOR: el boton no lleva data-mod y la clave salio de EE_MODULES. Sin esto, el
+     Modo Basico se llevaria tambien «Pericardio y masas», que hoy SI ve. */
+  ex.push(['(A2) y NO lleva data-mod: ni el boton, ni ninguno del rail, y pulmonar salio de EE_MODULES',
+    rail.every(function (b) { return !b.getAttribute('data-mod'); })
+      && !document.querySelector('[data-mod=pulmonar]')
+      && (typeof EE_MODULES === 'undefined' ? false
+          : EE_MODULES.every(function (m) { return m.key !== 'pulmonar'; })),
+    'mods=' + rail.map(function (b) { return b.getAttribute('data-mod') || '-'; }).join(',')]);
+  try { showTab('pericardio'); } catch (e) {}
+  const barras = [].slice.call(document.querySelectorAll('#tab-pericardio > .card > .card-head'));
+  ex.push(['(A3) la pantalla muestra DOS barras apiladas: pericardio y masas, y ecografia pulmonar',
+    barras.length === 2
+      && (barras[0].textContent || '').indexOf('Pericardio') > -1
+      && (barras[1].textContent || '').indexOf('Ecograf') > -1,
+    barras.map(function (h) { return (h.textContent || '').replace(/[0-9]/g, '').trim(); }).join(' // ')]);
+  /* DENOMINADOR + el color REAL contra la barra de Hemodinamica, que es la referencia que la
+     orden fija. .card-head no tiene transition, asi que se puede leer en el mismo turno. */
+  const hemo = document.querySelector('#tab-hemodinamica .card-head');
+  ex.push(['(A4) las dos barras tienen el color RESUELTO de las de Hemodinamica, en sus seis propiedades',
+    !!hemo && barras.length === 2 && barras.every(function (h) {
+      return ['backgroundColor','color','fontSize','fontWeight','textTransform','letterSpacing']
+        .every(function (k) { return cs(h, k) === cs(hemo, k); }); }),
+    'hemo=' + cs(hemo, 'backgroundColor') + '/' + cs(hemo, 'color') +
+    ' | barras=' + barras.map(function (h) { return cs(h, 'backgroundColor') + '/' + cs(h, 'color'); }).join(' ')]);
+  /* ⚠️ «NACEN CERRADAS» SE MIDE EN EL MARCADO Y NO EN EL ESTADO VIVO: otro caso de la suite
+     puede haberlas abierto antes, y entonces la condicion sale roja sobre una app perfecta.
+     Medido: corrido solo pasaba y en una lista de siete caia. Lo que hace que nazcan cerradas
+     es el style display:none de sus dos contenedores, que es sincronico y no depende del
+     orden; el TOGGLE se mide aparte, partiendo del estado que haya. */
+  ex.push(['(A5) las dos nacen CERRADAS por su marcado, y el toque en su barra las abre y las cierra',
+    (function () { const c1 = EL('ete-seccion-pericardio-masas'), c2 = EL('pua-seccion');
+      if (!c1 || !c2) return false;
+      const naceCerrada = function (e) {
+        return String(e.getAttribute('style') || '').replace(/ /g, '').indexOf('display:none') > -1
+            || String(e.outerHTML || '').slice(0, 200).indexOf('display:none') > -1; };
+      const abierto = function (e) { return getComputedStyle(e).display !== 'none'; };
+      /* El estado de PARTIDA se fija: si alguna quedo abierta, se cierra. */
+      if (abierto(c1)) { try { barras[0].click(); } catch (e) {} }
+      if (abierto(c2)) { try { barras[1].click(); } catch (e) {} }
+      const cerradas = !abierto(c1) && !abierto(c2);
+      try { barras[0].click(); barras[1].click(); } catch (e) {}
+      const abren = abierto(c1) && abierto(c2);
+      try { barras[0].click(); barras[1].click(); } catch (e) {}
+      const cierran = !abierto(c1) && !abierto(c2);
+      return naceCerrada(c1) && naceCerrada(c2) && cerradas && abren && cierran; })(),
+    (function () { const c1 = EL('ete-seccion-pericardio-masas'), c2 = EL('pua-seccion');
+      return 'marcado=' + (c1 ? String(c1.getAttribute('style') || '') : 'NO')
+        + ' / ' + (c2 ? String(c2.getAttribute('style') || '') : 'NO'); })()]);
+  /* El drawer movil es la UNICA puerta por debajo de 768 px, que es el ancho al que corre la
+     suite: tiene que ofrecer el modulo UNA sola vez y ser IGUAL en los dos modos. */
+  ex.push(['(A6) el drawer movil ofrece los once, el modulo UNA sola vez, igual en Basico y en Avanzado',
+    (function () {
+      const leer = function () { if (FN('ecoDrawerBuild')) { try { window.ecoDrawerBuild(); } catch (e) {} }
+        const d = EL('ecoDrawer');
+        return d ? [].slice.call(d.querySelectorAll('button'))
+          .map(function (b) { return b.getAttribute('data-tab'); }) : []; };
+      const poner = function (m) { try { localStorage.setItem('ett_view_mode', m); } catch (e) {}
+        try { if (FN('applyViewMode')) applyViewMode(); } catch (e) {} };
+      poner('avanzado'); const av = leer();
+      poner('basico');   const ba = leer();
+      poner('avanzado');
+      return av.length === 11 && av.join(',') === RAIL_ESP.join(',')
+        && ba.join(',') === av.join(',')
+        && av.filter(function (x) { return x === 'pericardio'; }).length === 1
+        && av.indexOf('pulmonar') < 0; })(),
+    (function () { const d = EL('ecoDrawer'); return d ? 'n=' + d.querySelectorAll('button').length : 'SIN DRAWER'; })()]);
+
+  /* ══ (B) PERICARDIO Y MASAS: EL CONTENIDO INTACTO ══════════════════════════════════════ */
+  const PERI = ['pericardio','pericardio_hemo','otras_notas','masa_presente','masa_cavidad',
+    'masa_loc','masa_tam_mm','masa_morf','masa_movil','masa_eco','masa_dx','masa_notas'];
+  ex.push(['(B1) los DOCE campos de pericardio y masas siguen existiendo, en esa pantalla',
+    PERI.every(function (id) { const e = EL(id);
+      const p = e ? e.closest('.tab-section') : null;
+      return !!p && p.id === 'tab-pericardio'; }),
+    PERI.filter(function (id) { const e = EL(id);
+      const p = e ? e.closest('.tab-section') : null;
+      return !p || p.id !== 'tab-pericardio'; }).join(',') || 'los doce']);
+  ex.push(['(B2) y el desplegable del derrame conserva sus CINCO opciones vivas',
+    (function () { const e = EL('pericardio');
+      return !!e && e.options.length === 5; })(),
+    (function () { const e = EL('pericardio'); return e ? 'n=' + e.options.length : 'NO'; })()]);
+
+  /* ══ (C) EL ECO PULMONAR UNIFICADO ═════════════════════════════════════════════════════ */
+  ex.push(['(C1) es UNA sola pantalla: los seis campos del modulo basico no existen y los del avanzado si',
+    ['pul_derrame','pul_balik','pul_derrame_lado','pul_lineasb','pul_lineasb_pat','pul_consolidacion']
+      .every(function (id) { return !EL(id); })
+      && ['pua_derrame','pua_balik','pua_derrame_lado','pua_lineasb','pua_lineasb_cant','pua_consol']
+        .every(function (id) { const e = EL(id);
+          const p = e ? e.closest('.tab-section') : null;
+          return !!p && p.id === 'tab-pericardio'; })
+      && !FN('pulBasicoTexto') && !FN('pulAvanzadoCubreBasico'),
+    'basico=' + ['pul_derrame','pul_lineasb','pul_consolidacion'].filter(function (id) { return !!EL(id); }).join(',')
+      + ' | fns=' + FN('pulBasicoTexto') + '/' + FN('pulAvanzadoCubreBasico')]);
+  ex.push(['(C2) los DOS campos que el avanzado no tenia conservan su id y viven ahi: el tamano y la nota',
+    ['pul_derrame_tam','pul_consol_nota'].every(function (id) { const e = EL(id);
+      const p = e ? e.closest('.tab-section') : null;
+      return !!p && p.id === 'tab-pericardio'; }),
+    ['pul_derrame_tam','pul_consol_nota'].map(function (id) { return id + '=' + !!EL(id); }).join(' ')]);
+  ex.push(['(C3) la palabra «avanzado» no aparece en el texto de la pantalla, y hay UN solo «Integrar al informe»',
+    (function () { const t = EL('tab-pericardio');
+      const txt = t ? (t.textContent || '') : '';
+      const n = (txt.match(/avanzad/gi) || []).length;
+      const bs = t ? t.querySelectorAll('[data-am-k=pulm]').length : 0;
+      return n === 0 && bs === 1; })(),
+    (function () { const t = EL('tab-pericardio');
+      const txt = t ? (t.textContent || '') : '';
+      return 'avanzado=' + (txt.match(/avanzad/gi) || []).length
+        + ' integrar=' + (t ? t.querySelectorAll('[data-am-k=pulm]').length : 'NO'); })()]);
+  /* UN PARRAFO Y UNA LINEA, con el tamano y la nota adentro. */
+  const escPul = function () {
+    try { if (FN('limpiarCampos')) limpiarCampos(); } catch (e) {}
+    S('pua_derrame', 'si'); S('pul_derrame_tam', 'moderado');
+    S('pua_derrame_lado', 'unilateral derecho'); S('pua_balik', '25');
+    S('pua_lineasb', 'presentes'); S('pua_lineasb_cant', 'multiples');
+    S('pua_consol', 'si'); S('pua_consol_bronco', 'con'); S('pul_consol_nota', 'base derecha');
+    const b = document.querySelector('[data-am-k=pulm]'); if (b) { try { b.click(); } catch (e) {} }
+    try { if (FN('generarInforme')) generarInforme(); } catch (e) {}
+    return { inf: String(V('informe_texto') || ''), suma: String(V('en_suma') || '') };
+  };
+  const rp = escPul();
+  const lineasPul = rp.inf.split(NL).filter(function (x) { return x.indexOf('Derrame pleural') > -1; });
+  ex.push(['(C4) el informe lleva UN SOLO parrafo con los tres temas y el patron global adentro',
+    lineasPul.length === 1
+      && lineasPul[0].indexOf('Derrame pleural') > -1
+      && lineasPul[0].indexOf('Lineas B'.replace('i', String.fromCharCode(237))) > -1
+      && lineasPul[0].indexOf('Consolidaci' + String.fromCharCode(243) + 'n pulmonar') > -1
+      && lineasPul[0].indexOf('Patr' + String.fromCharCode(243) + 'n global') > -1,
+    'n=' + lineasPul.length + ' | ' + (lineasPul[0] || '').slice(0, 170)]);
+  ex.push(['(C5) con el TAMANO del derrame y la NOTA de la consolidacion adentro, compuestos con las frases que ya existian',
+    lineasPul.length === 1
+      && lineasPul[0].indexOf('Derrame pleural unilateral derecho moderado (aproximadamente 500 ml, seg'
+           + String.fromCharCode(250) + 'n f' + String.fromCharCode(243) + 'rmula de Balik).') > -1
+      && lineasPul[0].indexOf('broncograma a' + String.fromCharCode(233) + 'reo (base derecha).') > -1,
+    (lineasPul[0] || '').slice(0, 200)]);
+  const lsuma = rp.suma.split(NL).filter(function (x) { return x.indexOf('Derrame pleural') > -1
+    || x.indexOf('Consolidaci' + String.fromCharCode(243) + 'n pulmonar') > -1; });
+  ex.push(['(C6) y el EN SUMA lleva UNA sola linea pulmonar',
+    lsuma.length === 1, 'n=' + lsuma.length + ' | ' + (lsuma[0] || '').slice(0, 150)]);
+  /* CONTROL NEGATIVO: sin integrar, el pulmon no escribe NADA en el informe. */
+  ex.push(['(C7) CONTROL NEGATIVO: sin «Integrar al informe» el pulmon no publica una sola oracion',
+    (function () { try { if (FN('limpiarCampos')) limpiarCampos(); } catch (e) {}
+      S('pua_derrame', 'si'); S('pul_derrame_tam', 'moderado');
+      try { if (FN('generarInforme')) generarInforme(); } catch (e) {}
+      const t = String(V('informe_texto') || '');
+      return t.indexOf('Derrame pleural') < 0; })(), 'calla']);
+  /* CONTROL NEGATIVO: el globo del Balik —donde viven los limites de la formula— sigue ahi. */
+  ex.push(['(C8) CONTROL: el globo del Balik se conserva, en el campo de la pantalla unica',
+    (function () { const b = document.querySelector('#tab-pericardio [data-vinfo="pul-balik"]');
+      return !!b && b.tagName === 'BUTTON'; })(),
+    'globo=' + !!document.querySelector('#tab-pericardio [data-vinfo="pul-balik"]')]);
+
+  /* ══ (D) LOS ESTUDIOS GUARDADOS DEL MODULO BASICO ══════════════════════════════════════ */
+  ex.push(['(D1) un estudio del modulo basico abre con CADA valor en su lugar nuevo',
+    (function () { if (!FN('_migrarCamposLegacy')) return false;
+      const c = { pul_derrame:'si', pul_derrame_tam:'severo', pul_balik:'30',
+        pul_derrame_lado:'izquierdo', pul_lineasb:'si', pul_lineasb_pat:'difuso',
+        pul_consolidacion:'si', pul_consol_nota:'lobulo inferior' };
+      window._migrarCamposLegacy(c);
+      return c.pua_derrame === 'si' && c.pua_balik === '30'
+        && c.pua_derrame_lado === 'unilateral izquierdo'
+        && c.pua_lineasb === 'presentes' && c.pua_lineasb_cant === 'multiples'
+        && c.pua_consol === 'si'
+        && c.pul_derrame_tam === 'severo' && c.pul_consol_nota === 'lobulo inferior'
+        && c.pul_derrame === undefined && c.pul_lineasb === undefined; })(),
+    (function () { if (!FN('_migrarCamposLegacy')) return 'SIN FN';
+      const c = { pul_derrame:'si', pul_derrame_lado:'izquierdo', pul_lineasb:'si',
+        pul_lineasb_pat:'difuso', pul_consolidacion:'si' };
+      window._migrarCamposLegacy(c); return JSON.stringify(c); })()]);
+  /* CONTROL NEGATIVO, Y ES LA DECISION DE FONDO: el «no» de fabrica NO se traduce. Si se
+     tradujera, todo informe anterior pasaria a publicar tres negaciones que nadie evaluo. */
+  ex.push(['(D2) CONTROL NEGATIVO: el «no» de fabrica no se traduce, asi que el avanzado no afirma nada',
+    (function () { if (!FN('_migrarCamposLegacy')) return false;
+      const c = { pul_derrame:'no', pul_lineasb:'no', pul_consolidacion:'no' };
+      window._migrarCamposLegacy(c);
+      return c.pua_derrame === undefined && c.pua_lineasb === undefined
+        && c.pua_consol === undefined && c.pul_derrame === undefined; })(),
+    (function () { if (!FN('_migrarCamposLegacy')) return 'SIN FN';
+      const c = { pul_derrame:'no', pul_lineasb:'no', pul_consolidacion:'no' };
+      window._migrarCamposLegacy(c); return JSON.stringify(c); })()]);
+  ex.push(['(D3) CONTROL NEGATIVO: con el avanzado ya cargado manda el avanzado y no se pisa un valor',
+    (function () { if (!FN('_migrarCamposLegacy')) return false;
+      const c = { pul_derrame:'si', pul_derrame_lado:'derecho',
+                  pua_derrame:'no', pua_derrame_lado:'bilateral' };
+      window._migrarCamposLegacy(c);
+      return c.pua_derrame === 'no' && c.pua_derrame_lado === 'bilateral'; })(),
+    (function () { if (!FN('_migrarCamposLegacy')) return 'SIN FN';
+      const c = { pul_derrame:'si', pua_derrame:'no' };
+      window._migrarCamposLegacy(c); return JSON.stringify(c); })()]);
+  /* Los tres dependientes ganaron «sin consignar» y la frase OMITE su clausula: sin eso, un
+     estudio migrado afirmaria «de aspecto libre» y «bilateral» por el valor de fabrica. */
+  ex.push(['(D4) los tres dependientes tienen el estado «sin consignar» y la oracion no inventa el hallazgo',
+    (function () { const ok = ['pua_derrame_tipo','pua_derrame_lado','pua_consol_bronco']
+        .every(function (id) { const e = EL(id);
+          return !!e && e.options && e.options[0] && e.options[0].value === ''; });
+      if (!ok) return false;
+      try { if (FN('limpiarCampos')) limpiarCampos(); } catch (e) {}
+      S('pua_derrame', 'si'); S('pul_derrame_tam', 'moderado');
+      S('pua_consol', 'si');
+      const b = document.querySelector('[data-am-k=pulm]'); if (b) { try { b.click(); } catch (e) {} }
+      try { if (FN('generarInforme')) generarInforme(); } catch (e) {}
+      const t = String(V('informe_texto') || '');
+      return t.indexOf('de aspecto libre') < 0 && t.indexOf('Derrame pleural bilateral') < 0
+        && t.indexOf('Derrame pleural moderado') > -1
+        && t.indexOf('con broncograma a' + String.fromCharCode(233) + 'reo') < 0; })(),
+    String(V('informe_texto') || '').split(NL).filter(function (x) {
+      return x.indexOf('Derrame pleural') > -1; }).join(' // ').slice(0, 180)]);
+
+  /* ══ (E) OTROS: DOS BARRAS APILADAS ════════════════════════════════════════════════════ */
+  try { showTab('otros'); } catch (e) {}
+  ex.push(['(E1) Otros no tiene sub-pestanas y sus dos secciones van APILADAS, visibles las dos',
+    (function () { if (document.querySelector('#tab-otros .otr-subbar')) return false;
+      if (EL('otr-subtab-burbuja') || EL('otr-subtab-variantes')) return false;
+      if (FN('otrSubTab')) return false;
+      const pb = EL('otr-sub-burbuja'), pv = EL('otr-sub-variantes');
+      return !!pb && !!pv && vis(pb) && vis(pv)
+        && pb.querySelectorAll('.card-head').length === 1
+        && pv.querySelectorAll('.card-head').length === 1; })(),
+    'subbar=' + !!document.querySelector('#tab-otros .otr-subbar') + ' fn=' + FN('otrSubTab')]);
+  ex.push(['(E2) las dos barras de Otros tienen el color de las de Hemodinamica',
+    (function () { const hs = [].slice.call(document.querySelectorAll('#tab-otros .card-head'));
+      return !!hemo && hs.length === 2 && hs.every(function (h) {
+        return ['backgroundColor','color','fontSize','fontWeight','textTransform']
+          .every(function (k) { return cs(h, k) === cs(hemo, k); }); }); })(),
+    (function () { const hs = [].slice.call(document.querySelectorAll('#tab-otros .card-head'));
+      return 'n=' + hs.length + ' ' + hs.map(function (h) { return cs(h, 'color'); }).join(' '); })()]);
+  ex.push(['(E3) el ASIA sigue siendo UN solo dato en los DOS sentidos con el FOP',
+    (function () { try { if (FN('limpiarCampos')) limpiarCampos(); } catch (e) {}
+      const chk = EL('otr_asia'), sel = EL('fop_asa');
+      if (!chk || !sel) return false;
+      chk.click();
+      const ida = sel.value === 'si';
+      sel.value = 'no'; sel.dispatchEvent(new Event('change', { bubbles: true }));
+      const v1 = chk.checked === false;
+      sel.value = 'si'; sel.dispatchEvent(new Event('change', { bubbles: true }));
+      return ida && v1 && chk.checked === true; })(), 'los dos sentidos']);
+  /* ⚠️ fop_contraste ES UN <select> si/no Y NO UN CHECKBOX: preguntarle por .checked da
+     siempre false y la condicion sale roja sobre un espejo que funciona. Los dos sentidos. */
+  ex.push(['(E4) y el test de burbuja tambien, en los DOS sentidos',
+    (function () { try { if (FN('limpiarCampos')) limpiarCampos(); } catch (e) {}
+      const o = EL('otr_burb'), f = EL('fop_contraste');
+      if (!o || !f) return false;
+      CHK('otr_burb', true);
+      const ida = f.value === 'si';
+      f.value = 'no'; f.dispatchEvent(new Event('change', { bubbles: true }));
+      const v1 = o.checked === false;
+      f.value = 'si'; f.dispatchEvent(new Event('change', { bubbles: true }));
+      return ida && v1 && o.checked === true; })(),
+    (function () { const f = EL('fop_contraste');
+      return 'otr_burb -> fop_contraste=' + (f ? f.value : 'NO'); })()]);
+
+  /* ══ (F) LOS BOTONES DE C. CONGENITAS ══════════════════════════════════════════════════ */
+  ex.push(['(F1) los CUATRO botones de las dos barras de CC llevan la clase de los de la fila de arriba',
+    (function () { const bs = [].slice.call(document.querySelectorAll('.cc-subbar .tab-btn'));
+      return bs.length === 4 && bs.every(function (b) {
+        return b.classList.contains('tab-btn') && b.classList.contains('tab-special'); }); })(),
+    (function () { const bs = [].slice.call(document.querySelectorAll('.cc-subbar .tab-btn'));
+      return 'n=' + bs.length + ' | ' + bs.map(function (b) { return b.className; }).join(' // '); })()]);
+  ex.push(['(F2) y su color RESUELTO coincide con el de un boton de la fila de arriba, en reposo',
+    (function () { try { showTab('congenitas'); } catch (e) {}
+      const arr = document.querySelector('.tabs-special .tab-btn');
+      const cc  = EL('cc-subtab-compl');
+      if (!arr || !cc) return false;
+      return ['backgroundColor','color','borderTopColor','fontSize','paddingTop','paddingLeft',
+              'borderTopLeftRadius','fontWeight']
+        .every(function (k) { return cs(arr, k) === cs(cc, k); }); })(),
+    (function () { const arr = document.querySelector('.tabs-special .tab-btn');
+      const cc = EL('cc-subtab-compl');
+      return 'arriba=' + cs(arr, 'color') + '/' + cs(arr, 'borderTopColor')
+        + ' cc=' + cs(cc, 'color') + '/' + cs(cc, 'borderTopColor'); })()]);
+  ex.push(['(F3) el estado activo de CC sigue en cc-on y no en .active, que showTab barre',
+    (function () { try { showTab('congenitas'); } catch (e) {}
+      const b = document.querySelector('#tab-congenitas .cc-subbar .tab-btn.cc-on');
+      if (!b) return false;
+      if (b.classList.contains('active')) return false;
+      try { showTab('datos'); showTab('congenitas'); } catch (e) {}
+      return !!document.querySelector('#tab-congenitas .cc-subbar .tab-btn.cc-on'); })(),
+    'sobrevive al cambio de pestana']);
+
+  /* ══ (G) LOS CONTROLES: NADA MAS SE MOVIO ══════════════════════════════════════════════ */
+  { try { if (FN('limpiarCampos')) limpiarCampos(); } catch (e) {}
+    try { if (FN('showTab')) showTab('valvulas'); } catch (e) {}
+    S('peso','80'); S('talla','170'); S('im_vc','8'); S('vmax_ao','4.5'); S('gmedio_ao','45');
+    S('onda_e','90'); S('onda_a','60'); S('e_prima_sep','5'); S('e_prima_lat','7');
+    try { if (FN('calcAo')) calcAo(); } catch (e) {}
+    try { if (FN('calcIM_ESC')) calcIM_ESC(); } catch (e) {}
+    try { if (FN('calcDiastol')) calcDiastol(); } catch (e) {}
+    try { if (FN('setEstiloInforme')) setEstiloInforme('estandar'); } catch (e) {}
+    try { if (FN('generarInforme')) generarInforme(); } catch (e) {}
+    const inf = String(V('informe_texto') || '');
+    const dd = EL('dd-interp');
+    ex.push(['(G1) los cortes y los grados no se movieron: la EAo severa y el veredicto diastolico siguen',
+      V('im_grado') === '4' && !!dd && (dd.textContent || '').length > 2
+        && inf.indexOf('insuficiencia severa') > -1,
+      V('im_grado') + ' || ' + (dd ? dd.textContent : 'NO')]);
+    const fila = (function () { try { if (typeof _labExcelRow !== 'function') return null;
+        const c = {}; document.querySelectorAll('input[id],select[id],textarea[id]').forEach(function (e) { c[e.id] = e.value; });
+        return _labExcelRow({ id:'p', fecha:'2026-10-22', nombre:'X', campos:c, informe_texto:inf,
+          en_suma:String(V('en_suma') || '') }); } catch (e) { return null; } })();
+    ex.push(['(G2) el Excel sigue en 440 columnas: la unificacion no agrego ni quito una',
+      !!fila && Object.keys(fila).length === 440,
+      fila ? String(Object.keys(fila).length) : 'SIN FILA']);
+    ex.push(['(G3) y ninguna columna nombra el pulmon: los campos de esa pantalla no viajan al Excel',
+      !!fila && Object.keys(fila).every(function (k) {
+        return k.indexOf('pul_') < 0 && k.indexOf('pua_') < 0 && k.indexOf('Balik') < 0; }),
+      fila ? Object.keys(fila).filter(function (k) {
+        return k.indexOf('pul') > -1 || k.indexOf('Balik') > -1; }).join(',') || 'ninguna' : 'SIN FILA']);
+    ex.push(['(G4) el Laboratorio sigue clasificando el informe con sus funciones duenas',
+      (function () { if (!FN('_labDiastGrado')) return 'SIN FN';
+        try { return window._labDiastGrado({ informe_texto: inf }) !== undefined; } catch (e) { return false; } })() === true,
+      'clasifica']); }
+
+  return { extra: ex };
+`);
+
 
 
 

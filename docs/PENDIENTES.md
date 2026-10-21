@@ -5875,6 +5875,11 @@ busca y recibe `null`—. El botón del Laboratorio vive en `.foot-actions`, al 
 y si alguna vez se quiere una fila para el Laboratorio ahí está la regla esperándola.
 
 ### B-2 · «Pericardio y masas» sigue en una sola columna, y el rediseño es otro prompt
+> ⚠️ **SIGUE ABIERTO tras el B2 (2026-10-22), y es una orden expresa de esa tanda:** «NO rediseñes
+> el contenido de Pericardio y masas (el diseño en tres columnas es otro trabajo)». Lo que el B2
+> sí cambió es dónde vive la pantalla —apilada con el eco pulmonar, detrás del botón
+> «Pericardio y pulmón»— y el mapa de la zona pasa a ser
+> `docs/mapa/pestanas-reorganizacion.md` §12.
 
 La pestaña nueva lleva el contenido **tal cual**: los mismos once campos en la misma disposición
 y con el mismo acordeón interno. La orden lo pide así —«NO rediseñes su contenido ni lo pases a
@@ -5883,6 +5888,13 @@ tres columnas: es otro prompt»—. Cuando se haga ese rediseño, el mapa de la 
 `docs/mapa/otros-pericardio-pulmon.md`.
 
 ### B-3 · El acordeón interno de cada sub-pestaña es redundante y no se tocó
+> ✅ **CERRADO POR LA MITAD el 2026-10-22 (B2-E1 y B2-E3), por la salida (b) de hecho.** Las
+> sub-pestañas de Otros **ya no existen**: sus dos secciones quedaron apiladas, cada una con su
+> barra, así que el doble nivel —botón de sub-pestaña más acordeón— se fue. Lo mismo en
+> «Pericardio y pulmón», que es una pantalla con dos barras y no dos pestañas. **Lo que sigue
+> abierto es el acordeón en sí**: el médico entra a la pantalla y tiene que abrir la sección. Las
+> dos barras nacen cerradas a propósito —es el estado inicial que la orden del B2 fija, el mismo
+> de las de Hemodinámica—, así que abrir una sola al entrar sigue siendo decisión de Maicol.
 
 El médico entra a «Test de burbuja» y tiene que abrir «Test de burbuja». Lo mismo en
 «Variantes anatómicas» y en «Pericardio y masas». Abrir la sección sola al activar la
@@ -5893,6 +5905,11 @@ gobiernan `toggleEteSeccion` y `secAutoOpen`, que no se tocan. Las dos salidas:
 Las dos cambian cuántos gestos hace el médico, así que las decide Maicol.
 
 ### B-4 · El informe no dice de qué hemitórax es el derrame cuando sale del módulo AVANZADO sin lado
+> ✅ **CERRADO el 2026-10-22 (B2-E2).** Ya no hay dos redacciones conviviendo: los dos módulos se
+> unificaron en una pantalla y el único emisor es `pulAvFrases`. El lado sale de
+> `pua_derrame_lado`, que **ganó el estado «— sin consignar —»** y cuya cláusula se OMITE cuando
+> está vacío, en vez de caer en «bilateral» por el valor de fábrica. O sea que el informe ya no
+> afirma un hemitórax que nadie consignó, que es la mitad que faltaba.
 
 El básico ganó su selector de lado en el CORTOS12 y el avanzado tiene `pua_derrame_lado` con
 «bilateral» por omisión, así que ahí el lado **siempre** sale. No es un pendiente del trabajo B
@@ -5913,6 +5930,11 @@ Es **preexistente** (`@media max-width:768px { .rail{display:none!important} }`)
 lo cambia. Lo que sí cerró es que el drawer respete `data-mod`, que era un agujero NUEVO que el
 pulmonar en el rail abría. Con doce botones el drawer sigue entrando; si alguna vez no entrara,
 el rail de escritorio ya tiene `overflow-y:auto` y se desplaza solo.
+
+> ⚠️ **ACTUALIZADO el 2026-10-22 (B2-E1): son ONCE botones y ninguno lleva `data-mod`.** El
+> gateado del drawer por `style.display` **se conserva** —sigue siendo correcto y es lo que
+> protege a cualquier botón que gane un `data-mod` mañana— pero hoy no filtra nada: medido, las
+> dos listas son idénticas en Básico y en Avanzado.
 
 ---
 
@@ -5993,3 +6015,94 @@ denominador la nombró— y la cubre **TC-510** por sus siete ramas.
 
 **Qué haría falta:** agregarle su entrada a los dos mapas y adaptar el texto de TC-273, que dice
 «las trece secciones». No se hizo para no mover un caso que esta orden no nombra.
+
+---
+
+# Trabajo «B2» — las correcciones de la reorganización (2026-10-22)
+
+### B2-1 · El Modo Básico GANA el eco pulmonar, y es el lado conservador de una incompatibilidad
+
+**Medido en HEAD antes de tocar nada:** en Modo Básico el rail mostraba **11** botones
+—«Pericardio y masas» **sí**, «Eco pulmonar» **no**— porque el botón del pulmonar llevaba
+`data-mod` y `applyViewMode` lo escondía. Con **un solo** botón para las dos pantallas, las dos
+opciones son incompatibles:
+
+- dejarle el `data-mod` → en Básico desaparece el botón **y con él «Pericardio y masas»**, que el
+  médico hoy sí ve: pierde campos;
+- quitárselo → en Básico aparece también el eco pulmonar, que hoy no ve: **gana** una pantalla.
+
+Se eligió la segunda, que es la que **no le quita nada a nadie**, y además repara algo que el B
+había causado sin decirlo: hasta el B el módulo pulmonar **básico** vivía en «Otros» (sin
+`data-mod`) y el Básico lo veía; al mudarlo a una pestaña gateada, el B se lo quitó.
+
+**Lo que se pierde es un CONTROL, no un campo:** `pulmonar` salió de `EE_MODULES`, así que ya no
+hay casilla en Config para apagar el eco pulmonar. Si Maicol quiere recuperarla, hay dos salidas:
+(a) un `data-mod` nuevo sobre un `<button>` propio dentro de la pantalla, que gatee **sólo** la
+barra pulmonar (hay que escribir esa sincronía: `applyViewMode` escribe `style.display` sobre el
+botón, no sobre una sección); (b) volver a partir el botón en dos, que es deshacer este trabajo.
+
+### B2-2 · `pul_derrame_tam` y `pul_consol_nota` conservan su prefijo `pul_` en una pantalla de `pua_`
+
+Son los dos campos que el módulo básico tenía y el avanzado no, así que **no hay contraparte a la
+que traducirlos**. Conservar su id es lo conservador —un estudio guardado los abre solo, sin pasar
+por ninguna migración— y el precio es que la pantalla unificada tiene dieciocho ids `pua_` y dos
+`pul_`. Renombrarlos obligaría a migrar en memoria dos valores que hoy no necesitan nada.
+
+### B2-3 · El valor «no» del módulo básico no se traduce, así que un estudio que lo tenía queda «no evaluado»
+
+**Es deliberado y es la decisión de fondo de la migración.** Los tres selects del básico nacían en
+`'no'`, así que ese valor lo trae **cada** estudio guardado, lo haya mirado el médico o no:
+traducirlo pondría los tres primarios del avanzado en «no» y todo informe anterior pasaría a
+publicar «Sin derrame pleural. Sin líneas B. Sin consolidaciones.» — tres negaciones que nadie
+evaluó, en un informe firmado. **Consecuencia declarada:** un médico que de verdad miró y anotó
+«no» pierde esa constancia al reabrir. La app nunca publicaba esa negación desde el básico (sólo
+emitía con hallazgos positivos), así que **ninguna superficie firmada cambia**.
+
+### B2-4 · El «aspecto libre», el «bilateral» y el «con broncograma aéreo» por omisión ya no se afirman
+
+Los tres dependientes del avanzado ganaron «— sin consignar —» y sus frases **omiten la cláusula**
+cuando está vacío. **No cambia ningún texto alcanzable antes del B2** —hasta hoy ninguno podía
+valer cadena vacía— y hace falta por la migración. Lo que sí cambia, y queda declarado: en un
+**estudio nuevo**, el médico que marque «Derrame: Sí» y no toque el tipo ya no verá «de aspecto
+libre» en el informe. Es la regla que los cinco selects primarios ya aplican desde el 2026-10-16.
+
+### B2-5 · La palabra «avanzado» salió de la pantalla pulmonar y queda en el resto de la app
+
+**Censado y retirado:** el título de la barra («Ecografía pulmonar — evaluación avanzada»), el
+`lbl` de la tarjeta de integración («Eco Pulmonar (avanzado)»), el `tit` de la sección del PDF
+(«ECOGRAFIA PULMONAR - EVALUACION AVANZADA») y la línea del manual que describía «versión básica y
+versión avanzada». **Medido: cero apariciones en el texto renderizado de la pestaña**, en los dos
+motores.
+
+**Lo que NO se tocó, a propósito:** «Hemodinámica avanzada», el bloque «ETT Avanzado» del PDF —que
+sigue existiendo para los otros módulos—, la sub-pestaña «Avanzado» del Laboratorio, el `<select>`
+«Sección avanzada…» del celular y las menciones clínicas («enfermedad vascular pulmonar avanzada»,
+«edad avanzada»). La orden lo acota a esta pestaña.
+
+⚠️ **Y QUEDA UNA MENCIÓN VIEJA EN `ECO_AYUDA` QUE NO SE TOCÓ:** el manual nombra «Eco Pulmonar»
+entre las pestañas especiales del Modo Avanzado, y desde el B2 el eco pulmonar no es un módulo
+avanzado ni tiene pestaña propia. **Es exactamente lo que `B-5` ya declara** —`ECO_AYUDA` es un
+string que el armador del PDF aplana por regex, y el R2-11 documenta que una edición descuidada
+ahí corrompe el manual y pone en rojo casos de otras zonas **sin romper el parseo**—. El B2 sí
+reescribió **una** línea de esa ayuda, la que describía el eco pulmonar con sus dos versiones,
+porque afirmaba algo que este trabajo acababa de hacer falso; el resto es la tanda de `B-5`.
+
+### B2-6 · Los botones de C. Congénitas YA tenían el formato de los de la fila de arriba
+
+**Medido antes de tocar nada, y la premisa del pedido era falsa a medias:** coinciden en las siete
+propiedades —fondo, color, borde, ancho de borde, cuerpo, relleno y radio— en reposo y en activo,
+en los dos temas y en los dos motores. La causa: los botones de arriba también viven dentro de un
+`.subtabs-wrap`, y `.subtabs-wrap .tab-btn` (0,2,1) le gana a `.tab-special` (0,1,0), así que las
+cinco declaraciones de esa clase —10 px, 4px 10px, `--accent2`, `--bg3`— **no se aplican a ninguno
+de los dos**.
+
+**O sea que `.tab-special` es hoy casi inerte.** El B2 les dio igual la clase a los cuatro botones
+de CC, que es estructural: ata los dos grupos. Lo que queda abierto es si esa regla tiene que
+seguir existiendo con valores que nadie ve: arreglarle la especificidad **cambiaría el aspecto de
+los seis botones de la fila de arriba**, que esta orden no autoriza.
+
+### B2-7 · El eco pulmonar sigue sin una sola columna en el Excel
+
+Censado: ninguno de los veinte campos de la pantalla tiene columna. Un backup a Excel más
+reimportación **pierde el eco pulmonar entero**. No es del B2 —era igual antes— y agregar columnas
+es una PARADA que esta orden declara.
