@@ -305,6 +305,68 @@ const OTRCLIC = `(() => {
       .querySelectorAll('input,select,textarea,button').length };
 })()`;
 
+
+/* ══ EL INFORME PULMONAR: posicion, Balik y la hoja que no duplica ═══════════════════════ */
+const INFPUL = `(() => {
+  if (typeof limpiarCampos === 'function') { try { limpiarCampos() } catch (e) {} }
+  const sv = (id, v) => { const e = document.getElementById(id); if (!e) return false;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return true };
+  ESCENA
+  if (typeof generarInforme === 'function') { try { generarInforme() } catch (e) {} }
+  const inf = (document.getElementById('informe_texto') || {}).value || '';
+  const suma = (document.getElementById('en_suma') || {}).value || '';
+  const li = inf.split(String.fromCharCode(10)).filter(x => x.trim());
+  const idx = (pat) => { for (let i = 0; i < li.length; i++) if (li[i].indexOf(pat) > -1) return i; return -1 };
+  /* La hoja del PDF: lo que amiloEnInforme devuelve es lo que se dibuja. */
+  let hoja = null;
+  try { hoja = (amiloEnInforme() || []).map(d => d.k) } catch (e) { hoja = 'EXC' }
+  return { nLineas: li.length,
+    iPeri: idx('pericárdic'), iMasa: idx('masa'), iDerrPl: idx('Derrame pleural'),
+    iLineasB: idx('Líneas B'), iDesliz: idx('Deslizamiento pleural'),
+    lineasPulm: li.filter(x => /pleural|Líneas [AB]|Consolidación|Neumotórax|intersticial|Punto pulmón/.test(x)),
+    balik: (inf.match(/[^.]*Balik[^.]*\./g) || []).concat(suma.match(/[^.]*Balik[^.]*\./g) || []),
+    sumaPulm: suma.split(String.fromCharCode(10)).filter(x => /pleural|Líneas|Consolidaci|intersticial/.test(x)),
+    hojaPDF: hoja, pulmEnHoja: Array.isArray(hoja) ? hoja.indexOf('pulm') > -1 : hoja };
+})()`;
+
+
+/* ══ EL PDF GENERADO DE VERDAD, SEIS PLANTILLAS, espiando el constructor de jsPDF ════════
+   Es el patron de _probe_r2ab.mjs. Sin esto, «la hoja no sale» se afirma sobre el objeto que
+   amiloEnInforme devuelve y no sobre el papel. */
+const PDF = `(async () => {
+  const PL = ['clasico', 'moderno', 'minimalista', 'academico', 'compacto', 'elegante'];
+  const r = {};
+  if (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF) return { err: 'SIN JSPDF' };
+  const Orig = window.jspdf.jsPDF;
+  for (const p of PL) {
+    const reg = { textos: [], nFigs: 0 };
+    window.jspdf.jsPDF = function (...a) {
+      const d = new Orig(...a);
+      const ot = d.text.bind(d);
+      d.text = function (t, x, y, ...rest) { reg.textos.push(String(t)); return ot(t, x, y, ...rest) };
+      ['circle', 'line', 'rect', 'addImage', 'triangle'].forEach(m => {
+        if (typeof d[m] === 'function') { const o = d[m].bind(d); d[m] = function (...z) { reg.nFigs++; return o(...z) } }
+      });
+      d.save = function () { return true };
+      d.output = function () { return '' };
+      return d;
+    };
+    Object.keys(Orig).forEach(k => { try { window.jspdf.jsPDF[k] = Orig[k] } catch (e) {} });
+    try { const pl = document.getElementById('pdf_plantilla'); if (pl) { pl.value = p;
+            pl.dispatchEvent(new Event('change', { bubbles: true })) } } catch (e) {}
+    try { if (typeof _pdfAjustarA4 === 'function') await _pdfAjustarA4();
+          else if (typeof generarPDF === 'function') await generarPDF() } catch (e) { reg.err = String(e).slice(0, 110) }
+    const T = reg.textos.join(' | ');
+    r[p] = { n: reg.textos.length, figs: reg.nFigs,
+      hojaPulm: T.indexOf('ECOGRAFIA PULMONAR') > -1,
+      nDerrPleural: (T.match(/Derrame pleural/g) || []).length,
+      nBalik: (T.match(/Balik/g) || []).length, err: reg.err || null, txt: T };
+  }
+  window.jspdf.jsPDF = Orig;
+  return r;
+})()`;
+
 async function corre(nombre, abrir) {
   if (MOTOR && MOTOR !== nombre) return;
   const R = {};
@@ -357,6 +419,35 @@ async function corre(nombre, abrir) {
         R.otrclic[tema] = paso;
       }
       await pg.evaluate("document.documentElement.classList.remove('light-mode')");
+    }
+    if (hay('infpul')) {
+      const E = {
+        basico: "sv('pul_derrame','si');sv('pul_derrame_tam','moderado');sv('pul_derrame_lado','derecho');sv('pul_balik','25');sv('pul_lineasb','si');sv('pul_lineasb_pat','difuso');",
+        basicoFuera: "sv('pul_derrame','si');sv('pul_derrame_tam','severo');sv('pul_balik','200');",
+        periYpulm: "sv('pericardio','Derrame moderado (10-20mm)');sv('pul_derrame','si');sv('pul_derrame_tam','moderado');sv('pul_balik','25');",
+        avanzado: "sv('pua_desliz','presente');sv('pua_lineasa','presentes');sv('pua_lineasb','presentes');sv('pua_lineasb_cant','multiples');sv('pua_derrame','si');sv('pua_derrame_lado','bilateral');sv('pua_balik','30');sv('pua_consol','si');sv('pua_consol_bronco','con');const b=document.querySelector('[data-am-k=pulm]'); if(b) b.click();",
+        avanzadoYperi: "sv('pericardio','Derrame moderado (10-20mm)');sv('pua_desliz','presente');sv('pua_derrame','si');sv('pua_derrame_lado','bilateral');sv('pua_balik','30');const b=document.querySelector('[data-am-k=pulm]'); if(b) b.click();"
+      };
+      R.infpul = {};
+      for (const k of Object.keys(E)) R.infpul[k] = await pg.evaluate(INFPUL.replace('ESCENA', E[k]));
+    }
+    if (hay('pdf')) {
+      const E = {
+        avanzado: "sv('pua_desliz','presente');sv('pua_lineasa','presentes');sv('pua_derrame','si');sv('pua_derrame_lado','bilateral');sv('pua_balik','30');sv('pua_consol','si');sv('pua_consol_bronco','con');sv('pua_lineasb','presentes');const b=document.querySelector('[data-am-k=pulm]'); if(b) b.click();",
+        basico: "sv('pul_derrame','si');sv('pul_derrame_tam','moderado');sv('pul_balik','25');",
+        vacio: ''
+      };
+      R.pdf = {};
+      for (const k of Object.keys(E)) {
+        await pg.evaluate(`(() => { if (typeof limpiarCampos === 'function') { try { limpiarCampos() } catch (e) {} }
+          const sv = (id, v) => { const e = document.getElementById(id); if (!e) return false;
+            e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+            e.dispatchEvent(new Event('change', { bubbles: true })); return true };
+          ESC
+          if (typeof generarInforme === 'function') { try { generarInforme() } catch (e) {} }
+          return true })()`.replace('ESC', E[k]));
+        R.pdf[k] = await pg.evaluate(PDF);
+      }
     }
     if (hay('drawer')) R.drawer = await pg.evaluate(DRAWER);
     if (hay('excel')) {

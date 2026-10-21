@@ -8500,6 +8500,22 @@ window.cerrarSesionReal = cerrarSesionReal;
   </div>
   </div>
 
+
+</div>
+
+<!-- ═══════════════════════ TAB: ECO PULMONAR (avanzado) ═══════════════════════ -->
+<div id="tab-pulmonar" class="tab-section">
+
+  <!-- ══ ECO PULMONAR UNIFICADO (B-E3, 2026-10-21) ════════════════════════════════════════
+       Hasta hoy lo pulmonar estaba partido en dos puertas: el modulo BASICO dentro de la
+       pestana «Otros» y el AVANZADO en un boton de la fila de arriba. Las dos viven ahora en
+       esta pestana, que es la unica puerta.
+       El modulo basico se MUEVE TAL CUAL: los ocho campos con sus ids, sus rotulos, su globo
+       ⓘ y su acordeon. La exclusion mutua entre basico y avanzado no se toca —la deciden
+       `pulAvanzadoIntegrado` y `pulAvanzadoCubreBasico`, que son sus duenos—.
+       ⚠️ EL BASICO VA PRIMERO porque es el que la mayoria de los estudios usa; el avanzado
+          queda debajo, con su boton «Integrar al informe» DENTRO de la pestana, que es donde
+          la orden lo pide y donde ya estaba. -->
   <!-- ═══ ECOGRAFÍA PULMONAR — módulo básico ═══ -->
   <!-- Sólo genera texto si hay hallazgos positivos. Si se integra el módulo
        avanzado (tab Eco Pulmonar), este se omite del informe automáticamente. -->
@@ -8579,10 +8595,6 @@ window.cerrarSesionReal = cerrarSesionReal;
   </div>
   </div>
 
-</div>
-
-<!-- ═══════════════════════ TAB: ECO PULMONAR (avanzado) ═══════════════════════ -->
-<div id="tab-pulmonar" class="tab-section">
 
   <div class="card" style="margin-bottom:6px;">
     <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('pua-seccion',this);pulAvUI()">
@@ -52927,11 +52939,31 @@ function generarInforme(opts) {
     if (!_hf.gate || _hf.gate.aplica) suma.push(hfapeffConclusion(_hf));
   }
 
-  // ── 13c) Ecografía pulmonar (módulo avanzado) → sólo al En Suma ──
-  // El detalle va en la hoja de ETT Avanzado; acá se agregan las conclusiones.
+  // ── 13c) Ecografía pulmonar (módulo avanzado) → al CUERPO del informe y al En Suma ──
+  /* ⚠️ HASTA HOY SU DETALLE IBA A UNA HOJA APARTE DEL PDF («ETT Avanzado») Y NO AL INFORME
+     NARRATIVO, asi que el medico que lo integraba no lo veia en el texto que firma. Desde el
+     B-E3 las frases van al CUERPO, en este lugar: justo despues del pericardio, las masas y el
+     modulo basico, que es donde la orden las pide.
+     ⚠️ Y LA HOJA DEL PDF DEJA DE SALIR, porque si no el papel publicaria las mismas nueve
+     oraciones DOS veces —el informe ya se imprime en el PDF—. El contenido se CONSERVA: lo
+     unico que cambio es en que pagina sale. Se suprime con la compuerta `omitir` que
+     `amiloEnInforme` ya ofrece por seccion, que es el mecanismo previsto; ver `amiloSecs`. */
   if (typeof pulAvanzadoIntegrado === 'function' && pulAvanzadoIntegrado()
       && typeof pulAvanzadoHayDatos === 'function' && pulAvanzadoHayDatos()
       && typeof pulAvSuma === 'function') {
+    if (typeof pulAvFrases === 'function') {
+      try { pulAvFrases().forEach(x => inf.push(x)) } catch (e) {}
+    }
+    /* ⚠️ EL «PATRON GLOBAL» TAMBIEN, Y LO DESTAPO EL A/B DEL PDF: vivia SOLO en la hoja
+       —`amiloTextoPulmonar` lo agrega despues de las frases, bajo su propio «## En suma»— asi
+       que al dejar de imprimirse esa pagina esa linea desaparecia del papel. Es la unica parte
+       del modulo que se habria perdido. Van las MISMAS palabras y el MISMO formato que la hoja
+       publicaba, leidos del mismo dueno (`pulAvPatron`). */
+    if (typeof pulAvPatron === 'function') {
+      try { const _pg = pulAvPatron();
+            if (_pg && _pg.p !== 'No evaluado') inf.push('Patrón global: ' + _pg.p + '. ' + _pg.i);
+      } catch (e) {}
+    }
     /* Se le pasa lo que el básico publicó en ESTE informe: si la exclusión mutua se aplicó, el
        básico no escribió nada y la lista va vacía, así que el avanzado emite todo. */
     const _omit = (typeof pulAvanzadoCubreBasico === 'function' && pulAvanzadoCubreBasico())
@@ -62372,7 +62404,16 @@ function generarPDFReal(_aj) {
   const _hayAmiloPar = _amAmiloK.every(k => _amDatos.some(d => d.k === k));
   const _esAmilo = d => _hayAmiloPar && _amAmiloK.indexOf(d.k) >= 0;
   const _amAmilo = _amDatos.filter(d => _esAmilo(d)).map(d => ({ tit: d.tit, txt: d.txt }));
-  const _amEtt = _amDatos.filter(d => d.grupo !== 'ete' && !_esAmilo(d)).map(d => ({ tit: d.tit, txt: d.txt }));
+  /* ⚠️ LA HOJA DE ECO PULMONAR AVANZADO NO SALE DESDE EL B-E3, y su contenido NO se pierde:
+     sus frases pasaron al CUERPO del informe narrativo (bloque 13c de `generarInforme`), que
+     este mismo PDF imprime unas paginas antes. Sin este descarte el papel publicaria las
+     mismas nueve oraciones DOS veces, que es el defecto que la exclusion mutua entre el modulo
+     basico y el avanzado ya existia para evitar.
+     Se descarta ACA y no con la compuerta `omitir` de la seccion: `pulAvanzadoIntegrado` —el
+     predicado de esa exclusion mutua— pregunta por `amiloEnInforme`, asi que `omitir` lo
+     dejaba falso para siempre y el modulo integrado desaparecia del informe. Medido.
+     `_amDatos` NO se filtra: de el cuelgan el par de amiloidosis y el grupo del ETE. */
+  const _amEtt = _amDatos.filter(d => d.grupo !== 'ete' && !_esAmilo(d) && d.k !== 'pulm').map(d => ({ tit: d.tit, txt: d.txt }));
   const _amEte = _amDatos.filter(d => d.grupo === 'ete').map(d => ({ tit: d.tit, txt: d.txt }));
   if (_amAmilo.length) {
     doc.addPage();
@@ -84820,11 +84861,24 @@ function _balikVol(bk) {
    volver a decidir si el número es plausible. Antes cada uno tenía su propio texto: el mismo
    200 mm salía «(Balik 200 mm — valor fuera de rango, verificar)» en el En Suma y
    «…de 200 mm (valor fuera de rango, no se estima el volumen)» en el cuerpo del informe. */
+/* ⚠️ LA FRASE NOMBRA LA FORMULA Y NO EL APELLIDO PELADO (B-E3, 2026-10-21). Decia «Balik
+   25 mm, aproximadamente 500 ml», y «Balik 25 mm» en un informe firmado no dice que 25 sea
+   una separacion pleural ni que el volumen salga de una formula: hay que saberlo de antes.
+   LA FORMULA Y SUS NUMEROS NO CAMBIAN —sigue siendo `_balikVol`, mm x 20— y tampoco cambia
+   cuando se calla: lo unico que cambia son las palabras.
+   ⚠️ LA UNIDAD QUEDA EN «ml» Y NO EN «mL», que es como la orden la escribio: la app usa «ml»
+   en sus otras 21 apariciones y abrir una segunda notacion en el informe firmado se lee como
+   un cambio de unidad. Declarado en el reporte.
+   ⚠️ Y LOS LIMITES DE VALIDEZ DE LA FORMULA NO VAN AL INFORME: viven en el globo ⓘ
+   (`pul-balik`), con la ICM 2026 y su alcance —pacientes criticos en ventilacion invasiva—.
+   Lo que SI se conserva es la marca de un valor IMPLAUSIBLE, que no es un limite de la
+   formula sino del dato: sin ella un 200 mal tipeado sale como un derrame de 4000 ml. */
 function _balikFrase(bk) {
   const r = _balikVol(bk);
   if (r.motivo === 'ausente') return '';
-  if (r.motivo === 'fuera_rango') return 'Balik ' + bk + ' mm — valor fuera de rango, verificar';
-  return 'Balik ' + bk + ' mm, aproximadamente ' + r.ml + ' ml';
+  if (r.motivo === 'fuera_rango')
+    return 'separación pleural de ' + bk + ' mm, fuera del rango plausible: no se estima el volumen';
+  return 'aproximadamente ' + r.ml + ' ml, según fórmula de Balik';
 }
 function _balikDet(bk) {
   const f = _balikFrase(bk);
@@ -84877,6 +84931,10 @@ function pulBasicoTexto() {
     // impreso: 200 en vez de 20 daba "4000 ml". Fuera de rango plausible se omite
     // la estimación en vez de imprimir un volumen imposible.
     const det = _balikDet(bk);
+    /* ⚠️ EL LADO Y EL TAMANO SE CONSERVAN. La orden escribe la frase como «Derrame pleural de
+       aproximadamente N mL (segun formula de Balik)»; publicada asi, el informe firmado
+       PERDERIA de que hemitorax es y de que tamano, que son datos que hoy salen. La oracion
+       los mantiene y contiene esa frase dentro, que es lo conservador. */
     const _dp = 'Derrame pleural ' + (lado ? lado + ' ' : '') + tam + det + '.';
     frases.push(_dp);
     suma.push(_dp);
@@ -85045,7 +85103,12 @@ window.pulAvUI = pulAvUI;
    campo cargado para poder integrar, así que un avanzado a medias imprimía cuatro negaciones
    que nadie evaluó — y por la exclusión mutua esas negaciones reemplazaban al módulo básico.
    Negar lo no evaluado es peor que callarlo: en el informe firmado se lee como hallazgo. */
-function amiloTextoPulmonar() {
+/* ⚠️ LAS FRASES DEL CUERPO SALEN A SU PROPIA FUNCION (B-E3). `amiloTextoPulmonar` devuelve el
+   texto de la HOJA —un string con saltos y el marcador «## En suma» al final— y desde hoy el
+   INFORME NARRATIVO publica las mismas frases. Reimplementarlas del lado del informe seria una
+   segunda copia de nueve oraciones clinicas, y la que se olvide se separa en la primera tanda
+   que toque un rotulo. Un solo dueno, dos consumidores. */
+function pulAvFrases() {
   const L = [];
   const dz = _amV('pua_desliz');
   const lado = _amV('pua_desliz_lado') || 'bilateral';
@@ -85076,8 +85139,11 @@ function amiloTextoPulmonar() {
     /* Misma frase que el módulo básico. Antes esto multiplicaba por 20 sin mirar: 200 mm
        —tres cifras por un tipeo— salía impreso como «4000 ml», un derrame que no existe, en
        un informe que otro puede usar para decidir un drenaje. */
+    /* El envoltorio se simplifica porque la frase nueva ya dice de que es el volumen: con el
+       viejo salia «con una separación pleural (aproximadamente 500 ml, según fórmula de
+       Balik)», que nombra dos cosas distintas en el mismo parentesis. */
     const _bf = _balikFrase(bk);
-    const vol = _bf ? ', con una separación pleural (' + _bf + ')' : '';
+    const vol = _bf ? ' (' + _bf + ')' : '';
     L.push('Derrame pleural ' + dl + ', de aspecto ' + tipo + vol + '.');
   } else if (_amV('pua_derrame')) {
     L.push('Sin derrame pleural.');
@@ -85090,6 +85156,13 @@ function amiloTextoPulmonar() {
     L.push('Sin consolidaciones.');
   }
 
+  return L;
+}
+window.pulAvFrases = pulAvFrases;
+/* La hoja del PDF se arma de las MISMAS frases mas su bloque de patron global. No cambia ni un
+   byte respecto de antes de esta tanda: lo unico que se movio es de donde salen las frases. */
+function amiloTextoPulmonar() {
+  const L = pulAvFrases();
   const r = pulAvPatron();
   if (r.p !== 'No evaluado') { L.push('## En suma'); L.push('Patrón global: ' + r.p + '. ' + r.i); }
   return L.join('\n');
@@ -85352,6 +85425,13 @@ function amiloSecs() {
     /* `hayDatos` es opcional y sólo lo usa `amiloIntegrar` para no dejar integrar una hoja
        vacía. Va acá y no dentro de `amiloIntegrar` con un `if (k === 'pulm')` para que el día
        que otro módulo lo necesite sea agregar una propiedad y no tocar el integrador. */
+    /* ⚠️ NO LLEVA `omitir`, Y LO DESTAPO LA MEDICION. Desde el B-E3 el texto de este modulo va
+       al CUERPO del informe y su hoja del PDF no sale, pero la supresion NO puede hacerse acá:
+       `pulAvanzadoIntegrado` —el predicado de la exclusion mutua con el modulo basico— pregunta
+       por `amiloEnInforme`, que es justo donde `omitir` actua. Con la compuerta puesta ese
+       predicado quedaba FALSO para siempre: el avanzado no publicaba nada, el basico no se
+       silenciaba y el modulo integrado desaparecia del informe firmado. Medido en cinco escenas.
+       La hoja se descarta en el ARMADOR del PDF, que es el unico lugar que habla de paginas. */
     { k:'pulm', lbl:'Eco Pulmonar (avanzado)',         tit:'ECOGRAFIA PULMONAR - EVALUACION AVANZADA', gen:amiloTextoPulmonar, hayDatos:function(){ return typeof pulAvanzadoHayDatos !== 'function' || pulAvanzadoHayDatos(); } }
   ];
 }
