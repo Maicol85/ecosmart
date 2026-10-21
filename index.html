@@ -8268,7 +8268,134 @@ window.cerrarSesionReal = cerrarSesionReal;
 </div>
 
 <div id="tab-otros" class="tab-section">
+  <!-- ══ LAS DOS SUB-PESTANAS DE OTROS (B-E2, 2026-10-21) ════════════════════════════
+       DECISION DE MAICOL. «Test de burbuja» con lo que tiene hoy y «Variantes anatomicas» con
+       el ASIA, las seis estructuras normales prominentes y la circunfleja retroaortica (RAC),
+       que es la seccion de anomalias coronarias que la orden manda poner con las variantes.
+       Las tres cosas se MUEVEN: ni un id, ni un rotulo, ni un texto cambia.
+       ⚠️ EL ACORDEON INTERNO DE CADA SECCION SE CONSERVA. Es redundante —el medico entra a
+          «Test de burbuja» y tiene que abrir «Test de burbuja»— pero abrirlo solo al activar
+          la sub-pestana seria un cambio de conducta que esta orden no autoriza, y el estado
+          plegado lo gobiernan `toggleEteSeccion` y `secAutoOpen`, que no se tocan.
+       ⚠️ Y LA PULMONAR BASICA QUEDA FUERA DE LAS DOS, por un commit: el siguiente la muda a la
+          pestana «Eco pulmonar». Dejarla dentro de una sub-pestana ahora seria moverla dos
+          veces y romper «cada commit se revierte solo».
+       El patron es el de `.subtabs-wrap`/`.tabs-row` que la app ya usa en CIA/CIV y en el
+       Laboratorio, con `role=tablist` y UN solo tab stop: las flechas mueven entre las dos. -->
+  <div class="subtabs-wrap otr-subbar" role="tablist" aria-label="Secciones de Otros hallazgos"
+       style="justify-content:flex-start;margin-bottom:12px;">
+    <div class="tabs-row">
+      <button type="button" class="tab-btn otr-on" id="otr-subtab-burbuja" role="tab"
+              aria-selected="true" aria-controls="otr-sub-burbuja" tabindex="0"
+              onclick="otrSubTab('burbuja',this)">&#129526; Test de burbuja</button>
+      <button type="button" class="tab-btn" id="otr-subtab-variantes" role="tab"
+              aria-selected="false" aria-controls="otr-sub-variantes" tabindex="-1"
+              onclick="otrSubTab('variantes',this)">&#129656; Variantes anat&oacute;micas</button>
+    </div>
+  </div>
 
+  <div id="otr-sub-burbuja" class="otr-sub active" role="tabpanel"
+       aria-labelledby="otr-subtab-burbuja">
+  <!-- ═══ TEST DE BURBUJA (CORTOS11, 2026-10-17) ═══════════════════════════════════════════════
+       DECISION DE MAICOL. Una casilla que declara que el test SE HIZO y, con pasaje, tres datos:
+       cantidad, momento de aparicion y si fue espontaneo o con Valsalva. Sin pasaje no se
+       pregunta nada mas. La app arma el texto; el informe NO escribe interpretaciones
+       —intracardiaco o intrapulmonar—, que es lo que la orden pide.
+       ⚠️ LOS CORTES NO SE DUPLICAN: las tres bandas de cantidad y los tres tramos de latidos ya
+       estan en la pestaña Referencias (ficha «Test de Burbujas»), y el globo de aca LEE esa ficha
+       en vez de reescribirla.
+       ⚠️ EL TEXTO QUE VA AL INFORME SALE DE LA `<option>` ELEGIDA, no de un mapa paralelo: es la
+       regla que el selector del S/D venoso pulmonar ya pago con un ternario. Por eso los rotulos
+       de las opciones son exactamente las palabras que van al papel.
+       ⚠️ DUPLICACION PREEXISTENTE, DECLARADA Y NO TOCADA: la seccion FOP de «CC frecuentes» tiene
+       sus propios `fop_contraste` y `fop_burbujas`, con OTRA escala (<5 / 5-20 / >20) y su propio
+       parrafo. Unificar los `value` de ese `<select>` dejaria a todo estudio guardado con un valor
+       que su selector ya no ofrece —`selectedIndex -1`, la trampa que `et_grado` pago— y cambiaria
+       el texto del modulo FOP y las barras del Laboratorio, que esta orden no autoriza. Queda en
+       `docs/PENDIENTES.md`. -->
+  <div class="card" style="margin-bottom:6px;">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('burbuja',this)">
+      &#129526; Test de burbuja
+      <span id="ete-burbuja-arrow" style="float:right;transition:transform 0.2s;">&#9654;</span>
+    </h2>
+  </div>
+  <div id="ete-seccion-burbuja" style="display:none;">
+  <div class="card">
+    <div class="card-body">
+      <div class="fg">
+        <label style="display:flex;align-items:center;gap:8px;min-height:44px;font-weight:600;">
+          <input type="checkbox" id="otr_burb" onchange="otrBurbUI();otrHallSync();fopBurbEspejo('otr_burb')">
+          <span style="font-size:12px;">Se realiza test de burbuja</span>
+          <button type="button" class="vinfo-btn" data-vinfo="otr-burbujas" aria-expanded="false" aria-label="Informaci&oacute;n sobre el test de burbuja" onclick="vInfoClic(this)">&#9432;</button>
+        </label>
+      </div>
+      <div id="otr-burb-detalle" style="display:none;">
+        <div class="grid-2">
+          <div class="fg"><label>Pasaje de burbujas</label>
+            <select id="otr_burb_pasaje" onchange="otrBurbUI();otrHallSync();fopBurbEspejo('otr_burb_pasaje')">
+              <option value="">&mdash; sin consignar &mdash;</option>
+              <option value="si">S&iacute;, se observa pasaje</option>
+              <option value="no">No se observa pasaje</option>
+            </select>
+          </div>
+        </div>
+        <div id="otr-burb-pos" class="grid-3" style="display:none;margin-top:8px;">
+          <div class="fg"><label>Cantidad</label>
+            <!-- ══ UNA SOLA ESCALA DE BURBUJAS (ARR8, 2026-10-18) ════════════════════════
+                 Habia DOS: esta, que nacio en el CORTOS13 (17/10/2026) con «<10 / 10-30 / >30», y
+                 la del modulo FOP de CC frecuentes, «Pocas (<5) / Moderado (5-20) / Abundante
+                 (>20)». Un estudio podia llevar las dos y el informe deciria dos oraciones sobre
+                 el mismo test con dos escalas (CORTOS-1 de PENDIENTES.md).
+                 ⚠️ NINGUNA FUENTE DE LA BIBLIOTECA GRADUA EL PASO DE BURBUJAS, censada entera: las
+                 menciones de microburbujas son de contraste de perfusion, protesis mecanicas y
+                 artefactos pulmonares, y la ASE de ETE (hoja 59) describe el estudio positivo de
+                 forma CUALITATIVA -«dense opacification of RA and RV, and clear early passage of
+                 microbubbles to the LA»-, sin conteo. Por eso se aplica la regla de la orden:
+                 CONSERVAR la que ya usan los estudios guardados y ADAPTAR la otra.
+                 Queda la del MODULO FOP, por tres razones medidas: el Laboratorio cuenta su barra
+                 «Paso de burbujas con contraste» leyendo `fop_burbujas`; es la unica que tiene
+                 NOMBRES de grado, que es lo que el informe esquematico necesita; y es la antigua,
+                 mientras esta tiene un dia de vida.
+                 ⚠️ LAS TRES OPCIONES VIEJAS QUEDAN COMO `hidden`, el patron que `em_grado` ya usa:
+                 el recolector restaura por `el.value`, asi que sin ellas un estudio guardado del
+                 CORTOS reabre con el `<select>` en `selectedIndex -1`. Es la trampa de `et_grado`.
+                 NO se traducen a la escala nueva: equiparar «menos de 10» con «Pocas (<5)» o con
+                 «Moderado (5-20)» seria inventar una equivalencia que ninguna fuente hace. -->
+            <select id="otr_burb_cant" onchange="otrHallSync();fopBurbEspejo('otr_burb_cant')">
+              <option value="">&mdash; sin consignar &mdash;</option>
+              <option value="pocas">Pocas (&lt;5)</option>
+              <option value="moderado">Moderado (5-20)</option>
+              <option value="abundante">Abundante (&gt;20)</option>
+              <option value="lt10" hidden>menos de 10 (estudio anterior)</option>
+              <option value="e1030" hidden>entre 10 y 30 (estudio anterior)</option>
+              <option value="gt30" hidden>m&aacute;s de 30 (estudio anterior)</option>
+            </select>
+          </div>
+          <div class="fg"><label>Maniobra</label>
+            <select id="otr_burb_man" onchange="otrHallSync();fopBurbEspejo('otr_burb_man')">
+              <option value="">&mdash; sin consignar &mdash;</option>
+              <option value="esp">espont&aacute;neo</option>
+              <option value="val">con Valsalva</option>
+            </select>
+          </div>
+          <div class="fg"><label>Momento de aparici&oacute;n</label>
+            <select id="otr_burb_mom" onchange="otrHallSync()">
+              <option value="">&mdash; sin consignar &mdash;</option>
+              <option value="pre3">antes del tercer latido</option>
+              <option value="e35">entre el tercer y el quinto latido</option>
+              <option value="post5">despu&eacute;s del quinto latido</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  </div>
+
+  <div id="otr-sub-variantes" class="otr-sub" role="tabpanel"
+       aria-labelledby="otr-subtab-variantes">
   <div class="card" style="margin-bottom:6px;">
     <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('variantes',this)">
       &#129656; Variantes anat&oacute;micas
@@ -8370,101 +8497,6 @@ window.cerrarSesionReal = cerrarSesionReal;
           </div>
         </div>
       </div>
-  </div>
-
-  <!-- ═══ TEST DE BURBUJA (CORTOS11, 2026-10-17) ═══════════════════════════════════════════════
-       DECISION DE MAICOL. Una casilla que declara que el test SE HIZO y, con pasaje, tres datos:
-       cantidad, momento de aparicion y si fue espontaneo o con Valsalva. Sin pasaje no se
-       pregunta nada mas. La app arma el texto; el informe NO escribe interpretaciones
-       —intracardiaco o intrapulmonar—, que es lo que la orden pide.
-       ⚠️ LOS CORTES NO SE DUPLICAN: las tres bandas de cantidad y los tres tramos de latidos ya
-       estan en la pestaña Referencias (ficha «Test de Burbujas»), y el globo de aca LEE esa ficha
-       en vez de reescribirla.
-       ⚠️ EL TEXTO QUE VA AL INFORME SALE DE LA `<option>` ELEGIDA, no de un mapa paralelo: es la
-       regla que el selector del S/D venoso pulmonar ya pago con un ternario. Por eso los rotulos
-       de las opciones son exactamente las palabras que van al papel.
-       ⚠️ DUPLICACION PREEXISTENTE, DECLARADA Y NO TOCADA: la seccion FOP de «CC frecuentes» tiene
-       sus propios `fop_contraste` y `fop_burbujas`, con OTRA escala (<5 / 5-20 / >20) y su propio
-       parrafo. Unificar los `value` de ese `<select>` dejaria a todo estudio guardado con un valor
-       que su selector ya no ofrece —`selectedIndex -1`, la trampa que `et_grado` pago— y cambiaria
-       el texto del modulo FOP y las barras del Laboratorio, que esta orden no autoriza. Queda en
-       `docs/PENDIENTES.md`. -->
-  <div class="card" style="margin-bottom:6px;">
-    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('burbuja',this)">
-      &#129526; Test de burbuja
-      <span id="ete-burbuja-arrow" style="float:right;transition:transform 0.2s;">&#9654;</span>
-    </h2>
-  </div>
-  <div id="ete-seccion-burbuja" style="display:none;">
-  <div class="card">
-    <div class="card-body">
-      <div class="fg">
-        <label style="display:flex;align-items:center;gap:8px;min-height:44px;font-weight:600;">
-          <input type="checkbox" id="otr_burb" onchange="otrBurbUI();otrHallSync();fopBurbEspejo('otr_burb')">
-          <span style="font-size:12px;">Se realiza test de burbuja</span>
-          <button type="button" class="vinfo-btn" data-vinfo="otr-burbujas" aria-expanded="false" aria-label="Informaci&oacute;n sobre el test de burbuja" onclick="vInfoClic(this)">&#9432;</button>
-        </label>
-      </div>
-      <div id="otr-burb-detalle" style="display:none;">
-        <div class="grid-2">
-          <div class="fg"><label>Pasaje de burbujas</label>
-            <select id="otr_burb_pasaje" onchange="otrBurbUI();otrHallSync();fopBurbEspejo('otr_burb_pasaje')">
-              <option value="">&mdash; sin consignar &mdash;</option>
-              <option value="si">S&iacute;, se observa pasaje</option>
-              <option value="no">No se observa pasaje</option>
-            </select>
-          </div>
-        </div>
-        <div id="otr-burb-pos" class="grid-3" style="display:none;margin-top:8px;">
-          <div class="fg"><label>Cantidad</label>
-            <!-- ══ UNA SOLA ESCALA DE BURBUJAS (ARR8, 2026-10-18) ════════════════════════
-                 Habia DOS: esta, que nacio en el CORTOS13 (17/10/2026) con «<10 / 10-30 / >30», y
-                 la del modulo FOP de CC frecuentes, «Pocas (<5) / Moderado (5-20) / Abundante
-                 (>20)». Un estudio podia llevar las dos y el informe deciria dos oraciones sobre
-                 el mismo test con dos escalas (CORTOS-1 de PENDIENTES.md).
-                 ⚠️ NINGUNA FUENTE DE LA BIBLIOTECA GRADUA EL PASO DE BURBUJAS, censada entera: las
-                 menciones de microburbujas son de contraste de perfusion, protesis mecanicas y
-                 artefactos pulmonares, y la ASE de ETE (hoja 59) describe el estudio positivo de
-                 forma CUALITATIVA -«dense opacification of RA and RV, and clear early passage of
-                 microbubbles to the LA»-, sin conteo. Por eso se aplica la regla de la orden:
-                 CONSERVAR la que ya usan los estudios guardados y ADAPTAR la otra.
-                 Queda la del MODULO FOP, por tres razones medidas: el Laboratorio cuenta su barra
-                 «Paso de burbujas con contraste» leyendo `fop_burbujas`; es la unica que tiene
-                 NOMBRES de grado, que es lo que el informe esquematico necesita; y es la antigua,
-                 mientras esta tiene un dia de vida.
-                 ⚠️ LAS TRES OPCIONES VIEJAS QUEDAN COMO `hidden`, el patron que `em_grado` ya usa:
-                 el recolector restaura por `el.value`, asi que sin ellas un estudio guardado del
-                 CORTOS reabre con el `<select>` en `selectedIndex -1`. Es la trampa de `et_grado`.
-                 NO se traducen a la escala nueva: equiparar «menos de 10» con «Pocas (<5)» o con
-                 «Moderado (5-20)» seria inventar una equivalencia que ninguna fuente hace. -->
-            <select id="otr_burb_cant" onchange="otrHallSync();fopBurbEspejo('otr_burb_cant')">
-              <option value="">&mdash; sin consignar &mdash;</option>
-              <option value="pocas">Pocas (&lt;5)</option>
-              <option value="moderado">Moderado (5-20)</option>
-              <option value="abundante">Abundante (&gt;20)</option>
-              <option value="lt10" hidden>menos de 10 (estudio anterior)</option>
-              <option value="e1030" hidden>entre 10 y 30 (estudio anterior)</option>
-              <option value="gt30" hidden>m&aacute;s de 30 (estudio anterior)</option>
-            </select>
-          </div>
-          <div class="fg"><label>Maniobra</label>
-            <select id="otr_burb_man" onchange="otrHallSync();fopBurbEspejo('otr_burb_man')">
-              <option value="">&mdash; sin consignar &mdash;</option>
-              <option value="esp">espont&aacute;neo</option>
-              <option value="val">con Valsalva</option>
-            </select>
-          </div>
-          <div class="fg"><label>Momento de aparici&oacute;n</label>
-            <select id="otr_burb_mom" onchange="otrHallSync()">
-              <option value="">&mdash; sin consignar &mdash;</option>
-              <option value="pre3">antes del tercer latido</option>
-              <option value="e35">entre el tercer y el quinto latido</option>
-              <option value="post5">despu&eacute;s del quinto latido</option>
-            </select>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
   </div>
 
@@ -20240,6 +20272,30 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
      `flex-wrap:wrap` los cinco botones envuelven y la pestana crece en alto, y con `nowrap` sin
      `overflow-x` desborda el ancho del documento. `flex-shrink:0` evita que los rotulos se
      compriman hasta ser ilegibles. */
+  /* ══ SUB-PESTANAS DE OTROS (B-E2) ══════════════════════════════════════════════════════
+     `display:none` de AUTOR y no el atributo `hidden`: el `[hidden]{display:none}` vive en la
+     hoja del NAVEGADOR y cualquier regla de autor le gana —`.card` es `display:block`—, que es
+     el fantasma que este archivo ya pago con `.fg[hidden]`, `.frases-panel[hidden]` y el banner
+     de version. Medido: un panel inactivo queda en 0x0 y sin un solo tabulable adentro. */
+  #tab-otros .otr-sub{display:none}
+  #tab-otros .otr-sub.active{display:block}
+  /* ⚠️ EL BOTON ACTIVO SE PINTA POR UNA CLASE PROPIA (`otr-on`) Y NO POR `.active`, Y LAS DOS
+     MITADES LAS DESTAPO LA MEDICION.
+     (1) `showTab` barre `.active` de TODO `.tab-btn` del documento
+         —`querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'))`— asi que
+         al entrar a Otros los dos botones de la barra perdian su marca y el panel quedaba
+         abierto sin ningun boton encendido.
+     (2) Y UNA CLASE, que es lo que `refSubTab` ya usa para las cinco de Referencias: el
+         atributo tambien habria servido, pero la clase es el patron de la casa y no hay motivo
+         para abrir un segundo. NO son dos fuentes: `otrSubTab` escribe la clase y
+         `aria-selected` en el MISMO bucle, asi que no pueden divergir.
+     ⚠️ Y UNA TRAMPA DE MEDICION, que costo dos diagnosticos falsos: `.tab-btn` tiene
+     `transition` de color, asi que leer `getComputedStyle().color` en el mismo turno del clic
+     devuelve un valor INTERMEDIO de la animacion —medido `rgb(62,153,154)` entre el teal y el
+     gris— y parece que la regla no gana. Hay que medirlo DESPUES de la transicion, en otra
+     llamada: ahi los dos motores dan el teal y el gris exactos.
+     Los colores son los de `.subtabs-wrap .tab-btn.active`, sin declarar uno nuevo. */
+  #tab-otros .otr-subbar .tab-btn.otr-on{color:var(--teal);border-color:var(--teal);background:transparent}
   #tab-refs .ref-subbar{display:flex;flex-wrap:nowrap;gap:2px;overflow-x:auto;-webkit-overflow-scrolling:touch;
     border-bottom:1px solid var(--border);margin:0 0 12px;scrollbar-width:thin;max-width:100%;}
   #tab-refs .ref-subtab{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;font-size:.8rem;
@@ -63366,6 +63422,47 @@ function refSubInit() {
   /* El assert del mapeo tarjeta -> entrada: las dos direcciones, al arrancar. */
   if (typeof _vinfoRefAssert === 'function') { try { _vinfoRefAssert() } catch (e) {} }
 }
+/* ══ OTROS — LAS DOS SUB-PESTANAS (B-E2, 2026-10-21) ══════════════════════════════════════
+   Dueno unico del reparto: `OTR_SUB_ORDEN`. No calcula nada, no lee ni escribe un campo y no
+   toca el estado plegado de las secciones —eso sigue siendo de `toggleEteSeccion`—.
+   El teclado es el patron ARIA del tablist, igual que en Referencias: la barra es UN solo tab
+   stop y las flechas mueven entre las dos. Se cablea con addEventListener y no con un atributo
+   de evento, que es lo que Semgrep pide. */
+const OTR_SUB_ORDEN = Object.freeze(['burbuja', 'variantes']);
+let _otrSubActiva = 'burbuja';
+function otrSubTab(sub, el) {
+  if (OTR_SUB_ORDEN.indexOf(sub) < 0) { console.error('[otrSubTab] desconocida: ' + sub); return }
+  OTR_SUB_ORDEN.forEach(function (k) {
+    const b = document.getElementById('otr-subtab-' + k);
+    const p = document.getElementById('otr-sub-' + k);
+    const on = (k === sub);
+    /* La clase es `otr-on` y no `active` —ver el CSS—: la segunda la barre `showTab` en cada
+       cambio de pestana, asi que como fuente del estado duraba hasta el proximo toque. */
+    if (b) { b.classList.toggle('otr-on', on);
+             b.setAttribute('aria-selected', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1 }
+    if (p) p.classList.toggle('active', on);
+  });
+  _otrSubActiva = sub;
+  if (el && el.scrollIntoView) { try { el.scrollIntoView({ block: 'nearest', inline: 'nearest' }) } catch (e) {} }
+}
+window.otrSubTab = otrSubTab; window.OTR_SUB_ORDEN = OTR_SUB_ORDEN;
+document.addEventListener('DOMContentLoaded', function () {
+  const bar = document.querySelector('#tab-otros .otr-subbar');
+  if (!bar) return;
+  bar.addEventListener('keydown', function (e) {
+    const K = e.key;
+    if (K !== 'ArrowLeft' && K !== 'ArrowRight' && K !== 'Home' && K !== 'End') return;
+    const i = OTR_SUB_ORDEN.indexOf(_otrSubActiva);
+    let j = i;
+    if (K === 'ArrowLeft')  j = (i <= 0) ? OTR_SUB_ORDEN.length - 1 : i - 1;
+    if (K === 'ArrowRight') j = (i >= OTR_SUB_ORDEN.length - 1) ? 0 : i + 1;
+    if (K === 'Home') j = 0;
+    if (K === 'End')  j = OTR_SUB_ORDEN.length - 1;
+    e.preventDefault();
+    const btn = document.getElementById('otr-subtab-' + OTR_SUB_ORDEN[j]);
+    if (btn) { otrSubTab(OTR_SUB_ORDEN[j], btn); btn.focus() }
+  });
+});
 function refSubTab(sub, el) {
   refSubInit();
   if (!REF_SUBTAB[sub]) { console.error('[refSubTab] subpestana desconocida: ' + sub); return; }

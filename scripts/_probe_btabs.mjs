@@ -286,6 +286,25 @@ const DRAWER = `(() => {
     advSelect: sel ? Array.prototype.slice.call(sel.options).map(o => o.value).filter(v => v) : null };
 })()`;
 
+
+/* ══ EL CLIC REAL EN LA SUB-PESTANA Y EL COLOR EN LOS DOS TEMAS ══════════════════════════ */
+const OTRCLIC = `(() => {
+  const col = (id) => { const e = document.getElementById(id);
+    return e ? getComputedStyle(e).color : null };
+  const vis = (id) => { const e = document.getElementById(id); if (!e) return null;
+    const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 };
+  return { burbBtn: col('otr-subtab-burbuja'), varBtn: col('otr-subtab-variantes'),
+    burbPan: vis('otr-sub-burbuja'), varPan: vis('otr-sub-variantes'),
+    burbCls: (document.getElementById('otr-subtab-burbuja') || {}).className,
+    varCls: (document.getElementById('otr-subtab-variantes') || {}).className,
+    burbSel: (document.getElementById('otr-subtab-burbuja') || {}).getAttribute('aria-selected'),
+    varSel: (document.getElementById('otr-subtab-variantes') || {}).getAttribute('aria-selected'),
+    tabulables: (document.getElementById('otr-sub-variantes') || document.createElement('div'))
+      .querySelectorAll('input,select,textarea,button').length,
+    tabulablesBurb: (document.getElementById('otr-sub-burbuja') || document.createElement('div'))
+      .querySelectorAll('input,select,textarea,button').length };
+})()`;
+
 async function corre(nombre, abrir) {
   if (MOTOR && MOTOR !== nombre) return;
   const R = {};
@@ -314,6 +333,30 @@ async function corre(nombre, abrir) {
       for (const k of Object.keys(ESC)) {
         R.ctrl[k] = await pg.evaluate(CTRL.replace('ESCENA', ESC[k]));
       }
+    }
+    if (hay('otrclic')) {
+      /* ⚠️ EL COLOR SE LEE DESPUES DE LA TRANSICION, y en otra llamada que el clic.
+         `.tab-btn` lleva `transition: all .15s`, asi que leerlo en el mismo turno devuelve un
+         valor INTERMEDIO de la animacion —medido rgb(62,153,154) entre el teal y el gris— y la
+         regla parece no ganar. Costo dos diagnosticos falsos. */
+      R.otrclic = {};
+      for (const tema of ['oscuro','claro']) {
+        await pg.evaluate("document.documentElement.classList." + (tema === 'claro' ? 'add' : 'remove') + "('light-mode')");
+        await pg.evaluate("(() => { if (typeof showTab === 'function') showTab('otros'); return true })()");
+        const paso = {};
+        const pasos = [['ini', null], ['trasClic', '#otr-subtab-variantes'],
+                       ['vuelta', '#otr-subtab-burbuja'], ['trasShowTab', '#otr-subtab-variantes']];
+        for (const [k, sel] of pasos) {
+          if (sel) { await pg.click(sel); await pg.waitForTimeout(260) }
+          if (k === 'trasShowTab') {
+            await pg.evaluate("showTab('datos')"); await pg.evaluate("showTab('otros')");
+            await pg.waitForTimeout(260);
+          }
+          paso[k] = await pg.evaluate(OTRCLIC);
+        }
+        R.otrclic[tema] = paso;
+      }
+      await pg.evaluate("document.documentElement.classList.remove('light-mode')");
     }
     if (hay('drawer')) R.drawer = await pg.evaluate(DRAWER);
     if (hay('excel')) {
