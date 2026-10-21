@@ -5971,13 +5971,24 @@ caso('TC-90', 'TEER: los criterios COAPT se espejan vivos, rechazan el cero y no
        dato -el diametro TELEsistolico del VI, el LVESD del COAPT- y su campo de origen en AI/VI
        siempre se llamo DSFVI; «DTSVI» nombra ademas OTRA cosa en esta app, el diametro del
        TSVI. Se unifico en la seccion TEER y la hoja del PDF lo hereda del mismo lbl. */
+    /* ADAPTADO el 2026-10-20 (R2): el rotulo del criterio dice ahora «DSFVI TELESISTOLICO ≤70 mm
+       (COAPT)». Decision de Maicol con la fuente leida: la ESC/EACTS 2025 de valvulopatias
+       publica ese corte en su Tabla 7 (folio 4678) como «LVESD», el diametro TELEsistolico, y el
+       rotulo de la app no lo decia. El VALOR no se movio -los 70 mm siguen siendo 70 mm, medido
+       por sus dos lados-, asi que lo que estas dos condiciones fijan -que la nota y el titulo
+       NOMBREN los dos criterios que faltan- no cambio: se busca el prefijo «DSFVI» y la unidad,
+       no la cadena completa, para que la proxima aclaracion del rotulo no las ponga en rojo.
+       ⚠️ POR indexOf Y NO POR REGEX: un literal de expresion regular dentro del cuerpo de un
+       caso se COCINA -el parentesis escapado llega al motor como un GRUPO- y la primera version
+       de esta adaptacion salio roja sobre una nota perfecta. */
     ['sin FEVI ni DSFVI la nota NOMBRA los dos que faltan',
-      faltan.nota.indexOf('FEVI 20-50 % (COAPT)') > -1 && faltan.nota.indexOf('DSFVI ≤70 mm (COAPT)') > -1],
+      faltan.nota.indexOf('FEVI 20-50 % (COAPT)') > -1
+        && faltan.nota.indexOf('DSFVI') > -1 && faltan.nota.indexOf('≤70 mm (COAPT)') > -1],
     /* Y3d3: el titulo tambien los nombra, no solo la nota. */
     ['y el titulo dice «Datos incompletos» con los dos nombres',
       faltan.titulo.indexOf('Datos incompletos') > -1
         && faltan.titulo.indexOf('FEVI 20-50 % (COAPT)') > -1
-        && faltan.titulo.indexOf('DSFVI ≤70 mm (COAPT)') > -1]
+        && faltan.titulo.indexOf('DSFVI') > -1 && faltan.titulo.indexOf('≤70 mm (COAPT)') > -1]
   ] };
 `);
 

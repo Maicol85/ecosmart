@@ -1977,6 +1977,96 @@ window.__Z = {
     process.stderr.write('[vab] listo\n');
   }
 
+
+  /* ══ GRUPO «teer» — EL BORDE DE LA PROFUNDIDAD, Y LO QUE NO SE MUEVE ══════════════════════
+     ⚠️ LA SECCION TEER NACE CERRADA (`ete-seccion-teer`) y sus campos miden 0x0 adentro; ademas
+     el TIPO DE IM se fija ANTES de tipear, porque c4 solo se evalua con IM secundaria o sin
+     definir y con «primaria» la fila se oculta y el valor no vota.
+     ⚠️ TRES VALORES Y NO DOS en el borde: con 10 y 11 los operadores `<=10` y `<11` dan lo MISMO
+     -el primero deja 10 dentro y 11 fuera, el segundo tambien-, asi que la tabla informaria «no
+     cambia nada». El tramo que los separa es 10,1 a 10,9 y por eso se mide 10,5. */
+  if (corre('teer')) {
+    const r = { prof: {}, otros: {}, rotulos: {} };
+    const abrirTeer = () => ev(`(function(){
+      try { if (typeof showTab === 'function') showTab('ete'); } catch(e){}
+      var c = document.getElementById('ete-seccion-teer');
+      if (c && getComputedStyle(c).display === 'none' && typeof toggleEteSeccion === 'function')
+        toggleEteSeccion('teer');
+      var e = document.getElementById('teer_prof_flail');
+      var rr = e ? e.getBoundingClientRect() : null;
+      return rr ? { w: Math.round(rr.width), h: Math.round(rr.height) } : 'NO EXISTE' })()`);
+    const leerTeer = async () => ({
+      c4:   await ev(`window.__P.txt('teer-c4')`),
+      c6:   await ev(`window.__P.txt('teer-c6')`),
+      c8:   await ev(`window.__P.txt('teer-c8')`),
+      c1:   await ev(`window.__P.txt('teer-c1')`),
+      c1b:  await ev(`window.__P.txt('teer-c1b')`),
+      res:  await ev(`window.__P.txt('teer-resultado')`),
+      nota: await ev(`window.__P.txt('teer-notas')`),
+      lblC4: await ev(`(function(){ var e=document.getElementById('teer-c4');
+        var f=e&&e.closest?e.closest('.calc-row'):null; var l=f?f.querySelector('.calc-lbl'):null;
+        return l?l.textContent.trim():null })()`),
+      lblC8: await ev(`(function(){ var e=document.getElementById('teer-c8');
+        var f=e&&e.closest?e.closest('.calc-row'):null; var l=f?f.querySelector('.calc-lbl'):null;
+        return l?l.textContent.trim():null })()`),
+      labProf: await ev(`(function(){ var e=document.getElementById('teer_prof_flail');
+        var p=e?e.parentNode:null; var sp=p?p.querySelector('span'):null;
+        return sp?sp.textContent.trim():null })()`),
+      labDsf: await ev(`(function(){ var e=document.getElementById('teer_dtsvi');
+        var p=e?e.parentNode:null; var sp=p?p.querySelectorAll('span'):null;
+        return sp&&sp.length?sp[sp.length-1].textContent.trim():null })()`),
+      labCrit: await ev(`(function(){ var e=document.getElementById('teer-c4');
+        var box=e&&e.closest?e.closest('.calc-box'):null;
+        if(!box) return null; var t=(box.textContent||'');
+        return { ecosmart: t.indexOf('CRITERIO DE ECOSMART')>=0, tamburino: t.indexOf('Tamburino')>=0,
+                 escValv: t.indexOf('ESC/EACTS 2025')>=0, esc2021: t.indexOf('ESC 2021')>=0,
+                 expand: t.indexOf('EXPAND')>=0 } })()`),
+      labCrud: await ev(`(function(){ try { return _LAB_TEER_CRIT.map(function(c){return c.k+'='+c.lbl}) } catch(e){ return 'SIN' } })()`),
+    });
+    try {
+      r.puerta = await abrirTeer();
+      for (const vmm of ['10', '10.5', '11']) {
+        await ev(`window.__P.nuevo()`);
+        await abrirTeer();
+        await ev(`window.__P.sel('teer_tipo_im','secundaria')`);
+        await tipear('teer_prof_flail', vmm);
+        await ev(`window.__P.calentar()`);
+        r.prof[vmm] = await leerTeer();
+      }
+      /* Los que NO se mueven: PSAP, DSFVI y los dos velos, por sus dos lados. */
+      for (const [campo, vals] of [['teer_pasp', ['70', '71']], ['teer_dtsvi', ['70', '71']],
+                                   ['teer_lva', ['19', '20']], ['teer_lvp', ['6', '7']]]) {
+        for (const vv of vals) {
+          await ev(`window.__P.nuevo()`);
+          await abrirTeer();
+          await ev(`window.__P.sel('teer_tipo_im','secundaria')`);
+          await tipear(campo, vv);
+          await ev(`window.__P.calentar()`);
+          r.otros[campo + '=' + vv] = await leerTeer();
+        }
+      }
+      /* El BORRADO: la regla ARR -un campo vacio es SIN DATO-. */
+      await ev(`window.__P.nuevo()`);
+      await abrirTeer();
+      await ev(`window.__P.sel('teer_tipo_im','secundaria')`);
+      await tipear('teer_prof_flail', '10.5');
+      await borrar('teer_prof_flail', 'bs');
+      await ev(`window.__P.calentar()`);
+      r.borrado = await leerTeer();
+      await ev(`window.__P.nuevo()`);
+      await abrirTeer();
+      await ev(`window.__P.sel('teer_tipo_im','secundaria')`);
+      await tipear('teer_prof_flail', '10.5');
+      await borrar('teer_prof_flail', 'del');
+      await ev(`window.__P.calentar()`);
+      r.borradoDel = await leerTeer();
+      r.excel = await ev(`window.__P.excelDOM()`);
+      r.campos = await ev(`window.__P.camposEstudio ? window.__P.camposEstudio().n : null`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.teer = r;
+    process.stderr.write('[teer] listo\n');
+  }
+
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
   process.stdout.write(JSON.stringify(OUT, null, 1));
   cdp.close(); srv.close(); process.exit(0);
