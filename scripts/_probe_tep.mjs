@@ -180,6 +180,51 @@ const REFS = `(() => {
     texto: t.slice(0, 900)
   } })()`;
 
+/* ══ LA EVIDENCIA DEL TEP ════════════════════════════════════════════════════════════════
+   Carga una escena, abre el panel y CONTESTA el cuestionario con clics REALES sobre los
+   botones (`data-ind-clin`), que es el gesto del medico. Lee el HTML RENDERIZADO de la
+   seccion: el titulo de la recomendacion, su texto y las marcas de cada fila. */
+const EVID = `(() => {
+  const C = CASO;
+  __p.limpiar();
+  ['modalAvisoEco','login-overlay'].forEach(id => { const m = document.getElementById(id);
+    if (m) m.style.display = 'none' });
+  Object.keys(C.campos || {}).forEach(k => __p.set(k, C.campos[k]));
+  try { if (typeof calcPmAD === 'function') calcPmAD() } catch(e){}
+  try { if (typeof calcPSAP === 'function') calcPSAP() } catch(e){}
+  try { calcTEP() } catch(e){}
+  try { indicAbrir() } catch(e){ return { ABORTO: 'indicAbrir ' + e.message } }
+  /* Las respuestas van por el BOTON, no escribiendo _indClin: el mecanismo es el delegado. */
+  const resp = C.resp || {};
+  Object.keys(resp).forEach(k => {
+    const b = document.querySelector('[data-ind-clin="' + k + '"][data-ind-val="' + resp[k] + '"]');
+    if (b) b.click();
+  });
+  const det = Array.prototype.slice.call(document.querySelectorAll('#indic-cuerpo details'))
+    .filter(d => { const su = d.querySelector('summary');
+      return su && (su.textContent || '').indexOf('Tromboembolia pulmonar') > -1 });
+  if (!det.length) { try { indicCerrar() } catch(e){} return { hay:false } }
+  const d = det[0];
+  d.open = true;
+  const t = (d.textContent || '').replace(/[ ]+/g, ' ').trim();
+  const r = d.getBoundingClientRect();
+  const btns = d.querySelectorAll('[data-ind-clin]').length;
+  const marcados = Array.prototype.slice.call(d.querySelectorAll('[data-ind-clin]'))
+    .filter(b => b.getAttribute('aria-pressed') === 'true')
+    .map(b => b.getAttribute('data-ind-clin') + '=' + b.getAttribute('data-ind-val'));
+  /* El titulo de la recomendacion: el div en MAYUSCULAS del bloque de recomendacion. */
+  const titulos = Array.prototype.slice.call(d.querySelectorAll('div'))
+    .map(x => (x.textContent || '').trim())
+    .filter(x => x.indexOf('Riesgo ') === 0 || x.indexOf('Faltan datos') === 0 ||
+                 x.indexOf('La tabla no publica') === 0);
+  const out = { hay:true, geom:{ w: Math.round(r.width), h: Math.round(r.height) },
+    n: t.length, btns: btns, marcados: marcados,
+    recom: titulos.length ? titulos[titulos.length - 1] : 'SIN RECOM',
+    cita: t.indexOf('497.e20') > -1, salvedad: t.indexOf('sola no estratifica') > -1,
+    texto: t.slice(0, 1200) };
+  try { indicCerrar() } catch(e){}
+  return out })()`;
+
 /* ══ MAQUETA Y CAPTURA ════════════════════════════════════════════════════════════════════
    Mide lo RENDERIZADO a cuatro anchos por los dos temas: sin scroll horizontal, la tarjeta de
    TEP entera y el COLOR REAL computado de lo nuevo. El tema se EXIGE: si la clase no queda
@@ -238,6 +283,10 @@ async function corre(nombre, abrir) {
     if (hay('score')) {
       R.score = {};
       for (const c of ESCENAS) R.score[c.k] = await pg.evaluate(ESCENA.replace('CASO', JSON.stringify(c)));
+    }
+    if (hay('evid')) {
+      R.evid = {};
+      for (const c of EVID_ESC) R.evid[c.k] = await pg.evaluate(EVID.replace('CASO', JSON.stringify(c)));
     }
     if (hay('refs')) {
       R.refs = await pg.evaluate(REFS);
@@ -320,6 +369,21 @@ const ESCENAS = [
   mk('vdvi_ajeno_bajo', { vd_vi:'0.7', tapse:'22', tep_mcconnell:'si', tep_signo6060:'no', tep_tabique_d:'no' }),
   /* (i) con el VD/VI PROPIO cargado: control negativo del fallback -> los dos cuentan igual */
   mk('vdvi_propio', { tep_vdvi:'1.2', vd_vi:'0.7', tapse:'22', tep_mcconnell:'si', tep_signo6060:'no', tep_tabique_d:'no' })
+];
+/* Escenas de Evidencia: la MISMA base clinica, variando lo que contesta el medico. */
+const EVB = { tapse:'12', vmax_it:'3.8', tep_vdvi:'1.3', tep_mcconnell:'si',
+              tep_signo6060:'si', tep_tabique_d:'no', vci_diam:'18', vci_col:'>50' };
+const ev = (k, resp, campos) => ({ k:k, campos: Object.assign({}, EVB, campos || {}), resp:resp });
+const EVID_ESC = [
+  ev('sin_contestar', {}),
+  ev('alto',      { 'tep.ih':'si', 'tep.vd':'si' }),
+  ev('ih_sin_vd', { 'tep.ih':'si', 'tep.vd':'no' }),
+  ev('int_alto',  { 'tep.ih':'no', 'tep.vd':'si', 'tep.pesi':'pesi', 'tep.tropo':'si' }),
+  ev('int_bajo',  { 'tep.ih':'no', 'tep.vd':'si', 'tep.pesi':'spesi', 'tep.tropo':'no' }),
+  ev('int_notae', { 'tep.ih':'no', 'tep.vd':'si', 'tep.pesi':'no', 'tep.tropo':'no' }),
+  ev('bajo',      { 'tep.ih':'no', 'tep.vd':'no', 'tep.pesi':'no', 'tep.tropo':'ne' }),
+  /* Control negativo: SIN datos del modulo, la seccion no existe. */
+  { k:'sin_tep', campos:{ tapse:'12', vmax_it:'3.8', vci_diam:'18', vci_col:'>50' }, resp:{} }
 ];
 const CTRL_ESC = [
   { k:'vacio', campos:{} },

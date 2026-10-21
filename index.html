@@ -26021,6 +26021,17 @@ function tepVdViRatio() {
   return (vdvi == null) ? null : vdvi;
 }
 window.tepVdViRatio = tepVdViRatio;
+/* ⚠️ LA COMPUERTA DEL MODULO TEP, UNA SOLA VEZ (C-E4, 21/10/2026). El predicado es el que el
+   informe ya aplicaba, LETRA POR LETRA: «hay al menos un dato propio del modulo». No mira el
+   TAPSE ni la PSAP, que son de otras pestañas y estan cargados en casi todo estudio: con ellos
+   adentro, la seccion de Evidencia se abriria sobre un paciente al que nadie le pregunto por una
+   embolia. Lo consumen el informe y el panel de Evidencia. */
+function tepHayDatos() {
+  const g = id => (document.getElementById(id) || {}).value;
+  return g('tep_mcconnell') === 'si' || g('tep_signo6060') === 'si' ||
+         g('tep_tabique_d') === 'si' || v('tep_vdvi') !== null;
+}
+window.tepHayDatos = tepHayDatos;
 
 /* ══ calcTEP — SOBRECARGA AGUDA DEL VD (TEP) ═══════════════════════════════════════════════
    LOS SEIS CRITERIOS QUE CUENTAN y su fuente, uno por uno (C-E1, 2026-10-21):
@@ -52798,9 +52809,9 @@ function generarInforme(opts) {
       return;
     }
 
-    // Solo incluir en informe si hay al menos 1 campo TEP completado
-    const hayDatos = mcconnell || signo6060 || tabiqued || v('tep_vdvi') !== null;
-    if (!hayDatos) return;
+    // Solo incluir en informe si hay al menos 1 campo TEP completado.
+    /* El dueño unico, el mismo que gatea la seccion de Evidencia: el predicado no cambio. */
+    if (!tepHayDatos()) return;
 
     /* LOS MISMOS SEIS CRITERIOS Y LOS MISMOS CORTES QUE `calcTEP`, que es donde estan
        documentados. El TAPSE usa `TEP_TAPSE_BAJO_MAX` (16 mm, ESC 2019 de TEP) y NO
@@ -69637,6 +69648,44 @@ const IND_REFS = Object.freeze([
      sobre el concepto del THP: no mueve un solo número de la Tabla 1 ni de los Puntos clave.
      (Esa misma errata corrige además la EAE/ASE 2009 de Baumgartner, que este registro cita como
      `eaeAseEst2009`: su Tabla 8 debía decir «directly proportional to MVA». Tampoco mueve cifras.) */
+  /* ── AÑADIDA 2026-10-21 PARA LA ESTRATIFICACION DEL RIESGO EN TEP (tanda C). Leida en el PDF
+     original de la biblioteca; la Tabla 8 se leyo RENDERIZANDO la pagina, porque su contenido es
+     un bitmap y la extraccion de texto devuelve las celdas sueltas.
+     ⚠️ ES LA TRADUCCION DE LA SEC, y se declara: lo que se cita son NUMEROS, OPERADORES y la
+     estructura de la tabla, que son inequivocos; no se cita wording de ninguna recomendacion.
+     Regla de folio: folio = «497.e» + numero de pagina del PDF, comprobada en el pie impreso de
+     las paginas 11, 15, 17 y 20 del PDF (497e11, 497e15, 497e17, 497e20). */
+  { k:'escTep2019',
+    full:'Konstantinides SV, Meyer G, Becattini C, et al. Guia ESC 2019 para el diagnostico y ' +
+         'tratamiento de la embolia pulmonar aguda. Rev Esp Cardiol. 2020;73(6):497.e1-497.e58. ' +
+         'doi:10.1016/j.recesp.2019.12.030. Traduccion al español de la Sociedad Española de ' +
+         'Cardiologia. Tabla 8 «Clasificacion de la gravedad de la embolia pulmonar y el riesgo ' +
+         'de muerte precoz (hospitalaria y a los 30 dias)», folio 497.e20 — cuatro indicadores: ' +
+         'inestabilidad hemodinamica, parametros clinicos de gravedad (clase PESI III-V o ' +
+         'PESIs >= 1), disfuncion del VD en ecocardiografia transtoracica o angio-TC, y alta ' +
+         'concentracion de troponinas cardiacas; riesgo alto, intermedio-alto, intermedio-bajo y ' +
+         'bajo. Su nota a define la inestabilidad hemodinamica (parada cardiaca, shock obstructivo ' +
+         'o hipotension persistente); su nota b remite los hallazgos de imagen con relevancia ' +
+         'pronostica a la figura 3; su nota d dice que la inestabilidad hemodinamica combinada ' +
+         'con TEP confirmada en angio-TC y/o evidencia de disfuncion del VD en la ETT es ' +
+         'suficiente para clasificar como riesgo alto, sin necesidad de calcular el PESI ni las ' +
+         'troponinas; y su nota e dice que puede haber signos de disfuncion del VD pese a una ' +
+         'clase PESI I-II o un PESIs de 0, y que hasta conocer sus implicaciones esos pacientes ' +
+         'se clasifican en la categoria de riesgo INTERMEDIO. Seccion 5.2.1, folio 497.e17 — un ' +
+         'cociente de diametros VD/VI >= 1,0 y una TAPSE < 16 mm son los hallazgos que mas ' +
+         'frecuentemente se asocian a un pronostico desfavorable. Figura 3, folio 497.e15 — ' +
+         'panel B: VD dilatado con cociente basal VD/VI > 1,0 y signo de McConnell; panel C: ' +
+         'septo interventricular aplanado; panel E: signo 60/60, con tiempo de aceleracion de ' +
+         'eyeccion pulmonar < 60 ms y gradiente pico sistolico tricuspideo < 60 mmHg; panel G: ' +
+         'TAPSE disminuido en modo M (< 16 mm); panel H: velocidad pico sistolica del anillo ' +
+         'tricuspideo < 9,5 cm/s. Seccion 4.9, folio 497.e14 — define el signo 60-60 y el signo ' +
+         'de McConnell, y señala que la sobrecarga de presion del VD ayuda a distinguir la TEP ' +
+         'aguda del infarto de ventriculo derecho, que puede semejar el signo de McConnell. ' +
+         'Folio 497.e15 — en la sospecha de TEP de riesgo alto, la ausencia de signos ' +
+         'ecocardiograficos de sobrecarga o disfuncion del VD practicamente excluye la TEP como ' +
+         'causa de la inestabilidad hemodinamica. ⚠️ La Figura 3 B escribe el cociente con ' +
+         '«> 1,0» y el cuerpo del folio 497.e17 con «>= 1,0»: la aplicacion aplica el del cuerpo, ' +
+         'que es el que no suaviza, y la discrepancia queda declarada.' },
   { k:'asePandian2023',
     full:'Pandian NG, Kim JK, Arias-Godinez JA, et al. Recommendations for the Use of ' +
          'Echocardiography in the Evaluation of Rheumatic Heart Disease: A Report from the ' +
@@ -76159,6 +76208,145 @@ function _indVABConcl(){
     ] };
 }
 
+/* ══ TROMBOEMBOLIA PULMONAR — ESTRATIFICACION DEL RIESGO (Tabla 8, ESC 2019) ════════════════
+   LA ECOCARDIOGRAFIA APORTA UNO DE LOS CUATRO INDICADORES, y esta seccion existe para que se
+   note: la Tabla 8 del folio 497.e20 clasifica con inestabilidad hemodinamica, parametros
+   clinicos de gravedad (clase PESI III-V o sPESI >= 1), disfuncion del VD por imagen y
+   troponinas. Hasta el 21/10/2026 la pantalla de TEP publicaba «Riesgo INTERMEDIO-ALTO» con el
+   eco solo; eso salio de ahi (C-E2) y la clasificacion vive aca, que es el unico lugar que
+   puede PREGUNTAR los tres que faltan.
+
+   ⚠️ LA DISFUNCION DEL VD LA PROPONE LA APP Y LA CONFIRMA EL MEDICO, y las dos mitades importan.
+   El conteo de criterios de esta app NO es un criterio de la guia — la nota b de la Tabla 8
+   remite a los hallazgos de la Figura 3 sin decir cuantos hacen falta — asi que publicar la
+   clase con el conteo seria inventar el umbral que esta seccion vino a no inventar. Se muestra
+   lo que el eco encontro y la respuesta es del medico.
+
+   ⚠️ CON INESTABILIDAD HEMODINAMICA Y SIN DISFUNCION DEL VD LA TABLA NO TIENE FILA, y no se
+   inventa una: se publica lo que la guia dice en el folio 497.e15 — que en la sospecha de TEP
+   de riesgo alto la ausencia de signos de sobrecarga del VD practicamente excluye la TEP como
+   causa de la inestabilidad — y se deja sin clase.
+
+   ⚠️ NADA DE LO QUE SE CONTESTA ACA SE GUARDA CON EL ESTUDIO: son respuestas de `_indClin`, que
+   vive fuera del DOM persistente y se borra al abrir y al cerrar el panel. Es la regla del
+   panel y la comparten las otras seis secciones contestables. */
+function _indTEP(){
+  if (!(_indFn('tepHayDatos') && tepHayDatos())) return null;
+
+  /* ── LO QUE EL ECO YA DIJO ── Se LEEN las capsulas de la pantalla de TEP: el conteo y el
+     grado no se recalculan aca, porque dos copias de la misma cuenta divergen. */
+  const S = id => _indS(id);
+  const si = id => S(id) === 'si';
+  const ev = id => S(id) === 'si' || S(id) === 'no';
+  const vdvi  = _indFn('tepVdViRatio') ? tepVdViRatio() : null;
+  const tapse = _indN('tapse');
+  const psap  = _indN('psap_calc');
+  const uV = _indUmb('TEP_VDVI_DILAT_MIN'), uT = _indUmb('TEP_TAPSE_BAJO_MAX'),
+        uP = _indUmb('UMBRAL_PSAP_ELEVADA');
+  if (uV == null || uT == null || uP == null) return { filas: [_indSinUmbral('Criterios del VD')] };
+
+  const marcaSi = b => b ? 'ok' : 'none';
+  const filas = [
+    _indFila('Cociente de diámetros VD/VI', vdvi != null ? _indNum(vdvi, 2, '') : '—',
+      vdvi == null ? 'ask' : marcaSi(vdvi >= uV),
+      vdvi == null ? 'sin medir' : (vdvi >= uV ? 'dilatación del VD (≥ ' + uV.toFixed(1) + ')'
+                                              : 'por debajo del corte (' + uV.toFixed(1) + ')'), 'escTep2019'),
+    _indFila('TAPSE', tapse != null ? _indNum(tapse, 1, 'mm') : '—',
+      tapse == null ? 'ask' : marcaSi(tapse < uT),
+      tapse == null ? 'sin medir' : (tapse < uT ? 'por debajo del corte de TEP (< ' + uT + ' mm)'
+                                                : 'no bajo para TEP (≥ ' + uT + ' mm)'), 'escTep2019'),
+    _indFila('Presión sistólica pulmonar estimada', psap != null ? _indNum(psap, 0, 'mmHg') : '—',
+      psap == null ? 'ask' : marcaSi(psap >= uP),
+      psap == null ? 'sin estimar — se deriva de la velocidad de regurgitación tricuspídea'
+                   : (psap >= uP ? 'elevada (≥ ' + uP + ' mmHg)' : 'no elevada')),
+    _indFila('Signo de McConnell', si('tep_mcconnell') ? 'Presente' : (ev('tep_mcconnell') ? 'Ausente' : 'No evaluado'),
+      si('tep_mcconnell') ? 'ok' : (ev('tep_mcconnell') ? 'none' : 'ask'), '', 'escTep2019'),
+    _indFila('Signo 60/60', si('tep_signo6060') ? 'Presente' : (ev('tep_signo6060') ? 'Ausente' : 'No evaluado'),
+      si('tep_signo6060') ? 'ok' : (ev('tep_signo6060') ? 'none' : 'ask'), '', 'escTep2019'),
+    _indFila('Tabique en D', si('tep_tabique_d') ? 'Presente' : (ev('tep_tabique_d') ? 'Ausente' : 'No evaluado'),
+      si('tep_tabique_d') ? 'ok' : (ev('tep_tabique_d') ? 'none' : 'ask'), '', 'escTep2019')
+  ];
+
+  /* El conteo que la app ya publica. NO es un criterio de la guia y la fila lo dice. */
+  let n = 0, m = 0;
+  if (vdvi != null) { m++; if (vdvi >= uV) n++; }
+  if (tapse != null) { m++; if (tapse < uT) n++; }
+  if (psap != null) { m++; if (psap >= uP) n++; }
+  ['tep_mcconnell', 'tep_signo6060', 'tep_tabique_d'].forEach(function(k){
+    if (ev(k)) { m++; if (si(k)) n++; } });
+  filas.push(_indFila('Hallazgos del VD compatibles', n + ' de ' + m + ' evaluados',
+    n > 0 ? 'warn' : (m > 0 ? 'none' : 'ask'),
+    'la guía remite estos hallazgos a su Figura 3 y no publica cuántos hacen falta: la respuesta de abajo es del médico'));
+
+  /* ── LO QUE LA TABLA 8 PIDE Y EL ECO NO DA ── */
+  const oVD = _indClinGet('tep.vd'), oIH = _indClinGet('tep.ih'),
+        oPE = _indClinGet('tep.pesi'), oTR = _indClinGet('tep.tropo');
+  const propone = m === 0 ? null : (n > 0 ? 'sí' : 'no');
+  const clinica = [
+    _indFilaCtrl('Disfunción del VD por imagen', 'tep.vd',
+      [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      oVD == null ? 'ask' : (oVD === 'si' ? 'ok' : 'none'),
+      (propone == null ? 'sin hallazgos cargados para proponer nada'
+        : 'por los hallazgos de arriba la aplicación propone «' + propone + '»; la respuesta es del médico') +
+      ' — contestado en este panel: no se guarda con el estudio.', 'escTep2019'),
+    _indFilaCtrl('Inestabilidad hemodinámica', 'tep.ih',
+      [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      oIH == null ? 'ask' : (oIH === 'si' ? 'alarm' : 'none'),
+      'parada cardíaca, shock obstructivo o hipotensión persistente, según la nota al pie de la tabla — no se guarda con el estudio.', 'escTep2019'),
+    _indFilaCtrl('Parámetros clínicos de gravedad', 'tep.pesi',
+      [{v:'pesi',t:'PESI III-V'},{v:'spesi',t:'sPESI ≥ 1'},{v:'no',t:'Ninguno'}],
+      oPE == null ? 'ask' : (oPE === 'no' ? 'none' : 'ok'),
+      'se elige con cuál de las dos escalas se responde — no se guarda con el estudio.', 'escTep2019'),
+    _indFilaCtrl('Troponina cardíaca elevada', 'tep.tropo',
+      [{v:'si',t:'Sí'},{v:'no',t:'No'},{v:'ne',t:'No evaluada'}],
+      oTR == null ? 'ask' : (oTR === 'si' ? 'ok' : 'none'),
+      'no se guarda con el estudio.', 'escTep2019')
+  ];
+
+  /* ── LA CLASE DE LA TABLA 8 ── Cada rama es una fila de la tabla o una de sus notas. */
+  const faltan = [];
+  if (oVD == null) faltan.push('disfunción del VD por imagen');
+  if (oIH == null) faltan.push('inestabilidad hemodinámica');
+  const grave = oPE === 'pesi' || oPE === 'spesi';
+  let recom;
+  if (faltan.length) {
+    recom = { tipo:'falta', tit:'Faltan datos para clasificar',
+      txt:'La Tabla 8 clasifica con cuatro indicadores y la ecocardiografía aporta uno. Contestar las preguntas de arriba para obtener la clase.',
+      faltan: faltan, fuente:'ESC 2019 de embolia pulmonar aguda, Tabla 8, folio 497.e20', ref:'escTep2019' };
+  } else if (oIH === 'si') {
+    recom = (oVD === 'si')
+      ? { tipo:'alarma', tit:'Riesgo ALTO',
+          txt:'Inestabilidad hemodinámica con disfunción del ventrículo derecho por imagen. La propia tabla aclara que esa combinación alcanza para clasificar como riesgo alto, sin necesidad de calcular el PESI ni las troponinas.',
+          fuente:'ESC 2019 de embolia pulmonar aguda, Tabla 8 y su nota d, folio 497.e20', ref:'escTep2019' }
+      : { tipo:'falta', tit:'La tabla no publica esta combinación',
+          txt:'Con inestabilidad hemodinámica y sin disfunción del ventrículo derecho la Tabla 8 no tiene fila. La guía señala que, ante la sospecha de embolia pulmonar de riesgo alto, la ausencia de signos ecocardiográficos de sobrecarga o disfunción del ventrículo derecho prácticamente excluye la embolia pulmonar como causa de la inestabilidad.',
+          fuente:'ESC 2019 de embolia pulmonar aguda, folio 497.e15', ref:'escTep2019' };
+  } else if (grave) {
+    recom = (oVD === 'si' && oTR === 'si')
+      ? { tipo:'alarma', tit:'Riesgo INTERMEDIO-ALTO',
+          txt:'Sin inestabilidad hemodinámica, con parámetros clínicos de gravedad, disfunción del ventrículo derecho por imagen y troponina elevada: los tres positivos.',
+          fuente:'ESC 2019 de embolia pulmonar aguda, Tabla 8, folio 497.e20', ref:'escTep2019' }
+      : { tipo:'ind', tit:'Riesgo INTERMEDIO-BAJO',
+          txt:'Sin inestabilidad hemodinámica, con parámetros clínicos de gravedad y con uno solo — o ninguno — de los dos indicadores restantes positivo.',
+          fuente:'ESC 2019 de embolia pulmonar aguda, Tabla 8, folio 497.e20', ref:'escTep2019' };
+  } else {
+    recom = (oVD === 'si' || oTR === 'si')
+      ? { tipo:'ind', tit:'Riesgo INTERMEDIO',
+          txt:'Sin parámetros clínicos de gravedad pero con signos de disfunción del ventrículo derecho o troponina elevada. La tabla contempla esa discordancia y, mientras no se conozcan sus implicaciones para el tratamiento, clasifica a estos pacientes en la categoría de riesgo intermedio, sin separar alto de bajo.',
+          fuente:'ESC 2019 de embolia pulmonar aguda, Tabla 8, nota e, folio 497.e20', ref:'escTep2019' }
+      : { tipo:'no', tit:'Riesgo BAJO',
+          txt:'Sin inestabilidad hemodinámica, sin parámetros clínicos de gravedad y sin disfunción del ventrículo derecho. La tabla deja la determinación de troponinas como opcional en esta categoría y, si se hace, es negativa.',
+          fuente:'ESC 2019 de embolia pulmonar aguda, Tabla 8, folio 497.e20', ref:'escTep2019' };
+  }
+
+  return { filas: filas, clinica: clinica, recom: recom,
+    notas: [
+      'La ecocardiografía sola no estratifica el riesgo de una embolia pulmonar: aporta uno de los cuatro indicadores de la tabla y los otros tres son clínicos y de laboratorio.',
+      'Ningún signo ecocardiográfico es específico de la embolia pulmonar. La guía señala que la hipocinesia o acinesia de la pared libre del ventrículo derecho por infarto puede parecerse al signo de McConnell, y que un estudio normal no excluye el diagnóstico.',
+      'El conteo de hallazgos que publica la pestaña de Hemodinámica es una referencia propia de la aplicación: la guía remite los hallazgos con valor pronóstico a su Figura 3 y no publica cuántos hacen falta para afirmar disfunción del ventrículo derecho.'
+    ] };
+}
+
 const IND_SECS = [
   { tit:'Estenosis aórtica',                     fn:_indEA },
   { tit:'Insuficiencia mitral primaria',         fn:_indIM },
@@ -76171,6 +76359,7 @@ const IND_SECS = [
   { tit:'Insuficiencia aórtica',                 fn:_indIA },
   { tit:'Válvula tricúspide',                    fn:_indVT },
   { tit:'Estenosis pulmonar',                    fn:_indEP },
+  { tit:'Tromboembolia pulmonar — estratificación del riesgo', fn:_indTEP },
   { tit:'Comunicación interauricular',           fn:_indCIA },
   { tit:'Comunicación interventricular',         fn:_indCIV },
   { tit:'Ductus arterioso permeable',            fn:_indDAP },
