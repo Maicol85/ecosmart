@@ -8160,7 +8160,20 @@ window.cerrarSesionReal = cerrarSesionReal;
   <div class="card">
     <div class="card-body">
       <div class="fg"><label>Pericardio</label>
-        <select id="pericardio" onchange="dptCambio()"><option>Normal, sin derrame</option><option>Derrame mínimo</option><option>Derrame leve (5-10mm)</option><option>Derrame moderado (10-20mm)</option><option>Derrame severo (>20mm)</option><option>Engrosamiento / calcificación</option></select>
+        <!-- ══ LOS TRES GRADOS DE LA ESC 2025 (R5, 2026-10-20) ═══════════════════════════════════
+             DECISION DE MAICOL con la fuente leida: ESC 2025 de miocarditis y pericarditis, Tabla
+             10, pagina 31 del original en ingles (folio 33 de la edicion de la SEC), medido como
+             «maximal end-diastolic diameter»: leve <10 mm - moderado 10-20 - severo (en la guia
+             «large») >20. Se SACA el grado «mínimo» -0 a 5 mm, «solo en sistole»- que ninguna guia
+             publica, y el leve pierde su piso de 5.
+             ⚠️ LAS DOS OPCIONES VIEJAS SE QUEDAN COMO hidden, que es el patron de et_grado: el
+             value de este selector ES su texto y es lo que viaja en campos, asi que sin ellas
+             cada estudio guardado con «Derrame mínimo» o «Derrame leve (5-10mm)» reabriria con el
+             select en selectedIndex -1. NO se migra nada: abren como se guardaron, el Excel
+             conserva su token y lo que se MUESTRA lo traduce DPT_TAM.
+             ⚠️ EL ROTULO DICE «severo» Y NO «large»: es la palabra que esta app usa en las seis
+             superficies del derrame y la que el medico lee. -->
+        <select id="pericardio" onchange="dptCambio()"><option>Normal, sin derrame</option><option hidden>Derrame mínimo</option><option hidden>Derrame leve (5-10mm)</option><option>Derrame leve (&lt;10mm)</option><option>Derrame moderado (10-20mm)</option><option>Derrame severo (>20mm)</option><option>Engrosamiento / calcificación</option></select>
       </div>
       <!-- ⚠️ TRES ESTADOS Y NO UN CHECKBOX: «sin compromiso hemodinámico» es una AFIRMACIóN, y una
            casilla desmarcada no distingue «lo busqué y no está» de «no lo busqué». Es la regla de
@@ -18168,20 +18181,38 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
 
   <div class="card">
     <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('pericardio',this)">
-      💧 Derrame Pericárdico y Taponamiento (ESC 2015)
+      💧 Derrame Pericárdico y Taponamiento (ESC 2025 de miocarditis y pericarditis)
       <span style="float:right;">▶</span>
     </h2>
     <div id="ref-pericardio" style="display:none;" class="card-body">
+      <!-- ══ LA FICHA SIGUE A LA ESC 2025 (R5 y R6, 2026-10-20) ════════════════════════════════
+           Tres cosas, las tres con la fuente leida:
+           · LOS GRADOS son los de la Tabla 10 (pagina 31 del original en ingles; folio 33 de la
+             edicion de la SEC): leve <10 mm, moderado 10-20, severo (en la guia «large») >20,
+             medidos como diametro diastolico final maximo. Se va la fila «Mínimo», que ninguna
+             guia publica y que la app retiro en el mismo movimiento;
+           · SE VAN LOS VOLUMENES EN mL. No estan en la Tabla 10 -que clasifica por el diametro- y
+             la app no mide volumen de derrame por ningun camino, asi que esa columna publicaba
+             tres rangos que nada en la aplicacion puede producir ni verificar;
+           · EL TITULO dice «ESC 2025 de miocarditis y pericarditis» y NO «ESC 2015». Se cita SIN
+             numero de pagina de revista: la version de la biblioteca es la publicacion anticipada,
+             paginada 1-90. ⚠️ No confundirla con la ESC/EACTS 2025 de VALVULOPATIAS
+             (DOI 10.1093/eurheartj/ehaf194), que es otra guia del mismo año. -->
       <table style="width:100%;border-collapse:collapse;font-size:12px;">
-        <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Clasificación</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Tamaño</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Separación</th></tr>
-        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">Mínimo</td><td style="padding:5px 8px;text-align:center;">&lt;10ml</td><td style="padding:5px 8px;text-align:center;">&lt;5mm solo sístole</td></tr>
-        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:#f5c842;">Leve</td><td style="padding:5px 8px;text-align:center;">10–80ml</td><td style="padding:5px 8px;text-align:center;">&lt;10mm</td></tr>
-        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:#f59e42;">Moderado</td><td style="padding:5px 8px;text-align:center;">80–200ml</td><td style="padding:5px 8px;text-align:center;">10–20mm</td></tr>
-        <tr><td style="padding:5px 8px;color:#f05454;font-weight:700;">Severo</td><td style="padding:5px 8px;text-align:center;">&gt;200ml</td><td style="padding:5px 8px;text-align:center;color:#f05454;font-weight:700;">&gt;20mm</td></tr>
+        <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Clasificación</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Separación (diástole)</th></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:#f5c842;">Leve</td><td style="padding:5px 8px;text-align:center;">&lt;10mm</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:#f59e42;">Moderado</td><td style="padding:5px 8px;text-align:center;">10–20mm</td></tr>
+        <tr><td style="padding:5px 8px;color:#f05454;font-weight:700;">Severo</td><td style="padding:5px 8px;text-align:center;color:#f05454;font-weight:700;">&gt;20mm</td></tr>
       </table>
       <div style="margin-top:10px;font-size:12px;color:var(--text);line-height:1.8;">
-        <b style="color:var(--accent2);">Signos de taponamiento:</b> Colapso diastólico AD (precoz) · Colapso VD (específico) · Variación respiratoria E mitral &gt;25% · VCI dilatada sin colapso · Swinging heart<br>
-        <b style="color:var(--accent2);">Pericardiocentesis:</b> Clase I en taponamiento · Clase IIa derrame severo sintomático · Ventana eco mínima ≥10mm subcostal
+        <b style="color:var(--accent2);">Diagnóstico de taponamiento:</b> es CLÍNICO —historia, síntomas y signos— con confirmación por ecocardiografía (Tabla 17). Ninguna guía fija un número de signos ecocardiográficos que lo defina.<br>
+        <b style="color:var(--accent2);">Signos ecocardiográficos (Tabla 17):</b> derrame grande con corazón oscilante · colapso diastólico de la aurícula derecha (precoz) · colapso diastólico del ventrículo derecho · variación respiratoria de la onda E mitral &gt;25–30 % y tricuspídea &gt;40–60 % · plétora de vena cava inferior (dilatación &gt;20 mm con reducción &lt;50 %)<br>
+        <!-- R6: «Clase IIa» en el derrame sintomatico era INCORRECTO. Recommendation Table 12,
+             pagina 43: «Pericardiocentesis ... is recommended for cardiac tamponade, or suspected
+             bacterial or neoplastic pericarditis, or symptomatic moderate to large pericardial
+             effusion despite medical therapy» → I-C. Y se SACA la «ventana eco mínima ≥10mm
+             subcostal», que no figura en la guia ni en su suplemento. -->
+        <b style="color:var(--accent2);">Pericardiocentesis:</b> Clase I · nivel C en el taponamiento, en la sospecha de pericarditis bacteriana o neoplásica, y en el derrame moderado a grande sintomático pese al tratamiento médico (Recommendation Table 12).
       </div>
     </div>
   </div>
@@ -26626,14 +26657,41 @@ function _dptPctSospechoso(id) { const n = _pcV(id); return n !== null && n > 0 
 function _dptPct(id) { const n = _pcV(id); return (n === null || n < 0 || n > 100 || (n > 0 && n < 1)) ? null : n; }
 function _dptMm(id)  { const n = _pcV(id); return (n === null || n <= 0 || n > 100) ? null : n; }
 
+/* ══ LOS TRES GRADOS DEL DERRAME — TABLA DUEÑA (R5, 2026-10-20) ══════════════════════════════
+   ESC 2025 de miocarditis y pericarditis, **Tabla 10, pagina 31** del original en ingles (folio 33
+   de la edicion de la SEC), DOI 10.1093/eurheartj/ehaf192: «Mild: <10 mm · Moderate: 10-20 mm ·
+   Large: >20 mm», medido como «maximal end-diastolic diameter» (nota a). Se cita SIN numero de
+   pagina de revista porque la version de la biblioteca es la publicacion anticipada, paginada 1-90.
+
+   ⚠️ NO CONFUNDIR CON LA ESC/EACTS 2025 DE VALVULOPATIAS (DOI ...ehaf194): son dos guias distintas
+   del mismo año, y esta zona cita la de PERICARDITIS.
+
+   ⚠️ EL GRADO «MINIMO» SE RETIRA -0 a 5 mm, «solo en sistole»- porque ninguna guia lo publica, y
+   el leve pierde su PISO de 5: la Tabla 10 escribe «<10» sin cota inferior. Un derrame de 3 mm era
+   «mínimo» y hoy es «leve», que es lo que la fuente dice.
+   ⚠️ LAS DOS CLAVES DE LEGADO SIGUEN RECONOCIENDOSE y se traducen a leve, que es la banda a la que
+   la Tabla 10 las manda: un estudio guardado abre con su token intacto -el Excel lo exporta tal
+   cual- y lo que se MUESTRA es el grado vigente. Sin eso, el papel de un estudio reabierto seguiria
+   diciendo «mínimo», una categoria que la app ya no tiene.
+   ⚠️ `rango` ES EL TEXTO QUE VA AL PAPEL y vive ACA, al lado de los numeros que describe: con el
+   rango escrito en el <option> y los limites escritos aca, el dia que se mueva un corte el informe
+   firmado publica el otro. El <option> nuevo lo copia; los dos viejos NO, y eso es el punto -su
+   texto dice «(5-10mm)» y el grado vigente es «<10mm»-. */
+const DPT_TAM = Object.freeze({
+  severo:   Object.freeze({ clave:'severo',   lbl:'severo',   min:20, max:null, rango:'>20mm' }),
+  moderado: Object.freeze({ clave:'moderado', lbl:'moderado', min:10, max:20,   rango:'10-20mm' }),
+  leve:     Object.freeze({ clave:'leve',     lbl:'leve',     min:0,  max:10,   rango:'<10mm' }),
+});
+const DPT_TAM_NINGUNO = Object.freeze({ clave:'ninguno', lbl:'', min:null, max:null, rango:'' });
+window.DPT_TAM = DPT_TAM;
 /* El tamaño se LEE del select `pericardio`. «Engrosamiento / calcificación» no es derrame. */
 function dptTamano() {
   const p = _pcSv('pericardio') || '';
-  if (/severo/i.test(p))    return { clave:'severo',   lbl:'severo',   min:20, max:null };
-  if (/moderado/i.test(p))  return { clave:'moderado', lbl:'moderado', min:10, max:20 };
-  if (/leve/i.test(p))      return { clave:'leve',     lbl:'leve',     min:5,  max:10 };
-  if (/m[ií]nimo/i.test(p)) return { clave:'minimo',   lbl:'mínimo',   min:0,  max:5 };
-  return { clave:'ninguno', lbl:'', min:null, max:null };
+  if (/severo/i.test(p))    return DPT_TAM.severo;
+  if (/moderado/i.test(p))  return DPT_TAM.moderado;
+  /* «mínimo» y el leve de legado caen los dos en `leve`: ver la nota de la tabla. */
+  if (/leve/i.test(p) || /m[ií]nimo/i.test(p)) return DPT_TAM.leve;
+  return DPT_TAM_NINGUNO;
 }
 window.dptTamano = dptTamano;
 
@@ -52143,7 +52201,19 @@ function generarInforme(opts) {
        ⚠️ «Engrosamiento / calcificación» NO SE TOCA y se declara: no empieza con «Derrame», asi
        que esta funcion lo devuelve igual. Nombrarle el pericardio es redactar una frase clinica
        que esta orden no autoriza. `docs/PENDIENTES.md`. */
-    const _periTxt = (t) => String(t || '').replace(/^Derrame/, 'Derrame pericárdico');
+    /* ⚠️ EL PAPEL PUBLICA EL GRADO VIGENTE Y NO EL TOKEN GUARDADO (R5, 2026-10-20). El `value` del
+       selector ES su texto, asi que un estudio guardado con «Derrame mínimo» o «Derrame leve
+       (5-10mm)» imprimia esas palabras -una categoria retirada y un rango que la Tabla 10
+       desmiente- en el informe FIRMADO. El grado sale de `dptTamano`, el MISMO dueño que usa el
+       modulo de derrame y taponamiento, y el rango de `DPT_TAM`, asi que las dos superficies no
+       pueden publicar dos cuantias distintas del mismo token.
+       ⚠️ «Engrosamiento / calcificación» NO ES DERRAME y pasa sin tocarse -`dptTamano` devuelve
+       `ninguno`-, que es exactamente lo que hacia el reemplazo anterior. */
+    const _periTxt = (t) => {
+      const tm = (typeof dptTamano === 'function') ? dptTamano() : null;
+      if (tm && tm.clave !== 'ninguno') return 'Derrame pericárdico ' + tm.lbl + ' (' + tm.rango + ')';
+      return String(t || '').replace(/^Derrame/, 'Derrame pericárdico');
+    };
     const _periHemo = (function(){
       const h = sv('pericardio_hemo');
       return h === 'si' ? ', con compromiso hemodinámico'

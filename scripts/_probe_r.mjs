@@ -2256,6 +2256,82 @@ window.__Z = {
     process.stderr.write('[ai] listo\n');
   }
 
+
+  /* ══ GRUPO «peri» — LOS TRES GRADOS DEL DERRAME ═══════════════════════════════════════════
+     El selector vive en la pestaña ETE, dentro de la seccion «pericardio-masas», que nace
+     cerrada. Las escenas cubren los seis bordes, los dos tokens de LEGADO y el borrado. */
+  if (corre('peri')) {
+    const r = { bordes: {}, legado: {}, ficha: {} };
+    const abrirPeri = () => ev(`(function(){
+      try { if (typeof showTab === 'function') showTab('ete'); } catch(e){}
+      var c = document.getElementById('ete-seccion-pericardio-masas');
+      if (c && getComputedStyle(c).display === 'none' && typeof toggleEteSeccion === 'function')
+        toggleEteSeccion('pericardio-masas');
+      var e = document.getElementById('pericardio');
+      var rr = e ? e.getBoundingClientRect() : null;
+      return rr ? { w: Math.round(rr.width), opciones: Array.prototype.map.call(e.options, function(o){
+        return (o.hidden ? '[oculta] ' : '') + o.value }) } : 'NO EXISTE' })()`);
+    const leerPeri = async () => ({
+      tam:   await ev(`(typeof dptTamano==='function') ? JSON.stringify(dptTamano()) : 'SIN FN'`),
+      tamEco: await ev(`window.__P.txt('dpt-tam-eco')`),
+      concl: await ev(`window.__P.txt('dpt-concl')`),
+      badge: await ev(`window.__P.txt('dpt-concl-badge')`),
+      estandar: await ev(`(function(){ var o = window.__P.informe('estandar');
+        var t = (o && o.inf) ? o.inf : String(o||'');
+        return (t.split(String.fromCharCode(10)).filter(function(l){ return l.indexOf('erram')>=0 || l.indexOf('ericard')>=0 })||[]).join(' | ') })()`),
+      narrativo: await ev(`(function(){ var o = window.__P.informe('narrativo');
+        var t = (o && o.inf) ? o.inf : String(o||'');
+        return (t.split(String.fromCharCode(10)).filter(function(l){ return l.indexOf('erram')>=0 || l.indexOf('ericard')>=0 })||[]).join(' | ') })()`),
+      suma:  await ev(`(function(){ var t=(document.getElementById('en_suma')||{}).value||'';
+        return (t.split(String.fromCharCode(10)).filter(function(l){ return l.indexOf('erram')>=0 })||[]).join(' | ') })()`),
+      excelPeri: await ev(`(function(){ try { var f = window.__P.excelDOM().fila;
+        var o = {}; Object.keys(f).forEach(function(k){ if (k.indexOf('ericard')>=0) o[k]=f[k] }); return JSON.stringify(o) } catch(e){ return 'EXC' } })()`),
+    });
+    try {
+      r.puerta = await abrirPeri();
+      /* LOS BORDES: con el grado consignado y los milimetros tipeados, para que el aviso de
+         discrepancia se mida contra los limites NUEVOS. */
+      for (const [tok, mm] of [['Derrame leve (<10mm)','9.9'], ['Derrame leve (<10mm)','10'],
+                               ['Derrame moderado (10-20mm)','10'], ['Derrame moderado (10-20mm)','10.1'],
+                               ['Derrame moderado (10-20mm)','19.9'], ['Derrame moderado (10-20mm)','20'],
+                               ['Derrame severo (>20mm)','20'], ['Derrame severo (>20mm)','20.1'],
+                               ['Derrame leve (<10mm)','3']]) {
+        await ev(`window.__P.nuevo()`);
+        await abrirPeri();
+        await ev(`window.__P.sel('pericardio',${JSON.stringify(tok)})`);
+        await ev(`(function(){ try { if (typeof showTab==='function') showTab('amiloidosis'); } catch(e){}
+          var c=document.getElementById('dpt_mm_post'); return c ? 1 : 0 })()`);
+        try { await tipear('dpt_mm_post', mm); } catch (e) { r.bordes['_tecleo_' + tok + '_' + mm] = e.message; }
+        await ev(`window.__P.calentar()`);
+        r.bordes[tok.replace('Derrame ','') + ' @ ' + mm + 'mm'] = await leerPeri();
+      }
+      /* LOS DOS TOKENS DE LEGADO: abren como se guardaron y se MUESTRAN como leve. */
+      for (const tok of ['Derrame mínimo', 'Derrame leve (5-10mm)']) {
+        await ev(`window.__P.nuevo()`);
+        await abrirPeri();
+        const puesto = await ev(`window.__P.sel('pericardio',${JSON.stringify(tok)})`);
+        await ev(`window.__P.calentar()`);
+        const m = await leerPeri();
+        m.puesto = puesto;
+        m.valorCrudo = await ev(`window.__P.val('pericardio')`);
+        r.legado[tok] = m;
+      }
+      /* La ficha de Referencias. */
+      r.ficha.texto = await ev(`(function(){
+        try { if (typeof showTab==='function') showTab('referencias'); } catch(e){}
+        var c = document.getElementById('ref-pericardio');
+        if (c && getComputedStyle(c).display === 'none' && typeof toggleRef === 'function') {
+          var h = c.previousElementSibling; toggleRef('pericardio', h); }
+        if (!c) return 'NO EXISTE';
+        return (c.textContent || '').split(/[ \\t\\r\\n]+/).join(' ').trim() })()`);
+      r.ficha.titulo = await ev(`(function(){ var c=document.getElementById('ref-pericardio');
+        var h=c?c.previousElementSibling:null;
+        return h?(h.textContent||'').split(/[ \\t\\r\\n]+/).join(' ').trim():null })()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.peri = r;
+    process.stderr.write('[peri] listo\n');
+  }
+
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
   process.stdout.write(JSON.stringify(OUT, null, 1));
   cdp.close(); srv.close(); process.exit(0);
