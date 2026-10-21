@@ -46865,7 +46865,12 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
       ['Comunicacion interventricular',       { ete_civ_tipo:'perimembranosa' },                     'escGuchCiv'],
       ['Ductus arterioso permeable',          { dap_tipo:'no_restrictivo', dap_diam:'4' },           'esc2020guch'],
       ['Coartacion de aorta',                 { coa_vmax:'3.2' },                                   'esc2020guch'],
-      ['Foramen oval permeable',              { fop_shunt_valsalva:'si', fop_burbujas:'abundante', fop_acv:'si', edad:'45' }, 'fop2019'],
+      /* ADAPTADO el 2026-10-22 (tanda D, commit 4): la seccion pasa a citar fopAha2021 en su
+         linea «Segun la guia». La indicacion de cierre se publica con la AHA/ASA 2021
+         (Kleindorfer, apartado 5.4.5, folio e411), que es la que da clase y nivel; la posicion
+         europea (fop2019) sigue citada en las lineas de 18 a 65 anos y en la trombofilia, y
+         fopSilvestry2015 en el aneurisma del septum y en los latidos. */
+      ['Foramen oval permeable',              { fop_shunt_valsalva:'si', fop_burbujas:'abundante', fop_acv:'si', edad:'45' }, 'fopAha2021'],
       ['Miocardiopatia hipertrofica obstructiva', { mch_grad_reposo:'60' },                          'esc2023mioc'],
       /* ADAPTADO el 2026-10-20 (Y3f4): la VAB tiene DOS secciones, con dos compuertas distintas y
          la misma guia. La de la AORTA se abre con un diametro de 45 mm o mas; la de la CONCLUSION,

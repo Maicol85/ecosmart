@@ -70088,10 +70088,24 @@ const IND_REFS = Object.freeze([
     full:'ESC 2024 — Guía para el manejo de las enfermedades aórticas y arteriales periféricas. ' +
          'Sociedad Europea de Cardiología. Incluye la tabla de recomendaciones modificadas, donde ' +
          'los umbrales de la edición 2014 aparecen degradados a Clase IIa.' },
+  /* ⚠️ LA CITA PASA A LA EDICIÓN DE `EuroIntervention` (D-E4, 2026-10-22), que es el documento
+     que está en la biblioteca y del que salen los folios 1395, 1396 y 1399 de esta sección. El
+     artículo se co-publicó en las dos revistas con PAGINACIÓN DISTINTA: citar la de `Eur Heart J`
+     al lado de un folio de la otra manda al lector a otra página. */
   { k:'fop2019',
     full:'Pristipino C, et al. Documento de posición europeo sobre el manejo intervencionista del ' +
-         'foramen oval permeable. Eur Heart J 2019;40:3182. EAPCI, ESO, EHRA, EACVI y otras ' +
-         'sociedades. Metodología GRADE: no usa las clases I/IIa/IIb de la ESC.' },
+         'foramen oval permeable. EuroIntervention 2019;14:1389-1402. doi 10.4244/EIJ-D-18-00622. ' +
+         'EAPCI, ESO, EHRA, EACVI y otras sociedades. Metodología GRADE: no usa las clases ' +
+         'I/IIa/IIb de la ESC. Folio = hoja del PDF + 1388, comprobado en el encabezado impreso.' },
+  { k:'fopAha2021',
+    full:'Kleindorfer DO, et al. 2021 Guideline for the Prevention of Stroke in Patients With ' +
+         'Stroke and Transient Ischemic Attack. AHA/ASA. Stroke 2021;52:e364-e467. ' +
+         'doi 10.1161/STR.0000000000000375. Apartado 5.4.5, foramen oval permeable. Folio = ' +
+         'e(hoja del PDF + 363), comprobado en el encabezado impreso de las hojas 48, 49 y 50.' },
+  { k:'fopSilvestry2015',
+    full:'Silvestry FE, et al. Guidelines for the Echocardiographic Assessment of Atrial Septal ' +
+         'Defect and Patent Foramen Ovale. ASE y SCAI. J Am Soc Echocardiogr 2015;28:910-958. ' +
+         'Folio = hoja del PDF + 909, comprobado en el pie impreso de las hojas 7, 8, 22 y 23.' },
   /* ⚠️ REGISTRADA Y HOY SIN NINGÚN CORCHETE QUE LA INVOQUE, y eso es un hallazgo, no un descuido.
      El `guia:` de `eaProtNarrativa` —el decimocuarto del archivo— es CÓDIGO MUERTO: los únicos
      accesos al retorno de esa función en todo el archivo son `.frase`, `.resumen` y `.salvedades`.
@@ -75510,6 +75524,94 @@ function _indCoAo(){
    propios (`edad`, `fop_acv`). Pedirle al médico un dato que la app ya guardó es el defecto que
    este archivo documenta como «mirar si el dato ya está». Lo que sí queda ❓ es el campo sin
    contestar, que no es lo mismo que un «no». */
+/* ══ FORAMEN OVAL PERMEABLE — EL CUESTIONARIO Y LAS RECOMENDACIONES (D-E4, 2026-10-22) ═══════
+   DECISIÓN DE MAICOL. La conclusión, el informe y el EN SUMA del FOP son DESCRIPTIVOS desde el
+   D-E2: toda recomendación vive acá, con su clase, su nivel, su tabla y su folio.
+   La sección LEE lo que el estudio tiene —la edad de la ficha del paciente, el aneurisma del
+   septum con su excursión y su lado, el grado del pasaje de burbujas y su número de latidos— y
+   PREGUNTA lo que el eco no puede saber: si la evaluación que descartó otras causas fue
+   completa y si el shunt es grande. Lo que el médico contesta vive en `_indClin` y NO se guarda
+   con el estudio, igual que en la sección de aorta.
+   ⚠️ EL «SHUNT GRANDE» SE PREGUNTA Y NO SE DEDUCE DE LA ESCALA. Las dos guías lo dicen con
+   todas las letras: la nota al pie del folio e411 escribe que «cada estudio define los rasgos
+   anatómicos de alto riesgo de una manera distinta» y el folio e413 llama al tamaño del shunt
+   «definido de manera variable». Y las dos no coinciden sobre el MISMO ensayo: Kleindorfer
+   atribuye al RESPECT un corte de más de 20 microburbujas (folio e413) y Pristipino, describiendo
+   ese mismo ensayo, más de 10 (apéndice suplementario 4). Con dos definiciones del mismo corte,
+   derivarlo de la escala de la app sería elegir una y no decirlo.
+   ⚠️ LAS TRES REGLAS DE FOLIO ESTÁN COMPROBADAS EN EL PIE O EL ENCABEZADO IMPRESO: Silvestry
+   folio = hoja + 909 (hojas 7, 8, 22 y 23), Pristipino folio = hoja + 1388 (hoja 8) y
+   Kleindorfer folio = e(hoja + 363) (hojas 48, 49 y 50). */
+const FOP_EV_FTE = Object.freeze({
+  k411: 'Kleindorfer y cols., AHA/ASA 2021, apartado 5.4.5, folio e411',
+  k412: 'Kleindorfer y cols., AHA/ASA 2021, folio e412',
+  k413: 'Kleindorfer y cols., AHA/ASA 2021, folio e413',
+  p1395:'Pristipino y cols., posición europea 2019, Tabla 4, folio 1395',
+  p1396:'Pristipino y cols., posición europea 2019, Tabla 5, folio 1396',
+  p1399:'Pristipino y cols., posición europea 2019, folio 1399',
+  s912: 'Silvestry y cols., ASE/SCAI 2015, folio 912',
+  s916: 'Silvestry y cols., ASE/SCAI 2015, folio 916',
+  s931: 'Silvestry y cols., ASE/SCAI 2015, folio 931'
+});
+/* ⚠️ `cl:'—'` NO ES UNA CLASE VACÍA: es una afirmación de la guía que su propio documento NO
+   gradúa —una definición, un dato de contexto o una advertencia—. La línea entonces se publica
+   sin «Clase … · Nivel …», que es lo que evita inventar una clase que la fuente no da. */
+const FOP_EV = Object.freeze([
+  { t:'Con un ACV isquémico no lacunar de causa indeterminada y un foramen oval, la decisión entre el cierre y el tratamiento médico se toma en conjunto entre el paciente, un cardiólogo y un neurólogo, pesando la probabilidad de que el foramen tenga un papel causal.',
+    cl:'1', nv:'C-EO', f:FOP_EV_FTE.k411, ref:'fopAha2021',
+    cond:function(S){ return S.cripto === 'si' } },
+  { t:'De 18 a 60 años, con un ACV isquémico no lacunar de causa indeterminada tras una evaluación exhaustiva y un foramen con rasgos anatómicos de alto riesgo, es razonable preferir el cierre con dispositivo transcatéter más antiagregación prolongada antes que la antiagregación sola para prevenir la recurrencia.',
+    cl:'2a', nv:'B-R', f:FOP_EV_FTE.k411, ref:'fopAha2021',
+    cond:function(S){ return S.cripto === 'si' && S.evalC === 'si' && S.edad != null
+                             && S.edad >= 18 && S.edad <= 60 && S.altoRiesgo === true },
+    pide:function(S){
+      if (S.cripto !== 'si') return null;
+      const q = [];
+      if (S.edad == null) return 'la edad del paciente en la ficha del paciente';
+      if (S.edad < 18 || S.edad > 60) return null;
+      if (S.evalC !== 'si') q.push('si la evaluación que descartó otras causas fue completa');
+      if (S.altoRiesgo !== true) q.push('si el shunt es grande, o el aneurisma del septum');
+      return q.length ? q.join(' y ') : null } },
+  { t:'En el mismo grupo de 18 a 60 años, pero SIN rasgos anatómicos de alto riesgo, el beneficio del cierre con dispositivo más antiagregación prolongada frente a la antiagregación sola no está bien establecido.',
+    cl:'2b', nv:'C-LD', f:FOP_EV_FTE.k411, ref:'fopAha2021',
+    cond:function(S){ return S.cripto === 'si' && S.evalC === 'si' && S.edad != null
+                             && S.edad >= 18 && S.edad <= 60 && S.altoRiesgo === false } },
+  { t:'El beneficio comparativo del cierre con dispositivo frente a la warfarina es desconocido.',
+    cl:'2b', nv:'C-LD', f:FOP_EV_FTE.k411, ref:'fopAha2021',
+    cond:function(S){ return S.cripto === 'si' && S.edad != null && S.edad >= 18 && S.edad <= 60 } },
+  { t:'Por encima de los 60 años la evidencia aleatorizada de beneficio es muy limitada y las complicaciones periprocedimiento son significativamente más frecuentes: el procedimiento debería hacerse rara vez y sólo en circunstancias clínicas inusuales.',
+    cl:'—', nv:'—', f:FOP_EV_FTE.k412, ref:'fopAha2021',
+    cond:function(S){ return S.cripto === 'si' && S.edad != null && S.edad > 60 } },
+  { t:'Posición europea: cierre percutáneo en pacientes seleccionados de 18 a 65 años con un ACV, un accidente isquémico transitorio o una embolia sistémica criptogénicos confirmados y una probabilidad alta de que el foramen tenga un papel causal. Es una declaración FUERTE a favor de la intervención, con metodología GRADE y sin las clases I/IIa/IIb de la ESC.',
+    cl:'—', nv:'—', f:FOP_EV_FTE.p1396, ref:'fop2019',
+    cond:function(S){ return S.cripto === 'si' && S.edad != null && S.edad >= 18 && S.edad <= 65 } },
+  { t:'Posición europea: por encima de los 65 o por debajo de los 18 años el cierre también puede considerarse, caso por caso y con decisión compartida, teniendo en cuenta la falta de evidencia y los riesgos añadidos.',
+    cl:'—', nv:'—', f:FOP_EV_FTE.p1396, ref:'fop2019',
+    cond:function(S){ return S.cripto === 'si' && S.edad != null && (S.edad < 18 || S.edad > 65) } },
+  { t:'El estudio de laboratorio rutinario de estados protrombóticos no está justificado para indicar anticoagulación oral permanente. Es una declaración FUERTE, nivel C.',
+    cl:'—', nv:'—', f:FOP_EV_FTE.p1395, ref:'fop2019',
+    cond:function(S){ return S.tromb === 'si' } },
+  { t:'Los pacientes con anticoagulación temporal, con anticoagulación por embolia pulmonar, o considerados de alto riesgo de recurrencia pese a la anticoagulación, pueden ser evaluados para un cierre del foramen. Es una declaración CONDICIONAL, nivel C.',
+    cl:'—', nv:'—', f:FOP_EV_FTE.p1395, ref:'fop2019',
+    cond:function(S){ return S.tromb === 'si' } }
+]);
+/* ══ LOS DOS TEXTOS SIN FUENTE, DECLARADOS COMO CRITERIO PROPIO ═══════════════════════════════
+   Los dos los publicaba la CONCLUSIÓN del FOP hasta el D-E2 y los dos quedaron sin fuente tras
+   censar las tres guías: ni Kleindorfer 2021 ni Pristipino 2019 ni Silvestry 2015 tienen una
+   fila sobre prevención PRIMARIA —las dos primeras tratan sólo la secundaria— ni dicen que la
+   conducta antitrombótica la defina hematología. Se publican acá con el chip, que es lo que la
+   app hace con todo corte o regla que aplica y que ninguna fuente sostiene.
+   ⚠️ «ALTO RIESGO TROMBOFÍLICO» NO SE ESCRIBE COMO SI LO DIJERA UNA GUÍA: lo que las fuentes
+   dicen de la trombofilia son las dos líneas de la Tabla 4 de arriba, y la Figura 4 del folio
+   1399 lista los trastornos de la coagulación entre los factores de riesgo ALTO DE RECURRENCIA.
+   Nada de eso es una conducta. */
+const FOP_EV_PROPIO = Object.freeze([
+  { t:'Sin un evento embólico, un foramen oval con rasgos anatómicos de alto riesgo no tiene una indicación de cierre en prevención primaria: la conducta es el seguimiento clínico.',
+    cond:function(S){ return S.cripto !== 'si' && S.altoRiesgo === true } },
+  { t:'Con una trombofilia conocida, la conducta antitrombótica la define hematología: el cierre del foramen no sustituye a la anticoagulación cuando ésta está indicada por la trombofilia.',
+    cond:function(S){ return S.tromb === 'si' } }
+]);
+
 function _indFOP(){
   const conc = _indFn('fopConclusion');
   if (!conc || !conc()) return null;
@@ -75523,44 +75625,136 @@ function _indFOP(){
      `<script>`, y `typeof` sobre un const en zona muerta LANZA en vez de dar 'undefined'. Con el
      mapa sin prototipo el `||` vuelve a funcionar y no hay dependencia cruzada que se pueda caer. */
   const BURB = Object.assign(Object.create(null), { pocas:'Pocas (< 5)', moderado:'Moderado (5–20)', abundante:'Abundante (> 20)' });
-  const asa = _indS('fop_asa'), asaMm = _indN('fop_asa_mm'), acv = _indS('fop_acv'), edad = _indN('edad');
-  /* El corte sale de `asiaPorExcursion`, que es su dueño único y mira el lado: acá escrito a
-     mano, el panel afirmaría el aneurisma con una excursión total de 12 mm que la pantalla, el
-     informe y el EN SUMA ya no afirman — cuatro lecturas del mismo umbral en la misma app. */
+  const asa = _indS('fop_asa'), asaMm = _indN('fop_asa_mm'), acv = _indS('fop_acv');
+  const tromb = _indS('fop_trombofilia'), edad = _indN('edad');
   const hayASA = asa === 'si' || (typeof asiaPorExcursion === 'function' ? asiaPorExcursion(asaMm) : _ge(asaMm, 10));
+  const lado = (typeof asiaLado === 'function') ? asiaLado() : '';
+  const lf = lado === 'ambos' ? 'excursión total' : lado === 'ad' ? 'hacia la aurícula derecha'
+           : lado === 'ai' ? 'hacia la aurícula izquierda' : null;
+  const lat = (typeof fopLatidos === 'function') ? fopLatidos() : null;
+  /* El antecedente se LEE del estudio; la evaluación completa y el tamaño del shunt se
+     PREGUNTAN. `_indOrigen` deja de dibujar el control manual cuando hay valor de origen, que es
+     lo que impide que el panel publique un antecedente distinto del que dice la sección. */
+  const oAcv = _indOrigen(acv === 'si' ? 'si' : (acv === 'no' ? 'no' : ''), 'fop.cripto');
+  const evalC = _indClinGet('fop.evalcompleta');
+  const grande = _indClinGet('fop.grande');
+  /* «Rasgos anatómicos de alto riesgo» = aneurisma del septum O shunt grande. El aneurisma lo
+     tiene el estudio; el shunt grande se pregunta. `null` cuando no se puede decidir: con el
+     aneurisma ausente y la pregunta sin contestar no se puede afirmar NI negar los rasgos, y las
+     dos filas 2a y 2b dependen de lados opuestos de esa respuesta. */
+  const altoRiesgo = hayASA ? true : (grande === 'si' ? true : (grande === 'no' ? false : null));
+  const S = { cripto: oAcv.val || null, evalC: evalC, grande: grande, edad: edad,
+              hayASA: hayASA, altoRiesgo: altoRiesgo, tromb: tromb === 'si' ? 'si' : (tromb === 'no' ? 'no' : null) };
+
   const filas = [
     _indFila('Longitud del túnel', _indNum(_indN('fop_tunel'), 1, 'mm'), _indN('fop_tunel') != null ? 'none' : 'ask',
-      _indN('fop_tunel') != null ? 'describe la anatomía; no es criterio de la indicación' : 'sin medir'),
+      _indN('fop_tunel') != null ? 'describe la anatomía; no es uno de los rasgos de alto riesgo de la guía' : 'sin medir'),
     _indFila('Shunt con Valsalva', valsalva === 'si' ? 'Presente' : (valsalva === 'no' ? 'Ausente' : 'No evaluado'),
       valsalva === 'si' ? 'ok' : (valsalva === 'no' ? 'none' : 'ask'),
       valsalva === 'si' ? 'documenta el shunt, que es lo que hace evaluable el foramen' : ''),
     _indFila('Cantidad de burbujas', burb ? (BURB[burb] || 'Otro') : '—',
       burb === 'abundante' ? 'warn' : (burb ? 'none' : 'ask'),
-      burb === 'abundante' ? 'shunt severo — característica de alto riesgo embólico' : ''),
+      burb === 'abundante' ? 'la escala de la app llama severo al pasaje de más de 20 burbujas; el tamaño que la guía considera de alto riesgo se pregunta abajo, porque cada estudio lo define distinto'
+                           : 'la app no deduce de esta escala si el shunt es «grande» para la guía', ['fopAha2021']),
+    _indFila('Latidos del pasaje', lat ? (lat + ' latidos') : '—', lat ? 'none' : 'ask',
+      lat ? 'dentro de los 3 a 6 latidos tras la opacificación de la aurícula derecha, que es el rango que la fuente considera positivo para un shunt intracardíaco'
+          : 'se consigna en Otros · Test de burbuja', ['fopSilvestry2015']),
     _indFila('Aneurisma del septum interauricular',
       hayASA ? 'Sí' : (asa === 'no' ? 'No' : 'No evaluado'),
       hayASA ? 'warn' : (asa === 'no' ? 'none' : 'ask'),
-      hayASA ? 'característica de alto riesgo embólico' + (asaMm != null ? ' (excursión ' + _indNum(asaMm, 1, 'mm') + ')' : '') : ''),
-    _indFila('ACV criptogénico', acv === 'si' ? 'Sí' : (acv === 'no' ? 'No' : 'No consignado'),
-      acv === 'si' ? 'ok' : (acv === 'no' ? 'none' : 'ask'),
-      acv === 'si' ? 'es lo que sostiene la indicación' : (acv === 'no' ? 'sin él no hay indicación de cierre' : 'se registra en esta misma sección')),
-    /* 18 a 65 años, que es la franja del documento. El pedido decía «< 60»; ese número no está
-       en la fuente. El piso tampoco es decorativo: por debajo de 18 el documento no se pronuncia. */
+      hayASA ? 'es uno de los dos rasgos anatómicos de alto riesgo' +
+                 (asaMm != null ? ' (excursión ' + _indNum(asaMm, 1, 'mm') + (lf ? ', ' + lf : '') + ')' : '')
+             : 'es uno de los dos rasgos anatómicos de alto riesgo', ['fopSilvestry2015']),
+    _indFilaOrigen('ACV o AIT criptogénico', oAcv, [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      function(v){ return { txt: v === 'si' ? 'Sí' : (v === 'no' ? 'No' : 'No consta'),
+        marca: v === 'si' ? 'ok' : (v === 'no' ? 'none' : 'ask'),
+        nota: v === 'si' ? 'es lo que hace aplicable toda la tabla: las recomendaciones son de prevención SECUNDARIA'
+            : v === 'no' ? 'sin evento embólico la tabla de prevención secundaria no aplica'
+            : 'se consigna en la columna «Contexto clínico» de la sección del foramen oval' } }),
+    _indFilaCtrl('Evaluación completa que descartó otras causas', 'fop.evalcompleta',
+      [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      evalC === 'si' ? 'ok' : (evalC === 'no' ? 'none' : 'ask'),
+      'la fila Clase 2a lo exige: «de causa indeterminada tras una evaluación exhaustiva». Un ACV no lacunar sin fuente evidente tras imagen arterial, ecocardiograma, monitorización prolongada del ritmo y laboratorio es lo que la guía llama ESUS (folio e372)',
+      ['fopAha2021']),
+    _indFilaCtrl('Shunt de derecha a izquierda grande', 'fop.grande',
+      [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      grande === 'si' ? 'ok' : (grande === 'no' ? 'none' : 'ask'),
+      'se PREGUNTA y no se deduce: la nota al pie del folio e411 dice que cada estudio define los rasgos de alto riesgo de una manera distinta, y las dos guías atribuyen al mismo ensayo RESPECT dos cortes —más de 20 microburbujas Kleindorfer, más de 10 Pristipino—',
+      ['fopAha2021']),
+    _indFila('Rasgos anatómicos de alto riesgo',
+      altoRiesgo === true ? 'Presentes' : (altoRiesgo === false ? 'Ausentes' : 'No se puede decidir'),
+      altoRiesgo === true ? 'warn' : (altoRiesgo === false ? 'none' : 'ask'),
+      altoRiesgo === true ? 'aneurisma del septum o shunt grande: es lo que separa la fila Clase 2a de la 2b'
+      : altoRiesgo === false ? 'sin aneurisma del septum y sin shunt grande'
+      : 'sin el aneurisma y sin la respuesta sobre el tamaño del shunt no se puede afirmar NI negar los rasgos, y las dos filas dependen de lados opuestos de esa respuesta',
+      ['fopAha2021']),
     _indFila('Edad', edad != null ? _indNum(edad, 0, 'años') : '—',
-      (_ge(edad, 18) && _le(edad, 65)) ? 'ok' : (_gt(edad, 0) ? 'warn' : 'ask'),
-      (_ge(edad, 18) && _le(edad, 65)) ? 'dentro de la franja de 18 a 65 años del documento'
-      : _gt(edad, 65) ? 'por encima de los 65 años — fuera de la franja en que el documento se pronuncia'
-      : _gt(edad, 0) ? 'por debajo de los 18 años — fuera de la franja del documento'
-      : 'sin cargar en la ficha del paciente')
+      (_ge(edad, 18) && edad != null && edad <= 60) ? 'ok' : (edad != null && edad > 0 ? 'warn' : 'ask'),
+      (edad != null && edad >= 18 && edad <= 60) ? 'dentro de la franja de 18 a 60 años de la AHA/ASA, y de los 18 a 65 de la posición europea'
+      : (edad != null && edad > 60 && edad <= 65) ? 'por encima de los 60 de la AHA/ASA y dentro de los 65 de la posición europea'
+      : (edad != null && edad > 65) ? 'por encima de las dos franjas'
+      : (edad != null && edad > 0) ? 'por debajo de los 18 años: fuera de las dos franjas'
+      : 'se lee de la ficha del paciente')
   ];
-  return { filas: filas,
-    guia: { ref:'fop2019',
-      txt:'Recomendación FUERTE a favor del cierre percutáneo en pacientes seleccionados de 18 a 65 años con ACV criptogénico, AIT o embolia sistémica confirmados y probabilidad alta de rol causal del foramen.',
-      nota:'Metodología GRADE — sin clase ni nivel ESC.' },
+  if (tromb === 'si' || tromb === 'no') filas.push(
+    _indFila('Trombofilia conocida', tromb === 'si' ? 'Sí' : 'No', tromb === 'si' ? 'warn' : 'none',
+      tromb === 'si' ? 'cambia la conducta antitrombótica y tiene sus dos líneas en la tabla de abajo' : ''));
+
+  /* ══ LAS RECOMENDACIONES, EN UN BLOQUE VISIBLE Y NO EN `notas` ═════════════════════════════
+     ⚠️ `notas` SE PINTA DENTRO DEL «Ver detalle», QUE NACE PLEGADO, y las recomendaciones son
+     lo que esta sección existe para publicar: ahí quedaban escondidas detrás de un clic. Lo
+     cazó MIRAR la captura en la sección de aorta del trabajo H, no la medición. Van en
+     `r.bloques`, que es ADITIVO y se pinta VISIBLE con `plegado` falsy. */
+  const lineas = [], faltan = [], propias = [];
+  for (let i = 0; i < FOP_EV.length; i++) {
+    const r = FOP_EV[i];
+    let aplica = false;
+    try { aplica = !!r.cond(S) } catch (e) { aplica = false }
+    if (aplica) lineas.push({ txt: (r.cl === '—' ? '' : 'Clase ' + r.cl + ' · Nivel ' + r.nv + ' — ') + r.t + ' (' + r.f + ').',
+                              refs: [r.ref] });
+    else if (typeof r.pide === 'function') {
+      let q = null; try { q = r.pide(S) } catch (e) { q = null }
+      if (q) faltan.push({ txt:'Falta consignar ' + q + ' para decidir una fila ' +
+        (r.cl === '—' ? 'de esta tabla' : 'Clase ' + r.cl + ' · Nivel ' + r.nv) + ' (' + r.f + ').', refs:null });
+    }
+  }
+  for (let i = 0; i < FOP_EV_PROPIO.length; i++) {
+    let aplica = false;
+    try { aplica = !!FOP_EV_PROPIO[i].cond(S) } catch (e) { aplica = false }
+    if (aplica) propias.push({ txt: FOP_EV_PROPIO[i].t, refs:['ecosmart'] });
+  }
+  if (!lineas.length) lineas.push({ txt: S.cripto === 'no'
+    ? 'Sin un evento embólico previo, las recomendaciones de cierre de las dos guías no aplican: las dos tratan la prevención SECUNDARIA.'
+    : 'Falta consignar si hubo un ACV o un accidente isquémico transitorio criptogénico: es lo que hace aplicable la tabla, porque las recomendaciones de las dos guías son de prevención secundaria.',
+    refs:null });
+
+  const bloques = [ { tit:'Recomendaciones aplicables de la guía', lineas: lineas,
+                      nota:'El informe y la conclusión de la app son DESCRIPTIVOS: las recomendaciones de cierre se publican acá y no en el papel firmado.' } ];
+  if (faltan.length) bloques.push({ tit:'Lo que falta para decidir otras filas', lineas: faltan });
+  if (propias.length) bloques.push({ tit:'Criterio de la aplicación', lineas: propias,
+    nota:'Ninguna de las tres fuentes de esta sección publica estas dos afirmaciones: se declaran como criterio propio.' });
+  bloques.push({ tit:'Datos de contexto', lineas: [
+    { txt:'El foramen oval está presente en el 20 % a 25 % de la población adulta, así que el hallazgo por sí solo no es una enfermedad (' + FOP_EV_FTE.s912 + ').', refs:['fopSilvestry2015'] },
+    { txt:'La recurrencia de ACV con tratamiento médico fue del 5 % por año en un metaanálisis de estudios observacionales (' + FOP_EV_FTE.p1399 + ').', refs:['fop2019'] },
+    { txt:'El aneurisma del septum interauricular se define por una excursión de 10 mm hacia una de las aurículas, o por una excursión combinada derecha más izquierda de 15 mm; su prevalencia es del 2 % al 3 % (' + FOP_EV_FTE.s916 + ').', refs:['fopSilvestry2015'] }
+  ] });
+
+  return { filas: filas, bloques: bloques,
+    clinica: [
+      _indFila('Puntuación RoPE', '—', 'ask',
+        'el índice de riesgo de embolia paradójica va de 0 a 10 y estratifica la probabilidad de que el foramen esté relacionado con el ACV; se construye con datos clínicos —hipertensión, diabetes, ACV o AIT previo, tabaquismo, infarto cortical y edad— y la app no lo calcula (' + FOP_EV_FTE.k413 + ')', ['fopAha2021']),
+      _indFila('Fibrilación auricular descartada', '—', 'ask',
+        'la posición europea pide un electrocardiograma de doce derivaciones y telemetría o Holter de 24 horas en todos los pacientes antes de decidir, y monitorización prolongada en los mayores de 65 años; la app no registra el ritmo ambulatorio (' + FOP_EV_FTE.p1395 + ')', ['fop2019']),
+      _indFila('Trombosis venosa profunda o embolia pulmonar simultáneas', '—', 'ask',
+        'es uno de los rasgos que la posición europea lista como de alta probabilidad de vínculo causal, y no se registra en la app (' + FOP_EV_FTE.p1399 + ')', ['fop2019'])
+    ],
+    guia: { ref:'fopAha2021',
+      txt:'Con un ACV isquémico no lacunar de causa indeterminada y un foramen oval, la decisión entre el cierre y el tratamiento médico se toma en conjunto entre el paciente, un cardiólogo y un neurólogo (Clase 1 · Nivel C-EO). El cierre con dispositivo más antiagregación prolongada es razonable de 18 a 60 años cuando la evaluación fue exhaustiva y el foramen tiene rasgos anatómicos de alto riesgo (Clase 2a · Nivel B-R).',
+      nota:'La nota al pie de esa tabla declara que cada estudio define los rasgos anatómicos de alto riesgo de una manera distinta, y por eso el tamaño del shunt se pregunta en vez de deducirse.' },
     notas: [
-      'No sale de la guía ESC 2020 de cardiopatías congénitas: ahí la palabra «criptogénico» no aparece y las únicas recomendaciones sobre foramen oval son específicas de la anomalía de Ebstein.',
-      'El documento usa metodología GRADE y no las clases I/IIa/IIb de la ESC, así que «Clase IIa» no le corresponde: su fuerza es «recomendación fuerte».',
-      'Exige evaluación interdisciplinaria y decisión compartida con neurología.'
+      'Las recomendaciones de las dos guías son de prevención SECUNDARIA: ninguna de las tres fuentes de esta sección publica una fila sobre prevención primaria.',
+      'La posición europea usa metodología GRADE y no las clases I/IIa/IIb de la ESC, así que a su declaración de 18 a 65 años no le corresponde ninguna de esas clases: su fuerza es «declaración fuerte».',
+      'Las dos guías exigen una evaluación interdisciplinaria y una decisión compartida con neurología.'
     ] };
 }
 
