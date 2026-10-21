@@ -23234,8 +23234,9 @@ function aiDiamNormalMax(sexo){ return sexoEfectivo(sexo) === 'F' ? AI_DIAM_NORM
    El `sexo` es OPCIONAL a propósito: sin argumento lee el formulario, que es lo que hace que el
    informe, el EN SUMA, la cápsula y la tarjeta hereden el corte sin copiarlo. */
 function aiDiamDilatado(d, sexo){ d = PF(d); return (d != null && isFinite(d)) ? d > aiDiamNormalMax(sexo) : null; }
-function aiAreaDilatada(a){ a = PF(a); return (a != null && isFinite(a)) ? a > UMBRAL_AI_AREA_DILATADA : null; }
+function aiAreaDilatada(a){ const b = aiAreaClasificar(a); return b ? (b.clave !== 'normal') : null; }
 window.aiDiamDilatado = aiDiamDilatado; window.aiAreaDilatada = aiAreaDilatada;
+window.aiAreaClasificar = aiAreaClasificar; window.aiAreaRotulo = aiAreaRotulo;
 
 /* ══ LA SEVERIDAD DE LA AI POR VOLUMEN INDEXADO — DUEÑO ÚNICO (H1, 2026-10-16) ══════════════
    Decisión de Maicol: cuando el VOLUMEN está medido y se puede indexar por la superficie
@@ -23295,6 +23296,62 @@ function aiVolRotulo(b) {
 }
 window.AI_VOL_BANDAS = AI_VOL_BANDAS;
 window.aiVolClasificar = aiVolClasificar; window.aiVolRotulo = aiVolRotulo;
+
+/* ⚠️ ESTE BLOQUE VA DESPUES DE `AI_VOL_BANDAS` Y NO ARRIBA, CON `aiAreaDilatada`, Y ES LA ZONA
+   MUERTA DE `const`: `AI_AREA_BANDAS` DERIVA sus adjetivos de esa lista, y la primera version lo
+   declaro 35 lineas antes. Nombrar un `const` del mismo modulo antes de su declaracion LANZA en
+   la evaluacion del <script> y se lleva el bloque COMPLETO: medido, `showTab` empezo a tirar
+   «Cannot access '_lv3d' before initialization» -una variable 67.000 lineas mas abajo, la ultima
+   que ese bloque declara- y la pestaña AI/VI dejo de abrir. Semgrep da 127 / 0 igual porque no es
+   un error de SINTAXIS. `aiAreaDilatada` se queda arriba: es una `function`, se iza, y en tiempo
+   de llamada todo esto ya existe. */
+/* ══ LAS CUATRO BANDAS DEL AREA DE LA AI (R4, 2026-10-20) ════════════════════════════════════
+   DECISION DE MAICOL con la fuente leida. El area era BINARIA -«>20 cm² dilatada, sin grado»- y
+   pasa a los cuatro grados de la guia de cuantificacion de 2005: Lang, ASE y Asociacion Europea
+   de Ecocardiografia, J Am Soc Echocardiogr 2005;18:1440-1463, **Tabla 9, folio 1456** (hoja 17
+   del PDF; regla folio = hoja + 1439, comprobada en el pie impreso de las hojas 16, 17 y 18).
+   La fila «LA area, cm2» publica, LEIDA DE LA IMAGEN porque los operadores son glifos de la
+   fuente y el texto extraido los pierde: `≤20` / `20–30` / `30–40` / `>40`, y las columnas de
+   mujeres y de hombres imprimen los MISMOS valores, asi que el area NO se separa por sexo.
+
+   ⚠️ SE APLICA LA GUIA ANTERIOR, Y ESO ES LA REGLA DE LA CASA: la de 2015 -que es la mas nueva-
+   NO gradua el area; su folio 25 recomienda informar el VOLUMEN y su Tabla suplementaria 9 no
+   trae una fila de area. Cuando la mas nueva no trae el dato, manda la anterior.
+
+   ⚠️ LOS BORDES ESTAN COMPARTIDOS EN EL ORIGINAL -«20–30» y «30–40» a la vez- igual que en la
+   Tabla 1 de la ASE 2025, y se resuelven a favor de la banda MENOS grave, que es la convencion
+   de esta app y la lectura que no sobre-afirma: 20 es normal, 30 es leve y 40 es moderada.
+
+   ⚠️ LOS ADJETIVOS SE DERIVAN DE `AI_VOL_BANDAS` Y NO SE ESCRIBEN: son el mismo vocabulario de la
+   misma auricula, y dos listas de palabras para el mismo organo se separan en la primera edicion.
+   ⚠️ Y `aiAreaDilatada` SE DERIVA DE LAS BANDAS en vez de comparar contra la constante otra vez:
+   con las dos copias del 20, mover el corte en un lado deja la capsula y el informe firmado
+   diciendo cosas distintas del mismo numero. El predicado es IDENTICO al de antes -«no normal»
+   equivale a `> 20`- y por eso sus seis lectores no se tocan. */
+const AI_AREA_BANDAS = Object.freeze(['normal', 'leve', 'moderada', 'severa'].map(function (k, i) {
+  const b = AI_VOL_BANDAS.filter(function (x) { return x.clave === k; })[0];
+  return Object.freeze({ clave: k, hasta: [UMBRAL_AI_AREA_DILATADA, 30, 40, Infinity][i],
+                         color: b.color, adj: b.adj });
+}));
+window.AI_AREA_BANDAS = AI_AREA_BANDAS;
+/* Devuelve la banda, o `null` si el area no es un numero utilizable: la misma forma que
+   `aiVolClasificar`, asi que cada superficie decide que hace con el `null`. */
+function aiAreaClasificar(a) {
+  const n = PF(a);
+  if (n == null || !isFinite(n)) return null;
+  for (let i = 0; i < AI_AREA_BANDAS.length; i++) if (n <= AI_AREA_BANDAS[i].hasta) return AI_AREA_BANDAS[i];
+  return AI_AREA_BANDAS[AI_AREA_BANDAS.length - 1];
+}
+/* El rotulo del rango, con el operador que la app APLICA y no con el guion del original: «20–30»
+   no dice de que lado cae el 30, y es justo el valor que un borde compartido deja ambiguo. */
+function aiAreaRotulo(b) {
+  if (!b) return '';
+  const i = AI_AREA_BANDAS.indexOf(b);
+  if (b.clave === 'normal') return 'Normal (≤' + b.hasta + ' cm²)';
+  const desde = AI_AREA_BANDAS[i - 1].hasta;
+  if (b.clave === 'severa') return 'Dilat. severa (>' + desde + ' cm²)';
+  return 'Dilat. ' + b.clave + ' (>' + desde + ' a ≤' + b.hasta + ' cm²)';
+}
 
 /* ══ EL VOLUMEN MEDIDO QUE NO SE PUEDE INDEXAR (J1, 2026-10-16) ═════════════════════
    Decisión de Maicol, y cierra H-1 por la salida (a) de PENDIENTES —declarar la medición sin
@@ -23396,10 +23453,24 @@ function calcAI() {
   if (dEl) dEl.innerHTML = _cap(pDiam, aiDiamDilatado,
     'Dilatada (>' + _aiDMax + 'mm) — sin grado',
     'Normal (≤' + _aiDMax + 'mm)');
+  /* ⚠️ LA CAPSULA DEL AREA PUBLICA SU GRADO Y DICE QUIEN DECIDE (R4, 2026-10-20). Le pregunta a
+     `aiAreaClasificar`, el mismo dueño del que el informe saca la categoria, con el rotulo
+     derivado de las mismas bandas: aca vivia el «— sin grado» que la guia de 2005 desmiente.
+     Y cuando HAY volumen indexado -que es el que gradua el tamaño de la auricula- la capsula lo
+     DICE, porque si no quedan dos grados compitiendo en la misma pantalla sin que nada explique
+     cual manda: es el defecto que esta app persigue desde la FAC del VD. La salvedad es texto y
+     no cambia ningun veredicto. */
   const aEl = document.getElementById('ai-area-interp');
-  if (aEl) aEl.innerHTML = _cap(pArea, aiAreaDilatada,
-    'Dilatada (>' + UMBRAL_AI_AREA_DILATADA + 'cm²) — sin grado',
-    'Normal (≤' + UMBRAL_AI_AREA_DILATADA + 'cm²)');
+  if (aEl) {
+    const _aiVolManda = !!(vol && bsa);
+    const _aSuf = _aiVolManda ? ' — el volumen indexado gradúa' : '';
+    if (pArea.fuera) aEl.innerHTML = badge('red', 'Fuera de rango — verificar');
+    else if (pArea.val == null) aEl.innerHTML = '—';
+    else {
+      const _aB = aiAreaClasificar(pArea.val);
+      aEl.innerHTML = _aB ? badge(_aB.color, aiAreaRotulo(_aB) + _aSuf) : '—';
+    }
+  }
   if (!vol || !bsa) {
     document.getElementById('ai-idx').textContent = '—';
     /* ⚠️ LA CÁPSULA DICE LO MISMO QUE EL INFORME Y QUE EL PDF (J1, 2026-10-16). Con el volumen
@@ -23540,8 +23611,8 @@ const EV_REG = Object.freeze([
   }),
   Object.freeze({
     id: 'DIM-AI-002', zona: 'AI/VI — Aurícula izquierda', dato: 'Área',
-    valor: 'Normal hasta 20 cm2; dilatada por encima de 20. Los mismos valores en los dos sexos',
-    duenio: 'aiAreaDilatada / UMBRAL_AI_AREA_DILATADA',
+    valor: 'Normal hasta 20 cm2; dilatacion leve por encima de 20 y hasta 30; moderada por encima de 30 y hasta 40; severa por encima de 40. Los mismos valores en los dos sexos',
+    duenio: 'aiAreaClasificar / AI_AREA_BANDAS',
     guia: EV_GUIA_ASE2005, ubicacion: 'Tabla 9', folio: '1456', hoja_pdf: 17,
     doi: EV_DOI_ASE2005, fuente_original: '', tipo: 'guía',
     estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
@@ -41903,8 +41974,17 @@ function evRefPintar(id) {
     host.appendChild(_evRefTabla([
       { ficha: 'DIM-AI-001', rot: 'Diámetro AP — normal', h: '≤ ' + AI_DIAM_NORMAL_MAX_H + ' mm', m: '≤ ' + AI_DIAM_NORMAL_MAX_M + ' mm' },
       { ficha: 'DIM-AI-001', rot: 'Diámetro AP — dilatada', h: '> ' + AI_DIAM_NORMAL_MAX_H + ' mm', m: '> ' + AI_DIAM_NORMAL_MAX_M + ' mm' },
-      { ficha: 'DIM-AI-002', rot: 'Área — normal', h: '≤ 20 cm²', m: '≤ 20 cm²' },
-      { ficha: 'DIM-AI-002', rot: 'Área — dilatada', h: '> 20 cm²', m: '> 20 cm²' },
+      /* ⚠️ LAS CUATRO FILAS DEL AREA SE DERIVAN DE `AI_AREA_BANDAS` (R4, 2026-10-20) y no se
+         escriben a mano: aca vivian las dos del area binaria -«normal» y «dilatada»- con el 20
+         tipeado dos veces. Las dos columnas publican lo MISMO porque la Tabla 9 de la guia de
+         2005 imprime los mismos valores en mujeres y en hombres. */
+      ...AI_AREA_BANDAS.map(function (b, i) {
+        const rango = (i === 0) ? '≤ ' + b.hasta + ' cm²'
+          : (b.clave === 'severa') ? '> ' + AI_AREA_BANDAS[i - 1].hasta + ' cm²'
+          : '> ' + AI_AREA_BANDAS[i - 1].hasta + ' a ≤ ' + b.hasta + ' cm²';
+        const rot = (i === 0) ? 'Área — normal' : 'Área — dilatación ' + b.clave;
+        return { ficha: 'DIM-AI-002', rot: rot, h: rango, m: rango };
+      }),
       { ficha: 'DIM-AI-003', rot: 'Volumen indexado — normal', h: '≤ 34 ml/m²', m: '≤ 34 ml/m²' },
       { ficha: 'DIM-AI-003', rot: 'Volumen indexado — dilatación leve', h: '35 a 41 ml/m²', m: '35 a 41 ml/m²' },
       { ficha: 'DIM-AI-003', rot: 'Volumen indexado — moderada', h: '42 a 48 ml/m²', m: '42 a 48 ml/m²' },
@@ -49474,7 +49554,16 @@ function generarInforme(opts) {
        Y ahora el ÁREA también habla: antes no llegaba al narrativo por ningún camino, así que un
        área de 25 cm² sin volumen ni diámetro caía en el `else` de abajo y el informe firmado decía
        «La aurícula izquierda es de dimensiones normales» sobre una aurícula dilatada. */
-    const aiStr = aiDilGeo ? 'dilatada' : 'de dimensiones normales';
+    /* ⚠️ EL AREA GRADUA CUANDO ES LA QUE DECIDE (R4, 2026-10-20). DECISION DE MAICOL: el
+       VOLUMEN INDEXADO manda siempre -esa rama esta arriba y no se toco- y el grado del area se
+       usa SOLO cuando no hay volumen. Las palabras son las que esta misma auricula ya usa
+       (`AI_VOL_BANDAS[].adj`, de donde `AI_AREA_BANDAS` las deriva), asi que no entra ninguna
+       redaccion nueva en un informe firmado.
+       ⚠️ CON SOLO EL DIAMETRO AP SIGUE SIENDO BINARIO, y es de la fuente: ninguna guia gradua por
+       el diametro -el corte por sexo que la app aplica dice si/no- asi que ahi «dilatada» a secas
+       es todo lo que se puede afirmar. Si estan los dos, el que gradua es el AREA. */
+    const _aiAreaB = (_pAiArea.val != null) ? aiAreaClasificar(_pAiArea.val) : null;
+    const aiStr = _aiAreaB ? _aiAreaB.adj : (aiDilGeo ? 'dilatada' : 'de dimensiones normales');
     /* La medición que va DENTRO de la afirmación sale del predicado, no de la presencia: con el
        diámetro normal y el área dilatada, `aiGeoTxt` nombraba a los dos y el informe afirmaba que un
        diámetro de 38 mm marca dilatación. La que quedó normal se declara aparte. */
@@ -49490,7 +49579,11 @@ function generarInforme(opts) {
     /* La invitación a completar el volumen va SÓLO cuando hay dilatación: sobre una aurícula normal
        pediría un dato para graduar algo que no hay que graduar. Y va en el cuerpo, no en el EN SUMA:
        es una instrucción para quien mide, no un hallazgo del paciente. */
-    if (aiDilGeo) inf.push('El grado de dilatación auricular no se informa: la guía lo gradúa sólo por volumen indexado, que requiere el volumen de AI y la superficie corporal.');
+    /* ⚠️ LA INVITACION A COMPLETAR EL VOLUMEN SE ACOTA AL CASO DEL DIAMETRO SOLO (R4). Decia «el
+       grado de dilatación auricular no se informa», que desde hoy es FALSO cuando hay area: la
+       oración de arriba publica su grado. Con el area cargada la frase se calla; con solo el
+       diametro se conserva palabra por palabra, porque ahi sigue siendo cierta. */
+    if (aiDilGeo && !_aiAreaB) inf.push('El grado de dilatación auricular no se informa: la guía lo gradúa sólo por volumen indexado, que requiere el volumen de AI y la superficie corporal.');
     /* Esta rama no tenía NI UN `suma.push`: la misma aurícula dilatada subía al EN SUMA si se
        midió por volumen y no subía si se midió por diámetro AP — que es la vía que queda en el
        eco de rutina, la más frecuente de las dos. El informe firmado terminaba diciendo

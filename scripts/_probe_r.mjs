@@ -2137,6 +2137,125 @@ window.__Z = {
     process.stderr.write('[vd] listo\n');
   }
 
+
+  /* ══ GRUPO «ai» — LOS CUATRO GRADOS DEL AREA Y LA JERARQUIA DEL VOLUMEN ═══════════════════
+     Los tres campos viven en AI/VI, detras del acordeon `sacc-ai`. El peso y la talla van en
+     Datos y hacen falta para la superficie corporal: sin ellos el volumen no se indexa y la
+     jerarquia no se puede medir -la escena caeria en la rama del area y la tabla informaria
+     «el volumen no manda» sobre un volumen que nunca se indexo-. */
+  if (corre('ai')) {
+    const r = { bordes: {}, escenas: {}, refs: {} };
+    const leerAi = async () => ({
+      capArea: await ev(`window.__P.txt('ai-area-interp')`),
+      capDiam: await ev(`window.__P.txt('ai-diam-interp')`),
+      capVol:  await ev(`window.__P.txt('ai-interp')`),
+      idx:     await ev(`window.__P.txt('ai-idx')`),
+      banda:   await ev(`(typeof aiAreaClasificar==='function') ? ((aiAreaClasificar(window.__P.val('ai_area'))||{}).clave||null) : 'SIN FN'`),
+      dil:     await ev(`(typeof aiAreaDilatada==='function') ? aiAreaDilatada(window.__P.val('ai_area')) : 'SIN FN'`),
+      estandar: await ev(`(function(){ var o = window.__P.informe('estandar');
+        var t = (o && o.inf) ? o.inf : String(o||'');
+        return (t.split(String.fromCharCode(10)).filter(function(l){ return l.indexOf('urícula izquierda')>=0 || l.indexOf('AI ')===0 || l.indexOf('volumen indexado')>=0 })||[]).join(' | ') })()`),
+      narrativo: await ev(`(function(){ var o = window.__P.informe('narrativo');
+        var t = (o && o.inf) ? o.inf : String(o||'');
+        return (t.split(String.fromCharCode(10)).filter(function(l){ return l.indexOf('urícula izquierda')>=0 })||[]).join(' | ') })()`),
+      suma:    await ev(`(function(){ var t=(document.getElementById('en_suma')||{}).value||'';
+        return (t.split(String.fromCharCode(10)).filter(function(l){ return l.indexOf('AI ')>=0 })||[]).join(' | ') })()`),
+    });
+    /* ⚠️ LOS ACORDEONES `sacc-` NO SE ABREN FORZANDO EL `display`: se abren con `secToggle`, que
+       es el gesto real. `abrirPara` sube por los ancestros poniendo `display:''` y el acordeon de
+       AI/VI no se cierra asi, de modo que el campo seguia midiendo 0x0 y la sonda ABORTO -que es
+       lo correcto- en las trece escenas. Los campos de Datos (peso y talla) viven en su propia
+       pestaña, asi que se abren las dos. */
+    const abrirAi = () => ev(`(function(){
+      var o = {};
+      try { if (typeof showTab === 'function') showTab('ai-vi'); } catch(e){ o.tabExc = e.message; }
+      var tb = document.getElementById('tab-ai-vi');
+      o.tabDisp = tb ? getComputedStyle(tb).display : 'NO EXISTE';
+      /* ⚠️ EL ACORDEON NO SE COLAPSA CON display:none: secToggle alterna la clase open y el
+         cuerpo se cierra con max-height. Preguntarle al card por su display da siempre
+         «visible» y el toggle no se llama nunca — la primera corrida midio la puerta en 0x0 y
+         abortó en las trece escenas. Lo que hay que mirar es la clase. */
+      ['ai','vi','datos'].forEach(function(k){
+        var c = document.getElementById('sacc-' + k);
+        if (c && !c.classList.contains('open') && typeof secToggle === 'function') secToggle(k); });
+      /* ⚠️ Y LA TRANSICION NO HA TERMINADO: el cuerpo abre con max-height = scrollHeight y la
+         clase open, pero la altura final la pone un transitionend o un setTimeout de 350 ms. Un
+         rect leido en el mismo cuadro puede dar 0. Se fuerza el estado FINAL -que es lo que ese
+         mismo callback hace- en vez de esperar, asi la sonda no depende de un reloj. */
+      var b = document.querySelectorAll('.sacc.open > .sacc-body');
+      Array.prototype.forEach.call(b, function(x){ x.style.maxHeight = 'none'; x.style.overflow = 'visible'; });
+      var e = document.getElementById('ai_area'); var rr = e ? e.getBoundingClientRect() : null;
+      o.w = rr ? Math.round(rr.width) : null; o.h = rr ? Math.round(rr.height) : null;
+      o.abiertos = document.querySelectorAll('.sacc.open').length;
+      o.saccAi = (function(){ var c = document.getElementById('sacc-ai');
+        if (!c) return 'NO EXISTE'; var bb = c.querySelector('.sacc-body');
+        return { open: c.classList.contains('open'), disp: getComputedStyle(c).display,
+                 bodyMax: bb ? getComputedStyle(bb).maxHeight : null,
+                 bodyH: bb ? Math.round(bb.getBoundingClientRect().height) : null } })();
+      o.campoDisp = e ? getComputedStyle(e).display : 'NO EXISTE';
+      return o })()`);
+    const escAi = async (nombre, campos) => {
+      try {
+        await ev(`window.__P.nuevo()`);
+        await abrirAi();
+        for (const [k, vv] of campos) await tipear(k, vv);
+        await ev(`window.__P.calentar()`);
+        r.escenas[nombre] = await leerAi();
+      } catch (e) { r.escenas[nombre] = { err: e.message }; }
+      process.stderr.write('[ai] ' + nombre + '\n');
+    };
+    r.puerta = await abrirAi();
+    /* LOS BORDES: 20 / 20,1 / 30 / 30,1 / 40 / 40,1 — los tres compartidos del original. */
+    for (const a of ['20', '20.1', '30', '30.1', '40', '40.1']) {
+      try {
+        await ev(`window.__P.nuevo()`);
+        await abrirAi();
+        await tipear('ai_area', a);
+        await ev(`window.__P.calentar()`);
+        r.bordes[a] = await leerAi();
+      } catch (e) { r.bordes[a] = { err: e.message }; }
+    }
+    process.stderr.write('[ai] bordes\n');
+    /* LAS CUATRO ESCENAS DE LA JERARQUIA. */
+    await escAi('A-solo-area',   [['ai_area', '35']]);
+    await escAi('B-solo-volumen',[['peso', '80'], ['talla', '180'], ['ai_vol', '98']]);
+    await escAi('C-ambos',       [['peso', '80'], ['talla', '180'], ['ai_vol', '60'], ['ai_area', '35']]);
+    await escAi('D-ninguno',     []);
+    await escAi('E-solo-diam',   [['ai_diam', '44']]);
+    await escAi('F-area-y-diam', [['ai_area', '35'], ['ai_diam', '44']]);
+    /* CONTROL: el volumen NORMAL con el area moderada -la discordancia- y el borrado. */
+    await escAi('G-vol-normal-area-mod', [['peso', '80'], ['talla', '180'], ['ai_vol', '60'], ['ai_area', '35']]);
+    try {
+      await ev(`window.__P.nuevo()`);
+      await abrirAi();
+      await tipear('ai_area', '35');
+      await borrar('ai_area', 'bs');
+      await ev(`window.__P.calentar()`);
+      r.escenas['H-borrado'] = await leerAi();
+    } catch (e) { r.escenas['H-borrado'] = { err: e.message }; }
+    /* Referencias y la ficha. */
+    try {
+      r.refs.filas = await ev(`(function(){
+        try { if (typeof showTab==='function') showTab('referencias'); } catch(e){}
+        try { if (typeof toggleRef==='function') { var c=document.getElementById('ref-ai');
+          if (c && getComputedStyle(c).display==='none') toggleRef('ai', document.querySelector('[onclick*="toggleRef(&apos;ai&apos;"]')); } } catch(e){}
+        try { if (typeof evRefPintar==='function') evRefPintar('ai'); } catch(e){}
+        var h=document.getElementById('ref-ai-cuerpo');
+        if(!h) return 'NO EXISTE';
+        return Array.prototype.map.call(h.querySelectorAll('tr'), function(tr){
+          return Array.prototype.map.call(tr.cells, function(c){return (c.textContent||'').trim()}).join(' | ') })
+          .filter(function(x){ return x.indexOf('rea')>=0 }) })()`);
+      r.refs.ficha = await ev(`(function(){ try {
+        var f=(EV_REG||[]).filter(function(x){return x.id==='DIM-AI-002'})[0];
+        return f ? { valor:f.valor, duenio:f.duenio, folio:f.folio, guia:f.guia, fuente:f.fuente_una_linea } : 'SIN' } catch(e){ return 'EXC '+e.message } })()`);
+      r.refs.bandas = await ev(`(typeof AI_AREA_BANDAS!=='undefined') ? JSON.stringify(AI_AREA_BANDAS) : 'SIN'`);
+      r.refs.rot = await ev(`(typeof aiAreaRotulo==='function') ? AI_AREA_BANDAS.map(function(b){return aiAreaRotulo(b)}) : 'SIN'`);
+      r.refs.excel = await ev(`window.__P.excelDOM()`);
+    } catch (e) { r.refs.err = e.message; }
+    out.grupos.ai = r;
+    process.stderr.write('[ai] listo\n');
+  }
+
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
   process.stdout.write(JSON.stringify(OUT, null, 1));
   cdp.close(); srv.close(); process.exit(0);
