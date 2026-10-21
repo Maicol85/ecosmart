@@ -18359,6 +18359,24 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:#f5c842;">4–5 latidos</td><td style="padding:5px 8px;">Indeterminado — puede ser intracardíaco o intrapulmonar</td></tr>
         <tr><td style="padding:5px 8px;color:#f59e42;">&gt;5 latidos</td><td style="padding:5px 8px;">Shunt intrapulmonar (MAV pulmonar, síndrome hepatopulmonar)</td></tr>
       </table>
+      <!-- == LA FUENTE DE LOS TIEMPOS (D-E3, 2026-10-22) ======================================
+           La tabla de arriba no citaba ninguna. Silvestry y cols., ASE/SCAI 2015 (CIA y FOP),
+           folio = hoja + 909 comprobado en el pie impreso, dice las tres cosas en TRES folios y
+           NO coinciden en el borde: folio 931 «dentro de 3 a 6 latidos» es positivo para shunt
+           intracardiaco; el pie de la Figura 29, folio 933, pone el corte en los primeros TRES
+           ciclos y manda los siguientes a intrapulmonar; y los Key Points del folio 935 dicen
+           que DESPUES de 3 a 6 latidos indica intrapulmonar. La banda indeterminada de 4 a 5 de
+           esta tabla es justamente la zona donde los tres textos se pisan.
+           NO se movio ningun corte de esta tabla: lo que se agrega es de donde sale cada uno. -->
+      <div style="font-size:10px; color:var(--text2); line-height:1.55; margin:0 0 10px;">
+        <div><b>Fuentes de los tiempos.</b> Silvestry y cols., ASE/SCAI 2015: el folio <b>931</b>
+          considera positivo para un shunt intracard&iacute;aco el paso dentro de <b>3 a 6 latidos</b>;
+          el pie de la Figura 29 (folio <b>933</b>) pone el corte en los <b>primeros 3 ciclos</b>; y los
+          Key Points (folio <b>935</b>) atribuyen al paso <b>despu&eacute;s</b> de 3 a 6 latidos un shunt
+          intrapulmonar. La banda indeterminada de 4 a 5 latidos de esta tabla recoge esa zona.
+          El n&uacute;mero de latidos que la aplicaci&oacute;n consigna &mdash;de 3 a 6&mdash; y la regla del
+          aneurisma del septum est&aacute;n en la ficha <b>&laquo;Foramen Oval Permeable&raquo;</b>.</div>
+      </div>
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:6px;">Clasificación por cantidad de burbujas en VI</div>
       <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px;">
         <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Grado</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Cantidad</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Significado</th></tr>
@@ -18394,6 +18412,123 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         • <b>Síndrome hepatopulmonar:</b> shunt intrapulmonar tardío (&gt;5 latidos)<br>
         • <b>Sospecha CIA / FOP:</b> confirmación + cuantificación del shunt<br>
         • <b>Post-cierre percutáneo FOP:</b> seguimiento — verificar cierre completo
+      </div>
+    </div>
+  </div>
+
+  <!-- == FICHA DEL FORAMEN OVAL PERMEABLE (D-E3, 2026-10-22) =====================================
+       Cada dato con su fuente y su folio, VISTOS en el PDF original de la biblioteca. Reglas de
+       folio comprobadas en el pie o el encabezado IMPRESO:
+         · Silvestry y cols., ASE/SCAI 2015 (CIA y FOP): folio = hoja + 909, comprobado en las
+           hojas 7 (916), 8 (917), 22 (931) y 23 (932).
+         · Pristipino y cols., EuroIntervention 2019 (posicion europea sobre el FOP):
+           folio = hoja + 1388, comprobado en el encabezado de la hoja 8 (1396).
+         · Kleindorfer y cols., AHA/ASA 2021 (prevencion secundaria del ACV):
+           folio = e(hoja + 363), comprobado en las hojas 48 (e411), 49 (e412) y 50 (e413).
+       ⚠️ LA CANTIDAD DE BURBUJAS NO SE REESCRIBE ACA: su escala y su chip de criterio propio
+       viven en la ficha «Test de Burbujas», y esta remite a ella. Dos tablas del mismo corte en
+       la misma pestana son la copia que se separa en la primera edicion.
+       ⚠️ EL CIERRE SE CITA CON LA AHA/ASA 2021 Y CON LA POSICION EUROPEA, NO CON «la ESC»: ese
+       2a por debajo de los 60 anos es de la AHA/ASA y con condiciones, y el documento europeo
+       habla de 18 a 65 anos con metodologia GRADE, sin las clases I/IIa/IIb de la ESC. -->
+  <div class="card">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('fop',this)">
+      🕳️ Foramen Oval Permeable — ASIA, shunt y cierre
+      <span style="float:right;">▶</span>
+    </h2>
+    <div id="ref-fop" style="display:none;" class="card-body">
+      <div style="font-size:11px;color:var(--text2);margin-bottom:8px;font-style:italic;">Anatomía del septum, interrogación del shunt y recomendaciones de cierre</div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:6px;">Anatomía del septum interauricular</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:6px;">
+        <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Hallazgo</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Criterio</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Fuente</th></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;"><b>Aneurisma del septum (ASIA)</b></td><td style="padding:5px 8px;">Excursión del tejido septal —habitualmente la fosa oval— de <b>10&nbsp;mm</b> desde el plano del septo hacia la aurícula derecha o la izquierda, <b>o</b> excursión combinada derecha más izquierda de <b>15&nbsp;mm</b></td><td style="padding:5px 8px;">Silvestry 2015 · folio 916</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">Prevalencia del ASIA</td><td style="padding:5px 8px;">2&nbsp;%&ndash;3&nbsp;% de la población</td><td style="padding:5px 8px;">Silvestry 2015 · folio 916</td></tr>
+        <tr><td style="padding:5px 8px;">Prevalencia del foramen oval</td><td style="padding:5px 8px;">20&nbsp;%&ndash;25&nbsp;% de la población adulta</td><td style="padding:5px 8px;">Silvestry 2015 · folio 912</td></tr>
+      </table>
+      <div style="font-size:10px;color:var(--text2);line-height:1.55;margin:0 0 10px;">
+        <b>Qué aplica la aplicación.</b> El umbral depende del lado: con el aneurisma abombando hacia
+        un solo lado se compara la excursión contra los 10&nbsp;mm de ese lado; con «ambos lados», el
+        número que se carga es la excursión TOTAL y el umbral pasa a 15&nbsp;mm. Sin lado consignado se
+        aplica el de 10&nbsp;mm. El valor exacto del umbral cuenta como aneurisma.
+        El folio 916 escribe el primer corte como «greater than 10&nbsp;mm» y el segundo sin operador;
+        el folio 938 del mismo documento reescribe los dos sin «greater than».
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:6px;">Test de burbuja — tiempo de aparición</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:6px;">
+        <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Tiempo</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Lectura de la fuente</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Fuente</th></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;"><b>3 a 6 latidos</b> tras la opacificación de la aurícula derecha</td><td style="padding:5px 8px;">Positivo para shunt intracardíaco, como el foramen oval</td><td style="padding:5px 8px;">Silvestry 2015 · folio 931</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">Primeros <b>3</b> ciclos cardíacos</td><td style="padding:5px 8px;">Shunt intracardíaco; los ciclos siguientes, intrapulmonar</td><td style="padding:5px 8px;">Silvestry 2015 · pie de la Figura 29, folio 933</td></tr>
+        <tr><td style="padding:5px 8px;"><b>Después</b> de 3 a 6 latidos</td><td style="padding:5px 8px;">Shunt intrapulmonar</td><td style="padding:5px 8px;">Silvestry 2015 · Key Points, folio 935</td></tr>
+      </table>
+      <div style="font-size:10px;color:var(--text2);line-height:1.55;margin:0 0 10px;">
+        <b>Qué aplica la aplicación.</b> Se consigna el <b>número</b> de latidos, de 3 a 6, que es el rango
+        del folio 931, y el informe publica ese número sin interpretarlo: no escribe «intracardíaco» ni
+        «intrapulmonar». Las tres redacciones del mismo documento no coinciden en el borde, y la tabla de
+        tiempos de la ficha «Test de Burbujas» recoge esa zona con su banda indeterminada de 4 a 5 latidos.
+        La <b>cantidad</b> de burbujas y su escala están en esa misma ficha.
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:6px;">Rasgos anatómicos de alto riesgo</div>
+      <div style="font-size:12px;color:var(--text);line-height:1.8;margin-bottom:6px;">
+        • <b>Aneurisma del septum interauricular</b> y <b>shunt de derecha a izquierda grande</b> &mdash; Kleindorfer 2021, folios e411 y e413<br>
+        • En el ensayo <b>RESPECT</b>, el shunt grande se definió como <b>&gt;20 microburbujas</b> &mdash; Kleindorfer 2021, folio e413
+      </div>
+      <div style="font-size:10px;color:var(--text2);line-height:1.55;margin:0 0 10px;">
+        La nota al pie de la tabla de recomendaciones del folio e411 dice que <b>cada estudio define los
+        rasgos de alto riesgo de una manera distinta</b>, y el folio e413 escribe el tamaño del shunt como
+        «definido de manera variable». Pristipino 2019, describiendo el <b>mismo</b> ensayo RESPECT, define el
+        shunt sustancial como <b>más de 10 microburbujas</b> (apéndice suplementario 4): las dos guías no
+        coinciden sobre cómo ese ensayo lo definió.
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:6px;">Cierre del foramen oval &mdash; AHA/ASA 2021 (Kleindorfer), apartado 5.4.5, folio e411</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:6px;">
+        <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Clase</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Nivel</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Recomendación</th></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;"><b>1</b></td><td style="padding:5px 8px;">C-EO</td><td style="padding:5px 8px;">Con un ACV isquémico no lacunar de causa indeterminada y un foramen oval, la decisión entre el cierre y el tratamiento médico se toma en conjunto entre el paciente, un cardiólogo y un neurólogo, pesando la probabilidad de que el foramen tenga un papel causal</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;"><b>2a</b></td><td style="padding:5px 8px;">B-R</td><td style="padding:5px 8px;">De 18 a 60 años, con un ACV isquémico no lacunar de causa indeterminada <b>tras una evaluación exhaustiva</b> y un foramen con <b>rasgos anatómicos de alto riesgo</b>, es razonable preferir el cierre con dispositivo transcatéter más antiagregación prolongada antes que la antiagregación sola para prevenir la recurrencia</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;"><b>2b</b></td><td style="padding:5px 8px;">C-LD</td><td style="padding:5px 8px;">En el mismo grupo, pero <b>sin</b> rasgos anatómicos de alto riesgo, el beneficio del cierre más antiagregación prolongada frente a la antiagregación sola no está bien establecido</td></tr>
+        <tr><td style="padding:5px 8px;"><b>2b</b></td><td style="padding:5px 8px;">C-LD</td><td style="padding:5px 8px;">El beneficio comparativo del cierre con dispositivo frente a la warfarina es desconocido</td></tr>
+      </table>
+      <div style="font-size:10px;color:var(--text2);line-height:1.55;margin:0 0 10px;">
+        Por encima de los 60 años la evidencia aleatorizada es muy limitada y la guía señala que el
+        procedimiento debería hacerse rara vez y sólo en circunstancias clínicas inusuales (folio e412).
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:6px;">Posición europea &mdash; Pristipino 2019, Tabla 5, folio 1396</div>
+      <div style="font-size:12px;color:var(--text);line-height:1.8;margin-bottom:6px;">
+        • <b>Declaración fuerte a favor de la intervención:</b> cierre percutáneo en pacientes seleccionados
+        de <b>18 a 65 años</b> con un ACV, un accidente isquémico transitorio o una embolia sistémica
+        criptogénicos confirmados y una probabilidad alta de que el foramen tenga un papel causal<br>
+        • Fuera de esa franja de edad, caso por caso y con decisión compartida<br>
+        • Metodología <b>GRADE</b>: el documento no usa las clases I/IIa/IIb de la ESC
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:6px;">Definiciones y contexto</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:6px;">
+        <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Término o dato</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Definición</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Fuente</th></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">ACV lacunar</td><td style="padding:5px 8px;">Síndrome lacunar con tomografía o resonancia normales, o lesión subcortical menor de 1,5&nbsp;cm</td><td style="padding:5px 8px;">Kleindorfer 2021 · folio e371</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">ESUS</td><td style="padding:5px 8px;">ACV no lacunar en la neuroimagen, sin una fuente evidente tras una evaluación mínima estándar: imagen arterial, ecocardiograma, monitorización prolongada del ritmo y laboratorio</td><td style="padding:5px 8px;">Kleindorfer 2021 · folio e372</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">«Criptogénico»</td><td style="padding:5px 8px;">Exigir que el ACV sea criptogénico equivale a exigir un ACV no lacunar de fuente indeterminada, o ESUS</td><td style="padding:5px 8px;">Kleindorfer 2021 · folio e412</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">Recurrencia con tratamiento médico</td><td style="padding:5px 8px;">5&nbsp;% por año en un metaanálisis de estudios observacionales</td><td style="padding:5px 8px;">Pristipino 2019 · folio 1399</td></tr>
+        <tr><td style="padding:5px 8px;">Estudio de trombofilia</td><td style="padding:5px 8px;">El estudio de laboratorio rutinario de estados protrombóticos no está justificado para indicar anticoagulación oral permanente (declaración fuerte · nivel C)</td><td style="padding:5px 8px;">Pristipino 2019 · Tabla 4, folio 1395</td></tr>
+      </table>
+
+      <div style="font-size:10px; color:var(--text2); line-height:1.55; margin:6px 0 0;">
+        <div><b>Fuentes.</b> Silvestry FE y cols., <i>J Am Soc Echocardiogr</i> 2015;28:910-958 (ASE y SCAI,
+          evaluación ecocardiográfica de la comunicación interauricular y del foramen oval permeable).
+          Pristipino C y cols., <i>EuroIntervention</i> 2019;14:1389-1402 (documento de posición europeo sobre
+          el manejo intervencionista del foramen oval permeable). Kleindorfer DO y cols., <i>Stroke</i>
+          2021;52:e364-e467 (AHA/ASA, prevención del ACV en pacientes con ACV o accidente isquémico
+          transitorio).</div>
+        <div style="margin-top:4px;">
+          <span style="display:inline-block; border:1px solid var(--border); border-radius:4px;
+                       padding:1px 5px; margin-right:4px; font-size:9px; letter-spacing:.3px;">CRITERIO DE ECOSMART</span>
+          El corte de <b>5 burbujas</b> que separa el pasaje leve del moderado no está publicado en estas
+          tres fuentes: es una referencia propia de la aplicación, y está declarado en la ficha «Test de
+          Burbujas» junto a la escala.
+        </div>
       </div>
     </div>
   </div>
@@ -63305,7 +63440,9 @@ const REF_SUBTAB = Object.freeze({
   fun:   Object.freeze(['htp', 'tep']),
   valv:  Object.freeze(['nativas', 'protesicas']),
   ao:    Object.freeze(['ao2', 'ao', 'aocx']),
-  otros: Object.freeze(['oai', 'burbujas', 'coronarias', 'pericardio', 'cardiotox', 'miocard',
+  /* `fop` va PEGADA a `burbujas` porque son el mismo tema: la ficha del FOP remite a la del
+     test de burbuja para la escala de cantidad en vez de reescribirla. */
+  otros: Object.freeze(['oai', 'burbujas', 'fop', 'coronarias', 'pericardio', 'cardiotox', 'miocard',
                         'congenitas', 'formulas'])
 });
 const REF_SUB_ORDEN = Object.freeze(['calc', 'dim', 'fun', 'valv', 'ao', 'otros']);

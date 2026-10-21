@@ -77584,15 +77584,21 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
     }
     return { n: o.length, filas: o };
   })();
-  ex.push(['(A2) DENOMINADOR: el censo encuentra las 30 entradas de la pestana',
-    censo.n === 30, 'n=' + censo.n]);
+  /* ADAPTADO el 2026-10-22 (tanda D, commit 3): de 30 a 31. La entrada nueva es la ficha del
+     FORAMEN OVAL PERMEABLE, que publica la regla del aneurisma del septum (Silvestry 2015, folio
+     916), los latidos del pasaje (folio 931) y las cuatro recomendaciones de cierre de la AHA/ASA
+     2021 (Kleindorfer, folio e411) con su clase y su nivel. */
+  ex.push(['(A2) DENOMINADOR: el censo encuentra las 31 entradas de la pestana',
+    censo.n === 31, 'n=' + censo.n]);
   ex.push(['(A3) NINGUNA entrada quedo fuera de una subpestana',
     censo.n > 0 && censo.filas.every(f => !!f.sub),
     'sin panel=' + censo.filas.filter(f => !f.sub).map(f => f.id).join(',')]);
   const porSub = {};
   censo.filas.forEach(f => { porSub[f.sub] = (porSub[f.sub] || 0) + 1; });
-  ex.push(['(A4) el reparto es 5 Dimensiones + 2 Funcion + 12 Valvulas + 3 Aorta + 8 Otros',
-    porSub.dim === 5 && porSub.fun === 2 && porSub.valv === 12 && porSub.ao === 3 && porSub.otros === 8,
+  /* ADAPTADO el 2026-10-22 (tanda D, commit 3): «Otros» pasa de 8 a 9 con la ficha del FOP, que
+     va pegada a la del test de burbuja porque son el mismo tema. Los otros cuatro no se mueven. */
+  ex.push(['(A4) el reparto es 5 Dimensiones + 2 Funcion + 12 Valvulas + 3 Aorta + 9 Otros',
+    porSub.dim === 5 && porSub.fun === 2 && porSub.valv === 12 && porSub.ao === 3 && porSub.otros === 9,
     JSON.stringify(porSub)]);
   /* Clic REAL en cada boton: activa SU panel y apaga los otros cuatro. */
   const subEstado = [];
@@ -77634,8 +77640,10 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
   /* 28 = las 30 entradas del censo MENOS los dos agrupadores, que el indice excluye por una
      compuerta estructural: su texto incluye el de sus cinco hijas y cada coincidencia apareceria
      dos veces. */
-  ex.push(['(B1) DENOMINADOR: el buscador existe y su indice tiene las 28 entradas (30 menos los dos agrupadores)',
-    !!EL('ref-busca') && (function () { try { return FN('_refIndiceArmar') && window._refIndiceArmar(true).length === 28; } catch (e) { return false; } })(),
+  /* ADAPTADO el 2026-10-22 (tanda D, commit 3): de 28 a 29 por la ficha del FOP. Los dos
+     agrupadores que el indice excluye por su compuerta ESTRUCTURAL no cambian. */
+  ex.push(['(B1) DENOMINADOR: el buscador existe y su indice tiene las 29 entradas (31 menos los dos agrupadores)',
+    !!EL('ref-busca') && (function () { try { return FN('_refIndiceArmar') && window._refIndiceArmar(true).length === 29; } catch (e) { return false; } })(),
     'indice=' + (function () { try { return window._refIndiceArmar(true).length; } catch (e) { return 'EXC'; } })()]);
   ex.push(['(B2) «RWT» encuentra la GEOMETRIA DEL VI y dice su subpestana',
     !bRWT.err && bRWT.n > 0 && bRWT.ids.indexOf('vi') >= 0 && bRWT.subs.indexOf('Dimensiones') >= 0,
@@ -80383,8 +80391,13 @@ caso('TC-507', 'Tanda R: la VAB muestra la lesion PRESENTE sin grado con un solo
       /* ADAPTADO el 2026-10-21 (tanda C, commit 3): el chip pasa de TRES a CUATRO. El cuarto
          es el de la ficha de TEP, que declara que los cortes 2 y 4 de su conteo son una
          referencia propia de la aplicacion - ninguna fuente publica un puntaje construido con
-         esos seis criterios. */
-      return n === 4 && _ecoPref === 'Criterio de EcoSmart: '; })(),
+         esos seis criterios.
+         ADAPTADO el 2026-10-22 (tanda D, commit 3): de CUATRO a CINCO. El quinto es el de la
+         ficha nueva del FORAMEN OVAL, que remite al corte de 5 burbujas de la ficha del test de
+         burbuja y declara que no esta publicado en Silvestry 2015, Pristipino 2019 ni
+         Kleindorfer 2021. Es el MISMO criterio propio declarado en dos fichas que lo citan, no
+         uno nuevo. */
+      return n === 5 && _ecoPref === 'Criterio de EcoSmart: '; })(),
     (function(){ let n = 0;
       Array.prototype.forEach.call(document.querySelectorAll('span'), x => {
         if ((x.textContent || '').trim() === 'CRITERIO DE ECOSMART') n++; });

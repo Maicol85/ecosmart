@@ -1954,7 +1954,11 @@ window.__D = {
       if (!d) return 'NO EXISTE ref-' + id;
       d.style.display = '';
       if (typeof evRefPintar === 'function') { try { evRefPintar(id) } catch (e) {} }
-      var t = (d.textContent || '').replace(/\s+/g, ' ').trim();
+      /* El escape de espacio en blanco se COCINA dentro del template literal y deja /s+/g,
+         que se come todas las eses del texto leido: «Silvestry» salia «Silve try». Se arma el
+         regex desde una cadena para que la barra llegue entera al motor. */
+      var _WS = new RegExp(String.fromCharCode(92) + 's+', 'g');
+      var t = (d.textContent || '').replace(_WS, ' ').trim();
       return { largo: t.length, txt: t.slice(0, 6000) };
     } catch (e) { return 'EXC: ' + e.message } },
 
