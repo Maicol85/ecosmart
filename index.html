@@ -14412,10 +14412,23 @@ z
   <div class="subtabs-wrap cc-subbar" role="tablist" aria-label="Cardiopatias congenitas"
        style="justify-content:flex-start;margin-bottom:12px;">
     <div class="tabs-row">
-      <button type="button" class="tab-btn cc-on" id="cc-subtab-frec" role="tab"
+      <!-- ⚠️ LLEVAN `tab-special`, LA CLASE DE LOS BOTONES DE LA FILA DE ARRIBA (B2-E4,
+           2026-10-22). MEDIDO ANTES DE TOCAR NADA: los dos ya se veian IGUAL que los de arriba
+           en las siete propiedades —fondo, color, borde, ancho de borde, cuerpo, relleno y
+           radio— en reposo y en activo, en los dos temas y en los dos motores. La razon es que
+           los botones de arriba tambien viven dentro de un `.subtabs-wrap`, y
+           `.subtabs-wrap .tab-btn` (0,2,1) le gana a `.tab-special` (0,1,0): las cinco
+           declaraciones de esa clase no se aplican a ninguno de los dos.
+           La clase se agrega igual, y es ESTRUCTURAL y no cosmetica: ata los dos grupos, asi
+           que el dia que alguien toque `.tab-special` o la especificidad los de CC se mueven
+           con los de arriba en vez de quedarse atras en silencio. Medido: CERO cambio de pixel.
+           ⚠️ EL ESTADO ACTIVO SIGUE EN `cc-on` Y NO EN `.active`, que es obligatorio: `showTab`
+           barre `.active` de TODO `.tab-btn` del documento. Sus colores son los de
+           `.subtabs-wrap .tab-btn.active`, sin declarar uno nuevo. -->
+      <button type="button" class="tab-btn tab-special cc-on" id="cc-subtab-frec" role="tab"
               aria-selected="true" tabindex="0"
               onclick="ccSubTab('congenitas')">&#129516; CC frecuentes</button>
-      <button type="button" class="tab-btn" id="cc-subtab-compl" role="tab"
+      <button type="button" class="tab-btn tab-special" id="cc-subtab-compl" role="tab"
               aria-selected="false" tabindex="-1"
               onclick="ccSubTab('congenitas2')">&#129516; CC complejas</button>
     </div>
@@ -16146,10 +16159,23 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
   <div class="subtabs-wrap cc-subbar" role="tablist" aria-label="Cardiopatias congenitas"
        style="justify-content:flex-start;margin-bottom:12px;">
     <div class="tabs-row">
-      <button type="button" class="tab-btn" id="cc-subtab-frec2" role="tab"
+      <!-- ⚠️ LLEVAN `tab-special`, LA CLASE DE LOS BOTONES DE LA FILA DE ARRIBA (B2-E4,
+           2026-10-22). MEDIDO ANTES DE TOCAR NADA: los dos ya se veian IGUAL que los de arriba
+           en las siete propiedades —fondo, color, borde, ancho de borde, cuerpo, relleno y
+           radio— en reposo y en activo, en los dos temas y en los dos motores. La razon es que
+           los botones de arriba tambien viven dentro de un `.subtabs-wrap`, y
+           `.subtabs-wrap .tab-btn` (0,2,1) le gana a `.tab-special` (0,1,0): las cinco
+           declaraciones de esa clase no se aplican a ninguno de los dos.
+           La clase se agrega igual, y es ESTRUCTURAL y no cosmetica: ata los dos grupos, asi
+           que el dia que alguien toque `.tab-special` o la especificidad los de CC se mueven
+           con los de arriba en vez de quedarse atras en silencio. Medido: CERO cambio de pixel.
+           ⚠️ EL ESTADO ACTIVO SIGUE EN `cc-on` Y NO EN `.active`, que es obligatorio: `showTab`
+           barre `.active` de TODO `.tab-btn` del documento. Sus colores son los de
+           `.subtabs-wrap .tab-btn.active`, sin declarar uno nuevo. -->
+      <button type="button" class="tab-btn tab-special" id="cc-subtab-frec2" role="tab"
               aria-selected="false" tabindex="-1"
               onclick="ccSubTab('congenitas')">&#129516; CC frecuentes</button>
-      <button type="button" class="tab-btn cc-on" id="cc-subtab-compl2" role="tab"
+      <button type="button" class="tab-btn tab-special cc-on" id="cc-subtab-compl2" role="tab"
               aria-selected="true" tabindex="0"
               onclick="ccSubTab('congenitas2')">&#129516; CC complejas</button>
     </div>
