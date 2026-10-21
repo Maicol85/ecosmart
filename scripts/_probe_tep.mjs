@@ -109,12 +109,69 @@ const CONTROLES = `(() => {
   try { if (typeof popPocusSync === 'function') popPocusSync() } catch(e){}
   try { if (typeof dptEstado === 'function') dptEstado() } catch(e){}
   const R = {};
-  ['vd-tapse','vd-sprime','vd-fun-interp','htp2022-prob','htp2022-catA','htp2022-catB',
-   'htp2022-catC','dd-interp','pop-pocus-vd','ad-interp','vd-tam-interp'].forEach(id => {
+  ['tapse-interp','sprime-interp','vd-tei-interp','vd-vi-interp','vd-pared-interp','vd-tam',
+   'htp2022-prob','htp2022-catA','htp2022-catB','htp2022-catC','dd-interp','pop-pocus-vd',
+   'ad-interp','dpt-badge','dpt-estado'].forEach(id => {
      const e = document.getElementById(id); R[id] = e ? (e.textContent || '').trim().slice(0,220) : 'NO EXISTE' });
-  try { R.excel = (typeof _labExcelRow === 'function') ? Object.keys(_labExcelRow(
-     { campos: (typeof _recolectar === 'function') ? {} : {} } )).length : 'SIN FN' } catch(e){ R.excel = 'EXC ' + e.message.slice(0,60) }
+  /* El Excel se mide sobre un estudio ARCHIVADO armado con los campos de la pantalla, que es
+     como lo consume el Laboratorio. Se comparan las CLAVES y los VALORES, no solo el conteo. */
+  try {
+    const campos = {};
+    Array.prototype.forEach.call(document.querySelectorAll('input[id],select[id],textarea[id]'),
+      e => { if (e.type !== 'button' && e.id) campos[e.id] = (e.type === 'checkbox') ? (e.checked ? '1' : '') : e.value });
+    const fila = (typeof _labExcelRow === 'function') ? _labExcelRow({ campos: campos, fecha: '2026-10-21' }) : null;
+    R.excelN = fila ? Object.keys(fila).length : 'SIN FN';
+    R.excelFila = fila ? JSON.stringify(fila) : 'SIN FN';
+  } catch(e){ R.excelN = 'EXC ' + e.message.slice(0,80); R.excelFila = 'EXC' }
+  /* Laboratorio: las funciones dueñas. */
+  ['_labDiastGrado','_labGeomCat','_labDisfSistVent'].forEach(fn => {
+    try { R[fn] = (typeof window[fn] === 'function') ? JSON.stringify(window[fn]('')) : 'SIN FN' }
+    catch(e){ R[fn] = 'EXC' } });
   return R })()`;
+
+/* ══ MAQUETA Y CAPTURA ════════════════════════════════════════════════════════════════════
+   Mide lo RENDERIZADO a cuatro anchos por los dos temas: sin scroll horizontal, la tarjeta de
+   TEP entera y el COLOR REAL computado de lo nuevo. El tema se EXIGE: si la clase no queda
+   puesta, la celda aborta en vez de medir dos veces el mismo tema. */
+const TEMA = `(() => {
+  const claro = CLARO;
+  const r = document.documentElement;
+  if (claro) r.classList.add('light-mode'); else r.classList.remove('light-mode');
+  return { claro: r.classList.contains('light-mode') === claro } })()`;
+
+/* ⚠️ LA SECCION DE TEP NACE PLEGADA Y `limpiarCampos` LA VUELVE A CERRAR. Medir sin abrirla da
+   0x0 en todo, «cero scroll horizontal» y una captura VACIA: la medicion numerica sale impecable
+   sobre una tarjeta que no esta dibujada. Se abre por el gesto del medico (`toggleCard`) y se
+   ABORTA si despues de abrirla sigue sin geometria. */
+const ABRIR = `(() => {
+  ['modalAvisoEco','login-overlay'].forEach(id => { const m = document.getElementById(id);
+    if (m) m.style.display = 'none' });
+  try { showTab('hemodinamica') } catch(e){}
+  const s = document.getElementById('tep-seccion');
+  if (!s) return { ok:false, por:'SIN SECCION' };
+  if (getComputedStyle(s).display === 'none') { try { toggleCard('tep-seccion') } catch(e){} }
+  const r = s.getBoundingClientRect();
+  return { ok: r.width > 0 && r.height > 0, w: Math.round(r.width), h: Math.round(r.height) } })()`;
+
+const MAQ = `(() => {
+  ['modalAvisoEco','login-overlay'].forEach(id => { const m = document.getElementById(id);
+    if (m) m.style.display = 'none' });
+  const g = id => { const e = document.getElementById(id); if (!e) return null;
+    const r = e.getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height) } };
+  const col = id => { const e = document.getElementById(id);
+    return e ? getComputedStyle(e).color : 'NO EXISTE' };
+  return {
+    scrollH: document.documentElement.scrollWidth,
+    clientH: document.documentElement.clientWidth,
+    desborde: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    sec: g('tep-seccion'),
+    tpsp: g('tep-tapse-psap'),
+    acop: g('tep-acoplamiento'),
+    colTpsp: col('tep-tapse-psap'),
+    colScore: col('tep-score'),
+    filas: document.querySelectorAll('#tep-seccion .calc-row').length,
+    hayEstrat: !!document.getElementById('tep-estratificacion')
+  } })()`;
 
 async function corre(nombre, abrir) {
   const b = await abrir();
@@ -130,6 +187,26 @@ async function corre(nombre, abrir) {
     if (hay('score')) {
       R.score = {};
       for (const c of ESCENAS) R.score[c.k] = await pg.evaluate(ESCENA.replace('CASO', JSON.stringify(c)));
+    }
+    if (hay('maqueta')) {
+      R.maq = {};
+      try { fs.mkdirSync(DEST, { recursive: true }) } catch (e) {}
+      await pg.evaluate(ESCENA.replace('CASO', JSON.stringify(ESCENAS.find(x => x.k === 'cuatro'))));
+      for (const vp of [[1200,700],[1440,800],[768,1024],[390,844],[360,740]]) {
+        for (const claro of [false, true]) {
+          await pg.setViewportSize({ width: vp[0], height: vp[1] });
+          const t = await pg.evaluate(TEMA.replace('CLARO', JSON.stringify(claro)));
+          if (!t.claro) { R.maq[vp[0] + 'x' + (claro ? 'claro' : 'osc')] = 'TEMA NO QUEDO'; continue }
+          await pg.waitForTimeout(120);
+          const k = vp[0] + '_' + (claro ? 'claro' : 'osc');
+          const ab = await pg.evaluate(ABRIR);
+          if (!ab.ok) { R.maq[k] = { ABORTO: 'SIN GEOMETRIA tep-seccion', det: ab }; continue }
+          R.maq[k] = await pg.evaluate(MAQ);
+          const el = await pg.$('#tep-seccion');
+          if (el) { try { await el.screenshot({ path: DEST + '/tep_' + nombre + '_' + k + '.png' }) } catch (e) {} }
+        }
+      }
+      await pg.setViewportSize({ width: 1200, height: 700 });
     }
     if (hay('controles')) {
       R.ctrl = {};

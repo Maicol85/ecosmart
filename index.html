@@ -8975,7 +8975,12 @@ window.cerrarSesionReal = cerrarSesionReal;
         </div>
         <div class="fg"><label>Relación VD/VI (manual si no calculado)</label>
           <input type="number" id="tep_vdvi" placeholder="ratio" step="0.01" oninput="calcTEP()">
-          <span style="font-size:10px;color:var(--text2);">Patológico: ≥0.9</span>
+          <!-- ⚠️ EL ROTULO DECIA «≥0.9» Y EL CORTE APLICADO ES 1,0 DESDE EL R7 (20/10/2026): era un
+               resto del corte de TOMOGRAFIA que esa tanda retiro. Se corrige en el C-E1
+               (21/10/2026) y se deja ESCRITO, no derivado de `TEP_VDVI_DILAT_MIN`, porque es
+               marcado estatico; la capsula de al lado SI lo deriva, asi que los dos se comparan
+               en TC-510. Fuente: ESC 2019 de TEP, folio 497.e17. -->
+          <span style="font-size:10px;color:var(--text2);">Patológico: ≥1,0</span>
         </div>
       </div>
 
@@ -9000,10 +9005,6 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="calc-row">
           <span class="calc-lbl" style="font-weight:700;">Interpretación</span>
           <span id="tep-interpretacion" style="font-weight:700;">—</span>
-        </div>
-        <div class="calc-row">
-          <span class="calc-lbl" style="font-weight:700;">🧭 Orientación ecocardiográfica de disfunción VD en TEP</span>
-          <span id="tep-estratificacion" style="font-weight:700;">—</span>
         </div>
         <div class="calc-row">
           <span class="calc-lbl" style="font-weight:700;">📐 TAPSE/PSAP</span>
@@ -25928,6 +25929,29 @@ function toggleCard(sectionId, headEl) {
 }
 window.toggleCard = toggleCard;
 
+/* ══ EL VD/VI QUE USA EL TEP — UN SOLO DUEÑO PARA LA PANTALLA Y EL INFORME (C-E2, 21/10/2026) ══
+   Hasta hoy la cascada estaba escrita DOS veces y las dos copias no decian lo mismo: la pantalla
+   caia al `vd_vi` de la pestaña VD cuando faltaban los otros dos, y el informe NO. Medido con el
+   `vd_vi` en 1,2 y `tep_vdvi` vacio, la pantalla contaba 2/3 criterios y el informe 1 — el MISMO
+   estudio con dos conteos, uno en la pantalla y otro en el papel firmado.
+
+   ⚠️ EL PREDICADO ES EL DE LA PANTALLA, LETRA POR LETRA (`!vdvi`, no `vdvi === null`), y no un
+   `=== null` «mas correcto»: con `!vdvi` un cociente de 0 cae al siguiente escalon, y cambiarlo
+   aca moveria la rama que la pantalla ya aplicaba sobre un valor que no es una medicion
+   plausible. Lo que esta tanda unifica es QUE lee el informe, no COMO compara la pantalla.
+
+   ⚠️ EL POSOPERATORIO NO LO CONSUME, Y ES DELIBERADO. `popPocusSync` y `popPatron` tienen su
+   propia cascada — sin el escalon de `vd_vi` y con `=== null` — y este trabajo no los toca: son
+   otra pantalla, con su propio texto que declara de donde salen sus cortes. */
+function tepVdViRatio() {
+  let vdvi = v('tep_vdvi');
+  const vdBas = v('vd_bas'), ddfvi = v('ddfvi');
+  if (!vdvi && vdBas && ddfvi) vdvi = PF((vdBas / ddfvi).toFixed(2));
+  if (!vdvi && v('vd_vi')) vdvi = v('vd_vi');
+  return (vdvi == null) ? null : vdvi;
+}
+window.tepVdViRatio = tepVdViRatio;
+
 /* ══ calcTEP — SOBRECARGA AGUDA DEL VD (TEP) ═══════════════════════════════════════════════
    LOS SEIS CRITERIOS QUE CUENTAN y su fuente, uno por uno (C-E1, 2026-10-21):
      · VD/VI       `>= TEP_VDVI_DILAT_MIN` (1,0)   · ESC 2019 de TEP, folio e17 y Figura 3 B
@@ -25948,14 +25972,10 @@ window.toggleCard = toggleCard;
 function calcTEP() {
   const tapse   = v('tapse');
   const psap    = v('psap_calc');
-  const vdBas   = v('vd_bas');
-  const ddfvi   = v('ddfvi');
   const adArea  = v('ad_area');
 
-  // VD/VI ratio — usar campo manual o calcular
-  let vdvi = v('tep_vdvi');
-  if (!vdvi && vdBas && ddfvi) vdvi = PF((vdBas / ddfvi).toFixed(2));
-  if (!vdvi && v('vd_vi')) vdvi = v('vd_vi');
+  // VD/VI ratio — el dueño unico, el mismo que lee el informe
+  const vdvi = tepVdViRatio();
 
   const mcSel  = document.getElementById('tep_mcconnell')?.value;
   const s60Sel = document.getElementById('tep_signo6060')?.value;
@@ -26057,20 +26077,17 @@ function calcTEP() {
   const total = criterios.length;
   const scoreEl = document.getElementById('tep-score');
   const interpEl = document.getElementById('tep-interpretacion');
-  const estEl = document.getElementById('tep-estratificacion');
 
   // CAMBIO 3: datos no evaluados → no emitir conclusión ni resultado tranquilizador
   if (algunoNoEval) {
     if (scoreEl) scoreEl.textContent = '—';
     if (interpEl) { interpEl.dataset.estado = ''; interpEl.innerHTML = badge('yellow', 'Completá todos los criterios para obtener una orientación diagnóstica'); }
-    if (estEl) estEl.textContent = '—';
     return;
   }
 
   if (total === 0) {
     if (scoreEl) scoreEl.textContent = '—';
     if (interpEl) { interpEl.dataset.estado = ''; interpEl.textContent = 'Completar campos para calcular'; }
-    if (estEl) estEl.textContent = '—';
     return;
   }
 
@@ -26091,20 +26108,19 @@ function calcTEP() {
     else interpEl.innerHTML = badge('red', 'Disfunción VD severa — alta probabilidad de TEP/HTP aguda (' + score + ' criterios)');
   }
 
-  // Orientación ecocardiográfica de disfunción VD (no reemplaza la estratificación ESC 2019)
-  if (estEl) {
-    /* EL COCIENTE YA NO DECIDE: su corte de 0,32 no es de TEP (ver la cabecera). Lo que queda es
-       el conteo, que es lo unico que esta pantalla puede sostener con su fuente. */
-    if (score >= 4) {
-      estEl.innerHTML = badge('red', '🔴 Disfunción VD significativa — correlacionar con clínica, biomarcadores y scores validados.');
-    } else if (score >= 2) {
-      estEl.innerHTML = badge('orange', '🟠 Riesgo INTERMEDIO-ALTO — monitorización estrecha, considerar imagen confirmatoria');
-    } else if (score === 1) {
-      estEl.innerHTML = badge('yellow', '🟡 Riesgo INTERMEDIO-BAJO — criterio aislado, correlacionar con clínica y scores');
-    } else {
-      estEl.innerHTML = badge('green', '🟢 Sin criterios de disfunción VD significativa por eco');
-    }
-  }
+  /* ⚠️ EL RENGLON DE CLASE DE RIESGO SE RETIRO (C-E2, 21/10/2026). Publicaba «Riesgo
+     INTERMEDIO-ALTO» y «Riesgo INTERMEDIO-BAJO», que es VOCABULARIO DE LA TABLA 8 de la ESC 2019
+     — una clasificacion que esa tabla decide con CUATRO indicadores (inestabilidad hemodinamica,
+     PESI o sPESI, disfuncion del VD por imagen y troponina) y de los que esta pantalla tiene uno
+     solo. Una ecocardiografia sola no estratifica el riesgo de una embolia pulmonar, y decirlo
+     con las palabras de la tabla lo afirmaba igual.
+
+     ⚠️ Y VIAJABA AL PDF: `amiloTextoTEP` leia este span y lo imprimia como «Orientacion de
+     disfuncion VD», asi que la clase de riesgo salia en el papel. El narrativo NO la usaba
+     — tiene sus propias frases, que son descriptivas — y por eso no se toca.
+
+     La estratificacion por la Tabla 8 vive ahora en el panel de Evidencia, que es donde puede
+     preguntar los tres datos que faltan. Esta pantalla publica los hallazgos y el conteo. */
 }
 window.calcTEP = calcTEP;
 
@@ -52693,10 +52709,11 @@ function generarInforme(opts) {
     if (!(typeof amiloIntegrado === 'function' && amiloIntegrado('tep'))) return;
     const tapse   = v('tapse');
     const psap    = v('psap_calc');
-    const vdBas   = v('vd_bas');
-    const ddfvi   = v('ddfvi');
-    let vdvi      = v('tep_vdvi');
-    if (!vdvi && vdBas && ddfvi) vdvi = PF((vdBas / ddfvi).toFixed(2));
+    /* ⚠️ EL MISMO DUEÑO QUE LA PANTALLA (C-E2, 21/10/2026). Esta cascada estaba escrita aparte y
+       le faltaba el escalon del `vd_vi` de la pestaña VD, asi que con ese campo cargado y
+       `tep_vdvi` vacio la pantalla contaba un criterio mas que el papel firmado — medido: 2/3
+       en la pantalla contra 1 en el informe, sobre el MISMO estudio. */
+    const vdvi    = tepVdViRatio();
 
     const mcSelR  = document.getElementById('tep_mcconnell')?.value;
     const s60SelR = document.getElementById('tep_signo6060')?.value;
@@ -83995,15 +84012,15 @@ function amiloTextoTEP() {
      el informe firmado se leen como la interpretación del estudio. */
   const _tepValido = ((document.getElementById('tep-interpretacion') || {}).dataset || {}).estado === 'valido';
   L.push('Interpretación: ' + (_tepValido ? _amTxt('tep-interpretacion') : 'no determinable'));
-  const est = _amTxt('tep-estratificacion'); if (est) L.push('Orientación de disfunción VD: ' + est);
+  /* ⚠️ LA LINEA «Orientacion de disfuncion VD» SE RETIRO CON SU SPAN (C-E2, 21/10/2026): leia
+     `tep-estratificacion`, que publicaba las clases de riesgo de la Tabla 8 de la ESC 2019
+     decididas con el eco solo. Ver el comentario de `calcTEP`. */
   const ac  = _amTxt('tep-acoplamiento');    if (ac)  L.push('TAPSE/PSAP: ' + ac);
-  /* La salvedad va DESPUÉS del veredicto que califica —«Riesgo INTERMEDIO-ALTO», que es
-     vocabulario de clase de riesgo ESC 2019 salido de una ecocardiografía sola— y no antes,
-     separada por un subtítulo. Y sólo si hubo evaluación: un descargo sobre algo que no se
-     midió se lee, en un informe, como que la pregunta sí se consideró. */
-  if (_tepValido) {
-    L.push('!! Salvedad. Estos hallazgos son orientativos y NO reemplazan la estratificación de riesgo del tromboembolismo pulmonar, que exige integrar estabilidad hemodinámica, troponina, PESI/sPESI y confirmación diagnóstica por imagen (ESC 2019). Ningún signo ecocardiográfico es patognomónico de TEP: el signo de McConnell puede verse en el infarto de ventrículo derecho.');
-  }
+  /* ⚠️ LA «SALVEDAD» SE RETIRO (C-E2, 21/10/2026). Existia para descargar el veredicto que
+     calificaba — «Riesgo INTERMEDIO-ALTO», que salia del span retirado — y con ese veredicto
+     afuera queda un descargo sobre una afirmacion que esta hoja ya no hace. Su idea pasa al
+     panel de Evidencia, que es el que estratifica por la Tabla 8 de la ESC 2019.
+     La advertencia sigue EN PANTALLA, en el cartel de la tarjeta de TEP, que no se toco. */
   return L.join('\n');
 }
 
