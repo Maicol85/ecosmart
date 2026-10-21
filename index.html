@@ -21978,6 +21978,24 @@ const UMBRAL_PSAP_ELEVADA = 35;  // mmHg
    aca `>=` y alla `>`, asi que el 1,00 EXACTO cuenta aca y no cuenta alla. */
 const TEP_VDVI_DILAT_MIN = 1.0;   // ratio — `>=` (ESC 2019 de TEP, folio e17)
 window.TEP_VDVI_DILAT_MIN = TEP_VDVI_DILAT_MIN;
+/* ══ EL TAPSE DEL SCORE DE TEP — `< 16 mm`, Y NO ES EL DE LA PESTAÑA VD (C-E1, 2026-10-21) ═══
+   DECISION DE MAICOL con la fuente leida en el PDF original: ESC 2019 de TEP, cuerpo del folio
+   497.e17 -«un cociente de los diametros del VD/VI >= 1,0 y una TAPSE < 16 mm son los hallazgos
+   que se asocian mas frecuentemente con un pronostico desfavorable»- y Figura 3, panel G, folio
+   497.e15 -«TAPSE disminuido medido en modo M (< 16 mm)»-. Los dos leidos renderizando la pagina,
+   porque la extraccion de texto de ese PDF se come el glifo `>=`.
+
+   ⚠️ NO SE REUSA `UMBRAL_TAPSE_NORMAL`, Y ESA ES TODA LA DECISION. Esa constante vale 17 mm
+   (ASE 2025, Tabla 1, folio 145, «TAPSE > 1.7 cm») y la leen la pestaña VD, el cuadro de
+   referencias, el PDF, el POCUS del posoperatorio y el patron hemodinamico. Son dos preguntas
+   distintas -«¿hay disfuncion sistolica del VD?» contra «¿hay un hallazgo de mal pronostico en
+   TEP agudo?»- con dos fuentes distintas, asi que un TAPSE de 16,0 a 16,9 mm es NORMAL para el
+   score de TEP y DISFUNCION para la pestaña VD. Cada seccion lo dice con su propia fuente.
+
+   ⚠️ Y EL OPERADOR ES `<` ESTRICTO EN LAS DOS APARICIONES DE LA FUENTE, asi que el 16,0 EXACTO
+   NO cuenta. Se verifico en la imagen de las dos. */
+const TEP_TAPSE_BAJO_MAX = 16;    // mm — `<` (ESC 2019 de TEP, folio e17 y Figura 3 G, folio e15)
+window.TEP_TAPSE_BAJO_MAX = TEP_TAPSE_BAJO_MAX;
 /* El corte ALTO de la banda de cohorte de PSAP. No es un umbral clínico de la guía sino la
    frontera de la tercera banda del filtro del Laboratorio — pero estaba escrito TRES veces (los
    dos lados del predicado, la etiqueta de `_COH_LBL` y el texto del `<option>`), así que moverlo
@@ -25910,7 +25928,23 @@ function toggleCard(sectionId, headEl) {
 }
 window.toggleCard = toggleCard;
 
-// calcTEP: acoplamiento en contexto TEP agudo — umbral >0.32
+/* ══ calcTEP — SOBRECARGA AGUDA DEL VD (TEP) ═══════════════════════════════════════════════
+   LOS SEIS CRITERIOS QUE CUENTAN y su fuente, uno por uno (C-E1, 2026-10-21):
+     · VD/VI       `>= TEP_VDVI_DILAT_MIN` (1,0)   · ESC 2019 de TEP, folio e17 y Figura 3 B
+     · TAPSE       `<  TEP_TAPSE_BAJO_MAX`  (16)   · ESC 2019 de TEP, folio e17 y Figura 3 G
+     · PSAP        `>= UMBRAL_PSAP_ELEVADA` (35)   · ASE 2025, Tabla 1, folio 145 (normal <= 34)
+     · McConnell, signo 60/60 y tabique en D       · ESC 2019 de TEP, §4.9 (folio e14) y Figura 3
+
+   ⚠️ EL COCIENTE TAPSE/PSAP SE PUBLICA COMO NUMERO Y NO VOTA NI DECIDE NADA. Hasta el 21/10/2026
+   esta pantalla le aplicaba un corte de 0,32 que NO es de TEP: sale de la ESC/ERS 2022, Tabla 16,
+   folio 41, donde es el umbral de BAJO RIESGO en hipertension arterial pulmonar. No sumaba al
+   score ni a la interpretacion, pero SI decidia el renglon de riesgo (`score >= 2 && desacoplado`),
+   asi que retirarlo cambia veredictos -estan tabulados en la ficha de TC-510-. Censada la
+   biblioteca, ningun documento publica un corte del cociente para TEP AGUDO, asi que no se
+   reemplaza por otro: se publica el numero.
+
+   ⚠️ LOS CORTES 2 y 4 DEL CONTEO SON CRITERIO DE ECOSMART y no se movieron: ninguna fuente
+   publica un score con estos seis criterios. Lo declara la ficha de Referencias del TEP. */
 function calcTEP() {
   const tapse   = v('tapse');
   const psap    = v('psap_calc');
@@ -25943,17 +25977,17 @@ function calcTEP() {
      EXACTAMENTE lo que publicaba: sus TRES decimales y su corte de 0,32 no se tocaron. */
   const tapsePsapEl = document.getElementById('tep-tapse-psap');
   const _tpsp = (typeof vdTapsePsap === 'function') ? vdTapsePsap() : ((tapse && psap) ? (tapse / psap) : null);
+  const acEl = document.getElementById('tep-acoplamiento');
   if (_tpsp !== null) {
     const idx = _tpsp.toFixed(3);
-    const ok  = PF(idx) > 0.32;
-    if (tapsePsapEl) tapsePsapEl.innerHTML = ok
-      ? badge('green',  idx + ' mm/mmHg — acoplamiento conservado')
-      : badge('red',    idx + ' mm/mmHg — desacoplamiento VD-AP');
-    const acEl = document.getElementById('tep-acoplamiento');
-    if (acEl) acEl.innerHTML = ok
-      ? badge('green',  'TAPSE/PSAP ' + idx + ' — conservado (>0.32)')
-      : badge('red',    'TAPSE/PSAP ' + idx + ' — desacoplado (≤0.32)');
-  } else if (tapsePsapEl) tapsePsapEl.textContent = '—';
+    /* SIN badge y sin color: un color es un veredicto, y aca no hay veredicto que dar. Los tres
+       decimales y el dueño del numero (`vdTapsePsap`) no se tocaron. */
+    if (tapsePsapEl) tapsePsapEl.textContent = idx + ' mm/mmHg';
+    if (acEl) acEl.textContent = idx + ' mm/mmHg';
+  } else {
+    if (tapsePsapEl) tapsePsapEl.textContent = '—';
+    if (acEl) acEl.textContent = '—';
+  }
 
   // 2. VD/VI
   const vdviEl = document.getElementById('tep-vdvi-interp');
@@ -25971,23 +26005,31 @@ function calcTEP() {
   // 3. TAPSE
   const tapseEl = document.getElementById('tep-tapse-interp');
   if (tapse !== null) {
-    const patol = tapse < UMBRAL_TAPSE_NORMAL;
+    /* EL CORTE ES EL DE TEP (16 mm) Y NO EL DE LA PESTAÑA VD (17 mm): ver `TEP_TAPSE_BAJO_MAX`.
+       Los dos rotulos salen de la constante, porque con el numero escrito a mano el dia que se
+       mueva el corte la capsula dice uno y el score cuenta el otro. */
+    const patol = tapse < TEP_TAPSE_BAJO_MAX;
     if (patol) score++;
     criterios.push('TAPSE');
     if (tapseEl) tapseEl.innerHTML = patol
-      ? badge('red',    'TAPSE ' + tapse + ' mm — disfunción VD ✓')
-      : badge('green',  'TAPSE ' + tapse + ' mm — normal (≥17mm)');
+      ? badge('red',    'TAPSE ' + tapse + ' mm — bajo para TEP (<' + TEP_TAPSE_BAJO_MAX + ' mm) ✓')
+      : badge('green',  'TAPSE ' + tapse + ' mm — no bajo para TEP (≥' + TEP_TAPSE_BAJO_MAX + ' mm)');
   } else if (tapseEl) tapseEl.textContent = '—';
 
   // 4. PSAP
   const psapEl = document.getElementById('tep-psap-interp');
   if (psap !== null) {
-    const patol = psap > UMBRAL_PSAP_ELEVADA;
+    /* `>=` Y NO `>`: la ASE 2025 publica el valor normal de la presion sistolica del VD en
+       «<= 34 mmHg» y la banda leve en «>= 35 a <= 49» (Tabla 1, folio 145, leida en la imagen),
+       asi que el 35,0 EXACTO es anormal. El VALOR de la constante no se movio: lo que cambia es
+       el operador, y SOLO en esta pantalla -los otros nueve consumidores de `UMBRAL_PSAP_ELEVADA`
+       conservan el suyo-. */
+    const patol = psap >= UMBRAL_PSAP_ELEVADA;
     if (patol) score++;
     criterios.push('PSAP');
     if (psapEl) psapEl.innerHTML = patol
-      ? badge('red',    'PSAP ' + psap + ' mmHg — elevada (>' + UMBRAL_PSAP_ELEVADA + ' mmHg) ✓')
-      : badge('green',  'PSAP ' + psap + ' mmHg — normal');
+      ? badge('red',    'PSAP ' + psap + ' mmHg — elevada (≥' + UMBRAL_PSAP_ELEVADA + ' mmHg) ✓')
+      : badge('green',  'PSAP ' + psap + ' mmHg — normal (≤' + (UMBRAL_PSAP_ELEVADA - 1) + ' mmHg)');
   } else if (psapEl) psapEl.textContent = '—';
 
   // 5. McConnell
@@ -26051,9 +26093,9 @@ function calcTEP() {
 
   // Orientación ecocardiográfica de disfunción VD (no reemplaza la estratificación ESC 2019)
   if (estEl) {
-    const tapsePsapVal = (tapse && psap) ? tapse / psap : null;
-    const desacoplado = tapsePsapVal !== null && tapsePsapVal <= 0.32;
-    if (score >= 4 || (score >= 2 && desacoplado)) {
+    /* EL COCIENTE YA NO DECIDE: su corte de 0,32 no es de TEP (ver la cabecera). Lo que queda es
+       el conteo, que es lo unico que esta pantalla puede sostener con su fuente. */
+    if (score >= 4) {
       estEl.innerHTML = badge('red', '🔴 Disfunción VD significativa — correlacionar con clínica, biomarcadores y scores validados.');
     } else if (score >= 2) {
       estEl.innerHTML = badge('orange', '🟠 Riesgo INTERMEDIO-ALTO — monitorización estrecha, considerar imagen confirmatoria');
@@ -52673,19 +52715,23 @@ function generarInforme(opts) {
     const hayDatos = mcconnell || signo6060 || tabiqued || v('tep_vdvi') !== null;
     if (!hayDatos) return;
 
+    /* LOS MISMOS SEIS CRITERIOS Y LOS MISMOS CORTES QUE `calcTEP`, que es donde estan
+       documentados. El TAPSE usa `TEP_TAPSE_BAJO_MAX` (16 mm, ESC 2019 de TEP) y NO
+       `UMBRAL_TAPSE_NORMAL` (17 mm, ASE 2025), que es el de la pestaña VD; la PSAP usa `>=`. */
     let score = 0;
     if (vdvi !== null && vdvi >= TEP_VDVI_DILAT_MIN) score++;
-    if (tapse !== null && tapse < UMBRAL_TAPSE_NORMAL) score++;
-    if (psap !== null && psap > UMBRAL_PSAP_ELEVADA) score++;
+    if (tapse !== null && tapse < TEP_TAPSE_BAJO_MAX) score++;
+    if (psap !== null && psap >= UMBRAL_PSAP_ELEVADA) score++;
     if (mcconnell) score++;
     if (signo6060) score++;
     if (tabiqued) score++;
 
+    /* El cociente se publica como NUMERO y no decide: su corte de 0,32 es de hipertension
+       arterial pulmonar (ESC/ERS 2022, Tabla 16, folio 41) y no de TEP agudo. */
     const tapsePsapVal = (tapse && psap) ? (tapse / psap).toFixed(3) : null;
-    const desacoplado  = tapsePsapVal !== null && PF(tapsePsapVal) <= 0.32;
 
     let estratif, estratifSuma;
-    if (score >= 4 || (score >= 2 && desacoplado)) {
+    if (score >= 4) {
       estratif      = 'Disfunción VD significativa — correlacionar con clínica, biomarcadores y scores validados';
       estratifSuma  = 'TEP/sobrecarga VD: disfunción VD significativa.';
     } else if (score >= 2) {
@@ -52700,7 +52746,7 @@ function generarInforme(opts) {
     }
 
     let linea = 'Evaluación ecocardiográfica de sobrecarga VD aguda (TEP): ' + score + ' criterio(s) positivo(s).';
-    if (tapsePsapVal) linea += ' Índice TAPSE/PSAP ' + tapsePsapVal + ' mm/mmHg (' + (desacoplado ? 'desacoplamiento VD-AP' : 'acoplamiento conservado') + ').';
+    if (tapsePsapVal) linea += ' Índice TAPSE/PSAP ' + tapsePsapVal + ' mm/mmHg.';
     linea += ' ' + estratif + '.';
 
     inf.push(linea);
