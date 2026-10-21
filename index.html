@@ -18307,8 +18307,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
              Esta tabla es HTML estático y no puede leer las constantes CO_UMBRAL_*: si alguna se mueve,
              hay que tocar esto a mano. La nota vive junto a su declaración. -->
         <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:#f05454;font-weight:700;">Severa<br><span style="font-weight:400;font-size:11px;color:var(--text2);">asintomática</span></td><td style="padding:5px 8px;">FEVI <b>nueva</b> &lt;40%<br><span style="font-size:11px;color:var(--text2);">La reducción tiene que ser nueva: con un basal ya &lt;40% no se gradúa, se informa como empeoramiento sobre disfunción previa.</span></td></tr>
-        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:#f59e42;font-weight:700;">Moderada<br><span style="font-weight:400;font-size:11px;color:var(--text2);">asintomática</span></td><td style="padding:5px 8px;">FEVI 40–49% con caída ≥10 pp desde basal<br><b>o</b> FEVI 40–49% con <b>algún</b> descenso (&lt;10 pp) <b>+</b> SGL ↓ ≥15% relativo <b>o</b> troponina elevada<br><span style="font-size:11px;color:var(--text2);">Tiene que haber descenso: una FEVI que MEJORA hasta 40–49% con marcadores alterados no es CTRCD, la reducción es parte de la definición.</span></td></tr>
-        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:#f5c842;font-weight:700;">Leve<br><span style="font-weight:400;font-size:11px;color:var(--text2);">asintomática</span></td><td style="padding:5px 8px;">FEVI conservada (≥50%) <b>+</b> SGL ↓ ≥15% relativo desde basal <b>y/o</b> biomarcadores elevados<br><b style="color:#f5c842;">No exige caída de FEVI.</b></td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:#f59e42;font-weight:700;">Moderada<br><span style="font-weight:400;font-size:11px;color:var(--text2);">asintomática</span></td><td style="padding:5px 8px;">FEVI 40–49% con caída ≥10 pp desde basal<br><b>o</b> FEVI 40–49% con <b>algún</b> descenso (&lt;10 pp) <b>+</b> SGL ↓ &gt;15% relativo <b>o</b> troponina elevada<br><span style="font-size:11px;color:var(--text2);">Tiene que haber descenso: una FEVI que MEJORA hasta 40–49% con marcadores alterados no es CTRCD, la reducción es parte de la definición.</span></td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:#f5c842;font-weight:700;">Leve<br><span style="font-weight:400;font-size:11px;color:var(--text2);">asintomática</span></td><td style="padding:5px 8px;">FEVI conservada (≥50%) <b>+</b> SGL ↓ &gt;15% relativo desde basal <b>y/o</b> biomarcadores elevados<br><b style="color:#f5c842;">No exige caída de FEVI.</b></td></tr>
         <tr><td style="padding:5px 8px;color:#9b7fe8;font-weight:700;">Sin graduar</td><td style="padding:5px 8px;">Todo lo que no encaja en las tres de arriba la guía <b>no</b> lo gradúa, y la app lo informa describiéndolo sin ponerle grado. Entre otros: caída ≥10 pp con FEVI ≥50% sin SGL ni troponina · caída de 5 a 9 pp con FEVI ≥50% · FEVI &lt;50% con descenso pero sin marcadores · descenso ≥10 pp sobre un basal ya &lt;40% · SGL alterado sin par de FEVI basal/actual · FEVI &lt;40% sin basal cargado.<br><span style="font-size:11px;color:var(--text2);">No es una lista cerrada: la regla es que sin los criterios de arriba no se rotula el grado.</span></td></tr>
       </table>
       <div style="margin-top:10px;font-size:12px;color:var(--text);line-height:1.8;">
@@ -18325,8 +18325,14 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
                2-3 puntos es ALTO. Muy alto arranca en 4. La línea confundía «marcador de alto
                riesgo» con «banda de riesgo global», que es lo que decide la frecuencia de control. -->
         <b style="color:var(--accent2);">SGL normal:</b> más negativo que -18% · <b>deteriorado: &gt;-16%</b> (menos negativo es peor)<br>
-        <b style="color:var(--accent2);">Frecuencia eco con antraciclinas:</b> riesgo <b>alto</b> → basal + cada 2 ciclos + al finalizar + 12 meses · riesgo <b>muy alto</b> → basal + cada ciclo + al finalizar + 12 meses<br>
-        <b style="color:var(--accent2);">Marcadores de alto riesgo (2 puntos cada uno):</b> FEVI &lt;50% · IC previa · SCA reciente · arritmias severas. Cada uno por sí solo deja al paciente en riesgo <b>alto</b> (2-3 puntos); el <b>muy alto</b> empieza en 4 puntos o con un fármaco de muy alto riesgo — ver el marco HFA-ICOS en la pestaña de Cardio-Oncología
+        <!-- ⚠️ CORREGIDO (R2-E6, 2026-10-21): el ECO va cada 2 CICLOS y lo que va en CADA ciclo
+             son los BIOMARCADORES. Guia ESC 2022 de cardio-oncologia, folio 4259, dos
+             recomendaciones distintas de la misma tabla: «TTE is recommended ... every 2 cycles
+             and within 3 months after completing treatment» (Clase I C) y «cTn and NP monitoring
+             BEFORE EVERY CYCLE during anthracycline chemotherapy and 3 and 12 months after
+             therapy completion is recommended in high- and very high-risk patients» (Clase I B). -->
+        <b style="color:var(--accent2);">Frecuencia eco con antraciclinas:</b> riesgo <b>alto</b> y <b>muy alto</b> → basal + cada 2 ciclos + a los 3 y 12 meses de terminar · los <b>biomarcadores</b> (troponina y péptido natriurético) van antes de <b>cada ciclo</b><br>
+        <b style="color:var(--accent2);">Marcadores de alto riesgo (2 puntos cada uno):</b> FEVI &lt;50% · IC previa · SCA reciente · arritmias severas. Cada uno por sí solo deja al paciente en riesgo <b>alto</b> (2-3 puntos); el <b>muy alto</b> empieza en 4 puntos o con un fármaco de muy alto riesgo — ver la calculadora de riesgo basal de EcoSmart en la pestaña de Cardio-Oncología, que <b>no es el HFA-ICOS</b>
       </div>
     </div>
   </div>
@@ -18660,10 +18666,16 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   <div id="hfaicos-seccion" style="display:none;">
   <div class="card">
     <div class="card-body">
-    <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:2px;">Evaluacion de riesgo cardiovascular basal antes de iniciar tratamiento oncologico — Marco HFA-ICOS ESC 2022</div>
+    <!-- ⚠️ EL NOMBRE (R2-E6, 2026-10-21, decision de Maicol): esta calculadora NO es el HFA-ICOS.
+         El HFA-ICOS propiamente dicho son tablas ESPECIFICAS por tipo de tratamiento (ESC 2022,
+         tabla 4) y recoge doce factores de su seccion A, de los que esta app tiene cuatro. Lo que
+         suma este bloque son puntos genericos propios. Sus PESOS y sus CORTES no se tocan: lo que
+         cambia es que ya no se presenta con el nombre de un instrumento que no es. -->
+    <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:2px;">Evaluacion de riesgo cardiovascular basal antes de iniciar tratamiento oncologico — <b>Calculadora propia de EcoSmart, no es HFA-ICOS</b></div>
     <div style="font-size:11px;color:var(--text2);background:var(--section-head);border-left:3px solid var(--accent2);padding:8px 10px;border-radius:0 6px 6px 0;margin:8px 0 10px;line-height:1.55;">
-      Esta calculadora recoge los factores disponibles en el ecocardiograma. El marco HFA-ICOS
-      completo incluye factores adicionales clinicos y de laboratorio que deben evaluarse por separado.<br>
+      <b>Calculadora propia de EcoSmart, no es HFA-ICOS.</b> Recoge los factores disponibles en el
+      ecocardiograma; el HFA-ICOS son tablas especificas por tipo de tratamiento (ESC 2022, tabla 4)
+      con factores clinicos y de laboratorio que deben evaluarse por separado.<br>
       <b>Esta es la UNICA calculadora de riesgo basal de la app</b> desde el 2026-09-15. El bloque
       «Datos basales» de esta pestaña tenia un segundo score con otra escala, y las dos bandas podian
       terminar en el mismo informe firmado por caminos distintos; se elimino. Su clasificacion
@@ -18895,24 +18907,33 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
     <div class="co-ref-pane" data-coref-pane="ctrcd">
 <table style="width:100%;border-collapse:collapse;font-size:11.5px;margin-bottom:10px;">
-      <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Hallazgo</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Definicion</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Accion</th></tr>
+      <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Hallazgo</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Definicion</th></tr>
+      <!-- ⚠️ LA COLUMNA «ACCION» SE RETIRO ENTERA (R2-E6, 2026-10-21, decision de Maicol). Lo que
+           publicaba eran CONDUCTAS —«Suspender, cardioproteccion, reevaluar en 2-4 sem»,
+           «Continuar con cardioproteccion y control en 4 sem», «considerar biopsia si persiste»—,
+           y el criterio de producto de esta app es que el informe y la pantalla DESCRIBEN. Las dos
+           columnas que quedan son el hallazgo y su definicion, que es lo que el eco mide.
+           La tabla de abajo conserva su tercera columna, «Monitoreo recomendado»: es QUE ECO PEDIR
+           Y CUANDO, no una conducta terapeutica, y esta orden no la nombra. -->
       <!-- Corregida el 2026-09-15, junto con la de la pestaña Referencias. Ésta es la PEOR de
            las dos: vive en la misma pestaña que la calculadora, a dos clics del veredicto que
            contradecía. Decía «Caida FEVI severa | FEVI <50% o caida >=10pp | Suspender», y el
            código rotula severa sólo con FEVI <40 Y reducción NUEVA — así que un basal de 62 que
            cae a 48 salía «cardiotoxicidad MODERADA» en el informe firmado, en naranja, debajo de
            una tabla que decía severa y «Suspender». La moderada decía «10-15pp», que no es un
-           rango de la guía. Y el GLS decía «>15%» donde el código compara «>=15». -->
-      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;color:var(--red);">CTRCD severa</td><td style="padding:5px 8px;">FEVI <b>nueva</b> &lt;40% (basal &gt;=40%)</td><td style="padding:5px 8px;">Suspender, cardioproteccion, reevaluar en 2-4 sem</td></tr>
-      <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;color:var(--orange);">CTRCD moderada</td><td style="padding:5px 8px;">FEVI 40-49% con caida &gt;=10pp<br>o FEVI 40-49% con algun descenso + GLS &gt;=15% rel. o troponina</td><td style="padding:5px 8px;">Continuar con cardioproteccion y control en 4 sem</td></tr>
-      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;color:var(--yellow);">CTRCD leve</td><td style="padding:5px 8px;">FEVI conservada (&gt;=50%) + GLS reduccion &gt;=15% relativa y/o troponina.<br><b>No exige caida de FEVI.</b></td><td style="padding:5px 8px;">Alerta subclinica, cardioproteccion, seguimiento estrecho</td></tr>
-      <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;color:var(--yellow);">Troponina elevada</td><td style="padding:5px 8px;">Elevacion nueva durante tto</td><td style="padding:5px 8px;">Confirmar, cardioproteccion, considerar biopsia si persiste</td></tr>
-      <tr style="background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;color:var(--purple);">Dosis limite antracicl.</td><td style="padding:5px 8px;">Doxorrubicina &gt;=360 mg/m2</td><td style="padding:5px 8px;">Alto riesgo acumulativo, eco obligatorio</td></tr>
+           rango de la guía. Y el GLS decía «>15%» donde el código comparaba «>=15» — desde el
+           R2-E6 (2026-10-21) el CODIGO pasa a `>`, que es lo que las Figuras 25 y 26 de la guia
+           escriben (folios 4283 y 4285), asi que hoy los dos dicen «>15%». -->
+      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;color:var(--red);">CTRCD severa</td><td style="padding:5px 8px;">FEVI <b>nueva</b> &lt;40% (basal &gt;=40%)</td></tr>
+      <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;color:var(--orange);">CTRCD moderada</td><td style="padding:5px 8px;">FEVI 40-49% con caida &gt;=10pp<br>o FEVI 40-49% con algun descenso + GLS &gt;15% rel. o troponina</td></tr>
+      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;color:var(--yellow);">CTRCD leve</td><td style="padding:5px 8px;">FEVI conservada (&gt;=50%) + GLS reduccion &gt;15% relativa y/o troponina.<br><b>No exige caida de FEVI.</b></td></tr>
+      <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;color:var(--yellow);">Troponina elevada</td><td style="padding:5px 8px;">Elevacion nueva durante tto</td></tr>
+      <tr style="background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;color:var(--purple);">Dosis limite antracicl.</td><td style="padding:5px 8px;">Doxorrubicina &gt;=250 mg/m2 o equivalente</td></tr>
     </table>
 
     <table style="width:100%;border-collapse:collapse;font-size:11.5px;">
       <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Farmaco</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Toxicidad principal</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Monitoreo recomendado</th></tr>
-      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">Antraciclinas</td><td style="padding:5px 8px;">Miocardiopatia dosis-dependiente</td><td style="padding:5px 8px;">Basal + al finalizar + 12 meses; durante el tto <b>cada 2 ciclos</b> si riesgo alto y <b>cada ciclo</b> si muy alto</td></tr>
+      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">Antraciclinas</td><td style="padding:5px 8px;">Miocardiopatia dosis-dependiente</td><td style="padding:5px 8px;">Basal + a los 3 y 12 meses de terminar; durante el tto <b>cada 2 ciclos</b> en riesgo alto y muy alto. Los <b>biomarcadores</b> van antes de <b>cada ciclo</b></td></tr>
       <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">Trastuzumab</td><td style="padding:5px 8px;">Disfuncion VI reversible</td><td style="padding:5px 8px;">Eco basal, cada 3 meses durante tto</td></tr>
       <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">ICI (anti-PD1/PDL1)</td><td style="padding:5px 8px;">Miocarditis autoinmune (rara, grave)</td><td style="padding:5px 8px;">ECG y troponina basal y ante sintomas</td></tr>
       <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">Anti-VEGF</td><td style="padding:5px 8px;">HTA, trombosis, disfuncion VI</td><td style="padding:5px 8px;">PA, eco si sintomas o FEVI limite</td></tr>
@@ -18981,7 +19002,12 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
            riesgo (el eje del HFA-ICOS), y en la tabla de clases de abajo es el inicio de la banda
            ALTA de dosis acumulada, cuyo muy alto empieza en 400. Son dos ejes distintos con las
            mismas palabras, asi que se dice; si no, el mismo numero parece dos cosas contradictorias.
-           Y ojo: el que la app calcula y avisa en rojo es 360 mg/m2, que cae en la banda alta. -->
+           ⚠️ Y EL QUE LA APP CALCULA PASO A SER 250 mg/m2 (R2-E6, 2026-10-21): es el de la guia
+           —folio 4248, «>=250 mg/m2 of doxorubicin or equivalent should be considered higher
+           risk»— y el 360 que avisaba en rojo NO figura en la ESC 2022. Este renglon documentaba
+           esa divergencia; hoy la alerta de la app y el corte del farmaco dicen el mismo numero,
+           y lo que sigue siendo otro eje es la banda de dosis acumulada de la tabla de abajo,
+           cuyo muy alto empieza en 400. -->
       <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;color:var(--orange);">Alto</td><td style="padding:5px 8px;">Antraciclinas dosis moderada, anti-HER2 (trastuzumab, pertuzumab), ciclofosfamida alta dosis</td></tr>
       <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;color:var(--yellow);">Medio</td><td style="padding:5px 8px;">Inhibidores VEGF/VEGFR, inhibidores BCR-ABL, ICI (anti-PD1/PD-L1/CTLA-4), inhibidores CDK4/6, fluoropirimidinas</td></tr>
       <tr style="background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;color:var(--green);">Bajo</td><td style="padding:5px 8px;">Hormonoterapia (tamoxifeno, inhibidores de aromatasa, analogos GnRH), alcaloides de la vinca, taxanos</td></tr>
@@ -19027,7 +19053,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         <td style="padding:5px 8px;">Parcialmente irreversible (dosis-dependiente)</td>
         <td style="padding:5px 8px;">IC &#10003;&#10003;&#10003; · HTA - · Arritmia &#10003; · Isquemia - · QT &#10003; · Pericarditis -</td>
         <td style="padding:5px 8px;">Doxorrubicina &gt;=250 mg/m2 (alto riesgo); &gt;=400 mg/m2 (muy alto riesgo)</td>
-        <td style="padding:5px 8px;">Basal obligatorio. Durante el tto: cada 2 ciclos si riesgo alto, cada ciclo si muy alto. Al finalizar el tto. A los 12 meses. Si la FEVI cae &gt;=10 pp o baja de 50%: eco en 2-4 sem y graduar la CTRCD con la subtab «CTRCD» de esta seccion, que es la que define la conducta.</td>
+        <td style="padding:5px 8px;">Basal obligatorio. Durante el tto: <b>cada 2 ciclos</b> en riesgo alto y muy alto; los <b>biomarcadores</b> antes de cada ciclo. A los 3 y 12 meses de terminar. Si la FEVI cae &gt;=10 pp o baja de 50%: eco en 2-4 sem y graduar la CTRCD con la subtab «CTRCD» de esta seccion, que es la que define la conducta.</td>
         <td style="padding:5px 8px;">Mama, linfomas (LNH, Hodgkin), leucemias (LMA, LLC), sarcomas, cancer gastrico, mieloma</td>
       </tr>
       <tr style="border-bottom:1px solid var(--border);background:var(--bg3);">
@@ -19115,10 +19141,10 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
     </div>
     <div class="co-ref-pane" data-coref-pane="monit" style="display:none;">
-    <div style="font-size:11.5px;color:var(--text2);margin-bottom:10px;line-height:1.5;">Que eco pedir y cuando, por clase. Es la <b>misma</b> columna de la subtab «Cardiotoxicidad», puesta sola para consultarla sin leer las otras seis. Con antraciclinas la frecuencia depende de la banda de riesgo: <b>alto</b> &rarr; cada 2 ciclos &middot; <b>muy alto</b> &rarr; cada ciclo.</div>
+    <div style="font-size:11.5px;color:var(--text2);margin-bottom:10px;line-height:1.5;">Que eco pedir y cuando, por clase. Es la <b>misma</b> columna de la subtab «Cardiotoxicidad», puesta sola para consultarla sin leer las otras seis. Con antraciclinas el eco va <b>cada 2 ciclos</b> en riesgo alto y muy alto; los <b>biomarcadores</b> antes de <b>cada ciclo</b> (ESC 2022, folio 4259).</div>
     <table style="width:100%;border-collapse:collapse;font-size:11.5px;">
       <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);width:32%;">Clase</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Seguimiento ecocardiografico</th></tr>
-      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">Antraciclinas</td><td style="padding:5px 8px;">Basal obligatorio. Durante el tto: cada 2 ciclos si riesgo alto, cada ciclo si muy alto. Al finalizar el tto. A los 12 meses. Si la FEVI cae &gt;=10 pp o baja de 50%: eco en 2-4 sem y graduar la CTRCD con la subtab «CTRCD» de esta seccion, que es la que define la conducta.</td></tr>
+      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">Antraciclinas</td><td style="padding:5px 8px;">Basal obligatorio. Durante el tto: <b>cada 2 ciclos</b> en riesgo alto y muy alto; los <b>biomarcadores</b> antes de cada ciclo. A los 3 y 12 meses de terminar. Si la FEVI cae &gt;=10 pp o baja de 50%: eco en 2-4 sem y graduar la CTRCD con la subtab «CTRCD» de esta seccion, que es la que define la conducta.</td></tr>
       <tr style="border-bottom:1px solid var(--border); background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">Anti-HER2</td><td style="padding:5px 8px;">Basal obligatorio. Eco cada 3 meses durante el tto. Si la FEVI cae &gt;=10 pp o baja de 50%: reevaluar en 3-6 sem y graduar la CTRCD con la subtab «CTRCD» de esta seccion, que es la que define la conducta.</td></tr>
       <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">Inhibidores VEGF/VEGFR</td><td style="padding:5px 8px;">Basal + PA. PA en cada visita (la HTA es frecuente). Eco si FEVI limite o sintomas. Eco al finalizar el tto.</td></tr>
       <tr style="border-bottom:1px solid var(--border); background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">ICI — Inmunoterapia</td><td style="padding:5px 8px;">Basal + troponina + ECG. Eco SOLO si sintomas o troponina elevada. Si hay miocarditis: urgente — suspender y hospitalizar.</td></tr>
@@ -20410,7 +20436,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Caída de FEVI</label>
           <select id="coh-co-fevi"><option value="">Todas</option><option value="gt10">≥ 10 puntos</option><option value="gt15">≥ 15 puntos</option></select></div>
         <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Caída relativa de GLS</label>
-          <select id="coh-co-gls"><option value="">Todas</option><option value="gt15">≥ 15 %</option></select></div>
+          <select id="coh-co-gls"><option value="">Todas</option><option value="gt15">&gt; 15 %</option></select></div>
         <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Cardiotoxicidad</label>
           <select id="coh-co-tox"><option value="">Todos</option><option value="si">CTRCD confirmada</option></select></div>
       </div>
@@ -20830,7 +20856,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         <div class="lab-stat"><span class="lab-stat-lbl">Mediana</span><span class="lab-stat-val" id="lab-sgl-med">—</span></div>
         <div class="lab-stat"><span class="lab-stat-lbl">Rango</span><span class="lab-stat-val" id="lab-sgl-rango">—</span></div>
       </div>
-      <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">Distribución por intervalos de 2 puntos porcentuales sobre el valor absoluto. <b>No es una graduación de severidad:</b> esta app no clasifica el SGL en bandas — el único umbral que aplica es el <b>16 %</b> del marco HFA-ICOS, en Cardio-Oncología.</div>
+      <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">Distribución por intervalos de 2 puntos porcentuales sobre el valor absoluto. <b>No es una graduación de severidad:</b> esta app no clasifica el SGL en bandas — el único umbral que aplica es el <b>16 %</b> de la calculadora de riesgo basal de EcoSmart (no es el HFA-ICOS), en Cardio-Oncología.</div>
       <div class="lab-bar-wrap" id="lab-sgl-dist"></div>
     </div>
   </div>
@@ -48176,7 +48202,11 @@ window.coSerieCongelada = coSerieCongelada;
    encuentra a todos. */
 const CO_UMBRAL_FEVI_CAIDA  = 10;  // pp — caída significativa
 const CO_UMBRAL_FEVI_ABS    = 50;  // %  — valor absoluto por debajo del cual hay disfunción
-const CO_UMBRAL_GLS_REL     = 15;  // %  — caída relativa significativa
+const CO_UMBRAL_GLS_REL     = 15;  // %  — caída relativa significativa, operador `>` (folio 4283)
+/* Dosis acumulada de antraciclinas de alto riesgo. ESC 2022, folio 4248: «>=250 mg/m2 of
+   doxorubicin or equivalent should be considered higher risk». Era un literal de 360, que no
+   figura en la guia (R2-E6, 2026-10-21). */
+const CO_DOSIS_ALTO_RIESGO  = 250; // mg/m2 de doxorrubicina o equivalente
 const CO_UMBRAL_FEVI_SEVERA = 40;  // %  — por debajo, y si la reducción es NUEVA, CTRCD severa
 
 /* ── La cascada de CTRCD, extraída como clasificador puro ──────────────────────────────
@@ -48228,7 +48258,16 @@ function _ctrcdEsGrado(k) { return k === 'severa' || k === 'moderada' || k === '
 /* El umbral sale de `CO_UMBRAL_GLS_REL` por lo mismo: es el número que la leyenda del PDF
    escribe («GLS caída >=15 % relativa») y el que dibuja la línea «basal -15% rel.» de la curva.
    Es la comparación, no la fórmula: `_ctrcdGlsRel` devuelve el porcentaje y esto decide. */
-function _ctrcdGlsAlterado(rel) { return rel !== null && rel >= CO_UMBRAL_GLS_REL; }
+/* ⚠️ EL OPERADOR ES `>` ESTRICTO (R2-E6, 2026-10-21). FUENTE, VERIFICADA EN EL ORIGINAL: guia
+   ESC 2022 de cardio-oncologia (Lyon y col.), **Figura 25, hoja 55, folio impreso 4283** y
+   **Figura 26, hoja 57, folio 4285** (regla folio = hoja + 4228, comprobada en el pie impreso de
+   SEIS hojas), las dos con la misma frase: «GLS decrease **>15%**».
+   La app comparaba `>= 15`, asi que una caida de 15,0 % EXACTOS —el valor mas tipeable— contaba
+   como toxicidad subclinica donde la guia no la cuenta.
+   ⚠️ Y EL VALOR QUE SE COMPARA ES EL REDONDEADO A UN DECIMAL, por la decision de abajo: con `>=`
+   el umbral efectivo era «crudo >= 14,95» y con `>` pasa a ser «crudo >= 15,05». Sigue siendo el
+   valor que SE IMPRIME el que clasifica, que es la regla de la casa. */
+function _ctrcdGlsAlterado(rel) { return rel !== null && rel > CO_UMBRAL_GLS_REL; }
 function _ctrcdGlsRel(gb, ga) {
   if (!(gb && ga && Math.abs(gb) > 0)) return null;
   const r = (Math.abs(gb) - Math.abs(ga)) / Math.abs(gb) * 100;
@@ -48388,7 +48427,7 @@ function calcHFAICOS() {
     sp.textContent = t; return sp; };
 
   if (!r.hayDatos) {
-    fila('Riesgo CV basal (HFA-ICOS)', pill('gray', 'Ingresar factores o fármaco'));
+    fila('Riesgo CV basal (calculadora de EcoSmart)', pill('gray', 'Ingresar factores o fármaco'));
     return;
   }
   fila('Puntaje total', txt(r.pts + ' / ' + r.max + ' puntos'));
@@ -48545,22 +48584,27 @@ function hfaicosPublicarBasal() {
       var _b = document.createElement('span');
       _b.className = 'badge badge-' + (BADGE_CLS_OK.indexOf(_hfa.cls) >= 0 ? _hfa.cls : 'gray');
       _b.textContent = 'Riesgo ' + _hfa.banda + ' (' + _hfa.pts + '/' + _hfa.max + ' pts)';
-      _fila('Riesgo CV basal (HFA-ICOS)', _b);
+      _fila('Riesgo CV basal (calculadora de EcoSmart)', _b);
       _fila('Seguimiento ecocardiográfico', _val(_hfa.seguimiento));
       _fila('Salvedad', _val('Marco HFA-ICOS (ESC 2022). Recoge sólo los factores disponibles en el ecocardiograma; el HFA-ICOS completo es específico por tratamiento (tabla 4).'));
     } else {
       var _g = document.createElement('span');
       _g.className = 'badge badge-gray';
       _g.textContent = 'Completar en «Calculadora de Riesgo CV»';
-      _fila('Riesgo CV basal (HFA-ICOS)', _g);
+      _fila('Riesgo CV basal (calculadora de EcoSmart)', _g);
     }
     /* El aviso de dosis se CONSERVA: no era parte del score, es un umbral acumulativo propio y
        es el único lugar de la app que lo publica. */
-    if (dosis && dosis >= 360) {
+    /* ⚠️ 250 mg/m2 Y NO 360 (R2-E6, 2026-10-21). FUENTE: guia ESC 2022 de cardio-oncologia,
+       **folio 4248**, literal: «the total planned cumulative anthracycline dose is also relevant,
+       and >=250 mg/m2 of doxorubicin or equivalent should be considered higher risk». El 360 no
+       figura en la guia; el 250 aparece ademas en sus recomendaciones de los folios 4258 y 4259 y
+       en la tabla de seguimiento del folio 4310. */
+    if (dosis && dosis >= CO_DOSIS_ALTO_RIESGO) {
       var rowD = document.createElement('div'); rowD.className = 'calc-row';
       var lD = document.createElement('span'); lD.className = 'calc-lbl';
       lD.style.color = 'var(--red)';
-      lD.textContent = '⚠️ Dosis acumulada de antraciclinas en zona de alto riesgo (>=360 mg/m2)';
+      lD.textContent = '⚠️ Dosis acumulada de antraciclinas en zona de alto riesgo (>=' + CO_DOSIS_ALTO_RIESGO + ' mg/m2)';
       rowD.appendChild(lD); resRiesgo.appendChild(rowD);
     }
   }
@@ -48716,7 +48760,7 @@ function calcCardioOnco() {
   }
 
   if (glsAlterado && !critConsumido) {
-    alertas.push('Caida GLS relativa ' + glsCaidaRel.toFixed(1) + '% (>= 15%) — toxicidad subclinica');
+    alertas.push('Caida GLS relativa ' + glsCaidaRel.toFixed(1) + '% (> 15%) — toxicidad subclinica');
     /* `=== 'green'` y no `!== 'red'`: con la segunda, agregar un hallazgo ANORMAL bajaba el
        semáforo de naranja a amarillo, o sea que más evidencia de daño daba un color más
        tranquilo. Igual que la línea de troponina de abajo, que ya lo hacía bien. */
@@ -62128,7 +62172,7 @@ function generarPDFReal(_aj) {
         const _coNota = doc.splitTextToSize(
           _sanML('Cambio respecto del BASAL. FEVI en puntos porcentuales; GLS en caída relativa sobre el valor absoluto. '
           + 'Signo negativo = descenso. Umbrales de cardiotoxicidad: FEVI caída >=' + CO_UMBRAL_FEVI_CAIDA
-          + ' pp o valor <' + CO_UMBRAL_FEVI_ABS + ' %; GLS caída >=' + CO_UMBRAL_GLS_REL + ' % relativa.'), pgW);
+          + ' pp o valor <' + CO_UMBRAL_FEVI_ABS + ' %; GLS caída >' + CO_UMBRAL_GLS_REL + ' % relativa.'), pgW);
         checkPage(_coNota.length * 3.4 + 4);
         _coNota.forEach((ln, i) => doc.text(ln, mL, y + i * 3.4));
         y += _coNota.length * 3.4 + _aire(5);
@@ -78175,7 +78219,7 @@ const ETE_INCL_LBL = {
   vap_incluir_chk:         'Ventana aortopulmonar',
   fop_incluir_chk:         'Foramen oval permeable',
   vab_incluir_chk:         'Válvula aórtica bicúspide',
-  hfaicos_incluir_chk:     'Riesgo CV basal (HFA-ICOS)',
+  hfaicos_incluir_chk:     'Riesgo CV basal (calculadora de EcoSmart)',
   marfan_incluir_chk:      'Marfan / EHAT',
   eisen_incluir_chk:       'Síndrome de Eisenmenger',
   fontan_incluir_chk:      'Circulación de Fontan',
@@ -103986,7 +104030,9 @@ function _labCohorteOk(inf) {
   }
   if (C.coGls) {
     const g = _labOncoCaidaGls(inf);
-    if (g === null || !(g >= CO_UMBRAL_GLS_REL)) return false;
+    /* El filtro usa el MISMO operador que el clasificador (R2-E6): con `>=` aca y `>` alla, la
+       cohorte habria incluido estudios que la app no llama toxicidad subclinica. */
+    if (g === null || !(g > CO_UMBRAL_GLS_REL)) return false;
   }
   /* La cohorte de CTRCD —incluida la severa— NO tiene umbral propio: pasa por `_labCtrcd` →
      `_ctrcdEstado`, el mismo clasificador que rotula el informe firmado, y `_ctrcdEsGrado`
@@ -104159,7 +104205,7 @@ function _labCohorteDesc() {
   if (C.emGrad) p.push('EM significativa por gradiente');
   if (C.tep === 'si') p.push('Con signos de TEP');
   if (C.sparkling === 'si') p.push('Sparkling presente');
-  if (C.coGls === 'gt15') p.push('Caída GLS ≥ ' + CO_UMBRAL_GLS_REL + ' %');
+  if (C.coGls === 'gt15') p.push('Caída GLS > ' + CO_UMBRAL_GLS_REL + ' %');
   if (C.coTox === 'si') p.push('CTRCD confirmada');
   if (C.cc && C.cc.length) {
     const ls = C.cc.map(k => (_CC_SEC_POR_K[k] ? _CC_SEC_POR_K[k].lbl : null)).filter(Boolean);
@@ -127292,7 +127338,7 @@ const ECO_AYUDA = [
 <li><b>🫀 Hemodinámica</b> — probabilidad de HTP (ESC/ERS 2022), TEP, VEXUS, HFA-PEFF, gradiente transpulmonar, CIA/CIV y Qp/Qs, pericardio (derrame y taponamiento; constricción vs restricción).</li>
 <li><b>🫁 Eco Pulmonar</b> — líneas B, derrame, consolidación. Versión básica y versión avanzada; la avanzada, si se integra, reemplaza a la básica.</li>
 <li><b>🫀 ETE</b> — morfología valvular, orejuela izquierda y su score de trombo, pre y post TAVI, evaluación para TEER y segmentos por vista.</li>
-<li><b>💊 Cardio-Oncología</b> — riesgo basal por el marco HFA-ICOS, graduación de cardiotoxicidad y seguimiento seriado congelado en el estudio.</li>
+<li><b>💊 Cardio-Oncología</b> — riesgo basal con una calculadora propia de EcoSmart (no es el HFA-ICOS), graduación de cardiotoxicidad y seguimiento seriado congelado en el estudio.</li>
 <li><b>🔬 Amiloidosis</b> — score ecocardiográfico, algoritmo diagnóstico con centellograma y proteínas monoclonales, y guía de referencia.</li>
 </ul>
 <div class="mBox mAviso"><b>VEXUS — el error más común es graduar por el vaso peor.</b> Un solo vaso severo es grado 2, no 3. El grado 3 exige dos o más vasos severos, y es el que carga la asociación con injuria renal. Además <b>la VCI manda</b>: con VCI &lt; 20 mm el grado es 0 aunque haya patrones venosos alterados.</div>
