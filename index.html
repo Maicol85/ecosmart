@@ -8169,14 +8169,28 @@ window.cerrarSesionReal = cerrarSesionReal;
              «maximal end-diastolic diameter»: leve <10 mm - moderado 10-20 - severo (en la guia
              «large») >20. Se SACA el grado «mínimo» -0 a 5 mm, «solo en sistole»- que ninguna guia
              publica, y el leve pierde su piso de 5.
-             ⚠️ LAS DOS OPCIONES VIEJAS SE QUEDAN COMO hidden, que es el patron de et_grado: el
-             value de este selector ES su texto y es lo que viaja en campos, asi que sin ellas
-             cada estudio guardado con «Derrame mínimo» o «Derrame leve (5-10mm)» reabriria con el
-             select en selectedIndex -1. NO se migra nada: abren como se guardaron, el Excel
-             conserva su token y lo que se MUESTRA lo traduce DPT_TAM.
+             ⚠️ LAS DOS OPCIONES VIEJAS SALIERON DEL DESPLEGABLE (R2-E1, 2026-10-21), Y EL hidden
+             DEL R5 NO ALCANZABA: lo reporto Maicol viendolas en Safari, y la medicion en los dos
+             motores dice que el hidden de una <option> tiene DOS agujeros, no uno.
+               · WebKit NO lo respeta al pintar la lista. Medido con el desplegable expandido
+                 (size = 7): Chrome da altura a CINCO de las siete filas y WebKit a las SIETE. El
+                 display computado dice `none` en los DOS, asi que `getComputedStyle` no puede
+                 distinguirlos — la lista desplegada es un widget NATIVO y no DOM pintado. Por eso
+                 la sonda del R, que miraba el ATRIBUTO, la dio por buena.
+               · Y EN LOS DOS MOTORES la busqueda por letra las alcanza igual: apretando «d» seis
+                 veces el recorrido es minimo -> leve (5-10) -> leve (<10) -> moderado -> severo,
+                 o sea que tambien en Chrome el medico podia ELEGIR «Derrame mínimo» con el teclado.
+             Es la MISMA leccion que TC-459 ya tiene escrita para el S/D venoso pulmonar, donde el
+             13/10 se resolvio igual: las opciones se van y el valor viejo se traduce en el borde.
+             ⚠️ UN TOKEN VIEJO NO QUEDA HUERFANO, Y SE TRADUCE EN TRES BORDES: `_migrarCamposLegacy`
+             para las dos rutas de restauracion y la reimpresion, `LAB_XLS_LISTAS_LEGADO` para que
+             el importador siga ACEPTANDO los dos textos, y `dptTamano`, que ya mandaba los dos a
+             `leve` y es lo que leen el papel y el Laboratorio. Los dos caen en el MISMO grado, asi
+             que la traduccion no mueve ninguna conclusion — es el unico motivo por el que se puede
+             hacer sin migrar contenido clinico.
              ⚠️ EL ROTULO DICE «severo» Y NO «large»: es la palabra que esta app usa en las seis
              superficies del derrame y la que el medico lee. -->
-        <select id="pericardio" onchange="dptCambio()"><option>Normal, sin derrame</option><option hidden>Derrame mínimo</option><option hidden>Derrame leve (5-10mm)</option><option>Derrame leve (&lt;10mm)</option><option>Derrame moderado (10-20mm)</option><option>Derrame severo (>20mm)</option><option>Engrosamiento / calcificación</option></select>
+        <select id="pericardio" onchange="dptCambio()"><option>Normal, sin derrame</option><option>Derrame leve (&lt;10mm)</option><option>Derrame moderado (10-20mm)</option><option>Derrame severo (>20mm)</option><option>Engrosamiento / calcificación</option></select>
       </div>
       <!-- ⚠️ TRES ESTADOS Y NO UN CHECKBOX: «sin compromiso hemodinámico» es una AFIRMACIóN, y una
            casilla desmarcada no distingue «lo busqué y no está» de «no lo busqué». Es la regla de
@@ -20203,7 +20217,14 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       <div class="lab-filtros">
         <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Tamaño del derrame</label>
           <select id="coh-dpt-tam"><option value="">Todos</option><option value="hay">Con derrame (cualquier tamaño)</option>
-            <option value="minimo">Mínimo</option><option value="leve">Leve</option>
+            <!-- ⚠️ «Mínimo» SALIO (R2-E1, 2026-10-21) Y FILTRABA A CERO SIEMPRE, que es el
+                 defecto exacto que el comentario del filtro de al lado documenta para una clave
+                 inventada. Desde el R5 `dptTamano()` no devuelve NUNCA la clave `minimo` -su
+                 cascada manda «mínimo» a `leve`-, asi que la rama de `_labCohorteOk` exigia
+                 `k === 'minimo'` sobre un valor inalcanzable: la cohorte salia vacia sin error y
+                 sin forma de notarlo salvo contando. Las cuatro categorias que quedan son las de
+                 la Tabla 10 de la ESC 2025 mas el «cualquier tamaño». -->
+            <option value="leve">Leve</option>
             <option value="moderado">Moderado</option><option value="severo">Severo</option>
             <option value="modsev">Moderado o severo</option></select></div>
         <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Derrame pericárdico</label>
@@ -77575,6 +77596,25 @@ function _migrarCamposLegacy(c){
   if (Object.prototype.hasOwnProperty.call(c, 'et_grado') && c['et_grado'] === 'Sin estenosis') {
     c['et_grado'] = 'sin';
   }
+  /* ══ LOS DOS TOKENS VIEJOS DEL DERRAME PERICARDICO (R2-E1, 2026-10-21) ════════════════════
+     EN MEMORIA Y SIN REESCRIBIR EL DISCO, igual que las dos lineas de arriba y de abajo.
+
+     ⚠️ ESTO SI TRADUCE CONTENIDO, Y SOLO SE PUEDE PORQUE EL GRADO NO CAMBIA. `dptTamano()` ya
+     mandaba «Derrame mínimo» y «Derrame leve (5-10mm)» a la MISMA banda `leve` que «Derrame leve
+     (<10mm)» —los tres caen bajo los 10 mm de la Tabla 10 de la ESC 2025— asi que lo que la
+     pantalla, el papel y el Laboratorio concluyen es identico antes y despues. Lo unico que
+     cambia es que el `<select>` tiene una opcion REAL que mostrar en vez de quedar en
+     `selectedIndex -1`, que es lo que pasaba desde que las dos salieron del desplegable.
+     Es el reverso exacto del `et_grado` de arriba: ahi los tres grados viejos NO se traducen
+     porque mapear «Severa» a «Significativa» inventa una equivalencia que la guia no hace; aca
+     los dos viejos y el nuevo son el MISMO grado por la misma tabla, y no hay nada que inventar.
+
+     ⚠️ EL EXCEL NO ENTRA POR ACA Y NO HACE FALTA: el importador los sigue aceptando por
+     `LAB_XLS_LISTAS_LEGADO`, y un estudio importado se lee despues por estas mismas rutas. */
+  if (Object.prototype.hasOwnProperty.call(c, 'pericardio') &&
+      (c['pericardio'] === 'Derrame mínimo' || c['pericardio'] === 'Derrame leve (5-10mm)')) {
+    c['pericardio'] = 'Derrame leve (<10mm)';
+  }
   /* ══ `it_vmax_cw` PASÓ DE cm/s A m/s EL 2026-10-05 ═══════════════════════════════════════════
      SE NORMALIZA EN MEMORIA Y NO SE REESCRIBE NADA DEL DISCO. Esta función recibe el objeto
      `campos` y lo arregla ANTES de poblar el formulario; el blob guardado queda intacto, igual que
@@ -103697,7 +103737,10 @@ function _labCohorteOk(inf) {
       const hay = ['minimo','leve','moderado','severo'].indexOf(k) >= 0;
       if (C.dptTam === 'hay'    && !hay) return false;
       if (C.dptTam === 'modsev' && k !== 'moderado' && k !== 'severo') return false;
-      if (['minimo','leve','moderado','severo'].indexOf(C.dptTam) >= 0 && k !== C.dptTam) return false;
+      /* `minimo` ya no esta en la lista (R2-E1): su <option> salio del filtro porque
+         `dptTamano()` no devuelve esa clave desde el R5, asi que esta rama la pedia sobre un
+         valor que ningun estudio puede tener. Las tres que quedan son las de `DPT_TAM`. */
+      if (['leve','moderado','severo'].indexOf(C.dptTam) >= 0 && k !== C.dptTam) return false;
     }
     if (C.dptCon) {
       const hayDpt = _pcHayDpt(cp);
@@ -109176,7 +109219,16 @@ window._labXlsAssertVocab = _labXlsAssertVocab;
    ⚠️ NO ENTRAN EN LA PLANTILLA que se le muestra al médico: ninguna `<option>` los ofrece, así que
    el preview de importación no puede enseñar un valor que no se puede elegir. Son de ENTRADA. */
 const LAB_XLS_LISTAS_LEGADO = Object.freeze({
-  et_grado: Object.freeze(['Sin estenosis', 'Leve', 'Moderada', 'Severa'])
+  et_grado: Object.freeze(['Sin estenosis', 'Leve', 'Moderada', 'Severa']),
+  /* Los DOS textos viejos del derrame pericardico (R2-E1, 2026-10-21). Salieron del desplegable
+     porque WebKit no respeta el `hidden` de una <option> al pintar la lista y porque la busqueda
+     por letra las alcanzaba en los dos motores, pero los trae CADA backup exportado hasta ayer y
+     para una columna de opcion un valor desconocido descarta la FILA ENTERA. Entran aca —y no en
+     `LAB_XLS_LISTAS`— por el mismo reparto que `et_grado`: asi `_labXlsAssertListas` sigue
+     vigilando la PRIMERA direccion para las siete opciones vivas en vez de gritar dos
+     divergencias esperadas en cada carga. Lo que el importador escriba lo traduce
+     `_migrarCamposLegacy` al abrir el estudio. */
+  pericardio: Object.freeze(['Derrame mínimo', 'Derrame leve (5-10mm)'])
 });
 const LAB_XLS_LISTAS = {
   /* ESTA LISTA ES PARALELA A LAS OPCIONES DEL SELECT, y es la que decide qué acepta el
@@ -109207,12 +109259,15 @@ const LAB_XLS_LISTAS = {
   ep_etiologia: ['No especificada','Congénita valvular','Displasia valvular (Noonan)','Supravalvular (Williams)','Carcinoide','Post-quirúrgica','Ramas pulmonares'],
   ip_grado: ['Sin insuficiencia','Leve','Moderada','Severa'],
   ip_etiologia: ['No especificada','Fisiológica (traza)','HTP (dilatación anular)','Endocarditis','Post-quirúrgica','Carcinoide','Displasia valvular'],
-  /* ⚠️ LOS SEIS VALORES MAS EL NUEVO (R5, 2026-10-20). Los DOS de legado -«Derrame mínimo» y
-     «Derrame leve (5-10mm)»- se conservan porque son los que trae cada backup ya exportado y,
-     para una columna de opcion, un valor desconocido descarta la FILA ENTERA. El nuevo entra
-     porque si no la reimportacion rechazaria la fila de todo estudio con derrame leve guardado
-     desde hoy: lo cazo `_labXlsAssertListas`, que es para lo que ese chequeo de arranque esta. */
-  pericardio: ['Normal, sin derrame','Derrame mínimo','Derrame leve (5-10mm)','Derrame leve (<10mm)','Derrame moderado (10-20mm)','Derrame severo (>20mm)','Engrosamiento / calcificación'],
+  /* ⚠️ LAS CINCO OPCIONES VIVAS MAS LOS DOS DE LEGADO, CONCATENADOS (R2-E1, 2026-10-21), que es
+     EXACTAMENTE la forma de `et_grado` seis lineas mas arriba.
+     ⚠️ Y LA PRIMERA VERSION DE ESTE COMMIT LOS SACO DE ACA, QUE ESTABA MAL: `LAB_XLS_LISTAS_LEGADO`
+     NO es una segunda lista que el importador consulte —`_labXlsLista` lee SOLO `LAB_XLS_LISTAS`—,
+     es la DECLARACION que le dice a `_labXlsAssertListas` que saltee su segunda direccion para
+     esos valores. Sacandolos de aca, `_labXlsLista('pericardio', 'Derrame mínimo')` devolvia
+     `null` y el importador descartaba la FILA ENTERA de todo backup exportado hasta ayer. Lo cazo
+     la MEDICION del importador, no la lectura. */
+  pericardio: ['Normal, sin derrame','Derrame leve (<10mm)','Derrame moderado (10-20mm)','Derrame severo (>20mm)','Engrosamiento / calcificación'].concat(LAB_XLS_LISTAS_LEGADO.pericardio),
   /* `alg-motivo` va por LISTA y no por vocabulario porque su `option value` ES la etiqueta,
      paréntesis incluidos — y `_labXlsVocab` parte por `(` para su fallback de etiqueta larga,
      así que ahí se confundiría. `_labXlsLista` compara normalizado y devuelve el valor exacto. */

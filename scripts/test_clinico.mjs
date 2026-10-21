@@ -79782,11 +79782,19 @@ caso('TC-507', 'Tanda R: la VAB muestra la lesion PRESENTE sin grado con un solo
              fr: (typeof dptFrases === 'function') ? dptFrases().join(' ') : 'SIN FN',
              suma: (typeof dptSuma === 'function') ? dptSuma() : 'SIN FN',
              badge: TXT('dpt-concl-badge') }; };
-  ex.push(['(DENOM F) el selector ofrece el grado nuevo y oculta los dos de legado',
+  /* ADAPTADO el 2026-10-21 (R2-E1): esta condicion afirmaba que los dos textos de legado seguian
+     en el desplegable con el atributo hidden, que es lo que el R5 habia hecho. Hoy afirma lo CONTRARIO —no
+     estan— porque Maicol los vio en Safari y la medicion en los dos motores dijo que el atributo
+     de una <option> tiene dos agujeros: WebKit no lo respeta al pintar la lista (con size = 7
+     Chrome da altura a CINCO filas y WebKit a las SIETE) y en los DOS la busqueda por letra las
+     alcanza. El display computado dice none en los dos, asi que la medicion por
+     getComputedStyle NO los distingue: por eso se cuenta cuantas opciones hay. */
+  ex.push(['(DENOM F) el desplegable ofrece SOLO las cinco opciones vivas, sin las dos de legado',
     (function(){ const e = EL('pericardio'); if (!e) return false;
-      const o = Array.prototype.map.call(e.options, x => (x.hidden ? '[h]' : '') + x.value);
-      return o.indexOf('Derrame leve (<10mm)') > -1 && o.indexOf('[h]Derrame mínimo') > -1
-        && o.indexOf('[h]Derrame leve (5-10mm)') > -1 && o.indexOf('Derrame mínimo') < 0; })(),
+      const o = Array.prototype.map.call(e.options, x => x.value);
+      return o.length === 5 && o.indexOf('Derrame leve (<10mm)') > -1
+        && o.indexOf('Derrame mínimo') < 0 && o.indexOf('Derrame leve (5-10mm)') < 0
+        && !Array.prototype.some.call(e.options, x => x.hidden || x.disabled); })(),
     (function(){ const e = EL('pericardio'); return e ? Array.prototype.map.call(e.options,
       x => (x.hidden ? '[h]' : '') + x.value).join(' | ') : 'NO EXISTE'; })()]);
   ex.push(['(F1) los tres grados de la Tabla 10 y SIN el «mínimo»',
@@ -79801,15 +79809,43 @@ caso('TC-507', 'Tanda R: la VAB muestra la lesion PRESENTE sin grado con un solo
     _periEsc('Derrame leve (<10mm)', '10').clave === 'leve'
       && _periEsc('Derrame moderado (10-20mm)', '20').clave === 'moderado'
       && _periEsc('Derrame severo (>20mm)', '20.1').clave === 'severo', '']);
-  const _legMin = _periEsc('Derrame mínimo', null);
-  const _legLev = _periEsc('Derrame leve (5-10mm)', null);
-  ex.push(['(F4) un estudio guardado con «Derrame mínimo» abre con SU token y se MUESTRA como leve',
-    _legMin.puesto === 'Derrame mínimo' && _legMin.clave === 'leve'
+  /* ADAPTADO el 2026-10-21 (R2-E1): las dos afirmaban que el token viejo se CONSERVA al abrir el
+     estudio, que era cierto mientras su <option> existiera. Desde que salieron del desplegable el
+     token se TRADUCE al grado vigente en el borde de lectura, y hoy eso es lo que se mide.
+     ⚠️ Y SE MIDE POR LA RUTA REAL, no asignando el token crudo al <select>: las dos rutas de
+     restauracion y la reimpresion pasan por _migrarCamposLegacy, que es quien traduce. Asignarlo
+     a mano deja el nodo en selectedIndex -1, que no es ningun camino de la app.
+     ⚠️ TRADUCIR ACA NO MIGRA CONTENIDO CLINICO Y ESO ES LO QUE LO PERMITE: los tres textos caen en
+     la MISMA banda leve de DPT_TAM —los tres por debajo de los 10 mm de la Tabla 10— asi que
+     la conclusion es identica antes y despues. */
+  const _periLeg = (tok) => { const c = { pericardio: tok };
+    if (typeof _migrarCamposLegacy === 'function') _migrarCamposLegacy(c);
+    const r = _periEsc(c.pericardio, null);
+    r.migrado = c.pericardio;
+    r.idx = (function(){ const e = EL('pericardio'); return e ? e.selectedIndex : -99; })();
+    return r; };
+  const _legMin = _periLeg('Derrame mínimo');
+  const _legLev = _periLeg('Derrame leve (5-10mm)');
+  ex.push(['(F4) un estudio guardado con «Derrame mínimo» abre TRADUCIDO al grado vigente, en una opcion REAL',
+    _legMin.migrado === 'Derrame leve (<10mm)' && _legMin.puesto === 'Derrame leve (<10mm)'
+      && _legMin.idx > 0 && _legMin.clave === 'leve'
       && _legMin.fr.indexOf('leve (<10mm)') > -1 && _legMin.fr.indexOf('mínimo') < 0,
     JSON.stringify(_legMin)]);
-  ex.push(['(F5) y el de «leve (5-10mm)» igual, con su token intacto',
-    _legLev.puesto === 'Derrame leve (5-10mm)' && _legLev.clave === 'leve'
+  ex.push(['(F5) y el de «leve (5-10mm)» igual, con el MISMO grado que antes de traducirlo',
+    _legLev.migrado === 'Derrame leve (<10mm)' && _legLev.puesto === 'Derrame leve (<10mm)'
+      && _legLev.idx > 0 && _legLev.clave === 'leve'
       && _legLev.fr.indexOf('leve (<10mm)') > -1, JSON.stringify(_legLev)]);
+  ex.push(['(F5b) CONTROL NEGATIVO: _migrarCamposLegacy NO toca los tres tokens vivos ni uno ajeno',
+    (function(){ const out = {};
+      ['Normal, sin derrame', 'Derrame moderado (10-20mm)', 'Derrame severo (>20mm)',
+       'Engrosamiento / calcificación', 'Un token ajeno'].forEach(t => {
+        const c = { pericardio: t };
+        if (typeof _migrarCamposLegacy === 'function') _migrarCamposLegacy(c);
+        out[t] = c.pericardio; });
+      return Object.keys(out).every(k => out[k] === k); })(),
+    (function(){ const c = { pericardio: 'Derrame severo (>20mm)' };
+      if (typeof _migrarCamposLegacy === 'function') _migrarCamposLegacy(c);
+      return c.pericardio; })()]);
   ex.push(['(F6) los tres tokens nuevos y los dos de legado estan en la lista del importador',
     !!_xlsLis && ['Derrame leve (<10mm)', 'Derrame leve (5-10mm)', 'Derrame mínimo',
                   'Derrame moderado (10-20mm)', 'Derrame severo (>20mm)']
