@@ -82439,11 +82439,16 @@ caso('TC-513', 'Trabajo D: el FOP en TRES columnas con «Se abomba hacia» y el 
     ? Array.prototype.slice.call(e.options).map(function(o){ return o.value; }).join(',') : 'NO EXISTE'; };
   ex.push(['(B1) «Se abomba hacia» ofrece AD, AI y ambos, mas la opcion vacia',
     opsDe('otr_asia_lado') === ',ad,ai,ambos', opsDe('otr_asia_lado')]);
-  ex.push(['(B2) los latidos van de 3 a 6, con el 3 PRIMERO y la vacia ultima',
-    opsDe('otr_burb_lat') === '3,4,5,6,', opsDe('otr_burb_lat')]);
+  /* ADAPTADO el 2026-10-22 (tanda D2, commit 2): la opcion VACIA pasa al PRIMER lugar y el
+     selector NACE sin consignar, que es lo que cierra D-6. Las dos condiciones afirman hoy lo
+     contrario y conservan su poder: la posicion de la vacia es lo que implementa el valor de
+     fabrica -limpiarCampos hace selectedIndex = 0 sobre todo select-, asi que medir el ORDEN y
+     medir lo que queda tras «Nuevo estudio» siguen siendo las dos mitades del mismo hecho. */
+  ex.push(['(B2) los latidos van de 3 a 6, con la VACIA PRIMERA',
+    opsDe('otr_burb_lat') === ',3,4,5,6', opsDe('otr_burb_lat')]);
   __t.limpiar();
-  ex.push(['(B3) y «Nuevo estudio» repone el 3 por defecto',
-    (EL2('otr_burb_lat') || {}).value === '3', (EL2('otr_burb_lat') || {}).value]);
+  ex.push(['(B3) y «Nuevo estudio» lo deja SIN CONSIGNAR',
+    (EL2('otr_burb_lat') || {}).value === '', JSON.stringify((EL2('otr_burb_lat') || {}).value)]);
   /* El espejo del ASIA en los DOS sentidos. */
   __t.limpiar(); __t.chk('otr_asia', true);
   ex.push(['(B4) marcar el ASIA en Otros lo prende en el FOP',
@@ -82502,8 +82507,12 @@ caso('TC-513', 'Trabajo D: el FOP en TRES columnas con «Se abomba hacia» y el 
   ex.push(['(B11) los latidos se LEEN del dueno y se publican en el FOP',
     l3.lee === '3' && l6.lee === '6' && l6.span.indexOf('6 latidos') === 0,
     JSON.stringify([l3.lee, l6.lee, l6.span.slice(0, 20)])]);
-  ex.push(['(B12) sin consignar no hay numero',
-    lv.lee === null && lv.span.indexOf('se consigna en Otros') > -1, String(lv.lee)]);
+  /* ADAPTADO el 2026-10-22 (tanda D2, commit 2): con pasaje documentado y sin numero elegido la
+     fila dice «sin consignar» y no donde se consigna -ese texto queda para el estado en que el
+     control ni siquiera esta a la vista, que es el CONTROL B13 de abajo-. Son tres estados y no
+     dos, y el que los distingue es fopPasajeDocumentado. */
+  ex.push(['(B12) sin consignar no hay numero, y la fila lo DICE',
+    lv.lee === null && lv.span.indexOf('sin consignar') > -1, lv.span]);
   __t.limpiar(); __t.set('otr_burb_lat','4');
   ex.push(['(CONTROL B13) SIN pasaje documentado el dueno NO publica latidos',
     (FN2('fopLatidos') ? fopLatidos() : 'SIN FN') === null,
@@ -82686,9 +82695,10 @@ caso('TC-513', 'Trabajo D: el FOP en TRES columnas con «Se abomba hacia» y el 
     const g = await __t.guardar();
     ex.push(['(DENOM H) el estudio se guardo', g.ok === true && !!g.estudioId, JSON.stringify(g)]);
     __t.limpiar();
-    ex.push(['(H1) «Nuevo estudio» vacia el lado y repone el 3 de los latidos',
-      (EL2('otr_asia_lado') || {}).value === '' && (EL2('otr_burb_lat') || {}).value === '3',
-      (EL2('otr_asia_lado') || {}).value + '/' + (EL2('otr_burb_lat') || {}).value]);
+    /* ADAPTADO el 2026-10-22 (tanda D2, commit 2): «Nuevo estudio» deja los DOS vacios. */
+    ex.push(['(H1) «Nuevo estudio» vacia el lado y los latidos',
+      (EL2('otr_asia_lado') || {}).value === '' && (EL2('otr_burb_lat') || {}).value === '',
+      JSON.stringify((EL2('otr_asia_lado') || {}).value + '/' + (EL2('otr_burb_lat') || {}).value)]);
     if (g.estudioId) {
       __t.reabrir(g.estudioId);
       ex.push(['(H2) y al reabrirlo vuelven el lado y los latidos, con su corte',

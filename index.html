@@ -8650,19 +8650,27 @@ window.cerrarSesionReal = cerrarSesionReal;
                escriben `.value = ''` sobre todo `<select>` con id: sin una `<option value="">`
                el control queda en `selectedIndex -1` y no muestra nada. Es la trampa que
                `et_grado` ya pago.
-               ⚠️ EL 3 VA PRIMERO Y LA OPCION VACIA ULTIMA, Y ESO REEMPLAZA A UNA FUNCION DE
-               SINCRONIA: `limpiarCampos` hace `selectedIndex = 0` sobre TODO `<select>` del
-               documento, asi que con la opcion vacia primera «Nuevo estudio» dejaba el control
-               en «sin consignar» y el 3 por defecto solo valia en la primera carga de la
-               pagina. Con el 3 en el indice 0 el defecto lo repone el barrido que ya existe, y
-               una restauracion que escriba '' sigue encontrando su opcion. -->
+               ══ LA OPCION VACIA VA PRIMERA Y EL SELECTOR NACE SIN CONSIGNAR (D2-E2) ══
+               DECISION DE MAICOL, que REVIERTE el «3 por defecto» de la tanda D y cierra la
+               entrada D-6 de `docs/PENDIENTES.md`. El 3 era el valor de FABRICA, asi que todo
+               estudio con pasaje documentado publicaba «a los 3 latidos» en el informe FIRMADO
+               aunque el medico no hubiera tocado este control: un numero afirmado sobre una
+               medicion que nadie hizo, que es lo que la regla de producto prohibe.
+               ⚠️ LA POSICION ES LO QUE LO IMPLEMENTA, y no hace falta una funcion de sincronia:
+               `limpiarCampos` hace `selectedIndex = 0` sobre TODO `<select>` del documento, asi
+               que con la vacia en el indice 0 «Nuevo estudio» deja el control en «sin
+               consignar». Y una restauracion que escriba '' sigue encontrando su opcion, que es
+               por lo que la opcion vacia tiene que existir (la trampa de `et_grado`).
+               ⚠️ UN ESTUDIO GUARDADO CON 3 ABRE CON 3: el guardado no distingue un 3 ELEGIDO de
+               un 3 por omision, asi que no se migra nada y el estudio abre como se guardo. Esta
+               declarado en `docs/PENDIENTES.md`. -->
           <div class="fg"><label>Latidos del pasaje</label>
             <select id="otr_burb_lat" onchange="otrHallSync();fopSync();">
+              <option value="">&mdash; sin consignar &mdash;</option>
               <option value="3">3 latidos</option>
               <option value="4">4 latidos</option>
               <option value="5">5 latidos</option>
               <option value="6">6 latidos</option>
-              <option value="">&mdash; sin consignar &mdash;</option>
             </select>
           </div>
         </div>
@@ -65820,20 +65828,28 @@ window.asiaNegado = asiaNegado; window.asiaExcFrase = asiaExcFrase;
 /* Los latidos del pasaje. Silvestry 2015, folio 931 (hoja 22): la aparición de microburbujas en
    la AI DENTRO DE 3 A 6 LATIDOS tras la opacificación de la AD se considera positiva para un
    shunt intracardíaco como el foramen oval. El selector publica el NÚMERO y no lo interpreta. */
+/* ⚠️ SIN PASAJE DOCUMENTADO NO HAY NÚMERO DE LATIDOS, Y LA COMPUERTA VA EN SU DUEÑO Y NO EN
+   CADA CONSUMIDOR. Su control vive DENTRO del bloque que sólo aparece con pasaje, así que un
+   formulario vacío publicaba «3 latidos» en la pantalla del FOP sobre un estudio en el que nadie
+   inyectó nada. Gateándolo acá, las cuatro superficies —la pantalla, la conclusión, el informe y
+   el PDF— quedan de acuerdo por construcción.
+   Sale a función propia en el D2-E2 porque la fila de la pantalla necesita distinguir «no hay
+   pasaje» de «hay pasaje y nadie consignó el número»: son dos textos distintos y la diferencia
+   la decide ESTE predicado. Con la compuerta escrita dos veces, la copia que se olvida es la que
+   publica el texto equivocado. */
+function fopPasajeDocumentado(src){
+  const g = id => src ? String(src[id] == null ? '' : src[id]).trim()
+                      : (document.getElementById(id)?.value || '').trim();
+  return g('fop_shunt_reposo') === 'si' || g('fop_shunt_valsalva') === 'si' || !!g('fop_burbujas');
+}
 function fopLatidos(src){
   const g = id => src ? String(src[id] == null ? '' : src[id]).trim()
                       : (document.getElementById(id)?.value || '').trim();
-  /* ⚠️ SIN PASAJE DOCUMENTADO NO HAY NÚMERO DE LATIDOS, Y LA COMPUERTA VA ACÁ Y NO EN CADA
-     CONSUMIDOR. El selector nace en 3 —decisión de Maicol— y su control vive DENTRO del bloque
-     que sólo aparece con pasaje, así que un formulario vacío publicaba «3 latidos» en la
-     pantalla del FOP sobre un estudio en el que nadie inyectó nada: un número afirmado sobre una
-     medición que no existe. Gateándolo en el dueño, las cuatro superficies —la pantalla, la
-     conclusión, el informe y el PDF— quedan de acuerdo por construcción. */
-  if (!(g('fop_shunt_reposo') === 'si' || g('fop_shunt_valsalva') === 'si' || g('fop_burbujas'))) return null;
+  if (!fopPasajeDocumentado(src)) return null;
   const r = g('otr_burb_lat');
   return /^[3-6]$/.test(r) ? r : null;
 }
-window.fopLatidos = fopLatidos;
+window.fopLatidos = fopLatidos; window.fopPasajeDocumentado = fopPasajeDocumentado;
 
 const FOP_BURB_TXT = { pocas:'shunt leve (<5 burbujas)', moderado:'shunt moderado (5-20 burbujas)', abundante:'shunt severo (>20 burbujas)' };
 function fopConclusion(src){
@@ -66020,8 +66036,13 @@ function fopSync(){
   const burb = sv2('fop_burbujas');
   txt('fop-shunt-grado', burb ? (FOP_BURB_TXT[burb] || burb) : '—');
   const _lat = fopLatidos();
+  /* Tres estados y no dos: con pasaje documentado y sin número elegido la fila dice «sin
+     consignar» —el control existe y nadie lo tocó— y sin pasaje dice dónde se consigna, que es
+     el estado en el que ese control ni siquiera está a la vista. */
   txt('fop-burb-lat', _lat ? (_lat + ' latidos tras la opacificación de la aurícula derecha')
-      : '— se consigna en Otros · Test de burbuja');
+      : ((typeof fopPasajeDocumentado === 'function' && fopPasajeDocumentado())
+         ? '— sin consignar'
+         : '— se consigna en Otros · Test de burbuja'));
   const c = fopConclusion();
   txt('fop-concl', c ? c.txt : '—');
 }
