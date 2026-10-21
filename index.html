@@ -53903,9 +53903,11 @@ function generarInforme(opts) {
       } else if (contraste === 'no') {
         _ors.push('No se realizó test de burbuja.');
       }
-      /* 3 · contexto clínico. LAS DIEZ CLAVES llevan su cláusula esquemática (`esq`) desde el
-         D-E2: antes eran seis, y las cuatro sin cláusula publicaban el párrafo entero —con su
-         conducta— en el papel FIRMADO. */
+      /* 3 · contexto clínico. SOLO TRES DE LAS DIEZ CLAVES llevan cláusula (`esq`) desde el
+         D-E2, y las otras siete la dejan en `null` a propósito: lo único que decían era el
+         ACV criptogénico —o su ausencia—, que es un dato CLINICO y va al PDF y no al papel
+         narrativo. Antes de este trabajo, cuatro claves no tenían `esq` y caían en el párrafo
+         entero, con su conducta, dentro del informe FIRMADO. */
       if (c.esq) _ors.push(c.esq);
       /* ⚠️ EL PARRAFO SE INSERTA DESPUES DE LA AURICULA IZQUIERDA y no se empuja al final: es
          `_infTrasAI`, el indice que el bloque 4 guardo. */
@@ -126788,8 +126790,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261021-1056';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1792590970953;                 /* eco-build-ms */
+const ECO_BUILD    = '20261021-1221';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1792596068766;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -126875,7 +126877,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261021-1056</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261021-1221</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

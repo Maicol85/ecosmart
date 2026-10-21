@@ -41,13 +41,19 @@ y desde el R6 se **declaran** con el chip «CRITERIO DE ECOSMART» debajo del m�
 
 ### R-4 · El corte de 5 burbujas no está publicado en ninguna de las dos fuentes
 
-La tabla de la ficha separa el shunt pequeño del moderado en **5 burbujas**, y ni Pristipino 2019
-(suplemento, Tabla 1) ni Kleindorfer AHA/ASA 2021 (folio e413) lo publican: las dos fijan el
-**20** del shunt grande y nada más. El 5 queda como referencia propia, declarada con su chip.
+**SIGUE ABIERTO, y el trabajo D lo midió otra vez.** La tabla de la ficha separa el shunt pequeño
+del moderado en **5 burbujas**, y ni Pristipino 2019 (suplemento, Tabla 1) ni Kleindorfer AHA/ASA
+2021 (folio e413) lo publican: las dos fijan el **20** del shunt grande y nada más. El 5 queda como
+referencia propia, declarada con el chip «CRITERIO DE ECOSMART» en las **dos** fichas que lo citan
+—la del test de burbuja y la del FOP, que el D-E3 agregó—.
 
-⚠️ **Y LAS DOS FUENTES NO COINCIDEN SOBRE CÓMO EL RESPECT DEFINIÓ EL SHUNT GRANDE**: Kleindorfer
-escribe «>20 microbubbles» y Pristipino, en otra página, «>10». Anotado en
-`docs/fuentes/FUENTES.md`.
+⚠️ **LAS DOS FUENTES NO COINCIDEN SOBRE CÓMO EL RESPECT DEFINIÓ EL SHUNT GRANDE, Y EL D LOCALIZÓ
+LOS DOS TEXTOS**: Kleindorfer escribe «larger shunt size (>20 microbubbles)» en el **folio e413**
+(hoja 50) y Pristipino, describiendo el MISMO ensayo, «more than 10 microbubbles» en su **apéndice
+suplementario 4** (hoja 35, sin folio de revista). Por eso el panel de Evidencia del D-E4
+**PREGUNTA** si el shunt es grande en vez de deducirlo de la escala de la app: con dos definiciones
+del mismo corte, derivarlo sería elegir una y no decirlo. En `docs/fuentes/FUENTES.md` → «El
+trabajo D».
 
 ---
 
@@ -5409,14 +5415,19 @@ porque el Laboratorio la cuenta, porque tiene nombres de grado y porque es la an
 (a) conseguir un documento que gradúe el paso de burbujas y citarlo; (b) dejar la escala sin
 nombres de grado, sólo con el rango; (c) dejarlo como está, declarado.
 
-### ARR-5 · La indicación de cierre del FOP según la edad, para llevar a Referencias
+### ARR-5 · [CERRADO 2026-10-22 por el trabajo D] La indicación de cierre del FOP según la edad
 
-El informe y el EN SUMA ya **no** publican «falta la edad del paciente, de la que depende la
-indicación: el cierre percutáneo es Clase IIa por debajo de los 60 años» ni «sin edad cargada»
-(decisión de Maicol). El contenido vive en `fopConclusion().txt` —que consumen el PDF de CC
-frecuentes y la hoja de `ccHoja`— y está recogido en `FUENTES.md`.
-⚠️ **NO ESTÁ VERIFICADA CONTRA SU GUÍA**: antes de publicarla en Referencias hay que leerla en la
-ESC con su folio impreso.
+**Cerrado en el D-E3 y el D-E4, y la fuente no era la que esta entrada suponía.** La indicación no
+es «Clase IIa de la ESC»: la app la publica hoy en la **ficha de Referencias del FOP** y en el panel
+de Evidencia con la **AHA/ASA 2021** (Kleindorfer, **folio e411**, apartado 5.4.5) —COR 1 · LOE C-EO
+para la decisión conjunta, COR 2a · LOE B-R entre 18 y 60 años con rasgos de alto riesgo tras una
+evaluación exhaustiva, y dos COR 2b— más la **posición europea** (Pristipino, **Tabla 5, folio
+1396**), que es una declaración fuerte GRADE de 18 a 65 años y **no** una clase de recomendación.
+Las dos leídas en el PDF original con el folio comprobado en el pie impreso.
+⚠️ **Y SALIÓ DEL INFORME Y DEL EN SUMA, QUE ES LA OTRA MITAD:** el D-E2 los dejó **descriptivos**,
+así que la edad ya no gobierna ninguna frase del papel firmado. Lo que la conserva es
+`fopConclusion().txt`, que hoy consume **sólo la pantalla**: la hoja de `ccHoja('fop', …)` se retiró
+y el PDF publica una tabla de características sin una sola indicación.
 
 ### ARR-6 · Tres spans de módulos ajenos se quedan atrás en la recarga, no en el borrado
 
@@ -5432,13 +5443,20 @@ Su «volvió al texto de base» pasa, pero sin denominador propio: la carga del 
 cambia su contenido. No arrastraba en ninguno de los dos árboles. **Salida:** darle una escena con
 los tres diámetros del VD.
 
-### ARR-8 · El informe esquemático del FOP sólo alcanza a seis de las diez claves
+### ARR-8 · [CERRADO 2026-10-22 por el trabajo D] El informe esquemático del FOP alcanzaba a seis de las diez claves
 
-`fopConclusion` tiene diez claves y seis llevan su cláusula `esq` —las que cambian la conducta—;
-las otras cuatro (`sin_contexto`, `sin_contraste`, `incidental`, `no_interpretable`) publican el
-**párrafo de siempre** como tercera oración, porque omitirlas sería perder información del informe
-firmado. **Salida:** escribirles su `esq` corta, que es redactar frases clínicas y pide la decisión
-de Maicol.
+**Cerrado por el otro lado, y hay que decirlo: no se escribieron las cuatro cláusulas que faltaban,
+se retiraron seis de las que había.** Las cuatro claves sin `esq` (`sin_contexto`, `sin_contraste`,
+`incidental`, `no_interpretable`) caían en el **párrafo entero** —con su conducta— dentro del papel
+FIRMADO, que es el defecto que esta entrada declaraba. Desde el D-E2 el informe es **descriptivo**:
+`no_interpretable` ganó su cláusula corta y **siete** de las diez dejan `esq` en `null` a propósito,
+porque lo único que decían era el **ACV criptogénico** —o su ausencia—, que es un dato CLÍNICO del
+paciente y va al PDF como «Motivo del estudio», no al narrativo.
+Las **tres** que sí la llevan dicen algo que no es ese antecedente: `descartado` niega el hallazgo,
+`no_interpretable` declara una medición ilegible y `trombofilia` consigna otra condición.
+⚠️ **LO QUE `alto_riesgo_sin_evento` DEJA DE DECIR NO SE PIERDE:** sus dos rasgos —el aneurisma y el
+pasaje severo— están en las dos oraciones de arriba del MISMO párrafo, con su número. **Medido en
+las diez claves por los tres estilos.**
 
 ### ARR-9 · `check_mobile.js` sigue sin llegar al contenido de la pestaña Otros
 
@@ -6189,3 +6207,112 @@ CoAo» y el botón de Evidencia en azul con el formulario vacío— y **verdes c
 **Fallan idénticamente contra el árbol de entrada con la MISMA lista**, así que no son del trabajo
 H: es aislamiento del suite, que corre todos sus casos en una sola página. En la suite completa
 están verdes. Lo que falta es encontrar qué caso deja `_indClin` o un campo de coartación puesto.
+
+---
+
+# Lo que el trabajo «D» declaró y NO tocó (2026-10-22)
+
+### D-1 · La clave `cierre_iia` conserva su nombre, y hoy ese nombre ya no describe lo que publica
+
+`fopConclusion` devuelve diez claves y una se llama **`cierre_iia`**. Desde el D-E2 su texto es
+descriptivo —«Con ACV criptogénico, en paciente de N años»— y no indica ningún cierre ni ninguna
+clase. **No se renombró, y el motivo está medido:** el Laboratorio cuenta la distribución del FOP
+**por clave** y un filtro de cohorte guardado la trae, así que renombrarla deja esos estudios fuera
+del recuento. El nombre es interno y no se publica en ninguna superficie.
+**Salidas:** (a) renombrarla con una tabla de alias de ENTRADA, el mecanismo de
+`LAB_XLS_LISTAS_LEGADO`; (b) dejarla, declarada. Se eligió la (b).
+
+### D-2 · Los rótulos de conducta del Laboratorio siguen nombrando la ESC
+
+El módulo del FOP ya no nombra ninguna guía en la pantalla, el informe, el EN SUMA ni el PDF
+—censado—, pero el **Laboratorio** sigue publicando sus propios rótulos de distribución con la
+palabra «indicación» y, en uno, «ESC». Es otro módulo y esta orden no lo nombra: tocarlo cambia lo
+que una cohorte guardada muestra. **Salida:** reescribir esos rótulos con el vocabulario
+descriptivo, en un trabajo del Laboratorio.
+
+### D-3 · `otr_burb_mom` y `otr_burb_lat` se pisan parcialmente
+
+El test de burbuja de «Otros» ya tenía un selector de **momento de aparición** (`otr_burb_mom`:
+en reposo / con Valsalva / las dos) y esta tanda le agregó el de **número de latidos**
+(`otr_burb_lat`, 3 a 6). Son dos preguntas distintas —cuándo aparece el pasaje y en cuántos ciclos—
+y conviven sin contradecirse, pero un lector apurado puede leer «momento» como «latido».
+**Salida:** agruparlos bajo un rótulo común, que es maquetación de esa pestaña.
+
+### D-4 · El operador del corte del ASIA es `>=` y la fuente se contradice consigo misma
+
+Silvestry 2015 escribe el corte de un lado como «**greater than** 10 mm» en el **folio 916** y
+—en la misma oración— la excursión total «**of** 15 mm», sin operador; el **folio 938** reescribe
+los dos **sin** «greater than». La app aplica **`>=` en los dos**, que es lo que ya aplicaba antes
+de este trabajo y el lado que no deja de avisar. **No se movió ningún operador** (la orden lo
+prohíbe expresamente). **Salida:** decidir el operador con la fuente delante, que es contenido
+clínico.
+
+### D-5 · El DIBUJO interactivo del FOP, como trabajo futuro
+
+Esta orden dice, con todas las letras, «sin dibujo», y el hueco donde iría quedó **vacío**: la
+columna de anatomía no reserva espacio ni dibuja un contorno. El día que se haga, el precedente es
+`vabGeom` —una función **pura** que devuelve números y cadenas de `path`, con el dibujo construido
+por `createElementNS` y nunca por `innerHTML` con datos concatenados— y el PDF rasterizando **desde
+la misma geometría** que la pantalla, para que no haya dos dibujos del mismo órgano.
+
+### D-6 · El 3 es el valor de fábrica, así que el informe publica «a los 3 latidos» sin que nadie lo haya elegido
+
+El número de latidos vive en `otr_burb_lat`, cuyo único control está en la pestaña **Otros · Test
+de burbuja**, dentro del bloque que aparece **con pasaje documentado**. El módulo FOP lo **lee** y
+lo publica en un `<span>` con guión MEDIO; no tiene un segundo control propio, que es lo que evita
+una segunda copia del dato.
+⚠️ **LO QUE QUEDA ABIERTO ES EL VALOR DE FÁBRICA, Y ES LO QUE LA ORDEN PIDIÓ:** el selector nace en
+**3** —la primera `<option>`—, así que todo estudio con pasaje documentado publica «a los 3
+latidos» en el informe FIRMADO aunque el médico no haya tocado ese control. **La compuerta de
+`fopLatidos` acota el daño y no lo cierra:** sin pasaje documentado devuelve `null` y ninguna de las
+cuatro superficies dice nada, pero con pasaje el 3 se afirma solo.
+**Medido en la ruta real de reapertura:** un estudio guardado **antes** de esta tanda no trae la
+clave, y la restauración hace `el.selectedIndex = 0` para un `<select>` cuya clave falta —no
+`.value = ''`—, o sea que también reabre en **3**. Lo que lo protege es otra cosa: la reimpresión
+**no reescribe** `informe_texto`, que es un `<textarea>` con id y viaja con el estudio, así que el
+papel de un informe ya firmado sale con su texto original. **No se migra nada.**
+**Salidas:** (a) mover la opción vacía al PRIMER lugar, con lo que nada se publica hasta que el
+médico elija —y el informe de un estudio nuevo deja de nombrar los latidos salvo que se consignen—;
+(b) dejar el 3, declarado. Se eligió la (b) porque es lo que la orden fija («3 a 6, con 3 por
+defecto»). **Cambiar el valor de fábrica mueve una frase del informe firmado: lo decide Maicol.**
+
+### D-7 · Los dos campos nuevos no tienen columna de Excel
+
+`otr_asia_lado` y `otr_burb_lat` **viajan con el estudio** —guión BAJO, los toma el recolector— y
+**no** se agregaron al Excel: el libro sigue en **440 columnas**, comparadas clave por clave. Es lo
+que la orden pide («una columna nueva en el Excel es PARADA»). **Consecuencia:** un backup a Excel y
+su reimportación pierden el lado del aneurisma y el número de latidos. **Salida:** dos columnas en
+el bloque que corresponda, que es una PARADA y la decide Maicol.
+
+### D-8 · El panel de Evidencia del FOP no publica el RoPE ni el `aria-label` del cuestionario
+
+La sección nueva **pregunta** tres cosas (ACV o AIT previo, criptogénico tras evaluación completa,
+shunt grande) y **lee** cuatro (edad, ASIA, grado del pasaje, latidos). Lo que el médico contesta
+vive en `_indClin` y **no se guarda con el estudio** —medido por el juego de ids del recolector—.
+Lo que **no** hay es una puntuación RoPE: la sección la nombra en su bloque de contexto y no la
+calcula, porque pide datos que la app no tiene. **Salida:** agregar los campos del RoPE, que es un
+módulo propio.
+
+### D-9 · `tests-fichas.md` quedó a 763 bytes del techo
+
+Medido con `wc -c` **ANTES** de escribir: estaba en 33,5 KB y la ficha entera lo cruzaba, así que la
+de TC-513 vive **dentro** de `docs/mapa/fop-burbuja-unificado.md` y lo que le entró son **cuatro
+líneas de puntero**. Quedó en **34,2 KB**. **La próxima tanda que lo toque tiene que partirlo.**
+Lo mismo con `panel-evidencia.md`, que sigue en **35,3 KB**, o sea **ya cruzado** desde el
+2026-10-12, y con `vab-bicuspide.md`, que esta orden declaraba a menos de 4 KB del techo: **ninguno
+de los dos se tocó**.
+
+### D-10 · `CLAUDE.md` pesa **1,0 MB** y se carga en CADA sesión
+
+Medido con `wc -c` al cerrar este trabajo: **1.018.734 bytes / 11.959 líneas**, de los que la
+entrada de esta tanda son 201. Ese archivo **no es un mapa**: se carga entero al arrancar cada
+sesión, antes de que nadie pida nada, así que su tamaño se paga **siempre** y no sólo cuando se
+abre la zona que documenta. La regla de los 35 KB de los mapas no lo alcanza, y el que la escribió
+tenía el mismo motivo: presupuestar contexto.
+Lo que lo hace crecer es **«Estado vigente»**, que acumula una entrada por tanda y hoy tiene
+**cuarenta y tantas**, desde el trabajo D1 del 14/10 hasta éste.
+**Salidas:** (a) dejar en `CLAUDE.md` las **tres o cuatro últimas** entradas y mudar el resto a
+`docs/historial/`, con el mecanismo que ese archivo ya usa —se busca con `grep -n` por título y se
+leen 20-80 líneas con `sed`— y un puntero por tanda; (b) partir «Estado vigente» en un archivo
+propio al que `CLAUDE.md` apunte; (c) dejarlo, declarado. **No se tocó: es el archivo de reglas de
+Maicol y mover sus secciones cambia qué lee una sesión al arrancar.**

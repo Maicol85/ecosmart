@@ -4877,3 +4877,93 @@ toda la app.
 
 **Nada de lo anterior se escribió de memoria**: las trece tablas y las tres figuras se leyeron en el
 PDF original, con el folio comprobado en el encabezado impreso.
+
+---
+
+## El trabajo «D» — el FORAMEN OVAL PERMEABLE (2026-10-22)
+
+### Las tres reglas de folio, comprobadas en el pie o el encabezado IMPRESO
+
+| Documento | Regla | Comprobada en |
+|---|---|---|
+| Silvestry FE y cols., **ASE/SCAI 2015** — CIA y FOP. *J Am Soc Echocardiogr* 2015;**28**:910-958. `21_Otros_hallazgos/Silvestry_2015_ASE_CIA_FOP.pdf` | folio = **hoja + 909** | hojas 7 (916), 8 (917), 22 (931) y 23 (932) |
+| Pristipino C y cols., **posición europea 2019** sobre el manejo intervencionista del FOP. *EuroIntervention* 2019;**14**:1389-1402, doi 10.4244/EIJ-D-18-00622. `21_Otros_hallazgos/Pristipino_2019_EuroIntervention_FOP.pdf` | folio = **hoja + 1388** | encabezado de la hoja 8 (1396) |
+| Kleindorfer DO y cols., **AHA/ASA 2021** — prevención del ACV. *Stroke* 2021;**52**:e364-e467, doi 10.1161/STR.0000000000000375. `21_Otros_hallazgos/kleindorfer-et-al-2021-…pdf` | folio = **e(hoja + 363)** | hojas 48 (e411), 49 (e412) y 50 (e413) |
+
+⚠️ **EL ARTÍCULO DE PRISTIPINO SE CO-PUBLICÓ CON PAGINACIÓN DISTINTA.** La entrada `fop2019` del
+registro del panel citaba la edición de *Eur Heart J* 2019;40:3182, y los folios que esta zona usa
+—1395, 1396 y 1399— son los de *EuroIntervention*, que es el PDF de la biblioteca. Citar una
+revista al lado del folio de la otra manda al lector a otra página. **Corregido en el D-E4.**
+⚠️ **SU MATERIAL SUPLEMENTARIO NO LLEVA FOLIO DE REVISTA:** la paginación impresa termina en 1402.
+Lo que sale de ahí se cita por **hoja del PDF**, no por folio.
+
+### Lo verificado, dato por dato
+
+| Dato | Texto leído | Dónde |
+|---|---|---|
+| **Aneurisma del septum (ASIA)** | «ASA is defined as excursion of the septal tissue (typically the fossa ovalis) of **greater than 10 mm** from the plane of the atrial septum into the RA or LA **or a combined total excursion right and left of 15 mm**» | Silvestry, **folio 916** (hoja 7) |
+| ASIA, segunda redacción | «an excursion **of** 10 mm … **or** a combined excursion right and left **of** 15 mm» — **sin** «greater than» en ninguno de los dos | Silvestry, **folio 938** (hoja 29) |
+| Prevalencia del ASIA | 2 %–3 % | Silvestry, folio 916 |
+| Prevalencia del FOP | «Up to **20%–25%** of the normal population has a PFO present in adulthood» | Silvestry, **folio 912** (hoja 3) |
+| **Latidos del pasaje** | «The appearance of microbubbles in the LA **within 3–6 cardiac beats** after opacification of the RA is considered positive for the presence of an intracardiac shunt such as a PFO» | Silvestry, **folio 931** (hoja 22) |
+| Latidos, segunda redacción | «If the bubbles cross **within the first three cardiac cycles**, an intracardiac shunt is present. Subsequent cardiac cycles … consistent with intrapulmonary shunting» | Silvestry, **folio 933** (hoja 24), pie de la Figura 29 |
+| Latidos, tercera redacción | «The appearance of microbubbles in the LA **after 3–6 beats** indicates **intrapulmonary** shunting» | Silvestry, **folio 935** (hoja 26), Key Points |
+| **Cantidad de burbujas** | «**<20 bubbles** mild/moderate · **>20 bubbles** severe» | Pristipino, **Supplementary Table 1** (hoja 48; sin folio) |
+| Escala por Doppler transcraneal | «3-10 HITS: mild/moderate · >10 HITS / shower/curtain: severe» — **otra** escala, otro método | Pristipino, ídem |
+| **RESPECT, shunt grande** | «larger shunt size (**>20 microbubbles**)» | Kleindorfer, **folio e413** (hoja 50) |
+| **RESPECT, shunt sustancial** | «presence of substantial shunting (defined as **more than 10 microbubbles** of right-to-left shunt)» | Pristipino, **apéndice suplementario 4** (hoja 35; sin folio) |
+| Rasgos de alto riesgo | «In the evidence, **each study defines high-risk anatomic features in a different way**» | Kleindorfer, **folio e411**, nota al pie |
+| **Cierre — COR 1 · LOE C-EO** | decisión conjunta entre el paciente, un cardiólogo y un neurólogo, pesando la probabilidad de un papel causal del foramen | Kleindorfer, **folio e411**, apartado 5.4.5 |
+| **Cierre — COR 2a · LOE B-R** | 18 a 60 años, ACV no lacunar de causa indeterminada **tras una evaluación exhaustiva**, con rasgos anatómicos de alto riesgo | ídem |
+| **Cierre — COR 2b · LOE C-LD** | sin rasgos de alto riesgo, el beneficio **no está bien establecido** | ídem |
+| **Cierre — COR 2b · LOE C-LD** | frente a warfarina, beneficio **desconocido** | ídem |
+| Mayores de 60 | «this procedure should **rarely** be performed in older patients and only in very unusual clinical circumstances» | Kleindorfer, **folio e412** |
+| **Posición europea** | «perform percutaneous closure of a PFO in carefully selected patients aged **from 18 to 65 years** with a confirmed cryptogenic stroke, TIA, or systemic embolism and an estimated high probability of a causal role of the PFO» — **«Strong statement for the intervention»** | Pristipino, **Tabla 5, folio 1396** (hoja 8) |
+| Fuera de esa franja | «PFO closure can **also be considered** in patients >65 or <18 years of age … case-by-case» | ídem |
+| ACV lacunar | «Lacunar syndrome, with normal CT/MRI or subcortical stroke measuring **<1.5 cm**» | Kleindorfer, **folio e371** (hoja 8) |
+| ESUS | «A stroke that appears nonlacunar on neuroimaging without an obvious source after a **minimum standard evaluation** (including arterial imaging, echocardiography, extended rhythm monitoring, and key laboratory studies…)» | Kleindorfer, **folio e372** (hoja 9) |
+| Equivalencia | «the requirement that the stroke be cryptogenic is equivalent to nonlacunar stroke of undetermined source, or **ESUS**» | Kleindorfer, **folio e412** |
+| Recurrencia | «in a meta-analysis of observational trials the recurrence rate was **5% per year**» | Pristipino, **folio 1399** (hoja 11) |
+| Trombofilia | «**Routine laboratory tests for prothrombotic states (thrombophilia testing) are not warranted to indicate permanent OAC**» — **Strong · C** | Pristipino, **Tabla 4, folio 1395** (hoja 7) |
+| Anticoagulación y cierre | «Patients on temporary OAC, on OAC for pulmonary embolism or those considered at high risk of recurrences despite OAC **may undergo PFO assessment for possible closure**» — **Conditional · C** | ídem |
+| Vínculo causal alto | aneurisma del septum, hipermovilidad del septum, **shunt moderado/severo**, embolia pulmonar o trombosis venosa simultáneas; y los trastornos de la coagulación entre los de **alto riesgo de recurrencia** | Pristipino, **Figura 4, folio 1399** |
+
+### Las tres contradicciones, declaradas
+
+1. **EL OPERADOR DEL ASIA.** El folio 916 escribe el corte de un lado como «greater than 10 mm»
+   —estricto— y el de la excursión total «of 15 mm», **sin operador**; el folio 938 reescribe los
+   **dos** sin «greater than». La app aplica **`>=` en los dos**, que es lo que ya aplicaba antes
+   del D y el lado que no deja de avisar. **No se movió ningún operador.**
+2. **LOS LATIDOS.** Las **tres** redacciones de Silvestry no coinciden en el borde. La app
+   consigna el **número** de latidos, de 3 a 6, que es el rango del folio 931, y **no publica la
+   interpretación**. La banda indeterminada de 4 a 5 latidos de la ficha de Referencias recoge
+   justamente la zona donde los tres textos se pisan.
+3. **EL SHUNT GRANDE DEL RESPECT.** Kleindorfer (folio e413) le atribuye **>20 microburbujas** y
+   Pristipino, describiendo el **mismo** ensayo, **más de 10**. Por eso la app **pregunta** si el
+   shunt es grande en vez de deducirlo de su escala: con dos definiciones del mismo corte,
+   derivarlo sería elegir una y no decirlo.
+
+### Lo que NO tiene fuente, y se declara
+
+- El corte de **5 burbujas** que separa el pasaje leve del moderado **no está publicado** en
+  ninguna de las tres: Pristipino sólo separa en 20 («<20 mild/moderate»). Chip
+  «CRITERIO DE ECOSMART» en las **dos** fichas que lo citan.
+- **«Sin indicación de cierre en prevención primaria»** y **«la conducta antitrombótica la define
+  hematología»**: censadas las tres guías, ninguna tiene una fila sobre prevención **primaria**
+  —las dos de cierre tratan sólo la secundaria— ni dice que la conducta la defina hematología.
+  Van al panel de Evidencia con el chip de criterio propio.
+- **«Alto riesgo trombofílico»** no se escribe como si lo dijera una guía: lo que las fuentes
+  dicen de la trombofilia son las dos líneas de la Tabla 4 y la Figura 4 del folio 1399.
+
+### Cambios de evidencia
+
+| Dato | Antes | Ahora | Fuente | Commit | Fecha |
+|---|---|---|---|---|---|
+| Aneurisma del septum, corte | 10 mm para **cualquier** excursión | 10 mm hacia **un lado**; **15 mm** con «ambos lados» | Silvestry 2015, folio 916 | D-E1 | 22/10/2026 |
+| Latidos del pasaje | no se consignaban | selector de **3 a 6**, con 3 por defecto | Silvestry 2015, folio 931 | D-E1 | 22/10/2026 |
+| Conclusión, informe y EN SUMA del FOP | con conducta y con «ESC» | **descriptivos**, sin conducta ni guía | decisión de Maicol | D-E2 | 22/10/2026 |
+| ACV criptogénico | en el informe y en el EN SUMA | **sólo** en el PDF, como «Motivo del estudio» | decisión de Maicol | D-E2 | 22/10/2026 |
+| PDF del FOP | sección en la hoja «Estudio avanzado» | **tabla de características** en el cuerpo | decisión de Maicol | D-E2 | 22/10/2026 |
+| Cierre del FOP, atribución | «Clase IIa (**ESC**)» | **AHA/ASA 2021** (COR 1, 2a, 2b) y posición europea (declaración fuerte, GRADE) | Kleindorfer folio e411; Pristipino folio 1396 | D-E3 y D-E4 | 22/10/2026 |
+| Tabla de tiempos del test de burbuja | sin fuente | folios **931, 933 y 935**, con la contradicción declarada. **Ningún corte se movió** | Silvestry 2015 | D-E3 | 22/10/2026 |
+| `fop2019` del registro | *Eur Heart J* 2019;40:3182 | *EuroIntervention* 2019;**14**:1389-1402, que es el PDF del que salen los folios | — | D-E4 | 22/10/2026 |

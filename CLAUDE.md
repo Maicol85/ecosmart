@@ -294,6 +294,217 @@ impecable.
 
 ## Estado vigente
 
+### El FORAMEN OVAL PERMEABLE, sin dibujo — «D» (2026-10-22)
+
+- **Son CINCO commits, y son los cinco que la orden pedía.** Al **empezar**, `main` estaba en
+  **`7dcc487`** —el cierre del trabajo H, con su sello `v20261021-1056`— y `origin/main` en
+  **`bf4adb6`**, o sea que los cuatro commits del H seguían locales.
+  ⚠️ **AL CERRAR, `origin/main` YA ESTABA EN `7dcc487`: MAICOL PUSHEÓ EL H DURANTE LA TANDA.**
+  Medido con un `git fetch` de verdad —`FETCH_HEAD` fechado al momento— y un `ls-remote` dando el
+  mismo sha, no con el ref en caché. Así que lo que queda local son **los CINCO de esta tanda y
+  nada más**; el push lo corre Maicol. **Este renglón se escribió primero diciendo «nueve», copiado
+  del estado del arranque sin volver a medirlo**, que es exactamente lo que este archivo ya tiene
+  escrito como error propio: conviene remedir el remoto **al cerrar**.
+  **El orden de revertido seguro es el inverso del de aplicación: 5 → 4 → 3 → 2 → 1.**
+  ⚠️ **EL 1 ES LA BASE DE TODA LA SERIE Y SU DEPENDENCIA ES DURA:** crea `ASIA_EXC_UN_LADO_MIN`,
+  `ASIA_EXC_TOTAL_MIN`, `ASIA_LADO_TXT`, `asiaLado`, `asiaCorteMm`, `asiaPorExcursion` y
+  `fopLatidos`, y de ellos leen **cinco** consumidores —`fopConclusion`, `fopSync`, el bloque del
+  informe, `ccSumaLinea('fop')` y `_indFOP`—. Revertir el 1 sin revertir antes el 2, el 3 y el 4
+  deja esas cinco nombrando constantes que no existen, y un `ReferenceError` ahí **aborta el
+  `<script>` COMPLETO**: la app con cero pestañas con geometría.
+  ⚠️ **LAS SIETE CONSTANTES VAN DECLARADAS ANTES DE `FOP_BURB_TXT`**, por la zona muerta de
+  `const`: al revés el síntoma aparece 60.000 líneas más abajo, en otra función.
+  ⚠️ **EL 2 CUELGA DEL 1 Y EL 4 DEL 2:** el 2 reescribe `fopConclusion` —que llama a `asiaLado` y a
+  `fopLatidos`— y retira `ccHoja('fop', …)`, y el 4 publica en su cuestionario el grado del pasaje
+  y los latidos que el 1 creó. **El 3 se revierte solo**: es la ficha de Referencias, marcado
+  estático más una entrada de `REF_SUBTAB` y tres de `IND_REFS` — pero deja **TC-513** y **TC-502**,
+  **TC-507 (I8)** y **TC-509 (F3)** en rojo por el censo de entradas.
+  **El 5 es TC-513, las seis adaptaciones, la documentación y el sello**, y afirma el
+  comportamiento de los cuatro: revertir cualquiera sin el 5 lo deja en rojo.
+  ⚠️ **EL 5 TOCA `index.html` POR UNA LÍNEA, y es la razón de que el sello viaje con él:** el
+  comentario del bloque del informe afirmaba que «LAS DIEZ CLAVES llevan su cláusula esquemática»
+  cuando **siete la dejan en `null`** — el archivo contradiciéndose consigo mismo, que es cómo un
+  arreglo se deshace sin que nadie se entere.
+
+- **Línea base al cierre: suite **523/527** con el pendrive `DISK_IMG` **MONTADO** —verificado al
+  abrir Y al cerrar—, Semgrep **124 / 0 ERROR en 1 app**, Excel en **440** columnas y celular **66 a
+  360 px y 76 a 390 px con 17 ALTA cada uno**, con `--todo` **395 / 405**: el MISMO par que dejó el
+  H. CERO REGRESIONES.** Los rojos son exactamente los de ENTRADA —**TC-223** (el documentado, falla
+  por la fecha), **TC-376**, **TC-390** y **TC-406**— y no apareció ninguno fuera de esa lista.
+  **El denominador sube a 528**: esta tanda agregó **TC-513**, así que la comparación es
+  **522/526 → 523/527** y el delta es el caso nuevo.
+  Los **diecisiete** de **TC-181…TC-197** salieron **VERDES**, que es la prueba de que el pendrive
+  estuvo puesto, y el `md5` de `index.html` no se movió durante la corrida (`90803803…`, el del
+  sello).
+  ⚠️ **LA CORRIDA SE HIZO EN DOS MOMENTOS Y HAY QUE DECIR POR QUÉ.** Al cerrar la tanda el pendrive
+  estaba **DESMONTADO** —`ls /Volumes` devolvía sólo `Macintosh HD`— y la orden manda **PARAR y
+  avisar** antes de correr la suite completa en ese estado, así que se paró y lo único medido fue la
+  **ZONA: 134/138**, cuyos cuatro rojos eran **TC-190**, **TC-194** y **TC-195** —los del pendrive,
+  que son **ENTORNO**— más **TC-223**. Con el pendrive afuera habrían caído además los diecisiete, y
+  restar esa cifra contra la del H daría una «regresión» de diecisiete casos que no existe: el falso
+  que este archivo ya documenta tres veces. Maicol lo conectó y la suite completa salió después,
+  sobre el **MISMO** árbol sellado.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **527 ids** sobre los 528 casos del archivo.
+- **`index.html` pasó de 8,61 MB / 129.063 líneas a **9,08 MB / 129.705 líneas** — medido con
+  `wc -l` y `ls -l` DESPUÉS de sellar (`v20261021-1221`), no antes.
+
+- **LAS TRES REGLAS DE FOLIO SE COMPROBARON EN EL PIE O EL ENCABEZADO IMPRESO.** Silvestry 2015
+  **folio = hoja + 909**; Pristipino 2019 **folio = hoja + 1388**; Kleindorfer 2021
+  **folio = e(hoja + 363)**.
+  ⚠️ **Y LA ENTRADA `fop2019` DEL REGISTRO CITABA LA OTRA CO-PUBLICACIÓN.** El artículo salió a la
+  vez en *Eur Heart J* y en *EuroIntervention*, **con paginación distinta**, y la entrada nombraba
+  la primera mientras los folios que esta zona usa —1395, 1396 y 1399— son los de la segunda, que
+  es el PDF de la biblioteca. Citar una revista al lado del folio de la otra manda al lector a otra
+  página. **Corregida.** Y el **material suplementario no lleva folio de revista**: lo que sale de
+  ahí se cita por **hoja del PDF**.
+
+- **D-E1 · EL CORTE DEL ANEURISMA DEL SEPTUM DEPENDE DEL LADO, Y ES DE LA FUENTE.** Silvestry,
+  **folio 916**: «excursion … of greater than 10 mm … into the RA or LA **or a combined total
+  excursion right and left of 15 mm**». Entra el selector **«Se abomba hacia»** (`otr_asia_lado`,
+  AD / AI / ambos) **donde vive el ASIA** —Otros · Variantes anatómicas—, que es su único dueño, y
+  el FOP lo **LEE**: con «ambos lados» el umbral es la excursión **TOTAL** de 15 mm y con un lado
+  los 10 mm de ese lado. **Medido por los bordes: 14 mm es aneurisma con un lado y NO con «ambos»;
+  15 lo es con los dos.**
+  ⚠️ **EL OPERADOR SIGUE SIENDO `>=` Y LA FUENTE SE CONTRADICE CONSIGO MISMA:** el folio 916
+  escribe el corte de un lado «greater than 10 mm» y el total «of 15 mm», **sin operador**, y el
+  folio 938 reescribe los dos **sin** «greater than». **No se movió ningún operador** —la orden lo
+  prohíbe—. `PENDIENTES.md` → D-4.
+  **Y EL NÚMERO DE LATIDOS, de 3 a 6** (`otr_burb_lat`, Silvestry folio 931), también con un dueño
+  único en el test de burbuja de Otros y **leído** por el FOP.
+  ⚠️ **LA COMPUERTA VA EN EL DUEÑO Y NO EN CADA CONSUMIDOR:** `fopLatidos` devuelve `null` sin
+  pasaje documentado, porque el selector **nace en 3** y su control vive dentro de un bloque que
+  sólo aparece con pasaje — un formulario vacío publicaba «3 latidos» sobre un estudio en el que
+  nadie inyectó nada. Gateado ahí, las **cuatro** superficies quedan de acuerdo por construcción.
+  ⚠️ **PERO CON PASAJE EL 3 SE AFIRMA SOLO, y queda declarado:** el informe FIRMADO dice «a los 3
+  latidos» aunque el médico no haya tocado ese control, porque es el valor de fábrica que la orden
+  fija. Lo protege que la reimpresión **no reescribe** `informe_texto`. `PENDIENTES.md` → D-6.
+  **TRES COLUMNAS** —Anatomía · Shunt · Contexto clínico— con `flex:1 1 220px; min-width:0`, los
+  diez campos **sin renombrar y con su id intacto**, y **el hueco del dibujo queda VACÍO**: no se
+  reserva espacio ni se dibuja un contorno, que es lo que la orden pide.
+  ⚠️ **LOS DOS DATOS NUEVOS NO TIENEN COLUMNA DE EXCEL** —una columna nueva es PARADA— así que
+  **viajan con el estudio y no sobreviven a un backup a Excel**. `PENDIENTES.md` → D-7.
+
+- **D-E2 · LA CONCLUSIÓN, EL INFORME, EL EN SUMA Y EL PDF SON DESCRIPTIVOS.** Se van «ESC», la
+  Clase IIa, el «25 % de la población», la «recurrencia del 5 % anual» y toda indicación de cierre
+  de la pantalla, del globo ⓘ, del informe, del EN SUMA, del PDF y del PPT — **censado**.
+  ⚠️ **EL ACV CRIPTOGÉNICO SALE DEL PAPEL NARRATIVO Y ENTRA AL PDF**, por decisión de Maicol: es un
+  dato **CLÍNICO** del paciente —el motivo del estudio— y no una conclusión del eco. Consecuencia:
+  `esq` queda en **`null` en siete de las diez claves**, y las tres que la conservan dicen algo que
+  **no** es el antecedente —`descartado` niega el hallazgo, `no_interpretable` declara una medición
+  ilegible y `trombofilia` consigna otra condición—.
+  ⚠️ **LO QUE `alto_riesgo_sin_evento` DEJA DE DECIR NO SE PIERDE:** sus dos rasgos —el aneurisma y
+  el pasaje severo— están en las dos oraciones de arriba del **MISMO** párrafo, con su número.
+  **EL PÁRRAFO SE INSERTA DEBAJO DE LA AURÍCULA IZQUIERDA y no se empuja al final**: el bloque 4
+  guarda su índice (`_infTrasAI`) y el del FOP hace `inf.splice`.
+  ⚠️ **LOS LATIDOS SE PEGAN A LA ÚLTIMA CLÁUSULA Y NO SE EMPUJAN COMO UNA MÁS:** con el separador
+  del `join` el papel decía «shunt moderado (5-20 burbujas); a los 3 latidos», que se lee como
+  **dos** hallazgos.
+  **EL PDF SE TRATA COMO LA VAB:** `ccHoja('fop', …)` se retira —se va la sección de la hoja
+  «ESTUDIO AVANZADO - CARDIOPATÍAS CONGÉNITAS»— y entra `fopPdfFilas()`, una **tabla de
+  características** en el cuerpo, en los tres grupos de la pantalla, con el ACV como **«Motivo del
+  estudio»**, **sin dibujo** y sin una sola indicación.
+  ⚠️ **DEVUELVE `null` SI NO HAY NADA QUE DECIR, y esa guarda evita un papel FIRMADO equivocado:**
+  los diez campos nacen vacíos, y una sección integrada sin un solo dato publicaría una tabla
+  «FORAMEN OVAL PERMEABLE» con sus rótulos y sus rayas, que se lee como «se evaluó». Es la misma
+  guarda que `vabPdfFilas`.
+  ⚠️ **LAS PALABRAS NO SE ESCRIBEN DOS VECES:** el grado del pasaje sale de `FOP_BURB_TXT` y el
+  lado del aneurisma de `ASIA_LADO_TXT`, que son sus dueños únicos.
+
+- **D-E3 · LA FICHA DE REFERENCIAS DEL FOP, CON CADA DATO EN SU FOLIO.** Entrada nueva `ref-fop`
+  en «Otros hallazgos», con la regla del ASIA (folio 916), los latidos (931) **con sus tres
+  redacciones contradictorias**, los rasgos de alto riesgo, las **cuatro** recomendaciones de la
+  AHA/ASA 2021 (e411) con su COR y su LOE, la posición europea (Tabla 5, folio 1396) y el **chip
+  «CRITERIO DE ECOSMART»** sobre el corte de 5 burbujas. `ref-burbujas` gana una nota «Fuentes de
+  los tiempos» y **ningún corte se movió**.
+  ⚠️ **LAS TRES REDACCIONES DE LOS LATIDOS NO COINCIDEN, Y LAS TRES ESTÁN IMPRESAS:** el folio 931
+  dice «within 3-6 cardiac beats», el pie de la Figura 29 del folio 933 «within the first three
+  cardiac cycles» y los Key Points del folio 935 que **después** de 3 a 6 el shunt es
+  **intrapulmonar**. La app consigna el **número** y **no publica la interpretación**.
+  ⚠️ **Y EL «SHUNT GRANDE» DEL RESPECT TIENE DOS DEFINICIONES:** Kleindorfer (e413) escribe «>20
+  microbubbles» y Pristipino, sobre el **mismo** ensayo, «more than 10». Por eso el panel
+  **PREGUNTA**. `PENDIENTES.md` → R-4, con los dos textos localizados.
+
+- **D-E4 · LA EVIDENCIA DEL FOP ES UN CUESTIONARIO, Y LAS RECOMENDACIONES VAN EN EL BLOQUE
+  VISIBLE.** **LEE** lo cargado —edad, ASIA, grado del pasaje, latidos— y **PREGUNTA** los tres que
+  el eco no da: ACV o AIT previo, criptogénico **tras una evaluación completa**, y **shunt grande**.
+  Las nueve recomendaciones verificadas se publican en `r.bloques` —**visible**— y no en `notas`,
+  que el marco pinta dentro del «Ver detalle», que **nace PLEGADO**: es la lección que el trabajo H
+  pagó mirando la captura.
+  ⚠️ **EL «SHUNT GRANDE» SE PREGUNTA Y NUNCA SE INFIERE**, y el ACV criptogénico **tampoco se
+  calcula ni se deduce**: lo que el médico contesta vive en `_indClin` y **NO se guarda con el
+  estudio**, medido por el juego de ids del recolector.
+  **LOS DOS TEXTOS SIN FUENTE LLEVAN EL CHIP DE CRITERIO PROPIO** —«sin indicación en prevención
+  primaria» y «la conducta antitrombótica la define hematología»—: censadas las tres guías, ninguna
+  tiene una fila sobre prevención **primaria** ni dice que la conducta la defina hematología.
+
+- **A/B DE CONTROL contra el inicio de la tanda, en los CUATRO commits: 1917 claves comparadas y
+  SEIS diferencias, todas del commit 1 y todas autorizadas** —los campos del estudio de 931 a 933
+  con su hash, y `.calc-row` de 294 a 296 por los dos `<span>` de solo lectura—. **CERO
+  diferencias** en el informe en los **tres** estilos, el EN SUMA, el **Excel en 440 columnas CLAVE
+  POR CLAVE**, el **PDF GENERADO DE VERDAD en sus SEIS plantillas** por dos escenas (de 30 a 104
+  textos, todas mayores que cero), el **PPT** (21), el **PDF de auditoría** (104), el Laboratorio,
+  el almacenamiento y las ocho pastillas. **Consola limpia.**
+
+- **MEDIDO A 1200×700, 1440×800, 768×1024, 390×844 y 360×740 POR LOS DOS TEMAS: tres columnas
+  arriba de 768 px, apiladas abajo, y CERO scroll horizontal en las 10 celdas**, con `--accent2`
+  resolviendo **real y distinto** en los dos temas. **20 capturas PNG con 20 `md5` distintos**, y
+  **cuatro MIRADAS**: el FOP en sus tres columnas de noche y de día, y la sección de Evidencia con
+  su bloque de recomendaciones **visible**.
+  ⚠️ **Y UNA MIRADA CAZÓ UN DEFECTO DE MI PROPIA SONDA QUE LA MEDICIÓN NUMÉRICA DABA POR BUENO:**
+  el patrón `try { tipear } catch { sel }` mandaba la escritura al último `<input>` de TEXTO
+  enfocado cuando el blanco era un `<select>`, así que `fop_asa_mm` decía **«12sisimoderadosi»** y
+  `v('fop_asa_mm')` leía **12** igual. Se decide por el `tagName`.
+
+- **Cobertura: TC-513**, **61 condiciones** en diez grupos, con sus denominadores y sus controles
+  negativos. **Verificado que sabe fallar contra el inicio de la tanda en un worktree aparte: 46 de
+  las 61 en rojo, y NINGUNA por excepción.**
+  ⚠️ **MURIÓ POR EXCEPCIÓN CONTRA EL ÁRBOL DE ENTRADA EN SU PRIMERA VERSIÓN** —un `.filter` sobre
+  lo que `fopPdfFilas` devuelve cuando esa función no existe—, y **un caso que muere por excepción
+  prueba que el árbol es distinto, no que sabe medir**. Va con `Array.isArray`.
+- ⚠️ **CASOS ADAPTADOS: SEIS, y TRES los destapó la corrida de ZONA.** **TC-501** (M1 y M2: la
+  frase gana los latidos y pierde el antecedente; **gana (M2b)**, que exige que el antecedente no
+  esté en ninguna de las dos superficies), **TC-506** —cuyo (F8) usaba el **FOP** como control de
+  que otra cardiopatía congénita sigue imprimiendo su hoja, y hoy (F8) afirma que el FOP **tampoco**
+  aporta y **(F8b)** usa la **CIA**: mide dos retiros y un remanente donde medía uno y uno—,
+  **TC-509 (F3)** y **TC-502** (el censo de Referencias de 30 a 31, los dos exigiendo que la que
+  entró sea la del FOP), **TC-507 (I8)** y **TC-322** (su SEED gana la sección nueva).
+
+- ⚠️ **SIETE TRAMPAS, Y CUATRO DABAN MEDICIONES FALSAS Y PLAUSIBLES.**
+  1. **El tecleo que se va al campo anterior** (arriba), que la captura cazó y la lectura no.
+  2. **El escape de espacio en blanco se cocina dentro de un template literal** y deja `/s+/g`,
+     que se come todas las eses: «Silvestry» salía «Silve try». Pasó en la sonda **y** en el caso.
+  3. **Y una clase de caracteres con los escapes de tabulación y salto se cocina a caracteres
+     REALES**, y un salto real dentro de un literal de regex **no parsea**. Se normaliza sin regex.
+  4. **Un par BALANCEADO de acentos graves dentro del cuerpo de un caso lo cierra igual** y
+     `scripts/check_backticks.py` da «OK»: me los comí **tres** veces en TC-513 y en las
+     adaptaciones, y una más en el probe. **Los cuatro los dio `node --check`. Correr los dos.**
+  5. **Una sección cerrada mide 0×0** —el acordeón se pliega con `max-height:0`—: hay que abrirla
+     por su GESTO antes de pedir geometría.
+  6. **`showTab('congenitas')` LANZA desde el cuerpo de un caso** —está envuelta dos veces en el
+     árbol del suite—: se entra por el **clic en el botón del rail**, que es el gesto del médico.
+  7. **El bloque «Lo que falta» NOMBRA la fila Clase 2a** para decir que falta un dato, así que un
+     control que busque ese literal en TODOS los bloques lee como publicada una recomendación que
+     no se publicó.
+  ⚠️ **Y UN `git stash -q` ANTES DE `git worktree add` SE LLEVÓ EL TRABAJO SIN COMMITEAR DEL
+  COMMIT 3**, recuperado con `git stash pop`. **Un worktree no necesita el árbol limpio.**
+
+- **Dónde está todo:** `docs/mapa/fop-burbuja-unificado.md` (**NUEVE secciones**, 18,2 KB: las dos
+  constantes del ASIA con su tabla de bordes, los latidos con su compuerta, las tres columnas, la
+  tabla de qué dice y qué ya no dice el papel, la ficha, el cuestionario, las siete trampas, la
+  ficha de **TC-513** y la tabla de los **seis casos adaptados**); cuatro mapas con un puntero cada
+  uno (`otros-hallazgos` 18,9 KB · `congenitas-otros` 28,2 · `referencias-subpestanas` 19,5 ·
+  `tests-fichas` 34,2); `docs/fuentes/FUENTES.md` → «El trabajo D», con las **tres reglas de
+  folio**, los veintiún datos verificados uno por uno, las **tres contradicciones** y la tabla de
+  **Cambios de evidencia**; y `docs/PENDIENTES.md` → **ARR-5 y ARR-8 marcados CERRADOS**, **R-4
+  actualizada** más **nueve** cosas declaradas (D-1 a D-9).
+  ⚠️ **TRES MAPAS NO SE TOCARON, LOS TRES POR TAMAÑO, medido con `wc -c` ANTES de escribir:**
+  `panel-evidencia.md` está en **35,3 KB** —o sea **ya cruzado** desde el 2026-10-12—,
+  `vab-bicuspide.md` y `tests-fichas.md` a menos de 4 KB del techo. La ficha de TC-513 vive
+  **dentro** del mapa nuevo y a `tests-fichas.md` le entraron **cuatro líneas de puntero**, que lo
+  dejaron en 34,2 KB. **Ningún mapa cruzó el techo.** `PENDIENTES.md` → D-9.
+
 
 ### La AORTA — las citas por aortopatía, la coartación y el motor de Evidencia — «H» (2026-10-21)
 

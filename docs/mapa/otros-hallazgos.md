@@ -290,3 +290,25 @@ operadores, fórmulas, textos clínicos, ids— se movió; lo que cambió son la
 **El mapa de todo eso es `docs/mapa/pestanas-reorganizacion.md`**, con la tabla «qué se movió»,
 las tres cosas que `showTab` hace y que condicionan cualquier barra de sub-pestañas, el drawer
 móvil y sus `data-mod`, y las seis trampas de medición.
+
+---
+
+## El trabajo «D» (2026-10-22) — el foramen oval: puntero
+
+La tanda del **FOP** vive en `docs/mapa/fop-burbuja-unificado.md` → «El trabajo D». Lo que toca
+de esta zona:
+
+- **`otr_asia_lado`** («Se abomba hacia»: AD, AI o ambos) nace en **Otros · Variantes
+  anatómicas**, al lado de `otr_asia`, y es su **dueño único**. Decide el corte del aneurisma
+  del septum: 10 mm hacia un lado, **15 mm de excursión total** con «ambos lados» (Silvestry
+  2015, folio 916). Sin consignar manda el de 10, que es el que la app aplica desde siempre.
+- **`otr_burb_lat`** (3 a 6 latidos, con el **3 por defecto**) nace en **Otros · Test de
+  burbuja**, dentro de `otr-burb-pos`, y también es dueño único (Silvestry 2015, folio 931).
+  Su primera opción es el 3 y la vacía va última: `limpiarCampos` hace `selectedIndex = 0`.
+- La sección del FOP de «CC frecuentes» pasa a **tres columnas** —Anatomía, Shunt y Contexto
+  clínico— y **lee** esos dos datos en dos `<span>` de solo lectura. **Sin dibujo.**
+- La ficha **«Foramen Oval Permeable — ASIA, shunt y cierre»** entra en Referencias ·
+  **Otros hallazgos**, pegada a la del test de burbuja; la de **Test de Burbujas** gana la
+  **fuente** de su tabla de tiempos, y **ni un corte de esa tabla se movió**.
+- La conclusión, el informe y el EN SUMA del FOP son **descriptivos**: sin «ESC», sin indicación
+  de cierre y **sin el ACV criptogénico**, que pasa al PDF como «Motivo del estudio».

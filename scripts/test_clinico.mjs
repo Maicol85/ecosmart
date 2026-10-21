@@ -77431,10 +77431,18 @@ caso('TC-501', 'Tanda ARR: un campo VACIO es SIN DATO - las once referencias que
     const conEdad = esc(EJ);
     const SE = {}; Object.keys(EJ).forEach(function (k) { if (k !== 'edad') SE[k] = EJ[k]; });
     const sinEdad = esc(SE);
+    /* ADAPTADO el 2026-10-22 (trabajo D, commits D-E1 y D-E2). DOS cosas de la frase cambian y
+       las dos estan autorizadas por esa orden:
+         · el NUMERO DE LATIDOS se pega a la ultima clausula del test de burbuja (D-E1), y con el
+           selector en su valor de fabrica son 3;
+         · el ACV CRIPTOGENICO SALE del informe y del EN SUMA (D-E2): es un dato CLINICO del
+           paciente, va al PDF como «Motivo del estudio» y las siete claves cuya clausula no decia
+           otra cosa que ese antecedente quedaron con su clausula en nulo.
+       El caso NO pierde cobertura: se exige la frase nueva COMPLETA, el EN SUMA nuevo COMPLETO y
+       —esto es nuevo— que el antecedente NO aparezca en ninguna de las dos superficies. */
     const FRASE = 'Foramen oval permeable (t' + String.fromCharCode(250) + 'nel de 8 mm), con septum interauricular m'
       + String.fromCharCode(243) + 'vil y aneurisma del septum (excursi' + String.fromCharCode(243)
-      + 'n de 22 mm). Test de burbuja: sin shunt en reposo; con maniobra de Valsalva, shunt moderado (5-20 burbujas). Con ACV criptog'
-      + String.fromCharCode(233) + 'nico.';
+      + 'n de 22 mm). Test de burbuja: sin shunt en reposo; con maniobra de Valsalva, shunt moderado (5-20 burbujas) a los 3 latidos.';
     ex.push(['(M0) DENOMINADOR: la seccion del FOP se integra al informe',
       conEdad.inc === true, 'incluir=' + conEdad.inc]);
     ex.push(['(M1) el informe es ESQUEMATICO y sale con la frase exacta de la orden',
@@ -77443,9 +77451,12 @@ caso('TC-501', 'Tanda ARR: un campo VACIO es SIN DATO - las once referencias que
     ex.push(['(M2) y el EN SUMA en el estilo aprobado',
       conEdad.suma.indexOf('FOP ' + String.fromCharCode(8212) + ' t' + String.fromCharCode(250)
         + 'nel 8 mm ' + String.fromCharCode(8212) + ' shunt con Valsalva ' + String.fromCharCode(8212)
-        + ' aneurisma del septum (22 mm) ' + String.fromCharCode(8212) + ' con ACV criptog'
-        + String.fromCharCode(233) + 'nico') >= 0,
+        + ' aneurisma del septum (22 mm)') >= 0,
       conEdad.suma.split(String.fromCharCode(10)).filter(function (l) { return l.indexOf('FOP') >= 0; }).join(' // ')]);
+    /* CONTROL del D-E2, en la direccion contraria: el antecedente NO va al papel narrativo. */
+    ex.push(['(M2b) el ACV criptogenico NO aparece en el informe ni en el EN SUMA (D-E2)',
+      conEdad.inf.indexOf('criptog') < 0 && conEdad.suma.indexOf('criptog') < 0,
+      'inf=' + (conEdad.inf.indexOf('criptog') < 0) + ' suma=' + (conEdad.suma.indexOf('criptog') < 0)]);
     ex.push(['(M3) el AVISO DE LA EDAD se omite: con edad y sin edad el informe y el EN SUMA son IDENTICOS',
       conEdad.inf === sinEdad.inf && conEdad.suma === sinEdad.suma
         && sinEdad.inf.indexOf('falta la edad del paciente') < 0
@@ -79696,12 +79707,24 @@ caso('TC-506', 'Tanda Y3f: la FEVI y el DSFVI como UN SOLO valor en los dos sent
   const _hojas = FN('ccEnInforme') ? ccEnInforme().map(h => h.k) : 'SIN FN';
   ex.push(['(F7) la VAB ya no aporta a la hoja «Estudio avanzado - Cardiopatias congenitas»',
     Array.isArray(_hojas) && _hojas.indexOf('vab') < 0, JSON.stringify(_hojas)]);
+  /* ADAPTADO el 2026-10-22 (trabajo D, commit D-E2): el CONTROL usaba el FOP, y desde el D-E2 el
+     FOP tampoco aporta a esa hoja —su llamada se retiro y el papel publica una TABLA de
+     caracteristicas en el cuerpo, igual que la VAB—. El control pasa a la CIA, que es un modulo
+     que ese trabajo no toca, y el caso gana la afirmacion de que el FOP ya no aporta: o sea mide
+     DOS retiros y un remanente donde antes media un retiro y un remanente. */
   __t.limpiar(); try { showTab('ete'); } catch (e) {}
   __t.chk('fop_incluir_chk', true); __t.set('fop_tunel', '8');
   __t.informe();
+  const _hojasFop = FN('ccEnInforme') ? ccEnInforme().map(h => h.k) : 'SIN FN';
+  ex.push(['(F8) el FOP tampoco aporta a esa hoja desde el trabajo D',
+    Array.isArray(_hojasFop) && _hojasFop.indexOf('fop') < 0, JSON.stringify(_hojasFop)]);
+  __t.limpiar(); try { showTab('ete'); } catch (e) {}
+  __t.set('ete_cia_tipo', 'secundum'); __t.set('ete_cia_tam_max', '18');
+  __t.chk('ete_shunt_incluir_chk', true);
+  __t.informe();
   const _hojas2 = FN('ccEnInforme') ? ccEnInforme().map(h => h.k) : 'SIN FN';
-  ex.push(['(F8) CONTROL: otra cardiopatia congenita SIGUE imprimiendo su hoja',
-    Array.isArray(_hojas2) && _hojas2.indexOf('fop') > -1, JSON.stringify(_hojas2)]);
+  ex.push(['(F8b) CONTROL: otra cardiopatia congenita -la CIA- SIGUE imprimiendo su hoja',
+    Array.isArray(_hojas2) && _hojas2.indexOf('cia') > -1, JSON.stringify(_hojas2)]);
 
   /* ══ (G) LOS DIBUJOS, EL ARCO Y EL ARIA-LABEL ═══════════════════════════════════════════ */
   __t.limpiar(); _irVab();
@@ -81258,15 +81281,21 @@ caso('TC-509', 'Trabajo B (ADAPTADO por el B2): la columna izquierda con sus ONC
     (function () { const ORDEN = OB('REF_SUB_ORDEN') || [];
       if (ORDEN.length !== 6 || ORDEN[0] !== 'calc') return false;
       /* El censo: un h2.card-head con un onclick de toggleRef dentro de #tab-refs. Es la misma
-         definicion de «entrada» que usa TC-502, y las tarjetas de Calculadoras no la cumplen. */
+         definicion de «entrada» que usa TC-502, y las tarjetas de Calculadoras no la cumplen.
+         ADAPTADO el 2026-10-22 (trabajo D, commit D-E3): el censo pasa de 30 a 31 entradas. La
+         que entra es la ficha del FORAMEN OVAL PERMEABLE, en la subpestana «Otros hallazgos», y
+         es la del trabajo D. Lo que esta condicion vigila -que el reparto en seis subpestanas no
+         pierda ni duplique una entrada- no cambia; lo que cambia es el denominador, y se exige
+         ademas que la que entro sea la del FOP. */
       const t = EL('tab-refs');
       const n = t ? [].slice.call(t.querySelectorAll('h2.card-head'))
         .filter(function (h) { return (h.getAttribute('onclick') || '').indexOf("toggleRef('") > -1; }).length : -1;
-      return n === 30; })(),
+      return n === 31 && !!EL('ref-fop'); })(),
     (function () { const t = EL('tab-refs');
       const n = t ? [].slice.call(t.querySelectorAll('h2.card-head'))
         .filter(function (h) { return (h.getAttribute('onclick') || '').indexOf("toggleRef('") > -1; }).length : -1;
-      return 'orden=' + (OB('REF_SUB_ORDEN') || []).join(',') + ' entradas=' + n; })()]);
+      return 'orden=' + (OB('REF_SUB_ORDEN') || []).join(',') + ' entradas=' + n
+        + ' ref-fop=' + !!EL('ref-fop'); })()]);
 
   /* ══ (G) C. CONGENITAS ═════════════════════════════════════════════════════════════════ */
   ex.push(['(G1) UN solo boton «C. Congenitas» arriba y las DOS pestanas con su barra adentro',
@@ -82343,6 +82372,354 @@ caso('TC-512', 'Trabajo H: las citas de aorta por sindrome —Tabla 62 solo Marf
       inf2.inf.indexOf('McConnell') > -1 || inf2.inf.length > 100]);
     ex.push(['CONTROL: y el informe no nombra ninguna aortopatia sin que se la consigne',
       inf2.inf.indexOf('Aortopatía') === -1]);
+    return { extra: ex };
+  })();
+`);
+
+/* == TC-513 - EL TRABAJO D: EL FORAMEN OVAL =================================================
+   Cubre los cuatro commits de la tanda: la pantalla en tres columnas con «Se abomba hacia» y
+   el numero de latidos, la conclusion y el informe DESCRIPTIVOS con el ACV criptogenico fuera
+   del papel narrativo y dentro del PDF, la ficha de Referencias y la Evidencia como
+   cuestionario con sus recomendaciones en el bloque VISIBLE.
+   ADVERTENCIA 1: LA MAQUETA SE AFIRMA POR LA REGLA Y NO POR EL ANCHO. El cuerpo de un caso
+   corre DENTRO de la pagina y no puede cambiar el viewport; el suite corre a ~756 px, donde
+   las tres columnas ya entran. Que apilen a 390 y 360 px y que no haya scroll horizontal lo
+   mide scripts/_probe_d.mjs en sus diez celdas. Es el reparto de TC-460.
+   ADVERTENCIA 2: EL PDF SE MIDE POR SU DUENO (fopPdfFilas) Y POR LA HOJA DE CC (ccEnInforme).
+   Generarlo de verdad en sus seis plantillas lo hace la sonda, que tiene el canal para
+   envolver el constructor de jsPDF. */
+caso('TC-513', 'Trabajo D: el FOP en TRES columnas con «Se abomba hacia» y el numero de latidos de UN solo dueno en Otros; el corte del aneurisma del septum a 10 mm hacia un lado y 15 mm de excursion total; la conclusion, el informe y el EN SUMA DESCRIPTIVOS, sin «ESC», sin indicacion de cierre y sin el ACV criptogenico, que si va al PDF como motivo del estudio; el PDF con su tabla de caracteristicas y sin la hoja «Estudio avanzado»; la ficha de Referencias con cada dato en su folio y el chip del corte de 5 burbujas; la Evidencia como cuestionario con las recomendaciones en el bloque VISIBLE y los dos textos sin fuente rotulados; y el informe ajeno, el PPT, el Laboratorio y las 440 columnas del Excel sin moverse', `
+  const ex = [];
+  const EL2 = (id) => document.getElementById(id);
+  const T = (id) => { const e = EL2(id); return e ? (e.textContent || '').replace(/\u00a0/g, ' ').trim() : 'NO EXISTE ' + id; };
+  const H = document.documentElement.innerHTML;
+  const FN2 = (n) => typeof window[n] === 'function';
+
+  /* == A - LA PANTALLA EN TRES COLUMNAS ==================================================== */
+  __t.limpiar();
+  const sec = EL2('sacc-cc-fop');
+  const cols = sec ? Array.prototype.slice.call(sec.querySelectorAll('.fop-col')) : [];
+  ex.push(['(DENOM A) la seccion del FOP existe y tiene TRES columnas',
+    !!sec && cols.length === 3, 'n=' + cols.length]);
+  const tits = cols.map(function(c){ const t = c.querySelector('.fop-col-tit');
+    return t ? (t.textContent || '').trim() : null; });
+  ex.push(['(A1) los tres rotulos son Anatomia, Shunt y Contexto clinico',
+    tits.join('|') === 'Anatomía|Shunt|Contexto clínico', tits.join('|')]);
+  const colDe = function(id){ const e = EL2(id); if (!e) return 'NO EXISTE';
+    let p2 = e; while (p2 && p2 !== sec) {
+      if (p2.classList && p2.classList.contains('fop-col')) return cols.indexOf(p2);
+      p2 = p2.parentNode; } return -1; };
+  const REPARTO = { fop_tunel:0, fop_mov:0, fop_asa:0, fop_asa_mm:0, 'fop-asa-lado':0,
+    'fop-asa-interp':0, fop_contraste:1, fop_shunt_reposo:1, fop_shunt_valsalva:1,
+    fop_burbujas:1, 'fop-burb-lat':1, 'fop-shunt-grado':1, fop_acv:2, fop_trombofilia:2 };
+  const malCol = Object.keys(REPARTO).filter(function(k){ return colDe(k) !== REPARTO[k]; });
+  ex.push(['(A2) los CATORCE campos estan en la columna que les toca',
+    malCol.length === 0, JSON.stringify(malCol)]);
+  ex.push(['(A3) los dos datos de UN solo dueno se LEEN: son span, no controles',
+    (EL2('fop-asa-lado') || {}).tagName === 'SPAN' && (EL2('fop-burb-lat') || {}).tagName === 'SPAN',
+    (EL2('fop-asa-lado') || {}).tagName + '/' + (EL2('fop-burb-lat') || {}).tagName]);
+  ex.push(['(A4) el boton «Integrar al informe» de la seccion existe',
+    !!document.querySelector('[data-ete-chk="fop_incluir_chk"]'), '']);
+  /* La prosa de pantalla dejo de publicar conducta y datos sin cita. */
+  const cuerpoSec = sec ? (sec.textContent || '') : '';
+  ex.push(['(A5) la pantalla ya no dice «ESC», ni el 25 % ni la recurrencia del 5 % anual',
+    cuerpoSec.indexOf('ESC') === -1 && cuerpoSec.indexOf('25 % de la población') === -1 &&
+    cuerpoSec.indexOf('5 % anual') === -1, cuerpoSec.slice(0, 120)]);
+
+  /* == B - EL ASIA Y LOS LATIDOS: UN DUENO, LOS DOS SENTIDOS Y LOS CORTES ================== */
+  ex.push(['(DENOM B) los dos duenos viven en Otros y el FOP no los duplica',
+    !!EL2('otr_asia_lado') && !!EL2('otr_burb_lat') && !EL2('fop_asa_lado') && !EL2('fop_burb_lat'),
+    '']);
+  const opsDe = function(id){ const e = EL2(id); return e
+    ? Array.prototype.slice.call(e.options).map(function(o){ return o.value; }).join(',') : 'NO EXISTE'; };
+  ex.push(['(B1) «Se abomba hacia» ofrece AD, AI y ambos, mas la opcion vacia',
+    opsDe('otr_asia_lado') === ',ad,ai,ambos', opsDe('otr_asia_lado')]);
+  ex.push(['(B2) los latidos van de 3 a 6, con el 3 PRIMERO y la vacia ultima',
+    opsDe('otr_burb_lat') === '3,4,5,6,', opsDe('otr_burb_lat')]);
+  __t.limpiar();
+  ex.push(['(B3) y «Nuevo estudio» repone el 3 por defecto',
+    (EL2('otr_burb_lat') || {}).value === '3', (EL2('otr_burb_lat') || {}).value]);
+  /* El espejo del ASIA en los DOS sentidos. */
+  __t.limpiar(); __t.chk('otr_asia', true);
+  ex.push(['(B4) marcar el ASIA en Otros lo prende en el FOP',
+    (EL2('fop_asa') || {}).value === 'si', (EL2('fop_asa') || {}).value]);
+  __t.limpiar(); __t.set('fop_asa', 'si');
+  ex.push(['(B5) y ponerlo en el FOP marca la casilla de Otros',
+    !!(EL2('otr_asia') || {}).checked, String((EL2('otr_asia') || {}).checked)]);
+  /* El corte por lado, por sus TRIPLETES. Un solo valor no separa un corte. */
+  const asaEsc = function(lado, mm){ __t.limpiar();
+    if (lado) __t.set('otr_asia_lado', lado);
+    __t.set('fop_asa_mm', String(mm));
+    __t.set('fop_contraste','si'); __t.set('fop_shunt_valsalva','si'); __t.set('fop_acv','no');
+    return { corte: FN2('asiaCorteMm') ? asiaCorteMm() : 'SIN FN',
+             sig: FN2('asiaPorExcursion') ? asiaPorExcursion(mm) : 'SIN FN',
+             clave: FN2('fopConclusion') ? (fopConclusion() || {}).clave : 'SIN FN',
+             interp: T('fop-asa-interp') }; };
+  const u9 = asaEsc('ad', 9), u10 = asaEsc('ad', 10), u11 = asaEsc('ad', 11);
+  const a14 = asaEsc('ambos', 14), a15 = asaEsc('ambos', 15), a16 = asaEsc('ambos', 16);
+  const s12 = asaEsc('', 12);
+  ex.push(['(B6) con un solo lado el corte es 10: 9 no, 10 si, 11 si',
+    u9.corte === 10 && u10.corte === 10 && u9.sig === false && u10.sig === true && u11.sig === true,
+    JSON.stringify([u9.sig, u10.sig, u11.sig])]);
+  ex.push(['(B7) con «ambos lados» el corte es 15: 14 no, 15 si, 16 si',
+    a14.corte === 15 && a14.sig === false && a15.sig === true && a16.sig === true,
+    JSON.stringify([a14.corte, a14.sig, a15.sig, a16.sig])]);
+  ex.push(['(B8) y una excursion de 12 mm cambia de veredicto segun el lado',
+    asaEsc('ad', 12).clave === 'alto_riesgo_sin_evento' && asaEsc('ambos', 12).clave === 'incidental',
+    asaEsc('ad', 12).clave + ' / ' + asaEsc('ambos', 12).clave]);
+  ex.push(['(B9) SIN lado consignado manda el corte de 10 mm, que es el de siempre',
+    s12.corte === 10 && s12.sig === true, JSON.stringify([s12.corte, s12.sig])]);
+  ex.push(['(B10) la interpretacion de la pantalla NOMBRA el corte que aplica',
+    u10.interp.indexOf('10 mm)') > -1 && a15.interp.indexOf('15 mm)') > -1,
+    u10.interp + ' | ' + a15.interp]);
+  /* Los latidos: el espejo y su compuerta. */
+  const latEsc = function(n){ __t.limpiar();
+    __t.set('fop_contraste','si'); __t.set('fop_shunt_valsalva','si'); __t.set('fop_burbujas','moderado');
+    __t.set('otr_burb_lat', n);
+    return { lee: FN2('fopLatidos') ? fopLatidos() : 'SIN FN', span: T('fop-burb-lat') }; };
+  const l3 = latEsc('3'), l6 = latEsc('6'), lv = latEsc('');
+  ex.push(['(B11) los latidos se LEEN del dueno y se publican en el FOP',
+    l3.lee === '3' && l6.lee === '6' && l6.span.indexOf('6 latidos') === 0,
+    JSON.stringify([l3.lee, l6.lee, l6.span.slice(0, 20)])]);
+  ex.push(['(B12) sin consignar no hay numero',
+    lv.lee === null && lv.span.indexOf('se consigna en Otros') > -1, String(lv.lee)]);
+  __t.limpiar(); __t.set('otr_burb_lat','4');
+  ex.push(['(CONTROL B13) SIN pasaje documentado el dueno NO publica latidos',
+    (FN2('fopLatidos') ? fopLatidos() : 'SIN FN') === null,
+    String(FN2('fopLatidos') ? fopLatidos() : 'SIN FN')]);
+
+  /* == C - CONCLUSION, INFORME Y EN SUMA DESCRIPTIVOS ====================================== */
+  const esc = function(o){ __t.limpiar();
+    Object.keys(o).forEach(function(k){ __t.set(k, String(o[k])); });
+    __t.chk('fop_incluir_chk', true);
+    const c = FN2('fopConclusion') ? fopConclusion() : null;
+    const i = __t.informe();
+    return { c: c, concl: T('fop-concl'), inf: i.inf, suma: i.suma }; };
+  const E_ACV = esc({ edad:'45', fop_tunel:'8', fop_asa:'si', fop_asa_mm:'12', otr_asia_lado:'ad',
+    fop_contraste:'si', fop_shunt_valsalva:'si', fop_burbujas:'moderado', otr_burb_lat:'4', fop_acv:'si' });
+  const E_MAY = esc({ edad:'70', fop_contraste:'si', fop_shunt_valsalva:'si',
+    fop_burbujas:'abundante', fop_acv:'si' });
+  const E_INC = esc({ edad:'50', fop_tunel:'6', fop_contraste:'si', fop_shunt_reposo:'si',
+    fop_burbujas:'pocas', fop_acv:'no' });
+  ex.push(['(DENOM C) las tres escenas producen conclusion y parrafo',
+    !!(E_ACV.c && E_MAY.c && E_INC.c) && E_ACV.inf.indexOf('Foramen oval permeable') > -1,
+    (E_ACV.c || {}).clave + '/' + (E_MAY.c || {}).clave + '/' + (E_INC.c || {}).clave]);
+  const PROHIBIDO = ['ESC', 'indicación de cierre', 'Clase IIa', 'cierre percutáneo', 'criptogénico'];
+  const sucias = [];
+  [['acv', E_ACV], ['mayor', E_MAY], ['incid', E_INC]].forEach(function(p2){
+    PROHIBIDO.forEach(function(w){
+      if (p2[1].inf.indexOf(w) > -1) sucias.push(p2[0] + ':inf:' + w);
+      if (p2[1].suma.indexOf(w) > -1) sucias.push(p2[0] + ':suma:' + w); }); });
+  ex.push(['(C1) ni el informe ni el EN SUMA dicen ESC, indicacion, Clase IIa, cierre percutaneo ni criptogenico',
+    sucias.length === 0, JSON.stringify(sucias)]);
+  ex.push(['(C2) la CONCLUSION trae la excursion con su lado y el pasaje con sus latidos',
+    E_ACV.concl.indexOf('excursión de 12 mm hacia la aurícula derecha') > -1 &&
+    E_ACV.concl.indexOf('moderado (5-20)') > -1 && E_ACV.concl.indexOf('a los 4 latidos') > -1,
+    E_ACV.concl.slice(0, 200)]);
+  ex.push(['(C3) y la conclusion tampoco indica nada',
+    E_ACV.concl.indexOf('cierre') === -1 && E_ACV.concl.indexOf('ESC') === -1,
+    E_ACV.concl.slice(0, 80)]);
+  /* El parrafo va JUSTO DEBAJO de la descripcion de la auricula izquierda. */
+  const lineas = E_ACV.inf.split(String.fromCharCode(10)).filter(function(l){ return l.trim(); });
+  const iAI = lineas.findIndex(function(l){ return /^(AI |Aurícula izquierda|La aurícula izquierda)/.test(l); });
+  const iFOP = lineas.findIndex(function(l){ return l.indexOf('Foramen oval permeable') === 0; });
+  ex.push(['(C4) el parrafo del FOP va inmediatamente DESPUES de la auricula izquierda',
+    iAI > -1 && iFOP === iAI + 1, 'iAI=' + iAI + ' iFOP=' + iFOP]);
+  ex.push(['(C5) el informe NO lleva el titulo de cardiopatias congenitas',
+    E_ACV.inf.indexOf('Cardiopatías congénitas y miocardiopatías genéticas') === -1, '']);
+  ex.push(['(C6) el informe nombra los latidos del pasaje',
+    E_ACV.inf.indexOf('a los 4 latidos') > -1, '']);
+
+  /* == D - EL ACV CRIPTOGENICO: FUERA DEL PAPEL NARRATIVO, DENTRO DEL PDF ================== */
+  /* La escena se REPONE antes de medir el papel: esc() deja en pantalla la ULTIMA que corrio,
+     y medir la tabla del PDF sobre la escena incidental daria seis filas sin aneurisma — un
+     denominador roto con pinta de medicion buena. */
+  esc({ edad:'45', fop_tunel:'8', fop_asa:'si', fop_asa_mm:'12', otr_asia_lado:'ad',
+    fop_contraste:'si', fop_shunt_valsalva:'si', fop_burbujas:'moderado', otr_burb_lat:'4', fop_acv:'si' });
+  const filasPdf = FN2('fopPdfFilas') ? fopPdfFilas() : 'SIN FN';
+  const rotulos = Array.isArray(filasPdf) ? filasPdf.map(function(f){ return f[0]; }) : [];
+  ex.push(['(D1) la tabla del PDF publica el ACV criptogenico como MOTIVO DEL ESTUDIO',
+    rotulos.indexOf('Motivo del estudio: ACV criptogenico') > -1, JSON.stringify(rotulos)]);
+  ex.push(['(D2) y el informe y el EN SUMA no lo nombran',
+    E_ACV.inf.indexOf('ACV') === -1 && E_ACV.suma.indexOf('ACV') === -1, '']);
+
+  /* == E - EL PDF DEL FOP: SU TABLA Y SIN LA HOJA «ESTUDIO AVANZADO» ======================= */
+  ex.push(['(DENOM E) la tabla del PDF tiene filas con el estudio cargado',
+    Array.isArray(filasPdf) && filasPdf.length >= 8, 'n=' + (Array.isArray(filasPdf) ? filasPdf.length : filasPdf)]);
+  /* CENTINELA: contra un arbol sin fopPdfFilas esto es la cadena 'SIN FN', y un .filter
+     sobre ella MATA la corrida entera — un caso que muere por excepcion prueba que el arbol es
+     distinto, no que sabe medir. Es la leccion que TC-455, TC-462, TC-465 y TC-474 ya pagaron. */
+  const filaExc = Array.isArray(filasPdf)
+    ? (filasPdf.filter(function(f){ return f[0] === 'Excursion del aneurisma'; })[0] || [])
+    : [];
+  ex.push(['(E1) la tabla lleva la excursion con su lado y los latidos',
+    rotulos.indexOf('Excursion del aneurisma') > -1 && rotulos.indexOf('Latidos del pasaje') > -1 &&
+    String(filaExc[1] || '').indexOf('hacia la auricula derecha') > -1,
+    JSON.stringify(filaExc)]);
+  ex.push(['(E2) el FOP ya NO deja seccion en la hoja «Estudio avanzado - Cardiopatias congenitas»',
+    FN2('ccEnInforme') && !(ccEnInforme() || []).some(function(x){ return x.k === 'fop'; }),
+    JSON.stringify((FN2('ccEnInforme') ? ccEnInforme() : []).map(function(x){ return x.k; }))]);
+  __t.limpiar();
+  ex.push(['(CONTROL E3) con la seccion VACIA la tabla del PDF devuelve null',
+    (FN2('fopPdfFilas') ? fopPdfFilas() : 'SIN FN') === null,
+    JSON.stringify(FN2('fopPdfFilas') ? fopPdfFilas() : 'SIN FN')]);
+
+  /* == F - LA FICHA DE REFERENCIAS ======================================================== */
+  const fichaFop = EL2('ref-fop');
+  ex.push(['(DENOM F) la ficha del FOP existe y esta en el reparto de «Otros hallazgos»',
+    !!fichaFop && typeof REF_SUBTAB !== 'undefined' && REF_SUBTAB.otros.indexOf('fop') > -1, '']);
+  /* ADVERTENCIA: el escape de espacio en blanco se COCINA dentro del cuerpo de un caso y deja
+     /s+/g, que se come todas las eses del texto leido. Se normaliza partiendo y volviendo a
+     unir, sin ningun regex. */
+  const norm = (t) => { let r = String(t || '');
+    [10, 9, 13, 160].forEach(function(c){ r = r.split(String.fromCharCode(c)).join(' '); });
+    while (r.indexOf('  ') > -1) r = r.split('  ').join(' ');
+    return r.trim(); };
+  const tFop = fichaFop ? norm(fichaFop.textContent) : '';
+  const FOLIOS = ['folio 916', 'folio 912', 'folio 931', 'folio 933', 'folio 935',
+                  'e411', 'e412', 'e413', 'folio 1395', 'folio 1396', 'folio 1399'];
+  const faltanF = FOLIOS.filter(function(f){ return tFop.indexOf(f) === -1; });
+  ex.push(['(F1) la ficha cita los ONCE folios verificados', faltanF.length === 0, JSON.stringify(faltanF)]);
+  ex.push(['(F2) el cierre se cita con la AHA/ASA 2021 y con sus clases y niveles',
+    tFop.indexOf('AHA/ASA 2021') > -1 && tFop.indexOf('C-EO') > -1 && tFop.indexOf('B-R') > -1 &&
+    tFop.indexOf('C-LD') > -1, '']);
+  ex.push(['(F3) y declara que el documento europeo NO usa las clases de la ESC',
+    tFop.indexOf('no usa las clases I/IIa/IIb de la ESC') > -1, '']);
+  ex.push(['(F4) la ficha lleva el chip «CRITERIO DE ECOSMART» por el corte de 5 burbujas',
+    tFop.indexOf('CRITERIO DE ECOSMART') > -1 && tFop.indexOf('5 burbujas') > -1, '']);
+  const fichaBurb = EL2('ref-burbujas');
+  const tBurb = fichaBurb ? norm(fichaBurb.textContent) : '';
+  ex.push(['(F5) la ficha del test de burbuja gana la FUENTE de su tabla de tiempos',
+    tBurb.indexOf('931') > -1 && tBurb.indexOf('933') > -1 && tBurb.indexOf('935') > -1, '']);
+  ex.push(['(CONTROL F6) y sus tres bandas de tiempo no se movieron',
+    tBurb.indexOf('≤3 latidos') > -1 && tBurb.indexOf('4–5 latidos') > -1 && tBurb.indexOf('>5 latidos') > -1, '']);
+
+  /* == G - LA EVIDENCIA COMO CUESTIONARIO ================================================== */
+  const evidDe = function(o){ __t.limpiar();
+    Object.keys(o).forEach(function(k){ __t.set(k, String(o[k])); });
+    if (typeof IND_SECS === 'undefined') return 'SIN IND_SECS';
+    const s2 = IND_SECS.filter(function(x){ return x.tit.indexOf('Foramen oval') === 0; })[0];
+    if (!s2) return 'SIN SECCION';
+    let r = null; try { r = s2.fn(); } catch (e) { return 'EXC: ' + e.message; }
+    return r; };
+  const ev1 = evidDe({ edad:'45', fop_contraste:'si', fop_shunt_valsalva:'si',
+    fop_burbujas:'abundante', fop_asa:'si', fop_asa_mm:'12', otr_asia_lado:'ad', fop_acv:'si' });
+  const evT = evidDe({ edad:'50', fop_contraste:'si', fop_shunt_valsalva:'si',
+    fop_burbujas:'pocas', fop_trombofilia:'si' });
+  const evSin = evidDe({ fop_tunel:'8' });
+  ex.push(['(DENOM G) la seccion se pinta con shunt documentado y no sin el',
+    ev1 && ev1.filas && ev1.filas.length > 0 && evSin === null,
+    (ev1 && ev1.filas ? ev1.filas.length : ev1) + ' / ' + evSin]);
+  const lbls = (ev1.filas || []).map(function(f){ return f.lbl; });
+  ex.push(['(G1) el cuestionario PREGUNTA la evaluacion completa y el shunt grande',
+    (ev1.filas || []).filter(function(f){ return f.ctrl && f.ctrl.clave === 'fop.evalcompleta'; }).length === 1 &&
+    (ev1.filas || []).filter(function(f){ return f.ctrl && f.ctrl.clave === 'fop.grande'; }).length === 1,
+    JSON.stringify(lbls)]);
+  ex.push(['(G2) y LEE la edad, el aneurisma con su lado y los latidos',
+    lbls.indexOf('Edad') > -1 && lbls.indexOf('Latidos del pasaje') > -1 &&
+    (ev1.filas || []).some(function(f){ return f.lbl === 'Aneurisma del septum interauricular' &&
+      String(f.nota || '').indexOf('hacia la aurícula derecha') > -1; }),
+    JSON.stringify(lbls)]);
+  const blq = ev1.bloques || [];
+  ex.push(['(G3) las recomendaciones van en un bloque VISIBLE, no plegado',
+    blq.length > 0 && blq[0].tit.indexOf('Recomendaciones aplicables') === 0 && !blq[0].plegado,
+    JSON.stringify(blq.map(function(b){ return b.tit + ':' + (b.plegado ? 'plegado' : 'visible'); }))]);
+  const txtBlq = blq.map(function(b){ return (b.lineas || []).map(function(l){ return l.txt; }).join(' '); }).join(' ');
+  ex.push(['(G4) y publican su clase, su nivel y su folio',
+    txtBlq.indexOf('Clase 1 · Nivel C-EO') > -1 && txtBlq.indexOf('folio e411') > -1 &&
+    txtBlq.indexOf('folio 1396') > -1, txtBlq.slice(0, 160)]);
+  const blqT = (evT.bloques || []);
+  const txtT = blqT.map(function(b){ return b.tit + ' ' + (b.lineas || []).map(function(l){ return l.txt; }).join(' '); }).join(' ');
+  ex.push(['(G5) los DOS textos sin fuente van en el bloque «Criterio de la aplicacion»',
+    blqT.some(function(b){ return b.tit === 'Criterio de la aplicación'; }) &&
+    txtT.indexOf('la conducta antitrombótica la define hematología') > -1, txtT.slice(0, 160)]);
+  ex.push(['(G6) la seccion no afirma «alto riesgo trombofilico» como si fuera de una guia',
+    txtT.indexOf('alto riesgo trombofílico') === -1, '']);
+  /* El «shunt grande» se PREGUNTA: con el aneurisma ausente y la pregunta sin contestar, los
+     rasgos de alto riesgo quedan SIN DECIDIR y las filas 2a y 2b no se publican. */
+  const evP = evidDe({ edad:'45', fop_contraste:'si', fop_shunt_valsalva:'si', fop_burbujas:'abundante', fop_acv:'si' });
+  /* SOLO el bloque de recomendaciones: el de «Lo que falta» NOMBRA la fila Clase 2a para decir
+     que falta un dato, y contarlo seria leer como publicada una recomendacion que no se
+     publico. */
+  const blqRec = (evP.bloques || []).filter(function(b){ return b.tit.indexOf('Recomendaciones aplicables') === 0; })[0];
+  const txtP = blqRec ? (blqRec.lineas || []).map(function(l){ return l.txt; }).join(' ') : '';
+  ex.push(['(CONTROL G7) con pasaje ABUNDANTE y sin contestar, la app NO deduce el shunt grande',
+    txtP.indexOf('Clase 2a') === -1 && txtP.indexOf('Clase 2b · Nivel C-LD — En el mismo grupo') === -1,
+    txtP.slice(0, 160)]);
+  ex.push(['(CONTROL G8) y lo DICE en la fila de los rasgos de alto riesgo',
+    (evP.filas || []).some(function(f){ return f.lbl === 'Rasgos anatómicos de alto riesgo' &&
+      String(f.val).indexOf('No se puede decidir') > -1; }),
+    JSON.stringify((evP.filas || []).filter(function(f){ return f.lbl === 'Rasgos anatómicos de alto riesgo'; }))]);
+
+  /* == H - ESTUDIOS GUARDADOS, «NUEVO ESTUDIO» Y RESTAURACION ============================= */
+  return (async () => {
+    __t.limpiar();
+    __t.set('nombre','FOP D'); __t.set('ci','51351351');
+    __t.set('otr_asia_lado','ambos'); __t.set('fop_asa_mm','12');
+    __t.set('fop_contraste','si'); __t.set('fop_shunt_valsalva','si');
+    __t.set('fop_burbujas','moderado'); __t.set('otr_burb_lat','5');
+    const g = await __t.guardar();
+    ex.push(['(DENOM H) el estudio se guardo', g.ok === true && !!g.estudioId, JSON.stringify(g)]);
+    __t.limpiar();
+    ex.push(['(H1) «Nuevo estudio» vacia el lado y repone el 3 de los latidos',
+      (EL2('otr_asia_lado') || {}).value === '' && (EL2('otr_burb_lat') || {}).value === '3',
+      (EL2('otr_asia_lado') || {}).value + '/' + (EL2('otr_burb_lat') || {}).value]);
+    if (g.estudioId) {
+      __t.reabrir(g.estudioId);
+      ex.push(['(H2) y al reabrirlo vuelven el lado y los latidos, con su corte',
+        (EL2('otr_asia_lado') || {}).value === 'ambos' && (EL2('otr_burb_lat') || {}).value === '5' &&
+        (FN2('asiaCorteMm') ? asiaCorteMm() : 0) === 15 &&
+        (FN2('asiaPorExcursion') ? asiaPorExcursion(12) : null) === false,
+        (EL2('otr_asia_lado') || {}).value + '/' + (EL2('otr_burb_lat') || {}).value]);
+    }
+    /* Un estudio SIN la clave -los guardados antes de esta tanda- concluye igual que siempre. */
+    __t.limpiar();
+    const cLeg = FN2('fopConclusion') ? fopConclusion({ fop_asa_mm:'12', fop_contraste:'si',
+      fop_shunt_valsalva:'si', fop_acv:'no' }) : null;
+    ex.push(['(H3) un estudio SIN «Se abomba hacia» aplica el corte de 10 mm, como siempre',
+      !!cLeg && cLeg.clave === 'alto_riesgo_sin_evento', (cLeg || {}).clave]);
+
+    /* == I - LA MAQUETA, DECLARANDO EL ANCHO DE LA CORRIDA ================================ */
+    ex.push(['(I1) la regla de las tres columnas no tiene media query propia',
+      H.indexOf('.fop-cols { display:flex; flex-wrap:wrap;') > -1 &&
+      H.indexOf('.fop-col  { flex:1 1 220px; min-width:0; }') > -1, '']);
+    /* UNA SECCION CERRADA MIDE 0x0: el acordeon se pliega con max-height:0 y overflow:hidden,
+       asi que hay que abrirlo por su GESTO antes de pedir geometria. Y las columnas se vuelven a
+       buscar: el pintado no las recrea, pero la lista de arriba se tomo antes de navegar. */
+    /* Se entra por el BOTON del rail y no llamando a showTab: en el arbol del suite esa funcion
+       esta envuelta dos veces y la llamada directa lanza. El clic es ademas el gesto del medico. */
+    const btnCC = document.querySelector('.tab-btn[data-mod="congenitas"]');
+    if (btnCC) btnCC.click();
+    if (typeof ccSubTab === 'function') { try { ccSubTab('congenitas'); } catch (e) {} }
+    const card2 = EL2('sacc-cc-fop');
+    if (card2 && !card2.classList.contains('open')) {
+      const h2 = card2.querySelector('.sacc-hdr'); if (h2) h2.click();
+    }
+    const cols2 = card2 ? Array.prototype.slice.call(card2.querySelectorAll('.fop-col')) : [];
+    const rs = cols2.map(function(c){ return Math.round(c.getBoundingClientRect().width); });
+    ex.push(['(I2) a ' + window.innerWidth + ' px las tres columnas miden lo mismo y tienen ancho',
+      rs.length === 3 && rs[0] > 0 && rs[0] === rs[1] && rs[1] === rs[2], JSON.stringify(rs)]);
+    ex.push(['(DENOM I) la seccion esta ABIERTA al medir su geometria',
+      !!card2 && card2.classList.contains('open') && cols2.length === 3,
+      (card2 ? card2.className : 'NO EXISTE') + ' n=' + cols2.length]);
+    const colTit = document.querySelector('#sacc-cc-fop .fop-col-tit');
+    ex.push(['(I3) el rotulo de columna usa una variable que EXISTE en esa zona',
+      !!colTit && /^rgb/.test(getComputedStyle(colTit).color), colTit ? getComputedStyle(colTit).color : 'NO EXISTE']);
+
+    /* == J - LOS CONTROLES ================================================================= */
+    __t.limpiar();
+    const f0 = _labExcelRow({ campos:{}, fecha:'2026-10-22', id:'d0' });
+    ex.push(['(J1) CONTROL: el Excel sigue en 440 columnas', Object.keys(f0).length === 440,
+      'n=' + Object.keys(f0).length]);
+    ex.push(['(J2) CONTROL: y no gano ninguna columna del lado ni de los latidos',
+      !Object.keys(f0).some(function(k){ return k.indexOf('abomba') > -1 || k.indexOf('Latidos') > -1; }), '']);
+    __t.set('vmax_it','2.9'); __t.set('im_vc','7'); __t.set('vmax_ao','4.2');
+    __t.set('ao_sin','46'); __t.set('tep_mcconnell','si');
+    const inf3 = __t.informe();
+    ex.push(['(J3) CONTROL: las valvulas, la aorta y el TEP siguen publicando lo suyo',
+      inf3.inf.length > 100 && inf3.suma.length > 10, 'inf=' + inf3.inf.length]);
+    ex.push(['(J4) CONTROL: sin datos del FOP el informe no lo nombra',
+      inf3.inf.indexOf('Foramen oval permeable') === -1, '']);
     return { extra: ex };
   })();
 `);

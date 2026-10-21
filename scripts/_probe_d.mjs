@@ -717,6 +717,25 @@ async function main() {
     if (String(leido) !== '') throw new Error('EL BORRADO NO QUEDO en ' + id + ': ' + JSON.stringify(leido));
     return leido;
   }
+  /* ⚠️ UN `<select>` NO RECIBE TEXTO, Y MANDARSELO ENSUCIA EL CAMPO ANTERIOR. Lo cazo MIRAR la
+     captura: con el patron «tipear y si falla, sel()» el `Input.insertText` aterrizaba en el
+     ultimo input de TEXTO enfocado y el PNG mostraba «12sisimoderadosi» en la excursion del
+     aneurisma. `tipear` lanzaba despues -el valor no quedaba en el select- y el `catch` ponia
+     el select bien, asi que la medicion NUMERICA salia correcta: `v('fop_asa_mm')` lee 12 de
+     «12sisimoderadosi». Un denominador roto con pinta de medicion buena.
+     Se decide por el TAG antes de tocar nada. */
+  async function poner(id, valor) {
+    const tag = await ev(`(function(){ var e=document.getElementById(${JSON.stringify(id)});
+      return e ? e.tagName : 'NO EXISTE' })()`);
+    if (tag === 'SELECT') {
+      const r = await ev(`window.__P.sel(${JSON.stringify(id)},${JSON.stringify(valor)})`);
+      if (!r || r.err) throw new Error('EL SELECT NO QUEDO en ' + id + ': ' + JSON.stringify(r));
+      return valor;
+    }
+    if (tag === 'NO EXISTE') throw new Error('NO EXISTE ' + id);
+    return await tipear(id, valor);
+  }
+
   async function viewport(w, h) {
     await cdp.send('Emulation.setDeviceMetricsOverride',
       { width: w, height: h || 900, deviceScaleFactor: 1, mobile: false }, sessionId);
@@ -2176,10 +2195,7 @@ window.__D = {
         await ev(`window.__D.abrirOtros()`);
         await ev(`window.__P.sel('otr_burb_lat','3')`);
         await ev(`window.__D.abrirFOP()`);
-        for (const [id, val] of Object.entries(campos)) {
-          try { await tipear(id, val); }
-          catch (e) { await ev(`window.__P.sel(${JSON.stringify(id)},${JSON.stringify(val)})`); }
-        }
+        for (const [id, val] of Object.entries(campos)) await poner(id, val);
         await ev(`window.__P.calentar()`);
         const o = { concl: await ev(`window.__D.concl()`),
                     spans: await ev(`window.__D.spans()`),
@@ -2209,10 +2225,7 @@ window.__D = {
       await ev(`window.__P.sel('otr_asia_lado','ad')`);
       await ev(`window.__P.sel('otr_burb_lat','4')`);
       await ev(`window.__D.abrirFOP()`);
-      for (const [id, val] of Object.entries(ESC)) {
-        try { await tipear(id, val); }
-        catch (e) { await ev(`window.__P.sel(${JSON.stringify(id)},${JSON.stringify(val)})`); }
-      }
+      for (const [id, val] of Object.entries(ESC)) await poner(id, val);
       await ev(`window.__D.integrar()`);
       await ev(`window.__D.papel('estandar')`, 60000);
       r.hoja = await ev(`window.__D.ccHoja()`);
@@ -2255,10 +2268,7 @@ window.__D = {
         await ev(`window.__P.nuevo()`);
         await ev(`window.__P.despejar()`);
         await ev(`window.__D.abrirFOP()`);
-        for (const [id, val] of Object.entries(campos)) {
-          try { await tipear(id, val); }
-          catch (e) { await ev(`window.__P.sel(${JSON.stringify(id)},${JSON.stringify(val)})`); }
-        }
+        for (const [id, val] of Object.entries(campos)) await poner(id, val);
         await ev(`window.__P.calentar()`);
         r.escenas[k] = { obj: await ev(`window.__D.evid()`),
                          html: await ev(`window.__D.evidHTML()`, 60000) };
@@ -2331,10 +2341,7 @@ window.__D = {
           await ev(`window.__P.sel('otr_asia_lado','ad')`);
           await ev(`window.__P.sel('otr_burb_lat','4')`);
           await ev(`window.__D.abrirFOP()`);
-          for (const [id, val] of Object.entries(ESC)) {
-            try { await tipear(id, val); }
-            catch (e) { await ev(`window.__P.sel(${JSON.stringify(id)},${JSON.stringify(val)})`); }
-          }
+          for (const [id, val] of Object.entries(ESC)) await poner(id, val);
           const tg = `${claro ? 'claro' : 'oscuro'}_${w}`;
           await saca(`fop_${tg}`, '#sacc-cc-fop');
           await ev(`window.__D.ref('burbujas')`);
@@ -2343,6 +2350,17 @@ window.__D = {
           await saca(`ref_fop_${tg}`, '#ref-fop');
           await ev(`window.__D.evidHTML()`, 60000);
           await saca(`evid_${tg}`, '#indic-cuerpo');
+          /* Y la MISMA seccion con el bloque de recomendaciones a la vista: `#indic-cuerpo`
+             tiene `overflow:auto`, asi que su rect es el alto VISIBLE del panel y una captura
+             sin desplazar por dentro corta justo donde empiezan las recomendaciones -que es lo
+             que esta seccion existe para publicar-. */
+          await ev(`(function(){
+            var c = document.getElementById('indic-cuerpo'); if (!c) return 0;
+            var ds = Array.prototype.slice.call(c.querySelectorAll('div'));
+            var b = ds.filter(function(e){ return (e.textContent||'').indexOf('Recomendaciones aplicables') === 0 })[0];
+            if (!b) return 0;
+            c.scrollTop = b.offsetTop - c.offsetTop - 8; return 1 })()`);
+          await saca(`evidrec_${tg}`, '#indic-cuerpo');
           await ev(`(function(){ if (typeof indicCerrar==='function') indicCerrar(); return 1 })()`);
         }
       }

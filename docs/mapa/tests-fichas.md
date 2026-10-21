@@ -389,3 +389,16 @@ no toca — que es exactamente el punto.
    `'4|0|0|sin|sin|sin|Sin insuficiencia|sin'`. **Un valor esperado inventado es exactamente lo
    que una condición de control existe para cazar** — y lo cazó. La cadena que quedó es la medida,
    y es la misma que el inicio de la tanda publica sobre esa escena, verificado con el A/B.
+
+---
+
+## TC-513 — el trabajo «D», el foramen oval (2026-10-22)
+
+La ficha completa vive en `docs/mapa/fop-burbuja-unificado.md` → «El trabajo D», §8, junto al
+resto de la zona: **61 condiciones**, con sus denominadores y sus cuatro controles negativos, y
+**46 en rojo** contra HEAD en un worktree aparte, **ninguna por excepción**.
+Lo que hay que saber antes de tocarlo: la maqueta se afirma por la **regla** y no por el ancho
+—el cuerpo de un caso no puede cambiar el viewport, y el suite corre a ~756 px—; el PDF se mide
+por su **dueño** (`fopPdfFilas`) y por `ccEnInforme`, y se genera de verdad en la sonda; y a
+«C. Congénitas» se entra por el **clic en el botón del rail**, porque `showTab` lanza llamada
+desde el cuerpo de un caso.
