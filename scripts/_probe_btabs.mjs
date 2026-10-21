@@ -193,14 +193,27 @@ const CC = `(() => {
   const arriba = Array.prototype.slice.call(document.querySelectorAll('.tabs-special .tab-btn'))
     .filter(b => (b.getAttribute('onclick') || '').indexOf('congenitas') > -1)
     .map(b => ({ txt: (b.textContent || '').trim(), vis: vis(b) }));
-  if (typeof showTab === 'function') { try { showTab('congenitas') } catch (e) {} }
-  const bar = document.querySelector('#tab-congenitas .cc-subbar')
+  /* ⚠️ ESTE MEDIDOR NO NAVEGA. La primera version hacia showTab('congenitas') adentro, asi que
+     volvia a la primera pestana DESPUES de cada clic y la escena se pisaba a si misma: informaba
+     «el clic no cambia de pestana» sobre un mecanismo que funciona. La navegacion la hace quien
+     llama, con clics reales. */
+  const bar = document.querySelector('.tab-section.active .cc-subbar')
     || document.querySelector('.cc-subbar');
+  /* El estado activo vive en la clase cc-on y no en active —showTab barre la segunda—, y el color
+     se lee DESPUES de la transicion, en otra llamada. */
   const sub = bar ? Array.prototype.slice.call(bar.querySelectorAll('button')).map(b => ({
-    txt: (b.textContent || '').trim(), act: b.classList.contains('active') })) : null;
+    txt: (b.textContent || '').trim(), on: b.classList.contains('cc-on'),
+    sel: b.getAttribute('aria-selected'), ti: b.tabIndex,
+    col: getComputedStyle(b).color })) : null;
+  const act = ['congenitas','congenitas2'].filter(k => { const t = document.getElementById('tab-' + k);
+    return t && t.classList.contains('active') })[0] || null;
+  const nBarras = document.querySelectorAll('.cc-subbar').length;
   return { arriba: arriba, nArriba: arriba.length, sub: sub, nSub: sub ? sub.length : 0,
+    activa: act, nBarras: nBarras,
     t1: !!document.getElementById('tab-congenitas'),
-    t2: !!document.getElementById('tab-congenitas2') };
+    t2: !!document.getElementById('tab-congenitas2'),
+    secciones: { frec: document.querySelectorAll('#tab-congenitas .sacc').length,
+                 compl: document.querySelectorAll('#tab-congenitas2 .sacc').length } };
 })()`;
 
 /* ══ CONTROLES: las superficies que NO se tocan ══════════════════════════════════════════ */
@@ -383,7 +396,21 @@ async function corre(nombre, abrir) {
     if (hay('pulm'))  R.pulm  = await pg.evaluate(PULM);
     if (hay('fono'))  R.fono  = await pg.evaluate(FONO);
     if (hay('calc'))  R.calc  = await pg.evaluate(CALC);
-    if (hay('cc'))    R.cc    = await pg.evaluate(CC);
+    if (hay('cc')) {
+      R.cc = await pg.evaluate(CC);
+      /* Con clics REALES y lecturas tras la transicion, que es el defecto del commit 2. */
+      R.ccclic = {};
+      await pg.evaluate("try{showTab('congenitas')}catch(e){}");
+      await pg.waitForTimeout(260);
+      R.ccclic.ini = await pg.evaluate(CC);
+      await pg.click('#cc-subtab-compl'); await pg.waitForTimeout(300);
+      R.ccclic.trasCompl = await pg.evaluate(CC);
+      await pg.click('#cc-subtab-frec2'); await pg.waitForTimeout(300);
+      R.ccclic.vuelta = await pg.evaluate(CC);
+      /* Y por un camino que NO es la barra: el drawer / showTab directo. */
+      await pg.evaluate("try{showTab('congenitas2')}catch(e){}"); await pg.waitForTimeout(300);
+      R.ccclic.porShowTab = await pg.evaluate(CC);
+    }
     if (hay('ctrl')) {
       const ESC = {
         vacio: '',

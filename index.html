@@ -3473,8 +3473,13 @@ window.cerrarSesionReal = cerrarSesionReal;
         <button class="tab-btn tab-special" data-mod="ete" onclick="showTab('ete')">🔬 ETE</button>
         <button class="tab-btn tab-special" data-mod="cardioOnco" onclick="showTab('cardioOnco')">❤️ Cardio-Oncología</button>
         <button class="tab-btn tab-special" data-mod="amiloidosis" onclick="showTab('amiloidosis')">🧬 Amiloidosis</button>
-        <button class="tab-btn tab-special" data-mod="congenitas" onclick="showTab('congenitas')">🧬 CC frecuentes</button>
-        <button class="tab-btn tab-special" data-mod="congenitas" onclick="showTab('congenitas2')">🧬 CC complejas</button>
+        <!-- ⚠️ UN SOLO BOTON DESDE EL B-E6 (2026-10-21). Eran dos —«CC frecuentes» y «CC
+             complejas»— y las dos pestanas siguen existiendo tal cual: lo que cambia es que se
+             entra por una puerta y se elige adentro, con la barra de dos sub-pestanas que cada
+             una lleva arriba. El contenido de las secciones NO se toca.
+             `data-mod="congenitas"` era YA el de los dos botones: son UN modulo partido en dos
+             por largo, y por eso comparten casilla en Config. -->
+        <button class="tab-btn tab-special" data-mod="congenitas" onclick="showTab('congenitas')">🧬 C. Congénitas</button>
         <!-- data-mod="congenitas" y NO "congenitas2": las dos pestañas son UN solo modulo,
              partido en dos por largo. Con data-mod propio, congenitas2 no tenia casilla en
              Config —cfgRenderModulos solo dibuja las claves de EE_MODULES— asi que no se
@@ -14409,6 +14414,24 @@ z
 </div>
 
 <div id="tab-congenitas" class="tab-section">
+  <!-- ══ LAS DOS PESTANAS DE CONGENITAS (B-E6, 2026-10-21) ════════════════════════════════
+       La barra va en las DOS pestanas y no una sola vez, porque son dos `.tab-section` distintas
+       y la que no esta activa no se dibuja. El estado activo se deriva de cual esta activa, asi
+       que las dos copias no pueden divergir: lo pone `ccSubSync`.
+       ⚠️ LA CLASE ES `cc-on` Y NO `active`: `showTab` barre `.active` de TODO `.tab-btn` del
+          documento, y es justamente lo que se llama al cambiar de pestana. Es el defecto que las
+          sub-pestanas de Otros ya pagaron. -->
+  <div class="subtabs-wrap cc-subbar" role="tablist" aria-label="Cardiopatias congenitas"
+       style="justify-content:flex-start;margin-bottom:12px;">
+    <div class="tabs-row">
+      <button type="button" class="tab-btn cc-on" id="cc-subtab-frec" role="tab"
+              aria-selected="true" tabindex="0"
+              onclick="ccSubTab('congenitas')">&#129516; CC frecuentes</button>
+      <button type="button" class="tab-btn" id="cc-subtab-compl" role="tab"
+              aria-selected="false" tabindex="-1"
+              onclick="ccSubTab('congenitas2')">&#129516; CC complejas</button>
+    </div>
+  </div>
   <!-- ═══════════════════════════════════════════════════════════════════════════════════
        CARDIOPATÍAS CONGÉNITAS Y MIOCARDIOPATÍAS GENÉTICAS
 
@@ -16125,6 +16148,24 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
      quieto. (La marca de apertura no se escribe literal en este comentario: la contarian el
      chequeo de conteo y el extractor de sintaxis como si fuera un bloque de verdad.) -->
 <div id="tab-congenitas2" class="tab-section">
+  <!-- ══ LAS DOS PESTANAS DE CONGENITAS (B-E6, 2026-10-21) ════════════════════════════════
+       La barra va en las DOS pestanas y no una sola vez, porque son dos `.tab-section` distintas
+       y la que no esta activa no se dibuja. El estado activo se deriva de cual esta activa, asi
+       que las dos copias no pueden divergir: lo pone `ccSubSync`.
+       ⚠️ LA CLASE ES `cc-on` Y NO `active`: `showTab` barre `.active` de TODO `.tab-btn` del
+          documento, y es justamente lo que se llama al cambiar de pestana. Es el defecto que las
+          sub-pestanas de Otros ya pagaron. -->
+  <div class="subtabs-wrap cc-subbar" role="tablist" aria-label="Cardiopatias congenitas"
+       style="justify-content:flex-start;margin-bottom:12px;">
+    <div class="tabs-row">
+      <button type="button" class="tab-btn" id="cc-subtab-frec2" role="tab"
+              aria-selected="false" tabindex="-1"
+              onclick="ccSubTab('congenitas')">&#129516; CC frecuentes</button>
+      <button type="button" class="tab-btn cc-on" id="cc-subtab-compl2" role="tab"
+              aria-selected="true" tabindex="0"
+              onclick="ccSubTab('congenitas2')">&#129516; CC complejas</button>
+    </div>
+  </div>
 <div class="card sacc" id="sacc-cc-shunt">
     <button type="button" class="sacc-hdr" onclick="secToggle('cc-shunt');eteShuntSync();" aria-expanded="false">
       <span class="sacc-arrow">▶</span>
@@ -19881,6 +19922,10 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
      gris— y parece que la regla no gana. Hay que medirlo DESPUES de la transicion, en otra
      llamada: ahi los dos motores dan el teal y el gris exactos.
      Los colores son los de `.subtabs-wrap .tab-btn.active`, sin declarar uno nuevo. */
+  /* ══ LAS DOS SUB-PESTANAS DE CONGENITAS (B-E6) ═════════════════════════════════════════
+     Mismos colores que `.subtabs-wrap .tab-btn.active`, sin declarar uno nuevo, y por una
+     clase propia por el mismo motivo que las de Otros: `showTab` barre `.active`. */
+  .cc-subbar .tab-btn.cc-on{color:var(--teal);border-color:var(--teal);background:transparent}
   #tab-otros .otr-subbar .tab-btn.otr-on{color:var(--teal);border-color:var(--teal);background:transparent}
   #tab-refs .ref-subbar{display:flex;flex-wrap:nowrap;gap:2px;overflow-x:auto;-webkit-overflow-scrolling:touch;
     border-bottom:1px solid var(--border);margin:0 0 12px;scrollbar-width:thin;max-width:100%;}
@@ -21603,6 +21648,12 @@ function showTab(id) {
   // Abrir automáticamente los acordeones de sección que ya tengan datos cargados
   if (typeof secAutoOpen === 'function') secAutoOpen('tab-' + id);
   if (typeof cardAutoOpen === 'function') cardAutoOpen('tab-' + id);
+  /* La barra de las dos pestanas de congenitas se repinta ACA y no solo desde `ccSubTab`: el
+     estado se deriva de cual `.tab-section` esta activa, y a esta pestana se llega tambien por
+     el drawer movil, por el desplegable de avanzadas y por accesos internos. Sin esto la barra
+     marcaria la pestana equivocada por cualquiera de esos caminos. En `try` por el mismo motivo
+     que las lineas de abajo. */
+  try { if (typeof ccSubSync === 'function') ccSubSync() } catch (e) {}
   /* Las pastillas de válvula no son `.sacc` ni llevan `data-autoopen`, así que ninguna de las dos
      funciones de arriba las ve. Ver `valvAutoAbrirAortica` para por qué va acá y qué respeta. */
   /* En `try` y no a secas: `toggleValvPill` hace `localStorage.setItem` sin guarda —código previo a
@@ -63065,6 +63116,57 @@ function refSubInit() {
   /* El assert del mapeo tarjeta -> entrada: las dos direcciones, al arrancar. */
   if (typeof _vinfoRefAssert === 'function') { try { _vinfoRefAssert() } catch (e) {} }
 }
+/* ══ CONGENITAS — LAS DOS PESTANAS BAJO UN SOLO BOTON (B-E6, 2026-10-21) ══════════════════
+   `ccSubTab` navega y `ccSubSync` pinta. No calcula nada, no lee ni escribe un campo y no toca
+   una sola seccion de congenitas.
+   El estado activo se DERIVA de cual `.tab-section` esta activa y no se guarda en ninguna
+   variable: con una variable, cualquier otro camino que cambie de pestana —el drawer movil, el
+   desplegable de avanzadas, un acceso interno— la dejaria vieja y la barra marcaria la pestana
+   equivocada. Por eso `ccSubSync` se llama desde la cola de `showTab`. */
+const CC_TABS = Object.freeze(['congenitas', 'congenitas2']);
+function ccSubSync() {
+  const act = CC_TABS.filter(function (k) {
+    const t = document.getElementById('tab-' + k);
+    return t && t.classList.contains('active');
+  })[0] || null;
+  document.querySelectorAll('.cc-subbar .tab-btn').forEach(function (b) {
+    const oc = b.getAttribute('onclick') || '';
+    const mio = CC_TABS.filter(function (k) { return oc.indexOf("'" + k + "'") > -1 })[0] || null;
+    const on = !!act && mio === act;
+    b.classList.toggle('cc-on', on);
+    b.setAttribute('aria-selected', on ? 'true' : 'false');
+    b.tabIndex = on ? 0 : -1;
+  });
+}
+function ccSubTab(cual) {
+  if (CC_TABS.indexOf(cual) < 0) { console.error('[ccSubTab] desconocida: ' + cual); return }
+  if (typeof showTab === 'function') showTab(cual);
+  ccSubSync();
+}
+window.ccSubTab = ccSubTab; window.ccSubSync = ccSubSync; window.CC_TABS = CC_TABS;
+/* El teclado del tablist, patron ARIA, igual que en Referencias y en Otros. Se cablea con
+   addEventListener y no con un atributo de evento. */
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('.cc-subbar').forEach(function (bar) {
+    bar.addEventListener('keydown', function (e) {
+      const K = e.key;
+      if (K !== 'ArrowLeft' && K !== 'ArrowRight' && K !== 'Home' && K !== 'End') return;
+      const act = CC_TABS.filter(function (k) { const t = document.getElementById('tab-' + k);
+        return t && t.classList.contains('active') })[0];
+      const i = CC_TABS.indexOf(act);
+      let j = i;
+      if (K === 'ArrowLeft')  j = (i <= 0) ? CC_TABS.length - 1 : i - 1;
+      if (K === 'ArrowRight') j = (i >= CC_TABS.length - 1) ? 0 : i + 1;
+      if (K === 'Home') j = 0;
+      if (K === 'End')  j = CC_TABS.length - 1;
+      e.preventDefault();
+      ccSubTab(CC_TABS[j]);
+      const b = document.querySelector('#tab-' + CC_TABS[j] + ' .cc-subbar .tab-btn.cc-on');
+      if (b) b.focus();
+    });
+  });
+  ccSubSync();
+});
 /* ══ OTROS — LAS DOS SUB-PESTANAS (B-E2, 2026-10-21) ══════════════════════════════════════
    Dueno unico del reparto: `OTR_SUB_ORDEN`. No calcula nada, no lee ni escribe un campo y no
    toca el estado plegado de las secciones —eso sigue siendo de `toggleEteSeccion`—.
@@ -73888,6 +73990,31 @@ function _indOrigenAssert(){
     const m = /showTab\(['"]([a-zA-Z0-9_-]+)['"]\)/.exec(b.getAttribute('onclick') || '');
     if (m) gated['tab-' + m[1]] = true;
   });
+  /* ⚠️ Y LOS PANELES A LOS QUE SE LLEGA DESDE DENTRO DE OTRO YA GATEADO (B-E6, 2026-10-21).
+     Hasta hoy bastaba con los botones de arriba porque cada panel modular tenía el suyo: había
+     DOS botones `data-mod="congenitas"`, uno por pestaña. Desde el B-E6 hay UNO solo y la
+     segunda pestaña se abre con la barra de sub-pestañas que vive DENTRO de la primera, así que
+     este chequeo dejó de ver `tab-congenitas2` y gritaba que `ete_cia_dir` es alcanzable en
+     Modo Básico — que es FALSO: su única puerta sigue estando detrás del botón gateado.
+     Lo que faltaba era la derivación, no el gateado. Se cierra por ESTRUCTURA y no con una
+     lista paralela: cualquier control dentro de un panel ya gateado que navegue a otro panel
+     lo gatea también, y se itera hasta que no cambie nada (hoy alcanza una vuelta; el bucle
+     está para que una cadena de tres no vuelva a abrir este agujero en silencio). */
+  for (let _v = 0; _v < 8; _v++) {
+    let _sumo = false;
+    Array.prototype.forEach.call(document.querySelectorAll('[onclick]'), function(b){
+      const pan = b.closest('.tab-section');
+      if (!pan || !gated[pan.id]) return;
+      const oc = b.getAttribute('onclick') || '';
+      const re = /(?:showTab|ccSubTab)\(['"]([a-zA-Z0-9_-]+)['"]\)/g;
+      let m;
+      while ((m = re.exec(oc)) !== null) {
+        const id = 'tab-' + m[1];
+        if (!gated[id] && document.getElementById(id)) { gated[id] = true; _sumo = true }
+      }
+    });
+    if (!_sumo) break;
+  }
   const mal = [];
   Object.keys(_IND_ORIGEN_CAMPOS).forEach(function(k){
     const id = _IND_ORIGEN_CAMPOS[k];

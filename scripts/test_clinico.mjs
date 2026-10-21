@@ -7185,9 +7185,16 @@ caso('TC-112', 'Congenitas: ninguna seccion se perdio en el reparto ni al implem
       PH.every(k => (de(k).textContent || '').indexOf('En desarrollo') > -1)],
     ['y ninguno trae campos, que es lo que los hace placeholder',
       PH.every(k => de(k).querySelectorAll('input, select, textarea').length === 0)],
-    ['las dos pestañas tienen su boton de navegacion',
-      !!document.querySelector('[onclick*="showTab(\\'congenitas\\')"]') &&
-      !!document.querySelector('[onclick*="showTab(\\'congenitas2\\')"]')]
+    /* ADAPTADO el 2026-10-21 (B-E6): un solo boton «C. Congenitas» arriba, y la segunda pestana
+       se abre con la barra de sub-pestanas que las dos llevan adentro (ccSubTab). Lo que este
+       caso vigila —que a las dos pestanas se llegue— no cambio: lo que cambio es por donde. */
+    ['a las dos pestañas se llega: una por el boton de arriba y la otra por su barra',
+      (function(){
+        const todos = [].slice.call(document.querySelectorAll('[onclick]'))
+          .map(b => b.getAttribute('onclick') || '');
+        const abre = (id) => todos.some(oc =>
+          oc.indexOf("showTab('" + id + "')") > -1 || oc.indexOf("ccSubTab('" + id + "')") > -1);
+        return abre('congenitas') && abre('congenitas2'); })()]
   ] };
 `);
 
@@ -7883,8 +7890,14 @@ caso('TC-123', 'CC frecuentes y CC complejas: el rotulo dice lo mismo en las cua
      atributo, que no tiene nada que escapar. Tercera vez esta semana con la misma trampa. */
   const btns = [...document.querySelectorAll('.tab-btn')];
   const porTab = id => btns.filter(b => (b.getAttribute('onclick') || '').indexOf("showTab('" + id + "')") > -1)[0];
-  const bI  = porTab('congenitas');
-  const bII = porTab('congenitas2');
+  /* ADAPTADO el 2026-10-21 (B-E6): los rotulos «CC frecuentes» y «CC complejas» ya no viven en
+     dos botones de la fila de arriba —que es UNO, «C. Congenitas»— sino en la barra de dos
+     sub-pestanas que cada pestana lleva adentro, y que llama a ccSubTab. Las cuatro superficies
+     que este caso cruza siguen siendo cuatro; lo que cambio es de donde sale el rotulo. */
+  const porCC = id => btns.filter(b => (b.getAttribute('onclick') || '').indexOf("ccSubTab('" + id + "')") > -1)[0];
+  const bI  = porCC('congenitas')  || porTab('congenitas');
+  const bII = porCC('congenitas2') || porTab('congenitas2');
+  const bArriba = porTab('congenitas');
   const txt = b => b ? (b.textContent || '').trim() : '(sin boton)';
   const sel = document.getElementById('ecoAdvSelect');
   try { ecoAdvBuild(); } catch (e) {}
@@ -7899,11 +7912,19 @@ caso('TC-123', 'CC frecuentes y CC complejas: el rotulo dice lo mismo en las cua
     ['la segunda se llama CC complejas',  txt(bII) === '🧬 CC complejas'],
     /* Los IDs son contrato: los usan showTab, data-mod y ett_modules en localStorage. */
     ['los ids NO cambiaron', !!document.getElementById('tab-congenitas') && !!document.getElementById('tab-congenitas2')],
-    ['las dos pestañas siguen compartiendo el modulo, o Config gobierna media',
-      bI.getAttribute('data-mod') === 'congenitas' && bII.getAttribute('data-mod') === 'congenitas'],
+    /* ADAPTADO: el data-mod ya no esta en dos botones sino en el UNICO de la fila de arriba,
+       que es el que applyViewMode gatea. Lo que este caso vigila —que Config no gobierne media
+       pestana— hoy se cumple por construccion: una sola puerta para las dos. */
+    ['el UNICO boton de arriba lleva el modulo, asi que Config no puede gobernar media',
+      bArriba && bArriba.getAttribute('data-mod') === 'congenitas'
+        && btns.filter(b => b.getAttribute('data-mod') === 'congenitas').length === 1],
     ['la casilla de Config avisa que gobierna las DOS', /frecuentes y complejas/.test(String(cfg))],
-    ['el desplegable de movil hereda los dos nombres',
-      ops.indexOf('🧬 CC frecuentes') > -1 && ops.indexOf('🧬 CC complejas') > -1],
+    /* ADAPTADO: el desplegable de movil deriva de la fila de ARRIBA, que ahora tiene un solo
+       boton de congenitas. Los dos nombres viven en la barra de sub-pestanas, que es la que se
+       mide dos condiciones mas arriba. */
+    ['el desplegable de movil ofrece la puerta unica de congenitas',
+      ops.indexOf('🧬 C. Congénitas') > -1
+        && ops.indexOf('🧬 CC frecuentes') === -1 && ops.indexOf('🧬 CC complejas') === -1],
     /* El nombre viejo no puede sobrevivir en NINGUNA superficie visible: un manual que nombra
        una pestaña que ya no existe manda al medico a buscar algo que no va a encontrar. */
     /* NINGUNO de los dos nombres anteriores puede sobrevivir: «CC estructurales» fue el primero
@@ -11074,7 +11095,7 @@ caso('TC-144', 'Tabs avanzadas: el orden nuevo en las tres superficies, y las cl
      (B-E1) y el FONOCARDIOGRAMA salio de la app, copiado a docs/para-cardiosalud/ (B-E4). Lo que
      este caso vigila —que el orden, las claves y las preferencias por clave no se crucen— no
      cambio; lo que cambio es cuantos botones hay y donde vive el del pulmonar. */
-  const ORDEN_IDS = ['hemodinamica','ete','cardioOnco','amiloidosis','congenitas','congenitas2'];
+  const ORDEN_IDS = ['hemodinamica','ete','cardioOnco','amiloidosis','congenitas'];
   const ORDEN_TOOLS = ['refs'];
   const rail = leer('.rail .tab-btn');
   /* Las claves que NO pueden cambiar: son las de ett_modules en localStorage y las de data-mod. */
@@ -11121,9 +11142,23 @@ caso('TC-144', 'Tabs avanzadas: el orden nuevo en las tres superficies, y las cl
       f2.map(function(x){ return x.id; }).join(',')],
     /* ADAPTADO: de 10 a 8. Salieron «Eco Pulmonar» (al rail) y el Fonocardiograma (de la app).
        El conteo es lo unico que caza un boton perdido o duplicado en el reorden. */
-    /* ADAPTADO el 2026-10-21: de 10 a 7. Salieron «Eco Pulmonar» (al rail, B-E1), el
-       Fonocardiograma (de la app, B-E4) y «Calculadoras» (a Referencias, B-E5). */
-    ['son siete botones', f1.length + f2.length === 7, String(f1.length + f2.length)],
+    /* ADAPTADO el 2026-10-21: de 10 a SEIS, que es el resultado del trabajo B entero. Salieron
+       «Eco Pulmonar» (al rail, B-E1), el Fonocardiograma (de la app, B-E4) y «Calculadoras» (a
+       Referencias, B-E5), y los dos botones de congenitas pasaron a UNO (B-E6). Los seis que
+       quedan son Hemodinamica, ETE, Cardio-Oncologia, AMILOIDOSIS —que no se mueve en este
+       trabajo—, C. Congenitas y Referencias. */
+    ['son seis botones', f1.length + f2.length === 6, String(f1.length + f2.length)],
+    /* CONDICION NUEVA (B-E6): un solo boton de congenitas arriba, con el rotulo nuevo, y las DOS
+       pestanas alcanzables desde la barra que llevan adentro. */
+    ['«C. Congenitas» es UN boton y las dos pestanas se alcanzan desde su barra',
+      f1.filter(function(x){ return x.id.indexOf('congenitas') === 0; }).length === 1
+        && f1.filter(function(x){ return x.id === 'congenitas'; })[0]
+        && f1.filter(function(x){ return x.id === 'congenitas'; })[0].txt.indexOf('C. Cong') > -1
+        && document.querySelectorAll('.cc-subbar').length === 2
+        && !!document.getElementById('tab-congenitas') && !!document.getElementById('tab-congenitas2'),
+      'arriba=' + f1.filter(function(x){ return x.id.indexOf('congenitas') === 0; })
+        .map(function(x){ return x.txt; }).join(' + ') +
+      ' barras=' + document.querySelectorAll('.cc-subbar').length],
     /* CONDICION NUEVA (B-E5): Calculadoras no esta arriba y SI es el primer boton de la barra
        de Referencias, con su data-mod. */
     ['«Calculadoras» es el primer boton de Referencias y no esta arriba',
@@ -11175,7 +11210,10 @@ caso('TC-144', 'Tabs avanzadas: el orden nuevo en las tres superficies, y las cl
     ['ningun data-mod cambio',
       f1.concat(f2).every(function(x){ return MOD[x.id] === x.mod; }),
       f1.concat(f2).map(function(x){ return x.id + '=' + x.mod; }).join(' ')],
-    ['las dos CC comparten data-mod: son UN modulo partido en dos',
+    /* ADAPTADO: desde el B-E6 el modulo tiene UN solo boton, asi que «compartir data-mod» pasa a
+       ser «el unico lo lleva». La pregunta de fondo —que Config no pueda gobernar media
+       pestana— hoy se cumple por construccion. */
+    ['el unico boton de CC lleva su data-mod: un modulo, una casilla',
       f1.filter(function(x){ return x.id.indexOf('congenitas') === 0; })
         .every(function(x){ return x.mod === 'congenitas'; })],
     ['cada boton abre su propio panel', noAbren.length === 0, noAbren.join(',')],
@@ -15213,7 +15251,12 @@ caso('TC-268', 'El boton CC respeta Basico/Avanzado y la casilla de Configuracio
       const nDataMod = document.querySelectorAll('[data-mod]').length;
 
       return { extra: [
-        ['DENOMINADOR: hay [data-mod] que auditar', nDataMod >= 10, 'n=' + nDataMod],
+        /* ADAPTADO el 2026-10-21 (trabajo B): eran 11 y son 9. Se fueron el Fonocardiograma
+           (B-E4) y el segundo boton de congenitas (B-E6), y dos cambiaron de SITIO sin perder su
+           atributo: el pulmonar al rail (B-E1) y Calculadoras a la barra de Referencias (B-E5).
+           El denominador baja a 8 para que siga cazando un barrido vacio sin volverse a quedar
+           corto en la proxima tanda que mueva uno. */
+        ['DENOMINADOR: hay [data-mod] que auditar', nDataMod >= 8, 'n=' + nDataMod],
         ['todo [data-mod] es un <button> y ninguno lleva hidden', malDataMod.length === 0,
           malDataMod.join(' · ')],
         ['AVANZADO + CC encendido: el boton SE VE', avanzadoConCC, ''],
