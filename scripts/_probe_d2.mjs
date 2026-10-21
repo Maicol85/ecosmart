@@ -2528,12 +2528,14 @@ window.__E = {
           await ev(`window.__P.sel('fop_acv','si')`);
           await ev(`window.__D.abrirOtros()`);
           await ev(`window.__P.sel('otr_asia_lado','ambos')`);
-          await saca(`fopconcl_${tg}`, '#sacc-cc-fop .calc-box:last-of-type');
+          /* ⚠️ `abrirOtros()` CAMBIA DE PESTANA, asi que la caja del FOP queda en 0x0 y la
+             captura sale «SIN CAJA»: se vuelve al FOP ANTES de sacarla. */
           await ev(`window.__D.abrirFOP()`);
+          await saca(`fopconcl_${tg}`, '#sacc-cc-fop .fop-concl-row');
           await saca(`fopcols_${tg}`, '#sacc-cc-fop .fop-cols');
           /* 2 · Otros con «Se abomba hacia» */
           await ev(`window.__D.abrirOtros()`);
-          await saca(`otrasia_${tg}`, '#otr_asia_lado');
+          await saca(`otrasia_${tg}`, '#tab-otros .card-body .grid-2');
           /* 3 · CC frecuentes con las barras cerradas */
           await ev(`window.__P.nuevo()`);
           await ev(`window.__E.entrar('congenitas')`);

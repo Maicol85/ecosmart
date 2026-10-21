@@ -820,6 +820,19 @@
   #sacc-cc-fop .fop-cols { display:flex; flex-wrap:wrap; gap:12px; align-items:flex-start; }
   #sacc-cc-fop .fop-col  { flex:1 1 220px; min-width:0; }
   #sacc-cc-fop .fop-col-tit { font-size:12px; font-weight:700; color:var(--accent2); margin:0 0 8px; }
+  /* ══ LA CAJA DE CONCLUSION DEL FOP, APILADA (D2-E4, 2026-10-22) ══════════════════════════
+     `.calc-row` es `display:flex; justify-content:space-between; align-items:center`, que
+     funciona para una fila de UN valor corto. La conclusion del FOP es una oracion de varios
+     renglones, asi que el valor envuelve y la etiqueta -que es de una linea y esta centrada
+     verticalmente- queda a la altura del SEGUNDO renglon a 1200 px y en MEDIO del parrafo a
+     360 px, donde el texto ocupa diez. Medido: no hay superposicion de pixeles -las dos cajas
+     no se cruzan- pero la etiqueta cae dentro del bloque del texto y se lee como encimada.
+     ⚠️ LA REGLA VA EN UNA CLASE PROPIA Y NO EN `.calc-row`: esa clase la comparten cientos de
+     filas de toda la app, y apilarlas todas cambiaria cada cuadro de referencias.
+     `align-items:stretch` para que el valor tome el ancho entero, y `text-align:left` porque
+     un parrafo alineado a la derecha se lee peor que uno alineado a la izquierda. */
+  #sacc-cc-fop .fop-concl-row { flex-direction:column; align-items:stretch; gap:3px; }
+  #sacc-cc-fop .fop-concl-row > .calc-val { text-align:left; line-height:1.45; }
   /* PC (>=768px): los acordeones de Paciente/AI-VI/VD-AD/Contractilidad/SGL quedan siempre
      expandidos, ignorando la clase .open y los estilos inline que deja secToggle() (de ahí los
      !important). overflow:visible es obligatorio: con overflow:hidden Safari rompe el hit-test
@@ -14626,7 +14639,13 @@ z
                ⚠️ UN ESTUDIO GUARDADO REABRE CON SU VALOR y `vabSync` lo RECALCULA en el mismo
                embudo (`RECALC_MODULOS`): lo que se muestra sale de Valvulas, que es la regla. Si
                Valvulas no tiene dato, la celda queda vacia; esta declarado. -->
-          <input type="hidden" id="vab_funcion" value="">
+          <!-- ⚠️ `data-espejo` (D2-E4, 2026-10-22): el valor se DERIVA de los grados de EA y de
+               IAo de Valvulas, o sea que es un dato de OTRA seccion mostrado aca. Sin el
+               atributo, `secAutoOpen` lo cuenta como «esta seccion tiene datos» y la barra de la
+               VAB se abre sola al entrar a C. Congenitas en todo paciente con la aortica medida.
+               Medido: con `ea_grado` en moderada el campo vale «estenosis» y la barra abria. Es
+               el mismo argumento de `im_espejos` y de los seis `ete_seg_*`. -->
+          <input type="hidden" id="vab_funcion" value="" data-espejo>
           <div class="grid-3" style="margin-top:10px;">
             <!-- Los rotulos de SOLO LECTURA van sin parentesis: el globo de su grupo dice de
                  donde viene cada dato. -->
@@ -14689,7 +14708,13 @@ z
             <div id="vab-anim-ctrl" style="display:none;align-items:center;gap:6px;margin-top:6px;">
               <button type="button" class="btn btn-ghost" id="vab-anim-pausa" aria-pressed="true"
                       onclick="vabAnimPlay()">⏸ Pausar</button>
-              <input type="range" id="vab-anim-scrub" min="0" max="100" step="1" value="0"
+              <!-- ⚠️ `data-ui` (D2-E4, 2026-10-22): es interfaz y no un dato del paciente, igual
+                   que los tres controles del panel del VI 3D. Su `value="0"` hacia que
+                   `secAutoOpen` contara la barra de la VAB como «con datos» y la abriera sola al
+                   entrar a C. Congenitas -medido: era el UNICO culpable con el formulario
+                   vacio-. El prefijo `vab-anim-` ya lo excluye del recolector del estudio; este
+                   barrido no mira el id, y por eso hace falta el atributo. -->
+              <input type="range" id="vab-anim-scrub" min="0" max="100" step="1" value="0" data-ui
                      aria-label="Momento del ciclo de apertura" style="flex:1;min-width:0;"
                      oninput="vabAnimScrub(this.value)">
             </div>
@@ -15108,8 +15133,11 @@ z
 
       </div>
 
+      <!-- La fila lleva `fop-concl-row` ADEMAS de `calc-row`: el barrido de `limpiarCampos` es
+           `.calc-box .calc-row span[id]`, asi que sin `calc-row` la conclusion del paciente
+           anterior sobreviviria a «Nuevo estudio». Es la leccion que `im-m2` ya pago. -->
       <div class="calc-box" style="margin-top:12px;">
-        <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="fop-concl" class="calc-val">—</span></div>
+        <div class="calc-row fop-concl-row"><span class="calc-lbl">Conclusión</span><span id="fop-concl" class="calc-val">—</span></div>
       </div>
       <div style="text-align:center;margin-top:10px;">
         <input type="checkbox" id="fop_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
