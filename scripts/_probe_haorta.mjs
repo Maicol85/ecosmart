@@ -243,7 +243,60 @@ const EVID = `(() => {
   };
 })()`;
 
-const GRUPOS = { citas: CITAS, informe: INFORME, coa: COA, vabtxt: VABTXT, evid: EVID, ctrl: CTRL };
+
+/* == (g) EL MOTOR DE AORTA: disparo por sexo, cuestionario y recomendaciones < 45 mm ======= */
+const AOMOTOR = `(() => {
+  const esc = (o, resp) => {
+    if (typeof limpiarCampos === 'function') { try { limpiarCampos() } catch (e) {} }
+    if (typeof _indClinLimpiar === 'function') { try { _indClinLimpiar() } catch (e) {} }
+    Object.keys(o).forEach(k => { const e = document.getElementById(k); if (!e) return;
+      if (e.type === 'checkbox') { e.checked = o[k] === '1' } else { e.value = o[k] }
+      try { e.dispatchEvent(new Event('input', { bubbles:true })) } catch (x) {}
+      try { e.dispatchEvent(new Event('change', { bubbles:true })) } catch (x) {} });
+    if (resp && typeof _indClin === 'object') Object.keys(resp).forEach(k => { _indClin[k] = resp[k] });
+    const r = (typeof _indAo === 'function') ? _indAo() : 'SIN FN';
+    if (r === 'SIN FN' || r === null) return { hay: r !== 'SIN FN' ? false : 'SIN FN' };
+    return { hay: true, nFilas: r.filas.length,
+             filas: r.filas.map(f => f.lbl + ' = ' + (f.ctrl ? '[CTRL]' : f.val)).join(' | '),
+             notas: r.notas.join(' || ') };
+  };
+  const out = {};
+  /* El disparo por los dos bordes y los dos sexos. 39/40/41 y 35/36/37. */
+  [['h','M',[39,40,41]], ['m','F',[35,36,37]], ['sin','',[35,36,37,39,40,41]]].forEach(([tag, sx, vals]) => {
+    vals.forEach(v => { const o = { ao_tub: String(v) }; if (sx) o.sexo = sx;
+      out['disparo_' + tag + '_' + v] = esc(o).hay; });
+  });
+  out.corteH = esc({ ao_tub:'41', sexo:'M' }).filas;
+  out.corteM = esc({ ao_tub:'37', sexo:'F' }).filas;
+  out.corteSin = esc({ ao_tub:'41' }).filas;
+  /* La aortopatia DERIVADA cuando el estudio la tiene, y PREGUNTADA cuando no. */
+  out.derivMarfan = esc({ ao_tub:'46', marfan_sindrome:'marfan', marfan_ao_seno:'46' }).filas;
+  out.derivVab    = esc({ ao_tub:'46', va_morf:'Bicúspide' }).filas;
+  out.sinAorto    = esc({ ao_tub:'46' });
+  out.preguntada  = esc({ ao_tub:'46' }, { 'ao.aortopatia':'ninguna' });
+  /* Las recomendaciones POR DEBAJO de 45 mm, que el arranque en 45 escondia. */
+  out.marfanEmb42 = esc({ ao_sin:'42', marfan_sindrome:'marfan' }, { 'ao.embarazo':'si' }).notas;
+  out.marfanSin42 = esc({ ao_sin:'42', marfan_sindrome:'marfan' }, { 'ao.embarazo':'no' }).notas;
+  out.lds41fr     = esc({ ao_sin:'41', marfan_sindrome:'lds' }, { 'ao.crecimiento':'si' }).notas;
+  out.acta2_42fr  = esc({ ao_sin:'42', marfan_sindrome:'ehat' }, { 'ao.familiar':'si' }).notas;
+  out.turner41    = esc({ ao_sin:'41', marfan_sindrome:'turner', marfan_ita:'24' }, { 'ao.crecimiento':'si' }).notas;
+  out.eds41       = esc({ ao_sin:'41', marfan_sindrome:'eds' }).notas;
+  /* Y las de 45 mm o mas, con su clase y su nivel. */
+  out.ning55      = esc({ ao_tub:'55' }, { 'ao.aortopatia':'ninguna' }).notas;
+  out.ning53riesgo= esc({ ao_tub:'53' }, { 'ao.aortopatia':'ninguna', 'ao.riesgo':'bajo' }).notas;
+  out.ning46cx    = esc({ ao_tub:'46', vab_cx_valvular:'si', vab_riesgo_qx:'si' }, { 'ao.aortopatia':'ninguna' }).notas;
+  out.ning50fact  = esc({ ao_tub:'50' }, { 'ao.aortopatia':'ninguna', 'ao.riesgo':'bajo', 'ao.crecimiento':'si' }).notas;
+  out.marfan50    = esc({ ao_sin:'50', marfan_sindrome:'marfan' }).notas;
+  out.coa         = esc({ ao_tub:'46', coa_loc:'yuxtaductal', coa_situacion:'nativa', coa_gmedio:'25' }).filas;
+  /* El titulo nuevo no colisiona con ninguno. */
+  out.titulos = (typeof IND_SECS !== 'undefined')
+    ? IND_SECS.map(x => x.tit).filter((t,i,a) => a.some((u,j) => j !== i && (u.indexOf(t) === 0 || t.indexOf(u) === 0))).join(' | ')
+    : 'SIN IND_SECS';
+  out.nSecs = (typeof IND_SECS !== 'undefined') ? IND_SECS.length : null;
+  return out;
+})()`;
+
+const GRUPOS = { citas: CITAS, informe: INFORME, coa: COA, vabtxt: VABTXT, evid: EVID, motor: AOMOTOR, ctrl: CTRL };
 
 async function correr(motor, nombre) {
   const br = await motor.launch(motor === chromium ? { channel: 'chrome' } : {});
@@ -256,7 +309,7 @@ async function correr(motor, nombre) {
   for (const g of SOLO) {
     if (!GRUPOS[g]) { res[g] = { error: 'GRUPO DESCONOCIDO' }; continue }
     await pg.evaluate(PRELUDIO);
-    if (g === 'coa' || g === 'vabtxt' || g === 'evid') {
+    if (g === 'coa' || g === 'vabtxt' || g === 'evid' || g === 'motor') {
       await pg.evaluate(`(() => { try { showTab('congenitas') } catch (e) {}
         try { if (typeof secToggle === 'function') { secToggle('cc-coa'); secToggle('cc-vab') } } catch (e) {}
         return true })()`).catch(() => {});

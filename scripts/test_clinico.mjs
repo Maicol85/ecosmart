@@ -46856,7 +46856,12 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
       /* El guion es el EM DASH del titulo, no un guion comun: la normalizacion del caso saca los
          diacriticos y NO cambia la puntuacion, asi que una clave con «-» no matchea «—». */
       ['Valvula aortica bicuspide \u2014 aorta',      { ao_tub:'50' },                               'esc2024ao'],
-      ['Valvula aortica bicuspide \u2014 conclusion', { vab_tipo:'fused_rl', ao_tub:'50' },          'esc2024ao']
+      ['Valvula aortica bicuspide \u2014 conclusion', { vab_tipo:'fused_rl', ao_tub:'50' },          'esc2024ao'],
+      /* AGREGADO el 2026-10-21 (trabajo «H», commit 3). Su compuerta es el corte de DILATACION de
+         la guia -40 mm en el hombre, 36 en la mujer- y no los 45 mm con que arrancaba el motor,
+         asi que un diametro de 41 alcanza. Sin sexo cargado se usa el corte del varon, que es el
+         alto: es sexoEfectivo, el dueno unico que ya eligen la AI y el VI. */
+      ['Aorta toracica', { ao_tub:'41' }, 'esc2024ao']
     ];
 
     const sembrar = campos => {

@@ -75151,6 +75151,324 @@ function _indMCH(){
     ] };
 }
 
+/* ══ AORTA TORÁCICA — EL UMBRAL QUE ACTIVA LAS DOS SECCIONES DE AORTA ════════════════════════
+   ⚠️ HASTA EL TRABAJO «H» EL MOTOR ARRANCABA EN 45 mm, Y HAY RECOMENDACIONES POR DEBAJO.
+   El diámetro mínimo que la guía nombra es el de la DEFINICIÓN de dilatación: ESC 2024 de
+   enfermedad arterial periférica y aórtica (Mazzolai y cols., edición de la Sociedad Española de
+   Cardiología; folio = hoja del PDF menos uno, comprobada en el encabezado impreso), apartado
+   9.2.1.1, folio 71 (hoja 72), leído literal:
+     «En la práctica clínica se puede sospechar de dilatación de la raíz aórtica cuando el
+      diámetro aórtico es > 40 mm en hombres adultos y > 36 mm en mujeres o con un diámetro
+      indexado/ASC (iDA) > 22 mm/m².»
+   ⚠️ Y LA FIGURA 24 ESCRIBE LOS MISMOS DOS NÚMEROS CON EL VALOR INCLUIDO. Su primer escalón
+   —folio 76 (hoja 77), «Dilatación de la raíz aórtica o de la aorta ascendente con válvula
+   aórtica tricúspide o bicúspide»— es la banda «40-44 mm», con la nota a «36-44 mm en mujeres».
+   O sea que el MISMO documento dice `>` en su texto e incluye el valor en su algoritmo.
+   SE APLICA EL DE LA FIGURA (`>=`), por tres razones y las tres se declaran: es el ALGORITMO que
+   esta sección reproduce, igual que la regla que este archivo ya aplica a las tres figuras de la
+   diastólica; es el lado que muestra la recomendación de MÁS pacientes, y un panel que informa no
+   afirma nada con mostrarla; y coincide con el operador que la app ya usa en el seno de Valsalva
+   (`incRef` de `AO_SEGS`), así que la cápsula de la aorta y el panel no pueden decir cosas
+   distintas de un seno de 40,0 mm exactos.
+   ⚠️ SIN SEXO CARGADO SE USA EL CORTE DEL VARÓN, que es el ALTO: no es una convención nueva, es
+   `sexoEfectivo`, el dueño único que ya eligen la aurícula izquierda y el ventrículo izquierdo.
+   La fila lo DICE, para que no se lea como que el sexo se descartó. */
+const AO_DIL_MM = Object.freeze({ M: 40, F: 36 });
+function aoDilCorte(src){
+  const sx = (typeof sexoEfectivo === 'function') ? sexoEfectivo(src) : 'M';
+  return Object.prototype.hasOwnProperty.call(AO_DIL_MM, sx) ? AO_DIL_MM[sx] : AO_DIL_MM.M;
+}
+window.AO_DIL_MM = AO_DIL_MM; window.aoDilCorte = aoDilCorte;
+/* El diámetro que decide es el MAYOR de la raíz y de la ascendente, que son los dos segmentos que
+   la Figura 24 nombra. Se leen los CUATRO campos que la app tiene para esas dos medidas: los dos
+   canónicos de Paciente → Aorta torácica y los dos del módulo de aortopatía hereditaria, que son
+   una SEGUNDA copia de la misma medición —declarada en PENDIENTES → G1-11—. Con sólo los dos
+   primeros, la sección se quedaba muda justo en el paciente con aortopatía, que es el que carga
+   los otros dos. */
+function aoDilMax(){
+  const n = [ _indN('ao_sin'), _indN('ao_tub'), _indN('marfan_ao_seno'), _indN('marfan_ao_ascendente') ]
+    .filter(function(x){ return x != null && isFinite(x) && x > 0; });
+  return n.length ? Math.max.apply(null, n) : null;
+}
+window.aoDilMax = aoDilMax;
+function aoDilatada(){ const m = aoDilMax(); return m != null && m >= aoDilCorte(); }
+window.aoDilatada = aoDilatada;
+
+/* ══ LAS RECOMENDACIONES, UNA TRANSCRIPCIÓN POR AORTOPATÍA ════════════════════════════════════
+   Cada fila trae su clase, su nivel, su tabla o figura y su folio IMPRESO, los cuatro
+   VERIFICADOS en el PDF original. `cond` recibe el estado y decide si la fila APLICA; `pide`
+   nombra lo que falta contestar para poder decidirla. Ninguna fila se escribe de memoria y
+   ninguna agrega una conducta que la guía no imprima.
+   ⚠️ LA VÁLVULA BICÚSPIDE NO REPITE SUS DIEZ FILAS ACÁ: tiene su propia sección, dos lugares más
+   abajo en el panel, y publicarlas en las dos pondría al panel a decir lo mismo con dos voces.
+   Lo que esta sección hace con la bicúspide es NOMBRAR dónde están. Igual la coartación. */
+const AO_EV_FTE = Object.freeze({
+  t38: 'ESC 2024, Tabla 38 · folio 80',
+  t60: 'ESC 2024, Tabla 60 · folio 113',
+  t62: 'ESC 2024, Tabla 62 · folio 114',
+  t63: 'ESC 2024, Tabla 63 · folio 114',
+  t65: 'ESC 2024, Tabla 65 · folio 116',
+  t66: 'ESC 2024, Tabla 66 · folio 116',
+  t67: 'ESC 2024, Tabla 67 · folio 116',
+  t57: 'ESC 2024, Tabla 57 · folio 111',
+  t58: 'ESC 2024, Tabla 58 · folio 111',
+  t59: 'ESC 2024, Tabla 59 y apartado 10.1.2.4 · folio 112',
+  t68: 'ESC 2024, Tabla 68 · folio 119',
+  t69: 'ESC 2024, Tabla 69 · folio 121',
+  f24: 'ESC 2024, Figura 24 · folio 76',
+  f40: 'ESC 2024, Figura 40 · folio 111',
+  f44: 'ESC 2024, Figura 44 · folio 120'
+});
+const AO_EV = Object.freeze({
+  ninguna: Object.freeze([
+    { t:'Cirugía de la dilatación de la raíz o de la aorta ascendente con válvula aórtica tricúspide, con el diámetro máximo de 55 mm o más.',
+      cl:'I', nv:'B', f:AO_EV_FTE.t38, cond:function(S){ return S.max != null && S.max >= 55 } },
+    { t:'Reemplazo de la aorta ascendente tubular con el diámetro máximo por encima de 52 mm, en el candidato a cirugía con riesgo estimado bajo.',
+      cl:'IIa', nv:'B', f:AO_EV_FTE.t38, cond:function(S){ return S.asc != null && S.asc > 52 && S.riesgo === 'bajo' },
+      pide:function(S){ return (S.asc != null && S.asc > 52 && S.riesgo == null) ? 'el riesgo quirúrgico' : null } },
+    { t:'Reemplazo de la aorta ascendente o de la raíz en quien se opera de la válvula aórtica tricúspide, con el diámetro máximo de 45 mm o más —o de 50 mm o más en los demás casos— y riesgo quirúrgico estimado bajo.',
+      cl:'IIa', nv:'B', f:AO_EV_FTE.t38, cond:function(S){ return S.max != null && S.max >= 45 && S.cxvalv === 'si' && S.riesgo === 'bajo' },
+      pide:function(S){ return (S.max != null && S.max >= 45 && (S.cxvalv == null || (S.cxvalv === 'si' && S.riesgo == null))) ? 'si hay cirugía valvular aórtica prevista y el riesgo quirúrgico' : null } },
+    { t:'Cirugía aórtica concomitante en quien se opera del corazón por un motivo que no es la válvula aórtica, con el diámetro máximo de 50 mm o más.',
+      cl:'IIa', nv:'C', f:AO_EV_FTE.t38, cond:function(S){ return S.max != null && S.max >= 50 && S.cxotra === 'si' },
+      pide:function(S){ return (S.max != null && S.max >= 50 && S.cxotra == null) ? 'si hay otra cirugía cardíaca prevista' : null } },
+    { t:'Reemplazo de la aorta ascendente o de la raíz con el diámetro máximo de 50 mm o más, en el candidato a cirugía con riesgo estimado bajo que presente alguno de ocho factores: crecimiento de 3 mm o más al año, hipertensión resistente, estatura menor de 1,69 m, fenotipo de raíz aórtica, longitud aórtica mayor de 11 cm, edad menor de 50 años, deseo de embarazo o coartación aórtica.',
+      cl:'IIb', nv:'B', f:AO_EV_FTE.t38, cond:function(S){ return S.max != null && S.max >= 50 && S.riesgo === 'bajo' && S.nFact > 0 },
+      pide:function(S){ return (S.max != null && S.max >= 50 && (S.riesgo == null || S.nFact === 0)) ? 'el riesgo quirúrgico y los factores de riesgo' : null } },
+    { t:'Seguimiento por imagen de la dilatación de 40 a 44 mm —de 36 a 44 mm en la mujer— con válvula tricúspide o bicúspide y función valvular normal: tomografía o resonancia basal y ecocardiografía de control al año; después, repetición de la ecocardiografía cada 2 o 3 años.',
+      cl:'—', nv:'—', f:AO_EV_FTE.f24, cond:function(S){ return S.max != null && S.max >= S.corte && S.max <= 44 } }
+  ]),
+  marfan: Object.freeze([
+    { t:'Cirugía de la enfermedad de la raíz aórtica con el diámetro máximo de los senos aórticos de 50 mm o más.',
+      cl:'I', nv:'B', f:AO_EV_FTE.t62, cond:function(S){ return S.raiz != null && S.raiz >= 50 } },
+    { t:'Cirugía del aneurisma de la raíz aórtica con el diámetro máximo de los senos de 45 mm o más y factores de riesgo adicionales: historia familiar de disección con dimensiones pequeñas (menores de 50 mm), hipertensión refractaria o crecimiento de 3 mm o más al año en el adulto.',
+      cl:'IIa', nv:'C', f:AO_EV_FTE.t62, cond:function(S){ return S.raiz != null && S.raiz >= 45 && S.nFact > 0 },
+      pide:function(S){ return (S.raiz != null && S.raiz >= 45 && S.nFact === 0) ? 'los factores de riesgo' : null } },
+    { t:'Reemplazo quirúrgico del segmento aneurismático de la aorta ascendente, el arco, la aorta torácica descendente o la aorta abdominal de 50 mm o más, por un cirujano con experiencia específica.',
+      cl:'IIa', nv:'C', f:AO_EV_FTE.t62, cond:function(S){ return S.asc != null && S.asc >= 50 } },
+    { t:'Cirugía profiláctica de la raíz aórtica en la mujer que desea quedar embarazada y tiene un diámetro aórtico por encima de 45 mm.',
+      cl:'I', nv:'C', f:AO_EV_FTE.t63, cond:function(S){ return S.max != null && S.max > 45 && S.embarazo === 'si' },
+      pide:function(S){ return (S.max != null && S.max >= 40 && S.embarazo == null) ? 'si hay deseo de embarazo' : null } },
+    /* ⚠️ ES LA RECOMENDACIÓN POR DEBAJO DE 45 mm QUE EL ARRANQUE EN 45 ESCONDÍA. */
+    { t:'Cirugía profiláctica de la raíz aórtica en la mujer que desea quedar embarazada y tiene un diámetro aórtico de 40 a 45 mm.',
+      cl:'IIb', nv:'C', f:AO_EV_FTE.t63, cond:function(S){ return S.max != null && S.max >= 40 && S.max <= 45 && S.embarazo === 'si' } },
+    /* ⚠️ LA TABLA 60 SE LEYÓ EN EL ORIGINAL, folio 113 (hoja 114), y es lo que el censo de Cowork
+       dejaba pendiente («leer la tabla 60 antes de usarla»). Sus tres filas son Clase I · Nivel C
+       y su nota c cuenta el propio diámetro de la raíz de más de 40 y hasta 45 mm COMO uno de los
+       factores de riesgo, junto con la historia familiar de disección con dimensiones pequeñas,
+       la hipertensión refractaria y el crecimiento de 3 mm o más al año. */
+    { t:'Ecocardiografía transtorácica al menos una vez al año con la raíz aórtica por debajo de 45 mm y sin factores de riesgo adicionales, y al menos cada 6 meses si los hay. Con la raíz de 45 mm o más y sin factores, al menos cada 6 a 12 meses.',
+      cl:'I', nv:'C', f:AO_EV_FTE.t60, cond:function(){ return true } },
+    { t:'Imagen de toda la vasculatura periférica y de la aorta toracoabdominal con resonancia o tomografía y eco Doppler en la primera evaluación y, después, cada 3 a 5 años si el paciente sigue estable, en quien no tiene cirugía aórtica previa.',
+      cl:'I', nv:'C', f:AO_EV_FTE.t60, cond:function(){ return true } },
+    { t:'Tras el reemplazo de la raíz aórtica, seguimiento de la aorta torácica con resonancia —o tomografía— al menos cada 3 años.',
+      cl:'I', nv:'C', f:AO_EV_FTE.t60, cond:function(){ return true } }
+  ]),
+  lds: Object.freeze([
+    { t:'Reemplazo de la raíz aórtica con el diámetro por encima de 45 mm.',
+      cl:'IIa', nv:'C', f:AO_EV_FTE.t66, cond:function(S){ return S.max != null && S.max > 45 } },
+    /* ⚠️ LA SEGUNDA FILA DE LA TABLA 66, Y SU UMBRAL BAJA A 40 mm: el apartado 10.1.4.1.1 del
+       mismo folio escribe «se debe considerar un umbral de diámetro aórtico de 45 mm (≥ 40 mm en
+       caso de características de riesgo alto asociadas)». */
+    { t:'Adaptación del umbral de cirugía al gen subyacente, teniendo en cuenta las características de riesgo alto asociadas: variantes patogénicas específicas, mujer con variante del TGFBR2 y tamaño corporal pequeño, rasgos extraaórticos graves, historia familiar de disección aórtica o crecimiento de 3 mm o más al año. Con esas características el umbral baja a 40 mm o más.',
+      cl:'IIb', nv:'C', f:AO_EV_FTE.t66, cond:function(S){ return S.max != null && S.max >= 40 },
+      pide:function(S){ return (S.max != null && S.max >= 40 && S.nFact === 0) ? 'las características de riesgo alto' : null } },
+    { t:'Ecocardiografía transtorácica basal y después cada 6 a 12 meses, según el diámetro y el crecimiento aórticos. La guía pide imagen más frecuente con la raíz o la ascendente por encima de 42 mm y un crecimiento de 3 mm o más al año.',
+      cl:'I', nv:'C', f:AO_EV_FTE.t65, cond:function(){ return true } },
+    { t:'Estudio de imagen arterial de la cabeza a la pelvis con resonancia o tomografía en la fase inicial, y después seguimiento con resonancia, tomografía o eco Doppler cada 1 a 3 años.',
+      cl:'I', nv:'C', f:AO_EV_FTE.t65, cond:function(){ return true } }
+  ]),
+  turner: Object.freeze([
+    /* ⚠️ TURNER NO TIENE UMBRAL DE DIÁMETRO ABSOLUTO: los dos cortes son indexados, y en la mujer
+       de talla baja pueden alcanzarse muy por debajo de 45 mm. Es la otra recomendación que el
+       arranque en 45 escondía. */
+    { t:'Cirugía electiva del aneurisma de la raíz o de la aorta ascendente desde los 15 años, con un índice de dimensión aórtica ascendente por encima de 23 mm/m², un índice de altura aórtica por encima de 23 mm/m o una puntuación Z por encima de 3,5, y factores de riesgo asociados de disección o embarazo planificado.',
+      cl:'IIa', nv:'C', f:AO_EV_FTE.t58, cond:function(S){ return S.ita != null && S.ita > 23 && S.nFact > 0 },
+      pide:function(S){ return S.ita == null ? 'el índice de tamaño aórtico, que se carga en la sección de aortopatía' : ((S.ita > 23 && S.nFact === 0) ? 'los factores de riesgo' : null) } },
+    { t:'Cirugía electiva del aneurisma de la raíz o de la aorta ascendente desde los 15 años, con un índice de dimensión aórtica por encima de 25 mm/m², un índice de altura aórtica por encima de 25 mm/m y una puntuación Z por encima de 4, sin factores de riesgo asociados.',
+      cl:'IIb', nv:'C', f:AO_EV_FTE.t58, cond:function(S){ return S.ita != null && S.ita > 25 } },
+    { t:'Medir la dilatación aórtica y el riesgo de disección con el índice de dimensión aórtica, el índice de altura aórtica o la puntuación Z, en vez de con el diámetro absoluto: la talla menor de la mujer con síndrome de Turner hace que un diámetro absoluto normal pueda ser patológico.',
+      cl:'I', nv:'C', f:AO_EV_FTE.t57, cond:function(){ return true } },
+    { t:'Fijar los intervalos de control clínico y por imagen por el riesgo estimado de disección: con el índice por debajo de 20 mm/m², cada 5 a 10 años; de 20 a menos de 23, cada 3 a 5 años; de 23 a 25, anual; por encima de 25, cada 2 a 3 años. Con coartación, válvula bicúspide, hipertensión no controlada o crecimiento de 3 mm o más al año los intervalos se acortan.',
+      cl:'I', nv:'C', f:AO_EV_FTE.f40, cond:function(){ return true } }
+  ]),
+  acta2: Object.freeze([
+    /* ⚠️ «O MENOR EN CASO DE EXISTIR OTROS FACTORES DE RIESGO» ES LA TERCERA RECOMENDACIÓN POR
+       DEBAJO DE 45 mm, y es literal de la Tabla 67. */
+    { t:'Cirugía profiláctica de la raíz aórtica con el diámetro de 45 mm o más, o con un diámetro MENOR si existen otros factores de riesgo: historia familiar de disección sin dilatación o con dilatación mínima o a edad joven, o crecimiento rápido de 3 mm o más al año.',
+      cl:'IIa', nv:'C', f:AO_EV_FTE.t67, cond:function(S){ return S.max != null && (S.max >= 45 || S.nFact > 0) },
+      pide:function(S){ return (S.max != null && S.max < 45 && S.nFact === 0) ? 'los factores de riesgo, que pueden bajar el umbral por debajo de 45 mm' : null } },
+    { t:'Monitorización anual de la raíz y de la aorta ascendente con ecocardiografía transtorácica, para evaluar su crecimiento.',
+      cl:'I', nv:'C', f:AO_EV_FTE.t67, cond:function(){ return true } },
+    { t:'Seguimiento de la aorta con resonancia o tomografía cada 3 a 5 años.',
+      cl:'I', nv:'C', f:AO_EV_FTE.t67, cond:function(){ return true } }
+  ]),
+  eds: Object.freeze([
+    { t:'Seguimiento vascular regular de la aorta y de las arterias periféricas con eco Doppler, tomografía o resonancia.',
+      cl:'I', nv:'C', f:AO_EV_FTE.t59, cond:function(){ return true } },
+    { t:'Tratamiento con celiprolol.',
+      cl:'IIa', nv:'B', f:AO_EV_FTE.t59, cond:function(){ return true } },
+    { t:'La guía NO establece un diámetro aórtico o arterial al que intervenir en esta enfermedad: las decisiones se toman caso a caso. Los procedimientos intervencionistas quedan limitados a las situaciones de riesgo vital.',
+      cl:'—', nv:'—', f:AO_EV_FTE.t59, cond:function(){ return true } }
+  ]),
+  vab: Object.freeze([
+    { t:'Los umbrales de la aortopatía asociada a válvula aórtica bicúspide, su seguimiento por imagen y el cribado familiar están en la sección «Válvula aórtica bicúspide — aorta ascendente» de este mismo panel, que los lee de la misma tabla.',
+      cl:'—', nv:'—', f:AO_EV_FTE.t68, cond:function(){ return true } }
+  ]),
+  coa: Object.freeze([
+    { t:'Los criterios de significación de la coartación, su indicación de intervención y su seguimiento están en la sección «Coartación de aorta» de este mismo panel.',
+      cl:'—', nv:'—', f:AO_EV_FTE.t69, cond:function(){ return true } },
+    { t:'La coartación es uno de los factores de riesgo que bajan el umbral quirúrgico de la aorta, tanto con válvula tricúspide como con bicúspide.',
+      cl:'—', nv:'—', f:AO_EV_FTE.t38, cond:function(){ return true } }
+  ])
+});
+const AO_EV_LBL = Object.freeze({ ninguna:'sin aortopatía conocida', vab:'válvula aórtica bicúspide',
+  marfan:'síndrome de Marfan', lds:'síndrome de Loeys-Dietz', turner:'síndrome de Turner',
+  acta2:'ACTA2 u otra aortopatía hereditaria', eds:'síndrome de Ehlers-Danlos vascular',
+  coa:'coartación de aorta' });
+
+/* ── Aorta torácica — dilatación y aortopatía ───────────────────────────────────────────────
+   ⚠️ EL TÍTULO NO PUEDE SER PREFIJO DE OTRO NI TENER OTRO POR PREFIJO: `IND_SECS` se recorre
+   buscando la sección por el prefijo de su título, así que dos títulos que colisionen dejan una
+   sin probar. Es la lección que «Válvula aórtica bicúspide — conclusión» ya pagó.
+   La aortopatía se LEE cuando el estudio la tiene y se PREGUNTA cuando no: es `_indOrigen`, y es
+   lo que impide que el panel publique una aortopatía distinta de la que dice la pestaña de
+   congénitas. Lo que el médico contesta NO se guarda con el estudio —vive en `_indClin`, que se
+   borra al abrir y al cerrar el panel—. */
+function _indAo(){
+  const max = aoDilMax(), corte = aoDilCorte();
+  if (max == null || max < corte) return null;
+  const raiz = (function(){ const a = _indN('ao_sin'), b = _indN('marfan_ao_seno');
+    const n = [a, b].filter(function(x){ return x != null && x > 0 }); return n.length ? Math.max.apply(null, n) : null })();
+  const asc  = (function(){ const a = _indN('ao_tub'), b = _indN('marfan_ao_ascendente');
+    const n = [a, b].filter(function(x){ return x != null && x > 0 }); return n.length ? Math.max.apply(null, n) : null })();
+  const sexoF = (typeof sexoFalta === 'function') ? sexoFalta() : true;
+  const sexo  = (typeof sexoCargado === 'function') ? sexoCargado() : null;
+  /* La aortopatía DERIVADA, con su precedencia: el síndrome declarado manda sobre la morfología,
+     porque es más específico; la bicúspide sobre la coartación, porque tiene su propia tabla. */
+  const sind = _indS('marfan_sindrome');
+  const morfVA = _indS('va_morf');
+  const coaF = _indFn('coaConclusion');
+  const coaC = coaF ? coaF() : null;
+  const coaConcluye = !!(coaC && coaC.clave !== 'incompleto' && coaC.clave !== 'no_interpretable');
+  const SIND_A_EV = { marfan:'marfan', lds:'lds', turner:'turner', ehat:'acta2', eds:'eds', otro:'acta2' };
+  const derivada = Object.prototype.hasOwnProperty.call(SIND_A_EV, sind) ? SIND_A_EV[sind]
+                 : (morfVA === 'Bicúspide' ? 'vab' : (coaConcluye ? 'coa' : ''));
+  const oAo = _indOrigen(derivada, 'ao.aortopatia');
+  const ao = oAo.val && Object.prototype.hasOwnProperty.call(AO_EV, oAo.val) ? oAo.val : null;
+  /* Los insumos que cada recomendación pide. Los tres que la app ya tiene se LEEN; los demás se
+     contestan acá, y con el valor de origen puesto el control manual ni se dibuja. */
+  const oCx   = _indOrigen(_indS('vab_cx_valvular'), 'ao.cxvalv');
+  const oCre  = _indOrigen(_indS('vab_fr_crecimiento') === 'si' ? 'si' : '', 'ao.crecimiento');
+  const oFam  = _indOrigen(_indS('vab_fr_familiar') === 'si' ? 'si' : '', 'ao.familiar');
+  const oRie  = _indOrigen(_indS('vab_riesgo_qx') === 'si' ? 'bajo' : (_indS('vab_riesgo_qx') === 'no' ? 'no_bajo' : ''), 'ao.riesgo');
+  const emb   = _indClinGet('ao.embarazo');
+  const cxotra= _indClinGet('ao.cxotra');
+  const nFact = (oCre.val === 'si' ? 1 : 0) + (oFam.val === 'si' ? 1 : 0) + (emb === 'si' ? 1 : 0);
+  const S = { max:max, raiz:raiz, asc:asc, corte:corte, ita:_indN('marfan_ita'),
+              cxvalv: oCx.val || null, cxotra: cxotra, embarazo: emb,
+              riesgo: oRie.val || null, nFact: nFact };
+  const filas = [
+    _indFila('Diámetro aórtico máximo (raíz o ascendente)', _indNum(max, 0, 'mm'),
+      max >= 55 ? 'alarm' : (max >= 45 ? 'warn' : 'ok'),
+      'alcanza el corte de dilatación de ' + corte + ' mm' +
+      (sexoF ? ' — SIN SEXO CARGADO se usa el corte del varón (40 mm), que es el alto; con sexo femenino el corte es 36 mm'
+             : ' que la guía da para el sexo ' + (sexo === 'F' ? 'femenino' : 'masculino')),
+      ['esc2024ao']),
+    _indFila('Raíz aórtica (senos de Valsalva)', _indNum(raiz, 0, 'mm'), raiz != null ? 'none' : 'ask',
+      raiz != null ? 'es el segmento que eligen los umbrales del Marfan y del Loeys-Dietz' : 'sin medir'),
+    _indFila('Aorta ascendente', _indNum(asc, 0, 'mm'), asc != null ? 'none' : 'ask',
+      asc != null ? 'es el segmento del umbral de 52 mm con riesgo quirúrgico bajo' : 'sin medir'),
+    _indFilaOrigen('Aortopatía asociada', oAo,
+      Object.keys(AO_EV_LBL).map(function(k){ return { v:k, t:AO_EV_LBL[k] } }),
+      function(v){
+        if (!v) return { txt:'No consta', marca:'ask',
+          nota:'es lo que ELIGE la tabla de umbrales: sin ella no se puede publicar ninguna recomendación' };
+        return { txt: AO_EV_LBL[v] || v, marca:'ok',
+          nota: Object.prototype.hasOwnProperty.call(AO_EV, v)
+            ? 'las recomendaciones de abajo son las de su tabla' : 'sin tabla propia en la guía' };
+      })
+  ];
+  if (ao === 'turner') filas.push(_indFila('Índice de tamaño aórtico', _indNum(S.ita, 1, 'mm/m²'),
+    S.ita != null ? 'none' : 'ask',
+    S.ita != null ? 'es el criterio del síndrome de Turner: la guía no da diámetro absoluto'
+                  : 'se carga en la sección de aortopatía hereditaria de Congénitas'));
+  filas.push(
+    _indFilaOrigen('Cirugía valvular aórtica prevista', oCx, [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      function(v){ return { txt: v === 'si' ? 'Sí' : (v === 'no' ? 'No' : 'No consta'),
+        marca: v === 'si' ? 'ok' : (v === 'no' ? 'none' : 'ask'),
+        nota: v === 'si' ? 'baja el umbral a 45 mm' : 'baja el umbral a 45 mm cuando la hay' } }),
+    _indFilaCtrl('Otra cirugía cardíaca prevista, no valvular aórtica', 'ao.cxotra',
+      [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      cxotra === 'si' ? 'ok' : (cxotra === 'no' ? 'none' : 'ask'),
+      'con ella el umbral de la aorta no hereditaria es 50 mm (Clase IIa · Nivel C)'),
+    _indFilaCtrl('Deseo de embarazo', 'ao.embarazo', [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      emb === 'si' ? 'ok' : (emb === 'no' ? 'none' : 'ask'),
+      'en el Marfan es lo que hace aplicable la cirugía profiláctica de la raíz desde 40 mm (Clase IIb · Nivel C)'),
+    _indFilaOrigen('Crecimiento de 3 mm o más al año', oCre, [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      function(v){ return { txt: v === 'si' ? 'Sí' : (v === 'no' ? 'No' : 'No consta'),
+        marca: v === 'si' ? 'ok' : (v === 'no' ? 'none' : 'ask'),
+        nota:'es factor de riesgo en las CINCO tablas de aortopatía' } }),
+    _indFilaOrigen('Antecedente familiar de disección o síndrome aórtico agudo', oFam, [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      function(v){ return { txt: v === 'si' ? 'Sí' : (v === 'no' ? 'No' : 'No consta'),
+        marca: v === 'si' ? 'ok' : (v === 'no' ? 'none' : 'ask'),
+        nota:'factor de riesgo del Marfan, del Loeys-Dietz y de la ACTA2' } }),
+    _indFilaOrigen('Riesgo quirúrgico', oRie, [{v:'bajo',t:'Bajo'},{v:'no_bajo',t:'No bajo'}],
+      function(v){ return { txt: v === 'bajo' ? 'Bajo' : (v === 'no_bajo' ? 'No bajo' : 'No consta'),
+        marca: v === 'bajo' ? 'ok' : (v === 'no_bajo' ? 'none' : 'ask'),
+        nota:'la aorta no hereditaria define «bajo» como un riesgo individual por debajo del 3 % (nota c de la Tabla 38)' } })
+  );
+  /* ══ LAS RECOMENDACIONES APLICABLES, EN UN BLOQUE VISIBLE Y NO EN `notas` ══════════════════
+     ⚠️ `notas` SE PINTA DENTRO DEL «Ver detalle», QUE NACE PLEGADO —es la regla del marco del
+     panel desde el trabajo del 2026-10-11— y las recomendaciones son lo que esta sección existe
+     para publicar: dejarlas ahí las escondía detrás de un clic. Lo cazó MIRAR la captura, no la
+     medición: el objeto traía las cuatro filas y el PNG mostraba un desplegable cerrado.
+     Van en `r.bloques`, que es ADITIVO y se pinta VISIBLE con `plegado:false`. Cada línea lleva
+     su cita numerada, y el número lo pone el contexto de la sección.
+     Lo que FALTA contestar para decidir una fila también se publica, en su propio bloque: una
+     fila que desaparece porque falta un dato se lee como una fila que no aplica. */
+  const lineas = [], faltan = [];
+  if (!ao) {
+    lineas.push({ txt:'Falta la aortopatía asociada: es lo que ELIGE la tabla de umbrales. Con ella, esta sección publica las recomendaciones de esa tabla con su clase, su nivel y su folio.', refs:null });
+  } else {
+    const lista = AO_EV[ao];
+    for (let i = 0; i < lista.length; i++) {
+      const r = lista[i];
+      let aplica = false;
+      try { aplica = !!r.cond(S) } catch (e) { aplica = false }
+      if (aplica) {
+        lineas.push({ txt: (r.cl === '—' ? '' : 'Clase ' + r.cl + ' · Nivel ' + r.nv + ' — ') + r.t + ' (' + r.f + ').',
+                      refs: ['esc2024ao'] });
+      } else if (typeof r.pide === 'function') {
+        let q = null; try { q = r.pide(S) } catch (e) { q = null }
+        /* «Falta consignar» y no «Falta»: con el plural —«Falta los factores de riesgo»— la
+           concordancia se rompía, y es texto que el médico lee. */
+        if (q) faltan.push({ txt:'Falta consignar ' + q + ' para decidir una fila ' +
+          (r.cl === '—' ? 'de esta tabla' : 'Clase ' + r.cl + ' · Nivel ' + r.nv) + ' (' + r.f + ').', refs:null });
+      }
+    }
+    if (!lineas.length) lineas.push({ txt:'Con los datos cargados ninguna fila de la tabla de ' +
+      (AO_EV_LBL[ao] || ao) + ' resulta aplicable.', refs:null });
+  }
+  const bloques = [ { tit:'Recomendaciones aplicables de la guía', lineas: lineas,
+                      nota:'El informe y la conclusión de la app son DESCRIPTIVOS: los umbrales quirúrgicos y los controles por imagen se publican acá y no en el papel firmado.' } ];
+  if (faltan.length) bloques.push({ tit:'Lo que falta para decidir otras filas', lineas: faltan });
+  const notas = lineas.map(function(l){ return l.txt });
+  return { filas: filas, bloques: bloques,
+    clinica: [
+      _indFila('Puntuación Z aórtica por edad, sexo y tamaño corporal', '—', 'ask',
+        'la guía define la dilatación como un diámetro por encima de 2 desviaciones estándar del esperado (Z mayor de 2) y recomienda la escala Z en los valores extremos de superficie corporal o de edad; la app no la calcula'),
+      _indFila('Longitud de la aorta ascendente', '—', 'ask',
+        'una longitud mayor de 11 cm es uno de los ocho factores de la Tabla 38 y de los nueve de la Tabla 68, y no se mide por ecocardiografía'),
+      _indFila('Hipertensión resistente', '—', 'ask',
+        'la guía la define como la que persiste con tres o más antihipertensivos prescritos por un médico con experiencia; es factor de riesgo en las dos tablas de umbral')
+    ],
+    guia: { ref:'esc2024ao',
+      txt:'La dilatación aórtica se define como un diámetro mayor de 2 desviaciones estándar del esperado por edad, sexo y tamaño corporal (puntuación Z mayor de 2); en la práctica se sospecha dilatación de la raíz con un diámetro por encima de 40 mm en el hombre adulto y de 36 mm en la mujer, o con un índice de dimensión aórtica mayor de 22 mm/m² (apartado 9.2.1.1, folio 71).',
+      nota:'El primer escalón del algoritmo de seguimiento (Figura 24, folio 76) escribe esos mismos dos números con el valor INCLUIDO —«40-44 mm», «36-44 mm en mujeres»—, y es el operador que esta sección aplica.' },
+    notas: notas };
+}
+
 /* ── VAB — aorta ascendente ────────────────────────────────────────────────────────────────
    Los umbrales NO se escriben acá: se toma la conclusión de `vabConclusion()`, que es la que
    viaja al informe firmado y al EN SUMA. Escribirlos a mano habría puesto al panel a contradecir
@@ -75162,7 +75480,16 @@ function _indMCH(){
    normal», así que ese valor no significa que el médico haya dicho trivalva. No puede negar nada. */
 function _indVAB(){
   const asc = _indN('ao_tub'), raiz = _indN('ao_sin');
-  if (!_ge(asc, 45) && !_ge(raiz, 45)) return null;
+  /* ⚠️ LA COMPUERTA BAJÓ DE 45 mm AL CORTE DE DILATACIÓN DE LA GUÍA (trabajo «H»), y es el MISMO
+     dueño que usa la sección de aorta: `aoDilatada()`, que lee `aoDilCorte()` —40 mm en el
+     hombre, 36 en la mujer— del apartado 9.2.1.1 (folio 71) y del primer escalón de la Figura 24
+     (folio 76). Con el arranque en 45 esta sección se quedaba muda justo donde la Tabla 68 SÍ
+     tiene una fila: su seguimiento por imagen es Clase I · Nivel C «con un diámetro aórtico
+     máximo > 40 mm, que no tiene indicación de cirugía», o sea la banda que no se mostraba.
+     UN SOLO DUEÑO para las dos secciones: con dos predicados, una aparecía y la otra no sobre el
+     mismo paciente, y nada lo diría. */
+  const dil = _indFn('aoDilatada');
+  if (dil ? !dil() : (!_ge(asc, 45) && !_ge(raiz, 45))) return null;
   const conc = _indFn('vabConclusion');
   const C = conc ? conc() : null;
   const morf = _indS('va_morf'), cx = _indS('vab_cx_valvular'), riesgo = _indS('vab_riesgo_qx');
@@ -76541,7 +76868,14 @@ const IND_SECS = [
      comprobaciones y la otra quedaria sin probar. Es el mismo argumento por el que las claves de
      este archivo no se repiten. */
   { tit:'Válvula aórtica bicúspide — conclusión', fn:_indVABConcl },
-  { tit:'Válvula aórtica bicúspide — aorta ascendente', fn:_indVAB }
+  { tit:'Válvula aórtica bicúspide — aorta ascendente', fn:_indVAB },
+  /* ⚠️ VA AL FINAL Y SU TÍTULO NO COLISIONA CON NINGUNO: `IND_SECS` se recorre buscando la
+     sección por el PREFIJO de su título, así que un título que sea prefijo de otro —o que lo
+     tenga por prefijo— deja una de las dos sin probar. «Aorta torácica» no es prefijo de
+     ninguno de los diecinueve anteriores y ninguno es prefijo suyo.
+     Va DESPUÉS de las dos de la bicúspide a propósito: cuando la aortopatía es una bicúspide
+     esta sección NO repite sus diez filas, las nombra, y el médico las encuentra justo arriba. */
+  { tit:'Aorta torácica — dilatación y aortopatía', fn:_indAo }
 ];
 
 function indicRender(){
@@ -125814,8 +126148,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261021-0816';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1792581417499;                 /* eco-build-ms */
+const ECO_BUILD    = '20261021-1056';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1792590970953;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -125901,7 +126235,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261021-0816</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261021-1056</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
