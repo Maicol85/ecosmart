@@ -7236,7 +7236,10 @@ caso('TC-113', 'CoAo: la indicacion sale del pico-pico invasivo, no del Doppler'
       soloDoppler.txt.indexOf('medir el gradiente pico-pico invasivo') > -1],
     // 2 · Las cuatro clases, por los dos lados del corte.
     ['HTA + pico-pico 20 exactos -> Clase I',
-      i.clave === 'indicacion_i' && i.txt.indexOf('Clase I ESC 2020') > -1],
+      i.clave === 'indicacion_i' && i.txt.indexOf('Clase I') > -1 &&
+      /* ADAPTADO el 2026-10-21 (trabajo «H»): la indicacion se cita por la ESC 2024, Tabla 69
+         (folio 121), que es mas nueva y coincide en las clases con la ESC 2020. */
+      i.txt.indexOf('ESC 2024, Tabla 69') > -1 && i.txt.indexOf('folio 121') > -1],
     ['con 19 NO es Clase I',        iNo.clave !== 'indicacion_i'],
     ['HTA + estenosis 60 % con pico-pico bajo -> Clase IIa',
       iia1.clave === 'indicacion_iia' && iia1.txt.indexOf('Clase IIa') > -1],
@@ -7244,7 +7247,9 @@ caso('TC-113', 'CoAo: la indicacion sale del pico-pico invasivo, no del Doppler'
     ['normotenso + pico-pico 20 -> Clase IIa',
       iia2.clave === 'indicacion_iia' && iia2.txt.indexOf('normotensa') > -1],
     ['estenosis 50 exactos sin HTA ni gradiente -> Clase IIb',
-      iib.clave === 'indicacion_iib' && iib.txt.indexOf('Clase IIb') > -1],
+      iib.clave === 'indicacion_iib' && iib.txt.indexOf('Clase IIb') > -1 &&
+      /* La IIb es la UNICA de las cuatro que la ESC 2024 no trae: sigue citando la ESC 2020. */
+      iib.txt.indexOf('ESC 2020') > -1 && iib.txt.indexOf('folio e42') > -1],
     ['por debajo de todo -> sin criterios',
       sin.clave === 'sin_indicacion' && sin.txt.indexOf('Sin criterios'.toLowerCase()) > -1],
     // 3 · Sin HTA consignada no se concluye: falta la mitad del criterio Clase I.
@@ -7262,7 +7267,7 @@ caso('TC-113', 'CoAo: la indicacion sale del pico-pico invasivo, no del Doppler'
     ['y la HTA confirmada',        i.inf.inf.indexOf('Hipertensión arterial confirmada') > -1],
     ['la estenosis relativa tambien', iib.inf.inf.indexOf('Estenosis relativa al diámetro aórtico al diafragma 50 %') > -1],
     // 6 · El EN SUMA lleva la clase: una indicacion solo en el cuerpo no se ve.
-    ['el EN SUMA declara la Clase I',   i.inf.suma.indexOf('Clase I ESC 2020') > -1],
+    ['el EN SUMA declara la Clase I',   i.inf.suma.indexOf('Clase I') > -1],
     ['y distingue post-stent de nativa', post.inf.suma.indexOf('post-stent') > -1]
   ] };
 `);
@@ -7409,6 +7414,10 @@ caso('TC-116', 'Marfan/EHAT: el umbral quirurgico sale del sindrome, no solo del
     return { c: r.clave, t: r.txt, inf: __t.informe() };
   }
   const lds45 = m({ s:'lds', seno:45 }),      lds44 = m({ s:'lds', seno:44 });
+  const lds46 = m({ s:'lds', seno:46 }),      lds39 = m({ s:'lds', seno:39 });
+  const lds41fr = m({ s:'lds', seno:41, fr:'si' });
+  /* Ehlers-Danlos vascular: opcion propia y SIN umbral de diametro (folio 112, 10.1.2.4). */
+  const eds46 = m({ s:'eds', seno:46 }),      edsSin = m({ s:'eds' });
   const mar50 = m({ s:'marfan', seno:50 }),   mar49 = m({ s:'marfan', seno:49 });
   const mar45fr = m({ s:'marfan', seno:45, fr:'si' });
   const mar45no = m({ s:'marfan', seno:45, fr:'no' });
@@ -7428,8 +7437,25 @@ caso('TC-116', 'Marfan/EHAT: el umbral quirurgico sale del sindrome, no solo del
   const tubular  = m({ s:'marfan', seno:42, asc:52 });
   return { extra: [
     // Loeys-Dietz: 45 es Clase I; el Marfan a los 45 todavia no.
-    ['Loeys-Dietz con 45 mm ya es Clase I', lds45.c === 'cx_i'],
-    ['con 44 todavia no',                   lds44.c !== 'cx_i'],
+    /* ADAPTADO el 2026-10-21 (trabajo «H»): la Tabla 66 de la ESC 2024 (folio 116) NO tiene
+       Clase I para el Loeys-Dietz. Son DOS filas: «se debe considerar el reemplazo de la raiz
+       cuando el diametro es SUPERIOR A 45 mm» (IIa · C, operador ESTRICTO) y «se puede
+       considerar la adaptacion del umbral segun el gen» (IIb · C), cuyo apartado 10.1.4.1.1
+       baja el umbral a 40 mm o mas con caracteristicas de riesgo alto. La app decia
+       «cirugia indicada (Clase I desde 45 mm)», que son dos cosas mal: la clase y el operador. */
+    ['Loeys-Dietz: 46 mm es Clase IIa · C y NO Clase I',
+      lds46.c === 'cx_iia' && lds46.t.indexOf('Clase IIa · Nivel C') > -1 &&
+      lds46.t.indexOf('superior a 45 mm') > -1 && lds46.t.indexOf('Tabla 66') > -1],
+    ['45 exactos NO lo cruzan: el operador es estricto', lds45.c !== 'cx_iia'],
+    ['y 45 exactos CAEN en la banda del gen, que arranca en 40 mm',
+      lds45.c === 'umbral_iia_sin_fr'],
+    ['41 mm CON caracteristicas de riesgo alto es IIb · C por el umbral adaptado al gen',
+      lds41fr.c === 'cx_iib' && lds41fr.t.indexOf('Clase IIb · Nivel C') > -1 &&
+      lds41fr.t.indexOf('gen subyacente') > -1],
+    ['con 39 mm no hay ninguna de las dos filas', lds39.c === 'sin_indicacion'],
+    ['y ninguna rama del Loeys-Dietz publica una Clase I',
+      lds46.c !== 'cx_i' && lds45.c !== 'cx_i' && lds41fr.c !== 'cx_i' &&
+      lds46.t.indexOf('Clase I ') === -1 && lds46.t.indexOf('cirugía de la aorta indicada') === -1],
     ['el mismo 45 en Marfan NO es Clase I', mar45no.c !== 'cx_i'],
     ['Marfan con 50 si',                    mar50.c === 'cx_i'],
     ['con 49 no',                           mar49.c !== 'cx_i'],
@@ -7458,17 +7484,25 @@ caso('TC-116', 'Marfan/EHAT: el umbral quirurgico sale del sindrome, no solo del
     // Sin sindrome NO se concluye: es el dato que ELIGE el umbral.
     ['sin sindrome declarado no se concluye', sinSind.c === 'sin_sindrome'],
     ['y el texto dice los tres umbrales, para que se vea por que hace falta',
-      sinSind.t.indexOf('Loeys-Dietz desde 45') > -1 && sinSind.t.indexOf('Marfan desde 50') > -1],
+      sinSind.t.indexOf('Loeys-Dietz por encima de 45 mm') > -1 && sinSind.t.indexOf('Marfan desde 50') > -1],
     // El diametro que decide es el MAYOR: el fenotipo tubular tiene la dilatacion en la ascendente.
     ['con la dilatacion en la ascendente tambien indica',
       tubular.c === 'cx_i' && tubular.t.indexOf('52 mm') > -1],
     // Informe y EN SUMA.
+    /* Ehlers-Danlos vascular: la guia NO publica umbral, asi que la app no concluye por el
+       diametro, lo DICE, y no hereda el 55/50 de «Otro» -que es el umbral de otra enfermedad-. */
+    ['Ehlers-Danlos vascular: sin umbral de diametro en la guia',
+      eds46.c === 'sin_umbral' && eds46.t.indexOf('no publica un umbral de diámetro') > -1 &&
+      eds46.t.indexOf('folio 112') > -1],
+    ['y NO cae en ninguna clase quirurgica',
+      ['cx_i','cx_iia','cx_iib','umbral_iia_sin_fr'].indexOf(eds46.c) === -1],
+    ['ni exige el diametro para decirlo', edsSin.c === 'sin_umbral'],
     ['el informe imprime los diametros sobre los que indica',
-      lds45.inf.inf.indexOf('Aorta sinusal 45 mm') > -1],
+      lds46.inf.inf.indexOf('Aorta sinusal 46 mm') > -1],
     /* El ano se verifica en el informe: el PDF circula solo y «riesgo alto» sin marco no es
        interpretable por quien lo recibe. Y se verifica que NO quede rastro del anterior. */
     ['nombra la guia y el ano correctos',
-      lds45.inf.inf.indexOf('ESC 2024') > -1 && lds45.inf.inf.indexOf('ESC 2020') === -1],
+      lds46.inf.inf.indexOf('ESC 2024') > -1 && lds46.inf.inf.indexOf('ESC 2020') === -1],
     /* Se normaliza el espacio: la nota usa &nbsp; entre el numero y la unidad para que no se
        parta el renglon, y en textContent eso NO es un espacio comun — un indexOf con espacio
        normal da -1 y el caso falla por el caracter, no por el contenido. */
@@ -7490,7 +7524,7 @@ caso('TC-116', 'Marfan/EHAT: el umbral quirurgico sale del sindrome, no solo del
       (function(){ const h = document.getElementById('marfan-fr-hint'); if (!h) return false;
         __t.limpiar();
         return (h.textContent || '').indexOf('depende del s') > -1; })()],
-    ['el EN SUMA lleva la clase',  lds45.inf.suma.indexOf('indicación quirúrgica Clase I') > -1],
+    ['el EN SUMA lleva la clase',  lds46.inf.suma.indexOf('indicación quirúrgica Clase IIa') > -1],
     ['sin criterios NO llena el EN SUMA',
       mar49.inf.suma.indexOf('indicación quirúrgica') === -1],
     ['pero «falta el sindrome» SI sube: no es «sin hallazgo», es «no se puede concluir»',

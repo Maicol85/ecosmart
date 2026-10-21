@@ -14860,6 +14860,12 @@ z
             <option value="lds">Loeys-Dietz (TGFBR1/2)</option>
             <option value="turner">Sindrome de Turner</option>
             <option value="ehat">EHAT no sindromica</option>
+            <!-- Ehlers-Danlos VASCULAR (COL3A1). Va aparte y NO cae en «Otro» porque su tabla
+                 59 (folio 112) no da umbral de diametro: el folio 112 dice literal que «no se
+                 ha establecido recomendaciones claras con respecto a diametros aorticos... las
+                 decisiones deben tomarse caso a caso». Con «Otro» heredaba 55/50, que es el
+                 umbral de otra enfermedad. -->
+            <option value="eds">Ehlers-Danlos vascular</option>
             <option value="otro">Otro</option>
           </select>
         </div>
@@ -40577,7 +40583,12 @@ const VINFO = Object.freeze({
   'vab-aorta': { tit: 'Aorta', lee: 'Los di\u00e1metros se miden en Paciente \u2192 Aorta tor\u00e1cica.' },
   'vab-cx': {
     tit: 'Contexto quir\u00fargico',
-    lee: 'El riesgo quir\u00fargico lo define el Heart Team, no el ecocardiograma.',
+    /* ⚠️ «EL RIESGO QUIRURGICO LO DEFINE EL HEART TEAM» SE RETIRA (trabajo «H»): censadas
+       las diez filas de la Tabla 68, ninguna nombra al Heart Team. Lo que la guia SI dice es
+       cuanto vale ese «bajo» en la aorta no hereditaria -riesgo individual del paciente por
+       debajo del 3 %, nota c de la Tabla 38, folio 80- y eso es un dato, no una conducta. */
+    lee: 'Riesgo quir\u00fargico bajo = riesgo individual del paciente por debajo del 3 % (ESC 2024, '
+       + 'Tabla 38, nota c, folio 80). No lo mide el ecocardiograma.',
     ojo: 'Sin un «S\u00ed» expl\u00edcito la app no emite las indicaciones Clase IIa que lo exigen.'
   },
   /* Clave 'vab-friesgo' y NO 'vab-fr': ese id ya lo tiene el span de la fila «Factores
@@ -53536,15 +53547,18 @@ function generarInforme(opts) {
       const _morfContestada = !!_morfVA && _morfVA !== 'Trivalva normal';
       const _vabVacia = !_morfContestada && ['vab_tipo','vab_funcion','vab_fenotipo','vab_rafe']
         .every(id => (document.getElementById(id)?.value || '').trim() === '');
-      if (_vabVacia && (c.clave === 'significativa' || c.clave === 'limitrofe')) {
-        const _av = 'La coartación de aorta se asocia a válvula aórtica bicúspide en el 50-85 % de los casos; ' +
-                    'en este estudio no consta la evaluación de la válvula aórtica en ese sentido.';
-        etePars.push(_av);
-        /* Y sube al EN SUMA, dentro del bloque de congénitas y no suelto entre los hallazgos
-           generales: es una salvedad SOBRE la coartación, y separada de su línea se leía como un
-           comentario de la válvula aórtica. */
-        sumaCC(_av);
-      }
+      /* ⚠️ LA FRASE DEL 50-85 % SALE DEL INFORME Y DEL EN SUMA, Y QUEDA SOLO EN EVIDENCIA
+         (trabajo «H», decisión de Maicol). El DATO está verificado en el original —ESC 2024 de
+         enfermedad arterial periférica y aórtica, apartado 10.3.1, folio 119 (hoja 120): «Entre
+         las lesiones asociadas se incluye la VAB (hasta el 50-85%)»— y la dirección es la que
+         ese texto dice: la bicúspide es frecuente ENTRE las coartaciones. El «hasta el 85 % de
+         las válvulas aórticas bicúspides», que estaba INVERTIDO, ya se había retirado en el
+         Y3d10.
+         Lo que sale del papel firmado es la frase entera, las dos mitades: el porcentaje y la
+         salvedad de que la válvula no se evaluó. Las dos son contexto y una indicación de
+         completar el estudio, o sea Evidencia. Viven en `_indCoAo`, que es la sección del panel
+         donde el médico ya lee esta lesión. */
+      void _vabVacia;
     })();
 
     /* ── Ventana aortopulmonar ── */
@@ -65104,6 +65118,14 @@ window.ccQpQsTxt = ccQpQsTxt;
 window.dapSync = dapSync; window.dapConclusion = dapConclusion; window.dapGmax = dapGmax;
 
 /* ══ COARTACIÓN DE AORTA ═════════════════════════════════════════════════════════════════
+   ⚠️ DOS GUÍAS Y DOS NÚMEROS DISTINTOS, Y CADA UNO PARA SU PREGUNTA (trabajo «H», 2026-10-21).
+   La INDICACIÓN sale del gradiente pico-pico INVASIVO ≥ 20 mmHg: la ESC 2024 de enfermedad
+   aórtica lo imprime en su Recomendaciones-tabla 69 (folio 121, hoja 122) con las mismas clases
+   que la ESC 2020 de cardiopatías congénitas del adulto —Clase I · C en el hipertenso, IIa · C
+   en el normotenso—, y es la más nueva. La única fila que SÓLO está en la ESC 2020 es la IIb · C
+   del normotenso con estrechamiento ≥ 50 % (folio e42).
+   La SOSPECHA por Doppler sale de la Figura 44 de la ESC 2024 (folio 120, hoja 121) y su criterio
+   es el gradiente MEDIO > 20 mmHg, no el máximo. Ver la rama de abajo.
    ESC 2020: gradiente pico-pico en reposo > 20 mmHg define coartación significativa e
    indicación de intervención. La COLA DIASTÓLICA (flujo anterógrado que persiste en diástole
    en aorta descendente) es un signo de significación aunque el gradiente quede por debajo:
@@ -65209,32 +65231,56 @@ function coaConclusion(src){
   if (pp != null || est != null) {
     const ppSig = pp != null && pp >= 20, estSig = est != null && est >= 50;
     if (hta === 'si' && ppSig) return { clave:'indicacion_i',
-      txt: pre + ' con indicación de intervención Clase I ESC 2020 (HTA confirmada + gradiente pico-pico invasivo ' + pp + ' mmHg, ≥20). Preferir stent cuando sea técnicamente factible' };
+      txt: pre + ' con indicación de intervención Clase I · Nivel C (ESC 2024, Tabla 69 · folio 121) con HTA confirmada y gradiente pico-pico invasivo ' + pp + ' mmHg (≥20). Preferir stent cuando sea técnicamente factible' };
     if (hta === 'si' && estSig && !ppSig) return { clave:'indicacion_iia',
-      txt: pre + ' con indicación a considerar Clase IIa ESC 2020 (HTA + estenosis ' + est + ' % del diámetro aórtico al diafragma, con gradiente pico-pico <20 mmHg). Preferir stent cuando sea factible' };
+      txt: pre + ' con indicación a considerar Clase IIa · Nivel C (ESC 2024, Tabla 69 · folio 121) con HTA y estenosis ' + est + ' % del diámetro aórtico al diafragma y gradiente pico-pico <20 mmHg. Preferir stent cuando sea factible' };
     if (hta === 'no' && ppSig) return { clave:'indicacion_iia',
-      txt: pre + ' normotensa con indicación a considerar Clase IIa ESC 2020 (gradiente pico-pico invasivo ' + pp + ' mmHg, ≥20, confirmado de forma invasiva)' };
+      txt: pre + ' normotensa con indicación a considerar Clase IIa · Nivel C (ESC 2024, Tabla 69 · folio 121) con gradiente pico-pico invasivo ' + pp + ' mmHg (≥20), confirmado de forma invasiva' };
     if (hta === 'no' && estSig && !ppSig) return { clave:'indicacion_iib',
-      txt: pre + ' con indicación posible Clase IIb ESC 2020 (estenosis ' + est + ' % del diámetro aórtico al diafragma, independiente del gradiente y sin HTA)' };
+      txt: pre + ' con indicación posible Clase IIb · Nivel C (ESC 2020 de cardiopatías congénitas del adulto, folio e42: es la ÚNICA de las cuatro filas que la ESC 2024 no trae) con estenosis ' + est + ' % del diámetro aórtico al diafragma, independiente del gradiente y sin HTA' };
     /* Con el pico-pico medido y por debajo del umbral, la negación es FIRME: es el dato que la
        guía usa. Sin HTA consignada no se concluye —la mitad del criterio Clase I falta— y se
        pide el dato en vez de suponer que no la tiene. */
     if (pp != null && !hta) return { clave:'limitrofe',
-      txt: pre + ' con gradiente pico-pico invasivo ' + pp + ' mmHg — falta consignar si hay HTA confirmada para aplicar el criterio ESC 2020' };
+      txt: pre + ' con gradiente pico-pico invasivo ' + pp + ' mmHg — falta consignar si hay HTA confirmada para aplicar el criterio de la ESC 2024 (Tabla 69 · folio 121)' };
     if (ppSig || estSig) return { clave:'limitrofe',
       txt: pre + ' con criterios parciales — completar la evaluación antes de concluir' };
     return { clave:'sin_indicacion',
-      txt: pre + ' sin criterios de intervención actuales según ESC 2020 — seguimiento recomendado' };
+      txt: pre + ' sin criterios de intervención actuales según la ESC 2024 (Tabla 69 · folio 121) — seguimiento recomendado' };
   }
-  /* La cola diastólica basta por sí sola para SOSPECHAR: es el escenario en que el Doppler
-     engaña. Manda a medir el pico-pico, no a intervenir. */
-  if ((g!=null && g > 20) || cola) return { clave:'significativa',
-    txt: pre + ' con criterios de significación por Doppler' + (cola && !(g!=null && g>20) ? ' (cola diastólica con gradiente no concluyente)' : '') +
-         ' — medir el gradiente pico-pico invasivo, que es el criterio de indicación de la ESC 2020' };
+  /* ══ EL CRITERIO DE SOSPECHA POR DOPPLER ES EL GRADIENTE MEDIO, NO EL MÁXIMO ════════════════
+     Hasta el trabajo «H» esta rama la disparaba el gradiente MÁXIMO (4·Vmax²) por encima de
+     20 mmHg. Verificado en el original: ESC 2024 de enfermedad arterial periférica y aórtica,
+     **Figura 44, folio 120 (hoja 121)**, «Sospecha de (re)coartación: cualquiera de los
+     siguientes», sexto renglón — «Gradiente MEDIO > 20 mmHg a través de la región de CoA en la
+     ecografía Doppler». El máximo no figura en esa lista; los otros cinco criterios son el
+     gradiente de presión brazo-pierna > 20 mmHg, el estrechamiento > 50 % en cualquier imagen,
+     el flujo diastólico abdominal anterógrado, el flujo diastólico retrógrado en la aorta
+     torácica descendente y el flujo colateral > 30 % en RM con contraste de fase.
+     EL CAMPO YA EXISTÍA (`coa_gmedio`), así que no hace falta ninguno nuevo y el Excel no gana
+     una columna. Lo que sí hace falta es que el campo DECIDA: hasta hoy sólo votaba hacia
+     «limítrofe», o sea que el médico lo llenaba para casi nada.
+     La cola diastólica sigue bastando por sí sola: es el escenario en que el Doppler engaña.
+     Manda a medir el pico-pico invasivo, que es el criterio de INDICACIÓN (Tabla 69, folio 121,
+     y la misma Figura 44), no a intervenir. */
+  if ((gm!=null && gm > 20) || cola) return { clave:'significativa',
+    txt: pre + ' con criterios de significación por Doppler' +
+         (gm!=null && gm > 20 ? ' (gradiente medio ' + gm + ' mmHg, por encima de los 20 mmHg de la ESC 2024)' : '') +
+         (cola && !(gm!=null && gm > 20) ? ' (cola diastólica con gradiente no concluyente)' : '') +
+         ' — medir el gradiente pico-pico invasivo, que es el criterio de indicación de la ESC 2024 (Figura 44, folio 120)' };
+  /* ⚠️ CON EL MÁXIMO ALTO Y EL MEDIO SIN MEDIR SE DICE QUÉ FALTA, en vez de concluir con el
+     número que no es el de la guía. El máximo sigue describiendo la lesión y sigue mandando a
+     completar estudio; lo que perdió es la potestad de afirmar la significación. */
+  if (g != null && g > 20 && gm == null) return { clave:'limitrofe',
+    txt: pre + ' con gradiente máximo por Doppler de ' + Math.round(g) + ' mmHg y sin gradiente MEDIO registrado — el criterio de sospecha de la ESC 2024 es el gradiente medio por encima de 20 mmHg (Figura 44, folio 120); medir el gradiente pico-pico invasivo, que es el criterio de indicación' };
   /* El gradiente MEDIO vota, pero sólo hacia «completar estudio», nunca hacia la indicación de
      intervención: el criterio de la ESC 2020 es el pico-pico INVASIVO > 20 mmHg, y el medio por
      Doppler no tiene umbral guía equivalente. Antes se pedía el dato, se lo mostraba y no
      influía en ninguna rama — un campo que el médico llenaba para nada. */
+  /* ⚠️ EL 12 mmHg DEL MÁXIMO ES CRITERIO DE ECOSMART Y NO SE TOCÓ: censada la Figura 44, ese
+     número no aparece en ninguno de sus seis criterios. Y el `gm >= 20` que queda acá sólo
+     alcanza al 20,0 EXACTO, porque la rama de arriba se lleva todo lo que lo supera: el
+     operador de la guía es `>` estricto. */
   if ((g!=null && g >= 12) || (gm!=null && gm >= 20)) return { clave:'limitrofe',
     txt: pre + ' con gradiente limítrofe — completar con angio-RMN o angio-TC y evaluar gradiente invasivo' };
   if (r!=null && r < 0.6) return { clave:'limitrofe',
@@ -65776,6 +65822,7 @@ const MARFAN_FTE = Object.freeze({
   lds:    'ESC 2024, Tabla 66 · folio 116',
   turner: 'ESC 2024, Tabla 58 · folio 111',
   ehat:   'ESC 2024, Tabla 38 · folio 80',
+  eds:    'ESC 2024, Tabla 59 y apartado 10.1.2.4 · folio 112',
   otro:   'ESC 2024, Tabla 38 · folio 80'
 });
 /* ⚠️ LOS FACTORES QUE BAJAN EL UMBRAL NO SON LOS MISMOS EN LAS CUATRO TABLAS, y el campo
@@ -65797,6 +65844,8 @@ const MARFAN_FR_TXT = Object.freeze({
   ehat:   'Crecimiento del diámetro de 3 mm o más al año, hipertensión resistente, estatura menor de 1,69 m, '
         + 'fenotipo de raíz aórtica, longitud aórtica mayor de 11 cm, edad menor de 50 años, deseo de embarazo '
         + 'o coartación aórtica (ESC 2024, Tabla 38, folio 80).',
+  eds:    'En el síndrome de Ehlers-Danlos vascular la guía NO publica un umbral de diámetro ni una lista de '
+        + 'factores que lo baje: la decisión se toma caso a caso (ESC 2024, apartado 10.1.2.4, folio 112).',
   otro:   'Crecimiento del diámetro de 3 mm o más al año, hipertensión resistente, estatura menor de 1,69 m, '
         + 'fenotipo de raíz aórtica, longitud aórtica mayor de 11 cm, edad menor de 50 años, deseo de embarazo '
         + 'o coartación aórtica (ESC 2024, Tabla 38, folio 80).'
@@ -65804,7 +65853,7 @@ const MARFAN_FR_TXT = Object.freeze({
 const MARFAN_FR_SIN = 'La lista de factores que bajan el umbral depende del síndrome: se publica al elegirlo.';
 const MARFAN_SIND_TXT = { marfan:'síndrome de Marfan', lds:'síndrome de Loeys-Dietz (TGFBR1/2)',
                           turner:'síndrome de Turner', ehat:'aortopatía hereditaria no sindrómica',
-                          otro:'aortopatía hereditaria' };
+                          eds:'síndrome de Ehlers-Danlos vascular', otro:'aortopatía hereditaria' };
 /* ¿el mapa tiene ESTA clave? — no «¿qué devuelve?». Con un valor que viene de un estudio guardado,
    `MAPA[k]` puede resolver a una propiedad del PROTOTIPO (`constructor`, `toString`), que es truthy
    y no es una etiqueta de este archivo. `.call` y no `mapa.hasOwnProperty`, porque hay mapas de
@@ -65841,11 +65890,17 @@ function marfanEstado(src) {
      ELIGE el umbral. Con 47 mm, un Loeys-Dietz tiene indicación Clase I y una EHAT no tiene
      ninguna — suponer el del medio sería inventar la conducta. */
   if (!sind) return Object.assign(base, { clave:'sin_sindrome',
-    txt:'Aortopatía hereditaria — falta declarar el síndrome: el umbral quirúrgico depende de él (Loeys-Dietz desde 45 mm, Marfan desde 50, no sindrómica desde 55), y cada uno sale de una tabla distinta de la ESC 2024' });
+    txt:'Aortopatía hereditaria — falta declarar el síndrome: el umbral quirúrgico depende de él (Loeys-Dietz por encima de 45 mm, Marfan desde 50, no sindrómica desde 55, y el Ehlers-Danlos vascular sin umbral de diámetro), y cada uno sale de una tabla distinta de la ESC 2024' });
   /* El diámetro que decide es el MAYOR de seno y ascendente. Mirar sólo el seno dejaba fuera al
      paciente con la dilatación en la ascendente, que es el fenotipo tubular. */
   const maxAo = (seno != null && asc != null) ? Math.max(seno, asc) : (seno != null ? seno : asc);
   const conFR = fr === 'si';
+  /* ⚠️ `fteS` Y `pre` VAN ARRIBA DE TODAS LAS RAMAS, Y NO ES ORDEN: son `const`, así que
+     nombrarlos desde una rama que corre antes de su declaración es un ReferenceError por zona
+     muerta — y acá eso se lleva la conclusión de la aortopatía entera. La cita sale de
+     `MARFAN_FTE`, que es su dueño único; con un token no previsto cae a la guía sin tabla, que
+     es lo único que se puede afirmar de un síndrome que no se reconoce. */
+  const fteS = _tieneClave(MARFAN_FTE, sind) ? MARFAN_FTE[sind] : 'ESC 2024';
   if (sind === 'turner') {
     if (ita == null) return Object.assign(base, { clave:'falta_ita',
       txt:'Síndrome de Turner — falta el índice de tamaño aórtico (mm/m²): en Turner el umbral se indexa por superficie corporal, porque la talla baja hace que un diámetro absoluto normal sea patológico' });
@@ -65863,8 +65918,46 @@ function marfanEstado(src) {
       txt:'Síndrome de Turner con índice de tamaño aórtico ' + ita + ' mm/m² — sin criterios quirúrgicos aórticos actuales (' + MARFAN_FTE.turner + ')' +
           (ita > 23 ? '; con factores de riesgo este índice ya sería Clase IIa' : '') + '. Seguimiento' });
   }
+  /* ══ EHLERS-DANLOS VASCULAR — SIN UMBRAL DE DIÁMETRO, Y VA ANTES DE EXIGIRLO ═══════════════
+     Verificado en el original, folio 112 (hoja 113), apartado 10.1.2.4: «No se ha establecido
+     recomendaciones claras con respecto a diámetros aórticos/arteriales a los que se debe
+     intervenir a los pacientes con SVED. Por ello, las decisiones deben tomarse caso a caso».
+     Lo que la guía SÍ da es la Tabla 59 (mismo folio): seguimiento vascular regular de la aorta
+     y las arterias periféricas con eco Doppler, TC o RM (Clase I · Nivel C) y celiprolol
+     (Clase IIa · Nivel B) — las dos son RECOMENDACIONES y viven en Evidencia, no acá.
+     ⚠️ VA ANTES DE LA GUARDA DE `maxAo == null`: con la guarda primero, el único síndrome que
+     no necesita el diámetro era el que lo pedía. Y hasta el trabajo «H» caía en «Otro», o sea
+     heredaba el 55/50 de la Tabla 38, que es el umbral de OTRA enfermedad. */
+  if (sind === 'eds') return Object.assign(base, { clave:'sin_umbral',
+    txt: base.sindTxt.charAt(0).toUpperCase() + base.sindTxt.slice(1) +
+         (maxAo != null ? ' con diámetro aórtico máximo ' + maxAo + ' mm' : '') +
+         ' — la ESC 2024 no publica un umbral de diámetro para esta enfermedad (' + MARFAN_FTE.eds + ')' });
   if (maxAo == null) return Object.assign(base, { clave:'falta_diametro',
     txt: base.sindTxt.charAt(0).toUpperCase() + base.sindTxt.slice(1) + ' — sin diámetro aórtico registrado; completar seno y ascendente' });
+  const pre = base.sindTxt.charAt(0).toUpperCase() + base.sindTxt.slice(1) + ' con diámetro aórtico máximo ' + maxAo + ' mm';
+  /* ══ LOEYS-DIETZ — SU TABLA 66 NO TIENE CLASE I, Y LA APP DECÍA «Clase I desde 45 mm» ════════
+     Verificado en el original, folio 116 (hoja 117), Recomendaciones-tabla 66, sus DOS filas:
+       · «Se debe considerar el reemplazo de la raíz aórtica … cuando el diámetro es SUPERIOR A
+         45 mm» → Clase IIa · Nivel C, y el operador es ESTRICTO: 45,0 exactos NO lo cruzan.
+       · «Se puede considerar la ADAPTACIÓN del umbral de cirugía según el gen subyacente,
+         teniendo en cuenta los factores de riesgo asociados» → Clase IIb · Nivel C, con su nota c.
+     Y el cuerpo del apartado 10.1.4.1.1, mismo folio: «se debe considerar un umbral de diámetro
+     aórtico de 45 mm (≥ 40 mm en caso de características de riesgo alto asociadas)».
+     ⚠️ LAS DOS LECTURAS QUE EL CENSO REGISTRABA SON CIERTAS Y SON DOS FILAS DISTINTAS: el «IIa-C
+     con más de 45 mm» es la primera y el «umbral adaptado al gen, IIb-C, desde 40 mm» la segunda.
+     La banda de 40 exige las características de riesgo alto, que es lo que lee `conFR`. */
+  if (sind === 'lds') {
+    if (maxAo > 45) return Object.assign(base, { clave:'cx_iia',
+      txt: pre + ' — considerar el reemplazo de la raíz aórtica (' + fteS + ', Clase IIa · Nivel C con diámetro superior a 45 mm)' });
+    if (maxAo >= 40 && conFR) return Object.assign(base, { clave:'cx_iib',
+      txt: pre + ' con características de riesgo alto — el umbral de cirugía puede adaptarse al gen subyacente (' + fteS +
+           ', Clase IIb · Nivel C; el apartado 10.1.4.1.1 del folio 116 baja el umbral a 40 mm o más con esas características)' });
+    if (maxAo >= 40) return Object.assign(base, { clave:'umbral_iia_sin_fr',
+      txt: pre + ' — por encima de los 40 mm desde los que el umbral puede adaptarse al gen con características de riesgo alto (' +
+           fteS + ', Clase IIb · Nivel C)' + (fr === 'no' ? ', hoy sin características consignadas' : '; falta consignar si las hay') });
+    return Object.assign(base, { clave:'sin_indicacion',
+      txt: pre + ' — sin criterios quirúrgicos aórticos actuales (' + fteS + '). Seguimiento por imagen' });
+  }
   /* ⚠️ LA CLASE Y EL NIVEL VAN AL LADO DE CADA CORTE, Y NO SON LOS MISMOS EN LAS CUATRO TABLAS
      (trabajo «H», 2026-10-21). El `iia:50` del tramo con factores de la aortopatía NO sindrómica
      era un IIa y la Tabla 38 lo imprime **IIb · Nivel B**: verificado en el texto del folio 80
@@ -65878,9 +65971,6 @@ function marfanEstado(src) {
                    lds:{ i:45, iia:null, nI:'B', cFr:null, nFr:null },
                    ehat:{ i:55, iia:50, nI:'B', cFr:'IIb', nFr:'B' },
                    otro:{ i:55, iia:50, nI:'B', cFr:'IIb', nFr:'B' } };
-  /* La cita sale de `MARFAN_FTE`, que es su dueño único; con un token no previsto cae a la guía
-     sin tabla, que es lo único que se puede afirmar de un síndrome que no se reconoce. */
-  const fteS = _tieneClave(MARFAN_FTE, sind) ? MARFAN_FTE[sind] : 'ESC 2024';
   /* Un token que no está en el mapa NO elige umbral, y antes eso LANZABA (`u.i` sobre undefined).
      Desde el formulario era inalcanzable —el select sólo puede tener sus cinco opciones— pero esta
      función ahora lee también los `campos` de un estudio guardado, que llegan de un Excel, de un
@@ -65893,7 +65983,6 @@ function marfanEstado(src) {
     txt:'Aortopatía hereditaria — el síndrome registrado no corresponde a ninguno de los previstos, ' +
         'así que no se puede elegir el umbral quirúrgico. Volver a consignarlo' });
   const u = UMBRAL[sind];
-  const pre = base.sindTxt.charAt(0).toUpperCase() + base.sindTxt.slice(1) + ' con diámetro aórtico máximo ' + maxAo + ' mm';
   if (maxAo >= u.i) return Object.assign(base, { clave:'cx_i',
     txt: pre + ' — cirugía de la aorta indicada (' + fteS + ', Clase I · Nivel ' + u.nI + ' desde ' + u.i + ' mm para ' + base.sindTxt + ')' });
   /* ⚠️ LA CLAVE LA ELIGE LA CLASE Y NO LA RAMA, y esto lo cazó la sonda: con la clave fija en
@@ -65936,11 +66025,14 @@ function marfanSync() {
     if (h) h.textContent = (r.sind && _tieneClave(MARFAN_FR_TXT, r.sind)) ? MARFAN_FR_TXT[r.sind] : MARFAN_FR_SIN; }
   if (!r.hayDatos) { fila('Aortopatía hereditaria', pill('gray', 'Ingresar síndrome y diámetros')); return; }
   const CLS = { cx_i:'red', cx_iia:'orange', cx_iib:'yellow', umbral_iia_sin_fr:'yellow',
-                sin_indicacion:'green', sin_sindrome:'gray', falta_ita:'gray', falta_diametro:'gray' };
+                sin_indicacion:'green', sin_sindrome:'gray', falta_ita:'gray', falta_diametro:'gray',
+                sin_umbral:'gray' };
   const ETQ = { cx_i:'Cirugía indicada — Clase I', cx_iia:'Considerar cirugía — Clase IIa',
                 cx_iib:'Puede considerarse — Clase IIb', umbral_iia_sin_fr:'En zona de vigilancia',
                 sin_indicacion:'Sin criterios quirúrgicos', sin_sindrome:'Falta el síndrome',
-                falta_ita:'Falta el índice indexado', falta_diametro:'Falta el diámetro' };
+                falta_ita:'Falta el índice indexado', falta_diametro:'Falta el diámetro',
+                /* GRIS y no verde: «sin umbral publicado» NO es «sin criterios». */
+                sin_umbral:'Sin umbral de diámetro en la guía' };
   fila('Conducta aórtica', pill(CLS[r.clave] || 'gray', ETQ[r.clave] || '—'));
   fila('Fundamento', val(r.txt));
   /* El umbral del síndrome se PUBLICA aunque no haya indicación: es lo que le dice al médico a
@@ -65950,14 +66042,15 @@ function marfanSync() {
      pantalla publicaba cinco umbrales de CUATRO tablas distintas sin decir de cuál era cada uno,
      y el comentario del bloque se los atribuía todos a la Tabla 62. */
   const U = { marfan:'50 mm (Clase I · B) · 45 mm con factores (IIa · C)',
-              lds:'45 mm',
+              lds:'por encima de 45 mm (IIa · C) · desde 40 mm con características de riesgo alto, umbral adaptado al gen (IIb · C)',
+              /* El Ehlers-Danlos vascular NO entra en este mapa: publicar «sin umbral» en la
+                 fila «Umbral de este síndrome» sería una fila que no informa nada; lo dice el
+                 Fundamento, y la fuente sale igual por la fila de abajo. */
               turner:'índice >23 mm/m² con factores (IIa · C) · >25 sin ellos (IIb · C)',
               ehat:'55 mm (Clase I · B) · 50 mm con factores (IIb · B)',
               otro:'55 mm (Clase I · B) · 50 mm con factores (IIb · B)' };
-  if (r.sind && U[r.sind]) {
-    fila('Umbral de este síndrome', val(U[r.sind]));
-    fila('Fuente del umbral', val(_tieneClave(MARFAN_FTE, r.sind) ? MARFAN_FTE[r.sind] : 'ESC 2024'));
-  }
+  if (r.sind && U[r.sind]) fila('Umbral de este síndrome', val(U[r.sind]));
+  if (r.sind && _tieneClave(MARFAN_FTE, r.sind)) fila('Fuente del umbral', val(MARFAN_FTE[r.sind]));
 }
 window.marfanSync = marfanSync;
 
@@ -66255,8 +66348,14 @@ function vabConclusion(src){
      pasar en silencio cuando la medida está en esa banda. */
   if (!feno && raiz != null && raiz >= 50 && raiz < 55) return { clave:'feno_sin_declarar',
     txt: cabeza + '. Raíz aórtica ' + raiz + ' mm — falta declarar el fenotipo de la aortopatía: con fenotipo de raíz este diámetro ya tiene indicación quirúrgica Clase I (ESC 2024)' + salvedadFuera };
+  /* ⚠️ «REEMPLAZO DE LA AORTA EN EL MISMO ACTO» SALE DEL INFORME Y QUEDA SOLO EN EVIDENCIA
+     (trabajo «H», decisión de Maicol). Es una RECOMENDACIÓN —la fila Clase IIa · Nivel C de la
+     Tabla 68 (folio 119) y el apartado 7.4 de la ESC/EACTS 2025 (folio 4660)— y la regla de
+     producto de la app es que el informe y la conclusión son DESCRIPTIVOS. Lo que la conclusión
+     sigue diciendo es el HECHO: el diámetro, el contexto quirúrgico y el umbral que cruza, que
+     es lo que la hace auditable. */
   if (cxValv === 'si' && maxAo != null && maxAo >= 45) return { clave:'concomitante_45',
-    txt: cabeza + '. Diámetro aórtico ' + maxAo + ' mm en paciente con cirugía valvular aórtica prevista — reemplazo de la aorta en el mismo acto (ESC 2024, Clase IIa desde 45 mm)' + salvedadFuera };
+    txt: cabeza + '. Diámetro aórtico ' + maxAo + ' mm en paciente con cirugía valvular aórtica prevista — alcanza el umbral de 45 mm de la ESC 2024 (Tabla 68, folio 119)' + salvedadFuera };
   /* De acá para abajo las ramas tranquilizan o piden más datos, así que ahora sí corta el valor
      ilegible: si la conclusión va a decir «por debajo del umbral», el número tiene que ser legible. */
   if (fuera.length) return { clave:'no_interpretable',
@@ -66276,8 +66375,12 @@ function vabConclusion(src){
     if (riesgo === 'no') return { clave:'riesgo_no_bajo',
       txt: cabeza + '. Aorta ascendente ' + asc + ' mm' + otroDiam + conFR +
            ' — alcanza el umbral de diámetro, pero las indicaciones Clase IIa de la ESC 2024 exigen riesgo quirúrgico bajo, que consta como no cumplido' };
+    /* ⚠️ «EVALUAR EN HEART TEAM» SE RETIRA (trabajo «H»): la Tabla 68 NO nombra al Heart Team
+       en ninguna de sus diez filas —censadas— y era una CONDUCTA sin fuente dentro de un informe
+       firmado. Lo que queda es el hecho: el umbral se alcanza y la condición que la guía exige
+       no consta. */
     if (riesgo !== 'si') return { clave:'umbral_sin_riesgo',
-      txt: cabeza + '. Aorta ascendente ' + asc + ' mm' + otroDiam + conFR + ' — alcanza el umbral de la ESC 2024, cuya indicación (Clase IIa) exige riesgo quirúrgico bajo: evaluar en Heart Team' + sinEval };
+      txt: cabeza + '. Aorta ascendente ' + asc + ' mm' + otroDiam + conFR + ' — alcanza el umbral de la ESC 2024 (Tabla 68, folio 119), cuya indicación Clase IIa exige riesgo quirúrgico bajo, que no consta' + sinEval };
     if (asc > 52) return { clave:'cx_52',
       txt: cabeza + '. Aorta ascendente ' + asc + ' mm' + otroDiam + ' con riesgo quirúrgico bajo — cirugía de la aorta a considerar (ESC 2024, Clase IIa por encima de 52 mm)' };
     if (fr.n) return { clave:'cx_50_fr',
@@ -66287,18 +66390,32 @@ function vabConclusion(src){
        marcan con una casilla la app no puede sostenerla: una casilla sin marcar no distingue
        «lo pregunte y no esta» de «no lo mire». Se dice lo que de verdad se sabe -que ninguno
        esta marcado- y no lo que no se sabe. DECISION DE MAICOL (Y3d5). */
+    /* ⚠️ «VIGILANCIA ESTRECHA» SE RETIRA (trabajo «H»): la Tabla 68 no da intervalo para este
+       escalón —su única fila de seguimiento es la de «> 40 mm sin indicación de cirugía», que
+       pide imagen al año y después cada 2-3 años si está estable— así que esas dos palabras no
+       tenían fuente y además eran una conducta. El intervalo de la guía vive en Evidencia. */
     return { clave:'vigilancia_50',
       txt: cabeza + '. Aorta ascendente ' + asc + ' mm' + otroDiam + ' sin factores de riesgo marcados' + sinEval +
-           ' — por debajo del umbral de 52 mm de la ESC 2024; vigilancia estrecha' };
+           ' — por debajo del umbral de 52 mm de la ESC 2024 (Tabla 68, folio 119)' };
   }
+  /* ⚠️ EL INTERVALO DE IMAGEN SALE DEL INFORME Y SE ALINEA EN EVIDENCIA (trabajo «H»). Decía
+     «control anual por imagen» y la Tabla 68 (folio 119, hoja 120) escribe, para el diámetro
+     máximo > 40 mm sin indicación de cirugía o tras cirugía valvular aislada, «el seguimiento
+     con imágenes seriadas de ETT después de un año y, posteriormente, cada 2-3 años, si el
+     paciente sigue estable» (Clase I · Nivel C). Y la segunda cláusula era otra vez el
+     «reemplazo en el mismo acto», o sea una recomendación condicional. */
   if (maxAo >= 45) return { clave:'vigilancia_45',
-    txt: cabeza + '. Dilatación de la aorta de ' + maxAo + ' mm' + otroDiam + ', por debajo de los umbrales quirúrgicos de la ESC 2024 — control anual por imagen' +
-         (cxValv !== 'si' ? '; si se indicara cirugía valvular, correspondería reemplazar la aorta en el mismo acto' : '') + sinEval };
+    txt: cabeza + '. Dilatación de la aorta de ' + maxAo + ' mm' + otroDiam + ', por debajo de los umbrales quirúrgicos de la ESC 2024 (Tabla 68, folio 119)' + sinEval };
   if (maxAo >= 40) return { clave:'dilatacion_leve',
     txt: cabeza + '. Dilatación leve de la aorta de ' + maxAo + ' mm' + otroDiam + ' — control por imagen y seguimiento del ritmo de crecimiento' };
   /* Rama benigna: sólo se afirma con la aorta MEDIDA, que es lo que exige `maxAo != null`. */
+  /* ⚠️ «SEGUIMIENTO ANUAL» SE RETIRA DE ESTA RAMA, Y NO ES LO MISMO QUE ALINEARLO: la Tabla 68
+     NO da ningún intervalo por debajo de 40 mm —su fila de seguimiento arranca en «> 40 mm»—,
+     así que ese «anual» no tenía fuente en ninguna lectura. El cribado familiar SÍ la tiene
+     (Clase I · Nivel C con fenotipo de raíz o insuficiencia aórtica aislada, y Clase IIa · Nivel B
+     para todos los pacientes con bicúspide) y se conserva: esta orden no autoriza retirarlo. */
   return { clave:'sin_dilatacion',
-    txt: cabeza + (func ? ' ' + (VAB_FUNC_TXT[func] || func) : '') + '. Aorta de ' + maxAo + ' mm, sin dilatación — seguimiento anual (la bicúspide es hereditaria: corresponde ofrecer cribado a familiares de primer grado)' };
+    txt: cabeza + (func ? ' ' + (VAB_FUNC_TXT[func] || func) : '') + '. Aorta de ' + maxAo + ' mm, sin dilatación (la bicúspide es hereditaria: corresponde ofrecer cribado a familiares de primer grado)' };
 }
 /* ══ EL DIBUJO DE LA VALVULA AORTICA BICUSPIDE (Y3d6, 2026-10-19) ═══════════════════════════
    GEOMETRIA APROBADA POR MAICOL, de la demo del lienzo: sistema de 240 x 240 con el centro en
@@ -74929,6 +75046,16 @@ function _indCoAo(){
     guia: { ref:'esc2020guch',
       txt:'Reparación Clase I · Nivel C en pacientes HIPERTENSOS con gradiente no invasivo aumentado CONFIRMADO por medición invasiva (pico-a-pico ≥ 20 mmHg), con preferencia por el tratamiento percutáneo cuando es técnicamente posible.' },
     notas: [
+      /* ⚠️ ESTA LÍNEA Y LA SIGUIENTE SON LO QUE EL TRABAJO «H» SACÓ DEL INFORME Y DEL EN SUMA.
+         El dato está verificado en el original: ESC 2024 de enfermedad arterial periférica y
+         aórtica, apartado 10.3.1, folio 119 (hoja 120) — «Entre las lesiones asociadas se
+         incluye la VAB (hasta el 50-85%)». La dirección es ésa y no la inversa: la bicúspide es
+         frecuente ENTRE las coartaciones. El mismo apartado agrega aneurismas intracerebrales
+         (10 %) y aneurismas de la aorta ascendente. */
+      'La válvula aórtica bicúspide aparece en hasta el 50 a 85 % de las coartaciones (ESC 2024, apartado 10.3.1, folio 119): en una coartación la válvula aórtica no es un hallazgo incidental, es parte de la evaluación.',
+      'Y en la otra dirección, la coartación es uno de los factores de riesgo que bajan el umbral quirúrgico de la aorta, tanto en la bicúspide (Tabla 68, folio 119) como en la aorta no hereditaria (Tabla 38, folio 80): no haberla mirado cambia una conducta.',
+      'El criterio de SOSPECHA por Doppler de la ESC 2024 es el gradiente MEDIO por encima de 20 mmHg a través de la coartación (Figura 44, folio 120). Los otros cinco criterios de esa figura son el gradiente de presión del brazo derecho a la pierna por encima de 20 mmHg, un estrechamiento mayor del 50 % en cualquier imagen, el flujo diastólico abdominal anterógrado, el flujo diastólico retrógrado en la aorta torácica descendente y el flujo colateral mayor del 30 % en resonancia con contraste de fase.',
+      'Seguimiento de la coartación reparada: ecocardiografía anual y tomografía o resonancia cada 3 a 5 años (ESC 2024, Figura 44, folio 120, y Tabla 69, folio 121, Clase I · Nivel B).',
       'Sin hipertensión arterial, el mismo gradiente invasivo ≥ 20 mmHg es Clase IIa C.',
       'Se puede intervenir con gradiente invasivo < 20 mmHg: un estrechamiento ≥ 50 % respecto del diámetro aórtico a nivel del diafragma es Clase IIa C en el hipertenso y IIb C en el normotenso.',
       'El gradiente de arriba es Bernoulli simplificado y no descuenta la velocidad proximal, que en la coartación suele estar elevada: sobreestima.'
@@ -75070,7 +75197,14 @@ function _indVAB(){
         : 'Sin datos cargados en la sección de válvula bicúspide, la app no emite conclusión. Los diámetros de arriba van solos.',
       'La distinción raíz / ascendente decide la conducta: en fenotipo ascendente NO hay Clase I a 50 mm — el gatillo aislado es > 52 mm (IIa B) y la Clase I recién a ≥ 55 mm.',
       'Clase IIa C desde 50 mm con riesgo quirúrgico bajo y algún factor: edad < 50 años, talla baja, longitud de la ascendente ≥ 11 cm, crecimiento ≥ 3 mm/año, antecedente familiar de síndrome aórtico agudo, coartación, hipertensión resistente, cirugía cardíaca no valvular aórtica concomitante o deseo de embarazo.',
-      'Clase IIa C desde 45 mm (raíz o ascendente) si va a cirugía valvular aórtica.',
+      /* ⚠️ ESTAS TRES LÍNEAS SON LAS RECOMENDACIONES QUE EL TRABAJO «H» SACÓ DEL INFORME, y por
+         eso traen su clase, su nivel, su tabla y su folio: el informe es descriptivo y la
+         recomendación vive acá. Las tres están verificadas en el original, Recomendaciones-tabla
+         68, folio 119 (hoja 120). */
+      'Clase IIa · Nivel C desde 45 mm, de raíz o de aorta ascendente, en el paciente que se somete a cirugía de válvula aórtica: la guía recomienda considerar el reemplazo de la aorta en el mismo acto (Tabla 68, folio 119). La ESC/EACTS 2025 de valvulopatías dice lo mismo en su apartado 7.4, folio 4660, y remite a la guía de aorta.',
+      'SEGUIMIENTO POR IMAGEN, con el diámetro máximo por encima de 40 mm y sin indicación de cirugía, o tras una cirugía valvular aislada: ecocardiografía transtorácica seriada al año y, después, cada 2 o 3 años si el paciente sigue estable (Clase I · Nivel C, Tabla 68, folio 119). La app decía «control anual» hasta el 21/10/2026; por debajo de 40 mm esa tabla NO publica ningún intervalo.',
+      'Tomografía o resonancia de TODA la aorta torácica al diagnóstico, y también cuando las mediciones de las ecocardiografías de control discrepan entre sí o el diámetro supera 45 mm (Clase I · Nivel C, Tabla 68, folio 119).',
+      'Cribado con ecocardiografía de los familiares de primer grado: Clase I · Nivel C cuando hay fenotipo de raíz o insuficiencia aórtica aislada, y Clase IIa · Nivel B para todos los pacientes con válvula bicúspide (Tabla 68, folio 119).',
       'Los dos umbrales Clase I que circulan —«> 50 mm con factores de riesgo» y «> 45 mm con recambio valvular programado»— son de la ESC 2014: la guía de 2024 los imprime en su tabla de recomendaciones modificadas, degradados a IIa C.'
     ] };
 }
@@ -109390,7 +109524,7 @@ LAB_XLS_ETIQ.vab_simetria     = { simetrica:'Simétrica', asimetrica:'Asimétric
    importador lo RECHAZABA, porque su vocabulario seguía siendo el de Sievers. */
 LAB_XLS_ETIQ.vab_tipo         = VAB_TIPO_LBL;
 LAB_XLS_ETIQ.marfan_sindrome  = { marfan:'Marfan', lds:'Loeys-Dietz', turner:'Turner',
-                                  ehat:'EHAT no sindrómica', otro:'Otro' };
+                                  ehat:'EHAT no sindrómica', eds:'Ehlers-Danlos vascular', otro:'Otro' };
 LAB_XLS_ETIQ.marfan_factores_riesgo = { no:'No', si:'Sí' };
 LAB_XLS_ETIQ.eis_lesion_base  = { civ:'CIV', cia:'CIA', dap:'DAP', dsav:'DSAV',
                                   tronco:'Tronco arterioso', tga:'TGA', otra:'Otra CC compleja' };
@@ -109784,7 +109918,12 @@ LAB_XLS_VOCAB.vab_simetria = { simetrica:'simetrica', 'simétrica':'simetrica',
 LAB_XLS_VOCAB.marfan_sindrome = { marfan:'marfan', 'sindrome de marfan':'marfan',
   lds:'lds', 'loeys-dietz':'lds', 'loeys dietz':'lds',
   turner:'turner', 'sindrome de turner':'turner',
-  ehat:'ehat', 'ehat no sindromica':'ehat', 'aortopatia no sindromica':'ehat', otro:'otro' };
+  ehat:'ehat', 'ehat no sindromica':'ehat', 'aortopatia no sindromica':'ehat',
+  /* Las CUATRO formas de entrada del Ehlers-Danlos vascular (trabajo «H»). Para una
+     columna de opcion un valor desconocido descarta la FILA ENTERA, asi que el
+     importador tiene que entender como lo escriba quien exporte. */
+  eds:'eds', 'ehlers-danlos vascular':'eds', 'ehlers danlos vascular':'eds', 'sved':'eds',
+  otro:'otro' };
 LAB_XLS_VOCAB.eis_lesion_base = { civ:'civ', cia:'cia', dap:'dap', dsav:'dsav',
   tronco:'tronco', 'tronco arterioso':'tronco', tga:'tga',
   otra:'otra', 'otra cc compleja':'otra' };
@@ -116524,7 +116663,10 @@ const VAB_CONDUCTAS = [
   { k:'cx_52',             lbl:'Cirugia - 52 mm riesgo bajo', crit:'Aorta ascendente > 52 mm en paciente de riesgo quirurgico bajo (ESC 2024)' },
   { k:'cx_50_fr',          lbl:'Cirugia - 50 mm con factores', crit:'>= 50 mm con al menos un factor de riesgo y riesgo quirurgico bajo (ESC 2024)' },
   { k:'concomitante_45',   lbl:'Cirugia concomitante - 45 mm', crit:'>= 45 mm con cirugia valvular aortica prevista: reemplazo de la aorta en el mismo acto (ESC 2024)' },
-  { k:'vigilancia_50',     lbl:'Vigilancia estrecha - 50 mm', crit:'>= 50 mm sin factores o sin riesgo bajo confirmado - control por imagen' },
+  /* El rotulo decia «Vigilancia estrecha», que es la conducta sin fuente que el trabajo «H»
+     retiro del informe: la clave NO cambia -los estudios guardados se clasifican igual- y lo
+     que cambia es como se escribe en la distribucion. */
+  { k:'vigilancia_50',     lbl:'50 mm sin factores marcados', crit:'>= 50 mm sin factores o sin riesgo bajo confirmado - por debajo del umbral de 52 mm' },
   { k:'vigilancia_45',     lbl:'Vigilancia - 45 a 49 mm',     crit:'Dilatacion moderada - control por imagen' },
   { k:'dilatacion_leve',   lbl:'Dilatacion leve - 40 a 44 mm', crit:'Control periodico' },
   { k:'sin_dilatacion',    lbl:'Sin dilatacion',              crit:'Diametro aortico por debajo de 40 mm' },
@@ -120042,7 +120184,8 @@ function labCCRender(infs, n) {
   const marfanArr = _sec('marfan');
   if (!marfanArr.length) { empty('lab-cc-marfan-stats', 'aortopatía hereditaria'); empty('lab-cc-marfan-bars', 'síndrome'); empty('lab-cc-marfan-cx-bars', 'indicación quirúrgica'); setHtml('lab-cc-marfan-nota', ''); }
   else {
-    const SIND_L = { marfan:'Marfan', lds:'Loeys-Dietz', turner:'Turner', ehat:'EHAT no sindrómica', otro:'Otra aortopatía' };
+    const SIND_L = { marfan:'Marfan', lds:'Loeys-Dietz', turner:'Turner', ehat:'EHAT no sindrómica',
+                     eds:'Ehlers-Danlos vascular', otro:'Otra aortopatía' };
     /* Las CLAVES que devuelve la cascada, no una clasificación nueva. Las cuatro «no concluible»
        tienen fila propia y no se agrupan en un «otros»: son el resultado más útil de este bloque
        —cuántos estudios tienen la aorta medida y NO se les puede dar umbral— y agruparlas las
@@ -120050,7 +120193,12 @@ function labCCRender(infs, n) {
     const CX_CRIT = { cx_i:'Clase I — cirugía indicada', cx_iia:'Clase IIa — considerar cirugía',
                       cx_iib:'Clase IIb — puede considerarse' };
     const CX_NOCONCL = { sin_sindrome:'No concluible — falta el síndrome', falta_ita:'No concluible — falta el índice (Turner)',
-                         falta_diametro:'No concluible — falta el diámetro', sindrome_no_reconocido:'No concluible — síndrome no reconocido' };
+                         falta_diametro:'No concluible — falta el diámetro', sindrome_no_reconocido:'No concluible — síndrome no reconocido',
+                         /* ⚠️ `sin_umbral` ES LA CLAVE DEL EHLERS-DANLOS VASCULAR y necesita su entrada:
+                            `_labDistribDe` descarta en silencio lo que no esté en el mapa, así que sin ella
+                            esos estudios se perdían del denominador y el porcentaje se repartía entre los
+                            otros. Es la misma lección que `umbral_iia_sin_fr` ya dejó escrita. */
+                         sin_umbral:'Sin umbral en la guía (Ehlers-Danlos vascular)' };
     /* `umbral_iia_sin_fr` es la NOVENA clave y casi se pierde: `_labDistribDe` descarta en
        silencio lo que no esté en el mapa, así que sin esta entrada cuatro estudios se contaban
        como tres y el porcentaje se repartía entre los otros. Por eso la fila

@@ -157,7 +157,93 @@ const CTRL = `(() => {
   return r;
 })()`;
 
-const GRUPOS = { citas: CITAS, informe: INFORME, ctrl: CTRL };
+
+/* == (d) LA COARTACION: el gradiente MEDIO decide y el MAXIMO describe ==================== */
+const COA = `(() => {
+  const esc = (o) => {
+    if (typeof limpiarCampos === 'function') { try { limpiarCampos() } catch (e) {} }
+    const base = { coa_loc:'yuxtaductal', coa_situacion:'nativa' };
+    Object.assign(base, o);
+    Object.keys(base).forEach(k => { const e = document.getElementById(k); if (!e) return;
+      if (e.type === 'checkbox') { e.checked = base[k] === '1' } else { e.value = base[k] }
+      try { e.dispatchEvent(new Event('input', { bubbles:true })) } catch (x) {}
+      try { e.dispatchEvent(new Event('change', { bubbles:true })) } catch (x) {} });
+    const c = (typeof coaConclusion === 'function') ? coaConclusion() : null;
+    const g = (typeof coaGmax === 'function') ? coaGmax() : null;
+    return { clave: c && c.clave, txt: (c && c.txt) || '', gmax: g == null ? null : Math.round(g) };
+  };
+  return {
+    med21:      esc({ coa_gmedio:'21' }),
+    med20:      esc({ coa_gmedio:'20' }),
+    med19:      esc({ coa_gmedio:'19' }),
+    max64solo:  esc({ coa_vmax:'4.0' }),
+    max64ymed:  esc({ coa_vmax:'4.0', coa_gmedio:'21' }),
+    max64med19: esc({ coa_vmax:'4.0', coa_gmedio:'19' }),
+    max21solo:  esc({ coa_vmax:'2.3' }),
+    max16solo:  esc({ coa_vmax:'2.0' }),
+    cola:       esc({ coa_diast_anterogrado:'1' }),
+    nada:       esc({})
+  };
+})()`;
+
+/* == (e) LOS TEXTOS DE LA VAB: sin «vigilancia estrecha», sin «Heart Team» y sin intervalos == */
+const VABTXT = `(() => {
+  const esc = (o) => {
+    if (typeof limpiarCampos === 'function') { try { limpiarCampos() } catch (e) {} }
+    const base = { va_morf:'Bicúspide' };
+    Object.assign(base, o);
+    Object.keys(base).forEach(k => { const e = document.getElementById(k); if (!e) return;
+      e.value = base[k];
+      try { e.dispatchEvent(new Event('input', { bubbles:true })) } catch (x) {}
+      try { e.dispatchEvent(new Event('change', { bubbles:true })) } catch (x) {} });
+    const c = (typeof vabConclusion === 'function') ? vabConclusion() : null;
+    return { clave: c && c.clave, txt: (c && c.txt) || '' };
+  };
+  const o = {
+    cx55:      esc({ ao_tub:'56', vab_tipo:'1' }),
+    conc45:    esc({ ao_tub:'46', vab_cx_valvular:'si', vab_tipo:'1' }),
+    sinRiesgo: esc({ ao_tub:'51', vab_tipo:'1' }),
+    vig50:     esc({ ao_tub:'51', vab_riesgo_qx:'si', vab_tipo:'1' }),
+    vig45:     esc({ ao_tub:'46', vab_tipo:'1' }),
+    leve40:    esc({ ao_tub:'42', vab_tipo:'1' }),
+    sinDil:    esc({ ao_tub:'36', vab_tipo:'1' })
+  };
+  const todo = Object.keys(o).map(k => o[k].txt).join(' || ');
+  o._frases = { heartTeam: todo.indexOf('Heart Team') > -1,
+                vigEstrecha: todo.indexOf('vigilancia estrecha') > -1,
+                mismoActo: todo.indexOf('mismo acto') > -1,
+                anual: todo.indexOf('anual') > -1,
+                controlAnual: todo.indexOf('control anual') > -1 };
+  return o;
+})()`;
+
+/* == (f) EL PANEL DE EVIDENCIA: las notas que recibieron lo que salio del informe ========== */
+const EVID = `(() => {
+  const esc = (o) => {
+    if (typeof limpiarCampos === 'function') { try { limpiarCampos() } catch (e) {} }
+    Object.keys(o).forEach(k => { const e = document.getElementById(k); if (!e) return;
+      if (e.type === 'checkbox') { e.checked = o[k] === '1' } else { e.value = o[k] }
+      try { e.dispatchEvent(new Event('input', { bubbles:true })) } catch (x) {}
+      try { e.dispatchEvent(new Event('change', { bubbles:true })) } catch (x) {} });
+    const sec = {};
+    (window.IND_SECS_PUB || []).forEach(() => {});
+    const f = (n) => (typeof window[n] === 'function') ? window[n]() : 'SIN FN';
+    return { vab: f('_indVAB'), coa: f('_indCoAo') };
+  };
+  const r1 = esc({ va_morf:'Bicúspide', ao_tub:'46', vab_tipo:'1' });
+  const r2 = esc({ coa_loc:'yuxtaductal', coa_situacion:'nativa', coa_gmedio:'25' });
+  const notas = (x) => (x && x.notas) ? x.notas.join(' || ') : String(x);
+  return {
+    vabNotas: notas(r1.vab),
+    coaNotas: notas(r2.coa),
+    vabTieneMismoActo: notas(r1.vab).indexOf('mismo acto') > -1,
+    vabTieneIntervalo: notas(r1.vab).indexOf('cada 2 o 3 años') > -1,
+    coaTiene5085: notas(r2.coa).indexOf('50 a 85 %') > -1,
+    coaTieneMedio: notas(r2.coa).indexOf('gradiente MEDIO') > -1
+  };
+})()`;
+
+const GRUPOS = { citas: CITAS, informe: INFORME, coa: COA, vabtxt: VABTXT, evid: EVID, ctrl: CTRL };
 
 async function correr(motor, nombre) {
   const br = await motor.launch(motor === chromium ? { channel: 'chrome' } : {});
@@ -170,6 +256,12 @@ async function correr(motor, nombre) {
   for (const g of SOLO) {
     if (!GRUPOS[g]) { res[g] = { error: 'GRUPO DESCONOCIDO' }; continue }
     await pg.evaluate(PRELUDIO);
+    if (g === 'coa' || g === 'vabtxt' || g === 'evid') {
+      await pg.evaluate(`(() => { try { showTab('congenitas') } catch (e) {}
+        try { if (typeof secToggle === 'function') { secToggle('cc-coa'); secToggle('cc-vab') } } catch (e) {}
+        return true })()`).catch(() => {});
+      await pg.waitForTimeout(260);
+    }
     if (g === 'citas' || g === 'informe') {
       await pg.evaluate(`(() => { try { showTab('congenitas') } catch (e) {}
         try { if (typeof secToggle === 'function') secToggle('cc-marfan') } catch (e) {}
