@@ -312,3 +312,14 @@ de esta zona:
   **fuente** de su tabla de tiempos, y **ni un corte de esa tabla se movió**.
 - La conclusión, el informe y el EN SUMA del FOP son **descriptivos**: sin «ESC», sin indicación
   de cierre y **sin el ACV criptogénico**, que pasa al PDF como «Motivo del estudio».
+
+---
+
+## ⚠️ LA TANDA «D2» (21/10/2026) — ver `docs/mapa/d2-correcciones.md`
+
+- La oración del **ASIA** de esta pestaña pasa a publicar la **excursión con su lado**, leída de
+  `asiaExcFrase`: decía «Aneurisma del septum interauricular 16.», donde el 16 era la caja de
+  detalle del médico y la app no nombraba la excursión por ningún camino. **La caja de detalle no
+  se toca** y va después de la frase.
+- **`otr_asia_lado` vuelve a VACÍO** cuando el ASIA pasa a «No», por los dos gestos.
+- **`otr_burb_lat` nace sin consignar**: la opción vacía pasa al primer lugar.

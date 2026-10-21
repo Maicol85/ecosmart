@@ -327,3 +327,14 @@ cruzaba.
 | **(D6)** | el bloque de recomendaciones **no nace plegado** y cada línea lleva su cita numerada |
 | **(D7)** | **denominador**: la sección está registrada en `IND_SECS`, y ningún título es prefijo de otro |
 | **(D8)** | las respuestas del panel **no** entran en los campos del estudio |
+
+---
+
+## ⚠️ LA COMPUERTA DE `_indVAB`, CORREGIDA EN LA TANDA «D2» (21/10/2026)
+
+El H bajó el arranque de la sección «Válvula aórtica bicúspide — aorta ascendente» de 45 mm a
+`aoDilatada()`. **La condición de que la válvula sea bicúspide nunca estuvo en esa función**, así
+que el H no la perdió: hizo visible a 41 mm un defecto que antes aparecía a 45. Desde el D2-E3 la
+sección exige **las dos cosas** y el predicado de la válvula sale a `_indVABEsBicuspide()`, que
+comparte con `_indVABConcl`. La sección **«Aorta torácica — dilatación y aortopatía» no cambia**:
+su asunto ES la aorta. Detalle y tabla de medición en `docs/mapa/d2-correcciones.md`.

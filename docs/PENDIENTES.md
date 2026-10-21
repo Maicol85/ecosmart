@@ -6238,6 +6238,15 @@ en reposo / con Valsalva / las dos) y esta tanda le agregó el de **número de l
 y conviven sin contradecirse, pero un lector apurado puede leer «momento» como «latido».
 **Salida:** agruparlos bajo un rótulo común, que es maquetación de esa pestaña.
 
+### ✅ D-4 · CERRADO el 2026-10-21 (tanda D2, commit 1) — el operador pasa a `>` ESTRICTO
+
+**Lo decidió Maicol con la fuente delante, que es lo que esta entrada pedía.** El folio 916 escribe
+el corte de un lado como «**greater than** 10 mm», así que ahí el estricto es de la guía; para la
+excursión **total** la fuente no escribe operador en ninguno de los dos folios, y se elige el
+estricto por ser el lado que **no afirma**. Medido: 10 mm hacia un lado y 15 mm de excursión total
+**NO** cumplen; 11 y 16 sí. Los dos textos impresos están en `docs/fuentes/FUENTES.md` → «El
+trabajo D2». **Texto original de la entrada, para que se entienda el cambio:**
+
 ### D-4 · El operador del corte del ASIA es `>=` y la fuente se contradice consigo misma
 
 Silvestry 2015 escribe el corte de un lado como «**greater than** 10 mm» en el **folio 916** y
@@ -6254,6 +6263,17 @@ columna de anatomía no reserva espacio ni dibuja un contorno. El día que se ha
 `vabGeom` —una función **pura** que devuelve números y cadenas de `path`, con el dibujo construido
 por `createElementNS` y nunca por `innerHTML` con datos concatenados— y el PDF rasterizando **desde
 la misma geometría** que la pantalla, para que no haya dos dibujos del mismo órgano.
+
+### ✅ D-6 · CERRADO el 2026-10-21 (tanda D2, commit 2) — el selector nace SIN CONSIGNAR
+
+Se eligió la **salida (a)** que esta entrada ofrecía: la opción vacía pasa al **primer** lugar, con
+lo que nada se publica hasta que el médico elija. Decisión de Maicol, que revierte el «3 por
+defecto» del D. Medido con teclas reales en las cinco escenas: con el selector vacío el informe, la
+conclusión, el EN SUMA y la tabla del PDF **no** dicen «a los N latidos» y la fila del FOP dice
+«— sin consignar»; con 3, 4, 5 y 6 las cuatro superficies salen idénticas a antes.
+⚠️ **UN ESTUDIO GUARDADO CON 3 ABRE CON 3**, porque el guardado no distingue un 3 elegido de un 3
+por omisión; uno sin la clave abre vacío. No se migra nada. Ver `D2b-2`.
+**Texto original de la entrada:**
 
 ### D-6 · El 3 es el valor de fábrica, así que el informe publica «a los 3 latidos» sin que nadie lo haya elegido
 
@@ -6316,3 +6336,95 @@ Lo que lo hace crecer es **«Estado vigente»**, que acumula una entrada por tan
 leen 20-80 líneas con `sed`— y un puntero por tanda; (b) partir «Estado vigente» en un archivo
 propio al que `CLAUDE.md` apunte; (c) dejarlo, declarado. **No se tocó: es el archivo de reglas de
 Maicol y mover sus secciones cambia qué lee una sesión al arrancar.**
+
+
+---
+
+## Tanda «D2» — las cuatro correcciones del 21/10/2026
+
+⚠️ **LAS CLAVES DE ESTA TANDA LLEVAN EL PREFIJO `D2b` Y NO `D2`, y no es capricho:** ya existen
+`D2-1`, `D2-4` y `D2-5` de **otra** tanda llamada «D2» —la del **14/10/2026**, la de la aórtica y
+la tricúspide en pantalla—. Dos entradas con la misma clave dejan una de las dos sin encontrar.
+
+### D2b-1 · Un estudio guardado SIN el lado deja de afirmar el aneurisma por su excursión
+
+Desde el D2-E1 la regla del aneurisma del septum **exige el lado**: sin él no hay umbral que
+comparar y no se publica veredicto. **Consecuencia medida** sobre un estudio guardado **antes** de
+la tanda D —que no trae `otr_asia_lado`—: si el aneurisma estaba afirmado **sólo** por su
+excursión, al reabrirlo la conclusión pasa de `alto_riesgo_sin_evento` a `incidental`. El que tiene
+el desplegable `fop_asa` en «Sí» no cambia: ese dato lo declaró el médico.
+**Lo que protege al papel ya firmado:** `informe_texto` y `en_suma` son `<textarea>` con id, viajan
+con el estudio y la reimpresión **no los reescribe**. **No se migra nada.**
+**Salidas:** (a) dejarlo, declarado —lo elegido—; (b) tratar la ausencia del lado como «un lado» y
+aplicar el corte de 10 mm, que es lo que la app hacía y lo que esta tanda vino a cerrar.
+
+### D2b-2 · El 3 de un estudio guardado no se distingue de un 3 por omisión
+
+El guardado persiste el **valor** de `otr_burb_lat`, no si el médico lo tocó, así que todo estudio
+guardado entre la tanda D y ésta trae un `3` que puede ser elegido o de fábrica, y **abre con 3**.
+No se migra nada: reescribir esa clave en disco sería decidir por el médico. El informe ya firmado
+de esos estudios no cambia, por lo mismo que `D2b-1`.
+**Salida:** ninguna razonable sin un campo de «lo tocó el médico», que sería un dato nuevo.
+
+### D2b-3 · La caja de detalle del ASIA en Otros sigue siendo texto libre
+
+`otr_asia_nota` es una caja de texto de 120 caracteres cuyo marcador de posición sugiere «(de … mm
+por … mm en eje L y T)». Es donde el médico escribió el «16» que el informe publicaba pelado. Desde
+el D2-E1 la frase de la excursión la compone la app y la nota va **después**, así que un estudio en
+el que el médico escribió el número a mano lo publica **dos veces**: «…con excursión de 16 mm hacia
+ambos lados (total) 16.». **No se toca**: es texto del médico y la app no puede parsearlo.
+**Salidas:** (a) dejarlo —lo elegido—; (b) cambiar el marcador de posición para que no invite a
+escribir la excursión, que es un texto de pantalla y lo decide Maicol.
+
+### D2b-4 · `otr_asia_lado` y `otr_burb_lat` siguen sin columna de Excel
+
+Lo que `D-7` ya declara, sin cambios: los dos **viajan con el estudio** y **no** están en el Excel,
+que sigue en **440 columnas**. Un backup a Excel y su reimportación pierden el lado del aneurisma y
+el número de latidos. Una columna nueva es PARADA y la decide Maicol.
+
+### D2b-5 · El rótulo del PDF del FOP sigue sin acentos, y su celda ahora los lleva
+
+`fopPdfFilas` escribe sus **rótulos** sin acentos («Excursion del aneurisma», «Latidos del
+pasaje»), que es como los dejó el D-E2. Desde el D2-E1 el **valor** de la fila de la excursión sale
+de `asiaExcFrase().corto` y lleva los suyos («hacia la aurícula derecha»), igual que `vabPdfFilas`
+escribe «Cúspides» y «Estenosis aórtica». **Es seguro**: `amiloSanPDF` sólo borra lo que está fuera
+de `\x20-\xFF` y los acentos latinos no lo están. **Queda la inconsistencia de rótulo**, que esta
+orden no autoriza a tocar.
+**Salida:** reescribir los rótulos de esa tabla con acentos, en una tanda que los nombre.
+
+### D2b-6 · Dos superficies de la pantalla del FOP siguen mostrando una lectura automática distinta
+
+Con el ASIA en «No» la fila «Se abomba hacia» muestra «—» y la de «Interpretación» muestra los
+milímetros con el motivo. **Son dos textos y no uno a propósito**: la primera es el dato que se lee
+de Otros y la segunda es lo que la app concluye de él. La alternativa —apagar las dos— perdería la
+excursión de la pantalla, que es un dato cargado.
+
+### D2b-7 · `tests-fichas.md` sigue a 763 bytes del techo, y la ficha de TC-514 vive en otro archivo
+
+Medido con `wc -c` **ANTES** de escribir: `docs/mapa/tests-fichas.md` está en **34,2 KB** y la ficha
+entera lo cruzaba, igual que en la tanda D. La de **TC-514** vive dentro de
+`docs/mapa/d2-correcciones.md` (§6) y a `tests-fichas.md` **no se le escribió nada**. Lo que `D-9`
+pide sigue pendiente: **la próxima tanda que lo toque tiene que partirlo.**
+
+### D2b-8 · El puntaje RoPE sigue sin existir, y es un trabajo propio
+
+Lo que `D-8` ya declara. Esta orden lo excluye expresamente («el RoPE es otro trabajo, a la espera
+de fuentes»). La sección de Evidencia del FOP lo **nombra** en su bloque de contexto y no lo
+calcula, porque pide datos que la app no tiene.
+
+### D2b-9 · Seis comentarios de `index.html` de esta tanda llevan la fecha equivocada
+
+Dicen **2026-10-22** y la fecha real es el **21**: el reloj del sistema, el encabezado que imprime
+la suite (`21/10/2026`) y el sello del propio commit (`v20261021-1443`) dicen los tres 21. Copié la
+fecha de las tandas B2 y D, que la escribieron mal en sus comentarios de caso.
+
+Son **dos** de `D2-E1`, **uno** de `D2-E3` y **tres** de `D2-E4`, los seis en bloques de comentario.
+La documentación y los comentarios de `scripts/test_clinico.mjs` **sí** quedaron en `2026-10-21`.
+
+**Por qué no se corrigió acá:** `index.html` está **sellado** y la línea base entera —la suite en
+dos mitades, Semgrep, el chequeo de celular y los cuatro A/B— se midió sobre ese `md5`. Tocar un
+comentario obliga a volver a sellar y a volver a medir todo para cambiar seis caracteres, y una
+línea base que no corresponde al árbol sellado es peor que una fecha mal escrita.
+
+**Salida:** la próxima tanda que toque `index.html` los arregla de paso, con
+`grep -n "D2-E., 2026-10-22" index.html`.

@@ -279,3 +279,19 @@ y los tres por la misma causa de fondo: afirmaban un hecho **medido** que este t
 Ninguno estaba mal escrito. **El de TC-506 es el más instructivo:** su control negativo usaba
 justamente el módulo que esta tanda vacía, así que un control que existía para probar que el retiro
 era acotado se volvió una segunda medición del mismo retiro.
+
+---
+
+## ⚠️ LO QUE LA TANDA «D2» CAMBIÓ DE ESTA ZONA (21/10/2026)
+
+Todo el detalle está en **`docs/mapa/d2-correcciones.md`**. En cuatro líneas:
+
+- **El corte del aneurisma pasa a `>` ESTRICTO en los dos lados** —10 y 15 mm **NO** cumplen, 11 y
+  16 sí— y **sin «Se abomba hacia» no se publica veredicto**: la regla depende del lado, así que
+  sin él no hay umbral que comparar. Cierra `D-4`.
+- **Con el ASIA en «No» la excursión se conserva como dato y no se usa**, y «Se abomba hacia»
+  vuelve a vacío por los dos gestos.
+- **La frase de la excursión tiene UN solo dueño, `asiaExcFrase`**, que leen las **siete**
+  superficies. Acá vivían cinco copias del lado y una superficie sin ninguna.
+- **El selector de latidos nace SIN CONSIGNAR** —la opción vacía pasa al primer lugar— y las
+  cuatro superficies callan el número hasta que el médico lo elija. Cierra `D-6`.

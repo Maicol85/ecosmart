@@ -4967,3 +4967,70 @@ Lo que sale de ahí se cita por **hoja del PDF**, no por folio.
 | Cierre del FOP, atribución | «Clase IIa (**ESC**)» | **AHA/ASA 2021** (COR 1, 2a, 2b) y posición europea (declaración fuerte, GRADE) | Kleindorfer folio e411; Pristipino folio 1396 | D-E3 y D-E4 | 22/10/2026 |
 | Tabla de tiempos del test de burbuja | sin fuente | folios **931, 933 y 935**, con la contradicción declarada. **Ningún corte se movió** | Silvestry 2015 | D-E3 | 22/10/2026 |
 | `fop2019` del registro | *Eur Heart J* 2019;40:3182 | *EuroIntervention* 2019;**14**:1389-1402, que es el PDF del que salen los folios | — | D-E4 | 22/10/2026 |
+
+---
+
+## El trabajo «D2» — las cuatro correcciones del 21/10/2026
+
+Esta tanda **no verificó ninguna fuente nueva**: lo único que leyó en el original es el corte del
+aneurisma del septum, para decidir su **operador**. Todo lo demás es maquetación, compuertas y
+texto, y queda abajo la tabla de «Cambios de evidencia».
+
+### El corte del aneurisma del septum, leído literal y verificado dos veces
+
+**Silvestry FE y col., «Guidelines for the Echocardiographic Assessment of Atrial Septal Defect
+and Patent Foramen Ovale», ASE/SCAI, J Am Soc Echocardiogr 2015;28(8):910-958.**
+Archivo: `21_Otros_hallazgos/Silvestry_2015_ASE_CIA_FOP.pdf`.
+**Regla de folio = hoja + 909**, re-comprobada en el pie impreso de las hojas 7, 8 y 9 (folios
+916, 917 y 918).
+
+**Folio 916 (hoja 7), apartado «Atrial Septal Aneurysm», literal:**
+
+> *«ASA is defined as excursion of the septal tissue (typically the fossa ovalis) of **greater
+> than 10 mm** from the plane of the atrial septum into the RA or LA or a combined total
+> excursion right and left **of 15 mm** (Figure 10).»*
+
+**Folio 938 (hoja 29), el MISMO criterio reescrito, literal:**
+
+> *«An ASA is defined as an excursion **of 10 mm** from the plane of the atrial septum into the RA
+> or LA or a combined excursion right and left **of 15 mm**.»*
+
+**QUÉ SOSTIENE LA FUENTE Y QUÉ NO.** Para **un solo lado** el folio 916 escribe el operador con
+todas las letras —«greater than»— así que el estricto es de la guía. Para la **excursión total**
+**no escribe operador** en ninguno de los dos folios, y el 938 además le saca el «greater than» al
+de un lado. **Las dos redacciones están impresas y las dos quedan acá.**
+
+**LO QUE LA APP APLICA DESDE EL D2-E1: `>` estricto en los dos.** El de un lado es la letra del
+folio 916; el del total es la lectura **conservadora** de una fuente que calla —entre afirmar un
+aneurisma en el valor exacto y no afirmarlo, se elige no afirmarlo—. Decisión de Maicol con los
+dos textos delante. **Esto cierra `D-4` de `docs/PENDIENTES.md`**, que quedó abierta en la tanda D
+pidiendo exactamente esto: «decidir el operador con la fuente delante».
+
+**Medido por sus tripletes, con teclas reales:** hacia un lado, 9 y **10** no cumplen y 11 sí;
+con «ambos lados», 14 y **15** no cumplen y 16 sí.
+
+### El lado es condición de la regla, y por eso sin él no hay veredicto
+
+El corte **depende** del lado —10 mm hacia uno, 15 mm en total—, así que sin consignarlo no hay
+umbral contra el cual comparar. La app **no elige un umbral por omisión**: muestra los milímetros
+y dice que falta el lado. Hasta esta tanda aplicaba el de 10 mm, o sea el **más bajo**, en nombre
+del médico.
+
+### Lo que esta tanda NO verificó, y se declara
+
+- El **número de latidos** (3 a 6) sigue siendo el del **folio 931**, verificado en la tanda D, y
+  **no se movió ningún valor**: lo que cambia es que el selector nace **sin consignar** en vez de
+  en 3.
+- La **Evidencia de la válvula aórtica bicúspide** no movió ni un corte ni una cita: lo que cambió
+  es **cuándo aparece la sección**, que es una compuerta y no un criterio.
+
+### Cambios de evidencia
+
+| Dato | Antes | Ahora | Fuente | Commit | Fecha |
+|---|---|---|---|---|---|
+| Operador del corte del aneurisma del septum | `>=` en los dos cortes | **`>` estricto** en los dos: 10 y 15 mm NO cumplen, 11 y 16 sí | Silvestry 2015, folio 916 («greater than 10 mm»); para el total, lectura conservadora de una fuente que calla el operador | D2-E1 | 21/10/2026 |
+| Aneurisma del septum SIN lado consignado | se aplicaba el corte de 10 mm | **no se publica veredicto**: la regla no se puede aplicar | la propia regla, que hace depender el corte del lado | D2-E1 | 21/10/2026 |
+| Aneurisma del septum en «No» | la excursión seguía alimentando las frases | la excursión se **conserva como dato** y no se usa | regla de producto: un campo no afirma lo que otro niega | D2-E1 | 21/10/2026 |
+| Frase de la excursión | cinco copias del lado, y «(excursión de 16 mm de excursión total)» | **un solo dueño** (`asiaExcFrase`) en las **siete** superficies | — | D2-E1 | 21/10/2026 |
+| Selector de latidos | nacía en **3** (valor de fábrica) | nace **sin consignar**; el informe calla el número hasta que se elija | decisión de Maicol; cierra `D-6` | D2-E2 | 21/10/2026 |
+| Evidencia de la VAB — aorta ascendente | se abría **sólo** por el diámetro | exige **además** que la válvula sea bicúspide | el asunto de la sección; mismo predicado que su sección hermana | D2-E3 | 21/10/2026 |

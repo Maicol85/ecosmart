@@ -18175,7 +18175,7 @@ caso('TC-173', 'VAP y FOP: cascadas, denominadores propios y la fila que NO exis
          este archivo ya documenta. El 99 de noInterp NO cuenta: cae fuera de banda y vale
          null, que es "no se pudo evaluar" y no "sin aneurisma". */
       asaSi:    mk({ fop_burbujas:'pocas', fop_acv:'no', fop_asa:'si' }),
-      /* ADAPTADO el 2026-10-22 (tanda D2, commit 1): la excursion sola ya no afirma el
+      /* ADAPTADO el 2026-10-21 (tanda D2, commit 1): la excursion sola ya no afirma el
          aneurisma SIN el lado consignado, porque el lado es lo que decide el umbral. Se le
          agrega otr_asia_lado y el caso sigue midiendo lo mismo -que una excursion MEDIDA
          cuenta igual que el aneurisma marcado- con la regla nueva: 12 mm hacia un lado supera
@@ -46884,7 +46884,7 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
          pasa a declararse con su prefijo completo. */
       /* El guion es el EM DASH del titulo, no un guion comun: la normalizacion del caso saca los
          diacriticos y NO cambia la puntuacion, asi que una clave con «-» no matchea «—». */
-      /* ADAPTADO el 2026-10-22 (tanda D2, commit 3): la seccion de la AORTA de la bicuspide pasa
+      /* ADAPTADO el 2026-10-21 (tanda D2, commit 3): la seccion de la AORTA de la bicuspide pasa
          a exigir TAMBIEN que la valvula sea bicuspide, que es su propio asunto. Hasta hoy su
          compuerta era solo el diametro, asi que aparecia sobre un paciente con la aortica en
          TRIVALVA -medido: con 41 y con 56 mm- y el panel publicaba una tabla de aortopatia
@@ -77451,9 +77451,19 @@ caso('TC-501', 'Tanda ARR: un campo VACIO es SIN DATO - las once referencias que
            otra cosa que ese antecedente quedaron con su clausula en nulo.
        El caso NO pierde cobertura: se exige la frase nueva COMPLETA, el EN SUMA nuevo COMPLETO y
        —esto es nuevo— que el antecedente NO aparezca en ninguna de las dos superficies. */
+    /* ADAPTADO el 2026-10-21 (trabajo D2, commits D2-E1 y D2-E2). OTRAS DOS cosas de la frase
+       cambian, y las dos estan autorizadas por esa orden:
+         · la EXCURSION del aneurisma se publica con su LADO desde un dueno unico (D2-E1), y esta
+           escena no consigna «Se abomba hacia», asi que la frase lo DECLARA en vez de callarlo;
+         · el NUMERO DE LATIDOS nace SIN CONSIGNAR (D2-E2), asi que la clausula «a los 3 latidos»
+           -que la adaptacion del 2026-10-22 habia tenido que agregar- ya no sale.
+       El caso NO pierde cobertura y gana una condicion: se exige la frase nueva COMPLETA, el EN
+       SUMA nuevo COMPLETO y -esto es nuevo- que el numero de latidos NO aparezca en ninguna de las
+       dos superficies, que es el control del D2-E2 desde un caso ajeno a esa zona. */
     const FRASE = 'Foramen oval permeable (t' + String.fromCharCode(250) + 'nel de 8 mm), con septum interauricular m'
-      + String.fromCharCode(243) + 'vil y aneurisma del septum (excursi' + String.fromCharCode(243)
-      + 'n de 22 mm). Test de burbuja: sin shunt en reposo; con maniobra de Valsalva, shunt moderado (5-20 burbujas) a los 3 latidos.';
+      + String.fromCharCode(243) + 'vil y aneurisma del septum con excursi' + String.fromCharCode(243)
+      + 'n de 22 mm (sin consignar hacia d' + String.fromCharCode(243) + 'nde se abomba).'
+      + ' Test de burbuja: sin shunt en reposo; con maniobra de Valsalva, shunt moderado (5-20 burbujas).';
     ex.push(['(M0) DENOMINADOR: la seccion del FOP se integra al informe',
       conEdad.inc === true, 'incluir=' + conEdad.inc]);
     ex.push(['(M1) el informe es ESQUEMATICO y sale con la frase exacta de la orden',
@@ -77462,8 +77472,13 @@ caso('TC-501', 'Tanda ARR: un campo VACIO es SIN DATO - las once referencias que
     ex.push(['(M2) y el EN SUMA en el estilo aprobado',
       conEdad.suma.indexOf('FOP ' + String.fromCharCode(8212) + ' t' + String.fromCharCode(250)
         + 'nel 8 mm ' + String.fromCharCode(8212) + ' shunt con Valsalva ' + String.fromCharCode(8212)
-        + ' aneurisma del septum (22 mm)') >= 0,
+        + ' aneurisma del septum con excursi' + String.fromCharCode(243) + 'n de 22 mm (sin consignar hacia d'
+        + String.fromCharCode(243) + 'nde se abomba)') >= 0,
       conEdad.suma.split(String.fromCharCode(10)).filter(function (l) { return l.indexOf('FOP') >= 0; }).join(' // ')]);
+    /* CONTROL del D2-E2, en la direccion contraria: el numero de latidos no se afirma solo. */
+    ex.push(['(M2c) el NUMERO DE LATIDOS no aparece en el informe ni en el EN SUMA (D2-E2)',
+      conEdad.inf.indexOf('latidos') < 0 && conEdad.suma.indexOf('latidos') < 0,
+      'inf=' + (conEdad.inf.indexOf('latidos') < 0) + ' suma=' + (conEdad.suma.indexOf('latidos') < 0)]);
     /* CONTROL del D-E2, en la direccion contraria: el antecedente NO va al papel narrativo. */
     ex.push(['(M2b) el ACV criptogenico NO aparece en el informe ni en el EN SUMA (D-E2)',
       conEdad.inf.indexOf('criptog') < 0 && conEdad.suma.indexOf('criptog') < 0,
@@ -82445,7 +82460,7 @@ caso('TC-513', 'Trabajo D: el FOP en TRES columnas con «Se abomba hacia» y el 
     ? Array.prototype.slice.call(e.options).map(function(o){ return o.value; }).join(',') : 'NO EXISTE'; };
   ex.push(['(B1) «Se abomba hacia» ofrece AD, AI y ambos, mas la opcion vacia',
     opsDe('otr_asia_lado') === ',ad,ai,ambos', opsDe('otr_asia_lado')]);
-  /* ADAPTADO el 2026-10-22 (tanda D2, commit 2): la opcion VACIA pasa al PRIMER lugar y el
+  /* ADAPTADO el 2026-10-21 (tanda D2, commit 2): la opcion VACIA pasa al PRIMER lugar y el
      selector NACE sin consignar, que es lo que cierra D-6. Las dos condiciones afirman hoy lo
      contrario y conservan su poder: la posicion de la vacia es lo que implementa el valor de
      fabrica -limpiarCampos hace selectedIndex = 0 sobre todo select-, asi que medir el ORDEN y
@@ -82474,7 +82489,7 @@ caso('TC-513', 'Trabajo D: el FOP en TRES columnas con «Se abomba hacia» y el 
   const u9 = asaEsc('ad', 9), u10 = asaEsc('ad', 10), u11 = asaEsc('ad', 11);
   const a14 = asaEsc('ambos', 14), a15 = asaEsc('ambos', 15), a16 = asaEsc('ambos', 16);
   const s12 = asaEsc('', 12);
-  /* ADAPTADO el 2026-10-22 (tanda D2, commit 1): el operador pasa a MAYOR ESTRICTO, decision de
+  /* ADAPTADO el 2026-10-21 (tanda D2, commit 1): el operador pasa a MAYOR ESTRICTO, decision de
      Maicol con el folio 916 delante, que escribe «greater than 10 mm» para UN lado. Las dos
      condiciones afirman hoy LO CONTRARIO en el valor exacto del corte -10 mm hacia un lado NO
      cumple, 15 mm de excursion total NO cumple- y conservan su poder: siguen siendo tripletes y
@@ -82488,7 +82503,7 @@ caso('TC-513', 'Trabajo D: el FOP en TRES columnas con «Se abomba hacia» y el 
   ex.push(['(B8) y una excursion de 12 mm cambia de veredicto segun el lado',
     asaEsc('ad', 12).clave === 'alto_riesgo_sin_evento' && asaEsc('ambos', 12).clave === 'incidental',
     asaEsc('ad', 12).clave + ' / ' + asaEsc('ambos', 12).clave]);
-  /* ADAPTADO el 2026-10-22 (tanda D2, commit 1): SIN lado consignado la regla NO SE PUEDE
+  /* ADAPTADO el 2026-10-21 (tanda D2, commit 1): SIN lado consignado la regla NO SE PUEDE
      APLICAR y no se publica veredicto. Esta condicion afirmaba lo contrario -que mandaba el
      corte de 10 mm «como siempre»- y era precisamente el defecto que el medico vio: la pantalla
      decia «15 mm - aneurisma significativo (>=10 mm)» sin que nadie hubiera dicho hacia donde se
@@ -82513,7 +82528,7 @@ caso('TC-513', 'Trabajo D: el FOP en TRES columnas con «Se abomba hacia» y el 
   ex.push(['(B11) los latidos se LEEN del dueno y se publican en el FOP',
     l3.lee === '3' && l6.lee === '6' && l6.span.indexOf('6 latidos') === 0,
     JSON.stringify([l3.lee, l6.lee, l6.span.slice(0, 20)])]);
-  /* ADAPTADO el 2026-10-22 (tanda D2, commit 2): con pasaje documentado y sin numero elegido la
+  /* ADAPTADO el 2026-10-21 (tanda D2, commit 2): con pasaje documentado y sin numero elegido la
      fila dice «sin consignar» y no donde se consigna -ese texto queda para el estado en que el
      control ni siquiera esta a la vista, que es el CONTROL B13 de abajo-. Son tres estados y no
      dos, y el que los distingue es fopPasajeDocumentado. */
@@ -82588,7 +82603,7 @@ caso('TC-513', 'Trabajo D: el FOP en TRES columnas con «Se abomba hacia» y el 
   const filaExc = Array.isArray(filasPdf)
     ? (filasPdf.filter(function(f){ return f[0] === 'Excursion del aneurisma'; })[0] || [])
     : [];
-  /* ADAPTADO el 2026-10-22 (tanda D2, commit 1): la celda sale de asiaExcFrase().corto, el
+  /* ADAPTADO el 2026-10-21 (tanda D2, commit 1): la celda sale de asiaExcFrase().corto, el
      dueno unico de la frase, que escribe el lado CON acentos -como vabPdfFilas escribe
      «Cuspides» y «Estenosis aortica»- y sin el «excursion de», que el rotulo de la fila ya dice.
      Lo que el caso afirma no cambia: la celda nombra el lado. */
@@ -82701,7 +82716,7 @@ caso('TC-513', 'Trabajo D: el FOP en TRES columnas con «Se abomba hacia» y el 
     const g = await __t.guardar();
     ex.push(['(DENOM H) el estudio se guardo', g.ok === true && !!g.estudioId, JSON.stringify(g)]);
     __t.limpiar();
-    /* ADAPTADO el 2026-10-22 (tanda D2, commit 2): «Nuevo estudio» deja los DOS vacios. */
+    /* ADAPTADO el 2026-10-21 (tanda D2, commit 2): «Nuevo estudio» deja los DOS vacios. */
     ex.push(['(H1) «Nuevo estudio» vacia el lado y los latidos',
       (EL2('otr_asia_lado') || {}).value === '' && (EL2('otr_burb_lat') || {}).value === '',
       JSON.stringify((EL2('otr_asia_lado') || {}).value + '/' + (EL2('otr_burb_lat') || {}).value)]);
@@ -82717,7 +82732,7 @@ caso('TC-513', 'Trabajo D: el FOP en TRES columnas con «Se abomba hacia» y el 
     __t.limpiar();
     const cLeg = FN2('fopConclusion') ? fopConclusion({ fop_asa_mm:'12', fop_contraste:'si',
       fop_shunt_valsalva:'si', fop_acv:'no' }) : null;
-    /* ADAPTADO el 2026-10-22 (tanda D2, commit 1): esta condicion afirmaba que un estudio SIN el
+    /* ADAPTADO el 2026-10-21 (tanda D2, commit 1): esta condicion afirmaba que un estudio SIN el
        lado aplicaba el corte de 10 mm «como siempre», y hoy afirma LO CONTRARIO: sin el lado la
        regla no se puede aplicar y la excursion sola no afirma el aneurisma. Es la decision de
        Maicol, y la consecuencia sobre los estudios guardados antes de la tanda D esta declarada
@@ -82773,6 +82788,390 @@ caso('TC-513', 'Trabajo D: el FOP en TRES columnas con «Se abomba hacia» y el 
     return { extra: ex };
   })();
 `);
+/* ══ TC-514 — TANDA D2: LAS CUATRO CORRECCIONES DEL 22/10 ═══════════════════════════════════
+   Cubre los cuatro commits: la regla del ASIA con el operador estricto y el lado obligatorio y
+   su frase de un solo dueno en las SEIS superficies; el ASIA en «No» que devuelve el lado a
+   vacio; el selector de latidos naciendo sin consignar; la Evidencia de la VAB solo con valvula
+   bicuspide; y las barras de las dos pestanas de congenitas nacidas cerradas.
+   ADVERTENCIA 1: LA MAQUETA SE AFIRMA POR LA REGLA Y POR LO RENDERIZADO AL ANCHO DE LA CORRIDA.
+   El cuerpo de un caso corre DENTRO de la pagina y no puede cambiar el viewport; el suite corre
+   a ~756 px. Que la etiqueta de la caja de conclusion quede por ENCIMA del texto en los CINCO
+   anchos y en los dos temas lo mide scripts/_probe_d2.mjs en sus diez celdas. Es el reparto de
+   TC-460 y de TC-513.
+   ADVERTENCIA 2: EL PDF SE MIDE POR SU DUENO (fopPdfFilas). Generarlo de verdad en sus seis
+   plantillas lo hace la sonda, que tiene el canal para envolver el constructor de jsPDF. */
+caso('TC-514', 'Tanda D2: el corte del aneurisma del septum con el operador ESTRICTO y el LADO obligatorio -10 y 15 mm NO cumplen, 11 y 16 si, y sin lado no hay veredicto-; la frase de la excursion con su lado en el informe, la conclusion, el EN SUMA, el PDF, Otros y Evidencia desde UN solo dueno; el ASIA en «No» devolviendo el lado a vacio por los dos gestos y sin usar la excursion; el selector de latidos naciendo SIN CONSIGNAR y las cuatro superficies callando el numero; la Evidencia de la VAB solo con valvula bicuspide; las barras de CC frecuentes y CC complejas nacidas cerradas; la caja de Conclusion con la etiqueta por encima del texto; y el informe ajeno, la aorta, el TEP, el PDF, el Laboratorio y las 440 columnas del Excel sin moverse', `
+  const ex = [];
+  const EL2 = (id) => document.getElementById(id);
+  const T = (id) => { const e = EL2(id); return e ? (e.textContent || '').replace(/ /g, ' ').trim() : 'NO EXISTE ' + id; };
+  const FN2 = (n) => typeof window[n] === 'function';
+  /* CENTINELAS: contra un arbol sin estas funciones devuelven una cadena, y asi ninguna
+     condicion muere por excepcion -un caso que muere prueba que el arbol es distinto, no que
+     sabe medir-. Es la leccion que TC-455, TC-462, TC-465, TC-474 y TC-513 ya pagaron. */
+  const FRASE = () => { try { return FN2('asiaExcFrase') ? (asiaExcFrase() || { txt:'NULO', corto:'NULO' }) : { txt:'SIN FN', corto:'SIN FN' }; }
+    catch (e) { return { txt:'EXC', corto:'EXC' }; } };
+  const HAY = (mm) => { try { return FN2('asiaPorExcursion') ? asiaPorExcursion(mm) : 'SIN FN'; } catch (e) { return 'EXC'; } };
+  const CLAVE = () => { try { return FN2('fopConclusion') ? ((fopConclusion() || {}).clave || null) : 'SIN FN'; } catch (e) { return 'EXC'; } };
+  const CTXT = () => { try { return FN2('fopConclusion') ? ((fopConclusion() || {}).txt || '') : 'SIN FN'; } catch (e) { return 'EXC'; } };
+  const SUMA = () => { try { return FN2('ccSumaLinea') ? (ccSumaLinea('fop') || '') : 'SIN FN'; } catch (e) { return 'EXC'; } };
+  const PDFEXC = () => { try { const f = FN2('fopPdfFilas') ? fopPdfFilas() : null;
+      if (!Array.isArray(f)) return 'SIN FN';
+      const r = f.filter(function(x){ return String(x[0]).indexOf('Excursion') === 0; })[0];
+      return r ? String(r[1]) : 'SIN FILA'; } catch (e) { return 'EXC'; } };
+  const PDFLAT = () => { try { const f = FN2('fopPdfFilas') ? fopPdfFilas() : null;
+      if (!Array.isArray(f)) return 'SIN FN';
+      const r = f.filter(function(x){ return String(x[0]).indexOf('Latidos') === 0; })[0];
+      return r ? String(r[1]) : 'SIN FILA'; } catch (e) { return 'EXC'; } };
+  const SECVAB = () => { try { if (typeof IND_SECS === 'undefined') return 'SIN IND_SECS';
+      const s = IND_SECS.filter(function(x){ return x.tit.indexOf('Válvula aórtica bicúspide — aorta') === 0; })[0];
+      if (!s) return 'SIN SECCION';
+      const r = s.fn(); return r ? (r.filas || []).length : null; } catch (e) { return 'EXC'; } };
+  const SECAO = () => { try { if (typeof IND_SECS === 'undefined') return 'SIN IND_SECS';
+      const s = IND_SECS.filter(function(x){ return x.tit.indexOf('Aorta torácica') === 0; })[0];
+      if (!s) return 'SIN SECCION';
+      const r = s.fn(); return r ? (r.filas || []).length : null; } catch (e) { return 'EXC'; } };
+
+  /* == DENOMINADORES ====================================================================== */
+  ex.push(['(DENOM 1) el dueno de la regla y el de la frase existen',
+    FN2('asiaPorExcursion') && FN2('asiaCorteMm') && FN2('asiaExcFrase') && FN2('asiaNegado'),
+    [FN2('asiaPorExcursion'), FN2('asiaExcFrase'), FN2('asiaNegado')].join('/')]);
+  ex.push(['(DENOM 2) los dos selectores y el campo de la excursion existen',
+    !!EL2('otr_asia_lado') && !!EL2('otr_burb_lat') && !!EL2('fop_asa_mm') && !!EL2('fop_asa'), '']);
+
+  /* == A - LA REGLA DEL ASIA, POR SUS TRIPLETES ============================================ */
+  const esc = function(lado, mm){ __t.limpiar();
+    if (lado) __t.set('otr_asia_lado', lado);
+    __t.set('fop_asa_mm', String(mm));
+    __t.set('fop_contraste','si'); __t.set('fop_shunt_valsalva','si'); __t.set('fop_acv','no');
+    return { corte: FN2('asiaCorteMm') ? asiaCorteMm() : 'SIN FN', hay: HAY(mm),
+             interp: T('fop-asa-interp'), lado: T('fop-asa-lado'), clave: CLAVE() }; };
+  const d10 = esc('ad', 10), d11 = esc('ad', 11), d12 = esc('ad', 12);
+  const b15 = esc('ambos', 15), b16 = esc('ambos', 16);
+  const s12 = esc('', 12);
+  ex.push(['(A1) con UN lado el corte es 10 ESTRICTO: 10 NO cumple, 11 y 12 si',
+    d10.corte === 10 && d10.hay === false && d11.hay === true && d12.hay === true,
+    JSON.stringify([d10.hay, d11.hay, d12.hay])]);
+  ex.push(['(A2) con «ambos lados» el corte es 15 ESTRICTO: 15 NO cumple, 16 si',
+    b15.corte === 15 && b15.hay === false && b16.hay === true,
+    JSON.stringify([b15.corte, b15.hay, b16.hay])]);
+  ex.push(['(A3) SIN lado la regla no se aplica: ninguna excursion afirma',
+    s12.hay === false && esc('', 16).hay === false && esc('', 99).hay === false,
+    JSON.stringify([s12.hay, esc('', 16).hay])]);
+  ex.push(['(A4) y la pantalla lo DICE en vez de dar un veredicto',
+    s12.interp.indexOf('falta indicar hacia dónde se abomba') > -1 &&
+    s12.interp.indexOf('12 mm') === 0, s12.interp]);
+  ex.push(['(A5) el simbolo SIGUE AL OPERADOR en las dos ramas',
+    d11.interp.indexOf('más de 10 mm') > -1 && b16.interp.indexOf('más de 15 mm') > -1 &&
+    d10.interp.indexOf('no supera el umbral de 10 mm') > -1 &&
+    b15.interp.indexOf('no supera el umbral de 15 mm') > -1,
+    d11.interp + ' | ' + d10.interp]);
+  ex.push(['(A6) y una excursion de 12 mm cambia de veredicto segun el lado',
+    d12.clave === 'alto_riesgo_sin_evento' && esc('ambos', 12).clave === 'incidental',
+    d12.clave + ' / ' + esc('ambos', 12).clave]);
+  ex.push(['(CONTROL A7) la fila del lado nombra el umbral de ESE lado',
+    d11.lado.indexOf('10 mm') > -1 && b16.lado.indexOf('15 mm') > -1, d11.lado + ' | ' + b16.lado]);
+
+  /* == B - LA FRASE, EN LAS SEIS SUPERFICIES =============================================== */
+  const frase = function(lado){ __t.limpiar();
+    if (lado) __t.set('otr_asia_lado', lado);
+    __t.set('fop_asa','si'); __t.set('fop_asa_mm','16');
+    __t.set('fop_contraste','si'); __t.set('fop_shunt_valsalva','si'); __t.set('fop_acv','no');
+    __t.chk('fop_incluir_chk', true);
+    const i = __t.informe();
+    return { f: FRASE(), concl: CTXT(), suma: SUMA(), pdf: PDFEXC(), inf: i.inf, isuma: i.suma }; };
+  const F_AMB = frase('ambos'), F_AD = frase('ad'), F_SIN = frase('');
+  ex.push(['(B1) la frase del dueno compone excursion y lado',
+    F_AMB.f.txt === 'excursión de 16 mm hacia ambos lados (total)' &&
+    F_AD.f.txt === 'excursión de 16 mm hacia la aurícula derecha',
+    F_AMB.f.txt + ' | ' + F_AD.f.txt]);
+  ex.push(['(B2) y sin lado lo DECLARA en vez de callarlo',
+    F_SIN.f.txt === 'excursión de 16 mm (sin consignar hacia dónde se abomba)', F_SIN.f.txt]);
+  ex.push(['(B3) la CONCLUSION la publica entera',
+    F_AMB.concl.indexOf('con excursión de 16 mm hacia ambos lados (total)') > -1, F_AMB.concl.slice(0, 160)]);
+  ex.push(['(B4) el INFORME tambien, y ya no dice el numero pelado',
+    F_AMB.inf.indexOf('con excursión de 16 mm hacia ambos lados (total)') > -1 &&
+    F_AMB.inf.indexOf('de excursión total)') === -1,
+    (F_AMB.inf.split('.').filter(function(l){ return l.indexOf('neurisma') > -1; })[0] || '').slice(0, 160)]);
+  ex.push(['(B5) el EN SUMA pasa de «(16 mm)» a la frase con su lado',
+    F_AMB.isuma.indexOf('con excursión de 16 mm hacia ambos lados (total)') > -1 &&
+    F_AMB.suma.indexOf('aneurisma del septum con excursión de 16 mm hacia ambos lados (total)') > -1,
+    F_AMB.suma]);
+  ex.push(['(B6) la celda del PDF lleva el lado SIN repetir «excursion de»',
+    F_AMB.pdf === '16 mm hacia ambos lados (total)' && F_AD.pdf === '16 mm hacia la aurícula derecha',
+    F_AMB.pdf + ' | ' + F_AD.pdf]);
+  ex.push(['(B7) y sin lado las cuatro lo declaran',
+    F_SIN.concl.indexOf('(sin consignar hacia dónde se abomba)') > -1 &&
+    F_SIN.inf.indexOf('(sin consignar hacia dónde se abomba)') > -1 &&
+    F_SIN.suma.indexOf('(sin consignar hacia dónde se abomba)') > -1 &&
+    F_SIN.pdf.indexOf('(sin consignar hacia dónde se abomba)') > -1, F_SIN.pdf]);
+  /* La pestana Otros es la SEXTA superficie, y la que el medico vio con el 16 pelado. */
+  __t.limpiar(); __t.chk('otr_asia', true);
+  __t.set('otr_asia_lado','ambos'); __t.set('fop_asa_mm','16');
+  const otrL = (function(){ try { return FN2('otrHallazgos')
+      ? ((otrHallazgos() || []).filter(function(x){ return x.id === 'otr_asia'; })[0] || {}).inf || 'SIN FILA'
+      : 'SIN FN'; } catch (e) { return 'EXC'; } })();
+  ex.push(['(B8) la oracion de Otros publica la excursion y su lado',
+    otrL.indexOf('Aneurisma del septum interauricular con excursión de 16 mm hacia ambos lados (total)') === 0,
+    otrL]);
+  /* Y la SEPTIMA: la nota del panel de Evidencia. */
+  __t.limpiar(); __t.set('otr_asia_lado','ad'); __t.set('fop_asa','si'); __t.set('fop_asa_mm','16');
+  __t.set('fop_shunt_valsalva','si'); __t.set('fop_burbujas','moderado');
+  const notaEv = (function(){ try { if (typeof IND_SECS === 'undefined') return 'SIN IND_SECS';
+      const s = IND_SECS.filter(function(x){ return x.tit.indexOf('Foramen oval') === 0; })[0];
+      if (!s) return 'SIN SECCION';
+      const r = s.fn(); if (!r) return 'NULA';
+      const f = (r.filas || []).filter(function(x){ return String(x.lbl || '').indexOf('Aneurisma') === 0; })[0];
+      return f ? String(f.nota || '') : 'SIN FILA'; } catch (e) { return 'EXC'; } })();
+  ex.push(['(B9) y la nota del panel de Evidencia lee el MISMO dueno',
+    notaEv.indexOf('excursión de 16 mm hacia la aurícula derecha') > -1, notaEv.slice(0, 160)]);
+
+  /* == C - EL ASIA EN «NO», POR LOS DOS GESTOS ============================================= */
+  const ponNo = function(desde){ __t.limpiar();
+    __t.set('otr_asia_lado','ambos'); __t.chk('otr_asia', true);
+    __t.set('fop_asa_mm','16'); __t.set('fop_contraste','si'); __t.set('fop_shunt_valsalva','si');
+    const antes = { lado: (EL2('otr_asia_lado') || {}).value, hay: HAY(16) };
+    if (desde === 'otros') { const c = EL2('otr_asia'); if (c && c.checked) c.click(); }
+    else { __t.set('fop_asa','no'); }
+    return { antes: antes, lado: (EL2('otr_asia_lado') || {}).value, hay: HAY(16),
+             mm: (EL2('fop_asa_mm') || {}).value, spanLado: T('fop-asa-lado'),
+             interp: T('fop-asa-interp'), concl: CTXT(), suma: SUMA(),
+             chk: !!(EL2('otr_asia') || {}).checked, asa: (EL2('fop_asa') || {}).value }; };
+  const NO_O = ponNo('otros'), NO_F = ponNo('fop');
+  ex.push(['(DENOM C) antes del gesto el lado estaba puesto y la excursion afirmaba',
+    NO_O.antes.lado === 'ambos' && NO_O.antes.hay === true,
+    JSON.stringify(NO_O.antes)]);
+  ex.push(['(C1) el ASIA en «No» desde Otros deja «Se abomba hacia» VACIO',
+    NO_O.lado === '' && NO_O.asa === 'no', JSON.stringify([NO_O.lado, NO_O.asa])]);
+  ex.push(['(C2) y desde el FOP tambien, con la casilla de Otros apagada',
+    NO_F.lado === '' && NO_F.chk === false, JSON.stringify([NO_F.lado, NO_F.chk])]);
+  ex.push(['(C3) la excursion se CONSERVA como dato en los dos gestos',
+    NO_O.mm === '16' && NO_F.mm === '16', NO_O.mm + '/' + NO_F.mm]);
+  ex.push(['(C4) pero no se usa: ni en la regla, ni en la conclusion, ni en el EN SUMA',
+    NO_O.hay === false && NO_O.concl.indexOf('aneurisma') === -1 &&
+    NO_O.suma.indexOf('aneurisma') === -1, NO_O.concl.slice(0, 120)]);
+  ex.push(['(C5) y la lectura automatica del FOP desaparece',
+    NO_O.spanLado === '—' && NO_O.interp.indexOf('consignado como ausente') > -1,
+    NO_O.spanLado + ' | ' + NO_O.interp]);
+  /* Al volver a «Si» se puede elegir de nuevo. */
+  __t.set('fop_asa','si'); __t.set('otr_asia_lado','ad');
+  ex.push(['(C6) al volver a «Si» el lado se puede elegir otra vez',
+    (EL2('otr_asia_lado') || {}).value === 'ad' && HAY(16) === true,
+    (EL2('otr_asia_lado') || {}).value]);
+  __t.limpiar();
+  ex.push(['(C7) «Nuevo estudio» deja el lado y los latidos VACIOS',
+    (EL2('otr_asia_lado') || {}).value === '' && (EL2('otr_burb_lat') || {}).value === '',
+    JSON.stringify([(EL2('otr_asia_lado') || {}).value, (EL2('otr_burb_lat') || {}).value])]);
+
+  /* == D - LOS LATIDOS NACEN VACIOS ======================================================== */
+  const opsDe = function(id){ const e = EL2(id);
+    return e ? Array.prototype.slice.call(e.options).map(function(o){ return o.value; }).join(',') : 'NO EXISTE'; };
+  ex.push(['(D1) la opcion VACIA es la PRIMERA, que es lo que lo implementa',
+    opsDe('otr_burb_lat') === ',3,4,5,6', opsDe('otr_burb_lat')]);
+  const latEsc = function(n){ __t.limpiar();
+    __t.set('fop_contraste','si'); __t.set('fop_shunt_valsalva','si'); __t.set('fop_burbujas','moderado');
+    if (n) __t.set('otr_burb_lat', n);
+    __t.chk('fop_incluir_chk', true);
+    const i = __t.informe();
+    return { lee: FN2('fopLatidos') ? fopLatidos() : 'SIN FN', span: T('fop-burb-lat'),
+             concl: CTXT(), inf: i.inf, suma: i.suma, pdf: PDFLAT() }; };
+  const LV = latEsc(''), L3 = latEsc('3'), L4 = latEsc('4'), L5 = latEsc('5'), L6 = latEsc('6');
+  ex.push(['(D2) con el selector VACIO ninguna superficie dice «a los N latidos»',
+    LV.lee === null && LV.concl.indexOf('latidos') === -1 && LV.inf.indexOf('latidos') === -1 &&
+    LV.suma.indexOf('latidos') === -1 && LV.pdf === 'SIN FILA',
+    JSON.stringify([LV.lee, LV.pdf])]);
+  ex.push(['(D3) y la fila del FOP dice «sin consignar»',
+    LV.span.indexOf('sin consignar') > -1, LV.span]);
+  ex.push(['(D4) con 3, 4, 5 y 6 el numero sale en la conclusion y en el informe',
+    [L3, L4, L5, L6].every(function(x, i){ const n = String(i + 3);
+      return x.lee === n && x.concl.indexOf('a los ' + n + ' latidos') > -1 &&
+             x.inf.indexOf('a los ' + n + ' latidos') > -1 && x.pdf === n + ' latidos'; }),
+    JSON.stringify([L3.lee, L4.lee, L5.lee, L6.pdf])]);
+  __t.limpiar(); __t.set('otr_burb_lat','4');
+  ex.push(['(CONTROL D5) SIN pasaje documentado el dueno NO publica latidos',
+    (FN2('fopLatidos') ? fopLatidos() : 'SIN FN') === null &&
+    T('fop-burb-lat').indexOf('se consigna en Otros') > -1,
+    T('fop-burb-lat')]);
+
+  /* == E - LA EVIDENCIA DE LA VAB, SOLO CON VALVULA BICUSPIDE ============================== */
+  const vabEsc = function(morf, mm){ __t.limpiar();
+    __t.set('va_morf', morf); __t.set('ao_tub', String(mm));
+    return { vab: SECVAB(), ao: SECAO(), morf: (EL2('va_morf') || {}).value }; };
+  const T38 = vabEsc('Trivalva normal', 38), T41 = vabEsc('Trivalva normal', 41), T56 = vabEsc('Trivalva normal', 56);
+  const B38 = vabEsc('Bicúspide', 38), B41 = vabEsc('Bicúspide', 41), B56 = vabEsc('Bicúspide', 56);
+  ex.push(['(DENOM E) la morfologia quedo puesta en las dos ramas',
+    T41.morf === 'Trivalva normal' && B41.morf === 'Bicúspide', T41.morf + '/' + B41.morf]);
+  ex.push(['(E1) con TRIVALVA la seccion de la VAB no se activa a ningun diametro',
+    T38.vab === null && T41.vab === null && T56.vab === null,
+    JSON.stringify([T38.vab, T41.vab, T56.vab])]);
+  ex.push(['(E2) con BICUSPIDE se activa desde el corte de dilatacion y no a 38 mm',
+    B38.vab === null && B41.vab === 5 && B56.vab === 5,
+    JSON.stringify([B38.vab, B41.vab, B56.vab])]);
+  ex.push(['(E3) y el TIPO de fusion es la otra puerta',
+    (function(){ __t.limpiar(); __t.set('vab_tipo','fused_rl'); __t.set('ao_tub','41');
+      return SECVAB() === 5; })(), '']);
+  ex.push(['(CONTROL E4) la seccion de AORTA TORACICA no cambia: su asunto es la aorta',
+    T41.ao === 10 && B41.ao === 10 && T38.ao === null, JSON.stringify([T38.ao, T41.ao, B41.ao])]);
+  ex.push(['(CONTROL E5) las dos secciones de la bicuspide comparten el dueno del predicado',
+    FN2('_indVABEsBicuspide'), String(FN2('_indVABEsBicuspide'))]);
+
+  /* == F - LAS BARRAS DE LAS DOS PESTANAS NACEN CERRADAS =================================== */
+  const barras = function(tabId){ const t = EL2(tabId); if (!t) return 'NO EXISTE ' + tabId;
+    const sel = '.sacc-body input:not([readonly]):not([data-espejo]):not([data-ui]), ' +
+                '.sacc-body select:not([data-espejo]):not([data-ui]), .sacc-body textarea:not([data-ui])';
+    const o = { n: 0, abiertas: [], culpables: [] };
+    Array.prototype.slice.call(t.querySelectorAll('.sacc')).forEach(function(acc){
+      o.n++;
+      if (!acc.classList.contains('open')) return;
+      o.abiertas.push(acc.id);
+      Array.prototype.slice.call(acc.querySelectorAll(sel)).forEach(function(el){
+        let vv = false;
+        if (el.type === 'checkbox' || el.type === 'radio') vv = el.checked;
+        else if (el.tagName === 'SELECT') vv = el.selectedIndex > 0;
+        else vv = String(el.value || '').trim() !== '';
+        if (vv) o.culpables.push(el.id || el.className);
+      });
+    });
+    return o; };
+  /* Se entra por el CLIC del boton del rail: showTab LANZA desde el cuerpo de un caso -esta
+     envuelta dos veces en el arbol del suite- y, sobre todo, el clic es el que corre
+     secAutoOpen. Es la leccion que TC-513 dejo escrita. */
+  const entrar = function(tab){ const b = document.querySelector('[onclick*="showTab(' + "'" + tab + "'" + ')"]');
+    if (b) { b.click(); return 'clic'; } try { showTab(tab); return 'showTab'; } catch (e) { return 'EXC'; } };
+  /* El ESTADO DE PARTIDA se fija por el GESTO y no se hereda: «limpiarCampos» vacia los campos
+     y NO cierra un acordeon, asi que un caso anterior puede dejar una barra abierta y esta
+     condicion sale roja sobre un arbol perfecto -medido: corrida completa con
+     abiertas=["sacc-cc-vab","sacc-cc-fop"] y culpables=[], y el mismo caso corrido SOLO en verde-.
+     Lo que «secAutoOpen» gobierna es si ENTRAR a la pestana ABRE una barra que estaba cerrada, y
+     eso es lo que se mide. Es la leccion del estado de partida de TC-511 (A5). */
+  const cerrarTodas = function(tabId){ const t = EL2(tabId); if (!t) return 0; let k = 0;
+    Array.prototype.slice.call(t.querySelectorAll('.sacc.open')).forEach(function(acc){
+      const h = acc.querySelector('.sacc-hdr'); if (h) { try { h.click(); k++; } catch (e) {} } });
+    return k; };
+  __t.limpiar();
+  entrar('congenitas');  const cerr1 = cerrarTodas('tab-congenitas');
+  entrar('congenitas2'); const cerr2 = cerrarTodas('tab-congenitas2');
+  const preCC  = barras('tab-congenitas').abiertas.length;
+  const preCC2 = barras('tab-congenitas2').abiertas.length;
+  entrar('datos');
+  const viaCC = entrar('congenitas');
+  const BCC = barras('tab-congenitas');
+  const viaCC2 = entrar('congenitas2');
+  const BCC2 = barras('tab-congenitas2');
+  ex.push(['(DENOM F) se entro por el clic del rail, las dos pestanas tienen barras y el estado de partida quedo CERRADO',
+    viaCC === 'clic' && BCC.n >= 9 && BCC2.n >= 8 && preCC === 0 && preCC2 === 0,
+    viaCC + '/' + BCC.n + '/' + BCC2.n + ' cerradas=' + cerr1 + '+' + cerr2 + ' partida=' + preCC + '/' + preCC2]);
+  ex.push(['(F1) CC frecuentes: entrar a la pestana no ABRE ninguna barra',
+    BCC.abiertas.length === 0, JSON.stringify(BCC.abiertas) + ' culpables=' + JSON.stringify(BCC.culpables)]);
+  ex.push(['(F2) CC complejas tampoco',
+    BCC2.abiertas.length === 0, JSON.stringify(BCC2.abiertas)]);
+  ex.push(['(F3) el deslizante de la animacion es interfaz y no cuenta como dato',
+    !!(EL2('vab-anim-scrub') || {}).hasAttribute && EL2('vab-anim-scrub').hasAttribute('data-ui'), '']);
+  ex.push(['(F4) y la funcion valvular DERIVADA es un espejo de Valvulas',
+    !!(EL2('vab_funcion') || {}).hasAttribute && EL2('vab_funcion').hasAttribute('data-espejo'), '']);
+  /* CONTROL: lo que el medico abre a mano NO se cierra, y con un dato cargado se abre sola. */
+  (function(){ const c = EL2('sacc-cc-fop');
+    if (c && !c.classList.contains('open')) { const h = c.querySelector('.sacc-hdr'); if (h) h.click(); } })();
+  entrar('datos'); entrar('congenitas');
+  ex.push(['(CONTROL F5) lo que el medico abre a mano sigue abierto',
+    !!(EL2('sacc-cc-fop') || {}).classList && EL2('sacc-cc-fop').classList.contains('open'), '']);
+  __t.limpiar(); __t.set('fop_tunel','9');
+  entrar('datos'); entrar('congenitas');
+  ex.push(['(CONTROL F6) y con un dato cargado la barra SI se abre sola',
+    barras('tab-congenitas').abiertas.indexOf('sacc-cc-fop') > -1,
+    JSON.stringify(barras('tab-congenitas').abiertas)]);
+
+  /* == G - LA CAJA DE CONCLUSION ========================================================== */
+  __t.limpiar();
+  entrar('congenitas');
+  (function(){ const c = EL2('sacc-cc-fop');
+    if (c && !c.classList.contains('open')) { const h = c.querySelector('.sacc-hdr'); if (h) h.click(); } })();
+  __t.set('fop_tunel','8'); __t.set('fop_asa','si'); __t.set('fop_asa_mm','16');
+  __t.set('otr_asia_lado','ambos'); __t.set('fop_contraste','si');
+  __t.set('fop_shunt_valsalva','si'); __t.set('fop_burbujas','moderado'); __t.set('fop_acv','si');
+  const vCon = EL2('fop-concl');
+  const rowC = vCon && vCon.closest ? vCon.closest('.calc-row') : null;
+  const lblC = rowC ? rowC.querySelector('.calc-lbl') : null;
+  ex.push(['(DENOM G) la caja existe y tiene texto de varios renglones',
+    !!vCon && !!lblC && T('fop-concl').length > 80, 'largo=' + T('fop-concl').length]);
+  const rl = lblC ? lblC.getBoundingClientRect() : null;
+  const rv = vCon ? vCon.getBoundingClientRect() : null;
+  ex.push(['(G1) la fila se APILA: la etiqueta queda ENTERA por encima del texto',
+    !!rl && !!rv && rl.bottom <= rv.top + 1,
+    rl ? ('lbl ' + Math.round(rl.top) + '-' + Math.round(rl.bottom) + ' val ' + Math.round(rv.top)) : 'sin caja']);
+  ex.push(['(G2) y la regla vive en una clase PROPIA, no en .calc-row',
+    !!rowC && rowC.classList.contains('fop-concl-row') && rowC.classList.contains('calc-row'),
+    rowC ? rowC.className : '']);
+  ex.push(['(G3) el color del texto sale de una variable que EXISTE en esa zona',
+    !!vCon && /^rgb/.test(getComputedStyle(vCon).color), vCon ? getComputedStyle(vCon).color : '']);
+  /* CONTROL: la fila conserva la clase calc-row, asi que «Nuevo estudio» la vacia. */
+  __t.limpiar();
+  ex.push(['(CONTROL G4) «Nuevo estudio» vacia la conclusion', T('fop-concl') === '—', T('fop-concl')]);
+
+  return (async () => {
+    /* == H - ESTUDIOS GUARDADOS ============================================================ */
+    __t.limpiar();
+    __t.set('nombre','D2'); __t.set('ci','14141414'); __t.set('fecha_estudio','2026-10-22');
+    __t.set('otr_asia_lado','ambos'); __t.set('otr_burb_lat','3');
+    __t.set('fop_asa','si'); __t.set('fop_asa_mm','16');
+    __t.set('fop_contraste','si'); __t.set('fop_shunt_valsalva','si'); __t.set('fop_burbujas','moderado');
+    const g = await __t.guardar();
+    ex.push(['(DENOM H) el estudio se guardo', g.ok === true && !!g.estudioId, JSON.stringify(g)]);
+    __t.limpiar();
+    if (g.estudioId) {
+      __t.reabrir(g.estudioId);
+      await new Promise(r => setTimeout(r, 450));
+      ex.push(['(H1) un estudio guardado con 3 latidos abre COMO SE GUARDO',
+        (EL2('otr_burb_lat') || {}).value === '3' && (EL2('otr_asia_lado') || {}).value === 'ambos',
+        (EL2('otr_asia_lado') || {}).value + '/' + (EL2('otr_burb_lat') || {}).value]);
+      ex.push(['(H2) y su excursion de 16 mm sigue afirmando con el corte de 15',
+        HAY(16) === true && (FN2('asiaCorteMm') ? asiaCorteMm() : 0) === 15, String(HAY(16))]);
+    }
+    /* Un estudio SIN las dos claves -los guardados antes de la tanda D-. */
+    __t.limpiar();
+    const cSin = FN2('fopConclusion') ? fopConclusion({ fop_asa_mm:'16', fop_contraste:'si',
+      fop_shunt_valsalva:'si', fop_burbujas:'moderado', fop_acv:'no' }) : null;
+    const cCon = FN2('fopConclusion') ? fopConclusion({ fop_asa_mm:'16', otr_asia_lado:'ambos',
+      fop_contraste:'si', fop_shunt_valsalva:'si', fop_burbujas:'moderado', fop_acv:'no' }) : null;
+    ex.push(['(H3) un estudio SIN el lado no afirma el aneurisma por su excursion',
+      !!cSin && cSin.clave === 'incidental' && cSin.txt.indexOf('aneurisma') === -1,
+      (cSin || {}).clave]);
+    ex.push(['(CONTROL H4) y el MISMO estudio con el lado si lo afirma, con su frase',
+      !!cCon && cCon.clave === 'alto_riesgo_sin_evento' &&
+      cCon.txt.indexOf('con excursión de 16 mm hacia ambos lados (total)') > -1,
+      (cCon || {}).clave]);
+    ex.push(['(H5) un estudio SIN la clave de los latidos no publica el numero',
+      !!cSin && cSin.txt.indexOf('latidos') === -1, cSin ? cSin.txt.slice(0, 90) : '']);
+
+    /* == I - LA MAQUETA, DECLARANDO EL ANCHO DE LA CORRIDA ================================= */
+    const HH = document.documentElement.innerHTML;
+    ex.push(['(I1) la regla de la caja apilada no tiene media query propia',
+      HH.indexOf('#sacc-cc-fop .fop-concl-row') > -1, '']);
+    ex.push(['(I2) a este ancho de corrida no hay scroll horizontal de la pagina',
+      document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+      document.documentElement.scrollWidth + '/' + document.documentElement.clientWidth]);
+
+    /* == J - LOS CONTROLES ================================================================= */
+    __t.limpiar();
+    const f0 = _labExcelRow({ campos:{}, fecha:'2026-10-22', id:'d2' });
+    ex.push(['(J1) CONTROL: el Excel sigue en 440 columnas', Object.keys(f0).length === 440,
+      'n=' + Object.keys(f0).length]);
+    ex.push(['(J2) CONTROL: y no gano ninguna columna del lado ni de los latidos',
+      !Object.keys(f0).some(function(k){ return k.indexOf('abomba') > -1 || k.indexOf('Latidos') > -1; }), '']);
+    __t.set('vmax_it','2.9'); __t.set('im_vc','7'); __t.set('vmax_ao','4.2');
+    __t.set('ao_sin','46'); __t.set('tep_mcconnell','si');
+    const inf4 = __t.informe();
+    ex.push(['(J3) CONTROL: las valvulas, la aorta y el TEP siguen publicando lo suyo',
+      inf4.inf.length > 100 && inf4.suma.length > 10, 'inf=' + inf4.inf.length]);
+    ex.push(['(J4) CONTROL: sin datos del FOP el informe no lo nombra',
+      inf4.inf.indexOf('Foramen oval permeable') === -1, '']);
+    ex.push(['(J5) CONTROL: el Laboratorio sigue clasificando el FOP por su clave',
+      (function(){ try { const r = _labCCResumen([{ campos:{ fop_burbujas:'pocas', fop_acv:'no',
+          fop_contraste:'si', fop_shunt_reposo:'si' } }], 'fop');
+        return r && r.n === 1; } catch (e) { return false; } })(), '']);
+    return { extra: ex };
+  })();
+`);
+
 
 
 

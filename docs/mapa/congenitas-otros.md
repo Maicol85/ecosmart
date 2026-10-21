@@ -478,3 +478,16 @@ de esta zona:
   **fuente** de su tabla de tiempos, y **ni un corte de esa tabla se movió**.
 - La conclusión, el informe y el EN SUMA del FOP son **descriptivos**: sin «ESC», sin indicación
   de cierre y **sin el ACV criptogénico**, que pasa al PDF como «Motivo del estudio».
+
+---
+
+## ⚠️ LA TANDA «D2» (21/10/2026) — ver `docs/mapa/d2-correcciones.md`
+
+- **Las barras de CC frecuentes y de CC complejas nacen CERRADAS.** Las abría `secAutoOpen` por
+  dos controles de la barra de la VAB que no son datos del paciente: `vab-anim-scrub` (el
+  deslizante de la animación, `value="0"`) y `vab_funcion` (el oculto que se **deriva** de los
+  grados de Válvulas). Llevan `data-ui` y `data-espejo`.
+- **La caja de «Conclusión» del FOP se apila**: la etiqueta queda entera por encima del texto, con
+  una clase propia (`fop-concl-row`) y sin tocar `.calc-row`.
+- La regla del **aneurisma del septum** y el selector de **latidos** cambiaron: ver el mapa de la
+  tanda.

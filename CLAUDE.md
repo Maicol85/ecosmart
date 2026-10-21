@@ -63,6 +63,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la FIBRILACIÓN AURICULAR de la función diastólica**: los tres dueños, sus cortes lado a lado, las tres reglas de conteo o el aviso de frecuencia cardíaca | `docs/mapa/diastolica-fa.md` |
 | **Entender por qué una REFERENCIA conservaba el resultado del valor viejo al borrar el dato**: el dueño común, las DOS causas y los once campos | `docs/mapa/borrado-referencias.md` |
 | **Tocar el FOP, el test de burbuja o el aneurisma del septum**: la escala unificada, el espejo entre Otros y el módulo FOP, el informe esquemático o el aviso de la edad | `docs/mapa/fop-burbuja-unificado.md` |
+| **Tocar la REGLA del aneurisma del septum, el selector de LATIDOS, la compuerta de la EVIDENCIA de la VAB o las barras de C. CONGÉNITAS**: el operador estricto, el lado como condición, la frase de un solo dueño, el «No» que vacía el lado, `_indVABEsBicuspide` o la caja de Conclusión apilada | `docs/mapa/d2-correcciones.md` |
 | **Agregar o correr un caso de prueba; A/B; mutación** | `docs/mapa/tests.md` · fichas en `docs/mapa/tests-fichas.md` (TC-499 en adelante), `docs/mapa/tests-fichas-496-498.md`, `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
 | **Tocar el DIBUJO ESTÁTICO de la mitral en ETE**: la tabla única de festones por ángulo, la geometría, la línea del plano, el giro, las tres vistas con sus LETRAS DE FESTÓN, **la ORIENTACIÓN de la TRANSGÁSTRICA**, el PDF, los CUATRO DIBUJOS DE MEDIDAS TEER, **los CRITERIOS TEER y sus cortes** o **el ESPEJO de la FEVI y el DSFVI del TEER** | `docs/mapa/mitral-dibujo-estatico.md` |
 | **Tocar algo que la tanda R2 corrigió** (21/10): las cinco opciones del derrame y la traducción del token viejo, el repintado de la VAB con el gesto de la pastilla, los seis puntos de la probabilidad de HTP, el e′ medial en tres tramos, el espesor relativo y el criterio por eco de la amiloidosis, el SGL y la calculadora de cardio-oncología, el síndrome intersticial difuso por zonas, el índice cardiaco y la RVS, o la orejuela | `docs/mapa/tanda-r2-correcciones.md` |
@@ -134,9 +135,13 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **8,53 MB / 128.236 líneas**, medido el 2026-10-21 al cierre del trabajo
-  **B** —la primera tanda en muchas que lo deja más CHICO, por las 431 líneas del Fonocardiograma
-  retirado—. ⚠️ Y el renglón del R2 decía «128.264 líneas» y eran **128.278**, medido con `wc -l`
+  sin frameworks. Hoy **9,10 MB / 129.868 líneas**, medido con `wc -l` y `ls -l` el 2026-10-21 al
+  cierre de la tanda **D2**, sobre el árbol ya sellado (`v20261021-1443`).
+  ⚠️ **Y ESTE RENGLÓN DECÍA «8,53 MB / 128.236 líneas» —el cierre del trabajo B— DURANTE CINCO
+  TANDAS**: el B fue la primera en muchas que lo dejó más CHICO (por las 431 líneas del
+  Fonocardiograma retirado) y desde entonces cada tanda escribió su delta en su propia sección sin
+  actualizar éste, que es el que se lee para presupuestar contexto. **1.632 líneas de diferencia.**
+  ⚠️ Y el renglón del R2 decía «128.264 líneas» y eran **128.278**, medido con `wc -l`
   sobre el mismo `md5` de ese sello: **medirlo antes de presupuestar contexto**, no leer esto.
   ⚠️ Y esta cifra también se escribió mal una vez —128.226— por medirla **antes** del segundo
   sello: hay que medirla **al final**, cuando `index.html` ya no se toca más.
@@ -293,6 +298,239 @@ impecable.
 ---
 
 ## Estado vigente
+
+### Las CUATRO CORRECCIONES tras probar el H y el D — «D2» (2026-10-21)
+
+- **Son CINCO commits, y son los cinco que la orden pedía.** Al **empezar**, `main` **y
+  `origin/main` estaban los dos en `53ddd7a`** —el cierre del trabajo D, con su sello
+  `v20261021-1221`—, **sin nada sin pushear y sin divergencia** (0 adelante, 0 atrás), medido con
+  un `git fetch` real —`FETCH_HEAD` fechado al momento— y un `ls-remote` dando el mismo sha.
+  ⚠️ **O SEA QUE MAICOL YA PUSHEÓ EL D, Y EL COMMIT 5 AMENDADO ESTÁ EN EL REMOTO**: la orden
+  preveía que pudiera haber «ahead» y «behind» a la vez y no los hay. Los **cinco** de esta tanda
+  quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 5 → 4 → 3 → 2 → 1.**
+  ⚠️ **LOS CUATRO PRIMEROS NO SE NOMBRAN ENTRE SÍ Y SE REVIERTEN EN CUALQUIER ORDEN**, que en esta
+  serie es raro y conviene decirlo: el 1 vive en `ASIA_EXC_BANDA`, `asiaNegado`, `asiaExcFrase`,
+  `asiaPorExcursion` y las SEIS superficies que leen la frase; el 2 en la posición de la `<option>` de
+  `otr_burb_lat`, `fopPasajeDocumentado` y la fila `fop-burb-lat`; el 3 en `_indVABEsBicuspide` y
+  las dos compuertas de la VAB; el 4 en dos atributos (`data-ui` y `data-espejo`) y dos reglas de
+  CSS. Ninguno nombra una pieza de otro.
+  ⚠️ **PERO EL 1 LLEVA LA SONDA** (`scripts/_probe_d2.mjs`), que los cuatro usan, **y las dos
+  adaptaciones de TC-173 y TC-513**: revertirlo sin reponerlas deja esos casos midiendo lo
+  contrario. **El 2 adaptó TC-513 en cuatro condiciones más y el 3 el SEED de TC-322.**
+  **El 5 es TC-514, la documentación y el sello**, y afirma el comportamiento de los cuatro:
+  revertir cualquiera sin el 5 lo deja en rojo.
+  ⚠️ **EL 5 TOCA `index.html` POR TRES LÍNEAS —el sello— y por eso viaja con él**: es la regla de
+  la casa, el sello va con el último commit que edita ese archivo. Lleva además **la adaptación de
+  TC-501** y la corrección del estado de partida del grupo F de TC-514, las dos destapadas por la
+  **suite completa** y ninguna visible desde una corrida de zona.
+
+- **Línea base al cierre: suite **524/528** con el pendrive `DISK_IMG` **MONTADO** —verificado al
+  abrir Y al cerrar—, Semgrep **124 / 0 ERROR en 1 app**, Excel en **440** columnas y celular **66 a
+  360 px y 76 a 390 px con 17 ALTA cada uno**, con `--todo` **395 / 405**: el MISMO par que dejó el
+  D. CERO REGRESIONES.** **El denominador sube a 529**: esta tanda agregó **TC-514**, así que la
+  comparación es **523/527 → 524/528** y el delta es el caso nuevo.
+  ⚠️ **LA CORRIDA DIO 521/528 Y LOS TRES DE MÁS SON INESTABLES POR ORDEN DE CORRIDA, MEDIDO.** Los
+  rojos fueron **siete**: los **cuatro** de ENTRADA —**TC-223** (el documentado, falla por la
+  fecha), **TC-376**, **TC-390** y **TC-406**— más **TC-244**, **TC-241** y **TC-250**, que
+  **corridos solos salieron los tres VERDES** sobre el mismo árbol y el mismo `md5`. Son del visor,
+  de la vista B y del cajón del Doppler, y **esta tanda no les toca una línea**: medido sobre el
+  propio diff de `index.html`, **cero** líneas que nombren `visor`, `overlay`, `dicom`, `calib`,
+  `cineloop` o `ig-`. El de TC-250 lo dice en su propio hallazgo —«si el médico lo CIERRA no se
+  reabre al volver a entrar»—, que es un estado de partida heredado. **Repetir antes de sospechar.**
+  ⚠️ **SE MIDIÓ EN DOS MITADES Y HAY QUE DECIR POR QUÉ:** `vm_stat` daba **~178 MB libres** al
+  arrancar, y este archivo ya documenta una corrida que se colgó tres veces con poca memoria. Las
+  dos mitades cubren los **528** ids de la lista, cada una con su propio Chrome, abierto y cerrado:
+  **TC-01…TC-218 dio 264/264 sin un solo rojo** y **TC-219…TC-514 dio 257/264**.
+  ⚠️ **Y LA DE MITAD 2 SE CORRIÓ DOS VECES: LA PRIMERA NO ES LA LÍNEA BASE.** Dio **255/264** con
+  **nueve** rojos, y los dos de más —**TC-501** y **TC-514**— los destapó la suite completa (ver
+  «CASOS ADAPTADOS»). La segunda es la que vale, corrida entera sobre el árbol ya sellado y con el
+  `md5` quieto (`7d1c0d19…`).
+  ⚠️ **EL CELULAR NO SE MOVIÓ NI UN HALLAZGO, y no por suerte:** esta tanda no agrega un solo
+  control de formulario —lo único nuevo es una `<option>` que cambia de lugar y dos reglas de CSS—.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **528 ids** sobre los 529 casos del archivo.
+- **`index.html` pasó de 9,08 MB / 129.705 líneas a **9,10 MB / 129.868 líneas** — medido con
+  `wc -l` y `wc -c` DESPUÉS de sellar (`v20261021-1443`), no antes.
+  ⚠️ **LA FECHA DE ESTA TANDA ES EL 21 Y NO EL 22, Y LA CORRECCIÓN LLEGÓ HASTA DONDE PODÍA.** El
+  reloj del sistema, el encabezado que imprime la suite (`21/10/2026`) y el sello del trabajo D
+  (`v20261021-1221`) dicen los tres **21**; las tandas B2 y D escribieron «2026-10-22» en sus
+  comentarios y yo copié esa fecha en los míos. Se normalizaron a `2026-10-21` **la documentación y
+  los comentarios de `scripts/test_clinico.mjs`**; las de B2 y D **no se tocaron**, que es su texto.
+  ⚠️ **LOS SEIS COMENTARIOS DE `index.html` QUEDAN EN «2026-10-22», DECLARADO:** ese archivo está
+  **sellado** (`v20261021-1443`) y la línea base entera —suite, Semgrep, celular y los cuatro A/B—
+  se midió sobre ese `md5`; corregir un comentario obliga a re-sellar y a re-medir todo para
+  cambiar seis caracteres. Son dos de `D2-E1`, uno de `D2-E3` y tres de `D2-E4`.
+  `PENDIENTES.md` → **D2b-9**: la próxima tanda que toque `index.html` los arregla de paso.
+
+- **D2-E1 · LA REGLA DEL ASIA: EL OPERADOR ES ESTRICTO Y EL LADO ES CONDICIÓN.** Verificado en el
+  PDF original antes de tocar nada —Silvestry 2015, **folio 916 (hoja 7)**, regla de folio
+  = hoja + 909 re-comprobada en el pie impreso—: «*excursion of the septal tissue (typically the
+  fossa ovalis) of **greater than 10 mm** from the plane of the atrial septum into the RA or LA or
+  a combined total excursion right and left **of 15 mm***».
+  ⚠️ **LA FUENTE SOSTIENE LA MITAD Y LA OTRA MITAD ES LA LECTURA CONSERVADORA:** para **un lado**
+  escribe el operador con todas las letras; para el **total** no escribe ninguno, y el **folio 938**
+  reescribe los dos **sin** «greater than». Entre afirmar un aneurisma en el valor exacto y no
+  afirmarlo, se elige no afirmarlo. **Esto cierra `D-4`**, que la tanda D dejó abierta pidiendo
+  exactamente esto. **Medido por sus tripletes: hacia un lado 9 y 10 no, 11 sí; con ambos lados 14
+  y 15 no, 16 sí.**
+  ⚠️ **SIN «Se abomba hacia» NO HAY VEREDICTO, Y ERA EL DEFECTO QUE EL MÉDICO VIO:** el corte
+  **depende** del lado, y la app aplicaba el de 10 mm por omisión —o sea el más bajo, en nombre del
+  médico—. La pantalla decía «15 mm — aneurisma significativo (≥10 mm)» y hoy dice «15 mm — falta
+  indicar hacia dónde se abomba».
+  ⚠️ **CONSECUENCIA DECLARADA sobre un estudio GUARDADO antes de la tanda D:** no trae la clave,
+  así que una excursión **sola** deja de afirmar el aneurisma —el que tiene `fop_asa` en «Sí» no
+  cambia—. Lo protege que `informe_texto` es un `<textarea>` con id y la reimpresión **no lo
+  reescribe**. `PENDIENTES.md` → D2b-1.
+  **CON EL ASIA EN «NO» LA EXCURSIÓN SE CONSERVA COMO DATO Y NO SE USA**, y «Se abomba hacia»
+  vuelve a VACÍO por los **dos** gestos. Medido en HEAD: la app publicaba «asociado a aneurisma del
+  septum interauricular (excursión de 16 mm)» sobre un estudio cuyo propio desplegable decía que no
+  hay aneurisma. **La compuerta va en el DUEÑO y no en cada consumidor, que son seis.**
+
+- **LA FRASE TIENE UN SOLO DUEÑO, `asiaExcFrase`, Y LO LEEN SEIS SUPERFICIES** —la conclusión, el
+  informe, el EN SUMA, el PDF, la pestaña Otros y el panel de Evidencia—. La séptima, la
+  **interpretación de la pantalla**, publica el veredicto y su motivo, que es otra cosa. Había
+  **cinco** copias del lado y una superficie sin ninguna. La tabla de antes y después:
+  el informe decía «Aneurisma del septum interauricular **16**» —el 16 era la caja de detalle del
+  médico, y la app no nombraba la excursión por ningún camino—; la conclusión «(excursión de 16 mm
+  **de excursión total**)», que dice dos veces la misma palabra; el EN SUMA «**(16 mm)**», sin el
+  lado; el PDF «16 mm (excursion total)». Hoy las seis dicen «excursión de 16 mm **hacia ambos
+  lados (total)**», «hacia la aurícula derecha» o «**(sin consignar hacia dónde se abomba)**».
+  ⚠️ **LA PROSA ENGANCHA CON « con » Y NO CON PARÉNTESIS:** el «(total)» es el único paréntesis de
+  la frase, y anidarlo dejaría el papel firmado terminando en «))». La celda del PDF usa un segundo
+  renderizado de las **mismas piezas** (`corto`), sin el «excursión de», porque el rótulo de su fila
+  ya lo dice. **No hay dos textos escritos: hay dos formas de uno.**
+
+- **D2-E2 · EL SELECTOR DE LATIDOS NACE VACÍO, y eso cierra `D-6`.** La `<option value="">` pasa al
+  **primer** lugar y eso es todo lo que hace falta: `limpiarCampos` hace `selectedIndex = 0` sobre
+  todo `<select>`. Medido: al **arrancar la página** el control está en `''` y tras «Nuevo estudio»
+  también. Con el selector vacío el informe, la conclusión, el EN SUMA y la tabla del PDF **no**
+  dicen «a los N latidos»; con 3, 4, 5 y 6 las cuatro superficies salen idénticas a antes.
+  ⚠️ **TRES ESTADOS Y NO DOS EN LA FILA DE PANTALLA**, y el que los distingue sale a su propio
+  dueño, `fopPasajeDocumentado`: sin pasaje dice dónde se consigna —el control ni está a la vista—,
+  con pasaje y sin número dice «sin consignar».
+  ⚠️ **UN ESTUDIO GUARDADO CON 3 ABRE CON 3**: el guardado no distingue un 3 elegido de un 3 por
+  omisión. **No se migra nada.** `PENDIENTES.md` → D2b-2.
+
+- **D2-E3 · LA EVIDENCIA DE LA VAB EXIGE LA VÁLVULA, Y LA PREMISA DE LA ORDEN ERA FALSA A MEDIAS.**
+  Medido antes de tocar nada: con la aórtica en «Trivalva normal» y una aorta de **41 mm** el panel
+  publicaba —y **pintaba**— la sección «Válvula aórtica bicúspide — aorta ascendente» con sus cinco
+  filas. Con 56 mm también.
+  ⚠️ **LA CONDICIÓN DE LA VÁLVULA NUNCA ESTUVO EN `_indVAB`**, verificado con `git` en el árbol del
+  H y en el anterior: su compuerta era `if (!_ge(asc,45) && !_ge(raiz,45)) return null`, sólo el
+  diámetro. Lo que el H cambió es el **umbral** —de 45 mm a `aoDilatada()`— y con eso el defecto
+  pasó de aparecer a 45 mm a aparecer a 41, que es cuando el médico lo vio. El predicado sale a
+  **`_indVABEsBicuspide()`**, que las **dos** secciones de la bicúspide comparten.
+  **Medido en la matriz válvula × diámetro:** trivalva con 38, 41 y 56 no abre ni pinta; bicúspide
+  con 38 no y con 41 y 56 sí; con el **tipo de fusión** elegido también; y cambiar la válvula con la
+  sección abierta la hace desaparecer.
+  ⚠️ **EL H NO ROMPIÓ NINGUNA OTRA COMPUERTA, censados sus cuatro commits:** los dos únicos
+  `return null` que tocaron son el de `_indAo` —sección nueva, cuya condición propia **es** la
+  aorta— y el de `_indVAB`. **CONTROL medido: «Aorta torácica» sigue apareciendo a 41 y 56 mm con
+  las dos válvulas.**
+
+- **D2-E4 · LAS BARRAS DE C. CONGÉNITAS NACEN CERRADAS, Y LOS CULPABLES SON DOS.** Medido entrando
+  por el **clic del botón del rail** —que es el gesto que corre `secAutoOpen`—: de las diez barras
+  de CC frecuentes se abría **una**, la de la VAB, y el culpable con el formulario vacío es
+  **`vab-anim-scrub`**, el deslizante de la animación, cuyo `value="0"` ese barrido cuenta como
+  dato. El **segundo** aparece con la aórtica cargada: `vab_funcion`, el oculto que se **deriva** de
+  los grados de Válvulas, vale «estenosis» y abría la barra igual. Llevan **`data-ui`** y
+  **`data-espejo`**, que son los dos atributos que ese barrido ya usa.
+  **Medido después: CC frecuentes 0 de 10 y CC complejas 0 de 9**, al entrar y al volver a entrar.
+  **CONTROLES:** lo que el médico abre a mano **no** se cierra, y con un dato cargado la barra **sí**
+  se abre sola.
+
+- **LA CAJA DE «CONCLUSIÓN» DEL FOP SE APILA, Y NO HABÍA SUPERPOSICIÓN DE PÍXELES.** Medido en las
+  **diez** celdas (cinco anchos × dos temas): las dos cajas **no se cruzan** —y el médico tiene
+  razón igual—. `.calc-row` es `display:flex; align-items:center`, así que con una oración de varios
+  renglones la etiqueta cae a la altura del **segundo** renglón a 1200 px y en el **medio** de diez
+  a 360 px. La regla va en una clase **propia** (`fop-concl-row`) y no en `.calc-row`, que la
+  comparten cientos de filas.
+  ⚠️ **LA FILA CONSERVA `calc-row`**: el barrido de `limpiarCampos` es
+  `.calc-box .calc-row span[id]`, y sin esa clase la conclusión del paciente anterior sobreviviría a
+  «Nuevo estudio». **Medido después: en las diez celdas la etiqueta queda ENTERA por encima del
+  texto, cero scroll horizontal, y el color resuelve real y distinto en los dos temas**
+  —`rgb(126,200,227)` de noche y `rgb(31,95,184)` de día—.
+
+- **A/B DE CONTROL contra el inicio de la tanda, en los CUATRO commits: CERO diferencias** con el
+  formulario vacío y con un escenario AJENO en el informe en los tres estilos, el EN SUMA, el
+  **Excel en 440 columnas CLAVE POR CLAVE**, el **PDF GENERADO DE VERDAD en sus SEIS plantillas**
+  (de 30 a 104 textos por celda, todas mayores que cero), el **PPT** (21), el **PDF de auditoría**
+  (104), el Laboratorio y los **933** campos del estudio. **Consola limpia.**
+  ⚠️ **LA ÚNICA DIFERENCIA DE TODA LA TANDA EN EL GRUPO DE CONTROL ES EL HASH DE LOS CAMPOS** en el
+  commit 2, y es el valor de `otr_burb_lat` pasando de `'3'` a `''`. El conteo sigue en 933 y el
+  Excel no se mueve, porque ese campo **no tiene columna**.
+
+- **16 CAPTURAS PNG con 16 `md5` DISTINTOS**, en los dos temas a 1200 y 360 px, y **dos MIRADAS**:
+  la caja de conclusión con su etiqueta separada y los acentos completos —«Foramen oval permeable
+  (túnel de 8 mm), asociado a aneurisma del septum interauricular con excursión de 16 mm hacia ambos
+  lados (total)…»— y CC frecuentes con las diez barras cerradas.
+
+- **Cobertura: TC-514**, **62 condiciones** —contadas sobre el propio caso— en diez grupos, con sus
+  denominadores y sus controles negativos. **Verificado que sabe fallar contra el inicio de la tanda
+  en un worktree aparte: 33 de las 62 en rojo, y NINGUNA por excepción** —las dos que informan
+  `SIN FN` son el centinela de `asiaExcFrase` y el de `_indVABEsBicuspide`, que allá no existen—.
+- ⚠️ **CASOS ADAPTADOS: CUATRO.** **TC-513** en **diez** condiciones —B2, B3, B6, B7, B9, B10, B12,
+  E1, H1 y H3, de las que **seis afirman hoy lo CONTRARIO** y dos ganan poder (B9 exige que la
+  pantalla diga que falta el lado, H3 gana el control H3b)—, **TC-173** (su escenario del aneurisma
+  MEDIDO gana el lado, porque la excursión sola ya no afirma), **TC-322**, cuyo SEED de la sección
+  de la aorta de la bicúspide era `{ ao_tub:'50' }` **sin morfología**, o sea que sembraba el
+  defecto, y **TC-501**, que **lo destapó la SUITE COMPLETA** y ninguna corrida de zona podía
+  verlo: sus condiciones M1 y M2 fijan la frase del FOP unificado del ARR **letra por letra**, así
+  que las dos cosas que esta tanda le cambia —la excursión con su lado y la cláusula de los latidos
+  que desaparece— la ponen en rojo desde un caso ajeno a esta zona. **Gana una condición (M2c)**
+  que exige que el número de latidos no aparezca en ninguna de las dos superficies, o sea el
+  control del D2-E2 medido desde afuera.
+- ⚠️ **Y TC-514 TUVO QUE HACERSE INDEPENDIENTE DEL ORDEN DE CORRIDA, que también lo destapó la
+  suite completa.** Su grupo F salía rojo con `abiertas=["sacc-cc-vab","sacc-cc-fop"]` y
+  **`culpables=[]`** —o sea ningún dato las justificaba— y el mismo caso **corrido solo daba
+  verde**: `limpiarCampos` vacía los campos y **no cierra un acordeón**, así que un caso anterior
+  las dejaba abiertas. Hoy el **estado de partida se fija por el GESTO** —se cierran las abiertas
+  clickeando su encabezado— y la condición afirma lo que `secAutoOpen` de verdad gobierna: que
+  **entrar** a la pestaña no ABRA una barra que estaba cerrada. Es la lección del estado de partida
+  de TC-511 (A5), y **el caso sigue sabiendo fallar contra el inicio de la tanda: 33 de 62, con
+  el denominador F en VERDE allá**, que es lo que prueba que el rojo es el defecto y no el arnés.
+
+- ⚠️ **CINCO TRAMPAS, Y TRES DABAN MEDICIONES FALSAS.**
+  1. **`abrirOtros()` CAMBIA DE PESTAÑA**, así que la caja del FOP queda en 0×0 y la captura sale
+     «SIN CAJA»: hay que volver al FOP **antes** de sacarla.
+  2. **`.calc-box:last-of-type` NO MATCHEA ESA CAJA**: `:last-of-type` mira el **tipo de elemento**
+     (`div`), no la clase, y la primera tanda de capturas perdió las cuatro del mismo nombre.
+  3. **LEER EL ESTADO DESPUÉS DE DESHACER EL GESTO**: la primera versión del grupo `asia` leía la
+     conclusión tras devolver el ASIA a «Sí», o sea medía la escena siguiente. El estado se captura
+     **dentro** del helper que hace el gesto.
+  4. **UNA BARRA ABIERTA POR UNA ESCENA ANTERIOR NO ES UN AUTO-ABRIR**: el medidor informa los
+     **culpables** de cada barra, y una lista vacía dice que la abrió otra cosa.
+  5. **EL REGEX DEL LECTOR MATCHEABA «EXC» DENTRO DE «excursión»** al contar cuántas condiciones
+     morían por excepción: cinco de los siete «centinelas» eran valores medidos perfectamente
+     normales.
+  6. **UN LOG DE LA SUITE CON «RESULTADO» NO DICE SI EL DENOMINADOR ERA EL QUE SE PIDIÓ**: el
+     `--solo` se arma con una lista de **528** ids y hay que mirar el conteo impreso, no el
+     veredicto. Es la trampa del `--solo` separado por espacios que este archivo ya documenta, por
+     el otro lado.
+- ⚠️ **ME COMÍ EL ACENTO GRAVE CINCO VECES**, todas en comentarios míos dentro del cuerpo de un
+  caso, con el archivo que documenta la trampa abierto delante. `scripts/check_backticks.py` dio la
+  línea exacta las cinco; `node --check` apuntaba a la apertura del template, cientos de líneas
+  antes. **Correr los dos.**
+
+- **Dónde está todo:** `docs/mapa/d2-correcciones.md` (**mapa NUEVO**, 13,9 KB: la regla con su
+  tabla de bordes, las siete superficies de la frase, los latidos, la compuerta de la VAB con su
+  tabla de antes y después, los dos culpables de las barras, la caja de conclusión, las **seis**
+  trampas, la ficha de **TC-514** con su estado de partida y la tabla de los **cuatro** casos
+  adaptados); cuatro mapas con un puntero cada uno
+  (`fop-burbuja-unificado` 19,1 KB · `otros-hallazgos` 19,5 · `aorta-aortopatias-evidencia` 22,7 ·
+  `congenitas-otros` 28,9); `docs/fuentes/FUENTES.md` → «El trabajo D2», con los **dos textos
+  impresos** del corte y la tabla de **Cambios de evidencia**; y `docs/PENDIENTES.md` → **D-4 y D-6
+  marcados CERRADOS** más **nueve** cosas declaradas (**D2b-1 a D2b-9**).
+  ⚠️ **LAS CLAVES NUEVAS LLEVAN EL PREFIJO `D2b` Y NO `D2`, y lo cazó buscarlas antes de escribir:**
+  ya existían `D2-1`, `D2-4` y `D2-5` de **otra** tanda llamada «D2», la del **14/10**. Dos entradas
+  con la misma clave dejan una de las dos sin encontrar.
+  ⚠️ **TRES MAPAS NO SE TOCARON, LOS TRES POR TAMAÑO, medido con `wc -c` ANTES de escribir:**
+  `panel-evidencia.md` **35,3 KB** —ya cruzado desde el 2026-10-12—, `tests-fichas.md` **34,2** y
+  `vab-bicuspide.md` **32,5**. La ficha de TC-514 vive **dentro** del mapa nuevo. **Ningún mapa
+  cruzó el techo.** `PENDIENTES.md` → D2b-7.
+
 
 ### El FORAMEN OVAL PERMEABLE, sin dibujo — «D» (2026-10-22)
 
