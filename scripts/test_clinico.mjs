@@ -46884,7 +46884,13 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
          pasa a declararse con su prefijo completo. */
       /* El guion es el EM DASH del titulo, no un guion comun: la normalizacion del caso saca los
          diacriticos y NO cambia la puntuacion, asi que una clave con «-» no matchea «—». */
-      ['Valvula aortica bicuspide \u2014 aorta',      { ao_tub:'50' },                               'esc2024ao'],
+      /* ADAPTADO el 2026-10-22 (tanda D2, commit 3): la seccion de la AORTA de la bicuspide pasa
+         a exigir TAMBIEN que la valvula sea bicuspide, que es su propio asunto. Hasta hoy su
+         compuerta era solo el diametro, asi que aparecia sobre un paciente con la aortica en
+         TRIVALVA -medido: con 41 y con 56 mm- y el panel publicaba una tabla de aortopatia
+         bicuspide sobre una valvula que no lo es. El SEED gana la morfologia; lo que el caso
+         afirma -que la seccion cita la ESC 2024 y arranca su numeracion en [1]- no cambia. */
+      ['Valvula aortica bicuspide \u2014 aorta',      { ao_tub:'50', va_morf:'Bicúspide' },          'esc2024ao'],
       ['Valvula aortica bicuspide \u2014 conclusion', { vab_tipo:'fused_rl', ao_tub:'50' },          'esc2024ao'],
       /* AGREGADO el 2026-10-21 (trabajo «H», commit 3). Su compuerta es el corte de DILATACION de
          la guia -40 mm en el hombre, 36 en la mujer- y no los 45 mm con que arrancaba el motor,

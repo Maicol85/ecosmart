@@ -76246,6 +76246,19 @@ function _indVAB(){
      UN SOLO DUEÑO para las dos secciones: con dos predicados, una aparecía y la otra no sobre el
      mismo paciente, y nada lo diría. */
   const dil = _indFn('aoDilatada');
+  /* ══ LA COMPUERTA ES LA VALVULA *Y* LA AORTA (D2-E3, 2026-10-22) ════════════════════════
+     ⚠️ LA CONDICION DE LA VALVULA NO ESTABA, Y NUNCA ESTUVO: medido en el arbol del trabajo H y
+     en el anterior, esta seccion arrancaba SOLO con el diametro. Lo que el H cambio es el
+     umbral —de 45 mm al corte de dilatacion de la guia, 40 en el hombre y 36 en la mujer— y con
+     eso el defecto paso de aparecer a 45 mm a aparecer a 41, que es cuando el medico lo vio: el
+     panel publicaba «Valvula aortica bicuspide — aorta ascendente» con sus cinco filas sobre un
+     paciente cuya aortica figura como TRIVALVA en Valvulas. Medido contra el inicio de la tanda:
+     trivalva con 41 y con 56 mm abria la seccion y la PINTABA.
+     ⚠️ EL PREDICADO DE LA VALVULA ES EL MISMO QUE EL DE `_indVABConcl`, y por eso sale a un
+     dueno unico: con dos copias, una seccion de la bicuspide aparecia y la otra no sobre el
+     mismo paciente, y nada lo diria. */
+  const esVAB = _indVABEsBicuspide();
+  if (!esVAB) return null;
   if (dil ? !dil() : (!_ge(asc, 45) && !_ge(raiz, 45))) return null;
   const conc = _indFn('vabConclusion');
   const C = conc ? conc() : null;
@@ -77430,9 +77443,16 @@ function _indCIV(){
    morfologia aortica en bicuspide. Son dos preguntas distintas y la misma guia.
    ⚠️ `va_morf` NO TIENE OPCION VACIA y `limpiarCampos` lo deja en «Trivalva normal», asi que solo
    el «Bicuspide» explicito afirma — es la misma salvedad que `vabConclusion` documenta. */
+/* ⚠️ EL DUENO UNICO DE «LA VALVULA ES BICUSPIDE», que las DOS secciones de la VAB consultan: el
+   tipo de fusion elegido en la seccion de congenitas, o la morfologia aortica de Valvulas en
+   «Bicuspide». Vivia escrito solo aca; desde el D2-E3 lo lee tambien `_indVAB`, que no lo tenia.
+   ⚠️ `va_morf` NO TIENE OPCION VACIA y `limpiarCampos` lo deja en «Trivalva normal», asi que
+   solo el «Bicuspide» explicito afirma — es la misma salvedad que `vabConclusion` documenta. */
+function _indVABEsBicuspide(){
+  return !!_indS('vab_tipo') || _indS('va_morf') === 'Bicúspide';
+}
 function _indVABConcl(){
-  const tipo = _indS('vab_tipo'), morf = _indS('va_morf');
-  if (!tipo && morf !== 'Bicúspide') return null;
+  if (!_indVABEsBicuspide()) return null;
   const conc = _indFn('vabConclusion');
   const C = conc ? conc() : null;
   if (!C || !C.txt) return null;
