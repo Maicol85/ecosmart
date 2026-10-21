@@ -2562,6 +2562,317 @@ window.__Z = {
     process.stderr.write('[refs] listo\n');
   }
 
+  /* ========================================================================================
+     MAQUETA - las cinco zonas tocadas a CUATRO anchos por DOS temas, con el tema COMPROBADO.
+     Lo que se mide es que los bloques nuevos de texto fijo -el pie de fuentes del TEER, el de
+     la descripcion del taponamiento y el de la ficha de burbujas- entren enteros, que las dos
+     capsulas nuevas (el area de la AI, el derrame) se lean, y que no haya scroll horizontal
+     de la PAGINA.
+     ADVERTENCIA: EL TEMA HAY QUE EXIGIRLO, NO PEDIRLO. `__P.tema(claro)` devuelve
+     { claro: <la clase quedo?> } y hay que comparar contra ESE booleano: la trampa del Y3f
+     fue comparar la respuesta contra una cadena, lo que aborto las diez celdas buenas. Si la
+     clase no quedo se DECLARA la celda, que es peor que pasarla por buena.
+     ======================================================================================== */
+  if (corre('maqueta')) {
+    const r = { celdas: [] };
+    /* ADVERTENCIA: LAS TRES ZONAS VIVEN EN TRES PESTANAS DISTINTAS, y eso lo destapo medir:
+       el `<select id="pericardio">` esta en `tab-otros` (no en ETE, aunque su seccion se llame
+       `ete-seccion-pericardio-masas`), el pie del taponamiento en `tab-hemodinamica` y el del
+       TEER en `tab-ete`. Abrir una sola pestana deja las otras dos midiendo 0x0 - la primera
+       corrida informo el selector y el pie del taponamiento sin geometria sobre un marcado
+       perfecto. Se mide pestana por pestana. */
+    const abrirZona = (zona) => ev(`(function(z){
+      var o = { zona: z };
+      try {
+        if (z === 'teer') { showTab('ete');
+          var c = document.getElementById('ete-seccion-teer');
+          if (c && getComputedStyle(c).display === 'none') toggleEteSeccion('teer'); }
+        else if (z === 'peri') { showTab('otros');
+          var p = document.getElementById('ete-seccion-pericardio-masas');
+          if (p && getComputedStyle(p).display === 'none') toggleEteSeccion('pericardio-masas'); }
+        else if (z === 'tapo') { showTab('hemodinamica');
+          /* DOS puertas: la pestana y ete-seccion-derrame-tap, que nace en display:none. */
+          var d = document.getElementById('ete-seccion-derrame-tap');
+          if (d && getComputedStyle(d).display === 'none') toggleEteSeccion('derrame-tap'); }
+        else if (z === 'burb') {
+          /* La pestana se llama refs y no referencias, y refSubTab EXIGE su segundo
+             argumento: sin el boton lanza al tocarle el classList, y esa excepcion se tragaba
+             el resto del abridor. Las dos cosas dejaban la ficha midiendo 0x0. */
+          showTab('refs');
+          var bt = document.getElementById('ref-subtab-otros');
+          try { refSubTab('otros', bt) } catch(e2){ o.subExc = e2.message }
+          /* ref-burbujas es un .card-body con display:none, no un <details>: lo abre
+             toggleRef, y evRefPintar arma su cuerpo la primera vez. */
+          var b = document.getElementById('ref-burbujas');
+          if (b && getComputedStyle(b).display === 'none') {
+            var h = b.previousElementSibling;
+            if (h) h.click(); else { try { toggleRef('burbujas', null) } catch(e3){} } } }
+      } catch(e){ o.exc = e.message }
+      return o })(${JSON.stringify(zona)})`);
+    /* El bloque de texto fijo se localiza por su CHIP y no por un id: los tres son marcado
+       estatico sin id, y buscarlos por su texto es lo unico que no obliga a tocar el marcado. */
+    /* El chip se busca por su PESTANA CONTENEDORA y no por su indice en el documento: los
+       tres existen siempre y el orden del DOM no es el de las pestanas, asi que `hits[0]`
+       devolvia el del taponamiento -que vive en otra pestana y mide 0x0- cuando lo que se
+       estaba midiendo era el de burbujas. */
+    const geoChip = `(function(sel){
+      var cont = document.querySelector(sel); if (!cont) return 'SIN CONTENEDOR ' + sel;
+      var e = null;
+      Array.prototype.forEach.call(cont.querySelectorAll('span'), function(x){
+        if (!e && (x.textContent||'').trim() === 'CRITERIO DE ECOSMART') e = x });
+      if (!e) return 'NO EXISTE';
+      var caja = e.closest('div'); if (!caja) return 'SIN CAJA';
+      var b = caja.getBoundingClientRect();
+      return { w: Math.round(b.width), h: Math.round(b.height),
+               visible: !!(b.width && b.height),
+               desborda: Math.round(b.right) > document.documentElement.clientWidth + 1,
+               color: getComputedStyle(caja).color } })`;
+    try {
+      await ev(`window.__P.nuevo()`);
+      await abrirZona('peri');
+      await ev(`window.__P.sel('pericardio','Derrame moderado (10-20mm)')`);
+      const geoIds = (ids) => ev(`(function(ids){
+        var o = {};
+        ids.forEach(function(id){
+          var e = document.getElementById(id);
+          if (!e) { o[id] = 'NO EXISTE'; return }
+          var b = e.getBoundingClientRect();
+          o[id] = { w: Math.round(b.width), h: Math.round(b.height),
+                    visible: !!(b.width && b.height),
+                    desborda: Math.round(b.right) > document.documentElement.clientWidth + 1 } });
+        o.scrollH = window.__Y.scrollH();
+        return o })(${JSON.stringify(ids)})`);
+      for (const [w, h] of [[1200, 700], [768, 1024], [390, 844], [360, 740]]) {
+        await viewport(w, h);
+        for (const claro of [false, true]) {
+          const puesto = await ev(`window.__P.tema(${claro})`);
+          if (!puesto || puesto.claro !== claro) {
+            r.celdas.push({ w, h, claro, tema: 'NO QUEDO: ' + JSON.stringify(puesto) });
+            continue;
+          }
+          /* ETE: el TEER con su pie de fuentes. */
+          await abrirZona('teer');
+          const gT = await geoIds(['teer-c4', 'teer-c6']);
+          gT.chipTeer = await ev(`(${geoChip})('#tab-ete')`);
+          gT.colorText2 = await ev(`window.__P.color('#teer-c4')`);
+          /* OTROS: el selector del derrame. */
+          await abrirZona('peri');
+          const gP = await geoIds(['pericardio']);
+          /* HEMODINAMICA: el modulo del taponamiento con su descripcion. */
+          await abrirZona('tapo');
+          const gD = await geoIds(['dpt-tam-eco', 'dpt-concl']);
+          gD.chipTapo = await ev(`(${geoChip})('#tab-hemodinamica')`);
+          r.celdas.push({ w, h, claro, teer: gT, peri: gP, tapo: gD });
+        }
+      }
+      /* La capsula del AREA de la AI vive en otra pestana y su acordeon no se colapsa con
+         display:none - se cierra con max-height y la clase `open`, la trampa del grupo `ai`. */
+      await viewport(1200, 700);
+      for (const claro of [false, true]) {
+        const puesto = await ev(`window.__P.tema(${claro})`);
+        if (!puesto || puesto.claro !== claro) { r.celdas.push({ zona: 'ai', claro, tema: 'NO QUEDO' }); continue }
+        await ev(`(function(){
+          try { if (typeof showTab === 'function') showTab('ai-vi') } catch(e){}
+          ['ai','datos'].forEach(function(k){ var c = document.getElementById('sacc-' + k);
+            if (c && !c.classList.contains('open') && typeof secToggle === 'function') secToggle(k) });
+          return 1 })()`);
+        await ev(`window.__P.sel('sexo','M')`);
+        await tipear('ai_area', '25');
+        await ev(`(typeof calcAI === 'function') ? (calcAI(), 1) : 0`);
+        r.celdas.push({ zona: 'ai', claro, geo: await ev(`(function(){
+          var o = {};
+          ['ai-area-interp','ai-interp'].forEach(function(id){
+            var e = document.getElementById(id); if (!e) { o[id] = 'NO EXISTE'; return }
+            var b = e.getBoundingClientRect();
+            o[id] = { w: Math.round(b.width), h: Math.round(b.height), visible: !!(b.width && b.height),
+                      txt: (e.textContent||'').trim().slice(0, 70) } });
+          o.scrollH = window.__Y.scrollH();
+          o.color = window.__P.color('#ai-area-interp');
+          return o })()`) });
+      }
+      /* Y la ficha de burbujas, que vive en Referencias. */
+      for (const claro of [false, true]) {
+        const puesto = await ev(`window.__P.tema(${claro})`);
+        if (!puesto || puesto.claro !== claro) { r.celdas.push({ zona: 'burb', claro, tema: 'NO QUEDO' }); continue }
+        const estBurb = await abrirZona('burb');
+        r.celdas.push({ zona: 'burb', claro, abrir: estBurb,
+          cadena: await ev(`(function(){
+            var e = document.getElementById('ref-burbujas'); if (!e) return 'NO EXISTE';
+            var o = [], n = e;
+            while (n && n !== document.body) {
+              var cs = getComputedStyle(n);
+              o.push((n.id || n.tagName) + ':' + cs.display + (n.hidden ? '/hidden' : ''));
+              n = n.parentElement }
+            return o })()`),
+          chip: await ev(`(${geoChip})('#ref-burbujas')`),
+          caja: await ev(`(function(){ var e = document.getElementById('ref-burbujas');
+            if (!e) return 'NO EXISTE'; var b = e.getBoundingClientRect();
+            return { w: Math.round(b.width), h: Math.round(b.height),
+                     visible: !!(b.width && b.height), scrollH: window.__Y.scrollH() } })()`) });
+      }
+      await ev(`window.__P.tema(false)`);
+      await viewport(1200, 700);
+    } catch (e) { r.err = e.message; }
+    out.grupos.maqueta = r;
+    process.stderr.write('[maqueta] listo\n');
+  }
+
+  /* ========================================================================================
+     CAPTURA - PNG de las zonas tocadas en los dos temas. Los `md5` tienen que ser TODOS
+     DISTINTOS: dos iguales significan que el tema no cambio de verdad, que es el falso que el
+     Y3c pago con cuatro md5 de ocho.
+     ADVERTENCIA: EL `clip` DE `Page.captureScreenshot` VA EN COORDENADAS DE PAGINA y
+     `getBoundingClientRect` da las del VIEWPORT: sin sumarle el desplazamiento el PNG sale de
+     otra parte de la pantalla - y se ve perfectamente bien.
+     ======================================================================================== */
+  if (corre('captura')) {
+    const r = { pngs: [] };
+    /* ADVERTENCIA: SE RECORTA EL CONTENEDOR Y NO EL SPAN. Un rect de 276x16 da un PNG de 230
+       bytes que, como ARCHIVO, se ve perfectamente bien - y esta en blanco. `subir` cuenta
+       cuantos ancestros hay que subir para llegar al bloque que se quiere mirar. */
+    const cajaDe = (sel, subir) => ev(`(function(sel, n){
+      var e = document.querySelector(sel); if (!e) return null;
+      for (var i = 0; i < n && e.parentElement; i++) e = e.parentElement;
+      e.scrollIntoView({ block:'center' });
+      var b = e.getBoundingClientRect();
+      if (!b.width || !b.height) return null;
+      return { x: Math.round(b.left + window.scrollX), y: Math.round(b.top + window.scrollY),
+               w: Math.round(b.width), h: Math.round(b.height),
+               nodo: (e.id || e.className || e.tagName) } })(${JSON.stringify(sel)}, ${subir | 0})`);
+    const tomar = async (nombre, sel, claro, subir) => {
+      const caja = await cajaDe(sel, subir || 0);
+      if (!caja) { r.pngs.push({ nombre, claro, err: 'SIN CAJA' }); return }
+      const png = await cdp.send('Page.captureScreenshot', {
+        format: 'png', captureBeyondViewport: true,
+        clip: { x: caja.x, y: caja.y, width: caja.w, height: caja.h, scale: 2 } }, sessionId);
+      const dest = join(DEST, `r_${claro ? 'claro' : 'oscuro'}_${nombre}.png`);
+      writeFileSync(dest, Buffer.from(png.data, 'base64'));
+      r.pngs.push({ nombre, claro, dest, bytes: png.data.length,
+                    md5: createHash('md5').update(png.data).digest('hex').slice(0, 12), caja });
+    };
+    try {
+      await viewport(1200, 900);
+      for (const claro of [false, true]) {
+        const puesto = await ev(`window.__P.tema(${claro})`);
+        if (!puesto || puesto.claro !== claro) { r.pngs.push({ claro, err: 'TEMA NO QUEDO' }); continue }
+        /* 1 y 2 - el TEER con su pie, y el taponamiento con su descripcion. */
+        await ev(`window.__P.nuevo()`);
+        await ev(`(function(){
+          try { if (typeof showTab === 'function') showTab('ete') } catch(e){}
+          var c = document.getElementById('ete-seccion-teer');
+          if (c && getComputedStyle(c).display === 'none' && typeof toggleEteSeccion === 'function')
+            toggleEteSeccion('teer');
+          return 1 })()`);
+        await tipear('teer_prof_flail', '11');
+        await ev(`(typeof calcTEER === 'function') ? (calcTEER(), 1) : 0`);
+        await tomar('teer', '#teer-c4', claro, 2);
+        /* El derrame vive en OTROS, no en ETE: su seccion se llama `ete-seccion-...` pero
+           cuelga de `tab-otros`. Es lo que dejo el selector midiendo 0x0 la primera vez. */
+        await ev(`(function(){
+          try { if (typeof showTab === 'function') showTab('otros') } catch(e){}
+          var p = document.getElementById('ete-seccion-pericardio-masas');
+          if (p && getComputedStyle(p).display === 'none' && typeof toggleEteSeccion === 'function')
+            toggleEteSeccion('pericardio-masas');
+          return 1 })()`);
+        await ev(`window.__P.sel('pericardio','Derrame moderado (10-20mm)')`);
+        await tomar('peri', '#pericardio', claro, 2);
+        /* 3 - la capsula del area de la AI. */
+        await ev(`(function(){
+          try { if (typeof showTab === 'function') showTab('ai-vi') } catch(e){}
+          ['ai','datos'].forEach(function(k){ var c = document.getElementById('sacc-' + k);
+            if (c && !c.classList.contains('open') && typeof secToggle === 'function') secToggle(k) });
+          return 1 })()`);
+        await ev(`window.__P.sel('sexo','M')`);
+        await tipear('ai_area', '25');
+        await ev(`(typeof calcAI === 'function') ? (calcAI(), 1) : 0`);
+        await tomar('ai', '#ai-area-interp', claro, 2);
+        /* 4 - la ficha de burbujas de Referencias. */
+        /* `#ref-burbujas` es un `.card-body` con display:none y lo abre su encabezado. */
+        await ev(`(function(){
+          try { showTab('refs'); refSubTab('otros', document.getElementById('ref-subtab-otros')) }
+          catch(e){}
+          var b = document.getElementById('ref-burbujas');
+          if (b && getComputedStyle(b).display === 'none') {
+            var h = b.previousElementSibling; if (h) h.click() }
+          return 1 })()`);
+        await tomar('burbujas', '#ref-burbujas', claro);
+        /* El taponamiento: HEMODINAMICA mas `ete-seccion-derrame-tap`, y con el derrame y los
+           dos signos CARGADOS, porque `dpt-concl` nace vacio y sin eso el PNG sale en blanco. */
+        await ev(`(function(){
+          try { showTab('hemodinamica') } catch(e){}
+          var d = document.getElementById('ete-seccion-derrame-tap');
+          if (d && getComputedStyle(d).display === 'none' && typeof toggleEteSeccion === 'function')
+            toggleEteSeccion('derrame-tap');
+          return 1 })()`);
+        await tipear('dpt_mm_post', '22');
+        await ev(`(function(){ ['dpt_col_vd','dpt_swinging'].forEach(function(id){
+          var e = document.getElementById(id);
+          if (e) { if (e.type === 'checkbox') e.checked = true; else e.value = 'si';
+                   e.dispatchEvent(new Event('change', { bubbles: true })) } }); return 1 })()`);
+        await ev(`(typeof dptCambio === 'function') ? (dptCambio(), 1) : 0`);
+        await tomar('tapo', '#dpt-concl', claro, 1);
+      }
+      await ev(`window.__P.tema(false)`);
+      await viewport(1200, 700);
+      const ms = r.pngs.map((x) => x.md5).filter(Boolean);
+      r.md5Distintos = new Set(ms).size + '/' + ms.length;
+    } catch (e) { r.err = e.message; }
+    out.grupos.captura = r;
+    process.stderr.write('[captura] listo\n');
+  }
+
+  /* ========================================================================================
+     CTRL - el A/B de CONTROL contra el arbol del inicio de la tanda. Las superficies
+     enumeradas UNA POR UNA, el PDF en sus SEIS plantillas GENERADO DE VERDAD, el PPT, el PDF
+     de auditoria, el Laboratorio y el Excel CLAVE POR CLAVE. Es lo que separa «cambio lo
+     autorizado» de «cambio algo mas».
+     ======================================================================================== */
+  if (corre('ctrl')) {
+    const r = {};
+    /* Un escenario AJENO a las ocho zonas de esta tanda: ni VAB, ni TEER, ni disfuncion del
+       VD, ni area de la AI, ni derrame, ni taponamiento, ni TEP. Es la escena donde esta tanda
+       NO DEBE actuar. */
+    const AJENO = { nombre: 'CTRL', edad: '58', peso: '78', talla: '172',
+                    onda_e: '70', onda_a: '60', tde: '190', e_sep: '7', e_lat: '9',
+                    ai_vol: '52', ddfvi: '50', siv: '10', ppvi: '10',
+                    vmax_ao: '2.4', im_vc: '4', vmax_it: '2.6', vci_diam: '18' };
+    const medir = async () => ({
+      infEst:  await ev(`window.__P.informe('estandar')`, 60000),
+      infNarr: await ev(`window.__P.informe('narrativo')`, 60000),
+      infConc: await ev(`window.__P.informe('conciso')`, 60000),
+      campos:  await ev(`window.__P.camposGuardados()`),
+      excel:   await ev(`window.__P.excelDOM()`, 60000),
+      refs:    await ev(`window.__P.refsN()`),
+      lab:     await ev(`window.__P.lab({})`),
+      almacen: await ev(`window.__P.almacen()`),
+      pills:   await ev(`window.__P.pills()`)
+    });
+    try {
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__P.calentar()`);
+      r.vacio = await medir();
+      r.pdfVacio = {};
+      for (const pl of ['clasico', 'academico', 'moderno', 'minimalista', 'compacto', 'elegante'])
+        r.pdfVacio[pl] = await ev(`window.__P.pdf(${JSON.stringify(pl)})`, 90000);
+
+      await ev(`window.__P.nuevo()`);
+      for (const [k, v2] of Object.entries(AJENO)) {
+        try { await tipear(k, v2); }
+        catch (e) { try { await ev(`window.__P.sel(${JSON.stringify(k)},${JSON.stringify(v2)})`); } catch (e2) {} }
+      }
+      await ev(`window.__P.calentar()`);
+      r.ajeno = await medir();
+      r.pdfAjeno = {};
+      for (const pl of ['clasico', 'academico', 'moderno', 'minimalista', 'compacto', 'elegante'])
+        r.pdfAjeno[pl] = await ev(`window.__P.pdf(${JSON.stringify(pl)})`, 90000);
+      r.ppt = await ev(`window.__P.labPPT(null)`, 90000);
+      r.audit = await ev(`window.__P.labAudit(null)`, 90000);
+      r.errores = await ev(`window.__Y.errores()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.ctrl = r;
+    process.stderr.write('[ctrl] listo\n');
+  }
+
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
   process.stdout.write(JSON.stringify(OUT, null, 1));
   cdp.close(); srv.close(); process.exit(0);

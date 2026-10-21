@@ -228,3 +228,20 @@ node scripts/test_clinico.mjs --solo TC-502               # la cobertura
 **Al medir:** el tema se activa con la clase `light-mode` en el elemento raíz y hay que **esperar
 una vuelta** antes de leer un color computado. La pestaña Referencias tiene que estar activa y la
 subpestaña correcta también: un panel inactivo está en `display:none` y todo lo de adentro mide 0×0.
+
+## La tanda «R» (2026-10-20) — el DOI, las citas y el marcador de criterio propio
+
+El DOI que faltaba (`EV_DOI_ESC2021IC`); `ET_CRIT_FUENTE` nombrando las **tres** guías con su
+tabla y su folio, **sin mover un corte ni un operador**; la regla de la prótesis mitral en
+`#ref-integracion`; el ancho del jet de la IP pasando a nombrar el **anillo pulmonar**; y la
+escala de burbujas con su tabla de cuatro grados y su bloque de fuentes.
+
+**`QV_ECOSMART`** es el prefijo único del marcador, y el chip «CRITERIO DE ECOSMART» sale en los
+**tres** lugares donde la app aplica un corte que ninguna fuente publica: el 20-50 % de FEVI del
+TEER, los tres cortes del taponamiento y el 5 de la escala de burbujas.
+
+⚠️ **`QV_NOTA['esten:pulmonar']` TUVO QUE SER UNA FUNCIÓN**: nombra `EP_GMAX_NORMAL_MAX`, que se
+declara 1700 líneas más abajo, y como valor lanzaba por zona muerta llevándose el `<script>`
+entero. Su consumidor la resuelve con `(typeof n === 'function') ? n() : n`.
+
+→ `docs/mapa/tanda-r-referencias.md` §§ 7 y 8.

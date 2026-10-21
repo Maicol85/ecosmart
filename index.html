@@ -49818,7 +49818,13 @@ function generarInforme(opts) {
        dilatada subía al resumen si se midió por volumen y no subía si se midió por diámetro, que es
        la vía del eco de rutina: el informe decía «dilatada» arriba y «sin alteraciones» abajo—. Lo
        que cambió es que ya no lleva grado. */
-    if (aiDilGeo) suma.push(`AI dilatada (${aiGeoDil}).`);
+    /* ⚠️ EL EN SUMA SIGUE AL INFORME, Y HASTA ACA NO LO HACIA (R4, corregido el 2026-10-20).
+       Esta línea decía `AI dilatada` pelado mientras la oración de arriba ya publicaba
+       «levemente dilatada»: las DOS superficies firmadas del mismo informe decían cosas
+       distintas del mismo número. Lo destapó la SUITE COMPLETA —TC-487 (6)—, no la medición de
+       zona, porque mis escenas del R4 leían el informe y no el resumen. El adjetivo sale de
+       `_aiAreaB`, el MISMO que arma `aiStr`, así que no pueden volver a divergir. */
+    if (aiDilGeo) suma.push(`AI ${_aiAreaB ? _aiAreaB.adj : 'dilatada'} (${aiGeoDil}).`);
   } else if (ai_vol) {
     /* ⚠⚠ EL VOLUMEN MEDIDO QUE NO SE PUEDE INDEXAR SE DECLARA, Y NO SE NIEGA (J1, 2026-10-16).
        Cierra H-1 por su salida (a). Esta rama no existía: un volumen sin superficie corporal no
@@ -124850,8 +124856,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261020-1954';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1792536898209;                 /* eco-build-ms */
+const ECO_BUILD    = '20261020-2333';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1792550030695;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -124937,7 +124943,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261020-1954</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261020-2333</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

@@ -273,3 +273,42 @@ posición del Doppler y el espejo del LARS, los dibujos de los tres tipos **fusi
    y el informe estaba perfecto.
 5. **EL FOP NO SE MONTA CON `fop_presente`** —ese campo no existe—: la puerta es `fop_tunel` más
    `fopSync()` y `fopConclusion()`.
+
+---
+
+## TC-507 — la tanda «R»: ocho zonas, 81 condiciones
+
+Cubre los ocho commits funcionales de la tanda R (2026-10-20). Diez bloques, uno por zona, con
+**cinco denominadores** y **ocho controles negativos**.
+
+| bloque | qué fija |
+|---|---|
+| **DENOM0** | las funciones y constantes nuevas EXISTEN: sin esto, lo de abajo mide `undefined` |
+| **A1-A7** | R1 · la lesión presente sin grado por sus cinco compuertas, y las dos ramas del resumen |
+| **B1-B5** | R1 · los dos rótulos en las seis superficies, con el **CONTROL del Excel**, que no cambia |
+| **C1-C9** | R2 · los tres cortes del TEER por sus dos lados, y el pie con sus tres fuentes |
+| **D1-D8** | R3 · `vdDisfGrado` por sus bandas, **los dos bordes que solapan** y el `null` del normal |
+| **E1-E9** | R4 · los cuatro grados del área, el volumen que sigue mandando y el EN SUMA |
+| **F1-F8** | R5 · los tres grados del derrame, las dos `<option hidden>` y la lista del importador |
+| **G1-G8** | R6 · el módulo que no concluye, los signos listados y los cuatro consumidores |
+| **H1-H6** | R7 · `TEP_VDVI_DILAT_MIN` y sus cuatro consumidores, por el borde `1,0` |
+| **I1-I8** | R8 · el DOI, las tres citas, los tres chips y `QV_NOTA` como función |
+| **J1-J5** | los controles transversales: Excel en 440, campos del estudio, almacenamiento |
+
+**Verificado que sabe fallar contra el inicio de la tanda en un worktree aparte: 57 de las 81
+en rojo, y NINGUNA por excepción.** Las 24 que pasan son los denominadores de lo que ya existía
+y los controles negativos, o sea lo que esta tanda no mueve.
+
+⚠️ **LA MARCA `EXC` QUE APARECE EN (E1) CONTRA HEAD ES EL CENTINELA, NO UNA EXCEPCIÓN**: `_aiG`
+devuelve la cadena `'EXC …'` desde su `catch` cuando `aiAreaClasificar` no existe. Sin ese
+centinela el caso moría entero y probaba que el árbol es distinto, no que sabe medir.
+
+### Trampas de este caso
+
+1. **UN `<b>` CON UN SALTO DE LÍNEA ADENTRO PARTE EL `textContent`**: la condición (I3) buscaba
+   la frase entera de la cita y salía roja sobre un texto perfecto. Se buscan fragmentos.
+2. **`_labExcelCols` NO EXISTE**: las columnas salen de
+   `Object.keys(_labExcelRow({ id: 0, campos: {} }))`.
+3. **EL `value` DEL SELECTOR DE PERICARDIO ES SU TEXTO COMPLETO**, paréntesis incluido:
+   `'Derrame moderado'` deja el `<select>` en `selectedIndex -1` y la escena mide el selector
+   vacío.

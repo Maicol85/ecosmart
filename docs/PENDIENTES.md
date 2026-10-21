@@ -1,6 +1,84 @@
 # EcoSmart — pendientes vivos
 
 
+## Tanda R · referencias y fuentes (2026-10-20) — DECLARADO y NO arreglado
+
+### R-1 · El diámetro AP de la AI sigue sin graduar, y es de la fuente
+
+El **área** pasa a graduar en cuatro con la Tabla 9 de Lang 2005 y el **volumen indexado** sigue
+mandando, pero el **diámetro AP** sigue siendo binario («dilatada» / «de dimensiones normales»).
+No es un olvido: **ninguna guía de la biblioteca lo gradúa** — el corte por sexo que la app
+aplica contesta sí o no, y la Tabla 9 publica su rango de normalidad sin bandas de severidad.
+Censado antes de decidir. Graduarlo sería inventar una escala.
+
+**Consecuencia medida:** con el diámetro como único dato el informe dice «Aurícula izquierda
+dilatada (diámetro AP 50 mm).» sin adjetivo, y con el área cargada la oración sí gradúa. Las dos
+conductas conviven a propósito y TC-294 las fija por los dos lados.
+
+---
+
+### R-2 · El rango con guión de la disfunción del VD no tiene fuente que lo nombre
+
+Con el TAPSE en una banda y la onda S′ en otra, `vdDisfGrado` publica **«leve-moderada»**. La
+Tabla 1 de la ASE 2025 da las bandas de cada parámetro por separado y **no dice qué hacer cuando
+discrepan**: el rango es una decisión de la app, conservadora —no elige el peor ni el mejor—, y
+está declarada acá. Lo que la app NO hace es inventar un grado único.
+
+**Alternativas, si alguna vez se decide:** (a) publicar el PEOR de los dos, que es lo que la app
+hace con el tamaño del VD; (b) dejar el rango, que es lo de hoy; (c) no graduar cuando discrepan.
+
+---
+
+### R-3 · Los tres cortes del taponamiento son el límite INFERIOR de los rangos de la guía
+
+La app marca plétora con diámetro **>21 mm** y colapso **<50 %**, y la variación respiratoria con
+**>25 %** en la onda E mitral y **>40 %** en la tricuspídea. La **Tabla 17 de la ESC 2025**
+publica **>20 mm con reducción <50 %** y **rangos** de >25-30 % y >40-60 %. O sea que **la app
+afirma antes que la guía**. Los tres se mantienen con su valor —cambiarlos es contenido clínico—
+y desde el R6 se **declaran** con el chip «CRITERIO DE ECOSMART» debajo del módulo.
+
+---
+
+### R-4 · El corte de 5 burbujas no está publicado en ninguna de las dos fuentes
+
+La tabla de la ficha separa el shunt pequeño del moderado en **5 burbujas**, y ni Pristipino 2019
+(suplemento, Tabla 1) ni Kleindorfer AHA/ASA 2021 (folio e413) lo publican: las dos fijan el
+**20** del shunt grande y nada más. El 5 queda como referencia propia, declarada con su chip.
+
+⚠️ **Y LAS DOS FUENTES NO COINCIDEN SOBRE CÓMO EL RESPECT DEFINIÓ EL SHUNT GRANDE**: Kleindorfer
+escribe «>20 microbubbles» y Pristipino, en otra página, «>10». Anotado en
+`docs/fuentes/FUENTES.md`.
+
+---
+
+### R-5 · El informe no dice la severidad de la disfunción del VD cuando un parámetro está normal
+
+`vdDisfGrado` devuelve `null` si **alguno** de los dos parámetros medidos cae en la banda normal,
+así que la oración sale como hasta hoy, sin adjetivo. Es el lado conservador —con el TAPSE
+conservado no se puede afirmar un grado de disfunción global— y deja sin graduar el caso del
+parámetro único alterado. **Decisión de la app, no de la guía.**
+
+---
+
+### R-6 · Dos mapas quedaron a 3 KB del techo
+
+Medido con `wc -c` **al cerrar**: `mitral-dibujo-estatico.md` en **31,9 KB** y `vd-derecho.md` en
+**31,5 KB**, los dos con su puntero de la tanda R ya adentro. **La próxima tanda que los toque
+conviene que mida antes de escribir**, y si el bloque pasa de ~3 KB, que lo saque a archivo
+propio. El de esta tanda nació aparte (`tanda-r-referencias.md`, 13,3 KB) justamente por eso.
+
+---
+
+### R-7 · El EN SUMA del área de la AI y el informe tenían dos redacciones, y lo destapó la suite
+
+Está **arreglado** en esta misma tanda y queda escrito porque la causa vuelve: la línea del
+resumen (`suma.push`) no consultaba el clasificador que la oración del informe ya usaba, así que
+las dos superficies firmadas del mismo papel decían cosas distintas del mismo número. **Ninguna
+medición de zona lo vio** —mis escenas leían el informe y no el resumen— y lo cazó la SUITE
+COMPLETA, en TC-487 (6). **Al tocar una frase del informe, medir también su EN SUMA.**
+
+
+
 
 
 ## Tanda Y3c · el dibujo estático de la mitral, el plano de corte y las medidas TEER (2026-10-18) — DECLARADO y NO arreglado

@@ -5443,9 +5443,16 @@ caso('TC-58', 'HFA-PEFF: 0/6 es probabilidad baja, 4/6 intermedia', `
 `);
 
 // ═══ GRUPO 20 — Pericardio ══════════════════════════════════════════════════════════════════
-/* Taponamiento pide los TRES criterios cumplidos. Con dos cumplidos y uno sin evaluar la
-   conclusion es «incipiente» y ademas DICE cual falto: negar exige evidencia de haber buscado. */
-caso('TC-59', 'Taponamiento: tres criterios cumplidos; con uno sin evaluar es incipiente', `
+/* ADAPTADO el 2026-10-20 (tanda R, commit R6). DECISION DE MAICOL: el modulo DEJA DE
+   CONCLUIR. Hasta hoy devolvia `taponamiento` con los tres criterios cumplidos e `incipiente`
+   con dos, y la hoja AFIRMABA el diagnostico; desde el R6 LISTA los signos presentes, dice
+   cuantos criterios evaluo y el diagnostico lo hace el medico -«El diagnostico de taponamiento
+   es clinico, con confirmacion por ecocardiografia», ESC 2025 de miocarditis y pericarditis,
+   Tabla 17-. Las cuatro condiciones de abajo afirmaban la app de ayer; ninguna estaba mal
+   escrita. Lo que el caso sigue vigilando -y es lo que importa- es que NO SE PIERDA
+   INFORMACION: los signos que antes sostenian la conclusion se publican uno por uno, y lo que
+   no se evaluo se sigue declarando en vez de callarse. */
+caso('TC-59', 'Taponamiento: el modulo LISTA los signos y no concluye (R6); lo no evaluado se declara', `
   __t.limpiar();
   __t.set('pericardio','Derrame severo (>20mm)'); __t.set('dpt_col_vd','si'); __t.set('dpt_col_ad','si');
   __t.set('resp_var_mitral','30'); __t.set('vci_diam','25'); __t.set('vci_col','<50');
@@ -5454,12 +5461,29 @@ caso('TC-59', 'Taponamiento: tres criterios cumplidos; con uno sin evaluar es in
   __t.set('pericardio','Derrame severo (>20mm)'); __t.set('dpt_col_vd','si'); __t.set('dpt_col_ad','si');
   __t.set('resp_var_mitral','30');
   const inc = dptEstado().clave, txtInc = amiloTextoDPT();
+  const plano = t => t.split(String.fromCharCode(10)).join(' ~ ');
   return { extra: [
-    ['con VCI pletorica -> taponamiento', tap === 'taponamiento'],
-    ['la hoja lo afirma', txtTap.indexOf('Se cumplen los tres criterios ecocardiográficos de taponamiento') > -1],
-    ['sin VCI -> incipiente, no taponamiento', inc === 'incipiente'],
-    ['y declara lo no evaluado', txtInc.indexOf('No se evaluó: plétora de VCI sin colapso.') > -1],
-    ['la salvedad clinica viaja', txtTap.indexOf('El diagnóstico de taponamiento es clínico-ecocardiográfico') > -1]
+    /* DENOMINADOR: las dos escenas tienen que producir estado, o lo de abajo no mide nada. */
+    ['DENOM: las dos escenas producen estado con derrame', tap === 'con_derrame' && inc === 'con_derrame',
+      tap + ' | ' + inc],
+    ['el modulo YA NO CONCLUYE: ni «taponamiento» ni «incipiente» salen de dptEstado',
+      tap !== 'taponamiento' && inc !== 'incipiente', tap + ' | ' + inc],
+    ['y la hoja no AFIRMA el diagnostico en ninguna de las dos escenas',
+      txtTap.indexOf('Se cumplen los tres criterios ecocardiográficos de taponamiento') === -1 &&
+      txtTap.indexOf('Taponamiento') === -1 && txtInc.indexOf('Taponamiento') === -1,
+      plano(txtTap).slice(0, 200)],
+    ['NO SE PIERDE INFORMACION: los tres signos cumplidos se LISTAN uno por uno',
+      txtTap.indexOf('colapso diastólico del VD') > -1 &&
+      txtTap.indexOf('plétora') > -1 && txtTap.indexOf('Derrame pericárdico severo') > -1,
+      plano(txtTap).slice(240, 450)],
+    ['y lo no evaluado se sigue declarando: sin VCI la hoja dice que no se cargo',
+      txtInc.indexOf('VCI | no cargada') > -1 && txtInc.indexOf('Colapso inspiratorio | no cargado') > -1,
+      plano(txtInc).slice(170, 330)],
+    /* CONTROL NEGATIVO: lo que la escena SI midio no puede decir «no cargado». */
+    ['CONTROL: lo que si se midio no se declara como faltante',
+      txtInc.indexOf('Variación E mitral | 30 %') > -1, plano(txtInc).slice(170, 330)],
+    ['la salvedad clinica viaja, y hoy nombra su fuente',
+      txtTap.indexOf('El diagnóstico de taponamiento es clínico') > -1, plano(txtTap).slice(-220)]
   ] };
 `);
 
@@ -13311,7 +13335,13 @@ caso('TC-164', 'Laboratorio: orden de subtabs y de Avanzado, y el contador cuent
       ['VEXUS publica el grado del que lo integro',    txt('lab-adv-vexus').indexOf('Grado 3') > -1, txt('lab-adv-vexus').slice(0,150)],
       /* El rotulo sale del <option> del filtro, no de un mapa paralelo: si se escribiera aparte,
          la fila diria la clave cruda «incompleto». */
-      ['el derrame usa el rotulo del filtro de cohorte', txt('lab-adv-dpt').indexOf('Derrame sin criterios evaluados') > -1, txt('lab-adv-dpt').slice(0,160)]
+      /* ADAPTADO el 2026-10-20 (tanda R, commit R6): el modulo de derrame DEJA DE CONCLUIR,
+         asi que sus claves pasaron de los cuatro rotulos de conclusion a los dos estados
+         con_derrame y sin_derrame, y el filtro de cohorte los nombra «Con derrame
+         pericardico» y «Sin derrame». Lo que este caso vigila NO cambia —y es lo que importa—:
+         que el panel lea el rotulo DEL FILTRO y no una segunda copia escrita a mano, que es lo
+         que haria que el panel y el filtro se separaran en la primera edicion. */
+      ['el derrame usa el rotulo del filtro de cohorte', txt('lab-adv-dpt').indexOf('Con derrame pericárdico') > -1, txt('lab-adv-dpt').slice(0,160)]
     ] };
   })();
 `);
@@ -13570,8 +13600,16 @@ caso('TC-168', 'POP-3: el POCUS sincroniza y no inventa cortes', `
       ['sin datos, el pericardio lo dice',          vacioPeri.indexOf('Sin derrame') > -1, vacioPeri.slice(0,70)],
       ['sin datos, la pleura lo dice',              vacioPleura.indexOf('Sin evaluaci') > -1, vacioPleura.slice(0,60)],
       /* LA CONDICION CENTRAL: el POP publica la conclusion de dptEstado, no una propia. */
-      ['dptEstado concluye taponamiento',           clave === 'taponamiento', clave],
-      ['  y el POP publica ESA conclusion',         peri.indexOf('Taponamiento') > -1, peri.slice(0,120)],
+      /* ADAPTADO el 2026-10-20 (tanda R, commit R6): el modulo DEJA DE CONCLUIR —lista los
+         signos presentes y el diagnostico lo hace el medico—, asi que dptEstado devuelve hoy
+         con_derrame y el POP publica ESOS SIGNOS en vez de la palabra «Taponamiento». Lo que
+         este caso vigila no cambia: que el POP publique lo MISMO que el modulo, sin una segunda
+         lectura del estado. */
+      ['dptEstado ya no concluye: con derrame devuelve con_derrame',
+        clave === 'con_derrame' && clave !== 'taponamiento', clave],
+      ['  y el POP publica ESOS SIGNOS, sin afirmar el diagnostico',
+        peri.indexOf('SIGNOS PRESENTES') > -1 && peri.indexOf('Taponamiento') === -1,
+        peri.slice(0, 160)],
       ['  con el tamaño como texto, no [object]',   peri.indexOf('moderado') > -1 && peri.indexOf('object') === -1, peri.slice(0,80)],
       ['bilateral severo -> drenaje bilateral',     pleura.indexOf('drenaje bilateral') > -1, pleura.slice(0,90)],
       ['el hemotorax se declara aparte',            pleura.indexOf('Hemot') > -1, pleura.slice(0,110)],
@@ -39480,17 +39518,25 @@ caso('TC-294', 'Dilatacion de AI: el diametro y el area avisan SIN grado, y el g
   const gradua = t => /Aur.cula izquierda (levemente|moderadamente|severamente)/.test(t) ||
                       /\bAI (levemente|moderadamente|severamente)/.test(t);
   return { extra: [
-    ['el AREA tiene capsula propia — antes no llegaba a NINGUNA superficie',
-      a25.capA !== null && a25.capA.indexOf('Dilatada') > -1, a25.capA],
-    ['el corte del area es 20 y NO 22: 20 normal, 21 dilatada',
-      a20.capA.indexOf('Normal') > -1 && a21.capA.indexOf('Dilatada') > -1,
+    /* ADAPTADO el 2026-10-20 (tanda R, commit R4). Las CUATRO condiciones de abajo afirmaban
+       que el AREA de la AI avisa SIN grado -el rotulo era «Dilatada» pelado y el informe decia
+       «dilatada» sin adjetivo-, y la cuarta era el LIMITE DECLARADO de aquella tanda, escrito
+       para que el dia que el area graduara se notara. Se decidio que gradue, con los cuatro
+       grados de la Tabla 9 de Lang 2005, asi que hoy afirman LO CONTRARIO. Lo que el caso
+       sigue vigilando -y es lo que importa- es que el VOLUMEN INDEXADO siga mandando sobre el
+       area y sobre el diametro: eso no se movio y sus condiciones de abajo lo prueban.
+       El DIAMETRO sigue sin graduar: esta tanda no lo toca. */
+    ['el AREA tiene capsula propia con su GRADO (R4): un area de 25 es dilatacion leve',
+      a25.capA !== null && a25.capA.indexOf('Dilat. leve') > -1, a25.capA],
+    ['el corte del area es 20 y NO 22: 20 normal, 21 dilatada leve',
+      a20.capA.indexOf('Normal') > -1 && a21.capA.indexOf('Dilat. leve') > -1,
       'a20=' + a20.capA + ' | a21=' + a21.capA],
-    ['un area de 25 SOLA llega al informe — antes decia «de dimensiones normales»',
-      a25.inf.indexOf('Aurícula izquierda dilatada (área 25 cm²).') > -1 &&
+    ['un area de 25 SOLA llega al informe CON su grado — antes decia «dilatada» pelado',
+      a25.inf.indexOf('Aurícula izquierda levemente dilatada (área 25 cm²).') > -1 &&
       a25.inf.indexOf('de dimensiones normales (área 25') === -1,
       a25.inf.split(String.fromCharCode(10)).filter(l => l.indexOf('Aurícula izquierda') > -1)[0] || '(sin linea de AI)'],
-    ['ni el area ni el diametro publican grado',
-      !gradua(a25.inf) && !gradua(d50.inf),
+    ['el AREA gradua y el DIAMETRO no: el diametro sigue avisando sin adjetivo',
+      gradua(a25.inf) && !gradua(d50.inf),
       'a25=' + gradua(a25.inf) + ' d50=' + gradua(d50.inf)],
     ['un diametro de 50 sin volumen NO es «severamente»: el corte >46 se fue',
       d50.inf.indexOf('Aurícula izquierda dilatada (diámetro AP 50 mm).') > -1 &&
@@ -39513,10 +39559,14 @@ caso('TC-294', 'Dilatacion de AI: el diametro y el area avisan SIN grado, y el g
        EN SUMA decian «AI dilatada (diámetro AP 38 mm, área 25 cm²)» — atribuyendole la dilatacion a la
        medicion que la capsula de al lado rotula «Normal (<40mm)». Ninguna condicion lo veia porque
        ningun escenario tenia las dos cargadas y DISCORDANTES entre si. */
+    /* ADAPTADO el 2026-10-20 (R4): el EN SUMA lleva hoy el ADJETIVO del area, igual que el
+       informe —antes decia «AI dilatada» pelado mientras la oracion de arriba ya graduaba, y
+       eran dos superficies firmadas diciendo cosas distintas del mismo numero—. Lo que esta
+       condicion vigila no cambia: que la afirmacion nombre SOLO la medicion dilatada. */
     ['la afirmacion nombra SOLO la medicion dilatada, no la que esta normal',
       cruz.inf.indexOf('dilatada (área 25 cm²).') > -1 &&
       cruz.inf.indexOf('diámetro AP 38 mm, área 25') === -1 &&
-      cruz.suma.indexOf('AI dilatada (área 25 cm²).') > -1, cruz.suma],
+      cruz.suma.indexOf('AI levemente dilatada (área 25 cm²).') > -1, cruz.suma],
     ['y la que quedo normal se DECLARA en vez de callarse',
       cruz.inf.indexOf('La otra medición está en rango normal (diámetro AP 38 mm).') > -1, cruz.inf],
     ['lo mismo dentro de la discordancia: el area normal no «marca dilatacion»',
@@ -59593,8 +59643,13 @@ caso('TC-429', 'Tricuspide: el Diam. y el VTI del TSVD son UN dato con DOS campo
        operador del VTI de entrada desde esa fecha; los otros tres cortes siguen siendo de 2009.
        ⚠️ Y EL 2026-10-17 (VAL1) la edicion de la ESC pasa de 2021 a 2025, que es la que este repo
        tiene verificada y la que hoy fija el operador del gradiente medio. */
+    /* ⚠️ ADAPTADO el 2026-10-20 (tanda R, commit R8): las tres guias pasan a citarse con su
+       TABLA y su FOLIO, que es el estandar de la casa y lo que este repo tiene verificado.
+       Los tres cortes y sus tres operadores NO se movieron: lo unico que cambia es que la
+       linea de fuente diga DONDE esta cada uno. */
     ['la fuente va UNA vez debajo de las filas, con su texto exacto',
-      rVacia.fuente === 'EAE/ASE 2009 · ASE 2023 · ESC/EACTS 2025. La estenosis tricuspídea no se gradúa: es binaria.',
+      rVacia.fuente === 'EAE/ASE 2009, Tabla 10 (folio 19) · ASE 2023, Key Points (folio 16) · ' +
+        'ESC/EACTS 2025 de valvulopatías, §12 (folios 4687-4688). La estenosis tricuspídea no se gradúa: es binaria.',
       rVacia.fuente],
     /* ⚠️ ADAPTADO el 2026-10-17 (VAL1): el operador del gradiente medio pasa a MAYOR ESTRICTO
        —ESC/EACTS 2025 seccion 12.2, folio 4688: «A mean diastolic transvalvular gradient of
@@ -71399,10 +71454,17 @@ caso('TC-487', 'Tanda H: la AURICULA IZQUIERDA con un solo dueno —el volumen i
         SAI('estandar') === 'AI dilatada (diámetro AP 50 mm).', LAI('estandar').slice(0, 140)]);
       ex.push(['(5) y la capsula del volumen queda en la raya: sin volumen no hay nada que graduar',
         TXT('ai-interp') === '—' && TXT('ai-idx') === '—', TXT('ai-interp') + ' | ' + TXT('ai-idx')]); }
+    /* ADAPTADO el 2026-10-20 (tanda R, commit R4): el AREA pasa a graduar con los cuatro
+       grados de la Tabla 9 de Lang 2005, asi que esta condicion afirma hoy LO CONTRARIO de lo
+       que afirmaba. Lo que SIGUE siendo cierto -y es lo que este caso vigila- es que el area
+       NO manda cuando hay volumen indexado: lo prueban las escenas (1) a (4) de arriba. El
+       control negativo del DIAMETRO, dos lineas mas arriba, no se toca: el diametro sigue sin
+       graduar. */
     { MONTAR({ ai_area: '25' });
-      ex.push(['(6) CONTROL NEGATIVO sin volumen y con el AREA dilatada: dilatada SIN grado, por el area',
-        LAI('estandar').indexOf('Aurícula izquierda dilatada (área 25 cm²).') === 0 &&
-        SAI('estandar') === 'AI dilatada (área 25 cm²).', LAI('estandar').slice(0, 140)]); }
+      ex.push(['(6) sin volumen, el AREA gradua por su cuenta (R4): un area de 25 es leve',
+        LAI('estandar').indexOf('Aurícula izquierda levemente dilatada (área 25 cm²).') === 0 &&
+        SAI('estandar') === 'AI levemente dilatada (área 25 cm²).',
+        LAI('estandar').slice(0, 140) + ' || SUMA=' + SAI('estandar')]); }
 
     /* ⚠️ VOLUMEN MEDIDO Y SIN SUPERFICIE CORPORAL. Con el diametro dilatado se sigue tratando
        como «sin volumen» y publica la frase SIN grado, igual que en la tanda H.
@@ -79408,6 +79470,540 @@ caso('TC-506', 'Tanda Y3f: la FEVI y el DSFVI como UN SOLO valor en los dos sent
   ex.push(['(I5) CONTROL: la tabla de cirugia aortica de Referencias sigue entera',
     !!EL('ref-aocx') || (document.documentElement.innerHTML.indexOf('AO_CX_T') > -1),
     'ref-aocx=' + !!EL('ref-aocx')]);
+
+  return { extra: ex };
+`);
+
+/* ══ TC-507 · LA TANDA «R» — REFERENCIAS Y FUENTES (2026-10-20) ═══════════════════════════════
+   Cubre los OCHO commits. No mide ninguna cuenta nueva: mide que los cortes que se movieron se
+   movieron DONDE dicen, que los que no se movieron siguen quietos, que los textos publican la
+   fuente que la biblioteca sostiene y que lo propio de la app esta DECLARADO.
+
+   ⚠️ SIN ACENTOS GRAVES en los comentarios de este cuerpo: cierran el template y el error aparece
+   en la apertura, cientos de lineas antes. scripts/check_backticks.py da la linea exacta.
+   ⚠️ NI UN REGEX: dentro de un template literal la barra se cocina. Todo por indexOf. */
+caso('TC-507', 'Tanda R: la VAB muestra la lesion PRESENTE sin grado con un solo dueno compartido con el informe de Valvulas, «Fusion indeterminada» y «no coronariana» en todas las superficies; la profundidad de coaptacion del TEER a <11 mm con la PSAP, el DSFVI y los velos quietos y las fuentes de cada corte declaradas; la severidad del VD en el informe y en el EN SUMA leida de la Tabla 1 de la ASE 2025, con el rango en los bordes solapados; el area de la AI en CUATRO grados de la guia de 2005 con el volumen indexado mandando; el derrame pericardico en los TRES grados de la ESC 2025 con los estudios guardados intactos; el taponamiento LISTANDO los signos sin concluir; el VD/VI del eco en TEP a >=1,0 y las formulas de HTP de Referencias; el DOI, las tres citas de la ET, la regla de la protesis mitral, el ancho del jet de la IP y la escala de burbujas; y el informe, el EN SUMA, las 440 columnas del Excel y los campos del estudio sin columnas nuevas', `
+  const ex = [];
+  const EL  = id => document.getElementById(id);
+  const TXT = id => { const e = EL(id); return e ? (e.textContent || '').trim() : 'NO EXISTE'; };
+  const VAL = id => { const e = EL(id); return e ? String(e.value == null ? '' : e.value) : 'NO EXISTE'; };
+  const FN  = n => typeof window[n] === 'function';
+  const SEL = (id, v) => { const e = EL(id); if (!e) return false;
+    e.value = v; e.dispatchEvent(new Event('change', { bubbles: true })); return e.value === v; };
+  const CLIC = id => { const e = EL(id); if (!e) return false; e.click(); return true; };
+  /* TRAMPA DE ECO_AYUDA: estas son const de MODULO; window[n] da undefined y el identificador
+     pelado si se ve. Cada una con su centinela para que el caso no muera por excepcion. */
+  const _t1      = (typeof ASE25_T1 === 'object' && ASE25_T1) ? ASE25_T1 : null;
+  const _aiB     = (typeof AI_AREA_BANDAS !== 'undefined') ? AI_AREA_BANDAS : null;
+  const _dptTam  = (typeof DPT_TAM === 'object' && DPT_TAM) ? DPT_TAM : null;
+  const _tepMin  = (typeof TEP_VDVI_DILAT_MIN !== 'undefined') ? TEP_VDVI_DILAT_MIN : null;
+  const _htpMin  = (typeof VD_VI_HTP_MIN !== 'undefined') ? VD_VI_HTP_MIN : null;
+  const _etFte   = (typeof ET_CRIT_FUENTE !== 'undefined') ? String(ET_CRIT_FUENTE) : null;
+  const _ecoPref = (typeof QV_ECOSMART !== 'undefined') ? String(QV_ECOSMART) : null;
+  const _qvNota  = (typeof QV_NOTA === 'object' && QV_NOTA) ? QV_NOTA : null;
+  const _infFeno = (typeof VAB_INF_FENO === 'object' && VAB_INF_FENO) ? VAB_INF_FENO : null;
+  const _tipoEs  = (typeof VAB_TIPO_LBL_ES === 'object' && VAB_TIPO_LBL_ES) ? VAB_TIPO_LBL_ES : null;
+  const _tipoLbl = (typeof VAB_TIPO_LBL === 'object' && VAB_TIPO_LBL) ? VAB_TIPO_LBL : null;
+  const _tiposLbl= (typeof VAB_TIPOS_LBL === 'object' && VAB_TIPOS_LBL) ? VAB_TIPOS_LBL : null;
+  const _dibHit  = (typeof VAB_DIB_HIT !== 'undefined') ? VAB_DIB_HIT : null;
+  const _xlsRow  = (typeof _labExcelRow === 'function') ? _labExcelRow : null;
+  const _xlsCols = (typeof _labExcelCols === 'function') ? _labExcelCols : null;
+  const _togEte  = (typeof toggleEteSeccion === 'function') ? toggleEteSeccion : null;
+  const _xlsLis  = (typeof LAB_XLS_LISTAS === 'object' && LAB_XLS_LISTAS) ? LAB_XLS_LISTAS : null;
+  const _asBl    = (typeof _labXlsAssertBloques === 'function') ? _labXlsAssertBloques : null;
+  const _asLi    = (typeof _labXlsAssertListas === 'function') ? _labXlsAssertListas : null;
+  const _evReg   = (typeof EV_REG !== 'undefined') ? EV_REG : null;
+  const fichaDe  = id => { try { return (_evReg || []).filter(f => f.id === id)[0] || null; } catch (e) { return null; } };
+  const inf = () => { try { __t.informe(); return VAL('informe_texto') + ' ## ' + VAL('en_suma'); }
+                      catch (e) { return 'EXC ' + e.message; } };
+
+  /* ══ DENOMINADOR 0 · las ocho constantes y funciones nuevas EXISTEN ══════════════════════ */
+  ex.push(['(DENOM0) las piezas nuevas de los ocho commits existen',
+    FN('aoLesionSinGrado') && FN('vdDisfGrado') && FN('aiAreaClasificar') && FN('dptBadge')
+      && !!_aiB && !!_dptTam && _tepMin !== null && _ecoPref !== null,
+    'aoLesion=' + FN('aoLesionSinGrado') + ' vdDisf=' + FN('vdDisfGrado')
+      + ' aiArea=' + FN('aiAreaClasificar') + ' dptBadge=' + FN('dptBadge')
+      + ' aiB=' + !!_aiB + ' dptTam=' + !!_dptTam + ' tepMin=' + _tepMin + ' pref=' + _ecoPref]);
+
+  /* ══ (A) VAB — LA LESION PRESENTE SIN GRADO ══════════════════════════════════════════════
+     ⚠️ LA PASTILLA NO SE PRENDE CON toggleValvPill A MANO: el cuerpo de un caso no puede mandar
+     un clic de confianza, asi que la escena usa el MISMO gesto que la app expone y verifica que
+     la pastilla quedo prendida ANTES de medir. Sin ese denominador, «no muestra nada» se leeria
+     como un defecto sobre un gesto que nunca ocurrio. */
+  const _vabEsc = (esten, insuf, eaG) => {
+    __t.limpiar();
+    SEL('va_morf', 'Bicúspide');
+    try { if (typeof showTab === 'function') showTab('valvulas'); } catch (e) {}
+    try { const s = EL('ete-seccion-valv-aortica');
+      if (s && getComputedStyle(s).display === 'none' && _togEte) _togEte('valv-aortica'); } catch (e) {}
+    if (esten) CLIC('pill-esten-aortica');
+    if (insuf) CLIC('pill-insuf-aortica');
+    if (eaG) SEL('ea_grado', eaG);
+    try { if (typeof vabSync === 'function') vabSync(); } catch (e) {}
+    return { func: VAL('vab_funcion'), res: TXT('vab-concl'),
+             pillE: (typeof pillOn === 'function') ? pillOn('aortica', 'esten') : null,
+             pillI: (typeof pillOn === 'function') ? pillOn('aortica', 'insuf') : null,
+             sgE: FN('aoLesionSinGrado') ? aoLesionSinGrado('ea') : 'SIN FN',
+             sgI: FN('aoLesionSinGrado') ? aoLesionSinGrado('ia') : 'SIN FN' };
+  };
+  const _vNada = _vabEsc(false, false, null);
+  const _vEst  = _vabEsc(true,  false, null);
+  const _vIns  = _vabEsc(false, true,  null);
+  const _vAmb  = _vabEsc(true,  true,  null);
+  const _vGra  = _vabEsc(true,  false, 'leve');
+  ex.push(['(DENOM A) las pastillas quedaron prendidas donde la escena las prende',
+    _vEst.pillE === true && _vIns.pillI === true && _vAmb.pillE === true && _vAmb.pillI === true
+      && _vNada.pillE === false && _vNada.pillI === false,
+    'est=' + _vEst.pillE + ' ins=' + _vIns.pillI + ' amb=' + _vAmb.pillE + '/' + _vAmb.pillI
+      + ' nada=' + _vNada.pillE + '/' + _vNada.pillI]);
+  ex.push(['(A1) sin nada marcado la seccion no afirma ninguna funcion',
+    _vNada.func === '' && _vNada.res.indexOf('presente') < 0, _vNada.func + ' // ' + _vNada.res]);
+  ex.push(['(A2) estenosis marcada SIN grado publica «Estenosis presente»',
+    _vEst.func === 'estenosis' && _vEst.res.indexOf('Estenosis presente') > -1 && _vEst.sgE === true,
+    _vEst.func + ' // ' + _vEst.res]);
+  ex.push(['(A3) insuficiencia marcada SIN grado publica «Insuficiencia presente»',
+    _vIns.func === 'insuficiencia' && _vIns.res.indexOf('Insuficiencia presente') > -1 && _vIns.sgI === true,
+    _vIns.func + ' // ' + _vIns.res]);
+  ex.push(['(A4) las DOS sin grado van en UNA oracion',
+    _vAmb.func === 'mixta' && _vAmb.res.indexOf('Estenosis e insuficiencia presentes') > -1,
+    _vAmb.func + ' // ' + _vAmb.res]);
+  ex.push(['(A5) CONTROL NEGATIVO: con grado sale como antes y el estado sin grado NO se enciende',
+    _vGra.func === 'estenosis' && _vGra.res.indexOf('EA leve') > -1
+      && _vGra.res.indexOf('presente') < 0 && _vGra.sgE === false,
+    _vGra.func + ' // ' + _vGra.res + ' // sgE=' + _vGra.sgE]);
+  /* EL DUEÑO ES EL MISMO QUE EL INFORME DE VALVULAS: se mide por el TEXTO que el informe publica
+     en el mismo estado, que es lo que la orden pide («las MISMAS palabras»). */
+  const _vInfEst = (function(){ _vabEsc(true, false, null); return inf(); })();
+  ex.push(['(A6) el informe de Valvulas dice «con estenosis» en ese MISMO estado',
+    _vInfEst.indexOf('con estenosis') > -1 && _vInfEst.indexOf('normofuncionante') < 0,
+    _vInfEst.slice(-300)]);
+  /* LA REGLA ARR: borrar el estado -apagar la pastilla- devuelve la seccion a «sin datos». */
+  const _vApag = (function(){ _vabEsc(true, false, null); CLIC('pill-esten-aortica');
+    try { if (typeof vabSync === 'function') vabSync(); } catch (e) {}
+    return { func: VAL('vab_funcion'), res: TXT('vab-concl'),
+             pill: (typeof pillOn === 'function') ? pillOn('aortica', 'esten') : null }; })();
+  ex.push(['(A7) apagar la pastilla devuelve la seccion a sin datos (regla ARR)',
+    _vApag.pill === false && _vApag.func === '' && _vApag.res.indexOf('presente') < 0,
+    JSON.stringify(_vApag)]);
+
+  /* ══ (B) VAB — «FUSION INDETERMINADA» Y «NO CORONARIANA» ═════════════════════════════════ */
+  ex.push(['(B1) el selector dice «Fusión indeterminada» y no «No clasificable»',
+    (function(){ const e = EL('vab_tipo'); if (!e) return false;
+      const o = Array.prototype.filter.call(e.options, x => x.value === 'no_clasif')[0];
+      return !!o && o.textContent.indexOf('Fusión indeterminada') > -1; })(),
+    (function(){ const e = EL('vab_tipo'); if (!e) return 'NO EXISTE';
+      return Array.prototype.map.call(e.options, x => x.value + '=' + x.textContent).join(' | '); })()]);
+  ex.push(['(B2) el informe y las etiquetas de PANTALLA la nombran igual',
+    !!_infFeno && !!_tipoEs
+      && String(_infFeno.no_clasif).indexOf('fusión indeterminada') > -1
+      && String(_tipoEs.no_clasif).indexOf('Fusión indeterminada') > -1,
+    (_infFeno ? _infFeno.no_clasif : 'SIN') + ' // ' + (_tipoEs ? _tipoEs.no_clasif : 'SIN')]);
+  ex.push(['(B3) CONTROL: la etiqueta del EXCEL no cambia y su importador la sigue reconociendo',
+    !!_tipoLbl && _tipoLbl.no_clasif === 'No clasificable'
+      && !!_xlsLis && (function(){ try {
+        const v = LAB_XLS_VOCAB.vab_tipo;
+        return v['no clasificable'] === 'no_clasif' && v['fusion indeterminada'] === 'no_clasif';
+      } catch (e) { return false; } })(),
+    (_tipoLbl ? _tipoLbl.no_clasif : 'SIN')]);
+  ex.push(['(B4) «no coronariana» en el informe, en el dibujo y en las dos tablas de agregacion',
+    !!_infFeno && String(_infFeno.fused_rn).indexOf('no coronariana') > -1
+      && String(_infFeno.fused_ln).indexOf('no coronariana') > -1
+      && !!_tiposLbl && String(_tiposLbl.fused_rn).indexOf('no coronariana') > -1
+      && !!_dibHit && _dibHit.filter(h => String(h.lbl).indexOf('no coronariana') > -1).length === 2,
+    (_infFeno ? _infFeno.fused_rn : 'SIN') + ' // ' + (_tiposLbl ? _tiposLbl.fused_rn : 'SIN')]);
+  ex.push(['(B5) CONTROL NEGATIVO: ninguna etiqueta visible dice «no coronaria» sin la n final',
+    !!_infFeno && !!_tiposLbl && !!_dibHit
+      && [_infFeno.fused_rn, _infFeno.fused_ln, _tiposLbl.fused_rn, _tiposLbl.fused_ln]
+           .concat(_dibHit.map(h => String(h.lbl)))
+           .every(t => String(t).indexOf('no coronariana') > -1 || String(t).indexOf('no coronaria') < 0),
+    '']);
+
+  /* ══ (C) TEER — LA PROFUNDIDAD A <11 mm, Y LO QUE NO SE MUEVE ════════════════════════════ */
+  const _teerEsc = (campo, valor) => {
+    __t.limpiar();
+    try { if (typeof showTab === 'function') showTab('ete'); } catch (e) {}
+    try { const s = EL('ete-seccion-teer');
+      if (s && getComputedStyle(s).display === 'none' && _togEte) _togEte('teer'); } catch (e) {}
+    SEL('teer_tipo_im', 'secundaria');
+    __t.set(campo, valor);
+    try { if (typeof calcTEER === 'function') calcTEER(); } catch (e) {}
+    return { c4: TXT('teer-c4'), c6: TXT('teer-c6'), c8: TXT('teer-c8'),
+             c1: TXT('teer-c1'), c1b: TXT('teer-c1b'), res: TXT('teer-resultado') };
+  };
+  const _p10  = _teerEsc('teer_prof_flail', '10');
+  const _p105 = _teerEsc('teer_prof_flail', '10.5');
+  const _p11  = _teerEsc('teer_prof_flail', '11');
+  ex.push(['(DENOM C) la seccion TEER abrio y la fila de la profundidad publica un estado',
+    _p10.c4 !== 'NO EXISTE' && _p10.c4 !== 'No ingresado', _p10.c4]);
+  ex.push(['(C1) 10,0 mm cumple',  _p10.c4.indexOf('✓') === 0 && _p10.c4.indexOf('<11mm') > -1, _p10.c4]);
+  ex.push(['(C2) 10,5 mm CUMPLE — es el valor que el corte viejo rechazaba',
+    _p105.c4.indexOf('✓') === 0 && _p105.c4.indexOf('<11mm') > -1, _p105.c4]);
+  ex.push(['(C3) 11,0 mm NO cumple y el texto nombra el borde de exclusion',
+    _p11.c4.indexOf('✗') === 0 && _p11.c4.indexOf('≥11mm') > -1, _p11.c4]);
+  ex.push(['(C4) el rotulo de la fila y la ayuda del campo dicen lo MISMO que el criterio',
+    (function(){ const e = EL('teer-c4'); const f = e && e.closest ? e.closest('.calc-row') : null;
+      const l = f ? f.querySelector('.calc-lbl') : null;
+      const a = (function(){ const i = EL('teer_prof_flail'); const p = i ? i.parentNode : null;
+        const sp = p ? p.querySelector('span') : null; return sp ? sp.textContent.trim() : ''; })();
+      return !!l && l.textContent.indexOf('<11mm') > -1 && a.indexOf('≥11mm') > -1; })(),
+    '']);
+  ex.push(['(C5) CONTROL NEGATIVO: la PSAP y el DSFVI siguen en 70 por sus dos lados',
+    _teerEsc('teer_pasp', '70').c6.indexOf('✓') === 0 && _teerEsc('teer_pasp', '71').c6.indexOf('✗') === 0
+      && _teerEsc('teer_dtsvi', '70').c8.indexOf('✓') === 0 && _teerEsc('teer_dtsvi', '71').c8.indexOf('✗') === 0,
+    '']);
+  ex.push(['(C6) CONTROL NEGATIVO: los dos velos siguen en 20 y en 7 por sus dos lados',
+    _teerEsc('teer_lva', '20').c1.indexOf('✓') === 0 && _teerEsc('teer_lva', '19').c1.indexOf('✗') === 0
+      && _teerEsc('teer_lvp', '7').c1b.indexOf('✓') === 0 && _teerEsc('teer_lvp', '6').c1b.indexOf('⚠') === 0,
+    '']);
+  ex.push(['(C7) el DSFVI dice TELESISTOLICO en la fila y en la ayuda del campo',
+    (function(){ const e = EL('teer-c8'); const f = e && e.closest ? e.closest('.calc-row') : null;
+      const l = f ? f.querySelector('.calc-lbl') : null;
+      const i = EL('teer_dtsvi'); const p = i ? i.parentNode : null;
+      const sps = p ? p.querySelectorAll('span') : null;
+      const a = (sps && sps.length) ? sps[sps.length - 1].textContent : '';
+      return !!l && l.textContent.indexOf('telesistólico') > -1 && a.indexOf('telesistólico') > -1; })(),
+    '']);
+  ex.push(['(C8) el pie del cuadro cita las fuentes y DECLARA lo propio',
+    (function(){ const e = EL('teer-c4'); const b = e && e.closest ? e.closest('.calc-box') : null;
+      if (!b) return false; const t = b.textContent || '';
+      return t.indexOf('Tamburino') > -1 && t.indexOf('ESC/EACTS 2025') > -1
+        && t.indexOf('CRITERIO DE ECOSMART') > -1 && t.indexOf('EXPAND') > -1
+        && t.indexOf('ESC 2021') < 0; })(),
+    '']);
+  /* La regla ARR por los dos gestos de borrado. */
+  ex.push(['(C9) borrar la profundidad devuelve «No ingresado» (regla ARR)',
+    (function(){ _teerEsc('teer_prof_flail', '10.5'); __t.set('teer_prof_flail', '');
+      try { if (typeof calcTEER === 'function') calcTEER(); } catch (e) {}
+      return TXT('teer-c4') === 'No ingresado'; })(), TXT('teer-c4')]);
+
+  /* ══ (D) VD — LA SEVERIDAD EN EL INFORME ═════════════════════════════════════════════════ */
+  const _vdEsc = (tapse, sp) => {
+    __t.limpiar();
+    if (tapse !== null) __t.set('tapse', tapse);
+    if (sp !== null) __t.set('s_prime', sp);
+    try { if (typeof calcVD === 'function') calcVD(); } catch (e) {}
+    const t = inf();
+    return { g: FN('vdDisfGrado') ? vdDisfGrado(tapse, sp) : 'SIN FN', txt: t };
+  };
+  const _vd15 = _vdEsc('15', null), _vd12 = _vdEsc('12', null), _vd8 = _vdEsc('8', null);
+  const _vdDis = _vdEsc('15', '6'), _vd13 = _vdEsc('13', null), _vd72 = _vdEsc(null, '7.2');
+  const _vdMix = _vdEsc('22', '6'), _vdNada = _vdEsc(null, null);
+  ex.push(['(DENOM D) el informe publica la oracion del VD en las escenas con dato',
+    _vd15.txt.indexOf('entrículo derecho') > -1 && _vd12.txt.indexOf('entrículo derecho') > -1,
+    _vd15.txt.slice(0, 120)]);
+  ex.push(['(D1) TAPSE 15 solo → disfuncion sistolica LEVE en el informe y en el EN SUMA',
+    _vd15.g === 'leve' && _vd15.txt.indexOf('disfunción sistólica leve') > -1, _vd15.g]);
+  ex.push(['(D2) TAPSE 12 → MODERADA y TAPSE 8 → SEVERA',
+    _vd12.g === 'moderada' && _vd12.txt.indexOf('disfunción sistólica moderada') > -1
+      && _vd8.g === 'severa' && _vd8.txt.indexOf('disfunción sistólica severa') > -1,
+    _vd12.g + ' / ' + _vd8.g]);
+  ex.push(['(D3) los dos en bandas DISTINTAS dan el RANGO',
+    _vdDis.g === 'leve-moderada' && _vdDis.txt.indexOf('disfunción sistólica leve-moderada') > -1,
+    _vdDis.g]);
+  ex.push(['(D4) los DOS bordes que la Tabla 1 pone en dos bandas dan el rango (13 mm y 7,2 cm/s)',
+    _vd13.g === 'leve-moderada' && _vd72.g === 'leve-moderada'
+      && _vd13.txt.indexOf('leve-moderada') > -1 && _vd72.txt.indexOf('leve-moderada') > -1,
+    _vd13.g + ' / ' + _vd72.g]);
+  ex.push(['(D5) CONTROL NEGATIVO: uno normal y el otro alterado queda SIN grado, como antes',
+    _vdMix.g === null && _vdMix.txt.indexOf('disfunción sistólica (') > -1
+      && _vdMix.txt.indexOf('disfunción sistólica leve') < 0
+      && _vdMix.txt.indexOf('disfunción sistólica moderada') < 0, String(_vdMix.g)]);
+  ex.push(['(D6) CONTROL NEGATIVO: sin datos no hay grado ni oracion de funcion (regla ARR)',
+    _vdNada.g === null && _vdNada.txt.indexOf('disfunción sistólica') < 0, String(_vdNada.g)]);
+  ex.push(['(D7) CONTROL: el solape esta DECLARADO en la tabla y el grado que publica NO cambio',
+    !!_t1 && _t1.tapse.bandas[1].solapa === true && _t1.s_prime.bandas[1].solapa === true
+      && ase25Grado('tapse', 13) === 'leve' && ase25Grado('tapse', 12.9) === 'moderada'
+      && ase25Grado('s_prime', 7.2) === 'leve' && ase25Grado('s_prime', 7.1) === 'moderada',
+    '']);
+  ex.push(['(D8) CONTROL NEGATIVO: la FEVD sigue sin votar el OR de la disfuncion',
+    (function(){ __t.limpiar(); __t.set('fevd', '30');
+      try { if (typeof calcVD === 'function') calcVD(); } catch (e) {}
+      return inf().indexOf('disfunción sistólica') < 0; })(), '']);
+
+  /* ══ (E) AI — LOS CUATRO GRADOS DEL AREA Y LA JERARQUIA ══════════════════════════════════ */
+  const _aiG = a => { try { const b = aiAreaClasificar(a); return b ? b.clave : null; } catch (e) { return 'EXC'; } };
+  ex.push(['(DENOM E) las cuatro bandas del area existen con sus tres fronteras',
+    !!_aiB && _aiB.length === 4 && _aiB[0].hasta === 20 && _aiB[1].hasta === 30 && _aiB[2].hasta === 40,
+    _aiB ? _aiB.map(b => b.clave + '<=' + b.hasta).join(' ') : 'SIN']);
+  ex.push(['(E1) los tres bordes compartidos caen en la banda MENOS grave',
+    _aiG(20) === 'normal' && _aiG(20.1) === 'leve' && _aiG(30) === 'leve'
+      && _aiG(30.1) === 'moderada' && _aiG(40) === 'moderada' && _aiG(40.1) === 'severa',
+    [20, 20.1, 30, 30.1, 40, 40.1].map(x => x + '=' + _aiG(x)).join(' ')]);
+  ex.push(['(E2) CONTROL: el predicado binario no cambio — «no normal» es lo mismo que «>20»',
+    [5, 20, 20.1, 25, 30, 40, 50].every(x => aiAreaDilatada(x) === (x > 20)), '']);
+  const _aiEsc = (campos) => { __t.limpiar();
+    Object.keys(campos).forEach(k => __t.set(k, campos[k]));
+    try { if (typeof calcBSA === 'function') calcBSA(); } catch (e) {}
+    try { if (typeof calcAI === 'function') calcAI(); } catch (e) {}
+    return { cap: TXT('ai-area-interp'), txt: inf() }; };
+  const _aiArea = _aiEsc({ ai_area: '35' });
+  const _aiVol  = _aiEsc({ peso: '80', talla: '180', ai_vol: '98' });
+  const _aiAmb  = _aiEsc({ peso: '80', talla: '180', ai_vol: '60', ai_area: '35' });
+  const _aiDiam = _aiEsc({ ai_diam: '44' });
+  ex.push(['(E3) con SOLO area, el informe publica el grado del area',
+    _aiArea.txt.indexOf('moderadamente dilatada') > -1
+      && _aiArea.txt.indexOf('El grado de dilatación auricular no se informa') < 0,
+    _aiArea.txt.slice(0, 160)]);
+  ex.push(['(E4) con VOLUMEN indexado manda el volumen y el area no gradua la auricula',
+    _aiVol.txt.indexOf('severamente dilatada') > -1 && _aiVol.txt.indexOf('Vol Index') > -1,
+    _aiVol.txt.slice(0, 160)]);
+  ex.push(['(E5) con los DOS manda el volumen, y la capsula del area dice quien decide',
+    _aiAmb.txt.indexOf('de dimensiones normales') > -1
+      && _aiAmb.cap.indexOf('el volumen indexado gradúa') > -1, _aiAmb.cap]);
+  ex.push(['(E6) CONTROL NEGATIVO: con SOLO el diametro sigue binario y conserva su invitacion',
+    _aiDiam.txt.indexOf('dilatada') > -1
+      && _aiDiam.txt.indexOf('levemente dilatada') < 0
+      && _aiDiam.txt.indexOf('El grado de dilatación auricular no se informa') > -1,
+    _aiDiam.txt.slice(0, 200)]);
+  ex.push(['(E7) la capsula publica el grado del area con su rango',
+    _aiArea.cap.indexOf('Dilat. moderada') > -1 && _aiArea.cap.indexOf('>30 a ≤40 cm²') > -1
+      && _aiArea.cap.indexOf('sin grado') < 0, _aiArea.cap]);
+  ex.push(['(E8) la ficha del registro nombra al dueno nuevo y su folio',
+    (function(){ const f = fichaDe('DIM-AI-002');
+      return !!f && String(f.duenio).indexOf('aiAreaClasificar') > -1 && String(f.folio) === '1456'
+        && String(f.valor).indexOf('severa') > -1; })(),
+    (function(){ const f = fichaDe('DIM-AI-002'); return f ? f.duenio + ' // ' + f.folio : 'SIN'; })()]);
+  ex.push(['(E9) borrar el area devuelve la auricula a sin datos (regla ARR)',
+    (function(){ _aiEsc({ ai_area: '35' }); __t.set('ai_area', '');
+      try { if (typeof calcAI === 'function') calcAI(); } catch (e) {}
+      return TXT('ai-area-interp') === '—'; })(), TXT('ai-area-interp')]);
+
+  /* ══ (F) PERICARDIO — LOS TRES GRADOS, Y LOS ESTUDIOS GUARDADOS ══════════════════════════ */
+  const _periEsc = (tok, mm) => { __t.limpiar();
+    try { if (typeof showTab === 'function') showTab('ete'); } catch (e) {}
+    try { const s = EL('ete-seccion-pericardio-masas');
+      if (s && getComputedStyle(s).display === 'none' && _togEte) _togEte('pericardio-masas'); } catch (e) {}
+    SEL('pericardio', tok);
+    if (mm) __t.set('dpt_mm_post', mm);
+    try { if (typeof dptSync === 'function') dptSync(); } catch (e) {}
+    const tm = (typeof dptTamano === 'function') ? dptTamano() : null;
+    return { puesto: VAL('pericardio'), clave: tm ? tm.clave : 'SIN',
+             lbl: tm ? tm.lbl : 'SIN', rango: tm ? tm.rango : 'SIN',
+             fr: (typeof dptFrases === 'function') ? dptFrases().join(' ') : 'SIN FN',
+             suma: (typeof dptSuma === 'function') ? dptSuma() : 'SIN FN',
+             badge: TXT('dpt-concl-badge') }; };
+  ex.push(['(DENOM F) el selector ofrece el grado nuevo y oculta los dos de legado',
+    (function(){ const e = EL('pericardio'); if (!e) return false;
+      const o = Array.prototype.map.call(e.options, x => (x.hidden ? '[h]' : '') + x.value);
+      return o.indexOf('Derrame leve (<10mm)') > -1 && o.indexOf('[h]Derrame mínimo') > -1
+        && o.indexOf('[h]Derrame leve (5-10mm)') > -1 && o.indexOf('Derrame mínimo') < 0; })(),
+    (function(){ const e = EL('pericardio'); return e ? Array.prototype.map.call(e.options,
+      x => (x.hidden ? '[h]' : '') + x.value).join(' | ') : 'NO EXISTE'; })()]);
+  ex.push(['(F1) los tres grados de la Tabla 10 y SIN el «mínimo»',
+    !!_dptTam && !_dptTam.minimo && _dptTam.leve.max === 10 && _dptTam.leve.min === 0
+      && _dptTam.moderado.min === 10 && _dptTam.moderado.max === 20 && _dptTam.severo.min === 20,
+    _dptTam ? Object.keys(_dptTam).join(',') : 'SIN']);
+  ex.push(['(F2) un derrame de 3 mm es LEVE y no discrepa — antes caia bajo el piso de 5',
+    (function(){ const r = _periEsc('Derrame leve (<10mm)', '3');
+      return r.clave === 'leve' && r.fr.indexOf('no concuerda') < 0; })(),
+    JSON.stringify(_periEsc('Derrame leve (<10mm)', '3'))]);
+  ex.push(['(F3) los bordes 10 y 20 caen donde la Tabla 10 los pone',
+    _periEsc('Derrame leve (<10mm)', '10').clave === 'leve'
+      && _periEsc('Derrame moderado (10-20mm)', '20').clave === 'moderado'
+      && _periEsc('Derrame severo (>20mm)', '20.1').clave === 'severo', '']);
+  const _legMin = _periEsc('Derrame mínimo', null);
+  const _legLev = _periEsc('Derrame leve (5-10mm)', null);
+  ex.push(['(F4) un estudio guardado con «Derrame mínimo» abre con SU token y se MUESTRA como leve',
+    _legMin.puesto === 'Derrame mínimo' && _legMin.clave === 'leve'
+      && _legMin.fr.indexOf('leve (<10mm)') > -1 && _legMin.fr.indexOf('mínimo') < 0,
+    JSON.stringify(_legMin)]);
+  ex.push(['(F5) y el de «leve (5-10mm)» igual, con su token intacto',
+    _legLev.puesto === 'Derrame leve (5-10mm)' && _legLev.clave === 'leve'
+      && _legLev.fr.indexOf('leve (<10mm)') > -1, JSON.stringify(_legLev)]);
+  ex.push(['(F6) los tres tokens nuevos y los dos de legado estan en la lista del importador',
+    !!_xlsLis && ['Derrame leve (<10mm)', 'Derrame leve (5-10mm)', 'Derrame mínimo',
+                  'Derrame moderado (10-20mm)', 'Derrame severo (>20mm)']
+      .every(t => _xlsLis.pericardio.indexOf(t) > -1),
+    _xlsLis ? _xlsLis.pericardio.join(' | ') : 'SIN']);
+  ex.push(['(F7) los dos asserts de arranque del Excel no gritan',
+    (!!_asBl && _asBl().length === 0) && (!!_asLi && _asLi().length === 0),
+    (_asBl ? JSON.stringify(_asBl()) : 'SIN') + ' // ' + (_asLi ? JSON.stringify(_asLi()) : 'SIN')]);
+  ex.push(['(F8) la ficha de Referencias cita la ESC 2025 de pericarditis, sin mL y sin «ESC 2015»',
+    (function(){ try { if (typeof showTab === 'function') showTab('referencias'); } catch (e) {}
+      const c = EL('ref-pericardio'); if (!c) return false;
+      const h = c.previousElementSibling;
+      const tit = h ? (h.textContent || '') : '';
+      const t = c.textContent || '';
+      return tit.indexOf('ESC 2025 de miocarditis y pericarditis') > -1 && tit.indexOf('ESC 2015') < 0
+        && t.indexOf('200ml') < 0 && t.indexOf('80ml') < 0 && t.indexOf('Mínimo') < 0; })(),
+    '']);
+
+  /* ══ (G) TAPONAMIENTO — LISTA Y NO CONCLUYE ══════════════════════════════════════════════ */
+  const _tapEsc = (pasos) => { __t.limpiar();
+    try { if (typeof showTab === 'function') showTab('ete'); } catch (e) {}
+    try { const s = EL('ete-seccion-pericardio-masas');
+      if (s && getComputedStyle(s).display === 'none' && _togEte) _togEte('pericardio-masas'); } catch (e) {}
+    pasos();
+    try { if (typeof dptSync === 'function') dptSync(); } catch (e) {}
+    const st = (typeof dptEstado === 'function') ? dptEstado() : null;
+    return { clave: st ? st.clave : 'SIN', signos: st ? st.signos : null,
+             badge: TXT('dpt-concl-badge'),
+             fr: (typeof dptFrases === 'function') ? dptFrases().join(' ') : 'SIN FN',
+             suma: (typeof dptSuma === 'function') ? dptSuma() : 'SIN FN' }; };
+  const _tapTres = _tapEsc(() => { SEL('pericardio', 'Derrame severo (>20mm)');
+    SEL('dpt_col_vd', 'si'); __t.set('vci_diam', '25'); SEL('vci_col', '<50');
+    __t.set('resp_var_mitral', '35'); });
+  const _tapUno = _tapEsc(() => { SEL('pericardio', 'Derrame moderado (10-20mm)');
+    SEL('dpt_col_ad', 'si'); });
+  const _tapSin = _tapEsc(() => { SEL('pericardio', 'Derrame moderado (10-20mm)'); });
+  ex.push(['(DENOM G) la escena de los TRES criterios los deja los tres presentes',
+    !!_tapTres.signos && _tapTres.signos.length === 3, JSON.stringify(_tapTres.signos)]);
+  ex.push(['(G1) con los TRES criterios NO se concluye taponamiento en ninguna superficie',
+    _tapTres.clave === 'con_derrame'
+      && _tapTres.fr.indexOf('taponamiento') < 0 && _tapTres.suma.indexOf('taponamiento') < 0
+      && _tapTres.badge.indexOf('TAPONAMIENTO') < 0,
+    _tapTres.badge + ' // ' + _tapTres.fr.slice(0, 200)]);
+  ex.push(['(G2) ninguna de las tres frases automaticas se emite',
+    [_tapTres, _tapUno, _tapSin].every(r =>
+      r.fr.indexOf('compromiso hemodinámico incipiente') < 0
+        && r.fr.indexOf('sin criterios ecocardiográficos de compromiso') < 0
+        && r.fr.indexOf('No se evaluó:') < 0), '']);
+  ex.push(['(G3) los signos presentes se LISTAN en la misma oracion del derrame',
+    _tapTres.fr.indexOf('colapso diastólico del VD') > -1
+      && _tapTres.fr.indexOf('plétora de VCI') > -1
+      && _tapTres.fr.indexOf('Derrame pericárdico severo (>20mm), con ') > -1,
+    _tapTres.fr.slice(0, 220)]);
+  ex.push(['(G4) el badge cuenta los signos y los criterios evaluados',
+    _tapTres.badge.indexOf('3 SIGNOS PRESENTES') > -1 && _tapTres.badge.indexOf('3 de 3') > -1
+      && _tapUno.badge.indexOf('1 SIGNO PRESENTE') > -1
+      && _tapSin.badge.indexOf('SIN SIGNOS PRESENTES') > -1,
+    _tapTres.badge + ' | ' + _tapUno.badge + ' | ' + _tapSin.badge]);
+  const _tapHemo = _tapEsc(() => { SEL('pericardio', 'Derrame moderado (10-20mm)');
+    SEL('dpt_col_ad', 'si'); SEL('pericardio_hemo', 'si'); });
+  ex.push(['(G5) el compromiso lo decide el MEDICO y su campo sigue con sus tres estados',
+    _tapHemo.fr.indexOf('con compromiso hemodinámico') > -1
+      && _tapHemo.suma.indexOf('con compromiso hemodinámico') > -1
+      && _tapSin.fr.indexOf('compromiso hemodinámico') < 0
+      && (function(){ const e = EL('pericardio_hemo');
+        return !!e && e.options.length === 3; })(),
+    _tapHemo.fr.slice(0, 200)]);
+  ex.push(['(G6) la ficha declara el diagnostico CLINICO, la pericardiocentesis I-C y sin subcostal',
+    (function(){ try { if (typeof showTab === 'function') showTab('referencias'); } catch (e) {}
+      const c = EL('ref-pericardio'); if (!c) return false; const t = c.textContent || '';
+      return t.indexOf('es CLÍNICO') > -1 && t.indexOf('Clase I') > -1 && t.indexOf('nivel C') > -1
+        && t.indexOf('Clase IIa') < 0 && t.indexOf('subcostal') < 0; })(), '']);
+  ex.push(['(G7) los tres cortes propios del modulo estan DECLARADOS en su pie',
+    (function(){ const e = EL('dpt-concl'); const b = e && e.closest ? e.closest('.calc-box') : null;
+      if (!b) return false; const t = b.textContent || '';
+      return t.indexOf('CRITERIO DE ECOSMART') > -1 && t.indexOf('21 mm') > -1
+        && t.indexOf('25 %') > -1 && t.indexOf('40 %') > -1; })(), '']);
+  ex.push(['(G8) el filtro de cohorte tiene SOLO las dos claves que el estado devuelve',
+    (function(){ const e = EL('coh-dpt-con'); if (!e) return false;
+      const v = Array.prototype.map.call(e.options, x => x.value);
+      return v.length === 3 && v.indexOf('con_derrame') > -1 && v.indexOf('sin_derrame') > -1
+        && v.indexOf('taponamiento') < 0; })(),
+    (function(){ const e = EL('coh-dpt-con'); return e ? Array.prototype.map.call(e.options,
+      x => x.value).join(' | ') : 'NO EXISTE'; })()]);
+
+  /* ══ (H) TEP Y LAS FORMULAS DE HTP ═══════════════════════════════════════════════════════ */
+  const _tepEsc = v2 => { __t.limpiar(); __t.set('tep_vdvi', v2);
+    try { if (typeof calcTEP === 'function') calcTEP(); } catch (e) {}
+    return TXT('tep-vdvi-interp'); };
+  ex.push(['(DENOM H) la capsula de TEP publica un estado con el cociente cargado',
+    _tepEsc('1.2').indexOf('VD/VI') > -1, _tepEsc('1.2')]);
+  ex.push(['(H1) el corte del eco en TEP es 1,0 y vive en UNA constante',
+    _tepMin === 1.0, String(_tepMin)]);
+  ex.push(['(H2) 0,9 y 0,99 ya NO son dilatacion, y 1,0 si',
+    _tepEsc('0.9').indexOf('normal') > -1 && _tepEsc('0.99').indexOf('normal') > -1
+      && _tepEsc('1').indexOf('dilatación VD') > -1 && _tepEsc('1.01').indexOf('dilatación VD') > -1,
+    _tepEsc('0.9') + ' | ' + _tepEsc('1')]);
+  ex.push(['(H3) CONTROL NEGATIVO: el corte de la probabilidad de HTP es OTRO campo y OTRO operador',
+    _htpMin === 1.0 && !!EL('vd_vi') && !!EL('tep_vdvi') && EL('vd_vi') !== EL('tep_vdvi'),
+    'htp=' + String(_htpMin) + ' tep=' + String(_tepMin)]);
+  ex.push(['(H4) la ficha de TEP dice >=1.0 y ya no >=0.9',
+    (function(){ try { if (typeof showTab === 'function') showTab('referencias'); } catch (e) {}
+      const c = EL('ref-tep'); if (!c) return false; const t = c.textContent || '';
+      return t.indexOf('VD/VI ≥1.0') > -1 && t.indexOf('VD/VI ≥0.9') < 0; })(), '']);
+  ex.push(['(H5) las dos formulas de HTP publican los cortes de la ESC/ERS 2022',
+    (function(){ const filas = Array.prototype.filter.call(document.querySelectorAll('tr'), tr => {
+        const t = tr.textContent || '';
+        return t.indexOf('TAPSE/PSAP') > -1 || t.indexOf('Relación VD/VI') > -1; });
+      const t = filas.map(tr => tr.textContent || '').join(' ');
+      return t.indexOf('0.55') > -1 && t.indexOf('1.0') > -1
+        && t.indexOf('>0.32 mm/mmHg') < 0 && t.indexOf('&lt;0.9') < 0; })(),
+    '']);
+  ex.push(['(H6) borrar el cociente devuelve la capsula a la raya (regla ARR)',
+    (function(){ _tepEsc('1.2'); __t.set('tep_vdvi', '');
+      try { if (typeof calcTEP === 'function') calcTEP(); } catch (e) {}
+      return TXT('tep-vdvi-interp') === '—'; })(), TXT('tep-vdvi-interp')]);
+
+  /* ══ (I) REFERENCIAS — DOI, CITAS, TEXTOS Y CRITERIOS DECLARADOS ═════════════════════════ */
+  ex.push(['(I1) el DOI de la ESC 2021 de insuficiencia cardiaca es el del ARTICULO',
+    (function(){ const f = fichaDe('FUN-VI-002');
+      return !!f && String(f.doi) === '10.1016/j.recesp.2021.11.027'; })(),
+    (function(){ const f = fichaDe('FUN-VI-002'); return f ? f.doi : 'SIN'; })()]);
+  ex.push(['(I2) la estenosis tricuspide cita las TRES guias CON su tabla y su folio',
+    !!_etFte && _etFte.indexOf('Tabla 10 (folio 19)') > -1
+      && _etFte.indexOf('(folio 16)') > -1 && _etFte.indexOf('4687-4688') > -1,
+    String(_etFte)]);
+  ex.push(['(I3) el texto de integracion de Referencias declara la regla de la protesis mitral',
+    (function(){ const e = EL('ref-integracion'); if (!e) return false; const t = e.textContent || '';
+      /* TRAMPA: el <b> de la frase lleva un SALTO DE LINEA adentro, asi que textContent devuelve
+         «dos o más criterios\n        positivos» y buscar la frase completa falla. Se buscan los
+         pedazos, que es lo que la condicion de verdad afirma. */
+      return t.indexOf('prótesis mitral') > -1 && t.indexOf('dos o más criterios') > -1
+        && t.indexOf('positivos') > -1 && t.indexOf('ASE 2024') > -1; })(),
+    TXT('ref-integracion').slice(-200)]);
+  ex.push(['(I4) el ancho del jet de la IP dice «>50 %» y ya no el rango',
+    (function(){ const os = document.querySelectorAll('option');
+      for (let i = 0; i < os.length; i++) {
+        const t = os[i].textContent || '';
+        if (os[i].value === 'ancho' && t.indexOf('anillo pulmonar') > -1)
+          return t.indexOf('>50 %') > -1 && t.indexOf('65') < 0;
+      } return false; })(), '']);
+  ex.push(['(I5) la ficha del test de burbuja usa la escala del MODULO y cita sus dos fuentes',
+    (function(){ try { if (typeof showTab === 'function') showTab('referencias'); } catch (e) {}
+      const c = EL('ref-burbujas'); if (!c) return false; const t = c.textContent || '';
+      return t.indexOf('<5 burbujas') > -1 && t.indexOf('5–20 burbujas') > -1
+        && t.indexOf('>20 burbujas') > -1 && t.indexOf('10–30') < 0
+        && t.indexOf('Pristipino') > -1 && t.indexOf('Kleindorfer') > -1
+        && t.indexOf('CRITERIO DE ECOSMART') > -1; })(), '']);
+  ex.push(['(I6) CONTROL NEGATIVO: el modulo del FOP conserva su escala <5 / 5-20 / >20',
+    (function(){ const e = EL('fop_burbujas'); if (!e) return false;
+      const v = Array.prototype.map.call(e.options, x => x.value).join(',');
+      return v.indexOf('pocas') > -1 && v.indexOf('moderado') > -1 && v.indexOf('abundante') > -1; })(),
+    (function(){ const e = EL('fop_burbujas'); return e ? Array.prototype.map.call(e.options,
+      x => x.value).join(',') : 'NO EXISTE'; })()]);
+  ex.push(['(I7) el piso de 9 mmHg de la estenosis pulmonar esta DECLARADO y lee su constante',
+    (function(){ if (!_qvNota) return false;
+      const n = _qvNota['esten:pulmonar'];
+      const t = (typeof n === 'function') ? n() : String(n || '');
+      return t.indexOf('Criterio de EcoSmart') === 0 && t.indexOf('9 mmHg') > -1; })(),
+    (function(){ if (!_qvNota) return 'SIN'; const n = _qvNota['esten:pulmonar'];
+      return (typeof n === 'function') ? n() : String(n || 'SIN'); })()]);
+  ex.push(['(I8) los TRES chips «Criterio de EcoSmart» estan y el prefijo de las notas tambien',
+    (function(){ let n = 0;
+      Array.prototype.forEach.call(document.querySelectorAll('span'), x => {
+        if ((x.textContent || '').trim() === 'CRITERIO DE ECOSMART') n++; });
+      return n === 3 && _ecoPref === 'Criterio de EcoSmart: '; })(),
+    (function(){ let n = 0;
+      Array.prototype.forEach.call(document.querySelectorAll('span'), x => {
+        if ((x.textContent || '').trim() === 'CRITERIO DE ECOSMART') n++; });
+      return 'chips=' + n; })()]);
+
+  /* ══ (J) CONTROLES — EL EXCEL, LOS CAMPOS Y EL ALMACENAMIENTO ════════════════════════════ */
+  __t.limpiar();
+  /* TRAMPA: no hay _labExcelCols. Las columnas son las CLAVES de la fila que _labExcelRow
+     devuelve, que es como las cuentan los otros casos de este archivo. */
+  const _cols = _xlsRow ? Object.keys(_xlsRow({ id: 0, campos: {} })) : null;
+  ex.push(['(J1) el Excel sigue en 440 columnas',
+    !!_cols && _cols.length === 440, _cols ? String(_cols.length) : 'SIN']);
+  ex.push(['(J2) CONTROL NEGATIVO: ningun encabezado nuevo del Excel nombra las zonas tocadas',
+    !!_cols && _cols.filter(c => String(c).indexOf('Fusión indeterminada') > -1
+      || String(c).indexOf('telesistólico') > -1 || String(c).indexOf('signos') > -1).length === 0, '']);
+  ex.push(['(J3) ningun control nuevo entra al recolector del estudio',
+    (function(){ const ids = Array.prototype.map.call(
+        document.querySelectorAll('input[id], select[id], textarea[id]'), e => e.id);
+      return ids.filter(i => i.indexOf('dpt_signo') === 0 || i.indexOf('vd_disf') === 0
+        || i.indexOf('ai_area_g') === 0).length === 0; })(), '']);
+  ex.push(['(J4) nada de esta tanda se guarda en el navegador',
+    (function(){ try { const k = Object.keys(localStorage);
+      return k.filter(x => x.indexOf('dpt-') === 0 || x.indexOf('vdDisf') === 0
+        || x.indexOf('aiArea') === 0).length === 0; } catch (e) { return true; } })(), '']);
+  ex.push(['(J5) CONTROL NEGATIVO: el FOP, ASIA y el test de burbuja del modulo siguen enteros',
+    !!EL('fop_burbujas') && !!EL('fop_tunel') && !!EL('otr_asia')
+      && (function(){ const e = EL('fop_burbujas'); return e && e.options.length === 4; })(),
+    '']);
 
   return { extra: ex };
 `);

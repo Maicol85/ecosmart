@@ -429,3 +429,21 @@ registro y nueve trampas.
 
 La verificación contra el PDF original —folio por folio, con la regla de folio de cada una de las
 tres guías comprobada en el pie impreso— está en `docs/fuentes/FUENTES.md` → «La tanda LS».
+
+## La tanda «R» (2026-10-20) — el ÁREA de la AI gradúa en cuatro
+
+`AI_AREA_BANDAS` (Lang 2005, Tabla 9: ≤20 / >20-30 / >30-40 / >40 cm², iguales en los dos
+sexos), con `aiAreaClasificar`, `aiAreaRotulo` y `aiAreaDilatada` derivados. **El volumen
+indexado sigue mandando** —esa rama no se tocó— y el **diámetro AP sigue siendo binario**,
+porque ninguna guía lo gradúa.
+
+⚠️ **EL BLOQUE VA DESPUÉS DE `AI_VOL_BANDAS`, DE DONDE DERIVA SUS ADJETIVOS**: declarado antes,
+un `const` que nombra otro del mismo bloque **aborta el `<script>` entero** por zona muerta, y
+el síntoma aparece en otra función —`showTab('ai-vi')` tirando `Cannot access '_lv3d'`— con
+Semgrep en 127 / 0 ERROR al lado.
+
+⚠️ **Y EL EN SUMA TUVO QUE SEGUIR AL INFORME, QUE EN LA PRIMERA VERSIÓN NO LO HACÍA**: decía
+«AI dilatada» pelado mientras la oración de arriba ya publicaba «levemente dilatada». Lo destapó
+la SUITE COMPLETA (TC-487), no la medición de zona.
+
+→ `docs/mapa/tanda-r-referencias.md` § 4.

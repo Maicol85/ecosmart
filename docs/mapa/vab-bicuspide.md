@@ -529,3 +529,15 @@ La sonda trae `__Z.irVAB()`, `__Z.vabRo()`, `__Z.vabDib()`, `__Z.animEstado()`,
 `__Z.rafCuenta()`, `__Z.cicloVAB()`, `__Z.evid()`, `__Z.tipos()` y `__Z.xlsVab()`.
 ⚠️ **ABRIR LA SECCIÓN ANTES DE MEDIR**: con el acordeón plegado los nodos existen, el rect del SVG
 no es cero y la lectura informa números plausibles sobre una sección que nadie ve.
+
+## La tanda «R» (2026-10-20) — la lesión presente sin grado y dos rótulos
+
+La sección VAB muestra desde hoy **«Estenosis presente» / «Insuficiencia presente»** cuando la
+pastilla está prendida y el grado todavía está en el centinela, con un dueño único
+(`aoLesionSinGrado`) que replica las cinco compuertas del informe; `vabFuncionDerivada` lo
+consulta y **con `src` devuelve siempre `false`**, porque un estudio archivado no tiene
+pastillas. Y dos rótulos: `no_clasif` pasa a **«Fusión indeterminada»** y la cúspide a **«no
+coronariana»** — ⚠️ en las seis superficies de PANTALLA; **`VAB_TIPO_LBL`, el del Excel, NO se
+toca**, porque un valor de opción desconocido descarta la fila entera al reimportar.
+
+→ `docs/mapa/tanda-r-referencias.md` § 1.

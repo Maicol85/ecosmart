@@ -535,3 +535,15 @@ anuncian el suyo.
 que hizo falta para adaptar **TC-301**: las cinco condiciones que medían «un valor tipeado a mano
 no se pisa» y «el fallback no inventa una marca» se mudaron a ese par, porque sobre la FEVI y el
 DSFVI **ya no son alcanzables por construcción** —tipear ahí es editar el dato—.
+
+## La tanda «R» (2026-10-20) — los criterios TEER y su pie de fuentes
+
+La **profundidad de coaptación** pasa de `<10 mm` a **`<11 mm`** (Tamburino 2010, Tabla 1,
+folio 1386, que excluye `≥11`), y cambia en **los dos** lugares que la leen: `c4` de `calcTEER`
+y `_LAB_TEER_CRIT`, que es lo que la hoja del PDF consume — con uno solo, la pantalla y el papel
+firmado graduarían distinto el mismo número. La PSAP pasa a **`≤70 mmHg`** y el DSFVI a
+**`≤70 mm` telesistólico** (ESC/EACTS 2025, Tabla 7, folio 4678). Debajo de la caja entra un pie
+ESTÁTICO con las tres fuentes y el chip «CRITERIO DE ECOSMART» para el 20-50 % de FEVI, que sale
+de COAPT.
+
+→ `docs/mapa/tanda-r-referencias.md` § 2.

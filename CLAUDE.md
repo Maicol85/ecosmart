@@ -64,6 +64,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar el FOP, el test de burbuja o el aneurisma del septum**: la escala unificada, el espejo entre Otros y el módulo FOP, el informe esquemático o el aviso de la edad | `docs/mapa/fop-burbuja-unificado.md` |
 | **Agregar o correr un caso de prueba; A/B; mutación** | `docs/mapa/tests.md` · fichas en `docs/mapa/tests-fichas.md` (TC-499 en adelante), `docs/mapa/tests-fichas-496-498.md`, `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
 | **Tocar el DIBUJO ESTÁTICO de la mitral en ETE**: la tabla única de festones por ángulo, la geometría, la línea del plano, el giro, las tres vistas con sus LETRAS DE FESTÓN, **la ORIENTACIÓN de la TRANSGÁSTRICA**, el PDF, los CUATRO DIBUJOS DE MEDIDAS TEER, **los CRITERIOS TEER y sus cortes** o **el ESPEJO de la FEVI y el DSFVI del TEER** | `docs/mapa/mitral-dibujo-estatico.md` |
+| **Tocar algo que la tanda R movió**: la lesión presente sin grado de la VAB, los cortes del TEER, la severidad de la disfunción del VD, el área de la AI, los grados del derrame, el taponamiento que ya no concluye, el VD/VI del TEP o los criterios declarados de Referencias | `docs/mapa/tanda-r-referencias.md` |
 | **Tocar la sección de la VÁLVULA AÓRTICA BICÚSPIDE**: la disposición en tres columnas, las seis tarjetas ⓘ, los factores de riesgo con casilla, el DIBUJO y sus puntos sensibles, **la SIMETRÍA DE LAS CÚSPIDES y el ÁNGULO con que se dibuja**, **los SEIS dibujos por tipo y la ANIMACIÓN de la apertura**, **la FUNCIÓN VALVULAR derivada**, **el RESUMEN esquemático y su texto en Evidencia**, la morfología que sigue al tipo de fusión, la descripción del informe, el PDF o el recordatorio de la coartación | `docs/mapa/vab-bicuspide.md` |
 | **Visor de cineloop, medición, calibración, IndexedDB** | `docs/mapa/imagenes-visor.md` |
 | **Tocar la ESTENOSIS MITRAL en el LABORATORIO**: las seis categorías, las dos casillas del filtro, el gráfico de distribución, el PDF de auditoría o el PPT | `docs/mapa/laboratorio-estenosis-mitral.md` |
@@ -129,8 +130,8 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **8,45 MB / 127.206 líneas**, medido el 2026-10-20 al cierre de la tanda
-  Y3f —el renglón anterior decía «8,40 MB / 126.417 líneas» y era del Y3e, una tanda antes:
+  sin frameworks. Hoy **8,50 MB / 127.759 líneas**, medido el 2026-10-20 al cierre de la tanda
+  R —el renglón anterior decía «8,45 MB / 127.206 líneas» y era del Y3f, una tanda antes:
   **medirlo antes de presupuestar contexto**—. Las únicas dependencias son jsPDF, XLSX y
   PptxGenJS por CDN. Se abre como archivo local y corre en Chrome.
 - Lo que produce es un **informe firmado**: narrativo, EN SUMA, PDF, PPT y Excel del Laboratorio.
@@ -284,6 +285,180 @@ impecable.
 ---
 
 ## Estado vigente
+
+### Las REFERENCIAS y las FUENTES, y lo que es CRITERIO PROPIO — «R» (2026-10-20)
+
+- **Son NUEVE commits, y son los nueve que la orden pedía.** Al **empezar**, `main` y
+  `origin/main` estaban los dos en **`714e501`** (sello `v20261020-1954`), **sin nada sin
+  pushear** —confirmado con un `git fetch` de verdad—, con los nueve commits del Y3f ya
+  incluidos **y pusheados por Maicol**. Los **nueve** commits de esta tanda quedan locales; el
+  push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 9 → 8 → … → 1.**
+  ⚠️ **LOS OCHO PRIMEROS NO SE NOMBRAN ENTRE SÍ Y SE REVIERTEN EN CUALQUIER ORDEN**, que en esta
+  serie es raro y conviene decirlo: el 1 vive en `aoLesionSinGrado` y los rótulos de la VAB; el 2
+  en `c4` de `calcTEER` y `_LAB_TEER_CRIT`; el 3 en `vdDisfGrado` y `_vdDisfTxt`; el 4 en
+  `AI_AREA_BANDAS`; el 5 en `DPT_TAM` y las dos `<option hidden>`; el 6 en `dptEstado`,
+  `dptBadge` y `dptFrases`; el 7 en `TEP_VDVI_DILAT_MIN`; el 8 en `QV_ECOSMART`,
+  `EV_DOI_ESC2021IC` y `ET_CRIT_FUENTE`. Ninguno nombra una pieza de otro.
+  ⚠️ **PERO EL 9 LLEVA UNA CORRECCIÓN DE `index.html` QUE LA MEDICIÓN DESTAPÓ**: el EN SUMA del
+  área de la AI, que decía «AI dilatada» pelado mientras el informe del mismo papel ya publicaba
+  «levemente dilatada». Revertir el 9 repone ese defecto.
+  ⚠️ **EL SELLO VIAJA EN EL COMMIT 9**, que es el único cambio de `index.html` que ese commit
+  lleva además de esa corrección: es la regla de la casa.
+  ⚠️ **SE SELLÓ DOS VECES, Y HAY QUE DECIR POR QUÉ**: el primer sello (`v20261020-2259`) quedó
+  invalidado porque la suite destapó ese defecto y arreglarlo movió `index.html` después de
+  sellar. **Lo medido vale el último sello** (`v20261020-2333`), con el `md5` quieto durante toda
+  la corrida.
+  ⚠️ **CASOS ADAPTADOS: SEIS, y LOS SEIS LOS DESTAPÓ LA SUITE COMPLETA** —ninguna corrida de
+  zona podía verlos—: **TC-294** (cinco condiciones del área de la AI, una de ellas el **límite
+  declarado** de aquella tanda, escrito para que el día que el área graduara se notara, **y lo
+  notó**), **TC-487** (su control negativo (6)), **TC-429** (la línea de fuente de la ET),
+  **TC-59**, **TC-164** y **TC-168** (los tres del taponamiento que ya no concluye).
+  **Es la decimotercera tanda seguida en que pasa.**
+
+- **Línea base al cierre: suite **517/521** con el pendrive `DISK_IMG` MONTADO —verificado al
+  abrir Y al cerrar—, Semgrep **127 / 0 ERROR en 1 app**, Excel en **440** columnas, celular
+  **65 a 360 px y 74 a 390 px con 17 ALTA cada uno** y `--todo` **393 / 402**, el MISMO par que
+  dejó el Y3f. CERO REGRESIONES.** Los rojos son exactamente los de ENTRADA —**TC-223** (el
+  documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**— y no apareció ninguno
+  fuera de esa lista. **El denominador sube a 521**: esta tanda agregó **TC-507**.
+  ⚠️ **LA CORRIDA DIO 515/521 Y LOS DOS DE MÁS SON LOS INESTABLES DOCUMENTADOS**: **TC-246** y
+  **TC-252** salieron **VERDES corridos solos** sobre el mismo árbol, con el `md5` sin moverse,
+  y TC-252 lo dice en su propio «encontrado»: «TAPADO POR: `DIV#login-overlay[fixed]`», que es el
+  aviso legal reapareciendo a mitad de corrida. **Repetir antes de sospechar.**
+  ⚠️ **EL CELULAR NO SE MOVIÓ NI UN HALLAZGO, y no por suerte**: esta tanda no agrega un solo
+  control de formulario —lo único nuevo son dos `<option hidden>`, que no tienen geometría, y
+  tres bloques de texto fijo, que no son controles—.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **521 ids** sobre los 522 casos del archivo.
+- **`index.html` pasó de 8,45 MB / 127.206 líneas a 8,50 MB / 127.759 líneas.**
+
+- **R1 · LA VAB MUESTRA LA LESIÓN PRESENTE SIN GRADO, con un dueño único.** `aoLesionSinGrado`
+  replica las **cinco** compuertas que el informe ya aplicaba, y `generarInforme` perdió sus
+  cuatro ayudantes locales.
+  ⚠️ **CON `src` DEVUELVE `false` SIEMPRE**: un estudio ARCHIVADO no tiene pastillas, así que
+  preguntarle al DOM sería leer la pantalla del paciente de al lado.
+  Los dos rótulos: `no_clasif` pasa a **«Fusión indeterminada»** y la cúspide a **«no
+  coronariana»**.
+  ⚠️ **`VAB_TIPO_LBL`, EL DEL EXCEL, NO SE TOCA**, y es lo que impide romper todo backup ya
+  exportado: para una columna de opción un valor desconocido descarta la **FILA ENTERA**. Lo que
+  entra es una entrada de ENTRADA en `LAB_XLS_VOCAB`, así que el importador entiende las **dos**
+  formas.
+
+- **R2 · EL TEER: LA PROFUNDIDAD DE COAPTACIÓN PASA A `<11 mm`.** **Tamburino 2010, Tabla 1,
+  folio 1386**, que excluye `≥11`. **Cambia en los DOS lugares que lo leen** —`c4` de `calcTEER`
+  y `_LAB_TEER_CRIT`, que es lo que consume la hoja del PDF—: con uno solo, la pantalla y el
+  papel firmado graduarían distinto el mismo número. La PSAP pasa a **`≤70 mmHg`** y el DSFVI a
+  **`≤70 mm` telesistólico** (ESC/EACTS 2025, Tabla 7, folio 4678). El pie de fuentes es marcado
+  ESTÁTICO y usa **`--text2` y `--border`**, las dos globales: `--amber` sólo existe dentro de
+  `.amilo-root` y acá se vería **gris**.
+
+- **R3 · EL INFORME DICE LA SEVERIDAD DE LA DISFUNCIÓN SISTÓLICA DEL VD.** `vdDisfGrado` sondea
+  `ASE25_T1` y devuelve un grado, **un rango con guión** si los dos parámetros caen en bandas
+  distintas, o `null` si alguno está normal.
+  ⚠️ **DOS FILAS DE LA TABLA 1 GANARON `solapa: true`, Y ES DE LA FUENTE**: el TAPSE escribe su
+  banda leve «≤1.7 to ≥1.3» y la moderada «≤1.3 to >1.0», así que **1,3 cm está en las dos**
+  (y 7,2 cm/s igual para la onda S′).
+
+- **R4 · EL ÁREA DE LA AI PASA A CUATRO GRADOS** (Lang 2005, Tabla 9; iguales en los dos sexos).
+  **El volumen indexado sigue mandando** y el **diámetro AP sigue siendo binario**, porque
+  ninguna guía lo gradúa.
+  ⚠️ **EL BLOQUE VA DESPUÉS DE `AI_VOL_BANDAS`, Y ESO NO ES ESTÉTICA.** Declarado 35 líneas
+  antes, un `const` que nombra otro del mismo bloque **aborta el `<script>` ENTERO** por zona
+  muerta: el síntoma fue `showTab('ai-vi')` tirando `Cannot access '_lv3d' before
+  initialization` con **Semgrep en 127 / 0 ERROR al lado**. Lo destapó la sonda, no la lectura.
+  ⚠️ **Y EL EN SUMA NO SEGUÍA AL INFORME — DEFECTO MÍO QUE CAZÓ LA SUITE COMPLETA.** La línea
+  del resumen no consultaba el clasificador que la oración de arriba ya usaba: el informe decía
+  «levemente dilatada» y el EN SUMA del mismo papel «dilatada» pelado. **Ninguna medición de zona
+  lo vio**, porque mis escenas leían el informe y no el resumen.
+
+- **R5 · EL DERRAME PASA A LOS TRES GRADOS DE LA ESC 2025**, y se va el «mínimo», que ninguna
+  guía publica.
+  ⚠️ **LAS DOS OPCIONES VIEJAS QUEDAN COMO `<option hidden>`** —el patrón de `et_grado`—, porque
+  el `value` de este selector **ES su texto** y es lo que viaja en `campos`. **No se migra
+  nada.**
+  ⚠️ **Y LA OPCIÓN NUEVA TUVO QUE ENTRAR EN `LAB_XLS_LISTAS.pericardio`**: lo cazó el **assert de
+  arranque del Excel**, dos commits después, y sin ella reimportar un backup de cualquier estudio
+  nuevo con derrame leve habría descartado la **fila entera**.
+
+- **R6 · EL TAPONAMIENTO DEJA DE CONCLUIR: el módulo LISTA los signos y el médico decide.**
+  Decisión de Maicol, con la **ESC 2025 de miocarditis y pericarditis, Tabla 17**, que lo define
+  como clínico con confirmación ecocardiográfica. `dptEstado().clave` pasa de cuatro conclusiones
+  a **`con_derrame` / `sin_derrame`**, `dptBadge(st)` reemplaza a `DPT_BADGE`, y los cuatro
+  consumidores —el POP, el POCUS, el filtro de cohorte y la hoja del PDF— quedan alineados **por
+  construcción**, porque los cuatro leen el mismo dueño.
+  ⚠️ **EL COMPROMISO HEMODINÁMICO NO SE DEDUCE: SE CONSIGNA**, en el campo de tres estados
+  `pericardio_hemo` — una casilla desmarcada no distingue «lo busqué y no está» de «no lo
+  busqué».
+
+- **R7 · EL VD/VI DEL ECO EN TEP PASA A `≥1,0`**, con `TEP_VDVI_DILAT_MIN` y sus **cuatro**
+  consumidores leyéndola y sus rótulos derivados. Y las dos fórmulas de hipertensión pulmonar de
+  Referencias pasan a decir lo que la app aplica.
+
+- **R8 · REFERENCIAS: el DOI, las tres citas de la ET, la prótesis mitral, el ancho del jet, la
+  escala de burbujas y los criterios declarados.** **Ningún corte ni operador se movió**: lo
+  único que cambia es que la línea de fuente diga DÓNDE está cada uno. Entra **`QV_ECOSMART`**,
+  el prefijo único del marcador, y el chip «CRITERIO DE ECOSMART» en los **tres** lugares donde
+  la app aplica un corte que ninguna fuente publica.
+  ⚠️ **`QV_NOTA['esten:pulmonar']` TUVO QUE SER UNA FUNCIÓN**, por la misma zona muerta del R4:
+  nombra `EP_GMAX_NORMAL_MAX`, que se declara **1700 líneas más abajo**, y el síntoma apareció
+  en `_labXlsAssertBloques`, que es otra función.
+
+- **A/B DE CONTROL contra el inicio de la tanda, con el formulario vacío y con un escenario
+  AJENO a las ocho zonas: CERO diferencias.** El **PDF generado de verdad en sus SEIS
+  plantillas**, el **PPT** (21 textos), el **PDF de auditoría** (104), el Laboratorio por sus
+  funciones dueñas, el **Excel en 440 columnas CLAVE POR CLAVE**, los **1031** campos del
+  estudio, las **295** referencias de pantalla, el almacenamiento y las pastillas.
+
+- **MEDIDO EN 8 CELDAS DE MAQUETA** —cuatro anchos (1200×700, 768×1024, 390×844, 360×740) × dos
+  temas, con el tema COMPROBADO—: **CERO scroll horizontal de la página en las ocho**, con el pie
+  del TEER reflowando de 952×33 a 272×111 y el selector del derrame de 978×29 a 298×29. Los
+  colores resuelven **reales y distintos** en los dos temas.
+  **10 capturas PNG con los 10 `md5` DISTINTOS**, y **TRES MIRADAS**: el TEER publicando «✕ 11mm
+  ≥11mm — anatomía compleja, Heart Team» en su borde, el taponamiento diciendo «2 SIGNOS
+  PRESENTES · 1 de 3 criterios evaluados» **sin concluir**, y la ficha de burbujas con sus cuatro
+  grados, su bloque de fuentes y su chip.
+
+- **Arnés: `scripts/_probe_r.mjs`** (CDP, teclas y clics reales, A/B de solo lectura con
+  `--file`; doce grupos: `vab`, `teer`, `vd`, `ai`, `peri`, `tapo`, `tep`, `xlsassert`, `refs`,
+  `maqueta`, `captura`, `ctrl`). **Cobertura: TC-507**, **81 condiciones** con **cinco**
+  denominadores y **ocho** controles negativos. **Verificado que sabe fallar contra el inicio de
+  la tanda en un worktree aparte: 57 de las 81 en rojo, y NINGUNA por excepción** —el `EXC` que
+  aparece es el valor que devuelve mi propio centinela—.
+
+- ⚠️ **CUATRO TRAMPAS DE MEDICIÓN, Y LAS CUATRO DABAN MEDICIONES FALSAS Y PLAUSIBLES.**
+  1. **LAS TRES ZONAS NUEVAS VIVEN EN TRES PESTAÑAS DISTINTAS**: el selector del pericardio está
+     en **`tab-otros`** aunque su sección se llame `ete-seccion-pericardio-masas`; el módulo del
+     taponamiento en **`tab-hemodinamica`** y detrás de una **segunda** puerta; el pie del TEER
+     en `tab-ete`. Abrir una sola pestaña dejó las otras dos midiendo **0×0**.
+  2. **LA PESTAÑA DE REFERENCIAS SE LLAMA `refs` Y `refSubTab` EXIGE SU SEGUNDO ARGUMENTO**: sin
+     el botón lanza al tocarle el `classList`, y esa excepción se tragaba el resto del abridor.
+  3. **EL `value` DEL SELECTOR DE PERICARDIO ES SU TEXTO COMPLETO, PARÉNTESIS INCLUIDO.**
+     Mandarle «Derrame moderado» lo deja en `selectedIndex -1` y la escena mide el selector
+     **vacío**. **Lo destapó MIRAR el PNG**, que decía «SIN DERRAME» con la geometría perfecta al
+     lado: la medición numérica lo había dado por bueno. **Es para lo que están las capturas.**
+  4. **SE RECORTA EL CONTENEDOR Y NO EL SPAN**: un `clip` de 276×16 dio un PNG de **230 bytes**
+     que, como archivo, se ve perfectamente bien — y está en blanco.
+
+- ⚠️ **ME COMÍ EL ACENTO GRAVE NUEVE VECES**, todas en comentarios míos dentro del cuerpo de un
+  caso o del template de la sonda, y todas para nombrar una función, un id o un atributo en
+  prosa. `scripts/check_backticks.py` dio la línea exacta **salvo las del template de la sonda**,
+  que ese script **no alcanza** —su cobertura es el cuerpo de un `caso(...)` y el de la sonda
+  inyectada—: ésas las dio `node --check`, que apuntaba a la apertura del template, cientos de
+  líneas antes. **Correr los dos, siempre.**
+
+- **Dónde está todo:** `docs/mapa/tanda-r-referencias.md` (**mapa NUEVO**, 13,3 KB: las ocho
+  zonas con su dueño, las dos zonas muertas de `const`, las siete trampas y cómo medir); seis
+  mapas con un puntero cada uno (`mitral-dibujo-estatico` 31,9 KB · `vd-derecho` 31,5 ·
+  `vab-bicuspide` 30,9 · `auricula-izquierda-pdf` 25,6 · `referencias-subpestanas` 15,4 ·
+  `otros-pericardio-pulmon` 8,3); `docs/mapa/tests-fichas.md` → la ficha de TC-507 (**27,6 KB**);
+  `docs/fuentes/FUENTES.md` → «La tanda «R»», con la Tabla 9 de Lang 2005 y las Tablas 10 y 17 de
+  la ESC 2025 verificadas, la tabla de **citas sin releer**, la de **criterios de EcoSmart** y la
+  de **Cambios de evidencia**; y `docs/PENDIENTES.md` → **siete** cosas declaradas (R-1 a R-7).
+  ⚠️ **NINGÚN MAPA CRUZÓ EL TECHO, medido con `wc -c` ANTES de escribir**, y por eso el de la
+  tanda salió a archivo propio. Los dos que quedaron más cerca están a **3,1 KB**:
+  `PENDIENTES.md` → R-6.
 
 ### El ESPEJO de los DOS SENTIDOS, las columnas del DOPPLER y la VAB en vivo, con sus SEIS dibujos y su ANIMACIÓN — «Y3f» (2026-10-20)
 

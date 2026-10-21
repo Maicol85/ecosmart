@@ -4274,3 +4274,154 @@ las Figuras 7 y 9. Se declara, por tercera vez, porque es la misma fuente.
 | El dibujo de la **fusión parcial** | **no existía** (salía el contorno sin líneas de cierre, declarado en Y3d6 como «trivalva en diástole») | tres senos con **minirafé derecha-izquierda** y apertura **triangular**, que es la vista de sístole con que se diagnostica | consenso VAB, Figura 13, **folio 234** | Y3f7 | 20/10/2026 |
 | Dónde se publica el texto de `vabConclusion` | fila «Según la guía» de la **pestaña Válvula aórtica bicúspide** y párrafo del **informe** | fila «Según la guía» del **panel de Evidencia**, con su corchete numerado; la pestaña publica un **resumen esquemático** y el informe ya no lleva el párrafo | **ninguna**: el motor y su cita no se tocaron | Y3f4, Y3f5 | 20/10/2026 |
 | La **función valvular** de la VAB | `<select>` que el médico declaraba a mano | **derivada** de los grados de EA y de IAo de Válvulas | **ninguna**: son los mismos grados ya publicados | Y3f3 | 20/10/2026 |
+
+---
+
+## La tanda «R» — referencias y fuentes (2026-10-20)
+
+Ocho commits de TEXTOS, RÓTULOS, CITAS y CORTES. Todo lo que dice «verificado» abajo se leyó en el
+PDF original de `~/Desktop/EcoSmart_Biblioteca_Fuentes`; lo que no se pudo abrir lo dice.
+
+### Lang 2005 — el área de la aurícula izquierda · **VERIFICADO**
+
+Lang RM y col., *Recommendations for Chamber Quantification*, ASE y Asociación Europea de
+Ecocardiografía, **J Am Soc Echocardiogr 2005;18:1440-1463**. DOI `10.1016/j.echo.2005.10.005`
+(leído en la hoja 1 del PDF). Archivo: `01_VI_y_camaras/Chamber-Quantification.pdf`, 24 hojas.
+
+⚠️ **Regla de folio: folio = hoja + 1439**, comprobada en el pie IMPRESO de tres hojas —la 16
+imprime «1455», la 17 «1456» y la 18 «1457»—, no por aritmética.
+
+**Tabla 9, folio 1456 (hoja 17)**, fila «LA area, cm2»:
+
+| | mujeres | hombres |
+|---|---|---|
+| normal | **≤ 20** | **≤ 20** |
+| leve | 20–30 | 20–30 |
+| moderada | 30–40 | 30–40 |
+| severa | **> 40** | **> 40** |
+
+⚠️ **LEÍDA DE LA IMAGEN, y no por el texto extraído.** Los operadores son **glifos de la fuente**:
+`pdftotext` devuelve `\x06` donde va `≤` y `\x08` donde va `>`, así que quien la lea sin saberlo se
+queda sin los dos bordes de la fila. Se leyó por las coordenadas de los *spans* de la página.
+
+⚠️ **LAS DOS COLUMNAS IMPRIMEN LOS MISMOS VALORES**: el área de la AI **no se separa por sexo**, a
+diferencia del diámetro AP y del diámetro del VI, que sí.
+
+⚠️ **LOS TRES BORDES ESTÁN COMPARTIDOS EN EL ORIGINAL** —«20–30» y «30–40» a la vez— igual que en
+la Tabla 1 de la ASE 2025. Se resuelven a favor de la banda **menos grave**, que es la convención de
+esta app y la lectura que no sobre-afirma: 20 normal, 30 leve, 40 moderada.
+
+⚠️ **SE APLICA LA GUÍA ANTERIOR, Y ES LA REGLA DE LA CASA.** La de 2015 —la más nueva— **no gradúa
+el área**: su folio 25 recomienda informar el volumen y su Tabla suplementaria 9 (folio 39.e14) no
+trae una fila de área. Cuando la más nueva no trae el dato, manda la anterior.
+
+### ESC 2025 de miocarditis y pericarditis — el derrame y el taponamiento · **VERIFICADO**
+
+**DOI `10.1093/eurheartj/ehaf192`**. Archivo: `07_Pericardio/___25_Myocarditis_and_Pericarditis.pdf`,
+**90 hojas**, con su suplemento (`ehaf192_supplementary_data.pdf`).
+
+⚠️ **ES LA PUBLICACIÓN ANTICIPADA Y SE CITA SIN NÚMERO DE PÁGINA DE REVISTA**: el PDF está paginado
+1 a 90 y el pie impreso coincide con la hoja, así que acá «página» = hoja = pie impreso.
+
+⚠️ **NO CONFUNDIRLA CON LA ESC/EACTS 2025 DE VALVULOPATÍAS** (DOI `10.1093/eurheartj/ehaf194`): son
+dos guías distintas del mismo año, y esta tanda cita las dos en zonas distintas.
+
+**Tabla 10, página 31 — «Classification of pericardial effusion»**, literal:
+
+> Size^a — Mild: **<10 mm** · Moderate: **10–20 mm** · Large: **>20 mm**
+> ^a Maximal end-diastolic diameter.
+
+O sea: **tres grados**, medidos como diámetro **diastólico final máximo**, y **ningún grado
+«mínimo»** ni piso para el leve.
+
+**Tabla 17, página 62 — «Echocardiographic signs of cardiac tamponade»**. La prosa que la
+introduce, literal:
+
+> The diagnosis is based on a combination of a suggestive history, symptoms, signs, and **imaging
+> confirmation by echocardiography** (Table 17).
+
+Los signos que la tabla publica, con su sensibilidad y especificidad:
+
+| signo | sens. | espec. |
+|---|---|---|
+| Large pericardial effusion with swinging heart | n.a. | n.a. |
+| Diastolic collapse of the RA | 50–100 % | 33–100 % |
+| Duration of diastolic collapse of the RA as a ratio of the cardiac cycle length **>0.34** | >90 % | 100 % |
+| Diastolic collapse of the RV | 48–100 % | 72–100 % |
+| Respiratory changes of the mitral E velocity **>25 %–30 %**, tricuspid E velocity **>40 %–60 %** | n.a. | n.a. |
+| Inferior vena cava plethora (dilatation **>20 mm** and **<50 %** reduction of diameter…) | — | — |
+
+⚠️ **NINGUNA GUÍA FIJA UN NÚMERO DE SIGNOS QUE DEFINA EL TAPONAMIENTO**, y por eso la regla de «tres
+criterios» de la app se retiró: el diagnóstico es clínico y el eco lo confirma.
+
+**Recommendation Table 12, página 43**, literal:
+
+> Pericardiocentesis (echocardiography-, CT-, or fluoroscopy-guided) is **recommended** for cardiac
+> tamponade, or suspected bacterial or neoplastic pericarditis, or **symptomatic moderate to large
+> pericardial effusion despite medical therapy.** — **I**, **C**
+
+⚠️ **LA «VENTANA ECO MÍNIMA ≥10 mm SUBCOSTAL» NO FIGURA** en la guía ni en su suplemento, censados
+los dos: se retiró de la ficha.
+
+### Lo que esta tanda cita sin releer, y por qué
+
+| dato | fuente que trae el prompt | por qué no se pudo releer |
+|---|---|---|
+| Profundidad de coaptación del TEER, **<11 mm** | Tamburino 2010, *Eur Heart J*, Tabla 1, **folio 1386** | ese artículo **no está en la biblioteca** (censadas las carpetas de valvulopatías y ETE) |
+| PSAP **≤70 mmHg** y LVESD **≤70 mm** | ESC/EACTS 2025 de valvulopatías, **Tabla 7, folio 4678** | el PDF está en la biblioteca; **no se abrió en esta tanda** — el valor no se movió, sólo se citó |
+| ESC 2021 de insuficiencia cardíaca, Figura 17, folio 3664, «<70» | ídem | ídem |
+| Velo posterior graduado, **tabla suplementaria S2, hoja 5** | ESC/EACTS 2025 de valvulopatías, suplemento | **no se abrió**; lo que la tanda hace es DECLARAR que el velo anterior no tiene corte publicado |
+| **DOI `10.1016/j.recesp.2021.11.027`** de la ESC 2021 de IC | verificación de Cowork, 20/10/2026 | la biblioteca tiene la edición **INGLESA** (*Eur Heart J*, DOI `10.1093/eurheartj/ehab368`, **leído en la hoja 1** de `11_Miocardiopatias/ESC insuficiencia Cardiaca 2021.pdf`), y las dos fichas que lo citan usan el folio de la **traducción** (523.e11) |
+| **VD/VI ≥1,0** en el eco de TEP | ESC 2019 de TEP, **folio e17** | el PDF está en `13_Tromboembolia_pulmonar`; **no se abrió en esta tanda** |
+| **TAPSE/PSAP <0,55** y **VD/VI >1,0** de la probabilidad de HTP | ESC/ERS 2022, **Tabla 10, folio 28** | **ya estaba verificado** en este archivo, en la entrada `escErs2022` de la tanda G1 |
+| Estenosis tricúspide: los tres folios | **ya estaban verificados** en este archivo (tandas VAL y ARR) | — |
+| Test de burbuja, **>20**: Pristipino 2019 (supl., Tabla 1) y Kleindorfer, AHA/ASA 2021, **folio e413** | verificación de Cowork | **no se abrieron en esta tanda** |
+| Estenosis pulmonar, **36 y 64 mmHg** | EAE/ASE 2009 folio 20 · ESC 2020 de congénitas folio 436.e46 · ACC/AHA 2025 folio e177 | **ya estaban verificados** en este archivo |
+| «Fusión indeterminada» | consenso VAB, Michelena 2021, **folio 457**; Figura 4, **folio 455** | la biblioteca tiene la **traducción del resumen** (Arch Cardiol Mex 2024), ya declarada en la tanda Y3d6; el folio viene de la verificación de Cowork |
+
+⚠️ **Kleindorfer (>20 microburbujas) y Pristipino (>10, en otra página) NO coinciden** sobre cómo el
+RESPECT definió el shunt grande. La app publica el **>20** y lo cita con las dos fuentes; la
+discrepancia queda acá y en `docs/PENDIENTES.md`.
+
+### Lo que esta tanda DECLARA como criterio de EcoSmart
+
+Ninguno tiene corte publicado en la biblioteca. Los cinco se **declaran en la propia pantalla**, con
+el chip «CRITERIO DE ECOSMART» en el marcado estático o con el prefijo `QV_ECOSMART` en las notas de
+las tarjetas ⓘ.
+
+| criterio | valor que aplica la app | dónde se declara |
+|---|---|---|
+| Longitud del **velo anterior** del TEER | ≥20 mm | pie del cuadro de criterios TEER |
+| Longitud del **velo posterior** del TEER | ≥7 mm (y el «idealmente ≥10 mm» de su rótulo) | ídem |
+| La **profundidad de coaptación** contra el protocolo EXPAND | `<11` donde el EXPAND admite `≤11`, así que 11,0 mm exactos quedan fuera | ídem |
+| **Plétora de VCI** del taponamiento | >21 mm con colapso <50 %, donde la Tabla 17 publica >20 mm con reducción <50 % | pie del módulo de derrame y taponamiento |
+| **Variación respiratoria** de la onda E | >25 % mitral y >40 % tricuspídea, el **límite inferior** de los rangos >25-30 % y >40-60 % de la Tabla 17 | ídem |
+| El **piso de 9 mmHg** de la estenosis pulmonar | por debajo de 9 mmHg de gradiente máximo no se informa estenosis | nota de la tarjeta ⓘ de la estenosis pulmonar |
+| El corte de **5 burbujas** | separa el shunt pequeño del moderado | ficha de Referencias del test de burbuja |
+
+### Cambios de evidencia — tanda «R»
+
+| dato | antes | ahora | fuente | commit | fecha |
+|---|---|---|---|---|---|
+| La sección **VAB** con una lesión aórtica marcada **sin grado** | no mostraba nada: leía el GRADO, no la lesión | «Estenosis presente» / «Insuficiencia presente» / «Estenosis e insuficiencia presentes», con el MISMO dueño que el informe de Válvulas | **ninguna**: es la regla de «botón prendido = hay valvulopatía» que el informe ya aplicaba desde el 2026-10-03 | R1 | 20/10/2026 |
+| El tipo de fusión `no_clasif` | «No clasificable» | «**Fusión indeterminada**» en el selector, el informe, el EN SUMA, el PDF y las dos tablas de agregación; el EXCEL conserva «No clasificable» | consenso VAB, Michelena 2021, folio 457; Figura 4, folio 455 | R1 | 20/10/2026 |
+| Los fenotipos **R–N** y **L–N** | «no coronaria» en el informe y «no coronariana» en el selector | «**no coronariana**» en las seis superficies | **ninguna**: es ortografía, decisión de Maicol | R1 | 20/10/2026 |
+| **Profundidad de coaptación** del TEER | `≤ 10 mm` | `< 11 mm`, así que 10,5 mm pasa a cumplir | Tamburino 2010, *Eur Heart J*, Tabla 1, folio 1386 (excluye ≥11 mm) | R2 | 20/10/2026 |
+| **PSAP** y **DSFVI** del TEER | ≤70 mmHg y ≤70 mm **sin cita** | los MISMOS valores, citados como regla de guía, y el rótulo dice **telesistólico** | ESC/EACTS 2025 de valvulopatías, Tabla 7, folio 4678 | R2 | 20/10/2026 |
+| El encabezado del cuadro TEER | «CRITERIOS ANATÓMICOS **ESC 2021**» | «CRITERIOS ANATÓMICOS», con el pie diciendo de dónde viene cada corte | **ninguna**: esa guía no cubría cuatro de los criterios de la lista | R2 | 20/10/2026 |
+| La **disfunción sistólica del VD** en el informe y en el EN SUMA | «disfunción sistólica», sin grado | «disfunción sistólica **leve / moderada / severa**», y el **rango** («leve-moderada») con los dos parámetros en bandas distintas o en un borde solapado | ASE 2025, Tabla 1, folio 145 — el MISMO dueño que ya pintaba las referencias del VD | R3 | 20/10/2026 |
+| El **área de la AI** | binaria: >20 cm² dilatada, **sin grado** | **cuatro grados**: ≤20 normal · 20–30 leve · 30–40 moderada · >40 severa, los mismos en los dos sexos | Lang 2005, Tabla 9, folio 1456 (la de 2015 no gradúa el área) | R4 | 20/10/2026 |
+| Quién gradúa el tamaño de la AI | el volumen indexado; sin él, binario | **igual**: el volumen indexado manda y el grado del área se usa **sólo** cuando no hay volumen | **ninguna**: la jerarquía no cambia | R4 | 20/10/2026 |
+| El **derrame pericárdico** | mínimo 0–5 · leve 5–10 · moderado 10–20 · severo >20 mm | **leve <10** · moderado 10–20 · severo >20; se retira el «mínimo» y el leve pierde su piso | ESC 2025 de miocarditis y pericarditis, Tabla 10, página 31 | R5 | 20/10/2026 |
+| La ficha de Referencias del derrame | volúmenes en mL y título «ESC 2015» | sin mL —la Tabla 10 clasifica por el diámetro— y «ESC 2025 de miocarditis y pericarditis» | ídem | R5 | 20/10/2026 |
+| El **taponamiento** | «tres criterios positivos = taponamiento», con seis frases de conclusión en el informe firmado | el módulo **LISTA** los signos presentes y **no concluye**; el médico decide con «con o sin compromiso hemodinámico» | ESC 2025 de miocarditis y pericarditis, Tabla 17, página 62: el diagnóstico es clínico con confirmación por eco | R6 | 20/10/2026 |
+| La **pericardiocentesis** en el derrame sintomático | «Clase IIa» | **Clase I · nivel C** (derrame moderado a grande sintomático pese al tratamiento) | ídem, Recommendation Table 12, página 43 | R6 | 20/10/2026 |
+| La «**ventana subcostal ≥10 mm**» de la ficha | publicada como requisito | **retirada** | no figura en la guía ni en su suplemento, censados los dos | R6 | 20/10/2026 |
+| **VD/VI** en el algoritmo de **TEP** | `≥ 0,9` | `≥ 1,0`, así que 0,9 y 0,99 dejan de ser dilatación | ESC 2019 de TEP, folio e17 (el 0,9 es un corte de **tomografía**) | R7 | 20/10/2026 |
+| Las dos **fórmulas de HTP** de Referencias | TAPSE/PSAP «>0.32» y VD/VI «<0.9» | **≥0,55** y **≤1,0**, con el corte de la guía al lado | ESC/ERS 2022, Tabla 10, folio 28 (Humbert 2022) | R7 | 20/10/2026 |
+| El **DOI** de la ESC 2021 de insuficiencia cardíaca | `10.1016/j.recesp.2021.11.012` (un «contenido relacionado») | `10.1016/j.recesp.2021.11.027` | verificación de Cowork; **sin releer** (ver arriba) | R8 | 20/10/2026 |
+| La cita de la **estenosis tricúspide** | «EAE/ASE 2009 · ASE 2023 · ESC/EACTS 2025», sin decir dónde | las tres **con su tabla y su folio** | ya verificadas en este archivo | R8 | 20/10/2026 |
+| La regla de la **prótesis mitral** en Referencias | no estaba | declarada en el mismo texto de integración de la sección | ASE 2024, Tabla 11 (la regla de conteo es criterio de EcoSmart, ya declarado) | R8 | 20/10/2026 |
+| El **ancho del jet** de la IP protésica | «>50–65 % del anillo pulmonar» | «**>50 %** del anillo pulmonar» | ASE 2024, Tabla 16, folio 34 | R8 | 20/10/2026 |
+| La **escala del test de burbuja** en Referencias | <10 / 10–30 / >30 | **<5 / 5–20 / >20**, la del módulo, que no se toca | Pristipino 2019 (supl., Tabla 1) y Kleindorfer, AHA/ASA 2021, folio e413, para el >20; el 5 es criterio de EcoSmart | R8 | 20/10/2026 |
+| El **piso de 9 mmHg** de la estenosis pulmonar | aplicado y sin declarar | **declarado** en la nota de su tarjeta; los cortes de 36 y 64 citados | criterio de EcoSmart (los otros dos sí verificados) | R8 | 20/10/2026 |

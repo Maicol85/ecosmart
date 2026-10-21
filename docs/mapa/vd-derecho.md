@@ -536,3 +536,14 @@ columnas idéntico.
 **Está todo en `docs/mapa/referencias-subpestanas.md`**: el reparto (`REF_SUBTAB`), el índice del
 buscador y su normalización, el mapeo `VINFO_REF` con las cinco tarjetas que no llevan botón, la
 tabla `AO_CX_T` con su folio por fila y su sondeo del dueño, y nueve trampas medidas.
+
+## La tanda «R» (2026-10-20) — el informe dice la SEVERIDAD de la disfunción sistólica
+
+`vdDisfGrado(tapse, sprime)` sondea `ASE25_T1` y devuelve un grado, **un rango con guión**
+cuando los dos parámetros caen en bandas distintas, o `null` si alguno está normal — con un
+TAPSE conservado no se puede afirmar un grado global. ⚠️ **Dos filas de la Tabla 1 ganaron
+`solapa: true`** y es de la fuente: el TAPSE escribe «≤1.7 to ≥1.3» y «≤1.3 to >1.0», así que
+**1,3 cm está en las dos bandas** (y 7,2 cm/s igual). El texto tiene un dueño, `_vdDisfTxt`, y
+lo consumen `funcTxt` del informe y las ocho ramas del EN SUMA.
+
+→ `docs/mapa/tanda-r-referencias.md` § 3.

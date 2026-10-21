@@ -134,3 +134,21 @@ a Excel y su reimportación los pierde. `docs/PENDIENTES.md` → Y3b-7.
    lector, no del árbol.
 4. ⚠️ **EL TAMAÑO DEL DERRAME PLEURAL LLEVA TILDE** (`mínimo`): una escena que lo fija como `minimo`
    no encuentra la opción y la sonda mide el valor de fábrica.
+
+## La tanda «R» (2026-10-20) — el derrame en TRES grados y el taponamiento que no concluye
+
+**R5 · el derrame.** `DPT_TAM` congelado con los tres grados de la ESC 2025 (severo >20 mm,
+moderado 10-20, leve <10); se va el grado **«mínimo»**, que ninguna guía publica. ⚠️ **Las dos
+opciones viejas quedan como `<option hidden>`** —el patrón de `et_grado`—, porque el `value` de
+este selector ES su texto y es lo que viaja en `campos`. **No se migra nada.** ⚠️ **Y la opción
+nueva tuvo que entrar en `LAB_XLS_LISTAS.pericardio`**: lo cazó el assert de arranque del Excel
+dos commits después, y sin ella reimportar un backup con derrame leve descartaba la FILA ENTERA.
+
+**R6 · el taponamiento LISTA los signos y no concluye** (decisión de Maicol; ESC 2025 de
+miocarditis y pericarditis, Tabla 17, que lo define como clínico). `dptEstado().clave` pasa de
+cuatro conclusiones a **`con_derrame` / `sin_derrame`**, `dptBadge(st)` reemplaza a `DPT_BADGE`,
+y los cuatro consumidores —el POP, el POCUS, el filtro de cohorte y la hoja del PDF— quedan
+alineados por construcción. ⚠️ **El compromiso hemodinámico no se deduce: se consigna**, en el
+campo de tres estados `pericardio_hemo` de la pestaña Otros.
+
+→ `docs/mapa/tanda-r-referencias.md` §§ 5 y 6.
