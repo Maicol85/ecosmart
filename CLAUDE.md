@@ -38,6 +38,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la FUGA PARAVALVULAR de una prótesis QUIRÚRGICA**, aórtica o mitral: el motor único, los tres campos nuevos, la marca de origen o por qué la mitral no ofrece extensión circunferencial | `docs/mapa/protesis-fuga-pvl.md` |
 | **Buscar un CORTE o una BANDA de plausibilidad** de cualquier válvula, con su fuente | `docs/mapa/valvulas-constantes.md` |
 | **Tocar la MARCA DE MANUAL de una pastilla, el selector binario de la estenosis mitral, el VIOLETA de «Significativa», el VTI de entrada tricuspídeo, la CASILLA DE PISA de «Incluir en el informe» o lo que «Nuevo estudio» deja vivo** | `docs/mapa/valvulas-manual-binario.md` |
+| **Tocar una AORTOPATÍA —Marfan, Loeys-Dietz, Turner, ACTA2, Ehlers-Danlos vascular—, la COARTACIÓN, el texto de la VAB o el MOTOR DE EVIDENCIA DE AORTA**: la tabla y el folio de cada síndrome, el corte de dilatación con su dueño, el cuestionario o las recomendaciones por debajo de 45 mm | `docs/mapa/aorta-aortopatias-evidencia.md` |
 | **Tocar un CORTE o un OPERADOR del VD, de la AD, de la VCI o de la RAÍZ AÓRTICA**: la Tabla 1 de la ASE 2025, su evaluador, los cuatro grados de cada parámetro o el «40 mm o más» del seno | `docs/mapa/corazon-derecho-ase2025.md` |
 | **Tocar el VENTRÍCULO DERECHO**: sus TRES columnas de campos, el orden del cuadro de referencias, la disfunción sistólica, la pared graduada, el Tei, la FEVD, la relación VD/VI o el Qp | `docs/mapa/vd-derecho.md` |
 | **Tocar la casilla de la FAC, la mudanza del DIÁMETRO DE LA ARTERIA PULMONAR o el selector de VD/VI** (la tanda G3, partida a archivo propio) | `docs/mapa/vd-g3-campos.md` |
@@ -292,6 +293,212 @@ impecable.
 ---
 
 ## Estado vigente
+
+
+### La AORTA — las citas por aortopatía, la coartación y el motor de Evidencia — «H» (2026-10-21)
+
+- **Son CUATRO commits, y son los cuatro que la orden pedía.** Al **empezar**, `main` **y
+  `origin/main` estaban los dos en `bf4adb6`** —el cierre del trabajo B2, con su sello
+  `v20261021-0816`—, **sin nada sin pushear**, medido con un `git fetch` real y un `ls-remote`
+  dando el mismo sha. ⚠️ **O SEA QUE MAICOL YA PUSHEÓ EL B2**: su entrada decía que quedaban cinco
+  commits locales y hoy no queda ninguno. Los **cuatro** de esta tanda quedan locales; el push lo
+  corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 4 → 3 → 2 → 1.**
+  ⚠️ **EL 2 CUELGA DEL 1 Y ES LA ÚNICA DEPENDENCIA DURA DE LA SERIE**: el 1 crea `MARFAN_FTE`, el
+  dueño único de la tabla y el folio de cada aortopatía, y el 2 le agrega la entrada `eds` del
+  Ehlers-Danlos y reescribe las ramas que lo nombran. Revertir el 1 sin revertir antes el 2 deja
+  `marfanEstado` y `marfanSync` nombrando un `const` que no existe, y un `ReferenceError` ahí
+  **aborta el `<script>` COMPLETO**: la app con cero pestañas con geometría.
+  ⚠️ **EL 3 SE REVIERTE SOLO**: vive en `AO_DIL_MM`, `aoDilCorte`, `aoDilMax`, `aoDilatada`,
+  `AO_EV_FTE`, `AO_EV`, `AO_EV_LBL`, `_indAo` y la compuerta de `_indVAB`. **Pero deja TC-512 en
+  rojo** y, si se revierte el 1 sin él, el motor de Evidencia se queda sin las citas.
+  **El 4 es TC-512, las cinco adaptaciones y la documentación**, y afirma el comportamiento de los
+  tres: revertir cualquiera sin el 4 lo deja en rojo. **El 4 NO toca `index.html`.**
+  ⚠️ **EL COMMIT 3 SE AMENDÓ, y hay que decir por qué.** Lleva dos cosas que la verificación
+  destapó después de cerrarlo y que pertenecen ahí: (1) las recomendaciones iban en `notas`, que el
+  marco del panel pinta **dentro del «Ver detalle», que nace PLEGADO** —lo cazó **MIRAR la
+  captura**, no la medición—, y pasan a un bloque VISIBLE; y (2) las doce citas de `AO_EV_FTE`
+  decían «Recomendaciones-tabla NN» mientras la pantalla, el informe y el manual decían «Tabla NN»,
+  o sea **dos formas de la misma cita en la misma app** — lo cazó **TC-512 con cinco condiciones en
+  rojo**. El amend es sobre un commit **local y no pusheado**, y **el sello viaja con él** porque
+  vuelve a ser el último que toca `index.html`.
+
+- **Línea base al cierre: suite **505/526** con el pendrive `DISK_IMG` **AFUERA**, Semgrep
+  **124 / 0 ERROR en 1 app**, Excel en **440** columnas y celular **66 a 360 px y 76 a 390 px con
+  17 ALTA cada uno**, con `--todo` **395 / 405**: el MISMO par que dejó el B2. CERO REGRESIONES.**
+  **El denominador sube a 526**: esta tanda agregó **TC-512**.
+  ⚠️ **EL PENDRIVE ESTABA AFUERA Y HAY QUE DECIRLO EN VEZ DE RESTAR.** Con él fuera caen los
+  **diecisiete** de **TC-181…TC-197**, que son **ENTORNO** y no prueban nada; los demás rojos son
+  exactamente los de ENTRADA —**TC-223** (el documentado, falla por la fecha), **TC-376**,
+  **TC-390** y **TC-406**—. **La comparación válida no es restar dos cifras: es que el conjunto de
+  rojos que NO son del pendrive ni de entrada es VACÍO.** Con el pendrive puesto la cifra sería
+  **522/526**, y la del B2 fue 521/525.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **526 ids** sobre los 527 casos del archivo.
+- **`index.html` pasó de 8,56 MB / 128.495 líneas a **8,61 MB / 129.063 líneas** — medido con
+  `wc -l` y `ls -l` DESPUÉS de sellar (`v20261021-1056`), no antes.
+
+- **LA REGLA DE FOLIO SE RE-COMPROBÓ EN ONCE HOJAS Y ESE DOCUMENTO TIENE TRES SERIES DE TABLAS.**
+  ESC 2024 de enfermedad arterial periférica y aórtica: **folio = hoja − 1**, verificado en el
+  **encabezado impreso** de las hojas 72, 77, 81, 112, 113, 114, 115, 117, 120, 121 y 122.
+  ⚠️ **El título impreso de una tabla de recomendaciones es «Recomendaciones - tabla N»**, y ese
+  PDF numera **aparte** sus «Tabla» (1 a 18), sus «Recomendaciones - tabla» (1 a 70) y sus «tabla
+  de evidencia». **Medido: las dos primeras se pisan en 1 a 18.** Las doce que esta zona usa están
+  por encima de 18, así que la forma corta es inequívoca — pero quien cite una de 1 a 18 de este
+  documento tiene que decir de qué serie es.
+
+- **H-E1 · LA TABLA 62 ERA SÓLO DEL MARFAN Y LA APP LE ATRIBUÍA TODO.** `MARFAN_FTE` es el dueño
+  único: **62 Marfan · 58 Turner · 66 Loeys-Dietz · 38 la no sindrómica · 59 el Ehlers-Danlos**,
+  cada una con su folio, y lo leen `marfanEstado` (el informe), `marfanSync` (el badge y el
+  «Fundamento») y el EN SUMA.
+  ⚠️ **Y EL EN SUMA CITABA «(ESC 2020)», QUE ES LA GUÍA DE CONGÉNITAS DEL ADULTO Y NO LA DE
+  AORTA.** Hoy publica la tabla y el folio que corresponden al síndrome.
+  **La clase y el nivel viajan CON la tabla**: el 55 mm de la no sindrómica gana su **Nivel B** y
+  el 50 mm con factores pasa de **IIa a IIb · Nivel B** (Tabla 38, folio 80).
+  ⚠️ **EL `cx_iib` NO ES NUEVO, Y ESO EVITÓ UNA CONTRADICCIÓN QUE LA MEDICIÓN DESTAPÓ:** la
+  primera versión cambiaba sólo el texto y dejaba la clave en `cx_iia`, así que el badge decía
+  «Clase IIa» mientras el Fundamento, tres renglones más abajo, decía «Clase IIb» **del mismo
+  paciente**. La clave se **deriva** de `u.cFr`.
+  ⚠️ **`MARFAN_FTE` VA DECLARADA ANTES DE SUS DOS LECTORAS**, por la zona muerta de `const`: al
+  revés, el `ReferenceError` se lleva el `<script>` entero y el síntoma aparece 67.000 líneas más
+  abajo.
+
+- **H-E2 · LOEYS-DIETZ SON DOS FILAS Y LA DE ARRIBA NO ES CLASE I.** Tabla 66, folio 116: **IIa ·
+  C con el diámetro POR ENCIMA de 45 mm** y **IIb · C con el umbral adaptado al gen, que baja a 40
+  mm o más** con características de riesgo alto. Las dos lecturas del pedido son ciertas y
+  pertenecen a filas distintas; lo que la app decía —«Clase I desde 45 mm»— **no está en esa
+  tabla**. **Medido por los bordes: 45 exactos NO cruzan la fila de arriba y 39 no alcanza
+  ninguna.**
+
+- **LA COARTACIÓN AFIRMA POR EL GRADIENTE MEDIO, Y LA APP USABA EL MÁXIMO.** Figura 44, folio 120,
+  leída en el original: su lista de sospecha dice **«Gradiente medio > 20 mmHg a través de la
+  región de CoA en la ecografía Doppler»**, estricto.
+  ⚠️ **EL GRADIENTE MÁXIMO NO ESTÁ EN ESA LISTA**: los «Gradiente pico > 35 mmHg» y «> 20 mmHg» de
+  la misma página son rótulos de los paneles de trazado de la figura, no criterios.
+  **Escenas que cambian de veredicto, medidas:** el medio de 21 afirma; **20,0 exactos y 19 no**;
+  el máximo de 64 **sin** medio pasa de «criterios de significación» a «gradiente límite» con el
+  texto que manda medir el medio; con los dos cargados **manda el medio**.
+  ⚠️ **NO HIZO FALTA NINGÚN CAMPO NI NINGUNA COLUMNA: `coa_gmedio` YA EXISTÍA**, que era la PARADA
+  que la orden preveía. **La indicación no se movió** y sigue saliendo del **pico-pico invasivo**;
+  la fila de IIb que sólo publica la ESC 2020 conserva su cita.
+
+- **LA VAB PIERDE «VIGILANCIA ESTRECHA» Y «HEART TEAM» DE TODA LA APP, Y SON SIN FUENTE.** El
+  intervalo pasa a lo que la Tabla 68 (folio 119) publica —imagen al año y, si está estable, cada 2
+  a 3 años— y el «reemplazo de la aorta en el mismo acto» **conserva su fuente y se muda a
+  Evidencia** (IIa · C; la ESC/EACTS 2025 de valvulopatías lo publica en su folio 4660).
+  ⚠️ **LAS SEIS CLAVES DE `vabConclusion` NO SE MOVIERON**, y es lo que protege los estudios
+  guardados y el recuento del Laboratorio, que cuenta por clave.
+  **El 50-85 % quedó VERIFICADO** (folio 119) y vive **sólo en Evidencia**: cierra `Y3d-4`, que
+  esperaba la fuente desde el Y3d10.
+  ⚠️ **Y ESA FRASE ERA LO QUE HACÍA PASAR UNA CONDICIÓN DE TC-GR-14**, que dice medir que el
+  informe del paciente anterior nombra «la válvula bicúspide»: la nombraba **la oración de la
+  coartación**, porque esa escena nunca ponía `va_morf` en bicúspide. Medido en los dos árboles.
+
+- **EL EHLERS-DANLOS VASCULAR ENTRA SIN UMBRAL, Y ES SU PROPIA CLAVE.** Tabla 59 y apartado
+  10.1.2.4, folio 112: la guía **no publica un diámetro al que intervenir** en esta enfermedad.
+  Clave `sin_umbral`, con su rama **ANTES de la guarda de «falta el diámetro»** —si fuera después,
+  el paciente sin aorta medida caería en «no concluible por falta de diámetro» sobre una
+  enfermedad donde el diámetro no decide nada—.
+  ⚠️ **`sin_umbral` TUVO QUE ENTRAR EN `CX_NOCONCL` DEL LABORATORIO**: `_labDistribDe` descarta en
+  silencio lo que no esté en el mapa, así que sin esa entrada esos estudios se perdían del
+  denominador y el porcentaje se repartía entre los otros. Es la lección de `umbral_iia_sin_fr`.
+  **No se migra nada**: ningún estudio guardado puede traer `eds`.
+
+- **H-E3 · EL MOTOR DE EVIDENCIA DE AORTA ARRANCA EN EL CORTE DE LA GUÍA Y NO EN 45 mm.**
+  `AO_DIL_MM = { M:40, F:36 }`, con el sexo por `sexoEfectivo`: sin sexo cargado manda el corte
+  **alto** y **la fila lo DICE** en vez de callarlo.
+  ⚠️ **LA GUÍA SE CONTRADICE CONSIGO MISMA EN EL OPERADOR Y LOS DOS TEXTOS ESTÁN IMPRESOS.** El
+  cuerpo del folio 71 escribe «> 40 mm en hombres adultos y > 36 mm en mujeres»; la **Figura 24
+  (folio 76)** bracketea su primera banda como **«40-44 mm»** y su nota `a` dice **«36-44 mm en
+  mujeres»**. Se eligió el **inclusivo** por tres razones medidas: es el algoritmo que la sección
+  reproduce; el cuadro descriptivo ya trata **40,0 mm exactos como dilatado** desde el VS5, así que
+  el estricto haría que el panel contradijera a la pantalla en ese valor exacto; y es el lado que
+  **no deja de avisar**, porque el panel informa y no indica. `PENDIENTES.md` → H-1.
+  ⚠️ **`aoDilMax` LEE CUATRO CAMPOS Y NO DOS**: los dos canónicos y los dos del módulo de
+  aortopatía hereditaria, que son una **segunda copia** de la misma medición (G1-11). Con sólo los
+  dos primeros la sección se quedaba muda **justo en el paciente con aortopatía**.
+  ⚠️ **`_indVAB` COMPARTE EL DUEÑO**: su compuerta pasó de «45 mm» a `aoDilatada()`, así que las dos
+  secciones de aorta arrancan en el mismo diámetro **por construcción**.
+
+- **LEE LO QUE ESTÁ Y PREGUNTA LO QUE FALTA.** La aortopatía se **deriva** del estudio —síndrome,
+  morfología bicúspide o coartación— y se **pregunta** cuando no está, con `_indOrigen`: así el
+  panel no puede publicar una aortopatía distinta de la que dice la pestaña de congénitas. **Diez
+  filas**, de las que cuatro factores **se leen** del módulo de la VAB cuando están cargados y dos
+  son preguntas puras. **Lo que el médico contesta vive en `_indClin` y NO se guarda con el
+  estudio**, medido por el juego de ids del recolector.
+  **Las recomendaciones por debajo de 45 mm, que el arranque en 45 escondía:** Marfan con deseo de
+  embarazo entre 40 y 45 mm (**IIb · C**, Tabla 63), Loeys-Dietz por gen desde 40 (**IIb · C**,
+  Tabla 66), ACTA2 con «diámetro MENOR» de 45 y factores (**IIa · C**, Tabla 67) y Turner por
+  **índice** y no por diámetro absoluto (Tablas 57 y 58 y Figura 40).
+  ⚠️ **LA BICÚSPIDE Y LA COARTACIÓN NO REPITEN SUS FILAS ACÁ**: tienen su propia sección en el
+  mismo panel y publicarlas en las dos lo pondría a decir lo mismo con dos voces. `IND_SECS` pasa
+  de **17 a 18** secciones, y **ningún título es prefijo de otro** —la lección que «Válvula aórtica
+  bicúspide — conclusión» ya pagó—.
+  ⚠️ **UNA RECOMENDACIÓN DENTRO DE `notas` NO SE VE, Y LO CAZÓ MIRAR LA CAPTURA.** `notas` se pinta
+  dentro del «Ver detalle», que **nace plegado**: la primera versión publicaba la sección con sus
+  diez filas y las recomendaciones escondidas. Van en `r.bloques`, visible, **cada línea con su
+  `refs`** para entrar en la numeración por sección.
+
+- **A/B DE CONTROL contra el inicio de la tanda: CERO diferencias** en las **22** claves del grupo
+  —informe y EN SUMA con el formulario vacío y con un escenario **ajeno**, **Excel en 440
+  columnas** con el mismo juego de claves, los **933** campos del estudio con sus ids, el TEP y la
+  probabilidad de HTP—.
+- **A/B DEDICADO de las superficies firmadas, con el PDF GENERADO DE VERDAD en sus SEIS
+  plantillas, sobre TRECE escenas y 910 claves: 174 diferencias, y están en CINCO escenas.** Las
+  otras **ocho salen IDÉNTICAS**. Las cinco son las autorizadas —Marfan, Loeys-Dietz,
+  Ehlers-Danlos y las dos de coartación— y en las cinco **el Excel sigue en 440 columnas con las
+  dos celdas de TEXTO como única diferencia** (más `Marfan/EHAT síndrome` en la del Ehlers-Danlos,
+  que es el valor de la opción nueva). El PPT da 21 textos y el PDF de auditoría 104 en los dos
+  árboles.
+  ⚠️ **Y LA PRIMERA MEDICIÓN DE LA ESCENA DE LA VAB DIO CERO DIFERENCIAS SOBRE UN DENOMINADOR
+  VACÍO**: faltaba tildar `vab_incluir_chk`. Lo que confirma el cero es que el texto de
+  `vabConclusion` llega **sólo** a Evidencia desde el Y3f4.
+
+- **MEDIDO EN LOS DOS MOTORES** —Chrome por el canal del sistema y WebKit— **a 1200×700, 1440×800,
+  768×1024, 390×844 y 360×740 por los dos temas: CERO scroll horizontal en las 20 celdas**, el
+  color de `--text2` resolviendo **real y distinto** en los dos temas —`rgb(154,163,188)` de noche
+  y `rgb(91,100,120)` de día— e **idéntico entre motores**. **20 capturas PNG con 20 `md5`
+  distintos**, y dos **MIRADAS**: la sección con sus diez filas y su bloque de recomendaciones
+  visible a 1200 px, y la misma a 360 px en el tema claro.
+
+- **Cobertura: TC-512**, **74 condiciones** —contadas instrumentando el propio caso— en trece
+  grupos, con sus denominadores y sus controles negativos. **Verificado que sabe fallar contra el
+  inicio de la tanda en un worktree aparte: 56 de las 74 en rojo, y NINGUNA por excepción.** Las
+  18 que pasan son exactamente lo que esta tanda no mueve.
+  ⚠️ **MURIÓ POR EXCEPCIÓN CONTRA EL ÁRBOL DE ENTRADA EN SU PRIMERA VERSIÓN**
+  (`ReferenceError: _indAo is not defined`, con **cero** condiciones en rojo), y después otra vez
+  por un `.bloques` sobre `null`. **Un caso que muere por excepción prueba que el árbol es
+  distinto, no que sabe medir.** Es la quinta vez que este repo lo paga.
+  ⚠️ **Y CINCO DE SUS CONDICIONES ESTABAN EN ROJO CONTRA EL ÁRBOL NUEVO, Y EL DEFECTO ERA MÍO:**
+  el panel escribía «Recomendaciones-tabla 63» donde las otras tres superficies decían «Tabla 62».
+  **Lo cazó el caso, no la lectura.**
+- ⚠️ **CASOS ADAPTADOS: CINCO**, con el motivo escrito en cada uno. **TC-113** (la coartación cita
+  la ESC 2024 y la fila de IIb sigue en la ESC 2020), **TC-116** (el Loeys-Dietz en IIa con más de
+  45, su banda del gen desde 40 y el Ehlers-Danlos; **gana seis condiciones**), **TC-149** (el
+  manual nombra las cuatro tablas con su folio), **TC-322** (su SEED gana la entrada de la sección
+  nueva) y **TC-147**, cuya condición afirmaba «Loeys-Dietz 47 mm sale Clase I» y hoy afirma lo
+  CONTRARIO — se mide por el **DUEÑO**, porque en la distribución del Laboratorio el IIa del
+  Loeys-Dietz y el IIa del Marfan con factores caen en la **misma fila** y el porcentaje no los
+  separa. Más **TC-GR-14**, arriba.
+
+- ⚠️ **ME COMÍ EL ACENTO GRAVE CUATRO VECES**, todas en comentarios míos dentro del cuerpo de un
+  caso, y la cuarta **con el chequeo dando OK**: `scripts/check_backticks.py` no ve un par
+  BALANCEADO de acentos graves, que cierra el template igual. Las cuatro las dio `node --check`.
+  **Correr los dos, y para un caso nuevo contar los acentos graves del cuerpo a mano.**
+
+- **Dónde está todo:** `docs/mapa/aorta-aortopatias-evidencia.md` (**mapa NUEVO**, 22,1 KB: la
+  regla de folio con sus tres series, las citas por síndrome, el Loeys-Dietz, la coartación, la
+  VAB, el Ehlers-Danlos, el motor con su dueño del corte y su cuestionario, siete trampas y **la
+  ficha de TC-512 adentro**); dos mapas con un puntero cada uno
+  (`evidencia-derecho-aorta` 19,2 KB · `congenitas-otros` 26,7 KB); `docs/fuentes/FUENTES.md` → «El
+  trabajo H», con las **trece tablas y las tres figuras verificadas en el original**, la
+  contradicción del operador de la dilatación y la tabla de **Cambios de evidencia**; y
+  `docs/PENDIENTES.md` → **Y3d-4 marcado CERRADO** más **ocho** cosas declaradas (H-1 a H-8).
+  ⚠️ **TRES MAPAS NO SE TOCARON, LOS TRES POR TAMAÑO, medido con `wc -c` ANTES de escribir:**
+  `panel-evidencia.md` está en **35,3 KB** —o sea **ya cruzado** desde el 2026-10-12—,
+  `aortica-cortes.md` en 33,9 y `tests-fichas.md` en 33,5, y la ficha lo cruzaba. **Ningún mapa
+  cruzó el techo.** `PENDIENTES.md` → H-7.
 
 
 ### Las CORRECCIONES de la reorganización de pestañas — «B2» (2026-10-22)

@@ -292,3 +292,23 @@ columnas idéntico.
 **Está todo en `docs/mapa/referencias-subpestanas.md`**: el reparto (`REF_SUBTAB`), el índice del
 buscador y su normalización, el mapeo `VINFO_REF` con las cinco tarjetas que no llevan botón, la
 tabla `AO_CX_T` con su folio por fila y su sondeo del dueño, y nueve trampas medidas.
+
+---
+
+## El trabajo «H» (2026-10-21) — puntero
+
+La **aorta torácica en el panel de Evidencia** tiene mapa propio:
+**`docs/mapa/aorta-aortopatias-evidencia.md`**.
+
+Lo que hay que saber antes de tocar algo de esta zona:
+
+- **El corte de dilatación tiene un dueño único**, `AO_DIL_MM` / `aoDilCorte` / `aoDilMax` /
+  `aoDilatada` (**40 mm en el varón, 36 en la mujer, con `>=`**, por `sexoEfectivo`), y de él
+  cuelgan **las dos** secciones de aorta del panel: la de la bicúspide y la nueva.
+  **Mover ese número mueve las dos.**
+- Los **cortes descriptivos de los cinco segmentos** (`AO_SEGS`, `AO_REF`, `aoSegDil`, el «40 mm o
+  más» del seno) **no se tocaron**: siguen siendo criterio de EcoSmart y viven acá.
+- **Las citas por síndrome tienen dueño** (`MARFAN_FTE`): la Tabla 62 es **sólo del Marfan**; la 58
+  es Turner, la 66 Loeys-Dietz, la 38 la no sindrómica y la 59 el Ehlers-Danlos vascular.
+- La **regla de folio** de la ESC 2024 de aorta es **folio = hoja − 1**, comprobada en once hojas,
+  y ese documento tiene **dos series de tablas que se pisan en 1-18**.

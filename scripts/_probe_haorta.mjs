@@ -296,7 +296,174 @@ const AOMOTOR = `(() => {
   return out;
 })()`;
 
-const GRUPOS = { citas: CITAS, informe: INFORME, coa: COA, vabtxt: VABTXT, evid: EVID, motor: AOMOTOR, ctrl: CTRL };
+
+/* == (h) A/B DEDICADO de las superficies FIRMADAS, con el PDF generado de verdad ========== */
+const AB = `(() => {
+  const PL = ['clasico','moderno','minimalista','academico','compacto','elegante'];
+  const pon = (o) => { Object.keys(o).forEach(k => { const e = document.getElementById(k); if (!e) return;
+    if (e.type === 'checkbox') { e.checked = o[k] === '1' } else { e.value = o[k] }
+    try { e.dispatchEvent(new Event('input', { bubbles:true })) } catch (x) {}
+    try { e.dispatchEvent(new Event('change', { bubbles:true })) } catch (x) {} }); };
+  /* El CONSTRUCTOR y no el prototipo: jsPDF 2.x instala text, line, circle y rect como
+     propiedades PROPIAS de cada instancia, asi que parchear el prototipo no captura nada y no
+     da ningun error. */
+  const pdf = (plan) => {
+    if (typeof window.jspdf === 'undefined') return { err:'SIN jsPDF' };
+    try { localStorage.setItem('ett_pdf_plantilla', plan) } catch (e) {}
+    const orig = window.jspdf.jsPDF;
+    let textos = [], nfig = 0, err = null;
+    function Env(){ const d = new orig(arguments[0]);
+      const oT = d.text, oC = d.circle, oL = d.line, oR = d.rect;
+      d.text = function(t){ textos.push((typeof t === 'string') ? t : (Array.isArray(t) ? t.join('~') : String(t))); return oT.apply(d, arguments) };
+      d.circle = function(){ nfig++; return oC.apply(d, arguments) };
+      d.line = function(){ nfig++; return oL.apply(d, arguments) };
+      d.rect = function(){ nfig++; return oR.apply(d, arguments) };
+      d.save = function(){ return d };
+      return d }
+    Env.API = orig.API; Env.version = orig.version;
+    window.jspdf.jsPDF = Env;
+    try { generarPDFReal() } catch (e) { err = String(e && e.message || e) }
+    finally { window.jspdf.jsPDF = orig }
+    return { err:err, nTextos:textos.length, nFigs:nfig, textos:textos.join('~~') };
+  };
+  const esc = (o) => {
+    if (typeof limpiarCampos === 'function') { try { limpiarCampos() } catch (e) {} }
+    pon({ nombre:'AB', ci:'11111111', fecha_estudio:'2026-10-21' });
+    pon(o);
+    const r = { inf:{}, suma:{} };
+    ['estandar','narrativo','conciso'].forEach(st => {
+      try { if (typeof setEstiloInforme === 'function') setEstiloInforme(st) } catch (e) {}
+      try { generarInforme() } catch (e) {}
+      r.inf[st] = (document.getElementById('informe_texto')||{}).value || '';
+      r.suma[st] = (document.getElementById('en_suma')||{}).value || '';
+    });
+    try { if (typeof setEstiloInforme === 'function') setEstiloInforme('estandar') } catch (e) {}
+    try { generarInforme() } catch (e) {}
+    const campos = (() => { const x = {};
+      document.querySelectorAll('input[id], select[id], textarea[id]').forEach(e => {
+        if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(e.id)) return;
+        x[e.id] = e.type === 'checkbox' ? (e.checked ? '1' : '') : (e.value || '') });
+      return x })();
+    try { const f = _labExcelRow({ campos:campos, fecha:'2026-10-21', id:'ab' });
+          r.excel = JSON.stringify(f); r.nCols = Object.keys(f).length } catch (e) { r.excelErr = String(e) }
+    r.pdf = {};
+    PL.forEach(pl => { r.pdf[pl] = pdf(pl) });
+    /* El Laboratorio por sus funciones duenas, el PPT y el PDF de auditoria por sus generadores
+       REALES: los publicos exigen tarjetas tildadas y abren modales. */
+    const infs = [{ id:'ab', fecha:'2026-10-21', campos:campos,
+                    informe_texto:r.inf.estandar, en_suma:r.suma.estandar }];
+    r.lab = ['_labGeomCat','_labDiastGrado','_labValvCounts','_labEstenSev','_labEmLectura','_labFevi']
+      .map(fn => fn + '=' + (typeof window[fn] === 'function'
+        ? (function(){ try { return JSON.stringify(window[fn](infs[0], 'em_grado')) } catch (e) { return 'EXC' } })() : 'SIN FN')).join(' | ');
+    r.ppt = (function(){ if (typeof _labPPTGenerar !== 'function' || typeof PptxGenJS === 'undefined') return 'SIN PPT';
+      let n = 0; try { const P = PptxGenJS, o = P.prototype.addSlide;
+        P.prototype.addSlide = function(){ const sl = o.apply(this, arguments);
+          const oT = sl.addText; sl.addText = function(){ n++; return oT.apply(sl, arguments) };
+          const oTb = sl.addTable; if (oTb) sl.addTable = function(){ n++; return oTb.apply(sl, arguments) };
+          return sl };
+        try { _labPPTGenerar(infs, { guardar:false }) } catch (e) {}
+        P.prototype.addSlide = o; } catch (e) { return 'EXC' } return n })();
+    r.aud = (function(){ if (typeof _labAnalisisPDFReal !== 'function' || typeof window.jspdf === 'undefined') return 'SIN AUD';
+      const orig = window.jspdf.jsPDF; let n = 0;
+      function Env(){ const d = new orig(arguments[0]); const oT = d.text;
+        d.text = function(){ n++; return oT.apply(d, arguments) }; d.save = function(){ return d }; return d }
+      Env.API = orig.API; Env.version = orig.version;
+      window.jspdf.jsPDF = Env;
+      try { _labAnalisisPDFReal(infs) } catch (e) {}
+      finally { window.jspdf.jsPDF = orig }
+      return n })();
+    return r;
+  };
+  return {
+    vacio:  esc({}),
+    ao38:   esc({ ao_tub:'38' }),
+    ao41:   esc({ ao_tub:'41' }),
+    ao56:   esc({ ao_tub:'56' }),
+    /* La casilla «Integrar al informe» de la VAB es OBLIGATORIA en el escenario: sin ella la
+       conclusion no llega al informe y el A/B informa «0 diferencias» sobre textos que SI
+       cambiaron. Es el denominador vacio con pinta de medicion buena. */
+    vabSinChk: esc({ va_morf:'Bicúspide', vab_tipo:'fused_rl', ao_tub:'46' }),
+    vab:    esc({ va_morf:'Bicúspide', vab_tipo:'fused_rl', ao_tub:'46', vab_incluir_chk:'1' }),
+    vab51:  esc({ va_morf:'Bicúspide', vab_tipo:'fused_rl', ao_tub:'51', vab_incluir_chk:'1' }),
+    vab36:  esc({ va_morf:'Bicúspide', vab_tipo:'fused_rl', ao_tub:'36', vab_incluir_chk:'1' }),
+    coaMed: esc({ coa_loc:'yuxtaductal', coa_situacion:'nativa', coa_gmedio:'25', coart_incluir_chk:'1' }),
+    coaMax: esc({ coa_loc:'yuxtaductal', coa_situacion:'nativa', coa_vmax:'4.0', coart_incluir_chk:'1' }),
+    marfan: esc({ marfan_sindrome:'marfan', marfan_ao_seno:'50', marfan_incluir_chk:'1' }),
+    lds:    esc({ marfan_sindrome:'lds', marfan_ao_seno:'46', marfan_incluir_chk:'1' }),
+    eds:    esc({ marfan_sindrome:'eds', marfan_ao_seno:'46', marfan_incluir_chk:'1' })
+  };
+})()`;
+
+/* == (i) MAQUETA: cinco anchos por dos temas, con las secciones ABIERTAS ================== */
+const MAQ = `(() => {
+  const cls = document.documentElement.classList;
+  const r = { tema: cls.contains('light-mode') ? 'claro' : 'oscuro' };
+  r.scrollH = { doc: document.documentElement.scrollWidth, cli: document.documentElement.clientWidth };
+  r.hScroll = r.scrollH.doc > r.scrollH.cli;
+  const geo = (id) => { const e = document.getElementById(id); if (!e) return null;
+    const b = e.getBoundingClientRect(); return { w: Math.round(b.width), h: Math.round(b.height) } };
+  r.marfanBox = geo('marfan-resultado');
+  r.marfanHint = geo('marfan-fr-hint');
+  r.coaConcl = geo('coa-concl');
+  r.panel = geo('indic-card');
+  /* El COLOR REAL de lo nuevo, computado y no leido del fuente. */
+  const col = (id) => { const e = document.getElementById(id); if (!e) return null;
+    const c = getComputedStyle(e); return c.color };
+  r.colorHint = col('marfan-fr-hint');
+  r.colorVar = (function(){ const e = document.getElementById('marfan-resultado');
+    if (!e) return null; return getComputedStyle(e).getPropertyValue('--text2').trim() || 'VACIA' })();
+  return r;
+})()`;
+
+const GRUPOS = { citas: CITAS, informe: INFORME, coa: COA, vabtxt: VABTXT, evid: EVID, motor: AOMOTOR, ab: AB, maq: MAQ, ctrl: CTRL };
+
+/* ⚠️ LA MAQUETA SE MIDE CON LAS SECCIONES ABIERTAS Y CON EL TEMA COMPROBADO: una seccion
+   cerrada mide 0x0 y da «cero scroll» sobre capturas vacias, y un tema que no quedo puesto deja
+   las diez celdas midiendo el mismo. La sonda ABORTA si la clase no quedo. */
+const VIEWPORTS = [[1200,700],[1440,800],[768,1024],[390,844],[360,740]];
+async function maqueta(motor, nombre) {
+  const br = await motor.launch(motor === chromium ? { channel: 'chrome' } : {});
+  const res = {};
+  for (const [w, h] of VIEWPORTS) {
+    for (const claro of [false, true]) {
+      const pg = await br.newPage({ viewport: { width: w, height: h } });
+      try {
+        await pg.goto('file://' + FILE, { waitUntil: 'load', timeout: 120000 });
+        await pg.waitForTimeout(850);
+        await pg.evaluate(PRELUDIO);
+        const puesto = await pg.evaluate(`(() => {
+          const c = document.documentElement.classList;
+          if (${claro}) c.add('light-mode'); else c.remove('light-mode');
+          return c.contains('light-mode') === ${claro};
+        })()`);
+        const cel = w + 'x' + h + (claro ? '_claro' : '_oscuro');
+        if (!puesto) { res[cel] = { ABORTO: 'el tema no quedo puesto' }; await pg.close(); continue }
+        await pg.evaluate(`(() => {
+          try { showTab('congenitas') } catch (e) {}
+          ['cc-marfan','cc-coa','cc-vab'].forEach(k => { try { secToggle(k) } catch (e) {} });
+          try { marfanSync() } catch (e) {}
+          try { coaSync() } catch (e) {}
+          const pon = (id, v) => { const e = document.getElementById(id); if (!e) return;
+            e.value = v; try { e.dispatchEvent(new Event('input', { bubbles:true })) } catch (x) {}
+            try { e.dispatchEvent(new Event('change', { bubbles:true })) } catch (x) {} };
+          pon('marfan_sindrome','marfan'); pon('marfan_ao_seno','50');
+          pon('coa_loc','yuxtaductal'); pon('coa_situacion','nativa'); pon('coa_gmedio','25');
+          pon('ao_tub','46'); pon('sexo','F');
+          try { if (typeof indicAbrir === 'function') indicAbrir() } catch (e) {}
+          return true })()`);
+        await pg.waitForTimeout(420);
+        res[cel] = await pg.evaluate(MAQ);
+        if (SOLO.indexOf('captura') > -1) {
+          try { fs.mkdirSync(DEST, { recursive: true }) } catch (e) {}
+          await pg.screenshot({ path: DEST + '/' + nombre + '_' + cel + '.png', fullPage: false });
+        }
+      } catch (e) { res[w + 'x' + h + (claro ? '_claro' : '_oscuro')] = { EXC: String(e).slice(0, 200) } }
+      await pg.close();
+    }
+  }
+  await br.close();
+  OUT[nombre + '_maqueta'] = res;
+}
 
 async function correr(motor, nombre) {
   const br = await motor.launch(motor === chromium ? { channel: 'chrome' } : {});
@@ -328,6 +495,14 @@ async function correr(motor, nombre) {
   OUT[nombre] = res;
 }
 
-if (!MOTOR || MOTOR === 'chromium') await correr(chromium, 'chrome');
-if (!MOTOR || MOTOR === 'webkit') { try { await correr(webkit, 'webkit') } catch (e) { OUT.webkit = { error: String(e).slice(0,200) } } }
+const HAY_MAQ = SOLO.indexOf('maq') > -1 || SOLO.indexOf('captura') > -1;
+const HAY_OTRO = SOLO.filter(g => g !== 'maq' && g !== 'captura').length > 0;
+if (!MOTOR || MOTOR === 'chromium') {
+  if (HAY_OTRO) await correr(chromium, 'chrome');
+  if (HAY_MAQ) await maqueta(chromium, 'chrome');
+}
+if (!MOTOR || MOTOR === 'webkit') {
+  try { if (HAY_OTRO) await correr(webkit, 'webkit') } catch (e) { OUT.webkit = { error: String(e).slice(0,200) } }
+  try { if (HAY_MAQ) await maqueta(webkit, 'webkit') } catch (e) { OUT.webkit_maqueta = { error: String(e).slice(0,200) } }
+}
 console.log(JSON.stringify(OUT, null, 1));

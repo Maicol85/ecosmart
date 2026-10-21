@@ -9643,8 +9643,19 @@ caso('TC-147', 'Lab CC/Mediciones: los bloques leen *Estado(), no reimplementan 
   return { extra: [
     // 1 · EL UMBRAL LO ELIGE EL SINDROME — es lo que separa leer de reimplementar.
     /* 'Clase I' es SUBSTRING de 'Clase IIa': la condicion pasaria con la rama equivocada.
-       Se busca el texto que solo produce cx_i. Tercera vez en la sesion que muerde esto. */
-    ['Loeys-Dietz 47mm sale Clase I (su corte es 45)', marfan.indexOf('cirug') > -1 && marfan.indexOf('indicada') > -1, marfan],
+       Se busca el texto que solo produce cx_i. Tercera vez en la sesion que muerde esto.
+       ⚠️ ADAPTADO el 2026-10-21 (trabajo H): el Loeys-Dietz de 47 mm ya NO es Clase I. Su corte
+       paso a «mas de 45 mm» con Clase IIa · Nivel C, leido en la Recomendaciones-tabla 66
+       (folio 116), asi que de las cuatro escenas NINGUNA cae en cx_i. El umbral lo sigue
+       eligiendo el sindrome, que es lo que este caso mide, pero se afirma por el DUENO: en la
+       distribucion el IIa del Loeys-Dietz y el IIa del Marfan con factores caen en la MISMA
+       fila y el porcentaje no los separa. */
+    ['Loeys-Dietz 47mm sale Clase IIa, que es su clave desde el trabajo H',
+      (function(){ try { return marfanEstado({ marfan_sindrome:'lds', marfan_ao_seno:'47' }).clave === 'cx_iia'; }
+                   catch (e) { return false; } })(),
+      (function(){ try { return JSON.stringify(marfanEstado({ marfan_sindrome:'lds', marfan_ao_seno:'47' })); }
+                   catch (e) { return 'EXC'; } })()],
+    ['y ninguna de las cuatro escenas publica ya una Clase I', marfan.indexOf('indicada') === -1, marfan],
     /* La cascada tiene rama PROPIA para esto (umbral_iia_sin_fr): 47mm esta sobre el corte de
        45 en que los factores pasan a indicar cirugia, pero no hay factores consignados. No es
        'sin criterios' ni es criterio cumplido. Mi expectativa inicial estaba mal, no el codigo. */
@@ -12619,6 +12630,14 @@ caso('TC-GR-14', 'Abrir un estudio importado encima de otro paciente no hereda s
     __t.set('coa_loc','yuxtaductal'); __t.set('coa_istmo','6');
     __t.set('coa_vmax','3.4'); __t.set('coa_gmedio','45');
     __t.chk('coart_incluir_chk', true);
+    /* ADAPTADO el 2026-10-21 (trabajo H): la morfologia va con el fenotipo. La condicion «y la
+       valvula bicuspide» pasaba por la frase del 50-85 % de la COARTACION —que nombra la
+       bicuspide y que el trabajo H retira del informe y deja solo en Evidencia—, no por el
+       modulo de la VAB: sin va_morf en bicuspide, el parrafo de la valvula aortica decia
+       «trivalva normal» y la condicion medía otra cosa que lo que dice medir. Medido en los dos
+       arboles. Con la morfologia puesta, el parrafo la nombra de verdad, y al reabrir el estudio
+       ralo vuelve a su valor de fabrica, que es lo que las condiciones de abajo exigen. */
+    __t.set('va_morf','Bicúspide');
     __t.set('vab_fenotipo','rl'); __t.chk('vab_incluir_chk', true);
     __t.set('fevi','35');
     const a = __t.informe();
@@ -39452,7 +39471,7 @@ caso('TC-293', 'Panel de Evidencia: el detalle largo nace COLAPSADO, hay un solo
    dato persistido y las nueve superficies que lo consumen no cambian ni una letra. Eso rompe la
    universalidad de una invariante declarada —«estos selects NO llevan value»—.
    ⚠️ EL ALCANCE SE REDUJO EL 2026-09-27 y esta nota decia lo contrario: el sufijo se puso en los
-   CUATRO selects y hoy queda SOLO en `va_morf`, porque TAVI existe unicamente ahi y el parentesis es
+   CUATRO selects y hoy queda SOLO en va_morf, porque TAVI existe unicamente ahi y el parentesis es
    lo que distingue la via quirurgica de la percutanea. En las otras tres era ruido. No fue una
    reversion: el cambio a «solo aortica» nunca se habia aplicado —un solo commit toco el string,
    `35efa61`, y lo puso en los cuatro—.
@@ -82028,6 +82047,286 @@ caso('TC-511', 'Trabajo B2: la columna izquierda con ONCE botones y «Pericardio
       'clasifica']); }
 
   return { extra: ex };
+`);
+
+/* ══ TRABAJO «H» — LA AORTA ═══════════════════════════════════════════════════════════════════
+   Cubre las CUATRO partes y mide lo RENDERIZADO, no el valor de retorno: el badge y el
+   Fundamento de la pantalla, el texto del informe y del EN SUMA, el hint de los factores, las
+   filas y los bloques del panel de Evidencia, y las 440 columnas del Excel.
+   Lo que la maqueta en cinco anchos por dos temas y en los DOS motores no se puede medir desde
+   el cuerpo de un caso -corre DENTRO de la pagina y no puede cambiar el viewport- lo mide
+   scripts/_probe_haorta.mjs en su grupo maq; aca se fija la REGLA que lo produce. */
+caso('TC-512', 'Trabajo H: las citas de aorta por sindrome —Tabla 62 solo Marfan, 58 Turner, 66 Loeys-Dietz y 38 la no sindromica—, con su clase y su nivel en las cuatro superficies; el Loeys-Dietz en IIa con MAS de 45 mm y su banda del gen desde 40; la coartacion por gradiente MEDIO de la Figura 44; la VAB sin «vigilancia estrecha» ni «Heart Team» y con el intervalo y el «mismo acto» en Evidencia; el Ehlers-Danlos vascular como opcion SIN umbral; el motor de aorta arrancando en 40 mm y en 36 en la mujer con su cuestionario y las recomendaciones por debajo de 45; y el informe, el EN SUMA, el PDF, el Laboratorio y las 440 columnas del Excel sin moverse fuera de lo autorizado', `
+  const ex = [];
+  const L = (id) => { const e = document.getElementById(id); return e ? (e.textContent || '').replace(/\\u00a0/g, ' ') : 'NO EXISTE ' + id; };
+  const H = document.documentElement.innerHTML;
+
+  /* ── A · ESCENARIOS DE LA AORTOPATIA, por la funcion que firma pantalla e informe ───────── */
+  function m(o) { __t.limpiar();
+    Object.keys(o).forEach(function(k){ __t.set(k, String(o[k])); });
+    __t.chk('marfan_incluir_chk', true);
+    const r = marfanEstado();
+    return { c: r.clave, t: r.txt, box: L('marfan-resultado'), hint: L('marfan-fr-hint'), inf: __t.informe() };
+  }
+  const mar50  = m({ marfan_sindrome:'marfan', marfan_ao_seno:'50' });
+  const mar45f = m({ marfan_sindrome:'marfan', marfan_ao_seno:'45', marfan_factores_riesgo:'si' });
+  const tur24f = m({ marfan_sindrome:'turner', marfan_ita:'24', marfan_factores_riesgo:'si' });
+  const tur26  = m({ marfan_sindrome:'turner', marfan_ita:'26', marfan_factores_riesgo:'no' });
+  const eh55   = m({ marfan_sindrome:'ehat', marfan_ao_seno:'55' });
+  const eh50f  = m({ marfan_sindrome:'ehat', marfan_ao_seno:'50', marfan_factores_riesgo:'si' });
+  const ld46   = m({ marfan_sindrome:'lds', marfan_ao_seno:'46' });
+  const ld45   = m({ marfan_sindrome:'lds', marfan_ao_seno:'45' });
+  const ld41f  = m({ marfan_sindrome:'lds', marfan_ao_seno:'41', marfan_factores_riesgo:'si' });
+  const ld39   = m({ marfan_sindrome:'lds', marfan_ao_seno:'39' });
+  const eds46  = m({ marfan_sindrome:'eds', marfan_ao_seno:'46' });
+
+  /* (a) CADA SINDROME CITA SU TABLA, y la 62 ya no se le atribuye a los otros tres. */
+  ex.push(['Marfan cita la Tabla 62 con su folio y su clase y nivel',
+    mar50.t.indexOf('Tabla 62') > -1 && mar50.t.indexOf('folio 114') > -1 && mar50.t.indexOf('Clase I · Nivel B') > -1]);
+  ex.push(['Turner cita la Tabla 58, NO la 62',
+    tur24f.t.indexOf('Tabla 58') > -1 && tur24f.t.indexOf('folio 111') > -1 && tur24f.t.indexOf('Tabla 62') === -1]);
+  ex.push(['Loeys-Dietz cita la Tabla 66, NO la 62',
+    ld46.t.indexOf('Tabla 66') > -1 && ld46.t.indexOf('folio 116') > -1 && ld46.t.indexOf('Tabla 62') === -1]);
+  ex.push(['la aortopatia no sindromica cita la Tabla 38, NO la 62',
+    eh55.t.indexOf('Tabla 38') > -1 && eh55.t.indexOf('folio 80') > -1 && eh55.t.indexOf('Tabla 62') === -1]);
+  ex.push(['la PANTALLA publica la fuente del umbral del sindrome',
+    mar50.box.indexOf('Fuente del umbral') > -1 && mar50.box.indexOf('Tabla 62 · folio 114') > -1 &&
+    tur24f.box.indexOf('Tabla 58 · folio 111') > -1]);
+  ex.push(['el INFORME lleva la tabla y el EN SUMA tambien',
+    mar50.inf.inf.indexOf('Tabla 62 · folio 114') > -1 && mar50.inf.suma.indexOf('Tabla 62 · folio 114') > -1]);
+  /* El EN SUMA decia «(ESC 2020)», que es la guia de congenitas y no la de aorta. */
+  ex.push(['CONTROL: ninguna aortopatia cita ya la ESC 2020',
+    mar50.inf.suma.indexOf('ESC 2020') === -1 && tur24f.inf.suma.indexOf('ESC 2020') === -1 &&
+    ld46.inf.suma.indexOf('ESC 2020') === -1]);
+  ex.push(['el MANUAL nombra las cuatro tablas con su folio',
+    H.indexOf('Tabla 66</b> · folio 116') > -1 && H.indexOf('Tabla 62</b> · folio 114') > -1 &&
+    H.indexOf('Tabla 58</b> · folio 111') > -1 && H.indexOf('Tabla 38</b> · folio 80') > -1]);
+
+  /* (b) LOS UMBRALES DE LA AORTA NO SINDROMICA, alineados a la Tabla 38. */
+  ex.push(['55 mm sigue siendo Clase I y ahora dice su nivel B', eh55.c === 'cx_i' && eh55.t.indexOf('Clase I · Nivel B') > -1]);
+  ex.push(['50 mm con factores pasa de IIa a Clase IIb · Nivel B',
+    eh50f.c === 'cx_iib' && eh50f.t.indexOf('Clase IIb · Nivel B') > -1]);
+  ex.push(['y el badge de la pantalla dice lo MISMO que el Fundamento',
+    eh50f.box.indexOf('Puede considerarse — Clase IIb') > -1 && eh50f.box.indexOf('Clase IIa') === -1]);
+  ex.push(['CONTROL: el Marfan con factores sigue siendo IIa · C y no se movio',
+    mar45f.c === 'cx_iia' && mar45f.t.indexOf('Clase IIa · Nivel C') > -1]);
+  ex.push(['CONTROL: los dos cortes de Turner y sus dos clases no se movieron',
+    tur24f.c === 'cx_iia' && tur26.c === 'cx_iib']);
+
+  /* (c) LOEYS-DIETZ: IIa con MAS de 45 mm, y la banda del gen desde 40 con riesgo alto. */
+  ex.push(['46 mm es Clase IIa · Nivel C y NO Clase I',
+    ld46.c === 'cx_iia' && ld46.t.indexOf('Clase IIa · Nivel C') > -1 &&
+    ld46.t.indexOf('superior a 45 mm') > -1 && ld46.t.indexOf('Clase I ') === -1]);
+  ex.push(['45 exactos NO lo cruzan: el operador de la Tabla 66 es ESTRICTO', ld45.c !== 'cx_iia']);
+  ex.push(['41 mm con caracteristicas de riesgo alto es IIb · C por el umbral adaptado al gen',
+    ld41f.c === 'cx_iib' && ld41f.t.indexOf('Clase IIb · Nivel C') > -1 && ld41f.t.indexOf('gen subyacente') > -1]);
+  ex.push(['39 mm no alcanza ninguna de las dos filas', ld39.c === 'sin_indicacion']);
+  ex.push(['CONTROL: ninguna rama del Loeys-Dietz publica una Clase I',
+    [ld46, ld45, ld41f, ld39].every(function(x){ return x.c !== 'cx_i' && x.t.indexOf('cirugía de la aorta indicada') === -1 })]);
+
+  /* (d) EHLERS-DANLOS VASCULAR: opcion propia, sin umbral, y sin heredar el 55/50 de «Otro». */
+  ex.push(['es una opcion del desplegable',
+    (function(){ const s = document.getElementById('marfan_sindrome');
+      return !!s && Array.prototype.some.call(s.options, function(o){ return o.value === 'eds' }); })()]);
+  ex.push(['con 46 mm declara que la guia NO publica umbral, con su folio',
+    eds46.c === 'sin_umbral' && eds46.t.indexOf('no publica un umbral de diámetro') > -1 &&
+    eds46.t.indexOf('folio 112') > -1]);
+  ex.push(['y NO cae en ninguna clase quirurgica',
+    ['cx_i','cx_iia','cx_iib','umbral_iia_sin_fr'].indexOf(eds46.c) === -1]);
+  ex.push(['el Excel lo exporta con su etiqueta y el importador lo entiende',
+    (typeof LAB_XLS_ETIQ === 'object' && LAB_XLS_ETIQ.marfan_sindrome.eds === 'Ehlers-Danlos vascular') &&
+    (typeof LAB_XLS_VOCAB === 'object' && LAB_XLS_VOCAB.marfan_sindrome['ehlers-danlos vascular'] === 'eds')]);
+
+  /* (e) EL HINT DE FACTORES publica la lista de LA tabla del sindrome. */
+  ex.push(['con Marfan nombra la Tabla 62 y su crecimiento de 3 mm, no el de 5',
+    mar50.hint.indexOf('Tabla 62') > -1 && mar50.hint.indexOf('3 mm') > -1 && mar50.hint.indexOf('5 mm') === -1]);
+  ex.push(['con Turner nombra la Tabla 58 y cambia de lista', tur24f.hint.indexOf('Tabla 58') > -1 && tur24f.hint !== mar50.hint]);
+  ex.push(['y sin sindrome no afirma ninguna lista',
+    (function(){ __t.limpiar(); return L('marfan-fr-hint').indexOf('depende del s') > -1; })()]);
+
+  /* ── B · LA COARTACION: el criterio de sospecha es el gradiente MEDIO (Figura 44) ───────── */
+  function coa(o) { __t.limpiar();
+    __t.set('coa_loc','yuxtaductal'); __t.set('coa_situacion','nativa');
+    Object.keys(o).forEach(function(k){ __t.set(k, String(o[k])); });
+    __t.chk('coart_incluir_chk', true);
+    const c = coaConclusion();
+    return { c: c && c.clave, t: (c && c.txt) || '', inf: __t.informe() };
+  }
+  const med21 = coa({ coa_gmedio:'21' }), med20 = coa({ coa_gmedio:'20' }), med19 = coa({ coa_gmedio:'19' });
+  const max64 = coa({ coa_vmax:'4.0' }), max64m21 = coa({ coa_vmax:'4.0', coa_gmedio:'21' });
+  ex.push(['gradiente MEDIO de 21 mmHg da significacion por Doppler, con su folio',
+    med21.c === 'significativa' && med21.t.indexOf('gradiente medio 21 mmHg') > -1 &&
+    med21.t.indexOf('Figura 44, folio 120') > -1]);
+  ex.push(['el 20,0 EXACTO no la cruza: el operador de la guia es estricto', med20.c !== 'significativa']);
+  ex.push(['y con 19 tampoco', med19.c !== 'significativa']);
+  ex.push(['el gradiente MAXIMO de 64 mmHg ya NO afirma significacion por si solo',
+    max64.c !== 'significativa' && max64.t.indexOf('sin gradiente MEDIO registrado') > -1]);
+  ex.push(['pero sigue mandando a medir el pico-pico invasivo, que es el criterio de indicacion',
+    max64.t.indexOf('medir el gradiente pico-pico invasivo') > -1]);
+  ex.push(['con los dos cargados manda el MEDIO', max64m21.c === 'significativa']);
+  ex.push(['CONTROL: la indicacion sigue saliendo del pico-pico INVASIVO y cita la ESC 2024',
+    (function(){ const i = coa({ coa_gradiente_picopico:'20', coa_hta:'si' });
+      return i.c === 'indicacion_i' && i.t.indexOf('ESC 2024, Tabla 69') > -1; })()]);
+  ex.push(['CONTROL: la unica fila que solo esta en la ESC 2020 la sigue citando',
+    (function(){ const b = coa({ coa_gradiente_picopico:'10', coa_estenosis_relativa:'50', coa_hta:'no' });
+      return b.c === 'indicacion_iib' && b.t.indexOf('ESC 2020') > -1 && b.t.indexOf('folio e42') > -1; })()]);
+  /* La frase del 50-85 % sale del informe y del EN SUMA, y queda en Evidencia. */
+  ex.push(['el informe y el EN SUMA ya no llevan el 50-85 %',
+    med21.inf.inf.indexOf('50-85 %') === -1 && med21.inf.suma.indexOf('50-85 %') === -1]);
+
+  /* ── C · LA VAB: sin «vigilancia estrecha» ni «Heart Team», y sin intervalos en el texto ── */
+  function vab(o) { __t.limpiar(); __t.set('va_morf','Bicúspide');
+    Object.keys(o).forEach(function(k){ __t.set(k, String(o[k])); });
+    const c = vabConclusion();
+    return { c: c && c.clave, t: (c && c.txt) || '' };
+  }
+  const V = [ vab({ ao_tub:'56', vab_tipo:'1' }), vab({ ao_tub:'46', vab_cx_valvular:'si', vab_tipo:'1' }),
+              vab({ ao_tub:'51', vab_tipo:'1' }), vab({ ao_tub:'51', vab_riesgo_qx:'si', vab_tipo:'1' }),
+              vab({ ao_tub:'46', vab_tipo:'1' }), vab({ ao_tub:'36', vab_tipo:'1' }) ];
+  const VT = V.map(function(x){ return x.t }).join(' || ');
+  ex.push(['ninguna rama de la VAB dice «Heart Team»', VT.indexOf('Heart Team') === -1]);
+  ex.push(['ninguna dice «vigilancia estrecha»', VT.indexOf('vigilancia estrecha') === -1]);
+  ex.push(['ninguna dice «mismo acto»: esa recomendacion queda en Evidencia', VT.indexOf('mismo acto') === -1]);
+  ex.push(['y ninguna publica un intervalo de control: ni «anual» ni «control anual»', VT.indexOf('anual') === -1]);
+  ex.push(['CONTROL: las seis claves NO se movieron, que es lo que protege los estudios guardados',
+    V[0].c === 'cx_55' && V[1].c === 'concomitante_45' && V[2].c === 'umbral_sin_riesgo' &&
+    V[3].c === 'vigilancia_50' && V[4].c === 'vigilancia_45' && V[5].c === 'sin_dilatacion']);
+  ex.push(['CONTROL: el cribado familiar se CONSERVA — tiene fuente y esta orden no lo retira',
+    V[5].t.indexOf('cribado a familiares de primer grado') > -1]);
+  ex.push(['el globo i del contexto quirurgico ya no nombra al Heart Team y publica el < 3 % con su nota',
+    (typeof VINFO === 'undefined') ? false
+      : (VINFO['vab-cx'].lee.indexOf('Heart Team') === -1 && VINFO['vab-cx'].lee.indexOf('3 %') > -1 &&
+         VINFO['vab-cx'].lee.indexOf('Tabla 38') > -1)]);
+
+  /* ── D · EL MOTOR DE EVIDENCIA DE AORTA ─────────────────────────────────────────────────── */
+  function ao(o, resp) { __t.limpiar(); if (typeof _indClinLimpiar === 'function') _indClinLimpiar();
+    Object.keys(o).forEach(function(k){ __t.set(k, String(o[k])); });
+    if (resp && typeof _indClin === 'object') Object.keys(resp).forEach(function(k){ _indClin[k] = resp[k] });
+    /* CENTINELA: contra el arbol de entrada la funcion _indAo NO EXISTE, y nombrarla pelada
+       mata la corrida entera con un ReferenceError — o sea el caso probaria que el arbol es
+       distinto y no que sabe medir. Lo pague en la primera version de este caso. Y la clave f0
+       va aca por lo mismo: con r en null, una condicion que baje a r.filas[0] revienta igual. */
+    const r = (typeof _indAo === 'function') ? _indAo() : null;
+    return { hay: !!r, r: r,
+      lineas: r ? (r.bloques || []).map(function(b){ return (b.lineas || []).map(function(l){ return l.txt }).join(' || ') }).join(' ## ') : '',
+      f0: (r && r.filas) ? JSON.stringify(r.filas[0]) : 'SIN _indAo',
+      filas: r ? r.filas.map(function(f){ return f.lbl + '=' + (f.ctrl ? 'CTRL' : f.val) }).join(' | ') : '' };
+  }
+  /* (D1) EL DISPARO, por los dos bordes y los dos sexos. */
+  ex.push(['hombre: 39 mm NO dispara, 40 y 41 SI',
+    !ao({ sexo:'M', ao_tub:'39' }).hay && ao({ sexo:'M', ao_tub:'40' }).hay && ao({ sexo:'M', ao_tub:'41' }).hay]);
+  ex.push(['mujer: 35 mm NO dispara, 36 y 37 SI',
+    !ao({ sexo:'F', ao_tub:'35' }).hay && ao({ sexo:'F', ao_tub:'36' }).hay && ao({ sexo:'F', ao_tub:'37' }).hay]);
+  ex.push(['SIN sexo cargado se usa el corte del varon, que es el alto',
+    !ao({ ao_tub:'37' }).hay && ao({ ao_tub:'40' }).hay]);
+  ex.push(['y la fila lo DICE en vez de callarlo',
+    ao({ ao_tub:'41' }).filas.indexOf('41 mm') > -1 &&
+    ao({ ao_tub:'41' }).f0.indexOf('SIN SEXO CARGADO') > -1]);
+  ex.push(['con sexo femenino el corte publicado es 36 mm',
+    ao({ sexo:'F', ao_tub:'37' }).f0.indexOf('36 mm') > -1]);
+  /* (D2) LAS DOS SECCIONES DE AORTA COMPARTEN EL DUENO DEL UMBRAL. */
+  ex.push(['la seccion de la VAB tambien arranca en el corte de dilatacion y no en 45 mm',
+    (function(){ __t.limpiar(); __t.set('va_morf','Bicúspide'); __t.set('ao_tub','42');
+      return !!_indVAB(); })()]);
+  ex.push(['y las dos usan el MISMO dueno', typeof aoDilatada === 'function' && typeof aoDilCorte === 'function']);
+  /* (D3) LA AORTOPATIA SE LEE CUANDO ESTA Y SE PREGUNTA CUANDO NO. */
+  ex.push(['con el sindrome declarado la aortopatia se DERIVA y no se pregunta',
+    ao({ ao_tub:'46', marfan_sindrome:'marfan' }).filas.indexOf('Aortopatía asociada=síndrome de Marfan') > -1]);
+  ex.push(['con la morfologia en bicuspide tambien',
+    ao({ ao_tub:'46', va_morf:'Bicúspide' }).filas.indexOf('Aortopatía asociada=válvula aórtica bicúspide') > -1]);
+  ex.push(['y sin ninguno de los dos se PREGUNTA',
+    ao({ ao_tub:'46' }).filas.indexOf('Aortopatía asociada=CTRL') > -1]);
+  ex.push(['el cuestionario trae los seis insumos que las tablas piden',
+    (function(){ const f = ao({ ao_tub:'46' }).filas;
+      return ['Cirugía valvular aórtica prevista','Otra cirugía cardíaca','Deseo de embarazo',
+              'Crecimiento de 3 mm','Antecedente familiar','Riesgo quirúrgico']
+        .every(function(k){ return f.indexOf(k) > -1 }); })()]);
+  /* (D4) LAS RECOMENDACIONES POR DEBAJO DE 45 mm, que el arranque en 45 escondia. */
+  ex.push(['Marfan con deseo de embarazo y 42 mm publica la IIb · C de la Tabla 63',
+    (function(){ const t = ao({ ao_sin:'42', marfan_sindrome:'marfan' }, { 'ao.embarazo':'si' }).lineas;
+      return t.indexOf('Clase IIb · Nivel C') > -1 && t.indexOf('Tabla 63') > -1 && t.indexOf('40 a 45 mm') > -1; })()]);
+  ex.push(['CONTROL: sin deseo de embarazo esa fila NO se publica',
+    ao({ ao_sin:'42', marfan_sindrome:'marfan' }, { 'ao.embarazo':'no' }).lineas.indexOf('Tabla 63') === -1]);
+  ex.push(['Loeys-Dietz con 41 mm y riesgo alto publica la IIb · C del umbral por gen',
+    ao({ ao_sin:'41', marfan_sindrome:'lds' }, { 'ao.crecimiento':'si' }).lineas.indexOf('Tabla 66') > -1]);
+  ex.push(['ACTA2 con 42 mm y factores publica la IIa · C con el umbral por debajo de 45',
+    (function(){ const t = ao({ ao_sin:'42', marfan_sindrome:'ehat' }, { 'ao.familiar':'si' }).lineas;
+      return t.indexOf('Tabla 67') > -1 && t.indexOf('diámetro MENOR') > -1; })()]);
+  ex.push(['Turner publica sus dos filas indexadas y declara que no hay diametro absoluto',
+    (function(){ const t = ao({ ao_sin:'41', marfan_sindrome:'turner', marfan_ita:'24' }, { 'ao.crecimiento':'si' }).lineas;
+      return t.indexOf('Tabla 58') > -1 && t.indexOf('23 mm/m²') > -1; })()]);
+  ex.push(['Ehlers-Danlos publica sus dos recomendaciones y que NO hay umbral',
+    (function(){ const t = ao({ ao_sin:'41', marfan_sindrome:'eds' }).lineas;
+      return t.indexOf('celiprolol') > -1 && t.indexOf('NO establece un diámetro') > -1; })()]);
+  /* (D5) LAS FILAS DE LA TABLA 38, con su clase y su nivel. */
+  ex.push(['55 mm sin aortopatia conocida publica la I · B de la Tabla 38',
+    (function(){ const t = ao({ ao_tub:'55' }, { 'ao.aortopatia':'ninguna' }).lineas;
+      return t.indexOf('Clase I · Nivel B') > -1 && t.indexOf('Tabla 38') > -1; })()]);
+  ex.push(['53 mm con riesgo bajo publica la IIa · B del tubular por encima de 52',
+    ao({ ao_tub:'53' }, { 'ao.aortopatia':'ninguna', 'ao.riesgo':'bajo' }).lineas.indexOf('Clase IIa · Nivel B') > -1]);
+  ex.push(['50 mm con riesgo bajo y un factor publica la IIb · B, no una IIa',
+    (function(){ const t = ao({ ao_tub:'50' }, { 'ao.aortopatia':'ninguna', 'ao.riesgo':'bajo', 'ao.crecimiento':'si' }).lineas;
+      return t.indexOf('Clase IIb · Nivel B') > -1 && t.indexOf('ocho factores') > -1; })()]);
+  ex.push(['cuando falta un dato para decidir una fila, se DICE que falta',
+    ao({ ao_tub:'55' }, { 'ao.aortopatia':'ninguna' }).lineas.indexOf('Falta consignar') > -1]);
+  /* (D6) LAS RECOMENDACIONES SE VEN: van en un bloque VISIBLE y no detras del «Ver detalle». */
+  ex.push(['el bloque de recomendaciones NO nace plegado',
+    (function(){ const r = ao({ ao_sin:'50', marfan_sindrome:'marfan' }).r;
+      const b = ((r && r.bloques) || [])[0];
+      return !!b && !b.plegado && (b.lineas || []).length > 0; })()]);
+  ex.push(['y cada recomendacion lleva su cita numerada',
+    (function(){ const r = ao({ ao_sin:'50', marfan_sindrome:'marfan' }).r;
+      const b = ((r && r.bloques) || [])[0];
+      return !!b && (b.lineas || []).length > 0 &&
+             (b.lineas || []).every(function(l){ return l.refs && l.refs.length }); })()]);
+  /* (D7) EL TITULO NO COLISIONA, que es lo que IND_SECS exige. */
+  ex.push(['DENOMINADOR: la seccion esta registrada en IND_SECS',
+    IND_SECS.some(function(x){ return x.tit.indexOf('Aorta torácica') === 0 })]);
+  ex.push(['y ningun titulo de IND_SECS es prefijo de otro',
+    !IND_SECS.some(function(a2, i){ return IND_SECS.some(function(b2, j){
+      return i !== j && (b2.tit.indexOf(a2.tit) === 0 || a2.tit.indexOf(b2.tit) === 0); }); })]);
+  /* (D8) LO QUE EL MEDICO CONTESTA NO SE GUARDA CON EL ESTUDIO. */
+  ex.push(['las respuestas del panel no entran en los campos del estudio',
+    (function(){ __t.limpiar(); __t.set('ao_tub','46');
+      if (typeof _indClin === 'object') { _indClin['ao.aortopatia'] = 'ninguna'; _indClin['ao.embarazo'] = 'si'; }
+      const ids = [];
+      document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function(e){
+        if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(e.id)) return; ids.push(e.id); });
+      return !ids.some(function(i){ return i.indexOf('ao.') === 0 || i === 'ao_aortopatia' }); })()]);
+
+  /* ── E · ESTUDIOS GUARDADOS, «Nuevo estudio» y restauracion ─────────────────────────────── */
+  return (async () => {
+    __t.limpiar();
+    __t.set('nombre','Aorta H'); __t.set('ci','51251251');
+    __t.set('marfan_sindrome','eds'); __t.set('marfan_ao_seno','46'); __t.set('ao_tub','46');
+    __t.chk('marfan_incluir_chk', true);
+    const g = await __t.guardar();
+    ex.push(['DENOMINADOR: el estudio se guardo', g.ok === true && !!g.estudioId]);
+    __t.limpiar();
+    ex.push(['«Nuevo estudio» vacia el sindrome y apaga el hint',
+      (document.getElementById('marfan_sindrome') || {}).value === '' &&
+      L('marfan-fr-hint').indexOf('depende del s') > -1]);
+    if (g.estudioId) {
+      __t.reabrir(g.estudioId);
+      ex.push(['y al reabrirlo el Ehlers-Danlos vascular vuelve con su opcion',
+        (document.getElementById('marfan_sindrome') || {}).value === 'eds' &&
+        marfanEstado().clave === 'sin_umbral']);
+    }
+    /* ── F · LOS CONTROLES ────────────────────────────────────────────────────────────────── */
+    __t.limpiar();
+    const f0 = _labExcelRow({ campos:{}, fecha:'2026-10-21', id:'h0' });
+    ex.push(['CONTROL: el Excel sigue en 440 columnas', Object.keys(f0).length === 440]);
+    ex.push(['CONTROL: y no gano ninguna columna de aorta nueva',
+      !Object.keys(f0).some(function(k){ return k.indexOf('Aortopatía asociada') > -1 || k.indexOf('ao.') === 0; })]);
+    __t.set('vmax_it','2.9'); __t.set('tep_mcconnell','si'); __t.set('tep_vdvi','1.3');
+    __t.set('fop_shunt_valsalva','si'); __t.set('im_vc','7'); __t.set('vmax_ao','4.2');
+    const inf2 = __t.informe();
+    ex.push(['CONTROL: el TEP, el FOP y las valvulas siguen publicando lo suyo',
+      inf2.inf.indexOf('McConnell') > -1 || inf2.inf.length > 100]);
+    ex.push(['CONTROL: y el informe no nombra ninguna aortopatia sin que se la consigne',
+      inf2.inf.indexOf('Aortopatía') === -1]);
+    return { extra: ex };
+  })();
 `);
 
 

@@ -432,3 +432,27 @@ operadores, fórmulas, textos clínicos, ids— se movió; lo que cambió son la
 **El mapa de todo eso es `docs/mapa/pestanas-reorganizacion.md`**, con la tabla «qué se movió»,
 las tres cosas que `showTab` hace y que condicionan cualquier barra de sub-pestañas, el drawer
 móvil y sus `data-mod`, y las seis trampas de medición.
+
+---
+
+## El trabajo «H» (2026-10-21) — puntero
+
+Las **aortopatías de la pestaña C. Congénitas** —Marfan, Loeys-Dietz, Turner, ACTA2, el nuevo
+**Ehlers-Danlos vascular**— y la **coartación** cambiaron de cita y, en tres casos, de clase.
+El mapa es **`docs/mapa/aorta-aortopatias-evidencia.md`**.
+
+Lo imprescindible:
+
+- `marfanEstado` y `marfanSync` leen **`MARFAN_FTE`**, el dueño único de la tabla y el folio de
+  cada síndrome. Antes todos los umbrales se atribuían a «la Tabla 62», que es **sólo del Marfan**,
+  y el EN SUMA citaba **«(ESC 2020)»**, que es la guía de congénitas y no la de aorta.
+- **Loeys-Dietz ya no es Clase I**: es **IIa · C con MÁS de 45 mm** y **IIb · C desde 40 mm** con
+  características de riesgo alto (Tabla 66, folio 116), que son **dos filas distintas**.
+- **Ehlers-Danlos vascular** es la novena opción y su clave es **`sin_umbral`**: la guía no publica
+  diámetro de intervención. Esa clave **tuvo que entrar en `CX_NOCONCL`** del Laboratorio, o
+  `_labDistribDe` la descartaba en silencio.
+- La **coartación** afirma significación por Doppler con el **gradiente MEDIO > 20 mmHg** (Figura
+  44, folio 120); el máximo ya no afirma solo. La indicación sigue saliendo del **pico-pico
+  invasivo**.
+- **Las seis claves de `vabConclusion` no se movieron**, y es lo que protege los estudios guardados
+  y el recuento del Laboratorio.

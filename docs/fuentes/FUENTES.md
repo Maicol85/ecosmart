@@ -4719,3 +4719,161 @@ oraciones que cambian de forma —el párrafo del informe y la línea del EN SUM
 palabras**, unidas con un espacio en vez de un salto de línea; verificado además en el **PDF
 generado de verdad**: el texto de las seis plantillas es idéntico carácter por carácter
 normalizando el blanco (3037 a 3175 caracteres según la plantilla).
+
+## El trabajo «H» — LA AORTA: las citas por aortopatía, la coartación y el motor de Evidencia (2026-10-21)
+
+### La guía y su regla de folio, RE-COMPROBADA en ONCE hojas
+
+**ESC 2024** sobre el diagnóstico y el tratamiento de la enfermedad arterial periférica y aórtica
+(Mazzolai), `06_Aorta/Mazzolai_2024_Aorta.pdf`, **edición española de la SEC** — el original
+inglés **no está en la biblioteca** y se declara; lo que se leyó son **números, operadores, clases
+y niveles**. Es la misma guía que la tanda «P» ya registró; lo que esta tanda agrega es todo lo que
+está debajo.
+
+**REGLA DE FOLIO: folio = hoja del PDF − 1**, comprobada en el **encabezado impreso** de las hojas
+**72, 77, 81, 112, 113, 114, 115, 117, 120, 121 y 122** (folios 71, 76, 80, 111, 112, 113, 114,
+116, 119, 120 y 121). No se dedujo por aritmética.
+
+⚠️ **EL TÍTULO IMPRESO DE UNA TABLA DE RECOMENDACIONES ES «Recomendaciones - tabla N»**, verificado
+en las hojas 81, 115 y 120. ⚠️ **Y ESE DOCUMENTO TIENE TRES SERIES DE TABLAS**: «Recomendaciones -
+tabla» **1 a 70**, «Tabla» **1 a 18** y «tabla de evidencia» (su pie de la hoja 81 remite a la
+«tabla de evidencia 11»). **Medido sobre el PDF completo: las dos primeras se pisan en 1 a 18.**
+La app las cita en **forma corta** («Tabla 62 · folio 114») y eso es inequívoco acá porque las
+doce que usa —38, 57, 58, 59, 60, 62, 63, 65, 66, 67, 68, 69— están **por encima de 18**. Quien
+cite una de 1 a 18 de este documento tiene que decir de qué serie es.
+
+### La definición de DILATACIÓN, y la guía se contradice consigo misma
+
+⚠️ **LOS DOS TEXTOS ESTÁN IMPRESOS Y LOS DOS SE LEYERON.**
+
+- **Cuerpo, folio 71** (literal): «se puede sospechar de dilatación de la raíz aórtica cuando el
+  diámetro aórtico es **> 40 mm en hombres adultos y > 36 mm en mujeres** […] o con un diámetro
+  indexado/ASC (iDA) > 22 mm/m²». O sea **ESTRICTO**.
+- **Figura 24, folio 76**: su primera banda es **«40-44 mm»** y su nota `a` dice **«36-44 mm en
+  mujeres»**. O sea **INCLUSIVO** en los dos sexos.
+
+**La app aplica el INCLUSIVO (`>= 40` y `>= 36`)**, con tres razones medidas y escritas al lado de
+la constante: la Figura 24 es el algoritmo que la sección reproduce; el cuadro descriptivo de la
+app ya trata **40,0 mm exactos como dilatado** desde el VS5, así que el estricto haría que el panel
+contradijera a la pantalla en ese valor exacto; y es el lado que **no deja de avisar**.
+
+⚠️ **LA NOTA `b` DE LA FIGURA 24 ES UNA TERCERA LISTA DE FACTORES DE RIESGO, Y TIENE SEIS**: «edad
+< 50 años; altura < 1,69 m; longitud ascendente > 11 cm; hipertensión incontrolada; y, para la VAB:
+coartación; historia familiar de eventos aórticos agudos». La **Tabla 68** publica nueve y la
+**Tabla 38** ocho. Es el mismo desacuerdo interno que la tanda «P» ya registró; cada superficie
+publica la lista de SU tabla.
+
+### Lo verificado, tabla por tabla
+
+#### Recomendaciones - tabla 62 · folio 114 · hoja 115 — síndrome de MARFAN
+Cirugía de la enfermedad de la raíz aórtica con el diámetro máximo de los senos **≥ 50 mm**:
+**Clase I · Nivel B**. Con **≥ 45 mm** y factores de riesgo: **Clase IIa · Nivel C**.
+
+#### Recomendaciones - tabla 63 · folio 114 · hoja 115 — MARFAN y EMBARAZO
+Cirugía profiláctica de la raíz aórtica en la mujer que desea quedar embarazada con un diámetro de
+**40 a 45 mm**: **Clase IIb · Nivel C**. **Es una recomendación POR DEBAJO de 45 mm**, y es la que
+el arranque del motor en 45 escondía.
+
+#### Recomendaciones - tabla 60 · folio 113 · hoja 114 — seguimiento del MARFAN
+Tres filas, las tres **Clase I · Nivel C**: ETT al menos anual con la raíz por debajo de 45 mm y
+sin factores —y al menos cada 6 meses si los hay—, y cada 6 a 12 meses con la raíz de 45 mm o más
+sin factores; imagen de toda la vasculatura periférica y de la aorta toracoabdominal en la primera
+evaluación y después cada 3 a 5 años si está estable; y, tras el reemplazo de la raíz, seguimiento
+de la aorta torácica al menos cada 3 años.
+
+#### Recomendaciones - tabla 66 · folio 116 · hoja 117 — LOEYS-DIETZ
+**DOS filas, y las dos lecturas del pedido son ciertas en filas distintas:**
+- reemplazo de la raíz con el diámetro **por encima de 45 mm** → **Clase IIa · Nivel C**;
+- **adaptar el umbral al gen** subyacente con las características de riesgo alto (variantes
+  patogénicas específicas, mujer con variante del *TGFBR2* y tamaño corporal pequeño, rasgos
+  extraaórticos graves, historia familiar de disección, crecimiento ≥ 3 mm/año) → el umbral baja a
+  **40 mm o más**, **Clase IIb · Nivel C**.
+
+⚠️ **LO QUE LA APP DECÍA —«Clase I desde 45 mm»— NO ESTÁ EN ESA TABLA**, ni la clase ni el
+operador: 45 mm exactos **no** cruzan la fila de arriba.
+
+#### Recomendaciones - tabla 65 · folio 116 · hoja 117 — seguimiento del LOEYS-DIETZ
+ETT basal y después cada 6 a 12 meses según diámetro y crecimiento, con imagen más frecuente si la
+raíz o la ascendente pasan de 42 mm y el crecimiento es ≥ 3 mm/año; e imagen arterial de la cabeza
+a la pelvis en la fase inicial y después cada 1 a 3 años. **Clase I · Nivel C** las dos.
+
+#### Recomendaciones - tabla 67 · folio 116 · hoja 117 — ACTA2 y otras hereditarias
+Cirugía profiláctica de la raíz con **≥ 45 mm**, **o con un diámetro MENOR** si hay otros factores
+de riesgo (historia familiar de disección sin dilatación, con dilatación mínima o a edad joven, o
+crecimiento ≥ 3 mm/año): **Clase IIa · Nivel C**. Más monitorización anual por ETT y seguimiento
+por imagen cada 3 a 5 años, **Clase I · Nivel C**. **La fila de arriba también vive por debajo de
+45 mm.**
+
+#### Recomendaciones - tabla 57 y tabla 58 · folio 111 · hoja 112 — síndrome de TURNER
+La **57** manda medir la dilatación y el riesgo de disección **por el índice** —índice de dimensión
+aórtica, índice de altura aórtica o puntuación Z— **y no por el diámetro absoluto**, porque la
+talla menor hace que un diámetro absoluto normal pueda ser patológico (**I · C**). La **58** da la
+cirugía electiva del aneurisma de la raíz o de la ascendente desde los 15 años con **iDA > 23
+mm/m²**, **iAA > 23 mm/m** o **Z > 3,5** y factores de riesgo asociados de disección o embarazo
+planificado (**IIa · C**).
+
+#### Figura 40 · folio 111 · hoja 112 — intervalos de Turner
+Por riesgo estimado de disección: iDA < 20 mm/m² cada 5 a 10 años; 20 a < 23 cada 3 a 5 años; 23 a
+25 anual; > 25 cada 2 a 3 años. Con coartación, válvula bicúspide, hipertensión no controlada o
+crecimiento ≥ 3 mm/año los intervalos **se acortan**.
+
+#### Recomendaciones - tabla 59 y apartado 10.1.2.4 · folio 112 · hoja 113 — EHLERS-DANLOS VASCULAR
+Seguimiento vascular regular de la aorta y de las arterias periféricas (**I · C**) y tratamiento
+con **celiprolol** (**IIa · B**).
+⚠️ **LA GUÍA NO PUBLICA NINGÚN DIÁMETRO AL QUE INTERVENIR EN ESTA ENFERMEDAD**: las decisiones se
+toman caso a caso y los procedimientos quedan limitados a las situaciones de riesgo vital. Por eso
+esa opción de la app tiene su propia clave (`sin_umbral`) y **no hereda** el 55/50 de la aorta no
+sindrómica.
+
+#### Recomendaciones - tabla 38 · folio 80 · hoja 81 — aorta NO sindrómica
+Ya transcrita en la tanda «P» de este mismo archivo, fila por fila. Lo que esta tanda agrega es que
+**las cuatro filas que la app publica llevan su clase Y SU NIVEL**: I · B el ≥ 55 mm; IIa · B el
+tubular > 52 mm con riesgo bajo; IIa · B el ≥ 45 mm (o ≥ 50 en los demás casos) con cirugía
+valvular aórtica; y **IIb · B** —no IIa— el ≥ 50 mm con uno de los ocho factores.
+
+#### Figura 44 · folio 120 · hoja 121 — COARTACIÓN significativa
+Su lista de «Sospecha de (re)coartación: **cualquiera de los siguientes**» incluye, literal:
+**«Gradiente medio > 20 mmHg a través de la región de CoA en la ecografía Doppler»** —ESTRICTO—,
+gradiente no invasivo de presión brazo derecho-pierna > 20 mmHg, estrechamiento > 50 % en cualquier
+modalidad de imagen, flujo diastólico abdominal anterógrado, flujo diastólico retrógrado en la
+aorta torácica descendente y flujo colateral > 30 % en RMC con contraste de fase.
+⚠️ **EL GRADIENTE MÁXIMO NO ESTÁ EN ESA LISTA.** Los «Gradiente pico > 35 mmHg» y «> 20 mmHg» que
+aparecen en la misma página son rótulos de los paneles de trazado Doppler de la figura, no sus
+criterios.
+**La INDICACIÓN sale del cateterismo**: «gradiente invasivo **pico a pico** ≥ 20 mmHg», folio 120,
+y las tres filas de intervención del folio 121.
+
+#### Recomendaciones - tabla 69 · folio 121 · hoja 122 — intervención de la coartación
+La app la cita en su texto de indicación. La fila de **Clase IIb** que sólo publica la **ESC 2020
+de cardiopatías congénitas del adulto** (folio e42) **conserva esa cita**.
+
+#### Recomendaciones - tabla 68 · folio 119 · hoja 120 — VÁLVULA AÓRTICA BICÚSPIDE
+La tanda «P» ya la transcribió. Lo que esta tanda usa: el **intervalo de imagen** —al año y, si
+está estable, cada 2 a 3 años— y el **reemplazo de la aorta en el mismo acto** (**IIa · C**; la
+ESC/EACTS 2025 de valvulopatías lo publica en su folio 4660). **Verificado en el folio 119** que la
+coartación se asocia a válvula aórtica bicúspide en el **50 al 85 %** de los casos.
+⚠️ **«VIGILANCIA ESTRECHA» Y «HEART TEAM» NO ESTÁN EN NINGUNA FUENTE**, censado: se retiran de
+toda la app.
+
+### Cambios de evidencia
+
+| qué | antes | ahora | fuente |
+|---|---|---|---|
+| cita de los umbrales de Turner | Tabla 62 | **Tabla 58** | folio 111 |
+| cita de los umbrales de Loeys-Dietz | Tabla 62 | **Tabla 66** | folio 116 |
+| cita de la aorta no sindrómica | Tabla 62 | **Tabla 38** | folio 80 |
+| guía citada en el EN SUMA | **ESC 2020** | ESC 2024 con su tabla y su folio | — |
+| Loeys-Dietz con 46 mm | Clase I | **Clase IIa · Nivel C** | Tabla 66 |
+| Loeys-Dietz con 41 mm y riesgo alto | sin indicación | **Clase IIb · Nivel C** | Tabla 66 |
+| no sindrómica, 50 mm con factores | Clase IIa | **Clase IIb · Nivel B** | Tabla 38 |
+| nivel de evidencia del 55 mm | sin nivel | **Nivel B** | Tabla 38 |
+| coartación: criterio de sospecha | gradiente **máximo** | gradiente **MEDIO > 20 mmHg** | Figura 44, folio 120 |
+| VAB: intervalo de imagen | «control anual» | al año y, si está estable, **cada 2-3 años**, en Evidencia | Tabla 68, folio 119 |
+| VAB: «vigilancia estrecha» y «Heart Team» | en pantalla, informe y PDF | **retirados de toda la app** | sin fuente |
+| VAB: «mismo acto» | en el informe | **sólo en Evidencia**, IIa · C | Tabla 68 · ESC/EACTS 2025 folio 4660 |
+| coartación y VAB: el 50-85 % | en el informe y el EN SUMA | **sólo en Evidencia** | folio 119 |
+| Ehlers-Danlos vascular | no existía como opción | opción propia **sin umbral** | Tabla 59 y 10.1.2.4, folio 112 |
+| arranque del motor de Evidencia de aorta | 45 mm | **40 mm, 36 en la mujer** | folio 71 y Figura 24, folio 76 |
+
+**Nada de lo anterior se escribió de memoria**: las trece tablas y las tres figuras se leyeron en el
+PDF original, con el folio comprobado en el encabezado impreso.

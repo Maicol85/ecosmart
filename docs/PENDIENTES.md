@@ -5567,7 +5567,15 @@ valor no se movió, lo que cambió es a qué campo y con qué operador. Por eso 
 línea de fuente**. El día que alguno de esos dos PDF entre a la biblioteca, hay que verificar los
 tres contra su tabla y recién entonces citarlos.
 
-### Y3d-4 · El «hasta el 85 %» de la coartación se retiró y no se reemplazó
+### [CERRADO 2026-10-21 · trabajo H] Y3d-4 · El «hasta el 85 %» de la coartación se retiró y no se reemplazó
+
+✅ **CERRADO el 2026-10-21 (trabajo H): la fuente apareció y el número está verificado.** La
+ESC 2024 de enfermedad arterial periférica y aórtica publica, en su **folio 119 (hoja 120)**, que
+la coartación se asocia a válvula aórtica bicúspide en el **50 al 85 %** de los casos — o sea en el
+sentido que esta entrada anticipaba. La frase vive **sólo en el panel de Evidencia** (`_indCoAo`),
+no en el informe ni en el EN SUMA, por la decisión de la orden del trabajo H.
+
+Lo que esta entrada decía, para que se entienda el cierre:
 
 La afirmación estaba **invertida**: lo que la literatura publica es la prevalencia de **VAB entre
 los coartados** —alta—, no la de coartación entre los portadores de VAB, que es baja. **Ninguna
@@ -6106,3 +6114,78 @@ los seis botones de la fila de arriba**, que esta orden no autoriza.
 Censado: ninguno de los veinte campos de la pantalla tiene columna. Un backup a Excel más
 reimportación **pierde el eco pulmonar entero**. No es del B2 —era igual antes— y agregar columnas
 es una PARADA que esta orden declara.
+
+---
+
+## El trabajo «H» — LA AORTA (2026-10-21)
+
+### H-1 · El cuerpo de la guía y su Figura 24 discrepan en el OPERADOR de la dilatación
+
+**Los dos textos están impresos.** El cuerpo del **folio 71** escribe «> 40 mm en hombres adultos y
+> 36 mm en mujeres»; la **Figura 24 (folio 76)** bracketea su primera banda como «40-44 mm» y su
+nota `a` dice «36-44 mm en mujeres», o sea los dos **inclusivos**.
+
+**La app aplica el inclusivo** (`>= 40` / `>= 36`), con el motivo escrito al lado de la constante:
+es el algoritmo que la sección reproduce, el cuadro descriptivo ya trata 40,0 mm exactos como
+dilatado desde el VS5 —así que el estricto haría que el panel contradijera a la pantalla en ese
+valor exacto— y es el lado que no deja de avisar. **Si Maicol prefiere el estricto, el cambio es
+el operador de `aoDilatada` y un valor de TC-512**, y entonces hay que mover también el cuadro
+descriptivo para que las dos superficies no discrepen.
+
+### H-2 · El índice de dimensión aórtica (iDA > 22 mm/m²) de la definición de dilatación no se usa
+
+El mismo folio 71 ofrece una **segunda** definición: diámetro indexado por superficie corporal
+**> 22 mm/m²**. El motor de aorta arranca **sólo por el diámetro absoluto**, así que el paciente de
+talla pequeña con un diámetro absoluto normal y un índice patológico **no abre la sección**.
+Implementarlo es una línea en `aoDilatada` —el iDA se calcula con `aoDilMax()` y la superficie
+corporal, que la app ya tiene— pero **cambia qué pacientes ven la sección**, que es contenido
+clínico. Para Turner la guía ya manda medir por índice y la sección lo publica (Tabla 57).
+
+### H-3 · Las tres listas de factores de riesgo siguen sin unificar, y ahora son CUATRO fuentes
+
+La **Tabla 68** publica nueve factores, la **Tabla 38** ocho, el pie de la **Figura 24** seis y la
+**Tabla 66** da los suyos propios para el Loeys-Dietz. Cada superficie publica la lista de SU tabla
+—que es lo correcto— pero el médico ve cuatro listas distintas según dónde mire. Unificarlas sería
+inventar una quinta que ninguna guía publica.
+
+### H-4 · El motor de aorta no pregunta la LONGITUD de la aorta ascendente ni la ALTURA
+
+Dos de los ocho factores de la Tabla 38 son «longitud aórtica mayor de 11 cm» y «estatura menor de
+1,69 m». La app **tiene la talla** (`talla`) y **no tiene la longitud**. Hoy los ocho factores se
+resuelven con **una** pregunta de sí/no («alguno de ocho factores»), que es el lado conservador:
+pedir los ocho por separado son ocho controles nuevos. Si se decide desglosarlos, la talla sale
+del campo y la longitud necesita un campo nuevo — y un campo nuevo **sin** columna de Excel, que es
+lo que esta orden permitía.
+
+### H-5 · La coartación: el gradiente pico-pico INVASIVO no tiene campo
+
+La indicación de la Figura 44 sale del cateterismo y la app no tiene dónde consignar ese número:
+lo que hace es **mandar a medirlo**, con su cita. Mientras no haya campo, ninguna superficie de la
+app puede publicar la indicación de la coartación, sólo la sospecha.
+
+### H-6 · Con Ehlers-Danlos vascular el EN SUMA no nombra la aortopatía
+
+El cuerpo del informe la publica con su folio; el **EN SUMA no**, porque al resumen sólo suben las
+tres clases de indicación y los dos estados de «falta un dato», y `sin_umbral` no es ninguno de los
+dos. **Medido.** No es una pérdida contra el árbol anterior —esa opción no existía— pero deja el
+resumen de un paciente con Ehlers-Danlos y 46 mm de aorta sin mencionar la enfermedad. Las dos
+salidas: (a) sumar `sin_umbral` a la lista que sube, con su frase; (b) dejarlo así y que el
+resumen hable sólo de lo accionable. **Es una frase del informe firmado: la decide Maicol.**
+
+### H-7 · `panel-evidencia.md` y `aortica-cortes.md` no se tocaron, los dos por tamaño
+
+`panel-evidencia.md` está en **35,3 KB**, o sea **ya cruzado** desde el 2026-10-12, y
+`aortica-cortes.md` en **33,9 KB**, a 1,1 KB del techo. Por eso el mapa de este trabajo salió a
+archivo propio (`docs/mapa/aorta-aortopatias-evidencia.md`, **22,1 KB**, con la ficha de TC-512
+adentro) y los dos punteros fueron a `evidencia-derecho-aorta.md` (19,2 KB) y
+`congenitas-otros.md` (26,7 KB), que tienen margen. **`tests-fichas.md` tampoco se tocó**: estaba
+en 33,5 KB y la ficha lo cruzaba. **La próxima tanda que toque `panel-evidencia.md` tiene que
+partirlo.**
+
+### H-8 · TC-273 y TC-274 son inestables por orden de corrida en una lista de zona
+
+Salen rojos con un `--solo` de 58 casos que saltea los de en medio —el síntoma es «siguen vivas:
+CoAo» y el botón de Evidencia en azul con el formulario vacío— y **verdes corridos solos**.
+**Fallan idénticamente contra el árbol de entrada con la MISMA lista**, así que no son del trabajo
+H: es aislamiento del suite, que corre todos sus casos en una sola página. En la suite completa
+están verdes. Lo que falta es encontrar qué caso deja `_indClin` o un campo de coartación puesto.
