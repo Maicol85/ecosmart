@@ -8300,99 +8300,23 @@ window.cerrarSesionReal = cerrarSesionReal;
           esconderia en Modo Basico y con el se iria «Pericardio y masas», que el Basico SI ve
           hoy. Ver el comentario de `EE_MODULES`. -->
 
-  <!-- ══ ECO PULMONAR UNIFICADO (B-E3, 2026-10-21) ════════════════════════════════════════
-       Hasta hoy lo pulmonar estaba partido en dos puertas: el modulo BASICO dentro de la
-       pestana «Otros» y el AVANZADO en un boton de la fila de arriba. Las dos viven ahora en
-       esta pestana, que es la unica puerta.
-       El modulo basico se MUEVE TAL CUAL: los ocho campos con sus ids, sus rotulos, su globo
-       ⓘ y su acordeon. La exclusion mutua entre basico y avanzado no se toca —la deciden
-       `pulAvanzadoIntegrado` y `pulAvanzadoCubreBasico`, que son sus duenos—.
-       ⚠️ EL BASICO VA PRIMERO porque es el que la mayoria de los estudios usa; el avanzado
-          queda debajo, con su boton «Integrar al informe» DENTRO de la pestana, que es donde
-          la orden lo pide y donde ya estaba. -->
-  <!-- ═══ ECOGRAFÍA PULMONAR — módulo básico ═══ -->
-  <!-- Sólo genera texto si hay hallazgos positivos. Si se integra el módulo
-       avanzado (tab Eco Pulmonar), este se omite del informe automáticamente. -->
-  <div class="card" style="margin-bottom:6px;">
-    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('pulmonar',this)">
-      🫁 Ecografía Pulmonar
-      <span id="ete-pulmonar-arrow" style="float:right;transition:transform 0.2s;">▶</span>
-    </h2>
-  </div>
-  <div id="ete-seccion-pulmonar" style="display:none;">
-  <div class="card">
-    <div class="card-body">
-      <p style="font-size:11px;color:var(--text2);margin-bottom:10px;">Hallazgos básicos. Si no se completa nada, no aparece en el informe.</p>
-      <div class="grid-3">
-        <div class="fg"><label>Derrame pleural</label>
-          <select id="pul_derrame" onchange="pulBasicoUI()">
-            <option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-        <div class="fg" id="pul-derrame-tam-wrap" style="display:none;"><label>Tamaño</label>
-          <select id="pul_derrame_tam">
-            <option value="mínimo">Mínimo</option><option value="moderado">Moderado</option><option value="severo">Severo</option>
-          </select>
-        </div>
-        <div class="fg" id="pul-derrame-balik-wrap" style="display:none;"><label>Balik (mm) <button type="button" class="vinfo-btn" data-vinfo="pul-balik" aria-expanded="false" aria-label="Informaci&oacute;n sobre la estimaci&oacute;n del volumen del derrame pleural" onclick="vInfoClic(this)">&#9432;</button></label>
-          <input type="number" id="pul_balik" step="1" min="1" max="120" placeholder="mm">
-        </div>
-        <!-- ⚠️ EL LADO NO EXISTÍA EN EL MÓDULO BÁSICO y sí en el avanzado (`pua_derrame_lado`), así
-             que un derrame cargado acá llegaba al informe firmado sin decir de qué hemitórax es.
-             Sin consignar, la oración sale exactamente como hasta hoy: no se inventa un lado.
-             Los tres valores son los que pidió la orden; el avanzado escribe «unilateral
-             derecho», que es su propia redacción y no se toca. -->
-        <div class="fg" id="pul-derrame-lado-wrap" style="display:none;"><label>Lado</label>
-          <select id="pul_derrame_lado">
-            <option value="">— sin consignar —</option>
-            <option value="derecho">Derecho</option>
-            <option value="izquierdo">Izquierdo</option>
-            <option value="bilateral">Bilateral</option>
-          </select>
-        </div>
-      </div>
-      <div class="grid-3" style="margin-top:8px;">
-        <div class="fg"><label>Líneas B</label>
-          <select id="pul_lineasb" onchange="pulBasicoUI()">
-            <option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-        <div class="fg" id="pul-lineasb-pat-wrap" style="display:none;"><label>Patrón</label>
-          <select id="pul_lineasb_pat">
-            <option value="focal">Focal</option><option value="difuso">Difuso</option>
-          </select>
-        </div>
-        <!-- ⚠️ LA SEPARACION ENTRE LINEAS B SE RETIRO (ARR7, 2026-10-18). Vivia aca desde el
-             CORTOS13 con dos opciones descriptivas (≈7 mm y ≈3 mm) y SIN FUENTE: censada la
-             biblioteca entera, ningun protocolo de ecografia pulmonar publica una separacion en
-             milimetros —el unico que nombra «B3 lines» es el BLUE de Lichtenstein (Chest 2008,
-             hoja 3) y no da ninguna—. Decision de Maicol: se saca el selector y la clausula
-             «con separacion aproximada de …» del informe, y la oracion vuelve a ser la de antes
-             del CORTOS13. El RESTO del CORTOS13 se conserva: el derrame pericardico del papel y
-             la fuente de Balik de la ICM 2026. -->
-        <div class="fg"><label>Consolidación</label>
-          <select id="pul_consolidacion" onchange="pulBasicoUI()">
-            <option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-      </div>
-      <!-- La nota de la consolidación va al informe EN LA MISMA ORACIÓN, entre paréntesis, y no
-           como una oración aparte. El campo NO existía: el «Notas adicionales» de más arriba es
-           del bloque de pericardio y masas y se imprime como un párrafo propio. -->
-      <div class="grid-3" style="margin-top:8px;">
-        <div class="fg" id="pul-consol-nota-wrap" style="display:none;grid-column:1 / -1;">
-          <label>Consolidación — nota</label>
-          <input type="text" id="pul_consol_nota" placeholder="Localización, broncograma, extensión...">
-        </div>
-      </div>
-    </div>
-  </div>
-  </div>
-
-
+  <!-- ══ ECO PULMONAR UNIFICADO DE VERDAD: UNA SOLA PANTALLA (B2-E2, 2026-10-22) ═══════
+       DECISION DE MAICOL. Hasta hoy habia DOS modulos pulmonares, el «basico» (ocho campos
+       `pul_*`) y el «avanzado» (diecinueve `pua_*`), con su exclusion mutua, sus dos textos y
+       sus dos botones. Son UNO: el AVANZADO es la base —es el mas completo— y del basico entra
+       SOLO lo que el avanzado no tenia, que medido son DOS cosas: el TAMANO del derrame y la
+       NOTA de la consolidacion.
+       ⚠️ ESOS DOS CONSERVAN SU id `pul_derrame_tam` Y `pul_consol_nota`, y es lo conservador:
+          no tienen contraparte en el avanzado, asi que renombrarlos obligaria a migrar un
+          valor que hoy abre solo. Los OTROS SEIS campos del basico salen del marcado y se
+          traducen al abrir un estudio guardado (`_migrarCamposLegacy`), con la tabla que esta
+          en esa funcion.
+       ⚠️ LA PALABRA «AVANZADO» SALE DE ESTA PANTALLA: el titulo de la barra, el rotulo de la
+          seccion del PDF y la etiqueta de la tarjeta de integracion. El eco pulmonar deja de
+          ser un modulo avanzado — ver el comentario del rail y el de `EE_MODULES`. -->
   <div class="card" style="margin-bottom:6px;">
     <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('pua-seccion',this);pulAvUI()">
-      🫁 Ecografía pulmonar — evaluación avanzada
+      🫁 Ecografía pulmonar
       <span id="pua-seccion-arrow" style="float:right;transition:transform 0.2s;">▶</span>
     </h2>
   </div>
@@ -8485,16 +8409,41 @@ window.cerrarSesionReal = cerrarSesionReal;
             <option value="no">No</option><option value="si">Sí</option>
           </select>
         </div>
+        <!-- ⚠️ EL TAMANO VIENE DEL MODULO BASICO Y CONSERVA SU id `pul_derrame_tam` (B2-E2):
+             es uno de los DOS campos que el avanzado no tenia, asi que no hay contraparte a la
+             que traducirlo y renombrarlo obligaria a migrar un valor que hoy abre solo. Sus
+             tres opciones y su texto son los de siempre; lo que gana es el estado «sin
+             consignar», que antes no existia porque el campo nacia en «Minimo». -->
+        <div class="fg pua-der" style="display:none;"><label>Tamaño</label>
+          <select id="pul_derrame_tam" onchange="pulAvUI()">
+            <option value="">— sin consignar —</option>
+            <option value="mínimo">Mínimo</option><option value="moderado">Moderado</option><option value="severo">Severo</option>
+          </select>
+        </div>
+        <!-- ⚠️ LOS TRES DEPENDIENTES GANAN «— sin consignar —» (B2-E2), y NO cambia ni un texto
+             alcanzable hoy: hasta este commit ninguno de los tres podia valer cadena vacia, asi
+             que la rama nueva de cada frase describe un estado que no existia. Hace falta por la
+             MIGRACION: un estudio del modulo basico no trae tipo, ni broncograma, ni lado cuando
+             quedo «sin consignar», y con el default de fabrica el informe firmado afirmaria «de
+             aspecto libre», «bilateral» y «con broncograma aereo» sobre hallazgos que nadie
+             evaluo. Es la regla que los cinco selects primarios ya aplican. -->
         <div class="fg pua-der" style="display:none;"><label>Tipo</label>
           <select id="pua_derrame_tipo" onchange="pulAvUI()">
+            <option value="">— sin consignar —</option>
             <option value="libre">Libre</option><option value="tabicado">Tabicado</option>
           </select>
         </div>
-        <div class="fg pua-der" style="display:none;"><label>Balik (mm)</label>
+        <!-- ⚠️ EL GLOBO ⓘ DEL BALIK VIENE DEL CAMPO DEL MODULO BASICO (B2-E2) y es donde
+             viven los limites de validez de la formula —la ICM 2026 y su alcance: pacientes
+             criticos en ventilacion invasiva—. Sin reponerlo aca, unificar los dos modulos
+             habria borrado de la app la unica superficie que los publica. Lo destapo TC-502,
+             que cuenta las tarjetas registradas sin boton. -->
+        <div class="fg pua-der" style="display:none;"><label>Balik (mm) <button type="button" class="vinfo-btn" data-vinfo="pul-balik" aria-expanded="false" aria-label="Informaci&oacute;n sobre la estimaci&oacute;n del volumen del derrame pleural" onclick="vInfoClic(this)">&#9432;</button></label>
           <input type="number" id="pua_balik" step="1" min="1" max="120" placeholder="mm" oninput="pulAvUI()">
         </div>
         <div class="fg pua-der" style="display:none;"><label>Lateralidad</label>
           <select id="pua_derrame_lado" onchange="pulAvUI()">
+            <option value="">— sin consignar —</option>
             <option value="unilateral derecho">Unilateral derecho</option>
             <option value="unilateral izquierdo">Unilateral izquierdo</option>
             <option value="bilateral">Bilateral</option>
@@ -8511,10 +8460,19 @@ window.cerrarSesionReal = cerrarSesionReal;
         </div>
         <div class="fg" id="pua-consol-bronco-wrap" style="display:none;"><label>Broncograma</label>
           <select id="pua_consol_bronco" onchange="pulAvUI()">
+            <option value="">— sin consignar —</option>
             <option value="con">Con broncograma aéreo</option>
             <option value="sin">Sin broncograma</option>
             <option value="fluido">Broncograma fluido</option>
           </select>
+        </div>
+        <!-- ⚠️ LA NOTA VIENE DEL MODULO BASICO Y CONSERVA SU id `pul_consol_nota` (B2-E2), por
+             el mismo motivo que el tamano: el avanzado no tenia donde escribir la localizacion
+             ni la extension. Va en la MISMA oracion del informe, entre parentesis, que es como
+             el basico la publicaba. -->
+        <div class="fg" id="pua-consol-nota-wrap" style="display:none;grid-column:1 / -1;">
+          <label>Consolidación — nota</label>
+          <input type="text" id="pul_consol_nota" placeholder="Localización, broncograma, extensión..." oninput="pulAvUI()">
         </div>
       </div>
 
@@ -52700,26 +52658,6 @@ function generarInforme(opts) {
     }
   }
 
-  // ── 13b) Ecografía pulmonar (módulo básico) ──
-  // Sólo si hay hallazgos positivos. Si el módulo avanzado está integrado al
-  // bloque ETT Avanzado, este se omite para no duplicar los mismos hallazgos.
-  /* La exclusión pide las DOS cosas: que el avanzado esté integrado Y que CUBRA los tres
-     dominios del básico. Acá va `pulAvanzadoCubreBasico`, NO `pulAvanzadoHayDatos`: con
-     `hayDatos` alcanza un campo cualquiera —una consolidación suelta— para silenciar el módulo
-     básico entero, y un derrame cargado ahí desaparece del informe firmado. Los dos predicados
-     se llaman parecido y hacen cosas distintas; éste es el único sitio donde elegir mal es grave. */
-  if (typeof pulBasicoHayDatos === 'function' && pulBasicoHayDatos()
-      && !(typeof pulAvanzadoIntegrado === 'function' && pulAvanzadoIntegrado()
-           && typeof pulAvanzadoCubreBasico === 'function' && pulAvanzadoCubreBasico())) {
-    const _pb = pulBasicoTexto();
-    /* ⚠️ UNA ENTRADA POR TEMA Y NO LAS TRES PEGADAS. Salian como un solo parrafo —«Derrame
-       pleural moderado (...). Lineas B de distribucion difusa. Consolidacion pulmonar.»— y la
-       orden pide que cada tema vaya en su propia oracion. `pulBasicoTexto` ya devolvia una frase
-       por tema: lo unico que cambiaba era el `join`. */
-    _pb.frases.forEach(x => inf.push(x));
-    _pb.suma.forEach(x => suma.push(x));
-  }
-
   // ── 13d) HFA-PEFF → conclusión al En Suma si el módulo está integrado ──
   if (typeof amiloEnInforme === 'function' && typeof hfapeffScore === 'function'
       && (amiloEnInforme() || []).some(x => x.k === 'hfpeff')) {
@@ -52731,36 +52669,36 @@ function generarInforme(opts) {
     if (!_hf.gate || _hf.gate.aplica) suma.push(hfapeffConclusion(_hf));
   }
 
-  // ── 13c) Ecografía pulmonar (módulo avanzado) → al CUERPO del informe y al En Suma ──
-  /* ⚠️ HASTA HOY SU DETALLE IBA A UNA HOJA APARTE DEL PDF («ETT Avanzado») Y NO AL INFORME
+  // ── 13c) Ecografía pulmonar → UN PÁRRAFO al cuerpo del informe y UNA LÍNEA al En Suma ──
+  /* ⚠️ HASTA EL B SU DETALLE IBA A UNA HOJA APARTE DEL PDF («ETT Avanzado») Y NO AL INFORME
      NARRATIVO, asi que el medico que lo integraba no lo veia en el texto que firma. Desde el
-     B-E3 las frases van al CUERPO, en este lugar: justo despues del pericardio, las masas y el
-     modulo basico, que es donde la orden las pide.
-     ⚠️ Y LA HOJA DEL PDF DEJA DE SALIR, porque si no el papel publicaria las mismas nueve
-     oraciones DOS veces —el informe ya se imprime en el PDF—. El contenido se CONSERVA: lo
-     unico que cambio es en que pagina sale. Se suprime con la compuerta `omitir` que
-     `amiloEnInforme` ya ofrece por seccion, que es el mecanismo previsto; ver `amiloSecs`. */
+     B-E3 las frases van al CUERPO, en este lugar: justo despues del pericardio y las masas,
+     que es donde la orden las pide. La hoja del PDF no se arma (ver `amiloSecs`).
+     ⚠️ Y DESDE EL B2-E2 ES EL UNICO EMISOR PULMONAR: el bloque 13b del modulo basico se
+     retiro con el modulo, asi que no hay dos listas de frases que puedan duplicarse ni una
+     exclusion mutua que aplicar. Por eso se fueron `_omit` y `pulAvanzadoCubreBasico`.
+     ⚠️ UN SOLO PARRAFO Y UNA SOLA LINEA, que es lo que la orden pide, y COMPUESTOS CON LAS
+     FRASES QUE YA EXISTEN: no se escribe una oracion clinica nueva — se las une con un
+     espacio. Antes cada frase era una entrada propia de `inf` y de `suma`. */
   if (typeof pulAvanzadoIntegrado === 'function' && pulAvanzadoIntegrado()
       && typeof pulAvanzadoHayDatos === 'function' && pulAvanzadoHayDatos()
       && typeof pulAvSuma === 'function') {
+    const _pl = [];
     if (typeof pulAvFrases === 'function') {
-      try { pulAvFrases().forEach(x => inf.push(x)) } catch (e) {}
+      try { pulAvFrases().forEach(x => _pl.push(x)) } catch (e) {}
     }
-    /* ⚠️ EL «PATRON GLOBAL» TAMBIEN, Y LO DESTAPO EL A/B DEL PDF: vivia SOLO en la hoja
+    /* ⚠️ EL «PATRON GLOBAL» TAMBIEN, Y LO DESTAPO EL A/B DEL PDF DEL B: vivia SOLO en la hoja
        —`amiloTextoPulmonar` lo agrega despues de las frases, bajo su propio «## En suma»— asi
-       que al dejar de imprimirse esa pagina esa linea desaparecia del papel. Es la unica parte
-       del modulo que se habria perdido. Van las MISMAS palabras y el MISMO formato que la hoja
-       publicaba, leidos del mismo dueno (`pulAvPatron`). */
+       que al dejar de imprimirse esa pagina esa linea desaparecia del papel. Van las MISMAS
+       palabras y el MISMO formato que la hoja publicaba, leidos del mismo dueno. */
     if (typeof pulAvPatron === 'function') {
       try { const _pg = pulAvPatron();
-            if (_pg && _pg.p !== 'No evaluado') inf.push('Patrón global: ' + _pg.p + '. ' + _pg.i);
+            if (_pg && _pg.p !== 'No evaluado') _pl.push('Patrón global: ' + _pg.p + '. ' + _pg.i);
       } catch (e) {}
     }
-    /* Se le pasa lo que el básico publicó en ESTE informe: si la exclusión mutua se aplicó, el
-       básico no escribió nada y la lista va vacía, así que el avanzado emite todo. */
-    const _omit = (typeof pulAvanzadoCubreBasico === 'function' && pulAvanzadoCubreBasico())
-                  ? [] : (typeof pulBasicoDominios === 'function' ? pulBasicoDominios() : []);
-    pulAvSuma(_omit).forEach(x => suma.push(x));
+    if (_pl.length) inf.push(_pl.join(' '));
+    const _ps = pulAvSuma([]);
+    if (_ps.length) suma.push(_ps.join(' '));
   }
 
   // ════════════════════════════════════════════════════════════════════
@@ -78184,6 +78122,47 @@ function _migrarCamposLegacy(c){
       (c['pericardio'] === 'Derrame mínimo' || c['pericardio'] === 'Derrame leve (5-10mm)')) {
     c['pericardio'] = 'Derrame leve (<10mm)';
   }
+  /* ══ LOS SEIS CAMPOS DEL MODULO PULMONAR BASICO (B2-E2, 2026-10-22) ══════════════════════
+     EN MEMORIA Y SIN REESCRIBIR EL DISCO, igual que las demas lineas de esta funcion.
+
+     El modulo basico y el avanzado se unificaron en UNA pantalla: los dueños son los ids del
+     avanzado. Seis campos del basico salieron del marcado y se traducen aca; los otros dos
+     —`pul_derrame_tam` y `pul_consol_nota`— NO estan en esta tabla porque conservaron su id,
+     asi que abren solos.
+
+     ⚠️ SOLO SE TRADUCE EL VALOR POSITIVO DE CADA PRIMARIO, Y ES LA DECISION DE FONDO. Los tres
+     selects del basico nacian en «no», asi que ese valor lo trae CADA estudio guardado, lo haya
+     mirado el medico o no. Traducirlo pondria los tres primarios del avanzado en «no» y el
+     informe firmado de todo estudio anterior pasaria a publicar «Sin derrame pleural. Sin
+     lineas B. Sin consolidaciones.» — tres negaciones que nadie evaluo. Es el mismo argumento
+     con el que esos cinco selects tienen «— no evaluado —».
+
+     ⚠️ Y SOLO SI EL DESTINO ESTA VACIO: desde el B los dos modulos vivian en la misma pestana,
+     asi que un estudio puede traer los dos cargados. El avanzado manda — es el dueño.
+
+     ⚠️ LOS DEPENDIENTES VIAJAN CON SU PRIMARIO, y el patron de lineas B se mapea «focal» ->
+     «focal» y «difuso» -> «multiples», que es la banda que el avanzado llama «≥3 por espacio».
+     Las ZONAS no se inventan: quedan sin marcar, asi que `pulAvDifuso` devuelve null y el
+     patron se nombra SIN el adjetivo «difuso» en vez de afirmarlo. Es la regla del ARR. */
+  (function(){
+    const H = function (k) { return Object.prototype.hasOwnProperty.call(c, k); };
+    const vacio = function (k) { return !H(k) || String(c[k] || '').trim() === ''; };
+    const pon = function (dst, val) { if (val && vacio(dst)) c[dst] = val; };
+    const LADO = { derecho:'unilateral derecho', izquierdo:'unilateral izquierdo', bilateral:'bilateral' };
+    if (c['pul_derrame'] === 'si') {
+      pon('pua_derrame', 'si');
+      pon('pua_balik', c['pul_balik']);
+      pon('pua_derrame_lado', LADO[c['pul_derrame_lado']] || '');
+    }
+    if (c['pul_lineasb'] === 'si') {
+      pon('pua_lineasb', 'presentes');
+      pon('pua_lineasb_cant', c['pul_lineasb_pat'] === 'difuso' ? 'multiples'
+                            : c['pul_lineasb_pat'] === 'focal'  ? 'focal' : '');
+    }
+    if (c['pul_consolidacion'] === 'si') pon('pua_consol', 'si');
+    ['pul_derrame','pul_balik','pul_derrame_lado','pul_lineasb','pul_lineasb_pat',
+     'pul_consolidacion'].forEach(function (k) { if (H(k)) delete c[k]; });
+  })();
   /* ══ `it_vmax_cw` PASÓ DE cm/s A m/s EL 2026-10-05 ═══════════════════════════════════════════
      SE NORMALIZA EN MEMORIA Y NO SE REESCRIBE NADA DEL DISCO. Esta función recibe el objeto
      `campos` y lo arregla ANTES de poblar el formulario; el blob guardado queda intacto, igual que
@@ -84908,15 +84887,12 @@ function amiloTextoCardioOnco() {
 // ECOGRAFÍA PULMONAR
 // ══════════════════════════════════════════════════════════════════
 // Muestra/oculta los campos dependientes del módulo BÁSICO.
-function pulBasicoUI() {
-  const on = (id, v) => { const e = document.getElementById(id); if (e) e.style.display = v ? '' : 'none'; };
-  const der = _amV('pul_derrame') === 'si';
-  on('pul-derrame-tam-wrap', der); on('pul-derrame-balik-wrap', der);
-  on('pul-derrame-lado-wrap', der);
-  on('pul-lineasb-pat-wrap', _amV('pul_lineasb') === 'si');
-  on('pul-consol-nota-wrap', _amV('pul_consolidacion') === 'si');
-}
-window.pulBasicoUI = pulBasicoUI;
+/* ⚠️ `pulBasicoUI` SE RETIRO EN EL B2-E2 (2026-10-22) CON EL MODULO BASICO ENTERO. Sus seis
+   wraps se fueron del marcado; los dos campos que sobreviven —`pul_derrame_tam` y
+   `pul_consol_nota`— los gobierna `pulAvUI`, que es el unico dueno de la visibilidad de esta
+   pantalla. Se saca tambien su `window.pulBasicoUI`: una linea `window.X = X` sobre una
+   funcion que ya no existe es un ReferenceError de NIVEL SUPERIOR, y eso aborta el <script>
+   COMPLETO — la app con cero pestanas. Es la trampa que este archivo ya pago. */
 
 // ¿Hay algo cargado en el módulo básico? Si no, no se escribe nada en el informe.
 // Detalle Balik compartido por el módulo básico y el avanzado. Rango plausible
@@ -84976,89 +84952,16 @@ function _balikDet(bk) {
   return f ? ' (' + f + ')' : '';
 }
 
-/* Los tres dominios que el básico y el avanzado comparten, en UN solo lugar. Estaban como dos
-   listas literales a 200 líneas de distancia —una en `pulBasicoHayDatos`, otra en
-   `pulAvanzadoCubreBasico`— y la exclusión mutua sólo es correcta si son la misma terna: agregar
-   un hallazgo al básico sin acordarse de la otra lista reabre exactamente el defecto que este
-   commit cierra, que el avanzado silencie algo que no cubre. */
-const PUL_PARES = Object.freeze([
-  Object.freeze({ dom:'derrame', bas:'pul_derrame',       av:'pua_derrame' }),
-  Object.freeze({ dom:'lineasb', bas:'pul_lineasb',       av:'pua_lineasb' }),
-  Object.freeze({ dom:'consol',  bas:'pul_consolidacion', av:'pua_consol'  })
-]);
-function pulBasicoHayDatos() {
-  return PUL_PARES.some(function(p){ return _amV(p.bas) === 'si'; });
-}
-/* Qué dominios PUBLICÓ el básico. Lo usa el En Suma para no repetir. */
-function pulBasicoDominios() {
-  return PUL_PARES.filter(function(p){ return _amV(p.bas) === 'si'; }).map(function(p){ return p.dom; });
-}
-window.pulBasicoDominios = pulBasicoDominios;
-
-// Devuelve {frases:[], suma:[]} del módulo básico.
-function pulBasicoTexto() {
-  const frases = [], suma = [];
-  if (_amV('pul_derrame') === 'si') {
-    const tam = _amV('pul_derrame_tam') || 'mínimo';
-    /* ⚠️ EL LADO VA ANTES DEL TAMAÑO, que es donde lo pone el módulo avanzado («Derrame pleural
-       bilateral, de aspecto libre…»). Sin consignar, la oración queda IDENTÉNTICA a la de hoy.
-       ⚠️ LA FORMULA DE BALIK YA TIENE FUENTE VERIFICADA (CORTOS13, 2026-10-17), y cierra `Y3b-5`.
-       La tanda del 16/10 la declaro sin fuente porque censo la biblioteca buscando el articulo
-       original de Balik; lo que si esta es una GUIA que publica la formula y su alcance:
-       «International evidence-based recommendations for point-of-care lung ultrasound — 2025
-       focused update» (Volpicelli et al, Intensive Care Med 2026,
-       DOI 10.1007/s00134-026-08487-2), enunciado **D6_11**, hoja 19 del PDF, literal: «The
-       following formula can be used to estimate the approximate volume (V): V (ml) = D (mm) x 20.
-       This formula has been validated in critically ill patients in intensive care units
-       undergoing invasive ventilation.» Es exactamente lo que la app calcula (`_balikVol`,
-       ml = mm x 20) y NO se movio ni un numero. Ese documento es online-first y no tiene folio
-       impreso, asi que se cita por enunciado y hoja.
-       El ALCANCE —validada en pacientes criticos bajo ventilacion invasiva— va en el globo de su
-       campo, que es donde el medico lo necesita. */
-    const lado = _amV('pul_derrame_lado') || '';
-    // Balik en mm; el volumen aproximado es mm x 20 en ml.
-    const bk = PF(_amV('pul_balik'));
-    // El valor se multiplica por 20, así que un error de tipeo se amplifica y sale
-    // impreso: 200 en vez de 20 daba "4000 ml". Fuera de rango plausible se omite
-    // la estimación en vez de imprimir un volumen imposible.
-    const det = _balikDet(bk);
-    /* ⚠️ EL LADO Y EL TAMANO SE CONSERVAN. La orden escribe la frase como «Derrame pleural de
-       aproximadamente N mL (segun formula de Balik)»; publicada asi, el informe firmado
-       PERDERIA de que hemitorax es y de que tamano, que son datos que hoy salen. La oracion
-       los mantiene y contiene esa frase dentro, que es lo conservador. */
-    const _dp = 'Derrame pleural ' + (lado ? lado + ' ' : '') + tam + det + '.';
-    frases.push(_dp);
-    suma.push(_dp);
-  }
-  if (_amV('pul_lineasb') === 'si') {
-    /* ⚠️ LAS DOS SEPARACIONES DE LÍNEAS B (≈3 mm y ≈7 mm) QUEDARON SIN HACER, y es una falta de
-       FUENTE y no una decisión. La orden pedía verificar en el protocolo POCUS pulmonar de la
-       biblioteca qué significa cada una y cómo las rotula la fuente, y no inventar nada si no
-       está: censada la biblioteca completa, no hay ningún protocolo de ecografía pulmonar. Lo
-       único que aparece sobre líneas B es una revisión de ETE en cuidados críticos, que dice que
-       tres o más indican edema o enfermedad intersticial y NO menciona ninguna separación en
-       milímetros. El selector sigue ofreciendo focal y difuso, como hasta hoy. */
-    const pat = _amV('pul_lineasb_pat') || 'focal';
-    /* ⚠️ LA CLAUSULA DE LA SEPARACION SE RETIRO (ARR7, 2026-10-18): el selector no tiene fuente
-       y la oracion vuelve a la de antes del CORTOS13. El selector tambien se fue del marcado, asi
-       que no queda un campo escrito y olvidado que nadie publique. */
-    // "distribución" es femenino: difusa / focal, no "difuso".
-    frases.push('Líneas B de distribución ' + (pat === 'difuso' ? 'difusa' : 'focal') + '.');
-    suma.push(pat === 'difuso' ? 'Edema pulmonar intersticial.' : 'Líneas B focales.');
-  }
-  if (_amV('pul_consolidacion') === 'si') {
-    /* ⚠️ LA NOTA VA EN LA MISMA ORACION, entre parentesis, y no como una oracion aparte: es una
-       precision de ESTE hallazgo —localizacion, broncograma, extension— y suelta se lee como un
-       parrafo sin sujeto. Se le saca el punto final si el medico lo escribio, para no dejar dos.
-       Al EN SUMA no va: ahi la linea es la conclusion, no el detalle. */
-    const _cn = String(_amV('pul_consol_nota') || '').trim().replace(/[.;]+$/, '');
-    frases.push('Consolidación pulmonar' + (_cn ? ' (' + _cn + ')' : '') + '.');
-    suma.push('Consolidación pulmonar.');
-  }
-  return { frases, suma };
-}
-window.pulBasicoTexto = pulBasicoTexto;
-window.pulBasicoHayDatos = pulBasicoHayDatos;
+/* ⚠️ EL MODULO BASICO ENTERO SE RETIRO EN EL B2-E2 (2026-10-22), Y CON EL CINCO PIEZAS:
+   `PUL_PARES`, `pulBasicoHayDatos`, `pulBasicoDominios`, `pulBasicoTexto` y sus `window.*`.
+   Existian para la EXCLUSION MUTUA entre los dos modulos pulmonares, y con un modulo solo no
+   hay nada que excluir: el avanzado es el unico emisor. Lo que el basico aportaba y el
+   avanzado no tenia —el TAMANO del derrame y la NOTA de la consolidacion— entro a la pantalla
+   unificada conservando sus dos ids, y sus frases se componen dentro de `pulAvFrases`, que es
+   el dueno unico del texto.
+   ⚠️ SE RETIRAN TAMBIEN LAS LINEAS `window.X = X`, y no es higiene: una referencia de nivel
+   superior a una funcion que ya no existe aborta el <script> COMPLETO. Se cuentan los
+   `window.X = X`, no los grep de X. */
 
 // ── Módulo AVANZADO ──
 /* ══ EL SINDROME INTERSTICIAL DIFUSO: DOS O MAS ZONAS POR HEMITORAX (R2-E7, 2026-10-21) ═══════
@@ -85172,6 +85075,9 @@ function pulAvUI() {
   on('pua-lb-cant-wrap', lbOn); on('pua-lb-zonas-wrap', lbOn);
   document.querySelectorAll('.pua-der').forEach(e => { e.style.display = (_amV('pua_derrame') === 'si') ? '' : 'none'; });
   on('pua-consol-bronco-wrap', _amV('pua_consol') === 'si');
+  /* Los dos campos que vinieron del modulo basico (B2-E2) siguen la MISMA compuerta que sus
+     hermanos: el tamano cuelga de `.pua-der` por su clase, la nota del broncograma. */
+  on('pua-consol-nota-wrap', _amV('pua_consol') === 'si');
   /* Sin esto la hoja del PDF quedaba CONGELADA con el texto del momento en que se integró:
      devolver un select a «— no evaluado —» hacía que el básico volviera a imprimirse mientras la
      hoja seguía describiendo lo viejo, y el mismo PDF llevaba las dos versiones. Es el mismo
@@ -85225,8 +85131,17 @@ function pulAvFrases() {
 
   if (_amV('pua_derrame') === 'si') {
     const bk = PF(_amV('pua_balik'));
-    const tipo = _amV('pua_derrame_tipo') || 'libre';
-    const dl = _amV('pua_derrame_lado') || 'bilateral';
+    /* ⚠️ SIN `|| 'libre'` NI `|| 'bilateral'` DESDE EL B2-E2, y es lo que impide que la app
+       AFIRME un hallazgo que nadie evaluo. Los dos selects ganaron «— sin consignar —» para
+       que un estudio migrado del modulo basico —que no tenia ni tipo ni, a veces, lado— no
+       saliera en el informe firmado «de aspecto libre» y «bilateral» por el valor de fabrica.
+       No cambia ni un texto alcanzable antes de este commit: hasta hoy los dos siempre tenian
+       valor. Es la regla que los cinco selects primarios ya aplican. */
+    const tipo = _amV('pua_derrame_tipo');
+    const dl = _amV('pua_derrame_lado');
+    /* ⚠️ EL TAMANO ES EL UNICO APORTE DEL MODULO BASICO A ESTA FRASE, y va donde el basico lo
+       ponia: despues del lado. Su texto es el de la `<option>`, sin tocar una palabra. */
+    const tam = _amV('pul_derrame_tam');
     /* Misma frase que el módulo básico. Antes esto multiplicaba por 20 sin mirar: 200 mm
        —tres cifras por un tipeo— salía impreso como «4000 ml», un derrame que no existe, en
        un informe que otro puede usar para decidir un drenaje. */
@@ -85235,14 +85150,21 @@ function pulAvFrases() {
        Balik)», que nombra dos cosas distintas en el mismo parentesis. */
     const _bf = _balikFrase(bk);
     const vol = _bf ? ' (' + _bf + ')' : '';
-    L.push('Derrame pleural ' + dl + ', de aspecto ' + tipo + vol + '.');
+    L.push('Derrame pleural' + (dl ? ' ' + dl : '') + (tam ? ' ' + tam : '') +
+           (tipo ? ', de aspecto ' + tipo : '') + vol + '.');
   } else if (_amV('pua_derrame')) {
     L.push('Sin derrame pleural.');
   }
 
   if (_amV('pua_consol') === 'si') {
     const B = { con:'con broncograma aéreo', sin:'sin broncograma', fluido:'con broncograma fluido' };
-    L.push('Consolidación pulmonar ' + (B[_amV('pua_consol_bronco')] || 'sin broncograma especificado') + '.');
+    /* ⚠️ LA NOTA ES EL OTRO APORTE DEL MODULO BASICO (B2-E2), y va EN LA MISMA ORACION, entre
+       parentesis, que es como el basico la publicaba: es una precision de ESTE hallazgo
+       —localizacion, broncograma, extension— y suelta se lee como un parrafo sin sujeto. Se le
+       saca el punto final si el medico lo escribio, para no dejar dos. */
+    const _cn = String(_amV('pul_consol_nota') || '').trim().replace(/[.;]+$/, '');
+    L.push('Consolidación pulmonar ' + (B[_amV('pua_consol_bronco')] || 'sin broncograma especificado') +
+           (_cn ? ' (' + _cn + ')' : '') + '.');
   } else if (_amV('pua_consol')) {
     L.push('Sin consolidaciones.');
   }
@@ -85276,13 +85198,18 @@ function pulAvSuma(omitir) {
   else if (r.p === 'Edema alveolar')   s.push('Edema alveolar.');
   else if (r.p === 'Neumotórax probable') s.push('Neumotórax probable.');
   if (_amV('pua_consol') === 'si' && _om.indexOf('consol') < 0) {
+    /* ⚠️ CON EL BRONCOGRAMA «sin consignar» DICE «sin broncograma especificado» Y NO «sin
+       broncograma» (B2-E2): el estado vacio nacio en este commit, asi que no cambia ningun
+       texto alcanzable antes — y negar un hallazgo no evaluado en el EN SUMA firmado es
+       exactamente lo que la rama del cuerpo ya evita con esas mismas palabras. */
     const b = _amV('pua_consol_bronco');
-    s.push('Consolidación pulmonar ' + (b === 'con' ? 'con broncograma aéreo' : b === 'fluido' ? 'con broncograma fluido' : 'sin broncograma') + '.');
+    s.push('Consolidación pulmonar ' + (b === 'con' ? 'con broncograma aéreo' : b === 'fluido' ? 'con broncograma fluido' : b === 'sin' ? 'sin broncograma' : 'sin broncograma especificado') + '.');
   }
   if (_amV('pua_derrame') === 'si' && _om.indexOf('derrame') < 0) {
-    const bk = PF(_amV('pua_balik')), lado = _amV('pua_derrame_lado') || 'bilateral';
+    const bk = PF(_amV('pua_balik')), lado = _amV('pua_derrame_lado');
+    const tam = _amV('pul_derrame_tam');
     const det = _balikDet(bk);
-    s.push('Derrame pleural ' + lado + det + '.');
+    s.push('Derrame pleural' + (lado ? ' ' + lado : '') + (tam ? ' ' + tam : '') + det + '.');
   }
   return s;
 }
@@ -85311,19 +85238,8 @@ function pulAvanzadoHayDatos() {
 }
 window.pulAvanzadoHayDatos = pulAvanzadoHayDatos;
 
-/* ¿El avanzado evaluó lo MISMO que reporta el básico? Son preguntas distintas y la exclusión
-   mutua necesita ésta, no `hayDatos`. El básico informa derrame, líneas B y consolidación; el
-   avanzado los cubre con `pua_derrame`, `pua_lineasb` y `pua_consol`. Con `hayDatos` alcanzaba
-   UN campo cualquiera —por ejemplo sólo la consolidación— para silenciar al básico entero, y un
-   derrame moderado cargado ahí desaparecía del informe. Deslizamiento y líneas A no entran: no
-   tienen contraparte en el básico, así que no habilitan ni impiden nada.
-   Duplicar una oración es molesto; perder un derrame del informe firmado, no. */
-function pulAvanzadoCubreBasico() {
-  return PUL_PARES.every(function(p){
-    const e = document.getElementById(p.av); return e && e.value !== '';
-  });
-}
-window.pulAvanzadoCubreBasico = pulAvanzadoCubreBasico;
+/* ⚠️ `pulAvanzadoCubreBasico` SE RETIRO EN EL B2-E2 CON LA EXCLUSION MUTUA: era el predicado
+   que decidia si el avanzado podia silenciar al basico, y ya no hay dos modulos. */
 
 // ¿Está integrado el módulo avanzado? Sirve para la exclusión mutua.
 function pulAvanzadoIntegrado() {
@@ -85523,7 +85439,12 @@ function amiloSecs() {
        predicado quedaba FALSO para siempre: el avanzado no publicaba nada, el basico no se
        silenciaba y el modulo integrado desaparecia del informe firmado. Medido en cinco escenas.
        La hoja se descarta en el ARMADOR del PDF, que es el unico lugar que habla de paginas. */
-    { k:'pulm', lbl:'Eco Pulmonar (avanzado)',         tit:'ECOGRAFIA PULMONAR - EVALUACION AVANZADA', gen:amiloTextoPulmonar, hayDatos:function(){ return typeof pulAvanzadoHayDatos !== 'function' || pulAvanzadoHayDatos(); } }
+    /* ⚠️ SIN LA PALABRA «AVANZADO» DESDE EL B2-E2: el eco pulmonar es UNA pantalla y deja de
+       ser un modulo avanzado. El `tit` es el titulo de la hoja del PDF, que desde el B-E3 NO
+       se arma —su texto va al cuerpo del informe—, asi que este rotulo sobrevive solo en la
+       etiqueta de la tarjeta de integracion. La CLAVE `pulm` no se toca: la nombran el boton
+       `data-am-k`, `amiloIntegrar`, `amiloEnInforme` y los estudios guardados. */
+    { k:'pulm', lbl:'Eco Pulmonar',                     tit:'ECOGRAFIA PULMONAR', gen:amiloTextoPulmonar, hayDatos:function(){ return typeof pulAvanzadoHayDatos !== 'function' || pulAvanzadoHayDatos(); } }
   ];
 }
 window.amiloSecs = amiloSecs;
@@ -127779,7 +127700,7 @@ const ECO_AYUDA = [
 <p class="mP">Cada uno se integra al informe con su propio botón y se retira igual. Requieren modo Avanzado.</p>
 <ul class="mUl">
 <li><b>🫀 Hemodinámica</b> — probabilidad de HTP (ESC/ERS 2022), TEP, VEXUS, HFA-PEFF, gradiente transpulmonar, CIA/CIV y Qp/Qs, pericardio (derrame y taponamiento; constricción vs restricción).</li>
-<li><b>🫁 Eco Pulmonar</b> — líneas B, derrame, consolidación. Versión básica y versión avanzada; la avanzada, si se integra, reemplaza a la básica.</li>
+<li><b>🫁 Ecografía pulmonar</b> — deslizamiento pleural, líneas A, líneas B por zonas, punto pulmón, derrame pleural con su tamaño y su estimación de volumen, y consolidación. Una sola pantalla, dentro de «Pericardio y pulmón».</li>
 <li><b>🫀 ETE</b> — morfología valvular, orejuela izquierda y su score de trombo, pre y post TAVI, evaluación para TEER y segmentos por vista.</li>
 <li><b>💊 Cardio-Oncología</b> — riesgo basal con una calculadora propia de EcoSmart (no es el HFA-ICOS), graduación de cardiotoxicidad y seguimiento seriado congelado en el estudio.</li>
 <li><b>🔬 Amiloidosis</b> — score ecocardiográfico, algoritmo diagnóstico con centellograma y proteínas monoclonales, y guía de referencia.</li>

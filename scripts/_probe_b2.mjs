@@ -105,7 +105,7 @@ const PULM = `(() => {
            nAv: AV.filter(id => document.getElementById(id)).length,
            avanzadoEnPantalla: (T.match(/avanzad[ao]/gi) || []).length,
            integrar: Array.prototype.slice.call(
-             document.querySelectorAll('#tab-pulmonar [data-am-k], #tab-peripulm [data-am-k]'))
+             document.querySelectorAll('#tab-pericardio [data-am-k]'))
              .map(b => b.getAttribute('data-am-k')) };
 })()`;
 

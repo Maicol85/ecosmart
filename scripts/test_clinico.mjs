@@ -71472,35 +71472,40 @@ caso('TC-488', 'Tanda Y3b + Wilkins + I: el 3D de la mitral se GIRA A MANO —co
       const nar = LINEAS('narrativo').filter(x => x.indexOf('derrame pericárdico moderado') > -1).join(' || ');
       ex.push(['y en el narrativo el pericardio ya NO arrastra a las masas en la misma oracion',
         nar.indexOf('sin compromiso hemodinámico') > -1 && nar.indexOf('masas') === -1, nar]); }
+    /* ADAPTADO el 2026-10-22 (B2-E2): el modulo pulmonar BASICO se unifico con el avanzado en
+       UNA sola pantalla, asi que los seis campos que este bloque cargaba ya no existen y se
+       carga la pantalla unica. Lo que el bloque vigila NO cambia —el lado, el tamano, el
+       volumen por formula de Balik, la nota en la MISMA oracion, el EN SUMA sin el detalle y
+       el control negativo del lado— y gana dos cosas: que el texto sea UN SOLO PARRAFO con
+       los tres temas adentro (que es lo que la orden pide) y que la oracion se componga con
+       las frases del avanzado. */
     { NUEVO();
-      SEL('pul_derrame', 'si'); SEL('pul_derrame_tam', 'moderado'); S('pul_balik', '25');
-      SEL('pul_derrame_lado', 'bilateral');
-      SEL('pul_lineasb', 'si'); SEL('pul_lineasb_pat', 'difuso');
-      SEL('pul_consolidacion', 'si'); S('pul_consol_nota', 'base derecha');
+      SEL('pua_derrame', 'si'); SEL('pul_derrame_tam', 'moderado'); S('pua_balik', '25');
+      SEL('pua_derrame_lado', 'bilateral');
+      SEL('pua_lineasb', 'presentes'); SEL('pua_lineasb_cant', 'multiples');
+      SEL('pua_consol', 'si'); SEL('pua_consol_bronco', ''); S('pul_consol_nota', 'base derecha');
+      try { if (FN('amiloIntegrar')) amiloIntegrar('pulm'); } catch (e) {}
       const L = LINEAS('estandar');
-      const der = L.filter(x => x.indexOf('Derrame pleural') > -1).join(' || ');
-      const lb  = L.filter(x => x.indexOf('Líneas B') > -1).join(' || ');
-      const co  = L.filter(x => x.indexOf('Consolidación') > -1).join(' || ');
-      ex.push(['los tres temas del pulmon van en TRES oraciones separadas y no en un solo parrafo',
-        der && lb && co && der !== lb && lb !== co &&
-        der.indexOf('Líneas B') === -1 && der.indexOf('Consolidación') === -1,
-        der + ' | ' + lb + ' | ' + co]);
-      ex.push(['el derrame pleural nombra su LADO y su volumen por Balik',
-        /* ADAPTADO el 2026-10-21 (B-E3): el informe nombra la FORMULA y no «Balik 25 mm». El
-           lado y el tamano se conservan, que es lo que este caso vigila. */
-        der === 'Derrame pleural bilateral moderado (aproximadamente 500 ml, según fórmula de Balik).', der]);
+      const par = L.filter(x => x.indexOf('Derrame pleural') > -1).join(' || ');
+      ex.push(['los tres temas del pulmon van en UN SOLO PARRAFO, y los tres estan',
+        par.indexOf('Derrame pleural') > -1 && par.indexOf('Líneas B') > -1 &&
+        par.indexOf('Consolidación pulmonar') > -1 &&
+        L.filter(x => x.indexOf('Derrame pleural') > -1).length === 1,
+        par]);
+      ex.push(['el derrame pleural nombra su LADO, su TAMANO y su volumen por Balik',
+        par.indexOf('Derrame pleural bilateral moderado (aproximadamente 500 ml, según fórmula de Balik).') > -1,
+        par]);
       ex.push(['la nota de la consolidacion va EN LA MISMA ORACION, entre parentesis',
-        co === 'Consolidación pulmonar (base derecha).', co]);
+        par.indexOf('Consolidación pulmonar sin broncograma especificado (base derecha).') > -1, par]);
       ex.push(['y al EN SUMA va la conclusion, no el detalle de la nota',
-        SUMA().indexOf('Consolidación pulmonar.') > -1 && SUMA().indexOf('base derecha') === -1,
+        SUMA().indexOf('Consolidación pulmonar') > -1 && SUMA().indexOf('base derecha') === -1,
         SUMA().split(String.fromCharCode(10)).filter(x => x.indexOf('Consolidación') > -1).join(' || ')]);
-      /* CONTROL NEGATIVO: sin lado, la oracion sale como hasta hoy. */
-      SEL('pul_derrame_lado', '');
+      /* CONTROL NEGATIVO: sin lado, la oracion no inventa ninguno. */
+      SEL('pua_derrame_lado', '');
       const sinLado = LINEAS('estandar').filter(x => x.indexOf('Derrame pleural') > -1).join(' || ');
       ex.push(['CONTROL NEGATIVO: sin consignar el lado, la oracion no inventa ninguno',
-        /* ADAPTADO el 2026-10-21 (B-E3): idem. El control negativo —que sin lado no se invente
-           ninguno— sigue siendo el mismo. */
-        sinLado === 'Derrame pleural moderado (aproximadamente 500 ml, según fórmula de Balik).', sinLado]); }
+        sinLado.indexOf('Derrame pleural moderado (aproximadamente 500 ml, según fórmula de Balik).') > -1 &&
+        sinLado.indexOf('bilateral') === -1, sinLado]); }
     { NUEVO();
       const L = LINEAS('estandar');
       ex.push(['CONTROL NEGATIVO: sin hallazgos pulmonares no hay NINGUNA oracion de pulmon',
@@ -71530,11 +71535,14 @@ caso('TC-488', 'Tanda Y3b + Wilkins + I: el 3D de la mitral se GIRA A MANO —co
         } catch (e) { return null; } })();
       ex.push(['y el Excel sigue en 440 columnas: ninguno de los campos nuevos agrego una',
         !!fila && Object.keys(fila).length === 440, fila ? String(Object.keys(fila).length) : 'SIN FILA']);
+      /* ADAPTADO el 2026-10-22 (B2-E2): pul_derrame_lado se fue con el modulo basico y su
+         dato vive hoy en pua_derrame_lado, que es el dueño unico de la lateralidad. Los
+         otros cuatro campos y el invariante —ninguno agrega columna— no cambian. */
       ex.push(['los cuatro campos nuevos del estudio son los dos del Wilkins y los dos de Otros, y ninguno es columna',
-        !!fila && ['wilkins_delib','cx_wilk_delib','pericardio_hemo','pul_derrame_lado','pul_consol_nota']
+        !!fila && ['wilkins_delib','cx_wilk_delib','pericardio_hemo','pua_derrame_lado','pul_consol_nota']
           .every(id => !!EL(id)) &&
         Object.keys(fila).every(k => k.indexOf('delib') === -1 && k.indexOf('Lado') === -1),
-        ['wilkins_delib','cx_wilk_delib','pericardio_hemo','pul_derrame_lado','pul_consol_nota']
+        ['wilkins_delib','cx_wilk_delib','pericardio_hemo','pua_derrame_lado','pul_consol_nota']
           .map(id => id + '=' + (EL(id) ? 'si' : 'NO')).join(' ')]); }
 
     return { extra: ex };
@@ -74991,10 +74999,13 @@ caso('TC-496', 'Tanda PRO (1 a 3): el cociente VTI de la protesis mitral solo ap
          perfecto. */
       return V('ea_grado') === 'severa' && TXT('dd-interp').indexOf('ASE 2025') >= 0; })(),
     (function(){ return 'ea_grado=' + V('ea_grado') + ' diast=[' + TXT('dd-interp').slice(0, 44) + ']'; })()]);
-  ex.push(['(g4) el Wilkins, la pestana Otros, el cuadro de frases y la identificacion del paciente siguen en pie (ninguno es de esta tanda)',
-    (function(){ return FN('wilkinsScore') && !!EL('pul_derrame_lado') && !!EL('frases-panel')
+  /* ADAPTADO el 2026-10-22 (B2-E2): el centinela de «la pestana Otros sigue en pie» era
+     pul_derrame_lado, que se fue con el modulo pulmonar basico; la lateralidad vive hoy en
+     pua_derrame_lado. Lo que la condicion vigila no cambia. */
+  ex.push(['(g4) el Wilkins, el eco pulmonar, el cuadro de frases y la identificacion del paciente siguen en pie (ninguno es de esta tanda)',
+    (function(){ return FN('wilkinsScore') && !!EL('pua_derrame_lado') && !!EL('frases-panel')
       && FN('pacIdImpreso'); })(),
-    'wilkins=' + FN('wilkinsScore') + ' otros=' + !!EL('pul_derrame_lado')
+    'wilkins=' + FN('wilkinsScore') + ' pulmonar=' + !!EL('pua_derrame_lado')
       + ' frases=' + !!EL('frases-panel') + ' pacId=' + FN('pacIdImpreso')]);
 
   return { extra: ex };
@@ -75831,7 +75842,9 @@ caso('TC-499', 'Tanda CORTOS: la POSICION del selector de origen mitral y de los
      asi que sin esto la escena mide el estado del paciente ANTERIOR. */
   const esc = (o) => { __t.limpiar(); Object.keys(o || {}).forEach(k => S(k, String(o[k])));
     ['calcET','calcVP','calcIT_ESC','calcIA_ESC','calcIM_ESC','calcDiastol','calcVenaPulm',
-     'valvProtSync','vtProtObstrPintar','vpProtObstrPintar','imPvlPintar','otrBurbUI','pulBasicoUI']
+     /* ADAPTADO el 2026-10-22 (B2-E2): pulBasicoUI se retiro con el modulo basico; el dueno
+        vivo de la pantalla pulmonar unificada es pulAvUI. */
+     'valvProtSync','vtProtObstrPintar','vpProtObstrPintar','imPvlPintar','otrBurbUI','pulAvUI']
       .forEach(f => { try { if (FN(f)) window[f](); } catch (x) {} });
     return o; };
   const VT  = () => { try { return FN('vtProtObstr') ? (window.vtProtObstr() || null) : 'SIN FN'; } catch (e) { return 'EXC'; } };
@@ -76154,20 +76167,25 @@ caso('TC-499', 'Tanda CORTOS: la POSICION del selector de origen mitral y de los
      afirma hoy lo CONTRARIO de lo que afirmaba: ni el selector ni su envoltorio existen, la
      clausula no aparece en ningun estilo, y la oracion es la de antes del CORTOS13. El motivo es
      el que el propio CORTOS13 ya habia declarado: sus dos opciones no tienen fuente. */
+  /* ADAPTADO el 2026-10-22 (B2-E2): el modulo basico se unifico con el avanzado, asi que las
+     lineas B se cargan por pua_lineasb / pua_lineasb_cant. Lo que la condicion afirma es lo
+     mismo —la clausula de la separacion no existe en ningun estilo y el selector tampoco— y
+     se mide sobre la pantalla viva. */
   ex.push(['(f8) ADAPTADA: la separacion de las lineas B YA NO EXISTE — ni el selector, ni su envoltorio, ni la clausula en los tres estilos',
     (function(){ if (EL('pul_lineasb_sep') || EL('pul-lineasb-sep-wrap')) return false;
-      __t.limpiar(); S('pul_lineasb', 'si'); S('pul_lineasb_pat', 'difuso');
+      const car = function (c) { __t.limpiar(); S('pua_lineasb', 'presentes');
+        S('pua_lineasb_cant', c); try { if (FN('amiloIntegrar')) amiloIntegrar('pulm'); } catch (x) {} };
+      car('multiples');
       const tres = ['estandar', 'narrativo', 'conciso'].map(function (e) { return inf(e); });
       const sinClausula = tres.every(function (a) {
         return String(a.inf || '').indexOf('separación aproximada') < 0; });
-      __t.limpiar(); S('pul_lineasb', 'si'); S('pul_lineasb_pat', 'difuso');
-      const b = inf('estandar');
-      __t.limpiar(); S('pul_lineasb', 'si'); S('pul_lineasb_pat', 'focal');
-      const c = inf('estandar');
+      car('multiples'); const b = inf('estandar');
+      car('focal');     const c = inf('estandar');
       return sinClausula
-        && LIN(b.inf, 'Líneas B de distribución difusa.').length === 1
-        && LIN(c.inf, 'Líneas B de distribución focal.').length === 1; })(),
-    (function(){ __t.limpiar(); S('pul_lineasb', 'si'); S('pul_lineasb_pat', 'difuso');
+        && LIN(b.inf, 'Líneas B múltiples').length === 1
+        && LIN(c.inf, 'Líneas B aisladas').length === 1; })(),
+    (function(){ __t.limpiar(); S('pua_lineasb', 'presentes'); S('pua_lineasb_cant', 'multiples');
+      try { if (FN('amiloIntegrar')) amiloIntegrar('pulm'); } catch (x) {}
       return 'sel=' + !!EL('pul_lineasb_sep') + ' wrap=' + !!EL('pul-lineasb-sep-wrap')
         + ' | ' + LIN(inf('estandar').inf, 'Líneas B').join(' // '); })()]);
   /* CONTROL: lo demas del CORTOS13 se conserva — el derrame PERICARDICO del papel y la formula
@@ -76175,14 +76193,17 @@ caso('TC-499', 'Tanda CORTOS: la POSICION del selector de origen mitral y de los
   ex.push(['(f8b) CONTROL ARR7: el derrame pericardico y la formula de Balik del CORTOS13 se conservan',
     (function(){ __t.limpiar(); S('pericardio', 'Derrame moderado (10-20mm)');
       const a = inf('estandar');
-      __t.limpiar(); S('pul_derrame', 'si'); S('pul_derrame_tam', 'moderado'); S('pul_balik', '25');
+      /* ADAPTADO el 2026-10-22 (B2-E2): el derrame pleural se carga por la pantalla unificada
+         (pua_derrame + pul_derrame_tam, que conservo su id). La formula de Balik y el control
+         de que el apellido pelado ya no este siguen igual. */
+      __t.limpiar(); S('pua_derrame', 'si'); S('pul_derrame_tam', 'moderado'); S('pua_balik', '25');
+      try { if (FN('amiloIntegrar')) amiloIntegrar('pulm'); } catch (x) {}
       const b = inf('estandar');
       return LIN(a.inf, 'Derrame pericárdico moderado').length === 1
-        /* ADAPTADO el 2026-10-21 (B-E3): la frase pasa a nombrar la formula. Se exige el texto
-           NUEVO y, de paso, que el apellido pelado ya no este: es el control del cambio. */
         && LIN(b.inf, 'según fórmula de Balik').length === 1
         && LIN(b.inf, 'Balik 25 mm').length === 0; })(),
-    (function(){ __t.limpiar(); S('pul_derrame', 'si'); S('pul_derrame_tam', 'moderado'); S('pul_balik', '25');
+    (function(){ __t.limpiar(); S('pua_derrame', 'si'); S('pul_derrame_tam', 'moderado'); S('pua_balik', '25');
+      try { if (FN('amiloIntegrar')) amiloIntegrar('pulm'); } catch (x) {}
       return LIN(inf('estandar').inf, 'errame').join(' // '); })()]);
   ex.push(['(f9) los cuatro globos nuevos tienen entrada en el registro y los tres que leen Referencias traen NODOS de la ficha, no un cartel de error',
     (function(){ const R = (typeof VINFO === 'undefined') ? null : VINFO;
@@ -77265,23 +77286,29 @@ caso('TC-501', 'Tanda ARR: un campo VACIO es SIN DATO - las once referencias que
     ex.push(['(L1) ni el selector de la separacion ni su envoltorio existen',
       !EL('pul_lineasb_sep') && !EL('pul-lineasb-sep-wrap'),
       'sel=' + !!EL('pul_lineasb_sep') + ' wrap=' + !!EL('pul-lineasb-sep-wrap')]);
-    const linb = (pat) => { __t.limpiar();
-      try { __t.set('pul_lineasb', 'si'); __t.set('pul_lineasb_pat', pat); } catch (e) {}
+    /* ADAPTADO el 2026-10-22 (B2-E2): las lineas B se cargan por la pantalla unificada. Lo que
+       esta condicion vigila —que la clausula de la separacion no exista— es el mismo, y pasa a
+       exigir las frases del dueno vivo. */
+    const linb = (cant) => { __t.limpiar();
+      try { __t.set('pua_lineasb', 'presentes'); __t.set('pua_lineasb_cant', cant); } catch (e) {}
+      try { if (FN('amiloIntegrar')) window.amiloIntegrar('pulm'); } catch (e) {}
       try { if (FN('setEstiloInforme')) window.setEstiloInforme('estandar');
             if (FN('generarInforme')) window.generarInforme(); } catch (e) {}
       return String(V('informe_texto')); };
-    const dif = linb('difuso'), foc = linb('focal');
-    ex.push(['(L2) la oracion vuelve a la de antes del CORTOS13, sin clausula de separacion',
-      dif.indexOf('L' + String.fromCharCode(237) + 'neas B de distribuci' + String.fromCharCode(243) + 'n difusa.') >= 0
-        && foc.indexOf('L' + String.fromCharCode(237) + 'neas B de distribuci' + String.fromCharCode(243) + 'n focal.') >= 0
-        && dif.indexOf('separaci' + String.fromCharCode(243) + 'n aproximada') < 0,
+    const dif = linb('multiples'), foc = linb('focal');
+    ex.push(['(L2) la oracion no lleva clausula de separacion en ninguna de las dos cantidades',
+      dif.indexOf('L' + String.fromCharCode(237) + 'neas B m' + String.fromCharCode(250) + 'ltiples') >= 0
+        && foc.indexOf('L' + String.fromCharCode(237) + 'neas B aisladas') >= 0
+        && dif.indexOf('separaci' + String.fromCharCode(243) + 'n aproximada') < 0
+        && foc.indexOf('separaci' + String.fromCharCode(243) + 'n aproximada') < 0,
       dif.split(String.fromCharCode(10)).filter(function (l) { return l.indexOf('neas B') >= 0; }).join(' // ')]);
     (function () { __t.limpiar();
       try { __t.set('pericardio', 'Derrame moderado (10-20mm)'); } catch (e) {}
       try { if (FN('generarInforme')) window.generarInforme(); } catch (e) {}
       const a = String(V('informe_texto'));
       __t.limpiar();
-      try { __t.set('pul_derrame', 'si'); __t.set('pul_derrame_tam', 'moderado'); __t.set('pul_balik', '25'); } catch (e) {}
+      try { __t.set('pua_derrame', 'si'); __t.set('pul_derrame_tam', 'moderado'); __t.set('pua_balik', '25'); } catch (e) {}
+      try { if (FN('amiloIntegrar')) window.amiloIntegrar('pulm'); } catch (e) {}
       try { if (FN('generarInforme')) window.generarInforme(); } catch (e) {}
       const b = String(V('informe_texto'));
       ex.push(['(L3) CONTROL: el derrame PERICARDICO y la formula de Balik del CORTOS13 se conservan',
@@ -80974,8 +81001,12 @@ caso('TC-509', 'Trabajo B (ADAPTADO por el B2): la columna izquierda con sus ONC
       return t.indexOf('Estructuras normales prominentes') > -1; })(), 'en el panel']);
 
   /* ══ (D) ECO PULMONAR UNIFICADO ════════════════════════════════════════════════════════ */
-  const PUL_BAS = ['pul_derrame','pul_derrame_tam','pul_balik','pul_derrame_lado','pul_lineasb',
-    'pul_lineasb_pat','pul_consolidacion','pul_consol_nota'];
+  /* ADAPTADO el 2026-10-22 (B2-E2): el modulo basico se unifico con el avanzado. De sus ocho
+     campos quedan DOS con su id —pul_derrame_tam y pul_consol_nota, los dos que el
+     avanzado no tenia— y los otros seis se traducen a sus pua_*. La lista pasa a ser la de
+     la pantalla unica: lo que el caso vigila —que TODOS vivan en la misma pestana— no cambia. */
+  const PUL_BAS = ['pua_derrame','pul_derrame_tam','pua_balik','pua_derrame_lado','pua_lineasb',
+    'pua_lineasb_cant','pua_consol','pul_consol_nota'];
   /* ADAPTADO el 2026-10-22 (B2-E1): la puerta unica ya no es «Eco pulmonar» sino «Pericardio y
      pulmon», y los ocho campos del basico viven dentro de #tab-pericardio, apilados debajo de
      pericardio y masas. Lo que el caso afirma es MAS fuerte que antes: una sola puerta, y que
@@ -81003,11 +81034,14 @@ caso('TC-509', 'Trabajo B (ADAPTADO por el B2): la columna izquierda con sus ONC
     (function () { const t = EL('tab-pericardio');
       const b = t ? t.querySelector('[data-am-k=pulm]') : null;
       return !!b; })(), 'adentro']);
-  ex.push(['(D3) Otros ya no tiene nada pulmonar',
-    (function () { const e = EL('pul_derrame');
+  /* ADAPTADO el 2026-10-22 (B2-E2): el centinela pasa a ser pua_derrame, el dueno vivo. */
+  ex.push(['(D3) Otros ya no tiene nada pulmonar, y el modulo basico no existe en ninguna parte',
+    (function () { const e = EL('pua_derrame');
       const p = e ? e.closest('.tab-section') : null;
-      return !!p && p.id !== 'tab-otros'; })(),
-    (function () { const e = EL('pul_derrame');
+      return !!p && p.id !== 'tab-otros'
+        && ['pul_derrame','pul_balik','pul_derrame_lado','pul_lineasb','pul_lineasb_pat',
+            'pul_consolidacion'].every(function (id) { return !EL(id); }); })(),
+    (function () { const e = EL('pua_derrame');
       const p = e ? e.closest('.tab-section') : null; return p ? p.id : 'NO'; })()]);
   /* El texto del BASICO y el del AVANZADO, los dos justo despues del pericardio y las masas. */
   const infPul = function (esc) {
@@ -81022,12 +81056,19 @@ caso('TC-509', 'Trabajo B (ADAPTADO por el B2): la columna izquierda con sus ONC
              iPleu: idx('Derrame pleural'), iDesliz: idx('Deslizamiento pleural'),
              iPatron: idx('Patrón global') };
   };
+  /* ADAPTADO el 2026-10-22 (B2-E2): la escena se carga en la pantalla unica y hay que
+     INTEGRAR, porque desde hoy el unico emisor pulmonar es el que el boton enciende. Las
+     cuatro condiciones afirman lo mismo que antes —la posicion, la formula, el tamano con el
+     lado y el implausible— y D4 gana algo: que el pulmon sea UN SOLO PARRAFO. */
+  const intPul = function () { const b = document.querySelector('[data-am-k=pulm]');
+    if (b) { try { b.click(); } catch (e) {} } };
   const rBas = infPul(function () {
     S('pericardio', 'Derrame moderado (10-20mm)');
-    S('pul_derrame', 'si'); S('pul_derrame_tam', 'moderado'); S('pul_balik', '25');
+    S('pua_derrame', 'si'); S('pul_derrame_tam', 'moderado'); S('pua_balik', '25'); intPul();
   });
-  ex.push(['(D4) el texto del pulmonar BASICO va justo DESPUES del pericardio y las masas',
-    rBas.iPeri >= 0 && rBas.iMasa >= 0 && rBas.iPleu === Math.max(rBas.iPeri, rBas.iMasa) + 1,
+  ex.push(['(D4) el texto del pulmonar va en UN SOLO PARRAFO, justo DESPUES del pericardio y las masas',
+    rBas.iPeri >= 0 && rBas.iMasa >= 0 && rBas.iPleu === Math.max(rBas.iPeri, rBas.iMasa) + 1
+      && rBas.li.filter(function (x) { return x.indexOf('Derrame pleural') > -1; }).length === 1,
     'peri=' + rBas.iPeri + ' masa=' + rBas.iMasa + ' pleural=' + rBas.iPleu]);
   ex.push(['(D5) y nombra la FORMULA de Balik, no el apellido pelado',
     rBas.t.indexOf('según fórmula de Balik') > -1 && rBas.t.indexOf('Balik 25 mm') < 0
@@ -81035,13 +81076,13 @@ caso('TC-509', 'Trabajo B (ADAPTADO por el B2): la columna izquierda con sus ONC
     rBas.li.filter(function (x) { return x.indexOf('pleural') > -1; }).join(' // ')]);
   ex.push(['(D6) y CONSERVA el tamano y el lado, que son datos del informe firmado',
     (function () { const r = infPul(function () {
-        S('pul_derrame', 'si'); S('pul_derrame_tam', 'moderado');
-        S('pul_derrame_lado', 'derecho'); S('pul_balik', '25'); });
-      return r.t.indexOf('Derrame pleural derecho moderado') > -1; })(),
+        S('pua_derrame', 'si'); S('pul_derrame_tam', 'moderado');
+        S('pua_derrame_lado', 'unilateral derecho'); S('pua_balik', '25'); intPul(); });
+      return r.t.indexOf('Derrame pleural unilateral derecho moderado') > -1; })(),
     'con lado y tamano']);
   ex.push(['(D7) CONTROL NEGATIVO: un Balik implausible no estima volumen y lo DICE, sin nombrar el apellido',
     (function () { const r = infPul(function () {
-        S('pul_derrame', 'si'); S('pul_derrame_tam', 'severo'); S('pul_balik', '200'); });
+        S('pua_derrame', 'si'); S('pul_derrame_tam', 'severo'); S('pua_balik', '200'); intPul(); });
       return r.t.indexOf('fuera del rango plausible') > -1
         && r.t.indexOf('4000') < 0 && r.t.indexOf('Balik 200 mm') < 0; })(),
     'implausible declarado']);
@@ -81052,9 +81093,14 @@ caso('TC-509', 'Trabajo B (ADAPTADO por el B2): la columna izquierda con sus ONC
     S('pua_consol', 'si'); S('pua_consol_bronco', 'con');
     const b = document.querySelector('[data-am-k=pulm]'); if (b) b.click();
   });
-  ex.push(['(D8) el texto del pulmonar AVANZADO va al CUERPO del informe, justo despues del pericardio y las masas, y NO a una hoja aparte',
+  /* ADAPTADO el 2026-10-22 (B2-E2): el patron global va DENTRO del mismo parrafo —es lo que
+     la orden pide: un solo parrafo— asi que ya no puede estar en una linea posterior. La
+     condicion afirma hoy que los dos estan en LA MISMA linea, que es mas fuerte: caza tanto
+     que el texto se parta como que el patron desaparezca. */
+  ex.push(['(D8) el texto del pulmonar va al CUERPO en UN SOLO PARRAFO con su patron global, justo despues del pericardio y las masas, y NO a una hoja aparte',
     rAv.iDesliz >= 0 && rAv.iDesliz === Math.max(rAv.iPeri, rAv.iMasa) + 1
-      && rAv.iPatron > rAv.iDesliz,
+      && rAv.iPatron === rAv.iDesliz
+      && rAv.li.filter(function (x) { return x.indexOf('Deslizamiento pleural') > -1; }).length === 1,
     'peri=' + rAv.iPeri + ' masa=' + rAv.iMasa + ' desliz=' + rAv.iDesliz + ' patron=' + rAv.iPatron]);
   ex.push(['(D9) y la hoja «ECOGRAFIA PULMONAR» del PDF no se arma, aunque el modulo siga integrado',
     (function () {
@@ -81145,7 +81191,9 @@ caso('TC-509', 'Trabajo B (ADAPTADO por el B2): la columna izquierda con sus ONC
     (function () {
       try { if (FN('limpiarCampos')) limpiarCampos(); } catch (e) {}
       S('pericardio', 'Derrame moderado (10-20mm)');
-      S('pul_derrame', 'si'); S('pul_balik', '25');
+      /* ADAPTADO el 2026-10-22 (B2-E2): los dos campos del pulmonar son los de la pantalla
+         unificada. Lo que la condicion mide —que viajen, vuelvan y se vacien— no cambia. */
+      S('pua_derrame', 'si'); S('pua_balik', '25');
       CHK('otr_asia', true); CHK('otr_rac', true);
       /* El recolector REAL de guardarInforme, replicado: todos los input/select/textarea con id
          que pasen _noEsDelEstudio, mas los __chk de los checkbox. */
@@ -81159,10 +81207,10 @@ caso('TC-509', 'Trabajo B (ADAPTADO por el B2): la columna izquierda con sus ONC
         return c; };
       const guardado = recolectar();
       const viajan = guardado['pericardio'] === 'Derrame moderado (10-20mm)'
-        && guardado['pul_balik'] === '25'
+        && guardado['pua_balik'] === '25'
         && guardado['otr_asia__chk'] === '1' && guardado['otr_rac__chk'] === '1';
       try { if (FN('limpiarCampos')) limpiarCampos(); } catch (e) {}
-      const vacios = String(V('pul_balik') || '') === ''
+      const vacios = String(V('pua_balik') || '') === ''
         && (EL('otr_asia') ? EL('otr_asia').checked === false : false)
         && (EL('otr_rac') ? EL('otr_rac').checked === false : false);
       /* Restaurar: se escriben los valores del estudio como lo hacen las rutas de reapertura. */
@@ -81170,7 +81218,7 @@ caso('TC-509', 'Trabajo B (ADAPTADO por el B2): la columna izquierda con sus ONC
         if (k.indexOf('__chk') > -1) { const e = EL(k.replace('__chk', ''));
           if (e && e.type === 'checkbox') e.checked = guardado[k] === '1'; return; }
         const e = EL(k); if (e && e.type !== 'checkbox') e.value = guardado[k]; });
-      const vuelven = String(V('pul_balik') || '') === '25'
+      const vuelven = String(V('pua_balik') || '') === '25'
         && String(V('pericardio') || '') === 'Derrame moderado (10-20mm)'
         && (EL('otr_asia') ? EL('otr_asia').checked === true : false);
       return viajan && vacios && vuelven; })(), 'viajan, se vacian y vuelven']);
