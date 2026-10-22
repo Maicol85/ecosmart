@@ -8724,13 +8724,31 @@ window.cerrarSesionReal = cerrarSesionReal;
           <div class="fg" style="margin-bottom:4px;">
             <label style="font-weight:600">&#129516; Septum interauricular</label>
           </div>
-          <div class="grid-2">
+          <div class="grid-3">
           <div class="fg">
             <label style="display:flex;align-items:center;gap:8px;min-height:44px;font-weight:600;">
               <input type="checkbox" id="otr_asia" onchange="otrHallSync();fopBurbEspejo('otr_asia')">
               <span style="font-size:12px;">Aneurisma del septum interauricular (ASIA)</span>
             </label>
             <input type="text" id="otr_asia_nota" maxlength="120" placeholder="(de &hellip; mm por &hellip; mm en eje L y T)" oninput="_refrescarInformeSiGenerado()">
+          </div>
+          <!-- == LA EXCURSION, SEGUNDO CONTROL DEL MISMO DATO (D3, 2026-10-21) =============
+               DECISION DE MAICOL tras probar el D2. El bloque tenia la CASILLA y el LADO -los
+               dos insumos que el corte del D2 necesita- y NO el numero, que vive en
+               `fop_asa_mm`, en el modulo FOP de Congenitas. Asi que trabajando solo desde esta
+               pestana la excursion no se podia cargar por ningun camino y `asiaExcFrase()`
+               devolvia `null`: el renglon salia «Aneurisma del septum interauricular 10.», con
+               el 10 que el medico habia escrito en la CAJA DE DETALLE de al lado -su
+               placeholder pide milimetros- y sin decir que era ese numero.
+               ⚠️ NO ES UN DATO NUEVO: es el segundo control de `fop_asa_mm`, que sigue siendo
+               su unico dueno. Por eso el id va con guion MEDIO y `_noEsDelEstudio` lo excluye:
+               persistir el espejo dejaria una SEGUNDA copia del numero que al reabrir puede
+               contradecir al dueno, que es el motivo escrito del cartel de peptidos. Cero
+               columnas de Excel y cero campos nuevos del estudio, medido.
+               El espejo en los dos sentidos vive en `asiaMmSync`, su dueno unico. -->
+          <div class="fg">
+            <label>Excursi&oacute;n del aneurisma (mm)</label>
+            <input type="number" id="otr-asia-mm" step="0.1" placeholder="mm" oninput="asiaMmSync('otr')">
           </div>
           <!-- == HACIA DONDE SE ABOMBA EL ANEURISMA (D-E1, 2026-10-22) ======================
                DECISION DE MAICOL. El dato vive ACA, con el ASIA, y la seccion del FOP lo LEE:
@@ -15056,7 +15074,7 @@ z
               <option value="si">S&iacute;</option>
             </select>
           </div>
-          <div class="fg"><label>Excursi&oacute;n del aneurisma (mm)</label><input type="number" id="fop_asa_mm" step="0.1" placeholder="mm" oninput="fopSync()"></div>
+          <div class="fg"><label>Excursi&oacute;n del aneurisma (mm)</label><input type="number" id="fop_asa_mm" step="0.1" placeholder="mm" oninput="fopSync();asiaMmSync('fop')"></div>
           <div class="fg"><label>Se abomba hacia</label>
             <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
               <span id="fop-asa-lado" class="calc-val">&mdash;</span></div></div>
@@ -54481,6 +54499,13 @@ function _noEsDelEstudio(id) {
      trio de PISA y `im_eroa_cont`/`vr_cont`/`im_fr_cont` son campos reales—.
      Guion MEDIO, asi que este prefijo no alcanza a ningun campo del estudio, que van con guion
      BAJO (`avm_cont`, `vm_lat`, `em_gmax`). */
+  /* `otr-asia-` es el SEGUNDO CONTROL de la excursion del aneurisma, en el bloque del ASIA de
+     la pestana «Otros» (D3, 2026-10-21). NO es del estudio: el dato vive en `fop_asa_mm`, que
+     es su unico dueno y el unico que viaja. Persistir el espejo dejaria una segunda copia del
+     numero que al reabrir puede contradecir al dueno —el motivo escrito de `hfpep-`— y seria
+     una clave nueva en TODO estudio que se guarde desde hoy. Guion MEDIO, asi que este prefijo
+     no alcanza a `otr_asia`, `otr_asia_nota` ni `otr_asia_lado`, que van con guion BAJO y si
+     son del estudio. */
   /* `ref-` es el BUSCADOR de la pestana Referencias (2026-10-18). NO es del estudio: es
      navegacion, no un dato del paciente, y persistirlo cambiaria el juego de campos guardados
      de TODO estudio que se guarde desde hoy. Medido ANTES del arreglo: el recolector lo tomaba
@@ -54508,7 +54533,7 @@ function _noEsDelEstudio(id) {
      campos, y al reabrirlo las rutas de restauracion lo recorren. Sin el prefijo, ese valor
      volveria a tratarse como campo del estudio. El modulo esta copiado en
      docs/para-cardiosalud/fonocardiograma/. */
-  return /^(login-|ig-|lab-|cfg-|exp-|filtro-|adv-|asoc-|pdf-|lgal-|fcg-|hfpep-|vauto-|vabchk-|vab-anim-|ref-|(?:b-)?cine-)/.test(id);
+  return /^(login-|ig-|lab-|cfg-|exp-|filtro-|adv-|asoc-|pdf-|lgal-|fcg-|hfpep-|vauto-|vabchk-|vab-anim-|otr-asia-|ref-|(?:b-)?cine-)/.test(id);
 }
 
 /* ══ Repintado de módulos al cargar un estudio ═══════════════════════════════════════════
@@ -55211,7 +55236,7 @@ function RECALC_MODULOS() {
      automaticos con el «requiere …» del formulario vacio al lado de un VDFVI y una FEVI ya
      poblados. No puede migrar nada: no escribe ningun campo del estudio, los dos nodos que
      toca son `vauto-` y el tercero un `<div>` de texto. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','asiaMmSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -58561,8 +58586,16 @@ function otrHallazgos(src) {
        leia la excursion por ningun camino. La caja de detalle se CONSERVA y va despues: es texto
        libre del medico y no se toca. */
     const ex = (h.id === 'otr_asia' && typeof asiaExcFrase === 'function') ? asiaExcFrase(src) : null;
+    /* ⚠️ CON LA FRASE DELANTE, LA NOTA ENGANCHA CON COMA (D3, 2026-10-21). Los otros siete
+       hallazgos la pegan con un espacio -«Valvula de Eustaquio prominente muy redundante.»- y
+       ese patron no se toca. En el ASIA, desde que el D2 mete la frase del generador en medio,
+       el espacio deja dos clausulas de medidas pegadas: «…hacia la auricula derecha de 12 mm
+       por 8 mm en eje L y T.», que es el formato que su propio placeholder pide. La coma es el
+       minimo que las separa y NO cambia nada cuando no hay frase, que es el unico estado
+       alcanzable antes del D2. */
+    const sep = ex ? ', ' : ' ';
     out.push({ id: h.id,
-               inf: h.def + (ex ? ' con ' + ex.txt : '') + (n ? ' ' + n : '') + '.',
+               inf: h.def + (ex ? ' con ' + ex.txt : '') + (n ? sep + n : '') + '.',
                suma: h.suma ? (h.suma + '.') : null });
   });
   return out;
@@ -58657,6 +58690,59 @@ window.otrBurbuja = otrBurbuja;
    Es el mismo motivo que `_itVmaxSinc` deja escrito. */
 let _fopEspejoSinc = false;
 const FOP_BURB_LEGADO = Object.freeze(['lt10', 'e1030', 'gt30']);
+/* == LA EXCURSION DEL ANEURISMA: UN DATO CON DOS CONTROLES (D3, 2026-10-21) =================
+   DECISION DE MAICOL tras probar el D2. `fop_asa_mm` -el campo del modulo FOP- sigue siendo el
+   UNICO DUENO y el unico que viaja con el estudio; `otr-asia-mm` es su segundo control, en el
+   bloque del ASIA de la pestana «Otros», donde ya viven la casilla y el lado.
+
+   ⚠️ POR QUE HACIA FALTA, MEDIDO EN EL ARBOL DEL D2. `asiaExcFrase()` -el generador unico de la
+   frase, que leen las SEIS superficies- lee `fop_asa_mm`. Trabajando solo desde «Otros» ese
+   campo queda VACIO, el generador devuelve `null` y las seis se callan: el informe publicaba
+   «Aneurisma del septum interauricular 10.», que es el `def` de `OTR_HALL` con la CAJA DE
+   DETALLE pegada -el medico escribio el numero ahi, que es el unico lugar de esa pestana donde
+   se podia escribir uno, y su placeholder ademas pide milimetros-. No era que el informe
+   estuviera viejo: los dos botones, «Generar» y «Regenerar», daban el mismo texto.
+
+   ⚠️ EL ESPEJO NO SE PUEDE COLGAR DE `fopBurbEspejo`, aunque sea el dueno del espejo de este
+   mismo bloque: su rama FOP -> OTROS reescribe ADEMAS el contraste, el pasaje y la cantidad de
+   burbujas, asi que llamarla desde el `oninput` de la excursion espejaria cuatro datos que ese
+   gesto no toca. Es una funcion propia con su propia guarda, el patron de `itVmaxSync`.
+
+   ⚠️ LA GUARDA NO ES POR EL `oninput`: asignar `.value` por codigo NO lo dispara, asi que el
+   bucle directo no existe. Esta para el dia en que alguien despache un `input` a mano -los
+   arneses lo hacen- y para que la reposicion de `RECALC_MODULOS` no se pise con `fopSync`.
+   La salida temprana por valor igual es lo que evita que salte el caret al tipear.
+
+   ⚠️ EL BORRADO VIAJA EN LOS DOS SENTIDOS, que es la regla del ARR: borrar la excursion en
+   «Otros» la borra en el FOP y al reves, porque lo que se copia es la cadena tal cual -incluida
+   la vacia- y no un numero parseado. */
+let _asiaMmSinc = false;
+function asiaMmSync(origen) {
+  if (_asiaMmSinc) return;
+  const a = document.getElementById('otr-asia-mm');
+  const b = document.getElementById('fop_asa_mm');
+  if (!a || !b) return;
+  /* Sin argumento se repone desde el DUENO, que es lo que hace falta en `RECALC_MODULOS`: las
+     cinco rutas de restauracion pueblan `fop_asa_mm` asignando `.value`, que no dispara nada. */
+  const desdeOtros = (origen === 'otr');
+  const src = desdeOtros ? a : b;
+  const dst = desdeOtros ? b : a;
+  if (String(dst.value || '') === String(src.value || '')) {
+    /* El valor ya coincide y no hay nada que copiar, pero el informe puede estar generado y el
+       gesto del medico igual tiene que repintarlo -por ejemplo al borrar los dos a la vez-. */
+    if (desdeOtros && typeof otrHallSync === 'function') { try { otrHallSync(); } catch (e) {} }
+    return;
+  }
+  _asiaMmSinc = true;
+  try {
+    dst.value = src.value;
+    /* El dueno repinta su propia seccion y los seis consumidores de la frase. */
+    if (typeof fopSync === 'function') { try { fopSync(); } catch (e) {} }
+    if (typeof otrHallSync === 'function') { try { otrHallSync(); } catch (e) {} }
+  } finally { _asiaMmSinc = false; }
+}
+window.asiaMmSync = asiaMmSync;
+
 function fopBurbEspejo(origen) {
   if (_fopEspejoSinc) return;
   _fopEspejoSinc = true;
@@ -126953,8 +127039,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261021-1443';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1792604617173;                 /* eco-build-ms */
+const ECO_BUILD    = '20261021-2204';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1792631069475;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -127040,7 +127126,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261021-1443</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261021-2204</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
