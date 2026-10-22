@@ -46925,6 +46925,10 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
       /* AGREGADO el 2026-10-21 (tanda C, commit 4). Su compuerta es tepHayDatos: al menos un
          dato PROPIO del modulo de TEP. No mira el TAPSE ni la PSAP, que viven en otras pestanas. */
       ['Tromboembolia pulmonar',              { tep_mcconnell:'si', tep_vdvi:'1.3' },               'escTep2019'],
+      /* ADAPTADO el 2026-10-22 (tanda E, commit 5): la seccion NUEVA de probabilidad
+         ecocardiografica de HTP. Su escenario es una VRT alta -la compuerta de la seccion es
+         «VRT medible o algun signo presente»- y su cita es la entrada nueva del registro. */
+      ['Hipertension pulmonar',                { vmax_it:'3.8' },                                   'escErs2022'],
       ['Comunicacion interauricular',         { ete_cia_tipo:'secundum', ete_cia_tam_max:'18' },    'esc2020guch'],
       ['Comunicacion interventricular',       { ete_civ_tipo:'perimembranosa' },                     'escGuchCiv'],
       ['Ductus arterioso permeable',          { dap_tipo:'no_restrictivo', dap_diam:'4' },           'esc2020guch'],

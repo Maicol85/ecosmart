@@ -930,10 +930,10 @@ window.__Y = {
   /* Contesta una pregunta del panel por su CLAVE, con un clic real sobre el boton. */
   evidResp(clave, valor) { try {
     if (typeof indicAbrir === 'function') indicAbrir();
-    var bs = document.querySelectorAll('[data-ind-clave]');
+    var bs = document.querySelectorAll('[data-ind-clin]');
     var hecho = 'NO HAY boton con clave ' + clave;
     for (var i = 0; i < bs.length; i++) {
-      if (bs[i].getAttribute('data-ind-clave') === clave &&
+      if (bs[i].getAttribute('data-ind-clin') === clave &&
           bs[i].getAttribute('data-ind-val') === valor) { bs[i].click(); hecho = 'ok'; break }
     }
     return hecho }

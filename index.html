@@ -71216,6 +71216,43 @@ const IND_REFS = Object.freeze([
      estructura de la tabla, que son inequivocos; no se cita wording de ninguna recomendacion.
      Regla de folio: folio = «497.e» + numero de pagina del PDF, comprobada en el pie impreso de
      las paginas 11, 15, 17 y 20 del PDF (497e11, 497e15, 497e17, 497e20). */
+  /* ⚠️ ENTRADA NUEVA (E5, 2026-10-22). La guia de hipertension pulmonar ya sostenia los cortes
+     del modulo desde el R2, y hasta hoy NO estaba en el registro bibliografico del panel: su
+     primera seccion de Evidencia es la de esta tanda. VERIFICADA EN IMAGEN a 300 ppp.
+     ⚠️ LA CITA DE LA TABLA DE RECOMENDACIONES VA CON SU TITULO IMPRESO COMPLETO. Este documento
+     numera APARTE sus «Tabla» (1 a 18 y mas) y sus «Recomendaciones - tabla» (1 a 4 y mas), y las
+     dos series se pisan en los numeros bajos: existe una «Tabla 2» distinta de la
+     «Recomendaciones - tabla 2». Es la regla que el trabajo H dejo escrita para la ESC 2024 de
+     aorta, donde las series tambien conviven. */
+  { k:'escErs2022',
+    full:'Humbert M, Kovacs G, Hoeper MM, et al. Guia ESC/ERS 2022 sobre el diagnostico y el ' +
+         'tratamiento de la hipertension pulmonar. Sociedad Europea de Cardiologia y European ' +
+         'Respiratory Society. Traduccion al español de la Sociedad Española de Cardiologia; el ' +
+         'original en ingles NO esta en la biblioteca de este repositorio y se declara. Regla de ' +
+         'folio: folio impreso = hoja del PDF menos uno, comprobada en el encabezado impreso de ' +
+         'las hojas 28, 29, 30 y 37. Tabla 10 «Signos ecocardiograficos adicionales indicativos ' +
+         'de hipertension pulmonar», folio 28 — tres columnas: A Ventriculos (cociente de ' +
+         'diametro basal o de area VD/VI > 1,0; aplanamiento del septo interventricular con ' +
+         'indice de excentricidad del VI > 1,1 en sistole y/o diastole; cociente TAPSE/PAPs ' +
+         '< 0,55 mm/mmHg), B Arteria pulmonar (tiempo de aceleracion del TSVD < 105 ms y/o ' +
+         'muesca mesosistolica; velocidad de regurgitacion pulmonar diastolica temprana ' +
+         '> 2,2 m/s; diametro de AP mayor que el de la raiz aortica y diametro de AP > 25 mm) y ' +
+         'C Vena cava inferior y AD (diametro de VCI > 21 mm con colapso inspiratorio disminuido, ' +
+         'menor del 50 % con inspiracion profunda o menor del 20 % con inspiracion superficial; ' +
+         'area de la AD telesistolica > 18 cm2). Su nota a pide signos de al menos DOS de las ' +
+         'tres categorias para alterar el nivel de probabilidad. Figura 5 «Probabilidad ' +
+         'ecocardiografica de hipertension pulmonar y recomendaciones sobre pruebas adicionales», ' +
+         'folio 28 — bandas de VRT pico (menor o igual a 2,8 m/s, 2,9-3,4 y mayor de 3,4), con su ' +
+         'nota a («o no se puede medir»), y un segundo nivel por factores de riesgo o entidades ' +
+         'asociadas a HAP o HPTEC del que salen diagnostico alternativo (Clase IIa), seguimiento ' +
+         'ecocardiografico (Clase IIa) e intervencion posterior o cateterismo derecho si esta ' +
+         'indicado (Clase I); sus notas c y d. Recomendaciones - tabla 2 «Recomendaciones sobre ' +
+         'la estrategia diagnostica», folio 36 — el ecocardiograma como prueba no invasiva de ' +
+         'primera linea (I B), asignar la probabilidad con la VRT y los signos de la tabla 10 ' +
+         '(I B), mantener el umbral de VRT en 2,8 m/s (I C), considerar otras pruebas segun el ' +
+         'cuadro clinico (IIa B) y considerar la prueba de esfuerzo cardiopulmonar en el ' +
+         'sintomatico con probabilidad intermedia (IIb C). Folio 27 — la ecocardiografia por si ' +
+         'sola no confirma el diagnostico, que es hemodinamico y requiere cateterismo derecho.' },
   { k:'escTep2019',
     full:'Konstantinides SV, Meyer G, Becattini C, et al. Guia ESC 2019 para el diagnostico y ' +
          'tratamiento de la embolia pulmonar aguda. Rev Esp Cardiol. 2020;73(6):497.e1-497.e58. ' +
@@ -78544,6 +78581,135 @@ function _indTEP(){
     ] };
 }
 
+/* ── Hipertensión pulmonar — probabilidad ecocardiográfica ─────────────────────────────────
+   ══ LA SECCION ES UN CUESTIONARIO: LEE LO CARGADO Y PREGUNTA LO QUE LA FIGURA 5 PIDE ════════
+   LEE la probabilidad y sus tres categorías de signos —del MISMO dueño que la pantalla, el
+   informe y la hoja del PDF, `_htp2022Core` y `_htp2022Signos`, así que esta sección no puede
+   publicar una probabilidad distinta de la que firma el papel— y PREGUNTA los dos datos que el
+   algoritmo necesita y el ecocardiograma no da.
+
+   FUENTES, VERIFICADAS EN IMAGEN A 300 ppp (ESC/ERS 2022 de hipertensión pulmonar, Humbert y
+   cols., edición de la SEC; regla folio = hoja − 1, comprobada en el encabezado impreso):
+     · **Figura 5, folio 28** — el algoritmo. Su segundo nivel es una sola caja: «Factores de
+       riesgo o entidades asociadas a la HAP o HPTEC», y de ahí salen las tres conductas con su
+       CLASE. La figura NO publica nivel de evidencia, así que acá no se escribe ninguno.
+     · **Recomendaciones - tabla 2, folio 36** — «Recomendaciones sobre la estrategia
+       diagnóstica», que sí publica clase Y nivel para cada fila.
+
+   ⚠️ LA CITA VA CON EL TITULO IMPRESO COMPLETO, «Recomendaciones - tabla 2», y NO con la forma
+   corta que el resto de la app usa. Este documento numera APARTE sus «Tabla» y sus
+   «Recomendaciones - tabla», y las dos series se pisan en los números bajos: existe una «Tabla 2»
+   distinta. El trabajo H dejó escrita la regla —«quien cite una de 1 a 18 de este documento tiene
+   que decir de qué serie es»— y acá la serie corta cae justo en esa franja.
+
+   ⚠️ LAS DOS PREGUNTAS SALEN DEL ALGORITMO Y NO SE AGREGA NINGUNA. Los factores de riesgo son la
+   caja del segundo nivel de la Figura 5; los síntomas deciden la fila IIb de la tabla de
+   recomendaciones («Para pacientes sintomáticos con una probabilidad ecocardiográfica intermedia
+   de HP se puede considerar la PECP») y aparecen en la IIa B como parte del cuadro clínico.
+
+   ⚠️ LAS RECOMENDACIONES VAN EN `r.bloques`, QUE SE PINTA VISIBLE, y no en `notas`, que el marco
+   del panel dibuja dentro del «Ver detalle» y nace PLEGADO. Es la lección que el trabajo H pagó
+   mirando la captura y que el D repitió con el FOP. */
+function _indHTP(){
+  const core = _indFn('_htp2022Core'), n = _indFn('_hfN'), c = _indFn('_hfChk');
+  if (!core || !n || !c || typeof sv !== 'function') return null;
+  let R = null;
+  try { R = core({ num:n, txt:sv, chk:c }); } catch (e) { return null; }
+  if (!R) return null;
+
+  /* `_htp2022Core` clasifica CUALQUIER estudio, porque los signos salen de mediciones de rutina:
+     sin VRT medible ni signos lo que devuelve no es una evaluación, es el suelo del algoritmo.
+     Esa es la MISMA compuerta que `_indCIA` ya aplica sobre esta probabilidad. */
+  const evaluada = (R.vrtCat !== 'nomedible') || R.nCat > 0;
+  if (!evaluada) return null;
+
+  const VRT_TXT = { baja:'≤ 2,8 m/s (o no medible)', media:'2,9 – 3,4 m/s', alta:'> 3,4 m/s',
+                    nomedible:'no medible' };
+  const CAT_TXT = { A:'A · Ventrículos', B:'B · Arteria pulmonar', C:'C · Vena cava inferior y AD' };
+  const SG = R.signos || [];
+  const nombres = (cat) => SG.filter(function (g) { return g.cat === cat && g.presente; })
+                             .map(function (g) { return g.lbl; }).join('; ');
+  const sinDatos = (cat) => SG.filter(function (g) { return g.cat === cat; })
+                              .every(function (g) { return g.estado === 'sinDatos' && !g.presente; });
+
+  const filas = [
+    _indFila('Velocidad pico de regurgitación tricuspídea', VRT_TXT[R.vrtCat] || R.vrtCat,
+      R.vrtCat === 'alta' ? 'alarm' : (R.vrtCat === 'media' ? 'warn' : (R.vrtCat === 'nomedible' ? 'ask' : 'none')),
+      'es la variable que la guía elige para asignar la probabilidad; la PAPs estimada no la reemplaza (folio 27)',
+      ['escErs2022'])
+  ];
+  ['A', 'B', 'C'].forEach(function (cat) {
+    const hay = (cat === 'A') ? R.catA : (cat === 'B') ? R.catB : R.catC;
+    filas.push(_indFila('Signos de la categoría ' + CAT_TXT[cat],
+      hay ? nombres(cat) : (sinDatos(cat) ? '—' : 'ninguno'),
+      hay ? 'warn' : (sinDatos(cat) ? 'ask' : 'none'),
+      hay ? 'cuenta como UNA categoría, cualquiera sea el número de signos'
+          : (sinDatos(cat) ? 'ningún signo de esta categoría se pudo evaluar con lo cargado' : 'evaluada, sin signos'),
+      ['escErs2022']));
+  });
+  filas.push(_indFila('Categorías con signos', String(R.nCat) + ' de 3',
+    R.nCat >= 2 ? 'warn' : 'none',
+    'la nota ᵃ de la Tabla 10 pide signos de al menos DOS categorías para mover el nivel que da la VRT',
+    ['escErs2022']));
+  filas.push(_indFila('Probabilidad ecocardiográfica de hipertensión pulmonar', R.prob,
+    R.prob === 'ALTA' ? 'alarm' : (R.prob === 'INTERMEDIA' ? 'warn' : 'none'),
+    'asignarla con la VRT y los signos de la Tabla 10 es Clase I · Nivel B (Recomendaciones - tabla 2, folio 36)',
+    ['escErs2022']));
+
+  /* ── LO QUE EL ECO NO DA, Y LA FIGURA 5 NECESITA ── */
+  const rie = _indClinGet('htp.riesgo'), sin = _indClinGet('htp.sintomas');
+  const clinica = [
+    _indFilaCtrl('Factores de riesgo o entidades asociadas a HAP o HPTEC', 'htp.riesgo',
+      [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      rie === 'si' ? 'ok' : (rie === 'no' ? 'none' : 'ask'),
+      rie === 'si' ? 'es la caja del segundo nivel de la Figura 5: con ellos, la probabilidad intermedia pasa al cateterismo derecho'
+      : rie === 'no' ? 'sin ellos, la nota ᵈ de la Figura 5 dice que el cateterismo derecho no debería indicarse'
+      : 'sin esto no se puede separar el diagnóstico alternativo del seguimiento ni del cateterismo — contestado en este panel: no se guarda con el estudio',
+      ['escErs2022']),
+    _indFilaCtrl('Síntomas', 'htp.sintomas',
+      [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      sin === 'si' ? 'ok' : (sin === 'no' ? 'none' : 'ask'),
+      sin === 'si' ? 'la prueba de esfuerzo cardiopulmonar es Clase IIb · Nivel C sólo en el sintomático con probabilidad intermedia'
+      : sin === 'no' ? 'sin síntomas la fila IIb de la PECP no aplica'
+      : 'forman parte del cuadro clínico con el que la guía decide las pruebas siguientes — contestado en este panel: no se guarda con el estudio',
+      ['escErs2022'])
+  ];
+
+  /* ── LOS PASOS DE LA GUIA, EN EL BLOQUE VISIBLE ── */
+  const lineas = [], faltan = [];
+  const P = R.prob;
+  if (P === 'ALTA') {
+    /* La columna de la derecha de la Figura 5 lleva «Sí/No» en las dos cajas: con probabilidad
+       alta el paso es el mismo haya o no factores de riesgo, y por eso no se pregunta nada. */
+    lineas.push({ txt:'Clase I — con probabilidad alta la guía indica estudio posterior y cateterismo cardíaco derecho si está indicado, con independencia de que haya o no factores de riesgo o entidades asociadas (Figura 5, folio 28).', refs:['escErs2022'] });
+    lineas.push({ txt:'El cateterismo derecho se realiza si se espera obtener información útil o si tiene consecuencias terapéuticas; la nota ᵈ de la misma figura agrega que no debería indicarse en pacientes sin factores de riesgo ni entidades asociadas a HAP o HPTEC —por ejemplo con hipertensión pulmonar leve y cardiopatía izquierda dominante o enfermedad pulmonar— (Figura 5, folio 28).', refs:['escErs2022'] });
+  } else if (P === 'INTERMEDIA') {
+    if (rie === 'si') lineas.push({ txt:'Clase I — con probabilidad intermedia y factores de riesgo o entidades asociadas a HAP o HPTEC, la guía indica estudio posterior y cateterismo cardíaco derecho si está indicado (Figura 5, folio 28).', refs:['escErs2022'] });
+    else if (rie === 'no') lineas.push({ txt:'Clase IIa — con probabilidad intermedia y sin factores de riesgo ni entidades asociadas, la guía propone seguimiento ecocardiográfico (Figura 5, folio 28).', refs:['escErs2022'] });
+    else faltan.push({ txt:'Falta consignar si hay factores de riesgo o entidades asociadas a HAP o HPTEC: con ellos la guía indica cateterismo derecho (Clase I) y sin ellos seguimiento ecocardiográfico (Clase IIa), en la misma Figura 5 (folio 28).', refs:null });
+    if (sin === 'si') lineas.push({ txt:'Clase IIb · Nivel C — en el paciente sintomático con probabilidad ecocardiográfica intermedia se puede considerar la prueba de esfuerzo cardiopulmonar para precisar la probabilidad (Recomendaciones - tabla 2, folio 36).', refs:['escErs2022'] });
+    else if (sin == null) faltan.push({ txt:'Falta consignar si hay síntomas: la prueba de esfuerzo cardiopulmonar es Clase IIb · Nivel C sólo en el sintomático con probabilidad intermedia (Recomendaciones - tabla 2, folio 36).', refs:null });
+  } else {
+    if (rie === 'si') lineas.push({ txt:'Clase IIa — con probabilidad baja y factores de riesgo o entidades asociadas a HAP o HPTEC, la guía propone seguimiento ecocardiográfico (Figura 5, folio 28).', refs:['escErs2022'] });
+    else if (rie === 'no') lineas.push({ txt:'Clase IIa — con probabilidad baja y sin factores de riesgo ni entidades asociadas, la guía propone buscar un diagnóstico alternativo (Figura 5, folio 28).', refs:['escErs2022'] });
+    else faltan.push({ txt:'Falta consignar si hay factores de riesgo o entidades asociadas a HAP o HPTEC: con ellos la guía propone seguimiento ecocardiográfico y sin ellos buscar un diagnóstico alternativo, las dos Clase IIa (Figura 5, folio 28).', refs:null });
+  }
+  /* La fila IIa B vale para cualquier probabilidad: es la que dice que la decisión se toma con la
+     probabilidad del eco MAS el cuadro clínico. */
+  lineas.push({ txt:'Clase IIa · Nivel B — con base en la probabilidad estimada por ecocardiografía se deben considerar otras pruebas diagnósticas según el cuadro clínico, es decir los síntomas y los factores de riesgo o entidades asociadas a HAP o HPTEC (Recomendaciones - tabla 2, folio 36).', refs:['escErs2022'] });
+
+  const bloques = [ { tit:'Pasos que propone la guía', lineas: lineas,
+    nota:'El informe y la conclusión de la app son DESCRIPTIVOS: publican la probabilidad y los signos. Las pruebas siguientes se publican acá y no en el papel firmado.' } ];
+  if (faltan.length) bloques.push({ tit:'Lo que falta contestar para decidir otros pasos', lineas: faltan });
+
+  return { filas: filas, bloques: bloques, clinica: clinica,
+    guia: { ref:'escErs2022',
+      txt:'La ecocardiografía es la prueba no invasiva de primera línea ante la sospecha de hipertensión pulmonar (Clase I · Nivel B), y se recomienda asignar una probabilidad con la velocidad pico de regurgitación tricuspídea y los signos adicionales de la Tabla 10 (Clase I · Nivel B). El umbral de VRT se mantiene en 2,8 m/s pese a la definición hemodinámica actualizada (Clase I · Nivel C). Recomendaciones - tabla 2, folio 36.',
+      nota:'El diagnóstico de hipertensión pulmonar es hemodinámico y requiere cateterismo cardíaco derecho: la ecocardiografía por sí sola no lo confirma (folio 27).' },
+    notas: lineas.map(function (l) { return l.txt; }) };
+}
+
+
 const IND_SECS = [
   { tit:'Estenosis aórtica',                     fn:_indEA },
   { tit:'Insuficiencia mitral primaria',         fn:_indIM },
@@ -78557,6 +78723,7 @@ const IND_SECS = [
   { tit:'Válvula tricúspide',                    fn:_indVT },
   { tit:'Estenosis pulmonar',                    fn:_indEP },
   { tit:'Tromboembolia pulmonar — estratificación del riesgo', fn:_indTEP },
+  { tit:'Hipertensión pulmonar — probabilidad ecocardiográfica', fn:_indHTP },
   { tit:'Comunicación interauricular',           fn:_indCIA },
   { tit:'Comunicación interventricular',         fn:_indCIV },
   { tit:'Ductus arterioso permeable',            fn:_indDAP },
