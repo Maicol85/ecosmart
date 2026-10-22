@@ -29462,19 +29462,26 @@ function _hfDom(mayores, menores) {
   return { pts: my.length ? 2 : (mn.length ? 1 : 0), mayor: my, menor: mn, hayDatos,
            todos: mayores.map(c => ({ ...c, tipo:'mayor' })).concat(menores.map(c => ({ ...c, tipo:'menor' }))) };
 }
-const _hfC = (txt, dato, ok) => ({ txt, dato, ok: !!(dato && ok) });
+/* `val` es ADITIVO y no entra en ningun calculo: lo lee la hoja del PDF, que desde el E3
+   publica una sola tabla con el valor del paciente al lado de su corte. `hfapeffRender` -la
+   PANTALLA, que esta tanda NO toca- usa `txt`, `dato`, `ok`, `tipo` y `auto`, asi que un campo
+   de mas no la mueve: medido, su HTML sale con el MISMO hash. */
+const _hfC = (txt, dato, ok, val) => ({ txt, dato, ok: !!(dato && ok), val: (val === undefined ? null : val) });
 
 function hfapeffScore(soloEco, src) {
   const d = hfapeffDatos(src);
+  /* El valor del paciente, ya formateado, para la tabla unica de la hoja del PDF (E3). */
+  const _fx = (x, dec, uni) => (x === null || x === undefined || !isFinite(x)) ? null
+    : x.toFixed(dec) + (uni ? ' ' + uni : '');
   const viejo = d.edad !== null && d.edad >= 75;
   const uSep = viejo ? 5 : 7, uLat = viejo ? 7 : 10;
   const fa = d.ritmo === 'fa';
   const M = (d.sexo || '').indexOf('M') === 0 && (d.sexo || '') !== 'F';
 
   const func = _hfDom([
-    _hfC("e' septal < " + uSep + " cm/s",  d.esep !== null, d.esep < uSep),
-    _hfC("e' lateral < " + uLat + " cm/s", d.elat !== null, d.elat < uLat),
-    _hfC("E/e' promedio >= 15",            d.ee !== null,   d.ee >= 15),
+    _hfC("e' septal < " + uSep + " cm/s",  d.esep !== null, d.esep < uSep, _fx(d.esep, 1, 'cm/s')),
+    _hfC("e' lateral < " + uLat + " cm/s", d.elat !== null, d.elat < uLat, _fx(d.elat, 1, 'cm/s')),
+    _hfC("E/e' promedio >= 15",            d.ee !== null,   d.ee >= 15, _fx(d.ee, 1, '')),
     /* ⚠️ UN SOLO CRITERIO CON DOS VIAS, Y CUENTA UNA SOLA VEZ AUNQUE ESTEN LAS DOS MEDIDAS.
        La Figura 3 (folio 3305) las imprime en el MISMO renglon, con la PSAP entre parentesis
        debajo de la velocidad —«TR velocity > 2.8 m/s (PASP > 35 mmHg)»—, o sea como dos formas
@@ -29487,10 +29494,11 @@ function hfapeffScore(soloEco, src) {
        podido evaluar. Un dato que falta no vota (punto 6 de la orden). */
     _hfC('Velocidad IT > 2.8 m/s o PSAP > 35 mmHg',
          d.it !== null || d.psap !== null,
-         (d.it !== null && d.it > 2.8) || (d.psap !== null && d.psap > 35))
+         (d.it !== null && d.it > 2.8) || (d.psap !== null && d.psap > 35),
+         [_fx(d.it, 1, 'm/s'), _fx(d.psap, 0, 'mmHg')].filter(Boolean).join(' / ') || null)
   ], [
-    _hfC("E/e' promedio 9-14",             d.ee !== null,   d.ee >= 9 && d.ee <= 14),
-    _hfC('GLS < 16 %',                     d.gls !== null,  d.gls < 16)
+    _hfC("E/e' promedio 9-14",             d.ee !== null,   d.ee >= 9 && d.ee <= 14, _fx(d.ee, 1, '')),
+    _hfC('GLS < 16 %',                     d.gls !== null,  d.gls < 16, _fx(d.gls, 1, '%'))
   ]);
 
   const uLaviMay = fa ? 40 : UMBRAL_LAVI_DILATADO, uLaviMenLo = fa ? UMBRAL_LAVI_DILATADO : 29, uLaviMenHi = fa ? 40 : UMBRAL_LAVI_DILATADO;
@@ -29505,14 +29513,15 @@ function hfapeffScore(soloEco, src) {
      Consecuencia medible: un IMVI de 149,0 exactos en un hombre pasa de NO votar a votar como
      criterio MAYOR, y uno de 115,0 exactos sigue sin votar como menor. */
   const morf = _hfDom([
-    _hfC('LAVI > ' + uLaviMay + ' ml/m2' + (fa ? ' (FA)' : ''), d.lavi !== null, d.lavi > uLaviMay),
+    _hfC('LAVI > ' + uLaviMay + ' ml/m2' + (fa ? ' (FA)' : ''), d.lavi !== null, d.lavi > uLaviMay, _fx(d.lavi, 1, 'ml/m2')),
     _hfC('IMVI >= ' + uImviMay + ' g/m2 con RWT > 0.42',
-         d.imvi !== null && d.rwt !== null, d.imvi >= uImviMay && d.rwt > 0.42)
+         d.imvi !== null && d.rwt !== null, d.imvi >= uImviMay && d.rwt > 0.42,
+         [_fx(d.imvi, 0, 'g/m2'), _fx(d.rwt, 2, '')].filter(Boolean).join(' / ') || null)
   ], [
-    _hfC('LAVI ' + uLaviMenLo + '-' + uLaviMenHi + ' ml/m2', d.lavi !== null, d.lavi >= uLaviMenLo && d.lavi <= uLaviMenHi),
-    _hfC('IMVI > ' + uImviMen + ' g/m2',                     d.imvi !== null, d.imvi > uImviMen),
-    _hfC('RWT > 0.42',                                       d.rwt !== null,  d.rwt > 0.42),
-    _hfC('Grosor de pared VI >= 12 mm',                      d.pared !== null, d.pared >= 12)
+    _hfC('LAVI ' + uLaviMenLo + '-' + uLaviMenHi + ' ml/m2', d.lavi !== null, d.lavi >= uLaviMenLo && d.lavi <= uLaviMenHi, _fx(d.lavi, 1, 'ml/m2')),
+    _hfC('IMVI > ' + uImviMen + ' g/m2',                     d.imvi !== null, d.imvi > uImviMen, _fx(d.imvi, 0, 'g/m2')),
+    _hfC('RWT > 0.42',                                       d.rwt !== null,  d.rwt > 0.42, _fx(d.rwt, 2, '')),
+    _hfC('Grosor de pared VI >= 12 mm',                      d.pared !== null, d.pared >= 12, _fx(d.pared, 1, 'mm'))
   ]);
 
   // Los criterios humorales admiten dos vías: el valor numérico, o el tilde manual
@@ -29521,7 +29530,8 @@ function hfapeffScore(soloEco, src) {
   const U = hfUmbrales(fa);
   const _hum1 = (txt, val, enRango, chk) => {
     const hayNum = val !== null;
-    return { txt, dato: hayNum || chk, ok: hayNum ? !!enRango : !!chk, auto: hayNum };
+    return { txt, dato: hayNum || chk, ok: hayNum ? !!enRango : !!chk, auto: hayNum,
+             val: hayNum ? _fx(val, 0, 'pg/ml') : (chk ? 'referido sin valor numérico' : null) };
   };
   const hum = _hfDom([
     _hum1(U.ntMay.txt, d.ntprobnp, U.ntMay.test(d.ntprobnp), d.chk.ntMay),
@@ -29549,6 +29559,38 @@ function hfapeffInterp(t) {
 }
 
 // Conclusión para el informe / En Suma.
+/* ══ LA CONCLUSION ES DESCRIPTIVA, Y «PROVISORIA» SE CALCULA (E3, 2026-10-22) ════════════════
+   DECISION DE MAICOL. Dos cosas cambian y las dos estan medidas.
+
+   1) SALEN LAS DOS RECOMENDACIONES. «Se recomienda completar el score y, segun resultado,
+      ecocardiografia de esfuerzo y/o cateterismo cardiaco derecho» (rama parcial 2-4) y «Se
+      recomienda ecocardiografia de esfuerzo y/o cateterismo cardiaco derecho para confirmacion
+      diagnostica» (rama completa 2-4) son la MISMA recomendacion con dos redacciones. Su idea
+      pasa al panel de Evidencia, que es donde la app publica conductas. Sale tambien
+      «Investigar causas alternativas de disnea» de la rama completa ≤1, por el mismo criterio
+      general -un paso siguiente no va en una conclusion descriptiva- y porque Pieske lo escribe
+      como conducta en el folio 3304: «to mandate investigations for alternative causes».
+
+   2) «PROVISORIA» SE CALCULA CON LOS MAXIMOS POSIBLES, NO CON UNA TABLA FIJA. Cada dominio sin
+      datos puede aportar hasta 2 puntos, asi que se pregunta si la CATEGORIA del puntaje actual
+      y la del puntaje + lo que falta son la misma. Si lo son, el parcial ya es definitivo y la
+      frase no lleva «provisoria»; si no, la lleva. Con una tabla de casos escrita a mano habria
+      que mantenerla sincronizada con los cortes de `hfapeffInterp`, que es el defecto que este
+      archivo ya pago varias veces.
+      Medido, con UN dominio faltante (hasta +2): el parcial 2 es el UNICO definitivo -2 a 4 son
+      todos intermedio-; 0, 1, 3 y 4 pueden cambiar. Con DOS faltantes (hasta +4) los parciales
+      0 a 2 pueden terminar en cualquier categoria.
+
+   ⚠️ LA PROTECCION DE LA RAMA ≤1 NO SE PIERDE, Y ES LO QUE HACE SEGURO EL FORMATO NUEVO. El
+   comentario de HEAD advertia que afirmar «probabilidad baja» con dominios sin evaluar es la
+   direccion peligrosa, porque se lee como exclusion diagnostica. Con la regla de arriba, un
+   parcial de 0 o 1 con un dominio faltante SIEMPRE sale «provisoria» -puede llegar a 2 o 3-,
+   asi que la frase nunca afirma un descarte sobre datos que no estan.
+
+   ⚠️ LA FRASE DE «PUNTAJE PARCIAL» APARECE UNA SOLA VEZ. Hasta hoy la hoja del PDF la escribia
+   dos veces: esta conclusion decia «puntaje parcial: sin datos del dominio X» y
+   `amiloTextoHFAPEFF` le agregaba debajo «Puntaje parcial: falta completar algun dominio.». La
+   segunda sale en este mismo commit. */
 function hfapeffConclusion(r) {
   /* La compuerta de FEVI va PRIMERO y devuelve de inmediato: es la única rama que no puede
      terminar en una frase con la palabra «HFpEF» al lado de un puntaje. Y el puntaje NO se
@@ -29556,30 +29598,30 @@ function hfapeffConclusion(r) {
      segunda mitad. */
   const _g = r.gate || (typeof hfapeffFeviGate === 'function' ? hfapeffFeviGate(r.d && r.d.fevi) : null);
   if (_g && !_g.aplica) return _g.msg;
-  const p = 'Score HFA-PEFF ' + r.total + '/' + (r.max || 6) + ' — ';
+  const p = 'Score HFA-PEFF ' + r.total + '/' + (r.max || 6);
   // Sin FEVI cargada el score se emite, pero arrastra el aviso: quien lo lea tiene que saber
   // que nadie verificó la premisa del algoritmo.
   const avisoFevi = (_g && _g.motivo === 'sin_fevi') ? ' ' + _g.msg : '';
-  // Un dominio sin medir suma 0 exactamente igual que uno medido y negativo. Sin
-  // este control, un score incompleto salía como "probabilidad baja de HFpEF", es
-  // decir un descarte diagnóstico fabricado por ausencia de datos — y esa frase va
-  // al En Suma y se imprime en el PDF que se lleva el paciente. El patrón correcto
-  // ya existía en hfapeffLineaEco(), que se oculta si falta un dominio.
   if (!r.completo) {
-    const faltan = [];
-    if (!r.func.hayDatos) faltan.push('funcional');
-    if (!r.morf.hayDatos) faltan.push('morfológico');
-    if (!r.soloEco && !r.hum.hayDatos) faltan.push('humoral (péptidos natriuréticos)');
-    const nota = 'puntaje parcial: sin datos del dominio ' + faltan.join(' ni ') + '. ';
-    // Nunca afirmar probabilidad baja con dominios sin evaluar: es la dirección
-    // peligrosa, porque se lee como exclusión diagnóstica.
-    if (r.total <= 1) return p + nota + 'No permite descartar ni confirmar HFpEF; completar los datos faltantes.' + avisoFevi;
-    if (r.total <= 4) return p + nota + 'Probabilidad intermedia con los datos disponibles. Se recomienda completar el score y, según resultado, ecocardiografía de esfuerzo y/o cateterismo cardíaco derecho.' + avisoFevi;
-    return p + nota + 'Hallazgos compatibles con HFpEF con los datos disponibles (ESC/HFA 2019).' + avisoFevi;
+    const faltan = [], maxs = [];
+    if (!r.func.hayDatos) { faltan.push('funcional'); maxs.push(2); }
+    if (!r.morf.hayDatos) { faltan.push('morfológico'); maxs.push(2); }
+    if (!r.soloEco && !r.hum.hayDatos) { faltan.push('humoral (péptidos natriuréticos)'); maxs.push(2); }
+    const techo = maxs.reduce(function (a, b) { return a + b; }, 0);
+    const nom = (faltan.length === 1) ? 'falta el dominio ' + faltan[0]
+      : 'faltan los dominios ' + faltan.slice(0, -1).join(', ') + ' y ' + faltan[faltan.length - 1];
+    const hoy = hfapeffInterp(r.total).nivel;
+    const tope = hfapeffInterp(r.total + techo).nivel;
+    const prov = (hoy !== tope)
+      ? ', provisoria: ' + (faltan.length === 1
+          ? 'el dominio que no se cargó puede modificarla'
+          : 'los dominios que no se cargaron pueden modificarla')
+      : '';
+    return p + ' (puntaje parcial: ' + nom + '). Probabilidad ' + hoy + prov + '.' + avisoFevi;
   }
-  if (r.total <= 1) return p + 'probabilidad baja de HFpEF. Investigar causas alternativas de disnea.' + avisoFevi;
-  if (r.total <= 4) return p + 'probabilidad intermedia de HFpEF. Se recomienda ecocardiografía de esfuerzo y/o cateterismo cardíaco derecho para confirmación diagnóstica.' + avisoFevi;
-  return p + 'probabilidad alta de HFpEF. Hallazgos compatibles con diagnóstico de insuficiencia cardíaca con fracción de eyección preservada (ESC/HFA 2019).' + avisoFevi;
+  if (r.total <= 1) return p + ' — probabilidad baja de HFpEF.' + avisoFevi;
+  if (r.total <= 4) return p + ' — probabilidad intermedia de HFpEF.' + avisoFevi;
+  return p + ' — probabilidad alta de HFpEF. Hallazgos compatibles con diagnóstico de insuficiencia cardíaca con fracción de eyección preservada (ESC/HFA 2019).' + avisoFevi;
 }
 window.hfapeffScore = hfapeffScore; window.hfapeffConclusion = hfapeffConclusion;
 
@@ -29882,11 +29924,31 @@ function hfapeffRender() {
 window.hfapeffRender = hfapeffRender;
 
 // Texto del módulo para la card ETT Avanzado / PDF.
+/* ══ UNA SOLA TABLA AGRUPADA POR DOMINIO, CON EL PUNTAJE ARRIBA (E3, 2026-10-22) ═════════════
+   DECISION DE MAICOL. Hasta hoy la hoja tenia TRES bloques con los mismos datos: «Puntaje por
+   dominio», «Valores del paciente» y «Criterios cumplidos». El valor de cada parametro salia en
+   el segundo y su criterio en el tercero, asi que para auditar un punto habia que cruzar dos
+   listas de la misma hoja; y los criterios que NO se cumplen no aparecian en ninguna, de modo
+   que no se podia ver que se evaluo y dio negativo frente a lo que no se midio.
+
+   Hoy es UNA tabla: el puntaje arriba y despues un bloque por dominio con una fila por
+   parametro —el criterio con su corte, el valor del paciente, el peso y la marca CUMPLE—.
+
+   ⚠️ LOS CORTES NO SE REESCRIBEN DE ESTE LADO. La etiqueta de cada fila es el `txt` que
+   `hfapeffScore` ya arma —«e\' septal < 7 cm/s», «LAVI > 34 ml/m2»—, que es el MISMO que puntua
+   y el mismo que publica la pantalla. Una segunda copia de los cortes aca seria el defecto que
+   este archivo ya pago tres veces, y ademas los de e\' y LAVI dependen de la edad y del ritmo.
+
+   ⚠️ LA MARCA ES LA PALABRA «CUMPLE» Y NO UN SIMBOLO. `amiloSanPDF` borra todo lo que cae fuera
+   de WinAnsi con su catch-all, asi que un ✓ o un ✗ desaparecen SIN AVISO y la columna quedaria
+   muda. Es la trampa que el simbolo del sexo del trabajo H ya pago.
+
+   ⚠️ «Puntaje parcial: falta completar algun dominio.» SALE DE ACA. La conclusion que se imprime
+   tres lineas mas abajo ya dice «(puntaje parcial: falta el dominio X)» —y NOMBRA cual, que
+   esta no hacia—, asi que las dos juntas decian lo mismo dos veces. */
 function amiloTextoHFAPEFF() {
   const r = hfapeffScore(false), d = r.d;
   const L = [];
-  const fila = (k, x, u, dec) => L.push(k + ' | ' + ((x === null || x === undefined) ? 'sin dato'
-    : (typeof x === 'number' ? x.toFixed(dec == null ? 1 : dec) : x) + (u ? ' ' + u : '')));
 
   /* La hoja del PDF no imprime un puntaje que no aplica. Devolver '' retira la sección
      entera —`amiloIntegrar` y el armador del PDF descartan los módulos con texto vacío—, así
@@ -29895,49 +29957,34 @@ function amiloTextoHFAPEFF() {
      Es la misma mecánica que Eco Pulmonar avanzado con `hayDatos`. */
   if (r.gate && !r.gate.aplica) return '';
 
-  L.push('## Puntaje');
-  L.push('Score HFA-PEFF | ' + r.total + ' / 6');
+  L.push('## Score HFA-PEFF');
+  L.push('Puntaje total | ' + r.total + ' / 6');
   L.push('Dominio funcional | ' + r.func.pts + ' / 2');
   L.push('Dominio morfológico | ' + r.morf.pts + ' / 2');
   L.push('Dominio humoral (' + (r.fa ? 'FA' : 'ritmo sinusal') + ') | ' + r.hum.pts + ' / 2');
 
-  L.push('## Valores del paciente');
-  fila("e' septal", d.esep, 'cm/s'); fila("e' lateral", d.elat, 'cm/s');
-  fila("E/e' promedio", d.ee, ''); fila('Velocidad IT', d.it, 'm/s');
-  fila('PSAP', d.psap, 'mmHg', 0);
-  fila('LAVI', d.lavi, 'ml/m2'); fila('IMVI', d.imvi, 'g/m2', 0);
-  fila('RWT', d.rwt, '', 2); fila('Grosor de pared VI', d.pared, 'mm');
-  fila('GLS', d.gls, '%');
-  /* Los péptidos van con EL UMBRAL QUE SE LES APLICÓ al lado. Los cortes de fibrilación
-     auricular son ~3× los de ritmo sinusal (NT-proBNP menor desde 365 en vez de 125), así que
-     quien lee «NT-proBNP 400 pg/ml» en la hoja firmada, y ve el dominio humoral en 1 punto en
-     vez de 2, no tiene forma de saber que el corte se movió — ni de auditar el puntaje. El
-     umbral sale de `hfUmbrales`, la MISMA fuente que puntúa: no es una segunda copia.
-     El rótulo `(umbral FA: ...)` lo pidió Maicol explícitamente. */
-  const _U = (typeof hfUmbrales === 'function') ? hfUmbrales(r.fa) : null;
-  /* El umbral se imprime SÓLO al lado de un péptido MEDIDO. Una primera versión lo pegaba
-     siempre, así que la hoja firmada salía con «NT-proBNP | sin dato (umbral RS: mayor > 220
-     pg/ml, menor 125-220 pg/ml)»: `drawTablaCompacta` parte la fila por « | » y manda todo lo
-     de la derecha a la columna de VALOR, o sea que dos cortes numéricos al lado de «sin dato»
-     se leen como que hubo comparación. Es la fila PSAP con sus cuatro bandas, en espejo: allá
-     el problema era graduar de más, acá poner referencia donde no hay medición. */
-  const _rot = (may, men) => _U ? ' (umbral ' + (r.fa ? 'FA' : 'RS') + ': mayor ' + may + ', menor ' + men + ')' : '';
-  L.push('NT-proBNP | ' + (d.ntprobnp === null ? 'sin dato'
-    : d.ntprobnp.toFixed(0) + ' pg/ml' + _rot(_U.ntMay.txt.replace('NT-proBNP ', ''), _U.ntMen.txt.replace('NT-proBNP ', ''))));
-  L.push('BNP | ' + (d.bnp === null ? 'sin dato'
-    : d.bnp.toFixed(0) + ' pg/ml' + _rot(_U.bnMay.txt.replace('BNP ', ''), _U.bnMen.txt.replace('BNP ', ''))));
-
-  L.push('## Criterios cumplidos');
-  const cumplidos = [].concat(r.func.todos, r.morf.todos, r.hum.todos).filter(c => c.ok);
-  // Un criterio humoral tildado a mano (sin valor numérico) se marca como tal: quien
-  // lea el informe tiene que poder distinguirlo de uno calculado sobre un péptido.
-  if (cumplidos.length) cumplidos.forEach(c => L.push('- ' + c.txt + ' (' + c.tipo
-    + (c.auto === false ? ', referido sin valor numerico' : '') + ')'));
-  else L.push('Ningún criterio cumplido con los datos disponibles.');
+  /* Una fila por parámetro: criterio con su corte | valor · peso · CUMPLE. El criterio que no
+     se pudo evaluar lo dice en su propia fila, que es lo que distingue «se midió y no cumple»
+     de «no se midió» — la distinción que los tres bloques anteriores no publicaban. */
+  const bloque = (tit, o) => {
+    L.push('## ' + tit);
+    if (!o.hayDatos) { L.push('Sin datos en este dominio.'); return; }
+    o.todos.forEach(function (c) {
+      const peso = (c.tipo === 'mayor') ? 'mayor' : 'menor';
+      const val = c.dato ? (c.val || 'medido') : 'sin dato';
+      L.push(c.txt + ' | ' + val + ' · ' + peso + (c.ok ? ' · CUMPLE' : ''));
+    });
+  };
+  bloque('Dominio funcional', r.func);
+  bloque('Dominio morfológico', r.morf);
+  /* El dominio humoral lleva el UMBRAL QUE SE LE APLICO en su propio título: los cortes de
+     fibrilación auricular son ~3× los de ritmo sinusal, así que quien lee «NT-proBNP 400 pg/ml»
+     y el dominio en 1 punto no tiene forma de auditar el puntaje sin saber que el corte se
+     movió. El texto del criterio ya trae ese umbral, porque sale de `hfUmbrales`. */
+  bloque('Dominio humoral — ' + (r.fa ? 'fibrilación auricular' : 'ritmo sinusal'), r.hum);
 
   L.push('## Conclusión');
   L.push(hfapeffConclusion(r));
-  if (!r.completo) L.push('Puntaje parcial: falta completar algún dominio.');
   return L.join('\n');
 }
 

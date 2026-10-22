@@ -1171,15 +1171,20 @@ window.__Y = {
         ['ai_vol', '40'], ['ddfvi', '45'], ['siv', '9'], ['ppvi', '9']]);
       await escena('falta1_2', [['onda_e', '90'], ['e_sep', '6'], ['e_lat', '8'],
         ['ai_vol', '40'], ['ddfvi', '45'], ['siv', '9'], ['ppvi', '9']]);
-      await escena('falta1_1', [['onda_e', '100'], ['e_sep', '10'], ['e_lat', '13'],
+      /* Parcial 1: UN criterio MENOR del funcional -E/e' entre 9 y 14- y el morfologico en 0.
+         Con e' septal 10 y lateral 13 el promedio es 11,5, asi que una onda E de 120 da 10,4. */
+      await escena('falta1_1', [['onda_e', '120'], ['e_sep', '10'], ['e_lat', '13'],
         ['ai_vol', '40'], ['ddfvi', '45'], ['siv', '9'], ['ppvi', '9']]);
+      /* Parcial 3: funcional MAYOR (e' septal 6 < 7) y morfologico MENOR (LAVI 29-34: con BSA
+         2,00 exacta, un volumen de 60 ml da 30 ml/m2). */
       await escena('falta1_3', [['onda_e', '90'], ['e_sep', '6'], ['e_lat', '8'],
-        ['ai_vol', '32'], ['ddfvi', '45'], ['siv', '9'], ['ppvi', '9']]);
+        ['ai_vol', '60'], ['ddfvi', '45'], ['siv', '9'], ['ppvi', '9']]);
+      /* Parcial 4: los DOS dominios cargados en MAYOR. LAVI > 34 con 80 ml sobre BSA 2,00. */
       await escena('falta1_4', [['onda_e', '90'], ['e_sep', '6'], ['e_lat', '8'],
-        ['ai_vol', '60'], ['ddfvi', '45'], ['siv', '10'], ['ppvi', '10']]);
+        ['ai_vol', '80'], ['ddfvi', '45'], ['siv', '10'], ['ppvi', '10']]);
       /* DOS dominios faltantes (hasta +4). */
       await escena('falta2_0', [['onda_e', '60'], ['e_sep', '10'], ['e_lat', '13']]);
-      await escena('falta2_1', [['onda_e', '100'], ['e_sep', '10'], ['e_lat', '13']]);
+      await escena('falta2_1', [['onda_e', '120'], ['e_sep', '10'], ['e_lat', '13']]);
       await escena('falta2_2', [['onda_e', '90'], ['e_sep', '6'], ['e_lat', '8']]);
     } catch (e) { r.err = e.message; }
     out.grupos.hfconcl = r;

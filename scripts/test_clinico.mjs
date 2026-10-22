@@ -5458,7 +5458,23 @@ caso('TC-58', 'HFA-PEFF: 0/6 es probabilidad baja, 4/6 intermedia', `
     ['0/6 conclusion', hfapeffConclusion(bajo).indexOf('probabilidad baja de HFpEF') > -1],
     ['4/6 total',     medio.total === 4],
     ['4/6 conclusion', hfapeffConclusion(medio).indexOf('probabilidad intermedia de HFpEF') > -1],
-    ['4/6 pide confirmacion', hfapeffConclusion(medio).indexOf('cateterismo cardíaco derecho') > -1]
+    /* ADAPTADO el 2026-10-22 (tanda E, commit 3). DECISION DE MAICOL: la conclusion es
+       DESCRIPTIVA y toda recomendacion va SOLO al panel de Evidencia. Esta condicion exigia
+       «4/6 pide confirmacion» sobre la frase «Se recomienda ecocardiografia de esfuerzo y/o
+       cateterismo cardiaco derecho para confirmacion diagnostica», que salio de la conclusion,
+       del informe y del PDF. El caso NO estaba mal escrito: afirmaba la app de ayer.
+       Hoy afirma lo CONTRARIO y GANA DOS condiciones, asi que mide mas que antes: que la
+       recomendacion no este en NINGUNA de las tres superficies de la conclusion, y que el
+       formato descriptivo nuevo si este. */
+    ['4/6 YA NO pide confirmacion en la conclusion: la recomendacion vive en Evidencia',
+      hfapeffConclusion(medio).indexOf('cateterismo') === -1 &&
+      hfapeffConclusion(medio).indexOf('esfuerzo') === -1 &&
+      hfapeffConclusion(medio).indexOf('Se recomienda') === -1, hfapeffConclusion(medio)],
+    ['ni en la hoja del PDF, que publica esa misma conclusion',
+      amiloTextoHFAPEFF().indexOf('cateterismo') === -1 &&
+      amiloTextoHFAPEFF().indexOf('Se recomienda') === -1],
+    ['0/6 completo NO lleva «Investigar causas alternativas»: tambien es una conducta',
+      hfapeffConclusion(bajo).indexOf('Investigar') === -1, hfapeffConclusion(bajo)]
   ] };
 `);
 
