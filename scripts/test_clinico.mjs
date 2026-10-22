@@ -3497,7 +3497,15 @@ caso('TC-463', 'Borrado en Valvulas: un campo vacio no vota ni deja grado en las
     { les:'ia', id:'ia_vc',       fila:null,           pre:{}, v:{ leve:'2', moderada:'5', severa:'8' } },
     { les:'ia', id:'ia_jet_diam', fila:'ia-jet-ratio', pre:{ ea_dtsvi:'20' }, v:{ leve:'4', moderada:'10', severa:'15' } },
     { les:'ia', id:'ia_pht',      fila:null,           pre:{}, v:{ leve:'550', moderada:'300', severa:'150' } },
-    { les:'ia', id:'ia_vti_desc', fila:null,           pre:{}, v:{ leve:'10', moderada:'20', severa:'30' } },
+    /* ADAPTADO el 2026-10-22 (AJ1-E6): el VTI ya no vota por su cuenta — lo que gradua es la
+       DURACION del reverso y el VTI la califica, asi que la escena consigna la duracion. Leve es
+       el reverso BREVE; moderada y severa salen del mismo reverso holodiastolico con el VTI de un
+       lado y del otro del corte de 15 cm. El corte de 25 cm de EcoSmart salio. */
+    { les:'ia', id:'ia_vti_desc', fila:null,           pre:{ia_rev_dur:'holo'}, v:{ moderada:'14', severa:'16' } },
+    /* Y el campo que VOTA entra en la tabla con sus dos valores que gradúan solos. El tercero
+       -holodiastolico- necesita el VTI para separar moderada de severa y lo cubre la fila de
+       arriba, asi que no se repite aca. */
+    { les:'ia', id:'ia_rev_dur',   fila:null,           pre:{}, v:{ leve:'breve', moderada:'intermedio' } },
     { les:'ia', id:'ia_pisa_r',   fila:'ia-eroa',      pre:{ ia_pisa_val:'40', ia_vmax_cw:'5' }, v:{ leve:'4', moderada:'6', severa:'9' } },
     /* ADAPTADO 2026-10-13: el valor LEVE pasa de 2 a 2.7. El primer corte de la Vmax se movio de
        2,0 a 2,6 m/s —Tabla 3 de la EAE/ASE 2009, p. 10, que separa esclerosis <=2,5 de leve
@@ -3572,9 +3580,21 @@ caso('TC-463', 'Borrado en Valvulas: un campo vacio no vota ni deja grado en las
      el escalon publica «IT presente.» SIN grado, que es lo correcto. Lo que no puede quedar es un
      GRADO, y eso lo cubre la condicion de arriba. La excepcion se nombra en vez de aflojar el
      regex, y se fija aparte dos lineas mas abajo para que no se lea como un agujero. */
-  R.sumasMal = R.tabla.filter(r => /\\bIM |\\bIAo |\\bEAo |\\bIT /.test(r[7]) && r[1] !== 'it_pisa_r');
+  /* ⚠️ Y UNA SEGUNDA EXCEPCION, DECLARADA (AJ1-E6, 2026-10-22): las escenas de ia_vti_desc llevan
+     ia_rev_dur en holodiastolico como prerrequisito, y esa duracion es un VOTANTE por si misma
+     -desde el AJ1 es la que gradua, y el VTI la CALIFICA-. Borrar el VTI no borra el ultimo
+     votante: deja el reverso holodiastolico, que publica «IAo moderada.», y eso es lo correcto.
+     Lo que el caso tiene que seguir exigiendo es que el VTI vuelva al estado inicial, y eso lo
+     cubre la condicion de «BORRAR devuelve grado, badge, pastilla y fila al estado inicial».
+     El votante del reverso SI entra en esta condicion por su propia fila de la tabla. */
+  R.sumasMal = R.tabla.filter(r => /\\bIM |\\bIAo |\\bEAo |\\bIT /.test(r[7])
+                 && r[1] !== 'it_pisa_r' && r[1] !== 'ia_vti_desc');
   ex.push(['el EN SUMA no nombra la lesion despues de borrar el ultimo votante, en las ' + R.nEsc,
     R.sumasMal.length === 0, JSON.stringify(R.sumasMal.map(r => r[1] + ':' + r[7]).slice(0, 5))]);
+  R.sumasVti = R.tabla.filter(r => r[1] === 'ia_vti_desc').map(r => r[7]);
+  ex.push(['  y con el reverso HOLODIASTOLICO cargado, borrar el VTI deja «IAo moderada.» — el reverso sigue votando',
+    R.sumasVti.length > 0 && R.sumasVti.every(x => /IAo moderada\\./.test(x) && !/IAo severa/.test(x)),
+    JSON.stringify(R.sumasVti)]);
   R.sumasIT = R.tabla.filter(r => r[1] === 'it_pisa_r').map(r => r[7]);
   ex.push(['  y con la velocidad del chorro de IT cargada el EN SUMA dice «IT presente.» SIN grado',
     R.sumasIT.length > 0 && R.sumasIT.every(x => /IT presente\\./.test(x) && !/IT (leve|moderada|severa)/.test(x)),
@@ -49836,18 +49856,22 @@ caso('TC-349', 'IAo: el VTI del flujo reverso en Ao desc. vota con cortes de la 
   try { R = _indIA(); } catch (e) { err = 'ERR ' + e.message; }
   const notas = (R && R.notas) || [];
   const obj = notas.filter(function (n) { return n && typeof n === 'object' && n.txt &&
-    n.txt.indexOf('VTI del flujo reverso') > -1; })[0] || null;
+    n.txt.indexOf('reverso diastólico de la aorta descendente') > -1; })[0] || null;
   // El HTML renderizado: es donde el medico lee el corchete y la bibliografia.
   let html = '';
   try { html = _indSecHTML('Insuficiencia aórtica', R) || ''; } catch (e) { html = 'ERR ' + e.message; }
-  // El voto NO se toca: 30 cm sigue votando severa por el VTI.
+  /* ADAPTADO el 2026-10-22 (AJ1-E6). El VTI dejo de votar POR SU CUENTA: lo que gradua es la
+     DURACION del reverso -Tabla 20-5 del libro y Tabla 4 de la EACVI 2013-, y el VTI y la
+     velocidad la califican. El corte de 25 cm SALIO. Las dos escenas conservan su poder y
+     miden el borde que hoy decide: holodiastolico con 16 cm vota SEVERA y con 15 exactos vota
+     MODERADA, que es el lado conservador que la orden fija. */
   __t.limpiar(); window.esqSevManual = {};
-  __t.set('nombre','TC349b'); __t.set('ia_vti_desc','30');
+  __t.set('nombre','TC349b'); __t.set('ia_rev_dur','holo'); __t.set('ia_vti_desc','16');
   try { calcIA_ESC(); } catch (e) {}
   const votaSev = __t.val('ia_grado');
-  const interpSev = __t.txt('ia-vti-desc-interp');
+  const interpSev = __t.txt('ia-rev-dur-interp');
   __t.limpiar(); window.esqSevManual = {};
-  __t.set('nombre','TC349c'); __t.set('ia_vti_desc','10');
+  __t.set('nombre','TC349c'); __t.set('ia_rev_dur','breve'); __t.set('ia_vti_desc','16');
   try { calcIA_ESC(); } catch (e) {}
   const votaLeve = __t.val('ia_grado');
   __t.limpiar(); window.esqSevManual = {};
@@ -49859,8 +49883,10 @@ caso('TC-349', 'IAo: el VTI del flujo reverso en Ao desc. vota con cortes de la 
     ['  y va con el marcador ecosmart, NO con una cita de guia',
       obj !== null && Array.isArray(obj.refs) && obj.refs.length === 1 && obj.refs[0] === 'ecosmart',
       'refs=' + JSON.stringify(obj && obj.refs)],
-    ['  la nota dice que ninguna guia verificada publica un corte de VTI',
-      obj !== null && obj.txt.indexOf('ninguna de las guías verificadas publica un corte de VTI') > -1,
+    /* ADAPTADO (AJ1-E6): la nota sigue declarando que el VTI no sale de una guia, y ahora dice
+       DE DONDE sale -el libro de texto-, que es mas que antes. */
+    ['  la nota dice que el VTI de 15 cm no figura en ninguna guia de la biblioteca',
+      obj !== null && obj.txt.indexOf('NO figura en ninguna guía de la biblioteca') > -1,
       'txt=' + (obj && obj.txt || '').slice(0, 160)],
     ['  y nombra el corte que la ESC si publica (la VELOCIDAD, 20 cm/s) para que no se confundan',
       obj !== null && obj.txt.indexOf('20 cm/s') > -1, 'txt no nombra el 20 cm/s'],
@@ -49868,14 +49894,14 @@ caso('TC-349', 'IAo: el VTI del flujo reverso en Ao desc. vota con cortes de la 
       html.indexOf('Criterio EcoSmart: decisión clínica de la aplicación cuando la evidencia no ofrece un único corte aplicable.') > -1,
       'html=' + html.slice(0, 120)],
     ['  y la nota sale con corchete de cita, no suelta',
-      html.indexOf('VTI del flujo reverso') > -1 && /\\[\\d+\\]/.test(html) &&
+      html.indexOf('reverso diastólico de la aorta descendente') > -1 && /\\[\\d+\\]/.test(html) &&
       html.indexOf('cita fuera de sección') === -1,
       'la nota no se rendereo con su corchete'],
-    /* CONTROL NEGATIVO del voto: decision B es declarar, NO cambiar el voto. */
-    ['⚠️ CONTROL — el VOTO del VTI no se toco: 30 cm sigue votando severa',
+    /* ADAPTADO (AJ1-E6): el voto del VTI pasa a la fila de la DURACION, que es la que gradua. */
+    ['⚠️ el reverso HOLODIASTOLICO con VTI de 16 cm vota severa, y el 25 de EcoSmart ya no existe',
       votaSev === '4' && interpSev.toLowerCase().indexOf('holodiast') > -1,
       'grado=' + votaSev + ' interp=' + interpSev],
-    ['  CONTROL — y 10 cm sigue votando leve',
+    ['  y el reverso BREVE protodiastolico vota leve, con el MISMO VTI de 16 cm',
       votaLeve === '1', 'grado=' + votaLeve],
   ] };
 `);
@@ -50223,12 +50249,20 @@ caso('TC-354', 'IAo: los ONCE campos con banda, dirigido por tabla — por debaj
        El par de banda (50, 1500) y lo que la condicion mide no cambian. */
     ['ia_pht','THP',50,1500,{},{}],
     /* ⚠️ EXCEPCION DECLARADA — el PISO de ia_vmax_td esta EN banda y NO vota, y no es un defecto:
-       el unico corte que la ESC/EACTS 2025 publica para este parametro es el de severa (>= 20
-       cm/s) y por debajo NO gradua. O sea «en banda» y «vota» son dos cosas distintas solo aca.
-       Lo que el caso exige en el piso es la OTRA fila gris: «No gradua (< 20 cm/s)», que es
-       distinta de la de fuera de banda — es justo lo que el codigo dice que no hay que fundir. */
-    ['ia_vmax_td','Vmax telediast.',2,150,{},{pisoNoVota:1,pisoDice:'No gradúa (< 20'}],
-    ['ia_vti_desc','VTI Ao desc.',1,100,{},{}],
+       el unico corte que las fuentes publican para este parametro es el de severa (>= 20 cm/s) y
+       por debajo NO gradua. O sea «en banda» y «vota» son dos cosas distintas solo aca.
+       ⚠️ ADAPTADO el 2026-10-22 (AJ1-E6): los DOS campos del reverso necesitan la DURACION
+       consignada como holodiastolica para votar -es lo que las dos tablas gradúan, y el VTI y la
+       velocidad la CALIFICAN-, asi que ia_rev_dur en holo entra como companero. Y con esa
+       duracion puesta la fila del reverso vota MODERADA por su cuenta, de modo que el grado ya
+       no puede quedar en «0» y los dos campos pasan a medirse por la via noAisla, que mira si
+       SU voto desaparece de params. Es exactamente lo que el caso media antes, por el otro lado.
+       Para ia_vti_desc lo que se mira es la SEVERIDAD del voto del reverso: fuera de banda no
+       lo califica y queda moderada; en el techo (100 cm, por encima de los 15) lo califica como
+       severa. En el piso (1 cm) tampoco lo califica, y eso NO es la banda sino el corte de
+       15 cm, asi que va con su propia excepcion declarada. */
+    ['ia_vmax_td','Vmax telediast.',2,150,{ia_rev_dur:'holo'},{noAisla:1,param:'Vmax-TD'}],
+    ['ia_vti_desc','VTI Ao desc.',1,100,{ia_rev_dur:'holo'},{viaDuracion:1}],
     ['ia_pisa_r','radio PISA',1,30,{ia_pisa_val:'100',ia_vmax_cw:'5'},{}],
     ['ia_pisa_val','Valiasing',5,150,{ia_pisa_r:'10',ia_vmax_cw:'5'},{}],
     ['ia_vmax_cw','Vmax IAo CW',0.5,8,{ia_pisa_r:'10',ia_pisa_val:'100'},{}],
@@ -50270,7 +50304,11 @@ caso('TC-354', 'IAo: los ONCE campos con banda, dirigido por tabla — por debaj
     return { faltan: faltan.join(','), grado: __t.val('ia_grado'),
              disc: String(__t.txt('ia-discordancia')),
              vtd: String(document.getElementById('ia-vtd-interp')
-                   ? document.getElementById('ia-vtd-interp').textContent : '') }; };
+                   ? document.getElementById('ia-vtd-interp').textContent : ''),
+             /* AJ1-E6: la fila que VOTA el reverso. El campo disc solo tiene texto cuando hay
+                discordancia, asi que no sirve para leer un voto unico. */
+             rev: String(document.getElementById('ia-rev-dur-interp')
+                   ? document.getElementById('ia-rev-dur-interp').textContent : '') }; };
   const fallas = [];
   const ok = (desc, cond, diag) => { if (!cond) fallas.push(desc + ' [' + diag + ']'); };
   TABLA.forEach(function (fila) {
@@ -50300,11 +50338,24 @@ caso('TC-354', 'IAo: los ONCE campos con banda, dirigido por tabla — por debaj
          enTecho.disc.indexOf(exc.param + ':') > -1, 'disc=' + enTecho.disc);
     } else {
       // Aislable: fuera de banda nadie vota, asi que el grado no se escribe y queda en 0.
-      ok(campo + ': por debajo del piso NO vota (el grado queda sin escribir)', bajo.grado === '0',
-         'ia_grado=' + bajo.grado);
-      ok(campo + ': por encima del techo NO vota', alto.grado === '0', 'ia_grado=' + alto.grado);
-      ok(campo + ': en el techo exacto SI vota', enTecho.grado !== '0', 'ia_grado=' + enTecho.grado);
-      if (exc.pisoNoVota) {
+      if (!exc.viaDuracion) {
+        ok(campo + ': por debajo del piso NO vota (el grado queda sin escribir)', bajo.grado === '0',
+           'ia_grado=' + bajo.grado);
+        ok(campo + ': por encima del techo NO vota', alto.grado === '0', 'ia_grado=' + alto.grado);
+        ok(campo + ': en el techo exacto SI vota', enTecho.grado !== '0', 'ia_grado=' + enTecho.grado);
+      }
+      if (exc.viaDuracion) {
+        /* El VTI no vota solo: CALIFICA el voto del reverso. Fuera de banda y en el piso el
+           reverso holodiastolico queda en moderada; en el techo pasa a severa. */
+        ok(campo + ': fuera de banda NO califica el reverso (queda moderada)',
+           bajo.rev.indexOf('moderada') > -1 && alto.rev.indexOf('moderada') > -1,
+           'bajo=' + bajo.rev + ' || alto=' + alto.rev);
+        ok(campo + ': en el techo exacto SI lo califica (pasa a severa)',
+           enTecho.rev.indexOf('severa') > -1 && enTecho.grado === '4', 'rev=' + enTecho.rev);
+        ok(campo + ': en el piso tampoco, y es por el CORTE de 15 cm y no por la banda',
+           enPiso.rev.indexOf('moderada') > -1 && enPiso.rev.indexOf('fuera de rango') === -1,
+           'rev=' + enPiso.rev);
+      } else if (exc.pisoNoVota) {
         ok(campo + ': en el piso NO vota por el CORTE, y la fila lo dice distinto que fuera de banda',
            enPiso.grado === '0' && enPiso.vtd.indexOf(exc.pisoDice) > -1 &&
            enPiso.vtd.indexOf('fuera de rango') === -1, 'vtd=' + enPiso.vtd);
@@ -58479,9 +58530,12 @@ caso('TC-423', 'Valvulas, pantalla: en el celular los campos de cada lesion arra
      deja la morfologia aortica en PROTESIS, asi que "eaPvlPintar" lo muestra. Con una valvula
      nativa el bloque esta en "display:none" y sus campos no tienen geometria, o sea que no se
      visitan — y eso es lo que mide TC-497 (c4) y (h2). */
+  /* ADAPTADO el 2026-10-22 (AJ1-E6): entra ia_rev_dur, el selector de DURACION del reverso
+     diastolico de la aorta descendente, que es lo que las dos tablas gradúan. Va pegado al VTI,
+     en la tercera columna. */
   const ESPERADO_INSUF = ['ia_vc','ia_jet_diam','ia_pht','ia_vmax_td',
                           'ia_pisa_r','ia_pisa_val','ia_vmax_cw','ia_vti',
-                          'vauto-ia-eroa','vauto-ia-volr','vauto-ia-fr','ia_vti_desc',
+                          'vauto-ia-eroa','vauto-ia-volr','vauto-ia-fr','ia_vti_desc','ia_rev_dur',
                           'ea_pvl_origen','ea_pvl_ext','ea_pvl_vc_area'];
   const ESPERADO_ESTEN = ['ea_vmax','ea_gmedio','ea_dtsvi','ea_vtitsvi','ea_vtiao','ava_plan'];
   /* Orden entre bloques: insuficiencia ANTES de estenosis en el DOM. */
@@ -65488,13 +65542,16 @@ caso('TC-472', 'Valvulas D2: la insuficiencia aortica en TRES columnas de CUATRO
   }
   const rIA = mapaDe('#bloque-insuf-aortica .valv-cols-3');
   const rIT = mapaDe('#campos-insuf-tricuspide .valv-cols-3');
+  /* ADAPTADO el 2026-10-22 (AJ1-E6): entra ia_rev_dur, el selector de DURACION del reverso
+     diastolico de la aorta descendente, que es lo que las dos tablas gradúan. Va pegado al VTI,
+     en la tercera columna. */
   const Q_IA = 'ia_vc:1 ia_jet_diam:1 ia_pht:1 ia_vmax_td:1 ia_pisa_r:2 ia_pisa_val:2 ia_vmax_cw:2'
-             + ' ia_vti:2 vauto-ia-eroa:3 vauto-ia-volr:3 vauto-ia-fr:3 ia_vti_desc:3';
+             + ' ia_vti:2 vauto-ia-eroa:3 vauto-ia-volr:3 vauto-ia-fr:3 ia_vti_desc:3 ia_rev_dur:3';
   const Q_IT = 'it_vc:1 it_densidad:1 it_vti:1 it_pisa_r:2 it_pisa_val:2 it_vmax_cw:2'
              + ' vauto-it-eroa:3 vauto-it-volr:3';
   ex.push(['(A) DENOMINADOR: las dos rejillas tienen TRES columnas',
     rIA.cols === 3 && rIT.cols === 3, 'ia=' + rIA.cols + ' it=' + rIT.cols]);
-  ex.push(['(A) la IAo reparte sus DOCE campos en 4 + 4 + 4, en ese orden',
+  ex.push(['(A) la IAo reparte sus TRECE campos en 4 + 4 + 5, en ese orden (AJ1: entra ia_rev_dur)',
     rIA.plano === Q_IA, rIA.plano]);
   ex.push(['(A) la IT reparte sus OCHO en 3 + 3 + 2 — la FR no existe en esta valvula',
     rIT.plano === Q_IT, rIT.plano]);
@@ -75098,12 +75155,17 @@ caso('TC-496', 'Tanda PRO (1 a 3): el cociente VTI de la protesis mitral solo ap
      archivo ya tiene escrita para ECO_AYUDA y para AO_SEGS: preguntar por el nombre informa
      «NO EXISTE» sobre una constante perfecta. Se mide el COMPORTAMIENTO por sus dos lados, que
      es ademas lo que de verdad hay que proteger. */
-  ex.push(['(c6) EL CORTE DE LA AORTA DESCENDENTE DE LA NATIVA NO SE TOCO: 20 cm/s sigue votando SEVERA y 19 sigue sin votar (ESC/EACTS 2025, Figura 4, folio 4659)',
-    (function(){ esc({ va_morf:'Trivalva normal', ia_vmax_td:'20' }); const a = V('ia_grado');
-      esc({ va_morf:'Trivalva normal', ia_vmax_td:'19' }); const b = V('ia_grado');
-      return a === '4' && b === '0'; })(),
-    (function(){ esc({ va_morf:'Trivalva normal', ia_vmax_td:'20' }); const a = V('ia_grado');
-      esc({ va_morf:'Trivalva normal', ia_vmax_td:'19' }); return '20:' + a + ' 19:' + V('ia_grado'); })()]);
+  /* ADAPTADO el 2026-10-22 (AJ1-E6): el corte de 20 cm/s y su operador NO se movieron, pero
+     desde el AJ1 la velocidad SOLO vota con el reverso consignado como HOLODIASTOLICO, que es
+     como las dos fuentes la escriben -la ESC/EACTS 2025 en su Figura 4 y la EACVI 2013 en su
+     Tabla 4, las dos dentro de la fila del reverso holodiastolico-. La escena gana la duracion
+     y la condicion conserva su poder: los dos lados del corte sobre el mismo paciente. */
+  ex.push(['(c6) EL CORTE DE LA AORTA DESCENDENTE DE LA NATIVA NO SE TOCO: con el reverso holodiastolico, 20 cm/s sigue votando SEVERA y 19 sigue sin votar (ESC/EACTS 2025, Figura 4, folio 4659)',
+    (function(){ esc({ va_morf:'Trivalva normal', ia_rev_dur:'holo', ia_vmax_td:'20' }); const a = V('ia_grado');
+      esc({ va_morf:'Trivalva normal', ia_rev_dur:'holo', ia_vmax_td:'19' }); const b = V('ia_grado');
+      return a === '4' && b === '2'; })(),
+    (function(){ esc({ va_morf:'Trivalva normal', ia_rev_dur:'holo', ia_vmax_td:'20' }); const a = V('ia_grado');
+      esc({ va_morf:'Trivalva normal', ia_rev_dur:'holo', ia_vmax_td:'19' }); return '20:' + a + ' 19:' + V('ia_grado'); })()]);
 
   /* ══ (g) CONTROLES — nada fuera de las tres zonas se mueve ═══════════════════════════════ */
   ex.push(['(g1) el Excel sigue en 440 columnas, con el formulario vacio y con escenario cargado',
@@ -75248,8 +75310,12 @@ caso('TC-497', 'Tanda PRO-B: la FUGA PARAVALVULAR de la protesis AORTICA quirurg
     (function(){ escAo({ ia_vc:'8' });
       return SEVAO() === 'Severa' && V('ia_grado') === '4'; })(),
     'fuga=' + SEVAO() + ' ia_grado=' + V('ia_grado')]);
-  ex.push(['(b5) EL REVERSO DIASTOLICO NO ENTRA EN ESTE MOTOR: con ia_vmax_td en 25 cm/s la fuga sigue TRIVIAL mientras ia_grado pasa a severa — dos cortes y dos territorios',
-    (function(){ escAo({ ea_pvl_ext:'5', ea_pvl_vc_area:'0.05', ia_vc:'2', ia_vmax_td:'25' });
+  /* ADAPTADO el 2026-10-22 (AJ1-E6): la escena gana la duracion holodiastolica, que es lo que la
+     velocidad necesita para votar desde el AJ1. Lo que el caso mide -que el reverso NO entra en
+     el motor de la fuga paravalvular, y que los dos cortes viven en dos territorios- no cambia:
+     con el mismo paciente la fuga sigue TRIVIAL mientras la IAo nativa pasa a severa. */
+  ex.push(['(b5) EL REVERSO DIASTOLICO NO ENTRA EN ESTE MOTOR: con ia_vmax_td en 25 cm/s y el reverso holodiastolico la fuga sigue TRIVIAL mientras ia_grado pasa a severa — dos cortes y dos territorios',
+    (function(){ escAo({ ea_pvl_ext:'5', ea_pvl_vc_area:'0.05', ia_vc:'2', ia_rev_dur:'holo', ia_vmax_td:'25' });
       return SEVAO() === 'Trivial' && V('ia_grado') === '4'; })(),
     'fuga=' + SEVAO() + ' ia_grado=' + V('ia_grado')]);
   ex.push(['(b6) origen consignado y NI UN parametro: se dice el origen y NO se gradua — no se inventa «leve» porque no hay numeros',

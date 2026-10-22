@@ -2475,7 +2475,7 @@ window.__A = {
     r.filaVti = window.__P.txt('ia-vti-desc-interp');
     r.filaVtd = window.__P.txt('ia-vtd-interp');
     r.grado = window.__P.val('ia_grado');
-    r.sev = window.__P.txt('ia-severidad');
+    r.sev = window.__P.txt('ia-sev');
     return r },
 
   refsTexto() {

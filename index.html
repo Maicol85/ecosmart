@@ -6872,6 +6872,25 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="fg"><label>Vol-R por PISA (ml) (auto)</label><input type="text" id="vauto-ia-volr" readonly></div>
         <div class="fg"><label>FR por PISA (%) (auto)</label><input type="text" id="vauto-ia-fr" readonly></div>
         <div class="fg"><label>VTI IAo Ao desc. (cm)</label><input type="number" id="ia_vti_desc" placeholder="cm" oninput="calcIA_ESC()"></div>
+        <!-- ⚠️ LA DURACION DEL REVERSO, QUE ES LO QUE LAS DOS TABLAS GRADUAN (AJ1-E6, 22/10/2026).
+             Hasta hoy la app graduaba el VTI con tres cortes de EcoSmart sin fuente (<15 leve,
+             15 a 24 moderada, >=25 grave) y no tenia donde consignar si el reverso es breve
+             protodiastolico, intermedio u holodiastolico — que es la COLUMNA de la Tabla 20-5 del
+             libro y de la Tabla 4 de la EACVI 2013, donde el VTI y la velocidad son la
+             CALIFICACION de un reverso holodiastolico y no un criterio por su cuenta.
+             «— sin consignar —» va PRIMERO y es el valor de fabrica: un campo vacio es SIN DATO y
+             no vota, asi que sin la duracion el VTI y la velocidad se MUESTRAN y no gradúan.
+             ⚠️ SIN COLUMNA DE EXCEL, a proposito: el id va con guion BAJO, asi que viaja con el
+             estudio, y el mapa del Excel no lo nombra. Un estudio guardado antes de hoy abre sin
+             el dato, que es el estado «sin consignar». -->
+        <div class="fg"><label>Reverso diast. Ao desc. &mdash; duraci&oacute;n</label>
+          <select id="ia_rev_dur" onchange="calcIA_ESC()">
+            <option value="">&mdash; sin consignar &mdash;</option>
+            <option value="ausente">Sin reverso diast&oacute;lico</option>
+            <option value="breve">Breve, protodiast&oacute;lico</option>
+            <option value="intermedio">Intermedio</option>
+            <option value="holo">Holodiast&oacute;lico</option>
+          </select></div>
             </div>
           </div>
           <!-- La frase de la reversión holodiastólica baja acá: explica un corte de la IAo, no el
@@ -6885,6 +6904,12 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="calc-row"><span class="calc-lbl">THP — interpretación</span><span id="ia-pht-interp">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Vmax telediastólica</span><span id="ia-vtd-interp">—</span></div>
         <div class="calc-row"><span class="calc-lbl">VTI Ao desc. — inversión diastólica</span><span id="ia-vti-desc-interp">—</span></div>
+        <!-- ⚠️ LA FILA QUE VOTA ES ESTA (AJ1-E6): la Tabla 20-5 y la Tabla 4 de la EACVI 2013
+             gradúan por la DURACIÓN del reverso, y el VTI y la velocidad la califican. Las otras
+             dos filas muestran su número y no votan, para que el mismo hallazgo no se cuente
+             tres veces. Es un `span[id]` dentro de un `.calc-box .calc-row`, así que el barrido
+             de `limpiarCampos` la deja en «—» sin una línea extra. -->
+        <div class="calc-row"><span class="calc-lbl">Reverso Ao desc. — duración</span><span id="ia-rev-dur-interp">—</span></div>
         <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">⚖️ Severidad IAo integrada (ESC/EACTS 2025)</span><span id="ia-sev">—</span></div>
         <div class="calc-row"><span id="ia-discordancia" style="color:var(--yellow);font-size:11px;"></span></div>
       </div>
@@ -37414,10 +37439,11 @@ const AO_BANDA_PLAUS = Object.freeze({
      Criterio EcoSmart de plausibilidad. */
   ia_vmax_td: Object.freeze([2, 150]),
   /* VTI del flujo reverso en aorta torácica descendente, en cm. Piso 1: atrapa los metros (0,2
-     por 20), que votan «leve» (corte `<15`). Techo 100: el doble del mayor valor que los cortes
-     de la app contemplan (`>=25` ya es holodiastólica), y atrapa los mm. ⚠️ Los cortes de este
-     parámetro son del propio EcoSmart y no tienen fuente (ver el panel de Evidencia); la banda
-     tampoco. Criterio EcoSmart de plausibilidad. */
+     por 20). Techo 100, que atrapa los mm. ⚠️ DESDE EL AJ1-E6 EL UNICO CORTE DE ESTE PARAMETRO
+     ES EL DE 15 cm, que sale de la Tabla 20-5 del libro «Ecocardiografia avanzada» (Moya Mur,
+     capitulo 20) y no de una guia: los tres de EcoSmart -«<15 / 15-24 / >=25»- salieron, y con
+     ellos el 25. La BANDA no cambia: no es de severidad y su techo sigue sirviendo para el mismo
+     dedazo. Criterio EcoSmart de plausibilidad. */
   ia_vti_desc: Object.freeze([1, 100]),
   /* Radio PISA de la IAo, en mm. `[1,30]` es el par EXACTO de `pisa_r` en `DCM_RANGO` — la misma
      magnitud en la otra válvula, con el mismo argumento ya escrito ahí: atrapa el radio en cm
@@ -44933,24 +44959,84 @@ function calcIA_ESC() {
      velocidad de 25 cm/s, que la guía llama SEVERA, votaba LEVE y empujaba el integrado hacia
      el lado tranquilizador. Con ese techo de 200 cm/s el parámetro no podía votar severa en
      ningún caso clínico real. Decisión de Maicol del 2026-10-01. */
+  /* ══ EL REVERSO DIASTOLICO DE LA AORTA DESCENDENTE (AJ1-E6, 22/10/2026) ═══════════════════
+     DECISION DE MAICOL: la app se alinea con la Tabla 20-5 del libro «Ecocardiografia avanzada»
+     (Moya Mur, capitulo 20) y los tres cortes de EcoSmart sin fuente —«<15 leve, 15 a 24
+     moderada, >=25 grave»— salen. EL 25 SE VA.
+     LO QUE GRADUA ES LA DURACION, y el VTI y la velocidad son su CALIFICACION:
+       LEVE      ninguno, o reverso breve protodiastolico
+       MODERADA  holodiastolico con VTI < 15 cm
+       GRAVE     holodiastolico con VTI > 15 cm, y/o velocidad telediastolica por encima de 20
+     ⚠️ LA MISMA ESTRUCTURA ESTA EN UNA GUIA DE LA BIBLIOTECA, y es la que sostiene la fila con
+     folio: EACVI 2013 (Lancellotti y cols., Eur Heart J Cardiovasc Imaging 2013;14:611-644),
+     Tabla 4, folio impreso 621 (hoja 11, regla folio = hoja + 610), VERIFICADA EN IMAGEN — su
+     fila «Diastolic flow reversal in the descending aorta» dice «Brief, protodiastolic flow
+     reversal» en leve, «Intermediate» en moderada y «Holodiastolic flow reversal (end-diastolic
+     velocity >20 cm/s)» en grave. El VTI de 15 cm NO esta en ninguna guia de la biblioteca: sale
+     SOLO del libro, y la fila de Referencias lo rotula asi.
+     ⚠️ CON 15 cm EXACTOS SE ELIGE LO CONSERVADOR, que es MODERADA. La tabla escribe «<15» y
+     «>15» y deja el valor exacto sin definir; entre afirmar y no afirmar la gravedad, no se
+     afirma. Declarado.
+     ⚠️ SIN LA DURACION CONSIGNADA NI EL VTI NI LA VELOCIDAD VOTAN, y los dos se MUESTRAN con su
+     numero. Es un cambio de conducta para la velocidad: hasta hoy votaba severa con 20 cm/s o
+     mas sin mirar nada mas, y las DOS fuentes la escriben DENTRO de la fila del reverso
+     holodiastolico -la EACVI entre parentesis y la ESC/EACTS 2025 tambien-. Un estudio guardado
+     antes de hoy no trae la duracion, asi que ahi la velocidad deja de votar: DECLARADO.
+     ⚠️ EL OPERADOR DE LA VELOCIDAD NO SE MUEVE Y LAS DOS FUENTES NO COINCIDEN. `IA_VMAX_TD_SEVERA`
+     sigue en 20 cm/s con `>=`, que es lo que la ESC/EACTS 2025 escribe en su Figura 4 (folio
+     4659, «EDV >=20 cm/s») y lo que la app ya aplicaba; la EACVI 2013 y la Tabla 20-5 escriben
+     «>20». La diferencia alcanza a UN valor, el 20,0 exacto, y se conserva el de la guia mas
+     nueva. Declarado.
+     ⚠️ «HOLODIASTOLICO» SIN VTI NI VELOCIDAD VOTA MODERADA y no grave: las dos tablas ponen el
+     reverso holodiastolico en grave SOLO cuando lo acompaña el VTI o la velocidad, y ninguna de
+     las dos lo deja en leve. Moderada es el unico lado que no sobre-afirma ni sub-afirma. */
+  const _revDur = sv('ia_rev_dur');
+  const _revHolo = (_revDur === 'holo');
   if (vmaxTD) {
     /* ⚠️ LA BANDA VA PRIMERO Y POR DELANTE DEL CORTE. El error que atrapa es el que mete el valor
        ABAJO del corte de severa (la Vmax telediastólica tipeada en m/s: 0,25 por 25), y si esta
-       rama fuera después, ese 0,25 caería en el `else` gris «No gradúa (< 20 cm/s)» — que es
-       cierto como aritmética y falso como hallazgo: la guía llama SEVERO a ese paciente. Las dos
-       filas son grises y dicen cosas DISTINTAS, y por eso no se funden. */
+       rama fuera después, ese 0,25 caería en el `else` gris «No gradúa» — que es cierto como
+       aritmética y falso como hallazgo: la guía llama SEVERO a ese paciente. Las dos filas son
+       grises y dicen cosas DISTINTAS, y por eso no se funden. */
     if (_pVtd.fuera) _iaSetH('ia-vtd-interp', badge('gray','Vmax telediastólica ' + _pVtd.crudo + ' cm/s fuera de rango medible (' + _pVtd.b[0] + '–' + _pVtd.b[1] + ' cm/s) — no gradúa; verificar la unidad'));
-    else if (vmaxTD >= IA_VMAX_TD_SEVERA) { scores.severa++; params.push({p:'Vmax-TD',sev:'severa'}); _iaSetH('ia-vtd-interp', badge('red','Severa (≥' + IA_VMAX_TD_SEVERA + ' cm/s) — reversión holodiastólica')); }
+    else if (!_revHolo) _iaSetH('ia-vtd-interp', badge('gray', vmaxTD + ' cm/s — ' + (_revDur
+      ? 'el reverso no está consignado como holodiastólico, así que no gradúa'
+      : 'falta consignar la duración del reverso, así que no gradúa')));
+    else if (vmaxTD >= IA_VMAX_TD_SEVERA) { scores.severa++; params.push({p:'Vmax-TD',sev:'severa'}); _iaSetH('ia-vtd-interp', badge('red','Severa (reverso holodiastólico con velocidad telediastólica ≥ ' + IA_VMAX_TD_SEVERA + ' cm/s)')); }
     /* No es `badge('green', …)`: no clasificar NO es «leve». Verde sobre un parámetro que la
        guía no gradúa se lee como un hallazgo tranquilizador que nadie afirmó. */
-    else { _iaSetH('ia-vtd-interp', badge('gray','No gradúa (< ' + IA_VMAX_TD_SEVERA + ' cm/s) — la guía sólo publica el corte de severa')); }
+    else { _iaSetH('ia-vtd-interp', badge('gray','No gradúa (< ' + IA_VMAX_TD_SEVERA + ' cm/s) — la fuente sólo publica el corte de severa')); }
   } else { _iaSetH('ia-vtd-interp', '—'); }
 
+  /* La fila de la DURACION: es la que vota, y las otras dos la califican. */
+  if (_revDur === 'ausente' || _revDur === 'breve') {
+    scores.leve++; params.push({p:'Reverso-Desc',sev:'leve'});
+    _iaSetH('ia-rev-dur-interp', badge('green', _revDur === 'ausente'
+      ? 'Sin reverso diastólico — leve' : 'Reverso breve protodiastólico — leve'));
+  } else if (_revDur === 'intermedio') {
+    scores.moderada++; params.push({p:'Reverso-Desc',sev:'moderada'});
+    _iaSetH('ia-rev-dur-interp', badge('yellow','Reverso intermedio — moderada'));
+  } else if (_revHolo) {
+    if (vtiDesc && !_pVtiD.fuera && vtiDesc > 15) {
+      scores.severa++; params.push({p:'Reverso-Desc',sev:'severa'});
+      _iaSetH('ia-rev-dur-interp', badge('red','Reverso holodiastólico con VTI > 15 cm — severa'));
+    } else {
+      scores.moderada++; params.push({p:'Reverso-Desc',sev:'moderada'});
+      _iaSetH('ia-rev-dur-interp', badge('yellow','Reverso holodiastólico' +
+        (vtiDesc && !_pVtiD.fuera ? ' con VTI ≤ 15 cm' : '') + ' — moderada'));
+    }
+  } else { _iaSetH('ia-rev-dur-interp', '—'); }
+
+  /* El VTI se MUESTRA siempre y NO vota por su cuenta: su voto lo emite la fila de la duración,
+     que es la que la tabla gradúa. Dos filas votando el mismo hallazgo lo contarían dos veces. */
   if (vtiDesc) {
     if (_pVtiD.fuera) _iaSetH('ia-vti-desc-interp', badge('gray','VTI Ao desc. ' + _pVtiD.crudo + ' cm fuera de rango medible (' + _pVtiD.b[0] + '–' + _pVtiD.b[1] + ' cm) — no gradúa; verificar la unidad'));
-    else if (vtiDesc < 15) { scores.leve++; params.push({p:'VTI-Desc',sev:'leve'}); _iaSetH('ia-vti-desc-interp', badge('green','Sin inversión significativa')); }
-    else if (vtiDesc < 25) { scores.moderada++; params.push({p:'VTI-Desc',sev:'moderada'}); _iaSetH('ia-vti-desc-interp', badge('yellow','Inversión moderada')); }
-    else { scores.severa++; params.push({p:'VTI-Desc',sev:'severa'}); _iaSetH('ia-vti-desc-interp', badge('red','Inversión holodiastólica — severa')); }
+    else if (!_revHolo) _iaSetH('ia-vti-desc-interp', badge('gray', vtiDesc + ' cm — ' + (_revDur
+      ? 'el reverso no está consignado como holodiastólico, así que no gradúa'
+      : 'falta consignar la duración del reverso, así que no gradúa')));
+    else _iaSetH('ia-vti-desc-interp', badge(vtiDesc > 15 ? 'red' : 'yellow',
+      vtiDesc + ' cm — ' + (vtiDesc > 15 ? 'por encima de 15 cm: califica el reverso holodiastólico como severo'
+                                         : 'hasta 15 cm: el reverso holodiastólico queda en moderada')));
   } else { _iaSetH('ia-vti-desc-interp', '—'); }
 
   if (pisaR && pisaVal && vmaxCW) {
@@ -75804,7 +75890,7 @@ function _indIA(){
          y NO con una cita de guía: colgarles un [1] de la ESC afirmaría que la guía los respalda.
          El parámetro sigue votando como hasta hoy —decisión de Maicol del 2026-10-01—: lo que
          cambia es que el panel ya no deja creer que ese voto sale de un documento. */
-      { txt:'El VTI del flujo reverso en la aorta descendente se muestra y VOTA con los cortes de la aplicación (< 15 cm sin inversión significativa, 15 a 25 cm inversión moderada, ≥ 25 cm inversión holodiastólica), pero ninguna de las guías verificadas publica un corte de VTI para ese flujo: la ESC/EACTS 2025 gradúa la reversión holodiastólica por VELOCIDAD telediastólica (≥ 20 cm/s) y no por su integral, y la ASE 2017 no la cuantifica. Esos tres cortes son una decisión de la aplicación y no están respaldados por ninguna de las dos fuentes.',
+      { txt:'El reverso diastólico de la aorta descendente se gradúa por su DURACIÓN, y el VTI y la velocidad telediastólica la califican: sin reverso o con un reverso breve protodiastólico es leve, intermedio es moderada, y holodiastólico es moderada con un VTI de hasta 15 cm y grave por encima de 15 cm o con una velocidad telediastólica de 20 cm/s o más. Sin la duración consignada, el VTI y la velocidad se muestran y no gradúan. La estructura es la de la EACVI 2013 (Tabla 4, folio 621), que escribe «reverso breve protodiastólico», «intermedio» y «holodiastólico con velocidad telediastólica por encima de 20 cm/s»; la velocidad de 20 cm/s también está en la ESC/EACTS 2025 (Figura 4, folio 4659), que la escribe con el valor incluido. El VTI de 15 cm NO figura en ninguna guía de la biblioteca: sale de la Tabla 20-5 del libro de texto, y por eso va con el marcador de criterio propio.',
         refs:['ecosmart'] },
       'Lo que se marca en este panel no se guarda con el estudio ni sale del informe: se borra al cerrarlo.'
     ] };
