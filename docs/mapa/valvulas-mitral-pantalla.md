@@ -388,3 +388,18 @@ los cortes de la ACC/AHA 2020 que la app ya aplica— y **no sube al informe ni 
 lleva **guión MEDIO**, así que no viaja con el estudio.
 
 Detalle en **`docs/mapa/aj1-ajustes.md` § 5**.
+
+---
+
+## La tanda I (22/10/2026) — la reparabilidad lista factores DESFAVORABLES
+
+`REPAR_COAPT_MM` (10 mm), `REPAR_ANGULO_GR` (45°) y `REPAR_TENTING_CM2` (2,5 cm², que **antes no
+votaba**) salen de la **Tabla 7 de `GUIA_008.pdf`, hoja 25**, cuyos valores son **desfavorables**. El
+veredicto pasó de «compatible con plastia» a descriptivo, y **sólo se publica con IM SECUNDARIA**:
+con primaria no hay veredicto y sus cifras llevan el chip CRITERIO DE ECOSMART.
+
+⚠️ **El área de tenting la tabla la escribe como un RANGO** («> 2,5-3 cm²») y la app aplica su
+extremo BAJO: un corte único donde la fuente da un rango es una DECISIÓN, y queda declarada en la
+ficha, en la pantalla y en `PENDIENTES.md`.
+
+Detalle en **`docs/mapa/tanda-i-ete.md` § 3**.

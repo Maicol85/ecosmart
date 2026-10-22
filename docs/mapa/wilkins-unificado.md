@@ -141,3 +141,18 @@ interpreta. `docs/PENDIENTES.md` → Y3b-4.
    `input[type=number]`. La marca se borra con una llamada explícita.
 4. ⚠️ **EL PINTOR Y LA REGLA SON DOS COSAS.** `calcWilkins` y `cxWilkins` no deciden nada: si alguna
    vuelve a decidir, las dos pantallas se separan otra vez.
+
+---
+
+## La tanda I (22/10/2026) — el score publica su TRAMO y ya no un veredicto
+
+`WILK_TXT_FAV`, `WILK_TXT_NOFAV` y `WILK_9_11` se reemplazan por **`WILK_TRAMO`**, congelado, con
+los tres tramos (`<= 8` / `9 a 11` / `> 11`). **Las claves de banda y el `dataset.banda` NO
+cambian.** Lo leen las cuatro superficies que publicaban el veredicto: `calcWilkins`, `cxWilkins`,
+`amiloTextoWilkins` y las tres barras del Laboratorio, cuyo gráfico pasa de «Candidatos a
+valvuloplastia» a «Distribución del score de Wilkins».
+
+La salvedad anatómica **se mantiene** y gana su fuente (EAE/ASE 2009, apartado B.2.1, folio 14); el
+globo `wilk-score` publica lo que halló la serie original (Wilkins 1988, folios 300 y 307).
+
+Detalle y trampas en **`docs/mapa/tanda-i-ete.md` § 1 y § 5**.

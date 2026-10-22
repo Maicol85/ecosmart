@@ -330,3 +330,18 @@ HFA-PEFF **no tenía entrada**, así que los veinte cortes que la app aplica no 
 ninguna superficie consultable.
 
 Detalle en **`docs/mapa/htp-hfapeff.md`** §8.
+
+---
+
+## La tanda I (22/10/2026) — cuatro fichas de la ETE con su folio
+
+`ref-em` (la escala de Wilkins, la serie original y la salvedad), `ref-im` (reparabilidad quirúrgica
+y los cortes de TEER), `ref-oai` (los dos cortes de vaciamiento y los dispositivos con su
+fabricante) y `ref-ao` (las **dos** escalas de ateroma, comparadas). **Ningún corte se movió**: lo
+que cambia es que cada número diga de dónde sale, y que lo que no tiene fuente lleve el chip
+CRITERIO DE ECOSMART.
+
+⚠️ **«EVEREST II» era una atribución equivocada**: el registro que publica los cortes anatómicos del
+TEER es de **Tamburino y cols.**, está en la biblioteca y hoy se cita.
+
+Detalle en **`docs/mapa/tanda-i-ete.md` § 5**.

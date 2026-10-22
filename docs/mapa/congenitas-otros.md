@@ -491,3 +491,19 @@ de esta zona:
   una clase propia (`fop-concl-row`) y sin tocar `.calc-row`.
 - La regla del **aneurisma del septum** y el selector de **latidos** cambiaron: ver el mapa de la
   tanda.
+
+---
+
+## La tanda I-E4 (22/10/2026) — la insuficiencia pulmonar en Fallot reparada, en Evidencia
+
+Sección nueva **`_indTdFIP`**, compuerta `tdfConclusion()`. Publica **DOS guías en bloques
+separados** porque no piden lo mismo: la **ACC/AHA 2025** (folio e182) define la disfunción valvular
+pulmonar por una fracción regurgitante por resonancia **> 25 %** y pide **DOS** criterios en el
+asintomático; la **ESC 2020** (folio e50) pide insuficiencia **grave** y **UNO** de cuatro.
+El **80 ml/m²** aparece en las dos y no es el mismo criterio: una lo **incluye** y la otra pide
+**por encima**.
+
+⚠️ **El módulo de la pestaña de congénitas NO se tocó**: sigue publicando su conclusión y su
+conducta en el informe firmado, y esa mudanza no la autoriza esta orden (`PENDIENTES.md` → I-7).
+
+Detalle, constantes y trampas en **`docs/mapa/tanda-i-ete.md` § 8**.

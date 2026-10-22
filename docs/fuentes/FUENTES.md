@@ -5274,3 +5274,106 @@ entienda sin el que no se eligió.
 ⚠️ **NINGÚN CORTE CAMBIÓ DE VALOR NI DE OPERADOR**, y es lo que separa esta tanda de las que mueven
 evidencia: lo único que se movió son los textos que **dejaron** de afirmar una conducta en el papel
 firmado, y lo que pasó a estar publicado donde el médico puede consultarlo.
+
+---
+
+## La tanda «I» — la ETE, la estenosis tricuspídea y la insuficiencia pulmonar en Fallot reparada (22/10/2026)
+
+**Todo lo que entra se verificó en el PDF ORIGINAL de la biblioteca, EN IMAGEN a 300 ppp o más.**
+Ningún corte se movió salvo el borde de 5 mm del ateroma, que se alinea con la escala que la app ya
+citaba.
+
+### Las reglas de folio, comprobadas en el pie o el encabezado IMPRESO
+
+| documento | archivo | regla de folio |
+|---|---|---|
+| EAE/ASE 2009 de estenosis valvular | `04_Valvulopatias/2009_Echo-Assessment-of-Valve-Stenosis_note_added.pdf` | folio = hoja |
+| Wilkins 1988 | `04_Valvulopatias/brheartj00082-0033.pdf` | folio = hoja + 298 |
+| ASE/SCA 2013 (Hahn) | `14- ETE/PIIS0894731713005622.pdf` | folio = hoja + 920 |
+| ASE 2020 ETE quirúrgica (Nicoara) | `14- ETE/TEE-Surgical-Decision-Making_June2020.pdf` | folio = hoja + 691 |
+| Tamburino 2010 | `14- ETE/Percutaneos Mitral Valve repair withe the mitraclip system.pdf` | folio = hoja + 1381 |
+| ESC/EACTS 2025 de valvulopatías | `04_Valvulopatias/2025 ESC:EACTS Guidelines…pdf` | folio = hoja + 4634 |
+| ESC 2024 de fibrilación auricular | `22_Hemodinamica_avanzada/ehae176.pdf` | folio = hoja + 3313 |
+| ESC 2024 de enfermedad arterial periférica y aórtica | `06_Aorta/Mazzolai_2024_Aorta.pdf` | folio = hoja − 1 |
+| AHA/ASA 2021 del ictus (Kleindorfer) | `21_Otros_hallazgos/kleindorfer-et-al-2021-…pdf` | folio = e(hoja + 363) |
+| **ACC/AHA 2025 de congénitas del adulto (Gurvitz)** | `08_Cardiopatias_congenitas/gurvitz-et-al-2025-…pdf` | **folio = hoja + 114** |
+| **ESC 2020 de congénitas del adulto (Baumgartner), traducción** | `08_Cardiopatias_congenitas/Baumgartner_2020_Cardiopatias_Congenitas.pdf` | **folio = hoja** |
+
+⚠️ **DOS DOCUMENTOS NO SE PUEDEN LEER DEL TEXTO EXTRAÍDO.** La **ESC/EACTS 2025** codifica «≥» como
+«$» y «≤» como «#», así que quien la lea sin renderizar **invierte todos los operadores**. Y la
+**ACC/AHA 2025** desalinea las celdas de clase y nivel respecto de su fila: leída así, la
+recomendación 13 de tetralogía de Fallot sale como Clase **2b** y es **2a**, verificado renderizando
+a 600 ppp.
+
+### Lo verificado, dato por dato
+
+| dato | fuente | folio / hoja |
+|---|---|---|
+| Escala de Wilkins: cuatro criterios de 1 a 4, total de 4 a 16 | EAE/ASE 2009, Tabla 5 | folio 14 |
+| La salvedad: ningún score ha demostrado ser superior a otro y todos tienen valor predictivo limitado | EAE/ASE 2009, apartado B.2.1 | folio 14 |
+| La serie original: 22 pacientes; > 11 suboptimo, < 9 óptimo, y entre 9 y 11 el score **no predijo** el resultado | Wilkins 1988 | folios 300 y 307 |
+| Velocidad de vaciamiento de la orejuela: 20 y 40 cm/s | ASE/SCA 2013 | folio 954 |
+| Escala de ateroma de la ASE: grado 3 de 3 a 5 mm, grado 4 por encima de 5 mm, grado 5 con componentes móviles o ulcerados | Nicoara 2020 | folio 716 |
+| Escala de ateroma de la ESC: grado 3 de 3 a < 4 mm, grado 4 de 4 mm o más | ESC 2024, Tabla 14 | folio 71 |
+| Características desfavorables para reparación mitral en IM **secundaria**: coaptación ≥ 1 cm, área de tenting «> 2,5-3 cm²», ángulo posterolateral > 45° | documento de regurgitación valvular nativa, Tabla 7 | hoja 25, **sin folio impreso** |
+| Criterios anatómicos de TEER: flail width ≥ 15 mm, flail gap ≥ 10 mm, coaptation depth ≥ 11 mm y coaptation length < 2 mm **excluyen** | Tamburino 2010, Tabla 1 | folio 1386 |
+| Altura de tenting < 10 mm, columna «no complejo — ideal para TEER mitral» | ESC/EACTS 2025, material suplementario, Tabla S2 | hoja 5, **sin folio de revista** |
+| FEVI 20-50 %, DTSVI ≤ 70 mm y PSAP ≤ 70 mmHg | ESC/EACTS 2025, Tabla 7 | folio 4678 |
+| Cardioversión con trombo: cuatro filas con su clase y su nivel | ESC 2024 FA, Recommendation Table 15 | folio 3355, hoja 42 |
+| Trombo en la aurícula izquierda entre las contraindicaciones de la comisurotomía, **sin clase ni nivel**; su nota ᵇ admite considerarla con el trombo en la orejuela | ESC/EACTS 2025, Tabla 8 | folio 4682 |
+| Prevención del ateroma: estatinas IIa·C, monoterapia antiagregante IIa·C, anticoagulación y doble antiagregación III·C, LDL < 55 mg/dL I·A | ESC 2024, Tabla 33 | folio 71 |
+| El mismo cuadro con LDL < 70 mg/dL, Clase 1 Nivel B-R, y antiagregación Clase 1 Nivel C-LD | AHA/ASA 2021, apartado 5.1.3 | folio e398, hoja 35 |
+| **Estenosis tricuspídea: dos filas I·C y sus tres notas al pie** (ᶜ habitualmente reemplazo valvular; ᵈ valvuloplastia percutánea con balón como primer abordaje si la estenosis es aislada; ᵉ si la comisurotomía mitral percutánea se puede hacer sobre la mitral) | **ESC/EACTS 2025, Recommendation Table 10** | **folio 4688, hoja 54** |
+| **Fallot reparada: recomendación 9 Clase 1 · B-NR, 10 Clase 2a · B-NR, 13 Clase 2a · C-LD y 14 Clase 2b · C-LD; nota \*: IP moderada con fracción regurgitante por RMC > 25 %, o PSVD > 2/3 de la sistémica por obstrucción del tracto de salida** | **ACC/AHA 2025 (Gurvitz), apartado 4.3.5** | **folio e182, hoja 68** |
+| **Fallot reparada: dos filas I·C y una IIa·C; notas ᶜ fracción regurgitante por RMC «> 30-40 %», ᵈ velocidad pico > 3 m/s, ᵉ sin tracto de salida nativo, ᶠ confirmado mediante determinaciones repetidas** | **ESC 2020 de congénitas del adulto, tabla de reintervención tras reparación de la tetralogía de Fallot** | **folio e50, hoja 50** |
+
+⚠️ **DE LA ESC 2020 DE CONGÉNITAS SÓLO ESTÁ LA TRADUCCIÓN AL ESPAÑOL** (*Rev Esp Cardiol*
+2021;74(5):436.e1), que **pagina distinto** que el original inglés (*Eur Heart J* 2021;42:563-645).
+Los folios que esta zona cita son los de la traducción, y por eso tiene **entrada propia** en el
+registro del panel (`escGuch2020Es`) y no se fusiona con `esc2020guch`: citar una revista al lado
+del folio de la otra manda al lector a otra página — es la lección que `fop2019` ya pagó.
+
+### Lo que NO se pudo leer, y por eso no se cita
+
+| qué | por qué |
+|---|---|
+| Tabla de dimensionamiento del **WATCHMAN FLX Pro** por diámetro de ostium (IFU 51245861-01 rev. A, 2023-07) | la tabla no se pudo leer. Se publican los **seis tamaños de 20 a 40 mm** y nada más |
+| La referencia 33 de la Tabla 7 (Lancellotti 2008, *Heart* 94:1497-1502) | **no está en la biblioteca** |
+| El original inglés de la ESC 2020 de congénitas del adulto | **no está en la biblioteca**: sólo la traducción |
+
+### Dos premisas de la orden que resultaron FALSAS
+
+1. **«La anticoagulación de al menos cuatro semanas tras la cardioversión es texto de la guía SIN
+   clase».** En la Recommendation Table 15 lleva **Clase I · Nivel B**, verificado en imagen. Se
+   publica con su clase y su nivel.
+2. **«El área de tenting de la Tabla 7 es > 2,5 cm²».** La tabla escribe un **RANGO**: «> 2,5-3 cm²».
+   La app aplica el extremo **BAJO**, que es el lado que no deja de marcar, y lo declara en las
+   cuatro superficies que lo publican.
+
+### Lo que lleva el chip «CRITERIO DE ECOSMART»
+
+| Qué | Por qué no tiene fuente |
+|---|---|
+| «Estasis leve» y «estasis severa» de la velocidad de vaciamiento de la orejuela | la ASE/SCA 2013 da los dos números (20 y 40 cm/s) y **no** esos nombres |
+| Las cifras de reparabilidad aplicadas a la IM **primaria** | la Tabla 7 es de IM **secundaria** y ninguna fuente de la biblioteca da cifras equivalentes para la primaria |
+| El extremo bajo del rango de tenting | la fuente da un rango; elegir un número es una decisión de la app |
+
+### Cambios de evidencia
+
+| Dato | Antes | Ahora | Fuente | Commit | Fecha |
+|---|---|---|---|---|---|
+| Score de Wilkins | «Favorable / No favorable para valvuloplastia percutánea» y «El score no predice el resultado» en cuatro superficies | el **tramo** (`≤ 8` / `9 a 11` / `> 11`) y nada más | Wilkins 1988, folios 300 y 307 (el hallazgo, en el globo) | E1 | 22/10/2026 |
+| Trombo en la orejuela | «Hallazgo que contraindica cardioversión eléctrica» en el informe, el EN SUMA, el Excel y las seis plantillas del PDF | **«Confirmado»**; la conducta pasa a Evidencia con su clase y su nivel | ESC 2024 FA, Tabla 15, folio 3355 | E1 y E3 | 22/10/2026 |
+| Dispositivos de cierre de orejuela | «rango de los dispositivos (17-32 mm)», que no es el rango de ninguno | **zona de anclaje del Amulet, 11 a 31 mm**, con su fabricante y su fecha de consulta | Abbott, consultado el 21/10/2026 | E1 | 22/10/2026 |
+| Reparabilidad mitral | «compatible con plastia» / «evaluar TEER o reemplazo» | **«Factores desfavorables presentes: …»**, y sólo con IM secundaria | Tabla 7, hoja 25 | E1 | 22/10/2026 |
+| Área de tenting | **no votaba** | **vota** como factor desfavorable, con el extremo bajo del rango | Tabla 7, hoja 25 | E1 | 22/10/2026 |
+| Grado 3 y 4 de ateroma | «placas irregulares con engrosamiento < 5 mm» | **«Ateroma de 3 a 5 mm»** y **«de más de 5 mm»** | Nicoara 2020, folio 716 | E1 | 22/10/2026 |
+| «Considerar antiagregación» en el ateroma grado 3, y las dos menciones de clampaje | en la pantalla y en el informe | en **Evidencia**, con su clase, su nivel y su folio | ESC 2024 Tabla 33 folio 71 · AHA/ASA 2021 folio e398 | E1 y E3 | 22/10/2026 |
+| Flail gap del TEER | el comentario afirmaba que **no se podía citar** | se cita: el registro es de **Tamburino**, no el EVEREST II, y está en la biblioteca | Tamburino 2010, Tabla 1, folio 1386 | E2 | 22/10/2026 |
+| **Las tres notas al pie de la tabla de estenosis tricuspídea** | **ninguna estaba publicada con su fila**; la del reemplazo valvular **no estaba en la app** | cada fila publica la suya, en el bloque visible | ESC/EACTS 2025, Table 10, folio 4688 | E4 | 22/10/2026 |
+| **Insuficiencia pulmonar en Fallot reparada** | sin sección de Evidencia | **dos guías en bloques separados**, cada una con su definición, su conteo y su folio | ACC/AHA 2025 folio e182 · ESC 2020 folio e50 | E4 | 22/10/2026 |
+
+⚠️ **NINGÚN CORTE CAMBIÓ DE VALOR NI DE OPERADOR SALVO EL BORDE DE 5 mm DEL ATEROMA**, que pasa a
+coincidir con la escala que la app ya citaba. Todo lo demás que se movió son textos que **dejaron**
+de afirmar un resultado o una conducta en el papel firmado, y lo que pasó a estar publicado donde el
+médico puede consultarlo.

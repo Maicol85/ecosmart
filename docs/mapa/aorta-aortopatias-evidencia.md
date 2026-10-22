@@ -354,3 +354,18 @@ existe y la recomendación pasó al **bloque VISIBLE** de `_indCoAo` (Clase I ·
 descriptiva en el EN SUMA, sin umbral.
 
 Detalle, fichas (`AOR-004`) y trampas en **`docs/mapa/aj1-ajustes.md` § 3 y § 4**.
+
+---
+
+## La tanda I (22/10/2026) — el ateroma aórtico y sus DOS escalas
+
+`ateroGradoPorGrosor(mm)` es el dueño del grado **por espesor**; el grado 3 pasa a «Ateroma de 3 a
+5 mm» y el 4 a «de más de 5 mm». **Un ateroma de 4,5 mm es grado 3 por la escala de la ASE —la que
+la app aplica— y grado 4 por la de la ESC 2024**, que corta en 4 mm: las dos se publican y ninguna
+se promedia. La sección de Evidencia **`_indAtero`** PREGUNTA si la placa es severa o compleja en vez
+de derivarlo del grado, justamente por eso.
+
+⚠️ **Las dos guías de prevención secundaria coinciden en qué hacer y NO en el objetivo de LDL**:
+55 mg/dL la europea (Tabla 33, folio 71) y 70 mg/dL la estadounidense (AHA/ASA 2021, folio e398).
+
+Detalle en **`docs/mapa/tanda-i-ete.md` § 4 y § 6**.

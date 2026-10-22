@@ -47036,7 +47036,13 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
            se publica al lado, en las recomendaciones-. */
       ['Ecocardiograma transesofagico', { oai_trombo:'si' },                     'esc2025vc'],
       ['Reparabilidad de la valvula mitral', { ete_prof_coapt:'12', teer_tipo_im:'secundaria' }, 'guiaRegurgNativa'],
-      ['Ateroma aortico', { ao_grado_atero:'4' },                                'aseEte2020']
+      ['Ateroma aortico', { ao_grado_atero:'4' },                                'aseEte2020'],
+      /* AGREGADA el 2026-10-22 (tanda I, commit 4). La insuficiencia pulmonar en Fallot
+         reparada abre con un campo PROPIO del modulo de Fallot -su compuerta es
+         tdfConclusion, que es su dueno-, y su linea «Segun la guia» cita la ACC/AHA 2025,
+         que es la fuente PRINCIPAL. La europea se publica al lado, en su propio bloque y con
+         su propio folio: las dos no piden lo mismo y por eso no se mezclan. */
+      ['Tetralogia de Fallot reparada', { tdf_sintomas:'si' },                  'achd2025']
     ];
 
     const sembrar = campos => {
@@ -84561,6 +84567,288 @@ caso('TC-517', 'Tanda E: los once signos de HTP en una TABLA de tres columnas co
       catch (e) { return false; } })(), 'medido']);
 
   return { extra: ex };
+`);
+
+/* ══ TANDA I-E4 — LA EVIDENCIA DE LA ET Y DE LA IP EN FALLOT REPARADA ═══════════════════════
+   Las dos guias de la insuficiencia pulmonar NO coinciden, y lo que este caso vigila es
+   justamente que no se mezclen: que cada bloque publique SU definicion, SU conteo y SUS
+   criterios, y que el borde de 80 ml/m2 —que las dos escriben con el mismo numero y distinto
+   operador— caiga de lados distintos.
+   ⚠️ TODA LECTURA VA POR UN AYUDANTE CON CENTINELA: contra el arbol anterior estas piezas no
+   existen, y un TypeError mata la corrida entera — el caso probaria que el arbol es distinto y
+   no que sabe medir. Es la leccion que TC-455, TC-462, TC-465, TC-471, TC-473, TC-474, TC-477 y
+   TC-517 ya pagaron. */
+caso('TC-518', 'Tanda I-E4: las tres notas al pie de la tabla de estenosis tricuspidea publicadas con la fila que las usa y compuestas desde un solo dueño; la seccion de Evidencia de la insuficiencia pulmonar en Fallot reparada con las DOS guias en bloques separados, su definicion propia de disfuncion valvular pulmonar, su conteo propio y el borde de 80 ml/m2 que una incluye y la otra no; el criterio que no se puede evaluar declarado y no inventado; el grado de IP que nace en «Sin insuficiencia» sin afirmar nada; y el informe, el EN SUMA y las 440 columnas del Excel sin moverse', `
+  return (async () => {
+  const ex = [];
+  const F = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  /* ⚠️ ET_REC_2025 ES UN const DE MODULO Y NO UNA PROPIEDAD DE window: leerlo por window da
+     undefined y las SIETE condiciones de las notas salen rojas sobre un arbol perfecto. Es la
+     trampa de ECO_AYUDA, y esta tanda la volvio a pagar. El identificador PELADO si se ve, que
+     es como la funcion sec lee IND_SECS. El window[n] se conserva para los umbrales, que SI se
+     exportan a proposito. */
+  const C = (n) => { try { return window[n]; } catch (e) { return undefined; } };
+  const K = (n) => { try { return eval(n); } catch (e) { return undefined; } };
+  const sec = (tit) => { let L = null;
+    /* IND_SECS es un const de MODULO y NO una propiedad de window: leerlo por window da
+       undefined y las condiciones salen rojas sobre un arbol perfecto. Es la trampa de
+       ECO_AYUDA, que este archivo ya tiene escrita media docena de veces. */
+    try { L = IND_SECS; } catch (e) { return 'SIN IND_SECS'; }
+    if (!L) return 'SIN IND_SECS';
+    const x = L.filter(y => y.tit === tit)[0]; if (!x) return 'NO EXISTE';
+    try { return x.fn() || null; } catch (e) { return 'EXC: ' + e.message; } };
+  const T_VT = 'V' + String.fromCharCode(225) + 'lvula tric' + String.fromCharCode(250) + 'spide';
+  const T_TDF = 'Tetralog' + String.fromCharCode(237) + 'a de Fallot reparada — insuficiencia pulmonar';
+  const lineas = (r) => (r && r.bloques) ? r.bloques.reduce((a, b) =>
+    a.concat((b.lineas || []).map(l => (typeof l === 'string' ? l : (l.txt || '')))), []) : [];
+  const bloque = (r, frag) => { if (!r || !r.bloques) return null;
+    const b = r.bloques.filter(x => (x.tit || '').indexOf(frag) > -1)[0];
+    return b ? (b.lineas || []).map(l => (typeof l === 'string' ? l : (l.txt || ''))).join(' | ') : null; };
+  const fila = (r, lbl) => { if (!r || !r.filas) return null;
+    const f = r.filas.filter(x => (x.lbl || '').indexOf(lbl) === 0)[0];
+    return f ? { val: f.val, marca: f.marca, nota: f.nota || '' } : null; };
+  const noEntraron = [];
+  const set = (o) => Object.keys(o).forEach(id => { const e = document.getElementById(id);
+    if (!e) { noEntraron.push('FALTA ' + id); return; }
+    e.value = o[id];
+    if (String(e.value) !== String(o[id])) { noEntraron.push(id + ' RECHAZO ' + o[id]); return; }
+    e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); });
+  const sinClic = [];
+  const clic = (k, v) => { const b = document.querySelector('#indic-cuerpo [data-ind-clin="' + k + '"][data-ind-val="' + v + '"]');
+    if (!b) { sinClic.push(k + '=' + v); return false; } b.click(); return true; };
+  /* ⚠️ LAS RESPUESTAS VAN TODAS EN LA MISMA APERTURA: indicAbrir VACIA _indClin antes de pintar
+     —esta escrito en su propio comentario—, asi que dos aperturas dejan viva solo la ultima.
+     Lo pago la primera medicion de esta tanda, con el bloque de recomendaciones VACIO y las
+     respuestas contestadas. */
+  const escena = (campos, marcas) => {
+    try { indicCerrar(); } catch (e) {}
+    __t.limpiar(); set(campos || {});
+    try { indicAbrir(); } catch (e) {}
+    Object.keys(marcas || {}).forEach(k => clic(k, marcas[k]));
+    const r = sec(T_TDF);
+    try { indicCerrar(); } catch (e) {}
+    return r; };
+
+  /* ══ (a) LAS TRES NOTAS AL PIE DE LA TABLA DE ESTENOSIS TRICUSPIDEA ═══════════════════════ */
+  /* ⚠️ Y EL CENTINELA TIENE QUE SER SOBRE EL TIPO Y NO SOBRE LA VERDAD: contra el arbol
+     anterior ET_REC_2025 SI EXISTE -lo que no existen son sus tres notas-, asi que un guardia
+     por !!ER deja pasar un undefined.indexOf que MATA la corrida entera, y el caso probaria que
+     el arbol es distinto y no que sabe medir. Es la leccion de TC-455, pagada otra vez. */
+  const ER = K('ET_REC_2025');
+  const S = (x) => (typeof x === 'string') ? x : '';
+  const CLS = 'Clase I ' + String.fromCharCode(183) + ' Nivel C';
+  const E_NC = S(ER && ER.nota_cx);
+  const E_NS = S(ER && ER.sint && ER.sint.n);
+  const E_NX = S(ER && ER.cx_izq && ER.cx_izq.n);
+  const E_CS = S(ER && ER.sint && ER.sint.c);
+  const E_CX = S(ER && ER.cx_izq && ER.cx_izq.c);
+  const hayN = !!(E_NC && E_NS && E_NX);
+  ex.push(['(a1) DENOMINADOR: ET_REC_2025 tiene las tres notas y las dos filas siguen en Clase I · Nivel C',
+    hayN && E_NC.length > 20 && E_CS === CLS && E_CX === CLS,
+    JSON.stringify({ cs: E_CS, cx: E_CX, nc: !!E_NC, n1: !!E_NS, n2: !!E_NX })]);
+  ex.push(['(a2) la nota comun dice que esa cirugia es habitualmente el REEMPLAZO de la valvula tricuspide',
+    E_NC.indexOf('REEMPLAZO') > -1, E_NC || 'NO EXISTE']);
+  ex.push(['(a3) la nota de la fila del SINTOMATICO es la de la estenosis AISLADA y la de la cirugia izquierda es la de la comisurotomia mitral',
+    E_NS.indexOf('AISLADA') > -1 && E_NS.indexOf('valvuloplastia') > -1 &&
+    E_NX.indexOf('comisurotom') > -1 && E_NX.indexOf('AISLADA') === -1,
+    (E_NS + ' || ' + E_NX) || 'NO EXISTE']);
+  /* El panel publica la nota CON la fila que la usa: se contesta sintomas y se lee la
+     recomendacion. Las dos escenas son las dos UNICAS filas de esa tabla. */
+  try { indicCerrar(); } catch (e) {}
+  __t.limpiar(); set({ et_gmedio: '9' });
+  try { indicAbrir(); } catch (e) {}
+  clic('vt.sintomas', 'si');
+  const vtSint = sec(T_VT);
+  try { indicCerrar(); } catch (e) {}
+  const nSint = (vtSint && vtSint.recom) ? String(vtSint.recom.nota || '') : 'SIN RECOM';
+  ex.push(['(a4) la fila del sintomatico publica la nota comun Y la suya',
+    hayN && nSint.indexOf(E_NC) > -1 && nSint.indexOf(E_NS) > -1 &&
+    nSint.indexOf(E_NX) === -1, nSint.slice(0, 260)]);
+  try { indicCerrar(); } catch (e) {}
+  __t.limpiar(); set({ et_gmedio: '9' });
+  try { indicAbrir(); } catch (e) {}
+  clic('vt.sintomas', 'no'); clic('vt.cxizq', 'si');
+  const vtCx = sec(T_VT);
+  try { indicCerrar(); } catch (e) {}
+  const nCx = (vtCx && vtCx.recom) ? String(vtCx.recom.nota || '') : 'SIN RECOM';
+  ex.push(['(a5) la fila de la cirugia izquierda publica la nota comun Y la suya, no la de la otra fila',
+    hayN && nCx.indexOf(E_NC) > -1 && nCx.indexOf(E_NX) > -1 &&
+    nCx.indexOf(E_NS) === -1, nCx.slice(0, 260)]);
+  /* CONTROL NEGATIVO: sin estenosis severa la tabla no aplica y no hay ninguna nota que publicar. */
+  try { indicCerrar(); } catch (e) {}
+  __t.limpiar(); set({ et_gmedio: '3' });
+  const vtLeve = sec(T_VT);
+  const nLeve = (vtLeve && vtLeve.recom) ? String(vtLeve.recom.nota || '') : '';
+  ex.push(['(a6) CONTROL NEGATIVO: con gradiente medio de 3 mmHg no se publica ninguna de las tres notas',
+    hayN && nLeve.indexOf(E_NC) === -1 && nLeve.indexOf(E_NS) === -1 &&
+    nLeve.indexOf(E_NX) === -1, nLeve.slice(0, 160) || 'sin nota']);
+  /* El renglon generico de notas se COMPONE desde el mismo dueño: dos redacciones de la misma
+     afirmacion en la misma seccion son dos cosas que se separan en la primera edicion. */
+  const notasVT = (vtSint && vtSint.notas) ? vtSint.notas.join(' @@ ') : '';
+  ex.push(['(a7) el renglon generico de notas se COMPONE desde las tres constantes y no las reescribe',
+    hayN && notasVT.indexOf(E_NC) > -1 && notasVT.indexOf(E_NS) > -1 &&
+    notasVT.indexOf(E_NX) > -1 &&
+    notasVT.indexOf('vive en sus notas al pie') === -1, notasVT.slice(0, 220)]);
+
+  /* ══ (b) LA SECCION NUEVA EXISTE Y SE DESPIERTA CON SUS CAMPOS PROPIOS ════════════════════ */
+  let L = null; try { L = IND_SECS; } catch (e) {}
+  ex.push(['(b1) DENOMINADOR: la seccion esta registrada y ningun titulo de IND_SECS es prefijo de otro',
+    !!L && L.some(x => x.tit === T_TDF) &&
+    !L.some((a, i) => L.some((b, j) => i !== j && b.tit.indexOf(a.tit) === 0)),
+    L ? ('n=' + L.length) : 'SIN IND_SECS']);
+  try { indicCerrar(); } catch (e) {}
+  __t.limpiar();
+  const vac = sec(T_TDF);
+  ex.push(['(b2) CONTROL NEGATIVO: con el formulario vacio la seccion devuelve null',
+    vac === null, JSON.stringify(vac).slice(0, 160)]);
+  const desp = escena({ tdf_sintomas: 'si' }, {});
+  ex.push(['(b3) se despierta con un campo PROPIO del modulo de Fallot y publica sus filas',
+    !!desp && !!desp.filas && desp.filas.length >= 14,
+    desp && desp.filas ? ('n=' + desp.filas.length) : JSON.stringify(desp).slice(0, 120)]);
+  ex.push(['(b4) los campos leidos y las preguntas estan todos en la misma seccion',
+    !!desp && !!fila(desp, 'S' + String.fromCharCode(237) + 'ntomas') &&
+    !!fila(desp, 'Fracci' + String.fromCharCode(243) + 'n regurgitante pulmonar') &&
+    !!fila(desp, 'Vol' + String.fromCharCode(250) + 'menes del VD'),
+    desp && desp.filas ? desp.filas.map(f => f.lbl).join(' | ').slice(0, 300) : 'SIN FILAS']);
+
+  /* ══ (c) LAS DOS GUIAS EN BLOQUES SEPARADOS, Y LA FRANJA QUE LAS SEPARA ═══════════════════ */
+  const sintRf40 = escena({ tdf_sintomas: 'si' }, { 'tdfip.rf': 'gt40' });
+  const bAcc1 = bloque(sintRf40, 'estadounidense') || '';
+  const bEsc1 = bloque(sintRf40, 'europea') || '';
+  ex.push(['(c1) sintomatico con fraccion regurgitante mayor de 40 %: la estadounidense publica su Clase 1 B-NR y la europea su Clase I C',
+    bAcc1.indexOf('Clase 1 \\u00b7 Nivel B-NR') > -1 && bAcc1.indexOf('recomendaci\\u00f3n 9') > -1 &&
+    bEsc1.indexOf('Clase I \\u00b7 Nivel C') > -1 && bEsc1.indexOf('folio e50') > -1,
+    (bAcc1 + ' ### ' + bEsc1).slice(0, 300)]);
+  ex.push(['(c2) los dos bloques son SEPARADOS y cada uno cita SU folio',
+    !!sintRf40 && !!sintRf40.bloques && sintRf40.bloques.length >= 2 &&
+    bAcc1.indexOf('folio e182') > -1 && bAcc1.indexOf('folio e50') === -1 &&
+    bEsc1.indexOf('folio e50') > -1 && bEsc1.indexOf('folio e182') === -1,
+    'acc=' + (bAcc1.indexOf('folio e182') > -1) + ' escEnAcc=' + (bAcc1.indexOf('folio e50') > -1) +
+    ' esc=' + (bEsc1.indexOf('folio e50') > -1) + ' accEnEsc=' + (bEsc1.indexOf('folio e182') > -1)]);
+  /* LA DIFERENCIA DE FONDO: la franja de 26 a 40 % supera el 25 % de la estadounidense y NO
+     alcanza el extremo alto del rango que escribe la europea. Con una sola definicion compartida
+     esta condicion no se puede escribir. */
+  const rf2640 = escena({ tdf_sintomas: 'si' }, { 'tdfip.rf': 'b2640' });
+  const bAcc2 = bloque(rf2640, 'estadounidense') || '';
+  const bEsc2 = bloque(rf2640, 'europea') || '';
+  ex.push(['(c3) con fraccion regurgitante entre 26 y 40 % la estadounidense SI publica su fila y la europea NO',
+    bAcc2.indexOf('Clase 1 \\u00b7 Nivel B-NR') > -1 &&
+    bEsc2.indexOf('Clase I \\u00b7 Nivel C') === -1 && bEsc2.indexOf('Clase IIa') === -1,
+    (bAcc2 + ' ### ' + bEsc2).slice(0, 260)]);
+  /* CONTROL NEGATIVO: sin disfuncion valvular pulmonar ninguna fila terapeutica aplica. */
+  const sinDisf = escena({ tdf_sintomas: 'si' }, { 'tdfip.rf': 'le25', 'tdfip.rvsp23': 'no' });
+  const bAcc3 = bloque(sinDisf, 'estadounidense') || '';
+  ex.push(['(c4) CONTROL NEGATIVO: con fraccion regurgitante de 25 % o menos y presion del VD por debajo de dos tercios, ninguna fila de la estadounidense aplica',
+    bAcc3.indexOf('Clase ') === -1 && bAcc3.indexOf('ninguna de las cuatro filas') > -1,
+    bAcc3.slice(0, 220)]);
+
+  /* ══ (d) EL BORDE DE 80 ml/m2: MISMO NUMERO, DISTINTO OPERADOR ═══════════════════════════ */
+  const base80 = { tdf_sintomas: 'no', tdf_ejercicio: 'si', fevd: '40',
+                   tdf_vtsvdi: '80', tdf_vol_fuente: 'rmc' };
+  const e80 = escena(base80, { 'tdfip.rf': 'gt40' });
+  const base81 = { tdf_sintomas: 'no', tdf_ejercicio: 'si', fevd: '40',
+                   tdf_vtsvdi: '81', tdf_vol_fuente: 'rmc' };
+  const e81 = escena(base81, { 'tdfip.rf': 'gt40' });
+  const cnt = (r, g, pal) => { const b = bloque(r, g) || '';
+    const m = b.match(new RegExp('se cumplen? (\\\\d+) de esos ' + pal));
+    return m ? +m[1] : null; };
+  ex.push(['(d1) con 80,0 exactos por resonancia la ESTADOUNIDENSE no cuenta el volumen -pide POR ENCIMA- y la EUROPEA si -lo incluye-',
+    cnt(e80, 'estadounidense', 'cinco') === 2 && cnt(e80, 'europea', 'cuatro') === 2,
+    'acc=' + cnt(e80, 'estadounidense', 'cinco') + ' esc=' + cnt(e80, 'europea', 'cuatro')]);
+  ex.push(['(d2) con 81 la estadounidense SI lo cuenta y la europea sigue igual',
+    cnt(e81, 'estadounidense', 'cinco') === 3 && cnt(e81, 'europea', 'cuatro') === 2,
+    'acc=' + cnt(e81, 'estadounidense', 'cinco') + ' esc=' + cnt(e81, 'europea', 'cuatro')]);
+  /* CONTROL: con metodo distinto de resonancia el volumen se declara y NO vota en NINGUNA. */
+  const base81eco = { tdf_sintomas: 'no', tdf_ejercicio: 'si', fevd: '40',
+                      tdf_vtsvdi: '81', tdf_vol_fuente: 'eco3d' };
+  const e81eco = escena(base81eco, { 'tdfip.rf': 'gt40' });
+  ex.push(['(d3) CONTROL: con ecocardiografia 3D el volumen se declara y NO vota en ninguna de las dos',
+    cnt(e81eco, 'estadounidense', 'cinco') === 2 && cnt(e81eco, 'europea', 'cuatro') === 1 &&
+    ((fila(e81eco, 'Vol' + String.fromCharCode(250) + 'menes del VD') || {}).nota || '').indexOf('no es resonancia') > -1,
+    'acc=' + cnt(e81eco, 'estadounidense', 'cinco') + ' esc=' + cnt(e81eco, 'europea', 'cuatro')]);
+
+  /* ══ (e) LOS CRITERIOS QUE SON DE UNA SOLA GUIA ═══════════════════════════════════════════ */
+  const fevd46 = escena({ tdf_sintomas: 'no', fevd: '46' }, { 'tdfip.rf': 'gt40' });
+  const fevd47 = escena({ tdf_sintomas: 'no', fevd: '47' }, { 'tdfip.rf': 'gt40' });
+  ex.push(['(e1) la fraccion de eyeccion del VD corta en 46 % INCLUIDO y es criterio SOLO de la estadounidense',
+    cnt(fevd46, 'estadounidense', 'cinco') === 1 && cnt(fevd47, 'estadounidense', 'cinco') === 0 &&
+    cnt(fevd46, 'europea', 'cuatro') === 0 &&
+    ((fila(fevd46, 'Fracci' + String.fromCharCode(243) + 'n de eyecci' + String.fromCharCode(243) + 'n del VD') || {}).nota || '').indexOf('S' + String.fromCharCode(211) + 'LO de la gu' + String.fromCharCode(237) + 'a estadounidense') > -1,
+    '46=' + cnt(fevd46, 'estadounidense', 'cinco') + ' 47=' + cnt(fevd47, 'estadounidense', 'cinco') +
+    ' esc46=' + cnt(fevd46, 'europea', 'cuatro')]);
+  /* La presion sistolica del VD por encima de 80 mmHg es criterio SOLO de la europea. */
+  const psvd = escena({ tdf_sintomas: 'no', vmax_it: '4.6', vci_diam: '25', vci_col: '<50' },
+                      { 'tdfip.rf': 'gt40' });
+  ex.push(['(e2) la presion sistolica del VD por encima de 80 mmHg suma en la europea y NO en la estadounidense',
+    cnt(psvd, 'europea', 'cuatro') === 1 && cnt(psvd, 'estadounidense', 'cinco') === 0,
+    'esc=' + cnt(psvd, 'europea', 'cuatro') + ' acc=' + cnt(psvd, 'estadounidense', 'cinco') +
+    ' psvd=' + __t.val('psap_calc')]);
+
+  /* ══ (f) LO QUE NO SE PUEDE EVALUAR SE DECLARA Y NO SE INVENTA ════════════════════════════ */
+  ex.push(['(f1) el criterio del volumen telediastolico del VD contra el del VI se declara NO evaluable',
+    !!e81 && (e81.clinica || []).map(f => f.lbl || '').join(' ').indexOf('telediast') > -1,
+    e81 ? JSON.stringify((e81.clinica || []).map(f => f.lbl)) : 'SIN CLINICA']);
+  ex.push(['(f2) la fila del asintomatico dice CUANTOS criterios no se pudieron evaluar, asi que el conteo no se presenta como completo',
+    (bloque(e81, 'estadounidense') || '').indexOf('no se pudieron evaluar') > -1 ||
+    (bloque(e81, 'estadounidense') || '').indexOf('no se pudo evaluar') > -1,
+    (bloque(e81, 'estadounidense') || '').slice(0, 240)]);
+  ex.push(['(f3) la fila del implante percutaneo de la europea se publica Y se declara que la app no registra el antecedente',
+    (bloque(e81, 'europea') || '').indexOf('no registra ese antecedente') > -1,
+    (bloque(e81, 'europea') || '').slice(-260)]);
+
+  /* ══ (g) EL GRADO DE IP NACE EN «Sin insuficiencia» Y NO AFIRMA NADA ══════════════════════ */
+  const ipVacio = escena({ tdf_sintomas: 'si' }, {});
+  const fIp = fila(ipVacio, 'Insuficiencia pulmonar');
+  ex.push(['(g1) sin ningun parametro de IP medido la fila NO publica el valor de fabrica y queda en pregunta',
+    !!fIp && fIp.val === '\\u2014' && fIp.marca === 'ask' && fIp.nota.indexOf('nace en') > -1,
+    JSON.stringify(fIp)]);
+  const ipCargada = escena({ tdf_sintomas: 'si', ip_vtd: '25', ip_grado: 'Severa' }, {});
+  const fIp2 = fila(ipCargada, 'Insuficiencia pulmonar');
+  ex.push(['(g2) con un parametro de IP medido la fila publica el grado y lo marca',
+    !!fIp2 && fIp2.val === 'Severa' && fIp2.marca === 'alarm', JSON.stringify(fIp2)]);
+
+  /* ══ (h) LOS UMBRALES EXPORTADOS Y LA BIBLIOGRAFIA ════════════════════════════════════════ */
+  ex.push(['(h1) los dos umbrales volumetricos de la europea estan EXPORTADOS a window: sin eso el criterio deja de votar en silencio',
+    C('TDF_VTDVDI_MIN') === 160 && C('TDF_VTSVDI_MIN') === 80,
+    'vtdvdi=' + C('TDF_VTDVDI_MIN') + ' vtsvdi=' + C('TDF_VTSVDI_MIN')]);
+  let RF = null; try { RF = IND_REFS; } catch (e) {}
+  const refTxt = (k) => { if (!RF) return 'SIN IND_REFS';
+    const x = RF.filter(y => y.k === k)[0]; return x ? x.full : 'NO EXISTE'; };
+  ex.push(['(h2) las dos entradas de bibliografia existen con su folio y su regla de folio',
+    refTxt('achd2025').indexOf('folio e182') > -1 && refTxt('achd2025').indexOf('hoja del PDF + 114') > -1 &&
+    refTxt('escGuch2020Es').indexOf('folio e50') > -1,
+    refTxt('achd2025').slice(0, 120) + ' ### ' + refTxt('escGuch2020Es').slice(0, 120)]);
+  ex.push(['(h3) la entrada europea declara que de la biblioteca esta la TRADUCCION y que los folios son los de ella',
+    refTxt('escGuch2020Es').indexOf('TRADUCCI') > -1 &&
+    refTxt('escGuch2020Es').indexOf('PAGINACI') > -1,
+    refTxt('escGuch2020Es').slice(-260)]);
+  ex.push(['(h4) la entrada estadounidense declara que el texto EXTRAIDO desalinea la clase respecto de su fila',
+    refTxt('achd2025').indexOf('desalinea') > -1, refTxt('achd2025').slice(-200)]);
+
+  /* ══ (i) NADA FIRMADO SE MUEVE Y LAS RESPUESTAS NO VIAJAN ════════════════════════════════ */
+  const clavesClin = (() => { const o = [];
+    document.querySelectorAll('input[id],select[id],textarea[id]').forEach(e => {
+      if (e.id.indexOf('tdfip.') === 0) o.push(e.id); }); return o; })();
+  ex.push(['(i1) las cinco respuestas del panel NO viajan con el estudio',
+    clavesClin.length === 0, JSON.stringify(clavesClin)]);
+  const nCols = (() => { const f = F('_labExcelRow'); if (!f) return 'SIN FN';
+    try { return Object.keys(f({ campos: {}, fecha: '2026-10-22' })).length; } catch (e) { return 'EXC'; } })();
+  ex.push(['(i2) el Excel sigue en 440 columnas', nCols === 440, String(nCols)]);
+  try { indicCerrar(); } catch (e) {}
+  __t.limpiar(); set({ tdf_sintomas: 'no', tdf_ejercicio: 'si', fevd: '40' });
+  const I = __t.informe();
+  ex.push(['(i3) la seccion es de PANEL: no escribe ni una linea en el informe ni en el EN SUMA',
+    I.inf.indexOf('folio e182') === -1 && I.inf.indexOf('folio e50') === -1 &&
+    I.inf.indexOf('Clase 2a') === -1 && I.suma.indexOf('folio') === -1,
+    (I.inf || '').slice(0, 160)]);
+
+  ex.push(['(j1) DENOMINADOR DEL ANDAMIO: todos los campos entraron y todos los botones del panel se encontraron',
+    noEntraron.length === 0 && sinClic.length === 0,
+    'noEntraron=' + JSON.stringify(noEntraron) + ' sinClic=' + JSON.stringify(sinClic)]);
+
+  return { extra: ex };
+  })();
 `);
 
 

@@ -6668,3 +6668,112 @@ envuelve—, **no del marco**, que esta orden no autoriza a tocar.
 para que la próxima sección con un valor largo no vuelva a recortarse en silencio. Hoy nada lo
 señala: el cuerpo del panel **no desborda** (818 = 818) y la página tampoco, así que ninguna
 medición numérica lo ve — **lo destapó mirar la captura**.
+
+---
+
+# La tanda «I» — la ETE, la ET y la IP en Fallot reparada (22/10/2026)
+
+Declarado y **no tocado**. Nada de esto es un defecto que esta orden autorizara a corregir.
+
+### I-1 · El área de tenting: la fuente da un RANGO y la app aplica un número
+
+La Tabla 7 del documento de regurgitación valvular nativa (hoja 25, **sin folio impreso**) escribe
+el área de tenting como **«> 2,5-3 cm²»**, no como un corte único. La app aplica el extremo **BAJO**
+(2,5), que es el lado que **no deja de marcar**, y lo declara en las cuatro superficies que lo
+publican: la ficha de Referencias, el pie de la pantalla, el rótulo del campo y acá.
+
+**Decidir:** si se conserva el 2,5, si se sube a 3, o si la fila publica los dos extremos y no vota
+en la franja intermedia. **Un corte único donde la fuente da un rango es una DECISIÓN y no una
+lectura**, y por eso no se resuelve sola.
+
+### I-2 · La sección del trombo se abre SÓLO con el trombo confirmado
+
+`_indETETrombo` devuelve `null` con el trombo descartado. Abrirla para decir que no aplica sería
+publicarle una tabla de conductas a un paciente que **no está en ninguna de sus filas**.
+**Decidir** si el médico querría ver igual las filas en gris, como hacen otras secciones del panel.
+
+### I-3 · La Tabla 8 de la ESC/EACTS 2025 no lleva clase ni nivel
+
+Las contraindicaciones de la comisurotomía mitral percutánea se publican **sin** clase y **sin**
+nivel, porque esa tabla no los trae, y la sección lo dice con todas las letras. No hay nada que
+arreglar: queda escrito para que nadie se los invente.
+
+### I-4 · La tabla de dimensionamiento del WATCHMAN FLX Pro no se pudo leer
+
+Del IFU 51245861-01 rev. A (2023-07) se publican los **seis tamaños de 20 a 40 mm** y nada más: su
+tabla de dimensionamiento por diámetro de ostium no se pudo leer y **no se cita**. La línea de
+elegibilidad de la app usa la **zona de anclaje del Amulet** (11 a 31 mm), que sí es un dato de
+fabricante verificable.
+
+**Decidir** si vale la pena buscar una fuente legible para el segundo dispositivo, o si la línea se
+queda con uno solo y lo nombra.
+
+### I-5 · La referencia 33 de la Tabla 7 no está en la biblioteca
+
+Ese documento atribuye su Tabla 7 a **Lancellotti P, Marwick T, Pierard LA, «How to manage
+ischaemic mitral regurgitation», Heart 2008;94:1497-1502**, que **no está en la biblioteca**. La
+app cita la tabla por su documento y su hoja, que es lo que se pudo ver.
+
+### I-6 · De la ESC 2020 de congénitas del adulto sólo está la TRADUCCIÓN
+
+La biblioteca tiene `Baumgartner_2020_Cardiopatias_Congenitas.pdf`, la traducción de la SEC
+(*Rev Esp Cardiol* 2021;74(5):436.e1), que **pagina distinto** que el original inglés
+(*Eur Heart J* 2021;42:563-645). Lo que se leyó son **números, operadores y clases**, en imagen; la
+entrada del registro del panel es **propia** (`escGuch2020Es`) y declara las dos cosas.
+
+⚠️ **Y el archivo ya tenía una entrada que cita la edición INGLESA (`esc2020guch`), sin folio.** No
+se fusionaron: son dos publicaciones con paginación distinta, y citar una revista al lado del folio
+de la otra manda al lector a otra página — la lección que `fop2019` ya pagó.
+
+**Decidir** si se consigue el original inglés y se unifican, o si las dos entradas conviven.
+
+### I-7 · El módulo de Fallot reparada sigue publicando su CONDUCTA en el informe firmado
+
+`tdfConclusion` produce la conclusión y la conducta de reintervención, y con «Integrar al informe»
+tildado eso entra al papel y al PDF. La regla de producto de la casa —el informe es DESCRIPTIVO y
+las conductas van a Evidencia— mandaría mudarlo, igual que se hizo en esta misma tanda con el
+trombo de la orejuela y con el ateroma.
+
+**No se tocó**: es un cambio clínico de la pestaña de congénitas que esta orden no autoriza, y
+alcanza además al Laboratorio (`TDF_CONDUCTAS`, `_claveDe(tdfConclusion)`) y al PPT.
+
+### I-8 · Un criterio de la guía estadounidense no se puede evaluar
+
+«RV end-diastolic volume ≥ 2× LV end-diastolic volume» (recomendación 10). El volumen del VD se
+**transcribe** de la resonancia y está **indexado**; el del VI lo mide este ecocardiograma y está en
+mililitros. Compararlos sería un cociente entre **dos métodos y dos unidades**, que no es lo que la
+tabla pide. La sección lo declara en su bloque clínico y **dice cuántos criterios pudo evaluar**,
+así que el conteo nunca se presenta como completo.
+
+**Decidir** si vale un campo para el volumen telediastólico del VD **absoluto**, o si queda
+declarado para siempre.
+
+### I-9 · La fila del implante percutáneo de la ESC 2020 se publica y no se evalúa
+
+Su nota ᵉ define al paciente «sin tracto de salida nativo» como el que tuvo cirugía previa con
+homoinjerto, injerto de vena yugular bovina o bioprótesis o conducto. **La app no registra ese
+antecedente**, así que la fila se publica como contexto y la sección lo dice.
+
+### I-10 · `ip_grado` nace en «Sin insuficiencia», y la corrección es LOCAL
+
+Ese token **no distingue** «no hay insuficiencia pulmonar» de «nadie la evaluó» — la misma trampa
+que `it_grado` resolvió con `_indITEvaluada`. La sección nueva lleva su propio predicado
+(`ipEv`) y no afirma nada sin un parámetro de IP medido.
+
+**Lo que queda abierto es que no hay un dueño ÚNICO**: `_indITEvaluada` vive en el panel y sirve a
+varias secciones; el equivalente pulmonar es hoy una variable local de `_indTdFIP`. La próxima
+sección que lea `ip_grado` va a tener que escribirlo otra vez, que es exactamente el defecto que un
+dueño único evita.
+
+⚠️ **Y `ip_reversion` queda FUERA de ese predicado y no es un olvido: es un CHECKBOX**, y `sv()`
+devuelve su `.value`, que vale **«on» SIEMPRE**, marcado o no. Con él adentro el predicado era
+verdadero en todo paciente.
+
+### I-11 · El mapa nuevo nació porque tres mapas están cruzados o al borde
+
+Medido con `wc -c` **antes** de escribir: `panel-evidencia.md` **35,3 KB** (ya cruzado desde el
+2026-10-12), `tests-fichas.md` **34,2** y `vista-2d-valvulas.md` **34,0**. Por eso la documentación
+de esta zona salió a **`docs/mapa/tanda-i-ete.md`** (19,8 KB) con la ficha de TC-518 adentro, y a
+los cinco mapas con margen les entró un puntero.
+
+**Los tres siguen esperando que alguien los parta.**
