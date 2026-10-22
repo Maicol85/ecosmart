@@ -17584,6 +17584,27 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
      ahí el parámetro NO gradúa, y la app se abstiene en vez de inventar «moderada». -->
 <tr style="background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">Ratio jet/AI (%) <span style="font-size:10px;">(nativa ACC/AHA 2020 T17 folio e121 &middot; pr&oacute;tesis ASE 2024 T13 p.30)</span></td><td style="padding:5px 8px;text-align:center;">&lt;20</td><td style="padding:5px 8px;text-align:center;">nativa 20–40 · <b>prótesis: Variable, no gradúa</b></td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">nativa &gt;40 · prótesis &gt;50</td></tr>
           </table>
+          <!-- ⚠️ EL CORTE ALTERNATIVO DE LA SECUNDARIA, CON SUS DOS CONDICIONES (AJ1-E7,
+               22/10/2026). NINGUN CORTE SE MOVIO: la app sigue graduando con los de la PRIMARIA,
+               que es lo que la ACC/AHA 2020 recomienda. Lo que entra es la ficha del corte que la
+               pantalla NOMBRA desde el AJ1-E5 cuando el paciente lo alcanza. Los dos valores y las
+               dos condiciones estan VERIFICADOS EN IMAGEN en el original. -->
+          <div style="margin-top:8px;font-size:11px;color:var(--text2);line-height:1.6;">
+            <b>Insuficiencia mitral secundaria &mdash; los cortes alternativos.</b> La
+            <b>ESC/EACTS 2025</b> (&sect;9.2.2, <b>folio 4675</b>) dice que al cuantificar el ORE y el
+            volumen regurgitante en la secundaria <i>pueden aplicar</i> umbrales m&aacute;s bajos, por el
+            orificio regurgitante potencialmente el&iacute;ptico y por el estado de bajo flujo, y nombra un
+            <b>ORE de 30 mm&sup2; o m&aacute;s</b> y un <b>volumen regurgitante de 45 ml o m&aacute;s</b> como valores con
+            impacto pron&oacute;stico. Su <b>Figura 10</b> (<b>folio 4672</b>) escribe la condici&oacute;n del orificio
+            con todas las letras: <i>&laquo;&ge;40 mm&sup2; (or &ge;30 mm&sup2; if elliptical regurgitant orifice
+            area)&raquo;</i>. La <b>ACC/AHA 2020</b> sostiene lo contrario &mdash; define la secundaria severa igual
+            que la primaria, con ORE &ge; 0,40 cm&sup2; y volumen regurgitante &ge; 60 ml &mdash; y es la posici&oacute;n
+            que esta aplicaci&oacute;n aplica. Como apoyo, la <b>ASE 2017</b> (<b>folio 334</b>) llama grave a un
+            ORE &ge; 0,40 cm&sup2; y &laquo;probablemente grave&raquo; a &ge; 0,30 cm&sup2;.
+            <b>La aplicaci&oacute;n no decide si el orificio es el&iacute;ptico ni si el flujo es bajo</b>: no tiene campo
+            para ninguno de los dos, as&iacute; que cuando el valor alcanza el corte alternativo lo
+            <b>nombra en la pantalla</b>, con su condici&oacute;n, y <b>no cambia el grado</b>.
+          </div>
           <!-- Las dos condiciones que la Tabla 12 enuncia y la app NO verifica van juntas acá y no
      dentro de la celda: una celda de tabla con dos salvedades deja de leerse como un corte. -->
           <div style="margin-top:6px;font-size:11px;color:var(--text2);line-height:1.6;">
@@ -17729,6 +17750,10 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
                  vacía en una tabla cuyas otras seis filas tienen los tres grados se lee como un dato
                  que falta cargar, no como una banda que la guía decidió no publicar. -->
             <tr><td style="padding:5px 8px;color:var(--text2);">Vmax telediastólica Ao desc.</td><td style="padding:5px 8px;text-align:center;color:var(--text2);">&mdash;</td><td style="padding:5px 8px;text-align:center;color:var(--text2);">&mdash;</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">&ge;20 cm/s</td></tr>
+            <!-- ⚠️ LA FILA QUE GRADUA EL REVERSO (AJ1-E6/E7, 22/10/2026). Los tres cortes de
+                 EcoSmart del VTI -«<15 / 15-24 / >=25»- salieron: lo que gradua es la DURACION, y
+                 el VTI y la velocidad la califican. Ver las dos notas de abajo. -->
+            <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">Reverso diast&oacute;lico Ao desc. &mdash; duraci&oacute;n</td><td style="padding:5px 8px;text-align:center;">ninguno o breve protodiast&oacute;lico</td><td style="padding:5px 8px;text-align:center;">intermedio, u holodiast&oacute;lico con VTI &le; 15 cm</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">holodiast&oacute;lico con VTI &gt; 15 cm</td></tr>
           </table>
           <div style="margin-top:8px;font-size:11px;color:var(--text2);line-height:1.6;">
             La <b>Vmax telediast&oacute;lica en aorta descendente</b> es el &uacute;nico par&aacute;metro de esta tabla con
@@ -17736,6 +17761,23 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
             <i>&laquo;Criteria for severe AR&raquo;</i> como <i>&laquo;Holodiastolic flow reversal in descending aorta
             (EDV &ge;20 cm/s)&raquo;</i>, y no da bandas de leve ni de moderada. Por debajo de 20 cm/s el
             par&aacute;metro <b>no grad&uacute;a</b> y la severidad la deciden los otros votantes.
+          </div>
+          <!-- ⚠️ LAS DOS FUENTES DEL REVERSO, CADA UNA CON LO SUYO (AJ1-E7). La estructura y la
+               velocidad tienen fuente de GUIA; el VTI de 15 cm sale SOLO del libro de texto, y la
+               fila lo rotula asi en vez de colgarle una cita de guia que no lo respalda. La
+               edicion, el anio y la pagina del libro los completa el medico: no se inventan. -->
+          <div style="margin-top:8px;font-size:11px;color:var(--text2);line-height:1.6;">
+            El <b>reverso diast&oacute;lico de la aorta descendente</b> se grad&uacute;a por su <b>duraci&oacute;n</b>, y el VTI
+            y la velocidad telediast&oacute;lica la califican. La estructura de los tres grados es la de la
+            <b>EACVI 2013</b> (Lancellotti P y col., <i>Eur Heart J Cardiovasc Imaging</i> 2013;14:611-644,
+            <b>Tabla 4, folio 621</b>), que escribe <i>&laquo;brief, protodiastolic flow reversal&raquo;</i> en leve,
+            <i>&laquo;intermediate&raquo;</i> en moderada y <i>&laquo;holodiastolic flow reversal (end-diastolic velocity
+            &gt;20 cm/s)&raquo;</i> en grave &mdash; y que a su vez lo cita de Tribouilloy, <i>Br Heart J</i> 1991;65:37-40.
+            El <b>corte de 15 cm del VTI</b> sale de la <b>Tabla 20-5 del libro de texto</b> &laquo;Ecocardiograf&iacute;a
+            avanzada&raquo; (Moya Mur, cap&iacute;tulo 20): <b>libro de texto; no figura en las gu&iacute;as de la biblioteca</b>.
+            Con <b>15 cm exactos</b> la aplicaci&oacute;n se queda en <b>moderada</b>, que es el lado que no afirma
+            la gravedad: la tabla escribe &laquo;&lt;15&raquo; y &laquo;&gt;15&raquo; y deja ese valor sin definir.
+            <b>Sin la duraci&oacute;n consignada</b>, el VTI y la velocidad se muestran y <b>no grad&uacute;an</b>.
           </div>
           <!-- ⚠️ DOS VALORES DE ESTA TABLA CAMBIAN CON PROTESIS AORTICA, y la celda tiene que
      decirlo o miente en todo paciente operado: los seis cortes de arriba son de valvula NATIVA y
@@ -17771,6 +17813,14 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
             <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">AVAi (cm²/m²)</td><td style="padding:5px 8px;text-align:center;"></td><td style="padding:5px 8px;text-align:center;"></td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">&lt;0.6</td></tr>
             <tr><td style="padding:5px 8px;color:var(--text2);">DVI</td><td style="padding:5px 8px;text-align:center;"></td><td style="padding:5px 8px;text-align:center;"></td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">&lt;0.25</td></tr>
           </table>
+          <!-- ⚠️ LA FUENTE DEL GRADIENTE MEDIO, QUE FALTABA (AJ1-E7, 22/10/2026). NINGUN VALOR
+               CAMBIA: la tabla ya publicaba «20-39» y «>=40», que es lo que `EA_BANDAS` aplica
+               con `gmedModMin` 20 y `gmedSevMin` 40. Lo que entra es de donde salen. Verificado
+               EN IMAGEN: EAE/ASE 2009 (Baumgartner), Tabla 3, folio impreso 10, fila «Mean
+               gradient (mmHg)», columna marcada con la nota b, que es la de la AHA/ACC. -->
+          <div style="margin-top:7px;font-size:11px;color:var(--text2);line-height:1.6;">
+            El gradiente medio sale de la <b>EAE/ASE 2009 (Baumgartner), Tabla 3, folio 10</b>, de su columna de la AHA/ACC (nota <b>b</b> de esa tabla), que publica <b>&lt;20</b> en leve, <b>20-40</b> en moderada y <b>&gt;40</b> en severa. La columna de la ESC de la misma fila, marcada con la nota <b>a</b>, corre los tres a <b>&lt;30</b>, <b>30-50</b> y <b>&gt;50</b>: esta aplicación usa la de la AHA/ACC.
+          </div>
           <div style="margin-top:10px;font-size:12px;color:var(--text);line-height:1.8;">
             <!-- ⚠️ ACTUALIZADO A ESC/EACTS 2025. Decía «TAVI ≥75 años, alto riesgo (STS ≥8%)» y
                  «SAVR <75 años», que son los cortes de la edición 2021: el de edad bajó a 70 y el
@@ -23992,6 +24042,10 @@ const EV_DOI_ASE2025VD  = '10.1016/j.echo.2025.01.006';
    propio PDF. */
 const EV_GUIA_ASE2005 = 'Lang RM y col., Recomendaciones para la cuantificación de las cámaras cardiacas, ASE y Asociación Europea de Ecocardiografía, 2005';
 const EV_DOI_ASE2005  = '10.1016/j.echo.2005.10.005';
+/* ⚠️ LA UNICA GUIA DE AORTA DE LA BIBLIOTECA ES LA TRADUCCION DE LA SEC, y se declara: no hay
+   ACC/AHA 2022. Lo leido de ella son numeros y operadores. Regla de folio = hoja menos uno,
+   comprobada en el encabezado impreso. */
+const EV_GUIA_ESC2024AO = 'Mazzolai L y col., Guía ESC 2024 sobre el diagnóstico y el tratamiento de la enfermedad arterial periférica y aórtica (traducción de la Sociedad Española de Cardiología)';
 const EV_GUIA_ESC2021IC = 'McDonagh TA y col., Guía ESC 2021 sobre el diagnóstico y tratamiento de la insuficiencia cardiaca aguda y crónica (traducción de la Sociedad Española de Cardiología)';
 /* ⚠️ EL DOI ERA EL DE UN «CONTENIDO RELACIONADO» (R8, 2026-10-20). El `...11.012` que la app
    citaba figura en la hoja 1 del PDF como contenido relacionado y no como el DOI del articulo, que
@@ -24321,6 +24375,20 @@ const EV_REG = Object.freeze([
     doi: '', fuente_original: '', tipo: 'criterio propio de EcoSmart',
     estado: 'por verificar', fecha_verificacion: EV_FECHA_VER,
     fuente_una_linea: '',
+  }),
+  /* ⚠️ LOS DOS CORTES DE LA GUIA, CON SU OPERADOR DECLARADO (AJ1-E7, 22/10/2026). La ficha
+     AOR-001 es el criterio PROPIO de EcoSmart por segmento; esta es la DEFINICION de dilatacion
+     de la ESC 2024, que es la que abre las dos secciones de Evidencia de aorta y la que trae el
+     indice. Los dos numeros y el iDA salen de la MISMA frase del apartado 9.2.1.1 (folio 71),
+     leida en imagen, y el operador de los dos absolutos sale de la Figura 24 (folio 76). */
+  Object.freeze({
+    id: 'AOR-004', zona: 'AI/VI — Aorta torácica', dato: 'Definición de dilatación de la ESC 2024 y el índice de dimensión aórtica',
+    valor: 'Se sospecha dilatación con 40 mm o más en el varón y 36 mm o más en la mujer, o con un índice de dimensión aórtica (diámetro dividido por la superficie corporal) por encima de 22 mm/m². El texto de la guía escribe los dos diámetros con «más de» y su Figura 24 los escribe con el valor incluido (40 a 44 mm, y 36 a 44 mm en la mujer): la aplicación usa el criterio inclusivo. El índice sólo figura en el texto, con «más de», y así se aplica',
+    duenio: 'aoDilCorte / aoIdaDilatado',
+    guia: EV_GUIA_ESC2024AO, ubicacion: 'Apartado 9.2.1.1 y Figura 24', folio: '71 y 76', hoja_pdf: 72,
+    doi: '10.1093/eurheartj/ehae179', fuente_original: '', tipo: 'guía',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_AJ1,
+    fuente_una_linea: 'ESC 2024 de enfermedad aórtica (Mazzolai), apartado 9.2.1.1 (folio 71) y Figura 24 (folio 76)',
   }),
   Object.freeze({
     id: 'AOR-002', zona: 'AI/VI — Aorta torácica', dato: 'Nomogramas del diámetro de los senos de Valsalva por superficie corporal',
@@ -42817,7 +42885,7 @@ function evRefPintar(id) {
     host.dataset.evPintado = '1';
   }
   if (id === 'ao2') {
-    const B = _evRefBiblio(['AOR-001', 'AOR-002', 'AOR-003']);
+    const B = _evRefBiblio(['AOR-001', 'AOR-002', 'AOR-003', 'AOR-004']);
     host.appendChild(_evRefTabla([
       /* ⚠️ EL SIMBOLO SE DERIVA DE `AO_SEGS` (VS5/VS6): la raíz es el único segmento que cuenta
          su propio corte como dilatado, así que su fila dice «≥ 40 mm» y las otras cuatro «>». */
@@ -42833,6 +42901,13 @@ function evRefPintar(id) {
       { ficha: 'AOR-003', rot: 'Unión sinotubular — normal', h: '2,9 ± 0,3 cm', m: '2,6 ± 0,3 cm' },
       { ficha: 'AOR-003', rot: 'Aorta ascendente proximal — normal', h: '3,0 ± 0,4 cm', m: '2,7 ± 0,4 cm' },
       { ficha: 'AOR-003', rot: 'Anillo aórtico — normal', h: '2,6 ± 0,3 cm', m: '2,3 ± 0,2 cm' },
+      /* ⚠️ LAS DOS FILAS DE LA DEFINICION DE LA GUIA (AJ1-E7), que es OTRA cosa que el criterio
+         propio por segmento de arriba: estos son los dos numeros que ABREN la Evidencia de aorta.
+         Los tres valores salen de sus DUEÑOS -`AO_DIL_MM` y `AO_IDA_MAX`- y no se escriben a mano. */
+      { ficha: 'AOR-004', rot: 'Dilatación según la ESC 2024 — diámetro',
+        h: AO_DIL_MM.M + ' mm o más', m: AO_DIL_MM.F + ' mm o más' },
+      { ficha: 'AOR-004', rot: 'Dilatación según la ESC 2024 — índice de dimensión aórtica',
+        h: 'más de ' + AO_IDA_MAX + ' mm/m²', m: 'más de ' + AO_IDA_MAX + ' mm/m²' },
     ], B.idx));
     /* LAS TRES GRAFICAS, sin el punto del paciente y con su ecuacion al pie. El numero sale de
        `AOR_NOMO`, que es el mismo dueno que dibuja la tarjeta. */

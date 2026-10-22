@@ -73594,10 +73594,18 @@ caso('TC-492', 'Tanda M: las DIECISEIS FICHAS nuevas del registro de evidencia d
         && String(aoA.texto||"").indexOf('Es una orientaci\u00f3n: el criterio final es individual') > -1,
       String(aoA.texto||"").slice(0, 300)]);
     /* Control negativo: el corte de 40 mm NO se le atribuye a ninguna guia. */
-    ex.push(['CONTROL NEGATIVO: el corte de 40 mm no se le atribuye a ninguna guia y la unica fuente que la tarjeta publica es la del nomograma',
+    /* ADAPTADO el 2026-10-22 (AJ1-E3/E7). La tarjeta gana una NOTA sobre el operador del corte
+       de dilatacion: la ESC 2024 lo escribe de dos maneras en el mismo documento -«mas de» en su
+       texto del folio 71 y con el valor incluido en su Figura 24 del folio 76- y la app aplica el
+       inclusivo. La nota NOMBRA la guia, asi que el regex que exigia que ninguna guia apareciera
+       en el cuerpo deja de servir. Lo que el control protege -que el corte de 40 mm NO se le
+       ATRIBUYA a una guia- se conserva y se mide mejor: el pie de fuentes sigue teniendo UNA sola
+       entrada, la del nomograma, y la linea del corte sigue diciendo «Corte de EcoSmart». */
+    ex.push(['CONTROL NEGATIVO: el corte de 40 mm sigue rotulado «Corte de EcoSmart» y el pie publica UNA sola fuente, la del nomograma',
       (aoD.fuentes || []).length === 1
         && (aoD.fuentes || [])[0].indexOf('Figura 13') > -1
-        && !/ESC|AHA|gu[ií]a/i.test(String(aoD.texto||'').split('Fuente:')[0]),
+        && String(aoD.texto||'').indexOf('Corte de EcoSmart') > -1
+        && !/ESC|AHA|gu[ií]a/i.test(String(aoD.texto||'').split('Sobre el corte de dilatación')[0].split('Fuente:')[0]),
       'fuentes=' + (aoD.fuentes || []).join(' | ')]);
     /* Sin edad, sin superficie corporal y fuera del rango de superficie corporal. */
     montar({ ao_sin: '40' }); abrir('ao-card'); const sinE = leer(); { const b = BTN('ao-card'); if (b) b.click(); }
@@ -73639,7 +73647,7 @@ caso('TC-492', 'Tanda M: las DIECISEIS FICHAS nuevas del registro de evidencia d
        que el normal no distingue sexo. Una segunda entrada del mismo documento con otro
        localizador es lo que la regla de bibliografia por seccion ya hace en ao2. */
     ex.push(['la bibliografia de cada seccion numera desde [1] y sale SOLO de fichas verificado',
-      refs.ad.bib === 3 && refs.vd2.bib === 2 && refs.ao2.bib === 2
+      refs.ad.bib === 3 && refs.vd2.bib === 2 && refs.ao2.bib === 3
         && String(refs.ao2.txt||'').indexOf('Figura 13') > -1 && String(refs.ao2.txt||'').indexOf('Tabla 14') > -1,
       'ad=' + refs.ad.bib + ' vd2=' + refs.vd2.bib + ' ao2=' + refs.ao2.bib]);
     /* ADAPTADO (VS, 2026-10-17): el diametro longitudinal pasó de «por verificar» a verificado
@@ -74496,7 +74504,7 @@ caso('TC-494', 'Tanda VS: el VD, la AD, la VCI y la RAIZ AORTICA alineados a la 
      doce barras no se mueven: el strain entra como FILA de la tabla y no como barra, porque su
      dueno es un corte binario y no las cuatro bandas de la Tabla 1. */
   ex.push(['Referencias gana las dos barras de las areas del VD y su bibliografia queda en DOS entradas',
-    refs.vd2.barras === 12 && refs.vd2.bib === 2 && refs.ad.bib === 3 && refs.ao2.bib === 2,
+    refs.vd2.barras === 12 && refs.vd2.bib === 2 && refs.ad.bib === 3 && refs.ao2.bib === 3,  /* AJ1-E7: ao2 gana la ficha AOR-004 */
     'barras=' + refs.vd2.barras + ' bib ad/vd2/ao2=' + refs.ad.bib + '/' + refs.vd2.bib + '/' + refs.ao2.bib]);
 
   /* ══ (h) · EL REGISTRO ══ */
