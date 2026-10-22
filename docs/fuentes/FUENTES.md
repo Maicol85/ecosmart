@@ -5034,3 +5034,32 @@ del médico.
 | Frase de la excursión | cinco copias del lado, y «(excursión de 16 mm de excursión total)» | **un solo dueño** (`asiaExcFrase`) en las **siete** superficies | — | D2-E1 | 21/10/2026 |
 | Selector de latidos | nacía en **3** (valor de fábrica) | nace **sin consignar**; el informe calla el número hasta que se elija | decisión de Maicol; cierra `D-6` | D2-E2 | 21/10/2026 |
 | Evidencia de la VAB — aorta ascendente | se abría **sólo** por el diámetro | exige **además** que la válvula sea bicúspide | el asunto de la sección; mismo predicado que su sección hermana | D2-E3 | 21/10/2026 |
+
+---
+
+## El trabajo D3 (2026-10-21) — ninguna fuente nueva, y por qué
+
+Esta corrección **no verifica ni mueve ningún dato de guía**. Lo que cambió es **por dónde se puede
+cargar** la excursión del aneurisma del septum: hasta hoy su único campo (`fop_asa_mm`) vivía en el
+módulo FOP de Congénitas, y la pestaña «Otros» —donde están la casilla del ASIA y el selector «Se
+abomba hacia»— no tenía ninguno, así que trabajando sólo desde ahí el generador de la frase se
+quedaba sin dato y las seis superficies se callaban.
+
+**Lo que NO se tocó, medido:**
+
+- los dos cortes del D2-E1 (`ASIA_EXC_UN_LADO_MIN = 10`, `ASIA_EXC_TOTAL_MIN = 15`) ni su operador
+  estricto;
+- la regla de que el corte depende del lado, ni la de que sin lado no hay veredicto;
+- el texto de la frase, que sigue saliendo de `asiaExcFrase`, su dueño único desde el D2-E1;
+- ninguna cita, ningún folio y ninguna atribución.
+
+**La comprobación:** las **catorce** escenas con la excursión ya cargada en `fop_asa_mm` —seis
+valores por lado, con y sin el FOP integrado, más el ASIA en «No» por sus dos gestos— salen
+**idénticas** al árbol del D2 en el informe, el EN SUMA, la conclusión y la celda del PDF. Y el A/B
+de control contra ese árbol, con el formulario vacío y con un escenario ajeno, da **cero
+diferencias** en las seis plantillas del PDF generadas de verdad, el PPT, el PDF de auditoría, el
+Laboratorio y las 440 columnas del Excel.
+
+### Cambios de evidencia
+
+**Ninguno.** La tabla del trabajo D2, arriba, sigue describiendo el estado vigente de esta zona.

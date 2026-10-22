@@ -6412,7 +6412,14 @@ Lo que `D-8` ya declara. Esta orden lo excluye expresamente («el RoPE es otro t
 de fuentes»). La sección de Evidencia del FOP lo **nombra** en su bloque de contexto y no lo
 calcula, porque pide datos que la app no tiene.
 
-### D2b-9 · Seis comentarios de `index.html` de esta tanda llevan la fecha equivocada
+### D2b-9 · Seis comentarios de `index.html` de esta tanda llevan la fecha equivocada — **CERRADO el 2026-10-21 (D3)**
+
+**Cerrado:** el **D3** tocó `index.html`, que es la condición que esta entrada ponía, y los seis
+pasaron a `2026-10-21` de paso. Verificado: `grep -c "D2-E., 2026-10-22" index.html` da **0** y
+`grep -c "D2-E., 2026-10-21"` da **6**. La línea base entera se volvió a medir sobre el árbol ya
+re-sellado, así que no queda nada medido sobre el `md5` anterior.
+
+Lo que decía:
 
 Dicen **2026-10-22** y la fecha real es el **21**: el reloj del sistema, el encabezado que imprime
 la suite (`21/10/2026`) y el sello del propio commit (`v20261021-1443`) dicen los tres 21. Copié la
@@ -6428,3 +6435,42 @@ línea base que no corresponde al árbol sellado es peor que una fecha mal escri
 
 **Salida:** la próxima tanda que toque `index.html` los arregla de paso, con
 `grep -n "D2-E., 2026-10-22" index.html`.
+
+---
+
+## Tanda D3 (2026-10-21) — la excursión del ASIA desde «Otros»
+
+### D3-1 · La caja de detalle del ASIA sigue admitiendo un número suelto
+
+`otr_asia_nota` es **texto libre** y su placeholder pide milímetros: «(de … mm por … mm en eje L y
+T)». Con el campo de excursión al lado y rotulado el dedazo deja de ser el camino natural —es lo que
+el D3 cierra— pero el estado sigue siendo alcanzable: un médico que escriba «11» ahí y deje la
+excursión vacía ve «Aneurisma del septum interauricular 11.», igual que antes.
+
+**No se tocó, y el motivo está escrito en el propio código:** la nota es texto clínico que el médico
+redacta y la app no le pone comillas, paréntesis ni interpreta su contenido. Adivinar que un número
+suelto es la excursión sería leer el significado de un texto libre.
+
+**Salidas, de la más conservadora a la menos:** (a) dejarlo así —lo que se hizo—; (b) cambiar el
+placeholder para que no pida milímetros, ahora que el campo de al lado los pide; (c) un aviso de
+pantalla cuando la nota sea un número puro y la excursión esté vacía. Las tres son decisión de
+Maicol: (b) y (c) tocan texto de cara al médico.
+
+### D3-2 · La excursión sigue sin columna de Excel
+
+`fop_asa_mm` no está en `LAB_XLS_MAP` —lo que tiene es una fila del PDF de congénitas— así que un
+backup a Excel y su reimportación pierden la excursión, y con ella la frase del ASIA. Es lo que
+`D-7` ya declara para los dos datos del trabajo D; el segundo control del D3 **no cambia nada de
+esto**: no agrega ni quita columnas, medido en 440.
+
+**Salida:** una columna nueva es PARADA y la decide Maicol.
+
+### D3-3 · El lado y la casilla del ASIA viajan con el estudio y la excursión también, pero por el dueño
+
+Tres claves del bloque son del estudio (`otr_asia__chk`, `otr_asia_nota`, `otr_asia_lado`) y la
+cuarta —la excursión— viaja por `fop_asa_mm`, que vive en otra pestaña. **Medido: al reabrir un
+estudio el espejo la repone y la frase sale**, así que el médico no nota la diferencia. Lo que
+queda declarado es que son dos pestañas distintas para un mismo bloque clínico.
+
+**No hay nada que arreglar hoy**; se escribe para que la próxima tanda que mueva uno de los cuatro
+sepa que el cuarto no está donde parece.

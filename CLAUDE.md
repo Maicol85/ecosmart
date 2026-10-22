@@ -63,6 +63,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la FIBRILACIÓN AURICULAR de la función diastólica**: los tres dueños, sus cortes lado a lado, las tres reglas de conteo o el aviso de frecuencia cardíaca | `docs/mapa/diastolica-fa.md` |
 | **Entender por qué una REFERENCIA conservaba el resultado del valor viejo al borrar el dato**: el dueño común, las DOS causas y los once campos | `docs/mapa/borrado-referencias.md` |
 | **Tocar el FOP, el test de burbuja o el aneurisma del septum**: la escala unificada, el espejo entre Otros y el módulo FOP, el informe esquemático o el aviso de la edad | `docs/mapa/fop-burbuja-unificado.md` |
+| **Tocar la EXCURSIÓN del aneurisma o su frase**: sus DOS controles —`fop_asa_mm` en el FOP y su espejo en «Otros»—, el dueño del espejo o el enganche de la nota | `docs/mapa/d2-correcciones.md` §9 |
 | **Tocar la REGLA del aneurisma del septum, el selector de LATIDOS, la compuerta de la EVIDENCIA de la VAB o las barras de C. CONGÉNITAS**: el operador estricto, el lado como condición, la frase de un solo dueño, el «No» que vacía el lado, `_indVABEsBicuspide` o la caja de Conclusión apilada | `docs/mapa/d2-correcciones.md` |
 | **Agregar o correr un caso de prueba; A/B; mutación** | `docs/mapa/tests.md` · fichas en `docs/mapa/tests-fichas.md` (TC-499 en adelante), `docs/mapa/tests-fichas-496-498.md`, `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
 | **Tocar el DIBUJO ESTÁTICO de la mitral en ETE**: la tabla única de festones por ángulo, la geometría, la línea del plano, el giro, las tres vistas con sus LETRAS DE FESTÓN, **la ORIENTACIÓN de la TRANSGÁSTRICA**, el PDF, los CUATRO DIBUJOS DE MEDIDAS TEER, **los CRITERIOS TEER y sus cortes** o **el ESPEJO de la FEVI y el DSFVI del TEER** | `docs/mapa/mitral-dibujo-estatico.md` |
@@ -135,8 +136,8 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **9,10 MB / 129.868 líneas**, medido con `wc -l` y `ls -l` el 2026-10-21 al
-  cierre de la tanda **D2**, sobre el árbol ya sellado (`v20261021-1443`).
+  sin frameworks. Hoy **9,10 MB / 129.954 líneas**, medido con `wc -l` y `wc -c` el 2026-10-21 al
+  cierre de la tanda **D3**, sobre el árbol ya sellado (`v20261021-2219`).
   ⚠️ **Y ESTE RENGLÓN DECÍA «8,53 MB / 128.236 líneas» —el cierre del trabajo B— DURANTE CINCO
   TANDAS**: el B fue la primera en muchas que lo dejó más CHICO (por las 431 líneas del
   Fonocardiograma retirado) y desde entonces cada tanda escribió su delta en su propia sección sin
@@ -298,6 +299,163 @@ impecable.
 ---
 
 ## Estado vigente
+
+### La EXCURSIÓN del ASIA se carga desde «Otros» — «D3» (2026-10-21)
+
+- **Son DOS commits, y son los dos que la orden pedía.** Al **empezar**, `main` estaba en
+  **`c440c11`** —el cierre del D2, con su sello `v20261021-1443`— y `origin/main` en **`53ddd7a`**,
+  o sea que los cinco commits del D2 seguían locales, que es lo que la orden preveía. Los **dos**
+  de esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 2 → 1.**
+  ⚠️ **EL 1 LLEVA LAS DOS SONDAS** (`scripts/_probe_d3.mjs` y `scripts/_probe_d3wk.mjs`), que el 2
+  usa, y **el 2 es TC-515 más la documentación**: revertir el 1 sin el 2 lo deja en rojo —21 de sus
+  35 condiciones—.
+  ⚠️ **EL 1 LLEVA EL SELLO Y ES EL ÚNICO QUE TOCA `index.html`**, así que el 2 no re-sella.
+  ⚠️ **Y EL 1 CIERRA `D2b-9` DE PASO**: esa entrada pedía que «la próxima tanda que toque
+  `index.html`» arreglara las seis fechas `2026-10-22` de los comentarios del D2, y ésta lo hace.
+  **Se re-selló y se volvió a medir TODO sobre el árbol final** (`v20261021-2219`, `md5`
+  `17332d97…`), así que no queda nada medido sobre el sello anterior.
+  ⚠️ **CASOS ADAPTADOS: NINGUNO**, y no es suerte: las **catorce** escenas con la excursión ya
+  cargada en `fop_asa_mm` salen **idénticas** al árbol del D2, el campo nuevo no viaja con el
+  estudio y el Excel no gana una columna, así que ningún denominador se mueve.
+
+- **Línea base al cierre: suite **525/529** con el pendrive `DISK_IMG` **MONTADO** —verificado al
+  abrir Y al cerrar—, Semgrep **124 / 0 ERROR en 1 app**, Excel en **440** columnas y celular **66 a
+  360 px y 76 a 390 px con 17 ALTA cada uno**, con `--todo` **395 / 405**: el MISMO par que dejó el
+  D2. CERO REGRESIONES.** Los rojos son exactamente los **cuatro** de ENTRADA —**TC-223** (el
+  documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**— y no apareció ninguno fuera
+  de esa lista. **El denominador sube a 530**: esta tanda agregó **TC-515**, así que la comparación
+  es **524/528 → 525/529** y el delta es el caso nuevo. Los **diecisiete** de **TC-181…TC-197**
+  salieron VERDES, que es la prueba del pendrive, y el `md5` no se movió durante la corrida.
+  ⚠️ **CORRIÓ DE UN TIRÓN, a diferencia del D2**, y la razón se midió: `vm_stat` daba **1,9 GB**
+  libres al arrancar contra los 178 MB de aquella tanda. **La página de `vm_stat` en esta máquina es
+  de 16 KB y no de 4**: multiplicar por 4096 informa la cuarta parte de la memoria que hay.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **529 ids** sobre los 530 casos del archivo.
+- **`index.html` pasó de 9,10 MB / 129.868 líneas a **9,10 MB / 129.954 líneas** — medido con
+  `wc -l` y `wc -c` DESPUÉS de sellar.
+
+- **LA CAUSA NO ERA NINGUNA DE LAS DOS QUE LA ORDEN SOSPECHABA, Y LAS DOS SE DESCARTARON MIDIENDO.**
+  **(i) El informe NO estaba viejo:** reproducido con teclas reales por los **dos** botones del
+  gesto —«Generar Informe» y «Regenerar Informe»— en las cuatro escenas del reporte (AD 10, AD 11,
+  ambos 16 y sin lado): los ocho textos salen iguales. **(ii) El emisor de «Otros» SÍ estaba
+  alineado al generador único:** `otrHallazgos` llama a `asiaExcFrase(src)` desde el **D2-E1**.
+  **Lo que faltaba es el DATO.**
+- ⚠️ **`asiaExcFrase()` LEE `fop_asa_mm`, QUE VIVE EN EL MÓDULO FOP, Y LA PESTAÑA «OTROS» NO TENÍA
+  NINGÚN CAMPO DE EXCURSIÓN.** Censado el DOM **renderizado** de esa pestaña: su bloque del ASIA
+  tiene la casilla (`otr_asia`), la caja de detalle (`otr_asia_nota`, **texto libre**, con el
+  placeholder «(de … mm por … mm en eje L y T)») y el lado (`otr_asia_lado`) — y **cero campos
+  numéricos**. Trabajando sólo desde ahí el generador devolvía `null`, las seis superficies se
+  callaban, y el número que el médico veía era **su propia nota**, pegada por `def + ' ' + nota`:
+  **«Aneurisma del septum interauricular 10.»**. Escribió el 10 ahí porque era el único lugar de esa
+  pestaña donde se podía escribir un número y porque el placeholder pide milímetros.
+- ⚠️ **ES LA MITAD QUE FALTABA DEL D-E1.** Aquella tanda puso el **lado** en «Otros» con el
+  argumento «el dato vive ACÁ, con el ASIA, y la sección del FOP lo LEE», y dejó el número del otro
+  lado. El corte del D2 necesita los dos.
+
+- **LA EXCURSIÓN ENTRA EN «OTROS» COMO SEGUNDO CONTROL Y NO COMO DATO NUEVO.** `otr-asia-mm`, en el
+  mismo bloque que la casilla y el lado; `fop_asa_mm` sigue siendo su **único dueño** y el único que
+  viaja con el estudio.
+  ⚠️ **GUIÓN MEDIO Y PREFIJO `otr-asia-` EN `_noEsDelEstudio`**, por el motivo escrito de `hfpep-`:
+  persistir el espejo dejaría una **segunda copia** del número que al reabrir puede contradecir al
+  dueño, y una clave nueva en todo estudio que se guarde desde hoy. **Medido: 933 campos con el
+  MISMO hash que el D2 y el Excel en 440 columnas.** El prefijo no alcanza a `otr_asia`,
+  `otr_asia_nota` ni `otr_asia_lado`, que van con guión BAJO y sí son del estudio.
+  ⚠️ **EL ESPEJO NO SE PUEDE COLGAR DE `fopBurbEspejo`, aunque sea el dueño del espejo de ese mismo
+  bloque:** su rama FOP → OTROS reescribe **además** el contraste, el pasaje y la cantidad de
+  burbujas, así que llamarla desde el `oninput` de la excursión espejaría cuatro datos que ese gesto
+  no toca. Es `asiaMmSync`, una función propia con su guarda de re-entrada, el patrón de
+  `itVmaxSync`.
+  ⚠️ **LA GUARDA NO ES POR EL `oninput`:** asignar `.value` por código no lo dispara, así que el
+  bucle directo no existe. Está para el día en que alguien despache un `input` a mano —los arneses
+  lo hacen— y para que la reposición de `RECALC_MODULOS` no se pise con `fopSync`. La salida
+  temprana por valor igual es lo que evita que salte el caret al tipear.
+  **Entra en `RECALC_MODULOS`** al lado de `fopSync`: las cinco rutas de restauración pueblan el
+  dueño asignando `.value`, que no dispara nada, así que sin eso reabrir un estudio dejaba el campo
+  de «Otros» vacío al lado de un dueño poblado. **Medido: un estudio guardado que sólo trae
+  `fop_asa_mm` reabre con los dos de acuerdo y su frase.**
+
+- **LA TABLA, ESCENA POR ESCENA, con teclas reales y desde «Otros»** (antes → después, en los
+  **cuatro** estilos del informe; el EN SUMA dice «ASIA.» en todas y antes también):
+
+  | escena | antes | después |
+  |---|---|---|
+  | 10 mm, AD | «Aneurisma del septum interauricular 10.» | «…**con excursión de 10 mm hacia la aurícula derecha**.» |
+  | 11 mm, AD | «…interauricular 11.» | «…con excursión de 11 mm hacia la aurícula derecha.» |
+  | 11 mm, AI | «…interauricular 11.» | «…con excursión de 11 mm hacia la aurícula izquierda.» |
+  | 15 mm, ambos | «…interauricular 15.» | «…con excursión de 15 mm hacia ambos lados (total).» |
+  | 16 mm, ambos | «…interauricular 16.» | «…con excursión de 16 mm hacia ambos lados (total).» |
+  | 16 mm, sin lado | «…interauricular 16.» | «…con excursión de 16 mm (sin consignar hacia dónde se abomba).» |
+  | ASIA en «No» | sin renglón | **sin renglón** (igual) |
+
+  La celda del PDF lleva la misma frase **sin** el «excursión de», porque su rótulo ya lo dice.
+  ⚠️ **UN SOLO EMISOR POR SUPERFICIE, MEDIDO:** con el FOP integrado al informe `otrHallazgos`
+  devuelve **0 elementos** en las seis escenas y el párrafo del FOP es el único que nombra el
+  aneurisma — eso ya estaba en el D2 y se verificó que sigue.
+
+- **LA NOTA ENGANCHA CON COMA CUANDO HAY FRASE DELANTE, y es la opción conservadora de un lugar que
+  admitía varias.** Los otros siete hallazgos la pegan con un espacio («Válvula de Eustaquio
+  prominente muy redundante.») y **ese patrón no se toca** —control medido—. En el ASIA, desde que
+  el D2 mete la frase del generador en medio, el espacio dejaba dos cláusulas de medidas pegadas:
+  «…hacia la aurícula derecha **de 12 mm por 8 mm en eje L y T**.», que es el formato que su propio
+  placeholder pide. **Sin frase no cambia nada**, que es el único estado alcanzable antes del D2.
+
+- **A/B DE CONTROL contra el árbol del D2, con el formulario vacío y con un escenario AJENO: CERO
+  diferencias** en el informe en los tres estilos, el EN SUMA, el **Excel en 440 columnas**, los
+  **933** campos del estudio con su hash, el **PDF GENERADO DE VERDAD en sus SEIS plantillas** (de
+  30 a 104 textos por celda, todas mayores que cero), el **PPT** (21), el **PDF de auditoría** (104),
+  el Laboratorio y las 296 referencias de pantalla. **Consola limpia.**
+  **Y las CATORCE escenas con la excursión ya cargada en `fop_asa_mm` salen IDÉNTICAS**, que es lo
+  que prueba que esto no mueve una regla: lo que cambia es por dónde se puede cargar el dato.
+
+- **MEDIDO EN LOS DOS MOTORES** —Chrome por el canal del sistema y WebKit— **a 1200×700, 768×1024 y
+  360×740 por los dos temas: los textos del renglón salen IDÉNTICOS entre motores en las cuatro
+  escenas**, las tres celdas miden lo mismo (318 / 706 / 298 px), hay **tres columnas arriba de
+  768 px y una abajo**, cero desborde y **cero scroll horizontal** en las doce celdas, con `--text2`
+  resolviendo **real y distinto** en los dos temas —`rgb(154,163,188)` de noche y `rgb(91,100,120)`
+  de día— e **idéntico entre motores**. **Cero errores de página en los dos.**
+  **18 capturas PNG con 18 `md5` distintos**, y dos **MIRADAS**: el bloque con sus tres celdas y los
+  acentos completos («Excursión del aneurisma (mm)», «Se abomba hacia»), y el informe renderizado
+  diciendo «Aneurisma del septum interauricular con excursión de 16 mm hacia ambos lados (total).».
+
+- **Cobertura: TC-515**, **35 condiciones** en ocho grupos, con tres denominadores y cinco controles
+  negativos. **Verificado que sabe fallar contra el árbol del D2 en un worktree aparte: 21 de las 35
+  en rojo, y NINGUNA por excepción** —las que no cumplen informan `NO EXISTE`, `NULO`, `SIN GRID`,
+  `SIN FILA` o `false`, que es lo que producen los centinelas—.
+
+- ⚠️ **SEIS TRAMPAS, Y TRES DABAN MEDICIONES FALSAS.**
+  1. **UN CAMPO QUE NO EXISTE NO SE DISTINGUE DE UN GENERADOR ROTO.** Las seis superficies calladas
+     y el número pelado se leen igual que «el emisor no se alineó». Lo que lo separó fue **censar el
+     DOM renderizado de la pestaña**, no leer el código del emisor —que estaba bien—.
+  2. **UN CLIP DE CAPTURA MÁS ALTO QUE EL VIEWPORT SE DESCOLOCA:** a 360 px las tres celdas se
+     apilan, el bloque pasa de 74 a 188 px y el PNG salió con el contenido de **otro** bloque. Se
+     centra y se captura el VIEWPORT.
+  3. **`#tab-otros .card-body .grid-3` NO ES EL BLOQUE DEL ASIA:** toma el primero de la pestaña. La
+     primera captura salió del test de burbuja y **se ve perfectamente bien**.
+  4. **UN PAR BALANCEADO DE ACENTOS GRAVES EN EL CUERPO DE UN CASO LO CIERRA IGUAL** y
+     `check_backticks.py` da «OK»: el título y una condición de TC-515 los llevaban. Lo dio
+     `node --check`. **Correr los dos.**
+  5. **EL CUERPO DE UN CASO NO ES `async`:** `__t.guardar()` devuelve una promesa y un `await` de
+     nivel superior tira «missing ) after argument list», o sea el caso muere por excepción **sin
+     decir qué condición falló**. Va en una IIFE async, el patrón de TC-463.
+  6. **`grep -i 'EXC'` MATCHEA «EXCursión»**, así que contar excepciones con ese patrón informa
+     **siete** donde hay **cero**. Se cuenta sobre el campo «encontrado», no sobre la línea entera.
+  ⚠️ **Y DOS CASOS SALIERON ROJOS EN LA CORRIDA DE ZONA Y NO SON REGRESIONES: TC-476 y TC-478.**
+  Medidos **en un worktree del árbol del D2 con la misma lista**: fallan **igual allá** (0/2). Son
+  inestables por orden de corrida, como TC-507 —que corrido solo sale verde—, y en la suite completa
+  los tres están en verde. **Repetir antes de sospechar.**
+
+- **Dónde está todo:** `docs/mapa/d2-correcciones.md` → **§9** (la causa con su tabla de controles,
+  el segundo control con su prefijo, el espejo y por qué no cuelga de `fopBurbEspejo`, la coma de la
+  nota, la tabla de las siete escenas, las seis trampas y la ficha de **TC-515**); el mapa pasó de
+  13,9 a **21,8 KB**, bajo el techo; `docs/fuentes/FUENTES.md` → «El trabajo D3», que declara que
+  **no hay ninguna fuente nueva ni ningún cambio de evidencia** y enumera lo que no se tocó; y
+  `docs/PENDIENTES.md` → **D2b-9 marcado CERRADO** más **tres** cosas declaradas (**D3-1** a
+  **D3-3**).
+  ⚠️ **TRES MAPAS NO SE TOCARON, medido con `wc -c` ANTES de escribir:** `tests-fichas.md` y
+  `panel-evidencia.md` porque la orden lo prohíbe, y `congenitas-otros.md` (28,9 KB) porque el mapa
+  del D2 es el que corresponde a esta zona y tenía margen de sobra.
 
 ### Las CUATRO CORRECCIONES tras probar el H y el D — «D2» (2026-10-21)
 

@@ -217,3 +217,130 @@ sale **en verde** y F1 **en rojo**, que es lo que prueba que el rojo es el defec
 | **TC-322** | el SEED de la sección de la aorta de la bicúspide iba `{ ao_tub:'50' }` **sin morfología**, o sea sembraba el defecto |
 | **TC-501** | **lo destapó la suite completa**: sus M1 y M2 fijan la frase del FOP del ARR letra por letra, y le cambian la excursión y los latidos. Gana **M2c**, que exige que el número de latidos no salga por ninguna de las dos superficies |
 
+
+---
+
+## 9 · La corrección del D3 (2026-10-21) — la excursión se carga desde «Otros»
+
+El médico probó el D2 y reportó que el renglón del ASIA salía con el formato viejo: «Aneurisma del
+septum interauricular 10.», y el EN SUMA «ASIA.». Con 11, con 16 a ambos lados y sin lado, igual.
+
+### La causa no era ninguna de las dos que se sospechaban
+
+**No era que el informe estuviera viejo.** Medido con los **dos** botones del gesto, «Generar
+Informe» y «Regenerar Informe», en las cuatro escenas: los ocho textos salen iguales.
+
+**Y el emisor de «Otros» SÍ estaba alineado al generador único.** `otrHallazgos` llama a
+`asiaExcFrase(src)` desde el D2-E1 (§2).
+
+Lo que faltaba es el **DATO**. `asiaExcFrase()` lee **`fop_asa_mm`**, y ese campo vive en el módulo
+FOP de la pestaña Congénitas. Censado el DOM renderizado de «Otros», su bloque del ASIA tiene:
+
+| control | id | qué es |
+|---|---|---|
+| casilla | `otr_asia` | el hallazgo |
+| caja de detalle | `otr_asia_nota` | **texto libre**, placeholder «(de … mm por … mm en eje L y T)» |
+| lado | `otr_asia_lado` | «Se abomba hacia», el que elige el corte (D2-E1) |
+
+…y **ningún campo numérico de excursión**. Trabajando sólo desde esa pestaña el generador devolvía
+`null` y las seis superficies se callaban; el número que el médico veía era **su propia nota**,
+pegada por `def + ' ' + nota`. Escribió el 10 ahí porque era el único lugar de esa pestaña donde se
+podía escribir un número, y porque el placeholder pide milímetros.
+
+⚠️ **ES LA MITAD QUE FALTABA DEL D-E1.** Esa tanda puso el **lado** en «Otros» con el argumento «el
+dato vive ACÁ, con el ASIA, y la sección del FOP lo LEE», y dejó el número del otro lado. El corte
+necesita los dos.
+
+### Qué entra
+
+**`otr-asia-mm`**, la excursión en el bloque del ASIA de «Otros». **No es un dato nuevo**: es el
+segundo control de `fop_asa_mm`, que sigue siendo su único dueño y el único que viaja con el
+estudio.
+
+⚠️ **GUIÓN MEDIO Y PREFIJO `otr-asia-` EN `_noEsDelEstudio`**, por el motivo escrito de `hfpep-`:
+persistir el espejo dejaría una segunda copia del número que al reabrir puede contradecir al dueño,
+y una clave nueva en todo estudio que se guarde desde hoy. **Medido: 933 campos con el mismo hash
+que HEAD y el Excel en 440 columnas.** El prefijo no alcanza a `otr_asia`, `otr_asia_nota` ni
+`otr_asia_lado`, que van con guión BAJO y sí son del estudio.
+
+**`asiaMmSync(origen)`**, el dueño único del espejo en los dos sentidos.
+
+⚠️ **NO SE CUELGA DE `fopBurbEspejo`, aunque sea el dueño del espejo de este mismo bloque:** su rama
+FOP → OTROS reescribe además el contraste, el pasaje y la cantidad de burbujas, así que llamarla
+desde el `oninput` de la excursión espejaría cuatro datos que ese gesto no toca. Es una función
+propia con su guarda de re-entrada, el patrón de `itVmaxSync`.
+
+⚠️ **LA GUARDA NO ES POR EL `oninput`:** asignar `.value` por código no lo dispara, así que el bucle
+directo no existe. Está para el día en que alguien despache un `input` a mano —los arneses lo
+hacen— y para que la reposición de `RECALC_MODULOS` no se pise con `fopSync`. La salida temprana por
+valor igual es lo que evita que salte el caret al tipear.
+
+**Entra en `RECALC_MODULOS`** al lado de `fopSync`: las cinco rutas de restauración pueblan
+`fop_asa_mm` asignando `.value`, que no dispara nada, así que sin eso reabrir un estudio dejaba el
+campo de «Otros» vacío al lado de un dueño poblado.
+
+### La nota engancha con COMA cuando hay frase delante
+
+Los otros siete hallazgos la pegan con un espacio («Válvula de Eustaquio prominente muy
+redundante.») y **ese patrón no se toca**. En el ASIA, desde que el D2 mete la frase del generador
+en medio, el espacio dejaba dos cláusulas de medidas pegadas:
+
+| estado | antes | después |
+|---|---|---|
+| con frase y nota | «…hacia la aurícula derecha de 12 mm por 8 mm en eje L y T.» | «…hacia la aurícula derecha**,** de 12 mm por 8 mm en eje L y T.» |
+| sin frase, con nota | «Aneurisma del septum interauricular de 12 mm por 8 mm…» | **idéntico** |
+
+### Lo medido
+
+| escena (desde «Otros», con teclas reales) | renglón del informe, los CUATRO estilos |
+|---|---|
+| 10 mm, AD | «…con excursión de 10 mm hacia la aurícula derecha.» |
+| 11 mm, AD | «…con excursión de 11 mm hacia la aurícula derecha.» |
+| 11 mm, AI | «…con excursión de 11 mm hacia la aurícula izquierda.» |
+| 15 mm, ambos | «…con excursión de 15 mm hacia ambos lados (total).» |
+| 16 mm, ambos | «…con excursión de 16 mm hacia ambos lados (total).» |
+| 16 mm, sin lado | «…con excursión de 16 mm (sin consignar hacia dónde se abomba).» |
+| ASIA en «No» | **sin frase y sin renglón** |
+
+El EN SUMA publica «ASIA.» y la celda del PDF la misma frase **sin** el «excursión de», porque su
+rótulo ya lo dice. **Un solo emisor por superficie, medido:** con el FOP integrado al informe
+`otrHallazgos` devuelve **0 elementos** en las seis escenas y el párrafo del FOP es el único que
+nombra el aneurisma.
+
+**Las catorce escenas con la excursión ya cargada en `fop_asa_mm` salen IDÉNTICAS a HEAD**, que es
+lo que prueba que esto no cambia una regla: lo que cambia es por dónde se puede cargar el dato.
+
+### Las trampas de esta corrección
+
+1. ⚠️ **UN CAMPO QUE NO EXISTE NO SE DISTINGUE DE UN GENERADOR ROTO.** Las seis superficies se
+   callaban y el renglón salía con el número pelado: eso se lee igual que «el emisor no se alineó».
+   Lo que lo separó fue **censar el DOM renderizado de la pestaña** y ver que no hay ningún campo
+   numérico de excursión ahí, no leer el código del emisor —que estaba bien—.
+2. ⚠️ **UN CLIP DE CAPTURA MÁS ALTO QUE EL VIEWPORT SE DESCOLOCA.** A 360 px las tres celdas se
+   apilan y el bloque pasa de 74 a 188 px: el PNG salió con el contenido de **otro** bloque. Se
+   centra y se captura el VIEWPORT, que es lo que el médico ve.
+3. ⚠️ **`#tab-otros .card-body .grid-3` NO ES EL BLOQUE DEL ASIA:** toma el primer `.grid-3` de la
+   pestaña, que es otro. La primera captura salió del test de burbuja y **se ve perfectamente
+   bien**. Va por `.grid-3:has(#otr-asia-mm)`.
+4. ⚠️ **UN PAR BALANCEADO DE ACENTOS GRAVES EN EL CUERPO DE UN CASO LO CIERRA IGUAL** y
+   `check_backticks.py` da «OK»: el título y una condición de TC-515 los llevaban. Lo dio
+   `node --check`. **Correr los dos.**
+5. ⚠️ **EL CUERPO DE UN CASO NO ES `async`:** `__t.guardar()` devuelve una promesa y un `await` de
+   nivel superior tira «missing ) after argument list», o sea el caso muere por excepción sin decir
+   qué condición falló. Va en una IIFE async, el patrón de TC-463.
+6. ⚠️ **`grep -i 'EXC'` MATCHEA «EXCursión»**, así que contar excepciones con ese patrón informa
+   siete donde hay cero. Se cuenta sobre el campo «encontrado», no sobre la línea entera.
+
+### Ficha de TC-515
+
+**35 condiciones**, tres denominadores y cinco controles negativos, en ocho grupos: el espejo en los
+dos sentidos con su borrado y «Nuevo estudio» (A), la frase desde «Otros» en los cuatro estilos por
+las seis escenas (B), un solo emisor por superficie (C), el ASIA en «No» (D), la nota con coma y sin
+coma más el control de los otros siete hallazgos (E), el campo que no viaja (F), el estudio guardado
+que reabre con el espejo repuesto (G) y los controles del FOP, la VAB, el Excel en 440 y el informe
+vacío (H).
+
+**Verificado que sabe fallar contra el árbol del D2 en un worktree aparte: 21 de las 35 en rojo, y
+NINGUNA por excepción** —las que no cumplen informan `NO EXISTE`, `NULO`, `SIN GRID`, `SIN FILA` o
+`false`, que es lo que producen los centinelas—. Las 14 que pasan son lo que esta corrección no
+mueve: la regla del corte, el EN SUMA, el ASIA en «No», el Excel y los controles del FOP y de la VAB.

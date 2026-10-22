@@ -820,7 +820,7 @@
   #sacc-cc-fop .fop-cols { display:flex; flex-wrap:wrap; gap:12px; align-items:flex-start; }
   #sacc-cc-fop .fop-col  { flex:1 1 220px; min-width:0; }
   #sacc-cc-fop .fop-col-tit { font-size:12px; font-weight:700; color:var(--accent2); margin:0 0 8px; }
-  /* ══ LA CAJA DE CONCLUSION DEL FOP, APILADA (D2-E4, 2026-10-22) ══════════════════════════
+  /* ══ LA CAJA DE CONCLUSION DEL FOP, APILADA (D2-E4, 2026-10-21) ══════════════════════════
      `.calc-row` es `display:flex; justify-content:space-between; align-items:center`, que
      funciona para una fila de UN valor corto. La conclusion del FOP es una oracion de varios
      renglones, asi que el valor envuelve y la etiqueta -que es de una linea y esta centrada
@@ -14657,7 +14657,7 @@ z
                ⚠️ UN ESTUDIO GUARDADO REABRE CON SU VALOR y `vabSync` lo RECALCULA en el mismo
                embudo (`RECALC_MODULOS`): lo que se muestra sale de Valvulas, que es la regla. Si
                Valvulas no tiene dato, la celda queda vacia; esta declarado. -->
-          <!-- ⚠️ `data-espejo` (D2-E4, 2026-10-22): el valor se DERIVA de los grados de EA y de
+          <!-- ⚠️ `data-espejo` (D2-E4, 2026-10-21): el valor se DERIVA de los grados de EA y de
                IAo de Valvulas, o sea que es un dato de OTRA seccion mostrado aca. Sin el
                atributo, `secAutoOpen` lo cuenta como «esta seccion tiene datos» y la barra de la
                VAB se abre sola al entrar a C. Congenitas en todo paciente con la aortica medida.
@@ -14726,7 +14726,7 @@ z
             <div id="vab-anim-ctrl" style="display:none;align-items:center;gap:6px;margin-top:6px;">
               <button type="button" class="btn btn-ghost" id="vab-anim-pausa" aria-pressed="true"
                       onclick="vabAnimPlay()">⏸ Pausar</button>
-              <!-- ⚠️ `data-ui` (D2-E4, 2026-10-22): es interfaz y no un dato del paciente, igual
+              <!-- ⚠️ `data-ui` (D2-E4, 2026-10-21): es interfaz y no un dato del paciente, igual
                    que los tres controles del panel del VI 3D. Su `value="0"` hacia que
                    `secAutoOpen` contara la barra de la VAB como «con datos» y la abriera sola al
                    entrar a C. Congenitas -medido: era el UNICO culpable con el formulario
@@ -65842,7 +65842,7 @@ window.vapSync = vapSync; window.vapConclusion = vapConclusion;
    en «Otros» y es su único dueño.
    ⚠️ SIN LADO CONSIGNADO MANDA EL CORTE DE 10 mm, que es el que la app aplica desde siempre: así
    un estudio guardado antes de hoy —que no trae esa clave— concluye exactamente igual.
-   ══ EL OPERADOR PASA A `>` ESTRICTO (D2-E1, 2026-10-22) ══════════════════════════════════
+   ══ EL OPERADOR PASA A `>` ESTRICTO (D2-E1, 2026-10-21) ══════════════════════════════════
    DECISION DE MAICOL, con la fuente delante: una excursion de 10 mm hacia un lado NO cumple y
    11 si; 15 mm de excursion total NO cumple y 16 si. El folio 916 (hoja 7) sostiene el estricto
    para UN lado con todas las letras —«excursion of the septal tissue (typically the fossa
@@ -65894,7 +65894,7 @@ function asiaPorExcursion(asaMm, src){
   if (!asiaLado(src)) return false;
   return asaMm != null && isFinite(asaMm) && asaMm > asiaCorteMm(src);
 }
-/* ══ LA FRASE DE LA EXCURSION, CON UN SOLO DUENO (D2-E1, 2026-10-22) ══════════════════════
+/* ══ LA FRASE DE LA EXCURSION, CON UN SOLO DUENO (D2-E1, 2026-10-21) ══════════════════════
    DECISION DE MAICOL: el informe decia «Aneurisma del septum interauricular 16», sin decir que
    es el 16 ni hacia donde se abomba, y la conclusion «(excursion de 15 mm)» sin el lado. Pasan
    a frases COMPLETAS compuestas de lo cargado, y las SEIS superficies las leen de aca —el
@@ -76360,7 +76360,7 @@ function _indVAB(){
      UN SOLO DUEÑO para las dos secciones: con dos predicados, una aparecía y la otra no sobre el
      mismo paciente, y nada lo diría. */
   const dil = _indFn('aoDilatada');
-  /* ══ LA COMPUERTA ES LA VALVULA *Y* LA AORTA (D2-E3, 2026-10-22) ════════════════════════
+  /* ══ LA COMPUERTA ES LA VALVULA *Y* LA AORTA (D2-E3, 2026-10-21) ════════════════════════
      ⚠️ LA CONDICION DE LA VALVULA NO ESTABA, Y NUNCA ESTUVO: medido en el arbol del trabajo H y
      en el anterior, esta seccion arrancaba SOLO con el diametro. Lo que el H cambio es el
      umbral —de 45 mm al corte de dilatacion de la guia, 40 en el hombre y 36 en la mujer— y con
@@ -127039,8 +127039,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261021-2204';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1792631069475;                 /* eco-build-ms */
+const ECO_BUILD    = '20261021-2219';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1792631997494;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -127126,7 +127126,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261021-2204</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261021-2219</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

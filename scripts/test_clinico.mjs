@@ -83172,6 +83172,254 @@ caso('TC-514', 'Tanda D2: el corte del aneurisma del septum con el operador ESTR
   })();
 `);
 
+/* ══ TC-515 — TANDA D3 ════════════════════════════════════════════════════════════════════
+   Lo que el medico vio al probar el D2 y por que: `asiaExcFrase()` -el generador unico de la
+   frase, que leen las SEIS superficies- lee `fop_asa_mm`, y la pestana «Otros» no tenia
+   NINGUN campo donde cargarlo. Trabajando solo desde ahi el generador devolvia `null` y el
+   renglon salia «Aneurisma del septum interauricular 10.», con el numero que el medico habia
+   escrito en la CAJA DE DETALLE de al lado pegado detras.
+   ⚠️ NO ERA QUE EL INFORME ESTUVIERA VIEJO: medido por los DOS botones, «Generar» y
+   «Regenerar» daban el mismo texto. Y el emisor de «Otros» SI estaba alineado al generador
+   desde el D2-E1: lo que faltaba era el DATO.
+   ⚠️ LOS CENTINELAS NO SON DECORATIVOS. Contra el arbol del D2 el campo `otr-asia-mm` no
+   existe y `asiaMmSync` tampoco: toda lectura va por un ayudante que devuelve una cadena, asi
+   que ninguna condicion muere por excepcion —un caso que muere prueba que el arbol es
+   distinto, no que sabe medir—. Es la leccion que TC-455, TC-462, TC-465, TC-474, TC-513 y
+   TC-514 ya pagaron. */
+caso('TC-515', 'Tanda D3: la excursion del aneurisma se puede cargar DESDE «Otros» -segundo control de fop_asa_mm, con espejo en los dos sentidos, borrado incluido- y con eso la frase del D2 sale en el informe en los CUATRO estilos, el EN SUMA, la conclusion, la pestana Otros y el PDF; el ASIA en «No» sin frase; un solo emisor por superficie cuando el FOP esta integrado; la nota enganchando con COMA y los otros siete hallazgos con espacio; y el campo que NO viaja con el estudio, las 440 columnas del Excel, el informe vacio y el ajeno sin moverse', `
+  /* ⚠️ EL CUERPO VA EN UNA IIFE ASYNC, el patron de TC-463: el helper de guardado devuelve
+     una PROMESA, y el cuerpo de un caso se evalua en una funcion que NO es asincrona, asi que
+     un await de nivel superior tira «missing ) after argument list» y el caso muere por
+     excepcion sin decir que condicion fallaba. */
+  return (async () => {
+  const ex = [];
+  const EL3 = (id) => document.getElementById(id);
+  const V3 = (id) => { const e = EL3(id); return e ? String(e.value == null ? '' : e.value) : 'NO EXISTE ' + id; };
+  const FN3 = (n) => typeof window[n] === 'function';
+  const FRASE3 = () => { try { return FN3('asiaExcFrase') ? (asiaExcFrase() || { txt:'NULO', corto:'NULO' }) : { txt:'SIN FN', corto:'SIN FN' }; }
+    catch (e) { return { txt:'EXC', corto:'EXC' }; } };
+  const OTR3 = () => { try { if (!FN3('otrHallazgos')) return { n:'SIN FN', inf:'SIN FN' };
+      const l = otrHallazgos() || [];
+      const a = l.filter(function(x){ return x.id === 'otr_asia'; })[0];
+      return { n: l.length, inf: a ? a.inf : null, suma: a ? a.suma : null }; }
+    catch (e) { return { n:'EXC', inf:'EXC' }; } };
+  const PDFEXC3 = () => { try { const f = FN3('fopPdfFilas') ? fopPdfFilas() : null;
+      if (!Array.isArray(f)) return 'SIN FN';
+      const r = f.filter(function(x){ return String(x[0]).indexOf('Excursion') === 0; })[0];
+      return r ? String(r[1]) : 'SIN FILA'; } catch (e) { return 'EXC'; } };
+  /* El renglon del ASIA del informe RENDERIZADO, no el objeto que lo arma. */
+  const RENG = (t) => String(t || '').split(String.fromCharCode(10))
+    .filter(function(l){ return l.indexOf('neurisma del septum') >= 0; }).join(' | ');
+
+  /* == DENOMINADORES ====================================================================== */
+  ex.push(['(DENOM 1) el campo de la excursion existe EN «Otros» y es numerico',
+    !!EL3('otr-asia-mm') && (EL3('otr-asia-mm') || {}).tagName === 'INPUT',
+    EL3('otr-asia-mm') ? (EL3('otr-asia-mm').tagName + '/' + EL3('otr-asia-mm').type) : 'NO EXISTE']);
+  ex.push(['(DENOM 2) vive en el MISMO bloque que la casilla y el lado del ASIA',
+    (function(){ const m = EL3('otr-asia-mm'); if (!m || !m.closest) return 'SIN CLOSEST';
+      const g = m.closest('.grid-3'); if (!g) return 'SIN GRID';
+      return !!g.querySelector('#otr_asia') && !!g.querySelector('#otr_asia_lado'); })() === true,
+    (function(){ const m = EL3('otr-asia-mm'); const g = m && m.closest ? m.closest('.grid-3') : null;
+      return g ? g.children.length + ' celdas' : 'SIN GRID'; })()]);
+  ex.push(['(DENOM 3) el dueno del espejo y el de la frase existen',
+    FN3('asiaMmSync') && FN3('asiaExcFrase'), [FN3('asiaMmSync'), FN3('asiaExcFrase')].join('/')]);
+
+  /* == A — EL ESPEJO, EN LOS DOS SENTIDOS Y CON EL BORRADO ================================= */
+  __t.limpiar();
+  __t.set('otr-asia-mm', '12');
+  const aOtrFop = { otr: V3('otr-asia-mm'), fop: V3('fop_asa_mm') };
+  __t.set('fop_asa_mm', '18');
+  const aFopOtr = { otr: V3('otr-asia-mm'), fop: V3('fop_asa_mm') };
+  __t.set('otr-asia-mm', '');
+  const aBorraOtr = { otr: V3('otr-asia-mm'), fop: V3('fop_asa_mm') };
+  __t.set('fop_asa_mm', '9'); __t.set('fop_asa_mm', '');
+  const aBorraFop = { otr: V3('otr-asia-mm'), fop: V3('fop_asa_mm') };
+  ex.push(['(A1) «Otros» escribe en el dueno', aOtrFop.otr === '12' && aOtrFop.fop === '12',
+    JSON.stringify(aOtrFop)]);
+  ex.push(['(A2) y el dueno escribe en «Otros»', aFopOtr.otr === '18' && aFopOtr.fop === '18',
+    JSON.stringify(aFopOtr)]);
+  ex.push(['(A3) el BORRADO viaja en los dos sentidos',
+    aBorraOtr.otr === '' && aBorraOtr.fop === '' && aBorraFop.otr === '' && aBorraFop.fop === '',
+    JSON.stringify([aBorraOtr, aBorraFop])]);
+  __t.set('otr-asia-mm', '14'); __t.limpiar();
+  ex.push(['(A4) «Nuevo estudio» deja los DOS vacios',
+    V3('otr-asia-mm') === '' && V3('fop_asa_mm') === '',
+    JSON.stringify({ otr: V3('otr-asia-mm'), fop: V3('fop_asa_mm') })]);
+
+  /* == B — LA FRASE DESDE «OTROS», EN LAS CUATRO SUPERFICIES =============================== */
+  /* La escena del MEDICO: pestana «Otros», casilla, lado y el numero. Sin tocar el FOP. */
+  const desdeOtros = function(lado, mm){ __t.limpiar();
+    __t.chk('otr_asia', true);
+    if (lado) __t.set('otr_asia_lado', lado);
+    __t.set('otr-asia-mm', String(mm));
+    const o = { frase: FRASE3().txt, otr: OTR3(), pdf: PDFEXC3(), est: {} };
+    ['conciso','estandar','narrativo','cc'].forEach(function(e){
+      if (typeof setEstiloInforme === 'function') setEstiloInforme(e);
+      const i = __t.informe(); o.est[e] = RENG(i.inf); o.suma = i.suma; });
+    return o; };
+  const b10 = desdeOtros('ad', 10), b11 = desdeOtros('ad', 11), b11i = desdeOtros('ai', 11);
+  const b15 = desdeOtros('ambos', 15), b16 = desdeOtros('ambos', 16), bsin = desdeOtros('', 16);
+  ex.push(['(B1) con 10 hacia la AD la frase dice el numero Y el lado',
+    b11.frase === 'excursión de 11 mm hacia la aurícula derecha' &&
+    b10.frase === 'excursión de 10 mm hacia la aurícula derecha',
+    b10.frase + ' | ' + b11.frase]);
+  ex.push(['(B2) hacia la AI nombra la OTRA auricula',
+    b11i.frase === 'excursión de 11 mm hacia la aurícula izquierda', b11i.frase]);
+  ex.push(['(B3) con «ambos lados» dice (total), que es el UNICO parentesis de la frase',
+    b16.frase === 'excursión de 16 mm hacia ambos lados (total)' &&
+    b15.frase === 'excursión de 15 mm hacia ambos lados (total)', b15.frase + ' | ' + b16.frase]);
+  ex.push(['(B4) SIN lado lo DICE en vez de callarlo',
+    bsin.frase === 'excursión de 16 mm (sin consignar hacia dónde se abomba)', bsin.frase]);
+  ex.push(['(B5) el renglon del informe la publica en los CUATRO estilos',
+    ['conciso','estandar','narrativo','cc'].every(function(e){
+      return b16.est[e] === 'Aneurisma del septum interauricular con excursión de 16 mm hacia ambos lados (total).'; }),
+    JSON.stringify(b16.est)]);
+  ex.push(['(B6) y lo mismo con un lado y sin lado, en los cuatro',
+    ['conciso','estandar','narrativo','cc'].every(function(e){
+      return b11.est[e].indexOf('con excursión de 11 mm hacia la aurícula derecha.') > -1 &&
+             bsin.est[e].indexOf('(sin consignar hacia dónde se abomba).') > -1; }),
+    b11.est.conciso + ' || ' + bsin.est.cc]);
+  ex.push(['(B7) la celda del PDF lleva la MISMA frase sin el «excursion de» —su rotulo ya lo dice',
+    b16.pdf === '16 mm hacia ambos lados (total)' && b11.pdf === '11 mm hacia la aurícula derecha',
+    b11.pdf + ' | ' + b16.pdf]);
+  ex.push(['(B8) el EN SUMA sigue publicando su sigla', (b16.suma || '').indexOf('ASIA.') > -1,
+    String(b16.suma || '').slice(0, 60)]);
+  ex.push(['(CONTROL B9) el numero PELADO del D2 ya no aparece por ningun estilo',
+    ['conciso','estandar','narrativo','cc'].every(function(e){
+      return b11.est[e] !== 'Aneurisma del septum interauricular 11.' &&
+             b16.est[e] !== 'Aneurisma del septum interauricular 16.'; }),
+    b11.est.estandar]);
+
+  /* == C — UN SOLO EMISOR POR SUPERFICIE =================================================== */
+  __t.limpiar();
+  __t.chk('otr_asia', true); __t.set('otr_asia_lado', 'ambos'); __t.set('otr-asia-mm', '16');
+  const cSinFop = { otr: OTR3(), inf: RENG(__t.informe().inf) };
+  __t.set('fop_tunel', '8'); __t.set('fop_contraste', 'si');
+  __t.set('fop_shunt_valsalva', 'si'); __t.set('fop_burbujas', 'moderado');
+  __t.chk('fop_incluir_chk', true);
+  const cConFop = { otr: OTR3(), inf: RENG(__t.informe().inf) };
+  ex.push(['(C1) sin el FOP integrado, el renglon lo emite «Otros»',
+    cSinFop.otr.n === 1 && cSinFop.inf.indexOf('con excursión de 16 mm hacia ambos lados (total).') > -1,
+    cSinFop.otr.n + ' | ' + cSinFop.inf]);
+  ex.push(['(C2) con el FOP integrado, «Otros» se CALLA y no se repite',
+    cConFop.otr.n === 0 && cConFop.otr.inf === null,
+    JSON.stringify(cConFop.otr)]);
+  ex.push(['(C3) y el parrafo del FOP sigue nombrando la excursion con su lado',
+    cConFop.inf.indexOf('con excursión de 16 mm hacia ambos lados (total)') > -1, cConFop.inf]);
+  ex.push(['(CONTROL C4) el renglon del ASIA aparece UNA sola vez en el informe',
+    (cConFop.inf.indexOf(' | ') === -1) && (cSinFop.inf.indexOf(' | ') === -1),
+    cConFop.inf.slice(0, 120)]);
+
+  /* == D — EL ASIA EN «NO»: SIN FRASE ====================================================== */
+  __t.limpiar();
+  __t.chk('otr_asia', true); __t.set('otr_asia_lado', 'ad'); __t.set('otr-asia-mm', '16');
+  __t.chk('otr_asia', false);
+  const dNo = { otr: OTR3(), inf: RENG(__t.informe().inf), mm: V3('otr-asia-mm'),
+                lado: V3('otr_asia_lado') };
+  ex.push(['(D1) con el ASIA en «No» no sale ninguna frase',
+    dNo.otr.n === 0 && dNo.inf === '', JSON.stringify(dNo.otr) + ' | ' + dNo.inf]);
+  ex.push(['(D2) el numero se CONSERVA como dato y el lado vuelve a vacio',
+    dNo.mm === '16' && dNo.lado === '', dNo.mm + ' / ' + dNo.lado]);
+
+  /* == E — LA NOTA: COMA CON FRASE, ESPACIO SIN ELLA ======================================= */
+  __t.limpiar();
+  __t.chk('otr_asia', true); __t.set('otr_asia_lado', 'ad'); __t.set('otr-asia-mm', '11');
+  __t.set('otr_asia_nota', 'de 12 mm por 8 mm en eje L y T');
+  const eConFrase = OTR3().inf;
+  __t.limpiar();
+  __t.chk('otr_asia', true); __t.set('otr_asia_lado', 'ad');
+  __t.set('otr_asia_nota', 'de 12 mm por 8 mm en eje L y T');
+  const eSinFrase = OTR3().inf;
+  __t.limpiar();
+  __t.chk('otr_var_eustaquio', true);
+  __t.set('otr_var_eustaquio_nota', 'muy redundante');
+  const eAjeno = (function(){ try { const l = otrHallazgos() || [];
+      const a = l.filter(function(x){ return x.id === 'otr_var_eustaquio'; })[0];
+      return a ? a.inf : null; } catch (e) { return 'EXC'; } })();
+  ex.push(['(E1) con frase delante, la nota engancha con COMA',
+    eConFrase === 'Aneurisma del septum interauricular con excursión de 11 mm hacia la aurícula derecha, de 12 mm por 8 mm en eje L y T.',
+    String(eConFrase)]);
+  ex.push(['(E2) SIN frase la nota engancha con espacio, igual que antes del D3',
+    eSinFrase === 'Aneurisma del septum interauricular de 12 mm por 8 mm en eje L y T.',
+    String(eSinFrase)]);
+  ex.push(['(CONTROL E3) los otros siete hallazgos NO cambian de formato',
+    eAjeno === 'Válvula de Eustaquio prominente muy redundante.', String(eAjeno)]);
+
+  /* == F — EL CAMPO NO VIAJA CON EL ESTUDIO ================================================ */
+  const noEs = (function(){ try { return FN3('_noEsDelEstudio') ? _noEsDelEstudio('otr-asia-mm') : 'SIN FN'; }
+    catch (e) { return 'EXC'; } })();
+  const siEs = (function(){ try { return FN3('_noEsDelEstudio') ? _noEsDelEstudio('otr_asia_lado') : 'SIN FN'; }
+    catch (e) { return 'EXC'; } })();
+  __t.limpiar();
+  __t.chk('otr_asia', true); __t.set('otr_asia_lado', 'ad'); __t.set('otr-asia-mm', '17');
+  const claves = (function(){ const o = {};
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function(e){
+      if (FN3('_noEsDelEstudio') && _noEsDelEstudio(e.id)) return;
+      o[e.id] = 1; });
+    return o; })();
+  ex.push(['(F1) el campo de la excursion de «Otros» NO es del estudio y el lado SI',
+    noEs === true && siEs === false, noEs + ' / ' + siEs]);
+  ex.push(['(F2) y el recolector no lo toma, pero si toma el dueno',
+    !claves['otr-asia-mm'] && !!claves['fop_asa_mm'] && !!claves['otr_asia_lado'],
+    JSON.stringify({ mm: !!claves['otr-asia-mm'], fop: !!claves['fop_asa_mm'] })]);
+
+  /* == G — UN ESTUDIO GUARDADO: SOLO VIAJA EL DUENO, Y AL REABRIR SE REPONE ================ */
+  __t.limpiar();
+  __t.set('nombre', 'TC515');
+  __t.chk('otr_asia', true); __t.set('otr_asia_lado', 'ad'); __t.set('otr-asia-mm', '13');
+  const gu = await __t.guardar();
+  /* DENOMINADOR: sin estudio guardado, «al reabrir se repone» se cumple sobre un formulario
+     que nadie volvio a cargar. */
+  if (!gu || !gu.estudioId) {
+    ex.push(['(DENOM G) el estudio con la excursion se guardo', false, JSON.stringify(gu)]);
+  } else {
+    ex.push(['(DENOM G) el estudio con la excursion se guardo', true, String(gu.estudioId)]);
+    __t.limpiar();
+    __t.reabrir(gu.estudioId);
+    const gEstado = { otr: V3('otr-asia-mm'), fop: V3('fop_asa_mm'), frase: FRASE3().txt,
+                      otrInf: OTR3().inf };
+    ex.push(['(G1) al reabrir, el espejo repone la excursion desde el dueno y la frase sale',
+      gEstado.otr === '13' && gEstado.fop === '13' &&
+      gEstado.frase === 'excursión de 13 mm hacia la aurícula derecha',
+      JSON.stringify(gEstado)]);
+    ex.push(['(G2) y el renglon del informe la publica',
+      String(gEstado.otrInf || '').indexOf('con excursión de 13 mm hacia la aurícula derecha') > -1,
+      String(gEstado.otrInf)]);
+    try { __t.borrar(gu.estudioId); } catch (e) {}
+  }
+
+  /* == H — LOS CONTROLES: LO QUE EL D3 NO TOCA ============================================= */
+  __t.limpiar();
+  const hVacio = __t.informe();
+  const hExcel = (function(){ try { return FN3('_labExcelRow')
+      ? Object.keys(_labExcelRow({ campos:{}, fecha:'2026-10-21' })).length : 'SIN FN'; }
+    catch (e) { return 'EXC'; } })();
+  ex.push(['(H1) el informe del estudio VACIO no nombra el aneurisma',
+    RENG(hVacio.inf) === '' && hVacio.inf.indexOf('sin alteraciones') === -1 ? RENG(hVacio.inf) === '' : RENG(hVacio.inf) === '',
+    RENG(hVacio.inf) || '(sin renglon, correcto)']);
+  ex.push(['(H2) el Excel sigue en 440 columnas', hExcel === 440, String(hExcel)]);
+  /* El FOP y la VAB, que el D3 no toca: su propia escena sigue dando lo mismo. */
+  __t.limpiar();
+  __t.set('fop_tunel', '8'); __t.set('fop_contraste', 'si');
+  __t.set('fop_shunt_valsalva', 'si'); __t.set('fop_burbujas', 'moderado');
+  __t.chk('fop_incluir_chk', true);
+  const hFop = RENG(__t.informe().inf);
+  const hFopTxt = __t.informe().inf.indexOf('Foramen oval permeable (túnel de 8 mm)') > -1;
+  ex.push(['(CONTROL H3) el FOP sin aneurisma publica su parrafo y NINGUNA frase de ASIA',
+    hFopTxt === true && hFop === '', hFopTxt + ' / ' + hFop]);
+  __t.limpiar();
+  __t.set('va_morf', 'Bicúspide'); __t.set('ao_tub', '50');
+  const hVab = (function(){ try { if (typeof IND_SECS === 'undefined') return 'SIN IND_SECS';
+      const s = IND_SECS.filter(function(x){ return x.tit.indexOf('Válvula aórtica bicúspide — aorta') === 0; })[0];
+      if (!s) return 'SIN SECCION'; const r = s.fn(); return r ? (r.filas || []).length : null; }
+    catch (e) { return 'EXC'; } })();
+  ex.push(['(CONTROL H4) la Evidencia de la VAB del D2 sigue abriendo con valvula bicuspide',
+    typeof hVab === 'number' && hVab > 0, String(hVab)]);
+
+  return { extra: ex };
+  })();
+`);
+
 
 
 
