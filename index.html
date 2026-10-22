@@ -22142,17 +22142,36 @@ const UMBRAL_FEVI_NORMAL = 50;   // %  (FEVI ≥50 = normal)
    varón y mujer—, así que estos cortes no pasan por `sexoEfectivo` y sus barras no esconden el
    punto cuando falta el sexo. Es la diferencia con la zona AI/VI de la tanda LS.
 
-   ⚠️ DOS INCONSISTENCIAS TIPOGRÁFICAS DEL ORIGINAL, Y UNA ALCANZA A ESTA APP.
-   · TAPSE y onda S′: la banda leve se escribe «≤1.7 to ≥1.3» y la moderada «≤1.3 to >1.0», así
-     que **1,3 cm está en las dos** (y 7,2 cm/s igual, por la misma forma). Se resuelve a favor
-     de la banda MENOS grave, que es la convención que la propia tabla usa en sus once filas
-     ascendentes —ahí la moderada EXCLUYE el techo de la leve— y además es la lectura que no
-     sobre-afirma. Lo que esta tabla publica es el operador que la app APLICA: `<13` y `<7.2`
-     para la moderada, no el `≤` del original.
-   · «RAV index (area-length method)»: leve `≤38` y moderada `>39`, o sea un hueco en 38-39. Esa
-     fila NO la usa esta app —no hay volumen de la AD— y queda declarada sin aplicar.
-   · La fila leve de la FEVD 3D se imprime «≤45 to <39», que parece un rango dado vuelta y no lo
-     es: va de 45 hacia abajo. Con la moderada en «≤39 to ≥32» no hay hueco ni solape.
+   ⚠️ SE LEE LA VERSIÓN DE **MAYO DE 2025**, QUE CORRIGE SEIS CORTES DE LA DE FEBRERO (AJ1).
+   El mismo artículo tiene dos PDF: el de febrero (creación 2025-02-28, con erratas, archivado
+   en `Archivo_EcoSmart/Retirados`) y el de MAYO (creación 2025-05-07, el de la biblioteca, con
+   el mismo `md5` en `03_VD_y_corazon_derecho` y en `16- HTP`). La Tabla 1 se releyó EN IMAGEN a
+   300 ppp en las dos y el diff completo de la hoja 5 da ONCE diferencias. Las que alcanzan a
+   esta tabla son DOS, y las dos mueven el valor EXACTO del corte una banda hacia abajo:
+   · TAPSE, banda leve: febrero «≤1.7 to ≥1.3», mayo «≤1.7 to **>1.3**» → 1,3 cm es MODERADA.
+   · Onda S′, banda leve: febrero «≤9.5 to ≥7.2», mayo «≤9.5 to **>7.2**» → 7,2 cm/s es MODERADA.
+   ⚠️ CON ESO DESAPARECE EL SOLAPE, y con él la marca `solapa` que la tabla llevaba: en mayo el
+   valor del borde pertenece a UNA sola banda, así que `vdDisfGrado` ya no puede devolver
+   «leve-moderada» por este camino. El mecanismo que lee esa marca se conserva en esa función
+   —es genérico y hoy ninguna banda la declara— y no se deriva del operador, porque un `>=` con
+   `x === v` describiría el mismo conjunto por coincidencia de la forma y no por una regla.
+   · FEVD 3D: febrero escribe la banda leve «≤45 to <39» y mayo «≤45 to **>39**». Los dos
+     dejan el 39 EXACTO fuera de la leve y dentro de la moderada —que las dos escriben «≤39 to
+     ≥32»—, así que el GRADO que la app publica NO cambia y el `op:'>'` de abajo ya era el de
+     mayo. Lo que se corrige es la cita del rótulo, que en febrero se leía al revés.
+
+   ⚠️ TRES DIFERENCIAS MÁS ENTRE LAS DOS VERSIONES, DECLARADAS Y NO APLICADAS (AJ1):
+   · «RAV index (area-length method)», banda moderada: febrero «>39 to ≤44», mayo «>38 to ≤44»,
+     o sea que mayo CIERRA el hueco de 38-39 que este comentario declaraba. Esa fila NO la usa
+     esta app —no hay volumen de la AD— y queda igual de declarada, ahora sin hueco.
+   · «RV E/A ratio», valor normal: febrero «≥0.8 to <2.0», mayo «≥0.8 to **≤2.1**».
+   · «Deceleration time», banda severa: febrero «≤57», mayo «**<57**».
+     Las dos últimas son de la función DIASTÓLICA del VD, que esta tabla no implementa.
+   Y dos de rótulo: el índice de área telesistólica y el de telediastólica del VD pasan de
+   «cm2» a «cm2/m2» en el encabezado de la fila, que es la unidad que siempre tuvieron.
+
+   ⚠️ LA FILA LEVE DE LA FEVD 3D se imprime «≤45 to >39», que parece un rango dado vuelta y no
+   lo es: va de 45 hacia abajo. Con la moderada en «≤39 to ≥32» no hay hueco ni solape.
 
    Los valores se guardan en la unidad del CAMPO de la app y no en la del papel: la guía publica
    centímetros y los campos de esta app son milímetros, así que 1,7 cm se guarda como 17 y la
@@ -22193,10 +22212,10 @@ const ASE25_T1 = Object.freeze({
      `x === v` describe hoy el mismo conjunto, pero es una coincidencia de la forma de la tabla y
      no una regla, y la FEVD tiene un `>=` que no solapa. */
   tapse:     Object.freeze({ u:'mm', dec:0, fila:'TAPSE, cm', bandas:Object.freeze([
-    Object.freeze({ g:'normal', op:'>', v:17 }), Object.freeze({ g:'leve', op:'>=', v:13, solapa:true }),
+    Object.freeze({ g:'normal', op:'>', v:17 }), Object.freeze({ g:'leve', op:'>', v:13 }),
     Object.freeze({ g:'moderada', op:'>', v:10 }), Object.freeze({ g:'severa' })]) }),
   s_prime:   Object.freeze({ u:'cm/s', dec:1, fila:'Tissue Doppler S′ velocity, cm/s', bandas:Object.freeze([
-    Object.freeze({ g:'normal', op:'>', v:9.5 }), Object.freeze({ g:'leve', op:'>=', v:7.2, solapa:true }),
+    Object.freeze({ g:'normal', op:'>', v:9.5 }), Object.freeze({ g:'leve', op:'>', v:7.2 }),
     Object.freeze({ g:'moderada', op:'>', v:5 }), Object.freeze({ g:'severa' })]) }),
   vd_fac:    Object.freeze({ u:'%', dec:0, fila:'FAC, %', bandas:Object.freeze([
     Object.freeze({ g:'normal', op:'>', v:35 }), Object.freeze({ g:'leve', op:'>', v:29 }),
@@ -25489,8 +25508,11 @@ function vdSprimeCat(x) {
        escenas publican cada palabra en un informe FIRMADO;
      · con los dos medidos y ALTERADOS en bandas distintas, el informe dice el RANGO
        («leve-moderada»): no se elige uno de los dos, porque elegir es una decision clinica;
-     · con UN solo valor en el borde que la Tabla 1 pone en DOS bandas -13 mm y 7,2 cm/s-, el
-       rango entre ambas, por la marca `solapa` de la propia tabla;
+     · ⚠️ EL SOLAPE DE 13 mm Y 7,2 cm/s SE FUE CON LA VERSION DE MAYO (AJ1): esa edicion
+       escribe la banda leve «≤1.7 to >1.3» y «≤9.5 to >7.2», asi que el valor del borde esta en
+       UNA sola banda y por este camino ya no sale «leve-moderada». El mecanismo de abajo se
+       conserva porque es generico -hoy ninguna banda declara `solapa`- y porque una edicion
+       futura puede volver a marcar una;
      · con uno de los dos medidos NORMAL se publica «disfuncion sistolica» SIN grado, o sea
        EXACTAMENTE lo de hoy. Es el estado que la orden manda dejar como esta para que Maicol
        decida: un TAPSE normal con una onda S' severa no es «severa», y afirmar el grado del
@@ -25509,7 +25531,10 @@ function vdDisfGrado(tapse, sprime) {
       if (!g) return null;
       const t = ASE25_T1[clave];
       const i = t.bandas.findIndex((b) => b.g === g);
-      /* El valor del borde pertenece TAMBIEN a la banda siguiente cuando el original las solapa. */
+      /* El valor del borde pertenece TAMBIEN a la banda siguiente cuando el original las solapa.
+         ⚠️ NINGUNA BANDA DECLARA `solapa` DESDE EL AJ1 (la version de MAYO deshizo los dos
+         solapes), asi que esta rama esta INERTE hoy. Se conserva por generica: es la unica
+         forma de volver a marcar un borde ambiguo sin tocar la cascada. */
       const extra = (i >= 0 && t.bandas[i].solapa && t.bandas[i].v === n && t.bandas[i + 1])
         ? t.bandas[i + 1].g : null;
       return extra ? [g, extra] : [g];
@@ -98691,11 +98716,16 @@ window.medLarsReiniciar = medLarsReiniciar;
    MENOS negativos. Publicar uno con los cortes del otro es comparar contra la tabla
    equivocada. El panel lo dice en el paso y en el descargo.
 
-   LOS UMBRALES SON POR SEXO —más negativo que −20 % en hombres y que −21 % en mujeres— y salen
-   del campo `sexo` del estudio. Sin sexo consignado NO se clasifica: se muestran los dos
-   cortes y se dice cuál falta. Suponer uno cambiaría la clasificación de un paciente en la
-   franja de −20 a −21 sin que nadie lo haya decidido. Es la regla del `coa_diast_anterogrado`:
-   un campo vacío no es una respuesta.
+   ⚠️ EL UMBRAL ES UNO SOLO Y NO DISTINGUE SEXO (AJ1, 22/10/2026). Hasta hoy la app usaba
+   −20 % en el hombre y −21 % en la mujer, y sin sexo consignado NO clasificaba. La ASE 2025 de
+   corazón derecho **en su versión de MAYO** no separa por sexo en ninguna parte: su Tabla 1
+   (folio 145) da el strain de pared libre como normal «>20» en valor absoluto, con la nota al
+   pie «Absolute values and ranges for strain are shown», y el texto del folio 159 lo dice en
+   prosa —«strain values more negative than 20% to 25% for both RVFWS and RVGLS are generally
+   considered as normal»—, también sin columnas de varón y de mujer. Decisión de Maicol.
+   CONSECUENCIA MEDIDA, y es la que importa: un estudio SIN sexo consignado ahora SÍ se
+   clasifica, porque ya no hay nada que elegir. Y un strain de −20,5 % pasa de normal a «por
+   debajo de lo normal» en la mujer, que es el único tramo donde los dos umbrales diferían.
 
    ⚠️ CUIDADO CON EL SENTIDO DE LA DESIGUALDAD. «Normal si es más negativo que −20 %» quiere
    decir que −25 es normal y −18 no. Escrito como «< −20» es correcto y se lee mal —este
@@ -98703,7 +98733,8 @@ window.medLarsReiniciar = medLarsReiniciar;
    y leída literal significaba lo contrario—. Por eso en pantalla va con palabras y nunca con
    el operador solo. */
 
-const VD_STRAIN_NORMAL = { M: -20, F: -21 };     // % — ASE 2025, pared libre
+const VD_STRAIN_NORMAL = -20;   // % — ASE 2025 de MAYO, pared libre, Tabla 1 folio 145:
+                                //     normal = mas negativo que -20 %, IGUAL en los dos sexos.
 
 function _vdIniciar() {
   _vd = { fase:'d', trazos:{ d:null, s:null }, pendiente:null,
@@ -98846,12 +98877,14 @@ function _vdCalcular() {
   const D = _vd.trazos.d, S = _vd.trazos.s;
   if (!(D.bordeCm > 0) || !(S.bordeCm > 0)) return null;
   const pct = (S.bordeCm - D.bordeCm) / D.bordeCm * 100;
+  /* El sexo se sigue LEYENDO y se sigue publicando en la ficha, porque es un dato del estudio
+     que el medico ve al lado del numero; lo que ya no hace es elegir el corte. */
   const sexo = _vdSexo();
-  const umbral = sexo ? VD_STRAIN_NORMAL[sexo] : null;
+  const umbral = VD_STRAIN_NORMAL;
   return {
     Ld: D.bordeCm, Ls: S.bordeCm, pct, sexo, umbral,
-    /* `normal` es null sin sexo: no se clasifica lo que no se puede clasificar. */
-    normal: (umbral === null) ? null : (pct < umbral),
+    /* Un unico umbral para los dos sexos: siempre hay clasificacion. */
+    normal: (pct < umbral),
     invertido: pct >= 0,
     /* Banda de PLAUSIBILIDAD, no de severidad. Fuera de ahí lo habitual es que el contorno no
        sea el de la pared libre —que se haya incluido el septo, o que los dos trazados no
@@ -98932,13 +98965,8 @@ function _vdPanel() {
     /* Los cortes van con PALABRAS y no con el operador solo: «más negativo que −20 %» no se
        puede leer al revés, y «< −20 %» sí. */
     const refs = '<div style="font-size:10px;color:var(--text2);margin-top:4px;line-height:1.55;">' +
-      'Normal (ASE 2025, pared libre): <b>más negativo que −20 %</b> en hombres y que <b>−21 %</b> ' +
-      'en mujeres. Menos negativo que ese valor es anormal.' +
-      (R.sexo
-        ? ' Este estudio está consignado como <b>' + (R.sexo === 'M' ? 'masculino' : 'femenino') +
-          '</b>, así que el corte aplicado es <b>' + R.umbral + ' %</b>.'
-        : ' <b style="color:#fbbf24;">El campo Sexo del estudio está vacío</b>, así que no se ' +
-          'clasifica: se muestran los dos cortes y el médico aplica el que corresponda.') +
+      'Normal (ASE 2025 de mayo, pared libre, Tabla 1 · folio 145): <b>más negativo que −20 %</b>, ' +
+      'igual en hombres y en mujeres. Menos negativo que ese valor es anormal.' +
     '</div>';
     res = '<div style="margin-top:9px;padding-top:8px;border-top:1px solid var(--border);">' +
       '<div style="font-size:13px;line-height:1.7;">Strain VD pared libre ' +

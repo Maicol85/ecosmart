@@ -73283,12 +73283,16 @@ caso('TC-492', 'Tanda M: las DIECISEIS FICHAS nuevas del registro de evidencia d
     /* OJO: el VALOR EXACTO del corte cae del lado LEVE —la Tabla 1 da lo normal con mayor
        estricto— y el SOLAPE tipografico de 1,3 cm y 7,2 cm/s se resuelve a favor de la banda
        MENOS grave, que es la convencion de las once filas ascendentes de la misma tabla. */
-    ex.push(['FUN-VD-001 y FUN-VD-002: el TAPSE gradua en 17, 13 y 10 mm y la onda S\u2032 en 9,5, 7,2 y 5,0 cm/s',
+    /* ADAPTADO el 2026-10-22 (AJ1): la version de MAYO de la ASE 2025 escribe la banda leve
+       del TAPSE «≤1.7 to >1.3» y la de la onda S' «≤9.5 to >7.2» -la de febrero las escribia
+       con «≥», y ese solape es lo que hacia leve el valor del borde-. 13 mm y 7,2 cm/s son
+       MODERADA desde el AJ1. El caso conserva su poder: sigue midiendo los seis valores. */
+    ex.push(['FUN-VD-001 y FUN-VD-002: el TAPSE gradua en 17, 13 y 10 mm y la onda S\u2032 en 9,5, 7,2 y 5,0 cm/s (version de MAYO)',
       LL('vdTapseCat', 17.1) === 'normal' && LL('vdTapseCat', 17) === 'leve'
-        && LL('vdTapseCat', 13) === 'leve' && LL('vdTapseCat', 12.9) === 'moderada'
+        && LL('vdTapseCat', 13) === 'moderada' && LL('vdTapseCat', 12.9) === 'moderada'
         && LL('vdTapseCat', 10.1) === 'moderada' && LL('vdTapseCat', 10) === 'severa'
         && LL('vdSprimeCat', 9.6) === 'normal' && LL('vdSprimeCat', 9.5) === 'leve'
-        && LL('vdSprimeCat', 7.2) === 'leve' && LL('vdSprimeCat', 7.1) === 'moderada'
+        && LL('vdSprimeCat', 7.2) === 'moderada' && LL('vdSprimeCat', 7.1) === 'moderada'
         && LL('vdSprimeCat', 5) === 'severa',
       'tapse=' + [17.1, 17, 13, 12.9, 10.1, 10].map(x => LL('vdTapseCat', x)).join('/')
         + ' sp=' + [9.6, 9.5, 7.2, 7.1, 5].map(x => LL('vdSprimeCat', x)).join('/')]);
@@ -74158,14 +74162,17 @@ caso('TC-494', 'Tanda VS: el VD, la AD, la VCI y la RAIZ AORTICA alineados a la 
      Cada fila: el VALOR DEL CORTE, uno por debajo y uno por encima. El dueno es el mismo que
      usan el informe, el EN SUMA, la capsula, la tarjeta y Referencias. */
   const B = (fn, v) => { const r = LL(fn, v); return (r && typeof r === 'object' && r.cat) ? r.cat : String(r) };
-  ex.push(['TAPSE: 17,1 normal · 17,0 EXACTO leve · 13 leve · 12,9 moderada · 10,1 moderada · 10,0 severa',
-    B('vdTapseCat',17.1)==='normal' && B('vdTapseCat',17)==='leve' && B('vdTapseCat',13)==='leve'
+  /* ADAPTADO el 2026-10-22 (AJ1): 13 mm pasa de leve a MODERADA con la version de MAYO. */
+  ex.push(['TAPSE: 17,1 normal · 17,0 EXACTO leve · 13,1 leve · 13,0 EXACTO moderada · 10,1 moderada · 10,0 severa',
+    B('vdTapseCat',17.1)==='normal' && B('vdTapseCat',17)==='leve' && B('vdTapseCat',13.1)==='leve' && B('vdTapseCat',13)==='moderada'
       && B('vdTapseCat',12.9)==='moderada' && B('vdTapseCat',10.1)==='moderada' && B('vdTapseCat',10)==='severa',
-    [17.1,17,13,12.9,10.1,10].map(x => B('vdTapseCat',x)).join('/')]);
-  ex.push(['onda S: 9,6 normal · 9,5 EXACTO leve · 7,2 leve · 7,1 moderada · 5,1 moderada · 5,0 severa',
-    B('vdSprimeCat',9.6)==='normal' && B('vdSprimeCat',9.5)==='leve' && B('vdSprimeCat',7.2)==='leve'
+    [17.1,17,13.1,13,12.9,10.1,10].map(x => B('vdTapseCat',x)).join('/')]);
+  /* ADAPTADO el 2026-10-22 (AJ1): 7,2 cm/s pasa de leve a MODERADA con la version de MAYO. */
+  ex.push(['onda S: 9,6 normal · 9,5 EXACTO leve · 7,3 leve · 7,2 EXACTO moderada · 5,1 moderada · 5,0 severa',
+    B('vdSprimeCat',9.6)==='normal' && B('vdSprimeCat',9.5)==='leve' && B('vdSprimeCat',7.3)==='leve'
+      && B('vdSprimeCat',7.2)==='moderada'
       && B('vdSprimeCat',7.1)==='moderada' && B('vdSprimeCat',5.1)==='moderada' && B('vdSprimeCat',5)==='severa',
-    [9.6,9.5,7.2,7.1,5.1,5].map(x => B('vdSprimeCat',x)).join('/')]);
+    [9.6,9.5,7.3,7.2,7.1,5.1,5].map(x => B('vdSprimeCat',x)).join('/')]);
   ex.push(['FAC: 36 normal · 35 EXACTO leve · 30 leve · 29 moderada · 23 moderada · 22 EXACTO severa',
     B('vdFacCat',36)==='normal' && B('vdFacCat',35)==='leve' && B('vdFacCat',30)==='leve'
       && B('vdFacCat',29)==='moderada' && B('vdFacCat',23)==='moderada' && B('vdFacCat',22)==='severa',
@@ -74217,7 +74224,7 @@ caso('TC-494', 'Tanda VS: el VD, la AD, la VCI y la RAIZ AORTICA alineados a la 
   const r171 = esc({ vd_bas:'35', tapse:'17.1' });
   ex.push(['TAPSE 17,0 EXACTO: el informe dice disfuncion, el EN SUMA la nombra y la capsula dice LEVE con su rango',
     /con disfunción sistólica/.test(r17.inf) && r17.suma.indexOf('VD de dimensiones normales con disfunción sistólica leve.') > -1
-      && c17.indexOf('disfunción sistólica leve') > -1 && c17.indexOf('≤17 a ≥13 mm') > -1,
+      && c17.indexOf('disfunción sistólica leve') > -1 && c17.indexOf('≤17 a >13 mm') > -1,  /* AJ1: el rotulo sigue al operador de MAYO */
     'inf=' + /con disfunción sistólica/.test(r17.inf) + ' cap=' + c17]);
   ex.push(['TAPSE 17,1: funcion conservada por los tres caminos',
     /función sistólica conservada/.test(r171.inf) && r171.suma.indexOf('disfunción') === -1
@@ -74401,7 +74408,7 @@ caso('TC-494', 'Tanda VS: el VD, la AD, la VCI y la RAIZ AORTICA alineados a la 
   ex.push(['Referencias publica los cortes NUEVOS, derivados del dueno y no escritos a mano',
     refs.vd2.txt.indexOf('<41 mm') > -1 && refs.vd2.txt.indexOf('≥41 a ≤44 mm') > -1
       && refs.vd2.txt.indexOf('>49 mm') > -1 && refs.vd2.txt.indexOf('<82 mm') > -1
-      && refs.vd2.txt.indexOf('≤17 a ≥13 mm') > -1 && refs.vd2.txt.indexOf('≤22 %') > -1
+      && refs.vd2.txt.indexOf('≤17 a >13 mm') > -1 && refs.vd2.txt.indexOf('≤22 %') > -1  /* AJ1: MAYO */
       && refs.ad.txt.indexOf('<19 cm²') > -1 && refs.ad.txt.indexOf('≤ 21 mm') > -1,
     'vd2 tiene <41=' + (refs.vd2.txt.indexOf('<41 mm') > -1)]);
   ex.push(['CONTROL NEGATIVO: Referencias ya NO publica ninguno de los cortes viejos',
@@ -80124,9 +80131,17 @@ caso('TC-507', 'Tanda R: la VAB muestra la lesion PRESENTE sin grado con un solo
   ex.push(['(D3) los dos en bandas DISTINTAS dan el RANGO',
     _vdDis.g === 'leve-moderada' && _vdDis.txt.indexOf('disfunción sistólica leve-moderada') > -1,
     _vdDis.g]);
-  ex.push(['(D4) los DOS bordes que la Tabla 1 pone en dos bandas dan el rango (13 mm y 7,2 cm/s)',
-    _vd13.g === 'leve-moderada' && _vd72.g === 'leve-moderada'
-      && _vd13.txt.indexOf('leve-moderada') > -1 && _vd72.txt.indexOf('leve-moderada') > -1,
+  /* ADAPTADO el 2026-10-22 (AJ1). Este bloque afirmaba el SOLAPE de la version de FEBRERO de la
+     ASE 2025 -«≤1.7 to ≥1.3» y «≤9.5 to ≥7.2», que ponen el valor del borde en DOS bandas y
+     hacian salir «leve-moderada»-. La version de MAYO, que es la que la app lee desde el AJ1,
+     escribe las dos bandas leves con el operador ESTRICTO («>1.3» y «>7.2»), asi que 13 mm y
+     7,2 cm/s estan en UNA sola banda y son MODERADA. El caso conserva su poder: sigue midiendo
+     los dos bordes exactos, y ahora ademas exige que el rango NO salga por este camino. */
+  ex.push(['(D4) los DOS bordes de la version de MAYO caen en UNA sola banda: 13 mm y 7,2 cm/s son MODERADA',
+    _vd13.g === 'moderada' && _vd72.g === 'moderada'
+      && _vd13.txt.indexOf('disfunción sistólica moderada') > -1
+      && _vd72.txt.indexOf('disfunción sistólica moderada') > -1
+      && _vd13.txt.indexOf('leve-moderada') < 0 && _vd72.txt.indexOf('leve-moderada') < 0,
     _vd13.g + ' / ' + _vd72.g]);
   ex.push(['(D5) CONTROL NEGATIVO: uno normal y el otro alterado queda SIN grado, como antes',
     _vdMix.g === null && _vdMix.txt.indexOf('disfunción sistólica (') > -1
@@ -80134,10 +80149,13 @@ caso('TC-507', 'Tanda R: la VAB muestra la lesion PRESENTE sin grado con un solo
       && _vdMix.txt.indexOf('disfunción sistólica moderada') < 0, String(_vdMix.g)]);
   ex.push(['(D6) CONTROL NEGATIVO: sin datos no hay grado ni oracion de funcion (regla ARR)',
     _vdNada.g === null && _vdNada.txt.indexOf('disfunción sistólica') < 0, String(_vdNada.g)]);
-  ex.push(['(D7) CONTROL: el solape esta DECLARADO en la tabla y el grado que publica NO cambio',
-    !!_t1 && _t1.tapse.bandas[1].solapa === true && _t1.s_prime.bandas[1].solapa === true
-      && ase25Grado('tapse', 13) === 'leve' && ase25Grado('tapse', 12.9) === 'moderada'
-      && ase25Grado('s_prime', 7.2) === 'leve' && ase25Grado('s_prime', 7.1) === 'moderada',
+  /* ADAPTADO el 2026-10-22 (AJ1): la version de MAYO deshace el solape, asi que NINGUNA banda
+     declara la marca de solape y el valor del borde cae en UNA sola. El control se da vuelta y mide lo
+     contrario de lo que media -que la marca ya no esta- conservando los cuatro bordes. */
+  ex.push(['(D7) CONTROL: con la version de MAYO NINGUNA banda declara solape y el borde cae en UNA sola',
+    !!_t1 && _t1.tapse.bandas[1].solapa === undefined && _t1.s_prime.bandas[1].solapa === undefined
+      && ase25Grado('tapse', 13.1) === 'leve' && ase25Grado('tapse', 13) === 'moderada'
+      && ase25Grado('s_prime', 7.3) === 'leve' && ase25Grado('s_prime', 7.2) === 'moderada',
     '']);
   ex.push(['(D8) CONTROL NEGATIVO: la FEVD sigue sin votar el OR de la disfuncion',
     (function(){ __t.limpiar(); __t.set('fevd', '30');
