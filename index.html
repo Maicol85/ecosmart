@@ -53569,7 +53569,21 @@ function generarInforme(opts) {
        signos adicionales, la puerta era falsa y el cuerpo del informe quedaba mudo sobre la
        HTP — justo el caso donde más hace falta decir que el dato medido contradice a la
        categoría elegida. */
-    if (htp2022Incluir && h22 && (h22.vrtCat !== 'nomedible' || h22.nCat > 0 || h22.vrtDiscrepa)) {
+    /* ⚠️ LA VRT «NO MEDIBLE» ELEGIDA A PROPOSITO SI ESCRIBE LINEA (E2, 2026-10-22).
+       DECISION DE MAICOL, y cierra la compuerta que `PENDIENTES.md` dejaba abierta desde la fila
+       99 de la Lista. La Figura 5 (folio 28) pone «O no se puede medir» en la MISMA fila que el
+       ≤ 2,8 —es su nota a— asi que sin signos de otras categorias la guia da probabilidad BAJA,
+       y hasta hoy el informe firmado se quedaba MUDO en ese caso.
+       ⚠️ LO QUE DISTINGUE LOS DOS CAMINOS ES `vrtSel`, NO `vrtCat`: «no medible» elegida en el
+       desplegable y «automatico» sin IT cargada dan el MISMO `vrtCat`, y son cosas distintas. Con
+       el formulario vacio no se afirma «probabilidad baja» sobre un estudio sin datos, que es
+       exactamente lo que la orden prohibe.
+       ⚠️ NO SE ESCRIBE NINGUNA FRASE NUEVA: la linea de abajo ya produce «probabilidad baja
+       (VRT no medible; sin signos adicionales)» con estos datos. Abrir la compuerta y redactar
+       aparte habria dejado DOS formatos para la misma afirmacion en el mismo informe. */
+    const _htpEscribe = h22 && (h22.vrtCat !== 'nomedible' || h22.nCat > 0 || h22.vrtDiscrepa
+                                || h22.vrtSel === 'nomedible');
+    if (htp2022Incluir && _htpEscribe) {
       const cats = [];
       if (h22.catA) cats.push('ventrículos');
       if (h22.catB) cats.push('arteria pulmonar');
@@ -86295,21 +86309,41 @@ function amiloTextoHemo() {
   return L.join('\n');
 }
 
+/* ══ LA HOJA DEL PDF: SOLO LOS SIGNOS PRESENTES (E2, 2026-10-22) ═════════════════════════════
+   DECISION DE MAICOL. Hasta hoy imprimia las TRES categorias siempre —«A · Ventrículos: sin
+   datos», con las tres rayas— y de los signos solo listaba los SEIS manuales marcados: los cinco
+   automaticos —VD/VI, TAPSE/PAPs, TAP del TSVD, VCI con colapso disminuido y area de la AD— no
+   salian por ningun camino, asi que un paciente cuya probabilidad INTERMEDIA la sostenian dos
+   signos calculados publicaba en el papel firmado «A: sin datos · B: signo presente · C: sin
+   datos» sin decir CUAL.
+
+   Hoy la hoja lista una fila por signo PRESENTE, agrupada por categoria, con su corte al lado.
+   Los ausentes no se imprimen: una tabla de once filas con nueve rayas se lee como un formulario
+   en blanco y no como un hallazgo.
+
+   ⚠️ SIN SIGNOS SE USA LA REDACCION QUE LA APP YA TIENE —«Sin signos adicionales»— y no una
+   frase nueva: es la misma que el informe narrativo publica en ese caso desde antes de esta
+   tanda, asi que el papel y el informe no pueden decirlo de dos maneras.
+
+   ⚠️ LOS SIGNOS SALEN DE `_htp2022Signos`, EL MISMO DUEÑO QUE LA PANTALLA Y EL CONTEO: no hay
+   una segunda lectura de la Tabla 10 de este lado, que es el defecto que este archivo ya pago
+   tres veces. */
 function amiloTextoHTP() {
   const L = [];
   L.push('## Velocidad de regurgitación tricuspídea');
-  L.push('VRT considerada: ' + (_amTxt('htp2022-vrt-interp') || 'no ingresada'));
+  L.push('VRT considerada | ' + (_amTxt('htp2022-vrt-interp') || 'no ingresada'));
 
-  L.push('## Signos adicionales por categoría');
-  L.push('A · Ventrículos: ' + (_amTxt('htp2022-catA') || 'sin datos'));
-  if (_amChk('htp2022_a3')) L.push('  - Aplanamiento septal (IEVI > 1.1)');
-  L.push('B · Arteria pulmonar: ' + (_amTxt('htp2022-catB') || 'sin datos'));
-  if (_amChk('htp2022_b1muesca')) L.push('  - Muesca mesosistólica del flujo pulmonar');
-  if (_amChk('htp2022_b2'))       L.push('  - Regurgitación pulmonar diastólica > 2.2 m/s');
-  if (_amChk('htp2022_b3'))       L.push('  - Diámetro AP > 25 mm');
-  if (_amChk('htp2022_b3ao'))     L.push('  - Diámetro AP > diámetro de la raíz aórtica');
-  L.push('C · VCI / AD: ' + (_amTxt('htp2022-catC') || 'sin datos'));
-  if (_amChk('htp2022_c_col20'))  L.push('  - Colapso de la VCI < 20% con inspiración tranquila');
+  let SG = [];
+  try { SG = _htp2022Signos({ num: _hfN, txt: sv, chk: _hfChk }); } catch (e) { SG = []; }
+  const pres = SG.filter(function (g) { return g.presente; });
+  L.push('## Signos adicionales presentes (ESC/ERS 2022, Tabla 10)');
+  if (!pres.length) L.push('Sin signos adicionales.');
+  else ['A', 'B', 'C'].forEach(function (c) {
+    const dec = pres.filter(function (g) { return g.cat === c; });
+    if (!dec.length) return;
+    L.push('## ' + (HTP_CAT_TXT[c] || c));
+    dec.forEach(function (g) { L.push(g.lbl + ' | ' + g.crit); });
+  });
 
   L.push('## Probabilidad ESC 2022');
   L.push(_amTxt('htp2022-prob') || 'No determinable con los datos cargados.');
