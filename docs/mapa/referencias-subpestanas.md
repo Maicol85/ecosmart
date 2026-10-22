@@ -318,3 +318,15 @@ medio (**EAE/ASE 2009, Tabla 3, folio 10**, columna AHA/ACC). El corte de **9 mm
 sigue rotulado «Criterio de EcoSmart».
 
 Detalle en **`docs/mapa/aj1-ajustes.md` § 7**.
+
+---
+
+## La tanda «E» (2026-10-22) — `ref-hfapeff`, y «Función» pasa a TRES
+
+`REF_SUBTAB.fun` pasa de `['htp','tep']` a **`['htp','tep','hfapeff']`** y el censo de la pestaña de
+**31 a 32** entradas. `ref-htp` gana una tabla de catorce filas —las tres bandas de VRT y los once
+signos, cada uno con su corte y su folio— y **`ref-hfapeff` es NUEVA**: hasta esta tanda el score
+HFA-PEFF **no tenía entrada**, así que los veinte cortes que la app aplica no estaban publicados en
+ninguna superficie consultable.
+
+Detalle en **`docs/mapa/htp-hfapeff.md`** §8.

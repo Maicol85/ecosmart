@@ -48122,10 +48122,24 @@ caso('TC-331', 'Protesis mitral: la seccion publica los cortes de la ASE 2024 y 
         R.ppmMarca === 'ok' && R.ppmVal.indexOf('severo') >= 0,
         'marca=' + R.ppmMarca + ' val=«' + R.ppmVal + '»'],
 
-      ['OTRA VALVULA: protesis mitral y tricuspide se pintan las dos',
-        R.dosSecs.length === 2 && R.dosHay === true &&
-        R.dosSecs.some(function(s){ return s.indexOf('protesis mitral') >= 0; }) &&
-        R.dosSecs.some(function(s){ return s.indexOf('tricuspide') >= 0; }),
+      /* ADAPTADO el 2026-10-22 (tanda E, commits E5 y E6): esta condicion exigia que la escena
+         pintara EXACTAMENTE dos secciones, y hoy el panel tiene dos mas -HTP y HF-PEFF- cuyas
+         compuertas se abren con datos que esta escena carga: la VRT y la FEVI. Eso es correcto, no
+         un defecto: el paciente TIENE esos datos. Lo que esta condicion vigila -que las dos
+         secciones de PROTESIS se pinten y que ninguna se coma a la otra- no cambia, y pasa a medir
+         mas: se exige que las dos esten y que de las que sobren NINGUNA sea de una valvula, asi
+         que el dia que una tercera seccion VALVULAR se pinte de mas este caso lo caza. */
+      ['OTRA VALVULA: protesis mitral y tricuspide se pintan las dos, y ninguna otra de valvula',
+        (function(){
+          const prot = R.dosSecs.some(function(s){ return s.indexOf('protesis mitral') >= 0; })
+                    && R.dosSecs.some(function(s){ return s.indexOf('tricuspide') >= 0; });
+          const AJENAS = ['hipertension pulmonar', 'insuficiencia cardiaca con fraccion'];
+          const sobra = R.dosSecs.filter(function(s){
+            if (s.indexOf('protesis mitral') >= 0 || s.indexOf('tricuspide') >= 0) return false;
+            return !AJENAS.some(function(a){ return s.indexOf(a) >= 0; });
+          });
+          return prot && R.dosHay === true && sobra.length === 0;
+        })(),
         JSON.stringify(R.dosSecs)],
 
       ['⚠️ DOS FILAS CONCURRENTES: sintomatico con riesgo alto publica la reoperacion Clase I · Nivel C',
@@ -80658,8 +80672,14 @@ caso('TC-507', 'Tanda R: la VAB muestra la lesion PRESENTE sin grado con un solo
          ficha nueva del FORAMEN OVAL, que remite al corte de 5 burbujas de la ficha del test de
          burbuja y declara que no esta publicado en Silvestry 2015, Pristipino 2019 ni
          Kleindorfer 2021. Es el MISMO criterio propio declarado en dos fichas que lo citan, no
-         uno nuevo. */
-      return n === 5 && _ecoPref === 'Criterio de EcoSmart: '; })(),
+         uno nuevo.
+         ADAPTADO el 2026-10-22 (tanda E, commit E4): de CINCO a SEIS. El sexto es el de la ficha
+         NUEVA del HFA-PEFF, y declara la regla del PUNTAJE PROVISORIO - decidir si un dominio sin
+         datos puede cambiar la categoria-, que es propia de la aplicacion: Pieske 2019 admite
+         calcular el score incompleto (folio 3304) y NO publica ninguna regla sobre como informar
+         un parcial. Lo que esta condicion vigila -que todo corte sin fuente lleve su chip y que el
+         prefijo de las notas no se mueva- no cambia; lo que cambia es el denominador. */
+      return n === 6 && _ecoPref === 'Criterio de EcoSmart: '; })(),
     (function(){ let n = 0;
       Array.prototype.forEach.call(document.querySelectorAll('span'), x => {
         if ((x.textContent || '').trim() === 'CRITERIO DE ECOSMART') n++; });
@@ -81520,11 +81540,15 @@ caso('TC-509', 'Trabajo B (ADAPTADO por el B2): la columna izquierda con sus ONC
          que entra es la ficha del FORAMEN OVAL PERMEABLE, en la subpestana «Otros hallazgos», y
          es la del trabajo D. Lo que esta condicion vigila -que el reparto en seis subpestanas no
          pierda ni duplique una entrada- no cambia; lo que cambia es el denominador, y se exige
-         ademas que la que entro sea la del FOP. */
+         ademas que la que entro sea la del FOP.
+         ADAPTADO el 2026-10-22 (tanda E, commit E4): el censo pasa de 31 a 32. La que entra es la
+         ficha NUEVA del HFA-PEFF (ref-hfapeff), en la subpestana «Funcion», que pasa de dos
+         entradas a tres. Se exige las DOS: la del FOP y la del score, para que la condicion siga
+         distinguiendo «entro una» de «se perdio una y entro otra». */
       const t = EL('tab-refs');
       const n = t ? [].slice.call(t.querySelectorAll('h2.card-head'))
         .filter(function (h) { return (h.getAttribute('onclick') || '').indexOf("toggleRef('") > -1; }).length : -1;
-      return n === 31 && !!EL('ref-fop'); })(),
+      return n === 32 && !!EL('ref-fop') && !!EL('ref-hfapeff'); })(),
     (function () { const t = EL('tab-refs');
       const n = t ? [].slice.call(t.querySelectorAll('h2.card-head'))
         .filter(function (h) { return (h.getAttribute('onclick') || '').indexOf("toggleRef('") > -1; }).length : -1;
@@ -84005,6 +84029,353 @@ caso('TC-516', 'Tanda AJ1: los cortes del VD pasan a la version de MAYO de la AS
     (function(){ try { if (FN('calcTEP')) calcTEP(); if (FN('calcHTP2022')) calcHTP2022(); return true; }
       catch (e) { return 'EXC ' + e.message; } })() === true, '']);
   limpio();
+  return { extra: ex };
+`);
+
+caso('TC-517', 'Tanda E: los once signos de HTP en una TABLA de tres columnas con su criterio y su ESTADO -automatico, manual o sin datos- y el vaiven de las dos casillas de la AP; el PDF de HTP con SOLO los signos presentes; el informe escribiendo la linea con la VRT «no medible» ELEGIDA y callando con la automatica sin IT y con el formulario vacio; la conclusion de HF-PEFF descriptiva, sin «se recomienda» en ninguna superficie y con «provisoria» calculada; el PDF de HF-PEFF en UNA sola tabla con el puntaje arriba; la pantalla de HF-PEFF sin moverse; las fichas de Referencias de HTP y de HF-PEFF con su folio y su chip; las dos secciones nuevas de Evidencia con su cuestionario; y el TEP, el VD, la aorta, el FOP, el informe, el EN SUMA, el PDF, el PPT, el Laboratorio y las 440 columnas del Excel sin moverse', `
+  const ex = [];
+  const F = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  /* Toda lectura va por un ayudante con centinela: contra HEAD estas piezas no existen, y un
+     TypeError mata la corrida entera -el caso probaria que el arbol es distinto y no que sabe
+     medir-. Es la leccion que TC-455, TC-462, TC-465, TC-471, TC-473, TC-474 y TC-477 pagaron. */
+  const SG = () => { const f = F('_htp2022Signos'); if (!f) return 'SIN FN';
+    try { return f({ num: _hfN, txt: sv, chk: _hfChk }); } catch (e) { return 'EXC'; } };
+  const inv = () => { const t = document.getElementById('htp2022-tabla'); if (!t) return null;
+    const o = { filas: [], enc: [], grupos: [] };
+    t.querySelectorAll('tr[data-htp-signo]').forEach(tr => { const td = tr.querySelectorAll('td');
+      o.filas.push({ k: tr.getAttribute('data-htp-signo'), cat: tr.getAttribute('data-htp-cat'),
+        est: tr.getAttribute('data-htp-estado'), cols: td.length,
+        txt: td[2] ? (td[2].textContent || '').trim() : null,
+        crit: td[1] ? (td[1].textContent || '').trim() : null }); });
+    t.querySelectorAll('th').forEach(th => o.enc.push((th.textContent || '').trim()));
+    t.querySelectorAll('tr[data-htp-grupo]').forEach(tr => o.grupos.push(tr.getAttribute('data-htp-grupo')));
+    return o; };
+  const cb = (id) => { const e = document.getElementById(id); return e ? { chk: !!e.checked, dis: !!e.disabled } : 'NO EXISTE'; };
+  const htpPdf = () => { const f = F('amiloTextoHTP'); if (!f) return 'SIN FN';
+    try { return f(); } catch (e) { return 'EXC'; } };
+  const hfPdf = () => { const f = F('amiloTextoHFAPEFF'); if (!f) return 'SIN FN';
+    try { return f(); } catch (e) { return 'EXC'; } };
+  const hfR = () => { const f = F('hfapeffScore'); if (!f) return null;
+    try { return f(false); } catch (e) { return null; } };
+  const hfC = () => { const r = hfR(), f = F('hfapeffConclusion');
+    if (!r || !f) return 'SIN FN'; try { return f(r); } catch (e) { return 'EXC'; } };
+  const inf = () => { try { generarInforme(); } catch (e) {}
+    return { t: (document.getElementById('informe_texto') || {}).value || '',
+             s: (document.getElementById('en_suma') || {}).value || '' }; };
+  const lineasHTP = (t) => t.split(String.fromCharCode(10))
+    .filter(x => x.indexOf('hipertensi') >= 0 && x.indexOf('probabilidad') >= 0);
+  /* IND_SECS es un const de MODULO y NO una propiedad de window: leerlo por window da
+     undefined y las siete condiciones de Evidencia salen rojas sobre un arbol perfecto. Es la
+     trampa de ECO_AYUDA, que este archivo ya tiene escrita media docena de veces -y que esta
+     tanda volvio a pagar-. El identificador PELADO si se ve, que es como lo lee TC-322. */
+  const sec = (tit) => { let L = null;
+    try { L = IND_SECS; } catch (e) { return 'SIN IND_SECS'; }
+    if (!L) return 'SIN IND_SECS';
+    const x = L.filter(y => y.tit === tit)[0]; if (!x) return 'NO EXISTE';
+    try { return x.fn() || null; } catch (e) { return 'EXC'; } };
+  const T_HTP = 'Hipertensi' + String.fromCharCode(243) + 'n pulmonar — probabilidad ecocardiogr' + String.fromCharCode(225) + 'fica';
+  const T_HF  = 'Insuficiencia card' + String.fromCharCode(237) + 'aca con fracci' + String.fromCharCode(243) + 'n de eyecci' + String.fromCharCode(243) + 'n preservada — HFA-PEFF';
+  const excelN = () => { const f = F('_labExcelRow'); if (!f) return 'SIN FN';
+    try { return Object.keys(f({ campos: {}, fecha: '2026-10-22' })).length; } catch (e) { return 'EXC'; } };
+
+  /* ══ (a) LA TABLA DE SIGNOS ═══════════════════════════════════════════════════════════════ */
+  __t.limpiar();
+  const I0 = inv();
+  ex.push(['(a1) DENOMINADOR: la tabla de signos existe y tiene las ONCE filas de la Tabla 10',
+    !!I0 && I0.filas.length === 11, I0 ? 'n=' + I0.filas.length : 'NO EXISTE htp2022-tabla']);
+  ex.push(['(a2) tres columnas: el signo, el criterio de la guia y el estado',
+    !!I0 && I0.enc.length === 3 && I0.enc[0] === 'Signo' &&
+    I0.enc[1].indexOf('Criterio') === 0 && I0.enc[2] === 'Estado' &&
+    I0.filas.every(f => f.cols === 3), I0 ? JSON.stringify(I0.enc) : 'SIN TABLA']);
+  ex.push(['(a3) agrupada en A, B y C',
+    !!I0 && I0.grupos.join(',') === 'A,B,C', I0 ? I0.grupos.join(',') : 'SIN TABLA']);
+  ex.push(['(a4) el reparto de la Tabla 10 es 3 en A, 5 en B y 3 en C',
+    !!I0 && I0.filas.filter(f => f.cat === 'A').length === 3 &&
+            I0.filas.filter(f => f.cat === 'B').length === 5 &&
+            I0.filas.filter(f => f.cat === 'C').length === 3,
+    I0 ? JSON.stringify(I0.filas.map(f => f.cat)) : 'SIN TABLA']);
+  /* Con el formulario vacio los CINCO automaticos dicen «sin datos» y los SEIS con casilla
+     «marcado a mano»: esa es la unica escena donde los dos estados conviven sin ambiguedad. */
+  ex.push(['(a5) con el formulario vacio los cinco automaticos estan en «sin datos»',
+    !!I0 && I0.filas.filter(f => f.est === 'sinDatos').length === 5 &&
+            I0.filas.filter(f => f.est === 'manual').length === 6,
+    I0 ? JSON.stringify(I0.filas.map(f => f.k + '=' + f.est)) : 'SIN TABLA']);
+  ex.push(['(a6) el criterio de cada fila es el corte de la guia, no una parafrasis',
+    !!I0 && (I0.filas.filter(f => f.k === 'a1')[0] || {}).crit === '> 1,0' &&
+            (I0.filas.filter(f => f.k === 'a3')[0] || {}).crit === '< 0,55 mm/mmHg' &&
+            (I0.filas.filter(f => f.k === 'b1')[0] || {}).crit === '< 105 ms' &&
+            (I0.filas.filter(f => f.k === 'b4')[0] || {}).crit === '> 25 mm',
+    I0 ? JSON.stringify(I0.filas.map(f => f.k + '=' + f.crit)) : 'SIN TABLA']);
+
+  /* El VAIVEN de las dos casillas de la AP, por sus dos sentidos. */
+  __t.limpiar(); __t.set('ip_ap_diam', '30'); __t.set('ao_sin', '28');
+  try { htpApSync(); calcHTP2022(); } catch (e) {}
+  const vAuto = { b3: cb('htp2022_b3'), b3ao: cb('htp2022_b3ao') }, iAuto = inv();
+  __t.set('ip_ap_diam', '');
+  try { htpApSync(); calcHTP2022(); } catch (e) {}
+  const vMan = { b3: cb('htp2022_b3'), b3ao: cb('htp2022_b3ao') }, iMan = inv();
+  ex.push(['(a7) con el diametro de AP y la raiz aortica cargados las DOS casillas se calculan y quedan bloqueadas',
+    vAuto.b3.chk === true && vAuto.b3.dis === true && vAuto.b3ao.chk === true && vAuto.b3ao.dis === true,
+    JSON.stringify(vAuto)]);
+  ex.push(['(a7b) y su ESTADO en la tabla dice «automatico»',
+    !!iAuto && (iAuto.filas.filter(f => f.k === 'b4')[0] || {}).est === 'auto' &&
+               (iAuto.filas.filter(f => f.k === 'b5')[0] || {}).est === 'auto',
+    iAuto ? JSON.stringify(iAuto.filas.filter(f => f.cat === 'B').map(f => f.k + '=' + f.est)) : 'SIN TABLA']);
+  ex.push(['(a8) al borrar el diametro vuelven a MANUAL, desbloqueadas, y se borra lo que el calculo habia puesto',
+    vMan.b3.chk === false && vMan.b3.dis === false && vMan.b3ao.chk === false && vMan.b3ao.dis === false,
+    JSON.stringify(vMan)]);
+  ex.push(['(a8b) y su ESTADO vuelve a «marcado a mano»',
+    !!iMan && (iMan.filas.filter(f => f.k === 'b4')[0] || {}).est === 'manual' &&
+              (iMan.filas.filter(f => f.k === 'b5')[0] || {}).est === 'manual',
+    iMan ? JSON.stringify(iMan.filas.filter(f => f.cat === 'B').map(f => f.k + '=' + f.est)) : 'SIN TABLA']);
+  /* «Nuevo estudio» no puede dejar una casilla BLOQUEADA: es la trampa que el selector de VD/VI
+     pago en el G3 y que htpApSync documenta. */
+  __t.set('ip_ap_diam', '30'); try { htpApSync(); } catch (e) {}
+  __t.limpiar();
+  ex.push(['(a9) «Nuevo estudio» NO deja ninguna casilla bloqueada',
+    cb('htp2022_b3').dis === false && cb('htp2022_b3ao').dis === false,
+    JSON.stringify({ b3: cb('htp2022_b3'), b3ao: cb('htp2022_b3ao') })]);
+
+  /* La REGLA DE CONTEO no se movio: el OR por categoria sigue siendo el de HEAD. */
+  __t.limpiar(); __t.set('vd_vi', '1.3'); __t.set('tvia', '95'); __t.set('ad_area', '22');
+  try { calcHTP2022(); } catch (e) {}
+  const core3 = window._htp2022 || {};
+  ex.push(['(a10) tres signos AUTOMATICOS, uno por categoria, dan las tres categorias y nCat = 3',
+    core3.catA === true && core3.catB === true && core3.catC === true && core3.nCat === 3,
+    JSON.stringify({ A: core3.catA, B: core3.catB, C: core3.catC, n: core3.nCat })]);
+
+  /* ══ (b) EL PDF DE HTP: SOLO LOS SIGNOS PRESENTES ═════════════════════════════════════════ */
+  __t.limpiar(); __t.set('vd_vi', '1.3'); __t.set('tvia', '95'); __t.set('ad_area', '22');
+  __t.set('vmax_it', '3.0'); __t.chk('htp2022_a3', true);
+  try { calcHTP2022(); } catch (e) {}
+  const P1 = htpPdf();
+  ex.push(['(b1) DENOMINADOR: la hoja se genera y nombra la Tabla 10',
+    typeof P1 === 'string' && P1.indexOf('Tabla 10') > 0, String(P1).slice(0, 90)]);
+  ex.push(['(b2) lista los signos PRESENTES, agrupados por categoria',
+    typeof P1 === 'string' && P1.indexOf('Cociente VD/VI') > 0 &&
+    P1.indexOf('Tiempo de aceleraci') > 0 && P1.indexOf('rea de la aur') > 0 &&
+    P1.indexOf('Aplanamiento del septo') > 0, String(P1).slice(0, 400)]);
+  ex.push(['(b3) y NO imprime los ausentes ni las categorias en «sin datos»',
+    typeof P1 === 'string' && P1.indexOf('Muesca mesosist') === -1 &&
+    P1.indexOf('sin datos') === -1, String(P1).slice(0, 400)]);
+  __t.limpiar(); __t.set('vmax_it', '2.0'); try { calcHTP2022(); } catch (e) {}
+  const P0 = htpPdf();
+  ex.push(['(b4) CONTROL: sin ningun signo presente usa la redaccion que la app ya tenia',
+    typeof P0 === 'string' && P0.indexOf('Sin signos adicionales') > 0 &&
+    P0.indexOf('Cociente VD/VI') === -1, String(P0).slice(0, 220)]);
+
+  /* ══ (c) EL INFORME CON LA VRT «NO MEDIBLE» ═══════════════════════════════════════════════ */
+  const escHTP = (pasos) => { __t.limpiar();
+    Object.keys(pasos).forEach(k => __t.set(k, pasos[k]));
+    try { const b = document.querySelector('[data-am-k="htp"]');
+      if (b && !(F('amiloIntegrado') && amiloIntegrado('htp'))) b.click(); } catch (e) {}
+    try { calcHTP2022(); } catch (e) {}
+    return inf(); };
+  const cEleg = escHTP({ nombre: 'E517', htp2022_vrt: 'nomedible' });
+  const cAuto = escHTP({ nombre: 'E517' });
+  const cVac  = escHTP({});
+  ex.push(['(c1) con la VRT «no medible» ELEGIDA y sin signos, el informe SI escribe la linea',
+    lineasHTP(cEleg.t).length === 1 && lineasHTP(cEleg.t)[0].indexOf('probabilidad baja') > 0 &&
+    lineasHTP(cEleg.t)[0].indexOf('no medible') > 0,
+    JSON.stringify(lineasHTP(cEleg.t))]);
+  ex.push(['(c2) CONTROL NEGATIVO: con la VRT en AUTOMATICO y sin IT cargada NO escribe nada',
+    lineasHTP(cAuto.t).length === 0 && cAuto.t.length > 0,
+    'n=' + lineasHTP(cAuto.t).length + ' largo=' + cAuto.t.length]);
+  ex.push(['(c3) CONTROL NEGATIVO: con el formulario vacio tampoco',
+    lineasHTP(cVac.t).length === 0, JSON.stringify(lineasHTP(cVac.t))]);
+  const cAlta = escHTP({ nombre: 'E517', htp2022_vrt: 'alta' });
+  ex.push(['(c4) CONTROL: las demas frases del informe de HTP no cambian',
+    lineasHTP(cAlta.t).length === 1 && lineasHTP(cAlta.t)[0].indexOf('probabilidad alta') > 0,
+    JSON.stringify(lineasHTP(cAlta.t))]);
+
+  /* ══ (d) LA PANTALLA DE HF-PEFF NO CAMBIA ════════════════════════════════════════════════ */
+  __t.limpiar(); __t.set('peso', '80'); __t.set('talla', '180');
+  __t.set('edad', '70'); __t.set('fevi', '60'); __t.set('onda_e', '90');
+  __t.set('e_sep', '6'); __t.set('e_lat', '8'); __t.set('ai_vol', '60');
+  __t.set('ddfvi', '45'); __t.set('siv', '10'); __t.set('ppvi', '10'); __t.set('hf_ntprobnp', '150');
+  try { hfapeffRender(); } catch (e) {}
+  const host = document.getElementById('hfapeff-detalle');
+  ex.push(['(d1) la pantalla conserva sus CUATRO columnas y sus doce medidas',
+    !!host && host.querySelectorAll('.hfp-col').length === 4 &&
+    host.querySelectorAll('.hfp-med').length === 12,
+    host ? 'cols=' + host.querySelectorAll('.hfp-col').length + ' med=' + host.querySelectorAll('.hfp-med').length : 'NO EXISTE']);
+  ex.push(['(d2) y sus criterios siguen publicandose uno por uno',
+    !!host && host.querySelectorAll('.hfp-cr').length >= 17,
+    host ? 'cr=' + host.querySelectorAll('.hfp-cr').length : 'NO EXISTE']);
+
+  /* ══ (e) EL PDF DE HF-PEFF: UNA SOLA TABLA Y EL PUNTAJE ARRIBA ═══════════════════════════ */
+  const H1 = hfPdf();
+  const subs = (typeof H1 === 'string') ? H1.split(String.fromCharCode(10))
+    .filter(x => x.indexOf('## ') === 0).map(x => x.slice(3)) : [];
+  ex.push(['(e1) el PUNTAJE va ARRIBA: es el primer bloque de la hoja',
+    subs.length > 0 && subs[0] === 'Score HFA-PEFF', JSON.stringify(subs)]);
+  ex.push(['(e2) una sola tabla agrupada por dominio, sin los tres bloques viejos',
+    typeof H1 === 'string' && H1.indexOf('## Valores del paciente') === -1 &&
+    H1.indexOf('## Criterios cumplidos') === -1 &&
+    subs.filter(x => x.indexOf('Dominio ') === 0).length === 3, JSON.stringify(subs)]);
+  ex.push(['(e3) cada fila lleva el criterio con su corte, el valor del paciente y el peso',
+    typeof H1 === 'string' && H1.indexOf('septal < 7 cm/s | 6.0 cm/s') > 0 &&
+    H1.indexOf('mayor') > 0 && H1.indexOf('menor') > 0,
+    String(H1).slice(0, 400)]);
+  ex.push(['(e4) y los cumplidos se resaltan con la palabra CUMPLE, que sobrevive al saneador del PDF',
+    typeof H1 === 'string' && H1.indexOf('CUMPLE') > 0, 'n=' +
+    (typeof H1 === 'string' ? H1.split('CUMPLE').length - 1 : 'EXC')]);
+  ex.push(['(e5) «Puntaje parcial: falta completar algun dominio.» ya no se repite debajo de la conclusion',
+    typeof H1 === 'string' && H1.indexOf('falta completar') === -1, String(H1).slice(-200)]);
+
+  /* ══ (f) LA CONCLUSION DE HF-PEFF ════════════════════════════════════════════════════════ */
+  const base = () => { __t.limpiar(); __t.set('peso', '80'); __t.set('talla', '180');
+    __t.set('edad', '70'); __t.set('fevi', '60'); };
+  const escHF = (p) => { base(); Object.keys(p).forEach(k => __t.set(k, p[k]));
+    const r = hfR(); return { total: r ? r.total : 'EXC', c: hfC() }; };
+  const FULL = { onda_e: '90', e_sep: '6', e_lat: '8', ai_vol: '60',
+                 ddfvi: '45', siv: '10', ppvi: '10', hf_ntprobnp: '150' };
+  const SIN_HUM = { onda_e: '90', e_sep: '6', e_lat: '8', ai_vol: '60',
+                    ddfvi: '45', siv: '10', ppvi: '10' };
+  const comp = escHF(FULL);
+  ex.push(['(f1) con el puntaje COMPLETO no aparece «provisoria» ni «puntaje parcial»',
+    comp.c.indexOf('provisoria') === -1 && comp.c.indexOf('parcial') === -1 &&
+    comp.c.indexOf('4/6') === 0 + comp.c.indexOf('4/6'), comp.total + ' -> ' + comp.c]);
+  /* UN dominio faltante. El parcial 2 es el UNICO definitivo: 2, 3 y 4 son todos intermedio. */
+  const p1_2 = escHF({ onda_e: '90', e_sep: '6', e_lat: '8', ai_vol: '40',
+                       ddfvi: '45', siv: '9', ppvi: '9' });
+  const p1_3 = escHF({ onda_e: '90', e_sep: '6', e_lat: '8', ai_vol: '60',
+                       ddfvi: '45', siv: '9', ppvi: '9' });
+  ex.push(['(f2) DENOMINADOR: las dos escenas de UN dominio faltante dan 2 y 3 puntos',
+    p1_2.total === 2 && p1_3.total === 3, p1_2.total + ' / ' + p1_3.total]);
+  ex.push(['(f3) con UN dominio faltante, el parcial 2 es DEFINITIVO: 2, 3 y 4 caen todos en intermedia',
+    p1_2.c.indexOf('provisoria') === -1 && p1_2.c.indexOf('puntaje parcial') > 0 &&
+    p1_2.c.indexOf('falta el dominio humoral') > 0, p1_2.c]);
+  ex.push(['(f4) y el parcial 3 SI es provisoria: con +2 llegaria a 5',
+    p1_3.c.indexOf('provisoria') > 0 && p1_3.c.indexOf('el dominio que no se carg') > 0, p1_3.c]);
+  /* DOS dominios faltantes: hasta +4, asi que hasta el 2 puede terminar en cualquier categoria. */
+  const p2_2 = escHF({ onda_e: '90', e_sep: '6', e_lat: '8' });
+  ex.push(['(f5) con DOS dominios faltantes el parcial 2 TAMBIEN es provisoria, y la frase va en plural',
+    p2_2.total === 2 && p2_2.c.indexOf('provisoria') > 0 &&
+    p2_2.c.indexOf('faltan los dominios') > 0 &&
+    p2_2.c.indexOf('los dominios que no se cargaron') > 0, p2_2.total + ' -> ' + p2_2.c]);
+  /* La proteccion de la rama <=1: nunca afirma un descarte sobre datos que no estan. */
+  const p1_0 = escHF({ onda_e: '60', e_sep: '10', e_lat: '13', ai_vol: '40',
+                       ddfvi: '45', siv: '9', ppvi: '9' });
+  ex.push(['(f6) un parcial de 0 con un dominio faltante tampoco afirma: sale «provisoria»',
+    p1_0.total === 0 && p1_0.c.indexOf('provisoria') > 0, p1_0.total + ' -> ' + p1_0.c]);
+  /* «Se recomienda» no esta en NINGUNA superficie. */
+  const supHF = [comp.c, p1_3.c, hfPdf()].join(' ');
+  ex.push(['(f7) «se recomienda» y las dos recomendaciones salieron de TODAS las superficies',
+    supHF.indexOf('Se recomienda') === -1 && supHF.indexOf('cateterismo') === -1 &&
+    supHF.indexOf('Investigar causas') === -1, supHF.slice(0, 260)]);
+  base(); Object.keys(FULL).forEach(k => __t.set(k, FULL[k]));
+  try { const b = document.querySelector('[data-am-k="hfpeff"]');
+    if (b && !(F('amiloIntegrado') && amiloIntegrado('hfpeff'))) b.click(); } catch (e) {}
+  const iHF = inf();
+  ex.push(['(f8) ni en el EN SUMA del informe, que es por donde el score llega al papel',
+    iHF.s.indexOf('HFA-PEFF') > -1 && iHF.s.indexOf('Se recomienda') === -1 &&
+    iHF.s.indexOf('cateterismo') === -1,
+    iHF.s.split(String.fromCharCode(10)).filter(x => x.indexOf('HFA-PEFF') > -1).join(' | ')]);
+
+  /* ══ (g) LAS FICHAS DE REFERENCIAS ═══════════════════════════════════════════════════════ */
+  const ficha = (id) => { const e = document.getElementById('ref-' + id);
+    return e ? (e.textContent || '').split(/[ ]+/).join(' ') : 'NO EXISTE'; };
+  const fHTP = ficha('htp'), fHF = ficha('hfapeff');
+  ex.push(['(g1) la ficha de HTP publica los once signos con su folio',
+    fHTP.indexOf('Tabla 10, folio 28') > 0 && fHTP.indexOf('Figura 5, folio 28') > 0 &&
+    fHTP.indexOf('TAPSE/PAPs') > 0 && fHTP.indexOf('al menos dos') > 0, fHTP.slice(0, 200)]);
+  ex.push(['(g2) la ficha NUEVA de HF-PEFF existe y publica las tres bandas y los cortes con su folio',
+    fHF !== 'NO EXISTE' && fHF.indexOf('folio 3305') > 0 && fHF.indexOf('folio 3304') > 0 &&
+    fHF.indexOf('folio 3303') > 0, fHF.slice(0, 200)]);
+  ex.push(['(g3) y el chip «CRITERIO DE ECOSMART» va sobre el puntaje PROVISORIO, que la guia no define',
+    fHF.indexOf('CRITERIO DE ECOSMART') > 0 && fHF.indexOf('provisoria') > 0, fHF.slice(-320)]);
+  ex.push(['(g4) la ficha de HF-PEFF entro en la subpestana «Funcion»',
+    !!window.REF_SUBTAB && window.REF_SUBTAB.fun.indexOf('hfapeff') >= 0,
+    window.REF_SUBTAB ? window.REF_SUBTAB.fun.join(',') : 'SIN REF_SUBTAB']);
+
+  /* ══ (h) LAS DOS SECCIONES NUEVAS DE EVIDENCIA ═══════════════════════════════════════════ */
+  __t.limpiar();
+  const vHTP = sec(T_HTP), vHF = sec(T_HF);
+  ex.push(['(h1) CONTROL NEGATIVO: con el formulario vacio NINGUNA de las dos aparece',
+    vHTP === null && vHF === null, JSON.stringify({ htp: vHTP === null, hf: vHF === null })]);
+  __t.limpiar(); __t.set('vmax_it', '3.0'); try { calcHTP2022(); } catch (e) {}
+  const eHTP = sec(T_HTP);
+  ex.push(['(h2) con la VRT medida la seccion de HTP publica la probabilidad y sus categorias',
+    !!eHTP && eHTP.filas && eHTP.filas.length === 6 &&
+    eHTP.filas[eHTP.filas.length - 1].val === (window._htp2022 || {}).prob,
+    eHTP && eHTP.filas ? JSON.stringify(eHTP.filas.map(f => f.lbl.slice(0, 22) + '=' + f.val)) : String(eHTP)]);
+  ex.push(['(h3) PREGUNTA los dos datos que el eco no da, y las recomendaciones van en un bloque VISIBLE',
+    !!eHTP && (eHTP.clinica || []).length === 2 &&
+    (eHTP.clinica || []).every(f => !!f.ctrl) &&
+    (eHTP.bloques || []).length >= 1 && !(eHTP.bloques || [])[0].plegado,
+    eHTP ? JSON.stringify({ clin: (eHTP.clinica || []).map(f => f.ctrl && f.ctrl.clave),
+      bl: (eHTP.bloques || []).map(b => b.tit + '|plegado=' + !!b.plegado) }) : String(eHTP)]);
+  base(); Object.keys(FULL).forEach(k => __t.set(k, FULL[k]));
+  const eHF = sec(T_HF);
+  ex.push(['(h4) la seccion de HF-PEFF LEE el puntaje y los tres dominios',
+    !!eHF && eHF.filas && eHF.filas.length === 5 && eHF.filas[0].val === '4 / 6',
+    eHF && eHF.filas ? JSON.stringify(eHF.filas.map(f => f.lbl.slice(0, 26) + '=' + f.val)) : String(eHF)]);
+  ex.push(['(h5) y PREGUNTA el paso 3 y la presion de llenado, con su bloque VISIBLE',
+    !!eHF && (eHF.clinica || []).length === 2 &&
+    (eHF.clinica || []).map(f => f.ctrl && f.ctrl.clave).join(',') === 'hfpeff.paso3,hfpeff.pll' &&
+    (eHF.bloques || []).length >= 1 && !(eHF.bloques || [])[0].plegado,
+    eHF ? JSON.stringify((eHF.clinica || []).map(f => f.ctrl && f.ctrl.clave)) : String(eHF)]);
+  ex.push(['(h6) ninguna linea de HF-PEFF inventa clase ni nivel: Pieske 2019 no los publica',
+    !!eHF && (eHF.bloques || [])[0] &&
+    (eHF.bloques || [])[0].lineas.every(l => String(l).indexOf('Clase ') === -1 &&
+                                             String(l).indexOf('Nivel ') === -1),
+    eHF && (eHF.bloques || [])[0] ? JSON.stringify((eHF.bloques || [])[0].lineas).slice(0, 220) : String(eHF)]);
+  __t.set('fevi', '32');
+  ex.push(['(h7) CONTROL NEGATIVO: con la FEVI reducida la seccion de HF-PEFF NO aparece',
+    sec(T_HF) === null, String(sec(T_HF)).slice(0, 80)]);
+
+  /* ══ (i) «NUEVO ESTUDIO» Y LOS CAMPOS DEL ESTUDIO ════════════════════════════════════════ */
+  __t.limpiar();
+  const I9 = inv();
+  ex.push(['(i1) «Nuevo estudio» devuelve la columna de estado al estado de arranque',
+    !!I9 && I9.filas.filter(f => f.est === 'sinDatos').length === 5,
+    I9 ? JSON.stringify(I9.filas.map(f => f.k + '=' + f.est)) : 'SIN TABLA']);
+  const idsAuto = Array.prototype.map.call(
+    document.querySelectorAll('#htp2022-tabla input[data-htp-auto]'), e => e.id || '');
+  ex.push(['(i2) las CINCO casillas automaticas van SIN id, asi que no viajan con el estudio',
+    idsAuto.length === 5 && idsAuto.every(x => x === ''), JSON.stringify(idsAuto)]);
+
+  /* ══ (j) LA REGLA DE MAQUETA ═════════════════════════════════════════════════════════════
+     El cuerpo de un caso corre DENTRO de la pagina y no puede cambiar el ancho de la ventana,
+     asi que aca se fija la REGLA que produce el comportamiento y la sonda mide lo RENDERIZADO
+     a cuatro anchos por dos temas. Es el reparto de TC-460 y TC-485. */
+  const fuente = document.documentElement.innerHTML;
+  ex.push(['(j1) la tabla va en un envoltorio con desplazamiento, no recortada en silencio',
+    fuente.indexOf('overflow-x:auto;"' + String.fromCharCode(62) +
+      String.fromCharCode(10)) >= 0 || (function () {
+        const t = document.getElementById('htp2022-tabla');
+        return !!(t && t.parentNode && getComputedStyle(t.parentNode).overflowX === 'auto'); })(),
+    (function () { const t = document.getElementById('htp2022-tabla');
+      return t && t.parentNode ? getComputedStyle(t.parentNode).overflowX : 'SIN TABLA'; })()]);
+  ex.push(['(j2) y ninguna celda del criterio lleva white-space:nowrap, que la empujaba a 487 px a 360',
+    (function () { const t = document.getElementById('htp2022-tabla');
+      if (!t) return false;
+      return Array.prototype.every.call(t.querySelectorAll('td'),
+        e => getComputedStyle(e).whiteSpace !== 'nowrap'); })(), 'medido']);
+
+  /* ══ (k) LOS CONTROLES ═══════════════════════════════════════════════════════════════════ */
+  __t.limpiar();
+  __t.set('nombre', 'CTRL517'); __t.set('edad', '58'); __t.set('peso', '78'); __t.set('talla', '172');
+  __t.set('onda_e', '70'); __t.set('onda_a', '60'); __t.set('tde', '190');
+  __t.set('e_sep', '7'); __t.set('e_lat', '9'); __t.set('ai_vol', '52');
+  __t.set('ddfvi', '50'); __t.set('siv', '10'); __t.set('ppvi', '10');
+  __t.set('vmax_ao', '2.4'); __t.set('im_vc', '4'); __t.set('vci_diam', '18');
+  const iC = inf();
+  ex.push(['(k1) el Excel sigue en 440 columnas', excelN() === 440, 'n=' + excelN()]);
+  ex.push(['(k2) CONTROL: el informe de un escenario AJENO no nombra la HTP ni el HFA-PEFF',
+    lineasHTP(iC.t).length === 0 && iC.s.indexOf('HFA-PEFF') === -1 && iC.t.length > 0,
+    'largo=' + iC.t.length + ' htp=' + lineasHTP(iC.t).length]);
+  const vTEP = F('calcTEP'), vVD = F('calcVD'), vAo = F('calcAorta');
+  ex.push(['(k3) CONTROL: el TEP, el VD y la aorta siguen teniendo su dueno y no se tocaron',
+    !!vTEP && !!vVD && !!vAo && !!F('fopConclusion') && !!F('calcHemo'),
+    JSON.stringify({ tep: !!vTEP, vd: !!vVD, ao: !!vAo, fop: !!F('fopConclusion'), hemo: !!F('calcHemo') })]);
+  ex.push(['(k4) CONTROL: _htp2022Core sigue publicando las mismas cinco claves del veredicto',
+    (function () { const f = F('_htp2022Core'); if (!f) return false;
+      try { const r = f({ num: _hfN, txt: sv, chk: _hfChk });
+        return ['vrtCat', 'catA', 'catB', 'catC', 'nCat', 'prob'].every(k => k in r); }
+      catch (e) { return false; } })(), 'medido']);
+
   return { extra: ex };
 `);
 

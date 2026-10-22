@@ -5199,3 +5199,78 @@ ese corte.
 | Flujo reverso de la aorta descendente | **VTI ≥ 25 cm** votaba severa por su cuenta (criterio propio) | lo gradúa la **DURACIÓN**; el 25 **salió** y el corte es **VTI > 15 cm** con reverso holodiastólico | EACVI 2013 Tabla 4 folio 621 + Moya Mur Tabla 20-5 |
 | Velocidad telediastólica | `≥ 20 cm/s` votaba severa **sin mirar la duración** | vota severa **sólo con reverso holodiastólico**; el corte y el operador **no se movieron** | las dos celdas de la Tabla 20-5 empiezan por «holodiastólico» |
 | Gradiente medio aórtico | la franja 20-39 / ≥ 40 **sin línea de fuente** | la ficha publica su fuente y la columna de la ESC al lado | EAE/ASE 2009, Tabla 3, folio 10 |
+
+## La tanda «E» — HTP y HF-PEFF (2026-10-22)
+
+**Ningún corte, operador ni regla de conteo se movió en esta tanda.** Lo que se verificó es lo que
+hacía falta para PUBLICAR cada corte con su folio en las dos fichas nuevas de Referencias y para
+escribir los pasos de las dos secciones de Evidencia con su clase y su nivel.
+
+### Lo re-leído de `escErs2022`, EN IMAGEN
+
+Regla de folio ya establecida en la entrada de esa guía: **folio = página del PDF − 1**,
+re-comprobada en el pie impreso de las hojas 29 y 37.
+
+| Qué | Folio | Hoja | Cómo se leyó |
+|---|---|---|---|
+| **Tabla 10** — los once signos ecocardiográficos, con su categoría A/B/C y su corte | **28** | 29 | renderizada a **300 dpi** |
+| **Figura 5** — el algoritmo de probabilidad y los pasos siguientes, con su **CLASE** | **28** | 29 | la misma imagen |
+| **«Recomendaciones - tabla 2»** — las mismas recomendaciones con su **clase Y su nivel** | **36** | 37 | renderizada a 300 dpi |
+
+⚠️ **LA FIGURA 5 PUBLICA CLASE Y NO PUBLICA NIVEL.** Sus cajas llevan «Clase I» y «Clase IIa» sin
+letra de evidencia; el nivel sólo aparece en la «Recomendaciones - tabla 2» del folio 36. Por eso
+las líneas de Evidencia que salen de la figura **no llevan nivel** y las dos que salen de la tabla
+sí (`IIa · B` y `IIb · C`). Inventarle una letra a una caja de la figura sería afirmar lo que esa
+página no dice.
+
+⚠️ **SE CITA CON EL TÍTULO IMPRESO COMPLETO, «Recomendaciones - tabla 2», Y NO CON LA FORMA CORTA.**
+Ese documento numera **aparte** sus «Tabla» y sus «Recomendaciones - tabla», y las dos series se
+pisan en los números bajos —la «Tabla 2» de la otra serie es otra cosa—. Es la misma regla que el
+trabajo H dejó escrita para la ESC 2024 de aorta, que tiene **tres** series.
+
+⚠️ **LA FIGURA 5 PONE «O NO SE PUEDE MEDIR» EN LA MISMA FILA QUE EL ≤ 2,8**, como nota ᵃ de la
+columna de probabilidad baja: o sea que con la VRT no medible y sin signos de otras categorías la
+guía da probabilidad **BAJA**. Eso es lo que sostiene la línea de informe del E2.
+
+### Lo re-leído de `hfaPeff2019`, EN IMAGEN
+
+Regla de folio ya establecida: **folio = página del PDF + 3296**.
+
+| Qué | Folio | Hoja | Cómo se leyó |
+|---|---|---|---|
+| **Figura 3** — el algoritmo de cuatro pasos y las tres bandas del puntaje | **3305** | 9 | renderizada a **250 dpi** |
+| Criterios funcionales: e′ por edad, E/e′, velocidad de IT, PSAP y GLS | **3303** | 7 | renderizado a **330 dpi** |
+| Criterios morfológicos, péptidos y **la regla de suma** (máximo 2 por dominio, bandas 0-1 / 2-4 / ≥5) | **3304** | 8 | renderizado a 330 dpi |
+
+⚠️ **PIESKE NO PUBLICA CLASE NI NIVEL EN NINGÚN PASO, Y NO SE LE INVENTÓ NINGUNO.** Es un documento
+de **consenso** de la HFA, no una guía con tabla de recomendaciones. Censada además la **ESC 2021 de
+insuficiencia cardíaca**, que nombra el HFA-PEFF y repite en prosa los mismos pasos **también sin
+clase ni nivel propios**, y que declara que el rendimiento diagnóstico de los scores ha variado
+entre cohortes. Por eso las ocho líneas de `_indHFPEFF` salen sin clase y sin nivel. **Declarado.**
+
+⚠️ **DOS CONTRADICCIONES DEL ORIGINAL, LAS DOS YA REGISTRADAS EN SU ENTRADA Y PUBLICADAS EN LA
+FICHA NUEVA:** el piso de NT-proBNP en fibrilación auricular (texto 375-660 contra figura
+**365**-660) y el operador del IMVI menor (texto `≥115/≥95` contra figura **`> 115/95`**). Regla de
+la casa desde el 2026-10-13: **gana la Figura 3**, que es el algoritmo que la app ejecuta. La ficha
+`ref-hfapeff` publica el corte aplicado **y nombra el otro texto impreso**, para que un borde no se
+entienda sin el que no se eligió.
+
+### Lo que lleva el chip «CRITERIO DE ECOSMART»
+
+| Qué | Por qué no tiene fuente |
+|---|---|
+| La regla del **puntaje provisorio** —decidir si un dominio sin datos puede cambiar la categoría, con el máximo posible de cada dominio faltante— | Pieske admite calcular el score incompleto (folio 3304) y **no publica ninguna regla** sobre cómo informar un parcial. La forma de decirlo es de la app. |
+
+### Cambios de evidencia
+
+| Dato | Antes | Ahora | Fuente | Commit | Fecha |
+|---|---|---|---|---|---|
+| Los once signos de HTP | sin publicar en Referencias | tabla de catorce filas con su corte y su folio | ESC/ERS 2022, **Tabla 10, folio 28** | E4 | 22/10/2026 |
+| Los pasos siguientes de HTP con clase y nivel | no estaban en ninguna superficie | ocho líneas en Evidencia | **Figura 5, folio 28** y **«Recomendaciones - tabla 2», folio 36** | E5 | 22/10/2026 |
+| Los veinte cortes del HFA-PEFF | sin publicar en Referencias | ficha `ref-hfapeff` completa, cada uno con su folio | Pieske 2019, **folios 3303, 3304 y Figura 3 del 3305** | E4 | 22/10/2026 |
+| Los pasos del algoritmo HFA-PEFF | «Se recomienda completar el score y, según resultado, ecocardiografía de esfuerzo y/o cateterismo cardíaco derecho», en la conclusión, el informe y el PDF | ocho líneas en Evidencia, con su folio y **sin clase ni nivel** | Pieske 2019, **folios 3304 y 3305** | E3 y E6 | 22/10/2026 |
+| «Investigar causas alternativas de disnea» | en la conclusión del score | en Evidencia, como el paso que la guía propone con puntaje ≤ 1 | Pieske 2019, **folio 3304** | E3 y E6 | 22/10/2026 |
+
+⚠️ **NINGÚN CORTE CAMBIÓ DE VALOR NI DE OPERADOR**, y es lo que separa esta tanda de las que mueven
+evidencia: lo único que se movió son los textos que **dejaron** de afirmar una conducta en el papel
+firmado, y lo que pasó a estar publicado donde el médico puede consultarlo.

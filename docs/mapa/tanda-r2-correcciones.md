@@ -341,3 +341,17 @@ node scripts/_ab_r2diff.mjs /tmp/a.json /tmp/b.json  # el comparador
    **`ECO_AYUDA` es un string que el armador del PDF aplana por REGEX**, así que un comentario HTML
    ahí dentro le mueve el conteo de páginas. Una nota de código va **al lado del dueño del dato**,
    no dentro del manual.
+
+---
+
+## La tanda «E» volvió sobre los seis puntos de HTP (2026-10-22)
+
+El R2-E3 fijó los **seis puntos de la probabilidad ecocardiográfica** —el 2,8 inclusivo, la VRT no
+medible, el «VD basal > 41 mm» retirado del conteo, el TAPSE/PSAP en la A, el colapso de la VCI en
+la C y los dos signos de la AP con su modo automático y manual—. **La tanda E no movió ninguno**:
+los once signos pasaron a una TABLA con su categoría, su corte y su ESTADO, el informe aprendió a
+hablar cuando la VRT «no medible» la ELIGIÓ el médico, y el PDF pasó a listar sólo los presentes.
+
+`htpApSync` sigue siendo el dueño único de las dos casillas de la AP y **no se tocó**.
+
+Detalle en **`docs/mapa/htp-hfapeff.md`**.

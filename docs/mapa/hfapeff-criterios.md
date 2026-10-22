@@ -260,3 +260,19 @@ principio y al final y lo publica en su salida.
 | Los cortes con su folio y la frase verificada de cada uno | `docs/fuentes/FUENTES.md` → `### hfaPeff2019` |
 | Lo declarado y no tocado | `docs/PENDIENTES.md` → H1 a H8 y P1 a P6 |
 | La función diastólica y sus tres algoritmos | `docs/mapa/diastolica.md` |
+
+---
+
+## La tanda «E» (2026-10-22) — la conclusión, el PDF y la Evidencia
+
+**Ningún criterio ni corte de este mapa cambió.** Lo que cambió es qué sale al papel y qué dice la
+conclusión: la hoja del PDF pasó de **tres bloques a UNA tabla** por dominio (parámetro · valor del
+paciente · corte · peso, con la marca `CUMPLE`), la conclusión es **descriptiva** —salieron las dos
+recomendaciones de cateterismo y la de causas alternativas, y «provisoria» se **calcula** con los
+máximos posibles de cada dominio faltante— y el HFA-PEFF ganó por fin su ficha de Referencias
+(`ref-hfapeff`) y una sección de Evidencia (`_indHFPEFF`), que es un cuestionario con los pasos de
+Pieske 2019 y **sin clase ni nivel**, porque el original no publica ninguno.
+
+**La PANTALLA no se tocó**, medido.
+
+Detalle en **`docs/mapa/htp-hfapeff.md`** §5 a §8.

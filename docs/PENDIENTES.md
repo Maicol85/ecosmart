@@ -5770,15 +5770,21 @@ módulo que lo escriba.
 
 ## Tanda «R2» (2026-10-21) — lo declarado y NO tocado
 
-### R2-1 · El informe sigue callando con la VRT «no medible» y cero categorías, y es PREEXISTENTE
+### R2-1 · [CERRADO 2026-10-22, tanda E] El informe callaba con la VRT «no medible» y cero categorías
 
 La probabilidad pasa a **BAJA** en ese estado (era «INDETERMINADA»), que es lo que la Figura 5
-publica. Pero la compuerta que decide si el informe escribe la línea de probabilidad **no cambió**:
-con la VRT no medible y ninguna categoría presente, el papel sigue sin decir nada.
+publica. Pero la compuerta que decide si el informe escribe la línea de probabilidad **no cambió**
+en el R2: con la VRT no medible y ninguna categoría presente, el papel seguía sin decir nada.
 
-Es la compuerta **anterior a esta tanda** y esta orden no autoriza a tocar un texto del informe.
-**Decidir:** si «probabilidad baja de hipertensión pulmonar» debería publicarse en ese estado, que
-es el del paciente **sin chorro de IT medible** —entre el 40 y el 60 % según la BSE—.
+**Cerrado en el commit E2**, y lo que lo cerró es distinguir **`vrtSel` de `vrtCat`**: «no medible»
+ELEGIDA en el desplegable y «automático» sin IT cargada daban el mismo `vrtCat` y son cosas
+distintas. Hoy la primera publica la línea —«probabilidad baja (VRT no medible; sin signos
+adicionales)»— y la segunda **sigue callando**, que es el lado conservador: no se afirma sobre un
+estudio al que no se le cargó nada. El estado que esta entrada nombraba —el paciente **sin chorro de
+IT medible**, entre el 40 y el 60 % según la BSE— es el primero.
+
+⚠️ **No se escribió ninguna frase nueva**: la línea que ya existía produce ese texto con esos datos.
+Ver `docs/mapa/htp-hfapeff.md` §3.
 
 ### R2-2 · El «índice cardiaco bajo ≤ 2,2» no tiene fuente verificada en la biblioteca
 
@@ -6570,3 +6576,95 @@ DENOMINADOR**, que es para lo que está, y el caso usa los ids reales.
 
 **La sonda quedó como está** —ya se corrió y su conclusión no cambia: el seguimiento tampoco
 aparece en la escena buena, medido por el caso—. Si se vuelve a usar, hay que corregirle los ids.
+
+---
+
+## Tanda «E» (2026-10-22) — HTP y HF-PEFF: lo declarado y NO tocado
+
+Esta tanda **cierra R2-1** (arriba) y la fila 99 de la Lista. Lo que queda:
+
+### E-1 · El informe reusa la frase que la app ya emite, y no el literal del pedido
+
+La orden pedía, textual, «Probabilidad baja de HTP (VRT no medible, sin signos ecocardiográficos
+adicionales)». La línea que la app ya tenía produce ese MISMO contenido con esos datos, con otro
+envoltorio: «…probabilidad baja de hipertensión pulmonar (VRT no medible; sin signos adicionales)».
+
+**Se eligió reusarla**, que es la opción conservadora: redactar la frase aparte habría dejado **DOS
+formatos para la misma afirmación en el mismo informe firmado**, y el que se olvida de actualizar es
+el que termina contradiciendo al otro. **Decidir:** si el literal del pedido tiene que reemplazar al
+de la app, es un cambio de texto del informe y hay que hacerlo en el dueño, no agregando una rama.
+
+### E-2 · La pantalla del HF-PEFF sigue diciendo «el puntaje es parcial» en su columna de resultado
+
+La orden congela la pantalla de HF-PEFF («no toques su diseño ni sus campos»), y esa pantalla tiene
+su propio renglón «Faltan datos en algún dominio: el puntaje es parcial.» en la columna de
+resultado, **además** de la conclusión, que ahora dice «(puntaje parcial: falta el dominio X)» y
+NOMBRA cuál. O sea que en la pantalla la idea aparece **dos veces** —una genérica y una con el
+dominio—, aunque en el informe y en el PDF aparezca una sola.
+
+**No se tocó**, por la congelación. **Decidir:** si ese renglón sale, es una línea.
+
+### E-3 · «Investigar causas alternativas de disnea» también salió de la conclusión
+
+La orden nombra explícitamente la frase del cateterismo. «Investigar causas alternativas de disnea»
+—que la conclusión publicaba con puntaje ≤ 1— **es una conducta por el mismo criterio**, así que
+salió con ella y su idea pasó a Evidencia, con su folio (Pieske 2019, folio 3304).
+
+**Declarado** porque es un retiro que la orden no nombra. **Decidir:** si tenía que quedarse, vuelve
+en una línea de `hfapeffConclusion`.
+
+### E-4 · Las líneas de Evidencia del HF-PEFF no llevan clase ni nivel
+
+Pieske 2019 es un **consenso** de la HFA y no publica ninguno; censada la ESC 2021 de insuficiencia
+cardíaca, que nombra el score y repite los mismos pasos **también sin clase ni nivel propios**, y
+que además declara que el rendimiento diagnóstico de los scores varió entre cohortes.
+
+**No se les inventó ninguno.** La sección de HTP sí los lleva, porque su fuente los imprime.
+**Decidir:** si algún día aparece una guía que les asigne clase, hay que citarla a ella y no a
+Pieske.
+
+### E-5 · Las cinco casillas automáticas de la tabla de HTP no viajan con el estudio
+
+Van **sin `id`** a propósito: el recolector barre `input[id]`, así que una casilla sin id no agrega
+una clave al estudio ni puede agregar una columna de Excel —que es PARADA—. Las escribe el cálculo
+en cada repintado y se ven bloqueadas.
+
+**Consecuencia declarada:** su estado no se persiste, y no hace falta que se persista porque se
+**deriva** de los campos que sí viajan. Lo que sí queda abierto es que un estudio **archivado** de
+antes de la tanda R2 puede traer la casilla con id de la AP tildada a mano con un valor que hoy el
+cálculo contradice: ahí manda la casilla, que es lo que ya estaba en disco. **No se migra nada.**
+
+### E-6 · El `presente` de los dos signos de la AP se lee de la casilla y no del cálculo
+
+`htpApSync` escribe y bloquea las dos casillas con id de la arteria pulmonar en la **pantalla**,
+pero `_htp2022Signos` lee su `presente` de la CASILLA. Es deliberado: `_htp2022Core` corre **también
+sobre un estudio archivado** —el panel de cohorte—, que nunca pasó por `htpApSync`, así que
+recalcularlas ahí le cambiaría el resultado a lo que ya está en disco.
+
+**Consecuencia declarada:** es la única asimetría de la tabla —los otros nueve signos derivan su
+`presente` del mismo lugar que su `estado`—.
+
+### E-7 · El mapa nuevo nació porque tres mapas están cruzados o al borde
+
+Medido con `wc -c` **antes** de escribir: `panel-evidencia.md` **35,3 KB** (ya cruzado desde el
+2026-10-12), `tests-fichas.md` **34,2** e `informe-pdf-excel.md` **34,0**, los tres a menos de 1 KB
+del techo o pasados. Por eso la documentación de esta zona salió a **`docs/mapa/htp-hfapeff.md`**
+(17,4 KB) con la ficha de TC-517 adentro, y a los otros tres mapas con margen les entró un puntero.
+
+**Los tres siguen esperando que alguien los parta.**
+
+### E-8 · El marco del panel de Evidencia recorta el valor largo, y no se tocó
+
+La celda del VALOR de una fila del panel lleva **`white-space: nowrap`**: el marco espera ahí una
+cifra —«> 3,4 m/s», «2 de 3»— y un texto largo **no envuelve**, ensancha la tabla de la sección y
+hace que **todas** sus filas queden cortadas por la derecha. Medido: con la lista de nombres en el
+valor, la sección de HTP daba **928 px contra los 788 de su caja** y era la **única de las
+cincuenta** del panel que recortaba.
+
+**Se corrigió del lado del contenido** —el conteo en el valor y los nombres en la nota, que sí
+envuelve—, **no del marco**, que esta orden no autoriza a tocar.
+
+**Decidir:** si el marco tendría que acotar esa celda (por ejemplo con `max-width` y envolviendo),
+para que la próxima sección con un valor largo no vuelva a recortarse en silencio. Hoy nada lo
+señala: el cuerpo del panel **no desborda** (818 = 818) y la página tampoco, así que ninguna
+medición numérica lo ve — **lo destapó mirar la captura**.

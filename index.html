@@ -78673,10 +78673,17 @@ function _indHTP(){
   ];
   ['A', 'B', 'C'].forEach(function (cat) {
     const hay = (cat === 'A') ? R.catA : (cat === 'B') ? R.catB : R.catC;
+    const nPres = SG.filter(function (g) { return g.cat === cat && g.presente; }).length;
+    /* ⚠️ EL VALOR VA CORTO Y LOS NOMBRES EN LA NOTA, Y NO ES COSMÉTICO. La celda del VALOR del
+       panel lleva «white-space: nowrap» —el marco espera una cifra, como «> 3,4 m/s» o «2 de 3»—
+       así que una lista de nombres de 120 caracteres NO envuelve: ensancha la TABLA entera y, con
+       ella, TODAS las filas de esta sección quedan recortadas por la derecha. Medido: con los
+       nombres en el valor la sección daba 928 px contra los 788 de su caja, y era la ÚNICA de las
+       cincuenta del panel que recortaba. La celda de la NOTA sí envuelve. */
     filas.push(_indFila('Signos de la categoría ' + CAT_TXT[cat],
-      hay ? nombres(cat) : (sinDatos(cat) ? '—' : 'ninguno'),
+      hay ? (String(nPres) + (nPres === 1 ? ' signo' : ' signos')) : (sinDatos(cat) ? '—' : 'ninguno'),
       hay ? 'warn' : (sinDatos(cat) ? 'ask' : 'none'),
-      hay ? 'cuenta como UNA categoría, cualquiera sea el número de signos'
+      hay ? (nombres(cat) + ' · cuenta como UNA categoría, cualquiera sea el número de signos')
           : (sinDatos(cat) ? 'ningún signo de esta categoría se pudo evaluar con lo cargado' : 'evaluada, sin signos'),
       ['escErs2022']));
   });
@@ -128181,8 +128188,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261022-0246';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1792647968450;                 /* eco-build-ms */
+const ECO_BUILD    = '20261022-0942';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1792672955159;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -128268,7 +128275,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261022-0246</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261022-0942</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

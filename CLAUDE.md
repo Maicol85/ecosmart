@@ -49,6 +49,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la pestaña REFERENCIAS**: las cinco subpestañas y su reparto, el buscador, el botón «Ver referencia» de las tarjetas ⓘ o la TABLA DE CIRUGÍA AÓRTICA | `docs/mapa/referencias-subpestanas.md` |
 | **Tocar el panel de Evidencia: agregar una cita, una sección o un sub-bloque** | `docs/mapa/panel-evidencia.md` |
 | **Agregar un TÉRMINO al glosario del panel (el ⓘ con tarjeta)** | `docs/mapa/panel-evidencia-terminos.md` |
+| **Tocar la TABLA DE SIGNOS de HTP, la compuerta del informe con la VRT «no medible», las dos hojas del PDF de HTP y HF-PEFF, el cálculo de «provisoria» o sus dos secciones de Evidencia** | `docs/mapa/htp-hfapeff.md` |
 | **Tocar el CARTEL DE PÉPTIDOS del HFA-PEFF, su puntaje o el plan Básico/Avanzado**: el espejo del péptido, el ritmo que se lee, los cortes por tipo o por qué `showTab` no chequea el plan | `docs/mapa/hfapeff-peptidos.md` |
 | **Tocar un CRITERIO o un CORTE del puntaje HFA-PEFF**: la tabla contra el original, las tres contradicciones del artículo, la PSAP o el operador del IMVI | `docs/mapa/hfapeff-criterios.md` |
 | **Tocar los VOLÚMENES del VI en AI/VI**: el VSFVI automático, el volumen latido automático, quién lee el VSFVI, o el GASTO CARDÍACO del PDF y su frecuencia cardíaca | `docs/mapa/vi-volumenes-automaticos.md` |
@@ -137,8 +138,8 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **9,14 MB / 130.378 líneas**, medido con `wc -l` y `wc -c` el 2026-10-22 al
-  cierre de la tanda **AJ1**, sobre el árbol ya sellado (`v20261022-0246`, `md5` `87f14180…`).
+  sin frameworks. Hoy **9,21 MB / 131.103 líneas**, medido con `wc -l` y `wc -c` el 2026-10-22 al
+  cierre de la tanda **E**, sobre el árbol ya sellado (`v20261022-0942`, `md5` `f5919381…`).
   ⚠️ **Y ESTE RENGLÓN DECÍA «8,53 MB / 128.236 líneas» —el cierre del trabajo B— DURANTE CINCO
   TANDAS**: el B fue la primera en muchas que lo dejó más CHICO (por las 431 líneas del
   Fonocardiograma retirado) y desde entonces cada tanda escribió su delta en su propia sección sin
@@ -300,6 +301,202 @@ impecable.
 ---
 
 ## Estado vigente
+
+### La HTP y el HF-PEFF — «E» (2026-10-22)
+
+- **Son SIETE commits, y son los siete que la orden pedía.** Al **empezar**, `main` estaba en
+  **`92198c3`** —el cierre del AJ1, con su sello `v20261022-0246`— y `origin/main` en **`53ddd7a`**,
+  o sea que los quince commits del D2, el D3 y el AJ1 seguían locales, que es lo que la orden
+  preveía. Los **siete** de esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 7 → 6 → … → 1.**
+  ⚠️ **EL 1 ES LA BASE DEL 2 Y DEL 5**: crea `HTP_SIGNOS`, `HTP_EST_TXT`, `HTP_CAT_TXT` y
+  `_htp2022Signos`, de los que `_htp2022Core` **deriva** sus tres categorías y a los que
+  `amiloTextoHTP` y `_indHTP` les piden los signos. Revertirlo sin revertir antes el 2 y el 5 deja
+  esas dos nombrando una tabla que no existe, y un `ReferenceError` ahí **aborta el `<script>`
+  COMPLETO**.
+  ⚠️ **EL 2 CUELGA DEL 1 POR `vrtSel`**, que es la clave que el commit 1 agrega a `window._htp2022`
+  y lo único que distingue «no medible» ELEGIDA de «automático sin IT».
+  ⚠️ **EL 3 ES LA BASE DEL 6**: agrega el campo `val` a cada criterio de `hfapeffScore` —aditivo, no
+  cambia ninguno existente— y de él leen la hoja del PDF y la sección de Evidencia.
+  ⚠️ **EL 4 SE REVIERTE SOLO**, pero deja **TC-502**, **TC-507 (I8)** y **TC-509 (F3)** en rojo por
+  el censo de Referencias y el conteo de chips.
+  **El 7 es TC-517, las SEIS adaptaciones, la documentación y el sello**, y afirma el comportamiento
+  de los seis: revertir cualquiera sin el 7 lo deja en rojo.
+
+- **Línea base al cierre: suite **527/531** con el pendrive `DISK_IMG` **MONTADO** —verificado al
+  abrir Y al cerrar—, Semgrep **124 / 0 ERROR en 1 app**, Excel en **440** columnas y celular **63 a
+  360 px y 72 a 390 px con 17 ALTA cada uno**, con `--todo` **392 / 401**. CERO REGRESIONES.** Los
+  rojos son exactamente los **cuatro** de ENTRADA —**TC-223** (el documentado, falla por la fecha),
+  **TC-376**, **TC-390** y **TC-406**— y no apareció ninguno fuera de esa lista. **El denominador
+  sube a 532**: esta tanda agregó **TC-517**, así que la comparación es **526/530 → 527/531**.
+  ⚠️ **LA SUITE SE CORRIÓ DOS VECES Y LA PRIMERA NO ES LA LÍNEA BASE.** Dio **524/531** con
+  **siete** rojos, y los **tres** de más los destapó la suite completa: **TC-507** y **TC-509**, por
+  el censo y los chips, y **TC-331**, que **NO es un inestable** —corrido solo falla igual—. Se
+  adaptaron y la segunda es la que vale, con el `md5` quieto de punta a punta.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **531 ids** sobre los 532 casos del archivo.
+  ⚠️ **EL CELULAR BAJA −3 A 360 px Y −4 A 390, Y HAY QUE MEDIR EL INICIO EL MISMO DÍA PARA PODER
+  DECIRLO.** Medido hoy en un worktree del inicio: **66 / 76** y `--todo` **395 / 405**; hoy **63 /
+  72** y **392 / 401**. **Las ALTA no se mueven (17 y 17)** y el delta se explica entero: es
+  `toque-chico` de severidad **MEDIA** (49 → 46 y 59 → 55), o sea las **cinco casillas automáticas
+  de la tabla de HTP, que hoy van `disabled`** y dejan de contar como objetivo táctil. Es un
+  hallazgo que DESAPARECE, no uno nuevo, y es lo que la orden pide: que se vean bloqueadas.
+- **`index.html` pasó de 9,14 MB / 130.378 líneas a **9,21 MB / 131.103 líneas** — medido con
+  `wc -c` y `wc -l` DESPUÉS de sellar.
+  ⚠️ **SE SELLÓ DOS VECES, Y HAY QUE DECIR POR QUÉ:** el primer sello (`v20261022-0903`) quedó
+  invalidado porque **MIRAR UNA CAPTURA** destapó que la sección de Evidencia de HTP salía
+  **recortada por la derecha**. Se corrigió, se volvió a sellar (`v20261022-0942`, `md5`
+  `f5919381…`) y **se volvió a medir TODO** sobre el árbol final: suite, Semgrep, celular y los dos
+  motores.
+
+- **E1 · LOS ONCE SIGNOS PASAN A UNA TABLA CON SU CATEGORÍA, SU CORTE Y SU ESTADO, Y LA LÓGICA NO
+  CAMBIA.** `HTP_SIGNOS` es el dueño único —clave, categoría, rótulo, corte y la casilla que lo
+  marca— y `_htp2022Core` **deriva** `catA/catB/catC` del OR de los signos de cada categoría: el
+  conteo sigue siendo POR CATEGORÍA y la condición compartida `vciD > 21` de las dos formas del
+  colapso se conserva, que es como la Tabla 10 escribe esa celda. **A/B contra el inicio: cero
+  diferencias en los cuatro badges y en la probabilidad.**
+  Tres estados: **`auto`** (lo decide un cálculo), **`manual`** (la casilla la marca el médico) y
+  **`sinDatos`** (es automático y sus insumos no están).
+  ⚠️ **`presente` SALE DE DONDE SALÍA Y EL `estado` ES LO ÚNICO NUEVO.** Las dos casillas de la AP
+  son automáticas en la PANTALLA —`htpApSync` las escribe y las bloquea, y **no se tocó**— pero su
+  `presente` sigue leyéndose de la CASILLA: `_htp2022Core` corre **también sobre un estudio
+  archivado** —el panel de cohorte—, que nunca pasó por `htpApSync`, así que recalcularlas le
+  cambiaría el resultado a lo que ya está en disco.
+  ⚠️ **LAS CINCO CASILLAS AUTOMÁTICAS VAN SIN `id`**: el recolector barre `input[id]`, así que no
+  viajan con el estudio y **no pueden agregar una columna de Excel**, que es PARADA. Van `disabled`
+  y las escribe el cálculo: eso es lo que «se ve bloqueado» quiere decir.
+  ⚠️ **EL MARCADO ES ESTÁTICO Y EL PINTOR SÓLO ESCRIBE `textContent`**, el `data-htp-estado` y el
+  `checked` de las cinco: armarla por `innerHTML` destruiría las seis casillas con id en cada
+  repintado y haría saltar el ruleset local por concatenar datos en un sink.
+  **`htpTablaPintar` va en las TRES columnas**: la cola de `calcHTP2022`, `RECALC_MODULOS` y el
+  final de `limpiarCampos` —su barrido genérico no alcanza a un `<td>` ni saca un `disabled`—.
+  ⚠️ **UN DEFECTO MÍO QUE CAZÓ LA MEDICIÓN Y NO LA LECTURA:** el `white-space:nowrap` de la columna
+  del criterio dejaba la tabla en **487 px con `x=31` a 360 px** mientras `scrollWidth` del documento
+  seguía en 360 — la página **no desbordaba** porque un ancestro la recortaba, o sea que el médico
+  no veía las columnas de la derecha **y no podía desplazarse**. Sin él mide **298 px a 360 y 328 a
+  390**, y el envoltorio con `overflow-x:auto` queda como red.
+
+- **E2 · EL INFORME HABLA CUANDO LA VRT «NO MEDIBLE» LA ELIGIÓ EL MÉDICO — cierra R2-1.** La
+  **Figura 5 (folio 28)** pone «o no se puede medir» en la MISMA fila que el ≤ 2,8, así que sin
+  signos de otras categorías la guía da probabilidad **BAJA**; hasta hoy el papel firmado se quedaba
+  **mudo** en ese estado, que es el del paciente **sin chorro de IT medible** —entre el 40 y el 60 %
+  según la BSE—.
+  ⚠️ **LO QUE DISTINGUE LOS DOS CAMINOS ES `vrtSel`, NO `vrtCat`**: «no medible» elegida y
+  «automático» sin IT dan el mismo `vrtCat` y son cosas distintas. La primera publica la línea; la
+  segunda **sigue callando**, que es el lado conservador. **Medido: las otras cinco escenas —baja,
+  alta, discrepancia, formulario vacío y «no medible» con dos signos— salen IDÉNTICAS.**
+  ⚠️ **NO SE ESCRIBIÓ NINGUNA FRASE NUEVA**: la línea que ya existía produce ese texto con esos
+  datos. El literal del pedido dice lo mismo con otro envoltorio, y redactarlo aparte habría dejado
+  **DOS formatos para la misma afirmación** en el mismo informe. `PENDIENTES.md` → E-1.
+  **LA HOJA DEL PDF LISTA SÓLO LOS SIGNOS PRESENTES**, agrupados por categoría y con su corte al
+  lado. Hasta hoy imprimía las tres categorías siempre y de los signos listaba **sólo los seis
+  manuales marcados**: un paciente cuya probabilidad INTERMEDIA la sostenían dos signos CALCULADOS
+  publicaba «A: sin datos · B: signo presente · C: sin datos» **sin decir cuál**.
+
+- **E3 · LA CONCLUSIÓN DEL HF-PEFF ES DESCRIPTIVA, Y «PROVISORIA» SE CALCULA.** Salieron las dos
+  recomendaciones de cateterismo —que son la MISMA con dos redacciones— y su idea pasó a Evidencia.
+  ⚠️ **«Investigar causas alternativas de disnea» TAMBIÉN SALIÓ**, por el mismo criterio, y la orden
+  no la nombra: **declarado** en `PENDIENTES.md` → E-3.
+  **«Provisoria» se decide con el MÁXIMO POSIBLE de cada dominio faltante y no con una tabla fija**:
+  se pregunta si la categoría de `total` y la de `total + techo` son la misma. Con una tabla escrita
+  a mano habría que mantenerla sincronizada con los cortes de `hfapeffInterp`. **Medido: con un
+  dominio faltante y parcial 2 la conclusión es DEFINITIVA** —2, 3 y 4 caen todos en la zona
+  intermedia— **y con parcial 0 o 1 siempre es provisoria**, que es lo que impide afirmar un
+  descarte sobre datos que no están.
+  **LA HOJA DEL PDF PASA DE TRES BLOQUES A UNA TABLA** por dominio, con el puntaje ARRIBA y una fila
+  por parámetro: criterio con su corte · valor del paciente · peso · la marca `CUMPLE`. Antes el
+  valor salía en un bloque y su criterio en otro, así que auditar un punto obligaba a cruzar dos
+  listas de la misma hoja, y los criterios que NO se cumplen no aparecían en ninguna.
+  ⚠️ **LA MARCA ES LA PALABRA `CUMPLE` Y NO UN SÍMBOLO**: `amiloSanPDF` borra lo que cae fuera de
+  WinAnsi **sin aviso**, que es la trampa que el símbolo del sexo del trabajo H ya pagó.
+  **LA PANTALLA NO CAMBIA, MEDIDO**: mismo número de columnas, de criterios y de medidas en las
+  cuatro escenas; con FEVI reducida el hash del HTML es idéntico. Lo único que se mueve es el pie,
+  que ES la conclusión.
+
+- **E4 · LAS DOS FICHAS, CADA CORTE CON SU FOLIO VISTO EN IMAGEN.** `ref-htp` gana una tabla de
+  catorce filas —las tres bandas de VRT y los once signos— y **`ref-hfapeff` es NUEVA**: hasta esta
+  tanda el score **no tenía entrada**, así que sus veinte cortes no estaban publicados en ninguna
+  superficie consultable. `REF_SUBTAB.fun` pasa de 2 a 3 y el censo de la pestaña de **31 a 32**.
+  El chip **CRITERIO DE ECOSMART** va sobre la regla del puntaje provisorio, que es lo único de la
+  zona que ninguna fuente publica.
+
+- **E5 y E6 · LAS DOS SECCIONES DE EVIDENCIA SON CUESTIONARIOS, Y LAS RECOMENDACIONES VAN EN EL
+  BLOQUE VISIBLE.** LEEN del mismo dueño que firma el papel y PREGUNTAN lo que el eco no da: HTP los
+  factores de riesgo y los síntomas, HF-PEFF si el paso 3 se hizo y qué dio. Van en `r.bloques`
+  —`notas` se pinta dentro del «Ver detalle», que nace plegado: la lección que el trabajo H pagó
+  mirando la captura—.
+  ⚠️ **LA FIGURA 5 PUBLICA CLASE Y NO PUBLICA NIVEL**, así que sus líneas no llevan ninguno; las dos
+  que sí lo llevan salen de la **«Recomendaciones - tabla 2», folio 36**, citada con su **título
+  impreso completo** porque ese documento numera aparte sus dos series y se pisan en los números
+  bajos.
+  ⚠️ **NINGUNA LÍNEA DEL HF-PEFF LLEVA CLASE NI NIVEL, Y ES DE LA FUENTE:** Pieske 2019 es un
+  **consenso** y no publica ninguno; censada además la ESC 2021 de insuficiencia cardíaca, que
+  repite los mismos pasos **también sin clase ni nivel propios**. `PENDIENTES.md` → E-4.
+
+- **A/B DE CONTROL contra el árbol del AJ1, con el formulario vacío y con un escenario AJENO: CERO
+  diferencias** en el informe en los tres estilos, el EN SUMA, el **Excel en 440 columnas**, los
+  **934** campos del estudio con su hash, el **PDF GENERADO DE VERDAD en sus SEIS plantillas**, el
+  **PPT**, el **PDF de auditoría** y el Laboratorio. **Consola limpia.**
+
+- **MEDIDO EN LOS DOS MOTORES** —Chrome por el canal del sistema y WebKit— **a 1200×700, 768×1024 y
+  360×740 por los dos temas: cero scroll horizontal de la PÁGINA en las doce celdas, las once filas
+  en las doce, y los SIETE textos IDÉNTICOS entre motores** —las dos hojas del PDF, la conclusión,
+  las dos secciones de Evidencia y las dos fichas—. La tabla mide **978 / 706 / 298 px** y el color
+  del estado resuelve **real y distinto** en los dos temas (`rgb(154,163,188)` de noche y
+  `rgb(91,100,120)` de día). **Cero errores de página en los dos.**
+  **20 capturas PNG con 20 `md5` distintos**, y **DOS MIRADAS**: la tabla a 360 px con sus tres
+  grupos, las automáticas tildadas y grises y los acentos completos; y la ficha nueva con cada corte
+  al lado de su peso y su folio.
+  ⚠️ **Y LA PRIMERA TANDA DE MAQUETA MIDIÓ 0×0:** la sección de HTP nace cerrada dentro de la
+  pestaña Hemodinámica, así que «cero scroll horizontal» salía sobre una pantalla que no estaba
+  dibujada. Las dos sondas la abren por el gesto y **abortan si la tabla no tiene geometría**.
+
+- **Cobertura: TC-517**, **54 condiciones** en once grupos, con seis denominadores y ocho controles
+  negativos. **Verificado que sabe fallar contra el árbol del AJ1 en un worktree aparte: 37 de las
+  54 en rojo, y NINGUNA por excepción.**
+- ⚠️ **CASOS ADAPTADOS: SEIS** —**TC-58**, **TC-502**, **TC-322** (dos veces), **TC-507**,
+  **TC-509** y **TC-331**—, cada uno con el motivo escrito al lado. **TC-58 afirma hoy lo CONTRARIO
+  y gana dos condiciones** —la frase que retira no puede estar tampoco en el PDF ni en el EN SUMA—,
+  y **TC-331 gana poder**: en vez de subirle el número a su `length === 2`, exige que las dos
+  secciones de prótesis estén y que de las que sobren **ninguna sea de una válvula**, así que el día
+  que una tercera sección valvular se pinte de más lo caza.
+
+- ⚠️ **CINCO TRAMPAS, Y TRES DABAN MEDICIONES FALSAS.**
+  1. **El `white-space:nowrap` que recortaba la tabla en silencio** (arriba).
+  2. **`IND_SECS` es un `const` de MÓDULO y no una propiedad de `window`** —la trampa de
+     `ECO_AYUDA`—: siete condiciones de TC-517 en rojo sobre un árbol perfecto.
+  3. **Un `assert` que falla en un script de edición no aplica NADA**, porque la escritura va al
+     final: una tanda de reemplazos quedó sin aplicar y la medición siguiente lo delató.
+  4. **El prefijo del SEED de TC-322 va SIN tilde**: ese caso normaliza los acentos antes de buscar
+     la sección, así que «Hipertensión pulmonar» con tilde no matchea.
+  5. **El acento grave dentro del cuerpo de un caso**, SEIS veces en TC-517, con el archivo que
+     documenta la trampa abierto delante. `scripts/check_backticks.py` dio la línea exacta mientras
+     `node --check` apuntaba a la apertura del template, 90 líneas antes. **Correr los dos.**
+  6. ⚠️ **LA CELDA DEL VALOR DEL PANEL DE EVIDENCIA LLEVA `white-space: nowrap`, Y LO DESTAPÓ
+     MIRAR LA CAPTURA.** El marco espera ahí una CIFRA —«> 3,4 m/s», «2 de 3»— y yo le puse la
+     lista de nombres de los signos, 120 caracteres que **no envuelven**: ensanchaban la TABLA
+     entera y con ella **todas** las filas de mi sección quedaban cortadas a mitad de palabra.
+     **Medido: 928 px contra los 788 de su caja, y era la ÚNICA de las CINCUENTA secciones del
+     panel que recortaba** —o sea defecto mío y no del marco, que esta orden no autoriza a tocar—.
+     Se cerró moviendo los nombres a la NOTA, que sí envuelve, y dejando en el valor el conteo.
+     **Ninguna medición numérica lo veía**: el cuerpo del panel no desbordaba (818 = 818) y la
+     página tampoco.
+  ⚠️ **Y `node --check` SOBRE `index.html` DA UN ERROR DE SINTAXIS FALSO**, porque concatena bloques
+  `<script>` independientes. Lo que distingue un error real es el **`PartialParsing` del ruleset
+  local**, que se corre desde `~/Desktop/APLICACIONES`.
+
+- **Dónde está todo:** `docs/mapa/htp-hfapeff.md` (**mapa NUEVO**, 17,4 KB: los once signos con su
+  dueño y su estado, la compuerta del informe con `vrtSel`, las dos hojas del PDF, el cálculo de
+  «provisoria», las dos secciones de Evidencia, las siete trampas y la ficha de **TC-517**); **tres
+  mapas con un puntero cada uno** (`tanda-r2-correcciones` 21,2 KB · `hfapeff-criterios` 15,0 ·
+  `referencias-subpestanas` 20,7); `docs/fuentes/FUENTES.md` → «La tanda E», con lo re-leído en
+  imagen, sus folios comprobados en el pie impreso y la tabla de **Cambios de evidencia**; y
+  `docs/PENDIENTES.md` → **R2-1 marcado CERRADO** más **siete** cosas declaradas (**E-1** a **E-7**).
+  ⚠️ **TRES MAPAS NO SE TOCARON, medido con `wc -c` ANTES de escribir:** `panel-evidencia.md`
+  (35,3 KB, **ya cruzado**), `tests-fichas.md` (34,2) e `informe-pdf-excel.md` (34,0), los tres a
+  menos de 1 KB del techo o pasados. Por eso la documentación salió a un mapa propio y la ficha de
+  TC-517 vive adentro. **Ningún mapa cruzó el techo.**
 
 ### Los SIETE ajustes ya decididos — «AJ1» (2026-10-22)
 
