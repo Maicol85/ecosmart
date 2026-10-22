@@ -42566,6 +42566,22 @@ function evTarjetaAo() {
   /* (3) La aclaracion, siempre. */
   fr.appendChild(_evDiv('ev-cat', 'Es una orientación: el criterio final es individual (edad, sexo, superficie corporal).',
     { 'data-ev-cat': 'ao-aclara' }));
+  /* ══ (4) EL OPERADOR DEL CORTE DE DILATACION, DECLARADO (AJ1-E3, 22/10/2026) ════════════════
+     DECISION DE MAICOL: el corte NO se mueve y lo que entra es la nota. El mismo documento
+     escribe los dos numeros de las dos maneras y las dos estan impresas: el apartado 9.2.1.1
+     (folio 71) dice «> 40 mm en hombres adultos y > 36 mm en mujeres», o sea EXCLUSIVO, y el
+     primer escalon de la Figura 24 (folio 76) los bracketea «40-44 mm», con su nota a «36-44 mm
+     en mujeres», o sea INCLUSIVO. La app aplica el INCLUSIVO -es el algoritmo que la seccion de
+     aorta reproduce, es el lado que muestra la recomendacion de mas pacientes, y coincide con
+     el operador que el seno de Valsalva ya usaba-. El texto se redacta con palabras propias y
+     se lee sin saber de operadores: «40 mm o mas», nunca «>=40».
+     ⚠️ ES UNA NOTA Y NO UN AVISO: no marca nada mal en este paciente, describe como lee la app
+     una fuente que se contradice consigo misma. De ahi `ev-cat` y no `ev-avi`. */
+  fr.appendChild(_evDiv('ev-cat', 'Sobre el corte de dilatación: la ESC 2024 lo escribe de dos maneras en el mismo documento. '
+    + 'Su texto (apartado 9.2.1.1, folio 71) habla de «más de» 40 mm en el varón y 36 mm en la mujer, y su Figura 24 '
+    + '(folio 76) los escribe con el valor incluido, 40 a 44 mm y 36 a 44 mm en la mujer. Esta aplicación usa el '
+    + 'criterio inclusivo: 40 mm exactos en el varón y 36 en la mujer ya cuentan como dilatación.',
+    { 'data-ev-cat': 'ao-operador' }));
 
   fr.appendChild(_evFuentesPie(['AOR-001', 'AOR-002']));
   return fr;
@@ -53876,11 +53892,12 @@ function generarInforme(opts) {
       if (f1(v('coa_gradiente_picopico'))) p.push('Gradiente pico-pico invasivo ' + f1(v('coa_gradiente_picopico')) + ' mmHg');
       if (f1(v('coa_estenosis_relativa'))) p.push('Estenosis relativa al diámetro aórtico al diafragma ' + f1(v('coa_estenosis_relativa')) + ' %');
       if (sv('coa_hta') === 'si') p.push('Hipertensión arterial confirmada');
-      const _coaSeg = (typeof coaSeguimiento === 'function') ? coaSeguimiento() : null;
-      etePars.push(p.join('. ') + '. ' + c.txt + '.' + (_coaSeg ? ' ' + _coaSeg : '')); ccMarcarParrafo();
+      /* ⚠️ SIN EL SEGUIMIENTO DEL OPERADO (AJ1-E3): era la unica conducta que quedaba en el
+         parrafo de la coartacion del informe FIRMADO. Ver la nota de `coaSeguimiento`. */
+      etePars.push(p.join('. ') + '. ' + c.txt + '.'); ccMarcarParrafo();
       /* La hoja recibe LAS MISMAS oraciones y LA MISMA conclusion que la linea de arriba: el
          narrativo y la hoja no pueden discrepar porque no hay dos textos, hay uno repartido. */
-      ccHoja('coa', p, c.txt, _coaSeg);
+      ccHoja('coa', p, c.txt, null);
       /* La significativa y la limítrofe sí van al EN SUMA: la primera indica intervención y la
          segunda manda a pedir una angio-RMN. Dejar una indicación de intervención sólo en el
          cuerpo del informe es exactamente lo que la conclusión existe para evitar. */
@@ -65761,19 +65778,21 @@ function coaConclusion(src){
   return { clave:'incompleto',
     txt: pre + ' — sin gradiente registrado; completar con Doppler de aorta descendente e imagen' };
 }
-/* Seguimiento del operado. Va aparte de la conclusión porque aplica INDEPENDIENTEMENTE de que
-   haya o no indicación de intervención: un post-stent sin criterios actuales igual necesita el
-   control anual y la imagen cada 3-5 años. Pegado a la conclusión, desaparecía justo en el caso
-   en que la conclusión dice «sin criterios». */
-function coaSeguimiento(){
-  const sit = (document.getElementById('coa_situacion')||{}).value || '';
-  if (sit !== 'post_stent' && sit !== 'post_cirugia' && sit !== 'recoartacion') return null;
-  return 'Paciente post-reparación de coartación de aorta. Seguimiento anual obligatorio. '
-       + 'Imagen aórtica (resonancia cardíaca preferida) cada 3-5 años. Vigilar: recoartación '
-       + '(gradiente sistólico ≥20 mmHg entre miembros superiores e inferiores), aneurismas '
-       + 'aórticos e hipertensión arterial residual.';
-}
-window.coaSeguimiento = coaSeguimiento;
+/* ══ EL SEGUIMIENTO DEL OPERADO SALIO DEL PAPEL FIRMADO (AJ1-E3, 22/10/2026) ═════════════════
+   DECISION DE MAICOL. `coaSeguimiento()` publicaba, con la coartacion post-stent, post-cirugia
+   o recoartacion: «Paciente post-reparación de coartación de aorta. Seguimiento anual
+   obligatorio. Imagen aórtica (resonancia cardíaca preferida) cada 3-5 años. Vigilar:
+   recoartación (gradiente sistólico ≥20 mmHg entre miembros superiores e inferiores),
+   aneurismas aórticos e hipertensión arterial residual.»
+   ⚠️ MEDIDO ANTES DE SACARLO, por las tres situaciones y por la nativa de control: salia en el
+   INFORME narrativo y en la HOJA DEL PDF, y NO en la pantalla ni en el EN SUMA. Hablaba de las
+   DOS cosas a la vez -control clinico anual e imagen cada 3 a 5 anos- y ademas de que vigilar.
+   ES LA REGLA DE PRODUCTO: el informe y la conclusion son DESCRIPTIVOS, y la periodicidad de
+   un control es una CONDUCTA. Lo que la guia indica se publica en Evidencia, que es donde esta
+   tanda lo pone, con su tabla, su clase y su nivel.
+   ⚠️ NO SE PIERDE NADA DEL HALLAZGO: la situacion («post-stent», «post-cirugia»,
+   «recoartacion») la sigue imprimiendo `coaConclusion` en su primera clausula, que es el DATO;
+   lo que se va es la indicacion de controles. */
 
 function coaSync(){
   const txt = (id,s) => { const e=document.getElementById(id); if(e) e.textContent = s; };
@@ -75783,7 +75802,33 @@ function _indCoAo(){
      con la regla de apertura por ✅/🔴 quedaba COLAPSADA justo en el paciente que importa: el que
      tiene cola diastólica y 36 mmHg por Doppler. Se abre por el aviso, y el aviso es la conclusión
      que la app ya publica en el informe firmado, no un criterio nuevo escrito acá. */
-  return { filas: filas,
+  /* ══ LA RECOMENDACION DEL OPERADO VA EN EL BLOQUE VISIBLE (AJ1-E3, 22/10/2026) ═════════════
+     Es la contrapartida del retiro de `coaSeguimiento` del informe firmado: la conducta no
+     desaparece de la app, cambia de lugar. Va en `r.bloques`, que el marco pinta VISIBLE con
+     `plegado:false`, y NO en `notas`, que se pinta dentro del «Ver detalle» y nace PLEGADO -es
+     la leccion que el trabajo H pago mirando la captura, y la que el D repitio con el FOP-.
+     ⚠️ VERIFICADA EN IMAGEN, no copiada de la nota que ya estaba: ESC 2024 de enfermedad
+     arterial periferica y aortica (Mazzolai y cols.), «Recomendaciones - tabla 69», folio
+     IMPRESO 121 (hoja 122, regla folio = hoja menos uno comprobada en el encabezado). Su
+     PRIMERA fila es Clase I · Nivel B y dice, redactado con palabras propias: en la coartacion
+     NATIVA o REPARADA esta recomendado el seguimiento de por vida, con imagen aortica periodica
+     por tomografia o resonancia cada 3 a 5 anos, ajustada al estado clinico y a los hallazgos
+     de imagen previos.
+     ⚠️ LA CITA VA COMO «Tabla 69» Y NO COMO «Recomendaciones-tabla 69», que es el titulo
+     impreso: es la forma que la app ya usa en la pantalla, el informe y el manual, y el trabajo
+     H tuvo que corregir doce citas por escribirla de las dos maneras.
+     ⚠️ LA FILA APLICA A LA NATIVA TAMBIEN -el texto de la guia dice «nativa o reparada»- asi
+     que no se gatea por la situacion: lo que cambia con la reparacion es que ADEMAS se nombra
+     el estado del paciente. Gatearla dejaria sin la recomendacion justo al paciente que todavia
+     no se opero, que es el que mas controles necesita. */
+  const _coaSit = _indS('coa_situacion');
+  const _coaOperado = (_coaSit === 'post_stent' || _coaSit === 'post_cirugia' || _coaSit === 'recoartacion');
+  const _coaBloques = [{ tit:'Recomendaciones aplicables de la guía', lineas: [
+    { txt:'Clase I · Nivel B — En la coartación nativa o reparada está recomendado el seguimiento de por vida, con imagen aórtica periódica por tomografía o resonancia cada 3 a 5 años, ajustada al estado clínico y a los hallazgos de imagen previos (ESC 2024, Tabla 69, folio 121).'
+         + (_coaOperado ? ' Este estudio consigna una coartación ya tratada, así que la recomendación aplica hoy.' : ''),
+      refs: ['esc2024ao'] }],
+    nota:'El informe y la conclusión de la app son DESCRIPTIVOS: la periodicidad de los controles se publica acá y no en el papel firmado.' }];
+  return { filas: filas, bloques: _coaBloques,
     aviso: (C.clave === 'significativa' || C.clave === 'no_interpretable') ? C.txt : '',
     clinica: [
       _indFila('Hipertensión arterial', '—', 'ask', 'es CONDICIÓN de la Clase I, no un factor más; sin ella la indicación baja a IIa'),
@@ -75802,7 +75847,7 @@ function _indCoAo(){
       'La válvula aórtica bicúspide aparece en hasta el 50 a 85 % de las coartaciones (ESC 2024, apartado 10.3.1, folio 119): en una coartación la válvula aórtica no es un hallazgo incidental, es parte de la evaluación.',
       'Y en la otra dirección, la coartación es uno de los factores de riesgo que bajan el umbral quirúrgico de la aorta, tanto en la bicúspide (Tabla 68, folio 119) como en la aorta no hereditaria (Tabla 38, folio 80): no haberla mirado cambia una conducta.',
       'El criterio de SOSPECHA por Doppler de la ESC 2024 es el gradiente MEDIO por encima de 20 mmHg a través de la coartación (Figura 44, folio 120). Los otros cinco criterios de esa figura son el gradiente de presión del brazo derecho a la pierna por encima de 20 mmHg, un estrechamiento mayor del 50 % en cualquier imagen, el flujo diastólico abdominal anterógrado, el flujo diastólico retrógrado en la aorta torácica descendente y el flujo colateral mayor del 30 % en resonancia con contraste de fase.',
-      'Seguimiento de la coartación reparada: ecocardiografía anual y tomografía o resonancia cada 3 a 5 años (ESC 2024, Figura 44, folio 120, y Tabla 69, folio 121, Clase I · Nivel B).',
+      'El seguimiento por imagen de la Tabla 69 está arriba, en el bloque de recomendaciones. La ecocardiografía anual que lo acompaña sale de la Figura 44 (folio 120), que es el algoritmo de seguimiento del mismo documento.',
       'Sin hipertensión arterial, el mismo gradiente invasivo ≥ 20 mmHg es Clase IIa C.',
       'Se puede intervenir con gradiente invasivo < 20 mmHg: un estrechamiento ≥ 50 % respecto del diámetro aórtico a nivel del diafragma es Clase IIa C en el hipertenso y IIb C en el normotenso.',
       'El gradiente de arriba es Bernoulli simplificado y no descuenta la velocidad proximal, que en la coartación suele estar elevada: sobreestima.'
@@ -86826,9 +86871,11 @@ window.ccEnInforme = ccEnInforme;
    2020 no publica cual le corresponde. Va el texto del clasificador tal cual: donde hay clase la
    lleva, donde no, no se inventa.
 
-   LO MISMO CON EL SEGUIMIENTO: solo seis modulos publican uno y coa lo calcula en
-   `coaSeguimiento()`. Para el resto la app no tiene periodicidad de controles, y escribirla
-   seria contenido clinico NUEVO en un informe firmado. La linea sale solo cuando existe. */
+   LO MISMO CON EL SEGUIMIENTO: solo seis modulos publican uno. Para el resto la app no tiene
+   periodicidad de controles, y escribirla seria contenido clinico NUEVO en un informe firmado.
+   La linea sale solo cuando existe.
+   ⚠️ LA COARTACION YA NO PUBLICA NINGUNO (AJ1-E3, 22/10/2026): su `coaSeguimiento()` se retiro
+   y la llamada pasa `null`. El parametro se conserva porque lo usan los otros cinco modulos. */
 /* Reparto por palabra inicial. Es una heuristica DECLARADA, y su peor caso es cosmetico -- una
    oracion bajo el subtitulo vecino -- nunca un numero ni una conducta mal. */
 const _CC_HOJA_HEMO = /^(velocidad|gradiente|qp\/qs|flujo|shunt|cortocircuito|relaci|psap|presi|dilataci|sobrecarga|insuficiencia|estenosis|saturaci|indice de celermajer|puntaje|hcm risk|fevi|funcion)/i;

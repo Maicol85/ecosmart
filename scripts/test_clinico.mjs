@@ -7257,10 +7257,19 @@ caso('TC-113', 'CoAo: la indicacion sale del pico-pico invasivo, no del Doppler'
       faltaHta.clave === 'limitrofe' && faltaHta.txt.indexOf('falta consignar si hay HTA') > -1],
     ['y NO se declara Clase I',     faltaHta.clave !== 'indicacion_i'],
     // 4 · Seguimiento del operado, que aplica aunque no haya indicacion.
-    ['el post-stent sin criterios igual lleva su seguimiento',
+    /* ADAPTADO el 2026-10-22 (AJ1-E3). Decision de Maicol: el seguimiento del operado SALE del
+       informe, del EN SUMA y del PDF -era la unica conducta que quedaba en el parrafo de la
+       coartacion del papel FIRMADO, y la regla de producto es que el informe es DESCRIPTIVO-.
+       La recomendacion no desaparece de la app: se publica en el bloque VISIBLE de la Evidencia,
+       con su clase, su nivel y su folio (ESC 2024, Tabla 69, folio 121, Clase I · Nivel B).
+       La condicion conserva su poder y se da vuelta: sigue midiendo el MISMO paciente post-stent
+       sin criterios, y ahora exige que la conclusion siga nombrando su situacion -que es el DATO
+       y no se perdio- y que las dos frases de conducta ya NO esten en el informe. */
+    ['el post-stent sin criterios conserva su situacion en el informe y YA NO lleva conducta',
       post.clave === 'sin_indicacion' &&
-      post.inf.inf.indexOf('Seguimiento anual obligatorio') > -1 &&
-      post.inf.inf.indexOf('cada 3-5 años') > -1],
+      post.inf.inf.indexOf('post-stent') > -1 &&
+      post.inf.inf.indexOf('Seguimiento anual obligatorio') < 0 &&
+      post.inf.inf.indexOf('cada 3-5 años') < 0],
     // 5 · Los insumos de la indicacion se imprimen, para que sea auditable.
     ['el informe imprime el pico-pico sobre el que indica',
       i.inf.inf.indexOf('Gradiente pico-pico invasivo 20 mmHg') > -1],

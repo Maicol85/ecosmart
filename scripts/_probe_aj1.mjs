@@ -2378,9 +2378,9 @@ window.__A = {
     var S = function(id, v2){ var e = document.getElementById(id); if (!e) return; e.value = v2;
       e.dispatchEvent(new Event('change', { bubbles: true })); e.dispatchEvent(new Event('input', { bubbles: true })) };
     S('coa_situacion', 'post_stent'); S('coa_gmax_vmax', '3.2'); S('coa_gmedio', '25');
-    if (typeof _indCoa !== 'function') return 'SIN FN';
+    if (typeof _indCoAo !== 'function') return 'SIN FN';
     var r;
-    try { r = _indCoa() } catch (e) { return 'EXC: ' + e.message }
+    try { r = _indCoAo() } catch (e) { return 'EXC: ' + e.message }
     if (!r) return 'NULO';
     var bl = (r.bloques || []).map(function(b){ return { tit: b.tit,
       lineas: (b.lineas || []).map(function(l){ return String(l.txt || l) }) } });
