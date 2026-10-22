@@ -23945,7 +23945,11 @@ const EV_GUIA_ASE2015 = 'Lang RM y col., Recomendaciones para la cuantificación
 const EV_DOI_ASE2015  = '10.1016/j.echo.2014.10.003';
 /* La segunda guia del registro, que entra con la tanda M (AD/VCI, VD y aorta). El DOI se leyo
    en el pie de la hoja 1 del propio PDF, no afuera. */
-const EV_GUIA_ASE2025VD = 'Mukherjee M y col., Guía para la evaluación ecocardiográfica del corazón derecho en el adulto y consideraciones especiales en la hipertensión pulmonar, ASE, 2025';
+/* ⚠️ LA VERSION ES LA DE MAYO DE 2025 Y NO LA DE FEBRERO (AJ1, 22/10/2026). El mismo articulo
+   tiene dos PDF y seis cortes de su Tabla 1 difieren entre ellos; la app lee el de mayo, que es
+   el corregido. Nombrar la version en la ficha es lo unico que permite saber, leyendo la app,
+   contra cual de los dos se verifico un corte. */
+const EV_GUIA_ASE2025VD = 'Mukherjee M y col., Guía para la evaluación ecocardiográfica del corazón derecho en el adulto y consideraciones especiales en la hipertensión pulmonar, ASE, 2025 (versión corregida de mayo de 2025)';
 const EV_DOI_ASE2025VD  = '10.1016/j.echo.2025.01.006';
 /* Las dos fuentes que entran con la tanda LS. La de 2005 es la edición anterior de la misma
    guía y se usa SOLO donde la de 2015 no publica el dato —el área absoluta de la aurícula
@@ -23969,6 +23973,9 @@ const EV_FECHA_VER    = '2026-10-16';
    volvieron a leer contra el PDF original el 17/10/2026. Convive con la del M porque una ficha
    que no se releyo no puede decir que se releyo. */
 const EV_FECHA_VS     = '2026-10-17';
+/* La re-verificacion del AJ1: la Tabla 1 y el texto del strain, leidos EN IMAGEN en la
+   version de MAYO y comparados contra la de febrero. */
+const EV_FECHA_AJ1    = '2026-10-22';
 
 const EV_REG = Object.freeze([
   /* ── AURICULA IZQUIERDA ────────────────────────────────────────────────────────────────── */
@@ -24119,8 +24126,8 @@ const EV_REG = Object.freeze([
     duenio: 'adAreaCat / ASE25_T1.ad_area',
     guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1', folio: '145', hoja_pdf: 5,
     doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
-    estado: 'verificado', fecha_verificacion: EV_FECHA_VS,
-    fuente_una_linea: 'ASE 2025 (Mukherjee), Tabla 1 (folio 145)',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_AJ1,
+    fuente_una_linea: 'ASE 2025 de mayo (Mukherjee), Tabla 1 (folio 145)',
   }),
   Object.freeze({
     id: 'VCI-001', zona: 'VD/AD — Vena cava inferior', dato: 'Diámetro de la vena cava inferior',
@@ -24129,7 +24136,7 @@ const EV_REG = Object.freeze([
     guia: EV_GUIA_ASE2025VD, ubicacion: 'Presión auricular derecha', folio: '160', hoja_pdf: 20,
     doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
     estado: 'verificado', fecha_verificacion: EV_FECHA_VS,
-    fuente_una_linea: 'ASE 2025 (Mukherjee), Presión auricular derecha (folio 160)',
+    fuente_una_linea: 'ASE 2025 de mayo (Mukherjee), Presión auricular derecha (folio 160)',
   }),
   Object.freeze({
     id: 'VCI-002', zona: 'VD/AD — Vena cava inferior', dato: 'Presión media de la aurícula derecha estimada',
@@ -24138,7 +24145,7 @@ const EV_REG = Object.freeze([
     guia: EV_GUIA_ASE2025VD, ubicacion: 'Presión auricular derecha y Tabla 1', folio: '160', hoja_pdf: 20,
     doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
     estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
-    fuente_una_linea: 'ASE 2025 (Mukherjee), Presión auricular derecha (folio 160)',
+    fuente_una_linea: 'ASE 2025 de mayo (Mukherjee), Presión auricular derecha (folio 160)',
   }),
   /* ── VENTRICULO DERECHO — TAMANO ───────────────────────────────────────── */
   Object.freeze({
@@ -24147,8 +24154,8 @@ const EV_REG = Object.freeze([
     duenio: 'vdBasCat / ASE25_T1.vd_bas',
     guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1', folio: '145', hoja_pdf: 5,
     doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
-    estado: 'verificado', fecha_verificacion: EV_FECHA_VS,
-    fuente_una_linea: 'ASE 2025 (Mukherjee), Tabla 1 (folio 145)',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_AJ1,
+    fuente_una_linea: 'ASE 2025 de mayo (Mukherjee), Tabla 1 (folio 145)',
   }),
   Object.freeze({
     id: 'DIM-VD-002', zona: 'VD/AD — Ventrículo derecho', dato: 'Diámetro medio',
@@ -24156,8 +24163,8 @@ const EV_REG = Object.freeze([
     duenio: 'vdMidCat / ASE25_T1.vd_mid',
     guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1', folio: '145', hoja_pdf: 5,
     doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
-    estado: 'verificado', fecha_verificacion: EV_FECHA_VS,
-    fuente_una_linea: 'ASE 2025 (Mukherjee), Tabla 1 (folio 145)',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_AJ1,
+    fuente_una_linea: 'ASE 2025 de mayo (Mukherjee), Tabla 1 (folio 145)',
   }),
   Object.freeze({
     id: 'DIM-VD-003', zona: 'VD/AD — Ventrículo derecho', dato: 'Diámetro longitudinal',
@@ -24165,8 +24172,8 @@ const EV_REG = Object.freeze([
     duenio: 'vdLongCat / ASE25_T1.vd_long',
     guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1', folio: '145', hoja_pdf: 5,
     doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
-    estado: 'verificado', fecha_verificacion: EV_FECHA_VS,
-    fuente_una_linea: 'ASE 2025 (Mukherjee), Tabla 1 (folio 145)',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_AJ1,
+    fuente_una_linea: 'ASE 2025 de mayo (Mukherjee), Tabla 1 (folio 145)',
   }),
   Object.freeze({
     id: 'DIM-VD-004', zona: 'VD/AD — Ventrículo derecho', dato: 'Espesor de la pared libre',
@@ -24174,8 +24181,8 @@ const EV_REG = Object.freeze([
     duenio: 'vdParedCat / ASE25_T1.vd_pared',
     guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1', folio: '145', hoja_pdf: 5,
     doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
-    estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
-    fuente_una_linea: 'ASE 2025 (Mukherjee), Tabla 1 (folio 145)',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_AJ1,
+    fuente_una_linea: 'ASE 2025 de mayo (Mukherjee), Tabla 1 (folio 145)',
   }),
   /* ⚠️ LAS DOS AREAS SE GRADUAN SOLO EN LA TARJETA Y EN REFERENCIAS (VS3, 2026-10-17): ninguna
      superficie de la app las clasifica hoy —el informe, el EN SUMA, el PDF y el PPT publican su
@@ -24187,8 +24194,8 @@ const EV_REG = Object.freeze([
     duenio: 'vdAreaDCat / ASE25_T1.vd_area_d',
     guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1', folio: '145', hoja_pdf: 5,
     doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
-    estado: 'verificado', fecha_verificacion: EV_FECHA_VS,
-    fuente_una_linea: 'ASE 2025 (Mukherjee), Tabla 1 (folio 145)',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_AJ1,
+    fuente_una_linea: 'ASE 2025 de mayo (Mukherjee), Tabla 1 (folio 145)',
   }),
   Object.freeze({
     id: 'DIM-VD-006', zona: 'VD/AD — Ventrículo derecho', dato: 'Área telesistólica',
@@ -24196,27 +24203,27 @@ const EV_REG = Object.freeze([
     duenio: 'vdAreaSCat / ASE25_T1.vd_area_s',
     guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1', folio: '145', hoja_pdf: 5,
     doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
-    estado: 'verificado', fecha_verificacion: EV_FECHA_VS,
-    fuente_una_linea: 'ASE 2025 (Mukherjee), Tabla 1 (folio 145)',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_AJ1,
+    fuente_una_linea: 'ASE 2025 de mayo (Mukherjee), Tabla 1 (folio 145)',
   }),
   /* ── VENTRICULO DERECHO — FUNCION ─────────────────────────────────────── */
   Object.freeze({
     id: 'FUN-VD-001', zona: 'VD/AD — Ventrículo derecho', dato: 'Excursión sistólica del anillo tricuspídeo (TAPSE)',
-    valor: 'Normal por encima de 17 mm; disfunción leve de 17 a 13; moderada por debajo de 13 y por encima de 10; severa con 10 mm o menos. Un solo corte para los dos sexos',
+    valor: 'Normal por encima de 17 mm; disfunción leve de 17 hasta por encima de 13; moderada con 13 o menos y por encima de 10; severa con 10 mm o menos. Un solo corte para los dos sexos',
     duenio: 'vdTapseCat / ASE25_T1.tapse',
     guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1', folio: '145', hoja_pdf: 5,
     doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
-    estado: 'verificado', fecha_verificacion: EV_FECHA_VS,
-    fuente_una_linea: 'ASE 2025 (Mukherjee), Tabla 1 (folio 145)',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_AJ1,
+    fuente_una_linea: 'ASE 2025 de mayo (Mukherjee), Tabla 1 (folio 145)',
   }),
   Object.freeze({
     id: 'FUN-VD-002', zona: 'VD/AD — Ventrículo derecho', dato: 'Onda S′ del anillo tricuspídeo',
-    valor: 'Normal por encima de 9,5 cm/s; disfunción leve de 9,5 a 7,2; moderada por debajo de 7,2 y por encima de 5,0; severa con 5,0 cm/s o menos. Un solo corte para los dos sexos',
+    valor: 'Normal por encima de 9,5 cm/s; disfunción leve de 9,5 hasta por encima de 7,2; moderada con 7,2 o menos y por encima de 5,0; severa con 5,0 cm/s o menos. Un solo corte para los dos sexos',
     duenio: 'vdSprimeCat / ASE25_T1.s_prime',
     guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1', folio: '145', hoja_pdf: 5,
     doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
-    estado: 'verificado', fecha_verificacion: EV_FECHA_VS,
-    fuente_una_linea: 'ASE 2025 (Mukherjee), Tabla 1 (folio 145)',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_AJ1,
+    fuente_una_linea: 'ASE 2025 de mayo (Mukherjee), Tabla 1 (folio 145)',
   }),
   Object.freeze({
     id: 'FUN-VD-003', zona: 'VD/AD — Ventrículo derecho', dato: 'Cambio fraccional de área (FAC)',
@@ -24224,8 +24231,8 @@ const EV_REG = Object.freeze([
     duenio: 'vdFacCat / ASE25_T1.vd_fac',
     guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1', folio: '145', hoja_pdf: 5,
     doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
-    estado: 'verificado', fecha_verificacion: EV_FECHA_VS,
-    fuente_una_linea: 'ASE 2025 (Mukherjee), Tabla 1 (folio 145)',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_AJ1,
+    fuente_una_linea: 'ASE 2025 de mayo (Mukherjee), Tabla 1 (folio 145)',
   }),
   Object.freeze({
     id: 'FUN-VD-004', zona: 'VD/AD — Ventrículo derecho', dato: 'Fracción de eyección del VD por 3D',
@@ -24233,8 +24240,8 @@ const EV_REG = Object.freeze([
     duenio: 'vdFevdCat / ASE25_T1.fevd',
     guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1', folio: '145', hoja_pdf: 5,
     doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
-    estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
-    fuente_una_linea: 'ASE 2025 (Mukherjee), Tabla 1 (folio 145)',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_AJ1,
+    fuente_una_linea: 'ASE 2025 de mayo (Mukherjee), Tabla 1 (folio 145)',
   }),
   Object.freeze({
     id: 'FUN-VD-005', zona: 'VD/AD — Ventrículo derecho', dato: 'Índice de Tei por Doppler tisular',
@@ -24242,8 +24249,8 @@ const EV_REG = Object.freeze([
     duenio: 'vdTeiCat / ASE25_T1.vd_tei',
     guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1', folio: '145', hoja_pdf: 5,
     doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
-    estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
-    fuente_una_linea: 'ASE 2025 (Mukherjee), Tabla 1 (folio 145)',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_AJ1,
+    fuente_una_linea: 'ASE 2025 de mayo (Mukherjee), Tabla 1 (folio 145)',
   }),
   Object.freeze({
     id: 'FUN-VD-006', zona: 'VD/AD — Ventrículo derecho', dato: 'Tiempo de aceleración pulmonar',
@@ -24251,8 +24258,27 @@ const EV_REG = Object.freeze([
     duenio: 'vdTapCat / UMBRAL_TAP_HTP',
     guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1', folio: '145', hoja_pdf: 5,
     doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
-    estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
-    fuente_una_linea: 'ASE 2025 (Mukherjee), Tabla 1 (folio 145)',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_AJ1,
+    fuente_una_linea: 'ASE 2025 de mayo (Mukherjee), Tabla 1 (folio 145)',
+  }),
+  /* ⚠️ EL STRAIN DE PARED LIBRE NO DISTINGUE SEXO, Y ESA ES LA FICHA (AJ1, 22/10/2026). Son DOS
+     lugares del mismo documento y los dos se leyeron en imagen: la Tabla 1 (folio 145) da el
+     normal «>20» en valor ABSOLUTO -su nota al pie dice «Absolute values and ranges for strain
+     are shown»- y el texto del folio 159 lo repite en prosa, «strain values more negative than
+     20% to 25% for both RVFWS and RVGLS are generally considered as normal». Ninguno de los dos
+     abre columnas de varon y de mujer. La app usaba -20 y -21 hasta el AJ1.
+     ⚠️ Y EL DUENO NO GRADUA: `VD_STRAIN_NORMAL` es un corte BINARIO -normal o por debajo de lo
+     normal-, asi que la ficha publica el de normalidad y NO las tres bandas de la Tabla 1. El
+     panel de medicion lo dice con palabras y nunca con el operador solo, porque «< -20 %» se
+     lee al reves. */
+  Object.freeze({
+    id: 'FUN-VD-007', zona: 'VD/AD — Ventrículo derecho', dato: 'Strain longitudinal de la pared libre del VD',
+    valor: 'Normal cuando es más negativo que −20 % en valor absoluto. UN SOLO CORTE PARA LOS DOS SEXOS: ni la Tabla 1 ni el texto de la guía abren columnas de varón y de mujer',
+    duenio: 'VD_STRAIN_NORMAL / _vdCalcular',
+    guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1 y apartado del strain', folio: '145 y 159', hoja_pdf: 5,
+    doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_AJ1,
+    fuente_una_linea: 'ASE 2025 de mayo (Mukherjee), Tabla 1 (folio 145) y texto del folio 159',
   }),
   /* ── AORTA TORACICA ──────────────────────────────────────────────── */
   Object.freeze({
@@ -42730,7 +42756,7 @@ function evRefPintar(id) {
     const B = _evRefBiblio(['DIM-VD-001', 'DIM-VD-002', 'DIM-VD-003', 'DIM-VD-004',
                             'DIM-VD-005', 'DIM-VD-006',
                             'FUN-VD-001', 'FUN-VD-002', 'FUN-VD-003', 'FUN-VD-004',
-                            'FUN-VD-005', 'FUN-VD-006']);
+                            'FUN-VD-005', 'FUN-VD-006', 'FUN-VD-007']);
     host.appendChild(_evRefTabla([
       ..._evRefFilasT1('DIM-VD-001', 'vd_bas',   'Diámetro basal'),
       ..._evRefFilasT1('DIM-VD-002', 'vd_mid',   'Diámetro medio'),
@@ -42747,6 +42773,13 @@ function evRefPintar(id) {
          lo aplica con un solo corte, que esta orden deja como esta. Su fila sigue siendo la que
          describe lo que la app hace. */
       { ficha: 'FUN-VD-006', rot: 'Tiempo de aceleración pulmonar — normal', h: '≥ ' + UMBRAL_TAP_HTP + ' ms', m: '≥ ' + UMBRAL_TAP_HTP + ' ms' },
+      /* ⚠️ EL STRAIN DE PARED LIBRE TAMPOCO ENTRA EN `ASE25_T1` (AJ1): su dueño es un corte
+         BINARIO -normal o por debajo de lo normal- y no las tres bandas de la Tabla 1, así que
+         su fila describe lo que la app aplica. Las DOS columnas publican el MISMO valor, que es
+         lo que esta tanda vino a arreglar: ni la Tabla 1 ni el texto del folio 159 separan por
+         sexo. El número sale del DUEÑO y no se escribe a mano. */
+      { ficha: 'FUN-VD-007', rot: 'Strain de pared libre — normal (valor absoluto)',
+        h: '> ' + Math.abs(VD_STRAIN_NORMAL) + ' %', m: '> ' + Math.abs(VD_STRAIN_NORMAL) + ' %' },
     ], B.idx));
     host.appendChild(_evRefBarras([
       { clave: 'ref-vd-bas', rotulo: 'Diámetro basal (mm)', banda: 'vdBas', lo: 20, hi: 65, unidad: 'mm', dec: 0, ficha: 'DIM-VD-001', corteEn: ['desde', 'hasta', 'hasta'] },
@@ -98965,8 +98998,9 @@ function _vdPanel() {
     /* Los cortes van con PALABRAS y no con el operador solo: «más negativo que −20 %» no se
        puede leer al revés, y «< −20 %» sí. */
     const refs = '<div style="font-size:10px;color:var(--text2);margin-top:4px;line-height:1.55;">' +
-      'Normal (ASE 2025 de mayo, pared libre, Tabla 1 · folio 145): <b>más negativo que −20 %</b>, ' +
-      'igual en hombres y en mujeres. Menos negativo que ese valor es anormal.' +
+      'Normal (ASE 2025 de mayo, pared libre, Tabla 1 · folio 145, y texto del folio 159): ' +
+      '<b>más negativo que −20 %</b>, igual en hombres y en mujeres. Menos negativo que ese ' +
+      'valor es anormal.' +
     '</div>';
     res = '<div style="margin-top:9px;padding-top:8px;border-top:1px solid var(--border);">' +
       '<div style="font-size:13px;line-height:1.7;">Strain VD pared libre ' +

@@ -73567,8 +73567,13 @@ caso('TC-492', 'Tanda M: las DIECISEIS FICHAS nuevas del registro de evidencia d
        antes venian de tres ubicaciones distintas de Lang 2015 mas la ASE— y la de la AD pasa de
        UNA a TRES, porque sus tres fichas quedaron verificadas y cada una cita otra ubicacion de
        la misma guia (Tabla 1, y las dos de la seccion de presion auricular derecha). */
+    /* ADAPTADO el 2026-10-22 (AJ1): ref-vd2 pasa de UNA a DOS entradas de bibliografia.
+       La ficha nueva FUN-VD-007 -el strain de pared libre- cita el MISMO documento en OTRO
+       sitio, la Tabla 1 del folio 145 MAS el texto del folio 159, que es donde la guia dice
+       que el normal no distingue sexo. Una segunda entrada del mismo documento con otro
+       localizador es lo que la regla de bibliografia por seccion ya hace en ao2. */
     ex.push(['la bibliografia de cada seccion numera desde [1] y sale SOLO de fichas verificado',
-      refs.ad.bib === 3 && refs.vd2.bib === 1 && refs.ao2.bib === 2
+      refs.ad.bib === 3 && refs.vd2.bib === 2 && refs.ao2.bib === 2
         && String(refs.ao2.txt||'').indexOf('Figura 13') > -1 && String(refs.ao2.txt||'').indexOf('Tabla 14') > -1,
       'ad=' + refs.ad.bib + ' vd2=' + refs.vd2.bib + ' ao2=' + refs.ao2.bib]);
     /* ADAPTADO (VS, 2026-10-17): el diametro longitudinal pasó de «por verificar» a verificado
@@ -74420,8 +74425,12 @@ caso('TC-494', 'Tanda VS: el VD, la AD, la VCI y la RAIZ AORTICA alineados a la 
     refs.ao2.txt.indexOf('≥ 40 mm') > -1 && refs.ao2.txt.indexOf('> 38 mm') > -1
       && refs.ao2.txt.indexOf('> 35 mm') > -1,
     'raiz=' + (refs.ao2.txt.indexOf('≥ 40 mm') > -1)]);
-  ex.push(['Referencias gana las dos barras de las areas del VD y su bibliografia queda en UNA entrada',
-    refs.vd2.barras === 12 && refs.vd2.bib === 1 && refs.ad.bib === 3 && refs.ao2.bib === 2,
+  /* ADAPTADO el 2026-10-22 (AJ1): la bibliografia de ref-vd2 pasa de UNA entrada a DOS por la
+     ficha del strain de pared libre, que cita el mismo documento en otro sitio (folio 159). Las
+     doce barras no se mueven: el strain entra como FILA de la tabla y no como barra, porque su
+     dueno es un corte binario y no las cuatro bandas de la Tabla 1. */
+  ex.push(['Referencias gana las dos barras de las areas del VD y su bibliografia queda en DOS entradas',
+    refs.vd2.barras === 12 && refs.vd2.bib === 2 && refs.ad.bib === 3 && refs.ao2.bib === 2,
     'barras=' + refs.vd2.barras + ' bib ad/vd2/ao2=' + refs.ad.bib + '/' + refs.vd2.bib + '/' + refs.ao2.bib]);
 
   /* ══ (h) · EL REGISTRO ══ */

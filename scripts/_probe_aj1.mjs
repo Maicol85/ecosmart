@@ -2474,10 +2474,13 @@ window.__A = {
 
   refsTexto() {
     var o = {};
+    try { showTab('refs') } catch (x) {}
     ['ref-vd2','ref-ao2','ref-aocx','ref-ia','ref-im'].forEach(function(id){
       var e = document.getElementById(id);
       if (!e) { o[id] = 'NO EXISTE'; return }
-      try { if (typeof evRefPintar === 'function') evRefPintar(id) } catch (x) {}
+      e.style.display = '';
+      try { if (typeof evRefPintar === 'function') evRefPintar(id.replace('ref-','')) } catch (x) {}
+      try { if (typeof aoCxPintar === 'function' && id === 'ref-aocx') aoCxPintar() } catch (x) {}
       var t = (e.textContent || '').replace(/[ ]+/g, ' ').trim();
       o[id] = { largo: t.length,
                 mayo: t.indexOf('mayo') > -1,
