@@ -71637,7 +71637,62 @@ const IND_REFS = Object.freeze([
          'listado entre los parámetros SEMICUANTITATIVOS. ⚠️ El cuerpo de la p. 7 dice «less than ' +
          '1.5 cm2» y la Tabla 1 dice «≤ 1,5»: se aplica la tabla. Fe de erratas JASE ' +
          '2023;36(4):445, que corrige una frase de prosa sobre el tiempo de hemipresión y no ' +
-         'mueve ninguna de las cifras citadas.' }
+         'mueve ninguna de las cifras citadas.' },
+  /* ══ LAS CINCO DE LA TANDA I (22/10/2026) ═════════════════════════════════════
+     Las cinco se VERIFICARON en el PDF original de la biblioteca, en imagen a 300 ppp o mas, con
+     su tabla o su apartado, su folio impreso y su hoja. */
+  { k:'escFa2024',
+    full:'ESC 2024 — Guía para el manejo de la fibrilación auricular, desarrollada con la ' +
+         'Asociación Europea de Cirugía Cardiotorácica. Van Gelder IC, Rienstra M, et al. ' +
+         'Eur Heart J 2024;45:3314-3414. doi:10.1093/eurheartj/ehae176. Verificada sobre el ' +
+         'original en inglés. Regla de folio: folio = hoja del PDF + 3313, comprobada en el pie ' +
+         'impreso. Tabla 15 de recomendaciones, «conceptos generales del control del ritmo», ' +
+         'folio 3355, hoja 42 — leída en imagen: ecocardiograma transesofágico si no hubo tres ' +
+         'semanas de anticoagulación Clase I · Nivel B; anticoagulación al menos cuatro semanas ' +
+         'tras la cardioversión Clase I · Nivel B; repetir el transesofágico si se identificó ' +
+         'trombo Clase IIa · Nivel C; cardioversión precoz sin anticoagulación ni transesofágico ' +
+         'con fibrilación de más de 24 horas Clase III · Nivel C.' },
+  { k:'aseEte2013',
+    full:'ASE/SCA 2013 — Guía para realizar un examen transesofágico multiplano completo. ' +
+         'Hahn RT, Abraham T, Adams MS, et al. J Am Soc Echocardiogr 2013;26(9):921-964. ' +
+         'Regla de folio: folio = hoja del PDF + 920, comprobada en el pie impreso. ' +
+         'Folio 954, hoja 34 — leído en imagen: las velocidades de vaciado de la orejuela ' +
+         'izquierda por debajo de 20 cm/s se asociaron con contraste espontáneo, formación de ' +
+         'trombo y eventos embólicos, y las mayores de 40 cm/s predicen mayor probabilidad de ' +
+         'mantener el ritmo sinusal tras la cardioversión de una fibrilación auricular. ' +
+         '⚠️ Esa guía NO distingue ritmo sinusal de fibrilación auricular para esos dos ' +
+         'números, y NO publica los rótulos «estasis leve» ni «estasis severa».' },
+  { k:'aseEte2020',
+    full:'ASE/SCA/STS 2020 — Guía para el uso del ecocardiograma transesofágico en la decisión ' +
+         'quirúrgica en quirófano. Nicoara A, Skubas N, Ad N, et al. J Am Soc Echocardiogr ' +
+         '2020;33(6):692-734. doi:10.1016/j.echo.2020.03.002. Regla de folio: folio = hoja del ' +
+         'PDF + 691, comprobada en el pie impreso. Folio 716, hoja 25 — leído en imagen: ' +
+         'graduación del ateroma aórtico por espesor creciente, grado 1 espesor intimal menor de ' +
+         '2 mm, grado 2 engrosamiento intimal de 2 a 3 mm, grado 3 ateroma de 3 a 5 mm, grado 4 ' +
+         'ateroma mayor de 5 mm y grado 5 cualquier espesor con componentes móviles o ulcerados. ' +
+         'Ese párrafo atribuye la escala al documento de la ASE de 2015 de imagen multimodal de ' +
+         'la aorta torácica, que no está en la biblioteca.' },
+  { k:'tamburino2010',
+    full:'Tamburino C, Ussia GP, Maisano F, et al. Percutaneous mitral valve repair with the ' +
+         'MitraClip system: acute results from a real world setting. Eur Heart J ' +
+         '2010;31(11):1382-1389. Regla de folio: folio = hoja del PDF + 1381, comprobada en el ' +
+         'pie impreso. Tabla 1 «Major inclusion and exclusion criteria», folio 1386, hoja 5 — ' +
+         'leída en imagen: entre los criterios de EXCLUSIÓN, área del orificio mitral menor de ' +
+         '4,0 cm²; con flail, ancho de 15 mm o más y gap de 10 mm o más; con tethering, ' +
+         'profundidad de coaptación de 11 mm o más y longitud de coaptación menor de 2 mm. ' +
+         '⚠️ NO es el ensayo EVEREST II: es un registro italiano de práctica real, y este ' +
+         'archivo lo citaba con aquel nombre.' },
+  { k:'guiaRegurgNativa',
+    full:'Documento de evaluación ecocardiográfica de la insuficiencia valvular nativa, en ' +
+         'español. ⚠️ ESE PDF NO IDENTIFICA SU REVISTA, SUS AUTORES NI SU AÑO, y no lleva folio ' +
+         'impreso: se cita por HOJA del PDF. Tabla 7 «Características desfavorables por ETT para ' +
+         'reparación de válvula mitral en IM secundaria», hoja 25 — leída en imagen: distancia ' +
+         'de coaptación de 1 cm o más, área de tenting de más de 2,5 a 3 cm², jets complejos ' +
+         'de origen central y posteromedial, ángulo posterolateral mayor de 45 grados, y los ' +
+         'bloques de remodelado local y global del ventrículo izquierdo. Esa tabla NO lleva ' +
+         'clase ni nivel de evidencia. Su propia referencia 33 la atribuye a Lancellotti P, ' +
+         'Marwick T, Pierard LA, «How to manage ischaemic mitral regurgitation», Heart ' +
+         '2008;94:1497-1502, que NO está en la biblioteca.' }
 ]);
 
 /* Clave → número. Se arma UNA vez desde `IND_REFS`.
@@ -79151,6 +79206,268 @@ function _indHFPEFF(){
 
 
 
+
+/* ══ ETE — TROMBO EN LA OREJUELA IZQUIERDA (I-E3, 22/10/2026) ═══════════════════════════════
+   DECISION DE MAICOL. La pantalla, el informe y la conclusion de esta app son DESCRIPTIVOS: la
+   conducta que publicaban -«contraindica cardioversion electrica», «contraindicacion absoluta
+   para valvuloplastia», «descartarlo antes de considerar valvuloplastia»- salio en el commit 1
+   y su contenido vive aca, con su fuente, su clase y su nivel.
+
+   COMPUERTA: trombo CONFIRMADO. Con el trombo descartado no hay nada que recomendar SOBRE un
+   trombo, y abrir la seccion para decir que no aplica seria publicar una tabla de conductas a
+   un paciente que no esta en ninguna de sus filas. Queda declarado en PENDIENTES.md.
+
+   ⚠️ LAS DOS GUIAS NO HABLAN DE LO MISMO Y NO SE MEZCLAN: la ESC 2024 de fibrilacion auricular
+   habla de CARDIOVERSION y su Tabla 15 lleva clase y nivel; la ESC/EACTS 2025 de valvulopatias
+   habla de COMISUROTOMIA MITRAL PERCUTANEA y su Tabla 8 de contraindicaciones NO lleva ninguno.
+   Cada linea dice de cual sale. */
+function _indETETrombo(){
+  if (_indS('oai_trombo') !== 'si') return null;
+  const vel  = _indN('oai_vel_vac');
+  const sec  = _indS('oai_sec');
+  const em   = (typeof emCategoria === 'function') ? (function(){ try { return emCategoria() } catch (e) { return null } })() : null;
+  const emSig = !!(em && em.clave && em.clave.indexOf('sig') === 0);
+  /* Lo que la app NO sabe y cada fila necesita: se PREGUNTA, nunca se deduce. */
+  const cv   = _indClinGet('ete.cardioversion');
+  const aco  = _indClinGet('ete.aco3sem');
+  /* ⚠️ SE PREGUNTA Y NO SE DERIVA, y hay dos motivos. (1) Ser candidato a comisurotomia es
+     una decision CLINICA y no un hallazgo del eco: la estenosis significativa es condicion y no
+     equivalencia. (2) `_indFilaOrigen` NO dibuja los botones cuando el valor viene del estudio
+     -esta escrito en el comentario de la seccion de aorta-, asi que una propuesta derivada no se
+     podria corregir, y la nota que dijera que si se puede seria falsa. Lo que el estudio sabe se
+     informa en la nota de la fila. */
+  const pmc  = _indClinGet('ete.pmc');
+  const filas = [
+    _indFila('Trombo en la orejuela izquierda', 'Confirmado', 'alarm',
+      'es la fila «trombo en la aurícula izquierda» de la tabla de contraindicaciones de la comisurotomía mitral percutánea, y el hallazgo que las recomendaciones de cardioversión de abajo toman como punto de partida',
+      ['esc2025vc']),
+    _indFila('Velocidad de vaciamiento', vel != null ? _indNum(vel, 0, 'cm/s') : '—',
+      vel != null ? (vel < 20 ? 'alarm' : 'none') : 'ask',
+      vel != null
+        ? (vel < 20 ? 'por debajo de 20 cm/s se asocia con contraste espontáneo, formación de trombo y eventos embólicos'
+                    : 'la guía sólo publica dos afirmaciones, por debajo de 20 y por encima de 40 cm/s')
+        : 'sin medir',
+      ['aseEte2013']),
+    _indFila('Contraste espontáneo', sec ? sec : '—', sec === 'severo' ? 'warn' : (sec ? 'none' : 'ask'),
+      'el contraste espontáneo denso en la aurícula izquierda es uno de los criterios de alto riesgo tromboembólico de la tabla de recomendaciones de comisurotomía',
+      ['esc2025vc']),
+    _indFilaCtrl('¿Se está planteando una cardioversión?', 'ete.cardioversion',
+      [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      cv === 'si' ? 'ok' : (cv === 'no' ? 'none' : 'ask'),
+      'es lo que hace aplicables las filas de la guía de fibrilación auricular'),
+    _indFilaCtrl('¿Hubo tres semanas de anticoagulación oral terapéutica?', 'ete.aco3sem',
+      [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      aco === 'si' ? 'none' : (aco === 'no' ? 'ok' : 'ask'),
+      'con menos de tres semanas, el ecocardiograma transesofágico pasa a ser Clase I · Nivel B para excluir trombo antes de una cardioversión precoz'),
+    _indFilaCtrl('¿Es candidato a comisurotomía mitral percutánea?', 'ete.pmc',
+      [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      pmc === 'si' ? 'ok' : (pmc === 'no' ? 'none' : 'ask'),
+      emSig ? 'la estenosis mitral de este estudio es significativa, que es la condición de esa tabla; ser candidato es una decisión clínica y se consigna acá'
+            : 'la tabla de contraindicaciones es de la estenosis mitral reumática; este estudio no publica una estenosis significativa')
+  ];
+  /* ══ LAS RECOMENDACIONES, EN EL BLOQUE VISIBLE ══════════════════════════════════════════
+     `notas` se pinta DENTRO del «Ver detalle», que nace plegado: es la lección que el trabajo H
+     pagó mirando la captura. Lo que esta sección existe para publicar va en `r.bloques`. */
+  const cvL = [], pmcL = [], faltan = [];
+  if (cv === 'si') {
+    cvL.push({ txt:'Clase IIa · Nivel C — Antes de la cardioversión conviene considerar repetir el ecocardiograma transesofágico cuando ya se identificó un trombo, para confirmar que se resolvió y prevenir el tromboembolismo del procedimiento (Tabla 15).', refs:['escFa2024'] });
+    cvL.push({ txt:'Clase III · Nivel C — La cardioversión precoz NO está recomendada sin la anticoagulación adecuada o sin ecocardiograma transesofágico si la fibrilación auricular dura más de 24 horas, o si hay margen para esperar una conversión espontánea (Tabla 15).', refs:['escFa2024'] });
+    if (aco === 'no') cvL.push({ txt:'Clase I · Nivel B — Con menos de tres semanas de anticoagulación oral terapéutica, el ecocardiograma transesofágico está recomendado para excluir trombo y habilitar una cardioversión precoz (Tabla 15).', refs:['escFa2024'] });
+    cvL.push({ txt:'Clase I · Nivel B — Tras la cardioversión, la anticoagulación oral se mantiene al menos cuatro semanas en todos los pacientes, y a largo plazo en quienes tienen factores de riesgo tromboembólico, se consiga o no el ritmo sinusal (Tabla 15).', refs:['escFa2024'] });
+  } else if (cv === 'no') {
+    cvL.push({ txt:'Con la cardioversión descartada, las filas de la guía de fibrilación auricular no se publican.', refs:null });
+  } else {
+    faltan.push({ txt:'Falta consignar si se está planteando una cardioversión: de eso dependen cuatro filas de la guía de fibrilación auricular.', refs:null });
+  }
+  if (pmc === 'si') {
+    pmcL.push({ txt:'El trombo en la aurícula izquierda figura entre las contraindicaciones de la comisurotomía mitral percutánea. Esa tabla NO lleva clase ni nivel de evidencia (Tabla 8 de contraindicaciones).', refs:['esc2025vc'] });
+    pmcL.push({ txt:'Su nota al pie precisa que, cuando el trombo está en la OREJUELA, la comisurotomía puede considerarse en pacientes con contraindicación para la cirugía o sin necesidad urgente de intervención, en quienes se pueda anticoagular con seguridad de uno a tres meses, siempre que un ecocardiograma transesofágico de control confirme la resolución del trombo (nota b de la Tabla 8).', refs:['esc2025vc'] });
+    pmcL.push({ txt:'La misma guía pide que el ecocardiograma transesofágico se haga de forma sistemática en los candidatos a comisurotomía, para excluir trombo auricular o después de un episodio embólico. Es texto de la guía y no lleva clase ni nivel (apartado 10.2.2).', refs:['esc2025vc'] });
+    pmcL.push({ txt:'La misma guía considera desfavorable un score ecocardiográfico mayor de 8, dentro de una lista de características clínicas y anatómicas de la que pide que estén presentes VARIAS, no una sola (nota c de la tabla de recomendaciones).', refs:['esc2025vc'] });
+  } else if (pmc === 'no') {
+    pmcL.push({ txt:'Sin indicación de comisurotomía mitral percutánea, las filas de la guía de valvulopatías no se publican.', refs:null });
+  } else {
+    faltan.push({ txt:'Falta consignar si el paciente es candidato a comisurotomía mitral percutánea: de eso dependen cuatro filas de la guía de valvulopatías.', refs:null });
+  }
+  const bloques = [
+    { tit:'Cardioversión — guía de fibrilación auricular (Tabla 15, folio 3355)', lineas: cvL,
+      nota:'El informe y la conclusión de la app son DESCRIPTIVOS: la conducta se publica acá y no en el papel firmado.' },
+    { tit:'Comisurotomía mitral percutánea — guía de valvulopatías (Tabla 8, folio 4682)', lineas: pmcL }
+  ];
+  if (faltan.length) bloques.push({ tit:'Lo que falta para decidir otras filas', lineas: faltan });
+  return { filas: filas, bloques: bloques,
+    clinica: [
+      _indFila('Duración de la fibrilación auricular', '—', 'ask',
+        'la fila Clase III de la guía separa en 24 horas, y la app no registra la duración del episodio'),
+      _indFila('Riesgo tromboembólico y de sangrado', '—', 'ask',
+        'la decisión de anticoagular y por cuánto tiempo sale de escalas clínicas que esta aplicación no calcula')
+    ],
+    guia: { ref:'esc2025vc',
+      txt:'El trombo en la aurícula izquierda figura entre las contraindicaciones de la comisurotomía mitral percutánea en la estenosis mitral reumática; cuando está en la orejuela, la nota al pie de esa tabla admite considerar el procedimiento bajo condiciones (Tabla 8 de contraindicaciones, folio 4682).',
+      nota:'Esa tabla de contraindicaciones NO publica clase ni nivel de evidencia; las filas de cardioversión, que sí los llevan, salen de la guía de fibrilación auricular.' },
+    notas: cvL.concat(pmcL).map(function(l){ return l.txt }) };
+}
+
+/* ══ REPARABILIDAD DE LA VALVULA MITRAL (I-E3, 22/10/2026) ══════════════════════════════════
+   Los tres factores son los que la pantalla ya evalua; aca se INTERPRETAN, que es lo que el
+   informe dejo de hacer. La Tabla 7 NO lleva clase ni nivel: es una tabla descriptiva de
+   caracteristicas desfavorables, y se publica como tal.
+   ⚠️ CON IM PRIMARIA NO SE PUBLICA NINGUN VEREDICTO: esa tabla es de IM SECUNDARIA, y ninguna
+   fuente de la biblioteca da cifras equivalentes para la primaria. Chip de criterio propio. */
+function _indReparMV(){
+  const co = _indN('ete_prof_coapt'), an = _indN('ete_angulo_vp'), ar = _indN('ete_area_tenting');
+  if (co == null && an == null && ar == null) return null;
+  const esSec = (typeof imEsSecundariaIM === 'function')
+    ? (function(){ try { return !!imEsSecundariaIM() } catch (e) { return false } })() : false;
+  const mec = (typeof imMecanismoIM === 'function')
+    ? (function(){ try { return imMecanismoIM() } catch (e) { return '' } })() : '';
+  const CO = (typeof REPAR_COAPT_MM === 'number') ? REPAR_COAPT_MM : 10;
+  const AN = (typeof REPAR_ANGULO_GR === 'number') ? REPAR_ANGULO_GR : 45;
+  const AR = (typeof REPAR_TENTING_CM2 === 'number') ? REPAR_TENTING_CM2 : 2.5;
+  const fCo = co != null && co >= CO, fAn = an != null && an > AN, fAr = ar != null && ar > AR;
+  /* ⚠️ LA MARCA ROJA SOLO SI LA TABLA APLICA, y lo cazo mirar la salida: con IM PRIMARIA las
+     tres medidas salian en rojo al lado de una linea que dice que esa tabla no aplica, o sea el
+     panel contradiciendose en la misma seccion. Sin mecanismo secundario se publica el valor y
+     nada mas. */
+  const M = function(hay, f){ return hay == null ? 'ask' : (esSec ? (f ? 'alarm' : 'ok') : 'none') };
+  const filas = [
+    _indFila('Mecanismo de la insuficiencia mitral',
+      mec === 'secundaria' ? 'Secundaria' : (mec === 'primaria' ? 'Primaria' : 'No consta'),
+      esSec ? 'ok' : (mec ? 'none' : 'ask'),
+      'la Tabla 7 está descrita para la insuficiencia mitral SECUNDARIA: es lo que decide si estas tres medidas se interpretan',
+      ['guiaRegurgNativa']),
+    _indFila('Distancia de coaptación', co != null ? _indNum(co, 1, 'mm') : '—',
+      M(co, fCo),
+      'la tabla da como desfavorable una distancia de 1 cm o más',
+      ['guiaRegurgNativa']),
+    _indFila('Ángulo posterolateral', an != null ? _indNum(an, 0, '°') : '—',
+      M(an, fAn),
+      'la tabla da como desfavorable un ángulo mayor de 45 grados, que indica mayor anclaje de la valva posterior',
+      ['guiaRegurgNativa']),
+    _indFila('Área de tenting sistólico', ar != null ? _indNum(ar, 2, 'cm²') : '—',
+      M(ar, fAr),
+      'la tabla escribe este umbral como un RANGO, «más de 2,5 a 3 cm²», y la aplicación aplica su extremo bajo',
+      ['guiaRegurgNativa'])
+  ];
+  const lineas = [], faltan = [];
+  if (!mec) {
+    faltan.push({ txt:'Falta consignar el mecanismo de la insuficiencia mitral: la Tabla 7 está descrita para la secundaria y sin ese dato no se interpreta ninguna de las tres medidas.', refs:null });
+  } else if (!esSec) {
+    lineas.push({ txt:'Con insuficiencia mitral PRIMARIA esta tabla no aplica: está descrita para la insuficiencia mitral secundaria. Ninguna fuente de la biblioteca publica cifras equivalentes de reparabilidad para la primaria, así que las medidas se muestran y no se interpretan, y los cortes que la pantalla rotula son un criterio propio de la aplicación.', refs:['ecosmart'] });
+  } else {
+    const pres = [];
+    if (fCo) pres.push('la distancia de coaptación');
+    if (fAn) pres.push('el ángulo posterolateral');
+    if (fAr) pres.push('el área de tenting');
+    if (pres.length) {
+      lineas.push({ txt:'De las características desfavorables que esta aplicación mide, están presentes ' + pres.join(', ') + '. La tabla las describe como asociadas a un mayor riesgo de fracaso de la reparación de la válvula mitral; NO lleva clase ni nivel de evidencia y no indica una conducta.', refs:['guiaRegurgNativa'] });
+    } else {
+      lineas.push({ txt:'De las características desfavorables que esta aplicación mide, ninguna está presente. La tabla lista además jets complejos de origen central y posteromedial, el remodelado local del ventrículo izquierdo y el global, que esta aplicación no mide: su ausencia acá no significa que no estén.', refs:['guiaRegurgNativa'] });
+    }
+    if (co == null || an == null || ar == null) {
+      const f = [];
+      if (co == null) f.push('la distancia de coaptación');
+      if (an == null) f.push('el ángulo posterolateral');
+      if (ar == null) f.push('el área de tenting');
+      faltan.push({ txt:'Falta medir ' + f.join(', ') + ': esas características no se pueden evaluar.', refs:null });
+    }
+  }
+  const bloques = [ { tit:'Características desfavorables para la reparación — interpretación', lineas: lineas,
+    nota:'El informe y la conclusión de la app son DESCRIPTIVOS: esta lectura se publica acá y no en el papel firmado.' } ];
+  if (faltan.length) bloques.push({ tit:'Lo que falta para completar la evaluación', lineas: faltan });
+  return { filas: filas, bloques: bloques,
+    clinica: [
+      _indFila('Jets complejos de origen central y posteromedial', '—', 'ask',
+        'es una de las características de deformación valvular de la misma tabla, y la aplicación no la registra'),
+      _indFila('Remodelado local y global del ventrículo izquierdo', '—', 'ask',
+        'distancia entre músculos papilares, distancia del papilar posterior a la fibrosa, motilidad de la pared lateral, diámetros y volumen telesistólicos e índice de esfericidad: la misma tabla los lista y la aplicación no los integra acá')
+    ],
+    guia: { ref:'guiaRegurgNativa',
+      txt:'La tabla de características desfavorables por ecocardiografía transtorácica para la reparación de la válvula mitral en insuficiencia mitral secundaria da, en su bloque de deformación valvular, una distancia de coaptación de 1 cm o más, un área de tenting de más de 2,5 a 3 cm² y un ángulo posterolateral mayor de 45 grados (Tabla 7, hoja 25).',
+      nota:'Esa tabla NO lleva clase ni nivel de evidencia, y la aplicación aplica el extremo bajo del rango del área de tenting.' },
+    notas: lineas.map(function(l){ return l.txt }) };
+}
+
+/* ══ ATEROMA AORTICO — PREVENCION (I-E3, 22/10/2026) ════════════════════════════════════════
+   LEE el grado consignado y PREGUNTA las dos cosas que el eco no da: si la placa es severa o
+   compleja y si hubo un evento embolico.
+   ⚠️ CADA RECOMENDACION DICE CON QUE ESCALA APLICA, y hace falta: la app gradua con la escala de
+   la ASE -grado 3 de 3 a 5 mm, grado 4 por encima de 5- y la ESC 2024 corta en 4 mm, asi que un
+   ateroma de 4,5 mm es grado 3 por una y grado 4 por la otra. La pregunta de «severa o compleja»
+   se PROPONE desde el grado cargado y la confirma el medico: deducirla seria aplicarle a una
+   escala el corte de la otra. */
+function _indAtero(){
+  const g = parseInt(_indS('ao_grado_atero'), 10);
+  if (!isFinite(g) || g < 1 || g > 5) return null;
+  const mm = _indN('ao_grosor_placa');
+  const porEsc = (typeof ateroGradoPorGrosor === 'function') ? ateroGradoPorGrosor(mm) : null;
+  /* ⚠️ SE PREGUNTA Y NO SE DERIVA DEL GRADO, y es la mitad de esta seccion. La app gradua con
+     la escala de la ASE -grado 4 por encima de 5 mm- y la guia europea, que es la que publica las
+     recomendaciones, usa la SUYA, que corta en 4 mm: derivar «severa o compleja» del grado de la
+     ASE seria aplicarle a una escala el corte de la otra, y un ateroma de 4,5 mm caeria del lado
+     equivocado. Lo que el estudio sabe se informa en la nota de la fila. */
+  const sev = _indClinGet('atero.severa');
+  const ev   = _indClinGet('atero.embolico');
+  const filas = [
+    _indFila('Grado consignado (escala de la ASE)', 'Grado ' + g,
+      g >= 4 ? 'alarm' : (g === 3 ? 'warn' : 'none'),
+      'la aplicación gradúa con la escala de la ASE: grado 3 de 3 a 5 mm, grado 4 por encima de 5 mm y grado 5 cualquier espesor con componentes móviles o ulcerados',
+      ['aseEte2020']),
+    _indFila('Espesor medido', mm != null ? _indNum(mm, 1, 'mm') : '—',
+      mm == null ? 'ask' : 'none',
+      mm == null ? 'sin medir'
+        : ('por su espesor le corresponde el grado ' + porEsc + ' en la escala de la ASE' +
+           (mm >= 4 ? '; la escala de la ESC 2024 corta en 4 mm, así que por esa otra escala sería grado 4 o más' : '')),
+      ['aseEte2020']),
+    _indFilaCtrl('¿Placa severa o compleja?', 'atero.severa', [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      sev === 'si' ? 'ok' : (sev === 'no' ? 'none' : 'ask'),
+      'es la condición de las dos primeras filas de prevención primaria de la guía europea' +
+      (g >= 4 ? '; este estudio consigna un grado ' + g + ' en la escala de la ASE, y el grado 5 de las dos escalas es el de la placa con componentes móviles o ulcerados'
+              : '; este estudio consigna un grado ' + g + ' en la escala de la ASE') +
+      ', pero la guía europea gradúa con su propia escala, que corta en 4 mm: por eso se consigna acá y no se deduce'),
+    _indFilaCtrl('¿Hubo un evento embólico relacionado?', 'atero.embolico',
+      [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      ev === 'si' ? 'ok' : (ev === 'no' ? 'none' : 'ask'),
+      'es lo que separa la prevención primaria de la secundaria en las dos guías')
+  ];
+  const prim = [], sec = [], faltan = [];
+  if (sev === 'si') {
+    prim.push({ txt:'Clase IIa · Nivel C — En las placas aórticas ateromatosas severas o complejas se debe considerar el uso de estatinas, para disminuir la progresión de la enfermedad y el riesgo de eventos cardíacos (Tabla 33).', refs:['esc2024ao'] });
+    prim.push({ txt:'Clase IIa · Nivel C — En esas mismas placas se debe considerar la monoterapia con clopidogrel o con dosis bajas de aspirina (Tabla 33).', refs:['esc2024ao'] });
+  } else if (sev === 'no') {
+    prim.push({ txt:'Sin placa severa ni compleja, las dos filas de prevención primaria de la guía europea no aplican.', refs:null });
+  } else {
+    faltan.push({ txt:'Falta consignar si la placa es severa o compleja: de eso dependen las dos filas de prevención primaria.', refs:null });
+  }
+  prim.push({ txt:'Clase III · Nivel C — La anticoagulación y el tratamiento antiagregante doble NO están recomendados en las placas aórticas: no tienen efectos beneficiosos y aumentan el riesgo de sangrado (Tabla 33).', refs:['esc2024ao'] });
+  if (ev === 'si') {
+    sec.push({ txt:'Clase I · Nivel A — Con un evento embólico y evidencia de ateroma en el arco aórtico se recomienda el control lipídico intensivo, con un objetivo de colesterol LDL por debajo de 1,4 mmol/L (55 mg/dL), para prevenir recurrencias (guía europea de enfermedad arterial periférica y aórtica, Tabla 33).', refs:['esc2024ao'] });
+    sec.push({ txt:'Clase I · Nivel C — Con ese mismo cuadro se recomienda la monoterapia antiagregante para prevenir recurrencias (guía europea, Tabla 33).', refs:['esc2024ao'] });
+    sec.push({ txt:'Clase 1 · Nivel B-R — La guía estadounidense del ictus escribe la misma indicación con OTRO objetivo: tras un ictus o un ataque isquémico transitorio con evidencia de ateroma del arco aórtico, control lipídico intensivo con un objetivo de colesterol LDL por debajo de 70 mg/dL (apartado 5.1.3).', refs:['fopAha2021'] });
+    sec.push({ txt:'Clase 1 · Nivel C-LD — Y, en el mismo cuadro, tratamiento antiagregante para prevenir la recurrencia del ictus (apartado 5.1.3).', refs:['fopAha2021'] });
+  } else if (ev === 'no') {
+    sec.push({ txt:'Sin evento embólico, las filas de prevención secundaria de las dos guías no aplican.', refs:null });
+  } else {
+    faltan.push({ txt:'Falta consignar si hubo un evento embólico: de eso dependen las cuatro filas de prevención secundaria.', refs:null });
+  }
+  const bloques = [
+    { tit:'Prevención primaria — guía europea de enfermedad arterial periférica y aórtica (Tabla 33, folio 71)', lineas: prim,
+      nota:'El informe y la conclusión de la app son DESCRIPTIVOS: estas recomendaciones se publican acá y no en el papel firmado.' },
+    { tit:'Prevención secundaria tras un evento embólico', lineas: sec,
+      nota:'Las dos guías coinciden en qué hacer y NO en el objetivo de colesterol LDL: 55 mg/dL la europea y 70 mg/dL la estadounidense. Las dos se publican con su fuente y no se promedian.' }
+  ];
+  if (faltan.length) bloques.push({ tit:'Lo que falta para decidir otras filas', lineas: faltan });
+  return { filas: filas, bloques: bloques,
+    clinica: [
+      _indFila('Riesgo de sangrado y tratamiento antitrombótico en curso', '—', 'ask',
+        'la guía europea señala que la duración del tratamiento no está claramente establecida y debe equilibrar el beneficio temprano con el riesgo constante de sangrado; esta aplicación no registra el tratamiento')
+    ],
+    guia: { ref:'aseEte2020',
+      txt:'La escala que esta aplicación aplica es la de la ASE: grado 1 espesor intimal menor de 2 mm, grado 2 engrosamiento intimal de 2 a 3 mm, grado 3 ateroma de 3 a 5 mm, grado 4 ateroma de más de 5 mm y grado 5 cualquier espesor con componentes móviles o ulcerados (folio 716).',
+      nota:'La guía europea de enfermedad arterial periférica y aórtica gradúa distinto —su Tabla 14 corta en 4 mm y no en 5—, así que un mismo ateroma puede caer en grados distintos según la escala. La guía estadounidense del ictus describe un aumento del riesgo de recurrencia con placas de 4 mm o más, sobre todo con ulceración o componentes móviles.' },
+    notas: prim.concat(sec).map(function(l){ return l.txt }) };
+}
+
 const IND_SECS = [
   { tit:'Estenosis aórtica',                     fn:_indEA },
   { tit:'Insuficiencia mitral primaria',         fn:_indIM },
@@ -79185,7 +79502,14 @@ const IND_SECS = [
      ninguno de los diecinueve anteriores y ninguno es prefijo suyo.
      Va DESPUÉS de las dos de la bicúspide a propósito: cuando la aortopatía es una bicúspide
      esta sección NO repite sus diez filas, las nombra, y el médico las encuentra justo arriba. */
-  { tit:'Aorta torácica — dilatación y aortopatía', fn:_indAo }
+  { tit:'Aorta torácica — dilatación y aortopatía', fn:_indAo },
+  /* ⚠️ LAS TRES DE LA TANDA I (22/10/2026), Y NINGUN TITULO ES PREFIJO DE OTRO NI DE LOS
+     VEINTE ANTERIORES: `IND_SECS` se recorre buscando la seccion por el PREFIJO de su titulo, asi
+     que un titulo que sea prefijo de otro deja una de las dos sin probar. Verificado: ninguno de
+     los veintitres se contiene. */
+  { tit:'Ecocardiograma transesofágico — trombo en la orejuela izquierda', fn:_indETETrombo },
+  { tit:'Reparabilidad de la válvula mitral', fn:_indReparMV },
+  { tit:'Ateroma aórtico — prevención', fn:_indAtero }
 ];
 
 function indicRender(){

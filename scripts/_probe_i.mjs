@@ -857,7 +857,105 @@ window.__Y = {
     return n },
 
 
+  /* ⚠️ VARIAS RESPUESTAS EN UNA SOLA APERTURA, Y HACE FALTA: indicAbrir LIMPIA _indClin
+     ANTES de pintar -esta escrito en su propio comentario: abrir es la unica puerta por la que el
+     panel se ve, asi que ahi la garantia es por construccion-, de modo que llamar evidResp tres
+     veces deja viva SOLO la ultima. La primera medicion de esta tanda informo el bloque de
+     cardioversion VACIO con las tres respuestas contestadas: era la sonda, no la app.
+     Devuelve ademas el texto PINTADO de la seccion y cuantos bloques quedaron PLEGADOS, que es lo
+     que distingue «recomendacion visible» de «recomendacion detras de un clic». */
+  evidRespN(pares, tit) { try {
+    if (typeof indicAbrir === 'function') indicAbrir();
+    var hechos = [];
+    for (var n = 0; n < pares.length; n++) {
+      var k = pares[n][0], v = pares[n][1], ok = 'NO HAY boton ' + k + '=' + v;
+      var bs = document.querySelectorAll('[data-ind-clin]');
+      for (var i = 0; i < bs.length; i++) {
+        if (bs[i].getAttribute('data-ind-clin') === k && bs[i].getAttribute('data-ind-val') === v) {
+          bs[i].click(); ok = 'ok'; break }
+      }
+      hechos.push(k + '=' + v + ':' + ok);
+    }
+    var o = { hechos: hechos };
+    var c = document.getElementById('indic-cuerpo');
+    if (c && tit) {
+      var det = c.querySelectorAll('details'), h = null;
+      for (var j = 0; j < det.length; j++) {
+        var sm = det[j].querySelector('summary');
+        if (sm && (sm.textContent || '').trim().indexOf(tit) === 0) h = det[j];
+      }
+      if (h) { var _t = (h.textContent || '');
+               var _o = '', _sp = false;
+               for (var q = 0; q < _t.length; q++) { var cc = _t.charCodeAt(q);
+                 var es = (cc === 32 || cc === 9 || cc === 10 || cc === 13 || cc === 160);
+                 if (es) { if (!_sp) { _o += ' '; _sp = true } } else { _o += _t.charAt(q); _sp = false } }
+               o.texto = _o.trim();
+               o.plegados = h.querySelectorAll('[data-ind-bloque]').length;
+               o.abierta = !!h.open; }
+      else o.texto = 'SECCION NO PINTADA';
+    }
+    if (typeof indicCerrar === 'function') indicCerrar();
+    return o }
+    catch (e) { try { if (typeof indicCerrar === 'function') indicCerrar() } catch (e2) {}
+      return 'EXC: ' + e.message } },
+
   /* El texto de una ficha de Referencias, abierta por su gesto. */
+  /* Una seccion del panel de Evidencia, por su titulo. Devuelve el OBJETO y el texto PINTADO:
+     solo el objeto deja pasar un bloque que la seccion arma y el renderizador no pinta; solo el
+     HTML no distingue «no aplica» de «no se evaluo». */
+  evid(tit) { try {
+    if (typeof IND_SECS === 'undefined' && !window.IND_SECS) return 'SIN IND_SECS';
+    var L = window.IND_SECS || IND_SECS;
+    var s = null; for (var i = 0; i < L.length; i++) if (L[i].tit === tit) s = L[i];
+    if (!s) return { existe: false, titulos: L.map(function(x){ return x.tit }) };
+    var r = null; try { r = s.fn() } catch (e) { return { existe: true, err: 'EXC en fn(): ' + e.message } }
+    if (!r) return { existe: true, r: null };
+    return { existe: true,
+      filas: (r.filas || []).map(function(f){ return { lbl: f.lbl, val: f.val, marca: f.marca,
+        nota: String(f.nota || '').slice(0, 220), ctrl: f.ctrl ? f.ctrl.clave : null,
+        refs: (f.refs || []).join(',') } }),
+      bloques: (r.bloques || []).map(function(b){ return { tit: b.tit, plegado: !!b.plegado,
+        lineas: (b.lineas || []).map(function(l){ return typeof l === 'string' ? l : l.txt }),
+        nota: b.nota || null } }),
+      clinica: (r.clinica || []).map(function(f){ return f.lbl }),
+      guia: r.guia ? { ref: r.guia.ref, txt: String(r.guia.txt || '').slice(0, 300) } : null,
+      notas: (r.notas || []).length } }
+    catch (e) { return 'EXC: ' + e.message } },
+
+  /* El panel pintado: cuantas secciones y el texto de una. */
+  evidPintado(tit) { try {
+    if (typeof indicAbrir === 'function') indicAbrir();
+    var c = document.getElementById('indic-cuerpo');
+    if (!c) return 'NO EXISTE indic-cuerpo';
+    var det = c.querySelectorAll('details'), halla = null, n = 0;
+    for (var i = 0; i < det.length; i++) {
+      var sm = det[i].querySelector('summary');
+      if (!sm) continue;
+      var t = (sm.textContent || '').trim();
+      if (t.indexOf(tit) === 0) { halla = det[i]; }
+      if (det[i].parentNode === c || (det[i].parentNode && det[i].parentNode.parentNode === c)) n++;
+    }
+    var o = { nDetalles: det.length, hallada: !!halla };
+    if (halla) { o.texto = (halla.textContent || '').trim().slice(0, 1500);
+                 o.abierta = !!halla.open;
+                 o.bloquesVisibles = halla.querySelectorAll('[data-ind-bloque]').length; }
+    if (typeof indicCerrar === 'function') indicCerrar();
+    return o }
+    catch (e) { try { if (typeof indicCerrar === 'function') indicCerrar() } catch (e2) {}
+      return 'EXC: ' + e.message } },
+
+  /* Contesta una pregunta del panel por su CLAVE, con un clic real sobre el boton. */
+  evidResp(clave, valor) { try {
+    if (typeof indicAbrir === 'function') indicAbrir();
+    var bs = document.querySelectorAll('[data-ind-clin]');
+    var hecho = 'NO HAY boton con clave ' + clave;
+    for (var i = 0; i < bs.length; i++) {
+      if (bs[i].getAttribute('data-ind-clin') === clave &&
+          bs[i].getAttribute('data-ind-val') === valor) { bs[i].click(); hecho = 'ok'; break }
+    }
+    return hecho }
+    catch (e) { return 'EXC: ' + e.message } },
+
   ficha(id) { try {
     if (typeof showTab === 'function') showTab('refs');
     var e = document.getElementById('ref-' + id);
@@ -1062,6 +1160,86 @@ window.__Y = {
     out.grupos.atero = r;
     process.stderr.write('[atero] listo\n');
   }
+
+
+  /* ══ GRUPO «evid» — LAS TRES SECCIONES NUEVAS DEL PANEL DE EVIDENCIA ═════════════
+
+     Se mide el OBJETO y el HTML PINTADO: solo el objeto deja pasar un bloque que la seccion arma
+     y el renderizador no pinta; solo el HTML no distingue «no aplica» de «no se evaluo».
+     ⚠️ LAS RECOMENDACIONES VAN EN EL BLOQUE VISIBLE y no en `notas`, que el marco pinta dentro
+        del «Ver detalle», que nace PLEGADO. Se comprueba contando los bloques pintados. */
+  if (corre('evid')) {
+    const r = {};
+    const T_TR = 'Ecocardiograma transesof\u00e1gico \u2014 trombo en la orejuela izquierda';
+    const T_RP = 'Reparabilidad de la v\u00e1lvula mitral';
+    const T_AT = 'Ateroma a\u00f3rtico \u2014 prevenci\u00f3n';
+    const sec = async (t) => await ev(`window.__Y.evid(${JSON.stringify(t)})`, 60000);
+    const resp = async (k, v2) => await ev(`window.__Y.evidResp(${JSON.stringify(k)},${JSON.stringify(v2)})`);
+    try {
+      /* CONTROL NEGATIVO: con el formulario vacio las TRES devuelven null. */
+      await ev(`window.__P.nuevo()`); await ev(`window.__P.despejar()`);
+      r.vacio = { tr: await sec(T_TR), rp: await sec(T_RP), at: await sec(T_AT) };
+
+      /* — TROMBO — */
+      await ev(`window.__P.nuevo()`); await ev(`window.__P.despejar()`);
+      { const rs = await ev(`window.__P.sel('oai_trombo','no')`);
+        if (!rs || !rs.ok) throw new Error('SEL FALLO oai_trombo/no ' + JSON.stringify(rs)); }
+      r.trNo = await sec(T_TR);
+      { const rs = await ev(`window.__P.sel('oai_trombo','si')`);
+        if (!rs || !rs.ok) throw new Error('SEL FALLO oai_trombo/si ' + JSON.stringify(rs)); }
+      await ev(`window.__P.abrirPara('oai_vel_vac')`); await tipear('oai_vel_vac', '15');
+      r.trSi = await sec(T_TR);
+      r.trPint = await ev(`window.__Y.evidPintado(${JSON.stringify(T_TR)})`, 60000);
+      /* ⚠️ LAS TRES RESPUESTAS EN UNA SOLA APERTURA: indicAbrir LIMPIA las respuestas antes de
+         pintar, asi que tres llamadas sueltas dejan viva solo la ultima. */
+      r.trTodo = await ev(`window.__Y.evidRespN([['ete.cardioversion','si'],['ete.aco3sem','no'],['ete.pmc','si']], ${JSON.stringify(T_TR)})`, 60000);
+      r.trNoCv = await ev(`window.__Y.evidRespN([['ete.cardioversion','no'],['ete.pmc','no']], ${JSON.stringify(T_TR)})`, 60000);
+
+      /* — REPARABILIDAD — */
+      await ev(`window.__P.nuevo()`); await ev(`window.__P.despejar()`);
+      for (const [k, v2] of [['ete_prof_coapt','12'],['ete_angulo_vp','50'],['ete_area_tenting','2.8']]) {
+        await ev(`window.__P.abrirPara(${JSON.stringify(k)})`); await tipear(k, v2);
+      }
+      r.rpSinMec = await sec(T_RP);
+      { const rs = await ev(`window.__P.sel('teer_tipo_im','secundaria')`);
+        if (!rs || !rs.ok) throw new Error('SEL FALLO teer_tipo_im ' + JSON.stringify(rs)); }
+      r.rpSec = await sec(T_RP);
+      r.rpPint = await ev(`window.__Y.evidPintado(${JSON.stringify(T_RP)})`, 60000);
+      { const rs = await ev(`window.__P.sel('teer_tipo_im','primaria')`);
+        if (!rs || !rs.ok) throw new Error('SEL FALLO teer_tipo_im/prim ' + JSON.stringify(rs)); }
+      r.rpPrim = await sec(T_RP);
+
+      /* — ATEROMA — */
+      await ev(`window.__P.nuevo()`); await ev(`window.__P.despejar()`);
+      { const rs = await ev(`window.__P.sel('ao_grado_atero','3')`);
+        if (!rs || !rs.ok) throw new Error('SEL FALLO ao_grado_atero ' + JSON.stringify(rs)); }
+      await ev(`window.__P.abrirPara('ao_grosor_placa')`); await tipear('ao_grosor_placa', '4.5');
+      r.at3 = await sec(T_AT);
+      { const rs = await ev(`window.__P.sel('ao_grado_atero','4')`);
+        if (!rs || !rs.ok) throw new Error('SEL FALLO ao_grado_atero/4 ' + JSON.stringify(rs)); }
+      r.at4 = await sec(T_AT);
+      r.atPint = await ev(`window.__Y.evidPintado(${JSON.stringify(T_AT)})`, 60000);
+      r.atTodo = await ev(`window.__Y.evidRespN([['atero.embolico','si']], ${JSON.stringify(T_AT)})`, 60000);
+      r.atNoSev = await ev(`window.__Y.evidRespN([['atero.severa','no'],['atero.embolico','no']], ${JSON.stringify(T_AT)})`, 60000);
+
+      /* QUE LAS RESPUESTAS NO VIAJAN CON EL ESTUDIO. */
+      r.campos = await ev(`window.__Y.campos()`);
+      r.clavesClin = await ev(`(function(){ try {
+        var o = []; var es = document.querySelectorAll('input[id],select[id],textarea[id]');
+        for (var i=0;i<es.length;i++) if (es[i].id.indexOf('ete.')===0 || es[i].id.indexOf('atero.')===0) o.push(es[i].id);
+        return o } catch(e){ return ['EXC'] } })()`);
+      r.titulos = await ev(`(function(){ try {
+        var L = window.IND_SECS || IND_SECS;
+        var t = L.map(function(x){ return x.tit }), mal = [];
+        for (var i=0;i<t.length;i++) for (var j=0;j<t.length;j++)
+          if (i!==j && t[j].indexOf(t[i])===0) mal.push(t[i] + ' ES PREFIJO DE ' + t[j]);
+        return { n: t.length, prefijos: mal } } catch(e){ return 'EXC' } })()`);
+      r.errores = await ev(`window.__Y.errores()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.evid = r;
+    process.stderr.write('[evid] listo\n');
+  }
+
 
 
   /* ══ GRUPO «sup» — LAS SUPERFICIES FIRMADAS, UNA POR UNA ════════════════════

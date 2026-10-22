@@ -47023,7 +47023,20 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
          la guia -40 mm en el hombre, 36 en la mujer- y no los 45 mm con que arrancaba el motor,
          asi que un diametro de 41 alcanza. Sin sexo cargado se usa el corte del varon, que es el
          alto: es sexoEfectivo, el dueno unico que ya eligen la AI y el VI. */
-      ['Aorta toracica', { ao_tub:'41' }, 'esc2024ao']
+      ['Aorta toracica', { ao_tub:'41' }, 'esc2024ao'],
+      /* AGREGADAS el 2026-10-22 (tanda I, commit 3). Las TRES secciones nuevas de la ETE.
+         · El trombo abre con oai_trombo en «si» y nada mas: con el trombo descartado no hay nada
+           que recomendar SOBRE un trombo. Su linea «Segun la guia» cita la ESC/EACTS 2025, que es
+           la que publica la tabla de contraindicaciones de la comisurotomia.
+         · La reparabilidad abre con cualquiera de las tres medidas; el escenario carga una.
+           Su linea «Segun la guia» cita el documento de regurgitacion valvular nativa, que es el
+           dueno de la Tabla 7.
+         · El ateroma abre con un grado consignado de 1 a 5, y su linea «Segun la guia» cita la
+           ASE 2020 de Nicoara, que es la escala que la app APLICA -la europea gradua distinto y
+           se publica al lado, en las recomendaciones-. */
+      ['Ecocardiograma transesofagico', { oai_trombo:'si' },                     'esc2025vc'],
+      ['Reparabilidad de la valvula mitral', { ete_prof_coapt:'12', teer_tipo_im:'secundaria' }, 'guiaRegurgNativa'],
+      ['Ateroma aortico', { ao_grado_atero:'4' },                                'aseEte2020']
     ];
 
     const sembrar = campos => {
