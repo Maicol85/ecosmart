@@ -5080,8 +5080,19 @@ caso('TC-43', 'EM por planimetria 1.2 cm²: SIGNIFICATIVA con el area y su metod
 `);
 
 /* Wilkins: <=8 favorable, 9-11 suboptimo, >=12 no favorable. El total se pinta sobre 16. */
-caso('TC-44', 'Score de Wilkins: las TRES bandas, y la del medio NO afirma un pronostico', `
-  /* Se devuelve tambien la linea de la HOJA DEL PDF, que es la superficie que importa: el texto del
+caso('TC-44', 'Score de Wilkins: las TRES bandas publican su TRAMO y NINGUNA afirma un pronostico', `
+  /* ADAPTADO el 2026-10-22 (tanda I, commit 1). DECISION DE MAICOL: el score es ANATOMICO y las
+     tres bandas dejaron de afirmar un pronostico. Este caso decia «6/16 favorable» y «13/16 no
+     favorable» y exigia el literal «El score no predice el resultado» en la banda del medio; hoy
+     afirma LO CONTRARIO en las tres: ninguna de las tres frases viejas sobrevive en NINGUNA
+     superficie, y lo que se publica es el tramo (<= 8 / 9 a 11 / > 11).
+     NO PIERDE PODER: sigue midiendo los dos bordes de la banda del medio, sigue exigiendo que la
+     hoja del PDF diga lo MISMO que el badge, sigue exigiendo que la barra del Laboratorio salga de
+     la constante y no de un literal propio, y GANA que el dueno unico es uno solo (WILK_TRAMO, los
+     tres tramos) y que las tres afirmaciones retiradas no estan en las CUATRO escenas por las
+     CUATRO superficies.
+
+     Se devuelve tambien la linea de la HOJA DEL PDF, que es la superficie que importa: el texto del
      badge no se queda en pantalla — amiloTextoWilkins lo lee del DOM RENDERIZADO y lo publica como
      «Interpretacion | ...» en la hoja «SCORE DE WILKINS - ESTENOSIS MITRAL» y en el estudio guardado
      (am-txt-wilk). Medir solo el badge dejaria sin cubrir el documento firmado. */
@@ -5095,45 +5106,81 @@ caso('TC-44', 'Score de Wilkins: las TRES bandas, y la del medio NO afirma un pr
       : '';
     return { total: __t.txt('wilkins-total'), interp: __t.txt('wilkins-interp'), pdf: pdf }; }
   const f = w(1,1,2,2), n = w(4,3,3,3), m9 = w(3,2,2,2), m11 = w(3,3,3,2);
-  const NUEVO = 'El score no predice el resultado';
-  const VIEJO = 'Resultado subóptimo probable';
+  const T = (typeof WILK_TRAMO === 'object' && WILK_TRAMO) ? WILK_TRAMO : {};
+  /* Las TRES afirmaciones que salieron, mas la del pronostico de la banda del medio que ya se
+     habia retirado en su momento: ninguna puede volver por ninguna superficie. */
+  const FUERA = ['Favorable para valvuloplastia percutánea', 'No favorable para valvuloplastia',
+                 'El score no predice el resultado', 'Resultado subóptimo probable'];
+  /* ⚠️ EL FUENTE SE LEE SIN COMENTARIOS, Y NO ES COSMETICO: Function.prototype.toString()
+     los devuelve, y el comentario que EXPLICA el retiro NOMBRA el literal retirado. Buscado sobre
+     el fuente crudo, este caso salia rojo sobre una barra perfecta — la trampa que este repo ya
+     tiene escrita para una regla de CSS retirada. Lo que se busca es la DECLARACION.
+     ⚠️ SIN REGEX: una clase de caracteres dentro del cuerpo de un caso se COCINA (la barra-ese
+     llega al motor como la letra s), asi que el recorte va por indexOf. */
+  function _sinCom(t) {
+    var x = String(t || ''), o = '', i = 0, ab = '/' + '*', ce = '*' + '/';
+    while (i < x.length) {
+      var a = x.indexOf(ab, i);
+      if (a < 0) { o += x.slice(i); break; }
+      o += x.slice(i, a);
+      var c = x.indexOf(ce, a + 2);
+      if (c < 0) break;
+      i = c + 2;
+    }
+    return o.split(String.fromCharCode(10)).map(function(l){
+      var j = l.indexOf('//'); return j < 0 ? l : l.slice(0, j); }).join(String.fromCharCode(10));
+  }
+  const lv = _sinCom(typeof labEteRender === 'function' ? labEteRender.toString() : '');
   return { extra: [
-    ['6/16 favorable',    f.total === '6 / 16' && f.interp.indexOf('Favorable para valvuloplastia percutánea') > -1],
-    ['13/16 no favorable', n.total === '13 / 16' && n.interp.indexOf('No favorable para valvuloplastia') > -1],
-    /* ⚠️ LA BANDA 9-11 NO PUEDE AFIRMAR UN PRONOSTICO, y hasta hoy decia «Resultado suboptimo
-       probable». Wilkins 1988, p. 307: «The score FAILED TO PREDICT outcome in those with scores of
-       9 to 11». Los DOS bordes de la banda, porque un corte mal movido se ve igual en uno solo. */
-    ['los dos bordes de la banda 9-11 dicen que el score no predice',
-      m9.total === '9 / 16' && m11.total === '11 / 16' &&
-      m9.interp.indexOf(NUEVO) > -1 && m11.interp.indexOf(NUEVO) > -1,
+    /* DENOMINADOR: sin esto, un badge que no se pinta deja pasar todas las condiciones de abajo. */
+    ['DENOMINADOR: las cuatro escenas producen su total',
+      f.total === '6 / 16' && n.total === '13 / 16' && m9.total === '9 / 16' && m11.total === '11 / 16',
+      JSON.stringify([f.total, n.total, m9.total, m11.total])],
+    ['el tramo <= 8 se publica en el badge y dice el tramo, no un pronostico',
+      !!T.favorable && f.interp.indexOf(T.favorable) > -1, f.interp],
+    ['el tramo > 11 idem',
+      !!T.nofavorable && n.interp.indexOf(T.nofavorable) > -1, n.interp],
+    /* ⚠️ LOS DOS BORDES DE LA BANDA DEL MEDIO, porque un corte mal movido se ve igual en uno solo.
+       Wilkins 1988, p. 307: «The score FAILED TO PREDICT outcome in those with scores of 9 to 11»
+       — y de ahi que esa banda no pueda afirmar nada, que es lo que esta tanda extendio a las tres. */
+    ['los dos bordes de la banda 9-11 publican el tramo del medio',
+      !!T.suboptimo && m9.interp.indexOf(T.suboptimo) > -1 && m11.interp.indexOf(T.suboptimo) > -1,
       '9=«' + m9.interp + '» 11=«' + m11.interp + '»'],
-    ['el rotulo que AFIRMABA el pronostico no sobrevive en ninguna de las cuatro',
-      [f, n, m9, m11].every(function(x){ return x.interp.indexOf(VIEJO) === -1; }),
+    ['NINGUNA de las cuatro afirmaciones retiradas sobrevive en el badge, en las cuatro escenas',
+      [f, n, m9, m11].every(function(x){ return FUERA.every(function(l){ return x.interp.indexOf(l) === -1; }); }),
       JSON.stringify([f.interp, n.interp, m9.interp, m11.interp])],
     /* La hoja del PDF lleva EL MISMO texto: si alguien corrige el badge y deja el literal viejo en
        otra superficie, el informe firmado sigue afirmando lo que la fuente niega. */
+    ['la hoja del PDF publica el mismo tramo que el badge en las cuatro, y ninguna frase retirada',
+      f.pdf.indexOf(T.favorable) > -1 && n.pdf.indexOf(T.nofavorable) > -1 &&
+      m9.pdf.indexOf(T.suboptimo) > -1 && m11.pdf.indexOf(T.suboptimo) > -1 &&
+      [f, n, m9, m11].every(function(x){ return FUERA.every(function(l){ return x.pdf.indexOf(l) === -1; }); }),
+      'pdf9=«' + m9.pdf + '» pdf8=«' + f.pdf + '»'],
     /* ⚠️ LA BARRA DEL LABORATORIO SE ARMA CON LA CONSTANTE, NO CON UN LITERAL, y esta condicion
-       existe porque la mutacion lo pidio: devolver esa barra a «9-11 — resultado suboptimo» pasaba
-       la suite ENTERA en verde. Y su propio comentario dice que el agregado no puede contradecir al
-       informe individual, asi que el hueco era justo el que la constante vino a cerrar.
+       existe porque la mutacion lo pidio: devolver esa barra a su rotulo viejo pasaba la suite
+       ENTERA en verde. Su propio comentario dice que el agregado no puede contradecir al informe
+       individual, asi que el hueco era justo el que la constante vino a cerrar.
        Se mira el FUENTE de la funcion y no su pintado: la barra necesita estudios guardados y la
        vista del Laboratorio abierta, y montar eso para leer una etiqueta seria un caso caro y
        fragil. Lo que importa es que no haya un segundo literal, y eso el fuente lo dice. */
     ['la barra del Laboratorio usa la constante y no un literal propio',
-      typeof labEteRender === 'function' &&
-      labEteRender.toString().indexOf('WILK_9_11') > -1 &&
-      labEteRender.toString().indexOf('subóptimo') === -1,
-      'usaConstante=' + (typeof labEteRender === 'function' && labEteRender.toString().indexOf('WILK_9_11') > -1) +
-      ' literalViejo=' + (typeof labEteRender === 'function' && labEteRender.toString().indexOf('subóptimo') > -1)],
-    /* Y la constante llega desde el ambito global a las dos, que es lo que la hace UNICA. */
-    ['la constante existe, es la del rotulo aprobado y esta declarada ANTES de sus consumidores',
-      typeof WILK_9_11 === 'string' && WILK_9_11 === NUEVO,
-      'WILK_9_11=«' + (typeof WILK_9_11 === 'string' ? WILK_9_11 : '(no existe)') + '»'],
-    ['la hoja del PDF publica el mismo rotulo que el badge, en las tres bandas',
-      m9.pdf.indexOf(NUEVO) > -1 && m11.pdf.indexOf(NUEVO) > -1 && m9.pdf.indexOf(VIEJO) === -1 &&
-      f.pdf.indexOf('Favorable para valvuloplastia percutánea') > -1 &&
-      n.pdf.indexOf('No favorable para valvuloplastia') > -1,
-      'pdf9=«' + m9.pdf + '» pdf8=«' + f.pdf + '»']
+      lv.indexOf('WILK_TRAMO') > -1 && FUERA.every(function(l){ return lv.indexOf(l) === -1; }),
+      'usaConstante=' + (lv.indexOf('WILK_TRAMO') > -1) +
+      ' literalViejo=' + JSON.stringify(FUERA.filter(function(l){ return lv.indexOf(l) > -1; }))],
+    /* Y la constante llega desde el ambito global a las cuatro superficies, que es lo que la hace
+       UNICA. Es un objeto CONGELADO: si alguien le escribe un tramo encima, no queda. */
+    ['WILK_TRAMO es el dueno unico de los tres tramos, esta congelado y no afirma pronostico',
+      typeof WILK_TRAMO === 'object' && Object.isFrozen(WILK_TRAMO) &&
+      ['favorable','suboptimo','nofavorable'].every(function(k){ return typeof T[k] === 'string' && T[k].length > 0; }) &&
+      ['favorable','suboptimo','nofavorable'].every(function(k){
+        return FUERA.every(function(l){ return T[k].indexOf(l) === -1; }); }),
+      JSON.stringify(T)],
+    /* CONTROL NEGATIVO: un score PARCIAL no publica ningun tramo — el score se muestra y no se
+       interpreta, que es la regla que esta zona ya tenia y esta tanda no toca. */
+    ['CONTROL NEGATIVO: con dos criterios puntuados no se publica ningun tramo',
+      (function(){ const p = w(2,2,'',''); return ['favorable','suboptimo','nofavorable']
+        .every(function(k){ return p.interp.indexOf(T[k]) === -1; }); })(),
+      w(2,2,'','').interp]
   ] };
 `);
 
@@ -5886,16 +5933,29 @@ caso('TC-76', 'TAVI: regurgitacion paravalvular severa y ausencia de RPV', `
   ] };
 `);
 
-caso('TC-77', 'Orejuela: trombo confirmado contraindica cardioversion y manda sobre la morfologia', `
+caso('TC-77', 'Orejuela: el trombo confirmado se DESCRIBE y manda sobre la morfologia', `
+  /* ADAPTADO el 2026-10-22 (tanda I, commit 1). DECISION DE MAICOL: «Hallazgo que contraindica
+     cardioversión eléctrica.» es una CONDUCTA y el informe de esta app es DESCRIPTIVO, asi que
+     salio del papel (narrativo, Excel y las seis plantillas del PDF) y su contenido pasa al panel
+     de Evidencia con su fuente. Este caso la EXIGIA; hoy afirma LO CONTRARIO.
+     NO PIERDE PODER: el hecho —el trombo confirmado— se sigue exigiendo, la velocidad con su
+     estasis tambien, el control negativo de la nota de complejidad sigue, y GANA que la frase
+     retirada no este en NINGUNA de las dos superficies de texto del papel. */
   __t.limpiar();
   __t.set('oai_lobulos','2'); __t.set('oai_trombo','si');
   __t.set('oai_vel_vac','18'); __t.set('oai_sec','severo');
   const r = __t.informe();
   return { inf: r.inf,
     debe: ['Orejuela izquierda bilobulada con trombo confirmado.',
-           'Velocidad de vaciamiento 18 cm/s (estasis severa).',
-           'Hallazgo que contraindica cardioversión eléctrica.'],
-    noDebe: ['Considerar mayor complejidad para el cierre percutáneo'] };
+           'Velocidad de vaciamiento 18 cm/s (estasis severa).'],
+    noDebe: ['Considerar mayor complejidad para el cierre percutáneo',
+             'contraindica cardioversión'],
+    extra: [
+      /* La conducta tampoco puede volver por el EN SUMA, que es la otra superficie de texto que el
+         estudio guarda y el PDF imprime. */
+      ['la conducta retirada no esta tampoco en el EN SUMA',
+        String(r.suma || '').indexOf('contraindica cardioversión') === -1, String(r.suma || '').slice(0, 200)]
+    ] };
 `);
 
 caso('TC-78', 'Orejuela multilobulada sin trombo: sale la nota de complejidad', `
@@ -47739,7 +47799,7 @@ caso('TC-320', 'IM: un votante fuera de banda no gradua, se muestra marcado y se
    la sostiene ESTE caso: si la constante cambia y el HTML no, la condicion de abajo se pone roja.
    Es el unico eslabon entre los dos, y por eso se compara contra la constante y no contra un
    literal repetido aca. */
-caso('TC-330', 'Wilkins: Referencias y la calculadora de Calculadoras publican el MISMO rotulo que el badge de ETE en la banda 9-11, y las bandas ≤8 y >11 no se movieron', `
+caso('TC-330', 'Wilkins: Referencias y la calculadora de Calculadoras publican el MISMO TRAMO que el badge de ETE, y los cortes ≤8 / 9-11 / >11 no se movieron', `
   return (async () => {
     const R = {};
     const pl = x => String(x == null ? '' : x).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();
@@ -47765,7 +47825,12 @@ caso('TC-330', 'Wilkins: Referencias y la calculadora de Calculadoras publican e
     R.cx12 = cx(3,3,3,3);   // 12 → banda >11
 
     // ── (3) La constante, y el fuente de las dos implementaciones ─────────────────────────────
-    R.K = (typeof WILK_9_11 === 'string') ? WILK_9_11 : null;
+    /* ADAPTADO el 2026-10-22 (tanda I, commit 1): WILK_9_11 se reemplazo por WILK_TRAMO, un
+       objeto congelado con los TRES tramos, porque las tres bandas dejaron de afirmar un
+       resultado. R.K sigue siendo el rotulo de la banda del medio, que es lo que este caso ata
+       entre las dos implementaciones de JS. */
+    R.T = (typeof WILK_TRAMO === 'object' && WILK_TRAMO) ? WILK_TRAMO : null;
+    R.K = R.T ? R.T.suboptimo : null;
     R.cxFuente = (typeof cxWilkins === 'function') ? cxWilkins.toString() : '';
 
     const kpl = pl(R.K);
@@ -47777,18 +47842,33 @@ caso('TC-330', 'Wilkins: Referencias y la calculadora de Calculadoras publican e
       ['DENOMINADOR: la tarjeta de Referencias tiene contenido real y la calculadora interpreta',
         R.refTxt.length > 200 && R.cx8.indexOf('8/16') === 0 && R.cx12.indexOf('12/16') === 0,
         'largoRef=' + R.refTxt.length + ' cx8=«' + R.cx8 + '» cx12=«' + R.cx12 + '»'],
-      ['la constante existe y es la del rotulo aprobado',
-        !!R.K && kpl.indexOf('no predice el resultado') > -1, 'WILK_9_11=«' + R.K + '»'],
+      ['la constante existe, es un objeto CONGELADO con los tres tramos y ninguno afirma un resultado',
+        !!R.T && Object.isFrozen(R.T) &&
+        ['favorable','suboptimo','nofavorable'].every(function(k){ return typeof R.T[k] === 'string' && R.T[k].length > 0; }) &&
+        ['favorable','suboptimo','nofavorable'].every(function(k){
+          return ['favorable para valvuloplastia','no favorable para valvuloplastia','no predice el resultado','resultado suboptimo']
+            .every(function(l){ return pl(R.T[k]).indexOf(l) === -1; }); }),
+        'WILK_TRAMO=' + JSON.stringify(R.T)],
 
       // ── Referencias ────────────────────────────────────────────────────────────────────────
       ['Referencias nombra las TRES bandas del original, sin fusionar 9-11 con >11',
         R.refTxt.indexOf('≤8') > -1 && R.refTxt.indexOf('9-11') > -1 && R.refTxt.indexOf('>11') > -1,
         '«' + R.refTxt.slice(R.refTxt.indexOf('score wilkins'), R.refTxt.indexOf('score wilkins') + 130) + '»'],
-      ['Referencias publica EL MISMO rotulo que la constante en la banda 9-11',
-        !!R.K && R.refTxt.indexOf(kpl) > -1,
-        'busca=«' + kpl + '» en «' + R.refTxt.slice(R.refTxt.indexOf('score wilkins'), R.refTxt.indexOf('score wilkins') + 130) + '»'],
-      ['y NO sobrevive el «resultado suboptimo» que metia la banda 9-11 en una afirmacion',
-        R.refTxt.indexOf('resultado suboptimo') === -1 && R.refTxt.indexOf('favorable para pmv') === -1,
+      /* ADAPTADO el 2026-10-22: el texto de Referencias es HTML ESTATICO y no puede interpolar la
+         constante, asi que lo que se ata son los NUMEROS: los dos cortes que nombra la constante
+         (8 y 11) tienen que ser los que nombra Referencias. Comparar los textos no se puede —aca
+         dice «9-11» y la constante «tramo 9 a 11»— y queda declarado. */
+      ['Referencias nombra los MISMOS DOS CORTES que los tres tramos de la constante',
+        (function(){
+          if (!R.T) return false;
+          const num = s => (pl(s).match(/[0-9]+/g) || []).join(',');
+          return num(R.T.favorable) === '8' && num(R.T.suboptimo) === '9,11' && num(R.T.nofavorable) === '11' &&
+                 R.refTxt.indexOf('≤8') > -1 && R.refTxt.indexOf('9-11') > -1 && R.refTxt.indexOf('>11') > -1;
+        })(),
+        'tramos=' + JSON.stringify(R.T) + ' ref=«' + R.refTxt.slice(R.refTxt.indexOf('score wilkins'), R.refTxt.indexOf('score wilkins') + 130) + '»'],
+      ['y NO sobrevive NINGUNA de las cuatro afirmaciones de resultado en Referencias',
+        ['resultado suboptimo','favorable para pmv','favorable para valvuloplastia','no predice el resultado']
+          .every(function(l){ return R.refTxt.indexOf(l) === -1; }),
         '«' + R.refTxt.slice(R.refTxt.indexOf('score wilkins'), R.refTxt.indexOf('score wilkins') + 130) + '»'],
 
       // ── La segunda calculadora ─────────────────────────────────────────────────────────────
@@ -47805,12 +47885,20 @@ caso('TC-330', 'Wilkins: Referencias y la calculadora de Calculadoras publican e
          publicaba. Es la unificacion que cerro la PARADA Y3-6/Y3-7. La condicion conserva lo que
          de verdad prueba —que el 8 cae en favorable, que el 12 NO, y que ninguno de los dos usa
          la constante de la banda del medio— y pasa a exigir el texto unificado. */
-      ['las bandas ≤8 y >11 de la calculadora NO se movieron, y la de >11 usa el texto unificado',
-        tiene(R.cx8, 'favorable para valvuloplastia percutanea') &&
-        tiene(R.cx12, 'no favorable para valvuloplastia') &&
-        !tiene(R.cx12, 'desfavorable') &&
+      /* ADAPTADO el 2026-10-22: los CORTES de las dos bandas siguen siendo los mismos y eso es lo
+         que este caso vigila; lo que cambio es el TEXTO, que pasa de afirmar un resultado a nombrar
+         el tramo. La condicion conserva lo que de verdad prueba —que el 8 cae en su banda, que el 12
+         cae en la de arriba, y que ninguno de los dos usa la constante de la banda del medio— y
+         GANA que ninguna de las cuatro afirmaciones retiradas sobreviva en las cuatro escenas. */
+      ['las bandas ≤8 y >11 de la calculadora NO se movieron, y usan el tramo de la constante',
+        !!R.T && tiene(R.cx8, R.T.favorable) && tiene(R.cx12, R.T.nofavorable) &&
         !tiene(R.cx8, R.K || 'xxx') && !tiene(R.cx12, R.K || 'xxx'),
         '8=«' + R.cx8 + '» 12=«' + R.cx12 + '»'],
+      ['y NINGUNA de las cuatro afirmaciones retiradas sobrevive en las cuatro escenas',
+        [R.cx8, R.cx9, R.cx11, R.cx12].every(function(x){
+          return ['favorable para valvuloplastia','no favorable para valvuloplastia','no predice el resultado','resultado suboptimo','desfavorable']
+            .every(function(l){ return pl(x).indexOf(l) === -1; }); }),
+        JSON.stringify([R.cx8, R.cx9, R.cx11, R.cx12])],
       /* Que use la CONSTANTE y no una copia del mismo texto: con un literal propio TODAS las
          condiciones de arriba pasan igual —la salida es identica— y la unicidad se pierde en
          silencio. Esta es la unica condicion que lo caza, y la mutacion lo pidio.
@@ -47822,7 +47910,7 @@ caso('TC-330', 'Wilkins: Referencias y la calculadora de Calculadoras publican e
       ['la calculadora arma la banda 9-11 con la constante, no con un literal propio',
         (function(){
           const codigo = R.cxFuente.replace(/\\/\\*[\\s\\S]*?\\*\\//g, ' ').replace(/\\/\\/[^\\n]*/g, ' ');
-          return codigo.indexOf('WILK_9_11') > -1 && pl(codigo).indexOf('resultado intermedio') === -1;
+          return codigo.indexOf('WILK_TRAMO') > -1 && pl(codigo).indexOf('resultado intermedio') === -1;
         })(),
         'fuenteSinComentarios=«' + R.cxFuente.replace(/\\/\\*[\\s\\S]*?\\*\\//g, ' ').replace(/\\/\\/[^\\n]*/g, ' ')
           .replace(/\\s+/g, ' ').slice(0, 260) + '»']
@@ -65544,9 +65632,13 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
        ADAPTADO el 2026-10-19 (tanda Y3d): 44 -> 50. Las SEIS nuevas son las tarjetas de la
        seccion VAB -vab-tit, vab-valv, vab-func, vab-aorta, vab-cx y vab-friesgo-, que viven en
        CARDIOPATIAS CONGENITAS y no en Valvulas: lo que cambia es el denominador del registro,
-       no lo que esta condicion afirma sobre los globos de Valvulas. */
+       no lo que esta condicion afirma sobre los globos de Valvulas.
+       ADAPTADO el 2026-10-22 (tanda I, commit 1): 50 -> 51. La nueva es wilk-score, el globo del
+       encabezado del score de Wilkins en la pestana ETE, que publica lo que hallo la serie original
+       (Wilkins 1988, folios 300 y 307). Tampoco esta en Valvulas: lo que cambia es el denominador
+       del registro, no lo que esta condicion afirma sobre los globos de Valvulas. */
     HAY_INFO && globos.every(function(b){ return !!VINFO[b.getAttribute('data-vinfo')]; }) &&
-    Object.keys(VINFO).length === 50,
+    Object.keys(VINFO).length === 51,
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
   ex.push(['(H) y la tarjeta se coloca SIEMPRE dentro de la pantalla, sin cortarse',
     (function(){ const b = document.querySelector('[data-vinfo="avm-thp"]');
@@ -71018,10 +71110,17 @@ caso('TC-485', 'Tanda Y3: la fila de la VELOCIDAD PICO en la lista «Ver criteri
       const e1 = TXT('wilkins-interp'), c1 = TXT('cx-wilkins-total');
       ex.push(['los dos Wilkins dan el MISMO puntaje con las mismas entradas: 12 de 16',
         e1.indexOf('12') > -1 && c1.indexOf('12/16') > -1, e1 + ' || ' + c1]);
-      ex.push(['y publican el MISMO texto para esa banda, que es lo que cerro la PARADA Y3-6',
-        e1.indexOf('No favorable para valvuloplastia') > -1 &&
-        c1.indexOf('No favorable para valvuloplastia') > -1 &&
-        c1.indexOf('desfavorable') === -1, e1 + ' || ' + c1]); }
+      /* ADAPTADO el 2026-10-22 (tanda I, commit 1): la banda de mas de 11 dejo de afirmar un
+         resultado y publica su TRAMO, que sale de WILK_TRAMO. Lo que esta condicion prueba —que
+         las DOS pantallas publican el MISMO texto para esa banda, que es lo que cerro la PARADA
+         Y3-6— no cambia; lo que cambia es QUE texto, y pasa a leerlo de la constante en vez de
+         tener el literal escrito. GANA que la afirmacion retirada no vuelva por ninguna de las dos. */
+      const TR = (typeof WILK_TRAMO === 'object' && WILK_TRAMO) ? WILK_TRAMO.nofavorable : null;
+      ex.push(['y publican el MISMO tramo para esa banda, que es lo que cerro la PARADA Y3-6',
+        !!TR && e1.indexOf(TR) > -1 && c1.indexOf(TR) > -1 &&
+        e1.indexOf('No favorable para valvuloplastia') === -1 &&
+        c1.indexOf('No favorable para valvuloplastia') === -1 &&
+        c1.indexOf('desfavorable') === -1, 'tramo=' + TR + ' || ' + e1 + ' || ' + c1]); }
 
     return { extra: ex };
   })();
@@ -71636,9 +71735,15 @@ caso('TC-488', 'Tanda Y3b + Wilkins + I: el 3D de la mitral se GIRA A MANO —co
       /* LA BANDA DE MAS DE 11: el mismo texto, y la palabra vieja ya no sale. */
       PONW('ete', ['3','3','3','3']); PONW('cx', ['3','3','3','3']);
       const ne = TXT('wilkins-interp'), nc = TXT('cx-wilkins-total');
-      ex.push(['la banda de mas de 11 dice «No favorable para valvuloplastia» en las dos, y «desfavorable» ya no existe',
-        ne.indexOf('No favorable para valvuloplastia') > -1 &&
-        nc.indexOf('No favorable para valvuloplastia') > -1 && nc.indexOf('desfavorable') === -1,
+      /* ADAPTADO el 2026-10-22 (tanda I, commit 1): esa banda dejo de afirmar un resultado y
+         publica su TRAMO, leido de WILK_TRAMO. Lo que esta condicion prueba —el MISMO texto en las
+         dos pantallas y que el rotulo propio de la segunda no vuelva— no cambia, y GANA que la
+         afirmacion retirada tampoco vuelva. */
+      const TRno = (typeof WILK_TRAMO === 'object' && WILK_TRAMO) ? WILK_TRAMO.nofavorable : null;
+      ex.push(['la banda de mas de 11 dice el MISMO tramo en las dos, y ni «desfavorable» ni la afirmacion vieja existen',
+        !!TRno && ne.indexOf(TRno) > -1 && nc.indexOf(TRno) > -1 && nc.indexOf('desfavorable') === -1 &&
+        ne.indexOf('No favorable para valvuloplastia') === -1 &&
+        nc.indexOf('No favorable para valvuloplastia') === -1,
         ne + ' || ' + nc]);
       /* LOS DOS CENTINELAS: el 0 de ETE y la cadena vacia de Calculadoras. */
       PONW('ete', ['0','0','0','0']); PONW('cx', ['','','','']);
@@ -76751,8 +76856,11 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
   /* ADAPTADO el 2026-10-19 (Y3d4): 44 -> 50. Las SEIS nuevas son las tarjetas de la seccion
      VAB, que vive en CARDIOPATIAS CONGENITAS. Lo que este denominador afirma -que el mecanismo
      existe y que el registro esta poblado- no cambia; lo que se movio es el numero. */
-  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 50 entradas',
-    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 50,
+  /* ADAPTADO el 2026-10-22 (tanda I, commit 1): 50 -> 51. La nueva es wilk-score, el globo del
+     encabezado del score de Wilkins en ETE. Es un denominador: lo que este caso afirma sobre las
+     ocho tarjetas de lesion no cambia. */
+  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 51 entradas',
+    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 51,
     'VINFO=' + (REG() ? Object.keys(REG()).length : 'SIN REGISTRO') + ' card=' + !!CARD()]);
   ex.push(['(A1) los OCHO botones de lesion existen, son BUTTON, sin atributo title y con aria-expanded',
     CLAVES.every(function (k) { const b = BTN(k);
@@ -77928,8 +78036,11 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
 
   /* ══ (C) «VER REFERENCIA» ════════════════════════════════════════════════════════════════ */
   const MAPA = OB('VINFO_REF') || {};
-  ex.push(['(C1) DENOMINADOR: 39 de las 44 claves de tarjeta tienen entrada de Referencias',
-    Object.keys(MAPA).length === 39, 'n=' + Object.keys(MAPA).length]);
+  /* ADAPTADO el 2026-10-22 (tanda I, commit 1): 39 -> 40. La nueva es wilk-score, el globo del
+     encabezado del score de Wilkins en ETE, que apunta a ref-em —una entrada que YA nombra el
+     score con sus folios—. Lo que este denominador vigila no cambia. */
+  ex.push(['(C1) DENOMINADOR: 40 de las 45 claves de tarjeta tienen entrada de Referencias',
+    Object.keys(MAPA).length === 40, 'n=' + Object.keys(MAPA).length]);
   ex.push(['(C2) el assert del mapeo no encuentra ninguna clave rota ni ningun destino inexistente',
     (function () { try { return FN('_vinfoRefAssert') && window._vinfoRefAssert().length === 0; } catch (e) { return false; } })(),
     (function () { try { return window._vinfoRefAssert().join(' | ') || 'cero'; } catch (e) { return 'EXC'; } })()]);
@@ -81185,18 +81296,51 @@ caso('TC-508', 'Tanda R2: el desplegable del derrame ofrece SOLO las cinco opcio
     return { eleg: TXT('oai-elegibilidad'), pant: document.documentElement.innerHTML }; })();
   ex.push(['(DENOM K) la escena de la orejuela publica su elegibilidad',
     _oai.eleg !== '—' && _oai.eleg !== 'NO EXISTE' && _oai.eleg !== '', 'eleg=' + _oai.eleg]);
-  ex.push(['(K1) con un ostium en rango describe el HECHO y no deriva al Heart Team',
+  /* ADAPTADO el 2026-10-22 (tanda I, commit 1): el rango «17-32 mm» era de dos dispositivos
+     fusionados y no coincidia con ninguno. Hoy la linea nombra la ZONA DE ANCLAJE del Amplatzer
+     Amulet (11 a 31 mm, dato del fabricante, Abbott, consultado el 21/10/2026), que es lo que esa
+     medida describe. Lo que esta condicion prueba —que se describe el HECHO y no se deriva al
+     Heart Team— no cambia, y GANA que los dos numeros salgan de las constantes y no de un
+     literal, asi que mover una no puede dejar el texto diciendo otra cosa. */
+  ex.push(['(K1) con un ostium en rango describe el HECHO, no deriva al Heart Team y nombra la zona de anclaje',
     _oai.eleg.indexOf('Posiblemente apto') < 0 && _oai.eleg.indexOf('Heart Team') < 0
-      && _oai.eleg.indexOf('17-32') > -1,
+      && _oai.eleg.indexOf('Amulet') > -1 && _oai.eleg.indexOf('17-32') < 0
+      && (function(){ try {
+            return typeof OAI_AMULET_MIN === 'number' && typeof OAI_AMULET_MAX === 'number' &&
+                   _oai.eleg.indexOf(String(OAI_AMULET_MIN)) > -1 &&
+                   _oai.eleg.indexOf(String(OAI_AMULET_MAX)) > -1;
+          } catch (e) { return false; } })(),
     'eleg=' + _oai.eleg]);
   ex.push(['(K2) y el texto no sobrevive en ninguna otra superficie',
     _oai.pant.indexOf('Posiblemente apto — evaluar Heart Team') < 0, '']);
-  /* CONTROL NEGATIVO: lo que la orden EXCLUYE sigue en su lugar. */
-  ex.push(['(K3) CONTROL NEGATIVO: los rangos de los dispositivos y el aviso del trombo siguen',
-    _oai.pant.indexOf('Watchman') > -1 && _oai.pant.indexOf('Amulet') > -1
-      && _oai.pant.indexOf('contraindicación cardioversión') > -1,
-    'watchman=' + (_oai.pant.indexOf('Watchman') > -1)
-      + ' amulet=' + (_oai.pant.indexOf('Amulet') > -1)]);
+  /* CONTROL NEGATIVO: lo que la orden EXCLUYE sigue en su lugar.
+     ADAPTADO el 2026-10-22 (tanda I, commit 1). DOS cosas.
+     (1) «Contraindicación cardioversión» SALIO de la pantalla: es una CONDUCTA y la pantalla de
+         esta app describe. Hoy el badge dice «Confirmado» y la conducta vive en Evidencia con su
+         fuente, asi que esa mitad de la condicion afirma LO CONTRARIO.
+     (2) ⚠️ Y SE MEDIA SOBRE documentElement.innerHTML, QUE INCLUYE LOS COMENTARIOS DEL JS:
+         con el literal retirado del codigo vivo, la condicion seguia pasando por el comentario que
+         EXPLICA el retiro — la trampa que este repo ya tiene escrita para una regla de CSS
+         retirada. Se mide el TEXTO RENDERIZADO de la seccion, que es lo que el medico ve. */
+  const _oaiTxt = (function(){ const n2 = EL('ete-seccion-oai');
+    return n2 ? String(n2.textContent || '') : 'NO EXISTE'; })();
+  ex.push(['(K3) CONTROL NEGATIVO: los dos dispositivos se siguen nombrando, en el texto RENDERIZADO',
+    _oaiTxt.indexOf('WATCHMAN') > -1 && _oaiTxt.indexOf('Amulet') > -1,
+    'watchman=' + (_oaiTxt.indexOf('WATCHMAN') > -1)
+      + ' amulet=' + (_oaiTxt.indexOf('Amulet') > -1) + ' largo=' + _oaiTxt.length]);
+  /* ⚠️ LA ESCENA DE ARRIBA NO CARGA EL TROMBO, asi que su badge esta en la raya: medido ahi,
+     «la conducta no esta» pasa sobre un badge que no se pinto. El trombo se consigna. */
+  const _oaiTr = (function(){
+    try { __t.set('oai_trombo', 'si'); } catch (e) {}
+    try { if (typeof calcOAI === 'function') calcOAI(); } catch (e) {}
+    const n3 = EL('ete-seccion-oai');
+    return { badge: TXT('oai-trombo-interp'), txt: n3 ? String(n3.textContent || '') : 'NO EXISTE' }; })();
+  ex.push(['(K3b) y la CONDUCTA del trombo ya no esta en la pantalla: el badge publica el hecho',
+    _oaiTr.badge.indexOf('Confirmado') > -1 &&
+    _oaiTr.txt.indexOf('contraindicación cardioversión') === -1 &&
+    _oaiTr.txt.indexOf('Contraindicación cardioversión') === -1 &&
+    _oaiTr.txt.indexOf('clampaje') === -1,
+    'badge=' + _oaiTr.badge]);
 
   /* ══ (L) LAS SUPERFICIES: NI UNA COLUMNA NUEVA, Y EL INFORME SIGUE SIENDO EL DE SIEMPRE ═══ */
   const _cols = (() => { try { return _xlsRow

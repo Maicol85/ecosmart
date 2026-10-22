@@ -13873,31 +13873,35 @@ z
         </div>
         <div class="fg"><label>Altura tenting (mm)</label>
           <input type="number" id="ete_altura_tenting" placeholder="mm" oninput="calcETE()">
-          <span style="font-size:10px; color:var(--text2);">Normal ≤10mm</span>
+          <span style="font-size:10px; color:var(--text2);">TEER no complejo: &lt;10 mm</span>
         </div>
         <div class="fg"><label>Área tenting (cm²)</label>
           <input type="number" id="ete_area_tenting" placeholder="cm²" oninput="calcETE()">
-          <span style="font-size:10px; color:var(--text2);">Normal ≤2.5cm²</span>
+          <span style="font-size:10px; color:var(--text2);">Desfavorable (IM secundaria): &gt;2,5 cm²</span>
         </div>
         <div class="fg"><label>Ángulo velo posterior (°)</label>
           <input type="number" id="ete_angulo_vp" placeholder="°" oninput="calcETE()">
-          <span style="font-size:10px; color:var(--text2);">Excl. plastia: ≥45°</span>
+          <span style="font-size:10px; color:var(--text2);">Desfavorable (IM secundaria): &gt;45°</span>
         </div>
         <div class="fg"><label>Profundidad coaptación (mm)</label>
           <input type="number" id="ete_prof_coapt" placeholder="mm" oninput="calcETE()">
-          <span style="font-size:10px; color:var(--text2);">Normal ≤10mm</span>
+          <span style="font-size:10px; color:var(--text2);">Desfavorable (IM secundaria): &ge;10 mm</span>
         </div>
       </div>
       <div class="calc-box" style="margin-top:10px;">
-        <div style="font-size:11px; font-weight:700; color:var(--accent2); margin-bottom:6px;">FACTIBILIDAD PLÁSTICA MITRAL</div>
+        <div style="font-size:11px; font-weight:700; color:var(--accent2); margin-bottom:6px;">CARACTERÍSTICAS DESFAVORABLES PARA LA REPARACIÓN (IM SECUNDARIA)</div>
         <div class="calc-row"><span class="calc-lbl">Ángulo velo posterior</span><span id="ete-angulo-interp">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Altura tenting</span><span id="ete-tenting-interp">—</span></div>
+        <!-- ⚠️ FILA NUEVA (I-E1, 22/10/2026): el área de tenting es uno de los TRES factores de la
+             Tabla 7 y hasta hoy se mostraba en el formulario sin interpretación ninguna. -->
+        <div class="calc-row"><span class="calc-lbl">Área tenting</span><span id="ete-areatent-interp">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Profundidad coaptación</span><span id="ete-coapt-interp">—</span></div>
         <div style="border-top:1px solid var(--border); margin:6px 0;"></div>
         <div class="calc-row">
-          <span class="calc-lbl" style="font-weight:700;">🔪 Reparabilidad estimada</span>
+          <span class="calc-lbl" style="font-weight:700;">🔪 Factores desfavorables</span>
           <span id="ete-reparabilidad" style="font-weight:700;">—</span>
         </div>
+        <div class="calc-row"><span id="ete-repar-fuente" style="font-size:10px;color:var(--text2);line-height:1.5;"></span></div>
       </div>
       <div style="text-align:center;margin-top:10px;">
         <button type="button" class="btn btn-integrar" data-am-k="etem" onclick="amiloIntegrar('etem')">📎 Integrar al informe</button>
@@ -13916,8 +13920,12 @@ z
   <div class="card">
     <div class="card-body">
       <div class="grid-3" style="margin-bottom:8px;">
+        <!-- ⚠️ `calcETE` TAMBIÉN: desde la I-E1 la frase de características desfavorables de la
+             reparación depende del mecanismo, y este `<select>` es su única puerta en esta
+             pantalla. Sin la llamada, elegir «Secundaria» dejaba el cuadro de más arriba con el
+             texto del gesto anterior. -->
         <div class="fg"><label>Tipo de IM</label>
-          <select id="teer_tipo_im" onchange="calcTEER()">
+          <select id="teer_tipo_im" onchange="calcTEER();calcETE()">
             <option value="">—</option>
             <option value="primaria">Primaria (orgánica)</option>
             <option value="secundaria">Secundaria (funcional)</option>
@@ -14173,7 +14181,12 @@ z
   <div id="ete-seccion-wilkins" style="display:none;">
   <div class="card">
     <div class="card-body">
-      <p style="font-size:11px; color:var(--text2); margin-bottom:10px;">Completar solo si hay estenosis mitral. Score ≤8 → favorable para valvuloplastia percutánea.</p>
+      <p style="font-size:11px; color:var(--text2); margin-bottom:10px;">Completar solo si hay estenosis mitral.
+        <!-- ⚠️ EL GLOBO VA EN EL CUERPO Y NO EN EL `<h2>` DEL ACORDEÓN: ese encabezado ya es un
+             control con `onclick`, y un botón dentro de otro no es marcado válido —el navegador lo
+             saca del padre al parsear—. Es la lección del globo del panel de Evidencia. -->
+        <button type="button" class="vinfo-btn" data-vinfo="wilk-score" aria-expanded="false" aria-label="Qué halló la serie original del score de Wilkins" onclick="vInfoClic(this)">&#9432;</button>
+      </p>
       <div class="grid-2">
         <div class="fg"><label>Movilidad (1-4)</label>
           <select id="wilkins_movilidad" onchange="wilkMarcarGesto(event,'ete');calcWilkins()">
@@ -14315,6 +14328,15 @@ z
       </div>
       <div class="calc-box" style="margin-top:10px;">
         <div class="calc-row"><span class="calc-lbl">Velocidad vaciamiento</span><span id="oai-vel-interp">—</span></div>
+        <!-- ⚠️ LA NOTA Y EL CHIP VAN EN NODOS PROPIOS Y SE ESCRIBEN CON `textContent` (I-E1):
+             el texto sale de constantes de este archivo y el chip es marcado ESTÁTICO que sólo
+             cambia de `display`. Así no hay una sola concatenación de datos hacia un `innerHTML`.
+             El chip marca los RÓTULOS «estasis leve» y «estasis severa», que no figuran en la guía;
+             los VALORES 20 y 40 cm/s sí, y por eso la nota los cita con su folio. -->
+        <div class="calc-row">
+          <span id="oai-vel-chip" style="display:none;border:1px solid var(--border);border-radius:4px;padding:1px 5px;margin-right:6px;font-size:9px;letter-spacing:.3px;color:var(--text2);white-space:nowrap;">CRITERIO DE ECOSMART</span>
+          <span id="oai-vel-nota" style="font-size:10px;color:var(--text2);line-height:1.5;"></span>
+        </div>
         <div class="calc-row"><span class="calc-lbl">SEC — interpretación</span><span id="oai-sec-interp">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Trombo OAI</span><span id="oai-trombo-interp">—</span></div>
         <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">⚖️ Elegibilidad Watchman / Amulet</span><span id="oai-elegibilidad">—</span></div>
@@ -14352,8 +14374,8 @@ z
             <option value="">—</option>
             <option value="1">Grado 1 — Íntima normal</option>
             <option value="2">Grado 2 — Engrosamiento mínimo sin protrusiones</option>
-            <option value="3">Grado 3 — Placas irregulares, engrosamiento &lt;5mm</option>
-            <option value="4">Grado 4 — Placas complejas protuyentes ≥5mm</option>
+            <option value="3">Grado 3 — Ateroma de 3 a 5 mm</option>
+            <option value="4">Grado 4 — Ateroma de más de 5 mm</option>
             <option value="5">Grado 5 — Protrusiones móviles, cualquier tamaño</option>
           </select>
         </div>
@@ -14384,7 +14406,12 @@ z
       <div class="calc-box" style="margin-top:10px;">
         <div class="calc-row"><span class="calc-lbl">Clasificación — descripción</span><span id="ao-atero-desc" style="color:var(--text2);font-size:11px;">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Riesgo embólico</span><span id="ao-riesgo-embol">—</span></div>
-        <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">⚠️ Recomendación clínica</span><span id="ao-recomendacion" style="font-size:11px;">—</span></div>
+        <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Descripción del hallazgo</span><span id="ao-recomendacion" style="font-size:11px;">—</span></div>
+        <!-- ⚠️ FILA NUEVA (I-E1, 22/10/2026): el campo «Grosor máximo placa» estaba en el
+             formulario y NADIE lo leía —`calcAteroAo` lo tomaba y no lo usaba—. Esta fila dice a
+             qué grado corresponde ese espesor en la escala que la app aplica, y NO cambia el grado
+             consignado, que lo elige el médico en el desplegable de arriba. -->
+        <div class="calc-row"><span class="calc-lbl">Grosor medido — grado en la escala</span><span id="ao-atero-grosor" style="font-size:11px;color:var(--text2);">—</span></div>
       </div>
       <div class="fg" style="margin-top:8px;"><label>Notas aorta ETE</label>
         <textarea id="ao_ete_notas" placeholder="Localización exacta, extensión, relación con ostiums coronarios..."></textarea>
@@ -17783,16 +17810,18 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
             • La <b>ecuación de continuidad</b> no vale con regurgitación mitral o aórtica significativa, y el <b>THP</b> no es confiable con insuficiencia aórtica moderada o severa (ASE 2023). La app retira el voto y lo dice.
           </div>
           <div style="margin-top:10px;font-size:12px;color:var(--text);line-height:1.8;">
-            <!-- ⚠️ EL «>8 → resultado subóptimo» DE ANTES METÍA LA BANDA 9-11 DENTRO DE UNA AFIRMACIÓN
-                 QUE WILKINS 1988 (p. 307) NIEGA: «The score failed to predict outcome in those with
-                 scores of 9 to 11». Las tres bandas ≤8 / 9-11 / >11 son las del original y no se tocan.
-                 ⚠️ ESTE TEXTO NO PUEDE USAR `WILK_9_11`: es HTML estático y la constante es un `const`
-                 de JS (línea ~16659), así que acá no hay ámbito donde interpolarla. Rellenarlo en
-                 runtime desde un `<span>` vacío sería la única forma, y le pondría a una TARJETA DE
-                 REFERENCIA un hueco silencioso el día que ese init no corra. La unicidad se sostiene
-                 desde TC-330, que compara este texto contra la constante: si una cambia sin la otra,
-                 el caso se pone en rojo. No duplicar el literal a mano en ninguna otra superficie. -->
-            <b style="color:var(--accent2);">Score Wilkins:</b> ≤8 favorable · 9-11 el score no predice el resultado · &gt;11 subóptimo<br>
+            <!-- ⚠️ ESTA LÍNEA PUBLICABA UN VEREDICTO Y HOY PUBLICA EL TRAMO (I-E1, 22/10/2026).
+                 Decía «≤8 favorable · 9-11 el score no predice el resultado · >11 subóptimo»: dos de
+                 los tres rótulos afirman un RESULTADO del procedimiento, y el score puntúa
+                 ANATOMÍA. Los tres cortes son los del original y no se mueven; lo que halló la serie
+                 de 22 pacientes está en la ficha «EM — Estenosis Mitral» y en el globo ⓘ de la
+                 sección del ETE, con su folio.
+                 ⚠️ ESTE TEXTO NO PUEDE INTERPOLAR WILK_TRAMO: es HTML estático y la constante es
+                 un const de JS, así que acá no hay ámbito donde leerla. Lo que ata las dos cosas es
+                 TC-330, y ata los NÚMEROS: exige que los cortes que nombra este texto (8 y 11) sean
+                 los mismos que los de los tres tramos de la constante. El TEXTO no se puede comparar
+                 —acá dice «9-11» y la constante «tramo 9 a 11»— y queda declarado. -->
+            <b style="color:var(--accent2);">Score de Wilkins:</b> tramos ≤8 · 9-11 · &gt;11 (Wilkins 1988, folios 300 y 307)<br>
             • <b>Clase I:</b> EM severa sintomática + Wilkins ≤8 + sin trombo AI → PMV<br>
             • <b>Clase IIa:</b> EM severa asintomática + Wilkins ≤8 + FA nueva o PSAP &gt;50mmHg → PMV
           </div>
@@ -18431,8 +18460,8 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Grado</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Descripción</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Riesgo embólico</th></tr>
         <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;text-align:center;font-weight:700;">1</td><td style="padding:5px 8px;">Íntima normal</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;">Mínimo</td></tr>
         <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;text-align:center;font-weight:700;">2</td><td style="padding:5px 8px;">Engrosamiento mínimo sin protrusiones</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;">Bajo</td></tr>
-        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;text-align:center;font-weight:700;">3</td><td style="padding:5px 8px;">Placas irregulares, engrosamiento &lt;5mm</td><td style="padding:5px 8px;text-align:center;color:#f5c842;">Moderado</td></tr>
-        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;text-align:center;font-weight:700;">4</td><td style="padding:5px 8px;">Placas complejas protuyentes ≥5mm</td><td style="padding:5px 8px;text-align:center;color:#f05454;">Alto</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;text-align:center;font-weight:700;">3</td><td style="padding:5px 8px;">Ateroma de 3 a 5 mm</td><td style="padding:5px 8px;text-align:center;color:#f5c842;">Moderado</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;text-align:center;font-weight:700;">4</td><td style="padding:5px 8px;">Ateroma de más de 5 mm</td><td style="padding:5px 8px;text-align:center;color:#f05454;">Alto</td></tr>
         <tr><td style="padding:5px 8px;text-align:center;font-weight:700;color:#f05454;">5</td><td style="padding:5px 8px;">Protrusiones móviles, cualquier tamaño</td><td style="padding:5px 8px;text-align:center;color:#f05454;font-weight:700;">Muy alto</td></tr>
       </table>
       <!-- ⚠️ ESTE RENGLON PUBLICABA CUATRO UMBRALES QUIRURGICOS TIPEADOS Y TRES ESTABAN MAL
@@ -20842,8 +20871,8 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
           <select id="coh-trombo"><option value="">Todos</option><option value="si">Sí — confirmado</option></select></div>
       </div>
       <div style="font-size:.72rem;color:var(--text2);margin-top:8px;line-height:1.5;">
-        «Trombo» es sólo <b>confirmado</b>. El campo admite además «sospecha», que no es lo mismo: la app trata
-        el trombo confirmado como contraindicación absoluta de valvuloplastia.
+        «Trombo» es sólo <b>confirmado</b>. El campo admite además «sospecha», que no es lo mismo: fusionarlos
+        armaría una cohorte de pacientes cuyo trombo nadie confirmó.
       </div>
     </div></div>
 
@@ -21932,7 +21961,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
       <div class="lab-grid">
         <div id="lab-ete-wilkins-stats"></div>
         <div>
-          <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Candidatos a valvuloplastia</div>
+          <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Distribución del score de Wilkins</div>
           <div class="lab-bar-wrap" id="lab-ete-wilkins-bars"></div>
         </div>
       </div>
@@ -22956,32 +22985,37 @@ const AO_SEGS = Object.freeze([
   Object.freeze({ k:'diam_cayado',      lbl:'cayado aórtico',            lblC:'Cayado aórtico',            med:'cayado',                   ref:AO_REF.cay,  leve:45, mod:50, min:10, max:80, m:true }),
   Object.freeze({ k:'diam_ao_toracica', lbl:'aorta torácica descendente', lblC:'Ao torácica descendente',  med:'aorta torácica descendente', ref:AO_REF.desc, leve:40, mod:45, min:8,  max:70 })
 ]);
-/* ⚠️ RÓTULO ÚNICO DE LA BANDA 9-11 DEL SCORE, Y ESTE TEXTO LLEGA AL INFORME FIRMADO.
-   Decía «Resultado subóptimo probable», que AFIRMA un pronóstico que la fuente del score NIEGA:
-   Wilkins 1988, p. 307 — «All patients with a total echocardiographic score > 11 had a suboptimal
-   result while all those with a score < 9 had an optimal result. THE SCORE FAILED TO PREDICT
-   OUTCOME IN THOSE WITH SCORES OF 9 TO 11». Los cortes (≤ 8 / 9-11 / > 11) coinciden con el
-   original y NO se tocan: lo único que estaba mal era el nombre de la banda del medio.
+/* ⚠️ LOS TRES TRAMOS DEL SCORE, Y NINGUNO AFIRMA UN RESULTADO (I-E1, 22/10/2026).
+   Los cortes (≤ 8 / 9-11 / > 11) son los del original y NO se tocan: Wilkins 1988, folio 307,
+   verificado en imagen — «All patients with a total echocardiographic score > 11 had a suboptimal
+   result while all those with a score < 9 had an optimal result. The score failed to predict
+   outcome in those with scores of 9 to 11». Lo que cambia es el RÓTULO: antes decía «Favorable
+   para valvuloplastia percutánea», «No favorable para valvuloplastia» y «El score no predice el
+   resultado», que son tres afirmaciones sobre el RESULTADO de un procedimiento publicadas por un
+   score que puntuáa ANATOMÍA. Hoy el badge dice el número y el tramo; lo que halló la serie
+   original vive en el globo ⓘ y en el panel de Evidencia, con su folio.
    ⚠️ UNA CONSTANTE Y NO UN LITERAL REPETIDO. La publican TRES superficies —el badge de la
    calculadora de ETE, que `amiloTextoWilkins` lee del DOM RENDERIZADO y manda a la hoja del PDF y
-   al estudio guardado; la barra del Laboratorio; y la banda 9-11 de `cxWilkins`, la SEGUNDA
-   implementación del score, la de la tarjeta Calculadoras—. Con el literal duplicado, corregir una
-   dejaba al agregado contradiciendo al informe individual, que es lo que el comentario de esa barra
-   prohíbe.
-   ⚠️ Y HAY UNA CUARTA QUE NO PUEDE USARLA: la tarjeta de Referencias (`#ref-em`) es HTML estático,
-   sin ámbito donde interpolar una constante de JS. Su texto es el único duplicado que queda, y la
-   unicidad la sostiene TC-330, que lo compara contra esta constante: si una cambia sin la otra, el
-   caso se pone en rojo. Al editar este valor, mirar también ese texto.
+   al estudio guardado; la barra del Laboratorio; y `cxWilkins`, la SEGUNDA implementación del
+   score, la de la tarjeta Calculadoras—. Con el literal duplicado, corregir una dejaba al
+   agregado contradiciendo al informe individual, que es lo que el comentario de esa barra prohíbe.
+   ⚠️ LAS CLAVES SON LAS DE `_wilkCalc` Y NO SE MUEVEN: `favorable`, `suboptimo` y `nofavorable`
+   son lo que viaja en `dataset.banda`, lo que lee la hoja del PDF y lo que agrupa el Laboratorio.
+   Renombrarlas reinterpretaría estudios ya firmados; lo único que cambia acá es el texto.
    ⚠️ Y VIVE ACÁ, CON LAS OTRAS CONSTANTES, NO AL LADO DE `wilkinsScore`. Declarada allá quedaba
    3.400 líneas DESPUÉS de `_autosaveInit`, que en su rama `else` llama a `calcWilkins()` de forma
    síncrona: si esa rama llegara a dispararse —hoy no lo hace porque el bloque arranca a mitad del
-   documento y `readyState` es «loading»—, la banda 9-11 tiraría `ReferenceError` por TDZ. Y la
-   llamada de `limpiarCampos` la envuelve un `catch (e) {}` MUDO, así que «Nuevo estudio» dejaría
-   de limpiar la banda del paciente anterior sin decir una palabra. Acá está antes de todo eso.
+   documento y `readyState` es «loading»—, el tramo tiraría `ReferenceError` por TDZ. Y la llamada
+   de `limpiarCampos` la envuelve un `catch (e) {}` MUDO, así que «Nuevo estudio» dejaría de
+   limpiar la banda del paciente anterior sin decir una palabra. Acá está antes de todo eso.
    ⚠️ SIN CITA Y SIN NOTA METODOLÓGICA, por la regla del informe: es una línea de un documento
-   firmado. El respaldo con sus dos referencias numeradas vive en el panel de Evidencia. */
-const WILK_9_11 = 'El score no predice el resultado';
-/* ⚠️ LAS CONSTANTES DEL WILKINS VIVEN ACA, CON `WILK_9_11`, Y NO AL LADO DE `wilkinsScore`, por
+   firmado. El respaldo con su folio vive en el globo ⓘ, en Referencias y en Evidencia. */
+const WILK_TRAMO = Object.freeze({
+  favorable:   'tramo \u2264 8',
+  suboptimo:   'tramo 9 a 11',
+  nofavorable: 'tramo > 11'
+});
+/* ⚠️ LAS CONSTANTES DEL WILKINS VIVEN ACA, CON `WILK_TRAMO`, Y NO AL LADO DE `wilkinsScore`, por
    el MISMO motivo que esa: `_autosaveInit` llama a `calcWilkins()` durante la carga y vive en la
    linea ~50996, o sea 3.800 lineas ANTES de la funcion. Un `var` se iza con valor `undefined`,
    asi que declaradas alla el badge del arranque habria dicho «undefined» sobre un estudio
@@ -22991,9 +23025,7 @@ var WILK_CAMPOS = Object.freeze({
   cx:  Object.freeze(['cx_wilk_mov', 'cx_wilk_eng', 'cx_wilk_cal', 'cx_wilk_sub'])
 });
 var WILK_MARCA = Object.freeze({ ete: 'wilkins_delib', cx: 'cx_wilk_delib' });
-/* Los TEXTOS, uno solo para las dos pantallas. `WILK_9_11` ya vivia con las otras constantes. */
-var WILK_TXT_FAV    = 'Favorable para valvuloplastia percutánea';
-var WILK_TXT_NOFAV  = 'No favorable para valvuloplastia';
+/* Los TEXTOS, uno solo para las dos pantallas. `WILK_TRAMO` ya vivia con las otras constantes. */
 var WILK_TXT_REING  = 'sin puntuar — reingresá los cuatro criterios';
 function wilkTxtParcial(n) {
   return 'Score incompleto — ' + n + ' de 4 criterios puntuados. No se interpreta: faltan '
@@ -25435,13 +25467,15 @@ function cxWilkins(){
     el.innerHTML = W.total + '/16 ' + badge('gray', wilkTxtParcial(W.puntuados));
     return;
   }
+  /* ⚠️ EL MISMO ROTULO QUE LA TARJETA DE ETE, Y SALE DE LA MISMA CONSTANTE (I-E1, 22/10/2026).
+     Esta pantalla publicaba «Favorable para valvuloplastia percutánea» / «No favorable» / «El
+     score no predice el resultado»; hoy publica el TRAMO. Con el literal duplicado, corregir una
+     dejaba a la otra contradiciendola sobre el mismo paciente. Las bandas no se tocan. */
   let cls, txt;
-  if (W.banda === 'favorable') { cls = 'green'; txt = WILK_TXT_FAV; }
-  /* ⚠️ «resultado intermedio» era un rotulo PROPIO de esta segunda implementacion, y afirmaba un
-     punto medio del pronostico donde la fuente no afirma nada: entre 9 y 11 el score NO predijo el
-     resultado (Wilkins 1988, p. 307). Las bandas <=8 y >11 no se tocan: son las del original. */
-  else if (W.banda === 'suboptimo') { cls = 'yellow'; txt = WILK_9_11; }
-  else { cls = 'red'; txt = WILK_TXT_NOFAV; }
+  const _cxTramo = WILK_TRAMO[W.banda] || '';
+  if (W.banda === 'favorable') { cls = 'green'; txt = _cxTramo; }
+  else if (W.banda === 'suboptimo') { cls = 'yellow'; txt = _cxTramo; }
+  else { cls = 'red'; txt = _cxTramo; }
   el.innerHTML = W.total + '/16 ' + badge(cls, txt);
 }
 // ── Score de Duke ──
@@ -41704,6 +41738,28 @@ const VINFO = Object.freeze({
     fuente: 'International evidence-based recommendations for point-of-care lung ultrasound, 2025 focused update (Volpicelli et al, Intensive Care Med 2026), enunciado D6_11, hoja 19.',
     ojo: 'La guia declara que la formula fue validada en pacientes criticos en cuidados intensivos bajo ventilacion invasiva. En un paciente que puede examinarse sentado, esa misma guia dice que otros metodos de adquisicion multiplanar pueden ser mas precisos, y que no hay evidencia fuerte para recomendarlos.'
   },
+  /* ⚠️ EL GLOBO DEL SCORE DE WILKINS (I-E1, 22/10/2026). Publica lo que la SERIE ORIGINAL
+     hallo, con su folio, y no un veredicto: el badge de la pantalla dice el numero y el tramo.
+     Los tres datos estan VISTOS EN IMAGEN en el PDF original (04_Valvulopatias/
+     brheartj00082-0033.pdf; folio = hoja + 298): la frase del folio 307 y los 22 pacientes del
+     folio 305 -once con resultado optimo y once con resultado suboptimo-. */
+  /* ⚠️ LOS CUATRO TEXTOS VAN CON SUS ACENTOS: es texto clínico que el médico LEE, y el reflejo
+     de escribir sin ellos -que viene de los cuerpos de sonda, donde un acento grave rompe el
+     template- ya costó un sello entero en la tanda D1. */
+  'wilk-score': {
+    tit: 'Score de Wilkins — lo que halló la serie original',
+    lee: 'Serie de 22 pacientes con estenosis mitral reumática dilatados con balón (once con resultado '
+       + 'óptimo y once con resultado subóptimo). Todos los que tuvieron un score total mayor de 11 '
+       + 'terminaron con resultado subóptimo y todos los que tuvieron un score menor de 9 terminaron con '
+       + 'resultado óptimo; entre 9 y 11 el score no predijo el resultado.',
+    fuente: 'Wilkins GT, Weyman AE, Abascal VM, Block PC, Palacios IF. Percutaneous balloon dilatation of '
+          + 'the mitral valve: an analysis of echocardiographic variables related to outcome and the '
+          + 'mechanism of dilatation. Br Heart J 1988;60:299-308 — folios 300 (Tabla 2), 305 y 307.',
+    ojo: 'El score describe la ANATOMÍA de la válvula. La guía EAE/ASE 2009 de estenosis valvular '
+       + 'declara, en su apartado B.2.1 (folio 14), que ningún score ha demostrado ser superior a otro y '
+       + 'que todos tienen un valor predictivo limitado del resultado de la comisurotomía mitral con '
+       + 'balón, que depende de otros hallazgos clínicos y ecocardiográficos.'
+  },
   'oai-ref': { ancho: 360, dyn: function () { return _otrRefClon('ref-oai') } },
   'ai-card': { ancho: 348, dyn: function () { return evTarjetaAI() } },
   'vi-card': { ancho: 360, dyn: function () { return evTarjetaVI() } },
@@ -53957,7 +54013,11 @@ function generarInforme(opts) {
         const sm = {ausente:'ausente', leve:'leve', moderado:'moderado', severo:'severo (barro)'};
         s += ' Contraste espontáneo: ' + (sm[oSec] || oSec) + '.';
       }
-      if (oTrombo === 'si') s += ' Hallazgo que contraindica cardioversión eléctrica.';
+      /* ⚠️ «Hallazgo que contraindica cardioversión eléctrica» SALIO DEL PAPEL (I-E1, 22/10/2026).
+         DECISION DE MAICOL. Es una CONDUCTA en un informe firmado y la app es DESCRIPTIVA. El
+         hecho -trombo confirmado- sigue escrito dos oraciones mas arriba; lo que se deja de decir
+         es que hacer con el. La fila de la guia esta en el panel de Evidencia, con su clase y su
+         folio: ESC 2024 de fibrilacion auricular, Tabla 15 de recomendaciones, folio 3355. */
       /* Sólo con TRES o más lóbulos Y sin trombo pendiente. Es una nota sobre la ANATOMÍA —la
          orejuela multilobulada complica el sellado del dispositivo—, no una recomendación de
          conducta: no dice si cerrar ni con qué.
@@ -53992,8 +54052,8 @@ function generarInforme(opts) {
       const aoMap = {
         '1': 'íntima normal, sin aterosclerosis',
         '2': 'engrosamiento intimal mínimo sin protrusiones (Grado 2)',
-        '3': 'placas irregulares con engrosamiento <5 mm (Grado 3)',
-        '4': 'placas complejas protuyentes ≥5 mm, alto riesgo embólico (Grado 4)',
+        '3': 'ateroma de 3 a 5 mm (Grado 3)',
+        '4': 'ateroma de más de 5 mm, alto riesgo embólico (Grado 4)',
         '5': 'protrusiones móviles de cualquier tamaño, muy alto riesgo embólico (Grado 5)'
       };
       const aoDesc = (aoMap[aoG] || 'Grado ' + aoG);
@@ -55881,6 +55941,11 @@ function RECALC_MODULOS() {
      guardado antes del 2026-10-07, uno del Excel y uno del SR DICOM— reponen asignando `.value`,
      que no dispara `oninput`. Va ANTES de `calcDopTric` por el mismo motivo que `itVmaxSync` va
      antes de los cálculos en el `oninput` de la Vmax IT. Ver su propio comentario. */
+  /* `calcETE` repinta las cuatro filas de caracteristicas desfavorables de la reparacion y su
+     frase. Entra aca -y no estaba- porque desde la I-E1 esa frase depende del MECANISMO de la IM,
+     que vive en OTRA pestana (`teer_tipo_im`), y porque las cinco rutas de restauracion pueblan
+     asignando `.value`, que no dispara `oninput`: sin esto, reabrir un estudio dejaba el cuadro
+     en la raya con los cuatro campos poblados. Solo pinta spans de pantalla. */
   /* `etTsvdSync` sin argumento copia `tsvd_diametro` → `et_tsvd_diam` y `vti_tsvd` →
      `et_vti_tsvd`, los dos espejos del numerador del área tricuspídea en la tarjeta de Válvulas.
      Entra acá por lo mismo que `dtTapSync` —estudio guardado antes del 2026-10-07, Excel y SR
@@ -55954,7 +56019,7 @@ function RECALC_MODULOS() {
      automaticos con el «requiere …» del formulario vacio al lado de un VDFVI y una FEVI ya
      poblados. No puede migrar nada: no escribe ningun campo del estudio, los dos nodos que
      toca son `vauto-` y el tercero un `<div>` de texto. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','asiaMmSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','htpTablaPintar','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','asiaMmSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','htpTablaPintar','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal','calcETE'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -63834,10 +63899,23 @@ function calcWilkins() {
      /[Ff]avorable/ matcheara dentro de «...el total quedaria sesgado a favorable», que es la
      frase del score INCOMPLETO: el informe firmado sumaba una salvedad y una contraindicacion
      sobre un score que la app declara no interpretable. */
+  /* ⚠️ EL BADGE PUBLICA EL SCORE Y SU TRAMO, Y NINGUN VEREDICTO (I-E1, 22/10/2026).
+     DECISION DE MAICOL. Decia «Favorable para valvuloplastia percutánea», «No favorable para
+     valvuloplastia» y «El score no predice el resultado», que son tres afirmaciones sobre el
+     RESULTADO de un procedimiento. El score de Wilkins puntua ANATOMIA: lo que el original
+     publica es que con mas de 11 todos los pacientes de su serie tuvieron resultado suboptimo,
+     con menos de 9 todos optimo, y entre 9 y 11 el score NO predijo el resultado (Wilkins 1988,
+     folio 307, verificado en imagen). Eso vive ahora en el globo ⓘ y en Evidencia; el badge
+     dice el numero y en que tramo cae, que es lo que el ecocardiograma mide.
+     ⚠️ LOS CORTES Y LAS CLAVES DE BANDA NO SE MOVIERON: `W.banda` sigue valiendo
+     `favorable` / `suboptimo` / `nofavorable`, que es lo que leen `dataset.banda`, la hoja del
+     PDF y la columna del Excel. Lo unico que cambia es el ROTULO.
+     ⚠️ EL COLOR SE CONSERVA y no afirma nada por si solo: el tramo va en palabras al lado. */
+  const _wTramo = WILK_TRAMO[W.banda] || '';
   let interp;
-  if (W.banda === 'favorable')      interp = badge('green',  'Score ' + total + ' — ' + WILK_TXT_FAV);
-  else if (W.banda === 'suboptimo') interp = badge('yellow', 'Score ' + total + ' — ' + WILK_9_11);
-  else                              interp = badge('red',    'Score ' + total + ' — ' + WILK_TXT_NOFAV);
+  if (W.banda === 'favorable')      interp = badge('green',  'Score ' + total + ' — ' + _wTramo);
+  else if (W.banda === 'suboptimo') interp = badge('yellow', 'Score ' + total + ' — ' + _wTramo);
+  else                              interp = badge('red',    'Score ' + total + ' — ' + _wTramo);
   if (intEl) intEl.innerHTML = interp;
 }
 
@@ -64172,39 +64250,98 @@ function calcTEER() {
   if (typeof amiloRefrescarSiIntacto === 'function') amiloRefrescarSiIntacto('teer');
 }
 
+/* ══ LOS TRES FACTORES DESFAVORABLES DE LA TABLA 7, Y EL CORTE DE TENTING DEL TEER ════════
+   (I-E1, 22/10/2026). Fuente VISTA EN IMAGEN: GUIA_008.pdf (04_Valvulopatias, resumen en español
+   de las recomendaciones europeas de regurgitación valvular nativa), Tabla 7 «Características
+   desfavorables por ETT para reparación de válvula mitral en IM secundaria», hoja 25 —ese
+   documento NO imprime folio—: «Distancia de coaptacion ≥1 cm, area de tenting >2,5-3 cm2, jets
+   complejos originados central y posteromedialmente, angulo posterolateral >45°».
+
+   ⚠️ LOS DOS BORDES SE MOVIERON Y SE DECLARAN. La app usaba «coaptación ≤10 mm = normal» y
+   «ángulo ≥45° = desfavorable»: con 10 mm exactos ahora SI es desfavorable y con 45° exactos
+   ahora NO lo es. El área de tenting pasa de mostrarse sin interpretación a CONTAR.
+   ⚠️ LA TABLA ESCRIBE EL ÁREA COMO UN RANGO, «>2,5-3 cm2», que es UN criterio expresado con dos
+   valores según el estudio. Se aplica el 2,5, que es el que la app ya mostraba; su fuente
+   original (la referencia 33 de ese documento) NO está en la biblioteca, y el globo ⓘ lo dice.
+   ⚠️ LA ALTURA DE TENTING NO ES UN FACTOR DE LA TABLA 7: no figura en ella. Su único corte
+   verificado es el del TEER —ESC/EACTS 2025, material suplementario, Tabla S2, página 5:
+   «Tenting height <10 mm» entre los criterios de «Non-complex / Ideal for mitral TEER»—, así que
+   se publica con ESE rotulo y NO entra en la lista de factores desfavorables.
+   ⚠️ LAS CIFRAS NO SE APLICAN A LA IM PRIMARIA: la Tabla 7 es de IM SECUNDARIA y ninguna fuente
+   de la biblioteca da cortes de reparabilidad quirúrgica para la primaria. Con mecanismo primario
+   o sin consignar, la app NO publica veredicto. */
+const REPAR_COAPT_MM    = 10;    // mm  — desfavorable con `>=` (la tabla escribe «≥1 cm»)
+const REPAR_ANGULO_GR   = 45;    // °   — desfavorable con `>`  (la tabla escribe «>45°»)
+const REPAR_TENTING_CM2 = 2.5;   // cm² — desfavorable con `>`  (la tabla escribe «>2,5-3 cm2»)
+const TEER_TENTING_MM   = 10;    // mm  — «ideal» para TEER con `<` (Tabla S2, pág. 5)
+const REPAR_FUENTE_TXT  = 'Los tres factores salen de la Tabla 7 de las recomendaciones europeas de regurgitación valvular nativa (hoja 25), descrita para la insuficiencia mitral SECUNDARIA. La altura de tenting no figura en esa tabla: su corte de 10 mm es el de la ESC/EACTS 2025, material suplementario, Tabla S2, para el TEER.';
+const REPAR_NO_SEC_TXT  = 'Sin veredicto: los tres factores de la Tabla 7 están descritos para la insuficiencia mitral SECUNDARIA, y el mecanismo consignado no lo es. Las mediciones se muestran y no se integran.';
+const REPAR_PRIM_TXT    = 'Para la insuficiencia mitral PRIMARIA ninguna fuente de la biblioteca publica cortes de reparabilidad quirúrgica: las cifras de esta pantalla son un criterio propio de la aplicación.';
+window.REPAR_COAPT_MM = REPAR_COAPT_MM; window.REPAR_ANGULO_GR = REPAR_ANGULO_GR;
+window.REPAR_TENTING_CM2 = REPAR_TENTING_CM2; window.TEER_TENTING_MM = TEER_TENTING_MM;
+
 function calcETE() {
   const anguloVP = v('ete_angulo_vp');
   const alturaTenting = v('ete_altura_tenting');
+  const areaTenting = v('ete_area_tenting');
   const profCoapt = v('ete_prof_coapt');
+  /* ⚠️ LAS CUATRO FILAS VUELVEN A LA RAYA CUANDO EL CAMPO SE BORRA. Los cuatro `if` sólo
+     PINTABAN y no tenían `else`: borrando el ángulo, la fila seguía diciendo «46° — desfavorable
+     para plastia» sobre un campo vacío. Es la regla que el ARR dejó escrita para las referencias
+     de pantalla, aplicada acá. */
+  const _set = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
 
-  if (anguloVP !== null) {
-    const el = document.getElementById('ete-angulo-interp');
-    if (el) el.innerHTML = anguloVP < 45
-      ? badge('green', `${anguloVP}° — favorable`)
-      : badge('red', `${anguloVP}° — desfavorable para plastia`);
-  }
-  if (alturaTenting !== null) {
-    const el = document.getElementById('ete-tenting-interp');
-    if (el) el.innerHTML = alturaTenting <= 10
-      ? badge('green', `${alturaTenting} mm — normal`)
-      : badge('yellow', `${alturaTenting} mm — elevado`);
-  }
-  if (profCoapt !== null) {
-    const el = document.getElementById('ete-coapt-interp');
-    if (el) el.innerHTML = profCoapt <= 10
-      ? badge('green', `${profCoapt} mm — normal`)
-      : badge('red', `${profCoapt} mm — aumentada`);
-  }
+  _set('ete-angulo-interp', anguloVP === null ? '—' : (anguloVP > REPAR_ANGULO_GR
+      ? badge('red',   `${anguloVP}° — factor desfavorable (más de ${REPAR_ANGULO_GR}°)`)
+      : badge('green', `${anguloVP}° — no alcanza el corte de ${REPAR_ANGULO_GR}°`)));
 
-  // Reparabilidad global estimada
+  _set('ete-tenting-interp', alturaTenting === null ? '—' : (alturaTenting < TEER_TENTING_MM
+      ? badge('green',  `${alturaTenting} mm — por debajo de ${TEER_TENTING_MM} mm (TEER no complejo)`)
+      : badge('yellow', `${alturaTenting} mm — ${TEER_TENTING_MM} mm o más`)));
+
+  _set('ete-areatent-interp', areaTenting === null ? '—' : (areaTenting > REPAR_TENTING_CM2
+      ? badge('red',   `${areaTenting} cm² — factor desfavorable (más de 2,5 cm²)`)
+      : badge('green', `${areaTenting} cm² — no alcanza el corte de 2,5 cm²`)));
+
+  _set('ete-coapt-interp', profCoapt === null ? '—' : (profCoapt >= REPAR_COAPT_MM
+      ? badge('red',   `${profCoapt} mm — factor desfavorable (${REPAR_COAPT_MM} mm o más)`)
+      : badge('green', `${profCoapt} mm — por debajo de ${REPAR_COAPT_MM} mm`)));
+
+  /* ══ LA FRASE ES DESCRIPTIVA Y NO UN VEREDICTO (I-E1, 22/10/2026) ═══════════════════
+     DECISION DE MAICOL. Decía «Criterios anatómicos compatibles con plastia mitral» y «Criterios
+     desfavorables para plastia — evaluar TEER o reemplazo»: la primera AFIRMA que la válvula es
+     reparable y la segunda indica dos procedimientos. Lo que queda es qué factores de la tabla se
+     cumplen. Su interpretación vive en el panel de Evidencia.
+     ⚠️ `textContent` Y NO `innerHTML`: el texto se arma de constantes de este archivo y de tres
+     números, y no lleva marcado. Es una frontera menos.
+     ⚠️ EL MECANISMO SE LE PREGUNTA A `imEsSecundariaIM()`, el dueño Único desde el 2026-09-30,
+     que cubre los DOS orígenes —el campo `teer_tipo_im` del ETE y la respuesta manual del panel—.
+     Va con `typeof` porque esa función vive en el bloque `<script>` del panel: si ese bloque muere
+     o todavía no se parseó, la llamada pelada tiraría `ReferenceError` y se llevaría éste. Falla
+     hacia NO publicar veredicto, que es la dirección barata. */
   const rep = document.getElementById('ete-reparabilidad');
-  if (rep && (anguloVP !== null || alturaTenting !== null || profCoapt !== null)) {
-    const desfav = (anguloVP !== null && anguloVP >= 45) ||
-                   (alturaTenting !== null && alturaTenting > 10) ||
-                   (profCoapt !== null && profCoapt > 10);
-    rep.innerHTML = desfav
-      ? badge('red', 'Criterios desfavorables para plastia — evaluar TEER o reemplazo')
-      : badge('green', 'Criterios anatómicos compatibles con plastia mitral');
+  const fue = document.getElementById('ete-repar-fuente');
+  if (rep) {
+    const hay = (anguloVP !== null || areaTenting !== null || profCoapt !== null);
+    let sec = false, mec = '';
+    try {
+      if (typeof imMecanismoIM === 'function') mec = imMecanismoIM() || '';
+      if (typeof imEsSecundariaIM === 'function') sec = !!imEsSecundariaIM();
+    } catch (e) { sec = false; mec = ''; }
+    if (!hay) { rep.textContent = '—'; if (fue) fue.textContent = ''; }
+    else if (!sec) {
+      rep.textContent = mec === 'primaria' ? REPAR_PRIM_TXT : REPAR_NO_SEC_TXT;
+      if (fue) fue.textContent = REPAR_FUENTE_TXT;
+    } else {
+      const f = [];
+      if (profCoapt   !== null && profCoapt   >= REPAR_COAPT_MM)    f.push('distancia de coaptación (' + profCoapt + ' mm)');
+      if (areaTenting !== null && areaTenting >  REPAR_TENTING_CM2) f.push('área de tenting (' + areaTenting + ' cm²)');
+      if (anguloVP    !== null && anguloVP    >  REPAR_ANGULO_GR)   f.push('ángulo posterolateral (' + anguloVP + '°)');
+      rep.textContent = f.length
+        ? 'Factores desfavorables presentes: ' + f.join('; ') + '.'
+        : 'Sin factores desfavorables de los evaluados.';
+      if (fue) fue.textContent = REPAR_FUENTE_TXT;
+    }
   }
 }
 
@@ -64661,6 +64798,12 @@ const VINFO_REF = Object.freeze({
   'eroa-pisa': 'im', 'eroa-cont': 'im', 'im-onda-e': 'im', 'im-vti-ratio': 'im',
   'im-vc': 'im', 'im-jet-ai': 'im',
   'avm-thp': 'em', 'avm-cont': 'em', 'vsv-tsvi': 'em',
+  /* ⚠️ EL GLOBO NUEVO DEL SCORE LLEVA SU BOTON DESDE EL PRIMER COMMIT (I-E1, 22/10/2026), y
+     no es un adorno: el invariante de esta tabla es «una tarjeta sin entrada de Referencias no
+     lleva boton», y `ref-em` YA nombra el score con los folios 300 y 307 de Wilkins 1988. Sin
+     el mapeo, la tarjeta nueva entraba en la lista de las que no tienen entrada —que TC-502
+     cuenta— sobre una entrada que si existe. */
+  'wilk-score': 'em',
   'ia-eroa-pisa': 'ia', 'it-eroa-pisa': 'it', 'ea-ava-cont': 'eao',
   'prot-eoa': 'pm', 'prot-dvi': 'pm', 'prot-obstr': 'pm', 'prot-ppm': 'pm',
   'prot-vmax': 'pm', 'prot-gmed': 'pm', 'prot-thp': 'pm',
@@ -82509,6 +82652,29 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ══ OAI ══
+/* ══ LOS TRES TEXTOS DE LA VELOCIDAD DE VACIAMIENTO (I-E1, 22/10/2026) ═════════════════
+   Salen de la ASE/SCA 2013, folio 954 (hoja 34), VISTO EN IMAGEN. La franja del medio no tiene
+   nombre en ninguna fuente de la biblioteca: el texto lo dice en voz alta en vez de callarlo.
+   ⚠️ VAN ANTES DE `calcOAI`, que es su unica lectora, por la zona muerta de `const`: declaradas
+   despues, la primera llamada del arranque tiraria `ReferenceError` y se llevaria el `<script>`. */
+const OAI_VEL_ALTA  = 'Por encima de 40 cm/s se predice mayor probabilidad de mantener el ritmo sinusal tras la cardioversión de una fibrilación auricular (ASE/SCA 2013, folio 954).';
+const OAI_VEL_MEDIA = 'Entre 20 y 40 cm/s la guía no da un rótulo: sus dos afirmaciones son por debajo de 20 cm/s y por encima de 40 cm/s (ASE/SCA 2013, folio 954). El nombre de esta franja es propio de la aplicación.';
+const OAI_VEL_BAJA  = 'Por debajo de 20 cm/s se asocia con contraste espontáneo, formación de trombo y eventos embólicos (ASE/SCA 2013, folio 954). El rótulo «estasis severa» es propio de la aplicación.';
+/* ══ LOS DISPOSITIVOS DE CIERRE, CON EL DATO DEL FABRICANTE (I-E1, 22/10/2026) ═════════════
+   DECISION DE MAICOL. Los rangos anteriores -ostium 17-31 mm para Watchman y <=32 mm para
+   Amulet- NO coinciden con lo que publican hoy los fabricantes y no se pudieron verificar en
+   ningun documento oficial: el 17-31 corresponde a una generacion anterior de Watchman.
+   ⚠️ NINGUNA GUIA DE LA BIBLIOTECA PUBLICA RANGOS DE TAMAÑO. La ASE 2021 de ETE de cribado
+   estructural explica COMO medir el ostium segun el dispositivo y no da medidas. Lo que se cita
+   es al fabricante, con su fecha de consulta, y se dice que es dato de fabricante y no de guia.
+   ⚠️ LA UNICA MEDIDA DE OSTIUM CITABLE ES LA ZONA DE ANCLAJE DEL AMULET. De WATCHMAN FLX Pro
+   se publica el numero de tamanos; su tabla de dimensionamiento por ostium (IFU 51245861-01
+   rev. A, 2023-07, Tabla 62) NO se pudo leer, asi que NO se cita y la app no afirma un rango de
+   ostium para ese dispositivo. */
+const OAI_AMULET_MIN = 11, OAI_AMULET_MAX = 31;
+const OAI_FAB_FECHA  = '21/10/2026';
+const OAI_FAB_AMULET = 'Amplatzer Amulet (Abbott): 8 tamaños de 16 a 34 mm para zonas de anclaje de 11,0 a 31,0 mm — página oficial del fabricante, consultada el ' + OAI_FAB_FECHA + '.';
+const OAI_FAB_WATCH  = 'WATCHMAN FLX Pro (Boston Scientific): 6 tamaños de 20 a 40 mm — folleto de producto del fabricante, consultado el ' + OAI_FAB_FECHA + '. Su tabla de dimensionamiento por diámetro de ostium (instrucciones de uso 51245861-01 rev. A, 2023-07) no se pudo leer y no se cita.';
 function calcOAI() {
   const vel = v('oai_vel_vac');
   const sec = sv('oai_sec');
@@ -82519,7 +82685,7 @@ function calcOAI() {
   /* Los tres bloques limpian su span cuando el campo vuelve a vacío. Sin el `else`, cambiar
      «Sí — confirmado» por «— no evaluado —» dejaba el badge rojo colgado, y la hoja del ETE
      salía diciendo «Trombo | no evaluado» junto a «Interpretación | Confirmado —
-     contraindicación cardioversión». La opción vacía nueva hizo alcanzable ese camino. */
+     Confirmado». La opción vacía nueva hizo alcanzable ese camino. */
   const _oaiSet = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
 
   /* Área del ostium desde el diámetro: π·(d/2)², con el diámetro en mm y el área en cm² —de ahí
@@ -82553,13 +82719,37 @@ function calcOAI() {
       _oaiArea.value = ''; delete _oaiArea.dataset.derivadoDe;
     }
   }
+  /* ⚠️ LOS DOS VALORES SON DE LA GUIA Y LOS DOS ROTULOS NO (I-E1, 22/10/2026). Verificado en
+     imagen: ASE/SCA 2013 (Hahn y col., examen completo de ETE), folio 954 -comprobado en el
+     encabezado impreso «954 Hahn et al»-, hoja 34: «LA appendage emptying velocities of <20 cm/sec
+     were associated with spontaneous echocardiographic contrast, thrombus formation, and embolic
+     events. LA appendage emptying velocities >40 cm/sec predict a greater likelihood of sustained
+     normal sinus rhythm after cardioversion from atrial fibrillation.»
+     ⚠️ LA FUENTE NO DISTINGUE RITMO SINUSAL DE FIBRILACION AURICULAR para estos dos cortes, y la
+     app tampoco: no se agrega una condicion que la guia no pone.
+     ⚠️ «Estasis leve» y «estasis severa» NO figuran en la guia, y la franja de 20 a 39 cm/s no
+     tiene nombre en ninguna fuente de la biblioteca: los dos rotulos se conservan -no se sacan- y
+     llevan el chip CRITERIO DE ECOSMART.
+     ⚠️ LOS OPERADORES NO SE MOVIERON: la app sigue usando `>= 40` y `>= 20`, que son los que
+     aplicaba. La guia escribe `<20` y `>40` y deja el 20 y el 40 exactos sin asignar; cambiarlos
+     mueve el grado de estudios ya firmados y esta orden no lo autoriza. Declarado. */
+  const _oaiTxt = (id, t) => { const el = document.getElementById(id); if (el) el.textContent = t; };
+  const _oaiChip = v2 => { const el = document.getElementById('oai-vel-chip'); if (el) el.style.display = v2 ? '' : 'none'; };
   if (vel) {
-    let vi;
-    if (vel >= 40) vi = badge('green', `${vel} cm/s — normal`);
-    else if (vel >= 20) vi = badge('yellow', `${vel} cm/s — estasis leve`);
-    else vi = badge('red', `${vel} cm/s — estasis severa, alto riesgo`);
+    let vi, nota, chip;
+    if (vel >= 40) {
+      vi = badge('green', `${vel} cm/s`);
+      nota = OAI_VEL_ALTA; chip = false;
+    } else if (vel >= 20) {
+      vi = badge('yellow', `${vel} cm/s — estasis leve`);
+      nota = OAI_VEL_MEDIA; chip = true;
+    } else {
+      vi = badge('red', `${vel} cm/s — estasis severa`);
+      nota = OAI_VEL_BAJA; chip = true;
+    }
     _oaiSet('oai-vel-interp', vi);
-  } else _oaiSet('oai-vel-interp', '—');
+    _oaiTxt('oai-vel-nota', nota); _oaiChip(chip);
+  } else { _oaiSet('oai-vel-interp', '—'); _oaiTxt('oai-vel-nota', ''); _oaiChip(false); }
 
   if (sec) {
     const secMap = {
@@ -82575,7 +82765,11 @@ function calcOAI() {
     const tromboMap = {
       no: badge('green','Ausente'),
       sospecha: badge('yellow','Sospecha — repetir ETE / TC'),
-      si: badge('red','Confirmado — contraindicación cardioversión')
+      /* ⚠️ DECIA «Confirmado — contraindicación cardioversión» (I-E1, 22/10/2026). DECISION DE
+         MAICOL: la conducta sale de la pantalla, del informe y del PDF, y va al panel de
+         Evidencia con su fuente -ESC 2024 de fibrilacion auricular, Tabla 15 de recomendaciones,
+         folio 3355-. Lo que queda es el hallazgo. */
+      si: badge('red','Confirmado')
     };
     _oaiSet('oai-trombo-interp', tromboMap[trombo] || '—');
   } else _oaiSet('oai-trombo-interp', '—');
@@ -82585,10 +82779,15 @@ function calcOAI() {
 
   if (trombo === 'si') { apto = false; notas.push('Trombo presente — contraindicación absoluta'); }
   if (vel && vel < 20) notas.push('Estasis severa — mayor riesgo procedimiento');
+  /* ⚠️ EL UNICO RANGO DE OSTIUM QUE SE AFIRMA ES LA ZONA DE ANCLAJE DEL AMULET (I-E1). Las dos
+     lineas del fabricante se publican SIEMPRE que haya ostium, para que el lector sepa de donde
+     sale el rango y que del otro dispositivo no se afirma ninguno. */
   if (diam) {
-    if (diam < 17) { notas.push(`Ostium ${diam}mm — muy pequeño para Watchman (req ≥17mm)`); }
-    else if (diam > 32) { notas.push(`Ostium ${diam}mm — fuera de rango Amulet (máx 32mm)`); }
-    else if (diam <= 31) notas.push(`Ostium ${diam}mm — dentro de rango Watchman (17-31mm)`);
+    if (diam < OAI_AMULET_MIN) notas.push(`Ostium ${diam} mm — por debajo de la zona de anclaje del Amplatzer Amulet (${OAI_AMULET_MIN},0 a ${OAI_AMULET_MAX},0 mm)`);
+    else if (diam > OAI_AMULET_MAX) notas.push(`Ostium ${diam} mm — por encima de la zona de anclaje del Amplatzer Amulet (${OAI_AMULET_MIN},0 a ${OAI_AMULET_MAX},0 mm)`);
+    else notas.push(`Ostium ${diam} mm — dentro de la zona de anclaje del Amplatzer Amulet (${OAI_AMULET_MIN},0 a ${OAI_AMULET_MAX},0 mm)`);
+    notas.push(OAI_FAB_AMULET);
+    notas.push(OAI_FAB_WATCH);
   }
   if (diam && prof) {
     if (prof < diam) notas.push(`Profundidad ${prof}mm < ostium ${diam}mm — puede ser limitante`);
@@ -82599,7 +82798,7 @@ function calcOAI() {
   const notasEl = document.getElementById('oai-notas');
   if (trombo === 'si') {
     el.innerHTML = badge('red','NO apto — trombo presente');
-  } else if (diam && (diam >= 17 && diam <= 32)) {
+  } else if (diam && (diam >= OAI_AMULET_MIN && diam <= OAI_AMULET_MAX)) {
     /* ══ EL TEXTO «Posiblemente apto — Heart Team» SE RETIRA (R2-E9, 2026-10-21) ═══════════
        DECISION DE MAICOL. Era una CONDUCTA —derivar al Heart Team— y una afirmacion de
        elegibilidad para un procedimiento, y el criterio de producto de esta app es que la
@@ -82610,8 +82809,10 @@ function calcOAI() {
        marcado de pantalla. No lo leen el informe, el EN SUMA, el PDF ni el PPT. Los otros
        textos de la seccion —el ateroma, el Wilkins, la reparabilidad mitral, la escala de la
        orejuela, los 40 y 20 cm/s, Watchman, Amulet, «contraindicar cardioversión» y «favorable
-       para valvuloplastia»— no se tocan, por orden expresa. */
-    el.innerHTML = badge('green','Ostium dentro del rango de los dispositivos (17-32 mm)');
+       para valvuloplastia»— no se tocaron EN AQUELLA TANDA. Los revisa la I (22/10/2026):
+       el rango pasa a ser la zona de anclaje que publica Abbott para el Amulet, con su fecha
+       de consulta, y de WATCHMAN FLX Pro solo se publica el numero de tamanos. */
+    el.innerHTML = badge('green','Ostium dentro de la zona de anclaje del Amplatzer Amulet (11 a 31 mm)');
   } else if (diam) {
     el.innerHTML = badge('yellow','Evaluar — medidas límite');
   } else {
@@ -82633,6 +82834,33 @@ function calcOAI() {
   if (typeof amiloRefrescarSiIntacto === 'function') amiloRefrescarSiIntacto('oai');
 }
 
+/* ══ EL GRADO QUE LE CORRESPONDE A UN ESPESOR, EN LA ESCALA QUE LA APP APLICA (I-E1) ══════
+   Nicoara y col., ASE/SCA 2020 (ETE para decisiones quirúrgicas), folio 716 —comprobado en el
+   encabezado impreso «716 Nicoara et al»—, hoja 25, VISTO EN IMAGEN: «grade 1 (intimal thickness
+   <2 mm), grade 2 (intimal thickening 2-3 mm), grade 3 (atheroma thickness 3-5 mm), grade 4
+   (atheroma thickness >5 mm), and grade 5 (any atheroma thickness with mobile or ulcerated
+   components)».
+   ⚠️ EL BORDE DE 5 mm SE ALINEA A LA FUENTE: 5,0 mm EXACTOS son grado 3 y no grado 4. La app
+   rotulaba «<5 mm» y «≥5 mm», que ponía el valor exacto del lado del grado 4.
+   ⚠️ EL 3 TAMBIÉN SE PISA EN LA FUENTE —grado 2 «2-3 mm» y grado 3 «3-5 mm»— y se resuelve
+   hacia el grado MENOR, que es la convención de las bandas ascendentes de esta app y el lado que
+   no afirma de más. Queda declarado.
+   ⚠️ ESTO NO CAMBIA EL GRADO CONSIGNADO. `ao_grado_atero` lo sigue eligiendo el médico y es lo
+   único que viaja al informe, al PDF, al PPT y al Excel: esta función sólo publica a qué grado
+   corresponde el espesor MEDIDO, que hasta hoy no lo leía nadie.
+   ⚠️ EL GRADO 5 NO SALE DE UN ESPESOR: es «cualquier espesor con componentes móviles o
+   ulcerados», y eso vive en otros dos campos. Por eso esta función llega hasta el 4. */
+function ateroGradoPorGrosor(mm) {
+  if (mm == null || !isFinite(mm) || mm <= 0) return null;
+  if (mm <  2) return 1;
+  if (mm <= 3) return 2;
+  if (mm <= 5) return 3;
+  return 4;
+}
+const ATERO_GRADO_RANGO = Object.freeze({ 1:'espesor intimal menor de 2 mm', 2:'engrosamiento intimal de 2 a 3 mm',
+                                          3:'ateroma de 3 a 5 mm', 4:'ateroma de más de 5 mm' });
+window.ateroGradoPorGrosor = ateroGradoPorGrosor; window.ATERO_GRADO_RANGO = ATERO_GRADO_RANGO;
+
 // ══ ATEROSCLEROSIS AÓRTICA ══
 function calcAteroAo() {
   const grado = sv('ao_grado_atero');
@@ -82642,8 +82870,8 @@ function calcAteroAo() {
   const descripciones = {
     '1': 'Íntima normal — sin lesiones ateroscleróticas',
     '2': 'Engrosamiento mínimo de la íntima sin protrusiones hacia la luz',
-    '3': 'Placas irregulares con engrosamiento <5mm — riesgo embólico moderado',
-    '4': 'Placas complejas protuyentes ≥5mm — alto riesgo embólico',
+    '3': 'Ateroma de 3 a 5 mm — riesgo embólico moderado',
+    '4': 'Ateroma de más de 5 mm — alto riesgo embólico',
     '5': 'Protrusiones móviles de cualquier tamaño — riesgo embólico muy alto'
   };
 
@@ -82655,18 +82883,36 @@ function calcAteroAo() {
     '5': badge('red','Muy alto — embolia')
   };
 
-  /* Estas frases salen de UN desplegable y en el PDF caían como oración suelta dentro de la
-     hoja del ETE, o sea que se leían como indicación del médico que firma —incluida una
-     instrucción de técnica quirúrgica dirigida a un tercero—. Se emiten prefijadas como lo
-     que son: una orientación derivada del grado ecográfico, a integrar con el resto. El
-     prefijo viaja con el texto para que no dependa de la maquetación de la pantalla. */
+  /* ══ LAS CINCO FRASES SON DESCRIPTIVAS Y NINGUNA INDICA UNA CONDUCTA (I-E1, 22/10/2026) ════
+     DECISION DE MAICOL. El grado 3 decía «considerar antiagregación» —que NINGUNA fuente ata a
+     ese grado: la ESC 2024 la recomienda en placas severas o complejas, y en la escala de Nicoara
+     que esta app usa el grado 3 son 3 a 5 mm—; los grados 4 y 5 indicaban una técnica quirúrgica
+     «contraindicación para el clampaje aórtico» dirigida a un tercero. Todo eso sale de la
+     pantalla, del informe y del PDF y vive en el panel de Evidencia, que PREGUNTA si la placa es
+     severa o compleja y si hubo un evento embólico, y publica las filas de la ESC 2024 y de la
+     AHA/ASA 2021 con su clase, su nivel y su folio.
+     ⚠️ EL RÓTULO DE LA FILA SIGUE SIENDO «⚠️ Recomendación clínica» EN EL MARCADO y ya no
+     describe lo que publica: se cambia en el mismo commit, abajo. */
   const recomendaciones = {
     '1': 'Orientación según grado ecográfico: sin intervención específica requerida.',
     '2': 'Orientación según grado ecográfico: control de factores de riesgo cardiovascular.',
-    '3': 'Orientación según grado ecográfico: considerar antiagregación; precaución en procedimientos con manipulación aórtica. A integrar con la clínica.',
-    '4': 'Orientación según grado ecográfico: el ateroma de grado alto se asocia a mayor riesgo embólico y suele considerarse contraindicación relativa para el clampaje aórtico. Decisión del equipo tratante; comunicar el hallazgo al cirujano.',
-    '5': 'Orientación según grado ecográfico: el ateroma móvil o de grado muy alto se asocia a alto riesgo embólico y suele considerarse contraindicación para el clampaje aórtico, con técnicas sin clampaje como alternativa. La conducta —anticoagulación, estrategia quirúrgica— la define el equipo tratante.'
+    '3': 'Hallazgo descriptivo: placa irregular de 3 a 5 mm de espesor.',
+    '4': 'Hallazgo descriptivo: placa de más de 5 mm de espesor, asociada a mayor riesgo embólico.',
+    '5': 'Hallazgo descriptivo: componentes móviles o ulcerados, asociados a alto riesgo embólico.'
   };
+
+  /* ⚠️ LA FILA DEL ESPESOR ES INDEPENDIENTE DEL DESPLEGABLE y se pinta aunque el grado no esté
+     elegido: el espesor es una medición y el grado una afirmación del médico. Se escribe con
+     `textContent` —el texto sale de constantes de este archivo y de un número—. */
+  (function(){
+    const gEl = document.getElementById('ao-atero-grosor'); if (!gEl) return;
+    const gg = ateroGradoPorGrosor(grosor);
+    if (gg == null) { gEl.textContent = '—'; return; }
+    let t = grosor + ' mm — en la escala de Nicoara corresponde al grado ' + gg
+          + ' (' + ATERO_GRADO_RANGO[gg] + ')';
+    if (grado && String(gg) !== String(grado)) t += ' · el grado consignado es ' + grado;
+    gEl.textContent = t + '.';
+  })();
 
   if (grado) {
     const descEl = document.getElementById('ao-atero-desc');
@@ -82676,8 +82922,11 @@ function calcAteroAo() {
     if (riesgoEl) riesgoEl.innerHTML = riesgos[grado] || '—';
     if (recEl) {
       let rec = recomendaciones[grado] || '—';
+      /* La escala de Nicoara define el grado 5 como «cualquier espesor con componentes móviles o
+         ulcerados», así que con la placa móvil consignada el hallazgo YA es el del grado 5: la
+         frase lo dice en vez de pedir que se lo «considere». */
       if (movilidad === 'movil' && parseInt(grado) < 5) {
-        rec += ' Placa móvil detectada — considerar como Grado 5 funcionalmente.';
+        rec += ' Con componentes móviles, la escala de Nicoara clasifica el ateroma como grado 5 con independencia del espesor.';
         riesgoEl.innerHTML = badge('red','Muy alto — placa móvil');
       }
       recEl.textContent = rec;
@@ -82685,6 +82934,8 @@ function calcAteroAo() {
   } else {
     /* Sin grado no queda texto viejo: la recomendación es ahora más larga y más asertiva,
        así que dejarla colgada tras volver a vacío es peor que antes. */
+    /* `ao-atero-grosor` NO entra en este barrido: lo pinta su propio bloque de arriba, que es
+       independiente del desplegable. */
     ['ao-atero-desc','ao-riesgo-embol','ao-recomendacion'].forEach(id => {
       const el = document.getElementById(id); if (el) el.textContent = '—';
     });
@@ -87187,15 +87438,24 @@ function amiloTextoWilkins() {
      a «favorable» dejaba sin aviso la franja 9-11 —la que el score NO predice—, que es
      justo donde la valvuloplastia se sigue discutiendo caso por caso. El propio texto dice
      «con independencia del score» y dependía del score. */
-  if (_wHayScore && _wTrombo === 'si') {
-    L.push('ATENCION | Se registró trombo en la orejuela izquierda: contraindicación absoluta para valvuloplastia mitral percutánea, con independencia del score de Wilkins.');
-  } else if (_wHayScore && _wTrombo === 'sospecha') {
-    L.push('ATENCION | Hay sospecha de trombo en la orejuela izquierda: descartarlo antes de considerar valvuloplastia mitral percutánea.');
-  }
+  /* ⚠️ LAS DOS LINEAS DE «ATENCION» SALIERON DEL PAPEL (I-E1, 22/10/2026). DECISION DE MAICOL.
+     Decian «contraindicación absoluta para valvuloplastia mitral percutánea» y «descartarlo antes
+     de considerar valvuloplastia»: las dos son CONDUCTA, y el informe y la conclusion de esta app
+     son DESCRIPTIVOS. El contenido esta en el panel de Evidencia, con su fuente: la ESC/EACTS 2025
+     de valvulopatias pone el trombo auricular izquierdo en su Tabla 8 de contraindicaciones de la
+     comisurotomia mitral percutanea -una tabla que NO lleva clase ni nivel- y su nota b dice que
+     con el trombo en la OREJUELA el procedimiento puede considerarse bajo condiciones.
+     ⚠️ EL CRUCE NO SE PIERDE: la hoja de la orejuela del mismo PDF sigue imprimiendo el estado
+     del trombo, y el panel de Evidencia lo LEE para publicar la fila de la guia. */
   /* La salvedad anatómica va donde el score deja la puerta abierta al procedimiento, o sea
      favorable y subóptimo. El score es ANATÓMICO: describe la válvula, no lo indica. */
   if (_wHayScore && (_wBanda === 'favorable' || _wBanda === 'suboptimo')) {
-    L.push('!! Salvedad. El score de Wilkins evalúa la anatomía valvular y no constituye por sí solo indicación de valvuloplastia: no puntúa la calcificación comisural ni el grado de insuficiencia mitral, y la decisión requiere integrar la clínica, la anatomía de la orejuela y la evaluación del equipo tratante.');
+    /* ⚠️ LA SALVEDAD SE MANTIENE Y GANA SU FUENTE (I-E1, 22/10/2026). Lo que cambia es el final:
+       «la decisión requiere integrar la clínica, la anatomía de la orejuela y la evaluación del
+       equipo tratante» era una conducta redactada por la app. Lo que queda es lo que la guia dice,
+       con su folio: EAE/ASE 2009 de estenosis valvular, apartado B.2.1, folio 14 (verificado en
+       imagen). */
+    L.push('!! Salvedad. El score de Wilkins evalúa la anatomía valvular: no puntúa la calcificación comisural ni el grado de insuficiencia mitral. Según la guía EAE/ASE 2009 de estenosis valvular (apartado B.2.1, folio 14), ningún score ha demostrado ser superior a otro y todos tienen un valor predictivo limitado del resultado de la comisurotomía mitral con balón, que depende de otros hallazgos clínicos y ecocardiográficos.');
   }
   L.push('## Desglose por criterio');
   const crit = [
@@ -111957,9 +112217,9 @@ const LAB_XLS_VOCAB_NUEVOS = {
      no sirve y se lo lista como válido en la misma línea. Lo atrapó el differential-review; hay
      un assert de arranque abajo para que no vuelva a colarse. */
   oai_lobulos: { '':'', '1':'1', '2':'2', '3':'3' },
-  /* Orejuela: `sospecha` NO se colapsa con `si`. La app trata el trombo CONFIRMADO como
-     contraindicación absoluta de valvuloplastia; fusionarlos importaría una contraindicación
-     que el informe del paciente no sostiene. */
+  /* Orejuela: `sospecha` NO se colapsa con `si`. Son dos hallazgos distintos y el panel de
+     Evidencia los lee por separado para publicar la fila de la guía; fusionarlos importaría un
+     trombo confirmado que el informe del paciente no sostiene. */
   oai_trombo: { '':'', no:'no', sospecha:'sospecha', si:'si', 'sí':'si', 'si - confirmado':'si' },
   oai_sec: { '':'', ausente:'ausente', leve:'leve', moderado:'moderado', severo:'severo', barro:'severo' },
   ao_segmento: { '':'', ascendente:'ascendente', arco:'arco', descendente:'descendente',
@@ -119639,9 +119899,8 @@ function _labUsaTavi(i) {
 }
 /* Trombo de orejuela: SÓLO `si` («Sí — confirmado»). El select tiene además `sospecha`, que no
    es un trombo confirmado y no puede entrar en un filtro rotulado «con trombo»: el informe de
-   ese paciente dice «sospecha», y el Wilkins de la app trata la confirmación como
-   contraindicación ABSOLUTA de valvuloplastia. Un filtro que las fusione arma una cohorte de
-   contraindicados con pacientes que no lo están. */
+   ese paciente dice «sospecha». Un filtro que las fusione arma una cohorte de pacientes con
+   trombo mezclada con pacientes en los que nadie lo confirmó. */
 function _labOaiTromboSi(i) { return _labCampoRaw(i, 'oai_trombo') === 'si'; }
 
 /* Signos de TEP: cuántos de los tres están en «sí». `_labTepUsado` (más abajo) dice si el
@@ -123168,12 +123427,14 @@ function labEteRender(infs, n) {
       stat('Scores completos', String(wTot.length)) +
       stat('Score promedio', _promTxt(_prom(wTot), 1, ' / 16')) +
       stat('Excluidos por incompletos', wParciales ? String(wParciales) : '—'));
+    /* ⚠️ LOS TRES ROTULOS SON EL TRAMO Y NADA MAS (I-E1, 22/10/2026). Decian «favorable»,
+       «no favorable» y el rotulo de la banda del medio: tres afirmaciones de resultado sobre un
+       agregado. MISMA constante que el badge, por el motivo del comentario de arriba: el agregado
+       no puede contradecir al informe individual. Las bandas no se movieron. */
     labBarras('lab-ete-wilkins-bars', [
-      { lbl: '≤8 — favorable (n=' + opt + ')',                n: opt, total: wTot.length, color: '#3ecf8e' },
-      /* MISMA constante que el badge: el comentario de arriba exige que el agregado no contradiga
-         al informe individual, y con el literal duplicado corregir uno solo lo rompía. */
-      { lbl: '9-11 — ' + WILK_9_11 + ' (n=' + bor + ')',      n: bor, total: wTot.length, color: '#f5c842' },
-      { lbl: '≥12 — no favorable (n=' + no + ')',             n: no,  total: wTot.length, color: '#f05454' }
+      { lbl: WILK_TRAMO.favorable + ' (n=' + opt + ')',    n: opt, total: wTot.length, color: '#3ecf8e' },
+      { lbl: WILK_TRAMO.suboptimo + ' (n=' + bor + ')',    n: bor, total: wTot.length, color: '#f5c842' },
+      { lbl: WILK_TRAMO.nofavorable + ' (n=' + no + ')',   n: no,  total: wTot.length, color: '#f05454' }
     ]);
   }
 
@@ -127378,7 +127639,7 @@ var _m3dA = 1.7, _m3dB = 1.45, M3D_HS = 0.25, M3D_S = 46, M3D_DD = 34;
    ⚠️ VA ACA, CON LAS OTRAS CONSTANTES DEL MODELO, y no al lado de la rama que lo usa: `_m3dBuild`
    lo lee y un `var` declarado despues se IZA con `undefined`, asi que `Math.min(x, undefined)`
    daria NaN y el chorro desapareceria sin un solo error en consola. Es la leccion que
-   `WILK_9_11` ya tiene escrita en este archivo. */
+   `WILK_TRAMO` ya tiene escrita en este archivo. */
 var M3D_JET_LEN_MAX = 3.6;
 var _m3dJet = null;
 var M3D_CEN = Object.freeze([0, 0, -2.1]);
