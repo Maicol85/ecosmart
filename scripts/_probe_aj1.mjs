@@ -2429,25 +2429,31 @@ window.__A = {
     r.suma = window.__P.val('en_suma');
     return r },
 
-  imsEscena(mec, eroa, volr) {
+  /* El mecanismo vive en teer_tipo_im y lo lee imMecanismoIM. La EROA y el Vol-R no son
+     campos: salen de PISA, asi que se alimentan sus cuatro insumos y se LEE lo que la pantalla
+     publica. Con Va 50 cm/s y Vmax 5 m/s la EROA es 0,62832 por el radio al cuadrado. */
+  imsEscena(mec, pisaR, itv) {
     var S = function(id, v2){ var e = document.getElementById(id); if (!e) return 'NO EXISTE ' + id;
       e.value = v2; e.dispatchEvent(new Event('change', { bubbles: true }));
       e.dispatchEvent(new Event('input', { bubbles: true })); return e.value };
     S('nombre', 'AJ1IMS');
-    /* El mecanismo lo contesta el panel; la app lo lee con imEsSecundariaIM. */
-    try { if (mec && typeof _indClinSet === 'function') _indClinSet('im.mecanismo', mec) } catch (e) {}
-    if (eroa) S('eroa_man', eroa);
-    if (volr) S('volr_man', volr);
-    try { if (typeof calcIM_ESC === 'function') calcIM_ESC() } catch (e) {}
-    try { if (typeof imSecAvisoSiExiste === 'function') imSecAvisoSiExiste() } catch (e) {}
+    var r = { mecSet: S('teer_tipo_im', mec) };
+    S('im_vmax', '5'); S('pisa_val', '50');
+    if (pisaR) S('pisa_r', pisaR);
+    if (itv) S('im_itv', itv);
+    try { if (typeof calcIM_ESC === 'function') calcIM_ESC() } catch (e) { r.exc = e.message }
     var el = document.getElementById('im-sec-aviso');
     var el2 = document.getElementById('im-sec-alt');
-    return { mec: (typeof imEsSecundariaIM === 'function') ? (function(){ try { return !!imEsSecundariaIM() }
-               catch (e) { return 'EXC' } })() : 'SIN FN',
-             aviso: el ? (el.textContent || '').trim() : 'NO EXISTE',
-             alt: el2 ? (el2.textContent || '').trim() : 'NO EXISTE',
-             grado: window.__P.val('im_grado'),
-             eroa: window.__P.txt('eroa-val'), volr: window.__P.txt('volr-val') } },
+    r.mec = (typeof imEsSecundariaIM === 'function') ? (function(){ try { return !!imEsSecundariaIM() }
+      catch (e) { return 'EXC' } })() : 'SIN FN';
+    r.avisoLargo = el ? (el.textContent || '').trim().length : 'NO EXISTE';
+    r.alt = el2 ? (el2.textContent || '').trim() : 'NO EXISTE';
+    r.eroa = window.__P.txt('eroa-val');
+    r.volr = window.__P.txt('volr-val');
+    r.grado = window.__P.val('im_grado');
+    r.inf = window.__P.val('informe_texto');
+    r.suma = window.__P.val('en_suma');
+    return r },
 
   iaoCampos() {
     var o = {};
@@ -2630,9 +2636,13 @@ window.__A = {
   if (corre('ims')) {
     const r = {};
     try {
-      const E = [['secundaria', '29', ''], ['secundaria', '30', ''], ['secundaria', '', '44'],
-                 ['secundaria', '', '45'], ['primaria', '30', '45'], ['', '30', '45'],
-                 ['secundaria', '', '']];
+      /* radio de PISA -> EROA publicada: 6.80 -> 29,1 · 6.91 -> 30,0 EXACTA · 7.00 -> 30,8.
+         Con la EROA en 30,0 y un VTI de 150 cm el Vol-R da 45,0 EXACTO; con 6.80 y 155 da 45,1,
+         que es la escena que aisla el corte del volumen con la EROA por debajo del suyo. */
+      const E = [['secundaria', '6.80', ''], ['secundaria', '6.91', ''], ['secundaria', '7.00', ''],
+                 ['secundaria', '6.80', '150'], ['secundaria', '6.80', '155'],
+                 ['secundaria', '6.91', '150'],
+                 ['primaria', '6.91', '150'], ['', '6.91', '150'], ['secundaria', '', '']];
       for (const e of E) {
         await ev(`window.__P.nuevo()`);
         await ev(`window.__P.despejar()`);

@@ -6206,6 +6206,13 @@ window.cerrarSesionReal = cerrarSesionReal;
              y sólo con mecanismo secundario consignado. NO cambia cortes, votos ni grado, y no llega
              al informe, EN SUMA, PDF ni Excel. -->
         <div class="calc-row"><span id="im-sec-aviso" style="color:var(--yellow);font-size:11px;"></span></div>
+        <!-- ⚠️ LA FRASE DEL CORTE ALTERNATIVO (AJ1-E5, 22/10/2026). Va DEBAJO del aviso general,
+             que se conserva entero: aquel dice que la guía ADMITE umbrales más bajos y éste dice
+             si este paciente los alcanza. Vacío por defecto: lo escribe `imSecAltPintar()`, que
+             sólo lo llena con mecanismo SECUNDARIO y con el valor cargado. Usa `--text2`, que es
+             global y existe en esta zona en los dos temas, y no `--yellow` del renglón de arriba:
+             el aviso advierte sobre el grado y esto es una medición más. -->
+        <div class="calc-row"><span id="im-sec-alt" style="color:var(--text2);font-size:11px;"></span></div>
         <!-- ══ ORIGEN DE LA REGURGITACIÓN DE LA PRÓTESIS MITRAL (PRO-B4, 2026-10-17) ═════════
              Decisión de Maicol. **NI UN CAMPO NUMÉRICO NUEVO Y NI UN CORTE MOVIDO**: los cuatro
              parámetros cuantitativos de la **Tabla 13 de la ASE 2024 (folio 30, hoja 29)** —ancho
@@ -40548,6 +40555,59 @@ function imSecAvisoPintar() {
 }
 function imSecAvisoSiExiste(){ if (typeof imSecAvisoPintar === 'function') {
   try { imSecAvisoPintar(); } catch (e) { console.warn('[imSecAviso]', e); } } }
+
+/* ══ LA FRASE DEL CORTE ALTERNATIVO DE LA IM SECUNDARIA (AJ1-E5, 22/10/2026) ══════════════════
+   El aviso de arriba dice que la ESC/EACTS 2025 ADMITE umbrales mas bajos; esta frase dice si
+   ESTE paciente los alcanza. Es DESCRIPTIVA y NO cambia el grado: la app sigue graduando con los
+   cortes de la IM PRIMARIA, que es lo que la ACC/AHA 2020 recomienda, y lo dice el aviso general,
+   que se conserva entero.
+   LOS DOS VALORES Y LAS DOS CONDICIONES, VERIFICADOS EN IMAGEN en el original: ESC/EACTS 2025,
+   §9.2.2 «Evaluation», folio 4675 — «When quantifying EROA and RVol in SMR, lower thresholds may
+   apply to define severe regurgitation because of the potential elliptical regurgitant orifice
+   and/or the low-flow state. An EROA of >=30 mm2 and/or an RVol of >=45 mL has been identified as
+   having a significant impact on outcomes» — y Figura 10, folio 4672, que escribe la condicion
+   del orificio con todas las letras: «>=40 mm2 (or >=30 mm2 if elliptical regurgitant orifice
+   area)».
+   ⚠️ LA APP NO DECIDE SI EL ORIFICIO ES ELIPTICO NI SI EL FLUJO ES BAJO, y por eso la frase los
+   NOMBRA en vez de afirmarlos: no hay campo para ninguno de los dos, y deducirlos de un numero
+   seria inventar la condicion que hace aplicable el corte.
+   ⚠️ VA SOLO A LA PANTALLA Y NO AL INFORME FIRMADO. Es la decision de la orden y es coherente con
+   el aviso de arriba, que tampoco sube: el papel publica el GRADO, que no cambia, y agregarle una
+   frase sobre un corte que la app no aplica lo pondria a nombrar dos escalas del mismo hallazgo.
+   ⚠️ EL VALOR QUE SE PUBLICA ES EL PEOR DE LOS DOS METODOS, y sale de los MISMOS numeros que
+   `calcIM_ESC` acaba de calcular -no se recalcula ninguna formula-: la EROA y el Vol-R de PISA y
+   los de la continuidad. Es la misma convencion que la regla de integracion ya usa. */
+const IMS_ALT_EROA = 30;   // mm2 — ESC/EACTS 2025, Figura 10 (folio 4672) y §9.2.2 (folio 4675)
+const IMS_ALT_VOLR = 45;   // ml  — ESC/EACTS 2025, §9.2.2 (folio 4675)
+window.IMS_ALT_EROA = IMS_ALT_EROA; window.IMS_ALT_VOLR = IMS_ALT_VOLR;
+/* Memoria de proceso, como `window._imGradoCalc`: la escribe `calcIM_ESC` donde los numeros
+   existen y la lee el pintor. NO se persiste con el estudio. */
+window._imSecAltEroa = null; window._imSecAltVolr = null;
+function imSecAltPintar() {
+  const el = document.getElementById('im-sec-alt');
+  if (!el) return;
+  let sec = false;
+  try { if (typeof imEsSecundariaIM === 'function') sec = !!imEsSecundariaIM(); }
+  catch (e) { sec = false; }
+  const e2 = window._imSecAltEroa, v2 = window._imSecAltVolr;
+  if (!sec) { el.textContent = ''; return; }
+  const partes = [];
+  if (e2 != null && isFinite(e2) && e2 >= IMS_ALT_EROA)
+    /* `toFixed(1)` y no un redondeo pelado: es el MISMO formato con que la fila de arriba
+       publica la EROA, y dos numeros distintos del mismo hallazgo en la misma pantalla es el
+       defecto que este archivo ya documenta. */
+    partes.push('el ORE de ' + e2.toFixed(1) + ' mm² alcanza el corte alternativo de la '
+      + 'ESC/EACTS 2025 (≥ ' + IMS_ALT_EROA + ' mm², aplicable con orificio elíptico)');
+  if (v2 != null && isFinite(v2) && v2 >= IMS_ALT_VOLR)
+    partes.push('el volumen regurgitante de ' + v2.toFixed(1) + ' ml alcanza el corte '
+      + 'alternativo de la ESC/EACTS 2025 (≥ ' + IMS_ALT_VOLR + ' ml, aplicable con bajo flujo)');
+  /* `textContent` y no `innerHTML`: el texto se arma de constantes de este archivo y de dos
+     numeros, y no lleva marcado. Es una frontera menos. */
+  el.textContent = partes.length ? (partes.join('; ') + '.') : '';
+}
+function imSecAltSiExiste(){ if (typeof imSecAltPintar === 'function') {
+  try { imSecAltPintar(); } catch (e) { console.warn('[imSecAlt]', e); } } }
+window.imSecAltPintar = imSecAltPintar; window.imSecAltSiExiste = imSecAltSiExiste;
 window.IM_SEC_AVISO_TXT   = IM_SEC_AVISO_TXT;
 window.imSecAvisoPintar   = imSecAvisoPintar;
 window.imSecAvisoSiExiste = imSecAvisoSiExiste;
@@ -43882,6 +43942,9 @@ function calcIM_ESC() {
   /* El aviso de mecanismo secundario, ARRIBA de todo: no depende de un solo parámetro medido y el
      `return` temprano de más abajo saldría antes de pintarlo. Ver `imSecAvisoPintar`. */
   imSecAvisoSiExiste();
+  /* La memoria del corte alternativo se vacia en CADA pasada: sin esto, borrar el radio de PISA
+     dejaria la frase del paciente anterior sobre un campo vacio. Es la regla del ARR. */
+  window._imSecAltEroa = null; window._imSecAltVolr = null;
   const _pVc = vPlaus('im_vc'), _pJetA = vPlaus('im_jet_area');
   const _pPr = vPlaus('pisa_r'), _pPv = vPlaus('pisa_val'), _pVm = vPlaus('im_vmax'), _pIt = vPlaus('im_itv');
   /* `val` viene en `null` fuera de banda y el numero esta en `crudo`: se toma el crudo para que
@@ -44045,6 +44108,7 @@ function calcIM_ESC() {
     const _eroaDud = _pPr.fuera || _pPv.fuera || _pVm.fuera;
     document.getElementById('eroa-val').textContent = eroa + ' mm²' + (_eroaDud ? MARCA_REVISAR : '');
     if (!_eroaDud) {
+      window._imSecAltEroa = PF(eroa);
       if (eroa < IM_CORTES.eroa.leve_max) { params.push({p:'EROA',sev:'leve',grupo:'pisa'}); }
       else if (eroa < IM_CORTES.eroa.sev_min) { params.push({p:'EROA',sev:'moderada',grupo:'pisa'}); }
       else { params.push({p:'EROA',sev:'severa',grupo:'pisa'}); }
@@ -44054,6 +44118,7 @@ function calcIM_ESC() {
       const _volRDud = _eroaDud || _pIt.fuera;
       document.getElementById('volr-val').textContent = volR + ' ml' + (_volRDud ? MARCA_REVISAR : '');
       if (!_volRDud) {
+        window._imSecAltVolr = PF(volR);
         if (volR < IM_CORTES.volr.leve_max) { params.push({p:'Vol-R',sev:'leve',grupo:'pisa'}); }
         else if (volR < IM_CORTES.volr.sev_min) { params.push({p:'Vol-R',sev:'moderada',grupo:'pisa'}); }
         else { params.push({p:'Vol-R',sev:'severa',grupo:'pisa'}); }
@@ -44409,6 +44474,9 @@ function calcIM_ESC() {
      ramas de Vol-R negativo y de Vol-R ≈ 0, que son las que no significan nada. */
   const _imCont = [];
   { const _ce = v('im_eroa_cont'), _cv = v('vr_cont'), _cf = v('im_fr_cont');
+    /* El PEOR de los dos metodos, que es la convencion que la integracion ya usa. */
+    if (_ce > 0 && (window._imSecAltEroa == null || _ce > window._imSecAltEroa)) window._imSecAltEroa = _ce;
+    if (_cv > 0 && (window._imSecAltVolr == null || _cv > window._imSecAltVolr)) window._imSecAltVolr = _cv;
     if (_ce > 0) _imCont.push({p:'EROA', sev: (_ce < IM_CORTES.eroa.leve_max) ? 'leve'
       : (_ce < IM_CORTES.eroa.sev_min ? 'moderada' : 'severa'), grupo:'cont'});
     if (_cv > 0) _imCont.push({p:'Vol-R', sev: (_cv < IM_CORTES.volr.leve_max) ? 'leve'
@@ -44467,6 +44535,8 @@ function calcIM_ESC() {
        «no hay insuficiencia». Si fuera '0', `sevSincronizar` lo leería como un grado calculado
        nuevo, le soltaría al médico su grado manual y lo sobrescribiría. */
     window._imGradoCalc = null;
+    /* Sin un solo parametro medido no hay ORE ni volumen que comparar: la frase se vacia. */
+    imSecAltSiExiste();
     /* ⚠️ EL BADGE SE REPINTA SIEMPRE, Y HASTA EL 2026-10-13 SÓLO EN LA RAMA PROTÉSICA. `im-sev` es
        el veredicto AUTOMÁTICO: dejarlo en «Severa» con cero parámetros es falso en la nativa igual
        que en la prótesis, y el párrafo que vivía acá lo declaraba —«es PREEXISTENTE: borrar la
@@ -44558,6 +44628,8 @@ function calcIM_ESC() {
   /* El corte que publica cada fila se repinta acá y no una sola vez al arrancar: el del jet/AI
      depende de si la válvula es protésica, y eso cambia con `vm_morf` en medio del estudio. */
   if (typeof imCortesPintar === 'function') { try { imCortesPintar(); } catch (e) {} }
+  /* La frase del corte alternativo va al FINAL, donde los dos numeros ya se registraron. */
+  imSecAltSiExiste();
   /* ⚠️ EL ORIGEN DE LA REGURGITACION PROTESICA SE REPINTA ACA (PRO-B4): sin esta linea, cambiar
      la morfologia a protesis desde el <select> de arriba mostraba el selector pero dejaba su fila
      del cuadro con el estado del paciente anterior. Las otras tres columnas son el `onchange` del
@@ -55736,6 +55808,11 @@ function limpiarCampos(silencioso) {
      corre al abrir un estudio con «Editar» y por el QR, y en esas dos rutas las respuestas del
      panel SÍ sobreviven — queda REPORTADO y no tocado, es otro alcance. */
   { const _sa = document.getElementById('im-sec-aviso'); if (_sa) _sa.textContent = ''; }
+  /* ⚠️ Y LA FRASE DEL CORTE ALTERNATIVO TAMBIEN, POR LA MISMA RAZON: los dos viven en un
+     `.calc-row` y el barrido generico de `limpiarCampos` no alcanza un `<span>` sin id de
+     resultado. Sin esta linea, la frase del paciente anterior sobrevive a «Nuevo estudio». */
+  { const _sb = document.getElementById('im-sec-alt'); if (_sb) _sb.textContent = ''; }
+  window._imSecAltEroa = null; window._imSecAltVolr = null;
   // Badges de sugerencia automática (THP, AVA, VP, etc.)
   document.querySelectorAll('[id$="-badge"]').forEach(el => el.textContent = '');
   /* ⚠️ Y LOS AVISOS, POR SUFIJO Y NO POR LISTA. Los tres que agrego «Aortica 4a»
