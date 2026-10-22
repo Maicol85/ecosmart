@@ -77810,8 +77810,15 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
      FORAMEN OVAL PERMEABLE, que publica la regla del aneurisma del septum (Silvestry 2015, folio
      916), los latidos del pasaje (folio 931) y las cuatro recomendaciones de cierre de la AHA/ASA
      2021 (Kleindorfer, folio e411) con su clase y su nivel. */
-  ex.push(['(A2) DENOMINADOR: el censo encuentra las 31 entradas de la pestana',
-    censo.n === 31, 'n=' + censo.n]);
+  /* ADAPTADO el 2026-10-22 (tanda E, commit 4): de 31 a 32 por la ficha NUEVA del HFA-PEFF, que
+     hasta hoy NO tenia entrada en Referencias -censado- asi que los veinte cortes que la app
+     aplica no estaban publicados en ninguna parte consultable. Va en «Funcion», pegada a la de
+     HTP y a la de TEP. El caso GANA una condicion que exige que la que entro sea ESA. */
+  ex.push(['(A2) DENOMINADOR: el censo encuentra las 32 entradas de la pestana',
+    censo.n === 32, 'n=' + censo.n]);
+  ex.push(['(A2b) y la que entro es la del HFA-PEFF, en la subpestana Funcion',
+    censo.filas.some(f => f.id === 'hfapeff' && f.sub === 'fun'),
+    JSON.stringify(censo.filas.filter(f => f.id === 'hfapeff'))]);
   ex.push(['(A3) NINGUNA entrada quedo fuera de una subpestana',
     censo.n > 0 && censo.filas.every(f => !!f.sub),
     'sin panel=' + censo.filas.filter(f => !f.sub).map(f => f.id).join(',')]);
@@ -77819,8 +77826,9 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
   censo.filas.forEach(f => { porSub[f.sub] = (porSub[f.sub] || 0) + 1; });
   /* ADAPTADO el 2026-10-22 (tanda D, commit 3): «Otros» pasa de 8 a 9 con la ficha del FOP, que
      va pegada a la del test de burbuja porque son el mismo tema. Los otros cuatro no se mueven. */
-  ex.push(['(A4) el reparto es 5 Dimensiones + 2 Funcion + 12 Valvulas + 3 Aorta + 9 Otros',
-    porSub.dim === 5 && porSub.fun === 2 && porSub.valv === 12 && porSub.ao === 3 && porSub.otros === 9,
+  /* ADAPTADO el 2026-10-22 (tanda E): «Funcion» pasa de 2 a 3 con la ficha del HFA-PEFF. */
+  ex.push(['(A4) el reparto es 5 Dimensiones + 3 Funcion + 12 Valvulas + 3 Aorta + 9 Otros',
+    porSub.dim === 5 && porSub.fun === 3 && porSub.valv === 12 && porSub.ao === 3 && porSub.otros === 9,
     JSON.stringify(porSub)]);
   /* Clic REAL en cada boton: activa SU panel y apaga los otros cuatro. */
   const subEstado = [];
@@ -77864,8 +77872,9 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
      dos veces. */
   /* ADAPTADO el 2026-10-22 (tanda D, commit 3): de 28 a 29 por la ficha del FOP. Los dos
      agrupadores que el indice excluye por su compuerta ESTRUCTURAL no cambian. */
-  ex.push(['(B1) DENOMINADOR: el buscador existe y su indice tiene las 29 entradas (31 menos los dos agrupadores)',
-    !!EL('ref-busca') && (function () { try { return FN('_refIndiceArmar') && window._refIndiceArmar(true).length === 29; } catch (e) { return false; } })(),
+  /* ADAPTADO el 2026-10-22 (tanda E): de 29 a 30 por la ficha del HFA-PEFF. */
+  ex.push(['(B1) DENOMINADOR: el buscador existe y su indice tiene las 30 entradas (32 menos los dos agrupadores)',
+    !!EL('ref-busca') && (function () { try { return FN('_refIndiceArmar') && window._refIndiceArmar(true).length === 30; } catch (e) { return false; } })(),
     'indice=' + (function () { try { return window._refIndiceArmar(true).length; } catch (e) { return 'EXC'; } })()]);
   ex.push(['(B2) «RWT» encuentra la GEOMETRIA DEL VI y dice su subpestana',
     !bRWT.err && bRWT.n > 0 && bRWT.ids.indexOf('vi') >= 0 && bRWT.subs.indexOf('Dimensiones') >= 0,

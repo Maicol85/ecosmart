@@ -18185,6 +18185,40 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         <b>Hemodinámica</b>. Una PSAP &gt; 35 mmHg es el disparador para mirar esa probabilidad,
         no un grado de severidad.
       </div>
+      <!-- ⚠️ CADA SIGNO CON SU CORTE Y SU FOLIO, VISTOS EN IMAGEN A 300 ppp (E4, 2026-10-22).
+           Hasta hoy esta ficha publicaba la definicion hemodinamica y el aviso de que la PSAP no
+           clasifica, y NO tenia los once signos de la Tabla 10 ni las tres bandas de la Figura 5:
+           el medico que queria saber con que se graduo su paciente no lo encontraba en
+           Referencias. Son los MISMOS cortes y los MISMOS operadores que la app aplica -esta
+           tanda no movio ninguno-: lo que entra es DONDE esta cada uno. -->
+      <div style="margin-top:14px;font-size:11px;font-weight:700;color:var(--accent2);">Probabilidad ecocardiogr&aacute;fica &mdash; los cortes, uno por uno</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:4px;">
+        <tr style="background:var(--section-head);">
+          <th style="padding:6px 8px;text-align:left;color:var(--accent2);">Criterio</th>
+          <th style="padding:6px 8px;text-align:center;color:var(--accent2);">Corte</th>
+          <th style="padding:6px 8px;text-align:left;color:var(--accent2);">Fuente</th></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">VRT pico &mdash; probabilidad <b>baja</b></td><td style="padding:5px 8px;text-align:center;font-weight:700;">&le; 2,8 m/s</td><td style="padding:5px 8px;">ESC/ERS 2022, Figura 5, folio 28 (su nota <i>a</i> agrega «o no se puede medir»)</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">VRT pico &mdash; probabilidad <b>intermedia</b></td><td style="padding:5px 8px;text-align:center;font-weight:700;">2,9&ndash;3,4 m/s</td><td style="padding:5px 8px;">ESC/ERS 2022, Figura 5, folio 28</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">VRT pico &mdash; probabilidad <b>alta</b></td><td style="padding:5px 8px;text-align:center;font-weight:700;">&gt; 3,4 m/s</td><td style="padding:5px 8px;">ESC/ERS 2022, Figura 5, folio 28</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;"><b>A</b> &middot; Cociente VD/VI &mdash; di&aacute;metro basal o &aacute;rea</td><td style="padding:5px 8px;text-align:center;font-weight:700;">&gt; 1,0</td><td style="padding:5px 8px;">ESC/ERS 2022, Tabla 10, folio 28</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;"><b>A</b> &middot; Aplanamiento del septo interventricular</td><td style="padding:5px 8px;text-align:center;font-weight:700;">IEVI &gt; 1,1 en s&iacute;stole y/o di&aacute;stole</td><td style="padding:5px 8px;">ESC/ERS 2022, Tabla 10, folio 28</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;"><b>A</b> &middot; Cociente TAPSE/PAPs</td><td style="padding:5px 8px;text-align:center;font-weight:700;">&lt; 0,55 mm/mmHg</td><td style="padding:5px 8px;">ESC/ERS 2022, Tabla 10, folio 28</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;"><b>B</b> &middot; Tiempo de aceleraci&oacute;n del TSVD</td><td style="padding:5px 8px;text-align:center;font-weight:700;">&lt; 105 ms</td><td style="padding:5px 8px;">ESC/ERS 2022, Tabla 10, folio 28</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;"><b>B</b> &middot; Muesca mesosist&oacute;lica del flujo pulmonar</td><td style="padding:5px 8px;text-align:center;font-weight:700;">presente</td><td style="padding:5px 8px;">ESC/ERS 2022, Tabla 10, folio 28</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;"><b>B</b> &middot; Velocidad de regurgitaci&oacute;n pulmonar diast&oacute;lica temprana</td><td style="padding:5px 8px;text-align:center;font-weight:700;">&gt; 2,2 m/s</td><td style="padding:5px 8px;">ESC/ERS 2022, Tabla 10, folio 28</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;"><b>B</b> &middot; Di&aacute;metro de la arteria pulmonar</td><td style="padding:5px 8px;text-align:center;font-weight:700;">&gt; 25 mm</td><td style="padding:5px 8px;">ESC/ERS 2022, Tabla 10, folio 28</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;"><b>B</b> &middot; Di&aacute;metro de la AP frente a la ra&iacute;z a&oacute;rtica</td><td style="padding:5px 8px;text-align:center;font-weight:700;">AP &gt; ra&iacute;z a&oacute;rtica</td><td style="padding:5px 8px;">ESC/ERS 2022, Tabla 10, folio 28</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;"><b>C</b> &middot; Di&aacute;metro de la VCI con colapso inspiratorio disminuido</td><td style="padding:5px 8px;text-align:center;font-weight:700;">&gt; 21 mm con colapso &lt; 50 % en inspiraci&oacute;n profunda</td><td style="padding:5px 8px;">ESC/ERS 2022, Tabla 10, folio 28</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;"><b>C</b> &middot; Colapso de la VCI con inspiraci&oacute;n superficial</td><td style="padding:5px 8px;text-align:center;font-weight:700;">&lt; 20 %, con VCI &gt; 21 mm</td><td style="padding:5px 8px;">ESC/ERS 2022, Tabla 10, folio 28</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;"><b>C</b> &middot; &Aacute;rea de la aur&iacute;cula derecha, telesist&oacute;lica</td><td style="padding:5px 8px;text-align:center;font-weight:700;">&gt; 18 cm&sup2;</td><td style="padding:5px 8px;">ESC/ERS 2022, Tabla 10, folio 28</td></tr>
+      </table>
+      <div style="margin-top:8px;font-size:11.5px;color:var(--text2);line-height:1.6;">
+        <b>Regla de conteo.</b> Los signos no se suman de a uno: la nota <i>a</i> de la Tabla 10
+        pide que haya signos de <b>al menos dos de las tres categor&iacute;as</b> (A, B y C) para
+        mover el nivel de probabilidad que da la VRT. Por eso el m&oacute;dulo informa una
+        categor&iacute;a como presente o ausente, y no cu&aacute;ntos signos tiene.
+      </div>
+
       <div style="margin-top:10px;font-size:12px;color:var(--text);line-height:1.8;">
         <b style="color:var(--accent2);">Definición ESC 2022:</b> PAP media &gt;20mmHg + RVP &gt;2 WU<br>
         • Grupo 1: HAP idiopática/hereditaria · Grupo 2: Cardiopatía izquierda (más frecuente)<br>
@@ -18287,6 +18321,85 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         derecho por infarto puede parecerse al signo de McConnell, y que un estudio normal no excluye
         el diagn&oacute;stico (&sect;4.9, folio 497.e14). Correlacionar siempre con la cl&iacute;nica y
         con la confirmaci&oacute;n diagn&oacute;stica por imagen.
+      </div>
+    </div>
+  </div>
+
+  <!-- ⚠️ FICHA NUEVA (E4, 2026-10-22). Hasta hoy el HFA-PEFF NO TENIA entrada en Referencias
+       -censado-, asi que los veinte cortes que la app aplica no estaban publicados en ninguna
+       parte consultable: el medico que queria auditar un punto tenia que leer la pantalla del
+       modulo. Cada corte VISTO EN IMAGEN a 250 y 330 ppp en el original, con su folio IMPRESO
+       comprobado en el encabezado de nueve hojas (regla folio = hoja + 3296). -->
+  <div class="card">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('hfapeff',this)">
+      🫀 HFA-PEFF &mdash; insuficiencia card&iacute;aca con FE preservada (Pieske 2019)
+      <span style="float:right;">▶</span>
+    </h2>
+    <div id="ref-hfapeff" style="display:none;" class="card-body">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <tr style="background:var(--section-head);">
+          <th style="padding:6px 8px;text-align:left;color:var(--accent2);">Resultado del puntaje</th>
+          <th style="padding:6px 8px;text-align:center;color:var(--accent2);">Puntos</th>
+          <th style="padding:6px 8px;text-align:left;color:var(--accent2);">Fuente</th></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">Diagn&oacute;stico de insuficiencia card&iacute;aca con fracci&oacute;n de eyecci&oacute;n preservada</td><td style="padding:5px 8px;text-align:center;font-weight:700;">&ge; 5</td><td style="padding:5px 8px;">Pieske 2019, texto folio 3304 y Figura 3, folio 3305</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">Zona intermedia: la gu&iacute;a manda seguir al paso 3 &mdash; prueba de esfuerzo diast&oacute;lica o medici&oacute;n hemodin&aacute;mica invasiva</td><td style="padding:5px 8px;text-align:center;font-weight:700;">2 &ndash; 4</td><td style="padding:5px 8px;">Pieske 2019, texto folio 3304 y Figura 3, folio 3305</td></tr>
+        <tr><td style="padding:5px 8px;">Diagn&oacute;stico muy improbable; la gu&iacute;a manda buscar causas alternativas</td><td style="padding:5px 8px;text-align:center;font-weight:700;">&le; 1</td><td style="padding:5px 8px;">Pieske 2019, texto folio 3304</td></tr>
+      </table>
+
+      <div style="margin-top:10px;font-size:11.5px;color:var(--text2);line-height:1.6;background:var(--bg3);border-left:3px solid var(--accent2);border-radius:6px;padding:8px 10px;">
+        <b style="color:var(--accent2);">C&oacute;mo se suman los puntos.</b> Tres dominios &mdash;funcional, morfol&oacute;gico y
+        de biomarcadores&mdash;, y cada uno aporta <b>como m&aacute;ximo 2 puntos</b>: 2 si cumple alg&uacute;n criterio
+        mayor, 1 si no cumple ninguno mayor pero s&iacute; alguno menor, y 0 si no cumple ninguno. Varios
+        criterios del mismo dominio <b>no se acumulan</b>, y los puntos s&oacute;lo se suman entre dominios
+        distintos; el total va de 0 a 6. La gu&iacute;a aclara que el puntaje se puede calcular aunque no se
+        hayan podido medir todos los par&aacute;metros. <i>(Pieske 2019, texto folio 3304.)</i>
+      </div>
+
+      <div style="margin-top:12px;font-size:11px;font-weight:700;color:var(--accent2);">Los criterios, uno por uno</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:4px;">
+        <tr style="background:var(--section-head);">
+          <th style="padding:6px 8px;text-align:left;color:var(--accent2);">Par&aacute;metro</th>
+          <th style="padding:6px 8px;text-align:center;color:var(--accent2);">Corte</th>
+          <th style="padding:6px 8px;text-align:center;color:var(--accent2);">Peso</th>
+          <th style="padding:6px 8px;text-align:left;color:var(--accent2);">Fuente</th></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">e&prime; septal</td><td style="padding:5px 8px;text-align:center;font-weight:700;">&lt; 7 cm/s (&lt; 5 si la edad es &ge; 75 a&ntilde;os)</td><td style="padding:5px 8px;text-align:center;">mayor</td><td style="padding:5px 8px;">Pieske 2019, texto folio 3303</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">e&prime; lateral</td><td style="padding:5px 8px;text-align:center;font-weight:700;">&lt; 10 cm/s (&lt; 7 si la edad es &ge; 75 a&ntilde;os)</td><td style="padding:5px 8px;text-align:center;">mayor</td><td style="padding:5px 8px;">Pieske 2019, texto folio 3303</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">E/e&prime; promedio septal-lateral</td><td style="padding:5px 8px;text-align:center;font-weight:700;">&ge; 15</td><td style="padding:5px 8px;text-align:center;">mayor</td><td style="padding:5px 8px;">Pieske 2019, Figura 3, folio 3305 y texto folio 3303</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">Velocidad pico de regurgitaci&oacute;n tricusp&iacute;dea, o PSAP</td><td style="padding:5px 8px;text-align:center;font-weight:700;">&gt; 2,8 m/s &middot; &gt; 35 mmHg</td><td style="padding:5px 8px;text-align:center;">mayor</td><td style="padding:5px 8px;">Pieske 2019, texto folio 3303</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">E/e&prime; promedio septal-lateral</td><td style="padding:5px 8px;text-align:center;font-weight:700;">9 &ndash; 14</td><td style="padding:5px 8px;text-align:center;">menor</td><td style="padding:5px 8px;">Pieske 2019, Figura 3, folio 3305 y texto folio 3303</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">Strain longitudinal global del VI</td><td style="padding:5px 8px;text-align:center;font-weight:700;">&lt; 16 %</td><td style="padding:5px 8px;text-align:center;">menor</td><td style="padding:5px 8px;">Pieske 2019, texto folio 3303</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">Volumen auricular izquierdo indexado</td><td style="padding:5px 8px;text-align:center;font-weight:700;">&gt; 34 ml/m&sup2; &middot; &gt; 40 en fibrilaci&oacute;n auricular</td><td style="padding:5px 8px;text-align:center;">mayor</td><td style="padding:5px 8px;">Pieske 2019, Figura 3, folio 3305</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">&Iacute;ndice de masa del VI con espesor parietal relativo</td><td style="padding:5px 8px;text-align:center;font-weight:700;">&ge; 149 g/m&sup2; en el var&oacute;n y &ge; 122 en la mujer, con un espesor relativo &gt; 0,42</td><td style="padding:5px 8px;text-align:center;">mayor</td><td style="padding:5px 8px;">Pieske 2019, Figura 3, folio 3305</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">Volumen auricular izquierdo indexado</td><td style="padding:5px 8px;text-align:center;font-weight:700;">29 &ndash; 34 ml/m&sup2; &middot; 34 &ndash; 40 en fibrilaci&oacute;n auricular</td><td style="padding:5px 8px;text-align:center;">menor</td><td style="padding:5px 8px;">Pieske 2019, Figura 3, folio 3305</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">&Iacute;ndice de masa del VI</td><td style="padding:5px 8px;text-align:center;font-weight:700;">&gt; 115 g/m&sup2; en el var&oacute;n y &gt; 95 en la mujer</td><td style="padding:5px 8px;text-align:center;">menor</td><td style="padding:5px 8px;">Pieske 2019, Figura 3, folio 3305</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">Espesor parietal relativo</td><td style="padding:5px 8px;text-align:center;font-weight:700;">&gt; 0,42</td><td style="padding:5px 8px;text-align:center;">menor</td><td style="padding:5px 8px;">Pieske 2019, Figura 3, folio 3305</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">Espesor de pared del VI</td><td style="padding:5px 8px;text-align:center;font-weight:700;">&ge; 12 mm</td><td style="padding:5px 8px;text-align:center;">menor</td><td style="padding:5px 8px;">Pieske 2019, Figura 3, folio 3305</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">NT-proBNP &mdash; ritmo sinusal</td><td style="padding:5px 8px;text-align:center;font-weight:700;">&gt; 220 pg/ml</td><td style="padding:5px 8px;text-align:center;">mayor</td><td style="padding:5px 8px;">Pieske 2019, Figura 3, folio 3305</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">BNP &mdash; ritmo sinusal</td><td style="padding:5px 8px;text-align:center;font-weight:700;">&gt; 80 pg/ml</td><td style="padding:5px 8px;text-align:center;">mayor</td><td style="padding:5px 8px;">Pieske 2019, Figura 3, folio 3305</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">NT-proBNP &mdash; ritmo sinusal</td><td style="padding:5px 8px;text-align:center;font-weight:700;">125 &ndash; 220 pg/ml</td><td style="padding:5px 8px;text-align:center;">menor</td><td style="padding:5px 8px;">Pieske 2019, Figura 3, folio 3305</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">BNP &mdash; ritmo sinusal</td><td style="padding:5px 8px;text-align:center;font-weight:700;">35 &ndash; 80 pg/ml</td><td style="padding:5px 8px;text-align:center;">menor</td><td style="padding:5px 8px;">Pieske 2019, Figura 3, folio 3305</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">NT-proBNP &mdash; fibrilaci&oacute;n auricular</td><td style="padding:5px 8px;text-align:center;font-weight:700;">&gt; 660 pg/ml</td><td style="padding:5px 8px;text-align:center;">mayor</td><td style="padding:5px 8px;">Pieske 2019, Figura 3, folio 3305</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">BNP &mdash; fibrilaci&oacute;n auricular</td><td style="padding:5px 8px;text-align:center;font-weight:700;">&gt; 240 pg/ml</td><td style="padding:5px 8px;text-align:center;">mayor</td><td style="padding:5px 8px;">Pieske 2019, Figura 3, folio 3305</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">NT-proBNP &mdash; fibrilaci&oacute;n auricular</td><td style="padding:5px 8px;text-align:center;font-weight:700;">365 &ndash; 660 pg/ml</td><td style="padding:5px 8px;text-align:center;">menor</td><td style="padding:5px 8px;">Pieske 2019, Figura 3, folio 3305</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">BNP &mdash; fibrilaci&oacute;n auricular</td><td style="padding:5px 8px;text-align:center;font-weight:700;">105 &ndash; 240 pg/ml</td><td style="padding:5px 8px;text-align:center;">menor</td><td style="padding:5px 8px;">Pieske 2019, Figura 3, folio 3305</td></tr>
+      </table>
+
+      <div style="margin-top:10px;font-size:11.5px;color:var(--text2);line-height:1.6;">
+        <span style="display:inline-block; border:1px solid var(--border); border-radius:4px; padding:1px 5px; margin-right:4px; font-size:9px; letter-spacing:.3px;">CRITERIO DE ECOSMART</span> <b>El puntaje provisorio.</b> Pieske 2019 dice que el
+        puntaje se puede calcular aunque falten par&aacute;metros, pero <b>no dice qu&eacute; hacer cuando falta
+        un dominio entero</b>. La app lo resuelve as&iacute;: calcula hasta d&oacute;nde podr&iacute;a llegar el puntaje si
+        el dominio sin datos aportara sus 2 puntos, y si con ese techo la categor&iacute;a cambiar&iacute;a, la
+        conclusi&oacute;n lo dice &mdash;&laquo;provisoria&raquo;&mdash;. Con un solo dominio faltante, un puntaje parcial de 2
+        es el &uacute;nico definitivo, porque 2, 3 y 4 caen todos en la zona intermedia. Es un c&aacute;lculo a
+        partir de la gu&iacute;a, no una recomendaci&oacute;n suya.
+      </div>
+
+      <div style="margin-top:10px;font-size:11.5px;color:var(--text2);line-height:1.6;">
+        <b>Dos salvedades del original.</b> El texto del folio 3304 escribe el piso del criterio menor
+        de NT-proBNP en fibrilaci&oacute;n auricular como 375 pg/ml y la Figura 3 del folio 3305 como 365: la
+        app aplica el de la <b>figura</b>. Y la velocidad de regurgitaci&oacute;n tricusp&iacute;dea y la PSAP figuran
+        como dos criterios mayores en el texto y en el <b>mismo rengl&oacute;n</b> de la Figura 3, as&iacute; que la
+        app los cuenta <b>una sola vez</b>: son dos formas de medir lo mismo.
       </div>
     </div>
   </div>
@@ -64186,7 +64299,7 @@ const REF_SUBTAB = Object.freeze({
      lo uno ni lo otro. Las 28 entradas indexadas no se mueven. */
   calc:  Object.freeze([]),
   dim:   Object.freeze(['ai', 'vi2', 'vi', 'vd2', 'ad']),
-  fun:   Object.freeze(['htp', 'tep']),
+  fun:   Object.freeze(['htp', 'tep', 'hfapeff']),
   valv:  Object.freeze(['nativas', 'protesicas']),
   ao:    Object.freeze(['ao2', 'ao', 'aocx']),
   /* `fop` va PEGADA a `burbujas` porque son el mismo tema: la ficha del FOP remite a la del
