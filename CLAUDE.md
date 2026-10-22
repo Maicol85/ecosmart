@@ -40,6 +40,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la MARCA DE MANUAL de una pastilla, el selector binario de la estenosis mitral, el VIOLETA de «Significativa», el VTI de entrada tricuspídeo, la CASILLA DE PISA de «Incluir en el informe» o lo que «Nuevo estudio» deja vivo** | `docs/mapa/valvulas-manual-binario.md` |
 | **Tocar una AORTOPATÍA —Marfan, Loeys-Dietz, Turner, ACTA2, Ehlers-Danlos vascular—, la COARTACIÓN, el texto de la VAB o el MOTOR DE EVIDENCIA DE AORTA**: la tabla y el folio de cada síndrome, el corte de dilatación con su dueño, el cuestionario o las recomendaciones por debajo de 45 mm | `docs/mapa/aorta-aortopatias-evidencia.md` |
 | **Tocar un CORTE o un OPERADOR del VD, de la AD, de la VCI o de la RAÍZ AÓRTICA**: la Tabla 1 de la ASE 2025, su evaluador, los cuatro grados de cada parámetro o el «40 mm o más» del seno | `docs/mapa/corazon-derecho-ase2025.md` |
+| **Tocar algo de la tanda AJ1**: los cortes del VD de la versión de MAYO, el strain de pared libre sin sexo, la coartación reparada, el índice de dimensión aórtica, el Ehlers-Danlos del EN SUMA, el corte alternativo de la IM secundaria o el flujo reverso de la aorta descendente | `docs/mapa/aj1-ajustes.md` |
 | **Tocar el VENTRÍCULO DERECHO**: sus TRES columnas de campos, el orden del cuadro de referencias, la disfunción sistólica, la pared graduada, el Tei, la FEVD, la relación VD/VI o el Qp | `docs/mapa/vd-derecho.md` |
 | **Tocar la casilla de la FAC, la mudanza del DIÁMETRO DE LA ARTERIA PULMONAR o el selector de VD/VI** (la tanda G3, partida a archivo propio) | `docs/mapa/vd-g3-campos.md` |
 | **Tocar una TARJETA ⓘ de AD/VCI, del VD o de la AORTA, el NOMOGRAMA de los senos de Valsalva, o sus entradas de Referencias** | `docs/mapa/evidencia-derecho-aorta.md` |
@@ -136,8 +137,8 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **9,10 MB / 129.954 líneas**, medido con `wc -l` y `wc -c` el 2026-10-21 al
-  cierre de la tanda **D3**, sobre el árbol ya sellado (`v20261021-2219`).
+  sin frameworks. Hoy **9,14 MB / 130.378 líneas**, medido con `wc -l` y `wc -c` el 2026-10-22 al
+  cierre de la tanda **AJ1**, sobre el árbol ya sellado (`v20261022-0246`, `md5` `87f14180…`).
   ⚠️ **Y ESTE RENGLÓN DECÍA «8,53 MB / 128.236 líneas» —el cierre del trabajo B— DURANTE CINCO
   TANDAS**: el B fue la primera en muchas que lo dejó más CHICO (por las 431 líneas del
   Fonocardiograma retirado) y desde entonces cada tanda escribió su delta en su propia sección sin
@@ -299,6 +300,245 @@ impecable.
 ---
 
 ## Estado vigente
+
+### Los SIETE ajustes ya decididos — «AJ1» (2026-10-22)
+
+- **Son OCHO commits, y son los ocho que la orden pedía.** Al **empezar**, `main` estaba en
+  **`acae27d`** —el cierre del D3, con su sello `v20261021-2219`— y `origin/main` en **`53ddd7a`**,
+  o sea que los siete commits del D2 y del D3 seguían locales, que es lo que la orden preveía. Los
+  **ocho** de esta tanda quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 8 → 7 → … → 1.**
+  ⚠️ **EL 2 CUELGA DEL 1 Y EL 7 DEL 3, DEL 4, DEL 5 Y DEL 6**: el 2 son las fichas que citan la
+  versión de mayo y la de `FUN-VD-007`, que afirma el corte que el 1 unifica; el 7 son las fichas
+  de todo lo nuevo, y dos de sus filas **derivan** de `AO_DIL_MM` y de `AO_IDA_MAX`, que nace en
+  el 4. Revertir el 4 sin revertir antes el 7 deja esas dos filas nombrando una constante que no
+  existe, y un `ReferenceError` ahí **aborta el `<script>` COMPLETO**.
+  ⚠️ **EL 3, EL 4, EL 5 Y EL 6 NO SE NOMBRAN ENTRE SÍ Y SE REVIERTEN EN CUALQUIER ORDEN**: el 3
+  vive en `coaConclusion`, `_indCoAo` y `evTarjetaAo`; el 4 en `AO_IDA_MAX`, `aoIdaVal`,
+  `aoIdaDilatado`, la compuerta de `_indAo` y la rama `sin_umbral` del EN SUMA; el 5 en
+  `IMS_ALT_EROA`, `IMS_ALT_VOLR`, `imSecAltPintar` y el span `#im-sec-alt`; el 6 en `ia_rev_dur`,
+  la fila `#ia-rev-dur-interp` y el bloque del reverso de `calcIA_ESC`.
+  ⚠️ **EL 1 LLEVA LA SONDA** (`scripts/_probe_aj1.mjs`), que los siete siguientes usan.
+  **El 8 es TC-516, las CUATRO adaptaciones, la documentación y el sello**, y afirma el
+  comportamiento de los siete: revertir cualquiera sin el 8 lo deja en rojo.
+  ⚠️ **EL 8 TOCA `index.html` POR DOS COSAS ADEMÁS DEL SELLO, Y LAS DOS SON CORRECCIONES DE LA
+  PROPIA TANDA**: el comentario que explicaba la marca `solapa` seguía describiendo el estado de
+  FEBRERO al lado de dos bandas que ya no la declaran, y el renglón de pantalla del reverso seguía
+  diciendo «Reversión holodiastólica ≥20 cm/s → severa. Es el **único** corte que publica la
+  guía» al lado del control que acababa de cambiar esa regla. **Las dos son el archivo
+  contradiciéndose consigo mismo, que es cómo un arreglo se deshace sin que nadie se entere.**
+
+- **Línea base al cierre: suite **526/530** con el pendrive `DISK_IMG` **MONTADO**
+  —verificado al abrir Y al cerrar—, Semgrep **124 / 0 ERROR en 1 app**, Excel en **440** columnas
+  y celular **66 a 360 px y 76 a 390 px con 17 ALTA cada uno**, con `--todo` **395 / 405**: el
+  MISMO par que dejó el D3. CERO REGRESIONES.** Los rojos son exactamente los **cuatro** de
+  ENTRADA —**TC-223** (el documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**— y
+  no apareció ninguno fuera de esa lista. **El denominador sube a 531**: esta tanda agregó
+  **TC-516**, así que la comparación es **525/529 → 526/530**.
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **530 ids** sobre los 531 casos del archivo.
+  ⚠️ **LA SUITE SE CORRIÓ TRES VECES Y LAS DOS PRIMERAS NO SON LA LÍNEA BASE.** La primera dio
+  **523/530** con **siete** rojos y la segunda **525/530** con **cinco**: los **cuatro** de más
+  entre las dos los destapó la **suite completa** y ninguna corrida de zona podía verlos
+  —**TC-205**, **TC-348**, **TC-514** y **TC-423**—. Se adaptaron y la tercera es la que vale,
+  corrida entera sobre el árbol ya re-sellado (`v20261022-0246`, `md5` `87f14180…`), con el `md5`
+  quieto de punta a punta.
+- **`index.html` pasó de 9,10 MB / 129.954 líneas a **9,14 MB / 130.378 líneas** — medido con
+  `wc -c` y `wc -l` DESPUÉS de sellar.
+  ⚠️ **SE SELLÓ DOS VECES, Y HAY QUE DECIR POR QUÉ:** el primer sello (`v20261022-0217`) quedó
+  invalidado porque **MIRAR UNA CAPTURA** destapó el renglón de pantalla que seguía describiendo
+  la regla vieja del reverso. Se corrigió, se volvió a sellar y **se volvió a medir TODO** sobre
+  el árbol final.
+
+- **AJ1-E1 y E2 · EL VD PASA A LA VERSIÓN DE MAYO, Y HAY DOS PDF DEL MISMO ARTÍCULO.** El de
+  **febrero** (creación 2025-02-28, con erratas, archivado en `Archivo_EcoSmart/Retirados`) y el de
+  **MAYO** (creación 2025-05-07, el de la biblioteca, con el mismo `md5` en
+  `03_VD_y_corazon_derecho` y en `16- HTP`). La Tabla 1 se releyó **EN IMAGEN a 300 ppp en las
+  dos** y el diff completo de la hoja 5 da **ONCE** diferencias.
+  ⚠️ **ESA FUENTE CODIFICA `≥` COMO `$` Y `≤` COMO `#`**: quien la lea sin saberlo **invierte
+  todos los operadores**. Hay que renderizar.
+  **LAS DOS QUE MUEVEN UN GRADO:** la banda leve del **TAPSE** pasa de `≤1.7 to ≥1.3` a
+  `≤1.7 to >1.3` y la de la **onda S′** de `≤9.5 to ≥7.2` a `≤9.5 to >7.2`, o sea que **1,3 cm y
+  7,2 cm/s pasan a MODERADA**. **Medido por sus bordes: 14 leve / 13 moderada y 7,3 leve / 7,2
+  moderada**, en el dueño, en la fila del cuadro y en el rótulo.
+  ⚠️ **CON ESO DESAPARECE EL SOLAPE**, y con él la marca `solapa` que esas dos bandas declaraban.
+  **El mecanismo que la lee se conserva en `vdDisfGrado`** —es genérico y hoy ninguna banda la
+  declara— y **no se deriva del operador**, porque un `>=` con `x === v` describiría el mismo
+  conjunto por coincidencia de la forma y no por una regla, y la FEVD tiene un `>=` que no solapa.
+  **El rango «leve-moderada» sigue saliendo** por el otro camino: los dos parámetros en bandas
+  distintas. **Medido, y TC-516 lo fija por los dos lados.**
+  ⚠️ **LA FEVD 3D NO CAMBIA DE GRADO:** febrero escribe la banda leve `≤45 to <39` y mayo
+  `≤45 to >39`, y los dos dejan el **39 exacto** fuera de la leve. El `op:'>'` de la tabla ya era
+  el de mayo; lo que se corrigió es la **cita del rótulo**, que en febrero se leía al revés.
+  ⚠️ **EL DIÁMETRO DE LA ARTERIA PULMONAR Y EL TIEMPO DE ACELERACIÓN NO SE TOCARON, Y SE
+  REPORTAN:** esta app **no los gradúa** —el primero tiene una banda de plausibilidad y el segundo
+  es un corte binario de la probabilidad de HTP, que esta orden congela—.
+  ⚠️ **TRES DIFERENCIAS MÁS, DECLARADAS Y NO APLICADAS:** «RAV index (area-length)» —que en mayo
+  **cierra** el hueco de 38-39 que el comentario de la tabla declaraba, y que esta app no usa—,
+  «RV E/A ratio» y «Deceleration time», las dos últimas de la **función diastólica del VD**, que
+  `ASE25_T1` no implementa. Y **dos de rótulo**: los índices de área del VD pasan de `cm2` a
+  `cm2/m2`, que es la unidad que siempre tuvieron.
+
+- **EL STRAIN DE PARED LIBRE DEJA DE DISTINGUIR SEXO.** `VD_STRAIN_NORMAL = -20`, **un solo número
+  para los dos** (Tabla 1 folio 145 y texto del folio 159; ninguno abre columnas de varón y mujer).
+  `_vdCalcular` **sigue LEYENDO el sexo** y lo publica en la ficha —es un dato del estudio que el
+  médico ve al lado del número— y lo que ya no hace es elegir el corte, así que **siempre hay
+  clasificación**: antes, sin sexo, devolvía `null`.
+  ⚠️ **EL CORTE VA CON PALABRAS Y NUNCA CON EL OPERADOR SOLO.** «Normal si es más negativo que
+  −20 %» quiere decir que −25 es normal y −18 no; escrito «< −20» es correcto y **se lee al
+  revés**. Es la lección que la leyenda de `#ref-cardiotox` ya pagó.
+  ⚠️ **`VD_STRAIN_NORMAL` ES UN `const` DE MÓDULO Y NO UNA PROPIEDAD DE `window`** —la trampa de
+  `ECO_AYUDA`— y `_vdCalcular` necesita los **dos contornos dibujados**, que un caso no puede
+  trazar: **TC-516 lo mide por COMPORTAMIENTO**, en la fila de `ref-vd2` que deriva del corte y
+  que publica el **mismo** valor en las dos columnas de sexo.
+  **Referencias:** `EV_GUIA_ASE2025VD` termina en «(versión corregida de mayo de 2025)», **trece**
+  fichas re-fechadas, **quince** líneas de fuente pasadas a «ASE 2025 de mayo (Mukherjee)…» y la
+  ficha **NUEVA `FUN-VD-007`**, con su entrada en la bibliografía y una fila **derivada** de la
+  constante.
+
+- **AJ1-E3 · LA COARTACIÓN REPARADA DEJA DE INDICAR CONTROLES EN EL PAPEL FIRMADO.**
+  `coaSeguimiento()` ya no existe: publicaba «Seguimiento anual obligatorio» en la pantalla, el
+  informe, el EN SUMA y el PDF, o sea una **conducta** en un informe firmado. Lo que queda es el
+  **hecho** —la situación y los números—, medido en las tres situaciones.
+  La recomendación pasó al **bloque VISIBLE** de `_indCoAo` (Clase I · Nivel B, imagen por
+  tomografía o resonancia **cada 3 a 5 años**, **ESC 2024 Tabla 69, folio 121**), con una cláusula
+  extra cuando la coartación ya está tratada.
+  ⚠️ **`notas` SE PINTA DENTRO DEL «Ver detalle», QUE NACE PLEGADO** —la lección que el trabajo H
+  pagó mirando la captura—, así que va en `bloques`.
+  **LA NOTA DEL OPERADOR EN EL GLOBO ⓘ DE LA AORTA:** la guía escribe el corte de **dos maneras** y
+  las dos están impresas —el apartado **9.2.1.1 (folio 71)** con `>` estricto y la **Figura 24
+  (folio 76)** bracketeando «40-44 mm», o sea inclusivo—. **El corte NO se movió** y lo único que
+  entra es decir cuál aplica la app y por qué. **Esto NO cierra `H-1`.**
+
+- **AJ1-E4 · EL ÍNDICE DE DIMENSIÓN AÓRTICA ABRE LA EVIDENCIA DE AORTA — cierra `H-2`.**
+  `AO_IDA_MAX = 22` mm/m² con operador **ESTRICTO** —el del texto; la Figura 24 **no** bracketea el
+  índice—, `aoIdaVal()` y `aoIdaDilatado()`, y `_indAo` abre con `(diámetro ≥ corte) || porIda`.
+  ⚠️ **SIN SUPERFICIE CORPORAL EL ÍNDICE ES `null` Y NO SE APLICA**: un campo vacío es SIN DATO. La
+  **fila del iDA se dibuja igual**, con `ask`, para que su ausencia no se lea como un valor normal
+  —y por eso la sección pasa de **diez filas a once**, que es lo único que hubo que adaptar en
+  TC-514—.
+  ⚠️ **`_indVAB` CONSERVA `aoDilatada()`, O SEA SÓLO EL DIÁMETRO ABSOLUTO.** Son **dos predicados**
+  donde el trabajo H había dejado uno, a propósito: las filas de la **Tabla 68** de la bicúspide
+  están escritas sobre el diámetro absoluto. **Medido: con iDA 23 la sección de aorta abre y la de
+  la bicúspide no.**
+  ⚠️ **LOS BORDES SE MIDEN CON UNA SUPERFICIE CORPORAL EXACTA, Y EL NÚMERO SALE DE LA FÓRMULA:**
+  54 kg y 150 cm dan Mosteller **1,50 exacta** (54 × 150 / 3600 = 2,25), así que `ao_tub` 31,5 /
+  33,0 / 34,5 da iDA **21 / 22 / 23** redondos —y los tres están por debajo del corte absoluto de
+  los dos sexos, de modo que **lo único que puede abrir la sección es el índice**—.
+  **EL EHLERS-DANLOS VASCULAR SUBE AL EN SUMA** con una frase **descriptiva y sin conducta**
+  —«Aorta de 48 mm en un paciente con síndrome de Ehlers-Danlos vascular.»; sin diámetro, sólo el
+  síndrome—: la guía **no publica un diámetro al que intervenir** en esa enfermedad.
+
+- **AJ1-E5 · LA IM SECUNDARIA DICE SI ESTE PACIENTE ALCANZA EL CORTE ALTERNATIVO, Y NO GRADÚA.**
+  `IMS_ALT_EROA = 30` mm² y `IMS_ALT_VOLR = 45` ml (ESC/EACTS 2025, Figura 10 folio 4672 y §9.2.2
+  folio 4675), con la **condición que la guía pone en cada uno** —orificio elíptico y bajo flujo—.
+  **Medido: `im_grado` vale lo mismo en las seis escenas**, con y sin frase; los cortes que gradúan
+  siguen siendo los de la **ACC/AHA 2020** que la app ya aplicaba.
+  ⚠️ **NO SUBE AL INFORME NI AL EN SUMA** y **no viaja con el estudio**: su id lleva **guión
+  MEDIO**, así que `_noEsDelEstudio` lo deja afuera.
+  ⚠️ **LOS BORDES TAMBIÉN SALEN DE LA FÓRMULA:** con Valiasing 50 cm/s y Vmax 5 m/s el ORE es
+  `0,62832 × r²`, así que un radio de **6,91** da **30,0 exacto**; con el ORE en 30,0 y un VTI de
+  150 cm el volumen da **45,0 exacto**.
+  **Toma el PEOR de los dos métodos**, se registra en el bloque de PISA y en el de continuidad y se
+  pinta al final de `calcIM_ESC` **y en su salida temprana** —sin eso, la escena sin datos dejaba
+  la frase del paciente anterior—.
+
+- **AJ1-E6 · EL FLUJO REVERSO DE LA AORTA DESCENDENTE SE GRADÚA POR SU DURACIÓN.** Selector nuevo
+  `ia_rev_dur`, que nace **vacío**: ausente o breve protodiastólico → leve; intermedio → moderada;
+  **holodiastólico con VTI > 15 cm → severa**, y con 15 exacto o sin VTI, moderada. **Sin la
+  duración el VTI y la velocidad se muestran y NO votan**, y las dos filas lo dicen.
+  ⚠️ **EL CORTE DE 25 cm DE ECOSMART SALIÓ.** Era un criterio propio sin fuente; el 15 cm sale de
+  la **Tabla 20-5** del libro *Ecocardiografía avanzada* (Moya Mur, cap. 20), **rotulado como libro
+  de texto y no como guía**. El 15 exacto va al lado conservador.
+  ⚠️ **`IA_VMAX_TD_SEVERA` SIGUE EN 20 CON `>=`, Y LAS DOS FUENTES NO COINCIDEN:** la EACVI 2013 y
+  la Tabla 20-5 escriben `> 20`; la ESC/EACTS 2025 —más nueva y ya verificada acá— escribe `≥ 20`.
+  Mover un operador que esta orden no autoriza es contenido clínico: queda declarado.
+  **Sin columna de Excel**: el campo viaja con el estudio y las 440 columnas no se mueven.
+
+- **AJ1-E7 · LAS FICHAS, CADA DATO CON SU FOLIO.** `AOR-004` (definición de dilatación y el iDA,
+  folios 71 y 76, DOI `10.1093/eurheartj/ehae179` leído en el pie de la hoja 2), dos filas de
+  `ref-ao2` **derivadas** de `AO_DIL_MM` y `AO_IDA_MAX`, la fila de la duración en `ref-ia` con sus
+  **dos** fuentes, el corte alternativo en `ref-im` y la línea de fuente del gradiente medio
+  aórtico en `ref-eao` (**EAE/ASE 2009, Tabla 3, folio 10**, columna AHA/ACC, con la de la ESC al
+  lado). El corte de **9 mmHg** de la pulmonar sigue rotulado «Criterio de EcoSmart».
+  ⚠️ **UNA FICHA VERIFICADA SIN DOI PONE TC-492 EN ROJO** —su condición (A8) exige tabla o figura,
+  folio **y** DOI—.
+
+- **A/B DE CONTROL contra el árbol del D3, con el formulario vacío y con un escenario AJENO: las
+  ÚNICAS diferencias son las autorizadas.** Los campos del estudio pasan de **933 a 934**
+  (`ia_rev_dur`), las `.calc-row` de **296 a 298** (`#im-sec-alt` y `#ia-rev-dur-interp`) y los
+  sueltos de 92 a 93. **CERO diferencias** en el informe en los tres estilos, el EN SUMA, el
+  **Excel en 440 columnas**, el **PDF GENERADO DE VERDAD en sus SEIS plantillas** (de 30 a 104
+  textos por celda, todas mayores que cero), el **PPT** (21), el **PDF de auditoría** (104), el
+  Laboratorio y el almacenamiento. **Consola limpia.**
+
+- **MEDIDO EN LOS DOS MOTORES** —Chrome por el canal del sistema y WebKit— **a 1200×700, 768×1024 y
+  360×740 por los dos temas, con las secciones ABIERTAS: cero scroll horizontal en las doce
+  celdas, denominador verdadero en las doce, y los textos IDÉNTICOS entre motores** —el renglón del
+  reverso, la frase del corte alternativo, los dos grados, los dos cortes del VD y la nota del
+  operador—. `--text2` resuelve **real y distinto** en los dos temas —`rgb(154,163,188)` de noche y
+  `rgb(91,100,120)` de día— y el aviso de la IM secundaria también (`rgb(245,200,66)` contra
+  `rgb(184,134,11)`). **Cero errores de página en los dos.**
+  **18 capturas PNG con 18 `md5` distintos**, y **DOS MIRADAS**: la frase del corte alternativo
+  entera, con sus acentos y su «≥ 30 mm², aplicable con orificio elíptico», al lado de un badge que
+  sigue diciendo **«Moderada — evaluar integrado»**; y el selector de duración en su tercera
+  columna, con «— sin consignar —» puesto y sin desplazar ningún campo vecino.
+  ⚠️ **Y LA PRIMERA TANDA DE MAQUETA MIDIÓ LAS TRES PIEZAS EN 0×0:** viven detrás de **DOS puertas
+  cada una** —la sección de la válvula y el cajón «Datos»—, así que «cero scroll horizontal» salía
+  sobre una pantalla que no estaba dibujada. La sonda las abre y **aborta si alguna no tiene
+  geometría**.
+
+- **Cobertura: TC-516**, **52 condiciones** en once grupos, con sus denominadores y sus controles
+  negativos. **Verificado que sabe fallar contra el árbol del D3 en un worktree aparte: 35 de las
+  52 en rojo, y NINGUNA por excepción** —las que no cumplen informan `SIN FN`, `NO EXISTE`, `NULO`
+  o `false`, que es lo que producen los centinelas—.
+- ⚠️ **CASOS ADAPTADOS: VEINTIDÓS, contados sobre las marcas del propio archivo y no a ojo**
+  —TC-113, TC-144, TC-205, TC-322, TC-348, TC-349, TC-354, TC-423, TC-463, TC-472, TC-488,
+  TC-492, TC-494, TC-496, TC-497, TC-499, TC-501, TC-502, TC-506, TC-507, TC-509 y TC-514—, cada
+  uno con el motivo escrito al lado. **CUATRO los destapó la SUITE COMPLETA** y ninguna corrida de
+  zona podía verlos:
+  **TC-205** —en siete condiciones, de las que **cuatro afirman hoy lo CONTRARIO**: sin sexo ya
+  clasifica, el −21 de la mujer es NORMAL, el panel no publica dos cortes y en la franja de −20,5
+  el sexo **ya no decide**—; **TC-348** —la velocidad telediastólica necesita hoy el reverso
+  holodiastólico, así que la escena lo consigna y el caso **gana tres condiciones** que miden esa
+  compuerta por sus dos lados—; **TC-514** —la sección de aorta pasa de diez filas a once—; y
+  **TC-423**, cuyo lector buscaba el literal del renglón que el commit 8 reescribió, **y que gana
+  una condición** que exige que el texto viejo ya no esté en el bloque.
+
+- ⚠️ **SEIS TRAMPAS, Y CUATRO DABAN MEDICIONES FALSAS.**
+  1. **UN PAR BALANCEADO DE ACENTOS GRAVES EN EL CUERPO DE UN CASO LO CIERRA IGUAL** y
+     `check_backticks.py` da «OK». Pasó **cuatro** veces —en la sonda y en tres adaptaciones— y lo
+     dio `node --check`, apuntando a la apertura del template. **Correr los dos.**
+  2. **UN REGEX LITERAL DENTRO DEL CUERPO DE UN CASO SE COCINA**: `\s` llega al motor como la letra
+     `s`, y la condición del strain contaba dos apariciones y devolvía cero sobre una fila
+     perfecta. Se cuenta con `split`.
+  3. **`/iDA/i` MATCHEA «tracto de saliDA» Y «meDIDA»**: la condición que exige que el Excel no gane
+     una columna salía roja sobre 440 columnas intactas. La sigla va **case-sensitive**.
+  4. **EL CAMPO DE LA COARTACIÓN ES `coa_vmax`, NO `coa_gmax_vmax`**, y su checkbox está en
+     `display:none` —el control real es el botón `[data-ete-chk]`—. Con los ids equivocados **la
+     escena no producía el párrafo** y el caso informaba «no está el seguimiento» sobre un informe
+     que no hablaba de la coartación. **Lo cazó el DENOMINADOR** — y la sonda, que no lo tenía,
+     había dado por buena la misma escena vacía.
+  5. **UN RENGLÓN CON `&nbsp;` NO MATCHEA UN ESPACIO COMÚN**: «VTI >15 cm» salía `false` sobre un
+     texto que se ve idéntico. Se normaliza el espacio duro antes de comparar.
+  6. **UN `assert` QUE FALLA EN UN SCRIPT DE EDICIÓN NO APLICA NADA**, porque la escritura va al
+     final: una tanda de cinco reemplazos quedó entera sin aplicar y el archivo seguía igual.
+     **Verificar con `grep` que la edición quedó.**
+
+- **Dónde está todo:** `docs/mapa/aj1-ajustes.md` (**mapa NUEVO**, 16,3 KB: las piezas por nombre,
+  el diff de las once diferencias de la ASE, la coartación, el iDA con sus dos predicados, el corte
+  alternativo, el reverso con su tabla, las fichas, las nueve trampas y cómo medir); **cinco mapas
+  con un puntero cada uno** (`corazon-derecho-ase2025` 21,1 KB · `aorta-aortopatias-evidencia` 23,7
+  · `valvulas-mitral-pantalla` 24,5 · `referencias-subpestanas` 20,1 · `valvulas-ia-it-pantalla`
+  15,2); `docs/fuentes/FUENTES.md` → «La tanda AJ1», con las **cinco reglas de folio comprobadas en
+  el pie impreso**, el diff de las dos versiones fila por fila y la tabla de **Cambios de
+  evidencia**; y `docs/PENDIENTES.md` → **H-2 marcado CERRADO** más **ocho** cosas declaradas
+  (**AJ1-1** a **AJ1-8**).
+  ⚠️ **SEIS MAPAS NO SE TOCARON, medido con `wc -c` ANTES de escribir:** `panel-evidencia.md`
+  (35,3 KB, ya cruzado), `tests-fichas.md` (34,2), `vista-2d-valvulas.md` (34,0),
+  `informe-pdf-excel.md` (34,0), `aortica-cortes.md` (33,9) y `valvulas.md` (33,9). **Ningún mapa
+  cruzó el techo.**
 
 ### La EXCURSIÓN del ASIA se carga desde «Otros» — «D3» (2026-10-21)
 

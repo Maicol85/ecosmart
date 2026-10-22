@@ -305,3 +305,16 @@ de esta zona:
   **fuente** de su tabla de tiempos, y **ni un corte de esa tabla se movió**.
 - La conclusión, el informe y el EN SUMA del FOP son **descriptivos**: sin «ESC», sin indicación
   de cierre y **sin el ACV criptogénico**, que pasa al PDF como «Motivo del estudio».
+
+---
+
+## Las fichas de la tanda AJ1 (22/10/2026)
+
+`AOR-004` (definición de dilatación y el iDA, folios 71 y 76) y `FUN-VD-007` (strain de pared libre
+del VD, folios 145 y 159) son las dos fichas nuevas; `ref-ia` gana la fila de la duración del
+reverso con sus **dos** fuentes —la EACVI 2013 y un **libro de texto**, rotulado como tal—,
+`ref-im` el corte alternativo de la IM secundaria y `ref-eao` la línea de fuente del gradiente
+medio (**EAE/ASE 2009, Tabla 3, folio 10**, columna AHA/ACC). El corte de **9 mmHg** de la pulmonar
+sigue rotulado «Criterio de EcoSmart».
+
+Detalle en **`docs/mapa/aj1-ajustes.md` § 7**.

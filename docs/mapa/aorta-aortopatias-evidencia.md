@@ -338,3 +338,19 @@ que el H no la perdió: hizo visible a 41 mm un defecto que antes aparecía a 45
 sección exige **las dos cosas** y el predicado de la válvula sale a `_indVABEsBicuspide()`, que
 comparte con `_indVABConcl`. La sección **«Aorta torácica — dilatación y aortopatía» no cambia**:
 su asunto ES la aorta. Detalle y tabla de medición en `docs/mapa/d2-correcciones.md`.
+
+---
+
+## El índice de dimensión aórtica y la coartación reparada — AJ1 (22/10/2026)
+
+`_indAo` abre hoy también por el **índice** (`aoIdaDilatado()`, `AO_IDA_MAX = 22` mm/m², operador
+estricto, ESC 2024 apartado 9.2.1.1 folio 71), **sólo con superficie corporal**: sin ella el índice
+es `null` y no se afirma nada. ⚠️ **`_indVAB` conserva `aoDilatada()`, o sea sólo el diámetro
+ABSOLUTO** —las filas de la Tabla 68 están escritas sobre él—, así que son **dos predicados**.
+
+La **coartación reparada** dejó de indicar controles en el papel firmado: `coaSeguimiento()` ya no
+existe y la recomendación pasó al **bloque VISIBLE** de `_indCoAo` (Clase I · Nivel B, imagen cada
+3 a 5 años, ESC 2024 **Tabla 69, folio 121**). El **Ehlers-Danlos vascular** gana su frase
+descriptiva en el EN SUMA, sin umbral.
+
+Detalle, fichas (`AOR-004`) y trampas en **`docs/mapa/aj1-ajustes.md` § 3 y § 4**.

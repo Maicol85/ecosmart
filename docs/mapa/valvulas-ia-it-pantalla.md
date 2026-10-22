@@ -240,3 +240,15 @@ escena que no produce el valor que se quiere medir pasa la comparación sin medi
 px en los dos temas, `elementFromPoint` sobre el centro del globo devuelve el globo en las 30
 lecturas. Es el defecto que el D1 encontró con su tarjeta más alta, que se colocaba arriba de todo
 y tapaba su propia ancla.
+
+---
+
+## El flujo reverso de la aorta descendente — AJ1 (22/10/2026)
+
+Lo gradúa su **DURACIÓN** (`<select id="ia_rev_dur">`, fila `#ia-rev-dur-interp`): ausente o breve
+protodiastólico → leve; intermedio → moderada; **holodiastólico con VTI > 15 cm → severa**, y con
+15 exacto o sin VTI, moderada. **Sin la duración el VTI y la velocidad se muestran y NO votan**, y
+las dos filas lo dicen. **El corte de 25 cm de EcoSmart salió.** `IA_VMAX_TD_SEVERA` sigue en 20
+con `>=`, declarado: la EACVI 2013 escribe `> 20` y la ESC/EACTS 2025 `≥ 20`.
+
+Detalle y fuentes en **`docs/mapa/aj1-ajustes.md` § 6**.

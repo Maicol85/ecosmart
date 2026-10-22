@@ -376,3 +376,15 @@ de la VARC-3, que es de TAVI.
 cosas; desde el PRO-B3 le pregunta al dueño, y `RPV_L` ganó el rótulo «Sin RPV».
 
 Cobertura: **TC-497**, 51 condiciones. Fuentes: `docs/fuentes/FUENTES-protesis.md`.
+
+---
+
+## El corte alternativo de la IM secundaria — AJ1 (22/10/2026)
+
+Con el mecanismo **secundario**, el span `#im-sec-alt` dice si ESTE paciente alcanza el corte
+alternativo de la ESC/EACTS 2025 —**ORE ≥ 30 mm²** con orificio elíptico, **volumen ≥ 45 ml** con
+bajo flujo— y **nombra la condición que la guía pone**. ⚠️ **NO cambia el grado** —siguen mandando
+los cortes de la ACC/AHA 2020 que la app ya aplica— y **no sube al informe ni al EN SUMA**. Su id
+lleva **guión MEDIO**, así que no viaja con el estudio.
+
+Detalle en **`docs/mapa/aj1-ajustes.md` § 5**.

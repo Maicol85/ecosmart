@@ -24048,7 +24048,7 @@ caso('TC-204', 'Visor: grupos colapsables, guia del momento del ciclo y LARS por
 
    Y sin sexo consignado NO se clasifica: un campo vacio no es una respuesta.
    NO DEPENDE DEL PENDRIVE.                                                                    */
-caso('TC-205', 'Strain VD pared libre: calculo, clasificacion por sexo y la franja donde el sexo decide', `
+caso('TC-205', 'Strain VD pared libre: calculo y clasificacion con UN SOLO corte para los dos sexos (ASE 2025 de mayo) — el sexo se lee y ya no decide', `
   return (async () => {
     const R = {};
     const alertOrig = window.alert; const dichos = [];
@@ -24124,11 +24124,15 @@ caso('TC-205', 'Strain VD pared libre: calculo, clasificacion por sexo y la fran
         R.formula = Math.abs(Rm.pct - (T.s.bordeCm - T.d.bordeCm)/T.d.bordeCm*100) < 1e-12;
         R.pct = Rm.pct;
         R.cercaDeMenos20 = Math.abs(Rm.pct + 20) < 1.5;   // la cuantizacion del clic
-        /* SIN SEXO no se clasifica, y se dice. */
-        R.sinSexoNoClasifica = Rm.normal === null && Rm.umbral === null;
+        /* ⚠️ ADAPTADO el 2026-10-22 (AJ1-E1): AFIRMA HOY LO CONTRARIO, y a proposito. La
+           version de MAYO de la ASE 2025 publica UN SOLO corte para los dos sexos -Tabla 1
+           folio 145 y texto del folio 159-, asi que SIN sexo consignado la app YA clasifica:
+           el umbral no depende de un dato que puede faltar. */
+        R.sinSexoClasifica = Rm.normal !== null && Rm.umbral === -20;
       }
-      R.sinSexoAvisa = /El campo Sexo del estudio está vacío/.test(barra());
-      R.muestraLosDosCortes = /−20 ?%/.test(barra()) && /−21 ?%/.test(barra());
+      /* Y por eso el panel ya no avisa de que falta el sexo ni muestra DOS cortes. */
+      R.sinSexoNoAvisa = !/El campo Sexo del estudio está vacío/.test(barra());
+      R.unSoloCorte = /−20 ?%/.test(barra()) && !/−21 ?%/.test(barra());
 
       /* ── 3 · CLASIFICACION, los dos lados de cada corte ──
          ⚠️ SE PREGUNTA A _vdCalcular, NO se recalcula aca. Mi primera version tenia un helper
@@ -24155,21 +24159,31 @@ caso('TC-205', 'Strain VD pared libre: calculo, clasificacion por sexo y la fran
       R.m_18  = clasificar(-18, 'F');
       R.m_21  = clasificar(-21, 'F');
       R.ladosM = R.h_25 === true && R.h_18 === false && R.h_20 === false;
-      R.ladosF = R.m_25 === true && R.m_18 === false && R.m_21 === false;
-      /* LA FRANJA QUE IMPORTA: -20,5 % es NORMAL en hombre y ANORMAL en mujer. Sin esto, los
-         dos umbrales podrian ser el mismo numero y nada lo notaria. */
+      /* ⚠️ ADAPTADO el 2026-10-22 (AJ1-E1): el -21 de la mujer AFIRMA HOY LO CONTRARIO. Con el
+         corte unico de -20, un -21 es MAS negativo y por lo tanto NORMAL; el -21 era el corte
+         de la mujer en la version de FEBRERO, que abria columnas por sexo. La mujer se mide hoy
+         por los MISMOS tres valores que el varon. */
+      R.ladosF = R.m_25 === true && R.m_18 === false && R.m_21 === true;
+      /* LA FRANJA QUE IMPORTABA: -20,5 % daba NORMAL en hombre y ANORMAL en mujer. Con un solo
+         corte el sexo YA NO DECIDE, y eso es lo que esta condicion pasa a exigir -por los dos
+         lados, para que un corte por sexo reintroducido se note-. */
       R.franjaH = clasificar(-20.5, 'M');
       R.franjaM = clasificar(-20.5, 'F');
-      R.sexoDecide = R.franjaH === true && R.franjaM === false;
-      /* Y sin sexo, en la misma franja, sigue sin clasificar. */
+      R.sexoNoDecide = R.franjaH === true && R.franjaM === true;
+      /* Y sin sexo, en la misma franja, clasifica IGUAL que con los dos sexos. */
       R.franjaSinSexo = clasificar(-20.5, '');
 
       /* ── 4 · con sexo consignado SI clasifica, y lo dice ── */
       setSexo('M');
       const Rh = await parVD(300,200, 240,160);
       R.conSexoClasifica = !!(Rh && Rh.sexo === 'M' && Rh.umbral === -20 && Rh.normal !== null);
-      R.panelDiceSexo = /consignado como <b>masculino/.test(barra());
-      R.panelDiceCorte = /corte aplicado es <b>-20|corte aplicado es <b>−20/.test(barra().replace(/\\u2212/g,'-'));
+      /* ⚠️ ADAPTADO el 2026-10-22 (AJ1-E1): el panel ya no nombra el sexo del paciente para
+         justificar el corte -no lo elige- y pasa a DECLARAR que es el mismo para los dos. El
+         sexo se sigue LEYENDO y publicando en la ficha, que es lo que mide conSexoClasifica. */
+      R.panelDiceUnSoloCorte = /igual en hombres y en mujeres/.test(barra());
+      R.panelCitaMayo = /ASE 2025 de mayo/.test(barra()) && /folio 145/.test(barra())
+                        && /folio 159/.test(barra());
+      R.panelDiceCorte = /más negativo que −20 %/.test(barra());
       /* El texto usa PALABRAS, no el operador solo. */
       R.textoConPalabras = /más negativo que/.test(barra());
 
@@ -24237,14 +24251,14 @@ caso('TC-205', 'Strain VD pared libre: calculo, clasificacion por sexo y la fran
       ['usa bordeCm de los dos trazados (exacto)',  R.usaBorde, R.hay],
       ['la formula es (Ls-Ld)/Ld (exacto)',         R.formula, R.pct],
       ['y coincide con la geometria conocida',      R.cercaDeMenos20, 'medido ' + (R.pct||0).toFixed(2) + ' esperado -20'],
-      ['SIN sexo consignado NO clasifica',          R.sinSexoNoClasifica, R.sinSexoNoClasifica],
-      ['y lo declara mostrando los dos cortes',     R.sinSexoAvisa && R.muestraLosDosCortes, R.sinSexoAvisa],
+      ['SIN sexo consignado SI clasifica (AJ1)',    R.sinSexoClasifica, R.sinSexoClasifica],
+      ['y el panel no avisa ni publica dos cortes', R.sinSexoNoAvisa && R.unSoloCorte, R.unSoloCorte],
       ['hombre: -25 normal, -18 y -20 no',          R.ladosM, 'h25=' + R.h_25 + ' h18=' + R.h_18 + ' h20=' + R.h_20],
-      ['mujer: -25 normal, -18 y -21 no',           R.ladosF, 'm25=' + R.m_25 + ' m18=' + R.m_18 + ' m21=' + R.m_21],
-      ['EN LA FRANJA -20/-21 EL SEXO DECIDE',       R.sexoDecide, '-20,5 %: hombre ' + R.franjaH + ' / mujer ' + R.franjaM],
-      ['y sin sexo en esa franja no clasifica',     R.franjaSinSexo === null, R.franjaSinSexo],
-      ['con sexo consignado clasifica y lo dice',   R.conSexoClasifica && R.panelDiceSexo, R.panelDiceSexo],
-      ['el corte aplicado se nombra',               R.panelDiceCorte, R.panelDiceCorte],
+      ['mujer: los MISMOS tres valores (AJ1)',      R.ladosF, 'm25=' + R.m_25 + ' m18=' + R.m_18 + ' m21=' + R.m_21],
+      ['EN LA FRANJA -20/-21 EL SEXO YA NO DECIDE', R.sexoNoDecide, '-20,5 %: hombre ' + R.franjaH + ' / mujer ' + R.franjaM],
+      ['y sin sexo en esa franja clasifica igual',  R.franjaSinSexo === true, R.franjaSinSexo],
+      ['con sexo consignado clasifica y lo dice',   R.conSexoClasifica && R.panelDiceUnSoloCorte, R.panelDiceUnSoloCorte],
+      ['el corte aplicado se nombra, con su folio', R.panelDiceCorte && R.panelCitaMayo, R.panelDiceCorte],
       ['el texto usa palabras, no el operador solo', R.textoConPalabras, R.textoConPalabras],
       ['un acortamiento imposible se declara',      R.xNoPlausible && R.xAvisa, R.xPct],
       ['y el disclaimer sigue ahi',                 R.xDisc, R.xDisc],
@@ -49746,8 +49760,15 @@ caso('TC-348', 'IAo Vmax telediastolica en Ao desc.: vota SOLO severa desde 20 c
     try { return _labExcelRow({ campos: campos }); } catch (e) { return { ERROR: e.message }; } };
   /* La Vmax telediastolica va como UNICO insumo a proposito: asi el grado integrado es su voto y
      nada mas, y cualquier cambio de banda se ve sin que otro votante lo tape. */
-  const esc = (vtd) => { __t.limpiar(); window.esqSevManual = {};
+  /* ⚠️ ADAPTADO el 2026-10-22 (AJ1-E6): LA ESCENA CONSIGNA LA DURACION DEL REVERSO. Desde esa
+     tanda la velocidad telediastolica vota severa SOLO con reverso HOLODIASTOLICO —las dos
+     celdas de la Tabla 20-5 y la fila de la Tabla 4 de la EACVI 2013 empiezan por esa palabra—,
+     asi que sin la duracion el campo se muestra y NO gradua. El corte y el operador NO se
+     movieron: lo que cambia es que ahora hay una condicion previa, y el bloque de abajo la mide
+     por los dos lados. */
+  const esc = (vtd, dur) => { __t.limpiar(); window.esqSevManual = {};
     __t.set('nombre','TC348');
+    __t.set('ia_rev_dur', dur === undefined ? 'holo' : dur);
     if (vtd !== null) __t.set('ia_vmax_td', vtd);
     try { calcIA_ESC(); } catch (e) {}
     const r = __t.informe(); const p = pdfTxt(); const x = excelRow();
@@ -49759,13 +49780,20 @@ caso('TC-348', 'IAo Vmax telediastolica en Ao desc.: vota SOLO severa desde 20 c
   const v15 = esc('15');
   const v20 = esc('20');
   const v25 = esc('25');
-  const nada = esc(null);
+  /* ⚠️ SIN duracion a proposito: desde el AJ1-E6 un reverso holodiastolico vota moderada POR SI
+     SOLO, asi que «sin el campo cargado no se escribe grado alguno» sólo es medible con la
+     escena entera vacía. */
+  const nada = esc(null, '');
   /* 150 y 12 son los valores que un estudio GUARDADO bajo la banda vieja puede traer: con
      100/200 vigentes, 150 era «moderada» y 12 era «leve». No se migro nada, pero reabrir corre
      calcIA_ESC otra vez, asi que el grado se recalcula con el corte nuevo. Se fija lo que hace
      cada camino con lo viejo — es la declaracion que pide la regla de estudios guardados. */
   const vViejoMod  = esc('150');
   const vViejoLeve = esc('12');
+  /* LA COMPUERTA DEL AJ1-E6, por sus dos lados y con el MISMO valor: 25 cm/s vota severa con
+     reverso holodiastolico y NO vota sin consignar la duracion ni con un reverso breve. */
+  const v25sinDur = esc('25', '');
+  const v25breve  = esc('25', 'breve');
   /* GRADO RANCIO — ADAPTADO EL 2026-10-13. Este bloque fijaba el LIMITE contrario: «retirar el
      grado auto-derivado en nativa es decision clinica de Maicol y NO se toca», y lo fijaba justo
      para que no cambiara en silencio. Maicol tomo la decision el 2026-10-13 (regla 1), asi que
@@ -49776,13 +49804,19 @@ caso('TC-348', 'IAo Vmax telediastolica en Ao desc.: vota SOLO severa desde 20 c
      pantalla («el renglon dice No grada sobre un grado severo»), se da vuelta tambien: hoy las dos
      mitades dicen lo mismo. */
   __t.limpiar(); window.esqSevManual = {};
-  __t.set('nombre','TC348r'); __t.set('ia_vmax_td','25');
+  __t.set('nombre','TC348r'); __t.set('ia_rev_dur','holo'); __t.set('ia_vmax_td','25');
   try { calcIA_ESC(); } catch (e) {}
   const rancioAntes = __t.val('ia_grado');
   __t.set('ia_vmax_td','15');
   try { calcIA_ESC(); } catch (e) {}
   const rancioDespues = __t.val('ia_grado');
+  /* ⚠️ EL RENGLON SE LEE ANTES DE DESHACER EL GESTO: sacar la duracion le cambia el texto, asi
+     que leerlo despues mide la escena SIGUIENTE. Es la trampa que este archivo ya documenta. */
   const rancioInterp = __t.txt('ia-vtd-interp');
+  /* Y el MISMO gesto con la duracion retirada: sin ningun votante el grado vuelve al centinela. */
+  __t.set('ia_rev_dur','');
+  try { calcIA_ESC(); } catch (e) {}
+  const rancioSinDur = __t.val('ia_grado');
   __t.limpiar(); window.esqSevManual = {};
   if (prev) { try { setEstiloInforme(prev); } catch (e) {} }
   return { extra: [
@@ -49811,12 +49845,16 @@ caso('TC-348', 'IAo Vmax telediastolica en Ao desc.: vota SOLO severa desde 20 c
       'IAograd=' + v25.xlsGrado + ' I=' + v25.xlsI + ' III=' + v25.xlsIII],
     /* CONTROL NEGATIVO. Es la mitad del cambio y la que prueba que la sonda distingue: con la banda
        vieja 15 cm/s votaba LEVE y arrastraba las cuatro superficies a «IAo leve». */
-    ['⚠️ CONTROL NEGATIVO — 15 cm/s NO grada: no vota leve ni nada',
-      v15.grado === '0' && v15.badge === '—', 'grado=' + v15.grado + ' badge=' + v15.badge],
+    /* ⚠️ ADAPTADO el 2026-10-22 (AJ1-E6): con el reverso holodiastolico la DURACION ya vota
+       moderada por si sola, asi que el control deja de medir «grado 0» y pasa a medir lo que de
+       verdad prueba —que 15 cm/s NO ESCALA a severa—, que es la mitad que distingue 15 de 20. */
+    ['⚠️ CONTROL NEGATIVO — 15 cm/s NO escala a severa: el grado lo pone la duracion',
+      v15.grado === '2' && v20.grado === '4',
+      'v15=' + v15.grado + ' (' + v15.badge + ') v20=' + v20.grado],
     ['  y la pantalla lo DICE en vez de pintar un verde tranquilizador',
       v15.interp.indexOf('No grad') > -1 && v15.interp.toLowerCase().indexOf('leve') === -1,
       'ia-vtd-interp=' + v15.interp],
-    ['  CONTROL en las cuatro superficies: con 15 cm/s ninguna afirma un grado de IAo',
+    ['  CONTROL en las cuatro superficies: con 15 cm/s ninguna afirma IAo severa ni leve',
       v15.inf.indexOf('insuficiencia severa') === -1 &&
       v15.suma.indexOf('IAo leve') === -1 && v15.suma.indexOf('IAo severa') === -1 &&
       v15.xlsI === 0 && v15.xlsIII === 0,
@@ -49829,21 +49867,38 @@ caso('TC-348', 'IAo Vmax telediastolica en Ao desc.: vota SOLO severa desde 20 c
         return t.indexOf('100–200') === -1 && t.indexOf('&gt;200 cm/s') === -1 &&
                t.indexOf('≥20 cm/s') > -1; })(),
       'la tarjeta sigue mostrando 100/200'],
+    /* ── LA COMPUERTA DE LA DURACION (AJ1-E6, 22/10/2026) ── */
+    ['⚠️ AJ1 — SIN consignar la duracion, los MISMOS 25 cm/s NO votan, y la fila lo DICE',
+      v25sinDur.grado === '0' && v25sinDur.interp.indexOf('falta consignar la duraci') > -1,
+      'grado=' + v25sinDur.grado + ' interp=' + v25sinDur.interp],
+    ['  y con un reverso BREVE protodiastolico tampoco vota severa: la duracion manda',
+      v25breve.grado === '1', 'grado=' + v25breve.grado + ' interp=' + v25breve.interp],
+    ['  CONTROL: ninguna de las dos escenas afirma severa en el informe ni en el EN SUMA',
+      v25sinDur.suma.indexOf('IAo severa') === -1 && v25breve.suma.indexOf('IAo severa') === -1,
+      'sinDur=' + v25sinDur.suma + ' | breve=' + v25breve.suma],
     /* ── Lo que el cambio le hace a lo YA GUARDADO. No es un arreglo: es la declaracion medida. ── */
     ['DECLARADO — un guardado viejo con 150 cm/s (era «moderada») se reimprime SEVERA',
       vViejoMod.grado === '4' && vViejoMod.suma.indexOf('IAo severa.') > -1,
       'grado=' + vViejoMod.grado + ' suma=' + vViejoMod.suma],
-    ['DECLARADO — un guardado viejo con 12 cm/s (era «leve») pasa a NO votar',
-      vViejoLeve.grado === '0' && vViejoLeve.suma.indexOf('IAo leve') === -1,
-      'grado=' + vViejoLeve.grado + ' suma=' + vViejoLeve.suma],
+    /* ⚠️ ADAPTADO el 2026-10-22 (AJ1-E6): el 12 sigue sin votar —su fila lo dice— y el grado
+       que queda es el que pone la DURACION, no el que ponia la banda vieja de «leve». */
+    ['DECLARADO — un guardado viejo con 12 cm/s (era «leve») sigue sin votar por su cuenta',
+      vViejoLeve.suma.indexOf('IAo leve') === -1
+        && vViejoLeve.interp.indexOf('No grad') > -1,
+      'grado=' + vViejoLeve.grado + ' interp=' + vViejoLeve.interp + ' suma=' + vViejoLeve.suma],
     /* ── ADAPTADAS el 2026-10-13: antes fijaban que el grado rancio NO se retiraba en nativa. ── */
     ['DENOMINADOR del rancio: 25 cm/s dejo el grado en severa antes de bajar a 15',
       rancioAntes === '4', 'grado tras 25 = ' + rancioAntes],
-    ['al bajar 25 -> 15 sin limpiar, el grado severo SE RETIRA al centinela (regla 1, 13/10/2026)',
-      rancioDespues === '0', 'grado tras 15 = ' + rancioDespues],
-    ['  y la pantalla YA NO se contradice: el renglon dice «No grada» y el grado quedo sin dato',
-      rancioInterp.indexOf('No grad') > -1 && rancioDespues === '0',
-      'ia-vtd-interp=' + rancioInterp + ' grado=' + rancioDespues],
+    /* ⚠️ ADAPTADO el 2026-10-22 (AJ1-E6): el grado severo SE RETIRA igual, y lo que queda es el
+       de la DURACION, que sigue consignada. La segunda mitad —el retiro HASTA EL CENTINELA— se
+       mide sacando tambien la duracion, que es la escena sin ningun votante. */
+    ['al bajar 25 -> 15 sin limpiar, el grado severo SE RETIRA (regla 1, 13/10/2026)',
+      rancioAntes === '4' && rancioDespues === '2',
+      'grado tras 25 = ' + rancioAntes + ' / tras 15 = ' + rancioDespues],
+    ['  y sacando tambien la duracion no queda ningun votante: vuelve al centinela',
+      rancioSinDur === '0', 'grado sin duracion = ' + rancioSinDur],
+    ['  y la pantalla YA NO se contradice: el renglon dice «No grada» para la velocidad',
+      rancioInterp.indexOf('No grad') > -1, 'ia-vtd-interp=' + rancioInterp],
   ] };
 `);
 
@@ -58550,10 +58605,19 @@ caso('TC-423', 'Valvulas, pantalla: en el celular los campos de cada lesion arra
                     jet: rot('ia_jet_diam'), vc: rot('ia_vc'), vmax: rot('ea_vmax') };
   const tituloCuant = (function () { const c = g('bloque-insuf-aortica');
     return c ? /Insuficiencia A.rtica .{1,3} Cuantificaci.n/.test(c.textContent || '') : 'falta'; })();
+  /* ⚠️ ADAPTADO el 2026-10-22 (AJ1-E6): el renglon se REESCRIBIO. Decia «Reversion
+     holodiastolica >=20 cm/s -> severa. Es el UNICO corte que publica la guia», y desde que el
+     reverso se gradua por su DURACION eso dejo de ser cierto. Lo que esta condicion afirma no
+     cambia —que la frase vive en el BLOQUE y no dentro del campo, que es por lo que bajo— y lo
+     que se mueve es la cadena por la que se la busca. Se agrega el literal nuevo para que el
+     dia que vuelva a reescribirse se note, igual que la vez pasada. */
   const notaHolo = (function () { const c = g('bloque-insuf-aortica');
     if (!c) return 'falta'; const fg = g('ia_vmax_td') ? g('ia_vmax_td').closest('.fg') : null;
-    const dentro = !!(fg && /Reversi/.test(fg.textContent || ''));
-    return { enElBloque: /Reversi/.test(c.textContent || ''), dentroDelCampo: dentro }; })();
+    const RX = /El reverso se grad/;
+    const dentro = !!(fg && RX.test(fg.textContent || ''));
+    return { enElBloque: RX.test(c.textContent || ''), dentroDelCampo: dentro,
+             /* Y el texto VIEJO ya no esta en ninguna parte del bloque. */
+             sinElViejo: (c.textContent || '').indexOf('nico corte que publica') === -1 }; })();
 
   /* ── (6) LOS OCHO CAJONES DE CAMPOS EXISTEN, Y NINGUNO MAS ──────────────────────────────── */
   /* ⚠️ LA MITRAL SALIO DEL CONTROL NEGATIVO (2026-10-09, decision de Maicol), Y CON ELLA SE
@@ -58661,7 +58725,8 @@ caso('TC-423', 'Valvulas, pantalla: en el celular los campos de cada lesion arra
       /^Vmax ao \\(m\\/s\\)/.test(String(rotulos.vmax)), JSON.stringify(rotulos)],
     ['el titulo «Insuficiencia Aortica — Cuantificacion» se fue', tituloCuant === false, 'presente=' + tituloCuant],
     ['la frase de la reversion holodiastolica quedo en el bloque, FUERA del campo',
-      notaHolo.enElBloque === true && notaHolo.dentroDelCampo === false, JSON.stringify(notaHolo)],
+      notaHolo.enElBloque === true && notaHolo.dentroDelCampo === false
+        && notaHolo.sinElViejo === true, JSON.stringify(notaHolo)],
 
     ['la REGLA de la PC existe y nombra los OCHO contenedores con display:block !important',
       !!regla && regla.prio === 'important', regla ? JSON.stringify(regla) : '(no se encontro la regla @media 769px)'],
@@ -83119,8 +83184,13 @@ caso('TC-514', 'Tanda D2: el corte del aneurisma del septum con el operador ESTR
   ex.push(['(E3) y el TIPO de fusion es la otra puerta',
     (function(){ __t.limpiar(); __t.set('vab_tipo','fused_rl'); __t.set('ao_tub','41');
       return SECVAB() === 5; })(), '']);
+  /* ⚠️ ADAPTADO el 2026-10-22 (AJ1-E4): la seccion de aorta pasa de DIEZ filas a ONCE porque
+     gana la del INDICE DE DIMENSION AORTICA, que se dibuja SIEMPRE —tambien sin superficie
+     corporal, con 'ask'— para que su ausencia no se lea como un valor normal. Lo que este
+     control afirma no cambia: que la seccion no depende de la valvula (T41 y B41 dan lo mismo)
+     y que a 38 mm sigue sin abrir. */
   ex.push(['(CONTROL E4) la seccion de AORTA TORACICA no cambia: su asunto es la aorta',
-    T41.ao === 10 && B41.ao === 10 && T38.ao === null, JSON.stringify([T38.ao, T41.ao, B41.ao])]);
+    T41.ao === 11 && B41.ao === 11 && T38.ao === null, JSON.stringify([T38.ao, T41.ao, B41.ao])]);
   ex.push(['(CONTROL E5) las dos secciones de la bicuspide comparten el dueno del predicado',
     FN2('_indVABEsBicuspide'), String(FN2('_indVABEsBicuspide'))]);
 
@@ -83529,6 +83599,382 @@ caso('TC-515', 'Tanda D3: la excursion del aneurisma se puede cargar DESDE «Otr
   return { extra: ex };
   })();
 `);
+/* ══ TC-516 — LA TANDA AJ1 ══════════════════════════════════════════════════════════════════
+   ⚠️ SIN ACENTOS GRAVES EN EL CUERPO, ni en los comentarios: un par BALANCEADO cierra el
+   template igual y scripts/check_backticks.py da «OK». Lo caza node --check. */
+caso('TC-516', 'Tanda AJ1: los cortes del VD pasan a la version de MAYO de la ASE 2025 -TAPSE 13 y onda S prima 7,2 a MODERADA, sin solape- y el strain de pared libre deja de distinguir sexo; la coartacion reparada sin «Seguimiento anual obligatorio» en ninguna superficie y su recomendacion en el bloque VISIBLE de la Evidencia; la nota del operador de la dilatacion; el indice de dimension aortica abriendo la Evidencia de aorta solo con superficie corporal; el Ehlers-Danlos vascular en el EN SUMA; la IM secundaria nombrando el corte alternativo SIN cambiar el grado; el flujo reverso graduado por su DURACION con el corte de 25 cm retirado; y el informe, el EN SUMA, el PDF, el PPT, el Laboratorio y las 440 columnas del Excel sin moverse', `
+  const ex = [];
+  const EL = (id) => document.getElementById(id);
+  const V = (id) => { const e = EL(id); return e ? String(e.value == null ? '' : e.value) : 'NO EXISTE ' + id; };
+  const T = (id) => { const e = EL(id); return e ? String(e.textContent || '').trim() : 'NO EXISTE ' + id; };
+  const FN = (n) => typeof window[n] === 'function';
+  const INF = () => { try { return __t.informe(); } catch (e) { return { inf:'EXC', suma:'EXC' }; } };
+  /* Centinela de TEXTO en cada lectura: contra HEAD varias de estas piezas no existen, y un
+     TypeError se lleva la corrida entera y deja de distinguir «el arbol es distinto» de «el
+     caso sabe medir». Es la leccion que TC-455, TC-462 y TC-474 ya tienen escrita. */
+  const GRADO = (clave, x) => { try { return FN('ase25Grado') ? String(ase25Grado(clave, x)) : 'SIN FN'; }
+    catch (e) { return 'EXC'; } };
+  const DISF = (t, s) => { try { return FN('vdDisfGrado') ? String(vdDisfGrado(t, s) || 'NULO') : 'SIN FN'; }
+    catch (e) { return 'EXC'; } };
+  const limpio = () => { __t.limpiar(); window.esqSevManual = {}; };
+
+  /* ══ (a) LOS CORTES DEL VD, EN SUS BORDES EXACTOS ══════════════════════════════════════ */
+  ex.push(['(DENOM a) el dueno de la Tabla 1 y el evaluador del VD existen',
+    FN('ase25Grado') && FN('vdDisfGrado') && typeof window.ASE25_T1 === 'object',
+    'ase25Grado=' + FN('ase25Grado') + ' vdDisfGrado=' + FN('vdDisfGrado')]);
+  ex.push(['(a1) TAPSE: 14 leve · 13 EXACTO MODERADA (version de MAYO, operador estricto)',
+    GRADO('tapse', 14) === 'leve' && GRADO('tapse', 13) === 'moderada' && GRADO('tapse', 12) === 'moderada',
+    [14, 13, 12].map(x => GRADO('tapse', x)).join('/')]);
+  ex.push(['(a2) onda S prima: 7,3 leve · 7,2 EXACTO MODERADA',
+    GRADO('s_prime', 7.3) === 'leve' && GRADO('s_prime', 7.2) === 'moderada' && GRADO('s_prime', 7.1) === 'moderada',
+    [7.3, 7.2, 7.1].map(x => GRADO('s_prime', x)).join('/')]);
+  ex.push(['(a3) NINGUNA banda declara ya la marca de solape, asi que el borde cae en UNA sola',
+    (function(){ const t = window.ASE25_T1; if (!t) return false;
+      return t.tapse.bandas[1].solapa === undefined && t.s_prime.bandas[1].solapa === undefined; })(),
+    '']);
+  ex.push(['(a4) y por eso vdDisfGrado ya NO devuelve el rango en esos dos bordes',
+    DISF('13', null) === 'moderada' && DISF(null, '7.2') === 'moderada' && DISF('13', '7.2') === 'moderada',
+    DISF('13', null) + ' / ' + DISF(null, '7.2') + ' / ' + DISF('13', '7.2')]);
+  ex.push(['(a5) CONTROL: con los dos en bandas DISTINTAS el rango sigue saliendo',
+    DISF('15', '6') === 'leve-moderada', DISF('15', '6')]);
+  ex.push(['(a6) CONTROL: la FEVD 3D no se movio — 40 leve, 39 y 38 moderada',
+    GRADO('fevd', 40) === 'leve' && GRADO('fevd', 39) === 'moderada' && GRADO('fevd', 38) === 'moderada',
+    [40, 39, 38].map(x => GRADO('fevd', x)).join('/')]);
+  ex.push(['(a7) CONTROL: el TAPSE normal sigue en 17, la FAC y las areas no se movieron',
+    window.UMBRAL_TAPSE_NORMAL === 17 && GRADO('tapse', 17) === 'leve' && GRADO('tapse', 17.1) === 'normal'
+      && GRADO('vd_fac', 30) === 'leve' && GRADO('vd_fac', 29) === 'moderada'
+      && GRADO('ad_area', 18) === 'normal' && GRADO('ad_area', 19) === 'leve'
+      && GRADO('vd_area_d', 25) === 'leve' && GRADO('vd_pared', 5) === 'leve',
+    'tapse17=' + GRADO('tapse', 17) + ' fac29=' + GRADO('vd_fac', 29) + ' ad19=' + GRADO('ad_area', 19)]);
+  /* Lo RENDERIZADO, con el rotulo que el cuadro publica. */
+  limpio(); __t.set('nombre', 'TC516VD'); __t.set('tapse', '13');
+  try { if (FN('calcVD')) calcVD(); } catch (e) {}
+  const fila13 = T('tapse-interp');
+  limpio(); __t.set('nombre', 'TC516VD'); __t.set('tapse', '14');
+  try { if (FN('calcVD')) calcVD(); } catch (e) {}
+  const fila14 = T('tapse-interp');
+  ex.push(['(a8) la FILA del cuadro lo publica: 13 moderada, 14 leve, y el rotulo dice «>13»',
+    fila13.indexOf('moderada') > -1 && fila14.indexOf('leve') > -1
+      && fila14.indexOf('>13') > -1 && fila14.indexOf('\\u226513') < 0,
+    '13 -> ' + fila13 + ' | 14 -> ' + fila14]);
+
+  /* ══ (a bis) EL STRAIN DE PARED LIBRE, SIN SEXO ════════════════════════════════════════ */
+  /* ⚠️ VD_STRAIN_NORMAL es un const de MODULO y no una propiedad de window —la trampa de
+     ECO_AYUDA, que este archivo ya documenta— y _vdCalcular necesita los dos contornos
+     dibujados, que un caso no puede trazar. Se mide por COMPORTAMIENTO, en la fila de
+     Referencias que DERIVA del corte: si fuera un mapa por sexo, las dos columnas diferirian. */
+  const vd2 = (function(){ const e = EL('ref-vd2'); if (!e) return 'NO EXISTE ref-vd2';
+    e.style.display = '';
+    try { if (FN('evRefPintar')) evRefPintar('vd2'); } catch (x) { return 'EXC'; }
+    return String(e.textContent || '').replace(/[ ]+/g, ' '); })();
+  ex.push(['(b1) la fila del strain de pared libre publica el MISMO corte en las dos columnas de sexo',
+    (function(){ if (vd2.indexOf('Strain de pared libre') < 0) return false;
+      const i = vd2.indexOf('Strain de pared libre');
+      const tramo = vd2.slice(i, i + 120);
+      /* ⚠️ NI UN REGEX LITERAL ACA: la barra se COCINA dentro del template del caso y
+         \\s llega al motor como la letra s. Se cuenta con split, que no se cocina. */
+      return tramo.split('> 20 %').length - 1 === 2; })(),
+    vd2.indexOf('Strain de pared libre') > -1
+      ? vd2.slice(vd2.indexOf('Strain de pared libre'), vd2.indexOf('Strain de pared libre') + 110)
+      : vd2.slice(0, 120)]);
+  ex.push(['(b2) la ficha FUN-VD-007 existe, esta verificada y cita los folios 145 y 159',
+    (function(){ const R = Array.isArray(window.EV_REG) ? window.EV_REG : [];
+      const f = R.filter(x => x.id === 'FUN-VD-007')[0];
+      if (!f) return false;
+      return f.estado === 'verificado' && String(f.folio).indexOf('145') > -1
+        && String(f.folio).indexOf('159') > -1 && !/sexo masculino|por sexo/i.test(f.valor); })(),
+    (function(){ const R = Array.isArray(window.EV_REG) ? window.EV_REG : [];
+      const f = R.filter(x => x.id === 'FUN-VD-007')[0]; return f ? f.folio : 'NO EXISTE'; })()]);
+  ex.push(['(b3) las fichas de la Tabla 1 nombran la version de MAYO',
+    (function(){ const R = Array.isArray(window.EV_REG) ? window.EV_REG : [];
+      const f = R.filter(x => x.id === 'FUN-VD-001')[0];
+      return !!f && String(f.fuente_una_linea).indexOf('de mayo') > -1
+        && String(f.guia).indexOf('mayo de 2025') > -1; })(),
+    (function(){ const R = Array.isArray(window.EV_REG) ? window.EV_REG : [];
+      const f = R.filter(x => x.id === 'FUN-VD-001')[0]; return f ? f.fuente_una_linea : 'NO EXISTE'; })()]);
+
+  /* ══ (b) LA COARTACION REPARADA ════════════════════════════════════════════════════════ */
+  /* ⚠️ EL CAMPO ES coa_vmax Y EL CHECKBOX ESTA EN display:none: el control real es el boton
+     «Integrar al informe» (data-ete-chk), que es el gesto del medico. */
+  const coaEsc = (sit) => { limpio(); __t.set('nombre', 'TC516COA');
+    __t.set('coa_situacion', sit); __t.set('coa_vmax', '3.2'); __t.set('coa_gmedio', '25');
+    const c = EL('coart_incluir_chk');
+    if (c && !c.checked) { const b = document.querySelector('[data-ete-chk="coart_incluir_chk"]');
+      if (b) b.click(); else if (FN('eteInclToggle')) eteInclToggle('coart_incluir_chk'); }
+    __t.set('coa_ao_desc', '18'); __t.set('coa_loc', 'istmica');
+    try { if (FN('coaSync')) coaSync(); } catch (e) {}
+    const i = INF();
+    return { inf: String(i.inf || ''), suma: String(i.suma || ''),
+             chk: !!(EL('coart_incluir_chk') || {}).checked,
+             concl: (function(){ try { return FN('coaConclusion')
+               ? JSON.stringify(coaConclusion()).slice(0, 200) : 'SIN FN'; }
+               catch (e) { return 'EXC ' + e.message; } })() }; };
+  const coaPost = coaEsc('post_stent'), coaCir = coaEsc('post_cirugia'), coaNat = coaEsc('nativa');
+  ex.push(['(DENOM b) la escena de coartacion produce su parrafo en el informe',
+    coaPost.inf.indexOf('oartaci') > -1,
+    'chk=' + coaPost.chk + ' concl=' + coaPost.concl]);
+  ex.push(['(b4) «Seguimiento anual obligatorio» NO esta en el informe ni en el EN SUMA, en las tres situaciones',
+    [coaPost, coaCir].every(x => x.inf.indexOf('Seguimiento anual obligatorio') < 0
+      && x.inf.indexOf('cada 3-5 anos') < 0 && x.inf.indexOf('cada 3-5 a\\u00f1os') < 0
+      && x.suma.indexOf('Seguimiento anual obligatorio') < 0),
+    coaPost.inf.slice(-130)]);
+  ex.push(['(b5) y la funcion que lo publicaba ya no existe',
+    !FN('coaSeguimiento'), 'coaSeguimiento=' + FN('coaSeguimiento')]);
+  ex.push(['(b6) CONTROL: la conclusion sigue nombrando la SITUACION, que es el dato',
+    coaPost.inf.indexOf('post-stent') > -1 && coaCir.inf.indexOf('post-cirug') > -1,
+    coaPost.inf.slice(0, 90)]);
+  ex.push(['(b7) la Evidencia de la coartacion publica la recomendacion en el bloque VISIBLE, con su clase, su nivel y su folio',
+    (function(){ if (!FN('_indCoAo')) return 'SIN FN';
+      let r = null; try { r = _indCoAo(); } catch (e) { return 'EXC'; }
+      if (!r || !Array.isArray(r.bloques) || !r.bloques.length) return false;
+      const l = r.bloques[0].lineas.map(x => String(x.txt || x)).join(' | ');
+      return l.indexOf('Clase I') > -1 && l.indexOf('Nivel B') > -1 && l.indexOf('Tabla 69') > -1
+        && l.indexOf('folio 121') > -1 && l.indexOf('3 a 5') > -1
+        && l.indexOf('Recomendaciones-tabla') < 0; })() === true,
+    (function(){ try { const r = _indCoAo();
+      return r && r.bloques ? String(r.bloques[0].lineas[0].txt).slice(0, 170) : 'SIN BLOQUES'; }
+      catch (e) { return 'EXC'; } })()]);
+
+  /* ══ (c) LA NOTA DEL OPERADOR EN EL GLOBO DE LA AORTA ══════════════════════════════════ */
+  limpio(); __t.set('nombre', 'TC516AO'); __t.set('edad', '60'); __t.set('sexo', 'M');
+  __t.set('peso', '80'); __t.set('talla', '180'); __t.set('ao_sin', '41');
+  try { if (FN('calcAorta')) calcAorta(); } catch (e) {}
+  const tarAo = (function(){ try { if (!FN('evTarjetaAo')) return 'SIN FN';
+    const n = evTarjetaAo(); return n ? String(n.textContent || '') : 'NULO'; }
+    catch (e) { return 'EXC'; } })();
+  ex.push(['(c1) el globo de la aorta declara que la guia escribe el corte de dos maneras y cual aplica la app',
+    tarAo.indexOf('9.2.1.1') > -1 && tarAo.indexOf('folio 71') > -1
+      && tarAo.indexOf('Figura 24') > -1 && tarAo.indexOf('folio 76') > -1
+      && tarAo.indexOf('40 a 44 mm') > -1 && tarAo.indexOf('inclusivo') > -1,
+    tarAo.slice(-260)]);
+  ex.push(['(c2) CONTROL: el corte NO se movio y sigue rotulado «Corte de EcoSmart»',
+    tarAo.indexOf('Corte de EcoSmart') > -1 && window.AO_DIL_MM.M === 40 && window.AO_DIL_MM.F === 36,
+    JSON.stringify(window.AO_DIL_MM)]);
+
+  /* ══ (d) EL INDICE DE DIMENSION AORTICA ════════════════════════════════════════════════
+     Con 54 kg y 150 cm la superficie corporal de Mosteller es EXACTAMENTE 1,50 m2
+     (54 x 150 / 3600 = 2,25; su raiz es 1,5), asi que el indice sale redondo: una aorta de
+     31,5 mm da 21,0 · 33,0 da 22,0 EXACTO · 34,5 da 23,0. Los tres estan por debajo del corte
+     ABSOLUTO del varon (40 mm) Y del de la mujer (36), asi que lo unico que puede abrir la
+     seccion es el indice. */
+  const idaEsc = (ao, peso, talla) => { limpio(); __t.set('nombre', 'TC516IDA');
+    __t.set('sexo', 'M'); __t.set('peso', peso); __t.set('talla', talla); __t.set('ao_tub', ao);
+    try { if (FN('calcBSA')) calcBSA(); } catch (e) {}
+    try { if (FN('calcAorta')) calcAorta(); } catch (e) {}
+    let sec = 'SIN FN'; try { if (FN('_indAo')) sec = _indAo() ? 'ABRE' : 'NULO'; } catch (e) { sec = 'EXC'; }
+    let vab = 'SIN FN'; try { if (FN('_indVAB')) vab = _indVAB() ? 'ABRE' : 'NULO'; } catch (e) { vab = 'EXC'; }
+    let ida = 'SIN FN'; try { if (FN('aoIdaVal')) { const x = aoIdaVal(); ida = (x == null) ? 'NULO' : Math.round(x * 100) / 100; } } catch (e) { ida = 'EXC'; }
+    return { sec, vab, ida }; };
+  const i21 = idaEsc('31.5', '54', '150'), i22 = idaEsc('33', '54', '150'), i23 = idaEsc('34.5', '54', '150');
+  const iSin = idaEsc('33', '', '');
+  ex.push(['(DENOM d) la superficie corporal da 1,50 exacta y el indice sale redondo',
+    i21.ida === 21 && i22.ida === 22 && i23.ida === 23,
+    [i21.ida, i22.ida, i23.ida].join('/')]);
+  ex.push(['(d1) iDA 21 NO abre · 22 EXACTO NO abre (operador estricto) · 23 SI abre',
+    i21.sec === 'NULO' && i22.sec === 'NULO' && i23.sec === 'ABRE',
+    [i21.sec, i22.sec, i23.sec].join('/')]);
+  ex.push(['(d2) SIN superficie corporal la regla no se aplica: el indice es nulo y la seccion no abre',
+    iSin.ida === 'NULO' && iSin.sec === 'NULO', 'ida=' + iSin.ida + ' sec=' + iSin.sec]);
+  ex.push(['(d3) CONTROL: la seccion de la BICUSPIDE no se abre por el indice',
+    i23.vab === 'NULO', 'vab=' + i23.vab]);
+  ex.push(['(d4) el corte del indice es 22 mm/m2 y su operador es ESTRICTO',
+    window.AO_IDA_MAX === 22 && FN('aoIdaDilatado'), 'AO_IDA_MAX=' + window.AO_IDA_MAX]);
+
+  /* ══ (e) EL EHLERS-DANLOS VASCULAR EN EL EN SUMA ═══════════════════════════════════════ */
+  const edsEsc = (sind, ao) => { limpio(); __t.set('nombre', 'TC516EDS');
+    __t.set('marfan_sindrome', sind); if (ao) __t.set('marfan_ao_ascendente', ao);
+    const c = EL('marfan_incluir_chk'); if (c && !c.checked) c.click();
+    try { if (FN('marfanSync')) marfanSync(); } catch (e) {}
+    const i = INF(); return String(i.suma || ''); };
+  const edsCon = edsEsc('eds', '48'), edsSin = edsEsc('eds', ''), edsMar = edsEsc('marfan', '48');
+  ex.push(['(e1) con Ehlers-Danlos y diametro el EN SUMA publica la frase descriptiva, sin umbral ni conducta',
+    edsCon.indexOf('Aorta de 48 mm en un paciente con s\\u00edndrome de Ehlers-Danlos vascular') > -1
+      && edsCon.indexOf('irurg') < 0 && edsCon.indexOf('Clase') < 0,
+    edsCon.slice(0, 160)]);
+  ex.push(['(e2) sin diametro publica solo el sindrome',
+    edsSin.indexOf('Ehlers-Danlos vascular') > -1 && edsSin.indexOf('Aorta de') < 0,
+    edsSin.slice(0, 140)]);
+  ex.push(['(e3) CONTROL: con Marfan el EN SUMA no gana ninguna frase de Ehlers-Danlos',
+    edsMar.indexOf('Ehlers') < 0, edsMar.slice(0, 120)]);
+
+  /* ══ (f) LA IM SECUNDARIA Y EL CORTE ALTERNATIVO ═══════════════════════════════════════
+     La EROA de PISA es 0,62832 por el radio al cuadrado con Valiasing 50 cm/s y Vmax 5 m/s:
+     6,80 da 29,1 · 6,91 da 30,0 EXACTA · 7,00 da 30,8. Con la EROA en 30,0 y un VTI de 150 cm
+     el volumen regurgitante da 45,0 EXACTO. */
+  const imsEsc = (mec, r, itv) => { limpio(); __t.set('nombre', 'TC516IMS');
+    if (mec) __t.set('teer_tipo_im', mec);
+    __t.set('im_vmax', '5'); __t.set('pisa_val', '50');
+    if (r) __t.set('pisa_r', r);
+    if (itv) __t.set('im_itv', itv);
+    try { if (FN('calcIM_ESC')) calcIM_ESC(); } catch (e) {}
+    const i = INF();
+    return { alt: T('im-sec-alt'), aviso: T('im-sec-aviso'), grado: V('im_grado'),
+             eroa: T('eroa-val'), volr: T('volr-val'),
+             inf: String(i.inf || ''), suma: String(i.suma || '') }; };
+  const s29 = imsEsc('secundaria', '6.80', ''), s30 = imsEsc('secundaria', '6.91', '');
+  const sVol44 = imsEsc('secundaria', '6.80', '150'), sVol45 = imsEsc('secundaria', '6.80', '155');
+  const sPri = imsEsc('primaria', '6.91', '150'), sSin = imsEsc('', '6.91', '150');
+  ex.push(['(DENOM f) la escena produce la EROA y el volumen que el caso necesita',
+    s29.eroa.indexOf('29.1') > -1 && s30.eroa.indexOf('30.0') > -1 && sVol45.volr.indexOf('45.1') > -1,
+    'eroa29=' + s29.eroa + ' eroa30=' + s30.eroa + ' volr=' + sVol45.volr]);
+  ex.push(['(f1) ORE 29,1 sin frase · 30,0 EXACTO con la frase y su condicion del orificio eliptico',
+    s29.alt === '' && s30.alt.indexOf('30.0 mm') > -1 && s30.alt.indexOf('el\\u00edptico') > -1
+      && s30.alt.indexOf('ESC/EACTS 2025') > -1,
+    's29=' + s29.alt.slice(0, 60) + ' | s30=' + s30.alt.slice(0, 120)]);
+  ex.push(['(f2) volumen 43,7 sin frase · 45,1 con la frase y su condicion de bajo flujo',
+    sVol44.alt === '' && sVol45.alt.indexOf('45.1 ml') > -1 && sVol45.alt.indexOf('bajo flujo') > -1,
+    'v44=' + sVol44.alt.slice(0, 50) + ' | v45=' + sVol45.alt.slice(0, 120)]);
+  ex.push(['(f3) CONTROL: con mecanismo PRIMARIO y SIN consignar no sale la frase, con los MISMOS numeros',
+    sPri.alt === '' && sSin.alt === '', 'pri=' + sPri.alt.slice(0, 40) + ' sin=' + sSin.alt.slice(0, 40)]);
+  ex.push(['(f4) CONTROL: el GRADO no cambia en ninguna de las seis escenas',
+    [s29, s30, sVol44, sVol45, sPri, sSin].every(x => x.grado === '2'),
+    [s29, s30, sVol44, sVol45, sPri, sSin].map(x => x.grado).join('/')]);
+  ex.push(['(f5) CONTROL: la frase NO sube al informe firmado ni al EN SUMA',
+    s30.inf.indexOf('corte alternativo') < 0 && s30.suma.indexOf('corte alternativo') < 0, '']);
+  ex.push(['(f6) CONTROL: el aviso general de la secundaria se conserva entero',
+    s30.aviso.indexOf('Mecanismo secundario') > -1 && s30.aviso.indexOf('ACC/AHA 2020') > -1
+      && s30.aviso.length > 300,
+    'largo=' + s30.aviso.length]);
+
+  /* ══ (g) EL FLUJO REVERSO DE LA AORTA DESCENDENTE ══════════════════════════════════════ */
+  const iaoEsc = (dur, vti, vtd) => { limpio(); __t.set('nombre', 'TC516IAO');
+    if (dur) __t.set('ia_rev_dur', dur);
+    if (vti) __t.set('ia_vti_desc', vti);
+    if (vtd) __t.set('ia_vmax_td', vtd);
+    try { if (FN('calcIA_ESC')) calcIA_ESC(); } catch (e) {}
+    return { grado: V('ia_grado'), rev: T('ia-rev-dur-interp'),
+             fVti: T('ia-vti-desc-interp'), fVtd: T('ia-vtd-interp') }; };
+  ex.push(['(DENOM g) el selector de duracion existe, es un select y su primera opcion es vacia',
+    (function(){ const e = EL('ia_rev_dur'); if (!e) return false;
+      return e.tagName === 'SELECT' && e.options.length === 5 && e.options[0].value === ''
+        && e.value === ''; })(),
+    (function(){ const e = EL('ia_rev_dur');
+      return e ? Array.prototype.slice.call(e.options).map(o => o.value).join(',') : 'NO EXISTE'; })()]);
+  const g14 = iaoEsc('holo', '14', ''), g15 = iaoEsc('holo', '15', ''), g16 = iaoEsc('holo', '16', '');
+  ex.push(['(g1) holodiastolico: VTI 14 y 15 EXACTO moderada · 16 severa (el 15 va al lado conservador)',
+    g14.grado === '2' && g15.grado === '2' && g16.grado === '4',
+    [g14.grado, g15.grado, g16.grado].join('/')]);
+  const v19 = iaoEsc('holo', '', '19'), v20 = iaoEsc('holo', '', '20'), v21 = iaoEsc('holo', '', '21');
+  ex.push(['(g2) holodiastolico: velocidad 19 moderada · 20 EXACTO y 21 severa (el corte no se movio)',
+    v19.grado === '2' && v20.grado === '4' && v21.grado === '4',
+    [v19.grado, v20.grado, v21.grado].join('/')]);
+  const sinDur16 = iaoEsc('', '16', ''), sinDur21 = iaoEsc('', '', '21');
+  ex.push(['(g3) SIN la duracion ni el VTI ni la velocidad votan, y las dos filas lo DICEN',
+    sinDur16.grado === '0' && sinDur21.grado === '0'
+      && sinDur16.fVti.indexOf('falta consignar la duraci') > -1
+      && sinDur21.fVtd.indexOf('falta consignar la duraci') > -1,
+    'vti=' + sinDur16.grado + '/' + sinDur16.fVti.slice(0, 60) + ' vtd=' + sinDur21.grado]);
+  const breve = iaoEsc('breve', '16', ''), ausente = iaoEsc('ausente', '', '');
+  ex.push(['(g4) el reverso BREVE protodiastolico vota leve con el MISMO VTI de 16 cm, y «sin reverso» tambien',
+    breve.grado === '1' && ausente.grado === '1', breve.grado + '/' + ausente.grado]);
+  const sinDur30 = iaoEsc('', '30', ''), holo30 = iaoEsc('holo', '30', '');
+  ex.push(['(g5) EL CORTE DE 25 cm DE ECOSMART YA NO EXISTE: 30 cm sin duracion no vota, y con holodiastolico es severa por el corte de 15',
+    sinDur30.grado === '0' && holo30.grado === '4'
+      && holo30.rev.indexOf('15 cm') > -1,
+    'sinDur=' + sinDur30.grado + ' holo=' + holo30.grado + ' | ' + holo30.rev]);
+
+  /* ⚠️ EL RENGLÓN DE PANTALLA QUE EXPLICA LA REGLA: lo cazó MIRAR la captura, no la medición
+     numérica. Decía «Reversión holodiastólica ≥20 cm/s → severa. Es el ÚNICO corte que publica
+     la guía», que describe la regla ANTERIOR al lado del control que la cambió. */
+  const notaRev = (function(){ const e = EL('ia_rev_dur');
+    if (!e) return 'NO EXISTE ia_rev_dur';
+    /* El renglon es hermano del contenedor de los campos, asi que se sube hasta encontrar el
+       ancestro que lo contiene a los dos. */
+    const nodos = Array.prototype.slice.call(document.querySelectorAll('div'));
+    /* ⚠️ EL RENGLON LLEVA <b> ADENTRO, asi que «sin hijos» no lo encuentra: se filtra por el
+       nodo MAS CHICO cuyo texto empieza con la frase. */
+    const cand = nodos.filter(function (d) {
+      return String(d.textContent || '').indexOf('El reverso se grad') === 0; });
+    cand.sort(function (a2, b2) {
+      return String(a2.textContent).length - String(b2.textContent).length; });
+    const hoja = cand[0];
+    /* ⚠️ Y EL RENGLON LLEVA ESPACIOS DUROS (&nbsp;), que no son el espacio comun: sin
+       normalizarlos, «VTI >15 cm» no matchea un texto que se ve identico. */
+    return hoja ? String(hoja.textContent || '').split(String.fromCharCode(160)).join(' ')
+                    .replace(/[ ]+/g, ' ') : 'SIN RENGLON'; })();
+  ex.push(['(g6) el renglon de pantalla describe la regla NUEVA y no la vieja',
+    notaRev.indexOf('se grad\u00faa por su') > -1 && notaRev.indexOf('VTI >15 cm') > -1
+      && notaRev.indexOf('Sin la duraci\u00f3n consignada ninguno de los dos grad\u00faa') > -1
+      && notaRev.indexOf('\u00danico corte que publica') < 0,
+    notaRev.slice(-240)]);
+
+  /* ══ (h) LAS FICHAS DE REFERENCIAS ═════════════════════════════════════════════════════ */
+  try { if (FN('showTab')) showTab('refs'); } catch (e) {}
+  const refTxt = (id) => { const e = EL(id); if (!e) return 'NO EXISTE ' + id;
+    e.style.display = '';
+    try { if (FN('evRefPintar')) evRefPintar(id.replace('ref-', '')); } catch (x) {}
+    return String(e.textContent || '').replace(/[ ]+/g, ' '); };
+  const rIa = refTxt('ref-ia'), rIm = refTxt('ref-im'), rAo = refTxt('ref-ao2'), rEa = refTxt('ref-eao');
+  ex.push(['(h1) la ficha de la IAo trae las DOS fuentes del reverso y el rotulo del libro',
+    rIa.indexOf('EACVI 2013') > -1 && rIa.indexOf('folio 621') > -1
+      && rIa.indexOf('Moya Mur') > -1 && rIa.indexOf('Tabla 20-5') > -1
+      && rIa.indexOf('no figura en las gu\\u00edas de la biblioteca') > -1,
+    rIa.indexOf('EACVI 2013') > -1 ? 'ok' : rIa.slice(0, 160)]);
+  ex.push(['(h2) la ficha de la IM trae el corte alternativo con sus DOS condiciones y sus folios',
+    rIm.indexOf('4675') > -1 && rIm.indexOf('4672') > -1 && rIm.indexOf('el\\u00edptico') > -1
+      && rIm.indexOf('bajo flujo') > -1 && rIm.indexOf('ACC/AHA 2020') > -1,
+    rIm.indexOf('4675') > -1 ? 'ok' : rIm.slice(0, 160)]);
+  ex.push(['(h3) la ficha de la aorta trae el indice y el folio de la definicion',
+    rAo.indexOf('22 mm/m') > -1 && rAo.indexOf('9.2.1.1') > -1 && rAo.indexOf('folio 71') > -1,
+    rAo.indexOf('22 mm/m') > -1 ? 'ok' : rAo.slice(0, 160)]);
+  ex.push(['(h4) la ficha de la estenosis aortica cita la Tabla 3 de la EAE/ASE 2009 y su columna AHA/ACC',
+    rEa.indexOf('EAE/ASE 2009') > -1 && rEa.indexOf('Tabla 3') > -1
+      && rEa.indexOf('folio 10') > -1 && rEa.indexOf('AHA/ACC') > -1,
+    rEa.indexOf('EAE/ASE 2009') > -1 ? 'ok' : rEa.slice(0, 160)]);
+  ex.push(['(h5) NINGUNA ficha nueva lleva nota interna, duda ni reserva (repositorio PUBLICO)',
+    !/pendiente de|por verificar con|TODO|FIXME|revisar con Maicol/i.test(rIa + rIm + rAo + rEa), '']);
+
+  /* ══ (i) ESTUDIOS GUARDADOS, «NUEVO ESTUDIO» Y EL CAMPO NUEVO ══════════════════════════ */
+  limpio(); __t.set('nombre', 'TC516G'); __t.set('ia_rev_dur', 'holo');
+  const campos = (function(){ const o = {};
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function (e) {
+      if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(e.id)) return;
+      o[e.id] = e.value; });
+    return o; })();
+  ex.push(['(i1) el campo nuevo VIAJA con el estudio y el espejo del corte alternativo NO',
+    Object.prototype.hasOwnProperty.call(campos, 'ia_rev_dur')
+      && !Object.prototype.hasOwnProperty.call(campos, 'im-sec-alt'),
+    'ia_rev_dur=' + Object.prototype.hasOwnProperty.call(campos, 'ia_rev_dur')]);
+  limpio();
+  ex.push(['(i2) «Nuevo estudio» vacia el selector y las dos frases nuevas',
+    V('ia_rev_dur') === '' && T('im-sec-alt') === '' && T('ia-rev-dur-interp') === '\\u2014',
+    'dur=' + V('ia_rev_dur') + ' alt=[' + T('im-sec-alt') + '] rev=' + T('ia-rev-dur-interp')]);
+
+  /* ══ (k) LOS CONTROLES ═════════════════════════════════════════════════════════════════ */
+  limpio();
+  ex.push(['(k1) el Excel sigue en 440 columnas, con el formulario vacio',
+    (function(){ try { return Object.keys(_labExcelRow({ campos: {}, fecha: '2026-10-22' })).length; }
+      catch (e) { return 'EXC'; } })() === 440,
+    (function(){ try { return Object.keys(_labExcelRow({ campos: {}, fecha: '2026-10-22' })).length; }
+      catch (e) { return 'EXC'; } })()]);
+  ex.push(['(k2) y NINGUN encabezado del Excel nombra la duracion del reverso ni el indice aortico',
+    (function(){ try { const k = Object.keys(_labExcelRow({ campos: {}, fecha: '2026-10-22' }));
+      /* ⚠️ /iDA/i MATCHEA «tracto de salida» y «medida»: la sigla va CASE-SENSITIVE. */
+      return !k.some(x => /duraci.n del reverso/i.test(x) || /dimensi.n a.rtica/i.test(x)
+        || /\biDA\b/.test(x)); }
+      catch (e) { return 'EXC'; } })() === true, '']);
+  /* Un escenario AJENO a las cinco zonas: el TEP, la HTP, el FOP y las valvulas no se mueven. */
+  limpio(); __t.set('nombre', 'TC516CTRL'); __t.set('edad', '58');
+  __t.set('peso', '78'); __t.set('talla', '172'); __t.set('onda_e', '70'); __t.set('onda_a', '60');
+  __t.set('tde', '190'); __t.set('e_sep', '7'); __t.set('e_lat', '9'); __t.set('ai_vol', '52');
+  __t.set('ddfvi', '50'); __t.set('siv', '10'); __t.set('ppvi', '10'); __t.set('vmax_ao', '2.4');
+  __t.set('im_vc', '4'); __t.set('vmax_it', '2.6'); __t.set('vci_diam', '18');
+  ['calcVD','calcAo','calcIM_ESC','calcIA_ESC','calcIT_ESC','calcDiastol'].forEach(function (f) {
+    try { if (FN(f)) window[f](); } catch (e) {} });
+  const ctrl = INF();
+  ex.push(['(k3) CONTROL: un escenario AJENO no gana ninguna de las frases nuevas',
+    String(ctrl.inf || '').indexOf('corte alternativo') < 0
+      && String(ctrl.suma || '').indexOf('Ehlers') < 0
+      && String(ctrl.inf || '').indexOf('Seguimiento anual obligatorio') < 0
+      && T('im-sec-alt') === '',
+    String(ctrl.suma || '').slice(0, 130)]);
+  ex.push(['(k4) CONTROL: el score de TEP y la probabilidad de HTP no se movieron',
+    (function(){ try { if (FN('calcTEP')) calcTEP(); if (FN('calcHTP2022')) calcHTP2022(); return true; }
+      catch (e) { return 'EXC ' + e.message; } })() === true, '']);
+  limpio();
+  return { extra: ex };
+`);
+
 
 
 

@@ -316,3 +316,20 @@ sólo desde una ficha verificada.
    contenedor es `#bloque-insuf-mitral` y el `onclick` dice `valvDatosTog('caja-insuf-mitral')`—,
    así que ningún buscador por id da con el par: la escena de control abortó con «SIN GEOMETRIA
    im_vc» hasta que la sonda volvió a clickear los controles reales.
+
+---
+
+## La versión de MAYO de 2025 — AJ1 (22/10/2026)
+
+**`ASE25_T1` lee hoy el PDF de MAYO**, que corrige seis cortes del de febrero: el **TAPSE de
+1,3 cm** y la **onda S′ de 7,2 cm/s** pasan a **MODERADA** y con eso **desaparece el solape**, así
+que ninguna banda declara ya `solapa`. El mecanismo que la lee se conserva en `vdDisfGrado`, hoy
+inerte. La **FEVD 3D no cambia de grado** —el 39 exacto ya caía en moderada— y lo que se corrigió
+es la cita del rótulo. El **strain de pared libre** deja de distinguir sexo: `VD_STRAIN_NORMAL`
+vale **−20 para los dos**, con ficha propia (`FUN-VD-007`).
+
+**Tres diferencias más entre las dos versiones quedan declaradas y sin aplicar**, dos de ellas de
+la función diastólica del VD, que esta tabla no implementa.
+
+El detalle —el diff completo de las once diferencias, la trampa de codificación de `≥` y `≤`, las
+fichas tocadas y la cobertura— está en **`docs/mapa/aj1-ajustes.md` § 2**.

@@ -2499,6 +2499,30 @@ window.__A = {
     return o },
 
   maqueta() {
+    /* ⚠️ LAS DOS PIEZAS NUEVAS VIVEN DETRAS DE DOS PUERTAS CADA UNA —la seccion de la valvula y
+       el cajon «Datos»—, asi que sin abrirlas miden 0x0 y «cero scroll horizontal» sale sobre
+       una pantalla que no esta dibujada. La orden pide medir con las secciones ABIERTAS. */
+    try { showTab('valvulas') } catch (e) {}
+    ['valv-aortica', 'valv-mitral'].forEach(function (sec) {
+      var c = document.getElementById('ete-seccion-' + sec);
+      if (c && getComputedStyle(c).display === 'none') { try { toggleEteSeccion(sec) } catch (e) {} } });
+    ['caja-insuf-aortica', 'caja-insuf-mitral'].forEach(function (cj) {
+      var e2 = document.getElementById('im-sec-alt');
+      try { valvDatosTog(cj) } catch (e) {} });
+    /* El cajon TOGGLEA, asi que si quedo cerrado se vuelve a tocar: lo que se verifica es la
+       GEOMETRIA del propio nodo, no el estado del contenedor. */
+    ['caja-insuf-aortica', 'caja-insuf-mitral'].forEach(function (cj, i) {
+      var id = i === 0 ? 'ia_rev_dur' : 'im-sec-alt';
+      var g = window.__P.geo(id);
+      if (!g || !g.ok) { try { valvDatosTog(cj) } catch (e) {} } });
+    /* Y la frase de la IM secundaria solo existe con el mecanismo consignado y el valor alto. */
+    var S = function (id, v2) { var e = document.getElementById(id); if (!e) return;
+      e.value = v2; e.dispatchEvent(new Event('change', { bubbles: true }));
+      e.dispatchEvent(new Event('input', { bubbles: true })) };
+    S('teer_tipo_im', 'secundaria'); S('im_vmax', '5'); S('pisa_val', '50'); S('pisa_r', '6.91');
+    try { if (typeof calcIM_ESC === 'function') calcIM_ESC() } catch (e) {}
+    S('ia_rev_dur', 'holo'); S('ia_vti_desc', '16');
+    try { if (typeof calcIA_ESC === 'function') calcIA_ESC() } catch (e) {}
     var de = document.documentElement;
     var o = { scrollH: de.scrollWidth > de.clientWidth,
               sw: de.scrollWidth, cw: de.clientWidth };
@@ -2506,6 +2530,10 @@ window.__A = {
     o.colorAlt = window.__P.color('#im-sec-alt');
     o.geoAlt = window.__P.geo('im-sec-alt');
     o.geoDur = window.__P.geo('ia_rev_dur');
+    o.geoRevFila = window.__P.geo('ia-rev-dur-interp');
+    o.txtAlt = (document.getElementById('im-sec-alt') || {}).textContent || '';
+    /* DENOMINADOR: si alguna de las tres no tiene geometria, la celda NO mide nada. */
+    o.denom = !!(o.geoAlt && o.geoAlt.ok && o.geoDur && o.geoDur.ok && o.geoRevFila && o.geoRevFila.ok);
     return o },
 
   paraCaptura(zona) {

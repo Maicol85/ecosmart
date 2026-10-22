@@ -6894,8 +6894,13 @@ window.cerrarSesionReal = cerrarSesionReal;
             </div>
           </div>
           <!-- La frase de la reversión holodiastólica baja acá: explica un corte de la IAo, no el
-               campo que la tenía adentro, y en una columna de un tercio no entraba. Texto intacto. -->
-          <div style="font-size:10px;color:var(--text2);margin-top:3px;">Reversi&oacute;n holodiast&oacute;lica &ge;20 cm/s &rarr; severa. Es el &uacute;nico corte que publica la gu&iacute;a: por debajo, el par&aacute;metro no grad&uacute;a.</div>
+               campo que la tenía adentro, y en una columna de un tercio no entraba.
+               ⚠️ REESCRITA EL 22/10/2026 (AJ1-E6). Decía «Reversión holodiastólica ≥20 cm/s →
+               severa. Es el ÚNICO corte que publica la guía», y desde que el reverso se gradúa
+               por su DURACIÓN eso dejó de ser cierto: la velocidad ya no vota sola y el VTI tiene
+               su propio corte. Un renglón que describe la regla anterior al lado del control que
+               la cambió es el archivo contradiciéndose consigo mismo. -->
+          <div style="font-size:10px;color:var(--text2);margin-top:3px;">El reverso se grad&uacute;a por su <b>duraci&oacute;n</b>; el VTI y la velocidad telediast&oacute;lica la califican. Holodiast&oacute;lico: severa con VTI &gt;15&nbsp;cm o con velocidad telediast&oacute;lica &ge;20&nbsp;cm/s, y moderada por debajo. <b>Sin la duraci&oacute;n consignada ninguno de los dos grad&uacute;a.</b></div>
       <div class="calc-box" style="margin-top:10px;">
         <div class="calc-row"><span class="calc-lbl">Ratio jet/TSVI (%)</span><span class="calc-val" id="ia-jet-ratio">—</span><span class="calc-grado" data-grado-de="ia-jet-ratio"></span></div>
         <div class="calc-row"><span class="calc-lbl">EROA — PISA (mm²)</span><span class="calc-val" id="ia-eroa">—</span><span class="calc-grado" data-grado-de="ia-eroa"></span></div>
@@ -22282,17 +22287,16 @@ const ASE25_T1 = Object.freeze({
     Object.freeze({ g:'normal', op:'<', v:25 }), Object.freeze({ g:'leve', op:'<=', v:28 }),
     Object.freeze({ g:'moderada', op:'<=', v:32 }), Object.freeze({ g:'severa' })]) }),
   /* ── Función sistólica (descendentes) ── */
-  /* ⚠️ `solapa: true` — EL VALOR DEL BORDE ESTA EN LAS DOS BANDAS DEL ORIGINAL (R3, 2026-10-20).
-     La Tabla 1 escribe la banda leve del TAPSE «≤1.7 to ≥1.3» y la moderada «≤1.3 to >1.0», asi
-     que 1,3 cm esta en las DOS; lo mismo 7,2 cm/s en la onda S'. La cascada de `ase25Grado`
-     resuelve a favor de la banda MENOS grave -la convencion de las once filas ascendentes de la
-     MISMA tabla, y la lectura que no sobre-afirma- y eso NO cambia: el grado que publican la
-     fila del cuadro, la tarjeta y el Laboratorio sigue siendo `leve`.
-     La marca es ADITIVA e inerte para los cuatro lectores de hoy; la lee `vdDisfGrado`, que la
-     usa para decir «leve-moderada» en el informe cuando el valor cae justo ahi, que es la
-     decision de Maicol. Se DECLARA en la banda y no se deriva del operador: `op === '>='` con
-     `x === v` describe hoy el mismo conjunto, pero es una coincidencia de la forma de la tabla y
-     no una regla, y la FEVD tiene un `>=` que no solapa. */
+  /* ⚠️ ACA VIVIA LA MARCA `solapa: true`, Y SE FUE CON LA VERSION DE MAYO (AJ1-E1, 22/10/2026).
+     El PDF de FEBRERO escribia la banda leve del TAPSE «≤1.7 to ≥1.3» y la moderada
+     «≤1.3 to >1.0», asi que 1,3 cm estaba en las DOS; lo mismo 7,2 cm/s en la onda S'. La
+     version de MAYO escribe las dos bandas leves con `>`, asi que el valor del borde pertenece
+     a UNA sola banda y es la MODERADA. Con eso la marca quedo sin ninguna fila que la declare.
+     ⚠️ EL MECANISMO QUE LA LEE SE CONSERVA EN `vdDisfGrado` y es GENERICO: no se deriva del
+     operador, porque un `>=` con `x === v` describiria el mismo conjunto por coincidencia de la
+     forma y no por una regla —y la FEVD tiene un `>=` que no solapa—. Hoy esa rama esta INERTE
+     y el rango «leve-moderada» que esa funcion sigue publicando sale del otro camino: el TAPSE
+     y la onda S' cayendo en bandas DISTINTAS. */
   tapse:     Object.freeze({ u:'mm', dec:0, fila:'TAPSE, cm', bandas:Object.freeze([
     Object.freeze({ g:'normal', op:'>', v:17 }), Object.freeze({ g:'leve', op:'>', v:13 }),
     Object.freeze({ g:'moderada', op:'>', v:10 }), Object.freeze({ g:'severa' })]) }),
@@ -127459,8 +127463,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261021-2219';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1792631997494;                 /* eco-build-ms */
+const ECO_BUILD    = '20261022-0246';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1792647968450;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -127546,7 +127550,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261021-2219</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261022-0246</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

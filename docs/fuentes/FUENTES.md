@@ -5063,3 +5063,139 @@ Laboratorio y las 440 columnas del Excel.
 ### Cambios de evidencia
 
 **Ninguno.** La tabla del trabajo D2, arriba, sigue describiendo el estado vigente de esta zona.
+
+---
+
+## La tanda AJ1 — los siete ajustes del 22/10/2026
+
+Lo verificado acá se **vio en el PDF original** de la biblioteca (`~/Desktop/EcoSmart_Biblioteca_Fuentes`,
+sólo lectura), con su tabla o figura, su **folio impreso** y su hoja. Lo que no se pudo ver no se
+cita.
+
+### Las reglas de folio, comprobadas en el pie o el encabezado impreso
+
+| Documento | Regla | Comprobada en |
+|---|---|---|
+| ASE 2025 de corazón derecho (Mukherjee) | folio = hoja **+ 140** | hojas 5 → 145, 9 → 149, 19 → 159 |
+| ESC 2024 de aorta (Mazzolai) | folio = hoja **− 1** | hojas 72 → 71, 77 → 76, 122 → 121 |
+| ESC/EACTS 2025 de valvulopatías | folio = hoja **+ 4634** | hojas 38 → 4672, 41 → 4675 |
+| EACVI 2013 (recomendaciones de regurgitación) | folio = hoja **+ 610** | hoja 11 → 621 |
+| EAE/ASE 2009 de estenosis | folio = **hoja** | hoja 10 → 10 |
+
+### ASE 2025 del corazón derecho — LA VERSIÓN DE MAYO
+
+Mukherjee M, Rudski LG y col., *J Am Soc Echocardiogr* 2025;38(3):141-186.
+DOI `10.1016/j.echo.2025.01.006`.
+
+⚠️ **HAY DOS PDF DEL MISMO ARTÍCULO.** El de **febrero** (creación 2025-02-28), con erratas,
+archivado en `Archivo_EcoSmart/Retirados`, y el de **MAYO** (creación 2025-05-07), que es el de la
+biblioteca —el mismo `md5` en `03_VD_y_corazon_derecho` y en `16- HTP`—. **La app lee el de mayo.**
+
+⚠️ **ESA FUENTE CODIFICA `≥` COMO `$` Y `≤` COMO `#`** en el texto extraído: quien la lea sin
+saberlo **invierte todos los operadores**. La Tabla 1 se leyó **renderizando la hoja 5 a 300 ppp**
+en las dos versiones y comparando el diff completo, que da **ONCE** diferencias.
+
+**Verificado, Tabla 1 (folio 145, hoja 5):**
+
+| Fila | Febrero | **Mayo** | Qué cambia en la app |
+|---|---|---|---|
+| TAPSE, banda leve | `≤1.7 to ≥1.3` | `≤1.7 to >1.3` | **1,3 cm pasa a MODERADA**; desaparece el solape |
+| Onda S′, banda leve | `≤9.5 to ≥7.2` | `≤9.5 to >7.2` | **7,2 cm/s pasa a MODERADA**; desaparece el solape |
+| FEVD 3D, banda leve | `≤45 to <39` | `≤45 to >39` | **nada**: el 39 exacto ya caía en moderada. Se corrigió la cita del rótulo |
+| RAV index (area-length) | `>39 to ≤44` | `>38 to ≤44` | **nada**: la app no tiene volumen de la AD. El hueco de 38-39 queda cerrado |
+| RV E/A ratio, normal | `≥0.8 to <2.0` | `≥0.8 to ≤2.1` | **nada**: función diastólica del VD, no implementada |
+| Deceleration time, severa | `≤57` | `<57` | **nada**: ídem |
+
+Y **dos de rótulo**: los índices de área telesistólica y telediastólica del VD pasan de `cm2` a
+`cm2/m2` en el encabezado de su fila, que es la unidad que siempre tuvieron.
+
+⚠️ **EL DIÁMETRO DE LA ARTERIA PULMONAR Y EL TIEMPO DE ACELERACIÓN DEL TSVD NO SE TOCARON**: esta
+app **no los gradúa** —el primero tiene una banda de plausibilidad y el segundo es un corte
+binario de la probabilidad de HTP, que esta orden congela—. Reportados sin cambio.
+
+**Verificado, strain de pared libre del VD:** Tabla 1 (**folio 145**) y texto del **folio 159** —
+normal cuando es **más negativo que −20 %**, **UN SOLO CORTE PARA LOS DOS SEXOS**: ni la tabla ni
+el texto abren columnas de varón y de mujer. Ficha `FUN-VD-007`.
+
+### ESC 2024 de enfermedad arterial periférica y aórtica (Mazzolai)
+
+Traducción de la Sociedad Española de Cardiología. DOI `10.1093/eurheartj/ehae179`, leído en el
+**pie de la hoja 2** del propio PDF.
+
+**Verificado, apartado 9.2.1.1 (folio 71, hoja 72):** la aorta se considera dilatada por encima de
+**40 mm en el varón** y **36 mm en la mujer**, o con un **diámetro indexado por superficie corporal
+—índice de dimensión aórtica (iDA)— mayor de 22 mm/m²**. Ficha `AOR-004`.
+
+⚠️ **EL DOCUMENTO ESCRIBE EL CORTE DE DOS MANERAS Y LAS DOS ESTÁN IMPRESAS.** El apartado 9.2.1.1
+usa `>` estricto; la **Figura 24 (folio 76, hoja 77)** bracketea su primera banda como
+**«40-44 mm»**, o sea inclusivo. **La app aplica el inclusivo** —la decisión del trabajo H, que no
+se movió— y el globo ⓘ de la aorta lo declara con las dos lecturas. La figura **no bracketea el
+iDA**, así que ese corte queda con el `>` estricto del texto.
+
+**Verificado, Tabla 69 (folio 121, hoja 122):** en la coartación nativa o reparada, seguimiento de
+por vida con imagen aórtica periódica por **tomografía o resonancia cada 3 a 5 años**, ajustada al
+estado clínico y a los hallazgos de imagen previos. **Clase I · Nivel B.**
+
+### ESC/EACTS 2025 de valvulopatías — el corte alternativo de la IM secundaria
+
+**Verificado, Figura 10 (folio 4672, hoja 38) y apartado 9.2.2 (folio 4675, hoja 41):** en la
+insuficiencia mitral **secundaria**, un **ORE ≥ 30 mm²** —aplicable cuando el orificio es
+elíptico— y un **volumen regurgitante ≥ 45 ml** —aplicable con bajo flujo— identifican una
+regurgitación grave.
+
+⚠️ **ES UN CORTE DE OTRA GUÍA Y LA APP NO GRADÚA CON ÉL.** Los cortes que gradúan siguen siendo
+los de la **ACC/AHA 2020** que la app ya aplicaba; lo que entra es una frase de **pantalla** que
+dice si ESTE paciente los alcanza, **nombrando la condición** que la guía pone en cada uno.
+
+### El flujo reverso de la aorta descendente — DOS fuentes
+
+**Verificado, EACVI 2013 (Lancellotti P y col., recomendaciones para la evaluación de la
+regurgitación valvular nativa), Tabla 4, folio 621 (hoja 11):** el flujo reverso **holodiastólico
+prominente** en la aorta descendente, con una **velocidad telediastólica elevada**, es un signo de
+insuficiencia aórtica grave.
+
+⚠️ **ESE PDF CODIFICA `>` COMO `.` Y `<` COMO `,`** en el texto extraído. Leído renderizando.
+
+⚠️ **EL CORTE DE 15 cm DEL VTI NO ESTÁ EN NINGUNA GUÍA DE LA BIBLIOTECA.** Sale de la **Tabla 20-5
+del libro *Ecocardiografía avanzada* (Moya Mur, capítulo 20)**: leve = ausente o reverso
+protodiastólico breve; moderada = holodiastólico con **VTI < 15 cm**; grave = holodiastólico con
+**VTI > 15 cm** y/o **velocidad telediastólica > 20 cm/s**. La ficha de Referencias lo rotula
+**«libro de texto; no figura en las guías de la biblioteca»** y no lo presenta como recomendación.
+⏸️ **La EDICIÓN y el AÑO del libro los confirma Maicol**: el ejemplar consultado no los imprime en
+la página de la tabla.
+
+⚠️ **EL OPERADOR DE LA VELOCIDAD NO SE MOVIÓ Y LAS DOS FUENTES NO COINCIDEN.**
+`IA_VMAX_TD_SEVERA` sigue en **20 cm/s con `>=`**, que es lo que escribe la **ESC/EACTS 2025
+(Figura 4, folio 4659)**, ya verificada en este repo y más nueva; la EACVI 2013 y la Tabla 20-5
+escriben `> 20`. Mover un operador que esta orden no autoriza es cambiar contenido clínico.
+
+### EAE/ASE 2009 de estenosis — el gradiente medio aórtico
+
+**Verificado, Tabla 3, folio 10 (hoja 10), leída RENDERIZANDO porque sus valores son una imagen:**
+la columna **AHA/ACC** publica el gradiente medio en `< 25` leve, `25-40` moderada y `> 40` grave;
+la columna de la **ESC** publica `< 30` / `30-50` / `> 50`. **La app aplica 20-39 y ≥ 40, que no es
+ninguna de las dos columnas**: la ficha ahora publica la fuente de la que sale la franja —la
+columna AHA/ACC— y la de la ESC al lado, para que la diferencia se vea.
+
+⚠️ **NINGÚN CORTE DEL GRADIENTE SE MOVIÓ**: la orden lo congela y lo único que entra es la línea de
+fuente.
+
+### El corte de 9 mmHg de la válvula pulmonar
+
+**No se tocó y sigue rotulado «Criterio de EcoSmart»**: censada la biblioteca, ninguna guía publica
+ese corte.
+
+### Cambios de evidencia
+
+| Qué | Antes | Ahora | Fuente |
+|---|---|---|---|
+| TAPSE de **1,3 cm** | disfunción **leve** (y rango «leve-moderada» por solape) | disfunción **MODERADA** | ASE 2025 de mayo, Tabla 1, folio 145 |
+| Onda S′ de **7,2 cm/s** | disfunción **leve** (ídem) | disfunción **MODERADA** | ídem |
+| Strain de pared libre del VD | corte por **sexo**; sin sexo **no clasificaba** | **−20 % para los dos**, siempre clasifica | ASE 2025 de mayo, Tabla 1 folio 145 y texto folio 159 |
+| Coartación reparada | «**Seguimiento anual obligatorio**» en pantalla, informe, EN SUMA y PDF | el papel firmado **no indica controles**; la recomendación va al bloque visible de la Evidencia | ESC 2024, Tabla 69, folio 121 |
+| Evidencia de aorta | abría **sólo** por diámetro absoluto | abre **también** por **iDA > 22 mm/m²**, con superficie corporal | ESC 2024, apartado 9.2.1.1, folio 71 |
+| Ehlers-Danlos vascular | sin línea en el EN SUMA | frase **descriptiva**, sin umbral | ESC 2024, Tabla 59 y apartado 10.1.2.4, folio 112 |
+| IM secundaria | nada | dice si alcanza el **corte alternativo** (ORE ≥ 30 mm², VR ≥ 45 ml), **sin cambiar el grado** | ESC/EACTS 2025, Figura 10 folio 4672 y §9.2.2 folio 4675 |
+| Flujo reverso de la aorta descendente | **VTI ≥ 25 cm** votaba severa por su cuenta (criterio propio) | lo gradúa la **DURACIÓN**; el 25 **salió** y el corte es **VTI > 15 cm** con reverso holodiastólico | EACVI 2013 Tabla 4 folio 621 + Moya Mur Tabla 20-5 |
+| Velocidad telediastólica | `≥ 20 cm/s` votaba severa **sin mirar la duración** | vota severa **sólo con reverso holodiastólico**; el corte y el operador **no se movieron** | las dos celdas de la Tabla 20-5 empiezan por «holodiastólico» |
+| Gradiente medio aórtico | la franja 20-39 / ≥ 40 **sin línea de fuente** | la ficha publica su fuente y la columna de la ESC al lado | EAE/ASE 2009, Tabla 3, folio 10 |

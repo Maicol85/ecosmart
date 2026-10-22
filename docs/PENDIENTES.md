@@ -6150,7 +6150,7 @@ valor exacto— y es el lado que no deja de avisar. **Si Maicol prefiere el estr
 el operador de `aoDilatada` y un valor de TC-512**, y entonces hay que mover también el cuadro
 descriptivo para que las dos superficies no discrepen.
 
-### H-2 · El índice de dimensión aórtica (iDA > 22 mm/m²) de la definición de dilatación no se usa
+### [CERRADO 2026-10-22 · AJ1-E4] H-2 · El índice de dimensión aórtica (iDA > 22 mm/m²) no se usaba
 
 El mismo folio 71 ofrece una **segunda** definición: diámetro indexado por superficie corporal
 **> 22 mm/m²**. El motor de aorta arranca **sólo por el diámetro absoluto**, así que el paciente de
@@ -6158,6 +6158,16 @@ talla pequeña con un diámetro absoluto normal y un índice patológico **no ab
 Implementarlo es una línea en `aoDilatada` —el iDA se calcula con `aoDilMax()` y la superficie
 corporal, que la app ya tiene— pero **cambia qué pacientes ven la sección**, que es contenido
 clínico. Para Turner la guía ya manda medir por índice y la sección lo publica (Tabla 57).
+
+**CERRADO el 22/10/2026 (AJ1-E4), por decisión de Maicol.** Entraron `AO_IDA_MAX = 22` —operador
+**estricto**, que es el del texto: la Figura 24 no bracketea el índice—, `aoIdaVal()` y
+`aoIdaDilatado()`, y `_indAo` abre con `(diámetro ≥ corte) || porIda`. **Sin superficie corporal
+el índice es `null` y no se aplica**: un campo vacío es SIN DATO. La **fila del iDA se dibuja
+igual**, con `ask`, para que su ausencia no se lea como un valor normal.
+⚠️ **`_indVAB` CONSERVA `aoDilatada()`, O SEA SÓLO EL DIÁMETRO ABSOLUTO** —ver AJ1-3—.
+
+**H-1 NO se cerró**: el operador del diámetro absoluto no se movió. Lo que entró es la **nota del
+globo ⓘ** que declara las dos lecturas y cuál aplica la app (AJ1-E3).
 
 ### H-3 · Las tres listas de factores de riesgo siguen sin unificar, y ahora son CUATRO fuentes
 
@@ -6474,3 +6484,89 @@ queda declarado es que son dos pestañas distintas para un mismo bloque clínico
 
 **No hay nada que arreglar hoy**; se escribe para que la próxima tanda que mueva uno de los cuatro
 sepa que el cuarto no está donde parece.
+
+---
+
+# La tanda AJ1 — lo declarado y no tocado (22/10/2026)
+
+### AJ1-1 · La edición y el año del libro de la Tabla 20-5 los confirma Maicol
+
+El corte de **15 cm** del VTI del flujo reverso sale de la **Tabla 20-5** del libro
+*Ecocardiografía avanzada* (Moya Mur, capítulo 20). La ficha de Referencias lo rotula **«libro de
+texto; no figura en las guías de la biblioteca»**, que es lo que la honestidad de la cita pide,
+pero **el ejemplar consultado no imprime la edición ni el año en la página de la tabla**.
+
+**No se inventó ninguno de los dos.** Cuando Maicol los confirme, el único lugar que hay que tocar
+es la línea de fuente de `ref-ia`.
+
+### AJ1-2 · Los dos operadores de la velocidad telediastólica no coinciden, y no se movió ninguno
+
+`IA_VMAX_TD_SEVERA` vale **20 cm/s con `>=`**, que es lo que escribe la **ESC/EACTS 2025 (Figura 4,
+folio 4659)**, la más nueva de las tres y ya verificada en este repo. La **EACVI 2013** y la
+**Tabla 20-5** escriben `> 20`, así que **una velocidad de 20,0 exactos es severa para una fuente y
+no para las otras dos**.
+
+**No se tocó**: mover un operador es contenido clínico y esta orden lo prohíbe. **Salidas:** (a)
+dejarlo —lo que se hizo, y es el lado que no deja de avisar—; (b) pasarlo a `>` estricto, que son
+una línea y un valor de TC-516.
+
+### AJ1-3 · La Evidencia de la BICÚSPIDE sigue abriendo sólo por el diámetro ABSOLUTO
+
+`_indVAB` conserva `aoDilatada()` mientras `_indAo` ya abre también por el **iDA**. Son **dos
+predicados** donde el trabajo H había dejado **uno**, y es deliberado: las filas de la **Tabla 68**
+de la bicúspide están escritas sobre el **diámetro absoluto**, así que abrirlas por el índice
+publicaría recomendaciones cuya fuente no las condiciona así.
+
+**Medido: con iDA 23 y diámetro por debajo del corte, la sección de aorta abre y la de la
+bicúspide no.** **Salida:** si Maicol quiere que las dos abran igual, es cambiar el predicado de
+`_indVAB` por `aoDilatada() || aoIdaDilatado()` y un valor de TC-516 — y hay que decidir qué hace
+la sección con una recomendación cuyo umbral es absoluto.
+
+### AJ1-4 · El corte alternativo de la IM secundaria es de PANTALLA y no gradúa
+
+La frase de `#im-sec-alt` dice si el paciente alcanza el **ORE ≥ 30 mm²** o el **volumen ≥ 45 ml**
+de la ESC/EACTS 2025, y **no cambia `im_grado`**, que sigue saliendo de los cortes de la
+**ACC/AHA 2020**. O sea que el médico puede ver «alcanza el corte alternativo de grave» al lado de
+un grado **moderado**, y eso es exactamente lo que la orden pide mostrar: dos guías con dos cortes.
+
+**Tampoco sube al informe ni al EN SUMA**, y por eso **no viaja con el estudio**: su id lleva guión
+MEDIO. **Salidas:** (a) dejarlo —lo que se hizo—; (b) subirlo al informe como salvedad; (c) hacer
+que gradúe, que es cambiar qué guía manda en esta válvula. Las tres son decisión de Maicol.
+
+### AJ1-5 · El campo de la duración del reverso no tiene columna de Excel
+
+`ia_rev_dur` **viaja con el estudio** y se restaura, pero **no está en `LAB_XLS_MAP`**: un backup a
+Excel y su reimportación **pierden la duración**, y con ella el grado que el reverso vota. Es lo
+mismo que `D-7` y `D3-2` ya declaran para otros dos datos.
+
+**Medido: 440 columnas antes y después.** Una columna nueva es **PARADA** y la decide Maicol.
+
+### AJ1-6 · El strain de pared libre del VD no tiene cobertura automática por su CÁLCULO
+
+`_vdCalcular` necesita los **dos contornos dibujados a mano** sobre el visor, que el cuerpo de un
+caso no puede trazar. **TC-516 lo mide por COMPORTAMIENTO** —la fila de `ref-vd2` que deriva del
+corte, que publica el mismo valor en las dos columnas de sexo— y la clasificación por el cálculo
+queda sin caso.
+
+**Salida:** un arnés que inyecte `_vd.trazos` necesitaría que esa variable de módulo esté
+exportada, y hoy no lo está. No se exportó una variable interna sólo para medirla.
+
+### AJ1-7 · Tres diferencias de la versión de MAYO quedan sin aplicar, y dos no son de esta tabla
+
+El diff de la hoja 5 entre febrero y mayo da **once** diferencias. Las que esta app implementa
+están aplicadas; de las que no, **«RAV index (area-length)»** no tiene campo —la app no mide
+volumen de la AD—, y **«RV E/A ratio»** y **«Deceleration time»** son de la **función diastólica
+del VD**, que `ASE25_T1` no implementa.
+
+**No hay nada que arreglar hoy**; se escribe para que la próxima tanda que agregue esas filas sepa
+que la versión de mayo ya las corrige y de dónde salen los valores buenos.
+
+### AJ1-8 · La sonda de esta tanda tenía una escena de coartación VACÍA, y lo cazó el caso
+
+`_probe_aj1.mjs` escribía `coa_gmax_vmax`, que **no existe** —el campo es `coa_vmax`—, así que su
+escena de coartación **no producía el párrafo del informe** y su medición «no está el seguimiento»
+se cumplía sobre un informe que no hablaba de la coartación. **TC-516 lo destapó con su
+DENOMINADOR**, que es para lo que está, y el caso usa los ids reales.
+
+**La sonda quedó como está** —ya se corrió y su conclusión no cambia: el seguimiento tampoco
+aparece en la escena buena, medido por el caso—. Si se vuelve a usar, hay que corregirle los ids.
