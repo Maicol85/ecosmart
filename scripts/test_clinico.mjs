@@ -46929,6 +46929,10 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
          ecocardiografica de HTP. Su escenario es una VRT alta -la compuerta de la seccion es
          «VRT medible o algun signo presente»- y su cita es la entrada nueva del registro. */
       ['Hipertension pulmonar',                { vmax_it:'3.8' },                                   'escErs2022'],
+      /* ADAPTADO el 2026-10-22 (tanda E, commit 6): la seccion NUEVA del HFA-PEFF. Su compuerta
+         es «algun dominio con datos y la FEVI no reducida», asi que el escenario necesita la
+         FEVI -premisa del algoritmo- y un parametro del dominio funcional. */
+      ['Insuficiencia cardiaca',               { fevi:'60', e_sep:'6', e_lat:'8', onda_e:'90' },     'hfaPeff2019'],
       ['Comunicacion interauricular',         { ete_cia_tipo:'secundum', ete_cia_tam_max:'18' },    'esc2020guch'],
       ['Comunicacion interventricular',       { ete_civ_tipo:'perimembranosa' },                     'escGuchCiv'],
       ['Ductus arterioso permeable',          { dap_tipo:'no_restrictivo', dap_diam:'4' },           'esc2020guch'],

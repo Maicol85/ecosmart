@@ -71224,6 +71224,39 @@ const IND_REFS = Object.freeze([
      dos series se pisan en los numeros bajos: existe una «Tabla 2» distinta de la
      «Recomendaciones - tabla 2». Es la regla que el trabajo H dejo escrita para la ESC 2024 de
      aorta, donde las series tambien conviven. */
+  /* ⚠️ ENTRADA NUEVA (E6, 2026-10-22). VERIFICADA EN IMAGEN: Figura 3 a 250 ppp (hoja 9) y el
+     texto de la hoja 7 a 330 ppp; el resto del texto de la hoja 8 en su capa de texto, con los
+     operadores legibles. Regla de folio = hoja del PDF + 3296, comprobada en el numero impreso
+     del encabezado de nueve hojas.
+     ⚠️ PIESKE 2019 ES UN CONSENSO Y NO PUBLICA CLASE NI NIVEL DE EVIDENCIA para sus pasos, asi
+     que las lineas de la seccion de Evidencia no llevan ninguno. La guia ESC 2021 de
+     insuficiencia cardiaca lo NOMBRA y repite en prosa la prueba de esfuerzo diastolica y el
+     cateterismo, tambien sin clase ni nivel propios para esos pasos -censada-, y ademas declara
+     que el rendimiento diagnostico de los scores ha variado entre cohortes. */
+  { k:'hfaPeff2019',
+    full:'Pieske B, Tschope C, de Boer RA, et al. How to diagnose heart failure with preserved ' +
+         'ejection fraction: the HFA-PEFF diagnostic algorithm — a consensus recommendation from ' +
+         'the Heart Failure Association (HFA) of the European Society of Cardiology (ESC). ' +
+         'Eur Heart J 2019;40(40):3297-3317. Figura 3, folio 3305 — los criterios mayores y ' +
+         'menores de los tres dominios (funcional, morfologico y de biomarcadores, este ultimo ' +
+         'con columnas separadas para ritmo sinusal y fibrilacion auricular), con el pie «Major ' +
+         'Criteria: 2 points · Minor Criteria: 1 point», «>= 5 points: HFpEF» y «2-4 points: ' +
+         'Diastolic Stress Test or Invasive Haemodynamic Measurements». Texto folio 3303 — los ' +
+         'criterios de e-prima por edad (septal < 7 cm/s o lateral < 10 cm/s por debajo de los 75 ' +
+         'anos; septal < 5 o lateral < 7 desde los 75), la velocidad pico de regurgitacion ' +
+         'tricuspidea > 2,8 m/s, la PAPs > 35 mmHg y el strain longitudinal global < 16 %. Texto ' +
+         'folio 3304 — cada dominio aporta como maximo 2 puntos, los criterios mayores y menores ' +
+         'no se acumulan dentro de un dominio y los puntos solo se suman entre dominios ' +
+         'distintos; el score se puede calcular aunque no se hayan obtenido todos los ' +
+         'parametros; un total de 5 o mas es diagnostico, uno de 1 o menos hace el diagnostico ' +
+         'muy improbable y obliga a investigar causas alternativas, y el intermedio de 2 a 4 ' +
+         'necesita la evaluacion del paso 3; y si el volumen auricular, el indice de masa o el ' +
+         'espesor parietal no se pueden medir por ecocardiografia, recomienda usar las ' +
+         'mediciones de resonancia magnetica cardiaca. Texto folio 3305 — si la medicion ' +
+         'invasiva demuestra una presion de llenado del VI elevada en reposo (presion telediastolica ' +
+         'del VI de 16 mmHg o mas, o presion capilar pulmonar de 15 mmHg o mas) el diagnostico se ' +
+         'puede confirmar; si no, se recomienda la evaluacion durante el ejercicio, por ' +
+         'ecocardiografia de esfuerzo o por hemodinamica invasiva.' },
   { k:'escErs2022',
     full:'Humbert M, Kovacs G, Hoeper MM, et al. Guia ESC/ERS 2022 sobre el diagnostico y el ' +
          'tratamiento de la hipertension pulmonar. Sociedad Europea de Cardiologia y European ' +
@@ -78709,6 +78742,111 @@ function _indHTP(){
     notas: lineas.map(function (l) { return l.txt; }) };
 }
 
+/* ── Insuficiencia cardíaca con fracción de eyección preservada — HFA-PEFF ─────────────────
+   ══ OTRO CUESTIONARIO: LEE EL PUNTAJE Y PREGUNTA EL PASO 3 ═══════════════════════════════
+   LEE el puntaje y los tres dominios del MISMO dueño que la pantalla, el informe y la hoja del
+   PDF —`hfapeffScore`— y PREGUNTA lo que el paso 3 de Pieske 2019 necesita y el ecocardiograma
+   en reposo no da.
+
+   FUENTE: Pieske 2019 (el consenso HFA-PEFF), VERIFICADA EN IMAGEN; regla folio = hoja + 3296,
+   comprobada en el encabezado impreso de nueve hojas.
+     · Figura 3, folio 3305 — «>= 5 points: HFpEF» y «2-4 points: Diastolic Stress Test or
+       Invasive Haemodynamic Measurements».
+     · Texto folio 3304 — el intermedio de 2 a 4 necesita el paso 3 (F1); el de 1 o menos hace
+       el diagnóstico muy improbable y obliga a investigar causas alternativas.
+     · Texto folio 3305 — con presión de llenado elevada en reposo el diagnóstico se puede
+       confirmar; si no, la evaluación sigue durante el ejercicio.
+
+   ⚠️ NINGUNA LINEA LLEVA CLASE NI NIVEL, Y ES DE LA FUENTE: Pieske 2019 es un consenso y no
+   publica ninguno para sus pasos. La guía ESC 2021 de insuficiencia cardíaca repite en prosa la
+   prueba de esfuerzo diastólica y el cateterismo, también sin clase ni nivel propios —censada—,
+   así que inventarlos acá sería atribuirle a las dos algo que ninguna escribe.
+
+   ⚠️ CON FEVI REDUCIDA LA SECCION NO APARECE. El score no se aplica a ese escenario y no hay
+   paso que proponer: es la MISMA compuerta que `amiloTextoHFAPEFF` ya usa para retirar la hoja
+   del PDF, leída del mismo `gate`.
+
+   ⚠️ LAS RECOMENDACIONES VAN EN `r.bloques`, VISIBLE, y no en `notas`. */
+function _indHFPEFF(){
+  const fn = _indFn('hfapeffScore');
+  if (!fn) return null;
+  let r = null;
+  try { r = fn(false); } catch (e) { return null; }
+  if (!r) return null;
+  /* Sin ningún dominio con datos no hay puntaje que interpretar, y con FEVI reducida el score no
+     aplica: en los dos casos la sección no tiene nada que decir. */
+  if (r.gate && !r.gate.aplica) return null;
+  if (!r.func.hayDatos && !r.morf.hayDatos && !r.hum.hayDatos) return null;
+
+  const cat = (typeof hfapeffInterp === 'function') ? hfapeffInterp(r.total).nivel : null;
+  const dom = (nom, o) => _indFila('Dominio ' + nom, o.pts + ' / 2',
+    o.hayDatos ? (o.pts > 0 ? 'warn' : 'none') : 'ask',
+    o.hayDatos ? 'cada dominio aporta como máximo 2 puntos, y los criterios mayores y menores no se acumulan dentro de uno'
+               : 'ningún parámetro de este dominio se pudo evaluar con lo cargado',
+    ['hfaPeff2019']);
+
+  const filas = [
+    _indFila('Puntaje HFA-PEFF', r.total + ' / 6',
+      cat === 'alta' ? 'alarm' : (cat === 'intermedia' ? 'warn' : 'none'),
+      cat === 'alta' ? '5 o más puntos: la guía lo considera diagnóstico de insuficiencia cardíaca con fracción de eyección preservada (folio 3304)'
+      : cat === 'intermedia' ? '2 a 4 puntos: la guía manda seguir al paso 3 (folio 3304 y Figura 3, folio 3305)'
+      : '1 punto o menos: la guía lo considera muy improbable (folio 3304)',
+      ['hfaPeff2019']),
+    dom('funcional', r.func),
+    dom('morfológico', r.morf),
+    dom('de biomarcadores — ' + (r.fa ? 'fibrilación auricular' : 'ritmo sinusal'), r.hum),
+    _indFila('Puntaje completo', r.completo ? 'Sí' : 'No', r.completo ? 'none' : 'ask',
+      r.completo ? 'los tres dominios tienen al menos un parámetro evaluado'
+                 : 'la guía dice que el puntaje se puede calcular aunque falten parámetros, pero no dice qué hacer cuando falta un dominio entero (folio 3304)',
+      ['hfaPeff2019'])
+  ];
+
+  const p3 = _indClinGet('hfpeff.paso3'), pll = _indClinGet('hfpeff.pll');
+  const clinica = [
+    _indFilaCtrl('Paso 3 — prueba de esfuerzo diastólica o medición hemodinámica invasiva', 'hfpeff.paso3',
+      [{v:'hecha',t:'Realizada'},{v:'pendiente',t:'Pendiente'}],
+      p3 === 'hecha' ? 'ok' : 'ask',
+      p3 === 'hecha' ? 'con el paso 3 hecho, lo que decide es la presión de llenado'
+      : 'es el paso que la guía indica para el puntaje intermedio — contestado en este panel: no se guarda con el estudio',
+      ['hfaPeff2019']),
+    _indFilaCtrl('Presión de llenado del VI en reposo, por medición invasiva', 'hfpeff.pll',
+      [{v:'elevada',t:'Elevada'},{v:'normal',t:'Normal'},{v:'no_medida',t:'No medida'}],
+      pll === 'elevada' ? 'ok' : (pll ? 'none' : 'ask'),
+      pll === 'elevada' ? 'presión telediastólica del VI de 16 mmHg o más, o presión capilar pulmonar de 15 mmHg o más: con eso el diagnóstico se puede confirmar (folio 3305)'
+      : pll === 'normal' ? 'la guía recomienda entonces seguir la evaluación durante el ejercicio (folio 3305)'
+      : 'sin ella no se puede decidir entre confirmar y evaluar en ejercicio — contestado en este panel: no se guarda con el estudio',
+      ['hfaPeff2019'])
+  ];
+
+  const lineas = [], faltan = [];
+  if (cat === 'alta') {
+    lineas.push({ txt:'Con 5 puntos o más la guía considera establecido el diagnóstico de insuficiencia cardíaca con fracción de eyección preservada (texto folio 3304 y Figura 3, folio 3305).', refs:['hfaPeff2019'] });
+  } else if (cat === 'intermedia') {
+    lineas.push({ txt:'Con un puntaje de 2 a 4 la guía indica continuar con el paso 3: prueba de esfuerzo diastólica o medición hemodinámica invasiva (texto folio 3304 y Figura 3, folio 3305).', refs:['hfaPeff2019'] });
+    if (p3 === 'hecha') {
+      if (pll === 'elevada') lineas.push({ txt:'Con una presión de llenado del VI elevada en reposo —presión telediastólica de 16 mmHg o más, o presión capilar pulmonar de 15 mmHg o más— el diagnóstico se puede confirmar (texto folio 3305).', refs:['hfaPeff2019'] });
+      else if (pll === 'normal') lineas.push({ txt:'Con una presión de llenado normal en reposo la guía recomienda continuar la evaluación durante el ejercicio, por ecocardiografía de esfuerzo o por hemodinámica invasiva (texto folio 3305).', refs:['hfaPeff2019'] });
+      else faltan.push({ txt:'Falta consignar la presión de llenado del VI en reposo: con ella elevada el diagnóstico se confirma y con ella normal la evaluación sigue durante el ejercicio (texto folio 3305).', refs:null });
+    } else if (p3 == null) {
+      faltan.push({ txt:'Falta consignar si el paso 3 ya se realizó: es lo que la guía indica para el puntaje intermedio (texto folio 3304).', refs:null });
+    }
+  } else {
+    lineas.push({ txt:'Con 1 punto o menos la guía considera el diagnóstico muy improbable y manda investigar causas alternativas de los síntomas (texto folio 3304).', refs:['hfaPeff2019'] });
+  }
+  if (!r.completo) lineas.push({ txt:'El puntaje está incompleto. La guía dice que el score se puede calcular aunque no se hayan obtenido todos los parámetros, y que si el volumen auricular indexado, el índice de masa del VI o el espesor parietal no se pueden medir por ecocardiografía conviene usar las mediciones de resonancia magnética cardíaca (texto folio 3304).', refs:['hfaPeff2019'] });
+
+  const bloques = [ { tit:'Pasos que propone la guía', lineas: lineas,
+    nota:'Pieske 2019 es un documento de consenso y no publica clase ni nivel de evidencia para estos pasos, así que acá no se escribe ninguno. La conclusión de la app es DESCRIPTIVA: el puntaje y su categoría van al papel firmado, y los pasos siguientes se publican acá.' } ];
+  if (faltan.length) bloques.push({ tit:'Lo que falta contestar para decidir el paso siguiente', lineas: faltan });
+
+  return { filas: filas, bloques: bloques, clinica: clinica,
+    guia: { ref:'hfaPeff2019',
+      txt:'El puntaje suma tres dominios —funcional, morfológico y de biomarcadores—, cada uno con un máximo de 2 puntos: 2 si cumple algún criterio mayor y 1 si no cumple ninguno mayor pero sí alguno menor. Los criterios de un mismo dominio no se acumulan y los puntos sólo se suman entre dominios distintos. Un total de 5 o más es diagnóstico, uno de 1 o menos lo hace muy improbable, y el intermedio de 2 a 4 necesita el paso 3 (texto folio 3304).',
+      nota:'El puntaje presupone una fracción de eyección preservada: con fracción reducida el diagnóstico es insuficiencia cardíaca con fracción de eyección reducida y el algoritmo no se aplica.' },
+    notas: lineas.map(function (l) { return l.txt; }) };
+}
+
+
 
 const IND_SECS = [
   { tit:'Estenosis aórtica',                     fn:_indEA },
@@ -78724,6 +78862,7 @@ const IND_SECS = [
   { tit:'Estenosis pulmonar',                    fn:_indEP },
   { tit:'Tromboembolia pulmonar — estratificación del riesgo', fn:_indTEP },
   { tit:'Hipertensión pulmonar — probabilidad ecocardiográfica', fn:_indHTP },
+  { tit:'Insuficiencia cardíaca con fracción de eyección preservada — HFA-PEFF', fn:_indHFPEFF },
   { tit:'Comunicación interauricular',           fn:_indCIA },
   { tit:'Comunicación interventricular',         fn:_indCIV },
   { tit:'Ductus arterioso permeable',            fn:_indDAP },
