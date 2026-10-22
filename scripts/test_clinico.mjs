@@ -47866,10 +47866,31 @@ caso('TC-330', 'Wilkins: Referencias y la calculadora de Calculadoras publican e
                  R.refTxt.indexOf('≤8') > -1 && R.refTxt.indexOf('9-11') > -1 && R.refTxt.indexOf('>11') > -1;
         })(),
         'tramos=' + JSON.stringify(R.T) + ' ref=«' + R.refTxt.slice(R.refTxt.indexOf('score wilkins'), R.refTxt.indexOf('score wilkins') + 130) + '»'],
-      ['y NO sobrevive NINGUNA de las cuatro afirmaciones de resultado en Referencias',
-        ['resultado suboptimo','favorable para pmv','favorable para valvuloplastia','no predice el resultado']
+      /* ⚠️ ACA EL LITERAL PROHIBIDO ES EL ROTULO COMPLETO Y NO SU PRIMERA MITAD, y la diferencia
+         la cazo el propio caso: desde el I-E2 la ficha CITA lo que hallo la serie original, y esa
+         cita dice «tuvieron un resultado suboptimo». Prohibir «resultado suboptimo» a secas deja
+         esta condicion roja sobre una ficha correcta y, peor, empuja a borrar la cita. Lo que no
+         puede volver es el ROTULO que la app publicaba. */
+      ['y NO sobrevive NINGUNO de los cuatro ROTULOS de resultado en Referencias',
+        ['resultado suboptimo probable','favorable para pmv','favorable para valvuloplastia','no predice el resultado']
           .every(function(l){ return R.refTxt.indexOf(l) === -1; }),
         '«' + R.refTxt.slice(R.refTxt.indexOf('score wilkins'), R.refTxt.indexOf('score wilkins') + 130) + '»'],
+      /* Y LA FICHA SI PUBLICA LO QUE HALLO LA SERIE, con su folio: es la diferencia entre no
+         afirmar un pronostico y no decir nada. Wilkins 1988, folios 300 y 307, verificado en
+         imagen; EAE/ASE 2009, apartado B.2.1, folio 14, para la salvedad. */
+      ['la ficha publica lo que hallo la serie original, la escala y la salvedad, cada una con su folio',
+        R.refTxt.indexOf('22 pacientes') > -1 &&
+        R.refTxt.indexOf('folios 300 y 307') > -1 &&
+        R.refTxt.indexOf('el score no predijo el resultado') > -1 &&
+        R.refTxt.indexOf('el total va de 4 a 16') > -1 &&
+        R.refTxt.indexOf('tabla 5, folio 14') > -1 &&
+        R.refTxt.indexOf('apartado b.2.1, folio 14') > -1,
+        'serie=' + (R.refTxt.indexOf('22 pacientes') > -1) +
+        ' folios=' + (R.refTxt.indexOf('folios 300 y 307') > -1) +
+        ' nopredijo=' + (R.refTxt.indexOf('el score no predijo el resultado') > -1) +
+        ' escala=' + (R.refTxt.indexOf('el total va de 4 a 16') > -1) +
+        ' t5=' + (R.refTxt.indexOf('tabla 5, folio 14') > -1) +
+        ' salvedad=' + (R.refTxt.indexOf('apartado b.2.1, folio 14') > -1)],
 
       // ── La segunda calculadora ─────────────────────────────────────────────────────────────
       ['la calculadora dice el MISMO rotulo que la constante en los DOS bordes de la banda 9-11',
@@ -80789,8 +80810,14 @@ caso('TC-507', 'Tanda R: la VAB muestra la lesion PRESENTE sin grado con un solo
          datos puede cambiar la categoria-, que es propia de la aplicacion: Pieske 2019 admite
          calcular el score incompleto (folio 3304) y NO publica ninguna regla sobre como informar
          un parcial. Lo que esta condicion vigila -que todo corte sin fuente lleve su chip y que el
-         prefijo de las notas no se mueva- no cambia; lo que cambia es el denominador. */
-      return n === 6 && _ecoPref === 'Criterio de EcoSmart: '; })(),
+         prefijo de las notas no se mueva- no cambia; lo que cambia es el denominador.
+         ADAPTADO el 2026-10-22 (tanda I, commits 1 y 2): de SEIS a OCHO. Los dos nuevos son de la
+         OREJUELA, y los dos declaran el MISMO criterio propio en las dos superficies que lo
+         publican: el de la PANTALLA, al lado de la velocidad de vaciamiento, y el de la FICHA de
+         Referencias. La guia -ASE/SCA 2013 de ETE, folio 954- publica los dos numeros, 20 y
+         40 cm/s, y NO publica los rotulos «estasis leve» ni «estasis severa» ni la franja
+         intermedia: esos nombres son propios de la aplicacion. */
+      return n === 8 && _ecoPref === 'Criterio de EcoSmart: '; })(),
     (function(){ let n = 0;
       Array.prototype.forEach.call(document.querySelectorAll('span'), x => {
         if ((x.textContent || '').trim() === 'CRITERIO DE ECOSMART') n++; });

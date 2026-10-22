@@ -13877,7 +13877,7 @@ z
         </div>
         <div class="fg"><label>Área tenting (cm²)</label>
           <input type="number" id="ete_area_tenting" placeholder="cm²" oninput="calcETE()">
-          <span style="font-size:10px; color:var(--text2);">Desfavorable (IM secundaria): &gt;2,5 cm²</span>
+          <span style="font-size:10px; color:var(--text2);">Desfavorable (IM secundaria): &gt;2,5-3 cm² (la app aplica &gt;2,5)</span>
         </div>
         <div class="fg"><label>Ángulo velo posterior (°)</label>
           <input type="number" id="ete_angulo_vp" placeholder="°" oninput="calcETE()">
@@ -14148,10 +14148,14 @@ z
              se veria gris, que es el defecto que este archivo ya pago cinco veces. -->
         <div style="border-top:1px solid var(--border); margin:8px 0 0;"></div>
         <div style="font-size:10px; color:var(--text2); line-height:1.55; margin-top:6px;">
-          <div><b>Fuentes.</b> Profundidad de coaptaci&oacute;n &lt;11 mm: Tamburino 2010
-            (<i>Eur Heart J</i>, Tabla 1, folio 1386), que excluye &ge;11 mm. PASP &le;70 mmHg y
-            di&aacute;metro telesist&oacute;lico del VI &le;70 mm: ESC/EACTS 2025 de
-            valvulopat&iacute;as, Tabla 7 (folio 4678). FEVI 20-50 %: COAPT.</div>
+          <div><b>Fuentes.</b> Profundidad de coaptaci&oacute;n &lt;11 mm, flail gap &lt;10 mm y ancho
+            del flail &lt;15 mm: Tamburino y cols., <i>Eur Heart J</i> 2010;31:1382-1389,
+            Tabla 1, folio 1386, que EXCLUYE &ge;11 mm, &ge;10 mm y &ge;15 mm respectivamente.
+            Los tres coinciden con la columna &laquo;no complejo — ideal para TEER mitral&raquo;
+            de la Tabla S2 del material suplementario de la ESC/EACTS 2025 (hoja 5), que
+            agrega la altura de tenting &lt;10 mm. PASP &le;70 mmHg, di&aacute;metro
+            telesist&oacute;lico del VI &le;70 mm y FEVI del 20 al 50 %: ESC/EACTS 2025 de
+            valvulopat&iacute;as, Tabla 7 (folio 4678).</div>
           <div style="margin-top:4px;">
             <span style="display:inline-block; border:1px solid var(--border); border-radius:4px;
                          padding:1px 5px; margin-right:4px; font-size:9px; letter-spacing:.3px;">CRITERIO DE ECOSMART</span>
@@ -17640,7 +17644,12 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
           🔴 IM — Insuficiencia Mitral (ESC 2021) <span style="float:right;">▶</span>
         </h2>
         <div id="ref-im" style="display:none;" class="card-body">
-          <div style="font-size:11px;color:var(--text2);margin-bottom:8px;font-style:italic;">ESC/EACTS 2021 · EVEREST II · COAPT · RESHAPE-HF2</div>
+          <!-- ⚠️ «EVEREST II» ERA UNA ATRIBUCION EQUIVOCADA (I-E2, 22/10/2026). El registro de
+               Eur Heart J 2010;31:1382-1389 que publica los cortes anatomicos del TEER es de
+               TAMBURINO y cols. —un registro italiano de practica real con MitraClip— y no el
+               EVEREST II. El PDF esta en la biblioteca y su Tabla 1, folio 1386, se verifico en
+               imagen. -->
+          <div style="font-size:11px;color:var(--text2);margin-bottom:8px;font-style:italic;">ESC/EACTS 2025 · Tamburino 2010 · COAPT · RESHAPE-HF2</div>
           <table style="width:100%;border-collapse:collapse;font-size:12px;">
             <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Parámetro</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Leve</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Moderada</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Severa</th></tr>
             <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">Vena contracta (mm)</td><td style="padding:5px 8px;text-align:center;">&lt;3</td><td style="padding:5px 8px;text-align:center;">3–6.9</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">≥7</td></tr>
@@ -17768,6 +17777,48 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
             paciente?», que es otra pregunta que «&iquest;est&aacute; obstruida?» —por eso el corte es indexado y
             el del AEO absoluto—.
           </div>
+          <!-- ⚠️ REPARABILIDAD Y TEER, CON CADA DATO EN SU FUENTE (I-E2, 22/10/2026).
+               Los tres valores de la Tabla 7 se VIERON en imagen a 300 ppp. Esa tabla es de IM
+               SECUNDARIA y sus valores son DESFAVORABLES; la app no afirma reparabilidad, lista
+               los factores que estan presentes.
+               ⚠️ EL AREA DE TENTING LA TABLA LA ESCRIBE COMO UN RANGO, «>2,5-3 cm2», y no como un
+               numero. La app aplica el extremo BAJO (>2,5), que es el lado que no deja de marcar;
+               queda declarado aca y en PENDIENTES.md, porque un corte unico donde la fuente da un
+               rango es una decision y no una lectura. -->
+          <div style="margin-top:10px;font-size:12px;font-weight:700;color:var(--accent2);">Reparabilidad quir&uacute;rgica y TEER</div>
+          <div style="font-size:11px;color:var(--text2);line-height:1.6;margin-top:4px;">
+            <b>Caracter&iacute;sticas desfavorables para la reparaci&oacute;n (IM SECUNDARIA).</b>
+            Tabla 7 de la gu&iacute;a de evaluaci&oacute;n ecocardiogr&aacute;fica de la insuficiencia valvular
+            (hoja 25; ese documento no lleva folio impreso), t&iacute;tulo: &laquo;Caracter&iacute;sticas
+            desfavorables por ETT para reparaci&oacute;n de v&aacute;lvula mitral en IM secundaria&raquo;.
+            De su bloque de deformaci&oacute;n valvular, la aplicaci&oacute;n eval&uacute;a tres:<br>
+            &nbsp;&nbsp;· distancia de coaptaci&oacute;n <b>&ge;1 cm</b> (la app usa &ge;10 mm);<br>
+            &nbsp;&nbsp;· &aacute;rea de tenting <b>&gt;2,5-3 cm&sup2;</b> — la gu&iacute;a da un rango y la
+            aplicaci&oacute;n aplica su extremo bajo, &gt;2,5 cm&sup2;;<br>
+            &nbsp;&nbsp;· &aacute;ngulo posterolateral <b>&gt;45&deg;</b>.<br>
+            La misma tabla lista adem&aacute;s jets complejos central y posteromediales, el remodelado
+            local del VI (distancia interpapilar &gt;20 mm, papilar posterior-fibrosa &gt;40 mm,
+            motilidad anormal de pared lateral) y el global (di&aacute;metro telediast&oacute;lico &gt;65 mm,
+            telesist&oacute;lico &gt;51 mm, volumen telesist&oacute;lico &gt;140 ml, &iacute;ndice de esfericidad
+            sist&oacute;lico &gt;0,7): la aplicaci&oacute;n no tiene campo para esos y no los cuenta.<br>
+            <span style="display:inline-block;border:1px solid var(--border);border-radius:4px;
+                         padding:1px 5px;margin:4px 4px 0 0;font-size:9px;letter-spacing:.3px;">CRITERIO DE ECOSMART</span>
+            Con <b>IM PRIMARIA</b> la aplicaci&oacute;n no publica ning&uacute;n veredicto de reparabilidad:
+            esa tabla es de IM secundaria y ninguna fuente de la biblioteca da cifras equivalentes
+            para la primaria. Las medidas se muestran y no se interpretan.<br>
+            <b style="color:var(--accent2);">Criterios de TEER.</b>
+            Altura de tenting <b>&lt;10 mm</b>, flail gap <b>&lt;10 mm</b> y ancho del flail
+            <b>&lt;15 mm</b> son la columna &laquo;no complejo — ideal para TEER mitral&raquo; de la
+            Tabla S2 del material suplementario de la ESC/EACTS 2025 de valvulopat&iacute;as
+            (hoja 5; el material suplementario no lleva folio de revista).
+            Profundidad de coaptaci&oacute;n <b>&lt;11 mm</b>: Tamburino y cols., <i>Eur Heart J</i>
+            2010;31:1382-1389, Tabla 1, folio 1386, que EXCLUYE &ge;11 mm — la misma tabla excluye
+            un ancho de flail &ge;15 mm, un flail gap &ge;10 mm y una longitud de coaptaci&oacute;n
+            &lt;2 mm.
+            PSAP <b>&le;70 mmHg</b> y di&aacute;metro telesist&oacute;lico del VI <b>&le;70 mm</b>:
+            ESC/EACTS 2025 de valvulopat&iacute;as, Tabla 7, folio 4678, que adem&aacute;s pide FEVI del
+            20 al 50 %.
+          </div>
           <div style="margin-top:10px;font-size:12px;font-weight:700;color:var(--accent2);">Seguimiento eco</div>
           <div style="font-size:12px;color:var(--text);line-height:1.8;margin-top:4px;">• Leve: 3–5 años · Moderada: 1–2 años · Severa asint: 6–12 meses</div>
         </div>
@@ -17822,6 +17873,38 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
                  los mismos que los de los tres tramos de la constante. El TEXTO no se puede comparar
                  —acá dice «9-11» y la constante «tramo 9 a 11»— y queda declarado. -->
             <b style="color:var(--accent2);">Score de Wilkins:</b> tramos ≤8 · 9-11 · &gt;11 (Wilkins 1988, folios 300 y 307)<br>
+            <!-- ⚠️ LA FICHA DEL SCORE, CON CADA DATO EN SU FOLIO (I-E2, 22/10/2026). Todo lo de
+                 abajo se VIO en el PDF original de la biblioteca, en imagen a 300 ppp:
+                 · la escala de 0-4 por criterio y el total de 4 a 16 —Wilkins 1988, Tabla 1,
+                   folio 300, y EAE/ASE 2009, Tabla 5, folio 14, que lo escribe con todas las
+                   letras: «The total score is the sum of the four items and ranges between 4 and 16»;
+                 · los dos cortes y lo que la serie hallo —Wilkins 1988, folio 307, literal:
+                   «All patients with a total echocardiographic score >11 had a suboptimal result
+                   while all those with a score <9 had an optimal result. The score failed to
+                   predict outcome in those with scores of 9 to 11»;
+                 · la salvedad —EAE/ASE 2009, apartado B.2.1, folio 14, literal: «No score has been
+                   definitely proven to be superior to another and all have a limited predictive
+                   value of the results of balloon mitral commissurotomy, which depends on other
+                   clinical and echocardiographic findings». -->
+            <div style="margin-top:8px;font-size:11px;color:var(--text2);line-height:1.6;">
+              · <b>La escala:</b> cuatro criterios —movilidad, engrosamiento, calcificaci&oacute;n y
+              compromiso subvalvular—, cada uno de 1 a 4; el total va de 4 a 16 (EAE/ASE 2009,
+              Tabla 5, folio 14).<br>
+              · <b>Lo que hall&oacute; la serie original:</b> 22 pacientes. Todos los que tuvieron un
+              score mayor de 11 tuvieron un resultado sub&oacute;ptimo y todos los que tuvieron menos de
+              9 un resultado &oacute;ptimo; <b>entre 9 y 11 el score no predijo el resultado</b>
+              (Wilkins 1988, folios 300 y 307).<br>
+              · <b>Salvedad:</b> el score eval&uacute;a la anatom&iacute;a valvular y no punt&uacute;a la
+              calcificaci&oacute;n comisural ni el grado de insuficiencia mitral. Ning&uacute;n score ha
+              demostrado ser superior a otro y todos tienen un valor predictivo limitado del
+              resultado de la comisurotom&iacute;a mitral con bal&oacute;n, que depende de otros hallazgos
+              cl&iacute;nicos y ecocardiogr&aacute;ficos (EAE/ASE 2009, apartado B.2.1, folio 14).
+            <!-- ⚠️ ESTE CIERRE FALTABA Y ROMPIA LA MAQUETA DE TODA LA APP. Un <div> sin cerrar no
+                 lanza: el parser RE-ANIDA todo lo que viene despues, y tres casos de zonas
+                 ajenas -el Laboratorio, la estadistica descriptiva y el boton de Evidencia-
+                 informaron geometria 0x0. NINGUN A/B de texto lo ve: el informe, el EN SUMA, el
+                 Excel y el PDF salian identicos. Lo cazo la SUITE. -->
+            </div>
             • <b>Clase I:</b> EM severa sintomática + Wilkins ≤8 + sin trombo AI → PMV<br>
             • <b>Clase IIa:</b> EM severa asintomática + Wilkins ≤8 + FA nueva o PSAP &gt;50mmHg → PMV
           </div>
@@ -18439,13 +18522,48 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
       <span style="float:right;">▶</span>
     </h2>
     <div id="ref-oai" style="display:none;" class="card-body">
+      <!-- ⚠️ ESTA FICHA PUBLICABA CUATRO COSAS SIN FUENTE Y DOS DE ELLAS ERAN FALSAS
+           (I-E2, 22/10/2026). Decia «Watchman: ostium 17-31mm · Amulet: 11-32mm»: el 17-31 es de
+           una generacion anterior de Watchman y el 11-32 no coincide con lo que publica Abbott.
+           NINGUNA guia de la biblioteca da rangos de tamano de dispositivo —censadas las de ETE:
+           la ASE 2021 de cribado estructural explica COMO medir el ostium y no da medidas—, asi
+           que lo que se cita es al FABRICANTE, con su fecha de consulta, y se dice que es dato de
+           fabricante y no de guia.
+           Y decia «FA no valvular + CHA2DS2-VASc >=2H/>=3M + contraindicacion ACO», que es una
+           INDICACION: eso es materia del panel de Evidencia, con su clase y su nivel.
+           Lo que entra verificado en imagen a 300 ppp es la velocidad de vaciamiento: ASE/SCA
+           2013 de ETE (Hahn y cols., JASE 2013;26(9):921-964), folio 954, literal: «LA appendage
+           emptying velocities of <20 cm/sec were associated with spontaneous echocardiographic
+           contrast, thrombus formation, and embolic events. LA appendage emptying velocities
+           >40 cm/sec predict a greater likelihood of sustained normal sinus rhythm after
+           cardioversion from atrial fibrillation.»
+           ⚠️ ESA GUIA NO DISTINGUE RITMO SINUSAL DE FIBRILACION AURICULAR para estos dos numeros,
+           y la aplicacion tampoco. Y NO publica los nombres «estasis leve» y «estasis severa»:
+           los numeros son de la guia y los rotulos son propios, de ahi el chip. -->
       <div style="font-size:12px;color:var(--text);line-height:1.8;">
         <b style="color:var(--accent2);">Morfología:</b> Ala de pollo (menor riesgo) · Coliflor (mayor riesgo) · Cactus · Veleta<br>
-        <b style="color:var(--accent2);">Velocidad vaciamiento:</b> ≥40 cm/s normal · &lt;20 cm/s estasis severa<br>
+        <b style="color:var(--accent2);">Velocidad de vaciamiento:</b> por debajo de <b>20 cm/s</b> se
+        asocia con contraste espontáneo, formación de trombo y eventos embólicos; por encima de
+        <b>40 cm/s</b> se predice mayor probabilidad de mantener el ritmo sinusal tras la
+        cardioversión de una fibrilación auricular (ASE/SCA 2013 de ETE, folio 954). La guía no
+        distingue ritmo sinusal de fibrilación auricular para estos dos números, y la
+        aplicación tampoco.<br>
+        <span style="display:inline-block;border:1px solid var(--border);border-radius:4px;
+                     padding:1px 5px;margin:2px 4px 2px 0;font-size:9px;letter-spacing:.3px;">CRITERIO DE ECOSMART</span>
+        <span style="font-size:11px;color:var(--text2);">Los rótulos «estasis leve» y «estasis
+        severa» y la franja intermedia de 20 a 40 cm/s son propios de la aplicación: la guía da
+        los números y no los nombres.</span><br>
         <b style="color:var(--accent2);">SEC:</b> ausente/leve/moderado/severo (barro) — mayor SEC = mayor riesgo<br>
-        <b style="color:var(--accent2);">Cierre percutáneo (Watchman/Amulet):</b><br>
-        • FA no valvular + CHA₂DS₂-VASc ≥2H/≥3M + contraindicación ACO<br>
-        • Watchman: ostium 17–31mm · Amulet: 11–32mm · Profundidad ≥ ostium · FEVI ≥30%
+        <b style="color:var(--accent2);">Dispositivos de cierre percutáneo — dato del fabricante,
+        consultado el 21/10/2026:</b><br>
+        • <b>Amplatzer Amulet</b> (Abbott): 8 tamaños de 16 a 34 mm, para zonas de anclaje de
+        <b>11,0 a 31,0 mm</b> — página oficial del fabricante.<br>
+        • <b>WATCHMAN FLX Pro</b> (Boston Scientific): 6 tamaños de <b>20 a 40 mm</b> — folleto de
+        producto del fabricante. Su tabla de dimensionamiento por diámetro de ostium
+        (instrucciones de uso 51245861-01 rev. A, 2023-07) no se pudo leer y no se cita, así que
+        la aplicación no afirma un rango de ostium para este dispositivo.<br>
+        <span style="font-size:11px;color:var(--text2);">Ninguna guía de la biblioteca publica
+        rangos de tamaño de dispositivo: son datos de fabricante y no recomendaciones.</span>
       </div>
     </div>
   </div>
@@ -18473,6 +18591,27 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
            escriben «≥ 3 mm al año». Se retira y lo reemplaza la tabla de cirugia de abajo, con
            cada fila verificada contra su tabla, su folio y su hoja. No se inventa ningun valor:
            lo que se deja de afirmar es lo que ninguna fuente sostenia. -->
+      <!-- ⚠️ LAS DOS ESCALAS DE ATEROMA NO COINCIDEN, Y LAS DOS ESTAN VERIFICADAS EN IMAGEN
+           (I-E2, 22/10/2026). La aplicacion aplica la de la ASE, que es la que esta tabla publica;
+           la de la ESC 2024 se REPORTA al lado para que el lector sepa que el mismo ateroma puede
+           caer en otro grado segun la escala. No se movio ningun corte de la app. -->
+      <div style="margin-top:10px;font-size:11px;color:var(--text2);line-height:1.6;">
+        <b style="color:var(--accent2);">De d&oacute;nde sale esta tabla.</b> Es la escala que recomienda
+        la ASE: gu&iacute;a ASE/SCA/STS 2020 de ETE para la decisi&oacute;n quir&uacute;rgica (Nicoara y cols.,
+        <i>JASE</i> 33(6)), <b>folio 716</b>, que a su vez remite al documento de la ASE de 2015 de
+        imagen multimodal de la aorta tor&aacute;cica. Literal: grado 1 (espesor intimal &lt;2 mm),
+        grado 2 (engrosamiento intimal 2-3 mm), grado 3 (ateroma de 3-5 mm), grado 4 (ateroma
+        &gt;5 mm) y grado 5 (cualquier espesor con componentes m&oacute;viles o ulcerados).<br>
+        <b style="color:var(--accent2);">La ESC 2024 gradúa distinto, y se reporta.</b> Su Tabla 14
+        (<b>folio 71</b>) corta en <b>4 mm</b> y no en 5: grado 1 &lt;2 mm, grado 2 entre 2 y 3 mm,
+        grado 3 ateroma &ge;3 a &lt;4 mm, grado 4 ateroma &ge;4 mm y grado 5 cualquiera de los
+        anteriores con componentes m&oacute;viles o ulcerados. <b>Un ateroma de 4,5 mm es grado 3 por la
+        escala de la ASE —la que esta aplicaci&oacute;n usa— y grado 4 por la de la ESC.</b><br>
+        <span style="font-size:10px;">Las dos escalas se pisan en los 3 mm exactos —la de la ASE
+        los pone en el grado 2 («2-3») y en el 3 («3-5»), y la de la ESC en el 2 («entre 2 y
+        3») y en el 3 («&ge;3»)—: la aplicaci&oacute;n resuelve ese valor hacia el grado MENOR, que es
+        el lado que no afirma de m&aacute;s.</span>
+      </div>
       <div style="margin-top:10px;font-size:11px;color:var(--text2);line-height:1.6;">
         Los umbrales de cirugía de la aorta torácica están en el bloque «Cirugía de la aorta torácica», debajo.
       </div>
@@ -64082,11 +64221,21 @@ function teerEstado() {
        FAVORABLE, no un dato que falta. Con la guarda puesta ese estudio pasaria de «APTO» a
        «Datos incompletos - falta: Flail gap», y el medico iria a buscar una medicion que ya
        hizo. Es la excepcion que Maicol fijo para c5 el 2026-09-15, aplicada a su par.
-       El corte y su operador salen del ROTULO del propio campo («Excl: >=10mm»), que es lo unico
-       que la app tenia escrito sobre este criterio. ⚠️ SIN LINEA DE FUENTE: ni el registro de
-       EVEREST II ni el protocolo EXPAND estan en la biblioteca -censados los 115 PDF, cero
-       coincidencias de EVEREST, EXPAND, MitraClip, TEER o PASCAL-, asi que el corte NO se cita.
-       Declarado en FUENTES.md y en PENDIENTES.md. */
+       El corte y su operador salian del ROTULO del propio campo («Excl: >=10mm»), que era lo
+       unico que la app tenia escrito sobre este criterio.
+       ⚠️ HOY SI TIENE FUENTE, Y EL CENSO QUE DECIA QUE NO LA TENIA ESTABA MAL (I-E2,
+       22/10/2026). Decia «ni el registro de EVEREST II ni el protocolo EXPAND estan en la
+       biblioteca -censados los 115 PDF, cero coincidencias de EVEREST, EXPAND, MitraClip,
+       TEER o PASCAL-». El articulo que publica estos cortes NO es el EVEREST II: es el
+       registro italiano de TAMBURINO y cols., Eur Heart J 2010;31:1382-1389, que SI esta en
+       la biblioteca, y su Tabla 1 (folio 1386, verificada en imagen) excluye un flail gap
+       >=10 mm, un ancho de flail >=15 mm y una profundidad de coaptacion >=11 mm. Los tres
+       coinciden ademas con la columna «no complejo - ideal para TEER mitral» de la Tabla S2
+       del material suplementario de la ESC/EACTS 2025 (hoja 5; el suplementario no lleva
+       folio de revista). EL CORTE NO SE MOVIO: lo que cambia es que ahora se cita.
+       ⚠️ BUSCAR POR EL NOMBRE DEL ENSAYO NO ENCUENTRA SU ARTICULO: el PDF se llama
+       «Percutaneos Mitral Valve repair withe the mitraclip system.pdf» y su titulo no nombra
+       ningun ensayo. Hay que buscar por el CONTENIDO. */
     c11: (aplPrim && flailGap !== null) ? C('teer-c11','Flail gap <10 mm', flailGap < 10, `${flailGap}mm <10mm`, `${flailGap}mm ≥10mm — NO apto`) : C('teer-c11','Flail gap <10 mm', null),
     c9:  C('teer-c9', 'Sin calcificación densa en zona clip',        calc   === '' ? null : calc   === 'no', 'Sin calcificación densa',    'Calcificación densa — evaluar'),
     c10: C('teer-c10','Sin clefts ni perforaciones en zona agarre',  clefts === '' ? null : clefts === 'no', 'Sin clefts ni perforaciones','Clefts/perforaciones — limitan agarre')
@@ -64274,7 +64423,11 @@ const REPAR_COAPT_MM    = 10;    // mm  — desfavorable con `>=` (la tabla escr
 const REPAR_ANGULO_GR   = 45;    // °   — desfavorable con `>`  (la tabla escribe «>45°»)
 const REPAR_TENTING_CM2 = 2.5;   // cm² — desfavorable con `>`  (la tabla escribe «>2,5-3 cm2»)
 const TEER_TENTING_MM   = 10;    // mm  — «ideal» para TEER con `<` (Tabla S2, pág. 5)
-const REPAR_FUENTE_TXT  = 'Los tres factores salen de la Tabla 7 de las recomendaciones europeas de regurgitación valvular nativa (hoja 25), descrita para la insuficiencia mitral SECUNDARIA. La altura de tenting no figura en esa tabla: su corte de 10 mm es el de la ESC/EACTS 2025, material suplementario, Tabla S2, para el TEER.';
+/* ⚠️ EL PIE DECLARA EL RANGO DEL AREA DE TENTING (I-E2, 22/10/2026). La Tabla 7 lo escribe
+   «>2,5-3 cm2», o sea un RANGO y no un numero: la app aplica su extremo BAJO (>2,5), que es el
+   lado que no deja de marcar, y lo dice en vez de publicar un corte unico como si fuera de la
+   fuente. Declarado tambien en la ficha de Referencias y en PENDIENTES.md. */
+const REPAR_FUENTE_TXT  = 'Los tres factores salen de la Tabla 7 de la guía de evaluación ecocardiográfica de la insuficiencia valvular (hoja 25; ese documento no lleva folio impreso), descrita para la insuficiencia mitral SECUNDARIA. El área de tenting la tabla la escribe como un rango, «>2,5-3 cm²», y la aplicación aplica su extremo bajo. La altura de tenting no figura en esa tabla: su corte de 10 mm es el de la ESC/EACTS 2025, material suplementario, Tabla S2 (hoja 5), para el TEER.';
 const REPAR_NO_SEC_TXT  = 'Sin veredicto: los tres factores de la Tabla 7 están descritos para la insuficiencia mitral SECUNDARIA, y el mecanismo consignado no lo es. Las mediciones se muestran y no se integran.';
 const REPAR_PRIM_TXT    = 'Para la insuficiencia mitral PRIMARIA ninguna fuente de la biblioteca publica cortes de reparabilidad quirúrgica: las cifras de esta pantalla son un criterio propio de la aplicación.';
 window.REPAR_COAPT_MM = REPAR_COAPT_MM; window.REPAR_ANGULO_GR = REPAR_ANGULO_GR;
