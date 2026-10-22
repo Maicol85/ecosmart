@@ -53846,6 +53846,24 @@ function generarInforme(opts) {
         /* Estos dos SÍ suben: no son «sin hallazgo», son «no se puede concluir», y el umbral que
            falta es el que decide operar. Dejarlos sólo en el cuerpo los vuelve invisibles. */
         sumaCC(r.txt + '.');
+      } else if (r.clave === 'sin_umbral') {
+        /* ══ EL EHLERS-DANLOS VASCULAR SUBE AL EN SUMA, DESCRIPTIVO (AJ1-E4, 22/10/2026) ══════
+           DECISION DE MAICOL. Hasta hoy este estado era el UNICO de la cascada que no subia:
+           sus tres hermanos accionables suben su clase y los dos incompletos suben su motivo,
+           y `sin_umbral` -el Ehlers-Danlos vascular, donde la ESC 2024 no publica ningun
+           diametro al que intervenir- se quedaba solo en el cuerpo. El resultado era que el
+           resumen de un paciente con la aortopatia de PEOR pronostico no la nombraba.
+           ⚠️ ES DESCRIPTIVA Y NO LLEVA UMBRAL NI CONDUCTA, que es justamente por lo que se
+           puede subir: no afirma nada que la guia no diga. Con el diametro cargado publica el
+           numero -el MAYOR de los dos que ese modulo mide, que es lo que `r.asc` y `r.seno`
+           traen- y sin el, solo el sindrome.
+           ⚠️ EL CUERPO DEL INFORME NO CAMBIA: ya nombra el sindrome con su texto completo, que
+           es el que explica por que no hay umbral. Aca va la version corta. */
+        const _edsD = [r.asc, r.seno].filter(function(x){ return x != null && isFinite(x) && x > 0 });
+        const _edsMax = _edsD.length ? Math.max.apply(null, _edsD) : null;
+        sumaCC(_edsMax != null
+          ? ('Aorta de ' + (Math.round(_edsMax * 10) / 10) + ' mm en un paciente con ' + r.sindTxt + '.')
+          : (r.sindTxt.charAt(0).toUpperCase() + r.sindTxt.slice(1) + '.'));
       }
     })();
 
@@ -76168,6 +76186,35 @@ window.aoDilMax = aoDilMax;
 function aoDilatada(){ const m = aoDilMax(); return m != null && m >= aoDilCorte(); }
 window.aoDilatada = aoDilatada;
 
+/* ══ EL INDICE DE DIMENSION AORTICA (iDA) — LA SEGUNDA PUERTA DE LA EVIDENCIA (AJ1-E4) ═══════
+   La MISMA frase que da los cortes de 40 y 36 mm da un tercero, y la app no lo usaba: ESC 2024
+   de enfermedad arterial periferica y aortica, apartado 9.2.1.1, folio 71 (hoja 72), VERIFICADO
+   EN IMAGEN: «En la práctica clínica se puede sospechar de dilatación de la raíz aórtica cuando
+   el diámetro aórtico es > 40 mm en hombres adultos y > 36 mm en mujeres o con un diámetro
+   indexado/ASC [índice de dimensión aórtica (iDA)] > 22 mm/m2.»
+   ⚠️ EL OPERADOR ES ESTRICTO Y NO SE UNIFICA CON EL DE LOS DIAMETROS ABSOLUTOS. El texto escribe
+   los tres con «>», y para los dos absolutos la app aplica el INCLUSIVO porque la Figura 24 los
+   bracketea «40-44 mm» -esa es la decision del H, y queda-. La figura NO bracketea el iDA: no
+   lo nombra. O sea que para el indice la UNICA forma impresa es la estricta, y aplicar el
+   inclusivo seria afirmar en 22,0 exactos algo que ninguna de las dos superficies de la fuente
+   dice. Es el lado conservador.
+   ⚠️ SIN SUPERFICIE CORPORAL NO HAY REGLA. `getBSA()` devuelve null sin peso o sin talla, y el
+   iDA queda en null: no se aplica y no se afirma nada. Un campo vacio es SIN DATO.
+   ⚠️ SE INDEXA EL MISMO DIAMETRO QUE DECIDE EL CORTE ABSOLUTO -el MAYOR de la raiz y de la
+   ascendente, de los CUATRO campos que `aoDilMax` lee-: con dos dueños, el panel podria abrirse
+   por un segmento y publicar las filas de otro. */
+const AO_IDA_MAX = 22;   // mm/m2 — por ENCIMA de este valor hay dilatacion por indice
+window.AO_IDA_MAX = AO_IDA_MAX;
+function aoIdaVal(){
+  const m = aoDilMax();
+  const b = (typeof getBSA === 'function') ? parseFloat(getBSA()) : null;
+  if (m == null || b == null || !isFinite(b) || !(b > 0)) return null;
+  return m / b;
+}
+window.aoIdaVal = aoIdaVal;
+function aoIdaDilatado(){ const x = aoIdaVal(); return x != null && x > AO_IDA_MAX; }
+window.aoIdaDilatado = aoIdaDilatado;
+
 /* ══ LAS RECOMENDACIONES, UNA TRANSCRIPCIÓN POR AORTOPATÍA ════════════════════════════════════
    Cada fila trae su clase, su nivel, su tabla o figura y su folio IMPRESO, los cuatro
    VERIFICADOS en el PDF original. `cond` recibe el estado y decide si la fila APLICA; `pide`
@@ -76311,7 +76358,19 @@ const AO_EV_LBL = Object.freeze({ ninguna:'sin aortopatía conocida', vab:'válv
    borra al abrir y al cerrar el panel—. */
 function _indAo(){
   const max = aoDilMax(), corte = aoDilCorte();
-  if (max == null || max < corte) return null;
+  /* ══ EL iDA ABRE ESTA SECCION TAMBIEN (AJ1-E4, 22/10/2026) ════════════════════════════════
+     Un indice por encima de 22 mm/m2 es dilatacion para la misma frase de la guia que da los
+     cortes absolutos, asi que una aorta de 36 mm en una persona de 1,50 m -iDA 24,9- abre la
+     seccion aunque el diametro absoluto no llegue a los 40.
+     ⚠️ LA SECCION DE LA BICUSPIDE NO SE ABRE POR EL INDICE, Y ES DELIBERADO. Esa seccion usa
+     `aoDilatada()`, el dueño del corte ABSOLUTO, y se queda con el: las filas de su Tabla 68
+     estan escritas sobre el diametro absoluto -su seguimiento por imagen es «con un diametro
+     aortico maximo > 40 mm»-, asi que abrirla por el indice mostraria recomendaciones cuya
+     propia condicion no se cumple. Son dos preguntas distintas y por eso son dos predicados;
+     queda DECLARADO en PENDIENTES, porque el H habia dejado un solo dueño para las dos. */
+  const porIda = (typeof aoIdaDilatado === 'function') ? aoIdaDilatado() : false;
+  if ((max == null || max < corte) && !porIda) return null;
+  if (max == null) return null;
   const raiz = (function(){ const a = _indN('ao_sin'), b = _indN('marfan_ao_seno');
     const n = [a, b].filter(function(x){ return x != null && x > 0 }); return n.length ? Math.max.apply(null, n) : null })();
   const asc  = (function(){ const a = _indN('ao_tub'), b = _indN('marfan_ao_ascendente');
@@ -76353,6 +76412,20 @@ function _indAo(){
       raiz != null ? 'es el segmento que eligen los umbrales del Marfan y del Loeys-Dietz' : 'sin medir'),
     _indFila('Aorta ascendente', _indNum(asc, 0, 'mm'), asc != null ? 'none' : 'ask',
       asc != null ? 'es el segmento del umbral de 52 mm con riesgo quirúrgico bajo' : 'sin medir'),
+    /* ⚠️ LA FILA DEL iDA SE DIBUJA SIEMPRE, tambien cuando falta la superficie corporal: una
+       fila que desaparece porque falta un dato se lee como una fila que no aplica, que es la
+       misma regla que el bloque «Lo que falta» de mas abajo. */
+    (function(){
+      const idaV = (typeof aoIdaVal === 'function') ? aoIdaVal() : null;
+      if (idaV == null) return _indFila('Índice de dimensión aórtica (iDA)', '—', 'ask',
+        'es el diámetro máximo dividido por la superficie corporal; faltan el peso o la talla, así que no se calcula y no se aplica su criterio');
+      return _indFila('Índice de dimensión aórtica (iDA)', _indNum(idaV, 1, 'mm/m²'),
+        idaV > AO_IDA_MAX ? 'ok' : 'none',
+        idaV > AO_IDA_MAX
+          ? 'por encima de ' + AO_IDA_MAX + ' mm/m² la guía habla de dilatación aunque el diámetro absoluto no llegue al corte'
+          : 'no supera los ' + AO_IDA_MAX + ' mm/m² del apartado 9.2.1.1',
+        ['esc2024ao']);
+    })(),
     _indFilaOrigen('Aortopatía asociada', oAo,
       Object.keys(AO_EV_LBL).map(function(k){ return { v:k, t:AO_EV_LBL[k] } }),
       function(v){
